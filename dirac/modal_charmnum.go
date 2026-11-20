@@ -50,6 +50,19 @@ func prepCharmNum(t *kop.Table, g *genPrep) {
 // charmMin is the fewest modes a is chosen with.
 func charmMin(a *kop.Ability) int { return int(a.ModesPick) - int(a.ModesFew) }
 
+// noModeAbort reverses a spell's cast when its mode ask has no legal mode but
+// at least one mode is required (CR 733.1). Gorge's cast_asks.go aborts the
+// same announcement ("no legal modal choice"); announcing it with no mode
+// would resolve the spell for free (Cloud's Limit Break with no affordable
+// mode).
+func (s *State) noModeAbort(k *prep, a *kop.Ability) bool {
+	if charmMin(a) <= 0 {
+		return false
+	}
+	s.reverseCast(k)
+	return true
+}
+
 // charmFeasible is the offer gate (gorge charmTargetsAvailable): at least
 // the minimum number of modes can be chosen. A mode with no target is
 // feasible.
