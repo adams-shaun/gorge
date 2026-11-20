@@ -43,6 +43,7 @@ const (
 	Freerunning
 	Awaken
 	Spectacle
+	Offering
 	// All answers "maybe" for every head.
 	All Heads = 1<<iota - 1
 )
@@ -133,6 +134,8 @@ func Of(f *cards.Face) Heads {
 			m |= Awaken
 		case headOfSpectacle:
 			m |= Spectacle
+		case headOfOffering:
+			m |= Offering
 		}
 	}
 	return m
@@ -151,7 +154,7 @@ var Names = [...]struct {
 	{Morph, "Morph"}, {Megamorph, "Megamorph"}, {Disguise, "Disguise"},
 	{MayFlashCost, "MayFlashCost"}, {AlternateAdditionalCost, "AlternateAdditionalCost"}, {Impending, "Impending"},
 	{Prowl, "Prowl"}, {Freerunning, "Freerunning"}, {Awaken, "Awaken"},
-	{Spectacle, spectacleHead},
+	{Spectacle, spectacleHead}, {Offering, "Offering"},
 }
 
 const spectacleHead = "Spectacle"
@@ -208,6 +211,7 @@ const (
 	headOfFreerunning
 	headOfAwaken
 	headOfSpectacle
+	headOfOffering
 )
 
 var headsOfCodes = state.NewStrCodes(
@@ -239,4 +243,5 @@ var headsOfCodes = state.NewStrCodes(
 	// Lower-cased from the head name: rules/altcast_modes.go owns the
 	// lower-case "spectacle" word (TestAltCastModeLiteralsLiveInTheDescriptor).
 	state.StrEntry[headCode]{Key: lowerASCII(spectacleHead), Val: headOfSpectacle},
+	state.StrEntry[headCode]{Key: "offering", Val: headOfOffering},
 )
