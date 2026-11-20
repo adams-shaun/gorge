@@ -204,6 +204,12 @@ var predicates = map[string]predFn{
 	"phasedOutOther": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return src != 0 && o.ID != src && o.PhasedOut && o.Zone == state.ZBattlefield
 	},
+	// phasedOutSelf is the source itself while it is phased out (Teferi's Imp's
+	// and Ertai's Familiar's `Card.phasedOutSelf`: the "whenever ~ phases out"
+	// look-back, CR 702.26b). An unbound source (id 0) matches nothing.
+	"phasedOutSelf": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ID == src && o.PhasedOut && o.Zone == state.ZBattlefield
+	},
 	// phasedOutPermanent is Forge's phasedOut prefix over Permanent (Disciple
 	// of Caelus Nin's `Card.phasedOutPermanent`): every phased-out
 	// battlefield object is a permanent, so it reads exactly as phasedOut.
