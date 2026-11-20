@@ -898,6 +898,9 @@ func (s *State) umbraWalk(mask slotMask, umbra *umbraOrder, out []Slot, n int) i
 		m := mask.and(s.ctrlM[p])
 		for i := 0; i < umbra.n; i++ {
 			host, aura := umbra.pairs[i][0], umbra.pairs[i][1]
+			if !s.umbraMoves(umbra, i) {
+				continue // a victim Aura gorge reaches before its host stays at its own slot
+			}
 			if s.ctrlM[p].has(aura) {
 				m = m.without(aura) // emitted at its host's position instead
 			}
@@ -908,7 +911,7 @@ func (s *State) umbraWalk(mask slotMask, umbra *umbraOrder, out []Slot, n int) i
 		n0 := n
 		n = s.battlefieldOrder(p, m, out, n)
 		for j := n0; j < n; j++ {
-			aura, ok := umbra.auraOf(out[j])
+			aura, ok := s.auraOf(umbra, out[j])
 			if !ok {
 				continue
 			}

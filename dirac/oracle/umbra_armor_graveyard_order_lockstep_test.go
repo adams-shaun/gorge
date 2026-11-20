@@ -201,7 +201,7 @@ func umbraDestroyAllDeck() []string {
 }
 
 // TestUmbraArmorGraveyardOrderDestroyAll checks the destroy-all choke point
-// (shieldUmbraAll): the Aura goes at its host's position, and the old
+// (shieldUmbraAllLeave): the Aura goes at its host's position, and the old
 // own-slot build diverges.
 func TestUmbraArmorGraveyardOrderDestroyAll(t *testing.T) {
 	if isolate(t) {
@@ -232,4 +232,63 @@ func TestUmbraArmorGraveyardOrderDestroyAll(t *testing.T) {
 		}
 	}
 	t.Fatal("the own-slot order produced no divergence in a destroy-all game")
+}
+
+// umbraVictimAuraDeck: white creatures and white umbra Auras with Anarchy
+// (destroy all white permanents), so the Aura is itself a victim of the
+// destroy-all and sits in a lower or higher seat than the host it saves.
+func umbraVictimAuraDeck() []string {
+	var d []string
+	for range 12 {
+		d = append(d, "Savannah Lions")
+	}
+	for range 10 {
+		d = append(d, "Hyena Umbra")
+	}
+	for range 4 {
+		d = append(d, "Anarchy")
+	}
+	for range 7 {
+		d = append(d, "Plains")
+	}
+	for range 7 {
+		d = append(d, "Mountain")
+	}
+	return d
+}
+
+// TestUmbraArmorGraveyardOrderDestroyAllVictimAura covers the destroy-all
+// whose victims include the umbra Aura itself: gorge destroys it at its own
+// place when that comes before its host's and at the host's otherwise, so the
+// engines must agree across both seat orders, and an order build that always
+// moves the Aura to its host (the bug this guards) or never does diverges.
+func TestUmbraArmorGraveyardOrderDestroyAllVictimAura(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	deck := umbraVictimAuraDeck()
+	tally := &umbraOrderTally{}
+	base := fourSeatSetPlay(t, printedDelveSet(t, [2][]string{deck, deck}),
+		[4][]string{deck, deck, deck, deck}, nil, tally.check, nil,
+		func(seed uint64) Policy { return umbraOrderPolicy(seed) })
+	play := func(seed uint64) Result {
+		tally.reset()
+		return base(seed)
+	}
+	const seeds = 20
+	fourSeatAtkClean(t, play, seeds)
+	t.Logf("%d umbra armor answers saved their host beside a victim Aura", tally.spares)
+	if tally.spares == 0 {
+		t.Fatal("no destroy-all umbra armor answer saved its host: the mechanism was never reached")
+	}
+	old := dirac.DebugUmbraOwnSlotOrder
+	dirac.DebugUmbraOwnSlotOrder = true
+	defer func() { dirac.DebugUmbraOwnSlotOrder = old }()
+	for seed := uint64(1); seed <= seeds; seed++ {
+		if res := play(seed); res.Div != nil {
+			t.Logf("mutation: seed %d diverges at %d (%s %s)", seed, res.Div.At, res.Div.What, res.Div.Field)
+			return
+		}
+	}
+	t.Fatal("the own-slot order produced no divergence in a victim-Aura destroy-all game")
 }
