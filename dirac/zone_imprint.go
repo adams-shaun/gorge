@@ -10,8 +10,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // may be in both) and from the chosen set the older imprint shapes borrow.
 //
 // A card whose CardDef.ImpPersist is set keeps the list on the source, as
-// gorge's Object.Imprinted: each write is also recorded in the per-source
-// memory (zone_srcmem.go), the next resolution of that source starts with the
+// gorge's Object.Imprinted: each write is also recorded in the object-set
+// store (zone_objsets.go), the next resolution of that source starts with the
 // records its stamped incarnation keeps (impSeed; a leaves trigger reads them
 // after the departure), and a read away from the resolving resolution answers
 // from them (impHasAt). The list is cleared at the source's next battlefield
@@ -62,15 +62,16 @@ func (s *State) impStoreHas(src, o Obj, origin kop.Zone) bool {
 	if s.res.active {
 		e = &s.res.e
 	}
-	r := coldSrcMem.of(s)
+	r := s.cold.objSets
 	for i := range r {
-		if r[i].fl == 0 {
+		if r[i].kind == 0 {
 			break
 		}
-		if r[i].src != src || r[i].fl&(smImp|smImpAny) == 0 || !s.smLiveFor(&r[i], e) {
+		rec := &r[i]
+		if rec.src != src || !rec.inKinds(osMImp) || !s.osLiveFor(rec, e) {
 			continue
 		}
-		if r[i].o == o && s.impZoneGate(o, origin) {
+		if rec.o == o && s.impZoneGate(o, origin) {
 			return true
 		}
 	}
@@ -126,16 +127,7 @@ func (s *State) impRefSrc(ctx evalCtx) (Obj, bool) {
 // no zone gate (gorge's Defined$ Imprinted): the records live now (the
 // source on the battlefield at the stamped ver).
 func (s *State) impStoreEach(src Obj, f func(Obj)) {
-	r := coldSrcMem.of(s)
-	for i := range r {
-		if r[i].fl == 0 {
-			break
-		}
-		if r[i].src != src || r[i].fl&(smImp|smImpAny) == 0 || !s.smLiveNow(&r[i]) {
-			continue
-		}
-		f(r[i].o)
-	}
+	s.osEach(osMImp, src, nil, f)
 }
 
 // impCreatureSub is kop.Override ImpSub (Duplicant's AddType$
@@ -149,10 +141,10 @@ func (s *State) impCreatureSub(k *prep, src Obj) kop.SubMask {
 	if src == NoObj {
 		return out
 	}
-	r := coldSrcMem.of(s)
-	for i := s.smLen() - 1; i >= 0; i-- {
+	r := s.cold.objSets
+	for i := s.osLen() - 1; i >= 0; i-- {
 		rec := &r[i]
-		if rec.src != src || rec.fl&(smImp|smImpAny) == 0 || !s.smLiveNow(rec) {
+		if rec.src != src || !rec.inKinds(osMImp) || !s.osLiveNow(rec) {
 			continue
 		}
 		ob := &s.objs[rec.o]
@@ -206,7 +198,7 @@ func (s *State) forgetImprinted(k *prep, in *kop.Instr) {
 	s.g.nimp = n
 	e := &s.res.e
 	if k.gen != nil && k.gen.anySrcMem && int(e.card) < len(k.t.Cards) && k.t.Cards[e.card].ImpPersist {
-		s.smForget(o, e.obj, smImp|smImpAny)
+		s.osForget(o, e.obj, osMImp)
 	}
 }
 
@@ -215,7 +207,7 @@ func (s *State) forgetImprinted(k *prep, in *kop.Instr) {
 func (s *State) extClearImprinted(k *prep) {
 	s.g.nimp = 0
 	if k.gen.anySrcMem && int(s.res.e.card) < len(k.t.Cards) && k.t.Cards[s.res.e.card].ImpPersist {
-		s.smClear(s.res.e.obj, smImp|smImpAny, &s.res.e)
+		s.osClear(s.res.e.obj, osMImp, &s.res.e)
 	}
 }
 
@@ -231,19 +223,20 @@ func (s *State) impSeedOnResolve(k *prep, e *stackEntry) {
 // seeds: gorge keeps the list through the departure and clears it at the next
 // battlefield entry.
 func (s *State) impSeed(e *stackEntry) {
-	r := coldSrcMem.of(s)
+	r := s.cold.objSets
 	for i := range r {
-		if r[i].fl == 0 {
+		if r[i].kind == 0 {
 			break
 		}
-		if r[i].src != e.obj || r[i].fl&(smImp|smImpAny) == 0 || !s.smLiveFor(&r[i], e) {
+		rec := &r[i]
+		if rec.src != e.obj || !rec.inKinds(osMImp) || !s.osLiveFor(rec, e) {
 			continue
 		}
 		if s.g.nimp >= maxImp {
 			s.capFull(StallImprint)
 			return
 		}
-		s.g.imp[s.g.nimp] = r[i].o
+		s.g.imp[s.g.nimp] = rec.o
 		s.g.nimp++
 	}
 	if st := DebugSrcMemStats; st != nil {
@@ -256,12 +249,12 @@ func (s *State) impSeed(e *stackEntry) {
 // trigger that reads it). enterNF calls it after the new incarnation's ver,
 // so every record of the source is from an earlier incarnation and goes.
 func (s *State) impEnter(o Obj) {
-	s.smDropImp(o)
+	s.osDropImp(o)
 }
 
 // imprintStore records o on the resolving ImpPersist source, if it is still
-// the battlefield incarnation that started the resolution. smImpAny marks a
-// token, smImp any other object.
+// the battlefield incarnation that started the resolution. osImpAny marks a
+// token, osImp any other object.
 func (s *State) imprintStore(o Obj, e *stackEntry) {
 	k := s.k()
 	if k == nil || k.gen == nil || !k.gen.anySrcMem || e == nil || int(e.card) >= len(k.t.Cards) || !k.t.Cards[e.card].ImpPersist {
@@ -271,11 +264,11 @@ func (s *State) imprintStore(o Obj, e *stackEntry) {
 	if ob.zone != kop.ZoneBattlefield || ob.ver != e.srcVer {
 		return
 	}
-	kind := smImp
+	kind := osImp
 	if s.objs[o].of&ofToken != 0 {
-		kind = smImpAny
+		kind = osImpAny
 	}
-	s.smAdd(o, e.obj, kind)
+	s.osAdd(kind, e.obj, o)
 }
 
 // imprint adds o to the imprinted set, once, and records it on a resolving
