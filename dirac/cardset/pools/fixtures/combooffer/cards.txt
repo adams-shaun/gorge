@@ -1,0 +1,9 @@
+# Baxter Building's {4},{T} any-combination filter beside two dual lands and
+# Forests: the only white source that makes The Sentry's {3}{W} affordable
+# (dirac/mana_filter_combo_offer_test.go)
+Baxter Building
+Stark Industries
+Pym Technologies
+Forest
+The Sentry, Golden Guardian
+Crowd of True Believers
