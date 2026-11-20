@@ -330,6 +330,20 @@ and BLB slices, the size bar, allocations and instructions per transition),
    a peer's half-written file: check `git status` and mtimes first.
 7. **A change to how a CR rule is handled updates that rule's row in
    `engine/rules/crcoverage/` in the same commit** (see its README).
+7. **The deletion rule.** A test may be deleted only when one of these holds:
+   1. **It is a duplicate by construction.** It replays the same recording, pin
+      or seed, with the same or a weaker check, as a test that stays. The PR
+      names the covering test.
+   2. **It has become data.** A one-line wrapper becomes a manifest row that the
+      remaining test replays under the same name (subtest
+      `TestReproManifest/<recording>`). `-run` selection and the failure message
+      keep working.
+   3. **Its subject is gone.** The code, card or decision kind it pins was
+      removed, and the removing PR deletes it.
+
+   Never delete a test because it has not failed, or because it is slow. A slow
+   test is split, sharded or moved to the nightly tier with a named owner. A
+   regression test for a fixed bug stays, as code or as a manifest row.
 
 ### Commits
 
