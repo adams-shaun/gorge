@@ -700,7 +700,7 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		return c, done
 	case seAbility:
 		a := &k.t.Cards[e.card].Abilities[e.ab]
-		c := a.Cost.Mana
+		c := s.embalmCostOr(k, e, a.Cost.Mana) // a granted embalm's own cost (kw_embalmgrant.go)
 		if k.gen != nil && k.gen.anyOwnReduce {
 			if a.OwnReduce != (kop.ValueRef{}) {
 				c = s.ownReduced(k, a, e.obj, e.ctrl)
