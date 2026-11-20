@@ -1077,7 +1077,16 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			// the creatures paying the coloured pips with every land tapped
 			// (CR 702.51a) -- is still offered, as the credited re-price below
 			// reads (a delve cast credits nothing: castOfferBase is the raw base)
-			if o := Obj(a.Source()); s.objs[o].zone == kop.ZoneHand {
+			//
+			// An alternative-cost keyword cast (impending, evoke, dash,
+			// overload) is the exception: gorge's potential planner prices it
+			// at its raw keyword cost with no credit and, when the printed
+			// sources fall short, answers "unsupported cost:credit" with no
+			// prefix search (potentialModeCastPlan, potentialModeCredit). The
+			// credited re-price would keep an Overlord of the Mistmoors that
+			// only the granted-mana creatures, tapped as sources and as
+			// convoke, could pay (CR 702.51a, 702.176a).
+			if o := Obj(a.Source()); s.objs[o].zone == kop.ZoneHand && !altKeywordCast(a) {
 				if credited := s.convokeCredit(k, p, s.objs[o].card, o, cost); s.affordsUngrantedPlay(k, p, a, &credited, ex, s.grantPayDesc(k, a)) {
 					continue
 				}
@@ -1337,4 +1346,18 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	if !s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
 		s.grantTapXPrefix(k, a, p)
 	}
+}
+
+// altKeywordCast reports whether a is a hand cast for one of the
+// alternative-cost keyword rows gorge prices at the raw keyword cost
+// (altcast_modes.go: evoke, dash, overload, impending with potential set).
+func altKeywordCast(a Action) bool {
+	if a.Kind() != AkCast || a.Mode() != 0 {
+		return false
+	}
+	switch a.Target() {
+	case castImpTgt, castEvokeTgt, castDashTgt, castOverloadTgt:
+		return true
+	}
+	return false
 }
