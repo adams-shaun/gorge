@@ -681,7 +681,11 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
 			continue
 		}
-		if deferSkip && s.planDeferred(k, p, sl) {
+		// a granted basic land type's intrinsic unit is the deferred source's
+		// exception (blgIntrinsicUnit): gorge's census lists it like any
+		// printed source's (CR 305.6), so the restricted sources' walk counts
+		// it beside the source's restricted abilities
+		if deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue
 		}
 		own := s.manaPCGen(k, sl)

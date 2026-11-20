@@ -939,8 +939,8 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		if sl == ex || skip.has(sl) || s.grantMay(k, sl) && s.manaGranted(k, sl) {
 			continue
 		}
-		if defer_ && s.planDeferred(k, p, sl) {
-			continue // the census never lists a deferred source (mana_rider.go)
+		if defer_ && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			continue // the census never lists a deferred source (mana_rider.go); a granted basic land type's intrinsic unit is the exception (static_landtype.go)
 		}
 		pc := s.manaPCGen(k, sl)
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {

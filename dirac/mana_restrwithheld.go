@@ -23,7 +23,11 @@ func (s *State) restrWithheldMana(k *prep, p uint8, d payDesc) int {
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		c := s.cardAt(sl)
-		if g.flags[c]&gfRestrSrc == 0 || deferSkip && s.planDeferred(k, p, sl) || !s.restrUsable(k, sl) {
+		// a granted basic land type's intrinsic unit is the deferred source's
+		// exception (blgIntrinsicUnit): gorge's census lists it like any
+		// printed source's (CR 305.6), so the withheld read counts the
+		// restricted mana of its own abilities beside it
+		if g.flags[c]&gfRestrSrc == 0 || deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) || !s.restrUsable(k, sl) {
 			continue
 		}
 		if v, _, _ := s.restrView(k, p, sl, s.manaPCGen(k, sl), &d); v != nil {
