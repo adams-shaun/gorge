@@ -8,6 +8,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -111,29 +112,42 @@ func loadReportRegistry(dir string) (*cards.Registry, error) {
 }
 
 func report(dir string, top int) error {
+	return reportTo(os.Stdout, dir, top)
+}
+
+// reportTo is report writing to w, split out so a test can capture the
+// output instead of splicing stdout.
+func reportTo(w io.Writer, dir string, top int) error {
 	r, err := loadReportRegistry(dir)
 	if err != nil {
 		return err
 	}
 	if l, err := cards.ReadLock(dir); err == nil {
-		fmt.Printf("corpus: %s @ %s (%s, %d files)\n", l.Ref, l.Commit, l.License, l.Files)
+		fmt.Fprintf(w, "corpus: %s @ %s (%s, %d files)\n", l.Ref, l.Commit, l.License, l.Files)
 	}
 	// Pass the real primitive set; an empty map would make every card
 	// "not playable" while still letting the report rank what to build next.
 	r.ShapeGate = etbCopyShapeGate
+	// Cards the paper rules ban in every format (excludedRegister) are not
+	// unplayable gaps: they are diagnosed on their own line below, and their
+	// primitives never rank in the missing-primitives table.
+	r.Excluded = paperExcluded
 	cv := r.Coverage(effects.Supported())
-	fmt.Printf("cards: %d  playable: %d (%.1f%%)\n",
+	fmt.Fprintf(w, "cards: %d  playable: %d (%.1f%%)\n",
 		cv.Cards, cv.Supported, 100*float64(cv.Supported)/float64(cv.Cards))
-	fmt.Printf("tokens: %d\n", len(r.Tokens))
-	fmt.Println("\ntop missing primitives (cards unlocked):")
+	if excluded, detail := excludedCauseCounts(); excluded > 0 {
+		fmt.Fprintf(w, "excluded: %d%s\n", excluded, detail)
+	}
+	fmt.Fprintf(w, "tokens: %d\n", len(r.Tokens))
+	fmt.Fprintln(w, "\ntop missing primitives (cards unlocked):")
 	for i, m := range cv.TopMissing(top) {
-		fmt.Printf("%3d. %-32s %6d\n", i+1, m.Name, m.Cards)
+		fmt.Fprintf(w, "%3d. %-32s %6d\n", i+1, m.Name, m.Cards)
 	}
 
 	if bad := unknownFilterTypes(r); len(bad) > 0 {
-		fmt.Println("\nfilter base types matching no card in the registry (likely typos):")
+		fmt.Fprintln(w, "\nfilter base types matching no card in the registry (likely typos):")
 		for _, u := range bad {
-			fmt.Printf("%3d. %-32s %6d\n", u.rank, u.token, u.count)
+			fmt.Fprintf(w, "%3d. %-32s %6d\n", u.rank, u.token, u.count)
 		}
 	}
 	return nil
