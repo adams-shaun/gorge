@@ -369,10 +369,22 @@ func (g *grantSrch) witnessKeeps(t *State, cost *kop.ManaCost) bool {
 // in reach): gorge's scripted prefix re-runs the offer walk on the tapped
 // board (potential_script.go potentialWitnessOffers -> rules
 // castTargetsAvailable), so it refuses the play and the search must not price
-// it. Only casts carry their target specs here; an activated ability's own
-// target census is the ability offer's.
+// it. A depletion land's rider is the other direction: the prefix taps and
+// sacrifices the only nonbasic land Dwarven Miner's activation could target,
+// so the post-prefix ability census has no candidate and the play must not be
+// priced either (gorge's potentialWitnessReaches replays the same play).
 func (s *State) playTargetsFeasible(k *prep, p uint8, d payDesc) bool {
-	if !d.hasPlay || !isCastKind(d.play.Kind()) || k.t == nil || int(d.card) >= len(k.t.Cards) {
+	if !d.hasPlay || k.t == nil || int(d.card) >= len(k.t.Cards) {
+		return true
+	}
+	if d.play.Kind() == AkActivate {
+		ab := d.play.Mode()
+		if isGainedMode(ab) || int(ab) >= len(k.t.Cards[d.card].Abilities) {
+			return true // a gained or granted ability's target census is its own offer's
+		}
+		return s.abilityTargetsFeasible(k, &k.t.Cards[d.card].Abilities[ab], p, d.src, 0xff)
+	}
+	if !isCastKind(d.play.Kind()) {
 		return true
 	}
 	if d.play.Kind() == AkCast && d.play.Target() == castOverloadTgt {
