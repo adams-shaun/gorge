@@ -26,6 +26,12 @@ import (
 //     tie-branch bit; the branches follow as OpBranch blocks (the
 //     GenericChoice shape).
 //
+// A fixed-list Vote on a triggered ability refuses: gorge's placement ask
+// treats a triggered Vote's Choices$ as modal (charm_params.go isModalSA), so
+// it poses a spurious CR 603.3c mode choice before the trigger goes on the
+// stack, and effVote never reads it. That is a gorge defect, not a rules
+// shape to copy; until gorge is fixed the card stays refused by name.
+//
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. Player ballots (VotePlayer$), the tally publishers
 // (StoreVoteNum$, RememberVotedObjects$), secret and up-to votes, and Zone$
@@ -119,33 +125,11 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 	}
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType")
 	if lc.ab.Kind == akTriggered {
-		return lc.triggeredFixedVote(names, tie)
+		// gorge asks a spurious placement mode for a triggered fixed-list
+		// Vote (charm_params.go isModalSA); do not copy that defect.
+		return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
 	}
 	return lc.emitFixedVote(names, tie)
-}
-
-// triggeredFixedVote lowers a fixed-list Vote on a triggered ability. Gorge
-// treats a triggered Vote's Choices$ as modal at trigger placement
-// (charm_params.go isModalSA) and asks the controller one mode before the
-// trigger goes on the stack; the chosen mode is not read by effVote, which
-// still asks every voter. The kernel asks the same placement mode only when
-// the ability carries modes, so the vote (and its branches) is repeated once
-// per mode behind an OpCharm block: the chosen mode runs its copy, the
-// others are skipped, and every copy resolves the same vote.
-func (lc *lowerCtx) triggeredFixedVote(names []string, tie string) error {
-	if lc.ab.Modes != 0 {
-		return refuse("Vote on an ability that is already modal")
-	}
-	lc.ab.Modes, lc.ab.ModesPick, lc.ab.ModesMin = len(names), 1, 1
-	for i := range names {
-		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
-		if err := lc.emitFixedVote(names, tie); err != nil {
-			return err
-		}
-		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
-	}
-	return nil
 }
 
 // emitFixedVote emits the ExtVote op and its winning/tie Branch blocks.

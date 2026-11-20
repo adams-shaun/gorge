@@ -10,42 +10,46 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// voteChoicesPodEntries is the votechoices fixture's four decks. The
-// lowerable fixed-list carriers sit beside cheap creatures, burn and lands so
-// every seat reaches a vote; the four cards whose branches still refuse
-// (Galadriel, Sail into the West, Split Decision, Trial of a Time Lord) stay
-// out of the decks but remain in the pool's cards.txt.
+// voteChoicesPodEntries is the votechoices fixture's four decks. Only the
+// three non-triggered carriers lower: the sorceries sit beside cheap
+// creatures, burn and lands so every seat reaches a vote. The triggered
+// carriers (Coercive Portal, Council Guardian, Galadriel, Magister of Worth,
+// Trial of a Time Lord) and the branch-refused spells (Expropriate, Sail into
+// the West, Split Decision) stay out of the decks but remain in the pool's
+// cards.txt.
 func voteChoicesPodEntries() [4][]cardset.Entry {
 	return [4][]cardset.Entry{
 		{
-			{Name: "Tyrant's Choice", Count: 3}, {Name: "Bite of the Black Rose", Count: 2},
-			{Name: "Coercive Portal", Count: 2}, {Name: "Lightning Bolt", Count: 3},
+			{Name: "Tyrant's Choice", Count: 4}, {Name: "Bite of the Black Rose", Count: 2},
+			{Name: "Plea for Power", Count: 1}, {Name: "Lightning Bolt", Count: 2},
 			{Name: "Grizzly Bears", Count: 3}, {Name: "Savannah Lions", Count: 3},
-			{Name: "Giant Growth", Count: 3},
-			{Name: "Swamp", Count: 5}, {Name: "Island", Count: 5},
-			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 3}, {Name: "Plains", Count: 3},
+			{Name: "Giant Growth", Count: 2}, {Name: "Swamp", Count: 8},
+			{Name: "Island", Count: 5}, {Name: "Forest", Count: 4},
+			{Name: "Plains", Count: 3}, {Name: "Mountain", Count: 3},
 		},
 		{
-			{Name: "Plea for Power", Count: 3}, {Name: "Council Guardian", Count: 2},
-			{Name: "Giant Growth", Count: 4}, {Name: "Grizzly Bears", Count: 4},
-			{Name: "Savannah Lions", Count: 3}, {Name: "Lightning Bolt", Count: 3},
-			{Name: "Plains", Count: 7}, {Name: "Island", Count: 6},
-			{Name: "Forest", Count: 5}, {Name: "Swamp", Count: 3},
+			{Name: "Plea for Power", Count: 4}, {Name: "Bite of the Black Rose", Count: 2},
+			{Name: "Tyrant's Choice", Count: 1}, {Name: "Giant Growth", Count: 2},
+			{Name: "Grizzly Bears", Count: 3}, {Name: "Savannah Lions", Count: 3},
+			{Name: "Lightning Bolt", Count: 2}, {Name: "Island", Count: 8},
+			{Name: "Swamp", Count: 5}, {Name: "Forest", Count: 4},
+			{Name: "Plains", Count: 3}, {Name: "Mountain", Count: 3},
 		},
 		{
-			{Name: "Magister of Worth", Count: 2}, {Name: "Giant Growth", Count: 3},
+			{Name: "Bite of the Black Rose", Count: 4}, {Name: "Plea for Power", Count: 2},
+			{Name: "Tyrant's Choice", Count: 1}, {Name: "Giant Growth", Count: 2},
 			{Name: "Grizzly Bears", Count: 3}, {Name: "Savannah Lions", Count: 3},
-			{Name: "Lightning Bolt", Count: 2}, {Name: "Plains", Count: 6},
-			{Name: "Island", Count: 6}, {Name: "Forest", Count: 5},
-			{Name: "Swamp", Count: 3}, {Name: "Mountain", Count: 7},
+			{Name: "Lightning Bolt", Count: 2}, {Name: "Swamp", Count: 8},
+			{Name: "Island", Count: 5}, {Name: "Forest", Count: 4},
+			{Name: "Plains", Count: 3}, {Name: "Mountain", Count: 3},
 		},
 		{
-			{Name: "Coercive Portal", Count: 2},
-			{Name: "Bite of the Black Rose", Count: 2}, {Name: "Tyrant's Choice", Count: 2},
-			{Name: "Grizzly Bears", Count: 3}, {Name: "Savannah Lions", Count: 3},
-			{Name: "Giant Growth", Count: 2}, {Name: "Lightning Bolt", Count: 2}, {Name: "Plains", Count: 6},
-			{Name: "Island", Count: 6}, {Name: "Swamp", Count: 5},
-			{Name: "Mountain", Count: 3}, {Name: "Forest", Count: 4},
+			{Name: "Tyrant's Choice", Count: 3}, {Name: "Plea for Power", Count: 2},
+			{Name: "Bite of the Black Rose", Count: 2}, {Name: "Grizzly Bears", Count: 3},
+			{Name: "Savannah Lions", Count: 3}, {Name: "Giant Growth", Count: 2},
+			{Name: "Lightning Bolt", Count: 2}, {Name: "Swamp", Count: 7},
+			{Name: "Island", Count: 6}, {Name: "Forest", Count: 4},
+			{Name: "Plains", Count: 3}, {Name: "Mountain", Count: 3},
 		},
 	}
 }
