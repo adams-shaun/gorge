@@ -2536,11 +2536,14 @@ func (fs *filtSearch) gapOneShot(k *prep, t *State, sl Slot) bool {
 // (their costs ignored), intrinsic granted land types, and chosen colours.
 // Any route it does not model -- a hand mana guide, a live grant, another gap
 // class (an each-colour or chosen pair, a tap-another, counter, life or
-// distinct-colour source) -- fails open, as does a cost whose printed pips
-// the search does not read (an X, hybrid, snow or Phyrexian cost): the prune
-// must never drop a branch a real plan could use.
+// distinct-colour source), a StatTapExtra carrier whose extra rides the tap
+// itself (mana_tapextra.go: the scan reads printed production, not the extra
+// the tap brings, and the free tap's own extra is exactly a route it misses)
+// -- fails open, as does a cost whose printed pips the search does not read
+// (an X, hybrid, snow or Phyrexian cost): the prune must never drop a branch
+// a real plan could use.
 func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
-	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyAnyAct || k.gen.anyContGrant ||
+	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
 		len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
 		return false
 	}
