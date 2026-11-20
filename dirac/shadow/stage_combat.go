@@ -25,7 +25,7 @@ func markAttack(o *dirac.WorldObj, cv *view.CardView, name string) error {
 // blocker listed (a block whose blocker has left, as after combat damage) is
 // not rebuildable.
 func (b *builder) combat() error {
-	at := map[uint8]int{} // object index -> its place in b.all
+	at := map[dirac.Obj]int{} // object index -> its place in b.all
 	for i := range b.all {
 		at[b.all[i].obj] = i
 	}
@@ -42,7 +42,7 @@ func (b *builder) combat() error {
 }
 
 // blocks marks the blockers of attacker cv.
-func (b *builder) blocks(cv *view.CardView, at map[uint8]int) error {
+func (b *builder) blocks(cv *view.CardView, at map[dirac.Obj]int) error {
 	a, ok := b.in.ObjOf(int(cv.ID))
 	if !ok {
 		return bad(ReasonUnmapped, "%s (%d)", cv.Name, cv.ID)

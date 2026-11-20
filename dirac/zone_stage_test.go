@@ -13,7 +13,7 @@ import (
 // stageBase is a legal world: 20 cards a seat (10 Plains, 10 Savannah Lions),
 // the first 7 of each seat's library order in hand, turn 1, seat 0's main phase.
 func stageBase() dirac.World {
-	w := dirac.World{Tbl: vanilla.Table, NSeat: 2, Turn: 1, Step: kop.StepMain1, Active: 0, Prio: 0, Life: [2]int32{20, 20}}
+	w := dirac.World{Tbl: vanilla.Table, NSeat: 2, Turn: 1, Step: kop.StepMain1, Active: 0, Prio: 0, Life: [dirac.MaxSeats]int32{20, 20}}
 	for p := uint8(0); p < 2; p++ {
 		for i := 0; i < 20; i++ {
 			c := vanilla.Plains
