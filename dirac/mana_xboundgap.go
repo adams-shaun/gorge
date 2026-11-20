@@ -84,6 +84,30 @@ func paidGapBooked(d *payDesc, sl Slot, j int, ab *kop.Ability, tapExtra bool) {
 	}
 }
 
+// bookPaidGap is availPotentialFor's bookkeeping for an admitted paid gap. Its
+// default read leaves the ability a census gap: the sweep's per-tap view cannot
+// price that filter, so its "insufficient" is no proof against an X the relaxed
+// census pays (Unknown Shores' {1},{T} beside Plains and Radiant Grove for
+// Killing Glare, X=1; CR 605.3b, 601.2g), and the over-bound pool takes it.
+// The subset pricing (d.gapPrice, xBoundGapSubsets) instead keeps the
+// production as a census unit and charges its fee as generic on top, so its
+// record stays exact. An admitted repeatable gap is one of gorge's census's
+// non-once abilities: its census is not relaxable, so no subset pricing refuses
+// the announcement and the over-bound stands (paymentPlanCensusOf's once gate,
+// CR 605.3b). A gap the fundability gate skipped is out of gorge's census
+// entirely and never reaches here.
+func (s *State) bookPaidGap(k *prep, d *payDesc, sl Slot, j int, ab *kop.Ability, cen *potCensus, repeat bool) {
+	if d == nil || !d.gapPrice {
+		cen.gap()
+		// the sweep's gap bookkeeping: the gap named, its fee recorded, and
+		// gapGain when the ability can raise the mana a payment spends
+		paidGapBooked(d, sl, j, ab, s.paidGapTapExtra(k, sl, ab))
+	}
+	if repeat && d != nil {
+		d.gapRepeats = true
+	}
+}
+
 // paidGapNetsNoMana mirrors manaFeeNetsNoMana for a paid gap: the whole cost
 // is plain mana (no {T}, {X}, hybrid, snow or other part), it spends a
 // positive fee, and its production is statically priced no higher than that
@@ -219,9 +243,26 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 		}
 		dm := d
 		dm.gapSkip, dm.gapN = ^uint8(m), 0
+		dm.gapPrice = true
 		var sub avail
 		var pm [maxPotUnits]potUnit
-		s.availPotentialFor(k, p, &sub, &dm, true, &pm)
+		open := s.availPotentialFor(k, p, &sub, &dm, true, &pm)
+		// Price the subset from the planner-shaped per-tap census, not the
+		// over-bound pool: the pool's fold counts a source's second {T}
+		// ability as a second mana (availPotentialFor's anyAddAb), so a
+		// {1},{T} filter beside its own {T}: {C} read one mana too many and
+		// the sweep offered an X-bound activation whose only announcement
+		// the sources cannot pay (Rydia, Summoner of Mist). The included
+		// gaps' productions are census units and their fees are charged on
+		// top (gapSubsets.affords), so the record is the honest supply. An
+		// open production or a repeatable admitted gap leaves no exact view:
+		// keep the over-bound.
+		if !open && !dm.gapRepeats {
+			var exact avail
+			if potUnitsAvail(&exact, &pm, int(s.pl[SeatIx(p)].life)) {
+				sub = exact
+			}
+		}
 		fee := 0
 		for i := 0; i < n; i++ {
 			if m>>i&1 != 0 {
