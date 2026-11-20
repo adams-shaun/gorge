@@ -2,11 +2,13 @@ package oracle
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -25,11 +27,16 @@ var protectionGrantsDecks = [2][]cardset.Entry{
 		{Name: "Black Ward", Count: 1}, {Name: "Blue Ward", Count: 1}, {Name: "Green Ward", Count: 1},
 		{Name: "Red Ward", Count: 1}, {Name: "White Ward", Count: 1}, {Name: "Tattoo Ward", Count: 1},
 		{Name: "Spectra Ward", Count: 1}, {Name: "Guildscorn Ward", Count: 1}, {Name: "Crimson Acolyte", Count: 1},
-		{Name: "Obsidian Acolyte", Count: 1}, {Name: "Devoted Caretaker", Count: 2}, {Name: "Spare from Evil", Count: 1},
-		{Name: "Tel-Jilad Defiance", Count: 1}, {Name: "Feline Sovereign", Count: 2}, {Name: "Hungry Lynx", Count: 2},
-		{Name: "Hexdrinker", Count: 1}, {Name: "Prowling Caracal", Count: 2}, {Name: "Sanctuary Cat", Count: 2},
+		{Name: "Obsidian Acolyte", Count: 1}, {Name: "Devoted Caretaker", Count: 1}, {Name: "Spare from Evil", Count: 1},
+		{Name: "Tel-Jilad Defiance", Count: 1}, {Name: "Feline Sovereign", Count: 1}, {Name: "Hungry Lynx", Count: 1},
+		{Name: "Hexdrinker", Count: 1}, {Name: "Prowling Caracal", Count: 1}, {Name: "Sanctuary Cat", Count: 1},
 		{Name: "Silver Knight", Count: 1}, {Name: "Pristine Angel", Count: 1}, {Name: "Willow Priestess", Count: 1},
-		{Name: "Plains", Count: 8}, {Name: "Forest", Count: 6},
+		// the Choices$ asks: the colorless (Giver of Runes), the artifact
+		// (Apostle's Blessing, Razor Barrier, Jeweled Spirit) and the
+		// card-type (Pippin) offers
+		{Name: "Giver of Runes", Count: 1}, {Name: "Apostle's Blessing", Count: 2},
+		{Name: "Razor Barrier", Count: 1}, {Name: "Pippin, Guard of the Citadel", Count: 1}, {Name: "Jeweled Spirit", Count: 1},
+		{Name: "Plains", Count: 8}, {Name: "Forest", Count: 5},
 	},
 	{
 		{Name: "Keeper of Kookus", Count: 2}, {Name: "Goblin Wizard", Count: 1}, {Name: "Hell-Bent Raider", Count: 2},
@@ -87,8 +94,42 @@ func newVenturePodSet(t *testing.T, pool string, decks [4][]cardset.Entry) ventu
 // and a Ward Aura still attached to a creature that has its protection.
 type protectionGrantsSeen struct{ fixed, ward int }
 
+// protectionChoiceTally is the pod's policy with the protection choices'
+// answered qualities recorded: the offer label the gorge side's own option
+// carries for the picked canonical action, so a run can be required to have
+// actually chosen colorless and artifacts.
+type protectionChoiceTally struct {
+	inner Policy
+	seen  map[string]int
+}
+
+func (t protectionChoiceTally) Pick(c *PickCtx) Canon {
+	a := t.inner.Pick(c)
+	if c.G == nil {
+		return a
+	}
+	if d := c.G.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "protectionchoice" {
+		t.seen["posed"]++
+		matched := false
+		for i := range d.Options {
+			if ca, ok := c.G.optionAction(d, &d.Options[i]); ok {
+				t.seen["canon:"+d.Options[i].Label+"#"+strconv.FormatUint(uint64(ca), 16)]++
+				if ca == a {
+					t.seen[d.Options[i].Label]++
+					matched = true
+					break
+				}
+			}
+		}
+		if !matched {
+			t.seen["unmatched:"+strconv.FormatUint(uint64(a), 16)]++
+		}
+	}
+	return a
+}
+
 // play plays one seed of the pod like venturePod.play, tallying what it saw.
-func (p venturePod) playSeen(t *testing.T, seed uint64, seen *protectionGrantsSeen) Result {
+func (p venturePod) playSeen(t *testing.T, seed uint64, seen *protectionGrantsSeen, tally protectionChoiceTally) Result {
 	t.Helper()
 	expand := func(d []cardset.Entry) []string {
 		var out []string
@@ -139,15 +180,17 @@ func (p venturePod) playSeen(t *testing.T, seed uint64, seen *protectionGrantsSe
 	if err != nil {
 		t.Fatal(err)
 	}
-	return LockstepLed(m, seed, lead, k, castFirstPolicy(seed), rc)
+	tally.inner = castFirstPolicy(seed)
+	return LockstepLed(m, seed, lead, k, tally, rc)
 }
 
 func TestProtectionFormsFourSeatLockstep(t *testing.T) {
 	skipWithoutRepoCorpus(t)
 	p := protectionGrantsPod(t)
 	var seen protectionGrantsSeen
+	tally := protectionChoiceTally{seen: map[string]int{}}
 	for _, seed := range []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12} {
-		res := p.playSeen(t, seed, &seen)
+		res := p.playSeen(t, seed, &seen, tally)
 		if res.Div != nil {
 			ventureFail(t, seed, res)
 		}
@@ -155,9 +198,12 @@ func TestProtectionFormsFourSeatLockstep(t *testing.T) {
 			t.Fatalf("seed %d: kernel stopped: %s", seed, res.Stall)
 		}
 	}
-	t.Logf("fixed grants seen %d, Ward Auras kept attached %d", seen.fixed, seen.ward)
+	t.Logf("fixed grants seen %d, Ward Auras kept attached %d, protection choices answered %v", seen.fixed, seen.ward, tally.seen)
 	if seen.fixed == 0 || seen.ward == 0 {
 		t.Fatalf("the pod never showed a fixed grant (%d) and a Ward Aura attached (%d)", seen.fixed, seen.ward)
+	}
+	if tally.seen["colorless"] == 0 || tally.seen["Artifact"] == 0 {
+		t.Fatalf("the seeds never answered a colorless (%d) or an artifact (%d) protection choice", tally.seen["colorless"], tally.seen["Artifact"])
 	}
 }
 

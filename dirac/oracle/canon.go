@@ -220,8 +220,8 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("convoke")
 			return Pack(ActChoose+CanonKind(code), ref(o.Obj), RefNone, 6), true
 		}
-		if isCounterKindAsk(d.ResumeKind) {
-			return g.counterKindAction(d, o)
+		if act := resumeKindActions[d.ResumeKind]; act != nil {
+			return act(g, d, o)
 		}
 		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
@@ -454,11 +454,23 @@ func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
 	return cumulativeKindAlias(o.Kind)
 }
 
-// isCounterKindAsk reports whether a KChoose's ResumeKind is one of the
-// counter-kind elections: removeCounterAny's per-counter pick, putCounter's
-// ChooseDifferent$ pick, or AddOrRemoveCounter's aor_elect.
-func isCounterKindAsk(resume string) bool {
-	return resume == "counter_kind" || resume == "counter_kinds" || resume == "aor_elect"
+// resumeKindActions canonicalises the KChoose asks whose options are read by
+// the ask's ResumeKind rather than by each option's Kind: the counter-kind
+// elections (removeCounterAny's per-counter pick, putCounter's ChooseDifferent$
+// pick, AddOrRemoveCounter's aor_elect) and the protection quality pick.
+var resumeKindActions = map[string]func(*GorgeSide, *decision.Decision, *decision.Option) (Canon, bool){
+	"counter_kind":     (*GorgeSide).counterKindAction,
+	"counter_kinds":    (*GorgeSide).counterKindAction,
+	"aor_elect":        (*GorgeSide).counterKindAction,
+	"protectionchoice": (*GorgeSide).protectionChoiceAction,
+}
+
+// protectionChoiceAction is gorge askProtectionChoice's quality pick (its
+// options are Kind color / type / quality): the option's position in the
+// offer list, the kernel's ChGenProtChoice mode.
+func (g *GorgeSide) protectionChoiceAction(_ *decision.Decision, o *decision.Option) (Canon, bool) {
+	code, _ := chooseCode("protection")
+	return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(o.Index)), true
 }
 
 // counterKindAction is a counter-kind pick, by its kernel counter kind (the

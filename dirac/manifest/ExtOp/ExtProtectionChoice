@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtProtectionChoice
+value: next
+forge: Protection
+state: code 0
+status: active
+doc: ExtProtectionChoice: pause the resolution for the protection quality choice (gorge combatfx.go askProtectionChoice, ResumeKind "protectionchoice"; CR 702.16): a Protection Gains$ Choice whose Choices$ goes beyond plain AnyColor — colours, colorless (Giver of Runes), a card type (Apostle's Blessing, Razor Barrier, Jeweled Spirit) or the card types themselves (Pippin, Guard of the Citadel) — poses gorge's offer list in order, one option per quality. B is the option count; the answer rides res.chosen under resProtChoice, read back by the OvProtChoice override that follows (dirac/act_protectionchoice.go).

@@ -44,6 +44,11 @@ const raGenRepeatOptional uint8 = 156
 // ask (dirac/manifest/ask/raPodClashOpp)
 const raPodClashOpp uint8 = 157
 
+// ask (dirac/manifest/ask/raProtectionChoice)
+//
+// the protection quality choice of ExtProtectionChoice (gorge askProtectionChoice's "protectionchoice" ask; CR 702.16): one option per quality of the resolving card's OvProtChoice override family, in gorge's offer order; the mode is the option's position, which the same override applies (dirac/act_protectionchoice.go).
+const raProtectionChoice uint8 = 157
+
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
@@ -777,6 +782,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.myriadExt(k, in) // kw_myriad.go
 	case kop.ExtNameCard:
 		return s.nameCardExt(k, in) // repl_namecard.go
+	case kop.ExtProtectionChoice:
+		return s.protectionChoiceExt(k, in) // act_protectionchoice.go
 	case kop.ExtPutContract:
 		return s.putContract(k, in) // ctr_contract.go
 	case kop.ExtPutCounterChoice:
@@ -835,6 +842,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
 		return true
+	case raProtectionChoice:
+		s.protectionChoiceOptions(k, d) // act_protectionchoice.go
+		return true
 	case raRingBearer:
 		s.ringAskOptions(k, d) // act_ring.go
 		return true
@@ -874,6 +884,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
+		return true
+	case raProtectionChoice:
+		s.protectionChoiceAnswer(k, a) // act_protectionchoice.go
 		return true
 	case raRingBearer:
 		s.ringAskAnswer(k, a) // act_ring.go
