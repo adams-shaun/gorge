@@ -1,32 +1,61 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Elderleaf Mentor	9dedcdf1565aada2	4	1/1		0/1	ix:resp
+Attune with Aether	47a101d74ddc953c	10	0/0		1/2	ix:resp
+Blade Banish	23ccd296f8fdd0db	4	0/0		1/2	ix:resp
 Blade Splicer	4bf7b38627473819	4	1/1		0/1	ix:resp
 Boreal Elemental	54202da3062daaa9	6	0/0		0/0	
+Brawl-Bash Ogre	61090b900dad4022	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Castaway's Despair	2a16c4f02fe18444	8	1/1		2/2	
 Cho-Arrim Bruiser	8da9466c6dc4cc46	3	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	12	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
+Death-Hood Cobra	d778d66aca808390	7	2/2		1/1	
+Demonic Tutor	e78fccb54d2ffe91	12	0/0		1/2	ix:resp
 Dryad Greenseeker	10da06049d9715a6	5	1/1		1/1	
+Duskhunter Bat	4f0b1730f213e3a8	3	0/0		0/0	
+Dwarven Warriors	4f547993319d89ea	4	1/1		1/1	
+Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	4	2/2		1/1	
+Eye of Nowhere	03883b778672e449	4	0/0		1/2	ix:resp
 Filigree Fracture	670dceaaa8bb9af1	3	0/0		1/2	ix:resp
 Floating-Dream Zubera	520f297966eac78a	4	1/1		0/1	ix:resp
+Flying Dolphin-Fish	71421889e414afcb	6	0/0		0/0	
+Gaea's Embrace	ee212e4d653d8d21	3	1/1		1/2	ix:resp
+Genasi Enforcers	7ae475822fe905c5	10	2/2		1/1	
+Heroic Charge	2d50c74879c0a100	6	0/0		2/4	cast/alt:kicked,ix:resp
 Hold the Line	52dba1ebbf5ed907	8	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	6	0/0		1/2	ix:resp
+Inferno	afc7d8d6b7bad2a9	6	0/0		1/2	ix:resp
 Lavakin Brawler	f6629e87dd7865ad	4	1/1		0/1	ix:resp
+Luminarch Ascension	38fdfddb010b3cd3	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Manaweft Sliver	8c556ca2a1e27b7e	3	0/0		0/0	
+Mandibular Kite	5f19e89369943863	8	2/2		0/1	ix:resp
+Mindless Null	a765b6fba3bc77f0	10	0/0		0/0	
 Mistmeadow Skulk	9b174e2944506280	5	0/0		0/0	
+Mystic Restraints	b496d88f717cd75b	11	1/1		2/2	
+Pattern of Rebirth	f8d43138beeffdf3	4	1/1		1/2	ix:resp
+Peer Through Depths	d0bec7273520c057	4	0/0		1/2	ix:resp
 Penance Stare	f6dd18f79d56e3e0	9	0/0		2/2	
 Pest Infestation	089a4fa800ae3be1	5	0/0		3/4	f0/s/x0
+Prakhata Pillar-Bug	4856157e9f2f3f44	8	1/1		1/1	
 Provoke	1927cf5f31f1c64e	4	0/0		1/2	ix:resp
 Quicksilver Dagger	7fc70a11bcf46bc9	6	0/0		2/2	
 Raging Spirit	f9ad9a26c24fae84	9	1/1		1/1	
+Recross the Paths	0f2572fcd43e9193	4	0/0		1/2	ix:resp
 Rescue Retriever	a70a6817ff49a5aa	4	1/1		0/1	ix:resp
 Rotted Hulk	ae6b6407731b5db7	4	0/0		0/0	
+Scragnoth	c16a2b2dcc6bc954	5	0/0		0/0	
 Soul Bleed	4c4338ec96c1e1fb	4	1/1		1/2	ix:resp
 Stampeding Horncrest	3494b9ec62af1d10	6	0/0		0/0	
+Steady Progress	a4cef3e6d4be2954	4	0/0		1/2	ix:resp
 Storm Crow	68ab9f2ac1943e67	6	0/0		0/0	
+Sure-Footed Infiltrator	c70d5094b324b84f	12	2/2		0/1	ix:resp
 Surreal Memoir	fb97a45aded28399	4	0/0		1/2	ix:resp
+Tezzeret's Touch	498134adc120c39a	5	1/1		2/2	
 Titanic Brawl	0c104d2b6ec7008a	3	0/0		2/2	
 Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		1/1	
 Vaporkin	e366e826894f1096	6	0/0		0/0	
+Viridian Zealot	e050a00bd5975a6f	6	1/1		0/1	ix:resp
 Vivid Revival	0d44b681287d8277	8	0/0		1/2	ix:resp
+Walking Archive	4650562fe3985ab2	6	2/2		1/1	
 Warleader's Helix	370fb45690050f6d	4	0/0		1/2	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	4	0/0		0/0	
 Wose Pathfinder	343f212c7c4d134f	8	2/2		0/1	ix:resp

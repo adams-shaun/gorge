@@ -40,6 +40,7 @@ Exorcise	877a3a380a6761e8	4	0/0		1/2	ix:resp
 Fanatic of the Harrowing	55ff899a13aacfd0	8	1/1		0/1	ix:resp
 Fear of Being Hunted	bbdf79e50162faaf	3	0/0		0/0	
 Fear of Burning Alive	d8570b55baddb459	4	2/2		0/1	ix:resp
+Fear of Exposure	9536228ca553c8be	5	0/0		1/2	ix:resp
 Fear of Failed Tests	7e8bc5c702aef65e	3	1/1		0/1	ix:resp
 Fear of Immobility	2e83ac63e24d6771	3	1/1		0/1	ix:resp
 Fear of Impostors	7d0b49016ae9ab66	6	1/1		0/1	ix:resp
@@ -63,6 +64,8 @@ Glimmer Seeker	663e0fcead1dff28	3	1/1		0/1	ix:resp
 Glimmerlight	b981658c06b621b8	3	2/2		0/1	ix:resp
 Grab the Prize	cc605a6d62df3c14	4	0/0		1/2	ix:resp
 Grand Entryway	ae6f8b2dbbf5a633	4	2/2		0/1	ix:resp
+Grasping Longneck	6492594225186ff2	4	1/1		0/1	ix:resp
+Hand That Feeds	aa6cf6bcc53ceb66	6	1/1		0/1	ix:resp
 Hardened Escort	21b05b149868ac20	4	1/1		0/1	ix:resp
 Haunted Screen	ff496b6c310db187	6	3/3		0/1	ix:resp
 Horrid Vigor	0484f0f668b72d06	4	0/0		1/2	ix:resp
@@ -105,7 +108,9 @@ Piggy Bank	18db8ef80ae56f27	4	1/1		0/1	ix:resp
 Piranha Fly	991b8f051a53f3af	4	0/0		0/0	
 Plains	82d63a695487e567	44	1/1		0/1	ix:resp
 Popular Egotist	86462a29c5698d5b	3	2/2		1/1	
+Possessed Goat	dc9bbcd4e3df8900	7	1/1		0/1	ix:resp
 Pyroclasm	2a83a3795de80e5f	4	0/0		1/2	ix:resp
+Ragged Playmate	aa66f281014b123e	4	1/1		0/1	ix:resp
 Rampaging Soulrager	017e76c0d50be8ac	4	0/0		0/0	
 Raucous Carnival	aca729fd959c4e61	4	1/1		0/1	ix:resp
 Razorkin Hordecaller	d61f74d592c99622	4	1/1		1/1	
@@ -135,11 +140,13 @@ Surgical Suite	c98270f9328cd591	4	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	47	1/1		0/1	ix:resp
 The Jolly Balloon Man	e7558d701fd17a38	4	1/1		0/1	ix:resp
 The Mindskinner	16527cfd2f2bc8b3	4	0/0		0/0	
+The Rollercrusher Ride	f3985745985ced0d	3	1/1		0/1	ix:resp
 The Swarmweaver	a2723ebe441575fd	4	1/1		0/1	ix:resp
 Threats Around Every Corner	b31c898cd09052d3	3	2/2		0/1	ix:resp
 Toby, Beastie Befriender	93c52fb20767606d	4	1/1		0/1	ix:resp
 Tunnel Surveyor	813afd70141fc821	4	1/1		0/1	ix:resp
 Turn Inside Out	733324a44405ebe8	4	0/0		1/2	ix:resp
+Twist Reality	9fcad707611080d5	3	0/0		1/2	ix:resp
 Unable to Scream	dd571358e095685f	3	0/0		1/2	ix:resp
 Undead Sprinter	66c6ff777de6637f	5	0/0		0/0	
 Under the Skin	90cdf53c1c4bccce	4	0/0		1/2	ix:resp

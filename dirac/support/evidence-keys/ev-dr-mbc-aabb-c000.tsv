@@ -6,6 +6,8 @@ Ancient Stirrings	fa1f3a12626d2987	4	0/0		1/2	ix:resp
 Armed	6d554b3db12b615e	3	0/0		3/5	cast/alt:fused,f1/s
 Arrogant Wurm	3b75c14557e3c967	5	0/0		0/0	
 Axgard Cavalry	2ba491a173f8af04	8	1/1		0/1	ix:resp
+Balustrade Spy	2e2385fbb16a071a	3	1/1		0/1	ix:resp
+Barter in Blood	4536a047e0050dd9	6	0/0		1/2	ix:resp
 Blightbeetle	bee0cc057374ce06	5	0/0		0/0	
 Blightsoil Druid	3c6e70bdd3893d1a	5	1/1		0/1	ix:resp
 Blood Knight	ba424c1dd7e9d86d	3	0/0		0/0	
@@ -23,6 +25,7 @@ Explore	376f7c435ec286fa	11	0/0		1/2	ix:resp
 Fanatical Devotion	f10927cac624d953	6	1/1		0/1	ix:resp
 Feign Death	74ff12d69b2ca59b	11	0/0		1/2	ix:resp
 Fell	3dea7b71ba00d3a4	5	0/0		2/2	
+Fire Servant	aaf6b22d6c68df8a	4	0/0		0/0	
 Forest	6d0466c30f825dba	156	1/1		0/1	ix:resp
 Gelatinous Genesis	a27ad28644d90eb8	4	0/0		3/4	f0/s/x0
 Harmonize	b83f040bcd1ea814	6	0/0		1/2	ix:resp
@@ -32,15 +35,20 @@ Jaheira, Friend of the Forest	13ccd4bc749e19b3	4	0/0		0/0
 Kappa Tech-Wrecker	fae41cf68f153b7e	53	2/2		1/1	
 Kaya's Ghostform	602dc8fbd936cf87	6	1/1		1/2	ix:resp
 Marionette Apprentice	d3532fd979c470a6	8	2/2		1/1	
+Massacre	6a000e43bc60bb48	4	0/0		1/2	ix:resp
 Maular, the Next Evolution	dd4bdd3f6f728f64	9	1/1		0/1	ix:resp
 Meekstone	a5ceff6456cc909f	15	0/0		0/0	
 Mountain	9e71388353e907ed	33	1/1		0/1	ix:resp
+Outmaneuver	692994ed2f0b92b1	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Overgrown Battlement	c1053f983d57df1f	4	1/1		0/1	ix:resp
 Phantom Centaur	9b1afff300c081af	5	0/0		0/0	
+Phyrexian Rager	b1ff1e76ad3fc6b3	6	1/1		0/1	ix:resp
 Phyrexian Reclamation	66bd9914fd590112	9	1/1		1/1	
 Piracy Charm	6643cc0a566e88cc	7	0/0		1/2	ix:resp
 Plains	82d63a695487e567	37	1/1		0/1	ix:resp
 Poison Dart Frog	f9f83ab643d8a02d	5	2/2		1/1	
 Raiders' Wake	cfcfaf8c3e1d0bf7	10	2/2		0/1	ix:resp
+Reckless Impulse	5f4f8bd7124e8a0b	3	0/0		1/2	ix:resp
 Reckless Wurm	232986a06aa79c21	3	0/0		0/0	
 Resolute Reinforcements	1f1ae4bdb9b8a915	5	1/1		0/1	ix:resp
 Restoration Specialist	c3c8249538849220	6	1/1		0/1	ix:resp
