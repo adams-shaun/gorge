@@ -2763,9 +2763,10 @@ func (fs *filtSearch) filtCombo(k *prep, t *State, sl Slot, funded int) bool {
 
 // gapFilteredPlay: play a is one whose prefix search keeps only the gaps
 // its payment can spend (gorge scriptSpendableGaps): a plain cast of the
-// printed cost, or an activation.
+// printed cost (from the hand, or under a may-play permission that only
+// opens the zone: Summoning Materia's top of the library), or an activation.
 func gapFilteredPlay(a Action) bool {
-	return a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0
+	return a.Kind() == AkActivate || a.Kind() == AkCast && (a.Mode() == 0 || a.Mode() == castMayPlay)
 }
 
 // isAbilityPlay: action a is one of the activated plays gorge's twin cut
