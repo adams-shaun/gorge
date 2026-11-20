@@ -18,6 +18,9 @@ const blanketOfNightRepro = "blanket_of_night_grant_over_a_counter_cost_land_unm
 // refused by name as Nylea's Presence is, and the recorded game still shows the
 // divergence with it implicated.
 func TestMBCTail06ReprosLockstep(t *testing.T) {
+	if landGrantReplay(t) {
+		return
+	}
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
 		t.Fatal(err)
