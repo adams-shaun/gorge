@@ -1670,6 +1670,20 @@ func (g *grantSrch) visit(t *State) bool {
 		var ok bool
 		if painFunds(g.k, pc) {
 			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
+		} else if ra := t.ownRestrAb(g.k, sl); ra != nil && t.ownManaUsable(g.k, sl) {
+			// a restricted printed ability beside the usable one (Jasmine
+			// Dragon Tea Shop's Ally-only any colour): gorge's "choose a mana
+			// ability" ask is one node, the usable answer's subtree first, then
+			// the restricted ability, whether or not the play may spend it
+			if !g.node() {
+				g.funded--
+				return false
+			}
+			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+			if !ok {
+				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+				ok = g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny)
+			}
 		} else {
 			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
 		}
