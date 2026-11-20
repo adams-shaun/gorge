@@ -347,6 +347,41 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	return s.battlefieldOrder(p, m, out[:], 0)
 }
 
+// censusTapXClaim admits sl's tap-another mana ability j in the potential
+// walk's census and claims the permanents its cost taps. pay.ManaTapCandidates
+// elects and claims each candidate once, so two sources sharing a candidate
+// pool fund one activation, not two: two Birchlore Rangers both see the same
+// two Elves, but the first activation taps them (CR 601.2g). A source with no
+// unclaimed candidate left contributes no unit, and the claim is skipped when
+// the census is off (the over-bound fold keeps its per-source answer).
+func (s *State) censusTapXClaim(k *prep, p uint8, sl Slot, j int, ab *kop.Ability, cen *potCensus) bool {
+	if !cen.on || ab == nil || !kop.TapXMana(ab) || int(k.tapXAb[s.cardAt(sl)]) != j {
+		return true
+	}
+	need := int(ab.Cost.N)
+	if need <= 0 {
+		return true
+	}
+	var cs [MaxPerm]Slot
+	n := s.tapXCands(k, p, sl, &cs)
+	left := 0
+	for i := 0; i < n; i++ {
+		if !cen.tapX.has(cs[i]) {
+			left++
+		}
+	}
+	if left < need {
+		return false
+	}
+	for i, got := 0, 0; i < n && got < need; i++ {
+		if x := cs[i]; !cen.tapX.has(x) {
+			cen.tapX.set(x)
+			got++
+		}
+	}
+	return true
+}
+
 // sacXCands lists the permanents sacrifice-another source sl's cost can
 // sacrifice, in gorge's candidate order (pay.ManaSacrificeCandidates: p's
 // battlefield in entry order): those matching the cost's filter, none a
