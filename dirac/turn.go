@@ -599,6 +599,7 @@ func (s *State) sba(k *prep) bool {
 		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
 		// statics in force but none that can lower a toughness (kprio2)
 		ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
+		var umbra umbraOrder // the pass's umbra-spared hosts (kw_umbraarmor.go)
 		m := s.occ
 		for m.any() {
 			sl := m.first()
@@ -638,7 +639,7 @@ func (s *State) sba(k *prep) bool {
 						s.regenerate(sl)
 						continue
 					}
-					if s.sbaSpare(k, sl, &die) {
+					if s.sbaSpare(k, sl, &die, &umbra) {
 						continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
 					}
 					die = die.with(sl)
@@ -821,17 +822,7 @@ func (s *State) sba(k *prep) bool {
 		// defeated battles (to the graveyard), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
-		n := 0
-		dw := die.or(wld)
-		for _, gm := range [5]slotMask{die, wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
-			for p := uint8(0); p < MaxSeats; p++ {
-				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
-			}
-		}
-		for _, q := range rolL[:nrol] {
-			order[n] = q
-			n++
-		}
+		n := s.sbaDepartOrder(die, wld, pwz, bat, aur, rolL[:nrol], &umbra, order[:])
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
@@ -866,6 +857,73 @@ func (s *State) sba(k *prep) bool {
 			return true
 		}
 	}
+}
+
+// sbaDepartOrder builds a pass's departure order: the creature casualties
+// (lethal damage, zero toughness), then the world rule's losers,
+// planeswalkers with no loyalty, defeated battles and unattached Auras;
+// within each, each seat's battlefield list in seat order. An umbra-spared
+// Aura takes its host's place in the creature walk (umbraWalk).
+func (s *State) sbaDepartOrder(die, wld, pwz, bat, aur slotMask, rolL []Slot, umbra *umbraOrder, order []Slot) int {
+	n := s.umbraWalk(die, umbra, order, 0)
+	dw := die.or(wld)
+	for _, gm := range [4]slotMask{wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
+		for p := uint8(0); p < MaxSeats; p++ {
+			n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order, n)
+		}
+	}
+	for _, q := range rolL {
+		order[n] = q
+		n++
+	}
+	return n
+}
+
+// umbraWalk appends mask in battlefield order. An Aura an umbra armor answer
+// destroyed takes its host's position in that seat's walk (gorge's
+// replaceSBADestruction / effDestroyAll destroys the Aura while it processes
+// that victim), not its own slot.
+func (s *State) umbraWalk(mask slotMask, umbra *umbraOrder, out []Slot, n int) int {
+	if umbra == nil || umbra.n == 0 || DebugUmbraOwnSlotOrder {
+		for p := uint8(0); p < MaxSeats; p++ {
+			n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), out, n)
+		}
+		return n
+	}
+	for p := uint8(0); p < MaxSeats; p++ {
+		m := mask.and(s.ctrlM[p])
+		for i := 0; i < umbra.n; i++ {
+			host, aura := umbra.pairs[i][0], umbra.pairs[i][1]
+			if !s.umbraMoves(umbra, i) {
+				continue // a victim Aura gorge reaches before its host stays at its own slot
+			}
+			if s.ctrlM[p].has(aura) {
+				m = m.without(aura) // emitted at its host's position instead
+			}
+			if s.ctrlM[p].has(host) {
+				m = m.with(host) // a marker for the Aura's position
+			}
+		}
+		n0 := n
+		n = s.battlefieldOrder(p, m, out, n)
+		for j := n0; j < n; j++ {
+			aura, ok := s.auraOf(umbra, out[j])
+			if !ok {
+				continue
+			}
+			if mask.has(out[j]) {
+				// the host is also a casualty: the Aura goes first, as gorge
+				// destroys it while processing the host's destruction
+				copy(out[j+1:n+1], out[j:n])
+				out[j] = aura
+				n++
+				j++
+				continue
+			}
+			out[j] = aura
+		}
+	}
+	return n
 }
 
 // playerAuraLegal reports whether the player-attached Aura at sl is still
@@ -930,6 +988,20 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
+	s.leaveOrder(k, order[:], n, z)
+}
+
+// leaveAllUmbra is leaveAll for a destroy-all whose umbra answers are
+// recorded in u: each Aura takes its host's position in the departure walk
+// (gorge's effDestroyAll destroys it while processing that victim).
+func (s *State) leaveAllUmbra(k *prep, mask slotMask, z kop.Zone, u *umbraOrder) {
+	var order [MaxPerm]Slot
+	n := s.umbraWalk(mask, u, order[:], 0)
+	s.leaveOrder(k, order[:], n, z)
+}
+
+// leaveOrder applies the departure batch in order[:n].
+func (s *State) leaveOrder(k *prep, order []Slot, n int, z kop.Zone) {
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
 		first := n
 		for i, sl := range order[:n] {

@@ -22,14 +22,15 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 	if in.C&2 == 0 && s.anyRegen(hit) {
 		hit = s.regenAll(hit)
 	}
-	hit = s.shieldUmbraAll(k, hit) // CR 122.1c, 702.89a: NoRegen$ suppresses regeneration only
+	var umbra umbraOrder
+	hit = s.shieldUmbraAllIn(k, hit, &umbra) // CR 122.1c, 702.89a: NoRegen$ suppresses regeneration only
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(hit, &ord)
 	var objs [MaxPerm]Obj
 	for i := 0; i < n; i++ {
 		objs[i] = s.perms[ord[i]].obj
 	}
-	s.leaveAll(k, hit, kop.ZoneGraveyard)
+	s.leaveAllUmbra(k, hit, kop.ZoneGraveyard, &umbra)
 	if in.C&1 == 0 { // seat-ok: an instruction flag bit
 		return
 	}
