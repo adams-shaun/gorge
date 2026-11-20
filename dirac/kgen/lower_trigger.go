@@ -1625,6 +1625,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// are read; every other one refuses
 		if c, ok := monarchCheck(cdp); ok {
 			conds = append(conds, c)
+		} else if c, ok, err := lc.attackerUnattackedOppCheck(cdp, tr); err != nil { // lower_delaytrigger_player.go
+			return err
+		} else if ok {
+			conds = append(conds, c)
 		} else if cdp != "You.committedCrimeThisTurn" {
 			return refuse("CheckDefinedPlayer %q", cdp)
 		} else {
