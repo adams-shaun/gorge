@@ -1,0 +1,8 @@
+# Suppressor Skyguard's intervening-if "that player has another opponent who
+# isn't being attacked" (dirac/oracle/suppressorskyguard_lockstep_test.go
+# TestSuppressorSkyguardLockstep; kgen lower_delaytrigger_player.go): with two
+# seats the attacker has no such opponent, so the trigger stays silent.
+Suppressor Skyguard
+Elite Vanguard
+Plains
+Island

@@ -34,7 +34,7 @@ func TestCheckDefinedPlayerDragonCultistDamageDoneSingleSource(t *testing.T) {
 	}
 	want := func(you state.PlayerID, exp bool, why string) {
 		t.Helper()
-		if got := e.checkDefinedPlayerHolds(spec, src, you); got != exp {
+		if got := e.checkDefinedPlayerHolds(spec, src, you, nil); got != exp {
 			t.Fatalf("%s: you=%d got %v want %v", why, you, got, exp)
 		}
 	}
@@ -50,7 +50,7 @@ func TestCheckDefinedPlayerDragonCultistDamageDoneSingleSource(t *testing.T) {
 	want(1, true, "5 from a source seat 1 controlled")
 
 	for _, bad := range []string{"You.damageDoneSingleSource", "You.damageDoneSingleSource XX5", "You.damageDoneSingleSource  "} {
-		if e.checkDefinedPlayerHolds(bad, src, 0) {
+		if e.checkDefinedPlayerHolds(bad, src, 0, nil) {
 			t.Errorf("%q must fail closed", bad)
 		}
 	}

@@ -589,6 +589,9 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	case controlReferentTriggeredTarget:
 		return op, ref, true
 	}
+	if isDelayTriggerRemembered(ref) {
+		return op, ref, true
+	}
 	// Player.NotedFor<label> is a global player property resolved by the
 	// shared player-spec evaluator (controlReferentPlayers below), exactly like
 	// Player.EnchantedBy. The label is dynamic, so it is a prefix arm rather
@@ -765,7 +768,11 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		return players, true
 	}
 	var targets []state.Target
-	switch controlReferentPlayersCodes.Code(string(ref)) {
+	refCode := controlReferentPlayersCodes.Code(string(ref))
+	if isDelayTriggerRemembered(ref) {
+		refCode = controlReferentPlayersDelayTriggerRemembered
+	}
+	switch refCode {
 	case controlReferentPlayersTriggeredSourceSAController:
 		// The controller of the CAUSING spell/ability's source: the role a
 		// BecomesTarget/BecomesTargetOnce trigger captures in TriggerSource
@@ -873,18 +880,15 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, t)
 			}
 		}
-	case controlReferentPlayersPlayerIsRemembered:
-		// The same remembered set the bare "Remembered" referent
-		// reads, PLAYERS ONLY -- the full player-spec spelling names the
-		// remembered player (a RepeatEach loop's subject), never a
-		// remembered object's controller.
-		if !sc.Resolving {
+	case controlReferentPlayersPlayerIsRemembered, controlReferentPlayersDelayTriggerRemembered:
+		// The same remembered set the bare "Remembered" referent reads,
+		// PLAYERS ONLY -- the full player-spec spelling names the remembered
+		// player (a RepeatEach loop's subject), never a remembered object's
+		// controller; DelayTriggerRemembered names the trigger instance's
+		// captured players instead (rememberedPlayerReferent).
+		var ok bool
+		if targets, ok = rememberedPlayerReferent(sc, ref); !ok {
 			return nil, false
-		}
-		for _, t := range sc.Remembered {
-			if t.IsPlayer {
-				targets = append(targets, t)
-			}
 		}
 	case controlReferentPlayersRememberedController:
 		// definedrem3: a remembered CARD contributes its controller (ControlledBy)
@@ -1153,6 +1157,7 @@ const (
 	controlReferentPlayersTriggeredActivator
 	controlReferentPlayersTriggeredAttackingPlayer
 	controlReferentPlayersParent
+	controlReferentPlayersDelayTriggerRemembered
 )
 
 var controlReferentPlayersCodes = state.NewStrCodes(
@@ -1186,3 +1191,43 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
 	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
 )
+
+// isDelayTriggerRemembered reports the delayed-trigger capture spelling. It reads
+// the word from the one vocabulary table (definedSpecCodes) that already names it
+// instead of keying it into the two control-referent tables.
+func isDelayTriggerRemembered(ref string) bool {
+	return definedSpecCodes.Code(ref) == definedSpecDelayTriggerRemembered
+}
+
+// rememberedPlayerReferent is the PLAYER half of a remembered set a control
+// referent names.
+//
+//   - Player.IsRemembered: the players this resolution remembers; resolution-
+//     only (a non-resolving read is unbound).
+//   - DelayTriggerRemembered (Kitt Kanto's `Creature.ControlledBy
+//     DelayTriggerRemembered`): the players the delayed (or reflexive) trigger
+//     instance captured -- the ImmediateTrigger's `RememberObjects$
+//     TriggeredPlayer`. A reflexive instance's capture rides its own
+//     Remembered (QueueReflexiveTrigger clears DelayedRemembered on purpose:
+//     the spawner's registration capture is not this ability's), exactly the
+//     fallback Defined$ DelayTriggerRemembered takes. It is bound at the
+//     target offer as well, so it does not need Resolving. Never the source's
+//     own memory; a non-player entry names no seat, and no captured player at
+//     all leaves the referent unbound (the caller's tail returns ok=false).
+func rememberedPlayerReferent(sc SpecContext, ref string) ([]state.Target, bool) {
+	set := sc.Remembered
+	if isDelayTriggerRemembered(ref) {
+		if set = sc.DelayedRemembered; len(set) == 0 && sc.Reflexive {
+			set = sc.Remembered
+		}
+	} else if !sc.Resolving {
+		return nil, false
+	}
+	var out []state.Target
+	for _, t := range set {
+		if t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out, true
+}
