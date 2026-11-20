@@ -539,6 +539,39 @@ func (s *State) appendPrevGrants(ro *replOrd, n int, k *prep, sl Slot, from, to 
 	return n, m
 }
 
+// replOrderCandsSeat appends the doubling and plus-N candidates on seat p's
+// battlefield to ro.cand for the frozen combat event fe, in entry order, and
+// returns the new count (or -1 when the list overflows, which has stalled).
+// Every seat's battlefield is scanned because a plus-N line need not belong to
+// the source's controller: the recipient's Tok-Tok, Volcano Born raises a red
+// source's damage to a player beside the source controller's doubler.
+func (s *State) replOrderCandsSeat(k *prep, fe *fzEv, p, sc, rcp uint8, n int) int {
+	g := k.gen
+	ro := &s.g.ro
+	var bf [MaxPerm]Slot
+	for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
+		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true) {
+			if n == len(ro.cand) {
+				s.capFull(StallReplCands) // loud: never truncate the candidates
+				return -1
+			}
+			ro.cand[n] = s.perms[b].obj
+			n++
+		} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+			if _, raise, ok := s.replPlusCand(k, b, fe.src, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
+				if n == len(ro.cand) {
+					s.capFull(StallReplCands) // loud: never truncate the candidates
+					return -1
+				}
+				ro.cand[n] = s.perms[b].obj
+				ro.plus |= 1 << n
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
 // (its amount before the replacements is fe.n) and returns their number.
 func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
@@ -558,31 +591,23 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	n := 0
 	ro.prev, ro.shld, ro.plus, ro.pnx, ro.spv = 0, 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
-		// gorge's scan order: the controller's battlefield in entry order.
+		// gorge's scan order: every living seat's battlefield in seat order,
+		// each in entry order (forEachObject's AliveFrom(0)). The source's
+		// controller is not the only one whose plus-N and doubling lines can
+		// match: a red source's damage to a player is raised by the
+		// recipient's Tok-Tok, Volcano Born as well as doubled by the source
+		// controller's Absorbing Man and Titania.
 		// A plus-N addition is collected beside every other kind: beside
 		// another addition the orders commute to one sum (replPlusOnly), so
 		// the walk poses gorge's no-op ask (trig_oneormore.go); beside a
 		// doubling they do not, and the walk applies the picks as made
 		// (repl_pluswalk.go).
-		var bf [MaxPerm]Slot
-		for _, b := range bf[:s.battlefieldOrder(sc, s.statM.and(s.ctrlM[sc]), bf[:], 0)] {
-			if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
-				if n == len(ro.cand) {
-					s.capFull(StallReplCands) // loud: never truncate the candidates
-					return 0
-				}
-				ro.cand[n] = s.perms[b].obj
-				n++
-			} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
-				if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
-					if n == len(ro.cand) {
-						s.capFull(StallReplCands) // loud: never truncate the candidates
-						return 0
-					}
-					ro.cand[n] = s.perms[b].obj
-					ro.plus |= 1 << n
-					n++
-				}
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
+			if n = s.replOrderCandsSeat(k, fe, p, sc, rcp, n); n < 0 {
+				return 0
 			}
 		}
 	}
@@ -837,8 +862,9 @@ func (s *State) replOrderMark(src, dst Slot) {
 }
 
 // replCandLive: asked candidate i of the combat event still matches it (a
-// Twinflame Tyrant still on the battlefield under the source's controller
-// with its abilities, a recipient still preventing its combat damage; the
+// doubler or plus-N line still on the battlefield and still matching with its
+// own controller — the recipient's Tok-Tok, Volcano Born beside the source
+// controller's doublings, a recipient still preventing its combat damage; the
 // recipient a permanent still).
 func (s *State) replCandLive(k *prep, i int) bool {
 	ro := &s.g.ro
@@ -865,7 +891,20 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0 && !s.noPrev(k, true)
 	}
 	if ro.plus&(1<<i) != 0 {
-		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
+		// a plus-N line need not belong to the source's controller (the
+		// recipient's Tok-Tok, Volcano Born beside the source controller's
+		// doublings), so the host re-matches with its own controller: the
+		// same match roPlusAdd applies the pick with (repl_pluswalk.go), the
+		// source read as the frozen event's (an LKI a pause removed)
+		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 || s.genLost(k, sl) {
+			return false
+		}
+		card := s.cardAt(ro.askS)
+		if fe := s.replOrderFz(ro.askS, ro.askD); fe != nil {
+			card = fe.card
+		}
+		_, raise, ok := s.replPlusCand(k, sl, ro.askS, card, ro.actl, ro.p, ro.askD, true, int(ro.an))
+		return ok && raise == 0 // the walk collects additions only (replOrderCandsSeat)
 	}
 	if ro.prev&(1<<i) != 0 {
 		if sl == ro.askS {
@@ -873,8 +912,10 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		}
 		return s.prevCombatTo(k, sl)
 	}
-	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
-		(!k.gen.anyFiltRepl || s.dblDmgLive(k, sl))
+	// a doubler re-matches too (dblDmgMatch reads its controller and filter,
+	// CR 616.1): a candidate of another seat the widened scan collected that
+	// no longer matches is not live either
+	return k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) && s.dblDmgLive(k, sl)
 }
 
 // dealAsked deals the answered combat event as it was asked: to a
@@ -1389,7 +1430,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 				cand[c] = s.perms[b].obj
 				prev |= 1 << c
 				c++
-			} else if rb&rbPlusDmg != 0 && p == ctrl {
+			} else if rb&rbPlusDmg != 0 {
+				// every seat's battlefield: a plus-N line need not belong to
+				// the source's controller (the recipient's Tok-Tok, Volcano
+				// Born, CR 616.1); parkPlusCand re-matches with the host's own
+				// controller, so a line that does not match is not collected
 				// an addition (Fated Firepower, Hawkeye) or a raise (Ojer
 				// Axonil): gorge collects it beside every other match, so two
 				// or more are asked as its CR 616.1 order (replPlus); beside a
