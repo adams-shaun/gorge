@@ -539,12 +539,13 @@ const WAIT_MS = 20_000;
  * delivering frames and the same endpoints answer curl in 0-1ms. The panel's
  * only recovery paths (the SSE-driven view refetch and the 1s pending poll)
  * both ride that stalled pool, so the game — paced 1.5s per decision — sits
- * unanswered for the whole stall and the drive/crossing budgets must absorb
- * one full stall each. Measured stalls: 5.3s, 11s, 11.2s (single-worktree
- * probes) and 41s (the smoke gate's own failing run). WAIT_MS (20s) is fine
- * for every assertion that does not straddle a stall; the wire-index drive and
- * its crossing assertion get STALL_MS instead, and the test's own timeout is
- * raised to hold drive + crossing + one stall each with margin.
+ * unanswered for the whole stall and the drive/crossing/undo budgets must
+ * absorb one full stall each. Measured stalls: 5.3s, 11s, 11.2s
+ * (single-worktree probes) and 41s (the smoke gate's own failing run). WAIT_MS
+ * (20s) is fine for every assertion that does not straddle a stall; the
+ * wire-index drive, its crossing assertion and the undo step get STALL_MS
+ * instead, and the test's own timeout is raised to hold drive + crossing + one
+ * undo retry with margin.
  */
 const STALL_MS = 90_000;
 // The drive loop's wall-clock bound: its HTTP polls are Node-side (they do
