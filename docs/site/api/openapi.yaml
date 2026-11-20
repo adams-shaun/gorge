@@ -1909,6 +1909,9 @@ components:
           description: "Ability anchors an \"ability\" option to its exact activated ability: the index into the source Face().Abilities being offered, so a client can pop that ability's own text up beside the right ability on the card. The engine reads it in beginActivation, where a stale index degrades to a no-op. omitempty: options that are not ability options carry no field, and on an ability option a missing field is index 0 (the first ability), the one value that omits."
           format: "int64"
           type: "integer"
+        alone_only:
+          description: "AloneOnly marks a KAttackers option whose creature can ONLY be declared alone (CR 508.1c, \"can only attack alone\"): no other creature may be declared beside it. CompanionNeed/CompanionFrom are the converse restriction (\"can't attack unless a creature with greater power also attacks\", \"... at least two other creatures attack\", Okk, Orcish Conscripts, Scarred Puma; the block-side sentences ride KBlockers options): choosing this option is legal only together with at least CompanionNeed distinct OTHER creatures, each named by one of the options in CompanionFrom (option Indexes). All three derive from combat.CompanionViolated, and AloneLegal (the one home Decision.Validate, FitAlone and the block solver share) reads them, so a rules-ignorant client builds a legal declaration from the wire alone. omitempty: an unrestricted option emits none of them."
+          type: "boolean"
         alone_restricted:
           description: "AloneRestricted marks a KAttackers or KBlockers option whose creature is restricted from being declared ALONE (CR 506.5): declaring it is legal only when at least one other creature is declared as an attacker (a KAttackers option) or as a blocker (a KBlockers option) in the same declaration. The engine REJECTS a lone declaration (combat.DeclaresAlone, read by both declaration validators), so a rules-ignorant client -- the bot policy included -- needs the fact on the wire to build a legal declaration rather than have one refused. Decision.Validate enforces it and the shared repair (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from this same field, so the published fact cannot drift from the check. omitempty: an unrestricted option emits no field, so every ordinary option list serialises byte-identically."
           type: "boolean"
@@ -1929,6 +1932,14 @@ components:
           description: "Battle, on an attacker option, names the non-player permanent being attacked -- a CR 310.7 battle or a planeswalker -- 0 meaning a player attack. Obj is the attacking creature and Player is the permanent's seat (the battle's protector, or the planeswalker's controller), so the pair alone cannot tell a permanent attack from a player attack by the same creature; this field is what the engine reads back at declaration time to record Object.AttackingBattle. omitempty: a player attack emits no field, so every existing option list serialises byte-identically."
           maximum: 4294967295
           minimum: 0
+          type: "integer"
+        companion_from:
+          items:
+            format: "int64"
+            type: "integer"
+          type: "array"
+        companion_need:
+          format: "int64"
           type: "integer"
         cost:
           description: "Cost is the activation cost of a priority-window \"activate\" option whose mana ability costs MORE than a bare tap, in the same whitespace-delimited Forge notation AbilityCosts uses (engine/rules/mana.go's formatCost over ParseCost of the ability's Cost$ param) — \"T Sac\u003c1/Lion's Eye Diamond\u003e\" for Lion's Eye Diamond, \"T PayLife\u003c1\u003e\" for Mana Confluence. It is the wire marker the client's empty-priority-window floor and auto-pass need: isActionKind excludes every \"activate\" because a bare tap is offered at every window and is not a play, but a costly activation is exactly the play a ritual-combo deck needs the window for, and an empty hand leaves it the window's ONLY action — the floor passed it away unseen, and the card was unreachable for the rest of the game. A bare tap (every plain land) omits the field, so every existing option list and every plain-land window serialises byte-identically. omitempty: only a beyond-tap activation carries it."
