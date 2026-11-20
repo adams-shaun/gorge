@@ -61,20 +61,45 @@ func loadCardList(path, cardsDir string) (*pool, error) {
 	return loadCardNames(names, cardsDir)
 }
 
-// loadCardNames builds a pool from already-read card names.
-func loadCardNames(names []string, cardsDir string) (*pool, error) {
-	sort.Strings(names)
-	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}}
-	reg, err := cards.OpenCorpusSubset(cardsDir, names)
+// poolCorpus is the corpus a pool loads against: the process's shared corpus
+// registry (cards.SharedCorpus) and the corpus's type vocabulary. A pool
+// reads only Lookup, Token and Tokens of its registry, and a subset registry
+// answers those exactly as the shared full one (subset.go: a subset card is
+// the value the full registry holds; the tokens are all of them either way),
+// so every pool of a build loads against the one shared open instead of one
+// OpenCorpusSubset per pool. That hoists the staleness rule -- the corpus
+// walk, the token digest and the card census sidecars (cacheFresh, the one
+// home of the rule; OpenCorpus and the segment path both consult it) -- out
+// of the per-pool loop: 899 pools re-ran it in `kgen -tables`, 93% of the
+// build, and the synthetic pools' build re-ran it per list and per split.
+type poolCorpus struct {
+	reg       *cards.Registry
+	typeWords map[string]bool
+}
+
+// openPoolCorpus opens the process's shared corpus for cardsDir. Both parts
+// are memoised per directory (cards.SharedCorpus, corpusWords), so a build
+// calls this once and later calls, including the next build in the same
+// process, are free.
+func openPoolCorpus(cardsDir string) (*poolCorpus, error) {
+	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
 		return nil, err
 	}
-	if p.typeWords, err = corpusTypeWords(cardsDir); err != nil {
+	tw, err := corpusTypeWords(cardsDir)
+	if err != nil {
 		return nil, err
 	}
-	p.reg = reg
+	return &poolCorpus{reg: reg, typeWords: tw}, nil
+}
+
+// cardPool is the pool side of loadCardNames: names, already sorted, against
+// an open corpus. A name the corpus does not resolve is an error: the
+// generated table would silently lack it.
+func cardPool(names []string, pc *poolCorpus) (*pool, error) {
+	p := &pool{nDecks: map[string]int{}, byName: map[string]*cards.Card{}, reg: pc.reg, typeWords: pc.typeWords}
 	for _, n := range names {
-		c, ok := reg.Lookup(n)
+		c, ok := pc.reg.Lookup(n)
 		if !ok {
 			return nil, fmt.Errorf("card %q not in the corpus", n)
 		}
@@ -83,6 +108,16 @@ func loadCardNames(names []string, cardsDir string) (*pool, error) {
 		p.byName[n] = c
 	}
 	return p, nil
+}
+
+// loadCardNames builds a pool from already-read card names.
+func loadCardNames(names []string, cardsDir string) (*pool, error) {
+	sort.Strings(names)
+	pc, err := openPoolCorpus(cardsDir)
+	if err != nil {
+		return nil, err
+	}
+	return cardPool(names, pc)
 }
 
 // pool is the deck pool and the compiled cards it names.
@@ -141,16 +176,13 @@ func loadPool(decksDir, cardsDir string) (*pool, error) {
 		p.names = append(p.names, n)
 	}
 	sort.Strings(p.names)
-	reg, err := cards.OpenCorpusSubset(cardsDir, p.names)
+	pc, err := openPoolCorpus(cardsDir)
 	if err != nil {
 		return nil, err
 	}
-	if p.typeWords, err = corpusTypeWords(cardsDir); err != nil {
-		return nil, err
-	}
-	p.reg = reg
+	p.reg, p.typeWords = pc.reg, pc.typeWords
 	for _, n := range p.names {
-		c, ok := reg.Lookup(n)
+		c, ok := pc.reg.Lookup(n)
 		if !ok {
 			return nil, fmt.Errorf("card %q not in the corpus", n)
 		}
