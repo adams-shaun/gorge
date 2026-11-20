@@ -558,30 +558,40 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	n := 0
 	ro.prev, ro.shld, ro.plus, ro.pnx, ro.spv = 0, 0, 0, 0, 0
 	if (rcp != sc || g.anyFiltRepl) && sc < MaxSeats {
-		// gorge's scan order: the controller's battlefield in entry order.
+		// gorge's scan order: every living seat's battlefield in seat order,
+		// each in entry order (forEachObject's AliveFrom(0)). The source's
+		// controller is not the only one whose plus-N and doubling lines can
+		// match: a red source's damage to a player is raised by the
+		// recipient's Tok-Tok, Volcano Born as well as doubled by the source
+		// controller's Absorbing Man and Titania.
 		// A plus-N addition is collected beside every other kind: beside
 		// another addition the orders commute to one sum (replPlusOnly), so
 		// the walk poses gorge's no-op ask (trig_oneormore.go); beside a
 		// doubling they do not, and the walk applies the picks as made
 		// (repl_pluswalk.go).
-		var bf [MaxPerm]Slot
-		for _, b := range bf[:s.battlefieldOrder(sc, s.statM.and(s.ctrlM[sc]), bf[:], 0)] {
-			if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
-				if n == len(ro.cand) {
-					s.capFull(StallReplCands) // loud: never truncate the candidates
-					return 0
-				}
-				ro.cand[n] = s.perms[b].obj
-				n++
-			} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
-				if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
+		for p := uint8(0); p < s.nSeats(); p++ {
+			if s.out(p) {
+				continue
+			}
+			var bf [MaxPerm]Slot
+			for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
+				if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && (!g.anyFiltRepl || s.dblDmgMatch(k, b, sc, fsl, fe.card, NoObj, rcp, fe.dst, true)) {
 					if n == len(ro.cand) {
 						s.capFull(StallReplCands) // loud: never truncate the candidates
 						return 0
 					}
 					ro.cand[n] = s.perms[b].obj
-					ro.plus |= 1 << n
 					n++
+				} else if g.replBits[s.cardAt(b)]&rbPlusDmg != 0 && !s.genLost(k, b) {
+					if _, raise, ok := s.replPlusCand(k, b, fsl, fe.card, sc, rcp, fe.dst, true, int(fe.n)); ok && raise == 0 {
+						if n == len(ro.cand) {
+							s.capFull(StallReplCands) // loud: never truncate the candidates
+							return 0
+						}
+						ro.cand[n] = s.perms[b].obj
+						ro.plus |= 1 << n
+						n++
+					}
 				}
 			}
 		}
