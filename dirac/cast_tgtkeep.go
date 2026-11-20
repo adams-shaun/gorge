@@ -111,6 +111,9 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 	if n == 0 {
 		return true // a cast with no legal target (an X-resolves-to-zero announcement) is cast without one
 	}
+	if sp.TFlags&kop.TgfBoundsV == 0 && sp.Min > 1 {
+		return s.minTargetsKept(k, p, sp, cost, buf[:n])
+	}
 	for i := 0; i < n; i++ {
 		tc := buf[i]
 		if isPlayerOrNone(tc) {
@@ -129,6 +132,42 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 	return false
 }
 
+// minTargetsKept is specKeepsTarget for a slot that announces at least
+// sp.Min targets ("six target nonland permanents", Aether Gale): the cast is
+// announceable only while the payment leaves Min candidates standing
+// (gorge's survivorsCanTarget reads the slot's minimum over the permanents the
+// plan did not consume, CR 601.2c-h). A candidate that is no battlefield
+// permanent or a player stands whatever is paid; a battlefield one stands when
+// the census still pays with its production, and those held out before it,
+// out. The greedy order is the candidate order: each is protected only while
+// the census affords the cost with every protected production held out.
+func (s *State) minTargetsKept(k *prep, p uint8, sp *kop.TargetSpec, cost *kop.ManaCost, cands []TCode) bool {
+	kept := 0
+	var held slotMask
+	for _, tc := range cands {
+		if kept >= int(sp.Min) {
+			return true
+		}
+		if isPlayerOrNone(tc) {
+			kept++
+			continue
+		}
+		tobj := Obj(tc)
+		if tobj >= MaxObj || s.objs[tobj].zone != kop.ZoneBattlefield {
+			kept++
+			continue
+		}
+		var c1 avail
+		next := held.with(s.objs[tobj].slot)
+		s.availSansSlots(k, p, next, &c1)
+		if c1.affords(cost, pipMaskOf(cost), 0) {
+			held = next
+			kept++
+		}
+	}
+	return kept >= int(sp.Min)
+}
+
 // availSansObj is the walk's census with battlefield object o's whole
 // production held out and its non-consuming units put back: the object is out
 // only as the sacrifice that acquires its mana (CR 601.2c — the target is
@@ -145,17 +184,25 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 // only when painTight left the units alone keeps the budget model's count
 // exact (a binding summed life guard is still the conservative answer).
 func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
-	sl := s.objs[o].slot
-	s.availForMode(k, p, a, slotMask{}.with(sl), false)
-	m := s.g.availX
-	s.g.availX = availPlain
-	pc := s.manaPCGen(k, sl)
-	s.g.availX = m
-	if lifeOnlyPain(pc) && !a.pain.on && !pc.manaSac && !pc.manaSacOnly {
-		s.addPainAvail(k, sl, pc, p, a, nil, true)
-		return
-	}
-	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) {
-		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	s.availSansSlots(k, p, slotMask{}.with(s.objs[o].slot), a)
+}
+
+// availSansSlots is availSansObj for several held-out slots at once (a mask,
+// so the cast-offer path allocates nothing).
+func (s *State) availSansSlots(k *prep, p uint8, held slotMask, a *avail) {
+	s.availForMode(k, p, a, held, false)
+	for b := held; b.any(); b = b.rest() {
+		sl := b.first()
+		m := s.g.availX
+		s.g.availX = availPlain
+		pc := s.manaPCGen(k, sl)
+		s.g.availX = m
+		if lifeOnlyPain(pc) && !a.pain.on && !pc.manaSac && !pc.manaSacOnly {
+			s.addPainAvail(k, sl, pc, p, a, nil, true)
+			continue
+		}
+		if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) {
+			a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+		}
 	}
 }
