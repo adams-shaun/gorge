@@ -1,42 +1,74 @@
 A-Mentor's Guidance
+A-Phylath, World Sculptor
 Aboshan's Desire
 Aether Mutation
 Ageless Guardian
+Agent of the Shadow Thieves
 Angel's Mercy
 Angelic Wall
 Appeal
+Arbalest Engineers
 Arcane Flight
 Archangel's Light
 Aura Mutation
 Aven Trailblazer
 Avenging Arrow
+Aya of Alexandria
 Bala Ged Recovery
 Bar the Door
 Bast, Panther Goddess
+Bat Whisperer
 Bazaar Krovod
+Belbe's Percher
+Billiard Room
 Blink Dog
+Blisterspit Gremlin
+Bloodboil Sorcerer
+Bloodrock Cyclops
+Boggart Brute
 Boon of Safety
 Borrowed Time
 Brawn
+Breath Weapon
 Bringer of the Black Dawn
 Butterbur, Bree Innkeeper
 Calix, Guided by Fate
 Cartouche of Zeal
 Cathartic Adept
+Caustic Tar
 Cave of the Frost Dragon
+Ceta Sanctuary
+Charix, the Raging Isle
 Child of Thorns
+Cleaving Sliver
+Cloud Djinn
 Compy Swarm
+Conjurer's Mantle
+Consulate Turret
+Conversion
+Cowl Prowler
+Crackle with Power
+Crash
+Crash the Party
 Crash the Ramparts
 Crown of Empires
 Cruel Deceiver
+Crusade
+Cryptoplasm
 Crystal Ball
+Crystalline Nautilus
+Cut Down
 Cynette, Jelly Drover
 Dakmor Lancer
 Dark Salvation
+Death-Priest of Myrkul
 Devious Cover-Up
 Dewdrop Spy
 Dirty Rat
 Drelnoch
+Drowner of Secrets
+Durable Coilbug
+Dust Elemental
 Dwarven Patrol
 Edric, Spymaster of Trest
 Eidolon of Blossoms
@@ -46,108 +78,186 @@ Elegant Entourage
 Elminster's Simulacrum
 Embersmith
 Encase in Ice
+Enter the Unknown
 Era of Innovation
+Etherium-Horn Sorcerer
 Exoskeletal Armor
+Experimental Augury
+Ezuri's Brigade
+Feeling of Dread
+Feral Ridgewolf
 First Volley
 Flip the Switch
 Forest
 Fungal Bloom
+Gaea's Gift
 Generous Pup
 Glimmer of Genius
+Goblin Lackey
 Godhunter Octopus
 Goreclaw, Terror of Qal Sisma
 Gossamer Phantasm
+Grafted Butcher
 Grazing Kelpie
 Grim Guardian
+Grizzled Outrider
 Ground Seal
 Harsh Scrutiny
 Hawkeye, Clint Barton
+Heartstone
+Henrika Domnathi
 Hired Poisoner
 Hoard Hauler
+Hoverguard Observer
+Hunter's Edge
 Hydroid Krasis
 Imperial Recovery Unit
+Indulgent Aristocrat
+Infest
 Inspiration
+Intrepid Outlander
 Invasion of Ergamon
+Invasion of Tarkir
 Island
+Join Forces
 Joraga Auxiliary
 Kitesail Apprentice
 Kitsune Dawnblade
+Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
 Leyline of Anticipation
+Lidless Gaze
 Lightfoot Rogue
 Locthwain Gargoyle
 Loran's Escape
+Lost Legion
+Loxodon Warhammer
+Lurking Arynx
+Mana Seism
 Mantle of the Wolf
 Master of the Pearl Trident
 Merciless Javelineer
+Miara, Thorn of the Glade
 Mind Over Matter
 Ministrant of Obligation
 Mirari
+Mogis's Warhound
 Morinfen
+Moriok Scavenger
 Mountain
+Naga Oracle
 Nefashu
 Neurok Stealthsuit
+Nezumi Bladeblesser
 Night Market Guard
 Nimana Sell-Sword
+Nissa's Chosen
+Notorious Assassin
 Nurturer Initiate
+Oboro Breezecaller
 Obsidian Obelisk
 Ogre Jailbreaker
+Paladin Danse, Steel Maverick
+Peace of Mind
+Perilous Myr
 Pharika's Chosen
 Pillar of Light
 Plains
 Platoon Dispenser
+Power Armor
 Press into Service
+Pyretic Prankster
 Quilled Wolf
 Quirion Explorer
 Quirion Sentinel
 Rain of Rust
+Raise the Alarm
+Rakdos Riteknife
 Ramosian Sergeant
+Rampaging Ferocidon
+Rapacious One
+Reality Hemorrhage
 Reclusive Wight
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
 Rile
+Ringskipper
+Riot Piker
 Rising of the Day
 Ruin Crab
 Rukh Egg
 Saheeli's Silverwing
+Sapseep Forest
 Seagraf Skaab
+See the Unwritten
 Serum Visions
+Sever the Bloodline
 Shadow Rift
+Shatterskull Giant
+Showstopping Surprise
+Shu General
 Siegecraft
 Silkbind Faerie
 Slate of Ancestry
 Slinza, the Spiked Stampede
 Soltari Trooper
+Songs of the Damned
+Soul's Might
+Sound the Call
 Sphere of Grace
 Spike-Tailed Ceratops
+Spiked Corridor
 Spire Owl
+Spitting Dilophosaurus
+Spring Cleaning
 Sprite Dragon
 Squelching Leeches
+Storm Fleet Sprinter
 Storm Sculptor
+Stun
+Subterranean Spirit
+Suffocating Blast
+Summoning Materia
+Sunastian Falconer
 Sunder Shaman
 Swamp
+Tajuru Archer
+Tangle Hulk
 Teardrop Kami
 Tempting Witch
 The Roaring Toeclaws
 The Thanos-Copter
 Their Number Is Legion
+Then, Dreadmaws Ate Everyone
 Thief of Existence
 Thrull Surgeon
 Thumbscrews
+Thunder Dragon
 Tombfire
 Touch of Death
+Toxic Scorpion
 Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
+Ulvenwald Captive
+Undercity Necrolisk
 Unlikely Aid
+Venom, Eddie Brock
+Veteran's Voice
+Viashino Outrider
+Viashino Runner
 Viral Drake
+Vodalian Arcanist
 Voice of All
 Vortex Runner
+Vow of Lightning
 Warpath Ghoul
 Wasp, Shrinking Savior
 Wasteful Harvest
+Wild Elephant
+Wild Ox
 Winds of Qal Sisma
 Witness the End
 Xerex Strobe-Knight

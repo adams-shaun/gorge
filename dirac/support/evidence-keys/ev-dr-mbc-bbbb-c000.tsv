@@ -4,9 +4,11 @@ Act on Impulse	4904f59abbd44bb1	9	0/0		1/2	ix:resp
 Angel of Vitality	deb06318f87d5b2d	10	0/0		0/0	
 Beanstalk Giant	ea8095902716622c	7	0/0		1/2	ix:resp
 Blessed Hippogriff	0b57b3203fbcfbb3	12	1/1		1/2	ix:resp
+Bloodthrone Vampire	e9c9dc6cd94dcf03	47	1/1		1/1	
 Brood Monitor	8c27e178d97d7c5a	3	1/1		0/1	ix:resp
 Caltrops	e2e47cd4b5612bf1	5	1/1		1/1	
 Clinquant Skymage	e25f5daeb422f2a3	7	1/1		0/1	ix:resp
+Cloud Elemental	dc4854121b224215	4	0/0		0/0	
 Collected Company	7e5132d469fb586e	21	0/0		1/2	ix:resp
 Concentrate	7f1cbdbb28d88556	4	0/0		2/2	
 Counterspell	24d94fba7803eb31	8	0/0		2/2	
@@ -20,9 +22,11 @@ Diregraf Horde	e0e2b8ceec3f033c	6	1/1		0/1	ix:resp
 Dwarven Miner	c992a50881d3ba4b	8	1/1		0/1	ix:resp
 Elite Scaleguard	c08311586bf76cf5	5	2/2		1/1	
 Executioner's Capsule	f9f475c2f410b08d	3	1/1		1/1	
+Ezuri, Claw of Progress	7f0b18337ecc5f5a	8	2/2		1/1	
 Falter	ba8e49a4b34db86a	8	0/0		1/2	ix:resp
 Fatal Push	7cdafa526f371ff7	3	0/0		1/2	ix:resp
 Fellwar Stone	582e6e1183bf3d78	9	1/1		1/1	
+Flame Javelin	411000cf856c8b9a	18	0/0		2/2	
 Flesh-Eater Imp	5252612c3c9a98dc	6	1/1		0/1	ix:resp
 Fog	d70bf971da78ff3b	43	0/0		2/2	
 Fog Bank	8020bddbddbcf886	6	0/0		0/0	
@@ -39,6 +43,7 @@ Go for the Throat	b3ce9a098400a815	3	0/0		1/2	ix:resp
 Goblin Bombardment	41b20dc39cb0aefb	4	1/1		0/1	ix:resp
 Goblin Recruiter	4432a0bbe7041d31	4	1/1		1/1	
 Grab the Reins	08ab3507cb477a91	6	0/0		2/2	
+Halimar Wavewatch	7a5ac3438176b2b9	47	1/1		1/1	
 Hollow Marauder	77c080c3a462f31c	3	1/1		0/1	ix:resp
 Hopeless Nightmare	083c72e2edc42fa2	4	3/3		0/1	ix:resp
 Illusory Ambusher	053815ddddbf17b5	6	1/1		0/1	ix:resp
@@ -77,12 +82,14 @@ Renewed Faith	5061e68f7979ff7d	4	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Rescind	2a0123f94e30750d	3	1/1		1/2	ix:resp
 Reya Dawnbringer	d1bfa40e2affaf60	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Seal of Fire	961ee3088b7e10c0	4	1/1		0/1	ix:resp
+Shimmerscale Drake	0212a90810fa631e	5	1/1		0/1	ix:resp
 Soul Warden	bc262ab83820fa1d	8	1/1		1/1	
 Spellstutter Sprite	78c30cf11081fc79	6	1/1		0/1	ix:resp
 Spiteful Prankster	025c7a09ccd30325	6	1/1		0/1	ix:resp
 Standstill	aed4a62f8d57b332	4	1/1		0/1	ix:resp
 Strangleroot Geist	1d2780654e7e66bb	11	1/1		1/1	
 Sudden Spinnerets	b2806ed9219d6dc2	3	0/0		2/2	
+Summon Undead	3747f28cc0b6dec9	18	0/0		1/2	ix:resp
 Swamp	342b413902f441c3	19	1/1		0/1	ix:resp
 Symbiosis	a9d9cce102ace4b4	26	0/0		1/2	ix:resp
 The Rack	5474393ea2274c44	4	1/1		0/1	ix:resp

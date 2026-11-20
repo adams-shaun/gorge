@@ -25,6 +25,7 @@ Bellowing Elk
 Benevolent Blessing
 Beregond of the Guard
 Bessie, the Doctor's Roadster
+Biomass Mutation
 Bituminous Blast
 Bladebrand
 Blood-Toll Harpy
@@ -33,6 +34,7 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
+Blur
 Body of Knowledge
 Boing!
 Bojuka Brigand
@@ -61,6 +63,7 @@ Colossal Might
 Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
+Consecrated by Blood
 Contaminated Aquifer
 Contentious Plan
 Court Hussar
@@ -107,6 +110,7 @@ Falcon Abomination
 Fallaji Archaeologist
 Fallow Earth
 Feral Instinct
+Feral Invocation
 Filigree Familiar
 Firebreathing
 Flame Discharge
@@ -182,6 +186,7 @@ Lightning Runner
 Llanowar Augur
 Loam Dryad
 Loam Larva
+Lookout's Dispersal
 Lorthos, the Tidemaker
 Lotleth Giant
 Mage-Ring Bully
@@ -249,10 +254,13 @@ Renegade Tactics
 Resupply
 Rime Transfusion
 Rite of the Raging Storm
+Roiling Regrowth
+Run Ashore
 Rush of Inspiration
 Rusted Sentinel
 Sabertooth Wyvern
 Sacred Guide
+Sage-Eye Avengers
 Said
 Savage Offensive
 Sawblade Slinger
@@ -309,6 +317,7 @@ Sundering Eruption
 Sunscape Master
 Svyelunite Priest
 Swamp
+Swarmborn Giant
 Swashbuckling
 Sword of Forge and Frontier
 Syr Faren, the Hengehammer
@@ -343,9 +352,12 @@ Tuktuk Scrapper
 Tyrant's Machine
 Ulvenwald Observer
 Unchained Berserker
+Undertow
+Underworld Charger
 Unlicensed Hearse
 Vandalize
 Vault Skyward
+Vedalken Dismisser
 Vesper Ghoul
 Vicious Offering
 Village Rites
