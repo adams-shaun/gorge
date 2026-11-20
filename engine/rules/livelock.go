@@ -504,6 +504,18 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 		}
 	}
 
+	// A TurnChange begins a fresh turn. A cycle that crosses one is the game
+	// taking turns -- an extra-turn loop (Nexus of Fate with only itself left
+	// in the library) is a legal repeating game, not a stuck resolution -- so
+	// the exact-period detector restarts at every turn boundary. The runaway
+	// backstop already counts a turn change as progress; this keeps the period
+	// detector to the shape it was built for: a resolution that never yields a
+	// turn.
+	if ev.Kind == events.TurnChange {
+		w.runPeriod, w.runEvents = 0, 0
+		return
+	}
+
 	// Exact-period detector. While a run is active, each event that
 	// continues the period extends it; any event that breaks the pattern
 	// ends the run and the trailing window is re-scanned for a fresh one.
