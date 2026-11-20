@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math/bits"
 	"slices"
 	"strings"
 
@@ -611,16 +612,40 @@ const relaxedPaidLimit = 3
 // for that set already covers it. A relaxed alternative is never
 // executable, so no Plan is returned.
 func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() PaymentPlanOutcome) PaymentPlanOutcome {
-	prev, prevFee := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee
-	defer func() { e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee = prev, prevFee }()
+	prev, prevFee, prevCut := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut
+	defer func() {
+		e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut = prev, prevFee, prevCut
+	}()
 	for mask := 0; mask < 1<<len(c.paid); mask++ {
 		relaxed := slices.Clone(c.relaxed)
 		fee := int32(0)
+		var only *relaxedPaid
 		for i, pd := range c.paid {
 			if mask>>i&1 == 1 {
 				relaxed = append(relaxed, pd.alts)
 				fee += pd.fee
+				only = &c.paid[i]
 			}
+		}
+		if bits.OnesCount(uint(mask)) == 1 {
+			// A lone paid gap's output cannot pay its own fee (CR 601.2g-h):
+			// the run prices each alternative as a cut of the cost, never as a
+			// unit beside the sources that fund the fee. Two or more gaps may
+			// fund each other, which the run does not model, so they keep the
+			// permissive units.
+			relaxed = relaxed[:len(relaxed)-1]
+			if len(relaxed) == 0 {
+				relaxed = [][]pay.Alt{nil}
+			}
+			e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee = relaxed, fee
+			for _, alt := range only.alts {
+				e.PaymentPlanRelaxedCut = []pay.Alt{alt}
+				if got := verdict(); got.Reason != "insufficient" {
+					return PaymentPlanOutcome{Reason: got.Reason, Detail: got.Detail}
+				}
+			}
+			e.PaymentPlanRelaxedCut = nil
+			continue
 		}
 		if len(relaxed) == 0 {
 			relaxed = [][]pay.Alt{nil} // the census alone, still a relaxed run
