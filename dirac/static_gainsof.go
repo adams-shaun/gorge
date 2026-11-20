@@ -20,9 +20,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (ab < 64). activateGen puts it on the stack as the recipient's ability with
 // the foreign card's body (a cost's Self, and the effect's, is the recipient).
 
-// StallGainsOf: a gained ability the walk does not model (a mana ability, an
-// activation limit, once each turn, a loyalty ability, one that works from
-// another zone, or an index past 63).
+// StallGainsOf: a gained ability the walk does not model (an activation
+// limit, once each turn, a loyalty ability, one that works from another zone,
+// or an index past 63). A gained mana ability is not a priority option in
+// either engine, so the offer walk skips it (gainedOffer) rather than stalling:
+// its payment is the mana walk's business, which has no gained sources (a
+// declared kernel limit, not an option this walk can offer).
 const StallGainsOf = 182
 
 func init() { stallNames[StallGainsOf] = "gainsof" }
@@ -186,6 +189,13 @@ func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj,
 	for j := range abs {
 		a := &abs[j]
 		if a.Kind != kop.AbActivated && a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		if a.Kind == kop.AbMana {
+			// A mana ability is never a priority option in either engine
+			// (gorge's mana walk activates it during a payment). Skipping it
+			// here keeps the offer menus equal; the kernel's payment planner
+			// has no gained sources, so this walk never offered one anyway.
 			continue
 		}
 		if !gainedModelled(a, j) {
