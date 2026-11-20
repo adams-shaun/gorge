@@ -1,0 +1,9 @@
+# A plain cast beside a multi-unit fee filter (dirac/mana_feeorder_cast_test.go):
+# The Astonishing Ant-Man's {G}{U} over Forests, Training Compound, Asgardian
+# Citadel and Baxter Building, whose {4},{T}: four mana of any combination is
+# the only blue.
+Asgardian Citadel
+Baxter Building
+Forest
+The Astonishing Ant-Man
+Training Compound

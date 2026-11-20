@@ -1274,6 +1274,9 @@ type filtSearch struct {
 	// fee (paid from the floating pool, CR 601.2b), and without the plain
 	// run's fee-stall prune (feeStall is set on the plain run only).
 	phased bool
+	// feeOrder: the phased run's fee order for a plain cast beside a
+	// multi-unit fee gap (mana_filterfeeorder.go)
+	feeOrder bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1439,12 +1442,12 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
-	if !found && fs.phasedFallback() {
+	if feeOrder, run := fs.fallbackRun(k, s, found); run {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
-		// order walked past (potentialPrefixScript)
-		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+		// order walked past (potentialPrefixScript); beside a multi-unit fee
+		// gap the run is the fee order (mana_filterfeeorder.go)
+		ph := fs.phasedRun(feeOrder)
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 			nodes = ph.nodes
@@ -1963,7 +1966,7 @@ func (t *State) scriptKey(k *prep, p uint8, _ slotMask) filtKey {
 // skipSlot: sl is not this pass's to activate, or it is already a step of
 // this path: the play's own {T} source (CR 602.2b), a dead gap, a life-only
 // source outside its last-resort pass, or a life source already paid.
-func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) bool {
+func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap bool, gf gapFilter) bool {
 	if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 		return true
 	}
@@ -1982,8 +1985,11 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) b
 		}
 		return false
 	}
-	if freeOnly && !t.canTapForMana(k, sl) {
+	if gf == gapFreeOnly && !t.canTapForMana(k, sl) {
 		return true // a fee-carrying gap is the phased run's third pass
+	}
+	if t.feeOrderSkips(k, sl, gf) {
+		return true // the fee-order run's other gap pass
 	}
 	if fs.lifeUsed.has(sl) {
 		return true
@@ -2176,11 +2182,16 @@ func (fs *filtSearch) passCount() int {
 // passShape reports whether visit's pass walks the gaps, and whether it is
 // skipped: the funding passes are once the funding is spent (gorge's phase
 // loop breaks there, so the phased run's last gap pass goes with it).
-func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap bool, gf gapFilter, skip bool) {
+	if fs.feeOrder {
+		return fs.feeOrderShape(pass, funded)
+	}
 	gap = pass == 0 || fs.phased && pass == 2
-	freeOnly = fs.phased && pass == 0
+	if fs.phased && pass == 0 {
+		gf = gapFreeOnly
+	}
 	if gap {
-		return gap, freeOnly, *feeGapsOut
+		return gap, gf, *feeGapsOut
 	}
 	fees := fs.fees
 	if fs.fundCap > 0 && fs.fundCap < fees {
@@ -2188,9 +2199,9 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 	}
 	if funded >= fees {
 		*feeGapsOut = fs.phased
-		return gap, freeOnly, true
+		return gap, gf, true
 	}
-	return gap, freeOnly, false
+	return gap, gf, false
 }
 
 // holdDualFilter reports whether sl is a lone dual filter on a cast whose
@@ -2240,7 +2251,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			continue
 		}
-		gap, freeOnly, skip := fs.passShape(pass, funded, &feeGapsOut)
+		gap, gf, skip := fs.passShape(pass, funded, &feeGapsOut)
 		if skip {
 			continue
 		}
@@ -2255,7 +2266,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.skipSlot(k, t, sl, gap, freeOnly) {
+			if fs.skipSlot(k, t, sl, gap, gf) {
 				continue
 			}
 			if gap && fs.other.has(sl) {
