@@ -2,7 +2,6 @@ package pay
 
 import (
 	"fmt"
-	"os"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -214,27 +213,6 @@ const planTwobridLimit = 5
 // twobrid pip left to resolve.
 func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
 	defer PaymentPlanQueryEnd(e, PaymentPlanQueryBegin(e))
-	if mirePayDbg {
-		var gOne state.Mana
-		gOne[4] = 1
-		gOnly := cost.Generic == 0 && cost.Colored == gOne
-		if gOnly {
-			var ids []state.ObjID
-			for _, u := range PaymentPlanQueryUnits(e, p) {
-				ids = append(ids, u.ID)
-			}
-			out := planPaymentCostResolvedInner(e, p, demand, cost, desc, tapped, gone, kept)
-			fmt.Printf("DBG-PAY {G} p=%d units=%v pool=%v out=%v/%v tapped=%v kept=%v demand=%v\n", p, ids, e.Game().Players[p].Pool, out.Reason, out.Detail, tapped, kept, demand)
-			return out
-		}
-	}
-	return planPaymentCostResolvedInner(e, p, demand, cost, desc, tapped, gone, kept)
-}
-
-// TEMPORARY DEBUG (cli-20261120T135444Z): remove before landing.
-var mirePayDbg = os.Getenv("GORGE_DEBUG_MIRE") != ""
-
-func planPaymentCostResolvedInner(e Engine, p state.PlayerID, demand [5]int, cost costvocab.Cost, desc *Descriptor, tapped, gone, kept []state.ObjID) PlanOutcome {
 	ps := e.PlanScratch()
 	if ps == nil {
 		ps = &PlanScratch{}

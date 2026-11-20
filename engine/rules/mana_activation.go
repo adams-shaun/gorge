@@ -514,20 +514,6 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	// nothing the loop keeps: it is skipped, with its layer read. A layer-6
 	// removal (a nonzero lossStamp; CR 305.7's loss has none) takes these
 	// abilities too, whatever its timestamp.
-	if mireDebug != "" {
-		dts := e.derivedTypesOf(id)
-		for _, dt := range dts {
-			if col, ok := cards.IntrinsicManaColor(dt); ok && !pay.ManaAbilitiesProduce(manaAbilities, col) {
-				fmt.Printf("DBG-LTAPPEND id=%d %q typ=%s col=%s p=%d staticsNil=%v gate=%v hasLType=%v loss=%v fd=%v zone=%d ctl=%d landwords=%d n0=%d prods=[", id, f.Name, dt, col, p, statics == nil,
-					!faceDown && lossStamp == 0 && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p && manaWalkHasLType(e, statics),
-					manaWalkHasLType(e, statics), lossStamp, faceDown, o.Zone, e.controllerOf(id), len(e.landTypeWords), len(manaAbilities))
-				for _, ma := range manaAbilities {
-					fmt.Printf("%q,", ma.ParamStr(cards.PKProduced))
-				}
-				fmt.Println("]")
-			}
-		}
-	}
 	if !faceDown && lossStamp == 0 && len(e.landTypeWords) > 0 && o.Zone == state.ZBattlefield && e.controllerOf(id) == p &&
 		manaWalkHasLType(e, statics) {
 		for _, typ := range e.derivedTypesOf(id) {
@@ -535,13 +521,8 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 			if !ok || pay.ManaAbilitiesProduce(manaAbilities, color) {
 				continue
 			}
-			if ma, abOK := cards.IntrinsicManaAbility(typ); abOK {
-				if mireDebug != "" {
-					fmt.Printf("DBG-LTDID id=%d %q typ=%s appended=%v staticsNil=%v p=%d\n", id, f.Name, typ, ma != nil, statics == nil, p)
-				}
+			if ma, ok := cards.IntrinsicManaAbility(typ); ok {
 				manaAbilities = append(manaAbilities, ma)
-			} else if mireDebug != "" {
-				fmt.Printf("DBG-LTNO id=%d %q typ=%s no intrinsic ability\n", id, f.Name, typ)
 			}
 		}
 	}

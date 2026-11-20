@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -19,23 +18,6 @@ import (
 // docs/design/2026-10-08-quiet-seat-walk-skip-design.md §3.3) so
 // the quiet serve (engine/rules/quiet_serve.go) can run exactly this block without
 // the walk's other sections, and the walk itself goes through the one copy.
-// TEMPORARY DEBUG (cli-20261120T135444Z): remove before landing.
-var mireDebug = os.Getenv("GORGE_DEBUG_MIRE")
-
-func mireLogged(i int) bool { return false }
-func mireLog(i int, where, what string) {
-	fmt.Printf("DBG-MIRE i=%d %s %s\n", i, where, what)
-}
-
-func mireWalkOut(out []decision.Option, hyp, castsOnly, forAsk bool) {
-	for _, o := range out {
-		if o.Obj != 0 {
-			if ob := fmt.Sprintf("%d", o.Obj); ob == "20" || ob == "19" {
-				fmt.Printf("DBG-WALK out obj%s kind=%s label=%q idx=%d hyp=%v castsOnly=%v forAsk=%v\n", ob, o.Kind, o.Label, o.Index, hyp, castsOnly, forAsk)
-			}
-		}
-	}
-}
 // It returns the board-wide facts it derives, because the battlefieldWalk
 // sections that follow read the same read-once snapshot.
 func (w *legalWalk) manaSection() walkBoardFacts {
@@ -271,45 +253,12 @@ func (w *legalWalk) battlefieldWalk() {
 					// pile top's.
 					pileSkip, faceFacts := w.pileAbilitiesEmpty(o, id, f, z)
 					pileMark := len(*out)
-					mireDBG := mireDebug != "" && f != nil && f.Name == "Mire Boa"
-					if mireDBG {
-						mireLog(-1, "pile", fmt.Sprintf("id=%d z=%d bound=%d skip=%v", id, z, pileAbilityBound(o, printedLost), pileSkip))
-						for _, oid := range e.G.Zone(state.ZBattlefield, 0) {
-							bo := e.G.Obj(oid)
-							bf := bo.Face()
-							nm := ""
-							if bf != nil {
-								nm = bf.Name
-							}
-							fmt.Printf("DBG-BTYPE id=%d %q types=%v ctrl=%d att=%d tapped=%v\n", oid, nm, e.derivedTypesOf(oid), bo.Controller, bo.AttachedTo, bo.Tapped)
-						}
-						for _, ce := range e.active() {
-							src := e.G.Obj(state.ObjID(ce.Source))
-							sn := ""
-							if src != nil && src.Face() != nil {
-								sn = src.Face().Name
-							}
-							fmt.Printf("DBG-CE src=%d %q layer=%d setSub=%v addAb=%d\n", ce.Source, sn, ce.Layer, state.SetsBasicLandSubtypes(&ce), len(ce.AddAbilities))
-						}
-					}
 					for i, pn := 0, pileAbilityBound(o, printedLost); i < pn && (!pileSkip || walkSkipVerify); i++ {
 						pa, okAb := o.PileAbilityAt(i)
 						if !okAb {
 							continue
 						}
 						ab := pa.SA
-						if mireDBG && ab.Kind == "AB" && !mireLogged(i) {
-							mf0 := e.manaFactsOf(ab)
-							var mfZone string
-							if mf0 != nil {
-								mfZone = fmt.Sprintf("%v", mf0.zoneOKFact(ab, z))
-							}
-							mireLog(i, "enter", fmt.Sprintf("z=%d mf=%v mfZone=%s mana=%v sorc=%v zoneOK=%v restricted=%v cond=%v supp=%v svar=%v present=%v adapt=%v mons=%v limit=%v activator=%v phases=%v",
-								z, mf0 != nil, mfZone, cards.IsManaAbilitySA(ab), ab.ParamStr(cards.PKSorcerySpeed) == "True",
-								abilityZoneOK(ab, z), w.abilityRestricted(p, id, ab), e.activationConditionOK(p, id, ab), e.castSuppressed(p, id),
-								e.sVarGateOK(p, id, ab, pa.Merged), e.abilityPresentHolds(p, id, ab), e.adaptGateOK(id, ab), e.monstrosityGateOK(id, ab),
-								e.activationLimitBlocked(p, id, ab, i, "", pa.Merged), e.activatorAllows(p, id, ab), e.activationPhasesOK(p, ab)))
-						}
 						abFace := o.PileFaceFor(pa.Merged)
 						if abFace == nil {
 							continue
@@ -467,9 +416,6 @@ func (w *legalWalk) battlefieldWalk() {
 						}
 						e.powerUpReduceCost(id, ab, &cost)
 						if pay.ActivationTapCostUnavailable(o, &cost) || pay.TapCostSick(asPayer(e), id, &cost, activatesAsIfHaste(e, id)) {
-							if mireDBG && !mireLogged(i) {
-								mireLog(i, "tap-gate", fmt.Sprintf("cost=%+v", cost))
-							}
 							continue
 						}
 						// CR 702.6 / CR 601.2f: a minted attach-cost SA (K:Equip/K:Fortify,
@@ -493,15 +439,9 @@ func (w *legalWalk) battlefieldWalk() {
 						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {
-							if mireDBG && ab.Kind == "AB" && !mireLogged(i) {
-								mireLog(i, "unaffordable", fmt.Sprintf("cost=%+v alt=%+v hasAlt=%v", cost, altCost, hasAlt))
-							}
 							continue
 						}
 						if !e.abilityTargetsAvailable(p, id, ab) {
-							if mireDBG && ab.Kind == "AB" && !mireLogged(i) {
-								mireLog(i, "no-targets", "")
-							}
 							continue
 						}
 						// CR 603.2's intervening-if at activation: an ability whose
@@ -542,9 +482,6 @@ func (w *legalWalk) battlefieldWalk() {
 							continue
 						}
 						if printedOK {
-							if mireDBG && ab.Kind == "AB" && !mireLogged(i) {
-								mireLog(i, "offered", fmt.Sprintf("cost=%+v", cost))
-							}
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
 								Label: abFace.Name + ": " + ab.ParamStr(cards.PKSpellDescription), Obj: id, Ability: i,
 								Cost:  e.abilityOfferCost(p, id, ab),

@@ -121,12 +121,7 @@ func (e *Engine) filterPayableMana(dst, all []*cards.SA, p state.PlayerID, o *st
 			cc = mf.cost
 		}
 		cc = e.pricedManaCC(p, id, ma, cc)
-		ok := e.manaCostPayable(p, o, id, cc, nil)
-		if mireDebug != "" && id == 26 {
-			fmt.Printf("DBG-FPM id=%d p=%d prod=%q payable=%v tapped=%v pool=%v restricted=%d\n", id, p, ma.ParamStr(cards.PKProduced), ok, o.Tapped,
-				e.G.Players[p].Pool, len(e.G.Players[p].RestrictedMana))
-		}
-		if ok {
+		if e.manaCostPayable(p, o, id, cc, nil) {
 			out = append(out, ma)
 		}
 	}

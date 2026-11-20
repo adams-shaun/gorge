@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -724,11 +722,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			if !s.phyActAffords(k, sl, a, p.ctrl, manaCost, av) {
 				return false
 			}
-		} else {
-			s.mireDbgCanAct(k, sl, ab, a, &manaCost, av)
-			if !s.abilityAffords(k, sl, a, &manaCost, av) && !s.actScriptPays(k, sl, ab, a) {
-				return false
-			}
+		} else if !s.abilityAffords(k, sl, a, &manaCost, av) && !s.actScriptPays(k, sl, ab, a) {
+			return false
 		}
 	}
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
@@ -832,26 +827,7 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	ok := s.filtScript(k, pa, p, false)
-	if os.Getenv("DIRAC_DBG_MIRE") != "" {
-		fmt.Fprintf(os.Stderr, "DBG-KMIRE actscriptpays sl=%d ab=%d p=%d -> %v (gaps=%v)\n", sl, ai, p, ok, f)
-	}
-	return ok
-}
-
-// mireDbgCanAct is a temporary DIRAC_DBG_MIRE-gated dump of an activation's
-// affordability inputs (CAN-ACT only).
-func (s *State) mireDbgCanAct(k *prep, sl Slot, ab int, a *kop.Ability, cost *kop.ManaCost, av *avail) bool {
-	if os.Getenv("DIRAC_DBG_MIRE") == "" || a.Kind != kop.AbActivated || cost.Pips[4] == 0 {
-		return true
-	}
-	var sb string
-	for i := 0; i < 16 && av.mask[i] != 0; i++ {
-		sb += fmt.Sprintf(" [%x*%d]", av.mask[i], av.cnt[i])
-	}
-	fmt.Fprintf(os.Stderr, "DBG-KMIRE canact sl=%d ab=%d cost={%d pips=%v hyb=%v} availX=%d total=%d%s one=%v nOne=%d pool=%v\n",
-		sl, ab, cost.Generic, cost.Pips, cost.Hyb, s.g.availX, av.total, sb, av.one[:av.nOne], av.nOne, s.pl[s.perms[sl].ctrl].pool)
-	return true
+	return s.filtScript(k, pa, p, false)
 }
 
 // countUntapped counts p's untapped permanents matching f.

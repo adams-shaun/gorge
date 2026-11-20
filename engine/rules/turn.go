@@ -1130,11 +1130,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	if window != nil {
 		d.WindowReasons = window.finish(d.Options)
 	}
-	if mireDebug != "" {
-		for _, o := range d.Options {
-			fmt.Printf("DBG-ASK p=%d kind=%s obj=%d idx=%d nopts=%d alt=%d mode=%q\n", p, o.Kind, o.Obj, o.Index, len(d.Options), o.AltCostIndex, o.Mode)
-		}
-	}
 	e.ask(d)
 	e.notePriorityWalk(p, d, ep, ver, objs)
 }
