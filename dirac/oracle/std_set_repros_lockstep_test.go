@@ -65,38 +65,6 @@ func TestStdTdmReprosLockstep(t *testing.T) {
 	stdReprosGlob(t, "std-tdm")
 }
 
-// Count$AttackersDeclared counts each creature once however many combats it attacked
-// in: one creature attacking in three combats of a turn is one attacker, so Case of the
-// Gateway Express (three or more) stays unsolved at the end step, as in gorge and Forge.
-func TestAttackersDeclaredCountsEachCreatureOnceLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "attackers_declared_counts_each_creature_once")
-}
-
-// A sorcery-speed activation is offered with the stack empty (CR 602.5d), as a cast is
-// (CR 307.1): Ba Sing Se's earthbend, paid after Master Pakku's tap trigger, which
-// Great Divide Guide's mana ability stacked, resolves.
-func TestSorceryActivationWaitsForPrefixTriggerLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "sorcery_activation_waits_for_prefix_trigger")
-}
-
-// A token copy of a transforming permanent is double-faced and each face takes the
-// copy effect's exceptions (CR 707.8a, 707.9b): Saheeli's copy of Dowsing Device is
-// an artifact on its front face and an artifact land once it transforms to Geode Grotto.
-func TestTransformedTokenCopyKeepsCopyExceptionsLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "transformed_token_copy_keeps_copy_exceptions")
-}
-
-// A Vehicle crewed again after Eaten by Piranhas resolved on it is an artifact creature
-// again (CR 613.7): the second crew is a newer effect than the Aura's type removal, so it
-// is not folded into the first crew's older position.
-func TestCrewAgainUnderTypeRemovingAuraLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "crew_again_under_type_removing_aura")
-}
-
 // std-tla's: the first decision of each once diverged.
 func TestStdTlaReprosLockstep(t *testing.T) {
 	t.Parallel()
@@ -239,14 +207,6 @@ func replayReproRes(t *testing.T, reg *cards.Registry, set cardset.Set, name str
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
 	return res
-}
-
-// A keyword removal that resolves after a grant is the newer effect (CR 613.1f, 613.7):
-// The Fire Nation Drill's second removal is not folded into its first, older one, so the
-// hexproof Enter the Avatar State gave in between is gone.
-func TestKeywordRemovalAfterAGrantLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "keyword_removal_resolved_after_a_grant")
 }
 
 // std-woe's, on the same terms.

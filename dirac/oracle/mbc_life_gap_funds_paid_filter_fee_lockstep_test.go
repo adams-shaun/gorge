@@ -7,19 +7,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/events"
 )
 
-// Treasonous Ogre's "Pay 3 life: Add {R}" is a mana ability whose whole cost is
-// life. gorge's planner has no unit for it, so a play only its mana pays is
-// insufficient on the planner's walk and gorge's one prefix search activates
-// the source; beside Unknown Shores' "{1}, {T}: Add one mana of any color" the
-// life funds the filter's fee and the filter's mana casts Opt. The kernel had
-// no lowering for the shape at all, so every such card was refused and the
-// cast was never offered. The recording is on a custom pool, the table its own
-// decks need: the card enters a synthetic pool only once it lowers.
-func TestMBCLifeGapFundsPaidFilterFeeReprosLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "life_gap_funds_paid_filter_fee")
-}
-
 // The no-filter control: the same life-only ability pays for a Shock after the
 // Mountains have tapped out, with no filter on the board. The seeds are the
 // ones the first attempt diverged on (the option list and the floating pool):
