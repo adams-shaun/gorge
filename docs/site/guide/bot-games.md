@@ -1,13 +1,8 @@
 # Bot-vs-bot games
 
-This page is for people who want to pit bot strategies against each other: to check that a change
-to a policy helps, to compare two policies, or to watch them play. It covers the tools gorge ships
-for that, the registered policies, how to run a fair matchup, how many games a difference needs, and
-replay verification. For a bot in another language, see [Bots](../bots/index.md); for limited events,
-[Draft events](draft.md).
+Compare bot strategies, check that a policy change helps, or watch bots play. For a bot in another language see [Bots](../bots/index.md); for limited events, [Draft events](draft.md).
 
-The commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box. Output depends on the
-gorge commit and the corpus pin, so yours may differ.
+Commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box. Output depends on the gorge commit and the corpus pin.
 
 ## Which tool?
 
@@ -21,25 +16,13 @@ gorge commit and the corpus pin, so yours may differ.
 
 ## The registered policies
 
-A **policy** is a named bot strategy registered in the
-[`bots`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go) registry. A program links
-them with a blank import of `bots/all` and builds one with `bots.New(name, bots.Options{...})`. To list
-what a build has:
+A **policy** is a named bot strategy in the [`bots`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go) registry. A program links them with a blank import of `bots/all` and builds one with `bots.New(name, bots.Options{...})`. List a build's policies (name, label, tier):
 
 ```sh
 go run ./cmd/spellbench-gorge-agent -list-policies
 ```
 
-```text
-az-redeal	az-redeal (AlphaZero search)	experimental
-bot	Bot	production
-forge-heuristic	Forge heuristic	experimental
-forge-heuristic-hold	Forge heuristic + hold	experimental
-lethal-pressure	Lethal Pressure	experimental
-sb-tactical	sb-tactical (SpellBench tactical heuristic)	experimental
-```
-
-[Bots](../bots/index.md) tabulates each one with its engines, cost and whether it is fair or clairvoyant; [Each bot in detail](../bots/catalogue.md) gives its formats and seats.
+[Each bot in detail](../bots/catalogue.md) gives each policy's formats, seats, cost and whether it is fair or clairvoyant.
 
 `sb-tactical` and `az-redeal` are *environment* policies: they need a driver that supplies a rebuilt
 game to search or score. The matchup program below does, and `mtgsim` doesn't.
@@ -69,54 +52,25 @@ add up per policy.
 
 `mtgsim`'s limits:
 
-- **The winner is a deck name.** In a mirror (`-decks uw-tempo,uw-tempo`) the line can't tell you who won.
-- **Built-in decks only.** `-decks` takes the names of the repo decks in `testkit/testutil/decks`, not file paths.
-- **Environment policies don't work.** `-a sb-tactical` fails with `Deps.Cards is nil`. `-a az-redeal` runs but never
-  searches, because `mtgsim` calls the plain `Decide` and the policy falls back to `bot`.
-- **Seats without `-a` or `-b`** play the plain heuristic with manual mana tapping and its coin mulligan, which is
-  neither `bot` nor any other registered policy.
-- **`-format commander` plays real Commander.** Each seat starts at 40 life with its commander in the command
-  zone, and the engine applies the commander tax and the CR 903.9 command-zone choices. Without `-decks` it deals
-  the first `-seats` Commander repo decks; every deck must name a commander and pass the Commander deck checks.
-  It needs at least 2 seats. Neither format runs a mulligan round. For example:
-  `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify`.
+- **The winner is a deck name.** In a mirror the line can't tell you who won.
+- **Repo decks only.** `-decks` takes names from `testkit/testutil/decks`, not file paths (`-deckdir` reads `<deckdir>/<name>.json` instead).
+- **Environment policies don't work.** `-a sb-tactical` fails with `Deps.Cards is nil`. `-a az-redeal` runs but never searches: `mtgsim` calls plain `Decide`, and the policy falls back to `bot`.
+- **Seats without `-a` or `-b`** play the plain heuristic with manual mana tapping and its coin mulligan, not `bot` or any registered policy. `-policies` sets a policy per seat.
+- **`-format commander`** plays real Commander: 40 life, commander in the command zone, commander tax, CR 903.9 choices. Without `-decks` it deals the first `-seats` Commander repo decks; every deck must name a commander and pass the Commander checks. Needs at least 2 seats. No mulligan round unless `-mulligans N` is set. Example: `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify`.
 
 ### Measuring game shape
 
-`-shape <path>` writes a read-only census of what the games saw, useful for
-sizing a search or a reimplementation: one JSON line per game, then one
-aggregate line. Stdout does not change, and the file is a pure function of the
-flags.
+`-shape <path>` writes a read-only census for sizing a search or a reimplementation: one JSON line per game, then one aggregate line. Stdout is unchanged and the file is a pure function of the flags.
 
 ```sh
 go run ./cmd/mtgsim -seats 2 -games 20 -shape /tmp/constructed.jsonl
 go run ./cmd/mtgsim -format commander -seats 4 -games 20 -shape /tmp/commander.jsonl
 ```
 
-Every line carries `kind` (`constructed/2`, `commander/4`) and `row`. A game
-row has `seed`, `decks` (in seat order), `status` (`over`, `did_not_terminate`,
-`livelock` or `failed`), `turns`, `decisions` (the intents the drive loop
-submitted, as on the summary line), `options`, `peak`, `tokens`,
-`token_events` and `commander_casts`.
-
-`options` maps each decision Kind to `n`, `mean`, `p95`, `max` and a `hist`
-from each option count to how many decisions had it, over that game's
-decisions of the Kind. `peak` is the largest `objects` (the whole object
-arena), `live_objects` (arena entries not ceased), `permanents` (battlefield
-permanents over every seat), `stack`, and `pending` (matched triggers not yet
-on the stack) seen at any decision. At game end `tokens` counts the tokens
-still in the arena, `token_events` counts token-minting events, and
-`commander_casts` sums the seats' commander casts (0 outside Commander).
-
-The aggregate row has the same `kind`, `games`, `statuses` counts,
-`mean`/`p95`/`max` for `decisions`, `turns`, `tokens`, `token_events` and
-`commander_casts`, per-Kind `options` over every decision, and `p95`/`max` per
-`peak` table. `p95` is the nearest-rank value (sort ascending, take index
-`ceil(0.95·n)-1`); `hist` keeps every option count, so a larger census can be
-recomputed exactly from the game rows alone.
+Each line has `kind` (`constructed/2`, `commander/4`) and `row`. A game row has `seed`, `decks`, `status` (`over`, `did_not_terminate`, `livelock`, `failed`), `turns`, `decisions`, `options` (per decision Kind: `n`, `mean`, `p95`, `max`, `hist`), `peak` (largest `objects`, `live_objects`, `permanents`, `stack`, `pending`), `tokens`, `token_events` and `commander_casts`. The aggregate row adds `games`, `statuses`, and `mean`/`p95`/`max` per measure; `p95` is the nearest-rank value, and `hist` keeps every option count so a larger census can be recomputed from the game rows. The writer is in `cmd/mtgsim`.
 
 For three to eight seats, `-seats N` deals the first N pinned decks, or `-decks` with one name per seat.
-To balance seats, rotate the deck list across runs:
+Rotate the deck list across runs to balance seats:
 
 ```sh
 go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
@@ -244,7 +198,7 @@ go build -o matchup .
     ```
 
 Run it from the gorge checkout, so `.cards` resolves. The control plays the baseline against itself; `-pairs all` plays
-every unordered pair of the 12 pinned constructed decks (66 pairs):
+every unordered pair of the 12 decks in `testutil.LegacyDeckNames()` (66 pairs):
 
 ```sh
 cd ../gorge

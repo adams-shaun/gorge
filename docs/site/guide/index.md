@@ -1,9 +1,6 @@
 # User guide
 
-This guide is for people who want to use gorge rather than change it: to play Magic against
-its bots or friends in a browser, host draft events, or run bot-vs-bot games. To change the
-engine, start at [Contributing](../contributing/index.md). To connect a bot written in
-another language, see [Bots](../bots/index.md).
+For people who use gorge rather than change it: play against its bots or friends in a browser, host draft events, run bot-vs-bot games. To change the engine, start at [Contributing](../contributing/index.md). To connect a bot written in another language, see [Bots](../bots/index.md).
 
 ## From clone to playing
 
@@ -16,17 +13,11 @@ go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
 # open http://127.0.0.1:8080/ and press "Start game"
 ```
 
-[Install and build](install.md) lists the prerequisites and explains
-each step. With Docker alone, `docker run -p 127.0.0.1:8090:8080 damadama22/gorged-demo` runs the
-same server with nothing to build ([Run the demo in Docker](../web/docker.md)). For bot games alone, skip the client and run `make sim` after `make fetch-cards`:
-it plays 20 verified bot games in a few seconds.
+[Install and build](install.md) explains each step. With Docker alone, `docker run -p 127.0.0.1:8090:8080 damadama22/gorged-demo` runs the same server with nothing to build ([Run the demo in Docker](../web/docker.md)). For bot games alone, skip the client: `make sim` after `make fetch-cards` plays 20 verified bot games.
 
 ## What runs where
 
-When you play, one `gorged` process does everything except draw the board.
-The browser holds no rules: it shows what the server sends and posts back the
-option you picked. Bots are not separate programs; they are Go code running
-inside the same process, answering their seats' decisions directly.
+One `gorged` process does everything except draw the board. The browser holds no rules: it shows what the server sends and posts back the option you picked. Bots are Go code in the same process, answering their seats' decisions directly.
 
 <figure markdown>
 <svg viewBox="0 0 800 420" width="100%" role="img" aria-label="Browsers talk HTTP JSON and server-sent events to one gorged process. Inside it the HTTP API sits on the host registry, which runs one rules engine per match. Each engine's seats are either human seats, which wait for an intent from a browser, or bot seats running a registered policy in-process. The process reads the corpus and deck files at startup, writes match logs and feedback reports to disk, and caches card art fetched from Scryfall.">
@@ -95,14 +86,10 @@ inside the same process, answering their seats' decisions directly.
 <figcaption>One <code>gorged</code> process serves every browser. Human seats wait for a browser's answer; bot seats answer in-process.</figcaption>
 </figure>
 
-Two properties of this design come up again in the guide:
+Two properties come up again in the guide:
 
-- **The server decides what each viewer sees.** A seat's view is redacted on the server, and a
-  spectator gets the public view or the omniscient one, as the operator chose. The client
-  can't ask for more.
-- **Every game replays.** The engine is deterministic: a match is its seed, its decks and the
-  list of answers. That is what makes undo, the replay pages, bug-report snapshots and
-  bot-match verification work.
+- **The server decides what each viewer sees.** A seat's view is redacted server-side; a spectator gets the public or the omniscient view, as the operator chose.
+- **Every game replays.** The engine is deterministic: a match is its seed, its decks and the list of answers. That is what makes undo, replays, bug-report snapshots and bot-match verification work.
 
 ## Where to go next
 
@@ -110,7 +97,7 @@ Two properties of this design come up again in the guide:
 |---|---|
 | install the tools, the corpus and the client | [Install and build](install.md) |
 | play against a bot, or against friends on a LAN | [Play in the browser](play.md) |
-| run a server's two-seat tables on dirac | [Serving dirac](dirac.md) |
+| serve a server's tables on dirac | [Serving dirac](dirac.md) |
 | host or simulate a four-seat draft | [Draft events](draft.md) |
 | compare two bot strategies, or watch bots play | [Bot-vs-bot games](bot-games.md) |
 | replay a game, or read why a bot made each choice | [Replays](replays.md) |
