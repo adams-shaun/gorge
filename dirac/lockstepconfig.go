@@ -260,11 +260,17 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			if s.pickCommittedSrc(k, b.first()) {
 				continue // a convoke/waterbend pick taps it (excludePickedSources)
 			}
-			if k.gen.anyContGrant && s.grantIdx(k, b.first()) >= 0 && s.planDeferred(k, p, b.first()) && !s.blgIntrinsicUnit(k, b.first()) {
-				// availFor's deferGap arm already counted this source through its
-				// granted ability (availGrant): the permanent taps once for the
-				// window (CR 605.1a), and gorge's census lists one unit for it
-				// (Twitching Doll under Enduring Vitality made X one too many).
+			if k.gen.anyContGrant && s.g.availX&availPlain == 0 && !s.g.noGrant &&
+				s.grantIdx(k, b.first()) >= 0 && s.planDeferred(k, p, b.first()) && !s.blgIntrinsicUnit(k, b.first()) {
+				// availFor's dual deferGap arm already counted this source through
+				// its granted ability (availGrant, mana.go: the census counts the
+				// grant only when noGrant's prefix search is not pricing the ask,
+				// hence the two extra terms): the permanent taps once for the
+				// window (CR 605.1a), and gorge's census lists one unit for it.
+				// Without them, The Rollercrusher Ride's X ask offered one too
+				// many (choose:x(-,-,10) beside gorge's 9). When the grant is
+				// priced out, availFor skips the source uncounted and this walk
+				// is its modelled gap, so it keeps the unit.
 				continue
 			}
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
