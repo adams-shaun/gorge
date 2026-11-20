@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"runtime"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -344,61 +343,11 @@ func (e *Engine) costModifiersComposeMemoized(statics costStaticViews, p state.P
 	}
 	if ent != nil {
 		e.costComposeServed++
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" && !potential && scope.Kind == "Spell" {
-			fmt.Printf("DBG-HE memo serve nep=%d p=%d x=%d entpot=%v entx=%d entmode=%q usable=%v mode=%q reduces=%d gens=[", len(e.L.Events), p, x, ent.pot, ent.x, ent.scope.Mode, e.costComposeUsable(), scope.Mode, len(ent.mods.reduces))
-			for _, r := range ent.mods.reduces {
-				fmt.Printf(" %d", r.Generic)
-			}
-			fmt.Printf(" ]\n")
-		}
 		*mp = ent.mayApp
 		e.CostProvenanceSeen = ent.prov
 		return costComposeServeCopy(ent)
 	}
 	mods := e.costModifiersComposeEval(statics, p, id, scope, targets, potential, x, mp)
-	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" && !potential && scope.Kind == "Spell" {
-		has := false
-		for _, sv := range statics.reduce {
-			if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" {
-				has = true
-			}
-		}
-		fmt.Printf("DBG-HE store nep=%d mode=%q p=%d cast=%v faceidx=%d zone=%d reduceN=%d hearthIn=%v gens=[", len(e.L.Events), scope.Mode, p, e.cast != nil, int(o.FaceIdx), o.Zone, len(mods.Reduces), has)
-		for _, r := range mods.Reduces {
-			fmt.Printf(" %d", r.Generic)
-		}
-		fmt.Printf(" ] reduceSrcs=[")
-		for _, sv := range statics.reduce {
-			if so := e.G.Obj(sv.Source); so != nil {
-				fmt.Printf(" %s(svars%d)", so.Face().Name, len(sv.SVars))
-			}
-		}
-		fmt.Printf(" ]\n")
-		if !has {
-			fmt.Printf("DBG-HE storeback=%p caplen=%d/%d ents=[", statics.reduce, len(statics.reduce), cap(statics.reduce))
-			for _, sv := range statics.reduce {
-				so := e.G.Obj(sv.Source)
-				if so == nil {
-					fmt.Printf(" #%d<nil>", sv.Source)
-					continue
-				}
-				fmt.Printf(" #%d(%s z%d)", sv.Source, so.Face().Name, so.Zone)
-			}
-			fmt.Printf(" ] cache=%p ents=[", e.boardStaticsCache.v.cost.reduce)
-			for _, sv := range e.boardStaticsCache.v.cost.reduce {
-				so := e.G.Obj(sv.Source)
-				if so == nil {
-					fmt.Printf(" #%d<nil>", sv.Source)
-					continue
-				}
-				fmt.Printf(" #%d(%s z%d)", sv.Source, so.Face().Name, so.Zone)
-			}
-			fmt.Printf(" ]\n")
-			buf := make([]byte, 4000)
-			n := runtime.Stack(buf, false)
-			fmt.Printf("DBG-HE storestack\n%s\n", buf[:n])
-		}
-	}
 	e.costCompose.remember(p, id, scope, potential, x, targets, mods, *mp, e.CostProvenanceSeen)
 	return mods
 }

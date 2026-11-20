@@ -7,7 +7,6 @@ package rules
 
 import (
 	"fmt"
-	"runtime"
 	"slices"
 	"strings"
 
@@ -183,43 +182,8 @@ func (s *costStaticSource) get() costStaticViews {
 	if !s.ready {
 		s.views = s.e.collectCostStatics()
 		s.ready = true
-		if s.e.dbgHearthCapture() {
-			buf := make([]byte, 4000)
-			n := runtime.Stack(buf, false)
-			fmt.Printf("DBG-HE capture nep=%d depth=%d probe=%d hearth=%v back=%p caplen=%d/%d ents=[",
-				len(s.e.L.Events), s.e.derivedMemoDepth, s.e.offerProbeDepth, s.e.dbgHearthIn(s.views), s.views.reduce, len(s.views.reduce), cap(s.views.reduce))
-			for _, sv := range s.views.reduce {
-				so := s.e.G.Obj(sv.Source)
-				if so == nil {
-					fmt.Printf(" #%d<nil>", sv.Source)
-					continue
-				}
-				fmt.Printf(" #%d(%s z%d)", sv.Source, so.Face().Name, so.Zone)
-			}
-			fmt.Printf(" ]\n%s\n", buf[:n])
-		}
 	}
 	return s.views
-}
-
-// dbgHearthCapture reports whether Hearth Elemental is in p0's hand.
-func (e *Engine) dbgHearthCapture() bool {
-	for _, id := range e.G.Zone(state.ZHand, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Hearth Elemental" {
-			return true
-		}
-	}
-	return false
-}
-
-// dbgHearthIn reports whether v's reduce list carries Hearth's static.
-func (e *Engine) dbgHearthIn(v costStaticViews) bool {
-	for _, sv := range v.reduce {
-		if so := e.G.Obj(sv.Source); so != nil && so.Face() != nil && so.Face().Name == "Hearth Elemental" {
-			return true
-		}
-	}
-	return false
 }
 
 // actionStaticViews contains ordered membership only, never evaluated
