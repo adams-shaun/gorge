@@ -139,7 +139,11 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 		return e.manaFeasibleDescriptorKind(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
 			asEval(e).MayPlayRider(p, desc.ID), pay.SAKindFor(desc.Class == paymentActivated))
 	}
-	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
+	r := e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
+	if o := e.G.Obj(desc.ID); o != nil && o.ID == 38 {
+		println("DBG thor", o.ID, r, c.Generic, hyp != nil)
+	}
+	return r
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies
