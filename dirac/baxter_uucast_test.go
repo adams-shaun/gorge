@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 )
 
 // Baxter Building's "{4}, {T}: Add four mana in any combination of colours"
@@ -15,10 +16,7 @@ import (
 // must list the cast too (std-msh pair 99, decision 367; the committed
 // recording is baxter_feeorder_funded_cast).
 func TestBaxterUUCastOffered(t *testing.T) {
-	set, err := cardset.SynthByName("std-msh")
-	if err != nil {
-		t.Skipf("std-msh: %v", err)
-	}
+	set := cardsettest.Set(t, "baxteruucast")
 	var deck []cardset.Entry
 	deck = append(deck, cardset.Entry{Name: "Attuma, Atlantean Warlord", Count: 4},
 		cardset.Entry{Name: "Baxter Building", Count: 6},

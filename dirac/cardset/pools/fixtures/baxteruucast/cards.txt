@@ -1,0 +1,10 @@
+# Baxter Building's "{4}, {T}: Add four mana in any combination of colours"
+# funds a {2}{U}{U} cast from an empty floating pool, its {4} paid from the
+# free taps (dirac/baxter_uucast_test.go, the feeOrder run mana_feeorder.go;
+# the committed recording baxter_feeorder_funded_cast on std-msh).
+Baxter Building
+Attuma, Atlantean Warlord
+Fisk Tower
+Training Compound
+Island
+Plains
