@@ -72,7 +72,40 @@ func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
 		s.remember(o)
 	}
 	s.forgetFound(k, o)
+	s.pickLink(k, o)
 	return false
+}
+
+// battleLinkPick reports whether in is a battlefield exile pick linked to its
+// source (SrBattleLink). Bit 9 of an OpChooseMove's B is also the entry
+// counter kind's (kind+1)<<4 field of a graveyard or Hand,Graveyard pick
+// (Charnel Serenade's FINALITY sets it), so the bit counts only on the
+// zoneless battlefield filter (searchZone) of a pick that is not SrHandGrave.
+// The one home of the rule: startSearch, pickLink and tableLinkRet read it here.
+func battleLinkPick(t *kop.Table, in *kop.Instr) bool {
+	return in.Op == kop.OpChooseMove && in.B.N&kop.SrBattleLink != 0 &&
+		in.B.N&kop.SrHandGrave == 0 && t.Filters[in.F].Zone == kop.ZoneNone
+}
+
+// pickLink links a battlefield pick's exiled card o to the resolving source
+// when the pick is until-leaves (SrBattleLink, Duration$ UntilHostLeavesPlay;
+// gorge recordExileReturnFor emits the link for a non-token card that is in
+// exile): the card returns to the battlefield under its owner's control when
+// the source leaves (returnLinked), the picked set in one entering batch. A
+// token is never linked: it ceases instead of returning (CR 111.7), and in a
+// generated-table game it still sits in exile at this point, so the zone test
+// alone would link it.
+//
+//go:noinline
+func (s *State) pickLink(k *prep, o Obj) {
+	pr := s.prog(k)
+	if !s.res.active || int(s.res.pc) >= len(pr) || s.objs[o].of&ofToken != 0 {
+		return
+	}
+	if in := &pr[s.res.pc]; !battleLinkPick(k.t, in) || s.objs[o].zone != kop.ZoneExile {
+		return
+	}
+	s.recordExileLink(s.res.e.obj, o)
 }
 
 // chooserOf is who answers a search / choose-move over player p's zone:
