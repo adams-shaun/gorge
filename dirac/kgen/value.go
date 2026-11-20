@@ -1841,7 +1841,7 @@ func splitThisTurnEnteredCreature(spec string) (creature, other string, ok bool)
 // the active player's hand, whoever that is among any number of seats (CR
 // 102.1). The hand walk's PredActiveCtrl reads the owner against the active
 // seat (filters_gen.go); the earlier your-hand / the-opponent's-hand split
-// read one opponent's hand on every opponent's turn, wrong past two seats.
+// read one opponent's hand on every opponent's turn, wrong in a pod; seat-exact now.
 func (lc *lowerCtx) activeHandCount() (lValue, error) {
 	f, err := lc.filter("Card.ActivePlayerCtrl")
 	if err != nil {
