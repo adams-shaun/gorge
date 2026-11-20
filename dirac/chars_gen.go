@@ -372,12 +372,13 @@ func (s *State) colorsGen(k *prep, sl Slot) kop.ColorMask {
 // (Soulstone Sanctuary animated, counted by Banner of Kinship).
 const subOutside uint8 = 254
 
-// A chosen outside creature type is perm.chosen = len(Subtypes) + its rank
-// among the vocabulary's outside entries, modulo the free codes below 254,
-// so two sources' outside choices compare: different codes are different
-// types; equal codes are the same type unless the code is aliased (the
-// vocabulary has more outside entries than codes), which stays loud
-// (act_choosetype.go outsideAliased).
+// A chosen outside creature type is a per-game exact code in [len(Subtypes),
+// subOutside), allocated by act_choosetype.go typeVocabCode, so two sources'
+// outside choices compare exactly: the same type has the same code and
+// different types have different codes. typeVocabSub below is the compressed
+// fallback the allocator reports when a game runs out of codes (and the
+// mapping tests use); an unallocated code is compared through outsideAliased
+// and stays loud when it names more than one type.
 
 // outsideSub reports whether chosen/subtype code i is an outside type.
 func outsideSub(k *prep, i uint8) bool { return i >= k.nsub && i < 255 }
@@ -399,7 +400,10 @@ func outsideAliased(k *prep, ch uint8) bool {
 	return ch == subOutside || int(ch)-base+int(subOutside)-base < outsideCount(k)
 }
 
-// typeVocabSub is the perm.chosen value of creature-type option v.
+// typeVocabSub is the compressed perm.chosen value of creature-type option
+// v: the deterministic fallback when a game has more distinct outside choices
+// than free codes (act_choosetype.go outsideCode), and the mapping tests read
+// without a State. Production choices use typeVocabCode.
 func typeVocabSub(k *prep, v int) uint8 {
 	if si := k.t.TypeVocab[v]; si != 255 {
 		return si

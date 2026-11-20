@@ -161,9 +161,10 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 // only reader that can ask for it is a ChosenType filter whose own source
 // chose an outside type, and that is exact when the grant is the filter's
 // own source's (the Automaton's lord reads the Automaton's choice). Two
-// DIFFERENT sources that both chose outside types can't be told apart
-// (the kernel keeps no vocabulary index): that one comparison is loud
-// (StallBoard), never a guess.
+// DIFFERENT sources that both chose outside types compare by the per-game
+// exact code (typeVocabCode): the same type is equal, different types differ,
+// and only an unallocated code from the exhausted table stays loud
+// (StallOutsideType), never a guess.
 
 // chosenGrant is the subtype an AddChosen static a of the permanent at src
 // grants: perm.chosen, false when there is no choice.
@@ -187,6 +188,52 @@ func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMa
 		add = add.With(int(ch))
 	}
 	return add
+}
+
+// typeVocabCode is the perm.chosen code of creature-type option v: the
+// matchup subtype index, or a per-game exact code for an outside type. Two
+// sources that chose the same outside type get the same code and two
+// different types get different codes (CR 205.3m), even when the vocabulary
+// has more outside types than the byte has free values. The old pure
+// typeVocabSub mapping stays as the exhausted-table fallback.
+func (s *State) typeVocabCode(k *prep, v int) uint8 {
+	if v < 0 || v >= len(k.t.TypeVocab) {
+		return 255
+	}
+	if si := k.t.TypeVocab[v]; si != 255 {
+		return si
+	}
+	return s.outsideCode(k, v)
+}
+
+// outsideCode allocates the exact code for the outside type at TypeVocab
+// index v: the lowest free code this game has not given to another outside
+// type, or the one v already owns. The table is per game and copied with the
+// State, so a fork and a replay allocate the same codes.
+func (s *State) outsideCode(k *prep, v int) uint8 {
+	base := uint8(len(k.t.Subtypes))
+	for c := base; c < subOutside; c++ {
+		if s.outCode[c] == uint16(v+1) {
+			return c
+		}
+	}
+	for c := base; c < subOutside; c++ {
+		if s.outCode[c] == 0 {
+			s.outCode[c] = uint16(v + 1)
+			return c
+		}
+	}
+	// More distinct outside types chosen than the byte has exact codes (a
+	// game holds at most MaxPerm permanents, far fewer choices): fall back
+	// to the compressed code and stay loud at the compare.
+	s.capFull(StallOutsideType)
+	return typeVocabSub(k, v)
+}
+
+// outsideCodeExact reports whether ch is a code outsideCode allocated this
+// game, so equality with another chosen type is exact.
+func (s *State) outsideCodeExact(k *prep, ch uint8) bool {
+	return int(ch) >= len(k.t.Subtypes) && ch < subOutside && s.outCode[ch] != 0
 }
 
 // lfxChosen applies a walked AddChosen static's grant to c: a matchup
@@ -238,10 +285,10 @@ func (s *State) curOutsideHas(k *prep, cur *dchars, src Slot) bool {
 		if objWord(cur.outs[i].code) != ch {
 			continue
 		}
-		if !outsideAliased(k, uint8(ch)) {
+		if s.outsideCodeExact(k, uint8(ch)) || !outsideAliased(k, uint8(ch)) {
 			return true
 		}
-		s.capFull(StallOutsideType) // another source's aliased outside type: equal or not is unknown
+		s.capFull(StallOutsideType) // another source's unallocated aliased outside type: equal or not is unknown
 		return false
 	}
 	return false // every grant's code differs: different types (CR 205.3m)
@@ -277,7 +324,7 @@ func (s *State) outsideChosenHas(k *prep, sl, src Slot) bool {
 				return false
 			}
 			if sc := s.perms[src].chosen; s.perms[st.sl].chosen == sc {
-				if !outsideAliased(k, uint8(sc)) {
+				if s.outsideCodeExact(k, uint8(sc)) || !outsideAliased(k, uint8(sc)) {
 					found = true
 					return false
 				}

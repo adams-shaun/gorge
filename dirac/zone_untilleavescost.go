@@ -48,7 +48,7 @@ func (s *State) answerReturnCost(k *prep, a Action) bool {
 	o := s.g.pre.obj
 	s.g.pre.val = objWord(a.Mode())
 	if s.g.pre.kind == akType {
-		s.g.pre.val = objWord(typeVocabSub(k, int(a.Target())<<8|int(a.Mode())))
+		s.g.pre.val = objWord(s.typeVocabCode(k, int(a.Target())<<8|int(a.Mode())))
 	}
 	s.g.pre.state = 2
 	if s.objs[o].zone == kop.ZoneExile {
