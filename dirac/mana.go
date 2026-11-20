@@ -68,14 +68,8 @@ func (s *State) canTapForManaPC(k *prep, sl Slot, pc *pcard) bool {
 	if s.activationSick(k, sl) {
 		return false
 	}
-	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(p.ctrl)].life) <= int(pc.painN) {
-		// The paid-cost census (painAvailMaskAt; gorge's paidCostShape) counts
-		// a life source only while its activation leaves the payer alive, so
-		// the windows must not offer what the gate priced out: at exactly the
-		// cost the activation takes the payer to 0 and the state-based check
-		// loses the game (CR 119.4 permits the payment; the census declines a
-		// self-killing one -- Mana Confluence at 1 life included).
-		return false
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(p.ctrl)].life) < int(pc.painN) {
+		return false // CR 119.4: its only ability's life cannot be paid (Mana Confluence at 0 life)
 	}
 	return true
 }

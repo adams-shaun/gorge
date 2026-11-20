@@ -616,10 +616,26 @@ func (s *State) windowRiderPick(k *prep, p uint8, o Slot, decided bool, want uin
 // puts on a printed restricted source. A source with an admitted grant, or a
 // usable printed ability, is.
 func (s *State) windowCanTap(k *prep, sl Slot) bool {
+	var pc *pcard
+	if k.gen == nil {
+		pc = &k.cards[s.cardAt(sl)]
+	} else {
+		pc = s.windowGrantPC(k, sl)
+	}
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) {
+		// The unless / ward offer gate prices a paid-life source through
+		// gorge's paid-cost census (painAvailMaskAt; gorge's paidCostShape),
+		// which counts it only while its activation leaves the payer alive.
+		// canTapForManaPC keeps the bare CR 119.4 legality test (life >= the
+		// payment), so at exactly the cost the source is tappable there; the
+		// walk must not take what the gate priced out (an unless {2} funded by
+		// Phyrexian Lens at 1 life: gorge offers decline only).
+		return false
+	}
 	if k.gen == nil {
 		return s.canTapForMana(k, sl)
 	}
-	return s.canTapForManaPC(k, sl, s.windowGrantPC(k, sl))
+	return s.canTapForManaPC(k, sl, pc)
 }
 
 // windowGrantPC is the view of the mana ability a window activation of sl
