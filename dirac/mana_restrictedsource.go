@@ -741,15 +741,26 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 // lands whose fee they can fund and whose coloured mana they can share a pip
 // with (gorge's cast window prices a RestrictValid$ ability its payment admits
 // like any other source, then walks the filters over what it made). A spell's
-// restricted mana floats in the pool, so only an activation widens av.
+// restricted mana that has already floated is av's (the pip ask's restrAvail),
+// but its UNTAPPED restricted sources are units of the same window read: an
+// untapped Jasmine Dragon Tea Shop's Ally-only one mana of any colour pays an
+// Ally spell's pip beside a filter's fee the pool funds (gorge's
+// castWindowRestrictedSpendable prices the ability, CR 106.6). The restricted
+// one is composed with the census unit swapped for it (restrView keeps a
+// tapped source out, so a floating batch is never counted twice), and a
+// dynamic restricted amount rides no avail group, as the activation arm's
+// census read leaves it to affordsMulti.
 //
 //go:noinline
 func (s *State) restrActFiltAvail(k *prep, p uint8, av *avail) avail {
 	if k.restrSrc {
-		if d := s.payDescNow(NoObj); d.class == pdAct {
+		d := s.payDescNow(NoObj)
+		if d.class == pdAct {
 			t, _, _ := s.restrSrcAvail(k, p, d, av, d.src)
 			return t
 		}
+		t, _, _ := s.restrSrcAvail(k, p, d, av, NoSlot)
+		return t
 	}
 	return *av
 }
