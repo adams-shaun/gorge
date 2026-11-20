@@ -87,6 +87,7 @@ Deathbonnet Sprout
 Debtor's Pulpit
 Defender of the Order
 Deluge
+Devoted Caretaker
 Disciple of Freyalise
 Disciple of Grace
 Disciple of Law
@@ -312,6 +313,7 @@ Runed Stalactite
 Runner's Bane
 Rush of Battle
 Sanctuary Cat
+Sand Scout
 Sandstone Deadfall
 Sanguinary Priest
 Saprazzan Bailiff

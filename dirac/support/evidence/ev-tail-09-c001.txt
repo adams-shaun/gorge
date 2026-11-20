@@ -10,6 +10,7 @@ Alirios, Enraptured
 Altar of Dementia
 Ambush
 Ancient Excavation
+Angry Mob
 Ant-Man, Elusive Avenger
 Arasta of the Endless Web
 Archon of Emeria
@@ -184,6 +185,7 @@ Madcap Skills
 Magus of the Bazaar
 Marauding Dreadship
 Mask of Immolation
+Masked Gorgon
 Master's Guidance
 Melira, the Living Cure
 Mephitic Vapors

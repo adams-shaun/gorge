@@ -12,19 +12,26 @@ Amulet of Kroog
 Annoyed Altisaur
 Arcbound Hybrid
 Archfiend of Sorrows
+Arena Athlete
+Ashling the Pilgrim
 Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
 Avenger of Zendikar
+Barrier Breach
+Blade Banish
 Blade Splicer
 Blood Age General
 Blood Rites
 Bloodcrusher of Khorne
+Bloodthirsty Aerialist
 Blunt the Assault
+Boggart Arsonists
 Book of Rass
 Border Guard
 Bottle Golems
+Brawl-Bash Ogre
 Bull Hippo
 Capenna Express
 Cartouche of Zeal
@@ -33,6 +40,8 @@ Castaway's Despair
 Cateran Enforcer
 Celestial Purge
 Channel the Suns
+Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloak of Feathers
@@ -42,11 +51,15 @@ Cloudchaser Kestrel
 Cognivore
 Cold Storage
 Colossus of Akros
+Combust
 Conclave Mentor
 Consuming Sinkhole
+Copper Host Crusher
+Court Homunculus
 Court of Grace
 Curious Altisaur
 Cut
+Damning Verdict
 Dark Betrayal
 Dark Ritual
 Darksteel Angel
@@ -72,6 +85,7 @@ Electric Revelation
 Elvish Eulogist
 Endurance Bobblehead
 Enthusiastic Mechanaut
+Ertai Resurrected
 Eternal Skylord
 Evangel of Synthesis
 Evaporate
@@ -80,6 +94,7 @@ Eye of Nowhere
 Facevaulter
 Familiar Ground
 Farm
+Fault Riders
 Feral Abomination
 Feral Ridgewolf
 Filigree Fracture
@@ -98,6 +113,8 @@ Garrison Griffin
 Geier Reach Sanitarium
 General Kreat, the Boltbringer
 Ghastly Demise
+Ghost-Lit Stalker
+Ghost-Spider, Gwen Stacy
 Gisa's Bidding
 Glare of Subdual
 Go-Shintai of Shared Purpose
@@ -105,6 +122,7 @@ Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
 Grip of Desolation
+Grollub
 Harmonic Sliver
 Hasran Ogress
 Haunted Cloak
@@ -133,6 +151,7 @@ Lace with Moonglove
 Lancer Sliver
 Lavakin Brawler
 Levitating Statue
+Leyline Dowser
 Light the Way
 Liliana's Defeat
 Liliana's Devotee
@@ -167,6 +186,7 @@ Mukotai Soulripper
 Mystic Restraints
 Nephalia Smuggler
 Night Scythe
+Nimbus of the Isles
 Nyxborn Marauder
 Oashra Cultivator
 Oni Possession
@@ -176,11 +196,13 @@ Peer Through Depths
 Penance Stare
 Pest Infestation
 Phantasmal Sphere
+Pious Evangel
 Pious Wayfarer
 Plains
 Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Proven Combatant
 Provoke
 Psychic Spear
 Pygmy Pyrosaur
@@ -189,6 +211,7 @@ Raging Spirit
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
+Rampaging Monument
 Ranger Class
 Ravenloft Adventurer
 Ravenous Harpy
@@ -199,6 +222,7 @@ Redwood Treefolk
 Relic of Progenitus
 Rescue Retriever
 Rhox Brute
+Rhox Meditant
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
@@ -229,7 +253,11 @@ Strandwalker
 Strike It Rich
 Sunblade Angel
 Sure-Footed Infiltrator
+Surreal Memoir
 Swamp
+Territorial Aetherkite
+Tezzeret's Touch
+The Unspeakable
 Thran Lens
 Thunder Wall
 Titanic Brawl

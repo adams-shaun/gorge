@@ -38,6 +38,7 @@ Blood Age General
 Blood Rites
 Bloodcrusher of Khorne
 Bloodfire Colossus
+Bloodthirsty Aerialist
 Blue Sun's Zenith
 Blunt the Assault
 Boggart Arsonists
@@ -85,6 +86,7 @@ Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demon of Loathing
 Demonic Tutor
 Demystify
 Deploy the Gatewatch
@@ -214,6 +216,7 @@ Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
 Master Decoy
+Master of Pearls
 Meldweb Strider
 Memory Drain
 Memory Worm
@@ -312,6 +315,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sideswipe
 Sizzle
 Skyclave Cleric
 Skyclave Shade
@@ -378,6 +382,7 @@ Veilborn Ghoul
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
+Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
 Vivisection
@@ -397,4 +402,5 @@ Witch's Mist
 Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder
+Xanthic Statue
 Zuko's Offense

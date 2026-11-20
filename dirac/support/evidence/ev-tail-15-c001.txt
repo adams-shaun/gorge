@@ -64,6 +64,7 @@ Corpse Hauler
 Corrupted Resolve
 Cosmic Epiphany
 Courier Griffin
+Crawling Infestation
 Crimson Roc
 Crucible of Worlds
 Cryptolith Rite
@@ -399,6 +400,7 @@ Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
 Teething Wurmlet
+Tel-Jilad Defiance
 Territory Culler
 Teyo's Lightshield
 Teysa Karlov
