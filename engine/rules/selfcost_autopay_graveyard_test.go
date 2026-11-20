@@ -20,7 +20,7 @@ import (
 // Adventure face names it, so paymentPlanHoldsOnStack runs its census inside
 // the spell probe instead of skipping every intrinsic basic-land ability.
 const redDorkSrc = "Name:Test Red Dork\nManaCost:1\nTypes:Creature Elf\nPT:1/1\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n"
+	"A:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add one red test mana.\nOracle:x\n"
 
 // TestSelfCostAutopayPlannerPricesGraveyardAdventureCount drives the autopay
 // offer builder (paymentActionsForPriority) rather than the offer gate or
