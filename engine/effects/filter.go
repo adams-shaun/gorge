@@ -2985,6 +2985,12 @@ type SpecContext struct {
 	// DamageSource names the object a damage replacement's ValidSource$ reads as
 	// the source it last was (copyCeased).
 	DamageSource state.ObjID
+	// LastKnownSource names an object a source-characteristic read judges as
+	// the object it last was (CR 113.7a). A token copy parked in ZCeased
+	// keeps its copied face, but copyCeased would otherwise reject every
+	// spec against it; rules' protection sourceHasQuality sets this for an
+	// ability whose source has left the battlefield.
+	LastKnownSource state.ObjID
 	// DamageSourceLeft says that source has left the battlefield this turn, and
 	// DamageSourceEntered whether it had entered it this turn: ThisTurnEntered reads
 	// the object it last was (CR 608.2h), not its entry into the zone it left for.
@@ -3275,9 +3281,11 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 // stack nor on the battlefield matches nothing. A prepared exile copy (CR
 // 722.3c) is only the engine's representation of a cast the permanent permits,
 // so it stays unmatched too, unless sc is reading it as the spell being cast. A damage
-// source that has left is read as it last existed (CR 608.2h), a token copy among them.
+// source that has left is read as it last existed (CR 608.2h), a token copy among them;
+// so is an ability's source (CR 113.7a) when sc names it as the last-known source.
 func copyCeased(o *state.Object, sc *SpecContext) bool {
-	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield && o.ID != sc.PreparedSpell && o.ID != sc.DamageSource
+	return o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield &&
+		o.ID != sc.PreparedSpell && o.ID != sc.DamageSource && o.ID != sc.LastKnownSource
 }
 
 // matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
