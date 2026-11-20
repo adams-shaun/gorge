@@ -19,10 +19,14 @@ func (s *State) fireTaps(k *prep, sl Slot) {
 // 603.3). Only a table with a Taps listener beside a granted mana ability can tap one
 // for mana; the rest never reach the trigger machinery.
 func (s *State) manaTapped(k *prep, sl Slot) {
+	var pc *pcard
+	if k.gen != nil && (k.gen.anyManaOnce || k.gen.anyManaRider) {
+		pc = s.manaPCGen(k, sl)
+	}
 	if k.gen != nil && k.gen.anyManaOnce {
 		// the first mana ability's own once-only mark is spent as it produces
 		// (Loot, the Pathfinder's Exhaust mana ability; CR 702.177a)
-		if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
+		if pc.manaAb >= 0 {
 			if cd := &k.t.Cards[s.cardAt(sl)]; int(pc.manaAb) < len(cd.Abilities) {
 				if a := &cd.Abilities[pc.manaAb]; a.Cost.Flags&kop.CostOncePerGame != 0 {
 					s.onceUse(k, sl, a)
@@ -34,7 +38,7 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 		p := &s.perms[sl]
 		s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(p.ctrl)|mtTapBit) // the tap pays a mana ability: TapsForMana lines fire too
 	}
-	if k.gen != nil && k.gen.anyManaRider {
+	if k.gen != nil && k.gen.anyManaRider && !pc.manaIntrinsic {
 		s.manaRider(k, sl) // a counter rider resolves with the mana (mana_rider.go)
 	}
 	s.markTapped(k, sl) // filter_permmarks.go: after this tap's Taps triggers

@@ -961,6 +961,9 @@ func (s *State) painAnyOwed(p uint8, useful *kop.ManaCost, pc *pcard) (int, bool
 // printedAbPain is the activation pain (abPainOf) of the source's printed mana
 // ability pc names; 0 when it has none.
 func (s *State) printedAbPain(k *prep, sl Slot, pc *pcard) int {
+	if pc.manaIntrinsic {
+		return 0 // the view is a granted basic land type's intrinsic ability (blgView): its activation costs no life; the card's rider's pain prices its own fold (availPotentialFor's fixpoint, abPainOf)
+	}
 	if pc.manaAb < 0 {
 		return 0
 	}
