@@ -391,6 +391,16 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 // prefix search taps the play's needed-colour sources before the play, and the
 // generic remainder after it, so the target ask sees the same board
 // (mana_tapanother.go's tapXPrefix).
+//
+// Each iteration demands one NEW unit of a pip colour, so a colour the board
+// can fund no more of is a clean miss, not the payment: the demand is probed
+// with a dry planner first (it selects the plan without tapping and reports no
+// plan as found == false, the two-pass shape payPrefixRest prices its
+// remainder with), and a probe with no plan stops the pre-float -- the
+// already-floated units stay in the pool and the post-push payment at manaStep
+// pays the rest, the pre-fix shape for a play whose prefix never fired
+// (TestTapxPrefixFloatSkipsUnfundablePip: Smuggler's {3}{U},{T} with Sentinel's
+// unit as the board's only {U}).
 func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target int) {
 	for {
 		if s.prefixPoolMana(p) >= target {
@@ -403,6 +413,12 @@ func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target in
 			}
 			var one kop.ManaCost
 			one.Pips[c] = s.pl[SeatIx(p)].pool[c] + 1
+			var probe planner
+			probe.dry = true
+			s.tapForPK(k, p, &one, 0, NoObj, false, false, &probe)
+			if !probe.found {
+				return // no plan funds one more of c: the post-push planner pays the rest
+			}
 			before := s.prefixPoolMana(p)
 			s.tapFor(k, p, &one, 0, NoObj)
 			if s.prefixPoolMana(p) > before {
