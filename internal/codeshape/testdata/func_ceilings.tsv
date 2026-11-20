@@ -22,10 +22,10 @@ dirac (*State).canActivate	132	80
 dirac (*State).combatDamage	238	73
 dirac (*State).convokeOptions	163	56
 dirac (*State).enterGen	137	56
-dirac (*State).exec	682	236
+dirac (*State).exec	677	235
 dirac (*State).execChangeZoneAll	271	90
 dirac (*State).execExt	315	113
-dirac (*State).execGen	875	318
+dirac (*State).execGen	878	319
 dirac (*State).execReturnObj	141	76
 dirac (*State).expr	157	64
 dirac (*State).exprCold	306	126
@@ -53,7 +53,7 @@ dirac (*grantSrch).visit	274	103
 dirac (*tapXSearch).visit	187	57
 dirac arenaUses	107	52
 dirac prepare	208	114
-dirac prepareGen	1069	424
+dirac prepareGen	1070	425
 dirac/canon (*Translator).Action	422	156
 dirac/canon (*Translator).generatedChoose	331	108
 dirac/cardset (dataSet).matchup	389	127
@@ -75,7 +75,7 @@ dirac/kgen (*cardBuilder).fold	103	51
 dirac/kgen (*cardBuilder).mana	159	57
 dirac/kgen (*cardBuilder).record	628	186
 dirac/kgen (*cardBuilder).repl	222	90
-dirac/kgen (*cardBuilder).static	788	292
+dirac/kgen (*cardBuilder).static	787	292
 dirac/kgen (*cardBuilder).target	305	183
 dirac/kgen (*cardBuilder).trigger	584	284
 dirac/kgen (*instrCtx).opSearch	259	93
@@ -98,7 +98,7 @@ dirac/kgen (*lowerCtx).imprintMoxShape	56	59
 dirac/kgen (*lowerCtx).lowerAbility	536	253
 dirac/kgen (*lowerCtx).lowerKeywords	938	396
 dirac/kgen (*lowerCtx).lowerRepl	280	100
-dirac/kgen (*lowerCtx).lowerTriggered	1723	565
+dirac/kgen (*lowerCtx).lowerTriggered	1724	564
 dirac/kgen (*lowerCtx).manaEffect	165	67
 dirac/kgen (*lowerCtx).nodeCondition	238	78
 dirac/kgen (*lowerCtx).objOrTargetOpt	150	56
