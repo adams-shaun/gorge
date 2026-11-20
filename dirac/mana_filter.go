@@ -1826,12 +1826,15 @@ func (t *State) scriptKey(k *prep, p uint8, _ slotMask) filtKey {
 // skipSlot: sl is not this pass's to activate, or it is already a step of
 // this path: the play's own {T} source (CR 602.2b), a dead gap, a life-only
 // source outside its last-resort pass, or a life source already paid.
-func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap bool) bool {
+func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool) bool {
 	if (fs.gaps.has(sl) || fs.other.has(sl)) != gap || sl == fs.own || fs.dead.has(sl) {
 		return true
 	}
 	if !gap {
 		return false
+	}
+	if freeOnly && !t.canTapForMana(k, sl) {
+		return true // a fee-carrying gap is the phased run's third pass
 	}
 	if fs.lifeUsed.has(sl) {
 		return true
@@ -2010,6 +2013,33 @@ func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
 	copy(order[nf:], flex[:nx])
 }
 
+// passCount is the passes of visit's activation loop: the plain run's gaps,
+// funding sources and life-only source, and the phased run's (gorge's
+// fallback) gaps whose ability costs no mana, funding sources, gaps, then the
+// life-only source.
+func (fs *filtSearch) passCount() int {
+	if fs.phased {
+		return 4
+	}
+	return 3
+}
+
+// passShape reports whether visit's pass walks the gaps, and whether it is
+// skipped: the funding passes are once the funding is spent (gorge's phase
+// loop breaks there, so the phased run's last gap pass goes with it).
+func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOnly, skip bool) {
+	gap = pass == 0 || fs.phased && pass == 2
+	freeOnly = fs.phased && pass == 0
+	if gap {
+		return gap, freeOnly, *feeGapsOut
+	}
+	if funded >= fs.fees {
+		*feeGapsOut = fs.phased
+		return gap, freeOnly, true
+	}
+	return gap, freeOnly, false
+}
+
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
@@ -2035,33 +2065,22 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
-	// The phased run (gorge's fallback) walks four: the gaps whose ability
-	// costs no mana, the funding sources, the gaps (the ones that carry a fee
-	// now find the pool the funding floated), then the life-only source.
-	passes, lifeAt := 3, 2
-	if fs.phased {
-		passes, lifeAt = 4, 3
-	}
+	passes := fs.passCount()
 	feeGapsOut := false
 	for pass := 0; pass < passes; pass++ {
 		// pass 0: the gaps; pass 1: the funding sources; pass 2: a life-only
 		// source, the last resort (gorge pays a filter's fee from a land
 		// before it pays life, so a life gap must not pre-empt that funding).
-		if pass == lifeAt {
+		if pass == passes-1 {
 			if fs.lifePass(k, t, order[:n], funded) {
 				return true
 			}
 			continue
 		}
-		gap := pass == 0 || fs.phased && pass == 2
-		if gap && feeGapsOut {
-			continue // gorge's phase loop breaks at the first funding pass once the funding is spent
-		}
-		if !gap && funded >= fs.fees {
-			feeGapsOut = fs.phased
+		gap, freeOnly, skip := fs.passShape(pass, funded, &feeGapsOut)
+		if skip {
 			continue
 		}
-		freeOnly := fs.phased && pass == 0
 		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
 		ntried := 0
@@ -2073,7 +2092,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				}
 				continue
 			}
-			if fs.skipSlot(k, t, sl, gap) {
+			if fs.skipSlot(k, t, sl, gap, freeOnly) {
 				continue
 			}
 			if gap && fs.other.has(sl) {
@@ -2123,7 +2142,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
 						return true
 					}
-				case filt && !freeOnly: // (a fee-carrying gap is the phased run's third pass)
+				case filt:
 					if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
 						continue // every colour the fee-only repeatable activation can make is doomed
 					}
