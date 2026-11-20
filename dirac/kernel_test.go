@@ -5,7 +5,14 @@ import (
 	"unsafe"
 )
 
-// maxStateBytes is the State bar: 44 KiB since 2026-11-19, when the operator
+// maxStateBytes is the State bar: 45 KiB since 2026-11-20, when the A13
+// ticket's graveyard-static layer stamp (one uint16 per object, 976 B in a
+// table with a graveyard Continuous static; static_gystamp.go) took the
+// largest pool, edh, from 45048 to 46024 B. The ticket's decided design needs
+// the per-object stamp (a card in the graveyard keeps the layer stamp it
+// carried off the battlefield, CR 613.7d/613.1f), so the bar moves by the
+// smallest whole KiB that holds the measured peak. Before it the bar was
+// 44 KiB since 2026-11-19, when the operator
 // ordered dirac's capacity stalls in four-seat Commander pods removed:
 // MaxPerm 112 -> 192 (a three-word slotMask), the LKI pool 31 -> 63 records
 // (its subtype sets moved to a cold region), maxXTgt 15 -> 31, maxCtrOver
@@ -35,7 +42,7 @@ import (
 // 9168 B, no trend with size. It was 9 KB since CardID became 16 bits
 // (8.6 KB then), and 8 KB before that. Moving this bar is a deliberate decision, never
 // the side effect of a change.
-const maxStateBytes = 44 * 1024
+const maxStateBytes = 45 * 1024
 
 // stateBar is the State bar the size tests read.
 const stateBar = maxStateBytes
