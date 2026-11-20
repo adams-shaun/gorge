@@ -41,14 +41,12 @@ func TestLandwalkGrantForms(t *testing.T) {
 
 // TestLandwalkGrantRefusals: the shapes this change leaves refused stay
 // refused by name. Magnigoth Treefolk's Landwalk:YourBasic is a spec gorge's
-// LandwalkEvades does not read (the Treefolk has no landwalk there); Concerted
-// Effort (its bare Landwalk, Protection and Fear terms) and Odric, Lunarch
-// Marshal share keywords (SharedKeywordsZone$), which no PumpAll lowering reads yet.
+// LandwalkEvades does not read (the Treefolk has no landwalk there). Concerted
+// Effort's and Odric, Lunarch Marshal's shared-keyword pumps lower now
+// (sharedpumpall_test.go).
 func TestLandwalkGrantRefusals(t *testing.T) {
 	want := map[string]string{
-		"Magnigoth Treefolk":     `unknown filter head "YourBasic"`,
-		"Concerted Effort":       `keyword "Landwalk"`,
-		"Odric, Lunarch Marshal": "SharedKeywordsZone",
+		"Magnigoth Treefolk": `unknown filter head "YourBasic"`,
 	}
 	var names []string
 	for n := range want {

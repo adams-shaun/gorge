@@ -597,6 +597,34 @@ const W7NotImprinted int16 = 39
 // printed card in any zone. The Master, Mesmerist.
 const W7WithSkulk int16 = 40
 
+// W7HasLandwalk (PredWord7 sub-kind 41): the permanent has the landwalk whose
+// land filter is PredV's FilterID (the SharedKeywordsZone$ PumpAll lowering,
+// dirac/filter_sharedkw.go). Read over the derived keywords: the printed
+// CardDef.Landwalk unless it lost its abilities, a Continuous static's
+// Static.Landwalk, or an override record's Override.Landwalk.
+const W7HasLandwalk int16 = 41
+
+// W7HasProtQuality (PredWord7 sub-kind 42): the permanent has the protection
+// quality whose source filter is PredV's FilterID (the SharedKeywordsZone$
+// PumpAll lowering, dirac/filter_sharedkw.go). Read over the derived
+// keywords: the printed CardDef.ProtFrom unless it lost its abilities, a
+// Continuous static's Static.ProtFrom, or an override record's
+// Override.ProtFrom.
+const W7HasProtQuality int16 = 42
+
+// W7HasProtColor (PredWord7 sub-kind 43): the permanent has protection from
+// any colour in PredV's colour mask (the SharedKeywordsZone$ PumpAll lowering,
+// dirac/filter_sharedkw.go). Read over the derived keywords: printed
+// ProtColors, the KwProtBlack/KwProtRed bits, a chosen-colour grant (colProtOf)
+// and a Continuous static's or override record's colour ProtFrom clause.
+const W7HasProtColor int16 = 43
+
+// W7HasProtEachColor (PredWord7 sub-kind 44): the permanent has protection
+// from every colour ("Protection from each color"), the SharedKeywordsZone$
+// PumpAll lowering's family spelling (dirac/filter_sharedkw.go). Read over the
+// same derived protection colours as W7HasProtColor, all five required.
+const W7HasProtEachColor int16 = 44
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
