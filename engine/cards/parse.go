@@ -398,9 +398,21 @@ func parseParams(val string) map[string]string {
 		if !ok {
 			continue
 		}
-		out[strings.TrimSpace(k)] = strings.TrimSpace(v)
+		out[strings.TrimSpace(k)] = canonicalNonActive(strings.TrimSpace(v))
 	}
 	return out
+}
+
+// nonActiveSpellings are the two ways a script negates the Active player
+// property after a spec separator. Upstream Forge moved its scripts from
+// NonActive to !Active (the property's own negation); the two read the same.
+var nonActiveSpellings = strings.NewReplacer(".!Active", ".NonActive", "+!Active", "+NonActive")
+
+func canonicalNonActive(v string) string {
+	if !strings.Contains(v, "!Active") {
+		return v
+	}
+	return nonActiveSpellings.Replace(v)
 }
 
 // offBattlefieldTargetSpec is a BecomesTarget ValidTarget$ spec as it applies
