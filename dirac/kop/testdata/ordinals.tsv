@@ -48,6 +48,7 @@ AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
+BecomeCopyEmbalm	untyped int	2
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
