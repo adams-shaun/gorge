@@ -203,6 +203,18 @@ func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
 		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go); a land-type setter's does not
 	}
 	var m kop.ColorMask
+	if g := k.gen; g.fxNeed != 0 && !g.anyBestow && !g.anyImpending && s.walkSlot(k, sl) {
+		// hasSubGen's walk branch (nothing before it applies without a bestow
+		// or an impending card), asked once: each of the five questions re-ran
+		// the same layer walk, which is i-independent (walkHasSub).
+		cur := s.chars(k, sl, upTo4)
+		for c, i := range g.blgSub {
+			if i != subOutside && hasSubCur(k, &cur, i) {
+				m |= 1 << c
+			}
+		}
+		return m
+	}
 	for c, i := range k.gen.blgSub {
 		if i != subOutside && s.hasSubGen(k, sl, i) {
 			m |= 1 << c
