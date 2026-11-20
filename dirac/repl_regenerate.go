@@ -86,9 +86,14 @@ func (s *State) spendRegenShield(sl Slot) {
 }
 
 // FeatRegenShields is gorge's "Shield" marker counter on object o (the
-// regeneration shields it has this turn).
+// regeneration shields it has this turn). A phased-out permanent still holds
+// them: phasing is not a zone change (CR 702.26d) and the shield is a
+// this-turn effect (CR 701.19c), so a phasing table reads the slot on the
+// phased zones too (kw_phasing.go); phaseOut keeps pfRegen, spare and the
+// mechRegen mask.
 func (s *State) FeatRegenShields(o Obj) uint8 {
-	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot ||
+		!DebugPhasedShieldsZero && s.k().phasing && ob.zone.Phased() && ob.slot != NoSlot {
 		return uint8(s.regenShieldsAt(ob.slot))
 	}
 	return 0
@@ -152,3 +157,9 @@ func (s *State) destroyNoRegenNow(k *prep, sl Slot) {
 // shields beyond the first live in perm.flags bits 13-14 again, where
 // pfBatchGone and pfLastBear also live.
 var DebugRegenShieldsInFlags bool
+
+// DebugPhasedShieldsZero (TestPhasedOutRegenShieldsProjectionMutation):
+// FeatRegenShields and FeatDeathtouchMark read zero on a phased-out permanent
+// again, the pre-fix behaviour. Phasing is not a zone change (CR 702.26d), so
+// the shields and the mark persist through it.
+var DebugPhasedShieldsZero bool
