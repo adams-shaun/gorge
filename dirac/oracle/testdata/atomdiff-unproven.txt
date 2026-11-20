@@ -17,6 +17,7 @@ fw:Card.!AttachedBy
 fw:Card.!EnchantedBy
 fw:Card.!EquippedBy
 fw:Card.!IsCommander
+fw:Card.!kicked
 fw:Card.!withIndestructible
 fw:Card.!withShadow
 fw:Card.AdventureCard
@@ -29,6 +30,7 @@ fw:Card.EnchantedBy
 fw:Card.EnchantedPlayerCtrl
 fw:Card.EquippedBy
 fw:Card.IsCommander
+fw:Card.IsGoaded
 fw:Card.IsMonstrous
 fw:Card.IsNotChosenType
 fw:Card.IsSaddled

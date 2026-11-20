@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -38,6 +39,14 @@ func NewAtomCompilerOver(t *kop.Table) *AtomCompiler {
 	}
 	if len(pt.exprs) == 0 {
 		pt.exprs = append(pt.exprs, kop.Expr{})
+	}
+	if len(t.FilterProgs) != 0 {
+		// the game's own programs keep their ids; a new one is interned after them
+		pt.progs = append([]kop.FilterProg(nil), t.FilterProgs...)
+		pt.progKey = map[string]kop.FilterProgID{}
+		for i := 1; i < len(pt.progs); i++ {
+			pt.progKey[fmt.Sprintf("%#v", pt.progs[i].Lits)] = kop.FilterProgID(i)
+		}
 	}
 	pt.subtypes = append([]string(nil), t.Subtypes...)
 	for i, w := range pt.subtypes {
@@ -100,6 +109,11 @@ func (a *AtomCompiler) Count(head string) (kop.ValueRef, error) {
 func (a *AtomCompiler) Tables() ([]kop.Filter, []kop.Expr) {
 	return a.cb.pt.filters, a.cb.pt.exprs
 }
+
+// Progs is the filter programs the tables hold (the game's own first, then
+// those a lowered filter spilled into); nil when there are none. Like Tables
+// it aliases the compiler's own.
+func (a *AtomCompiler) Progs() []kop.FilterProg { return a.cb.pt.progs }
 
 // Missing is the subtype names the last Filter or Count asked for that the
 // table has none of, sorted. A matchup's table keeps only the subtypes some
