@@ -9,6 +9,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -77,7 +78,6 @@ func TestParagonOfModernityReadsColorsPaid(t *testing.T) {
 	}{
 		{"threeColours", []string{"R", "G", "U"}, 1},
 		{"twoColoursThreeUnits", []string{"R", "R", "G"}, 0},
-		{"fourColours", []string{"R", "G", "U"}, 1},
 		{"colourless", []string{"C", "C", "C"}, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -190,5 +190,97 @@ func TestEveryPaymentHistoryHeadCardIsPlayable(t *testing.T) {
 		if miss := reg.Unsupported(c, sup); len(miss) != 0 {
 			t.Errorf("%s is still unsupported: %v", name, miss)
 		}
+	}
+}
+
+// TestBalduvianFallenCountsBlackOrRedPaidForUpkeep: "it gets +1/+0 until end
+// of turn for each {B} or {R} spent this way" reads the mana the cumulative
+// upkeep payment actually spent.
+func TestBalduvianFallenCountsBlackOrRedPaidForUpkeep(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	for _, tc := range []struct {
+		name      string
+		mana      string
+		wantBonus int32
+	}{
+		{"black", "B", 1},
+		{"red", "R", 1},
+		{"green", "G", 0},
+		{"colourless", "C", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fallen, ok := reg.Lookup("Balduvian Fallen")
+			if !ok {
+				t.Fatal("corpus fixture: Balduvian Fallen missing")
+			}
+			// The edh_trigf kernel-probe shape: no turn loop, the upkeep's own
+			// resolution is driven directly.
+			e := New(Config{Seed: 7, Names: []string{"a", "b"},
+				Decks: [][]*cards.Card{append([]*cards.Card{fallen}, mountainDeck(t, 39)...), mountainDeck(t, 40)}})
+			e.G.Step = state.StepMain1
+			e.G.Active, e.G.Priority = 0, 0
+			e.G.Turn = 1
+			id := moveByName(t, e, 0, "Balduvian Fallen", state.ZBattlefield)
+			base := e.Derived(id).Power
+			e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: tc.mana, Amount: 1})
+			d := trigFUpkeepAsk(t, e)
+			pay := -1
+			for _, o := range d.Options {
+				if o.Kind == "cumulative_pay" {
+					pay = o.Index
+				}
+			}
+			if pay < 0 {
+				t.Fatalf("the pay option is not offered: %+v", d.Options)
+			}
+			submitChoices(t, e, pay)
+			if len(e.pendingTriggers) == 0 {
+				t.Fatal("the paid upkeep queued no trigger")
+			}
+			e.putTriggersOnStack()
+			for i := 0; i < 10 && len(e.G.Stack) > 0; i++ {
+				e.resolveTop()
+			}
+			if got := e.Derived(id).Power - base; got != tc.wantBonus {
+				t.Fatalf("power bonus = %d, want %d (paid %s)", got, tc.wantBonus, tc.mana)
+			}
+		})
+	}
+}
+
+// TestChromaEntersHeadsCountMatchingSymbols: Heartlash Cinder's "+X/+0 where X
+// is the number of red mana symbols in the mana costs of permanents you
+// control" counts its own {R} and Managorger Phoenix's {R}{R}.
+func TestChromaEntersHeadsCountMatchingSymbols(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := etbreplEngine(t, reg, "Heartlash Cinder", "Managorger Phoenix")
+	searchMoveByName(t, e, "Managorger Phoenix", state.ZBattlefield)
+	passUntilStackEmpty(t, e, 5)
+	id := searchMoveByName(t, e, "Heartlash Cinder", state.ZBattlefield)
+	// A battlefield move is not a cast, but the ETB trigger still fires.
+	for i := 0; i < 20 && len(e.G.Stack) == 0; i++ {
+		e.putTriggersOnStack()
+	}
+	passUntilStackEmpty(t, e, 30)
+	// 1/1 base; red symbols: Cinder {R} + Phoenix {R}{R} = 3.
+	if got := e.Derived(id).Power; got != 4 {
+		t.Fatalf("Heartlash Cinder power = %d, want 4 (1 + 3 red symbols)", got)
+	}
+}
+
+// TestManagorgerPhoenixCountsRedSymbolsOfTheCastSpell: with Phoenix in the
+// graveyard, casting a spell puts a flame counter on it for each {R} in that
+// spell's mana cost (Count$TriggeredManaCostDevotion.Red).
+func TestManagorgerPhoenixCountsRedSymbolsOfTheCastSpell(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := etbreplEngine(t, reg, "Managorger Phoenix", "Heartlash Cinder")
+	phoenix := searchMoveByName(t, e, "Managorger Phoenix", state.ZGraveyard)
+	castFromHand(t, e, "Heartlash Cinder", "RR")
+	if got := e.G.Obj(phoenix).Counter("FLAME"); got != 1 {
+		t.Fatalf("flame counters = %d, want 1 (Heartlash Cinder costs {1}{R})", got)
 	}
 }
