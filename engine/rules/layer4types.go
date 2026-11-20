@@ -589,16 +589,16 @@ func (e *Engine) buildDerivedTypesCands(act []ContinuousEffect, srcs []state.Obj
 }
 
 // appendDerivedEntry walks one candidate and appends its table entry, if
-// its derived types differ from its printed face (the same test the whole
-// walk applies, in the same order: zone and face first). act is the live
-// LType effect list typeCharacteristicsActive applies.
+// one is needed (layer4EntryNeeded: the same test the whole walk applies,
+// in the same order: zone and face first). act is the live LType effect
+// list typeCharacteristicsActive applies.
 func (e *Engine) appendDerivedEntry(buf []effects.ObjectTypes, act []ContinuousEffect, id state.ObjID) []effects.ObjectTypes {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
 		return buf
 	}
 	ty, all := chars.TypesAndAllCreatureTypes(asChars(e), act, id, 0)
-	if sameTypeWordSet(ty, o.Face().Types) && all == effects.IntrinsicAllCreatureTypes(o) {
+	if !layer4EntryNeeded(o, ty, all) {
 		return buf
 	}
 	// The list may alias a scratch buffer or the face's own slice, so copy
@@ -654,7 +654,7 @@ func (e *Engine) liveLTypeEffects(dst []ContinuousEffect) []ContinuousEffect {
 // walk: those effects' sources, plus the objects whose type base is already
 // not the printed face (layer4BaseMayDiffer). Every other object has no
 // layer-4 effect applying to it and its printed base, so the full walk would
-// skip it by sameTypeWordSet anyway. The fast path's table is therefore the
+// skip it by layer4EntryNeeded anyway. The fast path's table is therefore the
 // full walk's exactly -- the rules test binary rebuilds it with the full walk
 // on every fast-path build (layer4PrecheckVerify) and panics on a difference.
 func (e *Engine) buildDerivedTypes(buf []effects.ObjectTypes) []effects.ObjectTypes {
@@ -877,7 +877,7 @@ func (e *Engine) buildDerivedTypesWalk(buf []effects.ObjectTypes, srcs []state.O
 		} else {
 			ty, all = chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
 		}
-		if sameTypeWordSet(ty, o.Face().Types) && all == effects.IntrinsicAllCreatureTypes(o) {
+		if !layer4EntryNeeded(o, ty, all) {
 			continue
 		}
 		// The list may alias a scratch buffer or the face's own slice, so copy
@@ -929,11 +929,36 @@ func (e *Engine) anyLayer4Active() bool {
 // current at Resolve entry.
 func (e *Engine) EffectiveTypes() []effects.ObjectTypes { return e.layer4Types }
 
+// layer4EntryNeeded reports whether the derived-type table must carry o
+// with the walk's list (ty, all): a face-up object needs an entry exactly
+// when its derived list differs from the printed face, while a face-down
+// one ALWAYS does. A no-entry filter read falls back to the printed face --
+// hasTypePrinted's CR 708.5 gate answers the face-down set, but the raw
+// fallbacks (derivedCardTypes, derivedCreatureTypes) answer the HIDDEN face
+// -- so only an entry carries the CR 708.5 base for a face-down permanent.
+// In particular a face-down permanent whose derived list is word-equal to
+// its hidden printed face (Jump Scare's "becomes a Horror enchantment
+// creature in addition to its other types" on a manifested Enchantment
+// Creature: the base {Creature} plus the granted word equals the printed
+// word set) must take the entry, or the grant is invisible to every
+// Count$Valid and target filter over the object (the kfuzz
+// facedown_typegrant_dropped_from_type_table repro: Ethereal Armor's
+// "+1/+1 for each enchantment you control" missed the manifested creature
+// the same pump had just made an enchantment, reading it as its CR 708.5
+// 2/2 creature).
+func layer4EntryNeeded(o *state.Object, ty []string, all bool) bool {
+	if o.FaceDownHidden() {
+		return true
+	}
+	return !sameTypeWordSet(ty, o.Face().Types) || all != effects.IntrinsicAllCreatureTypes(o)
+}
+
 // sameTypeWordSet reports whether two type lists carry the same words,
-// case-insensitively and ignoring order. It decides whether an object's derived
-// types differ from its printed face and therefore need a table entry. The
-// lists are tiny (a handful of words), so the quadratic scan is cheaper than
-// building a set on this per-object refresh path.
+// case-insensitively and ignoring order. It decides whether a face-up
+// object's derived types differ from its printed face and therefore need a
+// table entry (layer4EntryNeeded). The lists are tiny (a handful of words),
+// so the quadratic scan is cheaper than building a set on this per-object
+// refresh path.
 func sameTypeWordSet(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
