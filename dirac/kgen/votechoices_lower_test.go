@@ -16,7 +16,7 @@ import (
 // parameter). No card refuses the vote parameter itself. A Secretly$ vote
 // still refuses that parameter by name.
 func TestVoteChoicesLowers(t *testing.T) {
-	const triggered = "Vote on a triggered ability: gorge asks a spurious placement mode"
+	const triggered = "Vote on a triggered ability without StoreVoteNum$"
 	lowered := []string{"Bite of the Black Rose", "Capital Punishment", "Plea for Power", "Tyrant's Choice"}
 	refused := map[string]string{
 		"Coercive Portal":        triggered,
