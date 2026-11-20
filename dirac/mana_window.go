@@ -4098,7 +4098,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.perms[sl].actUsed |= 1 << e.ab
 	}
 	if f&kop.CostLoyalty != 0 {
-		s.perms[sl].flags |= pfLoyaltyUsed
+		s.noteLoyaltyActivation(k, sl)
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
 		s.payCounterX(k, sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>

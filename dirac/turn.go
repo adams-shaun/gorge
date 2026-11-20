@@ -70,6 +70,7 @@ func (s *State) beginTurn(p uint8) {
 		}
 		pm.actUsed = 0
 		pm.flags &^= pfLoyaltyUsed
+		s.resetLoyaltyActivations(m.first())
 	}
 	for i := 0; i < int(s.nobj); i++ {
 		if s.objs[i].activations() != 0 {
