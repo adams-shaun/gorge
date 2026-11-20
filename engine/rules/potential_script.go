@@ -842,6 +842,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		// An ask the activation poses: branch over its answers.
 		answers := scriptAnswers(d)
 		if scriptManaAskHoists(asPayer(c), c.manaActivation, p, d) {
+			answers = scriptOrderManaAbilityAnswers(c, d, answers, c.manaActivation, sr.need)
 			answers = scriptOrderAnswers(d, answers, sr.need)
 		}
 		// A mana ability that yields nothing is no branch (an idle storage land's
@@ -1359,6 +1360,101 @@ func scriptStepNeed(steps []decision.PaymentActivation, next int) [state.MC + 1]
 		}
 	}
 	return need
+}
+
+// manaOrderEngine is the narrow engine slice scriptOrderManaAbilityAnswers
+// reads: the configured production of one mana ability (the same facts the
+// payment planner's potential fold uses). A free function over it keeps the
+// reorder off the Engine's method surface.
+type manaOrderEngine interface {
+	addPotentialManaOf(m *state.Mana, ma *cards.SA)
+	manaAbilityCC(p state.PlayerID, id state.ObjID, ma *cards.SA) *compiledCost
+}
+
+// scriptOrderManaAbilityAnswers is scriptOrderAnswers for the ask a source's
+// several mana abilities pose ("choose a mana ability"). The ask's options
+// name no mana symbol -- the colour is a second ask -- so scriptOrderAnswers
+// alone leaves a granted fixed-colour ability behind the source's printed
+// ones, and a search that needs that colour walks the printed subtree first
+// (a transformed Ulvenwald Abomination's {C}{C} before the granted {G}).
+// Only an answer that picks a granted fixed-colour ability making a needed
+// colour is hoisted, in engine order; printed folds (mana_multicolour.go),
+// any-colour productions (selColours' second pass) and sacrifice/life
+// abilities (needPass) keep the engine's order, which the kernel mirrors.
+func scriptOrderManaAbilityAnswers(e manaOrderEngine, d *decision.Decision, answers []decision.Intent, ma *manaActivation, need [state.MC + 1]bool) []decision.Intent {
+	if e == nil || ma == nil || ma.source != d.Source || len(ma.abilities) == 0 {
+		return answers
+	}
+	needAny := false
+	for _, want := range need {
+		if want {
+			needAny = true
+			break
+		}
+	}
+	if !needAny {
+		return answers
+	}
+	granted := false
+	for i := range d.Options {
+		if o := &d.Options[i]; o.Kind == "mana" && o.Granted {
+			granted = true
+			break
+		}
+	}
+	if !granted {
+		// Two printed abilities keep the engine's ask order: the kernel's
+		// multi-ability fold (mana_multicolour.go) mirrors that order, and a
+		// needed-colour hoist there floats a colour the kernel does not
+		// (taps_deferred_multi_ability_ask_order). The reorder is for a
+		// granted fixed-colour ability standing beside a printed one.
+		return answers
+	}
+	for i := range d.Options {
+		o := &d.Options[i]
+		if o.Kind != "mana" || o.Ability < 0 || o.Ability >= len(ma.abilities) || ma.abilities[o.Ability] == nil {
+			continue
+		}
+		// A sacrifice or life cost is a consequence the kernel's search
+		// keeps in the ask's engine order (dirac's needPass): the source
+		// is spent, or the payer's life moves, so a needed-colour reorder
+		// would take a resource the kernel does not spend.
+		if cc := e.manaAbilityCC(ma.player, ma.source, ma.abilities[o.Ability]); cc != nil && (len(cc.Cost.Sac) > 0 || cc.Cost.Life > 0) {
+			return answers
+		}
+	}
+	needed := func(in decision.Intent) bool {
+		for _, ch := range in.Choices {
+			for i := range d.Options {
+				o := &d.Options[i]
+				if o.Index != ch || o.Kind != "mana" || o.ManaSymbol != "" || !o.Granted ||
+					o.Ability < 0 || o.Ability >= len(ma.abilities) || ma.abilities[o.Ability] == nil {
+					continue
+				}
+				mp := effects.ManaOf(ma.abilities[o.Ability])
+				if producedOpen(mp.Produced) {
+					continue // an any-colour production names no colour: the kernel's ask keeps it for the second pass (dirac's selColours)
+				}
+				var made state.Mana
+				e.addPotentialManaOf(&made, ma.abilities[o.Ability])
+				for col, want := range need {
+					if want && made[col] > 0 {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	var first, rest []decision.Intent
+	for _, in := range answers {
+		if needed(in) {
+			first = append(first, in)
+		} else {
+			rest = append(rest, in)
+		}
+	}
+	return append(first, rest...)
 }
 
 // scriptOrderAnswers stably reorders an ask's valid answers so the ones that
