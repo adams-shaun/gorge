@@ -1,0 +1,19 @@
+# The recordings (and the oracle's per-card replay tests) the precheck leaves to the batch unless
+# their recording changed: each name's -json Elapsed in a full replay at 4 cores is over the 10 s
+# wall (scripts/test_targets.py's slow_repros; the two namespaces share this file, recordings are
+# snake_case, tests CamelCase). Measured 2026-11-20 at 5e37160a81 from a full TestReproManifest run
+# (595 subtests, 663 cost-s) and a run of the other 213 replay tests (110 cost-s), both
+# `make test-one PKG=./dirac/oracle` on the capped 4-core wrapper. A card's own fix PR re-records its
+# game shorter (kfuzz -shrink) and drops the entry; refresh the list the same way after a train.
+TestStorageLandCastAutopayReprosLockstep
+act_offer_funded_by_granted_any_land_mana
+escape_cast_not_script_searched
+filter_repeat_hybrid_gap_funding
+flashback_cast_priced_over_ability_cost
+grant_search_spent_beside_storage_gap
+idle_storage_battery_tap_beside_grants
+racers_ring_fee_gap_funding
+spiked_ripsaw_equip_offer
+storage_battery_activation
+suspend_special_action_waits_for_trigger_stack
+tap_extra_mana_feeds_filter_cost
