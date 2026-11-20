@@ -1697,7 +1697,11 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // name and the same activate options; the card definition plus the shared
 // abilities is that same pair (a granted ability is read through the same
 // card's state, so a grant that reaches one reaches the other).
-func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool {
+func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotOf(t, a, b) }
+
+// twinSlotOf is twinSlot's test, which reads no search state: the grant
+// search's funding loop asks it too (grantSrch.fundTwinTried).
+func twinSlotOf(t *State, a, b Slot) bool {
 	if a == b || !t.occ.has(a) || !t.occ.has(b) {
 		return false
 	}
