@@ -43,6 +43,23 @@ const rbDestroyLine = rbDestroyHeal | rbDestroyRegen
 // (replacementMatchesDestroy: no can't-be-regenerated mark, CR 701.19c, and a
 // creature's toughness above 0).
 func (s *State) destroyLine(k *prep, sl Slot, regen bool) destroyRepl {
+	r := s.destroyLineMatch(k, sl, regen)
+	switch r {
+	case drRegen:
+		s.touchSl(sl)
+		s.regenerateBody(sl)
+		DestroyRegenStats.Hits.Add(1)
+	case drHeal:
+		s.destroyHeal(k, sl)
+	}
+	return r
+}
+
+// destroyLineMatch reports which R:Event$ Destroy line would replace sl's
+// destruction, without applying it: destroyLine reads it to apply, and
+// leaveTogether's batch pre-scan reads it to tell a victim that is leaving
+// from one a destroy line spares.
+func (s *State) destroyLineMatch(k *prep, sl Slot, regen bool) destroyRepl {
 	g := k.gen
 	if g == nil || g.anyRepl&rbDestroyLine == 0 {
 		return drNone
@@ -54,14 +71,10 @@ func (s *State) destroyLine(k *prep, sl Slot, regen bool) destroyRepl {
 			continue
 		}
 		if bits&rbDestroyRegen != 0 && b == sl && regen && !DebugDestroyRegenOff && s.selfRegenOK(k, sl) {
-			s.touchSl(sl)
-			s.regenerateBody(sl)
-			DestroyRegenStats.Hits.Add(1)
 			return drRegen
 		}
 		if bits&rbDestroyHeal != 0 && b != sl && !DebugDestroyHealOff && g.destroyHeal != nil &&
 			s.matchPerm(k, g.destroyHeal[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
-			s.destroyHeal(k, sl)
 			return drHeal
 		}
 	}

@@ -78,6 +78,7 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(victims)
 		defer h.EndBatchDepartures()
 	}
+	umbra := umbraBatchAuras(h, victims)
 	for _, id := range victims {
 		o := h.Game().Obj(id)
 		if o == nil || o.Zone != state.ZBattlefield {
@@ -111,10 +112,18 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		// Umbra armor (CR 702.90) applies even when NoRegen$ suppresses
-		// regeneration — it is its own replacement, not a shield. Consuming
-		// the Aura leaves it in the graveyard; when the loop reaches the Aura
-		// itself (a DestroyAll that named it too) the zone guard above skips it.
-		if ReplaceUmbraArmor(h, id) {
+		// regeneration — it is its own replacement, not a shield. A batch that
+		// also destroys the Aura still saves the bearer (CR 702.89a, the
+		// 6/7/2024 ruling): the pre-read answer is used so victim order cannot
+		// decide it, and an Aura an earlier member already moved is not moved
+		// again.
+		saved := false
+		if aura, ok := umbra[id]; ok {
+			saved = replaceUmbraArmor(h, id, aura)
+		} else {
+			saved = ReplaceUmbraArmor(h, id)
+		}
+		if saved {
 			if alwaysRemember {
 				rememberSpared(id)
 			}
@@ -275,6 +284,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		h.BatchDepartures(victims)
 		defer h.EndBatchDepartures()
 	}
+	umbra := umbraBatchAuras(h, victims)
 	for _, id := range victims {
 		if g.Obj(id) == nil || g.Obj(id).Zone != zone {
 			continue
@@ -292,7 +302,13 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			// Umbra armor after the shield: see effDestroy's note.
-			if ReplaceUmbraArmor(h, id) {
+			saved := false
+			if aura, ok := umbra[id]; ok {
+				saved = replaceUmbraArmor(h, id, aura)
+			} else {
+				saved = ReplaceUmbraArmor(h, id)
+			}
+			if saved {
 				continue
 			}
 		}
