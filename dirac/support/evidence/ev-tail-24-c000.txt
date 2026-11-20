@@ -1,8 +1,10 @@
 A-Baleful Beholder
 A-Civil Servant
+A-Cloister Gargoyle
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
 A-The One Ring
+A-Triumphant Adventurer
 Abzan Guide
 Adamaro, First to Desire
 Aerial Modification
@@ -170,6 +172,7 @@ Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
 Grixis Panorama
+Grotesque Hybrid
 Growth Spurt
 Gruesome Realization
 Gruul War Plow

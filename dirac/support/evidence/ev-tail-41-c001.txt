@@ -40,6 +40,7 @@ Boundless Realms
 Bring Low
 Brotherhood Outcast
 Butterbur, Bree Innkeeper
+Cabal Coffers
 Call the Cavalry
 Canoptek Spyder
 Canyon Wildcat
@@ -74,6 +75,7 @@ Courier Hawk
 Court of Garenbrig
 Covert Operative
 Crack the Earth
+Crevasse
 Criminal Enterprise
 Cruel Bargain
 Crypt Ghast
@@ -331,6 +333,7 @@ Secret Passage
 Secrets of the Golden City
 Seedguide Ash
 Selesnya Eulogist
+Selesnya Guildmage
 Senate Guildmage
 Sengir Vampire
 Sensor Splicer
@@ -434,6 +437,7 @@ Warfire Javelineer
 Warlord's Elite
 Warped Physique
 Warren Soultrader
+Warrior's Oath
 Weaponize the Monsters
 Weirding Shaman
 Where Ancients Tread

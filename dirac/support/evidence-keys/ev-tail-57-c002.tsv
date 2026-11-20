@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Akki Battle Squad	82548edd607629b4	21	1/1		1/1	
+All Is Dust	10f154900525ff28	3	0/0		1/2	ix:resp
 Ambuscade	2f43c24a47c40c84	42	0/0		2/2	
 Angelic Ascension	2fb5f41c8b20ce8f	54	0/0		2/2	
 Archaeomancer	da86ec75dfd5e1df	52	1/1		1/1	
@@ -16,6 +17,7 @@ Become the Avalanche	02c4c80cbe0d849c	53	0/0		2/2
 Bedlam	0334fb0cb30a3286	23	0/0		0/0	
 Beguiler of Wills	ecb103dc262a830c	43	1/1		1/1	
 Blight-Breath Catoblepas	29a00c4ba8fdfcd1	43	1/1		0/1	ix:resp
+Blood Curdle	9b8bfae51740eb62	3	0/0		1/2	ix:resp
 Bloodcrazed Paladin	1c3870a599bdd60b	75	0/0		0/0	
 Book Burning	b57a1d1fb568af1d	63	0/0		2/2	
 Brassclaw Orcs	d9e40921189a45cb	43	0/0		0/0	
@@ -24,6 +26,9 @@ Captain Sisay	128b4786f6c3186d	35	1/1		1/1
 Carrion Crow	23d7f3b1aa8b1e8d	6	0/0		0/0	
 Chandra's Phoenix	49142b016754915a	35	1/1		1/1	
 Circular Logic	80429d2f666922d8	45	0/0		2/2	
+City of Brass	e54f141bbaecbc84	4	2/2		0/1	ix:resp
+Cloudpost	3e54e5f91f009aa1	18	1/1		0/1	ix:resp
+Cogwork Assembler	bc07b16777d8c778	4	1/1		0/1	ix:resp
 Combat Research	485eaa3acbb3e8c8	74	0/0		2/2	
 Consuming Bonfire	6e4e80b5b262c788	23	0/0		2/2	
 Cruel Bargain	a0abf866e7b8199d	34	0/0		2/2	
@@ -33,6 +38,7 @@ Daybreak Combatants	505b15f38c835366	34	1/1		1/1
 Deathmask Nezumi	f84bb905edb77e11	67	0/0		0/0	
 Desecrated Earth	2e01c1222d33f6ee	28	0/0		1/2	ix:resp
 Dissenter's Deliverance	4ad1cf8042ec376a	14	1/1		1/2	ix:resp
+Doctor Jane Foster	bc4aefcbeede8592	4	1/1		1/1	
 Doorkeeper	b82e63c14ddd41bb	77	1/1		1/1	
 Draco	b7648cb925eac786	13	1/1		1/1	
 Dragon-Style Twins	06a049487e4e84e4	25	1/1		0/1	ix:resp
@@ -45,10 +51,12 @@ Earthshape	85bd69faa131e0ab	72	0/0		2/2
 Efficient Construction	6e4e865c32a9e51d	59	1/1		1/1	
 Eldrazi Linebreaker	1884a3ce9bc2919a	16	1/1		0/1	ix:resp
 Elspeth's Devotee	68ea3b8c5da3f4d9	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Elvish Hexhunter	ef58213edca19636	3	1/1		1/1	
 Emblem of the Warmind	cb639f990d9f79f1	41	0/0		2/2	
 Enraged Revolutionary	4eb970e27c3d0726	26	1/1		1/1	
 Essence of Orthodoxy	0d09078e78c19975	41	1/1		1/1	
 Far Wanderings	0448c8b4aaa3faa2	41	0/0		2/2	
+Fates' Reversal	1213727872fa630c	3	0/0		1/2	ix:resp
 Fen Stalker	3e62f86eedf5a7f1	42	0/0		0/0	
 Fervor	d49e18d9f7cb6aed	31	0/0		0/0	
 Filthy Cur	4bfafe3498118100	32	1/1		1/1	
@@ -56,7 +64,10 @@ Final Reward	574b667eedde6b70	51	0/0		2/2
 Flaming Sword	3069554f67f1587a	54	0/0		2/2	
 Fledgling Griffin	08e36b637d4fe752	47	1/1		1/1	
 Flip the Switch	fde368b461388a64	71	0/0		2/2	
+Flooded Strand	1343a089d54ebaf7	10	1/1		0/1	ix:resp
+Forbidden Lore	0a98f6a02870349c	11	0/0		1/2	ix:resp
 Foundry of the Consuls	764206ab30317361	298	2/2		0/1	ix:resp
+Fountain of Ichor	d932b447f3bc99e4	4	2/2		1/1	
 Francisco, Fowl Marauder	300765096ff175c4	49	1/1		1/1	
 Freyalise's Radiance	629b52fc02949344	43	1/1		1/1	
 Frillscare Mentor	59afa93febad8230	32	2/2		1/1	
@@ -66,11 +77,15 @@ Goblin Elite Infantry	8076cea0b195dea1	54	2/2		1/1
 Goblin Firestarter	1158c766af43da80	45	1/1		1/1	
 Grassland Crusader	74a652d6139bf8ea	30	1/1		1/1	
 Grenzo's Ruffians	25c4750fdf86cada	27	2/2		1/1	
+Grim Feast	52eb51fe4dfdf60a	9	2/2		1/1	
 Hand of Justice	72ec89b01a055318	42	1/1		1/1	
 Harbinger of Night	a3bb853227e47081	29	1/1		1/1	
 Haunted Guardian	a34558c61a774295	102	0/0		0/0	
 Hexgold Slith	48a46746859bb670	92	3/3		1/1	
+Holy Mantle	eacbf24dfd47023a	3	0/0		2/2	
 Hopping Automaton	c402e12b9185b5cf	63	1/1		1/1	
+Horizon Chimera	8d947a9acf31edd1	4	1/1		1/1	
+Hound Tamer	f5f3a748bafc0887	12	2/2		0/1	ix:resp
 Huatli, the Sun's Heart	022d6dc5d15568c1	29	1/1		1/1	
 Hurly-Burly	ee3829b61974b64b	29	0/0		2/2	
 Impending Flux	93a6ea2c537b7d37	20	0/0		3/4	cast/alt:foretold
@@ -84,11 +99,14 @@ Lilting Refrain	5bef39dd16a16408	60	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Makindi Patrol	d6e224c41b3714c4	97	1/1		1/1	
 Manakin	89df6c39ddcf9cfc	87	1/1		1/1	
 Marsh Gas	f230e17f0b1bec9a	4	0/0		1/2	ix:resp
+Maze of Ith	9d77f7e55e119eb2	14	1/1		1/1	
 Merchant Scroll	507eed46f49e238e	48	0/0		2/2	
 Midnight Banshee	054775d3ce0dc5c9	28	1/1		1/1	
+Mikokoro, Center of the Sea	605a62662579a1cf	12	2/2		0/1	ix:resp
 Mind Burst	7c405e5e81018a2f	59	0/0		2/2	
 Moonwing Moth	1bf5418b55521356	42	1/1		1/1	
 Mortarion, Daemon Primarch	8c1220f2d7fe8619	24	1/1		1/1	
+Nacre Talisman	8afb4b5d7c5c0bf0	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Narwhal	1a1665a730c238b3	71	0/0		0/0	
 Nerd Rage	dd8cae725009aee5	21	1/1		2/2	
 Nesting Wurm	db6dd1c8d6fdd073	33	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -100,6 +118,9 @@ Oxidda Golem	ba122a8134271205	49	0/0		0/0
 Pelargir Survivor	711eb3d71c131a27	52	2/2		1/1	
 Phantasmal Shieldback	a5b592821b3846d9	58	2/2		1/1	
 Powerstone Engineer	cc576e3d7f76c2c3	94	1/1		1/1	
+Powerstone Shard	48a55ecd0b944b27	4	1/1		0/1	ix:resp
+Prepare	d09f6e6560ddf472	8	0/0		4/5	f1/s
+Queen of Ice	249b6ff8952d8da8	8	1/1		1/2	ix:resp
 Quicksmith Genius	dec3e2b524460438	26	1/1		1/1	
 Rage Weaver	c01d198b3a0ce1db	42	1/1		1/1	
 Raven Familiar	30be6f0bd76c2218	54	2/2		1/1	
@@ -122,12 +143,14 @@ Searing Touch	f90005dd8918a4e1	48	0/0		4/4
 See Red	c7062465d8250cb7	20	1/1		2/2	
 Seething Song	e944799854931771	59	0/0		2/2	
 Serpent Generator	899aef3f407afdab	44	1/1		1/1	
+Serra Disciple	3fd9486a4aaf7b1c	4	1/1		1/1	
 Sever Soul	7cf4fc44b5e49e95	32	0/0		2/2	
 Shuri, the Black Panther	2fc7d1696f067caf	63	1/1		1/1	
 Silver Bolt	fb8f43adbbcbc4a0	103	1/1		1/1	
 Silverquill Command	be562cda0df021ca	59	0/0		2/2	
 Skyknight Legionnaire	a880a8eccbd4edfe	36	0/0		0/0	
 Skysovereign, Consul Flagship	6cfcea3e7436ad80	46	3/3		1/1	
+Soltari Foot Soldier	bf1697c50bd79c9e	6	0/0		0/0	
 Soul Feast	670e0331f9f6f567	25	0/0		1/2	ix:resp
 Soulcage Fiend	42a31ba62a9c0452	34	1/1		1/1	
 Spikeshot Goblin	802fddfa4b179eb8	26	1/1		1/1	
@@ -135,6 +158,8 @@ Spiteful Blow	faee591eb0d8113f	23	0/0		2/2
 Stalking Tiger	0d70744f49ab2c2b	29	0/0		0/0	
 Start Your Engines	b9679193e89cc72c	30	0/0		2/2	
 Stifle	c692979588308a74	95	0/0		2/2	
+Sutina, Speaker of the Tajuru	0c7d0d1c00c3f6a5	4	2/2		1/1	
+Symmetry Matrix	5611bc483da635db	4	1/1		0/1	ix:resp
 Tel-Jilad Stylus	1126d7c636b3a197	90	1/1		1/1	
 Telim'Tor's Edict	b21d80ee1277a73e	36	0/0		2/2	
 Terashi's Grasp	9a247f0ab964f721	55	0/0		2/2	
@@ -143,17 +168,24 @@ Thermal Blast	441b5839212c6719	38	0/0		2/2
 Thieves' Guild Enforcer	8e28e75011e4e341	37	1/1		1/1	
 Thorn Thallid	7a2a07715fd32bf7	45	2/2		1/1	
 Thoughtbind	bfca2dd11ea2ac81	39	0/0		2/2	
+Thriving Bluff	1768654b7bb7f8ae	11	1/1		0/1	ix:resp
 Tocasia's Onulet	b04d5f2dbf822ed1	44	2/2		1/1	
 Tormod's Cryptkeeper	8916da5eb8f34c88	78	1/1		1/1	
+Trickster's Elk	a0287b04e89653fd	4	0/0		1/2	cast/alt:bestowed
+Tsunami	226e128a518fd2d6	40	0/0		2/2	
 Tyranid Invasion	e7c4022beb389367	39	0/0		2/2	
 Tyrant Guard	ad31ce5f0a62ed6c	30	2/2		1/1	
 Ulrich's Kindred	f95c5176107ac71b	24	1/1		0/1	ix:resp
 Unnatural Predation	68e045ba26bdd45f	68	0/0		2/2	
+Urborg Elf	897aa79ccfd1221b	7	1/1		0/1	ix:resp
 Valor in Akros	78d1d21af7abd4d9	47	1/1		1/1	
 Vanquish the Foul	b2a8a7f2156c8315	35	0/0		2/2	
 Vedalken Entrancer	f6eb36c4cc21f2c8	46	1/1		1/1	
 Violet Pall	1952a936afe1ff96	27	0/0		1/2	ix:resp
+Vitu-Ghazi, the City-Tree	649ab31dd5e78071	6	2/2		0/1	ix:resp
+Wall of Mulch	8523a3f468fa81d6	7	1/1		0/1	ix:resp
 Warrior en-Kor	d229db1728256a51	59	1/1		1/1	
 Warriors' Lesson	ef7e91123fc2b644	57	0/0		2/2	
 Welcome the Dead	711cfeb2bf825d2d	67	0/0		4/4	
 Will-Forged Golem	453b964e4e429a8c	28	0/0		0/0	
+Young Red Dragon	f9fe59f77f093e52	4	0/0		1/2	ix:resp
