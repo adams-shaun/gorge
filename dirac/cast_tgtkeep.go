@@ -21,7 +21,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the tap-and-sacrifice unit (a Treasure's "{T}, Sacrifice: Add {C}", CR
 // 605.1a) and the sacrifice-only one (Tinder Wall's "Sacrifice this: Add
 // {R}{R}") — so the test per target t prices the census with t's whole
-// production held out and only its tap-made unit put back: the weakest test,
+// production held out and only its non-consuming units put back (a tap-made
+// one, or a life-only one: paying life does not leave the battlefield, CR
+// 601.2c): the weakest test,
 // the plan that consumes every target but t and taps the rest. A target the
 // census cannot pay without is stranded by every plan: gorge's
 // "unsupported: census_incomplete" verdict for the Stealth Mission cast at
@@ -128,14 +130,20 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 }
 
 // availSansObj is the walk's census with battlefield object o's whole
-// production held out and its tap-made unit put back: the object is out only
-// as the sacrifice that acquires its mana (CR 601.2c — the target is chosen
-// before the costs are paid; only the sacrifice takes it), and a plan may tap
-// it for mana without consuming it. The census counts the slot's production
-// once (availForMode's loop), so holding the slot out takes its
-// sacrifice-bought unit with it; the gap units the script walk adds beside it
-// (availScript's helpers read the board's masks, not the loop's exclusions)
-// stay, as do the units of the targets the plan keeps.
+// production held out and its non-consuming units put back: the object is out
+// only as the sacrifice that acquires its mana (CR 601.2c — the target is
+// chosen before the costs are paid; only the sacrifice takes it), and a plan
+// may tap it for mana, or pay its life, without consuming it. The census
+// counts the slot's production once (availForMode's loop), so holding the
+// slot out takes its sacrifice-bought unit with it; the gap units the script
+// walk adds beside it (availScript's helpers read the board's masks, not the
+// loop's exclusions) stay, as do the units of the targets the plan keeps.
+//
+// A life-only source ("Pay 3 life: Add {R}", mana_pain.go's prepSoleLifeMana)
+// is such a kept unit: it is not tapped and never leaves the battlefield, so
+// the guard must price it even when it is the spell's own target. Restoring it
+// only when painTight left the units alone keeps the budget model's count
+// exact (a binding summed life guard is still the conservative answer).
 func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 	sl := s.objs[o].slot
 	s.availForMode(k, p, a, slotMask{}.with(sl), false)
@@ -143,6 +151,10 @@ func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 	s.g.availX = availPlain
 	pc := s.manaPCGen(k, sl)
 	s.g.availX = m
+	if lifeOnlyPain(pc) && !a.pain.on && !pc.manaSac && !pc.manaSacOnly {
+		s.addPainAvail(k, sl, pc, p, a, nil, true)
+		return
+	}
 	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) {
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	}
