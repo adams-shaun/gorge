@@ -3,5 +3,4 @@ Island
 Mountain
 Plains
 Quirion Explorer
-Rain of Rust
 Swamp
