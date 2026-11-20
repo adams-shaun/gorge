@@ -154,11 +154,11 @@ func (s *State) umbraAllIn(k *prep, hit slotMask, u *umbraOrder) slotMask {
 	return out
 }
 
-// umbraOrder records the Auras a state-based pass's umbra armor destroys in
-// their hosts' place, so the pass's order build can put each at its host's
-// position in that seat's battlefield walk (gorge's replaceSBADestruction
-// destroys the Aura while it processes that victim). Fixed size: no State
-// field and no allocation.
+// umbraOrder records the Auras an umbra armor answer destroyed in their
+// hosts' place, so the departure order build can put each at its host's
+// position in that seat's battlefield walk (gorge's replaceSBADestruction /
+// effDestroyAll destroys the Aura while it processes that victim). Fixed
+// size: no State field and no allocation.
 type umbraOrder struct {
 	pairs [MaxPerm][2]Slot
 	n     int
