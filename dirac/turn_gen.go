@@ -290,12 +290,44 @@ func (s *State) runReplProg(k *prep, sl Slot, c CardID, ab, pc uint8) {
 	s.runReplProgAs(k, sl, c, ab, pc, sl)
 }
 
+// coldReplSrc is the slot+1 of the permanent whose as-enters replacement
+// program is running (runReplProgAs), 0 outside one: an others-enter counter
+// amount reads that source, not the entrant (enterCountValue). It is a cold
+// region, not a genState field, because the fixed-State inventory is pinned
+// (TestNoNewFixedStateFields); only a table with an others-enter replacement
+// carries the byte.
+var coldReplSrc = newCold[uint8]("replSrc", func(g *genPrep) int {
+	for _, f := range g.flags {
+		if f&gfOthersRep != 0 {
+			return 1
+		}
+	}
+	return 0
+})
+
+// replSrcOf is coldReplSrc's byte: 0 for a table without the region.
+func (s *State) replSrcOf() uint8 {
+	if r := coldReplSrc.of(s); len(r) > 0 {
+		return r[0]
+	}
+	return 0
+}
+
+func (s *State) setReplSrc(v uint8) {
+	if r := coldReplSrc.of(s); len(r) > 0 {
+		r[0] = v
+	}
+}
+
 // runReplProgAs runs it with the permanent at src as the source (an
 // "other permanents enter" replacement). A choice stops it: the rest runs
 // once the choice is answered.
 func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot) {
 	prog := k.t.Cards[c].Abilities[ab].Prog
 	saved := s.res
+	saveSrc := s.replSrcOf()
+	s.setReplSrc(uint8(src) + 1)
+	defer func() { s.setReplSrc(saveSrc) }()
 	if !s.res.active {
 		// a value context for the program: the source as a resolving entry
 		sp := &s.perms[src]
