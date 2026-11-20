@@ -60,8 +60,21 @@ func TestWorldFromViewReasons(t *testing.T) {
 		}
 	}
 	cases := map[string]func(*shadow.Input){
-		shadow.ReasonOver:     func(in *shadow.Input) { in.View.Over = true },
-		shadow.ReasonSeats:    func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
+		shadow.ReasonOver:  func(in *shadow.Input) { in.View.Over = true },
+		shadow.ReasonSeats: func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
+		shadow.ReasonSeatLeft: func(in *shadow.Input) {
+			// a four-player view with the last seat out
+			for p := 2; p < 4; p++ {
+				pv := view.PlayerView{ID: state.PlayerID(p), Life: 20, HandSize: 7, LibrarySize: 13, Lost: p == 3}
+				for i := 0; i < 7; i++ {
+					in.Hidden.Hand[p] = append(in.Hidden.Hand[p], shadow.Card{Obj: dirac.Obj(p*20 + i), Name: "Plains"})
+				}
+				for i := 0; i < 13; i++ {
+					in.Hidden.Library[p] = append(in.Hidden.Library[p], shadow.Card{Obj: dirac.Obj(p*20 + 7 + i), Name: "Savannah Lions"})
+				}
+				in.View.Players = append(in.View.Players, pv)
+			}
+		},
 		shadow.ReasonStack:    func(in *shadow.Input) { in.View.Stack = []view.StackView{{}} },
 		shadow.ReasonPending:  func(in *shadow.Input) { in.View.Pending = []view.PendingView{{}} },
 		shadow.ReasonDecision: func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KTarget} },
