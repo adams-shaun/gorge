@@ -53,6 +53,12 @@ func retraceEntry(e *stackEntry) bool {
 // the discard and the lockstep must diverge on the land never discarded.
 var DebugRetraceFree bool
 
+// DebugRetraceBarMorph re-adds the morph bar retraceGrantBarred dropped
+// (dirac/oracle TestRetraceGrantMorphMutation): the granted retrace offer on a
+// morph card is withheld again and the recorded game ends in the unmodelled
+// retracegrant stall.
+var DebugRetraceBarMorph bool
+
 // retraceCost is the cast's pick cost: the additional discard-a-land cost
 // (gorge retraceExtra through the one definition the offer gate prices). A
 // card without printed Retrace takes the granting static's own cost (Six's
@@ -124,13 +130,21 @@ func (s *State) retraceLive(k *prep, o Obj) bool {
 // hand-only permission (CR 702.185a, "cast this card from your hand"; gorge's
 // warp walk is the hand's, and a graveyard cast carries no modeWarped mark), so
 // a Warp card's retrace cast is the plain one -- the printed cost plus the
-// discard, never warped, never exiled at the end step.
+// discard, never warped, never exiled at the end step. Morph is neither: the
+// face-down morph cast is a hand-and-command-zone offer (face_facedown.go's
+// offerFaceDownHand; offerRetraceCasts has no face-down arm either), so a
+// morph card's retrace cast is the plain face-up one -- the printed cost plus
+// the discard, never face down (morph is not an additional cost on the
+// face-up cast).
 func retraceGrantBarred(k *prep, c CardID) bool {
 	cd := &k.t.Cards[c]
+	if DebugRetraceBarMorph && cd.MorphCost != (kop.ManaCost{}) {
+		return true
+	}
 	return cd.Keywords&kop.KwFlashback != 0 || cd.Harmonize || cd.Mayhem || cd.BeamMeUp || cd.Escape ||
 		cd.Convoke || cd.Improvise || cd.Cost.X != 0 ||
 		cd.HasPlot || cd.HasSneak || cd.Impending != 0 || cd.HasBestow ||
-		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift || cd.MorphCost != (kop.ManaCost{}) ||
+		cd.SpellCost.Flags != 0 || cd.HasAltAdd || cd.Offspring || cd.Gift ||
 		cd.Casualty != 0 || cd.Bargain || cd.OptCost.Flags != 0 || cd.Teamwork != 0 || cd.HasModeCost || cd.HasMadness ||
 		k.gen != nil && k.gen.anyBeam
 }
