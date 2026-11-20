@@ -208,7 +208,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		// (gorge state.ContinuousEffect.ChosenName; repl_namecard.go)
 		named := s.srcNamedCard(src, emb)
 		fl.Pred = kop.PredNone
-		return named != NoCard && named == c && s.matchCardOne(k, &fl, c, owner, ctrl, o)
+		return named != NoCard && named == c && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// the static source's own as-enters colour (Iona, Shield of
@@ -227,7 +227,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 			has = cd.AllCreatureTypes
 		}
 		fl.Flags2 &^= kop.F2ChosenType
-		return has && s.matchCardOne(k, &fl, c, owner, ctrl, o)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// Iona, Shield of Emeria's "spells of the chosen color": the static
@@ -235,9 +235,9 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		ch, ok := s.chosenTypeSub(src)
 		has := ok && ch <= 4 && k.t.Cards[c].Colors&(kop.ColW<<ch) != 0
 		fl.Flags2 &^= kop.F2ChosenColor
-		return has && s.matchCardOne(k, &fl, c, owner, ctrl, o)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
 	}
-	return s.matchCardOne(k, &fl, c, owner, ctrl, o)
+	return s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
 }
 
 // targetsAnswered reports whether the build's target stages have passed: the

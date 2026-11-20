@@ -32,7 +32,7 @@ func (s *State) matchMayPlayFilter(k *prep, f kop.FilterID, c CardID, owner, ctr
 			}
 			fl.Flags2 &^= kop.F2ChosenType
 		}
-		if s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx) {
+		if s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, false) {
 			return true
 		}
 	}
