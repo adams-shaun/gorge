@@ -192,10 +192,12 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 // before reaching the source that pays. An activation is filtered the same
 // way (Lilysplash Mentor's {1}{G}{U} beside Frogs whose granted Clement mana
 // spends only on creature spells, with Hidden Grotto's filter the source that
-// pays). Only a plain cast of the printed cost or an activation's printed cost
-// is filtered; any other play keeps every gap.
+// pays). Only a plain cast of the printed cost (from the hand, or under a
+// may-play permission that leaves the cost alone: Summoning Materia's top of
+// the library) or an activation's printed cost is filtered; any other play
+// keeps every gap.
 func (e *Engine) scriptSpendableGaps(p state.PlayerID, o decision.Option, gaps []state.ObjID) []state.ObjID {
-	if o.Mode != "" || o.AltCostIndex != 0 {
+	if o.AltCostIndex != 0 || o.Mode != "" && castModeCodes.Code(o.Mode) != castModeMayplay {
 		return gaps
 	}
 	desc, ok := scriptPlayDesc(o, func() Cost { return e.castOfferBase(p, o.Obj) })
