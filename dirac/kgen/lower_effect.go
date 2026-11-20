@@ -2299,7 +2299,10 @@ func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
 // controller's next turn, V'Ger's PumpAll shape), and both parts ride one
 // record together as pumpAllDuration's does. A computed amount refuses: a
 // record's P/T is read once at resolution, which a Count$ amount is not.
-func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+// Duration$ UntilEndOfCombat (Murk Dwellers, Flummoxed Cyclops, Forgestoker
+// Dragon) rides the same record shape with kop.Override.EndCombat: the
+// kernel drops it as the end-of-combat step ends (static_endcombat.go).
+func (lc *lowerCtx) pumpNextTurnObject(ps *params, dur string, obj lRef, na, nd bool, kw string, hasKW bool) error {
 	// "HIDDEN CARDNAME can't attack." (Twisted Caverns): the override
 	// record's CantAttack, no keyword bit; it is a keyword part of the grant
 	cantAtk := false
@@ -2309,16 +2312,16 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 	}
 	if !na && !nd {
 		if !hasKW {
-			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
+			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", dur)
 		}
-		o := &lOverride{CantAttack: cantAtk}
+		o := &lOverride{CantAttack: cantAtk, EndCombat: dur == "UntilEndOfCombat"}
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
-		lc.emitOverride(obj, o, "UntilYourNextTurn")
+		lc.emitOverride(obj, o, dur)
 		return nil
 	}
-	o := &lOverride{CantAttack: cantAtk}
+	o := &lOverride{CantAttack: cantAtk, EndCombat: dur == "UntilEndOfCombat"}
 	if hasKW {
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
@@ -2337,11 +2340,29 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		}
 	}
 	if !att.isConst() || !def.isConst() {
-		return refuse("Pump Duration UntilYourNextTurn with a computed P/T pump")
+		return refuse("Pump Duration %s with a computed P/T pump", dur)
 	}
 	o.PTDelta, o.PVal, o.TVal = true, att, def
-	lc.emitOverride(obj, o, "UntilYourNextTurn")
+	lc.emitOverride(obj, o, dur)
 	return nil
+}
+
+// pumpObjectDuration lowers a battlefield object's Pump Duration$ arm:
+// UntilYourNextTurn and UntilEndOfCombat ride the override record, Permanent is
+// a keyword-only layer-6 grant. A player pump is pumpPlayerGrant's, and a
+// duration this function does not own returns handled=false so pumpBody
+// refuses it.
+func (lc *lowerCtx) pumpObjectDuration(ps *params, obj lRef, zone int, d string, na, nd bool, kw string, hasKW bool) (handled bool, err error) {
+	if d == "UntilYourNextTurn" || d == "UntilEndOfCombat" {
+		if lc.pumpObjectRef(obj) && zone == zBattlefield {
+			return true, lc.pumpNextTurnObject(ps, d, obj, na, nd, kw, hasKW)
+		}
+		return false, nil
+	}
+	if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
+		return false, nil
+	}
+	return true, lc.pumpPermanentKwGrant(kw, obj)
 }
 
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
@@ -2370,13 +2391,10 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if lc.pumpPlayerRef(obj) {
 			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
 		}
-		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
-			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
+		if handled, err := lc.pumpObjectDuration(ps, obj, zone, d, na, nd, kw, hasKW); handled || err != nil {
+			return err
 		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+		return refuse("Pump Duration %q", d)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {

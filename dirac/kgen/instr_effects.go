@@ -110,6 +110,8 @@ func (ic *instrCtx) opOverride() error {
 		ki.A = kop.Const(kop.DurUntilYourNextTurn)
 	case "WhileHost":
 		ki.A = kop.Const(kop.DurPermanent) // Override.WhileHost bounds it by the host
+	case "UntilEndOfCombat":
+		ki.A = kop.Const(kop.DurPermanent) // Override.EndCombat bounds it by the combat
 	default:
 		return fmt.Errorf("override duration %q", in.CS)
 	}

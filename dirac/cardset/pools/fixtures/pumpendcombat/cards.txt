@@ -1,0 +1,12 @@
+# The Pump Duration$ UntilEndOfCombat lockstep pool, for
+# dirac/oracle/pump_endcombat_lockstep_test.go: the four corpus cards the
+# ticket names. Battering Ram's pump grants Banding, which kgen refuses before
+# the duration (KwMask has no free bit), so it stays in the pool as the
+# measured refusal and only the other three play. Murk Dwellers gets +2/+0,
+# Flummoxed Cyclops and Forgestoker Dragon's target can't block.
+Battering Ram
+Murk Dwellers
+Flummoxed Cyclops
+Forgestoker Dragon
+Mountain
+Swamp

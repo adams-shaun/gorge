@@ -1261,6 +1261,7 @@ type lOverride struct {
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	EndCombat         bool     // Pump Duration$ UntilEndOfCombat (kop.Override.EndCombat)
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
