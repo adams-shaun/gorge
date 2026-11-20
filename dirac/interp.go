@@ -174,7 +174,6 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// (Last Rites, Death Cloud) discards nothing and asks nothing
 			break
 		}
-		pl := &s.pl[p]
 		if in.C == kop.ChooseRandom {
 			// gorge effDiscardRandom draws once per pick even when the
 			// pick is forced (one eligible card), so this arm must run
@@ -184,13 +183,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			break
 		}
 		if n >= s.handDiscardable(p) {
-			for i := uint8(0); i < pl.handN; {
-				if s.objs[pl.hand[i]].of&ofCopy != 0 || s.park(k, pl.hand[i], parkDiscard, 0) {
-					i++
-					continue
-				}
-				s.discardObj(k, pl.hand[i])
-			}
+			s.discardWholeHand(k, p)
 			break
 		}
 		s.res.ask = raDiscard
@@ -236,30 +229,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.res.askP = p
 		return false
 	case kop.OpMill:
-		q := s.players(k, in.Obj)
-		n := s.value(k, in.A)
-		if in.C&kop.MvMayMill != 0 && n > 0 {
-			return s.mayMill(q, n)
-		}
-		for i := uint8(0); i < q.n; i++ {
-			p := q.s[i]
-			pl := &s.pl[p]
-			if k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 {
-				s.millShuffling(k, p, n, int(in.C))
-				continue
-			}
-			if k.gen != nil && len(s.cold.parked) != 0 && s.parkMills(k, p, n, int(in.C)) {
-				continue
-			}
-			for i := 0; i < n && pl.libLo < pl.libHi; i++ {
-				o := pl.lib[pl.libLo]
-				pl.libLo++
-				s.touch(o)
-				s.objs[o].zone = kop.ZoneNone
-				s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-				s.millMark(o, int(in.C))
-			}
-		}
+		return s.millOp(k, in)
 	case kop.OpFight, kop.OpBite:
 		a, dealt := s.fightSource(k, in)
 		if dealt {
@@ -1228,9 +1198,7 @@ func (s *State) finishPeek(k *prep) {
 		parked = s.parkRests(k, rest[:nr], remember)
 	}
 	if parked >= 0 {
-		for i := 0; i < parked; i++ { // earlier rest cards move at once
-			s.putRest(k, rest[i])
-		}
+		s.putRests(k, rest[:parked]) // earlier rest cards move at once
 		// the asked ones wait in the library but off its list, as gorge's
 		// look leaves them (zone 0, no position), on top of which the
 		// kept cards go
@@ -1243,9 +1211,7 @@ func (s *State) finishPeek(k *prep) {
 		}
 	}
 	s.returnKept(k, p, top)
-	for _, o := range rest[:nr] {
-		s.putRest(k, o)
-	}
+	s.putRests(k, rest[:nr])
 	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
 		s.scryAnswered(k, p) // value_scrytally.go
 	}
@@ -1264,6 +1230,19 @@ func (s *State) returnKept(k *prep, p uint8, top int) {
 	}
 	if r.ask == raSurveil && s.prog(k)[r.pc].C&kop.SurveilRememberKept != 0 {
 		s.surveilRememberKept(top) // RememberKept$ (zone_rememberwrites.go)
+	}
+}
+
+// putRests sends the cards the arrange did not keep on top. A surveil's whole
+// pile B goes to the graveyard as ONE zone batch (gorge arrange.go: Forge's
+// SurveilEffect fires triggerChangesZoneAll once), so a ChangesZoneAll "from
+// anywhere" line queues once for the pile, not per card.
+func (s *State) putRests(k *prep, rest []Obj) {
+	if s.res.ask != raScryTop && k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen())
+	}
+	for _, o := range rest {
+		s.putRest(k, o)
 	}
 }
 

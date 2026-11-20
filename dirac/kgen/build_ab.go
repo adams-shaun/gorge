@@ -1300,6 +1300,16 @@ func counterTriggerN(t *lTrigger) (int16, bool, error) {
 	return int16(k), true, nil
 }
 
+// batchEventAllowed reports the trigger events a "one or more" (Tf2Batch)
+// line may name: the zone/entry batches and the effect-action batches.
+func batchEventAllowed(ev string) bool {
+	switch ev {
+	case "ETB", "Dies", "Leaves", "ToGraveyard", "DamageDone", "Sacrificed", "TokenCreated", "Taps":
+		return true
+	}
+	return false
+}
+
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger
 	ev, ok := eventMap[t.Event]
@@ -1645,7 +1655,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2TargetsFilter2
 	}
 	if t.Batch {
-		if t.Event != "ETB" && t.Event != "Dies" && t.Event != "Leaves" && t.Event != "DamageDone" && t.Event != "Sacrificed" && t.Event != "TokenCreated" && t.Event != "Taps" {
+		if !batchEventAllowed(t.Event) {
 			return kt, fmt.Errorf("batch flag on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Batch
