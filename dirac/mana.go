@@ -882,6 +882,8 @@ type utype struct {
 	pain uint8
 	pair uint8
 	alt  bool
+	// life: pain is a restricted source's paid life, not damage (restrLifeAb)
+	life bool
 	// rb: a restricted source's larger alternative (restrPairUnit): the
 	// mana a tap makes floats restricted
 	rb bool
@@ -1615,8 +1617,8 @@ func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
 // sacrificing or non-untapping source, or an autopay surface's life-only
 // census gap's unit, whose life cost is a disclosed consequence
 // (mana_lifegap.go).
-func (s *State) planLastResort(k *prep, p uint8, sl Slot, sac, noUntap bool) bool {
-	return lastResortUnit(sac, noUntap) || s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
+func (s *State) planLastResort(k *prep, p uint8, sl Slot, pc *pcard, sac, noUntap bool) bool {
+	return lastResortUnit(sac, noUntap) || restrLifeLast(pc) || s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
 }
 
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
@@ -1673,7 +1675,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// it, and that play's prefix (grantPrefix) has floated its mana already.
 	hasSac, hasGrant, hasPain := false, false, false
 	pk.life = 1 << 30
-	if k.painMana {
+	if k.painMana || restrLifeOn(k) {
 		pk.life = s.painPlanLife(p)
 	}
 	// each source's mana facts, read once for the three passes of every phase
@@ -1769,7 +1771,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				noUntap := k.cards[s.cardAt(sl)].noUntap != 0 // last resort too (unitIrr)
 				// a life-only census gap's unit is a last-resort one: the life
 				// it costs is a disclosed consequence (mana_lifegap.go)
-				if phase == 0 && s.planLastResort(k, p, sl, sac, noUntap) {
+				if phase == 0 && s.planLastResort(k, p, sl, pc, sac, noUntap) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
@@ -1869,11 +1871,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat
-				irr := unitIrr(sac, cr, noUntap)
+				irr, life := restrLifeIrr(pc, unitIrr(sac, cr, noUntap))
+				lr := sac || noUntap || life != 0
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == 0 && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -1884,7 +1887,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: sac || noUntap, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -1909,7 +1912,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				pk.nu++
 				s.planGrantsPhase2(k, p, pk, sl, pc, phase, &gr[i], cr)
-				if sac || noUntap {
+				if lr {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
 					// read the untapped NORMAL remainder in both phases
@@ -2035,7 +2038,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 		}
 		if ty.pain != 0 {
-			s.painDamage(k, sl, p, int(ty.pain))
+			s.payUnitPain(k, sl, p, ty)
 		}
 		if ty.sac {
 			o := s.perms[sl].obj
