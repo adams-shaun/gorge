@@ -14,4 +14,8 @@ func TestMBCSimicCluestoneReprosLockstep(t *testing.T) {
 	// tail-45 pair 80, decision 548: the opposite split. The kernel offered the
 	// same draw and gorge offered only pass.
 	stdReproNamed(t, "mana_filter_twice_funds_activation")
+	// tail-45 pair 100, decision 722: the activation's own {T} source is not a
+	// free bare-tap source for the fee-only colour prune, so Signpost
+	// Scarecrow's paid any-colour unit can make the {U} the draw still needs.
+	stdReproNamed(t, "act_own_tap_not_free_filter_fee")
 }

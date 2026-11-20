@@ -1925,7 +1925,10 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 // reachable from the other after both activations.
 func (sr *scriptSearch) feeOnlyFreeTapColour(c *Engine, skip state.ObjID, colour int) bool {
 	for _, id := range c.G.Zone(state.ZBattlefield, sr.p) {
-		if id == skip {
+		if id == skip || sr.ownTapSource(c, id) {
+			// The play's own {T} source cannot stand in for the fee-only
+			// source: its tap is the play's cost (CR 602.2b, 601.2h), so
+			// activating it for mana first leaves that cost unpayable.
 			continue
 		}
 		o := c.G.Obj(id)
