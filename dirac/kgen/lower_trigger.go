@@ -1620,16 +1620,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 	}
 	if cdp, ok := tp.get("CheckDefinedPlayer"); ok && cdp != "You.withMostLife" {
-		// gorge trigger_condition.go checkDefinedPlayerHolds: the crime
-		// spelling (CR 700.13) and the monarch's (CR 725, lower_monarch.go)
-		// are read; every other one refuses
-		if c, ok := monarchCheck(cdp); ok {
-			conds = append(conds, c)
-		} else if cdp != "You.committedCrimeThisTurn" {
-			return refuse("CheckDefinedPlayer %q", cdp)
-		} else {
-			conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
+		c, err := lc.checkDefinedPlayerCond(cdp, tr) // lower_delaytrigger_player.go
+		if err != nil {
+			return err
 		}
+		conds = append(conds, c)
 	}
 	if ip, ok := tp.get("IsPresent"); ok {
 		c, err := lc.triggerIsPresent(tp, tr, ip)

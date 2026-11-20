@@ -4038,6 +4038,12 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	if err != nil {
 		return err
 	}
+	savedPhasePlayer := lc.reflexPhasePlayer
+	if lc.reflexPhasePlayer, err = lc.reflexTriggeredPlayer(ps, n); err != nil { // lower_delaytrigger_player.go
+		lc.reflexPhasePlayer = savedPhasePlayer
+		return err
+	}
+	defer func() { lc.reflexPhasePlayer = savedPhasePlayer }()
 	savedSpawn := lc.spawnDmg
 	lc.spawnDmg = spawnDamagedOpp(lc.ab) // lower_filterwords.go
 	savedAtk := lc.spawnAtk

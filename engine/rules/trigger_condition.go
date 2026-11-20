@@ -462,7 +462,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
-	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you) {
+	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you, tc) {
 		// CR 603.4 intervening-if (Servant of the Stinger's "if you've
 		// committed a crime this turn"). Evaluated for EVERY trigger mode,
 		// and a predicate this build cannot read fails closed.
@@ -512,7 +512,10 @@ func (e *Engine) manaColourSpendHolds(source state.ObjID, tc *effects.TriggerCon
 // or a property neither home can read holds for nobody (the shared filter
 // matches no seat for a qualifier it does not know). The corpus census in
 // engine/rules/check_defined_player_census_test.go pins which spellings are read.
-func (e *Engine) checkDefinedPlayerHolds(spec string, source state.ObjID, you state.PlayerID) bool {
+//
+// tc carries the triggering event's attack roles (nil for a replacement or a
+// context-free caller, which leaves those qualifiers unbound).
+func (e *Engine) checkDefinedPlayerHolds(spec string, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
 	base, property, ok := strings.Cut(strings.TrimSpace(spec), ".")
 	if !ok || property == "" {
 		return false
@@ -525,6 +528,12 @@ func (e *Engine) checkDefinedPlayerHolds(spec string, source state.ObjID, you st
 	var pc effects.PlayerSpecCtx
 	if code == 0 {
 		filter, pc = "Player."+property, e.playerSpecCtx(source)
+		if tc != nil {
+			// The attack roles an AttackersDeclared trigger carries (Suppressor
+			// Skyguard's `OpponentOf TriggeredAttackingPlayer+!Defending`); a
+			// replacement passes no context, so those clauses stay unbound.
+			pc.DefendingPlayer, pc.AttackingPlayer = tc.DefendingPlayer, tc.AttackingPlayer
+		}
 	}
 	holds := func(p state.PlayerID) bool {
 		switch code {

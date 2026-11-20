@@ -36,6 +36,8 @@ var readDefinedPlayerSpecs = map[string]bool{
 	"Player.withMostTypeWizardOnly":             true, // Thoughtbound Primoc
 	"Player.IsRemembered+counters_EQ0_Contract": true, // Miss Highwater's effect
 	"You.damageDoneSingleSource GE5":            true, // Dragon Cultist
+
+	"Player.OpponentOf TriggeredAttackingPlayer+!Defending": true, // Suppressor Skyguard (2026-11-20 spelling; TestSuppressorSkyguardOpponentGate)
 }
 
 // knownUnsupportedDefinedPlayer is the ratchet: spellings no home reads yet.
@@ -124,7 +126,7 @@ func TestCheckDefinedPlayerUnreadFailsClosed(t *testing.T) {
 	src := ids["Servant of the Stinger"]
 	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
 	e.crimeSeatsThisTurn = 1
-	if !e.checkDefinedPlayerHolds("You.isMonarch", src, 0) || !e.checkDefinedPlayerHolds("You.committedCrimeThisTurn", src, 0) {
+	if !e.checkDefinedPlayerHolds("You.isMonarch", src, 0, nil) || !e.checkDefinedPlayerHolds("You.committedCrimeThisTurn", src, 0, nil) {
 		t.Fatal("precondition: the read predicates must hold for seat 0 on this board")
 	}
 	unread := []string{"You.noSuchProperty", "Player.noSuchProperty", "Opponent.noSuchProperty", "NoBase.isMonarch", "You", "You."}
@@ -134,7 +136,7 @@ func TestCheckDefinedPlayerUnreadFailsClosed(t *testing.T) {
 	slices.Sort(unread)
 	for _, spec := range unread {
 		for _, you := range []state.PlayerID{0, 1} {
-			if e.checkDefinedPlayerHolds(spec, src, you) {
+			if e.checkDefinedPlayerHolds(spec, src, you, nil) {
 				t.Errorf("unread CheckDefinedPlayer$ %q held for you=%d: must fail closed", spec, you)
 			}
 		}
@@ -246,18 +248,18 @@ func TestCheckDefinedPlayerMissHighwaterRememberedCounters(t *testing.T) {
 	e, _, ids := dsBoard(t, reg, "Miss Highwater")
 	src := ids["Miss Highwater"]
 	const spec = "Player.IsRemembered+counters_EQ0_Contract"
-	if e.checkDefinedPlayerHolds(spec, src, 0) {
+	if e.checkDefinedPlayerHolds(spec, src, 0, nil) {
 		t.Fatal("nobody remembered: must be false")
 	}
 	e.G.Obj(src).Remembered = []state.Target{{Player: 1, IsPlayer: true}}
-	if !e.checkDefinedPlayerHolds(spec, src, 0) {
+	if !e.checkDefinedPlayerHolds(spec, src, 0, nil) {
 		t.Fatal("remembered seat 1 without a contract counter: must hold")
 	}
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 1, Counter: "Contract", Amount: 1})
 	if e.G.Players[1].Counter("Contract") != 1 {
 		t.Fatal("precondition: seat 1 must have a contract counter")
 	}
-	if e.checkDefinedPlayerHolds(spec, src, 0) {
+	if e.checkDefinedPlayerHolds(spec, src, 0, nil) {
 		t.Fatal("remembered seat 1 now has a contract counter: must be false")
 	}
 }

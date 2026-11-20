@@ -1,0 +1,9 @@
+# Kitt Kanto, Mayhem Diva's beginning-of-combat "tap two creatures, when you do
+# pump and goad that player's creature" (dirac/oracle/kittkanto_lockstep_test.go
+# TestKittKantoLockstep; kgen lower_delaytrigger_player.go): the reflexive
+# pump targets the active player's creature on either turn.
+Kitt Kanto, Mayhem Diva
+Grizzly Bears
+Mountain
+Forest
+Plains

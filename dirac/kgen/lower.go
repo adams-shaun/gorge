@@ -321,6 +321,11 @@ type lowerCtx struct {
 	// trigger lowers: ControlledBy Spawner>TriggeredDefendingPlayer is the
 	// attack's defending player (lower_filterwords.go)
 	spawnAtk bool
+	// reflexPhasePlayer while an ImmediateTrigger body that captured
+	// RememberObjects$ TriggeredPlayer of a Phase trigger lowers:
+	// ControlledBy DelayTriggerRemembered is the active player
+	// (lower_delaytrigger_player.go)
+	reflexPhasePlayer bool
 	// actCost while a printed activated ability's own Cost$ is lowered
 	// (RemoveAnyCounter<N/Kind/Filter>, kop.CostSubAmong)
 	actCost bool
@@ -2978,6 +2983,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		return lc.sameNameT0OtherFilter() // lower_filterreferents.go
 	}
 	expr = lc.triggeredTargetCtrl(expr)
+	expr = lc.delayRememberedCtrl(expr)      // lower_delaytrigger_player.go
 	expr, err0 := lc.spawnerTargetCtrl(expr) // lower_filterwords.go
 	if err0 != nil {
 		return nil, err0
