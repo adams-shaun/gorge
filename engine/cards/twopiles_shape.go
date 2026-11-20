@@ -55,7 +55,7 @@ func TwoPilesShapeSupported(sa *SA, f *Face) bool {
 	if spec := sa.ParamStr(PKDefinedCards); spec != "" {
 		return TwoPilesDefinedCardsSupported(spec)
 	}
-	return TwoPilesBattlefieldShape(sa)
+	return TwoPilesBattlefieldShape(sa) || TwoPilesGraveyardShape(sa)
 }
 
 // TwoPilesRemembersChosen is RememberChosen$ True: the chosen pile is added to
@@ -157,21 +157,59 @@ func twoPilesPileSelector(s string) bool {
 }
 
 // TwoPilesBattlefieldValid is the battlefield shape's ValidCards$ with the
-// redundant .RememberedPlayerCtrl qualifier dropped when the pool player IS the
+// redundant RememberedPlayerCtrl qualifier dropped when the pool player IS the
 // Remembered player (Defined$ Remembered): the pool is already that player's
-// permanents. The one home of that normalisation, shared with the resolver.
+// permanents. Forge spells the qualifier with a dot on some carriers
+// (Do or Die) and a plus on others (Bend or Break's
+// Land.!token+RememberedPlayerCtrl); both are the same "this player" scope.
+// The one home of that normalisation, shared with the resolver.
 func TwoPilesBattlefieldValid(sa *SA) string {
-	const q = ".RememberedPlayerCtrl"
 	v := sa.ParamStr(PKValidCards)
-	if sa.ParamStr(PKDefined) == "Remembered" && len(v) > len(q) && v[len(v)-len(q):] == q {
-		return v[:len(v)-len(q)]
+	if sa.ParamStr(PKDefined) != "Remembered" {
+		return v
+	}
+	const dot, plus = ".RememberedPlayerCtrl", "+RememberedPlayerCtrl"
+	for _, q := range [...]string{dot, plus} {
+		if len(v) > len(q) && v[len(v)-len(q):] == q {
+			return v[:len(v)-len(q)]
+		}
 	}
 	return v
 }
 
+// twoPilesPlainType reports whether spec is one plain card type, optionally
+// followed by the per-object !token predicate (Bend or Break's Land.!token).
+// The resolver's matcher evaluates the predicate itself, so admitting it here
+// only widens the coverage classifier to a term the chooser cannot misread.
+func twoPilesPlainType(spec string) bool {
+	const notToken = ".!token"
+	if len(spec) > len(notToken) && spec[len(spec)-len(notToken):] == notToken {
+		spec = spec[:len(spec)-len(notToken)]
+	}
+	switch spec {
+	case "Permanent", "Creature", "Land", "Artifact", "Enchantment", "Planeswalker":
+		return true
+	}
+	return false
+}
+
+// twoPilesPilePlayers reports whether the Separator$/Chooser$ selectors are
+// players the resolver evaluates. ChosenPlayer is the chosen-seat spelling
+// Bend or Break uses; the rest are the pre-existing shapes.
+func twoPilesPilePlayers(sa *SA) bool {
+	for _, k := range []ParamKey{PKSeparator, PKChooser} {
+		switch sa.ParamStr(k) {
+		case "", "You", "Opponent", "TriggeredPlayer", "Remembered", "ChosenPlayer":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // TwoPilesBattlefieldShape is the "separate all <permanents> target player
 // controls into two piles" card set: no DefinedCards$, Zone$ Battlefield, a
-// plain card-type ValidCards$ (the one qualifier is .RememberedPlayerCtrl with
+// plain card-type ValidCards$ (the one qualifier is RememberedPlayerCtrl with
 // Defined$ Remembered: the pool is already that player's permanents), and the
 // pool player named by a ValidTgts$ target (no Defined$) or Defined$
 // You/TriggeredPlayer/Remembered.
@@ -180,9 +218,7 @@ func TwoPilesBattlefieldShape(sa *SA) bool {
 		return false
 	}
 	defined := sa.ParamStr(PKDefined)
-	switch TwoPilesBattlefieldValid(sa) {
-	case "Permanent", "Creature", "Land", "Artifact", "Enchantment", "Planeswalker":
-	default:
+	if !twoPilesPlainType(TwoPilesBattlefieldValid(sa)) {
 		return false
 	}
 	switch defined {
@@ -194,12 +230,24 @@ func TwoPilesBattlefieldShape(sa *SA) bool {
 	default:
 		return false
 	}
-	for _, k := range []ParamKey{PKSeparator, PKChooser} {
-		switch sa.ParamStr(k) {
-		case "", "You", "Opponent", "TriggeredPlayer", "Remembered":
-		default:
-			return false
-		}
+	return twoPilesPilePlayers(sa)
+}
+
+// TwoPilesGraveyardShape is the non-battlefield pool shape (Death or Glory):
+// Zone$ Graveyard, no DefinedCards$ or ValidTgts$, the pool is Defined$ You,
+// a plain card-type ValidCards$, and Separator$/Chooser$ selectors the
+// resolver evaluates. Only the graveyard pool is admitted -- the resolver
+// builds it from the pool player's zone -- so every other Zone$ keeps the
+// api:TwoPiles.OtherShape marker.
+func TwoPilesGraveyardShape(sa *SA) bool {
+	if sa == nil || sa.ParamStr(PKDefinedCards) != "" || sa.ParamStr(PKZone) != "Graveyard" {
+		return false
 	}
-	return true
+	if sa.ParamStr(PKValidTgts) != "" || sa.ParamStr(PKDefined) != "You" {
+		return false
+	}
+	if !twoPilesPlainType(TwoPilesBattlefieldValid(sa)) {
+		return false
+	}
+	return twoPilesPilePlayers(sa)
 }
