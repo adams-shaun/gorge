@@ -1012,7 +1012,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
-				p.anyEmbFlash = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
+				p.anyEmbFlash, p.anyFlashAny = true, true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
 			}
 		}
 	}
@@ -1023,7 +1023,13 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.leyline = true
 		}
 		if c.SelfFlash {
-			p.anySelfFlash = true
+			p.anySelfFlash, p.anyFlashAny = true, true
+		}
+		for j := range c.Abilities {
+			if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+				p.anyFlashStat, p.anyFlashAny = true, true
+				pc.flashStat = true
+			}
 		}
 		if len(c.Faces) > 0 {
 			g.anyFaces = true

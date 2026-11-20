@@ -3054,7 +3054,11 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// cast's prefix search activates it in battlefield order as it does an
 	// activation's (mana_granttapsdefer.go)
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
-	pref := s.runPrefixes(k, a, p, grants, grantFirst)
+	// runPrefixes' four gates, tested inline so a table with none of them skips the call
+	pref := false
+	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		pref = s.runPrefixes(k, a, p, grants, grantFirst)
+	}
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -3214,6 +3218,9 @@ func (s *State) castStatic(k *prep, sk kop.StaticKind, p uint8, c CardID) bool {
 	for m.any() {
 		src := m.first()
 		m = m.rest()
+		if sk == kop.StatCastWithFlash && !k.cards[s.cardAt(src)].flashStat {
+			continue // no flash static printed on it: the wide scan below skips it
+		}
 		if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || k.gen != nil && s.ovrLoses(k, src) {
 			continue // the source lost its abilities (Witness Protection on High Fae Trickster)
 		}
