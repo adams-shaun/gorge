@@ -1,0 +1,43 @@
+# the Squad and Replicate pool (CR 702.157a / 702.56a): the keyword's
+# per-payment additional cost, its count ask and the Count$SquadPaid /
+# Count$ReplicatePaid reads the keyword expansions add, beside basic lands
+# and cheap creatures so the counts are reachable
+# (dirac/oracle/squadreplicate_lockstep_test.go)
+Arco-Flagellant
+Changing Loyalty
+Exterminate!
+Galadhrim Brigade
+Gary Clone
+Gigadrowse
+Imperial Hullbreachers
+Leap of Flame
+Lose Focus
+Powder Ganger
+Pyromatics
+Reiterating Bolt
+Roadkill Rodney
+Ruthless Radrat
+Securitron Squadron
+Shattering Spree
+Sicarian Infiltrator
+Siege of Towers
+Space Marine Devastator
+Super Combo
+Thrill-Kill Disciple
+Thunderheads
+Train of Thought
+Ultramarines Honour Guard
+Vacuumelt
+Vanguard Suppressor
+Wasteland Raider
+Zephyrim
+Forest
+Island
+Mountain
+Plains
+Swamp
+Grizzly Bears
+Savannah Lions
+Llanowar Elves
+Lightning Bolt
+Giant Growth

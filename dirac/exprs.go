@@ -88,8 +88,41 @@ func (s *State) timesKicked(ctx evalCtx) int {
 	// version (its ETB trigger is queued as it enters); the source object on
 	// the battlefield is still the permanent that reads its spell's count.
 	if ctx.src != NoObj {
-		if ob := &s.objs[ctx.src]; ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
+		ob := &s.objs[ctx.src]
+		if ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
 			return int(s.cold.mk[ob.slot])
+		}
+		// A Squad permanent reads the count its spell stored: the resolving
+		// entry keeps cold.mkObj[obj] (turn_gen.go clears it only for an entry
+		// that is not the resolving spell), and a Squad pool allocates no
+		// per-slot cold.mk (kw_multikicker.go). A token copy that was never
+		// cast reads 0.
+		if ob.zone == kop.ZoneBattlefield && int(ctx.src) < len(s.cold.mkObj) {
+			if k := s.k(); k != nil && int(ob.card) < len(k.t.Cards) && k.t.Cards[ob.card].RepeatedKind == kop.RepeatSquad {
+				return int(s.cold.mkObj[ctx.src])
+			}
+		}
+		// A Replicate SpellCast trigger's source is the spell on the stack
+		// (trig_selfcast.go's listener), whose count is still cold.mkObj: the
+		// trigger reads Count$ReplicatePaid there, a copy that was never cast
+		// reads 0 (kw_squadreplicate.go).
+		if ob.zone == kop.ZoneStack && int(ctx.src) < len(s.cold.mkObj) {
+			if k := s.k(); k != nil && int(ob.card) < len(k.t.Cards) && k.t.Cards[ob.card].RepeatedKind != 0 {
+				return int(s.cold.mkObj[ctx.src])
+			}
+		}
+	}
+	// A Squad ETB trigger captured the payment count as it was queued
+	// (triggers_gen.go enqueueLKI, pendingTrig.defSeat); the source can leave
+	// the battlefield before the trigger resolves, as Wasteland Raider's own
+	// sacrifice does, and Count$SquadPaid still reads the cast's payments
+	// (gorge's TriggerSquadPaid).
+	if e := ctx.e; e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && k.t.Cards[e.card].RepeatedKind == kop.RepeatSquad &&
+			int(e.ab) < len(k.t.Cards[e.card].Abilities) {
+			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 {
+				return int(e.defSeat)
+			}
 		}
 	}
 	if e := ctx.e; e != nil && e.kind == seSpell {

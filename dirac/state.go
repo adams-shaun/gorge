@@ -504,8 +504,12 @@ type stackEntry struct {
 	trigSA    uint8
 	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
-	// queued (pendingTrig.defSeat; 0 = none, and always 0 at two seats). It
-	// takes the padding byte before trigAmt.
+	// queued (pendingTrig.defSeat; 0 = none, and always 0 at two seats). A
+	// Squad self-ETB trigger stores its cast's payment count here instead
+	// (1..maxMultikick; triggers_gen.go enqueueLKI copies it from the
+	// pending trigger), at every seat count, so a reader gates on the card's
+	// RepeatedKind and the trigger shape (exprs.go timesKicked). It takes the
+	// padding byte before trigAmt.
 	defSeat uint8
 	trigAmt int16
 	// etbSrc is the source of a spell's pending enters-with rider count
@@ -617,7 +621,10 @@ type pendingTrig struct {
 	// defSeat is the defending player + 1 of the attack event that queued
 	// the trigger (gorge TriggerContext.DefendingPlayer, bound from the
 	// DeclareAttackers event; fireAttacksGen), 0 = none. Stamped only when
-	// MaxSeats > 2. It takes the struct's padding byte.
+	// MaxSeats > 2. It takes the struct's padding byte. A Squad self-ETB
+	// trigger also stores its cast's payment count here (1..maxMultikick;
+	// triggers_gen.go enqueueLKI), at every seat count; a reader gates on the
+	// card's RepeatedKind and the trigger shape (exprs.go timesKicked).
 	defSeat uint8
 }
 
@@ -737,18 +744,20 @@ const (
 	bsModes
 	bsTargets
 	bsPay
-	bsPips     // the hybrid pip announcements (gorge manaAsk: after modes, before targets)
-	bsDivide   // the CR 601.2d division of a divided slot's total among its targets (gorge divisionAsk: after the targets, before payment)
-	bsPush     // the entry goes on the stack (CR 601.2a / 602.2a: gorge pushCast / pushActivation)
-	bsGift     // the gift election (CR 702.174a: gorge giftAsk, after the either-or additional cost; kw_gift.go)
-	bsMana     // the CR 601.2g mana abilities: the planned sources tapped into the pool, before the cost objects (gorge manaWindowAsk, then costObjectAsks)
-	bsConvoke  // the CR 702.51a convoke announcement (gorge convokeAsk, after the tap costs and before X)
-	bsCasualty // the casualty sacrifice election (CR 702.153a: gorge optionalSacrificeAsk, before convoke / X; kw_casualty.go)
-	bsEvidence // the CollectEvidence<N> graveyard pick of an activation (CR 701.59a: gorge evidenceAsk, after the division and before payment; cost_collectevidence.go)
-	bsDelve    // the granted-delve graveyard announcement (CR 702.66a: gorge delveAsk, after convoke and X and before the pip asks; kw_delve.go)
-	bsConspire // the granted-conspire tap election (CR 702.78a: gorge conspireAsk, after the tap costs, before convoke; kw_conspire.go)
-	bsMiracle  // the miracle reveal ask of a trigger not yet on the stack (CR 702.94a: gorge askTriggerOptional at placement; kw_miracle.go)
-	bsMulti    // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
+	bsPips      // the hybrid pip announcements (gorge manaAsk: after modes, before targets)
+	bsDivide    // the CR 601.2d division of a divided slot's total among its targets (gorge divisionAsk: after the targets, before payment)
+	bsPush      // the entry goes on the stack (CR 601.2a / 602.2a: gorge pushCast / pushActivation)
+	bsGift      // the gift election (CR 702.174a: gorge giftAsk, after the either-or additional cost; kw_gift.go)
+	bsMana      // the CR 601.2g mana abilities: the planned sources tapped into the pool, before the cost objects (gorge manaWindowAsk, then costObjectAsks)
+	bsConvoke   // the CR 702.51a convoke announcement (gorge convokeAsk, after the tap costs and before X)
+	bsCasualty  // the casualty sacrifice election (CR 702.153a: gorge optionalSacrificeAsk, before convoke / X; kw_casualty.go)
+	bsEvidence  // the CollectEvidence<N> graveyard pick of an activation (CR 701.59a: gorge evidenceAsk, after the division and before payment; cost_collectevidence.go)
+	bsDelve     // the granted-delve graveyard announcement (CR 702.66a: gorge delveAsk, after convoke and X and before the pip asks; kw_delve.go)
+	bsConspire  // the granted-conspire tap election (CR 702.78a: gorge conspireAsk, after the tap costs, before convoke; kw_conspire.go)
+	bsMiracle   // the miracle reveal ask of a trigger not yet on the stack (CR 702.94a: gorge askTriggerOptional at placement; kw_miracle.go)
+	bsReplicate // the replicate count ask (CR 702.56a: gorge replicateAsk, after the tap costs and before the multikicker ask; kw_squadreplicate.go)
+	bsMulti     // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
+	bsSquad     // the squad count ask (CR 702.157a: gorge squadAsk in preCostAsks, after the multikicker ask and before Convoke/X; kw_squadreplicate.go)
 	nBuildStages
 )
 
@@ -799,6 +808,10 @@ type build struct {
 	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	snowPre   uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
+	// repeatCost is the Squad/Replicate payment's pick cost scaled to the
+	// answered count, returned by buildPickCost so the ordinary pick stages
+	// pay it (kw_squadreplicate.go).
+	repeatCost kop.Cost
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,

@@ -28,17 +28,45 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cap. A real board's mana runs out first.
 const maxMultikick = 64
 
-// coldMk is the counts per battlefield slot, and coldMkObj per object while
-// the spell is on the stack, for a table with a Multikicker card.
+// genPrep.anyMultikick bits: mkAny marks a table with any repeated additional
+// cost (the per-object cold.mkObj count); mkPerm marks a pure Multikicker
+// whose count a battlefield reader needs (the per-slot cold.mk).
+const (
+	mkAny = 1 << iota
+	mkPerm
+)
+
+// noteRepeatedCost marks a table's repeated-cost cold needs for one card:
+// mkAny for any Multikicker/Squad/Replicate count on the stack, and mkPerm
+// only for a pure Multikicker, whose permanent reads cold.mk. A Squad
+// self-ETB reads the count captured at enqueue, and a Replicate count is
+// only read on the stack, so their pools need no per-slot region.
+func (g *genPrep) noteRepeatedCost(c *kop.CardDef) {
+	if !c.HasMultikicker {
+		return
+	}
+	g.anyMultikick |= mkAny
+	if c.RepeatedKind != kop.RepeatSquad && c.RepeatedKind != kop.RepeatReplicate {
+		g.anyMultikick |= mkPerm
+	}
+}
+
+// coldMk is the counts per battlefield slot for a table with a Multikicker
+// card that reads them from the permanent; coldMkObj is per object while the
+// spell is on the stack, for any repeated additional cost (Multikicker,
+// Squad or Replicate). A Squad self-ETB reads the count captured at enqueue
+// (pendingTrig.defSeat), so a Squad/Replicate pool allocates only mkObj;
+// keeping the per-slot region out of a large tail pool keeps State + cold
+// inside the 44 KiB bar (TestEveryPoolFitsTheStateBar).
 var (
 	coldMk = newCold[uint8]("mk", func(g *genPrep) int {
-		if g.anyMultikick {
+		if g.anyMultikick&mkPerm != 0 {
 			return MaxPerm
 		}
 		return 0
 	}).view(func(c *coldArrays) *[]uint8 { return &c.mk }).perSlot()
 	coldMkObj = newCold[uint8]("mkObj", func(g *genPrep) int {
-		if g.anyMultikick {
+		if g.anyMultikick&mkAny != 0 {
 			return MaxObj
 		}
 		return 0
@@ -115,6 +143,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 	}
 	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
+	cd := &k.t.Cards[c]
 	if !aff && s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 {
 		// the real pool's refusal is not the whole gate under gorge's
 		// autopay surface: gorge keeps the kicked cast as one of its
@@ -124,7 +153,12 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
 	}
-	if aff && s.kickedChainFeasible(k, c, p) && s.gorgeOffersKicked(p, o) && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
+	// A Squad/Replicate offer is gorge's replicate/squad option (mode word,
+	// not the kicked mode the multikicker/offspring offer rides), so it needs
+	// no gorgeOffersKicked cache read: the real affordability gate above is
+	// the same one legal_walk_hand.go's offer uses.
+	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
+	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
 		!s.dhWithholdsCast(k, p, o, &kc) { // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
@@ -295,18 +329,37 @@ func (s *State) multikickMax(k *prep) int {
 		if !av.affords(&cost, pipMaskOf(&cost), 0) {
 			break
 		}
+		// A Squad/Replicate payment's non-mana part is paid once per payment
+		// (gorge countCandPayable's composed cost): the count stops where the
+		// N-th pick is no longer payable (kw_squadreplicate.go).
+		if rc := repeatPart(cd); rc != nil {
+			scaled, ok := repeatScale(*rc, n)
+			if !ok || !s.pickCostPayable(k, e.ctrl, &scaled, e.obj) {
+				break
+			}
+		}
 		max = n
 	}
 	s.setMultikick(e, save)
 	return max
 }
 
-// multikickOptions poses the count ask, 0..max. false: not a multikicked
-// cast, or nothing is payable (the explicitly chosen mode degrades to the
-// plain cast, gorge multikickAsk's max==0 arm).
-func (s *State) multikickOptions(k *prep, d *Decision) bool {
+// multikickOptions poses the count ask, 0..max. false: not a repeated-cost
+// kicked cast, the card's keyword belongs to another stage, or nothing is
+// payable (the explicitly chosen mode degrades to the plain cast, gorge
+// multikickAsk's max==0 arm). stage is the ask's build stage: Replicate
+// before Multikicker, Squad after it (kw_squadreplicate.go).
+func (s *State) multikickOptions(k *prep, d *Decision, stage uint8) bool {
 	e := &s.bld().e
-	if e.kind != seSpell || !k.t.Cards[e.card].HasMultikicker || e.flags&sfKicked == 0 {
+	cd := &k.t.Cards[e.card]
+	if e.kind != seSpell || !cd.HasMultikicker || e.flags&sfKicked == 0 {
+		return false
+	}
+	kind := cd.RepeatedKind
+	if kind == 0 {
+		kind = kop.RepeatMultikicker // a hand-built CardDef (tests) with only HasMultikicker
+	}
+	if repeatAskStage(kind) != stage {
 		return false
 	}
 	max := s.multikickMax(k)
@@ -325,7 +378,11 @@ func (s *State) multikickOptions(k *prep, d *Decision) bool {
 // and leaves an exactly plain cast; a positive count rides the spell object.
 func (s *State) answerMultikick(k *prep, a Action) {
 	e := &s.bld().e
-	if n := int(a.Mode()); n == 0 {
+	n := int(a.Mode())
+	if DebugSquadCountOffByOne && n > 0 && k.t.Cards[e.card].RepeatedKind == kop.RepeatSquad {
+		n-- // the mutation test: the stored count is one payment short
+	}
+	if n == 0 {
 		e.flags &^= sfKicked
 		s.setMultikick(e, 0)
 	} else {
