@@ -9,4 +9,9 @@ import "testing"
 func TestMBCTail34ReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "combat_static_shield_order")
+	// CR 707.10f with CR 707.10g: Archmage of Echoes copies the permanent
+	// spell Umara Wizard, a modal double-faced card cast front face up; the
+	// copy's token is the front face. The kernel stalled at the copy
+	// (copyface); tail-34-c000 pair 22.
+	stdReproNamed(t, "permanent_spell_copy_of_modal_card")
 }
