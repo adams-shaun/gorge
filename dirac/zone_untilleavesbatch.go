@@ -19,7 +19,7 @@ func tableLinkRet(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpExileUntilLeaves || in.Op == kop.OpChangeZoneAllEx && in.B.N&kop.CzUntilLeaves != 0 || in.Op == kop.OpChooseMove && in.B.N == 1 {
+				if in.Op == kop.OpExileUntilLeaves || in.Op == kop.OpChangeZoneAllEx && in.B.N&kop.CzUntilLeaves != 0 || in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(t, &in)) {
 					return true
 				}
 			}
