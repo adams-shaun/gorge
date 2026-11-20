@@ -179,3 +179,89 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
 }
+
+// exwOwnerCheck refuses a card that lowered the RefExiledWithOwner player
+// ref (DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1,
+// lower_dpsearch.go) whose exile can hold more than one linked card. gorge's
+// shared player filter matches EVERY seat whose exile holds a card exiled
+// with the source and acts on each (playerHasCardsInZoneMatches over
+// definedPlayerIDs); the kernel's RefExiledWithOwner is a scalar that asks
+// only the first seat in seat order (zone_exiledwith.go exiledWithOwnerSeat).
+// The two agree only while at most one seat can match -- the card's program
+// holds one exile mover, bound to one card. A second mover (two resolutions
+// can stack two linked cards into two seats) or a mover whose per-resolution
+// count is not bounded to one (a two-target ETB exile) refuses the card; the
+// one-card shape, Unidentified Hovership's TargetMax$ 1 ETB, still lowers.
+func (lc *lowerCtx) exwOwnerCheck() {
+	if !lc.exwOwnerRef {
+		return
+	}
+	movers := 0
+	for _, ab := range lc.out.Abilities {
+		for i := range ab.Prog {
+			ok, err := exwOwnerMover(&ab.Prog[i], ab)
+			if err != nil {
+				lc.refuseNode("card", "%s", err.Error())
+				return
+			}
+			if ok {
+				movers++
+			}
+		}
+	}
+	if movers > 1 {
+		lc.refuseNode("card", "ExiledWithSource player ref over %d exile movers: two linked cards can sit in two seats' exiles, where gorge acts on every matching seat and the scalar ref asks only the first", movers)
+	}
+}
+
+// exwOwnerMover classifies one instruction for exwOwnerCheck: ok when it is
+// an exile mover gorge's link recording follows (the exwForwardOp movers,
+// zone_exiledwith.go), err when it can move more than one card into exile in
+// one resolution. The count is the mover's target slot or count operand.
+func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
+	switch in.Op {
+	case "Exile", "ExileUntilLeaves":
+	case "Search":
+		if !exwCountAtMostOne(in.A) {
+			return false, refuse("ExiledWithSource player ref over a Search of %s", in.A)
+		}
+	case "Dig":
+		if !exwCountAtMostOne(in.A) {
+			return false, refuse("ExiledWithSource player ref over a Dig of %s", in.A)
+		}
+	case "ChooseMove":
+		if in.C != zExile {
+			return false, nil
+		}
+		if !exwCountAtMostOne(in.A) {
+			return false, refuse("ExiledWithSource player ref over a ChooseMove of %s", in.A)
+		}
+	case "ChangeZoneAll":
+		if in.C != zExile {
+			return false, nil
+		}
+		return false, refuse("ExiledWithSource player ref over a ChangeZoneAll to exile: its count is unbounded")
+	default:
+		return false, nil
+	}
+	switch in.Obj.Kind {
+	case rTarget:
+		if in.Obj.N >= len(ab.Targets) {
+			return false, refuse("ExiledWithSource player ref over an exile of missing target slot %d", in.Obj.N)
+		}
+		t := ab.Targets[in.Obj.N]
+		if !exwCountAtMostOne(t.Min) || !exwCountAtMostOne(t.Max) {
+			return false, refuse("ExiledWithSource player ref over an exile target slot of %s..%s", t.Min, t.Max)
+		}
+	case rSelf, rTriggered, rTriggeredNew:
+	default:
+		return false, refuse("ExiledWithSource player ref over an exile of %s", in.Obj)
+	}
+	return true, nil
+}
+
+// exwCountAtMostOne is an operand or target bound of at most one card (an
+// omitted one is the default single pick).
+func exwCountAtMostOne(v lValue) bool {
+	return v.Kind == vNone || v.isConst() && v.N <= 1
+}

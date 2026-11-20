@@ -161,6 +161,7 @@ type lowerCtx struct {
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
+	exwOwnerRef    bool      // the card lowered DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1 (RefExiledWithOwner): exwOwnerCheck gates its exile movers (lower_exw.go)
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -400,6 +401,7 @@ func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 	}
 	lc.lowerFace()
 	lc.exwCheck()        // lower_exw.go
+	lc.exwOwnerCheck()   // lower_exw.go: the RefExiledWithOwner player ref is scalar, one linked card only
 	lc.snowSourceCheck() // lower_snowcost.go
 	return out
 }
