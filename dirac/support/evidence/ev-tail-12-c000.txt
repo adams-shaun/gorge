@@ -73,6 +73,7 @@ Chocobo Knights
 Cinder Seer
 Cinderbones
 Cloudthresher
+Coalition Flag
 Combat Medic
 Compulsion
 Containment Protocol
@@ -265,6 +266,7 @@ Phyrexian Juggernaut
 Phyrexian War Beast
 Plague Spitter
 Plains
+Plea for Power
 Portent of Betrayal
 Possessed Centaur
 Power Armor

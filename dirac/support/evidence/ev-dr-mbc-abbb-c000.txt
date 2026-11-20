@@ -15,6 +15,7 @@ Bloodchief's Thirst
 Blossom Dryad
 Careful Study
 Cast Out
+Citadel Gate
 Clarion Spirit
 Cloudshift
 Conifer Strider
@@ -28,6 +29,7 @@ Diabolic Tutor
 Dissenter's Deliverance
 Dragon Bell Monk
 Dream Fracture
+Elas il-Kor, Sadistic Pilgrim
 Errant Ephemeron
 Evincar's Justice
 Experiment One
@@ -92,6 +94,7 @@ Strafe
 Strategic Planning
 Streetwise Negotiator
 Strike It Rich
+Surgical Skullbomb
 Swamp
 Talrand, Sky Summoner
 The Reality Chip

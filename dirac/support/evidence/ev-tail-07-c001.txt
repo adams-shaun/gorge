@@ -55,6 +55,7 @@ Boartusk Liege
 Bonescythe Sliver
 Boreal Elemental
 Brimstone Volley
+Burrowing
 Camaraderie
 Canoptek Scarab Swarm
 Cantivore
@@ -367,6 +368,7 @@ Spirit Mantle
 Spitting Slug
 Stamina
 Starstorm
+Steadfast Sentinel
 Stench of Decay
 Stinging Shot
 Stoneforge Mystic

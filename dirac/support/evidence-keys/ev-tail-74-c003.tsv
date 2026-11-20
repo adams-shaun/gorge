@@ -1,15 +1,68 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Dawnbringer Cleric	5f41daf368214f78	3	1/1		0/1	ix:resp
 Armorer Guildmage	378401f92304075f	8	2/2		0/1	ix:resp
 Auriok Edgewright	1b3a15da12143443	8	0/0		0/0	
 Azimaet Drake	7db9f883813ef670	4	1/1		0/1	ix:resp
+Azure Mage	ae83e0af556e29a3	16	1/1		1/1	
+Baleful Strix	90dc8c6112dc2c90	7	1/1		0/1	ix:resp
+Bellows Lizard	c15a80f329c5b4ff	4	1/1		0/1	ix:resp
+Benevolent Blessing	6a1a3afe3a12df03	7	0/0		2/2	
 Blackbloom Rogue	5120cf5c489853ad	4	1/1		0/1	ix:resp
+Calculated Dismissal	a1ead502bec99983	6	0/0		2/2	
+Casey Jones, Back Alley Brute	a687ac58d4ed8d7c	4	2/2		0/1	ix:resp
+Celestial Prism	45465c4d131a4a63	14	1/1		0/1	ix:resp
 Cephalid Illusionist	2dae8cf10f762032	5	2/2		0/1	ix:resp
+Cloudkill	c235b8f0cd98aeea	5	0/0		2/2	
+Condemn	77893513c6bd5225	4	0/0		1/2	ix:resp
+Corrupt	2a59d3a221ef5502	5	0/0		1/2	ix:resp
+Creature Bond	3e8675a5e82201b9	4	1/1		2/2	
+Cursed Totem	192d9603841806fb	4	0/0		0/0	
+Darksteel Brute	4d3460679338872c	8	1/1		1/1	
 Despondency	c544fbf51e1a27d2	3	1/1		1/2	ix:resp
+Dire Fleet Interloper	8f7175f98e814679	4	1/1		0/1	ix:resp
+Equestrian Skill	3dc5e814922966ce	4	0/0		2/2	
 Fact or Fiction	95f447018413c208	8	0/0		2/2	
+Fanatical Fever	1cd5264f6c8a4841	4	0/0		1/2	ix:resp
+Fangs of Kalonia	3bd6385957e916d7	4	0/0		3/4	ix:resp
+Fevered Strength	a0e4cc5d832093fa	8	0/0		1/2	ix:resp
+Fume Spitter	a4f28529a0a93826	4	1/1		0/1	ix:resp
+Gixian Infiltrator	3e853782f5d51f2d	3	1/1		0/1	ix:resp
+Hanweir Garrison	3b8ce614ae8c9d24	4	1/1		0/1	ix:resp
 Haunted Crossroads	b2bfbd8bd5a8e123	4	1/1		1/1	
+Jinxed Idol	912ec366714a513d	6	2/2		1/1	
+Journey to the Lost City	4eef170ad86c5c15	5	1/1		0/1	ix:resp
+Krosan Wayfarer	7651b79d528b67ba	6	1/1		0/1	ix:resp
+Leonin Relic-Warder	601cd122f103d3d5	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Loathsome Troll	469b920558b716b9	5	1/1		1/1	
+Lotus Blossom	514fbecf98eeedda	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Monastery Swiftspear	8cf1bbe1ffb8f33b	3	1/1		0/1	ix:resp
 Omarthis, Ghostfire Initiate	df7b7cfc84dbe833	106	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Opal Champion	8175f0a2ba2a3563	3	1/1		0/1	ix:resp
+Orthodoxy Enforcer	271f7346c1748f51	6	0/0		0/0	
+Outbreak	dbd12725d65c3770	5	0/0		1/2	ix:resp
+Planar Incision	261ad308fd3e2681	5	0/0		2/2	
 Plow Under	c686a491b05385b4	34	0/0		2/2	
+Preening Champion	c1222c661f40b255	11	1/1		0/1	ix:resp
+Preordain	fa0c0a98b3980e23	3	0/0		1/2	ix:resp
+Queen's Agent	95d479df1caf0d69	4	1/1		0/1	ix:resp
+Razorfin Abolisher	847775cb8d28f0eb	16	1/1		0/1	ix:resp
 Ruby Medallion	cff05d150d2d8f92	7	0/0		0/0	
 Ruthless Disposal	4dc5fdfe447c076e	7	0/0		2/2	
+Scroll of the Masters	0dd994bdb6c6c787	8	2/2		1/1	
+Servant of the Scale	a12a26f6589215b0	4	1/1		0/1	ix:resp
+Shu Yun, the Silent Tempest	ae300553125926d5	7	2/2		1/1	
+Silvanus's Invoker	b13fec2f51d1ce40	4	1/1		0/1	ix:resp
+Suncrusher	b89e5660313daaae	10	2/2		1/1	
+Sweep the Skies	da0e555f06670845	3	0/0		2/4	f0/s/x0,ix:resp
+Tawnos's Tinkering	2b403e135ed5e945	7	0/0		2/2	
+Temporal Adept	c3ff06319b9e451c	17	1/1		0/1	ix:resp
+Territorial Baloth	75e9e59164e2c23a	4	1/1		0/1	ix:resp
+Thought Collapse	4ae87d8502097a95	6	0/0		2/2	
 Tuktuk the Explorer	d7804807890a5d96	4	1/1		0/1	ix:resp
+Vampire Envoy	06ed7a6ebc5114d8	3	1/1		0/1	ix:resp
+Verdant Touch	a54c2fd48bdb41f2	14	0/0		3/4	ix:resp
+Vessel of Endless Rest	15da7f6a07226f22	4	2/2		1/1	
+Veteran Adventurer	db01220194d3ce94	6	0/0		0/0	
+Warren-Scourge Elf	75dd6bb2a284944c	10	0/0		0/0	
 Wildfire Eternal	b93ba56dcf84e0ab	7	2/2		0/1	ix:resp
+Word of Seizing	90aabdb328896ffa	4	0/0		2/2	
