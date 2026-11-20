@@ -270,6 +270,13 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 		pm.flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
+		if k.gen != nil && k.gen.anyManaRider && s.manaPCGen(k, sl).manaIntrinsic {
+			// the view is the granted types' intrinsic unit (blgView): the tap
+			// is still the rider's own activation -- its counter resolves with
+			// the mana (manaRider's riderDeferred gate; CR 605.3b). manaRider
+			// ran from manaTapped already when the view is the card's own.
+			s.manaRider(k, sl)
+		}
 	}
 	s.manaRiderFloat(k, p, sl, a, answer)
 	s.manaRiderEffect(k, sl, a)

@@ -203,6 +203,9 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 			n++
 		}
 	})
+	if g.uses.has(useGainedMana) {
+		n = s.gainedIdxs(k, sl, out, n) // the mana abilities a GainsAbilitiesOf$ static gives sl (mana_gainedgrants.go)
+	}
 	return n
 }
 
@@ -910,7 +913,11 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) {
+		// a granted basic land type's intrinsic unit is the deferred source's
+		// exception (blgIntrinsicUnit): gorge's census lists it like any
+		// printed source's (CR 305.6), so the witness reads it beside the
+		// source's own abilities
+		if pm.flags&pfTapped != 0 || s.manaGranted(k, sl) || deferGap.has(sl) && s.planDeferred(k, SeatIx(p), sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue
 		}
 		pc := s.manaPCGen(k, sl)
@@ -1470,7 +1477,7 @@ func (g *grantSrch) visit(t *State) bool {
 		return true
 	}
 	g.remember(key)
-	sacd := g.sacrificed()
+	sacd, sacStepped := g.sacrificed(), slotMask{}
 	for i := 0; i < g.gapN; i++ {
 		sl := g.cand[i]
 		if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
@@ -1494,7 +1501,7 @@ func (g *grantSrch) visit(t *State) bool {
 		grants := t.grantTapOK(g.k, sl)
 		fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 		if !grants && !tx {
-			if g.ng[i] > 0 && g.sacOnlyVisit(t, i, sl) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
+			if g.tappedHolderStep(t, i, sl, &sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
 				return true
 			}
 			if !(fok && t.filtUsable(g.k, sl)) {
@@ -1623,7 +1630,7 @@ func (g *grantSrch) visit(t *State) bool {
 		}
 		g.sel = 0
 	}
-	if g.printedSacPass(t, sacd) { // a tapped holder's printed sacrifice (mana_grantcost.go)
+	if g.printedSacPass(t, sacd, sacStepped) { // a tapped holder's printed sacrifice (mana_grantcost.go)
 		return true
 	}
 	// A paid gap's fee is funded by other sources (gorge scriptSearch's
@@ -1941,7 +1948,12 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 		needFirst(order[:no], g.need)
 	}
 	cols := g.subsumeCols(t, order[:no], ask, named)
-	if sel != 0 {
+	switch {
+	case sel != 0 && g.grantHoisted(t, sl, gi, mask):
+		if sel == 2 {
+			return false // walked in pass 1, ahead of the printed abilities (mana_grantnamed.go)
+		}
+	case sel != 0:
 		cols = g.selColours(cols, mask, sel, named)
 	}
 	for _, c := range cols {
