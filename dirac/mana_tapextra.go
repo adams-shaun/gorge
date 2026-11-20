@@ -201,8 +201,11 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 // production's colour is picked after the tap, so a carrier limited to a {C}
 // tap does not reach it; a fixed one-colour production's type is known.
 func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return xv
+	}
 	a := s.filtAb(k, sl)
-	if k.gen == nil || !k.gen.anyTapExtra || a.Cost.Flags&kop.CostTap == 0 {
+	if a.Cost.Flags&kop.CostTap == 0 {
 		return xv
 	}
 	// A reflect carrier's extra is one mana of the type the tap produced (CR
@@ -211,8 +214,13 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 	// Mana Flare). A choice or all-at-once production's extra is the pick's,
 	// so only a pick asks srcExtraTapped for the pick's colour; asking for it
 	// beside a fixed production dropped the carrier's vector and the census
-	// read one mana short (Mournwhelk's evoked {3}{B} beside the Coffers).
-	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), a.AFlags&kop.AfManaChoice != 0 || a.ManaEach)
+	// read one mana short (Mournwhelk's evoked {3}{B} beside the Coffers). A
+	// plain Produced$ Any is a pick too (it lowers with no AfManaChoice): its
+	// ManaColors is ColAny, and pricing it as a fixed colour would read the
+	// card's first mana ability (Hidden Grotto's {C}) instead of the filter's
+	// chosen colour.
+	colour := a.ManaEach || a.AFlags&kop.AfManaChoice != 0 || bits.OnesCount8(uint8(a.ManaColors)&0x3f) != 1
+	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), colour)
 	return xv
 }
 
