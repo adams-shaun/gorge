@@ -2029,6 +2029,13 @@ func (fs *filtSearch) orderFunders(k *prep, t *State, order []Slot, gap bool) {
 	copy(order[nf:], flex[:nx])
 }
 
+// soloGap reports a play search over one filter gap and no other gap, hand
+// guide or payment terminal: the gap's free ability is the plain walk's mana,
+// and tapping it for that ability makes the filter it carries unusable.
+func (fs *filtSearch) soloGap() bool {
+	return fs.pay == nil && fs.hands == 0 && fs.gaps.count() == 1 && !fs.other.any()
+}
+
 // passCount is the passes of visit's activation loop: the plain run's gaps,
 // funding sources and life-only source, and the phased run's (gorge's
 // fallback) gaps whose ability costs no mana, funding sources, gaps, then the
@@ -2155,6 +2162,14 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 						return true
 					}
 				case free:
+					if fs.soloGap() {
+						// The board's only gap, tapped for its free ability: the
+						// filter it also carries can no longer be activated, and
+						// the play's plain walk already counts the free ability's
+						// mana (availFor). No later gap or hand guide can make the
+						// branch pay, so it only spends the node budget.
+						continue
+					}
 					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
 						return true
 					}
