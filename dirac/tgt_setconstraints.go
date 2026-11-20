@@ -348,3 +348,34 @@ func (s *State) biteEachTarget(k *prep, in *kop.Instr, a Slot) bool {
 	s.dealHits(k, hits[:n])
 	return true
 }
+
+// tgtCapsHold: the cross-target capacities of a min-target slot t over cands
+// (the candidates, or a plan's survivors) admit t.Min picks: a shared creature
+// type, or one controller for SameController, or distinct controllers for
+// DiffController. Returns before the controller checks for a shared-type slot:
+// kgen refuses a shared-type slot beside SameCtrl/DiffCtrl, so they never meet.
+// It works on the caller's slice and stack arrays.
+func (s *State) tgtCapsHold(k *prep, t *kop.TargetSpec, cands []TCode) bool {
+	if t.TFlags&kop.TgfSharedCrType != 0 {
+		return s.tgtSetCap(k, t, cands) >= t.Min
+	}
+	if t.TFlags&kop.TgfSameController != 0 {
+		var per [MaxSeats]uint8
+		for _, c := range cands {
+			if isObjTarget(c) {
+				per[SeatIx(s.ctrlOfObj(Obj(c)))]++
+			}
+		}
+		return seatMax(&per) >= t.Min
+	}
+	if t.TFlags&kop.TgfDiffController != 0 {
+		var seen [MaxSeats]bool
+		for _, c := range cands {
+			if isObjTarget(c) {
+				seen[SeatIx(s.ctrlOfObj(Obj(c)))] = true
+			}
+		}
+		return seatCount(&seen) >= t.Min
+	}
+	return true
+}
