@@ -43,12 +43,24 @@ CENSUS = ("Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrink
 # Packages whose census tests are minutes long; the batch runs them (the oracle's lockstep census, engine/rules' heads).
 CENSUS_SKIP_PKGS = ("./dirac/oracle", "./engine/rules")
 KGEN = "./dirac/kgen"
-# The repro replays a dirac change on its own breaks (11-20, the 7th red: dirac/mana*.go moved the stdmeta
-# tapx_spree_window and MBC Storm the Seedcore replays). PR fast skips the replays (CI_FAST_SKIP_ORACLE_REPLAY), so
-# they first ran in the batch. These ~100 s of them run when the queue touches dirac's Go code outside kgen or a
-# recording; the batch's dirac-repros job still runs every replay.
+# The repro replays a dirac change on its own breaks (11-20: dirac/mana*.go moved the stdmeta and MBC replays; #2731
+# and #2695 broke TestStdDskReprosLockstep, TestStdPoolReprosLockstep and TestReproManifest). PR fast skips the
+# replays (CI_FAST_SKIP_ORACLE_REPLAY), so they first ran in the batch. When the queue touches dirac's Go code outside
+# kgen, or a recording, the precheck runs exactly the dirac-repros job's set: replays_rx reads its expression from
+# .github/workflows/ci.yml, so the two cannot drift (~7 min under load, once per main push).
 ORACLE = "./dirac/oracle"
-REPLAYS = "^(TestStdMetaReprosLockstep|TestMBC[A-Za-z0-9]*Repros?[A-Za-z0-9]*)$"
+CI_YML = ".github/workflows/ci.yml"
+
+
+def replays_rx(ci_yml_text):
+    """The -run (or -list) expression of ci.yml's dirac-repros job: the replays a batch runs."""
+    job = re.search(r"^  dirac-repros:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n)", ci_yml_text + "\n  end:\n", re.M | re.S)
+    if not job:
+        raise RuntimeError("ci.yml has no dirac-repros job")
+    m = re.search(r"go test [^\n]*?-(?:run|list) '([^']+)' \./dirac/oracle", job.group(1))
+    if not m:
+        raise RuntimeError("ci.yml's dirac-repros job names no -run/-list expression over ./dirac/oracle")
+    return m.group(1)
 
 
 def priority(pr):
@@ -193,7 +205,8 @@ def run_checks(path, pk, kgen, replays=False, only=None):
         if kgen:
             groups.append(([KGEN], ""))
         if replays:
-            groups.append(([ORACLE], REPLAYS))
+            with open(os.path.join(path, CI_YML)) as f:
+                groups.append(([ORACLE], replays_rx(f.read())))
     else:
         tests = {}
         for k, p, t in only:
