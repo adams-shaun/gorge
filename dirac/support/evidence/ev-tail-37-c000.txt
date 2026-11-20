@@ -283,6 +283,7 @@ Ravenous Skirge
 Raving Visionary
 Reach of Branches
 Reap and Sow
+Red Ward
 Reduce to Dreams
 Regal Bloodlord
 Rejuvenation Chamber
@@ -313,6 +314,7 @@ Selkie Hedge-Mage
 Shadow Lance
 Shadowfeed
 Shatterstorm
+Shefet Monitor
 Shimmering Mirage
 Shivan Oasis
 Shrieking Mogg

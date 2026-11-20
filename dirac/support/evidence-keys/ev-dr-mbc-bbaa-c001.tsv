@@ -1,41 +1,70 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abolish	0ef68ef586d04323	4	0/0		2/2	
 About Face	f6c8796991030b6a	6	0/0		1/2	ix:resp
+Against All Odds	8c621690ec89e21e	44	0/0		2/2	
 Ancient Hydra	1d6b1f03245622a0	253	2/2		1/1	
 Banishing Slash	febf18b340355138	4	0/0		1/2	ix:resp
 Barrowgoyf	832ad4ab055efb28	350	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Bellowing Aegisaur	7e2bab72ece3023b	31	1/1		0/1	ix:resp
+Bewilder	97b0db74eb511e8b	58	0/0		1/2	ix:resp
 Bhaal's Invoker	a1f34b0d24818ed7	356	1/1		1/1	
 Bitter Reunion	be7b57c719911746	349	2/2		1/1	
 Blasting Station	6e7e2b8c2378eb8d	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Boggart Harbinger	eb2ba9743938cd6d	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Carrion Imp	241ceccdfc3204a3	44	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Challenger Troll	783ed452b945433c	22	0/0		0/0	
 Claustrophobia	c6f9b581467745af	14	1/1		1/2	ix:resp
+Cloud Djinn	a812238101317d00	57	0/0		0/0	
 Cloud Spirit	6d27d0f2b0a2af11	15	0/0		0/0	
+Condemn	77893513c6bd5225	47	0/0		2/2	
 Control of the Court	16041455d0301eb1	286	0/0		2/2	
+Corpse Harvester	691476a7882e392e	185	1/1		1/1	
+Crashing Drawbridge	06ea1b237f6cd791	147	1/1		1/1	
+Cytoplast Root-Kin	5791a0e2db10fd55	36	3/3		1/3	f0/t1/opt:n,f0/t1/opt:y
 Deceiver Exarch	2b21a5f4f8601e6e	12	1/1		0/1	ix:resp
 Dreadhound	9ec4acad7524cafc	162	3/3		1/1	
 Dynacharge	ab87a6da0e82fe16	6	0/0		2/4	cast/alt:none,ix:resp
+Eldrazi Skyspawner	e623e0ccd875b260	58	1/1		1/1	
+Emrakul's Messenger	5fac83f11283f62b	192	1/1		1/1	
 Engineered Explosives	b83f46106a9e57ba	453	1/1		1/1	
+Evangel of Heliod	a07259ed7a66b942	24	1/1		0/1	ix:resp
+Expunge	acab15ef5633eda8	58	1/1		2/2	
 Exsanguinate	1132aca7332a5ed5	151	0/0		3/4	f0/s/x0
+Faerie Mechanist	8853bef975cea2b8	101	1/1		1/1	
+Falkenrath Noble	b85338ebee1a65ab	334	1/1		1/1	
 Forest	6d0466c30f825dba	64	1/1		0/1	ix:resp
 Giant Spider	483542faca64a414	9	0/0		0/0	
+Gloom Sower	59f32076a85977fe	139	1/1		1/1	
 Goblinslide	8a27c2612f6d80f0	5	1/1		0/1	ix:resp
 Goldlust Triad	c03817f71c7d5c26	238	2/2		1/1	
 Goldmeadow Harrier	b91c521e10039418	10	1/1		1/1	
+Guardian of Faith	5356bd879f7dfd06	26	1/1		1/1	
 Healer's Hawk	8f8feddee07aade2	8	0/0		0/0	
 Inferno Jet	b0616f368e7a65cb	4	1/1		1/2	ix:resp
 Intangible Virtue	1b6b1833d16a530c	4	0/0		0/0	
 Island	763c67ef7a27eaf5	233	1/1		0/1	ix:resp
+Kami of False Hope	d2be1c3946e2a958	71	1/1		1/1	
+Kelpie Guide	a0352f41c8530b08	54	2/2		1/1	
 Kenrith's Transformation	ce5d204ed9f1641b	4	1/1		1/2	ix:resp
+Killer Whale	0baffafee6b01bea	50	1/1		1/1	
 Kor Cartographer	1d0b9a025e607225	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kor Firewalker	dfb876411ab03679	47	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Leap	e9790221ec848e27	136	0/0		2/2	
+Linvala, the Preserver	687c0eae8c5a9aa2	25	2/2		0/1	ix:resp
 Lore Weaver	556249d5d3f50502	12	2/2		0/1	ix:resp
 Madcap Skills	cf357134ab1827b4	299	0/0		2/2	
 Merciless Executioner	e813a9b8a926e850	8	1/1		1/1	
+Merfolk Seastalkers	e82d29f926e6691a	53	1/1		1/1	
 Molten Birth	c16506e41d2ac1fa	4	0/0		1/2	ix:resp
 Mountain	9e71388353e907ed	66	1/1		0/1	ix:resp
+Muddle the Mixture	c6cf07d8e04a7360	22	1/1		1/2	ix:resp
+Nature's Way	391c8c421d784fc5	43	0/0		2/2	
 Neheb, the Eternal	518ff6c1dc2ddea0	238	2/2		1/1	
 Nevermaker	e9c7e078f8b28d76	8	1/1		2/3	ix:resp
 Nyxborn Hydra	9c25b758482a9cc4	3	0/0		2/2	
 Plains	82d63a695487e567	50	1/1		0/1	ix:resp
+Portent	fa4b5839839d69a8	149	0/0		2/2	
+Prosperous Pirates	42aa175306eb1b53	91	1/1		1/1	
 Pyrohemia	ea83acaa6c386b7e	246	2/2		1/1	
 Quest for Pure Flame	497d8d9ea2f89b37	378	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Quest for the Gravelord	5fd7720e1de61f2b	9	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -43,17 +72,29 @@ Reality Shift	84fc1f7ca3bb0d0c	124	0/0		2/2
 Relic Crush	47e826cde94b4b3f	4	0/0		2/2	
 Renegade Warlord	dfd2b5c2f85093f0	3	1/1		0/1	ix:resp
 Reverent Mantra	b6d100c622180da9	8	0/0		2/2	
+Scholar of the Ages	f51d072df9f76e16	23	1/1		0/1	ix:resp
+Sea Gate Oracle	22b5ef54d75339bc	120	1/1		1/1	
+Sejiri Merfolk	f230e9ed6a92627c	72	0/0		0/0	
 Send in the Pest	2c3ae66b17de743c	5	0/0		1/2	ix:resp
 Sheoldred, Whispering One	d851189ee73e198f	138	2/2		1/1	
+Shimmering Glasskite	3dda422322364257	98	1/1		1/1	
+Sign in Blood	f57e2b0b7a937a0b	310	0/0		2/2	
+Skeletal Wurm	1953baf555acca48	86	1/1		1/1	
 Sparkmage Apprentice	e1a322295080ed29	344	1/1		1/1	
+Spectral Sailor	66ae2c6a42de5881	81	1/1		1/1	
 Spitting Earth	165a13c062540255	6	0/0		1/2	ix:resp
 Stand Together	38eb655d7f939356	6	0/0		2/2	
 Stromgald Crusader	d997c13e23aa7c1a	323	2/2		1/1	
 Swamp	342b413902f441c3	58	1/1		0/1	ix:resp
+Sword Coast Serpent	83de716a8959c970	101	0/0		2/2	
+The Everforger	31feb7628d98a000	184	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Turnabout	39f0619628aba853	115	0/0		2/2	
 Twinferno	8d38211c9bc6a051	16	0/0		2/2	
+Ultimate Price	d4b34ea3ed7fd1c6	333	0/0		2/2	
 Vigean Graftmage	3ccd0ed1c483cb70	60	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Volcanic Dragon	9853a02151354b85	182	0/0		0/0	
 Wall of Corpses	7bcaf2a2e862e36f	344	1/1		1/1	
 Wall of Roots	9fc6da95d4e6fdce	6	1/1		0/1	ix:resp
+War Priest of Thune	a7622933a7379e4e	71	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Woodland Changeling	91d97ba155ce29de	3	0/0		0/0	
 Young Red Dragon	f9fe59f77f093e52	739	0/0		2/2	
