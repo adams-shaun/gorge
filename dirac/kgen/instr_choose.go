@@ -9,6 +9,7 @@ import (
 // The kop forms of the LIR ops for choices: players, colours, types, names and numbers (instr.go).
 func init() {
 	instrOp("ChooseColorRes", (*instrCtx).opChooseColorRes)
+	instrOp("ProtectionChoiceRes", (*instrCtx).opProtectionChoiceRes)
 	instrOp("Vote", (*instrCtx).opVote)
 	instrOp("ChoosePlayerRes", (*instrCtx).opChoosePlayerRes)
 	instrOp("RollDie", (*instrCtx).opRollDie)
@@ -30,6 +31,16 @@ func (ic *instrCtx) opChooseColorRes() error {
 	ki := &ic.ki
 	// (Skrelv) OpExt ExtChooseColorRes
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes))
+	return nil
+}
+
+func (ic *instrCtx) opProtectionChoiceRes() error {
+	ki := &ic.ki
+	in := &ic.in
+	// OpExt ExtProtectionChoice, B the option count (act_protectionchoice.go:
+	// the ask's options are the card's OvProtChoice override family's)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtProtectionChoice))
+	ki.B = kop.Const(int(in.B.N))
 	return nil
 }
 
