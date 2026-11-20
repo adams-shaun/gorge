@@ -16,7 +16,11 @@ if grep -qx './dirac/oracle' <<<"$whole"; then
   whole=$(grep -vx './dirac/oracle' <<<"$whole" || true)
   changed=$(git diff --name-only "$1"...HEAD -- 'dirac/oracle/*_test.go' 2>/dev/null)
   rx=$(for f in $changed; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
-  if git diff --name-only "$1"...HEAD -- dirac/oracle/testdata | grep -q .; then rx=${rx:+$rx|}'Test[A-Za-z0-9]*Repros?[A-Za-z0-9]*Lockstep'; fi
+  # CI_FAST_SKIP_ORACLE_REPLAY=1 (ci.yml's fast job sets it): a pull request does not replay every repro recording.
+  # The queue batch's dirac-slices job replays them all on the merged tree before anything lands, and the seat's
+  # precheck replayed them on the ticket's branch. Measured 11-20: 402 s of a 1266 s fast job on a dirac PR, with
+  # both boxes saturated (8 runners on one batch, 4 on 54 queued PR runs). The changed test functions still run.
+  if [ "${CI_FAST_SKIP_ORACLE_REPLAY:-0}" != 1 ] && git diff --name-only "$1"...HEAD -- dirac/oracle/testdata | grep -q .; then rx=${rx:+$rx|}'Test[A-Za-z0-9]*Repros?[A-Za-z0-9]*Lockstep'; fi
   if [ -n "$rx" ]; then
     echo "ci-fast: ./dirac/oracle runs -run '^($rx)\$' only"
     go test -timeout 15m -short -run "^($rx)\$" ./dirac/oracle || rc=1
@@ -42,6 +46,8 @@ if [ -n "$whole" ]; then
 fi
 while IFS=$'\t' read -r m p r; do
   [ "$m" = named ] || continue
+  # The oracle's named row is every repro replay; see CI_FAST_SKIP_ORACLE_REPLAY above.
+  if [ "$p" = ./dirac/oracle ] && [ "${CI_FAST_SKIP_ORACLE_REPLAY:-0}" = 1 ]; then echo "ci-fast: ./dirac/oracle replays skipped here; the queue batch's dirac-slices runs them"; continue; fi
   # ./dirac/oracle's named row is the whole case above's replacement when only
   # its tests or recordings changed: every repro replay and the census guards.
   # It gets the same 15m cap, not the generic 10m: #2159 timed out at 10m after
