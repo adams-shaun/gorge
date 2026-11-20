@@ -131,6 +131,9 @@ type CardSupport struct {
 	TwoSeat    bool
 	TwoSeatWhy []string // the reasons that set TwoSeat (lCard.TwoSeatWhy), for the Commander pod census
 	LIRKey     string
+	// Nodes is the IR node of each lowering refusal the card recorded, in the
+	// order lowering recorded them ("A[0] SP$ Charm", "T[1] Mode=Phase", ...).
+	Nodes []string
 }
 
 // SupportFor lowers and builds the named cards as TestSupportDocIsCurrent does
@@ -159,7 +162,11 @@ func SupportFor(cardsDir string, names []string) (map[string]CardSupport, error)
 	out := make(map[string]CardSupport, len(lw.cards))
 	for _, c := range lw.cards {
 		st, _ := statusOf(c, s)
-		out[c.Name] = CardSupport{Status: st, TwoSeat: c.TwoSeat, TwoSeatWhy: c.TwoSeatWhy, LIRKey: keys[c.Name]}
+		var nodes []string
+		for _, r := range c.Refusals {
+			nodes = append(nodes, r.Node)
+		}
+		out[c.Name] = CardSupport{Status: st, TwoSeat: c.TwoSeat, TwoSeatWhy: c.TwoSeatWhy, LIRKey: keys[c.Name], Nodes: nodes}
 	}
 	return out, nil
 }
