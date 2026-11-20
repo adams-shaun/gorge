@@ -1,0 +1,33 @@
+{
+  "card": "Rain of Rust",
+  "class": "lockstep",
+  "why": "Entwine {3}{R} cast whose total cost only a repeated life-only mana ability funds (Treasonous Ogre's \"Pay 3 life: Add {R}\" twice, beside Dwarven Mine and an Artifact Unknown Shores): gorge's potential walk and prefix search offer the entwined cast, the kernel's script walk prices no kicked cast and activates a life gap once, so it never offers it (tail-51-c000 pair 0, decision 536); a repeatable life gap is over 200 lines of search machinery",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "rain_of_rust_entwine_offer"
+  },
+  "evidence": [
+    "ev-tail-34-c000",
+    "ev-tail-34-c001",
+    "ev-tail-34-c002",
+    "ev-tail-34-c003",
+    "ev-tail-34-c004",
+    "ev-tail-34-c005",
+    "ev-tail-34-c006",
+    "ev-tail-34-c007",
+    "ev-tail-34-c008",
+    "ev-tail-34-c009",
+    "ev-tail-34-c010",
+    "ev-tail-34-c011",
+    "ev-tail-34-c072",
+    "ev-tail-51-c000",
+    "ev-tail-51-c001",
+    "ev-tail-51-c002",
+    "ev-tail-51-c003"
+  ]
+}
