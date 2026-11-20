@@ -54,9 +54,18 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 		return
 	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		s.perms[sl].cseen |= cseenSkipUntap0 << p
-		s.touchSl(sl)
+		s.skipUntapSelf(sl, p)
 	}
+}
+
+// skipUntapSelf marks the permanent at sl for player p's next untap step
+// (OpSkipUntap C=0). A mana ability's stay-tapped rider calls it directly
+// (mana_rider.go) with the source's controller: the activation is no
+// resolving program, so there is no resolution context to resolve RefSelf
+// through.
+func (s *State) skipUntapSelf(sl Slot, p uint8) {
+	s.perms[sl].cseen |= cseenSkipUntap0 << p
+	s.touchSl(sl)
 }
 
 // skipsUntap: the active player's untap step does not untap sl (an
