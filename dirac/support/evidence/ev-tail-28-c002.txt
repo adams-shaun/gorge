@@ -188,6 +188,7 @@ Island
 Isu the Abominable
 Ith, High Arcanist
 Jasconian Isle
+Kami of the Honored Dead
 Kathari Remnant
 Kazuul's Toll Collector
 Keen Glidemaster
@@ -294,6 +295,7 @@ Roots of Wisdom
 Runeboggle
 Sacellum Archers
 Sacred Guide
+Sanctum of Ugin
 Saruli Caretaker
 Savra, Queen of the Golgari
 Scoria Elemental
