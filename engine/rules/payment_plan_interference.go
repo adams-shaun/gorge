@@ -133,7 +133,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	cost := e.abilityCompiledCost(ma).Cost
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		if cost.Tap {
-			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false)
+			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false, false)
 			if !ok {
 				return deferredBy(by)
 			}
@@ -169,7 +169,21 @@ func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.
 	if src == nil {
 		return state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true)
+	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, false)
+	return extra
+}
+
+// paymentPlanTapExtraChosen is paymentPlanTapExtraMana with the Produced$
+// Chosen riders folded too (pay.PaymentPlanChosenTapMana): the relaxed
+// proof's reader, potential_plan.go potentialRelaxedTapExtra. The potential
+// bound and the unless-window census keep the plain walk -- their dirac
+// mirrors skip the chosen static (mana_tapextra.go).
+func (e *Engine) paymentPlanTapExtraChosen(id state.ObjID, produced string) state.Mana {
+	src := e.G.Obj(id)
+	if src == nil {
+		return state.Mana{}
+	}
+	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, true)
 	return extra
 }
 
@@ -204,7 +218,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // checkFaceTriggers walks them -- and leaves the zone question to the real
 // zoneGate. Granted-trigger statics that observe a Tap are walked over the
 // battlefield recipients their Affected$ admits.
-func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
+func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole, chosenFold bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
 	// The synchronous context emitManaTap/emitTap establish around the Tap
 	// event, restored before return: this is matcher scratch, not game state.
 	// The mana facts mirror what resolveManaEffectColor establishes around a
@@ -283,6 +297,20 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					// single type this production names
 					if tm, folds = pay.PaymentPlanReflectedTapMana(fc.face, t); folds {
 						tm.Mana, folds = pay.PaymentPlanReflectedMana(produced)
+					}
+					if !folds && chosenFold {
+						// a Produced$ Chosen body (Utopia Sprawl) folds as one
+						// mana of the enchanted source's recorded choice, but
+						// only where a proof may over-produce: the relaxed
+						// census alternatives (potential_plan.go
+						// potentialRelaxedTapExtra). Every other reader keeps
+						// reading the tap without the choice and this line
+						// falls through to the tail, deferring the source as
+						// the StTapChosen lowering's class-only Taps line
+						// defers it (kop.TapPlanDefer).
+						if tm, folds = pay.PaymentPlanChosenTapMana(fc.face, t, o.ChosenColor); folds {
+							tm.ToTapped = true
+						}
 					}
 				}
 				if folds && (tm.ToTapped || o.Controller == activator) {

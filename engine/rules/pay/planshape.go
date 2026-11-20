@@ -590,6 +590,61 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 	return out, true
 }
 
+// PaymentPlanChosenTapMana classifies a `Mode$ TapsForMana | Static$ True`
+// trigger of face f whose DB$ Mana body adds mana of the enchanted
+// permanent's recorded as-enters choice to that permanent's controller
+// (Utopia Sprawl's `Produced$ Chosen | Defined$ TriggeredCardController`) as
+// one extra mana of the recorded colour, with ToTapped set -- the shape
+// dirac lowers as a StTapChosen static (kgen lower_tapextra.go
+// tapExtraChosen). chosen is the carrier's recorded choice; a carrier with
+// none recorded adds nothing.
+//
+// The planner folds it only where a proof may over-produce: the relaxed
+// census alternatives (potential_plan.go potentialRelaxedTapExtra). A real
+// tap of the source brings both the source's mana and the choice, so a
+// relaxation that names the choice alone over-produces. The interference
+// walk still defers the enchanted source, and the potential bound and the
+// unless-window census read the tap without the choice -- dirac's mirrors of
+// those readers skip the chosen static (mana_tapextra.go), whose class-only
+// Taps line defers the source and whose tap floats it (addGatedExtra).
+func PaymentPlanChosenTapMana(f *cards.Face, t cards.Trigger, chosen string) (PlanTapMana, bool) {
+	body := paymentPlanStaticTapManaBody(f, t, "Mana")
+	if body == nil || chosen == "" {
+		return PlanTapMana{}, false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
+		default:
+			return PlanTapMana{}, false
+		}
+	}
+	if params.DefinedRefOf(body).Text != "TriggeredCardController" {
+		return PlanTapMana{}, false
+	}
+	mp := params.ManaOf(body)
+	if mp.Produced != "Chosen" || len(mp.Unread) != 0 {
+		return PlanTapMana{}, false
+	}
+	n := 1
+	if mp.Amount.Present {
+		if !mp.AmountIsLit || mp.AmountLit <= 0 || mp.AmountLit > 20 {
+			return PlanTapMana{}, false
+		}
+		n = mp.AmountLit
+	}
+	// The recorded choice is one of the five colours (CR 106.10a): the
+	// resolution's own substitution accepts exactly WUBRG (effects
+	// substituteManaChosen), and dirac's chosen byte reads only 0..4
+	// (mana_tapextra.go addGatedExtra).
+	if len(chosen) != 1 || !strings.ContainsRune("WUBRG", rune(chosen[0])) {
+		return PlanTapMana{}, false
+	}
+	out := PlanTapMana{ToTapped: true}
+	out.Mana[state.ManaIndex(chosen[0])] = int32(n)
+	return out, true
+}
+
 // paymentPlanStaticTapManaBody is the body of a `Mode$ TapsForMana |
 // Static$ True` battlefield trigger of face f whose parameters are all in the
 // closed world paymentPlanTapManaTriggerCodes names and whose body is one api

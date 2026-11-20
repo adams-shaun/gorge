@@ -630,6 +630,7 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 					av.addUnits(1<<c, xv[c])
 				}
 			}
+			s.addChosenTapExtra(k, sl, av)
 		}
 		if a.ManaEach {
 			for col := 0; col < kop.NumManaKinds; col++ {
@@ -661,7 +662,46 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 				av.addUnits(1<<c, xv[c])
 			}
 		}
+		s.addChosenTapExtra(k, sl, av)
 	}
+}
+
+// addChosenTapExtra adds the Produced$ Chosen carriers' extra to a
+// Taps-deferred source's census unit: one mana of a StTapChosen static
+// carrier's recorded choice per carrier that reaches the tap, none when no
+// colour was chosen (mana_tapextra.go addGatedExtra). tapExtraReaches skips
+// the chosen static everywhere else -- the planner's pricing readers price
+// the tap without it (gorge's bound and its unless-window census), while the
+// relaxed census alternative carries it (potential_plan.go
+// potentialRelaxedTapExtra, pay PaymentPlanChosenTapMana); this unit is that
+// alternative's mirror, beside the class-only Taps line that defers the
+// source (kop.TapPlanDefer) and the tap itself, which floats the choice
+// (addGatedExtra).
+func (s *State) addChosenTapExtra(k *prep, sl Slot, av *avail) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra ||
+			a.StFlags&kop.StTapChosen == 0 || st.sl == NoSlot ||
+			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
+			return true
+		}
+		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
+			return true // the chosen lowering never carries those flags
+		}
+		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+			return true
+		}
+		ch := s.perms[st.sl].chosen
+		if ch >= 5 {
+			return true // no colour was chosen: gorge's Produced$ Chosen adds nothing
+		}
+		av.addUnits(1<<uint(ch), uint8(a.B))
+		return true
+	})
 }
 
 // tapsDeferGapOwn reports whether the Taps-deferred source sl's census gap is

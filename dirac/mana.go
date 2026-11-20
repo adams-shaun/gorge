@@ -543,6 +543,14 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 					a.addUnits(1<<c, xv[c])
 				}
 			}
+			// The Produced$ Chosen carriers' extra joins the potential walks'
+			// units (availWalk, its hyp bound): gorge's bound folds the choice
+			// (potential.go addPotentialTapExtra), and its walk gates price
+			// the choice into the plays they list. In the census this is a
+			// no-op: a live StTapChosen static's Taps line defers its source
+			// out of the loop, and the deferred gap's census unit carries the
+			// choice in addTapsDeferUnits.
+			s.addChosenTapExtra(k, sl, a)
 		}
 	}
 	if k.availExt {
