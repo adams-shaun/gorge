@@ -306,8 +306,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		// "if an opponent would search a library, that player searches the
 		// top four cards instead" -- gorge models neither the search limit
 		// nor any other reader for the grant.
-		if strings.TrimSpace(k) == "LimitSearchLibrary" && st.F != nil && st.F.Players > 0 {
-			st.Kind = "" // view-only: lower to nothing
+		if inertKeywordGrant(sp, st, k) { // lower_grantedsoulshift.go: the grant lowers to nothing
 			return nil, nil
 		}
 		rest, ward, wardLife, err := splitWardGrant(k)
