@@ -847,6 +847,7 @@ func (s *State) cleanupGen(k *prep) {
 	// before dropping the bitsets.
 	s.fbClearAll(k)
 	s.encoreClearAll(k)
+	s.embalmClearAll(k)
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {
