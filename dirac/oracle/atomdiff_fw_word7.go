@@ -20,10 +20,7 @@ func init() {
 	RegisterFilterAtom(FilterAtom{Name: "fw:Card.NoAbilities", GorgeSpec: "Card.NoAbilities", Ctx: AtomAnyZone &^ AtomBattlefield})
 	// the entered ledger is kept only for a table that reads it
 	RegisterFilterAtom(FilterAtom{Name: "fw:Card.ThisTurnEnteredFrom_Battlefield", GorgeSpec: "Card.ThisTurnEnteredFrom_Battlefield", Ctx: AtomAnyZone &^ AtomBattlefield, Needs: dirac.BankEntered})
-	// not in hand: the kernel's draw never sets the object's zoneTurn bit, so a
-	// drawn card reads "not entered from the library this turn" where gorge
-	// reads true (ticket kernel-draw-zoneturn; no corpus card reads the word)
-	RegisterFilterAtom(FilterAtom{Name: "fw:Card.ThisTurnEnteredFrom_Library", GorgeSpec: "Card.ThisTurnEnteredFrom_Library", Ctx: AtomGraveyard | AtomExile | AtomLibrary | AtomStack, Needs: dirac.BankEntered})
+	RegisterFilterAtom(FilterAtom{Name: "fw:Card.ThisTurnEnteredFrom_Library", GorgeSpec: "Card.ThisTurnEnteredFrom_Library", Ctx: AtomAnyZone &^ AtomBattlefield, Needs: dirac.BankEntered})
 	for _, w := range []string{
 		"Card.inZoneBattlefield", // kgen lowers it to no predicate: implied by the battlefield context it is read in (filter.go propWords)
 		"Creature.greatestPower", "Creature.attackingAlone", "Creature.attackingSame", "Card.attacking Opponent",
