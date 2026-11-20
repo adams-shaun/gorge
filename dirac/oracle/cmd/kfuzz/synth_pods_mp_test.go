@@ -53,10 +53,10 @@ func TestFuzzSynthPods(t *testing.T) {
 	}
 }
 
-// TestFuzzPodsGate: a pod against a kernel other than vanilla or a -synth pool
-// is refused, and the message names what does play.
+// TestFuzzPodsGate: a pod against a kernel other than vanilla, a registered
+// pool or a -synth pool is refused, and the message names what does play.
 func TestFuzzPodsGate(t *testing.T) {
-	code, _, stderr := runKFuzz(t, "-kernel", "fdn", "-seats", "4", "-pods", "1")
+	code, _, stderr := runKFuzz(t, "-kernel", "gorge-api", "-seats", "4", "-pods", "1")
 	if code != 2 || !strings.Contains(stderr, "-synth pool") {
 		t.Errorf("exit %d, stderr %q", code, stderr)
 	}
