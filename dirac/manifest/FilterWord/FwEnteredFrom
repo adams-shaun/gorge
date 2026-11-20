@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwEnteredFrom
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwEnteredFrom: the object was put into the zone it is in now from zone Arg (a kop.Zone) this turn, read off the entered ledger's latest entry naming it (gorge filter_word.go wordThisTurnEnteredFrom). A table with the word records the ledger.

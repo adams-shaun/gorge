@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwFirstTurnControlled
+value: next
+contexts: perm,cur
+status: active
+doc: FwFirstTurnControlled: the battlefield permanent came under its controller's control since their most recent turn began (gorge filter.go firstTurnControlled: Zone battlefield and SummonSick). An object off the battlefield fails closed, so its negation holds there.

@@ -367,7 +367,7 @@ const cmpPowerGTBase uint8 = 202
 const cmpNotF2 uint8 = 201
 
 // notF2Bit names the F2 bit of a '!'-negatable flag word: targetedBy,
-// ThisTurnEntered and wasDealtDamageThisTurn (the kernel's dmgTurn record
+// ThisTurnEntered, kicked and wasDealtDamageThisTurn (the kernel's dmgTurn record
 // outlives a zone change, as gorge's does on the graveyard object). Any
 // other negated word is not read here and keeps refusing.
 func notF2Bit(w string) (int, bool) {
@@ -379,6 +379,8 @@ func notF2Bit(w string) (int, bool) {
 		f = kop.F2EnteredThisTurn
 	case "wasDealtDamageThisTurn":
 		f = kop.F2WasDamaged
+	case "kicked":
+		f = kop.F2Kicked // a permanent's kicked mark, a spell's kick flag (kernel flags2Perm / spellKicked)
 	default:
 		return 0, false
 	}
