@@ -983,7 +983,6 @@ Darien, King of Kjeldor
 Darigaaz's Charm
 Daring Fiendbonder
 Daring Mechanic
-Daring Sleuth
 Daring Thunder-Thief
 Daring Waverider
 Dark Endurance
@@ -1213,7 +1212,6 @@ Dread Rider
 Dread Statuary
 Dreaded Bat-Cloud
 Dream Beavers
-Dream Spoilers
 Dream Trawler
 Dreamcatcher
 Dreamdew Entrancer
@@ -1848,7 +1846,6 @@ Goblin Chariot
 Goblin Chieftain
 Goblin Chirurgeon
 Goblin Cohort
-Goblin Dynamo
 Goblin Fire Fiend
 Goblin Fireslinger
 Goblin Gardener
@@ -2610,7 +2607,6 @@ Lightning Angel
 Lightning Berserker
 Lightning Coils
 Lightning Helix
-Lightning Reaver
 Lightning Skelemental
 Lightning, Army of One
 Lightshield Parry
@@ -4036,7 +4032,6 @@ Shining Armor
 Shipwreck Marsh
 Shipwreck Moray
 Shire Shirriff
-Shivan Devastator
 Shivan Hellkite
 Shivan Reef
 Shivan Zombie
@@ -5270,7 +5265,6 @@ West Wind Avatar
 Western Paladin
 Whalebone Glider
 Whim of Volrath
-Whimwader
 Whipstitched Zombie
 Whirler Virtuoso
 Whirling Strike

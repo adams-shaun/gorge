@@ -4,6 +4,8 @@ Aboshan's Desire
 Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
+Alms of the Vein
+Ambitious Farmhand
 Angel's Mercy
 Angelic Wall
 Appeal
@@ -11,13 +13,16 @@ Arbalest Engineers
 Arbor Elf
 Arcane Flight
 Archangel's Light
+Archmage of Echoes
 Archon of Redemption
+Ardent Militia
 Aura Mutation
 Aven Trailblazer
 Avenging Arrow
 Aya of Alexandria
 Bala Ged Recovery
 Bar the Door
+Barret, Avalanche Leader
 Bast, Panther Goddess
 Bat Whisperer
 Bazaar Krovod
@@ -53,6 +58,7 @@ Cloud Djinn
 Compy Swarm
 Conjurer's Mantle
 Consulate Turret
+Contaminated Ground
 Conversion
 Cowl Prowler
 Crackle with Power
@@ -143,9 +149,11 @@ Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
 Launch Mishap
+Leaf-Crowned Visionary
 Leyline of Anticipation
 Lidless Gaze
 Lightfoot Rogue
+Lionheart Maverick
 Locthwain Gargoyle
 Loran's Escape
 Lost Legion
@@ -153,6 +161,7 @@ Loxodon Warhammer
 Lurking Arynx
 Mana Seism
 Mantle of the Wolf
+Marchesa's Infiltrator
 Marsh Lurker
 Master of the Pearl Trident
 Merciless Javelineer
@@ -172,6 +181,7 @@ Nezumi Bladeblesser
 Night Market Guard
 Nimana Sell-Sword
 Nissa's Chosen
+Nissa's Renewal
 Notorious Assassin
 Nurturer Initiate
 Oboro Breezecaller
@@ -179,6 +189,7 @@ Obsidian Obelisk
 Ogre Jailbreaker
 Paladin Danse, Steel Maverick
 Peace of Mind
+Pearl Dragon
 Perilous Myr
 Pharika's Chosen
 Pillar of Light
@@ -206,6 +217,7 @@ Reyav, Master Smith
 Rile
 Ringskipper
 Riot Piker
+Rise from the Grave
 Rising of the Day
 Ruin Crab
 Rukh Egg
@@ -213,6 +225,7 @@ Saheeli's Silverwing
 Sapseep Forest
 Seagraf Skaab
 See the Unwritten
+Seeker of Skybreak
 Senseless Rage
 Serra Advocate
 Serum Visions
@@ -220,9 +233,11 @@ Sever the Bloodline
 Shadow Rift
 Shatterskull Giant
 Showstopping Surprise
+Shrine of Boundless Growth
 Shu General
 Siegecraft
 Silkbind Faerie
+Silver Myr
 Silverchase Fox
 Slate of Ancestry
 Slinza, the Spiked Stampede
@@ -261,9 +276,11 @@ Thrull Surgeon
 Thumbscrews
 Thunder Dragon
 Tide Drifter
+Tilonalli's Crown
 Tombfire
 Touch of Death
 Toxic Scorpion
+Treacherous Link
 Trickster Mage
 Troll-Horn Cameo
 Typhoid Rats
@@ -290,6 +307,7 @@ Wasteful Harvest
 Watchwing Scarecrow
 Wild Elephant
 Wild Ox
+Wildsear, Scouring Maw
 Winds of Qal Sisma
 Witness the End
 Xerex Strobe-Knight
