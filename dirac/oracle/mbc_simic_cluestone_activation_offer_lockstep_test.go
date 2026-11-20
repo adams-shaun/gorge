@@ -14,4 +14,10 @@ func TestMBCSimicCluestoneReprosLockstep(t *testing.T) {
 	// tail-45 pair 80, decision 548: the opposite split. The kernel offered the
 	// same draw and gorge offered only pass.
 	stdReproNamed(t, "mana_filter_twice_funds_activation")
+	// tail-45 pair 22, decision 886: gorge offered the draw and the kernel
+	// offered only pass. The fee-only prune read Simic Cluestone's own
+	// "{T}: Add {G} or {U}" as a free substitute for Signpost Scarecrow,
+	// though the play taps that same source (CR 602.2b), and dropped both
+	// colours the filter had to make.
+	stdReproNamed(t, "simic_cluestone_own_tap_prune")
 }
