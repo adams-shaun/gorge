@@ -60,9 +60,18 @@ type walkKey struct {
 
 // walkKeyNow returns the current scope's key, or ok=false outside a memo
 // scope. The caches here hold board-only answers (no layer-walk runtime field
-// is an input), so unlike derivedMemoUsable no derivation guard applies.
+// is an input), so unlike derivedMemoUsable no derivation guard applies --
+// except the object probes (faceprobe.go, castprobe.go), which are pure
+// scoped reads the key cannot see: they zero derivedMemoDepth, but a walk
+// nested inside one raises it again, and a scan its rebuild writes then keys
+// on the probed object's flipped face (or moved zone) at the live gen -- so
+// the entry both misprices readers inside the probe and, over the same
+// backing it refills, corrupts a view an outer walk captured at the live
+// board (the Hearth Elemental self-cost static a payment plan lost). No
+// entry is served or written inside a probe; the readers recompute, the
+// probes' collects are the fresh scan they already were at depth 0.
 func (e *Engine) walkKeyNow() (walkKey, bool) {
-	if e.derivedMemoDepth == 0 || e.derivedMemoGen == 0 {
+	if e.derivedMemoDepth == 0 || e.derivedMemoGen == 0 || e.offerProbeDepth > 0 {
 		return walkKey{}, false
 	}
 	return walkKey{gen: e.derivedMemoGen, ep: len(e.L.Events), ver: e.continuousVersion, objs: len(e.G.Objs)}, true
