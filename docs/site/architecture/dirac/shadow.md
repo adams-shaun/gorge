@@ -41,7 +41,16 @@ two `Layout`s over the same lists and views stage identically.
 
 ## What stages
 
-Two seats only.
+Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
+
+- **Pods.** The same features stage at `NSeat` 2..4. A round starts at the active seat with no pass and each pass moves
+  to the next seat, so the pass count is `(Prio + NSeat - Active) % NSeat` (`World.roundPasses`); a pose leaves the holder
+  at the seat before the active one with `NSeat` passes. A blocker's controller must be the seat its attacker attacks
+  (CR 509.1a). The declare blockers pose stages only while no block is declared yet, with `World.BlkDef` the defender asked
+  (dirac's `blkDef`, read only in a pod); a later defender's pose after another's blocks is `combat`. An observer at the
+  declare blockers step in a pod is `decision` even with blocks shown, since another defender may still be to declare.
+  A seat that has left the game is `seat-left` (a finished game stays `game-over`); Commander stays refused (`exile`).
+  Status of the multiplayer shadow (C13): pods of every seat in the game are done; departed seats and Commander remain.
 
 - **Permanents.** Lands; creatures with combat keywords only, or whose only ability is a no-target, no-once-per-turn
   "put a +1/+1 counter on this" (`selfCounterAbility`); damage marked on a creature (also marked dealt-damage-this-turn,
@@ -67,7 +76,7 @@ Two seats only.
   blockers decisions at their pose with no pick made (`PoseAttackers`, `PoseBlockers`). The view shows a block only on
   the attacker (`BlockedBy`, in block order) and an attack only on the attacker (`AttackingPlayer`), so staging sets the
   attacking, blocking and blocked marks, the declared-attackers set, the attackers-this-turn count and the first-strike
-  flag from those. A pose leaves the priority holder dirac projects (the seat after the active one), not the view's
+  flag from those. A pose leaves the priority holder dirac projects (the seat before the active one; at two seats the other seat), not the view's
   `Priority`, which names the deciding seat.
 
 A view shows its decision only to the deciding seat. An observer at declare attackers with no attacker, or at declare
@@ -79,7 +88,7 @@ blockers with no block, cannot tell the pose from the priority round after an em
 Everything else is refused with a reason. dirac's reasons are `dirac.UnstageableReasons` (`table`, `seats`,
 `object-layout`, `card`, `zone`, `control`, `place`, `step`, `priority`, `turn`, `life`, `battlefield`, `token`,
 `attachment`, `stack-entry`, `combat`). `shadow` adds the consts in `dirac/shadow/stage.go` (`game-over`, `seats`,
-`stack`, `pending`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`,
+`seat-left`, `stack`, `pending`, `decision`, `unknown-card`, `unmapped-object`, `hidden`, `exile`, `counter`, `mark`, `pool`,
 `step-name`). `TestUnstageableReasons` (`dirac`) and `TestWorldFromViewReasons` (`dirac/shadow`) provoke them.
 
 | Refused | Reason |
@@ -113,6 +122,9 @@ below a floor of staged positions per feature.
 | `TestStageMatchesReplay` | vanilla lands, vanilla or keyword creatures and Hungry Ghoul; damage, counters, a Ghoul ability on the stack |
 | `TestStageCardsMatchReplay` | the `mbc` corpus pool (needs the corpus): Aura, Equipment, tokens, stack spells |
 | `TestStageCombatMatchesReplay` | vanilla pool; eight kinds of combat and turn-boundary position |
+| `TestStagePodsMatchReplay` | the vanilla pool at four seats; marks, a stack entry, an attack on a non-adjacent defender (160 games: 160 staged, 50 with marks, 43 with a stack entry, 41 with a non-adjacent attack) |
+| `TestStageCombatPodsMatchReplay` | the combat kinds at four seats plus the blockers pose of a later defender (240 games: 239 staged, 45 later-defender poses) |
+| `TestStagePodMutationsAreCaught` | seat 3 life, seat 2 library, the attacked seat, the asked defender and the priority holder each bent in turn |
 | `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens) and requires the verifier to fail |
 
 ## Fork and rollout
