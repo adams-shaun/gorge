@@ -351,7 +351,7 @@ fi
 
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
-C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
+C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|ReproManifest|EnumConst|^TestHeads$|^TestSetHeads$|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
 # The narrow precheck widens it to the audit's test groups (pins, layout, lint, replay) that C's names miss,
 # the ones with reds first: the State layout and size, enum values, ParamsAreRead and KnownUnsupported, the
 # generated-file freshness pins, the setdata and spellbench support pins, KnownKeys, the zero-alloc pins,
