@@ -157,6 +157,9 @@ type restrData struct {
 	// {U}{U}): a tap of it can overpay too, so its unit floats restricted
 	// and the window payment takes payRestrX's route
 	over bool
+	// life: some record is a restricted {T}, Pay N life unit (restrLifeAb):
+	// the planner's lethal guard reads the payer's life (mana_restrictedcost.go)
+	life bool
 	// chosenPair: some record is a chosen-colour widened pair (Sunken
 	// Citadel's {C}{C}), a census gap of gorge's prefix search
 	// (mana_chosenprefix.go)
@@ -171,7 +174,7 @@ func restrSrcAb(a *kop.Ability) bool {
 	// census gap of restrAnyTapMana (mana_nocounter.go)
 	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !a.ManaNoCounter && !restrWideAnyMana(a) &&
 		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice|kop.AfManaChosen) == 0 &&
-		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		(a.Cost.Flags == kop.CostTap || restrLifeAb(a)) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
@@ -204,7 +207,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			for n := 0; n <= maxDynMana; n++ {
 				g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true})
 			}
-		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 &&
+		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 && !restrLifeAb(a) &&
 			(!pc.manaChosen || a.AFlags&kop.AfManaChosen != 0):
 			rec.kind = rkWiden
 			v := *pc
@@ -250,6 +253,10 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			// (CR 106.6; Vodalian Arcanist's instant-or-sorcery {C} left over
 			// from Pull from Tomorrow's over-tap paid for a creature spell).
 			v.restrFloat = true
+			if restrLifeAb(a) {
+				v.restrLife = a.Cost.N
+				g.rs.life = true
+			}
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -561,6 +568,9 @@ func (s *State) restrViewW(k *prep, p uint8, sl Slot, own *pcard, d *payDesc) (v
 		default:
 			if !s.restrUsable(k, sl) || !s.restrSrcAdmits(k, p, sl, a, d) {
 				continue
+			}
+			if !s.restrLifePayable(k, p, rec) {
+				continue // CR 119.4: gorge withholds a last-resort unit whose life reaches the payer's
 			}
 		}
 		view := rec.view
