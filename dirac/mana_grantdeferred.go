@@ -54,3 +54,14 @@ func (s *State) deferBesideGrant(k *prep, p uint8) bool {
 	}
 	return false
 }
+
+// availGrantCountedDeferred reports whether availForMode already counted the
+// planner-deferred source sl through availGrant: under a continuous grant
+// (Enduring Vitality's "creatures you control have {T}: Add one mana of any
+// color") a deferred source's granted ability is a census unit of its own, and
+// that unit is the source's one tap (CR 605.1a), so the X window's deferred
+// census (availXWindow) must not add the rider's unit beside it. Twitching Doll
+// under Vitality made one tap count twice and offered X one past gorge's.
+func (s *State) availGrantCountedDeferred(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.anyContGrant && s.grantIdx(k, sl) >= 0
+}

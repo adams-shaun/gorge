@@ -260,6 +260,9 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			if s.pickCommittedSrc(k, b.first()) {
 				continue // a convoke/waterbend pick taps it (excludePickedSources)
 			}
+			if s.availGrantCountedDeferred(k, b.first()) {
+				continue // availFor's availGrant already counted this tap (CR 605.1a): its own unit is the gap's too
+			}
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
 				if ra.ManaRider == kop.ManaRiderDeplete {
 					// A depletion land's activation costs a counter, so gorge's window
