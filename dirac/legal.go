@@ -3169,7 +3169,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			s.g.escapeCast = true // the escape cast the action names (kw_escape.go)
 		}
 		if pref {
-			s.payCastPrefixRest(k, a, p) // the cast's untapped prefix part, before the push (mana_resolutionpay.go)
+			s.payCastPrefixRest(k, a, p, tapX) // the cast's untapped prefix part, before the push (mana_resolutionpay.go)
 		}
 		s.beginCast(k, Obj(a.Source()), a.Mode(), uint8(a.Target())) // code-ok: the target field names a retrace cast (kw_retrace.go)
 		if face {
