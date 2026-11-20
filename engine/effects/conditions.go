@@ -1731,14 +1731,25 @@ func castFromHandAdmitsFilter(h Host, spec string, objID state.ObjID, you state.
 // this helper's family (ByYou is a SUPERSTRING of the bare token; its own
 // helper runs first wherever both could appear) and is returned unchanged.
 func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
-	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
+	if strings.Contains(spec, "wasCastFromYourHandByYou") {
+		return spec, true
+	}
+	// wasCastFromHand (no "Your") is Forge's other bare hand spelling and
+	// reads the same any-caster hand origin as wasCastFromYourHand.
+	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastFromHand") {
 		return spec, true
 	}
 	holds := false
 	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
 		holds = h.WasCastFromHand(objID)
 	}
-	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHand", holds)
+	var ok bool
+	for _, tok := range []string{"wasCastFromYourHand", "wasCastFromHand"} {
+		if spec, ok = admitProvenanceAlternativesFilter(spec, tok, holds); !ok {
+			return "", false
+		}
+	}
+	return spec, true
 }
 
 // castSaFlagTokens is the effects-side list of the CastSa flag spellings
@@ -1814,7 +1825,7 @@ func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
 // lives in castFromHandAdmitsFilter / castFromHandAnyAdmitsFilter. A spec
 // without either token is returned unchanged.
 func stripWasCastFromHandToken(spec string) string {
-	if !strings.Contains(spec, "wasCastFromYourHand") {
+	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastFromHand") {
 		return spec
 	}
 	var b strings.Builder
@@ -1824,10 +1835,12 @@ func stripWasCastFromHandToken(spec string) string {
 		s2, _ := StripPredicateToken(s1, "!wasCastFromYourHandByYou")
 		s3, _ := StripPredicateToken(s2, "wasCastFromYourHand")
 		s4, _ := StripPredicateToken(s3, "!wasCastFromYourHand")
+		s5, _ := StripPredicateToken(s4, "wasCastFromHand")
+		s6, _ := StripPredicateToken(s5, "!wasCastFromHand")
 		if !first {
 			b.WriteByte(',')
 		}
-		b.WriteString(s4)
+		b.WriteString(s6)
 		first = false
 	}
 	return b.String()
