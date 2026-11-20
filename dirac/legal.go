@@ -1016,6 +1016,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false
 	}
 	if cd.Cost.X != 0 {
+		if !mayPlay && s.xTgtDepDeclined(k, p, c, o) {
+			return false
+		}
 		return s.xCostLowers(k, p, c, o)
 	}
 	if sacXCost(spellAddCost(k, c)) {
