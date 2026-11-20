@@ -23,6 +23,26 @@ type atomSeed struct {
 	// done is set when the set ran to its end: a set an environment gap
 	// skipped (no BLB deck pool, no cmd5 table) leaves it false
 	done bool
+	// skipped is set when the first caller's t.Skip ended the Do body: a
+	// sync.Once marks itself done on that Goexit, so every later caller
+	// would see an empty set (and fail on it) instead of skipping too
+	skipped bool
+}
+
+// load runs body once; a caller that finds the set skipped skips as well.
+func (a *atomSeed) load(t *testing.T, body func()) *atomSeed {
+	a.once.Do(func() {
+		defer func() {
+			if t.Skipped() && !a.done {
+				a.skipped = true
+			}
+		}()
+		body()
+	})
+	if a.skipped {
+		t.Skip("seed set skipped in this environment (no .cards, deck pool or cmd5 table)")
+	}
+	return a
 }
 
 // atomPairs is the pairs each seed set plays and atomMaxDecisions the cap on a
@@ -53,7 +73,7 @@ func (a *atomSeed) play(name string, m *Matchup, seed uint64, k Side, cfg Config
 
 func atomSlices(t *testing.T) *atomSeed {
 	a := atomSeeds["slices"]
-	a.once.Do(func() {
+	return a.load(t, func() {
 		a.st = NewAtomStats()
 		for _, set := range []string{"fdn", "blb"} {
 			var c *Corpus
@@ -80,12 +100,11 @@ func atomSlices(t *testing.T) *atomSeed {
 		}
 		a.done = true
 	})
-	return a
 }
 
 func atomSynth(t *testing.T) *atomSeed {
 	a := atomSeeds["synth"]
-	a.once.Do(func() {
+	return a.load(t, func() {
 		a.st = NewAtomStats()
 		for _, name := range []string{"std-blb", "std-otj", "std-mkm"} {
 			c := &Corpus{Reg: synthReg(t), decks: map[string][]*cards.Card{}}
@@ -111,12 +130,11 @@ func atomSynth(t *testing.T) *atomSeed {
 		}
 		a.done = true
 	})
-	return a
 }
 
 func atomPod(t *testing.T) *atomSeed {
 	a := atomSeeds["pod"]
-	a.once.Do(func() {
+	return a.load(t, func() {
 		a.st = NewAtomStats()
 		c, names := cmd5MiniCorpus(t, 40)
 		set, err := cardset.ByName("cmd5")
@@ -141,7 +159,6 @@ func atomPod(t *testing.T) *atomSeed {
 		a.play("pod", m, p.Seed, k, cfg)
 		a.done = true
 	})
-	return a
 }
 
 func atomReport(t *testing.T, a *atomSeed) {
