@@ -862,8 +862,9 @@ func (s *State) replOrderMark(src, dst Slot) {
 }
 
 // replCandLive: asked candidate i of the combat event still matches it (a
-// Twinflame Tyrant still on the battlefield under the source's controller
-// with its abilities, a recipient still preventing its combat damage; the
+// doubler or plus-N line still on the battlefield and still matching with its
+// own controller — the recipient's Tok-Tok, Volcano Born beside the source
+// controller's doublings, a recipient still preventing its combat damage; the
 // recipient a permanent still).
 func (s *State) replCandLive(k *prep, i int) bool {
 	ro := &s.g.ro
@@ -890,7 +891,20 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		return s.occ.has(ro.askD) && s.shieldN(ro.askD) > 0 && !s.noPrev(k, true)
 	}
 	if ro.plus&(1<<i) != 0 {
-		return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbPlusDmg != 0 && !s.genLost(k, sl)
+		// a plus-N line need not belong to the source's controller (the
+		// recipient's Tok-Tok, Volcano Born beside the source controller's
+		// doublings), so the host re-matches with its own controller: the
+		// same match roPlusAdd applies the pick with (repl_pluswalk.go), the
+		// source read as the frozen event's (an LKI a pause removed)
+		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 || s.genLost(k, sl) {
+			return false
+		}
+		card := s.cardAt(ro.askS)
+		if fe := s.replOrderFz(ro.askS, ro.askD); fe != nil {
+			card = fe.card
+		}
+		_, raise, ok := s.replPlusCand(k, sl, ro.askS, card, ro.actl, ro.p, ro.askD, true, int(ro.an))
+		return ok && raise == 0 // the walk collects additions only (replOrderCandsSeat)
 	}
 	if ro.prev&(1<<i) != 0 {
 		if sl == ro.askS {
@@ -898,8 +912,10 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		}
 		return s.prevCombatTo(k, sl)
 	}
-	return s.perms[sl].ctrl == ro.actl && k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) &&
-		(!k.gen.anyFiltRepl || s.dblDmgLive(k, sl))
+	// a doubler re-matches too (dblDmgMatch reads its controller and filter,
+	// CR 616.1): a candidate of another seat the widened scan collected that
+	// no longer matches is not live either
+	return k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) && s.dblDmgLive(k, sl)
 }
 
 // dealAsked deals the answered combat event as it was asked: to a
@@ -1414,7 +1430,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 				cand[c] = s.perms[b].obj
 				prev |= 1 << c
 				c++
-			} else if rb&rbPlusDmg != 0 && p == ctrl {
+			} else if rb&rbPlusDmg != 0 {
+				// every seat's battlefield: a plus-N line need not belong to
+				// the source's controller (the recipient's Tok-Tok, Volcano
+				// Born, CR 616.1); parkPlusCand re-matches with the host's own
+				// controller, so a line that does not match is not collected
 				// an addition (Fated Firepower, Hawkeye) or a raise (Ojer
 				// Axonil): gorge collects it beside every other match, so two
 				// or more are asked as its CR 616.1 order (replPlus); beside a
