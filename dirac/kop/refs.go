@@ -89,6 +89,16 @@ const (
 	// Defined$ TriggeredCardOwner; Brainstealer Dragon's "they lose life
 	// equal to its mana value". None when the trigger binds no object.
 	RefTriggerObjOwner Ref = 40
+	// RefExiledWithOwner is a player ref: the first seat in seat order whose
+	// exile zone holds a card exiled with the reading source (gorge's
+	// DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, the
+	// shared player filter's HasCardsIn<zone>_<objspec> property over the
+	// exiledBySource link reader). None when no seat's exile holds one.
+	// Unidentified Hovership's leave trigger manifests dread for the owner
+	// of the card its ETB exiled. gorge resolves the same grammar over every
+	// living seat and acts on EACH match; the corpus carrier's ETB exiles at
+	// most one card, so at most one seat can match.
+	RefExiledWithOwner Ref = 43
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2
