@@ -331,9 +331,10 @@ func TestGrantPayLifeWindow(t *testing.T) {
 	}
 }
 
-// grantSacScen: p0 controls Lotus Ring attached to a creature (tapped or
-// summoning-sick as asked) and nothing else.
-func grantSacScen(t *testing.T, tapped, sick bool) (sc *scen, ring, crt Slot, crtObj Obj) {
+// grantRingTable is the std-big matchup table holding Lotus Ring, Grand
+// Abolisher and Swamp, with each name's card id. It lives here because this
+// file may read the raw synthetic pools (internal/archtest rawTableUsers).
+func grantRingTable(t *testing.T) (*kop.Table, map[string]CardID) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Lotus Ring", Count: 1}, {Name: "Grand Abolisher", Count: 1}, {Name: "Swamp", Count: 30}}
 	tbl, _, _, err := cardsettest.Synth(t, "std-big").Matchup(deck, deck)
@@ -346,6 +347,14 @@ func grantSacScen(t *testing.T, tapped, sick bool) (sc *scen, ring, crt Slot, cr
 			id[tbl.Cards[c].Name] = CardID(c)
 		}
 	}
+	return tbl, id
+}
+
+// grantSacScen: p0 controls Lotus Ring attached to a creature (tapped or
+// summoning-sick as asked) and nothing else.
+func grantSacScen(t *testing.T, tapped, sick bool) (sc *scen, ring, crt Slot, crtObj Obj) {
+	t.Helper()
+	tbl, id := grantRingTable(t)
 	sc = newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
 	ring = sc.slot(sc.perm(id["Lotus Ring"], 0))
 	crtObj = sc.perm(id["Grand Abolisher"], 0)
