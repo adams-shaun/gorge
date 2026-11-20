@@ -152,6 +152,7 @@ Faerie Tauntings
 Fanatic of Mogis
 Fascination
 Felhide Minotaur
+Felidar Umbra
 Fendeep Summoner
 Ferocious Zheng
 Fervent Strike

@@ -199,6 +199,7 @@ Nim Abomination
 Nimble Mongoose
 Nissa's Zendikon
 Nuka-Cola Vending Machine
+Nylea's Colossus
 Nylea's Disciple
 Nylea, God of the Hunt
 Ob Nixilis's Cruelty

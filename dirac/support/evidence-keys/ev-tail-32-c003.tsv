@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Elderleaf Mentor	9dedcdf1565aada2	3	1/1		0/1	ix:resp
 Abstruse Interference	8e3a9496a8e7136b	3	0/0		1/2	ix:resp
+Advocate of the Beast	7ae5e7d97b2c2997	3	1/1		0/1	ix:resp
 Aether Shockwave	75b10252b6ac44d2	4	0/0		1/2	ix:resp
 Akoum Boulderfoot	6620cb34c344358a	4	1/1		0/1	ix:resp
 Akoum Warrior	93c44d82dae98e49	4	1/1		0/1	ix:resp
@@ -10,10 +11,15 @@ Archfiend of Sorrows	c2ba82213b6a92bf	3	2/2		0/1	ix:resp
 Attrition	0ef985a4765623fd	4	1/1		0/1	ix:resp
 Attune with Aether	47a101d74ddc953c	6	0/0		1/2	ix:resp
 Avenger of Zendikar	611d64114ddb7a9c	6	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Blade Splicer	4bf7b38627473819	5	1/1		0/1	ix:resp
+Blood Rites	52d32a5b24499be7	4	1/1		0/1	ix:resp
 Bloodcrusher of Khorne	82f674575c36ed1f	5	0/0		0/0	
 Blunt the Assault	0a9df5063530adf1	6	0/0		2/2	
+Border Guard	66f3fd32e845afd1	4	0/0		0/0	
 Bottle Golems	e3079004ea6eac43	4	1/1		0/1	ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
+Cartouche of Zeal	e6e0191f2f3d783b	4	1/1		1/2	ix:resp
+Castaway's Despair	2a16c4f02fe18444	4	1/1		1/2	ix:resp
 Celestial Purge	fc7614349e489e95	3	0/0		1/2	ix:resp
 Channel the Suns	6e9449f2faaba16f	4	0/0		1/2	ix:resp
 Chatter of the Squirrel	1b2ac842c78713d3	18	0/0		3/4	ix:resp
@@ -21,25 +27,33 @@ Cho-Arrim Bruiser	8da9466c6dc4cc46	8	1/1		0/1	ix:resp
 Cloak of Feathers	13ff21a010b55211	4	0/0		1/2	ix:resp
 Cloud Elemental	dc4854121b224215	11	0/0		0/0	
 Cloudchaser Kestrel	1b4d06b603f67e1d	3	2/2		0/1	ix:resp
+Cognivore	067dffb8c72cd043	4	0/0		0/0	
 Colossus of Akros	f965b58ddd1e5fe2	4	1/1		0/1	ix:resp
 Conclave Mentor	1734751da5fc61e0	6	1/1		0/1	ix:resp
+Consuming Sinkhole	aaba51e0a0b7d214	3	0/0		1/2	ix:resp
 Court of Grace	3f6d129e1128e59d	4	2/2		0/1	ix:resp
 Curious Altisaur	4fd65777f2356619	4	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	8	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
+Dark Ritual	4016e227d34cd7ba	4	0/0		1/2	ix:resp
 Death's Presence	fb2c2b24647bb67f	14	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	8	2/2		0/1	ix:resp
 Dementia Bat	7fefb2d594260e1b	6	1/1		0/1	ix:resp
+Demon of Loathing	e06d1882a2b202ad	5	1/1		0/1	ix:resp
 Demonic Tutor	e78fccb54d2ffe91	4	0/0		2/2	
 Dismiss	98c54a5dacadbdcc	5	0/0		1/2	ix:resp
 Draugr Thought-Thief	eafff8feb9916d5a	4	1/1		0/1	ix:resp
 Drown in Ichor	43334b7985e29b44	6	0/0		1/2	ix:resp
 Dryad Greenseeker	10da06049d9715a6	6	1/1		1/1	
 Duskhunter Bat	4f0b1730f213e3a8	4	0/0		0/0	
+Dwarven Warriors	4f547993319d89ea	8	1/1		1/1	
+Eastfarthing Farmer	9239456232cabf37	7	1/1		1/1	
 Eidolon of Countless Battles	bc5b37372736de1d	6	0/0		2/2	
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	4	2/2		1/1	
+Electric Revelation	25a8c22df611b5d4	4	0/0		3/4	ix:resp
 Elvish Eulogist	31a072bf359b170f	8	1/1		1/1	
 Endurance Bobblehead	fc15a4d77c37e468	5	2/2		0/1	ix:resp
 Eternal Skylord	8b6a49b6344af639	6	1/1		0/1	ix:resp
+Evaporate	3063c6f97bbe6f92	9	0/0		1/2	ix:resp
 Explosive Impact	72838393582bdc92	4	0/0		2/2	
 Eye of Nowhere	03883b778672e449	4	0/0		1/2	ix:resp
 Facevaulter	2909076beb61b45a	4	1/1		0/1	ix:resp
@@ -47,18 +61,23 @@ Familiar Ground	9e019d807c452cca	7	0/0		0/0
 Farm	2f4db5359f1f465f	3	0/0		3/5	f1/s,ix:resp
 Feral Abomination	f1081f770e37d37f	4	0/0		0/0	
 Filigree Fracture	670dceaaa8bb9af1	6	0/0		2/2	
+Flamekin Harbinger	0288122736a63d93	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Floating-Dream Zubera	520f297966eac78a	4	1/1		0/1	ix:resp
 Flying Dolphin-Fish	71421889e414afcb	8	0/0		0/0	
 Flywheel Racer	d35861af7b172ee9	10	2/2		1/1	
 Frogtosser Banneret	755c354027fd2824	4	0/0		0/0	
 Frontline Devastator	277bee8fe4fac8a5	4	2/2		0/1	ix:resp
+Frostweb Spider	b2db8676c700f7e1	4	1/1		0/1	ix:resp
 Gaea's Embrace	ee212e4d653d8d21	4	1/1		2/2	
 Garrison Griffin	4c8c27bbdfe89372	6	1/1		0/1	ix:resp
 Geier Reach Sanitarium	ee37f4aca0e0ca9b	8	2/2		1/1	
 Gisa's Bidding	222d17a4cd4c92c6	3	0/0		1/2	ix:resp
 Glare of Subdual	e82f9ccbf8daa479	6	1/1		1/1	
+Go-Shintai of Shared Purpose	2e513825a4c9d0cd	4	1/1		0/1	ix:resp
 Goblin Tutor	5e1c4709480ba930	4	0/0		1/2	ix:resp
+Grip of Desolation	a32d280394672b49	6	0/0		1/2	ix:resp
 Hasran Ogress	8939eb42c6436bd1	4	1/1		0/1	ix:resp
+Heart Sliver	0dd78a85bc43e35d	6	0/0		0/0	
 Heliod's Pilgrim	05d3608d962c6c8e	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Heroic Charge	2d50c74879c0a100	3	0/0		3/4	cast/alt:none
 Highway Robber	4cc39da9a221e5ec	3	1/1		0/1	ix:resp
@@ -74,8 +93,12 @@ Kruin Striker	dbb51f5c9bae5ba2	3	1/1		1/1
 Kukemssa Pirates	0273c4e4bed563ba	6	1/1		1/1	
 Lancer Sliver	76a74b77bba6a153	8	0/0		0/0	
 Lavakin Brawler	f6629e87dd7865ad	4	1/1		0/1	ix:resp
+Levitating Statue	90119dadde7ea2ce	9	2/2		1/1	
 Light the Way	f11cb04f318b08e0	4	0/0		1/2	ix:resp
+Luminarch Ascension	38fdfddb010b3cd3	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lure	9ced1345a90e21cc	3	0/0		1/2	ix:resp
+Luxury Suite	2362b0253117ef22	19	1/1		0/1	ix:resp
+Lys Alana Bowmaster	1fc7ab58554ea0a5	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Magus of the Candelabra	b116c1f49741c075	4	1/1		1/1	
 Manaweft Sliver	8c556ca2a1e27b7e	3	0/0		0/0	
 Mandibular Kite	5f19e89369943863	4	2/2		0/1	ix:resp
@@ -87,21 +110,26 @@ Mindless Null	a765b6fba3bc77f0	10	0/0		0/0
 Mire Blight	98df71dfa6b06a3d	8	1/1		1/2	ix:resp
 Mistcutter Hydra	2de897cc411ea6cb	3	0/0		0/0	
 Misthios's Fury	155b18c98f9c4537	3	0/0		2/2	
+Mistmeadow Skulk	9b174e2944506280	4	0/0		0/0	
 Morbid Bloom	7b097cd23dea84d4	3	0/0		1/2	ix:resp
 Mortician Beetle	d7f2cc00ffcf62d4	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mukotai Soulripper	67c0d8776cf746a4	4	2/2		0/1	ix:resp
+Mystic Restraints	b496d88f717cd75b	6	1/1		1/2	ix:resp
 Night Scythe	8eaa9c81ea0207bf	4	2/2		0/1	ix:resp
 Oni Possession	e0f135010e3f4566	4	1/1		1/2	ix:resp
 Pattern of Rebirth	f8d43138beeffdf3	6	1/1		1/2	ix:resp
 Peer Through Depths	d0bec7273520c057	4	0/0		1/2	ix:resp
 Penance Stare	f6dd18f79d56e3e0	4	0/0		1/2	ix:resp
+Pest Infestation	089a4fa800ae3be1	5	0/0		3/4	f0/s/x0
 Phantasmal Sphere	1b1889e3eb82d388	4	2/2		0/1	ix:resp
+Pious Wayfarer	c2ffbc6dec7b5ccc	8	1/1		0/1	ix:resp
 Prakhata Pillar-Bug	4856157e9f2f3f44	4	1/1		1/1	
 Precognition Field	ba9459db912443dc	6	1/1		0/1	ix:resp
 Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp
 Provoke	1927cf5f31f1c64e	4	0/0		1/2	ix:resp
 Radiant Fountain	1e041f359ea30061	10	2/2		0/1	ix:resp
 Raging Spirit	f9ad9a26c24fae84	4	1/1		1/1	
+Rakka Mar	c7acdf82078f50bc	4	1/1		0/1	ix:resp
 Rakshasa's Secret	c17edfcfb9c791fb	6	0/0		1/2	ix:resp
 Ranger Class	47c93d9c14873a29	6	4/4		0/1	ix:resp
 Ravenloft Adventurer	31a684881da81801	8	2/2		0/1	ix:resp
@@ -122,12 +150,14 @@ Shanna, Sisay's Legacy	7f2b94337e08e70d	3	0/0		0/0
 Shieldmate's Blessing	91f0ec1ede912277	4	0/0		1/2	ix:resp
 Sizzle	068432165589f605	4	0/0		1/2	ix:resp
 Skyclave Shade	ecdcd108240338a1	10	1/1		3/3	
+Skyshroud Troll	cb852c49e3bca104	5	1/1		0/1	ix:resp
 Sokka, Swordmaster	57eafca79c98ec24	8	1/1		0/1	ix:resp
 Sonic Screwdriver	168f84b6aa170072	4	4/4		1/1	
 Soul Bleed	4c4338ec96c1e1fb	4	1/1		1/2	ix:resp
 Squall Line	11be3bb1b639b381	4	0/0		2/4	f0/s/x0,ix:resp
 Steady Progress	a4cef3e6d4be2954	8	0/0		2/2	
 Storm Crow	68ab9f2ac1943e67	8	0/0		0/0	
+Strandwalker	3587eaca0aecb313	4	2/2		0/1	ix:resp
 Strike It Rich	8c822a83734b9fae	6	0/0		3/4	ix:resp
 Sunblade Angel	38ace76c9f490d60	6	0/0		0/0	
 Sure-Footed Infiltrator	c70d5094b324b84f	4	2/2		0/1	ix:resp
@@ -136,6 +166,7 @@ Thunder Wall	b79042ece3c9e901	8	1/1		1/1
 Titanic Brawl	0c104d2b6ec7008a	5	0/0		2/2	
 Toph, Earthbending Master	2ad409b3c7cd55a4	3	2/2		1/1	
 Turnabout	39f0619628aba853	6	0/0		2/2	
+Unwavering Initiate	29b674f3413a81df	3	1/1		0/1	ix:resp
 Urza's Cave	5eaf7852b36bc0df	25	2/2		0/1	ix:resp
 Valakut Fireboar	53ea89743e709d1d	4	1/1		0/1	ix:resp
 Vaporkin	e366e826894f1096	4	0/0		0/0	
@@ -144,6 +175,7 @@ Vexing Sphinx	3f85457aabccf346	8	2/2		1/1
 Vindictive Flamestoker	38f5dcccbad881ad	4	2/2		0/1	ix:resp
 Viridian Zealot	e050a00bd5975a6f	7	1/1		1/1	
 Vivid Revival	0d44b681287d8277	3	0/0		1/2	ix:resp
+Vivisection	154e638428835d9d	4	0/0		2/2	
 Voda Sea Scavenger	7543fb8314fcaea4	6	1/1		0/1	ix:resp
 Walking Archive	4650562fe3985ab2	10	2/2		1/1	
 Warleader's Helix	370fb45690050f6d	7	0/0		2/2	
@@ -154,3 +186,4 @@ Wilderness Elemental	b1ffff6bdc456ae2	6	0/0		0/0
 Witch's Mist	2e13e9b24d660c8c	3	1/1		0/1	ix:resp
 Witness of Tomorrows	f11687a9be46948c	4	1/1		0/1	ix:resp
 Wose Pathfinder	343f212c7c4d134f	4	2/2		0/1	ix:resp
+Xanthic Statue	9250703625a44a5a	4	1/1		0/1	ix:resp
