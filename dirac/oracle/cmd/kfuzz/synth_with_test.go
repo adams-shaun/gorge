@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -48,7 +49,9 @@ func TestFuzzSynthWithFlag(t *testing.T) {
 	if code > 1 {
 		t.Fatalf("exit %d, stderr %q", code, stderr)
 	}
-	if !strings.Contains(stdout, "f: 4 games (") {
+	// The run's name is the focus file's base name. Its game count is not pinned: a pair can skip as unsupported when
+	// the corpus or kgen's supported set moves (11-20: batches #2803/#2804 saw "f: 3 games (1 skipped as unsupported)").
+	if !regexp.MustCompile(`(?m)^f: [1-4] games \(`).MatchString(stdout) {
 		t.Errorf("the run is not named after the focus file:\n%s", stdout)
 	}
 	b, err := os.ReadFile(cov)
