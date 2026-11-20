@@ -2690,19 +2690,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if dur, ok := ps.get("Duration"); ok {
 		return lc.pumpAllDuration(ps, f, dur)
 	}
-	var scope lRef
-	if vt, ok := ps.get("ValidTgts"); ok {
-		// "creatures target player controls" (gorge targetPlayerKindScope:
-		// only the targeted player's permanents; an unresolvable scope
-		// sweeps nothing): the player target slot rides Obj
-		pf, err := lc.filter(vt)
-		if err != nil {
-			return err
-		}
-		if len(pf.Clauses) != 0 || pf.Players == 0 {
-			return refuse("PumpAll ValidTgts$ %q: not a player target", vt)
-		}
-		scope = lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf})}
+	scope, err := lc.pumpAllScope(ps)
+	if err != nil {
+		return err
 	}
 	if err := lc.pumpAllRemember(ps, f, scope); err != nil { // lower_rememberwritersmass.go
 		return err
@@ -2800,6 +2790,25 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		lc.emit(lInstr{Op: "KwMark", F: f, C: marks, Note: kwMarkNames(marks) + " until end of turn"}) // every permanent matching ValidCards$
 	}
 	return nil
+}
+
+// pumpAllScope lowers PumpAll ValidTgts$ "creatures target player controls"
+// (gorge targetPlayerKindScope: only the targeted player's permanents; an
+// unresolvable scope sweeps nothing): the player target slot rides Obj. No
+// ValidTgts$ is the zero scope.
+func (lc *lowerCtx) pumpAllScope(ps *params) (lRef, error) {
+	vt, ok := ps.get("ValidTgts")
+	if !ok {
+		return lRef{}, nil
+	}
+	pf, err := lc.filter(vt)
+	if err != nil {
+		return lRef{}, err
+	}
+	if len(pf.Clauses) != 0 || pf.Players == 0 {
+		return lRef{}, refuse("PumpAll ValidTgts$ %q: not a player target", vt)
+	}
+	return lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf})}, nil
 }
 
 // pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as an
