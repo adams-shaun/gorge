@@ -24,7 +24,7 @@ func (lc *lowerCtx) trigHybridOK(c lCost) bool {
 	m := c.Mana
 	return lc.trigOwnCost && !lc.unlessCost && !lc.wardCost && lc.trigXMax == nil &&
 		len(m.Hybrid) <= kop.PayHybMax && len(m.Twobrid)+len(m.Phyrexian) == 0 &&
-		c.ExileG == nil && !c.ExileStackSelf && c.DrawN == 0
+		c.ExileG == nil && !c.ExileStackSelf && c.DrawN == 0 && c.DrawBy == nil
 }
 
 // payManaF packs a PayMana instruction's F: the life paid beside the mana
