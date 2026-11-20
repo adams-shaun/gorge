@@ -1589,10 +1589,11 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
-	case potentialModeBaseCostDisturb:
-		// CR 702.146a: the disturb cost, plus the back face's own SP Cost$
-		// extras, exactly the offer's price (legal_walk_alt.go).
-		bf, dc, ok := disturbCast(e.G.Obj(id))
+	case potentialModeBaseCostDisturb, potentialModeBaseCostConverted:
+		// CR 702.146a / 702.162a: the disturb or MTMtE cost, plus the back
+		// face's own SP Cost$ extras, exactly the offer's price
+		// (legal_walk_alt.go, legal_walk_hand.go).
+		bf, dc, ok := flippedCast(e.G.Obj(id), code == potentialModeBaseCostConverted)
 		if !ok {
 			return Cost{}, false
 		}
@@ -1648,8 +1649,8 @@ func potentialModeCastFace(o *state.Object, mode string) *cards.Face {
 		return roomAlternateCastFace(o)
 	case potentialModeBaseCostAftermath:
 		return aftermathAlternateFace(o)
-	case potentialModeBaseCostDisturb:
-		bf, _, _ := disturbCast(o)
+	case potentialModeBaseCostDisturb, potentialModeBaseCostConverted:
+		bf, _, _ := flippedCast(o, potentialModeBaseCostCodes.Code(string(mode)) == potentialModeBaseCostConverted)
 		return bf
 	}
 	return nil
@@ -2706,6 +2707,7 @@ const (
 	potentialModeBaseCostPrototype
 	potentialModeBaseCostMultikick
 	potentialModeBaseCostSuspend
+	potentialModeBaseCostConverted
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2727,6 +2729,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "room_alt", Val: potentialModeBaseCostRoomAlt},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "aftermath", Val: potentialModeBaseCostAftermath},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "disturb", Val: potentialModeBaseCostDisturb},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "converted", Val: potentialModeBaseCostConverted},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_recast", Val: potentialModeBaseCostAdventureRecast},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
