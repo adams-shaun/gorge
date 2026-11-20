@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -37,12 +38,10 @@ func tableCorpus(t *testing.T) string {
 	return d
 }
 
-func buildAll(t *testing.T, cards string) *tableBuild {
+// checkBuild holds a corpus build to what every one must satisfy: no ids.tsv
+// would change (make dirac-tables is stale) and the pool count did not collapse.
+func checkBuild(t *testing.T, tb *tableBuild) *tableBuild {
 	t.Helper()
-	tb, err := buildTables(gorge.TableSources(), cards, "testkey")
-	if err != nil {
-		t.Fatal(err)
-	}
 	if len(tb.ids) > 0 {
 		t.Fatalf("building changes %d ids.tsv files, first %s: run make dirac-tables", len(tb.ids), tb.ids[0].pool)
 	}
@@ -50,6 +49,48 @@ func buildAll(t *testing.T, cards string) *tableBuild {
 		t.Fatalf("%d tables, want at least %d", tb.tables, wantPools)
 	}
 	return tb
+}
+
+// buildAt is one full corpus build at cards under key.
+func buildAt(t *testing.T, cards, key string) *tableBuild {
+	t.Helper()
+	tb, err := buildTables(gorge.TableSources(), cards, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return checkBuild(t, tb)
+}
+
+// The package's one corpus build, shared by the tests below: four builds per
+// package run became one. The result is read-only — the callers scan its bytes,
+// never write them.
+var (
+	sharedOnce sync.Once
+	sharedTB   *tableBuild
+	sharedErr  error
+)
+
+// sharedBuild runs that build, once per package run, at the corpus's real key
+// (the published key: TestTablesUpToDate compares it against what that key
+// holds). The per-caller checks run on every caller, so each test fails on its
+// own invariant even when another test ran the build.
+func sharedBuild(t *testing.T) *tableBuild {
+	t.Helper()
+	cards := tableCorpus(t)
+	key, err := cardset.KeyFor(cards)
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip(err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	sharedOnce.Do(func() {
+		sharedTB, sharedErr = buildTables(gorge.TableSources(), cards, key)
+	})
+	if sharedErr != nil {
+		t.Fatal(sharedErr)
+	}
+	return checkBuild(t, sharedTB)
 }
 
 // What is published under this binary's key is what a rebuild makes. It backs the
@@ -73,13 +114,7 @@ func TestTablesUpToDate(t *testing.T) {
 	if !tablesComplete(dir) {
 		t.Fatalf("no tables for key %s in %s: run make dirac-tables", key, dir)
 	}
-	tb, err := buildTables(gorge.TableSources(), cards, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(tb.ids) > 0 {
-		t.Fatalf("building changes %d ids.tsv files, first %s: run make dirac-tables", len(tb.ids), tb.ids[0].pool)
-	}
+	tb := sharedBuild(t)
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -99,25 +134,10 @@ func TestTablesUpToDate(t *testing.T) {
 	}
 }
 
-// Two builds, one on a single P and one through a symlinked -cards at another path,
-// give the same bytes: nothing depends on scheduling or on where the corpus is.
-func TestTableBuildDeterministic(t *testing.T) {
-	cards := tableCorpus(t)
-
-	old := runtime.GOMAXPROCS(1)
-	one := buildAll(t, cards)
-	runtime.GOMAXPROCS(old)
-
-	abs, err := filepath.Abs(cards)
-	if err != nil {
-		t.Fatal(err)
-	}
-	link := filepath.Join(t.TempDir(), "corpus-link")
-	if err := os.Symlink(abs, link); err != nil {
-		t.Fatal(err)
-	}
-	two := buildAll(t, link)
-
+// sameTables holds two corpus builds to byte-identical file lists: nothing may
+// reach a table's bytes but the pool inputs and the key.
+func sameTables(t *testing.T, one, two *tableBuild) {
+	t.Helper()
 	if len(one.files) != len(two.files) {
 		t.Fatalf("%d files vs %d", len(one.files), len(two.files))
 	}
@@ -131,6 +151,58 @@ func TestTableBuildDeterministic(t *testing.T) {
 		}
 	}
 	t.Logf("%d tables, %d files, %d table bytes, identical", one.tables, len(one.files), one.bytes)
+}
+
+// The shared build and ONE build through a symlinked -cards at another path,
+// both at the default GOMAXPROCS, give the same bytes: nothing depends on where
+// the corpus is. The single-P arm is TestTableBuildDeterministicSingleP.
+func TestTableBuildDeterministic(t *testing.T) {
+	cards := tableCorpus(t)
+	key, err := cardset.KeyFor(cards)
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip(err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	one := sharedBuild(t)
+
+	abs, err := filepath.Abs(cards)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "corpus-link")
+	if err := os.Symlink(abs, link); err != nil {
+		t.Fatal(err)
+	}
+	two := buildAt(t, link, key)
+
+	sameTables(t, one, two)
+}
+
+// The one-P arm of the determinism test: a build at GOMAXPROCS=1 gives the same
+// bytes as the shared build at the default, so nothing depends on scheduling. It
+// costs a full corpus build, so it runs only on the nightly (KGEN_NIGHTLY=1,
+// which the ci schedule job sets).
+func TestTableBuildDeterministicSingleP(t *testing.T) {
+	if os.Getenv("KGEN_NIGHTLY") != "1" {
+		t.Skip("nightly only: set KGEN_NIGHTLY=1")
+	}
+	cards := tableCorpus(t)
+	key, err := cardset.KeyFor(cards)
+	if errors.Is(err, cardset.ErrNoCorpus) {
+		t.Skip(err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	one := sharedBuild(t)
+
+	old := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(old)
+	two := buildAt(t, cards, key)
+
+	sameTables(t, one, two)
 }
 
 // pathLeaks names the needles in data.
@@ -168,7 +240,7 @@ func TestTablesCarryNoPaths(t *testing.T) {
 		t.Fatal("the scan misses a planted corpus path")
 	}
 
-	tb := buildAll(t, cards)
+	tb := sharedBuild(t)
 	var kinds [3]int
 	for _, f := range tb.files {
 		switch {

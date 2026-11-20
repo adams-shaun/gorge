@@ -298,7 +298,8 @@ jobs:
           # The nightly run takes every package, experimental ones included.
           # The nightly also holds dirac/docs/support.md and dirac/kgen's pins byte for byte; a PR or queue batch fails
           # only on a fall. Exact pins in a batch failed PRs each green alone: two +1s pinned 24642, the batch 24643 (11-17).
-          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1 DIRAC_SUPPORT_STRICT=1 DIRAC_PIN_STRICT=1; fi
+          # KGEN_NIGHTLY=1 runs dirac/kgen's single-P table build test, which costs a full corpus build.
+          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1 DIRAC_SUPPORT_STRICT=1 DIRAC_PIN_STRICT=1 KGEN_NIGHTLY=1; fi
           pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS")
           echo "$pkgs" | wc -l | xargs echo "packages:"
           count= tags=
