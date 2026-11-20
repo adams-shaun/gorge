@@ -1332,11 +1332,15 @@ func (fs *filtSearch) phasedFallback() bool {
 // (scriptSearch.feeGaps): a gap whose mana ability makes two or more mana for
 // a mana fee, a combination filter such as Baxter Building's {4}, {T}: add
 // four mana in any combination of colours. A one-unit filter's fee is no
-// fee-carrying gap in gorge either.
+// fee-carrying gap in gorge either, and neither is a dynamic amount's (Three
+// Tree City's X).
 func (s *State) feeOrderGaps(k *prep, f slotMask) slotMask {
 	var m slotMask
 	for ; f.any(); f = f.rest() {
 		sl := f.first()
+		if s.filtAb(k, sl).AFlags&kop.AfManaDynamic != 0 {
+			continue // gorge's availableAmount reads a non-literal amount as zero units
+		}
 		if s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
 			m = m.with(sl)
 		}
@@ -2164,15 +2168,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		if skip {
 			continue
 		}
-		// feeOrder's passes 1 and 2 split the filter gaps: pass 1 the
-		// fee-carrying ones, pass 2 the fee-free ones (and every non-filter
-		// gap). gorge's phaseAt marks the split with feeGaps, not with the
-		// phase flag, so another gap kind stays in the later pass.
-		if fs.feeOrder && gap {
-			if fs.gaps.has(sl := order[0]) && false {
-				_ = sl
-			}
-		}
 		fs.orderFunders(k, t, order[:n], gap)
 		var tried [MaxPerm]Slot
 		ntried := 0
@@ -2185,6 +2180,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				continue
 			}
 			if fs.skipSlot(k, t, sl, gap, freeOnly) {
+				continue
+			}
+			// feeOrder's gap passes split by feeGaps (gorge's phaseAt feeOnly):
+			// pass 1 walks the fee-carrying gaps, pass 2 every other gap.
+			if fs.feeOrder && gap && fs.feeGaps.has(sl) != (pass == 1) {
 				continue
 			}
 			if gap && fs.other.has(sl) {
