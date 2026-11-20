@@ -673,6 +673,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/cmd/shadowbench": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/cmd/sbv2dirac": {
       "tier": "dirac",
       "status": "EXT"
