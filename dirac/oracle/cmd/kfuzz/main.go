@@ -232,7 +232,7 @@ func run() int {
 		srchKind   = flag.String("search", "paranoid", "-search-seats: the search, paranoid or maxn")
 		srchSims   = flag.Int("search-sims", oracle.SearchSeatDefaultSims, "-search-seats: simulations per searched decision")
 		pods       = flag.Int("pods", 0, "-seats above 2: pods to play (one game each; 0: -pairs)")
-		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5")
+		cmdMini    = flag.Int("cmd-mini", 0, "-seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck); 0 plays the full precons: -kernel gorge, or a Commander pool such as cmd5 or edh")
 		eventTail  = flag.Int("events", 0, "-repro: print the last N events of gorge's log when the game ends, objects named by card")
 		refusedIn  = flag.Bool("play-refused", false, "pool runs: play the pairs holding a card refused by name too, as scripts/dirac-first-refusals.py settle does")
 		playInter  = flag.Bool("play-interaction-refused", false, "pool runs: play the pairs the kernel's interaction guard refuses too, to observe the divergence or stall the refusal hides (diagnostic; evidence runs keep refusing)")
@@ -332,10 +332,12 @@ func run() int {
 		*kernel = "gorge"
 	}
 	if *seats > 2 && *kernel != "gorge" {
-		podKernel := *kernel == "vanilla" || *kernel == "fdn" && (*synth != "" || *cmdMini > 0)
+		// a registered pool (a Commander pool's full precons among them), a
+		// -synth pool or vanilla plays a pod
+		podKernel := *kernel == "vanilla" || *kernel == "fdn"
 		switch {
 		case !podKernel:
-			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla, a -synth pool or a -cmd-mini Commander pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
+			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: a kernel game of more than two seats plays -kernel vanilla, a registered pool or a -synth pool; -kernel %s plays two seats (-kernel gorge plays any)\n", *seats, *kernel)
 			return 2
 		case *seats > dirac.MaxSeats:
 			fmt.Fprintf(os.Stderr, "kfuzz: -seats %d: the kernel holds %d seats (-kernel gorge plays any)\n", *seats, dirac.MaxSeats)
