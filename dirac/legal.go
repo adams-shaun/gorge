@@ -2562,7 +2562,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				anyAdd := func(sl Slot, mask, n uint8) {
 					cen.anyAddAb(sl, ab, mask, n, abDrop, addAb, fold)
 				}
-				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
+				if !s.addAnyDifferentOrOpen(k, p, sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
 				open = s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, &cen, fold) || open
@@ -2939,8 +2939,17 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 // ability. On the census (units) a fixed any-colour production joins modal
 // once, the same bound the walk prices an open source's own tap at, while an
 // each-colour one is unbounded to the census and joins nothing (a dynamic
-// one's faces join unbounded).
-func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+// one's faces join unbounded) -- except on the X-bound sweep's per-tap
+// census (boundedAny, kgen's EachColorAmong production): gorge's planner
+// census misses it and prices the play only through paymentPlanRelaxProof's
+// relaxation of the missed ability, one activation making one mana of each
+// colour among its permanents (Bloom Tender's shape, doc.go), so the census
+// prices the production there too, one unit per colour. An omitted one made
+// the record's refusal a proof where the relaxation pays: Thrive's {G} off
+// Faeburrow Elder ("{T}: add one mana of each colour among permanents you
+// control") was refused and the cast dropped from the priority options
+// (tail-07 pair 144, decision 335).
+func (s *State) addAnyDifferentOrOpen(k *prep, p uint8, sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
 	if anyDifferentTapAb(ab) {
 		add(sl, 0x1f, 1)
 		return true
@@ -2949,6 +2958,17 @@ func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny, cens
 		if census && !boundedAny && ab.ManaColors == kop.ColAny &&
 			ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice) == 0 {
 			add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		}
+		if census && boundedAny && ab.AFlags&kop.AfManaEachColor != 0 {
+			// the relaxation's units (eachColorOut's colours, CR 118.3c's one
+			// mana per tap per colour; addOrMerge's all-at-once split): one
+			// per-colour unit, never a union one, so an announcement the one
+			// tap funds is priced and one it cannot fund is not
+			if n := max(ab.ManaN, 1); n != 0 {
+				for m := uint8(s.eachColorOut(k, p, sl)); m != 0; m &= m - 1 {
+					add(sl, m&-m, n)
+				}
+			}
 		}
 		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
 		return true
