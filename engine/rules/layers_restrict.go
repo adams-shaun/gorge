@@ -41,6 +41,18 @@ func (e *Engine) RestrictionApplies(mode string, id state.ObjID) bool {
 // resolved from it inside the matcher. Called from the target offer and the
 // CR 608.2b resolution recheck.
 func (e *Engine) restrictionBlocksTarget(id state.ObjID, actor state.PlayerID, source state.ObjID, sa *cards.SA) bool {
+	// An Aura's attach targeting (the K:Enchant spell the target census and
+	// the CR 608.2b recheck both read here; sa is the expanded SP$ Attach): a
+	// live Aura-shape CantAttach static (cards.CantAttachAuraShape,
+	// cantAttachAuraBlocks) withholds the bearer it names. An Equipment's
+	// equip or any non-attach targeting of the same object is not an Aura
+	// attachment, so neither the source-is-Aura read nor the Attach API lets
+	// this arm fire for them.
+	if sa != nil && sa.API == "Attach" {
+		if so := e.G.Obj(source); so != nil && e.isAura(so) && cantAttachAuraBlocks(e, source, id) {
+			return true
+		}
+	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.Restriction != "CantTarget" {
