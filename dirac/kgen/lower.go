@@ -2068,6 +2068,12 @@ func (lc *lowerCtx) lowerKeywords() {
 			// entry: a life-pip cast would enter Jace at full loyalty
 			// where gorge enters it two loyalty lower per pip.
 			lc.refuseNode(node, "keyword %q: the pips' life does not reach the entry loyalty", head)
+		case lc.passThroughKeyword(node, k, head):
+			// an expansion-only head (cards.KeywordExpansionOnly) whose
+			// expansion lines are on the face (lower_kwpassthrough.go): the
+			// keyword lowers nothing itself and the expansion's own lines
+			// lower below. Last before the default, so every arm above wins
+			// first and the existing lowerings stay byte-identical.
 		default:
 			lc.lowerKeywordElse(node, head, param) // lower_kwhandlers.go
 		}
