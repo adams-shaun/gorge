@@ -2603,7 +2603,18 @@ func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, ab
 // caller has checked k.gen.anyTapExtra, the lethal guard's refusal and the
 // pain-only face.
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
-	xv := s.srcExtra(k, sl, pc)
+	var xv [kop.NumManaKinds]uint8
+	if pc.painCol != 0 {
+		// a painful source's unit here is its normal ability's: the extra of
+		// that tap (srcExtraPain's xc); the painful pick's is priced where
+		// that alternative is (a stall counted when it cannot be)
+		var ok bool
+		if xv, _, _, ok = s.srcExtraPain(k, sl, pc); !ok {
+			return
+		}
+	} else {
+		xv = s.srcExtra(k, sl, pc)
+	}
 	for c, v := range xv {
 		// srcExtra holds the source's own all-at-once rest (pcard.manaXv),
 		// which the tap's colour mask already priced; only the carrier's part

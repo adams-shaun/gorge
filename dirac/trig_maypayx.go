@@ -127,6 +127,21 @@ func (s *State) trigXTapExtras(k *prep, p uint8) (n int) {
 		if !s.canTapForManaPC(k, sl, pc) || pc.manaAb < 0 {
 			continue
 		}
+		if pc.painCol != 0 {
+			// a painful source is priced once at its larger alternative
+			// (srcExtraPain: the normal ability's extra or the painful pick's)
+			xc, xp, r, ok := s.srcExtraPain(k, sl, pc)
+			if !ok {
+				continue
+			}
+			nc, np := 0, int(r)
+			for c := range xc {
+				nc += int(xc[c])
+				np += int(xp[c])
+			}
+			n += max(nc, np)
+			continue
+		}
 		for _, v := range s.srcExtra(k, sl, pc) {
 			n += int(v)
 		}
