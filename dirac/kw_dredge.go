@@ -376,6 +376,9 @@ func (s *State) dredgeResTail(k *prep, site objWord, p uint8) {
 		s.finishResolve(k, false)
 	case dredgeResRing:
 		s.ringLootDiscard(k, p) // the draw is done; the loot's discard follows
+		if s.res.ask == raNone {
+			s.finishResolve(k, false) // ringLootDiscard leaves the pop to its caller
+		}
 	default:
 		panic("kernel: bad dredge draw site")
 	}
