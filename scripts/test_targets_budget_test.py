@@ -145,7 +145,9 @@ def known_slow_rows(text):
 def test_known_slow_list_only_shrinks():
     rows = known_slow_rows((REPO / "docs/agents/known-slow.md").read_text())
     got = {(r[0], r[1]) for r in rows}
-    assert got <= KNOWN_SLOW_PINS, "known-slow.md gained a row (never add one; split the test): %s" % sorted(got - KNOWN_SLOW_PINS)
+    extra, stale = got - KNOWN_SLOW_PINS, KNOWN_SLOW_PINS - got
+    assert not extra, "known-slow.md gained a row (never add one; split the test): %s" % sorted(extra)
+    assert not stale, "KNOWN_SLOW_PINS has a pair the table no longer lists (delete both when fixed): %s" % sorted(stale)
     for r in rows:
         assert r[3].split()[0].strip("`") in ACTIONS, "row %s has no owner action (split, shard or nightly)" % r[:2]
         assert re.fullmatch(r"\d+(\.\d+)?", r[2]), "row %s: median seconds is not a number" % r[:2]
