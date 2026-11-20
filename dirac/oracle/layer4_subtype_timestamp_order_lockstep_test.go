@@ -107,6 +107,9 @@ func layer4SubtypeTimestampOrderPolicy(seed uint64) Policy {
 // overrides with different timestamps. The check hook counts that mechanism in
 // the kernel, so the test cannot pass on a pod that never assembles it.
 func TestLayer4SubtypeTimestampOrderFourSeat(t *testing.T) {
+	// synthReg first: it skips without a corpus, and printedDelveSet would
+	// otherwise fatal on the missing .cards (a fresh clone must skip, not fail).
+	synthReg(t)
 	var deck []string
 	deck = append(deck, deckOf(4, "Wishful Merfolk")...)
 	deck = append(deck, deckOf(4, "Butch DeLoria, Tunnel Snake")...)
