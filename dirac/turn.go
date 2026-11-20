@@ -408,9 +408,9 @@ func (s *State) finishCleanup(k *prep) {
 		if p.flags&pfDeathtouched != 0 {
 			p.cseen |= cseenDT // gorge lists the removed mark at 0
 		}
-		p.flags &^= pfDeathtouched | pfDtMore | pfRegen | pfRegenX
+		p.flags &^= pfDeathtouched | pfDtMore | pfRegen
 		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
-		p.spare &^= spareSwitchPT // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
+		p.spare &^= spareSwitchPT | spareRegenX // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
