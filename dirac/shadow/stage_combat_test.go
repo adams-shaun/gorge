@@ -20,7 +20,7 @@ import (
 // from the deciding seat's view and held to the replayed state, then both are
 // played to the game's end.
 
-const MaxObjs = 256
+const MaxObjs = dirac.MaxObj
 
 const (
 	combatGames    = 320

@@ -164,7 +164,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		st.tried++
 		in := &shadow.Input{
 			View: v, Hidden: hidden, Tbl: env.tbl, Cfg: stageCfg(), Seed: seed,
-			ObjOf: func(id int) (uint8, bool) { return uint8(ref.InstRef(state.ObjID(id))), true },
+			ObjOf: func(id int) (dirac.Obj, bool) { return dirac.Obj(ref.InstRef(state.ObjID(id))), true },
 		}
 		w, err := shadow.WorldFromView(in)
 		var staged *dirac.State
@@ -248,7 +248,7 @@ func hasMarks(v *view.View) bool {
 }
 
 func card(ref *oracle.GorgeSide, g *state.Game, id state.ObjID) shadow.Card {
-	return shadow.Card{Obj: uint8(ref.InstRef(id)), Name: g.Obj(id).Face().Name}
+	return shadow.Card{Obj: dirac.Obj(ref.InstRef(id)), Name: g.Obj(id).Face().Name}
 }
 
 // compareAndPlay checks the staged state against the replayed one, then plays both out.
