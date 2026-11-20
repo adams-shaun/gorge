@@ -83,7 +83,6 @@ Aether Meltdown
 Aether Syphon
 Aetherflux Reservoir
 Aetherjacket
-Aethertorch Renegade
 Afterburner Expert
 Aftermath Analyst
 Afterthought Sentry
@@ -389,7 +388,6 @@ Balemurk Leech
 Baloth Cage Trap
 Baloth Prime
 Balthier and Fran
-Balustrade Spy
 Bandage
 Bandit's Haul
 Banishing Betrayal
@@ -420,10 +418,8 @@ Barrenton Medic
 Barret, Avalanche Leader
 Barrow Naughty
 Bartel Runeaxe
-Barter in Blood
 Bartz and Boko
 Baru, Fist of Krosa
-Bashful Beastie
 Basic Conjuration
 Basilica Bell-Haunt
 Basilisk Gate
@@ -847,7 +843,6 @@ Cetacean Ops
 Ceti Eel
 Chain Devil
 Chain Reaction
-Chainsaw
 Chakram Slinger
 Chameleon Blur
 Champion of Dusan
@@ -1453,7 +1448,6 @@ Dune Drifter
 Dune-Brood Nephilim
 Duneblast
 Durable Handicraft
-Duskmourn's Domination
 Duskwatch Hunter
 Dust Animus
 Dust Stalker
@@ -1609,7 +1603,6 @@ End-Blaze Epiphany
 Endbringer
 Endrider Spikespitter
 Enduring Scalelord
-Enduring Vitality
 Energize
 Energy Bolt
 Energy Tap
@@ -1765,7 +1758,6 @@ Fblthp, Impossibly Lost
 Fblthp, Knows the Way
 Fear
 Fear of Abduction
-Fear of Exposure
 Fear of Falling
 Fearful Villager
 Fearless Fledgling
@@ -2321,7 +2313,6 @@ Hamlet Captain
 Hamlet Glutton
 Hammer of Nazahn
 Hammerfist Giant
-Hand That Feeds
 Hapatra's Mark
 Hapatra, the Desert Frost
 Hapless Researcher
@@ -2490,7 +2481,6 @@ Hot Dog Cart
 Hotshot Investigators
 Hour of Reckoning
 Hour of Victory
-House Cartographer
 How to Keep an Izzet Mage Busy
 Howl from Beyond
 Howler's Heavy
@@ -3713,7 +3703,6 @@ Omnath, Locus of Creation
 Omnath, Locus of the Roil
 Omni-Cheese Pizza
 Omnipresence
-Omnivorous Flytrap
 On the Job
 On the Shoulders of Giants
 Ondu Greathorn
@@ -3775,7 +3764,6 @@ Outcaster Trailblazer
 Outflank
 Outland Liberator
 Outlaw Stitcher
-Outmaneuver
 Outpace Oblivion
 Outrageous Robbery
 Ovalchase Dragster
@@ -5531,7 +5519,6 @@ The Pride of Hull Clade
 The Princess Takes Flight
 The Promise of Kahless
 The Queen of Dale
-The Rollercrusher Ride
 The Ruinous Wrecking Crew
 The Sackville-Bagginses
 The Seriema

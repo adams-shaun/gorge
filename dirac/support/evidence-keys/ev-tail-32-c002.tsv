@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Elderleaf Mentor	9dedcdf1565aada2	6	1/1		0/1	ix:resp
 Abstruse Interference	8e3a9496a8e7136b	4	0/0		1/2	ix:resp
+Advocate of the Beast	7ae5e7d97b2c2997	6	1/1		1/1	
 Aether Shockwave	75b10252b6ac44d2	4	0/0		2/2	
 Akki Rockspeaker	1c877c1f66b78259	14	1/1		0/1	ix:resp
 Akoum Boulderfoot	6620cb34c344358a	6	1/1		0/1	ix:resp
@@ -188,6 +189,8 @@ Strike It Rich	8c822a83734b9fae	22	0/0		3/4	ix:resp
 Sunblade Angel	38ace76c9f490d60	10	0/0		0/0	
 Surreal Memoir	fb97a45aded28399	12	0/0		1/2	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp
+Tezzeret's Touch	498134adc120c39a	5	1/1		2/2	
+The Unspeakable	ca366311c699b77c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Thran Lens	7eae2099f3b2d778	10	0/0		0/0	
 Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		0/1	ix:resp
 True Conviction	ba3973b3d50957e5	5	0/0		0/0	

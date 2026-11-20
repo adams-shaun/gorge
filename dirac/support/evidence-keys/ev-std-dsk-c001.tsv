@@ -2,14 +2,20 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Abandoned Campground	3443acda32ddc940	3	1/1		0/1	ix:resp
 Acrobatic Cheerleader	0a7272f66463a072	4	1/1		0/1	ix:resp
 Anthropede	6804f2f4fbdef81c	10	1/1		0/1	ix:resp
+Appendage Amalgam	40e78962d25f9e52	4	1/1		0/1	ix:resp
 Balustrade Wurm	718c9ef4a0bfd812	4	1/1		0/1	ix:resp
 Baseball Bat	3d8de30527de66a5	7	3/3		0/1	ix:resp
+Bashful Beastie	48ae72be72a60c09	4	1/1		0/1	ix:resp
 Bear Trap	84c11baf5d45f604	7	1/1		0/1	ix:resp
 Beastie Beatdown	feba4f988dfa9075	4	0/0		1/2	ix:resp
 Break Down the Door	900a4ac6cfc57a29	10	0/0		1/2	ix:resp
 Broodspinner	7fd50caa7edd13e8	4	2/2		0/1	ix:resp
+Cackling Slasher	fd83930bebce7d9c	5	0/0		0/0	
 Cathartic Parting	d0808b86cdf89e87	3	0/0		2/2	
+Cautious Survivor	ec3f07467de424ab	4	1/1		0/1	ix:resp
+Chainsaw	9fe04f9fc377814c	4	3/3		0/1	ix:resp
 Clammy Prowler	2a106b8a2ddbc49a	4	1/1		0/1	ix:resp
+Clockwork Percussionist	54d3e6bbb72048b0	4	1/1		0/1	ix:resp
 Come Back Wrong	415e6bf9a45daa61	4	0/0		1/2	ix:resp
 Commune with Evil	4392f02203304a58	6	0/0		1/2	ix:resp
 Conductive Machete	00b704910893c666	5	2/2		0/1	ix:resp
@@ -20,14 +26,18 @@ Cursed Windbreaker	24a29e4c6fc5d243	4	2/2		0/1	ix:resp
 Defiant Survivor	52ad36c47c2b155b	9	1/1		0/1	ix:resp
 Dissection Tools	6fbc34eb37f54b75	4	2/2		0/1	ix:resp
 Diversion Specialist	d69333498cc9578f	7	1/1		1/1	
+Duskmourn's Domination	9341e7bc1bde532f	7	0/0		2/2	
 Enduring Courage	e968f9659848a30e	4	2/2		1/1	
 Enduring Curiosity	442d7f321bb0091f	8	2/2		0/1	ix:resp
 Enduring Innocence	2143fdbc9f5a3dcc	4	2/2		0/1	ix:resp
+Enduring Vitality	18b366ff787e9a23	5	1/1		0/1	ix:resp
 Enter the Enigma	7c3f1b3df9beb852	3	0/0		1/2	ix:resp
+Etched Cornfield	6d81bd2da4e0c413	8	1/1		0/1	ix:resp
 Ethereal Armor	f366ac2a380a3093	4	0/0		2/2	
 Exorcise	877a3a380a6761e8	3	0/0		1/2	ix:resp
 Fear of Being Hunted	bbdf79e50162faaf	4	0/0		0/0	
 Fear of Burning Alive	d8570b55baddb459	3	2/2		0/1	ix:resp
+Fear of Exposure	9536228ca553c8be	6	0/0		1/2	ix:resp
 Fear of Immobility	2e83ac63e24d6771	3	1/1		0/1	ix:resp
 Fear of Impostors	7d0b49016ae9ab66	9	1/1		0/1	ix:resp
 Fear of Lost Teeth	23aa4fe42424dbe7	5	1/1		0/1	ix:resp
@@ -45,11 +55,15 @@ Glimmerburst	e1cdc4faa2eca006	4	0/0		1/2	ix:resp
 Glimmerlight	b981658c06b621b8	5	2/2		1/1	
 Grasping Longneck	6492594225186ff2	4	1/1		0/1	ix:resp
 Hardened Escort	21b05b149868ac20	9	1/1		0/1	ix:resp
+Haunted Screen	ff496b6c310db187	9	3/3		0/1	ix:resp
 Horrid Vigor	0484f0f668b72d06	9	0/0		1/2	ix:resp
+House Cartographer	5c52e36e97c892d0	7	1/1		0/1	ix:resp
+Impossible Inferno	8fba96a3ca8b4939	6	0/0		2/2	
 Innocuous Rat	07c8b6062d337f6f	8	1/1		0/1	ix:resp
 Insidious Fungus	312308efacecb7b3	4	1/1		0/1	ix:resp
 Irreverent Gremlin	3179d317ddb861b8	4	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	20	1/1		0/1	ix:resp
+Kona, Rescue Beastie	bb361e3a88060908	9	1/1		0/1	ix:resp
 Leyline of the Void	34d3310d76eeafd3	6	0/0		0/0	
 Lionheart Glimmer	ffe16451b5e0fb86	3	2/2		0/1	ix:resp
 Living Phone	2010815e5dfd06de	3	1/1		0/1	ix:resp
@@ -58,8 +72,10 @@ Most Valuable Slayer	9e038097f002eb95	3	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	6	1/1		0/1	ix:resp
 Neglected Manor	7683b951635e381e	3	1/1		0/1	ix:resp
 Norin, Swift Survivalist	a31917a3160b5c56	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Omnivorous Flytrap	f9a5a0f85017dcf5	3	2/2		1/1	
 Overlord of the Boilerbilges	8ef1c2a03d1c7503	7	2/2		2/3	ix:resp
 Overlord of the Floodpits	a875a526978b75c1	4	2/2		2/3	ix:resp
+Overlord of the Hauntwoods	306485f2b210534e	13	2/2		2/3	ix:resp
 Overlord of the Mistmoors	ce44c8c5c47e55e0	4	2/2		2/3	ix:resp
 Paranormal Analyst	529a60bc4917151f	5	1/1		0/1	ix:resp
 Patched Plaything	86609f02c8d3e66c	4	0/0		0/0	
@@ -73,6 +89,8 @@ Pyroclasm	2a83a3795de80e5f	3	0/0		1/2	ix:resp
 Ragged Playmate	aa66f281014b123e	4	1/1		0/1	ix:resp
 Rampaging Soulrager	017e76c0d50be8ac	4	0/0		0/0	
 Razorkin Hordecaller	d61f74d592c99622	4	1/1		0/1	ix:resp
+Razorkin Needlehead	4a508afe3e1a1104	6	1/1		0/1	ix:resp
+Razortrap Gorge	63886ad147e81fa6	3	1/1		0/1	ix:resp
 Reluctant Role Model	ae09e885cd66331e	7	2/2		0/1	ix:resp
 Resurrected Cultist	ae1a885ca34af5cc	6	1/1		0/1	ix:resp
 Rip, Spawn Hunter	47f44a58c2842706	3	1/1		0/1	ix:resp
@@ -87,7 +105,10 @@ Silent Hallcreeper	5d4598b0031afae9	5	1/1		0/1	ix:resp
 Spineseeker Centipede	0c5049eff1b5f439	3	1/1		0/1	ix:resp
 Split Up	02787bd3216d25be	8	0/0		1/2	ix:resp
 Sporogenic Infection	38c7db7c3bf30b3f	9	2/2		1/2	ix:resp
+Stay Hidden, Stay Silent	bb9f57d6e866a3ac	4	2/2		2/2	
 Swamp	342b413902f441c3	25	1/1		0/1	ix:resp
+The Rollercrusher Ride	f3985745985ced0d	3	1/1		0/1	ix:resp
+The Swarmweaver	a2723ebe441575fd	5	1/1		0/1	ix:resp
 Tunnel Surveyor	813afd70141fc821	4	1/1		0/1	ix:resp
 Turn Inside Out	733324a44405ebe8	5	0/0		1/2	ix:resp
 Twist Reality	9fcad707611080d5	4	0/0		1/2	ix:resp
@@ -95,6 +116,7 @@ Twitching Doll	2004089e922a56c9	12	2/2		1/1
 Tyvar, the Pummeler	967f63465ddf6d59	3	2/2		1/1	
 Under the Skin	90cdf53c1c4bccce	9	0/0		1/2	ix:resp
 Unnerving Grasp	330b4d11c652cc64	3	0/0		1/2	ix:resp
+Untimely Malfunction	9e98f272a3df51e0	6	0/0		1/2	ix:resp
 Unwanted Remake	cbe8c5fe66a2df20	4	0/0		1/2	ix:resp
 Vanish from Sight	7150390cced0b929	4	0/0		1/2	ix:resp
 Vengeful Possession	1cde54610e118afd	3	0/0		1/2	ix:resp

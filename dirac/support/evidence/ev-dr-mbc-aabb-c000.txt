@@ -5,6 +5,8 @@ Ancient Stirrings
 Armed
 Arrogant Wurm
 Axgard Cavalry
+Balustrade Spy
+Barter in Blood
 Blightbeetle
 Blightsoil Druid
 Blood Knight
@@ -22,6 +24,7 @@ Explore
 Fanatical Devotion
 Feign Death
 Fell
+Fire Servant
 Forest
 Gelatinous Genesis
 Harmonize
@@ -31,15 +34,20 @@ Jaheira, Friend of the Forest
 Kappa Tech-Wrecker
 Kaya's Ghostform
 Marionette Apprentice
+Massacre
 Maular, the Next Evolution
 Meekstone
 Mountain
+Outmaneuver
+Overgrown Battlement
 Phantom Centaur
+Phyrexian Rager
 Phyrexian Reclamation
 Piracy Charm
 Plains
 Poison Dart Frog
 Raiders' Wake
+Reckless Impulse
 Reckless Wurm
 Resolute Reinforcements
 Restoration Specialist
