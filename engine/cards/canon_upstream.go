@@ -17,7 +17,7 @@ import (
 var upstreamMarkers = [...][]byte{
 	[]byte("TriggeredPlayer"), []byte("TriggeredAttackingPlayer"),
 	[]byte("TriggeredDefendingPlayer"), []byte("TriggeredDefender"),
-	[]byte("hasMoreLifeThanYou"), []byte("!wasCastFromHand"), []byte("controlsCreature.attacking Player.EnchantedBy"),
+	[]byte("hasMoreLifeThanYou"), []byte("controlsCreature.attacking Player.EnchantedBy"),
 }
 
 // attackConditionRewrites are context-free: Forge's Condition$ shorthands that
@@ -31,10 +31,6 @@ var attackConditionRewrites = strings.NewReplacer(
 	"Condition$ AttackedPlayerWithMostLife",
 	"Attacked$ Player.hasMoreLifeThanYou",
 	"Attacked$ Player.hasMoreLifeThanActive",
-	// Wash Away: upstream spells the owner's hand as the generic hand zone; a
-	// spell is cast from its owner's hand except under a cast-from-another-hand
-	// effect.
-	"ValidTgts$ Card.!wasCastFromHand", "ValidTgts$ Card.!wasCastFromTheirHand",
 	// the Curse cycle: only the attacking player controls attackers, so the
 	// triggered attacking player is the one opponent the new form names.
 	"$ Player.Opponent+controlsCreature.attacking Player.EnchantedBy",

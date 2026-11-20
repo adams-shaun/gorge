@@ -41,9 +41,6 @@ func TestCanonicalizeUpstream(t *testing.T) {
 		{"Guild Artisan",
 			"S:Mode$ Continuous | CheckSVar$ TriggeredDefendingPlayer$LifeTotal | SVarCompare$ GECount$OppGreatestLifeTotal",
 			"S:Mode$ Continuous | Condition$ NoOpponentHasMoreLifeThanAttacked"},
-		{"Wash Away",
-			"A:SP$ Counter | ValidTgts$ Card.!wasCastFromHand",
-			"A:SP$ Counter | ValidTgts$ Card.!wasCastFromTheirHand"},
 	}
 	for _, c := range cases {
 		got := string(canonicalizeUpstream([]byte(c.in)))
