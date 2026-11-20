@@ -346,12 +346,21 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	if chk.needT == 0 {
 		return
 	}
-	force = force && abn.NTargets > 0
+	force = force && abn.NTargets > 0 && abn.Cost.Flags&kop.CostTap != 0
 	if force {
 		// The tapX search's prefix taps the plan's needed-colour sources
 		// before the play (mana_tapanother.go), as gorge's one search does:
 		// float them here so the target ask sees the same board. The
 		// remaining generic is the post-push planner's, as it is in gorge.
+		// Only a play whose own cost taps its source floats: the held {T}
+		// (CR 602.2b) is the play's own unit, so gorge's pre-play floats
+		// cover the whole mana part beside it (Nephalia Smuggler's {3}{U},
+		// {T}, activation_tapx_payment_floats_before_target). A plain-cost
+		// activation's gap float is its prefix's last word: gorge pays the
+		// rest at payment, after the push, and its target ask sees the
+		// board only as far as the gap's float went (a Springleaf Drum
+		// beside an untapped Swamp floating one of a {2B} ability's two
+		// units: no more taps before the target ask).
 		held := sl != NoSlot && abn.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
 		if held {
 			s.perms[sl].flags |= pfTapped
