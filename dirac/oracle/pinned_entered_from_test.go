@@ -28,7 +28,13 @@ func TestPinnedEnteredFromBroughtBack(t *testing.T) {
 }
 
 func TestPinnedEnteredFromGrimReturn(t *testing.T) {
-	t.Parallel()
+	// the recorded decks hold Yavimaya beside Thriving Isle and Shimmerdrift
+	// Vale, mana sources whose own ability is no plain {T} one: the land-grant
+	// refusal keeps that pair out of a deal now, and the game never met the
+	// stall, so landGrantReplay replays it with the refusal off
+	if landGrantReplay(t) {
+		return
+	}
 	pinnedOwnCards(t, "tail-15", Config{GorgeAutopaySurface: true}, onStack("Grim Return"), diedCardLeavesGraveSameTurn)
 }
 
@@ -43,7 +49,10 @@ func TestPinnedEnteredFromSalvagerOfRuin(t *testing.T) {
 }
 
 func TestPinnedEnteredFromMoira(t *testing.T) {
-	t.Parallel()
+	// as Grim Return: the recorded decks hold Yavimaya beside Thriving Isle
+	if landGrantReplay(t) {
+		return
+	}
 	pinnedOwnCards(t, "tail-15", Config{GorgeAutopaySurface: true}, onStack("Moira, Urborg Haunt"), diedCardLeavesGraveSameTurn)
 }
 
