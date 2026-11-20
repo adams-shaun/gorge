@@ -580,9 +580,10 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		return false
 	}
 	if ctrAnyColour(ab) {
-		if !fs.tick() {
-			return false // the counter ability's colour ask
-		}
+		// The any-colour ability is flattened into one option per colour in
+		// the "choose a mana ability" ask (announce_pay.go
+		// AnnouncedAbilityColours), so its colours are answers of that ask,
+		// not a second ask: the tick above already charged the node.
 		order := t.ctrColOrder(k, fs.a)
 		// The one-shot flexible gap's colour prune (gorge's oneShotAskPrune,
 		// potential_script.go, cut D): while a fixed pip is owed, a colour
