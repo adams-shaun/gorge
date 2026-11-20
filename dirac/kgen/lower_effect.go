@@ -2370,8 +2370,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if lc.pumpPlayerRef(obj) {
 			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
 		}
-		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
-			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
+		if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
+			return err // lower_pumpendcombat.go
 		}
 		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
 			return refuse("Pump Duration %q", d)

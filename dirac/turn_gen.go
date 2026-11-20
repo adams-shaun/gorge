@@ -788,11 +788,11 @@ func (s *State) cleanupGen(k *prep) {
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {
-			if r := &s.g.fx[i]; r.kind == fxOverride && r.r.eot() {
+			if r := &s.g.fx[i]; ovCleanupEnds(k, r) {
 				ended = ended.with(r.sl)
 			}
 		}
-		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
+		s.dropFx(func(i int) bool { return ovCleanupEnds(k, &s.g.fx[i]) })
 		if k.gen.anyNTOv {
 			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
 		}

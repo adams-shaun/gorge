@@ -189,6 +189,11 @@ type Override struct {
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
+	// UntilEndCombat: the record ends with the combat (Duration$ UntilEndOfCombat
+	// on a Pump of a battlefield object; the kernel drops it on the way out of
+	// StepEndCombat and at cleanup, dirac/static_ovendcombat.go). It is applied
+	// with DurPermanent, so the end-of-turn drop leaves it alone.
+	UntilEndCombat bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
