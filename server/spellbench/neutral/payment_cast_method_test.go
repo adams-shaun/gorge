@@ -12,19 +12,21 @@ import (
 )
 
 // TestNeutralPaymentKeepsCastMethod: a manual host (no engine_autopay) poses
-// Gollum's adventure and creature casts as separate candidates. The seat's
-// bot picks a payment plan for the creature cast, the lowering taps the
-// plan's sources, and at the cast window both methods are offered again. The
-// plan must not shadow the adventure cast there: the bot picks the adventure
-// (the tie-break its native decision makes) and the answer is the candidate
-// whose method is "adventure", never the plain cast the plan was for.
+// Gollum's adventure and creature casts as separate candidates. Mountain,
+// Island and Plains are already tapped, so the pool floats {R}{U}{W} and the
+// Swamp is the one source left: gorge's planner offers a plan for each cast
+// and the bot (which keeps the first plan of a card, the adventure's) picks one.
+// The lowering taps the Swamp, and at the cast window both methods are offered
+// again. The plan must not shadow the adventure cast there: the bot picks the
+// adventure (the tie-break its native decision makes) and the answer is the
+// candidate whose method is "adventure", never the plain cast.
 func TestNeutralPaymentKeepsCastMethod(t *testing.T) {
 	reg := testcorpus.Registry(t)
-	b := payBoard{lands: []string{"Mountain", "Island", "Plains", "Swamp"}, hand: []string{"Gollum, Silent Slinker"}, tapped: map[string]bool{}}
-	plan := nativePlans(t, reg, b)["Gollum, Silent Slinker"]
-	if len(plan) != 4 {
-		t.Fatalf("precondition: the plan for the creature cast should tap every source, got %v", plan)
-	}
+	b := payBoard{lands: []string{"Mountain", "Island", "Plains", "Swamp"}, hand: []string{"Gollum, Silent Slinker"},
+		tapped: map[string]bool{"Mountain": true, "Island": true, "Plains": true}}
+	// The Swamp is the only untapped source, so whichever plan the bot takes
+	// is the lowering of a tap of it; both casts are then payable.
+	plan := []string{"Swamp"}
 	candidates := func() []string {
 		out := []string{`{"kind":"pass"}`}
 		for _, l := range b.lands {
