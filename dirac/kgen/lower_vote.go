@@ -144,11 +144,10 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
 	if lc.ab.Kind == akTriggered {
 		if !store {
-			// gorge asks a spurious placement mode for a triggered fixed-list
-			// Vote (charm_params.go isModalSA), a gorge defect the general
-			// lowering does not copy. The StoreVoteNum$ carriers this change
-			// admits cannot lower without that ask, so only that form
-			// reproduces it.
+			// Only the StoreVoteNum$ form of a triggered fixed-list Vote is
+			// lowered; the refusal's text is the name the census and
+			// TestVoteChoicesLowers pin (gorge no longer asks the placement
+			// mode it names, so the other carriers can follow with a pod).
 			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
 		}
 		return lc.triggeredFixedVote(names, tie, store)
@@ -163,27 +162,15 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 }
 
 // triggeredFixedVote lowers a StoreVoteNum$ fixed-list Vote on a triggered
-// ability. Gorge treats a triggered Vote's Choices$ as modal at trigger
-// placement (charm_params.go isModalSA) and asks the controller one mode
-// before the trigger goes on the stack; effVote never reads that answer. The
-// kernel asks the same placement mode only when the ability carries modes, so
-// the vote (and its branches) is repeated once per mode behind an OpCharm
-// block: the chosen mode runs its copy, the others are skipped, and every
-// copy resolves the same vote.
+// ability. A triggered Vote's Choices$ names the ballot options (CR 701.38a),
+// not modes (CR 603.3c): gorge poses no placement ask for it (askTriggerModes
+// returns false for API Vote) and effVote asks each voter at resolution, so
+// the ability carries no modes and the vote and its branches are emitted once.
 func (lc *lowerCtx) triggeredFixedVote(names []string, tie string, store bool) error {
 	if lc.ab.Modes != 0 {
 		return refuse("Vote on an ability that is already modal")
 	}
-	lc.ab.Modes, lc.ab.ModesPick, lc.ab.ModesMin = len(names), 1, 1
-	for i := range names {
-		at := len(lc.ab.Prog)
-		lc.emit(lInstr{Op: "Charm", C: i})
-		if err := lc.emitFixedVote(names, tie, store); err != nil {
-			return err
-		}
-		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
-	}
-	return nil
+	return lc.emitFixedVote(names, tie, store)
 }
 
 // emitFixedVote emits the ExtVote op and its branch blocks.
