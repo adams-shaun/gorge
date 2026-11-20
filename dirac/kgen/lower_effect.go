@@ -2291,6 +2291,42 @@ func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
 	return nil
 }
 
+// pumpCtrlGrant lowers a battlefield object's Pump Duration$ AsLongAsControl
+// whose subject is not the ability's source (Aegis Angel's enters trigger,
+// Kyodai, Thancred Waters, Possession Engine, There and Back Again): one
+// host-bound override record (kop.Override.AsLongAsControl; gorge
+// registerPumpEffects anchors the grant to the HOST through DurationSource,
+// CR 611.2b). A self-scoped shape (the untap lock, lower_untaplock.go) is
+// pumpObjectRef's other arm and refuses above.
+func (lc *lowerCtx) pumpCtrlGrant(kw string, hasKW bool, obj lRef) error {
+	cantAtk := false
+	cantBlk := false
+	if hasKW {
+		// the "can't attack or block" sentence's block half is the override's
+		// CantBlock keyword grant, its attack half the record's CantAttack
+		// (the EOT shape in pumpBody); "can't attack." alone is CantAttack
+		kw, cantAtk = splitKWSentence(kw, cantAttackOrBlockKW)
+		cantBlk = cantAtk
+		var only bool
+		kw, only = splitKWSentence(kw, cantAttackKW)
+		cantAtk = cantAtk || only
+	}
+	o := &lOverride{CantAttack: cantAtk, WhileHost: true, AsLongAsControl: true}
+	if hasKW {
+		if err := lc.protKwInto(o, kw); err != nil {
+			return err
+		}
+	}
+	if cantBlk {
+		o.AddKw = append(o.AddKw, "CantBlock")
+	}
+	if !cantAtk && o.AddKw == nil && o.ProtFrom == nil {
+		return refuse("Pump Duration %q without KW$", "AsLongAsControl")
+	}
+	lc.emitOverride(obj, o, "AsLongAsControl")
+	return nil
+}
+
 // pumpNextTurnObject lowers a battlefield object's Pump Duration$
 // UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
 // durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
@@ -2344,6 +2380,25 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 	return nil
 }
 
+// pumpObjectDuration lowers a Pump with a Duration$ whose subject is not a
+// player: the UntilYourNextTurn, UntilEndOfCombat and AsLongAsControl override records, or the
+// Duration$ Permanent keyword grant; any other duration, or a P/T pump, refuses.
+func (lc *lowerCtx) pumpObjectDuration(ps *params, obj lRef, zone int, d string, na, nd bool, kw string, hasKW bool) error {
+	if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
+		return err // lower_pumpendcombat.go: UntilYourNextTurn, UntilEndOfCombat
+	}
+	if d == "AsLongAsControl" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+		if na || nd {
+			return refuse("Pump Duration %q with a P/T pump", d)
+		}
+		return lc.pumpCtrlGrant(kw, hasKW, obj)
+	}
+	if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
+		return refuse("Pump Duration %q", d)
+	}
+	return lc.pumpPermanentKwGrant(kw, obj)
+}
+
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
 // extra is the keyword a KWChoice$ branch chose (nil for a plain Pump).
 func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) error {
@@ -2370,13 +2425,7 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if lc.pumpPlayerRef(obj) {
 			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
 		}
-		if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
-			return err // lower_pumpendcombat.go
-		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+		return lc.pumpObjectDuration(ps, obj, zone, d, na, nd, kw, hasKW)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {

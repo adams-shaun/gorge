@@ -598,6 +598,23 @@ func (s *State) hostHere(e *stackEntry) bool {
 	return ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer
 }
 
+// DebugNoOvCtrlCheck disables the controller check an AsLongAsControl
+// override makes at application (mutation testing only: the lockstep must
+// catch it).
+var DebugNoOvCtrlCheck bool
+
+// DebugNoOvCtrlChange disables ovCtrlDrop, the control-change expiry of
+// AsLongAsControl override records (mutation testing only).
+var DebugNoOvCtrlChange bool
+
+// DebugNoOvCtrlLeft disables hostLeft's drop of host-bound override records
+// (mutation testing only).
+var DebugNoOvCtrlLeft bool
+
+// DebugNoOvCtrlPhase disables the phase-out expiry of AsLongAsControl
+// override records (mutation testing only).
+var DebugNoOvCtrlPhase bool
+
 // applyWhileHost applies the host-bound override idx to the permanent at sl.
 //
 //go:noinline
@@ -605,7 +622,18 @@ func (s *State) applyWhileHost(k *prep, sl Slot, idx int, e *stackEntry) {
 	if !s.hostHere(e) || k.t.Overrides[idx].WhileTapped && s.perms[s.objs[e.obj].slot].flags&pfTapped == 0 {
 		return // a WhileTapped host that is not tapped starts nothing (gorge registerAnimateEffects)
 	}
-	s.applyOverridePT(k, sl, idx, e.card, 0, int16(e.obj), int16(e.srcVer))
+	t := int16(e.srcVer)
+	if k.t.Overrides[idx].AsLongAsControl {
+		// CR 611.2b: nothing applies while the activator does not control the
+		// host (gorge registerPumpEffects' checkValidDuration). The applied
+		// record answers to that controller: t's low byte holds the host's
+		// ver, its high byte the controller ovCtrlDrop reads back.
+		if !DebugNoOvCtrlCheck && s.perms[s.objs[e.obj].slot].ctrl != e.ctrl {
+			return
+		}
+		t |= int16(e.ctrl) << 8
+	}
+	s.applyOverridePT(k, sl, idx, e.card, 0, int16(e.obj), t)
 }
 
 // hostLeft ends the effects whose host is object o, leaving the
@@ -616,7 +644,7 @@ func (s *State) hostLeft(k *prep, o Obj) {
 	if s.fxM.any() {
 		s.dropFx(func(i int) bool {
 			r := &s.g.fx[i]
-			return r.kind == fxOverride && k.t.Overrides[r.r.idx-1].WhileHost && Obj(r.r.p) == o
+			return !DebugNoOvCtrlLeft && r.kind == fxOverride && k.t.Overrides[r.r.idx-1].WhileHost && Obj(r.r.p) == o
 		})
 		s.refreshTy(k)
 	}
@@ -635,6 +663,53 @@ func (s *State) hostLeft(k *prep, o Obj) {
 		}
 	}
 	s.embCaptureLapse(k, o) // static_emblemcapture.go
+}
+
+// ovCtrlDrop ends the host-anchored AsLongAsControl override records whose
+// host is object o now that o's controller is to and the record's is not
+// (gorge expireAsLongAsControl on the host's ControlChange, CR 611.2b): the
+// grant is gone for good, it does not come back when control returns, and a
+// control change of the pumped object is not this record's rule to end by
+// (its host is the anchor).
+//
+//go:noinline
+func (s *State) ovCtrlDrop(k *prep, o Obj, to uint8) {
+	if DebugNoOvCtrlChange || !s.fxM.any() {
+		return
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		if r.kind != fxOverride { // other kinds carry no override row (idx 0)
+			return false
+		}
+		ov := &k.t.Overrides[r.r.idx-1]
+		return ov.WhileHost && ov.AsLongAsControl && Obj(r.r.p) == o && uint8(r.r.t>>8) != to
+	})
+	s.refreshTy(k)
+}
+
+// ovCtrlPhaseDrop ends the host-anchored AsLongAsControl override records
+// whose host is object o as o phases out (gorge expireAsLongAsControl on the
+// PhaseOut fold, CR 611.2b: "for as long as you control CARDNAME" ends on the
+// host's phase-out and does not revive when it phases back in). phaseOut
+// recurses over the attachments it phases out indirectly (CR 702.26g), so a
+// record anchored to an attachment of the phasing permanent ends here too --
+// the fold emitted the one PhaseOut event and nothing names the attachment.
+//
+//go:noinline
+func (s *State) ovCtrlPhaseDrop(k *prep, o Obj) {
+	if DebugNoOvCtrlPhase || !s.fxM.any() {
+		return
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		if r.kind != fxOverride { // other kinds carry no override row (idx 0)
+			return false
+		}
+		ov := &k.t.Overrides[r.r.idx-1]
+		return ov.WhileHost && ov.AsLongAsControl && Obj(r.r.p) == o
+	})
+	s.refreshTy(k)
 }
 
 // ovCantAttack reports whether an override record on the permanent at sl

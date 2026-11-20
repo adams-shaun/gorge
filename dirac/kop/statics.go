@@ -186,6 +186,16 @@ type Override struct {
 	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
 	// (the record's P/T fields hold the host).
 	WhileTapped bool
+	// AsLongAsControl: Duration$ AsLongAsControl on a record whose subject
+	// is not its source (Aegis Angel's "another target permanent gains
+	// indestructible for as long as you control CARDNAME"). WhileHost
+	// beside it: the applied record keeps the host's Obj and ver in its P/T
+	// fields and the applying entry's controller in t's high byte, and it
+	// starts only when the resolving controller controls the host (gorge
+	// registerPumpEffects' checkValidDuration). It ends for good when the
+	// host changes controller or phases out (gorge expireAsLongAsControl,
+	// CR 611.2b), besides the WhileHost departure drop.
+	AsLongAsControl bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool

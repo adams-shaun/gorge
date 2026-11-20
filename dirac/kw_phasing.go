@@ -184,6 +184,9 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 		z = kop.ZonePhasedInd
 	}
 	s.objs[o].zone = z
+	if k.gen != nil && k.gen.anyWhileHost {
+		s.ovCtrlPhaseDrop(k, o) // CR 611.2b: AsLongAsControl overrides end with the host's phase-out (filter_combatwords.go)
+	}
 	for m := s.occ; m.any(); m = m.rest() {
 		if q := m.first(); s.occ.has(q) && s.perms[q].attached == sl {
 			s.phaseOut(k, q, true)
