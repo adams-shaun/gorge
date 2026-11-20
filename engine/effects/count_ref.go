@@ -466,7 +466,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	}
 	switch refTargetsCodes.Code(string(ref)) {
 	case refTargetsTargeted:
-		return c.Targets, true
+		return chainTargets(c), true
 	case refTargetsParentTarget:
 		// The NEAREST targeting parent link's targets (parent_targets.go):
 		// Flourishing Grapple's X = ParentTargeted$CardPower is DBPump's
@@ -871,7 +871,10 @@ func refTargetUnion(c *Ctx) []state.Target {
 	if c.AllTargets != nil {
 		return c.AllTargets
 	}
-	return c.Targets
+	// The root's own list when it has one, else the nearest targeting
+	// parent link's answer (a ChangeZone sub that chose its own target
+	// mid-resolution -- Expel the Unworthy's trailing "its controller").
+	return chainTargets(c)
 }
 
 // castManaSpentTotals is one cast's recorded CR 601.2h / 106.12 spend
