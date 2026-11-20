@@ -108,6 +108,18 @@ type payDesc struct {
 	// once-only limit); a gap the fundability gate skipped is out of gorge's
 	// census and marks nothing (paidGapProbe)
 	gapRepeats bool
+	// gapGain: some admitted paid gap's production can exceed its fee (a
+	// dynamic amount, an each-colour or reflected read, a tap extra), so it
+	// raises the mana a payment can spend and the covered census alone is no
+	// honest supply bound for the X-bound sweep's count arm (gorge
+	// paymentPlanCensus.gapGains, manaFeeNetsNoMana; CR 106.1, 605.3b)
+	gapGain bool
+	// gapSkipPaid leaves every fee-bearing mana ability out of the walk: the
+	// X-bound sweep's count census is gorge's planner census, which lists
+	// free-cost abilities only (a paid ability is a gap, never a unit), so a
+	// bounded walk with this set keeps every covered production and no paid
+	// one (filters_gen.go xBoundPayable's count arm)
+	gapSkipPaid bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability

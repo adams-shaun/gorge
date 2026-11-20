@@ -568,7 +568,25 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			defer e.endDerivedMemo()
 			defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 			census := e.paymentPlanCensusOf(p, &bound)
-			return census.complete || census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient
+			if census.complete {
+				return true
+			}
+			if census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient {
+				return true
+			}
+			// A repeatable fee-only gap (Crossroads Candleguide's "{2}: Add one
+			// mana of any color") has no relaxation and makes the census
+			// non-relaxable, yet it never raises the mana total it converts
+			// (CR 106.1, 605.3b): the count proof altcast.go's provenUnpayable
+			// runs. An announcement the pool plus every census unit's largest
+			// production cannot fund by count has no real payment, so the X
+			// must not be offered (CR 601.2b, 601.2h). An ability payment keeps
+			// the over-bound answer.
+			if ability {
+				return false
+			}
+			credit := e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false)
+			return !census.gapGains && costOutrunsSupply(asPayer(e), p, int32(e.G.Players[p].Pool.Total()), composed, credit)
 		}
 		if !insufficient(e.offerCostForUsing(statics, p, id, cost, scope)) {
 			return true

@@ -2513,6 +2513,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					// 601.2g). The record is incomplete (no bounded view) and
 					// the over-bound pool takes the filter.
 					cen.gap()
+					// the sweep's gap bookkeeping: the gap named, its fee
+					// recorded, and gapGain when the ability can raise the
+					// mana a payment spends (mana_xboundgap.go)
+					paidGapBooked(d, sl, j, ab, s.paidGapTapExtra(k, sl, ab))
 					if repeat {
 						// an admitted repeatable gap is one of gorge's
 						// census's non-once abilities: its census is not

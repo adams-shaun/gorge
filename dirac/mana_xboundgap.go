@@ -53,6 +53,8 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 	paid = census && fee.MV() != 0
 	switch {
 	case !paid:
+	case d != nil && d.gapSkipPaid:
+		skip = true
 	case !boundedAny:
 		skip = true
 	case d != nil && d.gapTrack:
@@ -60,6 +62,117 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
 	return paid, skip, repeat
+}
+
+// paidGapBooked is availPotentialFor's bookkeeping for an admitted paid gap:
+// the census was already marked incomplete (cen.gap), so the gap is named for
+// the subset pricing (gapNote) and gapGain set exactly as gorge's
+// paymentPlanCensus.gapGains sets it for a missed ability
+// (rules/potential_nogain.go manaFeeNetsNoMana): a gap that is not a plain
+// mana fee, that makes more mana than it spends, or that brings a tap extra
+// raises the mana a payment can spend, so the covered census alone is no
+// honest supply bound for the X-bound sweep's count arm (CR 106.1, 605.3b).
+// tapExtra is the ability's own TapsForMana extra (paidGapTapExtra), never
+// the table-wide "some card has the static" flag.
+func paidGapBooked(d *payDesc, sl Slot, j int, ab *kop.Ability, tapExtra bool) {
+	if d == nil {
+		return
+	}
+	d.gapNote(sl, j, int(ab.Cost.Mana.MV()), kop.HybridFilterManaAb(ab))
+	if tapExtra || !paidGapNetsNoMana(ab) {
+		d.gapGain = true
+	}
+}
+
+// paidGapNetsNoMana mirrors manaFeeNetsNoMana for a paid gap: the whole cost
+// is plain mana (no {T}, {X}, hybrid, snow or other part), it spends a
+// positive fee, and its production is statically priced no higher than that
+// fee. A dynamic amount has no static price (gorge's availableAmountOf
+// returns 0, so the proof refuses), while an each-colour production counts
+// every colour it makes and a choice counts its one colour once.
+func paidGapNetsNoMana(ab *kop.Ability) bool {
+	if !paidGapPlainManaCost(&ab.Cost) {
+		return false
+	}
+	fee := ab.Cost.Mana.MV()
+	if fee <= 0 {
+		return false
+	}
+	made, ok := paidGapMakes(ab)
+	return ok && made <= fee
+}
+
+// paidGapPlainManaCost matches costvocab.Cost.Equal against {Generic,
+// Colored}: an activation limit or sorcery timing is not a cost part, every
+// other flag or table byte is.
+func paidGapPlainManaCost(c *kop.Cost) bool {
+	if c.Flags&^(kop.CostOncePerTurn|kop.CostOncePerGame|kop.CostSorcery) != 0 {
+		return false
+	}
+	if c.Host != 0 || c.N != 0 || c.Ctr != 0 || c.Filter != 0 || c.PutLibSelf || c.ExileHand ||
+		c.Exert || c.DiscardHand || c.DiscardRandom || c.XMin != 0 || c.ExileBf || c.ExileGSelf ||
+		c.Mill != 0 || c.RevealSelf {
+		return false
+	}
+	m := c.Mana
+	return m.X == 0 && m.XPip == 0 && m.Hyb == ([4]kop.ColorMask{}) && m.Tb == 0 && m.Snow == 0
+}
+
+// paidGapMakes is the mana the ability produces at its static price: an
+// each-colour production makes ManaN of every named colour (gorge's
+// ProducedCounts sum), while every other shape is priced once at ManaN (a
+// Combo/Any production is CountsAny, so gorge reads the amount once). A
+// dynamic amount has no static price.
+func paidGapMakes(ab *kop.Ability) (int, bool) {
+	if ab.AFlags&kop.AfManaDynamic != 0 {
+		return 0, false
+	}
+	if ab.ManaEach {
+		n := 0
+		for _, v := range filtEachVec(ab) {
+			n += int(v)
+		}
+		return n, true
+	}
+	return int(max(ab.ManaN, 1)), true
+}
+
+// paidGapTapExtra reports whether a TapsForMana static adds mana to this
+// ability's tap: gorge's potentialTapExtra is zero for a non-tap ability and
+// otherwise the largest extra over its productions. The table flag only says
+// some card carries the static; the ability's own {T} and the source's
+// reaching static decide (mana_tapextra.go).
+func (s *State) paidGapTapExtra(k *prep, sl Slot, ab *kop.Ability) bool {
+	if ab.Cost.Flags&kop.CostTap == 0 || k == nil || k.gen == nil || !k.gen.anyTapExtra {
+		return false
+	}
+	pc := s.manaPCGen(k, sl)
+	if pc == nil {
+		return false
+	}
+	if _, hit := s.srcExtraTapped(k, sl, pc, true); hit {
+		return true
+	}
+	_, hit := s.srcExtraTapped(k, sl, pc, false)
+	return hit
+}
+
+// xBoundCountProof is the count arm's comparison, mirroring gorge's
+// costOutrunsSupply: the covered census proves the announcement unpayable
+// only when its total mana is short of the announced cost's total (CMC). It
+// never reads a pip mask: a repeatable converter may change colours at a mana
+// loss, so a colour-infeasible covered census is no proof while there is
+// slack.
+func xBoundCountProof(countEx *avail, cost *kop.ManaCost) bool {
+	return countEx.total < cost.MV()
+}
+
+// xBoundCountCensus builds the count proof's census. An open production the
+// bounded walk could not price (a granted any-colour unit, a lethal-pain
+// fold, a genuinely unbounded source) leaves no proven upper bound, so the
+// proof is unavailable; so does an incomplete per-tap record (potUnitsAvail).
+func xBoundCountCensus(open bool, countEx *avail, units *[maxPotUnits]potUnit, life int) bool {
+	return !open && potUnitsAvail(countEx, units, life)
 }
 
 // gapSubsets prices an X-bound target's announcement the way gorge's relaxed
