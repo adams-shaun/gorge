@@ -2654,6 +2654,38 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 		fold(sl, mask, r)
 		cen.growTap(sl, r)
 	}
+	// The Produced$ Chosen carriers' (Utopia Sprawl) choice joins the bound:
+	// gorge's potentialManaFor folds it (potential.go addPotentialTapExtra,
+	// pay PaymentPlanChosenTapMana) -- one mana of the carrier's recorded
+	// choice, none when no colour was chosen (addGatedExtra). tapExtraReaches
+	// skips the chosen static everywhere else: the planner's pricing readers
+	// price the tap without it, and the deferred gap's census unit carries it
+	// in addTapsDeferUnits.
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra ||
+			a.StFlags&kop.StTapChosen == 0 || st.sl == NoSlot ||
+			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
+			return true
+		}
+		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
+			return true // the chosen lowering never carries those flags
+		}
+		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+			return true
+		}
+		ch := s.perms[st.sl].chosen
+		if ch >= 5 {
+			return true // no colour was chosen: gorge's Produced$ Chosen adds nothing
+		}
+		fold(sl, 1<<uint(ch), uint8(a.B))
+		cen.rec(1<<uint(ch), uint8(a.B))
+		return true
+	})
 }
 
 // potentialGrantedExtra admits the mana abilities granted to sl beside its own
