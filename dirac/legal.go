@@ -3054,7 +3054,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// cast's prefix search activates it in battlefield order as it does an
 	// activation's (mana_granttapsdefer.go)
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
-	pref := s.runPrefixes(k, a, p, grants, grantFirst)
+	pref, tapX := s.runPrefixes(k, a, p, grants, grantFirst)
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -3134,7 +3134,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 			break
 		}
 		if pref {
-			s.payPrefixRest(k, a, p) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
+			s.payPrefixRest(k, a, p, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		}
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:
