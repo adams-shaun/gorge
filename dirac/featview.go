@@ -17,13 +17,24 @@ import (
 func (s *State) FeatBattlefield(p uint8, dst []Obj) []Obj {
 	n0 := len(dst)
 	m := s.ctrlM[SeatIx(p)].and(s.occ)
+	// A stable insertion sort by timestamp, over a local copy of the keys
+	// so a comparison is one load, not the objs -> perms chain per side.
+	var ts [MaxPerm]uint16
+	n := 0
 	for m.any() {
 		sl := m.first()
 		m = m.rest()
-		dst = append(dst, s.perms[sl].obj)
-		for j := len(dst) - 1; j > n0 && s.perms[s.objs[dst[j]].slot].ts < s.perms[s.objs[dst[j-1]].slot].ts; j-- {
-			dst[j], dst[j-1] = dst[j-1], dst[j]
+		pm := &s.perms[sl]
+		t := pm.ts
+		dst = append(dst, pm.obj)
+		j := n
+		for ; j > 0 && t < ts[j-1]; j-- {
+			ts[j] = ts[j-1]
+			dst[n0+j] = dst[n0+j-1]
 		}
+		ts[j] = t
+		dst[n0+j] = pm.obj
+		n++
 	}
 	return dst
 }
