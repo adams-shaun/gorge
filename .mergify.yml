@@ -9,6 +9,9 @@ queue_rules:
       - -draft
       - check-success=fast
       - check-success=lint
+      # queue-precheck (.github/workflows/queue-precheck.yml) re-checks the queue's head against each new main and
+      # marks a PR that breaks it there failed; its absence (not yet checked) does not hold a PR back. 11-20 P0.
+      - -check-failure=queue-precheck
     merge_conditions:
       - check-success=ci-ok
     batch_size: 10
