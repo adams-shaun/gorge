@@ -372,13 +372,23 @@ type lowerCtx struct {
 	remOppLinks []*cards.SA
 	remOppSlot  int
 	remOppAb    *lAbility
+	// inSetParse: definedSet is parsing a base through defined(), so the
+	// wrapper must not fall back into definedSet again (lower_definedset.go).
+	inSetParse bool
+	// setPlayers: the effect's subject is a players set, so an ambiguous
+	// target ref reads as players (Draw/GainLife/LoseLife/Discard).
+	setPlayers bool
+	// setMoveGate: the node's Origin$ gates a repeated move (setMoveOriginGate).
+	setMoveGate bool
+	// noSetFallback disables the SetExpr fallback (the additive-rule test).
+	noSetFallback bool
 }
 
 // lowerCard lowers a card; a refusal is recorded in out.Refusals (the card
 // is unsupported if any is).
 func lowerCard(p *pool, name string, c *cards.Card, token bool) *lCard {
 	out := &lCard{Name: name, Token: token}
-	lc := &lowerCtx{p: p, name: name, card: c, out: out, mode: -1, known: p.knownSubtype}
+	lc := &lowerCtx{p: p, name: name, card: c, out: out, mode: -1, known: p.knownSubtype, noSetFallback: p.noSetFallback}
 	if len(c.Faces) != 1 || c.AlternateMode != "" || protoCard(c, token) {
 		before := len(out.Refusals)
 		if !lc.lowerFaces(c) { // lower_faces.go

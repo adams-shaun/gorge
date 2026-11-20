@@ -25,6 +25,8 @@ type poolTables struct {
 	exprKey   map[string]int16
 	conds     []kop.Cond
 	condKey   map[string]kop.CondID
+	sets      []kop.SetExpr // SetExprs (index = SetID; [0] invalid, lower_definedset.go)
+	setKey    map[string]kop.SetID
 	overrides []kop.Override
 	ovSubs    []ovSub
 	emblems   []kop.Emblem
@@ -64,10 +66,11 @@ type built struct {
 // cards' and tokens' printed subtypes plus extra (the subtypes an earlier
 // build pass found effects and filters naming).
 func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
-	pt := &poolTables{filterKey: map[string]kop.FilterID{}, exprKey: map[string]int16{}, condKey: map[string]kop.CondID{}, subIdx: map[string]int{}, tokenIdx: map[string]int{}, missing: map[string]bool{}}
+	pt := &poolTables{filterKey: map[string]kop.FilterID{}, exprKey: map[string]int16{}, condKey: map[string]kop.CondID{}, setKey: map[string]kop.SetID{}, subIdx: map[string]int{}, tokenIdx: map[string]int{}, missing: map[string]bool{}}
 	pt.filters = append(pt.filters, kop.Filter{}) // FilterID 0: the zero filter
 	pt.exprs = append(pt.exprs, kop.Expr{})       // Exprs[0] unused
 	pt.conds = append(pt.conds, kop.Cond{})       // CondID 0: always
+	pt.sets = append(pt.sets, kop.SetExpr{})      // SetID 0: invalid
 	set := map[string]bool{}
 	for w := range extra {
 		set[w] = true
@@ -1512,6 +1515,18 @@ func (pt *poolTables) internFilter(kf kop.Filter) kop.FilterID {
 	pt.filters = append(pt.filters, kf)
 	id := kop.FilterID(len(pt.filters) - 1)
 	pt.filterKey[key] = id
+	return id
+}
+
+// internSet stores a SetExpr and returns its SetID (sets[0] is invalid).
+func (pt *poolTables) internSet(ex kop.SetExpr) kop.SetID {
+	key := fmt.Sprintf("%#v", ex)
+	if id, ok := pt.setKey[key]; ok {
+		return id
+	}
+	pt.sets = append(pt.sets, ex)
+	id := kop.SetID(len(pt.sets) - 1)
+	pt.setKey[key] = id
 	return id
 }
 

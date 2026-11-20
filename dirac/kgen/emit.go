@@ -268,6 +268,16 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	var abil func(ab *kop.Ability)
 	abil = func(ab *kop.Ability) {
 		filt(ab.Cost.Filter)
+		// A RefSet instruction's filters live in the pool's SetExprs, not in
+		// the CardDef: walk them so the matchup keeps every subtype a set's
+		// SoBaseValid/SoInter filter names.
+		for _, sr := range ab.SetRefs {
+			if int(sr.Set) < len(pt.sets) {
+				for _, op := range pt.sets[sr.Set].Ops {
+					filt(op.F)
+				}
+			}
+		}
 		for _, t := range ab.Targets {
 			filt(t.Filter)
 			filt(t.SpellF) // TgtSpellTgting's and TgtStackTgting's spell-side filter

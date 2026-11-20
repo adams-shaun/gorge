@@ -531,16 +531,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 				fmt.Fprintf(w, "      vspell F=%s\n", t.VSpellF)
 			}
 		}
-		for i, in := range a.Prog {
-			fmt.Fprintf(w, "    %2d %s\n", i, in)
-		}
+		dumpProg(w, a.Prog)
 	}
 	dumpStatics(w, c)
 	for _, r := range c.Repls {
 		dumpRepl(w, r) // lower_staticprevent.go
-		for i, in := range r.Prog {
-			fmt.Fprintf(w, "    %2d %s\n", i, in)
-		}
+		dumpProg(w, r.Prog)
 	}
 	for i, e := range c.Emblems {
 		eot := ""
@@ -577,6 +573,36 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for _, r := range c.Refusals {
 		fmt.Fprintf(w, "  REFUSED %s: %s\n", r.Node, r.Reason)
+	}
+}
+
+// dumpProg writes a program's instructions and the SET lines its RefSet
+// instructions name.
+func dumpProg(w io.Writer, prog []lInstr) {
+	for i, in := range prog {
+		fmt.Fprintf(w, "    %2d %s\n", i, in)
+	}
+	dumpSets(w, prog)
+}
+
+// dumpSets writes one SET line per distinct set a program's RefSet
+// instructions name, in first-use order. Old cards print none, so their LIR
+// keys are unchanged.
+func dumpSets(w io.Writer, prog []lInstr) {
+	seen := map[*lSet]int{}
+	var order []*lSet
+	for _, in := range prog {
+		if in.Obj.Kind != rSet || in.Obj.Set == nil {
+			continue
+		}
+		if _, ok := seen[in.Obj.Set]; ok {
+			continue
+		}
+		seen[in.Obj.Set] = len(order)
+		order = append(order, in.Obj.Set)
+	}
+	for i, s := range order {
+		fmt.Fprintf(w, "    SET %d %s\n", i, s)
 	}
 }
 

@@ -59,6 +59,7 @@ const (
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
+	rSet                          // a kop.SetExpr (RefSet) the op acts over (lower_definedset.go)
 	rCount
 )
 
@@ -103,11 +104,15 @@ var refNames = [...]string{
 	rChosenPlayerRes:      "ChosenPlayerRes",
 	rTriggerOpps:          "TriggerOpps",
 	rResChosenPlayer:      "ResChosenPlayer",
+	rSet:                  "Set",
 }
 
 type lRef struct {
 	Kind refKind
 	N    int // target slot for rTarget / rTargetController / rTargetOwner
+	// Set is the program an rSet ref names (lower_definedset.go). No other
+	// kind uses it; it is never emitted as a kop.Ref.
+	Set *lSet
 }
 
 func (r lRef) String() string {
@@ -122,6 +127,11 @@ func (r lRef) String() string {
 			}
 		}
 		return out
+	case rSet:
+		if r.Set == nil {
+			return "Set(nil)"
+		}
+		return "Set(" + r.Set.String() + ")"
 	}
 	return refNames[r.Kind]
 }

@@ -619,6 +619,13 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 	if n == 0 {
 		return
 	}
+	s.gainControlList(k, in, list[:n])
+}
+
+// gainControlList is OpGainControl's grant to each battlefield permanent of
+// list, in order: the tail opGainControl and a RefSet's members share
+// (value_setops.go).
+func (s *State) gainControlList(k *prep, in *kop.Instr, list []Slot) {
 	e := &s.res.e
 	to := e.ctrl
 	if in.C != int16(kop.RefNone) {
@@ -641,7 +648,7 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 		src = s.perms[ssl].obj
 		ver = s.objs[src].ver
 	}
-	for _, sl := range list[:n] {
+	for _, sl := range list {
 		s.gainControlOne(k, in, sl, to, dur, src, ver)
 	}
 }

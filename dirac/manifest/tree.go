@@ -188,7 +188,7 @@ func (t *Tree) EntryOrdinals() []Ordinal {
 	var out []Ordinal
 	for _, e := range t.Entries {
 		if f := e.Fam(); f != nil && f.Pkg == "kop" {
-			out = append(out, Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)})
+			out = append(out, Ordinal{Name: e.Name, Type: f.goType(), Value: strconv.FormatInt(e.Value, 10)})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -203,7 +203,7 @@ func (t *Tree) row(name string) *Ordinal {
 	}
 	for _, e := range t.Entries {
 		if f := e.Fam(); f != nil && e.Name == name && f.Pkg == "kop" {
-			return &Ordinal{Name: e.Name, Type: e.Family, Value: strconv.FormatInt(e.Value, 10)}
+			return &Ordinal{Name: e.Name, Type: f.goType(), Value: strconv.FormatInt(e.Value, 10)}
 		}
 	}
 	return nil
@@ -214,7 +214,7 @@ func (t *Tree) row(name string) *Ordinal {
 // takes no value from the entry that owns it.
 func (t *Tree) owned(r *Ordinal) bool {
 	for _, e := range t.Entries {
-		if e.Name == r.Name && e.Family == r.Type {
+		if f := e.Fam(); f != nil && e.Name == r.Name && f.goType() == r.Type {
 			return true
 		}
 	}
@@ -351,7 +351,7 @@ func (t *Tree) validate() (map[string]*taken, []error) {
 			errs = append(errs, fmt.Errorf("%s: name %s is also %s", e.Path, e.Name, o.Path))
 		}
 		names[key] = e
-		if r := t.byName[e.Name]; r != nil && e.Fam().Pkg == "kop" && r.Type != e.Family {
+		if r := t.byName[e.Name]; r != nil && e.Fam().Pkg == "kop" && r.Type != e.Fam().goType() {
 			errs = append(errs, fmt.Errorf("%s: name %s is already a %s constant (%s)", e.Path, e.Name, r.Type, OrdinalsPath))
 		}
 	}

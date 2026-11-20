@@ -1,0 +1,6 @@
+family: SetOp
+name: SoBaseRef
+value: next
+status: active
+ticket: dsd-t06
+doc: push the objects or players an existing kop.Ref names (every existing referent: targets, remembered, chosen, each-player, ...); SetOp.R is the ref

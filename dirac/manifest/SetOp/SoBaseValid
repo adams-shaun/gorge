@@ -1,0 +1,6 @@
+family: SetOp
+name: SoBaseValid
+value: next
+status: active
+ticket: dsd-t06
+doc: push every object matching SetOp.F in zone SetOp.Arg (kop.Zone)

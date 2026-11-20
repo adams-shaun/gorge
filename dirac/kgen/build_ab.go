@@ -980,7 +980,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.Gate = kop.Gate{Ctr: k, N: uint8(a.Trigger.CrossAt)}
 		ka.AFlags |= kop.AfCheckOnTrigger
 	}
-	if ka.Prog, err = cb.prog(a.Prog); err != nil {
+	if err = cb.progAb(a.Prog, &ka); err != nil {
 		return ka, err
 	}
 	return ka, nil
@@ -2734,7 +2734,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			if r.S == "Updated" {
 				rp.C = kop.ReplAfterEnter
 			}
-			if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			if err = cb.progAb(r.Prog, &ka); err != nil {
 				return ka, err
 			}
 		}
@@ -2751,7 +2751,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if err != nil {
 			return ka, err
 		}
-		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+		if err = cb.progAb(r.Prog, &ka); err != nil {
 			return ka, err
 		}
 	case "CantBeCountered":
@@ -2854,7 +2854,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplDiscardOppToBattlefield
 	case "PayBeforeETB":
 		rp.Kind = kop.ReplPayBeforeETB
-		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+		if err = cb.progAb(r.Prog, &ka); err != nil {
 			return ka, err
 		}
 	case "DestroyHeal":
@@ -2900,7 +2900,7 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		}
 	case "TurnUpProgram":
 		rp.Kind = kop.ReplTurnUpProgram // lower_turnfaceuprepl.go
-		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+		if err = cb.progAb(r.Prog, &ka); err != nil {
 			return ka, err
 		}
 	case "SpellsCantBeCountered":
@@ -2935,23 +2935,54 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 // prog builds an op program (one kop instruction per LIR instruction, so
 // skip counts carry over unchanged).
 func (cb *cardBuilder) prog(p []lInstr) ([]kop.Instr, error) {
+	out, refs, err := cb.progRefs(p)
+	if err != nil {
+		return nil, err
+	}
+	if len(refs) != 0 {
+		return nil, refuse("Defined$ set in a program with no ability")
+	}
+	return out, nil
+}
+
+// progRefs is prog plus the SetRefs an instruction whose Obj is RefSet binds
+// to the ability (kop.Ability.SetRefs); the caller stores both.
+func (cb *cardBuilder) progRefs(p []lInstr) ([]kop.Instr, []kop.SetRef, error) {
 	if len(p) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if kvDiscoverTailRefused(p) {
 		// The kernel runs a Discover's tail before the free cast; see
 		// value_modifiers.go and kernel-discover-freecast-order.
-		return nil, refuse("Discover free cast with a program tail (the kernel defers the cast past the tail)")
+		return nil, nil, refuse("Discover free cast with a program tail (the kernel defers the cast past the tail)")
 	}
 	out := make([]kop.Instr, 0, len(p))
+	var refs []kop.SetRef
 	for i, in := range p {
-		ki, err := cb.instr(in)
+		ki, sr, err := cb.instr(i, in)
 		if err != nil {
-			return nil, fmt.Errorf("instr %d %s: %v", i, in.Op, err)
+			return nil, nil, fmt.Errorf("instr %d %s: %v", i, in.Op, err)
+		}
+		if sr != nil {
+			if len(refs) == kop.MaxSetRefs {
+				return nil, nil, refuse("more than %d Defined$ set instructions", kop.MaxSetRefs)
+			}
+			refs = append(refs, *sr)
 		}
 		out = append(out, ki)
 	}
-	return out, nil
+	return out, refs, nil
+}
+
+// progAb is prog for an ability: it stores the program and the SetRefs an
+// instruction whose Obj is RefSet binds to it.
+func (cb *cardBuilder) progAb(p []lInstr, ka *kop.Ability) error {
+	out, refs, err := cb.progRefs(p)
+	if err != nil {
+		return err
+	}
+	ka.Prog, ka.SetRefs = out, refs
+	return nil
 }
 
 func flagsOf(cs string) map[string]string {
@@ -2975,7 +3006,7 @@ func buildExileOnLeave(cb *cardBuilder, r lRepl, rp *kop.Repl, ka *kop.Ability) 
 	rp.Kind = kop.ReplExileOnLeave
 	if len(r.Prog) != 0 { // the rider that runs after the exile move (lower_exilectrrider.go)
 		var err error
-		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+		if err = cb.progAb(r.Prog, ka); err != nil {
 			return err
 		}
 	}
@@ -2999,40 +3030,51 @@ func buildExileOnLeave(cb *cardBuilder, r lRepl, rp *kop.Repl, ka *kop.Ability) 
 
 // instr lowers one LIR instruction to its kop form: the operands every op
 // shares here, then the op's handler from instrOps (instr.go; one
-// instr_<family>.go per family registers its ops in init()).
-func (cb *cardBuilder) instr(in lInstr) (kop.Instr, error) {
+// instr_<family>.go per family registers its ops in init()). A RefSet Obj is
+// also returned as the SetRef the ability binds.
+func (cb *cardBuilder) instr(pc int, in lInstr) (kop.Instr, *kop.SetRef, error) {
 	ic := &instrCtx{cb: cb, in: in, fl: flagsOf(in.CS)}
 	ki := &ic.ki
+	var sr *kop.SetRef
 	var err error
-	if ki.Obj, err = cb.ref(in.Obj); err != nil {
-		return *ki, err
+	if in.Obj.Kind == rSet {
+		if sr, err = cb.setObj(ki, pc, in); err != nil {
+			return *ki, nil, err
+		}
+	} else if ki.Obj, err = cb.ref(in.Obj); err != nil {
+		return *ki, nil, err
 	}
 	if in.W.Kind != rNone {
 		// the player side input (lir.go lInstr.W: a Tapper$ provenance or an
 		// OpAttach player destination)
 		if ki.W, err = cb.ref(in.W); err != nil {
-			return *ki, err
+			return *ki, nil, err
 		}
 	}
 	if in.Op != "Bite" && in.Op != "Fight" {
 		if ki.A, err = cb.value(in.A); err != nil {
-			return *ki, err
+			return *ki, nil, err
 		}
 		if ki.B, err = cb.value(in.B); err != nil {
-			return *ki, err
+			return *ki, nil, err
 		}
 	}
 	op := instrOps[in.Op]
 	if op == nil {
-		return *ki, fmt.Errorf("op %s has no kop form", in.Op)
+		return *ki, nil, fmt.Errorf("op %s has no kop form", in.Op)
 	}
 	if err := op(ic); err != nil {
-		return *ki, err
+		return *ki, nil, err
 	}
 	if ic.in.F != nil && ki.F == 0 && !ic.skipFilterCheck {
-		return *ki, fmt.Errorf("filter on %s not emitted", in.Op)
+		return *ki, nil, fmt.Errorf("filter on %s not emitted", in.Op)
 	}
-	return *ki, nil
+	if sr != nil {
+		if err := setKopShape(ki); err != nil {
+			return *ki, nil, err
+		}
+	}
+	return *ki, sr, nil
 }
 
 // selfCastClause lowers a SpellCast "Card.Self+<property>" trigger object

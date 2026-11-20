@@ -110,6 +110,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 	d.FilterProgs = pt.progs
 	d.Exprs = nonNil(pt.exprs)
 	d.Conds = nonNil(pt.conds)
+	d.Sets = nonNil(pt.sets)
 	d.Overrides = nonNil(pt.overrides)
 	d.Emblems = nonNil(pt.emblems)
 	d.Subtypes = append([]string{}, pt.subtypes...)

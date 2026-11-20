@@ -1,0 +1,6 @@
+family: SetOp
+name: SoLKI
+value: next
+status: active
+ticket: dsd-t06
+doc: read the top object set through last known information (gorge LKICopy): a member that left its zone is read as it last existed

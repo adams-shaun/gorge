@@ -128,6 +128,9 @@ var Families = []*Family{
 	enum8("Pred", "Pred", "enum"),
 	enum8("Ref", "Ref", "enum"),
 	seeded(enum8("ReplKind", "Repl", "enum")),
+	// SetOp: a SetExpr program's op (kop.SetOpKind, dirac/kop/sets.go). Zero
+	// is no op; the kernel's evalSet serves every active entry.
+	{Name: "SetOp", Pkg: "kop", GoType: "SetOpKind", Prefix: "So", Min: 1, Max: 255, Alloc: Band{Lo: 1, Hi: 255}},
 	flags("SpecialMask", "Spm", 8, ""),
 	flags("StaticFlags", "St", 16, "mask"),
 	{Name: "StaticKind", Pkg: "kop", Prefix: "Stat", Max: 65535, Alloc: Band{Lo: 0, Hi: 65535}, Seeded: true, Kgen: "enum"},

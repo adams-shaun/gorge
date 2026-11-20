@@ -87,7 +87,7 @@ dirac/kgen (*lowerCtx).continuous	459	130
 dirac/kgen (*lowerCtx).copyPermanent	218	65
 dirac/kgen (*lowerCtx).costHand	677	296
 dirac/kgen (*lowerCtx).countValue	590	195
-dirac/kgen (*lowerCtx).defined	325	102
+dirac/kgen (*lowerCtx).definedDirect	325	102
 dirac/kgen (*lowerCtx).definedValid	132	51
 dirac/kgen (*lowerCtx).dig	172	63
 dirac/kgen (*lowerCtx).effectEtbCounters	110	57

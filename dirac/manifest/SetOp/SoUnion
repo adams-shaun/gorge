@@ -1,0 +1,6 @@
+family: SetOp
+name: SoUnion
+value: next
+status: active
+ticket: dsd-t06
+doc: pop two sets, push their union (the lower first, then the upper's new members)

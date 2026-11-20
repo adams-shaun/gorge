@@ -156,6 +156,10 @@ type pool struct {
 	// every one it can reach (-census-std -all-blockers). The lowered
 	// output of a card that lowers cleanly is the same either way.
 	allBlockers bool
+	// noSetFallback disables defined()'s SetExpr fallback. The additive-rule
+	// test lowers a list twice, with and without it, to pin that an old
+	// lowering is byte-identical.
+	noSetFallback bool
 }
 
 // loadPool reads every *.json deck in decksDir and resolves its cards through

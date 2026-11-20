@@ -59,6 +59,7 @@ type PoolData struct {
 	FilterProgs         []kop.FilterProg // the programs of PredProg filters; [0] unused, nil when no filter is a program
 	Exprs               []kop.Expr
 	Conds               []kop.Cond
+	Sets                []kop.SetExpr // SetID 0 invalid; a RefSet instruction's SetRef names one
 	Overrides           []kop.Override
 	Emblems             []kop.Emblem
 	Subtypes            []string
@@ -573,7 +574,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		break
 	}
 	subMap := map[uint8]uint8{}
-	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds}
+	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds, Sets: dd.Sets}
 	for s := 0; s < len(dd.Subtypes); s++ {
 		if subSet.Has(int(s)) {
 			subMap[uint8(s)] = uint8(len(t.Subtypes))

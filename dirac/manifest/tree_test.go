@@ -81,8 +81,8 @@ func TestFamiliesMatchOrdinals(t *testing.T) {
 		if f.Pkg != "kop" || f.Name == "KwID" { // KwID is new at the cutover
 			continue
 		}
-		if types[f.Name] == 0 {
-			t.Errorf("family %s: no ordinals.tsv row has that type", f.Name)
+		if types[f.goType()] == 0 {
+			t.Errorf("family %s: no ordinals.tsv row has type %s", f.Name, f.goType())
 		}
 	}
 }

@@ -20,8 +20,25 @@ func noDefinedTargetSlot(v string) error {
 	return refuse("Defined$ %s with no target slot", v)
 }
 
-// defined lowers a Defined$ value to a ref.
+// defined lowers a Defined$ value to a ref, falling back on the SetExpr
+// grammar (lower_definedset.go) only where the single-ref lowering refuses.
+// A value definedDirect already lowers is never re-routed, so old cards keep
+// byte-identical LIR. inSetParse suppresses the fallback while definedSet
+// parses a base through defined(), so the two cannot recurse.
 func (lc *lowerCtx) defined(v string) (lRef, error) {
+	r, err := lc.definedDirect(v)
+	if err == nil || lc.inSetParse || lc.noSetFallback {
+		return r, err
+	}
+	s, serr := lc.definedSet(v)
+	if serr != nil {
+		return r, err
+	}
+	return lRef{Kind: rSet, Set: s}, nil
+}
+
+// definedDirect lowers one Defined$ value to a single ref.
+func (lc *lowerCtx) definedDirect(v string) (lRef, error) {
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
@@ -929,6 +946,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 
 // node lowers one SA node (not its Sub).
 func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
+	defer lc.enterSetNode(sa, ps)()
 	if done, err := lc.putCounterUnion(sa, ps); done { // lower_definedheads.go
 		return err
 	}
@@ -949,34 +967,32 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	} else if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(d, "Targeted.") && sa.API != "Animate" {
 		// Defined$ Targeted.<qualifier> (graveexile): gorge definedSpec
 		// (context.go:440-452) keeps the chain targets the qualifier
-		// admits. Lower only exactly one target slot, so the node's
-		// subject is that slot; a player target never matches the card
-		// filter (countRefMatches yields 0), as in gorge. Animate lowers
-		// this spelling itself (lower_zone.go:913), with its own guard.
+		// admits. A single-target slot lowers to the guard below; a
+		// multi-target slot or a chain with several slots refuses. Animate
+		// lowers this spelling itself (lower_zone.go:913), with its own
+		// guard.
 		if _, ok := ps.get("ValidTgts"); ok {
 			return refuse("Defined$ %q beside its own ValidTgts$", d)
 		}
-		if len(lc.chainT) != 1 {
-			return refuse("Defined$ %q with %d target slots", d, len(lc.chainT))
+		if len(lc.chainT) == 1 {
+			t := lc.lastTarget()
+			if t < 0 {
+				return refuse("Defined$ %q with no target slot", d)
+			}
+			// The kernel keeps only a slot's first object in its target
+			// cell (the rest live in xTargets), while gorge's definedSpec
+			// reads every object of the slot. Lower only a slot that can
+			// never hold more than one object.
+			tg := lc.ab.Targets[t]
+			if tg.Min.isConst() && tg.Max.isConst() && tg.Min.N <= 1 && tg.Max.N <= 1 {
+				f, err := lc.filter("Card." + strings.TrimPrefix(d, "Targeted."))
+				if err != nil {
+					return err
+				}
+				guard = lCond{Kind: cRefMatches, Ref: lRef{Kind: rTarget, N: t}, F: f, Op: opGE, A: cst(1)}
+				lc.targetedDefined = d
+			}
 		}
-		t := lc.lastTarget()
-		if t < 0 {
-			return refuse("Defined$ %q with no target slot", d)
-		}
-		// The kernel keeps only a slot's first object in its target cell
-		// (the rest live in xTargets), while gorge's definedSpec reads
-		// every object of the slot. Lower only a slot that can never hold
-		// more than one object.
-		tg := lc.ab.Targets[t]
-		if !tg.Min.isConst() || !tg.Max.isConst() || tg.Min.N > 1 || tg.Max.N > 1 {
-			return refuse("Defined$ %q on a multi-target slot", d)
-		}
-		f, err := lc.filter("Card." + strings.TrimPrefix(d, "Targeted."))
-		if err != nil {
-			return err
-		}
-		guard = lCond{Kind: cRefMatches, Ref: lRef{Kind: rTarget, N: t}, F: f, Op: opGE, A: cst(1)}
-		lc.targetedDefined = d
 	}
 	if guard.Kind == cNone {
 		g, err := lc.triggeredQualGuard(sa, ps) // lower_definedheads.go

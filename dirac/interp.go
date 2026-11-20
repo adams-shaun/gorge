@@ -31,15 +31,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		return s.drawOp(k, in) // kw_dredge.go
 	case kop.OpDestroy:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			if in.C&2 != 0 {
-				s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
-				break
-			}
-			if in.C&1 != 0 { // seat-ok: an instruction flag bit
-				s.destroyNoRegen(k, sl)
-				break
-			}
-			s.destroy(k, sl)
+			s.destroyOn(k, in, sl)
 		}
 	case kop.OpExile:
 		s.moveRef(k, in.Obj, kop.ZoneExile, false)
@@ -80,10 +72,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpPumpUntilEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			s.touchSl(sl)
-			if !s.eotAdd(k, sl, s.value(k, in.A), s.value(k, in.B)) {
-				break
-			}
+			s.pumpOn(k, in, sl)
 		}
 	case kop.OpGrantKeyword:
 		s.execGrantKeyword(k, in)
@@ -277,38 +266,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 	case kop.OpTap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			was := s.perms[sl].flags & pfTapped
-			s.perms[sl].flags |= pfTapped
-			s.touchSl(sl)
-			if was == 0 {
-				if k.gen != nil && s.subs[kop.TrigTaps].any() {
-					who := s.effTapper(sl)
-					if in.W != 0 {
-						// the instruction's Tapper$ provenance (gorge
-						// effTapOrUntap's Tapper$ read; the election ask
-						// is the controller's, the tap's is the ref's)
-						if p := s.playerRef(k, in.W); p < s.nSeats() {
-							who = p
-						}
-					}
-					s.fireTapsBy(k, sl, who)
-				}
-				s.markTapped(k, sl) // only a tap that happens marks
-			}
+			s.tapOn(k, in, sl)
 		}
 	case kop.OpUntap:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			if s.untapBlocked(k, sl) {
-				break
-			}
-			if p := &s.perms[sl]; p.flags&pfTapped != 0 && p.ctrLow(int(kop.CtrStun)) > 0 {
-				p.seeCtr(s)
-				s.subCtrFire(k, sl, int(kop.CtrStun), 1) // a stun counter is removed instead (CR 122.1d)
-				s.touchSl(sl)
-				break
-			}
-			s.untapEffect(k, sl)
-			s.touchSl(sl)
+			s.untapOn(k, sl)
 		}
 	case kop.OpSacrifice:
 		p := s.playerRef(k, in.Obj)
@@ -716,6 +678,21 @@ func (s *State) cond(k *prep, in *kop.Instr) bool {
 	panic("kernel: SkipIf condition not implemented")
 }
 
+// destroyOn is OpDestroy's body for the permanent at sl: the one home of the
+// instruction's C flags, run by the single-object path and by each member of a
+// RefSet (value_setops.go).
+func (s *State) destroyOn(k *prep, in *kop.Instr, sl Slot) {
+	if in.C&2 != 0 {
+		s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
+		return
+	}
+	if in.C&1 != 0 { // seat-ok: an instruction flag bit
+		s.destroyNoRegen(k, sl)
+		return
+	}
+	s.destroy(k, sl)
+}
+
 func (s *State) destroy(k *prep, sl Slot) {
 	if s.destroySpared(k, sl, false) {
 		return
@@ -776,7 +753,14 @@ func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
 
 // moveRef moves the object a Ref names to zone z (its owner's).
 func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
-	o := s.objRefObj(r)
+	s.moveObjOn(k, r, s.objRefObj(r), z, bottom, r == kop.RefSelf)
+}
+
+// moveObjOn is moveRef for the object o that r names: the one home of the
+// move, run by the single-object path and by each member of a RefSet
+// (value_setops.go, r = RefSet). self says o is the resolving source, which a
+// RefSet member can be: the incarnation guards key on that, not on the Ref.
+func (s *State) moveObjOn(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom, self bool) {
 	if o == NoObj || s.freeQueued(o) || s.freeBegun(o) {
 		// gorge begins a Play's free cast at the answer, so an "if you don't
 		// cast it, move it" tail finds a spell, not a card in its zone
@@ -785,7 +769,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
-		if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
+		if self && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
 			return
 		}
 		s.leave(k, ob.slot, z, bottom) // leave applies the CR 903.9b gate itself
@@ -825,7 +809,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		// aimed at it does nothing (gorge changeZoneMoveSkip); it keeps its
 		// hidden slot (kw_phasing.go), which a detach would corrupt.
 	default:
-		if r == kop.RefSelf && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
+		if self && (s.res.e.kind == seAbility || s.res.e.kind == seTrigger) && ob.ver != s.res.e.srcVer {
 			return // the ability's source left its zone: a new object (CR 400.7; Foul Familiar destroyed in response, Encroaching Dragonstorm destroyed with its return trigger on the stack)
 		}
 		if s.tokenLeftBattlefield(o) {
