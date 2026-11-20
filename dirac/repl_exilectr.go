@@ -219,16 +219,22 @@ func tableExilesWithCounter(t *kop.Table) bool {
 // keeps no counter for a kind outside Stash and Time, the old behaviour.
 var DebugExileCounterDropped bool
 
-// stampExileMoveCounter records the counter rider of an OpExileEx move that
-// just put o in exile (CR 122.1: the card keeps the counters it was exiled
-// with). A count past the record's field is a capacity stall, never a clamp.
-func (s *State) stampExileMoveCounter(k *prep, in *kop.Instr, o Obj) {
+// exileMoveCounter handles the counter rider of an OpExileEx move that just
+// put o in exile (CR 122.1: the card keeps the counters it was exiled with):
+// Stash marks the object, any other modelled kind is recorded. Time (suspend)
+// has its own arm. A count past the record's field is a capacity stall, never
+// a clamp.
+func (s *State) exileMoveCounter(k *prep, in *kop.Instr, o Obj) {
 	kind := kop.CounterKind(in.B.N)
-	if DebugExileCounterDropped || exileCtrCodeOf(kind) == 0 {
-		return
-	}
 	n := s.value(k, in.A)
 	if n <= 0 {
+		return
+	}
+	if kind == kop.CtrStash {
+		s.stashSet(k, o)
+		return
+	}
+	if DebugExileCounterDropped || exileCtrCodeOf(kind) == 0 {
 		return
 	}
 	if n > maxExileCtrCount {
