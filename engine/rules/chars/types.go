@@ -121,9 +121,9 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		}
 	}
 	allCreatureTypes = effects.IntrinsicAllCreatureTypes(o)
-	bestowed := o.BestowedAttached() || o.BestowedAuraSpell()
+	bestowed := bestowSwitchActive(o)
 	if !anyLType {
-		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), !o.ImpendingDormant() && !bestowed && allCreatureTypes, false, nil, false, false
+		return impendingTypeSwitch(o, reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))), allCreatureTypesAfterSwitch(o, bestowed, allCreatureTypes), false, nil, false, false
 	}
 	// A copy exception "...except it has changeling" is a copiable
 	// characteristic-defining ability (CR 707.9b): it applies before every
@@ -320,7 +320,7 @@ func typesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 		// The copy of an empty list was nil; keep that exact value.
 		ty = nil
 	}
-	if o.ImpendingDormant() || bestowed {
+	if switchClearsAllCreatureTypes(o, bestowed) {
 		// The impending and bestow switches remove every creature subtype
 		// along with Creature, so they also invalidate the semantic
 		// all-types marker (CR 205.1a).
@@ -560,10 +560,31 @@ func appendAllCreatureTypes(types []string) []string {
 // stays only while another card type the object has carries it too), so a
 // bestowed Nyxborn Hydra is an Enchantment Aura with no Hydra subtype.
 func bestowedTypeSwitch(o *state.Object, types []string) []string {
-	if !o.BestowedAttached() && !o.BestowedAuraSpell() {
+	if !bestowSwitchActive(o) {
 		return types
 	}
 	return append(withoutCreature(types, true), "Aura")
+}
+
+// bestowSwitchActive reports whether CR 702.103b's bestow type switch applies
+// to o: a bestowed Aura spell on the stack, or a bestowed permanent attached to
+// a creature.
+func bestowSwitchActive(o *state.Object) bool {
+	return o.BestowedAttached() || o.BestowedAuraSpell()
+}
+
+// allCreatureTypesAfterSwitch folds the switches that remove the Creature card
+// type (and with it every creature subtype) out of the semantic all-types
+// marker. They are rule-based switches, outside the layer walk, so the marker
+// they invalidate is cleared after the walk too.
+func allCreatureTypesAfterSwitch(o *state.Object, bestowed, all bool) bool {
+	return !o.ImpendingDormant() && !bestowed && all
+}
+
+// switchClearsAllCreatureTypes reports whether a rule-based type switch on o
+// removes the Creature type, and so invalidates the all-creature-types marker.
+func switchClearsAllCreatureTypes(o *state.Object, bestowed bool) bool {
+	return o.ImpendingDormant() || bestowed
 }
 
 // reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
