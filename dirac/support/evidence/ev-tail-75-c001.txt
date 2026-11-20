@@ -72,6 +72,7 @@ Crackling Drake
 Creakwood Liege
 Crookclaw Elder
 Crosstown Courier
+Cruel Ultimatum
 Cunning Survivor
 Curiosity Crafter
 Daggersail Aeronaut
@@ -194,6 +195,7 @@ Mind Over Matter
 Minotaur, Roxxon CEO
 Mobile Fort
 Momentum Rumbler
+Monkey Cage
 Mortal Wound
 Mossbridge Troll
 Mountain
@@ -346,4 +348,5 @@ Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zhulodok, Void Gorger
 Zuran Enchanter
