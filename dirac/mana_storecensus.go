@@ -25,3 +25,48 @@ func (s *State) storeCensusGap(k *prep, p uint8) bool {
 	}
 	return false
 }
+
+// storeCensusPays: an idle storage battery's single-colour production is an
+// open supply in gorge's potential walk (it prices the battery's SubCounter<X>
+// cost at no fixed count), so a keyword turn-up the other sources and that
+// colour together pay is a potential play: the battery's colour pips and the
+// generic part are the battery's, the rest the untapped sources'.
+func (s *State) storeCensusPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+	_, ok := s.storeCensusSource(k, p, cost)
+	return ok
+}
+
+// storeCensusSource is storeCensusPays' first battery.
+func (s *State) storeCensusSource(k *prep, p uint8, cost *kop.ManaCost) (Slot, bool) {
+	if !k.ctrMana {
+		return NoSlot, false
+	}
+	for b := s.scriptCtrIdle(k, p, true).and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		a := k.ctrAbOf(s.cardAt(sl))
+		if a == nil || !kop.StoreManaAb(a) || k.ctrSecond(s.cardAt(sl)) {
+			continue
+		}
+		rest := *cost
+		rest.Generic = 0
+		for i := range rest.Pips {
+			if a.ManaColors&(1<<i) != 0 {
+				rest.Pips[i] = 0
+			}
+		}
+		if s.sourcesPay(k, p, &rest) {
+			return sl, true
+		}
+	}
+	return NoSlot, false
+}
+
+// storeTurnUpTap activates the battery storeCensusSource names (every counter
+// removed, that many mana of its colour into the pool: gorge's
+// ManaCostSubCounterStage takes X at the bound), so the planner taps the
+// remaining sources against a pool the battery has funded.
+func (s *State) storeTurnUpTap(k *prep, p uint8, cost *kop.ManaCost) {
+	if sl, ok := s.storeCensusSource(k, p, cost); ok {
+		s.storeGap(k, p, sl, k.ctrAbOf(s.cardAt(sl)))
+	}
+}

@@ -379,6 +379,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		// turnUpListed has already checked the keyword's life, so this
 		// branch is reached only by an action whose mana the sources pay
 		c0 := cost.AtX(0)
+		if s.turnUpStoreOnly(k, p, &cost, sp, sl, mode) {
+			s.storeTurnUpTap(k, p, &c0) // mana_storecensus.go: the battery's activation funds the pool
+		}
 		if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
 			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
 		} else if s.turnUpFilterOnly(k, p, &c0, sp, sl, mode) {
