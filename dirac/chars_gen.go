@@ -1265,6 +1265,11 @@ func (s *State) applyOverrideFl(k *prep, sl Slot, idx int, src CardID, fl uint8)
 // applyOverridePT applies override idx with its P/T already evaluated.
 func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8, p, t int16) {
 	r := ovRec{idx: uint8(idx + 1), src: src, ts: s.tick(), fl: fl, p: p, t: t}
+	if k.t.Overrides[idx].UntilUpkeep {
+		// The waiting controller, not a set P/T: the row's grant is keyword-only
+		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
+		r.p, r.t = int16(s.res.e.ctrl), 0
+	}
 	// merge: a re-application accumulates (the reps count) in place. A
 	// record that OVERWRITES colours must not merge: gorge's re-applied
 	// animate grant is a new effect whose layer-5 colour REPLACES, so the
