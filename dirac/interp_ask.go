@@ -1796,8 +1796,8 @@ func (s *State) addSac(sl Slot) {
 // --- searches ---
 
 func (s *State) startSearch(k *prep, in *kop.Instr) bool {
-	if in.Op == kop.OpChooseMove && in.B.N == 1 && s.handExileHostGone() {
-		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go)
+	if in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(k.t, in)) && s.handExileHostGone() {
+		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
 	}
 	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
