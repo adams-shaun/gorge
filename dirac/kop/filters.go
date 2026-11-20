@@ -50,6 +50,9 @@ const (
 )
 
 // Pred is a filter's extra predicate opcode (applied with Filter.PredN).
+// PredProg (a manifest entry) reads PredN as a FilterProgID: the filter's
+// predicate is a program of literals, the conjuncts the one slot cannot hold
+// (filterprog.go).
 type Pred uint8
 
 const (

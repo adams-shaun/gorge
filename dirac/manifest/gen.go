@@ -71,6 +71,9 @@ func Generate(t *Tree) (map[string][]byte, error) {
 		fmt.Fprintf(&dirac, "\n// numMech is one past the highest mech: the length of the arena's mech tables.\nconst numMech mech = %d\n", n)
 	}
 	dirac.WriteString(genKernelDispatch(t.Handlers))
+	if len(t.Handlers.Word) > 0 {
+		dirac.WriteString(genFilterWords(t.Handlers))
+	}
 	kgenHead := "package kgen\n"
 	if kgen.Len() > 0 {
 		kgenHead += "\nimport " + `"` + kopImport + `"` + "\n"
