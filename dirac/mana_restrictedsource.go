@@ -120,6 +120,13 @@ type payDesc struct {
 	// bounded walk with this set keeps every covered production and no paid
 	// one (filters_gen.go xBoundPayable's count arm)
 	gapSkipPaid bool
+	// gapPrice is the X-bound subset pricing's mode (xBoundGapSubsets): an
+	// admitted paid gap is recorded in the census as a unit and its fee is
+	// charged as generic on top by gapSubsets.affords, so the walk must not
+	// wipe the record with cen.gap(): the subset then prices the planner's
+	// per-tap bound (one mana per tap, CR 118.3c) instead of the over-bound
+	// pool, whose fold counts a source's second {T} ability as a second mana
+	gapPrice bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability
