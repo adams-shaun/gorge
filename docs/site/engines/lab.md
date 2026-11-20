@@ -1,8 +1,8 @@
 # Play and experiment on dirac from Go (dirac/lab)
 
-`dirac/lab` is a small Go package for anyone who wants to play dirac games and set up experiments in a few lines, with no other engine and no gorge game running beside it. It builds games from deck lists, lets you step them by hand, copy a position and play the copies out with different policies, and runs batches with win rates.
+`dirac/lab` plays dirac games and sets up experiments in a few lines, with no other engine running. It builds games from deck lists, steps them by hand, forks a position, plays the forks out with different policies, and runs batches with win rates.
 
-It sits on the same setup `dplay` uses (a `cardset` table, `dirac.LockstepConfig`, `State.InitN`), so a game it deals is the game a clean lockstep of the same seed plays. It needs the card corpus and tables like everything else that reads a set: `make fetch-cards compile-cards dirac-tables`, see [Build, play and check dirac](tools-dirac.md).
+It sits on the setup `dplay` uses (a `cardset` table, `dirac.LockstepConfig`, `State.InitN`), so a game it deals is the game a clean lockstep of the same seed plays. It needs the corpus and tables: `make fetch-cards compile-cards dirac-tables` ([Build, play and check dirac](tools-dirac.md)).
 
 ## Fifteen lines
 

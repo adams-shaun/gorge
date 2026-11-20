@@ -17,13 +17,9 @@ How to seat a bot, play one, and connect your own. For what each bot is and what
 Whatever the transport, a bot does one thing: the engine poses a **decision** listing every legal
 option, and the bot answers with an **intent** naming option indices
 ([glossary](../contributing/glossary.md)). The engine validates the answer against what it
-offered, so a bot can choose badly but can't make an illegal move. The decision kinds are a closed
-set of thirteen (`decision.Kinds` in
-[`engine/decision/decision.go`](https://github.com/adams-shaun/gorge/blob/main/engine/decision/decision.go)):
-`priority`, `target`, `attackers`, `blockers`, `mulligan`, `modes`, `trigger_order`,
-`trigger_optional`, `commander_zone`, `choose`, `replacement`, `arrange` and `starting_player`.
-Conceding is an option on a priority decision, not a kind.
-[Playing a seat over HTTP](http.md#answering-each-decision-kind) explains how to answer each one.
+offered, so a bot can choose badly but can't make an illegal move. The decision kinds are a closed set of thirteen (`decision.Kinds` in
+[`engine/decision/decision.go`](https://github.com/adams-shaun/gorge/blob/main/engine/decision/decision.go)); conceding is an option on a priority
+decision, not a kind. [Playing a seat over HTTP](http.md#answering-each-decision-kind) lists each kind and how to answer it.
 
 A bot sees one seat's redacted **view** of the game: its own hand, the public board and counts for
 hidden zones, never the opponent's hand or the library order.
@@ -39,15 +35,15 @@ hidden zones, never the opponent's hand or the library order.
 | A Go program | `bots.New(name, bots.Options{Seed, AutoPayMana, Deps: bots.Deps{Cards: reg}})` after a blank import of `bots/all`; [`testkit/bench`](https://github.com/adams-shaun/gorge/blob/main/testkit/bench/bench.go) drives it |
 | SpellBench v2 | `spellbench-gorge-agent -policy <name>` serves it as a v2 agent ([SpellBench v2 agents](spellbench.md)) |
 
-`-bot-common-sense` (default off) wraps `bot`, `forge-heuristic` and `sb-tactical` in the `bots/sanity` guard, which drops
-hostile removal that could only hit the bot's own permanents.
+`-bot-common-sense` (default off) wraps hosted bots and human-seat caretakers in the `bots/sanity` guard: it drops hostile
+self-removal from the option list and answers the London mulligan by the constructed policy.
 
-`sb-tactical` and `az-redeal` need a driver that supplies their honest roots and the card registry.
-`gorged`, `mtgsim` and `testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}` do. A driver that only
-calls `Seat.Decide` gets `az-redeal`'s wrapped heuristic bot, which never searches.
+`sb-tactical` and the `az-redeal` bots need a driver that supplies honest roots and the card registry: `gorged`, `mtgsim`, and
+`testkit/bench.PlayGame` with `Hooks{EnvSeats: true, HonestRoot: true}`. A driver that only calls `Seat.Decide` gets
+`az-redeal`'s wrapped heuristic bot, which never searches.
 
-As the opponent for an HTTP bot, or the baseline for your own policy, use `bot`, with a `bot`-against-`bot` control on the
-same seeds. Start `gorged` with `-bot-policy bot` to make it the default.
+As the opponent for an HTTP bot, or the baseline for your own policy, use `bot` (start `gorged` with `-bot-policy bot`), with a
+`bot`-against-`bot` control on the same seeds.
 
 
 ## Other policies at runtime
@@ -115,17 +111,10 @@ same seeds. Start `gorged` with `-bot-policy bot` to make it the default.
 <figcaption>The integration surfaces. Native seats are called directly; an HTTP client answers a parked HumanSeat across the network; a SpellBench v2 agent is a child process on the same machine.</figcaption>
 </figure>
 
-1. **Native Go** ([guide](native-go.md)). Implement `seat.Seat`, register it with `bots.Register`, link it into `gorged` or a
-   bench. It is the fastest path and the only one that can search: a Go seat can clone the engine or ask the host for an honest
-   redealt world.
-2. **HTTP seat** ([guide](http.md), [examples](examples.md)). A server started with `-vsbot` or `-humans` parks a seat's decision
-   behind `GET .../pending`, and any program that speaks HTTP and JSON answers it with `POST .../intent`. The Python and Java examples
-   use this.
-3. **SpellBench v2** ([guide](spellbench.md)). gorge speaks the SpellBench benchmark protocol in both directions over a child process's
-   stdin and stdout: an external agent can take a gorge seat (`-sb-agent`), and any gorge bot can be served as a v2 agent. With `-sbv2`
-   a server also offers the same decisions over HTTP.
-4. **gorge-agent/1** ([reference](../api/gorge-agent.md)). A batch protocol for drafters, builders and players in the
-   [draft tools](../guide/draft.md#compose-a-workflow-with-labdemo).
+1. **Native Go** ([guide](native-go.md)): implement `seat.Seat`, `bots.Register` it, link it into `gorged` or a bench. Fastest, and the only path that can search.
+2. **HTTP seat** ([guide](http.md), [examples](examples.md)): a server with `-vsbot` or `-humans` parks a decision behind `GET .../pending`; any HTTP client answers with `POST .../intent`.
+3. **SpellBench v2** ([guide](spellbench.md)): an external agent takes a gorge seat (`-sb-agent`), or a gorge bot is served as an agent. `-sbv2` also offers the decisions over HTTP.
+4. **gorge-agent/1** ([reference](../api/gorge-agent.md)): a batch protocol for drafters, builders and players in the [draft tools](../guide/draft.md#compose-a-workflow-with-labdemo).
 
 | | Native Go seat | HTTP seat | SpellBench v2 agent seat |
 |---|---|---|---|
@@ -138,6 +127,6 @@ same seeds. Start `gorged` with `-bot-policy bot` to make it the default.
 | **Many games at once** | goroutines (`testkit/bench.RunPairs`) | one token per seat, up to `-max-on-demand-tables` | one process per seat per match |
 | **On a timeout** | hosted search seats fall back to their heuristic after 2 s | none: `gorged` waits, and the seat's caretaker bot answers only when the table shuts down | forfeit: the seat concedes at its next priority, with the default bot answering until then |
 
-Per-decision costs: about 30 µs for a two-seat game step in process (`examples/bots/go/cmd/duel`, on
+Per-decision costs: about 27 µs for a two-seat game step in process (`examples/bots/go/cmd/duel`, on
 [Writing a native Go bot](native-go.md#play-it-against-the-default-bot)), a few tenths of a millisecond over HTTP on loopback
 ([Latency](http.md#latency)), and about the same over stdio ([SpellBench latency](spellbench.md#latency)).
