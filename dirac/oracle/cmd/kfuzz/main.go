@@ -615,6 +615,9 @@ func run() int {
 		res := rep.Rerun(m, mk, 200)
 		if res.Div == nil {
 			fmt.Printf("repro: no divergence in %d decisions\n", res.Decisions)
+			if res.Stall != "" {
+				fmt.Printf("repro: stall %q (unmodelled=%v)\n", res.Stall, res.StallUnmodelled)
+			}
 			return 0
 		}
 		printDiv(res.Div)
@@ -805,6 +808,9 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 	oracle.CloseSide(k)
 	if res.Div == nil {
 		fmt.Printf("repro: no divergence in %d decisions\n", res.Decisions)
+		if res.Stall != "" {
+			fmt.Printf("repro: stall %q (unmodelled=%v)\n", res.Stall, res.StallUnmodelled)
+		}
 		return 0
 	}
 	printDiv(res.Div)
