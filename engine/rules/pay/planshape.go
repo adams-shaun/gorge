@@ -982,11 +982,34 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 				// every later payable() against pool plus the delta.
 				next := acc
 				if fee := a.Fee(); fee > 0 {
-					funded, ok := feeFromMana(a, ManaAdd(pool, acc), conv)
+					floating := ManaAdd(pool, acc)
+					funded, ok := feeFromMana(a, floating, conv)
 					if !ok {
 						continue
 					}
-					next = ManaSub(funded, pool)
+					tryFee := func(afterFee state.Mana) bool {
+						return rec(i+1, remaining-1, ManaAdd(ManaSub(afterFee, pool), a.Mana()), lifeLeft-a.Life)
+					}
+					found := tryFee(funded)
+					if !found && a.CostGeneric > 0 && manaCovers(floating, a.CostColored) {
+						// The fee's colours are the payer's choice (CR 601.2h
+						// through CR 602.2b):
+						// ResolveMana's deduction spends the first available
+						// colour on the generic part, which may be a colour the
+						// unless cost still needs (Overflowing Basin's {1} beside
+						// a {W}{U}{B}{R}{G} tax: spending the Plains' {W} leaves
+						// no white, while the second Mountain pays it just as
+						// well). Try every other split of the unrestricted pool
+						// before dropping the activation, exactly as the cast
+						// window's reach walk does.
+						found = forEachFeeSplit(ManaSub(floating, a.CostColored), a.CostGeneric, func(afterFee state.Mana) bool {
+							return afterFee != funded && tryFee(afterFee)
+						})
+					}
+					if found {
+						return true
+					}
+					continue
 				}
 				if rec(i+1, remaining-1, ManaAdd(next, a.Mana()), lifeLeft-a.Life) {
 					return true
@@ -1024,4 +1047,41 @@ func feeFromMana(a WindowAlt, pool state.Mana, conv *Conv) (state.Mana, bool) {
 	// remaining floating mana, spent = before - after); returning it directly
 	// prices every later branch against the mana the fee did not consume.
 	return paid.Pool, true
+}
+
+// manaCovers reports whether pool holds every unit of need, colour by colour.
+func manaCovers(pool, need state.Mana) bool {
+	for i := range need {
+		if pool[i] < need[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// forEachFeeSplit calls try with pool less each way of spending n generic
+// mana from it, in colour order, until try accepts one. The generic part of a
+// mana-ability activation fee is the payer's to assign (CR 601.2h), so a
+// reach walk must not let ResolveMana's fixed deduction order decide which
+// colour is spent: a colour the priced cost still needs can be the only one
+// the fee may take (CR 605.3a lets the payer activate the fee's source while
+// a rule asks for the mana payment).
+func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
+	var walk func(from int, left int32, cur state.Mana) bool
+	walk = func(from int, left int32, cur state.Mana) bool {
+		if left == 0 {
+			return try(cur)
+		}
+		for c := from; c < len(cur); c++ {
+			if cur[c] > 0 {
+				cur[c]--
+				if walk(c, left-1, cur) {
+					return true
+				}
+				cur[c]++
+			}
+		}
+		return false
+	}
+	return walk(0, n, pool)
 }
