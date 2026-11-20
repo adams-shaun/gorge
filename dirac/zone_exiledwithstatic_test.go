@@ -36,8 +36,7 @@ func exwExile(sc *scen, c CardID, owner uint8, src Obj) Obj {
 	o := sc.obj(c, owner)
 	sc.s.place(o, kop.ZoneExile, false)
 	if src != NoObj {
-		sc.s.cold.exw[sc.s.g.nexw] = exwRec{o: o, src: src, sver: sc.s.objs[src].ver, fl: exwFwd}
-		sc.s.g.nexw++
+		sc.s.cold.objSets[sc.s.osLen()] = osRec{o: o, src: src, sver: sc.s.objs[src].ver, kind: osExw | exwFwd}
 	}
 	return o
 }
