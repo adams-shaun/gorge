@@ -451,6 +451,20 @@ type castPlanPipsWindow interface {
 	castWindowCensusComplete(pc *pendingCast, units []windowManaUnit) bool
 	castWindowReachableAfter(deadAfter int, feeExtra state.Mana, p state.PlayerID, cost Cost, spellPool, snow state.Mana,
 		typed [8]state.Mana, life int32, conv *manaConv, rider pipRider, units []windowManaUnit) (bool, int)
+	// The ceiling read's queries (existing *Engine methods): the interface
+	// keeps the pips check off the engine's own surface.
+	Game() *state.Game
+	untappedManaSource(p state.PlayerID, id state.ObjID) bool
+	paymentPlanManaInterference() bool
+	manaProductionAltered(id state.ObjID, ma *cards.SA) bool
+	convokeCommitted(pc *pendingCast, id state.ObjID) bool
+	castWindowProbeAbilities(p state.PlayerID, id state.ObjID) []*cards.SA
+	manaAbilityCC(p state.PlayerID, id state.ObjID, ma *cards.SA) *compiledCost
+	paidCostShape(p state.PlayerID, id state.ObjID, cost Cost, life int32) (int32, bool)
+	castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc pay.Descriptor) bool
+	castWindowAmount(p state.PlayerID, source state.ObjID, o *state.Object, ma *cards.SA) (int32, bool)
+	castWindowIdentityCounts(p state.PlayerID) (counts [6]int32)
+	castWindowRestrictedAdmits(p state.PlayerID, id state.ObjID, desc pay.Descriptor, units []windowManaUnit) bool
 }
 
 // castPlanPipsOutcome withholds a cast plan whose Phyrexian pips the payer's
@@ -463,10 +477,13 @@ type castPlanPipsWindow interface {
 //
 // The plan's activations tap their sources and float their mana, and the
 // window then offers every remaining source (castWindowUnits). The check
-// starts from the plan's production and omits the sources it already used,
+// starts from the plan's production and omits the sources it already used
+// (a source the activation sacrificed is gone; one that survives can still
+// take its no-tap self-sacrifice second activation, castWindowUsedExtras),
 // exactly as the lowering executes. An incomplete census cannot prove the
-// play unpayable, so it keeps the plan (fail open); only a complete census
-// that falls short rejects it.
+// play unpayable, so it keeps the plan (fail open) -- unless even the ceiling
+// of what its unpriced sources could add falls short of the cost's floor at
+// this life total (castWindowUnpricedReach, castPipsManaFloor).
 func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *pendingCast,
 	life int32, snow, pool state.Mana, typed [8]state.Mana, conv *manaConv, rider pipRider, out PaymentPlanOutcome) PaymentPlanOutcome {
 	if out.Plan == nil || out.Reason != "" || len(cost.Phyrexian) == 0 ||
@@ -474,22 +491,43 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 		return out
 	}
 	units := w.castWindowUnits(pc)
-	if !w.castWindowCensusComplete(pc, units) {
-		return out
-	}
+	complete := w.castWindowCensusComplete(pc, units)
 	used := make(map[state.ObjID]bool, len(out.Plan.Activations))
+	sacrificed := make(map[state.ObjID]bool, len(out.Plan.Activations))
 	var produced state.Mana
 	for _, a := range out.Plan.Activations {
 		used[a.Source] = true
+		if a.Consequence != nil && a.Consequence.Sacrifice {
+			sacrificed[a.Source] = true
+		}
 		for i := range produced {
 			produced[i] += int32(a.Produces[i])
 		}
 	}
-	kept := units[:0]
+	var unpriced int32
+	var bounded bool
+	if !complete {
+		unpriced, bounded = castWindowUnpricedReach(w, pc, units, used, sacrificed)
+	}
+	kept := make([]windowManaUnit, 0, len(units))
 	for _, u := range units {
 		if !used[u.ID] {
 			kept = append(kept, u)
 		}
+	}
+	if !complete {
+		if bounded {
+			if floor := castPipsManaFloor(&cost, life); floor >= 0 {
+				// Snow and typed are PROVENANCE, not additional mana: they
+				// partition the same floating pool Pool already carries.
+				have := int64(pool.Total()+produced.Total()) + int64(castWindowUnitsReach(kept)) +
+					int64(castWindowUsedExtras(units, used, sacrificed)) + int64(unpriced)
+				if have < floor {
+					return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
+				}
+			}
+		}
+		return out
 	}
 	// The plan's production floats in the payer's pool before this window
 	// opens (the witness is lowered at priority), so it funds an activation
@@ -501,6 +539,43 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 		return out
 	}
 	return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
+}
+
+// castWindowUsedExtras is the ceiling's second-activation term for a source
+// the plan already activated: one the activation left on the battlefield can
+// still take the no-tap self-sacrifice activation the window records as an
+// Extra (CR 602.2b, 605.1a; castWindowUnitsReach counts a kept unit's Extras).
+// Omitting them under-counts a window the plan's own sources can still pay,
+// which withholds a payable cast; one the activation sacrificed is gone.
+func castWindowUsedExtras(units []windowManaUnit, used, sacrificed map[state.ObjID]bool) int32 {
+	total := int32(0)
+	for _, u := range units {
+		if !used[u.ID] || sacrificed[u.ID] {
+			continue
+		}
+		for _, a := range u.Extras {
+			total += max(0, a.Mana().Total())
+		}
+	}
+	return total
+}
+
+// castPipsManaFloor is the least mana a payment of cost can spend at life:
+// its pool-unit floor (generic and strict coloured pips, black excluded
+// because PayLifeInsteadOf:B may pay it), plus one unit for each Phyrexian pip
+// the life total cannot pay with two life (CR 107.4f, 119.4). A
+// hybrid-Phyrexian pip stays out: pay.PlanManaHalf keeps it in the witness
+// (only cost.Phyrexian is stripped), so the plan already funds either colour
+// face and never leaves it for this window. Snow, hybrid and twobrid pips also
+// stay out, as in the pool-unit floor: each would add at least one unit, so
+// leaving them out keeps this a floor, never an over-estimate. A cost whose
+// {X}, repeated (NumTimes) or Unknown parts could add mana has no floor (-1).
+func castPipsManaFloor(c *Cost, life int32) int64 {
+	if c.X != 0 || c.NumTimes || len(c.Unknown) != 0 {
+		return -1
+	}
+	phy := int64(len(c.Phyrexian))
+	return c.PoolUnitsFloor() + max(0, phy-int64(life/2))
 }
 
 // prunePlanAltsUnderRider drops the alternative witnesses the folded plan's
