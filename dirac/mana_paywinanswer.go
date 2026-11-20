@@ -64,6 +64,24 @@ func (s *State) payWinHybFilt(k *prep, p uint8, sl Slot, payWin bool) bool {
 	return true
 }
 
+// windowHybFiltArm is windowTapWalk's hybrid-fee filter answer: payWindow's
+// (payWinHybFilt), or a madness cast's window, which lists the owed-colour
+// filter ahead of the plain tap (owedAbilitiesFirst reads the cast's
+// composition) but answers the lowest symbol the clamp keeps
+// (windowFiltFirstFallback): Graven Cairns floats {B}{B} beside a floating {B}
+// for a {1}{R}{R} cost it cannot pay, and the cast is reversed (CR 733.1,
+// kw_madness.go).
+func (s *State) windowHybFiltArm(k *prep, p uint8, sl Slot, useful *kop.ManaCost, noOwed, clamp, anyColor, potential bool) bool {
+	if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
+		return true
+	}
+	if !clamp || anyColor || !s.madnessWindowLive() || !s.windowFiltOwedPick(k, p, sl, useful) {
+		return false
+	}
+	s.windowFiltFirstFallback(k, p, sl, useful)
+	return true
+}
+
 // DebugWindowColourPlanner keeps pickUnitColour's Produces preference for the
 // plans a payment gorge takes through its manual mana window (mutation
 // testing only: TestWindowColourGenericOnlyMutation must see the divergence

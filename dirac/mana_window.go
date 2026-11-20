@@ -305,8 +305,8 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
-		if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
-			continue // payWindow: a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
+		if s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) {
+			continue // a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
 		}
 		if payAsk && clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
 			// the clamp kept the source for a filter beside a plain ability: the
