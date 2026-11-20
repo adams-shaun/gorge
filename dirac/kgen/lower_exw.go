@@ -187,11 +187,16 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 // with the source and acts on each (playerHasCardsInZoneMatches over
 // definedPlayerIDs); the kernel's RefExiledWithOwner is a scalar that asks
 // only the first seat in seat order (zone_exiledwith.go exiledWithOwnerSeat).
-// The two agree only while at most one seat can match -- the card's program
-// holds one exile mover, bound to one card. A second mover (two resolutions
-// can stack two linked cards into two seats) or a mover whose per-resolution
-// count is not bounded to one (a two-target ETB exile) refuses the card; the
-// one-card shape, Unidentified Hovership's TargetMax$ 1 ETB, still lowers.
+// The two agree only while at most one seat can match: the card's program
+// must be able to link at most one card, once per source object. Three
+// guards: each exile mover is bounded to one card per resolution
+// (exwOwnerMover), each mover sits in an ability that resolves at most once
+// per source object (exwOwnerOnce: an activated ability, a repeat loop, a
+// trigger that fires for other cards, or any other trigger event, can
+// resolve again while the link stands and stack a second linked card into a
+// second seat's exile), and the card holds at most one mover (two movers
+// stack two links). The one-card shape, Unidentified Hovership's TargetMax$
+// 1 ETB, still lowers.
 func (lc *lowerCtx) exwOwnerCheck() {
 	if !lc.exwOwnerRef {
 		return
@@ -199,13 +204,19 @@ func (lc *lowerCtx) exwOwnerCheck() {
 	movers := 0
 	for _, ab := range lc.out.Abilities {
 		for i := range ab.Prog {
-			ok, err := exwOwnerMover(&ab.Prog[i], ab)
+			in := &ab.Prog[i]
+			ok, err := exwOwnerMover(in, ab)
 			if err != nil {
 				lc.refuseNode("card", "%s", err.Error())
 				return
 			}
-			if ok {
-				movers++
+			if !ok {
+				continue
+			}
+			movers++
+			if err := exwOwnerOnce(ab); err != nil {
+				lc.refuseNode("card", "%s", err.Error())
+				return
 			}
 		}
 	}
@@ -214,10 +225,46 @@ func (lc *lowerCtx) exwOwnerCheck() {
 	}
 }
 
+// exwOwnerOnce refuses an exile mover in an ability that can resolve more
+// than once for one source object. The once-per-object shapes are the
+// source's own enters-the-battlefield trigger (each object enters once) and
+// the source's own dies trigger (each object dies once), both matching only
+// the source (filterSelfOnly). Anything else stacks links: a non-triggered
+// ability (an activated, spell, mana or latent one) can resolve again while
+// the link stands; a repeat loop links another card per iteration; a trigger
+// that matches other cards fires again for each of them; any other trigger
+// event fires again too. The second link can sit in a second seat's exile,
+// where gorge acts on every matching seat and the scalar ref asks only the
+// first.
+func exwOwnerOnce(ab *lAbility) error {
+	if ab.Trigger == nil {
+		return refuse("ExiledWithSource player ref over an exile in a non-triggered ability: it can resolve again for one source object, stacking a second linked card into a second seat's exile")
+	}
+	if ab.Trigger.Event != "ETB" && ab.Trigger.Event != "Dies" {
+		return refuse("ExiledWithSource player ref over an exile in a %s trigger: only the source's own enters-the-battlefield or dies trigger resolves once per source object", ab.Trigger.Event)
+	}
+	if !filterSelfOnly(ab.Trigger.F) {
+		return refuse("ExiledWithSource player ref over an exile in a %s trigger that matches other cards: it fires again for each of them, stacking a second linked card into a second seat's exile", ab.Trigger.Event)
+	}
+	for i := range ab.Prog {
+		switch ab.Prog[i].Op {
+		case "Repeat", "RepeatEach":
+			return refuse("ExiledWithSource player ref over an exile beside a repeat: each iteration can link another card, stacking a second linked card into a second seat's exile")
+		}
+	}
+	return nil
+}
+
 // exwOwnerMover classifies one instruction for exwOwnerCheck: ok when it is
-// an exile mover gorge's link recording follows (the exwForwardOp movers,
-// zone_exiledwith.go), err when it can move more than one card into exile in
-// one resolution. The count is the mover's target slot or count operand.
+// an exile mover, err when it can move more than one card into exile in one
+// resolution (the count is the mover's target slot or count operand). The op
+// list is a heuristic enumeration of the ops that can move a card into
+// exile -- not gorge's recording rule, which stamps the reverse ExiledWith
+// scalar on every exile by a card whose text names ExiledWithSource (the
+// ref's lowering sets lc.out.ExwWord; zone_exiledwith.go's exwRecRev path in
+// exwExile) -- so an exile-bearing op added to kgen must be added here by
+// hand, or this gate must be derived from that recording rule, or it slips
+// past the check silently.
 func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 	switch in.Op {
 	case "Exile", "ExileUntilLeaves":
