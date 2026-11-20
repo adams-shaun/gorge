@@ -2051,7 +2051,11 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		// trigger's capture -- the same hostRemembered Defined$ uses.
 		add(hostRemembered(h, c))
 	case repeatPlayersNonTargetedController:
-		add(c.Targets)
+		// The target may have left the battlefield earlier in the resolution
+		// (Fractured Identity exiles it, then copies it): read the controller
+		// captured when the resolution began (CR 608.2h, 400.7), not the live
+		// object's owner after events.Apply's Move reset it.
+		add(targetsControllerLKI(h.Game(), c, c.Targets))
 		for _, p := range h.Game().AliveFrom(c.Controller) {
 			selected[p] = !selected[p]
 		}
