@@ -1367,8 +1367,13 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		// fee before it walks the gaps, since the plain order's gap pass
 		// taps a source's free ability and loses the fee activation
 		// (Baxter Building's {T}: Add {C} before its {4}, {T} filter).
+		// phased: true — gorge arms feeOrder on the phased build itself
+		// (potential_script.go sets sr.feeOrder and sr.phased together), so
+		// the plain run's fee-only prunes (feeOnlyAskPrune, feeOnlyGapDoomed;
+		// feeStall is the plain run's alone) are off here as they are there:
+		// the feeOrder pass shape is not a configuration gorge ever prunes.
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, feeGap: fs.feeGap, feeOrder: true}
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, feeGap: fs.feeGap, feeOrder: true, phased: true}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 		} else if fs.stall == 0 {
@@ -1464,6 +1469,14 @@ func (s *State) filtFeeOrder(k *prep, a Action, fs *filtSearch) bool {
 		return false
 	}
 	c := s.objs[Obj(a.Source())].card
+	// gorge arms feeOrder only for the printed cost (o.AltCostIndex == 0,
+	// potential_script.go); the mana-alternative cast is castAltTgt in the
+	// target byte with mode 0, so it passes the mode check above and needs
+	// its own disambiguator (the same compound the cost lowering reads,
+	// mana_grantedoffers.go, since a plain cast's target code can be 1).
+	if a.Target() == castAltTgt && k.gen != nil && k.gen.altFree != nil && k.gen.altFree[c] != 0 {
+		return false
+	}
 	if ac := spellAddCost(k, c); ac.Flags&(kop.CostSac|kop.CostReturn|kop.CostReturnSelf) != 0 {
 		return false
 	}
@@ -2162,6 +2175,9 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 		case 1, 2:
 			return true, false, false
 		}
+		// pass 3 never reaches here: visit routes pass == passes-1 through
+		// lifePass before passShape; the arm stays because a Go switch cannot
+		// end the function.
 		return false, false, true
 	}
 	gap = pass == 0 || fs.phased && pass == 2
