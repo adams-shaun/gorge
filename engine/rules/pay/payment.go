@@ -73,9 +73,18 @@ func PayManaConv(e Engine, p state.PlayerID, cost Cost, conv *Conv) bool {
 // PayManaCumulative pays a cumulative-upkeep cost for id: the restriction
 // class CumulativeUpkeep admits, with the cost's X announced when it has one.
 func PayManaCumulative(e Engine, p state.PlayerID, id state.ObjID, cost Cost, conv *Conv) bool {
-	ok, _, _, _, _ := PayManaDescriptorForSpent(e, p, Descriptor{ID: id, Class: PurposeCumulativeUpkeep,
-		Cost: &cost, XAnnounced: cost.X > 0}, cost, conv, PipRider{})
+	ok, _ := PayManaCumulativeSpent(e, p, id, cost, conv)
 	return ok
+}
+
+// PayManaCumulativeSpent is PayManaCumulative with the mana the payment
+// actually spent returned (the full per-colour delta), the amount a
+// "whenever its cumulative upkeep is paid" trigger reads back as
+// Count$TriggeredPayingMana.
+func PayManaCumulativeSpent(e Engine, p state.PlayerID, id state.ObjID, cost Cost, conv *Conv) (bool, state.Mana) {
+	ok, spentAll, _, _, _ := PayManaDescriptorForSpent(e, p, Descriptor{ID: id, Class: PurposeCumulativeUpkeep,
+		Cost: &cost, XAnnounced: cost.X > 0}, cost, conv, PipRider{})
+	return ok, spentAll
 }
 
 // PayManaConvFor pays a specific spell or activated ability. RestrictValid$

@@ -721,6 +721,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	if v, ok, matched := evalCountBodyPaid(h, c, g, head, arg, depth); matched {
 		return v, ok
 	}
+	if v, ok, matched := evalCountBodyPayment(c, g, head, arg); matched {
+		return v, ok
+	}
 	if v, ok, matched := evalCountBodyPlayer(h, c, g, head, arg, depth); matched {
 		return v, ok
 	}
