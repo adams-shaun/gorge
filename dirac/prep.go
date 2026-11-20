@@ -121,6 +121,10 @@ type prep struct {
 	// genPrep, so the pinned fixed-State inventory is unchanged
 	embPrev bool
 	cda     bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// landGrantPair: a granted basic land type beside a mana source whose own
+	// ability is no plain {T} one (static_landgrantpair.go): StallLandGrant; on
+	// prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	landGrantPair bool
 	// gainsOfPair: a GainsAbilitiesOf$ static beside a creature ability its
 	// walk does not model (static_gainsofpair.go): StallGainsOf; on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged

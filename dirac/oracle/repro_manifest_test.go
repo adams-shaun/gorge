@@ -30,7 +30,9 @@ func TestReproManifest(t *testing.T) {
 		}
 		named++
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			if landGrantRecordingReplay(t, name) {
+				return
+			}
 			if r.Served {
 				stdReproNamedServed(t, name)
 			} else {
