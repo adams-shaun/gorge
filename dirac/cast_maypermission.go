@@ -175,7 +175,7 @@ func (s *State) offerMayKind(k *prep, d *Decision, p uint8, r mayPlay, sorc, lan
 	if (anyMana || anyColor) && s.cfg&cfgGorgeUnpriced != 0 {
 		c := s.objs[r.obj].card
 		cost := s.adjustCostGen(k, p, c, r.obj, k.cards[c].cost)
-		if mode&castFree == 0 && s.tapPays(k, p, c, r.obj, false) {
+		if mode&castFree == 0 && s.tapPays(k, s.creditReader(p, r.obj), c, r.obj, false) {
 			cost = s.convokeCredit(k, p, c, r.obj, cost) // the offer's own credit (offerPlay's castOfferBase, cast_mayplayparts.go): gorge's offer gate prices the tapped-permanent credit too, so the planner picture does not refuse a cast the taps pay
 		}
 		printed := cost
