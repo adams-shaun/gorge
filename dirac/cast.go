@@ -1610,7 +1610,7 @@ func (s *State) applyBuild(k *prep, a Action) {
 // discard comes first, the cost picks, life.
 func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	e := *ep
-	if s.discardPicked() && s.bld().bfl&bflLowered == 0 {
+	if s.discardPicked() && s.bld().bfl&bflLowered == 0 && !s.retraceConvoked(k, &e) {
 		// gorge's planner picks the sources at priority, before the
 		// discard is chosen: the cards discarded for the cost still
 		// count toward the hand demand (HandReserve, rank key 6). A
