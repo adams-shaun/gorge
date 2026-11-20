@@ -1,0 +1,41 @@
+// gap-plan scratch: per-card dirac support over a name list, as support.md computes it.
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kgen"
+)
+
+func main() {
+	cardsDir, list := os.Args[1], os.Args[2]
+	f, err := os.Open(list)
+	if err != nil {
+		panic(err)
+	}
+	var names []string
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		if n := strings.TrimSpace(sc.Text()); n != "" {
+			names = append(names, n)
+		}
+	}
+	f.Close()
+	m, err := kgen.SupportFor(cardsDir, names)
+	if err != nil {
+		panic(err)
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		c := m[k]
+		fmt.Printf("%s\t%s\t%v\t%s\n", k, c.Status, c.TwoSeat, strings.Join(c.TwoSeatWhy, ";"))
+	}
+}

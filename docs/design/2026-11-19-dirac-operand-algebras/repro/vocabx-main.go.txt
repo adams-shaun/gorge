@@ -1,0 +1,33 @@
+// scratch (dirac-scale-design planner): gorge's supported primitive vocabulary by prefix.
+package main
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	_ "github.com/adams-shaun/gorge/engine/rules"
+	"github.com/adams-shaun/gorge/engine/effects"
+)
+
+func main() {
+	by := map[string]int{}
+	var all []string
+	for k := range effects.Supported() {
+		p, _, _ := strings.Cut(k, ":")
+		by[p]++
+		all = append(all, k)
+	}
+	sort.Strings(all)
+	var ps []string
+	for p := range by {
+		ps = append(ps, p)
+	}
+	sort.Strings(ps)
+	for _, p := range ps {
+		fmt.Printf("%s\t%d\n", p, by[p])
+	}
+	for _, k := range all {
+		fmt.Println("#", k)
+	}
+}
