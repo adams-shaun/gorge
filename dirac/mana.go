@@ -1046,7 +1046,22 @@ func (s *State) tapForN(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj
 func (s *State) tapForRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
+	if st := DebugSacManaPaymentStats; st != nil && (pk.needT == 0 || pk.found) && plannerConsumesSac(&pk) {
+		st.Paid++
+	}
 }
+
+// SacManaPaymentStats is the four-seat test's hook (mana.go tapForRider): how
+// often a payment's plan sacrificed a mana source (a Treasure, a Gold token,
+// an Eldrazi Spawn token). The test fails when it stays zero, so its
+// no-divergence check cannot pass empty.
+type SacManaPaymentStats struct {
+	Paid int
+}
+
+// DebugSacManaPaymentStats is nil in normal play, so the hook costs a nil
+// test per payment.
+var DebugSacManaPaymentStats *SacManaPaymentStats
 
 // DebugTwobridNoWitnessGuard (TestTwobridUnannouncedWitnessMutation) restores
 // the pre-guard tapForPK behaviour, so an unannounced twobrid cost reaches the
