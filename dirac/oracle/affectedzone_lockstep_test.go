@@ -106,30 +106,6 @@ var affectedZoneLeylineDecks = [2][]cardset.Entry{
 	},
 }
 
-// affectedZoneDeclineOpeningPolicy is castFirstPolicy that declines a Leyline's
-// begin-the-game-on-the-battlefield offer, so Leyline of Transformation is
-// cast from hand instead. Taken at the opening hand the kernel moves the
-// Leyline to the battlefield before its "choose a creature type" ask where
-// gorge still holds it in hand (a timing divergence in the opening-hand
-// path, not in the grant; ticket leyline-opening-choosetype-timing). The
-// harness plays every eighth seed with RandomPolicy, which does not decline,
-// so the Leyline deck skips those seeds (affectedZoneSeeds).
-func affectedZoneDeclineOpeningPolicy(seed uint64) Policy {
-	base := affectedZoneChooseGiantPolicy(seed)
-	no, ok := chooseCode("opening_no")
-	if !ok {
-		panic("no opening_no choose code")
-	}
-	return PolicyFunc(func(c *PickCtx) Canon {
-		for _, x := range c.D.Options {
-			if x.Kind() == ActChoose+CanonKind(no) {
-				return x
-			}
-		}
-		return base.Pick(c)
-	})
-}
-
 // affectedZoneChooseGiantPolicy is castFirstPolicy that answers a creature
 // type choice with Giant. The chosen type shows in the projection only when
 // it is a word of the pool's vocabulary a battlefield creature lacks, which a
@@ -155,13 +131,11 @@ func affectedZoneChooseGiantPolicy(seed uint64) Policy {
 	})
 }
 
-// affectedZoneCase is one grant carrier's lockstep: its decks and policy, and
-// whether the deck holds a Leyline (skipRandom).
+// affectedZoneCase is one grant carrier's lockstep: its decks and policy.
 type affectedZoneCase struct {
-	name       string
-	decks      [2][]cardset.Entry
-	policy     func(uint64) Policy
-	skipRandom bool
+	name   string
+	decks  [2][]cardset.Entry
+	policy func(uint64) Policy
 }
 
 // TestAffectedZoneGrantsLockstep runs the type and keyword grant carriers.
@@ -170,8 +144,8 @@ type affectedZoneCase struct {
 func TestAffectedZoneGrantsLockstep(t *testing.T) {
 	t.Parallel()
 	for _, c := range []affectedZoneCase{
-		{"Ashes", affectedZoneAshesDecks, affectedZoneChooseGiantPolicy, false},
-		{"Leyline", affectedZoneLeylineDecks, affectedZoneDeclineOpeningPolicy, true},
+		{"Ashes", affectedZoneAshesDecks, affectedZoneChooseGiantPolicy},
+		{"Leyline", affectedZoneLeylineDecks, affectedZoneChooseGiantPolicy},
 	} {
 		_, set, gd := lockstepPool(t, affectedZonePool, c.decks)
 		if !SetDeckSupported(set, gd[0]) {
@@ -185,17 +159,10 @@ func TestAffectedZoneGrantsLockstep(t *testing.T) {
 	}
 }
 
-// affectedZoneSeeds plays seeds 1..100 of a grant carrier's decks. A deck
-// with a Leyline skips every eighth seed, where the harness overrides the
-// policy with RandomPolicy (lockstepSeeds).
+// affectedZoneSeeds plays seeds 1..100 of a grant carrier's decks. Every seed
+// plays now: an opening-hand Leyline's as-enters choice is asked while it is
+// still in hand, so accepting the begin-the-game offer no longer diverges.
 func affectedZoneSeeds(t *testing.T, reg *cards.Registry, set cardset.Set, c affectedZoneCase, gd [2][]*cards.Card) (clean, casts, div int) {
 	t.Helper()
-	if !c.skipRandom {
-		return lockstepSeeds(t, reg, set, affectedZonePool, c.decks, gd, 1, 100, true, nil, nil, c.policy)
-	}
-	for lo := uint64(1); lo <= 100; lo += 8 {
-		a, b, d := lockstepSeeds(t, reg, set, affectedZonePool, c.decks, gd, lo, min(lo+6, 100), true, nil, nil, c.policy)
-		clean, casts, div = clean+a, casts+b, div+d
-	}
-	return clean, casts, div
+	return lockstepSeeds(t, reg, set, affectedZonePool, c.decks, gd, 1, 100, true, nil, nil, c.policy)
 }
