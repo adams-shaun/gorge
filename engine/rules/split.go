@@ -20,7 +20,14 @@ func (e *Engine) splitCastTargetsAvailable(p state.PlayerID, id state.ObjID, f *
 	if ab := f.SpellAbility(); ab != nil {
 		xPending = xPending || costAnnouncesX(e.abilityCompiledCost(ab).Cost)
 	}
-	return e.targetsAvailable(p, id, id, f.SpellAbility(), xPending)
+	// The half is probed AS the half it casts (CR 709.3b, 601.2c): a target's
+	// protection from a colour reads the spell's own colours (sourceHasQuality
+	// reads a hand split card as the half it would cast), and the alternate
+	// half's colours are not the front face the card shows in hand (Serve is
+	// blue under a "protection from white" creature; Protect is not).
+	return e.offerAsFace(id, f, func() bool {
+		return e.targetsAvailable(p, id, id, f.SpellAbility(), xPending)
+	})
 }
 
 // splitFrontHalfRead reports whether o, a split card at its front face off

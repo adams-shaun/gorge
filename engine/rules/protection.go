@@ -379,11 +379,19 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if o.IsCopy && o.Zone != state.ZStack && o.Zone != state.ZBattlefield {
 		sc.LastKnownSource = source
 	}
+	// A split card in hand probed as the spell it would cast has only that
+	// half's characteristics (CR 709.3a/709.3b), not both halves' combined
+	// (CR 709.4); the fused offer (pricingFused) reads both (CR 702.102b).
+	asHalf := o.Zone != state.ZStack && (o.FaceIdx != 0 || splitFrontHalfRead(o, e.pricingFused))
+	sc.AsSpellHalf = asHalf
 	if basis && effects.MatchesObjectCtx(e.G, q, o, sc) || !basis && e.matchesSpec(q, source, sc) {
 		return true
 	}
 	if c := protecColourLetter(q); c != 0 {
 		col := e.objColors(o)
+		if asHalf {
+			col = effects.ColorsOfCtx(o, &sc)
+		}
 		return col != "" && strings.ContainsRune(col, c)
 	}
 	var types []string

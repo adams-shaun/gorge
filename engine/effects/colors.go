@@ -377,6 +377,12 @@ func colorsCtx(o *state.Object, sc *SpecContext) string {
 	return colorMaskCtx(o, sc).String()
 }
 
+// ColorsOfCtx is ColorsOf read under sc: a split card read as the spell it
+// would be (sc.AsSpellHalf) shows only its current half's colours.
+func ColorsOfCtx(o *state.Object, sc *SpecContext) string {
+	return colorsCtx(o, sc)
+}
+
 // hasDerivedColorEntryPtr reports whether the context binds derived colours
 // for o (the compiled predicate programs read the printed face, so such an
 // object takes the textual path, as a renamed or retyped one does).
