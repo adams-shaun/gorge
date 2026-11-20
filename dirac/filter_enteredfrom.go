@@ -10,6 +10,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // tableHasEnteredFrom reports whether any filter of t carries the word, which
 // makes the table record the entered ledger even without an Expr reader.
 func tableHasEnteredFrom(t *kop.Table) bool {
+	if progHasEnteredFrom(t) { // filter_enteredfromword.go
+		return true
+	}
 	for i := range t.Filters {
 		if f := &t.Filters[i]; f.Pred == kop.PredWord7 && (f.PredN&0xff == kop.W7EnteredFromBF || f.PredN&0xff == kop.W7EnteredFromLib) {
 			return true
