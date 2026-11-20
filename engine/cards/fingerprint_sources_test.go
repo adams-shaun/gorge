@@ -104,6 +104,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"kw_etbreplacement.go":    {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_evolve.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_exalted.go":           {true, "keyword expansion registered at init; shapes compiled abilities"},
+	"kw_expansiononly.go":     {false, "the KeywordExpansionOnly query dirac's generator reads; registers nothing and shapes no compiled IR"},
 	"kw_exploit.go":           {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_extort.go":            {true, "keyword expansion registered at init; shapes compiled abilities"},
 	"kw_fabricate.go":         {true, "keyword expansion registered at init; shapes compiled abilities"},
