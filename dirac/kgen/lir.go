@@ -59,6 +59,7 @@ const (
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
+	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rCount
 )
 
@@ -103,6 +104,7 @@ var refNames = [...]string{
 	rChosenPlayerRes:      "ChosenPlayerRes",
 	rTriggerOpps:          "TriggerOpps",
 	rResChosenPlayer:      "ResChosenPlayer",
+	rExiledWithOwner:      "ExiledWithOwner",
 }
 
 type lRef struct {
