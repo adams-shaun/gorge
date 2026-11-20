@@ -791,23 +791,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	}
 	if f2 := fl.Flags2; f2 != 0 {
 		if f2&kop.F2ChosenType != 0 {
-			// a card filter reads the resolution's mid-resolution
-			// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
-			// static source's choice is read by matchMayPlayFilter for a
-			// may-play static, so outside a resolution there is no
-			// choice to read here
-			ch, ok := s.chosenTypeSub(NoSlot)
-			if !ok {
-				return false
-			}
-			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if outsideSub(k, ch) {
-				has = cd.AllCreatureTypes // a printed changeling has every type
-			}
-			if s.res.bad&resChosenCard != 0 {
-				has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
-			}
-			if !has {
+			if !s.cardChosenTypeOK(k, cd) {
 				return false
 			}
 			f2 &^= kop.F2ChosenType
@@ -956,6 +940,28 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}
 	return true
+}
+
+// cardChosenTypeOK is F2ChosenType for card cd: it has the resolution's
+// ChooseType answer's subtype, or the chosen card type (matchCardOneAt).
+func (s *State) cardChosenTypeOK(k *prep, cd *kop.CardDef) bool {
+	// a card filter reads the resolution's mid-resolution
+	// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
+	// static source's choice is read by matchMayPlayFilter for a
+	// may-play static, so outside a resolution there is no
+	// choice to read here
+	ch, ok := s.chosenTypeSub(NoSlot)
+	if !ok {
+		return false
+	}
+	has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+	if outsideSub(k, ch) {
+		has = cd.AllCreatureTypes // a printed changeling has every type
+	}
+	if s.res.bad&resChosenCard != 0 {
+		has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
+	}
+	return has
 }
 
 // cardCtrlTgtOK reports whether a card matcher's CtrlTgt role holds (matchCardOneAt).

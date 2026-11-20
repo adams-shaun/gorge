@@ -545,6 +545,19 @@ func (s *State) matchPermCur(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src S
 	return false
 }
 
+// curChosenOK is matchCurOne's F2ChosenType and F2ChosenColor: the walked
+// characteristics cur hold the source src's chosen subtype or colour.
+func (s *State) curChosenOK(k *prep, f2 kop.FilterFlags2, cur *dchars, src Slot) bool {
+	if src == NoSlot {
+		return false
+	}
+	ch := s.perms[src].chosen
+	if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, uint8(ch)) && !(outsideSub(k, uint8(ch)) && s.curOutsideHas(k, cur, src))) {
+		return false
+	}
+	return f2&kop.F2ChosenColor == 0 || ch <= 4 && cur.cols&(1<<ch) != 0
+}
+
 func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot, cur *dchars) bool {
 	p := &s.perms[sl]
 	switch fl.Ctrl {
@@ -614,17 +627,8 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 		}
 	}
 	if f2 := fl.Flags2; f2 != 0 {
-		if f2&(kop.F2ChosenType|kop.F2ChosenColor) != 0 {
-			if src == NoSlot {
-				return false
-			}
-			ch := s.perms[src].chosen
-			if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, uint8(ch)) && !(outsideSub(k, uint8(ch)) && s.curOutsideHas(k, cur, src))) {
-				return false
-			}
-			if f2&kop.F2ChosenColor != 0 && (ch > 4 || cur.cols&(1<<ch) == 0) {
-				return false
-			}
+		if f2&(kop.F2ChosenType|kop.F2ChosenColor) != 0 && !s.curChosenOK(k, f2, cur, src) {
+			return false
 		}
 		// keyword gates read printed keywords (layerKw): no re-entry
 		if rest := f2 &^ (kop.F2ChosenType | kop.F2ChosenColor); rest != 0 && !s.flags2Perm(k, rest, sl, src, layerKw) {
