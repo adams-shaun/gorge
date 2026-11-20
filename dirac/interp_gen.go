@@ -391,13 +391,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.res.chosen = objWord(p)
 			return false, true
 		}
-		for i := 0; i < int(pl.handN); {
-			if o := pl.hand[i]; s.discardMatch(k, in.F, o) && !s.park(k, o, parkDiscard, 0) {
-				s.discardObj(k, o)
-				continue
-			}
-			i++
-		}
+		s.discardHandMatching(k, p, in.F)
 	case kop.OpPutCounter:
 		s.g.lastCK = kop.CounterKind(in.C) // CounterAddedOnce reads the kind
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
@@ -1827,7 +1821,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done bool) {
 	e := &s.res.e
 	fl := k.t.Filters[in.F]
-	if (fl.Zone == kop.ZoneGraveyard || in.Op == kop.OpChangeZoneAllEx && in.C>>3&kop.MvGraveExile != 0) && k.gen.anyBatch {
+	z := kop.Zone(in.C & 7)
+	if s.changeZoneAllBatch(k, in, fl) {
 		// one graveyard-leave batch: gorge's effChangeZoneAll brackets EVERY sweep
 		// in its zone batch (CR 603.2c: the sweep is one occurrence of the trigger
 		// event), so a graveyard sweep to exile queues once, not per card. (dirac
@@ -1842,7 +1837,6 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 			}
 		}()
 	}
-	z := kop.Zone(in.C & 7)
 	mv := int16(0)
 	if in.Op == kop.OpChangeZoneAllEx {
 		mv = in.C >> 3
