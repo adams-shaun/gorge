@@ -149,6 +149,9 @@ func (s *State) finishDigTail(k *prep) {
 			pl.libBottom(o)
 		} else {
 			s.placeFrom(o, rz, false, kop.ZoneLibrary, false)
+			if fl&kop.DigRemember != 0 {
+				s.remember(o) // gorge effDig digRemember remembers every card the dig moved, the rest included
+			}
 		}
 	}
 	s.digWindowDone()
