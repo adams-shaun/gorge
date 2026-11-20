@@ -898,9 +898,10 @@ func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8
 // its answers, the children gorge's scriptSearch.visit branches. The child term
 // is a floor on the walk's clones: the ask node per multi-answer gap plus one
 // per answer, while pricing the whole subtree at its worst over-withholds plays
-// the walk still finds (Charix, Grasping Dunes). The chain term uses t.npend,
-// the chain's longest line (a line whose payer dies ends sooner), so a trigger
-// that does not damage the payer is not undercharged. The bool reports whether
+// the walk still finds (Charix, Grasping Dunes). The chain term is the
+// queued triggers' count, cut where a resolution kills the payer
+// (deferChainLen, mana_deferchain.go), so a trigger that does not damage the
+// payer is not undercharged. The bool reports whether
 // nodes plus the charge stays inside gorge's potentialScriptNodes.
 func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, used []int8, replay, post, resolvePlay, twinCut bool) (int, bool) {
 	if !replay || !post || !resolvePlay || t.npend == 0 {
@@ -917,7 +918,7 @@ func (s *State) deferChainCharge(k *prep, t *State, nodes int, order []Slot, use
 			sub += n + deferAskNodes(n)
 		}
 	}
-	chain := int(t.npend)
+	chain := s.deferChainLen(k, t)
 	charge := chain - 1 + (chain-1)*sub
 	return charge, nodes+charge <= potentialScriptNodes
 }
