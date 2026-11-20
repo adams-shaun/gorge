@@ -357,8 +357,8 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
 		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
 	}
-	if mode == 0 && k.gen != nil && k.gen.anyConvoke {
-		cost = s.convokeCredit(k, SeatIx(p), c, o, cost)
+	if (mode == 0 || mode&8 != 0) && k.gen != nil && k.gen.anyConvoke {
+		cost = s.convokeCredit(k, SeatIx(p), c, o, cost) // a granted retrace cast convokes too (kw_retrace.go)
 	}
 	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
 	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo); the
