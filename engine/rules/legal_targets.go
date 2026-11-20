@@ -664,8 +664,10 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			// target menu's probe uses; an incomplete census keeps the
 			// potential bound rather than hiding a play it cannot price. A
 			// mode's own payment descriptor is not built here, so the check
-			// stays on the plain spell.
-			if haveCensus && onceGap && !ability && scope.Kind == "Spell" && scope.Mode == "" {
+			// stays on the plain spell and the plain activation (Sequence
+			// Engine's "{X}, {T}: Exile target creature card with mana value X"
+			// beside Wooded Bastion's gap, CR 106.6, 601.2h, 602.2b).
+			if haveCensus && onceGap && scope.Mode == "" && (ability || scope.Kind == "Spell") {
 				from := state.ZHand
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
@@ -673,6 +675,9 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 				pcCost := composed
 				pcCost.X = base.X // XAnnounced on the window's descriptor; the cost is already folded
 				pc := &pendingCast{player: p, card: id, from: from, ability: -1, cost: pcCost}
+				if ability {
+					pc.ability = 0 // isAbility: the window prices an activation's payment class
+				}
 				units := e.castWindowUnits(pc)
 				if e.castWindowCensusComplete(pc, units) && !e.castWindowPays(pc, composed, units) {
 					return false
