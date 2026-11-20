@@ -578,35 +578,42 @@ func bestowSwitchActive(o *state.Object) bool {
 // marker. They are rule-based switches, outside the layer walk, so the marker
 // they invalidate is cleared after the walk too.
 func allCreatureTypesAfterSwitch(o *state.Object, bestowed, all bool) bool {
-	return !o.ImpendingDormant() && !bestowed && all
+	return !o.ImpendingDormant() && !bestowed && !reconfigureSwitchActive(o) && all
 }
 
 // switchClearsAllCreatureTypes reports whether a rule-based type switch on o
 // removes the Creature type, and so invalidates the all-creature-types marker.
 func switchClearsAllCreatureTypes(o *state.Object, bestowed bool) bool {
-	return o.ImpendingDormant() || bestowed
+	return o.ImpendingDormant() || bestowed || reconfigureSwitchActive(o)
 }
 
 // reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
 // list: a Reconfigure card attached to a creature is not a creature -- the
-// printed "Artifact Creature Equipment <subtype>" list loses only its
-// Creature half and keeps Equipment/Artifact and the subtypes. Unlike the
-// bestow switch, the reconfigure card stays an artifact, so CR 205.1a keeps
-// the subtypes a remaining card type carries; the creature subtypes are inert
-// on a non-creature in every filter this engine evaluates, so stripping them
-// would widen the diff into every subtype-affected static without changing an
-// answer. An unattached reconfigure card (or anything
-// not printed with the keyword) keeps the list unchanged, returning the
-// SAME slice so the common game stays byte-identical and allocation-free.
+// printed "Artifact Creature Equipment <subtype>" list loses its Creature
+// half and keeps Equipment/Artifact. Creature SUBTYPES go with the lost
+// Creature card type (CR 205.1a: a subtype correlated with a removed card
+// type stays only while another card type the object has carries it too), so
+// an attached Razorfield Ripper is an Artifact Equipment with no Rhino
+// subtype. An unattached reconfigure card (or anything not printed with the
+// keyword) keeps the list unchanged, returning the SAME slice so the common
+// game stays byte-identical and allocation-free.
 // A face-down battlefield permanent keeps its CR 708.5 set: its printed
 // face (and with it the Reconfigure keyword the switch keys on) does not
 // exist while face down, so the switch must not strip Creature from a
 // manifested reconfigure card's vanilla 2/2.
 func reconfigureTypeSwitch(o *state.Object, types []string) []string {
-	if !o.ReconfiguredAttached() || (o.FaceDown && o.Zone == state.ZBattlefield) {
+	if !reconfigureSwitchActive(o) {
 		return types
 	}
-	return withoutCreature(types, false)
+	return withoutCreature(types, true)
+}
+
+// reconfigureSwitchActive reports whether CR 702.150c's switch applies to o:
+// a Reconfigure card attached to a creature, and not a face-down battlefield
+// permanent (CR 708.2: its printed face, and the keyword with it, does not
+// exist while face down).
+func reconfigureSwitchActive(o *state.Object) bool {
+	return o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield)
 }
 
 // withoutCreature drops Creature from a derived type list and, with
