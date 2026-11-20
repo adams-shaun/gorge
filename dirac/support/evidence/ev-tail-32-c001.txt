@@ -14,6 +14,7 @@ Amulet of Kroog
 Ancient Silver Dragon
 Annoyed Altisaur
 Apprentice Sorcerer
+Arcbound Hybrid
 Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
@@ -60,6 +61,7 @@ Cloak of Feathers
 Clot Sliver
 Cloud Elemental
 Cloudchaser Kestrel
+Cognivore
 Cold Storage
 Colossus of Akros
 Combust
@@ -72,6 +74,7 @@ Court of Grace
 Curious Altisaur
 Cut
 Dakmor Plague
+Damning Verdict
 Dark Betrayal
 Darksteel Angel
 Death's Presence
@@ -126,6 +129,7 @@ Foul Orchard
 Fourth Bridge Prowler
 Frogtosser Banneret
 Frontline Devastator
+Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
 Geier Reach Sanitarium
@@ -285,6 +289,7 @@ Ruin Ghost
 Rust Monster
 Salt Marsh
 Sandstone Warrior
+Sarcomancy
 Scragnoth
 Scroll of Origins
 Seeker
@@ -340,6 +345,7 @@ Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
 Tromell, Seymour's Butler
+True Conviction
 Turnabout
 Turntimber Ranger
 Tyranid Invasion
@@ -355,6 +361,7 @@ Valakut Fireboar
 Valkyrior Skyrider
 Value Town
 Vaporkin
+Veilborn Ghoul
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon

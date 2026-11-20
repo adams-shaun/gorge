@@ -38,6 +38,7 @@ Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
 Bramble Armor
+Brass Squire
 Breaking Point
 Briarknit Kami
 Brightmare
@@ -72,6 +73,7 @@ Courier's Capsule
 Cowl Prowler
 Crack the Earth
 Creeping Trailblazer
+Crimson Wisps
 Crown of Flames
 Cryptothrall
 Cyclopean Snare
@@ -120,6 +122,7 @@ Flicker of Fate
 Flowstone Infusion
 Fogwalker
 Font of Mythos
+Forbid
 Forest
 Forked Lightning
 Frenetic Ogre
@@ -156,9 +159,11 @@ Harmattan Efreet
 Haunted Angel
 Headstone
 Hedron Scrabbler
+Heliod, Sun-Crowned
 Hermetic Study
 Hill Giant
 Hoar Shade
+Hope and Glory
 Horncaller's Chant
 Horned Kavu
 Howl from Beyond
@@ -168,6 +173,7 @@ Hunt the Hunter
 Impale
 Implement of Malice
 In Too Deep
+Infiltrate
 Innocent Blood
 Inspired Tinkering
 Invincible Hymn
@@ -193,7 +199,9 @@ Lion's Eye Diamond
 Living Tempest
 Longshot, Rebel Bowman
 Lore Seeker
+Loxodon Smiter
 Loxodon Stalwart
+Lucent Liminid
 Lunge
 Maddening Wind
 Mantle of Webs
@@ -214,14 +222,17 @@ Mistford River Turtle
 Misthollow Griffin
 Mnemonic Sliver
 Molten Gatekeeper
+Monk of the Open Hand
 Moor Fiend
 Mountain
 Mox Tantalite
 Munda, Ambush Leader
 Muzzle
 Myr Kinsmith
+Mysterious Pathlighter
 Mystic Penitent
 Mystic Speculation
+Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
 Nesting Dragon
@@ -231,6 +242,7 @@ Nimble Birdsticker
 Nissa, Vastwood Seer
 Noxious Ghoul
 Nymris, Oona's Trickster
+Nyxborn Hydra
 Nyxborn Rollicker
 Oakgnarl Warrior
 Ollenbock Escort
@@ -245,7 +257,9 @@ Peek
 Pestilent Haze
 Pheres-Band Tromper
 Phthisis
+Phyrexian Metamorph
 Phyrexian Rebirth
+Plagon, Lord of the Beach
 Plains
 Plated Wurm
 Plundering Barbarian
@@ -267,6 +281,7 @@ Rigging Runner
 Rite of Belzenlok
 Roc Hunter
 Rootwalla
+Rousing of Souls
 Rural Recruit
 Saddled Rimestag
 Sailors' Bane
@@ -277,6 +292,7 @@ Sapphire Medallion
 Sarinth Steelseeker
 Scarblade Elite
 Scute Mob
+Sea Snidd
 Seraph of the Scales
 Servant of the Scale
 Shifting Ceratops
@@ -293,10 +309,12 @@ Sliptide Serpent
 Sliversmith
 Smellerbee, Rebel Fighter
 Smite
+Snow-Covered Swamp
 Soaring Hope
 Somberwald Stag
 Song of Serenity
 Soul Feast
+Spawning Pool
 Spined Megalodon
 Spreading Rot
 Sprout
@@ -318,7 +336,9 @@ Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
 Tamiyo, Inquisitive Student
+Temur Battle Rage
 Teval's Judgment
+Thalia, Heretic Cathar
 Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage
@@ -340,6 +360,7 @@ Ulvenwald Observer
 Unburial Rites
 Unlikely Alliance
 Urza, Prince of Kroog
+Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
 Verdant Confluence
