@@ -1383,8 +1383,9 @@ const (
 	// (Forge Mode$ AbilityResolves): Obj is the ability's source permanent,
 	// Player its controller and Amount the AbilityResolved* flag bits. A pure
 	// marker, emitted with the ability's Resolve event and only while a
-	// battlefield permanent carries a Mode$ AbilityResolves line. Appended
-	// after Countered so every earlier ordinal is unchanged.
+	// battlefield permanent carries a Mode$ AbilityResolves line (or a
+	// Mode$ BecomesCrewed line and the resolving ability is a crew ability).
+	// Appended after Countered so every earlier ordinal is unchanged.
 	AbilityResolved
 	// ReverseTurnOrder reverses the game's turn order (Forge's
 	// ReverseTurnOrderEffect, Aeon Engine): the fold toggles
@@ -1403,11 +1404,17 @@ const (
 )
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a
-// Saga chapter ability, and the final chapter's.
+// Saga chapter ability, the final chapter's, and a crew ability.
 const (
 	AbilityResolvedTriggered int32 = 1 << iota
 	AbilityResolvedChapter
 	AbilityResolvedLastChapter
+	// AbilityResolvedCrew marks a resolving crew ability (CR 702.122e): the
+	// `K:Crew` expansion's minted Animate SA carries `Keyword$ Crew`, so the
+	// resolving ability's tag -- not any card name -- identifies it. Mode$
+	// BecomesCrewed reads this bit; it is appended after the chapter bits so
+	// every earlier amount value is unchanged.
+	AbilityResolvedCrew
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving
