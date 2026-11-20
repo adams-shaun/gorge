@@ -873,6 +873,25 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, t)
 			}
 		}
+	case controlReferentPlayersDelayTriggerRemembered:
+		// Kitt Kanto's `Creature.ControlledBy DelayTriggerRemembered`: the
+		// PLAYERS the delayed (or reflexive) trigger instance captured -- the
+		// ImmediateTrigger's `RememberObjects$ TriggeredPlayer`. A reflexive
+		// instance's capture rides its own Remembered (QueueReflexiveTrigger
+		// clears DelayedRemembered on purpose: the spawner's registration
+		// capture is not this ability's), so that is the read there, exactly
+		// as Defined$ DelayTriggerRemembered falls back to it. Never the
+		// source's own memory; a non-player entry names no seat, and no
+		// captured player at all is unbound (the tail returns ok=false).
+		set := sc.DelayedRemembered
+		if len(set) == 0 && sc.Reflexive {
+			set = sc.Remembered
+		}
+		for _, t := range set {
+			if t.IsPlayer {
+				targets = append(targets, t)
+			}
+		}
 	case controlReferentPlayersPlayerIsRemembered:
 		// The same remembered set the bare "Remembered" referent
 		// reads, PLAYERS ONLY -- the full player-spec spelling names the
@@ -1131,6 +1150,7 @@ var controlReferentCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentCode]{Key: "TriggeredSourceSAController", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextOpponentToYourLeft", Val: controlReferentTriggeredTarget},
 	state.StrEntry[controlReferentCode]{Key: "NextPlayerToYourLeft", Val: controlReferentTriggeredTarget},
+	state.StrEntry[controlReferentCode]{Key: "DelayTriggerRemembered", Val: controlReferentTriggeredTarget},
 )
 
 type controlReferentPlayersCode uint16
@@ -1153,6 +1173,7 @@ const (
 	controlReferentPlayersTriggeredActivator
 	controlReferentPlayersTriggeredAttackingPlayer
 	controlReferentPlayersParent
+	controlReferentPlayersDelayTriggerRemembered
 )
 
 var controlReferentPlayersCodes = state.NewStrCodes(
@@ -1185,4 +1206,5 @@ var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.EnchantedBy", Val: controlReferentPlayersPlayerEnchantedBy},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.Active", Val: controlReferentPlayersPlayerActive},
 	state.StrEntry[controlReferentPlayersCode]{Key: "ActivePlayer", Val: controlReferentPlayersPlayerActive},
+	state.StrEntry[controlReferentPlayersCode]{Key: "DelayTriggerRemembered", Val: controlReferentPlayersDelayTriggerRemembered},
 )
