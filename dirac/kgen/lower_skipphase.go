@@ -1,15 +1,25 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // DB$ SkipPhase (gorge effSkipPhase, CR 614.10) lowers as OpExt ExtSkipPhase
-// over the skipping player (Obj), in the one shape gorge models: Phase$
-// BeginCombat | Start$ FromNext | Duration$ UntilTheEndOfTargetedNextTurn, "skips
-// all combat phases of their next turn" (False Peace, Empty City Ruse). The
-// one-shot "next combat phase this turn" (Moment of Silence), the Defined$ form
-// without a duration (Blinding Angel) and Step$ skips are not modelled in
-// gorge either and refuse by name.
+// over the skipping player (Obj), C the grant (kop.SkipPhase*), in the shapes
+// gorge models (engine/effects/skipphase_params.go):
+//   - Phase$ BeginCombat | Start$ FromNext | Duration$
+//     UntilTheEndOfTargetedNextTurn: all combat phases of the next turn (False
+//     Peace, Empty City Ruse);
+//   - Step$ Untap | Draw with no Phase$/Start$/Duration$: the next such step
+//     (Avizoa, Fatigue); Step$ Draw | Duration$ EndOfTurn: this turn's draw
+//     step (Elfhame Sanctuary);
+//   - Phase$ BeginCombat with no Start$/Duration$: the next combat phase (Blinding
+//     Angel); Duration$ NextThisTurn: the next combat phase this turn (Moment of
+//     Silence).
+//
+// Any other shape refuses by name.
 func (lc *lowerCtx) skipPhase(ps *params) error {
-	if !ps.is("Phase", "BeginCombat") || !ps.is("Start", "FromNext") || !ps.is("Duration", "UntilTheEndOfTargetedNextTurn") {
-		return refuse("SkipPhase Phase$ %q Start$ %q Duration$ %q Step$ %q (only all combat phases of the next turn lowers)",
+	grant, ok := skipPhaseGrant(ps)
+	if !ok {
+		return refuse("SkipPhase Phase$ %q Start$ %q Duration$ %q Step$ %q (only the modelled shapes lower: all combat phases of the next turn, the next untap/draw step, the next combat phase)",
 			ps.str("Phase"), ps.str("Start"), ps.str("Duration"), ps.str("Step"))
 	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
@@ -17,7 +27,7 @@ func (lc *lowerCtx) skipPhase(ps *params) error {
 		return err
 	}
 	switch who.Kind {
-	case rYou:
+	case rYou, rEachOpp, rTriggeredPlayer: // the opponent (two seats), the trigger's player
 	case rTarget:
 		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
 			return refuse("SkipPhase of a non-player target")
@@ -25,6 +35,29 @@ func (lc *lowerCtx) skipPhase(ps *params) error {
 	default:
 		return refuse("SkipPhase of %s", who)
 	}
-	lc.emit(lInstr{Op: "SkipPhase", Obj: who, Note: "the player skips all combat phases of their next turn (gorge effSkipPhase)"})
+	lc.emit(lInstr{Op: "SkipPhase", Obj: who, C: grant, Note: "the player skips the grant's phase or step (gorge effSkipPhase)"})
 	return nil
+}
+
+// skipPhaseGrant reads the shape: the kop.SkipPhase* grant, false for a shape
+// gorge's compileSkipPhaseParams does not model either.
+func skipPhaseGrant(ps *params) (int, bool) {
+	phase, start, dur, step := ps.str("Phase"), ps.str("Start"), ps.str("Duration"), ps.str("Step")
+	switch {
+	case step == "Untap" && phase == "" && start == "" && dur == "":
+		return kop.SkipPhaseUntap, true
+	case step == "Draw" && phase == "" && start == "" && dur == "":
+		return kop.SkipPhaseDraw, true
+	case step == "Draw" && phase == "" && start == "" && dur == "EndOfTurn":
+		return kop.SkipPhaseDrawTurn, true
+	case step != "" || phase != "BeginCombat":
+		return 0, false
+	case start == "FromNext" && dur == "UntilTheEndOfTargetedNextTurn":
+		return kop.SkipPhaseAllCombat, true
+	case start == "" && dur == "":
+		return kop.SkipPhaseCombat, true
+	case start == "" && dur == "NextThisTurn":
+		return kop.SkipPhaseCombatTurn, true
+	}
+	return 0, false
 }

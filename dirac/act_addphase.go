@@ -245,10 +245,11 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 		next, found = addPhaseEntry(e.at>>4&3), true
 		break
 	}
+	ordinary := !found
 	if !found && completed && resume <= kop.StepCleanup {
-		next = resume
+		next, ordinary = resume, false
 	}
-	next = s.skipCombatNext(next)
+	next = s.skipCombatNext(next, ordinary)
 	switch next {
 	case kop.StepBeginCombat:
 		if g.phCnt&15 < 15 {

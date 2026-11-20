@@ -133,6 +133,10 @@ const (
 func (s *State) beginStep(k *prep) {
 	switch s.step {
 	case kop.StepUntap:
+		if k.gen != nil && k.gen.anySkipPhase && s.skipGranted(kop.StepUntap) {
+			s.skipUntapStep() // Step$ Untap SkipPhase (act_skipphase.go)
+			return
+		}
 		if k.gen != nil && k.gen.ix[mechEchoOwed] != arenaNone && !s.g.untapOn {
 			s.echoSnap(k) // before the untap clears the sickness (trig_echo.go)
 		}
@@ -201,6 +205,10 @@ func (s *State) beginStep(k *prep) {
 			// CR 103.8a skips the starting player's first draw step in a
 			// two-player game only; CR 103.8c: no one skips it at more
 			s.step = kop.StepMain1
+			return
+		}
+		if k.gen != nil && k.gen.anySkipPhase && s.skipGranted(kop.StepDraw) {
+			s.step = kop.StepMain1 // Step$ Draw SkipPhase (act_skipphase.go)
 			return
 		}
 		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
@@ -345,7 +353,7 @@ func (s *State) advance(k *prep) {
 	if k.gen != nil && k.gen.anyAddPhase {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
 	} else if k.gen != nil && k.gen.anySkipPhase {
-		next = s.skipCombatNext(next) // act_skipphase.go
+		next = s.skipCombatNext(next, true) // act_skipphase.go
 	}
 	s.endStep(next)
 }

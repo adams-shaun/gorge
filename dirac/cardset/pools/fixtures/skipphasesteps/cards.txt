@@ -1,0 +1,13 @@
+# DB$ SkipPhase one-shot grants: the next untap / draw / combat phase, this-turn forms (dirac/oracle/skipphase_steps_test.go)
+Fatigue
+Moment of Silence
+Avizoa
+Blinding Angel
+Stonehorn Dignitary
+Aurelia, the Warleader
+Isamaru, Hound of Konda
+Savannah Lions
+Hill Giant
+Mountain
+Plains
+Island

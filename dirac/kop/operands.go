@@ -15,6 +15,19 @@ const (
 	AddPhaseCombatMain = 3
 )
 
+// C of an ExtSkipPhase: which DB$ SkipPhase grant it arms (gorge's
+// events.SkipPhase scope, state.SkipScope*). The zero value is the
+// all-combat-phases-of-the-next-turn grant (False Peace); the others are the
+// one-shot grants the turn walk consumes when it would enter the step.
+const (
+	SkipPhaseAllCombat  = 0 // every combat phase of the player's next turn
+	SkipPhaseUntap      = 1 // the player's next untap step
+	SkipPhaseDraw       = 2 // the player's next draw step
+	SkipPhaseCombat     = 3 // the player's next (ordinary) combat phase
+	SkipPhaseDrawTurn   = 4 // the player's draw step, only this turn (Duration$ EndOfTurn)
+	SkipPhaseCombatTurn = 5 // the player's next combat phase, only this turn (Duration$ NextThisTurn)
+)
+
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
 // OpChangeZoneAllEx with MvEntryRiders carries A = counter count | kind<<8
 // (kgen's riders). The counter kind stays below EntryKindMask+1, so A's top
