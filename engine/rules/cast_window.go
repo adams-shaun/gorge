@@ -748,6 +748,9 @@ func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []wind
 			continue
 		}
 		for _, ma := range probe {
+			if w.manaProductionAltered(id, ma) {
+				return 0, false
+			}
 			n, ok := castWindowProbeCeiling(w, p, id, ma)
 			if !ok {
 				return 0, false

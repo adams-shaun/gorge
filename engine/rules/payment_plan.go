@@ -510,10 +510,9 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 	if !complete {
 		if bounded {
 			if floor := castPipsManaFloor(&cost, life); floor >= 0 {
-				have := int64(pool.Total()+snow.Total()+produced.Total()) + int64(castWindowUnitsReach(kept)) + int64(unpriced)
-				for _, t := range typed {
-					have += int64(t.Total())
-				}
+				// Snow and typed are PROVENANCE, not additional mana: they
+				// partition the same floating pool Pool already carries.
+				have := int64(pool.Total()+produced.Total()) + int64(castWindowUnitsReach(kept)) + int64(unpriced)
 				if have < floor {
 					return PaymentPlanOutcome{Reason: "insufficient", Detail: "phyrexian_window"}
 				}
@@ -535,17 +534,19 @@ func castPlanPipsOutcome(w castPlanPipsWindow, p state.PlayerID, cost Cost, pc *
 
 // castPipsManaFloor is the least mana a payment of cost can spend at life:
 // its pool-unit floor (generic and strict coloured pips, black excluded
-// because PayLifeInsteadOf:B may pay it), plus one unit for each Phyrexian or
-// hybrid Phyrexian pip the life total cannot pay with two life (CR 107.4f,
-// 119.4). Snow, hybrid and twobrid pips stay out, as in the pool-unit floor:
-// each would add at least one unit, so leaving them out keeps this a floor,
-// never an over-estimate. A cost whose {X}, repeated (NumTimes) or Unknown
-// parts could add mana has no floor (-1).
+// because PayLifeInsteadOf:B may pay it), plus one unit for each Phyrexian pip
+// the life total cannot pay with two life (CR 107.4f, 119.4). A
+// hybrid-Phyrexian pip stays out: pay.PlanManaHalf keeps it in the witness
+// (only cost.Phyrexian is stripped), so the plan already funds either colour
+// face and never leaves it for this window. Snow, hybrid and twobrid pips also
+// stay out, as in the pool-unit floor: each would add at least one unit, so
+// leaving them out keeps this a floor, never an over-estimate. A cost whose
+// {X}, repeated (NumTimes) or Unknown parts could add mana has no floor (-1).
 func castPipsManaFloor(c *Cost, life int32) int64 {
 	if c.X != 0 || c.NumTimes || len(c.Unknown) != 0 {
 		return -1
 	}
-	phy := int64(len(c.Phyrexian) + len(c.HybridPhyrexian))
+	phy := int64(len(c.Phyrexian))
 	return c.PoolUnitsFloor() + max(0, phy-int64(life/2))
 }
 
