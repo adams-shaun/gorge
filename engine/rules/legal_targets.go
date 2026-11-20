@@ -574,6 +574,9 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			if census.complete {
 				return true
 			}
+			// A lone paid gap's output cannot pay its own fee: price it as a cut
+			// of the announced cost (paymentPlanRelaxProof's cutSelfFee).
+			census.cutSelfFee = true
 			if census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient {
 				return true
 			}
