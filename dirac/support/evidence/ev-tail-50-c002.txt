@@ -1,5 +1,6 @@
 A-Canopy Tactician
 A-Hall of Tagsin
+A-Jackhammer
 A-Urza's Command
 Aetheric Amplifier
 Agadeem Occultist
@@ -35,6 +36,7 @@ Bramblewood Paragon
 Branching Evolution
 Briber's Purse
 Brinebarrow Intruder
+Broodhunter Wurm
 Bull Aurochs
 Burning Oil
 Byway Courier
@@ -84,6 +86,7 @@ Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
+Emmessi Tome
 Empyrial Armor
 Evolution Charm
 Excavation Mole
@@ -128,6 +131,7 @@ Heartfire
 Hero of the Pride
 Hive Stirrings
 Hookhand Mariner
+Howling Giant
 Hurly-Burly
 Hymn of Rebirth
 Ichor Synthesizer
@@ -167,6 +171,7 @@ Marble Gargoyle
 Mardu Warshrieker
 Mesa Cavalier
 Metallic Mimic
+Mindblaze
 Moldering Karok
 Monastery Swiftspear
 Morningtide
@@ -177,12 +182,14 @@ Natural Affinity
 Needle Drop
 Neurok Replica
 Nightwind Glider
+Noble Hierarch
 Noose Constrictor
 Novablast Wurm
 Nurturing Licid
 Oath of Mages
 Oathsworn Giant
 Obelisk of Undoing
+Ogre's Cleaver
 Oil-Gorger Troll
 Ondu Champion
 Orcish Hellraiser
@@ -191,6 +198,7 @@ Paradigm Shift
 Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
 Phyrexian Broodstar
 Plaguemaw Beast
 Plains
@@ -207,6 +215,7 @@ Puncture Blast
 Pygmy Pyrosaur
 Pyre Charger
 Rampaging Cyclops
+Raph's Bravado
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -218,6 +227,7 @@ Riptide
 Riverglide Pathway
 Robe of Mirrors
 Roc of Kher Ridges
+Ronin Houndmaster
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
@@ -252,6 +262,7 @@ So Shiny
 Soratami Mindsweeper
 Spider-Man, New Champion
 Spiked Baloth
+Spitting Earth
 Spitting Slug
 Steamclaw
 Stern Proctor
@@ -284,6 +295,7 @@ Traveling Minister
 Tremble
 Undead Warchief
 Unfriendly Fire
+Urn of Godfire
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
@@ -292,6 +304,7 @@ Village Bell-Ringer
 Vindictive Mob
 Vivid Flying Fish
 Volcanic Rush
+Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
@@ -302,6 +315,7 @@ Warpath
 Wary Okapi
 Watcher of the Spheres
 Watchful Radstag
+Wayward Guide-Beast
 Wicker Witch
 Wild Guess
 Wildwood Geist

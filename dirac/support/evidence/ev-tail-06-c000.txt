@@ -205,6 +205,7 @@ Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
 Island
+Ivory Gargoyle
 Ixidor's Will
 Izzet Boilerworks
 Jaddi Offshoot
@@ -380,6 +381,7 @@ Snake Umbra
 Snapping Thragg
 Soltari Lancer
 Soot Imp
+Soothing of Sméagol
 Soratami Mirror-Guard
 Soul Collector
 Soul Link

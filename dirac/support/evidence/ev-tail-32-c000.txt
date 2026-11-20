@@ -25,7 +25,9 @@ Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
+Aven Liberator
 Avenger of Zendikar
+Avian Oddity
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
@@ -67,8 +69,10 @@ Cloud Elemental
 Cloudchaser Kestrel
 Cognivore
 Cold Storage
+Colossus of Akros
 Combust
 Conclave Mentor
+Confront the Past
 Consuming Sinkhole
 Copper Host Crusher
 Copper Myr
@@ -141,11 +145,13 @@ Frontline Devastator
 Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
+Gatewatch Beacon
 Geier Reach Sanitarium
 Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
+Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Gisa's Bidding
@@ -185,6 +191,7 @@ Irini Sengir
 Island
 Ivory Crane Netsuke
 Izzet Charm
+Kami of the Hunt
 Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
@@ -348,6 +355,7 @@ Tail Slash
 Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
+Tevesh Szat, Doom of Fools
 Tezzeret's Touch
 The Prydwen, Steel Flagship
 The Royal Scions

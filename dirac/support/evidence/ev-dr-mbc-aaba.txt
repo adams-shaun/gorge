@@ -5,6 +5,7 @@ Bastion Inventor
 Battle Squadron
 Bellowing Tanglewurm
 Bloodthirsty Blade
+Bothersome Quasit
 Brainstorm
 Bria, Riptide Rogue
 Brute Strength
@@ -59,6 +60,7 @@ Lava Dart
 Mental Note
 Mindclaw Shaman
 Mischievous Poltergeist
+Moonlit Strider
 Mountain
 Mwonvuli Acid-Moss
 Mystic Subdual

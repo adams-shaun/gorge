@@ -3,6 +3,7 @@ A-Riveteers Initiate	c45e5fbfc0b9f77c	13	1/1		1/1
 Accursed Centaur	dbfcc9cf8bacfeb2	28	1/1		0/1	ix:resp
 Act on Impulse	4904f59abbd44bb1	22	0/0		2/2	
 Ancient Runes	4cf94ce766040246	26	1/1		1/1	
+Angelic Overseer	b630daecbf1b297d	14	0/0		0/0	
 Arc Lightning	8a8f0908aaf31976	22	0/0		2/2	
 Arena Trickster	18e75b5000675e3f	22	1/1		1/1	
 Armor of Shadows	d850601e01af06ad	15	0/0		2/2	
@@ -10,11 +11,13 @@ Arno Dorian	83ef5f9c3a5cc87c	29	0/0		1/2	cast/alt:disguised
 Ashcoat Bear	b6dacf4265c24577	10	0/0		0/0	
 Auriok Sunchaser	0f4e38feaab27829	5	0/0		0/0	
 Auspicious Ancestor	5c6e22dd6e064144	15	2/2		0/1	ix:resp
+Ayula, Queen Among Bears	3c841ebc513edc1c	7	1/1		0/1	ix:resp
 Barrel Down Sokenzan	20c740ad52b43729	8	0/0		1/2	ix:resp
 Birchlore Rangers	d23f7f451a88e50a	4	1/1		1/3	cast/alt:morphed,ix:resp
 Birthing Pod	534d8b3d8c76d316	24	1/1		0/1	ix:resp
 Bloodscale Prowler	62c8eff70e14c914	20	0/0		0/0	
 Blue Scarab	71b862d5637e23d6	15	0/0		2/2	
+Boros Mastiff	78c80ce1592a24dc	15	1/1		0/1	ix:resp
 Boulder Salvo	1eb52c6d9cd9ccef	18	0/0		4/4	
 Brimstone Dragon	8ab01f17e9a95e3a	7	0/0		0/0	
 Brindle Shoat	aa390a23235e5bc3	10	1/1		0/1	ix:resp
@@ -52,6 +55,7 @@ Dragon Hatchling	0fa44828d7bfd218	17	1/1		1/1
 Dramatist's Puppet	5509f1fc95f2cf48	19	1/1		0/1	ix:resp
 Drider	1f1b4a19a145954a	9	1/1		0/1	ix:resp
 Eel-Hounds	dbb38d85fb225073	4	1/1		0/1	ix:resp
+Elven Bow	abea579c56d067d1	10	2/2		0/1	ix:resp
 Empty the Warrens	3d0f76364fe5b459	14	1/1		2/2	
 Empyrial Armor	13d34977cba5e287	11	0/0		2/2	
 Enigma Eidolon	fbdd035a34813acd	27	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -73,12 +77,15 @@ Goblin Firebug	5597febec08a1ebf	18	1/1		0/1	ix:resp
 Graceful Cat	eec039cca980e648	9	1/1		1/1	
 Grappling Sundew	6cc6c7d51cd6e7ca	3	1/1		0/1	ix:resp
 Grave Betrayal	b60a05c364345486	10	1/1		1/1	
+Great Wall	981270f8c4c1597d	12	0/0		0/0	
 Greenseeker	7c56743477c45b10	5	1/1		0/1	ix:resp
+Grim Draugr	8efd94594a233533	372	1/1		1/1	
 Grizzly Ghoul	0c03cf95f0e62c4e	3	0/0		0/0	
 Hammer Mage	b238e1189cc972fb	22	1/1		0/1	ix:resp
 Harmless Offering	fed7046d03377546	567	0/0		2/2	
 Harrow	0a69a3c780485ab4	7	0/0		2/2	
 Henge of Ramos	4ebbe576e9377a21	149	2/2		0/1	ix:resp
+Hero of Precinct One	5dc5f22bd373fb2d	9	1/1		0/1	ix:resp
 Hesitation	d9570387051eb9a2	14	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	1589	1/1		0/1	ix:resp
 Jewel-Eyed Cobra	8c8a668126d22d7b	7	1/1		0/1	ix:resp
@@ -89,6 +96,7 @@ Kithkin Mourncaller	e1e7e6a9d92c6e10	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Knight of Dawn's Light	1963e52855b18884	11	1/1		1/1	
 Laccolith Grunt	2484228c68cc20ed	26	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lava Axe	4881f65ea48a92b4	18	0/0		1/2	ix:resp
+Leela, Sevateem Warrior	5ea8e5251c46a463	3	1/1		0/1	ix:resp
 Leisure Bicycle	29bd00581b164b0b	4	3/3		0/1	ix:resp
 Lightning Prowess	8bae026b8bd4b86f	17	0/0		2/2	
 Living Lands	28b004316ff7c0e7	4	0/0		0/0	
@@ -103,6 +111,7 @@ Moat Piranhas	d462f1cac953b19d	22	0/0		0/0
 Molten Frame	4c4001e0e5e48791	3	1/1		2/2	
 Molting Harpy	72b35d88c2c000cb	13	1/1		0/1	ix:resp
 Monster Manual	6edc892ed8f9e367	14	1/1		2/2	
+Moss Kami	4f587929acaef555	11	0/0		0/0	
 Mountain	9e71388353e907ed	1251	1/1		0/1	ix:resp
 Necra Sanctuary	330e46f6fca276a3	12	1/1		1/1	
 Necroblossom Snarl	d5367d8d8bbced04	166	1/1		0/1	ix:resp
@@ -113,6 +122,7 @@ Nighthawk Scavenger	dd2982da2be18937	5	0/0		0/0
 Nightmarish End	297fa992c03d24df	11	0/0		2/2	
 No Escape	e2e4d0f63775b8a9	10	0/0		1/2	ix:resp
 Nullmage Advocate	942c672d50e1d673	9	1/1		0/1	ix:resp
+Open the Vaults	a91baa5cb9ce4f2a	3	0/0		1/2	ix:resp
 Orochi Soul-Reaver	b62782590171b697	18	2/2		1/1	
 Orzhov Racketeers	ef7b9ebd273c593c	10	2/2		1/1	
 Paradise Mantle	d316bc1f37102e1a	12	1/1		0/1	ix:resp
@@ -128,6 +138,8 @@ Possessed Aven	ba673f941d9eb76a	10	0/0		0/0
 Psionic Blast	76f7f614534eacb6	8	0/0		1/2	ix:resp
 Pyretic Charge	e96692b7fa4b6538	12	0/0		2/2	
 Quest for Ancient Secrets	853340017d65bdfa	21	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Quickening Licid	1dddf8849c4373d2	30	1/1		1/1	
+Rally the Ranks	b16188d293b55b0d	11	0/0		0/0	
 Reality Ripple	37515eab83ef44d0	28	0/0		2/2	
 Reckless Air Strike	e0270280beebe3f0	18	0/0		1/2	ix:resp
 Reptilian Recruiter	c772376608379bd4	447	1/1		1/1	
@@ -137,6 +149,7 @@ Rootwater Diver	9d0c90bdbb522ec9	30	1/1		0/1	ix:resp
 Rundvelt Hordemaster	c81ddd32af8850d4	14	1/1		0/1	ix:resp
 Sacred Cat	b9ec8c73f08505d4	12	1/1		1/1	
 Saiba Trespassers	270080724e9e99d3	3	1/1		0/1	ix:resp
+Satyr Firedancer	a93e8c9af5ac51b9	22	1/1		0/1	ix:resp
 Savage Swipe	be730a16a10f56dc	5	0/0		1/2	ix:resp
 Scarwood Treefolk	1d946806f022a43c	4	0/0		0/0	
 Sensei's Divining Top	156db14edbf30aac	112	2/2		1/1	
@@ -153,6 +166,9 @@ Skyway Sniper	575df0501f6ef38d	5	1/1		0/1	ix:resp
 Slate Street Ruffian	3ba8f2fbdf1265ec	6	1/1		0/1	ix:resp
 Slate of Ancestry	91a935825bfbc7c4	11	1/1		0/1	ix:resp
 Slip Through Space	63487c7045c11f55	9	0/0		1/2	ix:resp
+Snow-Covered Forest	a1a5f67cd8b33a1c	204	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	818	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	760	1/1		0/1	ix:resp
 Sokenzan, Crucible of Defiance	296f6374baefa0b0	97	2/2		0/1	ix:resp
 Spark Elemental	bb3f4f3b42c4f8d9	24	1/1		1/1	
 Sparkspitter	f492d60427b2660d	20	1/1		1/1	
@@ -164,6 +180,7 @@ Sporeback Troll	9b4c97135b21a43f	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Stony Strength	2c7873006fef53aa	11	0/0		1/2	ix:resp
 Storm of Memories	acd69b1bb25e077a	13	1/1		2/2	
 Sunscape Master	72f3e4d6cd68d300	5	2/2		1/1	
+Sunset Revelry	713ac7b4dbb0700a	19	0/0		1/2	ix:resp
 Sunspire Griffin	6a191c3fb6763f35	7	0/0		0/0	
 Swamp	342b413902f441c3	1273	1/1		0/1	ix:resp
 Swift Maneuver	c6a23621a5a0d75f	20	0/0		1/2	ix:resp
@@ -180,6 +197,7 @@ Unholy Strength	6fe7eaa816264168	18	0/0		1/2	ix:resp
 Urabrask's Anointer	1919380e199a755f	12	1/1		0/1	ix:resp
 Urza's Filter	c88e0c6417ffffd8	7	0/0		0/0	
 Vapor Snag	97d1875bf7c89c38	22	0/0		2/2	
+Verduran Emissary	75995a179b50d4a0	3	1/1		1/3	cast/alt:none,ix:resp
 Vivien's Arkbow	fd7d0acd4b97c04a	5	1/1		1/1	
 Warkite Marauder	a3ff7da41d34dace	14	1/1		0/1	ix:resp
 Wasp, Shrinking Savior	7c5b34a6fb9b1a2d	14	1/1		0/1	ix:resp

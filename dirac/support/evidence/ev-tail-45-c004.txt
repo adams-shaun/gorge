@@ -4,11 +4,16 @@ Acolyte of Xathrid
 Acridian
 Aether Barrier
 Alchemist's Vial
+Alert Shu Infantry
 Ambitious Aetherborn
+Anara, Wolvid Familiar
+Anthroplasm
+Apothecary Initiate
 Arc Lightning
 Argothian Opportunist
 Arisen Gorgon
 Ashes to Ashes
+Asmira, Holy Avenger
 Atzocan Archer
 Ayumi, the Last Visitor
 Bag End Banquet
@@ -31,12 +36,16 @@ Brine Seer
 Call of the Death-Dweller
 Callous Dismissal
 Carnage Altar
+Celestial Gatekeeper
+Chainflinger
 Chameleon Spirit
 Clairvoyance
 Clock of Omens
 Constricting Sliver
 Copper Longlegs
 Corrupted Harvester
+Court Archers
+Culling Mark
 Dakkon, Shadow Slayer
 Dark Inquiry
 Dark Tutelage
@@ -59,6 +68,7 @@ Dwarven Grunt
 Ecstatic Awakener
 Elspeth, Undaunted Hero
 Elven Palisade
+Ethereal Elk
 Eviscerator
 Exorcist
 Farhaven Elf
@@ -81,6 +91,7 @@ Ghostly Sentinel
 Glade Watcher
 Gleam of Authority
 Goblin Fireleaper
+Goblin Hero
 Golgari Signet
 Great Hart
 Grinning Demon
@@ -97,10 +108,12 @@ Herald of Secret Streams
 Hero's Demise
 Heronblade Elite
 Hill Giant Herdgorger
+Homarid Warrior
 Honored Hydra
 Hua Tuo, Honored Physician
 Hunter's Insight
 Ikiral Outrider
+Illusory Gains
 Improbable Alliance
 Inquisition of Kozilek
 Ironclad Slayer
@@ -118,6 +131,7 @@ Kraul Raider
 Laser Screwdriver
 Leatherback Baloth
 Lonely Sandbar
+MagicConsecrated Sphinx
 Magister Sphinx
 Magus of the Order
 Many Partings
@@ -133,14 +147,18 @@ Mountain
 Mudhole
 Naga Vitalist
 Nath's Elite
+Nebelgast Herald
 Necrogen Censer
 Nest Invader
 Nightmare's Thirst
+Niveous Wisps
 Nyx-Fleece Ram
 Nyxathid
 Ogre Jailbreaker
 Ogre Warrior
+Omen of the Sea
 Omenspeaker
+One with the Kami
 Onulet
 Patron Wizard
 Pilfering Imp
@@ -169,6 +187,7 @@ Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Safehold Sentry
+Sandstone Needle
 Saproling Burst
 Saproling Migration
 Scalebane's Elite
@@ -178,6 +197,7 @@ Seekers' Squire
 Sensory Deprivation
 Shambling Remains
 Shield of Duty and Reason
+Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
 Sire of Stagnation
@@ -191,6 +211,7 @@ Sparksmith
 Spectator Seating
 Spider-Man, Miles Morales
 Spire Winder
+Splinterfright
 Spoils of Evil
 Sporesower Thallid
 Springing Tiger
@@ -201,6 +222,7 @@ Storm of Steel
 Stormchaser Chimera
 Stronghold Overseer
 Succumb to Temptation
+Sultai Flayer
 Sunbathing Rootwalla
 Surgehacker Mech
 Swamp
@@ -217,22 +239,27 @@ The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
 Thud
+Timbermare
+Toucan-Puffin
 Toxic Abomination
 Undercity's Embrace
 Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
+Vedalken Mesmerist
 Vengeful Reaper
 Verdant Catacombs
 Voracious Vacuum
 Wake of Vultures
+Weakstone
 Webweaver Changeling
 Welding Sparks
 Willow Elf
 Windstorm
 Winged Hive Tyrant
 Wings of Velis Vel
+Wipe Away
 Withstand Death
 Wizard's Staff
 Wrecking Ogre

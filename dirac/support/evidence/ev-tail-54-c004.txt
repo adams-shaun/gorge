@@ -1,20 +1,31 @@
+Adaptive Shimmerer
 Alley Grifters
+Alliance of Arms
 Angelic Accord
 Aurochs
+Avarice Amulet
 Bag of Holding
+Betrayal of Flesh
 Biting-Palm Ninja
 Black Market Connections
 Blaring Recruiter
+Blight
 Blight Mamba
+Blighted Woodland
+Blinding Radiance
 Boggart Shenanigans
 Bontu's Last Reckoning
 Brokers Veteran
+Bulwark Giant
 Burnt Offering
+Catapult Squad
+Chaplain's Blessing
 Chimeric Egg
 Clarion Cathars
 Crippling Blight
 Cultivator Colossus
 Cursed Land
+Dark Depths
 Deathgreeter
 Deepwood Denizen
 Dispense Justice
@@ -22,12 +33,16 @@ Dragon's Presence
 Elspeth's Devotee
 Energy Bolt
 Esior, Wardwing Familiar
+Festercreep
 Fire Nation Ambushers
+Flaming Fist Officer
 Fleecemane Lion
 Forest
 Fortified Rampart
 Foulmire Knight
 Frillscare Mentor
+Game Trail
+Generous Gift
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
 Gluntch, the Bestower
@@ -37,15 +52,23 @@ Grond, the Gatebreaker
 Harbor Bandit
 Haunter of Nightveil
 Hulk, Bruce Banner
+Hyalopterous Lemure
+Icatian Javelineers
 Immersturm Raider
 Incubation
 Infested Fleshcutter
+Inkfathom Infiltrator
+Inquisitive Puppet
+Insight Engine
 Island
+Ithilien Kingfisher
 Jolt
 Judge's Familiar
 Kabira Vindicator
 Karametra's Blessing
+Keymaster Rogue
 Kitchen Imp
+Kithkin Shielddare
 Lava Dart
 Liliana's Specter
 Liquify
@@ -55,10 +78,20 @@ Loyal Cathar
 Makindi Stampede
 Massive Might
 Meteor Shower
+Mindstab Thrull
 Miss Highwater
+Moonbow Illusionist
 Mountain
+Nahiri's Machinations
 Night Terrors
 Nyx Weaver
+Observant Alseid
+Ojutai Monument
+Okina, Temple to the Grandfathers
+One Ring to Rule Them All
+Peregrine Mask
+Phyrexia's Core
+Pitiless Horde
 Plains
 Pridemalkin
 Prologue to Phyresis
@@ -66,23 +99,36 @@ Promise of Aclazotz
 Pyromancer's Swath
 Rain of Blades
 Raze to the Ground
+Recruitment Drive
 Remote Isle
 Riptide Biologist
 Roc Charger
 Sarulf's Packmate
+Scalding Tarn
 Scouring Swarm
 Search Warrant
+Sejiri Merfolk
 Sensor Splicer
 Shadow of Mortality
+Shipwreck Singer
 Shivan Phoenix
+Shower of Sparks
+Silver Shroud Costume
 Slinking Serpent
+Smelt-Ward Minotaur
+Sokka, Wolf Cove's Protector
 Soltari Visionary
 Soul's Attendant
 Sphinx of New Prahv
+Spirit Bonds
+Spite
 Stalwart Aven
+Steadfast Guard
 Stonecloaker
 Stonehands
+Summon: Ixion
 Sunblast Angel
+Suq'Ata Assassin
 Swamp
 Switcheroo
 Tempest Caller
@@ -90,13 +136,19 @@ Temple Bell
 The Duke, Rebel Sentry
 The Wretched
 Thraximundar
+Tideshaper Mystic
 Tin-Wing Chimera
 Transplant Theorist
+Traveler's Amulet
+Trawler Drake
 Trespasser il-Vec
+Triton Cavalry
 Trusty Machete
+Valakut Predator
 Vampire Champion
 Visions of Beyond
 Volcanic Spray
 Vraan, Executioner Thane
 War Priest of Thune
+Watercourser
 Weaponcraft Enthusiast
