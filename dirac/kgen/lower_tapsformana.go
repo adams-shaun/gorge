@@ -33,7 +33,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	// no Activator$: any player's tap (Manabarbs); Player.NonActive: only a
 	// tap by a player other than the active one (Price of Glory); You/Opponent
 	// (Sanctimony, Savage Firecat, Treasure Nabber, War's Toll): only a tap by
-	// the listener's controller, or by an opponent of it (two seats) -- the
+	// the listener's controller, or by any opponent of it (seat-exact) -- the
 	// tapper gate Trig.Whose already carries (trig_tapsvalid.go tapsWhoseOK at
 	// the fire, tapsWatchClassForeign's whoseOK in the deferral classing), the
 	// gate gorge's real matcher reads the Activator$ with
