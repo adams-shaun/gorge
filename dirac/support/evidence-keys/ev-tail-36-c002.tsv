@@ -25,14 +25,14 @@ Belltower Sphinx	c2051e82d6b4df52	37	1/1		1/1
 Benalish Emissary	7f8eb9afb931f044	55	1/1		3/3	
 Blademane Baku	20473f71538723ff	32	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bladewing's Thrall	065f369bfb76ee40	84	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
-Blessed Reversal	0a33c6999a21ef5e	42	0/0		2/2	
+Blessed Reversal	fb6d57af9e0bfdf3	42	0/0		2/2	
 Blightspeaker	9d505f247a3ecb13	69	2/2		1/1	
 Blizzard Elemental	4914dc2ec55c65a5	18	1/1		1/1	
 Bond of Agony	071f8931ed382c9f	35	0/0		3/4	f0/s/x0
 Braidwood Cup	e556f20a20ba1732	56	1/1		1/1	
 Bramble Creeper	b28b938e22c40d35	32	1/1		1/1	
 Bramblewood Paragon	414ad436208bdf8c	49	0/0		0/0	
-Branded Brawlers	5c8e1b9cd98f534a	4	0/0		0/0	
+Branded Brawlers	0aca460e94dad6d0	4	0/0		0/0	
 Cabal Paladin	6b7afbe46edc802d	49	1/1		1/1	
 Candlegrove Witch	f7024697bdc8f2c4	53	1/1		1/1	
 Cephalid Scout	5ee712a9b8551491	54	1/1		1/1	
@@ -124,7 +124,7 @@ Lurking Deadeye	ab8833a5434e27de	65	1/1		1/1
 Luxa River Shrine	3b2f765842caab39	50	2/2		1/1	
 MJ, Rising Star	f42b53942070e4a7	59	1/1		1/1	
 Malefic Scythe	4b6ab57f4392c357	70	2/2		1/1	
-Mass Mutiny	67b6a7f62383e1fe	3	0/0		1/2	ix:resp
+Mass Mutiny	813228705ae9354b	3	0/0		1/2	ix:resp
 Megaton's Fate	1ead3a6526c54a82	32	0/0		1/2	ix:resp
 Mikaeus, the Lunarch	39add341387ae2e0	37	2/2		1/1	
 Mike, the Dungeon Master	b1b9a2fe5eec77fe	14	1/1		1/1	
@@ -175,7 +175,7 @@ Seize the Storm	1bbcf7a7f09ff37f	68	0/0		4/4
 Setessan Skirmisher	7cc0ffda3f77b85b	31	1/1		0/1	ix:resp
 Settle Beyond Reality	cdbe9fadfa494357	32	0/0		2/2	
 Shambling Ghast	8c68b5b833f33aaf	84	1/1		1/1	
-Shellshock	00b36d880bc4f55e	47	0/0		3/4	f0/s/x0
+Shellshock	b8ef404a1bb32ab1	47	0/0		3/4	f0/s/x0
 Silvergill Douser	2ce2fb6c2e8c7219	107	1/1		1/1	
 Skarrg Guildmage	5db3156e63b0e934	34	2/2		1/1	
 Skitter Eel	9060742d3bf32fb9	44	1/1		1/1	
@@ -206,7 +206,7 @@ Thrill of the Hunt	c5f46d438382564a	84	0/0		4/4
 Throwing Knife	3614e45a30e2d4cb	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Thundersteel Colossus	70bd6d1ccc4ba6ef	14	1/1		1/1	
 Titanic Bulvox	c2ac96bad77ae146	20	0/0		1/2	cast/alt:morphed
-Tri-Sentinel, Act of Vengeance	d33805663c639792	17	2/2		1/1	
+Tri-Sentinel, Act of Vengeance	90e6ebd7f0464ad2	17	2/2		1/1	
 Triplicate Spirits	563c20b9e228e2c0	18	0/0		1/2	ix:resp
 Triumphant Reckoning	04c34a3422ca9c32	8	0/0		1/2	ix:resp
 Twilight Shepherd	aa8c68d33e903da2	7	2/2		0/1	ix:resp

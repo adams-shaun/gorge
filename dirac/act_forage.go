@@ -29,7 +29,7 @@ func (s *State) costObjPayable(k *prep, p uint8, c *kop.Cost, src, exclude Obj) 
 	if c.Flags&kop.CostForage != 0 && s.pl[p].graveN < 3 && s.countSac(k, p, c.Filter, NoSlot) == 0 {
 		return false // gorge castparts.go: three graveyard cards or a Food
 	}
-	if c.Flags&kop.CostExileGrave != 0 && s.exileCands(k, p, c, src, exclude, nil) < int(c.N) {
+	if c.Flags&kop.CostExileGrave != 0 && s.exileCands(k, p, c, src, exclude, nil) < s.exileGraveCount(k, c, p) {
 		return false
 	}
 	if c.Flags&kop.CostPayEnergy != 0 && !s.energyPayable(p, c) {
@@ -48,6 +48,18 @@ func (s *State) costObjPayable(k *prep, p uint8, c *kop.Cost, src, exclude Obj) 
 		}
 	}
 	return true
+}
+
+// exileGraveCount is how many cards c's CostExileGrave part asks for: Cost.N,
+// or the payer's living opponents for kop.ExileGraveLiveCount (Araumi of the
+// Dead Tide; CR 601.2b, 107.3a). The count is read at payment, so a pod pays
+// one card per opponent it has.
+func (s *State) exileGraveCount(k *prep, c *kop.Cost, p uint8) int {
+	if c.N != kop.ExileGraveLiveCount {
+		return int(c.N)
+	}
+	x := kop.Expr{N: kop.OppExtAmount}
+	return s.oppExtreme(k, &x, evalCtx{ctrl: p})
 }
 
 // graveCands counts (and, with d, offers) p's graveyard cards matching f
@@ -177,7 +189,7 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 	if pc.Flags&(kop.CostForage|kop.CostExileGrave) == 0 {
 		return s.returnPickOptions(k, d, pc) // a Return<N/Spec> part (act_energy.go)
 	}
-	n, f := int(pc.N), pc.Filter
+	n, f := s.exileGraveCount(k, pc, e.ctrl), pc.Filter
 	if exileXCost(pc) {
 		n = int(e.x) // ExileFromGrave<X/Spec>: the announced X (cost_exilex.go)
 	}
