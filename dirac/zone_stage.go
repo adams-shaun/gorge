@@ -35,13 +35,14 @@ const (
 	ReasonToken       = "token"         // a token the table cannot rebuild: not on the battlefield, not a plain creature token, or out of the layout
 	ReasonAttach      = "attachment"    // an attachment the staging cannot rebuild: not an Aura or Equipment, off the battlefield, or on a non-creature
 	ReasonCombat      = "combat"        // a combat mark or pose the staging cannot rebuild (zone_stagecombat.go)
+	ReasonCommander   = "commander"     // a commander or a command zone the staging cannot rebuild (zone_stagecmd.go)
 )
 
 // UnstageableReasons lists every reason NewFromWorld returns.
 var UnstageableReasons = []string{
 	ReasonTable, ReasonSeats, ReasonLayout, ReasonCard, ReasonZone, ReasonControl,
 	ReasonPlace, ReasonStep, ReasonPriority, ReasonTurn, ReasonLife, ReasonBattlefield,
-	ReasonToken, ReasonAttach, ReasonStackEntry, ReasonCombat,
+	ReasonToken, ReasonAttach, ReasonStackEntry, ReasonCombat, ReasonCommander,
 }
 
 // ErrUnstageable is the error of a position that cannot be staged.
@@ -129,6 +130,16 @@ type World struct {
 	// BlkDef is the defender asked at PoseBlockers when NSeat > 2 (read nowhere
 	// at two seats: the defender is the active seat's one opponent).
 	BlkDef uint8
+	// Commander is a Commander game (CR 903, 40 life): Cmd[p] is seat p's
+	// commander, an object p owns, in the command zone or any zone staging
+	// admits (NoObj none), CmdCasts[p] its casts from the command zone (CR
+	// 903.8) and CmdDamage[q][p] the combat damage player q has taken from it
+	// (CR 903.10a; Projection.CmdDmg's layout). With Commander off every Cmd
+	// field is zero or NoObj. See zone_stagecmd.go.
+	Commander bool
+	Cmd       [MaxSeats]Obj
+	CmdCasts  [MaxSeats]uint8
+	CmdDamage [MaxSeats][MaxSeats]uint8
 }
 
 // stageSteps are the steps a position can be staged in: a priority round or
@@ -167,8 +178,10 @@ func stageableCard(def *kop.CardDef, token bool) string {
 
 // stageableBody is stageableCard for a land or a creature.
 func stageableBody(def *kop.CardDef) string {
-	const allowed = kop.TLand | kop.TBasic | kop.TCreature
-	if def.Types&^allowed != 0 || def.Types&(kop.TLand|kop.TCreature) == 0 {
+	const allowed = kop.TLand | kop.TBasic | kop.TCreature | kop.TLegendary
+	// legendary: a creature only (the legend rule is a state-based action
+	// staging never performs)
+	if def.Types&^allowed != 0 || def.Types&(kop.TLand|kop.TCreature) == 0 || def.Types&kop.TLegendary != 0 && def.Types&kop.TCreature == 0 {
 		return "type"
 	}
 	if def.Types&kop.TLand != 0 && def.Types&kop.TCreature != 0 {
@@ -235,6 +248,8 @@ func stageZone(z kop.Zone) (int, bool) {
 		return 3, true
 	case kop.ZoneStack:
 		return 4, true
+	case kop.ZoneCommand:
+		return 5, true // a commander only (validateCommandObj)
 	}
 	return 0, false
 }
@@ -258,6 +273,9 @@ func (w *World) validate() error {
 	}
 	if bf > MaxPerm {
 		return unstageable(ReasonBattlefield, "%d permanents", bf)
+	}
+	if err := w.validateCommanders(); err != nil {
+		return err
 	}
 	return w.validatePlaces()
 }
@@ -326,6 +344,11 @@ func (w *World) validateObjs() (int, error) {
 		if o.Ctrl >= w.NSeat || o.Ctrl != o.Owner {
 			return 0, unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
 		}
+		if o.Zone == kop.ZoneCommand {
+			if err := w.validateCommandObj(i); err != nil {
+				return 0, err
+			}
+		}
 		if o.Zone != kop.ZoneBattlefield && (o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0 || o.combatMarked()) {
 			return 0, unstageable(ReasonZone, "object %d off the battlefield carries a mark", i)
 		}
@@ -378,7 +401,8 @@ func (s *State) initFromWorld(w *World) error {
 	}
 	cfg := w.Cfg
 	cfg.Mulligans = 0
-	cfg.Commander = false
+	cfg.Commander = w.Commander
+	cfg.Commanders = w.cmdConfig()
 	cfg.SideN = [MaxSeats]uint8{}
 	s.InitN(w.Tbl, decks, w.NSeat, w.Seed, cfg)
 	if s.over || s.g.stalled != 0 {
@@ -429,6 +453,9 @@ func (s *State) initFromWorld(w *World) error {
 			ob.of |= ofInHand
 			pl.grave[pl.graveN] = Obj(i)
 			pl.graveN++
+		case kop.ZoneCommand:
+			ob.zone = kop.ZoneCommand // pl.cmd is seated: InitN ran cmdGenesis
+			s.noteCommandZone(Obj(i))
 		}
 	}
 	// Permanents enter owner by owner in list order: perm.ts is the order of
@@ -449,6 +476,9 @@ func (s *State) initFromWorld(w *World) error {
 			s.stageMarks(sl, o)
 			s.touchSl(sl)
 		}
+	}
+	if w.Commander {
+		s.stageCommanders(w)
 	}
 	s.stageAttached(k, w)
 	s.stageStack(k, w)

@@ -82,6 +82,11 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonUnmapped: func(in *shadow.Input) { in.ObjOf = func(int) (dirac.Obj, bool) { return 0, false } },
 		shadow.ReasonHidden:   func(in *shadow.Input) { in.Hidden.Library[1] = in.Hidden.Library[1][1:] },
 		shadow.ReasonExile:    func(in *shadow.Input) { in.View.Players[1].Exile = []view.CardView{{Name: "Plains"}} },
+		dirac.ReasonCommander: func(in *shadow.Input) {
+			// a partner pair: two commanders in one roster
+			in.View.Players[0].Commanders = []view.CardView{{ID: 0, Name: "Plains"}, {ID: 1, Name: "Plains"}}
+			in.View.Players[0].CommanderCasts = []int32{0, 0}
+		},
 		shadow.ReasonToken:    func(in *shadow.Input) { bf(in, view.CardView{IsToken: true}) },
 		shadow.ReasonCounter:  func(in *shadow.Input) { bf(in, view.CardView{Counters: map[string]int32{"M1M1": 1}}) },
 		shadow.ReasonAttach:   func(in *shadow.Input) { bf(in, view.CardView{AttachedTo: 5}) },
@@ -96,6 +101,12 @@ func TestWorldFromViewReasons(t *testing.T) {
 			// a Savannah Lions "ability" entry: not a self-counter ability
 			in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}}}
 		},
+	}
+	// a card in a command zone that is no commander of its seat is exile's
+	in := reasonsInput()
+	in.View.Players[1].Command = []view.CardView{{ID: 40, Name: "Plains"}}
+	if _, err := shadow.StageFromView(in); !errors.As(err, new(dirac.ErrUnstageable)) || err.(dirac.ErrUnstageable).Reason != shadow.ReasonExile {
+		t.Errorf("a non-commander in the command zone: got error %v, want %q", err, shadow.ReasonExile)
 	}
 	for _, r := range shadow.Reasons {
 		if _, ok := cases[r]; !ok {

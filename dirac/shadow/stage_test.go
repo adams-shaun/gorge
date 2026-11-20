@@ -78,6 +78,9 @@ type stageEnv struct {
 	combat bool
 	// seats is the pod size: 0 plays the two-seat game (its exact random draws).
 	seats int
+	// matchup, when set, edits the matchup before either side is built (a
+	// Commander pod seats its commanders here).
+	matchup func(m *oracle.Matchup)
 }
 
 func vanillaEnv() *stageEnv {
@@ -118,6 +121,11 @@ type stageStats struct {
 	stacked       int               // staged positions with a stack entry
 	farAttack     int               // staged positions with an attacker on a seat other than the active seat's next
 	farBlock      int               // staged declare blockers poses of a defender other than the active seat's next
+	cmdZone       int               // staged Commander positions with a commander in a command zone
+	cmdBF         int               // ... with a commander on the battlefield
+	cmdCast1      int               // ... with a commander cast from the command zone at least once
+	cmdCast2      int               // ... with a commander cast at least twice (taxed)
+	cmdDmg        int               // ... with commander damage taken
 }
 
 var errDone = &oracle.Divergence{What: "stage-done"}
@@ -141,6 +149,9 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 	}
 	if err != nil {
 		return err.Error()
+	}
+	if env.matchup != nil {
+		env.matchup(m)
 	}
 	k, err := env.kernel(m, seed)
 	if err != nil {
@@ -252,6 +263,7 @@ func (st *stageStats) count(w *dirac.World) {
 	if far {
 		st.farAttack++
 	}
+	st.countCommanders(w)
 	if w.Pose == dirac.PoseBlockers && w.NSeat > 2 && w.BlkDef != (w.Active+1)%w.NSeat {
 		st.farBlock++
 	}
