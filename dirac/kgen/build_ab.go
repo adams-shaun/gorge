@@ -1002,8 +1002,9 @@ func (cb *cardBuilder) manaReflected(m *lMana, ka *kop.Ability) (bool, error) {
 		// and the fold prices the amount open; the prefix search evaluates it
 		// at the activation (kop.AfManaDynamic + ManaV). One mana of any
 		// colour among the matched permanents' cards' producible colours
-		// (Ability.ManaProduce, {C} of the census read dropped), scaled by the
-		// Amount$ expression evaluated with the source
+		// (Ability.ManaProduce; Ability.ManaProduceType admits {C} under
+		// ColorOrType$ Type), scaled by the Amount$ expression evaluated with
+		// the source
 		id, err := cb.filter(m.SpecialF, kop.ZoneBattlefield)
 		if err != nil {
 			return true, err
@@ -1013,7 +1014,7 @@ func (cb *cardBuilder) manaReflected(m *lMana, ka *kop.Ability) (bool, error) {
 			return true, err
 		}
 		ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect | kop.AfManaDynamic
-		ka.ManaProduce = true
+		ka.ManaProduce, ka.ManaProduceType = true, m.WidenType
 		ka.ManaAmong = id
 		ka.ManaColors = kop.ColAny
 		ka.ManaN = 1
@@ -1033,7 +1034,7 @@ func (cb *cardBuilder) manaReflected(m *lMana, ka *kop.Ability) (bool, error) {
 	}
 	ka.AFlags |= kop.AfManaChoice | kop.AfManaReflect
 	if m.Produce {
-		ka.ManaProduce = true
+		ka.ManaProduce, ka.ManaProduceType = true, m.WidenType
 	}
 	ka.ManaGrave = m.Graveyard
 	ka.ManaAmong = id

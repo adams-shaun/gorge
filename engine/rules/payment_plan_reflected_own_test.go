@@ -164,10 +164,12 @@ func TestPaymentPlanReflectedChromeMoxImprint(t *testing.T) {
 	reflPlanAndRun(t, e, spell, src, "U")
 }
 
-// A Reflecting Pool beside a Wastes: the planner offers coloured
-// alternatives only, so the Pool has none here (the {C} stays out of the
-// reflected counts and the PotentialMana bound alike) and the Wastes pays.
-func TestPaymentPlanReflectedColourlessIsLeftToRealSources(t *testing.T) {
+// A Reflecting Pool beside a Wastes reflects the Wastes' {C}. A reflected
+// source can be the payer's ONLY untapped colourless producer, so the
+// planner must keep {C} in the reflected counts and plan it (CR 106.7,
+// 605.1a); dropping it withholds a cast the board can pay. When the Wastes
+// is untapped the real source still pays.
+func TestPaymentPlanReflectedColourlessUsesReflection(t *testing.T) {
 	t.Parallel()
 	e, _, spell := newFixtureDeck(t, 9705, reflGenProbe)
 	wastes := onBoardCard(t, e, 0, corpusCardOrFatal(t, "Wastes"))
@@ -181,19 +183,17 @@ func TestPaymentPlanReflectedColourlessIsLeftToRealSources(t *testing.T) {
 	if ma := poolCard.Faces[0].Abilities[0]; !pay.PaymentPlanReflectedShape(ma) {
 		t.Fatal("precondition: Reflecting Pool shape not admitted (own-reflection absent)")
 	}
-	if got := choiceAlts(t, e, pool); len(got) != 0 {
-		t.Fatalf("Pool alternatives = %v, want none (colourless reflects stay out)", got)
+	if got := choiceColours(choiceAlts(t, e, pool)); !slices.Equal(got, []string{"C"}) {
+		t.Fatalf("Pool alternatives = %v, want [C] (the Wastes' colourless)", got)
 	}
 	got := e.PlanCastPayment(0, paymentCast(spell))
 	if _, ok := choicePlanUses2(got, wastes); !ok || got.Plan == nil || len(got.Plan.Activations) != 1 {
 		t.Fatalf("plan = %+v reason=%s, want the Wastes' one step", got.Plan, got.Reason)
 	}
-	// Wastes tapped: the Pool reflects only {C}, which the planner leaves
-	// to a manual payment rather than planning.
+	// Wastes tapped: the Pool's reflected {C} is the only untapped source, so
+	// the planner plans and executes it.
 	e.G.Obj(wastes).Tapped = true
-	if got := e.PlanCastPayment(0, paymentCast(spell)); got.Plan != nil {
-		t.Fatalf("Pool reflecting only {C} planned %+v", got.Plan)
-	}
+	reflPlanAndRun(t, e, spell, pool, "C")
 }
 
 func TestPaymentPlanReflectedHorizonOfProgressIsLastResortWithLife(t *testing.T) {

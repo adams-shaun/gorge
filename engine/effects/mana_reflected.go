@@ -164,9 +164,12 @@ func ManaReflectedReadsSacrificed(sa *cards.SA) bool {
 // "Any"/"Combo Any" Produced$ is every colour; a "Combo <colours>" shape is
 // exactly those colours (effects.ComboColours rejects every other combo
 // word); a plain brace/space-stripped rune list contributes its coloured and
-// colourless runes. Amount$ and RestrictValid$ belong to the mana the
-// reflected ability itself produces, not the source ability it examines, so
-// they intentionally do not affect this candidate census.
+// colourless runes, and only when every rune is a known mana symbol — a
+// non-symbol word fails closed rather than letting, say, "Combo ColorIdentity"
+// shed its C into the census (Command Tower makes no colourless). Amount$ and
+// RestrictValid$ belong to the mana the reflected ability itself produces, not
+// the source ability it examines, so they intentionally do not affect this
+// candidate census.
 func producibleSymbols(o *state.Object) string {
 	f := o.Face()
 	if f == nil {
@@ -189,6 +192,16 @@ func producibleSymbols(o *state.Object) string {
 			continue
 		}
 		runes := manaReflectedReplacer.Replace(p)
+		valid := true
+		for _, r := range runes {
+			if !strings.ContainsRune(ManaSymbols, r) {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			continue // a word, not a rune list: fail closed (effMana's classifier)
+		}
 		for _, r := range runes {
 			if i := strings.IndexRune(manaReflectedOrder, r); i >= 0 {
 				set |= 1 << uint(i)
