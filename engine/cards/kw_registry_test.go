@@ -193,6 +193,12 @@ var expandedHeads = []string{
 	// with mana value N or less from the graveyard to hand
 	// (engine/cards/kw_soulshift.go). Added after the split.
 	"Soulshift",
+	// Recover (CR 702.59): a graveyard-zone ChangesZone trigger on an owned
+	// creature's death whose pay-or-else resolution is the generic
+	// UnlessCost$ gate (UnlessSwitched$ True) returning Self to hand, with
+	// the otherwise-exile SubAbility on a decline
+	// (engine/cards/kw_recover.go). Added after the split.
+	"Recover",
 	// Reinforce (CR 702.77a): a hand-zone discard-for-counters activation
 	// (engine/cards/kw_reinforce.go). Added after the split.
 	"Reinforce",
