@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // gorge's generic mana-fee order (rules potentialPrefixScript's phased run with
 // scriptSearch.feeOrder): when the plain run finds no script for a plain cast
 // beside a census gap that makes two or more mana for a mana fee (Baxter
@@ -35,7 +37,8 @@ func (s *State) feeOrderGaps(k *prep, fs *filtSearch) (slotMask, bool) {
 	}
 	var fee slotMask
 	for b := fs.gaps; b.any(); b = b.rest() {
-		if sl := b.first(); s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
+		// a dynamic amount is no fee gap: gorge's availableAmount reads it as zero units (Three Tree City)
+		if sl := b.first(); s.filtAb(k, sl).AFlags&kop.AfManaDynamic == 0 && s.filtUnits(k, sl) >= 2 && s.filtFee(k, sl) > 0 {
 			fee = fee.with(sl)
 		}
 	}
