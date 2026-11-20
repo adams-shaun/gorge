@@ -198,10 +198,12 @@ func (s *State) osHas(kind uint8, src, o Obj, sver uint8) bool {
 	return false
 }
 
-// osEach calls f for each of src's (NoObj: every source's) live records in
-// mask's kinds, in store order. e (nil: none) is the resolving entry
-// osLiveFor reads; a nil e is the live-now rule.
-func (s *State) osEach(mask uint16, src Obj, e *stackEntry, f func(r *osRec)) {
+// osEach calls f with the object of each of src's (NoObj: every source's) live
+// records in mask's kinds, in store order. e (nil: none) is the resolving entry
+// osLiveFor reads; a nil e is the live-now rule. f gets the object, not the
+// record: a pointer into the store handed to an unknown func makes the State
+// leak to the heap through every caller (TestNoKernelLocalEscapes).
+func (s *State) osEach(mask uint16, src Obj, e *stackEntry, f func(o Obj)) {
 	r := s.cold.objSets
 	for i := range r {
 		if r[i].kind == 0 {
@@ -211,7 +213,7 @@ func (s *State) osEach(mask uint16, src Obj, e *stackEntry, f func(r *osRec)) {
 		if rec.src != src || !rec.inKinds(mask) || !s.osLiveFor(rec, e) {
 			continue
 		}
-		f(rec)
+		f(rec.o)
 	}
 }
 

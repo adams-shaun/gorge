@@ -127,7 +127,7 @@ func (s *State) impRefSrc(ctx evalCtx) (Obj, bool) {
 // no zone gate (gorge's Defined$ Imprinted): the records live now (the
 // source on the battlefield at the stamped ver).
 func (s *State) impStoreEach(src Obj, f func(Obj)) {
-	s.osEach(osMImp, src, nil, func(r *osRec) { f(r.o) })
+	s.osEach(osMImp, src, nil, f)
 }
 
 // impCreatureSub is kop.Override ImpSub (Duplicant's AddType$

@@ -34,7 +34,7 @@ func TestObjSetsOrderAndGC(t *testing.T) {
 	}
 
 	var seen []Obj
-	s.osEach(osMRem, a, nil, func(r *osRec) { seen = append(seen, r.o) })
+	s.osEach(osMRem, a, nil, func(o Obj) { seen = append(seen, o) })
 	if len(seen) != 2 || seen[0] != x || seen[1] != y {
 		t.Fatalf("osEach order %v, want [%d %d]", seen, x, y)
 	}
