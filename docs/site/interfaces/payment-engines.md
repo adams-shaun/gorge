@@ -4,13 +4,13 @@ For context only. This page does not describe how other engines work inside.
 
 === "Forge"
 
-    gorge's comparison harness plays Forge and gorge through one scenario file. Its notes say Forge asks neither the pip-by-pip payment choice nor gorge's mana window, so the driver does not count those picks as leftover. A step can carry the exact pool mana gorge spent, and an empty entry means auto-pay ([`cmd/oraclediff/forge.go:60`](https://github.com/adams-shaun/gorge-compliance/blob/main/cmd/oraclediff/forge.go#L60), [`:76`](https://github.com/adams-shaun/gorge-compliance/blob/main/cmd/oraclediff/forge.go#L76)).
+    gorge's comparison harness plays Forge and gorge through one scenario file. Its notes say Forge asks neither the pip-by-pip payment choice nor gorge's mana window, so the driver does not count those picks as leftover. A step can carry the exact pool mana gorge spent, and an empty entry means auto-pay ([`cmd/oraclediff/forge.go`](https://github.com/adams-shaun/gorge-compliance/blob/main/cmd/oraclediff/forge.go)).
 
     That is what the harness shows. It is not a description of Forge's own payment interface. This is a summary from a public repository, and no Forge script text is quoted.
 
 === "XMage"
 
-    The XMage side of the harness replays gorge's logged spends. It turns the test player's automatic payment off for the step, then spends one unit of the logged colour per unit of cost, choosing the colour the unpaid cost still needs. It restores the pool's mode afterwards ([`oracle/xmageoracle/src/org/mage/test/oracle/ScenarioReplay.java:317`](https://github.com/adams-shaun/gorge-compliance/blob/main/oracle/xmageoracle/src/org/mage/test/oracle/ScenarioReplay.java#L317)).
+    The XMage side of the harness replays gorge's logged spends. It turns the test player's automatic payment off for the step, then spends one unit of the logged colour per unit of cost, choosing the colour the unpaid cost still needs. It restores the pool's mode afterwards ([`oracle/xmageoracle/src/org/mage/test/oracle/ScenarioReplay.java`](https://github.com/adams-shaun/gorge-compliance/blob/main/oracle/xmageoracle/src/org/mage/test/oracle/ScenarioReplay.java)).
 
     So XMage has both an automatic and a manual payment mode on its mana pool. The page says nothing more about XMage's interface.
 

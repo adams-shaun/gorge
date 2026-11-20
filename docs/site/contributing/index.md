@@ -1,10 +1,8 @@
 # Contributing
 
-This is the contributor's guide: how to set up a checkout, run the tests the
-way the project expects, read the ratchets that will fail on you, and get a
-change merged. It is written for a Go developer who does not yet know Magic
-engine internals or Forge. Unfamiliar words (IR, primitive, ratchet, chain
-head) are in the [glossary](glossary.md).
+How to set up a checkout, run tests the way the project expects, read the
+ratchets that will fail on you, and get a change merged. Unfamiliar words (IR,
+primitive, ratchet, chain head) are in the [glossary](glossary.md).
 
 ```mermaid
 flowchart LR
@@ -37,25 +35,23 @@ not even a line pasted into a test. See
 [The three repositories](../repos/index.md#licensing-and-the-forge-card-scripts).
 
 When the pin moves, `make fetch-cards` also clears Go's test cache, because
-the corpus lives outside the module and `go test` cannot see that it changed.
+`go test` cannot see a change in the corpus.
 
-Optionally enable the repository's git hooks:
+Optionally enable the git hooks:
 
 ```sh
 git config core.hooksPath .githooks
 ```
 
-`pre-commit` (and `pre-merge-commit`) runs `go run ./cmd/pkgmap -check` when
-you add, delete or rename a Go file, so a new package without a tier entry in
-`docs/site/architecture/packages.tiers.json` fails at commit time rather than
-in CI. `pre-push` runs the race detector, one package at a time, only when
-you push `main` with `RACE=1` set.
+`pre-commit` and `pre-merge-commit` run `go run ./cmd/pkgmap -check` when you add, delete or rename a
+Go file, so a package without a tier entry in `docs/site/architecture/packages.tiers.json` fails
+before CI. `pre-push` runs the race detector, one package at a time, only when you push `main` with
+`RACE=1`.
 
 ## Work in a worktree
 
-Make each change in its own branch, and if you keep several going at once,
-in its own [git worktree](https://git-scm.com/docs/git-worktree), so your main
-checkout stays clean. Branch from `origin/main`, which is where pull requests go:
+Make each change in its own [git worktree](https://git-scm.com/docs/git-worktree),
+branched from `origin/main`, so your main checkout stays clean:
 
 ```sh
 git fetch origin
@@ -65,53 +61,60 @@ cd ../gorge-myfix
 ```
 
 !!! warning "A worktree without `.cards/` reads green and tests nothing"
-    A worktree carries only tracked files. Every corpus-dependent test loads
-    cards through `testutil.CorpusRegistry(t)`, which **skips** when `.cards/`
-    is missing, so the package still prints `ok`, in a couple of
-    milliseconds, having run almost nothing. If a run looks suspiciously
-    fast, rerun with `-v` and look for
-    `SKIP ... no .cards/ corpus present`. CI refuses to run without the
-    corpus for exactly this reason.
+    A worktree carries only tracked files. Corpus-dependent tests load cards
+    through `testutil.CorpusRegistry(t)`, which **skips** when `.cards/` is
+    missing, so a raw run still prints `ok` in a couple of milliseconds. The
+    make test targets report that as `ENV`. CI refuses to run without the
+    corpus.
 
 ## Run tests
 
-Run one package and one `-run` pattern at a time, inside the per-test budget.
-[Testing](testing.md#focused-runs) has the rules and the capped command.
+Use the make targets, never raw `go test`: [Testing](testing.md#focused-runs).
 
 ## Lint
 
 ```sh
-gofmt -l $(git ls-files '*.go')     # must print nothing
-go vet ./engine/rules/              # the packages you touched
-go run ./cmd/gentypes -check        # if you changed server/protocol
+make lint    # gofmt, go vet ./..., gentypes -check, plus the web client's svelte-check and eslint (needs Node)
 ```
 
-`make lint` runs all three across the tree, plus the web client's
-`svelte-check` and `eslint`, so it needs Node and `web/node_modules`. CI's
-`lint` job runs the Go half (`gofmt`, `go vet ./...`, `gentypes -check`).
+`make lint` needs `web/node_modules`. CI's `lint` job runs the Go half plus
+`make fresh-clone-check`.
 
 ## The ratchets you will hit
 
 A **ratchet** is a test whose expected value is a committed table and which
-fails in both directions: a new gap fails, and a gap your change closed is
-now a stale entry that fails too. You delete the entry in the same commit;
-you never add one. The why behind each is on
-[Invariants](../architecture/invariants.md#ratchets-only-shrink).
-
-[Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each one, what its failure means and
-what to do.
+fails in both directions: a new gap fails, and a gap your change closed is a
+stale entry that fails too. Delete the entry in the same commit; never add one
+([why](../architecture/invariants.md#ratchets-only-shrink)).
+[Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each
+ratchet and what to do when it fails.
 
 ## Commits and pull requests
 
-**Branches.** Open your PR **against `main`**. Mergify queues every non-draft PR
-to `main` (no label, no approval) once its `fast` and `lint` checks pass:
-`fast` is `scripts/ci-fast.sh`, the packages your diff touches, every package
-whose tests import them, and the named test groups, run with `-short`. Mergify
-batches up to 10 queued PRs on a `mergify/merge-queue/*` branch, where CI runs
-the full suite once per batch (below). The batch merges with a merge commit when
-`ci-ok` is green there; a red batch is split. Nothing is pushed to `main`
-directly. A fix for a red `main` goes on a `hotfix/*` branch (or carries the
-`hotfix` label): it is batched first and may interrupt a running batch. ([Branch flow](../repos/index.md#branch-flow).)
+**Landing.** Open your PR **against `main`**. Nothing is pushed to `main`
+directly.
+
+1. Mergify queues every non-draft PR (no label, no approval) once its two
+   checks pass: `lint` (above) and `fast` (`scripts/ci-fast.sh`: the packages
+   your diff touches, every package whose tests import them, and the named
+   test groups, run with `-short`).
+2. Mergify batches up to 10 queued PRs on a `mergify/merge-queue/*` branch. CI
+   (`.github/workflows/ci.yml`) runs the full suite once per batch: the six test
+   shards (`scripts/ci_shard.sh`, with `TestHeads` as its own step),
+   `examples` (`scripts/examples-smoke.sh`), `wire-matrix`
+   ([Wires](../architecture/wires.md)), `dirac-slices` (dirac against gorge on
+   the committed FDN and BLB slices) and `browser` (`make smoke`, not part of
+   `ci-ok`).
+3. The batch merges with a merge commit when `ci-ok` is green; a red batch is
+   split.
+4. A fix for a red `main` goes on a `hotfix/*` branch (or carries the `hotfix`
+   label): it is batched first and may interrupt a running batch.
+
+The whole of `dirac/oracle` never runs on a PR or a batch. It runs on `main`
+from `.github/workflows/oracle.yml` (hourly cron that starts a run only if none
+began in the last 5h30m, so about every 6 hours) and on demand. A PR that
+touches `docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a
+strict docs build. [Branch flow](../repos/index.md#branch-flow) has the diagram.
 
 **Commit messages.**
 
@@ -123,51 +126,34 @@ directly. A fix for a red `main` goes on a `hotfix/*` branch (or carries the
   numbers ([measure the class, not the card](first-card-fix.md#5-measure-the-class-not-the-card)).
 - If `TestHeads` moved, name the first diverging event and its cause.
 - Plain messages: **no attribution trailers** (`Co-Authored-By:`,
-  "Generated with …") and no issue-tracker references.
+  "Generated with …") and no issue-tracker references
+  (`CONTRIBUTING.md`).
 
-**The pull request.** The template (`.github/pull_request_template.md`) asks
-for an overview, the changes by area, how you tested, and notes for
-reviewers. `make pr` (against `main`, origin's default branch) pushes your branch and opens (or
-refreshes) the PR with a generated change overview; it needs an
-authenticated `gh`, and `DRY=1` prints the body without pushing.
+**The pull request.** `.github/pull_request_template.md` asks for an overview,
+the changes by area, how you tested, and notes for reviewers. `make pr` pushes
+your branch and opens (or refreshes) the PR against `main` with a generated
+overview. It needs an authenticated `gh`; `DRY=1` prints the body without
+pushing, `DRAFT=1` opens a draft.
 
 **Checklist.** Modelled on the first outside contribution,
 [`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f):
 
 - [ ] A test that fails without your change, in the package you changed,
-      named for the behaviour, and a control that shows the card still works
+      named for the behaviour, plus a control showing the card still works
       where it should.
-- [ ] `gofmt -l` is empty for your files; `go vet` on the packages you touched.
-- [ ] `go run ./cmd/gentypes -check` if you changed `server/protocol`.
-- [ ] Focused `go test` of the packages you touched, **with `.cards/` present**.
+- [ ] `make lint` (or `gofmt -l` and `go vet` on your packages, and
+      `go run ./cmd/gentypes -check` if you changed `server/protocol`).
+- [ ] `make test-targeted` while iterating and `make test-smart` once before
+      you open the PR, **with `.cards/` present** (a verdict of `ENV` is not green).
 - [ ] `make sim`: every game prints `replay OK`.
-- [ ] `go test -run '^TestHeads$' ./engine/rules/` passes, or the heads were
-      re-pinned with a named cause.
+- [ ] `TestHeads` passes, or the heads were re-pinned with a named cause
+      ([Testing](testing.md#ratchets-and-goldens-what-a-failure-means)).
 - [ ] Any ratchet entry your change closed is deleted in the same commit.
-
-**What CI runs on your PR.** `lint` (`gofmt`, `go vet ./...`,
-`gentypes -check`) and `fast` (`scripts/ci-fast.sh`: the packages your diff
-touches, every package whose tests import them, and the named test groups, with
-`-short`). Once both pass, the PR enters the merge queue, and the batch runs
-`test`: the corpus is fetched at `FORGE_REF`, the packages are split across six
-shards, Go's test cache from the base branch lets unchanged packages report
-`(cached)`, and `TestHeads` runs as its own step; `examples`
-(`scripts/examples-smoke.sh`, the Python and Java agents); `wire-matrix`
-([Wires](../architecture/wires.md)); `dirac-slices`, which plays dirac against
-gorge on the committed FDN and BLB slices; and `browser` (`make smoke`), the
-built client in headless Chromium against real servers. `browser` isn't part of
-`ci-ok`, the required check. The whole of `dirac/oracle` in ten parts runs every
-6 hours on `main` (`.github/workflows/oracle.yml`) and on demand (`ci.yml`
-`workflow_dispatch`), never on a pull request or a queue batch: no deck pool
-ships with the repo, so it plays committed slices and synthetic decks, and any
-skip outside `dirac/oracle/testdata/poolskips.txt` fails it. A PR that touches
-`docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a strict docs build.
 
 ## Reproduce a feedback report
 
-A player bug report filed from a game on `gorged` carries a replayable
-snapshot (`match.json`, `log.json`, the seat's `view.json`). `cmd/repro`
-turns it into a failing test:
+A bug report filed from a game on `gorged` carries a replayable snapshot (`match.json`, `log.json`,
+the seat's `view.json`). `cmd/repro` turns it into a failing test:
 
 ```sh
 go run ./cmd/repro <feedback-dir>                     # replay, verify the chain head, print the board
@@ -177,19 +163,8 @@ go run ./cmd/repro -omniscient <feedback-dir>         # show every hand
 go run ./cmd/repro -emit-test ./engine/rules <feedback-dir>   # copy the snapshot, write a failing test skeleton
 ```
 
-Try it on the committed fixture:
-
-```sh
-go run ./cmd/repro cmd/repro/testdata/feedback/20260914T120000Z-fb01
-```
-
-```text
-== feedback report 20260914T120000Z-fb01 (table t1, match 1) ==
-snapshot: captured: match.json log.json view.json
-replayed 26 of 26 recorded intents (151 events); recorded head 67b55d2eb519629d
-turn 2, round 1, main1 (step main1) — active: seat 0, priority: seat 0
-...
-```
+Try the committed fixture: `go run ./cmd/repro cmd/repro/testdata/feedback/20260914T120000Z-fb01`
+prints `== feedback report 20260914T120000Z-fb01 …`, `replayed 26 of 26 recorded intents`, then the board.
 
 Exit status 0 means the rebuilt event stream matched the recording event for
 event. `DIVERGED` names the first mismatching event; a corpus pin change
@@ -200,8 +175,8 @@ TODO with your assertion.
 
 ## Documentation
 
-This site is `docs/site/`, built by MkDocs Material from the root
-`mkdocs.yml` and published from `main`. To preview it:
+This site is `docs/site/`, built by MkDocs Material from `mkdocs.yml` and
+published from `main` by `.github/workflows/docs.yml`. To preview it:
 
 ```sh
 go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md   # the generated package tables
@@ -209,11 +184,11 @@ python3 scripts/docs_sets.py --dirac-support dirac/docs/support.md      # the se
 uvx --with mkdocs-material==9.7.7 mkdocs serve                        # or: pip install -r docs/site/requirements.txt
 ```
 
-[Regenerating the tables](../support/regenerating.md) has the full set tables. The
-build is `--strict`: a broken link fails it. CI also parses every
-Mermaid diagram in a headless browser (`scripts/docs_mermaid_check.py`),
-because `--strict` does not. Link between pages with relative `.md` paths,
-and to code as `https://github.com/adams-shaun/gorge/blob/main/<path>`.
+[Regenerating the tables](../support/regenerating.md) has the full set tables.
+The build is `--strict`, so a broken link fails it. CI also parses every Mermaid
+diagram in a headless browser (`scripts/docs_mermaid_check.py`), which
+`--strict` does not. Link between pages with relative `.md` paths, and to code
+as `https://github.com/adams-shaun/gorge/blob/main/<path>`.
 
 ## Where next
 
