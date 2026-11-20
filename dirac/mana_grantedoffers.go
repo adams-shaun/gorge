@@ -1546,7 +1546,23 @@ func (g *grantSrch) phasedScope(s *State) bool {
 	if !g.d.hasPlay || !isCastKind(g.d.play.Kind()) {
 		return false
 	}
-	cd := &g.k.t.Cards[s.castFaceCard(g.k, g.d.play)]
+	if s.castSacOrReturn(g.k, g.d.play) {
+		return true
+	}
+	for i := 0; i < g.gapN; i++ {
+		if g.filt[i] {
+			if _, _, ok := s.filtHyb(g.k, g.cand[i]); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// castSacOrReturn: the cast play a's own cost sacrifices or returns a
+// permanent (scriptSearch.phasedScope's first arm).
+func (s *State) castSacOrReturn(k *prep, a Action) bool {
+	cd := &k.t.Cards[s.castFaceCard(k, a)]
 	const sacOrReturn = kop.CostSac | kop.CostSacSelf | kop.CostReturn | kop.CostReturnSelf
 	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 {
 		return true
@@ -1556,13 +1572,6 @@ func (g *grantSrch) phasedScope(s *State) bool {
 		// (kgen build: cb.spellCost), not CardDef.SpellCost.
 		if a := &cd.Abilities[ai]; a.Kind == kop.AbSpell && a.Cost.Flags&sacOrReturn != 0 {
 			return true
-		}
-	}
-	for i := 0; i < g.gapN; i++ {
-		if g.filt[i] {
-			if _, _, ok := s.filtHyb(g.k, g.cand[i]); ok {
-				return true
-			}
 		}
 	}
 	return false
