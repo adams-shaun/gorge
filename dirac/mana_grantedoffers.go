@@ -2199,8 +2199,26 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 // caller declares it only where it finally drops the play (mana_tapanother.go
 // tapXScript). A plain search the budget cut short is followed by gorge's
 // subsume run (grantSubsume, mana_grantsubsume.go).
+//
+// need is gorge's own announced set (playNeedPrinted: empty for a graveyard
+// cast), so the search walks the colour asks in gorge's order and finds the
+// plan gorge's does, the pool colours included (a flashback cast's Resonating
+// Lute mana is W, not the cast's R). Only when that walk finds nothing, the
+// budget-capped search is run again with the graveyard cast's announced pips
+// (playNeed's hint, CR 601.2b), which steers it to a plan gorge's larger
+// budget reaches (Eviscerator's Insight's {4}{B} flashback).
 func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch) bool {
-	return s.grantSearchRun(k, p, cost, ex, d, need, g, nil) || s.grantSubsume(k, p, cost, ex, d, need, g)
+	if s.grantSearchRun(k, p, cost, ex, d, need, g, nil) || s.grantSubsume(k, p, cost, ex, d, need, g) {
+		return true
+	}
+	if !d.hasPlay {
+		return false
+	}
+	hint := s.playNeed(k, d.play)
+	if hint == need {
+		return false
+	}
+	return s.grantSearchRun(k, p, cost, ex, d, hint, g, nil) || s.grantSubsume(k, p, cost, ex, d, hint, g)
 }
 
 // grantSearchRun is one run of grantSearch: the plain one (sub nil) or the
@@ -2608,7 +2626,7 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
 func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
-	need = s.playNeed(k, a)
+	need, _ = s.playNeedPrinted(k, a)
 	switch a.Kind() {
 	case AkActivate:
 		if isGainedMode(a.Mode()) {
@@ -2758,12 +2776,24 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // same set. The card's printed cost is read unreduced (CR 601.2b announces
 // the printed pip colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
-	if m, _, ok := s.playBaseCost(k, a); ok {
-		need = grantNeedColours(m)
-	} else if m, ok := s.graveyardCastNeedCost(k, a); ok {
+	if need, ok := s.playNeedPrinted(k, a); ok {
+		return need
+	}
+	if m, ok := s.graveyardCastNeedCost(k, a); ok {
 		need = grantNeedColours(m)
 	}
 	return need
+}
+
+// playNeedPrinted is gorge's scriptNeedColours exactly: the pips of the
+// printed base cost playBaseCost reads, ok false for a play whose base gorge
+// leaves unread (a mode, an alternative cost), whose need is then empty.
+func (s *State) playNeedPrinted(k *prep, a Action) (need [kop.NumManaKinds]bool, ok bool) {
+	m, _, ok := s.playBaseCost(k, a)
+	if ok {
+		need = grantNeedColours(m)
+	}
+	return need, ok
 }
 
 // graveyardCastNeedCost is the cost a plain graveyard cast (a mode-2 cast of
