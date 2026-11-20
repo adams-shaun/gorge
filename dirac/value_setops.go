@@ -186,7 +186,7 @@ func (s *State) execSetControl(k *prep, in *kop.Instr, e *stackEntry, pc int) bo
 	var list [MaxPerm]Slot
 	n := 0
 	for _, o := range v.objs[:v.n] {
-		if sl := s.bfSlot(o); sl != NoSlot && n < len(list) {
+		if sl := s.bfSlot(Obj(o)); sl != NoSlot && n < len(list) {
 			list[n] = sl
 			n++
 		}

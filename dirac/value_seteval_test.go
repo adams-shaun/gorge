@@ -63,7 +63,13 @@ func (p *setPos) ctxFor(ctrl uint8, t0 Obj) evalCtx {
 	return evalCtx{src: NoObj, srcSl: NoSlot, ctrl: ctrl, e: e}
 }
 
-func members(v *setVal) []Obj { return slices.Clone(v.objs[:v.n]) }
+func members(v *setVal) []Obj {
+	out := make([]Obj, v.n)
+	for i := uint16(0); i < v.n; i++ {
+		out[i] = Obj(v.objs[i])
+	}
+	return out
+}
 
 // TestEvalSetBases: each base and combinator, on a hand-built position, gives
 // the expected members in the set's order.

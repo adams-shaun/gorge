@@ -142,7 +142,7 @@ func (s *State) forSet(k *prep, e *stackEntry, in *kop.Instr, pc int, f func(*St
 		s.evalSetAs(k, ref.Set, ctx, ref.Flags, &v)
 	}
 	for ; i < int(v.n) && !s.over; i++ {
-		if !f(s, k, *in, v.objs[i]) {
+		if !f(s, k, *in, Obj(v.objs[i])) {
 			s.setSuspend(k, ref, it, &v, pc, i, false)
 			return false
 		}
@@ -162,7 +162,7 @@ func (s *State) setSuspend(k *prep, ref kop.SetRef, it *setIter, v *setVal, pc, 
 	}
 	it.members = objBits{}
 	for j := uint16(0); j < v.n; j++ {
-		it.members.set(v.objs[j])
+		it.members.set(Obj(v.objs[j]))
 	}
 	it.pl = 0
 	if v.isPl {
@@ -190,7 +190,7 @@ func (s *State) forSetPlayers(k *prep, e *stackEntry, in *kop.Instr, pc int, f f
 		return true
 	}
 	for i := uint16(0); i < v.n && !s.over; i++ {
-		if !f(s, k, *in, uint8(v.objs[i])) {
+		if !f(s, k, *in, uint8(v.objs[i])) { // the seat rides the members' objWord
 			return false
 		}
 	}

@@ -27,13 +27,15 @@ const StallSetOverflow = 74
 func init() { stallNames[StallSetOverflow] = "setoverflow" }
 
 // setVal is one evaluated set: the members in order, objects or (isPl) seats.
-// It is 390 B and lives on the Go stack, never in State.
+// It is 390 B and lives on the Go stack, never in State. A member word holds
+// an object or (isPl) a seat: a multi-use field, so it is an objWord and the
+// conversions into and out of it narrow no code (TestObjCodeCastsOnlyShrink).
 type setVal struct {
 	n    uint16
 	pl   uint8 // isPl: the member seats as a bit mask
 	isPl bool
 	lki  bool // read through last known information
-	objs [setMax]Obj
+	objs [setMax]objWord
 }
 
 func (v *setVal) reset(players, lki bool) {
@@ -46,26 +48,36 @@ func (v *setVal) has(o Obj) bool {
 		return v.pl&(1<<uint(o)) != 0
 	}
 	for i := uint16(0); i < v.n; i++ {
-		if v.objs[i] == o {
+		if v.objs[i] == objWord(o) {
 			return true
 		}
 	}
 	return false
 }
 
-// push appends o; a seat already a member of a players set adds nothing.
+// setPush appends the object o.
 func (s *State) setPush(v *setVal, o Obj) {
-	if v.isPl {
-		if v.pl&(1<<uint(o)) != 0 {
-			return
-		}
-		v.pl |= 1 << uint(o)
-	}
 	if int(v.n) == setMax {
 		s.stall(StallSetOverflow)
 		return
 	}
-	v.objs[v.n] = o
+	v.objs[v.n] = objWord(o)
+	v.n++
+}
+
+// setPushSeat appends player seat p to a players set; a member seat adds
+// nothing. A set's seats ride the members' objWord (a seat or an object), and
+// the mask is the players set's membership.
+func (s *State) setPushSeat(v *setVal, p uint8) {
+	if v.pl&(1<<p) != 0 {
+		return
+	}
+	v.pl |= 1 << p
+	if int(v.n) == setMax {
+		s.stall(StallSetOverflow)
+		return
+	}
+	v.objs[v.n] = objWord(p)
 	v.n++
 }
 
@@ -79,7 +91,7 @@ func (s *State) setPushNew(v *setVal, o Obj) {
 // setPushSeats appends the seats of q.
 func (s *State) setPushSeats(v *setVal, q seatSeq) {
 	for i := uint8(0); i < q.n; i++ {
-		s.setPush(v, Obj(q.s[i]))
+		s.setPushSeat(v, q.s[i])
 	}
 }
 
@@ -227,7 +239,7 @@ func (s *State) setPushTarget(v *setVal, c TCode) {
 	case c == NoTarget:
 	case isPlayerTarget(c):
 		if v.isPl {
-			s.setPush(v, Obj(CodeSeat(c)))
+			s.setPushSeat(v, CodeSeat(c))
 		}
 	case IsObjTarget(c):
 		if !v.isPl {
@@ -261,7 +273,7 @@ func (s *State) setBasePlayers(k *prep, r kop.Ref, ctx evalCtx, v *setVal) {
 		return
 	}
 	if p := s.refPlayer(k, r, ctx); p != 255 {
-		s.setPush(v, Obj(p))
+		s.setPushSeat(v, p)
 	}
 }
 
@@ -349,7 +361,7 @@ func (s *State) setInter(k *prep, f kop.FilterID, ctx evalCtx, v *setVal) {
 	}
 	n := uint16(0)
 	for i := uint16(0); i < v.n; i++ {
-		o := v.objs[i]
+		o := Obj(v.objs[i])
 		ob := &s.objs[o]
 		var m bool
 		if ob.zone == kop.ZoneBattlefield {
@@ -358,7 +370,7 @@ func (s *State) setInter(k *prep, f kop.FilterID, ctx evalCtx, v *setVal) {
 			m = s.setMatchCard(k, f, o, ob.owner(), ctx.ctrl)
 		}
 		if m {
-			v.objs[n] = o
+			v.objs[n] = objWord(o)
 			n++
 		}
 	}
@@ -371,7 +383,7 @@ func (s *State) setUnion(a, b *setVal) {
 		panic("kernel: SoUnion of an object set and a players set")
 	}
 	for i := uint16(0); i < b.n; i++ {
-		s.setPushNew(a, b.objs[i])
+		s.setPushNew(a, Obj(b.objs[i]))
 	}
 	a.lki = a.lki || b.lki
 }
@@ -386,7 +398,7 @@ func (s *State) setToPlayers(v *setVal, owner bool) {
 	var m uint8
 	n := 0
 	for i := uint16(0); i < v.n; i++ {
-		o := v.objs[i]
+		o := Obj(v.objs[i])
 		var p uint8
 		switch {
 		case owner:
@@ -404,7 +416,7 @@ func (s *State) setToPlayers(v *setVal, owner bool) {
 	}
 	v.reset(true, false)
 	for _, p := range seats[:n] {
-		s.setPush(v, Obj(p))
+		s.setPushSeat(v, p)
 	}
 }
 
@@ -438,7 +450,7 @@ func (s *State) setComplement(v *setVal, ctx evalCtx) {
 	q := s.aliveFrom(ctx.ctrl)
 	for i := uint8(0); i < q.n; i++ {
 		if mask&(1<<q.s[i]) == 0 {
-			s.setPush(v, Obj(q.s[i]))
+			s.setPushSeat(v, q.s[i])
 		}
 	}
 }
@@ -455,14 +467,14 @@ func (s *State) setOrder(v *setVal, order kop.SetOrder, ctx evalCtx) {
 			q := s.aliveFrom(ctx.ctrl)
 			for i := uint8(0); i < q.n; i++ {
 				if mask&(1<<q.s[i]) != 0 {
-					s.setPush(v, Obj(q.s[i]))
+					s.setPushSeat(v, q.s[i])
 				}
 			}
 			return
 		}
 		for p := uint8(0); p < MaxSeats; p++ {
 			if mask&(1<<p) != 0 {
-				s.setPush(v, Obj(p))
+				s.setPushSeat(v, p)
 			}
 		}
 		return
@@ -474,13 +486,13 @@ func (s *State) setOrder(v *setVal, order kop.SetOrder, ctx evalCtx) {
 	// grouped by controller in seat order from the controller, each seat's
 	// objects in object order; a member whose controller is out of the game
 	// follows, in object order
-	var tmp [setMax]Obj
+	var tmp [setMax]objWord
 	var placed [setMax]bool
 	n := 0
 	q := s.aliveFrom(ctx.ctrl)
 	for i := uint8(0); i < q.n; i++ {
 		for j := uint16(0); j < v.n; j++ {
-			if !placed[j] && s.setCtrlOf(v, v.objs[j]) == q.s[i] {
+			if !placed[j] && s.setCtrlOf(v, Obj(v.objs[j])) == q.s[i] {
 				placed[j] = true
 				tmp[n] = v.objs[j]
 				n++
@@ -511,7 +523,7 @@ func (s *State) setOncePerController(v *setVal) {
 	var seen uint8
 	n := uint16(0)
 	for i := uint16(0); i < v.n; i++ {
-		p := s.setCtrlOf(v, v.objs[i])
+		p := s.setCtrlOf(v, Obj(v.objs[i]))
 		if p < MaxSeats {
 			if seen&(1<<p) != 0 {
 				continue
