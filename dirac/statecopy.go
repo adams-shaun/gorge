@@ -88,6 +88,14 @@ type ForkPool struct {
 	// actScriptPays declines there. Pooled, not a State field: a fixed field
 	// fails TestNoNewFixedStateFields.
 	inFilt int
+	// fmemo: filtScript's failed verdicts of the transition running (mana_filtmemo.go).
+	fmemo filtMemo
+	// paySeen: filtPay's visited table, kept so a payment probe allocates
+	// nothing; payBusy while a search holds it.
+	paySeen []filtKey
+	payBusy bool
+	// payCalls counts filtPay's searches over the pool's life (tests read it).
+	payCalls uint32
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.

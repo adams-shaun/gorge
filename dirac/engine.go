@@ -228,6 +228,7 @@ func (s *State) Elide(d *Decision) {
 
 func (s *State) stepRaw(d *Decision) {
 	k := s.k()
+	s.filtMemoReset()
 	for {
 		d.N = 0
 		d.Sub = ChNone
@@ -350,6 +351,7 @@ func (s *State) stepRaw(d *Decision) {
 // Apply answers the last Decision with a, which must be one of its Options.
 func (s *State) Apply(a Action) {
 	k := s.k()
+	s.filtMemoReset()
 	s.Decisions++
 	switch s.ctl {
 	case ctlMullDeclare:
