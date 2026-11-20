@@ -139,6 +139,26 @@ func (s *State) skipGranted(step kop.Step) bool {
 	return true
 }
 
+// untapSkipped skips the untap step the walk is entering when the active
+// player holds a Step$ Untap grant: gorge's walk jumps to the upkeep.
+func (s *State) untapSkipped(k *prep) bool {
+	if k.gen == nil || !k.gen.anySkipPhase || !s.skipGranted(kop.StepUntap) {
+		return false
+	}
+	s.skipUntapStep()
+	return true
+}
+
+// drawStepSkipped reports that the draw step being entered is skipped: the
+// starting player's first draw (CR 103.8a, checked first: it consumes no
+// grant) or a Step$ Draw grant of the active player.
+func (s *State) drawStepSkipped(k *prep) bool {
+	if s.turn == 1 && s.nSeats() == 2 {
+		return true
+	}
+	return k.gen != nil && k.gen.anySkipPhase && s.skipGranted(kop.StepDraw)
+}
+
 // skipUntapStep is the skipped untap step: gorge's walk jumps to the upkeep
 // with no untap and no Untap event. Summoning sickness (a flag here, derived
 // from the turn an object entered there) still ends, as it does in the step.
