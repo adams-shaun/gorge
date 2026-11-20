@@ -219,6 +219,15 @@ func (s *State) blgIntrinsicUnit(k *prep, sl Slot) bool {
 	return k.gen != nil && k.gen.blgOn && s.riderDeferred(k, sl) && s.blgMask(k, sl) != 0
 }
 
+// planDeferredSkip reports whether plan skips slot sl: deferSkip is the
+// hoisted gate (!pk.tapsIn && deferLive) and planDeferred is the source's own
+// classification (mana_rider.go). A source whose plain census unit is the
+// granted basic land type's intrinsic ability is no skip (blgIntrinsicUnit):
+// gorge's census lists that unit and defers only the rider.
+func (s *State) planDeferredSkip(k *prep, p uint8, sl Slot, deferSkip bool) bool {
+	return deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl)
+}
+
 // blgGapPC is the gap and window view of slot sl: the card's own mana facts
 // when the planner view is a granted basic land type's intrinsic unit
 // (blgView). The census unit is the intrinsic one, but the Taps-deferred gap

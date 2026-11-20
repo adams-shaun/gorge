@@ -1492,7 +1492,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		sl := m.first()
 		m = m.rest()
 		if s.planSourceUsable(k, p, sl, &rd) {
-			if deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			if s.planDeferredSkip(k, p, sl, deferSkip) {
 				continue // gorge's census never lists a source whose tap fires an unvetted Taps watcher (mana_tapsdefer.go); a granted basic land type's intrinsic unit is the exception (static_landtype.go)
 			}
 			if comboSkip && comboAnySrc(k, s.cardAt(sl)) {
