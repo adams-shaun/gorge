@@ -114,6 +114,12 @@ type payDesc struct {
 	// honest supply bound for the X-bound sweep's count arm (gorge
 	// paymentPlanCensus.gapGains, manaFeeNetsNoMana; CR 106.1, 605.3b)
 	gapGain bool
+	// gapSkipPaid leaves every fee-bearing mana ability out of the walk: the
+	// X-bound sweep's count census is gorge's planner census, which lists
+	// free-cost abilities only (a paid ability is a gap, never a unit), so a
+	// bounded walk with this set keeps every covered production and no paid
+	// one (filters_gen.go xBoundPayable's count arm)
+	gapSkipPaid bool
 }
 
 // restrRec is one restricted mana ability of the table: card c's ability

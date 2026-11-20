@@ -429,13 +429,18 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// xBoundTargetPayable's count proof, altcast.go's provenUnpayable tail;
 		// CR 106.1, 605.3b, 601.2h): an announcement the covered units cannot
 		// fund has no real payment, whatever the gap's own production adds.
+		// An open production the bounded census cannot price (a granted
+		// any-colour unit, a lethal-pain fold) leaves no count proof.
 		if gs.n == 0 && mainGapN != 0 && mainGapN <= paidGapMax && !mainGapGain {
 			var pu2 [maxPotUnits]potUnit
 			var supAv avail
 			d2 := d
 			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapNever, d2.gapGain = false, 0, 0, false, 0, false
-			s.availPotentialFor(k, p, &supAv, &d2, false, &pu2) // boundedAny=false: every paid ability is skipped
-			countKnown = potUnitsAvail(&countEx, &pu2, int(s.pl[SeatIx(p)].life))
+			d2.gapSkipPaid = true
+			// a bounded walk (fixed any-colour taps are units) that lists
+			// gorge's planner census: every free production, no paid gap
+			open := s.availPotentialFor(k, p, &supAv, &d2, true, &pu2)
+			countKnown = xBoundCountCensus(open, &countEx, &pu2, int(s.pl[SeatIx(p)].life))
 		}
 	}
 	ok := false
@@ -444,7 +449,12 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		if !pot.affords(&cx, pipMaskOf(&cx), 0) {
 			break
 		}
-		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) || countKnown && !countEx.affords(&cx, pipMaskOf(&cx), 0) {
+		// The count proof is a total-mana one (gorge costOutrunsSupply's
+		// supply < CMC): a covered census that cannot reach the announcement's
+		// total mana proves it unpayable, while a colour-infeasible covered
+		// census does not (a repeatable converter may change colours at a
+		// mana loss, and the count arm has no proof against it).
+		if exactKnown && !ex.affords(&cx, pipMaskOf(&cx), 0) || gs.n != 0 && !gs.affords(&cx) || countKnown && xBoundCountProof(&countEx, &cx) {
 			break
 		}
 		s.g.probe.x = uint8(x + 1)
