@@ -37,3 +37,10 @@ func (lc *lowerCtx) selfSacrificeGate(f *lFilter) bool {
 	}
 	return sacs > 0
 }
+
+// remMarkFilterOK reports whether the persistent mark may be ORed into a
+// ConditionDefined$ Remembered gate whose present filter is f: an unrestricted
+// one, or the source-only check of selfSacrificeGate.
+func (lc *lowerCtx) remMarkFilterOK(f *lFilter) bool {
+	return filterAnyCard(f) || lc.selfSacrificeGate(f)
+}
