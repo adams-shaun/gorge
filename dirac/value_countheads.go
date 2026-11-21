@@ -214,6 +214,23 @@ func satMulCount(a, b int) int {
 	return v
 }
 
+// exwArm is kop.ExExiledWithN's arm (value_exprs.go exprCold): the count the
+// expression's N selects — 1 the summed printed mana values of the cards
+// exiled with the reading source (exwMVSum), 2 their shared card types
+// (exwSharedTypes), anything else the exiledWith count itself (exwCount,
+// zone_exiledwith.go).
+//
+//go:noinline
+func (s *State) exwArm(k *prep, x *kop.Expr, ctx evalCtx) int {
+	switch x.N {
+	case 1:
+		return s.exwMVSum(k, ctx)
+	case 2:
+		return s.exwSharedTypes(k, ctx)
+	}
+	return s.exwCount(ctx)
+}
+
 // exwMVSum is kop.ExExiledWithN with N 1: the printed mana values of the
 // cards in every seat's exile zone exiled with the reading source, summed
 // (gorge count_ref_property.go's CardManaCost over exiledWithSet,

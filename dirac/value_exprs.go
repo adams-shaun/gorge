@@ -101,13 +101,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExRemLKIPT:
 		return s.remLKIPT() // zone_rememberlki.go
 	case kop.ExExiledWithN:
-		switch x.N {
-		case 1:
-			return s.exwMVSum(k, ctx) // value_countheads.go
-		case 2:
-			return s.exwSharedTypes(k, ctx) // value_countheads.go
-		}
-		return s.exwCount(ctx) // zone_exiledwith.go
+		return s.exwArm(k, x, ctx) // value_countheads.go
 	case kop.ExCountHand:
 		if x.N == 1 {
 			return s.countLibrary(k, x, ctx) // value_countheads.go
@@ -129,6 +123,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
+	case kop.ExTotalCommanderCastFromCommandZone:
+		return s.cmdCastTotal(ctx.ctrl) // value_cmdcast.go
 	case kop.ExCmdGreatestMV:
 		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
 	case kop.ExRevolt:
