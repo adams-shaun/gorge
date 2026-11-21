@@ -230,6 +230,9 @@ func (s *State) evasionAt(k *prep, sl Slot) uint8 {
 func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 	ev := s.evasionAt(k, a)
 	if ev&kop.EvHorsemanship != 0 && s.evasionAt(k, b)&kop.EvHorsemanship == 0 {
+		if DebugLandwalkStats != nil && k.t.Cards[s.cardAt(a)].Evasion&kop.EvHorsemanship == 0 {
+			DebugLandwalkStats.GrantedHorse++ // no printed horsemanship: a mark's grant
+		}
 		return true
 	}
 	if ev&kop.EvIntimidate != 0 && !s.artifactTy(k, b) && s.colorsAt(k, a)&s.colorsAt(k, b)&kop.ColAny == 0 {

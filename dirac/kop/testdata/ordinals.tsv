@@ -659,6 +659,7 @@ KwHexproofFromInstants	KwMask	16777216
 KwIndestructible	KwMask	8192
 KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
+KwMarkHorsemanship	untyped int	16
 KwMarkInfect	untyped int	2
 KwMarkIntimidate	untyped int	1
 KwMarkSkulk	untyped int	8

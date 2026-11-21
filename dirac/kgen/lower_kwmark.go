@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// Granted intimidate, infect and skulk (CR 702.13a, 702.90, 702.118a). None has a
+// Granted intimidate, infect, skulk and horsemanship (CR 702.13a, 702.90, 702.118a, 702.31b). None has a
 // kop.KwMask bit (all 32 are taken), and printed ones are CardDef fields
 // (Evasion EvIntimidate, Infect), so a grant is carried apart from the
 // keyword bits, the way a granted landwalk is (lower_landwalkgrant.go):
@@ -35,6 +35,8 @@ func splitKwMarks(kw string) (rest string, marks int) {
 			marks |= kop.KwMarkInfect
 		case "Skulk":
 			marks |= kop.KwMarkSkulk
+		case "Horsemanship":
+			marks |= kop.KwMarkHorsemanship
 		default:
 			if cards.IsHiddenSwitchPTKeyword(k) {
 				// CR 613.4d until end of turn (gorge PumpGrant.SwitchPT, a
@@ -58,6 +60,11 @@ func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
 		// the keyword read still refuses it
 		rest = strings.TrimPrefix(rest+" & HIDDEN "+cards.HiddenSwitchPTKeyword, " & ")
 	}
+	if marks&kop.KwMarkHorsemanship != 0 {
+		// no static grant reads horsemanship yet (kop.Static.Evasion's
+		// EvHorsemanship is not lowered): keep the term so it still refuses
+		rest = strings.TrimPrefix(rest+" & Horsemanship", " & ")
+	}
 	if marks&kop.KwMarkIntimidate != 0 {
 		evasion = kop.EvIntimidate
 	}
@@ -78,6 +85,9 @@ func kwMarkNames(marks int) string {
 	}
 	if marks&kop.KwMarkSkulk != 0 {
 		w = append(w, "Skulk")
+	}
+	if marks&kop.KwMarkHorsemanship != 0 {
+		w = append(w, "Horsemanship")
 	}
 	if marks&kop.KwMarkSwitchPT != 0 {
 		w = append(w, "SwitchPT")
