@@ -11,11 +11,13 @@ Autumn Willow, Harmony
 Aven Reedstalker
 Battlefly Swarm
 Bladewing, Deathless Tyrant
+Blessed Defiance
 Blinding Souleater
 Bogbrew Witch
 Bolrac-Clan Crusher
 Breakneck Berserker
 Brinebarrow Intruder
+Bring Low
 Brion Stoutarm
 Burning Wish
 Cache Raiders
@@ -24,24 +26,42 @@ Campfire
 Celestial Archon
 Charnel Serenade
 Cinder Hellion
+Consulate Dreadnought
 Coordinated Assault
 Coral Commando
 Court of Ardenvale
+Crippling Fear
+Crumble
 Curse of Vitality
 Cursed Minotaur
 Daring Escape
 Dark Privilege
+Darkslick Drake
+Darksteel Ingot
+Dauthi Trapper
 Decimate
+Deepwood Wolverine
 Delayed Blast Fireball
+Dense Canopy
 Devoted Paladin
 Devour in Flames
 Douse in Gloom
+Dream Stalker
+Dreampod Druid
+Dross Ripper
 Dungeon Shade
+Dwarven Mine
+Early Frost
 Electrodominance
+Elven Chorus
+Emerald Dragonfly
 Emissary of Hope
+Epic Proportions
 Equestrian Skill
+Erhnam Djinn
 Errand-Rider of Gondor
 Eternal Isolation
+Evasive Action
 Excoriate
 Fanatic of Mogis
 Fell Stinger
@@ -56,9 +76,12 @@ Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
+Grazing Whiptail
 Grim Poppet
 Guide of Souls
 Guul Draz Overseer
+Gyre Sage
+Halimar Depths
 Headstrong Brute
 Heedless One
 Heiko Yamazaki, the General
@@ -69,45 +92,66 @@ Hulking Ogre
 Impetuous Protege
 Industrial Advancement
 Inescapable Brute
+Inhumaniac
 Island
 Ivory Charm
 Jace Beleren
 Jackhammer
 Jousting Lance
 Joven and Chandler
+Junktown
 Kaya's Ghostform
 Keldon Warlord
 Kessig Dire Swine
 Kitsune Bonesetter
+Kolaghan Aspirant
 Leveler
+Life Chisel
+Living Wish
+Loathsome Curator
 Long-Lost Lances
 Loxodon Mystic
+Machine Over Matter
+Mass Appeal
 Merfolk Windrobber
+Might Beyond Reason
 Mire in Misery
+Mole Worms
 Mountain
+Needle Storm
 Nighthawk, Dark Defender
 Noble Steeds
+Obsidian Battle-Axe
 Olivia, Mobilized for War
 One-Clown Band
 Oona's Gatewarden
+Oraxid
 Ox Drover
+Parapet Watchers
 Patron Wizard
 Phylath, World Sculptor
 Piru, the Volatile
+Plague Beetle
 Plains
 Plunder
 Possessed Skaab
 Presence of the Wise
+Professor of Zoomancy
 Psionic Snoop
 Purraj of Urborg
 Quick-Draw Dagger
+Rabid Wolverines
 Rage Thrower
 Rain of Embers
 Raven Wings
 Ravenous Sailback
+Rayne, Academy Chancellor
+Reject
 Rejuvenating Springs
+Remote Farm
 Requiem Angel
 Resolute Blademaster
+Retreat to Valakut
 Reveka, Wizard Savant
 Riddle Gate Gargoyle
 Rigging Runner
@@ -117,26 +161,36 @@ Ronin Cavekeeper
 Rorix Bladewing
 Royal Falcon
 Rubblebelt Boar
+Sadistic Obsession
 Sarkhan's Catharsis
 Satyr's Cunning
 Screams of the Damned
+Serendib Efreet
 Shambling Remains
 Sheoldred, Whispering One
 Shielded Passage
 Shocker
 Sigiled Skink
+Silent Clearing
 Skyblinder Staff
+Skysnare Spider
 Smashing Spree
 Sootwalkers
 Soul Barrier
 Soul-Strike Technique
+Spectral Bears
 Sphere of Purity
 Spidersilk Net
 Spire Golem
 Spitemare
+Spring
+Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Stew the Coneys
 Stir the Pride
+Strength in Numbers
+Strider Harness
 Stronghold Assassin
 Sun Droplet
 Swamp
@@ -144,18 +198,30 @@ Swirling Sandstorm
 Talas Warrior
 Tavern Ruffian
 Tegan Jovanka
+Theoretical Duplication
 Thunderous Wrath
 Tivadar's Crusade
+Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
+Turbulent Shore
 Undercover Butler
+Unexpected Windfall
 Unholy Officiant
 Unity of Purpose
 Unstoppable Ogre
 Vaultbreaker
+Vedalken Anatomist
+Veiled Apparition
 Wall of Blood
 Wall of Mist
 Warbeast of Gorgoroth
+Warbriar Blessing
+Wayward Soul
 Weldfast Engineer
+Wickerbough Elder
+Wild Growth
 Wooden Cane
+Woodripper
+Wormwood Treefolk
 Write into Being

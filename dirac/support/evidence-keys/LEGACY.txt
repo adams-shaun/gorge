@@ -560,7 +560,6 @@ Brimstone Roundup
 Brimstone Volley
 Brine Shaman
 Brinebarrow Intruder
-Bring Low
 Bring to Light
 Bringer of the Green Dawn
 Bristlepack Sentry
@@ -750,7 +749,6 @@ Cloudspire Skycycle
 Cloudthresher
 Cloven Casting
 Co-Option Adjutant
-Coalhauler Swine
 Coalition Victory
 Coalstoke Gearhulk
 Coastal Drake
@@ -861,7 +859,6 @@ Cruel Revival
 Cruel Truths
 Cruel Witness
 Cruelclaw's Heist
-Crumble
 Crush Contraband
 Cryogenic Stasis
 Cryoshatter
@@ -923,7 +920,6 @@ Darkness Descends
 Darkstar Augur
 Darksteel Forge
 Darksteel Gargoyle
-Darksteel Ingot
 Darksteel Plate
 Darksteel Splicer
 Darkwatch Elves
@@ -936,7 +932,6 @@ Daughter of the Deep
 Dauntless Aven
 Dauntless Scrapbot
 Dauthi Cutthroat
-Dauthi Jackal
 Davvol, Evincar of Rath
 Dawn's Light Archer
 Dawn's Truce
@@ -977,7 +972,6 @@ Deepmuck Desperado
 Deeproot Waters
 Deepwood Drummer
 Deepwood Tantiv
-Deepwood Wolverine
 Defang
 Defend the Campus
 Defend the Rider
@@ -998,7 +992,6 @@ Demon's Due
 Demonic Collusion
 Demonic Taskmaster
 Den Protector
-Dense Canopy
 Deny the Divine
 Deny the Witch
 Deploy to the Front
@@ -1021,7 +1014,6 @@ Destructive Revelry
 Detention Chariot
 Devastating Onslaught
 Devilthorn Fox
-Devoted Druid
 Devoted Duelist
 Devoted Paladin
 Devouring Swarm
@@ -1138,7 +1130,6 @@ Dromar's Charm
 Dromoka Dunecaster
 Dromosaur
 Dross Crocodile
-Dross Ripper
 Drover Grizzly
 Drowned
 Drowned Catacomb
@@ -1153,7 +1144,6 @@ Duel Tactics
 Duelist of the Mind
 Duelist's Heritage
 Dune Diviner
-Dune Drifter
 Dune-Brood Nephilim
 Duneblast
 Durable Handicraft
@@ -1233,7 +1223,6 @@ Elite Interceptor
 Elixir of Vitality
 Elsha, Threefold Master
 Elspeth, Sun's Nemesis
-Elven Chorus
 Elven Fortress
 Elven Palisade
 Elven Passage
@@ -1253,7 +1242,6 @@ Emberstrike Duo
 Emberwilde Caliph
 Embrace Oblivion
 Embrace the Paradox
-Emerald Dragonfly
 Emergency Eject
 Emergency Phytomedic
 Emergency Regeneration
@@ -1294,7 +1282,6 @@ Entrust the Spark
 Environmental Scientist
 Epic Confrontation
 Epic Experiment
-Epic Proportions
 Equilibrium Adept
 Erase
 Erebos's Emissary
@@ -1329,7 +1316,6 @@ Etherium Spinner
 Etherwrought Page
 Eumidian Terrabotanist
 Eusocial Engineering
-Evasive Action
 Evasive Maneuvers
 Evendo, Waking Haven
 Everflowing Chalice
@@ -1815,7 +1801,6 @@ Gwaihir, Greatest of the Eagles
 Gwen Stacy
 Gwyllion Hedge-Mage
 Gwyndala, the Progeny
-Gyre Sage
 H.E.R.B.I.E., Lovable Robot
 HONK!
 Hag of Mage's Doom
@@ -1853,7 +1838,6 @@ Harvestrite Host
 Hatchery Spider
 Haunted Cadaver
 Haunted Ridge
-Havengul Skaab
 Havenwood Wurm
 Havi, the All-Father
 Havoc Devils
@@ -2043,7 +2027,6 @@ Infirmary Healer
 Informed Inkwright
 Ingris Stingerquill
 Inheritance
-Inhumaniac
 Injector Crocodile
 Inkfathom Divers
 Inkling Mascot
@@ -2277,7 +2260,6 @@ Knotvine Paladin
 Knowing
 Kobayashi Maru Scenario
 Kogla, the Titan Ape
-Kolaghan Aspirant
 Kolinahr Priest
 Kolodin, Triumph Caster
 Konstrari Annex
@@ -2285,7 +2267,6 @@ Konstrari Charm
 Konstrari Improviser
 Kor Halberd
 Kor Sky Climber
-Kor Spiritdancer
 Kor, Cause of Vengeance
 Korlash, Heir to Blackblade
 Korok, Liberated Rage
@@ -2411,14 +2392,12 @@ Living Hive
 Living Library
 Living Plane
 Living Terrain
-Living Wish
 Livonya Silone
 Lluwen, Exchange Student
 Loading Zone
 Loam Dweller
 Loan Shark
 Loathsome Chimera
-Loathsome Curator
 Lock and Load
 Locust Spray
 Locust Swarm
@@ -2631,7 +2610,6 @@ Michelangelo, Improviser
 Michelangelo, Mutant BFF
 Michelangelo, Weirdness to 11
 Michelangelo, the Heart
-Might Beyond Reason
 Might Makes Right
 Might Sliver
 Might of Alara
@@ -2801,7 +2779,6 @@ Necron Deathmark
 Necroskitter
 Necrotic Sliver
 Necrotic Wound
-Needle Storm
 Neoform
 Nephilim Epochal
 Nessian Asp
@@ -3073,7 +3050,6 @@ Pitfall Trap
 Pitiless Carnage
 Pitiless Vizier
 Pizza Face, Gastromancer
-Plague Beetle
 Plague Stinger
 Plan for All Outcomes
 Plan the Heist
@@ -3209,7 +3185,6 @@ Rabid Attack
 Rabid Bite
 Rabid Bloodsucker
 Rabid Gnaw
-Rabid Wolverines
 Raccoon Rallier
 Racecourse Fury
 Radagast of Rhosgobel
@@ -3346,7 +3321,6 @@ Restoration Seminar
 Restore with Empathy
 Retaliator Griffin
 Retreat to Coralhelm
-Retreat to Valakut
 Return the Past
 Return to the Light Realms
 Returned Reveler
@@ -3623,7 +3597,6 @@ Sentinel Sarah Lyons
 Sentinel Spider
 Serah Farron
 Seraph of the Scales
-Serendib Efreet
 Serpent's Gift
 Serra Redeemer
 Serra's Liturgy
@@ -3898,7 +3871,6 @@ Spectacle Summit
 Spectacular Pileup
 Spectacular Skywhale
 Specter's Wail
-Spectral Bears
 Spectral Denial
 Spectral Grasp
 Spectral Guardian
@@ -3955,7 +3927,6 @@ Spreading Rot
 Spring Splasher
 Spring-Leaf Avenger
 Springmane Cervin
-Springsage Ritual
 Sprouting Vines
 Spur Grappler
 Squall
@@ -4006,7 +3977,6 @@ Sterling Keykeeper
 Sterling Supplier
 Stern Dismissal
 Stern Scolding
-Stew the Coneys
 Steward of Solidarity
 Steward of Valeron
 Stickytongue Sentinel
@@ -4058,7 +4028,6 @@ Strategic Betrayal
 Stratosoarer
 Stray from History
 Strength from the Fallen
-Strength in Numbers
 Strength of the Harvest
 Stress Dream
 Strife Scholar
@@ -4258,7 +4227,6 @@ Tezzeret, Master of the Bridge
 Thalakos Scout
 Thalia and The Gitrog Monster
 Thalia, the Survivor
-Thalisse, Reverent Medium
 Thanos, Death's Consort
 Thantis, the Warweaver
 Thassa's Devourer
@@ -4329,7 +4297,6 @@ The Theorist, Jace Beleren
 The Torment of Gollum
 The Wrath of Khan
 Theater of Horrors
-Theoretical Duplication
 Theoretical Necromancer
 Theorist's Proxy
 Theorist's Sanctum
@@ -4466,7 +4433,6 @@ Tread Upon
 Treeguard Duo
 Treeshaker Chimera
 Treetop Sentries
-Treetop Warden
 Trelane, Squire of Gothos
 Treva's Charm
 Tribal Golem
@@ -4623,12 +4589,10 @@ Vaultbreaker
 Vaultguard Trooper
 Vebulid
 Vector Asp
-Vedalken Anatomist
 Vedalken Archmage
 Vedalken Heretic
 Veil of Birds
 Veil of Summer
-Veiled Apparition
 Vela the Night-Clad
 Veloheart Bike
 Velvetwing Butterflies
@@ -4776,7 +4740,6 @@ Way of the Wildspeaker
 Wayfarer's Bauble
 Wayspeaker Bodyguard
 Wayward Servant
-Wayward Soul
 Weapons Manufacturing
 Wear
 Wear Down
@@ -4812,7 +4775,6 @@ Wick's Patrol
 Wick, the Whorled Mind
 Wicked Slumber
 Wild Aesthir
-Wild Growth
 Wild Hypothesis
 Wild Jhovall
 Wild Ride
@@ -4858,7 +4820,6 @@ Wolverine Riders
 Wolverine, Fierce Fighter
 Woodborn Behemoth
 Woodfall Primus
-Woodripper
 Woodvine Elemental
 Woodwork Prodigy
 Worf, Chief Tactical Officer
