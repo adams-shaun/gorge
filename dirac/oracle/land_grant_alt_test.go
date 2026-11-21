@@ -188,31 +188,12 @@ func TestLandGrantAltOffRefused(t *testing.T) {
 	}
 }
 
-// TestLandGrantAltPainStillRefused: the refusal is card-precise. A painland
-// (Sungrass Prairie) beside the Leviathan is still refused, naming it and the
-// Leviathan, and not the bounce lands or the Temple the pair covers.
-func TestLandGrantAltPainStillRefused(t *testing.T) {
-	set := edhSet(t)
-	deck := append(slices.Clone(landGrantAltShared), "Sungrass Prairie")
-	var lists [][]cardset.Entry
-	for range 4 {
-		lists = append(lists, landGrantEntries(deck))
-	}
-	_, _, err := set.MatchupN(lists)
-	var ir *cardset.InteractionRefusal
-	if !errors.As(err, &ir) || ir.Reason != "landgrant" {
-		t.Fatalf("the pod with a painland: %v, want the landgrant refusal", err)
-	}
-	for _, n := range []string{"Stormtide Leviathan", "Sungrass Prairie"} {
-		if !slices.Contains(ir.Cards, n) {
-			t.Errorf("refusal names %v, want %s among them", ir.Cards, n)
-		}
-	}
-	for _, n := range []string{"Golgari Rot Farm", "Temple of the False God", "Azorius Chancery"} {
-		if slices.Contains(ir.Cards, n) {
-			t.Errorf("refusal names %s (%v): the pair covers it", n, ir.Cards)
-		}
-	}
+// TestLandGrantAltStillRefused: the refusal is card-precise. A Tainted land
+// (a gated second ability) beside the Leviathan is still refused, naming it and
+// the Leviathan, and not the bounce lands or the Temple the pair covers.
+func TestLandGrantAltStillRefused(t *testing.T) {
+	deck := append(slices.Clone(landGrantAltShared), "Tainted Field")
+	landGrantRefusedNames(t, deck, []string{"Stormtide Leviathan", "Tainted Field"}, []string{"Golgari Rot Farm", "Temple of the False God", "Azorius Chancery"})
 }
 
 // landGrantRefusedNames asserts the pod of four copies of deck is refused as

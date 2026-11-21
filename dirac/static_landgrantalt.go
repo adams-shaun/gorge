@@ -325,3 +325,54 @@ var DebugLandGrantPainOff bool
 // DebugLandGrantPainView is the mutation: a painland's granted view keeps its
 // printed normal colour alone, the intrinsic {c} dropped.
 var DebugLandGrantPainView bool
+
+// DebugLandGrantFiltOff is the mutation: a filter land under a granted basic type
+// is refused again.
+var DebugLandGrantFiltOff bool
+
+// DebugLandGrantFiltOrder is the mutation: the prefix search takes a filter
+// land's intrinsic tap before its printed filter, as it takes a printed {C}.
+var DebugLandGrantFiltOrder bool
+
+// blgFilterFirst: a is a land's first and only mana ability and a filter ("{1},
+// {T}: Add {G}{W}", Sungrass Prairie, kop.FilterManaAb): gorge's planner prices
+// it as a census gap (a paid ability is no plain unit), so under a granted basic
+// land type the plain census unit is the intrinsic ability alone and the filter
+// stays the prefix search's (mana_filterfirst.go), as a rider-first source's
+// rider does (blgRiderFirst).
+func blgFilterFirst(c *kop.CardDef, pc *pcard, a *kop.Ability) bool {
+	if DebugLandGrantFiltOff || c.Types&kop.TLand == 0 || pc.manaTap || !kop.FilterManaAb(a) {
+		return false
+	}
+	n := 0
+	for j := range c.Abilities {
+		if x := &c.Abilities[j]; x.Kind == kop.AbMana && x.AFlags&kop.AfLatent == 0 {
+			n++
+		}
+	}
+	return n == 1
+}
+
+// filtIntrinsicFree: the free ability of the filter source sl is a granted basic
+// land type's intrinsic one (blgFilterFirst's view), which gorge's ability ask lists
+// after the printed filter (printed abilities first, CR 305.6): the prefix
+// search answers the filter first, the intrinsic tap after it.
+func (s *State) filtIntrinsicFree(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.blgOn && !DebugLandGrantFiltOrder && s.manaPCGen(k, sl).manaIntrinsic && k.gen.has(s.cardAt(sl), gfFilt)
+}
+
+// DebugLandGrantAltFund is the mutation: a prefix search's funding tap of a
+// two-face land answers its own face alone.
+var DebugLandGrantAltFund bool
+
+// fundAlt taps the two-face funding source sl (view pc, altCol set) for its own
+// face, then for the granted intrinsic one: gorge's ability ask lists the
+// printed ability before the intrinsic one (CR 305.6) and the search takes the
+// answers in that order.
+func (fs *filtSearch) fundAlt(k *prep, t *State, sl Slot, pc *pcard, funded int, gapUsed bool) bool {
+	ans := uint8(bits.TrailingZeros8(t.fundMaskAt(k, pc, sl)))
+	if fs.try(k, t, filtStep{sl: sl, ans: ans}, funded+1, gapUsed) {
+		return true
+	}
+	return fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: pc.altCol - 1, intr: true}, funded+1, gapUsed)
+}

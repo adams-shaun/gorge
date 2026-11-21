@@ -246,6 +246,9 @@ func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
 	if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 		return false
 	}
+	if blgFilterFirst(c, pc, a) {
+		return true
+	}
 	if a.ManaRider != kop.ManaRiderNone {
 		return true
 	}
