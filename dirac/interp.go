@@ -808,7 +808,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 			if k.gen != nil && k.gen.anyFaces {
 				z = s.stackExitFace(k, o, z, false) // face_castface.go
 			}
-			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false, false)
 			return
 		}
 		if i := s.stackIndexOf(o); i >= 0 {
@@ -820,7 +820,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		if k.gen != nil && k.gen.anyFaces {
 			z = s.stackExitFace(k, o, z, false) // face_castface.go
 		}
-		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false, false)
 	case kop.ZoneNone:
 	case kop.ZonePhased, kop.ZonePhasedInd:
 		// CR 702.26b: a phased-out permanent can't be affected, so a move
@@ -837,7 +837,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 			return // a CR 903.9b commander move parked before it happens
 		}
 		from := s.detach(o)
-		s.placeFromK(k, o, z, bottom, from, false)
+		s.placeFromK(k, o, z, bottom, from, false, false)
 	}
 }
 
@@ -860,9 +860,9 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 	if effect && k.gen != nil && k.gen.anyRepl&rbDiscETB != 0 && s.discardToBattlefield(k, o, from) {
 		mad = false
 	} else if mad {
-		s.placeFromK(k, o, kop.ZoneExile, false, from, false)
+		s.placeFromK(k, o, kop.ZoneExile, false, from, false, false)
 	} else {
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false, false)
 	}
 	s.noteDisc(o) // value_discardedthisturn.go
 	if !mad && k.mayhem {
@@ -1255,7 +1255,7 @@ func (s *State) putRest(k *prep, o Obj) {
 		s.pl[s.res.askP].libBottom(o)
 		return
 	}
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if s.prog(k)[s.res.pc].C&kop.MvRemember != 0 {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}

@@ -464,7 +464,7 @@ func (s *State) madnessWindowLive() bool {
 func (s *State) madnessReversed(o Obj) {
 	if s.objs[o].zone == kop.ZoneExile {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
+		s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false)
 	}
 }
 

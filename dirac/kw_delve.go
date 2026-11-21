@@ -300,7 +300,7 @@ func (s *State) payDelvePicks() {
 		}
 		if o := s.bld().picks[i]; s.objs[o].zone == kop.ZoneGraveyard {
 			from := s.detach(o)
-			s.placeFrom(o, kop.ZoneExile, false, from, false)
+			s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 		}
 	}
 }

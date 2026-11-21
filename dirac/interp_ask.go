@@ -2237,12 +2237,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			// (gorge handLibraryTail -> libraryOrderPlacement bottom=true);
 			// every other library destination stays on top
 			bottom := from == kop.ZoneHand && in != nil && in.B.N&kop.SrHandBottom != 0
-			s.placeFromK(k, o, kop.ZoneLibrary, bottom, from, false)
+			s.placeFromK(k, o, kop.ZoneLibrary, bottom, from, false, false)
 			if fl&kop.SrRemember != 0 {
 				s.remember(o) // Shuffle$ False's library-to-library search, or a hand move's RememberChanged$
 			}
 		default:
-			s.placeFromK(k, o, zz, bb, from, false)
+			s.placeFromK(k, o, zz, bb, from, false, false)
 			if fl&kop.SrRemember != 0 {
 				s.remember(o) // a hand move's RememberChanged$
 			}
@@ -2946,7 +2946,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 			pl.libBottom(o)
 		}
 	default:
-		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false, false)
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
 			exiler := s.res.e.ctrl
 			if fl&kop.DigExilerOther != 0 {
@@ -2989,7 +2989,7 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 		return
 	}
 	from := s.detach(o)
-	s.placeFrom(o, z, false, from, false)
+	s.placeFrom(o, z, false, from, false, false)
 }
 
 // targetedExiler is DefinedExiler$ Targeted: the resolving entry's first

@@ -160,7 +160,7 @@ func TestMiracleLeftHandNoAsk(t *testing.T) {
 		t.Fatalf("kind %d stack %d: want priority with the trigger on the stack", d.Kind, s.sp)
 	}
 	from := s.detach(mir)
-	s.placeFrom(mir, kop.ZoneGraveyard, false, from, false)
+	s.placeFrom(mir, kop.ZoneGraveyard, false, from, false, false)
 	if s.objs[mir].zone != kop.ZoneGraveyard {
 		t.Fatalf("zone %d, want the graveyard", s.objs[mir].zone)
 	}

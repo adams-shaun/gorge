@@ -41,24 +41,24 @@ func TestEnteredFromBattlefieldWord(t *testing.T) {
 	}
 
 	milled := sc.obj(v.GrizzlyBears, 1)
-	s.placeFrom(milled, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFrom(milled, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if match(milled) {
 		t.Fatal("a milled card must not match")
 	}
 
 	// died, then graveyard -> exile -> graveyard: the latest origin is exile
-	s.placeFrom(died, kop.ZoneExile, false, kop.ZoneGraveyard, false)
+	s.placeFrom(died, kop.ZoneExile, false, kop.ZoneGraveyard, false, false)
 	if match(died) {
 		t.Fatal("in exile after leaving the graveyard: latest origin is the graveyard")
 	}
-	s.placeFrom(died, kop.ZoneGraveyard, false, kop.ZoneExile, false)
+	s.placeFrom(died, kop.ZoneGraveyard, false, kop.ZoneExile, false, false)
 	if match(died) {
 		t.Fatal("back in the graveyard from exile must not match")
 	}
 
 	// a permanent put into exile straight from the battlefield matches there
 	exiled := sc.perm(v.GrizzlyBears, 1)
-	s.placeFrom(exiled, kop.ZoneExile, false, kop.ZoneBattlefield, true)
+	s.placeFrom(exiled, kop.ZoneExile, false, kop.ZoneBattlefield, true, false)
 	if !match(exiled) {
 		t.Fatal("exiled from the battlefield this turn must match")
 	}

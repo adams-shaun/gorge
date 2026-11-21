@@ -71,7 +71,7 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 	} else if z == kop.ZoneBattlefield {
 		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {
-		s.placeFromK(k, o, z, bottom, from, false)
+		s.placeFromK(k, o, z, bottom, from, false, false)
 	}
 }
 
