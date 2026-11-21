@@ -309,6 +309,7 @@ func (s *State) payETBAnswer(k *prep, a Action) {
 // the decline gate graveyards it, and the resolution continues after the
 // moves.
 func (s *State) payETBResume(k *prep) {
+	s.res.ask = raNone
 	s.finishSearchNow(k)
 	if s.res.ask != raNone {
 		return // parked again (a later card's ask)
