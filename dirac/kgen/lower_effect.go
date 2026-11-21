@@ -2296,11 +2296,14 @@ func (lc *lowerCtx) pumpKwGrant(d, kw string, obj lRef) error {
 
 // pumpPermanentKwGrant lowers a battlefield object's Pump Duration$
 // Permanent keyword grant: the protection terms and the rest of the keyword
-// list ride one layer-6 override record (the Duration arm in pumpBody).
+// list ride one layer-6 override record (pumpDurationBody).
 func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
-	o := &lOverride{}
-	if err := lc.protKwInto(o, kw); err != nil {
-		return err
+	kw, horse := takePermanentHorsemanship(kw)
+	o := &lOverride{Horsemanship: horse}
+	if kw != "" {
+		if err := lc.protKwInto(o, kw); err != nil {
+			return err
+		}
 	}
 	lc.emitOverride(obj, o, "Permanent")
 	return nil
@@ -2327,15 +2330,22 @@ func (lc *lowerCtx) pumpUpkeepKwGrant(kw string, obj lRef) error {
 	return nil
 }
 
-// pumpNextTurnObject lowers a battlefield object's Pump Duration$
-// UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
-// durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
-// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the
-// +N/+M a PTDelta record adds with the counters until the resolving
-// controller's next turn, V'Ger's PumpAll shape), and both parts ride one
-// record together as pumpAllDuration's does. A computed amount refuses: a
-// record's P/T is read once at resolution, which a Count$ amount is not.
-func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+// pumpObjectDuration lowers a battlefield object's Pump with a Duration$ the
+// kernel keeps as an override record: UntilYourNextTurn (gorge's durationTiming
+// UntilTurn boundary, CR 611.2b; The Undercity's Throne), UntilUntaps (for as
+// long as the activating host remains tapped, registerPumpEffects; the Animate
+// model in animateOverride) and Permanent (a never-expiring layer 7 modify,
+// durationTiming). A keyword grant rides the record's keyword bits; a
+// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the +N/+M
+// it adds with the counters), and both parts one record together as
+// pumpAllDuration's does. A host-bound record (UntilUntaps) keeps the host's
+// Obj and version in the record's P/T fields (applyWhileHost), so its delta
+// rides the record's table SetP/SetT constants (ptDeltaRecs reads those while
+// the override is WhileHost; basePTGen still skips it, HasPT clear) and its
+// duration is WhileHost (instr_effects maps that to DurPermanent beside the
+// table flag). A computed amount refuses: a record's P/T is read once at
+// resolution, which a Count$ amount is not.
+func (lc *lowerCtx) pumpObjectDuration(ps *params, obj lRef, na, nd bool, kw string, hasKW bool, dur string) error {
 	// "HIDDEN CARDNAME can't attack." (Twisted Caverns): the override
 	// record's CantAttack, no keyword bit; it is a keyword part of the grant
 	cantAtk := false
@@ -2343,19 +2353,31 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		kw, cantAtk = splitKWSentence(kw, cantAttackKW)
 		hasKW = kw != "" || cantAtk
 	}
+	// a permanent horsemanship grant rides the record (lower_kwmark.go)
+	horse := false
+	if dur == "Permanent" && hasKW {
+		kw, horse = takePermanentHorsemanship(kw)
+		hasKW = kw != "" || cantAtk || horse
+	}
+	host := dur == "UntilUntaps"
 	if !na && !nd {
 		if !hasKW {
-			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
+			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", dur)
 		}
-		o := &lOverride{CantAttack: cantAtk}
-		if err := lc.protKwInto(o, kw); err != nil {
-			return err
+		o := &lOverride{CantAttack: cantAtk, Horsemanship: horse}
+		if kw != "" {
+			if err := lc.protKwInto(o, kw); err != nil {
+				return err
+			}
 		}
-		lc.emitOverride(obj, o, "UntilYourNextTurn")
+		if host {
+			o.WhileHost, o.WhileTapped, dur = true, true, "WhileHost"
+		}
+		lc.emitOverride(obj, o, dur)
 		return nil
 	}
-	o := &lOverride{CantAttack: cantAtk}
-	if hasKW {
+	o := &lOverride{CantAttack: cantAtk, Horsemanship: horse}
+	if kw != "" {
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
@@ -2373,11 +2395,56 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		}
 	}
 	if !att.isConst() || !def.isConst() {
-		return refuse("Pump Duration UntilYourNextTurn with a computed P/T pump")
+		return refuse("Pump Duration %s with a computed P/T pump", dur)
 	}
 	o.PTDelta, o.PVal, o.TVal = true, att, def
-	lc.emitOverride(obj, o, "UntilYourNextTurn")
+	if host {
+		// the kernel's host-bound record keeps its host in the record's P/T
+		// fields (applyWhileHost), so the pump rides the record's table
+		// constants beside PTDelta/PVal/TVal: ptDeltaRecs reads SetP/SetT of
+		// a WhileHost record, and basePTGen still skips it (HasPT clear)
+		o.SetP, o.SetT = att.N, def.N
+		o.WhileHost, o.WhileTapped, dur = true, true, "WhileHost"
+	}
+	lc.emitOverride(obj, o, dur)
 	return nil
+}
+
+// pumpDurationBody lowers a Pump with a Duration$ onto the kernel's override
+// records: a keyword-only permanent grant (gorge AddContinuous Permanent), one
+// lasting until the controller's next turn (the UntilTurn boundary, CR 611.2b),
+// one lasting while the activating host stays tapped (registerPumpEffects
+// UntilUntaps, the Animate model in animateOverride), or a permanent grant with
+// a P/T part (a never-expiring layer 7 PTDelta record), or UntilYourNextUpkeep
+// (pumpKwGrant). Any other duration, and
+// any of these off the battlefield, refuses.
+func (lc *lowerCtx) pumpDurationBody(ps *params, obj lRef, zone int) error {
+	d, _ := ps.get("Duration")
+	_, na := ps.m["NumAtt"]
+	_, nd := ps.m["NumDef"]
+	kw, hasKW := ps.get("KW")
+	if lc.pumpPlayerRef(obj) {
+		return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
+	}
+	if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
+		return err // lower_pumpendcombat.go: UntilYourNextTurn, UntilEndOfCombat
+	}
+	if d == "UntilUntaps" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+		return lc.pumpObjectDuration(ps, obj, na, nd, kw, hasKW, d)
+	}
+	if d == "Permanent" && (na || nd) {
+		// a P/T part makes the Permanent grant a layer 7 PTDelta record
+		// too (Riding the Dilu Horse, Subversive Acolyte); the keyword-only
+		// Permanent grant keeps pumpPermanentKwGrant's shape
+		if lc.pumpObjectRef(obj) && zone == zBattlefield {
+			return lc.pumpObjectDuration(ps, obj, na, nd, kw, hasKW, d)
+		}
+		return refuse("Pump Duration %q", d)
+	}
+	if na || nd || !hasKW || zone != zBattlefield {
+		return refuse("Pump Duration %q", d)
+	}
+	return lc.pumpKwGrant(d, kw, obj)
 }
 
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
@@ -2395,25 +2462,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if done, err := lc.skipNextUntap(ps, obj, zone); done || err != nil {
 		return err
 	}
-	if d, ok := ps.get("Duration"); ok {
-		// Duration$ keyword grants only: a layer-6 permanent grant (gorge
-		// AddContinuous Permanent), one lasting until the controller's next
-		// turn (the UntilTurn boundary), or one until their next upkeep (both
-		// CR 611.2b), all the kernel's override record; a P/T change or any
-		// other duration refuses
-		_, na := ps.m["NumAtt"]
-		_, nd := ps.m["NumDef"]
-		kw, hasKW := ps.get("KW")
-		if lc.pumpPlayerRef(obj) {
-			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
-		}
-		if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
-			return err // lower_pumpendcombat.go
-		}
-		if na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpKwGrant(d, kw, obj)
+	if _, ok := ps.get("Duration"); ok {
+		return lc.pumpDurationBody(ps, obj, zone)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {
