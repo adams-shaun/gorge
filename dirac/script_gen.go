@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -34,6 +36,15 @@ const (
 	availWalk  uint16 = 8    // the real mana, no offer surface (grantCap)
 	availHyp   uint16 = 128  // with availWalk: gorge's PotentialMana bound, a choice source counting every colour it can make (mana_owncolours.go)
 	availOwn   uint16 = 1024 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
+	// availFbWalk: a script-route walk whose grant search will price a
+	// flashback cast the plain route withholds (flashbackReachable): gorge's
+	// potential walk lists the graveyard's flashbacks (legal_walk_alt.go)
+	// and its census fallback searches the insufficient ones over a granted
+	// mana ability too, so the route's walk lists the cast and
+	// grantActScript keeps only what the search pays (Wild Hunger's {3}{R}
+	// beside Abundant Growth's "{T}: Add one mana of any colour";
+	// tail-15-c000 pair 4, decision 1252)
+	availFbWalk uint16 = 4096
 )
 
 // scriptGaps: p's activatable each-colour sources, a slot mask.
@@ -280,6 +291,36 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
+	if os.Getenv("GORGE_FBDBG") != "" {
+		fmt.Fprintf(os.Stderr, "DBG enter scriptOffers availX=%d grantsLive=%v grantPC=%d fxM=%v grantM=%v glob=%v gained=%v gmobjs=[", s.g.availX, s.grantsLive(k), len(k.gen.grantPC), s.fxM, s.grantM, k.gen.globGrant, k.gen.uses.has(useGainedMana))
+		for g := s.grantM; g.any(); g = g.rest() {
+			fmt.Fprintf(os.Stderr, " sl%d(obj%d,card%d=%s,zone%d,att%d,occ%v) ", g.first(), s.perms[g.first()].obj, s.cardAt(g.first()), k.t.Cards[s.cardAt(g.first())].Name, s.objs[s.perms[g.first()].obj].zone, s.perms[g.first()].attached, s.occ.has(g.first()))
+		}
+		fmt.Fprintf(os.Stderr, "] stk=[")
+		for i := 0; i < int(s.sp); i++ {
+			e := &s.stack[i]
+			fmt.Fprintf(os.Stderr, " st%d(k%d,o%d,%s) ", i, e.kind, e.obj, k.t.Cards[e.card].Name)
+		}
+		fmt.Fprintf(os.Stderr, "] bf=[")
+		for m := s.occ; m.any(); m = m.rest() {
+			sl := m.first()
+			if s.objs[s.perms[sl].obj].zone == 3 {
+				fmt.Fprintf(os.Stderr, " sl%d(o%d,%s,p%d,att%d) ", sl, s.perms[sl].obj, k.t.Cards[s.cardAt(sl)].Name, s.perms[sl].ctrl, s.perms[sl].attached)
+			}
+		}
+		fmt.Fprintf(os.Stderr, "] lgap=[")
+		for m := s.ctrlM[SeatIx(p)].and(s.occ); m.any(); m = m.rest() {
+			if s.grantGapUsable(k, m.first()) {
+				var gi [16]int16
+				n := s.grantIdxs(k, m.first(), &gi)
+				fmt.Fprintf(os.Stderr, " sl%d(obj%d,n%d)", m.first(), s.perms[m.first()].obj, n)
+				for i := 0; i < n; i++ {
+					fmt.Fprintf(os.Stderr, "(card%d=%s)", k.gen.grantOf[gi[i]].card, k.t.Cards[k.gen.grantOf[gi[i]].card].Name)
+				}
+			}
+		}
+		fmt.Fprintf(os.Stderr, "]\n")
+	}
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	var filt slotMask
@@ -300,8 +341,11 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
-	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
-		return
+	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() && !s.liveGrantGap(k, p) {
+		return // a bare live grant is the route's gaps too: gorge's census fallback searches its plays (potentialCensusFallback)
+	}
+	if os.Getenv("GORGE_FBDBG") != "" {
+		fmt.Fprintf(os.Stderr, "DBG pass guard liveGrantGap=%v gaps=%v dh=%v ca=%v\n", s.liveGrantGap(k, p), s.scriptGaps(k, p), dh, ca)
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
 	// relaxable (each has a fixed relaxed alternative; a Tender's has
@@ -328,18 +372,40 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// walk (one conversion per filter) cannot say which a many-times-activated
 	// one pays (mana_filterrepeat.go).
 	repeatLive := s.filtRepeatIn(k, filt)
+	// A grant-search arm (the filter beside a live grant, the Taps-deferred
+	// one, the bare grant) prices a flashback cast the plain route withheld
+	// (flashbackReachable): the walk below lists it (availFbWalk) and the
+	// arm's grantActScript keeps only what the search pays, like gorge's
+	// potential walk lists the graveyard's flashbacks and its census
+	// fallback searches the insufficient ones (potentialCensusFallback).
+	// Outside the grant-search arms no script prices the cast, so the walk
+	// keeps the plain route's drop.
+	liftGrant := s.liveGrantGap(k, p) && !dh && !ca && !restr.any() && !s.scriptCtr(k, p).any() &&
+		((filt.any() || mix) || tapsDef.any() || (!tx.any() && !anyR.any() && !anyDiff.any() && !life.any() &&
+			!s.eachFeeBoard(k, p) && !(k.gen.anyRefl && s.reflBoard(k, p, restr, anyR))))
+	var fb uint16
+	if liftGrant {
+		fb = availFbWalk
+	}
 	var any, gaps Decision
-	s.plainGapsOptions(k, &gaps, filt)
+	s.plainGapsOptions(k, &gaps, filt, fb)
 	s.mergeBareGaps(k, &gaps, filt)
 	src := &gaps
 	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
-		s.plainOptions(k, &any, availAny)
+		s.plainOptions(k, &any, availAny|fb)
 		src = &any
 	}
 	// the insufficient plays in gorge's walk order (potentialWalkOf: the
 	// hand walk, the permission and graveyard casts, then the battlefield's
 	// activations in entry order): the kernel's walk lists activations in
 	// slot order
+	if os.Getenv("GORGE_FBDBG") != "" && s.liveGrantGap(k, p) {
+		fmt.Fprintf(os.Stderr, "DBG src relax=%v gapsN=%d anyN=%d mix=%v tapsDef=%v src=[", relax, gaps.N, any.N, mix, tapsDef)
+		for i := 0; i < int(src.N); i++ {
+			fmt.Fprintf(os.Stderr, " %d/%d/%d", src.Options[i].Kind(), src.Options[i].Source(), src.Options[i].Mode())
+		}
+		fmt.Fprintf(os.Stderr, " ]\n")
+	}
 	var cand [MaxOptions]Action
 	var key [MaxOptions]uint64
 	nc := 0
@@ -396,7 +462,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !s.liveGrantGap(k, p) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
@@ -481,6 +547,25 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
 			if !s.eachScript(k, a, p, false) {
 				continue // no script within gorge's search budget (mana_eachfee.go)
+			}
+		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.liveGrantGap(k, p) {
+			// a bare live grant (no filter, deferred or other census gap
+			// beside it): gorge's one prefix search activates the granted
+			// mana ability (a granted any-colour ability is a census gap the
+			// planner cannot price, potential_plan.go) and prices the play
+			// from the floated mana -- a flashback cast payable only through
+			// it too, whose offer grantCap's plain-cast grant route never
+			// reaches (Wild Hunger's {3}{R} beside Abundant Growth's
+			// "{T}: Add one mana of any colour"; tail-15-c000 pair 4,
+			// decision 1252)
+			if ga, gstall := s.grantActScript(k, a, p); !ga {
+				// the drop is final — grantCap ran before scriptOffers
+				// (legal.go) — and one of the grant search's lines ran into
+				// a rule gap the kernel stalls by name: declare it, not a
+				// dropped offer (the search declares nothing,
+				// mana_grantedoffers.go grantSearch)
+				s.capStall(gstall)
+				continue // no script within gorge's one search's budget (grantActScript)
 			}
 		} else if restr.any() || s.scriptCtr(k, p).any() {
 			if dead, stall := s.scriptDeadEnd(k, a, p, restr); dead {

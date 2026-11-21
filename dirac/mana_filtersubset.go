@@ -32,15 +32,15 @@ func (s *State) filtNetNegative(k *prep, f slotMask) int {
 }
 
 // plainGapsOptions is the gaps walk united over the subsets of f's net-negative
-// filters (filtSkip).
-func (s *State) plainGapsOptions(k *prep, d *Decision, f slotMask) {
+// filters (filtSkip). m carries the walk's extra availFor mode beside availGaps.
+func (s *State) plainGapsOptions(k *prep, d *Decision, f slotMask, m uint16) {
 	s.setFiltSkip(0)
-	s.plainOptions(k, d, availGaps)
+	s.plainOptions(k, d, availGaps|m)
 	n := s.filtNetNegative(k, f)
-	for m := 1; m < 1<<n; m++ {
-		s.setFiltSkip(uint8(m))
+	for mm := 1; mm < 1<<n; mm++ {
+		s.setFiltSkip(uint8(mm))
 		var w Decision
-		s.plainOptions(k, &w, availGaps)
+		s.plainOptions(k, &w, availGaps|m)
 		for i := 0; i < int(w.N); i++ {
 			if !hasOption(d, w.Options[i]) {
 				d.add(w.Options[i])

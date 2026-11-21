@@ -322,8 +322,8 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
 			continue // gorge's potential planner declines a flashback cast carrying a credit ("cost:credit"): only the floating pool casts it (Inspiring Statuary's improvise)
 		}
-		if !s.flashbackReachable(k, p, c, o, fc) {
-			continue
+		if !s.flashbackReachable(k, p, c, o, fc) && s.g.availX&availFbWalk == 0 {
+			continue // the script route's grant search re-prices the cast from its own walk (script_gen.go availFbWalk)
 		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
 			// gorge's potential planner prices a target-conditional reduction on
@@ -419,7 +419,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
 			s.grantCap(k, d, p, &capSpent)
 		}
-		if s.scriptAny(k) && s.g.availX == 0 {
+		if s.scriptAny(k) && s.g.availX == 0 || len(k.gen.grantPC) != 0 && s.grantsLive(k) && s.g.availX == 0 {
+			// a bare live grant is the script route's gaps too: gorge's census
+			// fallback searches its plays over the granted mana ability (a
+			// granted any-colour ability is a census gap the planner cannot
+			// price, potential_plan.go); grantCap's plain-cast grant route
+			// above never reaches a flashback cast (Wild Hunger's {3}{R} at
+			// tail-15-c000 pair 4 decision 1252)
 			s.scriptOffers(k, d, &capSpent, p)
 		}
 	}
