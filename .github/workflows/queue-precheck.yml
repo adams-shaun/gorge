@@ -48,8 +48,10 @@ jobs:
       - name: Heal the runner's workspace (self-hosted)
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
-        # refs do not list, whose fetch fails, or whose objects fail a quick connectivity check is deleted, so checkout
-        # clones afresh. Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again).
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
         shell: bash
         run: |
@@ -57,7 +59,6 @@ jobs:
           [ -d "$g" ] || exit 0
           why=
           timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
-          [ -n "$why" ] || timeout 20 git -C "$ws" fetch --dry-run -q origin >/dev/null 2>&1 || why="fetch --dry-run failed"
           if [ -z "$why" ]; then
             rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
             case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
