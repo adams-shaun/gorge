@@ -1038,6 +1038,45 @@ func scriptTwin(g *state.Game, d *decision.Decision, a, b state.ObjID) bool {
 	return scriptOptionKey(d, a) == scriptOptionKey(d, b)
 }
 
+// scriptManaAbilities is the narrow slice of the engine the twin cut's
+// soundness needs: one source's priority mana-ability member set
+// (mana_activation.go's activateManaFor resolves from it, the ask the
+// search's clone walks), built with the same nil statics a priority
+// activation reads.
+type scriptManaAbilities interface {
+	appendAvailableManaAbilities(buf []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA
+}
+
+// scriptManaTwins reports whether two sources scriptTwin already called
+// twins also resolve from the same priority mana-ability member set,
+// multiset equality under pay.SameManaAbility. The ask offers one activate
+// option a source, so equal options cannot see an ability a continuous
+// effect granted one and not the other (CR 305.6: a basic land type's mana
+// abilities come with the type -- a Plains this turn animated into an
+// Island taps for {U} beside an unanimated Plains), and collapsing the pair
+// walks only the earlier source's subtree: the later one's colour ask, the
+// one the prefix's fee funding needs, is never branched.
+func scriptManaTwins(r scriptManaAbilities, p state.PlayerID, a, b state.ObjID) bool {
+	as := r.appendAvailableManaAbilities(nil, nil, p, a)
+	bs := r.appendAvailableManaAbilities(nil, nil, p, b)
+	if len(as) != len(bs) {
+		return false
+	}
+	for _, x := range as {
+		found := false
+		for _, y := range bs {
+			if pay.SameManaAbility(x, y) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 // scriptActivate reports whether o is an "activate" option: a mana ability the
 // payer can activate at priority, the search's one branching move.
 func scriptActivate(o *decision.Option) bool { return o.Kind == "activate" }
@@ -1129,13 +1168,20 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
 			twin := false
-			for _, t := range tried {
-				if scriptTwin(c.G, d, t, opt.Obj) {
-					twin = true
-					break
+			if sr.feeOnly || sr.twinCut {
+				for _, t := range tried {
+					// scriptManaTwins after scriptTwin: the ask offers one mana option a
+					// source, so equal options cannot see a second ability a continuous
+					// effect granted one and not the other (an animated dual-type land's
+					// second tap), whose activation ask the earlier twin's subtree never
+					// poses.
+					if scriptTwin(c.G, d, t, opt.Obj) && scriptManaTwins(c, p, t, opt.Obj) {
+						twin = true
+						break
+					}
 				}
 			}
-			if (sr.feeOnly || sr.twinCut) && twin {
+			if twin {
 				continue // an indistinguishable earlier source already walked this subtree
 			}
 			if !gap && !sr.coveredSpendable(c, p, opt.Obj) {
