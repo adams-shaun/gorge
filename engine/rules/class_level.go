@@ -30,6 +30,12 @@ import (
 // A malformed or unreadable band fails closed -- a granted body whose level is
 // not proven is never live, the family's fail-closed direction.
 func (e *Engine) classBandGateHolds(band string, source state.ObjID) bool {
+	return classBandHolds(e.G, band, source)
+}
+
+// classBandHolds is classBandGateHolds over the game alone, for the gates that
+// hold no Engine (the granted-mana scan's manaGrantConditionHolds).
+func classBandHolds(g *state.Game, band string, source state.ObjID) bool {
 	raw := strings.TrimSpace(band)
 	if raw == "" {
 		return true
@@ -38,7 +44,7 @@ func (e *Engine) classBandGateHolds(band string, source state.ObjID) bool {
 	if err != nil || n < 1 {
 		return false
 	}
-	o := e.G.Obj(source)
+	o := g.Obj(source)
 	if o == nil {
 		return false
 	}
