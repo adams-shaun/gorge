@@ -1,0 +1,21 @@
+{
+  "card": "Reason",
+  "class": "lockstep",
+  "why": "a Powerstone's {C} (can't be spent on a nonartifact spell) pays a filter land's {1} fee (Hall of Tagsin's {1},{T}: any colour) while Believe is cast from the graveyard (aftermath, {4}{G}): gorge offers the cast, the kernel's census never counts the act-only restricted source toward the fee (the Feast of Worms gap)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "split_card_castface_offer"
+  },
+  "evidence": [
+    "ev-tail-19-c000",
+    "ev-tail-19-c069",
+    "ev-tail-39-c000",
+    "ev-tail-39-c001",
+    "ev-tail-39-c002"
+  ]
+}
