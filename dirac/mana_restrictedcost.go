@@ -66,3 +66,24 @@ func restrLifeOn(k *prep) bool { return k.gen != nil && k.gen.rs != nil && k.gen
 // restrLifeLast: pc is a restricted life unit plan leaves to phase 1, spent
 // only after every other unit (gorge's TierLastResort).
 func restrLifeLast(pc *pcard) bool { return restrLifeUnit(pc) && !DebugRestrictedLifeFirst }
+
+// restrLifeCharge counts a restricted life unit's n life against t, the
+// census of a payment the unit may fund: gorge's lethal guard sums the unit's
+// life with the damage of the painful sources the same plan taps and cuts a
+// plan that reaches the payer's life (pay.PaymentPlanShapeTierOf, CR 119.4,
+// 120.3). used is the life the payment's earlier restricted units charged.
+// It reports false when the unit leaves no life for the plan to spend.
+func (s *State) restrLifeCharge(k *prep, p uint8, t *avail, n int, used *int) bool {
+	if int(s.pl[SeatIx(p)].life)-*used-n < 1 {
+		return false
+	}
+	*used += n
+	if t.pain.on {
+		t.pain.budget -= uint8(n) // painTightAt kept life-1 ahead of the units' draw
+		return true
+	}
+	if k.painMana {
+		s.painTightAt(k, p, t, int(s.pl[SeatIx(p)].life)-*used)
+	}
+	return true
+}
