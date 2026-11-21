@@ -469,6 +469,26 @@ const (
 	seFamMask  = 3
 )
 
+// seAtkPlayer is a trigger entry's bound attack (combat.go fireAttacksGen
+// stamps it on the pending trigger's skw; takePending moves it to the
+// entry's mode): the trigger's attack was on a player, so a trigger whose
+// attacker left the battlefield before it resolves still damages the
+// defending player (CR 603.3c, 608.2h; filter_combatwords.go OpAtkPWGuard).
+// A trigger entry keeps no other mode bit beside seAtkCtrl: the modal-spell,
+// face-down, room, warp, bestowed and impending bits are spell and ability
+// bits.
+const seAtkPlayer uint8 = 1 << 5
+
+// seAtkCtrl is a trigger entry's second bound-attack bit (beside
+// seAtkPlayer): the attack was on the trigger's own controller (combat.go
+// fireAttacksGen stamps it on the pending trigger's skw; takePending moves it
+// to the entry's mode). Such a trigger stalls at its OpAtkPWGuard whether its
+// attacker is alive (filter_combatwords.go) or has left — gorge's
+// TriggeredDefender.Opponent names nobody for an attacker its controller does
+// not control (Mage Slayer on a stolen creature), so the gone arm must not
+// fall through to a guessed defender.
+const seAtkCtrl uint8 = 1 << 3
+
 type stackEntry struct {
 	kind   uint8
 	obj    Obj    // the spell's object, or the ability's source object

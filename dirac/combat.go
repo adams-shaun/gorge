@@ -591,6 +591,22 @@ func (s *State) fireAttacksGen(k *prep) {
 					s.g.atkDef = q + 1
 				}
 				s.fireAtkGroup(k, &ord, n, atk[:na], grp[:ng], first, emb)
+				if def == NoTarget && !DebugDropDefSeat {
+					// a player-target group: the pending triggers keep the
+					// bound attack (pendingTrig.skw's skwAtkPl), so a trigger
+					// whose attacker leaves before it resolves still damages
+					// the defending player (CR 603.3c, 608.2h); one whose
+					// controller is the attacked player (skwAtkCtrl) keeps
+					// instead the stall its alive attacker already gets
+					// (OpAtkPWGuard: gorge's TriggeredDefender.Opponent names
+					// nobody for an attacker its controller does not control)
+					for i := n0; i < s.npend; i++ {
+						s.pend[i].skw |= skwAtkPl
+						if s.pend[i].ctrl == q {
+							s.pend[i].skw |= skwAtkCtrl
+						}
+					}
+				}
 				if !s.duel() {
 					s.g.atkDef = 0
 					if !DebugDropDefSeat {
