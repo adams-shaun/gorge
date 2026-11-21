@@ -657,7 +657,16 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
-	if !o.Face().IsBattle() {
+	// CR 310.10 over CR 707.2: the type-bearing face of this entry is not
+	// always o.Face() -- an answered as-enters clone's copy basis is
+	// installed only AFTER the entry move folds (engine/effects/clone.go), so
+	// a Clone entering as a copy of a Siege is a Battle entry even though the
+	// printed face still reads Clone. entryCopyBasisFace is the ONE home for
+	// that read: it is the same face the entry's own counter grants read
+	// (engine/rules/entry_counters.go), so the copy's defense counters and
+	// its protector are judged from the same face, and a declined election
+	// (no ETBCloneChoiceValid template) falls through to o.Face().
+	if face := e.entryCopyBasisFace(o); face == nil || !face.IsBattle() {
 		return false
 	}
 	// A protector already recorded (a re-entering object keeps none -- Move
@@ -666,10 +675,16 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if o.ProtectorValid {
 		return false
 	}
+	// The option shape is the player-pick convention every other
+	// seat-facing ask follows (the Aura entry's "enchant a player" arm,
+	// engine/rules/aura_entry.go): Label the seat-facing name, Player the
+	// chosen seat, Obj zero -- the decision's Source already names the
+	// battle, and a scenario (matchPick's seat-ref arm) names the answer by
+	// the player, never the battle.
 	var opts []decision.Option
 	for idx, p := range e.protectorOpponents(o.Controller) {
 		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
-			Label: seatFacingName(e.G, p), Obj: o.ID, Player: p})
+			Label: seatFacingName(e.G, p), Player: p})
 	}
 	if len(opts) == 0 {
 		return false
