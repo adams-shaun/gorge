@@ -181,6 +181,17 @@ func (s *State) shockUntapWins(sl Slot) {
 	}
 }
 
+// shockTapWins undoes shockUntapWins for the permanent at sl's queued election:
+// the late re-ask (CR 616.1f) left the election's own tap as the body applied
+// last, so a decline taps it after all.
+func (s *State) shockTapWins(sl Slot) {
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
+			a.ts &^= askUntapWins
+		}
+	}
+}
+
 // shockEntryOrdered: the permanent at sl entered under an order ask (CR 616.1)
 // with a Tapped$ move: the move's tapped bit is set before the bodies, so a
 // body the order puts first (an untap) clears it, and a tap applies it again
