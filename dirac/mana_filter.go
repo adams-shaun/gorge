@@ -2437,6 +2437,9 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 	if free && rm != 0 && !fs.tick() {
 		return false, true // the ask between its census and its restricted ability
 	}
+	if free && rm != 0 && k.gen.has(t.cardAt(sl), gfManaRefl) {
+		return fs.fundReflected(k, t, sl, rm, funded, gapUsed) // Plaza of Heroes (mana_filtreflected.go)
+	}
 	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
 	if free {
 		pc := t.manaPCGen(k, sl)
