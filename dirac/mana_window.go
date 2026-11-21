@@ -2785,13 +2785,29 @@ func (s *State) midResAsk(k *prep) bool {
 	return false
 }
 
-// lkiAttached is the permanent o was attached to as it left the
-// battlefield (last known information, CR 608.2h): Adventuring Gear's
-// landfall trigger pumps the creature it equipped though the Gear was
-// destroyed in response (gorge Defined$ Equipped; pairs 15721 47715
-// 85781). The departed permanent's slot keeps its record until a new one
-// enters there; NoObj once it has, or when the host left too.
+// lkiAttached is the object the departed Aura/Equipment o was attached to as
+// it left the battlefield (last known information, CR 608.2h): Adventuring
+// Gear's landfall trigger pumps the creature it equipped though the Gear was
+// destroyed in response (gorge Defined$ Equipped; pairs 15721 47715 85781).
+// The LKI attach paths (lkiAttachedHost) name the host while it is still the
+// incarnation the source left; when they name nothing, the read falls back to
+// the source's LastBearer (lastBearerRef): gorge's definedSpecEquipped
+// (engine/effects/context.go:1726-1728) resolves Defined$ Enchanted/Equipped
+// for a source off the battlefield to its LastBearer, even a bearer that has
+// left the battlefield too (Endless Evil's upkeep copy of the creature Roaring
+// Primadox bounced), while a bearer back on the battlefield is a new object
+// (CR 400.7) and names nothing.
 func (s *State) lkiAttached(o Obj) Obj {
+	if h := s.lkiAttachedHost(o); h != NoObj {
+		return h
+	}
+	return s.lastBearerRef(o)
+}
+
+// lkiAttachedHost is lkiAttached's LKI attach reads: the departed permanent's
+// slot keeps its record until a new one enters there; the versioned attLKI pad
+// covers a reused slot.
+func (s *State) lkiAttachedHost(o Obj) Obj {
 	for sl := Slot(0); sl < MaxPerm; sl++ {
 		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
 			if !s.occ.has(p.attached) {
