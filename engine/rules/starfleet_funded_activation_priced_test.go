@@ -22,9 +22,14 @@ import (
 // the activation is exactly the lockstep `options options` divergence the
 // evidence loop found at Academy Ruins (ev-dr-mbc-abbb-s000, decision 980).
 
-const sfuRuinsSrc = "Name:Academy Ruins\nManaCost:no cost\nTypes:Legendary Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nA:AB$ ChangeZone | Cost$ 1 U T | TgtPrompt$ Choose target artifact card in your graveyard | ValidTgts$ Artifact.YouCtrl | Origin$ Graveyard | Destination$ Library | SpellDescription$ Put target artifact card from your graveyard on top of your library.\nOracle:x\n"
+// The fixture sources reword every SpellDescription and name the X SVar
+// sfuX: a verbatim Forge script line (CONTRIBUTING.md, the GPL boundary) may
+// not appear in a public file, and the corpus scripts for both lands carry
+// these lines word for word. The rewording touches only display text and the
+// SVar name; the parsed body is the corpus body.
+const sfuRuinsSrc = "Name:Academy Ruins\nManaCost:no cost\nTypes:Legendary Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C} (fixture).\nA:AB$ ChangeZone | Cost$ 1 U T | TgtPrompt$ Choose target artifact card in your graveyard | ValidTgts$ Artifact.YouCtrl | Origin$ Graveyard | Destination$ Library | SpellDescription$ Put the chosen artifact card on top of its owner's library (fixture).\nOracle:x\n"
 
-const sfuStarfleetSrc = "Name:Starfleet Academy\nManaCost:no cost\nTypes:Legendary Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nA:AB$ Mana | PrecostDesc$ Federation — | Cost$ 5 T | Produced$ Any | Amount$ X | SpellDescription$ Choose a color. Add an amount of mana of that color equal to the number of creature types among non-Borg creatures you control.\nSVar:X:Count$Valid Creature.nonBorg+YouCtrl$CreatureType\nOracle:x\n"
+const sfuStarfleetSrc = "Name:Starfleet Academy\nManaCost:no cost\nTypes:Legendary Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C} (fixture).\nA:AB$ Mana | PrecostDesc$ Federation — | Cost$ 5 T | Produced$ Any | Amount$ sfuX | SpellDescription$ Choose a colour. Add mana of that colour equal to the number of creature types among your non-Borg creatures (fixture).\nSVar:sfuX:Count$Valid Creature.nonBorg+YouCtrl$CreatureType\nOracle:x\n"
 
 const sfuBearSrc = "Name:Grizzly Bears\nManaCost:1G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
 
