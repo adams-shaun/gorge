@@ -211,3 +211,10 @@ func (s *State) trigOwnEvidenceExiled(k *prep, e *stackEntry, ob *object) bool {
 	}
 	return false
 }
+
+// trigDiedObjMovedOn reports whether the card a dies trigger names is a new
+// object: anything past the one version the death made, except the trigger's
+// own cost-exiled card (trigOwnEvidenceExiled).
+func (s *State) trigDiedObjMovedOn(k *prep, e *stackEntry, ob *object) bool {
+	return ob.ver != e.srcVer+1 && !s.trigOwnEvidenceExiled(k, e, ob)
+}
