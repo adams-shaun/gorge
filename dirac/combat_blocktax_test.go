@@ -29,7 +29,13 @@ func TestBlockTaxRefusesUnmodelledPartners(t *testing.T) {
 		{land("Half Treasure", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1}), true},
 		{land("Half Painland", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW, ManaN: 1,
 			Prog: []kop.Instr{{Op: kop.OpDealDamage, Obj: kop.RefController, A: kop.Const(1)}}}), true},
-		{land("Half Restricted", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1}), true},
+		{land("Half Restricted", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1}), false},
+		{kop.CardDef{Name: "Half Restricted First", Types: kop.TLand, Abilities: []kop.Ability{
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1},
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW, ManaN: 1}}}, true},
+		{kop.CardDef{Name: "Half Restricted Second", Types: kop.TLand, Abilities: []kop.Ability{
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1},
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColAny, ManaN: 1, ManaRestrict: 1}}}, false},
 		{kop.CardDef{Name: "Half Brute", Types: kop.TCreature, Power: 2, Toughness: 2,
 			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}, true},
 		{kop.CardDef{Name: "Half Goader", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,

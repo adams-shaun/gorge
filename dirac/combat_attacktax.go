@@ -57,6 +57,11 @@ var DebugAtkTaxFree, DebugAtkTaxChoiceFirst, DebugAtkTaxWithholdVigilant bool
 // production.
 var DebugAtkTaxCountUnlisted bool
 
+// DebugAtkTaxCountRestricted (test only, TestFourSeatAtkTaxRestrictedLockstep):
+// the walk counts and taps a source whose mana is restricted (Giada's {W} for
+// Angels) as a source of its production.
+var DebugAtkTaxCountRestricted bool
+
 // DebugAtkTaxEachOne (test only, TestFourSeatAtkTaxBounceLockstep): a bounce
 // land's tap adds one unit of its first colour, not every colour at once.
 var DebugAtkTaxEachOne bool
@@ -125,7 +130,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 			if atkTaxUnlisted(a) {
 				continue
 			}
-			if !atkTaxManaAb(a) && !atkTaxPaidAb(a) && !atkTaxPainPair(c, first, j) {
+			if !atkTaxManaAb(a) && !atkTaxPaidAb(a) && !atkTaxPainPair(c, first, j) && !atkTaxReflSecond(c, first, a) {
 				return true
 			}
 			if first < 0 {
@@ -180,7 +185,17 @@ func atkTaxUnlisted(a *kop.Ability) bool {
 	f := a.Cost.Flags
 	fee := a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && (fee || f&other != 0) && !a.Cost.DiscardHand &&
-		f&^(kop.CostTap|kop.CostOncePerTurn|kop.CostPayLife|other) == 0
+		f&^(kop.CostTap|kop.CostOncePerTurn|kop.CostPayLife|other) == 0 || atkTaxRestricted(a)
+}
+
+// atkTaxRestricted reports whether mana ability a spends only on some
+// payments (RestrictValid$: Secluded Courtyard's creature spells of the
+// chosen type, Giada's Angels, a Powerstone's nonspell costs). gorge's
+// windows list no restricted ability (windowManaUnits, appendPaidManaUnits and
+// attackChoiceManaSources each skip RestrictValid$): its batch could not pay
+// an attack cost it does not name (CR 106.6).
+func atkTaxRestricted(a *kop.Ability) bool {
+	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0 || a.AFlags&kop.AfManaNonSpell != 0)
 }
 
 // atkTaxManaAb reports whether mana ability a has a shape the walk prices
@@ -262,6 +277,9 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 				return true
 			}
 		}
+		if n == 2 && atkTaxReflSecond(c, first, a) && atkTaxOnlyTwo(c, j) {
+			return true
+		}
 		m := a.ManaColors & 0x3f
 		if a.AFlags != 0 || a.ManaN != 1 || bits.OnesCount8(uint8(m)) != 1 || m <= seen {
 			return n == 2 && kop.ChosenSecondManaAb(c, first, second) && atkTaxOnlyTwo(c, second)
@@ -269,6 +287,22 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 		seen |= m
 	}
 	return true
+}
+
+// atkTaxReflSecond reports whether a is a reflected one-mana ability (Plaza of
+// Heroes' "one mana of any color among legendary permanents you control")
+// beside card c's plain fixed first ability, one unit as well. gorge's unit
+// lists the first alternative first and the oracle taps it, so the reflected
+// one is never tapped, and its one unit adds nothing to the unit's maximum.
+func atkTaxReflSecond(c *kop.CardDef, first int, a *kop.Ability) bool {
+	if first < 0 || !atkTaxManaAb(&c.Abilities[first]) {
+		return false
+	}
+	f := &c.Abilities[first]
+	return a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 && a.AFlags&kop.AfManaReflect != 0 && !a.ManaIdentity && !a.ManaGrave &&
+		a.ManaN == 1 && f.ManaN == 1 && f.AFlags == 0 && a.Cost == (kop.Cost{Flags: kop.CostTap}) && len(a.Prog) == 0 && a.ManaAmong != 0 &&
+		!a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 && a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) &&
+		!a.Exhaust && a.Once == 0 && !a.ManaEach && !a.ManaProduceType
 }
 
 // atkTaxPainPair reports whether card c's two mana abilities, first and
@@ -400,7 +434,12 @@ func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl uint8, tgt TCode) bool
 // commander game makes nothing.
 func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	if DebugAtkTaxCountUnlisted {
-		if col, n, ok = s.atkTaxDebugUnlisted(k, sl); ok {
+		if col, n, ok = s.atkTaxDebugUnlisted(k, sl, false); ok {
+			return col, n, atkPassFixed, true
+		}
+	}
+	if DebugAtkTaxCountRestricted {
+		if col, n, ok = s.atkTaxDebugUnlisted(k, sl, true); ok {
 			return col, n, atkPassFixed, true
 		}
 	}
@@ -409,6 +448,9 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	a := manaAbView(cd, pc)
 	if a != nil && atkTaxPaidAb(a) {
 		return s.atkTaxPaid(k, sl, pc, a)
+	}
+	if a != nil && atkTaxRestricted(a) {
+		return 0, 0, 0, false
 	}
 	if !s.canTapForManaPC(k, sl, pc) {
 		return 0, 0, 0, false
@@ -676,22 +718,24 @@ func (s *State) atkTaxPay(k *prep) {
 	}
 }
 
-// atkTaxDebugUnlisted is DebugAtkTaxCountUnlisted's reading of the untapped
-// source at sl: its unlisted first ability's lowest colour and one unit.
-func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot) (col, n int, ok bool) {
+// atkTaxDebugUnlisted is the debug switches' reading of the untapped source at
+// sl: its first mana ability's lowest colour and amount when that ability is
+// unlisted (DebugAtkTaxCountUnlisted) or, restricted set, restricted
+// (DebugAtkTaxCountRestricted).
+func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot, restricted bool) (col, n int, ok bool) {
 	if s.perms[sl].flags&pfTapped != 0 {
 		return 0, 0, false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	f := atkTaxFirstMana(cd)
-	if f < 0 || !atkTaxUnlisted(&cd.Abilities[f]) {
+	if f < 0 || restricted != atkTaxRestricted(&cd.Abilities[f]) || !atkTaxUnlisted(&cd.Abilities[f]) {
 		return 0, 0, false
 	}
 	m := uint8(cd.Abilities[f].ManaColors) & 0x3f
 	if m == 0 {
 		return 0, 0, false
 	}
-	return bits.TrailingZeros8(m), 1, true
+	return bits.TrailingZeros8(m), int(max(cd.Abilities[f].ManaN, 1)), true
 }
 
 // atkTaxTap is one tap the window's answer makes: the source at sl taps for

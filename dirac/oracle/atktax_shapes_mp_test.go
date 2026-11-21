@@ -261,3 +261,25 @@ func TestFourSeatAtkTaxPaidLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxPaidDeck, 32, 20, 0, []string{"Treasure Token", "Eldrazi Scion Token"},
 		[]string{"Treasure Token", "Eldrazi Scion Token"}, &dirac.DebugAtkTaxPaidLast)
 }
+
+// Restricted mana (RestrictValid$: Secluded Courtyard's and Unclaimed
+// Territory's creature spells of the chosen type, Giada's Angels): gorge's
+// windows skip every restricted ability (windowManaUnits, appendPaidManaUnits,
+// attackChoiceManaSources), so the source adds no unit through it and a land's
+// plain {C} first ability stays its unit; Plaza of Heroes' reflected second
+// ability is an alternative the first listed one outranks. The mutation
+// (DebugAtkTaxCountRestricted) counts Mishra's Workshop's {C}{C}{C} as a fixed source.
+var atkTaxRestrictedDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Giada, Font of Hope", Count: 1}, {Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3},
+	{Name: "Secluded Courtyard", Count: 2}, {Name: "Unclaimed Territory", Count: 2}, {Name: "Plaza of Heroes", Count: 2}, {Name: "Mishra's Workshop", Count: 3},
+	{Name: "Plains", Count: 9}, {Name: "Island", Count: 5},
+}
+
+// TestFourSeatAtkTaxRestrictedLockstep: four-seat attack-tax games with
+// restricted-mana sources play in lockstep.
+func TestFourSeatAtkTaxRestrictedLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxRestrictedDeck, 24, 20, 0,
+		[]string{"Giada, Font of Hope", "Secluded Courtyard", "Unclaimed Territory", "Plaza of Heroes", "Mishra's Workshop"}, []string{"Secluded Courtyard", "Plaza of Heroes"},
+		&dirac.DebugAtkTaxCountRestricted)
+}
