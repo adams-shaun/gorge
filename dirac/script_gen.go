@@ -450,7 +450,18 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			}
 		} else if filt.any() || mix {
 			if !s.filtScript(k, a, p, false) {
-				continue // no script within gorge's search budget
+				// A no-{T} tap-another source beside the filter leaves the filter
+				// search unpayable (filtFundable): gorge's one prefix search
+				// activates it with the filter, so the tapX search is the
+				// fallback, as scriptPrefix's mix arm plays it (Relic of
+				// Legends's legendary taps beside an Overflowing Basin pay
+				// Death Cloud's {B}{B}{B}).
+				if !s.tapXTwoLiveSource(k, p) {
+					continue // no script within gorge's search budget
+				}
+				if found, _ := s.tapXScript(k, a, p, false); !found {
+					continue // nor in the tapX search
+				}
 			}
 		} else if tapsDef.any() && s.liveGrantGap(k, p) {
 			if ga, gstall := s.grantActScript(k, a, p); !ga {
