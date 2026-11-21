@@ -624,6 +624,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			}
 		}
 	}
+	printed := false
 	if fe.dst != NoSlot && s.prevCombatTo(k, fe.dst) {
 		// one candidate per granted Effect record covering the To side (two
 		// Mazes of Ith on one creature are two Effects in gorge, CR 616.1),
@@ -634,16 +635,33 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		if n, m = s.appendPrevGrants(&s.g.ro, n, k, fe.dst, false, true, StallShield); n < 0 {
 			return -n - 1
 		}
-		if (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
-			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst) {
-			if n == len(ro.cand) {
-				s.capFull(StallShield) // loud: never truncate the candidates
-				return n
-			}
-			ro.cand[n] = s.perms[fe.dst].obj
-			ro.prev |= 1 << n
-			n++
+		printed = (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
+			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst)
+	}
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go), the
+		// ask's earlier options beside the printed prevent-all: gorge's scan
+		// collects the effect records the shields are before the printed
+		// lines, so they are collected here ahead of it (the noncombat twin
+		// parkNC does the same)
+		code := PlayerCode(rcp)
+		if fe.dst != NoSlot {
+			code = TCode(s.perms[fe.dst].obj)
 		}
+		ro.pnx = 0
+		if n = s.prevNextCands(k, code, fsl, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
+			return 0
+		}
+		ro.prev &^= ro.pnx
+	}
+	if printed {
+		if n == len(ro.cand) {
+			s.capFull(StallShield) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fe.dst].obj
+		ro.prev |= 1 << n
+		n++
 	}
 	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
 		// the source's granted prevention (Maze of Ith's Effect, gorge's
@@ -683,18 +701,6 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	// which are printed matches in the object scan, it follows them (below).
 	if !spShieldLate(g) {
 		n = s.replShieldCand(k, fe, n)
-	}
-	if g.anyRepl&rbPrevCol != 0 {
-		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		code := PlayerCode(rcp)
-		if fe.dst != NoSlot {
-			code = TCode(s.perms[fe.dst].obj)
-		}
-		ro.pnx = 0
-		if n = s.prevNextCands(k, code, fsl, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
-			return 0
-		}
-		ro.prev &^= ro.pnx
 	}
 	if g.uses.has(useStaticPrev) || selfPh(g) {
 		if n = s.spCombatCands(k, fe, sc, rcp, n); n < 0 {
