@@ -881,7 +881,10 @@ func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q,
 			}
 			continue
 		}
-		if effects.MatchesPlayerSpecFrom(e.G, alt, q, you, source) {
+		// The layer-bound entry, so a Player.withMoreCreaturesThanActive
+		// count reads derived types (CR 613.1d: Nissa's animated land is a
+		// creature, Oath of Druids' target) as the filter sites do.
+		if effects.MatchesPlayerSpecCtx(e.G, alt, q, you, e.playerSpecCtx(source)) {
 			return true
 		}
 	}
