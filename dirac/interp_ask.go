@@ -1143,13 +1143,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenLookAck:
 		s.continueRes(k, 0)
 	case raGenSearch:
-		if a.Kind() == AkDone {
-			s.finishSearch(k)
-			return
-		}
-		if int(s.g.nlook) == len(s.resArm().look) {
-			// an any-number search (Trench Gorger) past the window: gorge keeps taking picks
-			s.capFull(StallLook)
+		if s.searchEnds(k, a) {
 			return
 		}
 		s.resArm().look[s.g.nlook] = Obj(a.Source())
@@ -3015,4 +3009,18 @@ func (s *State) targetedExiler(ctrl uint8) uint8 {
 		}
 	}
 	return s.nextSeat(ctrl)
+}
+
+// searchEnds finishes a search on Done, and stalls an any-number search
+// (Trench Gorger) past the look window: gorge keeps taking picks.
+func (s *State) searchEnds(k *prep, a Action) bool {
+	if a.Kind() == AkDone {
+		s.finishSearch(k)
+		return true
+	}
+	if int(s.g.nlook) != len(s.resArm().look) {
+		return false
+	}
+	s.capFull(StallLook)
+	return true
 }
