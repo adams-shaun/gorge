@@ -40,7 +40,10 @@ failed=0
 # after another, the commit tier's nine rows took ~330 s of a box runner's slot, the longest row ~55 s (11-20
 # batches). Each row has its own log and its own tests() output. The nightly tier (cardfuzz, the tagged wire
 # suites) stays serial.
-cells=() pids=()
+# The rows that run ./testkit/conformance (a ~500 CPU-s package, already parallel inside) run one after another in
+# one chain beside the others (11-21: four at once on a loaded box ran 353-369 s and hit tests()'s 5m timeout in
+# batches #3079 and #3080; the dumps showed games still moving, parked on their next answer, not a hang).
+cells=() pids=() heavy=()
 row() {
 	local cell=$1 tiers=$2 log
 	log="$work/${cell//\//-}.log"
@@ -53,6 +56,8 @@ row() {
 	# set -e: a failing row must record its status, not end the script.
 	if [ "$tier" = nightly ]; then
 		run_row "$log" "$@"
+	elif [[ " $* " == *" ./testkit/conformance "* ]]; then
+		heavy+=("$(printf '%q ' "$log" "$@")")
 	else
 		run_row "$log" "$@" &
 		pids+=($!)
@@ -68,7 +73,11 @@ run_row() {
 
 # report_rows: waits for the rows and prints one PASS or FAIL line per cell, in the script's order.
 report_rows() {
-	local cell log
+	local cell log h
+	if [ "${#heavy[@]}" -gt 0 ]; then
+		(for h in "${heavy[@]}"; do eval "run_row $h"; done) &
+		pids+=($!)
+	fi
 	[ "${#pids[@]}" -eq 0 ] || wait "${pids[@]}" || true
 	for cell in "${cells[@]+"${cells[@]}"}"; do
 		log="$work/${cell//\//-}.log"
