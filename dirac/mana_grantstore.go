@@ -74,8 +74,10 @@ func (s *State) storeIdleTap(k *prep, sl Slot, a *kop.Ability) {
 }
 
 // storeBranch activates the battery candidate i (slot sl) on a copy of t: a
-// fixed colour and an X at the bound, so no ask node (gorge's non-interactive
-// SubCounter stage). An idle battery (no counters) pays its {T} alone.
+// fixed colour and the X ask's answers, the counters it holds first and 0
+// last (gorge's search branches every X the ask offers, each one a node: the
+// ask's own is charged first). An idle battery (no counters) pays its {T}
+// alone and asks nothing.
 func (g *grantSrch) storeBranch(t *State, i int, sl Slot) bool {
 	a := g.k.ctrAbOf(t.cardAt(sl))
 	n := t.perms[sl].ctrN(t, int(a.Cost.Ctr))
@@ -85,9 +87,29 @@ func (g *grantSrch) storeBranch(t *State, i int, sl Slot) bool {
 	if n <= 0 && a.Cost.Flags&kop.CostTap == 0 {
 		return false // nothing to pay and nothing made: no step
 	}
+	if n <= 0 {
+		return g.storeTry(t, i, sl, a, 0)
+	}
+	if !g.node() { // the X ask
+		return false
+	}
+	for x := min(n, 255); x >= 0; x-- {
+		if g.storeTry(t, i, sl, a, x) {
+			return true
+		}
+	}
+	return false
+}
+
+// storeTry takes the X ask's answer x on a copy of t and continues the search
+// there.
+func (g *grantSrch) storeTry(t *State, i int, sl Slot, a *kop.Ability, x int) bool {
+	if g.np >= len(g.path) {
+		return false
+	}
 	u := t.fork()
-	u.storeGap(g.k, g.p, sl, a)
-	g.path[g.np] = grantStep{i: uint8(i), col: uint8(bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)), n: uint8(min(n, 255)), gi: stepStore, sl: sl}
+	u.storeGapX(g.k, g.p, sl, a, x)
+	g.path[g.np] = grantStep{i: uint8(i), col: uint8(bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f)), n: uint8(x), gi: stepStore, sl: sl}
 	g.np++
 	var ok bool
 	if g.tapsLive {
