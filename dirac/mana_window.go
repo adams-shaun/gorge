@@ -639,7 +639,10 @@ func (s *State) windowCanTap(k *prep, sl Slot) bool {
 	} else {
 		pc = s.windowGrantPC(k, sl)
 	}
-	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) {
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) && s.g.winMode != winTrig {
+		// A trigger's own cost window (winTrig) keeps the bare CR 119.4 test:
+		// gorge lists the source at exactly its life cost and the payer dies
+		// paying it (Mana Confluence at 1 life, Genesis's {2}{G}).
 		// The unless / ward offer gate prices a paid-life source through
 		// gorge's paid-cost census (painAvailMaskAt; gorge's paidCostShape),
 		// which counts it only while its activation leaves the payer alive.
