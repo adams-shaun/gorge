@@ -1278,3 +1278,25 @@ func (w *twinWalk) skip(s *State, order []Slot, i int) bool {
 	w.n++
 	return false
 }
+
+// otherGapTwin is visit's other-gap branch with gorge's twin cut
+// (scriptTwin, potential_script.go activations) applied to a Taps-deferred
+// land: a source indistinguishable from one this pass already walked reaches
+// no payer state its subtree did not, so it is no branch and no node. gorge
+// runs the cut over every activation of the census, a land under Manabarbs
+// among them (a Taps-deferred gap is a census gap there), while the branch
+// beside the filter sources returned before the cut; the five-permanent
+// walk of Unknown Shores beside four lands under Manabarbs then cost about
+// twice gorge's nodes (TestFilterSearchNodeBudgetParity). The cut runs where
+// visit's own does, on a fee-only or printed-activation search; the other
+// gap classes keep their walk.
+func (fs *filtSearch) otherGapTwin(k *prep, t *State, sl Slot, funded int, tried *[MaxPerm]Slot, ntried *int) bool {
+	if (fs.feeOnly || isAbilityPlay(fs.a)) && t.scriptTapsDefer(k, fs.p).has(sl) {
+		if fs.twinTried(k, t, sl, tried[:*ntried]) {
+			return false
+		}
+		tried[*ntried] = sl
+		*ntried++
+	}
+	return fs.otherGap(k, t, sl, funded)
+}
