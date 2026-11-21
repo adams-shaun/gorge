@@ -27,12 +27,13 @@ import (
 //     tie-branch bit; the branches follow as OpBranch blocks (the
 //     GenericChoice shape).
 //
-// A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
-// still refuses by name. It used to refuse because gorge's placement ask
-// treated a triggered Vote's Choices$ as modal and posed a spurious CR 603.3c
-// mode choice before the trigger went on the stack; gorge no longer does
-// (engine/rules askTriggerModes returns false for a Vote), so the StoreVoteNum$
-// form lowers as the plain vote and the refusal is only the unproven shape.
+// A fixed-list Vote on a triggered ability lowers only with StoreVoteNum$
+// (the form the votestorenum lockstep fixture covers); the plain triggered
+// form refuses by name until a fixture does. Gorge once posed a spurious CR
+// 603.3c placement mode for a triggered Vote's Choices$ (charm_params.go
+// isModalSA) and this lowering reproduced it behind an OpCharm block; gorge
+// no longer does (trigger_queue.go), so the vote is the ability's first ask,
+// exactly as on a spell.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
@@ -140,15 +141,10 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		}
 	}
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
-	if lc.ab.Kind == akTriggered {
-		if !store {
-			// not admitted: no carrier of this shape is lockstep-tested
-			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
-		}
-		if lc.ab.Modes != 0 {
-			return refuse("Vote on an ability that is already modal")
-		}
-		return lc.emitFixedVote(names, tie, store)
+	if lc.ab.Kind == akTriggered && !store {
+		// Gorge no longer poses a placement mode for a triggered fixed-list
+		// Vote, but no lockstep fixture covers the plain triggered form yet.
+		return refuse("Vote on a triggered ability without StoreVoteNum$: no lockstep fixture covers it")
 	}
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
