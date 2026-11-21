@@ -1139,6 +1139,10 @@ type grantSrch struct {
 	// pver is the play's own object's version at the root (Obj.ver): the play
 	// stands only while its card has not changed zones (waitsForStack)
 	pver uint8
+	// attWatch/attHost: the play's own Equipment's host at the root, read
+	// again by attachMoved (mana_grantequip.go)
+	attWatch bool
+	attHost  Slot
 	// limited: a node was refused for the spent budget (gorge's
 	// scriptSearch.limited); subsume: this is the subsume run, whose colour
 	// asks keep only the colours costCol still lacks (mana_grantsubsume.go)
@@ -2092,7 +2096,10 @@ func (g *grantSrch) waitsForStack(t *State) bool {
 	// spell: gorge prices a cast from a card no longer in its origin zone as
 	// unsupported)
 	if t.sp <= g.sp0 && !g.answered() && !g.sacrificed() {
-		return false
+		if !g.hostTapped(t) {
+			return false
+		}
+		return g.hostGone(t) // (mana_grantequip.go)
 	}
 	var d Decision
 	t.plainOptions(g.k, &d, 0)
@@ -2565,6 +2572,7 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 		if o := Obj(d.play.Source()); o != NoObj && int(o) < len(s.objs) {
 			g.pver = s.objs[o].ver
 		}
+		g.armAttachWatch(s)
 		if oc, ok := s.powerUpOffer(k, d.play); ok && oc != *cost {
 			g.offer, g.hasOffer = oc, true
 		}
