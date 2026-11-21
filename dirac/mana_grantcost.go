@@ -113,6 +113,7 @@ func grantHasCost(pc *pcard) bool { return grantCostLife(pc) > 0 || pc.grantSac 
 // {T}, so a tapped or sick source counts (an any-colour one is open). A
 // restricted grant is left out of a payment's pool.
 func (s *State) potentialGrantSac(k *prep, sl Slot, payment bool, add func(Slot, uint8, uint8), open *bool) {
+	s.potentialGrantTap(k, sl, payment, add, open)
 	if len(k.gen.grantPC) == 0 || !s.grantSacOK(k, sl) {
 		return
 	}
@@ -735,4 +736,29 @@ func (s *State) windowGrantLife(k *prep, sl Slot, pc *pcard, col int) uint8 {
 		}
 	}
 	return least
+}
+
+// potentialGrantTap adds the granted {T} abilities of an untapped source whose
+// own ability cannot tap (an Eldrazi Spawn's sacrifice-only {C} beside Path of
+// Annihilation's "{T}: Add one mana of any color") to gorge's potential pool:
+// its walk admits the grant beside the printed ability (potentialManaFor), an
+// any-colour one unbounded (CR 605.1a). A restricted grant is left out of a
+// payment's pool, as potentialGrantSac leaves it.
+func (s *State) potentialGrantTap(k *prep, sl Slot, payment bool, add func(Slot, uint8, uint8), open *bool) {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.canTapForMana(k, sl) || !s.grantTapOK(k, sl) ||
+		k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return
+	}
+	var gi [maxGrants]int16
+	for i, n := 0, s.grantIdxs(k, sl, &gi); i < n; i++ {
+		gv := s.grantView(k.gen, gi[i], sl)
+		if gv.grantSac || !s.canTapForManaPC(k, sl, gv) || payment && k.gen.grantRestr[gi[i]] != 0 {
+			continue
+		}
+		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+			*open = true
+			continue
+		}
+		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+	}
 }
