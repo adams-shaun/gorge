@@ -146,41 +146,45 @@ const (
 	cmpToughness
 	cmpHasX // the printed mana cost has {X} (hasXCost; no operator)
 	cmpPowerLTToughness
-	cmpMultiColor     // MultiColor: two or more colours (no operator)
-	cmpHistoric       // Historic: artifact, legendary or Saga (no operator)
-	cmpEquipped       // equipped: an Equipment is attached (no operator)
-	cmpEnchanted      // enchanted: an Aura is attached (no operator)
-	cmpHasKw          // with<Keyword>: has keyword bit CmpN (no operator)
-	cmpAttached       // Attached: attached to a permanent (no operator)
-	cmpActiveCtrl     // ActivePlayerCtrl: the active player controls it (no operator)
-	cmpModified       // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
-	cmpHasCounters    // HasCounters: any counter, internal markers included (no operator)
-	cmpTrigPlayerCtrl // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
-	cmpMonstrous      // IsMonstrous: the CR 701.37b monstrous designation (no operator)
-	cmpNoCounters     // !HasCounters: no counter at all (no operator)
-	cmpLacksKw        // !with<Keyword>: lacks keyword bit CmpN (no operator)
-	cmpOutlaw         // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
-	cmpMonoColor      // MonoColor: exactly one colour (no operator)
-	cmpSameNameT0     // target 0 or a permanent sharing its name (Maelstrom Pulse)
-	cmpTotalPT        // totalPT_<op><n>: power plus toughness (Cut Down)
-	cmpBlocked        // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
-	cmpSolved         // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
-	cmpAdventureCard  // AdventureCard: an adventurer card, every zone (no operator)
-	cmpSuspected      // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
-	cmpExiledWith     // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
-	cmpWasCast        // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
-	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
-	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
-	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
-	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
-	cmpSameNameSelf   // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
-	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
-	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
-	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
-	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
-	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
-	cmpRingBearer     // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
-	cmpGoaded         // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
+	cmpMultiColor       // MultiColor: two or more colours (no operator)
+	cmpHistoric         // Historic: artifact, legendary or Saga (no operator)
+	cmpEquipped         // equipped: an Equipment is attached (no operator)
+	cmpEnchanted        // enchanted: an Aura is attached (no operator)
+	cmpHasKw            // with<Keyword>: has keyword bit CmpN (no operator)
+	cmpAttached         // Attached: attached to a permanent (no operator)
+	cmpActiveCtrl       // ActivePlayerCtrl: the active player controls it (no operator)
+	cmpModified         // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
+	cmpHasCounters      // HasCounters: any counter, internal markers included (no operator)
+	cmpTrigPlayerCtrl   // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
+	cmpMonstrous        // IsMonstrous: the CR 701.37b monstrous designation (no operator)
+	cmpNoCounters       // !HasCounters: no counter at all (no operator)
+	cmpLacksKw          // !with<Keyword>: lacks keyword bit CmpN (no operator)
+	cmpOutlaw           // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
+	cmpMonoColor        // MonoColor: exactly one colour (no operator)
+	cmpSameNameT0       // target 0 or a permanent sharing its name (Maelstrom Pulse)
+	cmpTotalPT          // totalPT_<op><n>: power plus toughness (Cut Down)
+	cmpBlocked          // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
+	cmpSolved           // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
+	cmpAdventureCard    // AdventureCard: an adventurer card, every zone (no operator)
+	cmpSuspected        // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
+	cmpExiledWith       // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
+	cmpWasCast          // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
+	cmpWasCastSpell     // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
+	cmpPermMark         // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
+	cmpTriggerObj       // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpSameNameRem      // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
+	cmpSameNameSelf     // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
+	cmpHasManaAbility   // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
+	cmpRenowned         // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
+	cmpAttackingYou     // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
+	cmpSharesCrCmdr     // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
+	cmpPTBox            // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
+	cmpRingBearer       // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
+	cmpGoaded           // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
+	cmpHasLandwalk      // hasKeywordLandwalk:<spec>: has the derived landwalk whose land filter is CmpFilter (no operator)
+	cmpHasProtQuality   // hasKeywordProtection:<spec>: has the derived protection quality whose source filter is CmpFilter (no operator)
+	cmpHasProtColor     // hasKeywordProtection:<colour>: has protection from a colour in CmpN (no operator)
+	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -239,13 +243,14 @@ type lClause struct {
 	Flags          uint64
 	CmpStat        uint8
 	CmpOp          uint8
-	CmpN           int     // the constant, or
-	CmpX           string  // the SVar naming the bound (cmcLEX)
-	CmpV           *lValue // CmpX lowered
-	CmpCounter     string  // counter kind for cmpCounters
-	Colors         string  // must have this colour (one of WUBRG; "" = none)
-	NotColors      string  // must have none of these colours
-	BasePermanent  bool    // the base head word was Permanent (ThisTurnEntered's card form marks it)
+	CmpN           int      // the constant, or
+	CmpX           string   // the SVar naming the bound (cmcLEX)
+	CmpV           *lValue  // CmpX lowered
+	CmpCounter     string   // counter kind for cmpCounters
+	CmpFilter      *lFilter // the compiled land/quality filter cmpHasLandwalk / cmpHasProtQuality read
+	Colors         string   // must have this colour (one of WUBRG; "" = none)
+	NotColors      string   // must have none of these colours
+	BasePermanent  bool     // the base head word was Permanent (ThisTurnEntered's card form marks it)
 	// SpellBase: the base head word was Spell (gorge's Spell base: an
 	// object on the stack). Read only by a ReduceCost ValidTarget$
 	// (build_ab: a Filter2 in ZoneStack with FSpell); clause refuses it
@@ -831,7 +836,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge equipped: an Equipment permanent is attached to it
 		return c.setCmp(cmpEquipped, 0, 0, "", "")
 	case "withDefender", "withDeathtouch", "withTrample", "withHaste", "withMenace", "withVigilance", "withReach",
-		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow":
+		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow", "withFear":
 		// gorge objectHasKeyword over the derived keywords (filter.go's
 		// with<Keyword> registry): PredHasKeyword
 		return c.setCmp(cmpHasKw, 0, withKwBit(p), "", "")
