@@ -241,7 +241,7 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 				av.addUnits(1<<c, pl.pool[c])
 			}
 		}
-		if s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) {
+		if s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av) {
 			if anyColor && av.affordsAnyColor(&cost, 0) || !anyColor && av.affords(&cost, pipMaskOf(&cost), 0) {
 				return false
 			}

@@ -398,7 +398,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// gorge prices each announced X against the spell's own payment: a
 		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
 		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
-		d = payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
+		d = payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand, owner: p}}
 		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	} else {
 		// An activation's announced X is priced against the activation's own
