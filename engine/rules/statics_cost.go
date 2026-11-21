@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
@@ -139,7 +140,13 @@ func (e *Engine) manaFeasiblePricedP(p state.PlayerID, desc paymentDescriptor, c
 		return e.manaFeasibleDescriptorKind(p, desc.Priced(c), *c, *mods, taxGeneric, delve,
 			asEval(e).MayPlayRider(p, desc.ID), pay.SAKindFor(desc.Class == paymentActivated))
 	}
-	return e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
+	res := e.manaFeasiblePoolP(p, desc.ID, desc.Class == paymentActivated, c, mods, taxGeneric, delve, pool, typed)
+	if os.Getenv("GORGE_MDBG") != "" {
+		if o := e.G.Obj(desc.ID); o != nil && o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0].Name == "Creeperhulk" {
+			fmt.Fprintf(os.Stderr, "GORGEMDBG card=Creeperhulk obj=%d class=%v hypnil=%v noMana=%v pool=%v cost=%+v tax=%d res=%v\n", desc.ID, desc.Class, hyp == nil, desc.NoMana, pool, *c, taxGeneric, res)
+		}
+	}
+	return res
 }
 
 // effectZoneOK reports whether a static whose EffectZone$ reads v applies

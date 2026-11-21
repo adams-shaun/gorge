@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -158,6 +159,9 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	plain.feeStall = true // the plain run's doomed-branch prune (feeOnlyAskPrune)
 	script, found := plain.run(e)
+	if os.Getenv("GORGE_SCRIPTDBG") != "" {
+		fmt.Fprintf(os.Stderr, "GORGEDBG pps obj=%d kind=%s found=%v nodes=%d limited=%v nscript=%d\n", a.Obj, o.Kind, found, plain.nodes, plain.limited, len(script))
+	}
 	if found && len(script) > 0 {
 		return script, true
 	}

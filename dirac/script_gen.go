@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -106,6 +108,9 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
 			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
 			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)) {
+			if castDbgOn() && bit == gfFilt {
+				fmt.Fprintf(os.Stderr, "CASTDBG gapMask drop card=%s sl=%d tapped=%v sick=%v genLost=%v\n", k.t.CardName(s.cardAt(sl)), sl, pm.flags&pfTapped != 0, s.activationSick(k, sl), s.genLost(k, sl))
+			}
 			continue
 		}
 		m = m.with(sl)
@@ -186,6 +191,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.anyDifferentGaps(k, p); b.any(); b = b.rest() {
 		a.addUnits(0x1f, anyDifferentUnits(s.anyDifferentAbilityAt(k, b.first())))
 	}
+	if castDbgOn() {
+		fmt.Fprintf(os.Stderr, "CASTDBG availFilt gate anyFilt=%v noFilt=%v filtOnly=%v mix=%v scriptFilt=%v\n",
+			k.gen.anyFilt, s.g.availX&availNoFilt != 0, s.filtOnly(k, p), s.mixBoard(k, p), s.scriptFilt(k, p))
+	}
 	if k.gen.anyFilt && s.g.availX&availNoFilt == 0 && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
 		s.availFilt(k, p, a) // (beside another gap kind the filter stays unmodelled: mana_filter.go)
 	}
@@ -201,6 +210,15 @@ func (s *State) plainOptions(k *prep, d *Decision, m uint16) {
 	s.g.availX = availPlain | m
 	s.priorityOptions(k, d)
 	s.g.availX = 0
+	if castDbgOn() && (m&availGaps != 0) {
+		fmt.Fprintf(os.Stderr, "CASTDBG plainOptions m=%d n=%d\n", m, d.N)
+		for i := 0; i < int(d.N); i++ {
+			a := d.Options[i]
+			if isCastKind(a.Kind()) {
+				fmt.Fprintf(os.Stderr, "CASTDBG   plainOptions cast card=%s mode=%d\n", k.t.CardName(s.objs[Obj(a.Source())].card), a.Mode())
+			}
+		}
+	}
 }
 
 func hasOption(d *Decision, a Action) bool {
@@ -284,6 +302,16 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	tapsDef := s.scriptTapsDefer(k, p)
 	var filt slotMask
 	mix := s.mixBoard(k, p)
+	if castDbgOn() {
+		var hallTapped bool
+		for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+			if k.t.CardName(s.cardAt(b.first())) == "Hall of Tagsin" {
+				hallTapped = s.perms[b.first()].flags&pfTapped != 0
+			}
+		}
+		fmt.Fprintf(os.Stderr, "CASTDBG scriptOffers p=%d life=%d filt=%v gaps=%v restr=%v anyR=%v tapsDef=%v lifeMask=%v hallTapped=%v mix=%v\n",
+			p, s.pl[SeatIx(p)].life, s.scriptFilt(k, p), s.scriptGaps(k, p), restr, anyR, tapsDef, s.lifeGapMask(k, p), hallTapped, mix)
+	}
 	if k.gen.anyFilt {
 		// (filtOnly; a restricted gapOther whose mana no play the walk lists
 		// can spend keeps no filter off the walk: mana_filter.go restrGapOthers)
@@ -335,6 +363,14 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
+	}
+	if castDbgOn() {
+		for i := 0; i < int(src.N); i++ {
+			a := src.Options[i]
+			if isCastKind(a.Kind()) {
+				fmt.Fprintf(os.Stderr, "CASTDBG src play card=%s kind=%d mode=%d\n", k.t.CardName(s.objs[Obj(a.Source())].card), a.Kind(), a.Mode())
+			}
+		}
 	}
 	// the insufficient plays in gorge's walk order (potentialWalkOf: the
 	// hand walk, the permission and graveyard casts, then the battlefield's

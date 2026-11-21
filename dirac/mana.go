@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -532,6 +534,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		if k.painMana && pc.painCol != 0 {
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
+		}
+		if castDbgOn() {
+			fmt.Fprintf(os.Stderr, "CASTDBG ordinary unit card=%s mask=%02x n=%d\n", k.t.CardName(s.cardAt(sl)), s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {

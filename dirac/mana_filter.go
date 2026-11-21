@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1494,7 +1496,22 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
+	if castDbgOn() && isCastKind(a.Kind()) && k.t.CardName(s.objs[Obj(a.Source())].card) == "Creeperhulk" {
+		fmt.Fprintf(os.Stderr, "CASTDBG filtScript card=Creeperhulk need=%v useful=%v usefulOK=%v gaps=%v other=%v fees=%v fundN=%v feeOnly=%v dead=%v\n",
+			fs.need, fs.useful, fs.usefulOK, fs.gaps, fs.other, fs.fees, fs.fundN, fs.feeOnly, fs.dead)
+	}
 	found := fs.visit(k, t, 0, false)
+	if castDbgOn() && isCastKind(a.Kind()) && k.t.CardName(s.objs[Obj(a.Source())].card) == "Creeperhulk" {
+		fmt.Fprintf(os.Stderr, "CASTDBG filtScript found=%v nodes=%d stall=%d\n", found, fs.nodes, fs.stall)
+		for i := 0; i < fs.n; i++ {
+			st := fs.path[i]
+			nm := "PASS"
+			if st.sl != NoSlot {
+				nm = k.t.CardName(s.cardAt(st.sl))
+			}
+			fmt.Fprintf(os.Stderr, "CASTDBG   path[%d] sl=%d card=%s gap=%v ans=%d other=%+v\n", i, st.sl, nm, st.gap, st.ans, st.other)
+		}
+	}
 	nodes := fs.nodes
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
@@ -1714,6 +1731,15 @@ var DebugFiltTryGapExempt bool
 // tick counts one visited node; false once the budget is spent.
 func (fs *filtSearch) tick() bool {
 	budget := potentialScriptNodes
+	if v := os.Getenv("DIRAC_NODEBUDGET"); v != "" {
+		n := 0
+		for i := 0; i < len(v); i++ {
+			n = n*10 + int(v[i]-'0')
+		}
+		if n > 0 {
+			budget = n
+		}
+	}
 	if fs.pay != nil {
 		budget = paySearchNodes
 	}
@@ -2305,6 +2331,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		tbl[fs.nseen] = key
 		fs.nseen++
 	}
+	if castDbgOn() && fs.a.Kind() == AkCast && fs.pay == nil {
+		if nm := k.t.CardName(t.objs[Obj(fs.a.Source())].card); nm == "Creeperhulk" {
+			fmt.Fprintf(os.Stderr, "CASTDBG visit node=%d funded=%d gapUsed=%v\n", fs.nodes, funded, gapUsed)
+		}
+	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	passes := fs.passCount()
@@ -2358,6 +2389,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			// be activated walked no subtree its later twin would repeat.
 			tried[ntried] = sl
 			ntried++
+			if castDbgOn() && fs.a.Kind() == AkCast && fs.pay == nil {
+				if nm := k.t.CardName(t.objs[Obj(fs.a.Source())].card); nm == "Creeperhulk" {
+					fmt.Fprintf(os.Stderr, "CASTDBG try node=%d sl=%d card=%s pass=%d gap=%v\n", fs.nodes, sl, k.t.CardName(t.cardAt(sl)), pass, gap)
+				}
+			}
 			if gap {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
