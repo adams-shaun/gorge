@@ -43,3 +43,35 @@ func TestFourSeatBeaconBattlefrontOneColourMutation(t *testing.T) {
 		t.Fatal("independent units changed no game: the replay does not reach the offer")
 	}
 }
+
+// beaconRiteRepro is the same fault in a second pod (seed 3, pod 98): Rite of
+// Oblivion's cast ({1}{B}) offered by the kernel beside a Beacon whose N mana
+// of one colour paid two different pips.
+const beaconRiteRepro = "beacon_battlefront_one_colour_rite_four_seat_pod"
+
+// beaconRiteAt is the decision the recording diverged at.
+const beaconRiteAt = 2294
+
+func TestFourSeatBeaconBattlefrontRiteLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatEdhReplay(t, beaconRiteRepro)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if strings.HasPrefix(res.Stall, KernelStallPrefix) || res.Decisions <= beaconRiteAt {
+		t.Fatalf("stall %q after %d decisions, want a clean game past %d", res.Stall, res.Decisions, beaconRiteAt)
+	}
+}
+
+func TestFourSeatBeaconBattlefrontRiteMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugDynPairIndependent = true
+	defer func() { dirac.DebugDynPairIndependent = false }()
+	if res := fourSeatEdhReplay(t, beaconRiteRepro); res.Div == nil {
+		t.Fatal("independent units changed no game: the replay does not reach the offer")
+	}
+}
