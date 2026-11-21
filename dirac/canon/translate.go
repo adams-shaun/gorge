@@ -1045,11 +1045,11 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("changetext_to"), RefNone, RefNone, mode-16), true
 		}
 		return Pack(kind("changetext_from"), RefNone, RefNone, mode), true
-	case dirac.ChGenColor:
-		// gorge indexes its colour options densely: with an Exclude$
-		// colour dropped (Citadel Gate) the index is the colour's rank
-		// among the offered ones (identity over all five)
-		return Pack(kind("color"), RefNone, RefNone, denseIndex(r.D.Options[:r.D.N], mode)), true
+	case dirac.ChGenColor, dirac.ChGenProtChoice:
+		// gorge indexes these options densely: with an Exclude$ colour
+		// dropped (Citadel Gate) the index is the colour's rank among the
+		// offered ones; the protection quality ask (askProtectionChoice)
+		return Pack(kind(denseChooseKind(r.D.Sub)), RefNone, RefNone, denseIndex(r.D.Options[:r.D.N], mode)), true
 	case dirac.ChGenManaChoice:
 		// a resolving Mana effect's colour pick (Chandra, Hope's
 		// Beacon): gorge's "mana" option, valued by its colour
@@ -1106,6 +1106,15 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
 	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
+}
+
+// denseChooseKind is the choose kind of a densely indexed generated ask: the
+// protection quality pick, else a colour.
+func denseChooseKind(sub dirac.ChoiceKind) string {
+	if sub == dirac.ChGenProtChoice {
+		return "protection"
+	}
+	return "color"
 }
 
 // denseIndex counts the offered options whose mode sorts before mode: gorge

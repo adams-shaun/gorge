@@ -58,8 +58,8 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		if mode == 1 {
 			o.kind = okTriggerCostPay
 		}
-	case dirac.ChGenColor:
-		o.kind, o.obj = okColor, noObj
+	case dirac.ChGenColor, dirac.ChGenProtChoice:
+		o.kind, o.obj = colorAskKind(d.Sub), noObj
 	case dirac.ChGenType:
 		o.kind, o.obj = okType, noObj
 	case dirac.ChGenMayShuffle:
@@ -193,4 +193,13 @@ func genDoneDK(sub dirac.ChoiceKind) (int8, bool) {
 		return dkModes, true
 	}
 	return 0, false
+}
+
+// colorAskKind is the option kind of a colour-like generated ask: the
+// protection quality pick (act_protectionchoice.go) has its own, else a colour.
+func colorAskKind(sub dirac.ChoiceKind) uint8 {
+	if sub == dirac.ChGenProtChoice {
+		return okProtChoice
+	}
+	return okColor
 }

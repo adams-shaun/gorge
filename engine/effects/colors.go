@@ -416,6 +416,12 @@ func colourMapPredicate(p string) bool {
 	return is
 }
 
+// IsColorlessWord reports whether w is the word "colorless", spelled as the
+// colour-list grammar reads it (case and surrounding space ignored).
+func IsColorlessWord(w string) bool {
+	return colorLettersCodes.Code(string(strings.ToLower(strings.TrimSpace(w)))) == colorLettersColorless
+}
+
 // colourMapSkip is the one read both filter dispatches (matchPositive and
 // its compiled twin) share for when a colour word must NOT take the printed
 // legacy map function: a context the map cannot see — bound derived colours,

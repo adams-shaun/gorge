@@ -310,6 +310,19 @@ const OvEnterWith = 2
 // source's ChosenType AT RESOLUTION.
 const OvChosenType = 3
 
+// OvProtChoice, in an OpOverride's B field: the protection quality choice
+// (Giver of Runes' "protection from colorless or from the color of your
+// choice", Apostle's Blessing's "from artifacts or from the color of your
+// choice", Pippin, Guard of the Citadel's "from the card type of your
+// choice"). C names the FIRST of N consecutive Overrides records differing
+// only in ProtFrom — the option's quality, one record per option in gorge's
+// offer order (lower_protection.go emitProtectionChoice). At resolution the
+// kernel applies the record whose index the controller chose earlier in the
+// same resolution (OpExt ExtProtectionChoice, res.chosen under resProtChoice,
+// 0..N-1); gorge combatfx.go askProtectionChoice reads the answer AT
+// RESOLUTION.
+const OvProtChoice = 4
+
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the

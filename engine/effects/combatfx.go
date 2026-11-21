@@ -1545,7 +1545,13 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 func protectionGains(sa *cards.SA) string { return sa.ParamStr(cards.PKGains) }
 
 func effProtection(h Host, c *Ctx, sa *cards.SA) {
-	qualities := protectionQualities(h, c, sa)
+	qualities, suspended := protectionQualities(h, c, sa)
+	if suspended {
+		// The host took the choice ask as its own continuation (the
+		// effChooseColor convention): the grant happens when the answer
+		// lands and this primitive re-executes, so no stand-in may run here.
+		return
+	}
 	if len(qualities) == 0 {
 		return
 	}
@@ -1590,7 +1596,10 @@ func effProtectionAll(h Host, c *Ctx, sa *cards.SA) {
 	if valid == "" {
 		return
 	}
-	qualities := protectionQualities(h, c, sa)
+	qualities, suspended := protectionQualities(h, c, sa)
+	if suspended {
+		return // the host owns the ask; the sweep happens on the re-execution
+	}
 	if len(qualities) == 0 {
 		return
 	}
@@ -1612,8 +1621,11 @@ func effProtectionAll(h Host, c *Ctx, sa *cards.SA) {
 // protectionQualities is what Protection's and ProtectionAll's Gains$ names,
 // as the words after "protection from": the colour or type its controller
 // chooses (Choice), the source's chosen colour (ChosenColor), the colours of
-// the targeted card (TargetedCardColor), or the literal text.
-func protectionQualities(h Host, c *Ctx, sa *cards.SA) []string {
+// the targeted card (TargetedCardColor), or the literal text. The second
+// result is true when the host took the choice ask as its own continuation
+// (AskTapeOrSuspend's taken branch): the caller must return without granting,
+// and the resolution re-executes once the answer is recorded.
+func protectionQualities(h Host, c *Ctx, sa *cards.SA) ([]string, bool) {
 	gains := protectionGains(sa)
 	if strings.EqualFold(gains, "TargetedCardColor") {
 		var out []string
@@ -1628,22 +1640,24 @@ func protectionQualities(h Host, c *Ctx, sa *cards.SA) []string {
 				}
 			}
 		}
-		return out
+		return out, false
 	}
 	choices := sa.ParamStr(cards.PKChoices)
 	if strings.EqualFold(gains, "Choice") {
-		if q := askProtectionChoice(h, c, sa, choices); q != "" {
-			return []string{q}
+		if q, taken := askProtectionChoice(h, c, sa, choices); taken {
+			return nil, true
+		} else if q != "" {
+			return []string{q}, false
 		}
 	}
 	q := resolveGains(gains, choices, h.Game().Obj(c.Source))
 	if q == "" {
-		return nil
+		return nil, false
 	}
 	if !strings.EqualFold(q, gains) {
 		// Choice (the ask above, or its stand-in) and ChosenColor each name one
 		// quality; a literal Gains$ resolves to itself.
-		return []string{q}
+		return []string{q}, false
 	}
 	// a literal Gains$ list (Grotesque Hybrid's green,white) is one
 	// protection ability per quality (CR 702.16g), as Forge's ProtectEffect
@@ -1654,7 +1668,7 @@ func protectionQualities(h Host, c *Ctx, sa *cards.SA) []string {
 			out = append(out, w)
 		}
 	}
-	return out
+	return out, false
 }
 
 // protectionColorWord is a colour's name as protection text spells it.
@@ -1675,9 +1689,13 @@ func protectionColorWord(letter byte) string {
 }
 
 // protectionChoiceOffers is the qualities Choices$ lets the controller pick
-// from: AnyColor is the five colours; colorless and a named colour stand for
-// themselves. nil means the list names something this engine cannot ask (a
-// card type), and the caller keeps its deterministic stand-in.
+// from, in list order: AnyColor is the five colours; colorless and a named
+// colour stand for themselves; a card-type token (Apostle's Blessing's
+// "Artifact", Razor Barrier's "Artifact") is the type word; "CardType" is
+// the card-type vocabulary itself (Pippin, Guard of the Citadel, "the card
+// type of your choice"), the same alphabetical list gorge's effChooseType
+// "Card" asks over. nil means the list names something this engine cannot
+// ask, and the caller keeps its deterministic stand-in.
 func protectionChoiceOffers(choices string) []string {
 	var out []string
 	for tok := range strings.SplitSeq(choices, ",") {
@@ -1687,47 +1705,73 @@ func protectionChoiceOffers(choices string) []string {
 			for _, l := range []byte("WUBRG") {
 				out = append(out, protectionColorWord(l))
 			}
-		case strings.EqualFold(tok, "colorless"):
+		case IsColorlessWord(tok):
 			out = append(out, "colorless")
 		case colourLetter(tok) != 0:
 			out = append(out, protectionColorWord(colourLetter(tok)))
+		case strings.EqualFold(tok, "CardType"):
+			out = append(out, chooseCardTypes...)
 		default:
+			if protectionCardType(tok) != "" {
+				out = append(out, protectionCardType(tok))
+				continue
+			}
 			return nil
 		}
 	}
 	return out
 }
 
+// protectionCardType is the card type a Choices$ token names, "" when the
+// token is not one of the card-type vocabulary's words.
+func protectionCardType(tok string) string {
+	for _, t := range chooseCardTypes {
+		if strings.EqualFold(t, tok) {
+			return t
+		}
+	}
+	return ""
+}
+
 // askProtectionChoice poses Gains$ Choice to the controller (Forge's
-// chooseProtectionType) and returns the quality picked. With no engine host to
-// ask it keeps the deterministic first offer, the stand-in resolveGains
-// documents; an unaskable Choices$ returns "" and falls to that same path.
-func askProtectionChoice(h Host, c *Ctx, sa *cards.SA, choices string) string {
+// chooseProtectionType) and returns the quality picked. The second result is
+// AskTapeOrSuspend's taken branch: the host posed the ask as its own
+// continuation, so the caller returns without granting and the resolution
+// re-executes once the answer lands. With no engine host to ask it keeps the
+// deterministic first offer, the stand-in resolveGains documents; an
+// unaskable Choices$ returns "" and falls to that same path.
+func askProtectionChoice(h Host, c *Ctx, sa *cards.SA, choices string) (string, bool) {
 	offers := protectionChoiceOffers(choices)
 	if len(offers) == 0 {
-		return ""
+		return "", false
 	}
 	if len(offers) == 1 {
-		return offers[0]
+		return offers[0], false
 	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "protectionchoice", ResumeSA: sa,
 		Prompt: "Choose a quality to gain protection from"}
 	for i, q := range offers {
-		kind := "color"
-		if colourLetter(q) == 0 {
-			kind = "quality"
+		kind := "quality"
+		switch {
+		case colourLetter(q) != 0:
+			kind = "color"
+		case protectionCardType(q) != "":
+			kind = "type"
 		}
 		d.Options = append(d.Options, decision.Option{Index: i, Kind: kind, Label: q, Player: c.Controller})
 	}
-	if ans, ok := AskTape(h, d); ok && len(ans) > 0 {
+	if ans, ok, taken := AskTapeOrSuspend(h, d); ok && len(ans) > 0 {
 		for _, q := range offers {
 			if strings.EqualFold(q, strings.TrimSpace(ans[0].Label)) {
-				return q
+				return q, false
 			}
 		}
+		return offers[0], false
+	} else if taken {
+		return "", true
 	}
-	return offers[0]
+	return offers[0], false
 }
 
 // resolveGains turns Protection's Gains$ parameter into a concrete quality

@@ -1544,17 +1544,24 @@ const ExtMyriad ExtOp = 102
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
+// Protection (dirac/manifest/ExtOp/ExtProtectionChoice)
+//
+// ExtProtectionChoice: pause the resolution for the protection quality choice (gorge combatfx.go askProtectionChoice, ResumeKind "protectionchoice"; CR 702.16): a Protection Gains$ Choice whose Choices$ goes beyond plain AnyColor — colours, colorless (Giver of Runes), a card type (Apostle's Blessing, Razor Barrier, Jeweled Spirit) or the card types themselves (Pippin, Guard of the Citadel) — poses gorge's offer list in order, one option per quality. B is the option count; the answer rides res.chosen under resProtChoice, read back by the OvProtChoice override that follows (dirac/act_protectionchoice.go).
+const ExtProtectionChoice ExtOp = 103
+
+func init() { extOpNames[ExtProtectionChoice] = "ProtectionChoice" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 103
+const ExtRememberPlayer ExtOp = 104
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 104
+const ExtRepeatOptional ExtOp = 105
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 

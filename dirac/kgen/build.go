@@ -2769,6 +2769,37 @@ func (cb *cardBuilder) chosenColorOverridesOK(first int) error {
 	return nil
 }
 
+// protChoiceOverridesOK asserts the OvProtChoice contract: the n records
+// from first differ only in ProtFrom, each names a quality and no two name
+// the same one (lower_protection.go emitProtectionChoice).
+func (cb *cardBuilder) protChoiceOverridesOK(first, n int) error {
+	if first+n > len(cb.pt.overrides) {
+		return fmt.Errorf("protection-choice override: %d records from %d of %d", n, first, len(cb.pt.overrides))
+	}
+	base := cb.pt.overrides[first]
+	if base.ProtFrom == 0 {
+		return fmt.Errorf("protection-choice override %d names no quality", first)
+	}
+	seen := map[kop.FilterID]bool{base.ProtFrom: true}
+	base.ProtFrom = 0
+	for i := 1; i < n; i++ {
+		o := cb.pt.overrides[first+i]
+		cmp := o
+		cmp.ProtFrom = 0
+		if cmp != base {
+			return fmt.Errorf("protection-choice override %d differs beyond ProtFrom", first+i)
+		}
+		if o.ProtFrom == 0 {
+			return fmt.Errorf("protection-choice override %d names no quality", first+i)
+		}
+		if seen[o.ProtFrom] {
+			return fmt.Errorf("protection-choice override %d repeats a quality", first+i)
+		}
+		seen[o.ProtFrom] = true
+	}
+	return nil
+}
+
 func init() {
 	_ = strings.TrimSpace
 }

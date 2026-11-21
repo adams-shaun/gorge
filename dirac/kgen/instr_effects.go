@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -100,6 +101,25 @@ func (ic *instrCtx) opOverride() error {
 	}
 	if _, ok := fl["enterWith"]; ok {
 		ki.B = kop.Const(kop.OvEnterWith)
+	}
+	if nv, ok := fl["protChoice"]; ok {
+		// C names the FIRST of N records differing only in ProtFrom, one
+		// protection quality each in gorge's offer order
+		// (lower_protection.go emitProtectionChoice); B marks the op for
+		// the kernel's pick of the answered option's record.
+		n, err := strconv.Atoi(nv)
+		if err != nil || n < 2 {
+			return fmt.Errorf("protection choice family %q", nv)
+		}
+		for m := 1; m < n; m++ {
+			if _, err := cb.override(cb.c.overrides[in.C+m]); err != nil {
+				return err
+			}
+		}
+		ki.B = kop.Const(kop.OvProtChoice)
+		if err := cb.protChoiceOverridesOK(i, n); err != nil {
+			return err
+		}
 	}
 	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":
