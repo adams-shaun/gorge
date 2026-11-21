@@ -597,12 +597,46 @@ func prepCloneCopy(t *kop.Table, g *genPrep) {
 	}
 }
 
+// coldLeftCopy is each object's last left-the-battlefield copy card, plus one
+// (0 = none): gorge Object.LeftCopyFace (apply_zone.go's Move). A copy that
+// left the battlefield keeps the copied card's lines (CR 113.7a, 603.10a):
+// findTriggerForAbilityFace finds a trigger there after the live face lost it,
+// so the CR 603.5 optional ask is still posed for it (cloneTrigMoved). Cold
+// and only in a clone-copy table: that gate is its only reader.
+var coldLeftCopy = newCold[CardID]("leftCopy", func(g *genPrep) int {
+	if g.anyCloneCopy {
+		return MaxObj
+	}
+	return 0
+})
+
+// leftCopyCard is the card o last left the battlefield as a copy of, 0 when it
+// never did.
+func (s *State) leftCopyCard(o Obj) CardID {
+	r := coldLeftCopy.of(s)
+	if int(o) >= len(r) || r[o] == 0 {
+		return 0
+	}
+	return r[o] - 1
+}
+
+// leftCopySet records that o left the battlefield as a copy of c
+// (gorge LeftCopyFace). gorge keeps the basis across later non-copy departures
+// and only a further copy departure rewrites it, so this never clears.
+func (s *State) leftCopySet(o Obj, c CardID) {
+	if r := coldLeftCopy.of(s); int(o) < len(r) {
+		r[o] = c + 1
+	}
+}
+
 // cloneTrigMoved: the trigger on the stack was put by a source whose face is
 // no longer its card's (it became a copy of something else, or stopped being
 // one), and gorge can no longer find it. The ability keeps its own text (CR 113.7a),
 // so gorge looks for it on the live face and then, while the source is a copy, on
-// its printed card: a trigger found there is asked, one found nowhere (the source
-// stopped being a copy, or was a copy of another card when it triggered) is not.
+// its printed card, and last on the face the source last left the battlefield
+// as a copy of (findTriggerForAbilityFace's LeftCopyFace scan): a trigger found
+// there is asked, one found nowhere (the source stopped being a copy, or was a
+// copy of another card when it triggered) is not.
 //
 //go:noinline
 func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
@@ -630,6 +664,15 @@ func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
 			(cd.Faces[0] == e.card || cd.Faces[1] == e.card) {
 			return false
 		}
+	}
+	// the departed copy's face still owns its lines (CR 113.7a, 603.10a): a
+	// Necropede that a copy of it (True Polymorph) died as asks its CR 603.5
+	// "you may put a -1/-1 counter" whatever the reverted printed card reads
+	if s.leftCopyCard(e.obj) == e.card {
+		if DebugCloneCopyStats != nil {
+			DebugCloneCopyStats.Moved++
+		}
+		return false
 	}
 	return cur != e.card
 }

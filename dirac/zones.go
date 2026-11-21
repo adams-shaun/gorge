@@ -740,6 +740,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	p := &s.perms[sl]
 	p.flags &^= pfBatchGone // the departure is over for this member (fireLeave)
 	o := p.obj
+	if k.gen != nil && k.gen.anyCloneCopy && p.ovr.flags&ovCopy != 0 {
+		s.leftCopySet(o, p.ovr.copyOf) // gorge LeftCopyFace (apply_zone.go's Move, CR 400.7)
+	}
 	s.mSlClr(k, mechTappedTurn, sl) // the permanent leaves: its tapped-this-turn mark ends (filter_permmarks.go)
 	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)
 	s.g.graveKept = k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && s.genLost(k, sl)
