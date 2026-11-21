@@ -171,7 +171,8 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	// the same one legal_walk_hand.go's offer uses.
 	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
 	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
-		!s.dhWithholdsCast(k, p, o, &kc) { // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		!s.dhWithholdsCast(k, p, o, &kc) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		s.witnessKeepsTargets(k, p, c, o, &kc) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
