@@ -365,20 +365,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
 			continue
 		}
-		if a.Kind() == AkActivate {
-			// gorge's priority menu arm prices an activation from the floating
-			// pool or the planner alone (legal_walk_battlefield.go's
-			// offerCastable || autoPayOffer) and never consults a prefix search,
-			// so an activation it did not list is none of gorge's potential
-			// plays either (its potential walk enumerates the menu walk's
-			// options) and takes no script. The kernel's wider census walks can
-			// list one only its funding search pays (a repeatable net-negative
-			// fee gap's mana, tail-26 pair 35: the Merfolk's {1}{U} through
-			// Henge of Ramos's "{2},{T}: one mana of any color") — offering it
-			// would diverge from gorge's menu, which leaves the activation out
-			// on every surface (legal_walk_battlefield.go has no lowering arm).
-			continue
-		}
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
@@ -433,7 +419,23 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
 			// stepFilt), which the filter-only script skips (grantHasCost).
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
+			if a.Kind() == AkActivate {
+				// An activation's line the grant search prices may fund the
+				// filter's fee from a granted tap — and gorge's menu arm
+				// prices an activation from the floating pool or the payment
+				// planner, whose census of sources holds printed abilities
+				// only (pay/board.go PaymentAbility). A line that floats a
+				// grant's mana before the fee prices a set gorge's planner
+				// never sees, so the grant search prices no activation here:
+				// the filter-only script prices the lines the planner does
+				// (its floats are the printed sources', CR 601.2b; tail-26
+				// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
+				// "{2},{T}: one mana of any color", whose fee the grant
+				// search funded with two granted Elf taps).
+				if !s.filtScript(k, a, p, false) {
+					continue // no script within gorge's search budget (filtScript)
+				}
+			} else if ga, gstall := s.grantActScript(k, a, p); !ga {
 				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
 					// the filter-only script prices it (grantHasCost)
 				} else {
