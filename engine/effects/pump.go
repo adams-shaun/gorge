@@ -182,6 +182,9 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		att := numForObjectText(h, p.NumAtt, true, numAtt, o.ID)
 		def := numForObjectText(h, p.NumDef, false, numDef, o.ID)
 		registerPumpEffects(h, c, o.ID, att, def, false, false, grant, zone, chosenKW)
+		if p.CanBlockAny {
+			registerPumpCanBlockAny(h, c, o.ID, grant)
+		}
 		pumpedTargets = append(pumpedTargets, t)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
