@@ -409,6 +409,13 @@ func (s *State) initFromWorld(w *World) error {
 		return unstageable(ReasonLayout, "the table stalls at its start")
 	}
 	k := s.k()
+	if k.gen != nil && k.gen.crimeOn {
+		for i := range w.Stack {
+			if w.Stack[i].NT != 0 {
+				return unstageable(ReasonStackEntry, "the crime ledger is not in a view")
+			}
+		}
+	}
 	// Init dealt every seat an opening hand; take them all back and place
 	// each object as w says.
 	for p := range s.pl {

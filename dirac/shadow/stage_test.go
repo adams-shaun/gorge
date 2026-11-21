@@ -116,6 +116,7 @@ type stageStats struct {
 	firstDetail   map[string]string // the first error text of each reason, for a log
 	spells        int               // staged positions with a spell on the stack
 	abilities     int               // staged positions with an ability on the stack
+	targeted      int               // staged positions with a stack entry holding a target
 	deadTok       int               // positions skipped: a token had left the view after the last one shown
 	marked        int               // staged positions with damage or a +1/+1 counter
 	stacked       int               // staged positions with a stack entry
@@ -241,8 +242,9 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 
 // count tallies the features a staged world holds, once per position.
 func (st *stageStats) count(w *dirac.World) {
-	var dmg, ctr, att, tok, spell, abil, far bool
+	var dmg, ctr, att, tok, spell, abil, far, tgt bool
 	for i := range w.Stack {
+		tgt = tgt || w.Stack[i].NT != 0
 		if w.Stack[i].Ability {
 			abil = true
 		} else {
@@ -270,7 +272,7 @@ func (st *stageStats) count(w *dirac.World) {
 	for _, f := range []struct {
 		on bool
 		n  *int
-	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {spell, &st.spells}, {abil, &st.abilities}} {
+	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {spell, &st.spells}, {abil, &st.abilities}, {tgt, &st.targeted}} {
 		if f.on {
 			*f.n++
 		}
