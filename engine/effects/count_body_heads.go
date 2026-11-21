@@ -94,6 +94,28 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 				}
 				return lki.Counter(kind), true, true
 			}
+			// The source left the battlefield with no arm above binding it:
+			// an ability that sacrifices its own source MID-RESOLUTION
+			// (Magmasaur: "At the beginning of your upkeep, you may remove a
+			// +1/+1 counter from CARDNAME. If you don't, sacrifice CARDNAME
+			// and it deals damage equal to the number of +1/+1 counters on
+			// it ..."). The chain's Ctx was built before the departure, so
+			// TriggerContext.SourceLKIValid is the stale false, and the
+			// sacrifice is a plain DB$ Sacrifice with no RememberSacrificed$
+			// so nothing was captured. CR 608.2h still reads the source's
+			// last-known counters -- the ones it left with, rebuilt from the
+			// log's departure record exactly as SacrificedLKI rebuilds them
+			// for a cost-paid sacrifice. A source back on the battlefield is
+			// read live below.
+			if dh, ok := h.(departureCountersHost); ok {
+				if cs, ok := dh.DepartureCounters(c.Source); ok {
+					scratch := state.Object{Counters: cs}
+					if strings.EqualFold(kind, "ALL") {
+						return sumCounters(scratch.Counters), true, true
+					}
+					return scratch.Counter(kind), true, true
+				}
+			}
 		}
 		if o := g.Obj(c.Source); o != nil {
 			if strings.EqualFold(kind, "ALL") {
