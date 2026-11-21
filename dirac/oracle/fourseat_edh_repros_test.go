@@ -108,3 +108,30 @@ func TestAdelineRiderOtherOpponentWalkerLockstep(t *testing.T) {
 		t.Errorf("%d decisions, the game must go past decision %d", res.Decisions, adelineRiderFirstAt)
 	}
 }
+
+// Two players lose at once (combat damage from one attacker) while a third
+// seat's Zedruu stole permanents from each: gorge's expireControl runs at every
+// PlayerLost emit, so each loser's stolen permanents return in loss order
+// (CR 800.4a, 611.2b); the kernel ended every departed seat's effects in one
+// pass, in the effects' own order, and the returned permanents' battlefield
+// positions differed (four-seat edh pod 41 of the seed-2 128-pod sweep,
+// decision 3090; sweepDeparted now ends control per loss).
+const simulLossRepro = "simultaneous_loss_returns_stolen_permanents_in_loss_order"
+
+// simulLossFirstAt is the decision the recording diverged at before the fix.
+const simulLossFirstAt = 3090
+
+// TestSimultaneousLossControlReturnOrderLockstep: no divergence past the
+// recorded decision.
+func TestSimultaneousLossControlReturnOrderLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatEdhReplay(t, simulLossRepro)
+	if res.Div != nil {
+		t.Errorf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if res.Decisions <= simulLossFirstAt {
+		t.Errorf("%d decisions, the game must go past decision %d", res.Decisions, simulLossFirstAt)
+	}
+}

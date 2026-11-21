@@ -77,6 +77,9 @@ func runAtkShape(t *testing.T, deck []cardset.Entry, seeds int, mut *bool, on bo
 		var gs *GorgeSide
 		var hookStats podClassStats
 		pol := podClassPolicy(seed, func(c *PickCtx) bool {
+			if c.G != nil && c.G.fr != nil && c.G.fr.d != nil && c.G.fr.d.Kind == decision.KAttackers {
+				atkGoadTally(c.G.E.G, c.G.fr.d, st.tally)
+			}
 			if gs == nil && c.G != nil {
 				gs = c.G
 				gs.OnInternal = func(d *decision.Decision, idx int) {
@@ -408,4 +411,52 @@ var atkTaxGrantedExtraDeck = []cardset.Entry{
 func TestFourSeatAtkTaxGrantedExtraLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxGrantedExtraDeck, 12, 20, 0, []string{"Badgermole Cub", "Wild Growth"},
 		nil, &dirac.DebugAtkTaxNoGrantExtra)
+}
+
+// atkGoadTally counts a goaded creature's offers at an attackers ask: its
+// planeswalker pairs (kept only when no player pair is free), its player
+// pairs and whether it is marked Required.
+func atkGoadTally(g *state.Game, d *decision.Decision, tally map[string]int) {
+	for _, o := range d.Options {
+		if ob := g.Obj(o.Obj); ob == nil || len(ob.Goads) == 0 {
+			continue
+		}
+		switch {
+		case o.Battle != 0:
+			tally["goaded walker pair"]++
+		case o.Required:
+			tally["goaded required"]++
+		default:
+			tally["goaded unrequired player pair"]++
+		}
+	}
+}
+
+// A goad beside an attack tax (Disrupt Decorum's spell goad, Psychic and Shiny
+// Impetus's aura goad; CR 701.15b, 508.1d): gorge keeps a goaded creature's
+// player pairs only while one is free, and with every player pair charged
+// (Propaganda on each defender) the best satisfied duty is 0, so its
+// planeswalker pairs stay and it is not required. The mutation
+// (DebugAtkTaxGoadPlayersOnly) offers players only and always requires it.
+var atkTaxGoadDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Disrupt Decorum", Count: 3}, {Name: "Psychic Impetus", Count: 2}, {Name: "Shiny Impetus", Count: 2},
+	{Name: "Jace Beleren", Count: 2}, {Name: "Jace, Memory Adept", Count: 2},
+	{Name: "Savannah Lions", Count: 3}, {Name: "Elite Vanguard", Count: 3},
+	{Name: "Plains", Count: 6}, {Name: "Island", Count: 6}, {Name: "Mountain", Count: 6},
+}
+
+// TestFourSeatAtkTaxGoadLockstep: four-seat attack-tax games with goads play
+// in lockstep, a goaded creature reaching a planeswalker pair beside a tax.
+func TestFourSeatAtkTaxGoadLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxGoadDeck, 32, 5, 0, nil, nil, &dirac.DebugAtkTaxGoadPlayersOnly)
+	t.Run("reached", func(t *testing.T) {
+		st := runAtkShape(t, atkTaxGoadDeck, 32, &dirac.DebugAtkTaxGoadPlayersOnly, false)
+		t.Logf("%s", katTally(st.tally))
+		for _, n := range []string{"goaded walker pair", "goaded required", "goaded unrequired player pair"} {
+			if st.tally[n] < 2 {
+				t.Errorf("%s reached %d times, want >= 2", n, st.tally[n])
+			}
+		}
+	})
 }

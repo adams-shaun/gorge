@@ -123,7 +123,7 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 		return
 	}
 	r := tableReach(t)
-	g.atkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps
+	g.atkTaxStall = g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps
 	for i := range t.Cards {
 		g.atkTaxStall = g.atkTaxStall || atkTaxGap(&t.Cards[i])
 	}
@@ -170,9 +170,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 			nMana++
 		case kop.AbStatic:
 			switch a.Static.Kind {
-			case kop.StatGoad:
-				return true
-			case kop.StatMustAttack:
+			case kop.StatMustAttack: // a Goad static is read by combat_taxgoad.go
 				if !atkTaxMustOK(&a.Static) {
 					return true
 				}
@@ -184,7 +182,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 		}
 		for i := range a.Prog {
 			in := &a.Prog[i]
-			if in.Op == kop.OpGoad || in.Ext() == kop.ExtAttacksIfAble ||
+			if in.Ext() == kop.ExtAttacksIfAble ||
 				in.Op == kop.OpAddMana && (a.Kind == kop.AbActivated || in.B.K == kop.VConst && (in.B.N == 2 || in.B.N == 3)) {
 				return true
 			}
@@ -209,7 +207,7 @@ func atkTaxMustOK(st *kop.Static) bool { return st.B == 0 }
 // defender's player pair or a planeswalker's, not forbidden by a CantAttack
 // static or a sickness exemption, whose charge is zero and priceable. A
 // requirement beside a tax is read through it (mustAttackLeft,
-// declareMustAttack).
+// declareMustAttack: atkTaxRequired).
 func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
 	if DebugAtkTaxRequiredPaid {
 		return true
@@ -217,7 +215,7 @@ func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
 	var tg [MaxPerm + MaxSeats]TCode
 	sick := s.atkHasteSick(k, sl)
 	for _, t := range tg[:s.atkTaxTargets(k, &tg)] {
-		if n, ok := s.atkTaxCharge(k, sl, t); !ok || n != 0 {
+		if n, ok := s.atkTaxCharge(k, sl, t); !ok || n != 0 || s.atkTaxDefenderBanned(k, sl, t) {
 			continue
 		}
 		if isPlayerOrNone(t) {
@@ -232,6 +230,16 @@ func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// atkTaxRequired reports whether the creature at sl, which a requirement
+// binds, is required beside a tax: a goaded one by atkTaxGoadRequired (a goad
+// counts only at a free player pair), any other by atkTaxFreePair.
+func (s *State) atkTaxRequired(k *prep, sl Slot) bool {
+	if goadOn(k) && s.goadedAt(k, sl) {
+		return s.atkTaxGoadRequired(k, sl)
+	}
+	return s.atkTaxFreePair(k, sl)
 }
 
 // atkTaxFirstMana is the index of card c's first mana ability, -1 for none
@@ -792,7 +800,7 @@ func (s *State) atkTaxAnyOffer(k *prep) bool {
 		}
 		u := s.atkTaxUnits(k, sl)
 		for _, t := range tg[:nt] {
-			if n, ok := s.atkTaxCharge(k, sl, t); ok && (n == 0 || n+u <= budget) {
+			if n, ok := s.atkTaxCharge(k, sl, t); ok && (n == 0 || n+u <= budget) && !s.atkTaxDefenderBanned(k, sl, t) {
 				return true
 			}
 		}
