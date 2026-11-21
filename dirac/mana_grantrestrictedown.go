@@ -30,6 +30,21 @@ func (s *State) ownRestrAb(k *prep, sl Slot) *kop.Ability {
 	return &k.t.Cards[c].Abilities[rec.ab]
 }
 
+// ownRestrAbListed is ownRestrAb for a listing: a gate-off restricted ability
+// (its IsPresent$ mana gate fails) is absent from every list, as gorge lists
+// it nowhere (mana_gate.go's ManaActivationGateHolds holds for the priority
+// offer, the payment window and the planner census; restrDynBesideGrant's
+// same check).
+//
+//go:noinline
+func (s *State) ownRestrAbListed(k *prep, sl Slot) *kop.Ability {
+	ra := s.ownRestrAb(k, sl)
+	if ra != nil && ra.Trig.Cond != 0 && !s.manaGateHolds(k, ra, sl) {
+		return nil
+	}
+	return ra
+}
+
 // grantRestrOwnFirst: the cast window's "choose a mana ability" ask of sl, a
 // table-restricted source whose only own ability is its printed restricted
 // one beside a grant (Cargo Ship's artifact-only {C} under A Realm Reborn),
