@@ -1,0 +1,23 @@
+{
+  "card": "Otawara, Soaring City",
+  "class": "options",
+  "why": "gorge's one budgeted prefix search (potentialScriptNodes 160) decides whether Otawara's Channel is offered when its only blue comes from Starfleet Academy's {5},{T} any-colour ability (a paid census gap): it leaves the Channel census_incomplete and withholds it with every land untapped (dr-mbc-abbb pair 58, decision 579) yet offers it with two lands tapped (decision 584), while the kernel prices the plain planner's reach; a withhold keyed to the plain planner flips the divergence to 584, so no bounded kernel rule matches the search",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "channel_paid_any_colour_land_prefix_budget_unmodelled"
+  },
+  "evidence": [
+    "ev-tail-04-c000",
+    "ev-tail-04-c001",
+    "ev-tail-04-c002",
+    "ev-tail-04-c003",
+    "ev-tail-04-c004",
+    "ev-tail-04-c005",
+    "ev-tail-61-c059"
+  ]
+}
