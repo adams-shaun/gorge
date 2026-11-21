@@ -224,6 +224,31 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 	return xv
 }
 
+// filtReflectPick is the reflected extra (StTapReflect: Mana Flare) of a filter
+// activation whose colour is picked after its tap (Starfleet Academy's
+// {5},{T} any colour): one more mana of the pick, CR 106.12a. filtExtra leaves
+// it out because the pick is unknown there, so the activation floats it
+// beside its own mana. A fixed one-colour production already carries it in
+// filtExtra, and an all-at-once one defers it (mana_filtereach.go).
+func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return 0
+	}
+	a := s.filtAb(k, sl)
+	if a.Cost.Flags&kop.CostTap == 0 || a.ManaEach ||
+		a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
+		return 0
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if s.tapExtraReaches(k, st, sl, ctl) && st.a.Static.StFlags&kop.StTapReflect != 0 {
+			r += uint8(st.a.Static.B)
+		}
+		return true
+	})
+	return r
+}
+
 // srcExtraPick is the extra a tap of sl through the ability pc brings when it
 // makes colour col: a carrier limited to a {C} tap reaches only a {C} pick. A
 // source the extra cannot be priced on (not one plain tap) stalls, as srcExtra.
