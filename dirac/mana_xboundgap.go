@@ -266,8 +266,11 @@ func xBoundCountCensus(open bool, countEx *avail, units *[maxPotUnits]potUnit, l
 // whose fee nothing else funds adds nothing, so a filter beside one other
 // source pays no more than that source does.
 type gapSubsets struct {
-	n   int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
-	sub [1 << paidGapMax]gapSubset
+	n int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
+	// repeats: an admitted paid gap is repeatable, so the census is not
+	// relaxable and the sweep's supply is the over-bound pool (xBoundPayable)
+	repeats bool
+	sub     [1 << paidGapMax]gapSubset
 }
 
 type gapSubset struct {
@@ -291,6 +294,7 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
+	gs.repeats = d.gapRepeats
 	if n == 0 || n > paidGapMax || d.gapRepeats {
 		// a repeatable gap (Crossroads Candleguide's "{2}: Add one mana of any
 		// color") makes gorge's census non-relaxable: its relaxed proof never
