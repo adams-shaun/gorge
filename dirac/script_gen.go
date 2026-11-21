@@ -419,7 +419,23 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
 			// stepFilt), which the filter-only script skips (grantHasCost).
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
+			if a.Kind() == AkActivate {
+				// An activation's line the grant search prices may fund the
+				// filter's fee from a granted tap — and gorge's menu arm
+				// prices an activation from the floating pool or the payment
+				// planner, whose census of sources holds printed abilities
+				// only (pay/board.go PaymentAbility). A line that floats a
+				// grant's mana before the fee prices a set gorge's planner
+				// never sees, so the grant search prices no activation here:
+				// the filter-only script prices the lines the planner does
+				// (its floats are the printed sources', CR 601.2b; tail-26
+				// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
+				// "{2},{T}: one mana of any color", whose fee the grant
+				// search funded with two granted Elf taps).
+				if !s.filtScript(k, a, p, false) {
+					continue // no script within gorge's search budget (filtScript)
+				}
+			} else if ga, gstall := s.grantActScript(k, a, p); !ga {
 				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
 					// the filter-only script prices it (grantHasCost)
 				} else {
