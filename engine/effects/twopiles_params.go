@@ -50,8 +50,7 @@ func twoPilesKeepsRemembered(sa *cards.SA) bool {
 	if sa == nil {
 		return false
 	}
-	_, ok := sa.Params["KeepRemembered"]
-	return ok
+	return sa.HasParam(cards.PKKeepRemembered)
 }
 
 // twoPilesFixedSet is the non-battlefield card set a DefinedCards$ spec names,
