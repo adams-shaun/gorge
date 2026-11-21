@@ -20,7 +20,10 @@ const (
 	podSeats       = 4
 	podGames       = 160
 	podCombatGames = 240
-	podModes       = 9
+	// podDepartedGames is the games of the departed-seat verifier: each plays to
+	// the first loss, late in the game.
+	podDepartedGames = 60
+	podModes         = 9
 )
 
 // podsEnv is the vanilla pool at four seats. Seeds 0 mod 4 take the first
@@ -43,6 +46,23 @@ func podsEnv() *stageEnv {
 			})
 		}
 		return true
+	}
+	return env
+}
+
+// podsDepartedEnv is podsEnv wanting only positions after a seat has left the
+// game (a lost player in the view).
+func podsDepartedEnv() *stageEnv {
+	env := vanillaEnv()
+	env.seats = podSeats
+	env.want = func(seed uint64, v *view.View, _ *decision.Decision) bool {
+		lost := 0
+		for _, p := range v.Players {
+			if p.Lost {
+				lost++
+			}
+		}
+		return lost >= 1+int(seed%2) // odd seeds wait for a second seat to leave
 	}
 	return env
 }
@@ -87,6 +107,30 @@ func TestStagePodsMatchReplay(t *testing.T) {
 	}
 	if st.marked < 20 || st.stacked < 10 || st.farAttack < 20 {
 		t.Errorf("the pods exercised too little: %d marked, %d stacked, %d non-adjacent attack positions staged", st.marked, st.stacked, st.farAttack)
+	}
+}
+
+// TestStagePodsDepartedMatchReplay: positions after a seat has left the game
+// stage and match the replayed game, played out to its end. A game costs about
+// half a second (the seat leaves late), so it runs podDepartedGames, not
+// podGames, to stay inside the test budget.
+func TestStagePodsDepartedMatchReplay(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	env := podsDepartedEnv()
+	st := newStats()
+	failed := 0
+	for seed := uint64(1); seed <= podDepartedGames; seed++ {
+		if msg := stageGame(reg, env, seed, st, nil); msg != "" {
+			t.Error(msg)
+			if failed++; failed >= 5 {
+				break
+			}
+		}
+	}
+	t.Logf("%d four-seat games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", podDepartedGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
+	t.Logf("staged positions with a departed seat %d, with two %d", st.departed, st.departed2)
+	if st.departed < 20 || st.departed2 < 5 {
+		t.Errorf("the departed pods exercised too little: %d positions with a departed seat, %d with two, want 20 and 5", st.departed, st.departed2)
 	}
 }
 
@@ -188,4 +232,24 @@ func TestStagePodMutationsAreCaught(t *testing.T) {
 	runMutations(t, reg, podCombatEnv(), map[string]func(*dirac.World){"blocking defender moved": muts["blocking defender moved"]})
 	delete(muts, "blocking defender moved")
 	runMutations(t, reg, podsEnv(), muts)
+	runMutations(t, reg, podsDepartedEnv(), map[string]func(*dirac.World){"departed seat revived": reviveDeparted})
+}
+
+// reviveDeparted puts the objects of every departed seat back in its library, as
+// if it had not left. Its life goes back up too: at 0 the staged game's state-based
+// actions would make the seat leave again and undo the mutation.
+func reviveDeparted(w *dirac.World) {
+	for p := uint8(0); p < w.NSeat; p++ {
+		if !w.Lost[p] {
+			continue
+		}
+		w.Lost[p], w.Life[p] = false, 20
+		n := uint8(0)
+		for i := range w.Objs {
+			if o := &w.Objs[i]; o.Owner == p && o.Zone == kop.ZoneNone {
+				o.Zone, o.Pos = kop.ZoneLibrary, n
+				n++
+			}
+		}
+	}
 }
