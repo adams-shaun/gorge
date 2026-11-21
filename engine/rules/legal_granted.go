@@ -210,7 +210,7 @@ func (e *Engine) grantedKeywordLinesFull(id state.ObjID) []string {
 				break
 			}
 		}
-		if dup || e.printedKeywordCovered(id, k) || cards.GrantedKeywordAbility(k) == nil {
+		if dup || e.printedKeywordCovered(id, k) || grantedKeywordSA(e.G.Obj(id), k) == nil {
 			continue
 		}
 		out = append(out, k)
