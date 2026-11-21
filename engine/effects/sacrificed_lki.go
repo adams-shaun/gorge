@@ -38,16 +38,25 @@ func SacrificedLKI(h Host, id state.ObjID) state.SacrificedInfo {
 		}
 		return s
 	}
-	if dh, ok := h.(departureCountersHost); ok {
-		if cs, ok := dh.DepartureCounters(id); ok {
-			departed := state.Object{Counters: cs}
-			dp, dt := departed.CounterPTTotals()
-			s.Power = int32(o.Face().Power()) + dp
-			s.Toughness = int32(o.Face().Toughness()) + dt
-			s.Counters = positiveCounters(cs)
-		}
+	if cs, ok := departedCounters(h, id); ok {
+		departed := state.Object{Counters: cs}
+		dp, dt := departed.CounterPTTotals()
+		s.Power = int32(o.Face().Power()) + dp
+		s.Toughness = int32(o.Face().Toughness()) + dt
+		s.Counters = positiveCounters(cs)
 	}
 	return s
+}
+
+// departedCounters is the one place the optional departureCountersHost read
+// is asserted: the counters id carried when it last left the battlefield,
+// rebuilt from the event log (CR 608.2h).
+func departedCounters(h Host, id state.ObjID) ([]state.Counter, bool) {
+	dh, ok := h.(departureCountersHost)
+	if !ok {
+		return nil, false
+	}
+	return dh.DepartureCounters(id)
 }
 
 // sacrificedInfoFor returns the capture this resolution took for id under
