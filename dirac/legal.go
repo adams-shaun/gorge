@@ -1051,6 +1051,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if cd.HasAltAdd {
 		cost := s.altAddPlanCost(k, p, c, o)
+		if anyColor && mayPlay && !s.g.mayPlayAny {
+			cost = planUnderRider(cost, false, true) // an any-colour may-play cast funds the composed price with its coloured pips generic (pay.PlanManaUnderRider; CR 609.4b)
+		}
 		if s.g.availX&availGaps != 0 {
 			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
 		}
