@@ -209,3 +209,27 @@ var atkTaxBounceDeck = []cardset.Entry{
 func TestFourSeatAtkTaxBounceLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxBounceDeck, 24, 20, []string{"Azorius Chancery"}, []string{"Azorius Chancery"}, &dirac.DebugAtkTaxEachOne)
 }
+
+// Reflected mana ("{T}: Add one mana of any color that a land an opponent
+// controls could produce": Fellwar Stone, Exotic Orchard). gorge lists the
+// source in the window's fixed pass as one unit (a blank Produced$ is the
+// executor's one-colourless default, windowManaUnits) but resolves its
+// ManaReflected ability unpinned: with several colours on offer the colour ask
+// it poses is displaced by the window's next tap ask, so the tap makes no
+// mana, and when the window ran out of sources the abandoned declaration
+// leaves the ask posed, answered with the first colour (rules
+// attackPayAnswer, askManaColor). The mutation (DebugAtkTaxReflPin) pins the
+// first colour at the tap.
+var atkTaxReflDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
+	{Name: "Fellwar Stone", Count: 3}, {Name: "Exotic Orchard", Count: 2},
+	{Name: "Plains", Count: 8}, {Name: "Island", Count: 4},
+}
+
+// TestFourSeatAtkTaxReflectedLockstep: four-seat attack-tax games with
+// reflected-mana sources play in lockstep, the window tapping them.
+func TestFourSeatAtkTaxReflectedLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxReflDeck, 24, 20, []string{"Fellwar Stone", "Exotic Orchard"},
+		[]string{"Fellwar Stone", "Exotic Orchard"}, &dirac.DebugAtkTaxReflPin)
+}
