@@ -150,6 +150,7 @@ Fire Urchin
 Fire at Will
 Fleeting Memories
 Flickerwisp
+Font of Magic
 Forced Worship
 Forest
 Forest Bear
@@ -321,6 +322,7 @@ Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
 Ridgescale Tusker
+Riding Red Hare
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle

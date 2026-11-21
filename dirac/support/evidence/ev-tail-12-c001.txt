@@ -53,6 +53,7 @@ Chocobo Knights
 Cinder Seer
 Cinderbones
 Cloudthresher
+Coalition Flag
 Combat Medic
 Compulsion
 Coral Eel
@@ -227,6 +228,7 @@ Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
 Ranger-Captain of Eos
+Rangers of Ithilien
 Raph's Bravado
 Rat Colony
 Rats of Rath

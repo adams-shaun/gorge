@@ -53,6 +53,7 @@ Cackling Counterpart
 Capashen Knight
 Carnifex Demon
 Cathars' Crusade
+Cathodion
 Censor
 Charix, the Raging Isle
 Chitinous Cloak
@@ -293,6 +294,7 @@ Rootbound Crag
 Roterothopter
 Rubble Reading
 Ruin Crab
+Rune of Protection: Black
 Runed Stalactite
 Ryusei, the Falling Star
 Saber Ants
