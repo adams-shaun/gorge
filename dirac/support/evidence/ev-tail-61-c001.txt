@@ -221,6 +221,7 @@ Monastery Flock
 Monumental Corruption
 Mountain
 Mwonvuli Acid-Moss
+Myr Moonvessel
 Mysterious Tome
 Nagao, Bound by Honor
 Najal, the Storm Runner
@@ -400,6 +401,7 @@ Unbreakable Formation
 Unstable Frontier
 Vampire Revenant
 Vega, the Watcher
+Veiled Ascension
 Verdant Rebirth
 Viashino Runner
 Viridian Corrupter

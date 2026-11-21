@@ -1,6 +1,7 @@
 Abraded Bluffs
 Abyssal Hunter
 Aeronaut Admiral
+Airdrop Condor
 Alhammarret, High Arbiter
 Aligned Heart
 Altar of Bhaal
@@ -27,6 +28,9 @@ Concord with the Kami
 Conduit Pylons
 Consider
 Consign
+Constable of the Realm
+Courier's Briefcase
+Covert Operative
 Creosote Heath
 Crested Herdcaller
 Curious Killbot
@@ -61,6 +65,7 @@ Gilt-Blade Prowler
 Goblin Artillery
 Goblin Cadets
 Goblin Champion
+Goblin Goon
 Goldnight Commander
 Grisly Spectacle
 Grovetender Druids
@@ -71,6 +76,7 @@ Harvesttide Sentry
 Heartless Pillage
 Heron's Grace Champion
 High Score
+Hog-Monkey Rampage
 Humble
 Hunting Moa
 Imaginary Friends
@@ -99,12 +105,16 @@ Maximize Velocity
 Mending Touch
 Merfolk Seastalkers
 Meriadoc Brandybuck
+Mindeye Drake
 Moira, Urborg Haunt
 Monumental Corruption
 Mountain
+Myr Moonvessel
 Mysterious Tome
 Nagao, Bound by Honor
 Necrotic Ooze
+Nekrataal
+Nettle Drone
 Nightshade Harvester
 Nightsoil Kami
 Nissa, Resurgent Animist
@@ -123,18 +133,24 @@ Plains
 Planar Atlas
 Possessed Centaur
 Power Sink
+Prescient Chimera
 Pygmy Troll
+Quench
 Rage Forger
 Reckless Pangolin
 Relic Barrier
 Relic Vial
+Rhonas's Monument
 Rhovanion Rampager
 Roc Egg
+Rogue Refiner
 Safehold Sentry
 Savage Silhouette
 Scarlet Witch, Wanda Maximoff
+Sculptor of Winter
 Security Bypass
 Selesnya Locket
+Sengir Autocrat
 Shatterskull Recruit
 Simic Signet
 Sip of Hemlock
@@ -152,11 +168,14 @@ Steam Spitter
 Steely Resolve
 Steppe Lynx
 Stolen Grain
+Stonehorn Dignitary
+Stormscape Master
 Stream of Consciousness
 Strength of the Pack
 Strongarm Monk
 Struggle for Skemfar
 Stun Sniper
+Sturdy Hatchling
 Sunweb
 Survivor of Korlis
 Swamp
@@ -176,6 +195,8 @@ Tooth of Chiss-Goria
 Town Gossipmonger
 Trigon of Thought
 Triumph of the Hordes
+Turn Aside
+Twincast
 Unbreakable Formation
 Viscerid Deepwalker
 Vizier of the Scorpion
@@ -185,6 +206,7 @@ Wakandan Tusker
 Wall of Forgotten Pharaohs
 Wall of Limbs
 War Chariot
+Ward Sliver
 Watchful Giant
 Wave of Terror
 Whirlwind, Killer Cyclone
