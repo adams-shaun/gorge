@@ -1,9 +1,12 @@
 package azredeal
 
 import (
+	"bytes"
 	"os"
+	"runtime"
 	"slices"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -71,6 +74,46 @@ type podAsk struct {
 	turn int32 // the game turn at the ask
 }
 
+// azmcts.Watch and Millis are process globals, so the pod games that run in
+// parallel share one dispatcher, installed once by TestMain, that hands each
+// Diag to the function registered by the goroutine that played the decision
+// (a game's seats all answer on the goroutine that calls PlayGame). A Diag
+// from an unregistered goroutine is dropped, as it was with Watch nil.
+var (
+	watchers sync.Map // goroutine id -> func(azmcts.Diag)
+	procT0   = time.Now()
+)
+
+func TestMain(m *testing.M) {
+	azmcts.Watch = func(d azmcts.Diag) {
+		if f, ok := watchers.Load(goroutineID()); ok {
+			f.(func(azmcts.Diag))(d)
+		}
+	}
+	azmcts.Millis = func() float64 { return float64(time.Since(procT0)) / float64(time.Millisecond) }
+	os.Exit(m.Run())
+}
+
+// goroutineID is the calling goroutine's id, parsed from its stack header.
+func goroutineID() uint64 {
+	var buf [64]byte
+	b := bytes.TrimPrefix(buf[:runtime.Stack(buf[:], false)], []byte("goroutine "))
+	id, err := strconv.ParseUint(string(b[:bytes.IndexByte(b, ' ')]), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
+// watchThisGoroutine routes the Diags decided on this goroutine to f until
+// the test ends.
+func watchThisGoroutine(t *testing.T, f func(azmcts.Diag)) {
+	t.Helper()
+	id := goroutineID()
+	watchers.Store(id, f)
+	t.Cleanup(func() { watchers.Delete(id) })
+}
+
 // playPod plays the pod game with az-redeal (Hosted() plus tune) at azSeat.
 func playPod(t *testing.T, gameSeed uint64, azSeat int, tune func(*azmcts.SeatConfig)) podRun {
 	t.Helper()
@@ -102,11 +145,8 @@ func playPod(t *testing.T, gameSeed uint64, azSeat int, tune func(*azmcts.SeatCo
 	}
 
 	var run podRun
-	prevWatch, prevMillis := azmcts.Watch, azmcts.Millis
 	t0 := time.Now()
-	azmcts.Watch = func(d azmcts.Diag) { run.diags = append(run.diags, d) }
-	azmcts.Millis = func() float64 { return float64(time.Since(t0)) / float64(time.Millisecond) }
-	t.Cleanup(func() { azmcts.Watch, azmcts.Millis = prevWatch, prevMillis })
+	watchThisGoroutine(t, func(d azmcts.Diag) { run.diags = append(run.diags, d) })
 
 	var live *rules.Engine
 	run.cfg = cfg
@@ -151,7 +191,16 @@ func TestAZRedealFourSeatCommanderGame(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays a 4-seat Commander game")
 	}
-	run := playPod(t, podSeed, 0, nil)
+	t.Parallel()
+	// The game and its same-seed rerun play side by side.
+	var run, again podRun
+	t.Run("games", func(t *testing.T) {
+		t.Run("first", func(t *testing.T) { t.Parallel(); run = playPod(t, podSeed, 0, nil) })
+		t.Run("again", func(t *testing.T) { t.Parallel(); again = playPod(t, podSeed, 0, nil) })
+	})
+	if t.Failed() {
+		t.FailNow()
+	}
 	if run.out.IsStalled() {
 		t.Fatalf("game stalled on %q at turn %d (%d intents)", run.out.StallOn, run.out.Turns, run.out.Intents)
 	}
@@ -198,7 +247,6 @@ func TestAZRedealFourSeatCommanderGame(t *testing.T) {
 	}
 	t.Logf("seat 0 was asked %v", asked)
 
-	again := playPod(t, podSeed, 0, nil)
 	if again.e.L.Head() != run.e.L.Head() {
 		t.Fatalf("the same seed gave two games: head %s, then %s", run.e.L.Head(), again.e.L.Head())
 	}
@@ -236,6 +284,7 @@ func TestAZRedealSkipsLostSeats(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays a 4-seat Commander game")
 	}
+	t.Parallel()
 	run := playPod(t, podLostSeed, 0, func(c *azmcts.SeatConfig) {
 		c.Search.OpponentNodes = true
 		c.Search.Sims = min(c.Search.Sims, 4)
