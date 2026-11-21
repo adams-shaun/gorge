@@ -20,12 +20,14 @@ var changeCombatantsForms = []formCase{
 
 func TestChangeCombatantsShapes(t *testing.T) { checkForms(t, changeCombatantsForms) }
 
-// TestIsGoadedDepartedObjectRefuses: Baeloth's dies trigger reads IsGoaded on
-// the departed creature. gorge clears the goad on the zone move, so its match
-// is false where the kernel would still read the goad (seed 30 of the four-seat
-// combatantsgoad pod diverged); the card is refused by name until gorge's
-// look-back is settled.
-func TestIsGoadedDepartedObjectRefuses(t *testing.T) {
+// TestGoadedDiesTriggerLowers: Baeloth's dies trigger reads IsGoaded on the
+// departing creature, and both sides read it the CR 603.10a way -- gorge
+// matches the move on the last-known-information object's goad records
+// (trigmatch/zone.go's look-back pass, StaticallyGoadedWithLKI for the static
+// route), the kernel reads the goad the permanent still holds at its
+// removal-point Dies firing. Seed 30 of the four-seat combatantsgoad pod once
+// diverged on it, when gorge's look-back read the post-move object.
+func TestGoadedDiesTriggerLowers(t *testing.T) {
 	checkForms(t, []formCase{{card: "Baeloth Barrityl, Entertainer", form: "IsGoaded in a Battlefield->Graveyard ValidCard$",
-		refused: "IsGoaded on a departed object"}})
+		lir: "trigger Dies F={types=0x2 Attacking cmp(41 0 1"}})
 }
