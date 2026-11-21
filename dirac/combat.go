@@ -729,7 +729,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 			}
 			return
 		}
-		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
+		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
 			return // gorge Alone$ / Attacked$ (filter_predicates.go)
 		}
 		if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
