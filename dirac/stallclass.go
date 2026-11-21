@@ -121,7 +121,7 @@ var stallUnmodelledReasons = [...]uint8{
 	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
 	StallAtkTax,
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
-	StallMyriadPW,          // a Myriad ask whose asked player controls a planeswalker: gorge offers the walker beside the player, the kernel poses the player-and-decline pair (kw_myriad.go)
+	StallMyriadPW,          // no longer raised: a Myriad ask's walker arm is modelled (kw_myriad.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
 	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
 	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount of 255 or more (repl_prevnext.go)
