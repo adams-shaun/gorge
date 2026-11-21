@@ -295,6 +295,12 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 					}
 				}
 			}
+			if alts, ok := identityManaAlts(asPayer(e), p, o, ma, mf); ok {
+				for _, a := range alts {
+					units = pay.AppendUnitAlt(units, id, a)
+				}
+				continue
+			}
 			if !mf.Any || !mf.FreeCost || mf.Amount <= 0 ||
 				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
 				continue
@@ -437,4 +443,34 @@ func (e *Engine) availablePaidAbilities(p state.PlayerID, id state.ObjID, o *sta
 		}
 	}
 	return out, maxLife
+}
+
+// wubrgIndex is colour letter c's index in W U B R G order, or -1.
+func wubrgIndex(c string) int {
+	for i, l := range [...]string{"W", "U", "B", "R", "G"} {
+		if c == l {
+			return i
+		}
+	}
+	return -1
+}
+
+// identityManaAlts prices "Add one mana of any color in your commander's
+// color identity" (Command Tower, CR 903.4, 605.3a) for unlessWindowUnits: a
+// free-tap, amount-1 ability is a finite colour pick, one pinned alt per
+// identity colour, so the offer gate prices it exactly as the activation it
+// later taps. No identity colour prices nothing (fail closed); ok is false for
+// any other ability.
+func identityManaAlts(e pay.Engine, p state.PlayerID, o *state.Object, ma *cards.SA, mf pay.ManaStatic) ([]windowManaAlt, bool) {
+	if !mf.FreeCost || mf.Amount != 1 || (mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) ||
+		!pay.IsColourIdentityProduced(effects.ManaOf(ma).Produced) {
+		return nil, false
+	}
+	var counts [6]int32
+	for _, c := range pay.CommanderIdentityColours(e, p) {
+		if i := wubrgIndex(c); i >= 0 {
+			counts[i] = 1
+		}
+	}
+	return pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts), true
 }
