@@ -137,7 +137,7 @@ func (s *State) detach(o Obj) kop.Zone {
 		if s.g.linkHide != 0 {
 			s.hideUnlinkObj(o) // a Hideaway card leaves its link (kw_hideaway.go)
 		}
-		if s.g.nexw != 0 {
+		if s.osAnyOf(osMExw) {
 			s.exwLeaveExile(o) // its reverse exiled-with link ends (zone_exiledwith.go)
 		}
 	case kop.ZoneBattlefield:
@@ -892,7 +892,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}
-	if s.g.nexw != 0 {
+	if s.osAnyOf(osMExw) {
 		s.exwSourceLeft(o) // refresh the links this source exiled
 	}
 	if k.gen != nil {
