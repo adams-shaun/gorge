@@ -65,6 +65,10 @@ func restrProvHolds(n int16, o restrOrigin) bool {
 		r = o.from == kop.ZoneExile
 	case 4:
 		r = o.from != kop.ZoneHand
+	case 7:
+		// wasCastFromYourGraveyard: the offer reads the object's graveyard
+		// zone, the payment the pushed entry's origin (castOriginAdmitsAtZone)
+		r = o.from == kop.ZoneGraveyard && (o.byYou || !o.cast)
 	}
 	return r != (n&16 != 0)
 }

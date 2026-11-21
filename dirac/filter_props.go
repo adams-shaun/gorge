@@ -452,6 +452,13 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	if n == kop.W7WithSkulk {
 		return s.hasSkulkPerm(k, sl)
 	}
+	if n == kop.W7WithDevoid {
+		// gorge withDevoid on a battlefield object: the printed keyword, none
+		// while face down or after a lose-all-abilities effect
+		c := s.cardAt(sl)
+		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false
 	}
@@ -480,6 +487,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7WithInfect:
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
+	case kop.W7WithDevoid:
+		ans = c != kop.NoCard && k.t.Cards[c].Devoid
 	case kop.W7WithSkulk:
 		ans = c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0
 	case kop.W7Snow:

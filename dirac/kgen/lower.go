@@ -157,6 +157,7 @@ type lowerCtx struct {
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
 	tgtProv        bool      // the filter being read is a plain Counter's ValidTgts$ (TgtSpell): wasCastFromTheirHand may lower (lower_countertgtprov.go)
+	spellGraveOK   bool      // the spell-side read may lower wasCastFromYourGraveyard (a mana ability's Spell. RestrictValid$ only, lower_restrictedmana_words.go)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -1190,7 +1191,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// Cascade stays refused (lower_effect.go)
 			lc.out.Cascade++
 		case head == "Devoid" && param == "":
-			// lowerRecord reads it (the face is colourless)
+			// lowerRecord reads it (the face is colourless); withDevoid reads the flag
+			lc.out.Devoid = true
 		case strings.TrimSpace(k) == mayNotUntapKW:
 			// CR 502.3: gorge hasUntapStepChoice reads this bare line; the
 			// kernel's untap step asks the controller (repl_untapchoice.go)
@@ -3020,21 +3022,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			c.CmpV = &v
 		}
 		if c.CmpStat == cmpWasCast && lc.spellProvOK && !lc.wasCastOK {
-			// the same words read on a spell on the stack
-			if c.CmpN&wasCastSpentZero != 0 {
-				return nil, refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
+			if err := lc.spellSideCast(c, expr); err != nil { // the same words read on a spell on the stack
+				return nil, err
 			}
-			if c.CmpN&wasCastWebSling != 0 {
-				return nil, refuse("filter %q: webSlinged on a spell", expr)
-			}
-			if c.CmpN&^wasCastNot != wasCastAny {
-				return nil, refuse("filter %q: wasCastFromGraveyard on a spell", expr)
-			}
-			n := spellCast
-			if c.CmpN&wasCastNot != 0 {
-				n = spellNot
-			}
-			c.CmpStat, c.CmpN = cmpWasCastSpell, n
 		}
 	}
 	for _, c := range f.Clauses {

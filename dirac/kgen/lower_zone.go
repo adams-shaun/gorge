@@ -4304,11 +4304,12 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
 	// read the spell being paid for: allowed on this filter only, never
 	// the Activated one (gorge restrictValidTermMatches)
-	save := lc.spellProvOK
-	lc.spellProvOK = true
-	defer func() { lc.spellProvOK = save }()
+	save, saveGrave := lc.spellProvOK, lc.spellGraveOK
+	lc.spellProvOK, lc.spellGraveOK = true, true
+	defer func() { lc.spellProvOK, lc.spellGraveOK = save, saveGrave }()
 	var spellClauses, staticClauses []lClause
 	var act []string
+	var never []int // act terms that match nothing (lower_restrictedmana_words.go)
 	for _, alt := range strings.Split(rv, ",") {
 		alt = strings.TrimSpace(alt)
 		switch {
@@ -4332,7 +4333,13 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			}
 			spellClauses = append(spellClauses, f.Clauses...)
 		case strings.HasPrefix(alt, "Activated."):
-			act = append(act, "Card."+strings.TrimPrefix(alt, "Activated."))
+			tail := strings.TrimPrefix(alt, "Activated.")
+			if neverActivatedWord(tail) {
+				never = append(never, len(act))
+				act = append(act, "Card")
+				continue
+			}
+			act = append(act, "Card."+tail)
 		case alt == "Activated":
 			// Gorge restrictValidTermMatches (pay/payment.go:606-607):
 			// an undotted Activated is d.Class == PurposeActivated with
@@ -4365,7 +4372,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			return refuse("mana restriction %q", rv)
 		}
 	}
-	lc.spellProvOK = save
+	lc.spellProvOK, lc.spellGraveOK = save, saveGrave
 	m.Restrict = nil
 	if len(spellClauses)+len(staticClauses) > 0 {
 		m.Restrict = &lFilter{Clauses: append(spellClauses, staticClauses...)}
@@ -4381,6 +4388,9 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	if len(act) > 0 {
 		if m.RestrictAb, err = lc.filter(strings.Join(act, ",")); err != nil {
 			return err
+		}
+		if !blankNeverClauses(m.RestrictAb, len(act), never) {
+			return refuse("mana restriction %q: an activated alternative that lowers to several clauses", rv)
 		}
 		var ok bool
 		if m.RestrictAbZones, ok = restrictAbZones(act, m.RestrictAb); !ok {
