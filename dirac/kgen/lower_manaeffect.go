@@ -46,19 +46,12 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		lc.addTarget(lTarget{F: f, Zone: zNone})
 		ps.consume("ValidTgts")
 	}
-	rv, _ := ps.get("RestrictValid")
-	if lc.out.Types&tArtifact != 0 && !lc.fbGranted && !dbManaActOnly(rv) && !dbManaPersistNonSpell(rv, ps) { // a granted Firebending's source is the attacker, not this host (lower_firegrant.go)
-		// An activated-only restriction (kop.SpmActivated) is the one typed
-		// shape the kernel records: addManaRestr sets poolArtRestr.
-		// an artifact source's mana is typed (gorge effects.ManaProducerTag
-		// reads the printed face) and gorge's planned payment refuses a
-		// pool holding typed mana (pay.PlanPoolOK); the kernel's pool
-		// carries no typed bit, so every triggered DB$ Mana from an
-		// artifact source diverges, fixed or Amount$ (Myr Moonvessel and
-		// The Vision and Scarlet Witch on both lockstep surfaces;
-		// Cathodion and Su-Chi)
-		return refuse("DB$ Mana of an artifact source (typed mana)")
-	}
+	// An artifact source's resolving mana is typed and lowers: the kernel tags
+	// the units it adds the way the mana-ability path does (poolAddFrom's
+	// artTagN; gorge effects.ManaProducerTag reads the printed face), and
+	// gorge's planned payment reads a typed unit as plain mana of its colour
+	// (pay.PlanPool). A restricted add is typed the other way (addManaRestr's
+	// poolArtRestr, lower_dbmanarestr.go).
 	for _, k := range []string{"AddsKeywords", "AddsCounters"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("DB$ Mana %s$", k)
@@ -173,13 +166,6 @@ func (lc *lowerCtx) manaEffect(ps *params) error {
 		lc.emit(lInstr{Op: "AddMana", Obj: recipient, A: cst(1), B: persist, CS: c, F: restrict})
 	}
 	return nil
-}
-
-// dbManaPersistNonSpell: the resolving mana restricted to artifact spells and
-// kept until end of turn (Karn, Legacy Reforged), which the artifact-source
-// refusal lets through to the checks that follow the restriction.
-func dbManaPersistNonSpell(rv string, ps *params) bool {
-	return strings.TrimSpace(rv) == "CantCastNonArtifactSpells" && ps.is("PersistentMana", "True")
 }
 
 // manaChoiceEffect lowers a resolving DB$ Mana over a colour choice (CR 106.3;

@@ -106,6 +106,7 @@ func (s *State) snowTag(k *prep, p uint8, sl Slot, col int) {
 func (s *State) poolAddFrom(k *prep, p uint8, card CardID, col, n int) {
 	s.poolAdd(p, col, n)
 	s.snowTagN(k, p, card, col, n)
+	s.artTagN(k, p, card, col, n) // an artifact's (or a Desert's, a Cave's) mana is typed (mana_artifact.go)
 }
 
 // snowTagN is snowTag for n units a resolving spell or ability of card added
