@@ -33,11 +33,11 @@ func TestImprintedCDAPowerAndToughnessAgreeEveryZone(t *testing.T) {
 	e := layerEngine(t)
 	yeti := onBoard(t, e, 0, "Name:Yeti\nManaCost:3 G\nTypes:Snow Creature Yeti\nPT:3/3\nOracle:x\n")
 	tree := inExile(t, e, 0, "Name:Treefolk\nManaCost:2 G U\nTypes:Snow Creature Treefolk\nPT:*/*\nK:Trample\n"+
-		"S:Mode$ Continuous | CharacteristicDefining$ True | SetPower$ X | SetToughness$ X\n"+
-		"SVar:X:Count$Valid Permanent.Snow+YouCtrl\nOracle:x\n")
+		"S:Mode$ Continuous | SetToughness$ N | SetPower$ N | CharacteristicDefining$ True\n"+
+		"SVar:N:Count$Valid Permanent.YouCtrl+Snow\nOracle:x\n")
 	ing := onBoard(t, e, 0, "Name:Ingester\nManaCost:4 G G\nTypes:Creature Beast\nPT:3/3\n"+
-		"S:Mode$ Continuous | AddPower$ X | AddToughness$ Y\n"+
-		"SVar:X:Imprinted$CardPower\nSVar:Y:Imprinted$CardToughness\nOracle:x\n")
+		"S:Mode$ Continuous | AddPower$ P | AddToughness$ T\n"+
+		"SVar:T:Imprinted$CardToughness\nSVar:P:Imprinted$CardPower\nOracle:x\n")
 	e.G.Obj(ing).Imprinted = []state.ObjID{tree}
 
 	// Preconditions: the exile really holds the counting CDA (one snow
