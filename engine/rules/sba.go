@@ -388,6 +388,7 @@ func (e *Engine) checkStateBased() {
 		}
 		askedBefore := e.pending
 		e.applySBABatch(&b)
+		e.forgetHealedCasualties(&b, tried)
 		asked := e.pending != nil && e.pending != askedBefore
 		if asked {
 			for _, c := range b.dead {
