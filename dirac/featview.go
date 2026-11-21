@@ -908,13 +908,16 @@ func (s *State) affordsUngrantedFor(k *prep, p uint8, cost *kop.ManaCost, ex Slo
 }
 
 // affordsUngrantedAv is affordsUngrantedFor over a caller-built census
-// (chosenPairPrefix's search: its assignments applied to ungrAvail's).
+// (chosenPairPrefix's search: its assignments applied to ungrAvail's). A {S}
+// pip of cost rides the pool's snow units (avail.affords refuses every {S}
+// cost: only the pool holds snow mana, snowCensusAffords).
 func (s *State) affordsUngrantedAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, av *avail, ms *modalSet) bool {
 	rm := s.restrFloatAdmits(k, SeatIx(p), &d)
 	// restrSrcNone precondition: restrSrcAffords runs only once av.affords failed (||).
 	for c := 0; c < 1<<ms.n; c++ {
 		b := ms.modes(*av, c)
-		if b.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
+		if b.affords(cost, pipMaskOf(cost), 0) || s.snowCensusAffords(p, cost, &b) ||
+			k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
 			return true
 		}
 		if rm != 0 {
