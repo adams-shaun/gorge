@@ -28,16 +28,19 @@ func (s *State) filtFeeGaps(k *prep, f slotMask) slotMask {
 
 // feeOrderFallback reports whether gorge's fee-order run follows the plain run
 // fs, which found no script: a plain cast of the printed cost on a board of
-// filter gaps alone, one of them a fee gap, whose own cost sacrifices or
+// filter gaps, one of them a fee gap, whose own cost sacrifices or
 // returns nothing and whose gaps hold no hybrid fee on any mana ability of
 // their faces (gapFaceHybIn; those are the phased order's own scope, gorge
 // phasedScope). The plain run's budget must have run out: a completed search
 // saw every state the reordered one reaches. It records the fee gaps on fs —
 // only on success, so a declined fallback leaves the plain run's search as it
 // was (every read is gated on fs.feeOrder, but the field is the fallback's to
-// set).
+// set). Other gaps beside the filters (Scald's Taps-deferred Islands) do not
+// decline it: gorge builds the run whenever a fee gap exists and walks the other
+// gaps as the order's last pass (Jace's Projection at two life beside three
+// Islands under Scald and an Overflowing Basin).
 func (s *State) feeOrderFallback(k *prep, p uint8, a Action, fs *filtSearch) bool {
-	if fs.pay != nil || fs.other.any() || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
+	if fs.pay != nil || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
 		return false
 	}
 	feeGaps := s.filtFeeGaps(k, fs.gaps)
