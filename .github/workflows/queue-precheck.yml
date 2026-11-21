@@ -11,12 +11,19 @@
 # - Green: posts a success status. Red: re-runs only the failing items on main plus each prefix of the queue, and
 #   posts a failing `queue-precheck` status on the PR that breaks them. .mergify.yml's queue_conditions then
 #   dequeue that PR before its batch runs.
-# A newer main cancels a running check: only the queue against the newest main matters.
+# A run is never cancelled; a newer trigger waits as the one pending run (GitHub keeps the newest pending run of the
+# group). 11-21 batch #3045 went red on #2976 (a stale refusal in TestRefusedEntriesStillDiverge, in the replay set)
+# because no check ever finished on it: main moved in bursts every few minutes, each push cancelled the running
+# check (8-15 min), and the 05:54 and 06:07Z runs that would have held #2976 both died. A run also starts when Mergify
+# opens a batch PR, so the batch being formed is checked at once; a culprit found while its batch runs is still
+# dequeued, and Mergify re-forms the batch without it instead of bisecting.
 name: queue-precheck
 
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened]
   workflow_dispatch:
 
 permissions:
@@ -26,11 +33,12 @@ permissions:
 
 concurrency:
   group: queue-precheck
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   precheck:
-    if: github.repository == 'adams-shaun/gorge'
+    # A pull request triggers it only when it is one of Mergify's batch PRs, from this repository.
+    if: github.repository == 'adams-shaun/gorge' && (github.event_name != 'pull_request' || (startsWith(github.head_ref, 'mergify/merge-queue/') && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     steps:
