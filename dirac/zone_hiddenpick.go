@@ -64,9 +64,13 @@ func (s *State) battlefieldCands(k *prep, in *kop.Instr, d *Decision) {
 //
 //go:noinline
 func (s *State) pickLeaves(k *prep, o Obj, z kop.Zone) (parked bool) {
+	pw, addLK := s.pickRemLKPower(k, o) // zone_rememberlki.go: the power before the leave
 	s.leave(k, s.objs[o].slot, z, false)
 	if p := &s.g.pre; p.kind == akCmdZone && p.state == preCmdZone && p.obj == o && s.res.ask == raGenCmdZone {
 		return true
+	}
+	if addLK {
+		s.remLKSum(pw)
 	}
 	if s.g.pickF&kop.SrRemember != 0 {
 		s.remember(o)
