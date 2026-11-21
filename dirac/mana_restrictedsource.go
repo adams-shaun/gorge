@@ -948,6 +948,23 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 	return m
 }
 
+// filtRestrOtherAdmits: the restricted ability filtRestrMask reads at sl may pay
+// a non-spell, non-activation payment (a Powerstone's {C}, CR 106.6). An unless
+// or ward census pay search (filtSearch.census) funds a filter's {1} fee only
+// from sources gorge's unlessWindowUnits lists, and that census keeps a
+// restricted source out unless its restriction admits pay.PurposeOther: an
+// "activate an ability or cast an artifact spell" {C} (Automated Artificer)
+// funds no Shadowblood Ridge fee beside a Rhystic Study's {1}, so gorge offers
+// decline only there.
+func (s *State) filtRestrOtherAdmits(k *prep, p uint8, sl Slot) bool {
+	c := s.cardAt(sl)
+	rec := k.gen.restrRecOf(c)
+	if rec == nil {
+		return false
+	}
+	return s.restrSrcAdmits(k, p, sl, &k.t.Cards[c].Abilities[rec.ab], &payDesc{class: pdOther, src: NoSlot})
+}
+
 // filtRestrDo plays the restricted answer st: the source's restricted mana
 // floats (State.rb).
 func (s *State) filtRestrDo(k *prep, p uint8, st filtStep) {

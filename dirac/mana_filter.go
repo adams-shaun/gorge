@@ -2400,6 +2400,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			rm := uint8(0)
 			if k.restrSrc {
 				rm = t.filtRestrMask(k, sl)
+				if rm != 0 && fs.census && fs.pay != nil && !t.filtRestrOtherAdmits(k, p, sl) {
+					rm = 0 // the unless / ward census lists no restricted source its restriction bars from a non-spell payment
+				}
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
