@@ -40,6 +40,7 @@ func TestBotOnlyActivatesInAMainPhase(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	names, decks := testutil.SampleDecks(t, 4)
 	e := rules.New(rules.Config{Seed: 0, Names: names, Decks: decks})
 	e.Advance()
@@ -338,6 +339,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	for _, tc := range []struct {
 		name string
 		new  func(uint64) *Bot
@@ -358,7 +360,10 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 			return NewBot(seed).EnablePostureRules(botpolicy.PostureRules{Attack: true, Reserve: true})
 		}},
 	} {
-		t.Run(tc.name, func(t *testing.T) { agreeOverWholeGame(t, tc.new) })
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			agreeOverWholeGame(t, tc.new)
+		})
 	}
 }
 
@@ -412,6 +417,7 @@ func TestBotAdaptersAgreeOverPregamePod(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	names, decks, cmds, err := testutil.CommanderAcceptanceDecks(reg)
 	if err != nil {
