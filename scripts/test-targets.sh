@@ -377,6 +377,9 @@ fi
 # fast tier and every repro replay) each summed past the 5m cap in one call on a loaded box (0.2-0.7 idle cores),
 # so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet (91-195 s) is
 # a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+# ORACLE_CHUNKS round-robin chunks (11-21: 4 still let one chunk pass the 5m cap on a loaded gate box, test-smart
+# BUDGET on #3135's diff, which never touched the oracle; each extra chunk costs a few seconds of binary start).
+ORACLE_CHUNKS=8
 oracle_chunked() {
 	local names rx k chunks=() r=0
 	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | sort) || names=
@@ -386,8 +389,8 @@ oracle_chunked() {
 		return
 	fi
 	! grep -qx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" || chunks+=('^TestCmd5SliceCleanOnlyGrows$')
-	for k in 0 1 2 3; do
-		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k 'NR % 4 == k' | paste -sd'|')
+	for ((k = 0; k < ORACLE_CHUNKS; k++)); do
+		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k -v n=$ORACLE_CHUNKS 'NR % n == k' | paste -sd'|')
 		[ -z "$rx" ] || chunks+=("^($rx)\$")
 	done
 	for rx in "${chunks[@]}"; do
