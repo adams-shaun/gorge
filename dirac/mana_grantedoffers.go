@@ -2041,7 +2041,7 @@ func (g *grantSrch) gapTapBranchable(t *State, i int, sl Slot) bool {
 // activated play's prefix search runs over its funding sources too).
 func (g *grantSrch) fundTwinTried(t *State, sl Slot, tried []Slot) bool {
 	for _, a := range tried {
-		if twinSlotOf(t, a, sl) {
+		if twinSlotFx(g.k, t, a, sl) {
 			return true
 		}
 	}
