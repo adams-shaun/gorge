@@ -101,6 +101,7 @@ Forest
 Foulmire Knight
 Fracturing Gust
 Frost Lynx
+Fury Storm
 Galestrike
 Garruk's Lost Wolf
 Gatekeeper Gargoyle
