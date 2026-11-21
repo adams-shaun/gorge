@@ -52,10 +52,8 @@ func Main(args []string) int {
 	why := flags.String("why", "", "with -refuse: one line saying what differs")
 	class := flags.String("class", "lockstep", "with -refuse: the kind of difference, the refused list's grouping")
 	repro := flags.String("repro", "", "with -refuse: the game that shows it, POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]")
-	grantedEmbalm := flags.Bool("granted-embalm", false, "lower Cursecloth Wrappings' granted Embalm:CardManaCost (off until gorge prices it at the card's mana cost; see lower_embalmgrant.go)")
 	unrefuse := flags.String("unrefuse", "", "delete this card's dirac/support/refused entry instead of generating")
 	flags.Parse(args)
-	grantedEmbalmLowers = *grantedEmbalm
 	if *refuse != "" {
 		return exitStatus(runRefuse(*cardsDir, *refuse, *class, *why, *repro, os.Stdout))
 	}

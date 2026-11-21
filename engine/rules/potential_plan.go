@@ -417,7 +417,10 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		}
 		// The cast planner's witness also rides Decision.PaymentActions.
 		return got, true
-	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
+	case o.Kind == "ability" && o.SVar == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
+		if o.Keyword != "" {
+			return planKeywordAbility(e, asPayer(e), p, e.G.Obj(o.Obj), o), true
+		}
 		if ob := e.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
 			got := potentialAbilityPlan(e, p, ob, o.Ability, e.G.Players[p].Life)
 			pa, ok := ob.PileAbilityAt(o.Ability)
@@ -470,6 +473,58 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return got, true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// planKeywordAbility is the witness for a keyword-granted activation (CR
+// 613.1f, an AddKeyword$ or Pump KW$ grant of Cycling, Embalm and the like):
+// the body the offer walk synthesized from the option's keyword line, planned
+// as planAbilityPaymentLifePips plans a printed one, and confirmed against the
+// offer gate when its cost has a part the mana plan does not reserve (Embalm's
+// self-exile). A shape that planner prices with a retry (a Phyrexian pip, a
+// Waterbend part, a creature-tap mana credit, a target-dependent cost static)
+// is left unsupported rather than priced here without it.
+func planKeywordAbility(pl keywordAbilityPlanner, payer pay.Engine, p state.PlayerID, ob *state.Object, o decision.Option) PaymentPlanOutcome {
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}
+	if ob == nil || ob.Face() == nil {
+		return unsupported
+	}
+	ab := grantedKeywordSA(ob, o.Keyword)
+	if ab == nil || cards.IsManaAbilitySA(ab) || pay.TapCreaturesForMana(ab) {
+		return unsupported
+	}
+	cost, ok := pay.FixLifeXCost(payer, p, o.Obj, pl.abilityCompiledCost(ab).Cost)
+	if !ok {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
+	}
+	if len(cost.Phyrexian) != 0 || cost.Waterbend > 0 {
+		return unsupported
+	}
+	if n := pl.ownReduceCostOffer(p, o.Obj, ab, 0); n > 0 && cost.Generic >= n {
+		cost.Generic -= n
+	} else if n > 0 {
+		cost.Generic = 0
+	}
+	statics := pl.collectCostStatics()
+	composed := pl.offerCostForUsing(statics, p, o.Obj, cost, abilityScope(ab))
+	got := pl.planComposedCost(p, o.Obj, composed, true, true)
+	if (got.Plan == nil || got.Reason != "") && statics.validTarget {
+		return unsupported
+	}
+	if got.Plan != nil && got.Reason == "" && abilityPlanUnreservedPart(pl.abilityCompiledCost(ab).Cost) &&
+		!pl.potentialWitnessOffers(p, o, *got.Plan) {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
+	}
+	return got
+}
+
+// keywordAbilityPlanner is the slice of the engine planKeywordAbility reads.
+type keywordAbilityPlanner interface {
+	abilityCompiledCost(sa *cards.SA) *compiledCost
+	ownReduceCostOffer(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) int32
+	collectCostStatics() costStaticViews
+	offerCostForUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
+	planComposedCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome
+	potentialWitnessOffers(p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool
 }
 
 // spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the

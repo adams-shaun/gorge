@@ -1,0 +1,13 @@
+# The granted-embalm pool (dirac/oracle/expandedkw4_granted_lockstep_test.go):
+# Cursecloth Wrappings' Embalm:CardManaCost on cheap white creature cards in a
+# graveyard, against burn and Hill Giants that put them there.
+Cursecloth Wrappings
+Elite Vanguard
+Forest
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Mountain
+Plains
+Savannah Lions
+Swamp

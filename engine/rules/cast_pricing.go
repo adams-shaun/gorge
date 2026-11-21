@@ -29,6 +29,17 @@ func (pc *pendingCast) isSpecialAction() bool {
 	return pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.mode == "foretell"
 }
 
+// grantedKeywordSA is the synthesized body of keyword line on o: the same pure
+// function of the line as cards.GrantedKeywordAbility, except a CardManaCost
+// token in the line prices at o's own printed mana cost (CR 702.128a,
+// Cursecloth Wrappings' Embalm:CardManaCost).
+func grantedKeywordSA(o *state.Object, line string) *cards.SA {
+	if o == nil || o.Face() == nil {
+		return cards.GrantedKeywordAbility(line)
+	}
+	return cards.GrantedKeywordAbilityFor(line, o.Face().ManaCost)
+}
+
 // pcAbility resolves the proposal's ability body. A printed activation reads
 // its Face().Abilities index; a granted activation resolves
 // the SVar anchor off the GRANTOR's face -- the recipient's face has no such
@@ -39,6 +50,9 @@ func (pc *pendingCast) isSpecialAction() bool {
 // caller degrades the way a stale option always has.
 func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
 	if pc.grantKeyword != "" {
+		if o := e.G.Obj(pc.card); o != nil {
+			return grantedKeywordSA(o, pc.grantKeyword)
+		}
 		// A keyword-granted body (CR 613.1f, the AddKeyword$ Cycling/TypeCycling
 		// route): synthesized from the derived keyword line, a pure function of
 		// the string -- no state read, so every read site and a replay re-derive

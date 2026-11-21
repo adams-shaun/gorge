@@ -525,7 +525,7 @@ func (w *legalWalk) battlefieldWalk() {
 						panic(fmt.Sprintf("rules: pile-ability skip dropped %d options of obj %d in zone %d", len(*out)-pileMark, id, z))
 					}
 					for _, line := range w.grantedKeywordLines(board, o, id, f, faceFacts) {
-						ab := cards.GrantedKeywordAbility(line)
+						ab := grantedKeywordSA(o, line)
 						if ab == nil || !abilityZoneOK(ab, z) {
 							continue
 						}
