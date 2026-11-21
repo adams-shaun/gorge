@@ -2309,6 +2309,9 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
+		if in.Obj == kop.RefRemembered {
+			s.delayEmptyRider(in) // nothing remembered: no copy, but the rider's trigger exists (copy_emptyrider.go)
+		}
 		return false
 	}
 	c := s.objs[o].card
