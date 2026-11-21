@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -65,7 +66,7 @@ var blightWho = regexp.MustCompile(`(Defined|ValidTgts)\$ ([A-Za-z.]+)`)
 // the blighting player's name. A new shape fails the census and must be
 // added with its own adder pin.
 func TestBlightEffectShapesAttributeCountersToTheBlighter(t *testing.T) {
-	root := filepath.Join(testutil.CorpusDirOrSkip(t), ".cards", "cardsfolder")
+	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	shapes := map[string]int{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
