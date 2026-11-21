@@ -525,7 +525,8 @@ var predicates = map[string]predFn{
 	// FlagTeamworkPaid and survives later CastInfo events and the
 	// stack->battlefield move, so it reads on the spell during resolution
 	// (Timeline Inquiry's ConditionPresent$ Card.Self+Teamwork) and on the
-	// permanent at its ETB. Absent a paid tap it fails closed to false.
+	// permanent at its ETB. Absent a paid tap, or on a copy (never cast,
+	// CR 707.10), it fails closed to false.
 	"Teamwork": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.TeamworkPaid
 	},

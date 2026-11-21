@@ -140,7 +140,8 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 	// Card.Self+Teamwork predicate. During CR 601.2c, however, targets are
 	// announced before payment: PendingTeamwork supplies the declared intent
 	// (CR 702.194b-c), and a later declined payment does not retroactively
-	// change that target set. Copies use the paid provenance on their object.
+	// change that target set. A copy is never cast (CR 707.10), so its object never
+	// carries the paid fact and it reads the unpaid branch.
 	// Branch tokens resolve through dotBranch (literal or SVar); malformed
 	// bodies fail closed.
 	if rest, ok := strings.CutPrefix(head, "Teamwork."); ok {
