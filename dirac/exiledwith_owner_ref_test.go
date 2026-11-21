@@ -31,10 +31,35 @@ func TestExiledWithOwnerRefSeat(t *testing.T) {
 	if got := s.exiledWithOwnerSeat(ctx); got != 1 {
 		t.Fatalf("bear exiled in seat 1's exile: seat %d, want 1", got)
 	}
-	// A second linked card in seat 0's exile wins on seat order.
+	// Several linked cards in ONE seat's exile: gorge asks that seat once.
+	exwExile(sc, c["land"], 1, host)
+	if got := s.exiledWithOwnerSeat(ctx); got != 1 {
+		t.Fatalf("two linked cards in seat 1's exile: seat %d, want 1", got)
+	}
+	if r := s.StallReason(); r != StallNone {
+		t.Fatalf("one seat holding every linked card stalled with %d, want none", r)
+	}
+}
+
+// TestExiledWithOwnerMultiSeatStalls pins the guard: linked cards in two
+// seats' exile zones are a shape RefExiledWithOwner (one seat) cannot
+// represent while gorge acts on every matching seat, so the read latches
+// StallLowering and still returns the first seat in seat order.
+func TestExiledWithOwnerMultiSeatStalls(t *testing.T) {
+	sc, _, c := exwStatScen(t)
+	s := sc.s
+	host := sc.perm(c["host"], 0)
+	ctx := evalCtx{src: host, srcSl: sc.slot(host), ctrl: 0}
+	exwExile(sc, c["bear"], 1, host)
+	if got := s.exiledWithOwnerSeat(ctx); got != 1 || s.StallReason() != StallNone {
+		t.Fatalf("one linked seat: seat %d stall %d, want seat 1 and no stall", got, s.StallReason())
+	}
 	exwExile(sc, c["land"], 0, host)
 	if got := s.exiledWithOwnerSeat(ctx); got != 0 {
-		t.Fatalf("land exiled in seat 0's exile: seat %d, want 0 (seat order)", got)
+		t.Fatalf("two linked seats: seat %d, want 0 (first in seat order)", got)
+	}
+	if r := s.StallReason(); r != StallLowering {
+		t.Fatalf("two linked seats: stall %d, want StallLowering %d", r, StallLowering)
 	}
 }
 
