@@ -381,7 +381,6 @@ Bebop & Rocksteady
 Bebop, Warthog Warrior
 Beck
 Bedevil
-Bedhead Beastie
 Befuddle
 Begin the Invasion
 Behind the Mask
@@ -1887,7 +1886,6 @@ Guardian of Solitude
 Guardian of the Halls
 Guidelight Matrix
 Guidelight Optimizer
-Guidelight Pathmaker
 Guidelight Synergist
 Guiding Hydra
 Guinan, Ancient Advisor
@@ -2446,7 +2444,6 @@ La'An Noonien-Singh, Security
 Laboratory Brute
 Labyrinth Champion
 Labyrinth Minotaur
-Labyrinth Raptor
 Lagomos, Hand of Hatred
 Lagorin, Soul of Alacria
 Lake-town
@@ -2512,7 +2509,6 @@ Lightning Angel
 Lightning Berserker
 Lightning Coils
 Lightning Helix
-Lightning Skelemental
 Lightning, Army of One
 Lightshield Parry
 Lightwheel Enhancements
@@ -2730,7 +2726,6 @@ Memorial to Glory
 Memory Guardian
 Memory Trap
 Memory Worm
-Mendicant Core, Guidelight
 Mental Modulation
 Merchant of Venom
 Merciless Eviction
@@ -2788,7 +2783,6 @@ Mind Whip
 Mind into Matter
 Mindful Biomancer
 Mindseeker Oculus
-Mindspring Merfolk
 Mine Raider
 Minion Missile
 Minion Reflector
@@ -3395,7 +3389,6 @@ Rainveil Rejuvenator
 Raised by Giants
 Rakdos Headliner
 Rakdos Joins Up
-Rakdos Ringleader
 Rakdos, Lord of Riots
 Rakdos, Patron of Chaos
 Rakdos, the Muscle
@@ -3707,7 +3700,6 @@ Satyr Wayfinder
 Saurian Explorer
 Saurian Symbiote
 Savage Knuckleblade
-Savage Land Dinosaur
 Savage Order
 Savanti Romero, Time's Exile
 Saved by the Shell
@@ -4924,7 +4916,6 @@ Vorosh, the Hunter
 Vote Out
 Vow of Duty
 Vow to Erebor
-Voyage Home
 Voyage's End
 Voyager Glidecar
 Voyager Quickwelder

@@ -351,6 +351,7 @@ Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
+Silumgar Spell-Eater
 Silver-Inlaid Dagger
 Silversmote Ghoul
 Skittering Monstrosity
@@ -450,4 +451,5 @@ Woodland Sleuth
 Wretched Confluence
 Xander's Lounge
 Xathrid Slyblade
+Yes Man, Personal Securitron
 Zhao, the Seething Flame
