@@ -210,7 +210,10 @@ func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relax
 		// a tap trigger that adds mana beside a source's tap makes a production
 		// no census unit prices (CR 605.4a)
 		if k.gen.anyTapExtra {
-			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
+			pc := s.windowGrantPC(k, sl)
+			// an all-at-once source's reflected pick (srcEachPick) is no unit
+			// of this proof either: gorge defers the source
+			if _, hit := s.srcExtraHit(k, sl, pc); hit || s.srcEachPick(k, sl, pc) > 0 {
 				complete, relaxable, gains = false, false, true
 			}
 		}

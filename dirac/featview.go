@@ -980,6 +980,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 			s.addOneColour(av, pc.manaN)
 		}
 		s.addReflectOne(k, av, sl, pc)
+		s.addEachPick(k, av, sl, pc)
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
 			for c := range xv {
