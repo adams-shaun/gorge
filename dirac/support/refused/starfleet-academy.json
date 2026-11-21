@@ -1,0 +1,18 @@
+{
+  "card": "Starfleet Academy",
+  "class": "lockstep",
+  "why": "its {5},{T} \"add X mana of one chosen colour\" (X = creature types among non-Borg creatures) is a paid dynamic-amount census gap: with five Forests and an Orion land beside it gorge's prefix search exhausts its 160-node budget (plain and phased runs) and withholds the cast of Subcommander T'Pol; the kernel's open any-colour production offers it (CR 601.2g, 605.3b)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "paid_dynamic_mana_source_cast_offer"
+  },
+  "evidence": [
+    "ev-std-trk",
+    "std-trk"
+  ]
+}
