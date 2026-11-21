@@ -702,6 +702,14 @@ type painAvail struct {
 //
 //go:noinline
 func (s *State) painTight(k *prep, p uint8, a *avail) {
+	s.painTightAt(k, p, a, int(s.pl[p].life))
+}
+
+// painTightAt is painTight with the life the summed guard reads cut to eff
+// (the payer's life less what a restricted life unit of the payment pays,
+// restrLifeCharge): a painful unit's colours stay in a on the payer's own
+// life, so the groups carry whichever of them eff no longer admits.
+func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 	life := int(s.pl[p].life)
 	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen != nil && k.gen.anyContGrant {
 		return // at 1 life availFor already withheld every painful colour
@@ -758,16 +766,16 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		}
 		pa.cnt[g]++
 	}
-	if rpAny && (sum >= life || modal) {
+	if rpAny && (sum >= eff || modal) {
 		// the groups' budget counts activations, not mana: a unit whose tap
 		// makes one mana of the pick more has no per-activation price here
 		s.capFull(StallTapExtra)
 		return
 	}
-	if sum < life && !modal {
+	if sum < eff && !modal {
 		return
 	}
-	pa.budget = uint8(min(life-1, 255))
+	pa.budget = uint8(min(eff-1, 255))
 	// take the painful colours back out of a: each painland unit is its
 	// normal ability's, each pain-only unit none
 	for g := uint8(0); g < pa.n; g++ {
