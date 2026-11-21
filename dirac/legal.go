@@ -2113,6 +2113,19 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	return true
 }
 
+// widenGrant merges a granted {T} mana ability's production into sl's one tap
+// unit (the per-tap census's one mana per tap): the unit's colours widen and
+// its count grows to the larger production, one tap making either the native
+// production or the granted one. The unit keeps its pick mark and the cheaper
+// pain, as mergeTapN's widening does.
+func (c *potCensus) widenGrant(sl Slot, mask, n uint8) {
+	t := c.tap[sl]
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+	t = potUnit{mask: t.mask | mask, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick}
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+	c.tap[sl] = t
+}
+
 // growTap widens sl's recorded tap unit by r more mana of the same pick (a
 // reflected TapsForMana extra over a several-type production: one tap makes
 // one mana of the pick plus r more of it). The unit keeps its union mask but
@@ -2492,7 +2505,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		if n := gatePairPotential(pc); n != 0 {
 			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
 		}
-		s.potentialGrantedExtra(k, sl, d, boundedAny, add, &open, &anyFree)
+		s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
@@ -2662,21 +2675,45 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 }
 
 // potentialGrantedExtra admits the mana abilities granted to sl beside its own
-// one (an aura's "{T}: Add two mana of any one color"): each counts on its own,
-// as gorge's walk admits each of a source's abilities. A source with no usable
-// grant leaves open and anyFree alone.
-func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add func(Slot, uint8, uint8), open *bool, anyFree *int) {
+// one (an aura's "{T}: Add one mana of any color"): the over-bound pool counts
+// each on its own, as gorge's walk admits each of a source's abilities, while
+// the per-tap census prices a {T}-costed grant into the source's one tap unit
+// -- a source taps once (CR 605.3b; gorge's planner makes one mana per tap),
+// so the grant widens that unit's colours instead of adding a second mana
+// beside the native production, and an X-bound-target sweep's verdict
+// (xBoundPayable) reads the board the planner does. A grant without the
+// source's tap unit (no native {T} ability) or one that costs more than the
+// tap keeps the unit of its own. A source with no usable grant leaves open
+// and anyFree alone.
+func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add, fold func(Slot, uint8, uint8), cen *potCensus, open *bool, anyFree *int) {
 	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || !s.ownManaUsable(k, sl) {
 		return
 	}
 	var gi [maxGrants]int16
 	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
+		mask := s.srcMaskAt(gv, sl)
+		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 {
+			cen.widenGrant(sl, mask, gv.manaN)
+			if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+				// the pot's wildcard bookkeeping (potentialGrantedUnit's):
+				// bounded mode prices the grant once as wildcard units;
+				// an unbounded pool opens it and adds nothing
+				*open = true
+				if boundedAny {
+					*anyFree += int(gv.manaN)
+					fold(sl, mask, gv.manaN)
+				}
+				continue
+			}
+			fold(sl, mask, gv.manaN)
+			continue
+		}
 		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open
 			continue
 		}
-		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+		add(sl, mask, gv.manaN)
 	}
 }
 
