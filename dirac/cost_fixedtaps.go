@@ -49,6 +49,7 @@ func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 	pm := pipMaskOf(cost)
 	for m := 0; m < 1<<ms.n; m++ {
 		b := ms.modes(*av, m)
+		b.ungr = true
 		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, c, cost, &b, pm) {
 			return true
 		}
@@ -72,6 +73,7 @@ func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 // their units -- census or restricted (rd) -- out of the mana it prices.
 func (s *State) restrSrcReserves(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, c *kop.Cost, src Slot, b *avail, pm uint8) bool {
 	t, _, _ := s.restrSrcAvail(k, p, d, b, ex)
+	t.ungr = b.ungr
 	return s.costPartDisjointD(k, p, src, c, cost, &t, pm, &d)
 }
 
