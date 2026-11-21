@@ -2,6 +2,9 @@ package rules
 
 import "github.com/adams-shaun/gorge/engine/state"
 
+// sbaLethalDamageText is the casualty text of a CR 704.5g/h lethal-damage destruction.
+const sbaLethalDamageText = "lethal damage"
+
 // forgetHealedCasualties lets the next pass of this call re-read a creature whose
 // lethal-damage destruction a replacement answered by removing its damage (umbra
 // armor, CR 702.89a). CR 704.3 rechecks the board after every batch, and the
@@ -11,12 +14,12 @@ import "github.com/adams-shaun/gorge/engine/state"
 // forever does not spend the pass budget; a creature with nothing marked cannot be
 // found lethal by damage again, so only the zero-toughness sweep can reach it, and
 // that attempt is a "toughness <= 0" one, which is never forgotten.
-func (e *Engine) forgetHealedCasualties(b *sbaBatch, tried *sbaAttempts) {
+func forgetHealedCasualties(g *state.Game, b *sbaBatch, tried *sbaAttempts) {
 	for _, c := range b.dead {
-		if c.text != "lethal damage" || !tried.objs[c.id] {
+		if c.text != sbaLethalDamageText || !tried.objs[c.id] {
 			continue
 		}
-		o := e.G.Obj(c.id)
+		o := g.Obj(c.id)
 		if o == nil || o.Zone != state.ZBattlefield || o.Damage > 0 || o.Counter("Deathtouched") != 0 {
 			continue
 		}
