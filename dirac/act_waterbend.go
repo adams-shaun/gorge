@@ -669,7 +669,10 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		// no printed one, and a tap extra can still ride it (Honest Work's
 		// Humble Merchant under Badgermole Cub).
 		if k.gen.anyTapExtra {
-			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
+			pc := s.windowGrantPC(k, sl)
+			// an all-at-once source's reflected pick (srcEachPick) is priced
+			// only by the census and plan, not by this probe: gorge defers it
+			if _, hit := s.srcExtraHit(k, sl, pc); hit || s.srcEachPick(k, sl, pc) > 0 {
 				return false
 			}
 		}
