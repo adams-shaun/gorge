@@ -481,11 +481,30 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // windowClampSkip: the clamp reads the colours of each ability the source
 // offers (gorge paymentSourceUseful): a counter-cost ability's colour keeps
 // the source listed (windowCtrOffer), though the window's answer still takes
-// the source's plain first one (windowCol). Reports whether windowPick may
-// skip the source without offering it.
+// the source's plain first one (windowCol). A reflected ability is never
+// priced by that clamp at all (windowReflUseful): gorge's paymentSourceUseful
+// reads its AnnouncedAbilityColours, which returns nothing for an ability
+// whose API is not Mana (Chrome Mox's ManaReflected), and fails open on the
+// empty list. The reflected colours are the census's business
+// (paymentPlanReflectedAlt; the kernel's planner view), not the window
+// listing's. Reports whether windowPick may skip the source without offering
+// it.
 func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
-		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want)
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want) &&
+		!s.windowReflUseful(k, o)
+}
+
+// windowReflUseful: sl's card carries a reflected mana ability (a kop
+// AfManaReflect one: Chrome Mox's "{T}: Add one mana of any of the exiled
+// card's colors", Reflecting Pool's ColorOrType$ Type). gorge's window clamp
+// prices none of its colours (paymentSourceUseful's AnnouncedAbilityColours
+// and fixedProductionColours both read an API Mana ability, which the
+// ManaReflected one is not) and fails open, so the source stays listed
+// whatever the cost still owes; a view with no live reflected colours makes
+// no mana and windowSourceUsable refuses it before the clamp runs.
+func (s *State) windowReflUseful(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.flags[s.cardAt(sl)]&gfManaRefl != 0
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
