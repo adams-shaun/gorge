@@ -85,10 +85,10 @@ default	field	stateCore.heldTouch	13852	4
 default	field	stateCore.stamp	13856	488
 default	field	stateCore.Skipped	14344	16
 default	field	stateCore.nlC	14360	8
-default	field	stateCore.g	14368	9816
-default	field	stateCore.outCode	24184	512
-default	field	stateCore.Decisions	24696	4
-default	field	stateCore.payHyb	24700	1
+default	field	stateCore.g	14368	9752
+default	field	stateCore.outCode	24120	512
+default	field	stateCore.Decisions	24632	4
+default	field	stateCore.payHyb	24636	1
 default	field	genState.graveKept	0	1
 default	field	genState.cskip	1	1
 default	field	genState.fx	2	768
@@ -347,8 +347,6 @@ default	field	genState.embX	9716	0
 default	field	genState.atkDef	9716	1
 default	field	genState.mon	9717	1
 default	field	genState.redir	9718	32
-default	field	genState.gatePay	9750	10
-default	field	genState.gatePad	9760	54
 default	field	perm.eotKw	0	4
 default	field	perm.eotKwRep	4	8
 default	field	perm.ovr	12	12
