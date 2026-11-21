@@ -348,9 +348,15 @@ func (s *State) exwCount(ctx evalCtx) int {
 // exwCount (ExExiledWithN) and exwCard (PredExiledWith) already share -- so
 // a player ref and a count or filter cannot disagree about which cards the
 // link holds. 255 when no seat's exile holds one (gorge manifests dread for
-// nobody). gorge resolves the same grammar over every living seat and acts
-// on EACH match; the corpus carrier (Unidentified Hovership's leave
-// trigger) exiles at most one card, so at most one seat can match.
+// nobody).
+//
+// gorge resolves the same grammar over every living seat and acts on EACH
+// match, while the ref is one seat. Several linked cards in ONE seat's exile
+// agree (gorge asks that seat once). A SECOND seat holding a linked card is
+// the shape the ref cannot represent: it latches StallLowering (an
+// unreachable shape, never a silent divergence) and the first seat is
+// returned. The corpus carrier (Unidentified Hovership's leave trigger,
+// TargetMax$ 1) exiles at most one card, so no seat but one ever matches.
 func (s *State) exiledWithOwnerSeat(ctx evalCtx) uint8 {
 	if ctx.src == NoObj {
 		return 255
@@ -359,18 +365,25 @@ func (s *State) exiledWithOwnerSeat(ctx evalCtx) uint8 {
 	if ctx.e != nil {
 		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
 	}
+	first := uint8(255)
 	for p := 0; p < int(s.nSeats()); p++ {
 		if s.out(uint8(p)) {
 			continue
 		}
 		pl := &s.pl[p]
 		for j := 0; j < int(pl.exileN); j++ {
-			if s.exwHas(pl.exile[j], ctx.src, trig, fire) {
-				return uint8(p)
+			if !s.exwHas(pl.exile[j], ctx.src, trig, fire) {
+				continue
 			}
+			if first == 255 {
+				first = uint8(p)
+			} else if first != uint8(p) {
+				s.capFull(StallLowering) // a second seat holds a linked card: gorge acts on every seat, the ref names one
+			}
+			break
 		}
 	}
-	return 255
+	return first
 }
 
 func init() { stallNames[StallExiledWith] = "exiledwith" }
