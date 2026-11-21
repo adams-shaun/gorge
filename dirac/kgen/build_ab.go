@@ -744,7 +744,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Cost, err = cb.cost(abCost); err != nil {
 			return ka, err
 		}
-		if a.Kind == akMana && ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave|kop.CostReturn) != 0 {
+		if a.Kind == akMana && (ka.Cost.Flags&(kop.CostForage|kop.CostReturn) != 0 || ka.Cost.Flags&kop.CostExileGrave != 0 && !exileGraveManaCost(ka.Cost)) {
 			// gorge pays these through the mana-activation walk
 			// (AskManaForage); the kernel's mana abilities have no cost picks
 			return ka, fmt.Errorf("mana ability with a forage / exile-from-graveyard cost")

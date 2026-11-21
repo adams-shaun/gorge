@@ -483,6 +483,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("forage_exile", RefNone, 0)
 		case dirac.ChCostExile:
 			return ch("exilecost", src, 0)
+		case dirac.ChWinExile:
+			return ch("mana_exile", src, 0) // an exile-from-graveyard mana source's pick (mana_exilegrave.go)
 		case dirac.ChCostReturn:
 			return ch("returncost", src, 0)
 		case dirac.ChCostPutToLib:

@@ -3377,10 +3377,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// abilities pay only {T} / sacrifice-self
 			return refuse("mana ability with an energy cost")
 		}
-		if ab.Kind == akMana && (cost.Forage != nil || cost.ExileG != nil) {
+		if ab.Kind == akMana && (cost.Forage != nil || cost.ExileG != nil && !exileGraveManaShape(cost)) {
 			// gorge pays these through the mana-activation walk
-			// (AskManaForage); the kernel's mana abilities have no cost picks
-			return refuse("mana ability with a forage / exile-from-graveyard cost")
+			// (AskManaForage); the kernel's tap-another search poses only
+			// {T} + ExileFromGrave<N/Spec> (exileGraveManaShape)
+			return refuse("%s", exileGraveManaWhy(cost, ps))
 		}
 		if cost.EvidenceN > 0 && (ab.Kind != akActivated || ab.Zone != 0 && ab.Zone != zBattlefield) {
 			// a mana ability would pay it in gorge's mana-activation walk
