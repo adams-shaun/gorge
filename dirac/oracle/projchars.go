@@ -181,6 +181,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
 	"Surge":                  "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",
+	"Spectacle":              "CardDef.HasSpectacle (a hand alt cost once an opponent lost life this turn, and the permanent's \"spectacle cost was paid\" mark; compared through the cast options and the self-ETB trigger's effects; kw_spectacle.go)",
+	"Riot":                   "CardDef.Riot (CR 702.136; the as-enters counter-or-haste ask, posed before a cast creature enters; compared through the choose options, the counter and the attack options; kw_riot.go)",
 	"Evoke":                  "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Ascend":                 "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",

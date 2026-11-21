@@ -1406,7 +1406,7 @@ func altKeywordCast(a Action) bool {
 		return false
 	}
 	switch a.Target() {
-	case castImpTgt, castEvokeTgt, castDashTgt, castOverloadTgt:
+	case castImpTgt, castEvokeTgt, castDashTgt, castOverloadTgt, castSpectacleTgt:
 		return true
 	}
 	return false

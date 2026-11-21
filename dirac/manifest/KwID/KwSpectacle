@@ -4,4 +4,4 @@ value: 76
 forge: Spectacle
 census: kw Spectacle all=11 std=0 mbc=0 sole=9
 state: player 2 (turn facts)
-status: reserved
+status: active

@@ -549,6 +549,8 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 		return k.gen.anyCleave && cd.CleaveAb != 0
 	case a.Target() == castSurgeTgt:
 		return k.gen.anySurge && cd.HasSurge
+	case a.Target() == castSpectacleTgt:
+		return k.gen.uses.has(useSpectacle) && cd.HasSpectacle
 	}
 	return false
 }

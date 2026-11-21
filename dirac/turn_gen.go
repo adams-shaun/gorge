@@ -41,6 +41,7 @@ const (
 	// repl_paybeforeetb.go) and the EnterCtrPick pair (31, 32,
 	// repl_enterctrpick.go): the ask kinds continue across their files.
 	akUnleash uint8 = 33 // an Unleash entry's counter election (CR 702.86a; kw_unleash.go)
+	// akRiot (34) is declared in kw_riot.go.
 )
 
 // placeEntryCounters places an entry-characteristic counter grant on the
@@ -73,7 +74,8 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.touch(o)
 	s.clearFx(sl)
-	s.arenaClrSlot(sl) // the slot takes a new permanent: no mechanic's mark for the last one survives (arena.go)
+	s.arenaClrSlot(sl)                   // the slot takes a new permanent: no mechanic's mark for the last one survives (arena.go)
+	s.enterRiotSpectacle(k, sl, o, face) // kw_riot.go, kw_spectacle.go: the riot ask and the spectacle mark (after the arena clear: both are marks)
 	if s.g.entExc != 0 {
 		x := s.g.entExc
 		s.g.entExc = 0
@@ -1410,6 +1412,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		}
 	} else if ask.kind == akUnleash {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
+	} else if ask.kind == akRiot {
+		s.riotAnswer(k, ask, a) // kw_riot.go
 	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
 	} else if ask.kind == akCard {
@@ -1597,6 +1601,16 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akCtrPick || kind == akCtrPick2 {
 		s.ctrPickOptions(k, d, kind) // repl_enterctrpick.go
+		return
+	}
+	if kind == akRiot {
+		// kw_riot.go: a cast creature's election rides s.g.pre (asked with
+		// the spell on the stack); any other entry's is ask[0]
+		if s.g.pre.state == 1 && s.g.pre.kind == akRiot {
+			s.riotOptions(d, s.g.pre.obj)
+			return
+		}
+		s.riotOptions(d, s.perms[s.g.ask[0].sl].obj)
 		return
 	}
 	if kind == akUnleash {

@@ -92,6 +92,7 @@ const (
 	fExiledWith    // ExiledWithSource: exiled with the reading source (kop.FExiledWith)
 	fNotAttacking  // !attacking (kop.FNotAttacking)
 	fNotAttachedBy // !EnchantedBy / !EquippedBy / !AttachedBy: not the source's host (kop.FNotAttachedBySrc)
+	fSpectacle     // spectacle: the permanent's spell was cast for its spectacle cost (CR 702.137a; Card.Self+spectacle reads F2Kicked)
 	fNamedCard     // the card-name property NamedCard: the candidate shares the source's chosen card name (gorge namePredicate NamedCard; kop.PredNamedCard)
 	fFlagCount     = iota
 )
@@ -99,7 +100,7 @@ const (
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "Spectacle", "NamedCard"}
 
 // Controller / owner selectors.
 const (
@@ -451,6 +452,7 @@ var propWords = map[string]uint64{
 	"bargained":                 fBargained, // CR 702.166: Card.Self+bargained (kgen gates it on the CardDef.Bargain below)
 	"escaped":                   fEscaped,   // CR 702.138a: Card.Self+escaped (kop.PredEscaped; gated on CardDef.Escape below)
 	"Teamwork":                  fTeamwork,  // CR 702.194b: Card.Self+Teamwork (gated on CardDef.Teamwork)
+	"spectacle":                 fSpectacle, // CR 702.137a: Card.Self+spectacle, Card.spectacle (gated on CardDef.HasSpectacle)
 	"inZoneBattlefield":         0,          // implied by every battlefield context this pool uses it in
 }
 

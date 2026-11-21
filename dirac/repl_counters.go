@@ -13,6 +13,9 @@ func ctrKw(s *State, p *perm) kop.KwMask {
 	if s.g.nmay != 0 && s.suspendHasteAt(p) {
 		m = kop.KwHaste // suspend's grant (kw_suspend.go)
 	}
+	if s.riotHasteAt(p) {
+		m |= kop.KwHaste // riot's haste election (kw_riot.go)
+	}
 	for i := range p.ck {
 		k := p.ck[i]
 		if k == 0 {

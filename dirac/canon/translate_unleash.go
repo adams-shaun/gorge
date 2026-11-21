@@ -12,6 +12,24 @@ func unleashCanon(src dirac.TCode, mode uint8) Canon {
 	return Pack(ActChoose+CanonKind(code), Ref(src), RefNone, 1-mode&1)
 }
 
+// unleashRiotCanon is the canonical option of the two as-enters elections.
+func unleashRiotCanon(sub dirac.ChoiceKind, src dirac.TCode, mode uint8) Canon {
+	if sub == dirac.ChGenRiot {
+		return riotCanon(src, mode)
+	}
+	return unleashCanon(src, mode)
+}
+
+// riotCanon is ChGenRiot's option (dirac/kw_riot.go): gorge's "riot" option
+// kind over the entering permanent. The two options name the same permanent, so
+// gorge's disambiguate gives the k-th repeat mode k in option order; the
+// kernel lists the counter (mode 0) first and haste (mode 1) second and
+// carries the same ordinal.
+func riotCanon(src dirac.TCode, mode uint8) Canon {
+	code, _ := ChooseCode("riot")
+	return Pack(ActChoose+CanonKind(code), Ref(src), RefNone, mode&1)
+}
+
 // playerPick is the player-or-object pick of generatedChoose: a player named
 // by PlayerTarget0+p takes the kind k player option, anything else the kind
 // k2 option over the object at src (ChGenProlif, ChCastDivide, ChGenDivide,

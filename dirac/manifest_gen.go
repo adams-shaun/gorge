@@ -763,10 +763,20 @@ func init() {
 	mechName[mechHorsemanshipPost] = "horsemanshipPost"
 }
 
+// mech (dirac/manifest/mech/mechRiotHaste)
+//
+// slots whose permanent entered with its riot haste election (CR 702.136a; kw_riot.go): a base haste while the permanent stays
+const mechRiotHaste mech = 61
+
+func init() {
+	mechWidth[mechRiotHaste] = wSlot
+	mechName[mechRiotHaste] = "riotHaste"
+}
+
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 61
+const mechSkulk mech = 62
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -776,7 +786,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 62
+const mechSkulkPost mech = 63
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -784,7 +794,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 63
+const numMech mech = 64
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).

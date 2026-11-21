@@ -1,0 +1,6 @@
+family: mech
+name: mechRiotHaste
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose permanent entered with its riot haste election (CR 702.136a; kw_riot.go): a base haste while the permanent stays

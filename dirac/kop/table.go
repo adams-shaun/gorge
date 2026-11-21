@@ -654,6 +654,18 @@ type CardDef struct {
 	HasSurge bool
 	// SurgeCost is the printed surge cost (HasSurge).
 	SurgeCost ManaCost
+	// HasSpectacle is printed spectacle (CR 702.137a; no KwMask bit is
+	// free): the hand offers the spectacle cast at SpectacleCost once an
+	// opponent of the caster lost life this turn (gorge's "spectacle"
+	// option), and the permanent it produces reads Card.Self+spectacle off
+	// the kicked mark (dirac/kw_spectacle.go).
+	HasSpectacle bool
+	// SpectacleCost is the printed spectacle cost (HasSpectacle).
+	SpectacleCost ManaCost
+	// Riot is printed K:Riot (CR 702.136a; kop.KwRiot): the permanent
+	// enters with the controller's choice of a +1/+1 counter or haste
+	// (dirac/kw_riot.go).
+	Riot bool
 	// OverloadCost is the printed overload cost (HasOverload).
 	OverloadCost ManaCost
 	// OverloadProg is the overloaded cast's program (CR 702.96a): the

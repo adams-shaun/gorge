@@ -72,7 +72,7 @@ type altCastMode struct {
 	// head is the printed K: keyword whose parameter is the cost.
 	head string
 	// flag is the pay-time CastFlags bit modeFlags records (0: none -- a
-	// row with no provenance bit of its own; spectacle today).
+	// row with no provenance bit of its own; none today).
 	flag uint64
 	cost altCastCostKind
 	// ph gates the hand walk's offer loop; handLoop/cmdLoop name the rows
@@ -145,9 +145,13 @@ var altCastModes = [altCastCount]altCastMode{
 	// Count$AltCost (TestAwakenCardsAreSupported pins it), so the bit is
 	// unambiguous on one.
 	altAwaken: {id: altAwaken, mode: "awakened", head: "Awaken", flag: state.FlagAltCostPaid, ph: phAwaken, handLoop: true, cmdLoop: true, potential: true, gate: altGateAwaken},
-	// Spectacle has no CastFlags bit (the word is full) and no cast-time
-	// provenance here; it is the family's one flagless row.
-	altSpectacle: {id: altSpectacle, mode: "spectacle", head: "Spectacle", flag: 0, ph: phSpectacle, handLoop: true, potential: true, gate: altGateSpectacle},
+	// Spectacle stamps FlagAltCostPaid like prowl and awaken: on a face
+	// carrying K:Spectacle that bit reads "this spell's spectacle cost was
+	// paid" (altCostKeywordPaid), the provenance the `spectacle` filter
+	// predicate reads (Rafter Demon's Card.Self+spectacle, Rix Maadi
+	// Reveler's Card.spectacle). No Spectacle face carries another flagless
+	// alternative-cost row, so the bit is unambiguous on one.
+	altSpectacle: {id: altSpectacle, mode: "spectacle", head: "Spectacle", flag: state.FlagAltCostPaid, ph: phSpectacle, handLoop: true, potential: true, gate: altGateSpectacle},
 }
 
 // spellTypeLedger is the layer-4 table a prowl gate reads the spell's
