@@ -811,5 +811,6 @@ const (
 	PlayerPredCorrupted        = 3 // Player.IsCorrupted: three or more poison counters
 	PlayerPredArtOrEnch        = 4 // TokenOwner$ Player.controlsEnchantment,controlsArtifact: the candidate controls an artifact or enchantment (any permanent)
 	PlayerPredMostCreatures    = 5 // Player.withMostTypeCreature: the candidate controls at least as many creatures as the other player (a tie keeps both)
+	PlayerPredHandEmpty        = 6 // Player.Opponent+HasCardsInHand_Card_EQ0: the candidate's hand holds no card
 	PlayerPredNeg              = 0x100
 )
