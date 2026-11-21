@@ -60,8 +60,9 @@ func init() {
 // does not exist, and portal_manipulator's ask rides a DEEPER sub the
 // generic pre-ask never reaches; `.Defending & Valid Planeswalker.Defending`
 // tahngarth_first_mate — needs planeswalker defenders, which do not exist).
-// Optional$ True (Windshaper Planetar) is read as mandatory with one Note
-// naming the stand-in: a per-attacker may-reselect election is not built.
+// Optional$ True (Tuvok, Windshaper Planetar) poses a per-attacker yes/no
+// "reselect?" confirm to the controller before the defender ask; "no" (or no
+// host to answer) keeps the attack where it is, with nothing emitted.
 // Forge's re-point of pending trigger roles (OriginalDefender/
 // DefendingPlayer on already-queued stack objects) is out of scope too.
 func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
@@ -102,10 +103,7 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 	// in the Defined$ walk poses its own ask. The shared per-chooser cursor
 	// is cleared here, as it always has been.
 	c.ChoiceTarget = 0
-	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True") {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "ChangeCombatants Optional$ True read as mandatory (no may-reselect ask)"})
-	}
+	optional := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKOptional)), "True")
 	g := h.Game()
 	for idx, t := range Defined(h, c, sa) {
 		if t.IsPlayer || t.Obj == 0 {
@@ -141,6 +139,20 @@ func effChangeCombatants(h Host, c *Ctx, sa *cards.SA) {
 			// The only legal answer keeps the attack where it is: no
 			// decision anybody could answer differently is ever emitted.
 			continue
+		}
+		if optional {
+			conf := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+				Source: c.Source, Min: 1, Max: 1,
+				ResumeKind: "changecombatants_optional", ResumeSA: sa, ResumeTarget: idx,
+				Prompt: "Reselect which player " + publicObjName(g, o.ID) + " attacks?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			// No answer served is "no": never guess a defender.
+			if ans, ok := AskTape(h, conf); !ok || !tapeAnswerYes(ans) {
+				continue
+			}
 		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Source: c.Source, Min: 1, Max: 1,
