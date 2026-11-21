@@ -2283,10 +2283,30 @@ func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny b
 
 // censusPickOwns reports whether censusOpenTap records sl's open tap in the
 // census as a same-pick unit: the census is on and a reflected TapsForMana
-// extra (srcReflectPick) reaches the tap, so potentialAnyColourUnit must fold
-// the production into the over-bound pool alone.
+// extra (srcReflectPick) reaches the tap, or the tap makes all its mana one
+// colour of the caster's choosing (censusPickAmount), so
+// potentialAnyColourUnit must fold the production into the over-bound pool
+// alone.
 func (s *State) censusPickOwns(k *prep, sl Slot, pc *pcard, cen *potCensus) bool {
-	return cen.on && s.srcReflectPick(k, sl, pc) > 0
+	return cen.on && (s.srcReflectPick(k, sl, pc) > 0 || s.censusPickAmount(k, sl, pc, srcYield(pc)))
+}
+
+// censusPickAmount reports whether sl's open tap makes n mana all in one
+// colour of the caster's choosing, so the census records one same-pick unit,
+// not n independent any-colour units: a ColAny production with no per-unit
+// colour choice (manaOneColour's shape; the static one is pcard.manaOne), a
+// dynamic amount read off the ability at what it makes now (Lotus Blossom's
+// petals, CR 601.2g). n of one is a plain any-colour unit.
+func (s *State) censusPickAmount(k *prep, sl Slot, pc *pcard, n uint8) bool {
+	if n <= 1 || pc.manaCol != kop.ColAny || pc.manaChosen {
+		return false
+	}
+	if pc.manaOne {
+		return true
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) &&
+		manaOneColour(&cd.Abilities[pc.manaAb], n)
 }
 
 // potentialTapUnit records a source's tap production in availPotentialFor: a
@@ -2477,8 +2497,15 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				// makes now (Lotus Blossom's petals, CR 601.2g); recTap is
 				// a no-op when the census is off. A lethal-guard refusal
 				// drops the production's colours out of that unit too
-				// (recTapDrop).
-				cen.recTapDrop(sl, s.srcMaskAt(pc, sl), srcYield(pc), painDrop)
+				// (recTapDrop). One tap's mana is all one colour of the
+				// caster's choosing (censusPickAmount), so the unit is a
+				// same-pick one, not n independent any-colour units.
+				n := srcYield(pc)
+				if s.censusPickAmount(k, sl, pc, n) {
+					cen.recPickDrop(sl, s.srcMaskAt(pc, sl), n, painDrop)
+				} else {
+					cen.recTapDrop(sl, s.srcMaskAt(pc, sl), n, painDrop)
+				}
 			} else if cen.on {
 				// the census reads the source at the amount it makes now, the
 				// planner's natural one (an Everflowing Chalice holding no
