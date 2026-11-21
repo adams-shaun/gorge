@@ -204,3 +204,44 @@ func TestFireDamageSrcInPlay(t *testing.T) {
 	}
 	tr.Flags2 |= kop.Tf2SrcInPlay
 }
+
+// TestDdoPerPlayerFourSeat: at four seats two trample creatures hitting
+// different players in one combat damage step are two batches (CR 603.2c):
+// Quartzwood Crasher queues one trigger per damaged player, each carrying
+// that player's damage, not the step's total.
+func TestDdoPerPlayerFourSeat(t *testing.T) {
+	deck := []cardset.Entry{{Name: "Quartzwood Crasher", Count: 1}, {Name: "Stampeding Wildebeests", Count: 2}, {Name: "Forest", Count: 8}}
+	set := cardsettest.Set(t, "ddo4")
+	tbl, da, _, err := set.Matchup(deck, deck)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	sc := newScenTableLib(t, tbl, id["Forest"], Config{NoElide: true})
+	sc.s.g.nseat = 4
+	cr := sc.perm(id["Quartzwood Crasher"], 0)
+	a := sc.perm(id["Stampeding Wildebeests"], 0)
+	b := sc.perm(id["Stampeding Wildebeests"], 0)
+	sc.s.perms[sc.slot(a)].atk = PlayerCode(1)
+	sc.s.perms[sc.slot(b)].atk = PlayerCode(2)
+	r := &dmgRec{}
+	for _, e := range []dmgEv{{sc.slot(a), NoSlot, 4}, {sc.slot(b), NoSlot, 6}} {
+		r.ev[r.nev] = e
+		r.nev++
+		r.dealt[e.src] += e.n
+	}
+	sc.s.npend = 0
+	sc.s.combatEventsGen(sc.k, r, true)
+	got := map[int16]bool{}
+	for i := 0; i < int(sc.s.npend); i++ {
+		if sc.s.pend[i].obj == cr {
+			got[sc.s.pend[i].trigAmt] = true
+		}
+	}
+	if len(got) != 2 || !got[4] || !got[6] {
+		t.Fatalf("Crasher amounts %v, want {4, 6}", got)
+	}
+}

@@ -556,8 +556,8 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 		}
 		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
-		if r == kop.RefTriggerSource && e != nil && e.trigSA != 0 {
-			o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e != nil && e.saWord() != 0 {
+			o := Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 			return s.objPT(k, o, s.slotIfSame(o, s.objs[o].ver))
 		}
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
@@ -688,8 +688,8 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
-		if r == kop.RefTriggerSource && e.trigSA != 0 {
-			return Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e.saWord() != 0 {
+			return Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 		}
 		return e.trigObj
 	case kop.RefAttached:

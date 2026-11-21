@@ -393,7 +393,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 				if s.stateTrigOutstanding(l.obj, l.ab) {
 					return
 				}
-			} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
+			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(l.sl, a, int(amt)) {
 				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
 		}

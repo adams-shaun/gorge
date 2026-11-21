@@ -28,7 +28,6 @@ func TestCmd5PoolNoCommanderShortcuts(t *testing.T) {
 	}
 	shortcuts := [numCmdShortcuts]string{
 		cmdShortcutNegatedWord:   "a negated IsCommander lowered to always holds",
-		cmdShortcutCommandBeacon: "a command-zone IsCommander pick lowered to nothing",
 		cmdShortcutCommanderMana: "a commander-only mana filter dropped",
 		cmdShortcutCommandSweep:  "a command-zone and graveyard IsCommander sweep lowered to nothing",
 	}

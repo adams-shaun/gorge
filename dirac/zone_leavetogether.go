@@ -66,6 +66,13 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 	if !ok || n < 2 {
 		return false
 	}
+	if z == kop.ZoneHand {
+		for _, o := range objs[:n] {
+			if s.cmdZoneCommander(o) {
+				return false // CR 903.9b: the per-target path parks the commander's move for its owner's ask
+			}
+		}
+	}
 	var zs [maxXTgt + 1]kop.Zone
 	if destroy {
 		if k.gen != nil {
