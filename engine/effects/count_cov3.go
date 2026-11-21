@@ -953,6 +953,7 @@ const (
 	evalCov3HeadDevoured
 	evalCov3HeadHasNumChosenColorsTriggeredCard
 	evalCov3HeadHasNumChosenColorsOriginalHost
+	evalCov3HeadRegeneratedThisTurn
 	evalCov3HeadMaxDistinctOnStack
 )
 
@@ -983,6 +984,7 @@ var evalCov3HeadCodes = state.NewStrCodes(
 	state.StrEntry[evalCov3HeadCode]{Key: "Devoured", Val: evalCov3HeadDevoured},
 	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.TriggeredCard", Val: evalCov3HeadHasNumChosenColorsTriggeredCard},
 	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.OriginalHost", Val: evalCov3HeadHasNumChosenColorsOriginalHost},
+	state.StrEntry[evalCov3HeadCode]{Key: "RegeneratedThisTurn", Val: evalCov3HeadRegeneratedThisTurn},
 	state.StrEntry[evalCov3HeadCode]{Key: "MaxDistinctOnStack", Val: evalCov3HeadMaxDistinctOnStack},
 )
 

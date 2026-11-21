@@ -275,6 +275,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 			g.Objs[i].DealtDamageThisTurnHere = false
 			g.Objs[i].DamageTakenThisTurnBy = nil
 			g.Objs[i].ActivatedThisTurn = 0
+			g.Objs[i].RegeneratedThisTurn = 0
 			g.Objs[i].AttacksThisTurn = 0
 			g.Objs[i].AttackedTurn, g.Objs[i].AttackedCombat = 0, 0
 			// "Blocked by" is a per-turn fact like "attacked": the history
