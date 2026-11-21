@@ -354,6 +354,7 @@ Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
+Silumgar Spell-Eater
 Silver-Inlaid Dagger
 Silversmote Ghoul
 Skittering Monstrosity
