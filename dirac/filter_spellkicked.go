@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // spellKicked is F2Kicked read off the battlefield: object o is a spell on the
 // stack whose entry carries the kick flag (sfKicked; the optional-cost paid
 // flag rides it too). A card in any other zone, or a spell that wasn't cast
@@ -9,7 +11,9 @@ package dirac
 // The flag is also the buyback, offspring and entwine paid mark (kw_buyback.go,
 // kw_offspring.go, kw_entwine.go), which gorge flags FlagBuyback /
 // FlagOffspringPaid / nothing, never FlagKicked: such a spell is no kicked one
-// (CR 702.33a: only kicker makes a spell kicked).
+// (CR 702.33a: only kicker makes a spell kicked). A Replicate or Squad cast
+// rides the same flag for its repeated payment (kw_squadreplicate.go); gorge's
+// "replicated" and squad cast modes are no kicked cast either.
 func (s *State) spellKicked(o Obj) bool {
 	if o == NoObj {
 		return false
@@ -19,5 +23,9 @@ func (s *State) spellKicked(o Obj) bool {
 		return false
 	}
 	c := e.card
-	return int(c) >= len(s.k().t.Cards) || !offspringOffer(s.k(), c)
+	if int(c) >= len(s.k().t.Cards) {
+		return true
+	}
+	cd := &s.k().t.Cards[c]
+	return !offspringOffer(s.k(), c) && cd.RepeatedKind != kop.RepeatReplicate && cd.RepeatedKind != kop.RepeatSquad
 }
