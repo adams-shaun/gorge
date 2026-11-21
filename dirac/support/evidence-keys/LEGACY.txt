@@ -505,7 +505,6 @@ Boneyard Wurm
 Bonny Pall, Clearcutter
 Boom Scholar
 Boomerang, Blade Flinger
-Boommobile
 Boon of the Wish-Giver
 Boosted Sloop
 Borborygmos Enraged
@@ -824,7 +823,6 @@ Cost of Brilliance
 Count on Luck
 Countermand
 Countersculpt
-Country Roads
 Countryside Crusher
 Courageous Outrider
 Courier of Comestibles
@@ -836,7 +834,6 @@ Cracked Earth Technique
 Cradle of Vitality
 Craftwork Crusher
 Cranial Ram
-Crash and Burn
 Crash of Rhinos
 Crater Hellion
 Craterclaw Colossus
@@ -1191,7 +1188,6 @@ Earth King's Lieutenant
 Earth Kingdom Soldier
 Earth Rumble Wrestlers
 Earthquake Dragon
-Earthrumbler
 Earthshaker Giant
 Earthshaking Si
 East Wind Avatar
@@ -1250,7 +1246,6 @@ Elvish Clancaller
 Elvish Lookout
 Elvish Refueler
 Elvish Skysweeper
-Embalmed Ascendant
 Emberheart Challenger
 Embermage Goblin
 Embermouth Sentinel
@@ -1289,7 +1284,6 @@ Energize
 Energy Bolt
 Energy Tap
 Enforcer Griffin
-Engine Rat
 Engineered Plague
 Enlightened Confidant
 Ennis, Debate Moderator
@@ -1608,8 +1602,6 @@ Garruk's Companion
 Garruk, Curse Breaker
 Garruk, Unleashed
 Garza Zol, Plague Queen
-Gastal Thrillroller
-Gastal Thrillseeker
 Gatebreaker Ram
 Gathering of Darkness
 Geist of Saint Thalia
@@ -1770,7 +1762,6 @@ Gravkill
 Gravpack Monoist
 Gray Harbor Merfolk
 Gray and Adira, Forever Joined
-Greasewrench Goblin
 Great Arashin City
 Great Fierce Bee
 Great Gilded Boat
@@ -1809,8 +1800,6 @@ Guardian Scalelord
 Guardian Sunmare
 Guardian of Solitude
 Guardian of the Halls
-Guidelight Matrix
-Guidelight Optimizer
 Guiding Hydra
 Guinan, Ancient Advisor
 Gumato
@@ -2078,7 +2067,6 @@ Inspirited Vanguard
 Instruments of War
 Integrity
 Interceptor Mechan
-Interface Ace
 Interjection
 Intimidation Campaign
 Intimidation Tactics
@@ -2548,7 +2536,6 @@ Marang River Regent
 Marauder's Axe
 Marauding Brinefang
 Marauding Dreadship
-Marauding Mako
 Marauding Sphinx
 March from the Black Gate
 March from the Tomb
@@ -2731,7 +2718,6 @@ Monoist Circuit-Feeder
 Monoist Sentry
 Monologue Tax
 Monstrous Carabid
-Monument to Endurance
 Monumental Henge
 Moon Girl and Devil Dinosaur
 Moon-Vigil Adherents
@@ -2992,7 +2978,6 @@ Owlin Historian
 Owlin Spiralmancer
 Oxidize
 Pacification Array
-Pactdoll Terror
 Pain 101
 Painful Lesson
 Painful Truths
@@ -3119,7 +3104,6 @@ Port Town
 Portcullis Vine
 Possibility Technician
 Postmortem Professor
-Pothole Mole
 Potioner's Trove
 Pox Plague
 Practiced Offense
@@ -3321,7 +3305,6 @@ Redcap Melee
 Rediscover the Way
 Redress Fate
 Reduce to Ashes
-Reef Roads
 Reef Worm
 Refute Destiny
 Reg Barclay, Fidgety Fantasist
@@ -3381,7 +3364,6 @@ Rictus Robber
 Riddle of Lightning
 Riddlekeeper
 Riddles in the Dark
-Ride's End
 Ridgescale Tusker
 Rienne, Angel of Rebirth
 Riftburst Hellion
@@ -3403,12 +3385,10 @@ Ripclaw Wrangler
 Riptide Chimera
 Riptide Director
 Riptide Entrancer
-Rise from the Wreck
 Rise of the Deathbringer
 Rise of the Varmints
 Risen Sanctuary
 Rishadan Footpad
-Risky Shortcut
 Rite of Ascension
 Rite of Oblivion
 Rite of Renewal
@@ -3421,7 +3401,6 @@ Riveteers Ascendancy
 Riveteers Charm
 Riveteers Confluence
 Ro Laren, Double Agent
-Roadside Assistance
 Roadside Blowout
 Roamer's Routine
 Roar of Endless Song
@@ -3457,7 +3436,6 @@ Rottenheart Ghoul
 Rotting Giant
 Rotwidow Pack
 Roughshod Duo
-Rover Blades
 Roving Keep
 Roxanne, Starfall Savant
 Rubblehulk
@@ -3508,7 +3486,6 @@ Sally Pride, Lioness Leader
 Salt Road Packbeast
 Salt Road Skirmish
 Salt Vampire
-Salvation Engine
 Salvation Swan
 Sam Kirk, Xenoanthropologist
 Sami's Curiosity
@@ -4168,7 +4145,6 @@ Sylvan Yeti
 Symbiote Spider-Man
 Synchronized Charge
 Synthesizer Labship
-Syphon Fuel
 Syr Vondam, Sunstar Exemplar
 Syr Vondam, the Lucent
 Systems Override
@@ -4398,13 +4374,11 @@ Thrumming Hivepool
 Thunder Lasso
 Thunder Salvo
 Thundercloud Elemental
-Thunderhead Gunner
 Thundering Broodwagon
 Thundering Ceratok
 Thundertrap Trainer
 Thunderwolf Cavalry
 Thwart the Grave
-Ticket Tortoise
 Tidal Surge
 Tidecaller Mentor
 Tidings of War
@@ -4837,7 +4811,6 @@ Whitewater Naiads
 Wick's Patrol
 Wick, the Whorled Mind
 Wicked Slumber
-Wickerfolk Indomitable
 Wild Aesthir
 Wild Growth
 Wild Hypothesis
@@ -4851,7 +4824,6 @@ Will Riker, Assuming Command
 Will Riker, First in the Field
 Will of the All-Hunter
 Willow Geist
-Willowrush Verge
 Wilt in the Heat
 Windbrisk Raptor
 Windrider Patrol
