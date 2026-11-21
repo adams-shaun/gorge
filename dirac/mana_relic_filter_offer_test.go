@@ -25,7 +25,7 @@ func TestRelicBesideFilterPaysBlackPips(t *testing.T) {
 				deck = append(deck, cardset.Entry{Name: n, Count: 1})
 			}
 		}
-		tbl, da, _, err := cardset.Raw(cardsettest.Synth(t, "tail-49")).Matchup(deck, deck)
+		tbl, da, _, err := cardsettest.Set(t, "relicfilter").Matchup(deck, deck)
 		if err != nil {
 			t.Fatal(err)
 		}

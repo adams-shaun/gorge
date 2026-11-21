@@ -1,0 +1,7 @@
+# Relic of Legends beside Overflowing Basin and two legendary creatures: the tapX search is the offer's fallback and must find Death Cloud's {B}{B}{B} (dirac/mana_relic_filter_offer_test.go)
+Death Cloud
+Island
+Relic of Legends
+Shalai, Voice of Plenty
+Radha, Heart of Keld
+Overflowing Basin
