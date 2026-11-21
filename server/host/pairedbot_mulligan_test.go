@@ -192,6 +192,7 @@ func sevenOf(deck []*cards.Card, lands int) []int {
 // put back -- is answered by search: a ready advice whose note carries the
 // search's lines.
 func TestPairedBotSearchesTheMulligan(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	own, opp := testutil.RepoDeck(t, reg, "death-n-taxes"), testutil.RepoDeck(t, reg, "dimir-tempo")
 	r := pairedMulliganTable(t, own, opp, 20261105)
@@ -234,6 +235,7 @@ func TestPairedBotSearchesTheMulligan(t *testing.T) {
 // nothing but lands, is sent back, and three lands with cheap spells is
 // kept. The default bot's coin cannot pass it.
 func TestPairedBotMulliganAdviceReadsTheHand(t *testing.T) {
+	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	own, opp := testutil.RepoDeck(t, reg, "death-n-taxes"), testutil.RepoDeck(t, reg, "dimir-tempo")
 	const seed = 20261105
