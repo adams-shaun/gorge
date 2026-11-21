@@ -356,6 +356,10 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 	s.Depth++
 	kw := s.KW
 	ty := s.Types
+	// restrictions is the rule-effect lines granted so far (CR 613.11, the
+	// removalArm below): the buffer rides the scratch beside kw and ty, and
+	// a private build owns its own.
+	restrictions := s.Restrictions
 	if s.Depth > 1 || s.Borrowed > 0 || colorsOnly || keywordsOnly {
 		// Re-entrant (a nested Derived mid-build), or a finished build's lists
 		// are bound into a match still running: own private buffers rather
@@ -363,7 +367,9 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		// forEachObject uses and rules uses for active().
 		kw = nil
 		ty = nil
+		restrictions = nil
 	}
+	restrictions = restrictions[:0]
 	kw = BaseKeywords(kw, o, f, faceDown)
 	// Layer 4 runs first through Types (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
@@ -529,30 +535,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 				text = substituteTextWord(text, ce.TextFrom, ce.TextTo)
 			}
 		case state.LAbilities:
-			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
-			// clears the object's printed and earlier-granted keywords before
-			// later layer-6 grants re-add anything.
-			if ce.RemoveAbilities {
-				kw = kw[:0]
-			}
-			if len(ce.RemoveKeywords) > 0 {
-				// CR 613.1f: this effect's own named keywords leave the
-				// accumulated list BEFORE its AddKeywords append, so a
-				// single effect that both removes and grants (mirage
-				// phalanx's effect removes soulbond and grants haste)
-				// yields the card text's result regardless of how the
-				// timestamps order neighbour effects. A keyword is matched
-				// by its HEAD (cards.KeywordHead), so a parameterised print
-				// is removable by name.
-				keptKW := kw[:0]
-				for _, k := range kw {
-					if !containsKeywordHead(ce.RemoveKeywords, k) {
-						keptKW = append(keptKW, k)
-					}
-				}
-				kw = keptKW
-			}
-			kw = appendGrantedKeywords(kw, ce.AddKeywords, col)
+			kw, restrictions = applyKeywordGrant(kw, restrictions, ce, col)
 		case state.LType:
 			// Already applied in Types above — layer 4 must
 			// settle before any filter that tests a type runs.
@@ -581,6 +564,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		// build's private buffers are discarded on return.
 		s.KW = kw
 		s.Types = ty
+		s.Restrictions = restrictions
 	}
 	// Layer 7 (P/T) runs AFTER the layer-3/5/6 walk above. CR 613's layers are
 	// strictly ordered — no layer-7 result feeds a layer-5 characteristic — so
@@ -758,6 +742,67 @@ func BaseKeywords(kw []string, o *state.Object, f *cards.Face, faceDown bool) []
 // words are printed forms like "Vampire", "blue", "Mountain"), so a
 // reproduced word keeps the card's own spelling. An empty from never matches;
 // an empty to deletes the matched word.
+
+// applyKeywordGrant applies one layer-6 effect's keyword action to the walk's
+// keyword list: the CR 613.1f ability removal, the CR 613.1f named removal,
+// and the grant, whose rule-effect lines (cards.IsHiddenRuleEffectKeyword)
+// are also recorded in restrictions so a LATER ability removal cannot end
+// them.
+//
+// CR 613.1f / 613.4b: an ability-removing effect (Humility) clears the
+// object's printed and earlier-granted keywords before later layer-6 grants
+// re-add anything. One class of GRANTED line is exempt: an attack/block
+// restriction or requirement ("target creature can't attack or block this
+// turn") is a game-rule effect, not an ability of the object (CR 613.11's
+// class, applied after all other continuous effects), so the removal cannot
+// end it -- the same reason a removal does not end a Pacifism. The walk
+// restores the lines the grants left in restrictions; a PRINTED restriction
+// line is one of the object's abilities and goes with the rest (it never
+// entered restrictions).
+//
+// abilityKWAfter's dependency simulation mirrors only the bare wipe: a
+// keyword-reading gate's CR 613.8 pair test against a remover ignores a
+// restriction line an earlier group grant left, the same way it already
+// ignores inter-group grant state.
+func applyKeywordGrant(kw, restrictions []string, ce *state.ContinuousEffect, col effects.ColorMask) ([]string, []string) {
+	if ce.RemoveAbilities {
+		kw = append(kw[:0], restrictions...)
+	}
+	if len(ce.RemoveKeywords) > 0 {
+		// CR 613.1f: this effect's own named keywords leave the accumulated
+		// list BEFORE its AddKeywords append, so a single effect that both
+		// removes and grants (mirage phalanx's effect removes soulbond and
+		// grants haste) yields the card text's result regardless of how the
+		// timestamps order neighbour effects. A keyword is matched by its
+		// HEAD (cards.KeywordHead), so a parameterised print is removable by
+		// name.
+		keptKW := kw[:0]
+		for _, k := range kw {
+			if !containsKeywordHead(ce.RemoveKeywords, k) {
+				keptKW = append(keptKW, k)
+			}
+		}
+		kw = keptKW
+		// the named removal ends the granted restriction lines it named too,
+		// so a later remover does not resurrect them
+		if len(restrictions) > 0 {
+			keptRes := restrictions[:0]
+			for _, k := range restrictions {
+				if !containsKeywordHead(ce.RemoveKeywords, k) {
+					keptRes = append(keptRes, k)
+				}
+			}
+			restrictions = keptRes
+		}
+	}
+	kw = appendGrantedKeywords(kw, ce.AddKeywords, col)
+	for _, k := range ce.AddKeywords {
+		if cards.IsHiddenRuleEffectKeyword(k) {
+			restrictions = append(restrictions, k)
+		}
+	}
+	return kw, restrictions
+}
 
 // abilityKWAfter applies one layer-6 effect's keyword action to a COPY of
 // the walk's keyword list -- the same three steps the main walk's LAbilities
