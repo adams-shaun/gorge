@@ -203,6 +203,7 @@ Legolas, Counter of Kills
 Leyline of Vitality
 Lightning Dart
 Lightning Diadem
+Lochmere Serpent
 Locthwain Lancer
 Lonis, Genetics Expert
 Loxodon Lifechanter
