@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -158,6 +159,9 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	plain.feeStall = true // the plain run's doomed-branch prune (feeOnlyAskPrune)
 	script, found := plain.run(e)
+	if os.Getenv("GORGE_DBG_SCRIPT") != "" && e.G.Turn >= 20 && p == 1 && o.Obj != 0 {
+		fmt.Printf("DBG script turn=%d step=%d obj=%d kind=%s ab=%d gaps=%v funding=%d plain found=%v limited=%v nodes=%d feeOnly=%v nscript=%d\n", e.G.Turn, e.G.Step, o.Obj, o.Kind, o.Ability, gaps, funding, found, plain.limited, plain.nodes, plain.feeOnly, len(script))
+	}
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -167,6 +171,9 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	sr.plainLimited = plain.limited && plain.feeOnly
 	script, found = sr.run(e)
+	if os.Getenv("GORGE_DBG_SCRIPT") != "" && e.G.Turn >= 20 && p == 1 && o.Obj != 0 {
+		fmt.Printf("DBG script2 phased found=%v limited=%v nodes=%d nscript=%d plainLimFeeOnly=%v\n", found, sr.limited, sr.nodes, len(script), sr.plainLimited)
+	}
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -181,6 +188,12 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		if ss != nil {
 			ss.subsume = true
 			script, found = ss.run(e)
+			if os.Getenv("GORGE_DBG_SCRIPT") != "" && e.G.Turn >= 20 && p == 1 && o.Obj != 0 {
+				fmt.Printf("DBG script3 subsume found=%v limited=%v nodes=%d nscript=%d\n", found, ss.limited, ss.nodes, len(script))
+				for i, st := range script {
+					fmt.Printf("DBG step%d kind=%v picks=%v\n", i, st.Kind, st.Picks)
+				}
+			}
 		}
 	}
 	return script, found && len(script) > 0
@@ -842,6 +855,9 @@ func (sr *scriptSearch) phasedScope(c *Engine) bool {
 func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in decision.Intent, funded int, gapUsed bool) bool {
 	child := pool.hypClone(c)
 	found := false
+	if os.Getenv("GORGE_DBG_SCRIPT") != "" && sr.subsume && sr.turn >= 20 && sr.p == 1 && sr.play.Obj == state.ObjID(79) {
+		fmt.Printf("GTRY d=%d in=%v node=%d\n", len(sr.path), in.Choices, sr.nodes)
+	}
 	if child.Submit(in) == nil {
 		// The visited-state check is hoisted here (cut G): a duplicate
 		// payer state is not a node of the search. visit's own check stays
