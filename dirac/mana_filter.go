@@ -1538,6 +1538,9 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			fb := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
 				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap}
 			if fb.visit(k, t, 0, false) {
+				if fb.paysGap() {
+					break // a paid filter's mana is no planner witness (autoPayConfirm wants a Plan; the relaxed proof never returns one)
+				}
 				fs = fb
 				found = true
 				break
@@ -1710,6 +1713,18 @@ var DebugFiltNodeBudget int
 // cut to gap lines, as it was before the hand guides' funding pass shared it
 // (mutation testing only: the Spirit Guide lockstep must catch it).
 var DebugFiltTryGapExempt bool
+
+// paysGap reports whether the found path activates a census gap for its fee:
+// gorge's relaxed proof prices such a filter without ever returning a Plan, so
+// a capped fallback script through one is no search_limit plan.
+func (fs *filtSearch) paysGap() bool {
+	for i := 0; i < fs.n; i++ {
+		if st := fs.path[i]; st.gap && st.ans > 0 {
+			return true
+		}
+	}
+	return false
+}
 
 // tick counts one visited node; false once the budget is spent.
 func (fs *filtSearch) tick() bool {
@@ -2600,11 +2615,21 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 	if rm := t.mixSrcMask(k, sl); free && rm != 0 {
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
-	if free && fs.freeBranchHopeless(k, t, sl) {
+	if free && funded < hopelessFundedMax && fs.freeBranchHopeless(k, t, sl) {
 		return true, filt && fs.filtColours(k, t, sl, funded)
 	}
 	return false, false
 }
+
+// hopelessFundedMax bounds freeBranchHopeless to the search's opening: the
+// prune is a kernel-side shortcut (gorge's plain run has no such cut), kept
+// where the dead free branch's subtree dwarfs the 160-node budget (the Vault
+// of the Archangel repro prunes at nodes 1-9, funded 0-1). Deeper in the walk
+// that subtree is a few nodes, which gorge's run still spends: skipping it
+// there hands the kernel the budget gorge lacks (Minamo, School at Water's
+// Edge: a prune at node 157, funded 4, found the line at node 159 where gorge's
+// plain run is limited at 160 and offers nothing).
+const hopelessFundedMax = 2
 
 // freeBranchHopeless reports whether activating sl's free mana ability cannot
 // help the searched play: a coloured pip the play's printed cost names can be
