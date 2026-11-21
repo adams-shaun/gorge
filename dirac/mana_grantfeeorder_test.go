@@ -18,7 +18,7 @@ import (
 func TestGrantFeeOrderFindsTheGrantLine(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Mystic Skull", Count: 1}, {Name: "Desolate Mire", Count: 1}, {Name: "Rimewood Falls", Count: 1},
 		{Name: "Mijae Djinn", Count: 1}, {Name: "Island", Count: 20}}
-	tbl, _, _, err := cardsettest.Synth(t, "tail-75").Matchup(deck, deck)
+	tbl, _, _, err := cardsettest.Set(t, "grantfeeorder").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
