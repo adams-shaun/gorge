@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A mana ability a GainsAbilitiesOf$ recipient has (CR 613.1f, "has all
 // activated abilities of ...", CR 605.1a): Marvin, Murderous Mimic beside a
@@ -186,4 +190,46 @@ func (s *State) gainedZoneIdxs(k *prep, st statSrc, g *genPrep, out *[maxGrants]
 		}
 	}
 	return n
+}
+
+// gainedIntrinsic reports whether gained mana ability a of card c is the
+// intrinsic ability CR 305.6 gives c's basic land type: a plain {T} ability
+// making one fixed colour of a basic type c has (gorge's face has no printed
+// ability of that shape: cards.ApplyIntrinsics adds it, and the corpus prints
+// none on a typed land). gorge's planner (pay.PaymentAbility) lists such an
+// ability for the recipient as it lists a land's own, while it lists no other
+// gained one: Marvin, Murderous Mimic beside a Forest creature (Rootwise
+// Survivor's land) pays {G} through the planner, a printed gained ability
+// only through a lowered play.
+func (k *prep) gainedIntrinsic(c CardID, a *kop.Ability) bool {
+	if a.Kind != kop.AbMana || a.AFlags != 0 || a.ManaRestrict != 0 || a.ManaN > 1 || a.Cost.Flags != kop.CostTap ||
+		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0 || len(a.Prog) != 0 || bits.OnesCount8(uint8(a.ManaColors)) != 1 {
+		return false
+	}
+	col := bits.TrailingZeros8(uint8(a.ManaColors))
+	return col < 5 && k.gen.blgSub[col] != subOutside && k.t.Cards[c].Subtypes.Has(int(k.gen.blgSub[col]))
+}
+
+// gainedIntrinsicAvail adds to av the planner unit of slot sl's gained
+// intrinsic mana abilities (gainedIntrinsic): one unit of the colours they
+// make together, the source tapping once. sl's other granted abilities are
+// no planner unit (ungrAvail).
+func (s *State) gainedIntrinsicAvail(k *prep, sl Slot, av *avail) {
+	if !k.gen.uses.has(useGainedMana) || !s.grantMay(k, sl) {
+		return
+	}
+	var gi [maxGrants]int16
+	var mask uint8
+	for i, n := 0, s.gainedIdxs(k, sl, &gi, 0); i < n; i++ {
+		r := k.gen.grantOf[gi[i]]
+		if !k.gainedIntrinsic(r.card, &k.t.Cards[r.card].Abilities[r.ab]) {
+			continue
+		}
+		if gv := s.grantView(k.gen, gi[i], sl); s.canTapForManaPC(k, sl, gv) {
+			mask |= s.srcMaskAt(gv, sl)
+		}
+	}
+	if mask != 0 {
+		av.addUnits(mask, 1)
+	}
 }
