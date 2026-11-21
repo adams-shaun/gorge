@@ -20,6 +20,7 @@ Commander Eesha	01564814b0cbbf9b	3	0/0		0/0
 Corpse Connoisseur	013d083425e58863	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Costly Plunder	b5f117d9763bb866	14	0/0		1/2	ix:resp
 Counterbalance	e995a8e6d8a20026	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Court of Grace	3f6d129e1128e59d	7	2/2		0/1	ix:resp
 Dance of the Tumbleweeds	0f65f2c5f77cfe5f	9	0/0		2/2	
 Death's Shadow	a56d2f9813028bf9	13	0/0		0/0	
 Direct Current	af63b6ae11b0ee03	4	0/0		3/4	cast/alt:jumpstart
@@ -27,6 +28,7 @@ Dragon Sniper	b703b5eef5ef227e	21	0/0		0/0
 Dread Drone	c0c47f741d87b0a0	11	1/1		1/1	
 Electrostatic Field	9cbfc0ebb5d3fdb0	13	1/1		0/1	ix:resp
 Endrek Sahr, Master Breeder	150ac0fa90fd635e	11	2/2		1/1	
+Entangler	4bd6de1854dc29ef	46	0/0		2/2	
 Fanning the Flames	a67d21e3462ef8d5	14	0/0		6/6	
 Festercreep	80ef7a355cc064ad	7	1/1		1/1	
 Flame Wave	2fcba72f602d6739	14	0/0		2/2	
@@ -83,6 +85,7 @@ Pyrokinesis	4d0f996934cfc278	7	0/0		2/2
 Read the Bones	3e6cd7f2a3fc2e85	10	0/0		2/2	
 Repulse	b1749aeba325b678	10	0/0		2/2	
 River Bear	e1ad93296849ffca	11	0/0		0/0	
+Rock Slide	bb2ee7ad22a6f7c0	3	0/0		2/4	f0/s/x0,ix:resp
 Sabertooth Wyvern	a1a297b7a63c01e4	11	0/0		0/0	
 Sacred Cat	b9ec8c73f08505d4	12	1/1		1/1	
 Samurai of the Pale Curtain	37b995f06ad7ec91	6	2/2		0/1	ix:resp
@@ -116,6 +119,7 @@ Virus Beetle	24c190ca0c2045d5	4	1/1		0/1	ix:resp
 Visara the Dreadful	86ad1645fce6e9ce	4	1/1		1/1	
 Volcanic Spite	e9939d36999419f2	10	0/0		2/2	
 Vow of Malice	8b4d7d1d556708c5	7	0/0		2/2	
+Wander in Death	80cb4550af69b803	5	1/1		1/2	ix:resp
 Weaponcraft Enthusiast	f1207f6ba3670d30	5	1/1		0/1	ix:resp
 Wheel and Deal	a011dd397be5a912	9	0/0		1/2	ix:resp
 Wirewood Channeler	de85bc9406a9cfd7	20	1/1		1/1	
