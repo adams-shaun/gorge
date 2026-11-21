@@ -285,12 +285,21 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 	if k.gen == nil || !k.gen.anyFilt {
 		return false
 	}
-	var filt [maxFaceFilters]Slot
-	n := 0
 	own := NoSlot
 	if e := &s.bld().e; e.kind == seAbility && k.t.Cards[e.card].Abilities[e.ab].Cost.Flags&kop.CostTap != 0 {
 		own = s.srcSlot() // tapped for mana, it could not pay its own {T}
 	}
+	return s.faceReachFilters(k, p, av, r, extra, own)
+}
+
+// faceReachFilters is faceReachable's filter walk: p's filters except own (the
+// slot whose {T} the payment already spends) are activated in the window. An
+// unless, ward or trigger cost (canPayGen) has no build to read own from: it
+// passes NoSlot (CR 118.12, 605.3b: Conversion's {W}{W} paid through Unknown
+// Shores' {1},{T}: any colour).
+func (s *State) faceReachFilters(k *prep, p uint8, av *avail, r *kop.ManaCost, extra int, own Slot) bool {
+	var filt [maxFaceFilters]Slot
+	n := 0
 	for b := s.scriptFilt(k, p); b.any() && n < len(filt); b = b.rest() {
 		if sl := b.first(); sl != own {
 			filt[n] = sl
