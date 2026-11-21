@@ -760,8 +760,8 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 		s.addGrantUnits(a, mask, n)
-		if ng == 0 && pc.manaOne {
-			s.addOneColour(a, n)
+		if ng == 0 && (pc.manaOne || dynPairOne(pc)) {
+			s.addOneColour(a, n) // (an evaluated pair's wide view is one colour too: dynPairOne)
 		} else if ng == 1 && s.g.availX&availHyp == 0 {
 			// a source whose only mana is one grant: its "N mana of any one color" is one colour
 			if gv := s.grantView(k.gen, gi[0], sl); gv.manaOne {
@@ -774,7 +774,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if s.g.availX&availWalk != 0 {
 		if own {
 			s.addGrantUnits(a, mask, n)
-			if pc.manaOne && s.g.availX&availHyp == 0 {
+			if (pc.manaOne || dynPairOne(pc)) && s.g.availX&availHyp == 0 {
 				s.addOneColour(a, n) // the printed amount is one colour, whichever is chosen (availFor's census)
 			}
 		}
@@ -803,7 +803,7 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	if !own {
 		mask, n = 0, 0
 	}
-	ownFace := grantUnit{mask: mask, n: n, one: own && pc.manaOne}
+	ownFace := grantUnit{mask: mask, n: n, one: own && (pc.manaOne || dynPairOne(pc))}
 	// A printed sacrifice-only ability (an Eldrazi Spawn's) costs no {T} either:
 	// it is a unit of its own beside a tap grant's, and a tapped source still
 	// pays it, though not the tap grant (CR 602.2b, 605.1a).

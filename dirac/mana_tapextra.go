@@ -541,7 +541,7 @@ func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
 // own limit, mana.go addOneColour), so an entry over a {C}-bearing mask would
 // drop the pick the independent units still make.
 func (s *State) addReflectOne(k *prep, a *avail, sl Slot, pc *pcard) {
-	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 {
+	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 && !dynPairOne(pc) {
 		return
 	}
 	m := s.srcMaskAt(pc, sl)
@@ -921,3 +921,17 @@ func (s *State) painExtraC(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	return xc[kop.C] - xp[kop.C]
 }
+
+// dynPairOne reports whether pc is an evaluated pair's wide view of any colour
+// (The Beacon of Kahless's Battlefront, mana_dynpair.go): a tap makes wideN
+// mana of ONE chosen colour (CR 106.1, the ability's "choose a color"), not
+// wideN independent any-colour units, so the census prices it as a one-colour
+// record beside the any-colour census ability, as gorge's planner counts it
+// (pay planalts.go: one alternative of wideN mana per colour).
+func dynPairOne(pc *pcard) bool {
+	return !DebugDynPairIndependent && pc.wideN > 1 && pc.wideCol == kop.ColAny && !pc.wideChosen && pc.manaAb >= 0
+}
+
+// DebugDynPairIndependent prices an evaluated pair's wide view as independent
+// any-colour units (the old behaviour); a mutation switch for the lockstep test.
+var DebugDynPairIndependent bool
