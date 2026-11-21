@@ -116,6 +116,13 @@ func (e *Engine) grantedAbilitiesLimited(p state.PlayerID, id state.ObjID, apply
 				if !e.gainsValidAbilitiesAdmits(ce.GainsValidAbilities, ab) {
 					continue
 				}
+				// CR 113.6, 602.2: a gained ability keeps the zone it works
+				// from; every recipient is a battlefield permanent, so one
+				// whose ActivationZone$ is another zone (Resurrected Cultist's
+				// graveyard return) is never the recipient's to activate.
+				if !abilityZoneOK(ab, state.ZBattlefield) {
+					continue
+				}
 				if applyLimit && ce.GainsLimitPerTurn > 0 &&
 					e.gainedActivationsUsed(id, gf.Obj, i, true) >= ce.GainsLimitPerTurn {
 					continue
