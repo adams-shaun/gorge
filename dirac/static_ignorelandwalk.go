@@ -45,6 +45,7 @@ type LandwalkStats struct {
 	AttachedEvades int64 // of those, an attached host's grant (an Aura's or an Equipment's)
 	IgnoredBlocks  int64 // an IgnoreLandWalk static let a blocker block an attacker whose landwalk line had a land to hit
 	GrantedSkulk   int64 // a granted skulk forbade a blocker with greater power
+	GrantedHorse   int64 // a granted horsemanship (a mark, kw_kwmark.go) forbade a blocker without it
 }
 
 // DebugLandwalkStats, when set, receives the counts.
