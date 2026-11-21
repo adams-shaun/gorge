@@ -1215,22 +1215,14 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.DiscardN > 0 {
-		set(kop.CostDiscard, c.DiscardN)
-	}
+	discardCountPart(&out, c, set, &counted)
 	discardXCostPart(c, &out) // Discard<X/Spec>: CostDiscard with N 0, the announced X
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
 	out.DiscardRandom = discardRandomPart(c)
-	if c.DiscardF != nil {
-		// a filtered discard shares Cost.N (the card count) and Cost.Filter
-		// (the candidates' spec, the hand zone): alone among the counted
-		// parts
-		out.Flags |= kop.CostDiscardFiltered
-		if out.Filter, err = cb.filter(c.DiscardF, kop.ZoneHand); err != nil {
-			return out, err
-		}
+	if err = cb.discardFilterPart(&out, c); err != nil {
+		return out, err
 	}
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
@@ -1401,7 +1393,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 // the source's own graveyard exile (discardBesideSelfExile). Any other pair
 // stays refused.
 func countedPartsOK(c *lCost, out *kop.Cost, counted int) bool {
-	return discardBesideSac(c, out, counted) || counted == 2 && discardBesideSelfExile(*c)
+	return discardBesideSac(c, out, counted) || counted == 2 && sharedCountPairOK(*c)
 }
 
 // hasDrawCost reports a Draw<N/Who> or Draw<X/Who> part. Only a trigger's own

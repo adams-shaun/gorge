@@ -2920,7 +2920,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				parts++
 			}
 		}
-		if parts > 1 && !(lc.actCost && parts == 2 && discardBesideSelfExile(c)) {
+		if parts > 1 && !(lc.actCost && parts == 2 && sharedCountPairOK(c)) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}

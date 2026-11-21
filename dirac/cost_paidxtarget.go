@@ -33,7 +33,7 @@ func (s *State) paidXTargetAbort(k *prep) bool {
 // in a cost ("Targeted$CardManaCost"), so a VX bound in a cost filter is the
 // announced {X}.
 func costFilterBoundByX(t *kop.Table, c *kop.Cost) bool {
-	for _, f := range [...]kop.FilterID{c.Filter, c.Discard2F} {
+	for _, f := range [...]kop.FilterID{c.Filter, c.Discard2F, c.DiscardSideF} {
 		for ; f != 0; f = t.Filters[f].Or {
 			if t.Filters[f].PredV.K == kop.VX {
 				return true
