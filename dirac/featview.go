@@ -952,13 +952,23 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || skip.has(sl) || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || skip.has(sl) {
+			continue
+		}
+		granted := s.grantMay(k, sl) && s.manaGranted(k, sl)
+		if granted && !s.landSetLost(k, sl) {
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue // the census never lists a deferred source (mana_rider.go); a granted basic land type's intrinsic unit is the exception (static_landtype.go)
 		}
 		pc := s.manaPCGen(k, sl)
+		if granted {
+			// a land a land-type setter blanked (Harbinger of the Seas's Islands)
+			// beside a granted ability: manaPCGen answers the grant, but the
+			// planner's census holds the setter's intrinsic unit (CR 305.6)
+			pc = s.landSetView(k, sl, s.cardAt(sl))
+		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {
 			continue // (a Combo Any of an evaluated amount is no census unit: mana_combodyn.go)
 		}
