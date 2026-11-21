@@ -199,6 +199,15 @@ type Override struct {
 	// StepEndCombat and at cleanup, dirac/static_ovendcombat.go). It is applied
 	// with DurPermanent, so the end-of-turn drop leaves it alone.
 	UntilEndCombat bool
+	// Banding: the permanent gains banding (CR 702.22; a Pump's KW$ Banding,
+	// Battering Ram's UntilEndOfCombat grant). KwMask is full, so the grant is
+	// the record's own field, not a mask bit (kop/keywords.go; the manifest's
+	// keyword slot dirac/manifest/key/keyBanding stays reserved beside it).
+	// The one reader is dirac's hasBanding, which the CR 702.22c band
+	// declaration ask calls (dirac/combat_band.go): the kernel poses gorge's
+	// ask and mirrors the decline; an accepted band stalls (StallBand), band
+	// formation is not modelled.
+	Banding bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
