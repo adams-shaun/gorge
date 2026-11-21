@@ -27,7 +27,8 @@ func landGrantEntries(names []string) []cardset.Entry {
 
 // TestLandGrantPairRefused: Yavimaya, Cradle of Growth (every land is a Forest)
 // beside City of Traitors ({T}: Add {C}{C}) and Ferrous Lake is refused when
-// the matchup is built. gorge appends one intrinsic "{T}: Add {G}" beside the
+// the matchup is built, naming Ferrous Lake: City of Traitors is the own-vs-
+// intrinsic pair the kernel models (static_landgrantalt.go) and no refusal. gorge appends one intrinsic "{T}: Add {G}" beside the
 // land's own ability (CR 305.6), so a granted Forest offers both productions
 // and the kernel's one-ability view stalled mid-game (evloop tail-11 cycle
 // c000, landgrant after 113 decisions). The refusal names the granter and the
@@ -47,10 +48,13 @@ func TestLandGrantPairRefused(t *testing.T) {
 	if ir.Reason != "landgrant" || ir.Why != landGrantPairWhy {
 		t.Fatalf("refused %q (%s), want landgrant (%s)", ir.Reason, ir.Why, landGrantPairWhy)
 	}
-	for _, n := range []string{"Yavimaya, Cradle of Growth", "City of Traitors", "Ferrous Lake"} {
+	for _, n := range []string{"Yavimaya, Cradle of Growth", "Ferrous Lake"} {
 		if !slices.Contains(ir.Cards, n) {
 			t.Errorf("refusal names %v, want %s among them", ir.Cards, n)
 		}
+	}
+	if slices.Contains(ir.Cards, "City of Traitors") {
+		t.Errorf("refusal names City of Traitors (%v): a {C}{C} land beside one granted colour is the modelled pair", ir.Cards)
 	}
 	// the same decks without the non-plain lands build: Yavimaya beside plain
 	// lands is not refused

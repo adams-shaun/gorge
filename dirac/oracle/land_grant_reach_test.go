@@ -18,11 +18,11 @@ import (
 // over-approximation of the filter (static_landgrantpair.go landGrantScan),
 // keeping every Ashaya pod holding any non-plain mana source out of a deal.
 //
-// Arixmethes taps for {G}{U}: a colour the Forest grant would add is already
-// made by its own ability, which gorge does not append again
-// (ManaAbilitiesProduce), so it is no stall either. Citanul Hierophants gives
-// every creature "{T}: Add {G}" and stays refused beside Ashaya
-// (TestLandGrantGrantedManaRefused).
+// Citanul Hierophants gives every creature "{T}: Add {G}" and stays refused
+// beside Ashaya (TestLandGrantGrantedManaRefused). Arixmethes ("{T}: Add {G}{U}")
+// does too: gorge appends the Forest's {G} unless an ability has Produced$
+// exactly G (ManaAbilitiesProduce keys on the raw text), so an all-at-once
+// ability does not make it.
 var landGrantReachShared = []string{
 	"Sol Ring", "Arcane Signet", "Orzhov Signet", "Simic Signet", "Talisman of Progress", "Talisman of Conviction",
 	"Everflowing Chalice", "Hedron Archive", "Thought Vessel", "Mind Stone",
@@ -31,7 +31,7 @@ var landGrantReachShared = []string{
 }
 
 var landGrantReachAshaya = append(slices.Clone(landGrantReachShared),
-	"Ashaya, Soul of the Wild", "Arixmethes, Slumbering Isle", "Augur of Autumn", "Body of Knowledge",
+	"Ashaya, Soul of the Wild", "Augur of Autumn", "Body of Knowledge",
 	"Tatyova, Benthic Druid", "Llanowar Elves", "Elvish Archdruid", "Priest of Titania")
 
 var landGrantReachPlain = append(slices.Clone(landGrantReachShared),
@@ -51,7 +51,7 @@ func landGrantReachRun(t *testing.T, seeds uint64) (reached, bad int) {
 					switch o.Face().Name {
 					case "Ashaya, Soul of the Wild":
 						ash = true
-					case "Sol Ring", "Arcane Signet", "Orzhov Signet", "Simic Signet", "Talisman of Progress", "Arixmethes, Slumbering Isle":
+					case "Sol Ring", "Arcane Signet", "Orzhov Signet", "Simic Signet", "Talisman of Progress":
 						src = true
 					}
 				}
@@ -80,8 +80,8 @@ func landGrantReachRun(t *testing.T, seeds uint64) (reached, bad int) {
 }
 
 // TestFourSeatLandGrantAshayaReachLockstep plays the Ashaya pod: it builds (no
-// landgrant refusal), no seed diverges or stalls, and Ashaya meets a Signet,
-// Sol Ring or Arixmethes on the battlefield.
+// landgrant refusal), no seed diverges or stalls, and Ashaya meets a Signet
+// or Sol Ring on the battlefield.
 func TestFourSeatLandGrantAshayaReachLockstep(t *testing.T) {
 	if isolate(t) {
 		return

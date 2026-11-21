@@ -9,7 +9,13 @@ import (
 
 // BlgStats counts granted basic-land-type mana views; NonLand counts the
 // ones for cards not printed as lands (the Ashaya class).
-var BlgStats struct{ NonLand atomic.Int64 }
+var BlgStats struct {
+	NonLand atomic.Int64
+	// AltOwn, AltIntr count the taps of an own-vs-intrinsic pair unit
+	// (static_landgrantalt.go) the planner took on its own face and on the
+	// granted intrinsic one
+	AltOwn, AltIntr atomic.Int64
+}
 
 // A granted basic land type (CR 305.6): a Continuous static's
 // AddType$ AllBasicLandType (Leyline of the Guildpact, Prismatic Omen, Dryad
@@ -326,6 +332,9 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 		return pc
 	}
 	g := k.gen
+	if v := s.altView(k, sl, c, pc); v != nil {
+		return v // an own ability beside the granted intrinsic one (static_landgrantalt.go)
+	}
 	if g.blgIdx[c] < 0 {
 		s.capFull(StallLandGrant)
 		return pc

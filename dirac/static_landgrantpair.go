@@ -12,8 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // its start instead (prep.landGrantPair, initStall). Yavimaya and Ashaya still
 // play beside plain lands.
 //
-// This is a stop-gap for a model of alternative productions per unit across
-// the planner, the window, the potential walk and tapFor; that work removes it.
+// A land whose own ability makes several mana (a bounce land, Temple of the
+// False God) under one granted colour is modelled (static_landgrantalt.go) and
+// no refusal; the shapes below stay refused until their alternatives are.
 
 // DebugLandGrantNoPairGuard is the mutation: the refusal is off, so the pair
 // plays and stalls at the first meeting of the grant and the card (blgView).
@@ -119,7 +120,7 @@ func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.Color
 	if t.Cards[i].Types&reach == 0 && !DebugLandGrantAnyReach {
 		return false
 	}
-	return g.blgIdx[i] < 0 && granted&^ownMadeCols(&p.cards[i])&0x3f != 0
+	return g.blgIdx[i] < 0 && granted&^ownMadeCols(&p.cards[i])&0x3f != 0 && !altCovers(g, p, i, granted)
 }
 
 // grantsManaTo: card i carries a latent mana ability (Citanul Hierophants'
@@ -173,17 +174,17 @@ func landGrantPairText(t *kop.Table, p *prep, g *genPrep) (string, func(*kop.Car
 		func(_ *kop.CardDef, i int) bool { return landGrantStalls(t, p, g, i, granted, reach) }
 }
 
-// ownMadeCols is the colours a view's own mana ability makes: manaCol, the
-// first colour of an all-at-once ability (ManaEach, Arixmethes' {G}{U}) beside
-// the colours its manaXv adds. gorge appends a granted type's intrinsic ability
-// only for a colour no listed ability produces (ManaAbilitiesProduce), so a
-// colour in the extra is no stall.
+// ownMadeCols is the colours a view's own mana ability makes as far as gorge's
+// intrinsic dedup sees them: it appends a granted type's ability unless some
+// ability has Produced$ exactly that colour (pay.ManaAbilitiesProduce keys on
+// the raw text). An all-at-once ability (a bounce land's "G U", Arixmethes) is
+// no single colour's, so it makes none: Simic Growth Chamber under a granted
+// Island still has the intrinsic {U} beside {G}{U}.
 func ownMadeCols(pc *pcard) kop.ColorMask {
-	m := pc.manaCol
-	for c, n := range pc.manaXv {
+	for _, n := range pc.manaXv {
 		if n > 0 {
-			m |= 1 << c
+			return 0
 		}
 	}
-	return m
+	return pc.manaCol
 }
