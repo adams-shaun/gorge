@@ -252,3 +252,21 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	}
 	s.reflAmtDo(k, p, sl, col)
 }
+
+// reflBoundPlay: play a is one gorge's PotentialMana bound pays beside a live
+// reflected Amount$ source (caM, the census gaps of a Combo Any kind) though
+// the gaps walk's census does not: the gaps walk counts the source's mana as
+// {C} alone (availCA), but another source's open production (Humble
+// Naturalist's restricted one mana of any colour, admitted for a creature
+// spell and priced unbounded by the bound) lifts a coloured pip the {C} could
+// not. gorge's unrelaxable census then searches the play, and the search finds
+// it when the source's colour answer funds the pips (Druid's three {B} and the
+// Naturalist's one beside Faceless Butcher's {2}{B}{B}).
+func (s *State) reflBoundPlay(k *prep, p uint8, caM slotMask, a Action) bool {
+	for b := caM; b.any(); b = b.rest() {
+		if k.isReflAmt(s.cardAt(b.first())) {
+			return s.sacPotPays(k, p, a)
+		}
+	}
+	return false
+}
