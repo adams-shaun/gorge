@@ -727,7 +727,7 @@ func (s *State) sba(k *prep) bool {
 		// defeated battles (to the graveyard), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
-		n := s.sbaDepartOrder(k, die, wld, pwz, bat, aur, rolL[:nrol], &umbra, order[:])
+		n, sagaFrom := s.sbaDepartOrder(k, die, wld, pwz, bat, aur, rolL[:nrol], &umbra, order[:])
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
@@ -744,6 +744,9 @@ func (s *State) sba(k *prep) bool {
 		for i := 0; i < n; i++ {
 			if i == nd {
 				cb.batchEnd(s)
+			}
+			if i >= sagaFrom {
+				s.fireSac(k, order[i]) // the Sacrificed triggers just before the Saga's own leave (sagaSBA's order), after the pass's earlier casualties' triggers
 			}
 			s.fireLeave(k, order[i], zs[i])
 		}
@@ -769,8 +772,9 @@ func (s *State) sba(k *prep) bool {
 // planeswalkers with no loyalty, defeated battles and unattached Auras;
 // within each, each seat's battlefield list in seat order, then the Sagas
 // due for sacrifice (sagaDepart). An umbra-spared Aura takes its host's place
-// in the creature walk (umbraWalk).
-func (s *State) sbaDepartOrder(k *prep, die, wld, pwz, bat, aur slotMask, rolL []Slot, umbra *umbraOrder, order []Slot) int {
+// in the creature walk (umbraWalk). It returns the order's length and the
+// index of its first Saga (sagaDepart), for the leave loop's fireSac.
+func (s *State) sbaDepartOrder(k *prep, die, wld, pwz, bat, aur slotMask, rolL []Slot, umbra *umbraOrder, order []Slot) (int, int) {
 	n := s.umbraWalk(die, umbra, order, 0)
 	dw := die.or(wld)
 	for _, gm := range [4]slotMask{wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
