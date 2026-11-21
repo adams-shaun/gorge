@@ -99,6 +99,13 @@ func (lc *lowerCtx) playerSetSpec(api, v string) (pred playerSetPred, matched bo
 			return pred, true, refuse("Defined$ %q: controlsCreature filter", v)
 		}
 		pred.code, pred.f = kop.PlayerPredControlsCreature, f
+	case q == "Opponent+HasCardsInHand_Card_EQ0":
+		// Tinybones, Trinket Thief: gorge's Player.HasCardsIn<zone>_<objspec>_<cmp><n>
+		// property (playerHasCardsInZoneMatches) over the hand with the
+		// any-card filter and a zero count is exactly "the hand is empty".
+		// Base Opponent: gorge's definedSpec skips the controller for the
+		// +Opponent conjunct, which is the kernel's each-opponent set.
+		pred.base, pred.code = "Opponent", kop.PlayerPredHandEmpty
 	case q == "MaxSpeed", q == "!MaxSpeed":
 		pred.code = kop.PlayerPredMaxSpeed
 		if q[0] == '!' {
