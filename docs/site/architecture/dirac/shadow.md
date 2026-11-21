@@ -44,16 +44,21 @@ two `Layout`s over the same lists and views stage identically.
 Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
 
 - **Pods.** The same features stage at `NSeat` 2..4. A round starts at the active seat with no pass and each pass moves
-  to the next seat, so the pass count is `(Prio + NSeat - Active) % NSeat` (`World.roundPasses`); a pose leaves the holder
-  at the seat before the active one with `NSeat` passes. A blocker's controller must be the seat its attacker attacks
+  to the next seat still in the game, so the pass count is the number of seats not lost from Active up to Prio
+  (`World.roundPasses`, `(Prio + NSeat - Active) % NSeat` when none has left); a pose leaves the holder at the last seat
+  in the game before the active one with one pass per seat in the game. A blocker's controller must be the seat its attacker attacks
   (CR 509.1a). The declare blockers pose stages only while no block is declared yet, with `World.BlkDef` the defender asked
   (dirac's `blkDef`, read only in a pod); a later defender's pose after another's blocks is `combat`. An observer at the
   declare blockers step in a pod is `decision` even with blocks shown, since another defender may still be to declare.
   The declare blockers step with no attacker on the board is `combat` (every attacker left, and a blocker of a departed
   attacker keeps blocking with no mark a view shows).
-  A seat that has left the game is `seat-left` (a finished game stays `game-over`).
-  Status of the multiplayer shadow (C13): pods of every seat in the game and four-seat Commander pods are done; departed
-  seats remain.
+  A seat that has left the game stages as `World.Lost`: its view shows no card and no hand or library size (else
+  `seat-left`), `Hidden.Gone[p]` holds every card of its deck, and those cards are `ZoneNone` objects that keep their
+  indices (CR 800.4a). At least two seats stay, and the active seat, the priority holder, every attacker's target and the
+  blockers pose's defender must be among them (else `seats`); a lost seat's ceased token stays `token` until
+  gshadow-w1-ceased-tokens. A finished game stays `game-over`.
+  Status of the multiplayer shadow (C13): pods of every seat in the game, four-seat Commander pods and departed seats
+  are done.
 
 - **Commander (CR 903).** A view whose players list a commander stages as `World.Commander`: one commander a seat
   (`PlayerView.Commanders[0]` -> `World.Cmd`), in the command zone or any zone staging admits, its command-zone casts

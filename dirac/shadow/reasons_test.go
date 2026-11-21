@@ -66,6 +66,10 @@ func TestWorldFromViewReasons(t *testing.T) {
 			// a four-player view with the last seat out
 			for p := 2; p < 4; p++ {
 				pv := view.PlayerView{ID: state.PlayerID(p), Life: 20, HandSize: 7, LibrarySize: 13, Lost: p == 3}
+				if p == 3 {
+					// a departed seat whose view still shows a hand card
+					pv.Hand = []view.CardView{{ID: 60, Name: "Plains"}}
+				}
 				for i := 0; i < 7; i++ {
 					in.Hidden.Hand[p] = append(in.Hidden.Hand[p], shadow.Card{Obj: dirac.Obj(p*20 + i), Name: "Plains"})
 				}

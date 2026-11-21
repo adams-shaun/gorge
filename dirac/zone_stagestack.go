@@ -108,11 +108,46 @@ func (w *World) validateStackPriority() error {
 
 // roundPasses is the pass count of the priority round at w. Every round starts
 // at the active seat with no pass (openPriority, afterResolve) and each pass
-// moves to the next seat, so the holder has been passed to (Prio - Active) seats
-// along. A stack's top entry is the active seat's (validateStackPriority), so
-// the same count holds over a stack.
+// moves to the next seat in the game (nextAlive), so the holder has been passed
+// to by the seats not lost from Active up to it. A stack's top entry is the
+// active seat's (validateStackPriority), so the same count holds over a stack.
 func (w *World) roundPasses() uint8 {
-	return (w.Prio + w.NSeat - w.Active) % w.NSeat
+	n := uint8(0)
+	for p := w.Active; p != w.Prio && n < MaxSeats; n++ {
+		p = w.nextAlive(p)
+	}
+	return n
+}
+
+// nextAlive is the first seat after p in turn order that has not left.
+func (w *World) nextAlive(p uint8) uint8 {
+	for i := uint8(1); i < w.NSeat; i++ {
+		if q := (p + i) % w.NSeat; !w.Lost[q] {
+			return q
+		}
+	}
+	return p
+}
+
+// prevAlive is the last seat before p in turn order that has not left.
+func (w *World) prevAlive(p uint8) uint8 {
+	for i := uint8(1); i < w.NSeat; i++ {
+		if q := (p + w.NSeat*2 - i) % w.NSeat; !w.Lost[q] {
+			return q
+		}
+	}
+	return p
+}
+
+// aliveN is the number of seats that have not left.
+func (w *World) aliveN() uint8 {
+	n := uint8(0)
+	for p := uint8(0); p < w.NSeat; p++ {
+		if !w.Lost[p] {
+			n++
+		}
+	}
+	return n
 }
 
 // stageStack puts w's stack entries on s, bottom to top.

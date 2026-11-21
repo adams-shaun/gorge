@@ -121,6 +121,8 @@ type stageStats struct {
 	stacked       int               // staged positions with a stack entry
 	farAttack     int               // staged positions with an attacker on a seat other than the active seat's next
 	farBlock      int               // staged declare blockers poses of a defender other than the active seat's next
+	departed      int               // staged positions with a seat that has left the game
+	departed2     int               // staged positions with two or more such seats
 	cmdZone       int               // staged Commander positions with a commander in a command zone
 	cmdBF         int               // ... with a commander on the battlefield
 	cmdCast1      int               // ... with a commander cast from the command zone at least once
@@ -137,6 +139,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 	seats := max(env.seats, 2)
 	var m *oracle.Matchup
 	var err error
+	var gone func(p int) []shadow.Card // the cards of seat p's deck, as the matchup numbers them
 	if env.seats == 0 {
 		decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
 		m, err = oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
@@ -146,6 +149,17 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 			decks[i] = env.deck(r)
 		}
 		m, err = oracle.KernelMatchupN(reg, env.tbl, []string{"a", "b", "c", "d"}[:seats], decks, nil, 0)
+		gone = func(p int) []shadow.Card {
+			base := 0
+			for _, d := range decks[:p] {
+				base += len(d)
+			}
+			var cs []shadow.Card
+			for i, id := range decks[p] {
+				cs = append(cs, shadow.Card{Obj: dirac.Obj(base + i), Name: env.tbl.Cards[id].Name})
+			}
+			return cs
+		}
 	}
 	if err != nil {
 		return err.Error()
@@ -184,6 +198,11 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 			}
 			for _, id := range g.Zone(state.ZLibrary, p) {
 				hidden.Library[p] = append(hidden.Library[p], card(ref, g, id))
+			}
+		}
+		for p := range v.Players {
+			if gone != nil && v.Players[p].Lost {
+				hidden.Gone[p] = gone(p)
 			}
 		}
 		if !env.want(seed, &v, d) {
@@ -262,6 +281,18 @@ func (st *stageStats) count(w *dirac.World) {
 	}
 	if far {
 		st.farAttack++
+	}
+	gone := 0
+	for _, l := range w.Lost[:w.NSeat] {
+		if l {
+			gone++
+		}
+	}
+	if gone > 0 {
+		st.departed++
+	}
+	if gone > 1 {
+		st.departed2++
 	}
 	st.countCommanders(w)
 	if w.Pose == dirac.PoseBlockers && w.NSeat > 2 && w.BlkDef != (w.Active+1)%w.NSeat {
