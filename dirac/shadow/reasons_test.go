@@ -102,6 +102,21 @@ func TestWorldFromViewReasons(t *testing.T) {
 			in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}}}
 		},
 	}
+	// a targeted entry whose target is no battlefield object the view shows
+	// (a card in a hand: it left; or a player) is ReasonStack
+	for name, tv := range map[string]view.TargetView{
+		"off the battlefield": {Obj: 3},
+		"a player":            {Player: 1, IsPlayer: true},
+	} {
+		in := reasonsInput()
+		bf(in, view.CardView{})
+		in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}, Targets: []view.TargetView{tv}}}
+		s, err := shadow.StageFromView(in)
+		var u dirac.ErrUnstageable
+		if !errors.As(err, &u) || u.Reason != shadow.ReasonStack || s != nil {
+			t.Errorf("target %s: got state %v, error %v; want %q", name, s != nil, err, shadow.ReasonStack)
+		}
+	}
 	// a card in a command zone that is no commander of its seat is exile's
 	in := reasonsInput()
 	in.View.Players[1].Command = []view.CardView{{ID: 40, Name: "Plains"}}
