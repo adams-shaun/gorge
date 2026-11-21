@@ -305,3 +305,24 @@ func TestFourSeatAtkTaxLaterLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxLaterDeck, 24, 20, 0, []string{"Spire of Industry", "Tainted Field"},
 		[]string{"Spire of Industry", "Tainted Field"}, &dirac.DebugAtkTaxLaterFirst)
 }
+
+// Amounts gorge's windows cannot price (Amount$ that is no literal: Elvish
+// Archdruid's {G} for each Elf, Priest of Titania's, Overgrown Battlement's
+// {G} for each creature with defender, Everflowing Chalice's counters; each
+// colour among permanents: Faeburrow Elder): availableAmountOf reads 0 and every
+// attack window skips the source, so it adds no unit and is never tapped. The
+// mutation (DebugAtkTaxCountDynamic) counts them at their evaluated amount.
+var atkTaxDynamicDeck = []cardset.Entry{
+	{Name: "Ghostly Prison", Count: 4}, {Name: "Windborn Muse", Count: 1},
+	{Name: "Elvish Archdruid", Count: 2}, {Name: "Priest of Titania", Count: 2}, {Name: "Overgrown Battlement", Count: 2},
+	{Name: "Everflowing Chalice", Count: 2}, {Name: "Grizzly Bears", Count: 3}, {Name: "Llanowar Elves", Count: 2},
+	{Name: "Forest", Count: 8}, {Name: "Plains", Count: 6},
+}
+
+// TestFourSeatAtkTaxDynamicLockstep: four-seat attack-tax games with
+// dynamic-amount sources play in lockstep, the payer holding them untapped as
+// the window pays from its lands.
+func TestFourSeatAtkTaxDynamicLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxDynamicDeck, 24, 20, 0, []string{"Elvish Archdruid", "Priest of Titania", "Overgrown Battlement"},
+		nil, &dirac.DebugAtkTaxCountDynamic)
+}

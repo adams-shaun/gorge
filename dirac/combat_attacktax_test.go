@@ -56,6 +56,9 @@ func TestAttackTaxRefusesUnmodelledPartners(t *testing.T) {
 		{kop.CardDef{Name: "Half Tainted", Types: kop.TLand, Abilities: []kop.Ability{
 			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1},
 			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW | kop.ColB, ManaN: 1, AFlags: kop.AfManaChoice}}}, false},
+		{land("Half Dynamic", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColG, ManaN: 1, AFlags: kop.AfManaDynamic, ManaV: kop.ValueRef{K: kop.VX}}), false},
+		{land("Half EachColor", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaN: 1, AFlags: kop.AfManaEachColor}), false},
+		{land("Half Dynamic Const", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColG, ManaN: 1, AFlags: kop.AfManaDynamic, ManaV: kop.Const(2)}), true},
 		{land("Half Restricted", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1}), false},
 		{kop.CardDef{Name: "Half Restricted First", Types: kop.TLand, Abilities: []kop.Ability{
 			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1},

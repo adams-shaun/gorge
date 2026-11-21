@@ -66,6 +66,11 @@ var DebugAtkTaxCountRestricted bool
 // reads the last of a source's later alternatives instead of its first ability.
 var DebugAtkTaxLaterFirst bool
 
+// DebugAtkTaxCountDynamic (test only, TestFourSeatAtkTaxDynamicLockstep): the
+// walk counts and taps a source whose amount is not a literal at its
+// evaluated amount, as a fixed source.
+var DebugAtkTaxCountDynamic bool
+
 // DebugAtkTaxEachOne (test only, TestFourSeatAtkTaxBounceLockstep): a bounce
 // land's tap adds one unit of its first colour, not every colour at once.
 var DebugAtkTaxEachOne bool
@@ -189,7 +194,19 @@ func atkTaxUnlisted(a *kop.Ability) bool {
 	f := a.Cost.Flags
 	fee := a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && (fee || f&other != 0) && !a.Cost.DiscardHand &&
-		f&^(kop.CostTap|kop.CostOncePerTurn|kop.CostPayLife|other) == 0 || atkTaxRestricted(a)
+		f&^(kop.CostTap|kop.CostOncePerTurn|kop.CostPayLife|other) == 0 || atkTaxRestricted(a) || atkTaxUnpriced(a)
+}
+
+// atkTaxUnpriced reports whether mana ability a has an amount gorge's windows
+// cannot price: an Amount$ that is no literal (Gyre Sage's counters, Elvish
+// Archdruid's Elves, Everflowing Chalice's charge counters; availableAmountOf
+// reads 0, and every window skips a source adding none) or one mana of each
+// colour among some permanents (Faeburrow Elder: a Produced$ word, no colour
+// slot). The shared census skips them, the paid census needs a literal amount
+// and the choice walk a counted unit.
+func atkTaxUnpriced(a *kop.Ability) bool {
+	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
+		(a.AFlags&kop.AfManaDynamic != 0 && a.ManaV.K != kop.VConst || a.AFlags&kop.AfManaEachColor != 0)
 }
 
 // atkTaxRestricted reports whether mana ability a spends only on some
@@ -462,7 +479,12 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	if a != nil && atkTaxPaidAb(a) {
 		return s.atkTaxPaid(k, sl, pc, a)
 	}
-	if a != nil && atkTaxRestricted(a) {
+	if DebugAtkTaxCountDynamic && pc.manaDyn && s.canTapForManaPC(k, sl, pc) {
+		if m := uint8(pc.manaCol) & 0x3f; m != 0 {
+			return bits.TrailingZeros8(m), int(pc.manaN), atkPassFixed, true
+		}
+	}
+	if a != nil && atkTaxUnlisted(a) {
 		return 0, 0, 0, false
 	}
 	if !s.canTapForManaPC(k, sl, pc) {
