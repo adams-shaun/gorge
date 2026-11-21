@@ -732,6 +732,7 @@ MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
 MayPlayZoneMask	untyped int	63
 MinBlockersAll	uint8	255
+MonarchAny	untyped int	2
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
@@ -1760,6 +1761,7 @@ WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseEnchanted	Whose	202
+WhoseMonarch	Whose	203
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2
 WhoseYou	Whose	1

@@ -96,7 +96,7 @@ func TestMonarchLowering(t *testing.T) {
 			"SVar:ProbeExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature.OppCtrl | SubAbility$ ProbeEffect\n" +
 			"SVar:ProbeEffect:DB$ Effect | Triggers$ ProbeBack | RememberObjects$ You & Targeted | Duration$ Permanent | ForgetOnMoved$ Exile\n" +
 			"SVar:ProbeBack:Mode$ BecomeMonarch | ValidPlayer$ Player.OpponentOf Remembered | Execute$ ProbeReturn | TriggerZones$ Command | Static$ True\n" +
-			"SVar:ProbeReturn:DB$ ChangeZoneAll | Origin$ Exile | Destination$ Battlefield | ChangeType$ Card.IsRemembered", "an exile until an opponent becomes the monarch (Palace Jailer) is not modelled"},
+			"SVar:ProbeReturn:DB$ ChangeZoneAll | Origin$ Exile | Destination$ Battlefield | ChangeType$ Card.IsRemembered", "outside Palace Jailer's exact shape is not modelled"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -1,0 +1,6 @@
+family: Pred
+name: PredMonarchCtrl
+value: next
+forge: ControlledBy Player.isMonarch
+status: active
+doc: PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.

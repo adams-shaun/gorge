@@ -1902,6 +1902,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
+	case cmpMonarchCtrl:
+		// a battlefield permanent's controller against the monarch
+		// (kernel monarchCtrlPredicate); no off-battlefield reading
+		if zone != kop.ZoneBattlefield {
+			return kf, fmt.Errorf("the monarch controller word off the battlefield")
+		}
+		kf.Pred, kf.PredN = kop.PredMonarchCtrl, int16(c.CmpN)
 	case cmpRenowned, cmpAttackingYou, cmpGoaded:
 		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
