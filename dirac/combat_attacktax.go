@@ -57,6 +57,10 @@ var DebugAtkTaxFree, DebugAtkTaxChoiceFirst, DebugAtkTaxWithholdVigilant bool
 // production.
 var DebugAtkTaxCountUnlisted bool
 
+// DebugAtkTaxEachOne (test only, TestFourSeatAtkTaxBounceLockstep): a bounce
+// land's tap adds one unit of its first colour, not every colour at once.
+var DebugAtkTaxEachOne bool
+
 // atkTaxOn reports whether the table carries an attack tax.
 func atkTaxOn(k *prep) bool { return k.gen != nil && k.gen.anyAtkTax }
 
@@ -169,8 +173,17 @@ func atkTaxUnlisted(a *kop.Ability) bool {
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
 		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
-		!a.ManaEach && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
+		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
+}
+
+// atkTaxEachAb reports whether mana ability a adds one fixed set of colours at
+// once (a bounce land's "{T}: Add {W}{U}", Produced$ "W U": ManaEach). gorge's
+// window lists it as a fixed unit of every colour's units together
+// (windowManaUnits: a non-choice production, counts over its slots), so it
+// pays two units and floats both colours (CR 106.1, 605.3a).
+func atkTaxEachAb(a *kop.Ability) bool {
+	return a.ManaEach && a.AFlags == 0 && a.ManaN > 0 && bits.OnesCount8(uint8(a.ManaColors&0x3f)) >= 2 && a.ManaColors&^0x3f == 0
 }
 
 // atkTaxMultiMana reports whether card c's several mana abilities are the
@@ -361,6 +374,12 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 		return 0, 0, false, false
 	}
 	m := uint8(a.ManaColors) & 0x3f
+	if a.ManaEach && atkTaxEachAb(a) {
+		if DebugAtkTaxEachOne {
+			return bits.TrailingZeros8(m), int(a.ManaN), true, true
+		}
+		return bits.TrailingZeros8(m), int(a.ManaN) * bits.OnesCount8(m), true, true
+	}
 	switch {
 	case a.AFlags&kop.AfManaChosen != 0:
 		ch := s.perms[sl].chosen
@@ -577,8 +596,7 @@ func (s *State) atkTaxPay(k *prep) {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
-		s.poolAdd(p, col, n)
-		s.artTag(k, p, sl, col)
+		s.atkTaxAddMana(k, p, sl, col, n)
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}
@@ -603,4 +621,20 @@ func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot) (col, n int, ok bool) {
 		return 0, 0, false
 	}
 	return bits.TrailingZeros8(m), 1, true
+}
+
+// atkTaxAddMana floats the mana the tapped source at sl made: n of col, or
+// for an all-at-once source (atkTaxEachAb) each of its colours' amount.
+func (s *State) atkTaxAddMana(k *prep, p uint8, sl Slot, col, n int) {
+	if a := manaAbView(&k.t.Cards[s.cardAt(sl)], s.manaPCGen(k, sl)); a != nil && !DebugAtkTaxEachOne && atkTaxEachAb(a) {
+		for c, m := 0, uint8(a.ManaColors)&0x3f; m != 0; c, m = c+1, m>>1 {
+			if m&1 != 0 {
+				s.poolAdd(p, c, int(a.ManaN))
+				s.artTag(k, p, sl, c)
+			}
+		}
+		return
+	}
+	s.poolAdd(p, col, n)
+	s.artTag(k, p, sl, col)
 }

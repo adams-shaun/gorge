@@ -191,3 +191,21 @@ func TestFourSeatAtkTaxUnlistedLockstep(t *testing.T) {
 		atkShapeLockstep(t, atkTaxVividDeck, 24, 20, []string{"Vivid Creek"}, nil, &dirac.DebugAtkTaxCountUnlisted)
 	})
 }
+
+// Bounce lands ("{T}: Add {W}{U}", Produced$ "W U", ManaEach): gorge's window
+// lists one fixed unit that makes both colours, so a tap pays two units and
+// floats both colours (windowManaUnits: a non-choice production over its
+// slots, CR 106.1, 605.3a). The mutation (DebugAtkTaxEachOne) reads one
+// colour's unit.
+var atkTaxBounceDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
+	{Name: "Azorius Chancery", Count: 4}, {Name: "Boros Garrison", Count: 2},
+	{Name: "Plains", Count: 8}, {Name: "Island", Count: 4},
+}
+
+// TestFourSeatAtkTaxBounceLockstep: four-seat attack-tax games with bounce
+// lands play in lockstep, the window tapping a bounce land for its two units.
+func TestFourSeatAtkTaxBounceLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxBounceDeck, 24, 20, []string{"Azorius Chancery"}, []string{"Azorius Chancery"}, &dirac.DebugAtkTaxEachOne)
+}
