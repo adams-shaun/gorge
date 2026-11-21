@@ -54,6 +54,12 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if ok := av.affords(&c, pipMaskOf(&c), 0); ok {
 			return true
 		}
+		// A filter ({1},{T}: Add one mana of any colour) funds the cost from
+		// mana made earlier in the payment (CR 605.3b): gorge's unless window
+		// lists it, so the ask must offer pay where only a filter reaches it.
+		if k.gen != nil && k.gen.anyFilt && s.faceReachFilters(k, p, &av, &c, 0, NoSlot) {
+			return true
+		}
 		// A restricted source whose spend restriction admits a non-spell
 		// payment (the Powerstone's CantCastNonArtifactSpells) funds an
 		// unless, ward or trigger cost too: gorge's unless window lists the
