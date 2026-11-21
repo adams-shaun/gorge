@@ -97,12 +97,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 		s.bestowResolve(k, &e) // CR 702.103e (kw_bestow.go)
 	}
-	if k.gen != nil && e.kind == seSpell && isObjTarget(e.tgt[0]) && e.li == 0 {
-		// the target's last known P/T (Condemn); a sacrificed cost's LKI,
-		// already held, is kept (RefSacrificed: Kazuul's Fury deals the
-		// sacrificed creature's power, not its target's)
-		s.res.e.li = s.snapLKI(Obj(e.tgt[0]))
-	}
+	s.snapResolveTgtLKI(k, &e) // the target's last known P/T (value_abiltgtpt.go)
 	// fizzle: every chosen target illegal
 	if e.nt > 0 {
 		any := false
@@ -880,6 +875,12 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 			// printed (or characteristic-defining) P/T: a graveyard card
 			// exiled by Morbid Bloom still has its toughness (CR 608.2g/h).
 			if o := s.objRefObj(kop.RefTarget0); o != NoObj {
+				if pw, t, ok := s.abilTgtLKIPT(&s.res.e, o); ok {
+					if v.K == kop.VTargetPower {
+						return pw
+					}
+					return t
+				}
 				pw, t := s.objPT(k, o, NoSlot)
 				if v.K == kop.VTargetPower {
 					return pw

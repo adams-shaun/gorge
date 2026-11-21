@@ -204,6 +204,10 @@ type prep struct {
 	// the initiative's Undercity (genPrep.dungeon). Prep data like cards,
 	// never a pinned genPrep field (TestNoNewFixedStateFields).
 	dungeons []CardID
+	// anyAbilTgtPT: some activated ability reads its target's power or
+	// toughness: the target's last known P/T is snapshot as it resolves
+	// (value_abiltgtpt.go). A prep field, never a pinned genPrep one.
+	anyAbilTgtPT bool
 	// embalmCard / embalmAb: the granting card and ability index of the
 	// latent embalm body a table's OpGrantEmbalmOwnCost names (prepEmbalmGrant;
 	// kw_embalmgrant.go); anyEmbalmGrant is set when the table grants embalm.
