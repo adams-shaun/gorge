@@ -35,24 +35,27 @@ const raGenClash uint8 = 153
 // ask (dirac/manifest/ask/raGenMyriad)
 const raGenMyriad uint8 = 154
 
+// ask (dirac/manifest/ask/raGenPayETB)
+const raGenPayETB uint8 = 155
+
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 155
+const raGenPileOpp uint8 = 156
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 156
+const raGenRepeatOptional uint8 = 157
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 157
+const raPodClashOpp uint8 = 158
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 158
+const raRingBearer uint8 = 159
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 159
+const raRingLoot uint8 = 160
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -864,6 +867,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDungeon:
 		s.dungeonAskOptions(k, d) // act_venture.go
 		return true
+	case raGenPayETB:
+		s.payETBOptions(k, d) // repl_paybeforeetb.go
+		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
 		return true
@@ -903,6 +909,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDungeon:
 		s.dungeonAskAnswer(k, a) // act_venture.go
+		return true
+	case raGenPayETB:
+		s.payETBAnswer(k, a) // repl_paybeforeetb.go
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
