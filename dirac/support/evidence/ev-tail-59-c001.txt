@@ -327,6 +327,7 @@ Nulldrifter
 Nullhide Ferox
 Nylea's Forerunner
 Opportunist
+Orchard Elemental
 Otherworldly Gaze
 Overgrowth Elemental
 Painful Memories
@@ -495,6 +496,7 @@ Twenty-Toed Toad
 Twilight Panther
 Tyrite Sanctum
 Uncontrollable Anger
+Uncover the Moon-Letters
 Underworld Connections
 Unliving Psychopath
 Unmake
