@@ -2290,16 +2290,13 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return false
 		}
 		if next == len(steps) {
-			for i := range d.Options {
-				opt := &d.Options[i]
-				if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
-					return true
-				}
+			if witnessMenuOffers(d, o) {
+				return true
 			}
 			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
 				return true
 			}
-			if priceOK && witnessCostRepriced(c, e, p, o, plan) {
+			if priceOK && witnessCostRepriced(c, e, c.G, p, o, plan) {
 				return true
 			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
@@ -2366,13 +2363,25 @@ func costTotal(c decision.PaymentCost) int {
 // the locked one, the play's targets all survive the payment (the target arm
 // above owns a lost one), the recomputed price is payable in isolation (an
 // unbounded pool pays it, so the end refusal is the floated mana, not a
-// gate) and the locked price is payable from that floated pool. Plain casts
-// only: a Mode prices its own charge.
-func witnessCostRepriced(end, start *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
-	if o.Kind != "cast" || o.Mode != "" {
+// gate) and the locked price is payable from that floated pool (the pure
+// pool-only question, pay.PoolCanPay -- the paying primitive would spend the
+// node's pool). Plain casts only: a Mode prices its own charge, and an
+// alternate-cost index (AltCostIndex) prices the option's own scope, neither
+// of which the printed-price comparison reads.
+func witnessCostRepriced(end, start witnessCostReader, g *state.Game, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	// Plain casts only: a Mode prices its own charge, and an alternate-cost
+	// cast's plan.Cost prices the option's own scope, not the printed one
+	// CastPaymentCost recomputes.
+	if o.Kind != "cast" || o.Mode != "" || o.AltCostIndex != 0 {
 		return false
 	}
-	obj := end.G.Obj(o.Obj)
+	// The announcement priced the plan: the price the announcement state
+	// (start, before the plan's steps) recomputes is the plan's own total.
+	startCost, ok := start.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(startCost) != costTotal(plan.Cost) {
+		return false
+	}
+	obj := g.Obj(o.Obj)
 	if obj == nil || obj.Face() == nil {
 		return false
 	}
@@ -2388,7 +2397,11 @@ func witnessCostRepriced(end, start *Engine, p state.PlayerID, o decision.Option
 	for i := range locked.Colored {
 		locked.Colored[i] = int32(plan.Cost.Mana[i])
 	}
-	if !pay.PayMana(asPayer(end), p, locked) {
+	// Pool-only feasibility, and pure: the walked node must stay unmutated,
+	// so the paying primitive (pay.PayMana) cannot run here -- a spend it
+	// emits strands the node's own pass-walk fallback, whose clone must
+	// still hold the floated pool.
+	if !pay.PoolCanPay(locked, g.Players[p].Pool) {
 		return false
 	}
 	base := pay.WithSpellAbilityExtras(obj.Face(), end.castOfferBase(p, o.Obj))
