@@ -1,9 +1,7 @@
 package rules
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 	"slices"
 	"strings"
 
@@ -303,17 +301,10 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	// verdict exactly as before.
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
-	if os.Getenv("GORGE_PPDBG") != "" {
-		fmt.Fprintf(os.Stderr, "PPDBG fallback %q kind=%s mode=%q got=%s/%s relaxable=%v bounded=%v gaps=%v funding=%d skip=%v scripts=%d\n", o.Label, o.Kind, o.Mode, got.Reason, got.Detail, census.relaxable, census.bounded, census.gaps, census.fees, skip, *scripts)
-	}
 	if skip {
 		return got, nil
 	}
-	script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees())
-	if os.Getenv("GORGE_PPDBG") != "" {
-		fmt.Fprintf(os.Stderr, "PPDBG search %q found=%v len=%d\n", o.Label, ok, len(script))
-	}
-	if ok {
+	if script, ok := e.potentialPrefixScript(p, o, census.gaps, census.fees()); ok {
 		return PaymentPlanOutcome{}, script
 	}
 	return got, nil

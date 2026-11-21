@@ -102,7 +102,7 @@ func TestGapsWalkThreeNetNegativeFilters(t *testing.T) {
 	// gaps walk lists it as a candidate.
 	a := MakeAction(AkCast, TCode(spell), 0, 0)
 	var gaps Decision
-	sc.s.plainGapsOptions(sc.k, &gaps, sc.s.scriptFilt(sc.k, 0), 0)
+	sc.s.plainGapsOptions(sc.k, &gaps, sc.s.scriptFilt(sc.k, 0))
 	if !hasOption(&gaps, a) {
 		t.Fatal("the gaps walk never kept both {2},{T} filters: the cast is not a candidate")
 	}
@@ -126,7 +126,7 @@ func TestGapsWalkPainGuard(t *testing.T) {
 	control, spell := scen(20)
 	a := MakeAction(AkCast, TCode(spell), 0, 0)
 	var gaps Decision
-	control.s.plainGapsOptions(control.k, &gaps, control.s.scriptFilt(control.k, 0), 0)
+	control.s.plainGapsOptions(control.k, &gaps, control.s.scriptFilt(control.k, 0))
 	if !hasOption(&gaps, a) {
 		t.Fatal("control board at 20 life does not list the {2}{W}{W}{W}{W} cast")
 	}
@@ -134,7 +134,7 @@ func TestGapsWalkPainGuard(t *testing.T) {
 	// needs all three, so the gaps walk must not list the cast at all.
 	sc, spell3 := scen(3)
 	var tight Decision
-	sc.s.plainGapsOptions(sc.k, &tight, sc.s.scriptFilt(sc.k, 0), 0)
+	sc.s.plainGapsOptions(sc.k, &tight, sc.s.scriptFilt(sc.k, 0))
 	if hasOption(&tight, MakeAction(AkCast, TCode(spell3), 0, 0)) {
 		t.Fatal("the gaps walk lists the cast by counting three painlands at 3 life")
 	}

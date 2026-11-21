@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -155,16 +154,10 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// scope.
 	plain := build(false)
 	if plain == nil {
-		if os.Getenv("GORGE_PPDBG") != "" {
-			fmt.Fprintf(os.Stderr, "PPDBG plain nil build\n")
-		}
 		return nil, false
 	}
 	plain.feeStall = true // the plain run's doomed-branch prune (feeOnlyAskPrune)
 	script, found := plain.run(e)
-	if os.Getenv("GORGE_PPDBG") != "" {
-		fmt.Fprintf(os.Stderr, "PPDBG plain run found=%v len=%d limited=%v feeOnly=%v nodes=%d\n", found, len(script), plain.limited, plain.feeOnly, plain.nodes)
-	}
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -174,9 +167,6 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	sr.plainLimited = plain.limited && plain.feeOnly
 	script, found = sr.run(e)
-	if os.Getenv("GORGE_PPDBG") != "" {
-		fmt.Fprintf(os.Stderr, "PPDBG phased run found=%v len=%d limited=%v nodes=%d\n", found, len(script), sr.limited, sr.nodes)
-	}
 	if found && len(script) > 0 {
 		return script, true
 	}

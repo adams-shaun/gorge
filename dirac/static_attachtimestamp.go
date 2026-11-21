@@ -1,12 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-	"runtime/debug"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // CR 613.7e: an Aura, Equipment or Fortification receives a new timestamp
 // when it becomes attached to an object (gorge events.foldAttach /
@@ -42,9 +36,6 @@ func (s *State) attachQuiet(k *prep, sl, host Slot) (old Slot) {
 		s.lstamp[sl] = s.ts
 	}
 	s.perms[sl].attached = host
-	if os.Getenv("GORGE_FBDBG") != "" && s.objs[s.perms[sl].obj].card == 0 {
-		fmt.Fprintf(os.Stderr, "DBG attach stack spell sl%d host%d\n%s\n", sl, host, debug.Stack())
-	}
 	s.setAtchSeat(k, sl, 0) // the two bearer forms never hold at once
 	s.perms[sl].flags &^= pfLastBear
 	s.loseAllOnset(k, sl, host)
