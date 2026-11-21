@@ -13,6 +13,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // object (o == NoObj, unit tests) fails closed. wasCastSpell stays the
 // stack-entry reader for triggers and conditions.
 func (s *State) matchSpellCardOffer(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
+	return s.matchSpellCardOfferCtx(k, f, c, owner, ctrl, o, src, emb, nil)
+}
+
+// matchSpellCardOfferCtx is matchSpellCardOffer with an evaluation context for
+// the alternative's filter (nil for the ordinary offer read). The CantBeCast
+// gate's X look-ahead (cast_cantself.go) sets ctx.xmv to read the candidate's
+// mana value at an announced X (CR 202.3e); every other read keeps nil.
+func (s *State) matchSpellCardOfferCtx(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8, ctx *evalCtx) bool {
 	if f == 0 {
 		return true
 	}
@@ -27,7 +35,7 @@ func (s *State) matchSpellCardOffer(k *prep, f kop.FilterID, c CardID, owner, ct
 		if prov {
 			fl.Pred, fl.PredN = kop.PredNone, 0
 		}
-		if s.matchSpellAlt(k, fl, c, owner, ctrl, o, src, emb) && (!prov || restrProvHolds(n, og)) {
+		if s.matchSpellAltCtx(k, fl, c, owner, ctrl, o, src, emb, ctx) && (!prov || restrProvHolds(n, og)) {
 			return true
 		}
 		f = next

@@ -156,6 +156,10 @@ type pool struct {
 	// every one it can reach (-census-std -all-blockers). The lowered
 	// output of a card that lowers cleanly is the same either way.
 	allBlockers bool
+
+	// commander: the pool's games are Commander pods (tables.go readPool
+	// sets it by pool name); a Meld result card refuses in one (lower_meld.go).
+	commander bool
 }
 
 // loadPool reads every *.json deck in decksDir and resolves its cards through

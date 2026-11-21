@@ -14,8 +14,10 @@ import (
 // unfiltered ValidCard$) binds once the caster has cast N spells this turn
 // OnlySorcerySpeed$ True (Teferi, Time Raveler) binds only outside the
 // caster's sorcery-speed window (flag SorcerySpeed, kop CantCastSorcery).
-// Refused: a filtered NumLimitEachTurn$, Origin$, Phases$, a mana-value filter (CR 601.3a's X
-// lookahead). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
+// Refused: a filtered NumLimitEachTurn$, Origin$, Phases$, and a mana-value
+// filter whose bound is not a constant (a CmpX SVar; the kernel's X
+// look-ahead in cast_cantself.go reads the constant comparisons against the
+// spell's announced X, CR 202.3e, 601.3a). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
 // can't cast this spell": it binds only the card itself,
 // in any zone, with no filter; Caster$ Player.Active (the active player) is
 // read on that shape only. ValidCard$ Card.NamedCard | Caster$ Opponent over
@@ -42,7 +44,7 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 		st.F = f
 		st.Flags = append(st.Flags, "NamedCard")
 	} else if vc != "" {
-		if strings.Contains(vc, "cmc") || strings.Contains(vc, "Self") && !self {
+		if strings.Contains(vc, "Self") && !self {
 			return refuse("CantBeCast ValidCard %q", vc)
 		}
 		if self {
@@ -117,6 +119,12 @@ func (lc *lowerCtx) cantBeCastFilter(vc string) (*lFilter, error) {
 		return nil, err
 	}
 	for _, c := range f.Clauses {
+		if c.CmpStat == cmpCMC && (c.CmpV != nil || c.CmpX != "") {
+			// The kernel's offer look-ahead prices a constant bound (PredCMCLE,
+			// PredCMCGE, PredCMCEQ, or PredTypesAllCMCLE beside a type head);
+			// a dynamic bound has no fixed X to compare against.
+			return nil, refuse("CantBeCast ValidCard %q: a dynamic mana-value bound", vc)
+		}
 		if c.CmpStat != cmpWasCastSpell {
 			continue
 		}
