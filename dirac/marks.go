@@ -125,8 +125,8 @@ func (s *State) ObjHash(o Obj) uint64 {
 	if c := coldLoyaltyAct.of(s); int(ob.slot) < len(c) && c[ob.slot] != 0 {
 		h = hmix(h, 0x6c6f79616c<<8|uint64(c[ob.slot])) // this turn's loyalty activations (static_loyaltyact.go)
 	}
-	if x := s.xblkFind(ob.slot); x != nil {
-		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
+	if x := s.xblkHash(ob.slot); x != 0 {
+		h = hmix(h, x) // the further blocks (combat_extrablock.go)
 	}
 	if s.g.on {
 		if a := s.atchSeat(s.k(), ob.slot); a != 0 {
