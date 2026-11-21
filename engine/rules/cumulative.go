@@ -1067,7 +1067,9 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 		// without dropping a value the payment can really pay.
 		if bound < xFoldBoundCap {
 			admits := func(id state.ObjID, ma *cards.SA) bool {
-				return potentialRestrictionAdmits(e, tc.player, id, ma, &desc)
+				// a commander-identity source with no identity to read makes no
+				// mana (CR 903.4f), though the census lists it as a unit
+				return potentialRestrictionAdmits(e, tc.player, id, ma, &desc) && !potentialIdentityEmpty(e, tc.player, ma)
 			}
 			pool := pay.AvailableFor(asPayer(e), tc.player, desc).Pool.Total()
 			win := paidSourceWindow{e.G, e.castWindowProbeAbilities, e.manaAbilityCC, e.castWindowAmount}
