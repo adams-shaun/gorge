@@ -76,7 +76,7 @@ func TestExileCounterCastLeaveDrops(t *testing.T) {
 
 	// A counterspell exiles it instead of the graveyard: placeFromK with
 	// ZoneExile, the move the leave-clear skips.
-	s.placeFromK(k, bear, kop.ZoneExile, false, kop.ZoneStack, false)
+	s.placeFromK(k, bear, kop.ZoneExile, false, kop.ZoneStack, false, false)
 	if z := s.objs[bear].zone; z != kop.ZoneExile {
 		t.Fatalf("the countered spell is in zone %d, want exile", z)
 	}

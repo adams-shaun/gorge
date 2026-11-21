@@ -300,7 +300,7 @@ func (s *State) payExilePicks() {
 		}
 		if o := s.bld().picks[i]; s.objs[o].zone == kop.ZoneGraveyard || s.objs[o].zone == kop.ZoneHand {
 			from := s.detach(o) // a hand card is an ExileFromHand cost's (cost_exilecands.go)
-			s.placeFrom(o, kop.ZoneExile, false, from, false)
+			s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 			s.exwCostExilePick(o)
 		} else if s.objs[o].zone == kop.ZoneBattlefield {
 			s.leave(s.k(), s.objs[o].slot, kop.ZoneExile, false) // an ExileCtrlOrGrave permanent (cost_exilecands.go)
@@ -418,7 +418,7 @@ func (s *State) forageExile3(p uint8) {
 	}
 	for _, o := range os {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneExile, false, from, false)
+		s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 	}
 }
 

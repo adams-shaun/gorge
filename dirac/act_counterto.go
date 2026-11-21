@@ -38,5 +38,5 @@ func (s *State) counterTo(k *prep, i int, dest int16) {
 		// Adventure is not on an adventure (face_castface.go)
 		z = s.stackExitFace(k, e.obj, z, false)
 	}
-	s.placeFrom(e.obj, z, bottom, kop.ZoneStack, false)
+	s.placeFrom(e.obj, z, bottom, kop.ZoneStack, false, false)
 }

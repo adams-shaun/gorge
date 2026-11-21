@@ -210,7 +210,7 @@ func (s *State) payETBDiscardOK(k *prep, c CardID, ab uint8, p uint8, o Obj) boo
 // RememberChanged$ saw it move as any moved card does.
 func (s *State) payETBToGrave(k *prep, o Obj) {
 	from := s.detach(o)
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false, false)
 	if s.g.pickF&kop.SrRemember != 0 {
 		s.remember(o)
 	}

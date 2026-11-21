@@ -36,9 +36,9 @@ func TestMayhemFollowsTheDiscardedObject(t *testing.T) {
 		t.Fatal("not marked as it was discarded")
 	}
 	s.detach(o)
-	s.placeFromK(sc.k, o, kop.ZoneExile, false, kop.ZoneGraveyard, false)
+	s.placeFromK(sc.k, o, kop.ZoneExile, false, kop.ZoneGraveyard, false, false)
 	s.detach(o)
-	s.placeFromK(sc.k, o, kop.ZoneGraveyard, false, kop.ZoneExile, false)
+	s.placeFromK(sc.k, o, kop.ZoneGraveyard, false, kop.ZoneExile, false, false)
 	if s.mObj(sc.k, mechMayhem, o) {
 		t.Fatal("still marked after it moved")
 	}

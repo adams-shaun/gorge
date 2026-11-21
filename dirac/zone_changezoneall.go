@@ -144,7 +144,7 @@ func (s *State) czall3(k *prep, in *kop.Instr, mv int16, z kop.Zone) {
 			s.remember(o)
 		}
 		if z != kop.ZoneBattlefield {
-			s.placeFromK(k, o, z, false, from, false)
+			s.placeFromK(k, o, z, false, from, false, false)
 			continue
 		}
 		if k.gen != nil && k.gen.anyMayLimit {
@@ -332,7 +332,7 @@ func (s *State) czallPlace(os []Obj, from []kop.Zone, c *czallCarry) {
 	}
 	if c.bottom {
 		for i, o := range os {
-			s.placeFrom(o, kop.ZoneLibrary, true, from[i], false)
+			s.placeFrom(o, kop.ZoneLibrary, true, from[i], false, false)
 			if s.objs[o].zone == kop.ZoneLibrary {
 				c.k[SeatIx(s.objs[o].owner())]++
 			}

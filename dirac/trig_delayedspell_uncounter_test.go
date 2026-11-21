@@ -112,7 +112,7 @@ func TestDelaySpellUncounterKernel(t *testing.T) {
 	// the first spell resolves: it leaves the stack and the record goes
 	u.s.sp--
 	u.s.objs[fo].zone = kop.ZoneNone
-	u.s.placeFromK(u.k, fo, kop.ZoneGraveyard, false, kop.ZoneStack, false)
+	u.s.placeFromK(u.k, fo, kop.ZoneGraveyard, false, kop.ZoneStack, false, false)
 	u.s.sba(u.k)
 	if u.s.g.ndp != 0 {
 		t.Fatalf("the record outlived its spell: ndp %d", u.s.g.ndp)

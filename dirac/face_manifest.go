@@ -329,7 +329,7 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) bool {
 			return true
 		}
 		from := s.detach(other)
-		s.placeFrom(other, kop.ZoneGraveyard, false, from, false)
+		s.placeFrom(other, kop.ZoneGraveyard, false, from, false, false)
 		mill = other
 	}
 	// the window's marker (gorge manifestDreadMove: emitted after the moves,
