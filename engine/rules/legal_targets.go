@@ -592,7 +592,7 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 				return false
 			}
 			credit := e.hasCastConvoke(id) || e.hasCastImprovise(id) || e.hasCastDelve(id, false)
-			return !census.gapGains && costOutrunsSupply(asPayer(e), p, int32(e.G.Players[p].Pool.Total()), composed, credit)
+			return !census.gapGains && costOutrunsSupply(asPayer(e), p, int32(e.G.Players[p].Pool.Total()), census.gapSupply, composed, credit)
 		}
 		if !insufficient(e.offerCostForUsing(statics, p, id, cost, scope)) {
 			return true

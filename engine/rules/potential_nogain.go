@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -40,11 +41,13 @@ func manaFeeNetsNoMana(c costvocab.Cost, mp *effects.ManaParams, extra state.Man
 // (paymentPlanCensus.gapGains false), because those never add to the supply.
 // A cost whose mana count can fall after announcement (an {X}, a Phyrexian
 // symbol payable with life, a convoke/improvise/delve credit) is never proven.
-func costOutrunsSupply(pe pay.Engine, p state.PlayerID, poolMana int32, c Cost, credit bool) bool {
+//
+// extra is the census's gapSupply: what its counter-bounded gap abilities add.
+func costOutrunsSupply(pe pay.Engine, p state.PlayerID, poolMana, extra int32, c Cost, credit bool) bool {
 	if credit || c.X != 0 || c.XMin != 0 || len(c.Phyrexian)+len(c.HybridPhyrexian) != 0 {
 		return false
 	}
-	supply := poolMana
+	supply := poolMana + extra
 	for _, u := range pay.PaymentPlanQueryUnits(pe, p) {
 		best := int32(0)
 		for _, a := range pay.PaymentPlanQueryAlternatives(pe, u) {
@@ -79,4 +82,32 @@ func manaTapAbilityNetsNoMore(c costvocab.Cost, mp *effects.ManaParams, extra st
 		}
 	}
 	return made <= best && extra.Total() == 0
+}
+
+// gapSubCounterSupply reports the most mana a census-missed ability ma of
+// source id can make, when its Amount$ X is bound by the counters its announced
+// SubCounter<X/Kind> cost can settle (Mercadian Bazaar's "{T}, Remove any
+// number of storage counters: Add {R} for each", one counter making one {R}),
+// and true when ma is that shape. The source taps once (CR 106.1, 605.3b), so
+// the figure is an upper bound on what the activation adds to the supply
+// costOutrunsSupply counts; a tap trigger adding mana beside it (extra, CR
+// 605.4a) is not provable.
+func gapSubCounterSupply(pp potentialPricer, py pay.Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, extra state.Mana) (int32, bool) {
+	if extra.Total() != 0 {
+		return 0, false
+	}
+	bounded, ok := potentialSubCounterBounded(pp, py, p, id, ma)
+	if !ok {
+		return 0, false
+	}
+	mp := effects.ManaOf(bounded)
+	amt := availableAmountOf(mp)
+	if mp.CountsAny {
+		return amt, amt > 0
+	}
+	made := int32(0)
+	for _, n := range mp.Counts {
+		made += n * amt
+	}
+	return made, true
 }
