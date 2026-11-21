@@ -243,11 +243,17 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 		// (gorge windowSourceYields' strict read), so the walk's zero-amount
 		// admission is not the flag's
 		if j := int(k.cards[c].manaAb); j >= 0 {
+			// a first-only filter ({2}, {T}: Celestial Prism) is a source only
+			// while the live pool pays its fee: gorge's untappedManaSourceFor
+			// reads availableManaAbilities, whose payability gate prices the
+			// floating mana alone, not the other sources' potential (CR 605.3a;
+			// windowFiltFirstUsable is the window's read of the same gate)
+			feeUnpaid := k.gen.has(CardID(c), gfFilt) && s.filtFirstOnly(k, sl) && !s.windowFiltFirstUsable(k, p, sl)
 			// a commander-identity source whose controller has no commander
 			// yields nothing now (CR 903.4f): its planner view is the
 			// no-ability one (pc.manaAb < 0, gorge manaAbilityYieldsNothing),
 			// so the card's printed unit must not count it as a source
-			if ab := &k.t.Cards[c].Abilities[j]; !kop.DiscardHandManaAb(ab) &&
+			if ab := &k.t.Cards[c].Abilities[j]; !feeUnpaid && !kop.DiscardHandManaAb(ab) &&
 				!(pc.manaAb < 0 && ab.ManaIdentity) &&
 				s.potentialAdmits(k, p, sl, j, ab, nil) && s.srcYieldAt(k, sl, pc) > 0 {
 				return true
