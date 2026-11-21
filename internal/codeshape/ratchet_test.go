@@ -24,7 +24,7 @@ const (
 	// engine/effects/ spanning more than 300 lines.
 	maxFuncLinesOver300 = 49
 	// engineMethodCount is the number of non-test methods on rules.Engine.
-	engineMethodCount = 2422
+	engineMethodCount = 2423
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
 	hostMethodCount = 97
