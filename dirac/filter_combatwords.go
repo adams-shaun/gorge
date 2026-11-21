@@ -373,10 +373,12 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if in.B.N&kop.TokAttackAsk == 0 {
 		atk = s.riderSeat(p)
 	}
-	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.opponentHasWalker(k, p) {
+	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.riderSeatHasWalker(k, p) {
 		// Adeline's "that player or a planeswalker they control": gorge asks
 		// (CR 508.4, tokenAttackingRider); tokenDefenderAsk poses the pick
 		// before the mint, so only a mint path without it (a batch) lands here.
+		// Only the rider's own seat counts: another opponent's planeswalker is
+		// no candidate for this iteration's token (gorge's candidate list).
 		s.capFull(StallDefenderPW)
 		return
 	}
@@ -390,17 +392,18 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	s.setEnterAttacker(k, sl, atk)
 }
 
-// opponentHasWalker reports whether a living opponent of p controls a face-up
-// planeswalker (gorge tokenAttackingRider's candidate list past the player).
-func (s *State) opponentHasWalker(k *prep, p uint8) bool {
-	for opp := uint8(0); opp < s.nSeats(); opp++ {
-		if opp == p || s.pl[opp].lost {
-			continue
-		}
-		for q := s.ctrlM[opp]; q.any(); q = q.rest() {
-			if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
-				return true
-			}
+// riderSeatHasWalker reports whether the seat a TokenAttacking$ rider names
+// for a token p mints (riderSeat) is a living seat other than p controlling a
+// face-up planeswalker (gorge tokenAttackingRider's candidate list past the
+// player): the pick riderDefenderAsk poses when it does.
+func (s *State) riderSeatHasWalker(k *prep, p uint8) bool {
+	seat := CodeSeat(s.riderSeat(p))
+	if seat == p || s.pl[seat].lost {
+		return false
+	}
+	for q := s.ctrlM[seat]; q.any(); q = q.rest() {
+		if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
+			return true
 		}
 	}
 	return false

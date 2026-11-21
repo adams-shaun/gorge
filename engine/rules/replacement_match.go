@@ -1416,6 +1416,20 @@ func (e *Engine) noteBatchDeparture(ev events.Event) {
 // isn't yet: "permanents enter tapped" reads it as the permanent it is about to be
 // (CR 110.1, 614.12), from its printed types, or as any card when it enters face down.
 func (e *Engine) enteringObjectMatches(spec string, ev events.Event, sc effects.SpecContext) bool {
+	if sc.AsFaceDown && ev.Kind == events.MoveZone && ev.To == state.ZBattlefield && ev.From != state.ZBattlefield {
+		// CR 708.2, 614.12: a permanent entering face down is judged by its
+		// face-down characteristics (a colourless 2/2 creature with no
+		// name), not the card's, so Curator Beastie's "Colorless creatures
+		// you control enter with two additional +1/+1 counters" applies to a
+		// manifested Island. Match the battlefield form of the spec against a
+		// face-down stand-in; the original is untouched.
+		if o := e.G.Obj(ev.Obj); o != nil {
+			entering := *o
+			entering.FaceDown = true
+			entering.Zone = state.ZBattlefield
+			return effects.MatchesObjectCtx(e.G, spec, &entering, sc)
+		}
+	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		if ev.From != state.ZBattlefield {
 			if card := targetSpecForZone(spec, state.ZLibrary); card != spec {

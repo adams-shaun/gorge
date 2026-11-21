@@ -23,26 +23,7 @@ func (ic *instrCtx) opSearch() error {
 	sf := 0
 	if in.Op == "ChooseMove" {
 		ki.Op = kop.OpChooseMove
-		zone = kop.ZoneGraveyard
-		switch fl["from"] {
-		case "Hand":
-			zone = kop.ZoneHand
-		case "Battlefield":
-			zone = kop.ZoneBattlefield
-		case "Exile":
-			zone = kop.ZoneExile // every seat's exile (zone_exiledwithpick.go)
-		case "Library":
-			zone = kop.ZoneLibrary // a hidden pick, not a search (Sanar's per-colour picks)
-		case "Graveyard,Exile":
-			// graveexile: a game-wide pool over both zones; the walk in
-			// dirac/value_tappower.go restricts the zones itself.
-			zone = kop.ZoneNone
-			sf |= kop.SrGraveExile
-		case "Hand,Graveyard":
-			// the fetching player's hand then
-			// graveyard; SrHandGrave rides in B (below)
-			zone = kop.ZoneNone
-		}
+		zone, sf = chooseMoveZone(fl["from"])
 	}
 	for k, b := range map[string]int{"Tapped": kop.SrTapped, "ThenTop": kop.SrThenTop, "Mandatory": kop.SrMandatory, "Confirm": kop.SrConfirm, "ChooserYou": kop.SrChooserYou, "Reveal": kop.SrReveal, "OwnZone": kop.SrOwnZone, "ForgetOther": kop.SrForgetOther, "UnderYourControl": kop.SrUnderYourControl} {
 		if _, ok := fl[k]; ok {
@@ -284,4 +265,32 @@ func untilLeavesBit(in *lInstr, zone kop.Zone) (int, error) {
 		return 1, nil
 	}
 	return kop.SrBattleLink, nil
+}
+
+// chooseMoveZone is a ChooseMove's From$ zone (the graveyard by default) and
+// the search flags it carries (opSearch).
+func chooseMoveZone(from string) (zone kop.Zone, sf int) {
+	zone, sf = kop.ZoneGraveyard, 0
+	switch from {
+	case "Hand":
+		zone = kop.ZoneHand
+	case "Battlefield":
+		zone = kop.ZoneBattlefield
+	case "Exile":
+		zone = kop.ZoneExile // every seat's exile (zone_exiledwithpick.go)
+	case "Command":
+		zone = kop.ZoneCommand // Command Beacon's pick (dirac/zone_cmdpick.go)
+	case "Library":
+		zone = kop.ZoneLibrary // a hidden pick, not a search (Sanar's per-colour picks)
+	case "Graveyard,Exile":
+		// graveexile: a game-wide pool over both zones; the walk in
+		// dirac/value_tappower.go restricts the zones itself.
+		zone = kop.ZoneNone
+		sf |= kop.SrGraveExile
+	case "Hand,Graveyard":
+		// the fetching player's hand then
+		// graveyard; SrHandGrave rides in B (below)
+		zone = kop.ZoneNone
+	}
+	return zone, sf
 }

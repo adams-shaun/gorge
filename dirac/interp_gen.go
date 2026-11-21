@@ -1205,7 +1205,15 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
-	if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
+	ok := s.exec(k, in)
+	if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
+		// CR 903.9b: a commander's bounce parked before it happens; the
+		// answer reruns the instruction, so no later target moves first
+		e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
+		s.g.inLoop = false
+		return false
+	}
+	if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 		w.j = 1 // the extra targets wait for the answer (copy_eachtarget.go, zone_eachreturnask.go)
 		s.g.each = w
 		s.g.inLoop = false
@@ -2018,6 +2026,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					// re-run cannot recover them from the source zone. Place
 					// them now (gorge moved them before the ask) and carry the
 					// per-owner prefix so the re-run keeps move order.
+					carry.bottom = true // zone_changezoneall.go: gorge's cards sit at the bottom until the answer
 					if nz == 2 {
 						pend.place(s, &carry)
 						pend = czallPend{}
@@ -2101,6 +2110,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		}
 	}
 	pend.place(s, &carry)
+	carry.finish(s)
 	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
 		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
 	}

@@ -58,7 +58,13 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		e.tgt[i], e.tver[i] = s.xtOf(e).code[j], s.xtOf(e).ver[j]
 		s.res.bad &^= 1 << i
 		n0 := s.g.nask
-		if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
+		ok := s.exec(k, in)
+		if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
+			e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad // CR 903.9b: the answer reruns the instruction
+			s.g.inLoop = false
+			return false
+		}
+		if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 			w.j = uint8(j + 2)
 			s.g.each = w
 			s.g.inLoop = false
@@ -95,3 +101,9 @@ func (s *State) eachResume(k *prep, in *kop.Instr) bool {
 	s.g.inLoop = true
 	return s.eachRun(k, in, w.slot, int(w.j-1), w)
 }
+
+// cmdZoneEach reports whether a CR 903.9b park by in, run for one object of
+// the loop, ends the loop: a bounce, whose answer reruns the whole instruction
+// (the targets that already moved are no longer legal, so only the later ones
+// move), so no later target may move before the owner answers.
+func cmdZoneEach(in *kop.Instr) bool { return in.Op == kop.OpBounce }

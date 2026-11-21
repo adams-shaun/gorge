@@ -58,6 +58,11 @@ type built struct {
 	// readsName: one of the card's filters reads a name (F2SameNameAsSource,
 	// PredNamed); a matchup that also holds a Room refuses (roomNameGuard).
 	readsName bool
+	// readNames: the literal names its PredNamed clauses read (clause()). Those
+	// alone do not set readsName: a Room carries only its doors' names (CR 709.5),
+	// so a read of any other name is false of a Room in gorge and the kernel
+	// alike (narrowNameReaders keeps a reader only if one is a door name).
+	readNames []string
 }
 
 // newPoolTables starts the side tables; the subtype table holds the pool
@@ -1509,7 +1514,7 @@ func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, 
 		if i == 0 {
 			kf.PickDistinctPower = f.PickDistinctPower
 		}
-		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
+		if kf.Flags2&kop.F2SameNameAsSource != 0 {
 			cb.out.readsName = true
 		}
 		next = cb.pt.internFilter(kf)
@@ -2066,6 +2071,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("named clause %q names %d pool entries", c.Name, len(ix))
 		}
 		kf.Pred, kf.PredN = kop.PredNamed, -1
+		cb.out.readNames = append(cb.out.readNames, c.Name)
 		if len(ix) == 1 {
 			kf.PredN = int16(ix[0])
 		}

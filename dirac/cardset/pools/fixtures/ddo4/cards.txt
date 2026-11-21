@@ -1,0 +1,4 @@
+# Quartzwood Crasher with tramplers: DamageDoneOnce per damaged player at four seats
+Quartzwood Crasher
+Stampeding Wildebeests
+Forest

@@ -41,7 +41,7 @@ func (s *State) btSrcCtrlLive(k *prep, e *stackEntry) {
 	if int(e.ab) >= len(cd.Abilities) || cd.Abilities[e.ab].Trig.N != kop.TrigNSrcCtrl {
 		return
 	}
-	o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1
+	o := Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1
 	pl := s.liveCtrlOf(o)
 	gone := s.objs[o].zone != kop.ZoneStack && s.objs[o].zone != kop.ZoneBattlefield
 	if gone && DebugBtSrcCtrlGone {
@@ -71,24 +71,24 @@ func (s *State) liveCtrlOf(o Obj) uint8 {
 // names o as its BecomesTarget targeting object (trigSA), so the token table
 // does not hand o's id to a new token before the trigger resolves.
 func (s *State) trigSAReferenced(o Obj) bool {
-	w := uint8(o + 1) // code-ok: trigSA stores the object + 1
+	w := objWord(o + 1) // code-ok: trigSA stores the object + 1
 	for i := 0; i < int(s.sp); i++ {
-		if s.stack[i].trigSA == w {
+		if s.stack[i].saWord() == w {
 			return true
 		}
 	}
 	for i := 0; i < int(s.npend); i++ {
-		if s.pend[i].trigSA == w {
+		if s.pend[i].saWord() == w {
 			return true
 		}
 	}
-	return s.res.active && s.res.e.trigSA == w
+	return s.res.active && s.res.e.saWord() == w
 }
 
 // btSrcCtrlRes is resolveTop's gate for btSrcCtrlLive: a BecomesTarget
 // trigger (trigSA set) on a table with a watcher.
 func (s *State) btSrcCtrlRes(k *prep, e *stackEntry) {
-	if e.trigSA != 0 && k.gen != nil && k.gen.btWatch {
+	if e.saWord() != 0 && k.gen != nil && k.gen.btWatch {
 		s.btSrcCtrlLive(k, e)
 	}
 }

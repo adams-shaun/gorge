@@ -1,0 +1,14 @@
+# a name read beside a Room (CR 709.5): Gruff Triplets' "each creature you
+# control named Gruff Triplets" with two-door Rooms, and the unlock effects
+# that put a Room's doors on the battlefield, for the four-seat pod
+# (dirac/oracle/roomname_lockstep_test.go, dirac/kgen/rooms_test.go)
+Gruff Triplets
+Dazzling Theater
+Bottomless Pool
+Ghostly Keybearer
+Keys to the House
+Grizzly Bears
+Plains
+Island
+Forest
+Swamp
