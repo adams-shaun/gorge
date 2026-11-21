@@ -955,6 +955,14 @@ type Object struct {
 	// legal unlimited activations -- the count is advice, never a gate.
 	ActivatedThisTurn int32
 
+	// RegeneratedThisTurn counts the times this permanent regenerated this
+	// turn (CR 701.19): events.Apply's EndCombatReset fold, for the one
+	// regeneration the effects package's regenerate marks with
+	// events.RegeneratedNotice. Reset at TurnChange and when the object
+	// changes zone (CR 400.7). Count$RegeneratedThisTurn (Spiny Starfish)
+	// reads it.
+	RegeneratedThisTurn int32
+
 	// AttacksThisTurn counts the DeclareAttackers events this object has
 	// attacked in this turn (events.Apply's DeclareAttackers case), reset in
 	// TurnChange's per-object loop. Extra combats within one turn share
@@ -2073,11 +2081,11 @@ type Object struct {
 	// "Intensity" writes it, so a replay rebuilds it.
 	Intensity int32
 
-	// _ pads the Object to 1536 bytes (24 64-byte cache lines), so in the
+	// _ pads the Object to 1600 bytes (25 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [4]byte
+	_ [60]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

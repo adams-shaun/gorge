@@ -1235,6 +1235,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.DealtCombatDamageToAnyGame = false
 		// CR 400.7: a permanent that returns this turn has activated nothing.
 		o.ActivatedThisTurn = 0
+		o.RegeneratedThisTurn = 0
 		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
 			o.Counters = nil
 		}
