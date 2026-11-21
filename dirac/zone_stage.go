@@ -421,6 +421,9 @@ func (w *World) validateObjZone(i int, o *WorldObj) error {
 	case lost:
 		return unstageable(ReasonZone, "object %d in zone %d of seat %d, which has left", i, o.Zone, o.Owner)
 	}
+	if o.Token && o.Zone == kop.ZoneNone {
+		return nil // a ceased token (CR 111.7): checkTokenAttach vetted it
+	}
 	if _, ok := stageZone(o.Zone); !ok {
 		return unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
 	}
