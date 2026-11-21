@@ -1,0 +1,8 @@
+# ci-splits.tsv: packages CI's test shards run as two entries (scripts/ci_shard.sh, ci.yml's test step).
+# <package>\t<-run regex of its #A half>. The package's own entry runs minus the regex (and TestHeads); <package>#A
+# runs it. The balancer places each by its weight in ci-pkg-times.tsv; each runs as a go test call of its own.
+# engine/rules (11-20, 242-269 s): the fuzz-world, quiet-proof, clone-fidelity and elimination sweeps (~40% of its CPU).
+github.com/adams-shaun/gorge/engine/rules	^(TestKernelWorldsInFuzz|TestQuietProofCorpusSweepChunk|TestCloneFidelityShort|TestCloneFidelitySweep|TestLargeEliminationSweep)
+# testkit/conformance (11-21, median 239 s; CPU-bound JSON wire simulation, already parallel inside its tests): the
+# ManaBrew wire tests (~72 s of serial games) apart from the native-wire game sets.
+github.com/adams-shaun/gorge/testkit/conformance	^(TestManaBrew|TestBotThroughManaBrew)
