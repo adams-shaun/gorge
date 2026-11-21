@@ -1062,7 +1062,30 @@ func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
 // TriggersWhenSpent$ source such as Pyromancer's Goggles, which
 // otherGaps does not fund; mana_deferred.go).
 func (s *State) filtOnly(k *prep, p uint8) bool {
-	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
+	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()
+}
+
+// restrGapOthers: p's gapOthers whose mana is restricted per payment
+// (Untaidake, the Cloud Keeper's "{T}, Pay 2 life: Add {C}{C}. Spend this
+// mana only to cast legendary spells"). gorge's census misses the mana and
+// its relaxed census admits it only for the payments its restriction
+// matches (potential_plan.go paymentPlanRelaxedAlternatives,
+// pay/plancost.go RestrictValidMatches), so it can fund neither a filter's
+// fee nor a play the filter gap walk lists, and it keeps no filter off the
+// walk the way an unrestricted gap's funding would (mana_mixgaps.go
+// otherGaps). A life gap's mana is unrestricted (kop.GapLifeManaAb), so a
+// life gap still counts: the mix search's otherLife step funds the filter
+// beside it (mana_mixgaps.go).
+func (s *State) restrGapOthers(k *prep, p uint8) slotMask {
+	var m slotMask
+	for b := s.gapOthers(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if k.gen.gapOther(c) >= 0 && k.t.Cards[c].Abilities[k.gen.gapOther(c)].ManaRestrict != 0 {
+			m = m.with(sl)
+		}
+	}
+	return m
 }
 
 // gapOthers: p's activatable sources with a census gap that is no filter. A tap-another

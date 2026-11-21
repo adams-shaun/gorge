@@ -285,7 +285,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).any()) { // (filtOnly)
+		// (filtOnly; a restricted gapOther whose mana no play the walk lists
+		// can spend keeps no filter off the walk: mana_filter.go restrGapOthers)
+		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
 			filt = f
 		}
 	}
