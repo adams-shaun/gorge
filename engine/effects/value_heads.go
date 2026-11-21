@@ -301,6 +301,7 @@ var modelledValueHeads = []string{
 	"Devoured",
 	"MaxDistinctOnStack",
 	"SearchedLibrary",
+	"Emerged",
 }
 
 // ModelledValueHeads returns a copy of the modelled count-head list.

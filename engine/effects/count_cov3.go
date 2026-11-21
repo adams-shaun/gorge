@@ -1002,6 +1002,7 @@ const (
 	cov3BranchHoldsInitiative
 	cov3BranchHoldsNight
 	cov3BranchHoldsEscaped
+	cov3BranchHoldsEmerged
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -1018,6 +1019,7 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Initiative", Val: cov3BranchHoldsInitiative},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Night", Val: cov3BranchHoldsNight},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Escaped", Val: cov3BranchHoldsEscaped},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Emerged", Val: cov3BranchHoldsEmerged},
 )
 
 type playerScalarPropertyCode uint16

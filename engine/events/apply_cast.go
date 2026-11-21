@@ -20,6 +20,13 @@ const castInfoMarkerFlags = state.FlagConspired | state.FlagTeamworkPaid | state
 	state.FlagManaSourcesSpent | state.FlagAddsCounters | state.FlagAddsKeywords |
 	state.FlagManaColorSpent | state.FlagManaExpendCast
 
+// CastInfoEmerged is the Text of the trailing pay-time CastInfo an Emerge cast
+// emits (CR 702.119) for a face that reads Count$Emerged: IDs carries the
+// sacrificed creature, Amount its toughness as it last existed. The CastFlags
+// word is full, so the event rides FlagAltCostPaid (the bit "this keyword's
+// cost was paid" on a face printing K:Emerge) and the Text names the payload.
+const CastInfoEmerged = "emerged"
+
 // foldCastInfo folds Kind CastInfo into state.
 func foldCastInfo(g *state.Game, e *Event) {
 	if o := g.Obj(e.Obj); o != nil {
@@ -92,6 +99,13 @@ func foldCastInfo(g *state.Game, e *Event) {
 		// exclusive switch below so the Amount stays for its own consume arm.
 		if flags&state.FlagManaColorSpent != 0 && e.Text != "" {
 			o.ManaColorSpent = ManaColorSpentFromText(e.Text)
+		}
+		// The Emerge sacrifice (CR 702.119) is a payload fold: the event owns
+		// its Amount (the sacrificed creature's toughness), so it returns
+		// before the Amount routing below.
+		if flags&state.FlagAltCostPaid != 0 && e.Text == CastInfoEmerged && len(e.IDs) == 1 {
+			o.EmergedToughness = e.Amount
+			return
 		}
 		// payCast emits one event per count, and each later event carries the
 		// flags accumulated so far, so an event's Amount belongs to the flag
