@@ -517,9 +517,9 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 // cost's coloured pips per colour, ok false when the cost has a part whose
 // payment any colour may help (a generic, snow or X pip, a hybrid, Phyrexian,
 // twobrid or hybrid-Phyrexian face) or that the base cost does not announce
-// (a mode or alternative cost; scriptPlayBaseCost): the subsume run's
-// colour-ask filter prunes a colour only when floating more of it can pay
-// nothing.
+// (a non-"mayplay" mode or an alternative cost; scriptPlayBaseCost): the
+// subsume run's colour-ask filter prunes a colour only when floating more of
+// it can pay nothing.
 func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
 	var counts [state.MC + 1]int32
 	c, ok := scriptPlayBaseCost(r, o, p, a)
@@ -546,7 +546,8 @@ func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a d
 // part whose payment any colour may help beyond a generic one (an X, snow,
 // forage or hybrid-family pip -- a generic pip is fine, payable with any
 // colour) or that the base cost does not announce (scriptPlayBaseCost: a
-// mode or alternative cost). The set may be empty (an all-generic cost), and
+// non-"mayplay" mode or an alternative cost). The set may be empty (an
+// all-generic cost), and
 // the prune then drops every colour ask answer of a fee-only repeatable gap:
 // a conversion that never raises the spendable total cannot help pay it.
 func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
