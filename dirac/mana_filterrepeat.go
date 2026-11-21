@@ -336,16 +336,13 @@ func (s *State) filtFreeTapColourOwn(k *prep, p uint8, skip, own Slot, col int) 
 // pip the pool lacks, and a covered colour pays the generic part just as
 // well. gorge's oneShotAskPrune (potential_script.go, cut D) is the same
 // rule. The class is a gap that is not the fee-only repeatable one
-// (filtFeeColStalls) and whose ability costs no mana (a fee would make the
-// opening-pool read wrong); anything else fails open.
+// (filtFeeColStalls); the pool read is the activation's opening one, before
+// any ability fee is paid, as gorge's actPool is; anything else fails open.
 func (s *State) filtOneShotColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || s.filtRepeat(k, sl) {
 		return false
 	}
 	a := s.filtAb(k, sl)
-	if a.Cost.Mana.Generic != 0 || pipSum(&a.Cost.Mana.Pips) != 0 || a.Cost.Mana.Hyb != ([4]kop.ColorMask{}) {
-		return false
-	}
 	if col < 0 || col >= kop.NumManaKinds || uint8(a.ManaColors)&(1<<col) == 0 {
 		return false
 	}

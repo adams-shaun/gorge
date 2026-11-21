@@ -2578,15 +2578,12 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 // filter (Baxter Building) asks for a whole allocation instead (filtCombo).
 // gapOneShot reports whether sl's colour ask is a one-shot flexible gap's
 // (a gap source that is not the fee-only repeatable class filtFeeColStalls
-// reads, and whose ability costs no mana): gorge's oneShotAskPrune class
-// (potential_script.go). The prune drops a colour that fills no fixed pip
-// while one is owed; an ability fee or the fee-only class fails open.
+// reads): gorge's oneShotAskPrune class (potential_script.go). The prune drops
+// a colour that fills no fixed pip while one is owed, reading the
+// activation's opening pool, so an ability fee (Henge of Ramos's {2},{T}) is
+// in the class too; the fee-only class fails open.
 func (fs *filtSearch) gapOneShot(k *prep, t *State, sl Slot) bool {
-	if !fs.usefulOK || !fs.gaps.has(sl) || t.filtRepeat(k, sl) {
-		return false
-	}
-	a := t.filtAb(k, sl)
-	return a.Cost.Mana.Generic == 0 && pipSum(&a.Cost.Mana.Pips) == 0 && a.Cost.Mana.Hyb == ([4]kop.ColorMask{})
+	return fs.usefulOK && fs.gaps.has(sl) && !t.filtRepeat(k, sl)
 }
 
 // gapFreeSpecial handles the two gap-slot shapes visit settles before its
