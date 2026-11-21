@@ -913,7 +913,6 @@ Crosis's Catacombs
 Crosis's Charm
 Crosis, the Purger
 Crowd of Cinders
-Crowd's Favor
 Crowd-Control Warden
 Crowded Crypt
 Crude Bent Blade
@@ -1280,7 +1279,6 @@ Earthrumbler
 Earthshaker Giant
 Earthshaking Si
 East Wind Avatar
-East-Mark Cavalier
 Easterling Vanguard
 Eat to Extinction
 Ebony Treefolk
@@ -2561,7 +2559,6 @@ Last Stand
 Lasyd Prowler
 Late to Dinner
 Laughing Jasper Flint
-Lava Dart
 Lava Zombie
 Lavaborn Muse
 Lavalanche
@@ -4068,7 +4065,6 @@ Siege Veteran
 Siege Zombie
 Siegehorn Ceratops
 Sifter Wurm
-Sigarda's Aid
 Sigarda's Imprisonment
 Sigarda, Champion of Light
 Sigil Blessing
