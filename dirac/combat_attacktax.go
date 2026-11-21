@@ -51,6 +51,12 @@ func init() { stallNames[StallAtkTax] = "atktax" }
 // withholds a declared attacker with vigilance too.
 var DebugAtkTaxFree, DebugAtkTaxChoiceFirst, DebugAtkTaxWithholdVigilant bool
 
+// DebugAtkTaxCountUnlisted (test only, TestFourSeatAtkTaxUnlistedLockstep):
+// the walk counts and taps a source whose first mana ability the window never
+// lists (a Signet, a filter land, Prophetic Prism) as a fixed source of its
+// production.
+var DebugAtkTaxCountUnlisted bool
+
 // atkTaxOn reports whether the table carries an attack tax.
 func atkTaxOn(k *prep) bool { return k.gen != nil && k.gen.anyAtkTax }
 
@@ -90,7 +96,13 @@ func atkTaxGap(c *kop.CardDef) bool {
 		a := &c.Abilities[j]
 		switch a.Kind {
 		case kop.AbMana:
-			if a.AFlags&kop.AfLatent != 0 || !atkTaxManaAb(a) && !atkTaxPainPair(c, first, j) {
+			if a.AFlags&kop.AfLatent != 0 {
+				return true
+			}
+			if atkTaxUnlisted(a) {
+				continue
+			}
+			if !atkTaxManaAb(a) && !atkTaxPainPair(c, first, j) {
 				return true
 			}
 			if first < 0 {
@@ -115,7 +127,37 @@ func atkTaxGap(c *kop.CardDef) bool {
 			}
 		}
 	}
+	if f := atkTaxFirstMana(c); f >= 0 && nMana > 0 && atkTaxUnlisted(&c.Abilities[f]) {
+		return true // the source view is the unlisted first ability, not the listed one
+	}
 	return nMana > 1 && !atkTaxMultiMana(c, first)
+}
+
+// atkTaxFirstMana is the index of card c's first mana ability, -1 for none
+// (prepare's pcard.manaAb: the one the kernel's source view reads).
+func atkTaxFirstMana(c *kop.CardDef) int {
+	for j := range c.Abilities {
+		if c.Abilities[j].Kind == kop.AbMana {
+			return j
+		}
+	}
+	return -1
+}
+
+// atkTaxUnlisted reports whether mana ability a is one gorge's attack window
+// never lists (attackManaSources lists a free {T} ability, a self-sacrifice or
+// a fixed life cost: windowManaUnitsPaid, paidCostShape): a mana fee (a
+// Signet's or a filter land's {1}, {T}; Prophetic Prism), a counter removed or
+// added (a Vivid land, Wall of Roots), a tapped creature or a sacrificed
+// permanent besides the source. It adds no unit to the budget and is never
+// tapped, so the walk ignores it (CR 605.3a: the payer may still activate it
+// outside the window).
+func atkTaxUnlisted(a *kop.Ability) bool {
+	const other = kop.CostSac | kop.CostRemoveCtr | kop.CostAddCtr | kop.CostDiscard | kop.CostTapX | kop.CostExileGrave
+	f := a.Cost.Flags
+	fee := a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
+	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && (fee || f&other != 0) && !a.Cost.DiscardHand &&
+		f&^(kop.CostTap|kop.CostOncePerTurn|kop.CostPayLife|other) == 0
 }
 
 // atkTaxManaAb reports whether mana ability a has a shape the walk prices
@@ -141,7 +183,7 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 	n, second := 0, -1
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
-		if a.Kind != kop.AbMana {
+		if a.Kind != kop.AbMana || atkTaxUnlisted(a) {
 			continue
 		}
 		if n++; n == 2 {
@@ -172,7 +214,7 @@ func atkTaxPainPair(c *kop.CardDef, first, second int) bool {
 		return false
 	}
 	for j := range c.Abilities {
-		if j != first && j != second && c.Abilities[j].Kind == kop.AbMana {
+		if j != first && j != second && c.Abilities[j].Kind == kop.AbMana && !atkTaxUnlisted(&c.Abilities[j]) {
 			return false
 		}
 	}
@@ -191,7 +233,7 @@ func atkTaxPainPair(c *kop.CardDef, first, second int) bool {
 // atkTaxOnlyTwo reports whether second is card c's last mana ability.
 func atkTaxOnlyTwo(c *kop.CardDef, second int) bool {
 	for j := second + 1; j < len(c.Abilities); j++ {
-		if c.Abilities[j].Kind == kop.AbMana {
+		if c.Abilities[j].Kind == kop.AbMana && !atkTaxUnlisted(&c.Abilities[j]) {
 			return false
 		}
 	}
@@ -287,6 +329,11 @@ func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl uint8, tgt TCode) bool
 // ability lists only with a recorded colour, and a colour identity outside a
 // commander game makes nothing.
 func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
+	if DebugAtkTaxCountUnlisted {
+		if col, n, ok = s.atkTaxDebugUnlisted(k, sl); ok {
+			return col, n, true, true
+		}
+	}
 	if !s.canTapForMana(k, sl) {
 		return 0, 0, false, false
 	}
@@ -538,4 +585,22 @@ func (s *State) atkTaxPay(k *prep) {
 		total -= int(c.Generic)
 		s.payFromPool(p, &c, 0)
 	}
+}
+
+// atkTaxDebugUnlisted is DebugAtkTaxCountUnlisted's reading of the untapped
+// source at sl: its unlisted first ability's lowest colour and one unit.
+func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot) (col, n int, ok bool) {
+	if s.perms[sl].flags&pfTapped != 0 {
+		return 0, 0, false
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	f := atkTaxFirstMana(cd)
+	if f < 0 || !atkTaxUnlisted(&cd.Abilities[f]) {
+		return 0, 0, false
+	}
+	m := uint8(cd.Abilities[f].ManaColors) & 0x3f
+	if m == 0 {
+		return 0, 0, false
+	}
+	return bits.TrailingZeros8(m), 1, true
 }
