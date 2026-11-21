@@ -34,6 +34,27 @@ jobs:
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, whose fetch fails, or whose objects fail a quick connectivity check is deleted, so checkout
+        # clones afresh. Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          [ -n "$why" ] || timeout 20 git -C "$ws" fetch --dry-run -q origin >/dev/null 2>&1 || why="fetch --dry-run failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
+          rm -rf "$g/refs/remotes"
+          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
