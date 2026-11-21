@@ -904,8 +904,8 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
-	if ac.Flags&kop.CostDiscardFiltered != 0 {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= discardCount(ac)
+	if _, _, filtered := discardPart(ac); filtered {
 		// a filtered discard (Magmatic Insight's land card) never takes the
 		// card being cast, whatever its filter says (cost_discardfiltered.go)
 		discardOK = s.discardPayable(k, p, ac, o)
@@ -1348,7 +1348,7 @@ func severalTargets(k *prep, c CardID) bool {
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
 		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
@@ -1396,7 +1396,7 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
