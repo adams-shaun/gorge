@@ -1266,11 +1266,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// gorge's zone count over every hand: both players' hand sizes
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rEachOpp}}}}, nil
 	case "ValidHand Card.ActivePlayerCtrl":
-		// gorge's zone count over every hand, each card controlled by its
-		// owner: the active player's hand size, yours on your turn and the
-		// opponent's otherwise
-		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: r}} }
-		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
+		return lc.activeHandCount() // the active player's hand at any seat count
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a
 		// general spec counts each hand's matching cards
@@ -1838,4 +1834,18 @@ func splitThisTurnEnteredCreature(spec string) (creature, other string, ok bool)
 		return "", "", false
 	}
 	return strings.Join(cr, ","), strings.Join(ot, ","), true
+}
+
+// activeHandCount is Count$ValidHand Card.ActivePlayerCtrl (countValue):
+// gorge's zone count over every hand, each card controlled by its owner, is
+// the active player's hand, whoever that is among any number of seats (CR
+// 102.1). The hand walk's PredActiveCtrl reads the owner against the active
+// seat (filters_gen.go); the earlier your-hand / the-opponent's-hand split
+// read one opponent's hand on every opponent's turn, wrong in a pod; seat-exact now.
+func (lc *lowerCtx) activeHandCount() (lValue, error) {
+	f, err := lc.filter("Card.ActivePlayerCtrl")
+	if err != nil {
+		return lValue{}, err
+	}
+	return lValue{Kind: vCountHand, F: f}, nil
 }

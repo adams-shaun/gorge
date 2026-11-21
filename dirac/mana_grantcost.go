@@ -402,6 +402,9 @@ func (g *grantSrch) witnessEats(t *State, cost *kop.ManaCost) bool {
 	if o == NoObj || int(o) >= len(t.objs) {
 		return false
 	}
+	if g.np == 0 && g.d.play.Kind() == AkCast && t.plainCensusPays(g.k, g.p, cost) {
+		return false // the root: the census pays outright, so gorge's planned payment prices the cast (plainCensusPays)
+	}
 	return t.xWitnessEats(g.k, g.p, t.objs[o].card, cost, 0, o, 0)
 }
 
