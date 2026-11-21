@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -534,6 +536,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			continue
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+		if dbgHandAct {
+			fmt.Fprintf(os.Stderr, "avsrc p%d sl%d %s mask=%d yield=%d\n", p, sl, k.t.Cards[s.cardAt(sl)].Name, s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+		}
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
 		}

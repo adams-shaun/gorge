@@ -1,8 +1,13 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+var dbgHandAct = os.Getenv("DIRAC_DEBUG_HANDACT") != ""
 
 // priorityHandAct offers the activated abilities that work from the hand
 // (ActZone hand: cycling, typecycling and channel, whose cost discards the
@@ -43,6 +48,28 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			}
 			pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 			aff := av.affords(mana, pipMaskOf(mana), 0)
+			if dbgHandAct {
+				fmt.Fprintf(os.Stderr, "board p%d: pool=%v", p, s.pl[p].pool)
+				for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+					sl := b.first()
+					fmt.Fprintf(os.Stderr, " [%s sl%d tapped=%v]", k.t.Cards[s.cardAt(sl)].Name, sl, s.perms[sl].flags&pfTapped != 0)
+				}
+				fmt.Fprintln(os.Stderr)
+				x := s.g.availX
+				s.g.availX = availGaps | availPlain
+				var t3 avail
+				s.availFor(k, p, &t3)
+				s.g.availX = x
+				for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+					sl := b.first()
+					if f := k.gen.flags[s.cardAt(sl)]; f&(gfFilt|gfAnyR|gfRestr|gfGapOther|gfEachCol|gfDeferred|gfRestrScript) != 0 || s.cardAt(sl) == s.objs[o].card {
+						fmt.Fprintf(os.Stderr, "  gap %s sl%d flags=%x tapped=%v anyDynFilt=%v filtUnits=%d fee=%d chosen=%d\n", k.t.Cards[s.cardAt(sl)].Name, sl, f&(gfFilt|gfAnyR|gfRestr|gfGapOther|gfEachCol|gfDeferred|gfRestrScript|gfManaRefl), s.perms[sl].flags&pfTapped != 0, k.gen.anyDynFilt, s.filtUnits(k, sl), s.filtFee(k, sl), s.perms[sl].chosen)
+					}
+				}
+				fmt.Fprintf(os.Stderr, "handact %s ab%d p%d mana=%v aff=%v plainAff=%v av=%v plain=%v\n",
+					k.t.Cards[s.objs[o].card].Name, ai, p, *mana, aff,
+					t3.affords(mana, pipMaskOf(mana), 0), av.mask[:av.n], t3.mask[:t3.n])
+			}
 			if !aff && s.rbAny(p) {
 				// floating restricted mana the hand ability may spend (CR 106.6):
 				// a scripted prefix (Flamebraider's Elemental mana) taps the

@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -135,19 +137,33 @@ func (s *State) eachColorOut(k *prep, p uint8, sl Slot) kop.ColorMask {
 
 // availScript adds the availFor mode's extra mana.
 func (s *State) availScript(k *prep, p uint8, a *avail) {
+	dbgSnap := func(tag string) {
+		if dbgHandAct {
+			s := ""
+			for i := 0; i < a.n; i++ {
+				s += fmt.Sprintf(" %d:%d", a.mask[i], a.cnt[i])
+			}
+			fmt.Fprintf(os.Stderr, "    script-%s p%d:%s\n", tag, p, s)
+		}
+	}
+	dbgSnap("start")
 	if s.g.availX&availAny != 0 {
 		a.addUnits(0x3f, 99)
+		dbgSnap("openany")
 		return
 	}
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
+		dbgSnap("dh")
 	}
 	if k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) {
 		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
+		dbgSnap("ca")
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
 	}
+	dbgSnap("eachcol")
 	// a life-only source (Treasonous Ogre): the prefix search's gap unit, one
 	// of its fixed colour or of any. Only the gaps walk counts it (availGaps;
 	// availScript is called for no availWalk mode), never the plain walk. It
@@ -155,6 +171,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	// over-count a potential walk may make: scriptDFS fails an activation a
 	// path has made unpayable and backtracks, so no offer survives it.
 	s.availLifeGap(k, p, a)
+	dbgSnap("lifegap")
 	// a restricted source (Giada): the prefix search prices with its mana
 	// as with any gap's (the restriction is not read there), and an Angel
 	// spell may then spend it (scriptDeadEnd decides)
@@ -167,6 +184,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		ab := &k.t.Cards[c].Abilities[k.gen.restr(c)]
 		a.addUnits(1<<bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1))
 	}
+	dbgSnap("restr")
 	// a Taps-deferred source (Firdoch Core): its relaxed census unit, the
 	// one-mana any/fixed-colour tap it adds (availFor's, which the plain walk
 	// leaves out: mana_tapsdefer.go)
@@ -176,14 +194,18 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 		}
 		s.addTapsDeferUnits(k, b.first(), a)
 	}
+	dbgSnap("tapsdefer")
 	if k.ctrMana {
 		s.availCtr(k, p, a) // a counter-cost source (mana_countercost.go)
+		dbgSnap("ctr")
 	}
 	if k.tapMana {
 		s.availTapX(k, p, a) // a tap-another-permanent source (mana_tapanother.go)
+		dbgSnap("tapx")
 	}
 	if k.gen.anyAnyR {
 		s.availAnyR(k, p, a)
+		dbgSnap("anyr")
 	}
 	// a Firemind Vessel (AnyDifferent) is a census gap the prefix search
 	// pays: its N mana, each any of the five colours here (the distinct-colour
@@ -192,8 +214,10 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	for b := s.anyDifferentGaps(k, p); b.any(); b = b.rest() {
 		a.addUnits(0x1f, anyDifferentUnits(s.anyDifferentAbilityAt(k, b.first())))
 	}
+	dbgSnap("anydiff")
 	if k.gen.anyFilt && s.g.availX&availNoFilt == 0 && (s.filtOnly(k, p) || s.mixBoard(k, p)) {
 		s.availFilt(k, p, a) // (beside another gap kind the filter stays unmodelled: mana_filter.go)
+		dbgSnap("filt")
 	}
 }
 
