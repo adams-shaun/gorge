@@ -1,0 +1,6 @@
+# A transformed Mystic Skull grants every land "{T}: Add one mana of any color"; the grant-prefix search must find Mijae Djinn's {R}{R}{R} through a Rimewood Falls and a Desolate Mire (dirac/mana_grantfeeorder_test.go)
+Mystic Skull
+Desolate Mire
+Rimewood Falls
+Mijae Djinn
+Island
