@@ -8,6 +8,10 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// The board is the ctrfeeorder fixture's table, not a synthetic pool: only the
+// lockstep oracle and kgen read raw tables (internal/archtest), and a ./dirac
+// unit test reads a committed fixture like dirac/mana_grantfeeorder_test.go.
+
 // TestCtrGapBesideFeeFilterFeeOrder: Vivid Grove and Vivid Marsh (counter-cost
 // any-colour gaps) beside Izzet Signet ({1},{T}: {U}{R}, a fee gap) and four
 // Islands. gorge's plain prefix run spends its 160 nodes on the fee's branches;
@@ -15,7 +19,7 @@ import (
 // kernel's feeOrderFallback used to decline with any other gap on the board and
 // offered neither cast.
 func TestCtrGapBesideFeeFilterFeeOrder(t *testing.T) {
-	set := cardsettest.Synth(t, "tail-47")
+	set := cardsettest.Set(t, "ctrfeeorder")
 	deck := []cardset.Entry{{Name: "Vivid Grove", Count: 1}, {Name: "Vivid Marsh", Count: 1}, {Name: "A-The Meathook Massacre", Count: 1},
 		{Name: "Phyrexian Defiler", Count: 1}, {Name: "Izzet Signet", Count: 1}, {Name: "Island", Count: 20}, {Name: "Swamp", Count: 4}}
 	tbl, da, _, err := set.Matchup(deck, deck)
