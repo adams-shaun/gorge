@@ -1681,7 +1681,7 @@ func (s *State) censusPayGaps(k *prep, p uint8, m slotMask, takeDeferred bool) s
 			m = m.without(sl)
 		}
 	}
-	return m
+	return s.censusNoStore(k, m) // an unless census prices no storage battery (mana_unlessnostore.go)
 }
 
 // filtPlay plays a found path on s: each activation as the search made it,
