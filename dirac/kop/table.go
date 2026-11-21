@@ -977,3 +977,8 @@ func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &
 // attacked player's whole creature count (gorge combat.DefenderCreatureCount),
 // so one creature of theirs that cannot block makes the attacker unblockable.
 const MinBlockersAll uint8 = 255
+
+// ExtraBlocksAny is CardDef.ExtraBlocks' (and a StatExtraBlock's Static.A)
+// CanBlockAny$ True form: the creature can block any number of creatures
+// (CR 509.1a), where 1 is CanBlockAmount$ 1. A Static.A of 0 is amount 1.
+const ExtraBlocksAny uint8 = 255

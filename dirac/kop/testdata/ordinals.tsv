@@ -577,6 +577,7 @@ ExtTurnRepl	ExtOp	318
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
 ExtVote	ExtOp	311
+ExtraBlocksAny	uint8	255
 F2AttachedToT0	FilterFlags2	512
 F2BasePermanent	FilterFlags2	8388608
 F2Basic	FilterFlags2	131072
