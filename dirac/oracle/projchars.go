@@ -117,6 +117,12 @@ var gorgeKwElsewhere = map[string]string{
 	// record's CantAttack, no kernel keyword bit; compared through the attack options
 	"HIDDEN CARDNAME can't attack.": "the override record's CantAttack (kop.Override.CantAttack; compared through the attack options)",
 
+	// a granted Banding (KW$ Banding, Battering Ram): the override record's
+	// Banding, no kernel keyword bit (KwMask is full); compared through the
+	// CR 702.22c band declaration ask the kernel poses for a banding attacker
+	// (dirac/combat_band.go), like CantAttack through the attack options
+	"Banding": "the override record's Banding (kop.Override.Banding; read by hasBanding, compared through the band ask)",
+
 	"Changeling":               "the subtype set (kgen's changelingSubs; CharsProj.Subtypes)",
 	"Beam me up":               "CardDef.BeamMeUp (a graveyard cast for AltCost with a return; kw_beammeup.go)",
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",

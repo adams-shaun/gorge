@@ -15,13 +15,20 @@ import (
 // "can't block this combat". The kernel's override record (kop.Override.
 // UntilEndCombat) must show gorge's powers at every decision: applied from
 // creation and gone once the end-of-combat step ends.
+//
+// Battering Ram (granted Banding, kop.Override.Banding) is in the decks too:
+// gorge poses the CR 702.22c band declaration ask for a declared attacker with
+// banding beside another attacker, and the kernel mirrors it (dirac/
+// combat_band.go; the grant is the record dirac/kw_banding.go reads). Band
+// formation is not modelled (an accepted band stalls, StallBand), so the
+// probe's policy declines every band ask: neither engine ever forms a band.
 
 var kpecDecks = [2][]cardset.Entry{
 	{
 		{Name: "Murk Dwellers", Count: 6},
 		{Name: "Flummoxed Cyclops", Count: 4},
 		{Name: "Forgestoker Dragon", Count: 4},
-		{Name: "Grizzly Bears", Count: 4},
+		{Name: "Battering Ram", Count: 4},
 		{Name: "Swamp", Count: 11},
 		{Name: "Mountain", Count: 11},
 	},
@@ -29,7 +36,7 @@ var kpecDecks = [2][]cardset.Entry{
 		{Name: "Murk Dwellers", Count: 4},
 		{Name: "Flummoxed Cyclops", Count: 6},
 		{Name: "Forgestoker Dragon", Count: 4},
-		{Name: "Hill Giant", Count: 4},
+		{Name: "Battering Ram", Count: 4},
 		{Name: "Grizzly Bears", Count: 4},
 		{Name: "Swamp", Count: 9},
 		{Name: "Mountain", Count: 9},
@@ -37,8 +44,21 @@ var kpecDecks = [2][]cardset.Entry{
 }
 
 type kpecStats struct {
-	pumped  int // a Murk Dwellers first seen above its printed power
-	expired int // a pumped Murk Dwellers seen at its printed power again
+	pumped   int // a Murk Dwellers first seen above its printed power
+	expired  int // a pumped Murk Dwellers seen at its printed power again
+	bandAsks int // a CR 702.22c band declaration ask posed (the probe declines it)
+}
+
+// kpecDeclineBand is the band ask's decline (option 0, naming no object) when
+// d is a band declaration: the kernel does not model band formation.
+func kpecDeclineBand(d *CDecision) (Canon, bool) {
+	code, _ := chooseCode("band")
+	for _, a := range d.Options {
+		if a.Kind() == ActChoose+CanonKind(code) && a.Src() == RefNone {
+			return a, true
+		}
+	}
+	return 0, false
 }
 
 // kpecProbe wraps the casting policy and reads the powers through gorge's
@@ -71,12 +91,22 @@ func (p *kpecProbe) Pick(c *PickCtx) Canon {
 			}
 		}
 	}
+	if a, ok := kpecDeclineBand(c.D); ok {
+		p.st.bandAsks++
+		return a
+	}
 	return p.base.Pick(c)
 }
 
 // kpecRun plays seeds 1..seeds and returns the games, the divergences and
 // stalls (reported as test errors when report is set) and the probe tallies.
 func kpecRun(t *testing.T, seeds uint64, report bool) (games, divs, stalls int, st kpecStats) {
+	t.Helper()
+	return kpecRunFrom(t, 1, seeds, report)
+}
+
+// kpecRunFrom plays seeds first..first+seeds-1.
+func kpecRunFrom(t *testing.T, first, seeds uint64, report bool) (games, divs, stalls int, st kpecStats) {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -106,7 +136,7 @@ func kpecRun(t *testing.T, seeds uint64, report bool) (games, divs, stalls int, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	for seed := uint64(1); seed <= seeds; seed++ {
+	for seed := first; seed < first+seeds; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"kpec-a", "kpec-b"}, decks, 1)
 		if err != nil {

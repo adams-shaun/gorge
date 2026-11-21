@@ -2660,6 +2660,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.UntilUpkeep = o.UntilUpkeep
 	ko.WhileTapped = o.WhileTapped
 	ko.UntilEndCombat = o.UntilEndCombat
+	ko.Banding = o.Banding
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
