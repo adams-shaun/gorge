@@ -143,6 +143,12 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 	}
 	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
+	if aff && s.cfg&cfgGorgeAutopay != 0 && k.gen != nil && k.gen.anyTapsMana && kc.X == 0 {
+		// gorge prices the kicked cast through its potential planner, whose
+		// summed lethal guard the real census does not carry for a
+		// TapsForMana watcher's damage (Manabarbs at 4 life: six taps)
+		aff = s.kickedPotentialPainOK(k, p, c, o, &kc)
+	}
 	cd := &k.t.Cards[c]
 	if s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
 		// A target-priced cast (Esior, Wardwing Familiar's raise on a spell
@@ -273,7 +279,20 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 		}
 		return true // the record is incomplete: keep the over-bound answer
 	}
-	return px.affords(kc, pipMaskOf(kc), 0)
+	return px.affords(kc, pipMaskOf(kc), 0) && potUnitsPainAffords(&pu, int(s.pl[SeatIx(p)].life), kc)
+}
+
+// kickedPotentialPainOK: the potential census's units afford kc within the
+// payer's summed pain budget (potUnitsPainAffords). An incomplete or
+// unbounded record keeps the caller's answer (true).
+func (s *State) kickedPotentialPainOK(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost) bool {
+	spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
+	var pa avail
+	var pu [maxPotUnits]potUnit
+	if s.availPotentialFor(k, p, &pa, &spell, false, &pu) {
+		return true
+	}
+	return potUnitsPainAffords(&pu, int(s.pl[SeatIx(p)].life), kc)
 }
 
 // multikickMax is the largest multikicker count gorge multikickAsk would
