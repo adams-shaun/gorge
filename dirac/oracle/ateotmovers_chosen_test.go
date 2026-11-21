@@ -16,9 +16,9 @@ import (
 // (Impromptu Raid, Killer Instinct) remembers at most one card, which is the
 // one object the kernel's OpAtEOT takes. The decks are split so the hand-pick
 // and Dig carriers each play beside cheap creatures. Meek Attack, the sixth
-// carrier, stays refused: its ChangeType$ totalPT_LE5 predicate on a hand card
-// is a pre-existing kernel filter gap (build.go cmpTotalPT), not this
-// lowering's.
+// carrier, rides the pick deck: its ChangeType$ totalPT_LE5 predicate reads a
+// hand card's P/T (matchCardOneAt's PredTotalPT arm), and Squawkroaster's
+// */4 keeps the characteristic-defining power in play.
 //
 // A Dig whose top card is not a creature moves it to the remainder zone
 // without taking it; gorge's digRemember remembers every card the dig moved,
@@ -28,10 +28,11 @@ import (
 // lockstep rather than a tolerated divergence.
 var kateotChosenPickDeck = []cardset.Entry{
 	{Name: "Sneak Attack", Count: 4}, {Name: "Arms Race", Count: 3},
-	{Name: "Incandescent Soulstoke", Count: 3},
-	{Name: "Akoum Hellhound", Count: 8}, {Name: "Gilded Ghoda", Count: 3},
+	{Name: "Incandescent Soulstoke", Count: 3}, {Name: "Meek Attack", Count: 3},
+	{Name: "Akoum Hellhound", Count: 5}, {Name: "Gilded Ghoda", Count: 3},
 	{Name: "Daggerfang Duo", Count: 3}, {Name: "Deathcap Marionette", Count: 3},
-	{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4}, {Name: "Swamp", Count: 4},
+	{Name: "Squawkroaster", Count: 2},
+	{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 3}, {Name: "Swamp", Count: 3},
 }
 
 var kateotChosenDigDeck = []cardset.Entry{

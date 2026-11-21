@@ -2,6 +2,21 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// cardTotalPTPred is PredTotalPT on a card off the battlefield: gorge's
+// totalPT reads the card's power plus toughness in any zone (Meek Attack's
+// one-card hand pick, ChangeType$ Creature.YouCtrl+totalPT_LE5). cardPT
+// carries the printed P/T, the CDA's or a moved target's last known P/T; a
+// card that prints no P/T never matches.
+//
+//go:noinline
+func (s *State) cardTotalPTPred(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+	if k.t.Cards[c].NoPT {
+		return false
+	}
+	pw, t := s.cardPT(k, c, owner, o, fd)
+	return kop.DmgGatePass(fl.PredN, pw+t)
+}
+
 // cardPTEqV is PredPowerGEV / PredToughnessLEV with PredN 1 on a spell: its
 // power (toughness) equals the value PredV (gorge powerEQ<X> /
 // toughnessEQ<X> through specCtx's Resolve: Talion, the Kindly Lord's
