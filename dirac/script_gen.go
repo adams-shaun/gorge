@@ -278,6 +278,28 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 	return addCostShapeUnscripted(k, c)
 }
 
+// offerSkip is the script walk loop's drop state: the loop-invariant masks
+// scriptOfferDrops prices a play against.
+type offerSkip struct {
+	d, capSpent, gaps, noWide                 *Decision
+	sacAny, sacRepeat, wide, mixWide, anyWalk bool
+	anyR                                      slotMask
+}
+
+// scriptOfferDrops reports whether the walk loop's play a is not offered in
+// the decision: already on it or on the spent cap, dropped by the sacrifice-
+// any / repeat arms, unfundable by a wide source (the relaxed proof's drop,
+// and the mixed-board noWide arm), or — on the any-mana walk — a cast the
+// payment bound built with its restrictions applied cannot afford
+// (restrBoundDrops).
+func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool {
+	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || hasOption(o.capSpent, a) ||
+		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
+		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
+		o.mixWide && !hasOption(o.noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
+		o.anyWalk && s.restrBoundDrops(k, p, a)
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -357,13 +379,15 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if mixWide {
 		s.plainOptions(k, &noWide, availGaps|availNoWide) // (gorge's potential walk counts a wide source only for what its restriction admits)
 	}
+	skip := offerSkip{
+		d: d, capSpent: capSpent, gaps: &gaps,
+		sacAny: sacAny, sacRepeat: sacRepeat,
+		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide,
+		anyWalk: src == &any,
+	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
-		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
-			s.sacDrops(k, p, sacAny, sacRepeat, &gaps, a) ||
-			wide && !s.wideAdmits(k, a, p, anyR) ||
-			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
-			src == &any && s.restrBoundDrops(k, p, a) {
+		if s.scriptOfferDrops(k, p, a, &skip) {
 			continue
 		}
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
