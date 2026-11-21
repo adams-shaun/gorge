@@ -372,6 +372,30 @@ if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/' 'engine/' go.mod go.sum)"
 	esac
 fi
 
+# oracle_chunked RUN [SKIP]: ./dirac/oracle's tests matching RUN (less SKIP) in fixed chunks of their sorted names,
+# each its own go test call with the oracle's cap. 11-20: its census set (~120 tests) and step 4's named set (the
+# fast tier and every repro replay) each summed past the 5m cap in one call on a loaded box (0.2-0.7 idle cores),
+# so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet (91-195 s) is
+# a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+oracle_chunked() {
+	local names rx k chunks=() r=0
+	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | sort) || names=
+	[ -z "${2:-}" ] || names=$(grep -vE "$2" <<<"$names" || true)
+	if [ -z "$names" ]; then # nothing listed (a stub go, a build error): the one call, as before; it reports why
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$1" ${2:+-skip "$2"} ./dirac/oracle >>"$json" 2>&1
+		return
+	fi
+	! grep -qx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" || chunks+=('^TestCmd5SliceCleanOnlyGrows$')
+	for k in 0 1 2 3; do
+		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k 'NR % 4 == k' | paste -sd'|')
+		[ -z "$rx" ] || chunks+=("^($rx)\$")
+	done
+	for rx in "${chunks[@]}"; do
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$rx" ./dirac/oracle >>"$json" 2>&1 || { r=$?; break; }
+	done
+	return $r
+}
+
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
 C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|ReproManifest|EnumConst|^TestHeads$|^TestSetHeads$|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
@@ -389,6 +413,12 @@ cpk=$({ git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go'; git grep -lE 
 ncpk=$(wc -w <<<"$cpk")
 if sel=$(printf '%s\n' $cpk | "${py[@]}" census --base "$BASE") && [ -n "$sel" ]; then cpk=$sel; fi
 echo "census packages: $(wc -w <<<"$cpk") of $ncpk"
+# ./dirac/oracle's census tests run in calls of their own (below), so it leaves the package groups here.
+oracle_census=
+if grep -qx './dirac/oracle' <<<"$(printf '%s\n' $cpk)"; then
+	oracle_census=1
+	cpk=$(printf '%s\n' $cpk | grep -vx './dirac/oracle' || true)
+fi
 group_by_timeout $cpk ./internal/archtest || finish ""
 for i in "${!G_TO[@]}"; do
 	read -r -a group <<<"${G_PKGS[i]}"
@@ -396,6 +426,15 @@ for i in "${!G_TO[@]}"; do
 	rc=$?
 	[ "$rc" = 0 ] || break
 done
+# ./dirac/oracle's census tests (~120: the repro families, the pins, the cmd5 clean-pair ratchet) summed past the
+# oracle's 5m cap in one call on a loaded box (11-20: 264 s done and 7 tests unfinished at 0.2 idle cores, the cmd5
+# ratchet alone 174-195 s), so test-smart printed BUDGET on every diff that selected them (any diff outside a Go
+# package does). They run in fixed chunks of their sorted names, each its own call with the same cap; the cmd5
+# ratchet is a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+if [ "$rc" = 0 ] && [ -n "$oracle_census" ]; then
+	oracle_chunked "$C" '^TestStd[A-Za-z]*ReprosLockstep'
+	rc=$?
+fi
 if [ "$rc" = 0 ]; then
 	capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB KERNEL_UNREFUSE_BASE="$BASE" go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run '^TestUnrefusalNeedsProof$' ./dirac/oracle >>"$json" 2>&1
 	rc=$?
@@ -526,6 +565,7 @@ elif [ "$smart" = narrow ]; then
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		IFS=$'\t' read -r how pkg rx <<<"$r"
 		[ "$how" = run ] || continue
+		if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx" || { rc=$?; finish ""; }; continue; fi
 		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for "$pkg")" -run "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
 	done
 	if [ "${#whole[@]}" -gt 0 ]; then
