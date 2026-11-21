@@ -108,7 +108,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -124,10 +126,18 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
         if: runner.environment == 'self-hosted'
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         if: runner.environment == 'self-hosted'
         with:
@@ -158,7 +168,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -174,9 +186,19 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        with:
+          fetch-depth: 0
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v5
@@ -240,7 +262,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -256,9 +280,20 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        with:
+          # The ratchet guard compares the branch's own head tree with the merge base.
+          fetch-depth: 0
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
         with:
           # The ratchet guard compares the branch's own head tree with the merge base.
           fetch-depth: 0
@@ -330,7 +365,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -346,9 +383,17 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -489,7 +534,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -505,9 +552,17 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -565,7 +620,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -581,9 +638,17 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -638,7 +703,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -654,9 +721,17 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -738,7 +813,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -754,9 +831,17 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
