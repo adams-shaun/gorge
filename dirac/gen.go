@@ -2799,6 +2799,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 					return v // a gated land's own ability beside the granted intrinsic one
 				}
 			}
+			if v := s.identGrantView(k, sl, c, vi); v != nil {
+				return v // a commander-identity land with the granted intrinsic colour merged in (static_landgrantident.go)
+			}
 			s.blgStall(k, sl, c)
 		}
 		if k.gen.anyCondSplit && k.gen.splitAb(c) >= 0 {
