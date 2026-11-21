@@ -92,6 +92,7 @@ Grim Javelineer
 Guardian Sunmare
 Guidelight Matrix
 Guidelight Optimizer
+Guidelight Pathmaker
 Guidelight Synergist
 Haunt the Network
 Haunted Hellride
@@ -128,8 +129,10 @@ Marketback Walker
 Marshals' Pathcruiser
 Maximum Overdrive
 Memory Guardian
+Mendicant Core, Guidelight
 Midnight Mangler
 Migrating Ketradon
+Mindspring Merfolk
 Momentum Breaker
 Monument to Endurance
 Mountain
@@ -149,6 +152,7 @@ Perilous Snare
 Plains
 Plow Through
 Point the Way
+Possession Engine
 Pothole Mole
 Pride of the Road
 Prowcatcher Specialist
@@ -229,6 +233,7 @@ Veloheart Bike
 Venomsac Lagac
 Veteran Beastrider
 Vnwxt, Verbose Host
+Voyage Home
 Voyager Glidecar
 Voyager Quickwelder
 Walking Sarcophagus
