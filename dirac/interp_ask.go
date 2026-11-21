@@ -151,7 +151,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		kind = payKindTrigNewEvidence // a dies trigger's own triggered-card exile beside evidence (cost_collectevidencex.go)
 	}
 	skip := uint16(in.C >> 4)
-	amt := max(s.value(k, in.A), 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
+	raw := s.value(k, in.A)
+	amt := max(raw, 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
 	pips := in.B.N
 	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
@@ -205,6 +206,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
 	}
 	skip = s.payAnswerGate(k, in, p, kind, skip, amt, pips)
+	if kind == kop.PayDraw && raw < 0 {
+		skip |= pfNoPay // gorge pay.DrawCostCountTrig fails closed on a negative count (Horrid Shadowspinner at power < 0); only a zero count is payable
+	}
 	s.g.pickF = skip
 	s.g.pickZ = uint8(kind)
 	if kind == kop.PaySac && in.B.N == kop.PayBSubBlight {
