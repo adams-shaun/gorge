@@ -188,12 +188,12 @@ func TestLandGrantAltOffRefused(t *testing.T) {
 	}
 }
 
-// TestLandGrantAltStillRefused: the refusal is card-precise. A Tainted land
-// (a gated second ability) beside the Leviathan is still refused, naming it and
-// the Leviathan, and not the bounce lands or the Temple the pair covers.
+// TestLandGrantAltStillRefused: the refusal is card-precise. A Thriving land
+// (a chosen colour) beside the Leviathan is still refused, naming it and the
+// Leviathan, and not the bounce lands or the Temple the pair covers.
 func TestLandGrantAltStillRefused(t *testing.T) {
-	deck := append(slices.Clone(landGrantAltShared), "Tainted Field")
-	landGrantRefusedNames(t, deck, []string{"Stormtide Leviathan", "Tainted Field"}, []string{"Golgari Rot Farm", "Temple of the False God", "Azorius Chancery"})
+	deck := append(slices.Clone(landGrantAltShared), "Thriving Heath")
+	landGrantRefusedNames(t, deck, []string{"Stormtide Leviathan", "Thriving Heath"}, []string{"Golgari Rot Farm", "Temple of the False God", "Azorius Chancery"})
 }
 
 // landGrantRefusedNames asserts the pod of four copies of deck is refused as

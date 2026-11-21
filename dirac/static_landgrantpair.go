@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // StallLandGrant as a pair refusal (kop.PairGuard): a granted basic land type
 // beside a mana source whose own ability is not a plain {T}: one colour
@@ -120,7 +124,7 @@ func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.Color
 	if t.Cards[i].Types&reach == 0 && !DebugLandGrantAnyReach {
 		return false
 	}
-	return g.blgIdx[i] < 0 && granted&^ownMadeCols(&p.cards[i])&0x3f != 0 && !altCovers(g, p, i, granted)
+	return g.blgIdx[i] < 0 && granted&^ownMadeCols(&p.cards[i])&0x3f != 0 && !altCovers(g, p, i, granted) && !gateCovers(g, i)
 }
 
 // grantsManaTo: card i carries a latent mana ability (Citanul Hierophants'
@@ -185,6 +189,9 @@ func ownMadeCols(pc *pcard) kop.ColorMask {
 		if n > 0 {
 			return 0
 		}
+	}
+	if !pc.manaTap && pc.manaAb >= 0 && bits.OnesCount8(uint8(pc.manaCol)&0x3f) > 1 {
+		return 0 // a paid ability making several colours (a filter's "Add {W}{U}") is no colour's own either (static_landtype.go blgFilterFirst)
 	}
 	return pc.manaCol
 }

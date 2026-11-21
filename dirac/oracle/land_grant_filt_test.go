@@ -11,7 +11,7 @@ import (
 // is a paid ability gorge's planner prices as a census gap, and the intrinsic
 // {U} beside it is the land's plain census unit; the prefix search answers the
 // printed filter before the intrinsic tap.
-var landGrantFiltLands = []string{"Sungrass Prairie", "Mossfire Valley", "Desolate Mire", "Shadowblood Ridge", "Sunscorched Divide"}
+var landGrantFiltLands = []string{"Sungrass Prairie", "Mossfire Valley", "Desolate Mire", "Shadowblood Ridge", "Sunscorched Divide", "Skycloud Expanse"}
 
 func landGrantFiltDeck() []string {
 	return append(slices.Clone(landGrantAltShared), landGrantFiltLands...)
@@ -45,10 +45,9 @@ func TestLandGrantFiltOffRefused(t *testing.T) {
 
 // landGrantFiltMutated plays the filter pod under a mutation and reports whether
 // some seed diverged or stalled.
-func landGrantFiltMutated(t *testing.T, seeds uint64) bool {
+func landGrantFiltMutated(t *testing.T, deck []string, seeds uint64) bool {
 	t.Helper()
 	set := edhSet(t)
-	deck := landGrantFiltDeck()
 	pod := [4][]string{deck, deck, deck, deck}
 	play := fourSeatSetPlay(t, set, pod, nil, nil, nil, func(seed uint64) Policy { return combatPolicy(seed, nil) })
 	for seed := uint64(1); seed <= seeds; seed++ {
@@ -68,7 +67,7 @@ func TestLandGrantFiltOrderMutation(t *testing.T) {
 	}
 	dirac.DebugLandGrantFiltOrder = true
 	defer func() { dirac.DebugLandGrantFiltOrder = false }()
-	if !landGrantFiltMutated(t, 400) {
+	if !landGrantFiltMutated(t, landGrantFiltDeck(), 400) {
 		t.Fatal("no seed diverged with the intrinsic tap searched before the printed filter")
 	}
 }
@@ -82,7 +81,7 @@ func TestLandGrantAltFundMutation(t *testing.T) {
 	}
 	dirac.DebugLandGrantAltFund = true
 	defer func() { dirac.DebugLandGrantAltFund = false }()
-	if !landGrantFiltMutated(t, 500) {
+	if !landGrantFiltMutated(t, append(slices.Clone(landGrantAltShared), landGrantFiltLands[:5]...), 500) {
 		t.Fatal("no seed diverged with the funding tap answering the own face alone")
 	}
 }
