@@ -341,9 +341,6 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 				return nil, err
 			}
 		}
-		if len(fbs) > 0 && lc.out.Types&tArtifact != 0 && filterSelfOnly(st.F) {
-			return nil, refuse("DB$ Mana of an artifact source (typed mana)") // the attacker is this artifact
-		}
 		for _, n := range fbs {
 			// CR 702.189a granted: one latent Attacks trigger per grant
 			// (lower_firegrant.go; gorge trigger_granted.go)

@@ -61,6 +61,48 @@ func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	}
 }
 
+// DebugTypedManaNoTag skips the resolving path's artifact tag (mutation
+// testing only): a resolving DB$ Mana of a typed source adds untagged, while
+// gorge's ManaProducerTag still tags it — the lockstep's tag-count projection
+// must catch it (TestTypedArtifactManaMutation).
+var DebugTypedManaNoTag bool
+
+// TypedManaStats counts the resolving path's typed mana, for oracle tests only.
+type TypedManaStats struct {
+	Added   int // units a resolving DB$ Mana of a typed source tagged (artTagN)
+	Planned int // typed units a planned payment (a cast build) spent (artSync's clamp)
+	Manual  int // typed units a spend outside a planned payment spent
+}
+
+// DebugTypedManaStats is the test hook; nil in normal play.
+var DebugTypedManaStats *TypedManaStats
+
+// artTagN is artTag for n units a resolving spell's or trigger's DB$ Mana of
+// card added at once (poolAddFrom; the source is the stack entry's card, whose
+// printed face gorge's ManaProducerTag reads): the pool's colour bit, the
+// tagged-unit tally (coldArtN, when the table holds one) and a Treasure's
+// tally, the clauses artTag runs after the mana-ability path's add. A
+// restricted add bypasses it (addManaRestr marks poolArtRestr instead).
+func (s *State) artTagN(k *prep, p uint8, card CardID, col, n int) {
+	if n <= 0 || DebugTypedManaNoTag || !k.artMana || !k.cards[card].manaTyped {
+		return
+	}
+	i := SeatIx(p)
+	s.g.poolArt[i] |= 1 << col
+	if sx := coldArtN.of(s); sx != nil {
+		t := &sx[int(i)*kop.NumManaKinds+col]
+		*t = uint8(min(int(*t)+n, 255))
+	}
+	if k.cards[card].castSrc&csTreasure != 0 {
+		if t := &s.g.poolTre[i][col]; *t < 255 {
+			*t = uint8(min(int(*t)+n, 255))
+		}
+	}
+	if st := DebugTypedManaStats; st != nil {
+		st.Added += n
+	}
+}
+
 // treSync is the Treasure half of artSync. gorge spends a plain unit of a
 // colour before a Treasure's (pay.takeUnit), so after any spend the Treasure
 // units still floating in a slot are the fewest the slot's remaining units
@@ -118,6 +160,16 @@ func (s *State) artSync(p uint8) {
 		// left in a slot are the fewest it can hold (treSync's clamp)
 		if sx := coldArtN.of(s); sx != nil {
 			if n := &sx[int(SeatIx(p))*kop.NumManaKinds+c]; *n > s.pl[SeatIx(p)].pool[c] {
+				if st := DebugTypedManaStats; st != nil && int(*n)-int(s.pl[SeatIx(p)].pool[c]) > 0 {
+					// a cast build's payment is the planned one; an ability
+					// activation's build (seAbility) and every other drain are
+					// the manual window's
+					if s.ctl == ctlBuild && s.bld().e.kind == seSpell {
+						st.Planned += int(*n) - int(s.pl[SeatIx(p)].pool[c])
+					} else {
+						st.Manual += int(*n) - int(s.pl[SeatIx(p)].pool[c])
+					}
+				}
 				*n = s.pl[SeatIx(p)].pool[c]
 			}
 		}

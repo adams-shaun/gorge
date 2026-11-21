@@ -9,7 +9,7 @@ var hascountersformsForms = []formCase{
 	{card: "Delta Bloodflies", form: "HasCounters in a trigger IsPresent$", lir: "cmp(15 0 0  )"},
 	{card: "Damning Verdict", form: "!HasCounters is PredNoCounters", lir: "cmp(18 0 0  )"},
 	{card: "Priest of Urabrask", form: "triggered DB$ Mana Produced$ R Amount$ 3 (gorge effMana ManaAmountNum)", lir: "AddMana obj=You A=3"},
-	{card: "Cathodion", form: "an artifact's triggered Amount$ mana is typed: refused", refused: "typed mana"},
+	{card: "Cathodion", form: "an artifact's triggered Amount$ mana lowers: the resolving path tags it (mana_artifact.go artTagN)", lir: "AddMana obj=You A=3"},
 	{card: "Cautious Survivor", form: "trigger PresentDefined$ Self IsPresent$ Card.tapped is the source alone (gorge presentClauseHolds)", lir: "cond=Present({types=0x0 Self Tapped},op1,1)"},
 }
 
