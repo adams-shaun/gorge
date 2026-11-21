@@ -2373,6 +2373,10 @@ type paymentPlanCensus struct {
 	// has to spend; false when every one nets no mana (manaAbilityNetsNoMana),
 	// so the covered sources and the pool bound the supply by count.
 	gapGains bool
+	// gapSupply: the most mana the gap abilities that gain only a counter-
+	// bounded amount can add beside the covered sources (gapSubCounterSupply);
+	// they leave gapGains false and are counted in costOutrunsSupply.
+	gapSupply int32
 }
 
 // boundedProof returns the census a bounded necessary-condition proof runs
@@ -2465,7 +2469,13 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			for _, a := range alts {
 				best = max(best, int32(a.Mana.Total()))
 			}
-			out.gapGains = out.gapGains || !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best))
+			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
+				if n, ok := gapSubCounterSupply(e, asPayer(e), p, id, ma, gextra); ok {
+					out.gapSupply += n
+				} else {
+					out.gapGains = true
+				}
+			}
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}

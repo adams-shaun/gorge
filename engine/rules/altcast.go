@@ -328,7 +328,7 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		// Energy Refractor's "{2}: Add one mana of any color" is a gap with no
 		// relaxation, yet it never raises the mana total: the count proof.
 		credit := !creditless
-		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()),
+		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()), census.gapSupply,
 			e.offerCostFor(card.Owner, card.ID, cost, spellScope(m.mode)), credit)
 	}
 	// CR 702.51a / 702.66a: Convoke and Improvise apply to the spell whichever
