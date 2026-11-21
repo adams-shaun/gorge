@@ -48,51 +48,51 @@ func CheckRestrictedLifeUnitFilterCastOffer(t *testing.T, tbl *kop.Table, id map
 	// drops a plain cast the planner does not price, as gorge's does there
 	// (script_gen.go autopayDropsPlainCast), so the script route is the full
 	// surface's offer.
-	for _, cfg := range []Config{func() Config { c := LockstepConfig(SurfaceFull); c.NoElide = true; return c }()} {
-		// the classification: the Ridge a filter gap, the Keeper no census
-		// gap, the board filter-only
-		sc := newScenTableLib(t, tbl, id["Swamp"], cfg)
-		// battlefield order as the repro game's: the fee funds from an
-		// earlier-floated mana (CR 601.2g-h); the census is 4, the cast 5
-		sc.perm(id["Forest"], 0)
-		sc.perm(id["Forest"], 0)
-		sc.perm(id["Swamp"], 0)
-		sc.perm(id["Swamp"], 0)
-		r := sc.perm(ridge, 0)
-		sc.perm(keeper, 0)
-		v := sc.hand(vampire, 0)
-		if !sc.k.gen.has(ridge, gfFilt) || !sc.s.scriptFilt(sc.k, 0).has(sc.slot(r)) {
-			t.Fatalf("gorgeLowering=%v: want Shadowblood Ridge a live filter gap", cfg.GorgeLowering)
-		}
-		if sc.k.gen.has(keeper, gfGapOther) {
-			t.Fatal("want Untaidake, the Cloud Keeper no census gap: the census prices its restricted unit per payment (censusGapMana)")
-		}
-		if !sc.s.filtOnly(sc.k, 0) {
-			t.Fatalf("gorgeLowering=%v: want the board filter-only beside the restricted planner unit", cfg.GorgeLowering)
-		}
-		if !castOf(sc, v) {
-			t.Fatalf("gorgeLowering=%v: the Skyshroud Vampire cast not offered: the filter script never ran beside the restricted unit", cfg.GorgeLowering)
-		}
-		// no floatable mana: the Ridge's {1} fee unfunded
-		sc2 := newScenTableLib(t, tbl, id["Swamp"], cfg)
-		sc2.perm(ridge, 0)
-		sc2.perm(keeper, 0)
-		v2 := sc2.hand(vampire, 0)
-		if castOf(sc2, v2) {
-			t.Fatalf("gorgeLowering=%v: the cast offered with no mana to fund the Ridge's {1} fee", cfg.GorgeLowering)
-		}
-		// two Swamps: the fee funded, the cast a unit short ({B}{B}{B}{R} of {3}{B}{B})
-		sc3 := newScenTableLib(t, tbl, id["Swamp"], cfg)
-		sc3.perm(ridge, 0)
-		sc3.perm(keeper, 0)
-		sc3.perm(id["Swamp"], 0)
-		sc3.perm(id["Swamp"], 0)
-		v3 := sc3.hand(vampire, 0)
-		if !sc3.s.filtOnly(sc3.k, 0) {
-			t.Fatalf("gorgeLowering=%v: want the two-Swamp board filter-only too", cfg.GorgeLowering)
-		}
-		if castOf(sc3, v3) {
-			t.Fatalf("gorgeLowering=%v: the cast offered on {B}{B}{B}{R}: a unit short of {3}{B}{B}", cfg.GorgeLowering)
-		}
+	cfg := LockstepConfig(SurfaceFull)
+	cfg.NoElide = true
+	// the classification: the Ridge a filter gap, the Keeper no census
+	// gap, the board filter-only
+	sc := newScenTableLib(t, tbl, id["Swamp"], cfg)
+	// battlefield order as the repro game's: the fee funds from an
+	// earlier-floated mana (CR 601.2g-h); the census is 4, the cast 5
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Forest"], 0)
+	sc.perm(id["Swamp"], 0)
+	sc.perm(id["Swamp"], 0)
+	r := sc.perm(ridge, 0)
+	sc.perm(keeper, 0)
+	v := sc.hand(vampire, 0)
+	if !sc.k.gen.has(ridge, gfFilt) || !sc.s.scriptFilt(sc.k, 0).has(sc.slot(r)) {
+		t.Fatalf("gorgeLowering=%v: want Shadowblood Ridge a live filter gap", cfg.GorgeLowering)
+	}
+	if sc.k.gen.has(keeper, gfGapOther) {
+		t.Fatal("want Untaidake, the Cloud Keeper no census gap: the census prices its restricted unit per payment")
+	}
+	if !sc.s.filtOnly(sc.k, 0) {
+		t.Fatalf("gorgeLowering=%v: want the board filter-only beside the restricted planner unit", cfg.GorgeLowering)
+	}
+	if !castOf(sc, v) {
+		t.Fatalf("gorgeLowering=%v: the Skyshroud Vampire cast not offered: the filter script never ran beside the restricted unit", cfg.GorgeLowering)
+	}
+	// no floatable mana: the Ridge's {1} fee unfunded
+	sc2 := newScenTableLib(t, tbl, id["Swamp"], cfg)
+	sc2.perm(ridge, 0)
+	sc2.perm(keeper, 0)
+	v2 := sc2.hand(vampire, 0)
+	if castOf(sc2, v2) {
+		t.Fatalf("gorgeLowering=%v: the cast offered with no mana to fund the Ridge's {1} fee", cfg.GorgeLowering)
+	}
+	// two Swamps: the fee funded, the cast a unit short ({B}{B}{B}{R} of {3}{B}{B})
+	sc3 := newScenTableLib(t, tbl, id["Swamp"], cfg)
+	sc3.perm(ridge, 0)
+	sc3.perm(keeper, 0)
+	sc3.perm(id["Swamp"], 0)
+	sc3.perm(id["Swamp"], 0)
+	v3 := sc3.hand(vampire, 0)
+	if !sc3.s.filtOnly(sc3.k, 0) {
+		t.Fatalf("gorgeLowering=%v: want the two-Swamp board filter-only too", cfg.GorgeLowering)
+	}
+	if castOf(sc3, v3) {
+		t.Fatalf("gorgeLowering=%v: the cast offered on {B}{B}{B}{R}: a unit short of {3}{B}{B}", cfg.GorgeLowering)
 	}
 }
