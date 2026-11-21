@@ -58,7 +58,7 @@ func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 // search taps the grant: improviseAloneCast).
 func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost *kop.ManaCost) bool {
 	m := s.ctrlM[SeatIx(p)]
-	s.ctrlM[SeatIx(p)] = m.andNot(res)
+	s.ctrlM[SeatIx(p)] = m.andNot(s.improviseWithheld(k, res))
 	var av avail
 	s.availFor(k, p, &av)
 	ok := av.affords(cost, pipMaskOf(cost), 0) ||
@@ -231,3 +231,24 @@ func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyCo
 // plainCastZone reports whether a cast from zone z is a plain cast to gorge's
 // planner (scope ""): from a hand or, a commander, the command zone (CR 903.8).
 func plainCastZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
+
+// improviseWithheld is the credited artifacts the plan leaves out of its
+// sources: gorge's planner drops only a tapped source's tapping alternatives
+// (pay.planPaymentCostResolved's withhold), so a sacrifice-only mana artifact
+// (a Gold token) the credit also taps still pays its pip (CR 605.3a mana
+// abilities first, CR 702.126a improvise after).
+func (s *State) improviseWithheld(k *prep, res slotMask) slotMask {
+	if !k.sacOnlyMana || DebugImproviseWithholdAll {
+		return res
+	}
+	for m := res; m.any(); m = m.rest() {
+		if sl := m.first(); s.manaPCAt(k, sl).manaSacOnly {
+			res = res.without(sl)
+		}
+	}
+	return res
+}
+
+// DebugImproviseWithholdAll withholds every credited artifact from the plan's
+// sources, the old behaviour; the lockstep mutation test only.
+var DebugImproviseWithholdAll bool
