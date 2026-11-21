@@ -85,6 +85,7 @@ Crossroads Consecrator
 Cudgel Troll
 Darklit Gargoyle
 Darkwater Egg
+Dauthi Horror
 Dawnhart Disciple
 Dawnstrider
 Death Wish
@@ -172,6 +173,7 @@ Heavy Ballista
 Helm of Awakening
 Hero of the Games
 Hoard-Smelter Dragon
+Hollowborn Barghest
 Homarid Shaman
 Homarid Spawning Bed
 Hornswoggle
@@ -197,6 +199,7 @@ Ith, High Arcanist
 Jasmine Boreal
 Jetmir's Garden
 Jungle Lion
+Kami of Empty Graves
 Kamigawa Charm
 Kazuul Warlord
 Kefnet's Monument
@@ -236,6 +239,7 @@ Maze Behemoth
 Meekstone
 Meneldor, Swift Savior
 Merfolk Seer
+Metallurgic Summonings
 Minion of Tevesh Szat
 Minor Misstep
 Mire Kavu
@@ -271,6 +275,7 @@ Pestilence Rats
 Petals of Insight
 Petrahydrox
 Petrified Plating
+Pillory of the Sleepless
 Plagued Rusalka
 Plains
 Polluted Delta
@@ -284,6 +289,7 @@ Psychic Spiral
 Pull Under
 Puppeteer
 Pyrite Spellbomb
+Quintorius, Field Historian
 Raka Sanctuary
 Rakdos Carnarium
 Raking Canopy
@@ -298,6 +304,7 @@ Renegade Rallier
 Renowned Weaponsmith
 Restless Dreams
 Rionya, Fire Dancer
+Rishadan Port
 River Hoopoe
 Riverwise Augur
 Robobrain War Mind
@@ -317,6 +324,7 @@ Sandstone Bridge
 Savage Order
 Scapeshift
 Scar
+Scarecrone
 Scepter of Fugue
 Scourge of Skola Vale
 Seafloor Oracle
@@ -441,6 +449,7 @@ Witherscale Wurm
 Woodcutter's Grit
 Woodland Changeling
 Wrenn and Seven
+Yoked Plowbeast
 Zealots en-Dal
 Zenith Festival
 Zhentarim Bandit
