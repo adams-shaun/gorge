@@ -68,6 +68,8 @@ func faceLayout(c *cards.Card, token bool) uint8 {
 		return kop.FaceTransform
 	case "Flip":
 		return kop.FaceFlip // CR 710: cast as its top half, flipped in place by SetState Mode$ Flip
+	case "Meld":
+		return kop.FaceMeld // CR 712.4: the result face, turned by OpExt ExtMeld (lower_meld.go)
 	}
 	m := castableFaceLayout(c) // lower_faces.go
 	if m == kop.FaceOmen && token {
@@ -82,7 +84,7 @@ func faceLayout(c *cards.Card, token bool) uint8 {
 // card (state.MeldResultFace is false; only the Meld effect, which the
 // refused partner carries, reads IsMeldCard), so it lowers as one. CR 712.4c.
 func meldHalf(c *cards.Card) bool {
-	return c.AlternateMode == "Meld" && len(c.Faces) == 1 && c.Faces[0] != nil
+	return c.AlternateMode == meldAPI && len(c.Faces) == 1 && c.Faces[0] != nil
 }
 
 // lowerFaces sets up the front face of an accepted multi-face card and
@@ -119,6 +121,9 @@ func (lc *lowerCtx) lowerFaces(c *cards.Card) bool {
 		return false
 	}
 	if lc.refuseBattle(c) { // lower_battle.go
+		return false
+	}
+	if m == kop.FaceMeld && !lc.meldAccepted(c) { // lower_meld.go
 		return false
 	}
 	lc.face = c.Faces[0]
@@ -183,6 +188,9 @@ func lowerFaceEntry(p *pool, k string) *lCard {
 	out.Faces = faceNames(name, c, out.FaceMode)
 	out.RoomSplit = roomAllLines
 	lc.lowerFace()
+	if out.FaceMode == kop.FaceMeld {
+		lc.meldResultCost(c) // lower_meld.go: CR 712.4c/202.3c mana value
+	}
 	// a face's own tokens reach the matchup through its front's token
 	// list (lower_faces.go faceTokens)
 	return out

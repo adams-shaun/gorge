@@ -40,6 +40,7 @@ var opsEntries = slices.Concat(
 	opsCosts,
 	opsExprs,
 	opsExtSubOps,
+	opsMeld,
 	opsExtMechanics,
 	opsKwActions,
 	opsFilterFields,
