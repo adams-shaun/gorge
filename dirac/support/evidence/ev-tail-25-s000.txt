@@ -58,6 +58,7 @@ Eidolon of Philosophy
 Electropotence
 Enchanted Evening
 Expedition Skulker
+Expel the Unworthy
 Fable of the Mirror-Breaker
 Failed Conversion
 Fall to Earth
@@ -166,6 +167,8 @@ Shimmer Dragon
 Shredding Winds
 Sickleslicer
 Sift
+Sigarda's Aid
+Sinuous Striker
 Sire of Insanity
 Skillful Lunge
 Skinbrand Goblin

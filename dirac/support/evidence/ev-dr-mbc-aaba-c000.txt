@@ -1,33 +1,49 @@
 Aphetto Alchemist
 Azorius Herald
+Bellowing Tanglewurm
 Bloodthirsty Blade
 Brainstorm
+Brute Strength
+Cankerbloom
+Cave-In
 Chainer's Edict
+Crowd's Favor
+Crowned Ceratok
 Crystal Dragon
 Curse of Shallow Graves
 Daggerback Basilisk
 Dakmor Sorceress
 Daydream
+Deathreap Ritual
 Deglamer
 Distortion Strike
 Echo of Eons
+Embereth Shieldbreaker
 Ethereal Armor
 Fact or Fiction
 Forest
 Gaea's Embrace
 Glacial Crasher
+Goblin Wizardry
 Grateful Apparition
 Gravedigger
 Grazilaxx, Illithid Scholar
 Griffin Guide
 Harrow
+Healer of the Pride
+Hero's Downfall
 Impulse
+Indrik Stomphowler
 Island
+Keen Sense
 Keeper of Keys
 Lampad of Death's Vigil
+Lava Dart
 Mental Note
 Mischievous Poltergeist
 Moonlit Strider
+Mountain
+Mwonvuli Acid-Moss
 Mystic Subdual
 Ninja of the Deep Hours
 Oneirophage
@@ -36,12 +52,17 @@ Ossification
 Plains
 Prosperous Innkeeper
 Rally the Monastery
+Reckless Rage
 Reckoner's Bargain
+Rest in Peace
 Retreat to Emeria
+Ruination
 Seedguide Ash
 Shadow Rift
+Sheoldred's Edict
 Skittering Crustacean
 Slip Through Space
+Squirrel Nest
 Startle
 Stir the Pride
 Stitched Drake
