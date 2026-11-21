@@ -224,7 +224,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
-			s.offerKickedRootless(k, d, p, c, o, pc.cost, !tgtOK && !twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
+			s.offerKickedRootless(k, d, p, c, o, pc.cost, tgtOK, twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
 			continue
 		}
 		if s.castHeldOut(o) {
