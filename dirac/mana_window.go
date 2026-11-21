@@ -1321,7 +1321,7 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.scriptFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.scriptFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
