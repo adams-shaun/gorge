@@ -98,6 +98,11 @@ func (s *State) offerDashCommand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 	base := k.t.Cards[c].DashCost
 	addCommanderTax(&base, s.commanderTax(p, o))
 	dc := s.adjustCost(k, p, c, o, base)
+	// Not needed here, unlike offerDashHand: gorge's command-zone walk gates
+	// the dash on offerCastable's affordability alone, which castAffordsR
+	// matches including its restricted-mana fallback (so no grantPC
+	// restricted-avail rebuild); and gorgeOffers(p, o, 0) gates the plain
+	// cast's mode 0, not an alternative cost.
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &dc, av) ||
 		!s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &dc, av) {
 		return

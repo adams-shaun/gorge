@@ -681,8 +681,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if s.cfg&cfgCommander != 0 {
 			// CR 903.8: the command-zone tax, an additional cost. A
-			// command-zone cast is only ever this plain cast
-			// (offerCommanderSlot), so this is the one path it reaches.
+			// command-zone cast is the plain cast or a dashed one
+			// (offerCommanderSlot, offerDashCommand); both reach this path.
 			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
 		}
 		// a reduction applies to the total cost, a flashback or kicked one

@@ -2984,7 +2984,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			case a.Target() == castEvokeTgt && cd.HasEvoke:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.EvokeCost), ex, need, true
 			case a.Target() == castDashTgt && cd.HasDash:
-				return s.adjustCost(k, p, c, Obj(a.Source()), cd.DashCost), ex, need, true
+				// a commander's dashed cast from the command zone pays the
+				// tax on the dash cost (CR 118.9d, 903.8; offerDashCommand,
+				// beginCast); commanderTax is 0 outside the command zone
+				dc := cd.DashCost
+				addCommanderTax(&dc, s.commanderTax(p, Obj(a.Source())))
+				return s.adjustCost(k, p, c, Obj(a.Source()), dc), ex, need, true
 			case a.Target() == castOverloadTgt && cd.HasOverload:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
 			case a.Target() == castCleaveTgt && cd.CleaveAb != 0:
