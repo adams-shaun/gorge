@@ -834,6 +834,24 @@ func affectsReach(spec string) uint8 {
 	return out
 }
 
+// derivedBaseTypes is the type set the table's "no entry needed" skip
+// compares against: the object's CURRENT base, not its printed face. A
+// face-down battlefield permanent's base is its face-down set (chars/types.go
+// seeds the walk from o.FaceDownTypeWords()), so a static that grants it a
+// type (Unable to Scream's AddType$ over an enchanted face-down creature)
+// moves the derived set away from the face-down words even when the result
+// happens to spell the printed face's set again. Comparing against
+// o.Face().Types dropped exactly that entry: without it the filter falls back
+// to the printed face, where hasTypePrinted's CR 708.8 gate answers the
+// face-down words, and "Destroy target artifact" saw no target (the
+// facedown_static_addtype_printed_set_skip repro, Untimely Malfunction).
+func derivedBaseTypes(o *state.Object) []string {
+	if o.FaceDownHidden() {
+		return o.FaceDownTypeWords()
+	}
+	return o.Face().Types
+}
+
 // layer4BaseMayDiffer reports whether a battlefield object's layer-4 BASE
 // (typeCharacteristics before any effect applies) can differ from its
 // printed face types: a face-down permanent's CR 708.5 set, a
@@ -930,19 +948,15 @@ func (e *Engine) anyLayer4Active() bool {
 func (e *Engine) EffectiveTypes() []effects.ObjectTypes { return e.layer4Types }
 
 // derivedTypesAreBase reports whether o's derived type list needs no table
-// entry: it equals the printed face's words, and for a face-down permanent it
-// also equals the face-down words the type filters fall back to (CR 708.2:
-// hasTypePrinted reads those, never the hidden face). A face-down object whose
-// derived list differs from its printed face keeps its entry (the readers
-// that fall back to Face().Types would otherwise read the hidden face), and a
-// Splitskin Doll face down under Unable to Scream derives Artifact Creature
-// Toy, equal to its printed words yet not to the {Creature} the fallback
-// reads, so it needs its entry too.
+// entry: it equals the object's CURRENT base (derivedBaseTypes: the printed
+// face, or the face-down words for a face-down permanent, CR 708.2) and the
+// all-creature-types flag matches. A face-down object whose derived list
+// moved away from that base keeps its entry (the readers that fall back to
+// Face().Types would otherwise read the hidden face), including a Splitskin
+// Doll face down under Unable to Scream, which derives Artifact Creature Toy:
+// equal to its printed words yet not to the {Creature} base the fallback reads.
 func derivedTypesAreBase(o *state.Object, ty []string, all bool) bool {
-	if !sameTypeWordSet(ty, o.Face().Types) || all != effects.IntrinsicAllCreatureTypes(o) {
-		return false
-	}
-	return !o.FaceDownHidden() || sameTypeWordSet(ty, o.FaceDownTypeWords())
+	return sameTypeWordSet(ty, derivedBaseTypes(o)) && all == effects.IntrinsicAllCreatureTypes(o)
 }
 
 // sameTypeWordSet reports whether two type lists carry the same words,
