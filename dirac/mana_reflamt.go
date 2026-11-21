@@ -270,3 +270,9 @@ func (s *State) reflBoundPlay(k *prep, p uint8, caM slotMask, a Action) bool {
 	}
 	return false
 }
+
+// reflBoundOrOwnTapPlay: play a is a candidate by reflBoundPlay or by the own-tap
+// walk (ownTapWalkPlay), tried in that order.
+func (s *State) reflBoundOrOwnTapPlay(k *prep, p uint8, caM slotMask, a Action, ownWalk *Decision, ownBuilt *bool) bool {
+	return s.reflBoundPlay(k, p, caM, a) || s.ownTapWalkPlay(k, p, a, ownWalk, ownBuilt)
+}

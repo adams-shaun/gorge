@@ -396,7 +396,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.reflBoundPlay(k, p, caM, a) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.reflBoundOrOwnTapPlay(k, p, caM, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
