@@ -208,7 +208,7 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			if got.Plan == nil {
 				if alt, ok := e.potentialWitnessSmallerX(p, o, rejectedX); ok {
 					got = alt
-				} else if e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+				} else if e.witnessReachesMode(e, p, o, *planned.Plan, true, false) {
 					// No colouring keeps every source, but the one that
 					// pays by consuming one ends the game in p's favour.
 					got = planned
