@@ -202,6 +202,12 @@ func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj,
 			}
 			continue
 		}
+		if a.Kind == kop.AbActivated && a.ActZone != kop.ZoneNone {
+			// CR 113.6, 602.2: a gained ability keeps the zone it works from,
+			// and every recipient is a battlefield permanent (Resurrected
+			// Cultist's graveyard return): never offered, gorge's walk too.
+			continue
+		}
 		if !gainedModelled(a, j) {
 			s.capFull(StallGainsOf)
 			return false
