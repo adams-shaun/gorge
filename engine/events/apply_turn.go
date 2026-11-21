@@ -347,6 +347,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		// The per-turn main-phase count is dropped with them.
 		g.MainPhasesThisTurn = 0
 		g.UpkeepsThisTurn = 0
+		g.MaxDistinctOnStackThisTurn = 0
 		// The per-ability resolution tally is a per-turn fact (CR 608.2m
 		// counts resolutions in the turn), so it is dropped at the turn
 		// boundary exactly as CombatsThisTurn is. Clearing (rather than
