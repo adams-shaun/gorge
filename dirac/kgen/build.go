@@ -1990,11 +1990,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredWasCastSpell, int16(c.CmpN)
 	case cmpTotalPT, cmpBlocked:
-		// battlefield-only high predicates (kernel predPermCold)
-		if zone != kop.ZoneBattlefield {
-			return kf, refuse("totalPT / blocked off the battlefield")
-		}
+		// blocked is battlefield-only (kernel predPermCold); totalPT reads
+		// the printed power plus toughness of a card in a hidden zone too
+		// (kernel predCardCold; Meek Attack's hand pick)
 		if c.CmpStat == cmpBlocked {
+			if zone != kop.ZoneBattlefield {
+				return kf, refuse("blocked off the battlefield")
+			}
 			kf.Pred = kop.PredBlocked
 			break
 		}
