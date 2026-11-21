@@ -112,9 +112,10 @@ var rawTableReaderNames = func() []string {
 }()
 
 // rawTableUsers may name them: lockstep earns evidence on raw tables, kgen builds
-// them, and fourteen dirac tests read synthetic pools: twelve for cards only they
+// them, and fifteen dirac tests read synthetic pools: thirteen for cards only they
 // hold (Fear of Exposure, for one, is lowered nowhere but std-dsk; the cast-census
-// test's fee-carrying Surveillance Room is lowered nowhere but std-msh), one to
+// test's fee-carrying Surveillance Room, the fee-order cast-offer test's Baxter
+// Building and Wiccan, Rising Magician are lowered nowhere but std-msh), one to
 // measure them, and arena_test.go (manifest A7c), which checks every pool's
 // arena detectors against the manifest. Everything else plays what the support
 // lists allow.
@@ -126,6 +127,7 @@ var rawTableUsers = []string{
 	"dirac/mana_grantedoffers_test.go", "dirac/graveact_restricted_test.go",
 	"dirac/altadd_total_test.go", "dirac/mana_grantedrefused_test.go",
 	"dirac/cost_fixedtaps_restrreserves_test.go", "dirac/mana_feegap_cast_test.go",
+	"dirac/mana_comboany_castoffer_test.go",
 	"dirac/arena_test.go",
 }
 
