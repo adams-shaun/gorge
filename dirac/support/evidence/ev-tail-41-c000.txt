@@ -208,6 +208,7 @@ Legolas, Counter of Kills
 Leyline of Vitality
 Lightning Dart
 Lightning Skelemental
+Lochmere Serpent
 Locthwain Lancer
 Loxodon Lifechanter
 Mage-Ring Responder
