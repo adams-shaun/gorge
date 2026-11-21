@@ -302,13 +302,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
-		if !census && !potential && s.buildLive() && !s.isFork() && s.splitWinColAsk(k, sl) {
-			// a lucky Condition-split arm: gorge's window answer activates the
-			// source and its chain arm asks the colour as a decision of its own
-			// (mana_condsplit.go splitWinColAsk), so the walk poses it and the
-			// cast waits on the pick; the answer floats the mana and the stage
-			// runs the window on.
-			s.splitWinColPause(k, sl)
+		if s.splitWinColArm(k, sl, census, potential) {
 			return true, held
 		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {

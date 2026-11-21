@@ -142,6 +142,20 @@ func (s *State) splitWinColAsk(k *prep, sl Slot) bool {
 	return a.SplitCols&(a.SplitCols-1) != 0 && s.splitGateOn(k, sl, a)
 }
 
+// splitWinColArm is windowTapWalk's lucky Condition-split arm: gorge's window
+// answer activates the source and its chain arm asks the colour as a decision
+// of its own (splitWinColAsk), so the walk poses it and the cast waits on the
+// pick; the answer floats the mana and the stage runs the window on. Only a
+// live cast's real window poses it (no census, no potential walk, no fork);
+// a census or potential walk answers every window colour silently.
+func (s *State) splitWinColArm(k *prep, sl Slot, census, potential bool) bool {
+	if census || potential || !s.buildLive() || s.isFork() || !s.splitWinColAsk(k, sl) {
+		return false
+	}
+	s.splitWinColPause(k, sl)
+	return true
+}
+
 // splitWinColPause poses that ask: the source taps now (gorge's window answer
 // activates it before the arm resolves, CR 601.2g), and the build waits on
 // the colour the way it waits on the tap-another pick (g.winSrc, bflWinTap;
