@@ -642,14 +642,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
-			// Command Beacon's "put your commander into your hand": lowered
-			// to nothing on the assumption that no seat has a commander
-			// (kop.W7IsCommander), so the command zone holds no other card
-			// and gorge's pick over the empty pool moves nothing and poses no
-			// decision; the cmd5 pool guard reads the counter
-			noteCmdShortcut(cmdShortcutCommandBeacon)
-			ps.consume("SelectPrompt")
-			return nil
+			// Command Beacon's "put your commander into your hand": gorge
+			// effHiddenPick over the command zone (public, game-wide, the
+			// YouOwn filter keeps the controller's commanders). A Commander
+			// game asks the pick (one option still ends in a choose) and then
+			// the CR 903.9b move; a game with no commander has an empty pool
+			// and no ask. The kernel walks the command zone (searchCands).
+			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		return refuse("ChangeType$ move %s->%s", zoneLabel[origin], zoneLabel[dest])
 	}
