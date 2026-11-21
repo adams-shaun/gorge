@@ -136,7 +136,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
 	}
-	if k.gen.anyComboAny && s.caBoard(k, p) {
+	if k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) {
 		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
@@ -298,6 +298,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if ca {
 		caM = s.caGaps(k, p)
 	}
+	// a Combo Any source beside a filter (the filter search's otherComboAny
+	// step): gorge's census is as unrelaxable as with the source alone
+	caAny := s.caOffersBoard(k, p, ca)
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
 	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
@@ -322,7 +325,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
-	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
+	relax := s.scriptRelax(k, p, filt, caAny || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -332,7 +335,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	s.plainGapsOptions(k, &gaps, filt)
 	s.mergeBareGaps(k, &gaps, filt)
 	src := &gaps
-	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
+	if s.scriptAnyWalk(k, p, filt, relax, caAny || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
@@ -867,7 +870,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).or(s.lifeGapMask(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).or(s.lifeGapMask(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p))) {
 		return false
 	}
 	var d Decision
@@ -1260,7 +1263,7 @@ func (s *State) grantRelaxCensus(k *prep, p uint8) bool {
 		gateFilt = s.scriptFilt(k, p)
 	}
 	return s.scriptRelax(k, p, gateFilt,
-		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
+		k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
 }
 
 // objPartCast reports a plain cast a whose spell carries a cost part the
