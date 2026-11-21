@@ -13,11 +13,13 @@ Archmage's Charm
 Artificer's Epiphany
 Atreus, Impulsive Son
 Axegrinder Giant
+Balduvian Horde
 Bant Battlemage
 Battle of Frost and Fire
 Battlewing Mystic
 Bay Falcon
 Benalish Trapper
+Berg Strider
 Blaze
 Blessed Respite
 Boros Keyrune
@@ -79,6 +81,7 @@ Furnace Skullbomb
 Geomancer's Gambit
 Ghirapur Guide
 Gift of Growth
+Gilded Goose
 Gitaxian Probe
 Glistening Dawn
 Glorious Anthem
@@ -112,6 +115,7 @@ Kalastria Healer
 Kapsho Kitefins
 Karma
 Keeper of the Cadence
+Khenra Spellspear
 Knight of the Reliquary
 Kobold Overlord
 Kor Blademaster
@@ -152,13 +156,16 @@ Ondu Champion
 P-Joven and Chandler
 Palinchron
 Parasitic Bond
+Peregrine Drake
 Pestermite
 Phantasmal Dragon
 Phantom General
+Phantom Nantuko
 Phytoburst
 Pit Trap
 Plains
 Plated Slagwurm
+Power Matrix
 Priest of Fell Rites
 Prime Speaker Vannifar
 Purge
@@ -217,6 +224,7 @@ Snow-Covered Island
 Solidarity
 Solstice Zealot
 Soratami Savant
+Soul Warden
 Specter of the Fens
 Spectral Cloak
 Spell Syphon
@@ -244,6 +252,7 @@ Timber Gorge
 Tireless Tribe
 Titanium Golem
 Urza's Guilt
+Utter Insignificance
 Varchild, Betrayer of Kjeldor
 Venser, Shaper Savant
 Verdant Confluence
