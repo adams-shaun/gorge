@@ -99,6 +99,56 @@ func addPotentialSacRepeat(pp potentialPricer, pe pay.Engine, out *state.Mana, p
 	}
 }
 
+// addPotentialTapRepeat repeats a tap-another mana ability's production in
+// the bound once per extra untapped candidate its cost can tap. An ability
+// whose whole cost is literal tapXType parts (tapOnlyManaCost) has no {T}, no
+// mana fee and no other part, so the payer activates it once per N distinct
+// untapped candidates -- each activation taps them (CR 601.2g) -- where the
+// fixpoint's own admission counts the production only once (each source's
+// ability joins the pool a single time, potential.go). Urza, Lord High
+// Artificer's "Tap an untapped artifact you control: Add {U}" beside two
+// untapped artifacts therefore funds {U}{U}, and the bound must say so or it
+// refuses an activation the seat can pay; the kernel prices the same board
+// with a clone-DFS search over exactly these sources (dirac
+// mana_tapanother.go tapXScript), so gorge's bound is what its reach looks
+// like. Zero extra folds for any other shape: a {T} or mana-fee cost prices
+// once through that same admission (a {T} spends the source itself), an
+// announced or dynamic tapXType part is priced by its own ask, and an open
+// or restricted production is already unbounded in this fold.
+func addPotentialTapRepeat(pp potentialPricer, pe pay.Engine, out *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA) {
+	cost := pp.manaAbilityCC(p, id, ma).Cost
+	if !tapOnlyManaCost(cost) {
+		return
+	}
+	if _, limited := ma.Param(cards.PKActivationLimit); limited {
+		return
+	}
+	if _, gameLimited := ma.Param(cards.PKGameActivationLimit); gameLimited {
+		return
+	}
+	mp := effects.ManaOf(ma)
+	if mp.RestrictValid != "" {
+		return
+	}
+	if _, indeterminate := potentialAmount(mp); indeterminate {
+		return
+	}
+	faces := potentialProducedStrip.Replace(mp.Produced)
+	if faces == "" {
+		faces = "C"
+	}
+	for _, r := range faces {
+		switch r {
+		case 'W', 'U', 'B', 'R', 'G', 'C':
+		default:
+			return // an open production: the fold is already unbounded
+		}
+	}
+	for range max(tapRepeatBound(pe, p, id, cost)-1, 0) {
+		pp.addPotentialManaOf(out, ma)
+	}
+}
+
 // addPotentialRepeatable lifts to potentialUnbounded each colour a
 // repeatable fee-only ability makes: the bound counts a source's production
 // once, but the fee converts mana into the ability's colour once per

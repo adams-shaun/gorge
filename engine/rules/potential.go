@@ -235,6 +235,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 							}
 							addPotentialRepeatable(e, &out, p, id, ma)
 							addPotentialSacRepeat(e, asPayer(e), &out, p, id, ma)
+							addPotentialTapRepeat(e, asPayer(e), &out, p, id, ma)
 							if sub != nil {
 								e.addPotentialManaOf(&out, sub)
 							}
