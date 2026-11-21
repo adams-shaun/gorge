@@ -281,16 +281,42 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
 def attribute(fails, order, on_main, on_prefix):
     """Who to blame for each failed item: on_main(items) -> items failing on main alone (dropped: main is red);
     on_prefix(k, items) -> items failing on main plus the first k PRs. The first k at which an item fails blames
-    order[k-1]. Returns {pr number: [items]}."""
+    order[k-1]. Each item's first failing k is found by bisection (an item that fails at k fails at every later
+    k, as the full queue showed), and one run at a k checks every item still open, so a red run builds about
+    log2(len(order)) merged trees instead of one per PR (11-21: 24 min for a 9-PR head). Returns {pr: [items]}."""
     left = [f for f in fails if f not in set(on_main(fails))]
-    blame = {}
-    for k in range(1, len(order) + 1):
-        if not left:
+    n = len(order)
+    if not left or n == 0:
+        return {}
+
+    def fails_at(k, items):
+        need = [f for f in items if (k, f) not in checked]
+        if need:
+            bad = set(on_prefix(k, need))
+            for f in need:
+                checked[(k, f)] = f in bad
+        return {f for f in items if checked[(k, f)]}
+
+    checked = {(n, f): True for f in left}
+    lo = {f: 1 for f in left}   # the first failing k is >= lo
+    hi = {f: n for f in left}   # and <= hi
+    while True:
+        open_ = [f for f in left if lo[f] < hi[f]]
+        if not open_:
             break
-        bad = set(on_prefix(k, left))
-        for f in [f for f in left if f in bad]:
-            blame.setdefault(order[k - 1]["number"], []).append(f)
-        left = [f for f in left if f not in bad]
+        # One k for the items whose ranges share it: the midpoint of the first open item's range.
+        f0 = open_[0]
+        k = (lo[f0] + hi[f0]) // 2
+        group = [f for f in open_ if lo[f] <= k < hi[f]]
+        bad = fails_at(k, group)
+        for f in group:
+            if f in bad:
+                hi[f] = k
+            else:
+                lo[f] = k + 1
+    blame = {}
+    for f in left:
+        blame.setdefault(order[hi[f] - 1]["number"], []).append(f)
     return blame
 
 
@@ -320,7 +346,7 @@ def main():
         time.sleep(30)
     print("Mergify's batches since %s: %s" % (since, " ".join("#%d" % x for x in batch) or "none yet"))
     order = head_order(batch, queued(list_prs(repo, token), repo), a.head)
-    print("queue head (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
+    print(time.strftime("%H:%M:%S"), "queue head (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
     if not order:
         return 0
     wt = os.path.abspath(".worktrees/queue-precheck")
@@ -328,7 +354,7 @@ def main():
     merged = [p for p in order if t.merge(p) or print("#%d conflicts; left to Mergify" % p["number"])]
     files = touched(wt, base)
     pk, kgen, replays, state = plan(files, census_packages(wt))
-    print("checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s" % (" ".join(pk) or "-", kgen,
+    print(time.strftime("%H:%M:%S"), "checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s" % (" ".join(pk) or "-", kgen,
                                                                                  replays, state))
     fails = run_checks(wt, pk, kgen, replays, state)
     t.close()
@@ -337,7 +363,7 @@ def main():
         for p in merged:
             set_status(repo, token, p["sha"], "success", "green merged onto main %s with the queue ahead" % short, a.dry_run)
         return 0
-    print("combined tree failed: %s" % fails)
+    print("%s combined tree failed: %s" % (time.strftime("%H:%M:%S"), fails))
 
     def on_main(items):
         tm = Tree(wt, base)
