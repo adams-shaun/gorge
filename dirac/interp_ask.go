@@ -87,7 +87,13 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+		// gorge's UnlessCostResolved folds an unless Draw<X> (and DamageYou<X>,
+		// Discard<Y>) only when the SVar resolves above zero (engine/effects/
+		// unless.go): a zero or unbound X stays raw and hard-declines, so the
+		// unless and effect-election shapes price a 0 as unpayable. The
+		// trigger's own Draw cost window is the exception payAnswerGate opens:
+		// gorge's triggeredCostDrawCounts asks only that the count resolve.
+		return amt > 0
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
 	case payKindReveal:
@@ -227,8 +233,15 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	var stall uint8
 	if !stackSelfGone {
 		ok := s.canPayGen(k, p, kind, amt, pips, in.F)
-		if !ok && kind == kop.PayDraw && amt == 0 && in.Op == kop.OpIfPaid && s.res.e.kind == seTrigger {
-			ok = true // a trigger's own Draw<X> resolving to 0 (a rebound cast spent no mana) is a resolved count: gorge triggeredCostDrawCounts offers pay (CR 118.3: drawing no cards is payable)
+		if !ok && kind == kop.PayDraw && amt == 0 && in.Op == kop.OpIfPaid && skip&pfModes == 0 {
+			// gorge's trigger-own-cost window (no pfModes: a resolved count of
+			// 0 is payable -- Katara, Waterbending Master's Draw<X/You> with no
+			// experience counters still offers the pay election, and gorge's
+			// pay arm marks paid before the empty draws). Every other PayDraw
+			// ask is an unless or effect election, whose UnlessCostResolved
+			// folds an X only above zero -- the amount > 0 gate keeps those
+			// decline only (Armor Wars' UnlessCost$ Draw<X/You>).
+			ok = true
 		}
 		if !ok {
 			ok, stall = s.windowPays(k, p, kind, skip, amt, pips)
