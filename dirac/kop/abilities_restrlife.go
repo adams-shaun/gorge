@@ -32,3 +32,19 @@ func RestrictedLifeManaAb(cd *CardDef, j int) bool {
 	}
 	return true
 }
+
+// RestrictedTapXOneShape reports whether mana ability a is a spend-restricted
+// "Tap an untapped <spec> you control: Add <mana>" with no {T} (Grand
+// Architect's {C}{C} for an artifact spell or an artifact's ability, tapping
+// a blue creature): the TapXManaOne cost with one or two mana of one fixed
+// colour and a spell and/or activated-ability restriction, no flag, rider,
+// program or each-colour production. The kernel floats its mana restricted
+// (dirac mana_tapanother.go tapXDo) and counts it only for the payments its
+// restriction admits (tapXUnitAdmits).
+func RestrictedTapXOneShape(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && a.Cost.Flags == CostTapX && a.Cost.N == 1 &&
+		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && !a.ManaEach && !a.ManaDeferred && len(a.Prog) == 0 &&
+		a.ManaRider == ManaRiderNone && a.ManaN >= 1 && a.ManaN <= 2 && c != 0 && c&(c-1) == 0 && c&^(ColAny|ColC) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}

@@ -82,10 +82,13 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // beside Elven Chorus's granted {T} abilities is a trigger-cost window gorge
 // funds by sacrificing a creature, and its sacrifice is a choose the walk must
 // pause on (ChCostSacrifice) rather than answer by tapping the plain grants.
+// A spend-restricted source (kop.RestrictedTapXOneShape, Grand Architect) is
+// not offered either: the window cannot check its restriction against the
+// payment it serves.
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || kop.RestrictedTapXOneShape(k.tapXAbOf(s.cardAt(o))) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
