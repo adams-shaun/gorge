@@ -37,6 +37,7 @@ const (
 	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
 	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
+	otherLifePain  // a sole life-only pain unit (lifeOnlyPain): ans is the colour it makes (lifePainDo)
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -683,6 +684,8 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherLife:
 		s.lifeGapDo(k, p, st.sl, int(o.ans))
+	case otherLifePain:
+		s.lifePainDo(k, p, st.sl, int(o.ans))
 	case otherCtr:
 		if o.plain {
 			// the plain first {T} ability's answer: the counters and the use
