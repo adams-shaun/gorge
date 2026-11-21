@@ -260,9 +260,21 @@ func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 		g.cheaper = true // the node's walk lists the play the root price refused
 		return true
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d) && g.witnessKeeps(t, cost) {
+	if g.ungrantedPays(t, cost) && g.witnessKeeps(t, cost) {
 		g.cheaper = cheap
 		return true
 	}
 	return false
+}
+
+// ungrantedPays is the planner's price of the play from the pool and the printed
+// sources at node t. A spell's census leaves out a dynamic {T}, sacrifice source
+// (Lotus Blossom: gorge's payment planner cannot price it, ungrCastCensus), so a
+// cast it would complete is the search's gap step to float, not a priced leaf
+// (mana_grantdynsac.go).
+func (g *grantSrch) ungrantedPays(t *State, cost *kop.ManaCost) bool {
+	if g.d.hasPlay && isCastKind(g.d.play.Kind()) && g.d.play.Kind() != AkActivate && g.k.t != nil && !t.fixedTapsCast(g.k, g.d.play) {
+		return t.affordsUngrantedCast(g.k, g.p, cost, g.d)
+	}
+	return t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d)
 }
