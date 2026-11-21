@@ -482,12 +482,18 @@ func (s *State) prevAllLeft(o Obj) {
 // prevNextPick is replOrderPick for a shield candidate: it applies as picked
 // (gorge applies each pick and re-collects the rest). The asks end when the
 // damage is all prevented; one shield left applies on its own; two or more
-// left are asked again. A parked noncombat ask (ro.on false) counts the
-// recipient's bare printed prevention beside the shields too (parkNC's
-// modeled competition): a lone remaining printed line applies automatically
-// and stops the event with the shields unspent (gorge
+// left are asked again. The recipient's bare printed prevention beside the
+// shields (parkNC's modeled competition, and the combat walk's, whose
+// collection reads the shields before it) is counted too, as gorge's
+// re-collected set holds it: a lone remaining printed line applies
+// automatically and stops the event with the shields unspent (gorge
 // handleDamageReplacementChoice's case 1), so two or more left are asked
-// again over it as gorge's re-collected set is.
+// again over it. In combat (ro.on) any remaining candidate is counted only
+// while it still matches the event (replCandLive — the printed line, a
+// granted record, the SHIELD counter the collection appends after the
+// shields; the state-based actions at a pause can have removed one); the
+// parked noncombat ask's set is modeled and never drops one, so only its
+// printed prevention is counted there.
 func (s *State) prevNextPick(i int) bool {
 	ro := &s.g.ro
 	s.prevNextSpend(i)
@@ -506,7 +512,12 @@ func (s *State) prevNextPick(i int) bool {
 			}
 			continue
 		}
-		if !ro.on && ro.prev&(1<<j) != 0 {
+		if ro.on {
+			if s.replCandLive(s.k(), j) {
+				left++ // the printed line, a record or the counter still matching
+				last = j
+			}
+		} else if ro.prev&(1<<j) != 0 {
 			left++ // the printed prevention: a candidate of the re-collected set (parkNC)
 			last = j
 		}
@@ -515,9 +526,13 @@ func (s *State) prevNextPick(i int) bool {
 		ro.used |= 1 << last
 		if ro.pnx&(1<<last) != 0 {
 			s.prevNextSpend(last)
-		} else if sl := s.ncShieldSlot(); sl != NoSlot && s.prevAnyTo(s.k(), sl, false) {
+		} else if !ro.on && s.ncShieldSlot() != NoSlot && s.prevAnyTo(s.k(), s.ncShieldSlot(), false) {
 			ro.an = 0 // the printed line applies: the event stops, the shields are unspent
 		}
+		// In combat the last remaining candidate applies at dealAsked (the
+		// printed line in scan order, the counter's own spend logic): the
+		// shields stay spent as picked and the event is prevented with ro.an's
+		// remainder.
 	}
 	return left >= 2
 }
