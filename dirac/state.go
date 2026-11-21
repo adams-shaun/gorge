@@ -754,6 +754,10 @@ const (
 	// planner prices its restricted sources as the special action's payment
 	// (payDescNow); parked in genState.pickLeft/pickF, never a decision.
 	ctlTurnUpTap
+	// ctlBand: the CR 702.22c band declaration, posed after the attackers are
+	// declared for each attacker with banding that has a candidate (combat_band.go;
+	// s.lastPick is the leader asked)
+	ctlBand
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

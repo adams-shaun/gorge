@@ -317,6 +317,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlLegend:
 			s.legendOptions(k, d)
 			return
+		case ctlBand:
+			s.bandOptions(k, d) // combat_band.go
+			return
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
 			return
@@ -381,6 +384,8 @@ func (s *State) Apply(a Action) {
 		s.applyResolve(k, a)
 	case ctlLegend:
 		s.applyLegend(k, a)
+	case ctlBand:
+		s.applyBand(k, a) // combat_band.go
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
 	case ctlTurnUpX:

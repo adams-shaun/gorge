@@ -367,7 +367,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return Pack(ActOrder, src, RefNone, mode)
 	case dirac.AkChoose:
 		if r.Generated {
-			if c, ok := r.generatedChoose(a); ok {
+			if c, ok := r.chooseGen(a); ok {
 				return c
 			}
 		}
@@ -1229,4 +1229,19 @@ func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
 		return Pack(ActActivate, src, tgt, 255), true
 	}
 	return 0, false
+}
+
+// chooseGen is generatedChoose plus the band declaration (CR 702.22c): gorge
+// askNextBand's KChoose of kind "band", whose decline (mode 0) names no object
+// and whose candidate names itself.
+func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
+	if r.D.Sub != dirac.ChBand {
+		return r.generatedChoose(a)
+	}
+	src := Ref(a.Source())
+	if a.Mode() == 0 {
+		src = RefNone
+	}
+	code, _ := ChooseCode("band")
+	return Pack(ActChoose+CanonKind(code), src, RefNone, 0), true
 }

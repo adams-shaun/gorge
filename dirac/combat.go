@@ -509,6 +509,9 @@ func (s *State) finishAttacks(k *prep) {
 	} else if s.nAttackers > 0 && s.subs[kop.TrigAttackersDeclared].any() {
 		s.firePlayer(k, kop.TrigAttackersDeclared, s.active, int16(s.nAttackers))
 	}
+	if s.bandAsk(k) {
+		return // CR 702.22c: gorge asks the band declaration before the triggers are placed (combat_band.go)
+	}
 	s.openPriority()
 }
 
@@ -1793,6 +1796,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 func (s *State) divideOptions(k *prep, d *Decision) {
 	if s.perms[s.divA].flags&pfBlocking != 0 {
 		s.blockerDivideOptions(d) // combat_extrablock.go
+		s.bandDivider(k, d)       // CR 702.22k: who divides (combat_band.go)
 		return
 	}
 	var bl [MaxPerm]Slot
@@ -1803,6 +1807,7 @@ func (s *State) divideOptions(k *prep, d *Decision) {
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
 	}
+	s.bandDivider(k, d) // CR 702.22j: who divides (combat_band.go)
 }
 
 // SplitAt writes split number idx of p damage among n blockers
