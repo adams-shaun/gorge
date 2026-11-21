@@ -773,11 +773,7 @@ func evalCardCounters(h Host, c *Ctx, g *state.Game, kind string) int32 {
 	if lki, ok := sacrificedSourceLKI(g, c); ok {
 		// The source was sacrificed by this spell/ability (a
 		// Sac<1/CARDNAME> cost): read the counters it had then.
-		scratch := state.Object{Counters: lki.Counters}
-		if strings.EqualFold(kind, "ALL") {
-			return sumCounters(scratch.Counters)
-		}
-		return scratch.Counter(kind)
+		return counterReadOf(lki.Counters, kind)
 	}
 	if c.departedSourceLKI(g) {
 		// The source left after this ability was created: the counters
@@ -815,11 +811,7 @@ func evalCardCounters(h Host, c *Ctx, g *state.Game, kind string) int32 {
 		// for a cost-paid sacrifice. A source back on the battlefield is
 		// read live below.
 		if cs, ok := departedCounters(h, c.Source); ok {
-			scratch := state.Object{Counters: cs}
-			if strings.EqualFold(kind, "ALL") {
-				return sumCounters(scratch.Counters)
-			}
-			return scratch.Counter(kind)
+			return counterReadOf(cs, kind)
 		}
 	}
 	if o := g.Obj(c.Source); o != nil {
@@ -829,4 +821,14 @@ func evalCardCounters(h Host, c *Ctx, g *state.Game, kind string) int32 {
 		return o.Counter(kind)
 	}
 	return 0
+}
+
+// counterReadOf reads one counter kind (or the ALL sum) off a counters list
+// that is not a live object's: a last-known-information snapshot.
+func counterReadOf(cs []state.Counter, kind string) int32 {
+	if strings.EqualFold(kind, "ALL") {
+		return sumCounters(cs)
+	}
+	scratch := state.Object{Counters: cs}
+	return scratch.Counter(kind)
 }
