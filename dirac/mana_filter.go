@@ -1016,12 +1016,19 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // so a filter beside it is no filter-only board (filtOnly). A sacrifice-only
 // source (an Eldrazi Scion's "Sacrifice this creature: Add {C}") is no gap: the
 // planner prices it as its source's last-resort tier (mana_sacsource.go).
+// Neither is a restricted planner unit (restrSrcAb: Giada's angel-only {W},
+// Untaidake's "{T}, Pay 2 life: Add {C}{C}", spend only on legendary spells):
+// the census prices it per payment, its restriction admitting (mana_restrictedsource.go
+// prepRestrSrc, mana_restrictedcost.go), so gorge's search activates no prefix
+// for it and a filter beside it stays filter-only — Shadowblood Ridge's
+// "{1},{T}: Add {B}{R}" is p1's fifth mana while it taps (CR 601.2g-h).
 func censusGapMana(a *kop.Ability) bool {
-	if a.AFlags&kop.AfLatent != 0 {
+	if a.AFlags&kop.AfLatent != 0 || restrSrcAb(a) {
+		// a restricted planner unit: the census prices it, per payment
 		return false
 	}
 	f := a.Cost.Flags
-	return reflAmtManaAb(a) || comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 && !restrSrcAb(a) || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
+	return reflAmtManaAb(a) || comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 
@@ -1053,10 +1060,12 @@ func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
-// with a mana ability the census misses: a Bloom Tender, Giada, a
-// Courtyard, Lupinflower Village's restricted {W}, or a deferred
-// TriggersWhenSpent$ source such as Pyromancer's Goggles, which
-// otherGaps does not fund; mana_deferred.go).
+// with a mana ability the census misses: a Bloom Tender, a Courtyard, or a
+// deferred TriggersWhenSpent$ source such as Pyromancer's Goggles, which
+// otherGaps does not fund; mana_deferred.go). A restricted planner unit
+// (Giada, Lupinflower Village's restricted {W}) is no census gap: the census
+// prices it per payment, its restriction admitting (censusGapMana), so a
+// filter beside it is still filter-only.
 func (s *State) filtOnly(k *prep, p uint8) bool {
 	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
 }
