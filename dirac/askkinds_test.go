@@ -30,6 +30,7 @@ import (
 // DIRAC_ASKS_REGEN=1 writes the file (the migration only; make test-one does
 // not pass it on).
 func TestAskKindsUnchanged(t *testing.T) {
+	t.Parallel()
 	got := askConsts(t)
 	tr, err := manifest.Load(os.DirFS(".."))
 	if err != nil {
