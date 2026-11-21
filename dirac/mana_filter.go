@@ -2361,6 +2361,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			} else if t.fundOut(k, sl) {
 				continue
 			}
+			if !gap && !fs.coveredSpendable(k, t, sl) {
+				continue // a covered source whose restricted mana nothing here spends is a dead funding branch (scriptSpendableGaps, CR 106.6)
+			}
 			// Recorded once the slot is usable, as gorge's scriptTwin list is
 			// (after its availability gates): an earlier source that could not
 			// be activated walked no subtree its later twin would repeat.
@@ -2900,6 +2903,45 @@ func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
 		r := k.gen.grantOf[gi[i]]
 		if k.gen.grantRestr[gi[i]] == 0 || s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d) {
 			return true
+		}
+	}
+	return false
+}
+
+// coveredSpendable is gorge scriptSearch.coveredSpendable's funding prune,
+// the covered-source arm of the gap filter above (gapSpendableMask, gorge
+// scriptSpendableGaps): a plain cast's covered source whose every mana
+// ability, printed or granted, is restricted away from the cast and from
+// every census gap's activation fee can only float mana nothing here spends
+// -- a funding tap of one changes the tapped bit alone and spends the node
+// budget on dead branches before the source that pays (Myr Reservoir's
+// "Spend this mana only to cast Myr spells" beside a non-Myr cast, CR 106.6).
+// A creature stays: its tap can still pay a cost (convoke, crew, a
+// tapXType<Creature> filter's fee). Only the cast walks this search; an
+// activation keeps every funding source, as gorge's does (its prune reads
+// the play kind, potentialCastKind).
+func (fs *filtSearch) coveredSpendable(k *prep, t *State, sl Slot) bool {
+	if fs.pay != nil || fs.a.Kind() != AkCast || !gapFilteredPlay(fs.a) {
+		return true
+	}
+	if k.t.Cards[t.cardAt(sl)].Types&kop.TCreature != 0 {
+		return true
+	}
+	d := t.grantPayDesc(k, fs.a)
+	if t.gapSpendable(k, sl, &d) {
+		return true
+	}
+	// a restricted covered source can still pay a census gap's activation
+	// fee even when the play itself cannot spend it (Vhal's "{C} ... can't
+	// be spent to cast a spell from hand" pays School of the Unseen's {2},
+	// whose mana the cast spends, CR 106.6): the fee is an activation of the
+	// gap, not the play, so test each gap source
+	for b := fs.gaps.or(fs.other); b.any(); b = b.rest() {
+		if gid := b.first(); gid != sl {
+			fd := payDesc{class: pdAct, card: t.cardAt(gid), src: gid}
+			if t.gapSpendable(k, sl, &fd) {
+				return true
+			}
 		}
 	}
 	return false
