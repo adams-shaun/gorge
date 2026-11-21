@@ -54,21 +54,7 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	aff := s.castGateAffordable(k, p, c, o, cost, cav)
-	conv := s.convPoolPays(k, p, o, cost)
-	if debugBedlamTrace {
-		if k.t.CardName(c) == "Bedlam Reveler" {
-			var sb slotMask
-			for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
-				if sl := b.first(); k.t.CardName(s.cardAt(sl)) == "Shadowblood Ridge" {
-					sb = sb.with(sl)
-				}
-			}
-			println("TRACE t=", s.turn, " filt=", s.scriptFilt(k, p).count(), " gaps=", s.gapOthers(k, p).count(), " sbInFilt=", s.scriptFilt(k, p).and(sb).any(), " sbUsable=", sb.any() && s.filtUsable(k, sb.first()), " filtOnly=", s.filtOnly(k, p), " mix=", s.mixBoard(k, p), " relax=", k.gen != nil && s.scriptRelax(k, p, s.scriptFilt(k, p), false))
-		}
-		println("TRACE t=", s.turn, " st=", s.step, " ax=", s.g.availX, " gate cost=", (*cost).AtX(0).MV(), " cav=", cav.total, " cavN=", cav.n, " aff=", aff, " conv=", conv, " card=", k.t.Cards[c].Name, " m0..3=", cav.mask[0], cav.mask[1], cav.mask[2], cav.mask[3], " c0..3=", cav.cnt[0], cav.cnt[1], cav.cnt[2], cav.cnt[3])
-	}
-	return aff || conv
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
 }
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
@@ -249,9 +235,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// through the imprisoned lands)
 		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
 		if plainOK {
-			if debugBedlamTrace {
-				println("TRACE legal:238 cast offered")
-			}
 			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}
 		if plainOK && k.gen != nil && k.gen.anyConspire && s.conspireOffer(k, p, c, o) && s.casualtyOffers(p, o) {

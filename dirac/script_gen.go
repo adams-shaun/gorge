@@ -285,7 +285,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).any()) { // (filtOnly)
+		// (filtOnly; a restricted gapOther whose mana no play the walk lists
+		// can spend keeps no filter off the walk: mana_filter.go restrGapOthers)
+		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
 			filt = f
 		}
 	}
@@ -357,22 +359,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
-		if debugBedlamTrace {
-			println("TRACE scriptCand kind=", a.Kind(), " src=", a.Source(), " card=", k.t.Cards[s.objs[Obj(a.Source())].card].Name, " srcN=", src.N)
-		}
 		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
 			s.sacDrops(k, p, sacAny, sacRepeat, &gaps, a) ||
 			wide && !s.wideAdmits(k, a, p, anyR) ||
 			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
-			if debugBedlamTrace {
-				println("TRACE scriptCand skipA kind=", a.Kind(), " src=", a.Source(), " card=", k.t.Cards[s.objs[Obj(a.Source())].card].Name, " inD=", hasOption(d, a), " inCap=", hasOption(capSpent, a), " wide=", wide, " wideAdm=", s.wideAdmits(k, a, p, anyR))
-			}
 			continue
 		}
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
-			if debugBedlamTrace {
-				println("TRACE scriptCand skipReal kind=", a.Kind(), " src=", a.Source(), " card=", k.t.Cards[s.objs[Obj(a.Source())].card].Name)
-			}
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
 		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.plainCastUnsearched(k, p, a) {
@@ -1070,9 +1063,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		if !ok {
 			continue
 		}
-		if debugBedlamTrace {
-			println("TRACE grantCap2 a=", a.Kind(), " src=", a.Source(), " card=", k.t.Cards[s.cardAt(s.objs[Obj(a.Source())].slot)].Name)
-		}
 		if s.mayPlayJoinCensusPays(k, p, a, &cost) {
 			// the may-play arm's cost is the join census's (the helper
 			// above), not the plain cast's ungranted read below: keep the
@@ -1082,9 +1072,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
-			if debugBedlamTrace {
-				println("TRACE grantCap2 ungranted pays")
-			}
 			continue // priced by the printed sources, restricted ones the play may spend included
 		}
 		if s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) {
