@@ -61,8 +61,17 @@ SVar:TrigExileSelf:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | D
 	// stacking a linked card into its owner's exile each time
 	repTrig := exiledWithOwnerDropETB(t, `T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Creature.Other | Execute$ TrigExileIt | TriggerDescription$ whenever a nontoken creature dies, exile this.
 SVar:TrigExileIt:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ Self`)
+	// Airbend exiles too: two airbent creatures of different owners link into
+	// two seats' exiles. The target-slot form is bounded like Exile; the Valid
+	// sweep is not
+	airTwo := exiledWithOwnerDropETB(t, `T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigAirbend | TriggerDescription$ enters: airbend up to two creatures.
+SVar:TrigAirbend:DB$ Airbend | TargetMin$ 0 | TargetMax$ 2 | ValidTgts$ Creature`)
+	airSweep := exiledWithOwnerDropETB(t, `T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigAirbend | TriggerDescription$ enters: airbend each other creature.
+SVar:TrigAirbend:DB$ Airbend | Defined$ Valid Creature.Other`)
 	for _, tc := range []struct{ name, src, want string }{
 		{"two-target ETB exile", two, ""},
+		{"a two-target airbend", airTwo, ""},
+		{"an airbend sweep", airSweep, "Airbend sweep"},
 		{"a second exile mover", twoMover, ""},
 		{"a repeatable activated exile", activated, "non-triggered ability"},
 		{"a repeatable dies trigger", repTrig, "fires again"},

@@ -258,13 +258,16 @@ func exwOwnerOnce(ab *lAbility) error {
 // exwOwnerMover classifies one instruction for exwOwnerCheck: ok when it is
 // an exile mover, err when it can move more than one card into exile in one
 // resolution (the count is the mover's target slot or count operand). The op
-// list is a heuristic enumeration of the ops that can move a card into
-// exile -- not gorge's recording rule, which stamps the reverse ExiledWith
-// scalar on every exile by a card whose text names ExiledWithSource (the
-// ref's lowering sets lc.out.ExwWord; zone_exiledwith.go's exwRecRev path in
-// exwExile) -- so an exile-bearing op added to kgen must be added here by
-// hand, or this gate must be derived from that recording rule, or it slips
-// past the check silently.
+// list is a hand enumeration of the ops that can move a card into exile, not
+// gorge's recording rule, which stamps the reverse ExiledWith scalar on every
+// exile by a card whose text names ExiledWithSource (the ref's lowering sets
+// lc.out.ExwWord; zone_exiledwith.go's exwRecRev path in exwExile). It covers
+// the exile movers kgen lowers today: Exile, ExileUntilLeaves, Search, Dig,
+// ChooseMove and ChangeZoneAll to exile, Airbend (a target slot is bounded
+// like Exile's, a Valid sweep refuses), and the set-valued ExileEmbRem and
+// StackExileMark (refused outright). An exile-bearing op added to kgen later
+// must be added here by hand, or it slips past the check silently;
+// TestExiledWithOwnerMultiExileRefuses pins the current set.
 func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 	switch in.Op {
 	case "Exile", "ExileUntilLeaves":
@@ -288,6 +291,16 @@ func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 			return false, nil
 		}
 		return false, refuse("ExiledWithSource player ref over a ChangeZoneAll to exile: its count is unbounded")
+	case "Airbend":
+		// airbending exiles the creature (CR 701.65a) and links it as any
+		// exile does; a target slot is bounded below, a Valid sweep is not
+		if in.Obj.Kind == rNone {
+			return false, refuse("ExiledWithSource player ref over an Airbend sweep: its count is unbounded")
+		}
+	case "ExileEmbRem", "StackExileMark":
+		// set-valued: the emblem's remembered set / the stack spells the mark
+		// reaches can sit across owners, and neither op has a count to bound
+		return false, refuse("ExiledWithSource player ref over %s: it can exile several cards owned by different players", in.Op)
 	default:
 		return false, nil
 	}
