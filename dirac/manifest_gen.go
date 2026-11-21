@@ -60,7 +60,7 @@ const raRingLoot uint8 = 160
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 160
+const raTrigDemoOpp uint8 = 161
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
