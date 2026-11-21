@@ -171,6 +171,14 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 			target = c.Source
 		}
 		return chosenColorsShared(h, c, g, target), true
+	case evalCov3HeadRegeneratedThisTurn:
+		// Spiny Starfish: the times the SOURCE regenerated this turn (CR
+		// 701.19), the event-folded Object.RegeneratedThisTurn; zero for a
+		// source that has left the battlefield since (a new object).
+		if o := g.Obj(c.Source); o != nil {
+			return o.RegeneratedThisTurn, true
+		}
+		return 0, true
 	case evalCov3HeadDevoured:
 		return devouredCount(g, c, arg), true
 	case evalCov3HeadLastStateGraveyard, evalCov3HeadLastStateGraveyardWithFallback:
