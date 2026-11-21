@@ -217,6 +217,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.ascend {
 		s.blessScan(k) // CR 702.131b (kw_ascend.go)
 	}
+	if k.gen != nil && k.gen.anyWhileHost {
+		s.ovAsLongAsControlDrop(k, p.obj) // CR 611.2b: Pump Duration$ AsLongAsControl (filter_combatwords.go)
+	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
 	}

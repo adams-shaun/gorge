@@ -191,6 +191,11 @@ type Override struct {
 	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
 	// (the record's P/T fields hold the host).
 	WhileTapped bool
+	// AsLongAsControl: a WhileHost record (Pump Duration$ AsLongAsControl:
+	// Aegis Angel) that starts only when the host is controlled by the
+	// effect's controller and ends for good when the host changes controller
+	// or phases out (gorge expireAsLongAsControl).
+	AsLongAsControl bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
