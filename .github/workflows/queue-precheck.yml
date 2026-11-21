@@ -80,4 +80,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GOFLAGS: -p=4 -trimpath
           GOMAXPROCS: "8"
-        run: python3 scripts/queue_precheck.py --head 20
+        run: python3 -u scripts/queue_precheck.py --head 20
