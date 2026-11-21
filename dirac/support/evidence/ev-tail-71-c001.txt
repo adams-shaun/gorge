@@ -331,6 +331,7 @@ Season of Growth
 Season of Renewal
 Serene Heart
 Serum Sovereign
+Shape Anew
 Shield Mate
 Shocker
 Shu Farmer
@@ -383,6 +384,7 @@ Terminal Agony
 Tezzeret's Gambit
 The Archimandrite
 The Cauldron of Eternity
+The Master, Mesmerist
 The Thing
 Thornwatch Scarecrow
 Thragtusk
