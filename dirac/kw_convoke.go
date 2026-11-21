@@ -746,7 +746,7 @@ func (s *State) payConvokeFromPool(k *prep, e *stackEntry, red *kop.ManaCost, an
 	p := e.ctrl
 	var m uint8
 	if s.rbAny(p) {
-		m = s.restrSpendable(k, p, e.card, restrOriginOfEntry(e))
+		m = s.restrSpendable(k, p, e.card, s.restrOriginOfEntry(e))
 	}
 	if m == 0 {
 		s.payFromPoolRider(k, p, red, 0, anyColor)

@@ -108,10 +108,13 @@ func restrictedLifeTap(c lCost) bool {
 
 // restrictedLifeUnit reports whether a restricted "{T}, Pay N life" ability
 // producing m is one the kernel plans as a last-resort unit: one fixed colour
-// or {C}, no choice, each-colour production, rider or activated-ability
-// restriction (kop.RestrictedLifeShape).
+// or {C}, or two mana of any one colour (Thieving Varmint), no choice,
+// each-colour production, rider or activated-ability restriction
+// (kop.RestrictedLifeShape).
 func restrictedLifeUnit(c lCost, m *lMana) bool {
-	return restrictedLifeTap(c) && len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors) && !m.Choice && !m.Each &&
+	col := len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors) ||
+		m.Colors == "WUBRG" && m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= 2
+	return restrictedLifeTap(c) && col && !m.Choice && !m.Each &&
 		m.Special == "" && m.RestrictAb == nil && !m.NonSpell && !m.Deferred && !m.NoCounter && m.Split == nil && m.HasteValid == nil
 }
 
@@ -120,3 +123,19 @@ func restrictedLifeUnit(c lCost, m *lMana) bool {
 // plays front faces only, and a back face's cast mode (Life of Toshiro
 // Umezawa // Memory of Toshiro) diverges in the pod, so it stays refused.
 func (lc *lowerCtx) restrictedLifeBackFace() bool { return strings.Contains(lc.name, "#") }
+
+// restrictedSacSelfUnit reports whether a restricted "{T}, Sacrifice this"
+// ability producing m is one the kernel plans as a sacrificing last-resort
+// unit: one fixed colour or {C}, or one to three mana of any one colour
+// (Jeweled Lotus), no choice, each-colour production, rider or
+// activated-ability restriction (kop.RestrictedSacSelfShape).
+func restrictedSacSelfUnit(c lCost, m *lMana) bool {
+	if !c.Tap || !c.SacSelf {
+		return false
+	}
+	c.SacSelf = false
+	col := len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors) ||
+		m.Colors == "WUBRG" && m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= 3
+	return plainTapCost(c) && col && !m.Choice && !m.Each &&
+		m.Special == "" && m.RestrictAb == nil && !m.NonSpell && !m.Deferred && !m.NoCounter && m.Split == nil && m.HasteValid == nil
+}

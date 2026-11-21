@@ -116,7 +116,7 @@ func (s *State) sneakPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaC
 		}
 	}
 	if s.rbAny(p) {
-		s.restrAvail(k, SeatIx(p), c, restrOrigin{from: kop.ZoneHand}, &a)
+		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a)
 	}
 	a.delve = s.tbDelveCredit(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand) // the faces' credit (CR 702.66a)
 	return a.affords(cost, pipMaskOf(cost), 0)
