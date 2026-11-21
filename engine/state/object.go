@@ -520,8 +520,9 @@ const (
 	// flag and resolves exactly like the plain cast (the Conspired pattern). It
 	// is conditioned on the additional COST having been paid -- "if this spell
 	// was cast using teamwork" means the tap was paid -- so, like FlagConspired
-	// and FlagOffspringPaid, it is deliberately NOT in CastProvenanceFlags and a
-	// copied Teamwork spell inherits it pending the same separate copy ruling.
+	// and FlagOffspringPaid, it is deliberately NOT in CastProvenanceFlags; the
+	// copy mint (events/apply_copy.go) strips it and TeamworkPaid instead, since
+	// a copy is never cast (CR 702.194b, 707.10).
 	// Appended after FlagBargained to preserve all bits already in main.
 	FlagTeamworkPaid
 	// FlagPreparedCopy marks a cast that rode CR 722.3c's prepared grant: the
