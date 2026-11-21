@@ -36,7 +36,6 @@ Abomination of Gudul
 Abomination, Terrifying Titan
 Aboshan, Cephalid Emperor
 Absolute Virtue
-Absolving Lammasu
 Absorb
 Abstergo Entertainment
 Abstract Paintmage
@@ -47,7 +46,6 @@ Abzan Guide
 Abzan Kin-Guard
 Abzan Monument
 Academic Ascent
-Academy Ruins
 Access Denied
 Accursed Horde
 Acolyte of Xathrid
@@ -81,7 +79,6 @@ Afterburner Expert
 Afterthought Sentry
 Agate Assault
 Agate-Blade Assassin
-Agency Outfitter
 Agent Bishop, Man in Black
 Agent of Acquisitions
 Agent of Kotis
@@ -261,7 +258,6 @@ Aspect of Mongoose
 Assault Zeppelid
 Assault on Osgiliath
 Assemble the Entmoot
-Assemble the Players
 Assert Authority
 Assert Perfection
 Assimilation Assessor
@@ -383,7 +379,6 @@ Beck
 Bedevil
 Befuddle
 Begin the Invasion
-Behind the Mask
 Beifong's Bounty Hunters
 Bejeweled Warg
 Belladonna Took
@@ -394,7 +389,6 @@ Beluna Grandsquall
 Benalish Trapper
 Beneath the Sands
 Benjamin Sisko, Besieged
-Benthic Criminologists
 Benthic Giant
 Beorn the Fierce
 Beorn's Hospitality
@@ -596,7 +590,6 @@ Builder's Talent
 Built to Last
 Bulwark Ox
 Bumi, Eclectic Earthbender
-Burden of Proof
 Burn, Burn, Tree and Fern
 Burner Rocket
 Burning Curiosity
@@ -624,13 +617,11 @@ Caelorna, Coral Tyrant
 Caged Zombie
 Calamitous Tide
 Calamity's Wake
-Call a Surprise Witness
 Callous Dismissal
 Camaraderie
 Camera Launcher
 Campus Composer
 Campus Crier
-Candlestick
 Canoptek Scarab Swarm
 Canopy Vista
 Cantankerous Keepers
@@ -662,15 +653,11 @@ Carrion Call
 Carrion Cruiser
 Carrion Thrash
 Carven Caryatid
-Case of the Crimson Pulse
-Case of the Gateway Express
-Case of the Uneaten Feast
 Cast Away Doubt
 Castle Locthwain
 Catapult Fodder
 Cateran Enforcer
 Cateran Slaver
-Caught Red-Handed
 Caught in the Brights
 Cauldron of Essence
 Caustic Bronco
@@ -786,7 +773,6 @@ Coastal Piracy
 Coat with Venom
 Codsworth, Handy Helper
 Coerced Confession
-Coerced to Kill
 Coiling Oracle
 Coiling Stalker
 Cold-Blooded Crew
@@ -832,7 +818,6 @@ Consuming Ashes
 Consuming Fervor
 Contact Other Plane
 Contaminated Landscape
-Convenient Target
 Coordinated Maneuver
 Copy Catchers
 Coral Atoll
@@ -841,7 +826,6 @@ Coretapper
 Cori Mountain Monastery
 Cori Mountain Stalwart
 Cori-Steel Cutter
-Cornered Crook
 Corporeal Projection
 Corpseberry Cultivator
 Corroding Dragonstorm
@@ -876,8 +860,6 @@ Creative Technique
 Crested Sunmare
 Crew Captain
 Crime
-Crime Novelist
-Crimestopper Sprite
 Crimson Manticore
 Crippling Blight
 Cromat
@@ -903,7 +885,6 @@ Cryotheory Adept
 Crypt Angel
 Cryptborn Horror
 Cryptcaller Chariot
-Cryptic Coat
 Cryptic Command
 Cryptic Serpent
 Cryptid Inspector
@@ -918,7 +899,6 @@ Cultbrand Cinder
 Cultivate
 Cultivator Colossus
 Cunning Strike
-Curious Cadaver
 Curious Forager
 Curse of Vitality
 Curse of the Restless Dead
@@ -1023,7 +1003,6 @@ Defang
 Defend the Campus
 Defend the Rider
 Defenders of Humanity
-Defenestrated Phantom
 Defense Force Aggressor
 Defensive Stance
 Defiant Khenra
@@ -1031,7 +1010,6 @@ Deflecting Swat
 Dega Disciple
 Dega Sanctuary
 Deliver from Chaos
-Delney, Streetwise Lookout
 Delta Bloodflies
 Deluge Virtuoso
 Delusions of Mediocrity
@@ -1061,7 +1039,6 @@ Desperate Plea
 Destructive Flow
 Destructive Force
 Destructive Revelry
-Detective's Satchel
 Detention Chariot
 Devastating Onslaught
 Devilthorn Fox
@@ -1126,7 +1103,6 @@ Donatello, Way with Machines
 Doomed Dissenter
 Doomsday Specter
 Door of Destinies
-Doppelgang
 Dori, Bearer of Friends
 Doric, Nature's Warden
 Dosan's Oldest Chant
@@ -1145,7 +1121,6 @@ Draconic Disciple
 Draconic Muralists
 Drafna, Founder of Lat-Nam
 Drag Under
-Drag the Canal
 Dragon Mantle
 Dragon Tyrant
 Dragon's Eye Sentry
@@ -1162,7 +1137,6 @@ Dragonstorm Forecaster
 Dragonstorm Globe
 Drain the Well
 Drake Stone
-Dramatic Accusation
 Dramatic Finale
 Drana's Chosen
 Drastic Revelation
@@ -1197,7 +1171,6 @@ Dual Strike
 Dual-Sun Adepts
 Dual-Sun Technique
 Dubious Delicacy
-Due Diligence
 Duel Tactics
 Duelist of the Mind
 Duelist's Heritage
@@ -1278,7 +1251,6 @@ Elephant Guide
 Elephant-Rat
 Elim Garak, Simple Tailor
 Eliminate the Competition
-Eliminate the Impossible
 Elite Cat Warrior
 Elite Headhunter
 Elite Interceptor
@@ -1388,7 +1360,6 @@ Evasive Maneuvers
 Evendo, Waking Haven
 Everflowing Chalice
 Everything Pizza
-Evidence Examiner
 Evil Reawakened
 Eviscerator's Insight
 Exalted Sunborn
@@ -1399,14 +1370,12 @@ Exhibition Magician
 Exhibition Tidecaller
 Exocomp
 Exosuit Savior
-Expedited Inheritance
 Expendable Troops
 Exploration
 Exploratory Mission
 Explosive Apparatus
 Explosive Getaway
 Expose Evil
-Expose the Culprit
 Expressive Firedancer
 Expressive Iteration
 Extended Absence
@@ -1419,13 +1388,11 @@ Eye of Malcator
 Eyes of the Beholder
 Eyes of the Watcher
 Ezio, Brash Novice
-Ezrim, Agency Chief
 Fabled Passage
 Fabricate
 Face of Fear
 Facet Reader
 Fade from Memory
-Fae Flight
 Faeburrow Elder
 Faerie Miscreant
 Faerie Tauntings
@@ -1474,7 +1441,6 @@ Feed the Cycle
 Feed the Infection
 Feldon, Ronom Excavator
 Felhide Spiritbinder
-Felonious Rage
 Felothar the Steadfast
 Felothar, Dawn of the Abzan
 Femeref Enchantress
@@ -1576,8 +1542,6 @@ Forced Adaptation
 Forced Landing
 Forced March
 Foreboding Ruins
-Forensic Gadgeteer
-Forensic Researcher
 Forerunner of Slaughter
 Foriysian Interceptor
 Forlorn Flats
@@ -1633,7 +1597,6 @@ Fungal Shambler
 Fungusaur
 Furious Forebear
 Furnace Host Charger
-Furtive Courier
 Furycalm Snarl
 Fusion Elemental
 Fuss
@@ -1654,7 +1617,6 @@ Gallant Strike
 Gallia, Tragic Host
 Gallia, the Merrymaker
 Galvanic Bombardment
-Galvanize
 Galvanizing Sawship
 Galvanizing Tenor
 Gandalf the Grey
@@ -1675,7 +1637,6 @@ Gastal Thrillroller
 Gastal Thrillseeker
 Gatebreaker Ram
 Gathering of Darkness
-Gearbane Orangutan
 Gearseeker Serpent
 Geist of Saint Thalia
 Geist-Fueled Scarecrow
@@ -1714,7 +1675,6 @@ Ghost of Illyria
 Ghost, Spectral Saboteur
 Ghostway
 Ghoulsteed
-Giant Ankheg
 Giant Badger
 Giant Beaver
 Giant Space Amoeba
@@ -1747,7 +1707,6 @@ Glamdring, Foe-hammer
 Glass Golem
 Glassdust Hulk
 Gleam of Battle
-Gleaming Geardrake
 Gleaming Splendor
 Glen Elendra Archmage
 Glen Elendra's Answer
@@ -1790,7 +1749,6 @@ Goblin Gardener
 Goblin Glasswright
 Goblin Instigator
 Goblin Lookout
-Goblin Maskmaker
 Goblin Plate Mail
 Goblin Rabblemaster
 Goblin Rally
@@ -1857,7 +1815,6 @@ Greenbelt Radical
 Greenhouse Propagator
 Grenzo, Havoc Raiser
 Grief Tyrant
-Griffnaut Tracker
 Grilka, Widowed Warrior
 Grim Bauble
 Grim Flayer
@@ -1905,7 +1862,6 @@ Gwyndala, the Progeny
 Gyre Sage
 H.E.R.B.I.E., Lovable Robot
 HONK!
-Haazda Vigilante
 Hag of Mage's Doom
 Hag of Twisted Visions
 Hajar, Loyal Bodyguard
@@ -1934,7 +1890,6 @@ Harmonized Crescendo
 Harmonized Trio
 Harness Infinity
 Harnesser of Storms
-Harried Dronesmith
 Harrier Strix
 Harsh Annotation
 Harvest Wurm
@@ -2051,7 +2006,6 @@ Horrifying Revelation
 Horta
 Host of the Hereafter
 Hostile Takeover
-Hotshot Investigators
 Hour of Reckoning
 Hour of Victory
 How to Keep an Izzet Mage Busy
@@ -2101,7 +2055,6 @@ Ichorplate Golem
 Icy Reception
 Identity Echo
 Idyllic Grange
-Ill-Timed Explosion
 Illusion Spinners
 Illusions of Grandeur
 Illvoi Galeblade
@@ -2120,7 +2073,6 @@ Imskir Iron-Eater
 In the Pale Moonlight
 In the Web of War
 Incandescent Aria
-Incinerator of the Guilty
 Increasing Savagery
 Incriminate
 Incriminating Impetus
@@ -2150,7 +2102,6 @@ Inkling Mascot
 Inkshape Demonstrator
 Innistrad Charm
 Innkeeper's Talent
-Innocent Bystander
 Innovative Commons
 Innovative Metatect
 Inquisitive Glimmer
@@ -2159,7 +2110,6 @@ Insatiable Avarice
 Insatiable Skittermaw
 Insectoid Exterminator
 Inside Information
-Inside Source
 Insidious Will
 Inspiration
 Inspired Tethermage
@@ -2220,7 +2170,6 @@ Jackal Familiar
 Jackdaw Savior
 Jacques le Vert
 Jade-Cast Sentinel
-Jaded Analyst
 Jadzi, Steward of Fate
 Jadzia Dax, Living Legacy
 Jagged Barrens
@@ -2300,7 +2249,6 @@ Karakyk Guardian
 Karametra's Acolyte
 Karfell Kennel-Master
 Karlach, Fury of Avernus
-Karlov Watchdog
 Karn, Argent Defender
 Karrthus, Tyrant of Jund
 Kastral, the Windcrested
@@ -2327,7 +2275,6 @@ Keldon Berserker
 Keldon Mantle
 Keldon Necropolis
 Kellan Joins Up
-Kellan, Inquisitive Prodigy
 Kelsien, the Plague
 Kemuri-Onna
 Kes, Evolving Telepath
@@ -2376,7 +2323,6 @@ Kjeldoran Dead
 Klingon Strike Force
 Knacksaw Clique
 Knickknack Ouphe
-Knife
 Knight Exemplar
 Knight Luminary
 Knight Watch
@@ -2413,7 +2359,6 @@ Krark-Clan Engineers
 Kraul Foragers
 Kraum, Violent Cacophony
 Krazy Kow
-Krenko, Baron of Tin Street
 Kresh the Bloodbraided
 Kros, Defense Contractor
 Krosan Beast
@@ -2425,7 +2370,6 @@ Krotiq Nestguard
 Krovikan Mist
 Krovikan Plague
 Krovikan Scoundrel
-Krovod Haunch
 Kroxa and Kunoros
 Kruge, Genesis Seeker
 Krumar Initiate
@@ -2452,7 +2396,6 @@ Lake-town Mariners
 Lake-town Toymaker
 Lakeshore Apothecary
 Lamentation
-Lamplight Phoenix
 Lamplighter of Selhoff
 Landscape Painter
 Larceny
@@ -2630,7 +2573,6 @@ Maha, Its Feathers Night
 Maja, Bretagard Protector
 Make Mischief
 Make Your Own Luck
-Makeshift Binding
 Makeshift Munitions
 Makindi Griffin
 Makindi Sliderunner
@@ -2672,7 +2614,6 @@ Mardu Roughrider
 Marina Vendrell
 Marisi's Twinclaws
 Marketback Walker
-Marketwatch Phantom
 Markov Dreadknight
 Markov Warlord
 Marneus Calgar
@@ -2714,7 +2655,6 @@ Megrim
 Mek'leth Berserker
 Melancholic Poet
 Melded Moxite
-Melek, Reforged Researcher
 Melkotian Adjudicator
 Meltstrider Eulogist
 Meltstrider's Gear
@@ -2773,7 +2713,6 @@ Mikey & Leo, Chaos & Order
 Miles "Tails" Prower
 Miles Morales
 Militant Inquisitor
-Minamo, School at Water's Edge
 Mind Drill Assailant
 Mind Meanderer
 Mind Roots
@@ -2885,7 +2824,6 @@ Murderous Rider
 Murmuring Volume
 Muse Seeker
 Muse's Encouragement
-Museum Nightwatch
 Mushroom Watchdogs
 Mutagen Man, Living Ooze
 Mutant Chain Reaction
@@ -2932,7 +2870,6 @@ Necroskitter
 Necrotic Sliver
 Necrotic Wound
 Needle Storm
-Neighborhood Guardian
 Neoform
 Nephilim Epochal
 Nessian Asp
@@ -2979,8 +2916,6 @@ Nissa, Leyline Tamer
 Nissa, Nature's Artisan
 Nita, Forum Conciliator
 No Admittance
-No More Lies
-No Witnesses
 Noble Panther
 Noble's Purse
 Noctis, Prince of Lucis
@@ -2995,13 +2930,11 @@ Nomad Decoy
 Nomad Outpost
 Nori, Teller of Tales
 Norn's Choirmaster
-Not on My Watch
 Nourish
 Nova Hellkite
 Novablast Wurm
 Novel Nunchaku
 Novellamental
-Novice Inspector
 Noxious Grasp
 Noxious Newt
 Nullstone Gargoyle
@@ -3028,7 +2961,6 @@ Obstinate Baloth
 Obuun, Mul Daya Ancestor
 Odunos River Trawler
 Offender at Large
-Officious Interrogation
 Ognis, the Dragon's Lash
 Ogre Resister
 Oildeep Gearhulk
@@ -3053,7 +2985,6 @@ Omenport Vigilante
 Omnath, Locus of Creation
 Omnath, Locus of the Roil
 Omnipresence
-On the Job
 On the Shoulders of Giants
 Ondu Greathorn
 One Dozen Eyes
@@ -3099,9 +3030,7 @@ Orysa, Tide Choreographer
 Osseous Exhale
 Osteomancer Adept
 Ostracize
-Otawara, Soaring City
 Ouroboroid
-Out Cold
 Outcaster Greenblade
 Outcaster Trailblazer
 Outlaw Stitcher
@@ -3177,7 +3106,6 @@ Perimeter Sergeant
 Permission Denied
 Perplexing Test
 Persistent Marshstalker
-Person of Interest
 Pest Mascot
 Pest Summoning
 Pestbrood Sloth
@@ -3280,7 +3208,6 @@ Prismari, the Inspiration
 Prismatic Geoscope
 Prismatic Strands
 Prison Realm
-Private Eye
 Prized Unicorn
 Procrastinate
 Proctor of Potential
@@ -3289,7 +3216,6 @@ Profane Prayers
 Professional Face-Breaker
 Professor Dellian Fel
 Profound Journey
-Proft's Eidetic Memory
 Proft, Sinister Mastermind
 Prohibit
 Prologue to Phyresis
@@ -3390,7 +3316,6 @@ Raised by Giants
 Rakdos Headliner
 Rakdos Joins Up
 Rakdos, Lord of Riots
-Rakdos, Patron of Chaos
 Rakdos, the Muscle
 Rakeclaw Gargantuan
 Rakish Crew
@@ -3450,13 +3375,11 @@ Rebel Salvo
 Rebellious Strike
 Reborn Hope
 Rebuild the City
-Reckless Detective
 Reclamation Specialist
 Recon Craft Theta
 Reconnaissance Partition
 Recursive Recruitment
 Red Death, Shipwrecker
-Red Herring
 Red Tiger Mechan
 Redcap Heelslasher
 Redcap Melee
@@ -3465,7 +3388,6 @@ Redress Fate
 Reduce to Ashes
 Reef Roads
 Reef Worm
-Reenact the Crime
 Refute Destiny
 Reg Barclay, Fidgety Fantasist
 Regenerate
@@ -3489,7 +3411,6 @@ Repel Calamity
 Repel the Abominable
 Repel the Darkness
 Reprocess
-Repulsive Mutation
 Repurposed Enforcer
 Repurposing Bay
 Reputable Merchant
@@ -3610,7 +3531,6 @@ Roughshod Duo
 Rover Blades
 Roving Keep
 Roxanne, Starfall Savant
-Rubblebelt Braggart
 Rubblehulk
 Rufus Shinra
 Ruinous Rampage
@@ -3676,7 +3596,6 @@ Sanar, Innovative First-Year
 Sanar, Unfinished Genius
 Sanctuary Cat
 Sanctuary Raptor
-Sanctuary Wall
 Sanctum Plowbeast
 Sandskitter Outrider
 Sandsteppe Citadel
@@ -3771,7 +3690,6 @@ Seashell Cameo
 Seaside Citadel
 Season of Gathering
 Season of Loss
-Seasoned Consultant
 Seasoned Warrenguard
 Sedgemoor Witch
 Sedraxis Specter
@@ -3824,7 +3742,6 @@ Shadow Summoning
 Shadow Urchin
 Shadow of Mortality
 Shadowstorm Vizier
-Shadowy Backstreet
 Shady Informant
 Shalai and Hallar
 Shaman of the Pack
@@ -4185,7 +4102,6 @@ Static Snare
 Station Monitor
 Steal the Show
 Stealth Mission
-Steamcore Scholar
 Steampath Charger
 Steelclad Serpent
 Steelshaper's Gift
@@ -4259,7 +4175,6 @@ Studious First-Year
 Stuffed Bear
 Subcommander T'Pol
 Sudden Impact
-Sudden Setback
 Sugar Coat
 Suki, Kyoshi Warrior
 Suleiman's Legacy
@@ -4313,13 +4228,11 @@ Surly Farrier
 Surrak Dragonclaw
 Surrak, Elusive Hunter
 Surtland Frostpyre
-Surveillance Monitor
 Surveillance Phantasm
 Survey Mechan
 Survive the Night
 Survivors' Bond
 Suspicious Bookcase
-Suspicious Detonation
 Suspicious Stowaway
 Susur Secundi, Void Altar
 Susurian Dirgecraft
@@ -4422,7 +4335,6 @@ Tender Wildguide
 Tenderize
 Tendrils of Corruption
 Teneb, the Harvester
-Tenth District Hero
 Tenth District Legionnaire
 Tenured Concocter
 Tenured Tethermage
@@ -4470,7 +4382,6 @@ The Battle of Bywater
 The Black Arrow
 The Cabbage Merchant
 The Caretaker
-The Chase Is On
 The Chief Warg
 The Circle of Loyalty
 The City on the Edge of Forever
@@ -4564,7 +4475,6 @@ Thranduil, Sindarin Liege
 Thrashing Wumpus
 Threaten
 Three Steps Ahead
-Three Tree City
 Three Tree Rootweaver
 Three Tree Scribe
 Thrive
@@ -4622,10 +4532,8 @@ Tony Stark
 Toph, Hardheaded Teacher
 Toph, the First Metalbender
 Topiary Lecturer
-Topiary Panther
 Tor Wauki the Younger
 Torbran, Thane of Red Fell
-Torch the Witness
 Torens, Fist of the Angels
 Tori D'Avenant, Fury Rider
 Torment
@@ -4748,7 +4656,6 @@ Ulvenwald Hydra
 Umbral Collar Zealot
 Umbral Expanse
 Umezawa's Jitte
-Unauthorized Exit
 Unburden
 Unburied Earthcarver
 Unbury
@@ -4756,7 +4663,6 @@ Uncle Iroh
 Unctus's Retrofitter
 Unctus, Grand Metatect
 Undead Executioner
-Undercover Crocodelf
 Underdark Basilisk
 Underfoot Underdogs
 Underground River
@@ -4820,7 +4726,6 @@ Vampire of the Dire Moon
 Vanguard of Brimaz
 Vanishing Verse
 Vanishment
-Vannifar, Evolved Enigma
 Vanquish the Horde
 Varina, Lich Queen
 Vash, Freelance Archaeologist
@@ -4846,7 +4751,6 @@ Venerable Knight
 Venerated Stormsinger
 Vengeful Creeper
 Vengeful Townsfolk
-Vengeful Tracker
 Venomsac Lagac
 Venus, Torn Between Worlds
 Verdant Crescendo
@@ -5070,7 +4974,6 @@ Withered Wretch
 Withering Boon
 Withering Curse
 Witherscale Wurm
-Wojek Investigator
 Wolfsbane, Highland Hero
 Wolverine Riders
 Wolverine, Fierce Fighter
@@ -5095,7 +4998,6 @@ Wrath of the Bloodmane
 Wreck Remover
 Wreckage Wickerfolk
 Wrecking Gecko
-Wrench
 Wretched Doll
 Wu Elite Cavalry
 Wurmskin Forger
