@@ -2627,7 +2627,7 @@ const (
 	// 20 was a Taps trigger in a table with a granted mana ability; a granted ability's tap now fires Taps triggers like any other
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
 	StallReplPlus  = 22 // a damage plus-N replacement and a non-commuting damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go; two plus-N additions commute and are asked as a no-op)
-	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
+	StallLifeRepl  = 25 // a life-gain doubler and a plus-N compete for a gain at a site that cannot suspend (lifelink, extort, a trigger batch, SetLife...): gorge asks the CR 616.1 order; only the resolving GainLife op poses it (repl_lifeask.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
 	StallRegen     = 28 // a ninth regeneration shield on one permanent: perm.spare's two bits plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)

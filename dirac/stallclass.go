@@ -147,8 +147,6 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallTwoSeat // prepTwoSeat, below
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
-	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
-		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
 		return StallL6Walk // static_layer6.go prepL6
 	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
@@ -244,10 +242,6 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 					})
 			})(c, i)
 		}
-	case StallLifeRepl:
-		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
-		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
-		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
 		if staticPrevStall(g) {
 			text, a, b = staticPrevPair(g)

@@ -1649,7 +1649,11 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {
-		n = s.replLife(k, p, n) // act_discover.go
+		if an, asked := s.lifeAsked(p); asked {
+			n = an
+		} else if n = s.lifeGainN(k, p, n); s.over {
+			return // an unstaged site's order ask (StallLifeRepl)
+		}
 	}
 	s.pl[p].life += int16(n)
 	s.pl[p].lifeGained += int16(n)
