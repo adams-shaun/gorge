@@ -1,9 +1,11 @@
-# the CounterTypes$ pool: the five sole-blocked
+# the CounterTypes$ pool: the four sole-blocked
 # `CounterTypes$` carriers (one counter of each listed kind, CR 122.1b
 # keyword counters beside power-up and Renew), cheap removal and vanilla
 # creatures (the Renew cards need creatures in graveyards), for the
-# oracle's constructed lockstep (dirac/oracle/countertypes_test.go)
-Abigale, Eloquent First-Year
+# oracle's constructed lockstep (dirac/oracle/countertypes_test.go).
+# Abigale, Eloquent First-Year is refused by name (its keyword counters
+# beside a lose-all-abilities effect; dirac/support/refused), so raw
+# lockstep plays the other four only.
 Captain Marvel, Earth's Protector
 Quicksilver, Brash Blur
 Champion of Dusan

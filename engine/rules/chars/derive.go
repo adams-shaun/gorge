@@ -534,6 +534,11 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 			// later layer-6 grants re-add anything.
 			if ce.RemoveAbilities {
 				kw = kw[:0]
+				// CR 122.1b + 613.7: a keyword counter put on AFTER this
+				// effect began applying is a newer layer-6 grant and keeps
+				// its keyword (Abigale's trigger removes abilities, then
+				// puts the counters on); an older one went with the rest.
+				kw = appendNewerCounterKeywords(kw, o, ce.Timestamp)
 			}
 			if len(ce.RemoveKeywords) > 0 {
 				// CR 613.1f: this effect's own named keywords leave the
@@ -551,6 +556,9 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 					}
 				}
 				kw = keptKW
+				// The same timestamp rule for a counter's newer grant of a
+				// keyword this effect names.
+				kw = appendNewerCounterKeywordsHeads(kw, o, ce.Timestamp, ce.RemoveKeywords)
 			}
 			kw = appendGrantedKeywords(kw, ce.AddKeywords, col)
 		case state.LType:
@@ -746,6 +754,32 @@ func BaseKeywords(kw []string, o *state.Object, f *cards.Face, faceDown bool) []
 	// the same derived keyword stream as printed and layer-6 keywords.
 	if o.SuspendGranted {
 		kw = append(kw, "Suspend")
+	}
+	return kw
+}
+
+// appendNewerCounterKeywords appends to kw the keyword each of o's keyword
+// counters (CR 122.1b) grants, for the counters put on after timestamp ts
+// (state.Counter.Stamp, the CR 613.7 timestamp of that grant). A layer-6
+// removal at ts takes every older grant and leaves these.
+func appendNewerCounterKeywords(kw []string, o *state.Object, ts uint32) []string {
+	return appendNewerCounterKeywordsHeads(kw, o, ts, nil)
+}
+
+// appendNewerCounterKeywordsHeads is appendNewerCounterKeywords limited to
+// keywords whose head is in heads (nil: every keyword counter), the
+// RemoveKeywords$ form of the same rule.
+func appendNewerCounterKeywordsHeads(kw []string, o *state.Object, ts uint32, heads []string) []string {
+	for i := range o.Counters {
+		c := &o.Counters[i]
+		if c.N <= 0 || c.Stamp <= ts {
+			continue
+		}
+		name, ok := cards.CounterKeyword(c.Kind)
+		if !ok || (heads != nil && !containsKeywordHead(heads, name)) {
+			continue
+		}
+		kw = append(kw, name)
 	}
 	return kw
 }

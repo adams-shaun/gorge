@@ -13,6 +13,12 @@ import (
 type Counter struct {
 	Kind string
 	N    int32
+	// Stamp is the Game.Clock tick at which a keyword counter (CR 122.1b)
+	// was last put on the object: the CR 613.7 timestamp of the layer-6 grant
+	// it makes, so a "loses all abilities" effect older than the counter does
+	// not remove it. Set by events.Apply's CounterChange fold for keyword
+	// counters only; zero on every other kind.
+	Stamp uint32
 }
 
 // Target is a chosen target. Exactly one of Obj and Player is meaningful.
@@ -2625,7 +2631,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 		}
 	}
 	if n > 0 {
-		o.Counters = append(o.Counters, Counter{kind, n})
+		o.Counters = append(o.Counters, Counter{Kind: kind, N: n})
 	}
 }
 
