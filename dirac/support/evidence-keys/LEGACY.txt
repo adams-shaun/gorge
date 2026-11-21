@@ -369,7 +369,6 @@ Basilica Bell-Haunt
 Basking Rootwalla
 Basri, Tomorrow's Champion
 Batterskull
-Battle Squadron
 Battle of Wolf 359
 Battle-Mad Ronin
 Battlefield Forge
@@ -450,7 +449,6 @@ Bitterbloom Bearer
 Bituminous Blast
 Black Carriage
 Black Cat, Cunning Thief
-Black Mage's Rod
 Black Oak of Odunos
 Black Sun's Twilight
 Black Waltz No. 3
@@ -467,7 +465,6 @@ Bladed Pinions
 Blaring Recruiter
 Blasphemous Act
 Blaze Commando
-Blazing Bomb
 Blazing Firesinger
 Blazing Hellhound
 Blazing Specter
@@ -576,7 +573,6 @@ Break Under Pressure
 Breath of Life
 Bretagard Stronghold
 Breya, Etherium Shaper
-Bria, Riptide Rogue
 Bridled Bighorn
 Bright-Palm, Soul Awakener
 Brightblade Stoat
@@ -1486,7 +1482,6 @@ Famished Paladin
 Fan Bearer
 Fang Guardian
 Fang Skulkin
-Fang, Fearless l'Cie
 Fang, Roku's Companion
 Fang-Druid Summoner
 Far
@@ -1716,7 +1711,6 @@ Gandalf, Wandering Wizard
 Gang of Elk
 Gangly Stompling
 Gardenize
-Garland, Knight of Cornelia
 Garnet, Princess of Alexandria
 Garrison Excavator
 Garrison Sergeant
@@ -1854,7 +1848,6 @@ Goblin Skycutter
 Goblin Spelunkers
 Goblin Surveyor
 Goblin Tunneler
-Goblin War Party
 Goblin Warrens
 Goblin-town
 Goblin-town Flunkies
@@ -2333,7 +2326,6 @@ Jiang Yanggu, Alone
 Jiang Yanggu, Never Alone
 Jiang Yanggu, Wildcrafter
 Jibbirik Omnivore
-Jill, Shiva's Dominant
 Jodah, the Unifier
 Joel, Resolute Survivor
 Johtull Wurm
@@ -2345,7 +2337,6 @@ Jolrael's Favor
 Jor Kadeen, First Goldwarden
 Jor Kadeen, the Prevailer
 Jorubai Murk Lurker
-Joshua, Phoenix's Dominant
 Judge Magister Gabranth
 Judith, Carnage Connoisseur
 Jukai Preserver
@@ -2700,7 +2691,6 @@ Mabel, Bitter Recluse
 Mabel, Heir to Cragflame
 Mabel, Valley Hero
 Macabre Mockery
-Machinist's Arsenal
 Mad Dog
 Madame Hydra
 Madame Null, Power Broker
@@ -2716,7 +2706,6 @@ Magda, Brazen Outlaw
 Magda, the Hoardmaster
 Mage Tower Referee
 Mageta the Lion
-Magic Pot
 Magister Sphinx
 Magistrate's Scepter
 Magmakin Artillerist
@@ -3078,7 +3067,6 @@ Nicol Bolas, the Deceiver
 Night Market
 Night Market Lookout
 Nightblade Brigade
-Nightfire Giant
 Nighthawk, Dark Defender
 Nighthowl Pursuer
 Nightmare's Thirst
@@ -3889,7 +3877,6 @@ Scolding Administrator
 Scorched Geyser
 Scorching Shot
 Scorchwalker
-Scoria Cat
 Scoria Elemental
 Scornful Egotist
 Scorpion's Sting
@@ -4144,7 +4131,6 @@ Skyshroud Elite
 Skyshroud Falcon
 Skyshroud Forest
 Skyskipper Duo
-Skysnare Spider
 Skystinger
 Skystreak Engineer
 Skystrike Officer
@@ -4510,7 +4496,6 @@ Suntail Hawk
 Suntouched Myr
 Super Shredder
 Supernatural Stamina
-Suplex
 Supplementation Node
 Supply
 Supportive Parents
@@ -5305,7 +5290,6 @@ Winter, Tormented Loner
 Winternight Stories
 Winterthorn Blessing
 Wirefly Hive
-Wirewood Guardian
 Wirewood Symbiote
 Wisdom of Ages
 Wisecrack

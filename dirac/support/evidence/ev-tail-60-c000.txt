@@ -465,6 +465,7 @@ Tainted Strike
 Tangle Golem
 Tarkir Charm
 Tarnished Citadel
+Tasigur's Cruelty
 Tawnos's Wand
 Tek
 Tenacity
