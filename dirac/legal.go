@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -67,13 +65,6 @@ func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *k
 func (s *State) priorityOptions(k *prep, d *Decision) {
 	p := s.prio
 	pl := &s.pl[p]
-	if castDbgOn() {
-		for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
-			if s.perms[b.first()].flags&pfTapped != 0 {
-				fmt.Fprintf(os.Stderr, "CASTDBG prio-start tapped card=%s\n", k.t.CardName(s.cardAt(b.first())))
-			}
-		}
-	}
 	sorc := s.sorcerySpeed(p)
 	var av avail
 	// A cast's census leaves a dynamic {T}, sacrifice source out (avail.dynSac
@@ -212,9 +203,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
 		if !s.castGateOrPoolPays(k, p, c, o, cost, cav) {
-			if castDbgOn() {
-				s.castDbgDump(k, p, c, o, cost, cav)
-			}
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -444,18 +432,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	}
 	if k.gen != nil && k.gen.anySplitSecond && s.splitSecondHolds(k) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
-	}
-	if castDbgOn() {
-		for i := 0; i < int(d.N); i++ {
-			if a := d.Options[i]; isCastKind(a.Kind()) && k.t.CardName(s.objs[Obj(a.Source())].card) == "Creeperhulk" {
-				depth := 0
-				if s.pool != nil {
-					depth = s.pool.depth
-				}
-				fmt.Fprintf(os.Stderr, "CASTDBG OFFERED cast(Creeperhulk) p=%d life=%d prioTapped=%v stack=%d forkDepth=%d pool=%v\n", p, s.pl[SeatIx(p)].life, s.prioTappedNames(k, p), s.sp, depth, s.pl[SeatIx(p)].pool)
-				break
-			}
-		}
 	}
 	d.add(MakeAction(AkPass, 0, 0, 0))
 }
@@ -2315,10 +2291,6 @@ func (s *State) censusPickOwns(k *prep, sl Slot, pc *pcard, cen *potCensus) bool
 // TapsForMana extra is recorded here too, after the production, as part of
 // the same tap (potentialTapExtra).
 func (s *State) potentialTapUnit(k *prep, p uint8, sl Slot, pc *pcard, mask uint8, add, fold func(Slot, uint8, uint8), painRefused bool, cen *potCensus) {
-	if castDbgOn() {
-		fmt.Fprintf(os.Stderr, "CASTDBG tapunit card=%s sl=%d mask=%02x n=%d painOnly=%v painN=%d life=%d\n",
-			k.t.CardName(s.cardAt(sl)), sl, mask, pc.manaN, pc.painOnly, pc.painN, s.pl[p].life)
-	}
 	if !s.censusTapXClaim(k, p, sl, int(pc.manaAb), k.tapXAbOf(s.cardAt(sl)), cen) {
 		return
 	}

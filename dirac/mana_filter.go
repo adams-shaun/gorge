@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1496,22 +1494,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
-	if castDbgOn() && isCastKind(a.Kind()) && k.t.CardName(s.objs[Obj(a.Source())].card) == "Creeperhulk" {
-		fmt.Fprintf(os.Stderr, "CASTDBG filtScript card=Creeperhulk need=%v useful=%v usefulOK=%v gaps=%v other=%v fees=%v fundN=%v feeOnly=%v dead=%v\n",
-			fs.need, fs.useful, fs.usefulOK, fs.gaps, fs.other, fs.fees, fs.fundN, fs.feeOnly, fs.dead)
-	}
 	found := fs.visit(k, t, 0, false)
-	if castDbgOn() && isCastKind(a.Kind()) && k.t.CardName(s.objs[Obj(a.Source())].card) == "Creeperhulk" {
-		fmt.Fprintf(os.Stderr, "CASTDBG filtScript found=%v nodes=%d stall=%d\n", found, fs.nodes, fs.stall)
-		for i := 0; i < fs.n; i++ {
-			st := fs.path[i]
-			nm := "PASS"
-			if st.sl != NoSlot {
-				nm = k.t.CardName(s.cardAt(st.sl))
-			}
-			fmt.Fprintf(os.Stderr, "CASTDBG   path[%d] sl=%d card=%s gap=%v ans=%d other=%+v\n", i, st.sl, nm, st.gap, st.ans, st.other)
-		}
-	}
 	nodes := fs.nodes
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
@@ -1731,15 +1714,6 @@ var DebugFiltTryGapExempt bool
 // tick counts one visited node; false once the budget is spent.
 func (fs *filtSearch) tick() bool {
 	budget := potentialScriptNodes
-	if v := os.Getenv("DIRAC_NODEBUDGET"); v != "" {
-		n := 0
-		for i := 0; i < len(v); i++ {
-			n = n*10 + int(v[i]-'0')
-		}
-		if n > 0 {
-			budget = n
-		}
-	}
 	if fs.pay != nil {
 		budget = paySearchNodes
 	}
@@ -2331,11 +2305,6 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		tbl[fs.nseen] = key
 		fs.nseen++
 	}
-	if castDbgOn() && fs.a.Kind() == AkCast && fs.pay == nil {
-		if nm := k.t.CardName(t.objs[Obj(fs.a.Source())].card); nm == "Creeperhulk" {
-			fmt.Fprintf(os.Stderr, "CASTDBG visit node=%d funded=%d gapUsed=%v\n", fs.nodes, funded, gapUsed)
-		}
-	}
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	passes := fs.passCount()
@@ -2384,16 +2353,14 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			} else if t.fundOut(k, sl) {
 				continue
 			}
+			if !gap && !fs.coveredSpendable(k, t, sl) {
+				continue // a covered source whose restricted mana nothing here spends is a dead funding branch (scriptSpendableGaps, CR 106.6)
+			}
 			// Recorded once the slot is usable, as gorge's scriptTwin list is
 			// (after its availability gates): an earlier source that could not
 			// be activated walked no subtree its later twin would repeat.
 			tried[ntried] = sl
 			ntried++
-			if castDbgOn() && fs.a.Kind() == AkCast && fs.pay == nil {
-				if nm := k.t.CardName(t.objs[Obj(fs.a.Source())].card); nm == "Creeperhulk" {
-					fmt.Fprintf(os.Stderr, "CASTDBG try node=%d sl=%d card=%s pass=%d gap=%v\n", fs.nodes, sl, k.t.CardName(t.cardAt(sl)), pass, gap)
-				}
-			}
 			if gap {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
@@ -2921,6 +2888,45 @@ func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
 		r := k.gen.grantOf[gi[i]]
 		if k.gen.grantRestr[gi[i]] == 0 || s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d) {
 			return true
+		}
+	}
+	return false
+}
+
+// coveredSpendable is gorge scriptSearch.coveredSpendable's funding prune,
+// the covered-source arm of the gap filter above (gapSpendableMask, gorge
+// scriptSpendableGaps): a plain cast's covered source whose every mana
+// ability, printed or granted, is restricted away from the cast and from
+// every census gap's activation fee can only float mana nothing here spends
+// -- a funding tap of one changes the tapped bit alone and spends the node
+// budget on dead branches before the source that pays (Myr Reservoir's
+// "Spend this mana only to cast Myr spells" beside a non-Myr cast, CR 106.6).
+// A creature stays: its tap can still pay a cost (convoke, crew, a
+// tapXType<Creature> filter's fee). Only the cast walks this search; an
+// activation keeps every funding source, as gorge's does (its prune reads
+// the play kind, potentialCastKind).
+func (fs *filtSearch) coveredSpendable(k *prep, t *State, sl Slot) bool {
+	if fs.pay != nil || fs.a.Kind() != AkCast || !gapFilteredPlay(fs.a) {
+		return true
+	}
+	if k.t.Cards[t.cardAt(sl)].Types&kop.TCreature != 0 {
+		return true
+	}
+	d := t.grantPayDesc(k, fs.a)
+	if t.gapSpendable(k, sl, &d) {
+		return true
+	}
+	// a restricted covered source can still pay a census gap's activation
+	// fee even when the play itself cannot spend it (Vhal's "{C} ... can't
+	// be spent to cast a spell from hand" pays School of the Unseen's {2},
+	// whose mana the cast spends, CR 106.6): the fee is an activation of the
+	// gap, not the play, so test each gap source
+	for b := fs.gaps.or(fs.other); b.any(); b = b.rest() {
+		if gid := b.first(); gid != sl {
+			fd := payDesc{class: pdAct, card: t.cardAt(gid), src: gid}
+			if t.gapSpendable(k, sl, &fd) {
+				return true
+			}
 		}
 	}
 	return false
