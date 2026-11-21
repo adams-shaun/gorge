@@ -1519,14 +1519,12 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		// battery's answer first), then every X the battery's ask offers
 		// (mana_grantstore.go); a failed storage branch of a grant holder
 		// leaves its grant side to visit (CR 605.1a)
-		if g.ng[i] > 0 && !g.node() {
-			return false, true
-		}
-		if g.storeBranch(t, i, sl) {
+		found, asked := g.storeBranch(t, i, sl)
+		if found {
 			return true, true
 		}
 		if g.ng[i] > 0 {
-			g.storeAsked = true // the grant side's ask is this one
+			g.storeAsked = asked // the grant side's ask is this one
 			return false, false
 		}
 		return false, true
