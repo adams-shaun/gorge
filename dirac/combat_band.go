@@ -53,10 +53,11 @@ func (s *State) declOrder(out *[MaxPerm]Slot) int {
 
 // bandDefender is the defender an attacker attacks as gorge compares it for a
 // band (Object.Attacking, Object.AttackingBattle): the defending seat and the
-// attacked battle, if any.
+// attacked battle or planeswalker, if any (CR 702.22c: the same player or
+// planeswalker).
 func (s *State) bandDefender(k *prep, sl Slot) (seat uint8, battle Slot) {
 	battle = NoSlot
-	if q := s.attackedPerm(k, sl); q != NoSlot && s.typesAt(k, q)&kop.TBattle != 0 {
+	if q := s.attackedPerm(k, sl); q != NoSlot && s.typesAt(k, q)&(kop.TBattle|kop.TPlaneswalker) != 0 {
 		battle = q
 	}
 	return s.atkSeat(k, sl), battle
