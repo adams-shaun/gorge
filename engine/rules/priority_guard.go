@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -102,7 +101,7 @@ func (e *Engine) priorityOptionStale(p state.PlayerID, opt decision.Option) stri
 			return e.grantedAnchorStale(o, opt)
 		case opt.Keyword != "":
 			// beginKeywordGrantedActivation's anchor.
-			if o.Face() == nil || cards.GrantedKeywordAbility(opt.Keyword) == nil {
+			if o.Face() == nil || grantedKeywordSA(o, opt.Keyword) == nil {
 				return "the keyword-granted ability no longer resolves"
 			}
 		default:

@@ -1021,12 +1021,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// A saddle ability a static grants (Jandor, Fortuned Traveler's
 				// "has saddle 2"): the kernel's latent-ability activation,
 				// told apart by the granting permanent (kgen
-				// lower_saddlegrant.go). Only saddle is modelled: the other
-				// granted-keyword abilities keep the anchored note below.
+				// lower_saddlegrant.go). Only saddle and the embalm below are
+				// modelled: the other granted-keyword abilities keep the
+				// anchored note below.
 				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
 					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
 					continue
 				}
+			}
+			if o.Keyword == grantedEmbalmLine && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 {
+				// Cursecloth Wrappings' granted embalm (kgen lower_embalmgrant.go)
+				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
+				continue
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
@@ -1077,6 +1083,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	for _, pp := range e.PotentialPaymentPlans(d.Player) {
 		pa := pp.Action
 		var a Canon
+		kw := "" // the keyword line a keyword-granted ability play carries
 		switch pa.Kind {
 		case "cast":
 			// The planner prices the face routes the kernel offers from its
@@ -1114,6 +1121,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
 			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
 				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			} else if pa.Ability < 0 && g.grantedEmbalm(pa.Obj) {
+				a = grantedEmbalmAction(ref(pa.Obj)) // as the offer above
+				kw = grantedEmbalmLine
 			}
 		case "turn_face_up":
 			var ok bool
@@ -1175,7 +1185,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			g.Stats.note(&g.Stats.UnpricedPlays, "no plan: "+pa.Label)
 			continue
 		}
-		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode},
+		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode, Keyword: kw},
 			plan: decision.ClonePaymentPlan(*pp.Plan)}
 		if (pa.Kind == "ability" || a.Kind() == ActCastFace) && !g.lowerCompletes(&pe) {
 			// the witness funds only the mana half of a Phyrexian
@@ -2294,6 +2304,20 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 		return false
 	}
 	return o.Face().Abilities[i].IsCopyGranted()
+}
+
+// grantedEmbalmLine is the keyword line Cursecloth Wrappings' pump grants.
+const grantedEmbalmLine = "Embalm:CardManaCost"
+
+// grantedEmbalmAction is the kernel's granted embalm of the card src
+// (dirac kw_embalmgrant.go): the granted-ability activation with the card as
+// its source and no grantor, the target code 0 its canonical form reads as ref
+// 0 whatever granted it.
+func grantedEmbalmAction(src Ref) Canon { return Pack(ActActivate, src, Ref(0), 255) }
+
+// grantedEmbalm reports whether id holds the embalm of grantedEmbalmLine.
+func (g *GorgeSide) grantedEmbalm(id state.ObjID) bool {
+	return slices.Contains(g.E.Derived(id).Keywords, grantedEmbalmLine)
 }
 
 // selfKeywordGrant reports whether a continuous effect on object id itself
