@@ -54,7 +54,7 @@ func (s *State) fireBlockedGen(k *prep) {
 					// the Aura/creature the trigger sits on, not the attacker, so
 					// RefDefendingPlayer and defendingSeatF2 need the seat bound
 					// here as an Attacks trigger's is (combat.go fireAttacksGen).
-					s.stampDefSeat(n0, s.atkSeat(k, as), false)
+					s.stampDefSeat(n0, s.atkSeat(k, as), NoTarget)
 				}
 			}
 		})
@@ -126,7 +126,7 @@ func (s *State) firePairTrig(k *prep, l trigListener, a *kop.Ability, ps []blkPa
 		n0 := s.npend
 		s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, at, s.perms[other].obj, s.perms[other].ctrl, 0)
 		if !s.duel() {
-			s.stampDefSeat(n0, s.atkSeat(k, at), false)
+			s.stampDefSeat(n0, s.atkSeat(k, at), NoTarget)
 		}
 	}
 }

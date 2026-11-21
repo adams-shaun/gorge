@@ -306,13 +306,20 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 // stolen creature). The attacker gone: gorge binds the defending player as
 // the trigger is queued (CR 603.10, 608.2h) and deals the damage there from
 // the attacker's last known information, which the kernel does only for a
-// bound player. An unset or object-tagged defSeat names no such player; a
-// bound seat that is the trigger's own controller is the .Opponent case
-// again, not a damage recipient.
+// bound player, or, behind C AtkPWHit, for a bound planeswalker or battle
+// (the atkObj table's object; attackedObjOr). An unset defSeat, or an
+// object-tagged one without that object, names no such recipient; a bound
+// seat that is the trigger's own controller is the .Opponent case again, not
+// a damage recipient.
 func (s *State) atkPWGuardStalls(k *prep, sl Slot, in *kop.Instr) bool {
 	if sl == NoSlot {
 		d := s.res.e.defSeat
-		return d == 0 || d&defSeatObj != 0 || defSeatSeat(d) == s.res.e.ctrl
+		if d == 0 || defSeatSeat(d) == s.res.e.ctrl {
+			return true
+		}
+		// an object attack is damaged only behind C AtkPWHit, from the table
+		// that kept the object as the trigger was queued (trig_atkobj.go)
+		return d&defSeatObj != 0 && (in.C&kop.AtkPWHit == 0 || s.atkObjOf(d) == NoTarget)
 	}
 	return in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl
 }
@@ -336,9 +343,17 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 // attackedObjOr is code, or the planeswalker/battle the trigger object is
 // attacking when it attacks one (OpDealDamage B.N DmgAtkedObj behind
 // OpAtkPWGuard C AtkPWHit; gorge's Valid Planeswalker.TriggeredDefender arm).
+// An attacker that has left the battlefield (or come back as a new object)
+// names the object the trigger bound as it was queued (CR 603.3c, 608.2h).
 func (s *State) attackedObjOr(k *prep, code TCode) TCode {
 	if sl := s.objRef(k, kop.RefTriggerObj); sl != NoSlot {
 		if a := s.perms[sl].atk; isObjTarget(a) {
+			return a
+		}
+		return code
+	}
+	if e := &s.res.e; e.kind == seTrigger {
+		if a := s.atkObjOf(e.defSeat); a != NoTarget {
 			return a
 		}
 	}

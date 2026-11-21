@@ -223,6 +223,9 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if c := s.atkLastCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // trig_atklastturn.go
 	}
+	if c := s.atkObjCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))*unsafe.Sizeof(c[0])) // trig_atkobj.go
+	}
 	if c := s.contractCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // ctr_contract.go
 	}

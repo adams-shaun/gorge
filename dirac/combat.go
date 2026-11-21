@@ -495,7 +495,7 @@ func (s *State) finishAttacks(k *prep) {
 			n0 := s.npend
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
 			if !s.duel() && !DebugDropDefSeat {
-				s.stampDefSeat(n0, s.firstAtkSeat(k), false) // the declaration's first event's seat (a player)
+				s.stampDefSeat(n0, s.firstAtkSeat(k), NoTarget) // the declaration's first event's seat (a player)
 			}
 		}
 		if s.subs[kop.TrigTaps].any() {
@@ -534,6 +534,7 @@ func (s *State) fireAttacksGen(k *prep) {
 	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) && !k.gen.ringOn() {
 		return
 	}
+	s.atkObjReset() // this declaration's attacked objects (trig_atkobj.go)
 	var atk [MaxPerm]Slot
 	na := 0
 	for p := uint8(0); p < MaxSeats; p++ {
@@ -613,7 +614,7 @@ func (s *State) fireAttacksGen(k *prep) {
 				if !s.duel() {
 					s.g.atkDef = 0
 					if !DebugDropDefSeat {
-						s.stampDefSeat(n0, q, isObjTarget(def))
+						s.stampDefSeat(n0, q, def)
 					}
 				}
 				first = false
@@ -647,7 +648,15 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 // defSeatObj tags an attack trigger's defSeat whose attack event was on a
 // planeswalker or battle: the low bits are the defending seat + 1, this bit
 // says the attacker attacked an object. A defSeat without it names a player.
+// Bits 3..6 (defSeatIxMask) are the attacked object's index + 1 in the cold
+// atkObj table (trig_atkobj.go), 0 = none.
 const defSeatObj = 0x80
+
+const (
+	defSeatSeatMask = 0x07
+	defSeatIxShift  = 3
+	defSeatIxMask   = 0x0f << defSeatIxShift
+)
 
 // defSeatPack is an attack trigger's defSeat byte: defending seat q + 1,
 // tagged defSeatObj when the attack was on a planeswalker or battle; noSeat
@@ -664,16 +673,20 @@ func defSeatPack(q uint8, obj bool) uint8 {
 }
 
 // defSeatSeat is the defending seat a defSeat byte names (0 = none).
-func defSeatSeat(d uint8) uint8 { return (d &^ defSeatObj) - 1 }
+func defSeatSeat(d uint8) uint8 { return (d & defSeatSeatMask) - 1 }
 
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
 // (pendingTrig.defSeat, tagged when the attack event was on a planeswalker or
-// battle); noSeat binds none.
-func (s *State) stampDefSeat(n0 uint8, q uint8, obj bool) {
+// battle, at, which then also keeps the object's atkObj index); noSeat binds
+// none.
+func (s *State) stampDefSeat(n0 uint8, q uint8, at TCode) {
 	if q == noSeat {
 		return
 	}
-	d := defSeatPack(q, obj)
+	d := defSeatPack(q, isObjTarget(at))
+	if isObjTarget(at) {
+		d |= s.atkObjIntern(at) << defSeatIxShift
+	}
 	for i := n0; i < s.npend; i++ {
 		s.pend[i].defSeat = d
 	}
@@ -749,7 +762,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 				// the event; at two seats only a TriggeredDefender damage
 				// reads the seat, and binding every trigger would change
 				// the others' reads.
-				s.stampDefSeat(n0, s.atkSeat(k, as), isObjTarget(s.perms[as].atk))
+				s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
 			}
 		}
 	}

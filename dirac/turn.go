@@ -31,6 +31,7 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anyAtkLast {
 		s.atkLastTurnEnd() // the outgoing seat's attacks become its last turn's (trig_atklastturn.go)
 	}
+	s.atkObjReset() // the turn's attacked objects (trig_atkobj.go)
 	s.newTurnGen()
 	if k := s.k(); k.gen != nil && k.gen.anySaddle {
 		s.unsaddleAll(k)
