@@ -193,8 +193,16 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 		return
 	}
-	if k.gen.anyCantCast && s.castForbidden(k, p, c, o) || s.castHeldOut(o) {
-		return // a card twice reversed for no progress is held out of every cast route (CR 733.2), not only a paid one
+	if k.gen.anyCantCast {
+		var ccost *kop.ManaCost
+		if mode&castFree == 0 {
+			ccost = &pc.cost // a free cast fixes X at 0 (CR 107.3b)
+		}
+		if s.castForbiddenCost(k, p, c, o, ccost, av) || s.castHeldOut(o) {
+			return // a card twice reversed for no progress is held out of every cast route (CR 733.2), not only a paid one
+		}
+	} else if s.castHeldOut(o) {
+		return
 	}
 	s.offerBargainPlay(k, d, p, o, c, mode, anyMana, av) // kw_bargain.go
 	if mode&castFree == 0 {
