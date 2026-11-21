@@ -2469,10 +2469,9 @@ func (s *State) grantPayDescOf(k *prep, a Action) payDesc {
 	o := Obj(a.Source())
 	switch a.Kind() {
 	case AkCast, AkCastCasualty, AkCastConspire:
-		og := restrOrigin{from: s.objs[o].zone}
 		// a face cast's spend restriction reads the face being cast (CR
 		// 715.3b, 709.3a): Storm Reading's mana value, not Galvanic Giant's
-		return payDesc{class: pdSpell, card: s.castFaceCard(k, a), src: NoSlot, og: og}
+		return payDesc{class: pdSpell, card: s.castFaceCard(k, a), src: NoSlot, og: s.restrOriginOfObj(o)}
 	case AkActivate:
 		d := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && ob.slot != NoSlot {

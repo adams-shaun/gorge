@@ -174,7 +174,7 @@ func restrSrcAb(a *kop.Ability) bool {
 	// census gap of restrAnyTapMana (mana_nocounter.go)
 	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !a.ManaNoCounter && !restrWideAnyMana(a) &&
 		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice|kop.AfManaChosen) == 0 &&
-		(a.Cost.Flags == kop.CostTap || restrLifeAb(a)) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		(a.Cost.Flags == kop.CostTap || restrLifeAb(a) || restrSacSelfAb(a)) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
@@ -207,7 +207,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			for n := 0; n <= maxDynMana; n++ {
 				g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true})
 			}
-		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 && !restrLifeAb(a) &&
+		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 && !restrLifeAb(a) && !restrSacSelfAb(a) &&
 			(!pc.manaChosen || a.AFlags&kop.AfManaChosen != 0):
 			rec.kind = rkWiden
 			v := *pc
@@ -257,6 +257,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				v.restrLife = a.Cost.N
 				g.rs.life = true
 			}
+			v.manaSac = restrSacSelfAb(a)
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -297,7 +298,7 @@ func (s *State) payDescNow(exclude Obj) payDesc {
 		case seSpell:
 			og := s.restrOriginOfObj(e.obj)
 			if s.bld().bfl&bflPushed != 0 {
-				og = restrOriginOfEntry(e)
+				og = s.restrOriginOfEntry(e)
 			}
 			og.bestowed = e.bestowedEntry() // CR 702.103b
 			return payDesc{class: pdSpell, card: e.card, src: NoSlot, og: og}
