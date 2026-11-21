@@ -65,6 +65,21 @@ var DebugAtkTaxEachOne bool
 // reflected source tapped with several colours on offer makes the first.
 var DebugAtkTaxReflPin bool
 
+// DebugAtkTaxPaidLast (test only, TestFourSeatAtkTaxPaidLockstep): the
+// window taps a self-sacrificing source with the choice-shaped ones, in
+// battlefield order, not between them and the fixed-production ones.
+var DebugAtkTaxPaidLast bool
+
+// The window's census passes (gorge attackManaSources): the free
+// fixed-production sources, then the paid-cost ones windowManaUnitsPaid
+// appends (a self-sacrifice, a fixed life cost), then the choice-shaped ones
+// attackChoiceManaSources appends.
+const (
+	atkPassFixed = iota
+	atkPassPaid
+	atkPassChoice
+)
+
 // atkTaxOn reports whether the table carries an attack tax.
 func atkTaxOn(k *prep) bool { return k.gen != nil && k.gen.anyAtkTax }
 
@@ -110,7 +125,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 			if atkTaxUnlisted(a) {
 				continue
 			}
-			if !atkTaxManaAb(a) && !atkTaxPainPair(c, first, j) {
+			if !atkTaxManaAb(a) && !atkTaxPaidAb(a) && !atkTaxPainPair(c, first, j) {
 				return true
 			}
 			if first < 0 {
@@ -179,6 +194,35 @@ func atkTaxManaAb(a *kop.Ability) bool {
 		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 || atkTaxReflAb(a)) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
 		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
+}
+
+// atkTaxPaidAb reports whether mana ability a is a self-sacrifice source of
+// the shape gorge's paid-cost census lists (paidCostShape: Sac<1/CARDNAME>,
+// alone or with {T}: a Treasure's "{T}, Sacrifice this token: Add one mana of
+// any color", an Eldrazi Spawn's "Sacrifice this creature: Add {C}", a Gold
+// token): one colour or a choice of colours, a literal amount, no rider.
+func atkTaxPaidAb(a *kop.Ability) bool {
+	f := a.Cost.Flags
+	return a.Kind == kop.AbMana && (f == kop.CostSacSelf || f == kop.CostTap|kop.CostSacSelf) && a.Cost.Mana == (kop.ManaCost{}) &&
+		!a.Cost.DiscardHand && a.ManaN > 0 && len(a.Prog) == 0 && a.AFlags&^kop.AfManaChoice == 0 && a.ManaColors != 0 && a.ManaColors&^0x3f == 0 &&
+		a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 &&
+		a.ManaRider == 0 && a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0 && !a.ManaIdentity
+}
+
+// atkTaxPaid is atkTaxShape for a self-sacrifice source: gorge's census lists
+// it after every free fixed-production source (appendPaidManaUnits) and, a
+// choice of colours pinned per colour (paidManaAlts), its first alternative
+// the lowest colour. A tapped one is out only when its cost taps (a sacrifice
+// alone needs no untapped source, CR 605.1a: ActivationTapCostUnavailable).
+func (s *State) atkTaxPaid(k *prep, sl Slot, pc *pcard, a *kop.Ability) (col, n, pass int, ok bool) {
+	if a.Cost.Flags&kop.CostTap != 0 && !s.canTapForManaPC(k, sl, pc) || a.Cost.Flags&kop.CostTap == 0 && !s.canSacOnlyNow(k, sl, pc) {
+		return 0, 0, 0, false
+	}
+	pass = atkPassPaid
+	if DebugAtkTaxPaidLast {
+		pass = atkPassChoice
+	}
+	return bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f), int(a.ManaN), pass, true
 }
 
 // atkTaxReflAb reports whether mana ability a is a reflected "one mana of any
@@ -354,18 +398,21 @@ func (s *State) atkTaxScope(k *prep, st *kop.Static, ctrl uint8, tgt TCode) bool
 // pinned to its first producible colour in W U B R G C order; a chosen-colour
 // ability lists only with a recorded colour, and a colour identity outside a
 // commander game makes nothing.
-func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
+func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	if DebugAtkTaxCountUnlisted {
 		if col, n, ok = s.atkTaxDebugUnlisted(k, sl); ok {
-			return col, n, true, true
+			return col, n, atkPassFixed, true
 		}
-	}
-	if !s.canTapForMana(k, sl) {
-		return 0, 0, false, false
 	}
 	pc := s.manaPCGen(k, sl)
 	cd := &k.t.Cards[s.cardAt(sl)]
 	a := manaAbView(cd, pc)
+	if a != nil && atkTaxPaidAb(a) {
+		return s.atkTaxPaid(k, sl, pc, a)
+	}
+	if !s.canTapForManaPC(k, sl, pc) {
+		return 0, 0, 0, false
+	}
 	if a == nil || a.Kind != kop.AbMana {
 		// a granted basic land type's intrinsic view (a card whose own
 		// abilities name no mana ability: manaAb 0 marks the intrinsic slot,
@@ -373,47 +420,47 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n int, fixed, ok bool) {
 		// statics): the view's facts name the production, and the window
 		// lists it as the fixed single colour it is
 		if pc.blgFirst == 0 {
-			return 0, 0, false, false
+			return 0, 0, 0, false
 		}
 		m := uint8(pc.manaCol) & 0x3f
 		if m == 0 {
-			return 0, 0, false, false
+			return 0, 0, 0, false
 		}
-		return bits.TrailingZeros8(m), int(pc.manaN), true, true
+		return bits.TrailingZeros8(m), int(pc.manaN), atkPassFixed, true
 	}
 	if a.ManaIdentity {
 		// gorge's attack window excludes the commander-identity shape: the
 		// parser claims no colour for it (rules attackChoiceManaSources)
-		return 0, 0, false, false
+		return 0, 0, 0, false
 	}
 	m := uint8(a.ManaColors) & 0x3f
 	if atkTaxReflAb(a) {
 		// the view's colours are what the opponents' lands could produce now
 		// (manaReflView); none and gorge lists no ability (considerReflected)
 		if m = uint8(pc.manaCol) & 0x3f; m == 0 {
-			return 0, 0, false, false
+			return 0, 0, 0, false
 		}
-		return bits.TrailingZeros8(m), int(a.ManaN), true, true
+		return bits.TrailingZeros8(m), int(a.ManaN), atkPassFixed, true
 	}
 	if a.ManaEach && atkTaxEachAb(a) {
 		if DebugAtkTaxEachOne {
-			return bits.TrailingZeros8(m), int(a.ManaN), true, true
+			return bits.TrailingZeros8(m), int(a.ManaN), atkPassFixed, true
 		}
-		return bits.TrailingZeros8(m), int(a.ManaN) * bits.OnesCount8(m), true, true
+		return bits.TrailingZeros8(m), int(a.ManaN) * bits.OnesCount8(m), atkPassFixed, true
 	}
 	switch {
 	case a.AFlags&kop.AfManaChosen != 0:
 		ch := s.perms[sl].chosen
 		if ch >= 5 {
-			return 0, 0, false, false
+			return 0, 0, 0, false
 		}
 		m |= 1 << ch
 	case a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(m) == 1:
-		return bits.TrailingZeros8(m), int(a.ManaN), true, true
+		return bits.TrailingZeros8(m), int(a.ManaN), atkPassFixed, true
 	case m == 0:
-		return 0, 0, false, false
+		return 0, 0, 0, false
 	}
-	return bits.TrailingZeros8(m), int(a.ManaN), false, true
+	return bits.TrailingZeros8(m), int(a.ManaN), atkPassChoice, true
 }
 
 // atkTaxUnits is what the source at sl adds toward a charge (gorge
@@ -560,20 +607,24 @@ func (s *State) atkTaxAnyOffer(k *prep) bool {
 // battlefield order, else the first choice-shaped one, a declared attacker
 // without vigilance withheld (CR 508.1f taps it before 508.1h's mana
 // abilities). NoSlot when none is left.
-func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, col, n int) {
+func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, col, n, pass int) {
 	var order [MaxPerm]Slot
 	no := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
-	for pass := 0; pass < 2; pass++ {
+	passes := [3]int{atkPassFixed, atkPassPaid, atkPassChoice}
+	if DebugAtkTaxChoiceFirst {
+		passes = [3]int{atkPassChoice, atkPassFixed, atkPassPaid}
+	}
+	for _, want := range passes {
 		for _, o := range order[:no] {
 			if s.perms[o].flags&pfAttacking != 0 && (s.kw(k, o)&kop.KwVigilance == 0 || DebugAtkTaxWithholdVigilant) {
 				continue
 			}
-			if c, u, fixed, ok := s.atkTaxShape(k, o); ok && u > 0 && fixed == (pass == 0 != DebugAtkTaxChoiceFirst) {
-				return o, c, u
+			if c, u, ps, ok := s.atkTaxShape(k, o); ok && u > 0 && ps == want {
+				return o, c, u, ps
 			}
 		}
 	}
-	return NoSlot, 0, 0
+	return NoSlot, 0, 0, 0
 }
 
 // atkTaxPay pays the declaration's attack tax as Done is answered (CR
@@ -606,25 +657,17 @@ func (s *State) atkTaxPay(k *prep) {
 		if have >= total {
 			break
 		}
-		sl, col, n := s.atkTaxNext(k, p)
+		sl, col, n, pass := s.atkTaxNext(k, p)
 		if sl == NoSlot {
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				if a := m.first(); s.perms[a].flags&pfAttacking != 0 {
 					s.leaveCombat(a)
 				}
 			}
-			if pend >= 0 {
-				// no tap ask displaces it: gorge answers the colour ask the
-				// abandoned window left posed, with its first colour
-				s.poolAdd(p, pend, 1)
-				s.artTag(k, p, pendSl, pend)
-			}
+			s.atkTaxPendingAsk(k, p, pend, pendSl)
 			return
 		}
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		pend, pendSl = s.atkTaxAddMana(k, p, sl, col, n), sl
+		pend, pendSl = s.atkTaxTap(k, p, sl, col, n, pass), sl
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}
@@ -649,6 +692,38 @@ func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot) (col, n int, ok bool) {
 		return 0, 0, false
 	}
 	return bits.TrailingZeros8(m), 1, true
+}
+
+// atkTaxTap is one tap the window's answer makes: the source at sl taps for
+// its mana (atkTaxAddMana) or, a self-sacrifice source (atkPassPaid), adds its
+// mana and is sacrificed with no tap (CR 605.1a; fundSacOnly's order). It
+// returns the colour of the reflected-mana ask the tap leaves posed, -1 for none.
+func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, col, n, pass int) int {
+	if pass == atkPassPaid || DebugAtkTaxPaidLast && s.atkTaxIsPaid(k, sl) {
+		s.poolAdd(p, col, n)
+		s.artTag(k, p, sl, col)
+		s.sacFilterSource(k, sl)
+		return -1
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	return s.atkTaxAddMana(k, p, sl, col, n)
+}
+
+// atkTaxIsPaid reports whether the source at sl is a self-sacrifice source.
+func (s *State) atkTaxIsPaid(k *prep, sl Slot) bool {
+	a := manaAbView(&k.t.Cards[s.cardAt(sl)], s.manaPCGen(k, sl))
+	return a != nil && atkTaxPaidAb(a)
+}
+
+// atkTaxPendingAsk answers the colour ask an abandoned window leaves posed:
+// no tap ask displaces it, so gorge answers it with its first colour.
+func (s *State) atkTaxPendingAsk(k *prep, p uint8, pend int, sl Slot) {
+	if pend >= 0 {
+		s.poolAdd(p, pend, 1)
+		s.artTag(k, p, sl, pend)
+	}
 }
 
 // atkTaxAddMana floats the mana the tapped source at sl made: n of col, or

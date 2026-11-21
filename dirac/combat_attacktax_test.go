@@ -11,7 +11,7 @@ import (
 
 // An attack tax refuses the matchup beside each part its walk does not
 // model (combat_attacktax.go atkTaxGap), and plays beside a source of a
-// shape it prices (atkTaxManaAb).
+// shape it prices (atkTaxManaAb, atkTaxPaidAb) or never lists (atkTaxUnlisted).
 func TestAttackTaxRefusesUnmodelledPartners(t *testing.T) {
 	tap := kop.Cost{Flags: kop.CostTap}
 	tax := kop.CardDef{Name: "Half Tax", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbStatic,
@@ -25,7 +25,18 @@ func TestAttackTaxRefusesUnmodelledPartners(t *testing.T) {
 	}{
 		{land("Half Fixed", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColG, ManaN: 1}), false},
 		{land("Half Choice", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW | kop.ColU, ManaN: 1, AFlags: kop.AfManaChoice}), false},
-		{land("Half Treasure", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1}), true},
+		{land("Half Treasure", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1}), false},
+		{land("Half Spawn", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostSacSelf}, ManaColors: kop.ColC, ManaN: 1}), false},
+		{land("Half Treasure Rider", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1, ManaRider: kop.ManaRiderOppGainLife}), true},
+		{land("Half Signet", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap, Mana: kop.ManaCost{Generic: 1}}, ManaColors: kop.ColW | kop.ColU, ManaN: 1, ManaEach: true}), false},
+		{land("Half Bounce", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW | kop.ColU, ManaN: 1, ManaEach: true}), false},
+		{land("Half Bounce Choice", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW | kop.ColU, ManaN: 1, ManaEach: true, AFlags: kop.AfManaChoice}), true},
+		{kop.CardDef{Name: "Half Fee First", Types: kop.TLand, Abilities: []kop.Ability{
+			{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap, Mana: kop.ManaCost{Generic: 1}}, ManaColors: kop.ColW | kop.ColU, ManaN: 1, ManaEach: true},
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1}}}, true},
+		{kop.CardDef{Name: "Half Fee Second", Types: kop.TLand, Abilities: []kop.Ability{
+			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1},
+			{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap, Mana: kop.ManaCost{Generic: 1}}, ManaColors: kop.ColW | kop.ColU, ManaN: 1, ManaEach: true}}}, false},
 		{land("Half Painland", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW, ManaN: 1,
 			Prog: []kop.Instr{{Op: kop.OpDealDamage, Obj: kop.RefController, A: kop.Const(1)}}}), true},
 		{kop.CardDef{Name: "Half Painland Pair", Types: kop.TLand, Abilities: []kop.Ability{

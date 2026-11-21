@@ -130,15 +130,31 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 // what the attack window's source walk refuses (atkTaxGap: the block window
 // walks the same sources), and a block floor or duty (blkTaxFloorPart).
 // Over-refusing is safe; admitting a shape the window misprices is not.
-func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) || blkTaxFloorPart(c) }
+func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxSelfSac(c) }
+
+// blkTaxSelfSac reports whether card c has a self-sacrifice mana ability (a
+// Treasure, an Eldrazi Spawn: atkTaxPaidAb). The attack window prices it, but
+// gorge's block window may sacrifice a declared blocker (a Spawn that blocks
+// pays for its own block) and commits the DeclareBlockers pair of the
+// sacrificed creature, which stays among its attacker's blockers: the kernel
+// drops the pair with the permanent, so the block window leaves the shape
+// refused.
+func blkTaxSelfSac(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if atkTaxPaidAb(&c.Abilities[j]) {
+			return true
+		}
+	}
+	return false
+}
 
 // blkTaxStallPair is pairRefusalN's StallBlkTax half: the text and the two
 // sides, the cards with a block tax and the cards with a gap.
 func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
 	_, _, atkB := atkTaxStallPair(t, g)
-	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
+	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape or a self-sacrifice one, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
-	b := func(c *kop.CardDef, i int) bool { return atkB(c, i) || blkTaxFloorPart(c) }
+	b := func(c *kop.CardDef, i int) bool { return atkB(c, i) || blkTaxFloorPart(c) || blkTaxSelfSac(c) }
 	return text, a, b
 }
 
@@ -253,6 +269,7 @@ func (s *State) blkTaxPay(k *prep) bool {
 		return true
 	}
 	pool := &s.pl[SeatIx(p)].pool
+	pend, pendSl := -1, NoSlot
 	for {
 		have := 0
 		for _, v := range pool {
@@ -261,15 +278,12 @@ func (s *State) blkTaxPay(k *prep) bool {
 		if have >= total {
 			break
 		}
-		sl, col, n := s.atkTaxNext(k, p)
+		sl, col, n, pass := s.atkTaxNext(k, p)
 		if sl == NoSlot {
+			s.atkTaxPendingAsk(k, p, pend, pendSl)
 			return false
 		}
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		s.poolAdd(p, col, n)
-		s.artTag(k, p, sl, col)
+		pend, pendSl = s.atkTaxTap(k, p, sl, col, n, pass), sl
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}

@@ -107,10 +107,13 @@ func runAtkShape(t *testing.T, deck []cardset.Entry, seeds int, mut *bool, on bo
 // atkShapeTally counts one attack-payment window ask: the window, the
 // sources the payer holds untapped and the one the oracle taps.
 func atkShapeTally(g *state.Game, d *decision.Decision, idx int, tally map[string]int) {
-	if len(d.Options) == 0 || d.Options[0].Kind != "attack_mana" {
+	if len(d.Options) == 0 || d.Options[0].Kind != "attack_mana" && d.Options[0].Kind != "block_mana" {
 		return
 	}
 	tally["window taps"]++
+	if d.Options[0].Kind == "block_mana" {
+		tally["block taps"]++
+	}
 	for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(d.Player)) {
 		if ob := g.Obj(id); ob != nil && ob.Face() != nil && !ob.Tapped {
 			tally["present "+ob.Face().Name]++
@@ -127,12 +130,15 @@ func atkShapeTally(g *state.Game, d *decision.Decision, idx int, tally map[strin
 // least minTaps window taps, every name in present held untapped at a window
 // ask and every name in tapped tapped by one) and under its mutation (some
 // game diverges).
-func atkShapeLockstep(t *testing.T, deck []cardset.Entry, seeds, minTaps int, present, tapped []string, mut *bool) {
+func atkShapeLockstep(t *testing.T, deck []cardset.Entry, seeds, minTaps, minBlock int, present, tapped []string, mut *bool) {
 	t.Run("clean", func(t *testing.T) {
 		st := runAtkShape(t, deck, seeds, mut, false)
 		t.Logf("%d games, %d divergences, %d stalls; %s", st.games, st.divs, st.stalls, katTally(st.tally))
 		if st.tally["window taps"] < minTaps {
 			t.Errorf("only %d window taps, want >= %d", st.tally["window taps"], minTaps)
+		}
+		if st.tally["block taps"] < minBlock {
+			t.Errorf("only %d block-window taps, want >= %d", st.tally["block taps"], minBlock)
 		}
 		for _, n := range present {
 			if st.tally["present "+n] < 2 {
@@ -184,11 +190,11 @@ var atkTaxVividDeck = []cardset.Entry{
 // holding them untapped as the window pays from its basic lands.
 func TestFourSeatAtkTaxUnlistedLockstep(t *testing.T) {
 	t.Run("signet", func(t *testing.T) {
-		atkShapeLockstep(t, atkTaxUnlistedDeck, 24, 20,
+		atkShapeLockstep(t, atkTaxUnlistedDeck, 24, 20, 0,
 			[]string{"Azorius Signet", "Sungrass Prairie", "Prophetic Prism", "Wall of Roots"}, nil, &dirac.DebugAtkTaxCountUnlisted)
 	})
 	t.Run("vivid", func(t *testing.T) {
-		atkShapeLockstep(t, atkTaxVividDeck, 24, 20, []string{"Vivid Creek"}, nil, &dirac.DebugAtkTaxCountUnlisted)
+		atkShapeLockstep(t, atkTaxVividDeck, 24, 20, 0, []string{"Vivid Creek"}, nil, &dirac.DebugAtkTaxCountUnlisted)
 	})
 }
 
@@ -200,14 +206,14 @@ func TestFourSeatAtkTaxUnlistedLockstep(t *testing.T) {
 var atkTaxBounceDeck = []cardset.Entry{
 	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
 	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
-	{Name: "Azorius Chancery", Count: 4}, {Name: "Boros Garrison", Count: 2},
+	{Name: "Azorius Chancery", Count: 4}, {Name: "Boros Garrison", Count: 2}, {Name: "Archangel of Tithes", Count: 2},
 	{Name: "Plains", Count: 8}, {Name: "Island", Count: 4},
 }
 
 // TestFourSeatAtkTaxBounceLockstep: four-seat attack-tax games with bounce
 // lands play in lockstep, the window tapping a bounce land for its two units.
 func TestFourSeatAtkTaxBounceLockstep(t *testing.T) {
-	atkShapeLockstep(t, atkTaxBounceDeck, 24, 20, []string{"Azorius Chancery"}, []string{"Azorius Chancery"}, &dirac.DebugAtkTaxEachOne)
+	atkShapeLockstep(t, atkTaxBounceDeck, 24, 20, 1, []string{"Azorius Chancery"}, []string{"Azorius Chancery"}, &dirac.DebugAtkTaxEachOne)
 }
 
 // Reflected mana ("{T}: Add one mana of any color that a land an opponent
@@ -223,13 +229,35 @@ func TestFourSeatAtkTaxBounceLockstep(t *testing.T) {
 var atkTaxReflDeck = []cardset.Entry{
 	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
 	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
-	{Name: "Fellwar Stone", Count: 3}, {Name: "Exotic Orchard", Count: 2},
+	{Name: "Fellwar Stone", Count: 3}, {Name: "Exotic Orchard", Count: 2}, {Name: "Archangel of Tithes", Count: 2},
 	{Name: "Plains", Count: 8}, {Name: "Island", Count: 4},
 }
 
 // TestFourSeatAtkTaxReflectedLockstep: four-seat attack-tax games with
 // reflected-mana sources play in lockstep, the window tapping them.
 func TestFourSeatAtkTaxReflectedLockstep(t *testing.T) {
-	atkShapeLockstep(t, atkTaxReflDeck, 24, 20, []string{"Fellwar Stone", "Exotic Orchard"},
+	atkShapeLockstep(t, atkTaxReflDeck, 24, 20, 1, []string{"Fellwar Stone", "Exotic Orchard"},
 		[]string{"Fellwar Stone", "Exotic Orchard"}, &dirac.DebugAtkTaxReflPin)
+}
+
+// Self-sacrifice sources: a Treasure ("{T}, Sacrifice this token: Add one mana
+// of any color", Burdened Aerialist) and an Eldrazi Scion ("Sacrifice this
+// creature: Add {C}", Eldrazi Skyspawner). gorge's paid-cost census lists them
+// after every free fixed-production source and before the choice-shaped ones
+// (Birds of Paradise; windowManaUnitsPaid, attackChoiceManaSources), the
+// Treasure's colour pinned to its first alternative, {W}; a sacrifice alone
+// needs no untapped source (CR 605.1a). The mutation (DebugAtkTaxPaidLast)
+// taps them with the choice-shaped sources, in battlefield order.
+var atkTaxPaidDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Burdened Aerialist", Count: 4}, {Name: "Eldrazi Skyspawner", Count: 4}, {Name: "Birds of Paradise", Count: 3},
+	{Name: "Savannah Lions", Count: 2}, {Name: "Elite Vanguard", Count: 2},
+	{Name: "Plains", Count: 6}, {Name: "Island", Count: 5},
+}
+
+// TestFourSeatAtkTaxPaidLockstep: four-seat attack-tax games with Treasures
+// and Eldrazi Spawn play in lockstep, the window sacrificing them.
+func TestFourSeatAtkTaxPaidLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxPaidDeck, 32, 20, 0, []string{"Treasure Token", "Eldrazi Scion Token"},
+		[]string{"Treasure Token", "Eldrazi Scion Token"}, &dirac.DebugAtkTaxPaidLast)
 }
