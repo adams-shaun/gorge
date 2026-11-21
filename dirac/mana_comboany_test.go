@@ -1,8 +1,11 @@
 package dirac
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -81,5 +84,50 @@ func TestComboAnyAnswerOrder(t *testing.T) {
 	}
 	if caDigit(63, 5, 0) != 0 || caDigit(63, 5, 1) != 0 {
 		t.Fatal("a leading unit of a five-unit ask is not W")
+	}
+}
+
+// comboAnyRefused builds the edh matchup of one deck of the named cards and
+// reports the interaction refusal it meets ("" when it builds): the matchup's
+// own pair guard (kop.PairGuard) is what refuses a table at a game's start.
+func comboAnyRefused(t *testing.T, names ...string) string {
+	t.Helper()
+	set := cardsettest.Set(t, "edh")
+	var deck []cardset.Entry
+	for _, n := range names {
+		if _, ok := set.Lookup(n); !ok {
+			t.Fatalf("%s is not in the edh table", n)
+		}
+		deck = append(deck, cardset.Entry{Name: n, Count: 1})
+	}
+	_, _, _, err := set.Matchup(deck, deck)
+	if err == nil {
+		return ""
+	}
+	if !strings.HasPrefix(err.Error(), "interaction ") {
+		t.Fatal(err)
+	}
+	return err.Error()
+}
+
+// TestComboAnyBesideFilterIsNotRefused: an unrestricted Combo Any source beside
+// plain {N},{T} filters (Signets, a filter land) plays (mana_comboany.go
+// caFiltRefused); a granted mana ability beside it stays refused
+// (StallComboAnyMix), as does every filter under the mutation switch.
+func TestComboAnyBesideFilterIsNotRefused(t *testing.T) {
+	plain := []string{"Axebane Guardian", "Orzhov Signet", "Selesnya Signet", "Sungrass Prairie", "Prophetic Prism"}
+	if got := comboAnyRefused(t, plain...); got != "" {
+		t.Fatalf("Axebane Guardian beside plain filters refused: %s", got)
+	}
+	for _, partner := range []string{"Citanul Hierophants", "Rishkar, Peema Renegade", "Abundant Growth"} {
+		if got := comboAnyRefused(t, append(plain[:len(plain):len(plain)], partner)...); !strings.HasPrefix(got, "interaction comboanymix") {
+			t.Errorf("%s beside Axebane Guardian: refusal %q, want comboanymix", partner, got)
+		}
+	}
+	// the mutation: every filter is refused again, as before the chain
+	DebugComboAnyFiltRefused = true
+	defer func() { DebugComboAnyFiltRefused = false }()
+	if got := comboAnyRefused(t, plain...); !strings.HasPrefix(got, "interaction comboanymix") {
+		t.Fatalf("DebugComboAnyFiltRefused: refusal %q, want comboanymix", got)
 	}
 }
