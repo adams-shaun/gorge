@@ -1427,7 +1427,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(o) // face_omen.go
 			} else {
-				s.placeFromK(k, o, z, false, from, false)
+				s.placeFromK(k, o, z, false, from, false, false)
 			}
 			return true
 		}
@@ -1448,7 +1448,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 			return false // CR 111.8 (zone_tokenleft.go)
 		}
 		from := s.detach(o)
-		s.placeFromK(k, o, z, false, from, false)
+		s.placeFromK(k, o, z, false, from, false, false)
 	}
 	return true
 }
@@ -1819,7 +1819,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.shuffleLib(s.objs[o].owner()) // a Defined$ library fetch shuffles only when the script owes one (gorge moveDefinedLibraryObjects)
 	}
 	if z != kop.ZoneBattlefield {
-		s.placeFromK(k, o, z, false, from, false)
+		s.placeFromK(k, o, z, false, from, false, false)
 		return false
 	}
 	if k.gen != nil && k.gen.anyMayLimit {
@@ -2108,7 +2108,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					listFrom[nl] = from
 					nl++
 				} else {
-					s.placeFromK(k, o, zz, bb, from, false)
+					s.placeFromK(k, o, zz, bb, from, false, false)
 				}
 			}
 			if nl > 0 {

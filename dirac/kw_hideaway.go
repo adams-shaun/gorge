@@ -113,7 +113,7 @@ func (s *State) applyAskHide(k *prep, a Action) bool {
 	pl := &s.pl[s.g.pickP]
 	nr := int(s.g.nlook) - 1
 	from := s.detach(o)
-	s.placeFrom(o, kop.ZoneExile, false, from, false)
+	s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 	s.hideLink(o)
 	if nr > 0 {
 		var rest [24]Obj // len(genState.look)

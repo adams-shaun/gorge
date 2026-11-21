@@ -77,7 +77,7 @@ func TestEnterCountersLedgerCountsTheEnteringControllers(t *testing.T) {
 	sc := newScenTable(t, &tbl, Config{})
 	sc.s.enteredRing()
 	o := sc.perm(v.GrizzlyBears, 1)
-	sc.s.noteEnter(o, kop.ZoneHand, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(o, kop.ZoneHand, kop.ZoneBattlefield, true, false)
 	sc.s.res.e.ctrl = 0
 	val := kop.ValueRef{K: kop.VExpr, N: 0}
 	if got := sc.s.enterCountValue(sc.k, val, sc.s.objs[o].slot, 1); got != 1 {

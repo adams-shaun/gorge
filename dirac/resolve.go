@@ -350,7 +350,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(e.obj) // face_omen.go
 			} else {
-				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
+				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false, false)
 				if !fizzled {
 					s.markedPlot(k, e) // repl_stackexile.go
 				}
@@ -519,7 +519,7 @@ func (s *State) counterAt(k *prep, i int) {
 		if k.gen != nil && k.gen.anyFaces {
 			z = s.stackExitFace(k, e.obj, z, false) // face_castface.go
 		}
-		s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
+		s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false, false)
 	}
 }
 

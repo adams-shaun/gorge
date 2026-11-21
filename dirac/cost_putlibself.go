@@ -25,7 +25,7 @@ func (s *State) payPutLibPicks(k *prep) {
 		}
 		owner := ob.owner()
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 		if DebugPutLibShuffle {
 			s.shuffleLib(owner)
 		}

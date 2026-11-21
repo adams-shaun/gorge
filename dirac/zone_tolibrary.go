@@ -86,7 +86,7 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 //go:noinline
 func (s *State) libTopInOrder(os []Obj, from []kop.Zone) {
 	for i := len(os) - 1; i >= 0; i-- {
-		s.placeFrom(os[i], kop.ZoneLibrary, false, from[i], false)
+		s.placeFrom(os[i], kop.ZoneLibrary, false, from[i], false, false)
 	}
 }
 

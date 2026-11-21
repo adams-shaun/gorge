@@ -16,5 +16,5 @@ func (s *State) exileStackSelf(k *prep) {
 	}
 	s.touch(e.obj)
 	s.objs[e.obj].zone = kop.ZoneNone
-	s.placeFromK(k, e.obj, kop.ZoneExile, false, kop.ZoneStack, false)
+	s.placeFromK(k, e.obj, kop.ZoneExile, false, kop.ZoneStack, false, false)
 }

@@ -66,7 +66,7 @@ func (s *State) payBeholdExilePicks(k *prep) {
 			s.leave(k, ob.slot, kop.ZoneExile, false)
 		case kop.ZoneHand:
 			from := s.detach(o)
-			s.placeFrom(o, kop.ZoneExile, false, from, false)
+			s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 		default:
 			continue
 		}
