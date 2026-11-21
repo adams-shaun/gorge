@@ -280,6 +280,9 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if transform && dayNightBound(h, o.ID) {
 			continue
 		}
+		if transform && setStateSelfIsNewObject(h, c, o) {
+			continue
+		}
 		if setStateFlipMode(sa) && !setStateFlipGate(o) {
 			continue
 		}
@@ -293,6 +296,28 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(flip)
 		setstateRememberChanged(c, sa, o.ID)
 	}
+}
+
+// setStateSelfIsNewObject reports that o is the resolving ability's own source
+// but a different object than the one the ability was created for (CR 400.7,
+// CR 701.28f: a transform instruction naming an object that is not the
+// object it was when instructed does nothing). Archangel Avacyn's delayed
+// "transform at the beginning of the next upkeep" is registered while she is on
+// the battlefield; bounced and flashed back in with that trigger on the stack,
+// the new permanent is not the one to transform. delayedSourceReturned compares
+// the source's current incarnation against the stamp taken at the ability's
+// registration or push, so an ability that names an affected object other than
+// its creator (tc.DelayedSelf) is excused there.
+//
+// An activated ability is left to selfDefinedTarget's off-battlefield
+// exception: one pushed from a graveyard may return its own source and then
+// transform it, and that return is the identity its body names.
+func setStateSelfIsNewObject(h Host, c *Ctx, o *state.Object) bool {
+	if o.ID != c.Source || !delayedSourceReturned(h.Game(), c) {
+		return false
+	}
+	ro := h.Game().Obj(c.ResolvingObj)
+	return ro != nil && ro.StackKind != state.StackKindActivated
 }
 
 // setstateRememberChanged honours a SetState body's RememberChanged$ True: each
