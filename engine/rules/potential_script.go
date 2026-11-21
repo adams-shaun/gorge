@@ -433,9 +433,10 @@ type scriptNeedReader interface {
 // twobrid or hybrid-Phyrexian pip needs each of its faces; a Phyrexian pip
 // needs its colour (its life face is not mana). The set is only the search's
 // branch-order preference -- it changes which equal answers a colour ask's
-// search tries first, never which answers exist. A cast of a mode or an
-// alternative cost (MayPlay*, flashback) whose pips the printed base does not
-// carry leaves the set empty, and so the engine order.
+// search tries first, never which answers exist. A cast of a card mode or an
+// alternative cost (flashback, kicker) whose pips the printed base does not
+// carry leaves the set empty, and so the engine order; a may-play cast reads
+// the printed base (scriptPlayBaseCost).
 func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
 	var need [state.MC + 1]bool
 	add := func(c costvocab.Cost) {
@@ -479,19 +480,25 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 
 // scriptPlayBaseCost is the cost the searched play's base face announces (CR
 // 601.2b: the caster announces each pip's colour before targets): a plain
-// cast's printed mana cost, an ability's compiled cost. ok is false when the
-// play's cost is not the printed base one -- a cast of a mode or an
-// alternative cost (MayPlay*, flashback), an unresolvable ability, or a play
-// that is neither kind -- so both need-readers (scriptNeedColours, the
-// search's branch-order preference, and scriptNeedCounts, the subsume run's
-// prune bound) leave the cost unread rather than guess one.
+// cast's printed mana cost, an ability's compiled cost. A may-play cast (a
+// permission that only opens the zone: Summoning Materia's top of the
+// library) reads the printed base too -- scriptSpendableGaps' same
+// admission, which prices its payment descriptor with castOfferBase
+// (scriptPlayDesc), and dirac's mirror prices the play by the printed pips
+// beside it (mana_filter.go gapFilteredPlay admits castMayPlay). ok is false
+// when the play's cost is not the printed base one -- a cast of a card mode
+// or an alternative cost (flashback, kicker, bargain), an unresolvable
+// ability, or a play that is neither kind -- so both need-readers
+// (scriptNeedColours, the search's branch-order preference, and
+// scriptNeedCounts, the subsume run's prune bound) leave the cost unread
+// rather than guess one.
 func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) (costvocab.Cost, bool) {
 	if o == nil || o.Face() == nil {
 		return costvocab.Cost{}, false
 	}
 	switch a.Kind {
 	case "cast":
-		if a.Mode != "" {
+		if a.Mode != "" && castModeCodes.Code(a.Mode) != castModeMayplay {
 			return costvocab.Cost{}, false
 		}
 		return r.castOfferBase(p, a.Obj), true
