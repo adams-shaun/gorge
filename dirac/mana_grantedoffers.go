@@ -1345,7 +1345,6 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		dbgf("DBG fundcand sl", int(sl), "ex", int(g.ex), "seen", seen(sl), "dropped", dropped.has(sl), "canTap", s.canTapForMana(g.k, sl))
 		if sl == g.ex || seen(sl) || dropped.has(sl) || !s.canTapForMana(g.k, sl) {
 			continue
 		}
@@ -2584,7 +2583,6 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 	t := s.fork()
 	defer s.unfork()
 	ok := g.visit(t)
-	dbgf("DBG grantSearchRun ok", ok, "phased", phased, "n", g.n, "gapN", g.gapN, "funding", g.funding, "cand", g.cand[:g.n], "gap", g.gap[:g.n], "filt", g.filt[:g.n], "def", g.def[:g.n], "tdef", g.tdef[:g.n], "ng", g.ng[:g.n], "limited", g.limited, "stall", g.stall, "hasPlay", d.hasPlay)
 	return ok
 }
 
