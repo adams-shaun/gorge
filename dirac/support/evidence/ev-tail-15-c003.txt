@@ -100,7 +100,6 @@ Lightning Blast
 Lychguard
 Magus of the Disk
 Makeshift Mauler
-Mana Flare
 Mana Skimmer
 Maralen of the Mornsong
 Mardu Outrider

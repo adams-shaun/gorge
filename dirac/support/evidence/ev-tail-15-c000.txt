@@ -239,7 +239,6 @@ Magic Missile
 Magus of the Disk
 Makeshift Mauler
 Mana Echoes
-Mana Flare
 Mana Short
 Mana Skimmer
 Manriki-Gusari
