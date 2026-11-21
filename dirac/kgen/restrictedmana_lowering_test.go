@@ -24,7 +24,6 @@ func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 		{"Crucible of the Spirit Dragon", "a counter cost"},
 		{"Cryptic Trilobite", "a counter cost"},
 		{"Throne of Makindi", "a counter cost"},
-		{"Master of Dark Rites", "a sacrifice of another permanent"},
 		{"Grand Architect", "a tap of another permanent"},
 	}
 	for _, c := range cases {

@@ -139,3 +139,21 @@ func restrictedSacSelfUnit(c lCost, m *lMana) bool {
 	return plainTapCost(c) && col && !m.Choice && !m.Each &&
 		m.Special == "" && m.RestrictAb == nil && !m.NonSpell && !m.Deferred && !m.NoCounter && m.Split == nil && m.HasteValid == nil
 }
+
+// restrictedSacXUnit reports whether a restricted "{T}, Sacrifice another
+// <filter>: Add N of one fixed colour" ability (Master of Dark Rites' three
+// {B}, Vampire, Cleric and Demon spells only) is one the kernel's tap-another
+// search funds as a census gap (kop.SacXRestrManaAb, mana_tapanother.go):
+// exactly one other permanent sacrificed, a const amount of one to three mana
+// of one fixed colour or {C}, no choice, each-colour production, rider or
+// activated-ability restriction.
+func restrictedSacXUnit(c lCost, m *lMana) bool {
+	if !c.Tap || c.Sac == nil || c.SacN != 1 || c.SacX {
+		return false
+	}
+	c.Sac, c.SacN = nil, 0
+	col := len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors)
+	return plainTapCost(c) && col && m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= 3 &&
+		!m.Choice && !m.Each && m.Special == "" && m.RestrictAb == nil && !m.NonSpell && !m.Deferred &&
+		!m.NoCounter && m.Split == nil && m.HasteValid == nil
+}

@@ -59,9 +59,13 @@ func restrictedManaDecks() [4][]cardset.Entry {
 			{Name: "Hill Giant", Count: 5}, {Name: "Prodigal Sorcerer", Count: 3}, {Name: "Thieving Varmint", Count: 2}, {Name: "Jeweled Lotus", Count: 2}, {Name: "Mountain", Count: 9}, {Name: "Swamp", Count: 7},
 		},
 		{
-			{Name: "Untaidake, the Cloud Keeper", Count: 3}, {Name: "Akroma, Angel of Wrath", Count: 3}, {Name: "Kamahl, Pit Fighter", Count: 3},
-			{Name: "Isamaru, Hound of Konda", Count: 4}, {Name: "Walking Ballista", Count: 3}, {Name: "Pacifism", Count: 3},
-			{Name: "Savannah Lions", Count: 4}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 11},
+			// the sacrifice deck: the Master's cast-sacrifice-recast loop (its
+			// own restriction admits the Vampire Nighthawks beside it), kept
+			// dense so the seeds reach it; Isamaru is the legendary spell the
+			// Untaidake's legendary-only {C}{C} relaxes onto
+			{Name: "Untaidake, the Cloud Keeper", Count: 3}, {Name: "Isamaru, Hound of Konda", Count: 4}, {Name: "Walking Ballista", Count: 3},
+			{Name: "Pacifism", Count: 3}, {Name: "Master of Dark Rites", Count: 4}, {Name: "Vampire Nighthawk", Count: 4},
+			{Name: "Savannah Lions", Count: 3}, {Name: "Swamp", Count: 6}, {Name: "Mountain", Count: 4}, {Name: "Plains", Count: 6},
 		},
 	}
 }
@@ -224,8 +228,8 @@ func restrictedManaLockstep(t *testing.T, seats int) {
 		}
 		t.Logf("seed %d: %d decisions, over %v %s; spent fee/sac/life %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
 	}
-	if seats == 4 && sum.byClass[rmLife] == 0 {
-		t.Fatalf("restricted mana spent (fee, sacrifice, life) = %v by %v: want each above zero", sum.byClass, sum.byName)
+	if seats == 4 && (sum.byClass[rmLife] == 0 || sum.byClass[rmSac] == 0) {
+		t.Fatalf("restricted mana spent (fee, sacrifice, life) = %v by %v: want a life one and a sacrifice one", sum.byClass, sum.byName)
 	}
 	if seats == 2 && sum.byClass[rmLife] == 0 {
 		t.Fatalf("restricted mana spent (fee, sacrifice, life) = %v by %v: want a fee or a life one", sum.byClass, sum.byName)
