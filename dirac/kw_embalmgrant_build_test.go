@@ -13,9 +13,8 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestEmbalmGrantKernel builds the table the granted embalm needs, with the
-// lowering kgen keeps off by default (-granted-embalm), and checks the kernel's
-// offer, cost and activation (CheckEmbalmGrant).
+// TestEmbalmGrantKernel builds the table the granted embalm needs, and checks the kernel's offer,
+// cost and activation (CheckEmbalmGrant).
 func TestEmbalmGrantKernel(t *testing.T) {
 	names := []string{"Forest", "Cursecloth Wrappings", "Grizzly Bears"}
 	cardsDir, err := cardset.CorpusDir()
@@ -34,7 +33,7 @@ func TestEmbalmGrantKernel(t *testing.T) {
 	if err := os.Mkdir(out, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if code := kgen.Main([]string{"-granted-embalm", "-cards", cardsDir, "-card-list", list, "-pool", "embalmgrant", "-out", out}); code != 0 {
+	if code := kgen.Main([]string{"-cards", cardsDir, "-card-list", list, "-pool", "embalmgrant", "-out", out}); code != 0 {
 		t.Fatalf("kgen: exit %d", code)
 	}
 	pd, err := cardset.LoadFile(filepath.Join(out, "embalmgrant.ktab"))
