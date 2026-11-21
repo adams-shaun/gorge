@@ -552,6 +552,13 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 	case entAsk:
 		return
 	case entFin:
+		if s.g.nask != 0 && s.midResAsk(k) {
+			// the entered permanent's queued as-enters election (a shock
+			// land's pay life): gorge asks it before the tail's later found
+			// cards move (shockuntaporder: the election is still posed
+			// whichever body went first)
+			return
+		}
 		if s.res.left != 0 && s.unparkTail(k) {
 			return // a dig's or search's later cards, parked behind the late ask
 		}
