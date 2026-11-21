@@ -99,8 +99,7 @@ type genPrep struct {
 	anyMultikick    byte // a repeated additional cost, in bits (the byte its bool occupied): mkAny (cold.mkObj, any Multikicker/Squad/Replicate) and mkPerm (cold.mk, a pure Multikicker's permanent readers); a Squad self-ETB reads its captured count (kw_multikicker.go, kw_squadreplicate.go)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
-	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
-	auraAnim        bool // a printed Aura and a Creature-adding override its filter can reach: an attached Aura can be made a creature (CR 704.5p sba arm; static_equipanimated.go)
+	equipAnim       bool // an Equip ability and a Creature-adding override (an Equipment can be a creature), or a printed Aura and one its filter can reach (an attached Aura can be): CR 704.5p sba arm; static_equipanimated.go
 	tyPost          bool // anyBestow || anyImpending: typesGen's switches after the overrides (kw_impending.go)
 	anyDiscAll      bool // some trigger is Mode$ DiscardedAll (trig_discardedall.go)
 	anyAbilityCast  bool // some trigger is Mode$ AbilityCast (trig_abilitycast.go)

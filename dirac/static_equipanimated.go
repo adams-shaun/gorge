@@ -109,7 +109,7 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 	}
 }
 
-// prepAuraAnim sets genPrep.auraAnim: CR 704.5p's attached-Aura reach of sba
+// prepAuraAnim sets genPrep.equipAnim (the one flag gating the CR 704.5p attached-creature walk; a new genPrep field would move the pinned layout): CR 704.5p's attached-Aura reach of sba
 // is reachable only when the table holds a printed Aura and an animator that
 // can make it a creature while attached: an override that adds or sets the
 // Creature type whose OpOverride reaches another object (Mercurial
@@ -151,22 +151,22 @@ func prepAuraAnim(t *kop.Table, g *genPrep) {
 			a := &c.Abilities[j]
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 &&
 				creatureOvr(a.Static.Override-1) && filterMayReachAura(a.Static.Filter) {
-				g.auraAnim = true
+				g.equipAnim = true
 				return
 			}
 			for _, in := range a.Prog {
 				switch {
 				case in.Op == kop.OpOverride && creatureOvr(uint16(in.C)):
 					if in.Obj != kop.RefSelf || c.Types&kop.TAura != 0 {
-						g.auraAnim = true
+						g.equipAnim = true
 						return
 					}
 				case in.Op == kop.OpOverrideAll && creatureOvr(uint16(in.C)) && filterMayReachAura(in.F):
-					g.auraAnim = true
+					g.equipAnim = true
 					return
 				}
 				if x := copyExcOf(&in); x > 0 && creatureOvr(uint16(x-1)) {
-					g.auraAnim = true // a copy of an Aura made a creature (Nexus of Becoming)
+					g.equipAnim = true // a copy of an Aura made a creature (Nexus of Becoming)
 					return
 				}
 			}

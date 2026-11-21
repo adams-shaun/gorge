@@ -24,7 +24,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // still detaches.
 //
 // Not modelled (no lowered carrier; crcoverage 704.5p records them SILENT): an
-// attached battle. The attached-Aura reach is modelled under genPrep.auraAnim
+// attached battle. The attached-Aura reach is modelled under genPrep.equipAnim (set by prepAuraAnim)
 // (static_equipanimated.go): a Creature-adding override whose filter can reach
 // an attached Aura — Mercurial Transformation's Octopus animate, which removes
 // the Aura's card types, leaves the permanent a plain creature and gorge's
@@ -40,8 +40,8 @@ var DebugAttachedCreatureStays bool
 // per-permanent loop is done, as gorge's attachmentSBAs runs after the pass's
 // casualties: a permanent or bearer that leaves in this pass (all) is left to
 // the bearer-left handling. It reports whether an Equipment became unattached
-// (gorge's changed pass). Reached only under genPrep.equipAnim,
-// genPrep.auraAnim or prep.gainsOfAttach, so the hot
+// (gorge's changed pass). Reached only under genPrep.equipAnim (set by
+// prepEquipAnim or prepAuraAnim) or prep.gainsOfAttach, so the hot
 // per-permanent loop carries none of it.
 //
 //go:noinline
