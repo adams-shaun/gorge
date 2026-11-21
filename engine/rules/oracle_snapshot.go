@@ -533,6 +533,9 @@ func abilitySourceRef(ref string, src *state.Object, sa *cards.SA) string {
 			break
 		}
 	}
+	if owner == nil {
+		owner = svarBodyOwner(src, sa)
+	}
 	if owner == nil || owner == src.Face() {
 		return ref
 	}
@@ -545,6 +548,37 @@ func abilitySourceRef(ref string, src *state.Object, sa *cards.SA) string {
 		nth = ref[j:]
 	}
 	return seat + owner.Name + nth
+}
+
+// svarBodyOwner is the face of src's card whose SVar table holds sa's body: a
+// delayed trigger's Execute$ ability is resolved from an SVar (cards.ResolveSVar
+// mints a fresh SA, so it is matched by its script line), not stored in a
+// face's Abilities or Triggers. The source's active face wins a tie. Swift
+// Spiral's return is such a body, created by the Adventure face (CR 603.7d: a
+// delayed triggered ability's source is the source of the spell that created
+// it) while the card in exile is back on Twining Twins. nil when no face
+// carries the body.
+func svarBodyOwner(src *state.Object, sa *cards.SA) *cards.Face {
+	if sa == nil || sa.Line == "" {
+		return nil
+	}
+	holds := func(f *cards.Face) bool {
+		for _, body := range f.SVars {
+			if body == sa.Line {
+				return true
+			}
+		}
+		return false
+	}
+	if f := src.Face(); f != nil && holds(f) {
+		return f
+	}
+	for _, f := range src.Card.Faces {
+		if f != nil && holds(f) {
+			return f
+		}
+	}
+	return nil
 }
 
 // objRef names o by the ref resolve maps back to o right now, so a snapshot
