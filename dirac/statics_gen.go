@@ -199,6 +199,14 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 // follows to the frozen capture once a ClearNamedCard$ chain wiped the
 // source (repl_namecard.go).
 func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
+	return s.matchSpellAltCtx(k, fl, c, owner, ctrl, o, src, emb, nil)
+}
+
+// matchSpellAltCtx is matchSpellAlt with an evaluation context (nil for the
+// ordinary read): the CantBeCast cast gate's X look-ahead sets ctx.xmv so a
+// CMC predicate reads the candidate at an announced X (CR 202.3e), while
+// every other caller keeps the nil context it always passed.
+func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8, ctx *evalCtx) bool {
 	if fl.Zone == kop.ZoneStack {
 		fl.Zone = kop.ZoneNone
 	}
@@ -208,7 +216,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		// (gorge state.ContinuousEffect.ChosenName; repl_namecard.go)
 		named := s.srcNamedCard(src, emb)
 		fl.Pred = kop.PredNone
-		return named != NoCard && named == c && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return named != NoCard && named == c && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// the static source's own as-enters colour (Iona, Shield of
@@ -227,7 +235,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 			has = cd.AllCreatureTypes
 		}
 		fl.Flags2 &^= kop.F2ChosenType
-		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// Iona, Shield of Emeria's "spells of the chosen color": the static
@@ -235,9 +243,9 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		ch, ok := s.chosenTypeSub(src)
 		has := ok && ch <= 4 && k.t.Cards[c].Colors&(kop.ColW<<ch) != 0
 		fl.Flags2 &^= kop.F2ChosenColor
-		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
-	return s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+	return s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 }
 
 // targetsAnswered reports whether the build's target stages have passed: the
