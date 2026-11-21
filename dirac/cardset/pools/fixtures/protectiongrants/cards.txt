@@ -2,7 +2,9 @@
 # constructed lockstep (dirac/oracle/protectiongrants_lockstep_test.go): a
 # Protection effect with a fixed Gains$ (Crimson Acolyte, Tower of the
 # Magistrate, Grotesque Hybrid's list), a granted Protection:<spec> with an
-# exception (the Ward Auras, Tattoo Ward, Spectra Ward), a granted protection
+# exception (the Ward Auras, Tattoo Ward, Spectra Ward), the Choices$ quality
+# asks (Giver of Runes' colorless, Apostle's Blessing's and Razor Barrier's
+# artifacts, Pippin's card types, Jeweled Spirit's artifacts-or-colour), a granted protection
 # from a creature host (Feline Sovereign, Hungry Lynx, Masked Gorgon, Lord of
 # the Nazgul, Pristine Angel) and the quality forms the kernel reads off the
 # source (multicolored, a type, a negated subtype), with coloured, colourless,
@@ -53,3 +55,8 @@ Mountain
 Forest
 Swamp
 Island
+Giver of Runes
+Apostle's Blessing
+Jeweled Spirit
+Razor Barrier
+Pippin, Guard of the Citadel

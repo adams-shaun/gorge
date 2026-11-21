@@ -1775,3 +1775,4 @@ ZoneSideboard	Zone	10
 ZoneStack	Zone	6
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
+OvProtChoice	untyped int	4

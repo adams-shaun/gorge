@@ -54,7 +54,9 @@ func (s *State) numberBounds(k *prep) (lo, hi int) {
 
 // resChosenNumber marks a mid-resolution ChooseNumber answer in res.bad
 // (bits 0..MaxTargets-1 are target-illegality flags; 0x40 and 0x80 are the
-// chosen type and card-type flags, so 0x20 is the free bit).
+// chosen type and card-type flags). resProtChoice (act_protectionchoice.go)
+// shares this bit and res.chosen, so kgen refuses a resolution carrying both
+// a ChooseNumber and a protection Gains$ Choice.
 const resChosenNumber uint8 = 0x20
 
 // numberOfferCeiling is gorge effects.chooseNumberMaxOffer: the inclusive

@@ -18,22 +18,18 @@ var protectionFormCards = []string{
 	"Keeper of Kookus", "Masked Gorgon", "Obsidian Acolyte",
 	"Pristine Angel", "Red Ward", "Spare from Evil", "Spectra Ward", "Tattoo Ward",
 	"Tel-Jilad Defiance", "Tower of the Magistrate", "White Ward", "Willow Priestess",
+	"Giver of Runes", "Apostle's Blessing", "Jeweled Spirit", "Razor Barrier", "Pippin, Guard of the Citadel",
 }
 
 // protectionFormDeferred are the ticket's cards that stay refused, each by a
 // reason that names the missing piece (a substring of the refusal).
 var protectionFormDeferred = map[string]string{
-	"Apostle's Blessing":           `Protection Choices$ "AnyColor,Artifact"`,
-	"Jeweled Spirit":               `Protection Choices$ "AnyColor,Artifact"`,
-	"Razor Barrier":                `Protection Choices$ "AnyColor,Artifact"`,
-	"Giver of Runes":               `Protection Choices$ "AnyColor,colorless"`,
-	"Pippin, Guard of the Citadel": `Protection Choices$ "CardType"`,
-	"Floating Shield":              `Protection Gains$ "ChosenColor"`,
-	"Opal Titan":                   `Protection Duration$`,
-	"Crypsis":                      `Protection:Creature.OppCtrl`,
-	"Lord of the Nazgûl":           `Protection:Card.IsRingbearer`,
-	"Pledge of Loyalty":            `Card.ColorsYouCtrl`,
-	"Riders of Gavony":             `Protection:Creature.ChosenType`,
+	"Floating Shield":    `Protection Gains$ "ChosenColor"`,
+	"Opal Titan":         `Protection Duration$`,
+	"Crypsis":            `Protection:Creature.OppCtrl`,
+	"Lord of the Nazgûl": `Protection:Card.IsRingbearer`,
+	"Pledge of Loyalty":  `Card.ColorsYouCtrl`,
+	"Riders of Gavony":   `Protection:Creature.ChosenType`,
 }
 
 func lowerProtectionFormCards(t *testing.T, names []string) map[string]*lCard {

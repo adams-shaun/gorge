@@ -165,6 +165,11 @@ func (lc *lowerCtx) chooseNumberEffect(ps *params) error {
 	default:
 		return refuse("ChooseNumber Defined$ %q", who)
 	}
+	if lc.progHas("ProtectionChoiceRes") {
+		// shares res.bad's bit 0x20 and res.chosen with the protection
+		// quality answer (dirac resChosenNumber / resProtChoice)
+		return refuse("ChooseNumber after a protection Gains$ Choice in one resolution")
+	}
 	ps.consume("ChooseAnyNumber", "ListTitle", "AILogic")
 	in := lInstr{Op: "ChooseNumberMid", Obj: who, B: maxV, C: lo, Note: "choice of a number while resolving"}
 	if hasMax {

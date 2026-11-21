@@ -1,0 +1,5 @@
+family: ask
+name: raProtectionChoice
+value: next
+status: active
+doc: the protection quality choice of ExtProtectionChoice (gorge askProtectionChoice's "protectionchoice" ask; CR 702.16): one option per quality of the resolving card's OvProtChoice override family, in gorge's offer order; the mode is the option's position, which the same override applies (dirac/act_protectionchoice.go).

@@ -356,6 +356,13 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "each color") {
 		return e.objColors(o) != ""
 	}
+	// "colorless" (Giver of Runes' Choices$ AnyColor,colorless): a source
+	// with no colour at all (CR 702.16c). objColors has already applied
+	// Devoid, so a Devoid artefact reads colourless here as it does to every
+	// other colour reader.
+	if effects.IsColorlessWord(q) {
+		return e.objColors(o) == ""
+	}
 	// MonoColor and EnemyColor are Forge's colour-class predicates, rather
 	// than type predicates. They occur on Guardian/Frenemy of the Guildpact;
 	// keep them here with the other source-quality tests so generic

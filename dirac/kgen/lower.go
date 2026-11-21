@@ -3854,6 +3854,16 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 // emit appends an instruction to the current ability.
 func (lc *lowerCtx) emit(in lInstr) { lc.ab.Prog = append(lc.ab.Prog, in) }
 
+// progHas reports whether the current ability's program already carries op.
+func (lc *lowerCtx) progHas(op string) bool {
+	for i := range lc.ab.Prog {
+		if lc.ab.Prog[i].Op == op {
+			return true
+		}
+	}
+	return false
+}
+
 // addTarget declares a target slot on the current ability.
 func (lc *lowerCtx) addTarget(t lTarget) int {
 	t.Mode = lc.mode
