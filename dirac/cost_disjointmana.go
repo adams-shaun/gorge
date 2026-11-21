@@ -84,6 +84,15 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 			free++ // its {T} already took its mana out of av
 			continue
 		}
+		if tapX && av.ungr && k.gen != nil && s.manaGranted(k, x) {
+			// the ungranted census holds no unit of a source whose only mana
+			// is a granted ability: tapping it for the part takes nothing out
+			// of the mana the printed sources and the floated pool pay (CR
+			// 601.2g-h; Dungeon Descent's legendary creature under Battery
+			// Bearer's granted {C})
+			free++
+			continue
+		}
 		pc := s.manaPCAt(k, x)
 		sacOnly := s.canSacOnlyNow(k, x, pc)
 		if !s.canTapForManaPC(k, x, pc) && !sacOnly || !tapX && !(pc.manaSac || sacOnly) {

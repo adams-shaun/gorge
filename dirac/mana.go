@@ -120,6 +120,8 @@ type avail struct {
 	// a pointer, so an avail on the stack keeps no reference to a local.
 	xd   payDesc
 	xdOn bool
+	// ungr: set by affordsReservingAv on the ungranted census (ungrAvail), which holds no unit of a source whose mana an effect grants: such a tap candidate is no mana the part's reservation takes away (costPartDisjointD)
+	ungr bool
 	// xPlain: set by availXWindow on the plain configuration: a source with its own ability counts that ability only, the one the planner taps (a grant-only source still counts, plan's phase 2 taps it)
 	xPlain bool
 	// capped: set by availForCapped's census, whose loop already counts a Taps-deferred source's own tap once (availScript's gap loop skips it: mana_tapsdefer.go tapsDeferGapOwn)
