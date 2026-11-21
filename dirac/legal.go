@@ -2187,6 +2187,11 @@ func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 	if units[0].mask != 0 && units[0].n == 0 {
 		return false // the overflow marker: the record is incomplete
 	}
+	return potUnitsAdd(a, units, life)
+}
+
+// potUnitsAdd is potUnitsAvail's walk over a record already known complete.
+func potUnitsAdd(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 	for i := 0; i < maxPotUnits; i++ {
 		u := units[i]
 		if u.mask == 0 {
