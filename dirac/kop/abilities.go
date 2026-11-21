@@ -626,7 +626,7 @@ func SecondSacTapManaAb(cd *CardDef, first, j int) bool {
 
 // SacXMana is either sacrifice-another-permanent mana shape.
 func SacXMana(a *Ability) bool {
-	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a)
+	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a) || SacXRestrManaAb(a)
 }
 
 // SacXAnyColour reports whether sacrifice-another mana ability a makes one
@@ -766,7 +766,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
