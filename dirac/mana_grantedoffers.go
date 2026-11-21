@@ -2979,7 +2979,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		if ok {
 			cost = s.waterbendPlanCost(k, p, Obj(a.Source()), a.Mode(), cost)
 		}
-		return cost, ex, need, ok
+		// a {S} activation is offered only when the floating pool's snow units
+		// pay it (activateOffers; gorge's planner never plans {S}, PlanCostDetail
+		// cost:snow): no source or prefix search prices it, so it is never
+		// searched and no source census drops it (Scrying Sheets' {1}{S}, {T}
+		// with a snow {C} floating)
+		return cost, ex, need, ok && cost.Snow == 0
 	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, need, true
