@@ -208,7 +208,7 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		return fl.PredN == 0 // off the battlefield nothing is goaded (gorge Object.Goads clears on the move)
 	}
 	if fl.Pred == kop.PredMonstrous || fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV || fl.Pred == kop.PredTotalPT || fl.Pred == kop.PredBlocked {
-		return false // only a battlefield permanent is monstrous; PredToughnessLEV is lowered for the battlefield only (PredPowerGEV off it: cardPowerGEV)
+		return false // only a battlefield permanent is monstrous; PredToughnessLEV is lowered for the battlefield only (PredPowerGEV off it: cardPowerGEV); PredTotalPT is intercepted above it (cardTotalPTPred, Meek Attack's hand pick)
 	}
 	if fl.Pred >= kop.PredNoCounters && fl.Pred <= kop.PredMonoColor {
 		return predCardKvf(k, fl, c, fd) // filter_valueheads.go
