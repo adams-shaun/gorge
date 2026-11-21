@@ -3239,12 +3239,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			if !kicked {
 				return cost, ex, need, false // kicked: lowered by its witness (beginCast)
 			}
-			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok {
+			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok && !kickMultiPriced(k, s.objs[a.Source()].card) {
 				return cost, ex, need, false
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kickAdd(&k.t.Cards[c])))
 			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}
@@ -3666,4 +3666,28 @@ func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) b
 		return s.costPartDisjointD(k, p, NoSlot, spellAddCost(k, s.objs[d.play.Source()].card), cost, &av, pipMaskOf(cost), &d)
 	}
 	return true
+}
+
+// DebugGrantKickNoMulti prices a Multikicker cast's granted-mana search at its
+// base alone (the old behaviour; mutation testing only).
+var DebugGrantKickNoMulti bool
+
+// kickAdd is the additional cost the kicked-cast witness (and the granted-mana
+// prefix search pricing the same play) adds to the base: the Kicker cost, or
+// for a Multikicker card its one payment (CR 702.33, 702.43; gorge's composed
+// potential play is the base plus one multikicker payment).
+func kickAdd(cd *kop.CardDef) kop.ManaCost {
+	if cd.HasMultikicker && !DebugGrantKickNoMulti {
+		return cd.Multikicker
+	}
+	return cd.Kicker
+}
+
+// kickMultiPriced reports whether the composed kicked play of card c is priced
+// although the plain planner refuses its shape: a Multikicker card's offered
+// kicked mode is gorge's composed potential play (base plus one payment, CR
+// 702.43), which its granted-mana prefix search prices (Marshal's Anthem under
+// Chromatic Lantern's grant).
+func kickMultiPriced(k *prep, c CardID) bool {
+	return k.t.Cards[c].HasMultikicker && !DebugGrantKickNoMulti
 }
