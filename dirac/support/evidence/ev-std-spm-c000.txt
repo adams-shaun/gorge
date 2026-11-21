@@ -91,6 +91,7 @@ Secret Identity
 Selfless Police Captain
 Shock
 Shocker, Unshakable
+Shriek, Treblemaker
 Silk, Web Weaver
 Silver Sable, Mercenary Leader
 Sinister Hideout
@@ -109,6 +110,7 @@ Spider-Man Noir
 Spider-Man, Brooklyn Visionary
 Spider-Man, Web-Slinger
 Spider-Mobile
+Spider-Rex, Daring Dino
 Spider-Sense
 Spider-Slayer, Hatred Honed
 Spider-Suit

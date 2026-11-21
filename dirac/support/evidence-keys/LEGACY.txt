@@ -626,7 +626,6 @@ Caged Zombie
 Calamitous Tide
 Calamity's Wake
 Call a Surprise Witness
-Call the Bloodline
 Callous Dismissal
 Camaraderie
 Camera Launcher
@@ -650,7 +649,6 @@ Captain Jean-Luc Picard
 Captain Kathryn Janeway
 Captain Kirk, Boldly Going
 Captain N'ghathrod
-Captain of the Watch
 Captain's Defense
 Caradora, Heart of Alacria
 Carapace Forger
@@ -924,7 +922,6 @@ Cunning Strike
 Curious Cadaver
 Curious Forager
 Curse of Vitality
-Curse of the Nightly Hunt
 Curse of the Restless Dead
 Curse-Marred Demon
 Cursed Wombat
@@ -980,7 +977,6 @@ Dauntless Aven
 Dauntless Scrapbot
 Dauthi Cutthroat
 Dauthi Jackal
-Davriel, Rogue Shadowmage
 Davvol, Evincar of Rath
 Dawn's Light Archer
 Dawn's Truce
@@ -1351,7 +1347,6 @@ Entomber Exarch
 Entropic Battlecruiser
 Entrust the Spark
 Environmental Scientist
-Ephemeron
 Epic Confrontation
 Epic Experiment
 Epic Proportions
@@ -1550,7 +1545,6 @@ Fleeting Reflection
 Fleshgrafter
 Flicker
 Flickering Hound
-Flickerwisp
 Flight
 Flight of Equenauts
 Flight-Deck Coordinator
@@ -2117,7 +2111,6 @@ Illvoi Infiltrator
 Illvoi Light Jammer
 Illvoi Operative
 Immersturm Skullcairn
-Immolating Souleater
 Imotekh the Stormlord
 Imp's Mischief
 Impassioned Orator
@@ -2300,7 +2293,6 @@ Kalemne, Disciple of Iroas
 Kalonian Behemoth
 Kami of Ancient Law
 Kami of Celebration
-Kami of Industry
 Kami of Old Stone
 Kang, Temporal Tyrant
 Karador, Ghost Chieftain
@@ -2566,7 +2558,6 @@ Long River's Pull
 Long-Bodied Grey Dog
 Longhorn Sharpshooter
 Longstalk Brawl
-Looming Hoverguard
 Loot, the Key to Everything
 Loot, the Nexus
 Loot, the Pathfinder
@@ -2839,7 +2830,6 @@ Mobile Garrison
 Mobile Homestead
 Mockingbird
 Moderation
-Mogis's Favor
 Mold Demon
 Molder
 Moldgraf Millipede
@@ -2897,7 +2887,6 @@ Mukotai Ambusher
 Multani's Acolyte
 Multiply by Zero
 Murasa Behemoth
-Murasa Pyromancer
 Murderous Rider
 Murmuring Volume
 Muse Seeker
@@ -3506,7 +3495,6 @@ Repay in Kind
 Repel Calamity
 Repel the Abominable
 Repel the Darkness
-Reprobation
 Reprocess
 Repulsive Mutation
 Repurposed Enforcer
@@ -3724,7 +3712,6 @@ Savage Order
 Savanti Romero, Time's Exile
 Saved by the Shell
 Saving Grasp
-Saw It Coming
 Sawtooth Loon
 Sawtooth Ogre
 Sazacap's Brew
@@ -3848,7 +3835,6 @@ Shadowstorm Vizier
 Shadowy Backstreet
 Shady Informant
 Shalai and Hallar
-Shaman of the Great Hunt
 Shaman of the Pack
 Shamble Back
 Shambling Strider
@@ -3900,7 +3886,6 @@ Shredder's Technique
 Shredder, Unrelenting
 Shrewd Negotiation
 Shriek of Dread
-Shriek, Treblemaker
 Shrine of Loyal Legions
 Shrine of Piercing Vision
 Shrouded Serpent
@@ -4122,7 +4107,6 @@ Sphinx of Uthuun
 Sphinx of the Steel Wind
 Sphinx's Approach
 Sphinx-Bone Wand
-Spider-Rex, Daring Dino
 Spider-Woman, Stunning Savior
 Spike Drone
 Spike Feeder
@@ -4264,7 +4248,6 @@ Stormplain Detainment
 Stormscale Scion
 Stormshriek Feral
 Stormsplitter
-Stormwatch Eagle
 Stormwing Entity
 Story Seeker
 Strands of Undeath
@@ -4472,7 +4455,6 @@ Teval, the Balanced Scale
 Textbook Tabulator
 Teyo, Diamondblade Mage
 Teyo, Lightshield Expert
-Teyo, the Shieldmage
 Teysa, Opulent Oligarch
 Tezzeret's Ambition
 Tezzeret, Cruel Captain
@@ -4966,7 +4948,6 @@ Wall of Tombstones
 Wall of Torches
 Wallop
 Wander Off
-Wander in Death
 Wandering Champion
 Wandering Musicians
 Wandering Stream
@@ -4976,7 +4957,6 @@ Wanted Griffin
 War Effort
 War Squeak
 Warbeast of Gorgoroth
-Warbriar Blessing
 Warden of Evos Isle
 Warden of the Eye
 Warden of the Grove
