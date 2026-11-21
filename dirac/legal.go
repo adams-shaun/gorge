@@ -2752,7 +2752,18 @@ func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, drop uint8, add, fold f
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 		return
 	}
-	c.recDrop(sl, uint8(ab.ManaColors), max(ab.ManaN, 1), drop)
+	if c.on && ab.ManaEach {
+		// an all-at-once production (Simic Signet's {G}{U}) makes every
+		// colour it names in one activation (CR 106.3): one unit a colour,
+		// not one unit of either (gorge ProducedCounts sums each colour)
+		for col, n := range filtEachVec(ab) {
+			if n != 0 {
+				c.recDrop(sl, 1<<col, n, drop)
+			}
+		}
+	} else {
+		c.recDrop(sl, uint8(ab.ManaColors), max(ab.ManaN, 1), drop)
+	}
 	fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 }
 

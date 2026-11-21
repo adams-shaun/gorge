@@ -270,6 +270,13 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		}
 		return o != NoObj && s.enteredFrom(o, from) != DebugWord7Flip
 	}
+	if fl.PredN&0xff == kop.W7IsCommander {
+		// a card off the battlefield is a commander when its object is its
+		// owner's (CR 903.3: the designation stays with the card in every
+		// zone; gorge reads it on the object): Command Beacon's pick over the
+		// command zone (zone_cmdpick.go). A bare CardID is none.
+		return o != NoObj && s.cfg&cfgCommander != 0 && s.cmdSlot(s.objs[o].owner(), o) >= 0
+	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
 		// evaluating controller's graveyard it shares a name with itself
