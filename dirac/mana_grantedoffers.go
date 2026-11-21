@@ -1374,7 +1374,7 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 	// (gapBranch)
 	g.sacx[n] = am.has(sl)
 	if ng > 0 {
-		g.dual[n] = (!tm.has(sl) && !am.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAb(g.k, sl) != nil)
+		g.dual[n] = (!tm.has(sl) && !am.has(sl) || g.k.tapXSecond(s.cardAt(sl))) && (s.ownManaUsable(g.k, sl) || s.ownRestrAbListed(g.k, sl) != nil)
 		// A rider gap beside its grants (Rain of Filth's sacrifice mana on the
 		// rider land): its own production is no planner unit (availGrant counts
 		// the grant alone), so the search taps the rider beside the grants --
@@ -1666,7 +1666,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 			}
 		} else if g.dual[i] {
 			mask, n := uint8(0), uint8(0)
-			if ra := t.ownRestrAb(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
+			if ra := t.ownRestrAbListed(g.k, sl); ra != nil && !t.ownManaUsable(g.k, sl) {
 				mask, n = uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra) // the restricted printed ability
 				// gorge's search taps it first whether or not the play may spend
 				// it; mana the play cannot spend prices nothing
@@ -1697,7 +1697,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 			// a restricted printed ability beside the usable one (White Lotus
 			// Hideout's Lesson-only any colour): gorge's search taps it too, after
 			// the usable one, whether or not the play may spend it
-			if ra := t.ownRestrAb(g.k, sl); ra != nil {
+			if ra := t.ownRestrAbListed(g.k, sl); ra != nil {
 				g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
 				if g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny) {
 					return true, false
@@ -2031,7 +2031,7 @@ func (g *grantSrch) printedAlts(t *State, i int, sl Slot, grants, fok, tx bool) 
 		if grants && t.gatedPairWide(g.k, sl) > 0 {
 			alts++ // the gate-on pair's larger {T} ability is an answer of the ask too (mana_gatedpairgrant.go)
 		}
-		if t.ownManaUsable(g.k, sl) && t.ownRestrAb(g.k, sl) != nil {
+		if t.ownManaUsable(g.k, sl) && t.ownRestrAbListed(g.k, sl) != nil {
 			alts++ // (the restricted printed ability beside the usable one is an answer of the ask)
 		}
 	}
@@ -2588,8 +2588,7 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 	}
 	t := s.fork()
 	defer s.unfork()
-	ok := g.visit(t)
-	return ok
+	return g.visit(t)
 }
 
 // stallOf records the stall a node's fork latched (capFull) while the line ran
