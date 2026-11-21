@@ -94,7 +94,7 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 			// drop is final for the madness cast, so it declares it rather
 			// than losing the offer silently (tapXScript's shape)
 			ok, stall = s.windowAffords(k, p, &cost)
-			if !ok && (k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any()) || s.sacOtherManaLive(k, p)) {
+			if !ok && (k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any() || k.gen.anyFilt && s.filtHybIn(k, s.scriptFilt(k, p))) || s.sacOtherManaLive(k, p)) {
 				// gorge prices the madness cast against the potential pool
 				// too, which counts a source the census defers (mana_condsplit.go's
 				// River of Tears, and a Taps-deferred one: Burning Earth beside
@@ -103,7 +103,12 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 				// unpayable, mana_tapsdefer.go), and one that sacrifices another
 				// permanent for its mana (Jungle Patrol's "Sacrifice a token
 				// named Wood: Add {R}", potentialGapCost's CostSac arm; CR
-				// 601.2g); without either the census and window say the same.
+				// 601.2g), and a hybrid-fee filter whose fee is no floating
+				// mana (Sunken Ruins' "{U/B}, {T}: Add {U}{U}, {U}{B}, or
+				// {B}{B}": a paid gap gorge's census cannot relax, so its
+				// "insufficient" is never a proof, and a tap of another land
+				// pays the fee, CR 605.3a); without any the census and window
+				// say the same.
 				// The over-bound alone is gorge's offerCastablePotential leg:
 				// its gate still runs provenUnpayable (altcast.go askMadnessCast),
 				// whose verdict here is the failed probe's "insufficient" and
