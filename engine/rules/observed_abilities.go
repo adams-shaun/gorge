@@ -65,7 +65,7 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 		// mirrors the offer walk's granted-keyword block and works in any
 		// zone the grant reaches (a hand card given cycling).
 		for _, line := range e.grantedKeywordLines(id) {
-			ab := cards.GrantedKeywordAbility(line)
+			ab := grantedKeywordSA(o, line)
 			if ab == nil || (cards.IsManaAbilitySA(ab) && !e.isLoyaltyAbility(ab)) {
 				continue
 			}

@@ -275,7 +275,7 @@ func (e *Engine) beginKeywordGrantedActivation(p state.PlayerID, opt decision.Op
 	if o == nil || o.Face() == nil {
 		return
 	}
-	ab := cards.GrantedKeywordAbility(opt.Keyword)
+	ab := grantedKeywordSA(o, opt.Keyword)
 	if ab == nil {
 		return
 	}
