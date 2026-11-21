@@ -168,8 +168,10 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 // too (the shields were spent as picked and prevNextNC wrote the picked
 // order's amount into it); a pure plus-N batch order ask drops the parked
 // event too, since the order cannot change the sum. The walk is dropped and
-// the op re-executes.
+// the op re-executes. prevNextNC runs first so a shields' ask's record
+// carries the picked order's amount (repl_prevnext.go).
 func (s *State) replPlusAskedResume(k *prep) {
+	s.prevNextNC()
 	if s.g.ro.ac != 0 || s.g.ro.pnx != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
 		s.g.ro = replOrd{}
 	} else {

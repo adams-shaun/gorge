@@ -1366,8 +1366,11 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // and the recipient's SHIELD counter (CR 122.1c, appended last as gorge
 // appends it after the printed matches). The recipient's own printed
 // K:Prevent "all damage" line (Dawn Elemental) is one of those printed
-// matches: it is collected in the scan too, so it is a candidate here before
-// the shield. Protection prevents the damage before the replacements
+// matches: it is collected in the scan too, so it is a candidate here after
+// the PreventNext shields (gorge scans its effect records first) and before
+// the counter. Beside the shields it is the one competitor the ask models
+// (below); beside anything else the shields still stall. Protection prevents
+// the damage before the replacements
 // (gorge emit). A pure plus-N competition is parked with its sum (the same
 // in every order); a mixed one — a plus-N addition or a raise beside a
 // doubling — with the amount unknown (ncPend), the picks applied as made
@@ -1498,18 +1501,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		shld |= 1 << c
 		c++
 	}
-	if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
-		// gorge poses the CR 616.1 ask over the shields and every other
-		// candidate; the walk below models the shields beside the
-		// recipient's own bare printed prevention only (a pick of the
-		// printed line stops the event with the shields unspent, gorge
-		// handleDamageReplacementChoice's terminal arm). Every other
-		// candidate (a doubler, a plus-N line, the SHIELD counter, a colour
-		// record) still stalls.
-		if pAny == 0 || prev != pAny || shld != 0 || plus != 0 || rs != 0 || c != bits.OnesCount8(pnx)+1 {
-			s.capFull(StallPrevNext)
-			return false
-		}
+	if s.pnxAskStalls(k, ctrl, srcSl, srcCard, rcp, sl, pnx, pAny, prev, shld, plus, rs, c) {
+		return false
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
@@ -1560,6 +1553,25 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	s.g.nc = nc
 	return true
+}
+
+// pnxAskStalls reports that a parked PreventNext shields' competition still
+// stalls (parkNC): gorge poses the CR 616.1 ask over the shields and every
+// other candidate, but the walk below models the shields beside the
+// recipient's own bare printed prevention only (a pick of the printed line
+// stops the event with the shields unspent, gorge
+// handleDamageReplacementChoice's terminal arm). Every other competitor (a
+// doubler, a plus-N line, the SHIELD counter, a colour record) still stalls,
+// loudly and before any dealing.
+func (s *State) pnxAskStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, pnx, pAny, prev, shld, plus, rs uint8, c int) bool {
+	if pnx == 0 || c < 2 || !s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
+		return false
+	}
+	if pAny == 0 || prev != pAny || shld != 0 || plus != 0 || rs != 0 || c != bits.OnesCount8(pnx)+1 {
+		s.capFull(StallPrevNext)
+		return true
+	}
+	return false
 }
 
 // parkPlusCand appends the battlefield plus-N candidate at b (an addition or
