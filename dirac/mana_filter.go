@@ -2630,6 +2630,13 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 // (an X, hybrid, snow or Phyrexian cost): the prune must never drop a branch
 // a real plan could use.
 func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
+	if fs.gaps.many() {
+		// A second filter gap: the dead subtree under the free branch is
+		// gorge's to walk (its plain run spends the node budget there and
+		// its fee-order run funds the play, CR 605.3b), as holdDualFilter's
+		// lone-filter scope.
+		return false
+	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
 		len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
 		return false
