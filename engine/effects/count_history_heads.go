@@ -131,6 +131,11 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 			n += int32(len(g.Zone(state.ZHand, state.PlayerID(p))))
 		}
 		return n, true
+	case evalCov3HeadMaxDistinctOnStack:
+		// Geometric Weird's "greatest number of spells and abilities from
+		// different sources that were on the stack at once this turn": the
+		// event-folded per-turn high-water mark.
+		return g.MaxDistinctOnStackThisTurn, true
 	case evalCov3HeadFinishedUpkeepsThisTurn:
 		// Reset's "after their upkeep step": the upkeeps BEGUN this turn
 		// (the event-folded g.UpkeepsThisTurn), less the one the walk is
