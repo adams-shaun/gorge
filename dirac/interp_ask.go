@@ -87,7 +87,7 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+		return true // gorge triggeredCostDrawCounts: payable once the count resolves, a zero count included (CR 118.5; Horrid Shadowspinner at power 0 draws none)
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
 	case payKindReveal:
