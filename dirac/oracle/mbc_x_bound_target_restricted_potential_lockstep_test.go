@@ -18,6 +18,12 @@ func TestMBCSequenceEngineReprosLockstep(t *testing.T) {
 	// mana value 3 creature card in the graveyard (tail-29 pair 33, decision
 	// 588) while the kernel, which prices the announcement exactly, did not.
 	stdReproNamed(t, "sequence_engine")
+	// CR 601.2c: the target pool. gorge offered activate(#N,-,0) at every
+	// priority window with the Engine untapped even though no graveyard held a
+	// creature card of any affordable mana value X, so no value of X has a
+	// legal target and the activation is not a legal action; the kernel
+	// offered only pass (tail-29, decision 410).
+	stdReproNamed(t, "activate_x_offer_without_legal_target")
 	// gorge offered the activation at a priority decision where the kernel
 	// offered only pass (tail-29-c000 pair 17, decision 325).
 	stdReproNamed(t, "sequence_engine_activation_offer")
