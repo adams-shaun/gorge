@@ -6,6 +6,7 @@ Back on Track
 Beastrider Vanguard
 Bloodfell Caves
 Blossoming Sands
+Boommobile
 Broadcast Rambler
 Broodheart Engine
 Burner Rocket
@@ -13,6 +14,9 @@ Burnout Bashtronaut
 Caelorna, Coral Tyrant
 Carrion Cruiser
 Cloudspire Captain
+Country Roads
+Crash and Burn
+Cursecloth Wrappings
 Daretti, Rocketeer Engineer
 Daring Mechanic
 Deathless Pilot
@@ -20,20 +24,28 @@ Debris Beetle
 Dismal Backwater
 Draconautics Engineer
 Dynamite Diver
+Earthrumbler
+Embalmed Ascendant
 Endrider Spikespitter
+Engine Rat
 Fang Guardian
 Far Fortune, End Boss
 Flood the Engine
 Forest
 Gastal Blockbuster
 Gastal Raider
+Gastal Thrillroller
+Gastal Thrillseeker
 Gearseeker Serpent
 Gilded Ghoda
 Glitch Ghost Surveyor
 Goblin Surveyor
+Greasewrench Goblin
 Greenbelt Guardian
 Grim Bauble
 Grim Javelineer
+Guidelight Matrix
+Guidelight Optimizer
 Guidelight Synergist
 Haunt the Network
 Haunted Hellride
@@ -42,36 +54,50 @@ Hazoret, Godseeker
 Hellish Sideswipe
 Hour of Victory
 Hulldrifter
+Interface Ace
 Island
 Kalakscion, Hunger Tyrant
 Keen Buccaneer
 Ketramose, the New Dawn
 Kickoff Celebrations
 Lifecraft Engine
+Lightning Strike
 Lightshield Parry
 Lightwheel Enhancements
 Lotusguard Disciple
+Marauding Mako
 Maximum Overdrive
 Midnight Mangler
+Monument to Endurance
 Mountain
 Mutant Surveyor
 Nimble Thopterist
 Ooze Patrol
 Outpace Oblivion
 Pacesetter Paragon
+Pactdoll Terror
 Pedal to the Metal
 Plains
 Plow Through
+Pothole Mole
 Prowcatcher Specialist
 Push the Limit
 Quag Feast
 Racers' Scoreboard
+Reef Roads
 Repurposing Bay
+Ride's End
+Rise from the Wreck
 Risen Necroregent
+Risky Shortcut
 Riverpyre Verge
 Road Rage
+Roadside Assistance
 Rocky Roads
+Rover Blades
+Rugged Highlands
 Sabotage Strategist
+Salvation Engine
 Scoured Barrens
 Skystreak Engineer
 Slick Imitator
@@ -86,17 +112,24 @@ Streaking Oilgorger
 Sundial, Dawn Tyrant
 Swamp
 Swiftwater Cliffs
+Syphon Fuel
+Terrian, World Tyrant
 The Last Ride
 The Speed Demon
 Thopter Fabricator
+Thornwood Falls
+Thunderhead Gunner
 Thunderous Velocipede
+Ticket Tortoise
 Tranquil Cove
 Tyrox, Saurid Tyrant
 Unstoppable Plan
 Voyager Glidecar
 Walking Sarcophagus
 Wastewood Verge
+Wickerfolk Indomitable
 Wild Roads
+Willowrush Verge
 Wind-Scarred Crag
 Wreckage Wickerfolk
 Wretched Doll
