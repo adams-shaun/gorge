@@ -1031,3 +1031,4 @@ xwitness_census_total_omits_pain_units custom
 restricted_later_chosen_ability_pays_the_activation custom
 treasure_funded_red_sorcery_not_offered dr-mbc-aabb
 gained_mana_ability_pays_creature_cast std-dsk
+attuma_cast_funded_by_baxter_paid_activation std-msh
