@@ -365,12 +365,12 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			// assignment is positional); mark it so the generic ValidTgts$
 			// pre-ask does not re-pose the cross-mode question per mode.
 			c.OfferedSA = sub
-			Resolve(h, c, sub)
+			runCharmBody(h, c, sub)
 			c.OfferedSA = savedOffered
 			c.Targets = saved
 			ti++
 		} else {
-			Resolve(h, c, sub)
+			runCharmBody(h, c, sub)
 		}
 		if h.Suspended() {
 			// The mode's chain opened a resolution-time window: stop here.
@@ -437,7 +437,7 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 		// No-host path: an effects-only host has no chooser, so deterministically take
 		// the first option and continue to the next victim.
 		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
-			Resolve(h, c, sub)
+			runCharmBody(h, c, sub)
 		}
 		if h.Suspended() {
 			return
@@ -452,12 +452,33 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 	c.Choosers.VictimIndex = 0
 }
 
+// runCharmBody resolves one dispatched Charm body with its own SA published
+// on Ctx.CharmModeSA -- the words a mid-resolution ask anywhere under this
+// body reads. Reader: handTakeOptional's markerless hand-move optionality
+// inference, which must read the ABILITY's own text and not the resolving
+// permanent's printed oracle -- on a copy (Silent Hallcreeper granted
+// Insidious Fungus's charm) the printed oracle is another card's words, and
+// its "Put two +1/+1 counters" bullet beside the card's "choose one" line
+// classified the optional "you may put a land card" move as required, posing
+// Min 1 where the kernel poses Min 0 with Done (the
+// copy_printed_oracle_hand_move_mandatory repro). The publish is restored on
+// return, so a nested dispatch and the enclosing chain see the outer value.
+func runCharmBody(h Host, c *Ctx, sub *cards.SA) {
+	if sub == nil {
+		return
+	}
+	saved := c.CharmModeSA
+	c.CharmModeSA = sub
+	Resolve(h, c, sub)
+	c.CharmModeSA = saved
+}
+
 // villainousRunChoice runs the current victim's chosen body (names) and
 // reports whether it opened a resolution-time window.
 func villainousRunChoice(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	for _, name := range names {
 		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-			Resolve(h, c, sub)
+			runCharmBody(h, c, sub)
 		}
 		if h.Suspended() {
 			return true
@@ -492,10 +513,9 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			// anywhere under this mode is scoped to it instead of to the
 			// stack object's whole flat list (Ctx.CharmModeScope).
 			c.CharmModeScope = c.Targets
-			c.CharmModeSA = sub
 			offset++
 		}
-		Resolve(h, c, sub)
+		runCharmBody(h, c, sub)
 		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
 		c.CharmModeScope, c.CharmModeSA = savedScope, savedScopeSA
 		if h.Suspended() {
@@ -627,7 +647,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 		}
 		savedChoosers, savedIndex := c.Choosers.Choosers, c.Choosers.ChooserIndex
 		c.Choosers.Choosers, c.Choosers.ChooserIndex = nil, 0
-		Resolve(h, c, sub)
+		runCharmBody(h, c, sub)
 		c.Choosers.Choosers, c.Choosers.ChooserIndex = savedChoosers, savedIndex
 		if h.Suspended() {
 			return true
@@ -882,7 +902,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				Counter: events.DilemmaFacedAtRandom, Text: label})
 		}
 		if subs[idx] != nil {
-			Resolve(h, c, subs[idx])
+			runCharmBody(h, c, subs[idx])
 		}
 		return
 	}
@@ -940,14 +960,14 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose a mode at random (no engine host to ask): " + charmModeLabel(choices, subs, idx)})
 		if subs[idx] != nil {
-			Resolve(h, c, subs[idx])
+			runCharmBody(h, c, subs[idx])
 		}
 		return
 	}
 	h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 		Text: "chose its first mode (no engine host to ask)"})
 	if subs[0] != nil {
-		Resolve(h, c, subs[0])
+		runCharmBody(h, c, subs[0])
 	}
 }
 
@@ -1005,7 +1025,7 @@ func charmRunModes(h Host, c *Ctx, sa *cards.SA, names []string) {
 					}
 				}
 			}
-			Resolve(h, c, sub)
+			runCharmBody(h, c, sub)
 			c.OfferedSA, c.Targets, c.TargetsOffered = savedOffered, savedTargets, savedMark
 		}
 		if h.Suspended() {
