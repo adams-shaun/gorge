@@ -694,6 +694,7 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]dynUnit, nm int) {
 	t = *av
 	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
+	lifeUsed := 0 // the life the restricted life units counted so far pay
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
@@ -731,6 +732,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			t.addXv(v)
 		case rkExt:
+			if restrLifeUnit(v) && !s.restrLifeCharge(k, p, &t, int(v.restrLife), &lifeUsed) {
+				continue // its life and the plan's painful sources' reach the payer's
+			}
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			if v.manaOne {
 				s.addOneColourMask(&t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
