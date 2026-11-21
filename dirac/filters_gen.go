@@ -440,7 +440,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 			// planner finds the payment, so the over-bound pool is the
 			// supply (CR 605.3b, 601.2g; mana_xboundgap.go).
 			dOpen := d
-			dOpen.gapTrack, dOpen.gapSkip, dOpen.gapN, dOpen.gapRepeats, dOpen.gapNever, dOpen.gapGain = false, 0, 0, false, 0, false
+			dOpen.gapTrack, dOpen.gapSkip, dOpen.gapN, dOpen.gapRepeats, dOpen.gapGain = false, 0, 0, false, false
 			pot = avail{}
 			s.availPotentialFor(k, p, &pot, &dOpen, false)
 		}
