@@ -2920,8 +2920,9 @@ func restrAbOfGrant(k *prep, gi int16) *kop.Ability {
 // play a (grantPrefix / grantCap), ok false for a play it never searches.
 // need is the colours the play's printed base announces (gorge's
 // scriptNeedColours, potential_script.go): empty for an alternative, a
-// kicked, face-down or MayPlay cast, as gorge's scriptNeedColours leaves
-// it -- the search branches a colour ask on those first (grantSrch.branch).
+// kicked or face-down cast, as gorge's scriptNeedColours leaves it; an
+// untyped MayPlay cast reads the printed pips it pays (scriptPlayBaseCost)
+// -- the search branches a colour ask on those first (grantSrch.branch).
 func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	if a.Kind() == AkPlot && a.Mode() == 0 {
 		return s.grantPlotCost(k, p, a)
@@ -3140,9 +3141,10 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 }
 
 // playNeed is the colours play a's printed base announces (gorge's
-// scriptNeedColours): a plain cast's printed mana cost, a printed ability's
-// compiled cost. An alternative, kicked, face-down or may-play cast, and the
-// impended/evoked alternative costs, leave it empty, as gorge's
+// scriptNeedColours): a plain cast's printed mana cost, an untyped may-play
+// cast's printed mana cost (its "mayplay" mode pays the printed cost), a
+// printed ability's compiled cost. An alternative, kicked, face-down cast,
+// and the impended/evoked alternative costs, leave it empty, as gorge's
 // scriptNeedColours does -- except a plain graveyard cast (a mode-2 cast of
 // no special target), which announces the pips the cast pays
 // (graveyardCastNeedCost): the kernel's branch-order hint alone, never a
