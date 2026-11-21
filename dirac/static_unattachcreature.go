@@ -24,8 +24,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // still detaches.
 //
 // Not modelled (no lowered carrier; crcoverage 704.5p records them SILENT): an
-// attached Aura that becomes a creature (it would take the "Aura attached to
-// nothing" graveyard arm on gorge's next pass) and an attached battle.
+// attached battle. The attached-Aura reach is modelled under genPrep.auraAnim
+// (static_equipanimated.go): a Creature-adding override whose filter can reach
+// an attached Aura — Mercurial Transformation's Octopus animate, which removes
+// the Aura's card types, leaves the permanent a plain creature and gorge's
+// creature arm unattaches it (pair 29 of tail-46); an animate that keeps the
+// Aura type takes the same arm and then the next pass's CR 704.5m graveyard.
 // 0 B: the link is the permanent's attached slot.
 
 // DebugAttachedCreatureStays leaves an attached creature attached (mutation
@@ -36,7 +40,8 @@ var DebugAttachedCreatureStays bool
 // per-permanent loop is done, as gorge's attachmentSBAs runs after the pass's
 // casualties: a permanent or bearer that leaves in this pass (all) is left to
 // the bearer-left handling. It reports whether an Equipment became unattached
-// (gorge's changed pass). Reached only under genPrep.equipAnim or prep.gainsOfAttach, so the hot
+// (gorge's changed pass). Reached only under genPrep.equipAnim,
+// genPrep.auraAnim or prep.gainsOfAttach, so the hot
 // per-permanent loop carries none of it.
 //
 //go:noinline
@@ -60,11 +65,8 @@ func (s *State) sbaAttachedCreatures(k *prep, all slotMask) bool {
 // (CR 704.5p's second arm leaves it), and only a printed attachment face whose
 // derived types lost the type detaches despite it.
 func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
-	if DebugAttachedCreatureStays || t&kop.TAura != 0 || s.perms[sl].attached == NoSlot {
+	if DebugAttachedCreatureStays || s.perms[sl].attached == NoSlot {
 		return false
-	}
-	if t&kop.TCreature == 0 && t&kop.TEquipment != 0 {
-		return false // a noncreature Equipment stays (gorge's arm 2 skips it)
 	}
 	if k.gen != nil && k.gen.anyBestow && k.t.Cards[s.cardAt(sl)].HasBestow {
 		return false
@@ -72,15 +74,24 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 	if k.gen != nil && k.gen.anyReconfigure && s.reconfigureAttached(k, sl) {
 		return false // CR 702.151b: an attached Reconfigure card is no creature (kw_reconfigure.go)
 	}
-	if t&kop.TCreature == 0 {
-		if k.t.Cards[s.cardAt(sl)].Types&(kop.TEquipment|kop.TAura) != 0 {
-			// gorge printsAttachmentType: the printed face is an attachment
-			// type whose derived types lost it (a copy of a plain artifact),
-			// so the grant carve-out does not apply and the attachment is
-			// illegal (CR 704.5p arm 2, CR 301.5c).
-		} else if k.gainsOfAttach && s.grantedEquipKeyword(k, sl) {
-			return false // gorge's grantedAttachKeyword carve-out (grantedEquipKeyword)
-		}
+	if t&kop.TCreature != 0 {
+		// CR 704.5p's creature arm: any attached creature detaches and stays,
+		// an Aura among its types included (gorge's attachedKindIllegal reads
+		// the creature arm before its Aura arms; the next pass's "Aura
+		// attached to nothing" then takes CR 704.5m).
+	} else if t&kop.TEquipment != 0 {
+		return false // a noncreature Equipment stays (gorge's arm 2 skips it)
+	} else if t&kop.TAura != 0 {
+		return false // a still-Aura noncreature: the Aura arms in sbaScan govern it
+	} else if k.t.Cards[s.cardAt(sl)].Types&(kop.TEquipment|kop.TAura) != 0 {
+		// gorge printsAttachmentType: the printed face is an attachment
+		// type whose derived types lost it (a copy of a plain artifact),
+		// so the grant carve-out does not apply and the attachment is
+		// illegal (CR 704.5p arm 2, CR 301.5c).
+	} else if k.gainsOfAttach && s.grantedEquipKeyword(k, sl) {
+		return false // gorge's grantedAttachKeyword carve-out (grantedEquipKeyword)
+	} else {
+		return false
 	}
 	p := &s.perms[sl]
 	h := p.attached

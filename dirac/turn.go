@@ -654,7 +654,7 @@ func (s *State) sba(k *prep) bool {
 		if all.any() {
 			s.dnBatch(k) // CR 702.145d/g sees the pass's casualties (kw_daynight.go)
 		}
-		if k.gen != nil && (k.gen.equipAnim || k.gainsOfAttach) && s.sbaAttachedCreatures(k, all) && !all.any() {
+		if k.gen != nil && (k.gen.equipAnim || k.gen.auraAnim || k.gainsOfAttach) && s.sbaAttachedCreatures(k, all) && !all.any() {
 			continue // CR 704.5p: an Equipment left its bearer; gorge's changed pass (static_unattachcreature.go)
 		}
 		if !all.any() {
