@@ -116,8 +116,8 @@ type stageStats struct {
 	firstDetail   map[string]string // the first error text of each reason, for a log
 	spells        int               // staged positions with a spell on the stack
 	abilities     int               // staged positions with an ability on the stack
+	ceased        int               // staged positions holding a ceased token
 	targeted      int               // staged positions with a stack entry holding a target
-	deadTok       int               // positions skipped: a token had left the view after the last one shown
 	marked        int               // staged positions with damage or a +1/+1 counter
 	stacked       int               // staged positions with a stack entry
 	farAttack     int               // staged positions with an attacker on a seat other than the active seat's next
@@ -214,14 +214,18 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 			View: v, Hidden: hidden, Tbl: env.tbl, Cfg: stageCfg(), Seed: seed,
 			ObjOf: func(id int) (dirac.Obj, bool) { return dirac.Obj(ref.InstRef(state.ObjID(id))), true },
 		}
-		w, err := shadow.WorldFromView(in)
 		var staged *dirac.State
+		var w dirac.World
+		var kp dirac.Projection
+		kstate.Project(&kp)
+		var err error
+		if in.Hidden.Ceased, err = ceasedTokens(kstate, env.tbl, int(kp.NObj)); err == nil {
+			w, err = shadow.WorldFromView(in)
+		}
 		if err == nil {
-			var kp dirac.Projection
-			kstate.Project(&kp)
 			if len(w.Objs) != int(kp.NObj) {
-				st.deadTok++ // a token left the view after the last shown one: the replayed game holds one more object
-				return nil
+				fail = fmt.Sprintf("seed %d, decision %d: staged %d objects, the replay holds %d", seed, n, len(w.Objs), kp.NObj)
+				return errDone
 			}
 			if mut != nil {
 				mut(&w)
@@ -261,7 +265,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 
 // count tallies the features a staged world holds, once per position.
 func (st *stageStats) count(w *dirac.World) {
-	var dmg, ctr, att, tok, spell, abil, far, tgt bool
+	var dmg, ctr, att, tok, spell, abil, far, ceased, tgt bool
 	for i := range w.Stack {
 		tgt = tgt || w.Stack[i].NT != 0
 		if w.Stack[i].Ability {
@@ -273,6 +277,7 @@ func (st *stageStats) count(w *dirac.World) {
 	for i := range w.Objs {
 		o := &w.Objs[i]
 		dmg, ctr, att, tok = dmg || o.Damage != 0, ctr || o.P1P1 != 0, att || o.Attached, tok || o.Token
+		ceased = ceased || o.Token && o.Zone == kop.ZoneNone
 		far = far || o.Attacking && o.AtkSeat != (w.Active+1)%w.NSeat
 	}
 	if dmg || ctr {
@@ -303,7 +308,7 @@ func (st *stageStats) count(w *dirac.World) {
 	for _, f := range []struct {
 		on bool
 		n  *int
-	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {spell, &st.spells}, {abil, &st.abilities}, {tgt, &st.targeted}} {
+	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {ceased, &st.ceased}, {spell, &st.spells}, {abil, &st.abilities}, {tgt, &st.targeted}} {
 		if f.on {
 			*f.n++
 		}
@@ -320,6 +325,28 @@ func hasMarks(v *view.View) bool {
 		}
 	}
 	return false
+}
+
+// ceasedTokens is every token the replayed kernel ks holds in no zone below its
+// nobj objects, as the caller of a shadow deals them: the table token's script
+// name and the owner, read from the replay and never from the view. A token in
+// a zone the view does not show (anything but the battlefield and none) is an
+// ErrUnstageable of reason token, as the shadow's would be.
+func ceasedTokens(ks *dirac.State, tbl *kop.Table, nobj int) ([]shadow.CeasedToken, error) {
+	var out []shadow.CeasedToken
+	for o := dirac.Obj(0); int(o) < nobj; o++ {
+		if !ks.ObjToken(o) {
+			continue
+		}
+		switch z := ks.ObjZone(o); z {
+		case kop.ZoneBattlefield:
+		case kop.ZoneNone:
+			out = append(out, shadow.CeasedToken{Obj: o, Name: tbl.Cards[ks.ObjCard(o)].Name, Owner: ks.ObjOwner(o)})
+		default:
+			return nil, dirac.ErrUnstageable{Reason: dirac.ReasonToken, Detail: fmt.Sprintf("the replay holds token %d in zone %d", o, z)}
+		}
+	}
+	return out, nil
 }
 
 func card(ref *oracle.GorgeSide, g *state.Game, id state.ObjID) shadow.Card {

@@ -50,13 +50,25 @@ type Card struct {
 	Name string
 }
 
+// CeasedToken is a token that has ceased to exist (CR 111.7, 704.5d): it keeps
+// the object index the game gave it and no view shows it. Name is the table
+// token's script name as tokenCard resolves it ("r_1_1_goblin").
+type CeasedToken struct {
+	Obj   dirac.Obj
+	Name  string
+	Owner uint8
+}
+
 // Hidden is the caller's assignment of the zones the view hides. Hand[p] is
 // seat p's hand in order (the viewer's own hand is read from the view
 // instead, and Hand[viewer] is ignored); Library[p] is seat p's library from
-// the top. Sizes must equal the counts the view shows.
+// the top. Sizes must equal the counts the view shows. Ceased lists the tokens
+// that have ceased to exist, which fill the gaps among the token indices.
 type Hidden struct {
 	Hand    [dirac.MaxSeats][]Card
 	Library [dirac.MaxSeats][]Card
+	// Ceased is every token that has ceased to exist, at the index the game gave it.
+	Ceased []CeasedToken
 	// Gone[p] is every card of seat p's deck, in object order, for a player the
 	// view shows as Lost: those cards ceased to exist when the seat left (CR
 	// 800.4a). Read only for a lost player.
@@ -109,6 +121,9 @@ func WorldFromView(in *Input) (dirac.World, error) {
 		if err := b.seat(&w, &p, int(p.ID) == int(v.Viewer)); err != nil {
 			return w, err
 		}
+	}
+	if err := b.ceased(); err != nil {
+		return w, err
 	}
 	if err := b.commanderDamage(&w); err != nil {
 		return w, err
@@ -445,10 +460,10 @@ func (b *builder) commanderDamage(w *dirac.World) error {
 }
 
 // assemble orders the gathered objects by index. The cards of the decks take
-// 0..m-1, as dirac.World lays them out, and the tokens the view shows follow;
-// a gap before a token is a token the view no longer shows. (A token that left
-// after the last shown one leaves no gap: the staged game just holds fewer
-// objects than the one that made it.)
+// 0..m-1, as dirac.World lays them out, and the tokens follow, the ceased ones
+// (Hidden.Ceased) among them; a gap before a token that no ceased token fills
+// is refused. (A token that ceased after the last one is named leaves no gap:
+// the staged game just holds fewer objects than the one that made it.)
 func (b *builder) assemble(w *dirac.World) error {
 	all := b.all
 	sort.SliceStable(all, func(a, c int) bool { return all[a].obj < all[c].obj })
@@ -456,7 +471,7 @@ func (b *builder) assemble(w *dirac.World) error {
 	for i, p := range all {
 		if int(p.obj) != i {
 			if p.wo.Token {
-				return bad(ReasonToken, "a token left the view: object index %d at %d", p.obj, i)
+				return bad(ReasonToken, "a token left the view and is not ceased: object index %d at %d", p.obj, i)
 			}
 			return bad(ReasonUnmapped, "object indices are not 0..%d (index %d at %d)", len(all)-1, p.obj, i)
 		}
