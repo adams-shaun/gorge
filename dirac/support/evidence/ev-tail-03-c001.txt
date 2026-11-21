@@ -74,6 +74,7 @@ Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
 Cloud Cover
+Coalition Honor Guard
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -418,6 +419,7 @@ The Hunter Maze
 The Triumph of Anax
 Thermal Blast
 Thran Golem
+Thrill-Kill Disciple
 Thunderscape Familiar
 Tiana, Ship's Caretaker
 Tidehollow Sculler

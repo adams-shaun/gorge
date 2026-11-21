@@ -169,6 +169,7 @@ Projektor Inspector
 Public Thoroughfare
 Pyrotechnic Performer
 Rakdos, Patron of Chaos
+Rakish Scoundrel
 Raucous Theater
 Reckless Detective
 Red Herring

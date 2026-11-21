@@ -20,6 +20,7 @@ Basilica Stalker
 Bastion Inventor
 Beast Attack
 Biting Rain
+Blessed Reincarnation
 Blight Sickle
 Boldwyr Intimidator
 Bolrac-Clan Basher
@@ -51,6 +52,7 @@ Corsairs of Umbar
 Crackling Triton
 Crypt Incursion
 Crystalline Armor
+Curator Beastie
 Custodi Soulbinders
 Daily Bugle Newspaper
 Deadshot
@@ -91,6 +93,7 @@ Golgari Raiders
 Gray Merchant of Asphodel
 Guardian Kirin
 Hall
+Hana Kami
 Helitrooper
 Heroes of the Revel
 Heroes' Podium
@@ -106,6 +109,7 @@ Iron Bully
 Island
 Ixidor, Reality Sculptor
 Keen-Eyed Raven
+Keeneye Aven
 Keeper of Kookus
 Knight of the Keep
 Kor Castigator
@@ -162,6 +166,7 @@ Savage Conception
 Scepter of Celebration
 Scion of Oona
 Scuttling Butler
+Seal from Existence
 Searing Blood
 Secure the Scene
 Selective Memory
@@ -203,6 +208,7 @@ Tidal Bore
 Titan Hunter
 Topan Freeblade
 Tor Giant
+Touch the Spirit Realm
 Tranquil Frillback
 Transcendent Master
 Transcendent Message
@@ -222,3 +228,4 @@ Windgrace Acolyte
 Wirecat
 Writhing Necromass
 Young Blue Dragon
+Zulaport Chainmage

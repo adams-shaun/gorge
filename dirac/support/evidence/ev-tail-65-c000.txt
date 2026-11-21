@@ -122,6 +122,7 @@ Gitaxian Anatomist
 Glimmer of Genius
 Glitterfang
 Glorious Anthem
+Glorious Protector
 Gold Myr
 Golgari Locket
 Graceblade Artisan

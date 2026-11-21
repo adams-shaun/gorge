@@ -117,6 +117,7 @@ Elven Lyre
 Emerald Dragonfly
 Epic Proportions
 Equestrian Skill
+Erhnam Djinn
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Essence Extraction
@@ -144,6 +145,7 @@ General Thunderbolt Ross
 Generous Pup
 Ghen, Arcanum Weaver
 Giant Ox
+Gibbering Kami
 Gideon's Battle Cry
 Gift of Growth
 Gilded Assault Cart
@@ -347,6 +349,7 @@ Rural Recruit
 Ruthless Predation
 Sadistic Obsession
 Salvage Titan
+Sam's Desperate Rescue
 Sandsteppe War Riders
 Sarkhan's Catharsis
 Satyr's Cunning
