@@ -886,7 +886,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
 				// cast was offered on it (legal.go restrAffords)
-				s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av)
+				s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av)
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
@@ -1323,7 +1323,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 			}
 		}
 	} else if s.rbAny(SeatIx(e.ctrl)) {
-		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
+		s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	if e.kind == seSpell {
 		s.addDeferredUnits(k, e.ctrl, &av) // mana_deferred.go
@@ -1623,7 +1623,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 			// restricted mana this spell may spend pays first (payRestrSpend):
 			// the sources tap for what it leaves (manaStep tapped them already
 			// when the plan ran there; this keeps the retap a no-op)
-			cost = s.restrShort(k, e.ctrl, e.card, restrOriginOfEntry(ep), cost)
+			cost = s.restrShort(k, e.ctrl, e.card, s.restrOriginOfEntry(ep), cost)
 		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}

@@ -43,6 +43,16 @@ type restrOrigin struct {
 	cast     bool
 	byYou    bool
 	bestowed bool
+	// owner is the payment spell's owner when ownSet: its controller is the
+	// caster the callers pass beside it (p), so a MayPlay cast of another
+	// player's card reads owner != controller and an owner filter on the
+	// restriction sees it (CR 601.2g-h; Thieving Varmint's "spells you don't
+	// own"). A literal that leaves owner unset defaults to the caster in
+	// restrFilterMatch — the read before the owner was carried — so no literal
+	// can silently mean seat 0. Build an origin with an owner through
+	// restrOriginOfObj / restrOriginOfEntry.
+	owner  uint8
+	ownSet bool
 }
 
 // restrProvHolds is PredWasCastSpell n for a restriction match.
@@ -74,21 +84,32 @@ func restrProvHolds(n int16, o restrOrigin) bool {
 }
 
 // restrOriginOfObj is the origin of the offer of object o (not on the
-// stack): its current zone, the pending read.
+// stack): its current zone, its owner and the pending read.
 func (s *State) restrOriginOfObj(o Obj) restrOrigin {
-	return restrOrigin{from: s.objs[o].zone}
+	return restrOrigin{from: s.objs[o].zone, owner: s.objs[o].owner(), ownSet: true}
 }
 
 // restrOriginOfEntry is the origin of the pushed spell entry e, paid for by
-// its caster: the honest read.
-func restrOriginOfEntry(e *stackEntry) restrOrigin {
-	return restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true, bestowed: e.bestowedEntry()}
+// its caster: the honest read. The spell's owner is its object's (a MayPlay
+// push of another player's card); an entry with no object is the caster's.
+func (s *State) restrOriginOfEntry(e *stackEntry) restrOrigin {
+	own := e.ctrl
+	if e.obj != NoObj {
+		own = s.objs[e.obj].owner()
+	}
+	return restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true, bestowed: e.bestowedEntry(), owner: own, ownSet: true}
 }
 
 // restrFilterMatch: card c, cast from origin og, matches restriction
 // alternative fl of the source of player p (chosen-type words are the
-// caller's).
+// caller's). The candidate is the spell being cast: owner og.owner (the
+// caster where the origin carries none), its controller p, so an owner word
+// reads the caster's ownership as gorge's AvailableFor does (CR 106.6).
 func (s *State) restrFilterMatch(k *prep, fl *kop.Filter, c CardID, p uint8, og restrOrigin) bool {
+	own := og.owner
+	if !og.ownSet {
+		own = p // a literal origin carries no owner: the caster's own
+	}
 	prov, n := fl.Pred == kop.PredWasCastSpell, fl.PredN
 	if prov {
 		fl.Pred, fl.PredN = kop.PredNone, 0
@@ -101,7 +122,7 @@ func (s *State) restrFilterMatch(k *prep, fl *kop.Filter, c CardID, p uint8, og 
 		}
 		fl.Types, fl.NotTypes = 0, 0
 	}
-	if !s.matchCardOne(k, fl, c, p, p, NoObj) {
+	if !s.matchCardOne(k, fl, c, own, p, NoObj) {
 		return false
 	}
 	return !prov || restrProvHolds(n, og)

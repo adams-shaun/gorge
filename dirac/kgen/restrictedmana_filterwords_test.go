@@ -73,13 +73,17 @@ func TestRestrictedManaFilterWordsLower(t *testing.T) {
 	}
 }
 
-// TestRestrictedManaFilterWordsCards: the three carriers stay refused for the
-// cost of their ability (a life payment), and the refusal names no filter
+// TestRestrictedManaFilterWordsCards: the two no-{T} carriers (Lord of the
+// Forsaken, Ronin) stay refused for the cost of their ability (a life payment), and the refusal names no filter
 // word.
 func TestRestrictedManaFilterWordsCards(t *testing.T) {
+	// a sole {T}, Pay 1 life any-colour restricted ability lowers (the kernel's
+	// restricted-life unit), so its filter word is lowered with it
+	if lc := kwrLower(t, "Name:Corrupted Crossroads\nManaCost:no cost\nTypes:Land\n",
+		"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | Amount$ 1 | RestrictValid$ Spell.withDevoid"); len(lc.Refusals) != 0 {
+		t.Errorf("Corrupted Crossroads refused: %v", lc.Refusals)
+	}
 	for _, c := range []struct{ name, head, line string }{
-		{"Corrupted Crossroads", "Name:Corrupted Crossroads\nManaCost:no cost\nTypes:Land\n",
-			"A:AB$ Mana | Cost$ T PayLife<1> | Produced$ Any | Amount$ 1 | RestrictValid$ Spell.withDevoid"},
 		{"Lord of the Forsaken", "Name:Lord of the Forsaken\nManaCost:2 B\nTypes:Creature Vampire\nPT:3/3\n",
 			"A:AB$ Mana | Cost$ PayLife<1> | Produced$ C | RestrictValid$ Spell.wasCastFromYourGraveyard"},
 		{"Ronin, Shadow Stalker", "Name:Ronin, Shadow Stalker\nManaCost:3\nTypes:Artifact Equipment\n",
