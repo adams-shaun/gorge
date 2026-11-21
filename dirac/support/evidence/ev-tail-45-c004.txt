@@ -47,9 +47,11 @@ Chainflinger
 Chameleon Spirit
 Clairvoyance
 Clock of Omens
+Coalhauler Swine
 Colossus Hammer
 Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
 Court Archers
 Crag Saurian
@@ -61,6 +63,7 @@ Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Dauntless Escort
+Dauthi Jackal
 Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
@@ -117,6 +120,7 @@ Grinning Demon
 Guardian Augmenter
 Haazda Officer
 Hag of Death's Legion
+Havengul Skaab
 Haze of Pollen
 Hazel's Brewmaster
 Heart Sliver
@@ -170,6 +174,7 @@ Martyr for the Cause
 Mercurial Pretender
 Meteor Storm
 Moaning Spirit
+Mole Module
 Molten Ravager
 Monk Idealist
 Mountain
@@ -216,6 +221,7 @@ Renata, Called to the Hunt
 Repeal
 Repentant Blacksmith
 Respite
+Revenant Patriarch
 Reverent Hunter
 Righteous Confluence
 River Boa
@@ -237,6 +243,7 @@ Shaman of the Great Hunt
 Shambling Remains
 Shield of Duty and Reason
 Shivan Devastator
+Shivan Raptor
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
@@ -260,10 +267,12 @@ Springing Tiger
 Stasis Cell
 Steel-Plume Marshal
 Stew the Coneys
+Stitch Together
 Stoic Builder
 Storm of Steel
 Stormchaser Chimera
 Stormwatch Eagle
+Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
 Sultai Flayer
@@ -277,6 +286,7 @@ Tajic, Blade of the Legion
 Telekinetic Sliver
 Tempestra, Dame of Games
 Territorial Roc
+Thalisse, Reverent Medium
 Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons

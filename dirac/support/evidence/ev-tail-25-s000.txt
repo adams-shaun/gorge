@@ -22,6 +22,7 @@ Bulwark
 Bumbleflower's Sharepot
 Cache Grab
 Capture of Jingzhou
+Carry Away
 Cat Burglar
 Celebrate the Harvest
 Chamber Sentry
@@ -102,6 +103,7 @@ Kamber, the Plunderer
 Kederekt Parasite
 Khalni Heart Expedition
 Kjeldoran Gargoyle
+Kor Spiritdancer
 Labyrinth of Skophos
 Leeching Sliver
 Leering Gargoyle
