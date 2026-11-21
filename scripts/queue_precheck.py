@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 
@@ -121,12 +122,19 @@ def batch_numbers(pulls, since):
     return best
 
 
-def head_order(batch, estimate, n):
-    """Mergify's batch PRs first (those still queued), then the estimate's, at most n."""
+FRESH_N = 10  # PRs without a passing status this run checks beyond the batches: one batch's worth
+
+
+def head_order(batch, estimate, n, fresh=FRESH_N):
+    """Mergify's batch PRs first (those still queued, at most n), then the next `fresh` PRs of the estimate that have
+    no passing queue-precheck status on their head. queue_conditions require that status (11-21), so the batched
+    PRs all carry one already; without the fresh ones a run could check nothing but batches, and the queue would
+    drain before any new PR earned its status."""
     by = {p["number"]: p for p in estimate}
-    out = [by[x] for x in batch if x in by]
-    out += [p for p in estimate if p["number"] not in batch]
-    return out[:n]
+    out = [by[x] for x in batch if x in by][:n]
+    out += [p for p in estimate
+            if p["number"] not in batch and p.get("checks", {}).get(CONTEXT, ("", ""))[0] != "SUCCESS"][:fresh]
+    return out
 
 
 QUERY = """query($owner:String!,$name:String!,$after:String){repository(owner:$owner,name:$name){
@@ -237,13 +245,6 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
         sh("bash", "scripts/ci-corpus.sh", cwd=path, check=False)
     fails = []
     vet_pkgs = sorted({p for k, p, _ in only if k == "vet"}) if only is not None else ["./..."]
-    if vet_pkgs:
-        r = subprocess.run(["go", "vet", *vet_pkgs], cwd=path, capture_output=True, text=True, env=env)
-        if r.returncode != 0:
-            bad = sorted(set(re.findall(r"^# (\S+)", r.stderr, re.M))) or ["./..."]
-            for b in bad:
-                fails.append(("vet", b if b.startswith(".") or b == "./..." else "./" + b.split("/gorge/", 1)[-1], ""))
-            print(r.stderr[-4000:], file=sys.stderr)
     groups = []
     if only is None:
         if pk:
@@ -261,9 +262,36 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
             if k == "test":
                 tests.setdefault(p, set()).add(t)
         groups = [([p], "^(%s)$" % "|".join(sorted(ts))) for p, ts in sorted(tests.items())]
-    for pkgs, rx in groups:
-        args = ["go", "test", "-short", "-json", "-timeout", "15m"] + (["-run", rx] if rx else []) + pkgs
-        r = subprocess.run(args, cwd=path, capture_output=True, text=True, env=env)
+    # Every command starts at once and the run waits for all of them: run one after another, vet, the censuses,
+    # kgen, the State bar and the replays took 9-16 min, longer than the ~8 min batch the check is meant to gate
+    # (11-21). Together the run is bound by its longest command (the replays, ~5-6 min).
+    # Output goes to files, not pipes: a pipe the parent reads only in its turn fills (the replays' -json stream is
+    # megabytes) and stalls its writer, which would serialise the commands again.
+    def start(args):
+        out, err = tempfile.TemporaryFile("w+"), tempfile.TemporaryFile("w+")
+        return subprocess.Popen(args, cwd=path, env=env, stdout=out, stderr=err, text=True), out, err
+
+    def finish(job):
+        p, out, err = job
+        p.wait()
+        out.seek(0)
+        err.seek(0)
+        r = subprocess.CompletedProcess(p.args, p.returncode, out.read(), err.read())
+        out.close()
+        err.close()
+        return r
+    vet = start(["go", "vet", *vet_pkgs]) if vet_pkgs else None
+    procs = [(pkgs, start(["go", "test", "-short", "-json", "-timeout", "15m"] + (["-run", rx] if rx else []) + pkgs))
+             for pkgs, rx in groups]
+    if vet is not None:
+        rv = finish(vet)
+        if rv.returncode != 0:
+            bad = sorted(set(re.findall(r"^# (\S+)", rv.stderr, re.M))) or ["./..."]
+            for b in bad:
+                fails.append(("vet", b if b.startswith(".") or b == "./..." else "./" + b.split("/gorge/", 1)[-1], ""))
+            print(rv.stderr[-4000:], file=sys.stderr)
+    for pkgs, job in procs:
+        r = finish(job)
         for line in r.stdout.splitlines():
             try:
                 e = json.loads(line)
@@ -338,14 +366,19 @@ def main():
     since = sh("git", "show", "-s", "--format=%cI", base).stdout.strip()
     since = datetime.datetime.fromisoformat(since).astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     batch = []
+    est = queued(list_prs(repo, token), repo)
+    # A batch forms only from PRs that already passed here (queue_conditions, 11-21): with none passed there is no
+    # batch to wait for, and waiting would only delay the statuses the queue needs.
+    expect_batch = any(p["checks"].get(CONTEXT, ("", ""))[0] == "SUCCESS" for p in est)
     for _ in range(BATCH_WAIT // 30 + 1):
         pulls = api("/repos/%s/pulls?state=open&base=main&per_page=100" % repo, token)
         batch = batch_numbers(pulls, since)
-        if batch or a.dry_run:
+        if batch or a.dry_run or not expect_batch:
             break
         time.sleep(30)
     print("Mergify's batches since %s: %s" % (since, " ".join("#%d" % x for x in batch) or "none yet"))
-    order = head_order(batch, queued(list_prs(repo, token), repo), a.head)
+    # With no batch open, the next two batches' worth (Mergify runs two at once) earn their statuses in this run.
+    order = head_order(batch, est, a.head, fresh=FRESH_N if batch else 2 * FRESH_N)
     print(time.strftime("%H:%M:%S"), "queue head (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
     if not order:
         return 0
@@ -387,8 +420,12 @@ def main():
         if p["number"] in culprits:
             what = "; ".join("%s %s %s" % f for f in blame[p["number"]])
             set_status(repo, token, p["sha"], "failure", "red merged onto main %s: %s" % (short, what), a.dry_run)
-        elif not culprits:
-            pass  # red on main alone, or only in combination we could not pin: the batch decides
+        else:
+            # queue_conditions require this status (11-21): a PR the attribution did not blame (the red was main's
+            # alone, or another PR's) must not wait for a later run to batch.
+            set_status(repo, token, p["sha"], "success",
+                       "not the cause of a red merged onto main %s (culprits: %s)"
+                       % (short, " ".join("#%d" % c for c in sorted(culprits)) or "main itself"), a.dry_run)
     return 0
 
 

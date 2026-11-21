@@ -90,7 +90,20 @@ def test_mergifys_batches_set_the_order():
              {"number": 2700, "head": {"ref": "pr/x"}, "created_at": "2026-11-20T21:50:00Z", "body": "#9"}]
     assert qp.batch_numbers(pulls, "2026-11-20T21:41:00Z") == [2669, 2688, 2744, 2745]
     est = [pr(n) for n in (2540, 2669, 2688, 2716, 2744)]
-    assert [p["number"] for p in qp.head_order([2669, 2744, 9999], est, 4)] == [2669, 2744, 2540, 2688]
+    assert [p["number"] for p in qp.head_order([2669, 2744, 9999], est, 4, fresh=2)] == [2669, 2744, 2540, 2688]
+
+
+def test_head_order_always_reaches_prs_without_a_status():
+    # 11-21: queue_conditions require a passing queue-precheck. The batched PRs already carry one; a run must still
+    # reach the next PRs that do not, or the queue drains before any new PR may batch.
+    passed = {"queue-precheck": ("SUCCESS", "2026-11-21T10:00:00Z")}
+    est = [pr(n, extra=passed if n < 120 else None) for n in range(100, 130)]
+    batch = list(range(100, 120))  # two full batches, all passed
+    got = [p["number"] for p in qp.head_order(batch, est, 20)]
+    assert got[:20] == batch and got[20:] == list(range(120, 130))
+    # a passed PR not (yet) in a batch is not re-checked as a fresh one
+    est2 = [pr(200, extra=passed), pr(201)]
+    assert [p["number"] for p in qp.head_order([], est2, 20)] == [201]
 
 
 def test_generated_files_run_dirac_freshness_pins():
