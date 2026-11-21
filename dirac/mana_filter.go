@@ -1270,6 +1270,10 @@ type filtSearch struct {
 	paySeen []filtKey
 	n       int
 	path    [maxFiltPath]filtStep
+	// noHand: the search prices an activation's payment (actScriptPays), which
+	// gorge's planner reads from a census that holds no hand guide: handFund
+	// funds nothing.
+	noHand bool
 	// spill: a step of the path found floated restricted mana past what
 	// State.rb holds (a restriction past restrKinds), unrestricted: the
 	// script the search found is not one gorge's planner would price
@@ -1470,7 +1474,8 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
-	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
+	fs.noHand = s.g.availX&availNoHandFund != 0 // actScriptPays: no hand guide funds
+	fs.need = s.playNeed(k, a)                  // the play's announced colours, whichever search prices it
 	fs.useful, fs.usefulOK = s.filtUsefulCost(k, a)
 	fs.other = s.otherGaps(k, p, a)
 	fs.feeOnly = s.filtRepeatIn(k, fs.gaps)
@@ -1502,7 +1507,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		// covered funding first (mana_filterfeeorder.go)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
 			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true,
-			feeOrder: true, feeGaps: fs.feeGaps}
+			feeOrder: true, feeGaps: fs.feeGaps, noHand: fs.noHand}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 			nodes = ph.nodes
@@ -1517,7 +1522,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true}
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, noHand: fs.noHand}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 			nodes = ph.nodes
@@ -1536,7 +1541,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		base := fs.useful.MV()
 		for cap := base; cap <= base+fees; cap++ {
 			fb := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap}
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap, noHand: fs.noHand}
 			if fb.visit(k, t, 0, false) {
 				fs = fb
 				found = true

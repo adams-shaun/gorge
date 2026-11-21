@@ -806,6 +806,12 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 // mana step with no plan.
 const availNoActScript uint16 = 2048
 
+// availNoHandFund is a mode bit read only by filtScript's entry: the search is an
+// activation's payment (actScriptPays), which gorge's planner prices from the census,
+// and the census prices no hand source (mana_handguide.go). The play's prefix search
+// (scriptOffers) keeps the guides.
+const availNoHandFund uint16 = 4096
+
 // actScriptPays prices an activation whose plain census is short against the
 // filter script (mana_filter.go filtScript), the route scriptOffers gives a
 // play the census itself lists: on a board with a first-only filter beside
@@ -842,7 +848,11 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	return s.filtScript(k, pa, p, false)
+	av := s.g.availX
+	s.g.availX = av | availNoHandFund
+	ok := s.filtScript(k, pa, p, false)
+	s.g.availX = av
+	return ok
 }
 
 // countUntapped counts p's untapped permanents matching f.
