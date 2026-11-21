@@ -1630,9 +1630,20 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 	}
 	var sl Slot
 	s.enterOnto(host)
-	if from == kop.ZoneGraveyard {
+	switch {
+	case s.g.retAt != 0:
+		// an Aura of a many-object return walk (returnRemembered) answered
+		// its enchant ask outside the walk's frame: its enters check waits
+		// for the walk's end with the others' (execReturnObj), not fired here
+		// and again by fireHeld once eight entrants repeat the held stamps
+		sl = s.enterNF(k, o, ctrl, false, from, 0)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o)
+		}
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+	case from == kop.ZoneGraveyard:
 		sl = s.enterFromGrave(k, o, ctrl, false)
-	} else {
+	default:
 		sl = s.enter(k, o, ctrl, false, from)
 	}
 	s.attachedTo(k, sl, host)
