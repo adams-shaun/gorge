@@ -24,11 +24,13 @@ const (
 // Two or more competing events would need one ask per event, which the
 // op-resume shape does not model. With seq (a damage batch's call), a pass
 // whose one competing event is not its first deals its hits one at a time
-// instead of stalling: gorge deals the earlier events before its ask and the
-// rest after the answer (each event's replacements are collected as the event
-// happens, CR 616.1e), so the seq deals the hits before at now, the asked
-// hit parks the ask and the seq resumes with the rest after the answer
-// (batchSeqStart / damageBatchNext). Without it the loud stall stays. A park
+// instead of stalling when that event's competition is the depleting
+// PreventNext shields' ask (a pnx park): gorge deals the earlier events
+// before its ask and the rest after the answer (each event's replacements
+// are collected as the event happens, CR 616.1e), so the seq deals the hits
+// before at now, the asked hit parks the ask and the seq resumes with the
+// rest after the answer (batchSeqStart / damageBatchNext). A later plus-N or
+// other competition keeps the loud stall. A park
 // whose answer cannot re-execute the op is left to dmgSrcOrderStalls, which
 // caps it loudly. The source is the pass's already-read one (controller
 // ctrl, permanent srcSl or its card srcCard, keywords kw): parkNC is the
@@ -40,13 +42,14 @@ func (s *State) replPlusSrcPass(k *prep, ctrl uint8, srcSl Slot, srcCard CardID,
 		return false
 	}
 	saveRO, saveNC := s.g.ro, s.g.nc
-	n, at, shape := 0, -1, uint8(0)
+	n, at, shape, pnx := 0, -1, uint8(0), false
 	for i := range codes {
 		if amts[i] <= 0 {
 			continue
 		}
 		if s.parkNC(k, ctrl, srcSl, srcCard, codes[i], amts[i], kw) {
 			n, at, shape = n+1, i, s.parkShape()
+			pnx = pnx || s.g.ro.pnx != 0
 		}
 		s.g.ro, s.g.nc = saveRO, saveNC
 	}
@@ -55,14 +58,16 @@ func (s *State) replPlusSrcPass(k *prep, ctrl uint8, srcSl Slot, srcCard CardID,
 		// gorge asks once per event; a multi-event pass is not modelled
 		s.capFull(StallReplPlus)
 		return true
-	case n == 1 && at > 0 && !seq || n == 1 && at > 0 && shape == replParkOther:
+	case n == 1 && at > 0 && (!seq || !pnx) || n == 1 && at > 0 && shape == replParkOther:
 		// gorge deals the events before the competing one before its ask (each
 		// event's replacements are collected as the event happens, CR 616.1e),
 		// and the answer's re-execution would deal them again: the op-resume
-		// shape cannot shrink the pass, so the loud stall stays
+		// shape cannot shrink the pass, so the loud stall stays. The seq
+		// exception (below) is the depleting shields' ask only: the
+		// plus-N/other competitions at a later event keep the stall.
 		s.capFull(StallReplPlus)
 		return true
-	case n == 1 && at > 0:
+	case n == 1 && at > 0 && pnx:
 		// a damage batch's seq: gorge deals the events before the competing
 		// one before its ask and the rest after the answer; the seq deals its
 		// hits one at a time (damageTo, the batch bracket spanning it like a
