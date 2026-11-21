@@ -114,7 +114,11 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 				}
 			}
 		}
-		if phased && o.Kind == optCast && o.Mode == "" && o.AltCostIndex == 0 &&
+		// A may-play cast (Mode "mayplay": cast from exile by a granted
+		// permission, at the printed cost) takes the same order as a hand
+		// cast: its plain walk taps Baxter Building's free {C} ability first
+		// and spends the budget before the {4} filter is funded.
+		if phased && o.Kind == optCast && (o.Mode == "" || o.Mode == "mayplay") && o.AltCostIndex == 0 &&
 			len(sr.feeGaps) != 0 && !sr.phasedScope(e) {
 			sr.feeOrder = true
 		}
