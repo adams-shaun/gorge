@@ -769,6 +769,20 @@ func handTakeOptional(h Host, c *Ctx, cz *ChangeZoneParams, to state.Zone) (opti
 		return cz.OptionalYes, true
 	}
 	text := cz.SpellDescription
+	if c.CharmModeSA != nil {
+		// The dispatched Charm body's own words come before the source's
+		// printed oracle (CharmModeLabel's body-first-then-down-chain
+		// convention): on a copy (Silent Hallcreeper granted Insidious
+		// Fungus's charm) the printed oracle is another card's text, and its
+		// unrelated "Put two +1/+1 counters" bullet beside the card's
+		// "choose one" line classified the optional "you may put a land
+		// card" move as required (the ask posed Min 1 where the kernel poses
+		// Min 0 with Done). The oracle still rides along when the mode body
+		// carries no words, so a plain card's inference is unchanged.
+		if t := CharmModeLabel(c.CharmModeSA, ""); t != "" {
+			text += "\n" + t
+		}
+	}
 	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 		text += "\n" + o.Face().Oracle
 	}
