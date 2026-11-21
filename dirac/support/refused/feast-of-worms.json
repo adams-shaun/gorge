@@ -1,0 +1,20 @@
+{
+  "card": "Feast of Worms",
+  "class": "lockstep",
+  "why": "a Powerstone's {C} (can't be spent on a nonartifact spell) pays a first-only filter land's {1} fee (Ferrous Lake) while a spell is cast: gorge offers the cast, the kernel's script search never taps the act-only restricted source for the fee",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "feast_of_worms_mana_options"
+  },
+  "evidence": [
+    "ev-tail-11-c000",
+    "ev-tail-11-c001",
+    "ev-tail-11-s000",
+    "ev-tail-63-c006"
+  ]
+}
