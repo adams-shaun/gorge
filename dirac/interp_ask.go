@@ -1147,6 +1147,11 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.finishSearch(k)
 			return
 		}
+		if int(s.g.nlook) == len(s.resArm().look) {
+			// an any-number search (Trench Gorger) past the window: gorge keeps taking picks
+			s.capFull(StallLook)
+			return
+		}
 		s.resArm().look[s.g.nlook] = Obj(a.Source())
 		s.g.nlook++
 		s.g.pickLeft--
