@@ -226,6 +226,9 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 	// chosen colour.
 	colour := a.ManaEach || a.AFlags&kop.AfManaChoice != 0 || bits.OnesCount8(uint8(a.ManaColors)&0x3f) != 1
 	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), colour)
+	if a.ManaEach && !DebugEachReflectNone {
+		s.filtEachReflect(k, sl, a, &xv)
+	}
 	return xv
 }
 
@@ -234,7 +237,7 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 // {5},{T} any colour): one more mana of the pick, CR 106.12a. filtExtra leaves
 // it out because the pick is unknown there, so the activation floats it
 // beside its own mana. A fixed one-colour production already carries it in
-// filtExtra, and an all-at-once one defers it (mana_filtereach.go).
+// filtExtra, and an all-at-once one's is filtEachReflect's (filtExtra).
 func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return 0
@@ -252,6 +255,36 @@ func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
 		return true
 	})
 	return r
+}
+
+// DebugEachReflectNone drops the reflected extra of an all-at-once filter's tap
+// (the mutation test: the games must diverge).
+var DebugEachReflectNone bool
+
+// filtEachReflect adds to xv the reflected extra of an all-at-once filter's tap
+// (Sungrass Prairie's {G}{W} under Mirari's Wake: "add one mana of any type that
+// land produced"). The pick is a mid-resolution ask gorge cannot pose inside a
+// mana ability, so it keeps its first candidate (effManaReflected's "chose first
+// reflected colour", ManaReflectedCandidates' W, U, B, R, G order): one more mana
+// of the filter's first colour per reflect carrier reaching the tap.
+func (s *State) filtEachReflect(k *prep, sl Slot, a *kop.Ability, xv *[kop.NumManaKinds]uint8) {
+	first := -1
+	for c, n := range filtEachVec(a) {
+		if n != 0 && c < kop.C {
+			first = c
+			break
+		}
+	}
+	if first < 0 {
+		return
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if sa := &st.a.Static; s.tapExtraReaches(k, st, sl, ctl) && sa.StFlags&kop.StTapReflect != 0 {
+			xv[first] += uint8(sa.B)
+		}
+		return true
+	})
 }
 
 // srcExtraPick is the extra a tap of sl through the ability pc brings when it
