@@ -22,9 +22,16 @@ import (
 // controller's only gaps, else the scriptDFS chain with the other gaps in
 // battlefield order, the source branched on its colour answers. A payment window
 // (a cast's X or pip ask, a ward or unless cost) taps the source for its amount
-// (windowComboTap, availCA beside availXWindow). A filter, a tap-another source, a
+// (windowComboTap, availCA beside availXWindow). A plain {N},{T} filter (a Signet, a
+// filter land) beside it is chained by the filter search (otherComboAny,
+// mana_mixgaps.go): gorge's PotentialMana prices the source unbounded, so it covers
+// a first-only filter's fee (filtFirstAdmit). A gated-pip, dynamic-amount or
+// restricted-source filter table, a tap-another source, a restricted or costed
 // granted mana ability or a Diamond in the table is refused at its start
-// (StallComboAnyMix).
+// (StallComboAnyMix); a board with a filter and a Combo Any source the search does
+// not chain stalls by name (caOffersBoard). A plain granted mana ability beside it
+// (Citanul Hierophants, Rishkar, Abundant Growth) is one search with the grants
+// (mana_grantcomboany.go); a reflected source is a planner unit beside the gap.
 //
 // The ask is gorge's scriptAnswers: the per-unit colours of an N-unit allocation
 // in odometer order (unit 0 the slowest digit, W U B R G), at most 64 answers; one
@@ -529,7 +536,7 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 	if !g.anyComboAny {
 		return
 	}
-	g.caMix = g.anyFilt || p.tapMana || len(g.grantPC) != 0 || g.anyDiscHand || g.anyRefl
+	g.caMix = g.anyFilt && caFiltRefused(g) || p.tapMana || len(g.grantPC) != 0 && caGrantRefused(g) || g.anyDiscHand || g.anyRefl && DebugComboAnyReflRefused
 	for i := range t.Cards {
 		g.caMix = g.caMix || caMixGap(t, g, p, i)
 	}
@@ -539,11 +546,52 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 // chain with a Combo Any source.
 func caMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
 	c := CardID(i)
-	if g.has(c, gfFilt|gfDiscHand) || p.tapXAb[i] >= 0 {
-		return true // a filter, a Lion's Eye Diamond, a tap-another source (mana_filter.go, mana_discardhand.go, mana_tapanother.go)
+	if g.has(c, gfDiscHand) || p.tapXAb[i] >= 0 {
+		return true // a Lion's Eye Diamond, a tap-another source (mana_discardhand.go, mana_tapanother.go): a plain filter is chained (caFiltRefused)
 	}
-	return abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability
+	return caGrantRefused(g) && abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability the grant search does not chain (caGrantRefused)
 }
+
+// caOffersBoard reports whether p's live Combo Any source is one scriptOffers
+// models: alone (ca, caBoard) or beside a live filter (caFiltBoard). A live
+// Combo Any source beside a live filter on a board neither search chains (an
+// each-colour source among the gaps, say) stalls the game by name
+// (StallComboAnyMix): gorge's one prefix search activates all of them, so the
+// kernel declares the gap rather than offer plays on half a census.
+func (s *State) caOffersBoard(k *prep, p uint8, ca bool) bool {
+	if ca {
+		return true
+	}
+	if k.gen == nil || !k.gen.anyComboAny {
+		return false
+	}
+	if s.caFiltBoard(k, p) {
+		return true
+	}
+	if s.caGaps(k, p).any() && s.scriptFilt(k, p).any() {
+		s.capFull(StallComboAnyMix)
+	}
+	return false
+}
+
+// caFiltRefused reports whether the table's filters are of a shape the filter
+// search does not take a Combo Any source beside (otherComboAny, mana_mixgaps.go):
+// only the plain {N},{T} filters (Signets, the filter lands) are chained. A
+// first-ability, gated-pip or dynamic-amount filter, or an each-colour or
+// restricted source beside the filters (mixBoard does not count them), stays
+// refused (StallComboAnyMix). DebugComboAnyFiltRefused (mutation test only)
+// refuses every filter, as before the chain.
+func caFiltRefused(g *genPrep) bool {
+	return DebugComboAnyFiltRefused || g.anyFiltPip || g.anyDynFilt || g.anyRestrScript
+}
+
+// DebugComboAnyFiltRefused (mutation test only): a Combo Any source beside a
+// filter is refused at the table's start, as before otherComboAny.
+var DebugComboAnyFiltRefused bool
+
+// DebugComboAnyFiltNoChain (mutation test only): the filter search leaves the
+// Combo Any source out of its gaps, so a Signet's fee is never funded from it.
+var DebugComboAnyFiltNoChain bool
 
 // isComboAnyCard reports whether card c's census gap is its unrestricted Combo Any
 // ability (isComboAny without a prepared table).
@@ -554,3 +602,10 @@ func (g *genPrep) isComboAnyCard(c CardID, cd *kop.CardDef) bool {
 	j := g.gapOther(c)
 	return j >= 0 && comboAnyMana(&cd.Abilities[j])
 }
+
+// DebugComboAnyReflRefused (mutation test only): a Combo Any source beside a
+// reflected mana source (Fellwar Stone, Exotic Orchard, Plaza of Heroes) is
+// refused at the table's start, as before the lift. A reflected source is a
+// planner unit (its view is a function of the board, manaReflView), so the
+// Combo Any chain adds its gap beside it as beside any printed source.
+var DebugComboAnyReflRefused bool

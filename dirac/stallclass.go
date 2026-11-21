@@ -111,7 +111,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
-	StallComboAnyMix,  // a Combo Any source (Axebane Guardian) beside another census-gap kind: gorge's one prefix search activates both and the kernel chains it with only some gap kinds (mana_comboany.go)
+	StallComboAnyMix,  // a Combo Any source (Axebane Guardian) beside a census-gap kind the kernel does not chain with it (a restricted or costed grant, a tap-another source, a gated filter; mana_comboany.go)
 	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
@@ -121,7 +121,7 @@ var stallUnmodelledReasons = [...]uint8{
 	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
 	StallAtkTax,
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
-	StallMyriadPW,          // a Myriad ask whose asked player controls a planeswalker: gorge offers the walker beside the player, the kernel poses the player-and-decline pair (kw_myriad.go)
+	StallMyriadPW,          // no longer raised: a Myriad ask's walker arm is modelled (kw_myriad.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
 	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
 	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount of 255 or more (repl_prevnext.go)
@@ -288,7 +288,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	case StallChoosePlayerOrder:
 		text, a, b = choosePlayerStallPair() // repl_chooseplayer.go
 	case StallComboAnyMix:
-		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a filter, a tap-another source, a granted mana ability or a Lion's Eye Diamond: gorge's one prefix search activates both and the kernel chains the Combo Any source with the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
+		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a restricted or costed granted mana ability, a tap-another source, a Lion's Eye Diamond or a gated, dynamic-amount or restricted-source filter table: gorge's one prefix search activates both and the kernel chains the Combo Any source with the plain filters, the plain granted abilities, the reflected sources and the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
 		a = func(cd *kop.CardDef, i int) bool { return g.isComboAnyCard(CardID(i), cd) }
 		b = func(_ *kop.CardDef, i int) bool { return caMixGap(tt, g, pp, i) }
 	case StallTokRewrite:

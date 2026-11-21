@@ -1270,7 +1270,7 @@ func (s *State) twobridSpentReader(k *prep, p uint8, o Obj) bool {
 // gorge's prefix search taps before it prices the play again (Bloom Tender's
 // colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
 func (s *State) scriptSourceLive(k *prep, p uint8) bool {
-	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && s.caBoard(k, p)
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p))
 }
 
 // altAddPlanCost is the mana gorge's potential planner prices an either-or additional
