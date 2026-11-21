@@ -227,6 +227,9 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	var stall uint8
 	if !stackSelfGone {
 		ok := s.canPayGen(k, p, kind, amt, pips, in.F)
+		if !ok && kind == kop.PayDraw && amt == 0 && in.Op == kop.OpIfPaid && s.res.e.kind == seTrigger {
+			ok = true // a trigger's own Draw<X> resolving to 0 (a rebound cast spent no mana) is a resolved count: gorge triggeredCostDrawCounts offers pay (CR 118.3: drawing no cards is payable)
+		}
 		if !ok {
 			ok, stall = s.windowPays(k, p, kind, skip, amt, pips)
 		}
