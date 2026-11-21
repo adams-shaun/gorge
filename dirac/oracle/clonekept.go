@@ -8,35 +8,45 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// rootTriggerCount is the number of triggers printed on the printed face o's
+// copy basis is a snapshot of (CR 707.2): the universe face (or, for a face
+// no card of the universe names, the match's token definition) o.Face().Name
+// names. Every layer copies the template's face and the face keeps its name,
+// so the printed card the chain bottoms out in is that one; its triggers are
+// the copy face's first n and everything after was appended. -1 when no such
+// printed face is found, so a caller cannot tell printed from appended and
+// falls back to its own heuristic.
+func rootTriggerCount(g *state.Game, o *state.Object) int {
+	if o == nil || o.Face() == nil {
+		return -1
+	}
+	if tok, face := rootTokenCard(g, o.Face().Name); tok != nil {
+		return len(face.Triggers)
+	}
+	ord, fi, ok := g.NameUniverse.FaceByName(o.Face().Name)
+	if !ok {
+		return -1
+	}
+	return len(g.NameUniverse.Card(ord).Faces[fi].Triggers)
+}
+
 // cloneKeptTriggerOf reports whether trigger i of o's face is one a Clone's
 // GainThisAbility$ True appended to the copy (CR 707.9b; gorge effClone adds the
 // resolving trigger after the copied face's own), as opposed to one of the
 // copied card's printed triggers. The kernel lists the appended ones as granted
 // (latent) triggers, whose stack index is 255.
 //
-// Every layer copies the template's face and the face keeps its name, so the
-// printed card the chain bottoms out in is the one named by o's face; its
-// triggers are the face's first len(root) and everything after is appended. A
-// trigger whose Effect the root also carries is reported at the root's index
+// A trigger whose Effect the root also carries is reported at the root's index
 // (abilityIndex finds the first match), so the index i passed in is already the
 // root's for those.
-//
-// A token template (Cryptoplasm copying a Hamster Token and keeping its own
-// trigger) is named by no card of the universe: the match's token definitions
-// are the root there, walked in sorted-script order so the answer never
-// depends on the map's order.
 func cloneKeptTriggerOf(g *state.Game, o *state.Object, i int) bool {
 	if o == nil || len(o.CloneLayers) == 0 || o.Face() == nil || i < 0 || i >= len(o.Face().Triggers) {
 		return false
 	}
-	if tok, face := rootTokenCard(g, o.Face().Name); tok != nil {
-		return i >= len(face.Triggers)
+	if n := rootTriggerCount(g, o); n >= 0 {
+		return i >= n
 	}
-	ord, fi, ok := g.NameUniverse.FaceByName(o.Face().Name)
-	if !ok {
-		return false
-	}
-	return i >= len(g.NameUniverse.Card(ord).Faces[fi].Triggers)
+	return false
 }
 
 // rootTokenCard is the match's token definition whose face is named name,
