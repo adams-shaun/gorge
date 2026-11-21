@@ -46,6 +46,16 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 	}
 }
 
+// restrUnitIn: the restricted payment rd's avail holds a unit of the source
+// at x (restrTapUnit), so reserving x takes that unit out of it.
+func (s *State) restrUnitIn(k *prep, p uint8, x Slot, rd *payDesc) bool {
+	if rd == nil {
+		return false
+	}
+	_, ok := s.restrTapUnit(k, p, x, rd)
+	return ok
+}
+
 // costManaDisjoint reports whether some N candidates of a's Sac or TapX
 // part leave av (the mana walk's availability, the source's own {T}
 // already taken out) able to pay a's mana. A candidate whose use takes
@@ -84,7 +94,7 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 			free++ // its {T} already took its mana out of av
 			continue
 		}
-		if tapX && av.ungr && k.gen != nil && s.manaGranted(k, x) {
+		if tapX && av.ungr && k.gen != nil && s.manaGranted(k, x) && !s.restrUnitIn(k, p, x, rd) {
 			// the ungranted census holds no unit of a source whose only mana
 			// is a granted ability: tapping it for the part takes nothing out
 			// of the mana the printed sources and the floated pool pay (CR
