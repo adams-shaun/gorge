@@ -401,6 +401,12 @@ func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d)
 		}
 	}
+	if k.gen != nil && k.gen.landSet && s.landSetLost(k, sl) {
+		// CR 305.7: a land a type setter made basic lost its printed mana
+		// ability, its restriction with it (Blood Moon on Ancient Ziggurat
+		// leaves the Mountain's unrestricted {R}); the view is the intrinsic one
+		return false
+	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	j := firstManaAb(cd)
 	return j >= 0 && cd.Abilities[j].ManaRestrict != 0 &&
