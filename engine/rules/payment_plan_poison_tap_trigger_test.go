@@ -17,14 +17,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-const pttRelic = "Name:Relic Putrescence\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | ValidCard$ Card.AttachedBy | TriggerZones$ Battlefield | Execute$ TrigPoison | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoison:DB$ Poison | Defined$ TriggeredCardController | Num$ 1\nOracle:x\n"
+const pttRelic = "Name:Relic Putrescence\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | TriggerZones$ Battlefield | ValidCard$ Card.AttachedBy | Execute$ TrigPoisonOne | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoisonOne:DB$ Poison | Defined$ TriggeredCardController | Num$ 1\nOracle:x\n"
 
 // pttEnchantedTreasure boards Tainted Field, a Swamp and three Treasures and
 // attaches Relic Putrescence to the first Treasure, and returns the three
 // Treasure objects (first is the enchanted one).
 func pttEnchantedTreasure(t *testing.T, e *Engine) (t1, t2, t3 state.ObjID) {
 	t.Helper()
-	onBoard(t, e, 0, "Name:Tainted Field\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nA:AB$ Mana | Cost$ T | Produced$ Combo W B | IsPresent$ Swamp.YouCtrl | SpellDescription$ Add {W} or {B}. Activate only if you control a Swamp.\n")
+	onBoard(t, e, 0, "Name:Tainted Field\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Produced$ C | Cost$ T | SpellDescription$ Add {C}.\nA:AB$ Mana | Produced$ Combo W B | IsPresent$ Swamp.YouCtrl | Cost$ T | SpellDescription$ Add {W} or {B}. Activate only if you control a Swamp.\n")
 	onBoard(t, e, 0, "Name:Swamp\nTypes:Basic Land Swamp\nOracle:x\n")
 	t1, t2, t3 = lrTreasure(t, e), lrTreasure(t, e), lrTreasure(t, e)
 	relic := onBoard(t, e, 0, pttRelic)
@@ -70,17 +70,17 @@ func TestPaymentPlanTapPoisonTriggerShape(t *testing.T) {
 		t.Fatal("the Relic Putrescence poison row is not vetted")
 	}
 	// A non-poison body is not the row.
-	bad := card(t, "Name:Relic Drain\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | ValidCard$ Card.AttachedBy | TriggerZones$ Battlefield | Execute$ TrigDraw | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller draws a card.\nSVar:TrigDraw:DB$ Draw | Defined$ TriggeredCardController | Num$ 1\nOracle:x\n")
+	bad := card(t, "Name:Relic Drain\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | TriggerZones$ Battlefield | ValidCard$ Card.AttachedBy | Execute$ TrigDraw | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller draws a card.\nSVar:TrigDraw:DB$ Draw | Num$ 1 | Defined$ TriggeredCardController\nOracle:x\n")
 	if pay.PaymentPlanTapPoisonTrigger(bad.Faces[0], bad.Faces[0].Triggers[0]) {
 		t.Fatal("a draw body is not the poison row")
 	}
 	// The amount is unread: a dynamic Num$ is still the row.
-	bad = card(t, "Name:Relic Plague\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | ValidCard$ Card.AttachedBy | TriggerZones$ Battlefield | Execute$ TrigPoison | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoison:DB$ Poison | Defined$ TriggeredCardController | Num$ Count$X\nOracle:x\n")
+	bad = card(t, "Name:Relic Plague\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | TriggerZones$ Battlefield | ValidCard$ Card.AttachedBy | Execute$ TrigPoison | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoison:DB$ Poison | Defined$ TriggeredCardController | Num$ Count$X\nOracle:x\n")
 	if !pay.PaymentPlanTapPoisonTrigger(bad.Faces[0], bad.Faces[0].Triggers[0]) {
 		t.Fatal("a dynamic Num$ amount is still the poison row: the payment cannot move it")
 	}
 	// An extra body key is not the row.
-	bad = card(t, "Name:Relic Rot\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | ValidCard$ Card.AttachedBy | TriggerZones$ Battlefield | Execute$ TrigPoison | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoison:DB$ Poison | Defined$ TriggeredCardController | RememberLKI$ True\nOracle:x\n")
+	bad = card(t, "Name:Relic Rot\nManaCost:2 B\nTypes:Enchantment Aura\nK:Enchant:Artifact\nT:Mode$ Taps | TriggerZones$ Battlefield | ValidCard$ Card.AttachedBy | Execute$ TrigPoison | TriggerDescription$ Whenever enchanted artifact becomes tapped, its controller gets a poison counter.\nSVar:TrigPoison:DB$ Poison | Defined$ TriggeredCardController | RememberLKI$ True\nOracle:x\n")
 	if pay.PaymentPlanTapPoisonTrigger(bad.Faces[0], bad.Faces[0].Triggers[0]) {
 		t.Fatal("an extra body key is not the poison row")
 	}
