@@ -1619,6 +1619,9 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   }, { timeout: 5_000 }).toBe(0).then(() => true, () => false);
 }
 
+/** Casts in a row that may miss before the play loop passes instead (see playLandUndoAndSpell). */
+const MAX_MISSED_CASTS = 2;
+
 /**
  * The controls that answer a mana-payment window, in the order a player would want them: fill the
  * rest with the suggested sources, pay once nothing is owed, else give up the cast. Never a source
@@ -1802,6 +1805,13 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
   let land = false;
   let spell = false;
   let spellTries = 0;
+  // Casts in a row that did not leave the hand: an offered spell the seat cannot pay is cancelled from
+  // its payment window (PAYMENT_ANSWERS ends with Cancel). Retried in the same window, that cast and
+  // cancel repeat until the server's livelock detector ends the match (11-21 #3113: Llanowar Elves cast
+  // and cancelled 40 times on turn 1, "match crashed: livelock detected", and the reload then showed
+  // the table's match list). After MAX_MISSED_CASTS the seat passes, so the game moves to a window,
+  // or a turn, with the mana the spell needs.
+  let missedCasts = 0;
   const did: string[] = [];
   while (Date.now() < deadline && !(land && spell)) {
     const landCard = hand.filter({ has: page.locator('[data-play-land]') }).first();
@@ -1915,6 +1925,14 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
           }
           return spellCard.locator('button[aria-haspopup="menu"]');
         });
+        missedCasts = spell ? 0 : missedCasts + 1;
+        if (!spell && missedCasts >= MAX_MISSED_CASTS) {
+          did.push('pass-unpayable');
+          missedCasts = 0;
+          await answerOpenAsk(page);
+          await page.waitForTimeout(100);
+          continue;
+        }
       }
       if (!spell && (await visible(landCard))) {
         did.push('land');
