@@ -328,6 +328,7 @@ type genPrep struct {
 	anyAnyAct       bool           // some ability is activatable by any player (Ability.AnyActivator; cast_anyactivator.go)
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
+	anyMeld         bool           // some program is ExtMeld (face_meld.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad         bool           // some program is OpGoad (act_goad.go)
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
@@ -1804,6 +1805,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
+	prepMeld(t, g)        // face_meld.go
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, p, g)     // act_initiative.go
 	prepExileFD(t, g)     // zone_exilefacedown.go
@@ -2678,7 +2680,8 @@ const (
 	StallExileRider    = 115 // a dies-to-exile replacement's rider (Kalitas's Zombie token) that cannot run exactly: it competes with another replacement in a CR 616.1 order, its source left before the exile move, or its prog asked or parked (repl_exilerider.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
 	StallExTurn        = 194 // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
-	NumStall           = 195 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	StallMeld          = 195 // a seventeenth melded permanent at once (maxMeldLinks), or a melded permanent leaving under a Rest in Peace-style graveyard replacement (face_meld.go)
+	NumStall           = 196 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).
