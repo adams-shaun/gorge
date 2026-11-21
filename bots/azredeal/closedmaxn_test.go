@@ -75,6 +75,7 @@ func TestAZClosedMaxNFourSeatCommanderGame(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays a 4-seat Commander game")
 	}
+	t.Parallel()
 	b := podBelief(t)
 	sims := maxnPodSims
 	if os.Getenv("AZREDEAL_POD_SIMS") != "" {

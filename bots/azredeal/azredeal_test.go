@@ -329,9 +329,7 @@ func TestHostedAZSplitsRootRefusedFromFeedStop(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got []azmcts.Diag
-	prev := azmcts.Watch
-	azmcts.Watch = func(d azmcts.Diag) { got = append(got, d) }
-	t.Cleanup(func() { azmcts.Watch = prev })
+	watchThisGoroutine(t, func(d azmcts.Diag) { got = append(got, d) })
 	board := botpolicy.NewBoard(2)
 	d := decision.Decision{Kind: decision.KPriority, Seq: 3}
 	feed := searchseat.NewFeed(state.PlayerID(0))

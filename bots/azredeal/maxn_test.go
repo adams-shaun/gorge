@@ -19,6 +19,7 @@ func TestAZRedealMaxNFourSeatCommanderGame(t *testing.T) {
 	if testing.Short() {
 		t.Skip("plays a 4-seat Commander game")
 	}
+	t.Parallel()
 	run := playPod(t, podSeed, 0, func(c *azmcts.SeatConfig) {
 		*c = HostedMaxN()
 		c.Search.Sims = maxnPodSims
