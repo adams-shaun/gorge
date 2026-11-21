@@ -213,6 +213,56 @@ func (s *State) snowPays(p uint8, cost *kop.ManaCost) bool {
 	return snow >= int(cost.Snow) && tot-int(cost.Snow) >= int(cost.Generic)
 }
 
+// snowCensusAffords is avail.affords for a cost with {S} pips: a census read
+// (ungrAvail's, the planner's pool plus untapped printed mana sources) prices
+// them. avail.affords refuses every {S} cost -- gorge never plans one
+// (PlanCostDetail cost:snow) -- so the census's {S} pips ride the pool's snow
+// units alone, the read the offer gate prices them with (poolPays reads
+// snowPays): each pip takes one unit the pool's snow tally still counts, in
+// gorge's ResolveManaWith colour order (W U B R G C, pay/solve.go alt.Snow)
+// with backtracking, and the residual cost is avail.affords over the units
+// left. A {S} pip never takes a tapped source's production: no snow read past
+// the pool exists (the bound carries no snow tally, mana.go potentialManaFor).
+// A cost with a hybrid, twobrid or {X} pip alongside is never planned
+// (snowPays), and the coloured pips ride the ordinary affords read.
+func (s *State) snowCensusAffords(p uint8, cost *kop.ManaCost, av *avail) bool {
+	if cost.Hyb[0] != 0 || cost.Tb != 0 || cost.X != 0 {
+		return false
+	}
+	var pool, snow [kop.NumManaKinds]uint8
+	pl := &s.pl[SeatIx(p)]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		pool[c] = pl.pool[c]
+		snow[c] = s.snowAt(p, c) // the tally is clamped to the pool (snowSync)
+	}
+	return snowCensusRec(cost, av, &pool, &snow)
+}
+
+// snowCensusRec is snowCensusAffords's pip walk: one {S} pip per level, each
+// colour's units shared between the avail and the pool/snow copies so a unit
+// the pip takes cannot also pay the residual cost.
+func snowCensusRec(cost *kop.ManaCost, av *avail, pool, snow *[kop.NumManaKinds]uint8) bool {
+	if cost.Snow == 0 {
+		return av.affords(cost, pipMaskOf(cost), 0)
+	}
+	for c := 0; c < kop.NumManaKinds; c++ { // pay/solve.go alt.Snow's colour order
+		if snow[c] == 0 || pool[c] == 0 {
+			continue
+		}
+		av2 := *av
+		av2.remove(1<<c, 1)
+		p2, s2 := *pool, *snow
+		p2[c]--
+		s2[c]--
+		r := *cost
+		r.Snow--
+		if snowCensusRec(&r, &av2, &p2, &s2) {
+			return true
+		}
+	}
+	return false
+}
+
 // DebugSnowAnyUnit lets a {S} pip take any unit of the pool in generic order,
 // not a snow one (mutation testing only, TestSnowCostMutation).
 var DebugSnowAnyUnit bool
