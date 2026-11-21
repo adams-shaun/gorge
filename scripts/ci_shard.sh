@@ -27,11 +27,12 @@ pkgs=$(go list ./... | grep -v '/dirac/oracle$')
 if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
-# engine/rules is two entries (11-20): engine/rules, run minus its sweeps, and engine/rules#A, the sweeps (ci.yml's
-# RULES_A). Whole, it was the slowest shard's floor (242-269 s); each half is placed by its own weight.
-if printf '%s\n' "$pkgs" | grep -qx 'github.com/adams-shaun/gorge/engine/rules'; then
-	pkgs=$(printf '%s\n' "$pkgs" 'github.com/adams-shaun/gorge/engine/rules#A')
-fi
+# A package in ci-splits.tsv is two entries: the package, run minus its regex, and <package>#A, the regex (ci.yml's
+# test step). Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
+while IFS=$'\t' read -r sp _; do
+	case $sp in '' | '#'*) continue ;; esac
+	if printf '%s\n' "$pkgs" | grep -qx "$sp"; then pkgs=$(printf '%s\n' "$pkgs" "$sp#A"); fi
+done <"$(dirname "$0")/ci-splits.tsv"
 
 printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEFAULT_WEIGHT:-3}" '
 	FNR == NR { if ($0 !~ /^#/ && NF >= 2) w[$1] = $2; next }
