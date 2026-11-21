@@ -45,6 +45,9 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 	if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return
 	}
+	if k.gen != nil && k.gen.anyDash && k.t.Cards[c].HasDash {
+		s.offerDashCommand(k, d, p, o, c, av) // kw_dash.go: before the plain affordability gate
+	}
 	cost := pc.cost
 	addCommanderTax(&cost, s.commanderTax(p, o))
 	if s.statM.any() || k.gen != nil {

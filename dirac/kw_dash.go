@@ -33,6 +33,22 @@ const opDashReturn = 232
 // the haste grant (TestDashMutation: the lockstep must catch each).
 var DebugDashNoReturn, DebugDashNoHaste bool
 
+// DebugDashCmdCasts counts the dashed casts applied from the command zone;
+// DebugDashCmdNoOffer skips their offer (TestDashCommandZoneLockstep and
+// TestDashCommandZoneMutation: the lockstep must catch the missing offer).
+var (
+	DebugDashCmdCasts   *int
+	DebugDashCmdNoOffer bool
+)
+
+// noteDashCmdCast counts a dashed cast action from the command zone (the
+// DebugDashCmdCasts test hook).
+func (s *State) noteDashCmdCast(a Action) {
+	if DebugDashCmdCasts != nil && s.objs[Obj(a.Source())].zone == kop.ZoneCommand {
+		*DebugDashCmdCasts++
+	}
+}
+
 // dashed reports whether e is a spell cast for its dash cost.
 func (e *stackEntry) dashed(k *prep) bool {
 	return k.t.Cards[e.card].HasDash && e.impended()
@@ -66,6 +82,32 @@ func (s *State) offerDashHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 	d.add(MakeAction(AkCast, TCode(o), castDashTgt, 0))
 }
 
+// offerDashCommand offers commander o's dashed cast from the command zone
+// (gorge's altCastModes loop in the command-zone walk, legal_walk_alt.go): an
+// alternative cost replaces the mana cost, not the additional commander tax
+// (CR 118.9d, 903.8), so the dash cost is taxed and then reduced as the build
+// prices it (buildCostPreRaw). The caller has checked the card's timing and
+// the cast prohibition; like the hand offer it runs before the plain
+// affordability gate and rides castDashTgt.
+//
+//go:noinline
+func (s *State) offerDashCommand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if DebugDashCmdNoOffer {
+		return
+	}
+	base := k.t.Cards[c].DashCost
+	addCommanderTax(&base, s.commanderTax(p, o))
+	dc := s.adjustCost(k, p, c, o, base)
+	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &dc, av) ||
+		!s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &dc, av) {
+		return
+	}
+	if s.castHeldOut(o) {
+		return
+	}
+	d.add(MakeAction(AkCast, TCode(o), castDashTgt, 0))
+}
+
 // dashEnter runs after the resolving permanent spell e entered at slot sl: a
 // dashed one gains haste until end of turn and arms its return to hand for the
 // beginning of the next end step.
@@ -89,4 +131,32 @@ func (s *State) dashEnter(sl Slot, e *stackEntry) {
 	}
 	s.dly[s.ndly] = delayed{act: opDashReturn, ctrl: e.ctrl, obj: e.obj, ver: objWord(ob.ver), creator: NoObj}
 	s.ndly++
+}
+
+// dashReturn returns the dashed permanent at sl to its owner's hand (CR
+// 702.109a). A commander's move to a hand is the owner's choice (CR 903.9b):
+// leave parks it, and the ask is answered through cmdZoneAnswer, which runs
+// dashReturnAnswered for this delayed trigger (it has no program to resume).
+func (s *State) dashReturn(k *prep, sl Slot) {
+	s.leave(k, sl, kop.ZoneHand, false)
+	if s.res.ask == raGenCmdZone {
+		s.ctl = ctlResolve // a commander's move parked: its owner answers first
+	}
+}
+
+// dashReturnAnswered makes the dash return's parked move after the owner's
+// CR 903.9b answer (the command zone or the hand) and finishes the trigger.
+func (s *State) dashReturnAnswered(k *prep) {
+	e := &s.res.e
+	ob := &s.objs[dlyRef(e.obj, e.trigObj)]
+	if ob.ver == e.srcVer && ob.zone == kop.ZoneBattlefield {
+		s.leave(k, ob.slot, kop.ZoneHand, false)
+	}
+	s.finishResolve(k, false)
+}
+
+// dashReturnTrigger reports whether the resolving entry is the dash return.
+func (s *State) dashReturnTrigger() bool {
+	e := &s.res.e
+	return e.kind == seTrigger && e.ab == abDelayed && e.trigAmt == opDashReturn
 }
