@@ -50,6 +50,31 @@ func prevRecOpen(in kop.Instr) bool {
 	return false
 }
 
+// useStaticFullCombat: every static prevention the table has is a bare combat-only
+// full prevention (Losheel's "prevent all combat damage that would be dealt to
+// attacking artifact creatures you control"), and no emblem carries one. Beside a
+// doubler or a plus-N the two orders both leave nothing dealt, so the combat walk
+// poses gorge's order ask over them (spCombatCands, spBesideAmounts) and the
+// pair is lifted for the table.
+var useStaticFullCombat = newGenUse(func(t *kop.Table) bool {
+	if tableEmbHasStaticPrev(t) {
+		return false
+	}
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			a := &t.Cards[i].Abilities[j]
+			if !isStaticPrev(a) {
+				continue
+			}
+			c := a.Repl.C
+			if a.Repl.Kind != kop.ReplPreventDamageFilt || c&kop.ReplSPCombat == 0 || c&(kop.ReplSPOptional|kop.ReplSPDmgLE) != 0 {
+				return false
+			}
+		}
+	}
+	return true
+})
+
 // spCompete are the damage replacement bits that can match the same event as a
 // static prevention.
 const spCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbPrevCombatTo | rbPrevCombatBy | rbPrevMill | rbSelfDmg
@@ -58,8 +83,15 @@ const spCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbP
 // damage replacement. gorge asks the CR 616.1 order of the two and the
 // amounts differ with it, so initStall refuses the pair.
 func staticPrevStall(g *genPrep) bool {
-	return g.uses.has(useStaticPrev) && (g.anyRepl&spCompete&^rbPrevCol != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) ||
-		g.anyRedir || g.uses.has(usePlusAbility))
+	if !g.uses.has(useStaticPrev) {
+		return false
+	}
+	if g.uses.has(useStaticFullCombat) {
+		// a doubler or a plus-N beside a bare combat full prevention is posed
+		return g.anyRepl&spCompete&^(rbPrevCol|rbDblDmg) != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) || g.anyRedir
+	}
+	return g.anyRepl&spCompete&^rbPrevCol != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) ||
+		g.anyRedir || g.uses.has(usePlusAbility)
 }
 
 // staticPrevPair is pairRefusal's halves for staticPrevStall: the static
@@ -69,9 +101,13 @@ func staticPrevStall(g *genPrep) bool {
 func staticPrevPair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
 	text := "a static damage prevention (Prevent$ True or a prevent-N shield) beside another damage replacement: gorge asks the CR 616.1 order of the two, and the damage left depends on it"
 	a := abilityOn(isStaticPrev)
+	compete, plus := spCompete, true
+	if g.uses.has(useStaticFullCombat) {
+		compete, plus = spCompete&^rbDblDmg, false
+	}
 	b := func(c *kop.CardDef, i int) bool {
-		return g.replBits[i]&spCompete != 0 || abilityOn(func(x *kop.Ability) bool {
-			return x.Kind == kop.AbReplacement && (x.Repl.Kind == kop.ReplDamagePlus || x.Repl.Kind == kop.ReplEntersWithCounters && x.Repl.C == int16(kop.CtrShield)) ||
+		return g.replBits[i]&compete != 0 || abilityOn(func(x *kop.Ability) bool {
+			return x.Kind == kop.AbReplacement && (plus && x.Repl.Kind == kop.ReplDamagePlus || x.Repl.Kind == kop.ReplEntersWithCounters && x.Repl.C == int16(kop.CtrShield)) ||
 				x.Cost.Flags&kop.CostAddCtr != 0 && x.Cost.Ctr == kop.CtrShield ||
 				progHas(x, func(in *kop.Instr) bool {
 					e := in.Ext()

@@ -420,6 +420,8 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	case c >= 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
 		// a lone static prevention beside full preventions (a granted Effect's,
 		// a printed one): gorge asks the order over all of them
+	case n > 0 && s.spBesideAmounts(n) && s.uses(k, useStaticFullCombat) && s.spBare(k, &cs, c):
+		return s.spMergeAmounts(k, &cs, c, n)
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
 		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if cs[0].b >= MaxPerm {
@@ -562,5 +564,97 @@ func (s *State) spNC() {
 func (s *State) spOptions(d *Decision) {
 	if ro := &s.g.ro; ro.spv&spOptionalAsk != 0 {
 		d.add(MakeAction(AkChoose, TCode(NoTarget), 0, ro.n))
+	}
+}
+
+// spBesideAmounts: the n candidates already collected are all doublers or
+// plus-N additions (no prevention, shield or record of any kind).
+func (s *State) spBesideAmounts(n int) bool {
+	ro := &s.g.ro
+	return n < 4 && ro.prev == 0 && ro.shld == 0 && ro.pnx == 0 && ro.pcol == 0 && !DebugSpBesideAmountsOff
+}
+
+// DebugSpBesideAmountsOff leaves a bare combat prevention out of the ask beside a
+// doubler or a plus-N (the walk then asks the amount changers alone and the
+// prevention applies after them): the oracle mutation test. False in normal play.
+var DebugSpBesideAmountsOff bool
+
+// uses reports a table-wide property of k.
+func (s *State) uses(k *prep, u genUse) bool { return k.gen != nil && k.gen.uses.has(u) }
+
+// spScanBefore: the host at a precedes the host at b in gorge's object scan,
+// which the walk's collections mirror: seat order, then entry order.
+func (s *State) spScanBefore(a, b Slot) bool {
+	if pa, pb := s.perms[a].ctrl, s.perms[b].ctrl; pa != pb {
+		return pa < pb
+	}
+	var bf [MaxPerm]Slot
+	for _, x := range bf[:s.battlefieldOrder(s.perms[a].ctrl, s.statM.and(s.ctrlM[s.perms[a].ctrl]), bf[:], 0)] {
+		if x == a {
+			return true
+		}
+		if x == b {
+			return false
+		}
+	}
+	return false
+}
+
+// spMergeAmounts inserts the c bare static prevention candidates cs into the
+// walk's n amount candidates (doublers and plus-N additions) at their scan
+// position: gorge scans every object's replacements in one pass, so the order
+// ask lists them interleaved (replacement_damage.go remainingDamageReplacements).
+// It returns the new count (-1 after a loud stall).
+func (s *State) spMergeAmounts(k *prep, cs *[spMax]spCand, c, n int) int {
+	ro := &s.g.ro
+	if n+c > len(ro.cand) {
+		s.capFull(StallReplCands)
+		return -1
+	}
+	var cand [4]Obj
+	var plus, spv uint8
+	i, j, m := 0, 0, 0
+	for i < n || j < c {
+		if j < c && cs[j].b >= MaxPerm {
+			s.capFull(StallReplCands) // an emblem is never named by an order ask
+			return -1
+		}
+		if i < n && (j == c || s.spScanBefore(s.objs[ro.cand[i]].slot, cs[j].b)) {
+			cand[m] = ro.cand[i]
+			if ro.plus&(1<<i) != 0 {
+				plus |= 1 << m
+			}
+			i++
+		} else {
+			cand[m] = s.perms[cs[j].b].obj
+			spv |= 1 << m
+			j++
+		}
+		m++
+	}
+	copy(ro.cand[:m], cand[:m])
+	ro.plus, ro.spv = plus, ro.spv|spv
+	return m
+}
+
+// spCandLive: asked static prevention candidate i of the combat event still
+// matches it: its host on the battlefield and the recipient still there (gorge
+// re-collects after each pick, CR 616.1e).
+func (s *State) spCandLive(k *prep, i int) bool {
+	ro := &s.g.ro
+	ob := &s.objs[ro.cand[i]]
+	return ob.zone == kop.ZoneBattlefield && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
+}
+
+// spApplyLeft applies the static prevention candidates still unpicked when an
+// ask ends with fewer than two candidates left: gorge applies the last
+// remaining one on its own.
+func (s *State) spApplyLeft(k *prep) {
+	ro := &s.g.ro
+	for j := 0; j < int(ro.n); j++ {
+		if b := uint8(1) << j; ro.spv&b != 0 && ro.used&b == 0 && s.spCandLive(k, j) {
+			ro.used |= b
+			s.spSpend(j)
+		}
 	}
 }

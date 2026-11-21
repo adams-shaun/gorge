@@ -217,7 +217,7 @@ func (s *State) roPlusPend() bool {
 	}
 	for i := uint(0); i < uint(ro.ac); i++ {
 		b := uint8(1) << i
-		if ro.plus&b == 0 && ro.prev&b == 0 && ro.shld&b == 0 && ro.pnx&b == 0 {
+		if ro.plus&b == 0 && ro.prev&b == 0 && ro.shld&b == 0 && ro.pnx&b == 0 && ro.spv&b == 0 {
 			return true
 		}
 	}

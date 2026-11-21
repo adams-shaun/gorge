@@ -871,6 +871,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	if ro.pnx&(1<<i) != 0 {
 		return s.g.prevCol[ro.cand[i]].col != 0 && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
 	}
+	if ro.spv&(1<<i) != 0 {
+		return s.spCandLive(k, i) // a static prevention: repl_staticprevent.go
+	}
 	if ro.pcol&(1<<i) != 0 {
 		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
 	}
@@ -1186,6 +1189,9 @@ func (s *State) replOrderPick(a Action) bool {
 			} else if !pend || s.ncPlusLive(j) {
 				left++
 			}
+		}
+		if left < 2 && ro.on && ro.spv != 0 {
+			s.spApplyLeft(s.k())
 		}
 		if left < 2 && !ro.on {
 			s.replNCAutoShield(s.k())

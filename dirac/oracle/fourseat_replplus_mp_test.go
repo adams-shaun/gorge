@@ -53,12 +53,18 @@ var spsrSeeds = []uint64{8, 13, 7, 39}
 // Altisaur.
 func spsrRun(t *testing.T) (div, stop string, asks int) {
 	t.Helper()
+	return spsrPlay(t, spsrDecks(), spsrSeeds, "Arachnogenesis", "Temple Altisaur")
+}
+
+// spsrPlay plays seeds over decks in lockstep and counts the order asks that
+// name both a and b.
+func spsrPlay(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div, stop string, asks int) {
+	t.Helper()
 	reg := synthReg(t)
 	set, err := cardset.RawByName("edh")
 	if err != nil {
 		t.Fatal(err)
 	}
-	decks := spsrDecks()
 	var lists [][]cardset.Entry
 	for _, d := range decks {
 		cnt := map[string]int{}
@@ -78,7 +84,7 @@ func spsrRun(t *testing.T) (div, stop string, asks int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, seed := range spsrSeeds {
+	for _, seed := range seeds {
 		r := &Repro{Format: reproFormat, Decks: [2]string{"x0", "x1"}, Cards: [2][]string{decks[0], decks[1]}, Seed: seed, PassElision: true, Surface: "full"}
 		for i := 2; i < len(decks); i++ {
 			r.MoreDecks = append(r.MoreDecks, "x"+string(rune('0'+i)))
@@ -101,7 +107,7 @@ func spsrRun(t *testing.T) (div, stop string, asks int) {
 					names = append(names, chName(g.E.G, o.Obj))
 				}
 			}
-			if all := strings.Join(names, "+"); strings.Contains(all, "Arachnogenesis") && strings.Contains(all, "Temple Altisaur") {
+			if all := strings.Join(names, "+"); strings.Contains(all, a) && strings.Contains(all, b) {
 				asks++
 			}
 			return nil
@@ -165,4 +171,51 @@ func combatFirstPolicy(seed uint64) Policy {
 		d.Options = buf
 		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
 	})
+}
+
+// A bare combat prevention beside an amount changer: CR 616.1. Losheel prevents all
+// combat damage dealt to attacking artifact creatures its controller has; Thor,
+// Asgard's Avenger adds one to another source's damage and Angrath's Marauders
+// doubles it. Whichever is picked first, nothing is dealt, but gorge asks the order
+// (the candidates in object scan order) and the kernel's combat walk poses the
+// same ask (dirac/repl_staticprevent.go spBesideAmounts, spMergeAmounts).
+
+// spamDecks: Losheel's seat (attacking artifact creatures), a Thor seat, a
+// Marauders seat and a plain attacker seat.
+func spamDecks() [][]string {
+	art := []any{4, "Silver Myr", 4, "Containment Construct", 3, "Steel Overseer", 3, "Millikin"}
+	return [][]string{
+		spsrMix(append(art, 4, "Losheel, Clockwork Scholar", 4, "Ranging Raptors", 8, "Plains", 6, "Forest")...),
+		spsrMix(append(art, 4, "Thor, Asgard's Avenger", 4, "Humble Defector", 4, "Elvish Mystic", 14, "Mountain")...),
+		spsrMix(append(art, 4, "Angrath's Marauders", 4, "Humble Defector", 4, "Elvish Mystic", 14, "Mountain")...),
+		spsrMix(append(art, 4, "Humble Defector", 4, "Ranging Raptors", 4, "Elvish Mystic", 14, "Mountain")...),
+	}
+}
+
+var spamSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+
+// TestFourSeatStaticPrevBesideAmountsLockstep: pods holding Losheel beside Thor and
+// Angrath's Marauders play in lockstep, and some game reached the order ask.
+func TestFourSeatStaticPrevBesideAmountsLockstep(t *testing.T) {
+	var asks int
+	for _, n := range []string{"Thor, Asgard's Avenger", "Angrath's Marauders"} {
+		div, stop, a := spsrPlay(t, spamDecks(), spamSeeds, "Losheel", n)
+		if div != "" || stop != "" {
+			t.Fatalf("%s %s", div, stop)
+		}
+		asks += a
+	}
+	if asks == 0 {
+		t.Fatal("no game reached a Losheel beside Thor or Marauders order ask")
+	}
+}
+
+// TestFourSeatStaticPrevBesideAmountsMutation: with the prevention left out of the
+// ask beside the amount changers, a game diverges.
+func TestFourSeatStaticPrevBesideAmountsMutation(t *testing.T) {
+	dirac.DebugSpBesideAmountsOff = true
+	defer func() { dirac.DebugSpBesideAmountsOff = false }()
+	if div, _, _ := spsrPlay(t, spamDecks(), spamSeeds, "Losheel", "Angrath's Marauders"); div == "" {
+		t.Fatal("the mutation did not diverge")
+	}
 }
