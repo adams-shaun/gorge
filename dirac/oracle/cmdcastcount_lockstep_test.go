@@ -24,7 +24,7 @@ func cmdCastPodEntries() [4][]cardset.Entry {
 			{Name: "Raging Goblin", Count: 3}, {Name: "Plains", Count: 8}, {Name: "Mountain", Count: 8},
 		},
 		{
-			{Name: "Skrelv, Defector Mite", Count: 1}, {Name: "Captain Vargus Wrath", Count: 2}, {Name: "Font of Magic", Count: 2},
+			{Name: "Zurgo Bellstriker", Count: 1}, {Name: "Captain Vargus Wrath", Count: 2}, {Name: "Font of Magic", Count: 2},
 			{Name: "Echo Storm", Count: 2}, {Name: "Lightning Bolt", Count: 4}, {Name: "Unsummon", Count: 3}, {Name: "Raging Goblin", Count: 3},
 			{Name: "Merfolk of the Pearl Trident", Count: 4}, {Name: "Shock", Count: 3}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 8},
 		},
