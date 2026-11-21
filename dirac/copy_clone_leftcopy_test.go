@@ -34,14 +34,14 @@ func TestCloneTrigMovedLeftCopyAsks(t *testing.T) {
 	if !s.cloneTrigMoved(k, &e) {
 		t.Fatal("precondition: with no departed copy face the source counts as moved")
 	}
-	if got := s.leftCopyCard(o); got != 0 {
-		t.Fatalf("precondition: no departed copy card yet, got %d", got)
+	if got, ok := s.leftCopyCard(o); ok || got != 0 {
+		t.Fatalf("precondition: no departed copy card yet, got %d (set %v)", got, ok)
 	}
 	// the source left the battlefield as a copy of the ability's card: gorge
 	// finds the line on the departed copy's face and asks
 	s.leftCopySet(o, copy)
-	if got := s.leftCopyCard(o); got != copy {
-		t.Fatalf("precondition: leftCopy card = %d, want %d", got, copy)
+	if got, ok := s.leftCopyCard(o); !ok || got != copy {
+		t.Fatalf("precondition: leftCopy card = %d (set %v), want %d", got, ok, copy)
 	}
 	if s.cloneTrigMoved(k, &e) {
 		t.Fatal("the departed copy's own trigger line is asked")
@@ -51,5 +51,23 @@ func TestCloneTrigMovedLeftCopyAsks(t *testing.T) {
 	s.leftCopySet(o, printed)
 	if !s.cloneTrigMoved(k, &e) {
 		t.Fatal("the line of a superseded copy face is not asked")
+	}
+	// table card 0 is a real card, so "left as a copy of card 0" is a set
+	// basis, not the none marker: its lines are asked, and a source that never
+	// left as a copy counts as moved even when the trigger's card is card 0
+	// (gorge's nil LeftCopyFace asks nothing)
+	const o2 = Obj(4)
+	s.objs[o2].card = copy
+	s.objs[o2].zone = kop.ZoneGraveyard
+	e2 := stackEntry{kind: seTrigger, card: printed, obj: o2}
+	if !s.cloneTrigMoved(k, &e2) {
+		t.Fatal("no departed copy face: the source counts as moved even with card 0")
+	}
+	s.leftCopySet(o2, printed)
+	if got, ok := s.leftCopyCard(o2); !ok || got != printed {
+		t.Fatalf("precondition: leftCopy card = %d (set %v), want %d", got, ok, printed)
+	}
+	if s.cloneTrigMoved(k, &e2) {
+		t.Fatal("the departed copy of card 0's own trigger line is asked")
 	}
 }

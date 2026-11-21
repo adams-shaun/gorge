@@ -598,11 +598,12 @@ func prepCloneCopy(t *kop.Table, g *genPrep) {
 }
 
 // coldLeftCopy is each object's last left-the-battlefield copy card, plus one
-// (0 = none): gorge Object.LeftCopyFace (apply_zone.go's Move). A copy that
-// left the battlefield keeps the copied card's lines (CR 113.7a, 603.10a):
-// findTriggerForAbilityFace finds a trigger there after the live face lost it,
-// so the CR 603.5 optional ask is still posed for it (cloneTrigMoved). Cold
-// and only in a clone-copy table: that gate is its only reader.
+// (0 = none, so table card 0 stays distinct from it): gorge Object.LeftCopyFace
+// (apply_zone.go's Move). A copy that left the battlefield keeps the copied
+// card's lines (CR 113.7a, 603.10a): findTriggerForAbilityFace finds a trigger
+// there after the live face lost it, so the CR 603.5 optional ask is still
+// posed for it (cloneTrigMoved). Cold and only in a clone-copy table: that
+// gate is its only reader.
 var coldLeftCopy = newCold[CardID]("leftCopy", func(g *genPrep) int {
 	if g.anyCloneCopy {
 		return MaxObj
@@ -610,14 +611,16 @@ var coldLeftCopy = newCold[CardID]("leftCopy", func(g *genPrep) int {
 	return 0
 })
 
-// leftCopyCard is the card o last left the battlefield as a copy of, 0 when it
-// never did.
-func (s *State) leftCopyCard(o Obj) CardID {
+// leftCopyCard is the card o last left the battlefield as a copy of, ok false
+// when it never did. The +1 slot encoding is what keeps the none marker
+// distinct from card 0, a real table card; this accessor is where that
+// distinction is read.
+func (s *State) leftCopyCard(o Obj) (CardID, bool) {
 	r := coldLeftCopy.of(s)
 	if int(o) >= len(r) || r[o] == 0 {
-		return 0
+		return 0, false
 	}
-	return r[o] - 1
+	return r[o] - 1, true
 }
 
 // leftCopySet records that o left the battlefield as a copy of c
@@ -668,7 +671,7 @@ func (s *State) cloneTrigMoved(k *prep, e *stackEntry) bool {
 	// the departed copy's face still owns its lines (CR 113.7a, 603.10a): a
 	// Necropede that a copy of it (True Polymorph) died as asks its CR 603.5
 	// "you may put a -1/-1 counter" whatever the reverted printed card reads
-	if s.leftCopyCard(e.obj) == e.card {
+	if lc, ok := s.leftCopyCard(e.obj); ok && lc == e.card {
 		if DebugCloneCopyStats != nil {
 			DebugCloneCopyStats.Moved++
 		}
