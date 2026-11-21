@@ -26,7 +26,11 @@ func TestBlockTaxRefusesUnmodelledPartners(t *testing.T) {
 	}{
 		{land("Half Fixed", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColG, ManaN: 1}), false},
 		{land("Half Choice", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW | kop.ColU, ManaN: 1, AFlags: kop.AfManaChoice}), false},
-		{land("Half Treasure", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1}), true},
+		// a self-sacrifice source is read: a declared blocker the window sacrifices keeps its attacker blocked (blockTombstone)
+		{land("Half Treasure", kop.Ability{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf}, ManaColors: kop.ColAny, ManaN: 1}), false},
+		{land("Half River", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColU, ManaN: 1, SplitGate: kop.SplitGateLands, SplitCols: kop.ColB}), false},
+		{kop.CardDef{Name: "Half Self Watcher", Types: kop.TCreature, Power: 1, Toughness: 1, Abilities: []kop.Ability{{Kind: kop.AbTriggered,
+			Trig: kop.Trigger{Event: kop.TrigTaps, Flags: kop.TfSelf}}}}, false},
 		{land("Half Painland", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColW, ManaN: 1,
 			Prog: []kop.Instr{{Op: kop.OpDealDamage, Obj: kop.RefController, A: kop.Const(1)}}}), true},
 		{land("Half Restricted", kop.Ability{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: 1}), false},

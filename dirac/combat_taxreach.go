@@ -72,7 +72,10 @@ func (r *taxReach) markOv(i int) {
 }
 
 // mustAttackEmblem reports whether a card of t creates an emblem holding a
-// MustAttack static (the walk does not model a requirement beside a tax).
+// MustAttack static the walk does not model beside a tax: for the attack tax
+// (floor false) a requirement naming a defender, for the block tax (floor true)
+// any (the broad requirement an attack tax reads, atkTaxMustOK, is read from an
+// emblem as from a card: staticFlag reads both, a Bident of Thassa's).
 func (r *taxReach) mustAttackEmblem(t *kop.Table, floor bool) bool {
 	for i, made := range r.emblem {
 		if !made {
@@ -80,7 +83,7 @@ func (r *taxReach) mustAttackEmblem(t *kop.Table, floor bool) bool {
 		}
 		for j := range t.Emblems[i].Abilities {
 			a := &t.Emblems[i].Abilities[j]
-			if a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatMustAttack || floor && blkTaxFloorStatic(a)) {
+			if a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatMustAttack && (floor || !atkTaxMustOK(&a.Static)) || floor && blkTaxFloorStatic(a)) {
 				return true
 			}
 		}

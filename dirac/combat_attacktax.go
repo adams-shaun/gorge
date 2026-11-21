@@ -129,7 +129,7 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 		return
 	}
 	r := tableReach(t)
-	g.atkTaxStall = r.landGrantLive(t, g) || g.manaTaps
+	g.atkTaxStall = r.landGrantLive(t, g) || atkTaxTapsLive(t, g)
 	for i := range t.Cards {
 		g.atkTaxStall = g.atkTaxStall || atkTaxGap(&t.Cards[i])
 	}
@@ -186,7 +186,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 				}
 			}
 		case kop.AbTriggered:
-			if a.Trig.Event == kop.TrigTaps {
+			if a.Trig.Event == kop.TrigTaps && !atkTaxSelfTaps(c, a) {
 				return true
 			}
 		}
@@ -201,7 +201,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 	if f := atkTaxFirstMana(c); f >= 0 && nMana > 0 && atkTaxUnlisted(&c.Abilities[f]) {
 		return true // the source view is the unlisted first ability, not the listed one
 	}
-	return nMana > 1 && !atkTaxMultiMana(c, first)
+	return nMana > 1 && (atkTaxSplitCard(c) || !atkTaxMultiMana(c, first) && !atkTaxGatedPair(c, first))
 }
 
 // atkTaxActivatedMana reports whether card c has an ordinary activated
@@ -324,7 +324,7 @@ func atkTaxRestricted(a *kop.Ability) bool {
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
 		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 || atkTaxReflAb(a)) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
-		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
+		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && (a.SplitGate == 0 || atkTaxSplitAb(a)) && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
 
@@ -568,6 +568,9 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	}
 	pc := s.manaPCGen(k, sl)
 	cd := &k.t.Cards[s.cardAt(sl)]
+	if DebugAtkTaxCountSelfTaps && s.atkTaxDebugSelfTaps(k, sl) {
+		return 5, 1, atkPassFixed, true
+	}
 	if DebugAtkTaxCountActivated && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && atkTaxActivatedMana(cd) {
 		return 5, 1, atkPassFixed, true
 	}
@@ -610,6 +613,12 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 		return 0, 0, 0, false
 	}
 	m := uint8(a.ManaColors) & 0x3f
+	if a.SplitGate != 0 {
+		m = uint8(pc.manaCol) & 0x3f // the window's view of a Condition-split source (splitWindowPC)
+		if DebugAtkTaxSplitRoot {
+			m = uint8(a.ManaColors) & 0x3f
+		}
+	}
 	if atkTaxReflAb(a) {
 		// the view's colours are what the opponents' lands could produce now
 		// (manaReflView); none and gorge lists no ability (considerReflected)
@@ -703,6 +712,9 @@ func (s *State) atkTaxUnits(k *prep, sl Slot) int {
 	best := 0
 	for i, n := 0, s.atkTaxAlts(k, sl, &alts); i < n; i++ {
 		best = max(best, alts[i].n)
+	}
+	if best > 0 {
+		best = max(best, s.atkTaxWide(k, sl)) // a gated larger alternative (combat_taxgated.go)
 	}
 	return best
 }
@@ -953,6 +965,7 @@ func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, al atkAlt) int {
 	if pass == atkPassPaid || DebugAtkTaxPaidLast && s.atkTaxIsPaid(k, sl) {
 		s.poolAdd(p, col, n)
 		s.artTag(k, p, sl, col)
+		s.blockTombstone(sl) // a declared blocker that pays by sacrifice (combat_taxgated.go)
 		s.sacFilterSource(k, sl)
 		return -1
 	}

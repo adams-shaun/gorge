@@ -57,7 +57,7 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 		return
 	}
 	r := tableReach(t)
-	g.blkTaxStall = r.landGrantLive(t, g) || g.manaTaps ||
+	g.blkTaxStall = r.landGrantLive(t, g) || atkTaxTapsLive(t, g) ||
 		g.anyMinBlk || g.anyAloneBlk || g.anySuspect ||
 		// the arena masks, not anyLure/anyMustBlock: those are set before
 		// prepArena fills g.ix, so they hold on every table
@@ -67,7 +67,7 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	}
 	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true) || atkTaxGrantGap(g)
 	for i := range t.Overrides {
-		g.blkTaxStall = g.blkTaxStall || t.Overrides[i].AddKw&kop.KwMenace != 0
+		g.blkTaxStall = g.blkTaxStall || r.override[i] && t.Overrides[i].AddKw&kop.KwMenace != 0
 	}
 }
 
@@ -126,7 +126,7 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 // walks the same sources), and a block floor or duty (blkTaxFloorPart).
 // Over-refusing is safe; admitting a shape the window misprices is not.
 func blkTaxGap(c *kop.CardDef) bool {
-	return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxSelfSac(c) || blkTaxMustAttack(c)
+	return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
 }
 
 // blkTaxMustAttack reports whether card c has a MustAttack static: the attack
@@ -140,30 +140,14 @@ func blkTaxMustAttack(c *kop.CardDef) bool {
 	return false
 }
 
-// blkTaxSelfSac reports whether card c has a self-sacrifice mana ability (a
-// Treasure, an Eldrazi Spawn: atkTaxPaidAb). The attack window prices it, but
-// gorge's block window may sacrifice a declared blocker (a Spawn that blocks
-// pays for its own block) and commits the DeclareBlockers pair of the
-// sacrificed creature, which stays among its attacker's blockers: the kernel
-// drops the pair with the permanent, so the block window leaves the shape
-// refused.
-func blkTaxSelfSac(c *kop.CardDef) bool {
-	for j := range c.Abilities {
-		if atkTaxPaidAb(&c.Abilities[j]) {
-			return true
-		}
-	}
-	return false
-}
-
 // blkTaxStallPair is pairRefusalN's StallBlkTax half: the text and the two
 // sides, the cards with a block tax and the cards with a gap.
 func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
 	_, _, atkB := atkTaxStallPair(t, g)
-	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape or a self-sacrifice one, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
+	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
 	b := func(c *kop.CardDef, i int) bool {
-		return atkB(c, i) || blkTaxFloorPart(c) || blkTaxSelfSac(c) || blkTaxMustAttack(c)
+		return atkB(c, i) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
 	}
 	return text, a, b
 }

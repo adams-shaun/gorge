@@ -121,7 +121,8 @@ func TestAttackTaxReachIsCardPrecise(t *testing.T) {
 		Prog: []kop.Instr{{Op: kop.OpCreateEmblem, C: 1}}}}}
 	overrider := kop.CardDef{Name: "Half Overrider", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
 		Prog: []kop.Instr{{Op: kop.OpOverride, C: 1}}}}}
-	emblems := []kop.Emblem{{}, {Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}}
+	// an emblem's requirement naming a defender (B) is no broad duty (atkTaxMustOK)
+	emblems := []kop.Emblem{{}, {Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack, B: 1}}}}}
 	basic := kop.SubMask{}.With(0)
 	overrides := []kop.Override{{}, {AddSub: basic}}
 	for _, c := range []struct {
@@ -149,5 +150,31 @@ func TestAttackTaxReachIsCardPrecise(t *testing.T) {
 			}
 			prepBlkTax(tb, g)
 		})
+	}
+}
+
+// A broad emblem requirement (Bident of Thassa's "creatures your opponents
+// control attack this turn if able") is read beside an attack tax as a card's
+// is (staticFlag reads both), and still refuses a block tax table.
+func TestAttackTaxReadsABroadEmblemDuty(t *testing.T) {
+	tax := kop.CardDef{Name: "Half Tax", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbStatic,
+		Static: kop.Static{Kind: kop.StatAttackTax, A: 2, StFlags: kop.StAtkTaxPlayer}}}}
+	blk := kop.CardDef{Name: "Half Block Tax", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbStatic,
+		Static: kop.Static{Kind: kop.StatBlockTax, A: 1}}}}
+	maker := kop.CardDef{Name: "Half Maker", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
+		Prog: []kop.Instr{{Op: kop.OpCreateEmblem, C: 1}}}}}
+	tb := &kop.Table{Cards: []kop.CardDef{tax, blk, maker}, Overrides: []kop.Override{{}},
+		Emblems: []kop.Emblem{{}, {Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}}}
+	g := &genPrep{}
+	for i := range g.ix {
+		g.ix[i] = arenaNone
+	}
+	prepAtkTax(tb, g)
+	prepBlkTax(tb, g)
+	if g.atkTaxStall {
+		t.Error("a broad emblem duty refuses the attack tax table")
+	}
+	if !g.blkTaxStall {
+		t.Error("a broad emblem duty does not refuse the block tax table")
 	}
 }

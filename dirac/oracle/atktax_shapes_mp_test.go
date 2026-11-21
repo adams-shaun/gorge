@@ -80,6 +80,11 @@ func runAtkShape(t *testing.T, deck []cardset.Entry, seeds int, mut *bool, on bo
 			if c.G != nil && c.G.fr != nil && c.G.fr.d != nil && c.G.fr.d.Kind == decision.KAttackers {
 				atkGoadTally(c.G.E.G, c.G.fr.d, st.tally)
 				atkEncoreTally(c.G.E.G, c.G.fr.d, st.tally)
+				for _, o := range c.G.fr.d.Options {
+					if o.Required {
+						st.tally["required attack offers"]++
+					}
+				}
 			}
 			if gs == nil && c.G != nil {
 				gs = c.G
