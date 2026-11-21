@@ -223,6 +223,30 @@ func (s *State) dmgByGrantHost(k *prep, src Slot) bool {
 			return true
 		}
 	}
+	if k.gen.globTrigGrant {
+		// a grant not limited to a host (Vampiric Sliver gives every Sliver
+		// the DamagedBy trigger): the permanent at src holds it when the
+		// static's filter matches it, so its damage is recorded
+		for g := s.statM; g.any(); g = g.rest() {
+			a := g.first()
+			c := s.cardAt(a)
+			if !k.gen.has(c, gfGlobGrant) || int(c) >= len(k.gen.dmgBy) || !k.gen.dmgBy[c] {
+				continue
+			}
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				ab := &cd.Abilities[i]
+				if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Grant == 0 ||
+					filterAttachedOnly(k.t, ab.Static.Filter) {
+					continue
+				}
+				st := statSrc{a: ab, sl: a, ctrl: s.perms[a].ctrl, obj: s.perms[a].obj}
+				if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, src, st.ctrl, a, layerKw) {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
 
