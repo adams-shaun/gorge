@@ -423,8 +423,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		//     over the equipped creature (every clause EquippedBy), with no
 		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
 		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy, and
-		//     Cryoshatter's Card.AttachedBy (a destroy-self body is vetted
-		//     ordinary, tapsDestroySelf; an unvetted body defers the tap).
+		//     Cryoshatter's Card.AttachedBy (a destroy-self or poison-counter
+		//     body is vetted ordinary, tapsAttachedClass; an unvetted body
+		//     defers the tap).
 		//     A FirstTime$ True line (Captain America, Living Legend) is the
 		//     same watcher with the tapped-this-turn mark consulted first.
 		// FirstTime$ True ("the first time it has become tapped this turn",
