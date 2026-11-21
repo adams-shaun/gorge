@@ -1439,6 +1439,7 @@ type lCard struct {
 	HexColors      string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
 	ProtFrom       *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
 	Infect         bool     // printed K:Infect (CR 702.90)
+	Devoid         bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
 	Toxic          int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
 	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
 	PreventDmgTo   bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)

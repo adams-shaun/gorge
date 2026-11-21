@@ -89,6 +89,9 @@ func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 		r = cast && from == kop.ZoneExile
 	case 4:
 		r = cast && from != kop.ZoneHand
+	case 7:
+		// wasCastFromYourGraveyard: the latest cast came from a graveyard, by the reading player
+		r = cast && from == kop.ZoneGraveyard && by == you
 	case 5:
 		r = cast && may // CastSa Spell.MayPlaySource: through a play permission (trig_mayplaystatic.go)
 	case 6:

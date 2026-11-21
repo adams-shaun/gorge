@@ -597,6 +597,14 @@ const W7NotImprinted int16 = 39
 // printed card in any zone. The Master, Mesmerist.
 const W7WithSkulk int16 = 40
 
+// W7WithDevoid (PredWord7 sub-kind 41): the card was printed with Devoid
+// (CardDef.Devoid; gorge's exact keyword word withDevoid, objectHasKeyword
+// reads the printed face). A battlefield permanent that is face down or lost
+// all abilities has none; off the battlefield the printed card counts in any
+// zone. A mana restriction's Spell.withDevoid reads it on the card paid for.
+// Corrupted Crossroads.
+const W7WithDevoid int16 = 41
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
@@ -785,7 +793,10 @@ const PredWasCastEnter Pred = 248
 // the reading player (wasCastFromYourHandByYou), 3 cast from exile
 // (wasCastFromExile), 4 cast from anywhere but a hand
 // (wasCast+!wasCastFromYourHand), 5 cast through a may-play permission
-// (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read);
+// (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read), 6 cast for its
+// mayhem cost, 7 cast from a graveyard by the reading player
+// (wasCastFromYourGraveyard, read only by a mana restriction: Lord of the
+// Forsaken);
 // bit 4 (16) negates the whole read. A spell's origin zone is
 // stackEntry.prov (genPrep.anyCastProv).
 const PredWasCastSpell Pred = 247

@@ -186,14 +186,15 @@ const (
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
 // spell must have been cast from, or'd with spellNot for the negated word.
 const (
-	spellCast    = 0 // wasCast: cast at all (a copy was never cast)
-	spellHand    = 1 // wasCastFromYourHand: from a hand, any caster (gorge WasCastFromHand)
-	spellHandBy  = 2 // wasCastFromYourHandByYou: from a hand by the reading player
-	spellExile   = 3 // wasCastFromExile
-	spellNotHand = 4 // wasCast+!wasCastFromYourHand: cast, from anywhere but a hand
-	spellMayPlay = 5 // CastSa Spell.MayPlaySource: cast through a may-play permission (gorge FlagMayPlay)
-	spellMayhem  = 6 // CastSa Spell.Mayhem: cast for its mayhem cost (gorge FlagMayhem; a copy reads false)
-	spellNot     = 16
+	spellCast      = 0 // wasCast: cast at all (a copy was never cast)
+	spellHand      = 1 // wasCastFromYourHand: from a hand, any caster (gorge WasCastFromHand)
+	spellHandBy    = 2 // wasCastFromYourHandByYou: from a hand by the reading player
+	spellExile     = 3 // wasCastFromExile
+	spellNotHand   = 4 // wasCast+!wasCastFromYourHand: cast, from anywhere but a hand
+	spellMayPlay   = 5 // CastSa Spell.MayPlaySource: cast through a may-play permission (gorge FlagMayPlay)
+	spellMayhem    = 6 // CastSa Spell.Mayhem: cast for its mayhem cost (gorge FlagMayhem; a copy reads false)
+	spellYourGrave = 7 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (a mana restriction only)
+	spellNot       = 16
 )
 
 // cmpWasCast's CmpN (kernel PredWasCastEnter's PredN): the origin the entering
