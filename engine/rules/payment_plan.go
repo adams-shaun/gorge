@@ -359,8 +359,95 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		desc := paymentForCast(pc, cost)
 		av := pay.AvailableFor(asPayer(e), p, desc)
 		conv := asEval(e).Conv(p, cast.Object, desc.SAKind())
+		half := out
 		out = castPlanPipsOutcome(e, p, cost, pc, e.G.Players[p].Life, e.G.Players[p].Snow,
 			av.Pool, av.Typed, conv, rider, out)
+		if out.Plan == nil {
+			out = castPlanPhyrexianReplan(asPayer(e), e, p, cast, cost, mana, rider, plan, half, out, pc, av, conv)
+		}
+	}
+	return out
+}
+
+// castPlanPhyrexianReplans bounds the re-plans of castPlanPhyrexianReplan:
+// each attempt holds at least one more of the previous witness's sources out
+// of the plan, so a cost the pip's colour faces cannot survive without stops
+// the loop long before it.
+const castPlanPhyrexianReplans = 4
+
+// castPlanReplan is the narrow surface the re-plan needs: the cast window's
+// own read beside the reserving planner (planReserving). The interface keeps
+// the re-plan off the engine's own surface (the engineSurface ratchet), the
+// way castPlanPipsWindow does for castPlanPipsOutcome.
+type castPlanReplan interface {
+	castPlanPipsWindow
+	planReserving(p state.PlayerID, id state.ObjID, cost Cost, ability, selfSource bool,
+		parts []planCostPart, plan func(tapR, keptR []state.ObjID) PaymentPlanOutcome) PaymentPlanOutcome
+}
+
+// castPlanPhyrexianReplan re-plans a withheld Phyrexian cast's mana half with
+// the sources its witness tapped held out of the plan, and re-runs the CR
+// 601.2g window check on every re-plan (CR 107.4f, 119.4). The half's witness
+// prices the pip-free mana half (pay.PlanManaHalf) before any pip is answered
+// (CR 601.2b), and the window the pips then resolve in offers every source the
+// witness did not tap (castPlanPipsOutcome): a witness that spent a source the
+// pips' colour faces needed withholds a cast a different assignment pays --
+// Fetid Heath's free "{T}: Add {C}" feeding the generic while its "{W/B},
+// {T}: Add {W}{W}, {W}{B} or {B}{B}" fee ability was the only {B} the window
+// could make (Vault Skirge's {1}{B/P} at one life beside an untapped Fetid
+// Heath and a Forest). The re-plan prices the same half over the other
+// sources, leaving the pip's colour producers to the window. half is the
+// withheld attempt's own half plan; an attempt with no plan stops the loop:
+// the sources excluded so far are ones every remaining assignment must do
+// without, so the pips they were held out for cannot be paid beside the half.
+func castPlanPhyrexianReplan(pe pay.Engine, w castPlanReplan, p state.PlayerID, cast decision.PlannedCast,
+	cost, mana Cost, rider pipRider, plan func(Cost, *pay.Descriptor) PaymentPlanOutcome,
+	half, out PaymentPlanOutcome, pc *pendingCast, av pay.Available, conv *manaConv) PaymentPlanOutcome {
+	if half.Plan == nil {
+		return out
+	}
+	life := w.Game().Players[p].Life
+	replan := func(tapR []state.ObjID) func(Cost, *pay.Descriptor) PaymentPlanOutcome {
+		return func(c Cost, d *pay.Descriptor) PaymentPlanOutcome {
+			if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
+				return pay.PlanPaymentCostWithout(pe, p, cast, c, d, tapR, nil, nil)
+			}
+			// The mana abilities run first (CR 601.2g-h), so a source that
+			// sacrifices itself can use up what an additional cost must
+			// sacrifice.
+			parts, _ := planCostParts(cost, cast.Object, false)
+			return w.planReserving(p, cast.Object, cost, false, false, parts, func(tr, kr []state.ObjID) PaymentPlanOutcome {
+				all := tr
+				if len(tapR) != 0 {
+					all = append(append([]state.ObjID(nil), tr...), tapR...)
+				}
+				return pay.PlanPaymentCostWithout(pe, p, cast, c, d, all, nil, kr)
+			})
+		}
+	}
+	excluded := make([]state.ObjID, 0, len(half.Plan.Activations))
+	for _, a := range half.Plan.Activations {
+		excluded = append(excluded, a.Source)
+	}
+	for attempt := 0; attempt < castPlanPhyrexianReplans; attempt++ {
+		got := planManaUnderRider(pe, p, life, cast, mana, rider, replan(excluded))
+		if got.Plan == nil {
+			return out // no assignment without the excluded sources pays the half
+		}
+		retry := castPlanPipsOutcome(w, p, cost, pc, life, w.Game().Players[p].Snow,
+			av.Pool, av.Typed, conv, rider, got)
+		if retry.Plan != nil {
+			return retry
+		}
+		for _, a := range got.Plan.Activations {
+			seen := false
+			for _, id := range excluded {
+				seen = seen || id == a.Source
+			}
+			if !seen {
+				excluded = append(excluded, a.Source)
+			}
+		}
 	}
 	return out
 }
