@@ -782,12 +782,17 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 // planNeverPricesCore is planNeverPricesOf with the shapes gorge's planner
 // admits for a cast payable only by paying with its own only target lifted when
 // modal is set (targetPaidPlanned): a Spree or Tiered face, an either-or or
-// life/energy additional cost, a mana-spent read, a target-dependent price.
+// life/energy additional cost, a mana-spent read, a target-dependent price --
+// and an optional-cost face (Replicate, Multikicker, Squad) beside them
+// (targetPaidShape lists "shape:optional_cost", targetPaidNeedsPlannedPayment's
+// "an additional or optional cost"), so the plain cast of a replicate card
+// whose payment consumes its own only target is planned at the printed cost,
+// never lowered (potentialWitnessReaches would strand the target).
 func planNeverPricesCore(k *prep, c CardID, hyb, composed, modal bool) bool {
 	cd := &k.t.Cards[c]
 	if cd.BeholdExile || cd.SpellWaterbend != 0 || cd.Cost.X != 0 || cd.Cost.Hyb[0] != 0 && cd.Cost.Hyb[0] != kop.HybTwobrid && !hyb && !cd.Cost.Phyrexian() ||
-		cd.HasMultikicker || !modal && (cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
-		return true // (a hybrid cost: the planner's "cost:hybrid"; a twobrid one is priced by resolving its pips (planTwobridCost), a Phyrexian one by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker: payment_plan.go's "shape:optional_cost", so gorge lowers even the PLAIN cast and the kernel must too)
+		!modal && (cd.HasMultikicker || cd.HasAltAdd && cd.BeholdN == 0 || cd.AltAddOne || cd.HasModeCost || !composed && (cd.SpendRead || cd.SpentSelf)) {
+		return true // (a hybrid cost: the planner's "cost:hybrid"; a twobrid one is priced by resolving its pips (planTwobridCost), a Phyrexian one by its mana half; SpendRead and SpentSelf, the card's own face reading Count$CastTotalManaSpent: "shape:mana_spent_reader"; BeholdExile: the RaiseCost behold folds into the composed cost, PlanCostDetail "cost:behold"; Multikicker's "shape:optional_cost" is a targetPaidShape, so the target-paid arm below lifts it (kw_spree.go targetPaidPlanned))
 	}
 	if k.gen != nil && k.gen.anyEvTargets && spellEvidenceTargets(cd) {
 		return true // gorge's planner declines a CollectEvidence part ("cost:evidence", classify.go): offered by the pool only (cost_collectevidencex.go)
