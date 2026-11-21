@@ -2332,6 +2332,13 @@ func (s *State) potentialTapUnit(k *prep, p uint8, sl Slot, pc *pcard, mask uint
 		}
 	}
 	cen.pain = 0 // the tap's extra is priced unpainted, as before the gate pair
+	s.potentialTapExtraGated(k, sl, pc, mask, fold, cen, painRefused)
+}
+
+// potentialTapExtraGated is potentialTapExtra behind its caller-side checks:
+// a TapsForMana carrier exists, the lethal guard did not refuse the tap's
+// production and the source is not a pain-only face.
+func (s *State) potentialTapExtraGated(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus, painRefused bool) {
 	if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
 		s.potentialTapExtra(k, sl, pc, mask, fold, cen)
 	}
@@ -2483,6 +2490,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			} else {
 				painAdd(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
 			}
+			// the tap's TapsForMana extra is a fixed vector beside the
+			// dynamic amount (Tower Worker's {C} under Leyline of Abundance's
+			// {G}): gorge folds it into each alternative of the tap
+			s.potentialTapExtraGated(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen, painRefused)
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
