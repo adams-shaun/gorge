@@ -1755,7 +1755,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
 		s.poolAdd(p, c, int(max(pc.manaN, 1)))
-		s.addExtra(k, p, st.sl, pc)
+		s.addExtraPick(k, p, st.sl, pc, c)
 		s.artTag(k, p, st.sl, c)
 		s.tapPain(k, p, st.sl, c)
 	case st.restr:
@@ -1766,7 +1766,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			n = int(srcYield(s.manaPCGen(k, st.sl)))
 		}
 		s.poolAdd(p, int(st.ans), n)
-		s.addExtra(k, p, st.sl, s.manaPCGen(k, st.sl))
+		s.addExtraPick(k, p, st.sl, s.manaPCGen(k, st.sl), int(st.ans))
 		s.artTag(k, p, st.sl, int(st.ans))
 		s.tapPain(k, p, st.sl, int(st.ans)) // Cabal Pit's rider resolves with its mana (CR 605.3b)
 		if k.sacMana {

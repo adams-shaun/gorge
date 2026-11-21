@@ -452,6 +452,17 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
 }
 
+// addExtraPick is addExtra for a tap whose colour col the caller knows: a
+// painful source's extra depends on the pick (addExtraCol prices it), any
+// other source's does not.
+func (s *State) addExtraPick(k *prep, p uint8, sl Slot, pc *pcard, col int) {
+	if pc.painCol != 0 {
+		s.addExtraCol(k, p, sl, pc, col)
+		return
+	}
+	s.addExtra(k, p, sl, pc)
+}
+
 // addExtraCol is addExtra for a tap that made colour col: a painful source's
 // coloured pick brings only the extra of the carriers not limited to a {C}
 // tap, its {C} ability all of them (srcExtraPain).
