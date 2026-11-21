@@ -640,7 +640,7 @@ func (w *legalWalk) battlefieldWalk() {
 					}
 					// Activator$ and ActivationPhases$ apply to a granted/gained ability
 					// as to a printed one (the source is the recipient permanent).
-					if !e.activatorAllows(p, id, ab) || !e.activationPhasesOK(p, ab) {
+					if !grantedActivationAllows(e, p, id, ab) {
 						continue
 					}
 					// CR 606.3 for a GAINED or GRANTED loyalty ability: the same
