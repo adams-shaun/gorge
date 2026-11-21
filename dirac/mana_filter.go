@@ -2849,11 +2849,21 @@ func (fs *filtSearch) fundOne(k *prep, t *State, sl Slot, pc *pcard, mask uint8,
 // unstacked (mutation testing only: the lockstep must catch it).
 var DebugFiltNoTrigSettle bool
 
+// DebugFiltSettleMidResolve settles a trigger a filter-search step queued even
+// inside a resolution (the old path: a kernel panic; mutation testing only).
+var DebugFiltSettleMidResolve bool
+
 // settle continues the search at t after a step that queued a trigger, or a
 // pass: t runs to p's next decision, a priority being a node (visit) and an
 // ask a node branching on its answers (gorge scriptSearch.visit's
 // scriptAnswers; tapXSearch.settle).
 func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
+	if t.ctl == ctlResolve && !DebugFiltSettleMidResolve {
+		// a probe from inside a resolution (Well of Lost Dreams' "pay {X}" window): a trigger
+		// the tap queued waits for priority (CR 603.3), the resolution is no priority node
+		// to run it from, so the node is visited with the trigger still pending
+		return fs.visit(k, t, funded, gapUsed)
+	}
 	var d Decision
 	if !t.tapXNext(fs.p, &d) {
 		fs.stallOf(t)
