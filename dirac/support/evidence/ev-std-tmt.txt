@@ -19,6 +19,7 @@ Cool but Rude
 Courier of Comestibles
 Cowabunga!
 Crustacean Commando
+Dark Leo & Shredder
 Death in the Family
 Dimension X
 Dimensional Exile
@@ -35,8 +36,10 @@ East Wind Avatar
 Escape Tunnel
 Everything Pizza
 Featherbrained Filcher
+Foot Elite
 Foot Headquarters
 Foot Mystic
+Foot Ninjas
 Forest
 Frog Butler
 Fugitive Droid
@@ -57,8 +60,11 @@ Insectoid Exterminator
 Island
 Jennika's Technique
 Jennika, Bad Apple Big Sister
+Karai's Technique
+Karai, Future of the Foot
 Kitsune's Technique
 Kitsune, Dragon's Daughter
+Koya, Death from Above
 Krang, Master Mind
 Krang, Utrom Warlord
 Leader's Talent
@@ -130,6 +136,7 @@ Renet, Temporal Apprentice
 Retro-Mutation
 Return to the Sewers
 Rock Soldiers
+Rocksteady, Crash Courser
 Sally Pride, Lioness Leader
 Savanti Romero, Time's Exile
 Saved by the Shell
@@ -145,6 +152,7 @@ South Wind Avatar
 Spicy Oatmeal Pizza
 Splinter's Technique
 Splinter, Hamato Yoshi
+Splinter, Radical Rat
 Squirrelanoids
 Stockman, Mad Fly-entist
 Stomped by the Foot
@@ -157,6 +165,7 @@ Tenderize
 The Cloning of Shredder
 The Last Ronin
 The Last Ronin's Technique
+The Neutrinos
 The Ooze
 Tokka & Rahzar, Terrible Twos
 Transdimensional Bovine
