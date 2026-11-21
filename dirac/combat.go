@@ -319,7 +319,7 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			break
 		}
 	}
-	if q, ok := s.encoreSeat(k, sl); ok {
+	if q, ok := s.encoreSeat(k, sl); ok && !s.atkTaxEncoreCharged(k, sl) {
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
 		return false
 	}

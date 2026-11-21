@@ -79,6 +79,7 @@ func runAtkShape(t *testing.T, deck []cardset.Entry, seeds int, mut *bool, on bo
 		pol := podClassPolicy(seed, func(c *PickCtx) bool {
 			if c.G != nil && c.G.fr != nil && c.G.fr.d != nil && c.G.fr.d.Kind == decision.KAttackers {
 				atkGoadTally(c.G.E.G, c.G.fr.d, st.tally)
+				atkEncoreTally(c.G.E.G, c.G.fr.d, st.tally)
 			}
 			if gs == nil && c.G != nil {
 				gs = c.G
@@ -457,6 +458,118 @@ func TestFourSeatAtkTaxGoadLockstep(t *testing.T) {
 			if st.tally[n] < 2 {
 				t.Errorf("%s reached %d times, want >= 2", n, st.tally[n])
 			}
+		}
+	})
+}
+
+// Ordinary activated abilities that add mana (Millikin's "{T}, Mill a card: Add
+// {C}", Selvala's parley, Priest of Forgotten Gods, Red Death, Shipwrecker's
+// goad): none is a CR 605.1a mana ability (a library move, a target), so gorge's
+// attack window never lists it (cards.IsManaAbilitySA, Face.ManaAbilities) and
+// the payer taps lands for the charge, the creature held untapped. The
+// mutation (DebugAtkTaxCountActivated) lists each as a fixed {C} source.
+var atkTaxActivatedManaDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2}, {Name: "Windborn Muse", Count: 1},
+	{Name: "Millikin", Count: 3}, {Name: "Selvala, Explorer Returned", Count: 2}, {Name: "Priest of Forgotten Gods", Count: 2},
+	{Name: "Red Death, Shipwrecker", Count: 2}, {Name: "Savannah Lions", Count: 3}, {Name: "Elite Vanguard", Count: 2},
+	{Name: "Plains", Count: 6}, {Name: "Island", Count: 3}, {Name: "Swamp", Count: 3}, {Name: "Mountain", Count: 2}, {Name: "Forest", Count: 3},
+}
+
+// TestFourSeatAtkTaxActivatedManaLockstep: four-seat attack-tax games with
+// activated mana-adding abilities play in lockstep, their creatures held
+// untapped at the window's asks while it taps lands.
+func TestFourSeatAtkTaxActivatedManaLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxActivatedManaDeck, 24, 20, 0,
+		[]string{"Millikin", "Selvala, Explorer Returned"}, nil, &dirac.DebugAtkTaxCountActivated)
+}
+
+// atkEncoreTally counts an Encore copy's offers at an attackers ask: marked
+// Required (its named opponent's pair is free, offered alone) and not (the
+// pair is charged, so every pair stays optional).
+func atkEncoreTally(g *state.Game, d *decision.Decision, tally map[string]int) {
+	for _, o := range d.Options {
+		if ob := g.Obj(o.Obj); ob == nil || !ob.IsToken || ob.EncoreAttackTurn != g.Turn {
+			continue
+		}
+		if o.Required {
+			tally["encore required"]++
+		} else {
+			tally["encore optional pair"]++
+		}
+	}
+}
+
+// An Encore duty beside an attack tax (Impulsive Pilferer, Kinsbaile Courier,
+// Spellbinding Soprano beside Propaganda, Ghostly Prison, Windborn Muse; CR
+// 508.1d): the copy names one opponent, and gorge's offer list keeps only that
+// pair and requires the copy while it is free, and keeps every pair, requiring
+// none, while a tax charges it (attackOffersCompute's best over zero-charge
+// pairs; attackDutyDischargeable). The mutation (DebugAtkTaxEncoreNamed)
+// offers the named pair alone and always requires it.
+var atkTaxEncoreDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 2}, {Name: "Ghostly Prison", Count: 2}, {Name: "Windborn Muse", Count: 1},
+	{Name: "Impulsive Pilferer", Count: 6}, {Name: "Spellbinding Soprano", Count: 4},
+	{Name: "Kinsbaile Courier", Count: 3}, {Name: "Shock", Count: 4},
+	{Name: "Mountain", Count: 10}, {Name: "Plains", Count: 8},
+}
+
+// TestFourSeatAtkTaxEncoreLockstep: four-seat Encore games beside attack taxes
+// play in lockstep, the copies reaching both the free and the charged pair.
+func TestFourSeatAtkTaxEncoreLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxEncoreDeck, 32, 5, 0, nil, nil, &dirac.DebugAtkTaxEncoreNamed)
+	t.Run("reached", func(t *testing.T) {
+		st := runAtkShape(t, atkTaxEncoreDeck, 32, &dirac.DebugAtkTaxEncoreNamed, false)
+		t.Logf("%s", katTally(st.tally))
+		for _, n := range []string{"encore required", "encore optional pair"} {
+			if st.tally[n] < 2 {
+				t.Errorf("%s reached %d times, want >= 2", n, st.tally[n])
+			}
+		}
+	})
+}
+
+// A plain attack duty beside an attack tax (Heckling Fiends's and Incite's
+// "target creature attacks this turn if able", an Effect's Broad MustAttack
+// static; CR 508.1d): the duty binds a creature only while one of its pairs is
+// free (attackDutyDischargeable's Broad arm), read as a MustAttack static is
+// (atkTaxFreePair). The mutation (DebugAtkTaxRequiredPaid) requires it
+// whatever its pairs cost.
+var atkTaxPlainDutyDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2}, {Name: "Windborn Muse", Count: 1},
+	{Name: "Heckling Fiends", Count: 4}, {Name: "Incite", Count: 4}, {Name: "Savannah Lions", Count: 3},
+	{Name: "Elite Vanguard", Count: 3}, {Name: "Mountain", Count: 9}, {Name: "Plains", Count: 7},
+}
+
+// TestFourSeatAtkTaxPlainDutyLockstep: four-seat attack-tax games with
+// attack-this-turn effects play in lockstep.
+func TestFourSeatAtkTaxPlainDutyLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxPlainDutyDeck, 24, 20, 0, nil, nil, &dirac.DebugAtkTaxRequiredPaid)
+}
+
+// A goad and an attack duty beside a block tax (Archangel of Tithes: "as long
+// as it is attacking, creatures can't block unless their controller pays {1}"):
+// both shape only the attackers decision (CR 701.15, 508.1d), and the block
+// window prices a blocker pair from the defender's sources alone
+// (blockPairCharge, askNextBlockPay), so neither enters the block walk. The
+// mutation (DebugBlkTaxFree) lets every block go uncharged.
+var blkTaxGoadDutyDeck = []cardset.Entry{
+	{Name: "Archangel of Tithes", Count: 3}, {Name: "Disrupt Decorum", Count: 3}, {Name: "Psychic Impetus", Count: 2},
+	{Name: "Kinsbaile Courier", Count: 3}, {Name: "Spellbinding Soprano", Count: 3}, {Name: "Heckling Fiends", Count: 3}, {Name: "Incite", Count: 2},
+	{Name: "Savannah Lions", Count: 3}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
+	{Name: "Mountain", Count: 8}, {Name: "Plains", Count: 9},
+}
+
+// TestFourSeatBlkTaxGoadDutyLockstep: four-seat block-tax games with goads and
+// attack duties play in lockstep, blockers paying through the window.
+func TestFourSeatBlkTaxGoadDutyLockstep(t *testing.T) {
+	atkShapeLockstep(t, blkTaxGoadDutyDeck, 32, 10, 1, nil, nil, &dirac.DebugBlkTaxFree)
+	t.Run("reached", func(t *testing.T) {
+		st := runAtkShape(t, blkTaxGoadDutyDeck, 32, &dirac.DebugBlkTaxFree, false)
+		t.Logf("%s", katTally(st.tally))
+		goad := st.tally["goaded required"] + st.tally["goaded unrequired player pair"]
+		encore := st.tally["encore required"] + st.tally["encore optional pair"]
+		if goad < 2 || encore < 2 {
+			t.Errorf("goaded offers %d, encore offers %d, want >= 2 of each", goad, encore)
 		}
 	})
 }

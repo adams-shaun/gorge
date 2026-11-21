@@ -97,6 +97,11 @@ var DebugAtkTaxNoGrantExtra bool
 // window lists no mana ability an effect grants.
 var DebugAtkTaxNoGrant bool
 
+// DebugAtkTaxCountActivated (test only, TestFourSeatAtkTaxActivatedManaLockstep):
+// the walk lists an ordinary activated ability that adds mana (Millikin, Selvala,
+// Priest of Forgotten Gods, Red Death, Shipwrecker) as a fixed {C} source.
+var DebugAtkTaxCountActivated bool
+
 // DebugAtkTaxNoExtra (test only, TestFourSeatAtkTaxTapExtraLockstep): the
 // window's tap floats no StatTapExtra mana beside the source's own.
 var DebugAtkTaxNoExtra bool
@@ -123,7 +128,7 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 		return
 	}
 	r := tableReach(t)
-	g.atkTaxStall = g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps
+	g.atkTaxStall = r.landGrantLive(t, g) || g.manaTaps
 	for i := range t.Cards {
 		g.atkTaxStall = g.atkTaxStall || atkTaxGap(&t.Cards[i])
 	}
@@ -139,10 +144,14 @@ func atkTaxGrantGap(g *genPrep) bool {
 
 // atkTaxGap reports whether card c holds a part the attack-tax walk does not
 // model: a mana ability of another shape than atkTaxManaAb's, one an effect
-// grants (a latent mana ability), an activated ability adding mana, an
-// attack requirement (a Player.Other MustAttack or a Goad static, a goad, an attack duty),
-// "can't attack alone", a Taps watcher, or mana
-// that outlives the step (PersistentMana$, an Effect's UnspentMana).
+// grants (a latent mana ability), an attack requirement (a Player.Other
+// MustAttack static), "can't attack alone", a Taps watcher, or mana that
+// outlives the step (PersistentMana$, an Effect's UnspentMana). An ordinary
+// activated ability that adds mana is no gap: it is no CR 605.1a mana ability
+// (Millikin's Mill cost and Selvala's draw move a library card; Priest of
+// Forgotten Gods and Red Death, Shipwrecker target; gorge cards.IsManaAbilitySA
+// leaves each out of Face.ManaAbilities), so gorge's attack and block windows
+// never list it (attackManaSources) and the walk reads no source of it.
 func atkTaxGap(c *kop.CardDef) bool {
 	if c.AloneAtk {
 		return true
@@ -182,8 +191,8 @@ func atkTaxGap(c *kop.CardDef) bool {
 		}
 		for i := range a.Prog {
 			in := &a.Prog[i]
-			if in.Ext() == kop.ExtAttacksIfAble ||
-				in.Op == kop.OpAddMana && (a.Kind == kop.AbActivated || in.B.K == kop.VConst && (in.B.N == 2 || in.B.N == 3)) {
+			if in.Ext() == kop.ExtAttacksIfAble && in.C&kop.AttacksOpponent != 0 || // a plain duty is Broad (combat_taxencore.go)
+				in.Op == kop.OpAddMana && a.Kind != kop.AbActivated && in.B.K == kop.VConst && (in.B.N == 2 || in.B.N == 3) {
 				return true
 			}
 		}
@@ -192,6 +201,17 @@ func atkTaxGap(c *kop.CardDef) bool {
 		return true // the source view is the unlisted first ability, not the listed one
 	}
 	return nMana > 1 && !atkTaxMultiMana(c, first)
+}
+
+// atkTaxActivatedMana reports whether card c has an ordinary activated
+// ability that adds mana (atkTaxGap: none is a mana ability, none is listed).
+func atkTaxActivatedMana(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbActivated && progHas(a, func(in *kop.Instr) bool { return in.Op == kop.OpAddMana }) {
+			return true
+		}
+	}
+	return false
 }
 
 // atkTaxMustOK reports whether MustAttack static st is the broad requirement
@@ -238,6 +258,9 @@ func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
 func (s *State) atkTaxRequired(k *prep, sl Slot) bool {
 	if goadOn(k) && s.goadedAt(k, sl) {
 		return s.atkTaxGoadRequired(k, sl)
+	}
+	if _, ok := s.encoreSeat(k, sl); ok {
+		return s.atkTaxEncoreRequired(k, sl) // combat_taxencore.go
 	}
 	return s.atkTaxFreePair(k, sl)
 }
@@ -544,6 +567,9 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	}
 	pc := s.manaPCGen(k, sl)
 	cd := &k.t.Cards[s.cardAt(sl)]
+	if DebugAtkTaxCountActivated && s.perms[sl].flags&pfTapped == 0 && !s.activationSick(k, sl) && atkTaxActivatedMana(cd) {
+		return 5, 1, atkPassFixed, true
+	}
 	a := manaAbView(cd, pc)
 	if DebugAtkTaxLaterFirst && a != nil {
 		a = atkTaxLastLater(cd, a)

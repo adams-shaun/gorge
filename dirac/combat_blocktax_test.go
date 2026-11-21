@@ -39,7 +39,7 @@ func TestBlockTaxRefusesUnmodelledPartners(t *testing.T) {
 		{kop.CardDef{Name: "Half Brute", Types: kop.TCreature, Power: 2, Toughness: 2,
 			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}, true},
 		{kop.CardDef{Name: "Half Goader", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
-			Prog: []kop.Instr{{Op: kop.OpGoad, Obj: kop.RefNone}}}}}, true},
+			Prog: []kop.Instr{{Op: kop.OpGoad, Obj: kop.RefNone}}}}}, false},
 		{kop.CardDef{Name: "Half Lonely", Types: kop.TCreature, Power: 2, Toughness: 2, AloneAtk: true}, true},
 		{kop.CardDef{Name: "Half Watcher", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbTriggered,
 			Trig: kop.Trigger{Event: kop.TrigTaps}}}}, true},

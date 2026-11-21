@@ -57,7 +57,7 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 		return
 	}
 	r := tableReach(t)
-	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps ||
+	g.blkTaxStall = r.landGrantLive(t, g) || g.manaTaps ||
 		g.anyMinBlk || g.anyAloneBlk || g.anySuspect ||
 		// the arena masks, not anyLure/anyMustBlock: those are set before
 		// prepArena fills g.ix, so they hold on every table

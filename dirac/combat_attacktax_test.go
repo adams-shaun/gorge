@@ -72,6 +72,8 @@ func TestAttackTaxRefusesUnmodelledPartners(t *testing.T) {
 			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack, B: 1}}}}, true},
 		{kop.CardDef{Name: "Half Goader", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
 			Prog: []kop.Instr{{Op: kop.OpGoad, Obj: kop.RefNone}}}}}, false},
+		{kop.CardDef{Name: "Half Millikin", Types: kop.TCreature, Power: 0, Toughness: 1, Abilities: []kop.Ability{{Kind: kop.AbActivated, Cost: tap,
+			Prog: []kop.Instr{{Op: kop.OpAddMana}}}}}, false},
 		{kop.CardDef{Name: "Half Lonely", Types: kop.TCreature, Power: 2, Toughness: 2, AloneAtk: true}, true},
 		{kop.CardDef{Name: "Half Watcher", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbTriggered,
 			Trig: kop.Trigger{Event: kop.TrigTaps}}}}, true},
