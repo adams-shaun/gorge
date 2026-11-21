@@ -343,6 +343,7 @@ Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
 Pact of Negation
+Palace Guard
 Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
@@ -555,6 +556,7 @@ White Orchid Phantom
 Wild Wurm
 Wildsize
 Will of the All-Hunter
+Willbender
 Willow Geist
 Wirewood Channeler
 Woodland Chasm
