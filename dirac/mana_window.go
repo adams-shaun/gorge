@@ -545,6 +545,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if census && s.ctrCensusOffer(k, p, o) {
 			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
+		if _, ok := s.windowSacTapOwed(k, p, o, useful); ok {
+			return o, true // the source's owed later sac-tap ability: the window's answer takes it (mana_sactapwin.go)
+		}
 		if s.windowSourceUsable(k, o, p) {
 			if !takeDeferred && s.planDeferred(k, p, o) && !s.blgIntrinsicUnit(k, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go); a granted basic land type's intrinsic unit is the exception (blgIntrinsicUnit)
