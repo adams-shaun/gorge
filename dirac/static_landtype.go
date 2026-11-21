@@ -142,7 +142,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
 					}
 				}
-				if v.painCol == 0 || !DebugLandGrantPainView {
+				if !blgDropsGrant(&v) {
 					v.manaCol |= kop.ColorMask(m)
 				}
 			} else {
@@ -210,13 +210,16 @@ func blgExactPain(pc *pcard) kop.ColorMask {
 // counts per payment (a restricted one, Jasmine Dragon Tea Shop) is not part of
 // the view: the gap and restricted-source models read it from the card.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {
-	if pc.manaChosen || pc.manaDyn || pc.ctrMana || pc.painCol != 0 && !blgPainLand(pc) {
+	if pc.manaChosen && !blgThriving(c, pc) || pc.manaDyn || pc.ctrMana || pc.painCol != 0 && !blgPainLand(pc) {
 		return false
 	}
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 			continue
+		}
+		if pc.manaChosen && j == int(pc.manaAb) {
+			continue // a Thriving land's "Combo W Chosen": blgThriving read it whole
 		}
 		if pc.painCol != 0 && j != int(pc.manaAb) {
 			continue // a painland's painful second ability: the pain alternative (mana_pain.go), no view colour

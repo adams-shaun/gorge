@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // DebugLandGrantIdentOff is the mutation: a commander-identity land ignores the
 // granted basic land type's intrinsic ability (Command Tower under Stormtide
@@ -36,4 +40,37 @@ func (s *State) identGrantView(k *prep, sl Slot, c CardID, vi int16) *pcard {
 		return nil
 	}
 	return &g.varPC[int(vi)+int(m|gm)]
+}
+
+// DebugLandGrantThrivingOff is the mutation: a Thriving land under a granted
+// basic land type is refused again.
+var DebugLandGrantThrivingOff bool
+
+// blgThriving: pc is a land whose only mana ability is a plain {T} "Combo W
+// Chosen" one: one fixed colour or the permanent's chosen colour (Thriving
+// Heath, Citadel Gate). Under a granted basic land type gorge lists the
+// intrinsic ability beside it (the raw Produced$ is no single colour, so it is
+// never deduplicated), and the planner ranks the source over the union of the
+// fixed, the chosen and the granted colour, as it does a dual's.
+func blgThriving(c *kop.CardDef, pc *pcard) bool {
+	if DebugLandGrantThrivingOff || c.Types&kop.TLand == 0 || pc.manaAb < 0 || !pc.manaTap || pc.manaN > 1 || bits.OnesCount8(uint8(pc.manaCol)&0x1f) != 1 {
+		return false
+	}
+	n := 0
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			n++
+		}
+	}
+	a := &c.Abilities[pc.manaAb]
+	return n == 1 && a.AFlags&^kop.AfManaChoice == kop.AfManaChosen && a.ManaRestrict == 0 && a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && len(a.Prog) == 0
+}
+
+// DebugLandGrantThrivingView is the mutation: a Thriving land's granted view
+// keeps its printed colours alone, the intrinsic colour dropped.
+var DebugLandGrantThrivingView bool
+
+// blgDropsGrant: the mutation switches that leave a granted colour off view v.
+func blgDropsGrant(v *pcard) bool {
+	return v.painCol != 0 && DebugLandGrantPainView || v.manaChosen && DebugLandGrantThrivingView
 }
