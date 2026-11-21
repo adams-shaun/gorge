@@ -495,6 +495,7 @@ func (s *State) clearCombat() {
 		}
 	}
 	s.xblkClear()
+	s.bandClear()    // CR 702.22e: a band lasts to the end of combat (combat_band.go)
 	s.mbaEndCombat() // combat_mustblockatk.go
 	s.nAttackers = 0
 	s.fsStep = false
