@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -25,6 +26,9 @@ import (
 //     hand pick), Persistent Marshstalker;
 //   - targeted Mandatory$ (a no-op): Disruptor Wanderglyph, Koya, Death from
 //     Above (an "up to one" target);
+//   - a declined "up to one" target (CR 115.10; the move does nothing): the
+//     eager policy never declines on its own, so every fourth seed declines
+//     Koya's and The Neutrinos' ask;
 //   - DifferentNames$ on a library search: Fblthp, Knows the Way;
 //   - ThisDefinedAndTgts$ Self: Floodpits Drowner (shuffle into libraries),
 //     Sandman, Shifting Scoundrel (return from the graveyard).
@@ -114,6 +118,18 @@ func kczPolicy(seed uint64, played map[string]int, gs **GorgeSide, gm *kczGame) 
 		src := ""
 		if ob := c.G.E.G.Obj(d.Source); ob != nil && ob.Face() != nil {
 			src = ob.Face().Name
+		}
+		// The eager policy never declines an "up to one" target ask on its
+		// own, so every fourth seed declines Koya's and The Neutrinos' ask:
+		// CR 115.10 makes zero targets legal, and the declined move must
+		// move nothing in both engines.
+		if seed%4 == 0 && d.Kind == decision.KTarget {
+			for _, n := range []string{"Koya, Death from Above", "The Neutrinos"} {
+				if strings.Contains(d.Prompt, "Choose a target for "+n) {
+					gm.add("decline:" + n)
+					return Pack(ActDone, RefNone, RefNone, 0)
+				}
+			}
 		}
 		opt, ok := c.G.GorgeOption(a)
 		switch d.ResumeKind {
@@ -314,6 +330,7 @@ func TestCzparamsLockstep(t *testing.T) {
 		"mill_optional:yes", "mill_optional:no", "hidden_pick_confirm:yes", "hidden_pick_confirm:no", "attacks",
 		"fblthp2", "floodpits2", "sandman2", "mandatory:Disruptor Wanderglyph",
 		"mandatory:Koya, Death from Above", "attacks:The Neutrinos",
+		"decline:Koya, Death from Above", "decline:The Neutrinos",
 	} {
 		if branch[want] < kczMin {
 			t.Errorf("branch %s in %d games, want at least %d", want, branch[want], kczMin)
