@@ -1343,8 +1343,13 @@ func (s *State) loopBackGen(k *prep) {
 }
 
 // recordExileLink records an exile-until-leaves link (src's exile of o), or
-// counts a StallLinks capacity stall when every link slot is taken.
+// counts a StallLinks capacity stall when every link slot is taken. A token is
+// never linked: it ceases when it leaves the battlefield instead of returning
+// (CR 111.7), as gorge's recordExileReturnFor, which skips o.IsToken, does.
 func (s *State) recordExileLink(src, o Obj) {
+	if s.objs[o].of&ofToken != 0 {
+		return
+	}
 	if s.g.nlinks < uint8(len(s.g.links)) {
 		l := &s.g.links[s.g.nlinks]
 		l.src, l.sver, l.obj = src, s.objs[src].ver, o
