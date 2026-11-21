@@ -1192,6 +1192,10 @@ type filtStep struct {
 	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
 	// (mana_sacsource.go)
 	sacOnly bool
+	// lifeFund: a funding source whose mana ability costs only life
+	// (Treasonous Ogre): its life is paid and its mana floats, repeatably
+	// (mana_lifefund.go)
+	lifeFund bool
 	// wide: a funding source's answer is a gate-on pair's larger ability (the
 	// second of Whisperer of the Wilds' two: gorge's ability ask lists both
 	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
@@ -1287,6 +1291,8 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
+	// lifeSteps: the life-only funding steps on this path (mana_lifefund.go)
+	lifeSteps int
 	// useful is the play's printed mana cost (filtUsefulCost), the fixed
 	// pips the fee-stall clamp (filtFeeColStalls) reads; usefulOK false (a
 	// play whose printed cost the search does not read: a kicked, bargained
@@ -1741,6 +1747,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	pl := &s.pl[SeatIx(p)]
 	if st.sacOnly {
 		s.fundSacOnly(k, p, st.sl) // (mana_filtfund.go)
+		return
+	}
+	if st.lifeFund {
+		s.fundLifeOnly(k, p, st.sl) // (mana_lifefund.go)
 		return
 	}
 	if st.gap && st.ans > 0 {
@@ -2200,7 +2210,10 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}
-	if !(gapUsed || fs.hands > 0) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+	if !(gapUsed || fs.hands > 0) {
+		return fs.lifeFundedPays(k, t) // (a life-only source's floated mana: mana_lifefund.go)
+	}
+	if !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
 		return false
 	}
 	// A filter gap whose own tap queues a Taps trigger is the window's
@@ -2405,6 +2418,9 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if !free && rm == 0 {
 				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
 					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
+				}
+				if t.lifeFundAt(k, p, sl) && fs.lifeFund(k, t, sl, funded, gapUsed) {
+					return true // a life-only source funds as often as the life allows (mana_lifefund.go)
 				}
 				continue
 			}
