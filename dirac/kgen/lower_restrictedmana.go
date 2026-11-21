@@ -157,3 +157,18 @@ func restrictedSacXUnit(c lCost, m *lMana) bool {
 		!m.Choice && !m.Each && m.Special == "" && m.RestrictAb == nil && !m.NonSpell && !m.Deferred &&
 		!m.NoCounter && m.Split == nil && m.HasteValid == nil
 }
+
+// restrictedTapXUnit reports whether a restricted "Tap an untapped <spec> you
+// control" ability (no {T} of its own) producing m is one the kernel prices:
+// one or two mana of one fixed colour or {C}, no choice, each-colour
+// production, rider or flag; the spell and the activated-ability restriction
+// are both allowed (kop.RestrictedTapXOneShape, Grand Architect).
+func restrictedTapXUnit(c lCost, m *lMana) bool {
+	if c.Tap || c.TapN != 1 || c.TapPowN != 0 {
+		return false
+	}
+	c.TapN, c.TapF, c.Tap = 0, nil, true
+	return plainTapCost(c) && len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors) &&
+		m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= 2 && !m.Choice && !m.Each &&
+		m.Special == "" && !m.NonSpell && !m.Deferred && !m.NoCounter && m.Split == nil && m.HasteValid == nil
+}

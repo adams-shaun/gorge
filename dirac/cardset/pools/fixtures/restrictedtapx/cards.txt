@@ -1,0 +1,19 @@
+# a spend-restricted tap-another mana source on its own: Grand Architect's "Tap an untapped blue creature you control:
+# Add {C}{C}. Spend this mana only to cast artifact spells or activate abilities of artifacts" beside blue creatures to
+# tap, artifact spells, an artifact's mana-costed abilities and non-artifact spells (dirac/oracle/restrictedtapx_lockstep_test.go)
+Island
+Mountain
+Grand Architect
+Merfolk Looter
+Wind Drake
+Cloud Elemental
+Juggernaut
+Millstone
+Wurmcoil Engine
+Bonesplitter
+Lightning Bolt
+Shock
+Hill Giant
+Kamahl, Pit Fighter
+Urza, Lord High Artificer
+Mishra's Workshop
