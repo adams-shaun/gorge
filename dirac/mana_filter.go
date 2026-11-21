@@ -2353,7 +2353,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				continue
 			}
 			if gap && fs.other.has(sl) {
-				if fs.otherGap(k, t, sl, funded) {
+				if fs.otherGapTwin(k, t, sl, funded, &tried, &ntried) {
 					return true
 				}
 				continue
