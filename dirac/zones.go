@@ -501,6 +501,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		// writes and a back face's transformed entry keep theirs): Ghost
 		// Council's second activation after a return finds nothing remembered
 		s.mObjClr(k, mechRem, o)
+		s.mObjClr(k, mechRemFaceDown, o) // a new object was never sacrificed face down (value_remfacedown.go)
 	}
 	if k.anyRoom {
 		s.roomEnter(k, o, from) // a Room's doors as it enters (face_rooms.go)

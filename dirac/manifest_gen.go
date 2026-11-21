@@ -768,10 +768,20 @@ func init() {
 	mechName[mechHorsemanshipPost] = "horsemanshipPost"
 }
 
+// mech (dirac/manifest/mech/mechRemFaceDown)
+//
+// object mask: permanents a RememberSacrificed$ Sacrifice took while they were face down, whose mana value read through Remembered$CardManaCost stays 0 (CR 708.2, 608.2h; sacRemember)
+const mechRemFaceDown mech = 61
+
+func init() {
+	mechWidth[mechRemFaceDown] = wObj
+	mechName[mechRemFaceDown] = "remFaceDown"
+}
+
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 61
+const mechSkulk mech = 62
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -781,7 +791,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 62
+const mechSkulkPost mech = 63
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -789,7 +799,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 63
+const numMech mech = 64
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
