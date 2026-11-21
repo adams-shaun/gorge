@@ -39,7 +39,8 @@ func (e *Engine) windowSourceYields(p state.PlayerID, id state.ObjID) bool {
 }
 
 // manaAbilityYieldsNothing is windowSourceYields' per-ability verdict: true
-// when the ability produces a colour of an empty commander identity, or is the
+// when the ability produces a colour of an empty commander identity or the
+// circled colours (which add no mana), or is the
 // face's own and its Each$ multiplier or its non-literal Amount$ resolves
 // (strictly) to zero or less. An announced source-anchored SubCounter<X/Kind>
 // cost is the exception: the ability's produced mana IS those counters, so a
@@ -48,6 +49,9 @@ func (e *Engine) windowSourceYields(p state.PlayerID, id state.ObjID) bool {
 func (e *Engine) manaAbilityYieldsNothing(p state.PlayerID, id state.ObjID, f *cards.Face, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
 	if pay.IsColourIdentityProduced(mp.Produced) && len(pay.CommanderIdentityColours(asPayer(e), p)) == 0 {
+		return true
+	}
+	if pay.IsCircledColourProduced(mp.Produced) {
 		return true
 	}
 	if !slices.Contains(f.Abilities, ma) {

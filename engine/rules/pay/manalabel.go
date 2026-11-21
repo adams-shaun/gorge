@@ -2,6 +2,7 @@ package pay
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -572,6 +573,17 @@ func ManaColourPrompt(ma *cards.SA) string {
 func IsColourIdentityProduced(produced string) bool {
 	return produced == "ColorIdentity" || produced == "Combo ColorIdentity"
 }
+
+// IsCircledColourProduced reports whether a Produced$ value is the
+// deck-construction "circled colors" word (Cryptic Spires): "ColorID" or
+// "Combo ColorID". cards.ProducedCounts claims no mana for it and the executor
+// adds none, so such a source taps for nothing and no payment window offers it.
+func IsCircledColourProduced(produced string) bool {
+	return slices.Contains(circledColourWords, produced)
+}
+
+// circledColourWords is the Produced$ spellings IsCircledColourProduced accepts.
+var circledColourWords = []string{"ColorID", "Combo ColorID"}
 
 // ChainGatesOnActivationCount reports whether sa's SubAbility$ chain carries
 // a ConditionActivationLimit$ gate ("if this ability has been activated four
