@@ -433,6 +433,7 @@ Vapor Snare
 Vedalken Entrancer
 Vengeance
 Venomous Hierophant
+Ventifact Bottle
 Verdigris
 Vermin Gorger
 Vessel of Paramnesia
