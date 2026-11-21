@@ -21,11 +21,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (StallCopyAllAsk, as the copy ops always do).
 //
 // CR 702.116a's walker arm ("or a planeswalker they control"; gorge offers
-// the asked player's face-up planeswalkers beside the player, the CR 508.4
-// arm Adeline's token ask poses) is unmodelled: the kernel poses only the
-// player-and-decline pair, so it stops the game when the asked player
-// controls a planeswalker (StallMyriadPW, a declared limit, like Adeline's
-// StallDefenderPW).
+// the asked player's face-up planeswalkers beside the player, in battlefield
+// order, the CR 508.4 arm Adeline's token ask poses): myriadOptions poses the
+// same options, a walker answer rides the action's Source (a player's yes
+// rides the Myriad source, as in gorge, where the player option's Obj is the
+// source) and the copy enters attacking that walker (the answer rides
+// g.tokDef across the copy walk, as an Attacking$ True entry's pre-asked
+// defender does).
 //
 // The exile is the token's own delayed triggered ability (CR 702.116a /
 // 511.2; gorge registers the AtEOT$ ExileCombat shape per mint,
@@ -42,9 +44,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Tests only.
 var DebugMyriadNoOpp bool
 
-// StallMyriadPW is the unmodelled stop: the asked-about opponent controls a
-// planeswalker, so gorge's Myriad ask offers that walker beside the player
-// and the kernel poses only the player-and-decline pair (kw_myriad.go).
+// DebugMyriadNoWalker is the mutation switch: the walker arm is not offered
+// (the player-and-decline pair only). Tests only.
+var DebugMyriadNoWalker bool
+
+// StallMyriadPW is no longer raised: the walker arm is modelled
+// (myriadOptions). The number keeps its name.
 const StallMyriadPW = 179
 
 func init() { stallNames[StallMyriadPW] = "myriadpw" }
@@ -54,18 +59,6 @@ func init() { stallNames[StallMyriadPW] = "myriadpw" }
 //kmanifest:ext ExtMyriad
 func (s *State) myriadExt(k *prep, in *kop.Instr) (ok, done bool) {
 	return !s.myriadAsk(k, noSeat), true
-}
-
-// myriadPWOf reports whether the asked-about seat q controls a face-up
-// planeswalker (gorge myriadAskOptions's walker candidates, CR 702.116a).
-func (s *State) myriadPWOf(k *prep, q uint8) bool {
-	for m := s.ctrlM[q].and(s.occ); m.any(); m = m.rest() {
-		sl := m.first()
-		if !s.faceDown(k, sl) && s.typesAt(k, sl)&kop.TPlaneswalker != 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // myriadAsk asks about the next opponent after seat after (noSeat: the
@@ -86,12 +79,6 @@ func (s *State) myriadAsk(k *prep, after uint8) bool {
 	}
 	for ; i < q.n; i++ {
 		if q.s[i] != def {
-			// CR 702.116a's walker arm is unmodelled (StallMyriadPW): gorge
-			// offers the asked player's planeswalkers beside the player.
-			if s.myriadPWOf(k, q.s[i]) {
-				s.stall(StallMyriadPW)
-				return false
-			}
 			s.res.ask, s.res.askP, s.res.left = raGenMyriad, e.ctrl, q.s[i]
 			return true
 		}
@@ -99,12 +86,42 @@ func (s *State) myriadAsk(k *prep, after uint8) bool {
 	return false
 }
 
-// myriadOptions poses gorge's options over the source: yes, then no.
-func (s *State) myriadOptions(d *Decision) {
+// myriadOptions poses gorge's options over the asked opponent res.left: yes
+// (the player, over the source), yes for each face-up planeswalker they
+// control (battlefield order, over the walker), then no (myriadAskOptions).
+func (s *State) myriadOptions(k *prep, d *Decision) {
 	d.Sub = ChGenMyriad
 	src := TCode(s.res.e.obj)
 	d.add(MakeAction(AkChoose, src, 0, 1))
+	var buf [MaxOptions]TCode
+	for i, n := 0, s.myriadWalkers(k, s.res.left, &buf); i < n; i++ {
+		d.add(MakeAction(AkChoose, buf[i], 0, 1))
+	}
 	d.add(MakeAction(AkChoose, src, 0, 0))
+}
+
+// myriadWalkers lists seat q's face-up planeswalkers in battlefield order
+// (gorge myriadAskOptions's walker candidates, CR 702.116a).
+func (s *State) myriadWalkers(k *prep, q uint8, buf *[MaxOptions]TCode) int {
+	if DebugMyriadNoWalker {
+		return 0
+	}
+	var m slotMask
+	for c := s.ctrlM[q].and(s.occ); c.any(); c = c.rest() {
+		if sl := c.first(); !s.faceDown(k, sl) && s.typesAt(k, sl)&kop.TPlaneswalker != 0 {
+			m = m.with(sl)
+		}
+	}
+	var order [MaxPerm]Slot
+	c := s.battlefieldOrder(q, m, order[:], 0)
+	n := 0
+	for _, sl := range order[:c] {
+		if n < MaxOptions-2 {
+			buf[n] = TCode(s.perms[sl].obj)
+			n++
+		}
+	}
+	return n
 }
 
 // myriadAnswer makes the copy on a yes, then asks about the next opponent.
@@ -113,7 +130,11 @@ func (s *State) myriadAnswer(k *prep, a Action) {
 	opp := r.left
 	r.ask = raNone
 	if a.Mode() == 1 {
+		if src := TCode(r.e.obj); a.Source() != src { // the walker arm: the copy attacks it
+			s.g.tokDef, s.g.tokDefSet = a.Source(), true
+		}
 		s.myriadCopy(k, &s.prog(k)[r.pc], opp)
+		s.g.tokDefSet = false
 		if s.over {
 			return
 		}
@@ -143,7 +164,11 @@ func (s *State) myriadCopy(k *prep, in *kop.Instr, opp uint8) {
 // tapped and attacking the opponent res.left, carrying its end-of-combat
 // exile promise (CR 702.116a / 511.2).
 func (s *State) myrCopyEnter(k *prep, in *kop.Instr, sl Slot, t Obj) {
-	s.setEnterAttacker(k, sl, PlayerCode(s.res.left))
+	atk := PlayerCode(s.res.left)
+	if s.g.tokDefSet { // the walker arm's answer (myriadAnswer)
+		atk = s.g.tokDef
+	}
+	s.setEnterAttacker(k, sl, atk)
 	// The AtEOT$ ExileCombat promise (gorge scheduleAtEOTRider __kwWarpExile
 	// at this turn's end-of-combat step): the record is self-sourced (no
 	// creator; gorge registers the token itself, no |CR=), incarnation-
