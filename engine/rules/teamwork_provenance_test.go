@@ -9,8 +9,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// A spell copy was not cast, but (like Conspire) carries the paid additional
-// cost's provenance. Both readers must see the same value as the inherited bit.
+// A spell copy is never cast (CR 707.10), and "cast using teamwork" is whether
+// the caster declared the intention as they cast it (CR 702.194b), so a copy of
+// a teamworked spell is NOT teamworked. This reverses the earlier ruling that
+// copies inherit the paid provenance; dirac's copySpell already clears it.
+// Both readers (the Count$Teamwork head and Card.Self+Teamwork) must agree.
 func TestTeamworkPaidStackCopyReadsCostProvenance(t *testing.T) {
 	e, _, reg := conspireEngine(t, "Go Nuts!", "Grizzly Bears")
 	a := seedBattlefield(t, e, reg, "Goblin Piker")
@@ -29,13 +32,19 @@ func TestTeamworkPaidStackCopyReadsCostProvenance(t *testing.T) {
 		t.Fatalf("precondition: stack has no copy: %v", e.G.Stack)
 	}
 	copyID := e.G.Stack[1]
-	if o := e.G.Obj(copyID); o == nil || !o.IsCopy || o.Zone != state.ZStack || o.CastFlags&state.FlagTeamworkPaid == 0 {
-		t.Fatalf("precondition: copied paid-cost bit missing: %+v", o)
+	if o := e.G.Obj(copyID); o == nil || !o.IsCopy || o.Zone != state.ZStack {
+		t.Fatalf("precondition: copy not on the stack: %+v", o)
 	}
-	if got := effects.EvalCount(e, &effects.Ctx{Source: copyID}, "Count$Teamwork.2.1"); got != 2 {
-		t.Fatalf("copy's Count$Teamwork = %d, want paid branch 2 (unpaid 1)", got)
+	if o := e.G.Obj(copyID); o.TeamworkPaid || o.CastFlags&state.FlagTeamworkPaid != 0 {
+		t.Fatalf("copy inherited the paid cost (CR 707.10, 702.194b): %+v", o)
 	}
-	teamworkConditionResult(t, e, copyID, true)
+	if got := effects.EvalCount(e, &effects.Ctx{Source: copyID}, "Count$Teamwork.2.1"); got != 1 {
+		t.Fatalf("copy's Count$Teamwork = %d, want unpaid branch 1 (paid 2)", got)
+	}
+	teamworkConditionResult(t, e, copyID, false)
+	if o := e.G.Obj(spell); o == nil || !o.TeamworkPaid {
+		t.Fatalf("original lost its paid fact when copied: %+v", o)
+	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZStack, To: state.ZGraveyard})
 	if o := e.G.Obj(spell); o == nil || o.Zone != state.ZGraveyard || o.TeamworkPaid {
 		t.Fatalf("spell leaving stack for non-battlefield zone retained paid fact: %+v", o)
