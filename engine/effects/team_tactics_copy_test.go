@@ -8,8 +8,7 @@ import (
 )
 
 const teamTacticsText = "Name:Team Tactics\nManaCost:1 R\nTypes:Instant\nK:Teamwork:1\n" +
-	"A:SP$ Pump | ValidTgts$ Creature | KW$ Double Strike | SubAbility$ DBPump\n" +
-	"SVar:DBPump:DB$ Pump | Defined$ Targeted | KW$ Trample | ConditionZone$ Stack | ConditionPresent$ Card.Self+Teamwork\n" +
+	"A:SP$ Pump | ValidTgts$ Creature | KW$ Double Strike\n" +
 	"Oracle:x\n"
 
 func teamTacticsOnStack(t *testing.T, h *fakeHost, paid bool) *state.Object {
