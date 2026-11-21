@@ -1599,7 +1599,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 // that answer, not the plan; executing the plan there would make dirac pay
 // where the leader sacrificed and diverge (TestMBCUnlessEachManaFeePayAnswer).
 func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) (bool, uint8) {
-	if k.gen == nil || !k.gen.anyFiltFirst || cost == nil {
+	if k.gen == nil || cost == nil {
 		return false, 0
 	}
 	var fs filtSearch
