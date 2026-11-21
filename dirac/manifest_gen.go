@@ -809,6 +809,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
+	case kop.ExtMeld:
+		return s.meldExt(k, in) // face_meld.go
 	case kop.ExtMustBlock:
 		return s.mustBlockAtkExt(k, in) // combat_mustblockatk.go
 	case kop.ExtMyriad:

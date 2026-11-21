@@ -1257,7 +1257,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			s.nextStage(k)
 			continue
 		case bsMana:
-			if s.manaStep(k) {
+			if s.manaStage(k) {
 				return false
 			}
 			if s.winPaused() {
