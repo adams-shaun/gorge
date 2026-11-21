@@ -90,9 +90,10 @@ func (s *State) sbaAttachedCreature(k *prep, sl Slot, t kop.TypeMask) bool {
 		// illegal (CR 704.5p arm 2, CR 301.5c).
 	} else if k.gainsOfAttach && s.grantedEquipKeyword(k, sl) {
 		return false // gorge's grantedAttachKeyword carve-out (grantedEquipKeyword)
-	} else {
-		return false
 	}
+	// Anything else reaching here (a noncreature permanent that is no
+	// attachment type and holds no live Equip grant) is gorge's "non-attachment
+	// permanent becomes unattached" arm, so it detaches below.
 	p := &s.perms[sl]
 	h := p.attached
 	if s.occ.has(h) {
