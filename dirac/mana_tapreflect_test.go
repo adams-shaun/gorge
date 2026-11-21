@@ -35,7 +35,7 @@ func tapReflectScen(t *testing.T, birds func(a *kop.Ability)) (*scen, Slot) {
 // any-colour source (Mana Flare over Birds of Paradise) is one more mana of the
 // pick: the unit makes manaN+1 of the colour it picks, with no stall; an
 // all-at-once source of several colours (a bounce land's W and U together)
-// prices the pick of its produced types (srcEachPick); floating it asks the colour, which stalls.
+// prices the pick of its produced types (srcEachPick); floating it floats the pick unasked, which stalls.
 func TestTapReflectMultiColourSourcePricesThePick(t *testing.T) {
 	sc, sl := tapReflectScen(t, nil)
 	pc := sc.s.manaPCGen(sc.k, sl)
