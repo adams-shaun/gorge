@@ -492,6 +492,10 @@ var paymentPlanDestroySelfRefs = []string{"TriggeredCardLKICopy", "TriggeredCard
 // the DB$/SP$ head into SA.API.
 const paymentPlanAPIKey = "API"
 
+// paymentPlanPoisonAPI is the Poison effect's API name. It has no APICode
+// because the APICode enum covers only the APIs dirac's lowering names.
+const paymentPlanPoisonAPI = "Poison"
+
 // paymentPlanDestroySelfBodyKey reports whether key is part of the closed
 // destroy-self body: the dispatch key and the two descriptive captions. The
 // vocabulary constants keep the check in the ParamKey spelling rather than a
@@ -504,6 +508,73 @@ func paymentPlanDestroySelfBodyKey(key string) bool {
 	return false
 }
 
+// paymentPlanPlayerRefOK reports whether ref names a player the payment
+// cannot move: the trigger's controller (You), its controller's opponent(s)
+// (Opponent/EachOpponent) or the tapped permanent's controller
+// (TriggeredCardController). Any other referent — a card selector, another
+// player-naming word — is not accepted.
+func paymentPlanPlayerRefOK(ref params.Ref) bool {
+	switch {
+	case ref.Kind == params.RefYou:
+		return true
+	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
+		return true
+	}
+	return false
+}
+
+// paymentPlanPoisonBodyKey reports whether key is part of the closed poison
+// body: the dispatch key, the referent, the counter amount (unread: the
+// trigger fires after the payment whatever it counts) and the two descriptive
+// captions.
+func paymentPlanPoisonBodyKey(key string) bool {
+	switch key {
+	case paymentPlanAPIKey, cards.PKDefined.String(), cards.PKNum.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		return true
+	}
+	return false
+}
+
+// PaymentPlanTapPoisonTrigger is the poison trigger row: a `Mode$ Taps`
+// trigger on any ValidCard$ whose effect is exactly `DB$ Poison |
+// Defined$ <player>` (Relic Putrescence's "whenever enchanted artifact
+// becomes tapped, its controller gets a poison counter"). Like the
+// destroy-self row the trigger resolves after the payment that caused it (CR
+// 405.6c/603.2) and its only effect is a poison counter on a player the
+// payment cannot move, so it touches no payment resource and the tapped
+// source stays an ordinary unit; the trigger fires on its own at the tap, on
+// both engines. The body's Num$ is not read: the amount the effect applies
+// changes nothing about the payment that triggered it. A trigger whose shape
+// the planner cannot vet (another referent, a compound one, a sub-chain, an
+// extra body key) is not known and its source stays deferred. f owns the
+// trigger's Execute$ table.
+func PaymentPlanTapPoisonTrigger(f *cards.Face, t cards.Trigger) bool {
+	if t.ModeKind() != cards.TriggerTaps || !paymentPlanTriggerZoneOK(t) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
+		default:
+			return false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	if body == nil || body.API != paymentPlanPoisonAPI || !paymentPlanSubFree(body) {
+		return false
+	}
+	ref := params.DefinedRefOf(body)
+	if ref.Flags&params.RefCompound != 0 || !paymentPlanPlayerRefOK(ref) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		if !paymentPlanPoisonBodyKey(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
 // referent: the same literal-amount DealDamage body whose Defined$ names a
 // player the payment cannot move (the payer, an opponent, the tapped
@@ -512,10 +583,7 @@ func paymentPlanPlayerDamageBody(rider *cards.SA) (uint32, bool) {
 	if rider == nil || rider.API != "DealDamage" || !paymentPlanSubFree(rider) {
 		return 0, false
 	}
-	switch ref := params.DefinedRefOf(rider); {
-	case ref.Kind == params.RefYou:
-	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
-	default:
+	if !paymentPlanPlayerRefOK(params.DefinedRefOf(rider)) {
 		return 0, false
 	}
 	n, ok := paymentPlanBodyNumDmg(rider)
@@ -1084,4 +1152,11 @@ func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
 		return false
 	}
 	return walk(0, n, pool)
+}
+
+// PaymentPlanTapConsequenceTrigger reports whether t is one of the Taps
+// triggers that are post-payment consequences touching no payment resource:
+// the destroy-self row or the poison-counter row.
+func PaymentPlanTapConsequenceTrigger(f *cards.Face, t cards.Trigger) bool {
+	return PaymentPlanTapDestroySelfTrigger(f, t) || PaymentPlanTapPoisonTrigger(f, t)
 }
