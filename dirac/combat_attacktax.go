@@ -62,6 +62,10 @@ var DebugAtkTaxCountUnlisted bool
 // Angels) as a source of its production.
 var DebugAtkTaxCountRestricted bool
 
+// DebugAtkTaxLaterFirst (test only, TestFourSeatAtkTaxLaterLockstep): the walk
+// reads the last of a source's later alternatives instead of its first ability.
+var DebugAtkTaxLaterFirst bool
+
 // DebugAtkTaxEachOne (test only, TestFourSeatAtkTaxBounceLockstep): a bounce
 // land's tap adds one unit of its first colour, not every colour at once.
 var DebugAtkTaxEachOne bool
@@ -130,7 +134,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 			if atkTaxUnlisted(a) {
 				continue
 			}
-			if !atkTaxManaAb(a) && !atkTaxPaidAb(a) && !atkTaxPainPair(c, first, j) && !atkTaxReflSecond(c, first, a) {
+			if !atkTaxManaAb(a) && !atkTaxPaidAb(a) && !atkTaxPainPair(c, first, j) && !atkTaxLaterAlt(c, first, a) {
 				return true
 			}
 			if first < 0 {
@@ -277,8 +281,8 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 				return true
 			}
 		}
-		if n == 2 && atkTaxReflSecond(c, first, a) && atkTaxOnlyTwo(c, j) {
-			return true
+		if n >= 2 && atkTaxLaterAlt(c, first, a) {
+			continue
 		}
 		m := a.ManaColors & 0x3f
 		if a.AFlags != 0 || a.ManaN != 1 || bits.OnesCount8(uint8(m)) != 1 || m <= seen {
@@ -289,20 +293,26 @@ func atkTaxMultiMana(c *kop.CardDef, first int) bool {
 	return true
 }
 
-// atkTaxReflSecond reports whether a is a reflected one-mana ability (Plaza of
-// Heroes' "one mana of any color among legendary permanents you control")
-// beside card c's plain fixed first ability, one unit as well. gorge's unit
-// lists the first alternative first and the oracle taps it, so the reflected
-// one is never tapped, and its one unit adds nothing to the unit's maximum.
-func atkTaxReflSecond(c *kop.CardDef, first int, a *kop.Ability) bool {
+// atkTaxLaterAlt reports whether a, a later listed mana ability of card c
+// than its first (index first), is one gorge's window never taps and never
+// counts beside it: the first is a plain fixed {T} ability of one colour
+// (Spire of Industry's {C}, Plaza of Heroes' {C}) and a adds no more mana, a
+// choice, a reflected one, a life-paying one (the same unit's later
+// alternatives: gorge lists the first alternative first and the oracle taps
+// it, and a unit counts its largest alternative, attackSourceUnits). a may be
+// one only some boards make available (Tainted Field's {W} or {B} with a
+// Swamp, Spire's with an artifact): it is never tapped either way.
+func atkTaxLaterAlt(c *kop.CardDef, first int, a *kop.Ability) bool {
 	if first < 0 || !atkTaxManaAb(&c.Abilities[first]) {
 		return false
 	}
 	f := &c.Abilities[first]
-	return a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 && a.AFlags&kop.AfManaReflect != 0 && !a.ManaIdentity && !a.ManaGrave &&
-		a.ManaN == 1 && f.ManaN == 1 && f.AFlags == 0 && a.Cost == (kop.Cost{Flags: kop.CostTap}) && len(a.Prog) == 0 && a.ManaAmong != 0 &&
-		!a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 && a.ManaRider == 0 && a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) &&
-		!a.Exhaust && a.Once == 0 && !a.ManaEach && !a.ManaProduceType
+	const costs = kop.CostTap | kop.CostPayLife | kop.CostOncePerTurn
+	return f.ManaN >= 1 && f.AFlags == 0 && !f.ManaEach && bits.OnesCount8(uint8(f.ManaColors&0x3f)) == 1 &&
+		a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 && !a.ManaEach &&
+		a.ManaN >= 1 && a.ManaN <= f.ManaN && a.ManaColors&^0x3f == 0 && a.Cost.Flags&^costs == 0 && a.Cost.Mana == (kop.ManaCost{}) &&
+		len(a.Prog) <= 1 && !a.ManaIdentity && !a.ManaGrave && !a.ManaProduceType && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
+		a.ActZone == kop.ZoneNone && !a.Exhaust && a.Once == 0 && !a.Cost.DiscardHand
 }
 
 // atkTaxPainPair reports whether card c's two mana abilities, first and
@@ -446,6 +456,9 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	pc := s.manaPCGen(k, sl)
 	cd := &k.t.Cards[s.cardAt(sl)]
 	a := manaAbView(cd, pc)
+	if DebugAtkTaxLaterFirst && a != nil {
+		a = atkTaxLastLater(cd, a)
+	}
 	if a != nil && atkTaxPaidAb(a) {
 		return s.atkTaxPaid(k, sl, pc, a)
 	}
@@ -793,4 +806,20 @@ func (s *State) atkTaxAddMana(k *prep, p uint8, sl Slot, col, n int) (pend int) 
 	s.poolAdd(p, col, n)
 	s.artTag(k, p, sl, col)
 	return -1
+}
+
+// atkTaxLastLater is DebugAtkTaxLaterFirst's reading: the last later
+// alternative (atkTaxLaterAlt) of the card whose first listed ability is a.
+func atkTaxLastLater(cd *kop.CardDef, a *kop.Ability) *kop.Ability {
+	first := atkTaxFirstMana(cd)
+	if first < 0 || &cd.Abilities[first] != a {
+		return a
+	}
+	out := a
+	for j := first + 1; j < len(cd.Abilities); j++ {
+		if b := &cd.Abilities[j]; b.Kind == kop.AbMana && !atkTaxUnlisted(b) && atkTaxLaterAlt(cd, first, b) {
+			out = b
+		}
+	}
+	return out
 }

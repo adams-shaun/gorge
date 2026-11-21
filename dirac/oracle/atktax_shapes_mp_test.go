@@ -283,3 +283,25 @@ func TestFourSeatAtkTaxRestrictedLockstep(t *testing.T) {
 		[]string{"Giada, Font of Hope", "Secluded Courtyard", "Unclaimed Territory", "Plaza of Heroes", "Mishra's Workshop"}, []string{"Secluded Courtyard", "Plaza of Heroes"},
 		&dirac.DebugAtkTaxCountRestricted)
 }
+
+// Later alternatives a first plain {T} ability outranks (Spire of Industry:
+// "{T}: Add {C}" then "{T}, Pay 1 life: Add one mana of any color" with an
+// artifact; Tainted Field: "{T}: Add {C}" then "{T}: Add {W} or {B}" with a
+// Swamp): gorge's unit lists the first alternative first and the oracle taps
+// it, whether or not the later one is available, and the unit counts its
+// largest alternative (attackSourceUnits), one mana as the first. The mutation
+// (DebugAtkTaxLaterFirst) reads the last alternative of a multi-ability source.
+var atkTaxLaterDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3},
+	{Name: "Spire of Industry", Count: 3}, {Name: "Tainted Field", Count: 3}, {Name: "Mind Stone", Count: 2}, {Name: "Sol Ring", Count: 1},
+	{Name: "Plains", Count: 6}, {Name: "Swamp", Count: 5},
+}
+
+// TestFourSeatAtkTaxLaterLockstep: four-seat attack-tax games with
+// multi-ability sources whose later alternatives the first outranks play in
+// lockstep.
+func TestFourSeatAtkTaxLaterLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxLaterDeck, 24, 20, 0, []string{"Spire of Industry", "Tainted Field"},
+		[]string{"Spire of Industry", "Tainted Field"}, &dirac.DebugAtkTaxLaterFirst)
+}
