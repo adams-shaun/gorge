@@ -119,7 +119,7 @@ func (s *State) handFundDo(k *prep, p uint8, st filtStep) {
 // activation (gorge's scriptSearch.activations walks the raw priority's
 // activate options, which list the hand's guides after the battlefield).
 func (fs *filtSearch) handFund(k *prep, t *State, funded int, gapUsed bool) bool {
-	if DebugNoHandFund {
+	if DebugNoHandFund || fs.noHand {
 		return false
 	}
 	pl := &t.pl[SeatIx(fs.p)]
