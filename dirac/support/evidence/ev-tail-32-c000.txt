@@ -165,6 +165,7 @@ Goblin Bombardment
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
+Gravespawn Sovereign
 Griffin Protector
 Grip of Desolation
 Grollub

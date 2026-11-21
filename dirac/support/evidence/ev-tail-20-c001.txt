@@ -285,6 +285,7 @@ Revered Dead
 Rhox Charger
 Rhys the Redeemed
 Riddlemaster Sphinx
+Riptide Shapeshifter
 Rishadan Port
 Rite of Harmony
 Ritual of Hope
@@ -373,6 +374,7 @@ Time of Need
 Tishana, Voice of Thunder
 Titania's Chosen
 Titanic Ultimatum
+Train of Thought
 Tramway Station
 Transmogrifying Licid
 Traproot Kami
