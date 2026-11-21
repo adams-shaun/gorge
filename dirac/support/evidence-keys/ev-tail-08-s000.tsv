@@ -97,6 +97,7 @@ Foundry Inspector	2e4f1b595fdda667	28	0/0		0/0
 Fruit of Tizerus	df3e6e47de6b589b	11	0/0		3/4	cast/alt:escaped
 Funnel-Web Recluse	ab868df9ea9f3ec7	7	1/1		0/1	ix:resp
 Garruk's Horde	f773a437b74be249	5	0/0		0/0	
+Ghost Council of Orzhova	b18f97c19d6dc918	3	2/2		1/1	
 Ghost-Lit Nourisher	4c3f609734d00e05	13	2/2		1/1	
 Glarewielder	49a553498054e50c	8	1/1		2/3	ix:resp
 Glimpse the Future	00263b11d0f556c2	14	0/0		1/2	ix:resp
@@ -129,7 +130,6 @@ Juvenile Gloomwidow	22b233b127567bbe	10	0/0		0/0
 Kaervek's Torch	8d29af72dc5ca193	5	0/0		3/4	f0/s/x0
 Kjeldoran Frostbeast	1fddbe0556eecbd0	6	1/1		0/1	ix:resp
 Kolaghan Warmonger	66e1ab631c7a0699	6	1/1		0/1	ix:resp
-Kor Haven	ac73174c8be39f81	20	2/2		0/1	ix:resp
 Kumano, Master Yamabushi	28f3ed382864337c	3	1/1		1/1	
 Last Breath	9765cec350508ba5	8	0/0		1/2	ix:resp
 Lat-Nam Adept	521b24cae5c89268	15	1/1		1/1	
@@ -157,6 +157,7 @@ Mind Slash	eb204d68b0d40d0f	4	1/1		0/1	ix:resp
 Mogg Squad	3b824e8f0e56e159	18	0/0		0/0	
 Moldering Karok	0b156a26a6195eb1	3	0/0		0/0	
 Moonsilver Key	9360f48f98bf74a2	18	1/1		0/1	ix:resp
+Moroii	ddd06c7c208743d0	12	1/1		1/1	
 Mortal's Resolve	a502f08a38fba08f	13	0/0		1/2	ix:resp
 Mountain	9e71388353e907ed	227	1/1		0/1	ix:resp
 Necropede	13f68649b239334c	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -173,6 +174,7 @@ Pestilent Wolf	aac997a8b181ffa3	13	1/1		1/1
 Pierce Strider	4d990c43fac08df6	15	1/1		0/1	ix:resp
 Pitchburn Devils	819c6a2d46e1d815	7	1/1		1/1	
 Plains	82d63a695487e567	334	1/1		0/1	ix:resp
+Polar Kraken	d7ef7ba3a3361c6f	3	1/1		1/1	
 Portable Hole	e7d6c6a7fd668204	6	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	10	0/0		0/0	
 Precinct Captain	0ec8582f629e31fb	4	1/1		0/1	ix:resp
@@ -190,9 +192,11 @@ Relentless Rats	520193e0175f24ec	6	0/0		0/0
 Relic Bind	8dc60ea51a80ce85	13	1/1		1/2	ix:resp
 Righteous Charge	0ccd123a379c89b6	4	0/0		1/2	ix:resp
 Righteous Fury	61faeff5113a7744	10	0/0		1/2	ix:resp
+Rilsa Rael, Kingpin	9104eca065711ea3	16	2/2		1/1	
 Rob the Archives	0fb535cdc2e61b15	6	0/0		1/2	ix:resp
 Rustspore Ram	d26cb89a1ba142c4	16	1/1		0/1	ix:resp
 Rustwing Falcon	c3e1ca2297a1b401	9	0/0		0/0	
+Ruthless Deathfang	cbf39e455abe9c4c	9	1/1		0/1	ix:resp
 Screeching Bat	0f94336f8859d316	6	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y,ix:resp
 Scroll of Fate	5e4b50a04a101645	17	1/1		0/1	ix:resp
 Scroll of Isildur	6a03793e30e18f60	4	0/0		0/0	
@@ -205,9 +209,14 @@ Shrine of the Forsaken Gods	91a054b4cd2a6e59	36	2/2		0/1	ix:resp
 Six-Sided Die	2c51e57d10b3cd0d	4	0/0		1/2	ix:resp
 Skyblade's Boon	47703488bcb6a449	16	2/2		2/2	
 Slingshot Goblin	1c6aa1c248d448a0	6	1/1		0/1	ix:resp
+Smoldering Stagecoach	ea8db1941c6466ae	20	2/2		1/1	
 Snarespinner	8cfe4b15ddac0163	18	1/1		1/1	
+Snow-Covered Forest	a1a5f67cd8b33a1c	169	1/1		0/1	ix:resp
+Snow-Covered Island	3020b29d96f5b5b9	648	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	766	1/1		0/1	ix:resp
 Soul Channeling	c14ca46acdd56d4f	13	1/1		2/2	
 Sphere of Reason	185b34203c181d44	4	0/0		0/0	
+Sphinx of Clear Skies	ce238fcea8a72c90	3	2/2		1/1	
 Spontaneous Artist	1c1950618d558a4c	13	2/2		0/1	ix:resp
 Sprinting Warbrute	c98a2c7bccfff20b	14	0/0		2/2	
 Square Up	e0fadcf16f4cec76	15	0/0		2/2	
@@ -225,6 +234,7 @@ Swamp	342b413902f441c3	233	1/1		0/1	ix:resp
 Talisman of Unity	b7203c0f73ec1ed6	10	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	11	0/0		1/2	ix:resp
 Territorial Maro	a90fb76aef261162	8	0/0		0/0	
+Teysa, Envoy of Ghosts	0367f70d82e872c3	8	1/1		0/1	ix:resp
 That Which Was Taken	1de9b7aec73e800f	11	1/1		0/1	ix:resp
 The Forgotten Place	c4068a64e2b52cf2	31	2/2		0/1	ix:resp
 The Terror of Serpent's Pass	9c55563de7067f15	9	0/0		0/0	
@@ -258,3 +268,4 @@ Wu Scout	253801312b17bc92	21	1/1		0/1	ix:resp
 Yavimaya Enchantress	1cfc978b6e7e811b	7	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	13	1/1		0/1	ix:resp
 Zanarkand, Ancient Metropolis	02f6f9e02dd0220c	182	1/1		2/2	
+Zombie Musher	1f38d0b28ba186f8	264	1/1		1/1	
