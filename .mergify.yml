@@ -9,9 +9,13 @@ queue_rules:
       - -draft
       - check-success=fast
       - check-success=lint
-      # queue-precheck (.github/workflows/queue-precheck.yml) re-checks the queue's head against each new main and
-      # marks a PR that breaks it there failed; its absence (not yet checked) does not hold a PR back. 11-20 P0.
-      - -check-failure=queue-precheck
+      # queue-precheck (.github/workflows/queue-precheck.yml) checks the queue's head merged onto main. A PR batches
+      # only once it passed there (11-21: as a mere veto it finished after the batch it should have stopped, and
+      # #3157 turned batch #3308 red with no status at all). A hotfix/* branch, the way a broken precheck itself is
+      # fixed, is exempt.
+      - or:
+          - check-success=queue-precheck
+          - head~=^hotfix/
     merge_conditions:
       - check-success=ci-ok
     batch_size: 10
