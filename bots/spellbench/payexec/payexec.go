@@ -119,14 +119,16 @@ const (
 
 // Play names the option a lowering ends by selecting: a cast (Kind "cast":
 // the ordinary cast with Mode "", or a cast in Mode -- flashback, bestowed,
-// kicked ... -- never an alternative cost index) or a printed activated
-// ability (Kind "ability": the pile index Ability, no SVar/Keyword/gained
-// anchor, no alternative cost).
+// kicked ... -- never an alternative cost index) or an activated ability
+// (Kind "ability": the pile index Ability, no SVar/gained anchor, no
+// alternative cost; Keyword names the keyword line a keyword grant gave the
+// ability, empty for a printed one).
 type Play struct {
 	Kind    string
 	Obj     state.ObjID
 	Ability int
 	Mode    string
+	Keyword string
 }
 
 // Matches reports whether o is the play's own option.
@@ -135,7 +137,7 @@ func (p Play) Matches(o *decision.Option) bool {
 		return false
 	}
 	if p.Kind == "ability" {
-		return o.Ability == p.Ability && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0
+		return o.Ability == p.Ability && o.SVar == "" && o.Keyword == p.Keyword && o.GainedSource == 0
 	}
 	return true
 }
