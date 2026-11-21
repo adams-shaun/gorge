@@ -57,8 +57,10 @@ func init() {
 // value other than Remembered/Targeted, a ChosenPile$/UnchosenPile$ value
 // that is not an SVar name of the resolving face (the TurnFaceUp/ToHand/
 // ToGrave one-offs), and a Separator$/Chooser$ selector this resolver
-// cannot evaluate. AILogic$/RememberChosen$/KeepRemembered$ and the
-// description params are unread display/AI metadata.
+// cannot evaluate. AILogic$ and the description params are unread display/AI
+// metadata. Once both pile bodies ran the source's remembered list is cleared
+// (Forge's source.clearRemembered()) unless KeepRemembered$ or RememberChosen$
+// is present (twoPilesRunPiles).
 func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	if v := strings.TrimSpace(sa.ParamStr(cards.PKLeftRightPile)); v != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -283,6 +285,9 @@ func twoPilesRunPiles(h Host, c *Ctx, sa *cards.SA, chosenBody, unchosenBody str
 	} else {
 		twoPilesRunPile(h, c, chosenBody, pileA)
 		twoPilesRunPile(h, c, unchosenBody, pileB)
+	}
+	if !cards.TwoPilesKeepsRemembered(sa) && !twoPilesRemembersChosen(sa) {
+		clearSourceRemembered(h, c)
 	}
 }
 
