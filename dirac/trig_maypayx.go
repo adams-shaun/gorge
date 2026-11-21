@@ -142,6 +142,13 @@ func (s *State) trigXTapExtras(k *prep, p uint8) (n int) {
 			n += max(nc, np)
 			continue
 		}
+		if s.srcEachPick(k, sl, pc) > 0 {
+			// the pick floats unasked (nothing poses its colour ask yet);
+			// srcExtra reads the production alone, so the bound would be one
+			// short and the ask options smaller than gorge's
+			s.capFull(StallTapExtra)
+			continue
+		}
 		for _, v := range s.srcExtra(k, sl, pc) {
 			n += int(v)
 		}

@@ -35,7 +35,7 @@ func tapReflectScen(t *testing.T, birds func(a *kop.Ability)) (*scen, Slot) {
 // any-colour source (Mana Flare over Birds of Paradise) is one more mana of the
 // pick: the unit makes manaN+1 of the colour it picks, with no stall; an
 // all-at-once source of several colours (a bounce land's W and U together)
-// still stalls, as gorge defers it.
+// prices the pick of its produced types (srcEachPick); floating it floats the pick unasked, which stalls.
 func TestTapReflectMultiColourSourcePricesThePick(t *testing.T) {
 	sc, sl := tapReflectScen(t, nil)
 	pc := sc.s.manaPCGen(sc.k, sl)
@@ -79,8 +79,16 @@ func TestTapReflectMultiColourSourcePricesThePick(t *testing.T) {
 	if r := each.s.srcReflectPick(each.k, esl, epc); r != 0 {
 		t.Fatalf("all-at-once srcReflectPick = %d, want 0", r)
 	}
-	each.s.srcExtra(each.k, esl, epc)
+	if r := each.s.srcEachPick(each.k, esl, epc); r != 1 {
+		t.Fatalf("all-at-once srcEachPick = %d, want 1", r)
+	}
+	// the pick is one mana of one of the produced types (mana_each_reflectpick_test.go),
+	// priced beside the production's own rest: no fixed vector and no stall
+	if xv := each.s.srcExtra(each.k, esl, epc); xv != epc.manaXv || each.s.g.stalled == StallTapExtra {
+		t.Fatalf("all-at-once srcExtra = %v (own rest %v), stalled %d: the pick prices as a unit, not a stall", xv, epc.manaXv, each.s.g.stalled)
+	}
+	each.s.addExtra(each.k, 0, esl, epc)
 	if each.s.g.stalled != StallTapExtra {
-		t.Fatalf("an all-at-once source under a reflect carrier stalled %d, want StallTapExtra (%d)", each.s.g.stalled, StallTapExtra)
+		t.Fatalf("a tap of an all-at-once source floated its pick unasked, stalled %d, want StallTapExtra (%d)", each.s.g.stalled, StallTapExtra)
 	}
 }

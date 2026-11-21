@@ -623,6 +623,13 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		// payment_plan_interference.go paymentPlanTapObservers).
 		pc := s.riderPC(k, sl, a)
 		n := max(a.ManaN, 1) + s.srcReflectPick(k, sl, pc)
+		if k.gen.anyTapExtra && s.srcEachPick(k, sl, pc) > 0 {
+			// the pick floats unasked (nothing poses its colour ask yet);
+			// srcExtra reads the production alone, and a payment priced on it
+			// would drop the pick silently (mana_eachpick_stall_test.go)
+			s.capFull(StallTapExtra)
+			return
+		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc)
 			for c := range xv {
@@ -652,6 +659,13 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	mask := s.srcMaskAt(pc, sl)
 	if col, ok := tapsDeferPainCol(k, pc, mask); ok {
 		mask |= 1 << col // the paid-life ability is one more relaxed alternative of the source
+	}
+	if k.gen.anyTapExtra && s.srcEachPick(k, sl, pc) > 0 {
+		// the pick floats unasked (nothing poses its colour ask yet);
+		// srcExtra reads the production alone, and a payment priced on it
+		// would drop the pick silently (mana_eachpick_stall_test.go)
+		s.capFull(StallTapExtra)
+		return
 	}
 	av.addUnits(mask, s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
