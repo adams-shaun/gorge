@@ -22,9 +22,13 @@ name: queue-precheck
 # 11-21: a pull_request-triggered run died when Mergify closed or reset its batch PR, and between 06:41 and 08:23Z no
 # run finished at all (every push run waited pending behind a batch-PR run, then was replaced), so #3074 (batch #3110)
 # was never checked. Mergify's batch branches are now a push trigger, whose runs outlive the PR.
+# Since queue_conditions require a success here (11-21), a PR batches only after a run passed it, so runs must keep
+# coming even when nothing merges: the schedule is that floor (no push, no batch, no run would deadlock the queue).
 on:
   push:
     branches: [main, 'mergify/merge-queue/**']
+  schedule:
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
