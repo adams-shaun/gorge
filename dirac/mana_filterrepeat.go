@@ -246,6 +246,22 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
 func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, true)
+}
+
+// filtFeeColDoomed is filtFeeColStalls' first cut alone: col fills no fixed pip
+// the play still lacks once the fee is paid. The activation-site prune reads
+// only this (gorge's scriptSearch.feeOnlyGapDoomed, potential_script.go, has
+// no free-tap-colour test): a fixed {B} filter (Bog Initiate's "{1}: Add {B}")
+// beside a Swamp is still the only source of a second {B}, and the swapped
+// line the second cut relies on needs the colour ask the fixed production
+// never poses.
+func (s *State) filtFeeColDoomed(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, false)
+}
+
+// filtFeeColCut is the one body of both: second arms the free-tap-colour cut.
+func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, second bool) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -283,7 +299,7 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return s.filtFreeTapColourOwn(k, p, sl, own, col)
+	return second && s.filtFreeTapColourOwn(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
