@@ -2493,6 +2493,24 @@ type genState struct {
 	// redir: Ext DmgRedirect's this-turn records (repl_dmgredirect.go). Appended
 	// after the tail padding: State grows by its size (statelayout_test.go).
 	redir [maxRedir]redirRec // taken from rsv
+	// gatePay is the hand-cast offer gate's pending spell payment while on:
+	// castGateFeeRepeat's window walks run outside a build, where payDescNow
+	// would read pdOther and the window's restricted reads (windowSpellSettled's
+	// settlement, windowGap's listing, restrSrcAvail) would price a floating
+	// restricted batch a non-spell payment admits against the cast being
+	// offered, mana it cannot spend (CR 106.6; the Powerstone Token's
+	// artifact-only {C} beside Herald of Secret Streams, pool tail-45-c004
+	// decision 550). The walks read only the class, the card and its origin
+	// (restrSpendable, restrSrcAdmits), so the spell payment is just those.
+	// Transient: set only across the gate's two walks (windowDry and its fork
+	// probe). gatePad keeps perms' cache-line phase (statelayout_test.go).
+	// Appended after the tail padding: State grows by their size.
+	gatePay struct {
+		on   bool
+		card CardID
+		og   restrOrigin
+	}
+	gatePad [54]uint8
 }
 
 const (
