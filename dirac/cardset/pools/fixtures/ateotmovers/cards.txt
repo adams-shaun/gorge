@@ -19,9 +19,10 @@ Dawn of the Dead
 # T14c: Animate AtEOT$ on Defined$ Remembered after a one-card pick
 # (dirac/kgen/lower_ateot.go oneObjectSubject's ChooseMove/Dig arm; the
 # oracle's constructed lockstep, dirac/oracle/ateotmovers_chosen_test.go).
-# Meek Attack is not listed: its ChangeType$ totalPT_LE5 predicate on a hand
-# card is a pre-existing kernel filter gap (build.go cmpTotalPT refuses off the
-# battlefield), so the widened lowering still refuses it on that gap.
+# Meek Attack's ChangeType$ totalPT_LE5 reads a hand card's P/T (Squawkroaster's
+# */4 is the characteristic-defining case the pick must agree on).
+Meek Attack
+Squawkroaster
 Arms Race
 Impromptu Raid
 Incandescent Soulstoke
