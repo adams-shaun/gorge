@@ -45,7 +45,20 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 		s.availFilt(k, p, &all)
 		s.availFilt(k, p, &kept)
 	}
-	return all.affords(cost, pm, 0) && !kept.affords(cost, pm, 0)
+	if !all.affords(cost, pm, 0) {
+		return false
+	}
+	if k.restrSrc {
+		// the restricted planner units the payment may spend (the Artificer's
+		// "{T}: Add {C}. Spend this mana only to activate an ability or cast an
+		// artifact spell" beside a grant that adds a refused any-colour ability
+		// to it) are units of gorge's census per payment (pay/plancost.go
+		// RestrictValidMatches): they stay in the kept read, so a refused grant
+		// that only duplicates one of them leaves the play relaxed-payable
+		u, multi, nm := s.restrSrcAvailD(k, p, d, &kept, NoSlot, false)
+		return !u.affordsMulti(cost, 0, multi[:nm])
+	}
+	return !kept.affords(cost, pm, 0)
 }
 
 // anyGrantRestr: some granted mana ability of the table carries a spend
