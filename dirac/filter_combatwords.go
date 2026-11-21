@@ -298,6 +298,25 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 	}
 }
 
+// atkPWGuardStalls reports whether gorge's TriggeredDefender damage behind
+// an OpAtkPWGuard names nobody the kernel can damage. The attacker present:
+// it attacks a planeswalker or battle (without the C AtkPWHit object form),
+// or the trigger's own controller, whom gorge's .Opponent qualifier names
+// nobody for (an attacker the controller does not control: Mage Slayer on a
+// stolen creature). The attacker gone: gorge binds the defending player as
+// the trigger is queued (CR 603.10, 608.2h) and deals the damage there from
+// the attacker's last known information, which the kernel does only for a
+// bound player. An unset or object-tagged defSeat names no such player; a
+// bound seat that is the trigger's own controller is the .Opponent case
+// again, not a damage recipient.
+func (s *State) atkPWGuardStalls(k *prep, sl Slot, in *kop.Instr) bool {
+	if sl == NoSlot {
+		d := s.res.e.defSeat
+		return d == 0 || d&defSeatObj != 0 || defSeatSeat(d) == s.res.e.ctrl
+	}
+	return in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl
+}
+
 // execMcombat runs the ops (the tail of execPrepare's
 // chain); done=false means the op is not one of these.
 //
@@ -305,11 +324,7 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
 	case kop.OpAtkPWGuard:
-		// the attacker attacks a planeswalker or battle, or is gone; or
-		// it attacks the trigger's own controller, whom gorge's
-		// TriggeredDefender.Opponent names nobody for (an attacker the
-		// controller does not control: Mage Slayer on a stolen creature)
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
+		if s.atkPWGuardStalls(k, s.objRef(k, kop.RefTriggerObj), in) {
 			s.capFull(StallDefenderPW)
 		}
 	default:
@@ -409,7 +424,7 @@ func (s *State) enterDefenderFallback(k *prep, p uint8) TCode {
 func (s *State) enterDefenderFallbackOf(k *prep, p uint8) (fb TCode, unbound bool) {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return PlayerCode(e.defSeat - 1), false
+			return PlayerCode(defSeatSeat(e.defSeat)), false
 		}
 		return TCode(NoTarget), true
 	}
