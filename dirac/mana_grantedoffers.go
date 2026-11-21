@@ -1350,7 +1350,15 @@ func (g *grantSrch) candidates(s *State) {
 	}
 	for i := 0; i < n; i++ {
 		sl := order[i]
-		if sl == g.ex || seen(sl) || dropped.has(sl) || !s.canTapForMana(g.k, sl) {
+		if sl == g.ex || seen(sl) || dropped.has(sl) {
+			continue
+		}
+		// gorge's coveredSpendable (potential_script.go) walks a covered
+		// source whose restricted mana a census gap's activation fee admits
+		// beside the spendable ones (fundRestrAdmits, CR 106.6): the
+		// Powerstone's {C} pays a land's {1} fee, and the tap is the walk's
+		// node burn with gorge's
+		if !s.canTapForMana(g.k, sl) && !g.fundRestrAdmits(s, sl) {
 			continue
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
@@ -1621,6 +1629,17 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 		if g.tappedHolderStep(t, i, sl, sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
 			return true, false
 		}
+		// gorge's phase-0 walk branches every offered activation of a census
+		// gap source, its covered printed one beside the gap one (A-Hall of
+		// Tagsin's "{T}: Add {C}" before its "{1}, {T}" fee): the dead branch
+		// is gorge's search's too and burns its node budget with it, so a
+		// line the budget reaches in the kernel's search alone must not
+		// price the play (grant_fund_restricted_source). The printed branch first: it
+		// is the walk's earlier option (the ability order, CR 602.2b lists
+		// the abilities in printed order).
+		if g.printedBranch(t, i, sl) {
+			return true, false
+		}
 		if !(fok && t.filtUsable(g.k, sl)) {
 			return false, false // (a summoning-sick Changeling's filter stays: only its granted {T} ability is out, CR 302.6)
 		}
@@ -1744,6 +1763,59 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 	return false, false
 }
 
+// printedBranch is a gap candidate's own printed mana ability's branch (gi
+// -1, the same step a funding tap makes): gorge's phase-0 walk activates
+// whatever the priority offer lists on a census gap source, and a gap
+// source's covered printed mana ability is listed there beside its gap one
+// -- an activation the play may not spend (the cast above A-Hall of
+// Tagsin's "{T}: Add {C}") but whose branch is gorge's search's node burn
+// all the same.
+func (g *grantSrch) printedBranch(t *State, i int, sl Slot) bool {
+	if g.ng[i] != 0 || !g.filt[i] {
+		return false // the holder's printed abilities branch beside its grant (gapAbilities)
+	}
+	if t.perms[sl].flags&pfTapped != 0 {
+		return false
+	}
+	pc := t.manaPCGen(g.k, sl)
+	if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
+		return false
+	}
+	mask, n := t.srcMaskAt(pc, sl), pc.manaN
+	if mask == 0 {
+		return false
+	}
+	return g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
+}
+
+// fundRestrAdmits reports whether the covered source at sl joins the funding
+// walk though its mana prices nothing for the play: gorge's coveredSpendable
+// (potential_script.go) admits a covered source whose restricted mana the
+// play cannot spend but a census gap's activation fee can -- the Powerstone's
+// CantCastNonArtifactSpells {C} pays a land's {1} (CR 106.6) -- or whose
+// restricted mana the play itself admits (scriptSpendableGaps).
+func (g *grantSrch) fundRestrAdmits(s *State, sl Slot) bool {
+	if s.gapSpendable(g.k, sl, &g.d) {
+		return true
+	}
+	abs := g.k.t.Cards[s.cardAt(sl)].Abilities
+	var d payDesc
+	for j := range abs {
+		a := &abs[j]
+		if a.Kind != kop.AbMana || a.ManaRestrict == 0 && a.AFlags&kop.AfManaNonSpell == 0 {
+			continue
+		}
+		for gi := 0; gi < g.gapN; gi++ {
+			gid := g.cand[gi]
+			d = payDesc{class: pdAct, card: s.cardAt(gid), src: gid}
+			if s.restrSrcAdmits(g.k, g.p, sl, a, &d) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // fundingPass is visit's funding loop: a paid gap's fee is funded by other
 // sources (gorge scriptSearch's funding loop: the gaps first, then non-gaps
 // while funding lasts).
@@ -1757,7 +1829,18 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 			continue
 		}
 		pc := t.manaPCGen(g.k, sl)
-		if pc.manaAb < 0 || !t.canTapForManaPC(g.k, sl, pc) {
+		restr := pc.manaAb < 0
+		if restr {
+			// a restricted funder (fundRestrAdmits, gorge's coveredSpendable):
+			// its tap burns the walk's node budget with gorge's; its mana
+			// prices nothing for the play, so the branch floats it as ghost,
+			// sitting in gorge's pool for the payer-state key
+			if pc.manaCol == 0 || !(pc.manaTap || pc.manaSac) ||
+				t.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 ||
+				t.activationSick(g.k, sl) || !g.fundRestrAdmits(t, sl) {
+				continue
+			}
+		} else if !t.canTapForManaPC(g.k, sl, pc) {
 			continue
 		}
 		mask, n := t.srcMaskAt(pc, sl), pc.manaN
@@ -1781,9 +1864,14 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 			}
 		}
 		var ok bool
-		if painFunds(g.k, pc) {
+		switch {
+		case restr:
+			g.skipPool = true
+			ok = g.branch(t, i, sl, -1, mask, n, false)
+			g.skipPool = false
+		case painFunds(g.k, pc):
 			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
-		} else {
+		default:
 			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
 		}
 		g.funded--
