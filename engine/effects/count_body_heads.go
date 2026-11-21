@@ -63,67 +63,7 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 	// literal Counter("ALL") lookup can never answer because no object ever
 	// carries a counter KIND named ALL.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
-		if lki, ok := sacrificedSourceLKI(g, c); ok {
-			// The source was sacrificed by this spell/ability (a
-			// Sac<1/CARDNAME> cost): read the counters it had then.
-			scratch := state.Object{Counters: lki.Counters}
-			if strings.EqualFold(kind, "ALL") {
-				return sumCounters(scratch.Counters), true, true
-			}
-			return scratch.Counter(kind), true, true
-		}
-		if c.departedSourceLKI(g) {
-			// The source left after this ability was created: the counters
-			// it last had on the battlefield (CR 608.2h).
-			if strings.EqualFold(kind, "ALL") {
-				return sumCounters(c.TriggerContext.SourceCounters), true, true
-			}
-			scratch := state.Object{Counters: c.TriggerContext.SourceCounters}
-			return scratch.Counter(kind), true, true
-		}
-		// A leaves-the-battlefield trigger whose effect counts its own
-		// source's counters (CR 603.10a: such a trigger looks back in time):
-		// Move's fold already cleared the counters on the departed card, so
-		// read the trigger's LKI snapshot. A source that is still (or again)
-		// on the battlefield is read live, and an LKI snapshot for a
-		// different object is never substituted.
-		if o := g.Obj(c.Source); o == nil || o.Zone != state.ZBattlefield {
-			if lki := c.LKI; lki != nil && lki.ID == c.Source {
-				if strings.EqualFold(kind, "ALL") {
-					return sumCounters(lki.Counters), true, true
-				}
-				return lki.Counter(kind), true, true
-			}
-			// The source left the battlefield with no arm above binding it:
-			// an ability that sacrifices its own source MID-RESOLUTION
-			// (Magmasaur: "At the beginning of your upkeep, you may remove a
-			// +1/+1 counter from CARDNAME. If you don't, sacrifice CARDNAME
-			// and it deals damage equal to the number of +1/+1 counters on
-			// it ..."). The chain's Ctx was built before the departure, so
-			// TriggerContext.SourceLKIValid is the stale false, and the
-			// sacrifice is a plain DB$ Sacrifice with no RememberSacrificed$
-			// so nothing was captured. CR 608.2h still reads the source's
-			// last-known counters -- the ones it left with, rebuilt from the
-			// log's departure record exactly as SacrificedLKI rebuilds them
-			// for a cost-paid sacrifice. A source back on the battlefield is
-			// read live below.
-			if dh, ok := h.(departureCountersHost); ok {
-				if cs, ok := dh.DepartureCounters(c.Source); ok {
-					scratch := state.Object{Counters: cs}
-					if strings.EqualFold(kind, "ALL") {
-						return sumCounters(scratch.Counters), true, true
-					}
-					return scratch.Counter(kind), true, true
-				}
-			}
-		}
-		if o := g.Obj(c.Source); o != nil {
-			if strings.EqualFold(kind, "ALL") {
-				return sumCounters(o.Counters), true, true
-			}
-			return o.Counter(kind), true, true
-		}
-		return 0, true, true
+		return evalCardCounters(h, c, g, kind), true, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
 	// A pending cast's announcement ask reads it BEFORE payment stamps the
@@ -825,4 +765,69 @@ func countBargainedBranch(h Host, c *Ctx, g *state.Game, branches string, depth 
 		bargained = o.CastFlags&state.FlagBargained != 0
 	}
 	return countBranchOperand(h, c, bargained, yesTok, noTok, depth)
+}
+
+// evalCardCounters reads CardCounters.<KIND> off the source: the last-known
+// counters when the source left (sacrificed, departed, or an LKI snapshot),
+// else the live object.
+func evalCardCounters(h Host, c *Ctx, g *state.Game, kind string) int32 {
+	if lki, ok := sacrificedSourceLKI(g, c); ok {
+		// The source was sacrificed by this spell/ability (a
+		// Sac<1/CARDNAME> cost): read the counters it had then.
+		scratch := state.Object{Counters: lki.Counters}
+		if strings.EqualFold(kind, "ALL") {
+			return sumCounters(scratch.Counters)
+		}
+		return scratch.Counter(kind)
+	}
+	if c.departedSourceLKI(g) {
+		// The source left after this ability was created: the counters
+		// it last had on the battlefield (CR 608.2h).
+		if strings.EqualFold(kind, "ALL") {
+			return sumCounters(c.TriggerContext.SourceCounters)
+		}
+		scratch := state.Object{Counters: c.TriggerContext.SourceCounters}
+		return scratch.Counter(kind)
+	}
+	// A leaves-the-battlefield trigger whose effect counts its own
+	// source's counters (CR 603.10a: such a trigger looks back in time):
+	// Move's fold already cleared the counters on the departed card, so
+	// read the trigger's LKI snapshot. A source that is still (or again)
+	// on the battlefield is read live, and an LKI snapshot for a
+	// different object is never substituted.
+	if o := g.Obj(c.Source); o == nil || o.Zone != state.ZBattlefield {
+		if lki := c.LKI; lki != nil && lki.ID == c.Source {
+			if strings.EqualFold(kind, "ALL") {
+				return sumCounters(lki.Counters)
+			}
+			return lki.Counter(kind)
+		}
+		// The source left the battlefield with no arm above binding it:
+		// an ability that sacrifices its own source MID-RESOLUTION
+		// (Magmasaur: "At the beginning of your upkeep, you may remove a
+		// +1/+1 counter from CARDNAME. If you don't, sacrifice CARDNAME
+		// and it deals damage equal to the number of +1/+1 counters on
+		// it ..."). The chain's Ctx was built before the departure, so
+		// TriggerContext.SourceLKIValid is the stale false, and the
+		// sacrifice is a plain DB$ Sacrifice with no RememberSacrificed$
+		// so nothing was captured. CR 608.2h still reads the source's
+		// last-known counters -- the ones it left with, rebuilt from the
+		// log's departure record exactly as SacrificedLKI rebuilds them
+		// for a cost-paid sacrifice. A source back on the battlefield is
+		// read live below.
+		if cs, ok := departedCounters(h, c.Source); ok {
+			scratch := state.Object{Counters: cs}
+			if strings.EqualFold(kind, "ALL") {
+				return sumCounters(scratch.Counters)
+			}
+			return scratch.Counter(kind)
+		}
+	}
+	if o := g.Obj(c.Source); o != nil {
+		if strings.EqualFold(kind, "ALL") {
+			return sumCounters(o.Counters)
+		}
+		return o.Counter(kind)
+	}
+	return 0
 }
