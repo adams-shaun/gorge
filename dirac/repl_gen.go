@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -1166,6 +1168,12 @@ func (s *State) replOrderPick(a Action) bool {
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
+				if ro.pnx != 0 {
+					// the picked printed prevention is terminal: it prevents
+					// the whole event, so the shields never apply and are
+					// not spent (gorge handleDamageReplacementChoice)
+					ro.an = 0
+				}
 				s.replNCPickShield(s.k(), int(i))
 			}
 			return false
@@ -1450,11 +1458,26 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			}
 		}
 	}
+	var pnx uint8
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go), the
+		// ask's earlier options: gorge's scan collects the effect records the
+		// shields are (engine/rules applyReplacementsDispatch's active-effect
+		// pass) before the printed lines, so the options name the shields
+		// first
+		if c = s.prevNextCands(k, code, srcSl, false, &cand, c, &pnx, prev); c < 0 {
+			return false
+		}
+		prev &^= pnx
+	}
 	// the recipient's own printed K:Prevent "all damage" line (replDamage's
-	// prevAnyTo arm): a printed match, so it is offered before the shield
-	// (gorge appends the shield after the printed matches)
-	if c = s.parkPrevAny(k, &cand, c, sl, &prev); c < 0 {
+	// prevAnyTo arm): a printed match, so it is offered after the shields
+	// (gorge scans the effect records before the printed lines)
+	var pAny uint8
+	if c2 := s.parkPrevAny(k, &cand, c, sl, &prev); c2 < 0 {
 		return false
+	} else if c2 > c {
+		pAny, c = 1<<c, c2
 	}
 	var pcol uint8
 	if g.anyRepl&rbPrevCol != 0 {
@@ -1475,14 +1498,15 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		shld |= 1 << c
 		c++
 	}
-	var pnx uint8
-	if g.anyRepl&rbPrevCol != 0 {
-		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		if c = s.prevNextCands(k, code, srcSl, false, &cand, c, &pnx, prev); c < 0 {
-			return false
-		}
-		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
+	if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
+		// gorge poses the CR 616.1 ask over the shields and every other
+		// candidate; the walk below models the shields beside the
+		// recipient's own bare printed prevention only (a pick of the
+		// printed line stops the event with the shields unspent, gorge
+		// handleDamageReplacementChoice's terminal arm). Every other
+		// candidate (a doubler, a plus-N line, the SHIELD counter, a colour
+		// record) still stalls.
+		if pAny == 0 || prev != pAny || shld != 0 || plus != 0 || rs != 0 || c != bits.OnesCount8(pnx)+1 {
 			s.capFull(StallPrevNext)
 			return false
 		}

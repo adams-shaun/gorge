@@ -1311,6 +1311,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			return // ask again
 		}
 		if s.g.plusBatchAsked {
+			s.prevNextNC() // the shields' record carries the picked order's amount (repl_prevnext.go)
 			s.replPlusAskedResume(k)
 			return
 		}
