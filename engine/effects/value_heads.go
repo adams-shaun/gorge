@@ -185,6 +185,7 @@ var modelledValueHeads = []string{
 	"PlayerCountRemembered$Counters",
 	"PlayerCountRemembered$LifeLostThisTurn",
 	"PlayerCountRemembered$LifeTotal",
+	"PlayerCountRemembered$SVarAmount",
 	"PlayerCountRemembered$Valid",
 	"PlayerCountRememberedController$Amount",
 	"PlayerCountRememberedController$CardsInHand",
