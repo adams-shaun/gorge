@@ -525,7 +525,8 @@ type stackEntry struct {
 	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
 	// queued (pendingTrig.defSeat; 0 = none; defSeatObj tags an attack on a
-	// planeswalker or battle). At two seats only a TriggeredDefender damage
+	// planeswalker or battle, whose object defSeatIxMask indexes in the cold
+	// atkObj table: trig_atkobj.go). At two seats only a TriggeredDefender damage
 	// trigger is bound, when the attacker may leave before it resolves. A
 	// Squad self-ETB trigger stores its cast's payment count here instead
 	// (1..maxMultikick; triggers_gen.go enqueueLKI copies it from the
