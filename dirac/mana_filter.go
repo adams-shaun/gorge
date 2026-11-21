@@ -2108,7 +2108,15 @@ func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinS
 
 // twinSlotOf is twinSlot's test, which reads no search state: the grant
 // search's funding loop asks it too (grantSrch.fundTwinTried).
-func twinSlotOf(t *State, a, b Slot) bool {
+func twinSlotOf(t *State, a, b Slot) bool { return twinSlotFx(nil, t, a, b) }
+
+// twinSlotFx is twinSlotOf where, with k set, two lands whose override records
+// differ only by ones that leave the mana abilities alone still pair (gorge's
+// scriptTwin reads the options and the mana-ability sets, never the effects:
+// Wakeroot Elemental's animated Forest beside a plain one, ovrKeepsMana). The
+// grant search's funding and gap walks pass their prep; the other searches
+// pass nil and keep the strict test.
+func twinSlotFx(k *prep, t *State, a, b Slot) bool {
 	if a == b || !t.occ.has(a) || !t.occ.has(b) {
 		return false
 	}
@@ -2131,10 +2139,41 @@ func twinSlotOf(t *State, a, b Slot) bool {
 	// a layer-6 effect) and the other did not makes them two different
 	// subtrees. Fail open on any such difference.
 	if pa.ovr != pb.ovr || t.fxM.has(a) != t.fxM.has(b) {
-		return false
+		if k == nil || !t.ovrKeepsMana(k, a) || !t.ovrKeepsMana(k, b) {
+			return false
+		}
 	}
 	for s2 := Slot(0); s2 < MaxPerm; s2++ {
 		if t.occ.has(s2) && (t.perms[s2].attached == a || t.perms[s2].attached == b) {
+			return false
+		}
+	}
+	return true
+}
+
+// ovrKeepsMana reports whether every override on sl leaves its mana abilities
+// and land types alone: no record but a Table.Overrides one that loses
+// abilities, grants one, sets or adds a land subtype or a card's name, or sets
+// the types (an animate that makes the land a creature with a P/T and a
+// keyword: Wakeroot Elemental's), and no override in the perm's own record
+// beyond the generated-types mark.
+func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
+	o := s.perms[sl].ovr
+	o.flags &^= ovGenTy
+	if o != (override{}) {
+		return false
+	}
+	for i := 0; s.fxM.has(sl) && i < int(s.g.nfx); i++ {
+		r := &s.g.fx[i]
+		if r.sl != sl {
+			continue
+		}
+		if r.kind != fxOverride || r.r.idx == 0 {
+			return false
+		}
+		ov := &k.t.Overrides[r.r.idx-1]
+		if ov.LoseAbilities || ov.Grant != [2]uint8{} || ov.SetLandSub || ov.HasTypes || ov.HasSub || ov.NameCard != 0 ||
+			ov.AddSub.And(k.gen.landSub).Any() {
 			return false
 		}
 	}
