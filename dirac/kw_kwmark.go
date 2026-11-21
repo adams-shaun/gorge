@@ -2,9 +2,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Granted intimidate, infect and skulk (CR 702.13a, 702.90, 702.118a). None
-// has a KwMask bit; the printed keyword is CardDef.Evasion EvIntimidate /
-// EvSkulk or CardDef.Infect. A grant comes two ways, both read beside the printed field
+// Granted intimidate, infect, skulk and horsemanship (CR 702.13a, 702.90,
+// 702.118a, 702.31b). None has a KwMask bit; the printed keyword is
+// CardDef.Evasion EvIntimidate / EvSkulk / EvHorsemanship or CardDef.Infect. A grant comes two ways, both read beside the printed field
 // by evasionAt and infectAt (so blocking, combat and noncombat damage, the
 // LKI snapshot and the withInfect filter word all see it, as gorge's derived
 // keywords are blind to where the keyword came from):
@@ -34,7 +34,7 @@ func prepKwMark(t *kop.Table, g *genPrep) {
 			for i := range a.Prog {
 				if in := &a.Prog[i]; in.Op == kop.OpExt && in.Ext() == kop.ExtKwMark {
 					g.anyKwMark = true
-					g.anyEvasionGrant = g.anyEvasionGrant || in.C&(kop.KwMarkIntimidate|kop.KwMarkSkulk) != 0
+					g.anyEvasionGrant = g.anyEvasionGrant || in.C&(kop.KwMarkIntimidate|kop.KwMarkSkulk|kop.KwMarkHorsemanship) != 0
 					g.anyInfectGrant = g.anyInfectGrant || in.C&kop.KwMarkInfect != 0
 				}
 			}
@@ -62,6 +62,9 @@ func kwMarkUses(in *kop.Instr, u *[numMech]bool) {
 	}
 	if in.C&kop.KwMarkSkulk != 0 {
 		u[mechSkulk], u[mechSkulkPost] = true, true
+	}
+	if in.C&kop.KwMarkHorsemanship != 0 {
+		u[mechHorsemanship], u[mechHorsemanshipPost] = true, true
 	}
 }
 
@@ -91,6 +94,9 @@ func (s *State) kwMark(k *prep, sl Slot, c int16) {
 	}
 	if c&kop.KwMarkSkulk != 0 {
 		s.kwMarkSet(k, sl, mechSkulk, mechSkulkPost)
+	}
+	if c&kop.KwMarkHorsemanship != 0 {
+		s.kwMarkSet(k, sl, mechHorsemanship, mechHorsemanshipPost)
 	}
 	if c&kop.KwMarkSwitchPT != 0 {
 		// CR 613.4d: each switch exchanges what the earlier ones left, so
@@ -131,8 +137,8 @@ func (s *State) kwMarked(k *prep, sl Slot, m, post mech) bool {
 // kwMarkClear ends the marks (the cleanup step, CR 514.2), touching each
 // permanent that held one.
 func (s *State) kwMarkClear(k *prep) {
-	held := s.mSlMask(k, mechIntimidate).or(s.mSlMask(k, mechInfect)).or(s.mSlMask(k, mechSkulk))
-	for _, m := range [...]mech{mechIntimidate, mechIntimidatePost, mechInfect, mechInfectPost, mechSkulk, mechSkulkPost} {
+	held := s.mSlMask(k, mechIntimidate).or(s.mSlMask(k, mechInfect)).or(s.mSlMask(k, mechSkulk)).or(s.mSlMask(k, mechHorsemanship))
+	for _, m := range [...]mech{mechIntimidate, mechIntimidatePost, mechInfect, mechInfectPost, mechSkulk, mechSkulkPost, mechHorsemanship, mechHorsemanshipPost} {
 		s.mSlZero(k, m)
 	}
 	for m := held.and(s.occ); m.any(); m = m.rest() {
@@ -175,6 +181,9 @@ func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
 	}
 	if s.kwMarked(k, sl, mechSkulk, mechSkulkPost) || s.staticKwGrant(k, sl, staticGrantsSkulk) {
 		ev |= kop.EvSkulk
+	}
+	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) {
+		ev |= kop.EvHorsemanship
 	}
 	return ev
 }

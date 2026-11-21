@@ -740,10 +740,30 @@ func init() {
 	mechName[mechEncSeat1] = "encSeat1"
 }
 
+// mech (dirac/manifest/mech/mechHorsemanship)
+//
+// slots whose permanent has horsemanship until end of turn (ExtKwMark KwMarkHorsemanship; kw_kwmark.go)
+const mechHorsemanship mech = 59
+
+func init() {
+	mechWidth[mechHorsemanship] = wSlot
+	mechName[mechHorsemanship] = "horsemanship"
+}
+
+// mech (dirac/manifest/mech/mechHorsemanshipPost)
+//
+// slots marked horsemanship while their permanent had lost all abilities (CR 613.7)
+const mechHorsemanshipPost mech = 60
+
+func init() {
+	mechWidth[mechHorsemanshipPost] = wSlot
+	mechName[mechHorsemanshipPost] = "horsemanshipPost"
+}
+
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 59
+const mechSkulk mech = 61
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -753,7 +773,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 60
+const mechSkulkPost mech = 62
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -761,7 +781,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 61
+const numMech mech = 63
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
