@@ -2752,7 +2752,7 @@ func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
 			continue
 		}
 		any = true
-		if !t.filtFeeColStalls(k, fs.p, sl, &fs.useful, c, fs.own) {
+		if !t.filtFeeColDoomed(k, fs.p, sl, &fs.useful, c, fs.own) {
 			return false
 		}
 	}
