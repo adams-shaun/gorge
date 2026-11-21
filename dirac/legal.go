@@ -1014,6 +1014,17 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	return s.gorgeLowersRider(p, o, mayPlay, false)
 }
 
+// altAddMayRiderCost prices an any-colour may-play cast's composed AltAdd
+// price under the rider: its coloured pips go generic (pay.PlanManaUnderRider;
+// CR 609.4b). Under the mayPlayAny permission the cost is already priced by
+// anyType (altAddPlanCost), so the rider applies only beside it.
+func (s *State) altAddMayRiderCost(cost kop.ManaCost, mayPlay, anyColor bool) kop.ManaCost {
+	if anyColor && mayPlay && !s.g.mayPlayAny {
+		return planUnderRider(cost, false, true) // an any-colour may-play cast funds the composed price with its coloured pips generic (pay.PlanManaUnderRider; CR 609.4b)
+	}
+	return cost
+}
+
 // gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour
 // rider when anyColor: a target-priced cast's composed price is funded with
 // its coloured pips as generic (pay.PlanManaUnderRider), so Vanish into
@@ -1050,7 +1061,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
 	if cd.HasAltAdd {
-		cost := s.altAddPlanCost(k, p, c, o)
+		cost := s.altAddMayRiderCost(s.altAddPlanCost(k, p, c, o), mayPlay, anyColor)
 		if s.g.availX&availGaps != 0 {
 			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
 		}
