@@ -48,7 +48,8 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 			return true
 		}
 	}
-	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
+	return s.castGateFeeRepeat(k, p, c, o, cost, cav) ||
+		(s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
 }
 
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
