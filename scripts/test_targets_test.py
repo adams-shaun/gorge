@@ -975,3 +975,17 @@ def test_table_data_change_runs_the_table_readers_whole():
         assert got.get("./dirac/oracle/cmd/kfuzz") == "whole", (path, got)
         res, _ = tt.plan({path: None}, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
         assert {p: k for k, p, _ in res}.get("./dirac/oracle/cmd/kfuzz") == "whole", path  # not narrowed to census
+
+
+
+
+def test_smart_runs_the_oracle_in_chunks():
+    # 11-20: ./dirac/oracle's census set (~120 tests) and step 4's named set (fast tier + every repro replay) each
+    # summed past the oracle's 5m cap in one call on a loaded box, and test-smart printed BUDGET on diffs that never
+    # touched the oracle. Both run through oracle_chunked: fixed chunks, each its own call.
+    sh = (HERE / "test-targets.sh").read_text()
+    assert "cpk=$(printf '%s\\n' $cpk | grep -vx './dirac/oracle' || true)" in sh
+    assert 'oracle_chunked "$C" \'^TestStd[A-Za-z]*ReprosLockstep\'' in sh
+    assert 'if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx"' in sh
+    assert 'go test -list "$1" ./dirac/oracle' in sh
+    assert "chunks+=('^TestCmd5SliceCleanOnlyGrows$')" in sh
