@@ -257,19 +257,28 @@ func exwOwnerOnce(ab *lAbility) error {
 
 // exwOwnerMover classifies one instruction for exwOwnerCheck: ok when it is
 // an exile mover, err when it can move more than one card into exile in one
-// resolution (the count is the mover's target slot or count operand). The op
-// list is a hand enumeration of the ops that can move a card into exile, not
-// gorge's recording rule, which stamps the reverse ExiledWith scalar on every
-// exile by a card whose text names ExiledWithSource (the ref's lowering sets
-// lc.out.ExwWord; zone_exiledwith.go's exwRecRev path in exwExile). It covers
-// the exile movers kgen lowers today: Exile, ExileUntilLeaves, Search, Dig,
-// ChooseMove and ChangeZoneAll to exile, Airbend (a target slot is bounded
-// like Exile's, a Valid sweep refuses), Hideaway (one card, a mover), and the
-// set-valued ExileEmbRem, StackExileMark and ExileExMark (refused outright).
-// Manifest and Cloak move library cards to the battlefield, not to exile. An exile-bearing op added to kgen later
-// must be added here by hand, or it slips past the check silently;
-// TestExiledWithOwnerMultiExileRefuses pins the current set.
+// resolution (the count is the mover's target slot or count operand), or when
+// the op is not known to stay out of exile. The check is default-refuse over
+// exwOpTable (lower_exwops.go): gorge's recording rule stamps the reverse
+// ExiledWith scalar on every exile by a card whose text names
+// ExiledWithSource (the ref's lowering sets lc.out.ExwWord; zone_exiledwith.go's
+// exwRecRev path in exwExile), whatever op moved the card, so an op absent
+// from the table (or listed exwUnvetted: Vote, Discover, DigImprint, ...) is
+// refused rather than assumed harmless. The listed movers are Exile,
+// ExileUntilLeaves, Search, Dig, ChooseMove and ChangeZoneAll to exile,
+// Airbend (a target slot is bounded like Exile's, a Valid sweep refuses),
+// Hideaway (one card, a mover; its Play of the exiled card, C 1, is not), and
+// the set-valued ExileEmbRem, StackExileMark and ExileExMark (refused
+// outright). TestExwOpTableCoversEveryOp fails when the lowering emits an op
+// the table has no row for; TestExiledWithOwnerMultiExileRefuses pins the
+// refusals.
 func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
+	switch exwOpTable[in.Op] {
+	case exwNotExile:
+		return false, nil
+	case exwUnvetted:
+		return false, refuse("ExiledWithSource player ref over %s: it is not known to stay out of exile, and gorge links every card a source exiles", in.Op)
+	}
 	switch in.Op {
 	case "Exile", "ExileUntilLeaves":
 	case "Search":
@@ -311,10 +320,11 @@ func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 	case "Hideaway":
 		// the hideaway exile is fixed at one card (A is the look count) and the
 		// keyword trigger is the source's own ETB; it counts as a mover so a
-		// second mover beside it refuses
-		return true, nil
+		// second mover beside it refuses. The Play of the exiled card (C 1)
+		// moves nothing into exile.
+		return in.C == 0, nil
 	default:
-		return false, nil
+		return false, refuse("ExiledWithSource player ref over %s: no exile bound for it", in.Op)
 	}
 	switch in.Obj.Kind {
 	case rTarget:
