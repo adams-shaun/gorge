@@ -19,14 +19,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // plays and stalls at the first meeting of the grant and the card (blgView).
 var DebugLandGrantNoPairGuard bool
 
+// DebugLandGrantAnyReach is the mutation: a grant reaches every card, as the
+// refusal did before it read the granter's filter (TestLandGrantReachMutation).
+var DebugLandGrantAnyReach bool
+
 // landGrantScan is the colours the table's static grants add (the basic types
 // of every Continuous static's and StatOverride static's AddSub, W U B R G as
 // bits 0-4; a one-shot effect's override (Navigator's Compass, an animation) is
 // no grant of the table and stays a runtime stall) and
-// whether a grant reaches any card, not only lands: an override that adds the
-// land type too (Ashaya, Soul of the Wild), an over-approximation of the
-// granter's filter. g.blgSub is set (prepLandGrant).
-func landGrantScan(t *kop.Table, g *genPrep) (granted kop.ColorMask, anyCard bool) {
+// the card types its grants reach: lands, and for an override that adds the land
+// type too (Ashaya, Soul of the Wild) the types its filter names. g.blgSub is
+// set (prepLandGrant).
+func landGrantScan(t *kop.Table, g *genPrep) (granted kop.ColorMask, reach kop.TypeMask) {
+	// reach is the card types the grants reach: kop.TLand always when a grant
+	// is no card-wide override (it adds subtypes to lands), else the override
+	// filters' types (filterTypeReach).
 	add := func(m kop.SubMask) kop.ColorMask {
 		var c kop.ColorMask
 		for col, i := range g.blgSub {
@@ -44,19 +51,45 @@ func landGrantScan(t *kop.Table, g *genPrep) (granted kop.ColorMask, anyCard boo
 			}
 			switch a.Static.Kind {
 			case kop.StatContinuous:
-				granted |= add(a.Static.AddSub)
+				if c := add(a.Static.AddSub); c != 0 {
+					granted |= c
+					reach |= kop.TLand
+				}
 			case kop.StatOverride:
 				// a land-type setter (Blood Moon, CR 305.7) takes the land's own abilities
 				// with it: one production, the intrinsic one (static_landtypesetter.go)
 				if o := &t.Overrides[max(int(a.Static.Override), 1)-1]; a.Static.Override > 0 && !o.SetLandSub {
 					c := add(o.AddSub)
 					granted |= c
-					anyCard = anyCard || c != 0 && o.AddTypes&kop.TLand != 0
+					if c != 0 && o.AddTypes&kop.TLand != 0 {
+						reach |= filterTypeReach(t, a.Static.Filter)
+					} else if c != 0 {
+						reach |= kop.TLand
+					}
 				}
 			}
 		}
 	}
-	return granted, anyCard
+	return granted, reach
+}
+
+// filterTypeReach is the card types the filter chain at id can match: a card
+// whose printed types miss every alternative's Types is out of its reach (Ashaya's
+// "nontoken creatures you control" never reaches Sol Ring or a Signet, which are
+// no creatures, CR 205.2). An alternative with no type constraint reaches every
+// type. An animation that makes such a card a creature later is no static of
+// the table: blgView then stalls it at runtime (StallLandGrant).
+func filterTypeReach(t *kop.Table, id kop.FilterID) kop.TypeMask {
+	var m kop.TypeMask
+	for n := 0; id != 0 && n < len(t.Filters); n++ {
+		f := &t.Filters[id]
+		if f.Types == 0 {
+			return ^kop.TypeMask(0)
+		}
+		m |= f.Types
+		id = f.Or
+	}
+	return m
 }
 
 // landGrantPairOn: t holds both halves of the land-grant refusal: a grant
@@ -66,9 +99,9 @@ func landGrantPairOn(t *kop.Table, p *prep, g *genPrep) bool {
 	if !g.blgOn {
 		return false
 	}
-	granted, anyCard := landGrantScan(t, g)
+	granted, reach := landGrantScan(t, g)
 	for i := range t.Cards {
-		if landGrantStalls(t, p, g, i, granted, anyCard) {
+		if landGrantStalls(t, p, g, i, granted, reach) {
 			return true
 		}
 	}
@@ -76,19 +109,46 @@ func landGrantPairOn(t *kop.Table, p *prep, g *genPrep) bool {
 }
 
 // landGrantStalls: card i has no planner view (blgIdx < 0: its own mana
-// ability is neither a plain {T} one nor a painland pair), is in reach of
-// the grant, and would gain a granted colour its own ability does not make.
-func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.ColorMask, anyCard bool) bool {
-	if g.blgIdx[i] >= 0 || !anyCard && t.Cards[i].Types&kop.TLand == 0 {
+// ability is neither a plain {T} one nor a painland pair), is in reach of the grant, and would gain a
+// granted colour its own ability does not make; or it grants a mana ability
+// (grantsManaTo) to a card the land-type grant reaches.
+func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.ColorMask, reach kop.TypeMask) bool {
+	if grantsManaTo(t, p, g, i, reach) {
+		return true
+	}
+	if t.Cards[i].Types&reach == 0 && !DebugLandGrantAnyReach {
 		return false
 	}
-	return granted&^p.cards[i].manaCol&0x3f != 0
+	return g.blgIdx[i] < 0 && granted&^ownMadeCols(&p.cards[i])&0x3f != 0
+}
+
+// grantsManaTo: card i carries a latent mana ability (Citanul Hierophants'
+// "{T}: Add {G}" to every creature) and the land-type grant reaches a card with
+// no mana ability of its own. That card takes the granted view, which holds no
+// intrinsic production (manaPCGen, blgStall); gorge lists the intrinsic and the
+// granted ability as one census unit whose position the kernel's classless
+// granted unit does not follow (Ashaya beside Citanul Hierophants diverged on
+// the payment of Ashaya's own cast).
+func grantsManaTo(t *kop.Table, p *prep, g *genPrep, i int, reach kop.TypeMask) bool {
+	granter := false
+	for _, r := range g.grantOf {
+		granter = granter || int(r.card) == i
+	}
+	if !granter {
+		return false
+	}
+	for j := range t.Cards {
+		if t.Cards[j].Types&reach != 0 && p.cards[j].manaAb < 0 && p.cards[j].manaCol == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // landGrantPairText is StallLandGrant's refusal text and halves: side a the
 // granters, side b the cards that stall under them.
 func landGrantPairText(t *kop.Table, p *prep, g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
-	granted, anyCard := landGrantScan(t, g)
+	granted, reach := landGrantScan(t, g)
 	grants := func(m kop.SubMask) bool {
 		for _, i := range g.blgSub {
 			if i != subOutside && m.Has(int(i)) {
@@ -110,5 +170,20 @@ func landGrantPairText(t *kop.Table, p *prep, g *genPrep) (string, func(*kop.Car
 			}
 			return false
 		}),
-		func(_ *kop.CardDef, i int) bool { return landGrantStalls(t, p, g, i, granted, anyCard) }
+		func(_ *kop.CardDef, i int) bool { return landGrantStalls(t, p, g, i, granted, reach) }
+}
+
+// ownMadeCols is the colours a view's own mana ability makes: manaCol, the
+// first colour of an all-at-once ability (ManaEach, Arixmethes' {G}{U}) beside
+// the colours its manaXv adds. gorge appends a granted type's intrinsic ability
+// only for a colour no listed ability produces (ManaAbilitiesProduce), so a
+// colour in the extra is no stall.
+func ownMadeCols(pc *pcard) kop.ColorMask {
+	m := pc.manaCol
+	for c, n := range pc.manaXv {
+		if n > 0 {
+			m |= 1 << c
+		}
+	}
+	return m
 }

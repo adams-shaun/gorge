@@ -319,7 +319,7 @@ func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
 	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
-		m &^= pc.manaCol       // gorge ManaAbilitiesProduce: a printed colour is not appended again
+		m &^= ownMadeCols(pc) // gorge ManaAbilitiesProduce: a printed colour (a ManaEach ability's extra too) is not appended again
 		m &^= blgExactPain(pc) // a single-colour painful ability's Produced$ is exact too: no intrinsic beside it
 	}
 	if m == 0 {
@@ -342,7 +342,7 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 //
 //go:noinline
 func (s *State) blgStall(k *prep, sl Slot, c CardID) {
-	if s.blgMask(k, sl)&^k.cards[c].manaCol != 0 {
+	if s.blgMask(k, sl)&^ownMadeCols(&k.cards[c]) != 0 {
 		s.capFull(StallLandGrant)
 	}
 }
