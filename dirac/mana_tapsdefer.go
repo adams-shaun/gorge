@@ -830,6 +830,22 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 		mask &= mask - 1
 	}
 	col := bits.TrailingZeros8(mask)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		// a reflected StatTapExtra carrier (Mana Flare) reaches this tap: its
+		// extra is one more mana OF THE PICK (CR 106.12a; gorge's planner folds
+		// it into each declared single-colour production, pay planalts.go
+		// addTapExtra, and the census prices the widened unit as a one-colour
+		// record beside its backing, legal.go potUnitsAvail, mana.go
+		// addReflectOne). The answer names the pick, so the tap's whole unit
+		// floats that colour; addExtra's shape check would stall it instead
+		// (the pick-dependent extra is no fixed vector the float can pose).
+		s.pl[p].pool[col] += max(pc.manaN, 1) + r
+		s.artTag(k, p, sl, col)
+		if k.painMana && pc.painCol != 0 && pc.painOnly {
+			s.painDamage(k, sl, p, int(pc.painN))
+		}
+		return
+	}
 	s.pl[p].pool[col] += max(pc.manaN, 1) // a several-mana fixed-colour tap floats all of it (tapsDeferYield)
 	// the tap's StatTapExtra mana floats beside it, the pick-priced reflection
 	// one more of the pick this float names (CR 106.12a; addExtra stalls on it,
