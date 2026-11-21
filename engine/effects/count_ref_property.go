@@ -860,6 +860,14 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 		}
 		return h.Toughness(o.ID)
 	}
+	// The same every-zone CDA read refPower carries (CR 208.2a, 604.3):
+	// Phyrexian Ingester's "+X/+Y, where X is the exiled creature card's power
+	// and Y is its toughness" reads an exiled Abominable Treefolk through its
+	// counting CDA for both heads, so the two cannot disagree -- the power arm
+	// alone left the Ingester a 4/3 against the kernel's 4/4.
+	if !snapshot && o.Face() != nil && o.Face().CharacteristicDefining() {
+		return h.Toughness(o.ID)
+	}
 	_, dt := o.CounterPTTotals()
 	return int32(o.Face().Toughness()) + dt
 }
