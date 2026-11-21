@@ -717,14 +717,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return err
 	}
 	// Mandatory$ True on a targeted or Defined known-origin move is a no-op in
-	// gorge (it reads cz.Mandatory only in the hand, hidden and search walks).
-	if v, ok := ps.get("Mandatory"); ok {
-		if v != "True" {
-			return refuse("ChangeZone Mandatory$ %q", v)
-		}
-		if lc.optionalTarget() {
-			return refuse("Mandatory$ with an optional target (gorge re-asks a declined up-to target at resolution; gorge finding)")
-		}
+	// gorge (it reads cz.Mandatory only in the hand, hidden and search walks);
+	// a declined "up to one" target moves nothing in either engine (Koya).
+	if v, ok := ps.get("Mandatory"); ok && v != "True" {
+		return refuse("ChangeZone Mandatory$ %q", v)
 	}
 
 	if rt, ok := ps.get("RememberTargets"); ok {
@@ -852,9 +848,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if v != "True" {
 				return refuse("ChangeZone Attacking$ %q", v)
 			}
-			if lc.optionalTarget() {
-				return refuse("Attacking$ in a chain with an optional target (gorge re-asks a declined up-to target at resolution; gorge finding)")
-			}
 			in.CS = strings.TrimPrefix(in.CS+"|Attacking", "|")
 		}
 		if self {
@@ -973,22 +966,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.ab.Prog[len(lc.ab.Prog)-1].Obj = obj
 	}
 	return nil
-}
-
-// optionalTarget reports whether the ability being lowered has a target slot
-// that may be empty (TargetMin$ 0, "up to N"). gorge re-asks the target of a
-// ChangeZone at resolution when the announcement left it empty and, with the
-// ask unanswered, resolves the Defined$ default (the source): a declined
-// "up to one" target still moves the source (The Neutrinos, Koya; kernel
-// lockstep matchup 1 seed 1). The lifted shapes beside such a slot are
-// refused until gorge stops re-asking.
-func (lc *lowerCtx) optionalTarget() bool {
-	for i := range lc.ab.Targets {
-		if t := &lc.ab.Targets[i]; t.Min.isConst() && t.Min.N == 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // alsoSelf reads ThisDefinedAndTgts$: gorge appends the named extra objects
