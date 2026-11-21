@@ -374,7 +374,10 @@ func (s *State) entryOrderPark(k *prep, o Obj, ctrl uint8, mode uint8) bool {
 		return false
 	}
 	c, pair := s.entryComp(k, o, ctrl, NoSlot, false)
-	if !pair || c.over || c.other || s.objs[o].owner() != ctrl {
+	// A played land enters under the player's control whoever owns it (CR 305.1,
+	// 110.2: a land from another seat's zone), and gorge asks that player
+	// (entLand); the other routes keep the owner as the chooser.
+	if !pair || c.over || c.other || (mode != entLand && s.objs[o].owner() != ctrl) {
 		return false
 	}
 	if c.early {
