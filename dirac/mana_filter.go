@@ -1192,6 +1192,10 @@ type filtStep struct {
 	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
 	// (mana_sacsource.go)
 	sacOnly bool
+	// soleLife: a funding source whose only mana ability is a life-only one
+	// (Treasonous Ogre's "Pay 3 life: Add {R}"): it pays the life, adds its
+	// mana and is not tapped (mana_solelifefund.go)
+	soleLife bool
 	// wide: a funding source's answer is a gate-on pair's larger ability (the
 	// second of Whisperer of the Wilds' two: gorge's ability ask lists both
 	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
@@ -1741,6 +1745,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	pl := &s.pl[SeatIx(p)]
 	if st.sacOnly {
 		s.fundSacOnly(k, p, st.sl) // (mana_filtfund.go)
+		return
+	}
+	if st.soleLife {
+		s.soleLifeFundDo(k, p, st.sl) // (mana_solelifefund.go)
 		return
 	}
 	if st.gap && st.ans > 0 {
@@ -2403,8 +2411,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
-				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
-					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
+				if fs.fundNoTap(k, t, sl, funded, gapUsed) {
+					return true // a Spawn funds beside the Treasures (mana_filtfund.go), a life-only source (mana_solelifefund.go)
 				}
 				continue
 			}
