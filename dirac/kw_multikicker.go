@@ -144,7 +144,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	}
 	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
 	cd := &k.t.Cards[c]
-	if s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
 		// A target-priced cast (Esior, Wardwing Familiar's raise on a spell
 		// that may target it): gorge's witness prices the composed total
 		// from the planner's census and the census/prefix fallback declines
@@ -152,7 +152,8 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// census gap beside the raise (Song of Freyalise's creature mana
 		// funding the kicker's {B}, the dr-mbc-bbab Tear Asunder repro at
 		// decision 621) leaves the play census_incomplete and the autopay
-		// surface drops it. The plain census read (kickedAffords) does not
+		// surface drops it (so does the lowering surface: Imps' Taunt's buyback
+		// beside Esior and a granted sacrifice mana ability). The plain census read (kickedAffords) does not
 		// hold here: the search that prices a play the covered sources
 		// cannot pay is the one gorge never runs (CR 601.2f).
 		aff = s.ungrantedPaysNoDH(k, p, c, o, &kc)
