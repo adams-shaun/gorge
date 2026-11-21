@@ -1,0 +1,20 @@
+{
+  "card": "Kor Haven",
+  "class": "lockstep",
+  "why": "gorge's potentialPrefixScript spends its 160-clone budget (plain run: nodes 160, limited, 11 gaps, no script) walking the printed {B} answers of the Swamp/Island ask before the World Tree's granted any-colour answer, so Kor Haven's {1}{W},{T} (W only from The World Tree's grant) is priced census_incomplete and not offered, while the kernel's mirrored grant search offers it; node-for-node alignment of that search is beyond a bounded fix",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "world_tree_granted_mana_kor_haven_census"
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c001",
+    "ev-tail-08-s000",
+    "ev-tail-62-c011"
+  ]
+}
