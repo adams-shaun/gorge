@@ -804,6 +804,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
+	case kop.ExtExchangeLife:
+		return s.exchangeLifeExt(k, in) // act_exchangelife.go
 	case kop.ExtMeld:
 		return s.meldExt(k, in) // face_meld.go
 	case kop.ExtMustBlock:
@@ -824,6 +826,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtUnattach:
+		return s.unattachExt(k, in) // act_unattach.go
 	case kop.ExtVenture:
 		return s.ventureExt(k, in) // act_venture.go
 	}
