@@ -148,7 +148,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 			total = 0
 			for i := 0; i < rl.r.nev; i++ {
 				ev := &rl.r.ev[i]
-				if ev.n <= 0 || !s.sameReferent(rl.r, ev, rcp) || !s.objEventMatch(k, l, a, ev.src) {
+				if ev.n <= 0 || !s.sameReferent(k, ev, rcp) || !s.objEventMatch(k, l, a, ev.src) {
 					continue
 				}
 				total += int(ev.n)
@@ -183,10 +183,12 @@ func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj
 }
 
 // sameReferent: combat event ev lands on the referent rcp names.
-func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp TCode) bool {
+func (s *State) sameReferent(k *prep, ev *dmgEv, rcp TCode) bool {
 	if ev.dst == NoSlot {
+		// the same player: at four seats creatures can hit different players
+		// in one step, each its own batch (CR 603.2c)
 		_, ok := recipientPlayer(rcp)
-		return ok
+		return ok && s.combatRcp(k, ev) == rcp
 	}
 	return isObjTarget(rcp) && s.perms[ev.dst].obj == Obj(rcp)
 }
