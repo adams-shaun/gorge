@@ -1150,9 +1150,12 @@ type grantSrch struct {
 	// scriptSearch.feeOnly). A plain run that exhausted its budget on one is
 	// the case gorge's phased fallback takes outside phasedScope.
 	feeOnly bool
-	// feeOrder: this run walks gorge's fee order (mana_grantfeeorder.go): the
-	// covered funding, then the fee gaps (feeGap), then the other gaps.
-	// wantFeeOrder asks the next grantSearchRun for it (set by grantSearch).
+	// feeGap: the candidate's mana abilities include one that costs mana and
+	// makes at least two units (gorge potentialPrefixScript's feeGaps scan,
+	// grantFeeGap). feeOrder: this run walks gorge's fee order
+	// (mana_grantfeeorder.go): the covered funding, then the fee gaps
+	// (feeGap), then the other gaps. wantFeeOrder asks the next
+	// grantSearchRun for it (set by grantSearch).
 	feeOrder, wantFeeOrder bool
 	feeGap                 [MaxPerm]bool
 	// visitNode marks the node charge of a visit entry: the phased run's
@@ -1301,6 +1304,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, smi, am)
+		g.feeGap[g.n] = s.grantFeeGap(g.k, sl, g.filt[g.n], int(ng), &g.gi[g.n])
 		if ng > 0 && !s.grantGapUsable(g.k, sl) {
 			g.idle = g.idle.with(sl)
 		}
@@ -1350,7 +1354,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
 		g.each[g.n], g.wide[g.n], g.tdef[g.n], g.ctr[g.n], g.store[g.n] = false, false, false, false, false
-		g.gap[g.n] = false
+		g.gap[g.n] = false // a funding source is no gap, so no fee gap either (gorge's scan reads the gaps)
 		g.n++
 	}
 }
@@ -2530,7 +2534,9 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 }
 
 // grantSearchRun is one run of grantSearch: the plain one (sub nil) or the
-// subsume one, whose colour asks keep only the colours *sub still lacks.
+// subsume one, whose colour asks keep only the colours *sub still lacks. A
+// phased run walks gorge's phased order, the fee-order one (feeOrder) the
+// covered funding before the fee-carrying gaps (mana_grantfeeorder.go).
 //
 //go:noinline
 func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8, phased bool) bool {
@@ -2557,9 +2563,7 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 	}
 	g.candidates(s)
 	g.phased = sub == nil && phased
-	if g.phased && wantFeeOrder {
-		g.feeGap, g.feeOrder = g.feeGapMarks(s)
-	}
+	g.feeOrder = g.phased && wantFeeOrder
 	if sub == nil && g.phasedScope(s) {
 		// The graveyard-cast pip hint (playNeed's exception) is the r1
 		// workaround for the missing phased run: gorge reads no moded cast's

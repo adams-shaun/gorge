@@ -13,21 +13,6 @@ package dirac
 // the cheap grants first (Mijae Djinn's {R}{R}{R} under a transformed Mystic
 // Skull's "{T}: Add one mana of any color" on every land).
 
-// feeGapMarks marks the gap candidates gorge counts as fee gaps (feeGaps in
-// potentialPrefixScript): a filter with a fee of at least two units
-// (filtFeeGaps), and reports whether any is marked.
-func (g *grantSrch) feeGapMarks(s *State) (marks [MaxPerm]bool, any bool) {
-	for i := 0; i < g.gapN; i++ {
-		if !g.filt[i] {
-			continue
-		}
-		if s.filtFeeGaps(g.k, slotMask{}.with(g.cand[i])).any() {
-			marks[i], any = true, true
-		}
-	}
-	return marks, any
-}
-
 // feeOrderOf reports whether gorge's fee-order run follows the plain run g,
 // which found no script (mana_filterfeeorder.go feeOrderFallback): a plain
 // cast of the printed cost with a fee gap among the candidates, outside the
@@ -37,8 +22,12 @@ func (g *grantSrch) feeOrderOf(s *State) bool {
 	if !g.limited || !g.d.hasPlay || g.d.play.Kind() != AkCast || g.d.play.Mode() != 0 || g.phasedScope(s) {
 		return false
 	}
-	_, any := g.feeGapMarks(s)
-	return any
+	for i := 0; i < g.gapN; i++ {
+		if g.gap[i] && g.feeGap[i] {
+			return true // (grantFeeGap marked it when the candidates were built)
+		}
+	}
+	return false
 }
 
 // feeOrderPasses is visit's activation walk under the fee order: the covered
