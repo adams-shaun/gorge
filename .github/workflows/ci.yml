@@ -722,6 +722,10 @@ jobs:
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        with:
+          # The instruction step reads the program base from the base revision's
+          # scripts/dirac-gate.sh, so a branch cannot move it; the base commit must be here.
+          fetch-depth: 0
         id: checkout
         continue-on-error: ${{ runner.environment == 'self-hosted' }}
       - name: Re-clone a broken workspace (self-hosted)
@@ -732,6 +736,8 @@ jobs:
           rm -rf "$GITHUB_WORKSPACE/.git"
       - uses: actions/checkout@v4
         if: steps.checkout.outcome == 'failure'
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -768,6 +774,53 @@ jobs:
         run: |
           # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
           if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
+      # The merge queue measures instructions per op against the accepted program base, by
+      # dirac-gate step 5's method (scripts/instr-measure.sh). INSTR_PB_MAX and INSTR_PB_* are read
+      # from the base revision's scripts/dirac-gate.sh, never the head's, so a branch cannot move
+      # the budget that judges it. perf and perf_event_paranoid <= 1 are required on the runner:
+      # either missing is an error, never a skip (scripts/instr-measure.sh).
+      - name: Measure instructions against the program base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -uo pipefail
+          python3 -I scripts/instr_measure_test.py || {
+            echo "instr-check: scripts/instr-measure.sh no longer matches dirac-gate.sh step 5's method" >&2
+            exit 2
+          }
+          base_gate=$(git show "$BASE_SHA:scripts/dirac-gate.sh") || {
+            echo "instr-check: no scripts/dirac-gate.sh at the base $BASE_SHA: cannot read the program base" >&2
+            exit 2
+          }
+          pb_max=$(sed -nE 's/^INSTR_PB_MAX=\$\{INSTR_PB_MAX:-([0-9.]+)\}$/\1/p' <<<"$base_gate")
+          pb_fdn=$(sed -nE 's/^INSTR_PB_FDN=([0-9]+)$/\1/p' <<<"$base_gate")
+          pb_blb=$(sed -nE 's/^INSTR_PB_BLB=([0-9]+)$/\1/p' <<<"$base_gate")
+          [ -n "$pb_max" ] && [ -n "$pb_fdn" ] && [ -n "$pb_blb" ] || {
+            echo "instr-check: the base's scripts/dirac-gate.sh names no INSTR_PB_MAX/INSTR_PB_FDN/INSTR_PB_BLB (max='$pb_max' fdn='$pb_fdn' blb='$pb_blb')" >&2
+            exit 2
+          }
+          work=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/dirac-instr.XXXXXX")
+          trap 'rm -rf "$work"' EXIT
+          go test -c -o "$work/dirac.test" ./dirac/ || {
+            echo "instr-check: the dirac test binary does not build" >&2
+            exit 2
+          }
+          status=0
+          for row in "BenchmarkTransitionFDN $pb_fdn FDN" "BenchmarkTransitionBLB $pb_blb BLB"; do
+            set -- $row
+            bench=$1 base=$2 label=$3
+            head=$(scripts/instr-measure.sh "$work/dirac.test" dirac "$bench") || {
+              echo "instr-check: the $label measurement failed: the runner needs perf and perf_event_paranoid <= 1 (or a valid INSTR_CORE)" >&2
+              exit 2
+            }
+            ratio=$(awk -v h="$head" -v b="$base" 'BEGIN { printf "%.4f", h / b }')
+            echo "$label: head $head instr/op, program base $base (from $BASE_SHA:scripts/dirac-gate.sh), max ${pb_max}x, ratio ${ratio}x"
+            if ! awk -v h="$head" -v b="$base" -v x="$pb_max" 'BEGIN { exit !(h / b <= x) }'; then
+              echo "instr-check: FAIL -- $label head $head is over ${pb_max}x the program base's $base instructions (${ratio}x)" >&2
+              status=1
+            fi
+          done
+          exit "$status"
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Play the committed slices
