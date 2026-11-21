@@ -96,6 +96,7 @@ Foundry Inspector
 Fruit of Tizerus
 Funnel-Web Recluse
 Garruk's Horde
+Ghost Council of Orzhova
 Ghost-Lit Nourisher
 Glarewielder
 Glimpse the Future
@@ -155,6 +156,7 @@ Mind Slash
 Mogg Squad
 Moldering Karok
 Moonsilver Key
+Moroii
 Mortal's Resolve
 Mountain
 Necropede
@@ -171,6 +173,7 @@ Pestilent Wolf
 Pierce Strider
 Pitchburn Devils
 Plains
+Polar Kraken
 Portable Hole
 Possessed Barbarian
 Precinct Captain
@@ -188,9 +191,11 @@ Relentless Rats
 Relic Bind
 Righteous Charge
 Righteous Fury
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
+Ruthless Deathfang
 Screeching Bat
 Scroll of Fate
 Scroll of Isildur
@@ -203,9 +208,14 @@ Shrine of the Forsaken Gods
 Six-Sided Die
 Skyblade's Boon
 Slingshot Goblin
+Smoldering Stagecoach
 Snarespinner
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Swamp
 Soul Channeling
 Sphere of Reason
+Sphinx of Clear Skies
 Spontaneous Artist
 Sprinting Warbrute
 Square Up
@@ -223,6 +233,7 @@ Swamp
 Talisman of Unity
 Tempest of Light
 Territorial Maro
+Teysa, Envoy of Ghosts
 That Which Was Taken
 The Forgotten Place
 The Terror of Serpent's Pass
@@ -256,3 +267,4 @@ Wu Scout
 Yavimaya Enchantress
 Yukora, the Prisoner
 Zanarkand, Ancient Metropolis
+Zombie Musher

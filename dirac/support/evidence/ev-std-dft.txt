@@ -61,9 +61,11 @@ Diversion Unit
 Draconautics Engineer
 Dracosaur Auxiliary
 Dredger's Insight
+Dune Drifter
 Dynamite Diver
 Earthrumbler
 Elvish Refueler
+Embalmed Ascendant
 Endrider Spikespitter
 Engine Rat
 Explosive Getaway
@@ -247,3 +249,4 @@ Wind-Scarred Crag
 Wreck Remover
 Wreckage Wickerfolk
 Wretched Doll
+Zahur, Glory's Past
