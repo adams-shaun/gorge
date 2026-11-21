@@ -34,3 +34,32 @@ func TestFlagbearerRuleCountsChangeling(t *testing.T) {
 		t.Fatalf("Bolt must offer the Flagbearer and the changeling, not the Bear: %+v", d.Options)
 	}
 }
+
+// TestHasTypeCountsChangelingCreatureTypes pins the read itself: the rules
+// package's hasType (used by tapPowerValueFor's host qualifier among others)
+// answers true for any creature subtype on a battlefield Changeling, false
+// for a word no Changeling grants, and false for a non-Changeling.
+func TestHasTypeCountsChangelingCreatureTypes(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	avian := lookup(t, reg, "Avian Changeling")
+	bears := lookup(t, reg, "Grizzly Bears")
+
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{avian, bears}, nil)
+	av := e.G.Obj(moveByName(t, e, 0, "Avian Changeling", state.ZBattlefield))
+	bear := e.G.Obj(moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield))
+	if av == nil || bear == nil {
+		t.Fatal("setup: objects missing")
+	}
+	if !e.hasType(av, "Flagbearer") {
+		t.Errorf("Changeling must read as a Flagbearer (CR 702.73a)")
+	}
+	if !e.hasType(av, "Creature") {
+		t.Errorf("Changeling must still read as a Creature")
+	}
+	if e.hasType(av, "Aura") {
+		t.Errorf("Changeling grants creature types only: Aura must read false")
+	}
+	if e.hasType(bear, "Flagbearer") {
+		t.Errorf("a non-Changeling must not read as a Flagbearer")
+	}
+}
