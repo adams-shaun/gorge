@@ -225,7 +225,6 @@ Arena Rector
 Ares, God of War
 Argent Mutation
 Argivian Phalanx
-Argoth, Sanctum of Nature
 Argothian Enchantress
 Argothian Sprite
 Ark of Hunger
@@ -472,7 +471,6 @@ Bleachbone Verge
 Blech, Loafing Pest
 Blessed Ghoul
 Blessed Light
-Blight Keeper
 Blight Mound
 Blight Titan
 Blightbelly Rat
@@ -498,7 +496,6 @@ Bloodhusk Ritualist
 Bloodline Keeper
 Bloodline Recollector
 Bloodline Shaman
-Bloodshot Trainee
 Bloodstone Goblin
 Bloombrute
 Blooming Blast
@@ -676,7 +673,6 @@ Carrier Pigeons
 Carrion
 Carrion Call
 Carrion Cruiser
-Carrion Locust
 Carrion Thrash
 Carven Caryatid
 Case of the Crimson Pulse
@@ -703,7 +699,6 @@ Cecil, Dark Knight
 Celebrate the Mountain-king
 Celestial Archon
 Celestial Colonnade
-Cemetery Gate
 Censor
 Centaur Chieftain
 Centaur Courser
@@ -823,7 +818,6 @@ Colossification
 Colossodon Yearling
 Colossus of the Blood Age
 Combadge
-Combustible Gearhulk
 Comet Crawler
 Comforting Counsel
 Command Beacon
@@ -1024,7 +1018,6 @@ Deadshot Minotaur
 Death Cultist
 Death Is Irrelevant
 Death Mutation
-Death Pulse
 Death in the Family
 Death's Oasis
 Deathbloom Ritualist
@@ -1296,7 +1289,6 @@ El-Hajjâj
 Elaborate Firecannon
 Elder Spawn
 Elder of Laurels
-Elderfang Ritualist
 Eldrazi Aggressor
 Eldrazi Confluence
 Eldrazi Ravager
@@ -1378,7 +1370,6 @@ Engineered Plague
 Enlightened Confidant
 Ennis, Debate Moderator
 Enormous Baloth
-Enslaved Dwarf
 Entomber Exarch
 Entropic Battlecruiser
 Entrust the Spark
@@ -1537,7 +1528,6 @@ Fierce Guardianship
 Fiery Intervention
 Fiery Justice
 Filigree Sages
-Final Death
 Final Judgment
 Final Showdown
 Finch Formation
@@ -1608,7 +1598,6 @@ Fodder Launch
 Fogwalker
 Fogwell's Gym
 Follow the Lumarets
-Fomori Nomad
 Foolish Fate
 Foot Elite
 Foot Mystic
@@ -1623,7 +1612,6 @@ Foreboding Ruins
 Forensic Gadgeteer
 Forensic Researcher
 Forerunner of Slaughter
-Forgotten Cave
 Foriysian Interceptor
 Forlorn Flats
 Forlorn Pseudamma
@@ -1830,7 +1818,6 @@ Gobbling Ooze
 Gobland
 Goblin Brigand
 Goblin Chariot
-Goblin Chieftain
 Goblin Chirurgeon
 Goblin Cohort
 Goblin Fire Fiend
@@ -2058,7 +2045,6 @@ Hexhaven Invigorator
 Hexmark Destroyer
 Hexplate Golem
 Hide on the Ceiling
-High Market
 High Noon
 High Priest of Penance
 High Stride
@@ -2071,7 +2057,6 @@ Hippo-Cows
 Historian of Zhalfir
 Hit
 Hit It!
-Hive Stirrings
 Hivespine Wolverine
 Hoarder's Overflow
 Hobbit Hole
@@ -2079,7 +2064,6 @@ Hobblefiend
 Hobgoblin Dragoon
 Hobgoblin, Mantled Marauder
 Hollowborn Barghest
-Hollowhead Sliver
 Hollowhenge Scavenger
 Hollowmurk Siege
 Holo-Engineer
@@ -2231,7 +2215,6 @@ Inspired Ultimatum
 Inspirit, Flagship Vessel
 Inspirited Vanguard
 Instruments of War
-Insubordination
 Integrity
 Interceptor Mechan
 Interdimensional Web Watch
@@ -2347,7 +2330,6 @@ Jungle Lion
 Jungle Wayfinder
 Junji, the Midnight Sky
 Junkblade Bruiser
-Junún Efreet
 Jurati, Cordial Queen
 Justice Strike
 K'Vort-Class Raider
@@ -2397,7 +2379,6 @@ Kefka, Court Mage
 Keldon Berserker
 Keldon Mantle
 Keldon Necropolis
-Kelinore Bat
 Kellan Joins Up
 Kellan, Inquisitive Prodigy
 Kelsien, the Plague
@@ -2440,13 +2421,11 @@ Kishla Skimmer
 Kishla Trawlers
 Kishla Village
 Kitchen
-Kitesail Scout
 Kithkin Rabble
 Kitsune Riftwalker
 Kitt Kanto, Mayhem Diva
 Kiyomaro, First to Stand
 Kjeldoran Dead
-Kjeldoran Outrider
 Klingon Strike Force
 Knacksaw Clique
 Knickknack Ouphe
@@ -2540,7 +2519,6 @@ Larval Scoutlander
 Laser Screwdriver
 Lash of Thorns
 Lash of the Balrog
-Lash of the Whip
 Lashwhip Predator
 Last Gasp
 Last Light of Durin's Day
@@ -2659,7 +2637,6 @@ Loxodon Battle Priest
 Loxodon Surveyor
 Loyal Tutor
 Lt. Arex, Ever-Adapting
-Lucky Clover
 Lucky the Pizza Dog
 Lumaret's Favor
 Lumbering Worldwagon
@@ -2765,7 +2742,6 @@ Markov Dreadknight
 Markov Warlord
 Marneus Calgar
 Maro
-Marrow Shards
 Marsh Flats
 Marshal of the Lost
 Marshaling Cry
@@ -2808,7 +2784,6 @@ Mek'leth Berserker
 Melancholic Poet
 Melded Moxite
 Melek, Reforged Researcher
-Melesse Spirit
 Melkotian Adjudicator
 Meltstrider Eulogist
 Meltstrider's Gear
@@ -2936,7 +2911,6 @@ Moment of Glory
 Moment of Reckoning
 Momentous Fall
 Momentum Breaker
-Momentum Rumbler
 Mona Lisa, Science Geek
 Monastery Messenger
 Mondrak, Glory Dominus
@@ -2962,7 +2936,6 @@ Mornsong Aria
 Morphic Pool
 Morska, Undersea Sleuth
 Mortality Spear
-Mortus Strider
 Moseo, Vein's New Dean
 Mosstodon
 Mosswort Bridge
@@ -3171,7 +3144,6 @@ One, Borg Evolved
 One-Clown Band
 Ooze Patrol
 Ooze Spill
-Opal Caryatid
 Open the Armory
 Operations Officer
 Opportunist
@@ -3194,11 +3166,9 @@ Order
 Order of the Mirror
 Ordered Migration
 Ordinary Bear
-Ordruun Commando
 Oread of Mountain's Blaze
 Oreplate Pangolin
 Organic Avulsion Unit
-Origin of Captain America
 Origin of Spider-Man
 Origin of the Hulk
 Ornery Kudu
@@ -3216,7 +3186,6 @@ Ouroboroid
 Out Cold
 Outcaster Greenblade
 Outcaster Trailblazer
-Outflank
 Outlaw Stitcher
 Outpace Oblivion
 Ovalchase Dragster
@@ -3291,7 +3260,6 @@ Perilous Snare
 Perimeter Sergeant
 Permission Denied
 Perplexing Test
-Persecute
 Persistent Marshstalker
 Person of Interest
 Pest Mascot
@@ -3339,7 +3307,6 @@ Pitiless Carnage
 Pitiless Vizier
 Pizza Face, Gastromancer
 Plague Beetle
-Plague Spores
 Plague Stinger
 Plan for All Outcomes
 Plan the Heist
@@ -3359,7 +3326,6 @@ Plunder the Trollshaws
 Plundering Predator
 Point the Way
 Poised Practitioner
-Poison Arrow
 Poisoner's Apprentice
 Polliwallop
 Polluted Mire
@@ -3438,7 +3404,6 @@ Pull Through the Weft
 Pull from the Grave
 Pulsar Squadron Ace
 Pulse of Murasa
-Pulverize
 Punish Ignorance
 Punk Frogs
 Puppet Crafting
@@ -3725,7 +3690,6 @@ Rom and Leeta, Unlikely Pair
 Romantic Rendezvous
 Romulus
 Rona's Vortex
-Rona, Disciple of Gix
 Rooftop Assassin
 Room of Refuge
 Roon of the Hidden Realm
@@ -3871,7 +3835,6 @@ Scion of the Swarm
 Scolding Administrator
 Scorched Geyser
 Scorching Shot
-Scorchwalker
 Scoria Elemental
 Scornful Egotist
 Scorpion's Sting
@@ -3891,7 +3854,6 @@ Scrappy Bruiser
 Scrapshooter
 Screaming Fury
 Screamreach Brawler
-Screeching Buzzard
 Screeching Drake
 Screeching Phoenix
 Screeching Sliver
@@ -4054,7 +4016,6 @@ Sigiled Skink
 Sigrid, God-Favored
 Silence the Echo
 Silent Sentinel
-Silent Skimmer
 Silicate Surveyor
 Silk Net
 Silk, Web Weaver
@@ -4214,7 +4175,6 @@ Soul of Innistrad
 Soul of Windgrace
 Soul's Grace
 Soulblade Renewer
-Soulbound Guardians
 Soulcatcher
 Soulshriek
 Sound the Trumpets
@@ -4230,7 +4190,6 @@ Sparkcaster
 Sparkhunter Masticore
 Spawnbinder Mage
 Spawning Bed
-Spearpoint Oread
 Species 8472
 Specimen Freighter
 Spectacle Summit
@@ -4331,7 +4290,6 @@ Sram, Senior Edificer
 Stadium Headliner
 Stadium Tidalmage
 Staff of the Flame Magus
-Stalking Assassin
 Stalking Drone
 Stall Out
 Stall for Time
@@ -4507,11 +4465,9 @@ Surveillance Phantasm
 Survey Mechan
 Survive the Night
 Survivors' Bond
-Survivors' Encampment
 Suspicious Bookcase
 Suspicious Detonation
 Suspicious Stowaway
-Sustainer of the Realm
 Susur Secundi, Void Altar
 Susurian Dirgecraft
 Susurian Voidborn
@@ -4636,7 +4592,6 @@ Test of Identity
 Tester of the Tangential
 Tether Technician
 Tethermage's Advantage
-Tethmos High Priest
 Tetsuo Umezawa
 Teval, the Balanced Scale
 Textbook Tabulator
@@ -4760,7 +4715,6 @@ Thranduil's Company
 Thranduil, Sindarin Liege
 Thrashing Wumpus
 Threaten
-Three Dreams
 Three Steps Ahead
 Three Tree City
 Three Tree Rootweaver
@@ -4772,7 +4726,6 @@ Throw from the Saddle
 Thrumming Hivepool
 Thunder Lasso
 Thunder Salvo
-Thunder Strike
 Thundercloud Elemental
 Thunderhead Gunner
 Thundering Broodwagon
@@ -4820,7 +4773,6 @@ Tome Blast
 Tome of Legends
 Tomik, Izzet Sparkmage
 Tony Stark
-Tooth Collector
 Toph, Hardheaded Teacher
 Toph, the First Metalbender
 Topiary Lecturer
@@ -4903,7 +4855,6 @@ Trygon Prime
 Trystan, Callous Cultivator
 Tsagan, Raider Warlord
 Tuinvale Treefolk
-Tuktuk Grunts
 Tumbleweed Rising
 Tune Up
 Tunnel Rats
@@ -4944,7 +4895,6 @@ U.S.S. Prometheus, Prototype
 U.S.S. Voyager, Lone Wanderer
 Ugin's Mastery
 Uhura, Xenolinguist
-Ukud Cobra
 Ulna Alley Shopkeep
 Ultimate Green Goblin
 Ultimate Nullification
@@ -5029,7 +4979,6 @@ Vanguard of Brimaz
 Vanishing Verse
 Vanishment
 Vannifar, Evolved Enigma
-Vanquish
 Vanquish the Horde
 Varina, Lich Queen
 Vash, Freelance Archaeologist
@@ -5065,9 +5014,7 @@ Verdant Crescendo
 Verdant Kraken
 Verdant Sun's Avatar
 Verduran Enchantress
-Verge Rangers
 Vernal Bloom
-Vessel of Ephemera
 Veteran Beastrider
 Veteran Explorer
 Veteran Guardmouse
@@ -5076,7 +5023,6 @@ Vexing Bauble
 Vhati il-Dal
 Vial Smasher, Gleeful Grenadier
 Vial of Dragonfire
-Viashino Sandscout
 Viashino Sandsprinter
 Viashino Sandstalker
 Viashino Warrior
@@ -5379,7 +5325,6 @@ Zoo Escapees
 Zookeeper Mechan
 Zoraline, Cosmos Caller
 Zuko's Offense
-Zuko, Avatar Hunter
 Zuko, Conflicted
 Zur the Enchanter
 Zur, Eternal Schemer
