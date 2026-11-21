@@ -2283,8 +2283,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
 
-				if rm := t.mixSrcMask(k, sl); free && rm != 0 {
-					if fs.mixSrcGap(k, t, sl, funded, rm, filt) { // (a restricted ability beside the filter: mana_mixsrc.go)
+				if handled, res := fs.gapFreeSpecial(k, t, sl, funded, free, filt); handled {
+					if res {
 						return true
 					}
 					continue
@@ -2508,6 +2508,98 @@ func (fs *filtSearch) gapOneShot(k *prep, t *State, sl Slot) bool {
 	}
 	a := t.filtAb(k, sl)
 	return a.Cost.Mana.Generic == 0 && pipSum(&a.Cost.Mana.Pips) == 0 && a.Cost.Mana.Hyb == ([4]kop.ColorMask{})
+}
+
+// gapFreeSpecial handles the two gap-slot shapes visit settles before its
+// free/filter switch. handled reports the slot was settled here (visit then
+// returns true when res is set, else moves to the next slot): a restricted
+// ability beside the filter (mana_mixsrc.go), or a free ability whose
+// activation spends the play's only producer of a needed pip
+// (freeBranchHopeless), where the paid ability is taken now when its fee is
+// paid, else the source is left to a later funding tap.
+func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, free, filt bool) (handled, res bool) {
+	if rm := t.mixSrcMask(k, sl); free && rm != 0 {
+		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
+	}
+	if free && fs.freeBranchHopeless(k, t, sl) {
+		return true, filt && fs.filtColours(k, t, sl, funded)
+	}
+	return false, false
+}
+
+// freeBranchHopeless reports whether activating sl's free mana ability cannot
+// help the searched play: a coloured pip the play's printed cost names can be
+// produced by neither that free ability, the pool, nor any other untapped
+// source. The free branch would then spend the play's only producer of that
+// colour for mana the play cannot use, and every continuation below it is
+// dead. Skipping it keeps the bounded search out of that subtree so a paid
+// ability of the same source can be funded (Vault of the Archangel beside
+// Unknown Shores' {1},{T}: Add one mana of any colour: the free {C} answer
+// spent the only white source and the ~150-node subtree below it exhausted
+// potentialScriptNodes before the paid answer's funding line, which gorge's
+// plain run finds in 70 nodes; tail-34 pair 25, seed 255781).
+//
+// The scan over-approximates every route the branch's continuations could
+// use: the pool, every other untapped permanent's printed mana abilities
+// (their costs ignored), intrinsic granted land types, and chosen colours.
+// Any route it does not model -- a hand mana guide, a live grant, another gap
+// class (an each-colour or chosen pair, a tap-another, counter, life or
+// distinct-colour source), a StatTapExtra carrier whose extra rides the tap
+// itself (mana_tapextra.go: the scan reads printed production, not the extra
+// the tap brings, and the free tap's own extra is exactly a route it misses)
+// -- fails open, as does a cost whose printed pips the search does not read
+// (an X, hybrid, snow or Phyrexian cost): the prune must never drop a branch
+// a real plan could use.
+func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
+	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
+		len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
+		return false
+	}
+	if t.scriptAnyR(k, fs.p).or(t.scriptTapX(k, fs.p)).or(t.scriptCtr(k, fs.p)).or(t.lifeGapMask(k, fs.p)).
+		or(t.anyDifferentGaps(k, fs.p)).or(t.scriptGaps(k, fs.p)).or(t.chosenPairGaps(k, fs.p)).any() {
+		return false // another gap class beside the filters: its route is not read here
+	}
+	need := false
+	for _, b := range fs.need {
+		need = need || b
+	}
+	if !need {
+		return false
+	}
+	p := fs.p
+	var reach uint8
+	pl := &t.pl[SeatIx(p)]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pl.pool[c] > 0 {
+			reach |= 1 << c
+		}
+	}
+	reach |= t.srcMaskAt(t.manaPCGen(k, sl), sl) // the free ability this branch activates
+	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
+		o := b.first()
+		if o == sl || o == fs.own || t.perms[o].flags&pfTapped != 0 {
+			continue
+		}
+		if t.canTapForMana(k, o) {
+			reach |= t.srcMaskAt(t.manaPCGen(k, o), o) // a granted basic land type's intrinsic unit too
+		}
+		cd := &k.t.Cards[t.cardAt(o)]
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+				reach |= uint8(a.ManaColors)
+			}
+		}
+		if ch := t.perms[o].chosen; ch < 5 {
+			reach |= 1 << ch
+		}
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if fs.need[c] && reach&(1<<c) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
