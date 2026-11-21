@@ -431,6 +431,19 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	var countEx avail
 	if !exactKnown {
 		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
+		if gs.repeats {
+			// a repeatable paid gap (Llanowar Envoy's "{1}{G}: Add one mana
+			// of any color", no {T}) is activated again as long as its fee
+			// is paid, so one bounded unit undercounts what the announcement
+			// can draw on: UU is two activations off three Forests and a
+			// Countryside. gorge's census is not relaxable then and its
+			// planner finds the payment, so the over-bound pool is the
+			// supply (CR 605.3b, 601.2g; mana_xboundgap.go).
+			dOpen := d
+			dOpen.gapTrack, dOpen.gapSkip, dOpen.gapN, dOpen.gapRepeats, dOpen.gapNever, dOpen.gapGain = false, 0, 0, false, 0, false
+			pot = avail{}
+			s.availPotentialFor(k, p, &pot, &dOpen, false)
+		}
 		// A repeatable paid gap's subsets are never priced (xBoundGapSubsets's
 		// gapRepeats arm), so the over-bound stands. When every gap it kept
 		// nets no mana, the covered census alone is the honest supply (gorge
