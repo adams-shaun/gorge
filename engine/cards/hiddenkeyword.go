@@ -213,3 +213,33 @@ func HiddenKeywordOf(k string) HiddenKeyword {
 	}
 	return hiddenKeywordHeadCodes.Code(lowerASCIIString(head))
 }
+
+// IsHiddenRuleEffectKeyword reports whether one derived keyword line is one
+// of the attack/block restriction or requirement sentences the CR applies as
+// a game-rule effect rather than an ability of the object: CR 613.11's class
+// ("say that a creature must attack this turn if able" -- the can't-attack,
+// can't-block, must-be-blocked and alone/unless siblings) is applied after
+// all other continuous effects, so a LATER layer-6 "loses all abilities"
+// (CR 613.1f) cannot end it, exactly as it cannot end a Pacifism. It DOES end
+// a granted ability line (a granted flying) and every printed line, whose
+// sentences the printed K: parser already canonicalised to heads.
+//
+// UntapNextStep is deliberately outside the class: the untap step consumes
+// the one-shot state flag stamped at grant time
+// (engine/effects registerPumpEffects), not the keyword text, so the line's
+// loss to an ability removal is not observable. The whitelist is explicit, so
+// a future sentence meaning an ABILITY starts as one (a removal ends it)
+// instead of silently surviving every removal.
+func IsHiddenRuleEffectKeyword(k string) bool {
+	switch HiddenKeywordOf(k) {
+	case HiddenKeywordCantAttackOrBlock, HiddenKeywordCantAttack, HiddenKeywordCantBlock,
+		HiddenKeywordMustBlock, HiddenKeywordCantAttackOrBlockAlone, HiddenKeywordCantAttackAlone,
+		HiddenKeywordCantBlockAlone, HiddenKeywordAllMustBlock, HiddenKeywordMustBeBlockedByTwo,
+		HiddenKeywordMustBeBlockedByOne, HiddenKeywordMustBeBlockedByAll, HiddenKeywordCanOnlyAttackAlone,
+		HiddenKeywordCantAttackUnlessGreaterPower, HiddenKeywordCantBlockUnlessGreaterPower,
+		HiddenKeywordCantAttackUnlessTwoOthers, HiddenKeywordCantBlockUnlessTwoOthers,
+		HiddenKeywordCantAttackUnlessBlackOrGreen:
+		return true
+	}
+	return false
+}
