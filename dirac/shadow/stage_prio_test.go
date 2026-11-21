@@ -23,6 +23,11 @@ import (
 // after that entry's controller activated it with no pass. Staging must refuse
 // it as priority instead of guessing.
 func TestStageStackPriorityAfterResolution(t *testing.T) {
+	if testing.Short() {
+		// A search over whole lockstep games (about 9 s of the package's 38). The
+		// pull request fast job passes -short; the merge batch runs it in full.
+		t.Skip("whole-game lockstep search; the merge batch runs it without -short")
+	}
 	reg := testutil.CorpusRegistry(t)
 	env := vanillaEnv()
 	matches := 0
