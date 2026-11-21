@@ -309,6 +309,7 @@ func TestSearchFullerKindsEndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	net := hashNet()
 	const sims = 48
 	for _, f := range kindFixtures {
@@ -346,6 +347,7 @@ func TestFullerWalkAndOpponentPayment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	roots := autoPayRoots(t, 3)
 	var total Stats
 	for i, r := range roots {
