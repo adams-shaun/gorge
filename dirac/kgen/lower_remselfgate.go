@@ -40,7 +40,8 @@ func (lc *lowerCtx) selfSacrificeGate(f *lFilter) bool {
 
 // remMarkFilterOK reports whether the persistent mark may be ORed into a
 // ConditionDefined$ Remembered gate whose present filter is f: an unrestricted
-// one, or the source-only check of selfSacrificeGate.
+// one, or the source-only check of selfSacrificeGate. Never over a battle-link
+// pick (gateOverPick): the gate then reads the pick's own set.
 func (lc *lowerCtx) remMarkFilterOK(f *lFilter) bool {
-	return filterAnyCard(f) || lc.selfSacrificeGate(f)
+	return (filterAnyCard(f) || lc.selfSacrificeGate(f)) && !lc.gateOverPick()
 }
