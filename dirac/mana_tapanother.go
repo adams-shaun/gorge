@@ -1114,6 +1114,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 // sacrifice (its Sacrificed and dies triggers queue), then every colour of the
 // production. The script returns to priority after the step, so the SBAs and
 // the queued triggers settle before the next node (as ctrGap's step does).
+// A restricted one (kop.SacXRestrManaAb, Master of Dark Rites) floats its
+// fixed production restricted (floatRestrAb): the payment the search prices at
+// the next node spends it as gorge's plan does, what it leaves stays
+// restricted (CR 106.6).
 func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	ab := k.tapXAbOf(s.cardAt(sl))
 	if ab.Cost.Flags&kop.CostTap != 0 { // (Krark-Clan Ironworks has no {T})
@@ -1125,6 +1129,14 @@ func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	cols, n := tapXUnit(ab)
 	if kop.SacXAnyColour(ab) {
 		cols = 1 << colour // the activation asked the colour after the sacrifice
+	}
+	if ab.ManaRestrict != 0 {
+		if !s.floatRestrAb(k, p, sl, ab, int(bits.TrailingZeros8(cols)), n) {
+			s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
+		}
+		s.tapExtraStall(k, sl)
+		s.sba(k)
+		return
 	}
 	for col := 0; col < kop.NumManaKinds; col++ {
 		if cols&(1<<col) != 0 {
