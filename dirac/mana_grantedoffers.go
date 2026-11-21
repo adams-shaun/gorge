@@ -1075,6 +1075,9 @@ type grantSrch struct {
 	// (kop.SacXMana), a census gap of gorge's beside the grants
 	// (mana_grantsacx.go); a grant holder keeps the grant side
 	sacx [MaxPerm]bool
+	// dsac: the candidate is a dynamic {T}, sacrifice-self source (Lotus Blossom),
+	// a census gap of gorge's beside the grants (mana_grantdynsac.go)
+	dsac [MaxPerm]bool
 	// def: the candidate is a deferred source (Pyromancer's Goggles), a census
 	// gap of gorge's beside the grants (mana_grantdeferred.go)
 	def [MaxPerm]bool
@@ -1270,7 +1273,8 @@ func (g *grantSrch) candidates(s *State) {
 	cm := s.scriptCtr(g.k, g.p)                // (mana_countercost.go)
 	sm := s.grantStoreGaps(g.k, g.p)           // (mana_grantstore.go)
 	si := s.grantStoreIdleGaps(g.k, g.p)
-	am := s.grantSacXGaps(g.k, g.p) // (mana_grantsacx.go)
+	am := s.grantSacXGaps(g.k, g.p)   // (mana_grantsacx.go)
+	ym := s.grantDynSacGaps(g.k, g.p) // (mana_grantdynsac.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -1285,7 +1289,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
 		}
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !smi.has(sl) && !am.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !smi.has(sl) && !am.has(sl) && !ym.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -1301,6 +1305,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, smi, am)
+		g.dsac[g.n] = ym.has(sl) && ng == 0
 		if ng > 0 && !s.grantGapUsable(g.k, sl) {
 			g.idle = g.idle.with(sl)
 		}
@@ -1350,7 +1355,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
 		g.each[g.n], g.wide[g.n], g.tdef[g.n], g.ctr[g.n], g.store[g.n] = false, false, false, false, false
-		g.gap[g.n] = false
+		g.gap[g.n], g.dsac[g.n] = false, false
 		g.n++
 	}
 }
@@ -1485,6 +1490,8 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 			return false, true // tapped, spent or its candidates gone since the root
 		}
 		return g.sacXBranch(t, i, sl), true
+	case g.dsac[i]:
+		return g.dynSacBranch(t, i, sl), true // tap, float X, sacrifice (mana_grantdynsac.go)
 	case g.ctr[i]:
 		return g.ctrBranch(t, i, sl), true // its counter cost, its colour ask's answers (mana_countercost.go)
 	case g.wide[i]:
@@ -2620,6 +2627,9 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 		switch st.gi {
 		case stepTapX:
 			s.tapXDo(k, g.p, tapXStep{sl: sl, cand: st.cand, cand2: st.cand2, col: st.col, kind: tapXAct})
+			continue
+		case stepDynSac:
+			s.dynSacFloat(k, g.p, sl, g.need) // (mana_grantdynsac.go)
 			continue
 		case stepSacX:
 			// the sacrifice and its production, the asked colour of an
