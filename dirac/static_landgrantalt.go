@@ -307,3 +307,21 @@ func altStat(pk *planner, ty *utype) {
 		BlgStats.AltOwn.Add(1)
 	}
 }
+
+// blgPainLand: pc is a painland whose normal ability is the first mana ability
+// ({C} or a colour, mana_pain.go prepPainMana) and whose painful second ability
+// deals damage: the granted intrinsic {c} joins the normal alternative as one
+// free mana (gorge lists the printed {C}, the intrinsic {U}, then the painful
+// choice; the painful one is priced last, so the view's normal unit is the merge
+// of the first two).
+func blgPainLand(pc *pcard) bool {
+	return !DebugLandGrantPainOff && pc.manaAb >= 0 && pc.manaTap && !pc.painOnly && !pc.painLife && pc.painCol != 0 && pc.painN > 0
+}
+
+// DebugLandGrantPainOff is the mutation: a painland under a granted basic type is
+// refused again.
+var DebugLandGrantPainOff bool
+
+// DebugLandGrantPainView is the mutation: a painland's granted view keeps its
+// printed normal colour alone, the intrinsic {c} dropped.
+var DebugLandGrantPainView bool

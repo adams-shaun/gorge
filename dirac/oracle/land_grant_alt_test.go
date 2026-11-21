@@ -31,47 +31,60 @@ var landGrantAltShared = []string{
 	"Rampant Growth", "Counterspell", "Beast Within", "Gray Merchant of Asphodel", "Sakura-Tribe Elder", "Mulldrifter",
 }
 
+// landGrantMeets: gorge's game g holds a Leviathan and an untapped source the
+// predicate counts (name, lands on its controller's battlefield).
+func landGrantMeets(g *GorgeSide, src func(name string, lands int) bool) bool {
+	var lev bool
+	n := 0
+	for p := range 4 {
+		lands := 0
+		ids := g.E.G.Zone(state.ZBattlefield, state.PlayerID(p))
+		for _, id := range ids {
+			if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
+				if o.Face().Name == "Stormtide Leviathan" {
+					lev = true
+				}
+				if slices.Contains(o.Face().Types, "Land") {
+					lands++
+				}
+			}
+		}
+		for _, id := range ids {
+			if o := g.E.G.Obj(id); o != nil && o.Face() != nil && !o.Tapped && src(o.Face().Name, lands) {
+				n++
+			}
+		}
+	}
+	return lev && n > 0
+}
+
 // landGrantAltRun plays the seeds of the pod and counts the decision points
 // where a Leviathan and an untapped bounce land or Temple (with five lands)
 // coexist: gorge then lists both productions of that land.
 func landGrantAltRun(t *testing.T, seeds uint64) (reached, bad int) {
+	return landGrantRun(t, landGrantAltShared, seeds, func(name string, lands int) bool {
+		switch name {
+		case "Azorius Chancery", "Simic Growth Chamber", "Golgari Rot Farm", "Selesnya Sanctuary", "Orzhov Basilica":
+			return true
+		case "Temple of the False God":
+			return lands >= 5
+		}
+		return false
+	})
+}
+
+// landGrantRun plays the seeds of the pod (four copies of deck) and counts the
+// decision points where the Leviathan and an untapped source src accepts coexist.
+func landGrantRun(t *testing.T, deck []string, seeds uint64, src func(name string, lands int) bool) (reached, bad int) {
 	t.Helper()
 	set := edhSet(t)
 	check := func(g *GorgeSide, _ Side) *Divergence {
-		var lev bool
-		var src int
-		for p := range 4 {
-			lands := 0
-			ids := g.E.G.Zone(state.ZBattlefield, state.PlayerID(p))
-			for _, id := range ids {
-				if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
-					if o.Face().Name == "Stormtide Leviathan" {
-						lev = true
-					}
-					if slices.Contains(o.Face().Types, "Land") {
-						lands++
-					}
-				}
-			}
-			for _, id := range ids {
-				if o := g.E.G.Obj(id); o != nil && o.Face() != nil && !o.Tapped {
-					switch o.Face().Name {
-					case "Azorius Chancery", "Simic Growth Chamber", "Golgari Rot Farm", "Selesnya Sanctuary", "Orzhov Basilica":
-						src++
-					case "Temple of the False God":
-						if lands >= 5 {
-							src++
-						}
-					}
-				}
-			}
-		}
-		if lev && src > 0 {
+		if landGrantMeets(g, src) {
 			reached++
 		}
 		return nil
 	}
-	pod := [4][]string{landGrantAltShared, landGrantAltShared, landGrantAltShared, landGrantAltShared}
+	pod := [4][]string{deck, deck, deck, deck}
 	play := fourSeatSetPlay(t, set, pod, nil, check, nil, func(seed uint64) Policy { return combatPolicy(seed, nil) })
 	for seed := uint64(1); seed <= seeds; seed++ {
 		res := play(seed)
@@ -196,6 +209,32 @@ func TestLandGrantAltPainStillRefused(t *testing.T) {
 		}
 	}
 	for _, n := range []string{"Golgari Rot Farm", "Temple of the False God", "Azorius Chancery"} {
+		if slices.Contains(ir.Cards, n) {
+			t.Errorf("refusal names %s (%v): the pair covers it", n, ir.Cards)
+		}
+	}
+}
+
+// landGrantRefusedNames asserts the pod of four copies of deck is refused as
+// landgrant, the refusal naming every card of want and none of notWant.
+func landGrantRefusedNames(t *testing.T, deck, want, notWant []string) {
+	t.Helper()
+	set := edhSet(t)
+	var lists [][]cardset.Entry
+	for range 4 {
+		lists = append(lists, landGrantEntries(deck))
+	}
+	_, _, err := set.MatchupN(lists)
+	var ir *cardset.InteractionRefusal
+	if !errors.As(err, &ir) || ir.Reason != "landgrant" {
+		t.Fatalf("the pod: %v, want the landgrant refusal", err)
+	}
+	for _, n := range want {
+		if !slices.Contains(ir.Cards, n) {
+			t.Errorf("refusal names %v, want %s among them", ir.Cards, n)
+		}
+	}
+	for _, n := range notWant {
 		if slices.Contains(ir.Cards, n) {
 			t.Errorf("refusal names %s (%v): the pair covers it", n, ir.Cards)
 		}

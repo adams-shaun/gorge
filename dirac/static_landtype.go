@@ -142,7 +142,9 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
 					}
 				}
-				v.manaCol |= kop.ColorMask(m)
+				if v.painCol == 0 || !DebugLandGrantPainView {
+					v.manaCol |= kop.ColorMask(m)
+				}
 			} else {
 				v.manaAb = 0 // no own ability: the intrinsic one (manaAbView guards the reads)
 				v.manaCol = kop.ColorMask(m)
@@ -208,13 +210,16 @@ func blgExactPain(pc *pcard) kop.ColorMask {
 // counts per payment (a restricted one, Jasmine Dragon Tea Shop) is not part of
 // the view: the gap and restricted-source models read it from the card.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {
-	if pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana {
+	if pc.manaChosen || pc.manaDyn || pc.ctrMana || pc.painCol != 0 && !blgPainLand(pc) {
 		return false
 	}
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 			continue
+		}
+		if pc.painCol != 0 && j != int(pc.manaAb) {
+			continue // a painland's painful second ability: the pain alternative (mana_pain.go), no view colour
 		}
 		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
 			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
