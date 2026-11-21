@@ -302,6 +302,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
+		if s.splitWinColArm(k, sl, census, potential) {
+			return true, held
+		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
@@ -4383,6 +4386,28 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 // castWinTapOptions builds the pick: the source's candidates in battlefield order.
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
+	if s.splitWinColAsk(k, s.g.winSrc) {
+		// a lucky Condition-split arm: the arm's colour ask (gorge's
+		// mana_color choice, ChGenManaChoice), the arm's colours in the
+		// askManaColour order (a printed order, else W U B R G).
+		d.Kind, d.Sub, d.Player = DkChoose, ChGenManaChoice, p
+		a := &k.t.Cards[s.cardAt(s.g.winSrc)].Abilities[k.gen.splitAb(s.cardAt(s.g.winSrc))]
+		var ord [kop.NumManaKinds]uint8
+		n, printed := colourAskOrder(a, uint8(a.SplitCols), &ord)
+		cols := ord[:n]
+		if !printed {
+			cols = cols[:0]
+			for c := uint8(0); c < 5; c++ {
+				if a.SplitCols&(1<<c) != 0 {
+					cols = append(cols, c)
+				}
+			}
+		}
+		for _, c := range cols {
+			d.add(MakeAction(AkChoose, 0, 0, c))
+		}
+		return true
+	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
 	if k.sacXOf(s.cardAt(s.g.winSrc)) {
 		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (gorge's "sacrifice" choose)
@@ -4391,9 +4416,21 @@ func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	return true
 }
 
+// applyCastWinCol floats the lucky Condition-split arm's mana in the picked
+// colour; the build's stage runs the window on.
+func (s *State) applyCastWinCol(k *prep, a Action) {
+	b := s.bld()
+	b.bfl &^= bflWinTap
+	s.splitWinColDo(k, b.e.ctrl, s.g.winSrc, int(a.Mode()))
+}
+
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
+	if s.splitWinColAsk(k, s.g.winSrc) {
+		s.applyCastWinCol(k, a)
+		return
+	}
 	more, cand, cand2 := s.winTapPick(k, a)
 	if more {
 		return // the second permanent is asked next
