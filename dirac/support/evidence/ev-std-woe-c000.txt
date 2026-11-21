@@ -41,6 +41,7 @@ Cursed Courtier
 Cut In
 Decadent Dragon
 Devouring Sugarmaw
+Diminisher Witch
 Discerning Financier
 Disdainful Stroke
 Dream Spoilers
@@ -96,6 +97,7 @@ Hopeful Vigil
 Hopeless Nightmare
 Horned Loch-Whale
 Howling Galefang
+Hylda of the Icy Crown
 Hylda's Crown of Winter
 Ice Out
 Icewrought Sentry
@@ -214,6 +216,7 @@ Tangled Colony
 Tanglespan Lookout
 Tattered Ratter
 Tempest Hart
+Tenacious Tomeseeker
 Territorial Witchstalker
 The Goose Mother
 The Huntsman's Redemption
@@ -231,6 +234,7 @@ Tough Cookie
 Troublemaker Ouphe
 Troyan, Gutsy Explorer
 Tuinvale Guide
+Twining Twins
 Twisted Fealty
 Twisted Sewer-Witch
 Two-Headed Hunter

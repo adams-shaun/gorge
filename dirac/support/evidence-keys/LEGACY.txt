@@ -1310,7 +1310,6 @@ Elemental Mascot
 Elemental Masterpiece
 Elena, Turk Recruit
 Elenda, the Dusk Rose
-Elephant Graveyard
 Elephant Guide
 Elephant-Rat
 Elim Garak, Simple Tailor
@@ -2143,7 +2142,6 @@ Hunting Grounds
 Huskburster Swarm
 Hustle
 Hydra Omnivore
-Hylda of the Icy Crown
 Hylderblade
 Hymn of Rebirth
 Hymn of the Faller
@@ -2600,7 +2598,6 @@ Lilah, Undefeated Slickshot
 Liliana the Faultless
 Liliana the Repentant
 Liliana's Reaver
-Liliana, the Last Hope
 Lilypad Village
 Lilysplash Mentor
 Lim-Dûl's High Guard
@@ -2873,7 +2870,6 @@ Miles "Tails" Prower
 Miles Morales
 Militant Inquisitor
 Minamo, School at Water's Edge
-Minas Tirith
 Mind Drill Assailant
 Mind Meanderer
 Mind Roots
@@ -4925,7 +4921,6 @@ Twin Bolt
 Twinblade Assassins
 Twinblade Slasher
 Twinflame Travelers
-Twining Twins
 Twinned Vision
 Twins of Maurer Estate
 Twisted Abomination
