@@ -3274,6 +3274,13 @@ func (s *State) witnessManaRestricted(k *prep, p uint8, pool *[kop.NumManaKinds]
 
 // lkiCtrlSlot is lkiCtrl for target slot i's object.
 func (s *State) lkiCtrlSlot(k *prep, o Obj, i int) uint8 {
+	// the snapshot the resolution took as it moved this target (snapResTarget)
+	// outlives the departed slot, which the dug-up creature of a later step
+	// reuses (Polymorph's Shuffle after the DigUntil: the Brawler's controller
+	// under Binding Grasp, not its owner; CR 608.2h)
+	if l := s.movedTargetLKIRec(o); l != nil {
+		return l.ctrl
+	}
 	if t := tspecE(k, &s.res.e, i); t != nil && t.Kind == kop.TgtObject {
 		if f := &k.t.Filters[t.Filter]; f.Zone == kop.ZoneNone && f.Flags&kop.FSpell == 0 {
 			best, ts := uint8(255), uint32(0)
