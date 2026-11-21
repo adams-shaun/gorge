@@ -13,10 +13,7 @@ import (
 // card), naming the card's latent embalm body, which is gorge's own kwEmbalm
 // expansion (a graveyard, sorcery-speed CopyAsToken of Self, exiling the card
 // as its cost). Every other granted keyword stays refused by name, the
-// granted Eternalize included. The lowering is off by default
-// (grantedEmbalmLowers: gorge prices the grant wrongly), so the test first
-// shows the default refuses, then turns it on. It is not parallel: the flag
-// is package state.
+// granted Eternalize included.
 func TestExpandedKeywordsGrantedEmbalmLower(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Cursecloth Wrappings")
@@ -24,14 +21,6 @@ func TestExpandedKeywordsGrantedEmbalmLower(t *testing.T) {
 		t.Fatal("Cursecloth Wrappings not in the corpus")
 	}
 	p := &pool{byName: map[string]*cards.Card{card.Faces[0].Name: card}, nDecks: map[string]int{}, reg: reg}
-	if grantedEmbalmLowers {
-		t.Fatal("precondition: the granted embalm lowers by default")
-	}
-	if dflt := lowerCard(p, card.Faces[0].Name, card, false); len(dflt.Refusals) == 0 {
-		t.Fatal("Cursecloth Wrappings lowers with the gate off, want the refusal")
-	}
-	grantedEmbalmLowers = true
-	t.Cleanup(func() { grantedEmbalmLowers = false })
 	lc := lowerCard(p, card.Faces[0].Name, card, false)
 	if len(lc.Refusals) != 0 {
 		t.Fatalf("Cursecloth Wrappings refusals = %v, want none", lc.Refusals)
