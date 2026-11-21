@@ -760,7 +760,7 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	if sr.phasedOutOfScope(c) {
 		return false // the fallback's scope: a consuming cost, a hybrid-fee gap, or a plain fee-only budget exhaustion
 	}
-	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true) {
+	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true, true) {
 		// winOK: a payment whose own sacrifice trigger ends the game in the
 		// payer's favour still reaches the play (CR 104.3, 603.3b), exactly
 		// as the plan offer counts it (payment_plan.go's witnessReachesMode
@@ -2204,12 +2204,20 @@ func (e *Engine) potentialWitnessReaches(p state.PlayerID, o decision.Option, pl
 // from pool's hypothetical-clone pool (pool is e, or the live engine whose
 // own hypothetical search made e).
 func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
-	return e.witnessReachesMode(pool, p, o, plan, false)
+	return e.witnessReachesMode(pool, p, o, plan, false, false)
 }
 
 // witnessReachesMode is witnessReachesFrom, counting a game the witness's
-// own triggers end in p's favour as a reach when winOK.
-func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK bool) bool {
+// own triggers end in p's favour as a reach when winOK. priceOK arms
+// witnessCostRepriced, the consuming-cost acceptance the script search's
+// priced() wants: a consuming payment may consume a permanent one of the
+// play's own cost statics counts, which the replay's end re-ask reprices
+// (CR 601.2f), and the search's acceptance is "the plan is the payment",
+// not "the end menu re-offers the play". Callers that infer an offer from
+// the reach (targetPaidNeedsPlannedPayment's planned-payment conclusion)
+// keep it disarmed: their inference reads the end menu, which the repricing
+// breaks exactly like any other refusal.
+func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK, priceOK bool) bool {
 	if e.Pending() == nil {
 		return false
 	}
@@ -2291,7 +2299,7 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
 				return true
 			}
-			if witnessCostRepriced(c, e, p, o, plan) {
+			if priceOK && witnessCostRepriced(c, e, p, o, plan) {
 				return true
 			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
