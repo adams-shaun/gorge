@@ -1153,3 +1153,10 @@ func forEachFeeSplit(pool state.Mana, n int32, try func(state.Mana) bool) bool {
 	}
 	return walk(0, n, pool)
 }
+
+// PaymentPlanTapConsequenceTrigger reports whether t is one of the Taps
+// triggers that are post-payment consequences touching no payment resource:
+// the destroy-self row or the poison-counter row.
+func PaymentPlanTapConsequenceTrigger(f *cards.Face, t cards.Trigger) bool {
+	return PaymentPlanTapDestroySelfTrigger(f, t) || PaymentPlanTapPoisonTrigger(f, t)
+}

@@ -19,8 +19,7 @@ package rules
 //     matcher says would apply to S's activation defers S, naming the object;
 //     two trigger rows are instead post-payment consequences that touch no
 //     payment resource and stay ordinary units (the destroy-self row and the
-//     poison-counter row below, PaymentPlanTapDestroySelfTrigger and
-//     PaymentPlanTapPoisonTrigger).
+//     poison-counter row below, joined by PaymentPlanTapConsequenceTrigger).
 //
 // Untap and LoseMana replacements on other objects alter neither a tap nor a
 // production and are ignored. Only a global effect whose scope the planner
@@ -316,23 +315,16 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				}
 				// A trigger whose only effect is to destroy the tapped
 				// permanent itself (Brink of Disaster's "when enchanted
-				// permanent becomes tapped, destroy it") is a post-payment
-				// consequence, not interference: the mana was produced at the
-				// tap (CR 605.4a) and the trigger resolves after the payment
-				// that caused it (CR 405.6c/603.2), so the tap stays an
-				// ordinary unit and the trigger fires on its own at the tap,
-				// on both engines.
-				if pay.PaymentPlanTapDestroySelfTrigger(fc.face, t) {
-					continue
-				}
-				// A trigger whose only effect is a poison counter on a player
-				// the payment cannot move (Relic Putrescence's "whenever
-				// enchanted artifact becomes tapped, its controller gets a
-				// poison counter") is the same post-payment consequence: it
-				// touches no payment resource, so the tap stays an ordinary
-				// unit and the trigger fires on its own at the tap, on both
-				// engines.
-				if pay.PaymentPlanTapPoisonTrigger(fc.face, t) {
+				// permanent becomes tapped, destroy it") or to give a player
+				// the payment cannot move a poison counter (Relic Putrescence's
+				// "whenever enchanted artifact becomes tapped, its controller
+				// gets a poison counter") is a post-payment consequence, not
+				// interference: the mana was produced at the tap (CR 605.4a)
+				// and the trigger resolves after the payment that caused it
+				// (CR 405.6c/603.2), touching no payment resource, so the tap
+				// stays an ordinary unit and the trigger fires on its own at
+				// the tap, on both engines.
+				if pay.PaymentPlanTapConsequenceTrigger(fc.face, t) {
 					continue
 				}
 				if deferBy(oid) {
