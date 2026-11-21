@@ -15,6 +15,7 @@ Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
 Alpine Houndmaster
+Altar of Shadows
 Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
@@ -380,6 +381,7 @@ Seton's Desire
 Severed Strands
 Shadow Stinger
 Shadow Summoning
+Shambling Attendants
 Sheltering Landscape
 Sheoldred's Restoration
 Shi'ar Soldier
