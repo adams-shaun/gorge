@@ -680,13 +680,13 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
 		return true
 	}
-	return !s.plainPlanNoWitness(k, p, o, ai)
+	return !s.plainPlanNoWitness(k, a, p, o, ai)
 }
 
 // plainPlanNoWitness reports whether the planner's dry probe of the plain
 // activation ai of object o prices no payment from the sources as they stand:
 // the walk lists a play the planner holds no witness for.
-func (s *State) plainPlanNoWitness(k *prep, p uint8, o Obj, ai int) bool {
+func (s *State) plainPlanNoWitness(k *prep, a Action, p uint8, o Obj, ai int) bool {
 	ob := &s.objs[o]
 	ab := &k.t.Cards[ob.card].Abilities[ai]
 	if !plainPricedCost(ab) {
@@ -728,7 +728,7 @@ func (s *State) filtPrefixSpares(k *prep, a Action, p uint8) {
 		return
 	}
 	if o := Obj(a.Source()); o != 0 && int(o) < len(s.objs) && int(a.Mode()) < len(k.t.Cards[s.objs[o].card].Abilities) &&
-		s.plainPlanNoWitness(k, p, o, int(a.Mode())) {
+		s.plainPlanNoWitness(k, a, p, o, int(a.Mode())) {
 		s.CopyFrom(saved)
 	}
 }
