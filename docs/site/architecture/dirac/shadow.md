@@ -169,6 +169,28 @@ follows is searched from it. Anything else, and any position the seat cannot sta
 its own `Submit` checks every answer. The tests are `TestShadowSeatMapsEveryOption`, `TestShadowSeatPlaysHeuristic`,
 `TestShadowSeatContinuesTargets`, `TestShadowSeatDeterministic` and `TestShadowSeatImports`.
 
+### Measuring it: `shadowbench`
+
+`go run ./dirac/cmd/shadowbench [-pool vanilla|mbc-stage|set:<name>] [-games 100] [-sims 64] [-worlds 4] [-seed 1]
+[-max-turns 60]` plays the shadow seat against `heuristic.NewBot` with gorge as the host (`testkit/bench.PlayGame`),
+the seat alternating by game, and prints one JSON line: `shadow_wins`, `heuristic_wins`, `draws`, `stalls`,
+`win_rate` over the decided games (a stall is outside the denominator) with its 95% Wilson interval, the seat's
+`decisions`, `searched`, `continued` and `fallbacks`, the `reasons` census, and the 20 most frequent `card_refusals`.
+A game is `seed+g`; the same flags give the same line. A shadow intent gorge's `Submit` refuses is counted in
+`refused` and makes the exit status 1. The `set:<name>` pool draws realistic decks from a generated set (two colours
+per seat, 17 basics, 23 supported non-land cards of those colours, at most 4 of a name); most of those positions
+fall outside the staging scope, so its `reasons` and `card_refusals` rank what to widen next.
+
+First measured lines (100 games, `-sims 64 -worlds 4`, seed 1):
+
+```
+{"pool":"vanilla","games":100,"shadow_wins":68,"heuristic_wins":32,"draws":0,"stalls":0,"win_rate":0.68,"wilson_lo":0.5833719774632082,"wilson_hi":0.7633098918454312,"decisions":21546,"searched":17812,"continued":0,"fallbacks":3734,"refused":0,"reasons":{"continuation/choose":102,"kind/choose":111,"stage/combat":3,"stage/pool":534,"stage/priority":96,"stage/stack-entry":5,"stage/step":2883},"card_refusals":[]}
+{"pool":"set:fdn","games":100,"shadow_wins":47,"heuristic_wins":53,"draws":0,"stalls":0,"win_rate":0.47,"wilson_lo":0.3751065198210374,"wilson_hi":0.5671131686275227,"decisions":23266,"searched":0,"continued":0,"fallbacks":23266,"refused":0,"reasons":{"kind/arrange":33,"kind/choose":166,"kind/modes":81,"kind/target":297,"kind/trigger_optional":27,"kind/trigger_order":28,"stage/card":9026,"stage/counter":1442,"stage/exile":2697,"stage/hidden":648,"stage/mark":566,"stage/pool":3082,"stage/stack":533,"stage/step":2402,"stage/token":2238},"card_refusals":[["Adventuring Gear: ability",475],["Bloom Tender: ability",349],["Gleaming Barrier: type",280],["Leyline Axe: keyword",220],["Campus Guide: type",191],["Inspiring Paladin: ability",188],["Mild-Mannered Librarian: ability",182],["Goldvein Pick: ability",173],["Slumbering Cerberus: ability",172],["Gnarlid Colony: keyword",163],["Brineborn Cutthroat: keyword",158],["Infestation Sage: ability",146],["Sun-Blessed Healer: keyword",135],["Hare Apparent: ability",131],["Authority of the Consuls: type",126],["Burnished Hart: type",125],["Heraldic Banner: type",125],["Cathar Commando: keyword",123],["Giada, Font of Hope: type",120],["Sire of Seven Deaths: keyword",118]]}
+```
+
+On `set:fdn` the seat searched none of 23266 decisions, so its 47 wins are the fallback heuristic playing itself (the
+interval holds 50%); the census above is the result.
+
 A closed list (an unknown opponent deck, `ClosedList` with a `search.Belief`) and pods are out of scope: a pod stages
 as `stage/seats` and falls back.
 
