@@ -191,6 +191,7 @@ Goblin Cannon
 Goblin Medics
 Goblin Pyromancer
 Goblin War Wagon
+Goldspan Dragon
 Goma Fada Vanguard
 Graceful Adept
 Grand Warlord Radha

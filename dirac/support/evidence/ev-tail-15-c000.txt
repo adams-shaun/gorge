@@ -15,6 +15,7 @@ Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Aphotic Wisps
+Archway of Innovation
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -311,6 +312,7 @@ Putrid Cyclops
 Pyre Hound
 Quagmire Lamprey
 Quirion Druid
+Radiant's Judgment
 Ragged Veins
 Raise the Draugr
 Raka Disciple
