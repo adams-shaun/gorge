@@ -823,7 +823,6 @@ Comforting Counsel
 Command Beacon
 Command Bridge
 Command Decision
-Commander Mustard
 Commander William Riker
 Commander's Sphere
 Commanding Presence
@@ -1818,7 +1817,6 @@ Gobbling Ooze
 Gobland
 Goblin Brigand
 Goblin Chariot
-Goblin Chirurgeon
 Goblin Cohort
 Goblin Fire Fiend
 Goblin Fireslinger
@@ -2690,7 +2688,6 @@ Magmatic Sprinter
 Magnificent End
 Magnivore
 Magus of the Bridge
-Magus of the Library
 Maha, Its Feathers Night
 Maja, Bretagard Protector
 Make Mischief
@@ -4815,7 +4812,6 @@ Transit Mage
 Transmogrifying Licid
 Transpose
 Transwarp Hub
-Trap Essence
 Trash the Town
 Traumatic Critique
 Traumatic Visions
