@@ -848,11 +848,34 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
+	if handManaOn(k) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
+		return false
+	}
 	av := s.g.availX
 	s.g.availX = av | availNoHandFund
 	ok := s.filtScript(k, pa, p, false)
 	s.g.availX = av
 	return ok
+}
+
+// relaxedWalkLists reports whether the relaxed census's walk (the gaps walk)
+// lists the activation a. On a relaxable census gorge's relaxed proof
+// (paymentPlanRelaxProof) reads no hand mana: a play it cannot pay is
+// "insufficient" and runs no prefix search, so a Spirit Guide's {R} never
+// funds a search that the relaxed filters' colours leave short (Golgari
+// Signet's {B}{G} beside Plains and a Simian Spirit Guide: Goblin
+// Fireleaper's {1}{R} pump, CR 605.1a). The filters' subsets matter only for
+// a net-negative one, which actScriptPays has already declined.
+func (s *State) relaxedWalkLists(k *prep, a Action) bool {
+	// actScriptPays runs under an outer walk (canActivate), and plainOptions
+	// ends with availX = 0: restore the outer walk's census and filter skip.
+	x, sk := s.g.availX, s.filtSkip()
+	var d Decision
+	s.setFiltSkip(0)
+	s.plainOptions(k, &d, availGaps|availNoActScript)
+	s.g.availX = x
+	s.setFiltSkip(sk)
+	return hasOption(&d, a)
 }
 
 // countUntapped counts p's untapped permanents matching f.
