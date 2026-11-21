@@ -2621,6 +2621,22 @@ func (pk *planner) seqLess(a, ac, at *[maxUnits]uint8, an int, b, bc, bt *[maxUn
 			return ba // the source's census ability has the smaller index
 		}
 		if ac[i] != bc[i] {
+			ta, tb := &pk.types[at[i]], &pk.types[bt[i]]
+			if ta.printed != 0 && ta.printed == tb.printed {
+				if intr := ta.mask &^ ta.printed; intr != 0 {
+					// a granted basic land type's intrinsic alternative
+					// outranks the printed one (pay.CompareSteps compares
+					// the ability kind, "intrinsic" before "printed"),
+					// whichever colour each makes
+					am, bm := uint8(1)<<ac[i], uint8(1)<<bc[i]
+					if am&intr != 0 && bm&ta.printed != 0 {
+						return true
+					}
+					if bm&intr != 0 && am&ta.printed != 0 {
+						return false
+					}
+				}
+			}
 			if f := pk.types[pk.utyp[a[i]]].first; f != 0 {
 				if ac[i] == f-1 {
 					return true
