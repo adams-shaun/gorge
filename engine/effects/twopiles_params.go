@@ -42,6 +42,18 @@ func twoPilesRemembersChosen(sa *cards.SA) bool {
 	return cards.TwoPilesRemembersChosen(sa)
 }
 
+// twoPilesKeepsRemembered is KeepRemembered$ present (Forge's hasParam: any
+// value counts): the resolution leaves the source's remembered list alone
+// instead of clearing it once both pile bodies ran (Hostile Negotiations'
+// YouChoose keeps it for TheyChoose).
+func twoPilesKeepsRemembered(sa *cards.SA) bool {
+	if sa == nil {
+		return false
+	}
+	_, ok := sa.Params["KeepRemembered"]
+	return ok
+}
+
 // twoPilesFixedSet is the non-battlefield card set a DefinedCards$ spec names,
 // in the deterministic order: Remembered (minus the captured event object),
 // Targeted, Imprinted, or the top N cards of the controller's library.

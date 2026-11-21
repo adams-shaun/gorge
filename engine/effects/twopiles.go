@@ -286,7 +286,7 @@ func twoPilesRunPiles(h Host, c *Ctx, sa *cards.SA, chosenBody, unchosenBody str
 		twoPilesRunPile(h, c, chosenBody, pileA)
 		twoPilesRunPile(h, c, unchosenBody, pileB)
 	}
-	if !cards.TwoPilesKeepsRemembered(sa) && !twoPilesRemembersChosen(sa) {
+	if !twoPilesKeepsRemembered(sa) && !twoPilesRemembersChosen(sa) {
 		clearSourceRemembered(h, c)
 	}
 }

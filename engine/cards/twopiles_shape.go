@@ -64,17 +64,6 @@ func TwoPilesRemembersChosen(sa *SA) bool {
 	return sa != nil && sa.ParamStr(PKRememberChosen) == "True"
 }
 
-// TwoPilesKeepsRemembered is KeepRemembered$ present (Forge's hasParam, any
-// value): the resolution leaves the host's remembered list alone instead of
-// clearing it after the piles.
-func TwoPilesKeepsRemembered(sa *SA) bool {
-	if sa == nil {
-		return false
-	}
-	_, ok := sa.Params["KeepRemembered"]
-	return ok
-}
-
 // TwoPilesSet is the kind of card set a DefinedCards$ value names.
 type TwoPilesSet uint8
 
