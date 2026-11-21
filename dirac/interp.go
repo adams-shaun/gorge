@@ -126,6 +126,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpGainLife:
 		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
+		if s.lifePark(k, in, q, n) {
+			break // the CR 616.1 order ask of a doubler and a plus-N (repl_lifeask.go)
+		}
 		for i := uint8(0); i < q.n; i++ {
 			s.gainLife(k, q.s[i], n)
 		}

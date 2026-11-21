@@ -717,7 +717,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenEntryOrder:
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
-		s.replOrderOptions(d)
+		s.orderOptions(d) // a parked GainLife op's ask is repl_lifeask.go's
 	case raGenUncOrder:
 		s.uncOrderOptions(d) // repl_uncounterable.go
 	case raGenTokCopy:
@@ -1315,9 +1315,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenTokCopy:
 		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:
-		if s.g.tok.on {
-			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
-			return
+		if s.orderAnswered(k, a) {
+			return // a contested token creation (repl_tokorder.go) or a parked GainLife op's ask (repl_lifeask.go)
 		}
 		if s.replOrderPick(a) {
 			return // ask again

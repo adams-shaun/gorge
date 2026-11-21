@@ -171,15 +171,10 @@ func stallFlagCases() []stallFlagCase {
 		return kop.CardDef{Name: name, Types: kop.TEnchantment, Abilities: a}
 	}
 	fbKw := kop.KwFlashbackOwnCost // a variable: the stamp's mask is split into C (low 16 bits) and B.N, as build_ab.go emits it
-	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
 	return []stallFlagCase{
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
-		}, nil, nil, nil)},
-		{StallLifeRepl, "Half Doubler", "Half Plus", stallPool("liferepl", []kop.CardDef{
-			vt("Half Doubler", repl(kop.ReplLifeDouble)),
-			vt("Half Plus", repl(kop.ReplLifePlus)),
 		}, nil, nil, nil)},
 		{StallL6Walk, "Half Loser", "Half Lord", stallPool("l6walk", []kop.CardDef{
 			vt("Half Loser", kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatOverride, Override: 1}}),
