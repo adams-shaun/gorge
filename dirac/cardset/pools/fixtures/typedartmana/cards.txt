@@ -1,0 +1,46 @@
+# typed mana from a resolving DB$ Mana of an artifact source (dirac/oracle/typedartmana_lockstep_test.go):
+# the fifteen blocked cards beside the spells and sinks their triggered mana pays for,
+# and a Treasure maker as a second tagged source
+Plains
+Island
+Swamp
+Mountain
+Forest
+Myr Moonvessel
+The Vision and Scarlet Witch
+Altar of Shadows
+Blinkmoth Urn
+Cathodion
+Coalition Relic
+Colossal Plow
+Foreboding Statue
+Rose, Cutthroat Raider
+Su-Chi
+Su-Chi Cave Guard
+Tangleroot
+Tanuki Transplanter
+Thran Turbine
+Ventifact Bottle
+Prosperous Innkeeper
+Pitiless Plunderer
+Fanatical Firebrand
+Simian Spirit Guide
+Elvish Spirit Guide
+Bog Initiate
+Tanglebloom
+Tithe Drinker
+Vodalian Mage
+Vulshok Morningstar
+Lightning Bolt
+Shock
+Divination
+Giant Growth
+Pacifism
+Counterspell
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Craw Wurm
+Serra Angel
+Prodigal Sorcerer
+Walking Ballista
