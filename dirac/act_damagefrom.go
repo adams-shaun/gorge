@@ -100,6 +100,18 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			return
 		}
 	}
+	// the defending mode behind the AtkPWHit guard (lower_tokenattacking.go):
+	// the attack was on a planeswalker or battle, which gorge's Valid
+	// Planeswalker.TriggeredDefender arm names instead of the defending
+	// player, whose .Opponent arm names nobody there (CR 603.3c, 608.2h);
+	// the source read above, live or its last known information, deals
+	// through dmgSrcObject as the any-target form does.
+	if !eachCtrl && in.B.N == 1 && in.C == int16(kop.RefDefendingPlayer) {
+		if a := s.attackedObjOr(k, NoTarget); a != NoTarget {
+			s.dmgSrcObject(k, Obj(a), o, sl, kw, ctrl, infect, int(n))
+			return
+		}
+	}
 	var q seatSeq
 	if eachCtrl {
 		q = seatOne(ctrl)
