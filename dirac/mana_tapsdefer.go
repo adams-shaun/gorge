@@ -831,7 +831,12 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 	col := bits.TrailingZeros8(mask)
 	s.pl[p].pool[col] += max(pc.manaN, 1) // a several-mana fixed-colour tap floats all of it (tapsDeferYield)
-	s.addExtra(k, p, sl, pc)              // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
+	// the tap's StatTapExtra mana floats beside it, the pick-priced reflection
+	// one more of the pick this float names (CR 106.12a; addExtra stalls on it,
+	// and a dropped play this census prices was the offer divergence: Mana
+	// Flare over a lucky Gemstone Caverns funding Evincar's Justice with a
+	// Plains, pool dr-mbc-abbb pair 45)
+	s.addExtraCol(k, p, sl, pc, col)
 	s.artTag(k, p, sl, col)
 	if k.painMana && pc.painCol != 0 && pc.painOnly {
 		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
