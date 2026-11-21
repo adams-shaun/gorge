@@ -10,13 +10,12 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// voteChoicesPodEntries is the votechoices fixture's four decks. Only the
-// three non-triggered carriers lower: the sorceries sit beside cheap
-// creatures, burn and lands so every seat reaches a vote. The triggered
-// carriers (Coercive Portal, Council Guardian, Galadriel, Magister of Worth,
-// Trial of a Time Lord) and the branch-refused spells (Expropriate, Sail into
-// the West, Split Decision) stay out of the decks but remain in the pool's
-// cards.txt.
+// voteChoicesPodEntries is the votechoices fixture's four decks. The vote
+// sorceries sit beside cheap creatures, burn and lands so every seat reaches
+// a vote. The branch-refused spells (Galadriel, Trial of a Time Lord,
+// Expropriate, Sail into the West, Split Decision) stay out of the decks but
+// remain in the pool's cards.txt; Coercive Portal, Council Guardian and
+// Magister of Worth lower but have no evidence decks yet.
 func voteChoicesPodEntries() [4][]cardset.Entry {
 	return [4][]cardset.Entry{
 		{
