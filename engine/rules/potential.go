@@ -234,6 +234,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 								e.addPotentialManaOf(&out, prod)
 							}
 							addPotentialRepeatable(e, &out, p, id, ma)
+							addPotentialSacRepeat(e, asPayer(e), &out, p, id, ma)
 							if sub != nil {
 								e.addPotentialManaOf(&out, sub)
 							}
