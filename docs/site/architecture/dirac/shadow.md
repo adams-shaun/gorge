@@ -78,9 +78,13 @@ Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
 - **Spells in hidden zones.** A sorcery or instant whose whole spell ability creates tokens, in the graveyard or hand.
 - **Order and marks.** Library, hand, graveyard and battlefield order, tapped and summoning-sick marks, life, land drop,
   turn, step, priority holder.
-- **The stack** (`dirac/zone_stagestack.go`). Spells with no target, mode, X or kicker, and "{1}, sacrifice another
-  creature: put a +1/+1 counter on this" abilities whose source is a battlefield creature. Priority over a non-empty
-  stack: a stack whose top entry is not the active seat's is refused as `priority`, whoever holds priority. Such a round
+- **The stack** (`dirac/zone_stagestack.go`). Spells with no target, mode, X or kicker, an Aura spell of the shape
+  `stageableAttachment` admits with its one target (a creature on a battlefield), "{1}, sacrifice another creature: put
+  a +1/+1 counter on this" abilities whose source is a battlefield creature, and the Equip ability of an Equipment of
+  that shape with its one target (a creature its controller controls). A target is legal at resolution exactly while the
+  target object's `ver` is the one the entry carries, so it fizzles when the target has changed zones since; the entry's
+  crime bits stay zero, and a table with the crime mechanic refuses a targeted entry (the ledger is not in a view).
+  Priority over a non-empty stack: a stack whose top entry is not the active seat's is refused as `priority`, whoever holds priority. Such a round
   may have started at that entry's controller after a cast or activation (no pass) or at the active seat after a
   resolution (also no pass), and the view cannot say which; the two differ by one pass once the active seat passes. When
   the top entry is the active seat's, the round is settled: the active seat holds it with 0 passes, any other holder
@@ -107,7 +111,7 @@ Everything else is refused with a reason. dirac's reasons are `dirac.Unstageable
 
 | Refused | Reason |
 |---|---|
-| a trigger on the stack, or an entry with a target, mode, X, kicker or copy | `stack` (dirac: `stack-entry`) |
+| a trigger on the stack, an entry with a mode, X, kicker or copy, a target that is not an object on a shown battlefield (it left; the entry would fizzle) or is a player; and on a table with the crime mechanic, any targeted entry | `stack` (dirac: `stack-entry`) |
 | priority over a stack whose top entry is not the active seat's, whoever holds it (the round may have started there or after a resolution) | `priority` |
 | any trigger waiting to be put on the stack | `pending` |
 | combat damage and end of combat steps (the view's `combat-damage` is both dirac steps, and a blocker whose attacker left still counts as blocking, CR 506.4) | `step` |
@@ -134,14 +138,14 @@ below a floor of staged positions per feature.
 | Test (`dirac/shadow`) | Pool and focus |
 |---|---|
 | `TestStageMatchesReplay` | vanilla lands, vanilla or keyword creatures and Hungry Ghoul; damage, counters, a Ghoul ability on the stack |
-| `TestStageCardsMatchReplay` | the `mbc` corpus pool (needs the corpus): Aura, Equipment, tokens, stack spells |
+| `TestStageCardsMatchReplay` | the `mbc` corpus pool (needs the corpus): Aura, Equipment, tokens, stack spells, a targeted stack entry (an Aura spell or an Equip activation; 200 games: 168 staged, 28 with a targeted entry) |
 | `TestStageCombatMatchesReplay` | vanilla pool; eight kinds of combat and turn-boundary position |
 | `TestStagePodsMatchReplay` | the vanilla pool at four seats; marks, a stack entry, an attack on a non-adjacent defender (160 games: 160 staged, 50 with marks, 43 with a stack entry, 41 with a non-adjacent attack) |
 | `TestStageCombatPodsMatchReplay` | the combat kinds at four seats plus the blockers pose of a later defender (240 games: 239 staged, 45 later-defender poses) |
 | `TestStagePodMutationsAreCaught` | seat 3 life, seat 2 library, the attacked seat, the asked defender and the priority holder each bent in turn |
 | `TestStageCommanderPodsMatchReplay` | the `cmd5` pool at four seats, each deck Terrian, World Tyrant (the commander), seven creatures and 32 Forests (120 pods: 114 staged, 107 with a commander in the command zone, 68 on the battlefield, 84 cast, 12 taxed, 36 with commander damage) |
 | `TestStageCommanderMutationsAreCaught` | commander damage, cast counts and a command-zone commander moved to its library each bent in turn |
-| `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens) and requires the verifier to fail |
+| `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens) and moves or drops a stack entry's target, and requires the verifier to fail |
 
 ## Fork and rollout
 
