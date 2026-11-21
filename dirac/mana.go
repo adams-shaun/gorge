@@ -2065,7 +2065,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				s.pl[p].pool[col] -= ty.n // it floats once the move has its answer (CR 605.3b)
 				return                    // and the plan's other sources wait for it too: the mana step runs again after the answer
 			} else {
-				s.leave(k, sl, kop.ZoneGraveyard, false)
+				s.leaveForMana(k, sl) // in the lowering, its order ask is answered first (repl_exilemark.go)
 				if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) {
 					s.ceaseManaToken(o) // a token sacrificed to pay a cast ceases at once, as gorge pays (a Treasure); one sacrificed to pay mid-resolution waits for the state-based check
 				}
