@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // A static damage prevention beside an Ext PreventDamageScope record: CR 616.1
@@ -60,6 +61,13 @@ func spsrRun(t *testing.T) (div, stop string, asks int) {
 // name both a and b.
 func spsrPlay(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div, stop string, asks int) {
 	t.Helper()
+	div, stop, comb, non := spsrPlayAsks(t, decks, seeds, a, b)
+	return div, stop, comb + non
+}
+
+// spsrPlayAsks is spsrPlay counting the combat and the noncombat asks apart.
+func spsrPlayAsks(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div, stop string, combat, noncombat int) {
+	t.Helper()
 	reg := synthReg(t)
 	set, err := cardset.RawByName("edh")
 	if err != nil {
@@ -108,7 +116,11 @@ func spsrPlay(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div,
 				}
 			}
 			if all := strings.Join(names, "+"); strings.Contains(all, a) && strings.Contains(all, b) {
-				asks++
+				if st := g.E.G.Step; st == state.StepCombatDamage || st == state.StepDeclareBlockers {
+					combat++
+				} else {
+					noncombat++
+				}
 			}
 			return nil
 		}
@@ -125,7 +137,7 @@ func spsrPlay(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div,
 			stop = fmt.Sprintf("seed %d: kernel stopped: %s", seed, res.Stall)
 		}
 	}
-	return div, stop, asks
+	return div, stop, combat, noncombat
 }
 
 // TestFourSeatStaticPrevBesideScopeRecordLockstep plays four-seat pods holding
@@ -217,5 +229,78 @@ func TestFourSeatStaticPrevBesideAmountsMutation(t *testing.T) {
 	defer func() { dirac.DebugSpBesideAmountsOff = false }()
 	if div, _, _ := spsrPlay(t, spamDecks(), spamSeeds, "Losheel", "Angrath's Marauders"); div == "" {
 		t.Fatal("the mutation did not diverge")
+	}
+}
+
+// An all-but shield beside an amount changer: CR 616.1, 616.1e, 615.7. Temple
+// Altisaur prevents all but 1 of the damage dealt to another Dinosaur its
+// controller has, combat or not; Thor adds one to another source's damage and
+// Angrath's Marauders doubles it. The order decides the amount (a doubling then
+// the shield leaves 1, the shield then the doubling leaves 2), gorge asks it over
+// the candidates in object scan order and applies each pick as made, and the
+// kernel poses the same ask in combat (dirac/repl_staticprevent.go spCombatCands,
+// spMergeAmounts) and for a parked noncombat event (parkNC, spMergeNC), carrying
+// the running amount (spPick, roPlusPend).
+
+// spabDecks: Temple Altisaur's seat (Dinosaurs), a Thor seat, a Marauders seat
+// and a plain attacker seat; the red seats hold Starstorms, Fiery Confluences and Blasphemous Acts for the
+// noncombat damage.
+func spabDecks() [][]string {
+	art := []any{4, "Silver Myr", 4, "Containment Construct", 3, "Steel Overseer", 3, "Millikin"}
+	return [][]string{
+		spsrMix(append(art, 4, "Temple Altisaur", 8, "Ranging Raptors", 8, "Plains", 6, "Forest")...),
+		spsrMix(append(art, 4, "Thor, Asgard's Avenger", 4, "Humble Defector", 4, "Starstorm", 3, "Fiery Confluence", 11, "Mountain")...),
+		spsrMix(append(art, 4, "Angrath's Marauders", 4, "Humble Defector", 4, "Starstorm", 3, "Fiery Confluence", 11, "Mountain")...),
+		spsrMix(append(art, 4, "Humble Defector", 3, "Blasphemous Act", 4, "Starstorm", 4, "Elvish Mystic", 11, "Mountain")...),
+	}
+}
+
+var spabSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}
+
+// spabRun plays spabSeeds and counts the asks that name Temple Altisaur beside Thor
+// or Marauders, combat and noncombat.
+func spabRun(t *testing.T) (div, stop string, combat, noncombat int) {
+	t.Helper()
+	for _, n := range []string{"Thor, Asgard's Avenger", "Angrath's Marauders"} {
+		d, st, c, nc := spsrPlayAsks(t, spabDecks(), spabSeeds, "Temple Altisaur", n)
+		if div == "" {
+			div = d
+		}
+		if stop == "" {
+			stop = st
+		}
+		combat, noncombat = combat+c, noncombat+nc
+	}
+	return
+}
+
+// TestFourSeatAllButShieldBesideAmountsLockstep: pods holding Temple Altisaur beside
+// Thor and Angrath's Marauders play in lockstep, and games reached the order ask on
+// combat damage and on noncombat damage.
+func TestFourSeatAllButShieldBesideAmountsLockstep(t *testing.T) {
+	div, stop, combat, noncombat := spabRun(t)
+	if div != "" || stop != "" {
+		t.Fatalf("%s %s", div, stop)
+	}
+	if combat == 0 || noncombat == 0 {
+		t.Fatalf("asks reached: combat %d, noncombat %d", combat, noncombat)
+	}
+}
+
+// TestFourSeatAllButShieldBesideAmountsMutation: with the shield left out of the ask
+// beside the amount changers, a game diverges or the kernel stops loud (the combat
+// walk, then the noncombat park alone).
+func TestFourSeatAllButShieldBesideAmountsMutation(t *testing.T) {
+	for _, m := range []struct {
+		name string
+		flag *bool
+	}{{"combat", &dirac.DebugSpBesideAmountsOff}, {"noncombat", &dirac.DebugSpNCMergeOff}} {
+		name, flag := m.name, m.flag
+		*flag = true
+		div, stop, c, nc := spabRun(t)
+		*flag = false
+		if div == "" && stop == "" {
+			t.Fatalf("the %s mutation neither diverged nor stopped the kernel (asks %d/%d)", name, c, nc)
+		}
 	}
 }

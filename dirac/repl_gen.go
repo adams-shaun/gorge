@@ -1374,16 +1374,16 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if s.statRdrStall(k, ctrl, srcSl, srcCard, code, false) {
 		return false // a static redirect beside another candidate is gorge's ask: stalled (repl_staticredirect.go)
 	}
-	if parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw); handled {
+	g := k.gen
+	if parked, handled := s.spParkEarly(k, ctrl, srcSl, srcCard, code, n, kw); handled {
 		return parked // a static prevention's ask (repl_staticprevent.go)
 	}
-	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
 	// parked: an earlier event of this op is parked on its ask (nc.n -1 is a
 	// parked, prevented one), and ro holds that ask
 	parked := s.g.nc.n != 0
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
+	if s.parkNCNoKinds(g, plusOnly) || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
 		return false
 	}
 	rcp := uint8(255)
@@ -1496,6 +1496,10 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
 	}
+	c, spv, done := s.parkNCStatic(k, ctrl, srcSl, srcCard, code, n, kw, c, prev|shld|pnx|pcol, &cand, &plus, &rs)
+	if done != 0 {
+		return done == 2
+	}
 	if c < 2 {
 		return false
 	}
@@ -1512,8 +1516,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		s.capFull(StallReplPlus)
 		return false
 	}
-	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, cand, c) {
+	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, spv, cand, c) {
 		return true
+	}
+	if s.parkNCStaticStall(spv) {
+		return false
 	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on

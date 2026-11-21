@@ -50,30 +50,51 @@ func prevRecOpen(in kop.Instr) bool {
 	return false
 }
 
-// useStaticFullCombat: every static prevention the table has is a bare combat-only
-// full prevention (Losheel's "prevent all combat damage that would be dealt to
-// attacking artifact creatures you control"), and no emblem carries one. Beside a
-// doubler or a plus-N the two orders both leave nothing dealt, so the combat walk
-// poses gorge's order ask over them (spCombatCands, spBesideAmounts) and the
-// pair is lifted for the table.
-var useStaticFullCombat = newGenUse(func(t *kop.Table) bool {
+// useStaticOrdered: every static prevention the table has is one the walks pose
+// beside the amount changers, and no emblem carries one: a bare combat-only full
+// prevention (Losheel's "prevent all combat damage that would be dealt to
+// attacking artifact creatures you control") or an all-but shield (Temple
+// Altisaur's "prevent all but 1 of that damage"), neither optional nor gated on
+// the damage. Beside a doubler or a plus-N gorge asks the CR 616.1 order of the
+// candidates (replacement_damage.go remainingDamageReplacements); the combat walk
+// (spCombatCands, spMergeAmounts) and the noncombat park (parkNC, spMergeNC) pose
+// the same ask and apply each pick to the running amount, so the pair is lifted
+// for the table.
+var useStaticOrdered = newGenUse(func(t *kop.Table) bool {
 	if tableEmbHasStaticPrev(t) {
 		return false
 	}
+	any := false // a table without a static prevention needs no generated prep for this use
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
 			if !isStaticPrev(a) {
 				continue
 			}
-			c := a.Repl.C
-			if a.Repl.Kind != kop.ReplPreventDamageFilt || c&kop.ReplSPCombat == 0 || c&(kop.ReplSPOptional|kop.ReplSPDmgLE) != 0 {
+			if !staticOrderedShape(a) {
 				return false
 			}
+			any = true
 		}
 	}
-	return true
+	return any
 })
+
+// staticOrderedShape: the static prevention a is a bare combat full prevention
+// or an all-but shield, without an optional line or a DamageAmount$ gate.
+func staticOrderedShape(a *kop.Ability) bool {
+	c := a.Repl.C
+	if c&(kop.ReplSPOptional|kop.ReplSPDmgLE) != 0 {
+		return false
+	}
+	switch a.Repl.Kind {
+	case kop.ReplPreventDamageFilt:
+		return c&kop.ReplSPCombat != 0
+	case kop.ReplPreventDamageN:
+		return c&kop.ReplSPAllBut != 0
+	}
+	return false
+}
 
 // spCompete are the damage replacement bits that can match the same event as a
 // static prevention.
@@ -86,7 +107,7 @@ func staticPrevStall(g *genPrep) bool {
 	if !g.uses.has(useStaticPrev) {
 		return false
 	}
-	if g.uses.has(useStaticFullCombat) {
+	if g.uses.has(useStaticOrdered) {
 		// a doubler or a plus-N beside a bare combat full prevention is posed
 		return g.anyRepl&spCompete&^(rbPrevCol|rbDblDmg) != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) || g.anyRedir
 	}
@@ -102,8 +123,8 @@ func staticPrevPair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop
 	text := "a static damage prevention (Prevent$ True or a prevent-N shield) beside another damage replacement: gorge asks the CR 616.1 order of the two, and the damage left depends on it"
 	a := abilityOn(isStaticPrev)
 	compete, plus := spCompete, true
-	if g.uses.has(useStaticFullCombat) {
-		compete, plus = spCompete&^rbDblDmg, false
+	if g.uses.has(useStaticOrdered) {
+		compete, plus = spCompete&^(rbDblDmg), false
 	}
 	b := func(c *kop.CardDef, i int) bool {
 		return g.replBits[i]&compete != 0 || abilityOn(func(x *kop.Ability) bool {
