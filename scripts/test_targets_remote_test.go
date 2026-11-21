@@ -198,6 +198,7 @@ func (r *rig) boxIsClean() {
 }
 
 func TestTestTargetsRemoteReachableRunsOnTheBox(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	out, errs, code := r.run("one")
 	if code != 0 {
@@ -226,6 +227,7 @@ func TestTestTargetsRemoteReachableRunsOnTheBox(t *testing.T) {
 }
 
 func TestTestTargetsRemoteSameVerdictAsLocal(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	remote, _, _ := r.run("one")
 	r.set("GORGE_REMOTE_OFF=1")
@@ -241,6 +243,7 @@ func TestTestTargetsRemoteSameVerdictAsLocal(t *testing.T) {
 }
 
 func TestTestTargetsRemoteUnsetIsLocalOnly(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	var kept []string
 	for _, kv := range r.env {
@@ -258,6 +261,7 @@ func TestTestTargetsRemoteUnsetIsLocalOnly(t *testing.T) {
 }
 
 func TestTestTargetsRemoteUnreachableFallsBackLocally(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	r.set("STUB_SSH_DOWN=1")
 	out, errs, code := r.run("one")
@@ -276,6 +280,7 @@ func TestTestTargetsRemoteUnreachableFallsBackLocally(t *testing.T) {
 }
 
 func TestTestTargetsRemoteBusyFallsBackLocally(t *testing.T) {
+	t.Parallel()
 	cases := map[string]func(r *rig){
 		"too few idle cores": func(r *rig) { r.set("GORGE_REMOTE_MIN_IDLE=1000000") },
 		"no run slot":        func(r *rig) { r.set("GORGE_REMOTE_MAX_RUNS=0") },
@@ -314,6 +319,7 @@ func TestTestTargetsRemoteBusyFallsBackLocally(t *testing.T) {
 
 // An infrastructure failure is never a FAIL: the run goes local, which here passes.
 func TestTestTargetsRemoteInfrastructureFailureFallsBackNotFail(t *testing.T) {
+	t.Parallel()
 	cases := map[string]func(r *rig){
 		"the connection drops mid-run": func(r *rig) { r.set("STUB_SSH_DROP_RUN=1") },
 		"the box repository is missing": func(r *rig) {
@@ -348,6 +354,7 @@ func TestTestTargetsRemoteInfrastructureFailureFallsBackNotFail(t *testing.T) {
 }
 
 func TestTestTargetsRemoteTestFailureIsFail(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	write(t, filepath.Join(filepath.Dir(r.repo), "stream.json"), failStream, 0o644)
 	r.set("GORC=1")
@@ -363,6 +370,7 @@ func TestTestTargetsRemoteTestFailureIsFail(t *testing.T) {
 
 // A BUDGET on the box stands: it has more cores than a run here, which would only run out of time again.
 func TestTestTargetsRemoteBoxBudgetStands(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	write(t, filepath.Join(r.bin, "go"), `#!/bin/sh
 case "$1" in
@@ -384,6 +392,7 @@ esac
 }
 
 func TestTestTargetsRemoteShipsTheUncommittedDiff(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	write(t, filepath.Join(r.repo, "tracked.txt"), "edited\n", 0o644)
 	write(t, filepath.Join(r.repo, "fresh.txt"), "untracked\n", 0o644)
@@ -407,6 +416,7 @@ func TestTestTargetsRemoteShipsTheUncommittedDiff(t *testing.T) {
 }
 
 func TestTestTargetsRemoteLocalOnlyRuns(t *testing.T) {
+	t.Parallel()
 	// A run that writes files (UPDATE, TESTENV) and test-smart on a dirty tree are never shipped.
 	for name, kv := range map[string]string{"update": "UPDATE=1", "testenv": "TESTENV=KGEN_REPIN=1"} {
 		t.Run(name, func(t *testing.T) {
@@ -428,6 +438,7 @@ func TestTestTargetsRemoteLocalOnlyRuns(t *testing.T) {
 }
 
 func TestTestTargetsRemoteSettingsFromTheEnvFile(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	var kept, file []string
 	for _, kv := range r.env {
