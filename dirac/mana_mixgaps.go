@@ -658,7 +658,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.deferApply(k, p, st.sl, int(o.col)) // its {R} floats as the deferred source's (mana_grantdeferred.go); -1 the source's own colour
 	case otherAnyR:
 		var spill [kop.NumManaKinds]uint8
-		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
+		s.tapGapChoice(k, p, st.act, st.sl, slotMask{}, slotMask{}.with(st.sl), slotMask{}, int(o.ans), &spill)
 		if spill != ([kop.NumManaKinds]uint8{}) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}
@@ -669,7 +669,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			return
 		}
 		var spill [kop.NumManaKinds]uint8
-		s.tapGapChoice(k, p, st.sl, slotMask{}, slotMask{}, slotMask{}.with(st.sl), int(o.ans), &spill)
+		s.tapGapChoice(k, p, st.act, st.sl, slotMask{}, slotMask{}, slotMask{}.with(st.sl), int(o.ans), &spill)
 		if spill != ([kop.NumManaKinds]uint8{}) {
 			s.capFull(StallRestrSrc) // never a silent spill
 		}

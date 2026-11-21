@@ -292,6 +292,10 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 // (mutation test only).
 var DebugTapChosenOff bool
 
+// DebugTapAnyColOff drops the any-colour tap extra (Fertile Ground) at the tap
+// (mutation test only).
+var DebugTapAnyColOff bool
+
 // tapExtraReaches reports whether st is a StatTapExtra static that adds its
 // mana when the permanent at sl, controlled by ctl, taps for mana: its
 // controller's own taps, or every player's under StTapAnyPlayer (the extra
@@ -306,7 +310,7 @@ var DebugTapChosenOff bool
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
 	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
-		a.Cond2 != 0 || a.StFlags&kop.StTapChosen != 0 ||
+		a.Cond2 != 0 || a.StFlags&(kop.StTapChosen|kop.StTapAnyCol) != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
 	}
@@ -317,12 +321,13 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	return true
 }
 
-// addGatedExtra floats the Cond2-gated StatTapExtra statics of sl's tap in
-// p's pool: the extra an unfoldable TapsForMana trigger adds as it resolves
-// at the tap (Rikala, Homarid King; gorge's potential bound omits it,
-// paymentPlanTapExtraMana sums only folded triggers, so the planner's
-// readers never price it -- tapExtraReaches), while the tap itself, which
-// gorge fires the trigger on, still brings it.
+// addGatedExtra floats the Cond2-gated and any-colour StatTapExtra statics of
+// sl's tap in p's pool: the extra an unfoldable TapsForMana trigger adds as it
+// resolves at the tap (Rikala, Homarid King; a Produced$ Any/Combo Any body),
+// while the planner's readers never price it (tapExtraReaches) and the tap
+// itself, which gorge fires the trigger on, still brings it. The any-colour
+// ask's answer is the scratch fillTapAnyCol stored: gorge's WindowChoices
+// answer for the same owed pips.
 func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
@@ -330,7 +335,8 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		chosen := a.StFlags&kop.StTapChosen != 0 // Produced$ Chosen: gated like a Cond2 static, in the source's colour
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen ||
+		anyCol := a.StFlags&kop.StTapAnyCol != 0 // Produced$ Any / Combo Any: the answer rides genState (fillTapAnyCol)
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen && !anyCol ||
 			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 			return true
 		}
@@ -341,13 +347,18 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
 		}
-		if chosen && (DebugTapChosenOff || s.pool != nil && s.pool.census) {
+		if (chosen || anyCol) && (DebugTapChosenOff && chosen || DebugTapAnyColOff && anyCol ||
+			s.pool != nil && s.pool.census) {
 			return true // an unless / ward window's census prices the deferred source's own mana, never the trigger's extra (gorge unlessWindowUnits)
 		}
 		if a.Cond2 != 0 && !s.condEval(k, a.Cond2, evalCtx{src: s.perms[st.sl].obj, srcSl: st.sl, ctrl: st.ctrl}) {
 			return true // the gate holds only while the condition does
 		}
 		s.tapExtraEchoStall(k, st)
+		if anyCol {
+			s.addAnyColExtra(p, a)
+			return true
+		}
 		col := int(a.A)
 		if chosen {
 			if ch := s.perms[st.sl].chosen; ch < 5 {
@@ -359,6 +370,132 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		s.pl[p].pool[col] += uint8(a.B)
 		return true
 	})
+}
+
+// anyColExtraScratch is the pending any-colour tap extra's answer, in unit
+// order: genState.winCol carries the first (or only) unit's colour, and the
+// first two reserved bytes the rest (a Combo of at most three units, kgen's
+// bound). It is per-resolution scratch, never rules state.
+func (s *State) anyColExtraColour(u int) uint8 {
+	switch u {
+	case 1:
+		return s.g.rsv[1]
+	case 2:
+		return s.g.rsv[2]
+	}
+	return s.g.winCol
+}
+
+// addAnyColExtra adds a's mana to p's pool from the answer fillTapAnyCol
+// stored: one colour for all B mana (Produced$ Any), or B units each their
+// own colour (Produced$ Combo Any).
+func (s *State) addAnyColExtra(p uint8, a *kop.Static) {
+	if a.A == 1 { // Combo Any: one unit per answer
+		for u := 0; u < int(a.B); u++ {
+			s.pl[p].pool[s.anyColExtraColour(u)%5]++
+		}
+		return
+	}
+	s.pl[p].pool[s.g.winCol%5] += uint8(a.B) // Any: one colour for the whole amount
+}
+
+// fillTapAnyCol sets the pending any-colour tap extra's answer for a tap of sl
+// against the play a: gorge's WindowChoices answer for the same ask -- each
+// unit the first pip the cost still owes in W U B R G order, else the lowest
+// colour. A Combo unit comes off the owed count as it is answered.
+func (s *State) fillTapAnyCol(k *prep, p uint8, sl Slot, a Action) {
+	if k == nil || k.gen == nil || !k.gen.anyTapExtra || a == 0 {
+		return
+	}
+	// The ask's demand is the play's cost, not the pool less it: gorge's
+	// WindowChoices answer at the tap still names a rolled-back pip the tap's
+	// own mana now covers (a Forest's {G} beside a {G} play adds {G} again).
+	var owed [kop.NumManaKinds]uint8
+	if cnt, ok := s.playCostCounts(k, a); ok {
+		owed = cnt // exact per-colour pips, e.g. a Combo Any amount of one colour
+	} else {
+		// a hybrid, twobrid or otherwise reduced cost: the play's need is the
+		// colour list gorge's ask order reads (grantNeedColours), so the
+		// first named pip is the ask's first owed colour. A hybrid pip the
+		// build has already announced reads the announced face instead of
+		// both faces: gorge's ManaPayment.Owed holds the resolved pip.
+		need := s.playNeed(k, a)
+		if s.buildLive() {
+			if m, _, ok := s.playBaseCost(k, a); ok && m.Hyb[0] != 0 {
+				for i, h := range m.Hyb {
+					if h == 0 {
+						break
+					}
+					first, second := hybColours(m, i)
+					need[first], need[second] = false, false
+					if int(s.bld().pipN) > i {
+						need[s.bld().pipCol(uint8(i))] = true
+					} else {
+						need[first], need[second] = true, true
+					}
+				}
+			}
+		}
+		for c, on := range need {
+			if on {
+				owed[c] = 1
+			}
+		}
+	}
+	s.fillTapAnyColOwed(k, p, sl, &owed)
+}
+
+// fillTapAnyColCost is fillTapAnyCol for a payment window's explicit cost.
+func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost) {
+	if k == nil || k.gen == nil || !k.gen.anyTapExtra || cost == nil {
+		return
+	}
+	// The ask is answered before the tap's own mana reaches the pool: its
+	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
+	// reads (ManaPayment.Owed), not cost less the pool after the tap.
+	var due kop.ManaCost
+	s.windowOwedCost(k, p, cost, &due)
+	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
+}
+
+// fillTapAnyColOwed is fillTapAnyCol's shared answer: every any-colour
+// StatTapExtra static reaching sl gets its units filled (normally one).
+func (s *State) fillTapAnyColOwed(k *prep, p uint8, sl Slot, owed *[kop.NumManaKinds]uint8) {
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || a.StFlags&kop.StTapAnyCol == 0 ||
+			s.pool != nil && s.pool.census || st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 ||
+			!s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+			return true
+		}
+		units := 1
+		if a.A == 1 {
+			units = int(a.B)
+		}
+		var cols [3]uint8
+		for u := 0; u < units && u < len(cols); u++ {
+			c := anyColOwedColour(owed)
+			cols[u] = uint8(c)
+		}
+		s.g.winCol = cols[0]
+		for u := 1; u < len(cols); u++ {
+			s.g.rsv[u] = cols[u]
+		}
+		return false // the first reaching static is the carrier the add arm reads
+	})
+}
+
+// anyColOwedColour takes one unit's colour off owed: the first pip still owed
+// (W U B R G), else {W}, exactly payexec.WindowAnswer's answer.
+func anyColOwedColour(owed *[kop.NumManaKinds]uint8) int {
+	for c := 0; c < 5; c++ {
+		if owed[c] > 0 {
+			owed[c]--
+			return c
+		}
+	}
+	return 0
 }
 
 // tapExtraEchoStall stalls (StallTapExtra) when a Panharmonicon static echoes

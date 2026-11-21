@@ -2239,18 +2239,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
-			switch fl {
-			case "TapOnC":
-				st.StFlags |= kop.StTapOnC
-			case "TapReflect":
-				st.StFlags |= kop.StTapReflect
-			case "TapAnyPlayer":
-				st.StFlags |= kop.StTapAnyPlayer
-			case "TapChosen":
-				st.StFlags |= kop.StTapChosen
-			default:
+			f, ok := tapExtraFlag(fl)
+			if !ok {
 				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
 			}
+			st.StFlags |= f
 		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
@@ -3272,4 +3265,22 @@ func mustAttackStatic(s lStatic, st *kop.Static, filter func(*lFilter, kop.Zone)
 		st.B = 1
 	}
 	return nil
+}
+
+// tapExtraFlag is a StatTapExtra static's named flag (lStatic.Flags), mapped
+// once so the static builder's switch stays within its line ceiling.
+func tapExtraFlag(name string) (kop.StaticFlags, bool) {
+	switch name {
+	case "TapOnC":
+		return kop.StTapOnC, true
+	case "TapReflect":
+		return kop.StTapReflect, true
+	case "TapAnyPlayer":
+		return kop.StTapAnyPlayer, true
+	case "TapChosen":
+		return kop.StTapChosen, true
+	case "TapAnyCol":
+		return kop.StTapAnyCol, true
+	}
+	return 0, false
 }

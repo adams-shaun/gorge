@@ -35,14 +35,18 @@ var manaRiderCards = []struct {
 	// AddsNoCounter$ !Permanent: a legendary deferred {C} source that pays 2
 	// life (dirac mana_deferred.go, mana_nocounter.go)
 	{"Boseiju, Who Shelters All", ""},
-	// TapsForMana: a colour chosen at tap time (a KChoose the tap-extra
-	// model cannot pose)
-	{"Fertile Ground", "TapsForMana extra of any colour"},
-	{"Regal Behemoth", "TapsForMana extra of any colour"},
+	// TapsForMana: a colour chosen at tap time. The any-colour static extras
+	// lower as a StTapAnyCol static (kop.StTapAnyCol), played decision by
+	// decision against gorge in dirac/oracle TestTapsForManaTwoSeatLockstep
+	// (the card list there); they no longer refuse. Regal Behemoth's monarch
+	// condition stays outside the closed world, and Trace of Abundance, whose
+	// hybrid cost diverges in the same lockstep pool, stays refused by name.
+	{"Fertile Ground", ""},
+	{"Regal Behemoth", "outside the closed world"},
 	{"Trace of Abundance", "TapsForMana extra of any colour"},
-	{"Dawn's Reflection", "TapsForMana extra of any colour"},
-	{"Verdant Haven", "TapsForMana extra of any colour"},
-	{"Market Festival", "TapsForMana extra of any colour"},
+	{"Dawn's Reflection", ""},
+	{"Verdant Haven", ""},
+	{"Market Festival", ""},
 	// Produced$ Chosen: the source's as-enters colour, gorge defers the
 	// enchanted source (a StTapChosen static beside a class-only Taps line)
 	{"Utopia Sprawl", ""},

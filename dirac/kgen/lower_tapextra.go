@@ -16,11 +16,14 @@ import (
 // (pay.PaymentPlanFoldableTapMana: one literal symbol and amount, no other
 // parameter), or a reflected body over lands (Lavaleaper, Mana Flare:
 // pay.PaymentPlanReflectedTapMana, one mana of the type the tap produced).
-// A body whose colour is not a literal keeps refusing with its own reason: an
-// any-colour body asks a colour choice at tap time (tapExtraAnyColour), and a
-// chosen-colour body is a source gorge's planner defers (tapExtraChosen).
+// A body whose colour is not a literal gets its own model: an any-colour body
+// asks a colour choice at tap time (tapExtraAnyColour), and a chosen-colour
+// body is a source gorge's planner defers (tapExtraChosen).
 func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	if handled, err := lc.tapExtraChosen(t); handled {
+		return err
+	}
+	if handled, err := lc.tapExtraAnyColour(t); handled {
 		return err
 	}
 	cond, gated, gerr := lc.tapExtraGate(t)
@@ -32,9 +35,6 @@ func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	}
 	tm, ok := pay.PaymentPlanFoldableTapMana(lc.face, t)
 	if !ok {
-		if lc.tapExtraAnyColour(t) {
-			return refuse("TapsForMana extra of any colour: the trigger asks a colour choice at tap time, which the tap-extra model cannot pose")
-		}
 		return lc.tapExtraReflected(t)
 	}
 	tp := newParams(t.Params)
@@ -280,22 +280,98 @@ func (lc *lowerCtx) tapExtraChosen(t cards.Trigger) (handled bool, err error) {
 	return true, nil
 }
 
-// tapExtraAnyColour reports whether t is a TapsForMana extra whose DB$ Mana
-// body adds mana of any colour (Produced$ Any) or a combination of colours
-// (Combo Any, Market Festival). Gorge resolves such a trigger with a KChoose
-// colour ask (effects.askManaChoice) when the land is tapped; the kernel's
-// fixed StatTapExtra cannot pose that ask, so the card keeps refusing with
-// this reason instead of the generic "trigger mode TapsForMana".
-func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) bool {
+// tapExtraAnyColour lowers a static TapsForMana extra whose DB$ Mana body
+// adds mana of any colour, one colour for the whole amount (Produced$ Any:
+// Fertile Ground) or a per-unit combination (Produced$ Combo Any: Market
+// Festival). gorge resolves the trigger with a real colour ask at the tap
+// (effects.askManaChoice), so its planner never folds the body and defers the
+// tapped source to the manual window. The kernel mirrors the chosen-colour
+// extra: a StatTapExtra static flagged StTapAnyCol that the planner's pricing
+// readers skip and that floats the ask's answer at the tap (mana_tapextra.go
+// addGatedExtra), beside a class-only Taps line that defers the source. A is
+// the ask's shape (0 one colour for B mana, 1 B units each any colour) and B
+// the amount. handled is false for any other trigger, so the foldable,
+// gated and reflected classifiers run.
+func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) (handled bool, err error) {
+	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
+		return false, nil
+	}
+	if cp := strings.TrimSpace(t.ParamStr(cards.PKCheckDefinedPlayer)); cp != "" {
+		return true, refuse("TapsForMana trigger condition CheckDefinedPlayer$ %q: outside the closed world", cp)
+	}
 	body := t.Effect
 	if body == nil && lc.face != nil {
 		body = cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
 	}
-	if body == nil || body.API != "Mana" {
-		return false
+	if body == nil || body.API != "Mana" || body.Sub != nil ||
+		strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false, nil
 	}
 	mp := effects.ManaOf(body)
-	return mp.Produced != "" && mp.CountsAny && !mp.NeedsChosen
+	if mp.CountsAny && lc.face != nil {
+		// A hybrid-cost source (Trace of Abundance, {R/W}{G}) diverges from
+		// gorge in dirac/oracle's tapsformana pool (seed 67, decision 506):
+		// the announced hybrid half must reach the extra's colour answer.
+		// Refused until that defect is fixed; not claimed as supported.
+		if mc, err := parsePrintedManaCost(lc.face.ManaCost); err == nil && len(mc.Hybrid) != 0 {
+			return true, refuse("TapsForMana extra of any colour on a hybrid-cost source: the announced hybrid half does not reach the extra's colour answer")
+		}
+	}
+	if !mp.CountsAny || mp.NeedsChosen || len(mp.Unread) != 0 {
+		return false, nil
+	}
+	combo := strings.EqualFold(strings.TrimSpace(mp.Produced), "Combo Any")
+	if !combo && !strings.EqualFold(strings.TrimSpace(mp.Produced), "Any") {
+		return false, nil
+	}
+	amt := 1
+	if mp.AmountTrim != "" {
+		if !mp.AmountIsLit || mp.AmountLit < 1 || mp.AmountLit > 20 {
+			return false, nil
+		}
+		amt = mp.AmountLit
+	}
+	if combo && amt > 3 {
+		return true, refuse("TapsForMana extra of any colour in a Combo of %d: the ask's per-unit answers exceed the tap-extra model", amt)
+	}
+	if strings.TrimSpace(body.ParamStr(cards.PKDefined)) != "TriggeredCardController" {
+		return false, nil // the trigger controller's mana, not the tapped permanent's
+	}
+	tp := newParams(t.Params)
+	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
+	if tp.str("Produced") != "" || tp.str("Activator") != "" { // a tap gate, or the trigger controller's taps
+		return false, nil
+	}
+	vc := strings.TrimSpace(tp.str("ValidCard"))
+	if vc == "" {
+		return false, nil
+	}
+	tp.consume("ValidCard")
+	if len(tp.unread()) != 0 {
+		return false, nil // an unmodelled trigger parameter: the generic refusal names it
+	}
+	f, err := lc.filter(vc)
+	if err != nil {
+		return true, err
+	}
+	mode := 0
+	if combo {
+		mode = 1
+	}
+	lc.out.Statics = append(lc.out.Statics, lStatic{
+		Kind: "TapExtra", Flags: []string{"TapAnyPlayer", "TapAnyCol"},
+		F: f, TapCol: uint8(mode), TapAmt: uint8(amt),
+	})
+	tr := &lTrigger{
+		Event:       "Taps",
+		F:           f,
+		Whose:       whoAny,
+		Zone:        zBattlefield,
+		TapPlan:     uint8(kop.TapPlanDefer),
+		TapsForMana: true,
+	}
+	lc.out.Abilities = append(lc.out.Abilities, &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr})
+	return true, nil
 }
 
 // tapReflectLandFilters are the ValidCard$ filters of a reflected TapsForMana

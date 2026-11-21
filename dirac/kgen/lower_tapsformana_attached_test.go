@@ -26,6 +26,10 @@ func TestLowerTapsformanaAttached(t *testing.T) {
 		amount   uint8
 		attached bool
 	}
+	// The any-colour auras (Fertile Ground, Verdant Haven, Market Festival,
+	// Dawn's Reflection, Buried in the Garden, Blighted Burgeoning) lower as a
+	// StTapAnyCol static, proven in dirac/oracle TestTapsForManaTwoSeatLockstep
+	// and TestLowerTapsformanaAnycolour; they are not in this table's shape.
 	lowered := map[string]want{
 		"Wild Growth":       {1, true},
 		"Overgrowth":        {2, true},
@@ -34,15 +38,11 @@ func TestLowerTapsformanaAttached(t *testing.T) {
 		"Gauntlet of Might": {1, false},
 	}
 	refused := map[string]string{
-		"Fertile Ground":       "extra of any colour",
-		"Verdant Haven":        "extra of any colour",
-		"Market Festival":      "extra of any colour",
-		"Dawn's Reflection":    "extra of any colour",
-		"Buried in the Garden": "extra of any colour",
-		"Blighted Burgeoning":  "extra of any colour",
-		"Trace of Abundance":   "extra of any colour",
-		"Glittering Frost":     "extra of any colour",
-		"Gauntlet of Power":    "trigger mode TapsForMana",
+		// Trace of Abundance's hybrid cost diverges in the any-colour lockstep
+		// pool, Glittering Frost's other static is not lowered: both stay refused.
+		"Trace of Abundance": "extra of any colour",
+		"Glittering Frost":   `AddType "Snow"`,
+		"Gauntlet of Power":  "trigger mode TapsForMana",
 	}
 	var names []string
 	for n := range lowered {

@@ -337,6 +337,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		s.windowTapCost(k, sl, sacOnly || noTap)
 		life := s.windowGrantLife(k, sl, pc, col)
+		s.fillTapAnyColCost(k, p, sl, cost)
 		s.poolAdd(p, col, int(s.windowGrantYield(k, sl, pc, col)))
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
@@ -1041,6 +1042,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		tapped[nt], flags[nt], used[nt] = sl, s.perms[sl].flags, s.perms[sl].actUsed
 		nt++
 		s.perms[sl].flags |= pfTapped
+		s.fillTapAnyColCost(k, p, sl, cost)
 		s.poolAdd(p, col, int(pc.manaN))
 		s.addExtraCol(k, p, sl, pc, col)
 	}
@@ -2115,7 +2117,7 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.restrCensusDeferGap(k, p, a, sl, c)
 		return true
 	}
-	s.tapGapChoice(k, p, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
 	return true
 }
 
@@ -2191,7 +2193,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 // colour into the plain pool (mana_tapsdefer.go); any other gap as tapGap
 // does. spill counts restricted mana the pool's batches could not hold
 // (floating unrestricted: addRestr).
-func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
 	cd := &k.t.Cards[s.cardAt(sl)]
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
@@ -2218,7 +2220,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, sl Slot, restr, anyR, tapsDef slo
 			// (manaRider's riderDeferred gate; CR 605.3b)
 			s.manaRider(k, sl)
 		}
-		s.tapDeferFloat(k, p, sl, c)
+		s.tapDeferFloat(k, p, sl, c, a)
 		return
 	}
 	s.perms[sl].flags |= pfTapped

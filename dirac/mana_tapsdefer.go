@@ -751,7 +751,8 @@ func tapsDeferPainCol(k *prep, pc *pcard, mask uint8) (int, bool) {
 // answer-0 activation of a gap whose rider comes later (riderPlainFirst):
 // one fixed colour into the plain pool, exactly tapDeferFloat's non-rider
 // arm.
-func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot) {
+func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot, a Action) {
+	s.fillTapAnyCol(k, p, sl, a)
 	pc := s.manaPCGen(k, sl)
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
 	s.pl[p].pool[col]++
@@ -776,7 +777,7 @@ func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) 
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
 	if c == 0 {
-		s.tapDeferPlain(k, p, sl)
+		s.tapDeferPlain(k, p, sl, a)
 		return
 	}
 	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
@@ -802,7 +803,8 @@ func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) 
 // answer's colour: tapGap's Taps-defer arm, plain pool mana (tapGapChoice
 // and the prefix player tap it first, so manaTapped has queued the
 // watcher's trigger for flushPrefixTriggers to place before the play).
-func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
+func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int, play Action) {
+	s.fillTapAnyCol(k, p, sl, play)
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		s.manaRiderFloat(k, p, sl, a, c)
 		return
