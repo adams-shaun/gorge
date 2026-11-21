@@ -349,14 +349,6 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		})
 	}
 	out := planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
-	if gorgeDbgOK && cast.Object == 38 && cast.Origin == "exile" {
-		nrel := 0
-		for _, r := range e.PaymentPlanRelaxed {
-			nrel += len(r)
-		}
-		gorgeDbg("pl38", mana.Generic, fmt.Sprint(mana.Colored), "fee", e.PaymentPlanRelaxedFee, "rel", nrel,
-			out.Reason, out.Detail, out.Plan != nil)
-	}
 	if len(cost.Phyrexian) != 0 {
 		// The witness funds only the pip-free mana half (pay.PlanManaHalf),
 		// so a Phyrexian pip the payer's life total cannot pay must take its
@@ -1261,9 +1253,6 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 			continue
 		}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
-		if gorgeDbgOK && opt.Obj == 38 {
-			gorgeDbg("pp38", kind, got.Reason, got.Detail, got.Plan != nil, opt.Mode, string(cast.Origin))
-		}
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
 			// The unpayable census names plain casts only
@@ -1285,10 +1274,6 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		// before 601.2c). A one-click plan whose mandatory targets vanish
 		// when the card leaves the hand would only reverse (CR 733.1), so
 		// it is not offered (castprobe.go).
-		if gorgeDbgOK && opt.Obj == 38 {
-			gorgeDbg("pp38stack", castTargetsAvailableOnStackFace(e, p, opt.Obj, altFace),
-				paymentPlanHoldsOnStackFace(e, p, opt.Obj, altFace, *got.Plan))
-		}
 		if !castTargetsAvailableOnStackFace(e, p, opt.Obj, altFace) {
 			continue
 		}
@@ -1324,13 +1309,6 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 		}
 		out = append(out, a)
 		e.PaymentStats.RecordOffered(len(a.Plans))
-	}
-	if gorgeDbgOK {
-		for i := range out {
-			if out[i].Cast.Object == 38 && out[i].Cast.Origin == "exile" {
-				gorgeDbg("out38", seq, len(out))
-			}
-		}
 	}
 	return out, unpayable, potential, shapes, true
 }

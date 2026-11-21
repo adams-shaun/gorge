@@ -865,14 +865,8 @@ func (s *State) availWindowFor(k *prep, p uint8, a *avail) {
 	}
 	s.availFor(k, p, a)
 	s.g.availX = x
-	if dbgAvail {
-		diracDbg("win-after-availFor", p, availDump(a))
-	}
 	if k.gen != nil && k.gen.anyComboAny && x&3 == 0 {
 		s.availCA(k, p, a) // the window taps a Combo Any source for its amount (mana_comboany.go; Sage of the Maze pays Urza's Chalice's {1})
-		if dbgAvail {
-			diracDbg("win-after-availCA", p, availDump(a))
-		}
 	}
 }
 

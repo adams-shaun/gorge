@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"runtime"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -298,14 +297,6 @@ func satAdd(a uint16, n uint8) uint16 {
 }
 
 func (a *avail) addUnits(mask, n uint8) {
-	if dbgAvail && mask == 0x1f && n >= 2 {
-		pc, _, _, ok := runtime.Caller(1)
-		fn := "?"
-		if ok {
-			fn = runtime.FuncForPC(pc).Name()
-		}
-		diracDbg("addAny", int(mask), int(n), fn)
-	}
 	a.total += int(n)
 	for i := 0; i < a.n; i++ {
 		if a.mask[i] == mask {
@@ -540,9 +531,6 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
-		if dbgAvail {
-			diracDbg("unit", p, int(sl), int(s.cardAt(sl)), int(s.srcMaskAt(pc, sl)), int(s.srcYieldAt(k, sl, pc)), pc.manaN, pc.wideN, pc.manaOne)
-		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
 			s.addOneColour(a, pc.manaN)
@@ -562,9 +550,6 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 	}
 	if s.g.availX&3 != 0 {
 		s.availScript(k, p, a)
-	}
-	if dbgAvail {
-		diracDbg("census", p, availDump(a))
 	}
 	if s.g.availX&availLife != 0 {
 		s.availLifeGaps(k, p, a) // the planner's phase 2 life-only units (mana_lifeplan.go)

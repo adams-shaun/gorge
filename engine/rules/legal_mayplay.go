@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -443,13 +442,6 @@ func (e *Engine) mayPlaySpellIdsBoard(p state.PlayerID, board bool) []mayPlaySpe
 	spellKeep := func(o *state.Object) bool { return o.Face() != nil && !o.Face().IsLand() }
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.MayPlay {
-			ids := ""
-			for _, id := range ce.Remembered {
-				ids += "," + fmt.Sprintf("%d", int(id))
-			}
-			gorgeDbg("walkce", int(ce.Source), len(ce.Remembered), ids, ce.Affects, ce.AffectedZone, ce.MayPlayNoZone, ce.FromEffect, mayPlayEffectSeatOpen(ce, p))
-		}
 		if !ce.MayPlay || ce.MayPlayNoZone || !mayPlayEffectSeatOpen(ce, p) {
 			continue
 		}
@@ -590,18 +582,4 @@ func faceHasContinuousStatic(o *state.Object) bool {
 		}
 	}
 	return false
-}
-
-// gorgeDbgOK is a temporary probe switch; remove before commit.
-var gorgeDbgOK = true
-
-// gorgeDbg is a temporary scratch logger for the thor may-play probe; remove
-// before commit.
-func gorgeDbg(args ...any) {
-	f, err := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261120T181452Z-6c67a0d8/.ds4/scratch/dbg.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	fmt.Fprintln(f, args...)
 }

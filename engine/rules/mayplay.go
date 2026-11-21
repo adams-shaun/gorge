@@ -1294,18 +1294,11 @@ func (e *Engine) effectMayPlayGateHolds(ce *state.ContinuousEffect) bool {
 }
 
 func (e *Engine) effectGrantMatches(ce *state.ContinuousEffect, id state.ObjID) bool {
-	dbg := id == 38
-	if dbg {
-		gorgeDbg("match", len(ce.Remembered), ce.Affects, ce.AffectedZone, ce.MayPlay, int(ce.Source))
-	}
 	if !e.effectMayPlayGateHolds(ce) {
 		return false
 	}
 	sc := e.effectGrantSpecContext(ce)
 	affects, _ := effects.MayPlayAdventureSpec(ce.Affects)
-	if dbg {
-		gorgeDbg("match-sc", len(sc.Remembered), len(sc.Chosen))
-	}
 	if !e.matchesSpec(affects, id, sc) {
 		return false
 	}

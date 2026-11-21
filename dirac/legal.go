@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -958,14 +956,10 @@ func (s *State) gorgeOffersMay(p uint8, o Obj, anyColor bool) bool {
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
 		return true
 	}
-	fp := s.FeatPlannedCast(p, o, 0)
-	fpool := s.FeatPoolPays(p, o, 0)
-	low := s.gorgeLowersRider(p, o, true, anyColor)
-	diracDbg("offersMay", int(o), int(s.objs[o].card), int(s.objs[o].zone), fp, fpool, low)
-	if fp {
+	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return fpool || low
+	return s.FeatPoolPays(p, o, 0) || s.gorgeLowersRider(p, o, true, anyColor)
 }
 
 // offerSourcesAfford: p's sources pay cost through the offer gate -- the
@@ -3360,39 +3354,3 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 	base.Generic = uint8(g)
 	return base
 }
-
-// diracDbg is a temporary scratch logger for the thor may-play probe; remove
-// before commit.
-func diracDbg(args ...any) {
-	f, err := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261120T181452Z-6c67a0d8/.ds4/scratch/dbgk.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	fmt.Fprintln(f, args...)
-}
-
-// availDump is a temporary scratch dump of an avail census; remove before
-// commit.
-func availDump(a *avail) string {
-	out := ""
-	for i, n := range a.cnt {
-		if n != 0 {
-			out += fmt.Sprintf("m%d=%d c%d:%d ", i, a.mask[i], i, n)
-		}
-	}
-	for j, amt := range a.one {
-		if amt != 0 {
-			out += fmt.Sprintf("one%d n%d a%d ", j, a.oneMask[j], amt)
-		}
-	}
-	return out + fmt.Sprintf("t%d n%d", a.total, a.n)
-}
-
-// dbgAvail toggles the per-unit census dump for the thor probe; remove before
-// commit.
-var dbgAvail = true
-
-// dbgFeat toggles the FeatPlannedCast census dump for the thor probe; remove
-// before commit.
-var dbgFeat = true

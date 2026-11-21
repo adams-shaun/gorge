@@ -80,12 +80,8 @@ func (e *Engine) manaFeasibleDescriptorKind(p state.PlayerID, d paymentDescripto
 			return leafAv.Pool, leafAv.Typed
 		}
 	}
-	r := mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
+	return mods.FeasibleAnyAvail(c, av.Pool, pl.Snow, av.Typed, pl.Life, taxGeneric, delve,
 		asEval(e).PayLifeInsteadOfB(p), rider, asEval(e).Conv(p, d.ID, kind), avail)
-	if o := e.G.Obj(d.ID); o != nil && o.ID == 38 {
-		gorgeDbg("thor", int(o.ID), r, c.Generic, fmt.Sprint(c.Colored), fmt.Sprint(av.Pool), fmt.Sprint(av.Typed))
-	}
-	return r
 }
 
 // manaFeasiblePoolP is manaFeasiblePool over pointers: *c and *mods are only

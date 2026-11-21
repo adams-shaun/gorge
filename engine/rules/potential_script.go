@@ -154,9 +154,6 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	plain.feeStall = true // the plain run's doomed-branch prune (feeOnlyAskPrune)
 	script, found := plain.run(e)
-	if gorgeDbgOK && o.Obj == 38 && o.Mode == "mayplay" {
-		gorgeDbg("scr38", "plain", found, len(script), plain.limited, plain.feeOnly)
-	}
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -166,9 +163,6 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	sr.plainLimited = plain.limited && plain.feeOnly
 	script, found = sr.run(e)
-	if gorgeDbgOK && o.Obj == 38 && o.Mode == "mayplay" {
-		gorgeDbg("scr38", "phased", found, len(script), sr.limited, sr.plainLimited)
-	}
 	if found && len(script) > 0 {
 		return script, true
 	}
@@ -493,7 +487,7 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 	}
 	switch a.Kind {
 	case "cast":
-		if a.Mode != "" && a.Mode != "mayplay" {
+		if a.Mode != "" {
 			return costvocab.Cost{}, false
 		}
 		return r.castOfferBase(p, a.Obj), true
@@ -867,24 +861,6 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
-	dbgScr := sr.play.Obj == 38 && sr.play.Mode == "mayplay"
-	if dbgScr {
-		var offered bool
-		if d != nil && d.Kind == decision.KPriority {
-			for i := range d.Options {
-				if sr.offered(&d.Options[i]) {
-					offered = true
-				}
-			}
-		}
-		gorgeDbg("vis38", sr.nodes, sr.phased, fmt.Sprint(c.G.Players[p].Pool), offered,
-			func() string {
-				if d == nil {
-					return "nil"
-				}
-				return fmt.Sprint(d.Kind, int(d.Player), d.Seq)
-			}(), c.G.Turn, int(c.G.Step))
-	}
 	// Another player's decision (their priority while a trigger resolves,
 	// or the order of their simultaneous triggers the line set off, CR
 	// 603.3b): the searched line assumes they pass, or order the triggers
@@ -947,14 +923,6 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		}
 		if len(answers) == 0 {
 			sr.approx = true
-		}
-		if dbgScr {
-			syms := ""
-			for i := range d.Options {
-				o := &d.Options[i]
-				syms += fmt.Sprintf(" %d:%s%s", o.Index, o.Kind, o.ManaSymbol)
-			}
-			gorgeDbg("ask38", int(d.Source), d.Kind, len(answers), syms, fmt.Sprint(sr.need), sr.pipOK, fmt.Sprint(sr.pipCol))
 		}
 		for _, in := range answers {
 			if sr.tapsOwnSource(c, d, in) {
@@ -1143,7 +1111,6 @@ func scriptOptionKey(d *decision.Decision, id state.ObjID) string {
 // which the plain run may not: the gate's prunings change the node walk,
 // and with it the script the mirror sees.
 func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decision, gaps []state.ObjID, p state.PlayerID, funded int, gapUsed bool) bool {
-	dbgScr := sr.play.Obj == 38 && sr.play.Mode == "mayplay"
 	// The phases, in walk order: a plain run is the two original passes,
 	// the uncovered sources then the others; a phased run branches the
 	// uncovered sources whose mana abilities cost no mana first (their mana
@@ -1176,9 +1143,6 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 		var tried []state.ObjID
 		for j := range d.Options {
 			opt := &d.Options[j]
-			if dbgScr {
-				gorgeDbg("act38", sr.nodes, i, int(opt.Obj), opt.Kind, scriptGap(gaps, opt.Obj))
-			}
 			if !scriptActivate(opt) {
 				continue
 			}

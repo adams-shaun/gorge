@@ -541,10 +541,6 @@ func optionsDebug(ref *GorgeSide) {
 		return
 	}
 	gd := ref.fr.d
-	if f, ferr := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261120T181452Z-6c67a0d8/.ds4/scratch/dbg.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); ferr == nil {
-		fmt.Fprintf(f, "dump seq=%d prio=%d\n", gd.Seq, len(ref.fr.prio))
-		f.Close()
-	}
 	for i, o := range gd.Options {
 		fmt.Printf("  raw %d %s obj=%d ab=%d mode=%q cost=%q %q\n", i, o.Kind, o.Obj, o.Ability, o.Mode, o.Cost, o.Label)
 	}

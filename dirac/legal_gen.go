@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -235,13 +234,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 				return
 			}
 		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
-			diracDbg("gate-drop", int(o), int(c), int(s.objs[o].zone), cost.Generic, fmt.Sprint(cost.Pips), availDump(av))
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
-		}
-		if o == 37 {
-			dbgAvail = true
-			diracDbg("gate-pass", int(o), int(c), int(s.objs[o].zone), cost.Generic, fmt.Sprint(cost.Pips), availDump(av), s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av), s.convPoolPays(k, p, o, &cost))
-			dbgAvail = false
 		}
 	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
 		return
@@ -278,9 +271,6 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			// pool pay it; an "ambiguous" one is never searched)
 			return
 		}
-	}
-	if o == 37 {
-		diracDbg("offerPlayAdd37", "mode", int(mode), "availX", int(s.g.availX), "zone", int(s.objs[o].zone))
 	}
 	d.add(MakeAction(AkCast, TCode(o), 0, mode))
 }

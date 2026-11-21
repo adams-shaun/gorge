@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"runtime"
 	"fmt"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -67,14 +66,6 @@ func (w *legalWalk) pricing() *state.Mana {
 
 // add appends one option to the walk scratch list with the running Index.
 func (w *legalWalk) add(kind, label string, obj state.ObjID) {
-	if gorgeDbgOK && kind == "cast" {
-		gorgeDbg("walk-add", int(obj), label, w.hyp != nil)
-		if obj == 40 && label == "Cast Truck Toss" {
-			buf := make([]byte, 2048)
-			buf = buf[:runtime.Stack(buf, false)]
-			gorgeDbg("stack40", string(buf))
-		}
-	}
 	w.out = append(w.out, decision.Option{Index: len(w.out), Kind: kind, Label: label, Obj: obj})
 }
 

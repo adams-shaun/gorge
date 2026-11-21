@@ -737,10 +737,6 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	d := fr.d
 	e := g.E
-	if f, ferr := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261120T181452Z-6c67a0d8/.ds4/scratch/dbg.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); ferr == nil {
-		fmt.Fprintf(f, "vocab seq=%d opts=%d\n", d.Seq, len(d.Options))
-		f.Close()
-	}
 	// The cast cost a convoke frame filters by is the CURRENT decision's
 	// plain hand offers. Dropping last decision's entries keeps a card cast
 	// from hand earlier and later cast through a permission (or a
@@ -1053,13 +1049,6 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	// Planner-paid casts.
 	pays := e.EnsurePaymentActions()
 	for _, pa := range pays {
-		if pa.Cast.Object == 38 && pa.Cast.Origin == "exile" {
-			a, skip, unknown := paymentCastAction(pa, ref)
-			if f, ferr := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261120T181452Z-6c67a0d8/.ds4/scratch/dbg.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); ferr == nil {
-				fmt.Fprintf(f, "pay38 %v plans=%d skip=%v unknown=%q a=%v\n", pa.Cast.CastMode(), len(pa.Plans), skip, unknown, a)
-				f.Close()
-			}
-		}
 		if len(pa.Plans) == 0 {
 			continue
 		}

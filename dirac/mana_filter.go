@@ -1,15 +1,10 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
-
-// dbgFilt37 is a temporary scratch flag for the thor may-play probe; remove
-// before commit.
-var dbgFilt37 = false
 
 // Filter mana abilities (CR 605.3a, 601.2g): a mana ability with a mana
 // cost, Hidden Grotto's "{1}, {T}: Add one mana of any color" beside its
@@ -1474,17 +1469,6 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
-	thor := a.Kind() == AkCast && Obj(a.Source()) == 37
-	dbgFilt37 = thor
-	defer func() { dbgFilt37 = false }()
-	if thor {
-		brd := ""
-		for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
-			sl := b.first()
-			brd += fmt.Sprintf("%d(c%d)%s ", sl, s.cardAt(sl), map[bool]string{true: "T", false: ""}[s.perms[sl].flags&pfTapped != 0])
-		}
-		diracDbg("filtScript37 enter", "need", fmt.Sprint(fs.need), "useful", fs.useful.MV(), fs.usefulOK, "fees", fs.fees, "fundN", fs.fundN, "availX", int(s.g.availX), "lands", s.pl[SeatIx(p)].landsPlayed, "pool", fmt.Sprint(s.pl[SeatIx(p)].pool), "brd", brd)
-	}
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
@@ -1536,14 +1520,6 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		}
 	}
 	s.pool.inFilt--
-	if a.Kind() == AkCast && Obj(a.Source()) == 37 {
-		pdump := ""
-		for i := 0; i < fs.n && i < len(fs.path); i++ {
-			st := fs.path[i]
-			pdump += fmt.Sprintf("[%v a%d g%v al%v] ", st.sl, st.ans, st.gap, st.alloc)
-		}
-		diracDbg("filtScript37 done", "found", found, "nodes", nodes, "n", fs.n, pdump)
-	}
 	if !found {
 		if fs.stall != 0 {
 			// every line failed and one ran into a rule gap the kernel stalls by
@@ -2185,29 +2161,6 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 	var d Decision
 	t.restrOptions(k, &d, fs.p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 	t.capGrantOvercounts(k, &d, fs.p)
-	if dbgFilt37 && hasOption(&d, fs.a) {
-		opts := ""
-		for i := 0; i < int(d.N); i++ {
-			opts += fmt.Sprintf("%v ", d.Options[i])
-		}
-		rb := ""
-		for i := range t.rb[SeatIx(fs.p)] {
-			b := &t.rb[SeatIx(fs.p)][i]
-			if b.kind != 0 {
-				rb += fmt.Sprintf("b%d k%d n%v ch%d ", i, b.kind, fmt.Sprint(b.n[:]), b.chosen)
-			}
-		}
-		unt := ""
-		for b := t.ctrlM[SeatIx(fs.p)]; b.any(); b = b.rest() {
-			sl := b.first()
-			if t.perms[sl].flags&pfTapped == 0 {
-				unt += fmt.Sprintf("%d(c%d) ", sl, t.cardAt(sl))
-			}
-		}
-		var avx avail
-		t.availFor(k, fs.p, &avx)
-		diracDbg("offers37 HIT", "pool", fmt.Sprint(t.pl[SeatIx(fs.p)].pool), "opts", opts, "want", fmt.Sprint(fs.a), "rb", rb, "untapped", unt, "census", availDump(&avx))
-	}
 	return hasOption(&d, fs.a) && !t.grantRefusedPrices(k, fs.p, fs.a) && !fs.witnessEats(k, t)
 }
 
@@ -2219,18 +2172,6 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 // floating pool pays the ability's reduced cost (gorge's manaWindowAsk runs
 // before the push).
 func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
-	if dbgFilt37 && fs.a.Kind() == AkCast {
-		var av avail
-		t.availFor(k, fs.p, &av)
-		tap := ""
-		for b := t.ctrlM[SeatIx(fs.p)]; b.any(); b = b.rest() {
-			sl := b.first()
-			if t.perms[sl].flags&pfTapped != 0 {
-				tap += fmt.Sprintf("%d(c%d) ", sl, t.cardAt(sl))
-			}
-		}
-		diracDbg("term37", "n", fs.n, "gapUsed", gapUsed, "hands", fs.hands, "pool", fmt.Sprint(t.pl[SeatIx(fs.p)].pool), "tapped", tap, "census", availDump(&av))
-	}
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}

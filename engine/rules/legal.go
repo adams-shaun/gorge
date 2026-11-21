@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"runtime"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -107,10 +106,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 // on its own. The payment offer builder, which reads only plain casts, uses
 // it to avoid pricing every battlefield ability it would discard.
 func (e *Engine) legalActionsWalk(p state.PlayerID, hyp *state.Mana, castsOnly bool) []decision.Option {
-	if gorgeDbgOK {
-		_, file, line, _ := runtime.Caller(1)
-		gorgeDbg("walk-enter", int(p), hyp != nil, castsOnly, file[len(file)-30:], line)
-	}
 	return e.legalActionsWalkWithWindow(p, hyp, castsOnly, nil, false, nil, false)
 }
 
@@ -128,10 +123,6 @@ func (e *Engine) legalActionsWalkTemp(p state.PlayerID, hyp *state.Mana, castsOn
 // which is the one result the decision arena (decision_arena.go) may back;
 // temp builds the result into dst (legalActionsWalkTemp's borrowed list).
 func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, castsOnly bool, window *windowCollector, forAsk bool, dst []decision.Option, temp bool) []decision.Option {
-	if gorgeDbgOK {
-		_, file, line, _ := runtime.Caller(1)
-		gorgeDbg("walk-enter", int(p), hyp != nil, castsOnly, forAsk, file[len(file)-25:], line)
-	}
 	// Count the walk before anything can early-return. A test-visible
 	// diagnostic only: no event, no state mutation, no effect on replay or
 	// chain heads (legalActionWalks is not copied by Clone and never reaches
