@@ -348,8 +348,19 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 			// permanents (Valkyrie Aerial Unit's affinity for a Treasure) has
 			// dropped, so the lowering cannot reach the cast whose total
 			// CR 601.2f fixed before that sacrifice (gorge witnessReachesMode
-			// lists the cast only when the pool pays it)
-			reaches = (ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)) && t.FeatPoolPays(p, o, 0)
+			// lists the cast only when the pool pays it). A card with no
+			// AbSpell is not automatically targetless: an aura's Enchant spec
+			// is its spell target (tspec), and the payment can consume
+			// exactly that creature (Brilliant Wings over the Eldrazi Spawn
+			// whose sac pays its {1}: gorge's replay then lists no cast, the
+			// targets are gone; tail-20 pair 5).
+			feas := true
+			if ab == 255 {
+				feas = t.spellTargetsFeasible(k, c, p) // an aura's Enchant spec is its spell target (tspec); a card with none keeps true
+			} else {
+				feas = t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)
+			}
+			reaches = feas && t.FeatPoolPays(p, o, 0)
 			if reaches && t.witnessEndsGameLost(k, p, c, n0) {
 				reaches = false // the sacrifices' triggers end the game against p before the cast (Pain Distributor's damage per Treasure)
 			}
