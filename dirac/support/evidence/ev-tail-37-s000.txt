@@ -73,6 +73,7 @@ Frozen Shade
 Gaea's Touch
 Gev, Scaled Scorch
 Ghostfire Blade
+Giant Ankheg
 Goblin Patrol
 Golden Urn
 Golgari Grave-Troll
@@ -176,6 +177,7 @@ Sea Legs
 Selesnya Signet
 Shadow Lance
 Shadowfeed
+Shisato, Whispering Hunter
 Shivan Oasis
 Sickle Ripper
 Siege Smash
