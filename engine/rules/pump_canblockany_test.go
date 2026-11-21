@@ -16,7 +16,7 @@ import (
 
 const (
 	canBlockAnySpellSrc = "Name:Valor Stand-In\nManaCost:W\nTypes:Instant\n" +
-		"A:SP$ Pump | ValidTgts$ Creature | CanBlockAny$ True | SpellDescription$ Target creature can block any number of creatures this turn.\nOracle:x\n"
+		"A:SP$ Pump | CanBlockAny$ True | ValidTgts$ Creature | SpellDescription$ Wide guard.\nOracle:x\n"
 )
 
 func TestCR509_1aPumpCanBlockAnyLastsThisTurn(t *testing.T) {
