@@ -248,6 +248,7 @@ const (
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
+	vCmdCastTotal        // the controller's casts of its own commanders from the command zone (kop.ExTotalCommanderCastFromCommandZone; value_cmdcast.go)
 	vCount_
 )
 
@@ -368,6 +369,7 @@ var valNames = [...]string{
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
 	vVoteTally:           "VoteTally",
+	vCmdCastTotal:        "CmdCastTotal",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
