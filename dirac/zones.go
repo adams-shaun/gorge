@@ -740,6 +740,8 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	p := &s.perms[sl]
 	p.flags &^= pfBatchGone // the departure is over for this member (fireLeave)
 	o := p.obj
+	// the layer stamp a graveyard static keeps from here (static_gystamp.go)
+	s.gyStampSet(o, s.lstamp[sl])
 	s.mSlClr(k, mechTappedTurn, sl) // the permanent leaves: its tapped-this-turn mark ends (filter_permmarks.go)
 	// a permanent that lost its abilities has no "from anywhere" line (CR 613.1f)
 	s.g.graveKept = k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 && s.genLost(k, sl)
