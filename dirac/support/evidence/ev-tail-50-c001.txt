@@ -227,7 +227,6 @@ Ledger Shredder
 Library
 Lithomantic Barrage
 Living Hive
-Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
 Lord of the Undead
