@@ -1776,6 +1776,8 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 		var ok bool
 		if painFunds(g.k, pc) {
 			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
+		} else if ra := t.ownRestrAb(g.k, sl); ra != nil && t.ownManaUsable(g.k, sl) {
+			ok = g.fundRestrBranch(t, i, sl, ra, mask, n)
 		} else {
 			ok = g.branch(t, i, sl, -1, mask, n, mask&(mask-1) != 0)
 		}
@@ -1785,6 +1787,24 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 		}
 	}
 	return false, false
+}
+
+// fundRestrBranch is fundingPass's step for a source with a restricted printed
+// ability beside its usable one (Plaza of Heroes' "{T}: Add one mana of any
+// color. Spend this mana only to cast a legendary spell" beside {C}): gorge's
+// "choose a mana ability" ask is one node, the usable ability's answers first
+// (flattened into it), then the restricted one's, whose colour ask is a node
+// of its own, the mana floated whether or not the play may spend it
+// (gapAbilities' restricted arm, the same two answers a gap holder asks).
+func (g *grantSrch) fundRestrBranch(t *State, i int, sl Slot, ra *kop.Ability, mask, n uint8) bool {
+	if !g.node() {
+		return false
+	}
+	if g.branch(t, i, sl, -1, mask, n, false) {
+		return true
+	}
+	g.skipPool = !t.restrSrcAdmits(g.k, g.p, sl, ra, &g.d)
+	return g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny)
 }
 
 // visit is one payer priority of the search on working copy t: the play
