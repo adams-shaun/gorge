@@ -58,7 +58,7 @@ func effRingTemptsYou(h Host, c *Ctx, sa *cards.SA) {
 	// fallback and the single/none cases designate.
 	eligible := make([]state.ObjID, 0, 4)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if h.IsCreature(id) {
+		if ringEligibleCreature(h, g, id) {
 			eligible = append(eligible, id)
 		}
 	}
@@ -156,7 +156,7 @@ func ringEmblemLegendary(p state.PlayerID) state.ContinuousEffect {
 // designates: the pick when it is still a creature p controls on the
 // battlefield, else (a stale or stray answer) the deterministic default.
 func ringAnsweredBearer(h Host, g *state.Game, p state.PlayerID, pick state.ObjID) state.ObjID {
-	if o := g.Obj(pick); o != nil && o.Zone == state.ZBattlefield && o.Controller == p && h.IsCreature(pick) {
+	if o := g.Obj(pick); o != nil && o.Zone == state.ZBattlefield && o.Controller == p && ringEligibleCreature(h, g, pick) {
 		return pick
 	}
 	return ringDefaultBearer(h, p, g)
@@ -177,11 +177,21 @@ func ringDefaultBearer(h Host, p state.PlayerID, g *state.Game) state.ObjID {
 		}
 	}
 	for _, id := range g.Zone(state.ZBattlefield, p) {
-		if h.IsCreature(id) {
+		if ringEligibleCreature(h, g, id) {
 			return id
 		}
 	}
 	return 0
+}
+
+// ringEligibleCreature is a battlefield creature the Ring may name as
+// Ring-bearer: a phased-out permanent is treated as though it doesn't exist
+// (CR 702.26b), so it can't be chosen (CR 701.54a).
+func ringEligibleCreature(h Host, g *state.Game, id state.ObjID) bool {
+	if o := g.Obj(id); o != nil && o.PhasedOut {
+		return false
+	}
+	return h.IsCreature(id)
 }
 
 // ringBlockerSacrificeBody is the builtin SVar body each level-3
