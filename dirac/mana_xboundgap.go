@@ -301,16 +301,18 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 		// over-bound stands (paymentPlanCensusOf's once gate, CR 605.3b)
 		return
 	}
+	if d.gapNever != 0 {
+		// a hybrid-fee filter has no relaxed alternative (its fee is floated
+		// by the prefix search, which a relaxed subset does not model), so
+		// gorge's census is not relaxable and its relaxed proof never runs
+		// (paymentPlanCensusOf: !ok clears relaxable): no subset pricing
+		// refuses the announcement and the over-bound stands, as for a
+		// repeatable gap (Stolen by the Fae's X=1 over an Island, a Plains and
+		// Flooded Grove; CR 605.3b, 601.2g)
+		return
+	}
 	fees := d.gapFee
 	for m := 0; m < 1<<n; m++ {
-		if never := int(d.gapNever); m&never != 0 {
-			// a hybrid-fee filter has no relaxed alternative (its fee is
-			// floated by the prefix search, which the relaxed subset does not
-			// model), so a subset holding it is priced as the one without it,
-			// fee uncharged
-			gs.sub[m] = gs.sub[m&^never]
-			continue
-		}
 		dm := d
 		dm.gapSkip, dm.gapN = ^uint8(m), 0
 		dm.gapPrice = true
