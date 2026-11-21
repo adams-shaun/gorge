@@ -1,0 +1,11 @@
+# The Mark of the Rani token attach over an existing Aura (The Rani's
+# TrigToken with AttachedTo$ Targeted beside Insubordination): the shared
+# bearer, its Enchant-creature sources and enough mana and bears
+# (dirac/oracle/rani_insub_attach_lockstep_test.go).
+The Rani
+Insubordination
+Grizzly Bears
+Mountain
+Island
+Swamp
+Forest
