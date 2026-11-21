@@ -27,12 +27,9 @@ import (
 //     tie-branch bit; the branches follow as OpBranch blocks (the
 //     GenericChoice shape).
 //
-// A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
-// still refuses by name. It used to refuse because gorge's placement ask
-// treated a triggered Vote's Choices$ as modal and posed a spurious CR 603.3c
-// mode choice before the trigger went on the stack; gorge no longer does
-// (engine/rules askTriggerModes returns false for a Vote), so the StoreVoteNum$
-// form lowers as the plain vote and the refusal is only the unproven shape.
+// A triggered fixed-list Vote lowers like any other: gorge poses no CR 603.3c
+// placement mode for a triggered Vote (its Choices$ is the ballot, asked at
+// resolution), so the vote is emitted once with no OpCharm wrapper.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
@@ -140,16 +137,6 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		}
 	}
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
-	if lc.ab.Kind == akTriggered {
-		if !store {
-			// not admitted: no carrier of this shape is lockstep-tested
-			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
-		}
-		if lc.ab.Modes != 0 {
-			return refuse("Vote on an ability that is already modal")
-		}
-		return lc.emitFixedVote(names, tie, store)
-	}
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
 		// VoteTiedAbility$ beside StoreVoteNum$ never resolves; do not hide

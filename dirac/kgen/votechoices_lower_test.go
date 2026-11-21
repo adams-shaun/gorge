@@ -6,31 +6,26 @@ import (
 )
 
 // TestVoteChoicesLowers pins the Choices$ fixed-list Vote lowering. The four
-// non-triggered carriers (the sorceries) lower end to end; Capital Punishment
-// is the StoreVoteNum$ form (TestVoteStoreNumLowers). A fixed-list Vote on a
-// triggered ability without StoreVoteNum$ refuses by name: gorge's placement
-// ask poses a spurious mode choice for it (charm_params.go isModalSA), a gorge
-// defect this lowering must not copy. The remaining carriers still refuse at a
-// branch or build shape (design item 3: a branch that refuses keeps the card
+// spell carriers lower end to end; Capital Punishment is the StoreVoteNum$
+// form (TestVoteStoreNumLowers). A fixed-list Vote on a triggered ability
+// lowers like any other Vote: gorge poses no CR 603.3c placement mode for it
+// (askTriggerModes), so no placement Charm wraps it. The remaining carriers
+// still refuse at a branch or build shape (design item 3: a branch that refuses keeps the card
 // refused by that branch's reason, never by the vote's own Choices$
 // parameter). No card refuses the vote parameter itself. A Secretly$ vote
 // still refuses that parameter by name.
 func TestVoteChoicesLowers(t *testing.T) {
-	const triggered = "Vote on a triggered ability: gorge asks a spurious placement mode"
-	lowered := []string{"Bite of the Black Rose", "Capital Punishment", "Plea for Power", "Tyrant's Choice"}
+	lowered := []string{"Bite of the Black Rose", "Capital Punishment", "Plea for Power", "Tyrant's Choice",
+		"Coercive Portal", "Council Guardian", "Magister of Worth"}
 	refused := map[string]string{
-		"Coercive Portal":        triggered,
-		"Council Guardian":       triggered,
-		"Galadriel, Elven-Queen": triggered,
-		"Magister of Worth":      triggered,
-		"Trial of a Time Lord":   triggered,
+		"Galadriel, Elven-Queen": "DB$ PutCounter: unread params [Mandatory]",
+		"Trial of a Time Lord":   "Effect without statics",
 		"Expropriate":            "RememberedPlayerOwn off the battlefield",
 		"Sail into the West":     "Hidden$ without ChangeType$",
 		"Split Decision":         "outside a SpellCast trigger",
 	}
 	names := append([]string{}, lowered...)
-	names = append(names, "Expropriate", "Coercive Portal", "Council Guardian",
-		"Galadriel, Elven-Queen", "Magister of Worth", "Sail into the West",
+	names = append(names, "Expropriate", "Galadriel, Elven-Queen", "Sail into the West",
 		"Split Decision", "Trial of a Time Lord", "Mob Verdict")
 	kp := kfhBuild(t, names, nil)
 
@@ -44,7 +39,7 @@ func TestVoteChoicesLowers(t *testing.T) {
 			t.Errorf("%s: refusals %q, want %q", n, got, want)
 		}
 	}
-	// The vote itself admits Choices$ on all twelve: no card is refused at
+	// The vote itself admits Choices$ on all of them: no card is refused at
 	// the parameter any more.
 	for _, n := range names[:len(names)-1] {
 		if got := refusalText(kp.cards[n]); strings.Contains(got, `Vote param "Choices"`) {
@@ -58,7 +53,7 @@ func TestVoteChoicesLowers(t *testing.T) {
 	// A lowered spell carries one Vote op with its branches following it.
 	// Tyrant's Choice has two choices and a tie branch: C = fixed-mode 2 |
 	// 2<<2 | 1<<5 = 42, then Branch C=0, C=1 and the tie at C=2. No placement
-	// Charm wraps it (the triggered shape is refused, not emulated).
+	// Charm wraps it.
 	lir, _ := lowerCarriers(t, []string{"Tyrant's Choice"})
 	sec := section(lir, "Tyrant's Choice")
 	if strings.Count(sec, "Vote C=42") != 1 {
@@ -71,6 +66,16 @@ func TestVoteChoicesLowers(t *testing.T) {
 	}
 	if strings.Contains(sec, "Charm") {
 		t.Errorf("Tyrant's Choice: a non-triggered vote has no placement Charm:\n%s", sec)
+	}
+	// A lowered triggered vote carries its Vote op and no placement Charm
+	// either: gorge asks no mode for it.
+	lirT, _ := lowerCarriers(t, []string{"Council Guardian"})
+	secT := section(lirT, "Council Guardian")
+	if !strings.Contains(secT, "Vote ") {
+		t.Errorf("Council Guardian: want a Vote op:\n%s", secT)
+	}
+	if strings.Contains(secT, "Charm") {
+		t.Errorf("Council Guardian: a triggered vote has no placement Charm:\n%s", secT)
 	}
 }
 
