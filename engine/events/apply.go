@@ -161,9 +161,10 @@ func ApplyPtr(g *state.Game, e *Event) {
 	if len(g.Stack) > n {
 		stampPushedAbilitySources(g, n)
 	}
-	// The distinct-source count never exceeds the stack's length, so a stack
-	// no longer than the mark cannot raise it.
-	if len(g.Stack) > int(g.MaxDistinctOnStackThisTurn) {
+	// Only a push can raise the mark, and the distinct-source count never
+	// exceeds the stack's length, so a stack that did not grow or is no longer
+	// than the mark cannot raise it.
+	if len(g.Stack) > n && len(g.Stack) > int(g.MaxDistinctOnStackThisTurn) {
 		noteStackHighWater(g)
 	}
 }

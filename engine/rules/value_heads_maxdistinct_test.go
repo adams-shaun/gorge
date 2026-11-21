@@ -10,8 +10,8 @@ import (
 // maxDistinctTrigSrc is a permanent or spell with one triggered ability, so a
 // TriggerPush of it mints an ability object whose Source is the card.
 const maxDistinctTrigSrc = "Name:Trigger Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ x\n" +
-	"SVar:TrigDraw:DB$ Draw | NumCards$ 1\nOracle:x\n"
+	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigFixture | TriggerDescription$ Fixture attack trigger.\n" +
+	"SVar:TrigFixture:DB$ Draw | NumCards$ 1\nOracle:Fixture.\n"
 
 // TestMaxDistinctOnStackHeadTracksTheHighWaterMark: Geometric Weird's
 // Count$MaxDistinctOnStack is the greatest number of distinct SOURCES with an
