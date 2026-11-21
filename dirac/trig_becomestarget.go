@@ -145,7 +145,8 @@ func (s *State) stampBtSA(e *stackEntry, n0 uint8) {
 		sid = e.sid
 	}
 	for i := n0; i < s.npend; i++ {
-		s.pend[i].trigSA = uint8(e.obj + 1) // code-ok: the +1 is a sentinel, not a code
+		lo, hi := saPack(objWord(e.obj + 1)) // code-ok: the +1 is a sentinel, not a code
+		s.pend[i].trigSA, s.pend[i].skw = lo, s.pend[i].skw&^skwSAHi|hi
 		s.pend[i].wardSid = sid
 	}
 }

@@ -107,3 +107,13 @@ func addCommanderTax(c *kop.ManaCost, tax uint8) {
 	}
 	c.Generic = uint8(g)
 }
+
+// cmdCastInFlight reports p's commander cast from the command zone pushed
+// but not yet committed (onCast counts it at the commit).
+func (s *State) cmdCastInFlight(p uint8) bool {
+	if s.cfg&cfgCommander == 0 || !s.buildLive() || s.sp == 0 {
+		return false
+	}
+	b := s.bld()
+	return b.bfl&bflPushed != 0 && b.origin == kop.ZoneCommand && s.stack[s.sp-1].ctrl == p
+}

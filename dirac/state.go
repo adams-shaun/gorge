@@ -521,7 +521,7 @@ type stackEntry struct {
 	// (pendingTrig.defSeat/trigSA; its identity there is wardSid): the object
 	// half keeps trigObj, so neither can share that slot.
 	btPl      uint8
-	trigSA    uint8
+	trigSA    uint8 // low byte of the targeting object + 1; the ninth bit is skw's skwSAHi (saWord)
 	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
 	// queued (pendingTrig.defSeat; 0 = none; defSeatObj tags an attack on a
@@ -609,7 +609,7 @@ type pendingTrig struct {
 	// ability's stack identity rides wardSid (the same byte a ward trigger's
 	// answered ability uses): the source permanent can itself be a trigger's
 	// source, so the object alone does not name the entry a counter removes.
-	trigSA  uint8
+	trigSA  uint8 // low byte of the targeting object + 1; the ninth bit is skw's skwSAHi (saWord)
 	trigAmt int16
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration

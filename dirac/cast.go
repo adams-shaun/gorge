@@ -126,7 +126,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+			if s.improviseLiftedFrom(k, p, c, o, ob.zone == kop.ZoneHand, plainCastZone(ob.zone)) {
 				s.bld().impPlan = true // (bflTargetPaid once shared its bit with the retired bflDefeatCast)
 			} else {
 				s.bld().bfl |= bflTargetPaid
@@ -2293,7 +2293,7 @@ func (s *State) takePending(k *prep, i int) {
 		}
 	}
 	s.bld().e.tgt = noTargets
-	if pt.trigSA != 0 {
+	if pt.saWord() != 0 {
 		// a BecomesTarget player half's targeted seat rides defSeat while
 		// pending (pendingTrig); it is a trigger referent, not an attack
 		// trigger's defender
