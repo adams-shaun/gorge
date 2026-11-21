@@ -100,7 +100,6 @@ type payDesc struct {
 	// ability it meets and leaves out the ones gapSkip's bits select
 	gapTrack bool
 	gapSkip  uint8
-	gapNever uint8 // the gaps no relaxed subset may charge (a hybrid-fee filter)
 	gapN     uint8
 	gapID    [paidGapMax]uint16
 	gapFee   [paidGapMax]uint8
