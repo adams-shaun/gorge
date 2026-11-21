@@ -16,7 +16,11 @@ import (
 // combatantsGoadDecks is the combatantsgoad fixture's four decks: seat 0
 // carries the ChangeCombatants redirects and both the static and the trigger
 // IsGoaded readers; the other seats are aggressive creatures and goad sources
-// (the goads make the readers' words matter in combat). Each deck is 40.
+// (the goads make the readers' words matter in combat). The aggro decks carry
+// Baeloth Barrityl, Entertainer too: its goaded-attacker dies trigger (a
+// departed ValidCard$ IsGoaded, CR 603.10a's look-back) is what seed 30 of the
+// pod exercises, with its own static goading the opponents' Taunting Kobolds.
+// Each deck is 40.
 func combatantsGoadDecks() [4][]cardset.Entry {
 	redirects := []cardset.Entry{
 		{Name: "Misleading Signpost", Count: 4}, {Name: "Portal Mage", Count: 4},
@@ -26,7 +30,8 @@ func combatantsGoadDecks() [4][]cardset.Entry {
 		{Name: "Taunting Kobold", Count: 4}, {Name: "Goblin Racketeer", Count: 4},
 		{Name: "Insufferable Balladeer", Count: 4},
 		{Name: "Bothersome Quasit", Count: 4}, {Name: "Puppet Master, String Puller", Count: 4},
-		{Name: "Grizzly Bears", Count: 8}, {Name: "Mountain", Count: 8}, {Name: "Forest", Count: 4},
+		{Name: "Baeloth Barrityl, Entertainer", Count: 2},
+		{Name: "Grizzly Bears", Count: 7}, {Name: "Mountain", Count: 7}, {Name: "Forest", Count: 4},
 	}
 	rani := []cardset.Entry{
 		{Name: "The Rani", Count: 4}, {Name: "Taunting Kobold", Count: 4},
