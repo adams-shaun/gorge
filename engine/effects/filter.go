@@ -1313,7 +1313,7 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 			// A player-base alternative (`Valid Player`, `Opponent`, ...)
 			// names a player target, not a card; the battlefield pin is a
 			// card-zone fact, so it stays unpinned and keeps matching players.
-			if base, _, _ := strings.Cut(a, "."); base == "Player" || base == "Opponent" || base == "You" || base == "Any" {
+			if base, _, _ := strings.Cut(a, "."); playerSpecBaseCodes.Code(base) != 0 {
 				alts[i] = a
 				continue
 			}
