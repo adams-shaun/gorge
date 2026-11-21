@@ -130,6 +130,11 @@ type World struct {
 	// BlkDef is the defender asked at PoseBlockers when NSeat > 2 (read nowhere
 	// at two seats: the defender is the active seat's one opponent).
 	BlkDef uint8
+	// Lost marks a seat that has left the game (CR 800.4a): it owns only
+	// ceased objects (Zone kop.ZoneNone), every card of its deck, and it is out
+	// of every rotation. At least two seats are not lost; the active seat, the
+	// priority holder, an attacker's target and BlkDef are none of them lost.
+	Lost [MaxSeats]bool
 	// Commander is a Commander game (CR 903, 40 life): Cmd[p] is seat p's
 	// commander, an object p owns, in the command zone or any zone staging
 	// admits (NoObj none), CmdCasts[p] its casts from the command zone (CR
@@ -261,6 +266,9 @@ func (w *World) validate() error {
 	if err := w.validateSeats(); err != nil {
 		return err
 	}
+	if err := w.validateLost(); err != nil {
+		return err
+	}
 	bf, err := w.validateObjs()
 	if err != nil {
 		return err
@@ -309,6 +317,42 @@ func (w *World) validateSeats() error {
 	return nil
 }
 
+// validateLost checks the seats that have left: two or more remain, and the
+// active seat, the priority holder, each attacker's target and the blockers
+// pose's defender are among them. A game whose active seat left mid-turn is
+// refused, not staged.
+func (w *World) validateLost() error {
+	alive := 0
+	for p := uint8(0); p < MaxSeats; p++ {
+		switch {
+		case !w.Lost[p]:
+			if p < w.NSeat {
+				alive++
+			}
+		case p >= w.NSeat:
+			return unstageable(ReasonSeats, "seat %d is lost and out of range", p)
+		case w.Commander && w.Cmd[p] != NoObj:
+			return unstageable(ReasonCommander, "seat %d has left and keeps a commander", p)
+		}
+	}
+	switch {
+	case alive < 2:
+		return unstageable(ReasonSeats, "%d seats not lost", alive)
+	case w.Lost[w.Active]:
+		return unstageable(ReasonSeats, "the active seat %d has left", w.Active)
+	case w.Lost[w.Prio]:
+		return unstageable(ReasonSeats, "the priority holder %d has left", w.Prio)
+	case w.Pose == PoseBlockers && w.NSeat > 2 && w.BlkDef < w.NSeat && w.Lost[w.BlkDef]:
+		return unstageable(ReasonSeats, "the defender %d has left", w.BlkDef)
+	}
+	for i := range w.Objs {
+		if o := &w.Objs[i]; o.Attacking && o.AtkSeat < w.NSeat && w.Lost[o.AtkSeat] {
+			return unstageable(ReasonSeats, "object %d attacks seat %d, which has left", i, o.AtkSeat)
+		}
+	}
+	return nil
+}
+
 // validateObjs checks every object of w and returns the battlefield total.
 func (w *World) validateObjs() (int, error) {
 	var n [MaxSeats]int
@@ -338,8 +382,8 @@ func (w *World) validateObjs() (int, error) {
 		if err := w.checkTokenAttach(i, &firstToken); err != nil {
 			return 0, err
 		}
-		if _, ok := stageZone(o.Zone); !ok {
-			return 0, unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
+		if err := w.validateObjZone(i, o); err != nil {
+			return 0, err
 		}
 		if o.Ctrl >= w.NSeat || o.Ctrl != o.Owner {
 			return 0, unstageable(ReasonControl, "object %d owner %d controller %d", i, o.Owner, o.Ctrl)
@@ -362,6 +406,25 @@ func (w *World) validateObjs() (int, error) {
 		}
 	}
 	return bf, nil
+}
+
+// validateObjZone checks the zone of object i. A seat that has left owns only
+// ceased objects (ZoneNone, no token: a ceased token's gap in the layout is not
+// staged), and nobody else owns one.
+func (w *World) validateObjZone(i int, o *WorldObj) error {
+	lost := w.Lost[o.Owner]
+	switch {
+	case o.Zone == kop.ZoneNone && lost && o.Token:
+		return unstageable(ReasonToken, "object %d: a ceased token", i)
+	case o.Zone == kop.ZoneNone && lost:
+		return nil
+	case lost:
+		return unstageable(ReasonZone, "object %d in zone %d of seat %d, which has left", i, o.Zone, o.Owner)
+	}
+	if _, ok := stageZone(o.Zone); !ok {
+		return unstageable(ReasonZone, "object %d in zone %d", i, o.Zone)
+	}
+	return nil
 }
 
 // validatePlaces requires every zone's places to be exactly 0..n-1.
@@ -492,6 +555,10 @@ func (s *State) initFromWorld(w *World) error {
 	s.stageCombat(k, w)
 	for p := 0; p < int(w.NSeat); p++ {
 		s.pl[p].life = int16(w.Life[p])
+		// a seat that has left: its objects are ceased already (the reset above)
+		// and it enters no zone. Not lose: that is the play-time path, and the
+		// position is after it.
+		s.pl[p].lost = w.Lost[p]
 	}
 	s.pl[w.Active].landsPlayed = w.LandsPlayed[w.Active]
 	s.turn = w.Turn
