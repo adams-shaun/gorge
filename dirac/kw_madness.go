@@ -365,17 +365,28 @@ func (s *State) filterCastAffords(k *prep, p uint8, o Obj, cost *kop.ManaCost) b
 
 // filtFundsMadness: some filter of p's may fund the madness cast. A
 // hybrid-fee filter (Graven Cairns' "{B/R}, {T}: Add {B}{B}, {B}{R}, or
-// {R}{R}") funds nothing unless p already floats its fee: gorge's census
-// cannot relax it (mana_filterhybrid.go) and its potential bound refuses it,
-// while the gaps census charges its {B/R} as generic mana, so a Plains and a
-// green land would look like they fund {1}{R}{R} (CR 107.4e, 601.2g-h).
+// {R}{R}") funds nothing unless p already floats its fee or a printed source
+// of p's can make one of its two faces: gorge's census cannot relax it
+// (mana_filterhybrid.go) and its potential bound refuses it without such a
+// source, while the gaps census charges its {B/R} as generic mana, so a Plains
+// and a green land would look like they fund {1}{R}{R} (CR 107.4c, 601.2g-h),
+// where a Swamp beside the Cairns does (the Swamp's {B} is the fee).
 func (s *State) filtFundsMadness(k *prep, p uint8) bool {
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		if _, _, hyb := s.filtHyb(k, b.first()); !hyb || s.filtPaid(k, p, b.first()) {
+		a, c, hyb := s.filtHyb(k, b.first())
+		if !hyb || s.filtPaid(k, p, b.first()) || s.printedMakesAny(k, p, uint8(1)<<uint(a)|uint8(1)<<uint(c)) {
 			return true
 		}
 	}
 	return false
+}
+
+// printedMakesAny: some printed source of p's (the planner census, a filter
+// or gap not among them) can make a colour of mask m.
+func (s *State) printedMakesAny(k *prep, p uint8, m uint8) bool {
+	var av avail
+	s.availFor(k, p, &av)
+	return av.canMakeAny(m)
 }
 
 // keywordCastAffords: p can pay cost for card o's keyword cast its resolving
@@ -431,6 +442,12 @@ func (s *State) ctrWindowAffords(k *prep, p uint8, cost *kop.ManaCost) bool {
 	s.availFor(k, p, &av)
 	s.g.availX = x
 	return av.affords(cost, pipMaskOf(cost), 0)
+}
+
+// madnessWindowLive: the cast being built is a madness cast paid through the
+// plain mana window (madnessPlainPay).
+func (s *State) madnessWindowLive() bool {
+	return s.buildLive() && s.bld().e.kind == seSpell && s.bld().e.trigPl == trigPlMadness
 }
 
 // madnessReversed: a madness card whose cast was reversed was not cast (CR
