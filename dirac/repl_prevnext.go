@@ -32,7 +32,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // name each shield's source, in registration order), applies each pick as made
 // and asks again while two or more are left and damage is (a noncombat event
 // parked by damageTo, a combat event of an ordered pass; every other damage site
-// stalls). The combat events of a pass are dealt in gorge's assignment order
+// stalls). The recipient's own bare printed "Prevent all damage that would be
+// dealt to CARDNAME." is the other exception (parkNC): the ask's options name
+// the shields first (gorge scans its effect records before the printed lines)
+// and the printed line last, a pick of the printed line stops the event with
+// the shields unspent (gorge handleDamageReplacementChoice's terminal arm)
+// and a pick of a shield prevents and spends it, re-collecting the rest as
+// gorge does (prevNextPick). The combat events of a pass are dealt in gorge's assignment order
 // (replOrderOrder) so a shield depletes across them as gorge's does; a pass that
 // asks about another event deals its lone-shield events at deal time
 // (dealCombatEvent), never from the recomputed amounts.
@@ -476,7 +482,12 @@ func (s *State) prevAllLeft(o Obj) {
 // prevNextPick is replOrderPick for a shield candidate: it applies as picked
 // (gorge applies each pick and re-collects the rest). The asks end when the
 // damage is all prevented; one shield left applies on its own; two or more
-// left are asked again.
+// left are asked again. A parked noncombat ask (ro.on false) counts the
+// recipient's bare printed prevention beside the shields too (parkNC's
+// modeled competition): a lone remaining printed line applies automatically
+// and stops the event with the shields unspent (gorge
+// handleDamageReplacementChoice's case 1), so two or more left are asked
+// again over it as gorge's re-collected set is.
 func (s *State) prevNextPick(i int) bool {
 	ro := &s.g.ro
 	s.prevNextSpend(i)
@@ -485,14 +496,28 @@ func (s *State) prevNextPick(i int) bool {
 	}
 	left, last := 0, -1
 	for j := 0; j < int(ro.n); j++ {
-		if ro.pnx&(1<<j) != 0 && ro.used&(1<<j) == 0 && s.g.prevCol[ro.cand[j]].col != 0 {
-			left++
+		if ro.used&(1<<j) != 0 {
+			continue
+		}
+		if ro.pnx&(1<<j) != 0 {
+			if s.g.prevCol[ro.cand[j]].col != 0 {
+				left++
+				last = j
+			}
+			continue
+		}
+		if !ro.on && ro.prev&(1<<j) != 0 {
+			left++ // the printed prevention: a candidate of the re-collected set (parkNC)
 			last = j
 		}
 	}
 	if left == 1 {
 		ro.used |= 1 << last
-		s.prevNextSpend(last)
+		if ro.pnx&(1<<last) != 0 {
+			s.prevNextSpend(last)
+		} else if sl := s.ncShieldSlot(); sl != NoSlot && s.prevAnyTo(s.k(), sl, false) {
+			ro.an = 0 // the printed line applies: the event stops, the shields are unspent
+		}
 	}
 	return left >= 2
 }

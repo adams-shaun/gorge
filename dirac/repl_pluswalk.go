@@ -175,11 +175,15 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 // (plusBatchAsked, set by replPlusSrcPass and replPlusBatch): a mixed
 // competition's park (ro.ac != 0) keeps its record, whose picks were applied
 // as made (ncPlusPickNC) and whose amount the re-executed op's asked event
-// deals from (replDamagePend); a pure plus-N batch order ask drops the parked
+// deals from (replDamagePend); a PreventNext shields' ask keeps its record
+// too (the shields were spent as picked and prevNextNC wrote the picked
+// order's amount into it); a pure plus-N batch order ask drops the parked
 // event too, since the order cannot change the sum. The walk is dropped and
-// the op re-executes.
+// the op re-executes. prevNextNC runs first so a shields' ask's record
+// carries the picked order's amount (repl_prevnext.go).
 func (s *State) replPlusAskedResume(k *prep) {
-	if s.g.ro.ac != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
+	s.prevNextNC()
+	if s.g.ro.ac != 0 || s.g.ro.pnx != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
 		s.g.ro = replOrd{}
 	} else {
 		s.g.ro, s.g.nc = replOrd{}, ncDmg{}
