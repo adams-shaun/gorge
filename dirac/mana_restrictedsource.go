@@ -289,9 +289,6 @@ func (g *genPrep) restrRecOf(c CardID) *restrRec {
 // spell's card, an activated ability's source), else a spell when the
 // caller excludes a hand card from the demand, else other.
 func (s *State) payDescNow(exclude Obj) payDesc {
-	if s.g.gatePay.on { // the hand-cast offer gate's walks (castGateFeeRepeat)
-		return payDesc{class: pdSpell, card: s.g.gatePay.card, src: NoSlot, og: s.g.gatePay.og}
-	}
 	if s.ctl == ctlTurnUpTap { // face_turnfaceup.go tapForTurnUp
 		return payDesc{class: pdSpecial, src: NoSlot, sp: kop.SpecialMask(s.g.pickLeft), tgt: s.objs[Obj(s.g.pickF)].slot}
 	}
