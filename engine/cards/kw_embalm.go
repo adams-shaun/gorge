@@ -4,6 +4,10 @@
 
 package cards
 
+// cardManaCostToken is Forge's placeholder for "the card's own mana cost" in a
+// keyword grant line (Cursecloth Wrappings' Embalm:CardManaCost).
+const cardManaCostToken = "CardManaCost"
+
 func kwEmbalm(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
 	if has("A", k) {
 		return
@@ -24,6 +28,14 @@ func kwEmbalm(f *Face, i int, k, head, param string, has func(kind, line string)
 	// Sunscourge Champion's "Discard<1/Card>") rides along. RemoveCost$
 	// True is the token's "no mana cost" (Forge's spelling); every
 	// exception is a copiable value of the token (CR 707.9b).
+	// A grant's CardManaCost token (Cursecloth Wrappings, CR 702.128a) is the
+	// card's own mana cost. A scratch face with no mana cost (the replay
+	// mint of an already-paid activation, which reads only the body) keeps
+	// the token verbatim; the offer side refuses that case itself
+	// (GrantedKeywordAbilityFor).
+	if param == cardManaCostToken && f.ManaCost != "" {
+		param = f.ManaCost
+	}
 	body := "AB$ CopyPermanent | Cost$ " + param + " ExileFromGrave<1/CARDNAME> | ActivationZone$ Graveyard | SorcerySpeed$ True | Defined$ Self | RemoveCost$ True | SetColor$ "
 	if head == "Eternalize" {
 		body += "Black | AddTypes$ Zombie | SetPower$ 4 | SetToughness$ 4"

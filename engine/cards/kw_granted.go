@@ -49,12 +49,31 @@ func GrantedKeywordHeadNames() []string {
 // scratch face and returns the single ability it mints, tagged exactly as the
 // printed expansion tags it (KeywordLine = line). A line whose expander mints
 // nothing or more than one ability (a malformed cost) returns nil.
-func grantedExpanderSA(line string) *SA {
+func grantedExpanderSA(line, manaCost string) *SA {
 	f := newFace()
+	f.ManaCost = manaCost
 	if !f.ApplyKeywordExpansion(line) || len(f.Abilities) != 1 {
 		return nil
 	}
 	return f.Abilities[0]
+}
+
+// GrantedKeywordAbilityFor is GrantedKeywordAbility for a line granted to a
+// card whose printed mana cost is manaCost (a face's space-separated ManaCost
+// text). Forge spells "the card's own mana cost" in a grant line as the
+// CardManaCost placeholder token (Cursecloth Wrappings' Embalm:CardManaCost,
+// CR 702.128a). The expander runs against a scratch face carrying manaCost,
+// and kwEmbalm substitutes the token there, so the ability's cost is the
+// card's own; the ability keeps the ORIGINAL line as its KeywordLine so every
+// line-keyed read (coverage, stamps, activation limits) still matches. A
+// token line with no mana cost to substitute is nil, the "cannot be
+// modelled" answer (the offer would price a nonexistent cost). A line without the token is GrantedKeywordAbility
+// unchanged.
+func GrantedKeywordAbilityFor(line, manaCost string) *SA {
+	if manaCost == "" && keywordParam(line) == cardManaCostToken {
+		return nil
+	}
+	return grantedKeywordAbility(line, manaCost)
 }
 
 // GrantedKeywordAbility synthesizes the activated ability a keyword LINE
@@ -68,6 +87,10 @@ func grantedExpanderSA(line string) *SA {
 // returns nil (the totality stance every synthesizer takes), so a caller
 // fails closed to no ability rather than a wrong one.
 func GrantedKeywordAbility(line string) *SA {
+	return grantedKeywordAbility(line, "")
+}
+
+func grantedKeywordAbility(line, manaCost string) *SA {
 	head := KeywordHead(line)
 	if !grantedKeywordHeads(head) {
 		return nil
@@ -94,7 +117,7 @@ func GrantedKeywordAbility(line string) *SA {
 		n, riders := crewParamParts(param)
 		sa = crewAbilitySA(n, riders)
 	default:
-		sa = grantedExpanderSA(line)
+		sa = grantedExpanderSA(line, manaCost)
 	}
 	if sa != nil {
 		sa.Params["KeywordLine"] = line
