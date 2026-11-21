@@ -81,6 +81,7 @@ func (r *rig) hostIsClean(h string) {
 }
 
 func TestTestTargetsRemoteHostsFirstFullGoesToTheSecond(t *testing.T) {
+	t.Parallel()
 	r := newHostsRig(t)
 	r.set("GORGE_REMOTE_MAX_RUNS=1", "GORGE_REMOTE_WAIT=60", "GORGE_REMOTE_POLL=1")
 	holdSlotOn(t, r.hostBox("a"), 1)
@@ -100,6 +101,7 @@ func TestTestTargetsRemoteHostsFirstFullGoesToTheSecond(t *testing.T) {
 }
 
 func TestTestTargetsRemoteHostsAllFullWaitThenFallBack(t *testing.T) {
+	t.Parallel()
 	r := newHostsRig(t)
 	seen := fallbackStubGo(t, r)
 	r.set("GORGE_REMOTE_MAX_RUNS=1", "GORGE_REMOTE_WAIT=2", "GORGE_REMOTE_POLL=1")
@@ -119,6 +121,7 @@ func TestTestTargetsRemoteHostsAllFullWaitThenFallBack(t *testing.T) {
 }
 
 func TestTestTargetsRemoteHostsProbeFailureIsSkipped(t *testing.T) {
+	t.Parallel()
 	r := newHostsRig(t)
 	r.set("STUB_DOWN_HOSTS=a")
 	out, errs, code := r.run("one")
@@ -145,6 +148,7 @@ func TestTestTargetsRemoteHostsProbeFailureIsSkipped(t *testing.T) {
 
 // With GORGE_REMOTE_MAX_RUNS unset, a box has max(2, nproc/6) run slots.
 func TestTestTargetsRemoteDefaultSlotsFollowCores(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		nproc  string
 		held   int
@@ -180,6 +184,7 @@ func TestTestTargetsRemoteDefaultSlotsFollowCores(t *testing.T) {
 
 // GORGE_REMOTE_HOST alone is the one-box form; set beside GORGE_REMOTE_HOSTS, it wins (the burst box override).
 func TestTestTargetsRemoteHostAloneStillWorks(t *testing.T) {
+	t.Parallel()
 	r := newHostsRig(t)
 	var kept []string
 	for _, kv := range r.env {

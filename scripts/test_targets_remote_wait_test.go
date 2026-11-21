@@ -53,6 +53,7 @@ esac
 }
 
 func TestTestTargetsRemoteModesKeepTestOneHere(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	seen := fallbackStubGo(t, r)
 	r.set("GORGE_REMOTE_MODES=targeted smart", "STUB_SSH_DOWN=1")
@@ -66,6 +67,7 @@ func TestTestTargetsRemoteModesKeepTestOneHere(t *testing.T) {
 }
 
 func TestTestTargetsRemoteWaitsForASlot(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	r.set("GORGE_REMOTE_MAX_RUNS=1", "GORGE_REMOTE_WAIT=60", "GORGE_REMOTE_POLL=1")
 	holdSlot(t, r, 2*time.Second)
@@ -80,6 +82,7 @@ func TestTestTargetsRemoteWaitsForASlot(t *testing.T) {
 }
 
 func TestTestTargetsRemoteWaitRunsOutThenFallsBackCapped(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	seen := fallbackStubGo(t, r)
 	r.set("GORGE_REMOTE_MAX_RUNS=1", "GORGE_REMOTE_WAIT=2", "GORGE_REMOTE_POLL=1")
@@ -97,6 +100,7 @@ func TestTestTargetsRemoteWaitRunsOutThenFallsBackCapped(t *testing.T) {
 }
 
 func TestTestTargetsRemoteUnreachableIsMarkedFallback(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	seen := fallbackStubGo(t, r)
 	r.set("STUB_SSH_DOWN=1")
@@ -111,6 +115,7 @@ func TestTestTargetsRemoteUnreachableIsMarkedFallback(t *testing.T) {
 
 // A red while the landing gate shared the box runs on the box once more; nothing runs here.
 func TestTestTargetsRemoteContendedRedRerunsOnTheBox(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	// The landing gate's scope is active until the first go test has run.
 	write(t, filepath.Join(r.bin, "systemctl"), `#!/bin/sh
@@ -143,6 +148,7 @@ esac
 
 // The box runs a seat's tests below the landing gate's nice level (0), as well as under its CPUWeight.
 func TestTestTargetsRemoteRunsNiced(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	seen := filepath.Join(filepath.Dir(r.repo), "nice.seen")
 	write(t, filepath.Join(r.bin, "go"), `#!/bin/sh
@@ -174,6 +180,7 @@ esac
 // said only "the box answered ENV (...); running locally" after 1147 s: the reason (a stale corpus-pin skip in
 // ./engine/rules) was on the box's stdout, far above.
 func TestTestTargetsRemoteEnvAnswerNamesTheReason(t *testing.T) {
+	t.Parallel()
 	r := newRig(t)
 	write(t, filepath.Join(filepath.Dir(r.repo), "stream.json"), `{"Action":"run","Package":"m/p","Test":"TestA"}
 {"Action":"output","Package":"m/p","Test":"TestA","Output":"    a_test.go:5: corpus at 418ba52, need 91402ac: refetch .cards\n"}
@@ -199,6 +206,7 @@ func TestTestTargetsRemoteEnvAnswerNamesTheReason(t *testing.T) {
 // A timeout in a run that fell back from the box to a cap below 4 cores is BUSY, not the change's BUDGET: seat
 // 3c80ac4f was parked on 11-14 for a dirac/oracle named run that timed out at 5m on one core. At 4 cores it stands.
 func TestTestTargetsRemoteFallbackTimeoutIsBusy(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		cpu, want string
 		code      int
