@@ -876,7 +876,8 @@ const (
 	PKPreventionEffect
 	// A Mode$ Continuous static's CanBlockAmount$ N / CanBlockAny$ True: the
 	// affected creature can block N additional / any number of creatures
-	// (CR 509.1a). Appended: earlier ordinals stay stable.
+	// (CR 509.1a). A Pump's CanBlockAny$ True is the same grant until end of
+	// turn (effects.registerPumpCanBlockAny). Appended: earlier ordinals stay stable.
 	PKCanBlockAmount
 	PKCanBlockAny
 	// XColor$ names the colour(s) the {X} part of a cost must be paid with
