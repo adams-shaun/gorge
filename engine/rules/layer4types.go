@@ -598,7 +598,7 @@ func (e *Engine) appendDerivedEntry(buf []effects.ObjectTypes, act []ContinuousE
 		return buf
 	}
 	ty, all := chars.TypesAndAllCreatureTypes(asChars(e), act, id, 0)
-	if sameTypeWordSet(ty, o.Face().Types) && all == effects.IntrinsicAllCreatureTypes(o) {
+	if derivedTypesAreBase(o, ty, all) {
 		return buf
 	}
 	// The list may alias a scratch buffer or the face's own slice, so copy
@@ -877,7 +877,7 @@ func (e *Engine) buildDerivedTypesWalk(buf []effects.ObjectTypes, srcs []state.O
 		} else {
 			ty, all = chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
 		}
-		if sameTypeWordSet(ty, o.Face().Types) && all == effects.IntrinsicAllCreatureTypes(o) {
+		if derivedTypesAreBase(o, ty, all) {
 			continue
 		}
 		// The list may alias a scratch buffer or the face's own slice, so copy
@@ -928,6 +928,20 @@ func (e *Engine) anyLayer4Active() bool {
 // board. The table is refreshed by emit and continuousChanged, so it is
 // current at Resolve entry.
 func (e *Engine) EffectiveTypes() []effects.ObjectTypes { return e.layer4Types }
+
+// derivedTypesAreBase reports whether o's derived type list is the one the type
+// filters fall back to when the table holds no entry for it: the printed face's
+// words, or for a face-down permanent its face-down words (CR 708.2: hasTypePrinted
+// reads those, never the hidden face). A Splitskin Doll face down under Unable to
+// Scream derives Artifact Creature Toy, equal to its printed words yet not to the
+// {Creature} the fallback reads, so it needs its entry.
+func derivedTypesAreBase(o *state.Object, ty []string, all bool) bool {
+	base := o.Face().Types
+	if o.FaceDownHidden() {
+		base = o.FaceDownTypeWords()
+	}
+	return sameTypeWordSet(ty, base) && all == effects.IntrinsicAllCreatureTypes(o)
+}
 
 // sameTypeWordSet reports whether two type lists carry the same words,
 // case-insensitively and ignoring order. It decides whether an object's derived
