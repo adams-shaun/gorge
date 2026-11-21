@@ -352,7 +352,7 @@ func TestBotAdaptersAgreeOverWholeGame(t *testing.T) {
 		{name: "cast-profile", new: func(seed uint64) *Bot {
 			b, err := NewCastProfileBot(seed)
 			if err != nil {
-				t.Fatalf("NewCastProfileBot: %v", err)
+				panic("NewCastProfileBot: " + err.Error()) // runs inside a parallel subtest, after this test's body returned
 			}
 			return b
 		}},
