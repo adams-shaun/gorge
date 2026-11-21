@@ -28,6 +28,11 @@ func manaGrantConditionHolds(g *state.Game, sv staticView, present func(staticVi
 	if !presentGatesHold(sv, present) {
 		return false
 	}
+	// A kw:Class grant's ClassBand$ (CR 716.2): the granted ability is live
+	// only once the Class has reached that level.
+	if !classBandHolds(g, sv.ParamStr(cards.PKClassBand), sv.Source) {
+		return false
+	}
 	if !topCardOfLibraryGateHolds(g, sv, matches) {
 		return false
 	}
