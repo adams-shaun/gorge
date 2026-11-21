@@ -149,6 +149,13 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 // exact (a binding summed life guard is still the conservative answer).
 func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 	sl := s.objs[o].slot
+	if fm := s.fodderOnlySources(k, p, sl); fm.any() {
+		// a sacrifice-another source whose one fodder is the target has no
+		// unit once the plan takes the target for its own cost (CR 601.2c)
+		held := s.ctrlM[p]
+		s.ctrlM[p] = held.andNot(fm)
+		defer func() { s.ctrlM[p] = held }()
+	}
 	s.availForMode(k, p, a, slotMask{}.with(sl), false)
 	m := s.g.availX
 	s.g.availX = availPlain
@@ -208,4 +215,24 @@ func (s *State) minTargetsKept(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost
 		return true
 	}
 	return t.spellTargetsFeasible(k, c, p) || r.targetsKept(k, p, sp, t, o) || t.witnessEndsGameWon(k, p, c, n0)
+}
+
+// fodderOnlySources: the sacrifice-another mana sources of p's script walk
+// (Diamond Kaleidoscope's "Sacrifice a Prism token: Add one mana of any
+// color") whose only sacrifice candidate is the permanent at slot t. A cast
+// that targets t cannot also fund its cost by sacrificing t, so gorge's prefix
+// search (potential_script.go targetsGone) finds no script through them.
+func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
+	var fm slotMask
+	var cs [MaxPerm]Slot
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if sl == t || k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac == 0 {
+			continue
+		}
+		if s.tapXCands(k, p, sl, &cs) == 1 && cs[0] == t {
+			fm = fm.with(sl)
+		}
+	}
+	return fm
 }
