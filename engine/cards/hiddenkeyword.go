@@ -152,6 +152,10 @@ const (
 	HiddenKeywordCantAttackUnlessTwoOthers
 	HiddenKeywordCantBlockUnlessTwoOthers
 	HiddenKeywordCantAttackUnlessBlackOrGreen
+	// HiddenKeywordMustBeBlockedBy is "MustBeBlockedBy <blocker filter>": a
+	// granted block requirement satisfied by one blocker matching the filter
+	// (The Masamune, Slayer's Cleaver). The filter rides the head text.
+	HiddenKeywordMustBeBlockedBy
 	HiddenKeywordCount
 )
 
@@ -211,7 +215,33 @@ func HiddenKeywordOf(k string) HiddenKeyword {
 	if head == "" {
 		return HiddenKeywordNone
 	}
-	return hiddenKeywordHeadCodes.Code(lowerASCIIString(head))
+	low := lowerASCIIString(head)
+	if len(low) > len(mustBeBlockedByPrefix) && low[:len(mustBeBlockedByPrefix)] == mustBeBlockedByPrefix {
+		return HiddenKeywordMustBeBlockedBy
+	}
+	return hiddenKeywordHeadCodes.Code(low)
+}
+
+// mustBeBlockedByPrefix opens the filtered must-be-blocked grant; the trailing
+// space keeps mustbeblockedbyall / -one / -two on their own table entries.
+const mustBeBlockedByPrefix = "mustbeblockedby "
+
+// MustBeBlockedByFilter returns the blocker filter text of a
+// "MustBeBlockedBy <filter>" keyword, verbatim ("" when k is another keyword).
+func MustBeBlockedByFilter(k string) string {
+	if HiddenKeywordOf(k) != HiddenKeywordMustBeBlockedBy {
+		return ""
+	}
+	head := KeywordHead(k)
+	for i := 0; i < len(head); i++ {
+		if head[i] == ' ' {
+			for i < len(head) && head[i] == ' ' {
+				i++
+			}
+			return head[i:]
+		}
+	}
+	return ""
 }
 
 // IsHiddenRuleEffectKeyword reports whether one derived keyword line is one
