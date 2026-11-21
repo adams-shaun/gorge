@@ -212,6 +212,9 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 			continue
 		}
 		if kop.StoreManaAb(a) {
+			if s.g.availX&availNoStore != 0 {
+				continue // an unless cost's window prices no battery (mana_unlessnostore.go)
+			}
 			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
 			if n > 255 {
 				s.capFull(StallDynMana)
