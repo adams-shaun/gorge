@@ -994,11 +994,12 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			if a.Cost.Flags&kop.CostDiscard != 0 {
 				// a filtered discard counts only the hand cards matching
 				// Cost.Filter (cost_discardfiltered.go)
+				dn, df, filtered := discardPart(&a.Cost)
 				n := int(pl.handN)
-				if a.Cost.Flags&kop.CostDiscardFiltered != 0 {
-					n = s.discardCandN(k, p, a.Cost.Filter, NoObj)
+				if filtered {
+					n = s.discardCandN(k, p, df, NoObj)
 				}
-				if n < int(a.Cost.N) {
+				if n < int(dn) {
 					continue // Phantasmagorian's "Discard three cards": legal.go's battlefield check (kfix-cast)
 				}
 			}

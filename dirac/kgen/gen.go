@@ -682,6 +682,9 @@ func costString(c lCost) string {
 	if c.DiscardF != nil {
 		p = append(p, fmt.Sprintf("Discard%d%s", c.DiscardN, c.DiscardF))
 	}
+	if discardBesideSacFiltered(c) {
+		p = append(p, fmt.Sprintf("DiscardSide%d%s", c.DiscardN, c.DiscardF))
+	}
 	if c.Discard2N > 0 {
 		f := "Card"
 		if c.Discard2F != nil {

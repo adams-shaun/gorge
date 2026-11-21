@@ -2363,7 +2363,7 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 				return false
 			}
 			s.bld().pickK = rest & -rest
-			s.bld().pickLeft = pc.N
+			s.bld().pickLeft = pickCount(pc, s.bld().pickK)
 			if s.bld().pickK == pkDiscard && pc.DiscardX {
 				s.bld().pickLeft = uint8(e.x) // Discard<X/Spec>: the announced X (0 asks nothing)
 			}
@@ -2427,7 +2427,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		// a filtered discard (CostDiscardFiltered) offers only the hand
 		// cards matching Cost.Filter (cost_discardfiltered.go); past the
 		// first part's picks a second part offers its own (Discard2F)
-		fmatch, f := c.Flags&kop.CostDiscardFiltered != 0, c.Filter
+		_, f, fmatch := discardPart(c)
 		if s.discardPartTwo(c) {
 			fmatch, f = c.Discard2F != 0, c.Discard2F
 		}

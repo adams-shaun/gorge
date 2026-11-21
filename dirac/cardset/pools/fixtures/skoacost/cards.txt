@@ -1,0 +1,10 @@
+# Skoa, Embermage's "Discard another card named Skoa, Embermage, Sacrifice two
+# Mountains: 4 damage to any target" activated cost: Skoa (several, to cast and
+# to pitch), Mountains to cast and to sacrifice, burn and bodies to give the
+# hand other cards that never pay, and a draw spell to refill the hand, for the
+# oracle's constructed lockstep (dirac/oracle/skoacost_lockstep_test.go)
+Skoa, Embermage
+Mountain
+Shock
+Grizzly Bears
+Divination

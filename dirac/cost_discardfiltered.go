@@ -34,12 +34,13 @@ func (s *State) discardPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool 
 		return s.discardTwoPayable(k, p, c, exclude)
 	}
 	n := int(s.pl[p].handN)
-	if c.Flags&kop.CostDiscardFiltered != 0 {
-		n = s.discardCandN(k, p, c.Filter, exclude)
+	dn, df, filtered := discardPart(c)
+	if filtered {
+		n = s.discardCandN(k, p, df, exclude)
 	} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
 		n--
 	}
-	need := int(c.N)
+	need := int(dn)
 	if c.DiscardX {
 		// Discard<X/Spec>: the announced X (Cost.N stays 0). An offer
 		// before the announcement reads X = 0, which every hand pays.
