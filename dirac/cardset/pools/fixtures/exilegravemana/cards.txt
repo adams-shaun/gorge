@@ -1,0 +1,16 @@
+# an exile-from-graveyard mana source (Molt Tender: "{T}, Exile a card from your graveyard: Add one mana of any color") beside
+# self-mill creatures that stock the graveyard and spells the extra mana pays, for the oracle's lockstep
+# (dirac/oracle/exilegravemana_lockstep_test.go)
+Molt Tender
+Stitcher's Supplier
+Armored Skaab
+Hill Giant
+Craw Wurm
+Grizzly Bears
+Jayemdae Tome
+Forest
+Swamp
+Mountain
+Island
+Plains
+Cascade Bluffs
