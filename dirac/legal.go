@@ -3208,6 +3208,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
+			s.noteDashCmdCast(a)
 		}
 		if a.Target() == castForetellTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyForetell {
 			s.g.impCast = true // the foretell cost (kw_foretell.go): beginCast marks the entry foretold
