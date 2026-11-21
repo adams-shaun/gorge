@@ -2473,6 +2473,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			} else {
 				painAdd(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
 			}
+			// the tap's TapsForMana extra is a fixed vector beside the
+			// dynamic amount (Tower Worker's {C} under Leyline of Abundance's
+			// {G}): gorge folds it into each alternative of the tap
+			if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
+				s.potentialTapExtra(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen)
+			}
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
