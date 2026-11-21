@@ -13,13 +13,11 @@ package kgen
 // effects.RecordCharmChoices), so a countered trigger still logged its mode
 // and the next instance sees it; the kernel's pick log (cpGame for ThisGame,
 // ModeRestrict 2) records at the same moment (Demonic Pact). An activated
-// charm (Three Bowls of Porridge, ThisGame) is asked at resolution, where
-// gorge's effCharm filters the offer but maps the answer's dense index
-// against the UNFILTERED Choices$ list (effects/charm.go:874-877: ResumeModes
-// is set only for a NumRandomChoices$ draw), so the second activation runs and
-// logs the wrong mode; refused until gorge fixes that (the kernel side,
-// modal_charmpick.go and modal_activated.go, is in place and matched
-// gorge's offer).
+// charm (Three Bowls of Porridge, ThisGame) lowers the same way: gorge asks
+// its modes at activation (ResumeKind "cast_modes") with ResumeModes set to
+// the eligible modes, so the answer maps against the filtered list and the
+// pick log is recorded then; the kernel's activated half (modal_charmpick.go,
+// modal_activated.go) matches that offer.
 func (lc *lowerCtx) charmRestrict(ps *params) error {
 	v, ok := ps.get("ChoiceRestriction")
 	if !ok {
@@ -42,7 +40,6 @@ func (lc *lowerCtx) charmRestrict(ps *params) error {
 			return refuse("charm ChoiceRestriction$ on a trigger outside the battlefield")
 		}
 	case akActivated:
-		return refuse("charm ChoiceRestriction$ on an activated ability: gorge maps the filtered resolution ask against the unfiltered Choices$ (effects/charm.go:874-877)")
 	default:
 		return refuse("charm ChoiceRestriction$ on a %s ability", abilityKindNames[lc.ab.Kind])
 	}
