@@ -27,7 +27,7 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 		hit = s.regenAll(hit)
 	}
 	var umbra umbraOrder
-	victims := hit // the matched permanents: an umbra Aura destroyed in a bearer's place is no victim (CR 702.89a)
+	victims := hit                           // the matched permanents: an umbra Aura destroyed in a bearer's place is no victim (CR 702.89a)
 	hit = s.shieldUmbraAllIn(k, hit, &umbra) // CR 122.1c, 702.89a: NoRegen$ suppresses regeneration only
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(hit, &ord)
