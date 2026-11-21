@@ -162,22 +162,37 @@ func (s *State) leaveExileHook(k *prep, o Obj, from kop.Zone) {
 
 // place puts o (not in any zone) into a non-battlefield zone of its owner.
 func (s *State) place(o Obj, z kop.Zone, bottom bool) {
-	s.placeFrom(o, z, bottom, kop.ZoneNone, false)
+	s.placeFrom(o, z, bottom, kop.ZoneNone, false, false)
+}
+
+// leftCounteredAt is whether a battlefield departure carries counters out of
+// the battlefield, the read its entry records (gorge's
+// state.ZoneEntry.LeftCounters non-nil, Forge's per-add LKI: the counters go
+// with the card, CR 400.7 clears them off the object). removePerm and
+// meldLeave read it while the counters are still on the permanent; the
+// unattach loop and placeFromK's own clears are both below. The attachment
+// halves of gorge's `modified` read are NOT part of it: Forge's LKI copy
+// carries no attachment lists, so an equipped-but-uncountered creature died
+// unmodified.
+func (s *State) leftCounteredAt(k *prep, sl Slot) bool {
+	return s.g.enteredOn && s.predHasCounters(sl)
 }
 
 // placeFrom is place with the pre-move zone and whether o was a creature
-// when it left the battlefield.
-func (s *State) placeFrom(o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCreature bool) {
+// when it left the battlefield (leftCounters: whether the departure carries
+// its counters out of the battlefield, gorge's state.ZoneEntry.LeftCounters,
+// Forge's per-add LKI; leave computes it before the unattach loop).
+func (s *State) placeFrom(o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCreature, leftCounters bool) {
 	var k *prep
 	if s.g.on {
 		k = s.k()
 	}
-	s.placeFromK(k, o, z, bottom, from, wasCreature)
+	s.placeFromK(k, o, z, bottom, from, wasCreature, leftCounters)
 }
 
 // placeFromK is placeFrom for a caller that holds the table's prep (k is nil
 // off the generic path): the hot movers pass it so the move does not reload it.
-func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCreature bool) {
+func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zone, wasCreature, leftCounters bool) {
 	if p := &s.g.pre; p.kind == akCmdZone && p.obj == o && p.state == preCmdZoneOK {
 		*p = preAsk{} // the answered CR 903.9b move is happening
 	} else if (z == kop.ZoneHand || z == kop.ZoneLibrary) && s.cmdZoneCommander(o) {
@@ -215,7 +230,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 			z = s.exileAnyDest(k, o, from) // Rest in Peace or the card itself from any zone (repl_exileonleave.go)
 		}
 	}
-	if s.placeGraveLib(k, o, pl, z, from, wasCreature) {
+	if s.placeGraveLib(k, o, pl, z, from, wasCreature, leftCounters) {
 		return
 	}
 	if pl.zoneFull(z) {
@@ -265,7 +280,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		s.mayPersistMoved(o, z) // re-arm an effect-delivered graveyard grant
 	}
 	if s.g.enteredOn {
-		s.noteEnter(o, z, from, wasCreature)
+		s.noteEnter(o, z, from, wasCreature, leftCounters)
 	}
 	if from == kop.ZoneGraveyard && k != nil && k.gen != nil && k.gen.anyLeavesGrave {
 		s.fireLeavesGraveTo(k, o, z) // trig_leavesgrave.go
@@ -278,7 +293,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 // placeGraveLib places o on its owner's library when a grave-to-library
 // replacement applies (Progenitus, Gravebane Zombie, Nissa's Chosen), and
 // reports whether it handled the move: a full library stalls and is handled too.
-func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Zone, wasCreature bool) bool {
+func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Zone, wasCreature, leftCounters bool) bool {
 	if !s.g.on || s.g.graveKept || z != kop.ZoneGraveyard || s.graveRedirect(k, s.objs[o].card, z, from) != kop.ZoneLibrary {
 		return false
 	}
@@ -300,7 +315,7 @@ func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Z
 		pl.libTop(o)
 	}
 	if s.g.enteredOn {
-		s.noteEnter(o, kop.ZoneLibrary, from, wasCreature)
+		s.noteEnter(o, kop.ZoneLibrary, from, wasCreature, leftCounters)
 	}
 	if shuffle {
 		s.shuffleLib(ob.owner())
@@ -355,7 +370,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl.drawnTurn++
 	s.g.zoneTurn.set(o) // put into the hand this turn, as place does
 	if s.g.enteredOn {
-		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false)
+		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false, false)
 	}
 	if s.subs[kop.TrigDrawn].any() || s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireDrawn(p)
@@ -747,6 +762,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	// CR 603.10a: the departure-time creature status, read before the
 	// permanent is cleared. Every departure records it (not only a death).
 	wasCreature := s.g.enteredOn && s.isCreature(k, sl)
+	leftCounters := s.leftCounteredAt(k, sl)
 	leftCtrl := p.ctrl
 	if k.gen != nil && (s.sp|s.npend != 0 || s.res.active) {
 		s.settleFollowed(k, o)
@@ -887,7 +903,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.stashClr(k, o) // a land played from exile loses its stash counter as it leaves (a new object, CR 400.7)
 	}
 	s.meldLeaveOnLeave(k, o, z, bottom, wasCreature) // face_meld.go: a melded permanent's partner goes with it
-	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature)
+	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature, leftCounters)
 	s.g.graveKept = false
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)

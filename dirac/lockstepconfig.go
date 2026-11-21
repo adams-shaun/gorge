@@ -160,7 +160,7 @@ func (s *State) millShuffling(k *prep, p uint8, n int, c int) {
 		pl.libRemove(o)
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
 }

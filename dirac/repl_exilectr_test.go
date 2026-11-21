@@ -115,7 +115,7 @@ func TestExileOnLeaveCounterStoreAnyZone(t *testing.T) {
 		t.Fatalf("precondition: the library card has %d exile VOID counters", n)
 	}
 
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if z := s.objs[o].zone; z != kop.ZoneExile {
 		t.Fatalf("the card put into a graveyard from the library is in zone %d, want exile", z)
 	}

@@ -64,7 +64,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		for i := 0; i < int(s.g.nrem); i++ {
 			if o := s.g.rem[i]; s.objs[o].zone == kop.ZoneExile && !s.freeQueued(o) {
 				from := s.detach(o)
-				s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+				s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 			}
 		}
 		return
@@ -92,7 +92,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false, false)
 		pc := &k.cards[s.objs[o].card]
 		if !pc.land && s.splitMV(k, s.objs[o].card, o, int(pc.total)) < mv { // CR 709.4b: the exiled split card shows both halves
 			found = o
@@ -109,7 +109,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 	}
 	for _, o := range ex[:ne] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 	}
 	s.g.nrem, s.g.remCnt = 0, 0
 	if found != NoObj {

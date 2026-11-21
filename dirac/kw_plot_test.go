@@ -140,9 +140,9 @@ func TestPlotLeftExile(t *testing.T) {
 	sc.do(t, AkPlot, TCode(o), scAny)
 	sc.s.Step()
 	from := sc.s.detach(o)
-	sc.s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
+	sc.s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false)
 	from = sc.s.detach(o) // and back to exile: a new object (CR 400.7)
-	sc.s.placeFrom(o, kop.ZoneExile, false, from, false)
+	sc.s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 	sc.nextTurn()
 	d := sc.s.Step()
 	if kplotOffers(&d, o) {

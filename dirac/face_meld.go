@@ -200,7 +200,13 @@ func (s *State) meldLeave(k *prep, o Obj, z kop.Zone, bottom bool, wasCreature b
 		if DebugMeldStats != nil {
 			DebugMeldStats.Splits++
 		}
-		s.meldPlace(k, p, z, bottom, wasCreature)
+		// The partner's CR 700.9 `modified` read (its counters and attached
+		// Equipment and same-controller Auras), read while its slot still
+		// carries both: meldPlace's move detaches nothing and clears the
+		// counters at the destination, and gorge's events.DepartureModified
+		// folds the same read over the same pre-move object
+		// (state.ZoneEntry.LeftModified).
+		s.meldPlace(k, p, z, bottom, wasCreature, s.leftCounteredAt(k, s.objs[p].slot))
 		return
 	}
 }
@@ -208,7 +214,7 @@ func (s *State) meldLeave(k *prep, o Obj, z kop.Zone, bottom bool, wasCreature b
 // meldPlace puts parked card p into z of its owner: placeFromK's list
 // insertion with none of its replacement or trigger arms (gorge's Move fold
 // emits no event for the partner).
-func (s *State) meldPlace(k *prep, p Obj, z kop.Zone, bottom bool, wasCreature bool) {
+func (s *State) meldPlace(k *prep, p Obj, z kop.Zone, bottom bool, wasCreature, leftCounters bool) {
 	s.touch(p)
 	pb := &s.objs[p]
 	pb.ver++
@@ -242,7 +248,7 @@ func (s *State) meldPlace(k *prep, p Obj, z kop.Zone, bottom bool, wasCreature b
 		return
 	}
 	if s.g.enteredOn {
-		s.noteEnter(p, z, kop.ZoneBattlefield, wasCreature)
+		s.noteEnter(p, z, kop.ZoneBattlefield, wasCreature, leftCounters)
 	}
 }
 
