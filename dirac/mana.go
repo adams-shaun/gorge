@@ -536,6 +536,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			s.addOneColour(a, pc.manaN)
 		}
 		s.addReflectOne(k, a, sl, pc)
+		s.addEachPick(k, a, sl, pc)
 		if k.gen != nil && k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc)
 			for c := range xv {
@@ -906,6 +907,9 @@ type utype struct {
 	xv    [kop.NumManaKinds]uint8
 	xmask uint8
 	xt    uint8
+	// pick: an all-at-once source's reflected pick (srcEachPick): the unit
+	// is one mana of one of mask, beside the fixed production xv
+	pick bool
 }
 
 type planner struct {
@@ -1880,6 +1884,18 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 						}
 					}
 				}
+				pick := false
+				if k.gen != nil && k.gen.anyTapExtra && !sacOnly && pc.painCol == 0 && s.srcEachPick(k, sl, pc) == 1 {
+					// an all-at-once source's reflected pick (srcEachPick): the
+					// production is fixed ({W}{U}: the unit's colour joins the
+					// rest in xv) and the tap adds one mana of one of its types
+					pm := eachPickMask(pc)
+					col := bits.TrailingZeros8(uint8(pc.manaCol))
+					xv[col] += pc.manaN
+					xm |= 1 << col
+					xt += pc.manaN
+					mask, dmk, tn, pick = pm, pm, 1, true
+				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
 					xc, xp, _, _ := s.srcExtraPain(k, sl, pc)
@@ -1891,7 +1907,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -1902,7 +1918,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -2041,6 +2057,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 		if ty.xt != 0 {
 			s.addXv(p, &ty.xv)
+		}
+		if ty.pick {
+			s.capFull(StallTapExtra) // the pick's colour is asked at the tap, which the planned tap poses nowhere
 		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
