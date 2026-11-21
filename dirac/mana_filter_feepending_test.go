@@ -51,11 +51,8 @@ func feependingBoard(t *testing.T) (*scen, CardID) {
 // the basics — the fee-carrying source's dead {C} answer alone costs a full
 // funding subtree at every node, none of whose states dedup (the key reads
 // the tapped set) — and its fee branch is never reached: the cast is dropped
-// while gorge offers it (The Coming of Galactus, pair 129). The doomed-node
-// bound (filtSearch.doomed) ends those dead subtrees at their first funding
-// node — the offer check has failed there and nothing the line can still do
-// adds mana it does not already count — so the live line's fee branch is
-// reached within the budget.
+// while gorge offers it (The Coming of Galactus, pair 129). The fee branch
+// must be reached within the budget, as gorge's search reaches it.
 func TestComboFilterFeeBranchReached(t *testing.T) {
 	sc, baxter := feependingBoard(t)
 	s, k := sc.s, sc.k

@@ -23,12 +23,7 @@ import (
 // Three Tree City untapped until its tap's turn): fundTap yields the
 // one-answer tap to fundOne's gate, and the search that visited the tap's
 // co-firing branch four times spent 92 nodes before the yield, 64 with it and
-// 37 once the zero filter's answer is no branch (the Shiv's Embrace pin), and
-// 22 once a doomed node's plain funders are no branch (filtSearch.doomed: the
-// node whose offer check failed with Starfleet's gap used, nothing left that
-// adds mana, spends no node on a funder's tap). The pruning only removes nodes
-// below a failed check, so a doubled tick on a tap that is still a branch
-// moves the count off 22 just as it moved it off 37.
+// 37 once the zero filter's answer is no branch (the Shiv's Embrace pin).
 func TestZeroFiltTapChargesOnce(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Starfleet Academy", Count: 4}, {Name: "Three Tree City", Count: 4},
@@ -105,7 +100,7 @@ func TestZeroFiltTapChargesOnce(t *testing.T) {
 	if ok {
 		t.Fatal("the search found a script for the {3}{G} cast, want a failed one (a pin over the whole tree)")
 	}
-	if n := fs.nodes; n != 22 {
-		t.Fatalf("the search spent %d nodes, want 22: the tap's ask is charged once and the zero filter's answer is no branch", n)
+	if n := fs.nodes; n != 37 {
+		t.Fatalf("the search spent %d nodes, want 37: the tap's ask is charged once and the zero filter's answer is no branch", n)
 	}
 }
