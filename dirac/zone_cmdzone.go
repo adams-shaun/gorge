@@ -114,7 +114,7 @@ func (s *State) applyCmdZone(k *prep, c, mode uint8) {
 		return
 	}
 	from := s.detach(o)
-	s.placeFromK(k, o, kop.ZoneCommand, false, from, false)
+	s.placeFromK(k, o, kop.ZoneCommand, false, from, false, false)
 }
 
 // CR 903.9b: a commander that would be put into its owner's hand or library

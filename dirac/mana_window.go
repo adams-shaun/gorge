@@ -3387,7 +3387,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 			}
 		}
 	}
-	s.placeFrom(o, z, false, kop.ZoneLibrary, false)
+	s.placeFrom(o, z, false, kop.ZoneLibrary, false, false)
 }
 
 // divPicks lists entry e's target slot's picked objects in pick order (the

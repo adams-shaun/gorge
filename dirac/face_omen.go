@@ -40,7 +40,7 @@ func (s *State) omenRest(ob *object, z kop.Zone, resolved bool) kop.Zone {
 // first, then the owner's Shuffle). DebugOmenTop puts it on top instead and
 // DebugOmenNoShuffle skips the shuffle.
 func (s *State) omenToLibrary(o Obj) {
-	s.placeFrom(o, kop.ZoneLibrary, !DebugOmenTop, kop.ZoneStack, false)
+	s.placeFrom(o, kop.ZoneLibrary, !DebugOmenTop, kop.ZoneStack, false, false)
 	if !DebugOmenNoShuffle {
 		s.shuffleLib(s.objs[o].owner())
 	}

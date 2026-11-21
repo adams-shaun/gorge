@@ -160,7 +160,7 @@ func (s *State) resolveRadTrig(k *prep, e *stackEntry) {
 		pl.libRemove(o)
 		s.touch(o)
 		ob.zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		RadiationStats.Milled.Add(1)
 		if land {
 			continue

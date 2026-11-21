@@ -25,7 +25,7 @@ func (s *State) explore(k *prep, in *kop.Instr) bool {
 		pl.libLo++
 		s.touch(top)
 		s.objs[top].zone = kop.ZoneNone
-		s.placeFrom(top, kop.ZoneHand, false, kop.ZoneLibrary, false)
+		s.placeFrom(top, kop.ZoneHand, false, kop.ZoneLibrary, false, false)
 		if k.gen != nil && k.gen.anyExplEvTrig {
 			s.fireExplores(k, in, p, top) // trig_exploreevidence.go
 		}
@@ -62,7 +62,7 @@ func (s *State) exploreNonland(k *prep, in *kop.Instr, grave bool) {
 		pl.libLo++
 		s.touch(top)
 		s.objs[top].zone = kop.ZoneNone
-		s.placeFrom(top, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFrom(top, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	}
 	if k.gen != nil && k.gen.anyExplEvTrig {
 		s.fireExplores(k, in, p, top) // trig_exploreevidence.go
