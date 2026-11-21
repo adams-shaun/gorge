@@ -289,9 +289,9 @@ type offerSkip struct {
 // scriptOfferDrops reports whether the walk loop's play a is not offered in
 // the decision: already on it or on the spent cap, dropped by the sacrifice-
 // any / repeat arms, unfundable by a wide source (the relaxed proof's drop,
-// and the mixed-board noWide arm), or — on the any-mana walk — a cast the
+// and the mixed-board noWide arm), or — on the any-mana walk — a play the
 // payment bound built with its restrictions applied cannot afford
-// (restrBoundDrops).
+// (restrBoundDrops: a cast, or a plain battlefield activation).
 func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool {
 	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || hasOption(o.capSpent, a) ||
 		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
