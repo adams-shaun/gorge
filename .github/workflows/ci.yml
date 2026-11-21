@@ -141,7 +141,7 @@ jobs:
         if: runner.environment == 'self-hosted'
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
-          # engine/rules#A is engine/rules' second entry (ci_shard.sh), the same package.
+          # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
           pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#A$//' | sort -u)
           # ./dirac/oracle too: ci_shard.sh leaves it out, and dirac-repros compiled it itself (~100-170 s, 11-20).
           # shellcheck disable=SC2086
@@ -416,19 +416,21 @@ jobs:
           # 11-20: kgen runs beside the shard's other packages, not after them. Serial, it added its ~224 s (median of
           # the 11-20 batches) to shard 0's ~200 s of other packages, and shard 0 was the slowest shard; together the
           # shard is bound by its single largest package instead. Its output goes to a file and is printed after.
-          # engine/rules (242-269 s, 575 CPU-s locally) bounded the slowest shard once kgen ran beside the rest. It is two
-          # entries in ci_shard.sh (11-20): engine/rules, minus RULES_A, and engine/rules#A, the fuzz-world, quiet-proof,
-          # clone-fidelity and elimination sweeps (~40% of its CPU). The balancer places each; this step runs whichever
-          # it holds as a call of its own, beside the rest. kgen, rules and rules#A each log to a file printed after.
-          kgen=github.com/adams-shaun/gorge/dirac/kgen rules=github.com/adams-shaun/gorge/engine/rules
-          RULES_A='^(TestKernelWorldsInFuzz|TestQuietProofCorpusSweepChunk|TestCloneFidelityShort|TestCloneFidelitySweep|TestLargeEliminationSweep)'
-          rest=$(printf '%s\n' $pkgs | grep -vx -e "$kgen" -e "$rules" -e "$rules#A" || true)
-          pids=() logs=() rc=0
+          # The packages in scripts/ci-splits.tsv are two entries each (ci_shard.sh): the package, minus its regex, and
+          # <package>#A, the regex (11-20 engine/rules, 11-21 testkit/conformance). The balancer places each; this step
+          # runs whichever it holds as a call of its own, beside the rest. kgen and the split calls log to files printed after.
+          kgen=github.com/adams-shaun/gorge/dirac/kgen
+          pids=() logs=() rc=0 ex=(-e "$kgen")
           solo() { local log=$1; shift; go test "$@" >"$log" 2>&1 & pids+=($!); logs+=("$log"); }
           has() { printf '%s\n' $pkgs | grep -qx "$1"; }
           if has "$kgen"; then solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
-          if has "$rules"; then solo rules-test.log $count $tags -timeout 20m -skip "^(TestHeads)\$|$RULES_A" "$rules"; fi
-          if has "$rules#A"; then solo rules-a-test.log $count $tags -timeout 20m -run "$RULES_A" "$rules"; fi
+          while IFS=$'\t' read -r sp rx; do
+            case $sp in '' | '#'*) continue ;; esac
+            ex+=(-e "$sp" -e "$sp#A"); n=${sp##*/}
+            if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|$rx" "$sp"; fi
+            if has "$sp#A"; then solo "$n-a-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
+          done <scripts/ci-splits.tsv
+          rest=$(printf '%s\n' $pkgs | grep -vx "${ex[@]}" || true)
           if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest || rc=1; fi
           for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
           exit $rc
