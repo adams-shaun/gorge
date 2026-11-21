@@ -164,7 +164,6 @@ var knownUnknownFilterPredicates = []string{
 	"ChosenSector",
 	"ControlledBy ChoosingPlayer",
 	"ControlledBy DelayTriggerRemembered",
-	"ControlledBy EnchantedController.!isMonarch",
 	"ControlledBy Opponent.IsCorrupted",
 	"ControlledBy Opponent.castSpellThisTurn",
 	"ControlledBy Player.targetedBy",

@@ -3229,6 +3229,10 @@ func trigWhoseScope(whose kop.Whose, a *lAbility) error {
 		// the kernel reads it only for a printed battlefield Phase or DamageDone listener (defEnchanted)
 		return fmt.Errorf("Player.EnchantedBy outside a printed battlefield Phase or DamageDone trigger")
 	}
+	if whose == kop.WhoseMonarch && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase listener (monarchTurnIs)
+		return fmt.Errorf("Player.isMonarch outside a printed battlefield Phase trigger")
+	}
 	if whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 		// the kernel reads it only for a printed battlefield Phase listener
 		return fmt.Errorf("EnchantedController outside a printed battlefield Phase trigger")

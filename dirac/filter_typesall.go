@@ -123,6 +123,9 @@ func (s *State) predPermCold(k *prep, fl *kop.Filter, sl Slot) bool {
 	if fl.Pred == kop.PredGoaded {
 		return s.goadedPredicate(k, fl, sl) // filter_goaded.go: goaded by any player
 	}
+	if fl.Pred == kop.PredMonarchCtrl {
+		return s.monarchCtrlPredicate(fl, sl) // filter_monarch.go
+	}
 	if fl.Pred == kop.PredEscaped {
 		return s.mSl(k, mechEscaped, sl) == (fl.PredN == 1) // kw_escape.go
 	}
@@ -206,6 +209,9 @@ func predCardCold(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 	}
 	if fl.Pred == kop.PredGoaded {
 		return fl.PredN == 0 // off the battlefield nothing is goaded (gorge Object.Goads clears on the move)
+	}
+	if fl.Pred == kop.PredMonarchCtrl {
+		return false // kgen lowers the word for the battlefield only (filter_monarch.go)
 	}
 	if fl.Pred == kop.PredMonstrous || fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV || fl.Pred == kop.PredTotalPT || fl.Pred == kop.PredBlocked {
 		return false // only a battlefield permanent is monstrous; PredToughnessLEV is lowered for the battlefield only (PredPowerGEV off it: cardPowerGEV)

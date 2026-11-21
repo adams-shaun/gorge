@@ -180,6 +180,7 @@ const (
 	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
 	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
 	cmpRingBearer     // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
+	cmpMonarchCtrl    // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
 	cmpGoaded         // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
 )
 
@@ -658,6 +659,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 			if err := c.prop(p, knownSub); err != nil {
 				return c, fmt.Errorf("%q: %w", alt, err)
 			}
+		}
+		if err := c.monarchCtrlCheck(); err != nil { // filter_monarch.go
+			return c, fmt.Errorf("%q: %w", alt, err)
 		}
 	}
 	return c, nil
@@ -1251,7 +1255,7 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 	return nil
 }
 
-// designationWord handles the renowned, Ring-bearer, suspected and goaded
+// designationWord handles the renowned, Ring-bearer, suspected, goaded (and the monarch controller)
 // words. Each is a designation read off the battlefield, CmpN 1 set and 0 not:
 // renowned (CR 702.112b; gorge filter.go IsRenowned: Object.Renowned,
 // cleared off the battlefield), the Ring-bearer (CR 701.54e; gorge
@@ -1272,6 +1276,8 @@ func (c *lClause) designationWord(p string) (ok bool, err error) {
 		return true, c.setCmp(cmpSuspected, 0, n, "", "")
 	case "IsGoaded":
 		return true, c.goadedWord(n) // filter_goaded.go
+	case monarchCtrlWord, monarchEnchNotWrd:
+		return c.monarchCtrlProp(p) // filter_monarch.go
 	}
 	return false, nil
 }

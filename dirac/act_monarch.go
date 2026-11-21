@@ -111,6 +111,9 @@ func (s *State) becomeMonarch(k *prep, p uint8) {
 			}
 		})
 	}
+	if k.gen != nil && k.gen.uses.has(useMonJail) {
+		s.monarchJailCrowned(k, p) // act_monarchjail.go: Palace Jailer's promise
+	}
 }
 
 // becomeMonarchOp is ExtBecomeMonarch: the player Obj becomes the monarch.
@@ -246,6 +249,8 @@ func (s *State) exMonarch(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var holds bool
 	if x.N == kop.MonarchOpp {
 		holds = m != 0 && m-1 != ctx.ctrl && !s.out(m-1)
+	} else if x.N == kop.MonarchAny {
+		holds = m != 0 && !s.out(m-1)
 	} else {
 		holds = m == ctx.ctrl+1
 	}

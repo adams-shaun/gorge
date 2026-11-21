@@ -589,6 +589,9 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	case controlReferentTriggeredTarget:
 		return op, ref, true
 	}
+	if enchantedControllerPropertyRef(ref) {
+		return op, ref, true
+	}
 	// Player.NotedFor<label> is a global player property resolved by the
 	// shared player-spec evaluator (controlReferentPlayers below), exactly like
 	// Player.EnchantedBy. The label is dynamic, so it is a prefix arm rather
@@ -929,11 +932,11 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, state.Target{IsPlayer: true, Player: state.PlayerID(p)})
 			}
 		}
-	case controlReferentPlayersPlayerActive:
-		// Player.Active is a global player property: the active player,
-		// whoever's static or ability reads it (Weftwalking's "Card.nonLand+
-		// ControlledBy Player.Active").
-		targets = []state.Target{{IsPlayer: true, Player: g.Active}}
+	case controlReferentPlayersPlayerActive, controlReferentPlayersEnchantedControllerMonarch, controlReferentPlayersEnchantedControllerNotMonarch:
+		// Player.Active and the EnchantedController player properties: a
+		// seat read straight off the game and the reading source
+		// (control_referent_global.go); an empty result is unbound.
+		targets = globalControlReferent(g, sc, ref)
 	default:
 		// Every other Player.<qualifier> is the shared player-spec grammar
 		// applied to the owner/controller. Resolve it exactly like the
@@ -1153,10 +1156,14 @@ const (
 	controlReferentPlayersTriggeredActivator
 	controlReferentPlayersTriggeredAttackingPlayer
 	controlReferentPlayersParent
+	controlReferentPlayersEnchantedControllerMonarch
+	controlReferentPlayersEnchantedControllerNotMonarch
 )
 
 var controlReferentPlayersCodes = state.NewStrCodes(
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredSourceSAController", Val: controlReferentPlayersTriggeredSourceSAController},
+	state.StrEntry[controlReferentPlayersCode]{Key: "EnchantedController.isMonarch", Val: controlReferentPlayersEnchantedControllerMonarch},
+	state.StrEntry[controlReferentPlayersCode]{Key: "EnchantedController.!isMonarch", Val: controlReferentPlayersEnchantedControllerNotMonarch},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredTarget", Val: controlReferentPlayersTriggeredTarget},
 	state.StrEntry[controlReferentPlayersCode]{Key: "Player.TriggeredTarget", Val: controlReferentPlayersTriggeredTarget},
 	state.StrEntry[controlReferentPlayersCode]{Key: "TriggeredDefendingPlayer", Val: controlReferentPlayersTriggeredDefendingPlayer},

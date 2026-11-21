@@ -1537,24 +1537,31 @@ const ExtEncore ExtOp = 99
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
+//
+// Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
+const ExtMonarchJail ExtOp = 102
+
+func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
+
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, which the kernel stalls on, StallMyriadPW) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 102
+const ExtMyriad ExtOp = 103
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 103
+const ExtRememberPlayer ExtOp = 104
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 104
+const ExtRepeatOptional ExtOp = 105
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
@@ -1894,28 +1901,33 @@ const PredNamedCard Pred = 35
 // PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
 const PredGoaded Pred = 36
 
+// ControlledBy Player.isMonarch (dirac/manifest/Pred/PredMonarchCtrl)
+//
+// PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.
+const PredMonarchCtrl Pred = 37
+
 // Pred (dirac/manifest/Pred/PredProg)
 //
 // PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
-const PredProg Pred = 37
+const PredProg Pred = 38
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 38
+const PredRingBearer Pred = 39
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 39
+const PredSameNameSelf Pred = 40
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 40
+const PredSharesCrCmdr Pred = 41
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 41
+const PredStatBox Pred = 42
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
