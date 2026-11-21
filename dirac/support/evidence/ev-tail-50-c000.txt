@@ -247,6 +247,7 @@ Library
 Lithomantic Barrage
 Living Hive
 Loam Dweller
+Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
 Lord of the Undead
