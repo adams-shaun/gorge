@@ -573,6 +573,43 @@ func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
 	return true
 }
 
+// handActTapXRoute is priorityHandAct's tap-another gate (cost_handactivate.go):
+// the board the tapX route owns a hand activation's pricing on. It is
+// tapXPrefix's own guard, so the offer and the payment replay stay on one
+// search, read only in the real offer walk: the script walks' candidate lists
+// hold no hand activation (handActCensusPays), so scriptOffers prices none and
+// a search here would run twice.
+func (s *State) handActTapXRoute(k *prep, p uint8) bool {
+	if s.g.availX != 0 || s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
+		return false
+	}
+	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
+	return tx.any() && !s.tapXDeadEndRoute(k, p, tx, s.scriptTapsDefer(k, p)) && s.tapXBoard(k, p)
+}
+
+// handActTapXPays prices a hand activation the printed census cannot pay with
+// the tapX search: gorge's potential walk lists the play when its bound pays
+// it (the fold counts a repeatable tap-another source once per untapped
+// candidate, potential_repeat_fee.go addPotentialTapRepeat) and the census
+// fallback prices it with the one prefix search (potentialCensusFallback ->
+// potentialPrefixScript), so priorityVocabulary lists it beside the offered
+// options. The search is exact, so a play it prices is one the bound admits:
+// every activation it makes taps candidates of the cost's parts, which the
+// bound's own count bounds. The same search is the payment's prefix
+// (mana_resolutionpay.go runPrefixes -> tapXPrefix), and the play it fails is
+// dropped with the search's latched stall declared, as scriptOffers' tx branch
+// declares its own.
+func (s *State) handActTapXPays(k *prep, p uint8, a Action) bool {
+	if !s.handActTapXRoute(k, p) {
+		return false
+	}
+	offered, stall := s.tapXScriptOffered(k, a, p)
+	if !offered {
+		s.capStall(stall)
+	}
+	return offered
+}
+
 // tapXStep is one step of the search's path: an activation (source sl taps
 // candidate cand and makes col), an answer to an ask the activation's trigger
 // posed (act: the target of a Taps listener's trigger, an order, a discard),
