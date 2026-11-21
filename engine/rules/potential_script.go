@@ -767,7 +767,7 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	if sr.phasedOutOfScope(c) {
 		return false // the fallback's scope: a consuming cost, a hybrid-fee gap, or a plain fee-only budget exhaustion
 	}
-	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true) {
+	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true, true) {
 		// winOK: a payment whose own sacrifice trigger ends the game in the
 		// payer's favour still reaches the play (CR 104.3, 603.3b), exactly
 		// as the plan offer counts it (payment_plan.go's witnessReachesMode
@@ -2211,12 +2211,20 @@ func (e *Engine) potentialWitnessReaches(p state.PlayerID, o decision.Option, pl
 // from pool's hypothetical-clone pool (pool is e, or the live engine whose
 // own hypothetical search made e).
 func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
-	return e.witnessReachesMode(pool, p, o, plan, false)
+	return e.witnessReachesMode(pool, p, o, plan, false, false)
 }
 
 // witnessReachesMode is witnessReachesFrom, counting a game the witness's
-// own triggers end in p's favour as a reach when winOK.
-func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK bool) bool {
+// own triggers end in p's favour as a reach when winOK. priceOK arms
+// witnessCostRepriced, the consuming-cost acceptance the script search's
+// priced() wants: a consuming payment may consume a permanent one of the
+// play's own cost statics counts, which the replay's end re-ask reprices
+// (CR 601.2f), and the search's acceptance is "the plan is the payment",
+// not "the end menu re-offers the play". Callers that infer an offer from
+// the reach (targetPaidNeedsPlannedPayment's planned-payment conclusion)
+// keep it disarmed: their inference reads the end menu, which the repricing
+// breaks exactly like any other refusal.
+func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK, priceOK bool) bool {
 	if e.Pending() == nil {
 		return false
 	}
@@ -2289,13 +2297,13 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return false
 		}
 		if next == len(steps) {
-			for i := range d.Options {
-				opt := &d.Options[i]
-				if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
-					return true
-				}
+			if witnessMenuOffers(d, o) {
+				return true
 			}
 			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
+				return true
+			}
+			if priceOK && witnessCostRepriced(c, e, c.G, p, o, plan) {
 				return true
 			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
@@ -2334,6 +2342,78 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 	ok := visit(root, 0, e.G.Players[p].Pool, 0)
 	pool.hypRelease(root)
 	return ok
+}
+
+// costTotal is a PaymentCost's mana value in units (CR 202.3): the generic
+// part plus every coloured unit.
+func costTotal(c decision.PaymentCost) int {
+	n := int(c.Generic)
+	for _, u := range c.Mana {
+		n += int(u)
+	}
+	return n
+}
+
+// witnessCostRepriced is the replay's consuming-cost arm, beside
+// witnessAnnouncesBeforePaying's target one: some step of plan sacrifices (or
+// returns) a permanent one of the play's own cost statics counts -- a
+// Treasure token's mana paying an affinity discount away -- so the menu the
+// re-ask poses at the payment's end recomputes a HIGHER price than the
+// payment locks. CR 601.2f orders it the other way: the total cost is
+// determined at the announcement -- the state the replay started from
+// (start), before the plan's steps -- and is paid as determined, so the end
+// menu's recomputed price cannot refuse an announcement the plan already
+// priced and validates. The replay has proved the plan's steps run and float
+// the payment's mana (the pool at the end is the floated one, the play not
+// yet announced); accept when every refusal reason but the price is ruled
+// out: the recomputed price (CastPaymentCost at the end) is strictly above
+// the locked one, the play's targets all survive the payment (the target arm
+// above owns a lost one), the recomputed price is payable in isolation (an
+// unbounded pool pays it, so the end refusal is the floated mana, not a
+// gate) and the locked price is payable from that floated pool (the pure
+// pool-only question, pay.PoolCanPay -- the paying primitive would spend the
+// node's pool). Plain casts only: a Mode prices its own charge, and an
+// alternate-cost index (AltCostIndex) prices the option's own scope, neither
+// of which the printed-price comparison reads.
+func witnessCostRepriced(end, start witnessCostReader, g *state.Game, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	// Plain casts only: a Mode prices its own charge, and an alternate-cost
+	// cast's plan.Cost prices the option's own scope, not the printed one
+	// CastPaymentCost recomputes.
+	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 {
+		return false
+	}
+	// The announcement priced the plan: the price the announcement state
+	// (start, before the plan's steps) recomputes is the plan's own total.
+	startCost, ok := start.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(startCost) != costTotal(plan.Cost) {
+		return false
+	}
+	obj := g.Obj(o.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	endCost, ok := end.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(endCost) <= costTotal(plan.Cost) {
+		return false
+	}
+	if sa := obj.Face().SpellAbility(); sa != nil && !end.castTargetsAvailable(p, o.Obj, sa) {
+		return false
+	}
+	var locked Cost
+	locked.Generic = int32(plan.Cost.Generic)
+	for i := range locked.Colored {
+		locked.Colored[i] = int32(plan.Cost.Mana[i])
+	}
+	// Pool-only feasibility, and pure: the walked node must stay unmutated,
+	// so the paying primitive (pay.PayMana) cannot run here -- a spend it
+	// emits strands the node's own pass-walk fallback, whose clone must
+	// still hold the floated pool.
+	if !pay.PoolCanPay(locked, g.Players[p].Pool) {
+		return false
+	}
+	base := pay.WithSpellAbilityExtras(obj.Face(), end.castOfferBase(p, o.Obj))
+	hyp := state.Mana{1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28}
+	return end.offerCastableUsing(end.collectCostStatics(), p, o.Obj, &base, spellScope(""), false, &hyp)
 }
 
 // PotentialPlayScript is the exact fallback for a potential play the
