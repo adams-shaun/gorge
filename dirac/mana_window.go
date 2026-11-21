@@ -538,7 +538,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if (s.g.winMode != winNone || s.castTapX(k)) && s.windowTapXOffer(k, p, o, decided, want) {
 			return o, true // a tap-another source (mana_windowtapx.go)
 		}
-		if s.windowCtrOffer(k, p, o, decided, want) {
+		if s.windowCtrListable(k, p, o, decided, want, census) {
 			return o, true // a counter-cost source (mana_countercost.go)
 		}
 		if tapsDef.has(o) {
