@@ -929,18 +929,20 @@ func (e *Engine) anyLayer4Active() bool {
 // current at Resolve entry.
 func (e *Engine) EffectiveTypes() []effects.ObjectTypes { return e.layer4Types }
 
-// derivedTypesAreBase reports whether o's derived type list is the one the type
-// filters fall back to when the table holds no entry for it: the printed face's
-// words, or for a face-down permanent its face-down words (CR 708.2: hasTypePrinted
-// reads those, never the hidden face). A Splitskin Doll face down under Unable to
-// Scream derives Artifact Creature Toy, equal to its printed words yet not to the
-// {Creature} the fallback reads, so it needs its entry.
+// derivedTypesAreBase reports whether o's derived type list needs no table
+// entry: it equals the printed face's words, and for a face-down permanent it
+// also equals the face-down words the type filters fall back to (CR 708.2:
+// hasTypePrinted reads those, never the hidden face). A face-down object whose
+// derived list differs from its printed face keeps its entry (the readers
+// that fall back to Face().Types would otherwise read the hidden face), and a
+// Splitskin Doll face down under Unable to Scream derives Artifact Creature
+// Toy, equal to its printed words yet not to the {Creature} the fallback
+// reads, so it needs its entry too.
 func derivedTypesAreBase(o *state.Object, ty []string, all bool) bool {
-	base := o.Face().Types
-	if o.FaceDownHidden() {
-		base = o.FaceDownTypeWords()
+	if !sameTypeWordSet(ty, o.Face().Types) || all != effects.IntrinsicAllCreatureTypes(o) {
+		return false
 	}
-	return sameTypeWordSet(ty, base) && all == effects.IntrinsicAllCreatureTypes(o)
+	return !o.FaceDownHidden() || sameTypeWordSet(ty, o.FaceDownTypeWords())
 }
 
 // sameTypeWordSet reports whether two type lists carry the same words,
