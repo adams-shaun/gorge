@@ -1595,6 +1595,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 // sites, windowPays' callers). The caller declares the return at its drop
 // site, never the probe. s is not mutated.
 //
+// An unless / ward window (takeDeferred) prices a filter that is not the
+// source's first ability too (Unknown Shores' {1},{T}: any colour beside a
+// Plains pays Conversion's {W}{W}: gorge's unlessWindowUnits lists every
+// literal-fee mana ability, CR 605.3b).
+//
 // The live window's answer is not this plan: gorge's window taps in its
 // answer order and may fail short where the census proves pay (Lantern of
 // Revealing is asked its first colour, not the red pip still owed), after
@@ -1602,7 +1607,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 // that answer, not the plan; executing the plan there would make dirac pay
 // where the leader sacrificed and diverge (TestMBCUnlessEachManaFeePayAnswer).
 func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool) (bool, uint8) {
-	if k.gen == nil || !k.gen.anyFiltFirst || cost == nil {
+	if k.gen == nil || !(k.gen.anyFiltFirst || takeDeferred && k.gen.anyFilt) || cost == nil {
 		return false, 0
 	}
 	var fs filtSearch
