@@ -2,7 +2,7 @@ package oracle
 
 import "testing"
 
-// TestMBCTail00ReprosLockstep replays the synthetic tail-00 game the evidence
+// TestMBCTail00PumpCantAttackAbilityLossLockstep replays the synthetic tail-00 game the evidence
 // loop recorded: seat 1 activates Alchemist's Vial's "{1}, {T}, Sacrifice
 // Alchemist's Vial: Target creature can't attack or block this turn" on its
 // own 3/3 Chronomaton, then casts Snakeform on the same creature ("loses all
@@ -15,7 +15,7 @@ import "testing"
 // attack(Chronomaton) (divergence at decision 181: decision kind, gorge
 // attackers / kernel priority). gorge was wrong; the walk now keeps the
 // granted restriction lines (engine/rules/chars/derive.go).
-func TestMBCTail00ReprosLockstep(t *testing.T) {
+func TestMBCTail00PumpCantAttackAbilityLossLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "pump_cantattack_abilityloss")
 }
