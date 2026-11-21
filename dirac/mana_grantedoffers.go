@@ -3131,8 +3131,9 @@ func (s *State) playNeedPrinted(k *prep, a Action) (need [kop.NumManaKinds]bool,
 // prices that cast through the fixed-part prefix search (xFlashbackPlanCost),
 // whose witness pays the X, and the announced pips would steer the search to
 // a plan gorge's census does not list (Devil's Play's {X}{R}{R}{R}
-// flashback). gorge prices no moded cast either (engine/rules
-// potential_script.go scriptPlayBaseCost leaves a mode unread): the read is
+// flashback). gorge prices no other moded cast either (engine/rules
+// potential_script.go scriptPlayBaseCost leaves a mode unread -- a may-play
+// permission's printed base is the one exception it reads): the read is
 // a hint for the colour-ask order, so nothing may price off it.
 func (s *State) graveyardCastNeedCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
 	if a.Kind() != AkCast || a.Mode() != 2 || a.Target() != 0 {
@@ -3190,7 +3191,15 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 			return s.abilityBaseCost(k, Obj(a.Source()), a.Mode())
 		}
 	case AkCast:
-		if a.Mode() == 0 && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
+		// A may-play permission that only opens the zone reads the printed
+		// base too (gorge's scriptPlayBaseCost castModeMayplay admission,
+		// scriptSpendableGaps' same admission; gapFilteredPlay prices the
+		// play's gap filter by it): a top-of-library cast behind a fee-only
+		// filter beside the granted tap that pays it was priced unpruned
+		// (usefulOK false) while gorge pruned the filter's colours, and the
+		// two walks paid different mana. A mode that is not exactly the
+		// may-play one (a kicked, bargained, flashback cast) stays unread.
+		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
 			return k.cards[s.objs[a.Source()].card].cost, 0, true
 		}
 	}
