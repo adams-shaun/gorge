@@ -87,7 +87,12 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+		// gorge triggeredCostDrawCounts (cumulative.go): payable once the count
+		// resolves, zero included -- "you may draw 0 cards; if you do, lose 0
+		// life" (Bebop, Skull & Crossbones' Draw<Count$CardCounters.ALL/You>)
+		// still offers pay. An unresolvable X never reaches here: kgen refuses
+		// a DrawBy SVar it cannot lower (lower_costtokenforms.go resTokenInstr).
+		return true
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
 	case payKindReveal:
