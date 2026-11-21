@@ -58,6 +58,9 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	for mask := 0; mask < 1<<nf; mask++ {
 		run := av
 		s.availFiltSubset(k, &run, filts[:nf], mask)
+		if debugBedlamTrace {
+			println("TRACE grantRelaxed mask=", mask, " total=", run.total, " n=", run.n, " m0..3=", run.mask[0], run.mask[1], run.mask[2], run.mask[3], " c0..3=", run.cnt[0], run.cnt[1], run.cnt[2], run.cnt[3], " aff=", run.affords(cost, pipMaskOf(cost), 0))
+		}
 		if run.affords(cost, pipMaskOf(cost), 0) || k.restrSrc && s.restrSrcAffords(k, p, d, cost, &run, NoSlot, 0) {
 			return true
 		}
