@@ -2123,7 +2123,7 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	got := e.potentialModeCastPlan(p, o)
 	e.planCoverBoundOn = false
 	e.planConsumptionOnly = false
-	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true) {
+	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true, false) {
 		return false
 	}
 	return e.potentialWitnessKeeping(p, o).Reason != ""
