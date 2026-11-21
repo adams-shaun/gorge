@@ -2005,11 +2005,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		u := best[i]
 		sl := pk.units[u]
 		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
-		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
-			s.noteTapSrc(k, &k.cards[s.cardAt(sl)], sl)
-		}
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
+		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
+			s.planNoteTap(k, sl, col)
+		}
 		// a life-only census gap's unit pays its life, not a tap (mana_lifegap.go)
 		if !s.lifeGapPlanCost(k, p, sl) && !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped

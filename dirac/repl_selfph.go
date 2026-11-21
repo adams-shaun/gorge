@@ -161,11 +161,12 @@ func (s *State) spShieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID
 	return s.spCollect(k, &e, &cs) != 0
 }
 
-// parkShieldLate appends the SHIELD counter's prevention as the last of parkNC's
-// c candidates when a static prevention or a Phantom's line is merged before it
-// (spShieldLate); the new count, -1 after a loud stall.
-func (s *State) parkShieldLate(k *prep, sl Slot, c int, cand *[4]Obj, prev, shld *uint8) int {
-	if !spShieldLate(k.gen) || sl == NoSlot || s.shieldN(sl) == 0 || s.noPrev(k, false) {
+// parkShieldAt appends the SHIELD counter's prevention (CR 122.1c) to parkNC's
+// c candidates: late is the call after a static prevention or a Phantom's line
+// is merged (spShieldLate), else the one before the other matches; the new
+// count, -1 after a loud stall.
+func (s *State) parkShieldAt(k *prep, sl Slot, c int, cand *[4]Obj, prev, shld *uint8, late bool) int {
+	if spShieldLate(k.gen) != late || k.gen.anyRepl&rbShield == 0 || sl == NoSlot || s.shieldN(sl) == 0 || s.noPrev(k, false) {
 		return c
 	}
 	if c == len(cand) {

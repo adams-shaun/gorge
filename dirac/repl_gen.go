@@ -37,6 +37,18 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 	return n
 }
 
+// selfDmgStep is replDamage's self-damage line (rbSelfDmg: Anti-Venom,
+// a Phantom, Istvan): the amount after it and whether it prevented it all.
+// A Phantom's line that gorge orders beside other replacements waits for the
+// ask (selfPhWaits).
+func (s *State) selfDmgStep(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) (int, bool) {
+	if k.gen.anyRepl&rbSelfDmg == 0 || sl == NoSlot || s.selfPhWaits(k, srcCtrl, srcSl, srcCard, sl, combat, n) {
+		return n, false
+	}
+	n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n)
+	return n, n <= 0
+}
+
 // replDamage is the amount of damage a source controlled by srcCtrl deals
 // to the recipient code (an Obj on the battlefield or PlayerTarget*) after
 // the replacements: doubled once per Twinflame Tyrant its controller
@@ -107,10 +119,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
-	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot && !s.selfPhWaits(k, srcCtrl, srcSl, srcCard, sl, combat, n) {
-		if n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
-		}
+	var stopped bool
+	if n, stopped = s.selfDmgStep(k, srcCtrl, srcSl, srcCard, sl, combat, n); stopped {
+		return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
@@ -1494,15 +1505,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		}
 		prev |= pcol
 	}
-	if sl != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, false) && !spShieldLate(g) {
-		if c == len(cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return false
-		}
-		cand[c] = s.perms[sl].obj
-		prev |= 1 << c
-		shld |= 1 << c
-		c++
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, false); c < 0 {
+		return false
 	}
 	var pnx uint8
 	if g.anyRepl&rbPrevCol != 0 {
@@ -1523,7 +1527,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if done != 0 {
 		return done == 2
 	}
-	if c = s.parkShieldLate(k, sl, c, &cand, &prev, &shld); c < 0 {
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, true); c < 0 {
 		return false
 	}
 	if c < 2 {

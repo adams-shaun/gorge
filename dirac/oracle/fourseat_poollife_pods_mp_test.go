@@ -31,6 +31,18 @@ import (
 //     from the third seat on. It now counts the hand walk's PredActiveCtrl.
 func fourSeatPodReproReplay(t *testing.T, name string, reg *cards.Registry) Result {
 	t.Helper()
+	return fourSeatPodReproReplayReg(t, name, reg, nil)
+}
+
+// fourSeatPodReproReplayWith is fourSeatPodReproReplay reading gorge's finished
+// game through done.
+func fourSeatPodReproReplayWith(t *testing.T, name string, done func(g *GorgeSide)) Result {
+	t.Helper()
+	return fourSeatPodReproReplayReg(t, name, synthReg(t), done)
+}
+
+func fourSeatPodReproReplayReg(t *testing.T, name string, reg *cards.Registry, done func(g *GorgeSide)) Result {
+	t.Helper()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", name+".repro.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +80,16 @@ func fourSeatPodReproReplay(t *testing.T, name string, reg *cards.Registry) Resu
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	if done == nil {
+		return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	}
+	g, err := NewGorgeSide(m, r.Seed, rc.Config, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := LockstepLed(m, r.Seed, g, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	done(g)
+	return res
 }
 
 func TestFourSeatConvokeWindowOwedColourLockstep(t *testing.T) {
