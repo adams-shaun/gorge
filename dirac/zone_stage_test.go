@@ -55,6 +55,11 @@ func TestUnstageableReasons(t *testing.T) {
 		dirac.ReasonLife:     func(w *dirac.World) { w.Life[0] = 1 << 20 },
 		dirac.ReasonToken:    func(w *dirac.World) { w.Objs[3].Token = true },
 		dirac.ReasonAttach:   func(w *dirac.World) { w.Objs[3].Attached, w.Objs[3].Host = true, 4 },
+		dirac.ReasonCommander: func(w *dirac.World) {
+			// two objects in one command zone
+			w.Commander, w.Cmd[0] = true, 3
+			w.Objs[3].Zone, w.Objs[3].Pos, w.Objs[4].Zone, w.Objs[4].Pos = kop.ZoneCommand, 0, kop.ZoneCommand, 0
+		},
 		dirac.ReasonStackEntry: func(w *dirac.World) {
 			w.Stack = []dirac.WorldStack{{Obj: 3, Ctrl: w.Objs[3].Owner}} // a spell whose card is in a hand
 		},
