@@ -149,6 +149,7 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 // source's own tap, yet the permanent is still tapped for mana.
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
+	eachPick := !colour && s.srcEachPick(k, sl, pc) == 1
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
@@ -157,8 +158,12 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 		if a.StFlags&kop.StTapReflect != 0 {
 			// one mana of the type the tap produced: fixed for a source of one
 			// type, the pick's otherwise (and a filter's colour is picked after
-			// its tap; an all-at-once source's types come together, gorge
-			// defers it)
+			// its tap)
+			if eachPick {
+				// an all-at-once source's types come together: the extra is one
+				// more mana of one of them (srcEachPick), no fixed vector
+				return true
+			}
 			m := srcMask(pc)
 			if !colour && m&(m-1) != 0 && pc.manaXv == [kop.NumManaKinds]uint8{} && s.tapExtraPlain(pc) {
 				// one plain tap of several colours: srcReflectPick prices
@@ -407,6 +412,45 @@ func (s *State) srcReflectPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 	return r
 }
 
+// srcEachPick is the mana the reflected StatTapExtra carriers (StTapReflect)
+// reaching the tap of sl add beside an all-at-once source's whole production
+// (Azorius Chancery's {W}{U}, mana_eachcolour.go): the extra is one mana of ONE
+// of the types the tap produced (CR 106.12a), asked at the tap -- gorge's
+// planner names no one type over the several-type production, so its census
+// defers the source and the prefix script activates it for real, the carrier's
+// colour ask resolving in the same batch (engine/rules mana_activation.go
+// resolveTriggeredManaAbilities). Zero for every other source (srcReflectPick
+// prices a choice source's; a one-type, sacrificed, restricted or painful one
+// stalls as srcExtra reads it).
+func (s *State) srcEachPick(k *prep, sl Slot, pc *pcard) (r uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra || pc == nil || pc.manaAb < 0 || pc.manaSacOnly ||
+		pc.manaXv == [kop.NumManaKinds]uint8{} || !s.tapExtraPlain(pc) {
+		return 0
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
+			r += uint8(a.B)
+		}
+		return true
+	})
+	return r
+}
+
+// eachPickMask is the types an all-at-once source's tap produces: the colours
+// its pick (srcEachPick) may name.
+func eachPickMask(pc *pcard) uint8 { return uint8(pc.manaCol)&0x3f | xvMask(pc) }
+
+// addEachPick adds the census unit of an all-at-once source's reflected pick:
+// one more mana of one of the produced types, beside the production's own units
+// (the unit's colour, srcExtra's rest). A single pick is one unit of the
+// produced mask; two carriers' picks are independent asks srcExtra stalls on.
+func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
+	if s.srcEachPick(k, sl, pc) == 1 {
+		a.addUnits(eachPickMask(pc), 1)
+	}
+}
+
 // srcYieldAt is srcYield plus the pick's reflected extra (srcReflectPick): the
 // census unit of a source's tap.
 func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
@@ -442,7 +486,7 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	if s.srcReflectPick(k, sl, pc) > 0 {
+	if s.srcReflectPick(k, sl, pc) > 0 || s.srcEachPick(k, sl, pc) > 0 {
 		s.capFull(StallTapExtra)
 	}
 	xv := s.srcExtra(k, sl, pc)
@@ -478,6 +522,9 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 		}
 		if r := s.srcReflectPick(k, sl, pc); r > 0 {
 			s.poolAdd(p, col, int(r))
+		}
+		if s.srcEachPick(k, sl, pc) > 0 {
+			s.capFull(StallTapExtra) // the pick's colour is asked at the tap
 		}
 		return
 	}
@@ -549,6 +596,9 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 		if xv[c] > 0 {
 			a.remove(1<<c, xv[c])
 		}
+	}
+	if s.srcEachPick(k, sl, pc) == 1 {
+		a.remove(eachPickMask(pc), 1)
 	}
 }
 
