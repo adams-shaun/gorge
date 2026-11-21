@@ -638,9 +638,9 @@ func (w *legalWalk) battlefieldWalk() {
 					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
 						continue
 					}
-					// Activator$ and ActivationPhases$ apply to a granted/gained ability
-					// as to a printed one (the source is the recipient permanent).
-					if !grantedActivationAllows(e, p, id, ab) {
+					// Activator$/ActivationPhases$ travel with a granted ability as on a
+					// printed one; an off-battlefield ActivationZone$ does not (CR 113.6b).
+					if !grantedWindowOK(e, p, id, ab, o.Zone) {
 						continue
 					}
 					// CR 606.3 for a GAINED or GRANTED loyalty ability: the same
