@@ -195,7 +195,11 @@ func (s *State) execCold4(k *prep, in *kop.Instr) (ok, done bool) {
 			// step puts a no-op trigger on the stack (CR 603.7). The exile
 			// rider is incarnation-tracked and is dropped once its object has
 			// left, so it keeps the battlefield-slot requirement.
-			if o := s.objRefObj(in.Obj); o != NoObj {
+			// A token is never in that set: gorge's Return moves nothing for
+			// a destroyed token (CR 111.7: it ceases to exist, no card went
+			// to the graveyard), so its affected set is empty and no delayed
+			// trigger is registered (Come Back Wrong on a token).
+			if o := s.objRefObj(in.Obj); o != NoObj && s.objs[o].of&ofToken == 0 {
 				s.atEOTRider(o, false)
 			}
 		}
