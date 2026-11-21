@@ -1054,11 +1054,29 @@ func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
 // with a mana ability the census misses: a Bloom Tender, Giada, a
-// Courtyard, Lupinflower Village's restricted {W}, or a deferred
-// TriggersWhenSpent$ source such as Pyromancer's Goggles, which
-// otherGaps does not fund; mana_deferred.go).
+// Courtyard, or a deferred TriggersWhenSpent$ source such as Pyromancer's
+// Goggles, which otherGaps does not fund; mana_deferred.go). A restricted
+// planner unit among them (Untaidake's legendary-only {C}{C}) is no gap to
+// the search: gorge's planner counts it inside every plan
+// (mana_restrictedcost.go), its prefix search branches on none.
 func (s *State) filtOnly(k *prep, p uint8) bool {
-	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).any()
+	return s.scriptFilt(k, p).any() && !s.gapOthers(k, p).andNot(s.restrSrcGaps(k, p)).any()
+}
+
+// restrSrcGaps: p's gapOthers that are restricted planner units
+// (mana_restrictedsource.go's gfRestrSrc): the census misses their mana, but
+// gorge's planner counts the source inside every plan its restriction admits
+// (rkExt/rkWiden, mana_restrictedcost.go), so it is no prefix-search gap: it
+// keeps no filter off the filter search, and the restricted route prices the
+// plays its mana may pay.
+func (s *State) restrSrcGaps(k *prep, p uint8) slotMask {
+	var m slotMask
+	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
+		if sl := b.first(); k.gen.has(s.cardAt(sl), gfRestrSrc) {
+			m = m.with(sl)
+		}
+	}
+	return m
 }
 
 // gapOthers: p's activatable sources with a census gap that is no filter. A tap-another

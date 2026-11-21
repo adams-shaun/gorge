@@ -285,7 +285,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	var filt slotMask
 	mix := s.mixBoard(k, p)
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).any()) { // (filtOnly)
+		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrSrcGaps(k, p)).any()) { // (filtOnly; a restricted planner unit is no gap to the search, mana_filter.go)
 			filt = f
 		}
 	}
