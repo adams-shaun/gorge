@@ -153,7 +153,7 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallL6Walk // static_layer6.go prepL6
 	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
-	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
+	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0 && !selfPhLifted(g):
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	case staticPrevStall(g):
 		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement

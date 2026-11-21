@@ -37,6 +37,18 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 	return n
 }
 
+// selfDmgStep is replDamage's self-damage line (rbSelfDmg: Anti-Venom,
+// a Phantom, Istvan): the amount after it and whether it prevented it all.
+// A Phantom's line that gorge orders beside other replacements waits for the
+// ask (selfPhWaits).
+func (s *State) selfDmgStep(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) (int, bool) {
+	if k.gen.anyRepl&rbSelfDmg == 0 || sl == NoSlot || s.selfPhWaits(k, srcCtrl, srcSl, srcCard, sl, combat, n) {
+		return n, false
+	}
+	n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n)
+	return n, n <= 0
+}
+
 // replDamage is the amount of damage a source controlled by srcCtrl deals
 // to the recipient code (an Obj on the battlefield or PlayerTarget*) after
 // the replacements: doubled once per Twinflame Tyrant its controller
@@ -107,10 +119,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
-	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
-		if n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
-		}
+	var stopped bool
+	if n, stopped = s.selfDmgStep(k, srcCtrl, srcSl, srcCard, sl, combat, n); stopped {
+		return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
@@ -666,16 +677,10 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	// CR 122.1c: gorge appends the shield counter's prevention after the
 	// printed and granted-keyword matches (replacement.go), so it is the
-	// last candidate here too.
-	if fe.dst != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k, true) {
-		if n == len(ro.cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return n
-		}
-		ro.cand[n] = s.perms[fe.dst].obj
-		ro.prev |= 1 << n
-		ro.shld |= 1 << n
-		n++
+	// last candidate here too; beside a static prevention or a Phantom's line,
+	// which are printed matches in the object scan, it follows them (below).
+	if !spShieldLate(g) {
+		n = s.replShieldCand(k, fe, n)
 	}
 	if g.anyRepl&rbPrevCol != 0 {
 		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
@@ -689,10 +694,13 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		}
 		ro.prev &^= ro.pnx
 	}
-	if g.uses.has(useStaticPrev) {
+	if g.uses.has(useStaticPrev) || selfPh(g) {
 		if n = s.spCombatCands(k, fe, sc, rcp, n); n < 0 {
 			return 0 // repl_staticprevent.go
 		}
+	}
+	if spShieldLate(g) {
+		n = s.replShieldCand(k, fe, n)
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
@@ -704,6 +712,23 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
 	}
 	ro.p = rcp
+	return n
+}
+
+// replShieldCand appends the SHIELD counter's prevention (CR 122.1c) as the
+// last of the n candidates of frozen combat event fe; the new count.
+func (s *State) replShieldCand(k *prep, fe *fzEv, n int) int {
+	ro := &s.g.ro
+	if fe.dst != NoSlot && k.gen.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k, true) {
+		if n == len(ro.cand) {
+			s.capFull(StallShield) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fe.dst].obj
+		ro.prev |= 1 << n
+		ro.shld |= 1 << n
+		n++
+	}
 	return n
 }
 
@@ -871,6 +896,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	if ro.pnx&(1<<i) != 0 {
 		return s.g.prevCol[ro.cand[i]].col != 0 && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
 	}
+	if ro.spv&(1<<i) != 0 {
+		return s.spCandLive(k, i) // a static prevention: repl_staticprevent.go
+	}
 	if ro.pcol&(1<<i) != 0 {
 		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
 	}
@@ -936,7 +964,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	if ro.shld != 0 {
 		other := false
 		for j := 0; j < int(ro.ac); j++ {
-			if ro.prev&(1<<j) != 0 && ro.shld&(1<<j) == 0 &&
+			if (ro.prev&(1<<j) != 0 && ro.shld&(1<<j) == 0 || s.spFullAsk(k, j)) &&
 				(ro.used&(1<<j) != 0 || s.replCandLive(k, j)) {
 				other = true
 				break
@@ -1075,6 +1103,10 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.preventCombatEv(k, r, &r.ev[i]) // combat_prevention.go
 		return 0
 	}
+	if s.selfPhDeal(k, src.ctrl, ev.src, ev.dst, n) {
+		s.preventCombatEv(k, r, &r.ev[i]) // the Phantom's line on an unasked event (repl_selfph.go)
+		return 0
+	}
 	if k.gen.anyRepl&rbPrevCol != 0 {
 		// a lone Ext PreventNext shield, spent as the event is dealt (repl_prevnext.go)
 		code := src.atk // the player the source attacks
@@ -1167,6 +1199,9 @@ func (s *State) replOrderPick(a Action) bool {
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
 				s.replNCPickShield(s.k(), int(i))
+				if s.g.nc.n == ncPend {
+					ro.an = 0 // a prevention picked in the pend ask leaves nothing (repl_selfph.go)
+				}
 			}
 			return false
 		}
@@ -1187,8 +1222,13 @@ func (s *State) replOrderPick(a Action) bool {
 				left++
 			}
 		}
+		if left < 2 && ro.on && ro.spv != 0 {
+			s.spApplyLeft(s.k())
+		}
 		if left < 2 && !ro.on {
-			s.replNCAutoShield(s.k())
+			if !pend {
+				s.replNCAutoShield(s.k()) // the pend ask's leftover shield is ncPlusLeftovers'
+			}
 			if s.g.nc.n == ncPend {
 				// gorge re-collects the rest after the last pick: the last
 				// remaining candidate applies automatically (a raise past
@@ -1368,16 +1408,16 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if s.statRdrStall(k, ctrl, srcSl, srcCard, code, false) {
 		return false // a static redirect beside another candidate is gorge's ask: stalled (repl_staticredirect.go)
 	}
-	if parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw); handled {
+	g := k.gen
+	if parked, handled := s.spParkEarly(k, ctrl, srcSl, srcCard, code, n, kw); handled {
 		return parked // a static prevention's ask (repl_staticprevent.go)
 	}
-	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
 	// parked: an earlier event of this op is parked on its ask (nc.n -1 is a
 	// parked, prevented one), and ro holds that ask
 	parked := s.g.nc.n != 0
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
+	if s.parkNCNoKinds(g, plusOnly) || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
 		return false
 	}
 	rcp := uint8(255)
@@ -1465,15 +1505,8 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		}
 		prev |= pcol
 	}
-	if sl != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, false) {
-		if c == len(cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return false
-		}
-		cand[c] = s.perms[sl].obj
-		prev |= 1 << c
-		shld |= 1 << c
-		c++
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, false); c < 0 {
+		return false
 	}
 	var pnx uint8
 	if g.anyRepl&rbPrevCol != 0 {
@@ -1489,6 +1522,13 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
+	}
+	c, spv, done := s.parkNCStatic(k, ctrl, srcSl, srcCard, code, n, kw, c, prev|shld|pnx|pcol, &cand, &plus, &rs)
+	if done != 0 {
+		return done == 2
+	}
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, true); c < 0 {
+		return false
 	}
 	if c < 2 {
 		return false
@@ -1506,8 +1546,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		s.capFull(StallReplPlus)
 		return false
 	}
-	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, cand, c) {
+	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, spv, cand, c) {
 		return true
+	}
+	if s.parkNCStaticStall(spv) {
+		return false
 	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on

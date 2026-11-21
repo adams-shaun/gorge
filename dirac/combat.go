@@ -1331,6 +1331,21 @@ func (s *State) dealsNow(k *prep, sl Slot, first bool) bool {
 // by an emblem (gorge combatDamageAmount,
 // engine/rules/statics_assignment.go).
 func (s *State) combatAmount(k *prep, sl Slot) int {
+	if s.g.ro.on && selfPh(k.gen) {
+		return s.frozenCombatAmt(sl, s.combatAmountLive(k, sl)) // repl_selfph.go
+	}
+	return s.combatAmountLive(k, sl)
+}
+
+// replOrderPossible: some damage replacement of the table can pose gorge's
+// CR 616.1 order ask on a combat pass (a doubler, a shield, a scoped
+// prevention, plus-N additions, a static prevention, a Phantom's line).
+func replOrderPossible(g *genPrep) bool {
+	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g)
+}
+
+// combatAmountLive is combatAmount read from the permanent as it stands.
+func (s *State) combatAmountLive(k *prep, sl Slot) int {
 	amt := s.power(k, sl)
 	if k.gen != nil && k.gen.anyCdmgTough {
 		amt = s.combatAmtTough(k, sl)
@@ -1495,7 +1510,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		// so shieldCombat must leave all the shields to it (a shield on a
 		// later event is a candidate of the same ask, not an automatic
 		// spend before the ask is answered).
-		if (k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(k.gen) || k.gen.uses.has(useStaticPrev)) && !s.g.ro.on {
+		if replOrderPossible(k.gen) && !s.g.ro.on {
 			s.replOrderFreeze(k, &r, first) // gorge's replacement-order ask
 		}
 		if k.gen.anyRepl&rbShield != 0 {
