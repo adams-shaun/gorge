@@ -173,7 +173,22 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
-			n += int(max(s.manaPCGen(k, sl).manaN, 1))
+			// the whole production the census's plain arm adds (mana.go's
+			// availForMode): the tap's own units and the all-at-once rest
+			// (mana_eachcolour.go), as gorge's PotentialMana counts it (CR
+			// 605.3b, 605.1a). Counting only manaN read an "Add {W}{U}" land as
+			// one mana, so its {U} never funded a first-only filter's fee
+			// (Cabal Coffers' {2} beside every Swamp tapped: Korlash, Heir to
+			// Blackblade's {1}{B} activation offered by gorge, never by the
+			// kernel).
+			pc := s.manaPCGen(k, sl)
+			n += int(s.srcYieldAt(k, sl, pc))
+			if k.gen != nil && k.gen.anyTapExtra {
+				xv := s.srcExtra(k, sl, pc)
+				for c := range xv {
+					n += int(xv[c])
+				}
+			}
 		} else if pc := s.manaPCGen(k, sl); s.canSacOnlyForMana(k, sl, pc) {
 			// a sacrifice-only source (an Eldrazi Spawn) is a last-resort
 			// unit of gorge's census, tapped or not (mana_sacsource.go)
