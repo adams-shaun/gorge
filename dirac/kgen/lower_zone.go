@@ -4025,7 +4025,7 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
-	lat.TrigRem = trigRemAllowed(ps) // lower_trigremembered.go
+	lat.TrigRem = lc.trigRemInit(ps) // lower_trigremembered.go
 	savedRemX := lc.trigRemX
 	lc.trigRemX = false
 	if lc.trigXPaid && strings.TrimSpace(ps.m["RememberSVarAmount"]) == "X" {

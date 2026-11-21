@@ -305,6 +305,7 @@ type genPrep struct {
 	partyRole       [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub       [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac       bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
+	anyRemLKIPick   bool           // some expr is ExRemLKIPT: a battle-link remember pick accumulates the picked card's last-known power into the resolution's remLK (zone_hiddenpick.go pickLeaves; Yannik)
 	anyDiscard      bool           // some OpDiscard: a held discard has room (coldArrays.discHeld)
 	anyRemDisc      bool           // some OpDiscard remembers what it discards (B.N&1, RememberDiscarded$; act_remember.go)
 	anySpellMana    bool           // some spell ability's program carries an OpAddMana (mana_dbresolve.go)
@@ -1005,6 +1006,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.partyRole = partyRoles(t)
 	g.outlawSub = outlawSubs(t) // filter_valueheads.go
 	g.anyRemSac = tableRemembersOp(t, kop.OpSacrifice) || tableRemembersIfPaidSac(t)
+	g.anyRemLKIPick = tableReadsRemLKIPT(t) // the battle-link pick's writer gate (zone_rememberlki.go)
 	g.anyUnion = tableUnion(t)
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
