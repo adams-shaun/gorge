@@ -168,6 +168,7 @@ func checkOppSearch(t *testing.T, res Result, sims int) Stats {
 // with one (the prior on the opponent's own view). With the option off the
 // opponent counters stay 0.
 func TestSearchWithOpponentNodesOnRedealtWorlds(t *testing.T) {
+	t.Parallel()
 	cfg := testConfig(t, "mono-red-prowess", "mono-blue-tempo", testSeed)
 	net := policynet.NewModel(policynet.TableRows, 4, 3, rand.New(rand.NewPCG(51, 52)))
 	net.InitValue(2, rand.New(rand.NewPCG(53, 54)))
@@ -217,6 +218,7 @@ func TestNodeCacheIsExactWithOpponentNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	roots := measureRoots(t, 6)
 	if len(roots) < 4 {
 		t.Fatalf("only %d searchable roots", len(roots))
