@@ -15,7 +15,11 @@ import (
 // alternate-face triggers already travel by name (checkFaceTriggers' delayed
 // path) and are not an inactive-face leftover.
 func inactiveFaceLayout(c *cards.Card) bool {
-	return c.BackFaceIsBattlefieldOnly()
+	// A meld card's result face (CR 712.4) exists only on the battlefield as
+	// well: Ragnarok's "when this dies" line triggers from the look-back
+	// board, and the split (events.unmeld) has already turned the object back
+	// to its front face when the trigger is pushed.
+	return c.BackFaceIsBattlefieldOnly() || c != nil && len(c.Faces) == 2 && state.IsMeldCard(c)
 }
 
 // triggerPushAmount is the TriggerPush Amount for pt: the plain trigger index

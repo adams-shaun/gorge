@@ -885,6 +885,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil {
 		s.stashClr(k, o) // a land played from exile loses its stash counter as it leaves (a new object, CR 400.7)
 	}
+	s.meldLeaveOnLeave(k, o, z, bottom, wasCreature) // face_meld.go: a melded permanent's partner goes with it
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature)
 	s.g.graveKept = false
 	if s.g.enteredOn {

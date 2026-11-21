@@ -145,7 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			continue
 		}
-		if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
+		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
 			continue
 		}
 		if !haveAv {
@@ -283,9 +283,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
 			continue // (cast as though it had flash: High Fae Trickster)
 		}
-		if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
-			continue
-		}
 		if !haveAv {
 			s.availFor(k, p, &av)
 			haveAv = true
@@ -307,6 +304,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 		}
 		fc = s.delveOfferCredit(k, p, c, o, false, fc)
+		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &fc, &av) {
+			continue // the flashback cost's own X (CR 202.3e, 107.3b)
+		}
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}

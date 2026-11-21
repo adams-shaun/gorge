@@ -896,6 +896,15 @@ const (
 	// layer timestamp and no Mode$ Transformed trigger; leaving the
 	// battlefield it is its top half again (CR 710.2).
 	FaceFlip
+	// FaceMeld is a meld card that carries the meld-result face (CR 712.4,
+	// 701.42): Faces[1] is the melded permanent's face, which the object's
+	// card shows only while it is melded (OpExt ExtMeld turns it, the
+	// partner's object parks in ZoneNone and the pair rides the cold
+	// meldLink array, dirac/face_meld.go). The result def's mana cost is
+	// the sum of the two front faces' mana values (CR 712.4c/202.3c), folded
+	// by kgen (lower_meld.go). The pair's other half lowers as a single-faced
+	// card.
+	FaceMeld
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face

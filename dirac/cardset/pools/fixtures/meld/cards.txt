@@ -1,0 +1,16 @@
+# CR 701.42, 712.4 meld lockstep (dirac/oracle/meld_pod_mp_test.go): Graf Rats +
+# Midnight Scavengers (a beginning-of-combat trigger), Hanweir Battlements +
+# Hanweir Garrison (an activated meld), Vanille + Fang (an optional paid meld),
+# and removal and bounce so a melded permanent leaves to every zone
+Graf Rats
+Midnight Scavengers
+Hanweir Battlements
+Hanweir Garrison
+Vanille, Cheerful l'Cie
+Fang, Fearless l'Cie
+Swamp
+Mountain
+Forest
+Murder
+Swords to Plowshares
+Plains

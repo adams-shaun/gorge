@@ -627,6 +627,7 @@ FToken	FilterFlags	4
 FUntapped	FilterFlags	16
 FaceAdventure	untyped int	2
 FaceFlip	untyped int	9
+FaceMeld	untyped int	10
 FaceModal	untyped int	1
 FaceNone	untyped int	0
 FaceOmen	untyped int	7
