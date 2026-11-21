@@ -32,7 +32,10 @@ permissions:
   statuses: write
 
 concurrency:
-  group: queue-precheck
+  # pull_request: opened fires for every PR, and each run of the shared group replaces its one pending run: an
+  # ordinary PR's run (its job then skips) cancelled the pending check of a new main (11-21 06:36-06:40Z, #3057).
+  # Only pushes, dispatches and Mergify's batch PRs share the group; any other PR's run gets a group of its own.
+  group: ${{ (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) && 'queue-precheck' || format('queue-precheck-skip-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
