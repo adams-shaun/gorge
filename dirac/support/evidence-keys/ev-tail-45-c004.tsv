@@ -28,7 +28,9 @@ Captain of the Watch	15396e8ed7ecc465	4	1/1		1/1
 Celestial Gatekeeper	43648c1d0c80e971	4	1/1		0/1	ix:resp
 Chainflinger	858fd94b525c9d21	5	2/2		0/1	ix:resp
 Clairvoyance	45abad37609386c8	4	0/0		1/2	ix:resp
+Coalhauler Swine	9d802043240b7cdb	4	1/1		0/1	ix:resp
 Colossus Hammer	b92699ede9a3c686	3	1/1		0/1	ix:resp
+Coppercoat Vanguard	d338afb161fb31c9	9	0/0		0/0	
 Court Archers	5e396f7e2ec4f9f5	3	1/1		1/1	
 Crag Saurian	7b146b50193c4eee	6	1/1		0/1	ix:resp
 Crossroads Consecrator	a534ba214ad9818a	4	1/1		0/1	ix:resp
@@ -36,6 +38,7 @@ Culling Mark	1a4b952db118ee68	4	0/0		2/2
 Curse of the Nightly Hunt	d98fd2ad223bb4cb	4	0/0		1/2	ix:resp
 Dark Inquiry	082bd3dd7acbe1f6	3	0/0		1/2	ix:resp
 Dauntless Escort	e0330c141fe25b71	4	1/1		0/1	ix:resp
+Dauthi Jackal	bdafbac982b8a498	5	1/1		0/1	ix:resp
 Distract	1a860691a0b16b10	10	0/0		2/2	
 Ecstatic Awakener	83a7c3a75cc8265e	6	1/1		1/1	
 Ephemeron	29a84ef7b0525c2c	5	1/1		1/1	
@@ -56,6 +59,7 @@ Goblin Hero	236c54abc0978c41	4	0/0		0/0
 Golgari Signet	fc2ceda7c8cefc01	6	1/1		0/1	ix:resp
 Grinning Demon	448ce651362e3ab3	3	1/1		2/3	cast/alt:morphed
 Haazda Officer	aef43598060c230d	3	1/1		0/1	ix:resp
+Havengul Skaab	1b2e85844d5352c8	3	1/1		0/1	ix:resp
 Haze of Pollen	9f1292296db32b47	4	1/1		1/2	ix:resp
 Hazel's Brewmaster	7080617733af0acd	3	2/2		1/1	
 Heartbeat of Spring	10318a075c1e5fad	3	1/1		0/1	ix:resp
@@ -91,6 +95,7 @@ Many Partings	53a9ae19b2b45ad9	8	0/0		1/2	ix:resp
 Marrow Bats	80db1e0cea8c29ff	7	1/1		0/1	ix:resp
 Mercurial Pretender	6742ad0232564613	3	0/0		0/0	
 Moaning Spirit	b8a43c1f22ee08d8	3	0/0		0/0	
+Mole Module	88bdc37f74f3fff4	3	2/2		0/1	ix:resp
 Monk Idealist	47dbb1fa89d9d3b9	4	1/1		0/1	ix:resp
 Murasa Pyromancer	594d6e6b4314f17d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Naga Vitalist	c7cdfa961771be03	8	1/1		1/1	
@@ -119,6 +124,7 @@ Remote Isle	18a05872fa523001	8	2/2		0/1	ix:resp
 Renata, Called to the Hunt	c42672fa95187f23	6	0/0		0/0	
 Repeal	03ba6a13c26796ea	4	0/0		2/4	f0/s/x0,ix:resp
 Respite	b0d047a711a9b874	7	0/0		2/2	
+Revenant Patriarch	c1ede382352a3429	3	1/1		0/1	ix:resp
 Righteous Confluence	c6026df39dff5b50	9	0/0		1/2	ix:resp
 River Boa	8ea4c09a9eed6afb	12	1/1		1/1	
 River Darter	61fcf118aa85074f	4	0/0		0/0	
@@ -131,6 +137,7 @@ Sensory Deprivation	1d1c2e0e76f5c7b5	75	0/0		2/2
 Shaman of the Great Hunt	d3e24b65ec097c65	12	2/2		0/1	ix:resp
 Shield of Duty and Reason	a10a8861f1833778	4	0/0		1/2	ix:resp
 Shivan Devastator	e2708c7511e5fc5e	3	0/0		0/0	
+Shivan Raptor	813da832346a2790	4	1/1		0/1	ix:resp
 Signpost Scarecrow	d3ed6396e6e65381	8	1/1		0/1	ix:resp
 Simic Cluestone	6e71ec5fa178d5d3	4	2/2		1/1	
 Sol Grail	8bab93c4e18a3309	4	1/1		0/1	ix:resp
@@ -143,14 +150,17 @@ Splinterfright	32f6f378e80fda8f	4	1/1		0/1	ix:resp
 Sporesower Thallid	dfdce0c5e02f3662	6	2/2		0/1	ix:resp
 Springing Tiger	50d603e4362cbb43	4	0/0		0/0	
 Steel-Plume Marshal	35e068d8ccd7c8f1	8	1/1		0/1	ix:resp
+Stitch Together	42df3e6afc3d556c	4	0/0		1/2	ix:resp
 Stoic Builder	2a32c31452a5ecb2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Stormchaser Chimera	d6bc2623db711009	3	1/1		0/1	ix:resp
 Stormwatch Eagle	ee22f9e3a251de40	5	1/1		1/1	
+Stromgald Crusader	d997c13e23aa7c1a	3	2/2		1/1	
 Succumb to Temptation	705a2739560b6a0d	8	0/0		1/2	ix:resp
 Sultai Flayer	90021c33f2db8a51	6	1/1		1/1	
 Surgehacker Mech	36b98006fa26f7af	7	2/2		0/1	ix:resp
 Syr Konrad, the Grim	9ce22b5038b693e6	5	4/4		1/1	
 Territorial Roc	52c833cf06f9d769	6	0/0		0/0	
+Thalisse, Reverent Medium	85168c8149ca45fd	5	1/1		0/1	ix:resp
 Thallid Soothsayer	1084f5a1e9569190	12	1/1		1/1	
 Thrun, the Last Troll	50faccbcda12f603	5	1/1		1/1	
 Thud	54609aee1d442366	4	0/0		2/2	
