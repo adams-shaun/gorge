@@ -2372,7 +2372,7 @@ func witnessCostRepriced(end, start witnessCostReader, g *state.Game, p state.Pl
 	// Plain casts only: a Mode prices its own charge, and an alternate-cost
 	// cast's plan.Cost prices the option's own scope, not the printed one
 	// CastPaymentCost recomputes.
-	if o.Kind != "cast" || o.Mode != "" || o.AltCostIndex != 0 {
+	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 {
 		return false
 	}
 	// The announcement priced the plan: the price the announcement state
