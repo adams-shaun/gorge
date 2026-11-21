@@ -3862,7 +3862,6 @@ Scarwood Bandits
 Scarwood Goblins
 Scathing Shadelock
 Scattered Groves
-Scattershot Archer
 Scavenged Blade
 Scavenger Regent
 Scavenger's Talent
@@ -3985,7 +3984,6 @@ Shaman of the Pack
 Shamble Back
 Shambling Strider
 Shanna, Purifying Blade
-Sharae of Numbing Depths
 Sharding Sphinx
 Shared Trauma
 Sharktocrab
@@ -4765,7 +4763,6 @@ Thranduil the Strategist
 Thranduil's Company
 Thranduil, Sindarin Liege
 Thrashing Wumpus
-Threadbind Clique
 Threaten
 Three Dreams
 Three Steps Ahead
@@ -5272,7 +5269,6 @@ Wildgrowth Walker
 Will Riker, Assuming Command
 Will Riker, First in the Field
 Will of the All-Hunter
-Will, Scion of Peace
 Willow Geist
 Willowrush Verge
 Wilt in the Heat
