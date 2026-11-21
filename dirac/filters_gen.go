@@ -922,6 +922,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
+		if fl.Pred == kop.PredTotalPT {
+			return s.cardTotalPTPred(k, fl, c, owner, o, fd) // filter_ptvalue.go
+		}
 		if fl.Pred == kop.PredToughnessLEV && fl.PredN == 3 {
 			return s.cardToughnessGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
