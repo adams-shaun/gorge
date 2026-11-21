@@ -226,9 +226,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if s.g.pre.state == 1 && s.g.pre.land && s.g.pre.obj == i {
 		po.Ctrl = s.preLandSeat() // a land played from another player's card (Tinybones), its as-enters choice asked first: gorge changed its control at the play
 	}
-	if ro := &s.g.ro; ro.n > 0 && ro.entHdr() && ro.pcol&entMode == entLand && ro.entObj() == i && ob.zone != kop.ZoneBattlefield {
-		po.Ctrl = ro.p // a land played from another player's card, its CR 616.1 entry-order ask parked with the card in its zone: gorge changed its control at the play (repl_entryorder.go)
-	}
+	po.Ctrl = s.roLandCtrl(i, ob.zone, po.Ctrl)
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && s.g.pre.state != 0 {
 		po.Ctrl = s.res.askP // a GainControl$ return's as-enters choice (Coalstoke Gearhulk): gorge folds the control onto the card before its entry (emitEntryMove)
 	}
@@ -315,6 +313,16 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 	}
 
+}
+
+// roLandCtrl is ctrl, or the parked entry-order ask's player when i is a land
+// played from another player's card still in its zone: gorge changed its
+// control at the play (repl_entryorder.go, CR 616.1).
+func (s *State) roLandCtrl(i Obj, z kop.Zone, ctrl uint8) uint8 {
+	if ro := &s.g.ro; ro.n > 0 && ro.entHdr() && ro.pcol&entMode == entLand && ro.entObj() == i && z != kop.ZoneBattlefield {
+		return ro.p
+	}
+	return ctrl
 }
 
 // projExtraStackTgts projects an entry's extra stack-ability targets like
