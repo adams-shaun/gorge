@@ -2637,30 +2637,54 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 // sweep still refuses a play that one activation cannot fund, as gorge's
 // planner does.
 //
+// A fixed-production one (Jungle Patrol's "Sacrifice a token named Wood: Add
+// {R}") repeats in the plain potential fold the way gorge's bound does
+// (rules potential_repeat_fee.go addPotentialSacRepeat, CR 605.1a): the
+// production once per extra candidate, its own mask and count, never the
+// whole-pool open (CR 107.4a: a fixed colour never leaves its face). On the
+// census only the any-colour production is open and folded; the units'
+// record is the real verdict (n of the mask, one per candidate), and the
+// bounded count proofs read that census, not the fold.
+//
 // The unrecord takes back the pain the ordinary unit was recorded with
 // (cen.unitPain: abPain plus the tap's foreign damage the census carries for
 // the source); the replacement units carry cen.pain alone — the sacrifice
 // activations never tap the source, so the Taps watchers' damage prices no
 // repeat. It reports the production's open fold.
 func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, abDrop uint8, cen *potCensus, fold func(Slot, uint8, uint8)) (open bool) {
-	if !cen.on || !kop.SacAnyManaAb(ab) {
+	if !kop.SacAnyManaAb(ab) {
 		return false
 	}
 	var cs [MaxPerm]Slot
-	if n := s.sacXCands(k, p, sl, ab, &cs); n >= 2 {
-		// Only the any-colour production is open in gorge's fold. A
-		// fixed-colour one (Krark-Clan Ironworks' {C}{C}) counts once in
-		// PotentialMana, so its repeats are neither open nor folded: the
-		// bound stays gorge's and a cast only the repeats fund is no play
-		// (pair 67: Grab the Reins' entwined cast beside two artifacts).
-		anyCol := ab.ManaColors == kop.ColAny
+	n := s.sacXCands(k, p, sl, ab, &cs)
+	if n < 2 {
+		return false
+	}
+	m := uint8(ab.ManaColors) &^ abDrop
+	anyCol := ab.ManaColors == kop.ColAny
+	if !cen.on {
+		// the plain potential fold has no per-tap census beside it: the
+		// repeats are the fold's whole extra, priced once per extra
+		// candidate in the production's own mask (gorge
+		// addPotentialSacRepeat), and an open production opens the fold as
+		// gorge's producedOpen prices it
 		open = anyCol
-		if m := uint8(ab.ManaColors) &^ abDrop; m != 0 {
-			unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
-			recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
-			if anyCol {
-				fold(sl, m, uint8(min(n, 255)))
-			}
+		if m != 0 && !open && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			fold(sl, m, uint8(min((n-1)*max(int(ab.ManaN), 1), 255)))
+		}
+		return open
+	}
+	// Only the any-colour production is open in gorge's fold. A
+	// fixed-colour one (Krark-Clan Ironworks' {C}{C}) counts once in
+	// PotentialMana, so its repeats are neither open nor folded: the
+	// bound stays gorge's and a cast only the repeats fund is no play
+	// (pair 67: Grab the Reins' entwined cast beside two artifacts).
+	open = anyCol
+	if m != 0 {
+		unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
+		recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
+		if anyCol {
+			fold(sl, m, uint8(min(n, 255)))
 		}
 	}
 	return open
