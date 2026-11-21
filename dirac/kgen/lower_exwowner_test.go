@@ -68,7 +68,20 @@ SVar:TrigExileIt:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Def
 SVar:TrigAirbend:DB$ Airbend | TargetMin$ 0 | TargetMax$ 2 | ValidTgts$ Creature`)
 	airSweep := exiledWithOwnerDropETB(t, `T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigAirbend | TriggerDescription$ enters: airbend each other creature.
 SVar:TrigAirbend:DB$ Airbend | Defined$ Valid Creature.Other`)
+	// ExileExMark: a Pump whose ReplaceDyingDefined$ Targeted arms an exile
+	// mark; the pump card's later replacement exile is stamped ExiledWith, and
+	// each activation can link a card into another owner's exile
+	markPump := exiledWithOwnerSrc + `A:AB$ Pump | Cost$ 1 | ValidTgts$ Creature | ReplaceDyingDefined$ Targeted | SpellDescription$ Exile it instead if it would die.
+`
+	// Hideaway links its exiled card too: beside the dies-exile-Self mover it
+	// is a second mover
+	hideaway := exiledWithOwnerDropETB(t, `K:Hideaway:4
+`) + `T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigExileSelf | TriggerDescription$ dies: exile this.
+SVar:TrigExileSelf:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | Defined$ Self
+`
 	for _, tc := range []struct{ name, src, want string }{
+		{"an ExileExMark pump", markPump, "ExileExMark"},
+		{"a hideaway beside a second mover", hideaway, "2 exile movers"},
 		{"two-target ETB exile", two, ""},
 		{"a two-target airbend", airTwo, ""},
 		{"an airbend sweep", airSweep, "Airbend sweep"},

@@ -264,14 +264,16 @@ func exwOwnerOnce(ab *lAbility) error {
 // lc.out.ExwWord; zone_exiledwith.go's exwRecRev path in exwExile). It covers
 // the exile movers kgen lowers today: Exile, ExileUntilLeaves, Search, Dig,
 // ChooseMove and ChangeZoneAll to exile, Airbend (a target slot is bounded
-// like Exile's, a Valid sweep refuses), and the set-valued ExileEmbRem and
-// StackExileMark (refused outright). An exile-bearing op added to kgen later
+// like Exile's, a Valid sweep refuses), Hideaway (one card, a mover), and the
+// set-valued ExileEmbRem, StackExileMark and ExileExMark (refused outright).
+// Manifest and Cloak move library cards to the battlefield, not to exile. An exile-bearing op added to kgen later
 // must be added here by hand, or it slips past the check silently;
 // TestExiledWithOwnerMultiExileRefuses pins the current set.
 func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 	switch in.Op {
 	case "Exile", "ExileUntilLeaves":
 	case "Search":
+		// an omitted count (vNone) is the default single pick
 		if !exwCountAtMostOne(in.A) {
 			return false, refuse("ExiledWithSource player ref over a Search of %s", in.A)
 		}
@@ -301,6 +303,16 @@ func exwOwnerMover(in *lInstr, ab *lAbility) (bool, error) {
 		// set-valued: the emblem's remembered set / the stack spells the mark
 		// reaches can sit across owners, and neither op has a count to bound
 		return false, refuse("ExiledWithSource player ref over %s: it can exile several cards owned by different players", in.Op)
+	case "ExileExMark":
+		// the mark's replacement exile of a Pump/Fight target is stamped
+		// ExiledWith by the pump card; the pump is an activated ability that
+		// resolves again, and each mark reaches a creature of any owner
+		return false, refuse("ExiledWithSource player ref over an ExileExMark: its replacement exile links a card per resolution, into any owner's exile")
+	case "Hideaway":
+		// the hideaway exile is fixed at one card (A is the look count) and the
+		// keyword trigger is the source's own ETB; it counts as a mover so a
+		// second mover beside it refuses
+		return true, nil
 	default:
 		return false, nil
 	}
