@@ -31,7 +31,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DealDamageFrom): a static prevention table is never replPlusOnly, since that
 // protocol discards the answer. A table that also has any other
 // damage replacement (or a self-damage one) is refused at its start
-// (initStall: staticPrevStall), since the kinds do not commute.
+// (initStall: staticPrevStall), since the kinds do not commute; the one pair
+// lifted is a combat-only scoped Effect record (Arachnogenesis), whose full
+// prevention the combat walk poses beside the static prevention (spBesidePrevAll).
 
 // useStaticPrev: the table has a static damage prevention.
 var useStaticPrev = newGenUse(tableHasStaticPrev)
@@ -415,7 +417,7 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	switch {
 	case c < 0:
 		return -1
-	case c == 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
+	case c >= 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
 		// a lone static prevention beside full preventions (a granted Effect's,
 		// a printed one): gorge asks the order over all of them
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
@@ -471,14 +473,21 @@ func (s *State) spWalkOpt(k *prep, e *spEv) bool {
 	return c == 1 && mark
 }
 
+// DebugSpBesidePcolOff leaves a static prevention beside an Ext PreventDamageScope
+// record unposed (the walk then asks the record alone and applies no order): the
+// oracle mutation test. False in normal play.
+var DebugSpBesidePcolOff bool
+
 // spBesidePrevAll: the n candidates already collected are all full
-// preventions (a granted Effect's or a printed one) and nothing else (no
-// shield, shield-counter, color prevention, addition or doubling), so a
+// preventions (a granted Effect's, a printed one or a combat-only scoped Effect
+// record such as Arachnogenesis's: repl_staticpreventpair.go usePrevColOpen)
+// and nothing else (no shield, shield-counter, PreventNext shield, addition or
+// doubling), so a
 // static prevention beside them is posed in the same order ask: whichever is
 // picked, the full prevention leaves nothing dealt.
 func (s *State) spBesidePrevAll(n int) bool {
 	ro := &s.g.ro
-	return n < 8 && ro.prev == uint8(1<<n)-1 && ro.shld == 0 && ro.pnx == 0 && ro.plus == 0 && ro.pcol == 0
+	return n < 8 && ro.prev == uint8(1<<n)-1 && ro.shld == 0 && ro.pnx == 0 && ro.plus == 0 && !(DebugSpBesidePcolOff && ro.pcol != 0)
 }
 
 // spAbility is the static prevention of the host at b a pick of candidate

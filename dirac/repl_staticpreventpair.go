@@ -18,6 +18,38 @@ var usePlusAbility = newGenUse(func(t *kop.Table) bool {
 	return false
 })
 
+// usePrevColOpen: the table has an Ext damage prevention record the static
+// prevention's walk does not pose beside itself: a colour, a depleting
+// PreventNext shield, or a scoped prevention that can match noncombat damage
+// or carries a rider. A combat-only scoped prevention (Arachnogenesis, Loyal
+// Unicorn) is a full prevention record the combat walk collects beside the
+// static prevention (replOrderCandsFz: prevColCands, then spCombatCands); it
+// is the one record kind the pair is lifted for.
+var usePrevColOpen = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			for _, in := range t.Cards[i].Abilities[j].Prog {
+				if prevRecOpen(in) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+})
+
+// prevRecOpen: in is an Ext damage prevention record other than a combat-only
+// scoped full prevention without a rider.
+func prevRecOpen(in kop.Instr) bool {
+	switch in.Ext() {
+	case kop.ExtPreventColor, kop.ExtPreventNext:
+		return true
+	case kop.ExtPreventDamageScope:
+		return in.C&kop.PrevScopeCombat == 0 || in.C&(kop.PrevScopeGain|kop.PrevScopeEndCombat) != 0
+	}
+	return false
+}
+
 // spCompete are the damage replacement bits that can match the same event as a
 // static prevention.
 const spCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbPrevCombatTo | rbPrevCombatBy | rbPrevMill | rbSelfDmg
@@ -26,7 +58,8 @@ const spCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | rbP
 // damage replacement. gorge asks the CR 616.1 order of the two and the
 // amounts differ with it, so initStall refuses the pair.
 func staticPrevStall(g *genPrep) bool {
-	return g.uses.has(useStaticPrev) && (g.anyRepl&spCompete != 0 || g.anyRedir || g.uses.has(usePlusAbility))
+	return g.uses.has(useStaticPrev) && (g.anyRepl&spCompete&^rbPrevCol != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) ||
+		g.anyRedir || g.uses.has(usePlusAbility))
 }
 
 // staticPrevPair is pairRefusal's halves for staticPrevStall: the static
@@ -42,7 +75,7 @@ func staticPrevPair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop
 				x.Cost.Flags&kop.CostAddCtr != 0 && x.Cost.Ctr == kop.CtrShield ||
 				progHas(x, func(in *kop.Instr) bool {
 					e := in.Ext()
-					return e == kop.ExtPreventColor || e == kop.ExtPreventDamageScope || e == kop.ExtPreventNext || e == kop.ExtDmgRedirect ||
+					return prevRecOpen(*in) || e == kop.ExtDmgRedirect ||
 						(in.Op == kop.OpPutCounter || in.Op == kop.OpPutCounterAll || in.Op == kop.OpEnterWithCounters) && in.C == int16(kop.CtrShield)
 				})
 		})(c, i)
