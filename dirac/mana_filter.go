@@ -1300,6 +1300,16 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
+	// lifePainBound: the potential bound affords the plain hand cast a's
+	// composed cost (lifePainPlanAffords), so the life pass may activate a
+	// sole life-only pain unit (lifeOnlyPain) as the plan's last resort: the
+	// mirror of gorge's payment planner pricing the play on its PotentialMana
+	// bound and its witness replay activating the unit (potential_plan.go
+	// potentialWitnessReaches). A play the bound cannot fund is no offer of
+	// gorge's (planCoverInsufficient), so the arm is gated on the read:
+	// however far the search walks, it reaches no plan gorge's planner would
+	// price.
+	lifePainBound bool
 	// useful is the play's printed mana cost (filtUsefulCost), the fixed
 	// pips the fee-stall clamp (filtFeeColStalls) reads; usefulOK false (a
 	// play whose printed cost the search does not read: a kicked, bargained
@@ -1475,7 +1485,42 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // spend the budget (gorge's planner still offers the play on a search_limit
 // plan, legal_walk_autopay.go autoPayPlan).
 //
+// lifePainPlanAffords reports whether gorge's potential planner prices the
+// plain hand cast a (its PotentialMana bound affords the composed cost, the
+// plain witness arm's read): the filter search's life pass then activates a
+// sole life-only pain unit as the plan's last resort (lifePass's pain arm).
+// The read is scoped to the plain hand cast the witness arm prices -- gorge's
+// planner plans the composed cost of a PlannedCast (planComposedCostFor) -- and
+// runs only when the board holds an activatable life-only pain unit, the one
+// shape whose census unit a gap activation can fund (potential_plan.go).
+//
 //go:noinline
+func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
+	if !k.painMana || a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 {
+		return false
+	}
+	o := Obj(a.Source())
+	if o == NoObj || s.objs[o].zone != kop.ZoneHand {
+		return false
+	}
+	live := false
+	for m := s.ctrlM[p]; m.any() && !live; m = m.rest() {
+		live = s.canLifeOnlyMana(k, m.first(), p)
+	}
+	if !live {
+		return false
+	}
+	c := s.objs[o].card
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	if s.g.mayPlayAny {
+		cost = anyType(cost)
+	}
+	var pb avail
+	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	memo := s.filtMemoLookup(k, a, p, apply)
 	if memo.hit && !DebugFiltMemoCheck {
@@ -1487,6 +1532,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	fs.need = s.playNeed(k, a)                  // the play's announced colours, whichever search prices it
 	fs.useful, fs.usefulOK = s.filtUsefulCost(k, a)
 	fs.other = s.otherGaps(k, p, a)
+	fs.lifePainBound = s.lifePainPlanAffords(k, a, p)
 	fs.feeOnly = s.filtRepeatIn(k, fs.gaps)
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -1516,7 +1562,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		// covered funding first (mana_filterfeeorder.go)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
 			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true,
-			feeOrder: true, feeGaps: fs.feeGaps, noHand: fs.noHand}
+			feeOrder: true, feeGaps: fs.feeGaps, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 			nodes = ph.nodes
@@ -1531,7 +1577,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, noHand: fs.noHand}
+			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
 		if found = ph.visit(k, t, 0, false); found {
 			fs = ph
 			nodes = ph.nodes
@@ -1550,7 +1596,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		base := fs.useful.MV()
 		for cap := base; cap <= base+fees; cap++ {
 			fb := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap, noHand: fs.noHand}
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, fundCap: cap, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
 			if fb.visit(k, t, 0, false) {
 				fs = fb
 				found = true
@@ -2214,7 +2260,59 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 			return true
 		}
 	}
+	// A sole life-only pain unit (lifeOnlyPain, Treasonous Ogre's "Pay 3
+	// life: Add {R}") is a census unit, no gapOther life gap (registersGapOther
+	// excludes it), so the branch above never offers it. gorge's payment
+	// planner prices the play on its potential bound and its witness replay
+	// activates the unit as the plan's last resort, leaving the source
+	// untapped for the play's gate to count the unit again
+	// (potential_plan.go potentialWitnessReaches; CR 605.1a, 601.2h). The arm
+	// runs only where that planner priced the play (fs.lifePainBound): its
+	// own pain may reach zero life, which the try arm's lethal guard ends
+	// (CR 104.3a).
+	if fs.lifePainBound {
+		for _, sl := range order {
+			if sl == fs.own || fs.dead.has(sl) || !t.canLifeOnlyMana(k, sl, fs.p) {
+				continue
+			}
+			if fs.lifePainBranch(k, t, sl, funded) {
+				return true
+			}
+		}
+	}
 	return false
+}
+
+// lifePainBranch branches life-only pain unit sl at a priority node of the
+// filter search: its colour ask when it makes one of any colour (gorge's
+// scriptOrderAnswers puts the play's announced colours first), its one answer
+// otherwise. Unlike a life gap (lifeGap), the unit is not once-per-path: its
+// activation taps nothing and gorge's gap-list rule does not reach it, so a
+// later node of the same path may activate it again while the payer survives
+// (the state keys of the nodes between keep the lines distinct).
+func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) bool {
+	pc := t.manaPCAt(k, sl)
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[t.cardAt(sl)].Abilities) {
+		return false
+	}
+	a := &k.t.Cards[t.cardAt(sl)].Abilities[pc.manaAb]
+	if a.ManaColors == kop.ColAny {
+		if !fs.tick() {
+			return false
+		}
+		var order [5]uint8
+		for i := range order {
+			order[i] = uint8(i)
+		}
+		needFirst(order[:], fs.need) // gorge's scriptOrderAnswers on the colour ask
+		for _, c := range order {
+			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, false) {
+				return true
+			}
+		}
+		return false
+	}
+	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, false)
 }
 
 // restrictedAnswers tries a restricted ability's colour answers (rm) of the
