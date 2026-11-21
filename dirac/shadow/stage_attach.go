@@ -16,11 +16,17 @@ import (
 // power and toughness are the printed ones, and none when there are zero or
 // several: a token this package cannot name exactly is not staged.
 func (b *builder) tokenCard(cv *view.CardView) (kop.CardID, bool) {
+	return tableToken(b.in.Tbl, cv)
+}
+
+// tableToken is tokenCard over a table: the Layout names the tokens it has seen
+// by it.
+func tableToken(tbl *kop.Table, cv *view.CardView) (kop.CardID, bool) {
 	want := "_" + strings.ReplaceAll(strings.ToLower(strings.TrimSuffix(cv.Name, " Token")), " ", "_")
 	found := kop.CardID(0)
 	n := 0
-	for i := range b.in.Tbl.Cards {
-		d := &b.in.Tbl.Cards[i]
+	for i := range tbl.Cards {
+		d := &tbl.Cards[i]
 		if d.Types&kop.TToken == 0 || !strings.HasSuffix(d.Name, want) || fmt.Sprintf("%d/%d", d.Power, d.Toughness) != cv.PrintedPT {
 			continue
 		}
@@ -48,4 +54,32 @@ func (b *builder) markTokenAttach(o *dirac.WorldObj, cv *view.CardView, name str
 	}
 	o.Attached, o.Host = true, host
 	return nil
+}
+
+// ceased adds the tokens the caller says have ceased to exist: each takes its
+// object index with no zone (dirac.WorldObj Zone ZoneNone) and carries no mark.
+// The name is the table token's script name (the card tokenCard resolves).
+func (b *builder) ceased() error {
+	for _, c := range b.in.Hidden.Ceased {
+		id, ok := b.tokenByName(c.Name)
+		if !ok {
+			return bad(ReasonToken, "ceased token %d: no table token %q", c.Obj, c.Name)
+		}
+		if int(c.Owner) >= len(b.in.View.Players) {
+			return bad(ReasonSeats, "ceased token %d: seat %d", c.Obj, c.Owner)
+		}
+		b.all = append(b.all, placed{c.Obj, dirac.WorldObj{Card: id, Owner: c.Owner, Zone: kop.ZoneNone, Ctrl: c.Owner, Token: true}})
+	}
+	return nil
+}
+
+// tokenByName is the table token whose script name is name; the scripts of a
+// table's tokens are unique.
+func (b *builder) tokenByName(name string) (kop.CardID, bool) {
+	for i := range b.in.Tbl.Cards {
+		if d := &b.in.Tbl.Cards[i]; d.Types&kop.TToken != 0 && d.Name == name {
+			return kop.CardID(i), true
+		}
+	}
+	return 0, false
 }

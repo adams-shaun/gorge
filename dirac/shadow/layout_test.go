@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 
@@ -28,12 +29,14 @@ func deckNames(tbl *kop.Table, deck []kop.CardID) []string {
 	return out
 }
 
-// layoutGame plays one vanilla lockstep game and, at the first priority
-// decision at or after a random one, stages both the verifier's true world and
-// the Layout's world from the same view. It returns "" or a failure text.
-func layoutGame(reg *cards.Registry, seed uint64, compared *int, staged *int, tokenGap *int, deadTok *int) string {
+// layoutGame plays one lockstep game of env and, at the first priority
+// decision at or after a random one (that env wants, when gated), stages both the verifier's
+// true world (its ceased tokens read from the replay) and the Layout's world
+// from the same view. The Layout is dealt the view of every priority decision
+// before it, as a seat's is, so it has seen the tokens that left. It returns ""
+// or a failure text.
+func layoutGame(reg *cards.Registry, env *stageEnv, gated bool, seed uint64, compared *int, staged *int) string {
 	r := rand.New(rand.NewPCG(seed, 0x5748))
-	env := vanillaEnv()
 	decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
 	want := 2 + r.IntN(160)
 	m, err := oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
@@ -56,16 +59,28 @@ func layoutGame(reg *cards.Registry, seed uint64, compared *int, staged *int, to
 		if done {
 			return nil
 		}
-		if n < want {
-			return nil
-		}
 		d := ref.Pending()
 		if d == nil || d.Kind != "priority" {
 			return nil
 		}
-		viewer := state.PlayerID(r.IntN(2))
 		g := ref.E.G
+		if n < want {
+			seen := view.ProjectFor(g, ref.E, 0, view.Seat, d)
+			if _, _, err := layout.Deal(&seen, stageCfg(), seed); err != nil {
+				fail = fmt.Sprintf("seed %d: Layout.Deal before the position: %v", seed, err)
+				return errDone
+			}
+			return nil
+		}
+		viewer := state.PlayerID(r.IntN(2))
 		v := view.ProjectFor(g, ref.E, viewer, view.Seat, d)
+		if gated && !env.want(seed, &v, d) {
+			if _, _, err := layout.Deal(&v, stageCfg(), seed); err != nil {
+				fail = fmt.Sprintf("seed %d: Layout.Deal before the position: %v", seed, err)
+				return errDone
+			}
+			return nil
+		}
 		// The verifier's true input, exactly as stageGame builds it.
 		hidden := shadow.Hidden{}
 		for p := state.PlayerID(0); p < 2; p++ {
@@ -80,6 +95,12 @@ func layoutGame(reg *cards.Registry, seed uint64, compared *int, staged *int, to
 			View: v, Hidden: hidden, Tbl: env.tbl, Cfg: stageCfg(), Seed: seed,
 			ObjOf: func(id int) (dirac.Obj, bool) { return dirac.Obj(ref.InstRef(state.ObjID(id))), true },
 		}
+		var kp dirac.Projection
+		kstate.Project(&kp)
+		var terr error
+		if trueIn.Hidden.Ceased, terr = ceasedTokens(kstate, env.tbl, int(kp.NObj)); terr != nil {
+			return errDone // a token in a zone no view shows: the verifier refuses the position
+		}
 		layoutIn, _, lerr := layout.Deal(&v, stageCfg(), seed)
 		if lerr != nil {
 			fail = fmt.Sprintf("seed %d: Layout.Deal: %v", seed, lerr)
@@ -87,31 +108,14 @@ func layoutGame(reg *cards.Registry, seed uint64, compared *int, staged *int, to
 		}
 		trueWorld, trueErr := shadow.WorldFromView(trueIn)
 		var trueState *dirac.State
-		var kp dirac.Projection
-		kstate.Project(&kp)
-		trueDead := false
 		if trueErr == nil {
-			if len(trueWorld.Objs) != int(kp.NObj) {
-				trueDead = true // a token left after the last one shown: the verifier skips this position
-			} else {
-				trueState, trueErr = dirac.NewFromWorld(&trueWorld)
-			}
+			trueState, trueErr = dirac.NewFromWorld(&trueWorld)
 		}
 		layoutState, layoutErr := shadow.StageFromView(layoutIn)
-		if trueDead {
-			*deadTok++
-			return errDone
-		}
 		*compared++
 		if (trueErr == nil) != (layoutErr == nil) {
-			var tu dirac.ErrUnstageable
 			if trueErr == nil {
 				fail = fmt.Sprintf("seed %d: true stages, layout does not: %v", seed, layoutErr)
-			} else if errors.As(trueErr, &tu) && tu.Reason == dirac.ReasonToken {
-				// A gap a departed token left in the true numbering: the
-				// Layout's compacted numbering may stage where it cannot.
-				*tokenGap++
-				return errDone
 			} else {
 				fail = fmt.Sprintf("seed %d: true does not stage (%v), layout stages", seed, trueErr)
 			}
@@ -146,14 +150,19 @@ func layoutGame(reg *cards.Registry, seed uint64, compared *int, staged *int, to
 // lists, and requires the projections to agree.
 func TestLayoutDealMatchesTruth(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	var compared, staged, tokenGap, deadTok int
-	for seed := uint64(1); seed <= 120; seed++ {
-		if msg := layoutGame(reg, seed, &compared, &staged, &tokenGap, &deadTok); msg != "" {
+	t.Run("vanilla", func(t *testing.T) { layoutTruth(t, reg, vanillaEnv(), false, 120) })
+	t.Run("mbc", func(t *testing.T) { layoutTruth(t, reg, cardsEnv(t), true, 120) })
+}
+
+func layoutTruth(t *testing.T, reg *cards.Registry, env *stageEnv, gated bool, games int) {
+	var compared, staged int
+	for seed := uint64(1); seed <= uint64(games); seed++ {
+		if msg := layoutGame(reg, env, gated, seed, &compared, &staged); msg != "" {
 			t.Error(msg)
 			break
 		}
 	}
-	t.Logf("%d games: %d positions compared, %d staged both ways, %d true token gaps compacted by Layout, %d skipped as dead-token tails", 120, compared, staged, tokenGap, deadTok)
+	t.Logf("%d games: %d positions compared, %d staged both ways", games, compared, staged)
 	if compared < 100 {
 		t.Errorf("only %d positions compared, need at least 100", compared)
 	}
@@ -548,9 +557,10 @@ func token(id state.ObjID, owner state.PlayerID) view.CardView {
 	return view.CardView{ID: id, Name: "Goblin Token", IsToken: true, Owner: owner, Controller: owner}
 }
 
-// TestLayoutTokensSticky: the token registry is sticky and compacted. Tokens
-// first seen earlier keep lower indices, a departed first token lets the next
-// one take its index, and ViewID inverts ObjOf for every shown card.
+// TestLayoutTokensSticky: the token registry is sticky. Tokens first seen
+// earlier keep lower indices for good, a departed token leaves its index (it is
+// ceased, TestLayoutKeepsCeasedTokens), and ViewID inverts ObjOf for every
+// shown card.
 func TestLayoutTokensSticky(t *testing.T) {
 	t.Parallel()
 	cfg := dirac.LockstepConfig(dirac.SurfaceFull)
@@ -574,15 +584,15 @@ func TestLayoutTokensSticky(t *testing.T) {
 		t.Errorf("Input.ObjOf(500) = %d, %v, want 0", o, ok)
 	}
 
-	// The first-seen token left: the next one moves down into its index.
+	// The first-seen token left: the next one keeps its index.
 	v1 := tokenView(6, nil, []view.CardView{token(b, 1)})
 	_, n1, err := l.Deal(&v1, cfg, 1)
 	if err != nil {
 		t.Fatalf("Deal 1: %v", err)
 	}
-	wantObj(t, n1, b, 14)
-	wantView(t, n1, 14, b)
-	wantNoView(t, n1, 15)
+	wantObj(t, n1, b, 15)
+	wantView(t, n1, 15, b)
+	wantNoView(t, n1, 14)
 
 	// A new token is appended after the surviving sticky rank.
 	v2 := tokenView(6, nil, []view.CardView{token(b, 1), token(c, 1)})
@@ -590,8 +600,8 @@ func TestLayoutTokensSticky(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Deal 2: %v", err)
 	}
-	wantObj(t, n2, b, 14)
-	wantObj(t, n2, c, 15)
+	wantObj(t, n2, b, 15)
+	wantObj(t, n2, c, 16)
 	for _, id := range []state.ObjID{a, b, c, 500} {
 		o, ok := n2.ObjOf(int(id))
 		if !ok {
@@ -669,5 +679,66 @@ func TestLayoutDealDeterministic(t *testing.T) {
 				t.Errorf("view %d: ViewID(%d) differs: %d/%v vs %d/%v", i, o, ia, oka, ib, okb)
 			}
 		}
+	}
+}
+
+// TestLayoutKeepsCeasedTokens: a token that disappears from the view keeps its
+// index as a CeasedToken with the table name and owner it had when last shown,
+// and a token seen after it takes the next index.
+func TestLayoutKeepsCeasedTokens(t *testing.T) {
+	t.Parallel()
+	tbl := *vanilla.Table
+	tbl.Cards = append(slices.Clone(vanilla.Table.Cards),
+		kop.CardDef{Name: "r_1_1_goblin", Types: kop.TCreature | kop.TToken, Power: 1, Toughness: 1},
+		kop.CardDef{Name: "w_2_2_knight", Types: kop.TCreature | kop.TToken, Power: 2, Toughness: 2})
+	cfg := dirac.LockstepConfig(dirac.SurfaceFull)
+	l, err := shadow.NewLayout(&tbl, [][]string{repeatNames("Plains", 7), repeatNames("Plains", 7)})
+	if err != nil {
+		t.Fatalf("NewLayout: %v", err)
+	}
+	named := func(id state.ObjID, owner state.PlayerID, name, pt string) view.CardView {
+		c := token(id, owner)
+		c.Name, c.PrintedPT = name, pt
+		return c
+	}
+	a, b, c := state.ObjID(100), state.ObjID(200), state.ObjID(201)
+	deal := func(v view.View) (*shadow.Input, *shadow.Numbering) {
+		t.Helper()
+		in, n, err := l.Deal(&v, cfg, 1)
+		if err != nil {
+			t.Fatalf("Deal: %v", err)
+		}
+		return in, n
+	}
+
+	in0, n0 := deal(tokenView(6, []view.CardView{named(a, 0, "Goblin Token", "1/1")}, []view.CardView{named(b, 1, "Knight Token", "2/2")}))
+	wantObj(t, n0, a, 14)
+	wantObj(t, n0, b, 15)
+	if len(in0.Hidden.Ceased) != 0 {
+		t.Errorf("view 0 deals ceased tokens %+v, want none", in0.Hidden.Ceased)
+	}
+
+	// the goblin leaves: it keeps index 14 as a ceased token, the knight keeps 15
+	in1, n1 := deal(tokenView(6, nil, []view.CardView{named(b, 1, "Knight Token", "2/2")}))
+	wantObj(t, n1, b, 15)
+	wantNoView(t, n1, 14)
+	want1 := []shadow.CeasedToken{{Obj: 14, Name: "r_1_1_goblin", Owner: 0}}
+	if !reflect.DeepEqual(in1.Hidden.Ceased, want1) {
+		t.Errorf("view 1 ceased = %+v, want %+v", in1.Hidden.Ceased, want1)
+	}
+
+	// a token seen after it takes the next index and the goblin stays ceased
+	in2, n2 := deal(tokenView(6, nil, []view.CardView{named(b, 1, "Knight Token", "2/2"), named(c, 1, "Goblin Token", "1/1")}))
+	wantObj(t, n2, b, 15)
+	wantObj(t, n2, c, 16)
+	if !reflect.DeepEqual(in2.Hidden.Ceased, want1) {
+		t.Errorf("view 2 ceased = %+v, want %+v", in2.Hidden.Ceased, want1)
+	}
+
+	// the knight leaves too: both are ceased, the goblin's slot first
+	in3, _ := deal(tokenView(6, nil, []view.CardView{named(c, 1, "Goblin Token", "1/1")}))
+	want3 := []shadow.CeasedToken{want1[0], {Obj: 15, Name: "w_2_2_knight", Owner: 1}}
+	if !reflect.DeepEqual(in3.Hidden.Ceased, want3) {
+		t.Errorf("view 3 ceased = %+v, want %+v", in3.Hidden.Ceased, want3)
 	}
 }
