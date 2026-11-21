@@ -84,21 +84,20 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 
 // handActCensusPays is gorge's hand-zone ability gate (legal_walk_battlefield:
 // offerCastable on the floating pool, or autoPayOffer on the census): a hand
-// activation is no potential play of its walk, so the script walks' relaxed
-// mana (availAny's 99 units, the gaps' mana) never makes it an offer. A
-// tap-another source the census leaves out (Urza, Lord High Artificer's
-// "Tap an untapped artifact: Add {U}") pays it only once a prefix has floated
-// the mana; the ordinary walk then sees the pool (Jhessian Zombies'
-// typecycling {2} beside two untapped Constructs, tail-64 pair 4). Cold, out
-// of line.
+// activation is no potential play of its walk, so the any-mana script walk's
+// 99 units never make it an offer: it is priced on the gaps' census, where a
+// tap-another source (Urza, Lord High Artificer's "Tap an untapped artifact:
+// Add {U}") is one relaxed unit, as the autopay planner's witness counts it.
+// Urza alone pays no {2}; beside an untapped Swamp he does (Jhessian Zombies'
+// typecycling, tail-64 pair 4, decisions 572 and 573). Cold, out of line.
 //
 //go:noinline
 func (s *State) handActCensusPays(k *prep, p uint8, mana *kop.ManaCost, pd payDesc, av *avail) bool {
-	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || s.g.availX&(availGaps|availAny) == 0 {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || s.g.availX&availAny == 0 {
 		return true
 	}
 	x := s.g.availX
-	s.g.availX = 0
+	s.g.availX = availGaps | availPlain
 	var t avail
 	s.availFor(k, p, &t)
 	s.g.availX = x
