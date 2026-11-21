@@ -88,57 +88,65 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			// ordinary record; effToken (TokenOwner$ ThisTargetedPlayer) and
 			// friends read the mode's own c.Targets.
 			if so != nil && so.Ability != nil {
-				if src := e.G.Obj(so.Source); src != nil && src.Face() != nil {
-					svars := src.Face().SVars
-					var tbms []*cards.SA
-					for _, name := range names {
-						if sub := cards.ResolveSVar(svars, name); sub != nil &&
-							effects.TargetsOf(sub).Targeted() {
-							tbms = append(tbms, sub)
-						}
+				// The chosen modes' SVar bodies resolve against the same table
+				// the placement mode ask built its options from (triggerModeCtx:
+				// the face that OWNS the trigger -- printed face, copy face,
+				// merged face, grant's foreign face -- then a recorded trigger
+				// line's own table), never the source's active face alone: an
+				// embalmed Vizier of Many Faces copy of Disciple of Perdition
+				// keeps Vizier's face as its active one, whose SVars lack the
+				// mode bodies, so the CR 603.3d targets of the chosen modes were
+				// never asked and the ability resolved untargeted.
+				_, mctx := e.triggerModeCtx(in.Player, id, so.Ability)
+				svars := mctx.SVars
+				var tbms []*cards.SA
+				for _, name := range names {
+					if sub := cards.ResolveSVar(svars, name); sub != nil &&
+						effects.TargetsOf(sub).Targeted() {
+						tbms = append(tbms, sub)
 					}
-					choices := effects.CharmOf(so.Ability).Modes
-					status, why := effects.CharmCrossModeShape(svars, choices)
-					if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
-						e.drainAwaitsTarget = true
-						if e.askCrossModeCharmTargets(in.Player, id, tbms) {
-							return
-						}
-						// Fewer legal candidates than target-bearing modes: the
-						// combined different-player ask is unsatisfiable. Fall
-						// through to the historical first-mode ask below, whose
-						// own bounds/insufficiency handling governs.
-					} else if status == effects.CharmUniqueUnsupported {
-						e.emit(events.Event{Kind: events.Note, Obj: id,
-							Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
-					} else if len(tbms) >= 2 {
-						asked, infeasible := e.askCharmModeTargets(in.Player, id, svars, so.Ability, names)
-						if infeasible {
-							// CR 603.3c: a triggered ability whose announced modes
-							// cannot all acquire mandatory targets cannot resolve.
-							// Remove it instead of posing an unanswerable decision
-							// or silently targeting only the first mode.
-							e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack,
-								To: state.ZExile, Text: "countered: no legal modal targets"})
-							e.ensureLeftTheStack(id, state.ZExile, "a replacement discarded an untargetable modal ability's move")
-							e.drainAwaitsTarget = false
-							e.resumeTriggerDrain()
-							return
-						}
-						if asked {
-							e.drainAwaitsTarget = true
-							return
-						}
-					}
-					for _, sub := range tbms {
-						e.drainAwaitsTarget = true
-						// CR 603.3d: the chosen mode body's SubAbility$ links
-						// declare their targets at placement too (Ayula's
-						// fight: "target creature you don't control").
-						e.askTargetChained(in.Player, id, sub, e.triggerChainPreAsks(sub))
-						e.startTriggerSubTargets(id, in.Player, sub)
+				}
+				choices := effects.CharmOf(so.Ability).Modes
+				status, why := effects.CharmCrossModeShape(svars, choices)
+				if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
+					e.drainAwaitsTarget = true
+					if e.askCrossModeCharmTargets(in.Player, id, tbms) {
 						return
 					}
+					// Fewer legal candidates than target-bearing modes: the
+					// combined different-player ask is unsatisfiable. Fall
+					// through to the historical first-mode ask below, whose
+					// own bounds/insufficiency handling governs.
+				} else if status == effects.CharmUniqueUnsupported {
+					e.emit(events.Event{Kind: events.Note, Obj: id,
+						Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
+				} else if len(tbms) >= 2 {
+					asked, infeasible := e.askCharmModeTargets(in.Player, id, svars, so.Ability, names)
+					if infeasible {
+						// CR 603.3c: a triggered ability whose announced modes
+						// cannot all acquire mandatory targets cannot resolve.
+						// Remove it instead of posing an unanswerable decision
+						// or silently targeting only the first mode.
+						e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack,
+							To: state.ZExile, Text: "countered: no legal modal targets"})
+						e.ensureLeftTheStack(id, state.ZExile, "a replacement discarded an untargetable modal ability's move")
+						e.drainAwaitsTarget = false
+						e.resumeTriggerDrain()
+						return
+					}
+					if asked {
+						e.drainAwaitsTarget = true
+						return
+					}
+				}
+				for _, sub := range tbms {
+					e.drainAwaitsTarget = true
+					// CR 603.3d: the chosen mode body's SubAbility$ links
+					// declare their targets at placement too (Ayula's
+					// fight: "target creature you don't control").
+					e.askTargetChained(in.Player, id, sub, e.triggerChainPreAsks(sub))
+					e.startTriggerSubTargets(id, in.Player, sub)
+					return
 				}
 			}
 			// A GenericChoice of the controller can declare its target on the
