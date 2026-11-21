@@ -288,6 +288,25 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 				pc = s.splitWindowPC(k, b.first()) // gorge's window census reads a Condition-split root alone (mana_condsplit.go)
 			}
 			a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+			// gorge's windowTapExtras folds the tap's reflected extra (Mana
+			// Flare's one mana of the type the land produced) into every priced
+			// alternative, a deferred source's own (paymentPlanTapExtraMana):
+			// the same fixed carrier vector the census adds to a counted
+			// source's tap (availForMode's srcExtra units, mana.go). A shape
+			// srcExtra cannot price (a choice, painful or all-at-once
+			// production) carries no vector, as gorge's window census gives a
+			// multi-symbol or Any alternative none, so the ask reads the unit
+			// without it and no stall the plain census never posed.
+			if k.gen != nil && k.gen.anyTapExtra {
+				if xv, hit := s.srcExtraHit(k, b.first(), pc); hit && xv != ([kop.NumManaKinds]uint8{}) &&
+					s.tapExtraPlain(pc) && pc.painCol == 0 {
+					for c := range xv {
+						if xv[c] > 0 {
+							a.addUnits(1<<c, xv[c])
+						}
+					}
+				}
+			}
 		}
 	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
