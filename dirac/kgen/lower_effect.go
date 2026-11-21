@@ -879,6 +879,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 				return lCond{}, err
 			}
 			cmp, ok := ps.get("ConditionSVarCompare")
+			cmp, ok = meldSVarCompareDefault(lc, cmp, ok) // Forge's default compare on a meld face (lower_meld.go)
 			if !ok {
 				return lCond{}, refuse("ConditionCheckSVar$ %q without ConditionSVarCompare$", cs)
 			}
