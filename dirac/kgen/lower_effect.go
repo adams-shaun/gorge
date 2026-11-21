@@ -2276,6 +2276,7 @@ func (lc *lowerCtx) protKwInto(o *lOverride, kw string) error {
 	if o.AddKw, err = pumpKeywords(rest); err != nil {
 		return err
 	}
+	takeBanding(o)
 	return nil
 }
 
@@ -2652,6 +2653,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
+		case k == "Banding":
+			// a granted Banding (CR 702.22, Battering Ram): no KwMask bit is
+			// free; the head stays in the list and takeBanding moves it onto
+			// the record's Banding (lower_banding.go)
+			out = append(out, "Banding")
 		case k == "Flashback":
 			out = append(out, "FlashbackOwnCost")
 		case strings.HasPrefix(k, "Protection from "):

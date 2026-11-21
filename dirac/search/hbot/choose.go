@@ -292,7 +292,7 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	switch d.Sub {
 	case dirac.ChGenPip:
 		return firstPip(d)
-	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
+	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChBand:
 		return firstMode(d)
 	}
 	if d.Sub == dirac.ChRemCtrKind {

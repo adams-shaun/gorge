@@ -151,6 +151,7 @@ const (
 	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
 	ChVoteCard                  // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
 	ChDrawUpto                  // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
+	ChBand                      // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
 )
 
 // ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",
