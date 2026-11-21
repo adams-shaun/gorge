@@ -209,6 +209,7 @@ Irencrag Pyromancer
 Iron Bully
 Iron Suitcase
 Island
+Ixidor, Reality Sculptor
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
@@ -285,6 +286,7 @@ Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
 Pilfering Imp
+Plaguebearer
 Plains
 Plaxmanta
 Pol Jamaar, Illusionist
