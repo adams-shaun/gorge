@@ -313,7 +313,18 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 // you pay {2}" posed decline only in gorge, while the walk here reached {2}
 // through the battery and offered pay too. A ward's window keeps the offer.
 func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
-	return s.g.turnF&turnUnlessWin != 0 && kop.StoreManaAb(k.ctrAbOf(s.cardAt(o)))
+	if s.g.turnF&turnUnlessWin == 0 {
+		return false
+	}
+	a := k.ctrAbOf(s.cardAt(o))
+	return a != nil && kop.StoreManaAb(a) // a == nil: a non-ctr gap mixed into censusPayGaps' otherGaps mask (Remote Farm, Vivid Grove)
+}
+
+// windowCtrListable: windowPick lists a counter-cost source unless the walk is
+// an unless window's census and the source is a storage battery whose announced
+// X no census prices (unlessStoreUnpriced).
+func (s *State) windowCtrListable(k *prep, p uint8, o Slot, decided bool, want uint8, census bool) bool {
+	return s.windowCtrOffer(k, p, o, decided, want) && !(census && s.unlessStoreUnpriced(k, o))
 }
 
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
