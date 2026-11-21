@@ -32,10 +32,13 @@ var DebugDmgSrcPlLKI uint8
 // source is the loop's object (RefEach, read live; the entry's trigger
 // record is not its last known information) and the one recipient its
 // controller. gorge's loop is one damage batch (DamageMap$ True), so a
-// DamageDealtOnce listener would latch once over every pass where the
-// kernel's passes are each their own batch: it stalls loudly
-// (StallLowering), as does the order ask, which cannot park inside the
-// loop (StallReplPlus).
+// DamageDealtOnce line latches per dealing source over the loop (gorge
+// trigger_match.go damageBatchKey); the loop binds each creature exactly
+// once, so the line queues once, at its source's own pass, carrying that
+// pass's amount -- the pass's fire (below) is that game, and a line the
+// event fails (CombatDamage$, Descendant of Kiyomaro) queues nothing. A
+// DamageDealtOnce line does not stall here, though the order ask still
+// cannot park inside the loop (StallReplPlus).
 func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	eachCtrl := in.B.N == kop.DmgFromEachCtrl
@@ -99,11 +102,6 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	}
 	var q seatSeq
 	if eachCtrl {
-		if s.subs[kop.TrigDamageDealtOnce].any() {
-			s.capFull(StallLowering) // gorge latches it once over the whole loop
-			s.g.plusBatchAsked = false
-			return
-		}
 		q = seatOne(ctrl)
 	} else {
 		q = s.eachPlayers(k, kop.Ref(in.C))
