@@ -1,0 +1,15 @@
+# K:Phasing (CR 702.26a): a permanent with it phases out at its controller's
+# untap step and phases in at the next, read from the derived keywords, for
+# dirac/oracle/phasing_test.go. Claustrophobia is the Aura that phases out
+# indirectly with its host (CR 702.26g).
+Breezekeeper
+Merfolk Raiders
+Teferi's Drake
+Tolarian Drake
+Sandbar Crocodile
+Merfolk of the Pearl Trident
+Giant Octopus
+Claustrophobia
+Lightning Bolt
+Island
+Mountain
