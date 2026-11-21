@@ -18,21 +18,8 @@ func TestGapStopKeepsTheGame(t *testing.T) {
 		t.Fatalf("Hosted().Search.StopEarly = %#v, want an *azmcts.GapStop", Hosted().Search.StopEarly)
 	}
 	const sims = 32
-	t.Parallel()
-	var with, without podRun
-	t.Run("games", func(t *testing.T) {
-		t.Run("with", func(t *testing.T) {
-			t.Parallel()
-			with = playPod(t, podSeed, 0, func(c *azmcts.SeatConfig) { c.Search.Sims = sims })
-		})
-		t.Run("without", func(t *testing.T) {
-			t.Parallel()
-			without = playPod(t, podSeed, 0, func(c *azmcts.SeatConfig) { c.Search.Sims, c.Search.StopEarly = sims, nil })
-		})
-	})
-	if t.Failed() {
-		t.FailNow()
-	}
+	with := playPod(t, podSeed, 0, func(c *azmcts.SeatConfig) { c.Search.Sims = sims })
+	without := playPod(t, podSeed, 0, func(c *azmcts.SeatConfig) { c.Search.Sims, c.Search.StopEarly = sims, nil })
 	if !with.e.G.Over || !without.e.G.Over {
 		t.Fatalf("a game did not finish: with the stop %v, without %v", with.e.G.Over, without.e.G.Over)
 	}
