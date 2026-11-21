@@ -125,6 +125,47 @@ func (s *State) splitWindowPC(k *prep, sl Slot) *pcard {
 	return s.splitView(k, sl, s.cardAt(sl), false)
 }
 
+// splitWinColAsk reports whether the window's pick sl is a Condition-split
+// source whose arm's gate holds and whose arm makes one mana of a colour
+// asked over several: a lucky Gemstone Caverns. gorge's window answer
+// activates the source and the arm resolves -- its production is the chain's
+// SubAbility$ Mana, no mana ability SA, so gorge's colour ask is a decision
+// of its own (oracle gorge.go manaChoiceResolving), not the auto-answered one
+// a plain mana ability's ask is (oracle gorge.go internal). The kernel's
+// window answers a plain mana ability's colour silently; this one it poses.
+func (s *State) splitWinColAsk(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	if k.gen == nil || k.gen.splitAb(c) < 0 {
+		return false
+	}
+	a := &k.t.Cards[c].Abilities[k.gen.splitAb(c)]
+	return a.SplitCols&(a.SplitCols-1) != 0 && s.splitGateOn(k, sl, a)
+}
+
+// splitWinColPause poses that ask: the source taps now (gorge's window answer
+// activates it before the arm resolves, CR 601.2g), and the build waits on
+// the colour the way it waits on the tap-another pick (g.winSrc, bflWinTap;
+// the answer floats the arm's mana of the picked colour and the stage runs
+// the window on, applyCastWinCol).
+func (s *State) splitWinColPause(k *prep, sl Slot) {
+	s.g.winSrc = sl
+	if s.bld().stage == bsPay {
+		s.bld().bfl |= bflWinTap | bflPayDone
+	} else {
+		s.bld().bfl |= bflWinTap | bflMsDone
+	}
+	s.windowTapCost(k, sl, false)
+}
+
+// splitWinColDo floats the arm's mana in the picked colour, the answer's
+// production (one mana, the activation's view).
+func (s *State) splitWinColDo(k *prep, p uint8, sl Slot, col int) {
+	pc := s.manaPCGen(k, sl)
+	n := int(max(pc.manaN, 1))
+	s.poolAdd(p, col, n)
+	s.artTag(k, p, sl, col)
+}
+
 // splitUsable: the Condition-split gap at sl can be activated now
 // (scriptTapsDefer's shape checks for it).
 func (s *State) splitUsable(k *prep, sl Slot) bool {
