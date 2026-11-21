@@ -212,16 +212,16 @@ func (s *State) stageCombat(k *prep, w *World) {
 // stagePose puts s at the decision w poses: a priority round is what the
 // caller has set; a pose of the attackers or blockers decision replaces it.
 // The priority holder a pose leaves is the one that passed last in the round
-// before it, the seat before the active one, and the round had passed NSeat
-// times (the view's Priority names the deciding seat, which is not the holder
+// before it, the last seat in the game before the active one, and the round had
+// passed once per seat still in it (the view's Priority names the deciding seat, which is not the holder
 // dirac projects). A pod's blockers pose asks the defender w.BlkDef.
 func (s *State) stagePose(w *World) {
 	if w.Pose == PosePriority {
 		return
 	}
 	s.lastPick = NoSlot
-	s.prio = (w.Active + w.NSeat - 1) % w.NSeat
-	s.passes = w.NSeat
+	s.prio = w.prevAlive(w.Active)
+	s.passes = w.aliveN()
 	if w.Pose == PoseAttackers {
 		s.atkArm().poseMask = s.attackingMask()
 		s.ctl = ctlAttackers

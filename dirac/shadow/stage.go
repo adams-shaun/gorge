@@ -57,6 +57,10 @@ type Card struct {
 type Hidden struct {
 	Hand    [dirac.MaxSeats][]Card
 	Library [dirac.MaxSeats][]Card
+	// Gone[p] is every card of seat p's deck, in object order, for a player the
+	// view shows as Lost: those cards ceased to exist when the seat left (CR
+	// 800.4a). Read only for a lost player.
+	Gone [dirac.MaxSeats][]Card
 }
 
 // Input is everything WorldFromView reads.
@@ -321,7 +325,7 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 		}
 	}
 	if p.Lost {
-		return bad(ReasonSeatLeft, "seat %d", s)
+		return b.departed(w, p, s)
 	}
 	w.Life[s] = p.Life
 	if p.LandDropSpent {
@@ -350,6 +354,26 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	}
 	if p.GraveyardSize != len(p.Graveyard) {
 		return bad(ReasonHidden, "seat %d graveyard size", s)
+	}
+	return nil
+}
+
+// departed adds a seat that has left the game: the view shows it with nothing
+// in any zone, and the caller's Gone cards are its ceased objects.
+func (b *builder) departed(w *dirac.World, p *view.PlayerView, s int) error {
+	if len(p.Hand) != 0 || len(p.Library) != 0 || len(p.Battlefield) != 0 || len(p.Graveyard) != 0 ||
+		p.HandSize != 0 || p.LibrarySize != 0 || p.GraveyardSize != 0 {
+		return bad(ReasonSeatLeft, "a departed seat shows cards (seat %d)", s)
+	}
+	if len(p.Commanders) != 0 || len(p.Command) != 0 {
+		return bad(dirac.ReasonCommander, "a departed seat keeps a commander (seat %d)", s)
+	}
+	w.Lost[s] = true
+	w.Life[s] = p.Life
+	for _, c := range b.in.Hidden.Gone[s] {
+		if err := b.add(c.Obj, c.Name, s, 0, kop.ZoneNone, nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }
