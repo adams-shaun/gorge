@@ -1651,7 +1651,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// a Case's solve gate as the second presence clause (gorge
 		// trigger_condition.go: IsPresent2$ with its own compare, GE1 by
 		// default): only the source's own Solved designation is read
-		if strings.TrimSpace(ip2) != "Card.Self+!IsSolved" && strings.TrimSpace(ip2) != "Card.Self+IsSolved" {
+		if !meldPresent2OK(lc, ip2) {
 			return refuse("IsPresent2$ %q", ip2)
 		}
 		for _, k := range [...]string{"PresentCompare2", "PresentZone2", "PresentDefined2", "PresentPlayer2"} {

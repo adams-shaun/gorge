@@ -96,6 +96,7 @@ var stallCapacityReasons = [...]uint8{
 	StallSrcMem,    // a 65th live per-source Remembered/Imprinted record (zone_srcmem.go)
 	StallPrevRider, // a scoped prevention's rider (gain the prevented life) beside what the kernel does not model (repl_prevx.go)
 	StallExTurn,    // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
+	StallMeld,      // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
