@@ -609,6 +609,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
+		if s.BlockAmount != 0 {
+			fmt.Fprintf(w, " blockamount=%d", s.BlockAmount)
+		}
 		if s.GrantSt != 0 {
 			fmt.Fprintf(w, " grantst=%d", s.GrantSt)
 		}
