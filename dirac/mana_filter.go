@@ -216,11 +216,27 @@ func (s *State) filtRelaxable(k *prep, f slotMask) bool {
 		return false
 	}
 	for ; f.any(); f = f.rest() {
-		if n := s.filtUnits(k, f.first()); n < 1 || n > 6 {
+		if !s.filtUnitsEnumerable(k, f.first()) {
 			return false
 		}
 	}
 	return true
+}
+
+// filtUnitsEnumerable: gorge's relaxed proof can enumerate the filter at sl's
+// production: at least one unit, and at most six when the colour is a choice
+// (relaxedAddProduction lists every multiset of an any-colour amount, and
+// refuses one above six). A fixed-colour amount is one vector however large:
+// Magus of the Coffers' {B} for each of seven Swamps is still relaxable.
+func (s *State) filtUnitsEnumerable(k *prep, sl Slot) bool {
+	n := s.filtUnits(k, sl)
+	if n < 1 {
+		return false
+	}
+	if a := s.filtAb(k, sl); a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 {
+		return true
+	}
+	return n <= 6
 }
 
 // availFilt: in the gaps walk each filter is a free unit of its colours
@@ -1386,7 +1402,7 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 		if n++; n > relaxedPaidLimit {
 			return false
 		}
-		if units := s.filtUnits(k, sl); units < 1 || units > 6 {
+		if !s.filtUnitsEnumerable(k, sl) {
 			return false
 		}
 	}
