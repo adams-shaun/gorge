@@ -388,7 +388,13 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 // (Draw<X/You>) STAY: their raw token keeps X, so it is the resolution-time
 // fold (effects.UnlessCostResolved), not the parser, that prices them. The
 // other DamageYou<N> carriers stay for the same reason the parser never reads
-// the head: the damage payment is its own arm. Elven Passage is gone: its
+// the head: the damage payment is its own arm. Garza's Assassin joined with
+// the Recover keyword (CR 702.59): its K:Recover:PayLife<X/half your life,
+// rounded up> expands to an UnlessCost$ whose raw token keeps X, so like
+// Combustion Man it is priced by the resolution-time fold
+// (effects.UnlessCostResolved, SVar X = half the payer's life rounded up),
+// not by the strict parser; the other six Recover carriers print mana costs
+// and parse. Elven Passage is gone: its
 // UnlessCost$ Behold<1/Elf> is now a priceable CR 702.176 choice part, so it
 // no longer belongs in the strict-decline population.
 func TestUnlessCostStrictParsePopulation(t *testing.T) {
@@ -408,7 +414,7 @@ func TestUnlessCostStrictParsePopulation(t *testing.T) {
 		"Energy Vortex", "Errant Minion", "Esper Sentinel", "Essence Leak",
 		"Essence Vortex", "Evasive Action", "Excise", "Extravagant Spirit",
 		"Feather, Radiant Arbiter", "Fettergeist", "Flash",
-		"Gurzigost", "Hungry Hungry Heifer", "Ice Cave",
+		"Garza's Assassin", "Gurzigost", "Hungry Hungry Heifer", "Ice Cave",
 		"In the Eye of Chaos", "Invoke Prejudice", "Ixidor's Will",
 		"Karn, Living Legacy", "Killing Wave", "Lava Blister",
 		"Liege of the Hollows", "Lilting Refrain", "Lofty Denial", "Logic Knot",
