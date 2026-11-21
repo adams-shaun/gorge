@@ -65,13 +65,6 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 		// scalar); without them the exile records nothing and the leave
 		// trigger reads 255.
 		lc.out.ExiledWith, lc.out.ExwWord = true, true
-		// The ref is a scalar: gorge's filter matches every seat whose exile
-		// holds a linked card and acts on each, the kernel asks only the
-		// first seat in seat order. The two agree only while the source can
-		// hold at most one linked card, so exwOwnerCheck (lower_exw.go, at
-		// card level, after every ability) refuses a card whose program can
-		// link more than one.
-		lc.exwOwnerRef = true
 		return lRef{Kind: rExiledWithOwner}, nil
 	case "RememberedOwner":
 		// gorge definedSpecRememberedOwner: the remembered object's owner
