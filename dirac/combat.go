@@ -73,6 +73,9 @@ func (s *State) declareMustAttack(k *prep) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
+			if atkTaxOn(k) && !s.atkTaxFreePair(k, sl) {
+				continue // CR 508.1d: a requirement that costs mana is none (combat_attacktax.go)
+			}
 			def := s.nextAlive(s.active)
 			if s.cantAtkPairPlayer(k, sl, def) {
 				// the player pair is forbidden (combat_cantattack.go): a
@@ -381,7 +384,8 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
-			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) {
+			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) &&
+			(!atkTaxOn(k) || s.atkTaxFreePair(k, sl)) {
 			return true
 		}
 	}

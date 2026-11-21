@@ -125,7 +125,20 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 // what the attack window's source walk refuses (atkTaxGap: the block window
 // walks the same sources), and a block floor or duty (blkTaxFloorPart).
 // Over-refusing is safe; admitting a shape the window misprices is not.
-func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxSelfSac(c) }
+func blkTaxGap(c *kop.CardDef) bool {
+	return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxSelfSac(c) || blkTaxMustAttack(c)
+}
+
+// blkTaxMustAttack reports whether card c has a MustAttack static: the attack
+// tax walk models it (atkTaxMustOK), no block-window lockstep test covers it.
+func blkTaxMustAttack(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack {
+			return true
+		}
+	}
+	return false
+}
 
 // blkTaxSelfSac reports whether card c has a self-sacrifice mana ability (a
 // Treasure, an Eldrazi Spawn: atkTaxPaidAb). The attack window prices it, but
@@ -149,7 +162,9 @@ func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) 
 	_, _, atkB := atkTaxStallPair(t, g)
 	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape or a self-sacrifice one, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
-	b := func(c *kop.CardDef, i int) bool { return atkB(c, i) || blkTaxFloorPart(c) || blkTaxSelfSac(c) }
+	b := func(c *kop.CardDef, i int) bool {
+		return atkB(c, i) || blkTaxFloorPart(c) || blkTaxSelfSac(c) || blkTaxMustAttack(c)
+	}
 	return text, a, b
 }
 

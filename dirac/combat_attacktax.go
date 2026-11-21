@@ -84,6 +84,11 @@ var DebugAtkTaxReflPin bool
 // battlefield order, not between them and the fixed-production ones.
 var DebugAtkTaxPaidLast bool
 
+// DebugAtkTaxRequiredPaid (test only, TestFourSeatAtkTaxMustAttackLockstep): a
+// creature a MustAttack static applies to is required though every pair of it
+// costs mana.
+var DebugAtkTaxRequiredPaid bool
+
 // DebugAtkTaxNoGrant (test only, TestFourSeatAtkTaxGrantedLockstep): the
 // window lists no mana ability an effect grants.
 var DebugAtkTaxNoGrant bool
@@ -132,7 +137,7 @@ func atkTaxGrantGap(g *genPrep) bool {
 // atkTaxGap reports whether card c holds a part the attack-tax walk does not
 // model: a mana ability of another shape than atkTaxManaAb's, one an effect
 // grants (a latent mana ability), an activated ability adding mana, an
-// attack requirement (a MustAttack or Goad static, a goad, an attack duty),
+// attack requirement (a Player.Other MustAttack or a Goad static, a goad, an attack duty),
 // "can't attack alone", a Taps watcher, or mana
 // that outlives the step (PersistentMana$, an Effect's UnspentMana).
 func atkTaxGap(c *kop.CardDef) bool {
@@ -162,8 +167,12 @@ func atkTaxGap(c *kop.CardDef) bool {
 			nMana++
 		case kop.AbStatic:
 			switch a.Static.Kind {
-			case kop.StatMustAttack, kop.StatGoad:
+			case kop.StatGoad:
 				return true
+			case kop.StatMustAttack:
+				if !atkTaxMustOK(&a.Static) {
+					return true
+				}
 			}
 		case kop.AbTriggered:
 			if a.Trig.Event == kop.TrigTaps {
@@ -182,6 +191,44 @@ func atkTaxGap(c *kop.CardDef) bool {
 		return true // the source view is the unlisted first ability, not the listed one
 	}
 	return nMana > 1 && !atkTaxMultiMana(c, first)
+}
+
+// atkTaxMustOK reports whether MustAttack static st is the broad requirement
+// the walk models beside a tax: "attacks each combat if able", no named
+// defender (Player.Other). CR 508.1d's last sentence makes a requirement that
+// would cost mana no requirement, so the creature is required only while one of
+// its pairs is free (atkTaxFreePair; gorge attackDutyDischargeable).
+func atkTaxMustOK(st *kop.Static) bool { return st.B == 0 }
+
+// atkTaxFreePair reports whether the creature at sl has an offered pair that
+// costs nothing to declare (gorge attackDutyDischargeable: a charged pair never
+// discharges a duty, and a creature with none is not required): a live
+// defender's player pair or a planeswalker's, not forbidden by a CantAttack
+// static or a sickness exemption, whose charge is zero and priceable. A
+// requirement beside a tax is read through it (mustAttackLeft,
+// declareMustAttack).
+func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
+	if DebugAtkTaxRequiredPaid {
+		return true
+	}
+	var tg [MaxPerm + MaxSeats]TCode
+	sick := s.atkHasteSick(k, sl)
+	for _, t := range tg[:s.atkTaxTargets(k, &tg)] {
+		if n, ok := s.atkTaxCharge(k, sl, t); !ok || n != 0 {
+			continue
+		}
+		if isPlayerOrNone(t) {
+			q := uint8(t - PlayerTarget0)
+			if s.cantAtkPairPlayer(k, sl, q) || sick && !s.atkHasteOK(k, sl, q) {
+				continue
+			}
+			return true
+		}
+		if w := s.objs[t].slot; s.typesAt(k, w)&kop.TPlaneswalker == 0 || !s.cantAtkPairWalker(k, sl, w) {
+			return true
+		}
+	}
+	return false
 }
 
 // atkTaxFirstMana is the index of card c's first mana ability, -1 for none
@@ -875,9 +922,29 @@ func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, al atkAlt) int {
 		// the tap's TapsForMana triggers resolve with the tap (CR 605.4a;
 		// gorge resolveManaAbilityRefOriginal): a StatTapExtra carrier's mana
 		// floats beside it, uncounted in the budget (attackSourceUnits)
-		s.addExtraPick(k, p, sl, s.manaPCGen(k, sl), col)
+		s.atkTaxTapExtra(k, p, sl)
 	}
 	return pend
+}
+
+// atkTaxTapExtra floats the StatTapExtra mana of the tap of sl: addExtra's
+// without an all-at-once source's own rest (srcExtra's addOwnXv), which
+// atkTaxAddMana floated with the source's colours.
+func (s *State) atkTaxTapExtra(k *prep, p uint8, sl Slot) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	pc := s.manaPCGen(k, sl)
+	if s.srcReflectPick(k, sl, pc) > 0 {
+		s.capFull(StallTapExtra)
+	}
+	xv, hit := s.srcExtraHit(k, sl, pc)
+	if hit && (!s.tapExtraPlain(pc) || pc.painCol != 0 || xv == [kop.NumManaKinds]uint8{}) {
+		s.capFull(StallTapExtra)
+	} else {
+		s.addXv(p, &xv)
+	}
+	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
 }
 
 // atkTaxIsPaid reports whether the source at sl is a self-sacrifice source.

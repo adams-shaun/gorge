@@ -370,3 +370,22 @@ func TestFourSeatAtkTaxGrantedLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxGrantedDeck, 12, 20, 0, []string{"Rishkar, Peema Renegade", "Chromatic Lantern"},
 		nil, &dirac.DebugAtkTaxNoGrant)
 }
+
+// Attack requirements beside a tax (a MustAttack static: Bloodrock Cyclops's and
+// Juggernaut's "attacks each combat if able"; CR 508.1d): the last sentence
+// makes a requirement that would cost mana no requirement, so gorge marks a
+// creature Required only while an offered pair of it is free
+// (attackDutyDischargeable). In a pod a seat's creature with the duty is
+// withheld from Done only while some opponent has no tax on it. The mutation
+// (DebugAtkTaxRequiredPaid) requires it whatever its pairs cost.
+var atkTaxMustAttackDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 4}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Bloodrock Cyclops", Count: 4}, {Name: "Juggernaut", Count: 2}, {Name: "Savannah Lions", Count: 2},
+	{Name: "Island", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 4}, {Name: "Sol Ring", Count: 1},
+}
+
+// TestFourSeatAtkTaxMustAttackLockstep: four-seat attack-tax games with
+// creatures that attack each combat if able play in lockstep.
+func TestFourSeatAtkTaxMustAttackLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxMustAttackDeck, 12, 20, 0, []string{"Bloodrock Cyclops"}, nil, &dirac.DebugAtkTaxRequiredPaid)
+}
