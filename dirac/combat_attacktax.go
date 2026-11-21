@@ -239,7 +239,7 @@ func (s *State) atkTaxFreePair(k *prep, sl Slot) bool {
 			continue
 		}
 		if isPlayerOrNone(t) {
-			q := uint8(t - PlayerTarget0)
+			q := CodeSeat(t)
 			if s.cantAtkPairPlayer(k, sl, q) || sick && !s.atkHasteOK(k, sl, q) {
 				continue
 			}
@@ -1025,7 +1025,7 @@ func (s *State) atkTaxAddMana(k *prep, p uint8, sl Slot, col, n int) (pend int) 
 	}
 	if a != nil && !DebugAtkTaxEachOne && atkTaxEachAb(a) {
 		for c, m := 0, uint8(a.ManaColors)&0x3f; m != 0; c, m = c+1, m>>1 {
-			if m&1 != 0 {
+			if m&1 != 0 { // seat-ok: a colour bit walk, not a seat
 				s.poolAdd(p, c, int(a.ManaN))
 				s.artTag(k, p, sl, c)
 			}

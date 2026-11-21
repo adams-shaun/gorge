@@ -65,7 +65,7 @@ func (s *State) atkTaxDefenderBanned(k *prep, sl Slot, tgt TCode) bool {
 		return false
 	}
 	if isPlayerOrNone(tgt) {
-		return s.goadDefenderBanned(k, sl, uint8(tgt-PlayerTarget0))
+		return s.goadDefenderBanned(k, sl, CodeSeat(tgt))
 	}
 	return s.goadDefenderBanned(k, sl, s.perms[s.objs[tgt].slot].ctrl)
 }
