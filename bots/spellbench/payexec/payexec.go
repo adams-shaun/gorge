@@ -671,13 +671,16 @@ func labelProduction(label string) (amt decision.ManaAmount, any bool, combo []i
 		return amt, false, nil, false
 	}
 	for _, r := range tail {
+		if r == ' ' {
+			continue // a Produced$ of several symbols labels "Add C G"
+		}
 		c := strings.IndexRune(syms, r)
 		if c < 0 {
 			return amt, false, nil, false
 		}
 		amt[c]++
 	}
-	return amt, false, nil, true
+	return amt, false, nil, amt != decision.ManaAmount{}
 }
 
 var numberWords = []string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
