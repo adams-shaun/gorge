@@ -160,11 +160,11 @@ func predCardKind(k *prep, fl *kop.Filter, c CardID) bool {
 // (Tf2Attacked: attackedMatch on this event group's defender def).
 //
 //go:noinline
-func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
+func (s *State) attacksGate(k *prep, f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 	if f&kop.Tf2Alone != 0 && s.nAttackers != 1 {
 		return false
 	}
-	return f&kop.Tf2Attacked == 0 || s.attackedMatch(f, ctrl, def)
+	return f&kop.Tf2Attacked == 0 || s.attackedMatch(k, f, ctrl, def)
 }
 
 // attackedMatch: gorge attackedDefenderMatches for the Attacked$ forms kgen
@@ -172,7 +172,7 @@ func (s *State) attacksGate(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 // planeswalker Obj) is the trigger controller ctrl (Tf2AtkYou), a
 // planeswalker ctrl controls (Tf2AtkYourPW), or an opponent player
 // (Tf2AtkOpp).
-func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
+func (s *State) attackedMatch(k *prep, f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 	if isPlayerOrNone(def) {
 		p := CodeSeat(def)
 		return p == ctrl && f&kop.Tf2AtkYou != 0 || p != ctrl && f&kop.Tf2AtkOpp != 0
@@ -181,7 +181,14 @@ func (s *State) attackedMatch(f kop.TrigFlags2, ctrl uint8, def TCode) bool {
 		return false
 	}
 	o := Obj(def)
-	return s.objs[o].zone == kop.ZoneBattlefield && s.perms[s.objs[o].slot].ctrl == ctrl
+	if s.objs[o].zone != kop.ZoneBattlefield {
+		return false
+	}
+	// Planeswalker.YouCtrl: a battle the controller protects is no
+	// planeswalker (CR 508.3a), so attacking it is not attacking "a
+	// planeswalker you control" (gorge attackedDefenderMatches)
+	sl := s.objs[o].slot
+	return s.perms[sl].ctrl == ctrl && s.typesAt(k, sl)&kop.TPlaneswalker != 0
 }
 
 // enchCtrlIs: kop.WhoseEnchCtrl (gorge playerEnchantedController): the
