@@ -1047,13 +1047,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 		return
 	}
 	var walk Decision
-	m := availWalk
-	if s.selfGrantLive(k, p) {
-		m |= availHyp // no relaxed proof: gorge's census is not relaxable (mana_owncolours.go)
-	}
-	if s.storeOpenLive(k, p) {
-		m |= availAny // a storage battery folds gorge's potential walk open (mana_storeopen.go)
-	}
+	m := s.grantWalkMode(k, p)
 	s.plainOptions(k, &walk, m)
 	// in gorge's potential walk order (walkKey: the hand, the permission
 	// casts, the graveyard in graveyard order with its flashbacks, the
@@ -1283,6 +1277,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 // a scripted one, and the oracle's priorityVocabulary leaves it out)
 func (s *State) grantSearchAdds(k *prep, p uint8, a Action, d *Decision, g *grantSrch, relaxCensus bool) bool {
 	return !hasOption(d, a) && (g.cheaper && !s.autopayScriptedCast(a) || g.storeStep() && !s.autopayScriptedCast(a) ||
+		s.caOpenGrant(k, p) && !s.autopayScriptedCast(a) || // a Combo Any source folds the walk open: every play the search pays is gorge's (mana_grantcomboany.go)
 		g.np != 0 && s.improviseAloneCast(k, p, a) && !s.autopayScriptedCast(a) ||
 		s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any())
 }
@@ -1298,7 +1293,7 @@ func (s *State) grantRelaxCensus(k *prep, p uint8) bool {
 		gateFilt = s.scriptFilt(k, p)
 	}
 	return s.scriptRelax(k, p, gateFilt,
-		k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
+		k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p) || s.caOpenGrant(k, p)) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
 }
 
 // objPartCast reports a plain cast a whose spell carries a cost part the

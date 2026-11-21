@@ -112,22 +112,44 @@ func comboAnyRefused(t *testing.T, names ...string) string {
 
 // TestComboAnyBesideFilterIsNotRefused: an unrestricted Combo Any source beside
 // plain {N},{T} filters (Signets, a filter land) plays (mana_comboany.go
-// caFiltRefused); a granted mana ability beside it stays refused
-// (StallComboAnyMix), as does every filter under the mutation switch.
+// caFiltRefused), as does one beside a plain granted mana ability (Citanul
+// Hierophants, Rishkar, Abundant Growth: mana_grantcomboany.go caGrantRefused);
+// every filter, grant and reflected source is refused again under the mutation switches.
 func TestComboAnyBesideFilterIsNotRefused(t *testing.T) {
 	plain := []string{"Axebane Guardian", "Orzhov Signet", "Selesnya Signet", "Sungrass Prairie", "Prophetic Prism"}
 	if got := comboAnyRefused(t, plain...); got != "" {
 		t.Fatalf("Axebane Guardian beside plain filters refused: %s", got)
 	}
-	for _, partner := range []string{"Citanul Hierophants", "Rishkar, Peema Renegade", "Abundant Growth"} {
-		if got := comboAnyRefused(t, append(plain[:len(plain):len(plain)], partner)...); !strings.HasPrefix(got, "interaction comboanymix") {
-			t.Errorf("%s beside Axebane Guardian: refusal %q, want comboanymix", partner, got)
+	partners := []string{"Citanul Hierophants", "Rishkar, Peema Renegade", "Abundant Growth"}
+	for _, partner := range partners {
+		if got := comboAnyRefused(t, append(plain[:len(plain):len(plain)], partner)...); got != "" {
+			t.Errorf("%s beside Axebane Guardian refused: %s", partner, got)
 		}
 	}
-	// the mutation: every filter is refused again, as before the chain
+	// a reflected source is a planner unit beside the gap (DebugComboAnyReflRefused)
+	for _, refl := range []string{"Fellwar Stone", "Exotic Orchard", "Plaza of Heroes"} {
+		if got := comboAnyRefused(t, "Axebane Guardian", refl); got != "" {
+			t.Errorf("%s beside Axebane Guardian refused: %s", refl, got)
+		}
+	}
+	// the mutations: every filter, every grant, then every reflected source is refused again
 	DebugComboAnyFiltRefused = true
 	defer func() { DebugComboAnyFiltRefused = false }()
 	if got := comboAnyRefused(t, plain...); !strings.HasPrefix(got, "interaction comboanymix") {
 		t.Fatalf("DebugComboAnyFiltRefused: refusal %q, want comboanymix", got)
+	}
+	DebugComboAnyFiltRefused = false
+	DebugComboAnyGrantRefused = true
+	defer func() { DebugComboAnyGrantRefused = false }()
+	for _, partner := range partners {
+		if got := comboAnyRefused(t, "Axebane Guardian", partner); !strings.HasPrefix(got, "interaction comboanymix") {
+			t.Errorf("DebugComboAnyGrantRefused: %s refusal %q, want comboanymix", partner, got)
+		}
+	}
+	DebugComboAnyGrantRefused = false
+	DebugComboAnyReflRefused = true
+	defer func() { DebugComboAnyReflRefused = false }()
+	if got := comboAnyRefused(t, "Axebane Guardian", "Plaza of Heroes"); !strings.HasPrefix(got, "interaction comboanymix") {
+		t.Errorf("DebugComboAnyReflRefused: refusal %q, want comboanymix", got)
 	}
 }

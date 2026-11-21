@@ -26,10 +26,12 @@ import (
 // filter land) beside it is chained by the filter search (otherComboAny,
 // mana_mixgaps.go): gorge's PotentialMana prices the source unbounded, so it covers
 // a first-only filter's fee (filtFirstAdmit). A gated-pip, dynamic-amount or
-// restricted-source filter table, a tap-another source, a granted mana ability, a
-// reflected source or a Diamond in the table is refused at its start
+// restricted-source filter table, a tap-another source, a restricted or costed
+// granted mana ability or a Diamond in the table is refused at its start
 // (StallComboAnyMix); a board with a filter and a Combo Any source the search does
-// not chain stalls by name (caOffersBoard).
+// not chain stalls by name (caOffersBoard). A plain granted mana ability beside it
+// (Citanul Hierophants, Rishkar, Abundant Growth) is one search with the grants
+// (mana_grantcomboany.go); a reflected source is a planner unit beside the gap.
 //
 // The ask is gorge's scriptAnswers: the per-unit colours of an N-unit allocation
 // in odometer order (unit 0 the slowest digit, W U B R G), at most 64 answers; one
@@ -534,7 +536,7 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 	if !g.anyComboAny {
 		return
 	}
-	g.caMix = g.anyFilt && caFiltRefused(g) || p.tapMana || len(g.grantPC) != 0 || g.anyDiscHand || g.anyRefl
+	g.caMix = g.anyFilt && caFiltRefused(g) || p.tapMana || len(g.grantPC) != 0 && caGrantRefused(g) || g.anyDiscHand || g.anyRefl && DebugComboAnyReflRefused
 	for i := range t.Cards {
 		g.caMix = g.caMix || caMixGap(t, g, p, i)
 	}
@@ -547,7 +549,7 @@ func caMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
 	if g.has(c, gfDiscHand) || p.tapXAb[i] >= 0 {
 		return true // a Lion's Eye Diamond, a tap-another source (mana_discardhand.go, mana_tapanother.go): a plain filter is chained (caFiltRefused)
 	}
-	return abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability
+	return caGrantRefused(g) && abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability the grant search does not chain (caGrantRefused)
 }
 
 // caOffersBoard reports whether p's live Combo Any source is one scriptOffers
@@ -600,3 +602,10 @@ func (g *genPrep) isComboAnyCard(c CardID, cd *kop.CardDef) bool {
 	j := g.gapOther(c)
 	return j >= 0 && comboAnyMana(&cd.Abilities[j])
 }
+
+// DebugComboAnyReflRefused (mutation test only): a Combo Any source beside a
+// reflected mana source (Fellwar Stone, Exotic Orchard, Plaza of Heroes) is
+// refused at the table's start, as before the lift. A reflected source is a
+// planner unit (its view is a function of the board, manaReflView), so the
+// Combo Any chain adds its gap beside it as beside any printed source.
+var DebugComboAnyReflRefused bool
