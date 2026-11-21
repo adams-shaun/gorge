@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -1469,6 +1471,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		return false // this game already failed this play's search in this transition (mana_filtmemo.go)
 	}
 	var fs filtSearch
+	dbgf("DBG filtScript", a.Kind(), a.Source(), a.Mode(), "slot", int(s.objs[Obj(a.Source())].slot), "apply", apply)
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.need = s.playNeed(k, a) // the play's announced colours, whichever search prices it
 	fs.useful, fs.usefulOK = s.filtUsefulCost(k, a)
@@ -1721,6 +1724,7 @@ func (fs *filtSearch) tick() bool {
 		budget = DebugFiltNodeBudget
 	}
 	if fs.nodes >= budget {
+		dbgf("DBG tick exhausted", fs.nodes, budget, fs.pay != nil)
 		return false
 	}
 	fs.nodes++
@@ -1885,6 +1889,7 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	c := t.fork()
 	defer t.unfork()
 	q := c.npend
+	defer func() { dbgf("DBG try sl", int(st.sl), "ans", st.ans, "gap", st.gap, "funded", funded, "pool", c.pl[SeatIx(fs.p)].pool, "offers", fs.offers(k, c)) }()
 	life := st.other.kind == otherLife
 	if life {
 		fs.lifeUsed = fs.lifeUsed.with(st.sl) // once per path (gorge's gap list)
@@ -2210,6 +2215,7 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	// gorge's does. A filter whose tap queues no trigger, and every cast,
 	// keeps the offer check (the planner pays those after the push by the
 	// same convention).
+	dbgf("DBG terminal kind", fs.a.Kind() == AkActivate, "deferLeft", fs.deferGapLeft(k, t), "poolPaysPlay", t.poolPaysPlay(k, fs.p, fs.a), "pool", t.pl[SeatIx(fs.p)].pool)
 	return fs.a.Kind() != AkActivate || !fs.deferGapLeft(k, t) || t.poolPaysPlay(k, fs.p, fs.a)
 }
 
@@ -2283,6 +2289,7 @@ func (fs *filtSearch) holdDualFilter(k *prep, t *State, sl Slot) bool {
 }
 
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
+	dbgf("DBG visit", fs.nodes, funded)
 	if !fs.tick() {
 		return false
 	}
@@ -2328,6 +2335,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		ntried := 0
 		for i := 0; i < n; i++ {
 			sl := order[i]
+			dbgf("DBG   pass", pass, "gap", gap, "freeOnly", freeOnly, "sl", int(sl), "card", int(t.cardAt(sl)), "skip", fs.skipSlot(k, t, sl, gap, freeOnly, pass), "other", fs.other.has(sl), "tapped", t.perms[sl].flags&pfTapped != 0, "fundOut", t.fundOut(k, sl))
 			if !gap && fs.deadFunder(k, t, sl) {
 				if fs.deadFund(k, t, sl, funded, gapUsed) {
 					return true
@@ -2888,4 +2896,13 @@ func (s *State) gapSpendable(k *prep, sl Slot, d *payDesc) bool {
 		}
 	}
 	return false
+}
+
+func dbgf(a ...any) {
+	f, err := os.OpenFile("/home/sadams/projects/gorge/.worktrees/cli-20261121T013458Z-e7bfd62a/.ds4/scratch/dbgout.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return
+	}
+	fmt.Fprintln(f, a...)
+	f.Close()
 }

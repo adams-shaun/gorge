@@ -1007,6 +1007,7 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	var d Decision
 	if !restr {
 		t.restrOptions(k, &d, p)
+		dbgf("DBG deadend restr", restr, "passed", passed, "has", hasOption(&d, a), "pool", t.pl[SeatIx(p)].pool, "n", fs.n, "stalled", t.g.stalled)
 		if !hasOption(&d, a) { // priced by mana alone, its own source tapped by the script
 			if st := t.g.stalled; st != 0 {
 				s.capFull(st) // (as above: the replay's stall, not a plain refusal)

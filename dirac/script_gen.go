@@ -419,7 +419,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
 			// stepFilt), which the filter-only script skips (grantHasCost).
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
+			ga, gstall := s.grantActScript(k, a, p)
+			dbgf("DBG grantActScript", a.Kind(), a.Source(), a.Mode(), ga, gstall, "slot", int(s.objs[Obj(a.Source())].slot))
+			if !ga {
 				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
 					// the filter-only script prices it (grantHasCost)
 				} else {
