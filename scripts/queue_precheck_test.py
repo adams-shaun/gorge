@@ -113,3 +113,18 @@ def test_dirac_code_runs_the_state_bar():
     import re
     for n in ("TestEveryPoolFitsTheStateBar", "TestStateSize", "TestColdArraysHoldNoPointers"):
         assert re.match(qp.STATE_BAR, n)
+
+
+def test_attribute_bisects_and_shares_runs():
+    # 11-21: a linear prefix scan built one merged tree per queue PR (24 min for a 9-PR head).
+    order = [pr(n) for n in range(100, 116)]  # 16 PRs
+    a, b = ("test", "./dirac/oracle", "TestRainOfRust"), ("test", "./dirac", "TestAskKindsUnchanged")
+    first = {a: 6, b: 13}  # #105 breaks a, #112 breaks b
+    calls = []
+
+    def on_prefix(k, items):
+        calls.append(k)
+        return [i for i in items if k >= first[i]]
+    blame = qp.attribute([a, b], order, lambda items: [], on_prefix)
+    assert blame == {105: [a], 112: [b]}
+    assert len(set(calls)) <= 2 * 4 and len(calls) == len(set(calls))  # ~log2(16) per item, each k run once
