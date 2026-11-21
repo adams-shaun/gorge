@@ -632,6 +632,14 @@ func (s *State) leftCopySet(o Obj, c CardID) {
 	}
 }
 
+// leftCopyDepart records the departing permanent's copy basis, when it is a
+// copy and a card of the pool can copy (removePerm's one call).
+func (s *State) leftCopyDepart(k *prep, p *perm, o Obj) {
+	if k.gen != nil && k.gen.anyCloneCopy && p.ovr.flags&ovCopy != 0 {
+		s.leftCopySet(o, p.ovr.copyOf)
+	}
+}
+
 // cloneTrigMoved: the trigger on the stack was put by a source whose face is
 // no longer its card's (it became a copy of something else, or stopped being
 // one), and gorge can no longer find it. The ability keeps its own text (CR 113.7a),
