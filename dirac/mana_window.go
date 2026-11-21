@@ -1835,7 +1835,7 @@ func (s *State) restrAdmShortCost(k *prep, e *stackEntry, cost kop.ManaCost) kop
 	if !s.rbAny(e.ctrl) {
 		return cost
 	}
-	if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+	if m := s.restrSpendable(k, e.ctrl, e.card, s.restrOriginOfEntry(e)); m != 0 {
 		return s.restrShortAdm(e.ctrl, m, cost)
 	}
 	return cost
@@ -1872,7 +1872,7 @@ func (s *State) restrShortL(k *prep, p uint8, c CardID, og restrOrigin, cost kop
 func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	og := s.restrOriginOfObj(o)
 	if e := s.spellEntryOf(o); e != nil {
-		og = restrOriginOfEntry(e) // the push is behind the payment: the honest read
+		og = s.restrOriginOfEntry(e) // the push is behind the payment: the honest read
 	}
 	m := s.restrSpendable(k, p, s.objs[o].card, og)
 	if m == 0 {

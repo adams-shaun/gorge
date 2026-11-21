@@ -20,6 +20,10 @@ var DebugRestrictedLifeFirst bool
 // restrLifeAb: a is a restricted "{T}, Pay N life" mana ability.
 func restrLifeAb(a *kop.Ability) bool { return kop.RestrictedLifeShape(a) }
 
+// restrSacSelfAb: a is a restricted "{T}, Sacrifice this" mana ability, a
+// sacrificing last-resort unit like a Treasure's (pcard.manaSac).
+func restrSacSelfAb(a *kop.Ability) bool { return kop.RestrictedSacSelfShape(a) }
+
 // restrLifeUnit: pc is the view of a restricted last-resort life ability.
 func restrLifeUnit(pc *pcard) bool { return pc.restrLife != 0 }
 
