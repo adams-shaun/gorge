@@ -85,7 +85,13 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	winOK := s.affordsFor(k, p, &cost)
 	painOK := s.painCastAffords(k, p, &cost)
 	ok := winOK || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) || painOK
-	println("DBG", winOK, painOK, credited, k.painMana)
+	// The window's pain read is an over-bound (painAvailMask's availWin arm:
+	// a pain-only source's colour with no lethal guard, gorge's shared
+	// windowManaUnitsWith census), so the window alone affording is no offer:
+	// gorge's askMadnessCast gate still runs provenUnpayable, whose planner
+	// census (painCastAffords' availFor, lethal guard included, CR 119.4) a
+	// pain-only funding turns "insufficient", and whose proof legs below drop
+	// the offer exactly as gorge's does
 	if ok && winOK && !painOK && !credited && s.madnessPainDenied(k, p, o, &cost) {
 		return false
 	}
@@ -154,13 +160,20 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 // alone afforded the cost, the planner's census (painCastAffords, lethal
 // guard included) does not, and no gap stands in the proof's way.
 func (s *State) madnessPainDenied(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
-	println("DBG2", k.painMana, k.gen != nil && k.gen.anyCondSplit, k.gen != nil && k.gen.anyFilt, s.scriptTapsDefer(k, p).any(), s.sacOtherManaLive(k, p))
-	if !k.painMana || k.gen != nil && (k.gen.anyCondSplit || k.gen.anyFilt) || s.scriptTapsDefer(k, p).any() || s.sacOtherManaLive(k, p) {
+	if !k.painMana {
 		return false
 	}
-	complete, _, _ := s.madnessDeferProofClass(k, p, o)
-	println("DBG complete", complete)
-	return complete
+	// gorge provenUnpayable's legs, over the same census gaps the arms above
+	// read (madnessDeferProofClass): a planner-deferred, restricted, paid
+	// filter, counter-cost or sacrificed-other source is a gap the planner's
+	// census leaves unpriced, so its "insufficient" is no proof (the offer
+	// stays, priced on the potential bound); a complete census's own
+	// "insufficient" is, and the relaxed-alternative and count proofs cover
+	// the incomplete ones whose gaps gain nothing
+	complete, relaxable, gains := s.madnessDeferProofClass(k, p, o)
+	return complete ||
+		relaxable && s.madnessRelaxProven(k, p, o, cost) ||
+		!gains && s.madnessCountProven(k, p, o, cost)
 }
 
 // madnessDeferProofClass classes p's census gaps for the creditless madness
