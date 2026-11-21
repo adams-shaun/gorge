@@ -199,6 +199,12 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 			}
 			return t
 		}
+		if pw, t, ok := s.abilTgtLKIPT(e, o); ok && sl == NoSlot {
+			if v.K == kop.VTargetPower {
+				return pw
+			}
+			return t
+		}
 		pw, t := s.objPT(k, o, sl)
 		if v.K == kop.VTargetPower {
 			return pw
