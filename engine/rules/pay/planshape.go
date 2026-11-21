@@ -492,6 +492,10 @@ var paymentPlanDestroySelfRefs = []string{"TriggeredCardLKICopy", "TriggeredCard
 // the DB$/SP$ head into SA.API.
 const paymentPlanAPIKey = "API"
 
+// paymentPlanPoisonAPI is the Poison effect's API name. It has no APICode
+// because the APICode enum covers only the APIs dirac's lowering names.
+const paymentPlanPoisonAPI = "Poison"
+
 // paymentPlanDestroySelfBodyKey reports whether key is part of the closed
 // destroy-self body: the dispatch key and the two descriptive captions. The
 // vocabulary constants keep the check in the ParamKey spelling rather than a
@@ -499,6 +503,21 @@ const paymentPlanAPIKey = "API"
 func paymentPlanDestroySelfBodyKey(key string) bool {
 	switch key {
 	case paymentPlanAPIKey, cards.PKDefined.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		return true
+	}
+	return false
+}
+
+// paymentPlanPlayerRefOK reports whether ref names a player the payment
+// cannot move: the trigger's controller (You), its controller's opponent(s)
+// (Opponent/EachOpponent) or the tapped permanent's controller
+// (TriggeredCardController). Any other referent — a card selector, another
+// player-naming word — is not accepted.
+func paymentPlanPlayerRefOK(ref params.Ref) bool {
+	switch {
+	case ref.Kind == params.RefYou:
+		return true
+	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
 		return true
 	}
 	return false
@@ -541,17 +560,11 @@ func PaymentPlanTapPoisonTrigger(f *cards.Face, t cards.Trigger) bool {
 		}
 	}
 	body := paymentPlanTriggerBody(f, t)
-	if body == nil || body.API != "Poison" || !paymentPlanSubFree(body) {
+	if body == nil || body.API != paymentPlanPoisonAPI || !paymentPlanSubFree(body) {
 		return false
 	}
 	ref := params.DefinedRefOf(body)
-	if ref.Flags&params.RefCompound != 0 {
-		return false
-	}
-	switch {
-	case ref.Kind == params.RefYou:
-	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
-	default:
+	if ref.Flags&params.RefCompound != 0 || !paymentPlanPlayerRefOK(ref) {
 		return false
 	}
 	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
@@ -570,10 +583,7 @@ func paymentPlanPlayerDamageBody(rider *cards.SA) (uint32, bool) {
 	if rider == nil || rider.API != "DealDamage" || !paymentPlanSubFree(rider) {
 		return 0, false
 	}
-	switch ref := params.DefinedRefOf(rider); {
-	case ref.Kind == params.RefYou:
-	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
-	default:
+	if !paymentPlanPlayerRefOK(params.DefinedRefOf(rider)) {
 		return 0, false
 	}
 	n, ok := paymentPlanBodyNumDmg(rider)
