@@ -7,8 +7,7 @@ import "testing"
 // declaration ask (dirac/combat_band.go), which must pose gorge's ask at the
 // same decision with the same options: a Ram that attacks beside another
 // creature offers the decline and one candidate per other attacker. The
-// probe declines (kpecDeclineBand: band formation is not modelled, an
-// accepted band stalls). Seeds beyond TestPumpEndCombatLockstep's range, so
+// probe declines (kpecDeclineBand); TestBandFormationLockstep accepts. Seeds beyond TestPumpEndCombatLockstep's range, so
 // the two never replay a game.
 func TestBatteringRamBandingLockstep(t *testing.T) {
 	if isolate(t) {

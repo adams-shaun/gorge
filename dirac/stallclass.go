@@ -128,7 +128,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallRadMill,           // a rad drain's mill whose graveyard move competes between replacements: gorge asks the order mid-drain (act_radiation.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
-	StallBand,              // a band declaration answered with a candidate: gorge forms the band (CR 702.22), the kernel poses the ask and mirrors only the decline (combat_band.go)
+	StallBand,              // a blocker declared against a member of a band that would block a third attacker (CR 702.22h): the kernel's blocker records hold two (combat_band.go)
 	StallDredge,            // a draw-replacement body (repl_draw.go) or another unresumable draw path meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)
 	StallGainsOf,           // a gained (GainsAbilitiesOf$) limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)

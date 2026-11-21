@@ -1207,6 +1207,7 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
+	s.bandBlocks(k) // CR 702.22h: a band is blocked as a group (combat_band.go)
 	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}

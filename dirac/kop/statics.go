@@ -210,8 +210,7 @@ type Override struct {
 	// keyword slot dirac/manifest/key/keyBanding stays reserved beside it).
 	// The one reader is dirac's hasBanding, which the CR 702.22c band
 	// declaration ask calls (dirac/combat_band.go): the kernel poses gorge's
-	// ask and mirrors the decline; an accepted band stalls (StallBand), band
-	// formation is not modelled.
+	// ask and forms the band an accepted candidate joins (combat_band.go).
 	Banding bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.

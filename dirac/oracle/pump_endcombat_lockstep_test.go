@@ -19,9 +19,8 @@ import (
 // Battering Ram (granted Banding, kop.Override.Banding) is in the decks too:
 // gorge poses the CR 702.22c band declaration ask for a declared attacker with
 // banding beside another attacker, and the kernel mirrors it (dirac/
-// combat_band.go; the grant is the record dirac/kw_banding.go reads). Band
-// formation is not modelled (an accepted band stalls, StallBand), so the
-// probe's policy declines every band ask: neither engine ever forms a band.
+// combat_band.go; the grant is the record dirac/kw_banding.go reads). This
+// probe's policy declines every band ask (TestBandFormationLockstep accepts).
 
 var kpecDecks = [2][]cardset.Entry{
 	{
