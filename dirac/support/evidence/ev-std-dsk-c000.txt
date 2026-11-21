@@ -11,6 +11,7 @@ Baseball Bat
 Bashful Beastie
 Bear Trap
 Beastie Beatdown
+Bedhead Beastie
 Betrayer's Bargain
 Blazemire Verge
 Bleeding Woods
@@ -175,6 +176,7 @@ Scrabbling Skullcrab
 Seized from Slumber
 Shardmage's Rescue
 Sheltered by Ghosts
+Shepherding Spirits
 Shrewd Storyteller
 Shroudstomper
 Silent Hallcreeper
