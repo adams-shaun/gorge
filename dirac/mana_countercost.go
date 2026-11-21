@@ -778,6 +778,13 @@ var DebugNoDeadCtr bool
 // 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at the bound
 // (all the counters).
 func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
+	s.storeGapX(k, p, sl, a, 255)
+}
+
+// storeGapX is storeGap announcing X = x counters at most (the counters it
+// holds when fewer): the prefix search's X ask offers every X from the bound
+// down to 0, and X = 0 pays the {T} alone (CR 107.3, 602.2b).
+func (s *State) storeGapX(k *prep, p uint8, sl Slot, a *kop.Ability, x int) {
 	pm := &s.perms[sl]
 	n := pm.ctrN(s, int(a.Cost.Ctr))
 	if n <= 0 {
@@ -787,6 +794,13 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	if n > 255 {
 		s.capFull(StallDynMana)
 		n = 255
+	}
+	if x < n {
+		n = x
+	}
+	if n <= 0 {
+		s.storeIdleTap(k, sl, a)
+		return
 	}
 	taps := a.Cost.Flags&kop.CostTap != 0
 	if taps {
