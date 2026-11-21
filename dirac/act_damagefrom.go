@@ -124,7 +124,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		plCodes[i], plAmts[i] = PlayerCode(q.s[i]), int(n)
 		ne++
 	}
-	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
+	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne], false) {
 		if eachCtrl {
 			s.capFull(StallReplPlus) // a park inside the RepeatEach loop cannot resume
 		}
@@ -195,7 +195,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	}
 	card := s.objs[o].card
 	code := TCode(dst)
-	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
+	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}, false) {
 		return
 	}
 	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {

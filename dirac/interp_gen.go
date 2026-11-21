@@ -2628,8 +2628,11 @@ const NoSubtypeIdx = 254
 // latched) instead of dealt, so the caller's op pauses on the parked event for
 // the answer to re-execute it.
 func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool {
+	if s.g.dmgSeqOn {
+		return s.damageBatchNext(k, codes, amts) // a resumed seq: the hits from dmgSeqI on (repl_plus.go)
+	}
 	kw := s.srcKw(k)
-	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
+	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts, true) {
 		return true
 	}
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -2639,7 +2642,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	for i, code := range codes {
 		n := amts[i]
 		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
-			n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
+			n = s.replDamagePend(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, n, s.res.e.obj)
 		}
 		if n <= 0 {
 			continue
@@ -2701,6 +2704,29 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}
+	return false
+}
+
+// damageBatchNext is a parked damage batch's seq (replPlusSrcPass's at>0 arm,
+// batchSeqStart): the hits from dmgSeqI on, dealt one at a time through
+// damageTo (gorge collects each event's replacements as the event happens,
+// CR 616.1e). A hit two replacements match parks the ask and stops the seq;
+// the answer deals it (dealNC) and the op's re-execution continues here. The
+// batch bracket spans the seq like a sweep's (trig_dmgbatch.go): the
+// once-per-batch lines latch at their first matching event and
+// dmgBatchClose patches their amounts to the whole batch's total.
+func (s *State) damageBatchNext(k *prep, codes []TCode, amts []int) bool {
+	s.dmgBatchOpen() // a resumed seq re-enters with the batch already open
+	for i := int(s.g.dmgSeqI); i < len(codes); i++ {
+		s.damageTo(k, codes[i], amts[i])
+		if s.g.nc.n != 0 {
+			s.g.dmgSeqI = uint8(i + 1)
+			return true // parked: the ask is posed, the seq resumes with the rest
+		}
+		s.g.dmgSeqI = uint8(i + 1)
+	}
+	s.g.dmgSeqOn = false
+	s.dmgBatchClose() // the batch is over: the once lines' amounts are patched in (trig_dmgbatch.go)
 	return false
 }
 
