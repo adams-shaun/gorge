@@ -109,7 +109,7 @@ func staticPrevStall(g *genPrep) bool {
 	}
 	if g.uses.has(useStaticOrdered) {
 		// a doubler or a plus-N beside a bare combat full prevention is posed
-		return g.anyRepl&spCompete&^(rbPrevCol|rbDblDmg) != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) || g.anyRedir
+		return g.anyRepl&spCompete&^(rbPrevCol|rbDblDmg|rbShield) != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) || g.anyRedir
 	}
 	return g.anyRepl&spCompete&^rbPrevCol != 0 || g.anyRepl&rbPrevCol != 0 && g.uses.has(usePrevColOpen) ||
 		g.anyRedir || g.uses.has(usePlusAbility)
@@ -122,18 +122,18 @@ func staticPrevStall(g *genPrep) bool {
 func staticPrevPair(g *genPrep) (string, func(*kop.CardDef, int) bool, func(*kop.CardDef, int) bool) {
 	text := "a static damage prevention (Prevent$ True or a prevent-N shield) beside another damage replacement: gorge asks the CR 616.1 order of the two, and the damage left depends on it"
 	a := abilityOn(isStaticPrev)
-	compete, plus := spCompete, true
+	compete, plus, shield := spCompete, true, true
 	if g.uses.has(useStaticOrdered) {
-		compete, plus = spCompete&^(rbDblDmg), false
+		compete, plus, shield = spCompete&^(rbDblDmg|rbShield), false, false // the shield counter is posed last (spShieldLate)
 	}
 	b := func(c *kop.CardDef, i int) bool {
 		return g.replBits[i]&compete != 0 || abilityOn(func(x *kop.Ability) bool {
-			return x.Kind == kop.AbReplacement && (plus && x.Repl.Kind == kop.ReplDamagePlus || x.Repl.Kind == kop.ReplEntersWithCounters && x.Repl.C == int16(kop.CtrShield)) ||
-				x.Cost.Flags&kop.CostAddCtr != 0 && x.Cost.Ctr == kop.CtrShield ||
+			return x.Kind == kop.AbReplacement && (plus && x.Repl.Kind == kop.ReplDamagePlus || shield && x.Repl.Kind == kop.ReplEntersWithCounters && x.Repl.C == int16(kop.CtrShield)) ||
+				shield && x.Cost.Flags&kop.CostAddCtr != 0 && x.Cost.Ctr == kop.CtrShield ||
 				progHas(x, func(in *kop.Instr) bool {
 					e := in.Ext()
 					return prevRecOpen(*in) || e == kop.ExtDmgRedirect ||
-						(in.Op == kop.OpPutCounter || in.Op == kop.OpPutCounterAll || in.Op == kop.OpEnterWithCounters) && in.C == int16(kop.CtrShield)
+						shield && (in.Op == kop.OpPutCounter || in.Op == kop.OpPutCounterAll || in.Op == kop.OpEnterWithCounters) && in.C == int16(kop.CtrShield)
 				})
 		})(c, i)
 	}

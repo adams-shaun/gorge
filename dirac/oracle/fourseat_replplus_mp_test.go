@@ -68,6 +68,16 @@ func spsrPlay(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div,
 // spsrPlayAsks is spsrPlay counting the combat and the noncombat asks apart.
 func spsrPlayAsks(t *testing.T, decks [][]string, seeds []uint64, a, b string) (div, stop string, combat, noncombat int) {
 	t.Helper()
+	return spsrPlayAsksPred(t, decks, seeds, func(names []string) bool {
+		all := strings.Join(names, "+")
+		return strings.Contains(all, a) && strings.Contains(all, b)
+	})
+}
+
+// spsrPlayAsksPred plays seeds over decks in lockstep and counts the order asks
+// whose option names (the cards naming each replacement) pred accepts.
+func spsrPlayAsksPred(t *testing.T, decks [][]string, seeds []uint64, pred func(names []string) bool) (div, stop string, combat, noncombat int) {
+	t.Helper()
 	reg := synthReg(t)
 	set, err := cardset.RawByName("edh")
 	if err != nil {
@@ -115,7 +125,7 @@ func spsrPlayAsks(t *testing.T, decks [][]string, seeds []uint64, a, b string) (
 					names = append(names, chName(g.E.G, o.Obj))
 				}
 			}
-			if all := strings.Join(names, "+"); strings.Contains(all, a) && strings.Contains(all, b) {
+			if pred(names) {
 				if st := g.E.G.Step; st == state.StepCombatDamage || st == state.StepDeclareBlockers {
 					combat++
 				} else {

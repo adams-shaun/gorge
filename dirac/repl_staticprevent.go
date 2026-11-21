@@ -54,8 +54,8 @@ const spShieldAsk uint8 = 1 << 6
 // spHasShield: one of the c candidates cs is an all-but shield, not a full prevention.
 func (s *State) spHasShield(k *prep, cs *[spMax]spCand, c int) bool {
 	for i := 0; i < c; i++ {
-		if s.spCandAb(k, cs[i]).Repl.Kind == kop.ReplPreventDamageN {
-			return true
+		if s.spCandAb(k, cs[i]).Repl.Kind == kop.ReplPreventDamageN || s.spSelfCand(k, cs[i]) {
+			return true // a candidate applied as picked and spent (a Phantom's counter) asks as a shield does
 		}
 	}
 	return false
@@ -167,7 +167,7 @@ func (s *State) matchSourceCard(k *prep, f kop.FilterID, c CardID, owner, ctrl u
 // (CR 615.12) leaves none.
 func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 	if s.noPrev(k, e.combat) {
-		return 0
+		return s.spSelfNoPrev(k, e) // repl_selfph.go
 	}
 	g := k.gen
 	n := 0
@@ -177,12 +177,12 @@ func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 		}
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
-			if g.replBits[s.cardAt(b)]&rbPlusDmg == 0 || s.genLost(k, b) {
+			if g.replBits[s.cardAt(b)]&(rbPlusDmg|rbPrevCtrSelf) == 0 || s.genLost(k, b) {
 				continue
 			}
 			ab := k.t.Cards[s.cardAt(b)].Abilities
 			for j := range ab {
-				if !isStaticPrev(&ab[j]) || !s.spMatch(k, b, &ab[j], e) {
+				if !(isStaticPrev(&ab[j]) && s.spMatch(k, b, &ab[j], e) || s.spSelfMatch(g, b, &ab[j], e)) {
 					continue
 				}
 				if n == spMax {
@@ -200,8 +200,8 @@ func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 // spPrevented is the damage the shield a of the host at b prevents from the
 // left that remains: all of it for a full prevention, else min(amount, left).
 func (s *State) spPrevented(k *prep, b Slot, a *kop.Ability, left int) int {
-	if a.Repl.Kind == kop.ReplPreventDamageFilt {
-		return left
+	if a.Repl.Kind == kop.ReplPreventDamageFilt || a.Repl.Kind == kop.ReplPreventDamageCounters {
+		return left // a full prevention (the Phantom's line removes its counter in spSpend)
 	}
 	r := &a.Repl
 	var m int
@@ -287,6 +287,8 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 	switch {
 	case c <= 0:
 		return e.n, false
+	case c == 1 && s.spSelfCand(k, cs[0]):
+		return e.n, false // a lone Phantom is replDamage's selfDamageAll (repl_selfph.go)
 	case c == 1:
 		a := s.spCandAb(k, cs[0])
 		if a.Repl.C&kop.ReplSPOptional != 0 {
@@ -431,10 +433,16 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	case c >= 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
 		// a lone static prevention beside full preventions (a granted Effect's,
 		// a printed one): gorge asks the order over all of them
-	case n > 0 && s.spBesideAmounts(n) && s.uses(k, useStaticOrdered) && (c == 0 || s.spOrderable(k, &cs, c)):
+	case n > 0 && s.spBesideAmounts(n) && (s.uses(k, useStaticOrdered) || selfPh(k.gen)) && (c == 0 || s.spOrderable(k, &cs, c)):
 		// a doubler or a plus-N beside bare full preventions or all-but shields:
 		// gorge asks the order over all of them (scan order)
 		return s.spMergeAmounts(k, &cs, c, n)
+	case c >= 1 && n == 0 && s.shieldLateFz(k, fe):
+		// a static prevention or a Phantom's line beside the recipient's shield counter,
+		// which the walk appends after them (repl_selfph.go replShieldCand): gorge asks the order
+	case n > 0 && c == 1 && s.spSelfCand(k, cs[0]):
+		s.capFull(StallReplPlus) // a Phantom beside a competition the walk does not merge: gorge asks the order of all
+		return -1
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
 		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if cs[0].b >= MaxPerm {
@@ -513,6 +521,8 @@ func (s *State) spAbility(k *prep, b Slot) *kop.Ability {
 	ab := k.t.Cards[s.cardAt(b)].Abilities
 	for j := range ab {
 		switch {
+		case isSelfPh(&ab[j]):
+			return &ab[j] // a Phantom host: its line (repl_selfph.go)
 		case !isStaticPrev(&ab[j]):
 		case ab[j].Repl.Kind == kop.ReplPreventDamageN:
 			return &ab[j]
@@ -534,6 +544,9 @@ func (s *State) spSpend(i int) {
 	k := s.k()
 	if a := s.spAbility(k, ob.slot); a != nil {
 		ro.an -= int16(s.spPrevented(k, ob.slot, a, int(ro.an)))
+		if isSelfPh(a) {
+			s.spSelfRemove(ob.slot)
+		}
 	}
 }
 
@@ -769,7 +782,7 @@ var DebugSpNCMergeOff bool
 // ask. done is 0 to go on with the returned count and static mask, 1 when the
 // event is dealt now and 2 when it is parked; the count is -1 after a loud stall.
 func (s *State) parkNCStatic(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask, c int, other uint8, cand *[4]Obj, plus, rs *uint8) (int, uint8, uint8) {
-	if !k.gen.uses.has(useStaticOrdered) || DebugSpNCMergeOff {
+	if !(k.gen.uses.has(useStaticOrdered) || selfPh(k.gen)) || DebugSpNCMergeOff {
 		return c, 0, 0
 	}
 	c, spv, done := s.parkNCStaticMerge(k, ctrl, srcSl, srcCard, code, n, kw, c, other, cand, plus, rs)
@@ -781,7 +794,7 @@ func (s *State) parkNCStatic(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, co
 
 // parkNCStaticMerge is parkNCStatic for an ordered table.
 func (s *State) parkNCStaticMerge(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask, c int, other uint8, cand *[4]Obj, plus, rs *uint8) (int, uint8, uint8) {
-	if c == 0 {
+	if c == 0 && !s.shieldLateAt(k, code) {
 		parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw)
 		switch {
 		case parked:
@@ -823,7 +836,7 @@ func (s *State) spParkEarly(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, cod
 // parkNCNoKinds: no damage replacement kind parkNC walks can match, so it parks
 // nothing (a table of ordered static preventions always looks).
 func (s *State) parkNCNoKinds(g *genPrep, plusOnly bool) bool {
-	return !plusOnly && !g.uses.has(useStaticOrdered) && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0
+	return !plusOnly && !g.uses.has(useStaticOrdered) && !selfPh(g) && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0
 }
 
 // parkNCStaticStall stalls loud a static prevention beside the amount changers

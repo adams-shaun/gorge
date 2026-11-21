@@ -39,12 +39,12 @@ const ncPend int16 = -2
 // replDamage's fixed order cannot carry (pendBlocked) keeps the event on
 // replDamage's loud paths. It reports whether it parked.
 func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, n int, kw kop.KwMask, plus, rs, prev, shld, pnx, spv uint8, cand [4]Obj, c int) bool {
-	if plus|rs|spv == 0 || prev != 0 || shld != 0 || pnx != 0 {
-		return false
+	if plus|rs|spv == 0 || prev&^shld != 0 || shld != 0 && spv == 0 || pnx != 0 {
+		return false // a shield beside the amount changers alone is parkNC's prevented ask (any order gives 0)
 	}
 	mixed := rs != 0 || spv&spShieldAsk != 0 // an all-but shield beside an amount changer: the order decides the amount
 	for i := 0; i < c; i++ {
-		if plus&(1<<i) == 0 && rs&(1<<i) == 0 && spv&(1<<i) == 0 {
+		if plus&(1<<i) == 0 && rs&(1<<i) == 0 && spv&(1<<i) == 0 && shld&(1<<i) == 0 {
 			mixed = true // a doubling: the order decides the amount
 		}
 	}
@@ -52,7 +52,7 @@ func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code
 		return false
 	}
 	ro := &s.g.ro
-	ro.replHdr = replHdr{n: uint8(c), plus: plus | rs<<plRaiseShift, spv: spv, p: rcp, cand: cand,
+	ro.replHdr = replHdr{n: uint8(c), plus: plus | rs<<plRaiseShift, spv: spv, prev: prev, shld: shld, p: rcp, cand: cand,
 		ac: uint8(c), an: int16(min(n, 1<<14)), askS: srcSl, askD: sl, actl: ctrl, apl: rcp}
 	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: ncPend}
 	if srcSl != NoSlot {
@@ -75,6 +75,10 @@ func (s *State) ncPlusPickNC(i int) {
 	ro := &s.g.ro
 	if ro.spv&(1<<i) != 0 {
 		s.spSpend(i) // a static prevention beside the amount changers (repl_staticprevent.go)
+		return
+	}
+	if ro.shld&(1<<i) != 0 {
+		s.ncPickShieldPend() // the shield beside them (repl_selfph.go)
 		return
 	}
 	if ro.plus&(plRaise(1<<i)|1<<i) == 0 {
@@ -205,7 +209,7 @@ func (s *State) pendBlocked(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, cod
 	if g.anyRedir && s.redirLive() > 0 {
 		return true // an Ext DmgRedirect record is a candidate too (redirTake)
 	}
-	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
+	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot && !selfPh(g) {
 		return true // a self-damage host on the recipient is a candidate too (selfDamageAll)
 	}
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != ctrl {

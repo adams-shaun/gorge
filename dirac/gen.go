@@ -613,7 +613,7 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 // carries rbPlusDmg too, and its order ask changes the amount, so a table with
 // one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr) && !selfPh(g)
 }
 
 type grantRef struct {
