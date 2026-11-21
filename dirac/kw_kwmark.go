@@ -4,7 +4,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Granted intimidate, infect, skulk and horsemanship (CR 702.13a, 702.90,
 // 702.118a, 702.31b). None has a KwMask bit; the printed keyword is
-// CardDef.Evasion EvIntimidate / EvSkulk / EvHorsemanship or CardDef.Infect. A grant comes two ways, both read beside the printed field
+// CardDef.Evasion EvIntimidate / EvSkulk / EvHorsemanship or CardDef.Infect. A grant comes three ways, all read beside the printed field
 // by evasionAt and infectAt (so blocking, combat and noncombat damage, the
 // LKI snapshot and the withInfect filter word all see it, as gorge's derived
 // keywords are blind to where the keyword came from):
@@ -13,6 +13,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     Intimidate / Infect: Bellowing Tanglewurm, Vow of Malice, Grafted
 //     Exoskeleton), a layer-6 grant: a later loss of the recipient's
 //     abilities removes it (landwalkGranted's rule);
+//   - a Pump's Duration$ Permanent KW$ Horsemanship: kop.Override.Horsemanship
+//     on the grant's override record (ovHorsemanship), which a cleanup step
+//     leaves alone and the permanent's leaving ends (Riding the Dilu Horse);
 //   - OpExt ExtKwMark (Pump / PumpAll KW$: Tainted Strike, Hideous Visage):
 //     the arena slot bits mechIntimidate / mechInfect, ended in the cleanup
 //     step (CR 514.2) and when a new permanent takes the slot (arenaClrSlot,
@@ -45,6 +48,9 @@ func prepKwMark(t *kop.Table, g *genPrep) {
 	}
 	for i := range t.Emblems {
 		scan(t.Emblems[i].Abilities)
+	}
+	for i := range t.Overrides {
+		g.anyEvasionGrant = g.anyEvasionGrant || t.Overrides[i].Horsemanship
 	}
 	g.anyEvasion = g.anyEvasion || g.anyEvasionGrant
 }
@@ -182,10 +188,28 @@ func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
 	if s.kwMarked(k, sl, mechSkulk, mechSkulkPost) || s.staticKwGrant(k, sl, staticGrantsSkulk) {
 		ev |= kop.EvSkulk
 	}
-	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) {
+	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) || s.ovHorsemanship(k, sl) {
 		ev |= kop.EvHorsemanship
 	}
 	return ev
+}
+
+// ovHorsemanship: an active override record grants sl horsemanship (a Pump
+// Duration$ Permanent KW$ Horsemanship, kop.Override.Horsemanship). The record
+// goes with the permanent (CR 400.7), and, a layer-6 grant, one older than the
+// permanent's loss of all abilities grants nothing (hasBanding's rule).
+func (s *State) ovHorsemanship(k *prep, sl Slot) bool {
+	if !s.fxM.has(sl) {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	found := false
+	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
+		if (!lost || ts >= lts) && o.Horsemanship {
+			found = true
+		}
+	})
+	return found
 }
 
 // infectGranted: the permanent at sl has a granted infect.
