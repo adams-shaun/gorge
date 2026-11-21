@@ -27,6 +27,22 @@ const skwRem uint8 = 1 << 7
 // entry, nothing being able to change one between firing and stacking.
 const skwMany uint8 = 1 << 6
 
+// skwAtkPl marks a pending attack trigger whose bound attack was on a player
+// (combat.go fireAttacksGen): takePending moves it to the entry's mode bit
+// seAtkPlayer, out of settleSrcKw's reach, so it survives the attacker's
+// departure before the trigger resolves (CR 603.3c, 608.2h).
+const skwAtkPl uint8 = 1 << 3
+
+// skwAtkCtrl marks a pending attack trigger (beside skwAtkPl) whose bound
+// attack was on the trigger's own controller (combat.go fireAttacksGen):
+// takePending moves it to the entry's mode bit seAtkCtrl, out of settleSrcKw's
+// reach. Such a trigger stalls at its OpAtkPWGuard (filter_combatwords.go)
+// whether its attacker is alive or has left: gorge's TriggeredDefender.
+// Opponent names nobody for an attacker its controller does not control (Mage
+// Slayer on a stolen creature), so the gone arm must not fall through to a
+// guessed defender.
+const skwAtkCtrl uint8 = 1 << 4
+
 // boolBit is bit when b, else 0.
 func boolBit(b bool, bit uint8) uint8 {
 	if b {
