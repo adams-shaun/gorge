@@ -1,0 +1,32 @@
+# the shared-keyword PumpAll pool (dirac/oracle/sharedpumpall_lockstep_test.go):
+# Odric, Lunarch Marshal and Concerted Effort beside one creature per keyword
+# they list, so the pool-scanned Landwalk and Protection family spellings have
+# cards to share from.
+Odric, Lunarch Marshal
+Concerted Effort
+Bog Wraith
+River Boa
+White Knight
+Black Knight
+Troll Ascetic
+Serra Angel
+Giant Spider
+Kavu Predator
+Fencing Ace
+Vampire Nighthawk
+Raging Goblin
+Dross Prowler
+Darksteel Myr
+Kederekt Creeper
+Skeleton Key
+Grizzly Bears
+Savannah Lions
+Typhoid Rats
+Wind Drake
+Glory Seeker
+Hill Giant
+Plains
+Island
+Swamp
+Mountain
+Forest
