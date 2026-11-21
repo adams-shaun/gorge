@@ -3,8 +3,7 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // gorbeFreeBranchNodes is the node count of gorge's plain prefix search
@@ -14,26 +13,32 @@ import (
 // of scriptSearch.visit: the whole plain search is 79 nodes, this branch 70.
 const gorbeFreeBranchNodes = 70
 
+// FilterBranchNodes is the node count of the plain filter search's root
+// free-{C} branch on filtNodeBudgetBoard over tbl (a pool table holding the
+// board's cards: the dirac_test half of the test lowers them with kgen from
+// inline names, because a package dirac test may not read a raw pool), after
+// the preconditions that make the count a measurement of the board. It is
+// exported for that external test file only.
+func FilterBranchNodes(t *testing.T, tbl *kop.Table) int {
+	t.Helper()
+	id := map[string]CardID{}
+	for c := range tbl.Cards {
+		id[tbl.Cards[c].Name] = CardID(c)
+	}
+	sc, a, shores := filtNodeBudgetBoard(t, tbl, id)
+	return filtBranchNodes(t, sc, a, shores)
+}
+
+// FilterBranchNodesGorge is gorge's count for the same branch, pinned.
+const FilterBranchNodesGorge = gorbeFreeBranchNodes
+
 // filtNodeBudgetBoard is the tail-34 pair 25 offer (seed 255781): Vault of the
 // Archangel's {2}{W}{B} activation beside Unknown Shores, two Swamps, two
 // Mountains and Manabarbs. Every land tap queues a Taps trigger, so the four
 // basics are Taps-deferred census gaps beside the paid filter.
-func filtNodeBudgetBoard(t *testing.T) (*scen, Action, Slot) {
+func filtNodeBudgetBoard(t *testing.T, tbl *kop.Table, id map[string]CardID) (*scen, Action, Slot) {
 	t.Helper()
 	names := []string{"Unknown Shores", "Vault of the Archangel", "Swamp", "Swamp", "Mountain", "Mountain", "Manabarbs"}
-	deck := make([]cardset.Entry, 0, len(names)+1)
-	for _, n := range names {
-		deck = append(deck, cardset.Entry{Name: n, Count: 1})
-	}
-	deck = append(deck, cardset.Entry{Name: "Swamp", Count: 20})
-	tbl, da, _, err := cardsettest.Synth(t, "tail-34").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
 	sc := newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
 	var shores, vault Obj
 	for _, n := range names {
@@ -54,6 +59,7 @@ func filtNodeBudgetBoard(t *testing.T) (*scen, Action, Slot) {
 	return nil, 0, 0
 }
 
+// filtBranchNodes walks the branch and returns its node count. The dirac_test
 // TestFilterSearchNodeBudgetParity pins the plain filter search's node count
 // on the root free-{C} branch of that board at or below gorge's. The four
 // Taps-deferred basics are the census gaps beside Unknown Shores, and gorge's
@@ -63,8 +69,8 @@ func filtNodeBudgetBoard(t *testing.T) (*scen, Action, Slot) {
 // nodes on a branch gorge settles in 70, which left the offer on the
 // potentialScriptNodes boundary. The branch is walked directly (the root's
 // free-{C} activation, freeBranchHopeless's prune bypassed).
-func TestFilterSearchNodeBudgetParity(t *testing.T) {
-	sc, a, shores := filtNodeBudgetBoard(t)
+func filtBranchNodes(t *testing.T, sc *scen, a Action, shores Slot) int {
+	t.Helper()
 	s, k := sc.s, sc.k
 	p := uint8(0)
 	var fs filtSearch
@@ -95,7 +101,5 @@ func TestFilterSearchNodeBudgetParity(t *testing.T) {
 	if fs.nodes < 2 {
 		t.Fatalf("precondition: the branch was not walked (%d nodes)", fs.nodes)
 	}
-	if fs.nodes > gorbeFreeBranchNodes {
-		t.Fatalf("the root free-{C} branch cost %d nodes, gorge's cost %d: the search spends nodes gorge's twin cut skips", fs.nodes, gorbeFreeBranchNodes)
-	}
+	return fs.nodes
 }
