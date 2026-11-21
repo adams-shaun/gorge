@@ -14,6 +14,7 @@ Avenger en-Dal
 Avenging Hunter
 Bastion Enforcer
 Bootleggers' Stash
+Brainwash
 Bristling Backwoods
 Bumbling Pangolin
 Butcher's Glee
@@ -58,10 +59,13 @@ Fires of Victory
 Firewing Phoenix
 Fleetwheel Cruiser
 Forest
+Fowl Strike
 Frontier Mastodon
 Furious Assault
 Genestealer Locus
+Ghost-Lit Raider
 Gilt-Blade Prowler
+Glistening Extractor
 Goblin Artillery
 Goblin Cadets
 Goblin Champion
@@ -81,6 +85,7 @@ Humble
 Hunting Moa
 Imaginary Friends
 Implode
+Incremental Blight
 Incubation Sac
 Indicate
 Infected Vermin
@@ -106,6 +111,7 @@ Mending Touch
 Merfolk Seastalkers
 Meriadoc Brandybuck
 Mindeye Drake
+Minotaur Illusionist
 Moira, Urborg Haunt
 Monumental Corruption
 Mountain
@@ -117,6 +123,7 @@ Nekrataal
 Nettle Drone
 Nightshade Harvester
 Nightsoil Kami
+Nightveil Specter
 Nissa, Resurgent Animist
 Ogre Menial
 Ongoing Investigation
@@ -124,9 +131,11 @@ Opposition
 Orazca Relic
 Peel from Reality
 Peppersmoke
+Phalanx Vanguard
 Pharika's Libation
 Phyresis
 Phyrexian Archivist
+Pilfering Hawk
 Pincer Spider
 Plague Rats
 Plains
@@ -159,6 +168,12 @@ Skittering Crustacean
 Skull Raid
 Slinza, the Spiked Stampede
 Slobad, Goblin Tinkerer
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Mountain
+Snow-Covered Plains
+Snow-Covered Swamp
+Sokenzan Spellblade
 Songbird, Sonic Screamer
 Soul Snuffers
 Soul's Majesty
@@ -177,6 +192,7 @@ Struggle for Skemfar
 Stun Sniper
 Sturdy Hatchling
 Sunweb
+Surge of Righteousness
 Survivor of Korlis
 Swamp
 Swordwise Centaur
@@ -187,6 +203,7 @@ Tempest Owl
 Teroh's Faithful
 Thassa's Rebuff
 The Falcon, Airship Restored
+The Great Juggernaut
 Thornscape Apprentice
 Timber Protector
 Timeless Lotus
@@ -196,8 +213,10 @@ Town Gossipmonger
 Trigon of Thought
 Triumph of the Hordes
 Turn Aside
+Turret Ogre
 Twincast
 Unbreakable Formation
+Veiled Ascension
 Viscerid Deepwalker
 Vizier of the Scorpion
 Volatile Rig
@@ -214,5 +233,6 @@ Wildest Dreams
 Wit's End
 Wrack with Madness
 Wrong Turn
+Wu Longbowman
 Yeva's Forcemage
 Zulaport Duelist

@@ -91,6 +91,7 @@ Eiganjo Exemplar
 Electrosiphon
 Elemental Augury
 Elephant Resurgence
+Elfhame Sanctuary
 Ellivere of the Wild Court
 Emeria, the Sky Ruin
 Epiphany at the Drownyard
@@ -142,6 +143,7 @@ Grisly Survivor
 Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
+Guardian of the Gateless
 Guardians of Oboro
 Guilty Conscience
 Halberdier
