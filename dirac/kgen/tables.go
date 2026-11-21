@@ -193,6 +193,7 @@ func readPool(src fs.FS, name, cardsDir string) (*pool, []byte, []idEntry, error
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%s: %w", name, err)
 	}
+	p.commander = commanderPools[name] // lower_meld.go
 	idsPath := path.Join(dir, idsFile)
 	oldIDs, err := fs.ReadFile(src, idsPath)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
