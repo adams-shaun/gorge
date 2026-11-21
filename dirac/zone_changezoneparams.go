@@ -44,7 +44,7 @@ func (s *State) millTop(p uint8, n int, c int) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
 }
@@ -78,7 +78,7 @@ func (s *State) millOp(k *prep, in *kop.Instr) bool {
 			pl.libLo++
 			s.touch(o)
 			s.objs[o].zone = kop.ZoneNone
-			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 			s.millMark(o, int(in.C))
 		}
 	}

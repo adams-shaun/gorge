@@ -747,7 +747,7 @@ func (s *State) runParkedRest(k *prep, o Obj, remember bool) {
 	}
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if remember {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}
@@ -763,7 +763,7 @@ func (s *State) runParkedMill(k *prep, o Obj, x uint8) {
 	pl.libLo++
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	s.millMark(o, millParkFlags(x))
 }
 
@@ -833,7 +833,7 @@ func (s *State) runParkedDread(k *prep, o Obj) {
 		return // the card left the library while it waited
 	}
 	from := s.detach(o)
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false, false)
 }
 
 // sbaChainEnd closes gorge's sbaChain: a state-based pass with no casualty
