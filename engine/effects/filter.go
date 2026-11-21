@@ -540,6 +540,13 @@ var predicates = map[string]predFn{
 	"prowled": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return altCostKeywordPaid(o, "Prowl")
 	},
+	// spectacle is Forge's Card.Self+spectacle / Card.spectacle (CR 702.137a):
+	// the cast paid its K:Spectacle cost (altCostKeywordPaid). It survives
+	// the stack->battlefield move, so it reads on the permanent at its ETB
+	// (Rafter Demon, Rix Maadi Reveler).
+	"spectacle": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return altCostKeywordPaid(o, "Spectacle")
+	},
 	// The context-free entry: a caller with no SpecContext compares printed
 	// names. matchPositive evaluates NamedCard through namePredicate below
 	// before reaching this map, so every context-aware call sees the layer-3

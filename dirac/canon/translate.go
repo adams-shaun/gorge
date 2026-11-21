@@ -212,9 +212,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("surged")
 			return Pack(ActCast, src, RefNone, cm)
 		}
-		if mode == 0 && tgt == dirac.FeatCastCleaveTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+		if mode == 0 && dirac.FeatCastAltTgt(uint16(tgt)) && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
 			// the cleaved cast (CR 702.148a; kernel kw_cleave.go
-			// castCleaveTgt): gorge's "cleaved" cast option, AltCostIndex 0;
+			// castCleaveTgt) and the spectacle cast (CR 702.137a; kw_spectacle.go
+			// castSpectacleTgt): gorge's "cleaved" / "spectacle" cast option, AltCostIndex 0;
 			// the 16-entry cast-mode table is full, so CastModeOther
 			return Pack(ActCast, src, RefNone, CastModeOther)
 		}
@@ -900,8 +901,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("trigger_cost_pay"), top, RefNone, 0), true
 		}
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
-	case dirac.ChGenUnleash:
-		return unleashCanon(src, mode), true
+	case dirac.ChGenUnleash, dirac.ChGenRiot:
+		return unleashRiotCanon(r.D.Sub, src, mode), true
 	case dirac.ChGenAddOrRemove:
 		return r.aorChoice(Ref(src), mode)
 	case dirac.ChGenKczZone:

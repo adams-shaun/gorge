@@ -715,7 +715,7 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 		return Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0), false, ""
 	case "conspired":
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
-	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
+	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved", "spectacle":
 		// CR 702.166: the full cast-mode table's castModeOther code, the
 		// same canonical form the offered option uses
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther), false, ""
@@ -939,12 +939,13 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|15<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "overloaded" || o.Mode == "cleaved" {
+			if o.Mode == "overloaded" || o.Mode == "cleaved" || o.Mode == "spectacle" {
 				// CR 702.96a: the overloaded cast's mode word is not in the
 				// full 16-entry cast-mode table, so it canonicalises to
 				// CastModeOther, the kernel's castOverloadTgt form
 				// (kw_overload.go; canon/translate.go); CR 702.148a's
-				// "cleaved" cast is the same shape (kw_cleave.go)
+				// "cleaved" cast and CR 702.137a's "spectacle" cast are the same shape
+				// (kw_cleave.go, kw_spectacle.go)
 				if o.AltCostIndex > 15 {
 					note("cast/overloaded")
 					continue
@@ -1095,7 +1096,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
-			} else if pa.Mode == "overloaded" || pa.Mode == "cleaved" {
+			} else if pa.Mode == "overloaded" || pa.Mode == "cleaved" || pa.Mode == "spectacle" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
 			} else if pa.Mode == "buyback" || pa.Mode == "entwined" {
 				// CR 702.27a: the 16-entry cast-mode table is full; the

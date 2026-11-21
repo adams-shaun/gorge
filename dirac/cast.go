@@ -99,8 +99,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if s.g.impCast {
 			if k.t.Cards[c].CleaveAb != 0 {
 				e.ab = k.t.Cards[c].CleaveAb - 1 // the cleaved cast: its own text (kw_cleave.go)
-			} else if k.t.Cards[c].HasSurge {
-				e.mode |= modeImpended // the surged cast (kw_surge.go: the bit reads as surged on a HasSurge card)
+			} else if k.t.Cards[c].HasSurge || k.t.Cards[c].HasSpectacle {
+				e.mode |= modeImpended // the surged or spectacle cast (kw_surge.go, kw_spectacle.go: the bit reads as surged or spectacled on a card with that keyword)
 			} else if k.t.Cards[c].HasOverload {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
@@ -192,7 +192,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if !s.FeatPoolPays(p, o, 1) {
 			s.lowerWitness(k, p)
 		}
-	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || k.gen.anyDash && s.bld().e.dashed(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
+	} else if mode&castWarp != 0 || k.gen != nil && (k.gen.anyImpending && s.bld().e.impended() || k.gen.anyEvoke && s.bld().e.evoked() || s.bld().e.dashedOrSpectacled(k) || k.gen.anyOverload && s.bld().e.overloaded(k)) {
 		// a hand warp is one of gorge's potential plays (the "warped" cast
 		// option carries Potential: true), so its plan is the composed cost
 		// and the oracle always lowers it, like the kicked cast; so is an
@@ -637,8 +637,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
 		}
-		if cd.HasSurge && e.surged(k) {
-			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
+		if sc, ok := surgeSpectacleCost(k, e, cd); ok {
+			c = sc // the surge or spectacle cost (CR 702.117a, 702.137a; kw_surge.go, kw_spectacle.go)
 		}
 		if cd.HasOverload && e.overloaded(k) {
 			c = cd.OverloadCost // the overload cost (CR 702.96a; kw_overload.go)

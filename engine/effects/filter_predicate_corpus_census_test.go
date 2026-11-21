@@ -328,7 +328,6 @@ var knownUnknownFilterPredicates = []string{
 	"sharesNameWith YourGraveyard",
 	"sharesOwnerWith TriggeredCard",
 	"sharesPermanentTypeWith",
-	"spectacle",
 	"stickered",
 	"stickeredWith Art",
 	"stickeredWith Name",

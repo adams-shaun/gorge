@@ -866,14 +866,10 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
-	if c.Surge != nil {
-		// CR 702.117a: the hand's alternative cost once another spell was
-		// cast this turn (dirac/kw_surge.go)
-		d.HasSurge = true
-		if d.SurgeCost, err = manaCostOf(*c.Surge); err != nil {
-			return err
-		}
+	if err = surgeSpectacleDef(d, c); err != nil { // lower_spectacle.go
+		return err
 	}
+	d.Riot = c.Riot // CR 702.136a: the as-enters counter-or-haste ask (dirac/kw_riot.go)
 	if c.Overload != nil {
 		// CR 702.96a: the hand's alternative cost and the resolving program's
 		// each-variant (dirac/kw_overload.go)
@@ -1539,6 +1535,7 @@ var flag2 = map[uint64]kop.FilterFlags2{
 	fBlockedBySrc: kop.F2BlockedBySrc, fDamagedBy: kop.F2DamagedBy, fCrewedSrc: kop.F2CrewedSrc, fWarped: kop.F2Warped,
 	fBargained: kop.F2Kicked, // Card.Self+bargained reads the permanent's kicked provenance
 	fTeamwork:  kop.F2Kicked, // Card.Self+Teamwork reads the same provenance
+	fSpectacle: kop.F2Kicked, // Card.Self+spectacle reads the same provenance (kw_spectacle.go)
 }
 
 var flag1 = map[uint64]kop.FilterFlags{

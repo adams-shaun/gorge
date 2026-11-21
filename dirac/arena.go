@@ -195,6 +195,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			u[mechOnce3] = true
 		}
 	}
+	arenaRiotSpectacle(t, &u) // kw_riot.go: the haste mark; kw_spectacle.go: the kicked mark
 	arenaDetected(t, &u)
 	u[mechSBAChain] = u[mechSBAChain] || u[mechExileEx]
 	return u

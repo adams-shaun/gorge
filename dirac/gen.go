@@ -1052,6 +1052,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
+		if c.HasSpectacle {
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
 		if c.HasSurge {
 			g.anySurge, g.anyHist = true, true // the gate reads the history bank's spell count
 			p.cards[i].altCost = true          // the hand walk's one-byte gate (offerAltHand)
@@ -3300,6 +3303,9 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 	kind := s.enterChoiceKind(k, c)
 	if kind == 0 && !land && k.gen.has(c, gfEnterRepl) {
 		kind = s.cloneAskKind(k, c) // only a cast spell is asked (gorge FlagManaSpent)
+	}
+	if kind == 0 && !land {
+		kind = s.riotPreKind(k, c) // kw_riot.go: riot is the face's first as-enters choice
 	}
 	if kind == 0 && !land {
 		kind = s.unleashPreKind(k, c) // kw_unleash.go

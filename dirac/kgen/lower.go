@@ -584,9 +584,11 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
 	lc.lowerImpending()
-	lc.lowerOverload()      // lower_overload.go
-	lc.refuseCleaveCombos() // lower_cleave.go
-	lc.refuseSurgeCombos()  // lower_surge.go
+	lc.lowerOverload()         // lower_overload.go
+	lc.refuseCleaveCombos()    // lower_cleave.go
+	lc.refuseSurgeCombos()     // lower_surge.go
+	lc.refuseSpectacleCombos() // lower_spectacle.go
+	lc.refuseRiotCombos()      // lower_riot.go
 }
 
 // lowerImpending appends Impending's end-step tick after the printed lines
@@ -3028,15 +3030,8 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 	}
 	for _, c := range f.Clauses {
-		if c.Flags&fBargained != 0 && !lc.out.Bargain {
-			// the word is a Bargain carrier's own provenance (CR 702.166;
-			// F2Kicked on the permanent); on any other card it would read
-			// the kicker/offspring mark, so refuse it
-			return nil, refuse("filter %q: bargained without Bargain", expr)
-		}
-		if c.Flags&fTeamwork != 0 && lc.out.Teamwork == 0 {
-			// the same provenance bit on a Teamwork carrier only
-			return nil, refuse("filter %q: Teamwork without Teamwork", expr)
+		if why := lc.provenanceWordRefusal(c.Flags); why != "" {
+			return nil, refuse("filter %q: %s", expr, why)
 		}
 		if c.Unblocked && !lc.unblockedOK {
 			// F2Unblocked is lockstep-proven only as K:Ninjutsu's Return

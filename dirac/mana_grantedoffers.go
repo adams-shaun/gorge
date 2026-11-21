@@ -2990,6 +2990,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.CleaveCost), ex, need, true
 			case a.Target() == castSurgeTgt && cd.HasSurge:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.SurgeCost), ex, need, true
+			case a.Target() == castSpectacleTgt && cd.HasSpectacle:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.SpectacleCost), ex, need, true
 			}
 		}
 		if a.Mode()&1 != 0 {
@@ -3198,7 +3200,7 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 		// (usefulOK false) while gorge pruned the filter's colours, and the
 		// two walks paid different mana. A mode that is not exactly the
 		// may-play one (a kicked, bargained, flashback cast) stays unread.
-		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
+		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castSpectacleTgt && a.Target() != castCleaveTgt {
 			return k.cards[s.objs[a.Source()].card].cost, 0, true
 		}
 	}

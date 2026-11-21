@@ -137,6 +137,7 @@ const (
 	ChGenUnleash                              // source = the entering permanent; mode 1 = enter with the +1/+1 counter, 0 = without (gorge's "unleash" KChoose, option 0 = the counter, CR 702.86; kw_unleash.go)
 	ChGenClash                                // source = the clasher's revealed top card; mode 0 = bottom / 1 = top of its owner's library (gorge's clash_placement "bottom" / "top"; act_clash.go)
 	ChGenMyriad                               // source = the Myriad creature; mode 1 = create the copy attacking the asked-about opponent / 0 = don't (gorge effMyriad's "yes" / "no", both over the source; kw_myriad.go)
+	ChGenRiot                                 // source = the entering permanent; mode 0 = enter with the +1/+1 counter, 1 = gain haste (gorge's "riot" KChoose, options in that order, CR 702.136a; kw_riot.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
