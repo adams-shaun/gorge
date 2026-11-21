@@ -4,6 +4,7 @@ Algorithmic Ferocity	53368fdfd6b8ae28	34	0/0		2/2
 Amulet of Unmaking	9201ee98bb7828aa	29	1/1		0/1	ix:resp
 Annex Sentry	806cde72ed7f779f	6	1/1		1/1	
 Antagonize	9b45aee7cb760c68	8	0/0		2/2	
+Archangel	3270fc0e626cab27	19	0/0		0/0	
 Argoth, Sanctum of Nature	867891c4a0f0b63f	80	2/2		0/1	ix:resp
 Aven Augur	11b37b18a550ee9d	42	1/1		1/1	
 Bakersbane Duo	6ffef594aee9e88b	135	2/2		1/1	
@@ -21,10 +22,12 @@ Boggart Loggers	8366c4653a33ee03	40	1/1		0/1	ix:resp
 Bonescythe Sliver	f61819732487d668	21	0/0		0/0	
 Bower Passage	a7704db84f613d1c	55	0/0		0/0	
 Bristlebud Farmer	6da82084551fd4f8	147	2/2		1/1	
+Bumbleflower's Sharepot	1876816fa8a361bd	582	2/2		1/1	
 Burlfist Oak	11ae282d18d14f89	25	1/1		0/1	ix:resp
 Burn Down the House	e578c966d9041e52	9	0/0		1/2	ix:resp
 Cache Grab	f9493d496beba169	143	0/0		2/2	
 Carrion Locust	66c832d5f3067ca5	18	1/1		0/1	ix:resp
+Cauldron Familiar	b6a4eeded3b9ada3	633	2/2		1/1	
 Cavalcade of Calamity	6c1542b1126ced43	8	1/1		1/1	
 Cemetery Gate	6cf745d50be57fa6	31	0/0		0/0	
 Clattering Skeletons	81064fe927553678	31	1/1		0/1	ix:resp
@@ -79,6 +82,7 @@ Geistpack Alpha	1368cf02c921ca59	32	1/1		0/1	ix:resp
 Generated Horizons	cc2cc6ca42bf7d27	28	1/1		1/1	
 Gloomwidow	046071bcf5beda5b	45	0/0		0/0	
 Goblin Chieftain	104c6237110396fc	14	0/0		0/0	
+Goblin Chirurgeon	9a93a6180882a1f5	8	1/1		1/1	
 Goldlust Triad	c03817f71c7d5c26	19	2/2		0/1	ix:resp
 Great Sable Stag	d109234f9269072e	31	0/0		0/0	
 Hadana's Climb	1ed9422db3755dbe	29	3/3		0/1	ix:resp
@@ -107,6 +111,7 @@ Liberated Dwarf	d7176e4b3ca11064	14	1/1		0/1	ix:resp
 Lieutenants of the Guard	801f9d0216417bce	23	1/1		0/1	ix:resp
 Liliana's Scrounger	1fa31976f64a5640	23	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Living Armor	6ec7f6d6694dfa30	30	1/1		0/1	ix:resp
+Loki's Scepter	a107e76bc044027f	9	2/2		0/1	ix:resp
 Lucky Clover	49978f16078ed5a8	31	1/1		0/1	ix:resp
 Maggot Therapy	2583a307d878d7ec	11	0/0		1/2	ix:resp
 Marrow Shards	fd32ad665be97d5a	13	0/0		1/2	ix:resp
@@ -125,6 +130,7 @@ Nantuko Mentor	139accbf30042a59	33	1/1		0/1	ix:resp
 Narset's Reversal	4dfd2d5f4b97512c	12	0/0		2/2	
 Nevermaker	e9c7e078f8b28d76	54	1/1		3/3	
 Nightfire Giant	f2ff1bd49ef14883	24	1/1		0/1	ix:resp
+Nocturnal Hunger	4ddb438aa996ceaa	584	0/0		4/4	
 Nyxborn Behemoth	1a8ba7bf7f6d8144	8	1/1		0/1	ix:resp
 Oath of Jace	a82875f3b158ccac	33	2/2		1/1	
 Opal Caryatid	61c544db4390fdfc	12	1/1		0/1	ix:resp
@@ -159,6 +165,7 @@ Rusted Relic	d59dfd2acf3e3f51	40	0/0		0/0
 Rusted Slasher	7b8ee401ae8f5f95	41	1/1		1/1	
 Saberclaw Golem	c7745e7f6d9cb15b	49	1/1		1/1	
 Sakura-Tribe Scout	518b620b5d27c18f	30	1/1		1/1	
+Savor	145dbfb9a9e43d33	558	0/0		2/2	
 Scorchwalker	7de52b027ed4ebe3	16	1/1		0/1	ix:resp
 Screeching Buzzard	f0947b1b976c807d	16	1/1		0/1	ix:resp
 Serendib Sorcerer	baf392756a3139f1	42	1/1		0/1	ix:resp
