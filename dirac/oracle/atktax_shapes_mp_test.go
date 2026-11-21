@@ -326,3 +326,25 @@ func TestFourSeatAtkTaxDynamicLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxDynamicDeck, 24, 20, 0, []string{"Elvish Archdruid", "Priest of Titania", "Overgrown Battlement"},
 		nil, &dirac.DebugAtkTaxCountDynamic)
 }
+
+// Extra mana at a tap (a StatTapExtra static: Forsaken Monument's {C} when a
+// colorless permanent taps for mana, Wild Growth's {G} when the enchanted land
+// does, Mirari's Wake's doubling): the tap's TapsForMana trigger resolves with
+// the tap (CR 605.4a; gorge resolveManaAbilityRefOriginal), the extra floating
+// beside the source's own mana, so the pool covers the charge a tap sooner.
+// attackSourceUnits counts no extra, so the budget is unchanged. The mutation
+// (DebugAtkTaxNoExtra) taps for the source's own mana alone.
+var atkTaxTapExtraDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Savannah Lions", Count: 3}, {Name: "Elite Vanguard", Count: 3},
+	{Name: "Forsaken Monument", Count: 3}, {Name: "Wild Growth", Count: 3}, {Name: "Sol Ring", Count: 2},
+	{Name: "Forest", Count: 7}, {Name: "Plains", Count: 7},
+}
+
+// TestFourSeatAtkTaxTapExtraLockstep: four-seat attack-tax games with
+// tap-for-extra-mana statics play in lockstep, the window's tap floating the
+// extra mana.
+func TestFourSeatAtkTaxTapExtraLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxTapExtraDeck, 32, 20, 0, []string{"Forsaken Monument", "Wild Growth"},
+		[]string{"Sol Ring"}, &dirac.DebugAtkTaxNoExtra)
+}

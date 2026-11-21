@@ -105,3 +105,45 @@ func TestAttackTaxRefusesUnmodelledPartners(t *testing.T) {
 		})
 	}
 }
+
+// The tax walks refuse a table over an emblem or an override only when a card
+// of the table can make it: Table.Emblems and Table.Overrides are the pool's
+// (tableReach), so a pod without the creating card is not refused over a
+// record another deck interned.
+func TestAttackTaxReachIsCardPrecise(t *testing.T) {
+	tax := kop.CardDef{Name: "Half Tax", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbStatic,
+		Static: kop.Static{Kind: kop.StatAttackTax, A: 2, StFlags: kop.StAtkTaxPlayer}}}}
+	maker := kop.CardDef{Name: "Half Maker", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
+		Prog: []kop.Instr{{Op: kop.OpCreateEmblem, C: 1}}}}}
+	overrider := kop.CardDef{Name: "Half Overrider", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
+		Prog: []kop.Instr{{Op: kop.OpOverride, C: 1}}}}}
+	emblems := []kop.Emblem{{}, {Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}}
+	basic := kop.SubMask{}.With(0)
+	overrides := []kop.Override{{}, {AddSub: basic}}
+	for _, c := range []struct {
+		name    string
+		extra   []kop.CardDef
+		refused bool
+	}{
+		{"neither card", nil, false},
+		{"emblem maker", []kop.CardDef{maker}, true},
+		{"override maker", []kop.CardDef{overrider}, true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			tb := &kop.Table{Cards: append([]kop.CardDef{tax}, c.extra...), Emblems: emblems, Overrides: overrides, Subtypes: []string{"Forest"}}
+			g := &genPrep{blgOn: true}
+			for i := range g.ix {
+				g.ix[i] = arenaNone
+			}
+			for i := range g.blgSub {
+				g.blgSub[i] = subOutside
+			}
+			g.blgSub[4] = 0
+			prepAtkTax(tb, g)
+			if g.atkTaxStall != c.refused {
+				t.Errorf("atkTaxStall = %v, want %v", g.atkTaxStall, c.refused)
+			}
+			prepBlkTax(tb, g)
+		})
+	}
+}

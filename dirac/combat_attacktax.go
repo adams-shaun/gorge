@@ -84,6 +84,10 @@ var DebugAtkTaxReflPin bool
 // battlefield order, not between them and the fixed-production ones.
 var DebugAtkTaxPaidLast bool
 
+// DebugAtkTaxNoExtra (test only, TestFourSeatAtkTaxTapExtraLockstep): the
+// window's tap floats no StatTapExtra mana beside the source's own.
+var DebugAtkTaxNoExtra bool
+
 // The window's census passes (gorge attackManaSources): the free
 // fixed-production sources, then the paid-cost ones windowManaUnitsPaid
 // appends (a self-sacrifice, a fixed life cost), then the choice-shaped ones
@@ -105,24 +109,19 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 	if !g.anyAtkTax {
 		return
 	}
-	g.atkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || g.blgOn || g.manaTaps
+	r := tableReach(t)
+	g.atkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps
 	for i := range t.Cards {
 		g.atkTaxStall = g.atkTaxStall || atkTaxGap(&t.Cards[i])
 	}
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack {
-				g.atkTaxStall = true
-			}
-		}
-	}
+	g.atkTaxStall = g.atkTaxStall || r.mustAttackEmblem(t, false)
 }
 
 // atkTaxGap reports whether card c holds a part the attack-tax walk does not
 // model: a mana ability of another shape than atkTaxManaAb's, one an effect
 // grants (a latent mana ability), an activated ability adding mana, an
 // attack requirement (a MustAttack or Goad static, a goad, an attack duty),
-// "can't attack alone", a Taps watcher, a tap-for-extra-mana static, or mana
+// "can't attack alone", a Taps watcher, or mana
 // that outlives the step (PersistentMana$, an Effect's UnspentMana).
 func atkTaxGap(c *kop.CardDef) bool {
 	if c.AloneAtk {
@@ -148,7 +147,7 @@ func atkTaxGap(c *kop.CardDef) bool {
 			nMana++
 		case kop.AbStatic:
 			switch a.Static.Kind {
-			case kop.StatMustAttack, kop.StatGoad, kop.StatTapExtra:
+			case kop.StatMustAttack, kop.StatGoad:
 				return true
 			}
 		case kop.AbTriggered:
@@ -787,7 +786,14 @@ func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, col, n, pass int) int {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
-	return s.atkTaxAddMana(k, p, sl, col, n)
+	pend := s.atkTaxAddMana(k, p, sl, col, n)
+	if !DebugAtkTaxNoExtra {
+		// the tap's TapsForMana triggers resolve with the tap (CR 605.4a;
+		// gorge resolveManaAbilityRefOriginal): a StatTapExtra carrier's mana
+		// floats beside it, uncounted in the budget (attackSourceUnits)
+		s.addExtraPick(k, p, sl, s.manaPCGen(k, sl), col)
+	}
+	return pend
 }
 
 // atkTaxIsPaid reports whether the source at sl is a self-sacrifice source.

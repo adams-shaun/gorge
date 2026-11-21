@@ -56,7 +56,8 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	if !g.anyBlkTax {
 		return
 	}
-	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || g.blgOn || g.manaTaps ||
+	r := tableReach(t)
+	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || r.landGrantLive(t, g) || g.manaTaps ||
 		g.anyMinBlk || g.anyAloneBlk || g.anySuspect ||
 		// the arena masks, not anyLure/anyMustBlock: those are set before
 		// prepArena fills g.ix, so they hold on every table
@@ -64,13 +65,7 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		g.blkTaxStall = g.blkTaxStall || blkTaxGap(&t.Cards[i])
 	}
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatMustAttack || blkTaxFloorStatic(a)) {
-				g.blkTaxStall = true
-			}
-		}
-	}
+	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true)
 	for i := range t.Overrides {
 		g.blkTaxStall = g.blkTaxStall || t.Overrides[i].AddKw&kop.KwMenace != 0
 	}
