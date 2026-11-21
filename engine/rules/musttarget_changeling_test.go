@@ -9,6 +9,31 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
+// TestMustTargetChangelingIsFlagbearer: a Changeling is every creature type
+// (CR 702.73a), so Avian Changeling is a Flagbearer and an opponent's Bolt
+// must target it while Grizzly Bears stay unoffered.
+func TestMustTargetChangelingIsFlagbearer(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	guard := lookup(t, reg, "Coalition Honor Guard")
+	ling := lookup(t, reg, "Avian Changeling")
+	bears := lookup(t, reg, "Grizzly Bears")
+	bolt := lookup(t, reg, "Lightning Bolt")
+
+	e, _ := corpusEngineCfg(t, reg, []*cards.Card{guard, ling, bears}, []*cards.Card{bolt})
+	l := moveByName(t, e, 0, "Avian Changeling", state.ZBattlefield)
+	bear := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	moveByName(t, e, 0, "Coalition Honor Guard", state.ZBattlefield)
+	md := &decision.Decision{Player: 1, Kind: decision.KTarget, Min: 1, Max: 1,
+		Options: []decision.Option{{Index: 0, Kind: "obj", Obj: bear}, {Index: 1, Kind: "obj", Obj: l}}}
+	if e.hasType(e.G.Obj(l), "Creature.Flagbearer") {
+		t.Fatal("precondition: the bare-type read must not see the Changeling as a Flagbearer")
+	}
+	e.applyMustTarget(md, &pendingCast{player: 1, ability: -1})
+	if len(md.Options) != 1 || md.Options[0].Obj != l {
+		t.Fatalf("an opponent's spell must target the Changeling Flagbearer only: %+v", md.Options)
+	}
+}
+
 // CR 702.73a: a changeling is every creature type, so it is a Flagbearer and
 // an opponent's targeting may choose it as the Flagbearer the rule demands
 // (Coalition Honor Guard beside a Changeling Outcast).
