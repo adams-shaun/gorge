@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,6 +13,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+var dbgAbsVis = true // TEMP debug: restored to the env read before commit
+
+func pBoard(e *Engine, p state.PlayerID) string {
+	s := ""
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		s += fmt.Sprintf("%s(t=%v,ct=%s) ", o.Face().Name, o.Tapped, o.ChosenType)
+	}
+	return s
+}
 
 // manaSection is the walk's mana-activation section, extracted verbatim from
 // battlefieldWalk (design
@@ -436,6 +448,14 @@ func (w *legalWalk) battlefieldWalk() {
 						// offered, and the ability is withheld only when NEITHER cost is
 						// payable.
 						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
+						if dbgAbsVis && o.Face().Name == "Absorb Vis" {
+							ok1 := w.offerCastable(p, id, cost, abilityScope(ab), true)
+							ok2 := false
+							if !ok1 {
+								ok2 = w.autoPayOffer(p, id, i, cost, ab)
+							}
+							fmt.Fprintf(os.Stderr, "absvis gate %p ask=%v p%d id%d z%d printedOK=%v autopayOK=%v pool=%v turn=%d step=%d stack=%d board=%v\n", e, w.ask, p, id, z, ok1, ok2, e.G.Players[p].Pool, e.G.Turn, e.G.Step, len(e.G.Stack), pBoard(e, p))
+						}
 						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {

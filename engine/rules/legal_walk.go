@@ -18,6 +18,7 @@ import (
 type legalWalk struct {
 	e   *Engine
 	p   state.PlayerID
+	ask bool // dbgAbsVis diagnostic: the walk feeds a posed priority ask
 	hyp *state.Mana // read only through pricing
 	// gates counts the walk's reads of its pricing pool (pricing): the
 	// block reuse below (walk_block_reuse.go) treats a block that read none

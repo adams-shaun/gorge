@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -128,6 +131,9 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 	// chain heads (legalActionWalks is not copied by Clone and never reaches
 	// a view, an option list or a log).
 	e.legalActionWalks++
+	if dbgAbsVis {
+		fmt.Fprintf(os.Stderr, "legalwalk p%d turn=%d step=%d pool=%v stack=%d hyp=%v board=%v\n", p, e.G.Turn, e.G.Step, e.G.Players[p].Pool, len(e.G.Stack), hyp, pBoard(e, p))
+	}
 	// The walk is a pure read, so every Derived it makes is memoized for the
 	// walk's duration (engine/rules/derivedmemo.go).
 	e.beginDerivedMemo()
@@ -154,6 +160,7 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 	w := &legalWalk{
 		e:             e,
 		p:             p,
+		ask:           forAsk,
 		hyp:           hyp,
 		castsOnly:     castsOnly,
 		sorcery:       e.sorcerySpeed(p),

@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"fmt"
+	"os"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -32,6 +34,9 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		return false // nothing to tap: the pool is already the bound.
 	}
 	bound := *w.autoBound
+	if dbgAbsVis && base.Generic == 1 && base.Colored[2] == 1 && base.Colored.Total() == 1 {
+		fmt.Fprintf(os.Stderr, "autopay %p p%d id%d pool=%v bound=%v poolUnits=%d boundUnits=%d\n", w.e, p, id, w.e.G.Players[p].Pool, bound, w.e.G.Players[p].Pool.Total(), bound.Total())
+	}
 	probe := base
 	if !w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &bound) {
 		return false
