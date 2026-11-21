@@ -283,6 +283,7 @@ func TestForcedIsDeterministicAndCacheExact(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	forced := 0
 	for i, r := range measureRoots(t, 4) {
 		run := func(cache int) Result {

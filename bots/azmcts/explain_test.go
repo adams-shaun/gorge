@@ -66,6 +66,7 @@ func rowEqual(a, b explain.Row) bool {
 // the opponent's, reads negative at one of the two. (The [0,1] -> [-1,1]
 // scaling itself is TestNoteSearchConvertsUnits'.)
 func TestNoteValuesAreTheDecidingSeatsAtAKnownWin(t *testing.T) {
+	t.Parallel()
 	won := map[int]bool{}
 	for g := uint64(0); g < 8 && !(won[0] && won[1]); g++ {
 		azSeat := int(g % 2)
