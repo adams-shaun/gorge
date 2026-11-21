@@ -82,8 +82,13 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	// afford a credited residual the census refuses, and a Thalia-style
 	// increase prices the offer the cast must pay
 	cost = s.adjustCost(k, p, c, o, cost)
-	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) ||
-		s.painCastAffords(k, p, &cost)
+	winOK := s.affordsFor(k, p, &cost)
+	painOK := s.painCastAffords(k, p, &cost)
+	ok := winOK || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) || painOK
+	println("DBG", winOK, painOK, credited, k.painMana)
+	if ok && winOK && !painOK && !credited && s.madnessPainDenied(k, p, o, &cost) {
+		return false
+	}
 	var stall uint8
 	if !ok {
 		if credited {
@@ -138,6 +143,24 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		return false
 	}
 	return s.spellTargetsFeasible(k, c, p)
+}
+
+// madnessPainDenied: the unless-window census affordsFor reads lists a
+// pain-only source (Centaur Garden's "{T}: Add {G}. It deals 1 damage to you")
+// with no lethal guard, but gorge's askMadnessCast gate drops the offer when
+// its planner finds the cost insufficient and the census is complete
+// (provenUnpayable): the planner never takes a payment whose damage would
+// kill its payer (CR 119.4; payment_plan.go's lethal guard). The window read
+// alone afforded the cost, the planner's census (painCastAffords, lethal
+// guard included) does not, and no gap stands in the proof's way.
+func (s *State) madnessPainDenied(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	println("DBG2", k.painMana, k.gen != nil && k.gen.anyCondSplit, k.gen != nil && k.gen.anyFilt, s.scriptTapsDefer(k, p).any(), s.sacOtherManaLive(k, p))
+	if !k.painMana || k.gen != nil && (k.gen.anyCondSplit || k.gen.anyFilt) || s.scriptTapsDefer(k, p).any() || s.sacOtherManaLive(k, p) {
+		return false
+	}
+	complete, _, _ := s.madnessDeferProofClass(k, p, o)
+	println("DBG complete", complete)
+	return complete
 }
 
 // madnessDeferProofClass classes p's census gaps for the creditless madness
