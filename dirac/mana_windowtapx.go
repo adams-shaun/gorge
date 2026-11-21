@@ -175,6 +175,9 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 
 // windowTapXCol is the colour the window's source sl makes (windowCol).
 func (s *State) windowTapXCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, anyColor, noOwed bool) uint8 {
+	if col, ok := s.windowSacTapOwed(k, p, sl, cost); ok {
+		return uint8(col) // the window's answer takes sl's owed later sac-tap ability (mana_sactapwin.go)
+	}
 	pc := &k.cards[s.cardAt(sl)]
 	if k.gen != nil {
 		pc = s.manaPCGen(k, sl)
