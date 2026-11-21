@@ -197,11 +197,16 @@ func builtinsPlanner(t *testing.T) func(seat.Seat) any {
 // found by the contract's pre-pass and re-verified in both matches). The az
 // seat's whole world source is a redeal over the honest root, so a root that
 // depended on the real hidden cards would deal different worlds — and search
-// them to different answers — in the two matches. This row is the only az
-// driver in the binary's parallel set, so the package-level azmcts.Watch hook
-// belongs to it alone.
+// them to different answers — in the two matches.
+//
+// Serial, not t.Parallel: the probe counts diagnostics on the process-wide
+// azmcts.Watch hook, so any az search running beside it (the paired-bot and
+// closed-policy games run in parallel since #3000) adds diagnostics to its
+// windows. 11-21 batch #3234: the pre-pass then took a foreign search for the
+// seat's own and chose seq 40, which neither match searched ("searched
+// false/false"). Serial tests run before any parallel test starts, so this
+// row's hook sees its own seat's searches alone.
 func TestHostedEnvSeatsIgnoreTheRealHiddenCardsAZRedeal(t *testing.T) {
-	t.Parallel()
 	probe, restore := azWatchProbe()
 	defer restore()
 	RunEnvLeakContract(t, EnvLeakContract{
