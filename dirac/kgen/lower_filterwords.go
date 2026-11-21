@@ -112,6 +112,8 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithFlashback), true
 	case "withInfect":
 		return int(kop.W7WithInfect), true
+	case "withoutFlanking":
+		return int(kop.W7WithoutFlanking), true // the flanking trigger's blocker filter (CR 702.25a)
 	case "withDevoid":
 		return int(kop.W7WithDevoid), true // the same read for Devoid (a spell restriction's Spell.withDevoid)
 	case "withSkulk":
