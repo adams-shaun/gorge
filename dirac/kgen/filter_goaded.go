@@ -11,35 +11,24 @@ func (c *lClause) goadedWord(n int) error {
 	return c.setCmp(cmpGoaded, 0, n, "", "")
 }
 
-// filterReadsGoaded reports whether any clause of f is the IsGoaded word
-// (either sign).
-func filterReadsGoaded(f *lFilter) bool {
-	if f == nil {
-		return false
-	}
-	for _, c := range f.Clauses {
-		if c.CmpStat == cmpGoaded {
-			return true
-		}
-	}
-	return false
-}
-
 // departedFilterRefusal refuses the filter words a battlefield-origin
 // ChangesZone trigger (a dies / leaves trigger) cannot read the way gorge
 // does: gorge matches the move on the last-known-information object.
 //   - IsSuspected: the LKI record carries no arena designation bit.
-//   - IsGoaded: gorge clears Object.Goads on the zone move, so its match reads
-//     the departed creature as not goaded while the kernel reads the goad it
-//     still held (CR 603.10a would fire the trigger; gorge first).
 //   - !blocking: isBlocking reads the live object's record and the attackers'
 //     BlockedBy lists; the kernel's off-battlefield W7NotBlocking always holds.
+//
+// IsGoaded is NOT refused: gorge matches the move on the LKI object's goad
+// records (trigmatch/zone.go's look-back pass reads the LKI's Goads and binds
+// StaticallyGoadedWithLKI for the static route), and the kernel reads the goad
+// the permanent still holds at its removal-point Dies firing (fireToGraveDies
+// / fireLeave's Dies arm: the permanent is still on the battlefield with every
+// characteristic the dies event reads). CR 603.10a's look-back, the same read
+// on both sides.
 func departedFilterRefusal(f *lFilter) error {
 	switch {
 	case filterReadsSuspected(f):
 		return refuse("IsSuspected in a battlefield-origin ChangesZone ValidCard$")
-	case filterReadsGoaded(f):
-		return refuse("IsGoaded on a departed object: gorge clears Goads on the zone move")
 	case filterReadsNotBlocking(f):
 		return refuse("!blocking in a battlefield-origin ChangesZone ValidCard$")
 	}
