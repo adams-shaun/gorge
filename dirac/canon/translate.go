@@ -191,8 +191,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("evoked")
 			return Pack(ActCast, src, RefNone, cm)
 		}
-		if mode == 0 && tgt == 4 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
-			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt):
+		if mode == 0 && tgt == 4 && dashCastOrigin(r.S.ObjZone(dirac.Obj(src))) {
+			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt), from
+			// the hand or a commander's command zone (offerDashCommand):
 			// gorge's "dashed" cast option, AltCostIndex 0
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
@@ -1245,3 +1246,7 @@ func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
 	code, _ := ChooseCode("band")
 	return Pack(ActChoose+CanonKind(code), src, RefNone, 0), true
 }
+
+// dashCastOrigin reports whether z is a zone the kernel offers a dashed cast
+// from: the hand, or a commander's command zone (kw_dash.go).
+func dashCastOrigin(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
