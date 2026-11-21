@@ -304,7 +304,23 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		// made after the source's whole ability list has been read.
 		var postAlts []windowManaAlt
 		for _, ma := range e.castWindowProbeAbilities(p, id) {
-			mp := effects.ManaOf(ma)
+			// A Condition-split ability whose root gate provably fails makes
+			// its sub's mana instead (mana_condsplit.go). The shared census
+			// swaps in the sub's production only while it can price it
+			// deterministically and drops the unit otherwise (a lucky Gemstone
+			// Caverns' "instead add one mana of any color"), so this probe
+			// reads the sub here: exactly the choice-shaped source this layer
+			// exists to price, one alt per colour, the activation's colour ask
+			// makes it concrete. The activation COST and the spend restriction
+			// stay the root's; a plain sub the census already priced falls to
+			// the free-plain-literal skip below, so nothing is counted twice.
+			prod := ma
+			if effects.ManaOf(ma).RestrictValid == "" {
+				if sub := condSplitLiveSub(e, p, id, ma); sub != nil && condSplitRootSuperseded(e, p, id, ma, sub) {
+					prod = sub
+				}
+			}
+			mp := effects.ManaOf(prod)
 			restricted := mp.RestrictValid != ""
 			if restricted {
 				if !descRead {
@@ -382,7 +398,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				selfSac = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
 				post = selfSac && !cost.Tap
 			}
-			amt, ok := e.castWindowAmount(p, id, o, ma)
+			amt, ok := e.castWindowAmount(p, id, o, prod)
 			if !ok {
 				continue
 			}
@@ -441,7 +457,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					if effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen && !mp.AnyDifferent {
 						if combos := windowAnyCombinations(counts, amt); combos != nil {
 							for _, combo := range combos {
-								alt := windowManaAlt{Ma: ma, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+								alt := windowManaAlt{Ma: prod, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
 								if post {
 									postAlts = append(postAlts, alt)
 								} else {
@@ -457,7 +473,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 						}
 						var single [6]int32
 						single[colour] = 1
-						alt := windowManaAlt{Ma: ma, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+						alt := windowManaAlt{Ma: prod, Counts: single, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
 						if post {
 							postAlts = append(postAlts, alt)
 						} else {
@@ -466,7 +482,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					}
 					continue
 				}
-				alt := windowManaAlt{Ma: ma, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+				alt := windowManaAlt{Ma: prod, Counts: counts, Amt: amt, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
 				if post {
 					postAlts = append(postAlts, alt)
 				} else {
