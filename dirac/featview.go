@@ -955,6 +955,12 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		if sl == ex || skip.has(sl) {
 			continue
 		}
+		// A gained CR 305.6 intrinsic (Marvin, Murderous Mimic's
+		// GainsAbilitiesOf$ beside an animated Forest, CR 613.1f) is one of
+		// gorge's census units beside the slot's own and without it
+		// (ungrGainedIntr), so it is credited before the own-unit skips below
+		// withhold the slot.
+		s.ungrGainedIntr(k, p, sl, av, ms)
 		granted := s.grantMay(k, sl) && s.manaGranted(k, sl)
 		if granted && !s.landSetLost(k, sl) {
 			s.gainedIntrinsicAvail(k, sl, av) // the one granted ability the planner lists (mana_gainedgrants.go)
