@@ -1464,8 +1464,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if pw <= 0 {
 			continue
 		}
-		if s.blockedTwo(b) {
-			s.blockerTwoDamage(k, &r, b, pw) // CR 510.1d (combat_extrablock.go)
+		if s.blockedMany(b) {
+			s.blockerMultiDamage(k, &r, b, pw) // CR 510.1d (combat_extrablock.go)
 			continue
 		}
 		a := bp.blocking
