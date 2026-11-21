@@ -2277,9 +2277,20 @@ func (s *State) takePending(k *prep, i int) {
 	// resolves doing nothing to the new object (CR 400.7: resolveDelayed and
 	// resolveTrig check the version), as gorge's resolveTop does.
 	*s.bld() = build{e: stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
-		trigObj: pt.trigObj, trigPl: pt.trigPl, trigSA: pt.trigSA, trigSASid: pt.wardSid, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany), defSeat: pt.defSeat}}
+		trigObj: pt.trigObj, trigPl: pt.trigPl, trigSA: pt.trigSA, trigSASid: pt.wardSid, trigAmt: pt.trigAmt, li: pt.li, remVer: pt.remVer, remSet: pt.skw&skwRem != 0, x: pt.x, trigMV: pt.trigMV, grp: pt.grp, skw: pt.skw &^ (skwRem | skwMany | skwAtkPl | skwAtkCtrl), defSeat: pt.defSeat}}
 	if pt.skw&skwMany != 0 {
 		s.dpManyVers(&s.bld().e)
+	}
+	if pt.skw&skwAtkPl != 0 {
+		// the bound attack was on a player (combat.go fireAttacksGen): the
+		// entry keeps it in mode, outside settleSrcKw's reach, so a trigger
+		// whose attacker leaves before it resolves still damages the
+		// defending player (CR 603.3c, 608.2h); seAtkCtrl beside it, the
+		// attack was on the trigger's own controller, keeps the stall
+		s.bld().e.mode |= seAtkPlayer
+		if pt.skw&skwAtkCtrl != 0 {
+			s.bld().e.mode |= seAtkCtrl
+		}
 	}
 	s.bld().e.tgt = noTargets
 	if pt.trigSA != 0 {
