@@ -2667,6 +2667,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
 	ko.UntilUpkeep = o.UntilUpkeep
 	ko.WhileTapped = o.WhileTapped
+	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
 	ko.Banding = o.Banding
 	ko.NoCost = o.NoCost
