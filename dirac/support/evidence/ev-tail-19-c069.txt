@@ -2,6 +2,5 @@ Forest
 Island
 Mountain
 Plains
-Reason
 Redirect
 Swamp
