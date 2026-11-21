@@ -749,7 +749,7 @@ func (s *State) applyAskPauperkw(k *prep, a Action) bool {
 	}
 	if s.objs[o].zone == kop.ZoneExile {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneGraveyard, false, from, false) // gorge madnessDeclined
+		s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false) // gorge madnessDeclined
 	}
 	return true
 }

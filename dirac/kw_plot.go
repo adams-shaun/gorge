@@ -208,7 +208,7 @@ func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 func (s *State) payAndExile(k *prep, p uint8, o Obj, cost kop.ManaCost) {
 	s.payHandSpecial(k, p, cost, o)
 	from := s.detach(o)
-	s.placeFrom(o, kop.ZoneExile, false, from, false)
+	s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 }
 
 // offerPlotCasts offers p's plotted cards' free cast from exile (gorge

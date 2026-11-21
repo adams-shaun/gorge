@@ -14,7 +14,7 @@ import (
 //go:noinline
 func (s *State) cycleDiscard(k *prep, o Obj, x uint8) {
 	from := s.detach(o)
-	s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
+	s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false)
 	s.noteDisc(o) // value_discardedthisturn.go
 	if k.mayhem {
 		s.mayhemMark(k, o) // kw_mayhem.go

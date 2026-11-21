@@ -112,7 +112,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
-		s.noteEnter(o, kop.ZoneBattlefield, from, false)
+		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
 	if s.typesGen(k, sl)&kop.TLand == 0 {
 		s.stashClr(k, o) // only a land played from exile keeps its stash counter (gorge)
@@ -622,7 +622,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 		if toHand {
 			if x.zone == kop.ZoneExile {
 				from := s.detach(l.obj)
-				s.placeFromK(k, l.obj, kop.ZoneHand, false, from, false)
+				s.placeFromK(k, l.obj, kop.ZoneHand, false, from, false, false)
 			}
 			continue
 		}

@@ -34,7 +34,7 @@ func TestExileCounterStoreVersionDrop(t *testing.T) {
 
 	// Leave exile and come back by a plain move: no replacement runs, and the
 	// old counter must not attach to the new object.
-	s.placeFromK(k, bear, kop.ZoneHand, false, kop.ZoneExile, false)
+	s.placeFromK(k, bear, kop.ZoneHand, false, kop.ZoneExile, false, false)
 	if z := s.objs[bear].zone; z != kop.ZoneHand {
 		t.Fatalf("the bear is in zone %d, want the hand", z)
 	}
@@ -44,7 +44,7 @@ func TestExileCounterStoreVersionDrop(t *testing.T) {
 	if n := s.exileCounters(bear, kop.CtrVoid); n != 0 {
 		t.Fatalf("the bear in the hand still reports %d exile VOID counters", n)
 	}
-	s.placeFromK(k, bear, kop.ZoneExile, false, kop.ZoneHand, false)
+	s.placeFromK(k, bear, kop.ZoneExile, false, kop.ZoneHand, false, false)
 	if z := s.objs[bear].zone; z != kop.ZoneExile {
 		t.Fatalf("the bear is in zone %d, want exile again", z)
 	}

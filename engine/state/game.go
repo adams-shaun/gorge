@@ -723,6 +723,18 @@ type ZoneEntry struct {
 	// a land animated later that turn did not enter as a creature. False for
 	// every other entry.
 	WasCreature bool
+	// LeftCounters is, for a battlefield departure (From == ZBattlefield),
+	// the counters the permanent carried as it left the battlefield, in
+	// Object.Counters' order (Forge keeps the moved card's latest state with
+	// each zone entry, GameAction's lastKnownInfo: "the modified state of
+	// the card is also reported here"; the LKI copy carries the counters,
+	// never the attachment lists). The object itself has lost them since:
+	// Move clears the counters (CR 400.7), and a persist or undying return
+	// adds a counter to the re-entered permanent that it did not carry when
+	// it died. Folded by events.Apply's MoveZone case from the pre-move
+	// object, so a replay derives the identical slice. Nil for every other
+	// entry.
+	LeftCounters []Counter
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
@@ -1218,7 +1230,10 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 	// Entered is appended to in place by every Move (one entry per zone
 	// entry this turn), so a clone must own its own copy -- sharing the
 	// backing array would let either evolve and corrupt the other (the same
-	// rule as Delayed below and Stack above).
+	// rule as Delayed below and Stack above). The structs' LeftCounters
+	// slice is the one shared part, and safely: the fold copies it out of
+	// the object's live counters and nothing writes an entry's counters
+	// after the patch that lands with the append.
 	c.Entered = append([]ZoneEntry(nil), g.Entered...)
 	// EnteredLastTurn is appended to at every TurnChange, so a clone owns
 	// its own copy -- the same rule as Entered just above.
