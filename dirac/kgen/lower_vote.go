@@ -28,11 +28,13 @@ import (
 //     GenericChoice shape).
 //
 // A fixed-list Vote on a triggered ability whose StoreVoteNum$ is absent
-// still refuses by name. It used to refuse because gorge's placement ask
-// treated a triggered Vote's Choices$ as modal and posed a spurious CR 603.3c
-// mode choice before the trigger went on the stack; gorge no longer does
-// (engine/rules askTriggerModes returns false for a Vote), so the StoreVoteNum$
-// form lowers as the plain vote and the refusal is only the unproven shape.
+// refuses by name: this lowering admits only the StoreVoteNum$ trigger form
+// the pools exercise (gorge stopped posing a placement mode for a triggered
+// Vote in ceace7cc00, so the plain form would lockstep the same way -- it
+// just has no coverage here yet, and is admitted by its own change). The
+// StoreVoteNum$ form resolves the vote once at trigger resolution: no
+// placement ask on either side, the ballot asked per voter exactly as the
+// spell shape does.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
 // the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
@@ -140,21 +142,17 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		}
 	}
 	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
-	if lc.ab.Kind == akTriggered {
-		if !store {
-			// not admitted: no carrier of this shape is lockstep-tested
-			return refuse("Vote on a triggered ability: gorge asks a spurious placement mode")
-		}
-		if lc.ab.Modes != 0 {
-			return refuse("Vote on an ability that is already modal")
-		}
-		return lc.emitFixedVote(names, tie, store)
-	}
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
 		// VoteTiedAbility$ beside StoreVoteNum$ never resolves; do not hide
 		// a shape the corpus does not carry.
 		return refuse("Vote StoreVoteNum$ beside VoteTiedAbility$")
+	}
+	if lc.ab.Kind == akTriggered && !store {
+		// Only the StoreVoteNum$ trigger form is admitted: the plain form has
+		// no lockstep coverage yet (gorge no longer poses a placement mode
+		// for a triggered Vote, so it would lower like the spell shape).
+		return refuse("Vote on a triggered ability without StoreVoteNum$")
 	}
 	return lc.emitFixedVote(names, tie, store)
 }
