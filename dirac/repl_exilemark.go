@@ -841,3 +841,27 @@ func (s *State) runParkedDread(k *prep, o Obj) {
 func (s *State) sbaChainEnd(k *prep) {
 	s.mObjZero(k, mechSBAChain)
 }
+
+// loweringTap reports whether the live build is in the cast's pre-cast
+// lowering: the witness's sources activated at priority, before the push, as
+// gorge's script does one activation at a time. A sacrificed source whose move
+// competes (CR 616.1) has its order ask answered by that script, the first
+// option, inside the activation (leaveAskedFirst); nothing resumes after an
+// ask the lowering would park.
+func (s *State) loweringTap() bool {
+	if s.ctl != ctlBuild || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	return b.stage == bsPush && b.bfl&(bflLowered|bflPushed) == bflLowered
+}
+
+// leaveForMana moves a source sacrificed for mana to the graveyard: inside the
+// cast's lowering a competing move's order ask is the script's, answered first.
+func (s *State) leaveForMana(k *prep, sl Slot) {
+	if s.loweringTap() {
+		s.leaveAskedFirst(k, sl)
+		return
+	}
+	s.leave(k, sl, kop.ZoneGraveyard, false)
+}
