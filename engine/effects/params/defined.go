@@ -52,19 +52,21 @@ const (
 	RefImprintedLKI
 	RefActivePlayer
 	RefTriggeredSpellAbility
+	RefTriggeredCardController
 )
 
 // refKindText is each tagged selector's exact text, indexed by its kind.
 var refKindText = [...]string{
-	RefSelf:                  "Self",
-	RefYou:                   "You",
-	RefRemembered:            "Remembered",
-	RefTargeted:              "Targeted",
-	RefParent:                "Parent",
-	RefImprinted:             "Imprinted",
-	RefImprintedLKI:          "ImprintedLKI",
-	RefActivePlayer:          "ActivePlayer",
-	RefTriggeredSpellAbility: "TriggeredSpellAbility",
+	RefSelf:                    "Self",
+	RefYou:                     "You",
+	RefRemembered:              "Remembered",
+	RefTargeted:                "Targeted",
+	RefParent:                  "Parent",
+	RefImprinted:               "Imprinted",
+	RefImprintedLKI:            "ImprintedLKI",
+	RefActivePlayer:            "ActivePlayer",
+	RefTriggeredSpellAbility:   "TriggeredSpellAbility",
+	RefTriggeredCardController: "TriggeredCardController",
 }
 
 // RefFlag is one compiled boolean fact of a reference.

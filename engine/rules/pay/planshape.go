@@ -559,7 +559,7 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 	var out PlanTapMana
 	switch ref := params.DefinedRefOf(body); {
 	case ref.Kind == params.RefAbsent || ref.Kind == params.RefYou:
-	case ref.Text == "TriggeredCardController":
+	case ref.Kind == params.RefTriggeredCardController:
 		out.ToTapped = true
 	default:
 		return PlanTapMana{}, false
@@ -605,14 +605,14 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 // Taps line defers the source and whose tap floats it (addGatedExtra).
 func PaymentPlanChosenTapMana(f *cards.Face, t cards.Trigger, chosen string) (PlanTapMana, bool) {
 	body := paymentPlanStaticTapManaBody(f, t, "Mana")
-	if body == nil || chosen == "" || !paymentPlanManaBodyParamsAllowed(body) {
+	if body == nil || len(chosen) == 0 || !paymentPlanManaBodyParamsAllowed(body) {
 		return PlanTapMana{}, false
 	}
-	if params.DefinedRefOf(body).Text != "TriggeredCardController" {
+	if params.DefinedRefOf(body).Kind != params.RefTriggeredCardController {
 		return PlanTapMana{}, false
 	}
 	mp := params.ManaOf(body)
-	if mp.Produced != "Chosen" || len(mp.Unread) != 0 {
+	if !mp.ProducedChosen || len(mp.Unread) != 0 {
 		return PlanTapMana{}, false
 	}
 	n := 1

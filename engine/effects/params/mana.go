@@ -44,6 +44,9 @@ type ManaParams struct {
 	CountsAny bool
 	// NeedsChosen is ProducedNeedsChosen(Produced$).
 	NeedsChosen bool
+	// ProducedChosen is Produced$ exactly "Chosen" (the carrier's recorded
+	// as-enters colour, one mana of it).
+	ProducedChosen bool
 
 	// Amount$ as written (numText), trimmed, and its strconv literal value
 	// (AmountIsLit false for a blank or non-literal amount).
@@ -140,6 +143,7 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.Produced = strings.TrimSpace(p.ProducedRaw)
 	p.Counts, p.CountsAny = cards.ProducedCounts(p.ProducedRaw)
 	p.NeedsChosen = ProducedNeedsChosen(p.ProducedRaw)
+	p.ProducedChosen = p.Produced == "Chosen"
 
 	amt, amtOK := sa.Param(cards.PKAmount)
 	p.Amount = ParamText{Text: amt, Present: amtOK}
