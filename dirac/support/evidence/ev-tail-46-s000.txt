@@ -21,6 +21,7 @@ Bygone Marvels
 Cache Grab
 Cackling Imp
 Call of the Wild
+Champion of the Perished
 Clay Revenant
 Coastal Tower
 Colossal Growth
@@ -109,6 +110,7 @@ Tempered Sliver
 Terra Stomper
 Tethered Skirge
 Thallid Devourer
+Thicket Elemental
 Tome of the Guildpact
 Toski, Bearer of Secrets
 Treefolk Harbinger

@@ -39,6 +39,7 @@ Borrowed Time
 Boundless Realms
 Bring Low
 Brotherhood Outcast
+Burr Grafter
 Butterbur, Bree Innkeeper
 Cabal Coffers
 Call the Cavalry
@@ -109,6 +110,7 @@ ED-E, Lonesome Eyebot
 Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
+Elrond, Lord of Rivendell
 Empyreal Voyager
 Emrakul's Influence
 Energy Flux

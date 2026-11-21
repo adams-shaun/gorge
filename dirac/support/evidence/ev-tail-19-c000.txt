@@ -76,6 +76,7 @@ Copper Myr
 Coppercoat Vanguard
 Coral Colony
 Cosmic Larva
+Countervailing Winds
 Cradle to Grave
 Crashing Footfalls
 Crop Sigil
@@ -152,6 +153,7 @@ Frost Trickster
 Gaea's Gift
 Galerider Sliver
 Giant Octopus
+Gigadrowse
 Glen Elendra Liege
 Glen Elendra Pranksters
 Glimmerpoint Stag
