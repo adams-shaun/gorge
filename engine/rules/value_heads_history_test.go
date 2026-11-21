@@ -219,7 +219,6 @@ var historyHeadCards = []string{
 var historyHeadsDeferred = map[string]string{
 	"Adipose Offspring": "count:Emerged",
 	"Spiny Starfish":    "count:RegeneratedThisTurn",
-	"Geometric Weird":   "count:MaxDistinctOnStack",
 	"Plague of Vermin":  "count:PlayerCountRemembered$SVarAmount",
 }
 

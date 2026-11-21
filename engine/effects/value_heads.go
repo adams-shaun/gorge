@@ -299,6 +299,7 @@ var modelledValueHeads = []string{
 	"Escaped",
 	"HasNumChosenColors",
 	"Devoured",
+	"MaxDistinctOnStack",
 	"SearchedLibrary",
 }
 

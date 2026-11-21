@@ -538,6 +538,13 @@ type Game struct {
 	// (Paradox Haze), the CombatsThisTurn/FirstCombat$ shape, so an extra
 	// upkeep cannot re-fire the trigger that granted it.
 	UpkeepsThisTurn int32
+	// MaxDistinctOnStackThisTurn is the turn's high-water mark of distinct
+	// SOURCES with an object on the stack at once (CR 405): a spell and its
+	// own ability count as one source, two abilities of one permanent as one.
+	// events.ApplyPtr raises it after a push, computing the distinct count
+	// only when the stack outgrows the previous mark, and TurnChange clears
+	// it. It backs Forge's Count$MaxDistinctOnStack (Geometric Weird).
+	MaxDistinctOnStackThisTurn int32
 	// ResolvedThisTurn counts, per resolving ability, how many times THAT
 	// ability has resolved this turn, INCLUDING the resolution whose tally is
 	// being read. It backs Forge's Count$ResolvedThisTurn (Sephiroth, Fabled
