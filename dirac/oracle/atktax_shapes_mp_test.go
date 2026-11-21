@@ -389,3 +389,23 @@ var atkTaxMustAttackDeck = []cardset.Entry{
 func TestFourSeatAtkTaxMustAttackLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxMustAttackDeck, 12, 20, 0, []string{"Bloodrock Cyclops"}, nil, &dirac.DebugAtkTaxRequiredPaid)
 }
+
+// A StatTapExtra carrier beside granted mana abilities: gorge fires the tap's
+// TapsForMana triggers for a granted ability's tap as for a printed one
+// (resolveManaAbilityRefOriginal), so Wild Growth's {G} floats with a Chromatic
+// Lantern-granted tap of the enchanted land and Badgermole Cub's {G} with a
+// Rishkar-granted tap of a creature. The mutation (DebugAtkTaxNoGrantExtra)
+// floats none for a granted tap.
+var atkTaxGrantedExtraDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Rishkar, Peema Renegade", Count: 3}, {Name: "Badgermole Cub", Count: 3}, {Name: "Wild Growth", Count: 2},
+	{Name: "Chromatic Lantern", Count: 2}, {Name: "Savannah Lions", Count: 3},
+	{Name: "Forest", Count: 7}, {Name: "Plains", Count: 7},
+}
+
+// TestFourSeatAtkTaxGrantedExtraLockstep: four-seat attack-tax games with
+// granted mana abilities beside tap-for-extra-mana statics play in lockstep.
+func TestFourSeatAtkTaxGrantedExtraLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxGrantedExtraDeck, 12, 20, 0, []string{"Badgermole Cub", "Wild Growth"},
+		nil, &dirac.DebugAtkTaxNoGrantExtra)
+}

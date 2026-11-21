@@ -89,6 +89,10 @@ var DebugAtkTaxPaidLast bool
 // costs mana.
 var DebugAtkTaxRequiredPaid bool
 
+// DebugAtkTaxNoGrantExtra (test only, TestFourSeatAtkTaxGrantedExtraLockstep):
+// the tap of a granted ability floats no StatTapExtra mana.
+var DebugAtkTaxNoGrantExtra bool
+
 // DebugAtkTaxNoGrant (test only, TestFourSeatAtkTaxGrantedLockstep): the
 // window lists no mana ability an effect grants.
 var DebugAtkTaxNoGrant bool
@@ -127,11 +131,10 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 }
 
 // atkTaxGrantGap reports whether the table's granted mana abilities (atkTaxAlts)
-// sit beside a part the walk reads them without: a StatTapExtra carrier (the
-// tap's extra rides the source's own ability, not the grant's) or a
-// GainsAbilitiesOf$ recipient's printed ability (an unchecked shape).
+// sit beside a part the walk reads them without: a GainsAbilitiesOf$
+// recipient's printed ability (an unchecked shape).
 func atkTaxGrantGap(g *genPrep) bool {
-	return len(g.grantOf) != 0 && (g.anyTapExtra || g.uses.has(useGainedMana))
+	return len(g.grantOf) != 0 && g.uses.has(useGainedMana)
 }
 
 // atkTaxGap reports whether card c holds a part the attack-tax walk does not
@@ -607,6 +610,7 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 type atkAlt struct {
 	col, n, pass int
 	granted      bool
+	gv           *pcard // a granted alternative's view (grantView)
 }
 
 // atkTaxGrantAb reports whether mana ability a, one an effect grants (a
@@ -650,7 +654,7 @@ func (s *State) atkTaxAlts(k *prep, sl Slot, out *[maxGrants + 1]atkAlt) (n int)
 		if a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
 			pass = atkPassFixed
 		}
-		out[n] = atkAlt{col: bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f), n: int(a.ManaN), pass: pass, granted: true}
+		out[n] = atkAlt{col: bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f), n: int(a.ManaN), pass: pass, granted: true, gv: s.grantView(k.gen, gi[i], sl)}
 		n++
 	}
 	return n
@@ -906,6 +910,9 @@ func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, al atkAlt) int {
 		s.manaTapped(k, sl)
 		s.poolAdd(p, col, n)
 		s.artTag(k, p, sl, col)
+		if !DebugAtkTaxNoExtra && !DebugAtkTaxNoGrantExtra {
+			s.atkTaxTapExtraPC(k, p, sl, al.gv, true)
+		}
 		return -1
 	}
 	if pass == atkPassPaid || DebugAtkTaxPaidLast && s.atkTaxIsPaid(k, sl) {
@@ -931,14 +938,23 @@ func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, al atkAlt) int {
 // without an all-at-once source's own rest (srcExtra's addOwnXv), which
 // atkTaxAddMana floated with the source's colours.
 func (s *State) atkTaxTapExtra(k *prep, p uint8, sl Slot) {
+	s.atkTaxTapExtraPC(k, p, sl, s.manaPCGen(k, sl), false)
+}
+
+// atkTaxTapExtraPC is atkTaxTapExtra for the tap through the ability pc
+// describes: sl's own or, granted set, a granted one (a tap known to happen,
+// srcExtraTapped).
+func (s *State) atkTaxTapExtraPC(k *prep, p uint8, sl Slot, pc *pcard, granted bool) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	pc := s.manaPCGen(k, sl)
 	if s.srcReflectPick(k, sl, pc) > 0 {
 		s.capFull(StallTapExtra)
 	}
 	xv, hit := s.srcExtraHit(k, sl, pc)
+	if granted {
+		xv, hit = s.srcExtraTapped(k, sl, pc, false)
+	}
 	if hit && (!s.tapExtraPlain(pc) || pc.painCol != 0 || xv == [kop.NumManaKinds]uint8{}) {
 		s.capFull(StallTapExtra)
 	} else {
