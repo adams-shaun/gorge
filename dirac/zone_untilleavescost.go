@@ -12,11 +12,28 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and priority (poseReturnCost, answerReturnCost).
 const preReturnCost uint8 = 8
 
+// DebugReturnLeaveNoAsk parks a returning card's choice only for a cost's
+// sacrifice (the pre-leave-game behaviour): a seat leaving the game then
+// returns the card it owned the exiler of without its as-enters choice.
+var DebugReturnLeaveNoAsk bool
+
+// returnParkable reports a control state a returning card's as-enters choice
+// parks from: a cost's sacrifice (ctlBuild), or a state-based departure, which
+// includes a seat leaving the game (CR 800.4a: the exiler it owned leaves, so
+// the card exiled until it leaves returns, CR 610.3), swept at a step's start or
+// at priority. gorge asks the choice there too, before the next priority.
+func (s *State) returnParkable() bool {
+	if s.ctl == ctlBuild {
+		return true
+	}
+	return !DebugReturnLeaveNoAsk && (s.ctl == ctlPriority || s.ctl == ctlStepBegin)
+}
+
 // parkReturnCost parks returning card ret's as-enters choice kind when its
 // source left as a cost paid outside a resolution. It reports whether the
 // card waits in exile.
 func (s *State) parkReturnCost(k *prep, srcCtrl uint8, o, ret Obj, kind uint8) bool {
-	if s.res.active || s.ctl != ctlBuild || s.g.pre.state != 0 || kind == akNameLook {
+	if s.res.active || !s.returnParkable() || s.g.pre.state != 0 || kind == akNameLook {
 		return false
 	}
 	s.g.pre = preAsk{obj: ret, kind: kind, state: preReturnCost}
