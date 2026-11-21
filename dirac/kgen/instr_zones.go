@@ -40,9 +40,13 @@ func (ic *instrCtx) opExile() error {
 			return err
 		}
 	}
-	if (in.Obj.Kind == rSelf || in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredSource) && fl["from"] == "Battlefield" {
-		// a triggering permanent that left before the exile resolved is
-		// a new object this ability cannot find (CR 400.7, 608.2b)
+	if fl["from"] == "Battlefield" {
+		// Origin$ Battlefield on any referent: only one still on the
+		// battlefield moves (gorge effChangeZone's Origin$ precondition).
+		// A triggering permanent that left before the exile resolved is a
+		// new object this ability cannot find (CR 400.7, 608.2b); an
+		// Enchanted/Equipped referent reads as LastBearer off the
+		// battlefield (CR 608.2h) and does not move either.
 		ki.C |= kop.MvFromBattlefield
 	}
 	if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
