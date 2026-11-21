@@ -2291,6 +2291,9 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
 				return true
 			}
+			if witnessCostRepriced(c, e, p, o, plan) {
+				return true
+			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
 				return false
 			}
@@ -2327,6 +2330,62 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 	ok := visit(root, 0, e.G.Players[p].Pool, 0)
 	pool.hypRelease(root)
 	return ok
+}
+
+// costTotal is a PaymentCost's mana value in units (CR 202.3): the generic
+// part plus every coloured unit.
+func costTotal(c decision.PaymentCost) int {
+	n := int(c.Generic)
+	for _, u := range c.Mana {
+		n += int(u)
+	}
+	return n
+}
+
+// witnessCostRepriced is the replay's consuming-cost arm, beside
+// witnessAnnouncesBeforePaying's target one: some step of plan sacrifices (or
+// returns) a permanent one of the play's own cost statics counts -- a
+// Treasure token's mana paying an affinity discount away -- so the menu the
+// re-ask poses at the payment's end recomputes a HIGHER price than the
+// payment locks. CR 601.2f orders it the other way: the total cost is
+// determined at the announcement -- the state the replay started from
+// (start), before the plan's steps -- and is paid as determined, so the end
+// menu's recomputed price cannot refuse an announcement the plan already
+// priced and validates. The replay has proved the plan's steps run and float
+// the payment's mana (the pool at the end is the floated one, the play not
+// yet announced); accept when every refusal reason but the price is ruled
+// out: the recomputed price (CastPaymentCost at the end) is strictly above
+// the locked one, the play's targets all survive the payment (the target arm
+// above owns a lost one), the recomputed price is payable in isolation (an
+// unbounded pool pays it, so the end refusal is the floated mana, not a
+// gate) and the locked price is payable from that floated pool. Plain casts
+// only: a Mode prices its own charge.
+func witnessCostRepriced(end, start *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	if o.Kind != "cast" || o.Mode != "" {
+		return false
+	}
+	obj := end.G.Obj(o.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	endCost, ok := end.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(endCost) <= costTotal(plan.Cost) {
+		return false
+	}
+	if sa := obj.Face().SpellAbility(); sa != nil && !end.castTargetsAvailable(p, o.Obj, sa) {
+		return false
+	}
+	var locked Cost
+	locked.Generic = int32(plan.Cost.Generic)
+	for i := range locked.Colored {
+		locked.Colored[i] = int32(plan.Cost.Mana[i])
+	}
+	if !pay.PayMana(asPayer(end), p, locked) {
+		return false
+	}
+	base := pay.WithSpellAbilityExtras(obj.Face(), end.castOfferBase(p, o.Obj))
+	hyp := state.Mana{1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28}
+	return end.offerCastableUsing(end.collectCostStatics(), p, o.Obj, &base, spellScope(""), false, &hyp)
 }
 
 // PotentialPlayScript is the exact fallback for a potential play the
