@@ -109,6 +109,33 @@ func (e *Engine) grantSpellBlessing(o *state.Object, f *cards.Face) {
 		Text: "city's blessing"})
 }
 
+// blessScanner is the narrow surface blessBeforeTriggers needs: the Engine's
+// blessing scan (a free func over a narrow interface, not an Engine method).
+type blessScanner interface {
+	checkBlessingGrants()
+}
+
+// blessBeforeTriggers runs the city's blessing scan on the events that can
+// push a seat's permanent count over ten, immediately BEFORE the event's
+// trigger check. CR 702.131b grants the blessing "any time" a seat controls
+// ten or more permanents, and CR 702.131d orders the timing: "After a player
+// gets the city's blessing, continuous effects are reapplied before the game
+// checks to see if the game state or preceding events have matched any
+// trigger conditions." The BlessingChange the scan emits re-derives the
+// layers, so an entry that GRANTS the blessing is matched at its blessed
+// P/T: Dusk Charger entering as the tenth permanent triggers Garruk's
+// Uprising's powerGE4 entry watcher at 5, not 3 (dr-mbc-abaa pair 176,
+// projection NStack). The hook block in Engine.emit's post-fold tail (and
+// the SBA pass, engine/rules/sba.go) still reach the entries a mid-emit
+// pre-check cannot see.
+func blessBeforeTriggers(e blessScanner, ev events.Event) {
+	if (ev.Kind == events.MoveZone && ev.To == state.ZBattlefield) ||
+		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
+		ev.Kind == events.ControlChange {
+		e.checkBlessingGrants()
+	}
+}
+
 // ascendScan is checkBlessingGrants' amortised pre-filter. The scan below
 // reads every permanent's DERIVED keywords, and the post-fold hook runs it on
 // every token mint: a Krenko, Mob Boss / Horn of Gondor batch of N tokens
