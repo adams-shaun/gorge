@@ -31,7 +31,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DealDamageFrom): a static prevention table is never replPlusOnly, since that
 // protocol discards the answer. A table that also has any other
 // damage replacement (or a self-damage one) is refused at its start
-// (initStall: staticPrevStall), since the kinds do not commute.
+// (initStall: staticPrevStall), since the kinds do not commute; the one pair
+// lifted is a combat-only scoped Effect record (Arachnogenesis), whose full
+// prevention the combat walk poses beside the static prevention (spBesidePrevAll).
 
 // useStaticPrev: the table has a static damage prevention.
 var useStaticPrev = newGenUse(tableHasStaticPrev)
@@ -42,6 +44,22 @@ const spMax = 4
 // spOptionalAsk is replHdr.spv's bit for an ask whose lone candidate is an
 // Optional$ line: a skip option follows the candidate.
 const spOptionalAsk uint8 = 1 << 7
+
+// spShieldAsk is replHdr.spv's bit for an ask with an all-but shield among its
+// candidates beside a doubler or a plus-N: the picks do not commute, so each is
+// applied to the running amount as made (roPlusPend, repl_pluswalk.go). The
+// candidates use the low bits (four at most), so bits 6 and 7 are free.
+const spShieldAsk uint8 = 1 << 6
+
+// spHasShield: one of the c candidates cs is an all-but shield, not a full prevention.
+func (s *State) spHasShield(k *prep, cs *[spMax]spCand, c int) bool {
+	for i := 0; i < c; i++ {
+		if s.spCandAb(k, cs[i]).Repl.Kind == kop.ReplPreventDamageN || s.spSelfCand(k, cs[i]) {
+			return true // a candidate applied as picked and spent (a Phantom's counter) asks as a shield does
+		}
+	}
+	return false
+}
 
 func tableHasStaticPrev(t *kop.Table) bool {
 	for i := range t.Cards {
@@ -149,7 +167,7 @@ func (s *State) matchSourceCard(k *prep, f kop.FilterID, c CardID, owner, ctrl u
 // (CR 615.12) leaves none.
 func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 	if s.noPrev(k, e.combat) {
-		return 0
+		return s.spSelfNoPrev(k, e) // repl_selfph.go
 	}
 	g := k.gen
 	n := 0
@@ -159,12 +177,12 @@ func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 		}
 		var bf [MaxPerm]Slot
 		for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
-			if g.replBits[s.cardAt(b)]&rbPlusDmg == 0 || s.genLost(k, b) {
+			if g.replBits[s.cardAt(b)]&(rbPlusDmg|rbPrevCtrSelf) == 0 || s.genLost(k, b) {
 				continue
 			}
 			ab := k.t.Cards[s.cardAt(b)].Abilities
 			for j := range ab {
-				if !isStaticPrev(&ab[j]) || !s.spMatch(k, b, &ab[j], e) {
+				if !(isStaticPrev(&ab[j]) && s.spMatch(k, b, &ab[j], e) || s.spSelfMatch(g, b, &ab[j], e)) {
 					continue
 				}
 				if n == spMax {
@@ -182,8 +200,8 @@ func (s *State) spCollect(k *prep, e *spEv, out *[spMax]spCand) int {
 // spPrevented is the damage the shield a of the host at b prevents from the
 // left that remains: all of it for a full prevention, else min(amount, left).
 func (s *State) spPrevented(k *prep, b Slot, a *kop.Ability, left int) int {
-	if a.Repl.Kind == kop.ReplPreventDamageFilt {
-		return left
+	if a.Repl.Kind == kop.ReplPreventDamageFilt || a.Repl.Kind == kop.ReplPreventDamageCounters {
+		return left // a full prevention (the Phantom's line removes its counter in spSpend)
 	}
 	r := &a.Repl
 	var m int
@@ -269,6 +287,8 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 	switch {
 	case c <= 0:
 		return e.n, false
+	case c == 1 && s.spSelfCand(k, cs[0]):
+		return e.n, false // a lone Phantom is replDamage's selfDamageAll (repl_selfph.go)
 	case c == 1:
 		a := s.spCandAb(k, cs[0])
 		if a.Repl.C&kop.ReplSPOptional != 0 {
@@ -342,13 +362,8 @@ func (s *State) spPark(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if ro.on || ro.n > 0 && !pending {
 		return false, false
 	}
-	e := spEv{srcCtrl: ctrl, srcSl: srcSl, srcCard: srcCard, rcp: 255, sl: NoSlot, n: n}
-	if isPlayerTarget(code) {
-		e.rcp = CodeSeat(code)
-	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
-		e.sl = s.objs[code].slot
-		e.rcp = s.perms[e.sl].ctrl
-	} else {
+	e, ok := s.spNCEvent(ctrl, srcSl, srcCard, code, n)
+	if !ok {
 		return false, false
 	}
 	if s.spProtected(k, &e) {
@@ -415,9 +430,19 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	switch {
 	case c < 0:
 		return -1
-	case c == 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
+	case c >= 1 && n > 0 && s.spBesidePrevAll(n) && !s.spBare(k, &cs, c) && s.spOrderable(k, &cs, c):
 		// a lone static prevention beside full preventions (a granted Effect's,
 		// a printed one): gorge asks the order over all of them
+	case n > 0 && s.spBesideAmounts(n) && (s.uses(k, useStaticOrdered) || selfPh(k.gen)) && (c == 0 || s.spOrderable(k, &cs, c)):
+		// a doubler or a plus-N beside bare full preventions or all-but shields:
+		// gorge asks the order over all of them (scan order)
+		return s.spMergeAmounts(k, &cs, c, n)
+	case c >= 1 && n == 0 && s.shieldLateFz(k, fe):
+		// a static prevention or a Phantom's line beside the recipient's shield counter,
+		// which the walk appends after them (repl_selfph.go replShieldCand): gorge asks the order
+	case n > 0 && c == 1 && s.spSelfCand(k, cs[0]):
+		s.capFull(StallReplPlus) // a Phantom beside a competition the walk does not merge: gorge asks the order of all
+		return -1
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
 		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if cs[0].b >= MaxPerm {
@@ -471,14 +496,21 @@ func (s *State) spWalkOpt(k *prep, e *spEv) bool {
 	return c == 1 && mark
 }
 
+// DebugSpBesidePcolOff leaves a static prevention beside an Ext PreventDamageScope
+// record unposed (the walk then asks the record alone and applies no order): the
+// oracle mutation test. False in normal play.
+var DebugSpBesidePcolOff bool
+
 // spBesidePrevAll: the n candidates already collected are all full
-// preventions (a granted Effect's or a printed one) and nothing else (no
-// shield, shield-counter, color prevention, addition or doubling), so a
+// preventions (a granted Effect's, a printed one or a combat-only scoped Effect
+// record such as Arachnogenesis's: repl_staticpreventpair.go usePrevColOpen)
+// and nothing else (no shield, shield-counter, PreventNext shield, addition or
+// doubling), so a
 // static prevention beside them is posed in the same order ask: whichever is
 // picked, the full prevention leaves nothing dealt.
 func (s *State) spBesidePrevAll(n int) bool {
 	ro := &s.g.ro
-	return n < 8 && ro.prev == uint8(1<<n)-1 && ro.shld == 0 && ro.pnx == 0 && ro.plus == 0 && ro.pcol == 0
+	return n < 8 && ro.prev == uint8(1<<n)-1 && ro.shld == 0 && ro.pnx == 0 && ro.plus == 0 && !(DebugSpBesidePcolOff && ro.pcol != 0)
 }
 
 // spAbility is the static prevention of the host at b a pick of candidate
@@ -489,6 +521,8 @@ func (s *State) spAbility(k *prep, b Slot) *kop.Ability {
 	ab := k.t.Cards[s.cardAt(b)].Abilities
 	for j := range ab {
 		switch {
+		case isSelfPh(&ab[j]):
+			return &ab[j] // a Phantom host: its line (repl_selfph.go)
 		case !isStaticPrev(&ab[j]):
 		case ab[j].Repl.Kind == kop.ReplPreventDamageN:
 			return &ab[j]
@@ -510,13 +544,19 @@ func (s *State) spSpend(i int) {
 	k := s.k()
 	if a := s.spAbility(k, ob.slot); a != nil {
 		ro.an -= int16(s.spPrevented(k, ob.slot, a, int(ro.an)))
+		if isSelfPh(a) {
+			s.spSelfRemove(ob.slot)
+		}
 	}
 }
 
 // spPick is replOrderPick for a static prevention candidate: it applies as
 // picked (gorge applies each pick and re-collects the rest). The asks end when
 // nothing is left; one candidate left applies on its own; two or more are
-// asked again.
+// asked again. Beside a doubler or a plus-N (spShieldAsk) the candidate left
+// is the last one gorge applies without asking: a static one applies here, a
+// parked noncombat event's amount changer here too (ncPlusPickNC), a combat
+// event's is left to dealAsked, which applies it to the running amount.
 func (s *State) spPick(i int) bool {
 	ro := &s.g.ro
 	s.spSpend(i)
@@ -525,16 +565,34 @@ func (s *State) spPick(i int) bool {
 	}
 	left, last := 0, -1
 	for j := 0; j < int(ro.n); j++ {
-		if ro.used&(1<<j) == 0 {
+		if ro.used&(1<<j) == 0 && s.spAskLive(j) {
 			left++
 			last = j
 		}
 	}
-	if left == 1 {
+	if left == 1 && (ro.spv&(1<<last) != 0 || ro.spv&spShieldAsk != 0 && !ro.on) {
 		ro.used |= 1 << last
-		s.spSpend(last)
+		if ro.spv&(1<<last) != 0 {
+			s.spSpend(last)
+		} else {
+			s.ncPlusPickNC(last)
+		}
 	}
 	return left >= 2
+}
+
+// spAskLive: unused candidate j of the ask in progress is one gorge still
+// collects at this pick (CR 616.1e): a combat candidate by its own liveness, a
+// parked noncombat event's raise while the amount is below its host's power.
+func (s *State) spAskLive(j int) bool {
+	ro := &s.g.ro
+	switch {
+	case ro.spv&spShieldAsk == 0:
+		return true // a static competition alone: every candidate is live (the ask's old count)
+	case ro.on:
+		return s.replCandLive(s.k(), j)
+	}
+	return s.ncPlusLive(j)
 }
 
 // spNC is the end of a parked noncombat event's ask: the candidates were
@@ -554,4 +612,240 @@ func (s *State) spOptions(d *Decision) {
 	if ro := &s.g.ro; ro.spv&spOptionalAsk != 0 {
 		d.add(MakeAction(AkChoose, TCode(NoTarget), 0, ro.n))
 	}
+}
+
+// spBesideAmounts: the n candidates already collected are all doublers or
+// plus-N additions (no prevention, shield or record of any kind).
+func (s *State) spBesideAmounts(n int) bool {
+	ro := &s.g.ro
+	return n < 4 && ro.prev == 0 && ro.shld == 0 && ro.pnx == 0 && ro.pcol == 0 && !DebugSpBesideAmountsOff
+}
+
+// DebugSpBesideAmountsOff leaves a bare combat prevention out of the ask beside a
+// doubler or a plus-N (the walk then asks the amount changers alone and the
+// prevention applies after them): the oracle mutation test. False in normal play.
+var DebugSpBesideAmountsOff bool
+
+// uses reports a table-wide property of k.
+func (s *State) uses(k *prep, u genUse) bool { return k.gen != nil && k.gen.uses.has(u) }
+
+// spScanBefore: the host at a precedes the host at b in gorge's object scan,
+// which the walk's collections mirror: seat order, then entry order.
+func (s *State) spScanBefore(a, b Slot) bool {
+	if pa, pb := s.perms[a].ctrl, s.perms[b].ctrl; pa != pb {
+		return pa < pb
+	}
+	var bf [MaxPerm]Slot
+	for _, x := range bf[:s.battlefieldOrder(s.perms[a].ctrl, s.statM.and(s.ctrlM[s.perms[a].ctrl]), bf[:], 0)] {
+		if x == a {
+			return true
+		}
+		if x == b {
+			return false
+		}
+	}
+	return false
+}
+
+// spMergeAmounts inserts the c bare static prevention candidates cs into the
+// walk's n amount candidates (doublers and plus-N additions) at their scan
+// position: gorge scans every object's replacements in one pass, so the order
+// ask lists them interleaved (replacement_damage.go remainingDamageReplacements).
+// It returns the new count (-1 after a loud stall).
+func (s *State) spMergeAmounts(k *prep, cs *[spMax]spCand, c, n int) int {
+	ro := &s.g.ro
+	if n+c > len(ro.cand) {
+		s.capFull(StallReplCands)
+		return -1
+	}
+	var cand [4]Obj
+	var plus, spv uint8
+	i, j, m := 0, 0, 0
+	for i < n || j < c {
+		if j < c && cs[j].b >= MaxPerm {
+			s.capFull(StallReplCands) // an emblem is never named by an order ask
+			return -1
+		}
+		if i < n && (j == c || s.spScanBefore(s.objs[ro.cand[i]].slot, cs[j].b)) {
+			cand[m] = ro.cand[i]
+			if ro.plus&(1<<i) != 0 {
+				plus |= 1 << m
+			}
+			i++
+		} else {
+			cand[m] = s.perms[cs[j].b].obj
+			spv |= 1 << m
+			j++
+		}
+		m++
+	}
+	copy(ro.cand[:m], cand[:m])
+	ro.plus, ro.spv = plus, ro.spv|spv
+	if s.spHasShield(k, cs, c) {
+		ro.spv |= spShieldAsk
+	}
+	return m
+}
+
+// spCandLive: asked static prevention candidate i of the combat event still
+// matches it: its host on the battlefield and the recipient still there (gorge
+// re-collects after each pick, CR 616.1e).
+func (s *State) spCandLive(k *prep, i int) bool {
+	ro := &s.g.ro
+	ob := &s.objs[ro.cand[i]]
+	return ob.zone == kop.ZoneBattlefield && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
+}
+
+// spApplyLeft applies the static prevention candidates still unpicked when an
+// ask ends with fewer than two candidates left: gorge applies the last
+// remaining one on its own.
+func (s *State) spApplyLeft(k *prep) {
+	ro := &s.g.ro
+	for j := 0; j < int(ro.n); j++ {
+		if b := uint8(1) << j; ro.spv&b != 0 && ro.used&b == 0 && s.spCandLive(k, j) {
+			ro.used |= b
+			s.spSpend(j)
+		}
+	}
+}
+
+// spMergeNC inserts the c static prevention candidates cs of a noncombat event
+// into parkNC's cc amount candidates (doublers, plus-N additions, raises) at
+// their scan position, as spMergeAmounts does for the combat walk: gorge scans
+// every object's replacements in one pass. It returns the new count and the
+// static candidates' mask (spShieldAsk set when one is an all-but shield), or
+// -1 after a loud stall: more candidates than the walk names, an emblem (never
+// named by an ask), or a competition the ask cannot pose (an optional line or a
+// DamageAmount$ gate: spOrderable).
+func (s *State) spMergeNC(k *prep, cs *[spMax]spCand, c int, cand *[4]Obj, cc int, plus, rs *uint8) (int, uint8) {
+	if !s.spOrderable(k, cs, c) || cc+c > len(cand) {
+		s.capFull(StallReplCands)
+		return -1, 0
+	}
+	var out [4]Obj
+	var np, nr, spv uint8
+	i, j, m := 0, 0, 0
+	for i < cc || j < c {
+		if j < c && cs[j].b >= MaxPerm {
+			s.capFull(StallReplCands) // an emblem is never named by an order ask
+			return -1, 0
+		}
+		if i < cc && (j == c || s.spScanBefore(s.objs[cand[i]].slot, cs[j].b)) {
+			out[m] = cand[i]
+			if *plus&(1<<i) != 0 {
+				np |= 1 << m
+			}
+			if *rs&(1<<i) != 0 {
+				nr |= 1 << m
+			}
+			i++
+		} else {
+			out[m] = s.perms[cs[j].b].obj
+			spv |= 1 << m
+			j++
+		}
+		m++
+	}
+	*cand, *plus, *rs = out, np, nr
+	if s.spHasShield(k, cs, c) {
+		spv |= spShieldAsk
+	}
+	return m, spv
+}
+
+// spNCEvent is the static prevention's view of noncombat damage n from the
+// resolving entry (controller ctrl, source permanent srcSl or card srcCard) to
+// code: false when the recipient is neither a player nor a permanent.
+func (s *State) spNCEvent(ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int) (spEv, bool) {
+	e := spEv{srcCtrl: ctrl, srcSl: srcSl, srcCard: srcCard, rcp: 255, sl: NoSlot, n: n}
+	if isPlayerTarget(code) {
+		e.rcp = CodeSeat(code)
+	} else if int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield {
+		e.sl = s.objs[code].slot
+		e.rcp = s.perms[e.sl].ctrl
+	} else {
+		return e, false
+	}
+	return e, true
+}
+
+// DebugSpNCMergeOff leaves the static prevention out of a parked noncombat
+// event's ask beside an amount changer (the walk then asks the changers alone and
+// the prevention applies after them): the oracle mutation test. False in normal play.
+var DebugSpNCMergeOff bool
+
+// parkNCStatic is parkNC's static prevention step for a table whose static
+// preventions are the ordered shapes (useStaticOrdered): the c candidates
+// already collected (amount changers; other is the mask of any prevention among
+// them) get the event's static candidates merged in at their scan position
+// (spMergeNC). With no other candidate the static competition alone is spPark's
+// ask. done is 0 to go on with the returned count and static mask, 1 when the
+// event is dealt now and 2 when it is parked; the count is -1 after a loud stall.
+func (s *State) parkNCStatic(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask, c int, other uint8, cand *[4]Obj, plus, rs *uint8) (int, uint8, uint8) {
+	if !(k.gen.uses.has(useStaticOrdered) || selfPh(k.gen)) || DebugSpNCMergeOff {
+		return c, 0, 0
+	}
+	c, spv, done := s.parkNCStaticMerge(k, ctrl, srcSl, srcCard, code, n, kw, c, other, cand, plus, rs)
+	if c < 0 {
+		return c, 0, 1 // a loud stall: the event is not dealt here
+	}
+	return c, spv, done
+}
+
+// parkNCStaticMerge is parkNCStatic for an ordered table.
+func (s *State) parkNCStaticMerge(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask, c int, other uint8, cand *[4]Obj, plus, rs *uint8) (int, uint8, uint8) {
+	if c == 0 && !s.shieldLateAt(k, code) {
+		parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw)
+		switch {
+		case parked:
+			return c, 0, 2
+		case handled:
+			return c, 0, 1
+		}
+		return c, 0, 0
+	}
+	e, ok := s.spNCEvent(ctrl, srcSl, srcCard, code, n)
+	if !ok || s.spProtected(k, &e) {
+		return c, 0, 0
+	}
+	var cs [spMax]spCand
+	sc := s.spCollect(k, &e, &cs)
+	switch {
+	case sc < 0:
+		return -1, 0, 0
+	case sc == 0:
+		return c, 0, 0
+	case other != 0:
+		s.capFull(StallReplPlus) // a prevention beside the competition: not walked together
+		return -1, 0, 0
+	}
+	m, spv := s.spMergeNC(k, &cs, sc, cand, c, plus, rs)
+	return m, spv, 0
+}
+
+// spParkEarly is parkNC's first look at a static prevention's own ask: for a
+// table whose static preventions are not the ordered shapes (the ordered ones are
+// merged into the amount changers' ask, parkNCStatic).
+func (s *State) spParkEarly(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, n int, kw kop.KwMask) (parked, handled bool) {
+	if k.gen.uses.has(useStaticOrdered) {
+		return false, false
+	}
+	return s.spPark(k, ctrl, srcSl, srcCard, code, n, kw)
+}
+
+// parkNCNoKinds: no damage replacement kind parkNC walks can match, so it parks
+// nothing (a table of ordered static preventions always looks).
+func (s *State) parkNCNoKinds(g *genPrep, plusOnly bool) bool {
+	return !plusOnly && !g.uses.has(useStaticOrdered) && !selfPh(g) && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0
+}
+
+// parkNCStaticStall stalls loud a static prevention beside the amount changers
+// that the pend walk could not carry (pendBlocked): the park built without it
+// would be wrong.
+func (s *State) parkNCStaticStall(spv uint8) bool {
+	if spv == 0 {
+		return false
+	}
+	s.capFull(StallReplPlus)
+	return true
 }
