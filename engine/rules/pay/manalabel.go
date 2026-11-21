@@ -2,6 +2,7 @@ package pay
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -578,8 +579,11 @@ func IsColourIdentityProduced(produced string) bool {
 // "Combo ColorID". cards.ProducedCounts claims no mana for it and the executor
 // adds none, so such a source taps for nothing and no payment window offers it.
 func IsCircledColourProduced(produced string) bool {
-	return produced == "ColorID" || produced == "Combo ColorID"
+	return slices.Contains(circledColourWords, produced)
 }
+
+// circledColourWords is the Produced$ spellings IsCircledColourProduced accepts.
+var circledColourWords = []string{"ColorID", "Combo ColorID"}
 
 // ChainGatesOnActivationCount reports whether sa's SubAbility$ chain carries
 // a ConditionActivationLimit$ gate ("if this ability has been activated four
