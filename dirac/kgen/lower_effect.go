@@ -2282,14 +2282,19 @@ func (lc *lowerCtx) protKwInto(o *lOverride, kw string) error {
 
 // pumpKwGrant lowers a battlefield object's keyword-only Pump Duration$
 // whose grant is a layer-6 override record: Permanent (gorge AddContinuous) or
-// UntilYourNextUpkeep (the resolving controller's next upkeep, CR 611.2b).
-// Any other duration refuses, as the Duration arm in pumpBody always has.
+// UntilYourNextUpkeep (the resolving controller's next upkeep, CR 611.2b), or
+// AsLongAsControl on an object the host controls (pumpAsLongAsControl). Any
+// other duration refuses, as the Duration arm in pumpBody always has.
 func (lc *lowerCtx) pumpKwGrant(d, kw string, obj lRef) error {
 	switch d {
 	case "Permanent":
 		return lc.pumpPermanentKwGrant(kw, obj)
 	case "UntilYourNextUpkeep":
 		return lc.pumpUpkeepKwGrant(kw, obj)
+	case "AsLongAsControl":
+		if lc.pumpObjectRef(obj) {
+			return lc.pumpAsLongAsControl(kw, obj)
+		}
 	}
 	return refuse("Pump Duration %q", d)
 }
@@ -2324,6 +2329,27 @@ func (lc *lowerCtx) pumpUpkeepKwGrant(kw string, obj lRef) error {
 		}
 	}
 	lc.emitOverride(obj, o, "UntilYourNextUpkeep")
+	return nil
+}
+
+// pumpAsLongAsControl lowers a battlefield object's Pump Duration$
+// AsLongAsControl keyword grant: one host-anchored override record
+// (WhileHost + AsLongAsControl) that gorge starts only while the activator
+// controls the host and ends at the host's control change or phase-out. The
+// can't-attack-or-block sentence is CantAttack beside AddKw CantBlock, so both
+// halves ride the one record.
+func (lc *lowerCtx) pumpAsLongAsControl(kw string, obj lRef) error {
+	o := &lOverride{WhileHost: true, AsLongAsControl: true}
+	rest, both := splitKWSentence(kw, cantAttackOrBlockKW)
+	rest, atk := splitKWSentence(rest, cantAttackKW)
+	o.CantAttack = both || atk
+	if err := lc.protKwInto(o, rest); err != nil {
+		return err
+	}
+	if both {
+		o.AddKw = append(o.AddKw, "CantBlock")
+	}
+	lc.emitOverride(obj, o, "WhileHost")
 	return nil
 }
 

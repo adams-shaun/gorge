@@ -620,7 +620,28 @@ func (s *State) applyWhileHost(k *prep, sl Slot, idx int, e *stackEntry) {
 	if !s.hostHere(e) || k.t.Overrides[idx].WhileTapped && s.perms[s.objs[e.obj].slot].flags&pfTapped == 0 {
 		return // a WhileTapped host that is not tapped starts nothing (gorge registerAnimateEffects)
 	}
+	if k.t.Overrides[idx].AsLongAsControl && s.perms[s.objs[e.obj].slot].ctrl != e.ctrl {
+		return // gorge checkValidDuration: the host is not controlled by the activator
+	}
 	s.applyOverridePT(k, sl, idx, e.card, 0, int16(e.obj), int16(e.srcVer))
+}
+
+// ovAsLongAsControlDrop ends the Duration$ AsLongAsControl override records
+// whose host is object o: o changed controller or phased out (gorge
+// expireAsLongAsControl). The records start only under the effect's
+// controller (applyWhileHost), so any control change of the host ends them,
+// and a phase-out is for good: phasing in does not bring them back.
+//
+//go:noinline
+func (s *State) ovAsLongAsControlDrop(k *prep, o Obj) {
+	if !s.fxM.any() {
+		return
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		return r.kind == fxOverride && k.t.Overrides[r.r.idx-1].AsLongAsControl && Obj(r.r.p) == o
+	})
+	s.refreshTy(k)
 }
 
 // hostLeft ends the effects whose host is object o, leaving the
