@@ -227,7 +227,20 @@ def census_packages(path):
     return sorted({"./" + f.rsplit("/", 1)[0] for f in out if "/" in f})
 
 
-def run_checks(path, pk, kgen, replays=False, state=False, only=None):
+# Tree-wide ratchets: tests that measure the whole module, so a change anywhere can trip them, but they live in their
+# own packages, which "the touched packages' census" never selects (11-21 batch #3304: #3171 grew dirac
+# (*State).scriptOffers to complexity 106 against internal/codeshape's ceiling of 105). They run whenever any Go file
+# changes: internal/codeshape whole (~10 s: function length and complexity, code shape, strings), internal/archtest
+# without its 386 cross-build (~25 s: import boundaries, the only-shrinks boards, the public boundary).
+TREE_WIDE = ((["./internal/codeshape"], "", ""), (["./internal/archtest"], "", "^TestEngineCompilesFor32Bit$"))
+
+
+def tree_wide(files):
+    """Whether the tree-wide ratchets run: any Go file changed."""
+    return any(f.endswith(".go") for f in files)
+
+
+def run_checks(path, pk, kgen, replays=False, state=False, only=None, tree=False):
     """Runs the checks in the tree at path; returns the failed items, each a (kind, package, test) tuple.
     only restricts the run to those items (attribution)."""
     env = dict(os.environ, GOFLAGS="-trimpath")
@@ -255,14 +268,18 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
         if replays:
             with open(os.path.join(path, CI_YML)) as f:
                 groups.append(([ORACLE], replays_rx(f.read())))
+        if tree:
+            groups.extend(TREE_WIDE)
     else:
         tests = {}
         for k, p, t in only:
             if k == "test":
                 tests.setdefault(p, set()).add(t)
         groups = [([p], "^(%s)$" % "|".join(sorted(ts))) for p, ts in sorted(tests.items())]
-    for pkgs, rx in groups:
-        args = ["go", "test", "-short", "-json", "-timeout", "15m"] + (["-run", rx] if rx else []) + pkgs
+    for g in groups:
+        pkgs, rx, skip = g[0], g[1], (g[2] if len(g) > 2 else "")
+        args = (["go", "test", "-short", "-json", "-timeout", "15m"] + (["-run", rx] if rx else [])
+                + (["-skip", skip] if skip else []) + pkgs)
         r = subprocess.run(args, cwd=path, capture_output=True, text=True, env=env)
         for line in r.stdout.splitlines():
             try:
@@ -354,9 +371,10 @@ def main():
     merged = [p for p in order if t.merge(p) or print("#%d conflicts; left to Mergify" % p["number"])]
     files = touched(wt, base)
     pk, kgen, replays, state = plan(files, census_packages(wt))
-    print(time.strftime("%H:%M:%S"), "checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s" % (" ".join(pk) or "-", kgen,
-                                                                                 replays, state))
-    fails = run_checks(wt, pk, kgen, replays, state)
+    tree = tree_wide(files)
+    print(time.strftime("%H:%M:%S"), "checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s; tree-wide=%s"
+          % (" ".join(pk) or "-", kgen, replays, state, tree))
+    fails = run_checks(wt, pk, kgen, replays, state, tree=tree)
     t.close()
     short = base[:10]
     if not fails:

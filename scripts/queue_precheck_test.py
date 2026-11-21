@@ -128,3 +128,13 @@ def test_attribute_bisects_and_shares_runs():
     blame = qp.attribute([a, b], order, lambda items: [], on_prefix)
     assert blame == {105: [a], 112: [b]}
     assert len(set(calls)) <= 2 * 4 and len(calls) == len(set(calls))  # ~log2(16) per item, each k run once
+
+
+def test_tree_wide_ratchets_run_for_any_go_change():
+    # 11-21 batch #3304: #3171 grew dirac (*State).scriptOffers past internal/codeshape's complexity ceiling; the
+    # ratchet lives in internal/codeshape, which the touched packages' census never selects.
+    assert qp.tree_wide(["dirac/script_offers.go"]) and qp.tree_wide(["server/host/x_test.go"])
+    assert not qp.tree_wide(["dirac/support/evidence-games.tsv", "docs/site/index.md"])
+    pkgs = {g[0][0]: g for g in qp.TREE_WIDE}
+    assert pkgs["./internal/codeshape"][1:] == ("", "")  # the whole package: every function, shape and strings ratchet
+    assert pkgs["./internal/archtest"][2] == "^TestEngineCompilesFor32Bit$"  # all but the ~50 s 386 build
