@@ -1,0 +1,13 @@
+# Brisela, Voice of Nightmares' CantBeCast Card.cmcLE3 (dirac/oracle/
+# brisela_lockstep_test.go): Gisela, the Broken Blade melds with Bruna, the
+# Fading Light into Brisela, whose "your opponents can't cast spells with mana
+# value 3 or less" meets Hydroid Krasis, an {X} spell whose mana value 2 is
+# under the bound at X = 0 and above it from X = 2 (CR 202.3e, 601.3a).
+Gisela, the Broken Blade
+Bruna, the Fading Light
+Hydroid Krasis
+Llanowar Elves
+Mind Stone
+Forest
+Island
+Plains
