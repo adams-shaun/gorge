@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -593,12 +594,19 @@ func (e *Engine) hasType(o *state.Object, t string) bool {
 		return false
 	}
 	if o.Zone == state.ZBattlefield {
-		for _, x := range e.typeCharacteristics(o.ID, 0) {
+		// The walk's all-creature-types marker rides beside the list: a
+		// Changeling (CR 702.73a, every creature type, none materialised
+		// into the list) must answer true for any creature subtype. The
+		// tail answers the same words effects' hasType (filter_type.go)
+		// answers from the printed Changeling CDA, so a subtype word no
+		// Changeling grants (Aura, Arcane) still reads false.
+		ty, all := chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+		for _, x := range ty {
 			if strings.EqualFold(x, t) {
 				return true
 			}
 		}
-		return false
+		return all && effects.CreatureTypeWords(t)
 	}
 	f := o.Face()
 	if f == nil {
