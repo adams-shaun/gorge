@@ -32,7 +32,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // name each shield's source, in registration order), applies each pick as made
 // and asks again while two or more are left and damage is (a noncombat event
 // parked by damageTo, a combat event of an ordered pass; every other damage site
-// stalls). The combat events of a pass are dealt in gorge's assignment order
+// stalls). The recipient's own bare printed "Prevent all damage that would be
+// dealt to CARDNAME." is the other exception (parkNC): the ask's options name
+// the shields first (gorge scans its effect records before the printed lines)
+// and the printed line last, a pick of the printed line stops the event with
+// the shields unspent (gorge handleDamageReplacementChoice's terminal arm)
+// and a pick of a shield prevents and spends it, re-collecting the rest as
+// gorge does (prevNextPick). The combat events of a pass are dealt in gorge's assignment order
 // (replOrderOrder) so a shield depletes across them as gorge's does; a pass that
 // asks about another event deals its lone-shield events at deal time
 // (dealCombatEvent), never from the recomputed amounts.
