@@ -1142,6 +1142,7 @@ type grantSrch struct {
 	// scriptSearch.limited); subsume: this is the subsume run, whose colour
 	// asks keep only the colours costCol still lacks (mana_grantsubsume.go)
 	limited, subsume bool
+	storeAsked       bool // the "choose a mana ability" ask of the battery candidate in hand is charged
 	costCol          [kop.NumManaKinds]uint8
 	// phased: this run walks gorge's phased order (potential_script.go
 	// scriptSearch.phased): the gaps whose mana ability costs no mana, then
@@ -1521,12 +1522,16 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 		}
 		return false, false
 	case g.store[i]:
-		// every counter it holds (mana_grantstore.go); a failed storage branch
-		// of a grant holder leaves its grant side to visit (CR 605.1a)
-		if g.storeBranch(t, i, sl) {
+		// the "choose a mana ability" ask of a grant holder (one node, the
+		// battery's answer first), then every X the battery's ask offers
+		// (mana_grantstore.go); a failed storage branch of a grant holder
+		// leaves its grant side to visit (CR 605.1a)
+		found, asked := g.storeBranch(t, i, sl)
+		if found {
 			return true, true
 		}
 		if g.ng[i] > 0 {
+			g.storeAsked = asked // the grant side's ask is this one
 			return false, false
 		}
 		return false, true
@@ -1630,7 +1635,9 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 	// answers first (gorge flattens a Combo's colours into that ask;
 	// an Any ability still asks its colour)
 	alts := g.printedAlts(t, i, sl, grants, fok, tx)
-	if alts > 1 && !g.node() {
+	asked := g.storeAsked // a storage battery's ask, charged before its branch (gapBranch)
+	g.storeAsked = false
+	if alts > 1 && !asked && !g.node() {
 		return false, true
 	}
 	if tx && g.printedXFirst(t, i, sl) { // the printed tap- or sacrifice-another ability first
@@ -2664,7 +2671,7 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 			}
 			continue
 		case stepStore:
-			s.storeGap(k, g.p, sl, k.ctrAbOf(s.cardAt(sl))) // (mana_grantstore.go)
+			s.storeGapX(k, g.p, sl, k.ctrAbOf(s.cardAt(sl)), int(st.n)) // (mana_grantstore.go)
 			if g.tapTriggers(s, sl) {
 				passed = true
 				s.tapXNext(g.p, &d)
