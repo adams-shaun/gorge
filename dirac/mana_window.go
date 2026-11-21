@@ -393,10 +393,19 @@ func (s *State) windowGapArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCo
 		return false, false
 	}
 	if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
+		before := s.pl[SeatIx(p)].pool
 		if noOwed && clamp {
 			s.windowFiltFirstFallback(k, p, sl, useful) // mana_filterfirst.go
 		} else {
 			s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+		}
+		// A repeatable fee-only filter (Bog Initiate's "{1}: Add {B}") neither taps nor
+		// marks a use (filtUse), so an activation that pays its fee from the colour it
+		// makes returns the pool as it found it and windowPick lists the same source
+		// again: the walk is at a fixed point and no later pick can settle the cost.
+		// The walk fails there (the filter payment search, filtPay, prices the exact plan).
+		if s.filtRepeat(k, sl) && s.pl[SeatIx(p)].pool == before {
+			return false, true
 		}
 		return false, false
 	}
