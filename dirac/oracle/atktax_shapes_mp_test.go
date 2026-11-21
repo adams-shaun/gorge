@@ -348,3 +348,25 @@ func TestFourSeatAtkTaxTapExtraLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxTapExtraDeck, 32, 20, 0, []string{"Forsaken Monument", "Wild Growth"},
 		[]string{"Sol Ring"}, &dirac.DebugAtkTaxNoExtra)
 }
+
+// Mana abilities an effect grants (Rishkar's "{T}: Add {G}" to creatures with
+// a counter, Abundant Growth's any-colour {T} to a land, Chromatic Lantern's
+// to every land): gorge's window lists a permanent's own abilities and then
+// the granted ones (availableManaAbilitiesForWindow), each an alternative of
+// its unit (the unit counts its largest, attackSourceUnits, and the oracle
+// taps the first listed), a fixed grant in the fixed pass and a choice grant
+// in the choice pass pinned to its first colour (attackChoiceManaSources).
+// The mutation (DebugAtkTaxNoGrant) lists none of them.
+var atkTaxGrantedDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Rishkar, Peema Renegade", Count: 3}, {Name: "Abundant Growth", Count: 3}, {Name: "Chromatic Lantern", Count: 2},
+	{Name: "Savannah Lions", Count: 3}, {Name: "Elite Vanguard", Count: 3},
+	{Name: "Forest", Count: 7}, {Name: "Plains", Count: 7},
+}
+
+// TestFourSeatAtkTaxGrantedLockstep: four-seat attack-tax games with granted
+// mana abilities play in lockstep, the window tapping them.
+func TestFourSeatAtkTaxGrantedLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxGrantedDeck, 12, 20, 0, []string{"Rishkar, Peema Renegade", "Chromatic Lantern"},
+		nil, &dirac.DebugAtkTaxNoGrant)
+}

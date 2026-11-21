@@ -84,6 +84,10 @@ var DebugAtkTaxReflPin bool
 // battlefield order, not between them and the fixed-production ones.
 var DebugAtkTaxPaidLast bool
 
+// DebugAtkTaxNoGrant (test only, TestFourSeatAtkTaxGrantedLockstep): the
+// window lists no mana ability an effect grants.
+var DebugAtkTaxNoGrant bool
+
 // DebugAtkTaxNoExtra (test only, TestFourSeatAtkTaxTapExtraLockstep): the
 // window's tap floats no StatTapExtra mana beside the source's own.
 var DebugAtkTaxNoExtra bool
@@ -114,7 +118,15 @@ func prepAtkTax(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		g.atkTaxStall = g.atkTaxStall || atkTaxGap(&t.Cards[i])
 	}
-	g.atkTaxStall = g.atkTaxStall || r.mustAttackEmblem(t, false)
+	g.atkTaxStall = g.atkTaxStall || r.mustAttackEmblem(t, false) || atkTaxGrantGap(g)
+}
+
+// atkTaxGrantGap reports whether the table's granted mana abilities (atkTaxAlts)
+// sit beside a part the walk reads them without: a StatTapExtra carrier (the
+// tap's extra rides the source's own ability, not the grant's) or a
+// GainsAbilitiesOf$ recipient's printed ability (an unchecked shape).
+func atkTaxGrantGap(g *genPrep) bool {
+	return len(g.grantOf) != 0 && (g.anyTapExtra || g.uses.has(useGainedMana))
 }
 
 // atkTaxGap reports whether card c holds a part the attack-tax walk does not
@@ -133,7 +145,10 @@ func atkTaxGap(c *kop.CardDef) bool {
 		switch a.Kind {
 		case kop.AbMana:
 			if a.AFlags&kop.AfLatent != 0 {
-				return true
+				if !atkTaxGrantAb(a) {
+					return true
+				}
+				continue // a granted {T} ability of a shape the window lists (atkTaxAlts)
 			}
 			if atkTaxUnlisted(a) {
 				continue
@@ -539,15 +554,71 @@ func (s *State) atkTaxShape(k *prep, sl Slot) (col, n, pass int, ok bool) {
 	return bits.TrailingZeros8(m), int(a.ManaN), atkPassChoice, true
 }
 
+// atkAlt is one alternative of a source the window lists: the colour it adds
+// (a choice pinned to its first producible colour), its units, its census
+// pass and whether an effect granted it.
+type atkAlt struct {
+	col, n, pass int
+	granted      bool
+}
+
+// atkTaxGrantAb reports whether mana ability a, one an effect grants (a
+// latent ability), is a plain {T} ability the window lists (atkTaxManaAb's
+// fixed or choice shapes, none reflected, chosen or all-at-once).
+func atkTaxGrantAb(a *kop.Ability) bool {
+	m := a.ManaColors
+	return a.Kind == kop.AbMana && a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
+		a.AFlags&^(kop.AfLatent|kop.AfManaChoice) == 0 && m&0x3f != 0 && m&^0x3f == 0 &&
+		!a.ManaIdentity && !a.ManaEach &&
+		a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaDeferred && a.SplitGate == 0 && a.ManaHasteValid == 0 &&
+		a.ManaRider == 0 && a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
+}
+
+// atkTaxAlts fills out with the alternatives of the source at sl in the
+// order gorge's window lists a permanent's mana abilities (own face first,
+// then the abilities effects grant it, availableManaAbilitiesForWindow): its
+// own (atkTaxShape), then each granted {T} ability it can tap now. Every
+// alternative a unit has adds its own units and the unit counts its largest
+// (attackSourceUnits); the oracle taps the first listed.
+func (s *State) atkTaxAlts(k *prep, sl Slot, out *[maxGrants + 1]atkAlt) (n int) {
+	if col, u, pass, ok := s.atkTaxShape(k, sl); ok {
+		out[0] = atkAlt{col: col, n: u, pass: pass}
+		n = 1
+	}
+	if k.gen == nil || len(k.gen.grantOf) == 0 || DebugAtkTaxNoGrant {
+		return n
+	}
+	var gi [maxGrants]int16
+	ng := s.grantIdxs(k, sl, &gi)
+	if ng == 0 || !s.grantTapNow(k, sl) {
+		return n
+	}
+	for i := 0; i < ng; i++ {
+		r := k.gen.grantOf[gi[i]]
+		a := &k.t.Cards[r.card].Abilities[r.ab]
+		if !atkTaxGrantAb(a) || k.gen.grantSelf[gi[i]] {
+			continue
+		}
+		pass := atkPassChoice
+		if a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
+			pass = atkPassFixed
+		}
+		out[n] = atkAlt{col: bits.TrailingZeros8(uint8(a.ManaColors) & 0x3f), n: int(a.ManaN), pass: pass, granted: true}
+		n++
+	}
+	return n
+}
+
 // atkTaxUnits is what the source at sl adds toward a charge (gorge
 // attackSourceUnits: its largest alternative; every prepared shape's
 // alternatives add the same).
 func (s *State) atkTaxUnits(k *prep, sl Slot) int {
-	_, n, _, ok := s.atkTaxShape(k, sl)
-	if !ok {
-		return 0
+	var alts [maxGrants + 1]atkAlt
+	best := 0
+	for i, n := 0, s.atkTaxAlts(k, sl, &alts); i < n; i++ {
+		best = max(best, alts[i].n)
 	}
-	return n
+	return best
 }
 
 // atkTaxTargets fills tg with the defenders attackerOptions offers the
@@ -683,7 +754,7 @@ func (s *State) atkTaxAnyOffer(k *prep) bool {
 // battlefield order, else the first choice-shaped one, a declared attacker
 // without vigilance withheld (CR 508.1f taps it before 508.1h's mana
 // abilities). NoSlot when none is left.
-func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, col, n, pass int) {
+func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, al atkAlt) {
 	var order [MaxPerm]Slot
 	no := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
 	passes := [3]int{atkPassFixed, atkPassPaid, atkPassChoice}
@@ -695,12 +766,15 @@ func (s *State) atkTaxNext(k *prep, p uint8) (sl Slot, col, n, pass int) {
 			if s.perms[o].flags&pfAttacking != 0 && (s.kw(k, o)&kop.KwVigilance == 0 || DebugAtkTaxWithholdVigilant) {
 				continue
 			}
-			if c, u, ps, ok := s.atkTaxShape(k, o); ok && u > 0 && ps == want {
-				return o, c, u, ps
+			var alts [maxGrants + 1]atkAlt
+			for i, na := 0, s.atkTaxAlts(k, o, &alts); i < na; i++ {
+				if alts[i].n > 0 && alts[i].pass == want {
+					return o, alts[i]
+				}
 			}
 		}
 	}
-	return NoSlot, 0, 0, 0
+	return NoSlot, atkAlt{}
 }
 
 // atkTaxPay pays the declaration's attack tax as Done is answered (CR
@@ -733,7 +807,7 @@ func (s *State) atkTaxPay(k *prep) {
 		if have >= total {
 			break
 		}
-		sl, col, n, pass := s.atkTaxNext(k, p)
+		sl, al := s.atkTaxNext(k, p)
 		if sl == NoSlot {
 			for m := s.ctrlM[p]; m.any(); m = m.rest() {
 				if a := m.first(); s.perms[a].flags&pfAttacking != 0 {
@@ -743,7 +817,7 @@ func (s *State) atkTaxPay(k *prep) {
 			s.atkTaxPendingAsk(k, p, pend, pendSl)
 			return
 		}
-		pend, pendSl = s.atkTaxTap(k, p, sl, col, n, pass), sl
+		pend, pendSl = s.atkTaxTap(k, p, sl, al), sl
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}
@@ -776,7 +850,17 @@ func (s *State) atkTaxDebugUnlisted(k *prep, sl Slot, restricted bool) (col, n i
 // its mana (atkTaxAddMana) or, a self-sacrifice source (atkPassPaid), adds its
 // mana and is sacrificed with no tap (CR 605.1a; fundSacOnly's order). It
 // returns the colour of the reflected-mana ask the tap leaves posed, -1 for none.
-func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, col, n, pass int) int {
+func (s *State) atkTaxTap(k *prep, p uint8, sl Slot, al atkAlt) int {
+	col, n, pass := al.col, al.n, al.pass
+	if al.granted {
+		// a granted {T} ability: one fixed colour of its amount (atkTaxGrantAb)
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		s.manaTapped(k, sl)
+		s.poolAdd(p, col, n)
+		s.artTag(k, p, sl, col)
+		return -1
+	}
 	if pass == atkPassPaid || DebugAtkTaxPaidLast && s.atkTaxIsPaid(k, sl) {
 		s.poolAdd(p, col, n)
 		s.artTag(k, p, sl, col)

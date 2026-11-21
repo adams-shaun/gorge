@@ -65,7 +65,7 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		g.blkTaxStall = g.blkTaxStall || blkTaxGap(&t.Cards[i])
 	}
-	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true)
+	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true) || atkTaxGrantGap(g)
 	for i := range t.Overrides {
 		g.blkTaxStall = g.blkTaxStall || t.Overrides[i].AddKw&kop.KwMenace != 0
 	}
@@ -273,12 +273,12 @@ func (s *State) blkTaxPay(k *prep) bool {
 		if have >= total {
 			break
 		}
-		sl, col, n, pass := s.atkTaxNext(k, p)
+		sl, al := s.atkTaxNext(k, p)
 		if sl == NoSlot {
 			s.atkTaxPendingAsk(k, p, pend, pendSl)
 			return false
 		}
-		pend, pendSl = s.atkTaxTap(k, p, sl, col, n, pass), sl
+		pend, pendSl = s.atkTaxTap(k, p, sl, al), sl
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}
