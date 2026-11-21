@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/bots"
@@ -94,48 +95,59 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 	}
 	seen := map[decision.Kind]int{}
 	rules := map[decision.Kind]int{}
-	for i, pair := range [][2]string{{"uw-control", "ur-delver"}, {"death-n-taxes", "dimir-tempo"}} {
-		kindsGame(t, pair[0], pair[1], uint64(20261103+i), 350, false, func(d *decision.Decision, a protocol.Advice) {
-			seen[d.Kind]++
-			if a.State == protocol.AdviceNone {
-				t.Errorf("%s decision %d (%q): none (%s)", d.Kind, d.Seq, d.Prompt, a.Reason)
-			}
-			if a.State == protocol.AdviceRefused {
-				t.Errorf("%s decision %d (%q): refused (%s)", d.Kind, d.Seq, d.Prompt, a.Reason)
-			}
-			if a.State != protocol.AdviceReady {
-				return
-			}
-			var n explain.Note
-			if err := json.Unmarshal(a.Explain, &n); err != nil {
-				t.Fatal(err)
-			}
-			if d.Kind == decision.KMulligan && len(d.Options) == 2 && d.Options[1].Kind == "mulligan" && (n.Search == nil || n.Search.Sims == 0) {
-				t.Errorf("mulligan decision %d (%q): not searched (%s)", d.Seq, d.Prompt, a.Reason)
-			}
-			if n.Search == nil {
-				rules[d.Kind]++
-				if a.Reason == "" {
-					// A forced answer carries no reason; everything else says why.
-					if len(d.Options) > 1 && d.Kind != decision.KPriority {
-						t.Errorf("%s decision %d: a rules answer with no reason", d.Kind, d.Seq)
+	var mu sync.Mutex // the two games run in parallel and share the tallies
+	// The group returns only when both parallel games have finished.
+	t.Run("games", func(t *testing.T) {
+		for i, pair := range [][2]string{{"uw-control", "ur-delver"}, {"death-n-taxes", "dimir-tempo"}} {
+			t.Run(pair[0]+"-v-"+pair[1], func(t *testing.T) {
+				t.Parallel()
+				kindsGame(t, pair[0], pair[1], uint64(20261103+i), 350, false, func(d *decision.Decision, a protocol.Advice) {
+					mu.Lock()
+					seen[d.Kind]++
+					mu.Unlock()
+					if a.State == protocol.AdviceNone {
+						t.Errorf("%s decision %d (%q): none (%s)", d.Kind, d.Seq, d.Prompt, a.Reason)
 					}
-				}
-				if len(n.Bot) == 0 && d.Min > 0 {
-					t.Errorf("%s decision %d: a rules answer picks nothing", d.Kind, d.Seq)
-				}
-				for _, c := range n.Bot {
-					found := false
-					for _, o := range d.Options {
-						found = found || o.Index == c
+					if a.State == protocol.AdviceRefused {
+						t.Errorf("%s decision %d (%q): refused (%s)", d.Kind, d.Seq, d.Prompt, a.Reason)
 					}
-					if !found {
-						t.Errorf("%s decision %d: picks option %d, which is not offered", d.Kind, d.Seq, c)
+					if a.State != protocol.AdviceReady {
+						return
 					}
-				}
-			}
-		})
-	}
+					var n explain.Note
+					if err := json.Unmarshal(a.Explain, &n); err != nil {
+						t.Fatal(err)
+					}
+					if d.Kind == decision.KMulligan && len(d.Options) == 2 && d.Options[1].Kind == "mulligan" && (n.Search == nil || n.Search.Sims == 0) {
+						t.Errorf("mulligan decision %d (%q): not searched (%s)", d.Seq, d.Prompt, a.Reason)
+					}
+					if n.Search == nil {
+						mu.Lock()
+						rules[d.Kind]++
+						mu.Unlock()
+						if a.Reason == "" {
+							// A forced answer carries no reason; everything else says why.
+							if len(d.Options) > 1 && d.Kind != decision.KPriority {
+								t.Errorf("%s decision %d: a rules answer with no reason", d.Kind, d.Seq)
+							}
+						}
+						if len(n.Bot) == 0 && d.Min > 0 {
+							t.Errorf("%s decision %d: a rules answer picks nothing", d.Kind, d.Seq)
+						}
+						for _, c := range n.Bot {
+							found := false
+							for _, o := range d.Options {
+								found = found || o.Index == c
+							}
+							if !found {
+								t.Errorf("%s decision %d: picks option %d, which is not offered", d.Kind, d.Seq, c)
+							}
+						}
+					}
+				})
+			})
+		}
+	})
 	for _, k := range []decision.Kind{decision.KMulligan, decision.KModes, decision.KTriggerOptional, decision.KChoose, decision.KTarget, decision.KPriority} {
 		if seen[k] == 0 {
 			t.Errorf("fixture: no %s decision was asked", k)
@@ -150,6 +162,7 @@ func TestPairedBotAnswersEveryKindAHumanMeets(t *testing.T) {
 // the opponent's cards from the belief, and for a rules answer, the choice of
 // who plays first.
 func TestPairedBotRulesAdviceIgnoresHiddenOpponentCards(t *testing.T) {
+	t.Parallel()
 	first := func(opp string) (mull, toss []byte) {
 		// The human wins the toss at this seed and chooses who plays first.
 		// The advice must not depend on whether a wall-clock-bounded search
