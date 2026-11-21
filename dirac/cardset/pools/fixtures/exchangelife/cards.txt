@@ -1,0 +1,21 @@
+# the api:ExchangeLife pool (gorge engine/effects/life.go effExchangeLife's
+# one-target arm): Magus of the Mirror and Mirror Universe (exchange life
+# totals with target opponent during your upkeep), Lightning Bolt and cheap
+# creatures to move the totals apart, Soul Warden and Ajani's Pridemate to
+# observe the life-gain triggers an exchange fires, and Rampaging Ferocidon's
+# "players can't gain life" for the swallowed gain, for the oracle's
+# constructed lockstep (dirac/oracle/exchangelife_lockstep_test.go)
+Magus of the Mirror
+Mirror Universe
+Soul Warden
+Ajani's Pridemate
+Rampaging Ferocidon
+Memnite
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Lightning Bolt
+Plains
+Swamp
+Mountain
+Forest
