@@ -31,8 +31,9 @@ builds both halves of an `Input` from the view and those lists alone: the `Hidde
 `Input.ObjOf` exposes. Seat `s`'s cards take `base_s .. base_s+len(lists[s])-1`, the sum of the earlier lists. The
 physical cards the view shows take the low indices of that range in a fixed order (every player's battlefield for the
 seat's cards, its graveyard, exile, command zone, stack spells, then the viewer's hand); the unseen cards fill the rest
-in list order, the first `HandSize` of another seat's becoming its hand and the remainder its library. Current tokens
-are compacted after every deck, in first-seen order. A hidden multiset that is not exactly the count the view shows is
+in list order, the first `HandSize` of another seat's becoming its hand and the remainder its library. Tokens
+take the indices after every deck in first-seen order and keep them for the rest of the game: one no view shows any
+more is dealt as a ceased token (`Hidden.Ceased`) at its index, with the table name and owner it had when last shown. A hidden multiset that is not exactly the count the view shows is
 `hidden`.
 
 The initial hidden order is deliberately arbitrary. `dirac/search` re-deals every zone a seat cannot see at each
@@ -76,7 +77,10 @@ Two, three or four seats (`dirac.MaxSeats`), every seat still in the game.
   as `dmgPerm` records it); +1/+1 counters.
 - **Tokens.** Plain creature tokens (`TToken`, combat keywords, no ability), placed after the decks' objects in creation
   order. The table token is found by the view's name, printed power and toughness against the table's script names
-  (`r_1_1_goblin`); zero or several matches is `token`.
+  (`r_1_1_goblin`); zero or several matches is `token`. A token that has ceased to exist (CR 111.7, 704.5d) keeps its
+  object index and holds `ZoneNone` (`WorldObj{Token: true, Zone: kop.ZoneNone}`, no mark); the caller names them in
+  `Hidden.Ceased` (`CeasedToken{Obj, Name, Owner}`, the name the table token's script name) and they fill the gaps
+  among the token indices. A token in a zone other than the battlefield and none stays out of scope.
 - **Attachments.** Auras and Equipment on a creature of either seat, when their abilities are commuting statics (a P/T or
   keyword grant, can't attack, can't block, no condition) plus Equip. Layer timestamps follow the battlefield list order,
   which is exact only because the admitted statics commute.
@@ -123,7 +127,7 @@ Everything else is refused with a reason. dirac's reasons are `dirac.Unstageable
 | a creature attacking a planeswalker or battle | `mark` |
 | a blocker under two attackers, off the battlefield, or an attacker blocked with no listed blocker; combat marks off a combat step or on a non-creature | `combat` |
 | a declaration partly made (dirac asks one pick at a time; gorge's view poses the whole declaration), a target decision | `decision` |
-| copies; a plain-token mismatch; a gap before a shown token (a token that left the battlefield leaves its index behind and the view cannot show it) | `token` |
+| copies; a plain-token mismatch; a gap before a token that no ceased token (`Hidden.Ceased`) fills | `token` |
 | any other counter kind, a zero count, a counter or damage off the battlefield | `counter`, `mark` |
 | an Aura or Equipment of another shape, on a non-creature or a player, or an Aura attached to nothing | `attachment` |
 
@@ -143,14 +147,14 @@ below a floor of staged positions per feature.
 | Test (`dirac/shadow`) | Pool and focus |
 |---|---|
 | `TestStageMatchesReplay` | vanilla lands, vanilla or keyword creatures and Hungry Ghoul; damage, counters, a Ghoul ability on the stack |
-| `TestStageCardsMatchReplay` | the `mbc` corpus pool (needs the corpus): Aura, Equipment, tokens, stack spells, a targeted stack entry (an Aura spell or an Equip activation; 200 games: 168 staged, 28 with a targeted entry) |
+| `TestStageCardsMatchReplay` | the `mbc` corpus pool (needs the corpus): Aura, Equipment, tokens (24 of 200 staged positions hold a ceased one; the `token` refusal count is 0), stack spells, a targeted stack entry (an Aura spell or an Equip activation; 200 games: 168 staged, 28 with a targeted entry) |
 | `TestStageCombatMatchesReplay` | vanilla pool; eight kinds of combat and turn-boundary position |
 | `TestStagePodsMatchReplay` | the vanilla pool at four seats; marks, a stack entry, an attack on a non-adjacent defender (160 games: 160 staged, 50 with marks, 43 with a stack entry, 41 with a non-adjacent attack) |
 | `TestStageCombatPodsMatchReplay` | the combat kinds at four seats plus the blockers pose of a later defender (240 games: 239 staged, 45 later-defender poses) |
 | `TestStagePodMutationsAreCaught` | seat 3 life, seat 2 library, the attacked seat, the asked defender and the priority holder each bent in turn |
 | `TestStageCommanderPodsMatchReplay` | the `cmd5` pool at four seats, each deck Terrian, World Tyrant (the commander), seven creatures and 32 Forests (120 pods: 114 staged, 107 with a commander in the command zone, 68 on the battlefield, 84 cast, 12 taxed, 36 with commander damage) |
 | `TestStageCommanderMutationsAreCaught` | commander damage, cast counts and a command-zone commander moved to its library each bent in turn |
-| `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens) and moves or drops a stack entry's target, and requires the verifier to fail |
+| `TestStageMutationsAreCaught` | drops each staged feature in turn (tapped, damage, counters, life, library order, the stack, combat marks, attachments, tokens, a ceased token's card or revival) and moves or drops a stack entry's target, and requires the verifier to fail |
 
 ## Fork and rollout
 

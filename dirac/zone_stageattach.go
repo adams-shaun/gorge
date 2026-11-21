@@ -108,8 +108,11 @@ func (w *World) checkTokenAttach(i int, firstToken *int) error {
 		if *firstToken < 0 {
 			*firstToken = i
 		}
-		if o.Zone != kop.ZoneBattlefield {
+		if o.Zone != kop.ZoneBattlefield && o.Zone != kop.ZoneNone { // ZoneNone: it has ceased to exist
 			return unstageable(ReasonToken, "object %d: a token in zone %d", i, o.Zone)
+		}
+		if o.Zone == kop.ZoneNone && (o.Attached || o.Tapped || o.Sick || o.Damage != 0 || o.P1P1 != 0 || o.combatMarked()) {
+			return unstageable(ReasonToken, "object %d: a ceased token carries a mark", i)
 		}
 	} else if *firstToken >= 0 {
 		return unstageable(ReasonLayout, "object %d: a card after the tokens", i)
@@ -152,11 +155,20 @@ func (s *State) stageAttached(k *prep, w *World) {
 }
 
 // stageTokens makes w's tokens, in order, as the objects after the decks'.
-// It reports false when one does not land on its index.
+// It reports false when one does not land on its index. A token that has
+// ceased to exist keeps its index and holds ZoneNone, as the token branch of
+// moveTo leaves it.
 func (s *State) stageTokens(w *World) bool {
 	for i := range w.Objs {
-		if o := &w.Objs[i]; o.Token && s.newToken(o.Card, o.Owner) != Obj(i) {
+		o := &w.Objs[i]
+		if !o.Token {
+			continue
+		}
+		if s.newToken(o.Card, o.Owner) != Obj(i) {
 			return false
+		}
+		if o.Zone == kop.ZoneNone {
+			s.objs[i].zone = kop.ZoneNone
 		}
 	}
 	return true

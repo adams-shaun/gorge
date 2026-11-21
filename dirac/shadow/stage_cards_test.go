@@ -119,7 +119,7 @@ func TestStageCardsMatchReplay(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("marks: %d staged positions held an attachment, %d a token, %d a spell on the stack (%d skipped for a token that left the view)", st.attached, st.tokens, st.spells, st.deadTok)
+	t.Logf("marks: %d staged positions held an attachment, %d a token (%d a ceased one), %d a spell on the stack", st.attached, st.tokens, st.ceased, st.spells)
 	t.Logf("%d games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", stageGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
 	t.Logf("first detail of each reason: %v", st.firstDetail)
 	t.Logf("%d staged positions held a targeted stack entry; %d positions refused %q", st.targeted, st.reasons[shadow.ReasonStack], shadow.ReasonStack)
@@ -131,6 +131,12 @@ func TestStageCardsMatchReplay(t *testing.T) {
 	}
 	if st.attached < 20 || st.tokens < 20 || st.spells < 20 {
 		t.Errorf("the pool exercised too little: %d attachment and %d token positions staged", st.attached, st.tokens)
+	}
+	if st.ceased < 20 {
+		t.Errorf("only %d staged positions held a ceased token, need at least 20", st.ceased)
+	}
+	if st.reasons[dirac.ReasonToken] >= 500 {
+		t.Errorf("%d positions refused as a token, need fewer than 500", st.reasons[dirac.ReasonToken])
 	}
 	if st.staged < stageGames*8/10 { // a game that waits for a stack position may never see one
 		t.Errorf("only %d of %d games staged a position", st.staged, stageGames)
@@ -167,6 +173,33 @@ func cardsMutations(tbl *kop.Table) map[string]func(*dirac.World) {
 			}
 		},
 		"tokens dropped": dropTokens(tbl),
+		// each ceased token takes another token card of the table
+		"ceased token's card swapped": func(w *dirac.World) {
+			for i := range w.Objs {
+				if o := &w.Objs[i]; o.Token && o.Zone == kop.ZoneNone {
+					for c := range tbl.Cards {
+						if d := &tbl.Cards[c]; d.Types == kop.TCreature|kop.TToken && len(d.Abilities) == 0 && d.Keywords&^kop.KwFlying == 0 && kop.CardID(c) != o.Card {
+							o.Card = kop.CardID(c)
+							break
+						}
+					}
+				}
+			}
+		},
+		// a ceased token comes back on its owner's battlefield, last in its list
+		"ceased token revived": func(w *dirac.World) {
+			for i := range w.Objs {
+				if o := &w.Objs[i]; o.Token && o.Zone == kop.ZoneNone {
+					n := uint8(0)
+					for j := range w.Objs {
+						if b := &w.Objs[j]; b.Zone == kop.ZoneBattlefield && b.Ctrl == o.Ctrl {
+							n++
+						}
+					}
+					o.Zone, o.Pos = kop.ZoneBattlefield, n
+				}
+			}
+		},
 		// the target moves to another creature on the same battlefield
 		"stack target moved": func(w *dirac.World) {
 			for i := range w.Stack {

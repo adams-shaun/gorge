@@ -2,7 +2,6 @@ package shadow
 
 import (
 	"fmt"
-	"sort"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -17,20 +16,28 @@ import (
 // unknown, belongs to a belief search instead; a Layout cannot represent one.
 //
 // A Layout also owns the object numbering staging needs and a sticky token
-// registry. Both are stateful across Deal calls: a token keeps the rank of the
-// first view it appeared in, so later views that no longer show it compact the
-// token indices the same way every time.
+// registry. Both are stateful across Deal calls: a token keeps the index of the
+// first view it appeared in for the rest of the game, and once no view shows it
+// it is dealt as a ceased token (Hidden.Ceased) at that index.
 type Layout struct {
 	tbl   *kop.Table
 	lists [][]string
 	bases []int // bases[s] is seat s's first object index
 	total int   // the number of deck cards in all lists
 
-	// tokenRank is a view ID's first-seen rank. It is a lookup only; the
-	// iteration order is tokenSeen, which appends a token the first time a
-	// view shows it, in player then battlefield order.
+	// tokenRank is a view ID's first-seen rank, an index into tokens. It is a
+	// lookup only; the iteration order is tokens, which appends a token the
+	// first time a view shows it, in player then battlefield order.
 	tokenRank map[int]int
-	tokenSeen []int
+	tokens    []layoutToken
+}
+
+// layoutToken is a token the Layout has seen: its view ID and the table token
+// name and owner it had when last shown.
+type layoutToken struct {
+	id    int
+	name  string // the table token's script name; "" when the table has no unique match
+	owner uint8
 }
 
 // NewLayout validates tbl and the open deck lists and returns their Layout.
@@ -138,14 +145,14 @@ func (n *Numbering) add(id int, o dirac.Obj) {
 // Deal returns ReasonHidden. An unseen card the list no longer holds is a
 // ReasonHidden too ("seat %d shows %q beyond its list").
 //
-// Tokens take the indices after every deck, compacted: the tokens the view
-// shows now, ordered by when this Layout first saw each one. A token that left
-// drops out, so a later view numbers the remaining tokens down by one. The
-// staged game then holds fewer objects than the game the view came from, which
-// dirac allows.
+// Tokens take the indices after every deck, in the order this Layout first saw
+// each one, and keep them: a token that left the view becomes a CeasedToken at
+// its index, with the name and owner it had when last shown. (A token made and
+// gone between two views is never seen; the gap it leaves is refused as a
+// token when a later one follows it.)
 //
 // Deal reads only the view and the lists. Its only writes are the token
-// registry's first-seen ranks.
+// registry's first-seen ranks and last-seen names and owners.
 func (l *Layout) Deal(v *view.View, cfg dirac.Config, seed uint64) (*Input, *Numbering, error) {
 	if l == nil || l.tbl == nil {
 		return nil, nil, bad(ReasonHidden, "no layout")
@@ -263,9 +270,9 @@ func (l *Layout) Deal(v *view.View, cfg dirac.Config, seed uint64) (*Input, *Num
 		hidden.Library[s] = cards[hand:]
 	}
 
-	// Tokens come after every deck, in first-seen rank order. Current tokens
-	// are compacted: an absent rank leaves no gap.
-	var current []int
+	// Tokens come after every deck, each at its first-seen rank for the rest of
+	// the game: the ones the view shows are numbered, the rest are ceased.
+	shownTok := map[int]bool{}
 	for pi := range v.Players {
 		p := &v.Players[pi]
 		for ci := range p.Battlefield {
@@ -274,16 +281,29 @@ func (l *Layout) Deal(v *view.View, cfg dirac.Config, seed uint64) (*Input, *Num
 				continue
 			}
 			id := int(cv.ID)
-			if _, ok := l.tokenRank[id]; !ok {
-				l.tokenRank[id] = len(l.tokenSeen)
-				l.tokenSeen = append(l.tokenSeen, id)
+			r, ok := l.tokenRank[id]
+			if !ok {
+				r = len(l.tokens)
+				l.tokenRank[id] = r
+				l.tokens = append(l.tokens, layoutToken{id: id})
 			}
-			current = append(current, id)
+			t := &l.tokens[r]
+			t.owner = uint8(cv.Owner)
+			t.name = ""
+			if cid, ok := tableToken(l.tbl, cv); ok {
+				t.name = l.tbl.Cards[cid].Name
+			}
+			shownTok[id] = true
 		}
 	}
-	sort.SliceStable(current, func(i, j int) bool { return l.tokenRank[current[i]] < l.tokenRank[current[j]] })
-	for i, id := range current {
-		nums.add(id, dirac.Obj(l.total+i))
+	for r := range l.tokens {
+		t := &l.tokens[r]
+		o := dirac.Obj(l.total + r)
+		if shownTok[t.id] {
+			nums.add(t.id, o)
+		} else {
+			hidden.Ceased = append(hidden.Ceased, CeasedToken{Obj: o, Name: t.name, Owner: t.owner})
+		}
 	}
 
 	in := &Input{
