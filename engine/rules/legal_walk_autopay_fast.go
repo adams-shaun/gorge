@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -60,9 +59,6 @@ func (w *legalWalk) autoPayFast(p state.PlayerID, id state.ObjID, base Cost, ab 
 	// A restricted batch may not spend on this ability (CR 106.6); the planner
 	// reads the pool through pay.PlanPool.
 	if len(w.e.G.Players[p].RestrictedMana) > 0 {
-		if os.Getenv("GORGE_DBG_OFFER") != "" {
-			fmt.Printf("DBG fast rb p=%d id=%d restricted=%+v\n", p, id, w.e.G.Players[p].RestrictedMana)
-		}
 		return false
 	}
 	// PowerUp's ReduceCost is applied by the walk but not by the planner, so

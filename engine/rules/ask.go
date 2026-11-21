@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -23,9 +22,6 @@ const chooseNone chooseFor = iota
 // commanderCardLegal reports whether ONE card may be a commander under
 
 func (e *Engine) ask(d *decision.Decision) {
-	if os.Getenv("GORGE_DBG_EASK") != "" {
-		fmt.Printf("DBG eask kind=%s p=%d turn=%d step=%d pool=%+v prompt=%q opt0=%v\n", d.Kind, d.Player, e.G.Turn, e.G.Step, e.G.Players[d.Player].Pool, d.Prompt, d.Options[:min(2, len(d.Options))])
-	}
 	// The resolution kernel (engine/rules/resolve): a legacy ask inside a tape run
 	// ends it (legacy in place, or abort and legacy replay), and one during
 	// an exempted resolution is a predicate miss.

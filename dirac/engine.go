@@ -1,9 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -286,13 +283,7 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
-			if os.Getenv("DIRAC_DBG_ASK") != "" {
-				fmt.Printf("DBG kask p=%d turn=%d step=%d pool=%v manatap=%v\n", s.prio, s.turn, s.step, s.pl[s.prio].pool, s.manaLandTap(k, s.prio))
-			}
 			s.priorityOptions(k, d)
-			if os.Getenv("DIRAC_DBG_ASK") != "" {
-				fmt.Printf("DBG kask-post p=%d turn=%d manatap=%v\n", s.prio, s.turn, s.manaLandTap(k, s.prio))
-			}
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {

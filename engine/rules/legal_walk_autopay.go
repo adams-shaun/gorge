@@ -1,10 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-	"runtime"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -32,13 +28,6 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		b := w.e.PotentialMana(p)
 		w.autoBound = &b
 	}
-	if os.Getenv("GORGE_DBG_AUTOPAY") != "" {
-		fmt.Printf("DBG bound p=%d id=%d turn=%d hyp=%v pool=%+v bound=%+v\n", p, id, w.e.G.Turn, w.hyp != nil, w.e.G.Players[p].Pool, *w.autoBound)
-		if w.e.G.Turn == 20 && id == 79 && os.Getenv("GORGE_DBG_STACK") != "" {
-			buf := make([]byte, 4096)
-			fmt.Printf("DBG stack:\n%s\n", buf[:runtime.Stack(buf, false)])
-		}
-	}
 	if *w.autoBound == w.e.G.Players[p].Pool {
 		return false // nothing to tap: the pool is already the bound.
 	}
@@ -46,9 +35,6 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	probe := base
 	if !w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &bound) {
 		return false
-	}
-	if os.Getenv("GORGE_DBG_AUTOPAY") != "" && base.Colored.Total() > 0 {
-		fmt.Printf("DBG autopay p=%d id=%d turn=%d base=%+v pool=%+v bound=%+v\n", p, id, w.e.G.Turn, base, w.e.G.Players[p].Pool, bound)
 	}
 	if len(base.Phyrexian) > 0 {
 		return w.autoPayPhyrexian(p, id, idx, base, scope, statics)
@@ -69,15 +55,7 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 // confirm its witness with the engine's own offer gate, exactly as autoPayOffer
 // always did before the fast path existed.
 func (w *legalWalk) autoPayPlan(p state.PlayerID, id state.ObjID, idx int, base Cost, scope costScope, statics costStaticViews) bool {
-	out := w.e.planAbilityPayment(p, id, idx)
-	if os.Getenv("GORGE_DBG_AUTOPAY") != "" && base.Colored.Total() > 0 {
-		acts := 0
-		if out.Plan != nil {
-			acts = len(out.Plan.Activations)
-		}
-		fmt.Printf("DBG plan p=%d id=%d turn=%d ok=%v reason=%q detail=%q acts=%d\n", p, id, w.e.G.Turn, out.Plan != nil, out.Reason, out.Detail, acts)
-	}
-	return w.autoPayConfirm(p, id, base, scope, statics, out)
+	return w.autoPayConfirm(p, id, base, scope, statics, w.e.planAbilityPayment(p, id, idx))
 }
 
 // autoPayPhyrexian is the autopay offer for a cost carrying Phyrexian pips

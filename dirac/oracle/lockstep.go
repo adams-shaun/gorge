@@ -427,18 +427,6 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			// below; outside a priority decision (declarations, choices) the
 			// engines' stale holder values are not game state.
 			pr.Priority, pk.Priority = 0, 0
-			if os.Getenv("LKDBG_POOL") != "" && pr.Turn >= 20 {
-				rt, kt := 0, 0
-				for i := 0; i < int(pr.NInst); i++ {
-					if pr.Cards[i].Flags&FTapped != 0 {
-						rt++
-					}
-					if pk.Cards[i].Flags&FTapped != 0 {
-						kt++
-					}
-				}
-				fmt.Printf("LKDBG dec=%d step ref=%d ker=%d pool ref=%v ker=%v tapped ref=%d ker=%d ninst %d/%d\n", res.Decisions, pr.Step, pk.Step, pr.Pool, pk.Pool, rt, kt, pr.NInst, pk.NInst)
-			}
 			if pr.Over && pk.Over && pr.Winner == pk.Winner && pr.Life == pk.Life {
 				pr = pk // local patch: a finished game compares by result only
 			}

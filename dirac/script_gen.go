@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1007,9 +1005,6 @@ func (s *State) ownSacTapNeeded(k *prep, p uint8, cost *kop.ManaCost) bool {
 }
 
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
-	if os.Getenv("DIRAC_DBG_GRANT") != "" {
-		fmt.Printf("DBG gc enter p=%d gapLive=%v n=%d\n", p, s.grantGapLive(k, p), d.N)
-	}
 	if !s.grantGapLive(k, p) {
 		return
 	}
@@ -1070,9 +1065,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue // a tap's extra is no part of the walk's units here, yet gorge's relaxed census counts it (mana_tapextra.go)
 		}
 		cost, ex, need, ok := s.grantPlayCost(k, p, a, true)
-		if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Kind() == AkActivate {
-			fmt.Printf("DBG gc1 kind=%d src=%d ungr=%v inWalk=%v\n", a.Kind(), a.Source(), s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(k, a)), hasOption(&walk, a))
-		}
 		if !ok || s.affordsUngrantedFor(k, p, &cost, ex, s.grantPayDesc(k, a)) {
 			continue
 		}
@@ -1104,13 +1096,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	}
 	for i := 0; i < int(walk.N); i++ {
 		a := walk.Options[i]
-		if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Kind() == AkActivate && a.Source() == TCode(78) {
-			cost2, _, _, ok2 := s.grantPlayCost(k, p, a, true)
-			fmt.Printf("DBG gc2 i=%d obj=%d inD=%v\n", i, a.Source(), hasOption(d, a))
-			if ok2 {
-				fmt.Printf("DBG gc2b ungr=%v relax=%v\n", s.affordsUngrantedPlay(k, p, a, &cost2, NoSlot, s.grantPayDesc(k, a)), s.grantRelaxedAffords(k, p, a, &cost2, NoSlot, s.grantPayDesc(k, a), m))
-			}
-		}
 		if isEscapeCastAction(a) {
 			continue // gorge's planner prices no escape mode ("unsupported shape", kw_escape.go): no prefix search, so no storage-battery step offers it
 		}
@@ -1182,31 +1167,13 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if k.tapMana && hasOption(d, a) && s.tapXOffGrant(k, p) {
-			if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Kind() == AkActivate && a.Source() == TCode(78) {
-				found, _ := s.tapXScript(k, a, p, false)
-				fmt.Printf("DBG gc3 tapX found=%v\n", found)
-				if found {
-					continue
-				}
-			} else if found, _ := s.tapXScript(k, a, p, false); found {
-				continue
+			if found, _ := s.tapXScript(k, a, p, false); found {
+				continue // a tap-another source (Gene Pollinator) pays it in scriptOffers' search, which the grant search does not run (mana_tapanother.go)
 			}
-		}
-		if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Kind() == AkActivate && a.Source() == TCode(78) {
-			fmt.Printf("DBG gc4 n=%d restr=%v\n", n, m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a)))
 		}
 		if m&availHyp == 0 && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a)) {
 			d.remove(a) // gorge's relaxed proof refuses the restricted grant: insufficient, never searched (mana_grantrelaxrestr.go)
 			capSpent.add(a)
-			continue
-		}
-		if hasOption(d, a) && a.Kind() == AkActivate && ex == NoSlot && s.grantJoinPays(k, p, &cost, s.grantPayDesc(k, a)) {
-			if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Source() == TCode(78) {
-				fmt.Printf("DBG join p=%d turn=%d cost=%+v pool=%+v\n", p, s.turn, cost, s.pl[p].pool)
-			}
-			// the offer walk's own census pays the composed cost: gorge's
-			// planner prices the same read, so the prefix search can only
-			// drop what both sides list (grantJoinPays, mana_grantrelaxed.go)
 			continue
 		}
 		if n++; n > potentialScriptPlays {
@@ -1214,9 +1181,6 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if !s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
-			if os.Getenv("DIRAC_DBG_GRANT") != "" && a.Kind() == AkActivate && a.Source() == TCode(78) {
-				fmt.Printf("DBG gc5 search fail nodes=%d limited=%v stall=%d need=%v\n", g.nodes, g.limited, g.stall, need)
-			}
 			found, stall := false, uint8(0)
 			if s.tapXOffGrant(k, p) {
 				found, stall = s.tapXScript(k, a, p, false)
