@@ -22,6 +22,18 @@ func exileGraveManaShape(c lCost) bool {
 		c.Mana.C == 0 && len(c.Mana.Hybrid) == 0 && len(c.Mana.Twobrid) == 0 && len(c.Mana.Phyrexian) == 0
 }
 
+// exileGraveManaRefused: a mana ability's lowered cost carries a forage part or an
+// exile-from-graveyard part outside the modelled shape (lower.go's refusal).
+func exileGraveManaRefused(c lCost) bool {
+	return c.Forage != nil || c.ExileG != nil && !exileGraveManaShape(c)
+}
+
+// exileGraveManaCostRefused is build_ab.go's twin: the built cost holds a forage,
+// a return or an exile-from-graveyard part outside the modelled shape.
+func exileGraveManaCostRefused(c kop.Cost) bool {
+	return c.Flags&(kop.CostForage|kop.CostReturn) != 0 || c.Flags&kop.CostExileGrave != 0 && !exileGraveManaCost(c)
+}
+
 // exileGraveManaWhy is the refusal text of a mana ability whose cost carries a
 // forage or an exile-from-graveyard part exileGraveManaShape does not admit: a
 // rider, a graveyard activation zone or a spend restriction is named, so the

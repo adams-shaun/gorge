@@ -43,6 +43,10 @@ func (k *prep) exileGOf(c CardID) bool {
 	return a != nil && kop.ExileGManaAb(a)
 }
 
+// pickXOf: card c's tap-another gap asks a permanent or card pick the search
+// branches on in sacStep: a sacrifice-another or an exile-from-graveyard source.
+func (k *prep) pickXOf(c CardID) bool { return k.sacXOf(c) || k.exileGOf(c) }
+
 // exileGCands lists the graveyard cards exile source sl's cost can take, as
 // indices into the controller's graveyard, in zone order (gorge's candidates:
 // the payer's graveyard matching the spec, less the cast's reserved picks).

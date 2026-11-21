@@ -642,6 +642,11 @@ func SecondSacTapManaAb(cd *CardDef, first, j int) bool {
 	return SacTapFixedManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
 }
 
+// TapXSearchMana is a mana ability the kernel's tap-another search activates:
+// a tap-another or sacrifice-another source or an exile-from-graveyard one
+// (ExileGManaAb).
+func TapXSearchMana(a *Ability) bool { return TapXMana(a) || SacXMana(a) || ExileGManaAb(a) }
+
 // SacXMana is either sacrifice-another-permanent mana shape.
 func SacXMana(a *Ability) bool {
 	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a)
