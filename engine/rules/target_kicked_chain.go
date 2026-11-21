@@ -83,3 +83,35 @@ func (e *Engine) kickedTargetMin(p state.PlayerID, id state.ObjID, sa *cards.SA)
 	}
 	return min
 }
+
+// kickedRootCensus is the slice of the engine the kicked-root census reads.
+type kickedRootCensus interface {
+	kickedTargetMin(p state.PlayerID, id state.ObjID, sa *cards.SA) int
+	collectSubTargetPreAsks(root *cards.SA) []*cards.SA
+	legalTargetCandidates(p state.PlayerID, source, excludeSelf state.ObjID, sa *cards.SA) []targetCandidate
+}
+
+// kickedWaivedRootTargetsAvailable is the kicked cast's census when the plain cast's root
+// target is the only thing the plain census found missing (CR 601.2b, 601.2c): a root whose
+// target minimum reads the kicked bit (Tear Asunder's TargetMin$ X over Count$Kicked.0.1)
+// announces nothing when kicked, and the kicked cast's targets are its Kicked-conditioned
+// links alone. It holds when the root's kicked minimum is zero and every such link has its
+// kicked minimum of candidates. A root the kicked cast still owes, or a chain with no
+// Kicked-conditioned link, is the plain census's alone.
+func kickedWaivedRootTargetsAvailable(e kickedRootCensus, p state.PlayerID, id state.ObjID, root *cards.SA) bool {
+	if root == nil || root.Sub == nil || !effects.TargetsOf(root).Targeted() || e.kickedTargetMin(p, id, root) > 0 {
+		return false
+	}
+	kickedPC, plainPC := &pendingCast{mode: "kicked"}, &pendingCast{}
+	linked := false
+	for _, sub := range e.collectSubTargetPreAsks(root) {
+		if !castSubTargetsOwed(kickedPC, sub) || castSubTargetsOwed(plainPC, sub) {
+			continue
+		}
+		linked = true
+		if need := e.kickedTargetMin(p, id, sub); need > 0 && len(e.legalTargetCandidates(p, id, id, sub)) < need {
+			return false
+		}
+	}
+	return linked
+}
