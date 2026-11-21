@@ -1044,12 +1044,16 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 // gfGapOther. Not Quirion Elves' chosen {T}, which prepMultiMana folds into the
 // source's unit (registering it as a gap would keep a filter beside it off the
 // filtScript path), not a sacrifice-only one, a census unit in the
-// last-resort tier (a filter beside it stays filter-only), and not a sole
+// last-resort tier (a filter beside it stays filter-only), not a restricted
+// "{T}, Pay N life" one, a restricted planner unit like the sacrifice-only
+// source (restrLifeAb, mana_restrictedcost.go: gorge plans it as
+// TierLastResort with the life a consequence, so a filter beside it stays
+// filter-only), and not a sole
 // life-only one, the planner's last-resort Consequence{Life} alternative the
 // pain unit prepSoleLifeMana classifies (mana_pain.go).
 func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
 	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
-		!kop.SoleGapLifeManaAb(c, j)
+		!restrLifeAb(a) && !kop.SoleGapLifeManaAb(c, j)
 }
 
 // filtOnly: p's census gaps are filters alone (no other activatable source
