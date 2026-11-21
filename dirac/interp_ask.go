@@ -1841,7 +1841,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -2140,6 +2140,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.enterOnto(host)
 			}
 		}
+		switch s.payETBFoundGate(k, o, ep, i, z, host) {
+		case payETBPark:
+			return
+		case payETBGrave:
+			continue // the decline branch: the card went to its owner's graveyard instead
+		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
 			ans := host // the answered enchant ask is for the parked card, the look's first
 			if i != 0 {
@@ -2194,15 +2200,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
-			var sl Slot
-			if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
-				sl = s.enterHeld(k, &eb, o, ep, fl&kop.SrTapped != 0, from)
-				if from == kop.ZoneGraveyard {
-					s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
-				}
-			} else {
-				sl = s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
-			}
+			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -2257,6 +2255,34 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		host = NoSlot // an Aura's host is for its own entry; the next card finds its own
 	}
 	s.g.nlook = 0
+}
+
+// payETBFoundGate is the pay-before-entering gate of one battlefield-bound found
+// card (payETBEntry): on payETBPark the cards from look[i] on wait for the
+// posed election's answer (repl_paybeforeetb.go), so the look is cut to them.
+func (s *State) payETBFoundGate(k *prep, o Obj, ep uint8, i int, z kop.Zone, host Slot) int {
+	if z != kop.ZoneBattlefield || host != NoSlot {
+		return payETBNone
+	}
+	r := s.payETBEntry(k, o, ep)
+	if r == payETBPark {
+		n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+		s.g.nlook = uint8(n)
+	}
+	return r
+}
+
+// enterFound puts one found card onto the battlefield: held in the batch
+// when several enter together, else at once.
+func (s *State) enterFound(k *prep, eb *entBatch, o Obj, ep uint8, tapped bool, from kop.Zone, host Slot) Slot {
+	if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
+		sl := s.enterHeld(k, eb, o, ep, tapped, from)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
+		}
+		return sl
+	}
+	return s.enter(k, o, ep, tapped, from)
 }
 
 // --- dig ---
