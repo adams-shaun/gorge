@@ -2758,7 +2758,16 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	if k.gen.flags[c]&gfManaVar != 0 {
 		vi = k.gen.manaVar(c)
 	}
-	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
+	// The loss check covers every card with mana facts, not only the ones
+	// holding a planner unit: a source whose ability is a census gap the
+	// planner defers (a dynamic amount whose cost the planner cannot run,
+	// a restricted or deferred one) keeps its production colours on
+	// manaCol with manaAb and vi at -1 (the prep above). It too loses its
+	// abilities -- to a land-type setter above all (CR 305.7: Sand Silos'
+	// storage-counter ability under Blood Moon), but to a one-shot loss or
+	// a face-down turn as well -- and then makes only what the setter's
+	// basic land types' intrinsic abilities make, or nothing.
+	if (pc.manaAb >= 0 || vi >= 0 || pc.manaCol != 0) && s.genLost(k, sl) {
 		if k.gen.landSet && s.landSetLost(k, sl) {
 			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
 		}
