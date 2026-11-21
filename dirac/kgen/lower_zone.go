@@ -1398,22 +1398,21 @@ func (lc *lowerCtx) dig(ps *params) error {
 		}
 		flags = append(flags, "pos="+lp)
 	}
+	_, hasDest2 := ps.m["DestinationZone2"]
+	skipReorder := strings.TrimSpace(ps.m["SkipReorder"]) == "True"
+	restRandomOrder := ps.is("RestRandomOrder", "True")
 	var restTop, restAsk bool
-	if _, d2 := ps.m["DestinationZone2"]; !d2 && strings.TrimSpace(ps.m["SkipReorder"]) == "True" {
-		// gorge effDig's rest(): SkipReorder$ leaves the remainder in place
-		// before LibraryPosition2$ is read, so the position is moot (the
-		// Undercity's Throne of the Dead Three)
+	if !hasDest2 && skipReorder && !restRandomOrder {
+		// gorge effDig's rest(): SkipReorder$ without RestRandomOrder$ leaves
+		// the remainder in place before LibraryPosition2$ is read, so the
+		// position is moot (the Undercity's Throne of the Dead Three)
 		ps.consume("LibraryPosition2")
 	} else if restTop, restAsk, err = lc.digRestTop(ps, who, n, take, dest, dest2); err != nil {
 		return err
 	}
-	if v, ok := ps.get("SkipReorder"); ok {
-		// gorge effDig: SkipReorder$ True leaves the untaken cards where
-		// they are, on top in their order (Knight-Errant of Eos, which
-		// then shuffles); beside a DestinationZone2$ it is unread there
-		if _, d2 := ps.m["DestinationZone2"]; v != "True" || d2 || ps.is("RestRandomOrder", "True") {
-			return refuse("SkipReorder %q beside a remainder placement", v)
-		}
+	if rt, err := digSkipReorderRest(ps, hasDest2, restRandomOrder); err != nil {
+		return err
+	} else if rt {
 		restTop = true
 	}
 	if restTop {
@@ -1516,6 +1515,31 @@ func filterReadsRemembered(f *lFilter) bool {
 		}
 	}
 	return false
+}
+
+// digSkipReorderRest reads Dig's SkipReorder$ for the rest placement and
+// returns whether the untaken cards stay on top (the DigRestTop flag).
+// gorge effDig: SkipReorder$ True leaves the untaken cards where they are,
+// on top in their order (Knight-Errant of Eos, which then shuffles; Through
+// the Forest Gate); beside a DestinationZone2$ it is unread there. BESIDE
+// RestRandomOrder$ True (Hide in Plain Sight) the two name one instruction
+// -- "put the rest on the bottom of your library in a random order":
+// SkipReorder$ suppresses only the chooser's order ask, which
+// RestRandomOrder$ never poses, so it is inert and the shuffled-to-bottom
+// lower (DigRandomOrder, no RestTop) is the whole behaviour (CR 401.4).
+func digSkipReorderRest(ps *params, hasDest2, restRandomOrder bool) (bool, error) {
+	v, ok := ps.get("SkipReorder")
+	if !ok {
+		return false, nil
+	}
+	skipReorder := strings.TrimSpace(v) == "True"
+	if !skipReorder || hasDest2 {
+		return false, refuse("SkipReorder %q beside a remainder placement", v)
+	}
+	if restRandomOrder {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (lc *lowerCtx) digUntil(ps *params) error {
