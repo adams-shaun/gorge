@@ -176,6 +176,7 @@ Scalding Viper
 Scarecrow Guide
 Scream Puff
 Sentinel of Lost Lore
+Sharae of Numbing Depths
 Shatter the Oath
 Shrouded Shepherd
 Skewer Slinger
@@ -219,6 +220,7 @@ The Huntsman's Redemption
 The Irencrag
 The Princess Takes Flight
 The Witch's Vanity
+Threadbind Clique
 Three Blind Mice
 Thunderous Debut
 Titanic Growth
@@ -248,6 +250,7 @@ Welcome to Sweettooth
 Werefox Bodyguard
 Wicked Visitor
 Wildwood Mentor
+Will, Scion of Peace
 Witch's Mark
 Witchstalker Frenzy
 Woodland Acolyte

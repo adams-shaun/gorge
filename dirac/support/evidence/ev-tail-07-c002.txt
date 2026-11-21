@@ -59,6 +59,7 @@ Centaur Veteran
 Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
+Clambassadors
 Clinging Anemones
 Cloaked Siren
 Consuming Vapors
@@ -271,6 +272,7 @@ Saving Grasp
 Sawtooth Loon
 Sawtooth Ogre
 Scatter Ray
+Scattershot Archer
 Scoria Elemental
 Scrabbling Claws
 Screamreach Brawler
