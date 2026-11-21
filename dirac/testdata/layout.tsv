@@ -280,7 +280,6 @@ default	field	genState.exRideN	6366	1
 default	field	genState.dayNight	6367	1
 default	field	genState.links	6368	128
 default	field	genState.nlinks	6496	1
-default	field	genState.nexw	6497	1
 default	field	genState.linkHide	6498	2
 default	field	genState.linkAeg	6500	2
 default	field	genState.linkHand	6502	2
@@ -779,7 +778,7 @@ default	field	coldArrays.layout	0	8
 default	field	coldArrays.buf	8	24
 default	field	coldArrays.ms	32	24
 default	field	coldArrays.mo	56	24
-default	field	coldArrays.exw	80	24
+default	field	coldArrays.objSets	80	24
 default	field	coldArrays.atkGrp	104	24
 default	field	coldArrays.exH	128	24
 default	field	coldArrays.entered	152	24
