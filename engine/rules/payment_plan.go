@@ -5,6 +5,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -1655,6 +1656,13 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 		}
 	}
 	units := e.windowManaUnitsWith(p, only, windowMas)
+	if os.Getenv("GORGE_DBG_CENSUS") != "" && e.G.Turn == 20 {
+		for _, u := range units {
+			for _, al := range u.Alts {
+				fmt.Printf("DBG cen p=%d id=%d ma=%v any=%v amt=%d counts=%v\n", p, u.ID, al.Ma.Line, al.Any, al.Amt, al.Counts)
+			}
+		}
+	}
 	for zi, id := range zone {
 		if only != nil && !slices.Contains(only, id) {
 			continue

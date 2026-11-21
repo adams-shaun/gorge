@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -201,6 +202,14 @@ func (w *legalWalk) battlefieldWalk() {
 			useCls := board.kwOK && !board.kwMaybe && z != state.ZStack
 			for _, zonePlayer := range zonePlayers {
 				for _, id := range e.G.Zone(z, zonePlayer) {
+					if os.Getenv("GORGE_DBG_OBJTOP") != "" && z == state.ZBattlefield && zonePlayer == p && e.G.Turn == 20 {
+						oo := e.G.Obj(id)
+						nm := ""
+						if oo != nil && oo.Face() != nil {
+							nm = oo.Face().Name
+						}
+						fmt.Printf("DBG objtop id=%d hot=%v tapped=%v name=%q\n", id, e.walkClassOf(id).abHot(z), oo != nil && oo.Tapped, nm)
+					}
 					if useCls && !e.walkClassOf(id).abHot(z) {
 						if !walkSkipVerify {
 							continue
@@ -251,6 +260,13 @@ func (w *legalWalk) battlefieldWalk() {
 					// index. abFace is the face that carries the ability -- an
 					// under-card's label and SVar table must be its own, never the
 					// pile top's.
+					if os.Getenv("GORGE_DBG_OBJ") != "" && z == state.ZBattlefield && zonePlayer == p {
+						cls := e.walkClassOf(id)
+						pse, _ := w.pileAbilitiesEmpty(o, id, f, z)
+						fmt.Printf("DBG obj id=%d turn=%d hot=%v phased=%v face=%v fdhide=%v lost=%v reuse=%v pileSkip=%v tapped=%v\n",
+							id, e.G.Turn, cls.abHot(z), !pay.ExistsOnBattlefield(o), f == nil, e.faceDownPrintedHides(o),
+							e.printedAbilitiesLost(o), w.reuseAbilityBlock(z, zonePlayer, id), pse, o.Tapped)
+					}
 					pileSkip, faceFacts := w.pileAbilitiesEmpty(o, id, f, z)
 					pileMark := len(*out)
 					for i, pn := 0, pileAbilityBound(o, printedLost); i < pn && (!pileSkip || walkSkipVerify); i++ {
@@ -284,6 +300,12 @@ func (w *legalWalk) battlefieldWalk() {
 						// only skip, so testing the zone first -- the one a hand,
 						// graveyard or stack card's battlefield ability fails -- selects
 						// exactly the abilities the mana-then-zone order did.
+						if os.Getenv("GORGE_DBG_TOP") != "" {
+							abcost0 := e.abilityCompiledCost(ab).Cost
+							if abcost0.Colored[state.ManaIndex('G')] == 5 && abcost0.Colored.Total() == 5 {
+								fmt.Printf("DBG top p=%d id=%d turn=%d z=%d face=%v abLine=%q\n", p, id, e.G.Turn, z, abFace != nil, ab.Line)
+							}
+						}
 						var loyal bool
 						mf := e.manaFactsOf(ab)
 						if mf != nil {
@@ -323,6 +345,22 @@ func (w *legalWalk) battlefieldWalk() {
 						// halves alike.
 						if !e.activationPhasesOK(p, ab) {
 							continue
+						}
+						if os.Getenv("GORGE_DBG_GATE") != "" {
+							abcost := e.abilityCompiledCost(ab).Cost
+							if abcost.Colored[state.ManaIndex('G')] == 5 && abcost.Colored.Total() == 5 {
+								loyal2 := e.isLoyaltyAbility(ab)
+								fmt.Printf("DBG gate p=%d id=%d turn=%d sorc=%v loyal=%v manaab=%v sspeed=%q act=%v phases=%v gtypes=%v restr=%v cond=%v sup=%v lim=%v boast=%v\n",
+									p, id, e.G.Turn, sorcery, loyal2, cards.IsManaAbilitySA(ab), ab.ParamStr(cards.PKSorcerySpeed),
+									e.activatorAllows(p, id, ab), e.activationPhasesOK(p, ab),
+									func() bool {
+										raw, ok := ab.Param(cards.PKActivationGameTypes)
+										return ok && !activationGameTypesOK(e.format, raw)
+									}(),
+									w.abilityRestricted(p, id, ab), e.activationConditionOK(p, id, ab),
+									e.castSuppressed(p, id), e.activationLimitBlocked(p, id, ab, i, "", pa.Merged),
+									strings.EqualFold(strings.TrimSpace(ab.ParamStr(cards.PKBoast)), "True"))
+							}
 						}
 						// ActivationGameTypes$ (activationGameTypesOK, above): a comma
 						// list of the formats the ability exists in. In a Constructed
@@ -403,6 +441,13 @@ func (w *legalWalk) battlefieldWalk() {
 						} else {
 							cost = e.abilityCompiledCost(ab).Cost
 						}
+						if os.Getenv("GORGE_DBG_OFFER") != "" && cost.Colored[state.ManaIndex('G')] == 5 && cost.Colored.Total() == 5 {
+							rawGT, _ := ab.Param(cards.PKActivationGameTypes)
+							fmt.Printf("DBG ge p=%d id=%d turn=%d step=%d gtypes=%q loyal=%v restr=%v cond=%v sup=%v lim=%v boast=%v\n",
+								p, id, e.G.Turn, e.G.Step, rawGT, loyal, w.abilityRestricted(p, id, ab), e.activationConditionOK(p, id, ab),
+								e.castSuppressed(p, id), e.activationLimitBlocked(p, id, ab, i, "", pa.Merged),
+								strings.EqualFold(strings.TrimSpace(ab.ParamStr(cards.PKBoast)), "True"))
+						}
 						// The ability's own ReduceCost$ (Otawara's Channel): the CR
 						// 601.2f composition the offer gate and beginActivation's
 						// charge share, so an offered cost and the paid one agree.
@@ -438,6 +483,13 @@ func (w *legalWalk) battlefieldWalk() {
 						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
 						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
+						if os.Getenv("GORGE_DBG_OFFER") != "" && cost.Colored[state.ManaIndex('G')] == 5 && cost.Colored.Total() == 5 {
+							fmt.Printf("DBG gb p=%d id=%d turn=%d step=%d pool=%+v printedOK=%v altOK=%v sup=%v lim=%v tap=%v sick=%v tgt=%v svar=%v pres=%v\n",
+								p, id, e.G.Turn, e.G.Step, e.G.Players[p].Pool, printedOK, altOK,
+								e.castSuppressed(p, id), e.activationLimitBlocked(p, id, ab, i, "", pa.Merged),
+								pay.ActivationTapCostUnavailable(o, &cost), pay.TapCostSick(asPayer(e), id, &cost, activatesAsIfHaste(e, id)),
+								e.abilityTargetsAvailable(p, id, ab), e.sVarGateOK(p, id, ab, pa.Merged), e.abilityPresentHolds(p, id, ab))
+						}
 						if !printedOK && !altOK {
 							continue
 						}

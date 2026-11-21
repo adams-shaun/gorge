@@ -414,6 +414,9 @@ func (g *GorgeSide) Step() CDecision {
 			continue
 		}
 		g.Stats.Decisions++
+		if os.Getenv("GORGE_DBG_SURF") != "" {
+			fmt.Printf("DBG surf seq=%d kind=%s p=%d turn=%d pool=%+v\n", d.Seq, d.Kind, d.Player, g.E.G.Turn, g.E.G.Players[d.Player].Pool)
+		}
 		return fr.cur
 	}
 }

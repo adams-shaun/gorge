@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -1124,6 +1125,9 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	}
 	d := e.arenaDecision()
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)
+	if os.Getenv("GORGE_DBG_ASK") != "" {
+		fmt.Printf("DBG ask p=%d turn=%d step=%d pool=%+v\n", p, e.G.Turn, e.G.Step, e.G.Players[p].Pool)
+	}
 	*d = decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
 		Prompt:  e.priorityPrompt(p),

@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -434,6 +436,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.filterSplitSecond(k, d) // kw_splitsecond.go
 	}
 	d.add(MakeAction(AkPass, 0, 0, 0))
+	if os.Getenv("DIRAC_DBG_ACT") != "" && s.turn >= 25 {
+		var sb []string
+		for i := 0; i < int(d.N); i++ {
+			sb = append(sb, fmt.Sprintf("%d/%d", d.Options[i].Kind(), d.Options[i].Source()))
+		}
+		fmt.Printf("DBG prio p=%d turn=%d active=%d step=%d n=%d opts=%v\n", p, s.turn, s.active, s.step, d.N, sb)
+	}
 }
 
 // activateOffers appends p's printable activated abilities to d and reports
@@ -458,6 +467,9 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			if !haveAv {
 				s.availFor(k, p, av)
 				haveAv = true
+				if os.Getenv("DIRAC_DBG_ACT") != "" {
+					fmt.Printf("DBG offerAv p=%d total=%d n=%d turn=%d active=%d step=%d pool=%v pool=%v\n", p, av.total, av.n, s.turn, s.active, s.step, s.pl[p].pool)
+				}
 			}
 			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
@@ -601,6 +613,37 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return false
 	}
 	p := &s.perms[sl]
+	if os.Getenv("DIRAC_DBG_ACT") != "" && a.Cost.Mana.Pips[4] == 5 {
+		early := []string{}
+		if k.gen != nil && ab != 255 && (!ownActivatable(a) || s.genLost(k, sl)) {
+			early = append(early, "ownAct/genLost")
+		}
+		if k.gen != nil && k.gen.anyNetLock && s.netLocked(p.obj) {
+			early = append(early, "netLock")
+		}
+		if k.gen != nil && k.gen.anyCantAct && s.actForbiddenAb(k, sl, a.Kind == kop.AbMana, a.Cost.Flags&kop.CostLoyalty != 0) {
+			early = append(early, "actForbidden")
+		}
+		if a.Cost.Flags&kop.CostSacSelf != 0 && s.sacBlocked(k, sl) {
+			early = append(early, "sacBlocked")
+		}
+		if s.castHeldOut(p.obj) {
+			early = append(early, "castHeldOut")
+		}
+		if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+			early = append(early, "sorcery")
+		}
+		if k.anyGate && !s.gateOK(sl, a) {
+			early = append(early, "gateOK")
+		}
+		if a.Cost.Flags&kop.CostTap != 0 && (p.flags&pfTapped != 0 || s.activationSick(k, sl)) {
+			early = append(early, "tap/sick")
+		}
+		if a.Kind == kop.AbActivated && a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
+			early = append(early, "cond")
+		}
+		fmt.Printf("DBG act-enter sl=%d obj=%d gates=%v\n", sl, p.obj, early)
+	}
 	if k.gen != nil && k.gen.anyNetLock && s.netLocked(p.obj) {
 		return false // Braided Net's lock: no ability of a tapped, locked permanent (act_lockpermanent.go)
 	}
@@ -721,8 +764,20 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			return false
 		}
 	}
-	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
-		return false
+	if sourcesPay(&mana) && !poolOK {
+		srcOK := s.actSourcesAfford(k, sl, ab, a, mana, av)
+		if os.Getenv("DIRAC_DBG_ACT") != "" && mana.MV() >= 4 && !srcOK {
+			fmt.Printf("DBG act refuse sl=%d obj=%d mana=%+v pool=%+v av=%+v\n", sl, p.obj, mana, s.pl[p.ctrl].pool, *av)
+		}
+		if !srcOK {
+			return false
+		}
+	}
+	if os.Getenv("DIRAC_DBG_ACT") != "" && mana.Pips[4] == 5 {
+		ownOK := k.gen == nil || ab == 255 || (ownActivatable(a) && !s.genLost(k, sl))
+		tf := s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff)
+		xb := s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
+		fmt.Printf("DBG act5 sl=%d ab=%d ownOK=%v srcOK=%v tf=%v xb=%v pool=%+v avtotal=%d\n", sl, ab, ownOK, sourcesPay(&mana) && !poolOK, tf, xb, s.pl[p.ctrl].pool, av.total)
 	}
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go

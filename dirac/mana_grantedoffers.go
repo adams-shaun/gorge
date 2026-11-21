@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -707,6 +709,9 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
+	if os.Getenv("DIRAC_DBG_AV") != "" && s.perms[sl].ctrl == 1 {
+		fmt.Printf("DBG ag sl=%d card=%d own=%v ng=%d mask=%d n=%d gi=%v\n", sl, s.cardAt(sl), own, ng, s.srcMaskAt(pc, sl), srcYield(pc), gi[:ng])
+	}
 	// The tap's reflected extra (Mana Flare over a dual: one more mana of the
 	// type the tap produced, gorge addTapExtra) rides the own face as the plain
 	// census's does (availForMode's srcYieldAt): availGrantExtra prices only a

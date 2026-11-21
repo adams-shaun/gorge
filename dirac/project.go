@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -106,7 +108,24 @@ type Projection struct {
 // Project writes s's canonical projection into p.
 func (s *State) Project(p *Projection) {
 	k := s.k()
-	*p = Projection{}
+	if os.Getenv("DIRAC_DBG_PROJ") != "" && s.turn >= 20 {
+		n := 0
+		for m := s.ctrlM[1]; m.any(); m = m.rest() {
+			sl := m.first()
+			pm := &s.perms[sl]
+			if pm.flags&pfTapped != 0 {
+				n++
+			}
+		}
+		fmt.Printf("DBG kp tap=%d turn=%d\n", n, s.turn)
+		for o := Obj(0); o < s.nobj; o++ {
+			ob := &s.objs[o]
+			if ob.zone == kop.ZoneBattlefield && s.cardAt(ob.slot) != 0 && s.k().cards[s.cardAt(ob.slot)].manaAb >= 0 {
+				pctrl := s.perms[ob.slot].ctrl
+				fmt.Printf("DBG kp obj=%d slot=%d inCtrlM=%v tapped=%v card=%d pctrl=%d\n", o, ob.slot, s.ctrlM[pctrl].has(ob.slot), s.perms[ob.slot].flags&pfTapped != 0, s.cardAt(ob.slot), pctrl)
+			}
+		}
+	}
 	p.NObj = s.nobj
 	for i := 0; i < int(s.nobj); i++ {
 		s.projObj(k, Obj(i), &p.Objs[i])

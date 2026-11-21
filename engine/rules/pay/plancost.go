@@ -2,6 +2,7 @@ package pay
 
 import (
 	"fmt"
+	"os"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -223,6 +224,14 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 	// live while the phase tables build).
 	ps.arena = ps.arena[:0]
 	units := PaymentPlanQueryUnits(e, p)
+	if os.Getenv("PAY_DBG") != "" && e.Game().Turn == 20 && cost.Colored[state.ManaIndex('G')] == 5 {
+		fmt.Printf("DBG q p=%d pool=%+v cost=%+v nunits=%d\n", p, e.Game().Players[p].Pool, cost, len(units))
+		for _, u := range units {
+			for _, al := range PaymentPlanQueryAlternatives(e, u) {
+				fmt.Printf("DBG q   unit=%d ma=%v mana=%v tier=%v exec=%q\n", u.ID, al.Ma.Line, al.Mana, al.Tier, al.ExecProduced)
+			}
+		}
+	}
 	queryClasses := func(p state.PlayerID, minTier Tier, choices [][]Alt) []Class {
 		return paymentPlanQueryClasses(e, p, minTier, choices)
 	}

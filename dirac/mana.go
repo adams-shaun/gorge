@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -483,6 +485,10 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			pc = s.manaPCGen(k, sl)
 		} else {
 			pc = &k.cards[s.cardAt(sl)]
+		}
+		if os.Getenv("DIRAC_DBG_AV") != "" {
+			fmt.Printf("DBG av slot=%d card=%d manaAb=%d manaIdent=%v manaDyn=%v manaSac=%v manaOne=%v manaCol=%v manaN=%d manaTap=%v tapped=%v grantOK=%v dual=%v deferSkip=%v deferGap=%v chosenNoCol=%v canTap=%v\n",
+				sl, s.cardAt(sl), pc.manaAb, pc.manaIdent, pc.manaDyn, pc.manaSac, pc.manaOne, pc.manaCol, pc.manaN, pc.manaTap, pm.flags&pfTapped != 0, grantOK, dual, deferSkip, deferGap.has(sl), s.chosenNoColour(pc, sl), s.canTapForManaPC(k, sl, pc))
 		}
 		if s.chosenNoColour(pc, sl) {
 			// no colour chosen and the chosen production is the source's only
