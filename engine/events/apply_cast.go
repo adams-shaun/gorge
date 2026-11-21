@@ -147,7 +147,7 @@ func foldResolve(g *state.Game, e *Event) {
 		if g.ResolvedThisTurn == nil {
 			g.ResolvedThisTurn = make(map[string]int32)
 		}
-		g.ResolvedThisTurn[ResolvedAbilityKey(o.Source, o.Ability)]++
+		g.ResolvedThisTurn[ResolvedAbilityKey(g, o.Source, o.Ability)]++
 	}
 }
 

@@ -7,14 +7,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestResolvedThisTurnSurvivesZoneChange pins the identity
-// Count$ResolvedThisTurn uses. gorge's events.ResolvedAbilityKey is
-// (source ObjID, ability body) with no zone stamp, so a permanent that
-// leaves and returns keeps its tally; the kernel used to carry the
-// source's ver in each record and drop the earlier resolutions at the
-// zone change, so South Pole Voyager's second resolution skipped its
-// draw (std-tla pair 1478).
-func TestResolvedThisTurnSurvivesZoneChange(t *testing.T) {
+// TestResolvedThisTurnIsPerIncarnation mirrors gorge's
+// TestResolvedThisTurnIsPerIncarnation (engine/rules): the tally is keyed by
+// the source's CR 400.7 identity (gorge events.ResolvedAbilityKey carries the
+// source's ZoneGen, dirac its ver), so a blinked Harvestrite Host is a new
+// object whose re-entry trigger reads 1 and does not draw (farm window
+// BLB-s111 xe:RAND:4:1:w11; Forge and XMage agree).
+func TestResolvedThisTurnIsPerIncarnation(t *testing.T) {
 	sc, id := newBLBScen(t, []cardset.Entry{{Name: "Harvestrite Host", Count: 2}, {Name: "Plains", Count: 8}})
 	hh := id["Harvestrite Host"]
 	ab := histAb(t, sc, hh, kop.TrigETB)
@@ -35,15 +34,18 @@ func TestResolvedThisTurnSurvivesZoneChange(t *testing.T) {
 	if n := resolve(); n != 1 {
 		t.Fatalf("first resolution reads %d, want 1", n)
 	}
-	// The zone change bumps ver (CR 400.7's new object). The old record
-	// matched that ver, so the first resolution vanished from the tally.
+	// The zone change bumps ver (CR 400.7's new object): the earlier
+	// resolution belongs to the old object.
 	before := sc.s.objs[o].ver
 	sc.s.objs[o].ver++
 	if sc.s.objs[o].ver == before {
 		t.Fatal("precondition: the zone change did not advance the source's ver")
 	}
+	if n := resolve(); n != 1 {
+		t.Fatalf("first resolution after a zone change reads %d, want 1 (a new object, CR 400.7)", n)
+	}
 	if n := resolve(); n != 2 {
-		t.Fatalf("second resolution after a zone change reads %d, want 2 (gorge events.ResolvedAbilityKey has no zone stamp)", n)
+		t.Fatalf("second resolution of the returned object reads %d, want 2", n)
 	}
 	// A different permanent of the same card still has its own tally.
 	other := sc.perm(hh, 0)

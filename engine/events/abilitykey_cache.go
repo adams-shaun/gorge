@@ -81,20 +81,22 @@ func saKeyContent(sa *cards.SA) string {
 	return en.content
 }
 
-// appendResolvedAbilityKey appends ResolvedAbilityKey(source, sa)'s bytes.
-func appendResolvedAbilityKey(dst []byte, source state.ObjID, sa *cards.SA) []byte {
+// appendResolvedAbilityKey appends ResolvedAbilityKey(g, source, sa)'s bytes.
+func appendResolvedAbilityKey(dst []byte, g *state.Game, source state.ObjID, sa *cards.SA) []byte {
 	dst = strconv.AppendUint(dst, uint64(source), 10)
+	dst = append(dst, '.')
+	dst = strconv.AppendUint(dst, uint64(sourceZoneGen(g, source)), 10)
 	dst = append(dst, '|')
 	return append(dst, saKeyContent(sa)...)
 }
 
-// ResolvedThisTurnOf is g.ResolvedThisTurn[ResolvedAbilityKey(source, sa)]
+// ResolvedThisTurnOf is g.ResolvedThisTurn[ResolvedAbilityKey(g, source, sa)]
 // without building the key string.
 func ResolvedThisTurnOf(g *state.Game, source state.ObjID, sa *cards.SA) int32 {
 	if len(g.ResolvedThisTurn) == 0 {
 		return 0
 	}
 	var buf [256]byte
-	k := appendResolvedAbilityKey(buf[:0], source, sa)
+	k := appendResolvedAbilityKey(buf[:0], g, source, sa)
 	return g.ResolvedThisTurn[string(k)]
 }
