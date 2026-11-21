@@ -179,13 +179,14 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 
 // grantBesideTapXGaps reports whether gorge's one search beside the grants
 // prices play a on a board whose tap-another script (scriptOffers) found
-// nothing: a tap-another second ability, a two-permanent tap-another source or
-// a counter-cost gap among the
+// nothing: a tap-another source (a second ability, a one- or two-permanent
+// cost: Seton, Krosan Protector's "Tap an untapped Druid" beside a Food granted
+// "{T}, Sacrifice: Add one mana of any color") or a counter-cost gap among the
 // grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
 // The second return is the failed search's latched stall (grantActScript's),
 // StallNone none: the caller keeps it only when no route priced the play.
 func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) (bool, uint8) {
-	if !(s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) || !s.liveGrantGap(k, p) {
+	if !(s.grantTapXGaps(k, p).any() || s.ctrBesideGrant(k, p)) || !s.liveGrantGap(k, p) {
 		return false, 0
 	}
 	return s.grantActScript(k, a, p)
