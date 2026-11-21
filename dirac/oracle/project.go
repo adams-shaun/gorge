@@ -633,9 +633,18 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 // copy's "except it has myriad" or Clone AddTriggers$ trigger
 // (copyGrantedTriggerOf, copyAddTriggerOf) or a trigger a Clone's
 // GainThisAbility$ kept on the copy (cloneKeptTriggerOf).
+//
+// A trigger the copy basis's printed face already holds is no such grant but
+// a copiable value (CR 707.2) the kernel lists under the copied card: a
+// Cryptoplasm copy of Battle Angels of Tyr that kept its own upkeep trigger
+// carries the copied card's Myriad keyword trigger at its printed index
+// beside the appended one, and it is named 0x80|that index, not 255.
 func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool {
 	if ab&0x80 == 0 || ab == 255 {
 		return false
+	}
+	if n := rootTriggerCount(g, o); n >= 0 && int(ab&0x7F) < n {
+		return false // printed on the copy basis's face: a copiable value, the kernel lists it under the copied card
 	}
 	if printsTriggersOf(m, o.Face()) {
 		return false // a plain copy of a card that prints its triggers (Mirror Image as Herald of the Host): the kernel lists them under the copied card
