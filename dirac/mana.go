@@ -1870,6 +1870,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				var xv [kop.NumManaKinds]uint8
 				var xm, xt, tn uint8 = 0, 0, pc.manaN
+				var pick bool
 				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
 					tn += s.srcReflectPick(k, sl, pc) // a several-colour source under a reflect carrier: one more of its pick
 					if pc.painCol != 0 {
@@ -1877,24 +1878,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					} else {
 						xv = s.srcExtra(k, sl, pc)
 					}
-					for c, v := range xv {
-						if v > 0 {
-							xm |= 1 << c
-							xt += v
-						}
-					}
-				}
-				pick := false
-				if k.gen != nil && k.gen.anyTapExtra && !sacOnly && pc.painCol == 0 && s.srcEachPick(k, sl, pc) == 1 {
-					// an all-at-once source's reflected pick (srcEachPick): the
-					// production is fixed ({W}{U}: the unit's colour joins the
-					// rest in xv) and the tap adds one mana of one of its types
-					pm := eachPickMask(pc)
-					col := bits.TrailingZeros8(uint8(pc.manaCol))
-					xv[col] += pc.manaN
-					xm |= 1 << col
-					xt += pc.manaN
-					mask, dmk, tn, pick = pm, pm, 1, true
+					xm, xt = xvTotals(&xv)
+					pick = s.planEachPick(k, sl, pc, &xv, &xm, &xt, &tn, &mask, &dmk)
 				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
@@ -2056,10 +2041,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.rbOn = true
 		}
 		if ty.xt != 0 {
-			s.addXv(p, &ty.xv)
-		}
-		if ty.pick {
-			s.capFull(StallTapExtra) // the pick's colour is asked at the tap, which the planned tap poses nowhere
+			s.addXvPick(p, ty)
 		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {

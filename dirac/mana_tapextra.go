@@ -451,6 +451,45 @@ func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
 	}
 }
 
+// xvTotals is the colours and the total of a plan type's fixed extra.
+func xvTotals(xv *[kop.NumManaKinds]uint8) (xm, xt uint8) {
+	for c, v := range xv {
+		if v > 0 {
+			xm |= 1 << c
+			xt += v
+		}
+	}
+	return xm, xt
+}
+
+// planEachPick turns the plan unit of an all-at-once source under a reflect
+// carrier into the unit its tap makes (srcEachPick): the production is fixed
+// ({W}{U}: the unit's own colour joins the rest in xv), and the tap adds one
+// mana of one of its types, which the search picks per need. It reports whether
+// the source is such a unit.
+func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]uint8, xm, xt, tn, mask, dmk *uint8) bool {
+	if pc.painCol != 0 || s.srcEachPick(k, sl, pc) != 1 {
+		return false
+	}
+	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	xv[col] += pc.manaN
+	*xm |= 1 << col
+	*xt += pc.manaN
+	*mask = eachPickMask(pc)
+	*dmk, *tn = *mask, 1
+	return true
+}
+
+// addXvPick floats a plan type's fixed extra in p's pool. The pick of an
+// all-at-once source's reflected extra (utype.pick) is asked at the tap, which
+// a planned tap poses nowhere: it stalls.
+func (s *State) addXvPick(p uint8, ty *utype) {
+	s.addXv(p, &ty.xv)
+	if ty.pick {
+		s.capFull(StallTapExtra)
+	}
+}
+
 // srcYieldAt is srcYield plus the pick's reflected extra (srcReflectPick): the
 // census unit of a source's tap.
 func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
