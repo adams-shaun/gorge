@@ -35,9 +35,9 @@ def test_queue_skips_what_mergify_does_not_queue():
 
 def test_plan_runs_census_of_touched_packages_and_kgen_for_dirac_or_engine():
     census = ["./dirac/kgen", "./dirac/manifest", "./engine/rules", "./dirac/oracle", "./internal/codeshape"]
-    pk, kgen, rp = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
+    pk, kgen, rp, _ = qp.plan(["dirac/manifest/mech.go", "dirac/oracle/x_test.go", "engine/rules/a.go"], census)
     assert pk == ["./dirac/manifest"] and kgen and rp  # the oracle and rules censuses are the batch's (minutes long)
-    pk, kgen, rp = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
+    pk, kgen, rp, _ = qp.plan(["server/gorged/main.go", "internal/codeshape/a.go"], census)
     assert pk == ["./internal/codeshape"] and not kgen and not rp
 
 
@@ -71,3 +71,45 @@ def test_attribute_blames_the_first_prefix_that_fails_and_drops_main_reds():
 def test_attribute_blames_nobody_when_only_main_is_red():
     m = ("test", "./x", "TestMainRed")
     assert qp.attribute([m], [pr(1)], lambda items: items, lambda k, items: items) == {}
+
+
+def test_queue_skips_conflicting_prs():
+    p = pr(1)
+    p["mergeable"] = "CONFLICTING"
+    assert [x["number"] for x in qp.queued([p, pr(2)], REPO)] == [2]
+
+
+def test_mergifys_batches_set_the_order():
+    # 11-20: batch #2869 held #2744, which the estimate had outside its head.
+    pulls = [{"number": 2869, "head": {"ref": "mergify/merge-queue/a"}, "created_at": "2026-11-20T21:46:49Z",
+              "body": "#2669 #2688 #2744"},
+             {"number": 2870, "head": {"ref": "mergify/merge-queue/b"}, "created_at": "2026-11-20T21:47:05Z",
+              "body": "#2669 #2688 #2744 #2745 and #2669 again"},
+             {"number": 2862, "head": {"ref": "mergify/merge-queue/c"}, "created_at": "2026-11-20T21:30:00Z",
+              "body": "#1 #2 #3 #4 #5 #6"},
+             {"number": 2700, "head": {"ref": "pr/x"}, "created_at": "2026-11-20T21:50:00Z", "body": "#9"}]
+    assert qp.batch_numbers(pulls, "2026-11-20T21:41:00Z") == [2669, 2688, 2744, 2745]
+    est = [pr(n) for n in (2540, 2669, 2688, 2716, 2744)]
+    assert [p["number"] for p in qp.head_order([2669, 2744, 9999], est, 4)] == [2669, 2744, 2540, 2688]
+
+
+def test_generated_files_run_dirac_freshness_pins():
+    # 11-20 #2744: ask ordinal 157 given twice; TestAskKindsUnchanged and TestManifestGenIsCurrent live in ./dirac.
+    census = ["./dirac", "./dirac/manifest", "./engine/effects"]
+    assert "./dirac" in qp.plan(["dirac/manifest/key/raProtectionChoice"], census)[0]
+    assert "./engine/effects" in qp.plan(["engine/effects/kinds_gen.go"], census)[0]
+    assert "./dirac" not in qp.plan(["engine/effects/a.go"], census)[0]
+    import re
+    assert re.search(qp.CENSUS, "TestAskKindsUnchanged") and re.search(qp.CENSUS, "TestManifestGenIsCurrent")
+
+
+def test_dirac_code_runs_the_state_bar():
+    # 11-20 batch #2874: tail-18 at 45184 B against the 45056 bar, summed over the batch's PRs (register cause 96).
+    assert qp.plan(["dirac/coldstore.go"], [])[3]
+    assert qp.plan(["dirac/kgen/lower.go"], [])[3]  # kgen's lowering sizes the pools' cold arrays
+    assert qp.plan(["dirac/support/refused"], [])[3]  # so does the supported set
+    assert qp.plan(["engine/effects/a.go"], [])[3]
+    assert not qp.plan(["server/gorged/main.go", "bots/x.go"], [])[3]
+    import re
+    for n in ("TestEveryPoolFitsTheStateBar", "TestStateSize", "TestColdArraysHoldNoPointers"):
+        assert re.match(qp.STATE_BAR, n)
