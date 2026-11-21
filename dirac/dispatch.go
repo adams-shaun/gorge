@@ -186,7 +186,11 @@ func (s *State) execCold4(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpAtEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.atEOTRider(s.perms[sl].obj, in.C == 1)
-		} else if in.C == 0 {
+		} else if _, isTgt := tgtSlot(in.Obj); in.C == 0 && in.Obj != kop.RefSelf && !isTgt {
+			// A Pump/Animate subject (Self or a target) that has left the
+			// battlefield is skipped by gorge before it schedules anything
+			// (Deathknell Kami sacrificed with its {2} pumps still on the
+			// stack): no promise, so no end-step trigger to order.
 			// A next-end-step sacrifice is promised on the remembered object
 			// even when it is not on the battlefield: a one-card Dig that
 			// misses (no creature in the window) remembers the card it moved
