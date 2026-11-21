@@ -1801,6 +1801,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		// its extra beside the filter's unit (mana_tapextra.go filtExtra)
 		xv := s.filtExtra(k, st.sl)
 		s.addXv(p, &xv)
+		if r := s.filtReflectPick(k, st.sl); r > 0 {
+			s.poolAdd(p, int(st.ans-1), int(r)) // a reflected extra is one more of the pick (CR 106.12a)
+		}
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
 		if s.filtAb(k, st.sl).Cost.Flags&kop.CostSacSelf != 0 {
 			// {1}, {T}, sacrifice this (Omni-Cheese Pizza): the sacrifice is
