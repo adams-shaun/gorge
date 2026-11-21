@@ -192,6 +192,7 @@ func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 			short = s.restrShortAdm(p, m, cost) // mana_specialaction.go: only a non-spell restriction funds it
 		}
 		s.tapFor(k, p, &short, 0, NoObj)
+		s.resolveSpecialTapTriggers(k) // kw_specialtap_trig.go
 	}
 	if s.rbAny(p) {
 		s.payPlotRestr(k, p, &cost, o) // mana_specialaction.go
