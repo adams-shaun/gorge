@@ -2511,6 +2511,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "ExtraBlock":
 		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
+		st.A = int16(s.BlockAmount)  // kop.ExtraBlocksAny: combat_blockany.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
