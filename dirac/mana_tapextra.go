@@ -381,6 +381,13 @@ func (s *State) tapExtraStall(k *prep, sl Slot) {
 		return
 	}
 	pc := s.manaPCAt(k, sl)
+	if s.srcEachPick(k, sl, pc) > 0 {
+		// the pick floats unasked (nothing poses its colour ask yet): every
+		// reader of srcExtra outside the census builds and the plan drops it
+		// silently, so the tap refuses the shape as base's srcExtra stall did
+		s.capFull(StallTapExtra)
+		return
+	}
 	if x := s.srcExtra(k, sl, pc); x != pc.manaXv {
 		s.capFull(StallTapExtra)
 	}
