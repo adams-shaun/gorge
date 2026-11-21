@@ -443,7 +443,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 			var pu2 [maxPotUnits]potUnit
 			var supAv avail
 			d2 := d
-			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapNever, d2.gapGain = false, 0, 0, false, 0, false
+			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapGain = false, 0, 0, false, false
 			d2.gapSkipPaid = true
 			// a bounded walk (fixed any-colour taps are units) that lists
 			// gorge's planner census: every free production, no paid gap
