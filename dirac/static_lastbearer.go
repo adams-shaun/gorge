@@ -131,6 +131,25 @@ func (s *State) dropAttLKI(o Obj) {
 	}
 }
 
+// lastBearerRef is the RefAttached read for a source off the battlefield
+// whose LKI attach paths (lkiAttachedHost) found nothing: gorge's
+// definedSpecEquipped LastBearer fallback (engine/effects/context.go:1726-1728,
+// CR 608.2h). "Enchanted/equipped creature" still names the bearer the source
+// left, even a bearer that has left the battlefield too. A bearer back on the
+// battlefield is a new object: it re-entered after the source left, so its
+// entry timestamp is newer than the source's layer stamp (gorge lkiBearer's
+// Timestamp > LayerStamp gate, engine/effects/context.go:541; CR 400.7), and
+// it names nothing.
+//
+//go:noinline
+func (s *State) lastBearerRef(o Obj) Obj {
+	b := s.lastBearerObj(o)
+	if b == NoObj || s.objs[b].zone == kop.ZoneBattlefield {
+		return NoObj
+	}
+	return b
+}
+
 // lastBearerObj is the object off-battlefield permanent o was most
 // recently attached to, NoObj when it never was (gorge LastBearer). The
 // departed perm record is authoritative; attLKI covers a reused slot.
