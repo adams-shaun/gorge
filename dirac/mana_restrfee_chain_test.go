@@ -184,3 +184,38 @@ func TestRestrFeeChainAnyROffer(t *testing.T) {
 		t.Errorf("no Ridge: the cast offered although the board funds two units only")
 	}
 }
+
+// TestRestrFeeChainRestrictedFundsFee probes the recorded shape (kfuzz pair 37,
+// tail-73): the Ridge's {1} fee is funded only by the restricted unit — the
+// Automated Artificer's "{T}: Add {C}. Spend this mana only to activate an
+// ability or cast an artifact spell" (CR 106.6: paying the Ridge's own
+// activation cost is activating an ability) — and the Ridge's {B}{R} pay the
+// {2} of Mindshrieker's activation. Galazeth Prismari makes the Artificer a
+// grant holder (an any-colour ability for instants and sorceries, refused the
+// activation), so the play is the grant search's: grantCap's relaxed proof
+// (relaxRestrRefuses) must keep the Artificer's own admitted {C} unit, the
+// one gorge's census counts per payment, or it drops the play unsearched.
+func TestRestrFeeChainRestrictedFundsFee(t *testing.T) {
+	set := cardsettest.Synth(t, "tail-73")
+	deck := []cardset.Entry{{Name: "Mindshrieker", Count: 2}, {Name: "Automated Artificer", Count: 1},
+		{Name: "Shadowblood Ridge", Count: 1}, {Name: "Mountain", Count: 3},
+		{Name: "Galazeth Prismari", Count: 1}}
+	tbl, da, _, err := set.Matchup(deck, []cardset.Entry{{Name: "Forest", Count: 20}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := map[string]CardID{}
+	for _, c := range da {
+		id[tbl.Cards[c].Name] = c
+	}
+	cfg := LockstepConfig(SurfaceFull)
+	cfg.NoElide = true
+	sc := newScenTableLib(t, tbl, id["Mountain"], cfg)
+	sc.perm(id["Galazeth Prismari"], 0)
+	sc.untappedPerm(id["Automated Artificer"], 0)
+	sc.perm(id["Shadowblood Ridge"], 0)
+	shrieker := sc.perm(id["Mindshrieker"], 0)
+	if !activationOffered(sc, shrieker, 0) {
+		t.Errorf("the {2} activation not offered: the Artificer's {C} funds the Ridge's fee and the Ridge's {B}{R} the {2} (gorge's census and search price it)")
+	}
+}
