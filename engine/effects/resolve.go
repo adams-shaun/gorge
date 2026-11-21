@@ -10,6 +10,22 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// clearSourceRemembered is Forge's source.clearRemembered(): it empties the
+// ctx-level list and, when the source object's persistent list held entries,
+// emits the clear-remembered Choose the replay folds (an empty clear is not an
+// event, so chain heads do not move for nothing). It reports whether it emitted.
+func clearSourceRemembered(h Host, c *Ctx) bool {
+	c.Remembered = nil
+	if c.Source == 0 {
+		return false
+	}
+	if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+		return true
+	}
+	return false
+}
+
 func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// Forge's CleanUpEffect: ClearRemembered$ True clears the host card's
 	// remembered list (the persistent list the next resolution of this card
@@ -27,15 +43,7 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// emit -- that is what moved the 4- and 6-seat heads.)
 	noted := false
 	if strings.EqualFold(sa.ParamStr(cards.PKClearRemembered), "True") {
-		c.Remembered = nil
-		if c.Source != 0 {
-			if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
-				// A real clear: the event is what a replay folds, so the next
-				// resolution of this card sees the empty list.
-				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
-				noted = true
-			}
-		}
+		noted = clearSourceRemembered(h, c)
 	}
 	// ClearChosenCard$ / ClearChosenPlayer$ (Party Thrasher's DBClearChosen,
 	// Wishclaw Talisman's DBCleanup, Vial Smasher's): the same discipline as
