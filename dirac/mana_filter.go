@@ -2068,7 +2068,7 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool, p
 				return true
 			}
 		}
-		return false
+		return fs.coveredDead(k, t, sl)
 	}
 	if fs.feeOrder && fs.feeGaps.has(sl) != (pass == 1) {
 		return true // the fee gaps are the order's second pass, the others its third
