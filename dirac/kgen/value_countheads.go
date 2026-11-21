@@ -189,6 +189,9 @@ func (lc *lowerCtx) headArm(head, t string, depth int) (lValue, error) {
 // count_body_simple.go IsPrime, unlockdoor.go countUnlockedDoors); ok is
 // false for any other head.
 func (lc *lowerCtx) countHeads8(rest string, depth int) (v lValue, ok bool, err error) {
+	if v, ok, err := lc.cmdCastValue(rest); ok {
+		return v, true, err // value_cmdcast.go
+	}
 	switch {
 	case rest == "SquadPaid" || rest == "ReplicatePaid":
 		return lc.repeatedPaidValue(rest) // lower_squadreplicate.go
