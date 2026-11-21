@@ -504,6 +504,64 @@ func paymentPlanDestroySelfBodyKey(key string) bool {
 	return false
 }
 
+// paymentPlanPoisonBodyKey reports whether key is part of the closed poison
+// body: the dispatch key, the referent, the counter amount (unread: the
+// trigger fires after the payment whatever it counts) and the two descriptive
+// captions.
+func paymentPlanPoisonBodyKey(key string) bool {
+	switch key {
+	case paymentPlanAPIKey, cards.PKDefined.String(), cards.PKNum.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		return true
+	}
+	return false
+}
+
+// PaymentPlanTapPoisonTrigger is the poison trigger row: a `Mode$ Taps`
+// trigger on any ValidCard$ whose effect is exactly `DB$ Poison |
+// Defined$ <player>` (Relic Putrescence's "whenever enchanted artifact
+// becomes tapped, its controller gets a poison counter"). Like the
+// destroy-self row the trigger resolves after the payment that caused it (CR
+// 405.6c/603.2) and its only effect is a poison counter on a player the
+// payment cannot move, so it touches no payment resource and the tapped
+// source stays an ordinary unit; the trigger fires on its own at the tap, on
+// both engines. The body's Num$ is not read: the amount the effect applies
+// changes nothing about the payment that triggered it. A trigger whose shape
+// the planner cannot vet (another referent, a compound one, a sub-chain, an
+// extra body key) is not known and its source stays deferred. f owns the
+// trigger's Execute$ table.
+func PaymentPlanTapPoisonTrigger(f *cards.Face, t cards.Trigger) bool {
+	if t.ModeKind() != cards.TriggerTaps || !paymentPlanTriggerZoneOK(t) {
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
+		case paymentPlanTapDamageTriggerKnown:
+		default:
+			return false
+		}
+	}
+	body := paymentPlanTriggerBody(f, t)
+	if body == nil || body.API != "Poison" || !paymentPlanSubFree(body) {
+		return false
+	}
+	ref := params.DefinedRefOf(body)
+	if ref.Flags&params.RefCompound != 0 {
+		return false
+	}
+	switch {
+	case ref.Kind == params.RefYou:
+	case ref.Text == "Opponent" || ref.Text == "EachOpponent" || ref.Text == "TriggeredCardController":
+	default:
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		if !paymentPlanPoisonBodyKey(k) {
+			return false
+		}
+	}
+	return true
+}
+
 // paymentPlanPlayerDamageBody is paymentPlanDamageBody over a player
 // referent: the same literal-amount DealDamage body whose Defined$ names a
 // player the payment cannot move (the payer, an opponent, the tapped

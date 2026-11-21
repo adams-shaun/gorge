@@ -16,7 +16,11 @@ package rules
 //     resort with consequence no_untap;
 //   - any other Taps/TapsForMana trigger or ProduceMana replacement -- S's own
 //     or another object's, printed, granted or effect-created -- that the real
-//     matcher says would apply to S's activation defers S, naming the object.
+//     matcher says would apply to S's activation defers S, naming the object;
+//     two trigger rows are instead post-payment consequences that touch no
+//     payment resource and stay ordinary units (the destroy-self row and the
+//     poison-counter row below, PaymentPlanTapDestroySelfTrigger and
+//     PaymentPlanTapPoisonTrigger).
 //
 // Untap and LoseMana replacements on other objects alter neither a tap nor a
 // production and are ignored. Only a global effect whose scope the planner
@@ -319,6 +323,16 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 				// ordinary unit and the trigger fires on its own at the tap,
 				// on both engines.
 				if pay.PaymentPlanTapDestroySelfTrigger(fc.face, t) {
+					continue
+				}
+				// A trigger whose only effect is a poison counter on a player
+				// the payment cannot move (Relic Putrescence's "whenever
+				// enchanted artifact becomes tapped, its controller gets a
+				// poison counter") is the same post-payment consequence: it
+				// touches no payment resource, so the tap stays an ordinary
+				// unit and the trigger fires on its own at the tap, on both
+				// engines.
+				if pay.PaymentPlanTapPoisonTrigger(fc.face, t) {
 					continue
 				}
 				if deferBy(oid) {
