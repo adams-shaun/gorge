@@ -2285,9 +2285,16 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 // 160-node budget before the fee floats and the paid activation is never
 // reached (Baxter Building beside four lands, King T'Challa). A board with a
 // second filter or with too few funders keeps the plain walk's free tap.
+//
+// Only a plain or may-play cast of the printed cost holds: gorge reaches the
+// paid activation through the fee-ordered second run it builds for those
+// (potentialPrefixScript's feeOrder, Mode "" or "mayplay" with no alternative
+// cost). A face cast (modal_spell, adventure_alt, ...) runs the plain order
+// alone, so its free tap spends the budget first and the play stays unpriced
+// (Monica Rambeau's Photon beside Baxter Building).
 func (fs *filtSearch) holdDualFilter(k *prep, t *State, sl Slot) bool {
-	return fs.gaps.count() == 1 && fs.a.Kind() == AkCast && fs.fees > 0 &&
-		fs.fundN >= fs.fees && comboFiltAb(t.filtAb(k, sl))
+	return fs.gaps.count() == 1 && fs.a.Kind() == AkCast && (fs.a.Mode() == 0 || fs.a.Mode() == castMayPlay) && fs.a.Target() == 0 &&
+		fs.fees > 0 && fs.fundN >= fs.fees && comboFiltAb(t.filtAb(k, sl))
 }
 
 func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
