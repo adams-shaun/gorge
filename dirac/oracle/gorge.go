@@ -1066,6 +1066,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			note(unknown)
 			continue
 		}
+		if pa.Cast.Origin == decision.OriginLibrary && libraryMayPlayLowersFirst(g, pa, a) {
+			continue
+		}
 		replaced := false
 		for k := range fr.prio {
 			if fr.prio[k].a == a {
@@ -1200,6 +1203,19 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		add(pe)
 	}
 	sort.Slice(fr.prio, func(i, j int) bool { return fr.prio[i].a < fr.prio[j].a })
+}
+
+// libraryMayPlayLowersFirst reports that a planned may-play library cast the
+// planner prices lowers by floating the witness first (prLower, the route the
+// kernel's own payment mirrors: its floats precede the cast's target ask).
+// Only a cast the planner withholds -- a witness whose payment consumes the
+// permanent granting the may-play permission (CR 601.6 keeps the proposal
+// legal, so the planned payment proposes first) -- lowers as a planned payment.
+func libraryMayPlayLowersFirst(g *GorgeSide, pa decision.PaymentAction, a Canon) bool {
+	pe := prioEntry{a: a, kind: prLower,
+		play: payexec.Play{Kind: "cast", Obj: pa.Cast.Object, Mode: pa.Cast.CastMode()},
+		plan: decision.ClonePaymentPlan(pa.Plans[0])}
+	return g.lowerCompletes(&pe)
 }
 
 // reposeSingle poses a priority frame: every entry once.

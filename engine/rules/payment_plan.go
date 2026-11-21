@@ -89,12 +89,12 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// V1 plans the ordinary-cast origins: the hand (the original shape),
 	// the command zone (the CR 903.8 plain taxed cast; alternate
 	// command-zone casts -- dash, evoke, bestow, ... -- carry a Mode and are
-	// withheld, as everywhere else), and the exile zone and graveyard, where
-	// only an untyped may-play permission's plain cast is planned (the
-	// "mayplay" cast mode; a MayPlayText$-typed permission, and every
-	// alternative cost, are withheld).  Any other origin fails closed, and
-	// the object must actually sit in its origin's zone: a mislabeled origin
-	// would compose a cost (and, from ZCommand, a commander tax) that
+	// withheld, as everywhere else), and the exile zone, graveyard and
+	// library top, where only an untyped may-play permission's plain cast is
+	// planned (the "mayplay" cast mode; a MayPlayText$-typed permission, and
+	// every alternative cost, are withheld).  Any other origin fails closed,
+	// and the object must actually sit in its origin's zone: a mislabeled
+	// origin would compose a cost (and, from ZCommand, a commander tax) that
 	// beginCast would never charge. The hand's alternate-spell-face casts
 	// (adventure_alt, omen_alt) ride the same body under the flip to the
 	// spell face (plannedAltSpellFace, faceprobe.go).
@@ -108,6 +108,8 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		originZone = state.ZExile
 	case planCastPaymentCheckedGraveyard:
 		originZone = state.ZGraveyard
+	case planCastPaymentCheckedLibrary:
+		originZone = state.ZLibrary
 	case planCastPaymentCheckedFlashback:
 		// The CR 702.34a flashback cast of a graveyard card for its primary
 		// flashback cost (decision.OriginFlashback): the owner's own card,
@@ -123,6 +125,14 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// offer's own controller check already gates who may cast it.
 	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil {
 		return PaymentPlanOutcome{Reason: "unsupported"}
+	}
+	if originZone == state.ZLibrary {
+		// A may-play library cast begins only from the top card (the granting
+		// permission covers Card.TopLibrary): anything deeper fails closed.
+		lib := e.G.Zone(state.ZLibrary, o.Controller)
+		if len(lib) == 0 || lib[0] != cast.Object {
+			return PaymentPlanOutcome{Reason: "unsupported"}
+		}
 	}
 	// A hand alternate-spell-face cast (adventure_alt/omen_alt, CR 715.3a,
 	// 720.3) is priced the way beginCast charges it: one FlipFace to the
@@ -1219,6 +1229,16 @@ func plannedPriorityCast(g *state.Game, opt decision.Option) (cast decision.Plan
 		if !plannedMayPlayZone(o.Zone) {
 			return cast, nil, 0, false
 		}
+		if o.Zone == state.ZLibrary {
+			// The granting permission covers Card.TopLibrary: only the top
+			// card of the library it sits in is castable, so the planned
+			// cast names it and the origin check at plan and submit time
+			// re-reads the top.
+			lib := g.Zone(state.ZLibrary, o.Controller)
+			if len(lib) == 0 || lib[0] != opt.Obj {
+				return cast, nil, 0, false
+			}
+		}
 		return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: plannedMayPlayOrigin(o.Zone)}, nil, kind, true
 	case planCastFlashback:
 		if o.Zone != state.ZGraveyard {
@@ -1876,6 +1896,7 @@ const (
 	planCastPaymentCheckedGraveyard
 	planCastPaymentCheckedMayPlayMode
 	planCastPaymentCheckedFlashback
+	planCastPaymentCheckedLibrary
 )
 
 var planCastPaymentCheckedCodes = state.NewStrCodes(
@@ -1885,6 +1906,7 @@ var planCastPaymentCheckedCodes = state.NewStrCodes(
 	state.StrEntry[planCastPaymentCheckedCode]{Key: "graveyard", Val: planCastPaymentCheckedGraveyard},
 	state.StrEntry[planCastPaymentCheckedCode]{Key: "mayplay", Val: planCastPaymentCheckedMayPlayMode},
 	state.StrEntry[planCastPaymentCheckedCode]{Key: decision.OriginFlashback, Val: planCastPaymentCheckedFlashback},
+	state.StrEntry[planCastPaymentCheckedCode]{Key: decision.OriginLibrary, Val: planCastPaymentCheckedLibrary},
 )
 
 // plannedCastScope is the cost-static scope a planned cast from zone z is
@@ -2010,9 +2032,10 @@ func (e *Engine) plannedCastComposedCost(p state.PlayerID, cast decision.Planned
 }
 
 // plannedMayPlayZone reports whether z is an origin whose planned cast is an
-// untyped may-play cast (the "mayplay" mode): exile and the graveyard.
+// untyped may-play cast (the "mayplay" mode): exile, the graveyard and the
+// library top.
 func plannedMayPlayZone(z state.Zone) bool {
-	return z == state.ZExile || z == state.ZGraveyard
+	return z == state.ZExile || z == state.ZGraveyard || z == state.ZLibrary
 }
 
 // plannedMayPlayOrigin is the PlannedCast.Origin code of a may-play zone.
@@ -2020,11 +2043,15 @@ func plannedMayPlayOrigin(z state.Zone) string {
 	if z == state.ZGraveyard {
 		return "graveyard"
 	}
+	if z == state.ZLibrary {
+		return decision.OriginLibrary
+	}
 	return "exile"
 }
 
 // plannedCastOption is the priority option an announced or planned cast of
-// cast begins as. A may-play origin (exile, graveyard) begins as Mode
+// cast begins as. A may-play origin (exile, graveyard, library top) begins
+// as Mode
 // "mayplay" so beginCast prices the permission's cost and records the hosts
 // while the card is still in the granted zone; a planned flashback
 // (decision.OriginFlashback) begins as Mode "flashback", the primary
