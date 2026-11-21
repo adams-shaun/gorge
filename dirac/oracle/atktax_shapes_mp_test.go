@@ -222,14 +222,11 @@ func TestFourSeatAtkTaxBounceLockstep(t *testing.T) {
 
 // Reflected mana ("{T}: Add one mana of any color that a land an opponent
 // controls could produce": Fellwar Stone, Exotic Orchard). gorge lists the
-// source in the window's fixed pass as one unit (a blank Produced$ is the
-// executor's one-colourless default, windowManaUnits) but resolves its
-// ManaReflected ability unpinned: with several colours on offer the colour ask
-// it poses is displaced by the window's next tap ask, so the tap makes no
-// mana, and when the window ran out of sources the abandoned declaration
-// leaves the ask posed, answered with the first colour (rules
-// attackPayAnswer, askManaColor). The mutation (DebugAtkTaxReflPin) pins the
-// first colour at the tap.
+// source in the window's fixed pass as one unit and pins its first reflected
+// colour (attackManaSources, paymentPlanReflectedAlt), dropping a reflection
+// that names no colour, so the tap makes one mana. The mutation
+// (DebugAtkTaxReflNoMana) is the old unpinned window: with several colours on
+// offer the tap makes no mana.
 var atkTaxReflDeck = []cardset.Entry{
 	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
 	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 3}, {Name: "Grizzly Bears", Count: 2},
@@ -241,7 +238,7 @@ var atkTaxReflDeck = []cardset.Entry{
 // reflected-mana sources play in lockstep, the window tapping them.
 func TestFourSeatAtkTaxReflectedLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxReflDeck, 24, 20, 1, []string{"Fellwar Stone", "Exotic Orchard"},
-		[]string{"Fellwar Stone", "Exotic Orchard"}, &dirac.DebugAtkTaxReflPin)
+		[]string{"Fellwar Stone", "Exotic Orchard"}, &dirac.DebugAtkTaxReflNoMana)
 }
 
 // Self-sacrifice sources: a Treasure ("{T}, Sacrifice this token: Add one mana

@@ -222,11 +222,17 @@ func (s *State) blkTaxAdmits(k *prep, b, a Slot) bool {
 	return ok && (n == 0 || n <= s.manaBudget(k, s.blockDef()))
 }
 
-// blkTaxSpent is the charge of the pairs already declared.
+// blkTaxSpent is the charge of the pairs the defending seat has declared: an
+// earlier defender's pairs were paid in its own declaration (gorge
+// handleBlockers charges the one chosen declaration, CR 509.1d), not again.
 func (s *State) blkTaxSpent(k *prep) int {
 	var pairs [2 * MaxPerm]blkPair
 	n := 0
+	def := s.blockDef()
 	for i, c := 0, s.blockPairs(&pairs); i < c; i++ {
+		if s.perms[pairs[i].b].ctrl != def {
+			continue
+		}
 		v, _ := s.blkTaxCharge(k, pairs[i].b, pairs[i].a)
 		n += v
 	}

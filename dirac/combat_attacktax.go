@@ -75,9 +75,10 @@ var DebugAtkTaxCountDynamic bool
 // land's tap adds one unit of its first colour, not every colour at once.
 var DebugAtkTaxEachOne bool
 
-// DebugAtkTaxReflPin (test only, TestFourSeatAtkTaxReflectedLockstep): a
-// reflected source tapped with several colours on offer makes the first.
-var DebugAtkTaxReflPin bool
+// DebugAtkTaxReflNoMana (test only, TestFourSeatAtkTaxReflectedLockstep): a
+// reflected source tapped with several colours on offer makes no mana and
+// leaves its colour ask posed (the pre-fix gorge window).
+var DebugAtkTaxReflNoMana bool
 
 // DebugAtkTaxPaidLast (test only, TestFourSeatAtkTaxPaidLockstep): the
 // window taps a self-sacrificing source with the choice-shaped ones, in
@@ -1014,13 +1015,15 @@ func (s *State) atkTaxPendingAsk(k *prep, p uint8, pend int, sl Slot) {
 
 // atkTaxAddMana floats the mana the tapped source at sl made: n of col, or
 // for an all-at-once source (atkTaxEachAb) each of its colours' amount. A
-// reflected source with several colours on offer (atkTaxReflAb) makes none:
-// gorge's resolution poses a colour ask (askManaColor) the window's next tap
-// ask displaces, and the colour it returns is the ask's first (the lowest).
+// reflected source (atkTaxReflAb) makes one of its pinned first (lowest)
+// colour, as gorge's attackManaSources pins it (CR 605.3a, 106.7, 508.1h); the
+// DebugAtkTaxReflNoMana mutation is the old unpinned window: with several
+// colours on offer a colour ask the next tap ask displaces, so no mana, the
+// colour answered first only when the window runs out (atkTaxPendingAsk).
 func (s *State) atkTaxAddMana(k *prep, p uint8, sl Slot, col, n int) (pend int) {
 	pc := s.manaPCGen(k, sl)
 	a := manaAbView(&k.t.Cards[s.cardAt(sl)], pc)
-	if a != nil && atkTaxReflAb(a) && bits.OnesCount8(uint8(pc.manaCol&0x3f)) >= 2 && !DebugAtkTaxReflPin {
+	if a != nil && atkTaxReflAb(a) && bits.OnesCount8(uint8(pc.manaCol&0x3f)) >= 2 && DebugAtkTaxReflNoMana {
 		return col
 	}
 	if a != nil && !DebugAtkTaxEachOne && atkTaxEachAb(a) {
