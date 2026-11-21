@@ -16,7 +16,7 @@ func restrLifePainScen(t *testing.T, life int16) (sc *scen, spider Obj) {
 	t.Helper()
 	deck := []cardset.Entry{{Name: "Untaidake, the Cloud Keeper", Count: 1}, {Name: "Spider-Man, Peter Parker", Count: 1},
 		{Name: "Scabland", Count: 1}, {Name: "Island", Count: 2}, {Name: "Plains", Count: 10}}
-	tbl, _, _, err := cardsettest.Synth(t, "tail-73").Matchup(deck, deck)
+	tbl, _, _, err := cardsettest.Set(t, "restrictedlifepain").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
