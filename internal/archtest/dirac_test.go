@@ -359,6 +359,7 @@ func exportLookup(t *testing.T, pkg string) func(string) (io.ReadCloser, error) 
 // structs, and its variable part to views of pointer-free data, so the collector
 // has nothing to scan in a game's state however many States a search holds.
 func TestStateIsPointerFree(t *testing.T) {
+	t.Parallel()
 	requireDirac(t)
 	checked := checkedPackage(t, filepath.Join("..", "..", "dirac"))
 	obj := checked.Scope().Lookup("State")
