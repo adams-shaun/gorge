@@ -34,6 +34,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 
@@ -103,7 +104,12 @@ def queued(prs, repo):
 # held PRs Mergify had not batched). Mergify opens its batch PRs (mergify/merge-queue/*) 1-5 min after a push to
 # main, and each body names its PRs. The script waits up to BATCH_WAIT s for them, puts their PRs first, in the
 # order of the newest, largest batch, and fills the rest from the estimate.
-BATCH_WAIT = 360
+# 0 since the gate (11-22): a batch forms only after this posts statuses, so waiting for one at the start of a run
+# only delayed them (the 20:32Z run waited 6 min for "none yet"). The open batch PRs are read once.
+BATCH_WAIT = 0
+# The replay set runs in this many concurrent chunks of its listed names: whole, it was a run's longest command
+# (448 s on the home box, 11-22; vet 50, kgen 107, the census 93), and a green run must fit inside a batch (~8 min).
+REPLAY_CHUNKS = 3
 
 
 def batch_numbers(pulls, since):
@@ -249,14 +255,30 @@ def census_packages(path):
     return sorted({"./" + f.rsplit("/", 1)[0] for f in out if "/" in f})
 
 
+def chunk_names(names, n):
+    """-run expressions for n round-robin chunks of the sorted test names (empty chunks dropped)."""
+    names = sorted(set(names))
+    return ["^(%s)$" % "|".join(names[k::n]) for k in range(n) if names[k::n]]
+
+
+def replay_chunks(path, env, rx):
+    """The replay set as REPLAY_CHUNKS -run expressions over the names go test -list finds; the one expression when
+    listing fails (the test run then reports why)."""
+    r = subprocess.run(["go", "test", "-list", rx, ORACLE], cwd=path, capture_output=True, text=True, env=env)
+    names = [ln for ln in r.stdout.splitlines() if ln.startswith("Test")]
+    return chunk_names(names, REPLAY_CHUNKS) if r.returncode == 0 and names else [rx]
+
+
 def run_checks(path, pk, kgen, replays=False, state=False, only=None):
     """Runs the checks in the tree at path; returns the failed items, each a (kind, package, test) tuple.
     only restricts the run to those items (attribution)."""
     env = dict(os.environ, GOFLAGS="-trimpath")
+    t0 = time.time()
     if os.environ.get("QUEUE_PRECHECK_LOCAL"):  # a maintainer's dry run: the linked .cards, its own tables
         sh("make", "-s", "dirac-tables", cwd=path, check=False)
     else:
         sh("bash", "scripts/ci-corpus.sh", cwd=path, check=False)
+    print("%s phase corpus+tables %.0f s" % (time.strftime("%H:%M:%S"), time.time() - t0), flush=True)
     fails = []
     vet_pkgs = sorted({p for k, p, _ in only if k == "vet"}) if only is not None else ["./..."]
     groups = []
@@ -269,7 +291,8 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
             groups.append((["./dirac"], STATE_BAR))
         if replays:
             with open(os.path.join(path, CI_YML)) as f:
-                groups.append(([ORACLE], replays_rx(f.read())))
+                rx = replays_rx(f.read())
+            groups.extend(([ORACLE], c) for c in replay_chunks(path, env, rx))
     else:
         tests = {}
         for k, p, t in only:
@@ -283,11 +306,18 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None):
     # megabytes) and stalls its writer, which would serialise the commands again.
     def start(args):
         out, err = tempfile.TemporaryFile("w+"), tempfile.TemporaryFile("w+")
-        return subprocess.Popen(args, cwd=path, env=env, stdout=out, stderr=err, text=True), out, err
+        p = subprocess.Popen(args, cwd=path, env=env, stdout=out, stderr=err, text=True)
+        ended = {}
+        threading.Thread(target=lambda: (p.wait(), ended.setdefault("t", time.time())), daemon=True).start()
+        return p, out, err, time.time(), ended
 
-    def finish(job):
-        p, out, err = job
+    def finish(job):  # prints each command's own wall time (its end, not when its turn to be read came)
+        p, out, err, began, ended = job
         p.wait()
+        while "t" not in ended:
+            time.sleep(0.05)
+        print("%s phase %s: %.0f s, rc %d" % (time.strftime("%H:%M:%S"), " ".join(p.args[:2] + p.args[-2:])[:120],
+                                              ended["t"] - began, p.returncode), flush=True)
         out.seek(0)
         err.seek(0)
         r = subprocess.CompletedProcess(p.args, p.returncode, out.read(), err.read())
