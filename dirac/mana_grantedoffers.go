@@ -720,9 +720,17 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		n += s.srcReflectPick(k, sl, pc)
 	}
 	if a.xdOn {
-		if n := s.grantsAdmitted(k, sl, &gi, ng, &a.xd); n < ng {
-			if ng = n; ng == 0 && !own {
+		if adm := s.grantsAdmitted(k, sl, &gi, ng, &a.xd); adm < ng {
+			if ng = adm; ng == 0 && !own {
 				return // the source made mana only by a grant the payment cannot spend
+			}
+			if !own && ng == 1 {
+				// pc is the first grant's view, which the payment refused: the
+				// one admitted grant is the source's unit (Marvin, Murderous
+				// Mimic's gained Overgrown Zealot ability beside a gained
+				// restricted Creeping Peeper one; CR 106.6, 613.1f)
+				gv := s.grantView(k.gen, gi[0], sl)
+				mask, n = s.srcMaskAt(gv, sl), srcYield(gv)
 			}
 		}
 	}
