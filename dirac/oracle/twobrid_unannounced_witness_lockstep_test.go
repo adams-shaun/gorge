@@ -70,11 +70,14 @@ func TestTwobridUnannouncedWitnessFourSeat(t *testing.T) {
 	t.Logf("%d unannounced twobrid costs priced, %d resolved to a face", st.Priced, st.Resolved)
 }
 
-// TestTwobridUnannouncedWitnessMutation replays the recording with the guard
-// off: the unannounced cost reaches the hybrid witness and panics again, so
-// the recording's clean replay depends on the guard.
+// TestTwobridUnannouncedWitnessMutation replays the lowered-hand-cast
+// recording (Magmablood Archaic) with the guard off: the unannounced cost
+// reaches the hybrid witness and panics again, so the recording's clean replay
+// depends on the guard. The granted-offer recording no longer reaches the
+// witness at its root: since 1ff6473618 (#3256) grantSrch.witnessEats returns
+// before xWitnessEats when the plain census pays the cast outright.
 func TestTwobridUnannouncedWitnessMutation(t *testing.T) {
-	r, err := ReadRepro(filepath.Join("testdata", "repro", "twobrid_unannounced_witness.repro.json"))
+	r, err := ReadRepro(filepath.Join("testdata", "repro", "twobrid_unannounced_witness_b.repro.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
