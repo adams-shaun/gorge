@@ -279,7 +279,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
 Orim's Thunder
@@ -464,7 +463,6 @@ White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
 Wingmate Roc
-Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Wyluli Wolf
