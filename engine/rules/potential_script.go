@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -574,8 +575,14 @@ func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a de
 // search's nested witness checks (hypclone.go): the struct holds no engine,
 // so its methods stay off the engine's surface.
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
+	if os.Getenv("GORGE_SCRIPT_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "GRUN p=%d kind=%s obj=%d gaps=%v funding=%d need=%v\n", sr.p, sr.play.Kind, sr.play.Obj, sr.gaps, sr.funding, sr.need)
+	}
 	root := e.hypClone(e)
 	found := sr.visit(e, root, 0, false)
+	if os.Getenv("GORGE_SCRIPT_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "GEND found=%v len=%d nodes=%d limited=%v\n", found, len(sr.path), sr.nodes, sr.limited)
+	}
 	e.hypRelease(root)
 	if !found {
 		return nil, false
@@ -901,6 +908,9 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	if d == nil || d.Player != p || c.G.Over || c.G.Turn != sr.turn || c.G.Step != sr.step {
 		return false
 	}
+	if os.Getenv("GORGE_SCRIPT_TRACE") != "" {
+		fmt.Fprintf(os.Stderr, "GVIS n=%d kind=%v opts=%d pool=%v\n", sr.nodes, d.Kind, len(d.Options), c.G.Players[p].Pool)
+	}
 	if sr.tappedOwnSource(c) {
 		return false // a forced tap (no ask) of the play's own {T} source: no continuation pays it (CR 602.2b)
 	}
@@ -1225,6 +1235,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				// The gap activation's opening pool was stashed above for the
 				// fee-stall run; its source is what the ask's prune reads.
 				sr.actSrc = opt.Obj
+			}
+			if os.Getenv("GORGE_SCRIPT_TRACE") != "" {
+				fmt.Fprintf(os.Stderr, "GTRY obj=%d gap=%v opt=%d\n", opt.Obj, gap, opt.Index)
 			}
 			if sr.try(pool, c, d, decision.Intent{Seq: d.Seq, Player: p, Choices: []int{opt.Index}}, next, gapUsed || gap) {
 				return true

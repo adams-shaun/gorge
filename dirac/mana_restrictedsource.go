@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1002,7 +1004,17 @@ func (s *State) filtDeadEnd(k *prep, p uint8, a Action, fs *filtSearch) bool {
 	defer s.unfork()
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG4 deadEnd (%d,%d) n=%d path:", a.Kind(), a.Source(), fs.n)
+		for i := 0; i < fs.n; i++ {
+			fmt.Fprintf(os.Stderr, " (sl=%d k=%d ans=%d g=%v)", fs.path[i].sl, fs.path[i].other.kind, fs.path[i].ans, fs.path[i].gap)
+		}
+		fmt.Fprintln(os.Stderr)
+	}
 	t.filtPlay(k, p, fs.path[:fs.n])
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG4 deadEnd replayed pool=%v npend=%d\n", t.pl[p].pool, t.npend)
+	}
 	if !passed {
 		passed = t.npend != 0 || t.sp != sp0 // a step the search settled through (try's npend grew)
 	}

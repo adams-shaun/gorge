@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -385,8 +387,24 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide,
 		anyWalk: src == &any,
 	}
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG2 scriptOffers p=%d gaps=%v anyR=%v tapsDef=%v ctr=%v tx=%v anyDiff=%v life=%v dh=%v ca=%v filt=%v relax=%v wide=%v mix=%v\n",
+			p, s.scriptGaps(k, p), restr, tapsDef, s.scriptCtr(k, p), tx, anyDiff, life, dh, ca, filt, relax, wide, mix)
+		fmt.Fprintf(os.Stderr, "KDBG2 src n=%d:", src.N)
+		for i := 0; i < int(src.N); i++ {
+			fmt.Fprintf(os.Stderr, " (%d,%d,%d)", src.Options[i].Kind(), src.Options[i].Source(), src.Options[i].Mode())
+		}
+		fmt.Fprintf(os.Stderr, " real n=%d:", real.N)
+		for i := 0; i < int(real.N); i++ {
+			fmt.Fprintf(os.Stderr, " (%d,%d,%d)", real.Options[i].Kind(), real.Options[i].Source(), real.Options[i].Mode())
+		}
+		fmt.Fprintln(os.Stderr)
+	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
+		if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+			fmt.Fprintf(os.Stderr, "KDBG2 cand (%d,%d,%d)\n", a.Kind(), a.Source(), a.Mode())
+		}
 		if s.scriptOfferDrops(k, p, a, &skip) {
 			continue
 		}
@@ -421,7 +439,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		gob := s.gapsOrBoundPlay(k, p, sacAny, &gaps, a)
+		otw := gob || twoLive || repeatLive || s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt)
+		if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+			fmt.Fprintf(os.Stderr, "KDBG2 search (%d,%d,%d) gob=%v otw=%v\n", a.Kind(), a.Source(), a.Mode(), gob, otw)
+		}
+		if !otw {
 			if !relax {
 				searched++
 			}
@@ -429,6 +452,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		}
 		searched++
 		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) && !s.phyHalfPlanned(k, p, a) {
+			if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+				fmt.Fprintf(os.Stderr, "KDBG2 drop autopay (%d,%d)\n", a.Kind(), a.Source())
+			}
 			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
 		if dh {
@@ -474,7 +500,20 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				}
 			}
 		} else if filt.any() || mix {
-			if !s.filtScript(k, a, p, false) {
+			// Beside a filter, gorge still runs its second query over the
+			// census that keeps the Taps-deferred sources out (their extras
+			// ride the taps, addGatedExtra): the same play, the extended gap
+			// set. The filter route's branches spend the first search's budget
+			// on the fee-carrying gap's colour answers (Energy Refractor's
+			// "{2}: Add one mana of any color") before the deferred sources,
+			// so the play is also searched over them when the filter route
+			// found no script for it (the Trapjaw Kelpie lockstep: decision
+			// 402's cast, the second walk's phased run's two island taps).
+			if !s.filtScript(k, a, p, false) &&
+				!(tapsDef.any() && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)) {
+				if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+					fmt.Fprintf(os.Stderr, "KDBG2 drop filtScript (%d,%d)\n", a.Kind(), a.Source())
+				}
 				continue // no script within gorge's search budget
 			}
 		} else if tapsDef.any() && s.liveGrantGap(k, p) {
@@ -501,6 +540,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			}
 		} else if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
 			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff) {
+				if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+					fmt.Fprintf(os.Stderr, "KDBG2 drop deadendAny (%d,%d)\n", a.Kind(), a.Source())
+				}
 				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
 			}
 		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
