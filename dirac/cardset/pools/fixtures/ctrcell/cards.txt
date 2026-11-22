@@ -1,11 +1,14 @@
 # one CounterPlayerAddedAll trigger per put action per recipient: The Great
 # Goblin and Generous Patron beside CounterTypes$ carriers
-# (dirac/oracle/ctrcell_test.go)
+# (dirac/oracle/ctrcell_test.go). Qarsi Revenant stacks its Renew's three
+# keyword kinds with Unexpected Fangs' two, so a permanent passes the
+# kernel's three counter slots (Abigale, Eloquent First-Year, the old
+# stacker, is refused: dirac/support/refused).
 The Great Goblin
 Generous Patron
-Abigale, Eloquent First-Year
 Unexpected Fangs
 Gift of the Viper
+Qarsi Revenant
 Raging Goblin
 Goblin Piker
 Grizzly Bears
