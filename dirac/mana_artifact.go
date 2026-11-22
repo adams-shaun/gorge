@@ -198,21 +198,30 @@ var coldArtN = newCold[uint8]("artn", func(g *genPrep) int {
 // useArtN: the table holds a typed producer (the tally exists).
 var useArtN = newGenUse(tableAnyTypedMana)
 
-// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped).
+// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped)
+// and the tally can be read: a pool unit of a colour is spent plain-first, so
+// two search states that differ in which unit a payment spent (a typed {U}
+// beside a land's) key apart in gorge. That needs mana spent from the pool
+// beside the typed producer: a hand-mana card's plain mana, or a mana ability
+// that costs mana (Energy Refractor's "{2}: Add one mana of any color", a
+// filter land's fee).
 func tableAnyTypedMana(t *kop.Table) bool {
-	// The tally matters only where a hand-mana card (a Spirit Guide) puts plain
-	// mana beside a typed producer's tagged mana; any typed producer alone
-	// would make a vanilla fixture's table need gen, and the fresh-clone tests
-	// pin a nil gen there. A table with typed producers but no hand-mana card
-	// keeps one bit per colour, as before.
-	hand := false
+	// Any typed producer alone would make a vanilla fixture's table need gen,
+	// and the fresh-clone tests pin a nil gen there. A table with typed
+	// producers but neither keeps one bit per colour, as before.
+	spends := false
 	for i := range t.Cards {
 		if t.Cards[i].HandMana != 0 {
-			hand = true
+			spends = true
 			break
 		}
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbMana && a.Cost.Mana.MV() > 0 {
+				spends = true
+			}
+		}
 	}
-	if !hand {
+	if !spends {
 		return false
 	}
 	typed := typedManaSubtypes(t)
