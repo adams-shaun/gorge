@@ -73,6 +73,9 @@ func (s *State) declareMustAttack(k *prep) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
+			if atkTaxOn(k) && !s.atkTaxRequired(k, sl) {
+				continue // CR 508.1d: a requirement that costs mana is none (combat_attacktax.go)
+			}
 			def := s.nextAlive(s.active)
 			if s.cantAtkPairPlayer(k, sl, def) {
 				// the player pair is forbidden (combat_cantattack.go): a
@@ -172,7 +175,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
-		if gd && s.goadedAt(k, sl) || s.attackPlayerOnly(k, sl) {
+		if s.goadPlayersOnly(k, sl, gd && s.goadedAt(k, sl)) || s.attackPlayerOnly(k, sl) {
 			continue // a goad is satisfied by attacking a player only (act_goad.go), and so is Encore's duty (combat_attacksifable.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
@@ -303,6 +306,7 @@ func (s *State) mustAttackOther(k *prep, sl Slot) (uint8, bool) {
 //go:noinline
 func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) (playerOnly bool) {
 	sick := s.atkHasteSick(k, sl)
+	gpo := s.goadPlayersOnly(k, sl, goaded) // combat_taxgoad.go: under a tax only with a free player pair
 	excl, exclOK := s.mustAttackOther(k, sl)
 	otherLegal := false
 	if exclOK {
@@ -315,7 +319,7 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			break
 		}
 	}
-	if q, ok := s.encoreSeat(k, sl); ok {
+	if q, ok := s.encoreSeat(k, sl); ok && !s.atkTaxEncoreCharged(k, sl) {
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
 		return false
 	}
@@ -339,7 +343,7 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			continue // MustAttack$ Player.Other: another player is a legal defender
 		}
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
-		if goaded || exclOK && otherLegal {
+		if gpo || exclOK && otherLegal {
 			// a goad is satisfied by a player only (CR 701.15b), and under
 			// MustAttack$ Player.Other another legal player pair satisfies
 			// the named duty, so gorge's offer filter drops every walker
@@ -381,7 +385,8 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
-			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) {
+			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) &&
+			(!atkTaxOn(k) || s.atkTaxRequired(k, sl)) {
 			return true
 		}
 	}

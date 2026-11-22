@@ -56,7 +56,8 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	if !g.anyBlkTax {
 		return
 	}
-	g.blkTaxStall = g.anyGoad || g.ix[mechAttacksIfAble] != arenaNone || g.blgOn || g.manaTaps ||
+	r := tableReach(t)
+	g.blkTaxStall = r.landGrantLive(t, g) || atkTaxTapsLive(t, g) ||
 		g.anyMinBlk || g.anyAloneBlk || g.anySuspect ||
 		// the arena masks, not anyLure/anyMustBlock: those are set before
 		// prepArena fills g.ix, so they hold on every table
@@ -64,15 +65,9 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		g.blkTaxStall = g.blkTaxStall || blkTaxGap(&t.Cards[i])
 	}
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatMustAttack || blkTaxFloorStatic(a)) {
-				g.blkTaxStall = true
-			}
-		}
-	}
+	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true) || atkTaxGrantGap(g)
 	for i := range t.Overrides {
-		g.blkTaxStall = g.blkTaxStall || t.Overrides[i].AddKw&kop.KwMenace != 0
+		g.blkTaxStall = g.blkTaxStall || r.override[i] && t.Overrides[i].AddKw&kop.KwMenace != 0
 	}
 }
 
@@ -130,7 +125,20 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 // what the attack window's source walk refuses (atkTaxGap: the block window
 // walks the same sources), and a block floor or duty (blkTaxFloorPart).
 // Over-refusing is safe; admitting a shape the window misprices is not.
-func blkTaxGap(c *kop.CardDef) bool { return atkTaxGap(c) || blkTaxFloorPart(c) }
+func blkTaxGap(c *kop.CardDef) bool {
+	return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
+}
+
+// blkTaxMustAttack reports whether card c has a MustAttack static: the attack
+// tax walk models it (atkTaxMustOK), no block-window lockstep test covers it.
+func blkTaxMustAttack(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack {
+			return true
+		}
+	}
+	return false
+}
 
 // blkTaxStallPair is pairRefusalN's StallBlkTax half: the text and the two
 // sides, the cards with a block tax and the cards with a gap.
@@ -138,7 +146,9 @@ func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) 
 	_, _, atkB := atkTaxStallPair(t, g)
 	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
-	b := func(c *kop.CardDef, i int) bool { return atkB(c, i) || blkTaxFloorPart(c) }
+	b := func(c *kop.CardDef, i int) bool {
+		return atkB(c, i) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
+	}
 	return text, a, b
 }
 
@@ -196,11 +206,17 @@ func (s *State) blkTaxAdmits(k *prep, b, a Slot) bool {
 	return ok && (n == 0 || n <= s.manaBudget(k, s.blockDef()))
 }
 
-// blkTaxSpent is the charge of the pairs already declared.
+// blkTaxSpent is the charge of the pairs the defending seat has declared: an
+// earlier defender's pairs were paid in its own declaration (gorge
+// handleBlockers charges the one chosen declaration, CR 509.1d), not again.
 func (s *State) blkTaxSpent(k *prep) int {
 	var pairs [2 * MaxPerm]blkPair
 	n := 0
+	def := s.blockDef()
 	for i, c := 0, s.blockPairs(&pairs); i < c; i++ {
+		if s.perms[pairs[i].b].ctrl != def {
+			continue
+		}
 		v, _ := s.blkTaxCharge(k, pairs[i].b, pairs[i].a)
 		n += v
 	}
@@ -253,6 +269,7 @@ func (s *State) blkTaxPay(k *prep) bool {
 		return true
 	}
 	pool := &s.pl[SeatIx(p)].pool
+	pend, pendSl := -1, NoSlot
 	for {
 		have := 0
 		for _, v := range pool {
@@ -261,15 +278,12 @@ func (s *State) blkTaxPay(k *prep) bool {
 		if have >= total {
 			break
 		}
-		sl, col, n := s.atkTaxNext(k, p)
+		sl, al := s.atkTaxNext(k, p)
 		if sl == NoSlot {
+			s.atkTaxPendingAsk(k, p, pend, pendSl)
 			return false
 		}
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		s.poolAdd(p, col, n)
-		s.artTag(k, p, sl, col)
+		pend, pendSl = s.atkTaxTap(k, p, sl, al), sl
 	}
 	for total > 0 {
 		c := kop.ManaCost{Generic: uint8(min(total, 255))}

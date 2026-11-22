@@ -36,12 +36,49 @@ func (s *State) checkOverN() {
 //go:noinline
 func (s *State) sweepDeparted(k *prep) bool {
 	moved := false
+	if s.g.nfx != 0 {
+		s.expireControlPerLoss(k)
+	}
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) && s.leaveGame(k, p) {
 			moved = true
 		}
 	}
 	return moved
+}
+
+// expireControlPerLoss ends the effects giving each departed seat control one
+// seat at a time in seat order, as gorge's expireControl runs at every
+// PlayerLost emit (a stolen permanent goes back before the next player's
+// loss is emitted, so simultaneous losses return their permanents in loss
+// order, not in the effects' timestamp order). A later seat reads as still
+// in the game for its predecessor's pass.
+func (s *State) expireControlPerLoss(k *prep) {
+	var lost [MaxSeats]bool
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		lost[p] = s.out(p)
+		if lost[p] {
+			n++
+		}
+	}
+	if n < 2 {
+		return // one loss: leaveGame's own pass is the whole of it
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if !lost[p] {
+			continue
+		}
+		for q := p + 1; q < s.nSeats(); q++ {
+			if lost[q] {
+				s.pl[SeatIx(q)].lost = false
+			}
+		}
+		s.ctrlExpire(k, false)
+		for q := p + 1; q < s.nSeats(); q++ {
+			s.pl[SeatIx(q)].lost = lost[q]
+		}
+	}
 }
 
 // leaveGame applies CR 800.4a for departed seat p in object order, as gorge's
