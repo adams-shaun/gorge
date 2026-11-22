@@ -186,6 +186,6 @@ func landGrantRecordingReplay(t *testing.T, name string) bool {
 // mana ability is no plain {T}): TestRefusedEntriesStillDiverge replays them
 // with landGrantReplay.
 var landGrantRefusedCards = map[string]bool{
-	"Barbarian Ring": true, "Blanket of Night": true, "Dryad of the Ilysian Grove": true,
+	"Barbarian Ring": true, "Dryad of the Ilysian Grove": true,
 	"Nylea's Presence": true, "Thermopod": true,
 }
