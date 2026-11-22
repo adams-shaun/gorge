@@ -19,7 +19,20 @@ func (s *State) discardCost(k *prep, o Obj) { s.discardObjAs(k, o, false) }
 // CostDiscard: "if this is caused by 118.12 it's also an effect"), and an
 // opponent's unless puts Wilt-Leaf Liege onto the battlefield. A payer who
 // controls the resolving object discards to the graveyard as before.
-func (s *State) discardUnlessPay(k *prep, o Obj) { s.discardObjAs(k, o, true) }
+//
+// A card two or more exile-instead effects compete for (two Leylines of the
+// Void) waits for gorge's CR 616.1 order ask, as every other discard does
+// (discardPicks): that card and every later pick wait in the queue.
+func (s *State) discardUnlessPay(k *prep, o Obj) {
+	if s.res.active && (s.parkedDiscardWaiting() || s.graveMoveCompetes(k, o)) {
+		if s.park(k, o, parkDiscard, 0) || s.parkDiscardQuiet(o, 0) {
+			return
+		}
+		s.capFull(StallReplCands)
+		return
+	}
+	s.discardObjAs(k, o, true)
+}
 
 // discardToBattlefield puts o, just detached from hand, onto the battlefield
 // when it carries the replacement and an opponent's resolution discards it.
