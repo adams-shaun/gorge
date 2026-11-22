@@ -1006,6 +1006,12 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 	budget := cost.ManaPipCount()
 	for i := range units {
 		budget += int(unitMaxFee(units[i]))
+		if unitRepeats(units[i]) {
+			// Each activation of a repeatable fee-only unit makes one owed
+			// coloured pip (repeatOwed): at most Colored.Total() of them,
+			// each funded by its own fee's worth of other sources.
+			budget += int(cost.Colored.Total()) * int(unitMaxFee(units[i]))
+		}
 	}
 	// The walk takes units in index order, so a fee-carrying unit listed
 	// before the source that funds its fee would never see that mana (a Mire's
@@ -1049,6 +1055,13 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 				// debit lands on the pool-relative delta: the walk prices
 				// every later payable() against pool plus the delta.
 				next := acc
+				nextStart := i + 1
+				if a.Repeat {
+					if !repeatOwed(cost, a, ManaAdd(pool, acc)) {
+						continue
+					}
+					nextStart = i // a repeatable fee-only activation may be taken again
+				}
 				if fee := a.Fee(); fee > 0 {
 					floating := ManaAdd(pool, acc)
 					funded, ok := feeFromMana(a, floating, conv)
@@ -1056,7 +1069,7 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 						continue
 					}
 					tryFee := func(afterFee state.Mana) bool {
-						return rec(i+1, remaining-1, ManaAdd(ManaSub(afterFee, pool), a.Mana()), lifeLeft-a.Life)
+						return rec(nextStart, remaining-1, ManaAdd(ManaSub(afterFee, pool), a.Mana()), lifeLeft-a.Life)
 					}
 					found := tryFee(funded)
 					if !found && a.CostGeneric > 0 && manaCovers(floating, a.CostColored) {
@@ -1079,7 +1092,7 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 					}
 					continue
 				}
-				if rec(i+1, remaining-1, ManaAdd(next, a.Mana()), lifeLeft-a.Life) {
+				if rec(nextStart, remaining-1, ManaAdd(next, a.Mana()), lifeLeft-a.Life) {
 					return true
 				}
 			}
@@ -1087,6 +1100,36 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 		return false
 	}
 	return rec(0, budget, state.Mana{}, life)
+}
+
+// unitRepeats reports whether a window unit carries a repeatable fee-only alt.
+func unitRepeats(u WindowUnit) bool {
+	for _, a := range u.Alts {
+		if a.Repeat {
+			return true
+		}
+	}
+	return false
+}
+
+// repeatOwed reports whether taking a repeatable fee-only alt can help: it
+// converts mana into its own colour, which only matters for a coloured pip
+// the cost still owes beyond the floating mana (a conversion into a colour
+// the cost does not owe just loses mana to the fee). It bounds the search --
+// an any-colour source otherwise branches five ways at every repetition. A
+// cost with hybrid, Phyrexian or twobrid parts owes colours this test cannot
+// read, so every repetition stays on the walk there.
+func repeatOwed(cost costvocab.Cost, a WindowAlt, floating state.Mana) bool {
+	if len(cost.Hybrid) > 0 || len(cost.Phyrexian) > 0 || len(cost.Twobrid) > 0 || len(cost.HybridPhyrexian) > 0 {
+		return true
+	}
+	made := a.Mana()
+	for c := range made {
+		if made[c] > 0 && cost.Colored[c] > floating[c] {
+			return true
+		}
+	}
+	return false
 }
 
 // unitMaxFee is the largest literal mana fee among a window unit's alts.
