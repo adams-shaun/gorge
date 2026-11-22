@@ -151,3 +151,15 @@ def test_conflicting_prs_do_not_use_a_slot():
     merged = qp.merge_until(order, 10, lambda p: p["number"] not in conflicting)
     assert [p["number"] for p in merged] == list(range(19, 29))
     assert qp.merge_until(order, 50, lambda p: p["number"] not in conflicting)[-1]["number"] == 30
+
+
+def test_replay_chunks_cover_every_name_once():
+    # 11-22: the whole replay set (448 s) was a run's longest command; it now runs in REPLAY_CHUNKS concurrent chunks.
+    import re
+    names = ["TestStd%dReprosLockstep" % i for i in range(10)] + ["TestRefusedEntriesStillDiverge"]
+    chunks = qp.chunk_names(names, 3)
+    assert len(chunks) == 3
+    hit = [n for n in names for c in chunks if re.match(c, n)]
+    assert sorted(hit) == sorted(names)  # each name in exactly one chunk
+    assert qp.chunk_names(["TestA"], 3) == ["^(TestA)$"]
+    assert qp.BATCH_WAIT == 0
