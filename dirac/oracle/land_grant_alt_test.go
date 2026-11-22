@@ -188,12 +188,12 @@ func TestLandGrantAltOffRefused(t *testing.T) {
 	}
 }
 
-// TestLandGrantAltStillRefused: the refusal is card-precise. Citanul Hierophants
-// (a granted "{T}: Add {G}") beside Ashaya (a land-type grant over creatures) is
-// still refused, naming the two, and not a bounce land or a Thriving land.
+// TestLandGrantAltStillRefused: two grants of different colours on one land
+// (Ashaya's Forest and the Leviathan's Island) stay a refusal, naming both; a
+// Thriving land is no part of it.
 func TestLandGrantAltStillRefused(t *testing.T) {
-	deck := []string{"Ashaya, Soul of the Wild", "Citanul Hierophants", "Thriving Heath", "Golgari Rot Farm", "Forest", "Forest", "Swamp", "Llanowar Elves"}
-	landGrantRefusedNames(t, deck, []string{"Ashaya, Soul of the Wild", "Citanul Hierophants"}, []string{"Thriving Heath", "Golgari Rot Farm"})
+	deck := append(slices.Clone(landGrantAltShared), "Ashaya, Soul of the Wild", "Thriving Heath")
+	landGrantRefusedNames(t, deck, []string{"Ashaya, Soul of the Wild", "Stormtide Leviathan"}, []string{"Thriving Heath"})
 }
 
 // landGrantRefusedNames asserts the pod of four copies of deck is refused as
