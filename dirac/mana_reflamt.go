@@ -107,7 +107,7 @@ func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uin
 			done[sl] |= 1 << j
 		}
 	}
-	if s.canTapForManaPC(k, sl, pc) {
+	if s.gapLive(k, s.perms[sl].ctrl, sl) {
 		fold(sl, uint8(kop.ColC), potentialOpenUnits)
 	}
 	return true
