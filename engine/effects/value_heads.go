@@ -302,6 +302,7 @@ var modelledValueHeads = []string{
 	"Devoured",
 	"MaxDistinctOnStack",
 	"SearchedLibrary",
+	"Emerged",
 	"RegeneratedThisTurn",
 }
 
