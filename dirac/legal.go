@@ -1,16 +1,10 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
-
-// castDbgName is a temporary diagnostic: the card whose hand-cast gate reads
-// the run prints (DIRAC_CAST_DBG=<name>).
-var castDbgName = os.Getenv("DIRAC_CAST_DBG")
 
 // Priority options, in this order: the hand in hand order (land plays,
 // then casts; a kicker variant follows its plain cast), flashback casts
@@ -60,27 +54,8 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	ok := s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
-	if castDbgName != "" && k.t.Cards[c].Name == castDbgName {
-		dbgCast("castgate name=%s ok=%v cost=%+v cav total=%d masks=%v cnt=%v gorgeOffers=%v\n",
-			k.t.Cards[c].Name, ok, *cost, cav.total, cav.mask[:8], cav.cnt[:8], s.gorgeOffers(p, o, 0))
-	}
-	return ok
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
 }
-
-// dbgCast is a temporary diagnostic for the Iron Fist lockstep repro.
-func dbgCast(format string, args ...any) {
-	if castDbgF == nil {
-		f, err := os.Create("/home/sadams/projects/gorge/.worktrees/cli-20261121T163523Z-ea41785b/.ds4/scratch/dbg.cast")
-		if err != nil {
-			return
-		}
-		castDbgF = f
-	}
-	fmt.Fprintf(castDbgF, format, args...)
-}
-
-var castDbgF *os.File
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
 func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
