@@ -1057,8 +1057,11 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
-		return false // gorge's potential planner refuses a convoke cost
+	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) && (mayPlay || !s.improviseAloneCast(k, p, MakeAction(AkCast, TCode(o), 0, 0))) {
+		// gorge's potential planner refuses a convoke cost; an improvise cast that
+		// credits no artifact is planned plainly and its prefix search still funds a
+		// census gap (Wooded Bastion's filter fee; improviseAloneCast)
+		return false
 	}
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
