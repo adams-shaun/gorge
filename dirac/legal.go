@@ -2157,6 +2157,22 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	return true
 }
 
+// foldPickExtra is the over-bound's share of a merge into a pick unit: sl's tap
+// unit old was grown by a reflected TapsForMana extra (growTap), so one tap
+// makes its n mana all of the pick, whichever colour of the widened mask the
+// pick is. The further {T} ability's colours (mask, n mana each) the merge adds
+// to that mask therefore carry the extra too, as the first ability's colours
+// did (Sacred Peaks' {R} beside its {W} under Keeper of Progenitus: {R}{R} or
+// {W}{W}, CR 605.3b, 106.1). Colours old already held keep their fold.
+func foldPickExtra(old potUnit, mask, n uint8, sl Slot, fold func(Slot, uint8, uint8)) {
+	if !old.pick || old.n <= n {
+		return
+	}
+	if m := mask &^ old.mask; m != 0 {
+		fold(sl, m, old.n-n)
+	}
+}
+
 // widenGrant merges a granted {T} mana ability's production into sl's one tap
 // unit (the per-tap census's one mana per tap): the unit's colours widen and
 // its count grows to the larger production, one tap making either the native
@@ -2858,9 +2874,13 @@ func (c *potCensus) anyTapP(ab *kop.Ability) bool {
 // over-bound pool keeps the fold. drop is the widening colours a lethal-guard
 // refusal prices at nothing (cenPainDrop's).
 func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n, drop uint8, add, fold func(Slot, uint8, uint8)) {
-	if c.anyTapP(ab) && c.mergeTap(sl, ab, drop) {
-		fold(sl, mask, n)
-		return
+	if c.anyTapP(ab) {
+		old := c.tap[sl]
+		if c.mergeTap(sl, ab, drop) {
+			fold(sl, mask, n)
+			foldPickExtra(old, mask, n, sl, fold)
+			return
+		}
 	}
 	add(sl, mask, n)
 }
@@ -2894,8 +2914,10 @@ func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, drop uint8, add, fold f
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 		return
 	}
+	old := c.tap[sl]
 	if c.mergeTap(sl, ab, drop) {
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		foldPickExtra(old, uint8(ab.ManaColors), max(ab.ManaN, 1), sl, fold)
 		return
 	}
 	if c.on && ab.ManaEach {
