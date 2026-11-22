@@ -353,6 +353,9 @@ func (s *State) tapXActivatable(k *prep, p uint8, sl Slot) bool {
 // permanents its sacrifice can take (sacXCands).
 func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	ab := k.tapXAbOf(s.cardAt(sl))
+	if ab.Cost.Flags&kop.CostExileGrave != 0 {
+		return s.exileGCands(k, p, sl, ab, out) // graveyard indices (mana_exilegrave.go)
+	}
 	if ab.Cost.Flags&kop.CostSac != 0 {
 		return s.sacXCands(k, p, sl, ab, out)
 	}
@@ -1076,6 +1079,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
+	if k.exileGOf(s.cardAt(st.sl)) {
+		s.exileGDo(k, p, st.sl, st.cand, st.col) // cand is a graveyard index (mana_exilegrave.go)
+		return
+	}
 	if k.sacXOf(s.cardAt(st.sl)) {
 		s.sacXDo(k, p, st.sl, st.cand, st.col)
 		return
@@ -1422,7 +1429,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
-		if k.sacXOf(t.cardAt(sl)) {
+		if k.pickXOf(t.cardAt(sl)) {
 			if found, stop := rs.sacStep(k, t, sl, &cs, nc, &cols); stop {
 				return found
 			}
@@ -1504,6 +1511,9 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 // none. An answer that takes the play's own source is tried: the next node ends
 // it (leftOwnZone). stop: visit returns found.
 func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc int, cols *[5]uint8) (found, stop bool) {
+	if k.exileGOf(t.cardAt(sl)) {
+		return rs.exileGStep(k, t, sl, cs, nc, cols) // an exile-from-graveyard source (mana_exilegrave.go)
+	}
 	if nc > 1 && !rs.tick() {
 		return false, true
 	}
