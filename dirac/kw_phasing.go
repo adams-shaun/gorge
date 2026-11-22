@@ -24,9 +24,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (its hidden attachments lose it) and the projection. All of it is cold and
 // out of line.
 
-// tablePhasing reports whether some program of t is ExtPhases.
+// tablePhasing reports whether some program of t is ExtPhases or some card
+// prints Phasing.
 func tablePhasing(t *kop.Table) bool {
 	for i := range t.Cards {
+		if t.Cards[i].Phasing {
+			return true // a printed K:Phasing toggles at every untap step
+		}
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Ext() == kop.ExtPhases {
@@ -215,6 +219,20 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 	}
 }
 
+// phasingCarrier reports whether the battlefield permanent at sl has the
+// Phasing keyword (gorge hasKeywordH(id, kwhPhasing) over the derived
+// keywords): its card's printed K:Phasing (CardDef.Phasing; kgen lowers no
+// granted Phasing), none while face down or after a lose-all-abilities
+// effect.
+func (s *State) phasingCarrier(k *prep, sl Slot) bool {
+	c := s.cardAt(sl)
+	if c == kop.NoCard || !k.t.Cards[c].Phasing || s.faceDown(k, sl) {
+		return false
+	}
+	_, lost := s.lossAt(k, sl)
+	return !lost
+}
+
 // phaseUntap is the untap step's phasing action (gorge finishUntapStep, CR
 // 702.26a/p): each phased-out permanent of the active player, in their
 // battlefield list's order (entry order, perm.ts), phases in unless it phased
@@ -230,10 +248,18 @@ func (s *State) phaseUntap(k *prep) {
 	n := 0
 	for sl := 0; sl < MaxPerm; sl++ {
 		q := Slot(sl)
-		if s.perms[q].ctrl != s.active || !s.hiddenAt(q) {
+		hid := s.hiddenAt(q)
+		if s.perms[q].ctrl != s.active || !hid && !s.occ.has(q) {
 			continue
 		}
+		// the turn change ended the sickness of every permanent the active
+		// player controls (gorge TurnChange): one about to phase out (a
+		// carrier, or an Aura that goes with its host) is never visited by
+		// the untap loop
 		s.perms[q].flags &^= pfSick
+		if !hid && !s.phasingCarrier(k, q) {
+			continue
+		}
 		j := n
 		for j > 0 && s.perms[order[j-1]].ts > s.perms[q].ts {
 			order[j] = order[j-1]
@@ -247,12 +273,26 @@ func (s *State) phaseUntap(k *prep) {
 	// phased-out source (a Human token of The City on the Edge of Forever)
 	// does not hold back its siblings when it phases in earlier in the step.
 	blocked := s.phaseInBlocked(k)
+	moved := false
 	for i := 0; i < n; i++ {
-		if q := order[i]; !blocked && s.objs[s.perms[q].obj].zone == kop.ZonePhased {
-			s.phaseIn(k, q)
+		// each permanent is read once, as it is reached (gorge finishUntapStep):
+		// a phased-out one phases in (unless blocked or phased out
+		// indirectly), a phased-in carrier of the keyword phases out, so the
+		// two halves are one toggle and an indirect phase-out by an earlier
+		// host in the scan leaves a later carrier to wait for the next step
+		q := order[i]
+		switch {
+		case s.hiddenAt(q):
+			if !blocked && s.objs[s.perms[q].obj].zone == kop.ZonePhased {
+				s.phaseIn(k, q)
+				moved = true
+			}
+		case s.occ.has(q) && s.phasingCarrier(k, q):
+			s.phaseOut(k, q, false)
+			moved = true
 		}
 	}
-	if n != 0 && !blocked && k.gen != nil {
+	if (n != 0 && !blocked || moved) && k.gen != nil {
 		// The phase-ins put slots back on occ, so the override-derived
 		// types and the layer walk the refresh recomputed while they were
 		// phased out are stale until the next instruction would refresh

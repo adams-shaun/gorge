@@ -440,6 +440,14 @@ type CardDef struct {
 	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
 	// and can't block while it has a +1/+1 counter on it.
 	Unleash bool
+	// Flanking is a printed bare K:Flanking (CR 702.25a; gorge's expansion
+	// trigger lowers beside it): the withoutFlanking filter word reads it
+	// (kop.W7WithoutFlanking, dirac/filter_flanking.go).
+	Flanking bool
+	// Phasing is a printed bare K:Phasing (CR 702.26a): the permanent phases
+	// out as its controller's untap step begins, before the untap action, and
+	// phases in at the next one (dirac/kw_phasing.go phaseUntap).
+	Phasing bool
 	// AtkFace: the printed face has a triggered ability gorge's trigger
 	// prefilter lets observe an attack declaration (its compiled trigger
 	// interests: a mode of the attack-declaration class, a Phase$ line or a
