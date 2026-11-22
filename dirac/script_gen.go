@@ -99,18 +99,24 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 		if !k.gen.has(s.cardAt(sl), bit) {
 			continue
 		}
-		pm := &s.perms[sl]
-		if s.pickedForMana(pm.obj) {
-			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		if s.gapLive(k, p, sl) {
+			m = m.with(sl)
 		}
-		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
-			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
-			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)) {
-			continue
-		}
-		m = m.with(sl)
 	}
 	return m
+}
+
+// gapLive reports whether the census-gap source at sl (p's) can be activated
+// for mana now: gapMask's per-slot test, and the one a gap source's potential
+// fold reads (canTapForManaPC rejects every gap source, its manaAb is < 0).
+func (s *State) gapLive(k *prep, p uint8, sl Slot) bool {
+	pm := &s.perms[sl]
+	if s.pickedForMana(pm.obj) {
+		return false // a Convoke/Waterbend pick is tapped for that cast, not for mana
+	}
+	return !(pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
+		k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
+		k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)))
 }
 
 // eachColorOut is the mana gap sl adds: one of each colour among p's
