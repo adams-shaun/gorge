@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1539,6 +1541,10 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	fs.fees = s.filtFunding(k, p, fs.gaps)
 	fs.fundN = s.filtFunders(k, p, fs.gaps.or(fs.other))
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG3 filtScript (%d,%d) gaps=%v other=%v fees=%v funders=%d useful=%v need=%v\n",
+			a.Kind(), a.Source(), fs.gaps, fs.other, fs.fees, fs.fundN, fs.useful, fs.need)
+	}
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {
 		d := s.grantPayDesc(k, a)
@@ -1994,6 +2000,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	} else {
 		ok = fs.visit(k, c, funded, gapUsed)
 	}
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG5 try (sl=%d k=%d ans=%d gap=%v) ok=%v n=%d pool=%v\n", st.sl, st.other.kind, st.ans, st.gap, ok, fs.n, c.pl[SeatIx(fs.p)].pool)
+	}
 	if ok {
 		if c.g.stalled != t.g.stalled {
 			fs.spill = c.g.stalled
@@ -2340,7 +2349,12 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 	var d Decision
 	t.restrOptions(k, &d, fs.p) // (restricted mana floating is priced as ordinary: the search reads no restriction)
 	t.capGrantOvercounts(k, &d, fs.p)
-	return hasOption(&d, fs.a) && !t.grantRefusedPrices(k, fs.p, fs.a) && !fs.witnessEats(k, t)
+	ok := hasOption(&d, fs.a) && !t.grantRefusedPrices(k, fs.p, fs.a) && !fs.witnessEats(k, t)
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG3 offers (%d,%d) listed=%v grantRef=%v wit=%v -> %v pool=%v\n",
+			fs.a.Kind(), fs.a.Source(), hasOption(&d, fs.a), t.grantRefusedPrices(k, fs.p, fs.a), fs.witnessEats(k, t), ok, t.pl[fs.p].pool)
+	}
+	return ok
 }
 
 // visit is one priority node of the search.
@@ -2452,7 +2466,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
-	if fs.terminal(k, t, gapUsed) {
+	ter := fs.terminal(k, t, gapUsed)
+	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
+		fmt.Fprintf(os.Stderr, "KDBG6 visit gapUsed=%v terminal=%v npend=%d pool=%v\n", gapUsed, ter, t.npend, t.pl[p].pool)
+	}
+	if ter {
 		return true
 	}
 	key := fs.stateKey(k, t)
