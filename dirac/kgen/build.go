@@ -2715,9 +2715,6 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	var keep []uint8
 	for i, w := range cb.pt.subtypes {
-		// a type-setting effect leaves the supertypes (CR 205.1a); the
-		// table carries Snow, World and Ongoing as subtype slots
-		// (lowerRecord), which gorge's derived types keep
 		if o.Kept.Has(w) || unmodeledSupertype(w) {
 			keep = append(keep, uint8(i))
 		}
