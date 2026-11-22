@@ -83,7 +83,6 @@ Agent of Kotis
 Aggressive Negotiations
 Agonasaur Rex
 Agony Warp
-Agrus Kos, Spirit of Justice
 Ainok Wayfarer
 Airship Crash
 Aisling Leprechaun
@@ -270,7 +269,6 @@ Auntie's Sentence
 Aura Shards
 Auratog
 Aurelia's Vindicator
-Aurelia, the Law Above
 Auroral Procession
 Austere Command
 Autarch Mammoth
@@ -827,7 +825,6 @@ Crosis's Catacombs
 Crosis's Charm
 Crosis, the Purger
 Crowd of Cinders
-Crowd-Control Warden
 Crowded Crypt
 Crude Bent Blade
 Cruel Administrator
@@ -2118,7 +2115,6 @@ Kavaron Skywarden
 Kavaron Turbodrone
 Kavaron, Memorial World
 Kavu Monarch
-Kaya, Spirits' Justice
 Kazandu Stomper
 Kederekt Creeper
 Keen-Eyed Archers
@@ -2298,7 +2294,6 @@ Lightfoot Technique
 Lightning Angel
 Lightning Berserker
 Lightning Coils
-Lightning Helix
 Lightning, Army of One
 Lignify
 Lilah, Undefeated Slickshot
@@ -2484,7 +2479,6 @@ Mechan Navigator
 Mechan Shieldmate
 Mechanized Ninja Cavalry
 Mechanozoa
-Meddling Youths
 Medic's Kitesail
 Medusa, Inhuman Queen
 Megrim
@@ -3735,7 +3729,6 @@ Soul Diviner
 Soul Manipulation
 Soul Partition
 Soul Read
-Soul Search
 Soul Shred
 Soul of Innistrad
 Soul of Windgrace
@@ -4106,7 +4099,6 @@ Teval, the Balanced Scale
 Textbook Tabulator
 Teyo, Diamondblade Mage
 Teyo, Lightshield Expert
-Teysa, Opulent Oligarch
 Tezzeret's Ambition
 Tezzeret, Cruel Captain
 Tezzeret, Master of the Bridge
@@ -4309,7 +4301,6 @@ Traumatic Visions
 Traveling Botanist
 Traxos, Academy Guardian
 Traxos, Scourge Eternal
-Treacherous Greed
 Tread Upon
 Treeguard Duo
 Treeshaker Chimera
@@ -4329,7 +4320,6 @@ Troi, Winging It
 Troll Negotiations
 Troop of Ponies
 Tropical Storm
-Trostani, Three Whispers
 Trumpeting Carnosaur
 Trystan, Callous Cultivator
 Tsagan, Raider Warlord
@@ -4574,7 +4564,6 @@ Warg Tactics
 Wargate
 Wargling
 Warhorn Blast
-Warleader's Call
 Warmaker Gunship
 Warmonger Hellkite
 Warmth
@@ -4668,7 +4657,6 @@ Wirefly Hive
 Wirewood Symbiote
 Wisdom of Ages
 Wishing Well
-Wispdrinker Vampire
 Witch of the Moors
 Witch's Clinic
 Witch-Maw Nephilim
