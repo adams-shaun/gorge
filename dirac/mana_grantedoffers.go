@@ -3337,11 +3337,13 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // (graveyardCastNeedCost): the kernel's branch-order hint alone, never a
 // pricing read, so the budget-capped grant search reaches the announced
 // colour before the colours the play does not need and prices the cast the
-// census affords. The read is independent of grantPlayCost's ok: the
-// filter search also prices plays the grant search declines (a waterbend or
-// behold cast, a target-priced shape), and both searches must branch on the
-// same set. The card's printed cost is read unreduced (CR 601.2b announces
-// the printed pip colours).
+// census affords. The read is independent of grantPlayCost's ok. The filter
+// search (filtScript) does not take this hint: it mirrors gorge's prefix
+// search, which reads no pips for a flashback cast, so it reads
+// playNeedPrinted (a Calibrated Blast flashback beside two fee filters spends
+// gorge's 160-node budget in engine order and is withheld). The card's
+// printed cost is read unreduced (CR 601.2b announces the printed pip
+// colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 	need, _ = s.playNeedPrinted(k, a)
 	return need
