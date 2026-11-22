@@ -1506,21 +1506,24 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // plan, legal_walk_autopay.go autoPayPlan).
 //
 // lifePainPlanAffords reports whether gorge's potential planner prices the
-// plain hand cast a (its PotentialMana bound affords the composed cost, the
-// plain witness arm's read): the filter search's life pass then activates a
-// sole life-only pain unit as the plan's last resort (lifePass's pain arm).
-// The read is scoped to the plain hand cast the witness arm prices -- gorge's
+// plain hand cast or the printed activation a (its PotentialMana bound affords
+// the composed cost, the plain witness arm's read): the filter search's life
+// pass then activates a sole life-only pain unit as the plan's last resort
+// (lifePass's pain arm; the unit's activation is a gap used, so the node is
+// priced over the floating mana with the untapped unit still in the census,
+// Wand of Orcus's Equip {3} beside a Plains and the Ogre). The cast read is
+// scoped to the plain hand cast the witness arm prices -- gorge's
 // planner plans the composed cost of a PlannedCast (planComposedCostFor) -- and
 // runs only when the board holds an activatable life-only pain unit, the one
 // shape whose census unit a gap activation can fund (potential_plan.go).
 //
 //go:noinline
 func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
-	if !k.painMana || a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 {
+	if !k.painMana || a.Kind() != AkCast && a.Kind() != AkActivate || a.Mode() != 0 && a.Kind() == AkCast || a.Target() != 0 {
 		return false
 	}
 	o := Obj(a.Source())
-	if o == NoObj || s.objs[o].zone != kop.ZoneHand {
+	if o == NoObj || a.Kind() == AkCast && s.objs[o].zone != kop.ZoneHand {
 		return false
 	}
 	live := false
@@ -1529,6 +1532,16 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	}
 	if !live {
 		return false
+	}
+	if a.Kind() == AkActivate {
+		cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+		if !ok {
+			return false
+		}
+		var pb avail
+		d := s.grantPayDesc(k, a)
+		s.availPotentialFor(k, p, &pb, &d, false)
+		return pb.affords(&cost, pipMaskOf(&cost), 0)
 	}
 	c := s.objs[o].card
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
@@ -2339,13 +2352,13 @@ func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) boo
 		}
 		needFirst(order[:], fs.need) // gorge's scriptOrderAnswers on the colour ask
 		for _, c := range order {
-			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, false) {
+			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, true) {
 				return true
 			}
 		}
 		return false
 	}
-	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, false)
+	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, true)
 }
 
 // restrictedAnswers tries a restricted ability's colour answers (rm) of the
