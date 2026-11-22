@@ -229,7 +229,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -388,7 +387,6 @@ Weakness
 White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
-Wormhole Serpent
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher
