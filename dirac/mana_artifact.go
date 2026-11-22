@@ -207,7 +207,7 @@ func tableAnyTypedMana(t *kop.Table) bool {
 	// keeps one bit per colour, as before.
 	hand := false
 	for i := range t.Cards {
-		if t.Cards[i].HandMana != 0 {
+		if t.Cards[i].HandMana != 0 || tableCardRestrictedMana(&t.Cards[i]) {
 			hand = true
 			break
 		}
@@ -225,6 +225,22 @@ func tableAnyTypedMana(t *kop.Table) bool {
 			if c.Abilities[j].Kind == kop.AbMana {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// tableCardRestrictedMana: c has a mana ability whose mana carries a spend
+// restriction (Gwenna, Eyes of Gaea). Its restricted units sit in the pool
+// key beside the plain ones (scriptKey), where the unrestricted count stands in
+// for the tagged one without a tally: a filter that turns restricted {R} into
+// a plain {B} then keys a state apart that gorge's tagged-unit count
+// (Player.ManaUnits) keys as the same, and the search walks a line gorge's
+// dedup cut.
+func tableCardRestrictedMana(c *kop.CardDef) bool {
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) {
+			return true
 		}
 	}
 	return false
