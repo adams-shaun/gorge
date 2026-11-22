@@ -2441,6 +2441,21 @@ func (s *State) potentialTapExtraGated(k *prep, sl Slot, pc *pcard, mask uint8, 
 	}
 }
 
+// grantGapGain books gorge's gapGains for a granted any-colour {T} ability on
+// a host whose own ability cannot tap (Paradise Mantle on a creature): the
+// planner's census misses the grant and the host has no covered production to
+// net it against (manaTapAbilityNetsNoMore needs best > 0), so the grant raises
+// the mana a payment can spend and the X-bound sweep's count proof has no
+// supply bound (paymentPlanCensusOf, CR 106.1, 605.3b, 601.2h).
+func (s *State) grantGapGain(k *prep, sl Slot, pc *pcard, d *payDesc, cen *potCensus) {
+	if d == nil || !cen.on || k.gen == nil || !pc.manaTap || pc.manaCol != kop.ColAny || pc.manaChosen || pc.manaMulti {
+		return
+	}
+	if pc != &k.cards[s.cardAt(sl)] && !s.ownManaUsable(k, sl) {
+		d.gapGain = true
+	}
+}
+
 // markCensusAbDone marks the printed ability a source's view is as done in
 // availPotentialFor's fixpoint. An intrinsic view (manaIntrinsic, blgView) is
 // the granted basic land type's unit and marks no ability: the card's own
@@ -2541,6 +2556,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		markCensusAbDone(pc, sl, &done)
+		s.grantGapGain(k, sl, pc, d, &cen)
 		// the printed ability's own activation pain: when it reaches the
 		// life its production is no census unit, the fold keeps it (a
 		// pain-only source makes nothing there, a paid face beside a normal
@@ -2882,6 +2898,15 @@ func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny b
 			}
 			fold(sl, mask, gv.manaN)
 			continue
+		}
+		if cen.on && d != nil && gv.manaTap {
+			// A {T} grant on a host with no tap unit of its own is a gap of
+			// gorge's planner census with nothing to net against
+			// (manaTapAbilityNetsNoMore needs a covered production), so it
+			// raises the mana a payment can spend: gapGains, and the X-bound
+			// sweep's count proof has no supply bound (Paradise Mantle on a
+			// creature beside a repeatable fee-only gap, CR 106.1, 605.3b).
+			d.gapGain = true
 		}
 		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open

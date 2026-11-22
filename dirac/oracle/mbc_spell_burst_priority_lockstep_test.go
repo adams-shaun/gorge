@@ -39,4 +39,7 @@ func TestMBCSpellBurstReprosLockstep(t *testing.T) {
 	// cast (Mode "buyback", the Offspring shape); the kernel offered no cast
 	// of Spell Burst at all.
 	stdReproNamed(t, "spell_burst_buyback_x_cast_missing")
+	// Decision 716 of tail-26-c000 (seed 934284, pair 168): gorge offers
+	// cast(Spell Burst,-,0) next to the buyback cast; the kernel only the latter.
+	stdReproNamed(t, "spell_burst_plain_cast_missing")
 }
