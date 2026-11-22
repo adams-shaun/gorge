@@ -213,6 +213,15 @@ type Override struct {
 	// ask and mirrors the decline; an accepted band stalls (StallBand), band
 	// formation is not modelled.
 	Banding bool
+	// Horsemanship: the permanent gains horsemanship (CR 702.31b) for as long
+	// as the record lasts (a Pump's KW$ Horsemanship with Duration$ Permanent,
+	// Riding the Dilu Horse). The until-end-of-turn grant is ExtKwMark's arena
+	// bit, cleared in the cleanup step; a permanent one has no such home, so
+	// it is the record's own field (as Banding's), which ends with the
+	// permanent (CR 400.7). It reads as CardDef.Evasion EvHorsemanship does
+	// (dirac's evasionGranted, through evasionAt); a layer-6 grant: a record
+	// older than a loss of the permanent's abilities grants nothing.
+	Horsemanship bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool

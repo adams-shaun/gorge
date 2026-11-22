@@ -2662,6 +2662,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
 	ko.Banding = o.Banding
+	ko.Horsemanship = o.Horsemanship
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics

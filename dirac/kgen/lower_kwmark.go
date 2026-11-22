@@ -51,6 +51,27 @@ func splitKwMarks(kw string) (rest string, marks int) {
 	return strings.Join(keep, " & "), marks
 }
 
+// takePermanentHorsemanship takes the bare "Horsemanship" term out of a
+// Duration$ Permanent KW$ list: the rest of the list and whether it was there.
+// A permanent grant has no cleanup-step mark to ride (ExtKwMark's bit is
+// cleared there), so it is kop.Override.Horsemanship on the grant's override
+// record, which ends with the permanent (Riding the Dilu Horse). Every other
+// duration still sends the term through pumpKeywords, which refuses it.
+func takePermanentHorsemanship(kw string) (rest string, has bool) {
+	var keep []string
+	for _, k := range strings.Split(kw, "&") {
+		if k = strings.TrimSpace(k); k == "Horsemanship" {
+			has = true
+			continue
+		}
+		keep = append(keep, k)
+	}
+	if !has {
+		return kw, false
+	}
+	return strings.Join(keep, " & "), true
+}
+
 // splitStaticKwMarks is splitKwMarks for a Continuous static's AddKeyword$
 // list: the rest, and the static's Evasion / Infect grant.
 func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
