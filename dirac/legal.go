@@ -2669,6 +2669,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
 				open = s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, &cen, fold) || open
+				s.tapXRepeatUnits(k, p, sl, ab, fold)
 			}
 		}
 	}
@@ -2742,6 +2743,33 @@ func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, ab
 		}
 	}
 	return open
+}
+
+// tapXRepeatUnits is availPotentialFor's fold arm for a fixed-production
+// tap-another mana ability (Urza, Lord High Artificer's "Tap an untapped
+// artifact you control: Add {U}"): once admitted, it repeats once per extra
+// untapped candidate its cost can tap, the way gorge's bound does
+// (potential_repeat_fee.go addPotentialTapRepeat, CR 605.1a, 601.2g: each
+// activation taps the cost's candidates while paying, so the untapped ones
+// bound the activations). The ability's own shape checks say the rest: a
+// once-only limit or a restriction is another Cost flag the shape refuses, an
+// any-colour production stays the fold's open (potentialOpenProduction, as
+// gorge's producedOpen prices it), and the census unit is the once-admission
+// the plain tap unit already recorded -- the repeats live in the fold alone,
+// like the bound's other fixed repeats (addPotentialSacRepeat's shape, the
+// one-per-source census above).
+func (s *State) tapXRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, fold func(Slot, uint8, uint8)) {
+	if !kop.TapXManaOne(ab) {
+		return
+	}
+	if _, fixed := kop.TapXFixedColour(ab); !fixed {
+		return // an any-colour production: the fold is already open
+	}
+	repeats := s.countUntapped(k, p, ab.Cost.Filter, sl) / int(ab.Cost.N)
+	if repeats < 2 {
+		return
+	}
+	fold(sl, uint8(ab.ManaColors), uint8(min((repeats-1)*max(int(ab.ManaN), 1), 255)))
 }
 
 // potentialTapExtra folds a TapsForMana carrier's extra (Heartbeat of Spring:

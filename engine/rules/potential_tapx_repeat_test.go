@@ -42,6 +42,18 @@ func TestTapAnotherRepeatFundsMultiActivations(t *testing.T) {
 		t.Fatalf("precondition: six untapped artifacts beside Urza, got %d", untapped)
 	}
 	_, listed := e.potentialWalkOf(0, true)
+	// the bound's own output: the potential walk lists Urza's {5} activation
+	// (addPotentialTapRepeat folds the repeats into the bound; the plan below
+	// is the payment layer, which prices the repeats on its own)
+	walked := false
+	for _, o := range listed {
+		if o.Obj == urza && o.Kind == "ability" {
+			walked = true
+		}
+	}
+	if !walked {
+		t.Fatalf("the potential walk withholds Urza's {5} activation the six tap-another repeats fund: %+v", listed)
+	}
 	plan, ok := PotentialPlan{}, false
 	for _, pp := range e.PotentialPaymentPlans(0) {
 		if pp.Action.Kind == "ability" && pp.Action.Obj == urza && pp.Action.Ability == 1 {
