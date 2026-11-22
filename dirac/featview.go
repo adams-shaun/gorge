@@ -963,7 +963,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		s.ungrGainedIntr(k, p, sl, av, ms)
 		granted := s.grantMay(k, sl) && s.manaGranted(k, sl)
 		if granted && !s.landSetLost(k, sl) {
-			s.gainedIntrinsicAvail(k, sl, av) // the one granted ability the planner lists (mana_gainedgrants.go)
+			// the gained intrinsic is already credited once, by ungrGainedIntr above
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
