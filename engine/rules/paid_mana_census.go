@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -407,9 +409,35 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 // the census convention).
 func unlessFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost, selfSac bool) []windowManaAlt {
 	if !castWindowGenericCostShape(fee) && !selfSac {
+		if castWindowHybridFeeCost(fee) {
+			return unlessHybridFeeAlts(ma, fmf, fee)
+		}
 		return nil
 	}
-	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: fee.Generic, CostColored: fee.Colored}
+	return unlessFeeAltsFor(ma, fmf, fee.Generic, fee.Colored)
+}
+
+// unlessHybridFeeAlts prices a hybrid-pip fee (Fetid Heath's "{W/B}, {T}: Add
+// {W}{W}, {W}{B}, or {B}{B}") as the cast window does: one alternative set per
+// assignment of the pips to a colour of their pair (CR 107.4b), each fee a
+// concrete coloured mask the reach walk funds from the floating mana (CR
+// 605.3b). Two assignments that give the same fee and production would be one
+// tap, so a repeated fee mask is skipped.
+func unlessHybridFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost) []windowManaAlt {
+	masks := castWindowHybridFeeMasks(fee.Hybrid, fee.Colored)
+	var out []windowManaAlt
+	for i, mask := range masks {
+		if slices.Contains(masks[:i], mask) {
+			continue
+		}
+		out = append(out, unlessFeeAltsFor(ma, fmf, fee.Generic, mask)...)
+	}
+	return out
+}
+
+// unlessFeeAltsFor is unlessFeeAlts' production side over a settled fee.
+func unlessFeeAltsFor(ma *cards.SA, fmf pay.ManaStatic, generic int32, colored state.Mana) []windowManaAlt {
+	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: generic, CostColored: colored}
 	if fmf.Any {
 		return pinnedManaAlts(feeAlt, fmf.Counts)
 	}
