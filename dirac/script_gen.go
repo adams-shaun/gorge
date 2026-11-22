@@ -1009,7 +1009,13 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 		return false // gorge's prefix search prices it, not the census (untappedTapGapLive)
 	}
 	var mav avail
+	// a restricted granted ability this cast's payment may not spend is no unit
+	// of gorge's planner census (pay/plancost.go restrictedRefused, CR 106.6):
+	// Marvin's copy of Overgrown Zealot's turn-face-up-only {T}: Add two mana
+	// funds no spell
+	mav.xd, mav.xdOn = s.grantPayDesc(k, a), true
 	s.availFor(k, p, &mav)
+	mav.xdOn = false
 	if !mav.affords(cost, pipMaskOf(cost), 0) {
 		return false
 	}
