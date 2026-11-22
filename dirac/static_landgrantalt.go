@@ -47,7 +47,7 @@ var DebugLandGrantAltAvail bool
 // God, prepManaGate). pc is its printed view.
 func landAltShape(t *kop.Table, g *genPrep, i int, pc *pcard) bool {
 	c := &t.Cards[i]
-	if c.Types&kop.TLand == 0 || pc.manaAb < 0 || pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana || pc.manaOne || pc.manaSac || pc.manaSacOnly {
+	if c.Types&(kop.TLand|kop.TCreature) == 0 || pc.manaAb < 0 || pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana || pc.manaOne || pc.manaSac || pc.manaSacOnly {
 		return false
 	}
 	if f := g.flags[i]; f&gfManaVar != 0 && (f&gfManaGate == 0 || f&(gfFiltFee|gfManaDynPair|gfManaRefl) != 0) {

@@ -12,7 +12,6 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-
 const landGrantPairWhy = "a granted basic land type beside a mana source whose own ability is not a plain {T}: gorge offers both productions"
 
 func landGrantEntries(names []string) []cardset.Entry {
@@ -25,10 +24,10 @@ func landGrantEntries(names []string) []cardset.Entry {
 
 // landGrantPairDeck holds Ashaya (every nontoken creature a Forest land) and
 // Citanul Hierophants (a granted "{T}: Add {G}" to every creature): a creature
-// land with a granted mana ability beside its intrinsic one, which the kernel
-// has no view for (static_landgrantpair.go grantsManaTo).
+// land with a granted mana ability beside its intrinsic one: modelled
+// (blgOwnUsable); DebugLandGrantOwnOff restores the refusal (grantsManaTo).
 var landGrantPairDeck = []string{
-	"Ashaya, Soul of the Wild", "Citanul Hierophants", "Llanowar Elves", "Elvish Mystic", "Birds of Paradise", "Wall of Omens",
+	"Ashaya, Soul of the Wild", "Citanul Hierophants", "Arixmethes, Slumbering Isle", "Llanowar Elves", "Elvish Mystic", "Birds of Paradise", "Wall of Omens",
 	"Forest", "Forest", "Forest", "Forest", "Island", "Island", "Swamp", "Plains", "Sol Ring", "Arcane Signet",
 	"Rampant Growth", "Cultivate", "Counterspell", "Beast Within", "Coiling Oracle", "Mulldrifter",
 }
@@ -38,6 +37,11 @@ var landGrantPairDeck = []string{
 // beside the granted one, and gorge lists both (CR 305.6). The same decks
 // without the Hierophants build.
 func TestLandGrantPairRefused(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugLandGrantOwnOff = true
+	defer func() { dirac.DebugLandGrantOwnOff = false }()
 	set := edhSet(t)
 	var lists [][]cardset.Entry
 	for range 4 {
@@ -119,7 +123,8 @@ func TestLandGrantPairMutation(t *testing.T) {
 	}
 	old := dirac.DebugLandGrantNoPairGuard
 	dirac.DebugLandGrantNoPairGuard = true
-	defer func() { dirac.DebugLandGrantNoPairGuard = old }()
+	dirac.DebugLandGrantOwnOff = true
+	defer func() { dirac.DebugLandGrantNoPairGuard = old; dirac.DebugLandGrantOwnOff = false }()
 	set := edhSet(t)
 	pod := [4][]string{landGrantPairDeck, landGrantPairDeck, landGrantPairDeck, landGrantPairDeck}
 	play := fourSeatSetPlay(t, set, pod, nil, nil, nil, func(seed uint64) Policy { return combatPolicy(seed, nil) })

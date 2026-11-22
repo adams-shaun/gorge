@@ -74,3 +74,17 @@ var DebugLandGrantThrivingView bool
 func blgDropsGrant(v *pcard) bool {
 	return v.painCol != 0 && DebugLandGrantPainView || v.manaChosen && DebugLandGrantThrivingView
 }
+
+// blgOwnUsable: a card with no mana ability of its own still has the intrinsic
+// ones its granted basic land types give it (Ashaya's Forest {G}), which gorge's
+// planner counts as the source's own unit; a granted ability (Citanul
+// Hierophants' "{T}: Add {G}") is then beside it, not the source's only one.
+//
+//go:noinline
+func (s *State) blgOwnUsable(k *prep, sl Slot) bool {
+	return !DebugLandGrantOwnOff && k.gen.blgOn && s.blgMask(k, sl)&kop.ColAny != 0
+}
+
+// DebugLandGrantOwnOff is the mutation: the intrinsic ability of a land-typed
+// card with no own ability is no usable one beside a granted ability, as before.
+var DebugLandGrantOwnOff bool

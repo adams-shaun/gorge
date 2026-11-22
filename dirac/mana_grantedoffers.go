@@ -572,7 +572,7 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 	}
 	pc := &k.cards[c]
 	if !(pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly || lifeOnlyPain(pc)) || k.gen.flags[c]&gfManaVar != 0) || k.gen.flags[c]&gfManaVar != 0 && s.varManaEmpty(k, sl, c) {
-		return false
+		return s.blgOwnUsable(k, sl)
 	}
 	return !s.genLost(k, sl)
 }

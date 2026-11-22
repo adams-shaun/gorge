@@ -118,7 +118,7 @@ func landGrantPairOn(t *kop.Table, p *prep, g *genPrep) bool {
 // granted colour its own ability does not make; or it grants a mana ability
 // (grantsManaTo) to a card the land-type grant reaches.
 func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.ColorMask, reach kop.TypeMask) bool {
-	if grantsManaTo(t, p, g, i, reach) {
+	if DebugLandGrantOwnOff && grantsManaTo(t, p, g, i, reach) {
 		return true
 	}
 	if t.Cards[i].Types&reach == 0 && !DebugLandGrantAnyReach {
@@ -129,11 +129,11 @@ func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.Color
 
 // grantsManaTo: card i carries a latent mana ability (Citanul Hierophants'
 // "{T}: Add {G}" to every creature) and the land-type grant reaches a card with
-// no mana ability of its own. That card takes the granted view, which holds no
-// intrinsic production (manaPCGen, blgStall); gorge lists the intrinsic and the
-// granted ability as one census unit whose position the kernel's classless
-// granted unit does not follow (Ashaya beside Citanul Hierophants diverged on
-// the payment of Ashaya's own cast).
+// no mana ability of its own. Such a card took the granted view, which holds no
+// intrinsic production (manaPCGen, blgStall), and the planner read it as a
+// classless granted unit; gorge's census counts the intrinsic ability as the
+// card's own (blgOwnUsable makes it so here), so the refusal holds only with
+// DebugLandGrantOwnOff.
 func grantsManaTo(t *kop.Table, p *prep, g *genPrep, i int, reach kop.TypeMask) bool {
 	granter := false
 	for _, r := range g.grantOf {
