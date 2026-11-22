@@ -2721,23 +2721,6 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 			// The cost cannot be paid even once: no unit, still bounded.
 			return nil, 0, 0, false, true
 		}
-	} else if len(cost.Sac) == 1 && cost.Sac[0].N > 0 && cost.Life == 0 &&
-		len(cost.TapPermanent) == 0 && len(cost.Return) == 0 && !pay.PlanSelfCost(cost.Sac[0], id) {
-		// A repeatable no-tap sacrifice-ANOTHER cost (Diamond Kaleidoscope's
-		// "Sacrifice a Prism token: Add one mana of any color"): every
-		// activation consumes one candidate the ordinary mana-cost election
-		// elects and the source survives, so the part's candidates bound the
-		// activations, one per candidate (CR 605.3a, 601.2g) -- the same
-		// bound a repeatable tap part takes from its untapped candidates.
-		// The census keeps the shape out of its priced rows (the tier gate
-		// defers it), so the relaxation only feeds the bounded proof and the
-		// prefix search, which replays the election on a clone.
-		n := int32(len(pay.ManaSacrificeCandidates(asPayer(e), p, id, cost.Sac[0]))) / cost.Sac[0].N
-		if n == 0 {
-			// The cost cannot be paid even once: no unit, still bounded.
-			return nil, 0, 0, false, true
-		}
-		repeats = n
 	} else {
 		// repeatable and not a bounded tap part: no sound relaxation, but
 		// the fee is still the prefix search's funding (fees below)
