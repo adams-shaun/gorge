@@ -5,7 +5,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -1361,11 +1360,6 @@ func (e *Engine) paymentActionsForPriority(p, idSeat state.PlayerID, seq uint64,
 			continue
 		}
 		got := e.planCastPaymentMemo(p, cast, &statics, &legal)
-		if debugCastGate() {
-			if o := e.G.Obj(cast.Object); o != nil && o.Face() != nil && o.Face().Name == "Into Thin Air" {
-				fmt.Fprintf(os.Stderr, "DBGPLAN id=%d reason=%q planNil=%v\n", cast.Object, got.Reason, got.Plan == nil)
-			}
-		}
 		e.PaymentStats.RecordOutcome(got)
 		if got.Plan == nil {
 			// The unpayable census names plain casts only

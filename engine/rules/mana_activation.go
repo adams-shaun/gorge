@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -544,41 +543,6 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
 	for _, ma := range manaAbilities {
-		// temporary diagnostic (delete before commit)
-		if debugCastGate() && o.Face() != nil && o.Face().Name == "Treasure Token" {
-			mfD := e.manaFactsOf(ma)
-			var ccD *compiledCost
-			why := ""
-			if mfD != nil {
-				if !mfD.zoneOKFact(ma, o.Zone) {
-					why = "zoneOKFact"
-				} else if mfD.loyalty {
-					why = "loyalty"
-				} else if mfD.defaultActivator && e.controllerOf(id) != p {
-					why = "activator-ctl"
-				} else if !mfD.defaultActivator && !e.activatorAllows(p, id, ma) {
-					why = "activator"
-				} else if !mfD.noActivation && !e.activationConditionOK(p, id, ma) {
-					why = "activationCondition"
-				} else if !mfD.noIsPresent {
-					if !mfD.noPhaseGate && !e.activationPhasesOK(p, ma) {
-						why = "phases"
-					} else if !pay.ManaActivationGateHolds(asPayer(e), p, id, ma) {
-						why = "activationGate"
-					}
-				}
-				ccD = mfD.cost
-			}
-			if why == "" && ccD == nil {
-				ccD = e.abilityCompiledCost(ma)
-			}
-			ccD = e.pricedManaCC(p, id, ma, ccD)
-			sick := pay.TapFlagsSick(asPayer(e), id, ccD.Tap, ccD.Untap, activatesAsIfHaste(e, id))
-			restr := abilityRestricted(ma)
-			payable := e.manaCostPayable(p, o, id, ccD, nil)
-			fmt.Fprintf(os.Stderr, "DBGGATE id=%d tapped=%v sick=%v nAbilities=%d why=%q tapSick=%v restricted=%v payable=%v cost=%s\n",
-				id, o.Tapped, o.SummonSick, len(manaAbilities), why, sick, restr, payable, formatCost(ccD.Cost))
-		}
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
 		// ability (Koth's [+1], Ugin, Eye of the Storms' [0]: Add {C}{C}{C},
