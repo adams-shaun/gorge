@@ -38,16 +38,25 @@ func SacrificedLKI(h Host, id state.ObjID) state.SacrificedInfo {
 		}
 		return s
 	}
-	if dh, ok := h.(departureCountersHost); ok {
-		if cs, ok := dh.DepartureCounters(id); ok {
-			departed := state.Object{Counters: cs}
-			dp, dt := departed.CounterPTTotals()
-			s.Power = int32(o.Face().Power()) + dp
-			s.Toughness = int32(o.Face().Toughness()) + dt
-			s.Counters = positiveCounters(cs)
-		}
+	if cs, ok := departedCounters(h, id); ok {
+		departed := state.Object{Counters: cs}
+		dp, dt := departed.CounterPTTotals()
+		s.Power = int32(o.Face().Power()) + dp
+		s.Toughness = int32(o.Face().Toughness()) + dt
+		s.Counters = positiveCounters(cs)
 	}
 	return s
+}
+
+// departedCounters is the one place the optional departureCountersHost read
+// is asserted: the counters id carried when it last left the battlefield,
+// rebuilt from the event log (CR 608.2h).
+func departedCounters(h Host, id state.ObjID) ([]state.Counter, bool) {
+	dh, ok := h.(departureCountersHost)
+	if !ok {
+		return nil, false
+	}
+	return dh.DepartureCounters(id)
 }
 
 // sacrificedInfoFor returns the capture this resolution took for id under
@@ -91,4 +100,27 @@ func sacrificedSourceLKI(g *state.Game, c *Ctx) (*state.SacrificedInfo, bool) {
 		}
 	}
 	return nil, false
+}
+
+// captureSacrificed captures the sacrificed object's LKI (before the MoveZone
+// resets its counters) into c.Sacrificed, when RememberSacrificed$ asks for
+// it, or when the object is this ability's own source: a source that
+// sacrifices itself mid-resolution (Magmasaur's "sacrifice CARDNAME and it
+// deals damage equal to the number of +1/+1 counters on it") is read back
+// through sacrificedSourceLKI (CR 608.2h), with or without the flag. Called
+// exactly once per sacrificed object, by effSacrifice and effSacrificeAll.
+func captureSacrificed(h Host, c *Ctx, id state.ObjID, remember bool) {
+	if remember || id == c.Source {
+		c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
+	}
+	if !remember {
+		return
+	}
+	// Forge's RememberSacrificed$ also remembers the card, which is what a
+	// following ConditionDefined$ Remembered, Remembered$Amount or
+	// RememberedCard reads (Braids, Scapeshift, Victimize), and event-backs
+	// it on the source so a later, independently resolving ability sees the
+	// same list.
+	c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+	eventRemember(h, c, id)
 }
