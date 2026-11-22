@@ -224,6 +224,17 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			n += tx.total
 		}
 	}
+	if k.gen.anyComboAny && s.caGaps(k, p).any() {
+		// a Combo Any source (Axebane Guardian) or a reflected Amount$ one
+		// (Overgrown Battlement): gorge's PotentialMana prices an any-combination
+		// or indeterminate-amount production unbounded (addPotentialMana,
+		// producedOpen), so the source alone covers a first-only filter's fee and
+		// the filter is a census gap beside it (CR 605.3a, 601.2g). DebugComboAnyNoPotential
+		// (mutation test only) leaves it uncounted.
+		if !DebugComboAnyNoPotential {
+			n += potentialUnboundedUnits
+		}
+	}
 	if k.gen.anyDeferred {
 		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana
 		// counts it, so Pyromancer's Goggles alone funds Three Tree Mascot's {1}
@@ -352,3 +363,11 @@ func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) (bool, u
 	}
 	return ok, stall
 }
+
+// potentialUnboundedUnits stands for gorge's unbounded potential production
+// (potentialUnbounded) in a first-only filter's fee test: far above any fee.
+const potentialUnboundedUnits = 1 << 20
+
+// DebugComboAnyNoPotential (mutation test only): a Combo Any source adds
+// nothing to the potential mana a first-only filter's fee draws on.
+var DebugComboAnyNoPotential bool

@@ -36,6 +36,7 @@ const (
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
 	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
+	otherComboAny  // a Combo Any source (Axebane Guardian, mana_comboany.go): ans is the odometer answer (caActivate)
 	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
 	otherLifePain  // a sole life-only pain unit (lifeOnlyPain): ans is the colour it makes (lifePainDo)
 )
@@ -65,7 +66,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.gen.anyComboAny && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -91,6 +92,9 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 		n++
 	}
 	if s.mixRider(k, p, filt).any() {
+		n++
+	}
+	if s.mixComboAny(k, p, filt).any() {
 		n++
 	}
 	if s.lifeGapMask(k, p).any() {
@@ -161,6 +165,43 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 	return m
 }
 
+// mixComboAny: p's live Combo Any sources (mana_comboany.go caGaps) when a
+// filter is a gap beside them (filt). gorge's census misses both (an
+// any-combination production, a paid filter) and its one prefix search
+// activates every gap in battlefield order, funding a filter's fee from the
+// others after them: the filter search takes the Combo Any source as an
+// otherComboAny step, Axebane Guardian's X mana (one colour each, any
+// combination) paying a Signet's {1} (CR 605.3a, 601.2g-h). A reflected
+// Amount$ source is no step (caMix refuses it beside a filter).
+func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
+	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
+		return slotMask{}
+	}
+	return s.caGaps(k, p)
+}
+
+// caFiltBoard reports whether p's live Combo Any source is a gap of the filter
+// search (mixComboAny beside a live filter on a mixBoard).
+func (s *State) caFiltBoard(k *prep, p uint8) bool {
+	return k.gen != nil && k.gen.anyComboAny && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixComboAny(k, p, true).any() && s.mixBoard(k, p)
+}
+
+// comboAnyOther branches Combo Any gap sl's colour ask at a priority node (the
+// caSearch's node): one node, then the allocation's answers in gorge's order,
+// the colours the play announces first (caRank).
+func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	if !fs.tick() {
+		return false
+	}
+	units := t.caAmount(k, sl)
+	for r, na := 0, caAnswerCount(units); r < na; r++ {
+		if try(otherStep{kind: otherComboAny, ans: uint8(caRank(units, &fs.need, r))}) {
+			return true
+		}
+	}
+	return false
+}
+
 // riderOther branches rider gap sl's answers at a priority node (otherGap's
 // last arm; false for a slot that is no mixRider gap): its colour ask, when it
 // has one, is one node, its answers in scriptDFS's order (the play's announced
@@ -205,7 +246,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		filt := s.scriptFilt(k, p).any()
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.lifeGapMask(k, p))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.mixComboAny(k, p, filt)).or(s.lifeGapMask(k, p))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -404,6 +445,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return found
 	}
 	switch {
+	case t.mixComboAny(k, p, true).has(sl):
+		return fs.comboAnyOther(t, k, sl, try)
 	case t.scriptAnyR(k, p).has(sl):
 		return fs.anyRGap(k, t, sl, try)
 	case t.scriptTapX(k, p).has(sl):
@@ -682,6 +725,8 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.chosenGapDo(k, p, st.sl, o.plain)
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
+	case otherComboAny:
+		s.caActivate(k, p, st.sl, int(o.ans))
 	case otherLife:
 		s.lifeGapDo(k, p, st.sl, int(o.ans))
 	case otherLifePain:
