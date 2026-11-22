@@ -417,9 +417,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.scriptShapeSkip(k, p, a) {
 			continue // nor for an exile, forage, return, blight or evidence part (shape:additional_cost; objPartCast), nor a contribution (shape:contribution); a forage-or-pay either-or (Feed the Cycle) stays with gorge's offer gate, which searches the filter script for its paid part (payment_plan.go altAdd)
 		}
-		if s.restrRebuildDrop(k, p, a) {
-			continue // gorge's potential walk prices a against its payment's rebuilt bound and refuses it (potentialPoolFor, CR 106.6; mana_restrictedsource.go)
-		}
 		kk := s.walkKey(a, p, i)
 		j := nc
 		for ; j > 0 && key[j-1] > kk; j-- {
@@ -1335,7 +1332,8 @@ func (s *State) contribCast(k *prep, p uint8, a Action) bool {
 // alone, improviseAloneCast) still goes to gorge's prefix search.
 func (s *State) scriptShapeSkip(k *prep, p uint8, a Action) bool {
 	return s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd ||
-		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a)
+		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) ||
+		s.restrRebuildDrop(k, p, a) // gorge's potential walk prices a against its payment's rebuilt bound and refuses it (potentialPoolFor, CR 106.6; mana_restrictedsource.go)
 }
 
 // improviseAloneCast reports whether a plain cast of p's card c carries
