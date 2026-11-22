@@ -821,7 +821,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
 		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
 		s.pl[p].pool[pcol]++
-		s.addExtra(k, p, sl, pc)
+		s.addExtraCol(k, p, sl, pc, pcol) // the tap's StatTapExtra mana floats beside it, of the pick this tap made (CR 106.12a)
 		s.artTag(k, p, sl, pcol)
 		s.painDamage(k, sl, p, int(pc.painN))
 		return
