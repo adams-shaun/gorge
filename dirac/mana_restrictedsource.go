@@ -80,6 +80,12 @@ type payDesc struct {
 	// potential gate price a pdOther payment with the battery unbounded, as
 	// gorge's potentialManaFor does without the flag (mana_storesource.go).
 	subBound bool
+	// repeatBound marks the cast bound's descriptor (castBoundDrops): gorge's
+	// potentialManaFor lifts a repeatable fee-only ability's colours to
+	// potentialUnbounded for every payment (potential_repeat_fee.go), so the
+	// bound a cast is listed against reads Bog Initiate's {B} as many
+	// (mana_repeatpotential.go).
+	repeatBound bool
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
