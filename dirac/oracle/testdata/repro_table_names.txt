@@ -1033,3 +1033,4 @@ cast_census_drops_a_generic_cost_second_mana_ability std-msh
 attuma_cast_funded_by_baxter_paid_activation std-msh
 copy_printed_oracle_hand_move_mandatory std-dsk
 gained_intrinsic_mana_funds_cast_offer std-dsk
+gained_intrinsic_mana_counted_once std-dsk
