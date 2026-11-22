@@ -388,8 +388,10 @@
 //     branched on the first 64 per-unit answers in gorge's order (the colours
 //     the play announces first), chained with the other gaps in battlefield
 //     order; a payment window taps it as well (windowComboTap), and a table
-//     holding it beside a filter, a tap-another source, a granted mana ability
-//     or a Lion's Eye Diamond is refused (StallComboAnyMix). The potential walks list
+//     holding it beside a gated or dynamic filter, a tap-another source, a restricted or
+//     costed granted mana ability or a Lion's Eye Diamond is refused (StallComboAnyMix);
+//     plain filters, plain granted abilities (the grant search takes the source as a
+//     candidate, mana_grantcomboany.go) and reflected sources play. The potential walks list
 //     a may-play cast gorge's planner leaves unpriced (Tinybones' any-type
 //     mana), so a script can make the pool pay it (pair 7489's Hawk took
 //     the Courtyard's {C}).
