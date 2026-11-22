@@ -61,6 +61,18 @@ var DebugNoTapMana bool
 // the Bolg's Company mutation test proves the pool's plays need them).
 var DebugNoSacXMana bool
 
+// DebugNoRestrTapX hides only the spend-restricted tap-another source
+// (kop.RestrictedTapXOneShape, Grand Architect; the restricted tapX lockstep
+// mutation test proves the pool's plays need it).
+var DebugNoRestrTapX bool
+
+// DebugRestrTapXMutate selects a restricted tap-another lockstep mutation
+// (mutation testing only: the lockstep must catch each): 1 = its mana floats
+// unrestricted (the restriction half off), 2 = the census refuses every
+// activated-ability payment (the ManaRestrictAb half), 3 = the census refuses
+// every spell payment (the ManaRestrict half).
+var DebugRestrTapXMutate uint8
+
 // sacXOf: card c's tap-another gap is the sacrifice-another all-at-once shape
 // (kop.SacXEachManaAb: Bolg's Company).
 func (k *prep) sacXOf(c CardID) bool {
@@ -119,7 +131,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
 		}
 		a := k.tapXAbOf(s.cardAt(sl))
-		if a == nil || DebugNoSacXMana && kop.SacXMana(a) {
+		if a == nil || DebugNoSacXMana && kop.SacXMana(a) || DebugNoRestrTapX && kop.RestrictedTapXOneShape(a) {
 			continue
 		}
 		pm := &s.perms[sl]
@@ -225,7 +237,8 @@ func (s *State) availSacAny(k *prep, p uint8, av *avail, d *payDesc) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		if ab := k.tapXAbOf(s.cardAt(sl)); kop.BoundedOnceManaAb(ab) &&
-			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) {
+			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) &&
+			(!kop.RestrictedTapXOneShape(ab) || s.restrTapXAdmits(k, p, sl, ab, d)) {
 			addTapXUnits(av, ab)
 		}
 	}
@@ -464,8 +477,30 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 //go:noinline
 func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		addTapXUnits(av, k.tapXAbOf(s.cardAt(b.first())))
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.RestrictedTapXOneShape(ab) && !s.restrTapXCounts(k, p, b.first(), ab, av) {
+			continue
+		}
+		addTapXUnits(av, ab)
 	}
+}
+
+// restrTapXCounts: restricted tap-another source sl is a unit of the census av
+// prices: only for a payment its restriction admits (CR 106.6). The payment is
+// the census's own (avail.xd) or else the one being built.
+func (s *State) restrTapXCounts(k *prep, p uint8, sl Slot, ab *kop.Ability, av *avail) bool {
+	d := av.xd
+	if !av.xdOn {
+		d = s.payDescNow(NoObj)
+	}
+	return s.restrTapXAdmits(k, p, sl, ab, &d)
+}
+
+// restrTapXAdmits: restricted tap-another ability ab of the source at sl may
+// pay d, both halves of its restriction (restrSrcAdmits: the spell's
+// ManaRestrict, the activated ability's ManaRestrictAb).
+func (s *State) restrTapXAdmits(k *prep, p uint8, sl Slot, ab *kop.Ability, d *payDesc) bool {
+	return d != nil && s.restrSrcAdmits(k, p, sl, ab, d)
 }
 
 // addTapXUnits adds tap-another ability a's relaxed unit to av: one unit of
@@ -1118,7 +1153,11 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.manaTapped(k, st.sl)
 	}
 	_, n := tapXUnit(ab)
-	s.poolAdd(p, int(st.col), int(n))
+	if kop.RestrictedTapXOneShape(ab) && DebugRestrTapXMutate != 1 {
+		s.floatRestrAb(k, p, st.sl, ab, int(st.col), n) // spendable only as its restriction admits (CR 106.6)
+	} else {
+		s.poolAdd(p, int(st.col), int(n))
+	}
 	s.tapExtraStall(k, st.sl)
 	s.artTag(k, p, st.sl, int(st.col))
 }
@@ -1613,6 +1652,9 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
 	s.availSacAny(k, p, &pot, &d) // the bound admits each sacrifice-any ability once
+	if s.rbAny(p) {
+		s.restrAvailAdd(p, s.restrFloatAdmits(k, p, &d), &pot) // the floating restricted mana the payment may spend (a restricted tap-another source's leftover)
+	}
 	return pot.affords(&cost, pipMaskOf(&cost), 0)
 }
 
