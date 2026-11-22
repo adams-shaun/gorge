@@ -2344,6 +2344,13 @@ func (g *GorgeSide) grantedEmbalm(id state.ObjID) bool {
 // that source, so neither matches.
 func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 	line = strings.TrimSpace(line)
+	if line == grantedEmbalmLine {
+		// Cursecloth Wrappings' Pump registers its embalm grant the same
+		// way (Source: the target, Affects: Card.Self), but the kernel
+		// reads it as the granted embalm with no grantor
+		// (grantedEmbalmAction), not as the permanent's own grant.
+		return false
+	}
 	for _, ce := range g.E.RegisteredContinuous() {
 		if ce.Source != id || ce.Layer != state.LAbilities || ce.RemoveAbilities || ce.GrantedStatic || !strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {
 			continue
