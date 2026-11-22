@@ -1332,8 +1332,7 @@ func (s *State) contribCast(k *prep, p uint8, a Action) bool {
 // alone, improviseAloneCast) still goes to gorge's prefix search.
 func (s *State) scriptShapeSkip(k *prep, p uint8, a Action) bool {
 	return s.objPartCast(k, a) && !k.t.Cards[s.objs[Obj(a.Source())].card].HasAltAdd ||
-		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a) ||
-		s.restrRebuildDrop(k, p, a) // gorge's potential walk prices a against its payment's rebuilt bound and refuses it (potentialPoolFor, CR 106.6; mana_restrictedsource.go)
+		s.contribCast(k, p, a) && !s.improviseAloneCast(k, p, a)
 }
 
 // improviseAloneCast reports whether a plain cast of p's card c carries
