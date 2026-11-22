@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -258,6 +259,9 @@ func (e *Engine) gapSpendableFor(p state.PlayerID, id state.ObjID, desc paymentD
 // payer priority where the play is offered or (priced) the planner pays it
 // from the floating pool. Each distinct payer state is visited once.
 type scriptSearch struct {
+	// debugID is a throwaway diagnostic id (GORGE_SCRIPT_DEBUG only).
+	debugID int
+
 	p        state.PlayerID
 	play     decision.PotentialAction
 	altCost  int
@@ -417,6 +421,8 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 		sr.costCol, sr.costOK = scriptNeedCounts(e, e.G.Obj(a.Obj), p, a)
 		sr.pipCol, sr.pipOK = scriptPipCounts(e, e.G.Obj(a.Obj), p, a)
 	}
+	scriptDebugID++
+	sr.debugID = scriptDebugID
 	return sr
 }
 
@@ -473,7 +479,10 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 		}
 	}
 	if c, ok := scriptPlayBaseCost(r, o, p, a); ok {
+		scriptDebug(nil, nil, p, "needColours obj=%d ab=%d kind=%s gen=%d col=%v tap=%v", a.Obj, a.Ability, a.Kind, c.Generic, c.Colored, c.Tap)
 		add(c)
+	} else {
+		scriptDebug(nil, nil, p, "needColours MISS obj=%d ab=%d kind=%s", a.Obj, a.Ability, a.Kind)
 	}
 	return need
 }
@@ -936,6 +945,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		if len(answers) == 0 {
 			sr.approx = true
 		}
+		scriptDebug(c, sr, p, "visit-ask nodes=%d kind=%s opts=%d answers=%d src=%d first=%q sym0=%q sym1=%q hoist=%v ans0=%q need=%v", sr.nodes, d.Kind, len(d.Options), len(answers), d.Source, firstOptLabel(d), symOf(d, 0), symOf(d, 1), scriptManaAskHoists(asPayer(c), c.manaActivation, p, d), firstAnsLabel(d, answers), sr.need)
 		for _, in := range answers {
 			if sr.tapsOwnSource(c, d, in) {
 				continue // the ask taps the play's own {T} cost source (CR 602.2b)
@@ -960,6 +970,15 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 	}
 	sr.seen[key] = true
 	gaps := sr.gaps
+	if c.G.Players[p].Pool[2] > 0 && c.G.Players[p].Pool[3] > 0 {
+		scriptDebug(c, sr, p, "BR nodes=%d pool=%v gapUsed=%v opts=%d", sr.nodes, c.G.Players[p].Pool, gapUsed, len(d.Options))
+		for i := range d.Options {
+			scriptDebug(c, sr, p, "  opt kind=%s obj=%d ab=%d offered=%v", d.Options[i].Kind, d.Options[i].Obj, d.Options[i].Ability, sr.offered(&d.Options[i]))
+		}
+	}
+	if sr.nodes >= sr.budget-2 {
+		scriptDebug(c, sr, p, "LIMIT nodes=%d budget=%d limited=%v approx=%v unproven=%v", sr.nodes, sr.budget, sr.limited, sr.approx, sr.unproven)
+	}
 	if sr.nodePlans {
 		// The census misses at THIS node (a creature Saruli Caretaker just
 		// tapped still has its sacrifice ability, outside a census that
@@ -984,6 +1003,45 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		}
 	}
 	return false
+}
+
+var scriptDebugID int
+
+func firstAnsLabel(d *decision.Decision, answers []decision.Intent) string {
+	if len(answers) == 0 || len(answers[0].Choices) == 0 {
+		return "<none>"
+	}
+	for i := range d.Options {
+		if d.Options[i].Index == answers[0].Choices[0] {
+			return d.Options[i].Label
+		}
+	}
+	return "?"
+}
+
+func symOf(d *decision.Decision, i int) string {
+	if i >= len(d.Options) {
+		return ""
+	}
+	return d.Options[i].ManaSymbol
+}
+
+func firstOptLabel(d *decision.Decision) string {
+	if len(d.Options) == 0 {
+		return ""
+	}
+	return d.Options[0].Label
+}
+
+func scriptDebug(c *Engine, sr *scriptSearch, p state.PlayerID, f string, args ...any) {
+	if os.Getenv("GORGE_SCRIPT_DEBUG") == "" {
+		return
+	}
+	id := -1
+	if sr != nil {
+		id = sr.debugID
+	}
+	fmt.Fprintf(os.Stderr, "  [sd#%d p%d] "+f+"\n", append([]any{id, int(p)}, args...)...)
 }
 
 // potentialTwinCut reports whether the twin cut (scriptTwin) runs for the
@@ -1217,6 +1275,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 				// (the kernel's funding pass never taps it).
 				continue
 			}
+			scriptDebug(c, sr, p, "act nodes=%d obj=%d kind=%s gap=%v", sr.nodes, opt.Obj, opt.Kind, gap)
 			tried = append(tried, opt.Obj)
 			next := funded
 			if !gap {
