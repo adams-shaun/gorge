@@ -97,7 +97,7 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 	case cards.HiddenKeywordMustBeBlockedBy:
 		// The granted filtered spelling; "Creature" is every blocker.
 		spec := cards.MustBeBlockedByFilter(k)
-		if spec == "Creature" {
+		if spec == unfilteredBlockerSpec {
 			spec = ""
 		}
 		return HiddenKeywordFlags{MustBlock: true, MustBlockSpec: spec}
@@ -783,3 +783,7 @@ var restrictionPlaneswalkerTargetMatchesCodes = state.NewStrCodes(
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "rememberedplayerctrl", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "controlledby remembered", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 )
+
+// unfilteredBlockerSpec is the "MustBeBlockedBy Creature" spelling of the
+// unfiltered requirement: every blocker is a creature.
+const unfilteredBlockerSpec = "Creature"
