@@ -12,11 +12,13 @@ Ashcoat Bear	b6dacf4265c24577	10	0/0		0/0
 Auriok Sunchaser	0f4e38feaab27829	5	0/0		0/0	
 Auspicious Ancestor	5c6e22dd6e064144	15	2/2		0/1	ix:resp
 Ayula, Queen Among Bears	3c841ebc513edc1c	7	1/1		0/1	ix:resp
+Azorius Guildgate	0c6f7074e8fe3eac	427	1/1		0/1	ix:resp
 Barrel Down Sokenzan	20c740ad52b43729	8	0/0		1/2	ix:resp
 Birchlore Rangers	d23f7f451a88e50a	4	1/1		1/3	cast/alt:morphed,ix:resp
 Birthing Pod	534d8b3d8c76d316	24	1/1		0/1	ix:resp
 Bloodscale Prowler	62c8eff70e14c914	20	0/0		0/0	
 Blue Scarab	71b862d5637e23d6	15	0/0		2/2	
+Boros Guildgate	6249fa87da90150b	422	1/1		0/1	ix:resp
 Boros Mastiff	78c80ce1592a24dc	15	1/1		0/1	ix:resp
 Boulder Salvo	1eb52c6d9cd9ccef	18	0/0		4/4	
 Brimstone Dragon	8ab01f17e9a95e3a	7	0/0		0/0	
@@ -49,7 +51,9 @@ Cystbearer	c4e584bf5817644d	6	0/0		0/0
 Dark Temper	9cb10f7bfbed298c	14	0/0		2/2	
 Deadly Dispute	791118c29f567139	23	0/0		2/2	
 Death of a Thousand Stings	5b1a21c835eb1e7f	34	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Declare Dominance	68f037db3f80ff51	4	0/0		1/2	ix:resp
 Despondent Killbot	e2a99db7fe553bf5	12	0/0		0/0	
+Dimir Guildgate	55aff70b9caa7d03	381	1/1		0/1	ix:resp
 Dirty Rat	8b49bc4923f4e8f3	9	1/1		0/1	ix:resp
 Divebomber Griffin	fea2d82920ca9c84	11	1/1		0/1	ix:resp
 Dragon Hatchling	0fa44828d7bfd218	17	1/1		1/1	
@@ -75,6 +79,7 @@ Gerrard's Irregulars	b0187d0403f07e53	5	0/0		0/0
 Gideon's Lawkeeper	7a2058905e521158	9	1/1		0/1	ix:resp
 Gloom Pangolin	560f4d89fb670db1	18	0/0		0/0	
 Goblin Firebug	5597febec08a1ebf	18	1/1		0/1	ix:resp
+Golgari Guildgate	b1dc6528db04531e	414	1/1		0/1	ix:resp
 Graceful Cat	eec039cca980e648	9	1/1		1/1	
 Grappling Sundew	6cc6c7d51cd6e7ca	3	1/1		0/1	ix:resp
 Grave Betrayal	b60a05c364345486	10	1/1		1/1	
@@ -82,6 +87,7 @@ Great Wall	981270f8c4c1597d	12	0/0		0/0
 Greenseeker	7c56743477c45b10	5	1/1		0/1	ix:resp
 Grim Draugr	8efd94594a233533	372	1/1		1/1	
 Grizzly Ghoul	0c03cf95f0e62c4e	3	0/0		0/0	
+Gruul Guildgate	82fb9fda4530d4de	421	1/1		0/1	ix:resp
 Hammer Mage	b238e1189cc972fb	22	1/1		0/1	ix:resp
 Harmless Offering	fed7046d03377546	567	0/0		2/2	
 Harrow	0a69a3c780485ab4	7	0/0		2/2	
@@ -89,6 +95,7 @@ Henge of Ramos	4ebbe576e9377a21	149	2/2		0/1	ix:resp
 Hero of Precinct One	5dc5f22bd373fb2d	9	1/1		0/1	ix:resp
 Hesitation	d9570387051eb9a2	14	1/1		0/1	ix:resp
 Island	763c67ef7a27eaf5	1589	1/1		0/1	ix:resp
+Izzet Guildgate	8b260829726abf56	435	1/1		0/1	ix:resp
 Jewel-Eyed Cobra	8c8a668126d22d7b	7	1/1		0/1	ix:resp
 Kain, Traitorous Dragoon	ca4bf5e36e74fa60	791	1/1		1/1	
 Kami of Fire's Roar	a59f31432fa43e8e	23	1/1		1/1	
@@ -126,6 +133,7 @@ No Escape	e2e4d0f63775b8a9	10	0/0		1/2	ix:resp
 Nullmage Advocate	942c672d50e1d673	9	1/1		0/1	ix:resp
 Open the Vaults	a91baa5cb9ce4f2a	3	0/0		1/2	ix:resp
 Orochi Soul-Reaver	b62782590171b697	18	2/2		1/1	
+Orzhov Guildgate	0b2b8b026a48ccd3	370	1/1		0/1	ix:resp
 Orzhov Racketeers	ef7b9ebd273c593c	10	2/2		1/1	
 Paradise Mantle	d316bc1f37102e1a	12	1/1		0/1	ix:resp
 Pardic Arsonist	06f039c5fa87a7d0	16	0/0		0/0	
@@ -133,6 +141,7 @@ Paupers' Cage	33d9aa24c102da42	11	1/1		1/1
 Phyrexian Ghoul	081f36285285a099	7	1/1		1/1	
 Pit Imp	cc8ac7a84b204cb1	33	1/1		1/1	
 Pit Keeper	73f5a1db523ed703	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Plains	82d63a695487e567	49	1/1		0/1	ix:resp
 Plaza of Heroes	273b15b6367f0f6c	133	4/4		1/1	
 Polluted Bonds	5dab41432e0e461a	6	1/1		0/1	ix:resp
 Portal to Phyrexia	f4d7d7402436644b	5	2/2		1/1	
@@ -141,7 +150,9 @@ Psionic Blast	76f7f614534eacb6	8	0/0		1/2	ix:resp
 Pyretic Charge	e96692b7fa4b6538	12	0/0		2/2	
 Quest for Ancient Secrets	853340017d65bdfa	21	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Quickening Licid	1dddf8849c4373d2	30	1/1		1/1	
+Rakdos Guildgate	eff7019a3a6da667	428	1/1		0/1	ix:resp
 Rally the Ranks	b16188d293b55b0d	11	0/0		0/0	
+Rampaging Aetherhood	48e495bbf40026fa	6	2/2		0/1	ix:resp
 Reality Ripple	37515eab83ef44d0	28	0/0		2/2	
 Reckless Air Strike	e0270280beebe3f0	18	0/0		1/2	ix:resp
 Reptilian Recruiter	c772376608379bd4	447	1/1		1/1	
@@ -152,6 +163,7 @@ Rundvelt Hordemaster	c81ddd32af8850d4	14	1/1		0/1	ix:resp
 Sacred Cat	b9ec8c73f08505d4	12	1/1		1/1	
 Saiba Trespassers	270080724e9e99d3	3	1/1		0/1	ix:resp
 Satyr Firedancer	a93e8c9af5ac51b9	22	1/1		0/1	ix:resp
+Satyr Grovedancer	a94be47cb23b353f	14	1/1		0/1	ix:resp
 Savage Swipe	be730a16a10f56dc	5	0/0		1/2	ix:resp
 Scarwood Treefolk	1d946806f022a43c	4	0/0		0/0	
 Sensei's Divining Top	156db14edbf30aac	112	2/2		1/1	
@@ -186,15 +198,18 @@ Sunset Revelry	713ac7b4dbb0700a	19	0/0		1/2	ix:resp
 Sunspire Griffin	6a191c3fb6763f35	7	0/0		0/0	
 Swamp	342b413902f441c3	1273	1/1		0/1	ix:resp
 Swift Maneuver	c6a23621a5a0d75f	20	0/0		1/2	ix:resp
+Swift Warden	f673c76f3985cd47	8	1/1		1/1	
 Taranika, Akroan Veteran	f104099656526995	12	1/1		1/1	
 Tel-Jilad Chosen	b6f03872b7343465	7	0/0		0/0	
 Tenth District Guard	fa009584d885a213	9	1/1		0/1	ix:resp
 The Surgical Bay	65f79fe9ddf681e0	137	2/2		1/1	
 The Wretched	2ccb0446b5c3d50b	379	1/1		1/1	
+Thundering Spineback	ecdd8ebd31090abe	4	1/1		0/1	ix:resp
 Tigereye Cameo	aa2e1470f6a73c42	11	1/1		0/1	ix:resp
 Tower of Calamities	81f47b91d62094a4	13	1/1		1/1	
 Triad of Fates	126878afbfa8e069	8	3/3		1/1	
 Turbulent Dreams	df74c26476541708	16	0/0		1/2	ix:resp
+Ubul Sar Gatekeepers	260b302e8f7c8dcb	325	1/1		1/1	
 Unholy Strength	6fe7eaa816264168	18	0/0		1/2	ix:resp
 Urabrask's Anointer	1919380e199a755f	12	1/1		0/1	ix:resp
 Urza's Filter	c88e0c6417ffffd8	7	0/0		0/0	
