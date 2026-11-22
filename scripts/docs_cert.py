@@ -2,9 +2,8 @@
 """Render the docs site's set-certification pages: support/certification.md
 and one page per set, support/cert/<SET>.md.
 
-Source: gorge-compliance's orphan cert-data branch, published by four-yay's
-`ops/fleet/discovery/certloop/publish.py` (SC13 of the set-certification
-design, `.worktrees/set-cert-design/.workspaces/set-certification/DESIGN.md`).
+Source: gorge-compliance's orphan cert-data branch, published by gorge's
+certloop export (SC13 of the set-certification design).
 A card is certified once, as a card name, at its first printing; a set's
 reprints inherit that level. The export is counts, card names, levels,
 reasons and ticket ids only — never card or script text (the GPL corpus),
