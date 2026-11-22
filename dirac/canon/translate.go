@@ -797,8 +797,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenRingBearer:
 		// gorge effRingTemptsYou's "ring_bearer" KChoose over the creatures
-		// (CR 701.54a): an ordinary object pick, choose:other, as gorge's
-		// chooseOtherAction encodes it (the kind stays out of ChooseKinds)
+		// (CR 701.54a): choose:other, as gorge's chooseOtherAction encodes it
 		return Pack(ActChoose+ChooseOther, Ref(src), RefNone, 0), true
 	case dirac.ChGenSearch:
 		return Pack(kind("search"), Ref(src), RefNone, 0), true
