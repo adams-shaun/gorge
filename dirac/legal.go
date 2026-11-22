@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -65,21 +63,8 @@ func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *k
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
-	defer func() {
-		if os.Getenv("DIRAC_DEBUG_CASTGATE") == "" {
-			return
-		}
-		fmt.Fprintf(os.Stderr, "KDBG prio pool=%v n=%d ops:", s.pl[s.prio].pool, d.N)
-		for i := 0; i < int(d.N); i++ {
-			fmt.Fprintf(os.Stderr, " (%d,%d)", d.Options[i].Kind(), d.Options[i].Source())
-		}
-		fmt.Fprintln(os.Stderr)
-	}()
 	p := s.prio
 	pl := &s.pl[p]
-	if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" {
-		fmt.Fprintf(os.Stderr, "KDBG starthand n=%d hand=%v\n", pl.handN, pl.hand[:pl.handN])
-	}
 	sorc := s.sorcerySpeed(p)
 	var av avail
 	// A cast's census leaves a dynamic {T}, sacrifice source out (avail.dynSac
@@ -148,9 +133,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
 		}
-		if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" && c == 47 {
-			fmt.Fprintf(os.Stderr, "KDBG hand77 instant=%v sorc=%v flash=%v pool=%v\n", pc.instant, sorc, s.castFlash(k, p, c), s.pl[p].pool)
-		}
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
 				// the timing gate refused the plain cast: the may-flash
@@ -164,9 +146,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			continue
 		}
 		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
-			if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" && c == 47 {
-				fmt.Fprintf(os.Stderr, "KDBG forbidden77\n")
-			}
 			continue
 		}
 		if !haveAv {
@@ -255,10 +234,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// plain one is left out (pair 8638: Grow from the Ashes paid only
 		// through the imprisoned lands)
 		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
-		if os.Getenv("DIRAC_DEBUG_CASTGATE") != "" && c == 47 {
-			fmt.Fprintf(os.Stderr, "KDBG castgate o=%d gate=%v tgt=%v gorg=%v plain=%v pool=%v availWalk=%v\n",
-				o, s.castGateOrPoolPays(k, p, c, o, cost, cav), tgtOK, s.gorgeOffers(p, o, 0), plainOK, s.pl[p].pool, s.g.availX&availWalk != 0)
-		}
 		if plainOK {
 			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}

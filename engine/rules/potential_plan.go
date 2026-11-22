@@ -1,9 +1,7 @@
 package rules
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 	"slices"
 	"strings"
 
@@ -263,10 +261,6 @@ type potentialCensusHost interface {
 func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision.Option, hyp state.Mana,
 	got PaymentPlanOutcome, mayPlayUnpriced bool, verdict func() PaymentPlanOutcome, scriptPlays int,
 	census *paymentPlanCensus, censused *bool, scripts *int) (PaymentPlanOutcome, []ScriptStep) {
-	if os.Getenv("GORGE_SCRIPT_TRACE") != "" {
-		fmt.Fprintf(os.Stderr, "GFALL p=%d kind=%s obj=%d mode=%q got=%s/%s gaps=%v complete=%v relax=%v scripts=%d\n",
-			p, o.Kind, o.Obj, o.Mode, got.Reason, got.Detail, census.gaps, census.complete, census.relaxable, *scripts)
-	}
 	if !*censused {
 		*census, *censused = e.paymentPlanCensusOf(p, &hyp), true
 	}
