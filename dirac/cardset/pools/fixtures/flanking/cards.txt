@@ -1,0 +1,17 @@
+# K:Flanking (CR 702.25a) and the withoutFlanking blocker word it lowers to:
+# flanking attackers beside plain and flanking blockers, for
+# dirac/oracle/flanking_test.go
+Benalish Cavalry
+Zhalfirin Knight
+Femeref Knight
+Fallen Askari
+Shadow Rider
+Bogardan Lancer
+Elite Vanguard
+Grizzly Bears
+Hill Giant
+Scathe Zombies
+Plains
+Forest
+Swamp
+Mountain

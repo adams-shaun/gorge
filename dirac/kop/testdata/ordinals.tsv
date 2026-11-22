@@ -1760,6 +1760,7 @@ W7WithFlashback	int16	26
 W7WithInfect	int16	28
 W7WithSkulk	int16	40
 W7WithWarp	int16	11
+W7WithoutFlanking	int16	46
 WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3

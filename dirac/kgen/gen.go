@@ -428,7 +428,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		fmt.Fprintf(w, " reconfigure")
 	}
 	dumpLIRYes(w, c.Ascend, " ascend")
-	dumpLIRYes(w, c.Unleash, " unleash")
+	dumpLIRKwFlags(w, c)
 	if c.Evasion != 0 {
 		fmt.Fprintf(w, " evasion=%d", c.Evasion)
 	}
