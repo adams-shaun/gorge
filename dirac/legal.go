@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -3326,21 +3325,6 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
-	if payTrace {
-		fmt.Printf("APPLYPRI st=%p kind=%d src=%d mode=%d tgt=%d p=%d pool=%v life=%d rb:", s, a.Kind(), a.Source(), a.Mode(), a.Target(), p, s.pl[p].pool, s.pl[p].life)
-		for i := range s.rb[SeatIx(p)] {
-			if b := &s.rb[SeatIx(p)][i]; b.kind != 0 && b.units() != 0 {
-				fmt.Printf(" [kind=%d n=%v]", b.kind, b.n)
-			}
-		}
-		fmt.Printf(" tapped:")
-		for i, pm := range s.perms {
-			if pm.flags&pfTapped != 0 {
-				fmt.Printf(" %d", i)
-			}
-		}
-		fmt.Printf("\n")
-	}
 	sp0 := s.sp
 	// A filter beside a grant is one search in gorge (scriptSearch.visit:
 	// every census gap in battlefield order), and the grant search is that

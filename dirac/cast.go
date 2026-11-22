@@ -1,7 +1,6 @@
 package dirac
 
 import (
-	"fmt"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"math/bits"
 )
@@ -1657,14 +1656,6 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 // finishBuild pays the entry (bsPay): the cost picks, life, then the mana from the pool.
 func (s *State) finishBuild(k *prep) {
 	e := s.bld().e
-	if payTrace {
-		fmt.Printf("FINISH st=%p kind=%d card=%d bfl=%x cost=%v pool=%v flags=%x tapped:\n", s, e.kind, e.card, s.bld().bfl, s.buildCost(k), s.pl[e.ctrl].pool, e.flags)
-		for i, pm := range s.perms {
-			if pm.flags&pfTapped != 0 {
-				fmt.Printf("  tapped sl=%d card=%s\n", i, k.t.CardName(s.cardAt(Slot(i))))
-			}
-		}
-	}
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	if e.kind == seAbility && e.mode != 0 && k.gen != nil && k.gen.anyCharmPick {
 		s.charmPickRecord(k, uint8(bits.TrailingZeros8(uint8(e.mode))))

@@ -1,15 +1,10 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
-
-// payTrace is a temporary lockstep diagnostic (removed before commit).
-var payTrace = os.Getenv("DIRAC_PAYTRACE") != ""
 
 // Mana: an affordability check for the option walk (Hall's condition over
 // the player's untapped sources, exact for one-colour-per-mana sources) and
@@ -1030,30 +1025,18 @@ func (s *State) pay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj) {
 
 // payRider is pay with the may-play any-colour rider.
 func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) {
-	if payTrace {
-		fmt.Printf("PAYRIDER st=%p p=%d cost=%+v x=%d excl=%d anyColor=%v pool=%v life=%d\n", s, p, *cost, x, exclude, anyColor, s.pl[p].pool, s.pl[p].life)
-	}
 	if cost.Hyb[0] != 0 {
 		// an unannounced hybrid pip (a cost no pip ask resolved): gorge's
 		// witness resolution
-		r := s.hybResolveRider(k, s, p, *cost, x, anyColor)
+		r := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &r
 	}
 	r0, ds, dcol := s.deferredPool(k, p) // the {R} a script's deferred source floats (mana_deferred.go)
 	if k.restrSrc {
-		if payTrace {
-			fmt.Printf("PAYRIDER-restr p=%d\n", p)
-		}
 		s.payRiderRestr(k, p, cost, x, exclude, anyColor)
 	} else {
 		s.tapForRider(k, p, cost, x, exclude, anyColor)
-		if payTrace {
-			fmt.Printf("PAYRIDER after taps pool=%v\n", s.pl[p].pool)
-		}
 		s.payFromPoolRider(k, p, cost, x, anyColor)
-		if payTrace {
-			fmt.Printf("PAYRIDER after pool=%v\n", s.pl[p].pool)
-		}
 	}
 	if r0 != 0 {
 		s.deferredSpent(k, p, r0, ds, dcol)
@@ -1140,7 +1123,7 @@ func (s *State) tapForPK(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 		}
 		// no resolution plans: keep the availability witness's choice, so
 		// the plan below reports the play the planner cannot price
-		r := s.hybResolveRider(k, s, p, *cost, x, anyColor)
+		r := s.hybResolveRider(k, p, *cost, x, anyColor)
 		cost = &r
 	}
 	s.tapPlanNeed(k, p, cost, x, exclude, first, anyColor, pk)
@@ -1378,9 +1361,6 @@ func (s *State) payFromPool(p uint8, cost *kop.ManaCost, x int) {
 	if cost.Snow != 0 {
 		s.snowPay(p, cost.Snow) // the {S} pips, after the coloured ones and before the generic (mana_snow.go)
 	}
-	if payTrace {
-		fmt.Printf("PAYPOOL-plain p=%d cost=%+v\n", p, *cost)
-	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
 	for _, c := range order {
@@ -1488,9 +1468,6 @@ func (s *State) payFromPoolAnyColor(p uint8, cost *kop.ManaCost, x int) {
 	}
 	if cost.Snow != 0 {
 		s.snowPay(p, cost.Snow) // mana_snow.go
-	}
-	if payTrace {
-		fmt.Printf("PAYPOOL-anycolor p=%d cost=%+v\n", p, *cost)
 	}
 	g := int(cost.Generic) + cost.XGeneric(x)
 	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
