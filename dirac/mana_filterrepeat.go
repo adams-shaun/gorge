@@ -245,8 +245,8 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // branches and starved the line that pays the play without the filter, whose
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
-func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
-	return s.filtFeeColCut(k, p, sl, useful, col, own, true)
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, d *payDesc) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, true, d)
 }
 
 // filtFeeColDoomed is filtFeeColStalls' first cut alone: col fills no fixed pip
@@ -256,12 +256,19 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 // beside a Swamp is still the only source of a second {B}, and the swapped
 // line the second cut relies on needs the colour ask the fixed production
 // never poses.
-func (s *State) filtFeeColDoomed(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
-	return s.filtFeeColCut(k, p, sl, useful, col, own, false)
+func (s *State) filtFeeColDoomed(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, d *payDesc) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, false, d)
 }
 
 // filtFeeColCut is the one body of both: second arms the free-tap-colour cut.
-func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, second bool) bool {
+// d is the searched play's payment (filtPlayDesc): the pool the cut reads
+// holds the restricted batches THAT payment may spend, as gorge's stash does
+// (scriptSearch.actPool, pay.AvailableFor over the play's descriptor). A
+// Powerstone's artifact-only {C} is no mana of a nonartifact cast, so a fee
+// the plain pool cannot pay fails the cut open (the fee is paid with it at
+// the activation, CR 106.6, but the stash never held it). nil reads the
+// payment being made (payDescNow): the grant search's.
+func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, second bool, d *payDesc) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -275,7 +282,13 @@ func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, c
 		return false
 	}
 	pool := s.pl[p].pool
-	if m := s.restrPoolAdmits(k, p); m != 0 {
+	m := uint8(0)
+	if d != nil {
+		m = s.restrFloatAdmits(k, p, d)
+	} else {
+		m = s.restrPoolAdmits(k, p)
+	}
+	if m != 0 {
 		s.rbUnits(p, m, &pool)
 	}
 	before := feeOnlyShort(&useful.Pips, &pool)
@@ -392,4 +405,16 @@ func (s *State) filtUsefulCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
 		return kop.ManaCost{}, false
 	}
 	return m, true
+}
+
+// filtPlayDesc is the payment of the play a filter search prices, as gorge's
+// scriptPlayDesc names it for the fee-stall prune's pool: a cast's spell, an
+// activation's ability. ok false for any other play (gorge's prune fails open
+// there, and the kernel keeps reading the payment being made).
+func (s *State) filtPlayDesc(k *prep, a Action) (d payDesc, ok bool) {
+	switch a.Kind() {
+	case AkCast, AkActivate:
+		return s.grantPayDescOf(k, a), true
+	}
+	return payDesc{}, false
 }
