@@ -121,6 +121,11 @@ func TestLandGrantReachMutation(t *testing.T) {
 // kernel's classless granted unit does not follow, and the pod diverged on the
 // payment of Ashaya's own cast (seed 1 of the pod below, before the refusal).
 func TestLandGrantGrantedManaRefused(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugLandGrantOwnOff = true // the pair is modelled now (blgOwnUsable); the switch restores the refusal
+	defer func() { dirac.DebugLandGrantOwnOff = false }()
 	set := edhSet(t)
 	hier := slices.Clone(landGrantReachAshaya)
 	hier = append(hier, "Citanul Hierophants")
