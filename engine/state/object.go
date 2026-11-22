@@ -2038,6 +2038,19 @@ type Object struct {
 	CloneLayers []CloneLayer
 	CloneSeq    int32
 
+	// EmergedToughness is CR 702.119's "the sacrificed creature" toughness:
+	// the toughness an Emerge cast's sacrificed creature last had (CR
+	// 608.2h), carried by a pay-time
+	// CastInfo (FlagAltCostPaid with the events.CastInfoEmerged Text; the
+	// CastFlags word is full, so the emerge cast rides the alternative-cost
+	// bit like Prowl). Count$Emerged and its Emerged$CardToughness operand
+	// read it (Adipose Offspring). It rides the same provenance window as
+	// X/CastFlags and resets alongside them in events.Move; zero for any other
+	// cast and for a COPY. The sacrificed id is not kept: nothing reads it, and
+	// the Object is pinned to whole cache lines (declared beside CloneSeq to fill
+	// its alignment hole).
+	EmergedToughness int32
+
 	// LeftCopyFace is the CopyFace this object last left the battlefield with.
 	// The object is no longer a copy, but what the copy did is not undone: a
 	// leaves-the-battlefield trigger of the copied card fires, and a delayed
