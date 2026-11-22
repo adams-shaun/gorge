@@ -101,3 +101,14 @@ func lureBinds(b combat.Board, blocker, attacker state.ObjID) bool {
 	a := b.Game().Obj(attacker)
 	return a != nil && b.MatchesSpec(spec, blocker, attacker, a.Controller, nil, nil, false)
 }
+
+// mustBeBlockedBinds reports whether blocker obeys attacker's "must be blocked
+// if able" requirement: any blocker for the unfiltered form, only a creature
+// matching spec for "MustBeBlockedBy <filter>" (CR 509.1c; The Masamune).
+func mustBeBlockedBinds(b combat.Board, spec string, blocker, attacker state.ObjID) bool {
+	if spec == "" {
+		return true
+	}
+	a := b.Game().Obj(attacker)
+	return a != nil && b.MatchesSpec(spec, blocker, attacker, a.Controller, nil, nil, false)
+}

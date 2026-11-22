@@ -49,6 +49,10 @@ type HiddenKeywordFlags struct {
 	// filter ("MustBeBlockedByAll:Creature.Wall:...", Marble Priest): empty
 	// is every creature able to block (the Lure sentence).
 	AllMustBlockSpec string
+	// MustBlockSpec narrows MustBlock to the blockers matching the filter
+	// ("MustBeBlockedBy Creature.Wall", The Masamune's grant): empty is the
+	// unfiltered "must be blocked if able." and any blocker obeys it.
+	MustBlockSpec string
 	// AttackCompanion / BlockCompanion are CR 508.1c's whole-declaration
 	// restrictions on declaring this creature as an attacker / blocker beside
 	// others ("can only attack alone", "can't attack unless a creature with
@@ -90,6 +94,13 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		// MustBlockCandidates): a keyword head and a static mode are
 		// separate namespaces.
 		return HiddenKeywordFlags{MustBlock: true}
+	case cards.HiddenKeywordMustBeBlockedBy:
+		// The granted filtered spelling; "Creature" is every blocker.
+		spec := cards.MustBeBlockedByFilter(k)
+		if spec == unfilteredBlockerSpec {
+			spec = ""
+		}
+		return HiddenKeywordFlags{MustBlock: true, MustBlockSpec: spec}
 	case cards.HiddenKeywordUntapNextStep:
 		return HiddenKeywordFlags{UntapNextStep: true}
 	case cards.HiddenKeywordCantAttackOrBlockAlone:
@@ -143,6 +154,13 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		g := ParseHiddenKeyword(k)
 		f.CantAttack = f.CantAttack || g.CantAttack
 		f.CantBlock = f.CantBlock || g.CantBlock
+		if g.MustBlock {
+			// An unfiltered requirement is obeyed by any blocker, so it wins
+			// over a filtered one; two filtered lines keep the first filter.
+			if !f.MustBlock || g.MustBlockSpec == "" {
+				f.MustBlockSpec = g.MustBlockSpec
+			}
+		}
 		f.MustBlock = f.MustBlock || g.MustBlock
 		f.UntapNextStep = f.UntapNextStep || g.UntapNextStep
 		f.CantAttackAlone = f.CantAttackAlone || g.CantAttackAlone
@@ -765,3 +783,7 @@ var restrictionPlaneswalkerTargetMatchesCodes = state.NewStrCodes(
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "rememberedplayerctrl", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "controlledby remembered", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 )
+
+// unfilteredBlockerSpec is the "MustBeBlockedBy Creature" spelling of the
+// unfiltered requirement: every blocker is a creature.
+const unfilteredBlockerSpec = "Creature"
