@@ -217,6 +217,30 @@ func manaSubCounterCarried(o *state.Object, cost Cost) bool {
 	return true
 }
 
+// unlessEvaluatedArmAdmits reports whether the evaluated-amount arm takes one
+// of the census window's mana abilities. A restricted batch joins the
+// evaluated-amount arm only when its restriction admits the PurposeOther
+// payment (CR 106.6: Vhal, Candlekeep Researcher's toughness-sized {C} can't
+// cast a spell from hand but pays an unless tax).
+// The evaluated-amount arm also admits a deterministic self-sacrifice
+// activation when the paid census is on: Lotus Blossom's
+// "{T}, Sacrifice: Add X mana of any one color, X its petal counters" is the
+// same class the paid-cost census counts for a fixed amount (Treasure, Lotus
+// Petal), and the CR 605.3a window can activate it. The tap half is the arm's
+// !o.Tapped; the sacrifice half is the census's own unblocked-self-sacrifice
+// rule. sacCostOf prices the ability lazily (nil when the paid census is off).
+func unlessEvaluatedArmAdmits(py pay.Engine, p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA, mf pay.ManaStatic, sacCostOf func() Cost) bool {
+	sacCost := Cost{}
+	if !mf.TapOnly && sacCostOf != nil {
+		sacCost = sacCostOf()
+	}
+	return mf.Amount <= 0 && (mf.TapOnly ||
+		(pay.CastWindowSelfSacCost(py, p, id, sacCost) &&
+			!pay.ActivationTapCostUnavailable(o, &sacCost))) && !o.Tapped &&
+		(!mf.RestrictValid ||
+			pay.UnlessRestrictionAdmitsOther(py, p, effects.ManaOf(ma).RestrictValid, id))
+}
+
 // unlessWindowUnits is the census the unless-cost windows read:
 // windowManaUnitsPaid plus the free abilities whose colour is chosen on
 // activation (CR 605.3a), which that census withholds. They arrive pinned, one
@@ -241,12 +265,11 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 		}
 		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
 			mf := e.manaStaticFor(p, id, ma)
-			// A restricted batch joins the evaluated-amount arm only when its
-			// restriction admits the PurposeOther payment (CR 106.6: Vhal,
-			// Candlekeep Researcher's toughness-sized {C} can't cast a spell
-			// from hand but pays an unless tax).
-			if mf.Amount <= 0 && mf.TapOnly && !o.Tapped && (!mf.RestrictValid ||
-				pay.UnlessRestrictionAdmitsOther(asPayer(e), p, effects.ManaOf(ma).RestrictValid, id)) {
+			var sacCostOf func() Cost
+			if e.paidManaCensus {
+				sacCostOf = func() Cost { return e.manaAbilityCC(p, id, ma).Cost }
+			}
+			if unlessEvaluatedArmAdmits(asPayer(e), p, id, o, ma, mf, sacCostOf) {
 				if probe == nil {
 					probe = e.paymentPlanTappedProbe(p)
 				}
