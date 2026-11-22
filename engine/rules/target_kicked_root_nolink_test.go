@@ -33,8 +33,8 @@ func (f kickedRootFake) legalTargetCandidates(state.PlayerID, state.ObjID, state
 func TestKickedWaivedRootWithoutLinkIsAvailable(t *testing.T) {
 	t.Parallel()
 	root := parseFixtureSA(t,
-		"SP$ Pump | ValidTgts$ Creature.YouCtrl | TargetMin$ X | TargetMax$ Y | KW$ Indestructible",
-		"SVar:X:Count$Kicked.0.1", "SVar:Y:Count$Kicked.Z.1", "SVar:Z:Count$Valid Creature.YouCtrl")
+		"SP$ Pump | KW$ Indestructible | TargetMax$ Y | TargetMin$ X | ValidTgts$ Creature.YouCtrl",
+		"SVar:Y:Count$Kicked.N.1", "SVar:X:Count$Kicked.0.1", "SVar:N:Count$Valid Creature.YouCtrl")
 	if root.Sub != nil {
 		t.Fatalf("fixture has a Sub; the case under test is a root with none")
 	}
