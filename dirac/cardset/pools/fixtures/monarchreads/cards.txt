@@ -1,0 +1,36 @@
+# the monarch's reads (CR 725; dirac gap wave 4): Azure Fleet Admiral's
+# CantBlockBy over creatures the monarch controls (ControlledBy
+# Player.isMonarch), Fall from Favor's Untap replacement (ControlledBy
+# EnchantedController.!isMonarch), Archivist of Gondor's "the monarch's end
+# step" (Phase ValidPlayer$ Player.isMonarch) and the "no monarch" count
+# (PlayerCountPlayers$HasPropertyisMonarch) beside Crown of Gondor, with
+# monarch sources already supported and fliers so the crown changes hands
+# (dirac/oracle/monarchreads_lockstep_test.go), and Palace Jailer's exile
+# until an opponent becomes the monarch (monarchjailer_lockstep_test.go)
+Archivist of Gondor
+Azure Fleet Admiral
+Court of Embereth
+Court of Grace
+Crimson Fleet Commodore
+Crown of Gondor
+Elite Vanguard
+Fall from Favor
+Forest
+Goblin Piker
+Grizzly Bears
+Hill Giant
+Isamaru, Hound of Konda
+Island
+Lightning Bolt
+Mirri, Cat Warrior
+Mountain
+Palace Jailer
+Palace Sentinels
+Plains
+Queen Marchesa
+Savannah Lions
+Shock
+Suntail Hawk
+Swamp
+Throne of the High City
+Wind Drake

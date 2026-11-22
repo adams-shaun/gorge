@@ -35,6 +35,8 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 			// (seat-exact: a player who lost has left the game with
 			// everything they controlled, CR 800.4a, so the reader lives)
 			return lValue{Kind: vOppExtreme, N: kop.OppExtAmount, Add: 1}, nil
+		case "HasPropertyisMonarch":
+			return monarchHeldValue(), nil // lower_monarch.go
 		case "LowestLifeTotal":
 			// gorge lifeExtreme over AliveFrom (engine/effects/
 			// count_player.go): the lowest CURRENT life total among the

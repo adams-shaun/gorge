@@ -599,6 +599,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// gorge playerEnchantedController: the bearer's controller
 			w, ok = whoEnchCtrl, true
 		}
+		if tp.str("ValidPlayer") == "Player.isMonarch" {
+			w, ok = whoMonarch, true // lower_monarch.go: the monarch's turn
+		}
 		if tp.str("ValidPlayer") == "Player.Chosen" && lc.granted == 0 && tr.Zone == zBattlefield && entersChoosingPlayer(lc.face) {
 			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
 			w, ok = whoChosen, true
