@@ -603,7 +603,7 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		w.fold = func(x int) (kop.ManaCost, bool) { return s.xFoldCost(k, *cost, x, wbX, false) }
 	}
 	for set := 1; set < 1<<n; set++ {
-		best = max(best, w.activate(*av, filtPos{set: set}))
+		best = max(best, w.activateOrders(*av, set, &filt, n))
 	}
 	return best
 }
