@@ -37,7 +37,7 @@ func (s *State) filtFeeGaps(k *prep, f slotMask) slotMask {
 // was (every read is gated on fs.feeOrder, but the field is the fallback's to
 // set).
 func (s *State) feeOrderFallback(k *prep, p uint8, a Action, fs *filtSearch) bool {
-	if fs.pay != nil || fs.other.andNot(s.scriptTapsDefer(k, p)).any() || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
+	if fs.pay != nil || fs.other.andNot(s.scriptCtr(k, p)).andNot(s.scriptTapsDefer(k, p)).any() || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
 		return false
 	}
 	feeGaps := s.filtFeeGaps(k, fs.gaps)
