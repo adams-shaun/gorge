@@ -1,0 +1,18 @@
+{
+  "card": "Abigale, Eloquent First-Year",
+  "class": "lockstep",
+  "why": "a keyword counter put on after a lose-all-abilities effect keeps its keyword (CR 122.1b, 613.7); the kernel clears every counter's grant under a loss and has no per-counter timestamp",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "abigale_keyword_counters_outlive_loss"
+  },
+  "evidence": [
+    "ev-std-ecl",
+    "std-ecl"
+  ]
+}
