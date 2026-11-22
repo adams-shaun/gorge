@@ -1221,12 +1221,18 @@ func (e *Engine) askBlockers() {
 		// Great) is the attacker's second unit: obeyed by a second blocker,
 		// counted per attacker by the same solver.
 		mustBeBlocked := make(map[state.ObjID]bool, len(scope.attackers))
+		mustBeBlockedSpec := make(map[state.ObjID]string, len(scope.attackers))
 		mustBeBlockedTwo := make(map[state.ObjID]bool, len(scope.attackers))
 		lure := make(map[state.ObjID]bool, len(scope.attackers))
 		for _, aid := range scope.attackers {
 			fl := combat.DerivedHiddenFlags(asBoard(e), aid)
 			if fl.MustBlock || fl.MustBeBlockedByOne {
 				mustBeBlocked[aid] = true
+				if !fl.MustBeBlockedByOne {
+					// A filtered grant (MustBeBlockedBy Creature.Wall) binds
+					// only the pairs whose blocker matches the filter.
+					mustBeBlockedSpec[aid] = fl.MustBlockSpec
+				}
 			}
 			if fl.MustBeBlockedByTwo {
 				mustBeBlockedTwo[aid] = true
@@ -1283,7 +1289,7 @@ func (e *Engine) askBlockers() {
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
 					Group: "blocker:" + strconv.FormatUint(uint64(bid), 10), Required: mustBlockPair, BlockMust: mustBlockPair, BlockMustAll: mustBlockAllPair,
-					AttackMust: mustBeBlocked[aid], AttackMustTwo: mustBeBlockedTwo[aid],
+					AttackMust: mustBeBlocked[aid] && mustBeBlockedBinds(asBoard(e), mustBeBlockedSpec[aid], bid, aid), AttackMustTwo: mustBeBlockedTwo[aid],
 					// CR 506.5: this blocker can't be declared ALONE. One
 					// fact per blocker on each of its pairs; the declaration
 					// rule counts it per declaration, not per pair.
