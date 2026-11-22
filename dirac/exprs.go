@@ -882,7 +882,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 			}
 			return 0
 		}
-		if s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o) {
+		if s.refCardMatch(k, f, ob, o, ctx) {
 			return 1
 		}
 		return 0
@@ -1010,3 +1010,18 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 	}
 	return NoObj, false
 }
+
+// refCardMatch matches a ref's card off the battlefield against f. A filter
+// that reads the chosen type (Herald's Horn: the revealed library top is
+// Creature.ChosenType) takes the ability source's recorded choice, as gorge's
+// sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
+func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
+	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+	}
+	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
+}
+
+// DebugRefChosenResOnly is the mutation switch: a ref's card reads only the
+// resolution's own ChooseType answer (the games must diverge).
+var DebugRefChosenResOnly bool
