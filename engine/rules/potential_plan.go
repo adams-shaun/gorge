@@ -2596,6 +2596,26 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	return out
 }
 
+// tapRepeatBound is how many times a repeatable tap-only mana cost
+// (tapOnlyManaCost) can be paid in one payment: every activation taps N
+// distinct untapped permanents of each part, and a mana-payment prefix never
+// untaps them, so the untapped candidates bound the activations. The same
+// bound paymentPlanRelaxedAlternatives prices a missed ability's repeats with
+// and the census's covered-unit gate (paymentPlanCensusOf) reads.
+func tapRepeatBound(pe pay.Engine, p state.PlayerID, id state.ObjID, cost costvocab.Cost) int32 {
+	repeats := int32(-1)
+	for _, part := range cost.TapPermanent {
+		n := int32(len(pay.ManaTapCandidates(pe, p, id, part.Spec, nil))) / part.N
+		if repeats < 0 || n < repeats {
+			repeats = n
+		}
+	}
+	if repeats < 0 {
+		return 0
+	}
+	return repeats
+}
+
 // tapOnlyManaCost reports whether a mana ability's cost is exactly literal
 // tapXType parts: no {T}/{Q}, no mana fee, and no other payment at all. That
 // is the repeatable shape paymentPlanRelaxedAlternatives bounds by its
@@ -2696,13 +2716,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		// A repeatable tap-another cost: every activation taps N distinct
 		// untapped permanents of each part, and a mana-payment prefix never
 		// untaps them, so the untapped candidates bound the activations.
-		repeats = -1
-		for _, part := range cost.TapPermanent {
-			n := int32(len(pay.ManaTapCandidates(asPayer(e), p, id, part.Spec, nil))) / part.N
-			if repeats < 0 || n < repeats {
-				repeats = n
-			}
-		}
+		repeats = tapRepeatBound(asPayer(e), p, id, cost)
 		if repeats == 0 {
 			// The cost cannot be paid even once: no unit, still bounded.
 			return nil, 0, 0, false, true
