@@ -10,12 +10,14 @@ import (
 
 // The CounterPlayerAddedAll cell lockstep (gorge cr-pc-triggered-counter-map):
 // one put action lands one trigger per (putter, recipient) however many kinds
-// it places, while CounterTypes$ emits one CounterChange per kind. Abigale,
-// Unexpected Fangs and Gift of the Viper put two or three kinds on one target;
-// The Great Goblin (your Goblin) and Generous Patron (a creature you don't
-// control) listen on either side of the table.
+// it places, while CounterTypes$ emits one CounterChange per kind. Unexpected
+// Fangs, Gift of the Viper and Qarsi Revenant put two or three kinds on one
+// target (Abigale, Eloquent First-Year, the old third multi-kind carrier, is
+// refused by name: dirac/support/refused); The Great Goblin (your Goblin) and
+// Generous Patron (a creature you don't control) listen on either side of the
+// table.
 var kctrcellDeckA = []cardset.Entry{
-	{Name: "The Great Goblin", Count: 4}, {Name: "Abigale, Eloquent First-Year", Count: 4}, {Name: "Unexpected Fangs", Count: 6},
+	{Name: "The Great Goblin", Count: 4}, {Name: "Unexpected Fangs", Count: 6}, {Name: "Qarsi Revenant", Count: 4},
 	{Name: "Raging Goblin", Count: 5}, {Name: "Goblin Piker", Count: 5},
 	{Name: "Swamp", Count: 8}, {Name: "Mountain", Count: 4}, {Name: "Plains", Count: 4},
 }
@@ -62,15 +64,18 @@ func TestCtrcellLockstep(t *testing.T) {
 }
 
 // TestCtrcellOverflowMutation: these games pile keyword counters past a
-// permanent's slots, so a reader that ignores the overflow table diverges.
+// permanent's slots (Qarsi Revenant's flying, deathtouch and lifelink with
+// Unexpected Fangs' +1/+1), so a reader that ignores the overflow table
+// diverges. 512 seeds: the shape is rarer than it was under Abigale,
+// Eloquent First-Year, the old stacker (refused: dirac/support/refused).
 func TestCtrcellOverflowMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
 	dirac.DebugCtrOverProjOff = true
 	defer func() { dirac.DebugCtrOverProjOff = false }()
-	if n := sonRun(t, "ctrcell", kctrcellMatchups, 64, false, nil, nil); n == 0 {
-		t.Errorf("mutation: no seed in 64 diverged")
+	if n := sonRun(t, "ctrcell", kctrcellMatchups, 512, false, nil, nil); n == 0 {
+		t.Errorf("mutation: no seed in 512 diverged")
 	}
 }
 
