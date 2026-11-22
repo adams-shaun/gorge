@@ -157,6 +157,26 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	return m
 }
 
+// unlessTapFilt is the unless / ward census's tap-filter gaps: the payer's
+// activatable gfFilt sources whose filter is not the card's first mana ability
+// (Unknown Shores' "{1}, {T}: Add one mana of any color" beside its free
+// "{T}: Add {C}"). scriptFilt keeps only the first-only filters on an
+// anyFiltFirst table — the play prefix's node budget — while gorge's unless
+// census prices every fee-carrying mana ability of every window unit
+// (unlessWindowUnits; CR 605.3b: the fee is paid from the floating mana an
+// earlier same-window activation produced). Without this mask the unless
+// offer gate offers decline only where gorge's gate prices the filter's
+// fee-funded plan and offers pay (kfuzz tail-34-c001 pair 29).
+func (s *State) unlessTapFilt(k *prep, p uint8) slotMask {
+	m := s.gapMask(k, p, gfFilt)
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); s.filtFirstOnly(k, sl) {
+			m = m.without(sl) // scriptFilt's half (mana_filterfirst.go) already lists it
+		}
+	}
+	return m
+}
+
 // FilterTapMana reports whether a, a mana ability of cd, is a filter the
 // kernel models (filterTapMana).
 func FilterTapMana(cd *kop.CardDef, a *kop.Ability) bool { return filterTapMana(cd, a) }
@@ -1662,9 +1682,19 @@ func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool)
 	if k.gen == nil || cost == nil || !k.gen.anyFiltFirst && s.g.turnF&turnUnlessWin == 0 { // a non-first filter is priced only by an unless cost's window (gorge unlessWindowUnits prices its paid ability)
 		return false, 0
 	}
+	gaps := s.scriptFilt(k, p)
+	if takeDeferred {
+		// the census prices the tap filters the first-only partition keeps
+		// out (unlessTapFilt); a plain window's probe keeps the play prefix's
+		// set
+		gaps = gaps.or(s.unlessTapFilt(k, p))
+	}
+	if !k.gen.anyFiltFirst && !gaps.any() {
+		return false, 0 // no filter gap to price (a table with first-only filters keeps that scope)
+	}
 	var fs filtSearch
 	fs.a = MakeAction(AkPass, 0, 0, 0)
-	fs.p, fs.gaps, fs.own, fs.sp0 = p, s.scriptFilt(k, p), NoSlot, s.sp
+	fs.p, fs.gaps, fs.own, fs.sp0 = p, gaps, NoSlot, s.sp
 	fs.other = s.censusPayGaps(k, p, s.otherGaps(k, p, fs.a), takeDeferred)
 	// A payment plan taps the cost's own sources beside the filters' fees, so
 	// the funding bound is every slot rather than the fees summed (filtFunding
