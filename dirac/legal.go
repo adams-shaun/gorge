@@ -2899,15 +2899,6 @@ func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny b
 			fold(sl, mask, gv.manaN)
 			continue
 		}
-		if cen.on && d != nil && gv.manaTap {
-			// A {T} grant on a host with no tap unit of its own is a gap of
-			// gorge's planner census with nothing to net against
-			// (manaTapAbilityNetsNoMore needs a covered production), so it
-			// raises the mana a payment can spend: gapGains, and the X-bound
-			// sweep's count proof has no supply bound (Paradise Mantle on a
-			// creature beside a repeatable fee-only gap, CR 106.1, 605.3b).
-			d.gapGain = true
-		}
 		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open
 			continue
