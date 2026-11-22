@@ -11,6 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // floating (CR 601.2b, 605.3b), so floating it first reaches the funding line
 // the plain order's twin branches spent the budget on. A one-unit fee source
 // is a filter whose net production is zero, which the plain order prices.
+// An activated ability takes the same fallback (gorge builds the fee-order run
+// for optAbility with no cast-cost or hybrid scope).
 
 // filtFeeGaps is the filters of f gorge counts as fee gaps: a fee after cost
 // reductions, and a fixed amount of at least two units (feeGaps in
@@ -27,7 +29,7 @@ func (s *State) filtFeeGaps(k *prep, f slotMask) slotMask {
 }
 
 // feeOrderFallback reports whether gorge's fee-order run follows the plain run
-// fs, which found no script: a plain cast of the printed cost on a board of
+// fs, which found no script: a plain cast of the printed cost (or an ability activation) on a board of
 // filter gaps (and Taps-deferred gaps, the last pass's), one of them a fee gap, whose own cost sacrifices or
 // returns nothing and whose gaps hold no hybrid fee on any mana ability of
 // their faces (gapFaceHybIn; those are the phased order's own scope, gorge
@@ -37,20 +39,28 @@ func (s *State) filtFeeGaps(k *prep, f slotMask) slotMask {
 // was (every read is gated on fs.feeOrder, but the field is the fallback's to
 // set).
 func (s *State) feeOrderFallback(k *prep, p uint8, a Action, fs *filtSearch) bool {
-	if fs.pay != nil || fs.other.andNot(s.scriptCtr(k, p)).andNot(s.scriptTapsDefer(k, p)).any() || fs.nodes < potentialScriptNodes || a.Kind() != AkCast || a.Mode() != 0 {
+	act := a.Kind() == AkActivate
+	if fs.pay != nil || fs.other.andNot(s.scriptCtr(k, p)).andNot(s.scriptTapsDefer(k, p)).any() || fs.nodes < potentialScriptNodes || (!act && (a.Kind() != AkCast || a.Mode() != 0)) {
 		return false
 	}
 	feeGaps := s.filtFeeGaps(k, fs.gaps)
-	if !feeGaps.any() || s.gapFaceHybIn(k, fs.gaps) {
+	if !feeGaps.any() {
 		return false
 	}
-	o := Obj(a.Source())
-	if o == NoObj || int(o) >= len(s.objs) {
-		return false
-	}
-	ac := spellAddCost(k, s.objs[o].card)
-	if ac.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostReturn|kop.CostReturnSelf) != 0 {
-		return false
+	if !act {
+		// an activation's fee-order run is not scoped by phasedScope (it
+		// reads a cast's cost and the gaps' hybrid fees only for a cast)
+		if s.gapFaceHybIn(k, fs.gaps) {
+			return false
+		}
+		o := Obj(a.Source())
+		if o == NoObj || int(o) >= len(s.objs) {
+			return false
+		}
+		ac := spellAddCost(k, s.objs[o].card)
+		if ac.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostReturn|kop.CostReturnSelf) != 0 {
+			return false
+		}
 	}
 	fs.feeGaps = feeGaps
 	return true
