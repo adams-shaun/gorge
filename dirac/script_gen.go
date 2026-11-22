@@ -474,7 +474,17 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				}
 			}
 		} else if filt.any() || mix {
-			if !s.filtScript(k, a, p, false) {
+			// Beside a filter, gorge still runs its second query over the
+			// census that keeps the Taps-deferred sources out (their extras
+			// ride the taps, addGatedExtra): the same play, the extended gap
+			// set. The filter route's branches spend the first search's budget
+			// on the fee-carrying gap's colour answers (Energy Refractor's
+			// "{2}: Add one mana of any color") before the deferred sources,
+			// so the play is also searched over them when the filter route
+			// found no script for it (the Trapjaw Kelpie lockstep: decision
+			// 402's cast, the second walk's phased run's two island taps).
+			if !s.filtScript(k, a, p, false) &&
+				!(tapsDef.any() && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)) {
 				continue // no script within gorge's search budget
 			}
 		} else if tapsDef.any() && s.liveGrantGap(k, p) {
