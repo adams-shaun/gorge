@@ -290,6 +290,17 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.Static.ProtExc)
 		filt(ab.Static.Landwalk)
 		filt(ab.Static.GainsOf)
+		if ab.Static.GainsOf != 0 {
+			// mana_gainedgrants.go reads a foreign card's printed basic land
+			// subtype to tell the CR 305.6 intrinsic mana ability a
+			// GainsAbilitiesOf$ recipient has (Marvin beside an animated
+			// Forest), so the matchup keeps the five basic land types
+			for _, w := range [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"} {
+				if i, ok := pt.subIdx[w]; ok {
+					set[uint8(i)] = true
+				}
+			}
+		}
 		cond(ab.Static.Cond2)
 		val(ab.Static.VA)
 		val(ab.Static.VB)
