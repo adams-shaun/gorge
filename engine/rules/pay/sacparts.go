@@ -425,21 +425,31 @@ func ManaUntapPayable(e Engine, p state.PlayerID, source state.ObjID, cost costv
 }
 
 // PaymentPlanProducedExactly reports whether the mana p's pool gained from
-// event index from onward is exactly want, with nothing taken out: one
-// planned activation's actual production against its witness step. Every
-// ManaAdd counter form (plain, snow, typed) is read into its pool slot.
-func PaymentPlanProducedExactly(e Engine, p state.PlayerID, from int, want decision.ManaAmount) bool {
+// event index from onward is exactly want: one planned activation's actual
+// production against its witness step. A fee-bearing step's own fee charge
+// (fee units out of the floating pool, CR 605.3b) is the one negative
+// movement it discloses; any other ManaAdd out of the pool is not the
+// step's production. Every ManaAdd counter form (plain, snow, typed) is
+// read into its pool slot.
+func PaymentPlanProducedExactly(e Engine, p state.PlayerID, from int, want decision.ManaAmount, fee uint32) bool {
 	var added state.Mana
+	var spent int32
 	for _, ev := range e.Log().Events[from:] {
 		if ev.Kind != events.ManaAdd || ev.Player != p {
 			continue
 		}
 		if ev.Amount < 0 {
-			return false
+			// A fee-bearing step's activation pays its literal mana fee
+			// from the floating pool before the production resolves
+			// (CR 605.3b): the charge is a negative ManaAdd the step
+			// discloses. Any other negative pool movement is not the
+			// step's production.
+			spent -= ev.Amount
+			continue
 		}
 		added[state.ManaSlot(ev.Counter)] += ev.Amount
 	}
-	return ManaAmount(added) == want
+	return ManaAmount(added) == want && spent == int32(fee)
 }
 
 // CastWindowSelfSacCost reports whether c is a self-sacrifice activation cost

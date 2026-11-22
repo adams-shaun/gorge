@@ -312,6 +312,7 @@ type Search struct {
 	flex       int
 	irr        int64
 	pain       int64 // summed life + damage of the chosen units
+	fees       int32 // summed literal mana fees of the chosen units (CR 605.3b)
 
 	Nodes    int
 	Limited  bool
@@ -395,6 +396,10 @@ type SearchScratch struct {
 	owedAltFlat []int32
 	owedAlt     [][]int32
 	next        []int
+	// orderFeeWitness's working storage: the fee-bearing witness's
+	// execution order, rebuilt per candidate and consumed by the witness
+	// and rank builders before the next materialize.
+	witnessOrder []Alt
 	// witnessInto's and rankPlanInto's working storage: the candidate plan's
 	// activations and the candidate rank's steps. Both are overwritten by
 	// the next candidate, so only an adopted plan is copied to fresh
@@ -591,7 +596,7 @@ func (s *Search) deficit() (state.Mana, int32) {
 			short[i] = d
 		}
 	}
-	total := s.cost.Generic + s.cost.Colored.Total() - s.pool.Total() - s.produced.Total()
+	total := s.cost.Generic + s.cost.Colored.Total() + s.fees - s.pool.Total() - s.produced.Total()
 	return short, max(total, 0)
 }
 
@@ -664,6 +669,7 @@ func (s *Search) take(lv level, n int32) {
 	s.flex += int(n) * a.Flex
 	s.irr += int64(n) * s.classes[lv.class].irr[lv.alt]
 	s.pain += int64(n) * s.classes[lv.class].pain[lv.alt]
+	s.fees += n * int32(a.Consequence.Fee)
 }
 
 // promising reports whether some completion from level can still pay and
@@ -715,7 +721,7 @@ func (s *Search) promising(level int, short state.Mana, total int32) bool {
 	case s.Best == nil:
 		return true
 	}
-	surplus := s.pool.Total() + s.produced.Total() + need*rest.least - s.cost.Generic - s.cost.Colored.Total()
+	surplus := s.pool.Total() + s.produced.Total() + need*rest.least - s.cost.Generic - s.cost.Colored.Total() - s.fees
 	lb := Rank{
 		Cost:      s.irr + int64(need)*rest.irr,
 		Creatures: s.creatures + int(need)*rest.creature,
@@ -783,7 +789,7 @@ func compareRankPrefix(a, b Rank) int {
 // counts alone (every unit of a class shares them).
 func (s *Search) countRank() Rank {
 	r := Rank{Cost: s.irr, Creatures: s.creatures, Sources: s.sources, Flex: s.flex,
-		Surplus: s.pool.Total() + s.produced.Total() - s.cost.Generic - s.cost.Colored.Total()}
+		Surplus: s.pool.Total() + s.produced.Total() - s.cost.Generic - s.cost.Colored.Total() - s.fees}
 	r.HandReserve, r.Remainder = s.reserve()
 	return r
 }
@@ -807,7 +813,11 @@ func (s *Search) complete() bool {
 		return true
 	}
 	chosen := s.materialize()
-	after, ok := s.env.Settle(s.cost, ManaAdd(s.pool, s.produced), s.life)
+	floating, ok := s.witnessFloating(chosen)
+	if !ok {
+		return false
+	}
+	after, ok := s.env.Settle(s.cost, floating, s.life)
 	if !ok {
 		return false
 	}
@@ -820,6 +830,129 @@ func (s *Search) complete() bool {
 		s.recordBest(plan, r)
 	}
 	return true
+}
+
+// witnessFloating is the floating mana the current count vector's steps
+// leave when they run in the order the plan records. Each step's literal
+// mana fee (pay.Consequence.Fee) is charged from the floating mana BEFORE
+// its own production joins it (CR 605.3b), so a fee the branch cannot fund
+// at its charge point is not a plan (ok false) and the walk keeps
+// extending. A count vector with no fee step is exactly the historical
+// pool plus every chosen unit's production, and its witness keeps the
+// materialized order.
+//
+// A fee-bearing count vector's witness is reordered, in place, into the
+// order the plan executes: the plain steps in member order with each fee
+// step inserted at the EARLIEST position whose floating mana funds its fee
+// and whose charge still leaves every remaining production able to cover
+// the cost's coloured pips and generic (the reach the kernel's own fee
+// chains show: an island funds Painted Bluffs's {1} fee and the fee lands
+// right after it, never ahead of the mana that funds it and never charging
+// a pip colour the plan still needs), then the steps SacrificesLast moves
+// last stay last. The executor's step-by-step revalidation
+// (paymentPlanCheckUnits) prices the same charges in this recorded order.
+func (s *Search) witnessFloating(chosen []Alt) (state.Mana, bool) {
+	if !slices.ContainsFunc(chosen, func(a Alt) bool { return a.Consequence.Fee > 0 }) {
+		return ManaAdd(s.pool, s.produced), true
+	}
+	ordered := orderFeeWitness(s.cost, s.pool, chosen, s.sc.witnessOrder)
+	if ordered == nil {
+		return state.Mana{}, false
+	}
+	copy(chosen, ordered)
+	floating := s.pool
+	for _, a := range chosen {
+		if fee := a.Consequence.Fee; fee > 0 {
+			paid, ok := PayFeeFromPool(fee, floating)
+			if !ok {
+				return state.Mana{}, false
+			}
+			floating = paid
+		}
+		floating = ManaAdd(floating, a.Mana)
+	}
+	return floating, true
+}
+
+// orderFeeWitness builds the fee-bearing witness's execution order into buf
+// (nil allocates it) and returns it: the plain steps in their member order,
+// each fee step inserted at the earliest position its fee is funded at and
+// from which the cost stays reachable over the remaining productions, and
+// the sacrifice/return steps pinned last (SacrificesLast's own order, so
+// the later SacrificesLast call is a no-op). nil reports that some fee has
+// no funding position: the count vector is not a plan.
+func orderFeeWitness(cost Cost, pool state.Mana, chosen []Alt, buf []Alt) []Alt {
+	plain := make([]Alt, 0, len(chosen))
+	var fees, last []Alt
+	for _, a := range chosen {
+		switch {
+		case a.Consequence.Fee > 0:
+			fees = append(fees, a)
+		case a.Consequence.Sacrifice || a.Consequence.ReturnToHand:
+			last = append(last, a)
+		default:
+			plain = append(plain, a)
+		}
+	}
+	ordered := resizeCleared(buf, 0)
+	out := slices.Grow(ordered, len(chosen))[:0]
+	// reach sums the productions the plan still has to run from a position
+	// on: the rest of the plain steps, the fees not yet placed and the
+	// pinned last steps. A fee's charge is admitted at a position only when
+	// the cost stays reachable over those productions -- a charge that eats
+	// a pip colour nothing later produces is deferred behind the step that
+	// funds it (the kernel's island before Cave of Temptation's fee).
+	reach := func(from int, placed []Alt) state.Mana {
+		var r state.Mana
+		for _, a := range plain[from:] {
+			r = ManaAdd(r, a.Mana)
+		}
+		for _, a := range placed {
+			r = ManaAdd(r, a.Mana)
+		}
+		for _, a := range last {
+			r = ManaAdd(r, a.Mana)
+		}
+		return r
+	}
+	floating := pool
+	for i, f := range fees {
+		placed := false
+		for p := 0; p <= len(plain); p++ {
+			at := floating
+			for _, a := range plain[:p] {
+				at = ManaAdd(at, a.Mana)
+			}
+			paid, ok := PayFeeFromPool(f.Consequence.Fee, at)
+			if !ok {
+				continue
+			}
+			after := ManaAdd(paid, f.Mana)
+			r := reach(p, fees[i+1:])
+			okReach := after.Total()+r.Total() >= cost.Generic+cost.Colored.Total()
+			for c := range after {
+				if after[c]+r[c] < cost.Colored[c] {
+					okReach = false
+					break
+				}
+			}
+			if !okReach {
+				continue
+			}
+			out = append(out, plain[:p]...)
+			out = append(out, f)
+			plain = plain[p:]
+			floating = after
+			placed = true
+			break
+		}
+		if !placed {
+			return nil
+		}
+	}
+	out = append(out, plain...)
+	out = append(out, last...)
+	return out
 }
 
 // recordBest makes plan/r the walk's best. The candidate's activations and
@@ -878,7 +1011,11 @@ func (s *Search) completeKeep() bool {
 		return true
 	}
 	chosen := s.materialize()
-	after, ok := s.env.Settle(s.cost, ManaAdd(s.pool, s.produced), s.life)
+	floating, ok := s.witnessFloating(chosen)
+	if !ok {
+		return false
+	}
+	after, ok := s.env.Settle(s.cost, floating, s.life)
 	if !ok {
 		return false
 	}
@@ -919,7 +1056,8 @@ func (s *Search) redundant() bool {
 				continue
 			}
 			m := s.classes[k].alts[a].Mana
-			paid := s.cost.Generic+s.cost.Colored.Total() <= s.pool.Total()+s.produced.Total()-m.Total()
+			fee := int32(s.classes[k].alts[a].Consequence.Fee)
+			paid := s.cost.Generic+s.cost.Colored.Total()+s.fees-fee <= s.pool.Total()+s.produced.Total()-m.Total()
 			for i := range m {
 				paid = paid && s.cost.Colored[i] <= s.pool[i]+s.produced[i]-m[i]
 			}

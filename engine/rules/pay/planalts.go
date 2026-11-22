@@ -199,8 +199,9 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 			}
 		case TierLastResort:
 			// The classifier vetted the whole cost and chain: {T} plus the
-			// disclosed self-sacrifice/life/self-return parts, or a tap-only
-			// cost with a disclosed rider, trigger or replacement.
+			// disclosed self-sacrifice/life/self-return parts, a disclosed
+			// literal mana fee beside the tap, or a tap-only cost with a
+			// disclosed rider, trigger or replacement.
 		default:
 			continue
 		}

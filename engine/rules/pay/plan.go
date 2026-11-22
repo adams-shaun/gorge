@@ -33,6 +33,14 @@ type Consequence struct {
 	Damage       uint32
 	NoUntap      bool
 	ReturnToHand bool
+	// Fee is the literal generic mana the activation pays beside its tap
+	// (a "{N}, {T}: Add ..." mana ability, Painted Bluffs), charged from
+	// the floating mana before the production resolves (CR 605.3b). It is
+	// the disclosed consequence of the planner's fee-bearing last-resort
+	// step: the search charges it from the branch's accumulated mana and
+	// the executor's activation pays it from the live pool exactly as the
+	// manual window does.
+	Fee uint32
 }
 
 func ManaAmount(m state.Mana) decision.ManaAmount {
@@ -99,7 +107,7 @@ func (c Consequence) Wire() *decision.PaymentConsequence {
 	if c == (Consequence{}) {
 		return nil
 	}
-	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand}
+	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand, Fee: c.Fee}
 }
 
 // Irreversible-cost weights. They are

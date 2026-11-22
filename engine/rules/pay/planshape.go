@@ -117,7 +117,21 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 	if effects.ManaOf(ma).TriggersWhenSpent != "" {
 		return TierDeferred, Consequence{}, "", true
 	}
-	if cost.XMin != 0 || cost.X != 0 || cost.Generic != 0 || cost.Colored.Total() != 0 || len(cost.Discard)+len(cost.SubCounter)+len(cost.Exile)+len(cost.ExileFromTop)+len(cost.TapPermanent)+len(cost.Energy)+len(cost.LifeX) != 0 {
+	if cost.XMin != 0 || cost.X != 0 || len(cost.Discard)+len(cost.SubCounter)+len(cost.Exile)+len(cost.ExileFromTop)+len(cost.TapPermanent)+len(cost.Energy)+len(cost.LifeX) != 0 {
+		return deferred("source:last_resort")
+	}
+	if cost.Generic != 0 || cost.Colored.Total() != 0 {
+		// A literal generic mana fee beside the tap -- Painted Bluffs's
+		// "{1}, {T}: Add one mana of any color" -- is a last-resort step
+		// whose disclosed consequence is the fee itself: the search charges
+		// it from the branch's accumulated floating mana before the
+		// production resolves (CR 605.3b), exactly as the mana window's
+		// reach walk prices an Apprentice Wizard fee. Any other mana part
+		// in the cost (a coloured fee, an X, a non-tap shape) stays outside
+		// what the witness can describe.
+		if fee, ok := PaymentPlanManaFeeOf(cost); ok && strings.TrimSpace(ma.ParamStr(cards.PKSubAbility)) == "" {
+			return TierLastResort, Consequence{Fee: fee}, "source:last_resort", false
+		}
 		return deferred("source:last_resort")
 	}
 	if strings.TrimSpace(ma.ParamStr(cards.PKSubAbility)) != "" {
@@ -148,6 +162,30 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 		return deferred("source:last_resort")
 	}
 	return TierNormal, Consequence{}, "", false
+}
+
+// PaymentPlanManaFeeOf reports the literal generic mana fee a mana ability's
+// activation cost carries beside its tap: exactly "{N}, {T}" with no other
+// part (no coloured pip, no X, no sacrifice, life, return, counters, discard,
+// exile, reveal, energy, another permanent's tap, an unparsed token). The fee
+// is what a payment-plan step can charge from the floating mana before its
+// production resolves (CR 605.3b); every other mana part keeps the ability
+// outside what the witness can describe.
+func PaymentPlanManaFeeOf(c Cost) (uint32, bool) {
+	if c.Generic <= 0 || c.Colored != (state.Mana{}) || !c.Tap {
+		return 0, false
+	}
+	rest := c
+	rest.Tap, rest.Generic = false, 0
+	if len(rest.Sac) != 0 || rest.Life != 0 || len(rest.Return) != 0 ||
+		rest.Waterbend != 0 || rest.WaterbendX || rest.NumTimes || rest.XColors != 0 {
+		return 0, false
+	}
+	rest.Sac, rest.Life, rest.Return = nil, 0, nil
+	if !PlanCostOK(rest) {
+		return 0, false
+	}
+	return uint32(c.Generic), true
 }
 
 // paymentPlanShapeKeyFails reports whether key alone defers the ability in
