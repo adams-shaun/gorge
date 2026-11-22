@@ -472,7 +472,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// prefix search pays: any other deferred source keeps its ordinary
 		// unit here, or no walk would count it and a play it funds would
 		// vanish from the offer (mana_tapsdefer.go).
-		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDeadSac(k, p))
+		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDead(k, p))
 	}
 	for m.any() {
 		sl := m.first()
