@@ -1,0 +1,24 @@
+{
+  "card": "Fire Dragon",
+  "class": "options-options",
+  "why": "Fire Dragon's cast (nine mana: four Forests, three Mountains and a Forest wearing A-Find the Path's {T}: Add two mana of any one color) is found only by gorge's prefix search (the planner prices no granted ability); a Chromatic Star's {1},{T},sacrifice gap beside the grant makes the search walk the Star's colour and funding branches and exhaust its 160-node budget (plain and phased) with no script, so gorge offers pass and Enormous Baloth alone, while the kernel offers the cast; without the Star gap the search finds a three-step script (CR 605.3b, 601.2g)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "chromatic_star_gap_script_budget_exhausted"
+  },
+  "evidence": [
+    "ev-tail-07-c000",
+    "ev-tail-07-c001",
+    "ev-tail-07-c002",
+    "ev-tail-07-c003",
+    "ev-tail-07-c035",
+    "ev-tail-62-c000",
+    "ev-tail-62-c001",
+    "ev-tail-62-c002"
+  ]
+}
