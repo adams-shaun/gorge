@@ -239,9 +239,13 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
-	if kc.X != 0 {
-		return false // the planner prices the largest X the sources fund: unmodelled here
-	}
+	// kc's own {X} contributes nothing here: gorge's offer gate (legal_walk_hand
+	// buybackCost/offerCastable) prices the composed {X} cost at X = 0
+	// conservatively -- "a spell offering itself is withheld only when even X=0
+	// is unpayable" (offerCostFor) -- and the seat announces X at the cast, so
+	// the potential census paying the X-free total is exactly gorge's offer.
+	// (The "largest X the sources fund" read is the lowered witness's pricing,
+	// cast.go's kicked arm, not the offer gate.) affords ignores an {X} already.
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X> the composition declines too, so only the floating pool offers it (cost_sacx.go)
 	}
