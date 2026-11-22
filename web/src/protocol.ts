@@ -1305,8 +1305,9 @@ export interface WindowReason {
    * PlannedCast is the exact cast identity a payment action authorizes.
    *
    * Origin is the zone the cast begins from: "hand", "command_zone" (the plain
-   * taxed commander cast), or "exile" / "graveyard" (the plain cast an untyped
-   * may-play permission grants a card there) -- or "flashback" (OriginFlashback),
+   * taxed commander cast), "exile" / "graveyard" / "library" (the plain cast an
+   * untyped may-play permission grants a card there; the library origin is the
+   * top card only) -- or "flashback" (OriginFlashback),
    * the CR 702.34a flashback cast of a graveyard card for its primary flashback
    * cost, the one alternative-cost cast a V1 witness pays.
    *
