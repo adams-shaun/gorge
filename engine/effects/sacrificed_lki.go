@@ -101,3 +101,26 @@ func sacrificedSourceLKI(g *state.Game, c *Ctx) (*state.SacrificedInfo, bool) {
 	}
 	return nil, false
 }
+
+// captureSacrificed captures the sacrificed object's LKI (before the MoveZone
+// resets its counters) into c.Sacrificed, when RememberSacrificed$ asks for
+// it, or when the object is this ability's own source: a source that
+// sacrifices itself mid-resolution (Magmasaur's "sacrifice CARDNAME and it
+// deals damage equal to the number of +1/+1 counters on it") is read back
+// through sacrificedSourceLKI (CR 608.2h), with or without the flag. Called
+// exactly once per sacrificed object, by effSacrifice and effSacrificeAll.
+func captureSacrificed(h Host, c *Ctx, id state.ObjID, remember bool) {
+	if remember || id == c.Source {
+		c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
+	}
+	if !remember {
+		return
+	}
+	// Forge's RememberSacrificed$ also remembers the card, which is what a
+	// following ConditionDefined$ Remembered, Remembered$Amount or
+	// RememberedCard reads (Braids, Scapeshift, Victimize), and event-backs
+	// it on the source so a later, independently resolving ability sees the
+	// same list.
+	c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
+	eventRemember(h, c, id)
+}
