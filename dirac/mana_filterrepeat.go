@@ -150,7 +150,8 @@ func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bo
 	return !relax
 }
 
-// windowFeeStalls: the payment window must not list the repeatable fee-only
+// windowFeeStalls: the payment window (a trigger's own cost window too:
+// gorge's windowOnlyStallingConverters) must not list the repeatable fee-only
 // filter at sl, because activating it cannot bring the owed cost closer to
 // paid. Its fee spends as much mana as it makes, so it only converts pool mana
 // into a colour of its own, and that helps exactly when the colour fills a
@@ -160,8 +161,8 @@ func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bo
 // first, then its generic part from the pool in pay/solve.go's order ({C}, W,
 // U, B, R, G), whatever the cost's pips still need; a hybrid pip, an any-type rider or no owed cost fails open.
 func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, anyColor bool) bool {
-	if useful == nil || anyColor || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
-		return false // a trigger's own cost window (winTrig) carries no pending cast, so gorge's paymentSourceUseful clamp never runs: it lists the filter
+	if useful == nil || anyColor || useful.Hyb[0] != 0 || !s.filtRepeat(k, sl) {
+		return false
 	}
 	fee := s.filtRepeatCost(k, sl)
 	ab := s.filtAb(k, sl)

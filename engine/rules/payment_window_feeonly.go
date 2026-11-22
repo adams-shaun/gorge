@@ -2,8 +2,38 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// windowOnlyStallingConverters reports whether every mana ability source id
+// offers a resolution-time payment window (a triggered cost's, cumulative
+// upkeep's, echo's) is a repeatable fee-only conversion that cannot fill what
+// amount still owes (feeOnlyConversionStalls). The window carries no pending
+// cast, so paymentSourceUseful's clamp never prices it, and a seat that always
+// takes the first listed source re-activates Bog Initiate's "{1}: Add {B}."
+// forever: each fee eats the mana the last activation made (tail-49 pair 47,
+// Lapis Lazuli Talisman's "you may pay {3}").
+func (e *Engine) windowOnlyStallingConverters(p state.PlayerID, id state.ObjID, amount Cost, d paymentDescriptor) bool {
+	n := 0
+	var pool state.Mana
+	for _, ma := range e.availableManaAbilities(p, id) {
+		if pay.InstantSpeedOnly(ma) {
+			continue
+		}
+		if !repeatableFeeOnlyMana(e, p, id, ma) {
+			return false
+		}
+		if n == 0 {
+			pool = pay.AvailableFor(asPayer(e), p, d).Pool
+		}
+		n++
+		if !feeOnlyConversionStalls(e, p, id, ma, amount, pool) {
+			return false
+		}
+	}
+	return n > 0
+}
 
 // feeOnlyConversionStalls reports whether activating ma now cannot bring the
 // pending payment closer to paid. ma is a repeatable fee-only mana ability
