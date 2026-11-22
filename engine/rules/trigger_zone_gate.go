@@ -120,9 +120,13 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 	}
 	zones := [2]state.Zone{o.Zone, o.Zone}
 	n := 1
+	// CR 603.8: a state trigger checks the game as it is now, so it never looks
+	// back to the zone its source just left (Lurebound Scarecrow: its chosen
+	// color is gone with the move, and "no permanent of the chosen color" would
+	// queue a sacrifice for a Scarecrow already in the graveyard).
 	if source == ev.Obj && ev.Obj != 0 &&
 		(ev.Kind == events.MoveZone || ev.Kind == events.Draw || ev.Kind == events.PutOnStack) &&
-		!zoneChangeNoLookBack(t) {
+		!zoneChangeNoLookBack(t) && t.Mode != "Always" {
 		zones[1] = ev.From
 		n = 2
 		if leavesOtherZoneTrigger(t) {
