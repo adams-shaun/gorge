@@ -26,6 +26,7 @@ Case of the Crimson Pulse
 Case of the Filched Falcon
 Case of the Gateway Express
 Case of the Gorgon's Kiss
+Case of the Ransacked Lab
 Case of the Shattered Pact
 Case of the Stashed Skeleton
 Case of the Trampled Garden
@@ -66,6 +67,7 @@ Fae Flight
 Fanatical Strength
 Felonious Rage
 Festerleech
+Flourishing Bloom-Kin
 Forensic Gadgeteer
 Forensic Researcher
 Forest
@@ -77,12 +79,14 @@ Gleaming Geardrake
 Glint Weaver
 Goblin Maskmaker
 Gravestone Strider
+Greenbelt Radical
 Griffnaut Tracker
 Haazda Vigilante
 Hard-Hitting Question
 Harried Dronesmith
 Hedge Maze
 Hedge Whisperer
+Hide in Plain Sight
 Homicide Investigator
 Hotshot Investigators
 Hunted Bonebrute
@@ -97,6 +101,7 @@ It Doesn't Add Up
 Izoni, Center of the Web
 Jaded Analyst
 Karlov Watchdog
+Kaya, Spirits' Justice
 Kellan, Inquisitive Prodigy
 Knife
 Kraul Whipcracker
@@ -156,6 +161,7 @@ Rubblebelt Braggart
 Rubblebelt Maverick
 Sample Collector
 Sanctuary Wall
+Sanguine Savior
 Sanitation Automaton
 Scene of the Crime
 Seasoned Consultant
@@ -167,12 +173,14 @@ Slime Against Humanity
 Slimy Dualleech
 Snarling Gorehound
 Soul Enervation
+Soul Search
 Steamcore Scholar
 Sudden Setback
 Surveillance Monitor
 Suspicious Detonation
 Swamp
 Tenth District Hero
+Teysa, Opulent Oligarch
 The Chase Is On
 The Pride of Hull Clade
 They Went This Way
@@ -181,6 +189,7 @@ Thundering Falls
 Topiary Panther
 Torch the Witness
 Toxin Analysis
+Treacherous Greed
 Tunnel Tipster
 Unauthorized Exit
 Undercity Eliminator
@@ -193,5 +202,6 @@ Urgent Necropsy
 Vannifar, Evolved Enigma
 Vein Ripper
 Vengeful Tracker
+Wispdrinker Vampire
 Wojek Investigator
 Wrench
