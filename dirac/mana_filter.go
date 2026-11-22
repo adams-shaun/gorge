@@ -2322,7 +2322,9 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 // otherwise. Unlike a life gap (lifeGap), the unit is not once-per-path: its
 // activation taps nothing and gorge's gap-list rule does not reach it, so a
 // later node of the same path may activate it again while the payer survives
-// (the state keys of the nodes between keep the lines distinct).
+// (the state keys of the nodes between keep the lines distinct). Its mana
+// floats and the raw offer counts it, so each activation is a node gorge's
+// scriptSearch.visit prices (gapUsed), a Prismite beside the Ogre included.
 func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) bool {
 	pc := t.manaPCAt(k, sl)
 	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[t.cardAt(sl)].Abilities) {
@@ -2339,13 +2341,13 @@ func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) boo
 		}
 		needFirst(order[:], fs.need) // gorge's scriptOrderAnswers on the colour ask
 		for _, c := range order {
-			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, false) {
+			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, true) {
 				return true
 			}
 		}
 		return false
 	}
-	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, false)
+	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, true)
 }
 
 // restrictedAnswers tries a restricted ability's colour answers (rm) of the
