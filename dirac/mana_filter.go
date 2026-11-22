@@ -2295,24 +2295,10 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 	}
 	// A sole life-only pain unit (lifeOnlyPain, Treasonous Ogre's "Pay 3
 	// life: Add {R}") is a census unit, no gapOther life gap (registersGapOther
-	// excludes it), so the branch above never offers it. gorge's payment
-	// planner prices the play on its potential bound and its witness replay
-	// activates the unit as the plan's last resort, leaving the source
-	// untapped for the play's gate to count the unit again
-	// (potential_plan.go potentialWitnessReaches; CR 605.1a, 601.2h). The arm
-	// runs only where that planner priced the play (fs.lifePainBound): its
-	// own pain may reach zero life, which the try arm's lethal guard ends
-	// (CR 104.3a).
-	if fs.lifePainBound {
-		for _, sl := range order {
-			if sl == fs.own || fs.dead.has(sl) || !t.canLifeOnlyMana(k, sl, fs.p) {
-				continue
-			}
-			if fs.lifePainBranch(k, t, sl, funded) {
-				return true
-			}
-		}
-	}
+	// excludes it), so the branch above never offers it. gorge's activation
+	// loop offers it as a covered funding source, which the funding pass walks
+	// (fundNoTap); its own pain may reach zero life, which the try arm's lethal
+	// guard ends (CR 104.3a).
 	return false
 }
 
@@ -2323,7 +2309,7 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 // activation taps nothing and gorge's gap-list rule does not reach it, so a
 // later node of the same path may activate it again while the payer survives
 // (the state keys of the nodes between keep the lines distinct).
-func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) bool {
+func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
 	pc := t.manaPCAt(k, sl)
 	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[t.cardAt(sl)].Abilities) {
 		return false
@@ -2339,13 +2325,13 @@ func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) boo
 		}
 		needFirst(order[:], fs.need) // gorge's scriptOrderAnswers on the colour ask
 		for _, c := range order {
-			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, false) {
+			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, gapUsed) {
 				return true
 			}
 		}
 		return false
 	}
-	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, false)
+	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, gapUsed)
 }
 
 // restrictedAnswers tries a restricted ability's colour answers (rm) of the
@@ -2600,8 +2586,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
-				if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
-					return true // a Spawn funds beside the Treasures (mana_filtfund.go)
+				if fs.fundNoTap(k, t, sl, funded, gapUsed) {
+					return true // a Spawn funds beside the Treasures (mana_filtfund.go); a life-only unit beside the lands
 				}
 				continue
 			}
@@ -2617,6 +2603,21 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return true // a hand guide funds after the battlefield's sources (mana_handguide.go)
 	}
 	return fs.passTrigger(k, t, funded)
+}
+
+// fundNoTap is the funding pass's source with no {T} mana ability to tap: a
+// sacrifice-only one (a Spawn funds beside the Treasures, mana_filtfund.go),
+// or the sole life-only pain unit (lifeOnlyPain, Treasonous Ogre's "Pay 3 life:
+// Add {R}"). gorge's activation loop offers that unit's mana ability like any
+// covered source, in battlefield order, and counts it a funding tap
+// (scriptSearch.activations), so its subtree is walked here, where the plain
+// run's budget meets it; the branch runs only where gorge's planner priced the
+// play (fs.lifePainBound).
+func (fs *filtSearch) fundNoTap(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
+	if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
+		return true
+	}
+	return fs.lifePainBound && t.canLifeOnlyMana(k, sl, fs.p) && fs.lifePainBranch(k, t, sl, funded+1, gapUsed)
 }
 
 // fundTap: one funding tap of sl in visit's pass: its asks and answers in
