@@ -2858,8 +2858,8 @@ var DebugFiltSettleMidResolve bool
 // ask a node branching on its answers (gorge scriptSearch.visit's
 // scriptAnswers; tapXSearch.settle).
 func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
-	if t.ctl == ctlResolve && !DebugFiltSettleMidResolve {
-		// a probe from inside a resolution (Well of Lost Dreams' "pay {X}" window): a trigger
+	if t.ctl == ctlResolve && t.res.ask == raNone && !DebugFiltSettleMidResolve {
+		// a probe from inside a resolution that poses no ask of its own (Well of Lost Dreams' "pay {X}"; a trigger answering an ask, Spider-Gwen's loot, still settles): a trigger
 		// the tap queued waits for priority (CR 603.3), the resolution is no priority node
 		// to run it from, so the node is visited with the trigger still pending
 		return fs.visit(k, t, funded, gapUsed)

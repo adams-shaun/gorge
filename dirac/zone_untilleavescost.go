@@ -18,15 +18,17 @@ const preReturnCost uint8 = 8
 var DebugReturnLeaveNoAsk bool
 
 // returnParkable reports a control state a returning card's as-enters choice
-// parks from: a cost's sacrifice (ctlBuild), or a state-based departure, which
-// includes a seat leaving the game (CR 800.4a: the exiler it owned leaves, so
-// the card exiled until it leaves returns, CR 610.3), swept at a step's start or
-// at priority. gorge asks the choice there too, before the next priority.
+// parks from: a cost's sacrifice (ctlBuild), or a departure swept at a step's
+// start, which includes a seat leaving the game (CR 800.4a: the exiler it owned
+// leaves, so the card exiled until it leaves returns, CR 610.3). gorge asks the
+// choice there, before the next priority. A sweep at priority is left out: an
+// enter-colour choice behind a pending decision there is not asked
+// (TestReproManifest enter_color_choice_behind_pending_decision).
 func (s *State) returnParkable() bool {
 	if s.ctl == ctlBuild {
 		return true
 	}
-	return !DebugReturnLeaveNoAsk && (s.ctl == ctlPriority || s.ctl == ctlStepBegin)
+	return !DebugReturnLeaveNoAsk && s.ctl == ctlStepBegin
 }
 
 // parkReturnCost parks returning card ret's as-enters choice kind when its
