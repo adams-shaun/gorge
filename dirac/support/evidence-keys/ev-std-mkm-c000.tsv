@@ -27,6 +27,7 @@ Case of the Crimson Pulse	59b1a07522d58345	16	3/3		0/1	ix:resp
 Case of the Filched Falcon	1336856cb574fdce	27	3/3		1/1	
 Case of the Gateway Express	c96647437f646653	19	2/2		0/1	ix:resp
 Case of the Gorgon's Kiss	d6f0cc7ca8b68cba	11	2/2		0/1	ix:resp
+Case of the Ransacked Lab	0559b9ed1de52eb4	1560	2/2		1/1	
 Case of the Shattered Pact	7309a8ddcfee59b4	27	3/3		1/1	
 Case of the Stashed Skeleton	ae2288c38c10dfff	17	3/3		0/1	ix:resp
 Case of the Trampled Garden	3b3cfd07bb367f8c	10	3/3		0/1	ix:resp
@@ -67,6 +68,7 @@ Fae Flight	9cea2b3fb0f9e42e	23	1/1		2/2
 Fanatical Strength	b9b090a4abef5882	10	0/0		1/2	ix:resp
 Felonious Rage	d4b86216ae4046d2	10	0/0		1/2	ix:resp
 Festerleech	b23585853610199e	6	2/2		0/1	ix:resp
+Flourishing Bloom-Kin	ecb31a12a099e214	4	1/1		2/3	cast/alt:none
 Forensic Gadgeteer	1b9998a48faa4f07	18	1/1		1/1	
 Forensic Researcher	25ec89eb4ffbedc4	14	2/2		0/1	ix:resp
 Forest	6d0466c30f825dba	218	1/1		0/1	ix:resp
@@ -78,12 +80,14 @@ Gleaming Geardrake	2217918d999c8271	13	2/2		0/1	ix:resp
 Glint Weaver	e492367ef087baa8	8	1/1		0/1	ix:resp
 Goblin Maskmaker	dcaac1a4fc2f9b3a	12	1/1		1/1	
 Gravestone Strider	a1d10dd5f4be22d5	13	2/2		0/1	ix:resp
+Greenbelt Radical	1fb57b787fc6819e	3	1/1		1/3	cast/alt:none,ix:resp
 Griffnaut Tracker	3165cc7bbd0a358f	17	1/1		0/1	ix:resp
 Haazda Vigilante	b30d0fe16e79fabb	9	2/2		0/1	ix:resp
 Hard-Hitting Question	edb77589e2d23ed1	9	0/0		2/2	
 Harried Dronesmith	5d88fdd1e7840aa6	15	1/1		0/1	ix:resp
 Hedge Maze	ba81bac29d85fac2	42	3/3		0/1	ix:resp
 Hedge Whisperer	70bfec47e7beb9e3	12	1/1		0/1	ix:resp
+Hide in Plain Sight	2f90502a336aaffc	79	0/0		2/2	
 Homicide Investigator	6208da91cc63693e	6	1/1		0/1	ix:resp
 Hotshot Investigators	89f2ae40d5d9908b	9	1/1		0/1	ix:resp
 Hunted Bonebrute	299b10b854be975b	11	2/2		1/3	cast/alt:disguised,ix:resp
@@ -98,6 +102,7 @@ It Doesn't Add Up	dd96ee1cd4dbdd42	17	0/0		1/2	ix:resp
 Izoni, Center of the Web	ba891bc583b728ce	10	3/3		1/1	
 Jaded Analyst	871e0de342d95ea2	10	1/1		0/1	ix:resp
 Karlov Watchdog	7b8a52fd9b0678ff	19	1/1		0/1	ix:resp
+Kaya, Spirits' Justice	20a07ee78dc10501	23	4/4		1/1	
 Kellan, Inquisitive Prodigy	8866cc69e268d3c0	22	1/1		2/2	
 Knife	0ce4115315712bde	26	2/2		1/1	
 Kraul Whipcracker	0780b3cb412919dd	7	1/1		1/1	
@@ -157,6 +162,7 @@ Rubblebelt Braggart	f1dce5353a67ba87	14	1/1		0/1	ix:resp
 Rubblebelt Maverick	9aa3fbd530dbe1f4	9	2/2		1/1	
 Sample Collector	869363c4515d787c	6	1/1		0/1	ix:resp
 Sanctuary Wall	46b137c701e17fa7	13	1/1		0/1	ix:resp
+Sanguine Savior	a96b0537bec5465f	3	1/1		1/3	cast/alt:none,ix:resp
 Sanitation Automaton	19b42ae2b6b7778d	10	1/1		0/1	ix:resp
 Scene of the Crime	5d7ffcb1cf81d07b	9	3/3		0/1	ix:resp
 Seasoned Consultant	927a0cca4b8573a0	19	1/1		1/1	
@@ -168,12 +174,14 @@ Slime Against Humanity	73c82ee1001f3c1c	9	0/0		1/2	ix:resp
 Slimy Dualleech	69d320441b36cac7	15	1/1		0/1	ix:resp
 Snarling Gorehound	336a60769e87626a	9	1/1		0/1	ix:resp
 Soul Enervation	48d73b4147aebffe	6	2/2		1/1	
+Soul Search	7d1645fff2b76a43	33	0/0		1/2	ix:resp
 Steamcore Scholar	fa8c8238fd333df8	15	1/1		1/1	
 Sudden Setback	e1198a8e0fc36896	24	0/0		1/2	ix:resp
 Surveillance Monitor	5baab8f7c3efea69	24	2/2		1/1	
 Suspicious Detonation	109263c883224feb	15	0/0		2/2	
 Swamp	342b413902f441c3	223	1/1		0/1	ix:resp
 Tenth District Hero	d48312753d1150e7	6	2/2		0/1	ix:resp
+Teysa, Opulent Oligarch	77d0f3d59d60dd8d	25	2/2		1/1	
 The Chase Is On	57391296cb35dc30	29	0/0		2/2	
 The Pride of Hull Clade	af3f89c1bc7ac9a4	33	1/1		0/1	ix:resp
 They Went This Way	982f67c5bb258f8f	6	0/0		1/2	ix:resp
@@ -182,6 +190,7 @@ Thundering Falls	35886fc473e67573	32	3/3		0/1	ix:resp
 Topiary Panther	153edc9587acac04	3	1/1		0/1	ix:resp
 Torch the Witness	ad5a78c09f37c738	9	0/0		3/4	f0/s/x0
 Toxin Analysis	7bcaf4ab9b4d0e88	6	0/0		1/2	ix:resp
+Treacherous Greed	f72fdce0ff2f02d5	19	0/0		2/2	
 Tunnel Tipster	b948286cec7ee0fa	101	2/2		0/1	ix:resp
 Unauthorized Exit	b1f34ab7679d10d2	34	0/0		1/2	ix:resp
 Undercity Eliminator	6cff1dda1b75c314	10	1/1		0/1	ix:resp
@@ -194,5 +203,6 @@ Urgent Necropsy	40e10e8a4125d827	5	0/0		1/2	ix:resp
 Vannifar, Evolved Enigma	2ddf2ff3510b850e	8	1/1		0/1	ix:resp
 Vein Ripper	1ae92b1d42bf02f0	10	2/2		0/1	ix:resp
 Vengeful Tracker	36779e7f09ef0c5b	27	1/1		0/1	ix:resp
+Wispdrinker Vampire	ec9a4e0335c8d298	28	2/2		1/1	
 Wojek Investigator	2f76c7d4e6318c48	12	1/1		0/1	ix:resp
 Wrench	7992f9a3b6e15ff5	24	2/2		1/1	
