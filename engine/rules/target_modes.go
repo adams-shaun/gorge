@@ -280,8 +280,12 @@ func (e *Engine) storeCharmSeqGroups(source state.ObjID, groups [][]state.Target
 
 // charmSeqSVars resolves the SVars map and root Charm SA for a sequential ask's
 // source object, so a re-asked slot resolves its mode body the same way the
-// first pass did: a triggered ability reads its source permanent's face, a
-// spell its own declared face.
+// first pass did: a triggered ability reads the face that OWNS the trigger --
+// the one home, triggerModeCtx, exactly as the placement ask and the
+// resolution recheck do -- never the source's active face alone, which on a
+// copy is the copier's (whose SVars lack the mode bodies, so every re-asked
+// slot resolves to nothing; CR 603.3d, 707.2, 113.7a). A spell reads its own
+// declared face.
 func (e *Engine) charmSeqSVars(source state.ObjID) (map[string]string, *cards.SA, bool) {
 	o := e.G.Obj(source)
 	if o == nil {
@@ -292,7 +296,8 @@ func (e *Engine) charmSeqSVars(source state.ObjID) (map[string]string, *cards.SA
 		if src == nil || src.Face() == nil {
 			return nil, nil, false
 		}
-		return src.Face().SVars, o.Ability, true
+		_, mctx := e.triggerModeCtx(o.Controller, o.ID, o.Ability)
+		return mctx.SVars, o.Ability, true
 	}
 	f := o.Face()
 	if f == nil {
