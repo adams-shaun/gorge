@@ -490,7 +490,12 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		if plRun {
 			e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
 		}
-		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
+		// a trigger with one required object target (Senator Peacock's "target
+		// creature can't be blocked") is put on the stack and resolved before
+		// the next source is tapped, the lowering answering the target with the
+		// first option: two such sacrifices never ask the CR 603.3b order
+		objTgt := !single && !plRun && s.objTgtFirst(k, a, pt, &e)
+		if !single && (a.NTargets != 0 && !plRun && !objTgt || !s.runsPreCast(k, e, a.Prog)) {
 			i++
 			continue
 		}
@@ -520,6 +525,23 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// takes the same pass after its resolutions.
 		s.sba(k)
 	}
+}
+
+// objTgtFirst aims entry e, pending trigger pt of ability a, at the first
+// legal object for its one required target, as the lowering's default answer
+// does (the options in the order gorge lists them), and reports whether it
+// did. A slot that is optional, takes several objects or names a player is not
+// this one's.
+func (s *State) objTgtFirst(k *prep, a *kop.Ability, pt *pendingTrig, e *stackEntry) bool {
+	if a.NTargets != 1 || a.Targets[0].Kind != kop.TgtObject || a.Targets[0].UpTo || a.Targets[0].Max > 1 || a.Targets[0].Min > 1 {
+		return false
+	}
+	var buf [MaxOptions]TCode
+	if s.targetCands(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, &buf) == 0 {
+		return false
+	}
+	e.tgt[0], e.nt = buf[0], 1
+	return true
 }
 
 // lifeRun reports whether prog is only life losses, life gains and draws.
