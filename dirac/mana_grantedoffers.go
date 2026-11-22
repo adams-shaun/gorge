@@ -15,6 +15,9 @@ import (
 var GrantManaStats struct {
 	Taps atomic.Int64
 	Sac  atomic.Int64
+	// ComboAny counts the Combo Any sources (Axebane Guardian) a play's prefix
+	// activated beside a granted mana ability (mana_grantcomboany.go)
+	ComboAny atomic.Int64
 }
 
 // Granted mana abilities in the cast offers (tokmana). A Continuous
@@ -1097,6 +1100,10 @@ type grantSrch struct {
 	// store: the candidate is a storage battery (Mercadian Bazaar), a census
 	// gap of gorge's beside the grants (mana_grantstore.go)
 	store [MaxPerm]bool
+	// ca: the candidate is a Combo Any source (Axebane Guardian), a census gap
+	// of gorge's beside the grants (mana_grantcomboany.go); a holder of a grant
+	// keeps its printed ability's step before the grants'
+	ca [MaxPerm]bool
 	// gap: the candidate is a census gap. Non-gap sources join the search only
 	// to fund a paid gap's fee, as many as funding allows (gorge
 	// scriptSearch.funding: census.fees()).
@@ -1281,6 +1288,7 @@ func (g *grantSrch) candidates(s *State) {
 	si := s.grantStoreIdleGaps(g.k, g.p)
 	am := s.grantSacXGaps(g.k, g.p)   // (mana_grantsacx.go)
 	ym := s.grantDynSacGaps(g.k, g.p) // (mana_grantdynsac.go)
+	cam := s.caGrantGaps(g.k, g.p)    // (mana_grantcomboany.go)
 	g.n = 0
 	holders := 0
 	plain := g.d.hasPlay && gapFilteredPlay(g.d.play)
@@ -1295,7 +1303,7 @@ func (g *grantSrch) candidates(s *State) {
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
 		}
-		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !smi.has(sl) && !am.has(sl) && !ym.has(sl) {
+		if ng == 0 && !fm.has(sl) && !tm.has(sl) && !dm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl) && !cm.has(sl) && !smi.has(sl) && !am.has(sl) && !ym.has(sl) && !cam.has(sl) {
 			continue
 		}
 		if ng > 0 {
@@ -1312,6 +1320,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.gapFlags(s, g.n, sl, ng, fm, tm, dm, em, wm, xm, cm, smi, am)
 		g.dsac[g.n] = ym.has(sl) && ng == 0
+		g.ca[g.n] = cam.has(sl)
 		if ng > 0 && !s.grantGapUsable(g.k, sl) {
 			g.idle = g.idle.with(sl)
 		}
@@ -1361,6 +1370,7 @@ func (g *grantSrch) candidates(s *State) {
 		}
 		g.cand[g.n], g.ng[g.n], g.dual[g.n], g.filt[g.n], g.tapx[g.n], g.def[g.n] = sl, 0, true, false, false, false
 		g.each[g.n], g.wide[g.n], g.tdef[g.n], g.ctr[g.n], g.store[g.n] = false, false, false, false, false
+		g.ca[g.n] = false
 		g.gap[g.n], g.dsac[g.n] = false, false
 		g.n++
 	}
@@ -1490,6 +1500,8 @@ func (g *grantSrch) node() bool {
 // elsewhere in visit).
 func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 	switch {
+	case g.ca[i] && g.ng[i] == 0:
+		return g.caGapBranch(t, i, sl), true // its allocation's answers (mana_grantcomboany.go)
 	case g.sacx[i] && g.ng[i] == 0:
 		// the sacrifice ask, then the production (mana_grantsacx.go)
 		if !t.scriptTapX(g.k, g.p).has(sl) {
@@ -1555,7 +1567,7 @@ func (g *grantSrch) gapBranch(t *State, i int, sl Slot) (found, is bool) {
 func (s *State) grantFirstGaps(k *prep, p uint8) bool {
 	return s.deferBesideGrant(k, p) || s.eachBesideGrant(k, p) || s.wideBesideGrant(k, p) ||
 		s.tdBesideGrant(k, p) || s.ctrBesideGrant(k, p) || s.storeBesideGrant(k, p) ||
-		s.sacXBesideGrant(k, p) // gorge's one search taps the granted lands after the sacrifice too (mana_grantsacx.go, mana_grantlive.go)
+		s.caBesideGrant(k, p) || s.sacXBesideGrant(k, p) // gorge's one search taps the granted lands after the sacrifice too (mana_grantsacx.go, mana_grantlive.go)
 }
 
 // phasedScope reports whether gorge's phased order may price this search's
@@ -1596,7 +1608,7 @@ func (g *grantSrch) phasedScope(s *State) bool {
 // grant beside a fee-carrying filter is free.
 func (g *grantSrch) gapFree(t *State, i int) bool {
 	sl := g.cand[i]
-	if t.grantTapOK(g.k, sl) || t.grantSacOK(g.k, sl) {
+	if g.ca[i] || t.grantTapOK(g.k, sl) || t.grantSacOK(g.k, sl) {
 		return true
 	}
 	return g.k.sacOnlyMana && t.canSacOnlyNow(g.k, sl, t.manaPCGen(g.k, sl))
@@ -1672,6 +1684,11 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 	}
 	for g.sel = lo; g.sel <= hi; g.sel++ {
 		blgExtra, blgN := uint8(0), uint8(0)
+		if g.ca[i] && g.sel != 1 && t.caGaps(g.k, g.p).has(sl) && g.caGapBranch(t, i, sl) {
+			// the printed Combo Any ability's answers first: its option names no
+			// colour, so it waits for pass 2 (mana_grantcomboany.go)
+			return true, false
+		}
 		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
 			if g.painBranch(t, i, sl, ppc, alts == 1) { // its painful ability's colours too (mana_grantpain.go)
 				return true, false
@@ -2026,7 +2043,7 @@ func (g *grantSrch) gapTwinSkip(t *State, i int, tried *[MaxPerm]Slot, ntried *i
 // of Roots, a storage battery, a deferred source) branch without a tap and
 // keep their whole subtrees.
 func (g *grantSrch) gapTapBranchable(t *State, i int, sl Slot) bool {
-	if t.grantTapOK(g.k, sl) {
+	if g.ca[i] || t.grantTapOK(g.k, sl) {
 		return true
 	}
 	if (g.tapx[i] || g.sacx[i]) && t.scriptTapX(g.k, g.p).has(sl) {
@@ -2072,6 +2089,9 @@ func (g *grantSrch) printedAlts(t *State, i int, sl Slot, grants, fok, tx bool) 
 	}
 	if tx {
 		alts++
+	}
+	if grants && g.ca[i] && t.caGaps(g.k, g.p).has(sl) {
+		alts++ // the printed Combo Any ability is an answer of the ask too (mana_grantcomboany.go)
 	}
 	return alts
 }
@@ -2684,8 +2704,8 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.tapXNext(g.p, &d)
 			}
 			continue
-		case stepEach:
-			s.eachApply(k, g.p, sl, st.col) // (mana_granteach.go)
+		case stepEach, stepComboAny:
+			s.eachOrComboAnyApply(k, g.p, sl, st) // (mana_granteach.go, mana_grantcomboany.go)
 			if g.tapTriggers(s, sl) {
 				passed = true
 				s.tapXNext(g.p, &d)

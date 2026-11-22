@@ -472,7 +472,7 @@ func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 	case raGenPileOpp:
 		s.pileOppOptions(d) // act_twopiles.go
 	case raGenMyriad:
-		s.myriadOptions(d) // kw_myriad.go
+		s.myriadOptions(k, d) // kw_myriad.go
 	case raPodClashOpp:
 		s.clashOppOptions(d) // act_clash.go
 	case raTrigDemoOpp:
