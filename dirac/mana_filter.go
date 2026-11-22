@@ -590,12 +590,22 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 // filtBoundExtra is what p's filters add to gorge's X ceiling past their free
 // taps: xAsk's bound sums each source's largest production, a filter's fee aside.
 func (s *State) filtBoundExtra(k *prep, p uint8) int {
+	return s.filtBoundExtraSkip(k, p, false)
+}
+
+// filtBoundExtraSkip is filtBoundExtra, leaving out a filter that is its
+// card's first mana ability when skipFirst is set (it has no free tap beside
+// it, and a census prices it net of its fee).
+func (s *State) filtBoundExtraSkip(k *prep, p uint8, skipFirst bool) int {
 	if k.gen == nil || !k.gen.anyFilt {
 		return 0
 	}
 	n := 0
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
 		sl := b.first()
+		if skipFirst && s.filtFirstOnly(k, sl) {
+			continue
+		}
 		own := 0
 		if !s.filtNoTap(k, sl) && s.canTapForMana(k, sl) {
 			own = int(s.manaPCGen(k, sl).manaN)
