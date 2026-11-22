@@ -252,3 +252,32 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	}
 	s.reflAmtDo(k, p, sl, col)
 }
+
+// reflAmtBoundPlay reports whether play a is one gorge's PotentialMana bound
+// pays on a board with a live reflected Amount$ source (Incubation Druid).
+// That census gap is unrelaxable and unbounded in gorge
+// (paymentPlanRelaxedAlternatives reads a Mana API only), so gorge's prefix
+// search runs for every census-incomplete play the bound lists, and the
+// search colours the whole amount: three {B} pay the {B}{B} of a play the
+// gaps walk cannot fund once a painful land's colour is withheld at one life
+// (Vengeant Vampire beside Ifnir Deadlands, Nomad Stadium and a Druid with
+// counters, CR 119.4). The bound (the druid folded as {C}, reflAmtPotential)
+// keeps the painful production whole, so scriptOffers searches the plays it
+// pays beside the gaps walk's.
+func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
+	live := false
+	for b := s.caGaps(k, p); b.any() && !live; b = b.rest() {
+		live = k.isReflAmt(s.cardAt(b.first()))
+	}
+	if !live {
+		return false
+	}
+	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return false
+	}
+	var pot avail
+	d := s.grantPayDesc(k, a)
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&cost, pipMaskOf(&cost), 0)
+}
