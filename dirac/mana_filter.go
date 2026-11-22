@@ -2920,7 +2920,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
-		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own) {
+		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, t.filtPlayDesc(k, fs.a)) {
 			// the fee-only repeatable activation making c is doomed on this
 			// node (filtFeeColStalls: c fills no fixed pip the play's cost
 			// still lacks once the fee is paid): the ask offers the other
@@ -2953,7 +2953,7 @@ func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
 			continue
 		}
 		any = true
-		if !t.filtFeeColDoomed(k, fs.p, sl, &fs.useful, c, fs.own) {
+		if !t.filtFeeColDoomed(k, fs.p, sl, &fs.useful, c, fs.own, t.filtPlayDesc(k, fs.a)) {
 			return false
 		}
 	}

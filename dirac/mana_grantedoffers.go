@@ -2434,7 +2434,7 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 		// starves the grant line that pays the play (Darksteel Forge beside
 		// Elven Chorus's granted any-colour mana and Prismite's {2} filter).
 		for j := 0; j < n; j++ {
-			if t.filtFeeColStalls(g.k, g.p, sl, &g.use, int(order[j]), g.ex) {
+			if t.filtFeeColStalls(g.k, g.p, sl, &g.use, int(order[j]), g.ex, nil) {
 				doomed |= 1 << order[j]
 			}
 		}
