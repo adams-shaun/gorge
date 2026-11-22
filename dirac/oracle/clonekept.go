@@ -20,7 +20,7 @@ func rootTriggerCount(g *state.Game, o *state.Object) int {
 	if o == nil || o.Face() == nil {
 		return -1
 	}
-	if tok, face := rootTokenCard(g, o.Face().Name); tok != nil {
+	if tok, face := rootTokenCard(g, o.Face().Name, o.Face().Triggers); tok != nil {
 		return len(face.Triggers)
 	}
 	ord, fi, ok := g.NameUniverse.FaceByName(o.Face().Name)
@@ -52,12 +52,52 @@ func cloneKeptTriggerOf(g *state.Game, o *state.Object, i int) bool {
 // rootTokenCard is the match's token definition whose face is named name,
 // with that face, when the universe carries no such card (tokens are
 // compiled scripts beside it, keyed by script, so they are found by value).
-func rootTokenCard(g *state.Game, name string) (*cards.Card, *cards.Face) {
+//
+// Two scripts can share a face name (w_1_1_human_soldier and the Training
+// gw_1_1_human_soldier_training are both "Human Soldier Token"), so the name
+// alone does not name the template. The copy face keeps the template's
+// triggers first and appends the ones a copy effect added (CR 707.9b), so the
+// definition is the one whose triggers are the longest prefix of trigs; with
+// no such definition the first by sorted script key stands.
+func rootTokenCard(g *state.Game, name string, trigs []cards.Trigger) (*cards.Card, *cards.Face) {
 	if name == "" {
 		return nil, nil
 	}
 	if _, _, ok := g.NameUniverse.FaceByName(name); ok {
 		return nil, nil
+	}
+	var (
+		bestTok  *cards.Card
+		bestFace *cards.Face
+		bestLen  = -1
+	)
+	for _, k := range slices.Sorted(maps.Keys(g.Tokens)) {
+		tok := g.Tokens[k]
+		if tok == nil {
+			continue
+		}
+		for _, f := range tok.Faces {
+			if f == nil || f.Name != name {
+				continue
+			}
+			n := len(f.Triggers)
+			if n > len(trigs) || n <= bestLen {
+				continue
+			}
+			prefix := true
+			for i := range f.Triggers {
+				if f.Triggers[i].Mode != trigs[i].Mode || trigKey(f.Triggers[i].Params) != trigKey(trigs[i].Params) {
+					prefix = false
+					break
+				}
+			}
+			if prefix {
+				bestTok, bestFace, bestLen = tok, f, n
+			}
+		}
+	}
+	if bestTok != nil {
+		return bestTok, bestFace
 	}
 	for _, k := range slices.Sorted(maps.Keys(g.Tokens)) {
 		tok := g.Tokens[k]
