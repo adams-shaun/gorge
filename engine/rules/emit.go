@@ -1,9 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -47,14 +44,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// Objects minted during this event are compared
 	// against this count to raise the pool gates (the mint scan below).
 	objsBefore := len(e.G.Objs)
-	if dbgAbsVis && (ev.Kind == events.Tap || ev.Kind == events.Untap || ev.Kind == events.ManaAdd) {
-		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && o.Face().Name == "Three Tree City" {
-			fmt.Fprintf(os.Stderr, "ttcev %p p%d turn=%d step=%d kind=%v pool=%v\n", e, ev.Player, e.G.Turn, e.G.Step, ev.Kind, e.G.Players[ev.Player].Pool)
-		}
-		if ev.Kind == events.ManaAdd && ev.Counter == "C" {
-			fmt.Fprintf(os.Stderr, "cmadd %p p%d turn=%d step=%d n=%d pool=%v\n", e, ev.Player, e.G.Turn, e.G.Step, ev.Amount, e.G.Players[ev.Player].Pool)
-		}
-	}
 	if suppressSuspectedEvent(e, ev) {
 		return ev
 	} // CR 702.157

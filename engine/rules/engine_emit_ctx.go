@@ -108,9 +108,13 @@ type engineEmitCtx struct {
 	// TriggerMana, the ReflectProperty$ Produced read). It is set before the
 	// mana effect resolves -- the actual ManaAdd events do not exist yet at
 	// trigger-match time -- and consumed by the first batch resolution.
-	// Transient engine scratch, zero at every intent boundary (Clone builds a
-	// fresh Engine and never copies it). Zero means no pending activated tap.
-	manaTapMark int `clone:"reset"`
+	// Transient engine scratch. It is zero at an intent boundary except while
+	// the activation is parked on a colour ask its own mana effect poses (a
+	// Pay {2}: Add one mana of any one color arm: Three Tree City), so a
+	// clone made there carries it: the answered ask's batch still reaches the
+	// triggered mana ability (Mana Flare's extra) the prefix search clones
+	// price the play by. Zero means no pending activated tap.
+	manaTapMark int `clone:"deep"`
 	// manaTapPendingFrom is pendingTriggers' index boundary emitManaTap's Tap
 	// event queued from (the `before` snapshot) and manaTapSource the
 	// permanent that was tapped. stampTriggeredManaProduced binds the
@@ -118,10 +122,10 @@ type engineEmitCtx struct {
 	// tap queued -- C.A.M.P.'s targeted `Triggers$ TapsForMana` stays in
 	// e.pendingTriggers for its later placement, while an immediate CR 605.3b
 	// batch is stamped with the triggers list resolveTriggeredManaAbilities
-	// receives. Transient engine scratch, zero at every intent boundary
-	// (Clone builds a fresh Engine and never copies it), like manaTapMark.
-	manaTapPendingFrom int            `clone:"reset"`
-	manaTapSource      state.ObjID    `clone:"reset"`
+	// receives. Transient engine scratch, carried across a clone like
+	// manaTapMark.
+	manaTapPendingFrom int            `clone:"deep"`
+	manaTapSource      state.ObjID    `clone:"deep"`
 	tapObj             state.ObjID    `clone:"reset"`
 	tapPlayer          state.PlayerID `clone:"reset"`
 	tapEntering        bool           `clone:"reset"`
