@@ -1,7 +1,10 @@
 package dirac
 
 import (
+	"fmt"
 	"math"
+	"path/filepath"
+	"runtime"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1677,6 +1680,10 @@ func (s *State) loseLife(k *prep, p uint8, n int) {
 func (s *State) gainLife(k *prep, p uint8, n int) {
 	if n <= 0 {
 		return
+	}
+	if payTrace {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("GAINLIFE p=%d n=%d from %s:%d\n", p, n, filepath.Base(file), line)
 	}
 	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
 		return // static_cantdraw.go: swallowed before any gain replacement
