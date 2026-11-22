@@ -2,6 +2,8 @@ package rules
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -10,6 +12,30 @@ import (
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
+
+// debugCastGate is temporary diagnostic instrumentation (delete before commit).
+func debugCastGate() bool { return os.Getenv("GORGE_DBG_CAST") == "1" }
+
+// debugCallers is temporary diagnostic instrumentation (delete before commit).
+func debugCallers(skip, n int) []string {
+	var out []string
+	for i := 0; i < n; i++ {
+		pc, _, _, ok := runtime.Caller(skip + i + 1)
+		if !ok {
+			break
+		}
+		f := runtime.FuncForPC(pc)
+		if f == nil {
+			break
+		}
+		name := f.Name()
+		if i := strings.LastIndex(name, "/"); i >= 0 {
+			name = name[i+1:]
+		}
+		out = append(out, name)
+	}
+	return out
+}
 
 // commanderTaxFor composes base with the CR 903.8 commander tax: an
 // additional generic {2} for each previous time id has been cast from the
@@ -292,6 +318,14 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	// differ from this pass -- a targeted zero-spend carrier under-credits
 	// and stays withheld rather than promising a repricing it has not proved.
 	desc := offerPayment(id, ability, scope)
+	if debugCastGate() {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Into Thin Air" {
+			fmt.Fprintf(os.Stderr, "DBGCAST id=%d %q base=%s hyp=%v pool=%v reduce=%d stack:\n", id, o.Face().Name, formatCost(*base), hyp, e.G.Players[p].Pool, len(statics.reduce))
+			for i, pc := range debugCallers(2, 10) {
+				fmt.Fprintf(os.Stderr, "   #%d %s\n", i, pc)
+			}
+		}
+	}
 	if !ability {
 		desc.NoMana = manaSpendCastBan(e.G, id)
 	}
@@ -305,6 +339,9 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
 	}
 	if !e.manaFeasiblePricedP(p, desc, base, &mods, tax, delve, hyp) {
+		if debugCastGate() {
+			fmt.Fprintf(os.Stderr, "DBGCAST-FEAS-FAIL id=%d mods=%+v\n", id, mods)
+		}
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
 		// exactly those potential reductions; target-dependent raises/floors

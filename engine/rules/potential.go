@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"math"
+	"os"
 	"slices"
 	"strings"
 
@@ -149,8 +150,13 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 	restricted := false
 	tapExtra := e.tapExtraTriggerOnBoard()
 	var sparePass state.Mana // the fee-only mana the last pass found (potentialSpareGrew)
+	zonePrinted := os.Getenv("GORGE_DBG_CAST") != "1"
 	for {
 		progressed := false
+		if !zonePrinted {
+			fmt.Fprintf(os.Stderr, "DBGZONE p=%d ids=%v\n", p, zone)
+			zonePrinted = true
+		}
 		for zi, id := range zone {
 			o := e.G.Obj(id)
 			if o == nil || o.Face() == nil {
@@ -164,6 +170,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 			if !sp.walked {
 				sp.walked = true
 				sp.start = int32(len(flat))
+				dbg := os.Getenv("GORGE_DBG_CAST") == "1"
 				if mem, ok := rec.potentialMembers(p, zi); ok {
 					if walkCacheVerify {
 						var fresh []*cards.SA
@@ -184,6 +191,9 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					flat = e.appendAvailableManaAbilitiesGate(flat, nil, p, id, true)
 				}
 				sp.end = int32(len(flat))
+				if dbg {
+					fmt.Fprintf(os.Stderr, "DBGOBJ p=%d id=%d %q tapped=%v members=%d empty=%v\n", p, id, o.Face().Name, o.Tapped, sp.end-sp.start, lw.manaWalkEmpty(board, o, id, o.Face()))
+				}
 				for range sp.end - sp.start {
 					admitted = append(admitted, false)
 				}
@@ -260,6 +270,13 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 		if !progressed {
 			break
 		}
+	}
+	if os.Getenv("GORGE_DBG_CAST") == "1" {
+		fmt.Fprintf(os.Stderr, "DBGPOT p=%d payment=%v out=%v nmembers=%d members:", p, payment != nil, out, len(flat))
+		for _, ma := range flat {
+			fmt.Fprintf(os.Stderr, " %v", ma)
+		}
+		fmt.Fprintln(os.Stderr)
 	}
 	clear(flat)
 	e.hypPool().pm = potentialManaScratch{members: flat[:0], admitted: admitted[:0], spans: spans[:0], own: own[:0]}
