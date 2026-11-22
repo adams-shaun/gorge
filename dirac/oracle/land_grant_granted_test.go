@@ -99,3 +99,46 @@ func TestLandGrantArixmethesOffRefused(t *testing.T) {
 	defer func() { dirac.DebugLandGrantAltOff = false }()
 	landGrantRefusedNames(t, landGrantPairDeck, []string{"Ashaya, Soul of the Wild", "Arixmethes, Slumbering Isle"}, []string{"Citanul Hierophants"})
 }
+
+// A granted mana ability on a land under Stormtide Leviathan (CR 305.6, 605.3b):
+// Weirding Wood's "{T}: Add two mana of any one color" beside the land's own
+// ability and the intrinsic {U}.
+func landGrantWoodDeck() []string {
+	d := slices.Clone(landGrantAltShared)
+	return append(d, "Weirding Wood", "Weirding Wood", "Careful Cultivation", "Rishkar, Peema Renegade", "Imprisoned in the Moon")
+}
+
+// TestFourSeatLandGrantWeirdingWoodLockstep: no seed diverges or stalls, and a
+// Weirding Wood meets the Leviathan on the battlefield.
+func TestFourSeatLandGrantWeirdingWoodLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	reached := 0
+	check := func(g *GorgeSide, _ Side) *Divergence {
+		var wood, lev bool
+		for p := range 4 {
+			for _, id := range g.E.G.Zone(state.ZBattlefield, state.PlayerID(p)) {
+				if o := g.E.G.Obj(id); o != nil && o.Face() != nil {
+					wood = wood || o.Face().Name == "Weirding Wood"
+					lev = lev || o.Face().Name == "Stormtide Leviathan"
+				}
+			}
+		}
+		if wood && lev {
+			reached++
+		}
+		return nil
+	}
+	deck := landGrantWoodDeck()
+	pod := [4][]string{deck, deck, deck, deck}
+	play := fourSeatSetPlay(t, edhSet(t), pod, nil, check, nil, func(seed uint64) Policy { return combatPolicy(seed, nil) })
+	for seed := uint64(1); seed <= 40; seed++ {
+		if res := play(seed); res.Div != nil || res.StallUnmodelled || res.Stall == "kernel landgrant" {
+			t.Errorf("seed %d: div %v stall %q", seed, res.Div, res.Stall)
+		}
+	}
+	if reached == 0 {
+		t.Fatal("a Weirding Wood never met the Leviathan")
+	}
+}
