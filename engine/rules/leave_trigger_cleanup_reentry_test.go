@@ -20,8 +20,8 @@ func TestLTBCleanupKeepsReenteredSourceRemembered(t *testing.T) {
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Creature.OppCtrl | TgtPrompt$ Select target creature an opponent controls | RememberChanged$ True\n"+
 		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | Execute$ OnLeave | TriggerDescription$ When CARDNAME leaves the battlefield, return the exiled card.\n"+
-		"SVar:OnLeave:DB$ ChangeZone | Origin$ Exile | Destination$ Hand | Defined$ Remembered | SubAbility$ DBCleanup\n"+
-		"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n"+
+		"SVar:OnLeave:DB$ ChangeZone | Origin$ Exile | Destination$ Hand | Defined$ Remembered | SubAbility$ ClearHost\n"+
+		"SVar:ClearHost:DB$ Cleanup | ClearRemembered$ True\n"+
 		"Oracle:x\n")
 	removal := card(t, "Name:Vindicate\nManaCost:1 B W\nTypes:Instant\n"+
 		"A:SP$ Destroy | ValidTgts$ Permanent | TgtPrompt$ Select target permanent\nOracle:x\n")
