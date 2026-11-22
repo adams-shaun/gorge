@@ -46,6 +46,8 @@ func exileGraveManaWhy(c lCost, ps *params) string {
 	switch {
 	case (ps.str("TriggersWhenSpent") != ""):
 		return base + " and a TriggersWhenSpent$ rider"
+	case graveManaFee(c, ps):
+		return base + ": graveyard mana ability with a mana fee (ActivationZone$ Graveyard, a mana cost beside the CARDNAME exile)"
 	case (ps.str("ActivationZone") != "") || c.ExileGSelf || c.exileGCard:
 		return base + " on an ability activated from the graveyard (ActivationZone$ / CARDNAME exile)"
 	case (ps.str("RestrictValid") != ""):
@@ -54,6 +56,18 @@ func exileGraveManaWhy(c lCost, ps *params) string {
 		return base + " and a SubAbility$ rider"
 	}
 	return base
+}
+
+// graveManaFee: a mana ability activated from the graveyard whose cost is a
+// mana fee beside the CARDNAME exile (Jack-o'-Lantern's {1}). gorge lists it as
+// a priority activation only while a mana floats, pays the fee from the
+// floating pool (colours in W U B R G order) and asks a colour; the kernel has
+// no graveyard source with a fee the pool pays (gravemana_probe_test.go in
+// engine/rules records the option lists).
+func graveManaFee(c lCost, ps *params) bool {
+	m := c.Mana
+	fee := m.Generic != 0 || m.X || m.XX || m.Pips != [5]int{} || m.C != 0 || len(m.Hybrid) != 0 || len(m.Twobrid) != 0 || len(m.Phyrexian) != 0
+	return fee && ps.str("ActivationZone") == "Graveyard" && c.exileGCard
 }
 
 // exileGraveManaCost reports whether the lowered cost of a mana ability is
