@@ -93,7 +93,13 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+		// gorge's UnlessCostResolved folds an unless Draw<X> (and DamageYou<X>,
+		// Discard<Y>) only when the SVar resolves above zero (engine/effects/
+		// unless.go): a zero or unbound X stays raw and hard-declines, so the
+		// unless and effect-election shapes price a 0 as unpayable. The
+		// trigger's own Draw cost window is the exception payAnswerGate opens:
+		// gorge's triggeredCostDrawCounts asks only that the count resolve.
+		return amt > 0
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
 	case payKindReveal:
