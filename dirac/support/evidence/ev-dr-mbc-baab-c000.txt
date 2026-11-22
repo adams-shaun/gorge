@@ -82,6 +82,7 @@ Nemesis Mask
 Night's Whisper
 Nissa's Judgment
 Oathsworn Giant
+Odric, Lunarch Marshal
 Ogre Arsonist
 Orthion, Hero of Lavabrink
 Orzhov Enforcer
