@@ -309,6 +309,21 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 	return !decided || uint8(a.ManaColors)&want != 0
 }
 
+// unlessStoreUnpriced: slot o is a storage battery (Mercadian Bazaar's "{T},
+// Remove any number of storage counters: Add {R} for each") and the walk is an
+// unless window's census. Its announced X is no fixed amount, so gorge's
+// unlessWindowUnits lists no unit for it and the unless offer cannot count its
+// counters: with a Swamp beside a Bazaar holding counters, "sacrifice unless
+// you pay {2}" posed decline only in gorge, while the walk here reached {2}
+// through the battery and offered pay too. A ward's window keeps the offer.
+func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
+	if s.g.turnF&turnUnlessWin == 0 {
+		return false
+	}
+	a := k.ctrAbOf(s.cardAt(o))
+	return a != nil && kop.StoreManaAb(a) // a == nil: a non-ctr gap mixed into censusPayGaps' otherGaps mask (Remote Farm, Vivid Grove)
+}
+
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
 // census prices (rules paid_mana_census.go unlessWindowUnits' SubCounter arm,
 // pay.ManaSubCounterOnlyCost): a bare {T} plus a fixed, source-anchored
