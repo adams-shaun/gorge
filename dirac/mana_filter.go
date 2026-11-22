@@ -1471,10 +1471,13 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 // phasedFallback: the plain run found no script after spending its whole node
 // budget on a board whose gaps are filters alone, one of them a repeatable
 // fee-only one -- the case gorge's phased run takes outside its own scope
-// (scriptSearch.plainLimited). Boards with another kind of gap keep the plain
-// run's answer.
-func (fs *filtSearch) phasedFallback() bool {
-	return fs.feeOnly && !fs.other.any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
+// (scriptSearch.plainLimited). A Taps-deferred source beside the filters (the
+// Islands under Scald) is no other kind of gap here: gorge's phased run walks
+// it with the free gaps in its first phase, ahead of the funding and the fee
+// gaps (tapsDef is the board's Taps-deferred mask). Boards with another
+// kind of gap keep the plain run's answer.
+func (fs *filtSearch) phasedFallback(tapsDef slotMask) bool {
+	return fs.feeOnly && !fs.other.andNot(tapsDef).any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
 }
 
 // filtFunders counts p's untapped battlefield sources that are no gap and
@@ -1592,7 +1595,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				fs.stall = ph.stall
 			}
 		}
-	} else if !found && fs.phasedFallback() {
+	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p)) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)

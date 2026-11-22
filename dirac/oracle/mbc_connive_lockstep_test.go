@@ -7,5 +7,5 @@ import "testing"
 // 407): gorge and dirac must tap the same sources and leave the same pool.
 func TestMBCConniveReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "autopay_sink_filter_conversion_plan")
+	stdReproNamed(t, "phased_fallback_beside_taps_deferred_gap")
 }
