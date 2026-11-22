@@ -35,7 +35,12 @@ func (s *State) attacksIfAbleExt(k *prep, in *kop.Instr) {
 // (kop.AttacksOpponent): only the player satisfies it, so no planeswalker or
 // battle is offered as its target, the way gorge's encoreAttackDefender names
 // the sole defender.
-func (s *State) attackPlayerOnly(k *prep, sl Slot) bool { return s.mSl(k, mechAttacksPlayer, sl) }
+//
+// Beside an attack tax the named pair must cost nothing to bind the offers
+// (atkTaxEncoreCharged: gorge's keep-loop reads the best over free pairs only).
+func (s *State) attackPlayerOnly(k *prep, sl Slot) bool {
+	return s.mSl(k, mechAttacksPlayer, sl) && !s.atkTaxEncoreCharged(k, sl)
+}
 
 // attackDutyOn reports whether the table can mark an attack duty at all.
 func attackDutyOn(k *prep) bool {
