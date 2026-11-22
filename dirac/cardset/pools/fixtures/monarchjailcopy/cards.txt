@@ -1,0 +1,6 @@
+# a copy of Palace Jailer's exile trigger keeps the CR 610.3b mark (dirac/monarchjail_copy_test.go)
+Grizzly Bears
+Island
+Palace Jailer
+Plains
+Strionic Resonator
