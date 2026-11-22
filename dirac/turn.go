@@ -555,11 +555,14 @@ func (s *State) sba(k *prep) bool {
 		if s.cmdZoneAsk() { // CR 903.9a, before the lose checks (zone_cmdzone.go)
 			return true
 		}
-		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
+		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) && !s.retAuraAskQueued() {
 			// state-based checks unattach (each pass: a host that died in
 			// the last one too), and a casualty's parked ask or a legend ask
 			// is still that pass (CR 704.3, 704.5n, 704.5p): gorge's check
-			// returns at its first order ask and its answer re-enters it
+			// returns at its first order ask and its answer re-enters it. A
+			// returning Aura's host ask (queueAskRet) is posed in the middle
+			// of the batch that returned it, before the next pass: the
+			// departed host's Equipment stays attached until it is answered
 			s.lingerDrain(k)
 		}
 		// gorge's loss order (checkLoseConditions): every life loss, then
