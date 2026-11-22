@@ -323,6 +323,9 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 		}
 		return false
 	}
+	if k.exileGOf(t.cardAt(sl)) {
+		return fs.exileGGap(nc, &cs, colours) // the exile pick, then the colour (mana_exilegrave.go)
+	}
 	if k.sacXOf(t.cardAt(sl)) {
 		// A sacrifice-another source asks no colour: its whole production
 		// floats at once (sacXDo, gorge's commit order); only the "which

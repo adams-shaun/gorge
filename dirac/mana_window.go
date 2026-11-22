@@ -4415,6 +4415,9 @@ func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	if k.sacXOf(s.cardAt(s.g.winSrc)) {
 		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (gorge's "sacrifice" choose)
 	}
+	if k.exileGOf(s.cardAt(s.g.winSrc)) {
+		d.Sub = ChWinExile
+	}
 	s.winTapOptions(k, p, d)
 	return true
 }
