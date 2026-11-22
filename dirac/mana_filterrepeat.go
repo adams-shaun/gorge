@@ -409,13 +409,12 @@ func (s *State) filtUsefulCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
 
 // filtPlayDesc is the payment of the play a filter search prices, as gorge's
 // scriptPlayDesc names it for the fee-stall prune's pool: a cast's spell, an
-// activation's ability. nil for any other play (gorge's prune fails open
+// activation's ability. ok false for any other play (gorge's prune fails open
 // there, and the kernel keeps reading the payment being made).
-func (s *State) filtPlayDesc(k *prep, a Action) *payDesc {
+func (s *State) filtPlayDesc(k *prep, a Action) (d payDesc, ok bool) {
 	switch a.Kind() {
 	case AkCast, AkActivate:
-		d := s.grantPayDescOf(k, a)
-		return &d
+		return s.grantPayDescOf(k, a), true
 	}
-	return nil
+	return payDesc{}, false
 }
