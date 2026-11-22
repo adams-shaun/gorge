@@ -9,23 +9,21 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// The CounterTypes$ lockstep: the four sole-blocked
+// The CounterTypes$ lockstep: the five sole-blocked
 // `CounterTypes$` carriers -- one PutCounter per listed kind (gorge
 // effPutCounter's OneOfEach arm, engine/effects/counters_put.go). Two
-// power-up activations (Captain Marvel, Quicksilver) and two Renew
+// power-up activations (Captain Marvel, Quicksilver), one ETB trigger
+// (Abigale, after an Animate that removes all abilities) and two Renew
 // activations from the graveyard (Champion of Dusan, Qarsi Revenant), so
 // each kind's counter lands as its own instruction and the keyword counters
-// (CR 122.1b) grant through every layer walk. The fifth carrier, Abigale,
-// Eloquent First-Year, is refused by name (its keyword counters beside its
-// Animate's lose-all-abilities effect diverge; dirac/support/refused), so
-// raw lockstep cannot play it.
+// (CR 122.1b) grant through every layer walk.
 
 var ktDecks = [][2][]cardset.Entry{{
-	// the W/R power-up deck: the two power-up carriers and vanilla
-	// creatures to animate and target
+	// the W/R power-up deck: the two power-up carriers, Abigale's ETB
+	// trigger and vanilla creatures to animate and target
 	{
 		{Name: "Captain Marvel, Earth's Protector", Count: 4}, {Name: "Quicksilver, Brash Blur", Count: 4},
-		{Name: "Grizzly Bears", Count: 12},
+		{Name: "Abigale, Eloquent First-Year", Count: 4}, {Name: "Grizzly Bears", Count: 8},
 		{Name: "Plains", Count: 10}, {Name: "Mountain", Count: 10},
 	},
 	// the G/B Renew deck: the two Renew carriers (they need creatures in
@@ -37,14 +35,15 @@ var ktDecks = [][2][]cardset.Entry{{
 	},
 }}
 
-// ktCarriers names each counter carrier (every one resolves from an
-// activation, cast or grave Renew).
+// ktCarriers names each counter carrier and whether its counter ability
+// resolves from a cast (Abigale's ETB trigger) or an activation.
 var ktCarriers = []struct {
 	name string
 	act  bool
 }{
 	{"Captain Marvel, Earth's Protector", true},
 	{"Quicksilver, Brash Blur", true},
+	{"Abigale, Eloquent First-Year", false},
 	{"Champion of Dusan", true},
 	{"Qarsi Revenant", true},
 }
