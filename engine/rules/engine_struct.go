@@ -103,6 +103,11 @@ type Engine struct {
 	// expiringControl guards expireControl against re-entry through the
 	// ControlChange events it emits.
 	expiringControl bool `clone:"reset"`
+	// sbaLossHeld holds CR 800.4a's end of a departed player's control effects
+	// while the SBA check that made the loss applies its batch (CR 704.3: a
+	// creature with lethal damage still dies in the check its stolen controller
+	// loses); checkStateBased sets it around the batch and ends the effects after.
+	sbaLossHeld bool `clone:"reset"`
 	// reconcilingControlStatics guards reconcileControlStatics (engine/rules/
 	// control_static.go) against re-entry through the ControlChange events
 	// IT emits; the same intent-boundary discipline as expiringControl.
