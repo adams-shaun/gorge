@@ -368,7 +368,13 @@ func (e *Engine) checkStateBased() {
 		// wait for the pass after the answer.
 		if g := e.firstLegendGroup(groups); g != nil {
 			if e.pending == nil && e.choosing == chooseNone && e.legendBatch == nil {
-				e.releaseLossHold()
+				// end the hold on a departed player's control effects (sbaLossHeld): a creature that
+				// left in the batch is already gone, one still standing returns to the controller the
+				// surviving effects give it
+				if e.sbaLossHeld {
+					e.sbaLossHeld = false
+					e.expireControl(controlOnEvent)
+				}
 				e.sweepDepartedPlayers(tried)
 				e.parkLegendChoice(*g, b)
 				if e.legendBatch != nil {
@@ -390,7 +396,13 @@ func (e *Engine) checkStateBased() {
 		}
 		askedBefore := e.pending
 		e.applySBABatch(&b)
-		e.releaseLossHold()
+		// end the hold on a departed player's control effects (sbaLossHeld): a creature that
+		// left in the batch is already gone, one still standing returns to the controller the
+		// surviving effects give it
+		if e.sbaLossHeld {
+			e.sbaLossHeld = false
+			e.expireControl(controlOnEvent)
+		}
 		forgetHealedCasualties(e.G, &b, tried)
 		asked := e.pending != nil && e.pending != askedBefore
 		if asked {
@@ -1498,14 +1510,4 @@ func (e *Engine) releasePendingDecisionOfDepartedPlayer() {
 	e.pending = nil
 	e.dropDepartedFlow(d)
 	e.resumeTriggerDrain()
-}
-
-// releaseLossHold ends the hold on a departed player's control effects (see
-// sbaLossHeld) and ends them: a creature that left in the batch is already gone,
-// one still standing returns to the controller the surviving effects give it.
-func (e *Engine) releaseLossHold() {
-	if e.sbaLossHeld {
-		e.sbaLossHeld = false
-		e.expireControl(controlOnEvent)
-	}
 }
