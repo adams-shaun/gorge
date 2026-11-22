@@ -8,10 +8,13 @@ import (
 // TestRestrictedManaCostRefusalNamesThePart pins the gap4-07 carriers'
 // refusals: a spend-restricted mana ability whose cost goes beyond a plain {T}
 // refuses by naming the cost part (a mana fee, a life
-// payment, a counter cost, a sacrifice or tap of another permanent) instead of
+// payment, a counter cost, a sacrifice of another permanent) instead of
 // the old two-class reason, and the old exact two classes are gone. No card is
 // lowered until the kernel's restricted-cost gap has lockstep evidence
-// (AGENTS.md's lockstep rule; the follow-up ticket).
+// (AGENTS.md's lockstep rule; the follow-up ticket). "A tap of another
+// permanent" no longer has a carrier: Grand Architect lowers (see
+// TestRestrictedTapXSourceLowers); the refusal path in lower_restrictedmana.go
+// stays.
 func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 	const prefix = "mana restriction on a source whose cost goes beyond {T}: "
 	cases := []struct{ name, part string }{
@@ -24,7 +27,6 @@ func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 		{"Crucible of the Spirit Dragon", "a counter cost"},
 		{"Cryptic Trilobite", "a counter cost"},
 		{"Throne of Makindi", "a counter cost"},
-		{"Grand Architect", "a tap of another permanent"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -67,6 +69,16 @@ func TestRestrictedLifeSourcesLower(t *testing.T) {
 func TestRestrictedSacSelfSourceLowers(t *testing.T) {
 	for _, rf := range lowerCorpusCard(t, "Jeweled Lotus").Refusals {
 		t.Errorf("Jeweled Lotus: refused: %s", rf.Reason)
+	}
+}
+
+// TestRestrictedTapXSourceLowers: a sole restricted "Tap an untapped creature
+// you control: Add" ability (Grand Architect, {C}{C} for artifact spells and
+// artifact abilities) lowers; kop.RestrictedTapXOneShape names its shape and
+// the kernel prices it in dirac mana_tapanother.go.
+func TestRestrictedTapXSourceLowers(t *testing.T) {
+	for _, rf := range lowerCorpusCard(t, "Grand Architect").Refusals {
+		t.Errorf("Grand Architect: refused: %s", rf.Reason)
 	}
 }
 

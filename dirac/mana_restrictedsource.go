@@ -339,6 +339,9 @@ func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *pay
 	if DebugRestrictedSource == 1 || DebugRestrictedSource == 2 {
 		return DebugRestrictedSource == 1
 	}
+	if DebugRestrTapXMutate >= 2 && kop.RestrictedTapXOneShape(a) && (DebugRestrTapXMutate == 2 && d.class == pdAct || DebugRestrTapXMutate == 3 && d.class == pdSpell) {
+		return false // the restricted tap-another lockstep mutation (mana_tapanother.go)
+	}
 	switch d.class {
 	case pdSpell:
 		return s.restrSpellMatch(k, p, sl, a.ManaRestrict, d.card, d.og)

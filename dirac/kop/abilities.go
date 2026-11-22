@@ -383,12 +383,15 @@ func SecondTapAnotherManaAb(cd *CardDef, first, j int) bool {
 }
 
 // TapXMana is either tap-other-permanents mana shape.
-func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) }
+func TapXMana(a *Ability) bool {
+	return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) || RestrictedTapXOneShape(a)
+}
 
 // BoundedOnceManaAb reports whether a is a no-{T} repeatable mana source whose
 // gorge potential bound admits its fixed production once: Krark-Clan
 // Ironworks' sacrifice (SacAnyManaAb) or Urza's tap of an untapped artifact
-// ({U}, TapXManaOne of one fixed colour). Its census is unrelaxable (a
+// ({U}, TapXManaOne of one fixed colour) or Grand Architect's restricted {C}{C}
+// (RestrictedTapXOneShape: PotentialMana admits it once). Its census is unrelaxable (a
 // repeatable cost that is no bounded tap part for the relaxation's once
 // proof), so every census-incomplete insufficient play takes a search slot,
 // but the plays searched are the gaps walk's.
@@ -397,7 +400,7 @@ func BoundedOnceManaAb(a *Ability) bool {
 		return true
 	}
 	_, fixed := TapXFixedColour(a)
-	return fixed && TapXManaOne(a)
+	return fixed && (TapXManaOne(a) || RestrictedTapXOneShape(a))
 }
 
 // TapXFixedColour is the colour of tap-another ability a's production when it
@@ -789,7 +792,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
