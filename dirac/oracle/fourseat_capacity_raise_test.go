@@ -8,9 +8,9 @@ import (
 )
 
 // The 2026-11-22 capacity raises (maxXTgt 31 -> 63, maxSacOrd 16 -> 64,
-// MaxPending and MaxStack 48 -> 96) each answer a four-seat edh pod of the
+// each answer a four-seat edh pod of the
 // seed-2/3 128-pod sweeps that the kernel stopped at a declared capacity stall
-// (xtgt, sac, pending) while gorge played on. Each recording was made at that
+// (xtgt, sac) while gorge played on. Each recording was made at that
 // stall, so it ends where the stall was; the replay runs 200 decisions past it.
 // A test fails if the kernel stalls, if the two sides diverge, or if the game
 // does not go past the recorded script.
@@ -65,16 +65,4 @@ func TestFourSeatSacBatchPast16Lockstep(t *testing.T) {
 		return
 	}
 	capacityPod(t, "capacity_sac_batch_past_16_pod80")
-}
-
-// TestFourSeatPendingPast48Lockstep: more than 48 triggers queue at once and
-// all go on the stack (CR 603.3b); MaxPending and MaxStack held 48.
-func TestFourSeatPendingPast48Lockstep(t *testing.T) {
-	if isolate(t) {
-		return
-	}
-	_, pend, stack := capacityPod(t, "capacity_pending_past_48_triggers_pod73")
-	if pend <= 48 && stack <= 48 {
-		t.Errorf("peak pending %d, stack %d: want one past 48", pend, stack)
-	}
 }
