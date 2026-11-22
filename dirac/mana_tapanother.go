@@ -689,6 +689,13 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 	rs.gaps = rs.gaps.or(rs.def)
 	rs.anyDiff = s.anyDifferentGaps(k, p)
 	rs.gaps = rs.gaps.or(rs.anyDiff)
+	if gapFilteredPlay(a) && rs.gaps.any() {
+		// gorge's prefix search keeps only the gaps the play's payment can
+		// spend (scriptSpendableGaps, CR 106.6): Master of Dark Rites' mana
+		// pays no Villain, and its sacrifice never reaches a discount
+		d := s.grantPayDesc(k, a)
+		rs.gaps = s.gapSpendableMask(k, rs.gaps, &d)
+	}
 	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
