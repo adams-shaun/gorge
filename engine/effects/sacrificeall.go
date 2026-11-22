@@ -57,8 +57,11 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			return
 		}
-		if remember {
+		if remember || id == c.Source {
+			// The source's own LKI is kept even unflagged (see effSacrifice).
 			c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
+		}
+		if remember {
 			// Forge's RememberSacrificed$ also remembers the card (mirroring
 			// effSacrifice's rememberLKICapture), which is what a following
 			// ConditionDefined$ Remembered, Remembered$Amount or

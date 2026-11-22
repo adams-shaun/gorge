@@ -464,10 +464,16 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	remember := sa.ParamStr(cards.PKRememberSacrificed) != ""
 	// rememberLKICapture captures the sacrificed object's LKI (before the
 	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
-	// to. Idempotent per call site; called exactly once per sacrificed object.
+	// to, or when the object is this ability's own source: a source that
+	// sacrifices itself mid-resolution (Magmasaur's "sacrifice CARDNAME and
+	// it deals damage equal to the number of +1/+1 counters on it") is read
+	// back through sacrificedSourceLKI (CR 608.2h), with or without the
+	// flag. Called exactly once per sacrificed object.
 	rememberLKICapture := func(id state.ObjID) {
-		if remember {
+		if remember || id == c.Source {
 			c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
+		}
+		if remember {
 			// Forge's RememberSacrificed$ also remembers the card, which is
 			// what a following ConditionDefined$ Remembered, Remembered$Amount
 			// or RememberedCard reads (Braids, Scapeshift, Victimize).
