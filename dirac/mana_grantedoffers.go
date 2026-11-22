@@ -2298,6 +2298,18 @@ func (g *grantSrch) settle(t *State) bool {
 // copy whose trigger is stacked, as does a step whose own cost queued one (Haunted
 // Screen's 1 life heard by Marina Vendrell's Grimoire, CR 119.4, 603.3).
 func (g *grantSrch) next(t *State, sl Slot) bool {
+	// gorge asks each source's abilities afresh at every node, so a grant the
+	// step ended (its holder sacrificed, or a land count its condition reads
+	// fallen under The World Tree's six) is offered by no node below it
+	// (mana_grantlive.go).
+	sv := g.refreshGrants(t)
+	ok := g.nextRefreshed(t, sl)
+	g.restoreGrants(&sv)
+	return ok
+}
+
+// nextRefreshed is next once the grant lists are read on t.
+func (g *grantSrch) nextRefreshed(t *State, sl Slot) bool {
 	taps := g.tapTriggers(t, sl)
 	if !taps && t.npend == 0 {
 		return g.visit(t)
