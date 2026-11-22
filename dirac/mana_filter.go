@@ -2661,17 +2661,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if !fs.tick() {
 						return false
 					}
-					if t.filtIntrinsicFree(k, sl) {
-						// a granted type's intrinsic {c} is listed after the printed filter
-						if fs.filtColours(k, t, sl, funded) || fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-							return true
-						}
-						continue
-					}
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
-					}
-					if fs.filtColours(k, t, sl, funded) {
+					if fs.twoAbilityGap(k, t, sl, funded) {
 						return true
 					}
 				case free:
@@ -3309,4 +3299,15 @@ func (fs *filtSearch) coveredSpendable(k *prep, t *State, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// twoAbilityGap is visit's answer order for a gap source with a free and a
+// filter ability: the {C} answer first, then the filter's colours; a granted
+// type's intrinsic {c} (filtIntrinsicFree) is listed after the printed filter,
+// so the filter's colours come first there.
+func (fs *filtSearch) twoAbilityGap(k *prep, t *State, sl Slot, funded int) bool {
+	if t.filtIntrinsicFree(k, sl) {
+		return fs.filtColours(k, t, sl, funded) || fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
+	}
+	return fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) || fs.filtColours(k, t, sl, funded)
 }

@@ -553,23 +553,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
-		if pc.altCol != 0 && s.addAltExcl(k, sl, pc, a) {
-			continue // own ability or the granted intrinsic one (static_landgrantalt.go)
-		}
-		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
-		if pc.manaOne {
-			s.addOneColour(a, pc.manaN)
-		}
-		s.addReflectOne(k, a, sl, pc)
-		s.addEachPick(k, a, sl, pc)
-		if k.gen != nil && k.gen.anyTapExtra {
-			xv := s.srcExtra(k, sl, pc)
-			for c := range xv {
-				if xv[c] > 0 {
-					a.addUnits(1<<c, xv[c])
-				}
-			}
-		}
+		s.availPlainUnit(k, sl, pc, a)
 	}
 	if k.availExt {
 		s.availExt(k, p, a) // pain budget, Phyrexian life (mana_pain.go)
@@ -2746,6 +2730,30 @@ func (pk *planner) takeXv(nd *[kop.NumManaKinds]int, ndAny *int, ty *utype, k in
 			*ndAny = max(*ndAny-v, 0)
 		} else {
 			nd[c] = max(nd[c]-v, 0)
+		}
+	}
+}
+
+// availPlainUnit is availForMode's ordinary census unit for the source at sl:
+// a land whose own ability and granted intrinsic one are alternatives of one
+// tap (static_landgrantalt.go addAltExcl), else its production with its
+// one-colour, reflected, each-colour pick and tap-extra companions.
+func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
+	if pc.altCol != 0 && s.addAltExcl(k, sl, pc, a) {
+		return // own ability or the granted intrinsic one
+	}
+	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	if pc.manaOne {
+		s.addOneColour(a, pc.manaN)
+	}
+	s.addReflectOne(k, a, sl, pc)
+	s.addEachPick(k, a, sl, pc)
+	if k.gen != nil && k.gen.anyTapExtra {
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			if xv[c] > 0 {
+				a.addUnits(1<<c, xv[c])
+			}
 		}
 	}
 }
