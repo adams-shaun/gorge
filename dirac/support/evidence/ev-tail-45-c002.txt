@@ -2,6 +2,7 @@ A-Exhibition Magician
 Abyssal Specter
 Acolyte of Xathrid
 Acridian
+Aether Barrier
 Akki Raider
 Alchemist's Vial
 Alert Shu Infantry
@@ -14,6 +15,7 @@ Arc Blade
 Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
+Arwen Undómiel
 Ashes to Ashes
 Asmira, Holy Avenger
 Assault Formation
@@ -69,6 +71,7 @@ Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
 Dauntless Escort
+Dauthi Jackal
 Deadeye Tracker
 Defiant Elf
 Defiler of Souls
@@ -124,6 +127,7 @@ Gideon's Phalanx
 Glade Watcher
 Gleam of Authority
 Gloomdrifter
+Goblin Fireleaper
 Goblin Hero
 Goldenhide Ox
 Golgari Signet
@@ -132,6 +136,7 @@ Grinning Demon
 Guardian Augmenter
 Haazda Officer
 Hag of Death's Legion
+Havengul Skaab
 Haze of Pollen
 Heart Sliver
 Heartbeat of Spring
@@ -152,6 +157,7 @@ Inquisition of Kozilek
 Iron Lad, Young Avenger
 Ironclad Slayer
 Island
+Izzet Charm
 Jawbone Skulkin
 Jewel-Eyed Cobra
 Jolrael, Empress of Beasts
@@ -172,6 +178,7 @@ Lawbringer
 Leatherback Baloth
 Lightning Reaver
 Lonely Sandbar
+Looming Hoverguard
 Lowland Giant
 Loxodon Sergeant
 Magus of the Order
@@ -188,6 +195,7 @@ Monk Idealist
 Mountain
 Ms. Marvel, Elastic Ally
 Mudhole
+Murasa Pyromancer
 Murasa Rootgrazer
 Mycoid Shepherd
 Mystic Penitent
@@ -238,6 +246,7 @@ Renata, Called to the Hunt
 Repeal
 Resounding Roar
 Respite
+Revenant Patriarch
 Reverent Hunter
 Righteous Confluence
 River Boa
@@ -278,6 +287,7 @@ Sovereign's Bite
 Spare Supplies
 Spectator Seating
 Spider-Man, Miles Morales
+Spire Winder
 Splinterfright
 Spoils of Evil
 Sporesower Thallid
@@ -289,6 +299,7 @@ Stitch Together
 Stoic Builder
 Storm of Steel
 Stormchaser Chimera
+Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
 Sultai Flayer
@@ -328,6 +339,7 @@ Volatile Arsonist
 Voracious Vacuum
 Wake of Vultures
 Warhost's Frenzy
+Watcher of the Spheres
 Weakstone
 Weird Harvest
 Welding Sparks
@@ -341,6 +353,7 @@ Withstand Death
 Wizard's Staff
 Wriggling Grub
 Wu Elite Cavalry
+Yahenni, Undying Partisan
 Yargle and Multani
 Yotian Medic
 Zhang He, Wei General

@@ -2024,7 +2024,6 @@ Irrigated Farmland
 Isolated Chapel
 Ivory Cup
 Ivorytusk Fortress
-Izzet Charm
 Izzet Keyrune
 Jabs, Mistress of Mockery
 Jace Reawakened
@@ -4588,7 +4587,6 @@ Warship Flight Crew
 Wasp Lancer
 Waste Not
 Watcher Sliver
-Watcher of the Spheres
 Watcher of the Wayside
 Waterkin Shaman
 Waterspout Warden
