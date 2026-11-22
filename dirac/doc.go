@@ -166,6 +166,11 @@
 //     ability goes on the stack. A tap cost with exactly N candidates is not
 //     asked (gorge skips it); sacrifice and discard are asked even then. The
 //     chosen objects move when the cost is paid (after targets), as in gorge.
+//   - Exile pick of an exile-from-graveyard mana source (gorge KChoose
+//     "mana_exile", Molt Tender; mana_exilegrave.go): one pick of
+//     AkChoose{source: a graveyard card}, Sub ChWinExile, in graveyard order,
+//     asked even with one candidate; the card is exiled with the source's {T}
+//     and the mana floats (a colour ask follows an any-colour source's pick).
 //   - Effect discards (gorge KModes "discard", options in hand order): Sub
 //     ChDiscard, one pick per card; the picks are recorded and the cards
 //     discarded together in pick order, so the hand (and each card's

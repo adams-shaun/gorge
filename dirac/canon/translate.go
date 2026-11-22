@@ -482,8 +482,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("forage_food", src, 0)
 			}
 			return ch("forage_exile", RefNone, 0)
-		case dirac.ChCostExile:
-			return ch("exilecost", src, 0)
+		case dirac.ChCostExile, dirac.ChWinExile:
+			return ch(exileChooseKind(r.D.Sub), src, 0)
 		case dirac.ChCostReturn:
 			return ch("returncost", src, 0)
 		case dirac.ChCostPutToLib:
@@ -1245,6 +1245,16 @@ func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
 	}
 	code, _ := ChooseCode("band")
 	return Pack(ActChoose+CanonKind(code), src, RefNone, 0), true
+}
+
+// exileChooseKind is the canonical choose kind of a graveyard exile pick: gorge's
+// exilecost for a cost's, mana_exile for the pick of an exile-from-graveyard mana
+// source (dirac mana_exilegrave.go).
+func exileChooseKind(sub dirac.ChoiceKind) string {
+	if sub == dirac.ChWinExile {
+		return "mana_exile"
+	}
+	return "exilecost"
 }
 
 // dashCastOrigin reports whether z is a zone the kernel offers a dashed cast
