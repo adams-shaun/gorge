@@ -354,12 +354,11 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 			// exactly that creature (Brilliant Wings over the Eldrazi Spawn
 			// whose sac pays its {1}: gorge's replay then lists no cast, the
 			// targets are gone; tail-20 pair 5).
-			feas := true
-			if ab == 255 {
-				feas = t.spellTargetsFeasible(k, c, p) // an aura's Enchant spec is its spell target (tspec); a card with none keeps true
-			} else {
-				feas = t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)
-			}
+			// judged as the spell it is (spellTargetsFeasible probes it as one): an
+			// ability probe bars a target only an ability cannot take (Shanna's
+			// "can't be the target of abilities your opponents control" under
+			// Titanic Brawl, CR 115.2), and the cast would read as unreachable
+			feas := t.spellTargetsFeasible(k, c, p) // an aura's Enchant spec is its spell target (tspec); a card with none keeps true
 			reaches = feas && t.FeatPoolPays(p, o, 0)
 			if reaches && t.witnessEndsGameLost(k, p, c, n0) {
 				reaches = false // the sacrifices' triggers end the game against p before the cast (Pain Distributor's damage per Treasure)
