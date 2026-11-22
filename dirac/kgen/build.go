@@ -225,6 +225,9 @@ func buildCard(pt *poolTables, c *lCard) built {
 				// enumerates no colour for the production)
 				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
 			}
+			if r := exileGraveManaRefusal(a); r != "" {
+				why = r // (an exile-from-graveyard source outside the modelled shape names its restriction, rider or zone)
+			}
 			if kop.FeeComboAnyManaAb(a) {
 				// the combination search has no fee-funded form: a Combo Any
 				// source beside the filter its fee is stalls the table
