@@ -256,6 +256,9 @@ func (s *State) kickedArmOffer(k *prep, a Action) bool {
 // gorge itself produces are mirrored.
 
 func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, d *payDesc) bool {
+	if paid, hid := s.kickedPotentialSansDeferred(k, p, c, o, kc, d); hid {
+		return paid // a sorcery-speed cast the Taps-deferred sources alone fund is no play (kw_multikicker_deferred.go)
+	}
 	if s.contribPays(k, p, c, o, true) {
 		return false // the potential planner refuses a credit-bearing cast, and "kicked" is no altCastModes row (cost:credit)
 	}
