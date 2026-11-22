@@ -2126,6 +2126,15 @@ func (t *State) scriptKey(k *prep, p uint8, _ slotMask) filtKey {
 		for c := 0; c < kop.NumManaKinds; c++ {
 			if a&(1<<c) != 0 {
 				key.typed[c] = key.pool[c] - rbPlain[c]
+				if coldArtN.of(t) == nil && a&poolArtRestr == 0 {
+					// no tally and the restricted mana is no typed source's: gorge's
+					// ManaUnits cannot tell a restricted unit from a plain one, so
+					// a filter that turns a restricted unit into a plain one (Agent
+					// of Stromgald over Gwenna's creature-only mana) is the state
+					// it was; the unrestricted count would key it apart and walk a
+					// line gorge's dedup cuts
+					key.typed[c] = key.pool[c]
+				}
 				// gorge keys the tagged units by count: a Signpost's {G} beside
 				// an Elvish Spirit Guide's is not two tagged {G} (coldArtN)
 				if sx := coldArtN.of(t); sx != nil && !DebugArtKeyBit {
