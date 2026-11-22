@@ -1,11 +1,6 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const actFeeAnyColourRepro = "act_fee_anycolour_funds_hybrid"
 
@@ -15,33 +10,22 @@ const actFeeAnyColourRepro = "act_fee_anycolour_funds_hybrid"
 // Ferocious activation, {2}{G/U}{G/U}, is therefore legal on a red-and-white
 // board with the untapped Scarecrow: the tapped lands pay the two {2} fees and
 // the activation's {2}, and the Scarecrow's two activations make the {G/U}
-// pips (pool tail-45 pair 41, seed 980704, decision 482: gorge's options alone
-// carry activate(#73{Shaman of the Great Hunt})). Gorge's payment census lists
-// the paid ability and its search charges each fee from the floating mana
-// (rules/pay feeFromMana); the kernel's census prices no fee-only mana ability
-// beyond the trigger pay gate (mana_repeatpotential.go), and a fee-unit class
-// in the planner search and the manual window is far past bounded dirac code.
-// Shaman of the Great Hunt is refused by name and its recorded game still
-// diverges with it implicated.
+// pips (pool tail-45 pair 41, seed 980704, decision 482). Gorge found it once
+// its plain prefix search spent the node budget on the Scarecrow's fee
+// branches and its phased run (free gaps, covered funding, fee gaps) took
+// over, with a Taps-deferred source on the board among the gaps. The kernel's
+// phased fallback (dirac/mana_filter.go phasedFallback) used to stand down on
+// any other gap, so only gorge offered the activation. With the Taps-deferred
+// gap walked in the phased run's first phase both engines offer it and the
+// recorded game replays clean; the card is no longer refused
+// (dirac/support/unrefused.tsv) and this test pins the unrefusal's proof.
 func TestMBCShamanOfTheGreatHuntReprosLockstep(t *testing.T) {
 	t.Parallel()
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+	res := replayRawRepro(t, actFeeAnyColourRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", actFeeAnyColourRepro, res.Div.At, res.Div)
 	}
-	found := false
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Shaman of the Great Hunt" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != actFeeAnyColourRepro {
-			t.Fatalf("Shaman of the Great Hunt's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, actFeeAnyColourRepro)
-		}
-		checkRefusedRepro(t, e)
-		found = true
-	}
-	if !found {
-		t.Fatal("Shaman of the Great Hunt has no dirac/support/refused entry: gorge offers its Ferocious activation through a repeatable fee-only mana ability the kernel never prices")
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", actFeeAnyColourRepro, res.Stall)
 	}
 }
