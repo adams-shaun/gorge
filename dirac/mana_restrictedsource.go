@@ -83,6 +83,13 @@ type payDesc struct {
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
+	// permSrc: the activated ability's source was a battlefield permanent this
+	// build's own cost moved (payDescNow read the source's entry LKI record,
+	// zone_lki.go), so the payment is still the battlefield activation it was
+	// announced as: a battlefield-only restriction (kop.ZoneNone, kgen's
+	// inZoneBattlefield) matches it by card (CR 106.6, 601.2g-h; gorge spends
+	// the mana before the cost objects, so its zone read never sees the move)
+	permSrc bool
 	// play is the action the payment funds when the search needs its timing
 	// (grantPayDesc): a sorcery-speed play waits for a stack its prefix grew
 	play    Action
@@ -302,7 +309,18 @@ func (s *State) payDescNow(exclude Obj) payDesc {
 			og.bestowed = e.bestowedEntry() // CR 702.103b
 			return payDesc{class: pdSpell, card: e.card, src: NoSlot, og: og}
 		case seAbility:
-			return payDesc{class: pdAct, card: e.card, src: s.srcSlot()}
+			src := s.srcSlot()
+			if src == NoSlot && e.li != 0 && s.lk(e.li).obj == e.obj {
+				// the payment's own cost moved the source (a sacrifice-this, an
+				// exile-this, the picked cost it matched): its LKI record is the
+				// source's, as it last existed on the battlefield, so the
+				// activation is still the battlefield one it was announced as
+				// (CR 601.2g-h; Parcel Myr's {2}, Sacrifice Parcel Myr).
+				// A hand or graveyard activation's source was never a permanent
+				// and no record of it is taken (a cycling's discarded card).
+				return payDesc{class: pdAct, card: e.card, src: NoSlot, permSrc: true}
+			}
+			return payDesc{class: pdAct, card: e.card, src: src}
 		}
 		return payDesc{class: pdOther, src: NoSlot}
 	}
@@ -473,7 +491,9 @@ func (s *State) restrChoseHas(k *prep, sl Slot, c CardID) bool {
 // permanent (an unearth from the graveyard, a cycling from the hand) matches
 // only a zone-free alternative (kop.ZoneAny): a ZoneNone one is kgen's
 // inZoneBattlefield (gorge restrictValidTermMatches' needsBattlefield, CR
-// 106.6).
+// 106.6). d.permSrc names a source the payment's own cost moved (Parcel Myr
+// sacrificed by its {2}: the payment is still the battlefield activation
+// announced), so the battlefield-only alternative matches it by card.
 func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payDesc) bool {
 	if d.src != NoSlot {
 		return s.matchPerm(k, f, d.src, p, sl)
@@ -483,7 +503,7 @@ func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payD
 		if fl.Special != 0 {
 			continue // a Static.* alternative: never an activated ability
 		}
-		if fl.Zone == kop.ZoneNone {
+		if fl.Zone == kop.ZoneNone && !d.permSrc {
 			continue // a battlefield-only alternative
 		}
 		fl.Zone = kop.ZoneNone
