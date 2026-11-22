@@ -1735,6 +1735,9 @@ func (s *State) censusPayGaps(k *prep, p uint8, m slotMask, takeDeferred bool) s
 		if a, ok := s.riderAbilityOf(k, sl); ok && !riderCensusFree(a) {
 			m = m.without(sl)
 		}
+		if s.unlessStoreUnpriced(k, sl) {
+			m = m.without(sl) // a storage battery's announced X: no unit in gorge's unless census (mana_countercost.go)
+		}
 	}
 	return s.censusNoStore(k, m) // an unless census prices no storage battery (mana_unlessnostore.go)
 }
