@@ -268,7 +268,7 @@ func IsHiddenRuleEffectKeyword(k string) bool {
 		HiddenKeywordMustBeBlockedByOne, HiddenKeywordMustBeBlockedByAll, HiddenKeywordCanOnlyAttackAlone,
 		HiddenKeywordCantAttackUnlessGreaterPower, HiddenKeywordCantBlockUnlessGreaterPower,
 		HiddenKeywordCantAttackUnlessTwoOthers, HiddenKeywordCantBlockUnlessTwoOthers,
-		HiddenKeywordCantAttackUnlessBlackOrGreen:
+		HiddenKeywordCantAttackUnlessBlackOrGreen, HiddenKeywordMustBeBlockedBy:
 		return true
 	}
 	return false
