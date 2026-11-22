@@ -10,14 +10,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Larger Than Life that targets the one Eldrazi Spawn the plan sacrifices for
 // {C}: the Spawn is not Confound's target, the Larger Than Life is. A spell
 // whose every candidate is consumed stays refused (Larger Than Life on the
-// Spawn alone), as does a spell with a second target slot, which this
-// census does not read. What the survivors must make legal is the survivor
+// Spawn alone). A spell with a second target slot is read by its first slot
+// alone, as gorge's survivorsCanTarget reads it (sa's first target, its
+// minimum): Incremental Growth's three creatures with the Eldrazi Scion one
+// of them, sacrificed for the fifth mana after it was announced, is offered
+// (CR 601.2c-h; the other two stay legal targets). What the survivors must make legal is the survivor
 // census targetsKept documents once, below. It mirrors gorge's
 // witnessAnnouncesBeforePaying (engine/rules/potential_witness_targets.go).
 func (s *State) announcedTargetKept(k *prep, t *State, c CardID, p uint8) bool {
 	ab := spellAb(k, c)
 	sp := tspec(k, c, ab, 0)
-	if sp == nil || tspec(k, c, ab, 1) != nil {
+	if sp == nil {
 		return false
 	}
 	if k.gen != nil && s.g.probe.kind == 0 {
