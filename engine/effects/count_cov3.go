@@ -462,6 +462,11 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 				n += h.LifeLostThisTurn(p)
 			}
 			return n, true
+		case cov3PlayerPropSVarAmount:
+			// Plague of Vermin's per-player AdditiveForEach total: the sum
+			// over the remembered seats (the loop binds one) of what the
+			// StoreSVar rounds accumulated for each.
+			return svarAmountSum(h, c, players), true
 		}
 		if _, known := playerScalarProperty(h, g, 0, prop); !known {
 			return 0, false
@@ -1096,6 +1101,7 @@ const (
 	cov3PlayerPropDamageThisTurn
 	cov3PlayerPropBeenDealtCombatDamageSinceLastTurn
 	cov3PlayerPropTiedForHighestLife
+	cov3PlayerPropSVarAmount
 )
 
 var cov3PlayerPropCodes = state.NewStrCodes(
@@ -1105,6 +1111,7 @@ var cov3PlayerPropCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerPropCode]{Key: "DamageThisTurn", Val: cov3PlayerPropDamageThisTurn},
 	state.StrEntry[cov3PlayerPropCode]{Key: "BeenDealtCombatDamageSinceLastTurn", Val: cov3PlayerPropBeenDealtCombatDamageSinceLastTurn},
 	state.StrEntry[cov3PlayerPropCode]{Key: "TiedForHighestLife", Val: cov3PlayerPropTiedForHighestLife},
+	state.StrEntry[cov3PlayerPropCode]{Key: "SVarAmount", Val: cov3PlayerPropSVarAmount},
 )
 
 type cov3PlayerScalarCode uint16
