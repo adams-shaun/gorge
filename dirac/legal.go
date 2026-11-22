@@ -2161,11 +2161,14 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 // unit (the per-tap census's one mana per tap): the unit's colours widen and
 // its count grows to the larger production, one tap making either the native
 // production or the granted one. The unit keeps its pick mark and the cheaper
-// pain, as mergeTapN's widening does.
-func (c *potCensus) widenGrant(sl Slot, mask, n uint8) {
+// pain, as mergeTapN's widening does. one marks a grant of "N mana of any one
+// color" (CR 106.4): the tap's n mana are all one colour of the mask, so the
+// unit is a same-pick one (potUnitsAvail prices it as a one-colour source),
+// not n independent any-colour mana a green and a white pip could split.
+func (c *potCensus) widenGrant(sl Slot, mask, n uint8, one bool) {
 	t := c.tap[sl]
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
-	t = potUnit{mask: t.mask | mask, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick}
+	t = potUnit{mask: t.mask | mask, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick || one && n > 1}
 	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	c.tap[sl] = t
 }
@@ -2800,7 +2803,7 @@ func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny b
 		gv := s.grantView(k.gen, gi[i], sl)
 		mask := s.srcMaskAt(gv, sl)
 		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 {
-			cen.widenGrant(sl, mask, gv.manaN)
+			cen.widenGrant(sl, mask, gv.manaN, gv.manaOne)
 			if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 				// the pot's wildcard bookkeeping (potentialGrantedUnit's):
 				// bounded mode prices the grant once as wildcard units;
