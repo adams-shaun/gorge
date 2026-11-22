@@ -2918,12 +2918,17 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		}
 		oneShot = any
 	}
+	var play payDesc
+	var pd *payDesc // the searched play's payment: the prune's pool (filtFeeColCut)
+	if d, ok := t.filtPlayDesc(k, fs.a); ok {
+		play, pd = d, &play
+	}
 	for i := 0; i < n; i++ {
 		c := order[i]
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
-		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own) {
+		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, pd) {
 			// the fee-only repeatable activation making c is doomed on this
 			// node (filtFeeColStalls: c fills no fixed pip the play's cost
 			// still lacks once the fee is paid): the ask offers the other
@@ -2950,13 +2955,18 @@ func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
 		return false
 	}
 	ab := t.filtAb(k, sl)
+	var play payDesc
+	var pd *payDesc
+	if d, ok := t.filtPlayDesc(k, fs.a); ok {
+		play, pd = d, &play
+	}
 	any := false
 	for c := 0; c < kop.NumManaKinds; c++ {
 		if uint8(ab.ManaColors)&(1<<c) == 0 {
 			continue
 		}
 		any = true
-		if !t.filtFeeColDoomed(k, fs.p, sl, &fs.useful, c, fs.own) {
+		if !t.filtFeeColDoomed(k, fs.p, sl, &fs.useful, c, fs.own, pd) {
 			return false
 		}
 	}
