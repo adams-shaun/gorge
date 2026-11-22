@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Acridian	2acf4d941a86a011	4	1/1		1/1	
+Aether Barrier	ff9b19e4b5d97752	7	1/1		0/1	ix:resp
 Akki Raider	37fc4ead95e0fd57	8	1/1		1/1	
 Alert Shu Infantry	e0f4d62d10cdd2c2	5	0/0		0/0	
 Ambitious Aetherborn	78ce85f3a48d222c	4	1/1		0/1	ix:resp
@@ -8,6 +9,7 @@ Anthroplasm	9ea35d91a1bc86bc	9	1/1		0/1	ix:resp
 Apothecary Initiate	080be1d77fc507c0	4	1/1		0/1	ix:resp
 Arc Blade	d400954192f901ef	10	0/0		4/4	
 Argothian Opportunist	611749ae50d3f1f8	3	1/1		0/1	ix:resp
+Arwen Undómiel	4ba9455abb4bf11b	5	2/2		1/1	
 Asmira, Holy Avenger	3920ffd773875170	4	1/1		1/1	
 Assault Formation	92df6603b58b8614	6	2/2		1/1	
 Aven Initiate	abbf3832408d37dc	3	1/1		0/1	ix:resp
@@ -33,6 +35,7 @@ Crossroads Consecrator	a534ba214ad9818a	10	1/1		0/1	ix:resp
 Culling Mark	1a4b952db118ee68	4	0/0		1/2	ix:resp
 Dark Inquiry	082bd3dd7acbe1f6	3	0/0		1/2	ix:resp
 Dauntless Escort	e0330c141fe25b71	7	1/1		0/1	ix:resp
+Dauthi Jackal	bdafbac982b8a498	8	1/1		0/1	ix:resp
 Distract	1a860691a0b16b10	4	0/0		1/2	ix:resp
 Dreamscape Artist	7cb8d02102553e65	7	1/1		0/1	ix:resp
 Ethereal Elk	cbd82331f3febade	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -48,10 +51,12 @@ General's Kabuto	63bbb4f37ce0f2ab	5	1/1		0/1	ix:resp
 Ghitu War Cry	09f89ea56e0d23e9	6	1/1		1/1	
 Gideon's Phalanx	51db59d6125813a8	6	0/0		1/2	ix:resp
 Glade Watcher	3595d7524029f496	4	1/1		1/1	
+Goblin Fireleaper	94c82dac9e84fbdd	4	2/2		1/1	
 Goblin Hero	236c54abc0978c41	7	0/0		0/0	
 Golgari Signet	fc2ceda7c8cefc01	7	1/1		0/1	ix:resp
 Grinning Demon	448ce651362e3ab3	4	1/1		2/3	cast/alt:morphed
 Hag of Death's Legion	42fcabc9e061778f	6	1/1		1/1	
+Havengul Skaab	1b2e85844d5352c8	28	1/1		1/1	
 Haze of Pollen	9f1292296db32b47	3	1/1		1/2	ix:resp
 Heartbeat of Spring	10318a075c1e5fad	4	1/1		0/1	ix:resp
 Herald of Kozilek	130007d0c5cda93d	4	0/0		0/0	
@@ -62,6 +67,7 @@ Icatian Town	71c2e47190caa971	4	0/0		1/2	ix:resp
 Ikiral Outrider	2a3b736d6cd5c92b	5	1/1		0/1	ix:resp
 Inquisition of Kozilek	f7669fcd3239cc27	5	0/0		1/2	ix:resp
 Ironclad Slayer	c3e1de013266a21d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Izzet Charm	28427037db57a112	8	0/0		2/2	
 Jawbone Skulkin	4efa3099e24419e6	15	1/1		1/1	
 Jolrael, Empress of Beasts	e6de852b0a4393a2	8	1/1		0/1	ix:resp
 Karok Wrangler	c233c0345adccdd0	6	1/1		0/1	ix:resp
@@ -75,6 +81,7 @@ Lantern Kami	808a06d18ce64442	8	0/0		0/0
 Lawbringer	fcc9b20020345494	6	1/1		0/1	ix:resp
 Leatherback Baloth	86809bd3c3e566e8	3	0/0		0/0	
 Lonely Sandbar	fa75b5f330ab2845	4	2/2		0/1	ix:resp
+Looming Hoverguard	9bb7ebf34a81191f	3	1/1		1/1	
 Lowland Giant	cefb7362a99f1031	3	0/0		0/0	
 Loxodon Sergeant	c1ac6b2a2b8fa894	4	1/1		1/1	
 Magus of the Order	d760f7c273691884	3	1/1		1/1	
@@ -83,6 +90,7 @@ Marrow Bats	80db1e0cea8c29ff	7	1/1		1/1
 Moaning Spirit	b8a43c1f22ee08d8	11	0/0		0/0	
 Mole Module	88bdc37f74f3fff4	4	2/2		0/1	ix:resp
 Ms. Marvel, Elastic Ally	dfc3b4cce63060e0	4	2/2		0/1	ix:resp
+Murasa Pyromancer	594d6e6b4314f17d	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Naga Vitalist	c7cdfa961771be03	6	1/1		0/1	ix:resp
 Nath's Elite	04b8cc7e5c3f2130	10	1/1		0/1	ix:resp
 Nest Invader	c7b5bffb41677873	3	1/1		1/1	
@@ -109,6 +117,7 @@ Renata, Called to the Hunt	c42672fa95187f23	6	0/0		0/0
 Repeal	03ba6a13c26796ea	3	0/0		2/4	f0/s/x0,ix:resp
 Resounding Roar	02d6fea094e0844b	4	2/2		1/2	ix:resp
 Respite	b0d047a711a9b874	4	0/0		2/2	
+Revenant Patriarch	c1ede382352a3429	5	1/1		1/1	
 Righteous Confluence	c6026df39dff5b50	4	0/0		1/2	ix:resp
 River Boa	8ea4c09a9eed6afb	4	1/1		0/1	ix:resp
 River Darter	61fcf118aa85074f	3	0/0		0/0	
@@ -127,6 +136,7 @@ Somberwald Stag	8bbff9ccb3ecfa4e	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Spare Supplies	a270984f6886837e	6	2/2		0/1	ix:resp
 Spectator Seating	fdf425e28575a053	10	1/1		0/1	ix:resp
 Spider-Man, Miles Morales	c3d2919d90cf6475	3	2/2		0/1	ix:resp
+Spire Winder	691f66e88840101d	9	0/0		0/0	
 Splinterfright	32f6f378e80fda8f	8	1/1		0/1	ix:resp
 Sporesower Thallid	dfdce0c5e02f3662	6	2/2		1/1	
 Springing Tiger	50d603e4362cbb43	4	0/0		0/0	
@@ -134,6 +144,7 @@ Steel-Plume Marshal	35e068d8ccd7c8f1	5	1/1		1/1
 Stitch Together	42df3e6afc3d556c	4	0/0		1/2	ix:resp
 Stoic Builder	2a32c31452a5ecb2	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Stormchaser Chimera	d6bc2623db711009	3	1/1		1/1	
+Stromgald Crusader	d997c13e23aa7c1a	4	2/2		1/1	
 Succumb to Temptation	705a2739560b6a0d	3	0/0		1/2	ix:resp
 Sultai Flayer	90021c33f2db8a51	6	1/1		0/1	ix:resp
 Surgehacker Mech	36b98006fa26f7af	5	2/2		1/1	
@@ -153,10 +164,12 @@ Verdant Catacombs	930ef8e319c968b4	8	1/1		0/1	ix:resp
 Vivien, Arkbow Ranger	784972727fa25097	4	3/3		0/1	ix:resp
 Volatile Arsonist	2d8f9a685322ffc4	3	2/2		0/1	ix:resp
 Warhost's Frenzy	49eda2015139d902	13	0/0		3/4	ix:resp
+Watcher of the Spheres	2e8f6bdf2ddceaa3	4	1/1		0/1	ix:resp
 Weakstone	c05ebc4c59973e4e	3	0/0		0/0	
 Weird Harvest	a44e8e533c6ee562	3	0/0		2/4	f0/s/x0,ix:resp
 Windstorm	9611f84bd228222f	4	0/0		2/4	f0/s/x0,ix:resp
 Wingmantle Chaplain	3af64df35f69e3d4	11	2/2		0/1	ix:resp
 Wings of Velis Vel	9e2fc8fa27b7260c	4	0/0		1/2	ix:resp
 Wizard's Staff	e2c6e80b97cc3321	6	2/2		1/1	
+Yahenni, Undying Partisan	93e0bf0e57650bf3	6	2/2		0/1	ix:resp
 Zombie Mob	38ab3303a05c021e	3	1/1		0/1	ix:resp
