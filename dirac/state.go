@@ -14,8 +14,8 @@ const (
 	MaxDeck    = 100 // cards per seat's deck (a Commander deck's 100)
 	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
 	MaxPerm    = 192 // battlefield slots, shared by the pod; the slot mask's three words hold up to 192. 112 before 2026-11-19, when random-policy four-seat Commander pods filled it in 8 of 256 cmd5 pods (40-card cuts) and reached 188 at 192
-	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
-	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
+	MaxStack   = 96  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
+	MaxPending = 96  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
 	MaxHand    = MaxDeck
 	MaxDelayed = 32 // 16 before 2026-11-03: each earthbent land keeps its leave-keyed return record while it lives
 )
