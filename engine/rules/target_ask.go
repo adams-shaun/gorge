@@ -940,7 +940,18 @@ func (e *Engine) recheckCharmTargets(o *state.Object) ([][]state.Target, []state
 		if src == nil || src.Face() == nil {
 			return nil, nil, false
 		}
-		root, svars = o.Ability, src.Face().SVars
+		// The per-mode slots resolve against the same table the placement mode
+		// ask built them from -- the one home, triggerModeCtx: the face that
+		// OWNS the trigger (printed face, copy face, merged face, grant's
+		// foreign face), then a recorded trigger line's own table -- never the
+		// source's active face alone. A copy's active face is the copier's,
+		// whose SVars lack the mode bodies, so an embalmed Vizier of Many
+		// Faces copy's modal trigger would recheck nothing and both modes
+		// would run over the flat list (CR 603.3d, 707.2, 113.7a). Ordinary
+		// triggers find their own face and resolve exactly as before; a spell
+		// keeps its own declared face below.
+		_, mctx := e.triggerModeCtx(o.Controller, o.ID, o.Ability)
+		root, svars = o.Ability, mctx.SVars
 	} else {
 		f := o.Face()
 		if f == nil {
