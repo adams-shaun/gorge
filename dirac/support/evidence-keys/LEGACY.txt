@@ -92,7 +92,6 @@ Akki Avalanchers
 Akroma's Vengeance
 Akroma, Angel of Fury
 Akul the Unrepentant
-Alacrian Armory
 Alacrian Jaguar
 Alania's Pathmaker
 Alchemist's Assistant
@@ -271,7 +270,6 @@ Auratog
 Aurelia's Vindicator
 Auroral Procession
 Austere Command
-Autarch Mammoth
 Autochthon Wurm
 Auxiliary Boosters
 Avacynian Missionaries
@@ -341,7 +339,6 @@ Bartz and Boko
 Baru, Fist of Krosa
 Basilica Bell-Haunt
 Basking Rootwalla
-Basri, Tomorrow's Champion
 Batterskull
 Battle of Wolf 359
 Battle-Mad Ronin
@@ -381,7 +378,6 @@ Berta, Wise Extrapolator
 Bespoke Battlewagon
 Bestial Fury
 Bestial Incursion
-Bestow Greatness
 Betor, Ancestor's Voice
 Betor, Kin to All
 Betrayal
@@ -489,7 +485,6 @@ Bonehoard
 Boneyard Scourge
 Boneyard Wurm
 Bonny Pall, Clearcutter
-Boom Scholar
 Boon of the Wish-Giver
 Boosted Sloop
 Borborygmos Enraged
@@ -508,7 +503,6 @@ Bothersome Noisemaker
 Boughside Wanderers
 Boulderborn Dragon
 Boulderbranch Golem
-Bounce Off
 Bound in Silence
 Bounding Felidar
 Brallin, Skyshark Rider
@@ -588,7 +582,6 @@ Calamitous Tide
 Calamity's Wake
 Callous Dismissal
 Camaraderie
-Camera Launcher
 Campus Composer
 Campus Crier
 Canoptek Scarab Swarm
@@ -609,7 +602,6 @@ Captain Kathryn Janeway
 Captain Kirk, Boldly Going
 Captain N'ghathrod
 Captain's Defense
-Caradora, Heart of Alacria
 Carapace Forger
 Carefree Swinemaster
 Caretaker's Talent
@@ -745,7 +737,6 @@ Collective Inferno
 Collective Override
 Collective Restraint
 Collective Unconscious
-Collision Course
 Colorstorm Stallion
 Colossal Skyturtle
 Colossification
@@ -946,7 +937,6 @@ Deepwood Drummer
 Deepwood Tantiv
 Defang
 Defend the Campus
-Defend the Rider
 Defenders of Humanity
 Defense Force Aggressor
 Defensive Stance
@@ -1022,7 +1012,6 @@ Disruptor of Currents
 Dissection Practice
 Distinguished Conjurer
 Distorting Wake
-District Mascot
 Divergent Equation
 Diversion Unit
 Divert Disaster
@@ -1085,7 +1074,6 @@ Dream Trawler
 Dreamcatcher
 Dreamdew Entrancer
 Dreamroot Cascade
-Dredger's Insight
 Driftgloom Coyote
 Drifting Djinn
 Drill Too Deep
@@ -1198,7 +1186,6 @@ Elvish Aberration
 Elvish Berserker
 Elvish Clancaller
 Elvish Lookout
-Elvish Refueler
 Elvish Skysweeper
 Emberheart Challenger
 Embermage Goblin
@@ -1466,7 +1453,6 @@ Fortuitous Find
 Forum Familiar
 Forum Necroscribe
 Forum of Amity
-Foul Roads
 Fountainport
 Fountainport Bell
 Fractal Anomaly
@@ -1624,7 +1610,6 @@ Glorious Decay
 Glorious Enforcer
 Glory of Warfare
 Glory to the Empire!
-Gloryheath Lynx
 Gloryscale Viashino
 Gluttonous Zombie
 Gnarlbark Elm
@@ -2061,7 +2046,6 @@ Jhoira, Ageless Innovator
 Jhoira, Weatherlight Captain
 Jiang Yanggu, Alone
 Jiang Yanggu, Never Alone
-Jibbirik Omnivore
 Jodah, the Unifier
 Joel, Resolute Survivor
 Johtull Wurm
@@ -2273,7 +2257,6 @@ Leonardo, Big Brother
 Leonardo, Cutting Edge
 Leonardo, Leader in Blue
 Leonardo, Sewer Samurai
-Leonin Surveyor
 Leonin Warleader
 Leovold's Operative
 Lessons from Life
@@ -2453,7 +2436,6 @@ Maro
 Marsh Flats
 Marshal of the Lost
 Marshaling Cry
-Marshals' Pathcruiser
 Martok, Hero of the Empire
 Marwyn, the Clearcutter
 Marwyn, the Preserver
@@ -2492,7 +2474,6 @@ Memnarch, the Warden
 Memorial Team Leader
 Memorial Vault
 Memorial to Glory
-Memory Guardian
 Memory Trap
 Memory Worm
 Mental Modulation
@@ -2633,7 +2614,6 @@ Mouth of the Storm
 Mox Jasper
 Mr. Foxglove
 Mr. Orfeo, the Boulder
-Mu Yanling, Wind Rider
 Mudflat Village
 Muerra, Trash Tactician
 Mugato
@@ -2967,7 +2947,6 @@ Plumecreed Escort
 Plumecreed Mentor
 Plunder the Trollshaws
 Plundering Predator
-Point the Way
 Poised Practitioner
 Poisoner's Apprentice
 Polliwallop
@@ -3051,7 +3030,6 @@ Putrid Goblin
 Putrid Pals
 Putrid Warrior
 Pyretic Ritual
-Pyrewood Gearhulk
 Pyric Salamander
 Pyroceratops
 Pyrotechnic Performer
@@ -3123,8 +3101,6 @@ Rampart Hunter
 Rampart Smasher
 Rancid Earth
 Rancorous Archaic
-Rangers' Aetherhive
-Rangers' Refueler
 Rank Rat
 Ransack the Lab
 Raph & Leo, Sibling Rivals
@@ -3262,7 +3238,6 @@ Rite of Oblivion
 Rite of Renewal
 Rith's Grove
 Riven Turnbull
-Riverchurn Monument
 Riverwalk Technique
 Riverwheel Sweep
 Riveteers Ascendancy
@@ -3275,7 +3250,6 @@ Roar of Endless Song
 Roaring Earth
 Roaring Primadox
 Robe of Mirrors
-Rocket-Powered Goblin Glider
 Rocketeer Boostbuggy
 Rockface Village
 Rockfall Vale
@@ -3310,7 +3284,6 @@ Ruinous Rampage
 Ruinous Ultimatum
 Run Amok
 Run Behind
-Run Over
 Runaway Boulder
 Rune-Brand Juggler
 Runebound Wolf
@@ -3330,7 +3303,6 @@ Ruthless Negotiation
 Ruthless Predation
 Rydia, Summoner of Mist
 SP//dr, Piloted by Peni
-Sab-Sunen, Luxa Embodied
 Saber-Tooth Moose-Lion
 Sacred Foundry
 Sacred Peaks
@@ -3773,7 +3745,6 @@ Sphinx's Approach
 Spider-Woman, Stunning Savior
 Spike Drone
 Spike Feeder
-Spikeshell Harrier
 Spiketail Hatchling
 Spinal Centipede
 Spinal Parasite
@@ -4324,7 +4295,6 @@ Trystan, Callous Cultivator
 Tsagan, Raider Warlord
 Tuinvale Treefolk
 Tumbleweed Rising
-Tune Up
 Tunnel Rats
 Turbulent Crater
 Turbulent Steppe
@@ -4453,7 +4423,6 @@ Vedalken Heretic
 Veil of Birds
 Veil of Summer
 Vela the Night-Clad
-Veloheart Bike
 Velvetwing Butterflies
 Venerable Knight
 Venerated Stormsinger
@@ -4465,7 +4434,6 @@ Verdant Crescendo
 Verdant Kraken
 Verduran Enchantress
 Vernal Bloom
-Veteran Beastrider
 Veteran Explorer
 Veteran Guardmouse
 Veteran Ice Climber
@@ -4506,7 +4474,6 @@ Vitalizing Cascade
 Vitaspore Thallid
 Vivify
 Vizzerdrix
-Vnwxt, Verbose Host
 Voice of Victory
 Voiceless Spirit
 Void Beckoner
