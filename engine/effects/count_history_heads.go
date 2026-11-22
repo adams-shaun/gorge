@@ -447,3 +447,53 @@ func nonActivePlayers(g *state.Game) []state.PlayerID {
 	}
 	return out
 }
+
+// The per-player StoreSVar accumulator (Plague of Vermin's `DB$ StoreSVar |
+// SVar$ EachPlayer | Type$ AdditiveForEach`, read back by
+// PlayerCountRemembered$SVarAmount). It rides the existing events.StoreSVar
+// fold on the resolving source: one runtime SVar per seat under
+// svarAmountKey, so no new Kind, Event field or Object field is needed, the
+// write is a keyed map insert (no map order reaches an event), and CR 400.7
+// clears it with the rest of the source's runtime SVars when it leaves the
+// stack.
+
+// svarAmountKey is the runtime-SVar name seat p's AdditiveForEach total is
+// stored under. '#' is not a legal SVar-name character, so it cannot collide
+// with a printed or Forge-written name.
+func svarAmountKey(p state.PlayerID) string {
+	return "SVarAmount#" + strconv.Itoa(int(p))
+}
+
+// svarAmountOf is seat p's accumulated AdditiveForEach total on the resolving
+// source; 0 when nothing was stored for the seat.
+func svarAmountOf(h Host, c *Ctx, p state.PlayerID) int32 {
+	if c == nil || c.Source == 0 {
+		return 0
+	}
+	o := h.Game().Obj(c.Source)
+	if o == nil {
+		return 0
+	}
+	return o.RuntimeSVars[svarAmountKey(p)]
+}
+
+// svarAmountSum is the AdditiveForEach totals of the given seats added up.
+func svarAmountSum(h Host, c *Ctx, players []state.PlayerID) int32 {
+	var n int32
+	for _, p := range players {
+		n += svarAmountOf(h, c, p)
+	}
+	return n
+}
+
+// rememberedLoopPlayer is the player a RepeatEach over players currently
+// binds: the last player entry of Ctx.Remembered (RepeatEach appends the loop
+// subject, so it is the newest).
+func rememberedLoopPlayer(c *Ctx) (state.PlayerID, bool) {
+	for i := len(c.Remembered) - 1; i >= 0; i-- {
+		if t := c.Remembered[i]; t.IsPlayer {
+			return t.Player, true
+		}
+	}
+	return 0, false
+}

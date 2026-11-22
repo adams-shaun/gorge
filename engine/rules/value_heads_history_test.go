@@ -212,13 +212,11 @@ var historyHeadCards = []string{
 }
 
 // historyHeadsDeferred are the class's cards whose head needs history gorge
-// does not record yet (the emerge sacrifice, the per-turn stack high-water
-// mark, the per-player StoreSVar accumulator).
+// does not record yet (the emerge sacrifice).
 // Each is expected to stay held out by exactly that one count: primitive; the
 // test fails when one becomes modelled so the entry is removed with it.
 var historyHeadsDeferred = map[string]string{
 	"Adipose Offspring": "count:Emerged",
-	"Plague of Vermin":  "count:PlayerCountRemembered$SVarAmount",
 }
 
 // TestEveryZoneHistoryHeadCardIsPlayable: no card of the class is held out of
