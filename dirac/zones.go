@@ -1044,7 +1044,7 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted:
+	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch:
 		return false // read with the listener's slot (enchCtrlIs, chosenIs, defEnchanted); elsewhere it fails closed
 	}
 	return true
