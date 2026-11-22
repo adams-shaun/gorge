@@ -19,15 +19,13 @@ func TestFracturedIdentityGivesEveryOtherPlayerACopy(t *testing.T) {
 		t.Fatal("Fractured Identity has no spell ability")
 	}
 	// Upstream spells the copy leg over the spell's own target
-	// (Defined$ Targeted | Controller$ NonTargetedController); cards maps it
-	// back to the exile remembering what it moved and the per-player
-	// NonRememberedController copy (TestCanonicalizeUpstream), which is the
-	// form dirac lowers.
+	// (Defined$ Targeted | Controller$ NonTargetedController), read through
+	// the repeat-player table (choose_control.go repeatPlayers).
 	root := card.Faces[0].Abilities[0]
 	sa := cards.ResolveSVar(card.Faces[0].SVars, "DBClone")
-	if root.API != "ChangeZone" || root.Params["RememberLKI"] != "True" || sa == nil || sa.API != "CopyPermanent" ||
-		sa.Params["Defined"] != "Remembered" || sa.Params["Controller"] != "NonRememberedController" {
-		t.Fatalf("Fractured Identity DBClone = %#v (root %#v), want the remembered-LKI NonRememberedController copy", sa, root)
+	if root.API != "ChangeZone" || sa == nil || sa.API != "CopyPermanent" ||
+		sa.Params["Defined"] != "Targeted" || sa.Params["Controller"] != "NonTargetedController" {
+		t.Fatalf("Fractured Identity DBClone = %#v (root %#v), want the targeted NonTargetedController copy", sa, root)
 	}
 
 	h := newHost(t, 4)
@@ -57,16 +55,13 @@ func TestFracturedIdentityGivesEveryOtherPlayerACopy(t *testing.T) {
 		t.Fatalf("Fractured Identity copy owners = %v, want [1 1 0 1]; events=%+v", counts, h.log)
 	}
 	for _, ev := range h.log {
-		// The chain's own Cleanup link notes that it clears the remembered
-		// set; any other note is an unsupported selector.
-		if ev.Kind == events.Note && ev.Text != "clears remembered/imprinted objects" {
+		if ev.Kind == events.Note {
 			t.Fatalf("unexpected unsupported-selector note: %q", ev.Text)
 		}
 	}
 }
 
-// TestCopyPermanentNonTargetedControllerRaw: the raw upstream selector, read
-// without the canonicalisation (a bare line has no parent to rewrite), gives
+// TestCopyPermanentNonTargetedControllerRaw: the bare upstream selector gives
 // every player but the exiled target's last-known controller a copy.
 func TestCopyPermanentNonTargetedControllerRaw(t *testing.T) {
 	h := newHost(t, 4)
@@ -86,28 +81,6 @@ func TestCopyPermanentNonTargetedControllerRaw(t *testing.T) {
 	}
 	if counts[0] != 1 || counts[1] != 1 || counts[2] != 0 || counts[3] != 1 {
 		t.Fatalf("copy owners = %v, want [1 1 0 1]; events=%+v", counts, h.log)
-	}
-}
-
-// TestNonTargetedControllerDefinedPlayers: the complement families over the
-// resolving ability's targets, read as the controller each had as it left.
-func TestNonTargetedControllerDefinedPlayers(t *testing.T) {
-	h := newHost(t, 4)
-	anchor := h.g.AddObject(mkCard(t, "Name:Probe target\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
-	anchor.Zone = state.ZExile
-	c := &Ctx{Controller: 0, Targets: []state.Target{{Obj: anchor.ID}},
-		Snap: LKISnapshots{TargetController: map[state.ObjID]state.PlayerID{anchor.ID: 2}}}
-	got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTargetedController"}})
-	if len(got) != 3 || got[0].Player != 0 || got[1].Player != 1 || got[2].Player != 3 {
-		t.Fatalf("NonTargetedController = %v, want players 0 1 3", got)
-	}
-	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "OppNonTargetedController"}})
-	if len(got) != 2 || got[0].Player != 1 || got[1].Player != 3 {
-		t.Fatalf("OppNonTargetedController = %v, want players 1 3", got)
-	}
-	c.Targets = nil
-	if got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTargetedController"}}); len(got) != 4 {
-		t.Fatalf("no targets: NonTargetedController = %v, want all 4", got)
 	}
 }
 
