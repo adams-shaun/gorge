@@ -96,10 +96,12 @@ type kickedRootCensus interface {
 // target minimum reads the kicked bit (Tear Asunder's TargetMin$ X over Count$Kicked.0.1)
 // announces nothing when kicked, and the kicked cast's targets are its Kicked-conditioned
 // links alone. It holds when the root's kicked minimum is zero and every such link has its
-// kicked minimum of candidates. A root the kicked cast still owes, or a chain with no
-// Kicked-conditioned link, is the plain census's alone.
+// kicked minimum of candidates. A root with no Sub at all (Divine Resilience: "any number of
+// target creatures you control" when kicked) has no link to owe and holds on the root alone,
+// as dirac's kickedWaivedFeasible does. A root the kicked cast still owes, or a chain with
+// sub-abilities but no Kicked-conditioned link, is the plain census's alone.
 func kickedWaivedRootTargetsAvailable(e kickedRootCensus, p state.PlayerID, id state.ObjID, root *cards.SA) bool {
-	if root == nil || root.Sub == nil || !effects.TargetsOf(root).Targeted() || e.kickedTargetMin(p, id, root) > 0 {
+	if root == nil || !effects.TargetsOf(root).Targeted() || e.kickedTargetMin(p, id, root) > 0 {
 		return false
 	}
 	kickedPC, plainPC := &pendingCast{mode: "kicked"}, &pendingCast{}
@@ -113,5 +115,5 @@ func kickedWaivedRootTargetsAvailable(e kickedRootCensus, p state.PlayerID, id s
 			return false
 		}
 	}
-	return linked
+	return linked || root.Sub == nil
 }
