@@ -141,3 +141,13 @@ def test_attribute_bisects_and_shares_runs():
     blame = qp.attribute([a, b], order, lambda items: [], on_prefix)
     assert blame == {105: [a], 112: [b]}
     assert len(set(calls)) <= 2 * 4 and len(calls) == len(set(calls))  # ~log2(16) per item, each k run once
+
+
+def test_conflicting_prs_do_not_use_a_slot():
+    # 11-22: 18 conflicting PRs (GitHub's mergeable read UNKNOWN) filled the head of every run; none merged, no
+    # status was posted, and the gated queue merged nothing for 5.5 h.
+    order = [pr(n) for n in range(1, 31)]
+    conflicting = set(range(1, 19))
+    merged = qp.merge_until(order, 10, lambda p: p["number"] not in conflicting)
+    assert [p["number"] for p in merged] == list(range(19, 29))
+    assert qp.merge_until(order, 50, lambda p: p["number"] not in conflicting)[-1]["number"] == 30

@@ -137,6 +137,20 @@ def head_order(batch, estimate, n, fresh=FRESH_N):
     return out
 
 
+def merge_until(order, target, merge):
+    """Merges the PRs of order in turn until target of them merged; a PR whose merge fails (a conflict with main or
+    with a PR ahead of it) is skipped and does not count. Returns the merged PRs."""
+    merged = []
+    for p in order:
+        if len(merged) >= target:
+            break
+        if merge(p):
+            merged.append(p)
+        else:
+            print("#%d conflicts; left to Mergify" % p["number"])
+    return merged
+
+
 QUERY = """query($owner:String!,$name:String!,$after:String){repository(owner:$owner,name:$name){
 pullRequests(states:OPEN,baseRefName:"main",first:100,after:$after){pageInfo{hasNextPage endCursor}
 nodes{number isDraft mergeable baseRefName headRefName headRefOid headRepository{nameWithOwner} labels(first:20){nodes{name}}
@@ -378,13 +392,19 @@ def main():
         time.sleep(30)
     print("Mergify's batches since %s: %s" % (since, " ".join("#%d" % x for x in batch) or "none yet"))
     # With no batch open, the next two batches' worth (Mergify runs two at once) earn their statuses in this run.
-    order = head_order(batch, est, a.head, fresh=FRESH_N if batch else 2 * FRESH_N)
-    print(time.strftime("%H:%M:%S"), "queue head (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
+    fresh = FRESH_N if batch else 2 * FRESH_N
+    # Every candidate, not a capped head: a PR that conflicts is skipped and does not use a slot (11-22: GitHub's
+    # mergeable read UNKNOWN for 18 conflicting PRs at the head, every run merged none of them and posted no status,
+    # and the gated queue merged nothing for 5.5 h).
+    order = head_order(batch, est, a.head, fresh=len(est))
+    print(time.strftime("%H:%M:%S"), "candidates (%d): %s" % (len(order), " ".join("#%d" % p["number"] for p in order)))
     if not order:
         return 0
     wt = os.path.abspath(".worktrees/queue-precheck")
     t = Tree(wt, base)
-    merged = [p for p in order if t.merge(p) or print("#%d conflicts; left to Mergify" % p["number"])]
+    nbatched = sum(1 for p in order if p["number"] in batch)
+    merged = merge_until(order, nbatched + fresh, t.merge)
+    print(time.strftime("%H:%M:%S"), "merged (%d): %s" % (len(merged), " ".join("#%d" % p["number"] for p in merged)))
     files = touched(wt, base)
     pk, kgen, replays, state = plan(files, census_packages(wt))
     print(time.strftime("%H:%M:%S"), "checks: go vet ./...; census in %s; kgen=%s; replays=%s; state bar=%s" % (" ".join(pk) or "-", kgen,
