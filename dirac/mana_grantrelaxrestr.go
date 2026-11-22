@@ -32,6 +32,8 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 	kept.xd, kept.xdOn = d, true
 	s.availFor(k, SeatIx(p), &kept)
 	s.g.availX = prev
+	s.availDepleteRiders(k, p, &all)
+	s.availDepleteRiders(k, p, &kept)
 	if k.tapMana {
 		// a tap-another source is a free any-colour unit of the relaxed census
 		// either way (mana_tapanother.go): it makes up what the grant lacks
@@ -84,4 +86,28 @@ func (s *State) grantRefusedPrices(k *prep, p uint8, a Action) bool {
 	}
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
 	return ok && s.relaxRestrRefuses(k, p, &cost, s.grantPayDesc(k, a))
+}
+
+// availDepleteRiders adds to av the production of p's live depletion riders
+// (Sandstone Needle's {R}{R}, Remote Farm's {W}{W}) that no plain unit of the
+// census holds. The relaxed proof counts such a source's whole production
+// while it keeps the counter its cost removes (potentialGapCost), whichever
+// granted ability the payment refuses, so a play the printed rider and the
+// unrefused sources pay is no insufficient one: gorge's prefix search taps the
+// rider and offers it (Rathi Intimidator's {2} over a Swamp, a Needle and a
+// Food token holding a restricted granted ability; CR 605.3b, 601.2g).
+func (s *State) availDepleteRiders(k *prep, p uint8, av *avail) {
+	if k.gen == nil || !k.gen.anyManaRider {
+		return
+	}
+	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
+		sl := m.first()
+		if !s.depleteCensusGap(k, p, sl) {
+			continue
+		}
+		if a, ok := s.riderAbilityOf(k, sl); ok && !a.ManaEach {
+			cols, n := tapXUnit(a)
+			av.addUnits(cols&0x3f, n)
+		}
+	}
 }
