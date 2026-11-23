@@ -228,6 +228,12 @@ func TestGraveManaTwoSeatLockstep(t *testing.T) {
 // `kgen -supported gravemana -four-seat`, whose predicate this assertion is,
 // reports the card false.
 func TestGraveManaFourSeatLockstep(t *testing.T) {
+	// The pool table is built output (make dirac-tables): a clone without it
+	// skips, like the corpus lockstep above skips without a corpus
+	// (pr-precheck's fresh-clone step).
+	if _, err := cardset.TablesDir(); err != nil {
+		t.Skipf("no kernel tables: %v", err)
+	}
 	set, err := cardset.RawByName("gravemana")
 	if err != nil {
 		t.Fatal(err)
