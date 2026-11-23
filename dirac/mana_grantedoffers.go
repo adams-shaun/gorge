@@ -60,7 +60,7 @@ var GrantManaStats struct {
 
 // prepTokMana marks the cards with a Continuous grant of a mana ability
 // whose filter is not limited to the source's host (contGrant).
-func prepTokMana(t *kop.Table, g *genPrep) {
+func prepTokMana(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		for j := range c.Abilities {
@@ -71,6 +71,10 @@ func prepTokMana(t *kop.Table, g *genPrep) {
 			if int(a.Static.Grant-1) >= len(c.Abilities) || c.Abilities[a.Static.Grant-1].Kind != kop.AbMana {
 				continue
 			}
+			if p.grantSrcCard == nil {
+				p.grantSrcCard = make([]bool, len(t.Cards))
+			}
+			p.grantSrcCard[i] = true
 			if filterAttachedOnly(t, a.Static.Filter) {
 				g.anyContGrant = true // availFor counts the grant beside the host's own ability (New Horizons' Forest)
 				continue              // the grantM walk's (an Aura's / Equipment's host)
@@ -89,7 +93,12 @@ func prepTokMana(t *kop.Table, g *genPrep) {
 // them), so availFor's dual census must run for its sources too. The Grant
 // indexes name abilities of the record's own card, so the sweep is
 // per-card: only a record the card's own programs apply counts.
-func prepOvrManaGrant(t *kop.Table, g *genPrep) {
+func prepOvrManaGrant(t *kop.Table, p *prep, g *genPrep) {
+	for _, r := range g.grantOf {
+		if t.Cards[r.card].Abilities[r.ab].AFlags&kop.AfLatent == 0 {
+			p.contGrantAlways = true // a printed GainsAbilitiesOf grant (addGrantPC): no battlefield card marks it
+		}
+	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		for j := range c.Abilities {
@@ -103,6 +112,7 @@ func prepOvrManaGrant(t *kop.Table, g *genPrep) {
 				for _, gr := range t.Overrides[in.C].Grant {
 					if gr != 0 && int(gr-1) < len(c.Abilities) && c.Abilities[gr-1].Kind == kop.AbMana {
 						g.anyContGrant = true // the record grant is availFor's dual census (mana_grantedoffers.go)
+						p.contGrantAlways = true
 						return
 					}
 				}
