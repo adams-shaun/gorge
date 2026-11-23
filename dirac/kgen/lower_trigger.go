@@ -381,10 +381,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// cycle this card" (ValidCard$ Card.Self, no TriggerZones$: it
 		// fires from wherever the discard put it), or a battlefield
 		// "whenever you/a player cycle(s) a card" over the cycled card
-		// and its owner (ValidPlayer$ You); Other/FirstTime$ refuse
+		// and its owner (ValidPlayer$ You); FirstTime$ refuses. Other is no
+		// restriction: the cycled card is in the graveyard it was discarded
+		// to, never the battlefield listener itself (Drannith Stinger)
 		vc := tp.str("ValidCard")
 		self := vc == "Card.Self" && tr.Zone == 0
-		if !self && (tr.Zone != zBattlefield || strings.Contains(vc, "Self") || strings.Contains(vc, "Other")) {
+		if !self && (tr.Zone != zBattlefield || strings.Contains(vc, "Self")) {
 			return refuse("Cycled ValidCard %q TriggerZones %d", vc, tr.Zone)
 		}
 		if tr.F, err = readF("ValidCard"); err != nil {
