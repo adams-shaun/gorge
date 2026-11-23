@@ -219,6 +219,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
+							addPotentialReflectedAmount(e, &out, p, id, ma)
 							prod := ma
 							if counters {
 								if bounded, ok := potentialSubCounterBounded(e, asPayer(e), p, id, ma); ok {

@@ -74,6 +74,35 @@ func addPotentialReflected(e *Engine, m *state.Mana, p state.PlayerID, id state.
 	return true
 }
 
+// addPotentialReflectedAmount colours the bound for a ManaReflected ability
+// whose Amount$ keeps it out of the planner's shape (Incubation Druid: "one
+// mana of any type that a land you control could produce", three with a
+// counter). The caller still folds the ability's blank-Produced$ {C} stand-in;
+// this adds each colour the reflection names right now, unbounded as the
+// amount is indeterminate. CR 106.7 prices what the lands "could produce"
+// from their printed mana abilities, tapped or not, so a live druid beside
+// tapped Swamps funds {B} (a Produce read only; Is and Produced are left to
+// the existing shape).
+func addPotentialReflectedAmount(e *Engine, m *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA) {
+	if ma == nil || ma.APIKind() != cards.APIManaReflected {
+		return
+	}
+	mr := effects.ManaReflectedOf(ma)
+	if !mr.Amount.Present || mr.Produced != "" || mr.ReflectProperty != "Produce" {
+		return
+	}
+	var svars map[string]string
+	if o := e.Game().Obj(id); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars})
+	for _, sym := range effects.ManaReflectedCandidates(e, ctx, ma) {
+		if i := state.ManaIndex(sym[0]); i >= 0 {
+			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
+		}
+	}
+}
+
 // setPaymentPlanUnitAlt puts alt into source id's unit (units[idx], idx < 0:
 // none yet): it replaces the alternative the shared census already listed
 // for the same ability (its colourless stand-in for a reflected ability),

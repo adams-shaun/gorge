@@ -88,14 +88,13 @@ func producesC(cd *kop.CardDef) bool {
 // per-tap pass (availPotentialFor's pc.manaAb < 0 arm) and reports whether it
 // took the card. gorge's bound (rules potential.go) prices the ability — a
 // blank Produced$ with an indeterminate Amount$ — unbounded in the colourless
-// slot ONLY (addPotentialMana normalizes the blank Produced$ to "C" and
-// addIndeterminatePotentialMana folds the indeterminate amount unbounded
-// there; addPotentialReflected's shape refuses the Amount$, so the reflected
-// arm never runs): the coloured pips a play needs stay bound by the lands, so
-// the druid's own Adapt {3}{G}{G} beside one Forest is not offered. The
+// slot (addPotentialMana's blank-Produced$ "C" with
+// addIndeterminatePotentialMana) AND in each colour the reflection names now
+// (addPotentialReflectedAmount: what the matching lands could produce, tapped
+// or not, CR 106.7), so a live druid beside tapped Swamps funds {B}. The
 // planner census lists no unit (pay.PaymentPlanReflectedShape defers the
-// amount), so the census pass records nothing and the over-bound fold keeps
-// {C} — never the whole-pool open the Combo Any source's fold is.
+// amount), so the census pass records nothing; the colours are never the
+// whole-pool open the Combo Any source's fold is.
 func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uint16, fold func(Slot, uint8, uint8)) bool {
 	c := s.cardAt(sl)
 	if !k.isReflAmt(c) {
@@ -108,7 +107,7 @@ func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uin
 		}
 	}
 	if s.gapLive(k, s.perms[sl].ctrl, sl) {
-		fold(sl, uint8(kop.ColC), potentialOpenUnits)
+		fold(sl, uint8(kop.ColC)|s.reflAmtCols(k, sl), potentialOpenUnits)
 	}
 	return true
 }
@@ -322,18 +321,4 @@ func (s *State) reflAmtBoundPays(k *prep, p uint8, a Action) (paid, ok bool) {
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
 	return pot.affords(&cost, pipMaskOf(&cost), 0), true
-}
-
-// reflAmtBeyondBound reports whether play a is one a live reflected Amount$
-// source alone would pay, past gorge's bound: the bound folds the source as
-// {C} only (reflAmtPotential), so a coloured pip only its reflected mana
-// funds (the {B} of Whisper Squad's {1}{B} off tapped Swamps, CR 106.7) is
-// in no potential walk of gorge's, and gorge offers no activation or cast
-// for it though the gaps walk lists it.
-func (s *State) reflAmtBeyondBound(k *prep, p uint8, a Action) bool {
-	if !s.reflAmtLive(k, p) {
-		return false
-	}
-	paid, ok := s.reflAmtBoundPays(k, p, a)
-	return ok && !paid
 }
