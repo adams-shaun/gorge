@@ -1412,6 +1412,24 @@ func (rs *tapXSearch) pairAsk(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 	return false, false
 }
 
+// ctrColourAsk is the colour ask of an any-colour counter-cost ability, the
+// announced colours in order (the subsume run keeps only the lacking ones).
+// stop reports the search ended here: found is its answer.
+func (rs *tapXSearch) ctrColourAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (found, stop bool) {
+	if !rs.tick() { // the colour ask
+		return false, true
+	}
+	for i := 0; i < 5; i++ {
+		if !rs.subsumeKeeps(t, cols[i]) {
+			continue
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+			return true, true
+		}
+	}
+	return false, false
+}
+
 func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	if !rs.tick() { // a payer priority node
 		return false
@@ -1520,16 +1538,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if ab := k.ctrAbOf(t.cardAt(sl)); ctrAnyColour(ab) {
 				// an any-colour counter ability (Vivid Grove's second) asks
 				// its colour after the ability: the announced ones first
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				for i := 0; i < 5; i++ {
-					if !rs.subsumeKeeps(t, cols[i]) {
-						continue
-					}
-					if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
-						return true
-					}
+				if found, stop := rs.ctrColourAsk(k, t, sl, &cols); stop {
+					return found
 				}
 				continue
 			}
