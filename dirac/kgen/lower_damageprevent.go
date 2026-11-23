@@ -32,22 +32,11 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectUncounterScope(ps); ok || err != nil { // lower_effectuncounter.go
 		return err
 	}
-	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
-		return lc.skipUntapEffect(ps)
+	if ok, err := lc.effectDurationRoutes(ps); ok || err != nil { // the Duration$ lifetimes
+		return err
 	}
-	if ps.is("Duration", "AsLongAsControl") || ps.is("Duration", "AsLongAsInPlay") || ps.is("Duration", "UntilHostLeavesPlay") || ps.is("Duration", "UntilUntaps") {
-		if ok, err := lc.untapLockEffect(ps); ok || err != nil { // lower_untaplock.go
-			return err
-		}
-	}
-	if ps.is("Duration", "UntilYourNextTurn") {
-		return lc.effectDmgMark(ps) // lower_effectdmgmark.go
-	}
-	if ps.is("Duration", "UntilHostLeavesPlayOrEOT") {
-		return lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
-	}
-	if _, ok := ps.get("Duration"); ok {
-		return lc.effectPreventDuration(ps)
+	if ok, err := lc.effectReplEmblem(ps); ok || err != nil { // lower_effectreplemblem.go
+		return err
 	}
 	if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
 		return err
@@ -114,6 +103,32 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	// option names the creature, and A stays 0.
 	lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, A: cst(1), CS: strings.Join(kws, "&")})
 	return nil
+}
+
+// effectDurationRoutes is the Duration$ dispatch that runs before the
+// no-Duration arms: the lifetimes effectPrevent lowers itself (claimed: the
+// arm that takes the line terminates the node, as its inline form did), then
+// every other Duration$ to effectPreventDuration. It reports false,
+// consuming nothing, when no Duration$ names a route.
+func (lc *lowerCtx) effectDurationRoutes(ps *params) (bool, error) {
+	if ps.is("Duration", "UntilTheEndOfYourNextUntap") {
+		return true, lc.skipUntapEffect(ps)
+	}
+	if ps.is("Duration", "AsLongAsControl") || ps.is("Duration", "AsLongAsInPlay") || ps.is("Duration", "UntilHostLeavesPlay") || ps.is("Duration", "UntilUntaps") {
+		if ok, err := lc.untapLockEffect(ps); ok || err != nil { // lower_untaplock.go
+			return true, err
+		}
+	}
+	if ps.is("Duration", "UntilYourNextTurn") {
+		return true, lc.effectDmgMark(ps) // lower_effectdmgmark.go
+	}
+	if ps.is("Duration", "UntilHostLeavesPlayOrEOT") {
+		return true, lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
+	}
+	if _, ok := ps.get("Duration"); ok {
+		return true, lc.effectPreventDuration(ps)
+	}
+	return false, nil
 }
 
 // effectPreventDuration lowers a prevention Effect that carries a Duration$.
