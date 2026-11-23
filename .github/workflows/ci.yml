@@ -988,8 +988,18 @@ jobs:
           names=$(grep -vE '^[[:space:]]*(#|$)' dirac/oracle/testdata/sentinels.txt | sed 's/[[:space:]]*#.*//; s/[[:space:]]*$//' | sort -u)
           [ -n "$names" ] || { echo "sentinels.txt names no tests"; exit 1; }
           rx=$(paste -sd'|' <<<"$names")
-          echo "$(wc -l <<<"$names") sentinels"
-          go test -timeout 15m -run "^($rx)\$" ./dirac/oracle
+          want=$(wc -l <<<"$names")
+          echo "$want sentinels"
+          # A sentinel that skips (no corpus, no tables) or never runs must not read green: every name must print --- PASS.
+          go test -v -timeout 15m -run "^($rx)\$" ./dirac/oracle 2>&1 | tee sentinels.log
+          rc=${PIPESTATUS[0]}
+          [ "$rc" -eq 0 ] || exit "$rc"
+          got=$(grep -c '^--- PASS: ' sentinels.log || true)
+          if [ "$got" -lt "$want" ]; then
+            echo "::error::oracle-sentinels: $want sentinels named, only $got passed (missing corpus or tables, a skip, or a name that matches nothing)"
+            grep -E '^--- SKIP: ' sentinels.log || true
+            exit 1
+          fi
 
   oracle:
     # On demand only here: the whole oracle runs about every 2 hours in oracle.yml (operator 11-17), never on a pull
