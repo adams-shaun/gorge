@@ -144,6 +144,7 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	}
 	if k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) {
 		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
+		s.availForageCA(k, p, a)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)

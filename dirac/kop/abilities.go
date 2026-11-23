@@ -781,6 +781,9 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 			break
 		}
 	}
+	if ForageComboAnyAb(a) {
+		return true // a Combo Any census gap with a forage cost (forage_mana.go; kernel mana_forage.go)
+	}
 	if j != first {
 		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondTapXOneManaAb(cd, first, j) || SecondSacTapManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
 			StoreManaAb(a) ||

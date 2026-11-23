@@ -228,6 +228,9 @@ func buildCard(pt *poolTables, c *lCard) built {
 			if r := exileGraveManaRefusal(a); r != "" {
 				why = r // (an exile-from-graveyard source outside the modelled shape names its restriction, rider or zone)
 			}
+			if r := forageManaRefusal(a); r != "" {
+				why = r // (a forage cost beside a production other than the unrestricted Combo Any one)
+			}
 			if kop.FeeComboAnyManaAb(a) {
 				// the combination search has no fee-funded form: a Combo Any
 				// source beside the filter its fee is stalls the table

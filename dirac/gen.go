@@ -448,6 +448,8 @@ type genPrep struct {
 	dhMix bool
 	// caMix: a Combo Any source beside another census-gap kind (mana_comboany.go prepComboAnyMix): StallComboAnyMix
 	caMix bool
+	// anyForageCA: a Combo Any source pays a forage ({T}, Forage; mana_forage.go)
+	anyForageCA bool
 	// eachCol: card i's "one mana of each colour among" ability (Bloom
 	// Tender), -1 none: a source gorge's planner census misses, reached by
 	// a potential play's scripted prefix (script_gen.go)
@@ -1488,7 +1490,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
-				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+				if comboAnyMana(a) && (j == firstManaAb(&t.Cards[i]) || kop.ForageComboAnyAb(a)) {
+					g.anyForageCA = g.anyForageCA || kop.ForageComboAnyAb(a)
 					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
 				}
 				if reflAmtManaAb(a) && j == firstManaAb(&t.Cards[i]) {
