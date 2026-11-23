@@ -2622,13 +2622,24 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	return out
 }
 
+// supplyProofHost is the narrow slice of the engine the supply proof reads
+// (manaTapSingle, abilityOutrunsSupply), so the proof stays out of the
+// engine's method surface (codeshape's EngineSurface).
+type supplyProofHost interface {
+	condSplitHost
+	offerCostHost
+	manaAbilityCC(p state.PlayerID, source state.ObjID, ma *cards.SA) *compiledCost
+	potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana
+	appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA
+}
+
 // manaTapSingle reports whether mana ability ma of source id is a lone {T}
 // that makes exactly one mana: no fee or other cost part, no tap trigger's
 // extra mana, no condition-split production, no chosen or per-object amount.
 // Only a plain one-symbol production or "Any" is read as one mana: a special
 // one (Bloom Tender's one mana per colour among permanents) parses to no
 // colour at all, which would count as nothing.
-func manaTapSingle(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
 	if mp.PlainSym == 0 && mp.Produced != "Any" && mp.Produced != "Combo Any" {
 		return false
@@ -2643,11 +2654,11 @@ func manaTapSingle(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA) bo
 // be paid from its own source, which is taken out of the supply. Any other
 // play, and a cost whose mana count can fall after announcement (an {X}, a
 // Phyrexian or two-brid symbol, a waterbend part, a creature-tap credit), is never proven.
-func abilityOutrunsSupply(e *Engine, p state.PlayerID, o decision.Option, supply int32) bool {
+func abilityOutrunsSupply(e supplyProofHost, p state.PlayerID, o decision.Option, supply int32) bool {
 	if o.Kind != optAbility || o.SVar != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Keyword != "" {
 		return false
 	}
-	ob := e.G.Obj(o.Obj)
+	ob := e.Game().Obj(o.Obj)
 	if ob == nil || ob.Face() == nil {
 		return false
 	}

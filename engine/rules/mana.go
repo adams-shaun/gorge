@@ -576,9 +576,19 @@ func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA
 	return formatCost(abilityOfferCostOf(e, p, id, ab))
 }
 
+// offerCostHost is the narrow slice of the engine abilityOfferCostOf reads; a
+// free function over it keeps the composed cost out of the engine's method
+// surface (codeshape's EngineSurface).
+type offerCostHost interface {
+	abilityCompiledCost(sa *cards.SA) *compiledCost
+	ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets, allTargets []state.Target, merged int) int32
+	powerUpReducedCost(id state.ObjID, ab *cards.SA, cost Cost) Cost
+	offerCostFor(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
+}
+
 // abilityOfferCostOf is abilityOfferCost's composed cost before it is
 // rendered.
-func abilityOfferCostOf(e *Engine, p state.PlayerID, id state.ObjID, ab *cards.SA) Cost {
+func abilityOfferCostOf(e offerCostHost, p state.PlayerID, id state.ObjID, ab *cards.SA) Cost {
 	cost := e.abilityCompiledCost(ab).Cost
 	// The ability's own ReduceCost$ (Otawara's Channel): the same
 	// composition the offer gate and beginActivation's charge apply, so
