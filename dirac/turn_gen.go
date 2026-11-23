@@ -343,6 +343,38 @@ func (s *State) replSrcOf() uint8 {
 	return 0
 }
 
+// coldEntryNoRun is 1 while an entry's enter programs run for an entry no
+// resolution run serves: the exile return of a departing player's sweep
+// (returnLinked outside a resolution). gorge runs such a replacement body
+// straight off the emit with no run, so every ask the body poses defaults to
+// its first option (engine/rules/resolution_ask.go's no-host degrade) instead
+// of being queued and posed. Like coldReplSrc, a cold region, not a genState
+// field, because the fixed-State inventory is pinned (TestNoNewFixedStateFields);
+// only a table with an enter replacement carries the byte.
+var coldEntryNoRun = newCold[uint8]("entryNoRun", func(g *genPrep) int {
+	for _, f := range g.flags {
+		if f&gfEnterRepl != 0 {
+			return 1
+		}
+	}
+	return 0
+})
+
+// entryNoRun reports the coldEntryNoRun byte: false for a table without it.
+func (s *State) entryNoRun() bool {
+	if r := coldEntryNoRun.of(s); len(r) > 0 {
+		return r[0] == 1
+	}
+	return false
+}
+
+// setEntryNoRun sets the coldEntryNoRun byte (a table without it keeps none).
+func (s *State) setEntryNoRun(v uint8) {
+	if r := coldEntryNoRun.of(s); len(r) > 0 {
+		r[0] = v
+	}
+}
+
 func (s *State) setReplSrc(v uint8) {
 	if r := coldReplSrc.of(s); len(r) > 0 {
 		r[0] = v
@@ -413,6 +445,17 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					s.touchSl(sl)
 					continue
 				}
+				if s.entryNoRun() {
+					// no resolution run serves the entry (the sweep's exile
+					// return): gorge's body defaults the ask to its first
+					// option -- the first living opponent -- and the program
+					// continues in place (coldEntryNoRun)
+					if q := s.oppsFrom(s.perms[sl].ctrl); q.n > 0 {
+						s.perms[sl].chosen = objWord(q.s[0])
+						s.touchSl(sl)
+					}
+					continue
+				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
 				if !saved.active {
 					s.res = saved
@@ -445,6 +488,18 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					}
 				}
 				s.perms[sl].chosen = objWord(fb)
+				continue
+			}
+			if s.entryNoRun() && kind != akCtrPick && kind != akCtrPick2 &&
+				!(i == 0 && progFirstAskKind(&k.t.Cards[c].Abilities[ab].Prog[0]) == kind) {
+				// no resolution run serves the entry (the sweep's exile
+				// return): gorge's body defaults the ask to its first option
+				// and the program continues in place. The program's first op
+				// when it is a CR 614.12 entry choice is not one of these:
+				// gorge's walker asks it with the card still in its origin
+				// zone, posed even with no run (repl_etbchoice's park), so it
+				// stays queued.
+				s.entryAskDefault(k, sl, kind)
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
@@ -496,6 +551,59 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 // against all of them (engine/rules/replacement_etb.go).
 func (s *State) entryAskOutstanding() bool {
 	return s.res.ask != raNone || s.g.pre.state != 0 || s.g.nask > 0
+}
+
+// progFirstAskKind is the CR 614.12 entry-choice kind of an enters program's
+// first op, the one gorge's as-enters-choice walker asks with the card still
+// in its origin zone and the move parked (repl_etbchoice's walk: a colour, a
+// type, a number, a card name). Its kind, 0 when the first op is not such a
+// choice: that body runs straight off the entry emit, and with no resolution
+// run serving the entry its asks default instead of being posed.
+func progFirstAskKind(in *kop.Instr) uint8 {
+	switch in.Op {
+	case kop.OpChooseColor:
+		return akColor
+	case kop.OpChooseType:
+		return akType
+	case kop.OpExt:
+		switch in.Ext() {
+		case kop.ExtChooseNumber:
+			return akNumber
+		case kop.ExtChooseName:
+			return nameAskKind(in)
+		}
+	}
+	return 0
+}
+
+// entryAskDefault answers an as-enters ask of an entry no resolution run
+// serves with gorge's no-run stand-in, the pose's first option, and the enters
+// program continues in place: the ask is never queued (engine/rules/
+// resolution_ask.go's no-host degrade). The look/name pair (akNameLook) takes
+// the acknowledgment -- a no-op: the chosen byte still holds the looked-at
+// player between the two -- and then the name itself.
+func (s *State) entryAskDefault(k *prep, sl Slot, kind uint8) {
+	if kind == akNameLook {
+		kind = akNameAny
+	}
+	var d Decision
+	d.Kind = DkChoose
+	d.Player = s.perms[sl].ctrl
+	s.askOptions(k, &d, kind)
+	if len(d.Options) == 0 {
+		return // gorge poses no ask over an empty option list: no choice
+	}
+	a := d.Options[0]
+	p := &s.perms[sl]
+	s.touchSl(sl)
+	if kind == akCard {
+		p.chosen = objWord(a.Source()) // the chosen object rides the action's code
+	} else if kind == akColor || kind == akNumber || kind == akPlayer || isNameAsk(kind) {
+		p.chosen = objWord(a.Mode())
+	} else {
+		v := int(a.Target())<<8 | int(a.Mode())
+		p.chosen = objWord(s.typeVocabCode(k, v))
+	}
 }
 
 // queueAsk queues an as-enters choice for the permanent at sl (no program
@@ -664,7 +772,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			}
 			host := s.firstHost(k, l.obj)
 			from := s.detach(l.obj)
-			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
+			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			s.attachTo(k, nsl, host)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
@@ -721,12 +829,31 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
 			from := s.detach(l.obj)
-			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
+			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
 			}
 		}
 	}
+}
+
+// enterLinkRetRun enters the returning card o and marks the entry's enter
+// programs no-run when no resolution run serves the return (a departed
+// player's sweep): gorge runs such a replacement body straight off the emit
+// with no run, so every ask it poses defaults to its first option and the
+// program continues in place (coldEntryNoRun).
+//
+//go:noinline
+func (s *State) enterLinkRetRun(k *prep, o Obj, p uint8, from kop.Zone) Slot {
+	noRun := !s.res.active
+	if noRun {
+		s.setEntryNoRun(1)
+	}
+	nsl := s.enterLinkRet(k, o, p, from)
+	if noRun {
+		s.setEntryNoRun(0)
+	}
+	return nsl
 }
 
 // firstHost is the first permanent the returning Aura card o can enchant
