@@ -1,0 +1,17 @@
+{
+  "card": "Bogardan Phoenix",
+  "class": "options",
+  "why": "Jaheira, Friend of the Forest's granted \"{T}: Add {G}\" on the Gold token makes it a census gap beside Painted Bluffs, so gorge's prefix search for the {2}{R}{R}{R} cast needs 372 nodes against its 160-node budget and the play is left unsupported census_incomplete and withheld; the kernel prices it from Mountain, two Forests, Bluffs and the Gold sacrifice and offers it (CR 602.2b, 605.3a); tail-76 pair 183, decision 291",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "bogardan_phoenix_granted_tap_gold_budget"
+  },
+  "evidence": [
+    "ev-tail-76-c000"
+  ]
+}
