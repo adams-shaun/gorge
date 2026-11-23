@@ -212,12 +212,10 @@ var historyHeadCards = []string{
 }
 
 // historyHeadsDeferred are the class's cards whose head needs history gorge
-// does not record yet (the emerge sacrifice).
-// Each is expected to stay held out by exactly that one count: primitive; the
-// test fails when one becomes modelled so the entry is removed with it.
-var historyHeadsDeferred = map[string]string{
-	"Adipose Offspring": "count:Emerged",
-}
+// does not record yet. Each is expected to stay held out by exactly that one
+// count: primitive; the test fails when one becomes modelled so the entry is
+// removed with it. Every head of the class is modelled now.
+var historyHeadsDeferred = map[string]string{}
 
 // TestEveryZoneHistoryHeadCardIsPlayable: no card of the class is held out of
 // the playable pool by a count: primitive. A card that still names another
