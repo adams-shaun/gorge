@@ -2333,7 +2333,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						return
 					}
 					as = append(as, assignment{toPlayer: tp, toObj: to, amount: amount,
-						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+						lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf, wither: wit})
 				}
 				switch {
 				case e.chosenElection(aid):
@@ -2581,7 +2581,7 @@ func (e *Engine) runCombatAssignments() {
 			if !prevented {
 				dealt = ev.Amount
 			}
-			if x.deathtouch && !prevented && ev.Obj != 0 {
+			if x.deathtouch && !prevented && ev.Obj != 0 && e.IsCreature(ev.Obj) {
 				e.emit(events.Event{Kind: events.CounterChange, Obj: ev.Obj,
 					Counter: "Deathtouched", Amount: 1})
 			}
@@ -2618,6 +2618,16 @@ func (e *Engine) runCombatAssignments() {
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
+				if x.deathtouch && ev.Obj != 0 && e.IsCreature(ev.Obj) {
+					// The redirect landed the hit on a permanent: a deathtouch
+					// source's damage to a creature is lethal there (CR 702.2b)
+					// exactly as on the object branch above. The attacker's
+					// own deathtouch rides every assignment that hit a player
+					// or battle/planeswalker, so only a creature recipient is
+					// marked.
+					e.emit(events.Event{Kind: events.CounterChange, Obj: ev.Obj,
+						Counter: "Deathtouched", Amount: 1})
+				}
 				// A damage-redirection replacement can rewrite this
 				// player-targeted event into a PERMANENT-targeted one
 				// (Protector of the Crown, Palisade Giant's `Affected$
