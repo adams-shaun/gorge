@@ -117,7 +117,7 @@ func (s *State) stampConvoked(k *prep) {
 	n := 0
 	for i := 0; i < int(s.bld().pickN); i++ {
 		kd := s.bld().pickKs[i]
-		if !isConvokePick(kd) || kd&7 > 5 {
+		if !convokedPick(kd) {
 			continue
 		}
 		if n == maxConvoked {
