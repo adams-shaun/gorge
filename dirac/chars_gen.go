@@ -816,6 +816,8 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 		if k.gen.anySuspect {
 			m |= s.suspectKw(k, sl) // CR 701.60a: a base keyword, as the cloak's ward (static_layer6.go)
 		}
+	} else {
+		m |= ctrKwNewer(s, p, lts) // CR 613.7: a counter put on after the loss keeps its grant
 	}
 	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsKw, func(st statSrc) bool {
