@@ -2614,6 +2614,10 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 		if err != nil {
 			return err
 		}
+		// a granted Banding is the same record's Banding (lower_banding.go)
+		if rest, err = lc.splitBandingGrant(rest, prot, zone == zBattlefield && lc.pumpObjectRef(obj)); err != nil {
+			return err
+		}
 	}
 	rest, landwalk, err := lc.splitLandwalkPump(rest) // lower_landwalkgrant.go
 	if err != nil {
@@ -2625,7 +2629,7 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if prot.ProtFrom != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
 		return refuse("granted protection to a non-permanent subject")
 	}
-	if rest != "" || prot.ProtFrom == nil && len(fbs)+myriads == 0 && landwalk == nil {
+	if rest != "" || prot.ProtFrom == nil && !prot.Banding && len(fbs)+myriads == 0 && landwalk == nil {
 		ks, err := pumpKeywords(rest)
 		if err != nil {
 			return err
@@ -2638,7 +2642,7 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
 		}
 	}
-	if prot.ProtFrom != nil {
+	if prot.ProtFrom != nil || prot.Banding {
 		// CR 702.16 granted until end of turn: an end-of-turn override record
 		// carrying the protection's quality filter (kop.Override.ProtFrom),
 		// the colour-mask clauses of the "Protection from <colour>" spellings
