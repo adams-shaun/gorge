@@ -1213,7 +1213,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if knownSub(p) {
 		return c.addSubtype(p)
 	}
-	return fmt.Errorf("unknown property %q", p)
+	return c.fwArmOrUnknown(p) // filter_words_relations.go
 }
 
 // sharesNameWithProp lowers the sharesNameWith property family and reports

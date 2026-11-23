@@ -1575,35 +1575,50 @@ const FwAttacking FilterWord = 1
 // FwCMCCmp: the object's mana value compares to V by Op (PredCMCLE/PredCMCGE/PredCMCEQ): a face-down object has none (CR 708.2), a spell on the stack counts its X (CR 202.3e).
 const FwCMCCmp FilterWord = 2
 
+// FilterWord (dirac/manifest/FilterWord/FwChosenCtrl)
+//
+// FwChosenCtrl: the object is controlled by the player the reading source permanent chose as it entered (gorge chosenCtrlMatches, effects/filter_type.go); no source or no chosen player fails closed.
+const FwChosenCtrl FilterWord = 3
+
 // FilterWord (dirac/manifest/FilterWord/FwCountersCmp)
 //
 // FwCountersCmp: the battlefield permanent's counters of kind Arg (a kop.CounterKind below 256) compare to V by Op (PredCountersGE, PredHasCounter). An object off the battlefield fails closed.
-const FwCountersCmp FilterWord = 3
+const FwCountersCmp FilterWord = 4
+
+// FilterWord (dirac/manifest/FilterWord/FwEnchantedControllerCtrl)
+//
+// FwEnchantedControllerCtrl: the object is controlled by the controller of the permanent the reading source is attached to (gorge wordEnchantedControllerCtrl, effects/filter_word.go); an unattached source fails closed.
+const FwEnchantedControllerCtrl FilterWord = 5
 
 // FilterWord (dirac/manifest/FilterWord/FwKeyword)
 //
 // FwKeyword: the object has keyword bit Arg of its current KwMask (PredHasKeyword).
-const FwKeyword FilterWord = 4
+const FwKeyword FilterWord = 6
 
 // FilterWord (dirac/manifest/FilterWord/FwPowerCmp)
 //
 // FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).
-const FwPowerCmp FilterWord = 5
+const FwPowerCmp FilterWord = 7
 
 // FilterWord (dirac/manifest/FilterWord/FwSubtype)
 //
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
-const FwSubtype FilterWord = 6
+const FwSubtype FilterWord = 8
 
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 7
+const FwTapped FilterWord = 9
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 8
+const FwToughnessCmp FilterWord = 10
+
+// FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
+//
+// FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
+const FwWithKeyword FilterWord = 11
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -1883,6 +1898,36 @@ const KwDivideDamageAmongDefenders KwID = 123
 
 // kw Your starting hand size is five. (dirac/manifest/KwID/KwStartingHandFive)
 const KwStartingHandFive KwID = 124
+
+// Cascade (dirac/manifest/KwID/KwCascade)
+const KwCascade KwID = 125
+
+// Convoke (dirac/manifest/KwID/KwConvoke)
+const KwConvoke KwID = 126
+
+// Foretell (dirac/manifest/KwID/KwForetell)
+const KwForetell KwID = 127
+
+// Horsemanship (dirac/manifest/KwID/KwHorsemanship)
+const KwHorsemanship KwID = 128
+
+// Madness (dirac/manifest/KwID/KwMadness)
+const KwMadness KwID = 129
+
+// Megamorph (dirac/manifest/KwID/KwMegamorph)
+const KwMegamorph KwID = 130
+
+// Morph (dirac/manifest/KwID/KwMorph)
+const KwMorph KwID = 131
+
+// Multikicker (dirac/manifest/KwID/KwMultikicker)
+const KwMultikicker KwID = 132
+
+// Suspend (dirac/manifest/KwID/KwSuspend)
+const KwSuspend KwID = 133
+
+// Toxic (dirac/manifest/KwID/KwToxic)
+const KwToxic KwID = 134
 
 // Op (dirac/manifest/Op/OpGrantEmbalmOwnCost)
 //
