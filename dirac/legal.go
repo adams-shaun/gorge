@@ -2684,7 +2684,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if !s.addAnyDifferentOrOpen(k, p, sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
-				open = s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, &cen, fold) || open
+				open = s.sacAnyRepeatUnitsFor(d, k, p, sl, ab, abDrop, &cen, fold) || open
 				s.tapXRepeatUnits(k, p, sl, ab, fold)
 			}
 		}
@@ -2694,6 +2694,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// sacAnyRepeatUnitsFor is sacAnyRepeatUnits unless the pay description holds
+// the sacrifice-any repeats out (payDesc.noSacRepeat, the kicked cast's
+// potential price): then the census keeps only the source's one activation.
+func (s *State) sacAnyRepeatUnitsFor(d *payDesc, k *prep, p uint8, sl Slot, ab *kop.Ability, abDrop uint8, cen *potCensus, fold func(Slot, uint8, uint8)) bool {
+	if d != nil && d.noSacRepeat {
+		return false
+	}
+	return s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, cen, fold)
 }
 
 // sacAnyRepeatUnits is availPotentialFor's census arm for a live sacrifice-any
