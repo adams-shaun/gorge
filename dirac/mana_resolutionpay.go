@@ -738,3 +738,12 @@ func plansAnyColour(pl *planner) bool {
 	}
 	return false
 }
+
+// runPrefixesGated is runPrefixes behind its four gates, tested inline so a table
+// with none of them skips the call.
+func (s *State) runPrefixesGated(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
+	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		return s.runPrefixes(k, a, p, grants, grantFirst)
+	}
+	return false, false
+}

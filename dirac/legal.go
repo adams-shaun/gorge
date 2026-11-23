@@ -3548,10 +3548,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// activation's (mana_granttapsdefer.go)
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	// runPrefixes' four gates, tested inline so a table with none of them skips the call
-	pref, tapX := false, false
-	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
-		pref, tapX = s.runPrefixes(k, a, p, grants, grantFirst)
-	}
+	pref, tapX := s.runPrefixesGated(k, a, p, grants, grantFirst)
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
