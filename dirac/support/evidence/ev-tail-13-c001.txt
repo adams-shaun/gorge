@@ -68,6 +68,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Collective Restraint
 Commander Eesha
 Commune with Spirits
 Consign to the Pit
@@ -200,6 +201,7 @@ Inexorable Blob
 Inner-Flame Igniter
 Insist
 Inspired Sprite
+Intermediate Chirography
 Invasion of Innistrad
 Invasion of Kaldheim
 Invasion of Lorwyn
