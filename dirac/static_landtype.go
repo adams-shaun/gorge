@@ -76,7 +76,9 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			on = on || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && meets(a.Static.AddSub)
+			// an AddType$ ChosenType static grants a basic land type when its
+			// host chose one (Realmwright; the as-enters ask offers the five)
+			on = on || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (meets(a.Static.AddSub) || a.Static.AddChosen && basic.Any())
 		}
 	}
 	for i := range t.Overrides {
