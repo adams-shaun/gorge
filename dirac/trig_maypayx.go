@@ -90,7 +90,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 				one = t // the restricted sources a non-spell payment may spend count once each too
 			}
 		}
-		mx = min(mx, one.total-s.trigXFiltExcess(k, p))
+		mx = min(mx, one.total+s.trigXLethalPain(k, p)-s.trigXFiltExcess(k, p))
 	}
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
