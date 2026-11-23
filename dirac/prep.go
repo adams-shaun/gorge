@@ -374,7 +374,7 @@ func prepare(t *kop.Table) *prep {
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
 		typedWord := (c.Subtypes[0]&typedSub[0] | c.Subtypes[1]&typedSub[1]) != 0
-		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord
+		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord || c.TypedMana
 		pc.manaSnow = snowMana(c, typedWord)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
