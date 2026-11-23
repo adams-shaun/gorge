@@ -70,7 +70,8 @@ func ResolveGrantedProtection(list []string, host *state.Object) []string {
 
 // ProtectionExempt reports whether the exception field of a resolved
 // Protection keyword spares source (CR 702.16: "this effect doesn't remove
-// ..."). `Card.CardUID_<n>` names one object, and
+// ..."). `Card.CardUID_<n>` names one object (spared on the state-based
+// attachment check only: its abilities still can't target the host), and
 // `<spec>.ControlledBy Player.PlayerUID_<n>` an object of that spec under
 // seat n (hasSpec judges the spec); any other clause is a bare spec of the
 // source (Spectra Ward's Aura), which spares only on the state-based
@@ -92,7 +93,10 @@ func ProtectionExempt(kw string, source state.ObjID, sba bool, controller func(s
 	for c := range strings.SplitSeq(f[2], ",") {
 		c = strings.TrimSpace(c)
 		if n, ok := strings.CutPrefix(c, "Card.CardUID_"); ok {
-			if id, err := strconv.Atoi(n); err == nil && state.ObjID(id) == source {
+			// the host's own exception is the state-based check's alone
+			// (CR 702.16b: protection still stops the host's abilities
+			// targeting the enchanted permanent, Tattoo Ward's destroy)
+			if id, err := strconv.Atoi(n); err == nil && sba && state.ObjID(id) == source {
 				return true
 			}
 			continue
