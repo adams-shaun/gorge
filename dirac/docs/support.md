@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 304 | 0 | 32 | 272 | 272 | 0 |
 | TRK | 311 | 311 | 2 | 0 | 309 | 308 | 0 |
 | WOE | 281 | 266 | 0 | 3 | 263 | 263 | 0 |
-| MBC | 2212 | 1992 | 4 | 16 | 1972 | 1971 | 0 |
-| ALL | 34442 | 25642 | 33 | 260 | 25349 | 25344 | 0 |
+| MBC | 2212 | 1992 | 4 | 16 | 1972 | 1970 | 0 |
+| ALL | 34442 | 25642 | 33 | 260 | 25349 | 25343 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
