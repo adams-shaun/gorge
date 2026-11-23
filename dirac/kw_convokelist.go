@@ -24,7 +24,7 @@ const maxConvoked = 16
 
 // StallConvokedSet: a seventeenth convoked set held at once, or a
 // seventeenth convoked creature on one cast (stampConvoked).
-const StallConvokedSet = 194
+const StallConvokedSet = 175
 
 func init() { stallNames[StallConvokedSet] = "convoked" }
 
