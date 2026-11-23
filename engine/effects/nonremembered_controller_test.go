@@ -71,7 +71,7 @@ func TestCopyPermanentNonTargetedControllerRaw(t *testing.T) {
 	src.Zone = state.ZStack
 	c := &Ctx{Source: src.ID, Controller: 0, Targets: []state.Target{{Obj: target.ID}},
 		Snap: LKISnapshots{TargetController: map[state.ObjID]state.PlayerID{target.ID: 2}}}
-	effCopyPermanent(h, c, sa(t, "DB$ CopyPermanent | Defined$ Targeted | Controller$ NonTargetedController"))
+	effCopyPermanent(h, c, sa(t, "DB$ CopyPermanent | Controller$ NonTargetedController | Defined$ Targeted"))
 	counts := make([]int, len(h.g.Players))
 	for i := range h.g.Objs {
 		o := &h.g.Objs[i]
