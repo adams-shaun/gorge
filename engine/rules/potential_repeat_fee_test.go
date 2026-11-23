@@ -32,3 +32,13 @@ func TestRepeatableFeeOnlyManaFundsTwoPips(t *testing.T) {
 		t.Fatal("one land funds one activation: {B}{B} is out of reach")
 	}
 }
+
+// CR 605.3a, 601.2g: with Energy Refractor's fee-only "{2}: Add one mana of any
+// color" also on the board, Bog Initiate's "{1}: Add {B}." line that alone
+// funds Master's {B}{B} is still offered.
+func TestRepeatableFeeOnlyBesideRefractorFundsTwoPips(t *testing.T) {
+	pp, listed := repeatFeeMasterPlan(t, []string{"Energy Refractor", "Bog Initiate", "Mountain", "Wirewood Lodge"})
+	if !listed || pp.Reason != "" || len(pp.Script) == 0 {
+		t.Fatalf("Master's {B}{B} is payable through two activations of Bog Initiate beside a Refractor: listed %v reason %q detail %q script %d", listed, pp.Reason, pp.Detail, len(pp.Script))
+	}
+}
