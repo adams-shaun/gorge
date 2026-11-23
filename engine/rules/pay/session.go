@@ -51,6 +51,15 @@ type Session struct {
 	// Empty everywhere else. Pure per-query scratch: Clone copies none of it.
 	PaymentPlanRelaxedCut []Alt `clone:"reset"`
 
+	// PaymentPlanRelaxedMerge lists sources whose every mana ability taps
+	// them (paymentPlanCensus.tapOnly): at most one of those abilities is
+	// activated in a payment (CR 602.2b), so a relaxed alternative of such a
+	// source joins the source's own census unit as a further alternative
+	// instead of a second free unit. Set only by the skip proof
+	// (paymentPlanRelaxProof with mergeTap). Pure per-query scratch: Clone
+	// copies none of it.
+	PaymentPlanRelaxedMerge []state.ObjID `clone:"reset"`
+
 	// PlanAltsWant > 1 asks the planner for alternative plans
 	// (EnsurePaymentPlanAlternatives): a plain-cost plan then also writes,
 	// in PlanAlts, up to PlanAltsWant-1 plans whose residuals differ from
