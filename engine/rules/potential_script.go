@@ -47,12 +47,17 @@ type ScriptStep struct {
 // beyond either stays unpriced (never a proof). Both are stated limits, not
 // proofs of completeness: a query with more than sixteen plays the printed
 // sources cannot pay leaves the later ones census_incomplete, and so does a
-// search that needs more than 160 clones. (Four plays left a legal play
+// search that needs more than 164 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
-// Standard games, at about 2% more clones than four.)
+// Standard games, at about 2% more clones than four. 164: a board whose
+// every land tap is Taps-deferred by an outside watcher -- Manabarbs, whose
+// trigger each gap activation stacks for the walk's passes arm to resolve --
+// reached a fee-gap's funding line at 163 clones (the fee gap's {1} beside
+// Silver Myr paying a {U}{U} attach), three past the old 160, and the kernel's
+// mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
 const (
 	potentialScriptPlays = 16
-	potentialScriptNodes = 160
+	potentialScriptNodes = 164
 )
 
 // potentialCastKind is the potential play kind a plain cast's prefix search
