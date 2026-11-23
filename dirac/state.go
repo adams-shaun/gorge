@@ -318,14 +318,6 @@ const (
 	cseenDT                                // deathtouch mark seen
 )
 
-// cseen's top bits (not counter bits, perm.flags holds no free bit):
-// the permanent doesn't untap during player 0's / player 1's next untap
-// step (an OpSkipUntap effect that player controls).
-const (
-	cseenSkipUntap0 uint8 = 1 << 6
-	cseenSkipUntap1 uint8 = 1 << 7
-)
-
 // ctrN is p's count of counter kind c.
 func (p *perm) ctrN(s *State, c int) int {
 	if n := p.ctrLow(c); n != 0 || p.ck[ctrSlots-1] == 0 {
