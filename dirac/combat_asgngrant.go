@@ -84,6 +84,100 @@ func (s *State) asUnblocked(k *prep, a Slot) bool {
 	return false
 }
 
+// attackersInZoneOrder lists the active player's attacking creatures in
+// battlefield (entry) order (gorge G.Zone(Battlefield, active), the order
+// asUnblockedNeeding and divisionNeeding walk; the ts insertion restores it
+// from the kernel's slot order, nextDivision's prologue).
+func (s *State) attackersInZoneOrder(ord *[MaxPerm]Slot) int {
+	no := 0
+	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+		a := am.first()
+		if s.perms[a].flags&pfAttacking == 0 {
+			continue
+		}
+		j := no
+		for j > 0 && s.perms[ord[j-1]].ts > s.perms[a].ts {
+			ord[j] = ord[j-1]
+			j--
+		}
+		ord[j] = a
+		no++
+	}
+	return no
+}
+
+// nextElection finds the next attacker (battlefield order) whose controller
+// is offered the as-unblocked election (gorge askNextCombatAsk's electQueue,
+// CR 510.1c's optional "you may assign this creature's combat damage as
+// though it weren't blocked"): a blocked attacker that deals damage this
+// pass, whose power is above zero, whose outcome the election can change (a
+// trampler with no live blocker left routes the whole power to the player
+// either way), whose printed StatAssignCombatDamageAsUnblocked static
+// applies (gorge asUnblockedStaticMatches' Optional$ True arm; the kgen body
+// lowers only that spelling, the mandatory one is gorge's comment-only
+// auto-accept), and that has not been asked yet this pass. An ExtAsgnGrant
+// record (Outmaneuver) is gorge's MANDATORY match: auto-accepted without an
+// ask, so asUnblocked skips it too. Elections are asked BEFORE every damage
+// division (gorge asks the two queues in that fixed order); an accepted
+// election routes the whole power to the defending player (pfElectUnblk) and
+// the attacker never divides.
+func (s *State) nextElection(k *prep, first bool) bool {
+	if !k.anyAsUnblk {
+		return false
+	}
+	var ord [MaxPerm]Slot
+	no := s.attackersInZoneOrder(&ord)
+	for oi := 0; oi < no; oi++ {
+		a := ord[oi]
+		p := &s.perms[a]
+		if p.flags&(pfElectAsk|pfElectUnblk) != 0 { // answered already this pass
+			continue
+		}
+		if p.flags&pfBlocked == 0 || s.asUnblocked(k, a) {
+			continue
+		}
+		if !s.dealsNow(k, a, first) || s.combatAmount(k, a) <= 0 {
+			continue
+		}
+		if s.kw(k, a)&kop.KwTrample != 0 {
+			var bl [MaxPerm]Slot
+			if s.liveBlockers(a, &bl) == 0 {
+				continue
+			}
+		}
+		if !s.staticFlag(k, kop.StatAssignCombatDamageAsUnblocked, a) {
+			continue
+		}
+		p.flags |= pfElectAsk
+		s.touchSl(a)
+		s.divA, s.divI, s.divRem = a, 0, 0 // divRem 0 marks the pending ask an election
+		return true
+	}
+	return false
+}
+
+// electionOptions poses the as-unblocked election (gorge askNextCombatAsk's
+// KChoose): two options over the attacker, 0 assign normally (blocked), 1
+// assign as though not blocked.
+func (s *State) electionOptions(k *prep, d *Decision) {
+	d.Kind, d.Sub, d.Player = DkChoose, ChAsUnblocked, s.active
+	o := s.perms[s.divA].obj
+	d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+	d.add(MakeAction(AkChoose, TCode(o), 0, 1))
+}
+
+// applyElection answers the pending as-unblocked election: mode 1 accepts it
+// (pfElectUnblk routes the attacker's whole combat damage to the defending
+// player, CR 510.1c) and drops it from the division walk, mode 0 declines it
+// and the ordinary assignment switch runs. gorge handleAsUnblockedElection.
+func (s *State) applyElection(a Action) {
+	if a.Mode() == 1 {
+		s.perms[s.divA].flags |= pfElectUnblk
+		s.touchSl(s.divA)
+	}
+	s.divA = NoSlot
+}
+
 // asgnTough reports whether the creature at sl assigns its combat damage
 // equal to its toughness by an ExtAsgnGrant record (combatAmtTough).
 func (s *State) asgnTough(sl Slot) bool {

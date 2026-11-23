@@ -488,6 +488,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return Pack(ActCommanderZone, src, RefNone, mode)
 		case dirac.ChDivide:
 			return ch("division", src, mode)
+		case dirac.ChAsUnblocked:
+			// gorge askNextCombatAsk's election: both options carry Kind
+			// "asunblocked" over the attacker; mode 0 assigns normally
+			// (blocked), mode 1 as though not blocked (CR 510.1c;
+			// combat_asgngrant.go)
+			return ch("asunblocked", src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
 		case dirac.ChCostForage:
