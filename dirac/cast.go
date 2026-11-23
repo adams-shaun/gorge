@@ -165,7 +165,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if k.t.Cards[c].HasMultikicker {
 			// the count is asked after the cast action: the witness plans the
 			// offer's own base + one payment (gorge's composed potential play)
-			cost = addCost(cost, k.t.Cards[c].Multikicker)
+			cost = s.multikickWitnessCost(k, cost)
 		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
