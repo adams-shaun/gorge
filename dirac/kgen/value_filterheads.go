@@ -101,9 +101,9 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 // defendingExileValue lowers TriggeredDefendingPlayer$ValidExile <spec>: the
 // exiled cards matching spec with the defending player as the spec's You
 // (Ravenloft Adventurer's "each card they own in exile with a hit counter").
-// Dirac is two-seat, so the defending player of the controller's own attack
-// is the controller's one opponent: YouOwn rebinds to OppOwn and the count is
-// ExCountExile (every exile, the Owner property narrows). Any other player
+// YouOwn is the defending player's own cards: the filter drops it and the
+// count reads ExCountExile N 2 over the defending player (RefDefendingPlayer,
+// the seat the attacker is attacking at any seat count). Any other player
 // word in a spec alternative would bind to the controller's side, so it
 // refuses. Gorge's defaultRefPropertyModelled does not read this head for
 // TriggeredDefendingPlayer yet (it counts 0): see the ticket
@@ -112,28 +112,65 @@ func (lc *lowerCtx) defendingExileValue(spec string) (lValue, error) {
 	if !lc.ownAttackTrigger() {
 		return lValue{}, refuse("TriggeredDefendingPlayer$ValidExile outside an attack trigger of the controller's own attack")
 	}
-	lc.twoSeat("TriggeredDefendingPlayer read as the one opponent")
 	alts := strings.Split(strings.TrimSpace(spec), ",")
 	for i, alt := range alts {
 		typ, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		kept := []string{}
+		sawOwn := false
 		for _, p := range strings.Split(props, "+") {
 			switch {
 			case p == "YouOwn":
-				kept = append(kept, "OppOwn")
+				sawOwn = true
 			case strings.Contains(p, "You") || strings.Contains(p, "Opp") || strings.Contains(p, "Own") || strings.Contains(p, "Ctrl") || strings.Contains(p, "Player"):
 				return lValue{}, refuse("TriggeredDefendingPlayer$ValidExile %q: player word %q", spec, p)
 			default:
 				kept = append(kept, p)
 			}
 		}
-		alts[i] = typ + "." + strings.Join(kept, "+")
+		if !sawOwn {
+			// every alternative must name the defending player's own cards,
+			// or the count would span the other seats' exile
+			return lValue{}, refuse("TriggeredDefendingPlayer$ValidExile %q: an alternative without YouOwn", spec)
+		}
+		alts[i] = typ
+		if len(kept) > 0 {
+			alts[i] += "." + strings.Join(kept, "+")
+		}
 	}
 	f, err := lc.filter(strings.Join(alts, ","))
 	if err != nil {
 		return lValue{}, err
 	}
-	return lValue{Kind: vCountExile, F: f}, nil
+	return lValue{Kind: vCountExile, F: f, N: 2, Ref: lRef{Kind: rDefending}}, nil
+}
+
+// exileOwnedByDamaged reads Count$ValidExile <spec>+ControlledBy
+// TriggeredTarget (Etrata, the Silencer's "cards with a hit counter that
+// player owns in exile") inside a combat-damage-to-a-player trigger: a card
+// in exile is controlled by its owner (CR 108.3), so the count is the damaged
+// player's own matching cards (ExCountExile N 2 over the trigger player, the
+// seat damaged at any seat count). It returns the spec without the word and
+// the owner; any other spelling comes back unchanged with no owner.
+func (lc *lowerCtx) exileOwnedByDamaged(expr string) (string, lRef) {
+	rest, ok := strings.CutSuffix(expr, "+ControlledBy TriggeredTarget")
+	if !ok || strings.Contains(rest, ",") || strings.Contains(rest, "ControlledBy") || lc.ab == nil || lc.ab.Trigger == nil || !lc.damagedPlayerIsTriggerPlayer() {
+		return expr, lRef{}
+	}
+	return rest, lRef{Kind: rTriggeredPlayer}
+}
+
+// zoneCountFilter is the filter of a Count$Valid<Zone> spec, and for a
+// ValidExile spec owned by the damaged player (exileOwnedByDamaged) the
+// ExCountExile N 2 owner as a value shell (N and Ref).
+func (lc *lowerCtx) zoneCountFilter(pre, expr string) (*lFilter, lValue, error) {
+	var own lValue
+	if pre == "ValidExile " {
+		if rest, o := lc.exileOwnedByDamaged(expr); o.Kind != rNone {
+			expr, own = rest, lValue{N: 2, Ref: o}
+		}
+	}
+	f, err := lc.filter(expr)
+	return f, own, err
 }
 
 // metalcraftValue lowers Count$Metalcraft.<yes>.<no> (gorge

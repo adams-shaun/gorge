@@ -53,8 +53,8 @@ func (o *exileCounterObs) check(g *GorgeSide, _ Side) *Divergence {
 // exiler: Grolnok with Frogs (itself) and its self-mill. A card
 // exiled with a croak counter is later read by the may-play; the
 // games play out the same in both engines, and the mechanism is reached.
-// Etrata is not in the pod: its lowering is two-seat only (StallTwoSeat, a
-// declared limit), so a pod holding it stops at its start; the two-seat
+// Etrata is not in this pod: its four-seat pod is
+// the podlimited_etrata_four_seat_pod recording (TestPodLimitedRecordingsLockstep); the two-seat
 // recording above carries its hit counter.
 func TestExileWithCounterRecordFourSeat(t *testing.T) {
 	if isolate(t) {

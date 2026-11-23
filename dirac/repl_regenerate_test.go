@@ -200,8 +200,8 @@ func TestSkipUntapTwiceIsOneMark(t *testing.T) {
 	in := kop.Instr{Op: kop.OpSkipUntap, Obj: kop.RefSelf}
 	sc.s.skipUntap(sc.k, &in)
 	sc.s.skipUntap(sc.k, &in)
-	if sc.s.g.stalled != 0 || sc.s.perms[sc.slot(o)].cseen&cseenSkipUntap0 == 0 {
-		t.Fatalf("two effects: stall %q, mark %v", StallName(sc.s.g.stalled), sc.s.perms[sc.slot(o)].cseen&cseenSkipUntap0 != 0)
+	if sc.s.g.stalled != 0 || sc.s.skipUntapMark(sc.slot(o))&1 == 0 {
+		t.Fatalf("two effects: stall %q, mark %v", StallName(sc.s.g.stalled), sc.s.skipUntapMark(sc.slot(o))&1 != 0)
 	}
 	sc2, _ := replRegenerateScen(t, "Oketra's Last Mercy")
 	land := kop.Instr{Op: kop.OpSkipUntap, C: 1}

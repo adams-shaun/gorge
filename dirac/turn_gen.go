@@ -1412,6 +1412,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
+	} else if ask.kind == akProtector {
+		s.protectorStore(ask.sl, a.Mode()) // face_battle.go
 	} else if ask.kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
@@ -1554,6 +1556,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akMode {
 		siegeModeOptions(d) // face_siegemode.go
+		return
+	}
+	if kind == akProtector {
+		s.protectorOptions(d) // face_battle.go
 		return
 	}
 	if kind == akEnchant {
