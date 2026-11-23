@@ -22,6 +22,12 @@ const ExtChoosePlayerRes ExtOp = 12
 // ChoosePlayerFresh is ExtChoosePlayerRes's C bit 0.
 const ChoosePlayerFresh = 1
 
+// ChoosePlayerForget is ExtChoosePlayerRes's C bit 1: the answer is the
+// resolution's chosen player but is not added to its remembered players (gorge
+// appends to the remembered list only under RememberChosen$ True: Valleymaker's
+// Choices$-less ChoosePlayer).
+const ChoosePlayerForget = 2
+
 func init() { extOpNames[ExtChoosePlayerRes] = "ChoosePlayerRes" }
 
 // RefChosenPlayerRes is a player ref: the player this resolution's last
