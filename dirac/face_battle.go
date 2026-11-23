@@ -97,10 +97,11 @@ func (s *State) protectorCands(ctrl uint8) seatSeq {
 
 // enterBattle gives the battle at sl its entry state after enterGen (which
 // resets perm.chosen): the protector (CR 310.10). One living opponent is
-// recorded unasked; with several, the first is recorded and the controller's
-// choice is queued (akProtector, answered as the entry ask of the other
-// as-enters choices). The defense counters are put with the other entry
-// counters.
+// recorded unasked. With several, a cast battle's controller chose while the
+// spell was still on the stack (protectorPreKind, as gorge parks the entry
+// move on the ask); any other entry records the first and queues the choice
+// (akProtector, answered as the other as-enters asks). The defense counters
+// are put with the other entry counters.
 func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
 	q := s.protectorCands(ctrl)
 	pr := ctrl // no living opponent: gorge records no protector
@@ -110,10 +111,26 @@ func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
 	if DebugBattleOwnProtector {
 		pr = ctrl
 	}
+	ask := q.n > 1 && !DebugBattleOwnProtector
+	if p := &s.g.pre; p.state == 2 && p.kind == akProtector && p.obj == s.perms[sl].obj {
+		pr, ask = uint8(p.val)&protSeat, false // asked on the stack
+		*p = preAsk{}
+	}
 	s.perms[sl].chosen = objWord(protChosen | pr)
-	if q.n > 1 && !DebugBattleOwnProtector {
+	if ask {
 		s.queueAskAt(sl, akProtector, NoCard, 0, 0)
 	}
+}
+
+// protectorPreKind is akProtector when card c is a battle spell about to
+// resolve under ctrl with more than one living opponent to protect it: gorge
+// parks the entry move on the ask (applySiegeProtector), so the kernel poses it
+// through the pre-entry ask (preAskFor) with the spell still on the stack.
+func (s *State) protectorPreKind(k *prep, c CardID, ctrl uint8) uint8 {
+	if k.gen.anyBattle && k.t.Cards[c].Types&kop.TBattle != 0 && s.protectorCands(ctrl).n > 1 && !DebugBattleOwnProtector {
+		return akProtector
+	}
+	return 0
 }
 
 // akProtector is the queued as-enters protector ask (CR 310.10).
