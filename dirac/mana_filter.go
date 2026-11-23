@@ -2,8 +2,6 @@ package dirac
 
 import (
 	"math/bits"
-	"runtime"
-	"strconv"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1630,25 +1628,8 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	t.g.noGrant = a.Kind() == AkActivate // the activation's granted mana is the grant search's
 	t.g.fbProbe = s.fbProbeRoot(k, p, a)
 	s.pool.inFilt++ // (fork made the pool)
-	if Obj(a.Source()) == 30 && a.Kind() == 2 {
-		println("DIRAC-BEGIN paynil", fs.pay == nil, "census", fs.census)
-	}
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
-	if Obj(a.Source()) == 30 && a.Kind() == 2 {
-		println("DIRAC-FS cast30 found=", found, "nodes=", fs.nodes, "phased=", fs.phased)
-		if found {
-			for i := 0; i < fs.n; i++ {
-				st := fs.path[i]
-				println("DIRAC-PATH", i, "sl", int(st.sl), "ans", int(st.ans), "gap", st.gap, "other", int(st.other.kind), "hand", st.hand, "restr", st.restr)
-			}
-		}
-		for sl := Slot(0); sl < 20; sl++ {
-			if s.cardAt(sl) != 0 {
-				println("DIRAC-SLOT", int(sl), k.t.Cards[s.cardAt(sl)].Name)
-			}
-		}
-	}
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
 		// branches before the fee was funded: its fee-order run floats the
@@ -1890,30 +1871,6 @@ func (fs *filtSearch) tick() bool {
 		return false
 	}
 	fs.nodes++
-	if Obj(fs.a.Source()) == 30 && fs.a.Kind() == 2 && !fs.phased {
-		tag := "P"
-		if fs.pay != nil {
-			tag = "Y"
-		}
-		println("DIRAC-T"+tag, fs.nodes, fs.n)
-		if fs.n > 0 {
-			st := fs.path[fs.n-1]
-			println("DIRAC-DN"+tag, fs.nodes, "pathlen", fs.n, "sl", int(st.sl), "ans", int(st.ans), "gap", st.gap, "other", int(st.other.kind), "hand", st.hand, "restr", st.restr, "sacOnly", st.sacOnly, "wide", st.wide)
-		} else {
-			pcs := make([]uintptr, 8)
-			runtime.Callers(2, pcs)
-			fr := runtime.CallersFrames(pcs)
-			st := ""
-			for i := 0; i < 6; i++ {
-				f, _ := fr.Next()
-				if f.Function == "" {
-					break
-				}
-				st += f.Function[min(len(f.Function), len(f.Function)-30):] + ":" + strconv.Itoa(f.Line) + " "
-			}
-			println("DIRAC-DN"+tag, fs.nodes, "root", st)
-		}
-	}
 	return true
 }
 
@@ -2610,20 +2567,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 	if !fs.tick() {
 		return false
 	}
-	if Obj(fs.a.Source()) == 30 && fs.a.Kind() == 2 && !fs.phased && fs.pay == nil && fs.n > 0 {
-		st := fs.path[fs.n-1]
-		println("DIRAC-V", fs.nodes, "pathlen", fs.n, "sl", int(st.sl), "ans", int(st.ans), "gap", st.gap, "other", int(st.other.kind))
-	}
 	p := fs.p
 	// Price the node before the visited set, as gorge's scriptSearch.visit
 	// offers before it dedups: the colour-only key cannot tell a restricted
 	// unit from a filter's converted one, so a priced node can key equal to an
 	// earlier unpriced sibling.
 	if fs.terminal(k, t, gapUsed) {
-		if Obj(fs.a.Source()) == 30 && fs.a.Kind() == 2 && !fs.phased {
-			pl := &t.pl[SeatIx(fs.p)]
-			println("DIRAC-TERM nodes", fs.nodes, "pool W", pl.pool[0], "U", pl.pool[1], "B", pl.pool[2], "R", pl.pool[3], "G", pl.pool[4], "C", pl.pool[5])
-		}
 		return true
 	}
 	key := fs.stateKey(k, t)
@@ -2980,7 +2929,15 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
 	if free && fs.freeBranchHopeless(k, t, sl) {
-		return true, filt && fs.filtColours(k, t, sl, funded)
+		if filt && fs.filtColours(k, t, sl, funded) {
+			return true, true
+		}
+		// The paid answers found no line: gorge's ask still lists the free {C}
+		// answer, and its node is one of the 160 the budget counts (the
+		// transposed subtree below it is deduped, so the one node is its
+		// whole cost). Charging it keeps the later branches on gorge's node
+		// numbers.
+		return true, filt && fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
 	}
 	return false, false
 }
