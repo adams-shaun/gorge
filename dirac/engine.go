@@ -1,6 +1,10 @@
 package dirac
 
 import (
+	"fmt"
+	"os"
+	"runtime/debug"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -191,6 +195,9 @@ func (s *State) StepInto(d *Decision) {
 		if d.N > 1 {
 			s.sortCanonical(d)
 		}
+		if os.Getenv("GORGE_DS4_DEBUG") != "" {
+			fmt.Fprintf(os.Stderr, "DS4KSI after sort n=%d kind=%d sp=%p\n", d.N, d.Kind, s)
+		}
 		if d.N != 1 || s.cfg&cfgNoElide != 0 {
 			if d.N == 0 && d.Kind != DkNone {
 				// a caller would answer it with a stale option
@@ -294,6 +301,24 @@ func (s *State) stepRaw(d *Decision) {
 			}
 			d.Kind, d.Player = DkPriority, s.prio
 			s.priorityOptions(k, d)
+			if os.Getenv("GORGE_DS4_DEBUG") != "" && d.N > 2 {
+				var kinds [16]int
+				for i := 0; i < int(d.N); i++ {
+					k := int(d.Options[i].Kind())
+					if k < 16 {
+						kinds[k]++
+					}
+				}
+				fmt.Fprintf(os.Stderr, "DS4KOPT p=%d turn=%d sp=%p pool=[%d %d %d %d %d %d] n=%d kinds=%v\n%s", d.Player, s.turn, s, s.pl[s.prio].pool[0], s.pl[s.prio].pool[1], s.pl[s.prio].pool[2], s.pl[s.prio].pool[3], s.pl[s.prio].pool[4], s.pl[s.prio].pool[5], d.N, kinds[:12], debug.Stack())
+				for i := 0; i < int(d.N); i++ {
+					fmt.Fprintf(os.Stderr, "DS4KACT %d %v srcName=%s\n", i, d.Options[i], k.t.CardName(s.objs[d.Options[i].Source()].card))
+				}
+				fmt.Fprintf(os.Stderr, "DS4KHAND")
+				for i := 0; i < int(s.pl[s.prio].handN); i++ {
+					fmt.Fprintf(os.Stderr, " #%d:%s", s.pl[s.prio].hand[i], k.t.CardName(s.objs[s.pl[s.prio].hand[i]].card))
+				}
+				fmt.Fprintln(os.Stderr)
+			}
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {
