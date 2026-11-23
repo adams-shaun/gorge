@@ -58,13 +58,19 @@ func (s *State) anyColorWitness(k *prep, p uint8, exclude Obj, cost, folded kop.
 	return av.spreadWitness(folded, nCol)
 }
 
-// spreadWitness mirrors pay.PlanManaUnderRiderSpread: the census's coloured
-// supply per colour (a source counts once for each colour it can make, as the
-// payment census sums every alternative), nCol pips pinned over the colours
-// largest supply first with the WUBRG order breaking ties, generic reduced by
-// nCol; false when the coloured supply is below nCol. The spread pin is then
-// priced like the single-colour ones.
+// spreadWitness mirrors pay.PlanManaUnderRiderSpread: the spread pin
+// (spreadPin) priced like the single-colour ones.
 func (a *avail) spreadWitness(folded kop.ManaCost, nCol int) bool {
+	pin, ok := a.spreadPin(folded, nCol)
+	return ok && a.affords(&pin, pipMaskOf(&pin), 0)
+}
+
+// spreadPin is the cost pay.PlanManaUnderRiderSpread plans: the census's
+// coloured supply per colour (a source counts once for each colour it can
+// make, as the payment census sums every alternative), nCol pips pinned over
+// the colours largest supply first with the WUBRG order breaking ties,
+// generic reduced by nCol; false when the coloured supply is below nCol.
+func (a *avail) spreadPin(folded kop.ManaCost, nCol int) (kop.ManaCost, bool) {
 	var sup [kop.C]int
 	total := 0
 	for i := 0; i < a.n; i++ {
@@ -76,7 +82,7 @@ func (a *avail) spreadWitness(folded kop.ManaCost, nCol int) bool {
 		}
 	}
 	if total < nCol || int(folded.Generic) < nCol {
-		return false
+		return kop.ManaCost{}, false
 	}
 	order := make([]int, kop.C)
 	for c := range order {
@@ -93,5 +99,5 @@ func (a *avail) spreadWitness(folded kop.ManaCost, nCol int) bool {
 			break
 		}
 	}
-	return a.affords(&pin, pipMaskOf(&pin), 0)
+	return pin, true
 }
