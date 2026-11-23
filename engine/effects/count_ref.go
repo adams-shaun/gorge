@@ -1017,6 +1017,7 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "ExiledWith", Val: refTargetsExiledWith},
 	state.StrEntry[refTargetsCode]{Key: "Exiled", Val: refTargetsExiled},
 	state.StrEntry[refTargetsCode]{Key: "Revealed", Val: refTargetsExiled},
+	state.StrEntry[refTargetsCode]{Key: "RevealedCards", Val: refTargetsExiled},
 	state.StrEntry[refTargetsCode]{Key: "ExiledCards", Val: refTargetsExiledCards},
 	state.StrEntry[refTargetsCode]{Key: "Equipped", Val: refTargetsEquipped},
 	state.StrEntry[refTargetsCode]{Key: "Enchanted", Val: refTargetsEquipped},
