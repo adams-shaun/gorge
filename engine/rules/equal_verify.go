@@ -24,7 +24,7 @@ const (
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 52
+	optionFieldCount           = 53
 	grantFieldCount            = 3
 )
 
