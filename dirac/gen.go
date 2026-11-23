@@ -2784,7 +2784,9 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	// storage-counter ability under Blood Moon), but to a one-shot loss or
 	// a face-down turn as well -- and then makes only what the setter's
 	// basic land types' intrinsic abilities make, or nothing.
-	if (pc.manaAb >= 0 || vi >= 0 || pc.manaCol != 0) && s.genLost(k, sl) {
+	// A land with no mana facts of its own (Eye of Ugin) is no exception to
+	// the setter: it too has the intrinsic abilities of the new basic types.
+	if (pc.manaAb >= 0 || vi >= 0 || pc.manaCol != 0 || k.gen.landSet && k.gen.setIdx[c] >= 0 && s.landSetLost(k, sl)) && s.genLost(k, sl) {
 		if k.gen.landSet && s.landSetLost(k, sl) {
 			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
 		}
