@@ -519,6 +519,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	var lifeWalk, ownWalk Decision
 	lifeBuilt, ownBuilt := false, false
+	boundLive := filtDeferBoundLive(sacAny, filt, tapsDef)
 	rt := scriptRoute{
 		dh: dh, ca: ca, caM: caM, filt: filt, mix: mix,
 		tapsDef: tapsDef, restr: restr, anyR: anyR, anyDiff: anyDiff,
@@ -527,7 +528,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, boundLive, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
@@ -543,6 +544,19 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		d.add(a)
 	}
 	return searched
+}
+
+// filtDeferBoundLive: whether gapsOrBoundPlay reads gorge's potential bound: on
+// a sacrifice-any bound, and beside a filter and a Taps-deferred gap (Rikala's
+// Island, Mystic Gate), where gorge's relaxed proof prices the play against its potential
+// bound, which counts a filter's own ability and its fee-making ability both
+// (potentialManaFor's over-bound), while the gaps walk charges the filter's
+// fee and lists less. A play that bound pays is searched all the same, and the
+// gap's tap brings the gated extra mana the planner never prices
+// (Altar Golem's {7} from three Islands under three tide counters, a Forest
+// and a Mystic Gate; tail-02 pair 7).
+func filtDeferBoundLive(sacAny bool, filt, tapsDef slotMask) bool {
+	return sacAny || filt.any() && tapsDef.any()
 }
 
 // scriptRoute carries scriptOffers' search-route inputs to scriptRouteDrop:
