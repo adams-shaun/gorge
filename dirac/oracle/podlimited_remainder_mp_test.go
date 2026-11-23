@@ -17,15 +17,16 @@ import (
 // lifting a card moves it from podRefusedCards to podLiftedCards, in the
 // change that lifts it, with its pod recording (podlimited_recordings_mp_test.go).
 var podRefusedCards = map[string]string{
-	// the as-enters ChoosePlayer is followed by a look at that player's hand
-	// and a name choice: the kernel's pre-entry ask poses the look at the
-	// next living opponent only
-	"Sorcerous Spyglass": "ChoosePlayer among the opponents answered as the one opponent",
+	// Sorcerous Spyglass (the as-enters ChoosePlayer answered as the one
+	// opponent) was the last entry; its chain lowers as a chosen-opponent
+	// look now (dirac/spyglass_pod_mp_test.go), so the remainder is empty.
 }
 
 // podLiftedCards are the cards kgen once marked two-seat only that read the
-// seat they name now: each has a four-seat recording replayed in
-// podlimited_recordings_mp_test.go.
+// seat they name now: each has a four-seat witness, a recording replayed in
+// podlimited_recordings_mp_test.go (Sorcerous Spyglass's in
+// dirac/spyglass_pod_mp_test.go) or, for Miss Highwater, the generated
+// lockstep in miss_highwater_pods_mp_test.go.
 var podLiftedCards = []string{"Ravenloft Adventurer", "Etrata, the Silencer", "The Weaver King", "Vulcan Mind-Meld", "Miss Highwater"}
 
 // TestPodLimitedRemainderRefusedByName: each remaining pod-limited card is
