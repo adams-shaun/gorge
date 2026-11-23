@@ -1707,6 +1707,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
 				g.anyMayPlay = true // an Effect-delivered library-top permission (cast_staticpaylife.go)
 			}
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatRetraceGrant {
+				g.offZoneGrantPrep(a, p) // an emblem's retrace grant (Wrenn and Six) turns on the graveyard offer too (kw_offkwgrant.go)
+			}
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwProwess != 0 {
 				g.anyProwessGrant = true
 			} else if a.Kind == kop.AbTriggered {
