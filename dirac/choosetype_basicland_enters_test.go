@@ -13,7 +13,7 @@ import (
 // the answer is stored as the permanent's chosen matchup subtype, so the
 // AddType$ ChosenType static gives every land that type.
 func TestChooseTypeBasicLandEnters(t *testing.T) {
-	set := cardsettest.Synth(t, "tail-41")
+	set := cardsettest.Set(t, "choosebasicenter")
 	deck := []cardset.Entry{{Name: "Realmwright", Count: 4}, {Name: "Island", Count: 18}, {Name: "Mountain", Count: 18}}
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {

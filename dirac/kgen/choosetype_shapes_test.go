@@ -40,9 +40,9 @@ func chooseTypeInstrs(lc *lCard) []lInstr {
 // random pick, another chooser) refuses loudly.
 func TestChooseTypeShapes(t *testing.T) {
 	const basic = "Name:Basic Probe\nManaCost:U\nTypes:Creature Vedalken Wizard\nPT:1/1\n" +
-		"K:ETBReplacement:Other:DBChooseBasic\n" +
-		"SVar:DBChooseBasic:DB$ ChooseType | Type$ Basic Land | AILogic$ MostNeededType | SpellDescription$ As CARDNAME enters, choose a basic land type.\n" +
-		"S:Mode$ Continuous | Affected$ Land.YouCtrl | AddType$ ChosenType | Description$ Lands you control are the chosen type in addition to their other types.\n"
+		"K:ETBReplacement:Other:DBPickLand\n" +
+		"SVar:DBPickLand:DB$ ChooseType | Type$ Basic Land | AILogic$ MostNeededType | SpellDescription$ As CARDNAME enters, choose a basic land type.\n" +
+		"S:Mode$ Continuous | AddType$ ChosenType | Affected$ Land.YouCtrl | Description$ Your lands gain the chosen type.\n"
 	lc := lowerSynth(t, basic)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the as-enters Basic Land probe refuses: %q", keclReason(r))
