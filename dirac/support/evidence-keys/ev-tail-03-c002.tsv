@@ -4,6 +4,8 @@ Ajani, Adversary of Tyrants	2130b0926fac359d	7	3/3		1/1
 Arcade Cabinet	fa63efc6374df59f	110	2/2		1/1	
 Arcbound Reclaimer	6ce134c4fbfdb3ae	28	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Armor of Faith	949cb883f9f02137	29	1/1		2/2	
+Avizoa	71798b6633f655ea	3	1/1		1/1	
+Blinding Angel	1b5d591df5fb11cd	9	1/1		1/1	
 Bloodpyre Elemental	1e43f6d5b742e25a	37	1/1		1/1	
 Bramble Armor	311adb89dfaf251b	56	2/2		1/1	
 Brass Squire	ac7b5ed453911da7	32	1/1		1/1	
@@ -12,13 +14,16 @@ Call the Skybreaker	a910a7f83ecf2a9c	8	0/0		2/2
 Campus Renovation	4c3de3ed2d9af868	19	0/0		2/2	
 Celestial Crusader	4b3d13323850fda3	3	0/0		0/0	
 Cloud Cover	04ed61752b1f8443	13	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Coalition Honor Guard	693688a89c06c954	4	0/0		0/0	
 Consulate Skygate	f7554bdbe13c0568	3	0/0		0/0	
 Crack the Earth	b8a487a7794e2171	10	0/0		1/2	ix:resp
 Crimson Wisps	2e15015b6a4a9aae	9	0/0		1/2	ix:resp
 Dakmor Salvage	0dc03a7f01177a3e	21	1/1		0/1	ix:resp
+Darksteel Citadel	f025ee4a6db9a83d	18	1/1		0/1	ix:resp
 Dominating Licid	c7bf41db82ff056f	4	1/1		0/1	ix:resp
 Duergar Hedge-Mage	ec5ca5a3ebf392b8	28	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Eerie Procession	8e240b3ed32748b9	56	0/0		2/2	
+Eiganjo, Seat of the Empire	edd82564b07fd81d	29	2/2		0/1	ix:resp
 Ember Beast	4e2bdb26af205c7a	53	0/0		0/0	
 Enclave Elite	cca601eef0dfc386	6	0/0		2/2	
 Ethercaste Knight	95f0fec17752b6b4	34	1/1		1/1	
@@ -66,12 +71,15 @@ Storm Fleet Pyromancer	cf2de6e0fc839435	60	1/1		1/1
 Sword of Truth and Justice	e2b426304f7692bc	54	2/2		1/1	
 Temur Battle Rage	f255d265a3d2c2f5	27	0/0		2/2	
 Thalia, Heretic Cathar	fd27cc4625c029ee	27	0/0		0/0	
+Thrill-Kill Disciple	b290547f3b02f6af	4	2/2		2/3	ix:resp
 Thunderscape Familiar	46a769b4c9ab2b19	55	0/0		0/0	
 Tiana, Ship's Caretaker	e411688f48eec8fb	56	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tocatli Honor Guard	e0e1e1ef554c6992	6	0/0		0/0	
+Tropical Island	9cc876ae3a437ca2	35	2/2		0/1	ix:resp
 Turbulent Moor	1217598dbb6d6950	13	2/2		0/1	ix:resp
 Varchild, Betrayer of Kjeldor	7a4db7c486b21c09	18	2/2		0/1	ix:resp
 Venerable Kumo	d13f4e4dc7032ea5	17	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Wandering Fumarole	f84e1c5fe2e9edd6	13	2/2		1/1	
 Wax	4ad258bc0f5a8513	3	0/0		1/3	f1/s,ix:resp
 Wintermoon Mesa	c187990e9f2c47e6	404	2/2		1/1	
 Wizard Class	717b0a795de8cd58	46	4/4		1/1	

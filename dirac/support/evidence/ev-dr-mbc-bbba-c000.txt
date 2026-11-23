@@ -53,6 +53,7 @@ Grinding Station
 Hada Spy Patrol
 Hand of Death
 Havoc Jester
+Helm of the Ghastlord
 Hunger of the Howlpack
 Innocent Blood
 Irregular Cohort
@@ -116,6 +117,7 @@ Telekinetic Sliver
 Temur Sabertooth
 Tevesh Szat, Doom of Fools
 Thassa's Oracle
+The Weaver King
 Thermo-Alchemist
 Thunderclap
 Tibalt, Rakish Instigator

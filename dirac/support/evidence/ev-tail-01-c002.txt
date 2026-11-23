@@ -82,6 +82,7 @@ Court of Garenbrig
 Crafty Pathmage
 Crimson Manticore
 Crossroads Consecrator
+Cry of the Carnarium
 Cudgel Troll
 Darklit Gargoyle
 Darkwater Egg
@@ -410,6 +411,7 @@ Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
+Turntimber Sower
 Tyrranax Atrocity
 Unforgiving One
 Unlikely Alliance

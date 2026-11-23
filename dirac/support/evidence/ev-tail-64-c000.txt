@@ -113,6 +113,7 @@ Dig Up the Body
 Diregraf Horde
 Dispeller's Capsule
 Doctor Doom, Unrivaled
+Dr. Eggman
 Drannith Magistrate
 Dread Return
 Dreadbore
@@ -455,6 +456,7 @@ Temperamental Oozewagg
 Tenacity
 Terravore
 Territorial Allosaurus
+Tetsuo Umezawa
 Thaumatic Compass
 The Crafter
 The Rack

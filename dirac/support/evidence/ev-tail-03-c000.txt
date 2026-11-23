@@ -21,6 +21,7 @@ Armored Pegasus
 Artillerize
 Ash Barrens
 Assault Zeppelid
+Astral Drift
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
@@ -320,6 +321,7 @@ Rakdos Signet
 Rank and File
 Read the Bones
 Reap What Is Sown
+Reaper of Sheoldred
 Renegade Tactics
 Reshape
 Reshape the Earth

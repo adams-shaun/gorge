@@ -216,6 +216,7 @@ MACH-1, Swooping Scoundrel
 Macabre Mockery
 Mad Auntie
 Magus of the Coffers
+Malicious Malfunction
 Mana Confluence
 Manaplasm
 Mantle of Leadership

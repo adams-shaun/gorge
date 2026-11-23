@@ -10,6 +10,7 @@ Adamaro, First to Desire
 Aerial Modification
 Aeromunculus
 Aesthir Glider
+Aethertorch Renegade
 Aggressive Crag
 Air Nomad Student
 Alaborn Veteran
@@ -29,6 +30,7 @@ Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Baeloth Barrityl, Entertainer
 Balefire Dragon
 Bandage
 Bastion Inventor
@@ -36,6 +38,7 @@ Battlegrace Angel
 Bazaar Trademage
 Bedevil
 Benalish Heralds
+Benefactor's Draught
 Benevolent Hydra
 Binding the Old Gods
 Biolume Egg

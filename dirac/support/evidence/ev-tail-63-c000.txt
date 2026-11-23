@@ -160,6 +160,7 @@ Femeref Enchantress
 Firebrand Ranger
 Flameborn Hellion
 Flash Counter
+Flaying Tendrils
 Fleshtaker
 Floodhound
 Flowstone Thopter
@@ -393,6 +394,7 @@ Scout the Wilderness
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
+Scuttlemutt
 Searing Barb
 Selesnya Charm
 Seluma, Light of Aysen

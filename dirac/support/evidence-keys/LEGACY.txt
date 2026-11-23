@@ -274,7 +274,6 @@ Avatar of Burgeoning Echoes
 Avatar of Will
 Aven Archer
 Aven Envoy
-Aven Heartstabber
 Aven Redeemer
 Aven Sentry
 Aven Tactician
@@ -877,7 +876,6 @@ Dawnstrike Vanguard
 Daxos the Returned
 Day of the Dragons
 Deadapult
-Deadeye Brawler
 Deadeye Duelist
 Deadeye Plunderers
 Deadly Complication
@@ -2840,7 +2838,6 @@ Piercing Exhale
 Pigment Wrangler
 Pileated Provisioner
 Pillage the Bog
-Pillar of the Paruns
 Pine Barrens
 Pinecone Strike
 Pinnacle Emissary
@@ -2905,7 +2902,6 @@ Prince of Thralls
 Prismari Charm
 Prismari, the Inspiration
 Prismatic Geoscope
-Prismatic Strands
 Procrastinate
 Proctor of Potential
 Proctor's Gaze
@@ -3596,7 +3592,6 @@ Sophia, Dogged Detective
 Soratami Seer
 Sorcerer of the Fang
 Soul Barrier
-Soul Diviner
 Soul Manipulation
 Soul Partition
 Soul Read
@@ -3950,7 +3945,6 @@ Test of Identity
 Tester of the Tangential
 Tether Technician
 Tethermage's Advantage
-Tetsuo Umezawa
 Teval, the Balanced Scale
 Textbook Tabulator
 Teyo, Diamondblade Mage

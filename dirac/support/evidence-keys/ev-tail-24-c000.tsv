@@ -1,8 +1,11 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Cloister Gargoyle	8a019c84d37f28c2	16	1/1		0/1	ix:resp
 A-Triumphant Adventurer	c21a54cb32789cd6	13	1/1		1/1	
+Aethertorch Renegade	32f3a569ae10aa7e	12	3/3		0/1	ix:resp
 Ally Encampment	6ba613110b2b4b71	11	3/3		0/1	ix:resp
+Baeloth Barrityl, Entertainer	21781debc1536a8f	3	1/1		1/1	
 Balefire Dragon	d12d852d86600855	5	1/1		0/1	ix:resp
+Benefactor's Draught	6ad944bf0f981c91	4	0/0		1/2	ix:resp
 Cloister Gargoyle	b6a4c10edf867a8c	11	1/1		0/1	ix:resp
 Conclave Cavalier	8316a85e6013e976	4	1/1		0/1	ix:resp
 Delighted Halfling	97a851657144cdff	48	2/2		1/1	
