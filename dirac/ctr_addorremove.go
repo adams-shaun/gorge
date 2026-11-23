@@ -21,7 +21,10 @@ var AddOrRemoveCounterStats struct {
 //
 // C < 0 is the each-kind loop: the kinds the object holds are walked in the
 // kernel's ascending kind order (heldKinds; gorge walks its counter slice's
-// insertion order), one add/remove election per kind, in that order. Each
+// insertion order), one add/remove election per kind, in that order. An
+// object holding two or more kinds stalls (StallCtrOrder): the first election
+// is asked about a different kind on each side and the kernel keeps no
+// insertion order to follow. Each
 // election is gorge's two options -- remove first, then put -- so a no-host
 // bot's first-option answer is gorge's no-host fallback (remove). An answer
 // to the put arm goes through an ordinary OpPutCounter, so the AddCounter
@@ -63,6 +66,10 @@ func (s *State) addOrRemoveCounter(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.aorNext(k, sl, false)
 	}
 	if in.C < 0 {
+		if s.permRealCtrs(sl) > 1 {
+			s.capFull(StallCtrOrder)
+			return true, true
+		}
 		r.peekN, r.chosen = 1, 255
 		return s.aorNext(k, sl, false)
 	}
