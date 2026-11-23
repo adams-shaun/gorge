@@ -15,6 +15,13 @@ import (
 // lazily-filled statics memo the whole walk reads -- the closures and the
 // sections must hit the same instance, so a face probe can never leave a
 // later reader with a stale probed-face collection (faceprobe.go).
+// censusOfferRef names the ability pile entry a census-arm offer was made for.
+type censusOfferRef struct {
+	obj state.ObjID
+	idx int
+	set bool
+}
+
 type legalWalk struct {
 	e   *Engine
 	p   state.PlayerID
@@ -26,6 +33,22 @@ type legalWalk struct {
 	// autoBound is the lazily read PotentialMana bound the autopay offer
 	// (autoPayOffer) prices against; nil until first needed.
 	autoBound *state.Mana
+	// autoCensus is the lazily read planner census (paymentPlanCensusOf,
+	// priced against autoBound) the autopay census arm (autoPayOffer)
+	// shares across every ability the walk prices, the way autoBound shares
+	// the PotentialMana bound; nil until first needed. autoCensusSet feeds
+	// potentialCensusFallback's own walk-wide state (censused).
+	autoCensus    *paymentPlanCensus
+	autoCensusSet bool
+	// censusOffer records which ability the census arm of autoPayOffer last
+	// answered for (keyed by object and pile index, so a stale mark never
+	// matches another ability and no per-ability reset is needed): the option
+	// the walk then appends is the arm's script-backed offer
+	// (decision.Option.CensusOffer), which the payment-prefix search's
+	// listing probe (sr.offered) must skip, as the kernel's own listing probe
+	// excludes the arm's listings (actScriptPays' availNoActScript). A pool-
+	// or witness-backed offer leaves it unset.
+	censusOffer censusOfferRef
 	// autoPlain/autoPlainP/autoPlainSet are the lazily built payment-window
 	// census (windowManaUnits) the autopay fast path (autoPayFast) shares
 	// across every ability it prices. autoPlainSet distinguishes "not read

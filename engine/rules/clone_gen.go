@@ -147,6 +147,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.mulligans = e.mulligans
 	c.windowDiagnostics = e.windowDiagnostics
 	c.paidManaCensus = e.paidManaCensus
+	c.scriptSearching = e.scriptSearching
 	c.startingLife = e.startingLife
 	c.setNameInPool = e.setNameInPool
 	c.layer4InPool = e.layer4InPool
