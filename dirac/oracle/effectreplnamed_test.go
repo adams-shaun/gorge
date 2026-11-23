@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -19,6 +20,8 @@ import (
 // every-kind one. TestStdSetReprosLockstep replays the recorded games;
 // TestEffectReplNamedReprosReach requires each to reach what it is for, and
 // TestEffectReplNamedMutation that the replacement being ignored diverges.
+//
+// Brad Boimler is refused (mbc_brad_boimler_lockstep_test.go); the recorded games play it on the raw table, as the repro globs do.
 //
 // The games are recorded by TestEffectReplNamedRecord
 // (EFFECT_REPL_NAMED_RECORD=1) on the table built from the decks.
@@ -162,7 +165,7 @@ func TestEffectReplNamedReprosReach(t *testing.T) {
 				t.Fatal(err)
 			}
 			script := &ScriptPolicy{Actions: r.Actions}
-			res, reached := effectLongPlay(t, reg, c.effectLongCase, r, printedDelveSet(t, r.Cards), script)
+			res, reached := effectLongPlay(t, reg, c.effectLongCase, r, cardset.Raw(printedDelveSet(t, r.Cards)), script)
 			if res.Div != nil {
 				t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 			}
@@ -188,7 +191,7 @@ func TestEffectReplNamedMutation(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			res, _ := effectLongPlay(t, reg, c.effectLongCase, r, printedDelveSet(t, r.Cards), &ScriptPolicy{Actions: r.Actions})
+			res, _ := effectLongPlay(t, reg, c.effectLongCase, r, cardset.Raw(printedDelveSet(t, r.Cards)), &ScriptPolicy{Actions: r.Actions})
 			if res.Div == nil {
 				t.Fatal("the game did not diverge with the replacements ignored: it does not exercise them")
 			}
@@ -203,7 +206,7 @@ func TestEffectReplNamedRecord(t *testing.T) {
 	reg := synthReg(t)
 	for _, c := range effectReplNamedCases() {
 		t.Run(c.name, func(t *testing.T) {
-			set := printedDelveSet(t, c.decks)
+			set := cardset.Raw(printedDelveSet(t, c.decks)) // refused cards play: a recording replays its game (repro_glob_test.go globSet)
 			for seed := uint64(1); seed <= 1500; seed++ {
 				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks,
 					Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
