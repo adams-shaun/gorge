@@ -2426,10 +2426,15 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 // activation taps nothing and gorge's gap-list rule does not reach it, so a
 // later node of the same path may activate it again while the payer survives
 // (the state keys of the nodes between keep the lines distinct).
-// The activation counts as a gap use (terminal's gapUsed): the unit's own
-// mana is what funds the play beside a board whose plain census cannot (two
-// Swamps and the Ogre for Rhystic Syphon's {3}{B}{B}: Swamp, Swamp and three
-// activations), so the node it leaves is priced like a gap's.
+//
+// The activation counts as the path's gap use (terminal's gapUsed): its mana
+// is outside the census the root offer read, so a node whose raw priority list
+// offers the play is the search's goal as in gorge's scriptSearch.visit, which
+// checks the offer without a gap used (Plains and two Ogre activations pay a
+// {3} cast, CR 605.3b). The unit's own mana is also what funds the play beside
+// a board whose plain census cannot (two Swamps and the Ogre for Rhystic
+// Syphon's {3}{B}{B}: Swamp, Swamp and three activations), so the node it
+// leaves is priced like a gap's.
 func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) bool {
 	pc := t.manaPCAt(k, sl)
 	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[t.cardAt(sl)].Abilities) {
