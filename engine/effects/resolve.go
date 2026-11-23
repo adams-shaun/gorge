@@ -20,6 +20,15 @@ func clearSourceRemembered(h Host, c *Ctx) bool {
 		return false
 	}
 	if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+		// CR 400.7: a pending trigger that is answering from its fire-time
+		// snapshot (the source re-entered as a new object while it waited)
+		// belongs to the OLD object, so its cleanup forgets that snapshot
+		// only; the live list is the new object's own memory (Mesmeric
+		// Fiend blinked with its ETB pending: the old leave trigger's
+		// cleanup must not drop the card the new Fiend exiled).
+		if c.TriggerContext.servesSnapshot(o) {
+			return false
+		}
 		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
 		return true
 	}

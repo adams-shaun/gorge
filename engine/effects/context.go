@@ -2788,10 +2788,16 @@ func effectiveSourceRemembered(g *state.Game, tc TriggerContext, src *state.Obje
 	if src == nil {
 		return nil
 	}
-	if len(tc.SourceRemembered) > 0 && tc.SourceIncarnation != src.Incarnation {
+	if tc.servesSnapshot(src) {
 		return tc.SourceRemembered
 	}
 	return src.Remembered
+}
+
+// servesSnapshot reports whether effectiveSourceRemembered answers src from
+// the trigger's fire-time snapshot rather than src's live list.
+func (tc TriggerContext) servesSnapshot(src *state.Object) bool {
+	return src != nil && len(tc.SourceRemembered) > 0 && tc.SourceIncarnation != src.Incarnation
 }
 
 // SourceRemembered is effectiveSourceRemembered for callers outside effects
