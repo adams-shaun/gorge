@@ -1214,24 +1214,29 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	if mayPlay {
 		// A plain composed may-play cast's gate is the potential planner's
 		// census -- the pool and the printed and intrinsic sources
-		// (potentialModeCastPlan), never a granted mana ability, which is a
-		// census gap its prefix search bridges (scriptOffers' grant search
-		// holds the offer to the script gorge's search finds). The kernel
-		// census counts the granted sources, so the offer walk's afford read
-		// alone over-offers: The World Tree's "As long as you control six or
-		// more lands, lands you control have "{T}: Add one mana of any
+		// (potentialModeCastPlan) -- or the prefix its census gap takes: a
+		// granted mana ability is a census gap the composition leaves out, and
+		// the potential walk then searches for it (potentialCensusFallback), so
+		// the gate prices the gaps read as the sibling arms do, and the
+		// caller's scripted walks (scriptOffers, grantCap) hold the surviving
+		// offer to a script gorge's search finds (mayPlayPrefixPays). The
+		// kernel census counts the granted sources, so the offer walk's afford
+		// read alone over-offers: The World Tree's "As long as you control six
+		// or more lands, lands you control have "{T}: Add one mana of any
 		// color"" beside four printed sources pays Age of Ultron's 4{B}
 		// may-play cast on the kernel census while gorge's planner leaves it
 		// unpriced, and its one search's budget expires before the fifth
-		// land's granted ability is reached (tail-08 pair 54, decision 573).
-		// An untargeted cast never reaches witnessKeepsTargets' tier-1
-		// census read, so the gate prices the census here; a targeted one
-		// keeps plainHandPlayLowers' witness-keeps-target arm beside it.
+		// land's granted ability is reached (tail-08 pair 54, decision 573);
+		// Elven Chorus's three any-colour creatures fund Wormwood Treefolk's
+		// five-mana cast there, and gorge's search finds it. An untargeted
+		// cast never reaches witnessKeepsTargets' tier-1 census read, so the
+		// gate prices the census here; a targeted one keeps
+		// plainHandPlayLowers' witness-keeps-target arm beside it.
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		if s.g.mayPlayAny {
 			cost = anyType(cost)
 		}
-		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
+		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) && !s.mayPlayPrefixPays(k, p, c, o) {
 			return false
 		}
 	}

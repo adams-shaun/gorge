@@ -1304,11 +1304,44 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if s.mayPlayJoinCensusPays(k, p, a, &cost) {
-			// the may-play arm's cost is the join census's (the helper
-			// above), not the plain cast's ungranted read below: keep the
-			// offer without the prefix search (Elven Chorus's "{T}: Add one
-			// mana of any color" creatures beside a top-of-library Grazing
-			// Whiptail; CR 601.2g, 118.9)
+			if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
+				// the may-play arm's cost is the join census's (the helper
+				// above), not the plain cast's ungranted read below: keep the
+				// offer without the prefix search (Elven Chorus's "{T}: Add one
+				// mana of any color" creatures beside a top-of-library Grazing
+				// Whiptail; CR 601.2g, 118.9)
+				continue
+			}
+			// Only the granted units pay it: gorge's potential walk lists the
+			// play, but its planner census -- the pool and the printed and
+			// intrinsic sources (pay PaymentAbility) -- cannot, so the play is
+			// still a potential one and takes gorge's one budgeted prefix
+			// search. The offer holds to that search's verdict, and the play
+			// counts toward the script cap as any play the printed sources
+			// cannot pay (potentialScriptPlays): The World Tree's "As long as
+			// you control six or more lands, lands you control have "{T}: Add
+			// one mana of any color"" beside four printed sources leaves Age of
+			// Ultron's 4{B} may-play cast on the walk when the search's budget
+			// expires before the fifth land's granted ability is reached
+			// (tail-08 pair 54, decision 573), while Elven Chorus's three
+			// any-colour creatures fund Wormwood Treefolk's five-mana cast
+			// there and the search finds it (tail-51-c001, decision 565).
+			if n++; n > potentialScriptPlays {
+				d.remove(a) // never searched: unpriced
+				continue
+			}
+			if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) {
+				continue
+			}
+			if g.stall != 0 {
+				// the drop is final and one of the search's lines ran into a
+				// rule gap the kernel stalls by name: declare it, not a
+				// dropped offer (the search declares nothing;
+				// mana_grantedoffers.go grantSearch)
+				s.capFull(g.stall)
+			}
+			d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
+			capSpent.add(a)
 			continue
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
