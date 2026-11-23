@@ -35,11 +35,15 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
 				break
 			}
+			o := s.perms[sl].obj
 			if in.C&1 != 0 { // seat-ok: an instruction flag bit
 				s.destroyNoRegen(k, sl)
-				break
+			} else {
+				s.destroy(k, sl)
 			}
-			s.destroy(k, sl)
+			if in.C&4 != 0 {
+				s.markRemLKI(o) // RememberLKI$ + AlwaysRemember$ (act_remember.go)
+			}
 		}
 	case kop.OpExile:
 		s.moveRef(k, in.Obj, kop.ZoneExile, false)
