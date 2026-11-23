@@ -569,9 +569,11 @@ func unpricedSourcesPlainTap(w castPlanPipsWindow, pc *pendingCast, units []wind
 		}
 		for _, ma := range w.castWindowProbeAbilities(p, id) {
 			// A "Special ..." production (Bloom Tender's each colour among
-			// permanents) has no countable ceiling: castWindowProbeCeiling reads
-			// it as nothing, so it may still fund the cost (CR 106.1, 601.2g).
-			if strings.HasPrefix(effects.ManaOf(ma).Produced, "Special") {
+			// permanents) parses to a choice with no counted symbol: the
+			// ceiling reads one unit of it, an under-estimate, so it may still
+			// fund the cost (CR 106.1, 601.2g).
+			if mp := effects.ManaOf(ma); !mp.NeedsChosen && mp.CountsAny &&
+				!pay.IsColourIdentityProduced(mp.Produced) && manaCountsTotal(mp.Counts) == 0 {
 				return false
 			}
 			cost := w.manaAbilityCC(p, id, ma).Cost
@@ -1424,3 +1426,11 @@ var cyclingKeywordCodes = state.NewStrCodes(
 	state.StrEntry[cyclingKeywordCode]{Key: "Cycling", Val: cyclingKeywordCycling},
 	state.StrEntry[cyclingKeywordCode]{Key: "TypeCycling", Val: cyclingKeywordCycling},
 )
+
+// manaCountsTotal is the sum of a Produced$ count vector.
+func manaCountsTotal(counts [6]int32) (total int32) {
+	for _, n := range counts {
+		total += n
+	}
+	return total
+}
