@@ -535,7 +535,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 				text = substituteTextWord(text, ce.TextFrom, ce.TextTo)
 			}
 		case state.LAbilities:
-			kw, restrictions = applyKeywordGrant(kw, restrictions, ce, col)
+			kw, restrictions = applyKeywordGrant(kw, restrictions, o, ce, col)
 		case state.LType:
 			// Already applied in Types above — layer 4 must
 			// settle before any filter that tests a type runs.
@@ -734,6 +734,32 @@ func BaseKeywords(kw []string, o *state.Object, f *cards.Face, faceDown bool) []
 	return kw
 }
 
+// appendNewerCounterKeywords appends to kw the keyword each of o's keyword
+// counters (CR 122.1b) grants, for the counters put on after timestamp ts
+// (state.Counter.Stamp, the CR 613.7 timestamp of that grant). A layer-6
+// removal at ts takes every older grant and leaves these.
+func appendNewerCounterKeywords(kw []string, o *state.Object, ts uint32) []string {
+	return appendNewerCounterKeywordsHeads(kw, o, ts, nil)
+}
+
+// appendNewerCounterKeywordsHeads is appendNewerCounterKeywords limited to
+// keywords whose head is in heads (nil: every keyword counter), the
+// RemoveKeywords$ form of the same rule.
+func appendNewerCounterKeywordsHeads(kw []string, o *state.Object, ts uint32, heads []string) []string {
+	for i := range o.Counters {
+		c := &o.Counters[i]
+		if c.N <= 0 || c.Stamp <= ts {
+			continue
+		}
+		name, ok := cards.CounterKeyword(c.Kind)
+		if !ok || (heads != nil && !containsKeywordHead(heads, name)) {
+			continue
+		}
+		kw = append(kw, name)
+	}
+	return kw
+}
+
 // substituteTextWord replaces every whole-word, case-insensitive instance of
 // from in text with to (CR 612's "replace all instances of one ... word"):
 // the match is bounded by non-letter characters on both sides, so substituting
@@ -764,9 +790,14 @@ func BaseKeywords(kw []string, o *state.Object, f *cards.Face, faceDown bool) []
 // keyword-reading gate's CR 613.8 pair test against a remover ignores a
 // restriction line an earlier group grant left, the same way it already
 // ignores inter-group grant state.
-func applyKeywordGrant(kw, restrictions []string, ce *state.ContinuousEffect, col effects.ColorMask) ([]string, []string) {
+func applyKeywordGrant(kw, restrictions []string, o *state.Object, ce *state.ContinuousEffect, col effects.ColorMask) ([]string, []string) {
 	if ce.RemoveAbilities {
 		kw = append(kw[:0], restrictions...)
+		// CR 122.1b + 613.7: a keyword counter put on AFTER this effect began
+		// applying is a newer layer-6 grant and keeps its keyword (Abigale's
+		// trigger removes abilities, then puts the counters on); an older
+		// one went with the rest.
+		kw = appendNewerCounterKeywords(kw, o, ce.Timestamp)
 	}
 	if len(ce.RemoveKeywords) > 0 {
 		// CR 613.1f: this effect's own named keywords leave the accumulated
@@ -783,6 +814,9 @@ func applyKeywordGrant(kw, restrictions []string, ce *state.ContinuousEffect, co
 			}
 		}
 		kw = keptKW
+		// The same timestamp rule for a counter's newer grant of a keyword
+		// this effect names.
+		kw = appendNewerCounterKeywordsHeads(kw, o, ce.Timestamp, ce.RemoveKeywords)
 		// the named removal ends the granted restriction lines it named too,
 		// so a later remover does not resurrect them
 		if len(restrictions) > 0 {

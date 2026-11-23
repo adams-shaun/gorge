@@ -279,6 +279,12 @@ type perm struct {
 	bord     objWord          // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
 	atk      TCode            // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
 	ck       [ctrSlots]uint16 // general counter slots' kinds (see p1)
+	// cs is each general slot's CR 613.7 timestamp (the layer clock, State.ts)
+	// when a keyword counter (CR 122.1b) was last put on, gorge's
+	// state.Counter.Stamp; 0 for every other kind, so equal counter states stay
+	// equal bytes. It moves with ck/cn (ctrInsert, ctrFree); the overflow
+	// table's entries carry theirs (ctrOverEntry.ts).
+	cs [ctrSlots]uint16
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
 	// is general slot i (a seen slot keeps its kind at count 0), then
@@ -378,7 +384,11 @@ func (p *perm) setCtrN(s *State, c, n int) bool {
 	}
 	for i := range p.ck {
 		if int(p.ck[i]) == c {
+			grew := n > int(p.cn[i])
 			p.cn[i] = uint16(n)
+			if grew && ctrKindKw(uint16(c)) != 0 {
+				p.cs[i] = s.tick() // a put refreshes the stamp (gorge stampKeywordCounter)
+			}
 			if n == 0 && p.cseen&(1<<i) == 0 {
 				p.ctrFree(s, i)
 			}

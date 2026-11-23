@@ -5,8 +5,11 @@ import (
 	"unsafe"
 )
 
-// maxStateBytes is the State bar: 48 KiB since 2026-11-23, when the operator
-// signed off MaxPending and MaxStack 48 -> 80 (every pending trigger goes on the
+// maxStateBytes is the State bar: 49 KiB since 2026-11-23, when the operator
+// signed off +1.5 KiB for #3305's re-land (a per-counter CR 613.7 keyword-counter
+// stamp in perm.cs): State 41720 -> 42552 B, the largest pool's (tail-18)
+// 48656 -> 49488 B. Before it the bar was 48 KiB since 2026-11-23, when the
+// operator signed off MaxPending and MaxStack 48 -> 80 (every pending trigger goes on the
 // stack together, CR 603.3b; a recorded Scute Swarm pod puts ~60 landfall
 // triggers up at once): State 38776 -> 41528 B, the largest pool's 45768 -> 48520 B.
 // Before it the bar was 45 KiB since 2026-11-22, when the operator
@@ -42,7 +45,7 @@ import (
 // 9168 B, no trend with size. It was 9 KB since CardID became 16 bits
 // (8.6 KB then), and 8 KB before that. Moving this bar is a deliberate decision, never
 // the side effect of a change.
-const maxStateBytes = 48 * 1024
+const maxStateBytes = 49 * 1024
 
 // stateBar is the State bar the size tests read.
 const stateBar = maxStateBytes
