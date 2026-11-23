@@ -1,6 +1,10 @@
 package dirac
 
 import (
+	"runtime"
+	"strings"
+	"fmt"
+	"os"
 	"math/bits"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -1630,6 +1634,9 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
+	if Obj(a.Source()) == 30 && a.Kind() == 2 {
+		println("DBGDIRAC found", found, "nodes", fs.nodes)
+	}
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
 		// branches before the fee was funded: its fee-order run floats the
@@ -1871,6 +1878,20 @@ func (fs *filtSearch) tick() bool {
 		return false
 	}
 	fs.nodes++
+	if Obj(fs.a.Source()) == 30 && fs.a.Kind() == 2 && !fs.phased {
+		if f, err := os.OpenFile("/tmp/dn.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644); err == nil {
+			ps := ""
+			for i := 0; i < fs.n; i++ {
+				st := fs.path[i]
+				ps += fmt.Sprintf("%d.%d.%d ", st.sl, st.ans, st.other.kind)
+			}
+			pcs := make([]uintptr, 3)
+			runtime.Callers(2, pcs)
+			fr, _ := runtime.CallersFrames(pcs).Next()
+			fmt.Fprintln(f, "DN", fs.nodes, fs.n, ps, fr.Function[strings.LastIndex(fr.Function, "."):], fr.Line)
+			f.Close()
+		}
+	}
 	return true
 }
 
