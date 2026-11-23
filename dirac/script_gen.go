@@ -460,7 +460,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// search's filter step funds the filter's fee from a granted
 			// sacrifice ability (Rain of Filth's lands; grantSearch's
 			// stepFilt), which the filter-only script skips (grantHasCost).
-			if a.Kind() == AkActivate {
+			if a.Kind() == AkActivate && s.objs[Obj(a.Source())].zone == kop.ZoneBattlefield {
 				// An activation's line the grant search prices may fund the
 				// filter's fee from a granted tap — and gorge's menu arm
 				// prices an activation from the floating pool or the payment
@@ -472,7 +472,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 				// (its floats are the printed sources', CR 601.2b; tail-26
 				// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
 				// "{2},{T}: one mana of any color", whose fee the grant
-				// search funded with two granted Elf taps).
+				// search funded with two granted Elf taps). A graveyard or
+				// exile activation (Encore's {7}{U}{U}) is no battlefield
+				// menu arm: gorge's graveyard walk prices it as a cast, the
+				// grants' mana counted, so it takes the grant search below.
 				if !s.filtScript(k, a, p, false) {
 					continue // no script within gorge's search budget (filtScript)
 				}
