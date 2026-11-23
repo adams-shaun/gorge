@@ -58,10 +58,7 @@ type otherStep struct {
 	// ask offers every X from the counters held down to 0
 	x    uint8
 	xset bool
-	// fo, sib: otherComboAny's forage source (mana_forage.go): the forage option
-	// answered (fo, with ans the colours), or its plain {T} ability (sib)
-	fo  uint8
-	sib bool
+	fo   uint8 // otherComboAny of a forage source (mana_forage.go): the forage option answered (plain: its sibling ability instead)
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -189,7 +186,7 @@ func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
 	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
 		return slotMask{}
 	}
-	return s.caGapsF(k, p, true) // a forage source whose forage is payable is a gap of the search too (forageOther)
+	return s.caGapsF(k, p, true) // a forage source too (forageOther)
 }
 
 // mixEach: p's live free each-colour sources (Faeburrow Elder, "{T}: for each
@@ -232,7 +229,7 @@ func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherSt
 		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
 	}
 	if k.forageCA(t.cardAt(sl)) {
-		return fs.forageOther(t, k, sl, try)
+		return fs.forageOther(k, t, sl, try)
 	}
 	if !fs.tick() {
 		return false
@@ -863,7 +860,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			break
 		}
 		if k.forageCA(s.cardAt(st.sl)) {
-			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.sib})
+			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.plain})
 			break
 		}
 		s.caActivate(k, p, st.sl, int(o.ans))
