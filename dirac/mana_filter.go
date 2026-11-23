@@ -2945,7 +2945,11 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		return false
 	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
-		len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
+		k.gen.anyDynFilt || len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
+		// (a dynamic-amount filter -- Starfleet Academy, Three Tree City -- is a
+		// route the printed-colour scan does not model: gorge's search walks the
+		// free branch there and finds no line where the pruned walk did,
+		// TestDynamicFilterLockstep seed 11)
 		return false
 	}
 	if t.scriptAnyR(k, fs.p).or(t.scriptTapX(k, fs.p)).or(t.scriptCtr(k, fs.p)).or(t.lifeGapMask(k, fs.p)).
