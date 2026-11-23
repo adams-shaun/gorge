@@ -22,7 +22,7 @@ func TestReflAmtBoundCountsTheDruidBesideAnOpenRestrictedSource(t *testing.T) {
 			{Name: "Abzan Kin-Guard", Count: 1}, {Name: "Incubation Druid", Count: 1}, {Name: "Thieving Varmint", Count: 1},
 			{Name: "Swamp", Count: 2}, {Name: "Forest", Count: 1},
 		}
-		tbl, da, _, err := cardsettest.Synth(t, "tail-55").Matchup(deck, deck)
+		tbl, da, _, err := cardsettest.Set(t, "reflamtrestricted").Matchup(deck, deck)
 		if err != nil {
 			t.Fatal(err)
 		}
