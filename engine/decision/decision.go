@@ -548,7 +548,7 @@ type Option struct {
 	// offered leaves it false, so the manual arithmetic is byte-identical.
 	PlanBacked bool `json:"-"`
 	// CensusOffer is server-side only (json:"-") and marks an "ability"
-	// option the census-gap autopay arm (engine/rules' autoPayCensus) offered
+	// option the census-gap autopay arm (engine/rules' autoPayOffer's census arm) offered
 	// although the plain planner cannot price it: the offer's existence is
 	// the census's prefix script, which the seat plays before the ability and
 	// pays through the ordinary manual window. The payment-prefix search's
