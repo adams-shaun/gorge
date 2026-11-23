@@ -85,7 +85,7 @@ func TestCloneIsDeepAndIndependent(t *testing.T) {
 	g := fourPlayer(t)
 	g.Players[1].Life = 12
 	g.Obj(3).Tapped = true
-	g.Obj(3).Counters = []Counter{{Kind: "P1P1", N: 2}}
+	g.Obj(3).Counters = []Counter{{"P1P1", 2}}
 	g.SetZone(ZHand, 0, []ObjID{1, 2})
 	g.Stack = []ObjID{5}
 
