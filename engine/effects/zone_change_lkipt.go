@@ -2,6 +2,14 @@ package effects
 
 import "github.com/adams-shaun/gorge/engine/state"
 
+// recordRememberedLKI is the RememberLKI$ capture of one object about to move:
+// its last-known controller and owner (CR 400.7 resets them at the move) and,
+// from a battlefield departure, its derived P/T.
+func recordRememberedLKI(h Host, c *Ctx, o *state.Object) {
+	c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
+	captureRememberedLKIPT(h, c, o)
+}
+
 // captureRememberedLKIPT records the derived battlefield power and toughness
 // of an object a RememberLKI$ ChangeZone is about to move off the battlefield
 // (CR 608.2h), before the move removes the continuous effects that shaped them.

@@ -1119,8 +1119,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// battlefield departure's controller to its owner (CR 400.7), so this
 		// is the last point the pre-move controller is readable.
 		if cz.RememberLKI {
-			c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
-			captureRememberedLKIPT(h, c, o) // zone_change_lkipt.go
+			recordRememberedLKI(h, c, o) // zone_change_lkipt.go
 		}
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceNamesExiledWithSource(h, c.Source) || cz.Imprint || cz.ExiledWithEffectSource) {
 			ev.IDs = []state.ObjID{c.Source}
@@ -2150,8 +2149,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	ev := moveZoneEvent(c, id, from, to)
 	if cz.RememberLKI {
 		if o := h.Game().Obj(id); o != nil {
-			c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner})
-			captureRememberedLKIPT(h, c, o) // zone_change_lkipt.go
+			recordRememberedLKI(h, c, o) // zone_change_lkipt.go
 		}
 	}
 	if to == state.ZExile && len(ev.IDs) == 0 && (faceNamesExiledWithSource(h, c.Source) || cz.Imprint || cz.ExiledWithEffectSource) {
