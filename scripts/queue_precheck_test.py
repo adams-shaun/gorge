@@ -54,7 +54,7 @@ def test_replays_are_the_dirac_repros_jobs_set():
     # The manifest is the shards TestReproManifest0..7 (repro_manifest_test.go).
     rx = qp.replays_rx((HERE.parent / qp.CI_YML).read_text())
     import re
-    for name in ("TestStdDskReprosLockstep", "TestStdPoolReprosLockstep", "TestReproManifest0", "TestReproManifest7",
+    for name in ("TestStdDskReprosLockstep", "TestStdMshReprosLockstep", "TestReproManifest0", "TestReproManifest7",
                  "TestStdMetaReprosLockstep", "TestMBCStormTheSeedcoreReprosLockstep", "TestRefusedEntriesStillDiverge"):
         assert re.search(rx, name), (rx, name)
     assert qp.replays_rx("jobs:\n  dirac-repros:\n    steps:\n      - run: go test -list 'Repro|^X$' ./dirac/oracle | grep\n  other:\n") == "Repro|^X$"

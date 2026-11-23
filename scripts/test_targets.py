@@ -64,8 +64,8 @@ MANIFEST_TEST = "TestReproManifest"
 MANIFEST_RX = MANIFEST_TEST + "[0-9]+"
 # The per-pool lockstep replays (a pool's recordings are replayed by one glob test, one subtest per
 # recording, named by the recording's file name). TF-01 slices them by subtest like the manifest (a
-# test-level slice cannot bound them: TestStdPoolReprosLockstepFull replays nine pools' recordings in
-# one sequential 300 s stream, the 11-20 anchor run). Only in the full-coverage fallback string.
+# test-level slice cannot bound them: a pool of a few hundred recordings is minutes of subtests). Only in the
+# full-coverage fallback string.
 REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 # The refusal-staleness check, kept whole for every replay arm (it samples entries by name hash).
 REFUSED = "^TestRefusedEntriesStillDiverge$"
