@@ -374,7 +374,10 @@ func (g *Game) askSource(d *decision.Decision) state.ObjID {
 	if d.Kind == decision.KCommanderZone && len(d.Options) > 0 {
 		return d.Options[0].Obj // the commander its owner is asked about (CR 903.9a)
 	}
-	if g.d.Sub == dirac.ChDivide && len(d.Options) > 0 {
+	// a division's and the as-unblocked election's options name their
+	// subject (the attacker), which the features name nothing of at a
+	// combat damage step (the kernel election poses them, combat_asgngrant.go)
+	if (g.d.Sub == dirac.ChDivide || g.d.Sub == dirac.ChAsUnblocked) && len(d.Options) > 0 {
 		return d.Options[0].Obj
 	}
 	src := g.s.FeatEnterSource()
@@ -774,7 +777,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 		return 1 - uint32(mode&1) // yes, pay, top and unless come first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(dirac.TCode(src)))
-	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
+	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
 		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand:
 		return uint32(mode)
 	case dirac.ChGenType:

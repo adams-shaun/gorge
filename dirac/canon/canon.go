@@ -171,6 +171,7 @@ var ChooseKinds = []string{
 	"vote",             // gorge effVote's fixed-list ballot pick (CR 701.38a; act_vote.go)
 	"band",             // CR 702.22c: gorge askNextBand's band declaration (option 0 declines; a candidate names its Obj)
 	"mana_exile",       // gorge AskManaExile's pick of the graveyard card an exile-from-graveyard mana ability exiles
+	"asunblocked",      // gorge askNextCombatAsk's as-unblocked election (CR 510.1c): both options name the attacker, mode 0 assigns normally, 1 as though not blocked (combat_asgngrant.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

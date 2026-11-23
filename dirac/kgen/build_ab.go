@@ -2447,6 +2447,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
 	case "AssignNoCombatDamage":
 		return ka, nil, cb.combatAmountFilter(st, kop.StatNoCombatDamage, s.F)
+	case "AssignCombatDamageAsUnblocked":
+		// the as-unblocked election's static (CR 510.1c): the filter reads its
+		// creature on the battlefield, and the kernel asks the creature's
+		// controller the election in the combat damage step (combat_asgngrant.go)
+		return ka, nil, cb.combatAmountFilter(st, kop.StatAssignCombatDamageAsUnblocked, s.F)
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
