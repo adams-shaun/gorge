@@ -106,7 +106,7 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, mo, ctx.srcSl, emb) {
 			return
 		}
-		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c)) {
+		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c, ctx.srcSl)) {
 			return
 		}
 		if st.StFlags&(kop.StBargained|kop.StReduceColor) != 0 {
@@ -262,18 +262,21 @@ func (s *State) targetsAnswered() bool {
 // costTargetOK: the spell being built targets an object matching f, or (no
 // target chosen yet) some object could be such a target: a battlefield
 // object, or for a stack-zone f (a Spell head: Out of Air's Spell.Creature)
-// a spell on the stack (costTargetMatch, filter_heads.go).
-func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
+// a spell on the stack (costTargetMatch, filter_heads.go). f reads from the
+// static's side: src is its source slot, so a battlefield ReduceCost whose
+// ValidTarget$ is relative to its source (Strong Back's Creature.EnchantedBy)
+// matches the creature that source enchants (CR 601.2f).
+func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID, src Slot) bool {
 	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.targetsAnswered()) { // once the ask is answered, none means an "up to" answered with none
 		e := &s.bld().e
 		for i := 0; i < int(e.nt); i++ {
-			if s.costTargetMatch(k, f, p, e.tgt[i]) {
+			if s.costTargetMatchSrc(k, f, p, e.tgt[i], src) {
 				return true
 			}
 		}
 		x := s.xtOf(e)
 		for j := 0; j < int(x.n); j++ {
-			if s.costTargetMatch(k, f, p, x.code[j]) {
+			if s.costTargetMatchSrc(k, f, p, x.code[j], src) {
 				return true
 			}
 		}
@@ -291,7 +294,7 @@ func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 	n := s.targetCands(k, t, p, NoSlot, NoObj, &buf)
 	s.g.probe = pr
 	for i := 0; i < n; i++ {
-		if s.costTargetMatch(k, f, p, buf[i]) {
+		if s.costTargetMatchSrc(k, f, p, buf[i], src) {
 			return true
 		}
 	}
