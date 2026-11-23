@@ -159,6 +159,20 @@ func (lc *lowerCtx) exileOwnedByDamaged(expr string) (string, lRef) {
 	return rest, lRef{Kind: rTriggeredPlayer}
 }
 
+// zoneCountFilter is the filter of a Count$Valid<Zone> spec, and for a
+// ValidExile spec owned by the damaged player (exileOwnedByDamaged) the
+// ExCountExile N 2 owner as a value shell (N and Ref).
+func (lc *lowerCtx) zoneCountFilter(pre, expr string) (*lFilter, lValue, error) {
+	var own lValue
+	if pre == "ValidExile " {
+		if rest, o := lc.exileOwnedByDamaged(expr); o.Kind != rNone {
+			expr, own = rest, lValue{N: 2, Ref: o}
+		}
+	}
+	f, err := lc.filter(expr)
+	return f, own, err
+}
+
 // metalcraftValue lowers Count$Metalcraft.<yes>.<no> (gorge
 // cov3BranchHoldsMetalcraft: Count$Valid Artifact.YouCtrl >= 3; each arm a
 // literal or an SVar through countBranchOperand). Galvanic Blast.

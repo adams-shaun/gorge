@@ -160,26 +160,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if x.N == 1 {
 			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
 		}
-		only := uint8(255) // N 2: only the cards player Ref owns (Ravenloft Adventurer's defending player, Etrata's damaged one)
-		if x.N == 2 {
-			if only = s.refPlayer(k, x.Ref, ctx); only == 255 {
-				return 0
-			}
-		}
-		n := 0
-		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) || only != 255 && pp != only {
-				continue
-			}
-			pl := &s.pl[pp]
-			for j := 0; j < int(pl.exileN); j++ {
-				o := pl.exile[j]
-				if s.matchCardGenAt(k, x.F, s.objs[o].card, pp, ctx.ctrl, o, &ctx) {
-					n++
-				}
-			}
-		}
-		return n
+		return s.countExile(k, x, ctx)
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
 	case kop.ExStepIn:
@@ -399,4 +380,30 @@ func (s *State) oppsLifeLost(p uint8) int {
 		}
 	}
 	return v
+}
+
+// countExile is ExCountExile: the exiled cards matching x.F in every living
+// seat's exile, or with N 2 only the cards player x.Ref owns (Ravenloft
+// Adventurer's defending player, Etrata's damaged one).
+func (s *State) countExile(k *prep, x *kop.Expr, ctx evalCtx) int {
+	only := uint8(255) // N 2: only the cards player Ref owns (Ravenloft Adventurer's defending player, Etrata's damaged one)
+	if x.N == 2 {
+		if only = s.refPlayer(k, x.Ref, ctx); only == 255 {
+			return 0
+		}
+	}
+	n := 0
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) || only != 255 && pp != only {
+			continue
+		}
+		pl := &s.pl[pp]
+		for j := 0; j < int(pl.exileN); j++ {
+			o := pl.exile[j]
+			if s.matchCardGenAt(k, x.F, s.objs[o].card, pp, ctx.ctrl, o, &ctx) {
+				n++
+			}
+		}
+	}
+	return n
 }

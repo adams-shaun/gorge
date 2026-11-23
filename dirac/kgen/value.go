@@ -1604,19 +1604,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		if strings.Contains(expr, "$") {
 			return lValue{}, fmt.Errorf("Count$%s: aggregate", rest)
 		}
-		owner := lRef{}
-		if zc.pre == "ValidExile " {
-			expr, owner = lc.exileOwnedByDamaged(expr) // value_filterheads.go
-		}
-		f, err := lc.filter(expr)
+		f, own, err := lc.zoneCountFilter(zc.pre, expr) // value_filterheads.go
 		if err != nil {
 			return lValue{}, err
 		}
-		if owner.Kind != rNone {
-			return lValue{Kind: vCountExile, F: f, N: 2, Ref: owner}, nil
-		}
 		if len(zc.kind) == 1 {
-			return lValue{Kind: zc.kind[0], F: f}, nil
+			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
 	}
