@@ -11,10 +11,11 @@ import (
 // PredSameNameT0. Legions to Ashes' battlefield token sweep lowers to two
 // OR'd clauses (the target itself, then tokens controlled by the target's
 // controller reading PredSameNameT0) exiling; The End's
-// TargetedCard.sameName search refuses, naming its spelling.
+// TargetedCard.sameName search lowers its name read now (FwSameName over the
+// target, T13b-2 remnants) and refuses on its unrelated SVar count instead.
 func TestChangeZoneAllSameNameLowers(t *testing.T) {
 	refused := map[string]string{
-		"The End": `"TargetedCard.sameName"`,
+		"The End": `TargetedController$CardsInGraveyard`,
 	}
 	seen := map[string]bool{}
 	for _, c := range lowerNamed(t, []string{"Rat King, Verminister", "Legions to Ashes", "The End"}) {

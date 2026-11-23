@@ -1139,6 +1139,7 @@ RefChosen	Ref	13
 RefChosenPlayer	Ref	39
 RefChosenPlayerRes	Ref	41
 RefController	Ref	5
+RefConvoked	Ref	249
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
 RefDiscarded	Ref	29
@@ -1157,6 +1158,7 @@ RefPromised	Ref	36
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
+RefRememberedSet	Ref	248
 RefReplaced	Ref	20
 RefResChosenPlayer	Ref	42
 RefSacrificed	Ref	22
