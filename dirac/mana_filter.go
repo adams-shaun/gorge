@@ -1562,18 +1562,20 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 //
 //go:noinline
 func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
-	if !k.painMana || a.Kind() != AkCast || a.Mode() != 0 || a.Target() != 0 {
+	if !k.painMana || a.Target() != 0 {
 		return false
 	}
 	o := Obj(a.Source())
-	if o == NoObj || s.objs[o].zone != kop.ZoneHand {
+	if o == NoObj {
 		return false
 	}
-	live := false
-	for m := s.ctrlM[p]; m.any() && !live; m = m.rest() {
-		live = s.canLifeOnlyMana(k, m.first(), p)
+	switch {
+	case a.Kind() == AkActivate && a.Mode()&0xC0 == 0:
+		return s.lifePainActAffords(k, a, p, o)
+	case a.Kind() != AkCast || a.Mode() != 0 || s.objs[o].zone != kop.ZoneHand:
+		return false
 	}
-	if !live {
+	if !s.lifePainLive(k, p) {
 		return false
 	}
 	c := s.objs[o].card
@@ -1583,6 +1585,32 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	}
 	var pb avail
 	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lifePainLive: p controls an activatable sole life-only pain unit.
+func (s *State) lifePainLive(k *prep, p uint8) bool {
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		if s.canLifeOnlyMana(k, m.first(), p) {
+			return true
+		}
+	}
+	return false
+}
+
+// lifePainActAffords is lifePainPlanAffords's arm for a printed activated
+// ability (CR 602.2b): gorge's potential planner gives it a witness for its
+// offer-time mana cost (potential_plan.go PotentialPaymentPlans), planned
+// beside the ability's own tap, which an ability that taps its source leaves
+// to the plain cast's read alone (Dungeon Shade's "{B}" has none).
+func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
+	cost, ex, ok := s.activationMana(k, o, a.Mode())
+	if !ok || ex != NoSlot || cost.X != 0 || !s.lifePainLive(k, p) {
+		return false
+	}
+	var pb avail
+	sp := s.grantPayDescOf(k, a)
 	s.availPotentialFor(k, p, &pb, &sp, false)
 	return pb.affords(&cost, pipMaskOf(&cost), 0)
 }
