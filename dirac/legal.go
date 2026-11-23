@@ -2772,6 +2772,14 @@ func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, ab
 	// bound stays gorge's and a cast only the repeats fund is no play
 	// (pair 67: Grab the Reins' entwined cast beside two artifacts).
 	open = anyCol
+	if !anyCol && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken == 0 {
+		// gorge's bound prices a fixed production beside non-token fodder
+		// once (addPotentialSacRepeat returns on it): the unit the ordinary
+		// walk recorded already is that one activation, so the census keeps
+		// it (swapping one of its ManaN for n would count Krark-Clan
+		// Ironworks' {C}{C} as three mana beside two artifacts).
+		return open
+	}
 	if m != 0 {
 		unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
 		recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
