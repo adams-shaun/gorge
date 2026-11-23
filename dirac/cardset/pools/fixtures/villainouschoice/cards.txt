@@ -1,0 +1,17 @@
+# the villainouschoice pool (api VillainousChoice; each victim in Defined$ order
+# picks a branch): the lowered carriers plus filler for the four-seat and
+# two-seat lockstep tests
+Damocles Base, Sword of Kang
+Dr. Eggman
+Genesis of the Daleks
+Great Intelligence's Plan
+The Dalek Emperor
+Grizzly Bears
+Savannah Lions
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest
