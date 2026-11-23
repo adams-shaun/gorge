@@ -1,6 +1,8 @@
 package dirac
 
-// A sacrifice-another source's step (Ashnod's Altar, mana_grantsacx.go) can
+// A sacrifice-another source's step (Ashnod's Altar, mana_grantsacx.go) or a
+// granted sacrifice step of the holder itself (Rain of Filth's "Sacrifice this
+// land: Add {B}" on The World Tree, mana_grantcost.go sacBranch) can
 // sacrifice the permanent that grants a candidate its mana abilities (Dune
 // Chanter's "Lands you control have '{T}: Add one mana of any color'"). gorge's
 // prefix search keeps the census gaps it chose at the root (the granted lands
