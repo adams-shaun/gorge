@@ -2118,6 +2118,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	// the sixth. The checks fire when the walk ends or suspends.
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
+	if k.gen != nil && k.gen.anyBatch && s.g.nlook > 1 && s.searchZone(k) == kop.ZoneGraveyard {
+		// gorge effHiddenPick moves the picked graveyard cards as one zone
+		// batch: "whenever one or more cards leave your graveyard" fires once
+		// for them (False Memories' exile of seven; trig_leftgraveyard.go)
+		defer s.batchClose(s.batchOpen())
+	}
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
 		if z == kop.ZoneNone {
