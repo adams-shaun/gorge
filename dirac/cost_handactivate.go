@@ -103,7 +103,27 @@ func (s *State) handActCensusPays(k *prep, p uint8, mana *kop.ManaCost, pd payDe
 	var t avail
 	s.availFor(k, p, &t)
 	s.g.availX = x
-	return t.affords(mana, pipMaskOf(mana), 0) || s.poolPaysAct(k, p, mana, pd)
+	return t.affords(mana, pipMaskOf(mana), 0) || s.poolPaysAct(k, p, mana, pd) || s.sacRepeatPays(k, p, mana, pd)
+}
+
+// sacRepeatPays: a live sacrifice-any source whose cost sacrifices dedicated
+// tokens (Diamond Kaleidoscope's "Sacrifice a Prism token: Add one mana of any
+// color", sacRepeatLive) activates once per candidate in the planner's witness
+// (gorge's autoPayOffer; CR 605.3b), so the gaps census's one relaxed unit
+// per source undercounts it. The potential census prices the repeats, one
+// unit per candidate (sacAnyRepeatUnits), as it does for a battlefield
+// activation (Bone Sabres' equip, Jungle Patrol's Wood), and a hand activation
+// the repeats fund is offered too (Titanoth Rex's cycling beside two Prism
+// tokens, tail-12-c000 pair 93). Cold, out of line.
+//
+//go:noinline
+func (s *State) sacRepeatPays(k *prep, p uint8, mana *kop.ManaCost, pd payDesc) bool {
+	if !s.sacRepeatLive(k, p) {
+		return false
+	}
+	var pot avail
+	s.availPotentialFor(k, p, &pot, &pd, false)
+	return pot.affords(mana, pipMaskOf(mana), 0)
 }
 
 // discardSelfCost pays CostDiscardSelf: the source card, still in its
