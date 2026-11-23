@@ -38,8 +38,8 @@ func TestFuzzPodEvidence(t *testing.T) {
 			t.Errorf("row %q has no seats 4 field", r)
 		}
 	}
-	if !strings.Contains(stdout, "std-fdn: 3 games (") {
-		t.Errorf("the pod verdict line is missing:\n%s", stdout)
+	if !podGamesPlayed(stdout) {
+		t.Errorf("the pod verdict line is missing or plays no game:\n%s", stdout)
 	}
 
 	// A two-seat run writes the same rows without the field.
@@ -54,6 +54,20 @@ func TestFuzzPodEvidence(t *testing.T) {
 			t.Errorf("a two-seat row carries a field: %q", r)
 		}
 	}
+}
+
+// podGamesPlayed reports the pods census line's played count: a pair the
+// table refuses (an as-enters opponent choice beside another object's enters
+// replacement, Spyglass beside Authority of the Consuls) is skipped, so the
+// played games may sit under the posed pods.
+func podGamesPlayed(stdout string) bool {
+	i := strings.Index(stdout, " pods (4 seats): ")
+	if i < 0 {
+		return false
+	}
+	rest := stdout[i+len(" pods (4 seats): "):]
+	n := rest[:strings.IndexByte(rest, ' ')]
+	return n != "0"
 }
 
 // evidenceRows reads an evidence file's nonempty lines.
