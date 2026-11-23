@@ -106,6 +106,46 @@ func TestGrantedRiotPosesTheAsEntersAsk(t *testing.T) {
 	}
 }
 
+// TestGrantedRiotCloneTemplateAsksOnce pins the riot ask of an entry whose
+// as-enters clone election was answered for a template: entryETBChoice walks
+// the entrant's face and then the template's face (CR 707.2), and the CR
+// 614.12 derived grant belongs to the ENTRANT — the template face contributes
+// its own printed lines only — so the controller is asked once, not once per
+// face.
+func TestGrantedRiotCloneTemplateAsksOnce(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	rhythm, ok := reg.Lookup("Rhythm of the Wild")
+	if !ok {
+		t.Fatal("Rhythm of the Wild missing from corpus")
+	}
+	entrant := card(t, "Name:Copy Target\nManaCost:2 U\nTypes:Creature Shapeshifter\nPT:2/2\nOracle:x\n")
+	bear := card(t, "Name:Plain Bear\nManaCost:2 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	e := handEngineTokens(t, entrant, rhythm, bear)
+	ids := e.G.Zone(state.ZHand, 0)
+	entID, grantID, tplID := ids[0], ids[1], ids[2]
+	placeOnBattlefield(t, e, tplID) // the bear enters before the grant: no ask
+	placeOnBattlefield(t, e, grantID)
+	e.pending = nil
+	o := e.G.Obj(entID)
+	o.ETBCloneChoice, o.ETBCloneChoiceValid = tplID, true
+
+	ev := events.Event{Kind: events.MoveZone, Obj: entID, From: state.ZHand, To: state.ZBattlefield}
+	riots := 0
+	for ord := 0; ord < 4; ord++ {
+		choice, ok := e.entryETBChoice(ev, ord)
+		if !ok {
+			break
+		}
+		if choice.kind == "riot" {
+			riots++
+		}
+	}
+	if riots != 1 {
+		t.Fatalf("clone-template entry under the riot grant posed %d riot asks over ordinals 0..3, want 1", riots)
+	}
+}
+
 // TestGrantedRiotSpiderPunkFiltersType pins the Affected$ type filter of the
 // grant: a Spider you control gets the ask, a non-Spider does not.
 func TestGrantedRiotSpiderPunkFiltersType(t *testing.T) {

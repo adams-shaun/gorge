@@ -268,7 +268,7 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	// The same CR 614.12 read faceETBChoice's enteringRiot makes: a granted
 	// riot (Rhythm of the Wild) is an as-enters choice from ANY source
 	// (CR 702.136a), not only the printed K:Riot line.
-	if !e.enteringRiot(o, o.Face()) {
+	if !enteringRiot(e, o, o.Face(), false) {
 		return false
 	}
 	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
