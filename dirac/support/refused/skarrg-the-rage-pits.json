@@ -1,0 +1,34 @@
+{
+  "card": "Skarrg, the Rage Pits",
+  "class": "options",
+  "why": "a {R}{G},{T} pump paid only through Chromatic Star's {1} filter (the sole green source) exhausts gorge's 160-node prefix search on the Star's draw-trigger branches (two Tolarian Krakens' pay-{1} and target asks), so the planner leaves it unpriced (unsupported census_incomplete) and the autopay surface withholds it while the kernel offers it; tail-62-c000 pair 9",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "skarrg_rage_pits_pump_offer"
+  },
+  "evidence": [
+    "ev-tail-10-c000",
+    "ev-tail-10-c001",
+    "ev-tail-10-c002",
+    "ev-tail-10-c003",
+    "ev-tail-10-c004",
+    "ev-tail-10-c005",
+    "ev-tail-10-c006",
+    "ev-tail-10-c007",
+    "ev-tail-10-c008",
+    "ev-tail-10-c009",
+    "ev-tail-10-c010",
+    "ev-tail-10-c011",
+    "ev-tail-10-c012",
+    "ev-tail-10-c013",
+    "ev-tail-10-c014",
+    "ev-tail-62-c000",
+    "ev-tail-62-c001",
+    "ev-tail-62-c002"
+  ]
+}
