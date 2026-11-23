@@ -145,7 +145,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Lantern of Revealing
 Lapis Lazuli Talisman
 Last Caress
