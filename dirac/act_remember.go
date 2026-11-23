@@ -119,6 +119,7 @@ func (s *State) sacRemember(k *prep, sl Slot) {
 			s.remLKAdd(k, sl, int(in.B.N)) // RememberedLKI$CardPower/Toughness (zone_rememberlki.go)
 		}
 		s.remember(s.perms[sl].obj)
+		s.remMarkFaceDown(k, sl) // value_remfacedown.go
 	} else if in.Op == kop.OpIfPaid && in.C&0xF == kop.PaySac &&
 		in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {
 		// a printed trigger's own IfPaid Sacrifice cost
