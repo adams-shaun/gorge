@@ -28,6 +28,7 @@ Barrin's Codex
 Battle Sliver
 Benalish Marshal
 Bequeathal
+Bestial Menace
 Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
@@ -193,6 +194,7 @@ Loxodon Mystic
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Mana Leak
 Marionette Apprentice
 Marsh Casualties
@@ -374,6 +376,7 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
+Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental

@@ -36,6 +36,7 @@ Ben-Ben, Akki Hermit
 Benalish Marshal
 Benalish Missionary
 Bequeathal
+Bestial Menace
 Bird Admirer
 Black Market Tycoon
 Black Panther, Most Dangerous
@@ -242,6 +243,7 @@ Lucky the Pizza Dog
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Malakir Bloodwitch
 Mardu Hateblade
 Marionette Apprentice
@@ -450,6 +452,7 @@ Vulpine Goliath
 Wall of Opposition
 War Falcon
 Warcry Phoenix
+Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental
