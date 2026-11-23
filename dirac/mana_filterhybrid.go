@@ -67,6 +67,20 @@ func (s *State) gapFaceHybIn(k *prep, f slotMask) bool {
 	return false
 }
 
+// hybridPhasedScope reports whether gorge's phased run follows the plain run
+// fs, which found no script, for a hybrid-fee gap (scriptSearch.phasedScope):
+// a plain cast whose census gaps include a mana ability with a hybrid fee
+// (Mystic Gate's "{W/U}, {T}: Add {W}{W}, {W}{U} or {U}{U}") beside a
+// repeatable fee-only filter (Energy Refractor's "{2}: Add one mana of any
+// color"). The phased run carries no fee-only ask prune (feeStall is the plain
+// run's alone, CR 605.3a), so it walks the line that taps the funding sources,
+// pays the fee-only filter, floats a colour a free tap could also make, and
+// pays the cast. A search whose gaps are not filters alone stays with the plain
+// run's answer (phasedFallback's scope).
+func (s *State) hybridPhasedScope(k *prep, a Action, fs *filtSearch) bool {
+	return fs.feeOnly && fs.pay == nil && !fs.other.any() && a.Kind() == AkCast && a.Mode() == 0 && s.gapFaceHybIn(k, fs.gaps)
+}
+
 // filtHybHeld is how much of the hybrid fee's colours the filter at sl may
 // spend: p's pool and the restricted mana its activation may use.
 func (s *State) filtHybHeld(k *prep, p uint8, sl Slot, a, b int) int {
