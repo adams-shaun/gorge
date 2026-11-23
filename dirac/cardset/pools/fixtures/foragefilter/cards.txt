@@ -1,0 +1,10 @@
+# a forage Combo Any source (Thornvault Forager) beside a bare {1},{T} filter that nets no mana (Prophetic Prism), with Feed the Cycle's
+# forage-or-{B} cast and its targets: the filter search's forage step (dirac/act_forage_offer_test.go)
+Thornvault Forager
+Prophetic Prism
+Feed the Cycle
+Jolly Gerbils
+Heaped Harvest
+Plains
+Forest
+Swamp
