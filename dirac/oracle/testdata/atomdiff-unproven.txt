@@ -22,10 +22,12 @@ fw:Card.!withShadow
 fw:Card.AdventureCard
 fw:Card.AttachedBy
 fw:Card.ChosenColor
+fw:Card.ChosenCtrl
 fw:Card.ChosenType
 fw:Card.CrewedThisTurn
 fw:Card.DamagedBy
 fw:Card.EnchantedBy
+fw:Card.EnchantedControllerCtrl
 fw:Card.EnchantedPlayerCtrl
 fw:Card.EquippedBy
 fw:Card.IsCommander

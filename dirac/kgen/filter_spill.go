@@ -256,6 +256,8 @@ func (cb *cardBuilder) spillProg(c *lClause, zone kop.Zone) (kop.FilterProgID, e
 				return 0, fmt.Errorf("keyword bit %d", l.N)
 			}
 			fl.Arg = int16(l.N)
+		case kop.FwWithKeyword:
+			fl.Arg = int16(l.N) // the KwID
 		case kop.FwSubtype:
 			i, ok := cb.pt.sub(l.Sub)
 			if !ok {
