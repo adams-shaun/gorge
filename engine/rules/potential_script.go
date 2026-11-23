@@ -2026,7 +2026,14 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 						// first cut already drops the rest, and the scan is a read
 						// of the live board that must not run for a branch this
 						// ask does not keep.
-						if short < before && !sr.feeOnlyFreeTapColour(c, d.Source, int(j)) {
+						//
+						// The swap only dominates when this activation completes
+						// the colour's pips: with {U}{U} owed, the free Island
+						// makes one {U} and the filter must make the other (the
+						// swapped line would tap the Island inside the bounded
+						// funding, past the fee's own count), so a colour still
+						// short after the activation keeps its branch.
+						if short < before && (after[j] < sr.pipCol[j] || !sr.feeOnlyFreeTapColour(c, d.Source, int(j))) {
 							wanted = true
 						}
 					}
