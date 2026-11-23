@@ -8,7 +8,10 @@ import (
 
 // graveTypes counts the card types (land through kindred, CR 300.1) among
 // the printed types of the cards in player p's graveyard (gorge
-// graveyardCardTypeCount; delirium is four or more).
+// graveyardCardTypeCount; delirium is four or more). A token or copy that
+// has reached the graveyard waits there for the next state-based check
+// (CR 704.5d) and is no card (CR 111.7), so its types do not count (gorge
+// skips an Ephemeral object).
 //
 //go:noinline
 func (s *State) graveTypes(k *prep, p uint8, uncounted Obj) int {
@@ -17,7 +20,7 @@ func (s *State) graveTypes(k *prep, p uint8, uncounted Obj) int {
 	var m kop.TypeMask
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.graveN); i++ {
-		if o := pl.grave[i]; uncounted != o+1 {
+		if o := pl.grave[i]; uncounted != o+1 && s.objs[o].of&(ofToken|ofCopy) == 0 {
 			m |= k.t.Cards[s.objs[o].card].Types & cardTypes
 		}
 	}
