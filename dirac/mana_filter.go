@@ -2355,7 +2355,10 @@ func twinSlotFx(k *prep, t *State, a, b Slot) bool {
 // abilities, grants one, sets or adds a land subtype or a card's name, or sets
 // the types (an animate that makes the land a creature with a P/T and a
 // keyword: Wakeroot Elemental's), and no override in the perm's own record
-// beyond the generated-types mark.
+// beyond the generated-types mark. The land subtypes are landWords, the
+// matchup's whole land vocabulary: landSub is empty unless some override is a
+// CR 305.7 setter, and Navigator's Compass's "becomes an Island in addition"
+// adds a basic land type (CR 305.6: its {T}: Add {U}) with none in the pool.
 func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 	o := s.perms[sl].ovr
 	o.flags &^= ovGenTy
@@ -2372,7 +2375,7 @@ func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 		}
 		ov := &k.t.Overrides[r.r.idx-1]
 		if ov.LoseAbilities || ov.Grant != [2]uint8{} || ov.SetLandSub || ov.HasTypes || ov.HasSub || ov.NameCard != 0 ||
-			ov.AddSub.And(k.gen.landSub).Any() {
+			ov.AddSub.And(k.gen.landWords).Any() {
 			return false
 		}
 	}
