@@ -392,7 +392,6 @@ Biogenic Ooze
 Biolume Egg
 Biomechan Engineer
 Bionic Blow
-Biorganic Carapace
 Biosynthic Burst
 Biotech Specialist
 Bishop of Wings
@@ -3635,7 +3634,6 @@ Sphinx of False Conclusions
 Sphinx of Uthuun
 Sphinx of the Steel Wind
 Sphinx's Approach
-Spider-Woman, Stunning Savior
 Spike Drone
 Spike Feeder
 Spiketail Hatchling
@@ -3709,7 +3707,6 @@ Stealth Mission
 Steampath Charger
 Steelclad Serpent
 Steelshaper's Gift
-Stella Lee, Wild Card
 Stench of Decay
 Sterling Supplier
 Stern Dismissal
@@ -3790,7 +3787,6 @@ Sun Sentinel
 Sun Titan
 Sun Warriors
 Sun-Crowned Hunters
-Sun-Spider, Nimble Webber
 Sunbeam Spellbomb
 Sunbillow Verge
 Sunblade Elf
@@ -4508,7 +4504,6 @@ Worf, Still Not Merry
 Worlds Within Worlds
 Worldsoul's Rage
 Worthy Cost
-Wraith, Vicious Vigilante
 Wrangler of the Damned
 Wrath of God
 Wrath of the Bloodmane

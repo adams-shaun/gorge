@@ -37,6 +37,7 @@ Armed Assailant
 Arrester's Zeal
 Ashiok's Forerunner
 Atmosphere Surgeon
+Auramancer's Guise
 Aurochs Herd
 Aven Wind Guide
 Awakened Amalgam
@@ -416,6 +417,7 @@ Singe
 Skillful Lunge
 Sky-Blessed Samurai
 Skyshooter
+Slaughter Singer
 Smoldering Werewolf
 Snarling Undorak
 Snow-Covered Forest
@@ -423,6 +425,7 @@ Somberwald Vigilante
 Sowing Mycospawn
 Space Marine Scout
 Sparring Mummy
+Specter's Shriek
 Spell Crumple
 Spellgorger Barbarian
 Spire Golem
