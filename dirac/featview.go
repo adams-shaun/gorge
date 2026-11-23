@@ -63,6 +63,17 @@ func (s *State) FeatGranted(o Obj) (granted kop.KwMask, printed bool) {
 	return g, printed
 }
 
+// FeatCtrlKw is the keywords o's control records grant (the haste of an
+// until-end-of-turn gain control): fx records are not in ObjHash, so the
+// card view cache keys on them.
+func (s *State) FeatCtrlKw(o Obj) kop.KwMask {
+	ob := &s.objs[o]
+	if s.g.nfx == 0 || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return 0
+	}
+	return s.ctrlKw(ob.slot)
+}
+
 // FeatKwReps counts, per keyword bit, the listings of a granted keyword
 // past its first (saturating at 255): gorge lists a keyword once per
 // effect that grants it (two Fleeting Flights list flying twice; Soulstone

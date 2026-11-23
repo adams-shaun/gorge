@@ -211,6 +211,13 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if g.colG != [maxColG]colGrant{} {
 		h = hbytes(h, unsafe.Pointer(&g.colG), unsafe.Sizeof(g.colG)) // static_colourgrant.go
 	}
+	for i := 0; i < int(g.nfx); i++ {
+		// the haste a control record grants (static_control.go ctrlKw) is not
+		// in ObjHash, and dirac/feat's card view encodes it (FeatCtrlKw)
+		if r := &g.fx[i]; r.kind == fxControl && r.r.fl&fcHaste != 0 {
+			h = hmix(h, 0x6374726c6b77<<16|uint64(r.sl))
+		}
+	}
 	if s.exhAny() {
 		h = hbytes(h, unsafe.Pointer(&s.cold.exH[0]), uintptr(len(s.cold.exH))*unsafe.Sizeof(s.cold.exH[0])) // static_cantblockexcept.go
 	}
@@ -455,7 +462,10 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			}
 			switch z := s.objs[o].zone; z {
 			case kop.ZoneHand, kop.ZoneLibrary, kop.ZoneGraveyard, kop.ZoneExile:
-				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24)
+				// the option's card too: a choice among hidden-zone cards (a
+				// library search) encodes the card each option offers, so two
+				// libraries in one order must not share a key
+				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24|uint64(s.objs[o].card)<<40)
 			}
 		}
 	}
