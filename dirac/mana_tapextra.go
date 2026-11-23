@@ -628,7 +628,12 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 			s.poolAdd(p, col, int(r))
 		}
 		if s.srcEachPick(k, sl, pc) > 0 {
-			s.capFull(StallTapExtra) // the pick's colour is asked at the tap
+			// Stays a stall in every walk, the cast window's too: gorge's
+			// ManaReflected ask (all options Kind "mana") is answered by the
+			// oracle harness internally (oracle gorge.go internal), never a
+			// canonical decision, so the kernel must not pose it
+			// (TestEachReflectedPickIsNotPosedInTheWindow).
+			s.capFull(StallTapExtra)
 		}
 		return
 	}
