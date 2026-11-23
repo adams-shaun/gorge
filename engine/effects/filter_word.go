@@ -1265,7 +1265,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			}
 			return false
 		}
-		a := g.Obj(o.AttachedTo)
+		a := attachedBearer(g, o)
 		if a == nil {
 			return false
 		}
@@ -1648,3 +1648,14 @@ var wordMatchesCodes = state.NewStrCodes(
 	state.StrEntry[wordMatchesCode]{Key: "1", Val: wordMatches1},
 	state.StrEntry[wordMatchesCode]{Key: "2", Val: wordMatches2},
 )
+
+// attachedBearer is the battlefield permanent the Aura or Equipment o is
+// attached to. One whose bearer left the battlefield and waits for its
+// CR 704.5m sweep is attached to no creature (a card in a graveyard is none,
+// CR 110.1): Sage's Reverie's count between the SBA passes.
+func attachedBearer(g *state.Game, o *state.Object) *state.Object {
+	if a := g.Obj(o.AttachedTo); a != nil && a.Zone == state.ZBattlefield {
+		return a
+	}
+	return nil
+}

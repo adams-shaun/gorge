@@ -1056,7 +1056,7 @@ func (s *State) altAddMayRiderCost(cost kop.ManaCost, mayPlay, anyColor bool) ko
 // not the potential planner, so it holds for the contribution alone.
 func (s *State) contribOrPlainImproviseDeclines(k *prep, p uint8, c CardID, o Obj, mayPlay bool) bool {
 	return s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
-		(mayPlay || !s.improviseAloneCast(k, p, MakeAction(AkCast, TCode(o), 0, 0)))
+		(mayPlay || !s.improviseAloneObj(k, p, o))
 }
 
 // gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour

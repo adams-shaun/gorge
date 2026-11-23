@@ -133,8 +133,8 @@ func (s *State) costTargetMatch(k *prep, f kop.FilterID, p uint8, t TCode) bool 
 // costTargetMatchSrc is costTargetMatch for a filter read against the cost
 // static's source permanent src (a Card.Self ValidTarget$: Terror of the Peaks).
 func (s *State) costTargetMatchSrc(k *prep, f kop.FilterID, p uint8, t TCode, src Slot) bool {
-	if isPlayerOrNone(t) {
-		return false
+	if isPlayerOrNone(t) || int(t) >= MaxObj {
+		return false // a stack-ability target (Disallow aimed at an ability) is no card: no cost filter matches it
 	}
 	ob := &s.objs[t]
 	if k.t.Filters[f].Zone == kop.ZoneStack {
