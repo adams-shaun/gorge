@@ -19,9 +19,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gap before it in zone order cleared both flags (Mystic Gate before Energy
 // Refractor still funds Lavaclaw Reaches' animation).
 
-// filtRepeat: the filter at sl is a repeatable fee-only one.
+// filtRepeat: the filter at sl is a repeatable fee-only one. A gap that is no
+// filter (a taps-deferred source the unless census also walks, mana_mixgaps.go)
+// is not.
 func (s *State) filtRepeat(k *prep, sl Slot) bool {
-	return k.gen.anyFiltRepeat && kop.FeeOnlyManaAb(s.filtAb(k, sl))
+	return k.gen.anyFiltRepeat && k.gen.filt(s.cardAt(sl)) >= 0 && kop.FeeOnlyManaAb(s.filtAb(k, sl))
 }
 
 // filtRepeatIn: some filter of f is a repeatable fee-only one.
