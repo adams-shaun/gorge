@@ -83,8 +83,10 @@ Flatman	e606e0b81146a517	4	1/1		0/1	ix:resp
 Flowstone Charger	82844a5a5c4e2da4	138	1/1		1/1	
 Forked-Branch Garami	cf3b8000130d64d1	3	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Foxfire Oak	d7c598193f362cc2	6	1/1		1/1	
+Gary Clone	c41d09476d5d31d3	4	2/2		2/3	ix:resp
 Gift of Fangs	49cc6cc04d154a07	3	0/0		2/2	
 Gingerbread Cabin	d4e8fb080b7c2502	16	2/2		0/1	ix:resp
+Golem-Skin Gauntlets	f81eca004283c826	4	1/1		0/1	ix:resp
 Great Defender	a82248cd82c9c7cd	209	0/0		2/2	
 Greater Harvester	67536f9bd0946c68	3	2/2		1/1	
 Grim Tutor	3c205ffe7a0c8491	3	0/0		1/2	ix:resp
@@ -169,6 +171,7 @@ Shield of the Oversoul	f4fc36cf05ef7866	18	0/0		2/2
 Shimmer of Possibility	279f339085382206	5	0/0		2/2	
 Show of Valor	10ccdfccdcd3f3f7	180	0/0		2/2	
 Shrine Keeper	f4babd7d591c7662	156	0/0		0/0	
+Siege Behemoth	c5f9bf77f3583f62	10	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	146	2/2		1/1	
 Silent Extraction	ba90d82bb5842ae3	4	0/0		1/2	ix:resp
 Simian Brawler	618504ef98d989a4	3	1/1		0/1	ix:resp
@@ -219,6 +222,7 @@ Will-o'-the-Wisp	cd445fa01cff0f02	11	1/1		1/1
 Winding Canyons	a84f2042f7d681ba	228	2/2		1/1	
 Wingsteed Rider	e6db7dd507207bea	150	1/1		1/1	
 Wolfwillow Haven	a509f4b6ecdab8a3	4	2/2		1/2	ix:resp
+Woolly Razorback	42c4cbc632537074	18	1/1		0/1	ix:resp
 Yoshimaru, Ever Faithful	14668ac55e175b70	169	1/1		1/1	
 Zealot's Conviction	c407e402be3771ac	122	0/0		2/2	
 Zuran Enchanter	a2f171098b78c241	6	1/1		0/1	ix:resp

@@ -13,6 +13,7 @@ Arcbound Bruiser
 Arena of the Ancients
 Armguard Familiar
 Arrester's Zeal
+Ashling, Flame Dancer
 Aspect of Gorgon
 Autonomous Assembler
 Avenging Druid
@@ -93,6 +94,7 @@ Galion, Elvenking's Butler
 Galvanic Bombardment
 Gate to Seatower
 Gavony Trapper
+Gaze of Granite
 Gladecover Scout
 Glademuse
 Glasses of Urza
@@ -153,6 +155,7 @@ Myojin of Cleansing Fire
 Nantuko Calmer
 Nantuko Cultivator
 Nantuko Elder
+Necrogen Rotpriest
 Nephalia Smuggler
 Niblis of Frost
 Nocturnal Feeder
@@ -181,6 +184,7 @@ Renegade Troops
 Repulsor Bots
 Returned Reveler
 Rhonas the Indomitable
+Rhox
 Rhox Pummeler
 Rishadan Footpad
 Rockcaster Platoon

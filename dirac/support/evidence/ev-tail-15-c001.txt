@@ -172,6 +172,7 @@ Gwaihir the Windlord
 Haazda Snare Squad
 Headlong Rush
 Healing Leaves
+Heart of Light
 Helionaut
 Highspire Infusion
 Hope Against Hope
@@ -244,6 +245,7 @@ Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Mending Hands
 Messenger Drake
+Meticulous Excavation
 Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
