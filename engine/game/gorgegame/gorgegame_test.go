@@ -214,6 +214,7 @@ var rulesOnly = map[string]string{
 	"Spare":          "a batch runner's recycled storage",
 	"LoopGuard":      "derived from GuardDisabled and NoObjectCap",
 	"CommanderCasts": "an oracle scenario's restated commander tax",
+	"Start":          "a scripted scenario start, set on rules.Config by the oracle harness",
 }
 
 // gameOnly names the game.Config fields with no rules.Config counterpart.
@@ -309,7 +310,9 @@ func TestRulesConfigCarriesEveryField(t *testing.T) {
 		t.Fatal("the host scan saw no rules.Config field; it read the wrong files")
 	}
 	for name, why := range rulesOnly {
-		if name != "LoopGuard" && named[name] {
+		// Start is also Registry.Start, a method name the scan cannot tell
+		// from the field.
+		if name != "LoopGuard" && name != "Start" && named[name] {
 			t.Errorf("server/host names %s, which game.Config does not carry (%s)", name, why)
 		}
 	}
