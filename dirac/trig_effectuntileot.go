@@ -139,14 +139,7 @@ func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8,
 				if DebugEffEOTTrigOppOwner {
 					who = 1 - pp // seat-ok: a test-only mutation (DebugEffEOTTrigOppOwner)
 				}
-				if src == NoSlot {
-					if t.Flags&kop.TfSelf != 0 || t.Flags2&kop.Tf2SrcInPlay != 0 {
-						continue // a source that is no permanent: no self line, no ValidSource$ ...inZoneBattlefield
-					}
-					if t.Filter != 0 && (needsAttachedSource(k, t.Filter) || !s.matchCardGen(k, t.Filter, s.objs[srcObj].card, srcCtrl, who, srcObj)) {
-						continue
-					}
-				} else if t.Filter != 0 && !s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull) {
+				if !s.emblemSourceOK(k, t, src, srcObj, srcCtrl, who) {
 					continue
 				}
 				c := s.embCard(pp, i)
@@ -198,6 +191,21 @@ func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8,
 			}
 		}
 	}
+}
+
+// emblemSourceOK is the damage-source half of an emblem's DamageDone line: a
+// permanent source matches the line's filter as a battlefield object; a
+// source that is no permanent (src NoSlot: a spell, or an ability that left
+// the battlefield) has no self line and no ValidSource$ ...inZoneBattlefield,
+// and matches its filter by its card.
+func (s *State) emblemSourceOK(k *prep, t *kop.Trigger, src Slot, srcObj Obj, srcCtrl, who uint8) bool {
+	if src != NoSlot {
+		return t.Filter == 0 || s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull)
+	}
+	if t.Flags&kop.TfSelf != 0 || t.Flags2&kop.Tf2SrcInPlay != 0 {
+		return false
+	}
+	return t.Filter == 0 || !needsAttachedSource(k, t.Filter) && s.matchCardGen(k, t.Filter, s.objs[srcObj].card, srcCtrl, who, srcObj)
 }
 
 // emblemObjectCaptureOK reports whether an object-captured emblem fires for
