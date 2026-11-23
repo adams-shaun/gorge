@@ -252,7 +252,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// hides on the blind shape and leave a bare NoLooking$ inert.
 	blind := noLooking && (dp.ExileFaceDown || dp.RandomChange)
 	forceReveal := dp.ForceReveal
-	if !forceReveal && sa.Params["ChangeValid"] != "" {
+	if !forceReveal {
 		// The new corpus no longer spells ForceRevealToController$ True on a
 		// "you may reveal a card from among them" dig; cards.DigRevealsPick
 		// reads the rule (Forge's DigEffect reveals the moved cards).
