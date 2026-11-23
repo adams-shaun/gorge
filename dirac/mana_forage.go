@@ -274,3 +274,15 @@ func (s *State) ownTapObj(k *prep, a Action) Obj {
 	}
 	return o
 }
+
+// comboAnyGapAb reports whether ability a is a Combo Any census gap on its card:
+// the card's first mana ability (first), or a forage Combo Any one beside a plain
+// ability (it also sets p.anyForageCA). prepareGen calls it, so the arm stays one line.
+func comboAnyGapAb(p *prep, a *kop.Ability, first bool) bool {
+	if !comboAnyMana(a) {
+		return false
+	}
+	forage := kop.ForageComboAnyAb(a)
+	p.anyForageCA = p.anyForageCA || forage
+	return first || forage
+}

@@ -1488,8 +1488,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
-				if comboAnyMana(a) && (j == firstManaAb(&t.Cards[i]) || kop.ForageComboAnyAb(a)) {
-					p.anyForageCA = p.anyForageCA || kop.ForageComboAnyAb(a)
+				if comboAnyGapAb(p, a, j == firstManaAb(&t.Cards[i])) {
 					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
 				}
 				if reflAmtManaAb(a) && j == firstManaAb(&t.Cards[i]) {
