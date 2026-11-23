@@ -2633,6 +2633,9 @@ type supplyProofHost interface {
 	appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA
 }
 
+// anyColourProduced is the Produced$ spellings of one mana of any colour.
+var anyColourProduced = []string{"Any", "Combo Any"}
+
 // manaTapSingle reports whether mana ability ma of source id is a lone {T}
 // that makes exactly one mana: no fee or other cost part, no tap trigger's
 // extra mana, no condition-split production, no chosen or per-object amount.
@@ -2641,7 +2644,7 @@ type supplyProofHost interface {
 // colour at all, which would count as nothing.
 func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
-	if mp.PlainSym == 0 && mp.Produced != "Any" && mp.Produced != "Combo Any" {
+	if mp.PlainSym == 0 && !slices.Contains(anyColourProduced, mp.Produced) {
 		return false
 	}
 	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
@@ -2663,7 +2666,7 @@ func abilityOutrunsSupply(e supplyProofHost, p state.PlayerID, o decision.Option
 		return false
 	}
 	pa, ok := ob.PileAbilityAt(o.Ability)
-	if !ok || pa.SA == nil || pa.SA.Kind != "AB" || cards.IsManaAbilitySA(pa.SA) || pay.TapCreaturesForMana(pa.SA) {
+	if !ok || pa.SA == nil || !pa.SA.IsActivated() || cards.IsManaAbilitySA(pa.SA) || pay.TapCreaturesForMana(pa.SA) {
 		return false
 	}
 	c := abilityOfferCostOf(e, p, o.Obj, pa.SA)
