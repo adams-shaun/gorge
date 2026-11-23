@@ -12,8 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // comboDynAb reports whether a is such an ability.
 func comboDynAb(a *kop.Ability) bool {
-	return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 && a.AFlags&kop.AfManaChoice != 0 && a.AFlags&kop.AfManaDynamic != 0 &&
-		a.ManaColors&kop.ColAny == kop.ColAny
+	return a.Kind == kop.AbMana && a.AFlags&(kop.AfLatent|kop.AfManaReflect) == 0 && a.AFlags&kop.AfManaChoice != 0 && a.AFlags&kop.AfManaDynamic != 0 &&
+		a.ManaColors&kop.ColAny == kop.ColAny // (a reflected Amount$ source, Incubation Druid, is a planner unit: mana_reflamt.go)
 }
 
 // tableComboDyn reports whether t has such an ability.

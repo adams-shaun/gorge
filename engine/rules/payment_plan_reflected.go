@@ -13,30 +13,32 @@ import (
 // choice-shaped alternative the planner expands into one concrete colour
 // each (pay.PaymentPlanUnitAlternatives). ok is false when the ability is
 // not that shape or reflects no colour.
-//
-// shapeFree lifts the shape gate, for the cast window's probe and the
-// potential bound: they may price a reflection the planner defers, one whose
-// Amount$ the census yields nothing for but the caller resolves itself
-// (Incubation Druid's counter-boosted "add three mana of any type a land you
-// control could produce"). The colours are the same fold's, so the caller
-// prices what the live activation will produce; ok is false when the ability
-// is not reflected or names no colour right now.
-//
-// The fold takes only objects no planned step can remove: an own reflected
-// land whose mana ability sacrifices or returns it could be gone before the
-// reflected step runs (the executor would then fall back mid-payment).
-func paymentPlanReflectedAlt(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, amt int32, shapeFree bool) (windowManaAlt, bool) {
-	if ma == nil || ma.APIKind() != cards.APIManaReflected {
-		return windowManaAlt{}, false
-	}
-	if !shapeFree && !pay.PaymentPlanReflectedShape(ma) {
+func paymentPlanReflectedAlt(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, amt int32) (windowManaAlt, bool) {
+	if !pay.PaymentPlanReflectedShape(ma) {
 		return windowManaAlt{}, false
 	}
 	var svars map[string]string
-	if o := e.Game().Obj(id); o != nil && o.Face() != nil {
+	o := e.Game().Obj(id)
+	if o != nil && o.Face() != nil {
 		svars = o.Face().SVars
 	}
+	if effects.ManaReflectedOf(ma).Amount.Present {
+		// An Amount$ (Incubation Druid) is priced with the engine's own
+		// evaluator and kept only when a payment's taps cannot move it, as
+		// the shared evaluated-amount layer does for an Amount$ Mana ability.
+		if o == nil || o.Face() == nil {
+			return windowManaAlt{}, false
+		}
+		n, ok := e.paymentPlanStableAmount(e.paymentPlanTappedProbe(p), p, id, o, ma)
+		if !ok {
+			return windowManaAlt{}, false
+		}
+		amt = n
+	}
 	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars})
+	// Only objects no planned step can remove contribute: an own reflected
+	// land whose mana ability sacrifices or returns it could be gone before
+	// the reflected step runs (the executor would then fall back mid-payment).
 	var kept []state.ObjID
 	for _, rid := range effects.ManaReflectedObjects(e, ctx, ma) {
 		if !paymentPlanReflectedObjectRemovable(e, rid) {
@@ -75,38 +77,13 @@ func paymentPlanReflectedProductions(alt windowManaAlt) []string {
 // did. The ability's text alone reads as a blank Produced$ -- the executor's
 // colourless default for AB$ Mana -- which would drop every coloured cast
 // only an Exotic Orchard pays from the planner's candidate walk.
-//
-// A reflection the shape gate defers on its Amount$ (an expression the bound
-// cannot price, Incubation Druid's counter-boosted one) is indeterminate here
-// exactly as the printed read is: bound the fold's own colours unbounded --
-// the indeterminate-amount convention (addIndeterminatePotentialMana) -- so a
-// reflection that makes {G} or {B} off the board's lands reads as G-or-B and
-// not as unbounded colourless, which cannot pay a coloured pip (CR 107.5b)
-// and strands the cast it funds. A fold naming no colour produces nothing
-// (CR 106.5): no bound at all, not the blank default's colourless.
 func addPotentialReflected(e *Engine, m *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
-	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1, false); ok {
-		for i, n := range alt.Mana() {
-			m[i] = saturatingPotentialMana(m[i], n)
-		}
-		return true
-	}
-	if ma == nil || ma.APIKind() != cards.APIManaReflected {
-		return false
-	}
-	if _, indeterminate := potentialAmount(effects.ManaOf(ma)); !indeterminate {
-		// A literal amount the bound prices through the printed read below:
-		// its stand-in stays the census's, as before.
-		return false
-	}
-	alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1, true)
+	alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1)
 	if !ok {
-		return true
+		return false
 	}
-	for i, n := range alt.Counts {
-		if n > 0 {
-			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
-		}
+	for i, n := range alt.Mana() {
+		m[i] = saturatingPotentialMana(m[i], n)
 	}
 	return true
 }

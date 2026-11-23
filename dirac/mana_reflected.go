@@ -60,10 +60,7 @@ func prepManaRefl(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 	}
 	a := &c.Abilities[ra]
 	if reflAmtManaAb(a) {
-		// (Incubation Druid) the reflected Amount$ source is no planner unit
-		// at all: gorge's planner defers it, its census a gap the prefix
-		// search activates (mana_reflamt.go, gen.go's gfGapOther), so no
-		// views
+		prepReflAmt(g, id, pc, ra, a) // (Incubation Druid) gorge's evaluated-amount layer's reflected unit
 		return
 	}
 	widen := a.ManaProduce && a.ManaProduceType
@@ -294,6 +291,9 @@ func (s *State) manaReflView(k *prep, sl Slot, c CardID, vi int16) *pcard {
 	m := s.reflColours(k, sl, c)
 	if debugReflMutate == 1 {
 		m = 0
+	}
+	if a := reflAmtAbOf(&k.t.Cards[c]); a != nil {
+		return &k.gen.varPC[int(vi)+s.reflAmtView(k, sl, a, m)]
 	}
 	return &k.gen.varPC[int(vi)+int(m)]
 }

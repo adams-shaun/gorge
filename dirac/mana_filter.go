@@ -1086,9 +1086,7 @@ func (s *State) windowRestrOwed(k *prep, p uint8, sl Slot, useful *kop.ManaCost)
 // an Eldrazi Scion's, are the census's last-resort tier: gorge
 // pay.PlanLastResortCostOK), or a
 // deferred TriggersWhenSpent$ source (Pyromancer's Goggles; mana_deferred.go),
-// or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go), or a
-// reflected Amount$ one (Incubation Druid; mana_reflamt.go, the planner
-// defers the amount, pay.PaymentPlanReflectedShape),
+// or an unrestricted Combo Any one (Axebane Guardian; mana_comboany.go),
 // so a filter beside it is no filter-only board (filtOnly). A sacrifice-only
 // source (an Eldrazi Scion's "Sacrifice this creature: Add {C}") is no gap: the
 // planner prices it as its source's last-resort tier (mana_sacsource.go).
@@ -1104,7 +1102,7 @@ func censusGapMana(a *kop.Ability) bool {
 		return false
 	}
 	f := a.Cost.Flags
-	return reflAmtManaAb(a) || comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
+	return comboAnyMana(a) || a.ManaDeferred || a.ManaRestrict != 0 || a.AFlags&kop.AfManaEachColor != 0 || f != kop.CostTap && f != kop.CostTap|kop.CostSacSelf && f != kop.CostSacSelf ||
 		a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
 }
 

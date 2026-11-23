@@ -1037,7 +1037,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		}
 		av.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
-			s.addOneColour(av, pc.manaN)
+			s.addSrcOneColour(av, pc, sl)
 		}
 		s.addReflectOne(k, av, sl, pc)
 		s.addEachPick(k, av, sl, pc)

@@ -38,7 +38,7 @@ import (
 func (s *State) dryDeferPriced(k *prep, sl Slot, pc *pcard) bool {
 	c := s.cardAt(sl)
 	if k.gen == nil || !k.gen.has(c, gfDeferred) || k.gen.flags[c]&(gfEachCol|gfRestr) != 0 ||
-		k.gen.anyComboAny && (k.isComboAny(c) || k.isReflAmt(c)) {
+		k.gen.anyComboAny && k.isComboAny(c) {
 		return false
 	}
 	return pc.manaN > 0 && pc.manaCol != 0 && pc.manaCol != kop.ColAny &&

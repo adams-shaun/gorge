@@ -115,7 +115,12 @@ type avail struct {
 	// larger fixed face (oneAltN) shares (Palladium Myr's {C}{C} beside a granted one mana
 	// of any colour): 0 reads one. The block is one tap's mana, the fixed face the other.
 	oneCol [maxOneColour]uint8
-	nOne   uint8
+	// oneExact marks an entry whose colour pick is limited to oneMask's colours
+	// ({C} included): a reflected Amount$ source's unit (mana_reflamt.go),
+	// priced by oneColourMasked. The other entries price a pick of any of the
+	// five colours.
+	oneExact [maxOneColour]bool
+	nOne     uint8
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
@@ -187,9 +192,17 @@ func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 	i := a.nOne
 	a.one[i] = n
 	a.oneMask[i] = mask
-	a.oneAltMask[i], a.oneAltN[i], a.oneCol[i] = 0, 0, 0
+	a.oneAltMask[i], a.oneAltN[i], a.oneCol[i], a.oneExact[i] = 0, 0, 0, false
 	a.nOne++
 	return true
+}
+
+// addOneColourExact is addOneColourMask for an entry priced over exactly
+// mask's colours (avail.oneExact).
+func (s *State) addOneColourExact(a *avail, mask, n uint8) {
+	if s.addOneColourMask(a, mask, n) {
+		a.oneExact[a.nOne-1] = true
+	}
 }
 
 // addOneColourAlt is addOneColourMask for a merged unit that also keeps the
@@ -264,8 +277,15 @@ func (a *avail) oneColourPays(cost *kop.ManaCost, pipMask uint8, extra int) bool
 	np := 0
 	var alts [maxOneColour]uint8
 	na := 0
+	var exact [maxOneColour]uint8 // the exact entries, by index
+	nx := 0
 	for k := uint8(0); k < a.nOne; k++ {
 		i := order[k]
+		if a.oneExact[i] {
+			exact[nx] = i
+			nx++
+			continue
+		}
 		if a.oneAltN[i] != 0 {
 			alts[na] = i
 			na++
@@ -274,10 +294,37 @@ func (a *avail) oneColourPays(cost *kop.ManaCost, pipMask uint8, extra int) bool
 		plain[np] = a.one[i]
 		np++
 	}
+	if nx != 0 {
+		return b.oneColourMasked(cost, pipMask, extra, a, exact[:nx], alts[:na], plain[:np])
+	}
 	if na == 0 {
 		return b.oneColourFits(cost, pipMask, extra, plain[:np])
 	}
 	return b.oneColourAltFits(cost, pipMask, extra, alts[:na], plain[:np])
+}
+
+// oneColourMasked gives each exact entry (a.oneExact; indices ex of src) one
+// of its mask's colours, its whole amount in that colour, then prices the
+// remaining one-colour sources as oneColourPays does.
+func (a avail) oneColourMasked(cost *kop.ManaCost, pipMask uint8, extra int, src *avail, ex, alts, plain []uint8) bool {
+	if len(ex) == 0 {
+		if len(alts) == 0 {
+			return a.oneColourFits(cost, pipMask, extra, plain)
+		}
+		return a.oneColourAltFits(cost, pipMask, extra, alts, plain)
+	}
+	i := ex[0]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if src.oneMask[i]&(1<<c) == 0 {
+			continue
+		}
+		b := a
+		b.addUnits(1<<c, src.one[i])
+		if b.oneColourMasked(cost, pipMask, extra, src, ex[1:], alts, plain) {
+			return true
+		}
+	}
+	return false
 }
 
 // oneColourAltFits finishes oneColourPays over the sources that keep a fixed
@@ -380,6 +427,7 @@ func (a *avail) dropOneColour(mask, n uint8) {
 			a.oneAltMask[i] = a.oneAltMask[a.nOne]
 			a.oneAltN[i] = a.oneAltN[a.nOne]
 			a.oneCol[i] = a.oneCol[a.nOne]
+			a.oneExact[i] = a.oneExact[a.nOne]
 			return
 		}
 	}
@@ -2766,7 +2814,7 @@ func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
 	}
 	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	if pc.manaOne {
-		s.addOneColour(a, pc.manaN)
+		s.addSrcOneColour(a, pc, sl)
 	}
 	s.addReflectOne(k, a, sl, pc)
 	s.addEachPick(k, a, sl, pc)

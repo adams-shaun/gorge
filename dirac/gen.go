@@ -1492,9 +1492,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if comboAnyGapAb(p, a, j == firstManaAb(&t.Cards[i])) {
 					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
 				}
-				if reflAmtManaAb(a) && j == firstManaAb(&t.Cards[i]) {
-					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_reflamt.go)
-				}
 				if a.AFlags&kop.AfManaEachColor != 0 && a.AFlags&kop.AfLatent == 0 && g.eachCol(CardID(i)) < 0 {
 					g.smallFor(CardID(i)).eachCol = int8(j)
 					g.setFlag(CardID(i), gfEachCol)
@@ -1559,8 +1556,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.manaChosen = true
 				} else {
 					if int(pc.manaAb) == j && a.AFlags&kop.AfLatent == 0 && a.ManaRestrict == 0 && a.AFlags&kop.AfManaDynamic != 0 && dynamicManaCost(a) && !g.has(CardID(i), gfManaVar) && !(comboAnyMana(a) && !DebugComboAnyPlanned) && !reflAmtManaAb(a) {
-						// the reflected Amount$ source is no planner unit at all: its census
-						// is the gap's (mana_reflamt.go), so no amount variants (manaPCGen)
+						// the reflected Amount$ source's views carry their own amounts
+						// (prepReflAmt, mana_reflamt.go), so no amount-only variants here
 						// a dynamic amount: one variant per amount (manaPCGen)
 						g.setFlag(CardID(i), gfManaVar)
 						g.smallFor(CardID(i)).manaVar = int16(len(g.varPC))

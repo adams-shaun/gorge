@@ -49,7 +49,7 @@ func (s *State) potentialDynOpen(k *prep, p uint8, cost *kop.ManaCost, d *payDes
 			if !dynamic && !each {
 				continue
 			}
-			// a reflected Amount$ production has its own prepared view
+			// a reflected Amount$ production has its own prepared views
 			// (mana_reflamt.go): gorge's addPotentialReflected prices it at the
 			// reflected colours, not unbounded, so it is no shape of this fold
 			if a.AFlags&kop.AfManaReflect != 0 && !a.ManaIdentity {

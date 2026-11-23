@@ -22,15 +22,18 @@ import (
 // planned tap cannot move them; the one thing a step can do is remove an own
 // reflected object (a self-sacrificing land), which the census handles by
 // dropping those objects' contribution (rules.paymentPlanReflectedAlt).
-// Everything else stays deferred: Defined.Untapped (a payment changes the
-// tapped set), Defined.Sacrificed, an Amount$, a RestrictValid$, an
-// activation gate, a Produced$ override, and ReflectProperty$ Produced.
+// An Amount$ (Incubation Druid's counter-gated three) is admitted: the
+// census prices it with the engine's own evaluator and refuses one a tap can
+// move (rules.paymentPlanReflectedAlt). Everything else stays deferred:
+// Defined.Untapped (a payment changes the tapped set), Defined.Sacrificed, a
+// RestrictValid$, an activation gate, a Produced$ override, and
+// ReflectProperty$ Produced.
 func PaymentPlanReflectedShape(ma *cards.SA) bool {
 	if ma == nil || ma.APIKind() != cards.APIManaReflected {
 		return false
 	}
 	mr := effects.ManaReflectedOf(ma)
-	if !paymentPlanReflectedProperties.Has(mr.ReflectProperty) || mr.Produced != "" || mr.Amount.Present ||
+	if !paymentPlanReflectedProperties.Has(mr.ReflectProperty) || mr.Produced != "" ||
 		mr.RestrictValid != "" || mr.ClassBand != "" || mr.IsPresent != "" {
 		return false
 	}

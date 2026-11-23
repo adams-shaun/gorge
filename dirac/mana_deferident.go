@@ -93,8 +93,8 @@ func (s *State) tapGapDeferred(k *prep, p uint8, sl Slot, col int) {
 
 // windowDeferIdentTap activates the deferred identity source sl in a payment
 // window: the tap, then the one mana in the colour the cost still owes (windowOwedCost),
-// else the lowest colour the clamp keeps, else the lowest of the identity (the
-// colour ask windowReflAmtTap answers the same way). A single colour asks nothing.
+// else the lowest colour the clamp keeps, else the lowest of the identity. A
+// single colour asks nothing.
 func (s *State) windowDeferIdentTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool) {
 	m := s.deferMask(k, sl)
 	col := bits.TrailingZeros8(m)

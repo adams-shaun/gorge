@@ -87,7 +87,7 @@ func (s *State) caGapsF(k *prep, p uint8, forage bool) slotMask {
 	m := s.gapMask(k, p, gfGapOther)
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
-		if !(k.isComboAny(s.cardAt(sl)) || k.isReflAmt(s.cardAt(sl))) || s.caAmount(k, sl) == 0 || k.forageCA(s.cardAt(sl)) && !(forage && s.foragePayable(k, p, sl)) {
+		if !k.isComboAny(s.cardAt(sl)) || s.caAmount(k, sl) == 0 || k.forageCA(s.cardAt(sl)) && !(forage && s.foragePayable(k, p, sl)) {
 			m = m.andNot(slotBit(sl))
 		}
 	}
@@ -160,52 +160,35 @@ func (s *State) caPrefix(k *prep, a Action, p uint8) {
 
 // caGapAnswers is the colour ask's answer count of the census gap at sl in the
 // chain: an AnyDifferent source's distinct-colour answers (not the Combo Any
-// amount caAmount reads: mana_distinctcolours.go), a reflected Amount$ source's
-// colour ask (mana_reflamt.go), else the Combo Any allocation's answers.
+// amount caAmount reads: mana_distinctcolours.go), else the Combo Any
+// allocation's answers.
 func (s *State) caGapAnswers(k *prep, sl Slot) uint8 {
 	switch {
 	case s.anyDifferentAt(k, sl):
 		return uint8(anyDifferentAnswers(max(int(s.anyDifferentAbilityAt(k, sl).ManaN), 1)))
-	case k.isReflAmt(s.cardAt(sl)):
-		return s.reflAmtAnswers(k, sl)
 	}
 	return uint8(caAnswerCount(s.caAmount(k, sl)))
 }
 
 // caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
-// a: the c'th answer gorge's search tries (caRank). A reflected Amount$
-// source's answers are its reflected candidates in gorge's order instead, the
-// whole evaluated amount in the answer's colour (mana_reflamt.go), the same
-// ask caGapAnswers counts.
+// a: the c'th answer gorge's search tries (caRank).
 func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
-	if k.isReflAmt(s.cardAt(sl)) {
-		s.reflAmtChainTap(k, p, a, sl, c)
-		return
-	}
 	need := s.playNeed(k, a)
 	s.caActivate(k, p, sl, caRank(s.caAmount(k, sl), &need, c))
 }
 
 // availCA adds each live Combo Any source's units: its amount of any colour.
-// A reflected Amount$ source's window availability is gorge's bound read:
-// {C} alone (mana_reflamt.go reflAmtPotential), so a coloured pip the pool
-// cannot cover keeps the window unafforded, as gorge's potential fold does.
 func (s *State) availCA(k *prep, p uint8, a *avail) {
 	for b := s.caGaps(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.pickCommittedSrc(k, sl) {
 			continue // the pick taps it; removeSrc cannot take these units out (cast_xpicked.go)
 		}
-		if k.isReflAmt(s.cardAt(sl)) {
-			a.addUnits(uint8(kop.ColC), uint8(s.caAmount(k, sl)))
-			continue
-		}
 		a.addUnits(0x1f, uint8(s.caAmount(k, sl)))
 	}
 }
 
-// removeCA takes out of a the units availCA added for the Combo Any (or
-// reflected Amount$) source at sl: a waterbend or convoke pick taps it for
+// removeCA takes out of a the units availCA added for the Combo Any source at sl: a waterbend or convoke pick taps it for
 // the payment, so the X window cannot spend the same tap twice
 // (CR 601.2g-h). availXWindow counts these sources only on its plain walk
 // (availX&3 == 0), so the same gate here removes exactly what it added.
@@ -221,12 +204,7 @@ func (s *State) removeCA(k *prep, a *avail, sl Slot) {
 	if !s.caGaps(k, s.perms[sl].ctrl).has(sl) {
 		return
 	}
-	n := uint8(s.caAmount(k, sl))
-	if k.isReflAmt(s.cardAt(sl)) {
-		a.takeWide(uint8(kop.ColC), uint16(n))
-		return
-	}
-	a.takeWide(0x1f, uint16(n))
+	a.takeWide(0x1f, uint16(s.caAmount(k, sl)))
 }
 
 // caPotentialOpen reports whether p controls an untapped, activatable Combo
@@ -246,9 +224,6 @@ func (s *State) caPotentialOpen(k *prep, p uint8) bool {
 	}
 	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
 		if k.isComboAny(s.cardAt(b.first())) && !(k.forageCA(s.cardAt(b.first())) && !s.foragePayable(k, p, b.first())) {
-			// a reflected Amount$ source beside it is no whole-pool open — its
-			// fold is {C} alone (mana_reflamt.go reflAmtPotential) — so it
-			// stays out and the affords check below reads it
 			return true
 		}
 	}
@@ -410,41 +385,6 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 			}
 			continue
 		}
-		if k.isReflAmt(t.cardAt(order[i])) {
-			// a reflected Amount$ source: the ask is the colour candidates
-			// (mana_reflamt.go), one node only when more than one candidate
-			// names an ask — a single candidate resolves with none (gorge's
-			// effManaReflected) — and the whole evaluated amount floats in the
-			// pick's colour. A source with no candidate makes no mana (gorge's
-			// scriptSpendableGaps, CR 106.6): no branch, the search goes on.
-			cols := t.reflAmtCols(k, order[i])
-			if cols == 0 {
-				continue
-			}
-			if cs.nodes >= potentialScriptNodes {
-				return false
-			}
-			if bits.OnesCount8(cols) > 1 {
-				cs.nodes++ // the colour ask's node
-			}
-			var ans [6]uint8
-			for _, col := range t.reflAmtOrder(k, order[i], cs.a, ans[:]) {
-				c := t.fork()
-				c.reflAmtDo(k, cs.p, order[i], int(col))
-				cs.path[cs.np] = caStep{sl: order[i], ans: col}
-				cs.np++
-				found := cs.visit(k, c, d, false)
-				if !found {
-					cs.stallOf(c) // the line failed; the fork may have latched a stall
-				}
-				t.unfork()
-				if found {
-					return true
-				}
-				cs.np--
-			}
-			continue
-		}
 		cs.nodes++ // the colour ask's node
 		units := t.caAmount(k, order[i])
 		for r, na := 0, caAnswerCount(units); r < na; r++ {
@@ -486,10 +426,6 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 		for _, st := range cs.path[:cs.np] {
 			if k.forageCA(s.cardAt(st.sl)) {
 				s.forageReplay(k, p, st) // (mana_forage.go)
-				continue
-			}
-			if k.isReflAmt(s.cardAt(st.sl)) {
-				s.reflAmtDo(k, p, st.sl, int(st.ans)) // the reflected Amount$ source: ans is the colour (mana_reflamt.go)
 				continue
 			}
 			s.caActivate(k, p, st.sl, int(st.ans))
@@ -663,7 +599,7 @@ const caRelaxedMax = 6
 // beside a Staff of Domination and four Mutagen tokens left the seventeenth
 // play of the any-mana walk out of gorge's sixteen slots, though gorge's walk
 // listed only the nine plays the two mana pays. A dynamic amount (Axebane
-// Guardian), a reflected one, or an amount above caRelaxedMax is no such
+// Guardian) or an amount above caRelaxedMax is no such
 // source and stays unrelaxable.
 func (s *State) caRelaxable(k *prep, p uint8, ca bool) bool {
 	if !ca || !s.caPure(k, p) || s.anyDifferentGaps(k, p).any() || s.lifeGapMask(k, p).any() {
@@ -671,9 +607,6 @@ func (s *State) caRelaxable(k *prep, p uint8, ca bool) bool {
 	}
 	for b := s.caGaps(k, p); b.any(); b = b.rest() {
 		sl := b.first()
-		if k.isReflAmt(s.cardAt(sl)) {
-			return false
-		}
 		if a := k.comboAnyAb(s.cardAt(sl)); a.AFlags&kop.AfManaDynamic != 0 || int(a.ManaN) > caRelaxedMax {
 			return false
 		}

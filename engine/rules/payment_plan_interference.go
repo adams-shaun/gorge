@@ -183,7 +183,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 		return true
 	}
 	productions := pay.PaymentPlanProductions(asPayer(e), id, ma)
-	if alt, ok := paymentPlanReflectedAlt(e, e.G.Obj(id).Controller, id, ma, 1, false); ok {
+	if alt, ok := paymentPlanReflectedAlt(e, e.G.Obj(id).Controller, id, ma, 1); ok {
 		productions = paymentPlanReflectedProductions(alt)
 	}
 	for _, produced := range productions {

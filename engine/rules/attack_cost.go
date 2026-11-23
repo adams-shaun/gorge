@@ -1277,7 +1277,7 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 				// the first reflected colour (CR 605.3a, 106.7, 508.1h); when
 				// the reflection names none, the ability makes no mana and is
 				// not a source.
-				ra, ok := paymentPlanReflectedAlt(e, p, u.ID, a.Ma, a.Amt, false)
+				ra, ok := paymentPlanReflectedAlt(e, p, u.ID, a.Ma, a.Amt)
 				if !ok {
 					continue
 				}

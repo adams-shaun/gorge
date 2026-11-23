@@ -297,7 +297,7 @@ func TestPaymentPlanReflectedShapeOverCorpus(t *testing.T) {
 		"Harvester Druid": true, "Gond Gate": true, "Plaza of Harmony": true, "Star Compass": true,
 		"Mox Amber": true, "Plaza of Heroes": true, "Meteor Crater": true, "Chrome Mox": true,
 		"Pit of Offerings": true, "Corrupted Grafstone": true, "The Grey Havens": true,
-		"Incubation Druid": false, "Benthic Explorers": false, "Squandered Resources": false,
+		"Incubation Druid": true, "Benthic Explorers": false, "Squandered Resources": false,
 	}
 	for name, ok := range want {
 		var got, seen bool

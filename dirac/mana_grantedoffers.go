@@ -804,7 +804,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		}
 		s.addGrantUnits(a, mask, n)
 		if ng == 0 && (pc.manaOne || dynPairOne(pc)) {
-			s.addOneColour(a, n) // (an evaluated pair's wide view is one colour too: dynPairOne)
+			s.addOwnOneColour(a, pc, mask, n) // (an evaluated pair's wide view is one colour too: dynPairOne)
 		} else if ng == 1 && s.g.availX&availHyp == 0 {
 			// a source whose only mana is one grant: its "N mana of any one color" is one colour
 			if gv := s.grantView(k.gen, gi[0], sl); gv.manaOne {
@@ -818,7 +818,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 		if own {
 			s.addGrantUnits(a, mask, n)
 			if (pc.manaOne || dynPairOne(pc)) && s.g.availX&availHyp == 0 {
-				s.addOneColour(a, n) // the printed amount is one colour, whichever is chosen (availFor's census)
+				s.addOwnOneColour(a, pc, mask, n) // the printed amount is one colour, whichever is chosen (availFor's census)
 			}
 		}
 		for i := 0; i < ng; i++ {
@@ -1063,7 +1063,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 		if pc.manaOne {
-			s.addOneColour(a, pc.manaN)
+			s.addSrcOneColour(a, pc, sl)
 		}
 		s.addReflectOne(k, a, sl, pc)
 		s.addEachPick(k, a, sl, pc)

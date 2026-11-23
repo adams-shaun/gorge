@@ -12,8 +12,8 @@ import (
 // Llanowar Elves's {G} and its prefix search taps the Druid for {G}. The
 // Signet's filter makes caBoard refuse the board, so scriptOffers searched
 // the bound's plays only on ca (not caAny) and dropped the cast: tail-55 pair
-// 45. The filter search takes the Druid as a step whose ask is its reflected
-// candidates (reflAmtOther), the whole amount in one colour.
+// 45. The Druid is a planner unit (mana_reflamt.go), so the cast is offered
+// whatever filter sits beside it.
 func TestReflAmtBesideAFilterOffersTheCastItsColourPays(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Llanowar Elves", Count: 1}, {Name: "Incubation Druid", Count: 1}, {Name: "Boros Signet", Count: 1},
@@ -32,17 +32,8 @@ func TestReflAmtBesideAFilterOffersTheCastItsColourPays(t *testing.T) {
 	sc := newScenTableLib(t, tbl, id["Forest"], cfg)
 	forest := sc.perm(id["Forest"], 0)
 	sc.s.perms[sc.slot(forest)].flags |= pfTapped
-	druid := sc.perm(id["Incubation Druid"], 0)
-	signet := sc.perm(id["Boros Signet"], 0)
-	if !sc.k.isReflAmt(id["Incubation Druid"]) || !sc.s.caGaps(sc.k, 0).has(sc.slot(druid)) {
-		t.Fatal("precondition: the Druid is not a live reflected Amount$ census gap")
-	}
-	if !sc.s.scriptFilt(sc.k, 0).has(sc.slot(signet)) {
-		t.Fatal("precondition: the Signet is no filter census gap")
-	}
-	if sc.s.caBoard(sc.k, 0) || !sc.k.gen.anyComboAny {
-		t.Fatal("precondition: the filter does not refuse the Combo Any board")
-	}
+	sc.perm(id["Incubation Druid"], 0)
+	sc.perm(id["Boros Signet"], 0)
 	if !sc.castOffered(0, sc.hand(id["Llanowar Elves"], 0)) {
 		t.Error("Llanowar Elves is not offered: the Druid's {G} beside the Signet was never searched")
 	}

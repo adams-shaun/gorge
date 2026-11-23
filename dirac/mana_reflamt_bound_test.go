@@ -8,11 +8,11 @@ import (
 )
 
 // TestReflAmtBoundCountsTheDruidBesideAnOpenRestrictedSource: Incubation Druid's
-// reflection is in gorge's potential bound (an indeterminate Amount$ is
-// unbounded in the fold's own colours, mana_reflamt.go), so beside Thieving
-// Varmint -- a restricted any-colour source that opens the bound for no payment
-// and adds nothing to a spell its caster owns -- the bound built for Abzan
-// Kin-Guard's payment is two Swamps, a Forest and the Druid's mana, which pays {3}{G}. The
+// reflected colours at its evaluated amount are in gorge's potential bound (a
+// planner unit, mana_reflamt.go), so beside Thieving Varmint -- a
+// restricted any-colour source that opens the bound for no payment and adds
+// nothing to a spell its caster owns -- the bound built for Abzan Kin-Guard's
+// payment is two Swamps, a Forest and the Druid's {C}, which pays {3}{G}. The
 // kernel's fold was gated on canTapForManaPC, false for any census gap, so the
 // bound priced the cast at three mana and restrBoundDrops dropped it (tail-55
 // pair 170, decision 163).
@@ -37,8 +37,8 @@ func TestReflAmtBoundCountsTheDruidBesideAnOpenRestrictedSource(t *testing.T) {
 		sc.perm(id["Swamp"], 0)
 		sc.perm(id["Forest"], 0)
 		druid := sc.perm(id["Incubation Druid"], 0)
-		if !sc.k.isReflAmt(id["Incubation Druid"]) || !sc.s.caGaps(sc.k, 0).has(sc.slot(druid)) {
-			t.Fatal("precondition: the Druid is not a live reflected Amount$ census gap")
+		if !sc.k.gen.has(id["Incubation Druid"], gfManaRefl) || !sc.s.manaPCGen(sc.k, sc.slot(druid)).manaDyn {
+			t.Fatal("precondition: the Druid is not a reflected Amount$ planner unit")
 		}
 		if varmint {
 			sc.perm(id["Thieving Varmint"], 0)

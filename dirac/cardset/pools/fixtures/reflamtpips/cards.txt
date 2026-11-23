@@ -1,0 +1,10 @@
+# Incubation Druid with a +1/+1 counter (three mana of one type) beside Ifnir
+# Deadlands, Nomad Stadium and two Swamps at one life, with Vengeant Vampire
+# ({4}{B}{B}) the cast only the Druid's coloured mana funds
+# (dirac/mana_reflamt_pips_test.go).
+Vengeant Vampire
+Incubation Druid
+Ifnir Deadlands
+Nomad Stadium
+Swamp
+Forest

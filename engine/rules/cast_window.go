@@ -206,7 +206,7 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 			if _, seen := expanded[a.Ma]; seen || a.Ma == nil || a.Amt <= 0 || !pay.PaymentPlanReflectedShape(a.Ma) {
 				continue
 			}
-			alt, ok := paymentPlanReflectedAlt(e, pc.player, u.ID, a.Ma, a.Amt, false)
+			alt, ok := paymentPlanReflectedAlt(e, pc.player, u.ID, a.Ma, a.Amt)
 			if !ok {
 				expanded[a.Ma] = nil
 				continue
@@ -404,21 +404,6 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					continue
 				}
 				counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
-			}
-			// A reflected body's printed parse is the executor's blank
-			// one-colourless default: it names no production, and the shared
-			// census prices the ability only when its amount is a literal. The
-			// probe prices the dynamic amount above, so read the reflection's
-			// own colours -- the same fold the planner's census resolves --
-			// and one alternative per colour carries the amount (CR 605.1a).
-			// A reflection naming no colour right now produces none (CR
-			// 106.5), so it adds no unit.
-			if ma.APIKind() == cards.APIManaReflected {
-				alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt, true)
-				if !ok {
-					continue
-				}
-				counts, any = alt.Counts, true
 			}
 			// A commander-identity production (Arcane Signet, Command Tower)
 			// makes one mana of a colour in its controller's commanders' colour

@@ -8,13 +8,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestReflAmtChainTapEmptyCandidates: a lowered reflected Amount$ source
-// (Incubation Druid) whose filter matches no permanent (its controller has no
-// land) stays in caGaps — the evaluated amount is positive — and the chain's
-// answer count floors at one, so scriptGapTap reaches reflAmtChainTap with no
-// colour to name. It taps for no mana (windowReflAmtTap's empty branch,
-// gorge's Note) instead of indexing the empty candidate list.
-func TestReflAmtChainTapEmptyCandidates(t *testing.T) {
+// TestReflAmtViewEmptyCandidates: a lowered reflected Amount$ source
+// (Incubation Druid) is a planner unit whose view is a function of the board
+// (prepReflAmt): with no land among its controller's permanents the reflection
+// names no symbol and the source makes no mana (gorge's paymentPlanReflectedAlt
+// has no alternative); once a Forest is there, even a tapped one (CR 106.7),
+// the view is one mana of {G}.
+func TestReflAmtViewEmptyCandidates(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Incubation Druid", Count: 1}, {Name: "Forest", Count: 19}}
 	tbl, _, _, err := cardsettest.Set(t, "manariders").Matchup(deck, deck)
 	if err != nil {
@@ -28,32 +28,17 @@ func TestReflAmtChainTapEmptyCandidates(t *testing.T) {
 	}
 	sc := newScenTableLib(t, tbl, id["Forest"], Config{NoElide: true, GorgeLowering: true})
 	druid := sc.perm(id["Incubation Druid"], 0)
-	spell := sc.hand(id["Forest"], 0)
 	s, k := sc.s, sc.k
 	sl := sc.slot(druid)
-	if !k.isReflAmt(id["Incubation Druid"]) {
-		t.Fatal("precondition: Incubation Druid is not a reflected Amount$ census gap")
+	if !k.gen.has(id["Incubation Druid"], gfManaRefl) {
+		t.Fatal("precondition: Incubation Druid is not a reflected planner unit")
 	}
-	if n := s.reflAmtCols(k, sl); n != 0 {
-		t.Fatalf("precondition: %#x candidate colours with no land on the board, want none", n)
+	if pc := s.manaPCGen(k, sl); pc.manaAb >= 0 {
+		t.Errorf("a Druid with no land has view %+v, want none (no mana)", pc)
 	}
-	if n := s.caAmount(k, sl); n <= 0 {
-		t.Fatalf("precondition: evaluated amount %d, want positive (the gap stays in caGaps)", n)
+	sc.perm(id["Forest"], 0)
+	pc := s.manaPCGen(k, sl)
+	if pc.manaAb < 0 || pc.manaCol != kop.ColG || !pc.manaDyn || pc.manaN != 1 {
+		t.Errorf("a Druid beside a Forest has view %+v, want one {G} from an evaluated-amount unit", pc)
 	}
-	if !s.caGaps(k, 0).has(sl) {
-		t.Fatal("precondition: the Druid is not in caGaps")
-	}
-	a := MakeAction(AkCast, TCode(spell), 0, 0)
-	f := s.fork()
-	var spill [kop.NumManaKinds]uint8
-	if !f.scriptGapTap(k, 0, a, sl, slotMask{}, slotMask{}, slotMask{}, slotMask{}, slotBit(sl), 0, &spill) {
-		t.Fatal("the Druid's gap tap reported failure")
-	}
-	if f.perms[sl].flags&pfTapped == 0 {
-		t.Error("the Druid is untapped after its activation")
-	}
-	if f.pl[0].pool != ([kop.NumManaKinds]uint8{}) {
-		t.Errorf("pool %v after an empty reflection, want no mana", f.pl[0].pool)
-	}
-	s.unfork()
 }

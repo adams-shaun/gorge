@@ -295,7 +295,6 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 type offerSkip struct {
 	d, capSpent, gaps, noWide, noWideNF       *Decision
 	sacAny, sacRepeat, wide, mixWide, anyWalk bool
-	reflFilt                                  bool // a filter beside a reflected Amount$ source (reflFiltBoard)
 	anyR                                      slotMask
 }
 
@@ -310,8 +309,7 @@ func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool 
 		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
 		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
 		o.mixWide && !hasOption(o.noWide, a) && !hasOption(o.noWideNF, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
-		o.anyWalk && s.restrBoundDrops(k, p, a) ||
-		o.reflFilt && s.reflAmtBoundFails(k, p, a) // gorge's bound gate refuses it before any search
+		o.anyWalk && s.restrBoundDrops(k, p, a)
 }
 
 // pricedByPrintedSources reports a plain, untargeted cast the printed-source census pays: gorge's planner finds it
@@ -367,13 +365,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	caAny := s.caOffersBoard(k, p, ca)
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
-	// raBoard: a live reflected Amount$ source is the board's only modelled
-	// census gap (no filter, no other gap kind beside it). gorge's census is
-	// unrelaxable there (mana_reflamt.go reflAmtBoundPlay), so the candidates
-	// are the any-mana walk and the bound arm admits them (reflAmtBoundPlay).
-	raBoard := !ca && !dh && !filt.any() && !mix && !restr.any() && !anyR.any() &&
-		!tapsDef.any() && !s.scriptCtr(k, p).any() && !tx.any() && !anyDiff.any() && !life.any() &&
-		s.reflAmtLive(k, p)
 	if !dh && !ca && !s.caBesideGrant(k, p) && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
 		return
 	}
@@ -396,7 +387,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
-	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny || raBoard)
+	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -443,7 +434,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		d: d, capSpent: capSpent, gaps: &gaps,
 		sacAny: sacAny, sacRepeat: sacRepeat,
 		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide, noWideNF: &noWideNF,
-		anyWalk: src == &any, reflFilt: s.reflFiltBoard(k, p, ca, filt),
+		anyWalk: src == &any,
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
@@ -486,7 +477,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
@@ -621,15 +612,12 @@ func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) boo
 			return true // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
 		}
 	} else if s.caBesideGrant(k, p) {
-		// a Combo Any / reflected Amount$ gap beside a live granted mana
+		// a Combo Any gap beside a live granted mana
 		// ability is one search in gorge (scriptSearch.visit activates
 		// every census gap together), and the grant search is that search
 		// (grantFirstGaps, mana_grantcomboany.go): it prices the play
 		// exactly, so the gaps walk keeping the play's own {T} source
-		// (ownTapBoundKept) over-offers nothing. grantCap never ran it:
-		// the play the grant walk's census cannot pay (the reflected
-		// Amount$ fold is {C} alone) is off the walk, and gorge reaches it
-		// only through its prefix search.
+		// (ownTapBoundKept) over-offers nothing.
 		if ga, gstall := s.grantActScript(k, a, p); !ga {
 			// the drop is final and one of the grant search's lines ran
 			// into a rule gap the kernel stalls by name: declare it, not

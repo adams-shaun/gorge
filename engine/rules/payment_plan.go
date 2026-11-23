@@ -1735,7 +1735,7 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			// (one alternative per colour, any literal amount) and an amount-1
 			// Combo/Chosen/ColorIdentity (one alternative per producible
 			// colour). Combo Any and every allocation (amount > 1) stay deferred.
-			if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt, false); ok {
+			if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt); ok {
 				units, idx = setPaymentPlanUnitAlt(units, idx, id, alt)
 				continue
 			}
@@ -1790,6 +1790,14 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			// witness, so never build the probe for an ability the plan could
 			// not activate anyway.
 			if !mf.TapOnly {
+				continue
+			}
+			if pay.PaymentPlanReflectedShape(ma) {
+				// A reflected ability with an Amount$ (Incubation Druid):
+				// the reflected alternative prices the amount itself.
+				if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
+					units = pay.AppendUnitAlt(units, id, alt)
+				}
 				continue
 			}
 			if probe == nil {

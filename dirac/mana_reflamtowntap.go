@@ -17,6 +17,8 @@ package dirac
 // over both and prices the play exactly (mana_grantcomboany.go
 // grantFirstGaps). The real walk (availX 0) still takes the source out: its
 // planner cannot tap it twice.
+// (The reflected Amount$ gap this was recorded beside, Incubation Druid, is a
+// planner unit now, mana_reflamt.go; the gate stays for the Combo Any gaps.)
 func (s *State) ownTapBoundKept(k *prep, sl Slot) bool {
 	return s.g.availX&availGaps != 0 && k.gen != nil && k.gen.anyComboAny &&
 		(s.caBoard(k, s.perms[sl].ctrl) || s.caBesideGrant(k, s.perms[sl].ctrl))
