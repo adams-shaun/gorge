@@ -216,10 +216,14 @@ func (e *Encoder) prelude(s *dirac.State, d *dirac.Decision, seat uint8) (uint8,
 	case d.Kind == dirac.DkAttackers || d.Kind == dirac.DkBlockers,
 		d.Kind == dirac.DkChoose && d.Sub == dirac.ChCleanupDiscard:
 		v.priority = v.active
-	case d.Kind == dirac.DkChoose && (d.Sub == dirac.ChDivide || d.Sub == dirac.ChGenReplOrder && s.FeatReplOrderCombat()):
+	case d.Kind == dirac.DkChoose && (d.Sub == dirac.ChDivide || d.Sub == dirac.ChAsUnblocked || d.Sub == dirac.ChGenReplOrder && s.FeatReplOrderCombat()):
 		// Asked at a combat damage step: the active player holds priority
 		// from the step change, except after a first-strike damage step,
 		// whose priority round (CR 510.4) ended with the non-active player.
+		// The as-unblocked election sits at the same point as a division
+		// (the kernel drains the election queue before the division queue
+		// inside one combat damage pass, combat_asgngrant.go), so it takes
+		// the same mapping.
 		v.priority = v.active
 		if s.FeatFirstStrikeCombat() && e.kp.Step == kop.StepDamage {
 			v.priority = v.lastToPass(s)

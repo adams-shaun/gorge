@@ -486,8 +486,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// gorge's KCommanderZone packs the commander as source and the
 			// option index as mode (0 command_zone, 1 leave).
 			return Pack(ActCommanderZone, src, RefNone, mode)
-		case dirac.ChDivide:
-			return ch("division", src, mode)
+		case dirac.ChDivide, dirac.ChAsUnblocked:
+			return r.combatDamageChoose(src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
 		case dirac.ChCostForage:
@@ -524,6 +524,20 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return ch("number", RefNone, mode)
 	}
 	return Pack(CanonKind(0xFF), src, tgt, mode)
+}
+
+// combatDamageChoose is the combat damage step's choose answer: the damage
+// division's repeatable "division" pick, and the as-unblocked election's
+// "asunblocked" over the attacker — mode 0 assigns normally (blocked), mode
+// 1 as though not blocked (CR 510.1c; combat_asgngrant.go, gorge
+// askNextCombatAsk).
+func (r *Translator) combatDamageChoose(src Ref, mode uint8) Canon {
+	kind := "division"
+	if r.D.Sub == dirac.ChAsUnblocked {
+		kind = "asunblocked"
+	}
+	code, _ := ChooseCode(kind)
+	return Pack(ActChoose+CanonKind(code), src, RefNone, mode)
 }
 
 // voteAction is a vote KChoose option: the card ballot's "vote_card" over
