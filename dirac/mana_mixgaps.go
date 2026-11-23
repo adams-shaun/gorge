@@ -36,7 +36,8 @@ const (
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
 	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
-	otherComboAny  // a Combo Any source (Axebane Guardian, mana_comboany.go): ans is the odometer answer (caActivate)
+	otherComboAny  // a Combo Any source (Axebane Guardian, mana_comboany.go): ans is the odometer answer (caActivate); a forage source's, forageReplay's (mana_forage.go)
+	otherForageSib // a forage source's plain sibling ability (Thornvault Forager's {T}: Add {G}, mana_forage.go)
 	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
 	otherLifePain  // a sole life-only pain unit (lifeOnlyPain): ans is the colour it makes (lifePainDo)
 	otherEach      // a free each-colour source (Faeburrow Elder, mixEach): one of each colour among its permanents
@@ -58,10 +59,9 @@ type otherStep struct {
 	// ask offers every X from the counters held down to 0
 	x    uint8
 	xset bool
-	// fo, sib: otherComboAny's forage source (mana_forage.go): the forage option
-	// answered (fo, with ans the colours), or its plain {T} ability (sib)
-	fo  uint8
-	sib bool
+	// fo: otherComboAny's forage option (forageReplay's opts index; a forage
+	// source's step, mana_forage.go forageCAOther)
+	fo uint8
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -184,12 +184,15 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 // others after them: the filter search takes the Combo Any source as an
 // otherComboAny step, Axebane Guardian's X mana (one colour each, any
 // combination) paying a Signet's {1} (CR 605.3a, 601.2g-h). A reflected
-// Amount$ source is a step too, its one colour ask (reflAmtOther).
+// Amount$ source is a step too, its one colour ask (reflAmtOther). A forage
+// source joins beside the filter with the Combo Any search's view of it
+// (caGapsF, the forage payable): its forage is a cost the step's replay pays
+// (forageReplay), as caBoard's forage view lists it alone (CR 601.2f-h).
 func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
 	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
 		return slotMask{}
 	}
-	return s.caGapsF(k, p, true) // a forage source whose forage is payable is a gap of the search too (forageOther)
+	return s.caGapsF(k, p, true)
 }
 
 // mixEach: p's live free each-colour sources (Faeburrow Elder, "{T}: for each
@@ -232,7 +235,7 @@ func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherSt
 		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
 	}
 	if k.forageCA(t.cardAt(sl)) {
-		return fs.forageOther(t, k, sl, try)
+		return fs.forageCAOther(t, k, sl, try) // a forage source: the ability ask, the forage election, the colour answers (mana_forage.go)
 	}
 	if !fs.tick() {
 		return false
@@ -863,10 +866,12 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			break
 		}
 		if k.forageCA(s.cardAt(st.sl)) {
-			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.sib})
+			s.forageReplay(k, p, caStep{sl: st.sl, fo: o.fo, ans: o.ans}) // the forage elected as fo, then the mana (mana_forage.go)
 			break
 		}
 		s.caActivate(k, p, st.sl, int(o.ans))
+	case otherForageSib:
+		s.forageReplay(k, p, caStep{sl: st.sl, sib: true}) // the plain sibling's {T}: Add {G} (mana_forage.go)
 	case otherEach:
 		s.perms[st.sl].flags |= pfTapped
 		s.touchSl(st.sl)
