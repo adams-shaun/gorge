@@ -44,3 +44,27 @@ func TestFourSeatCommanderImproviseCreditsGenericMutation(t *testing.T) {
 		t.Fatal("an uncredited offer changed no game: the replay does not reach it")
 	}
 }
+
+// commanderConvokeGrantRepro is a four-seat edh pod (kfuzz -kernel edh -seats 4
+// -seed 1, pair 30): Olivia, Opulent Outlaw in the command zone under We Ride at
+// Dawn ("Legendary creature spells you cast have convoke") with five untapped
+// creatures and no untapped land. gorge's command-zone gate prices the printed
+// cost with no convoke credit and withholds the cast; the improvise credit above
+// reached the kernel's offer for a convoke grant too and offered it (decision 2118).
+const commanderConvokeGrantRepro = "commander_convoke_grant_command_zone_no_credit_four_seat_pod"
+
+// commanderConvokeGrantAt is the decision the recording diverged at.
+const commanderConvokeGrantAt = 2118
+
+func TestFourSeatCommanderConvokeGrantNotCredited(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	res := fourSeatEdhReplay(t, commanderConvokeGrantRepro)
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+	}
+	if strings.HasPrefix(res.Stall, KernelStallPrefix) || res.Decisions <= commanderConvokeGrantAt {
+		t.Fatalf("stall %q after %d decisions, want a clean game past %d", res.Stall, res.Decisions, commanderConvokeGrantAt)
+	}
+}

@@ -49,10 +49,11 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 		s.offerDashCommand(k, d, p, o, c, av) // kw_dash.go: before the plain affordability gate
 	}
 	cost := pc.cost
-	if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, false) && !DebugCommanderNoCredit {
+	if k.gen != nil && k.gen.anyConvoke && s.isImprovise(k, p, c, o, false) && !s.hasConvoke(k, p, c, o, false) && !DebugCommanderNoCredit {
 		// gorge's offer credits a command-zone cast's printed generic with its
-		// untapped artifacts too, before the tax and the statics (castOfferBase;
-		// CR 702.126a, 903.8)
+		// untapped artifacts (improvise alone) before the tax and the statics
+		// (CR 702.126a, 903.8); a convoke grant (We Ride at Dawn over Olivia) is
+		// no credit there: gorge prices the raw cost and withholds the cast
 		cost = s.convokeCreditFrom(k, p, c, o, false, cost)
 	}
 	addCommanderTax(&cost, s.commanderTax(p, o))
