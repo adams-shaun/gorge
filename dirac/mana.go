@@ -990,6 +990,13 @@ type planner struct {
 	// tapsIn: the plan also taps the sources a Taps watcher defers (the
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
+	// plain: the plan is gorge's plain census, no tiered fallback pass: a
+	// resolution payment's plan (gorge resPayFund's pay.PlanPaymentCost)
+	// never lists a Taps-deferred source or a Combo Any source, so one it
+	// cannot price has no witness and takes the manual window (respay.go
+	// resPayFund); the tiered passes are the potential play's prefix gaps'
+	// (payPrefixRest), not a payment's
+	plain bool
 	// comboIn: the plan also counts the Combo Any sources gorge's planner
 	// has no witness for (the fallback pass of planTiered, mana_comboanyplan.go)
 	comboIn bool
