@@ -127,13 +127,42 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 	return etbChoice{}, false
 }
 
+// riotGrantBoard is the slice of the Engine enteringRiot reads: the
+// battlefield-entrant keyword walk (engine/rules/layers_derived.go).
+type riotGrantBoard interface {
+	enteringKeywordParam(id state.ObjID, h kwHead) (string, bool)
+}
+
+// enteringRiot is the CR 614.12 riot read for one battlefield entry: the
+// keyword list the entrant would have ON the battlefield (printed K:Riot plus
+// the layer-6 AddKeyword$ grants a static like Rhythm of the Wild's
+// "Nontoken creatures you control have riot" delivers) — the same derived
+// read bloodthirstEntryMatch makes. The printed line short-circuits first;
+// mayHaveDerivedKeywordH rejects the derived walk on the common board (no
+// printed line, no granting static), so a battlefield→battlefield re-entry,
+// whose pre-fold object still sits in the battlefield zone, reads the same
+// way as every other entry. fromTemplate (the copied template's face) reads
+// printed lines only: the derived grant above is the ENTRANT's read, and the
+// template call runs on that same entrant object, so re-reading it per face
+// would pose the ask once per face instead of once per entry.
+func enteringRiot(b riotGrantBoard, o *state.Object, f *cards.Face, fromTemplate bool) bool {
+	if f.HasKeywordRef(kwRefRiot) {
+		return true
+	}
+	if fromTemplate {
+		return false
+	}
+	_, ok := b.enteringKeywordParam(o.ID, kwhRiot)
+	return ok
+}
+
 // faceETBChoice walks one face's as-enters choices (riot, unleash and the
 // Repls), counting into *seen and returning the one whose position is
 // ordinal. fromTemplate marks the copied template's face, whose own copy
 // election is skipped.
 func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, ordinal int, seen *int, fromTemplate bool) (etbChoice, bool) {
 	you := o.Controller
-	if f.HasKeywordRef(kwRefRiot) {
+	if enteringRiot(e, o, f, fromTemplate) {
 		if *seen == ordinal {
 			return etbChoice{kind: "riot", options: []decision.Option{
 				{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: you},
