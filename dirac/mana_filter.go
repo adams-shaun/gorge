@@ -3025,6 +3025,14 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// second-ability lockstep (a {C} left from the turn's earlier cast).
 		return false
 	}
+	if fs.other.any() {
+		// A root gap that is no filter (a tap-another Holdout Settlement
+		// whose plain {C} answer the path already took): the census below
+		// no longer lists it, but gorge's search walked the same dead
+		// subtree beside it and spent its 160 nodes there before the paying
+		// line, so the prune must not hide it (CR 605.3a, 601.2h).
+		return false
+	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
 		k.gen.anyDynFilt || len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
 		// (a dynamic-amount filter -- Starfleet Academy, Three Tree City -- is a
