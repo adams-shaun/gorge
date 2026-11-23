@@ -1,0 +1,32 @@
+{
+  "card": "Lava Storm",
+  "class": "lockstep",
+  "why": "Lava Storm {3}{R}{R} castable through a hybrid-fee filter gap (Cascade Bluffs, {U/R},{T}) beside a storage-counter battery gap (Mage-Ring Network): gorge's prefix search (potential_script.go) runs out of its 160-node budget and answers census_incomplete, so the cast is withheld, while the kernel's mixgaps/ctrScript mirror prices the board as scripted (tail-55 pair 46, seed 839419, decision 715); mirroring that budget on mixed filter+battery boards is over 200 lines of dirac",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "lava_storm_instant_offered_without_combat"
+  },
+  "evidence": [
+    "ev-tail-21-c000",
+    "ev-tail-21-c001",
+    "ev-tail-21-c002",
+    "ev-tail-21-c003",
+    "ev-tail-21-c005",
+    "ev-tail-21-c007",
+    "ev-tail-21-c011",
+    "ev-tail-21-c012",
+    "ev-tail-21-c015",
+    "ev-tail-21-c054",
+    "ev-tail-55-c000",
+    "ev-tail-55-c001",
+    "ev-tail-55-c002",
+    "ev-tail-55-c003",
+    "ev-tail-55-c004",
+    "ev-tail-55-s000"
+  ]
+}
