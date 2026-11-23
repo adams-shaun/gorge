@@ -206,6 +206,11 @@ func attachedToWord(p string) (n int, ok bool) {
 		bits |= kop.AttToOther
 	case "YouCtrl":
 		bits |= kop.AttToYouCtrl
+	case "EnchantedBy", "EquippedBy":
+		// the attached-bearer qualifiers' one body (gorge attachedBy: the
+		// bearer is what the filter's own source is attached to; With Great
+		// Power, Baki's Curse)
+		bits |= kop.AttToSrcBearer
 	default:
 		return 0, false
 	}

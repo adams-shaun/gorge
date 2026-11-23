@@ -1600,25 +1600,35 @@ const FwKeyword FilterWord = 6
 // FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).
 const FwPowerCmp FilterWord = 7
 
+// FilterWord (dirac/manifest/FilterWord/FwSharesCr)
+//
+// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefImprinted, the reading source's first imprinted card. Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
+const FwSharesCr FilterWord = 8
+
+// FilterWord (dirac/manifest/FilterWord/FwSharesName)
+//
+// FwSharesName: the object shares a printed name with an object the referent R names (gorge sharesNameWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefRemembered, the entry's remembered object (the first card entry); RefTriggerObj, the entry's triggering object. A face-down candidate has no name (CR 708.2); an unbound referent matches nothing, fail closed.
+const FwSharesName FilterWord = 9
+
 // FilterWord (dirac/manifest/FilterWord/FwSubtype)
 //
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
-const FwSubtype FilterWord = 8
+const FwSubtype FilterWord = 10
 
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 9
+const FwTapped FilterWord = 11
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 10
+const FwToughnessCmp FilterWord = 12
 
 // FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
 //
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
-const FwWithKeyword FilterWord = 11
+const FwWithKeyword FilterWord = 13
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -1905,29 +1915,47 @@ const KwCascade KwID = 125
 // Convoke (dirac/manifest/KwID/KwConvoke)
 const KwConvoke KwID = 126
 
+// Cycling (dirac/manifest/KwID/KwCycling)
+const KwCycling KwID = 127
+
+// Doctor's companion (dirac/manifest/KwID/KwDoctorsCompanion)
+const KwDoctorsCompanion KwID = 128
+
+// Enchant (dirac/manifest/KwID/KwEnchant)
+const KwEnchant KwID = 129
+
 // Foretell (dirac/manifest/KwID/KwForetell)
-const KwForetell KwID = 127
+const KwForetell KwID = 130
 
 // Horsemanship (dirac/manifest/KwID/KwHorsemanship)
-const KwHorsemanship KwID = 128
+const KwHorsemanship KwID = 131
 
 // Madness (dirac/manifest/KwID/KwMadness)
-const KwMadness KwID = 129
+const KwMadness KwID = 132
 
 // Megamorph (dirac/manifest/KwID/KwMegamorph)
-const KwMegamorph KwID = 130
+const KwMegamorph KwID = 133
 
 // Morph (dirac/manifest/KwID/KwMorph)
-const KwMorph KwID = 131
+const KwMorph KwID = 134
 
 // Multikicker (dirac/manifest/KwID/KwMultikicker)
-const KwMultikicker KwID = 132
+const KwMultikicker KwID = 135
+
+// Persist (dirac/manifest/KwID/KwPersist)
+const KwPersist KwID = 136
+
+// Ward (dirac/manifest/KwID/KwPrintedWard)
+const KwPrintedWard KwID = 137
 
 // Suspend (dirac/manifest/KwID/KwSuspend)
-const KwSuspend KwID = 133
+const KwSuspend KwID = 138
 
 // Toxic (dirac/manifest/KwID/KwToxic)
-const KwToxic KwID = 134
+const KwToxic KwID = 139
+
+// Unearth (dirac/manifest/KwID/KwUnearth)
+const KwUnearth KwID = 140
 
 // Op (dirac/manifest/Op/OpGrantEmbalmOwnCost)
 //

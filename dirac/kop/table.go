@@ -673,6 +673,19 @@ type CardDef struct {
 	// carries that ability index in place of the printed one
 	// (dirac/kw_cleave.go).
 	CleaveAb uint8
+	// The printed-keyword records the with<Keyword> filter word reads
+	// (kop.FwWithKeyword's printedKeyword; no KwMask bit is free, and the
+	// keyword's own lowering keeps no marker of its own): set by kgen at the
+	// face keyword's lowering arm. A granted keyword is NOT one of these
+	// (gorge keywordInCtx's derived list is the known limit the word's doc
+	// carries).
+	HasCycling           bool // printed Cycling (CR 702.84b; the hand's cycling cast)
+	HasWard              bool // printed Ward (CR 702.19a; the spell's ward ask)
+	HasEnchant           bool // printed Enchant (CR 702.102a; the Aura's target spec)
+	HasUnearth           bool // printed Unearth (CR 702.84a; the graveyard's unearth cast)
+	HasDecayed           bool // printed Decayed (CR 702.130b; the decayed token)
+	HasPersist           bool // printed Persist (CR 702.79a; the dies trigger)
+	HasDoctorsCompanion  bool // printed Doctor's companion (CR 702.124m; the deck rule)
 	// CleaveCost is the cleave cost (CleaveAb != 0).
 	CleaveCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the

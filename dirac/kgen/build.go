@@ -544,6 +544,10 @@ func (cb *cardBuilder) record() error {
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
 	}
+	// the printed-keyword records the with<Keyword> word reads (kop.FwWithKeyword's
+	// printedKeyword): no KwMask bit is free, so each is its own cold field
+	d.HasCycling, d.HasWard, d.HasEnchant = c.HasCycling, c.HasWard, c.HasEnchant
+	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 	d.PreventDmgTo, d.PreventCombatTo, d.PreventCombatBy = c.PreventDmgTo, c.PrevCmbTo, c.PrevCmbBy
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)

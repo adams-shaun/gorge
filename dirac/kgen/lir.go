@@ -1443,6 +1443,16 @@ type lCard struct {
 	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)
 	Gift           bool     // K:Gift (CR 702.174): the GiftAbility body is spliced at the head of the spell, or is the permanent's ETB gift trigger
+	// The printed-keyword records the with<Keyword> filter word reads
+	// (kop.FwWithKeyword's printedKeyword): set at the face keyword's own
+	// lowering arm, copied to the CardDef.Has* field in build.go.
+	HasCycling          bool // printed K:Cycling (CR 702.84b), CardDef.HasCycling
+	HasWard             bool // printed K:Ward:<cost> (CR 702.19a), CardDef.HasWard
+	HasEnchant          bool // printed K:Enchant (CR 702.102a), CardDef.HasEnchant
+	HasUnearth          bool // printed K:Unearth (CR 702.84a), CardDef.HasUnearth
+	HasDecayed          bool // printed K:Decayed (CR 702.130b), CardDef.HasDecayed
+	HasPersist          bool // printed K:Persist (CR 702.79a), CardDef.HasPersist
+	HasDoctorsCompanion bool // printed K:Doctor's companion (CR 702.124m), CardDef.HasDoctorsCompanion
 	Landwalk       *lFilter // K:Landwalk:<land filter> (CR 702.14)
 	ProtColors     string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
 	HexColors      string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters

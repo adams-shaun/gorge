@@ -1218,7 +1218,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 
 // sharesNameWithProp lowers the sharesNameWith property family and reports
 // whether p is one: Remembered reads the remembered set, Self the reading
-// source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1.
+// source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1. The
+// plain sameName is gorge wordSameName (card.sharesNameWith(source), the
+// resolving ability's source by default, engine/effects/filter_word.go): the
+// same read, so it lowers onto the same pred. Its base-prefix forms
+// (Remembered./Targeted./Triggered., gorge sameNameContextBase) read the
+// base's own object instead, which the kernel keeps no lowered read of: they
+// refuse with a named reason.
 func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 	switch p {
 	case "sharesNameWith Remembered":
@@ -1226,6 +1232,15 @@ func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 		// Pact's repeat gate)
 		return true, c.setCmp(cmpSameNameRem, 0, 0, "", "")
 	case "sharesNameWith Self", "!sharesNameWith Self":
+		n := 0
+		if p[0] == '!' {
+			n = 1
+		}
+		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
+	case "sameName", "!sameName":
+		if c.Flags&(fRemembered|fNotRemembered) != 0 {
+			return true, fmt.Errorf("sameName beside a Remembered base: gorge reads the base's object (sameNameContextBase), not the source")
+		}
 		n := 0
 		if p[0] == '!' {
 			n = 1
