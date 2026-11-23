@@ -106,8 +106,13 @@ func (s *State) convokeCreditUsed(k *prep, p uint8, c CardID, o Obj, fromHand bo
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost, slotMask{}
 	}
-	convoke := s.hasConvoke(k, p, c, o, fromHand)
-	improvise := s.isImprovise(k, p, c, o, fromHand)
+	// the keyword is read off the card's own controller (creditReader, gorge
+	// castOfferBase), the taps off p: a seat's emblem ("the next spell you
+	// cast has improvise") reads its owner's exiled card an opponent's
+	// permission casts, and the opponent's artifacts pay the generic
+	q := s.creditReader(p, o)
+	convoke := s.hasConvoke(k, q, c, o, fromHand)
+	improvise := s.isImprovise(k, q, c, o, fromHand)
 	if !convoke && !improvise {
 		return cost, slotMask{}
 	}
