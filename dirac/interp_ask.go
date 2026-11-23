@@ -2912,9 +2912,34 @@ func (s *State) applyPaySubCounterPick(k *prep, a Action) {
 }
 
 // resSrcSlot is the resolving entry's source permanent's slot (NoSlot when
-// it is not on the battlefield).
+// it is not on the battlefield or is no longer the object the entry came
+// from).
 func (s *State) resSrcSlot(k *prep) Slot {
 	return s.objRef(k, kop.RefSelf)
+}
+
+// resSrcSlotStanding is resSrcSlot without the object-version pin: the slot
+// of the source object as it stands on the battlefield. Only the Sacrifice
+// op's candidate filter reads it (interp.go OpSacrifice and its raSacrifice
+// pick), where gorge's Self predicate is `o.ID == src` with the zone check
+// only (engine/effects/filter.go:178) and never the source incarnation. So a
+// printed trigger's "sacrifice CARDNAME" (Hellspark Elemental's end step)
+// still finds the card that left and returned to the battlefield while the
+// trigger waited (CR 112.7a: the ability's source is the object, a leaves
+// case is the zone check's). Every other reader (offers, cost affordability,
+// targets, counters, bounce) keeps resSrcSlot's pin, where gorge stamps the
+// incarnation (engine/events/apply_trigger.go, counters_put.go,
+// zone_change.go).
+func (s *State) resSrcSlotStanding() Slot {
+	o := s.objRefObj(kop.RefSelf)
+	if o == NoObj {
+		return NoSlot
+	}
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield {
+		return NoSlot
+	}
+	return ob.slot
 }
 
 // digTake moves a taken (looked-at, now zoneless) card to the dig's zone.
