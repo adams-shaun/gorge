@@ -175,3 +175,36 @@ func TestChoosePlayerRandomPod(t *testing.T) {
 		t.Errorf("picks %v: want all three opponents reached (the bearer is a plain opponent)", plain)
 	}
 }
+
+// TestChoosePlayerRandomPickTakesDamage: the chain's DealDamage Defined$
+// ChosenPlayer reads the resolution's random pick (RefResChosenPlayer) as a
+// damage target: the picked opponent loses the life, nobody else does
+// (Vial Smasher the Fierce, Zaffai, Indoraptor; a ref the damage target
+// resolver does not name deals nothing, kernel life 18 against gorge's 15).
+func TestChoosePlayerRandomPickTakesDamage(t *testing.T) {
+	sc, _ := choosePodScen(t, 3)
+	s := sc.s
+	var before [4]int16
+	for p := range before {
+		before[p] = s.pl[p].life
+	}
+	pick := kop.Instr{Op: kop.OpChoosePlayer, Obj: kop.RefController, C: kop.ChPlRandom | kop.ChPlPlain}
+	dmg := kop.Instr{Op: kop.OpDealDamage, Obj: kop.RefResChosenPlayer, A: kop.Const(3)}
+	if !s.exec(sc.k, &pick) || s.res.chPl == 0 {
+		t.Fatalf("no pick recorded (chPl %d)", s.res.chPl)
+	}
+	seat := s.res.chPl - 1
+	if seat == 3 {
+		t.Fatal("the controller picked itself")
+	}
+	s.exec(sc.k, &dmg)
+	for p := range before {
+		want := before[p]
+		if uint8(p) == seat {
+			want -= 3
+		}
+		if s.pl[p].life != want {
+			t.Errorf("seat %d life %d, want %d (the pick is seat %d)", p, s.pl[p].life, want, seat)
+		}
+	}
+}
