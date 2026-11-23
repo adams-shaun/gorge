@@ -263,6 +263,11 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 // counters, CR 119.4). The bound (the druid folded as {C}, reflAmtPotential)
 // keeps the painful production whole, so scriptOffers searches the plays it
 // pays beside the gaps walk's.
+//
+// It is the only wide arm: a plain cast the bound does not pay is searched
+// by no one (Forgotten Harvest's {1}{G} beside a tapped Forest and a Swamp: the
+// Druid's three {G} would pay it, but the bound folds the Druid as {C} only,
+// the coloured pip unfunded, so gorge lists no play and offers no cast).
 func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
 	live := false
 	for b := s.caGaps(k, p); b.any() && !live; b = b.rest() {
