@@ -54,8 +54,8 @@ const raChoosePlayerMid = raGenManifestDread + 8
 // choosePlayerMid is OpExt ExtChoosePlayerMid: false = the ask suspended the
 // program (a sole opponent is recorded unasked; with none gorge records no
 // choice, and a reader finds none).
-func (s *State) choosePlayerMid(k *prep) bool {
-	q := s.oppsFrom(s.res.e.ctrl)
+func (s *State) choosePlayerMid(k *prep, in *kop.Instr) bool {
+	q := s.choosePlayerMidPool(s.res.e.ctrl, in.C)
 	switch {
 	case q.n == 1:
 		s.res.chPl = q.s[0] + 1
@@ -67,15 +67,37 @@ func (s *State) choosePlayerMid(k *prep) bool {
 	return false
 }
 
+// choosePlayerMidPool is the players ExtChoosePlayerMid's chooser p may name:
+// their living opponents in AliveFrom order, with kop.ChoosePlayerMidHigh only
+// those at the greatest life total among them (gorge's Player.Opponent+lifeEQX
+// with X the opponents' HighestLifeTotal, read over the same living opponents).
+func (s *State) choosePlayerMidPool(p uint8, c int16) seatSeq {
+	q := s.oppsFrom(p)
+	if c&kop.ChoosePlayerMidHigh == 0 {
+		return q
+	}
+	best := int16(-32768)
+	for i := uint8(0); i < q.n; i++ {
+		best = max(best, s.pl[q.s[i]].life)
+	}
+	var r seatSeq
+	for i := uint8(0); i < q.n; i++ {
+		if s.pl[q.s[i]].life == best {
+			r.add(q.s[i])
+		}
+	}
+	return r
+}
+
 // chosenPlayerMidOptions fills the mid-resolution ChoosePlayer ask: one
-// option per opponent of the asker in AliveFrom order (gorge effChoosePlayer's
+// option per player of the pool in AliveFrom order (gorge effChoosePlayer's
 // "player" options), mode = the seat.
-func (s *State) chosenPlayerMidOptions(d *Decision) {
+func (s *State) chosenPlayerMidOptions(k *prep, d *Decision) {
 	if s.res.ask != raChoosePlayerMid {
 		panic("kernel: bad resolution ask")
 	}
 	d.Sub = ChGenPlayer
-	q := s.oppsFrom(s.res.askP)
+	q := s.choosePlayerMidPool(s.res.askP, s.prog(k)[s.res.pc].C)
 	for i := uint8(0); i < q.n; i++ {
 		d.add(MakeAction(AkChoose, 0, 0, q.s[i]))
 	}

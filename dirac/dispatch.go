@@ -126,7 +126,7 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
 	case raChoosePlayerMid:
-		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
+		s.chosenPlayerMidOptions(k, d) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
 	case raGenClash:
