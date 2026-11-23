@@ -1,0 +1,20 @@
+{
+  "card": "Nivix Guildmage",
+  "class": "options-options",
+  "why": "its cast ({1}{U}{R}) over five Islands each watched by two of the payer's own Scalds queues two triggers per tap, which gorge's Taps-deferred partial walk prices (one trigger per tap) as no script (census_incomplete), so the autopay surface withholds it, while the kernel's mirror taps the Island and offers it; tail-49 seed 496348 pair 88 decision 677",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 4391058055431552980,
+    "pair": 88,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "nivix_guildmage_gap_search_budget_exhausted"
+  },
+  "evidence": [
+    "ev-tail-03-c004",
+    "ev-tail-49-c000",
+    "ev-tail-49-c001",
+    "ev-tail-49-c007"
+  ]
+}

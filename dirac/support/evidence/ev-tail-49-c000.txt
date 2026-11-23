@@ -280,7 +280,6 @@ Nantuko Tracer
 Nico Minoru, Runaway
 Nightshade Seer
 Nim Grotesque
-Nivix Guildmage
 Numot, the Devastator
 Nylea's Colossus
 Nylea's Forerunner
@@ -434,7 +433,6 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
-Thunderscape Master
 Tide Skimmer
 Tidings
 Torment
