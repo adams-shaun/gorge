@@ -343,15 +343,43 @@ func (s *State) reflAmtBoundAct(k *prep, sl Slot, a *kop.Ability) bool {
 // Druid's three {G} would pay it, but the bound folds the Druid as {C} only,
 // the coloured pip unfunded, so gorge lists no play and offers no cast).
 func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
+	pays, known := s.reflAmtBoundVerdict(k, p, a)
+	return known && pays
+}
+
+// reflFiltBoard reports a filter beside a live reflected Amount$ source and no
+// Combo Any board (ca): the board scriptOffers drops plays gorge's bound
+// refuses on (reflAmtBoundFails).
+func (s *State) reflFiltBoard(k *prep, p uint8, ca bool, filt slotMask) bool {
+	return !ca && filt.any() && s.reflAmtLive(k, p)
+}
+
+// reflAmtBoundVerdict is gorge's PotentialMana bound's verdict on play a beside
+// a live reflected Amount$ source: pays says the bound covers the play's cost,
+// known is false when there is no live source or the play's cost cannot be
+// priced here.
+func (s *State) reflAmtBoundVerdict(k *prep, p uint8, a Action) (pays, known bool) {
 	if !s.reflAmtLive(k, p) {
-		return false
+		return false, false
 	}
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
-		return false
+		return false, false
 	}
 	var pot avail
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
-	return pot.affords(&cost, pipMaskOf(&cost), 0)
+	return pot.affords(&cost, pipMaskOf(&cost), 0), true
+}
+
+// reflAmtBoundFails reports a play gorge's bound cannot pay beside a live
+// reflected Amount$ source (the bound prices the source {C} alone, so a coloured
+// pip stays with the lands: reflAmtPotential). gorge's autopay offer gates every
+// play on that bound before it plans or searches (legal_walk_autopay.go
+// autoPayOffer), so a play the kernel's gaps walk lists on a filter's output,
+// the filter's coloured fee funded by the source's colourless {C} the bound
+// cannot count (Cascade Bluffs' {U/R} beside an Incubation Druid), is no offer.
+func (s *State) reflAmtBoundFails(k *prep, p uint8, a Action) bool {
+	pays, known := s.reflAmtBoundVerdict(k, p, a)
+	return known && !pays
 }
