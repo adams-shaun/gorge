@@ -910,12 +910,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
 	}
-	if o := strings.TrimSpace(ps.m["Origin"]); (o == "All" || o == "Any") && obj.Kind == rRemembered && dest == zBattlefield {
-		// Origin$ All on a remembered card (Turntimber Symbiosis's put after its
-		// dig set the pick on top of the library): the card moves from
-		// whichever zone it is in, a library card included (OpReturnEx reads kop.MvEntryRiders' bit)
-		in.CS = strings.TrimPrefix(in.CS+"|FromAny", "|")
-	}
+	fromAnyOrigin(ps, obj, dest, &in)
 	if dualDef {
 		in.CS = strings.TrimPrefix(in.CS+"|from=Graveyard,Exile", "|") // the object may have moved from one zone to the other
 	}
@@ -5364,4 +5359,14 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 		return obj, flags, err
 	}
 	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
+}
+
+// fromAnyOrigin marks an Origin$ All put of a remembered card onto the
+// battlefield (Turntimber Symbiosis's put after its dig set the pick on top of
+// the library): the card moves from whichever zone it is in, a library card
+// included (OpReturnEx reads kop.MvEntryRiders' bit).
+func fromAnyOrigin(ps *params, obj lRef, dest int, in *lInstr) {
+	if o := strings.TrimSpace(ps.m["Origin"]); (o == "All" || o == "Any") && obj.Kind == rRemembered && dest == zBattlefield {
+		in.CS = strings.TrimPrefix(in.CS+"|FromAny", "|")
+	}
 }
