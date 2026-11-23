@@ -43,7 +43,7 @@ func (e *Engine) LegalRetargets(obj state.ObjID, sa *cards.SA, parent []state.Ta
 	} else {
 		out = e.LegalTargets(o.Controller, obj, sa)
 	}
-	if src := attachSelfSource(o, sa); src != 0 {
+	if src := attachSelfSource(e.G, o, sa); src != 0 {
 		out = slices.DeleteFunc(out, func(t state.Target) bool { return !t.IsPlayer && t.Obj == src })
 	}
 	return out
@@ -74,9 +74,12 @@ func attachSelfDestination(sa *cards.SA) bool {
 // copy's CR 707.10c election -- the copy keeps the original's source, CR
 // 707.10b) drops it so it offers only what the original could target. Zero
 // when sa is no attach SA, its destination is not its own source, or o has no
-// source.
-func attachSelfSource(o *state.Object, sa *cards.SA) state.ObjID {
-	if !attachSelfDestination(sa) {
+// source. Also zero once the source left the battlefield and came back (CR
+// 400.7): the permanent there is a new object, "another target creature" can
+// name it, and the ability's old source attaches to nothing (the dirac
+// kernel offers it the same way).
+func attachSelfSource(g *state.Game, o *state.Object, sa *cards.SA) state.ObjID {
+	if !attachSelfDestination(sa) || effects.SourceIsNewObject(g, o) {
 		return 0
 	}
 	return o.Source
