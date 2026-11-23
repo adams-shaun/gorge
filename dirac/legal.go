@@ -2618,6 +2618,10 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
+			// the tap's TapsForMana extra is a fixed vector beside the pick
+			// (Deathbloom Gardener's any-colour {G} under Leyline of Abundance's
+			// {G}): gorge folds it into each alternative of the tap
+			s.potentialTapExtraGated(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen, painRefused)
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
