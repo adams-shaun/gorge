@@ -21,7 +21,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // genPrep.restrPers marks (Karn, Legacy Reforged's artifact-only {C}): the
 // units are not tallied in pm, the batch survives persistEmpty with its typed
 // bit, and pmOn stays set for the seat while it floats. Every other
-// restricted pool still empties.
+// restricted pool still empties — but a batch of a colour a live
+// StatUnspentMana static protects survives every boundary with the slot's
+// ordinary share (rbKeep; gorge foldManaClear's
+// `r.Persistent || keep[slot]`), the turn change's included after gorge's
+// TurnChange demotes every batch first (rbKeep's pers=false).
 
 // DebugPersistEmpty is the mutation switch of TestPersistMutation: the step
 // boundary keeps no persistent units, as if the mana were ordinary.
@@ -119,7 +123,11 @@ func (s *State) persistEmpty(ec bool) {
 			}
 		}
 		s.pl[p].pool = keep
-		s.rbClearStep(uint8(p))
+		if prot[p] != 0 {
+			s.rbKeep(uint8(p), prot[p], true) // the keep letters protect the slot's restricted batches too
+		} else {
+			s.rbClearStep(uint8(p))
+		}
 		if s.rbAny(uint8(p)) {
 			restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
 		}
@@ -149,9 +157,20 @@ func (s *State) persistTurn() {
 	}
 	s.pm = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.pmOn = 0
+	var restr [MaxSeats]uint8
 	for p := range s.pl {
 		s.pl[p].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(uint8(p))
+		if prot[p] != 0 {
+			// gorge's TurnChange demotes every batch before the
+			// cleanup-to-untap ManaClear, so only the keep-letter colours
+			// survive here (rbKeep's pers=false)
+			s.rbKeep(uint8(p), prot[p], false)
+			if s.rbAny(uint8(p)) {
+				restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+			}
+		} else {
+			s.rbClear(uint8(p))
+		}
 	}
 	if any := s.unspentProtAny(prot); any {
 		for p := range s.pl {
@@ -162,7 +181,7 @@ func (s *State) persistTurn() {
 			}
 		}
 	}
-	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
+	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.artNClearAll()

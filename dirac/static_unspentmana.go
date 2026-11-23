@@ -8,8 +8,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // phase ends — the cleanup-to-untap boundary included, so the mana stays
 // until the static's gate stops holding and the next boundary empties it.
 // gorge keeps whole pool slots (the ManaClear fold honours the keep letters);
-// the pm tally (PersistentMana$) and the restricted batches (State.rb) are
-// untouched: a kept slot's units are ordinary mana, as gorge's are.
+// the pm tally (PersistentMana$) is untouched, and the restricted batches
+// (State.rb) survive with the slot: the fold keeps a batch whose Persistent
+// flag is set or whose colour slot the letters protect (mana_restrbatch.go
+// rbKeep), so a kept slot's own units are ordinary mana, as gorge's are.
 //
 // Static.A is the colour mask in the pool kinds' bit order (W U B R G C);
 // StUnspentYou binds the static's controller only, absent every seat. Like
