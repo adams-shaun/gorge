@@ -364,7 +364,37 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 		if !fs.tick() {
 			return false
 		}
-		if try(otherStep{kind: otherTapXPlain}) {
+		if mc := k.cards[t.cardAt(sl)].manaCol; mc&(mc-1) != 0 {
+			// the plain ability is an any-colour one: its colour ask behind
+			// the ability ask, the play's announced ones first, as the
+			// tap-another search's colour asks order them (gorge
+			// scriptOrderAnswers; the payment window's answer is a colour
+			// the play still owes, not W)
+			if !fs.tick() {
+				return false
+			}
+			var order [5]uint8
+			no := 0
+			for col := uint8(0); col < 5; col++ {
+				if fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for col := uint8(0); col < 5; col++ {
+				if !fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for i := 0; i < 5; i++ {
+				if try(otherStep{kind: otherTapXPlain, ans: order[i]}) {
+					return true
+				}
+			}
+			// no colour of the plain ability paid: the ask's other answer,
+			// the tap-another one, is below
+		} else if try(otherStep{kind: otherTapXPlain}) {
 			return true
 		}
 	}
