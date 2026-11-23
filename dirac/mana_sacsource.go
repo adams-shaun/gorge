@@ -466,6 +466,15 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 			trigObj: pt.trigObj, trigPl: pt.trigPl, defSeat: pt.defSeat, trigAmt: pt.trigAmt, tgt: noTargets}
+		if s.lowerTrigNoTarget(k, a, pt, e) {
+			// CR 603.3d: the lowering placed it at priority and it was removed
+			// for want of a legal target, before the next source was tapped,
+			// so two such sacrifices never ask the CR 603.3b order
+			s.pushNoTarget(k, e, pt)
+			copy(s.pend[i:], s.pend[i+1:s.npend])
+			s.npend--
+			continue
+		}
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
@@ -525,6 +534,34 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// takes the same pass after its resolutions.
 		s.sba(k)
 	}
+}
+
+// lowerTrigNoTarget reports whether pending trigger pt of ability a, as the
+// lowering would place it, has one required target (a battlefield object or a
+// card) with no legal candidate: gorge puts it on the stack and removes it
+// (CR 603.3d), as takePending's build does. Scrap Trawler's "target artifact
+// card in your graveyard with lesser mana value" after a Treasure (mana value
+// 0) was sacrificed for the cast.
+func (s *State) lowerTrigNoTarget(k *prep, a *kop.Ability, pt *pendingTrig, e stackEntry) bool {
+	if a.NTargets != 1 || a.Targets[0].UpTo || a.Targets[0].Kind != kop.TgtObject && a.Targets[0].Kind != kop.TgtCard {
+		return false
+	}
+	save := s.res
+	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	var buf [MaxOptions]TCode
+	n := s.targetCands(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, &buf)
+	s.res = save
+	return n == 0
+}
+
+// pushNoTarget puts trigger entry e on the stack ahead of the cast being built
+// and takes it off again, the push-then-removal of a trigger with no legal
+// target (CR 603.3d; the build's own removal is cast.go's "the pushed trigger
+// leaves the stack").
+func (s *State) pushNoTarget(k *prep, e stackEntry, pt *pendingTrig) {
+	s.pushBelowCast(k, e, pt)
+	s.sp--
+	s.touchN++ // the push is progress, as takePending's is
 }
 
 // objTgtFirst aims entry e, pending trigger pt of ability a, at the first
