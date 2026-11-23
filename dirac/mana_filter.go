@@ -1595,7 +1595,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	var fs filtSearch
 	fs.a, fs.p, fs.gaps, fs.own, fs.sp0 = a, p, s.scriptFilt(k, p), NoSlot, s.sp
 	fs.noHand = s.g.availX&availNoHandFund != 0 // actScriptPays: no hand guide funds
-	fs.need = s.playNeed(k, a)                  // the play's announced colours, whichever search prices it
+	fs.need, _ = s.playNeedPrinted(k, a)        // gorge's scriptNeedColours: a graveyard cast's cost is unread (playNeed's hint is the grant search's)
 	fs.useful, fs.usefulOK = s.filtUsefulCost(k, a)
 	fs.other = s.otherGaps(k, p, a)
 	fs.lifePainBound = s.lifePainPlanAffords(k, a, p)
