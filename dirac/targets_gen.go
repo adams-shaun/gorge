@@ -201,7 +201,16 @@ func (s *State) emptyTargetSetPayable(k *prep) bool {
 	}
 	var av avail
 	s.availForBuilt(k, e, &av) // the floating restricted mana the spell may spend counts too
-	return av.affords(&zero, pipMaskOf(&zero), 0)
+	if av.affords(&zero, pipMaskOf(&zero), 0) {
+		return true
+	}
+	// the pool and plain sources fall short: gorge's paymentStranded reads the
+	// CR 601.2g window, and withholds only when its census is complete and
+	// still short (the candidates' affordableTargets tail, statics_gen.go)
+	if s.windowUnpricedOpen(k, e) {
+		return true
+	}
+	return s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &zero, false)
 }
 
 // finishSlot ends the slot's picks (a divided slot's damage is announced
