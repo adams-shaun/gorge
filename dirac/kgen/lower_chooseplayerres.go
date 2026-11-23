@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The mid-resolution ChoosePlayer (Gluntch, the Bestower: you choose any
 // player and remember the choice, then a Draw, a Token
@@ -21,8 +25,11 @@ func (lc *lowerCtx) choosePlayerRes(ps *params) error {
 		return refuse("ChoosePlayer Choices$ %q with Defined$ %q", ps.str("Choices"), v)
 	}
 	// gorge appends the answer to the resolution's remembered list only under
-	// RememberChosen$, which is what a Player.!IsRemembered pool reads
-	if !ps.is("RememberChosen", "True") {
+	// RememberChosen$, which is what a Player.!IsRemembered pool reads. The
+	// Choices$-less pool (Valleymaker: any living player) is the one shape that
+	// lowers without it, answering without remembering (kop.ChoosePlayerForget)
+	remember := ps.is("RememberChosen", "True")
+	if !remember && ps.str("Choices") != "" {
 		return refuse("ChoosePlayer Choices$ %q without RememberChosen$ True", ps.str("Choices"))
 	}
 	if _, ok := ps.get("ValidTgts"); ok {
@@ -30,7 +37,10 @@ func (lc *lowerCtx) choosePlayerRes(ps *params) error {
 	}
 	fresh := 0
 	if ps.str("Choices") == "Player.!IsRemembered" {
-		fresh = 1 // kop.ChoosePlayerFresh
+		fresh = int(kop.ChoosePlayerFresh)
+	}
+	if !remember {
+		fresh |= int(kop.ChoosePlayerForget)
 	}
 	// prompt and AI only
 	ps.consume("Defined", "Choices", "RememberChosen", "ChoiceTitle", "AILogic")

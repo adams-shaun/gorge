@@ -1,5 +1,11 @@
 package kgen
 
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
 // the cold lowering helpers for ChoosePlayer's one
 // opponent, and the qualified and joined TriggeredCard Defined$ spellings.
 
@@ -16,13 +22,41 @@ package kgen
 // shape refuses.
 func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	if ps.str("Choices") == "Player.Opponent+!EnchantedBy" {
-		return lc.choosePlayerRandom(ps) // the Maddening Hex shape
+		return lc.choosePlayerRandom(ps, "Random") // the Maddening Hex shape
 	}
+	high := 0
 	switch ps.str("Choices") {
-	case "Player", "Player.!IsRemembered":
+	case "Player.Opponent", "Opponent", "Player.Other":
+		if ps.is("Random", "True") && ps.str("Choices") != "Player.Other" {
+			// a random pick among every living opponent (Knight Rampager,
+			// Raving Dead, The Ruinous Powers, ...): kop ChPlPlain, no Aura
+			// exclusion
+			return lc.choosePlayerRandom(ps, "RandomOpp")
+		}
+	case "Player.Opponent+lifeEQX":
+		// the opponents tied at the highest life total (Your Inescapable Doom):
+		// gorge reads the threshold X over the living opponents of the
+		// controller, the pool is theirs at that life, from the chooser
+		if !mid {
+			return refuse("ChoosePlayer Choices$ %q whose chain never reads the choice", ps.str("Choices"))
+		}
+		switch x := strings.TrimSpace(lc.face.SVars["X"]); x {
+		case "PlayerCountOpponents$HighestLifeTotal", "Count$OppGreatestLifeTotal":
+			high = kop.ChoosePlayerMidHigh
+		default:
+			return refuse("ChoosePlayer Choices$ %q with X %q", ps.str("Choices"), x)
+		}
+	case "Player", "Player.!IsRemembered", "":
 		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
+	default:
+		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
-	if err := lc.choosePlayerOpponents(ps); err != nil {
+	if ps.is("Random", "True") {
+		// the asked pools below pose a decision; a random pick over any
+		// other spelling is a different shape (Player.Other)
+		return refuse("ChoosePlayer Random$ True over Choices$ %q", ps.str("Choices"))
+	}
+	if err := lc.choosePlayerShape(ps); err != nil {
 		return err
 	}
 	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
@@ -33,7 +67,7 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 		// the chain reads the choice: gorge asks it mid-resolution whatever
 		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
 		// a sole opponent recorded unasked) and the card holds at any pod
-		lc.emit(lInstr{Op: "ChoosePlayerMid", Note: "a mid-resolution choice of an opponent, read by this chain"})
+		lc.emit(lInstr{Op: "ChoosePlayerMid", C: high, Note: "a mid-resolution choice of an opponent, read by this chain"})
 		lc.chosenMidAb = lc.ab
 		return nil
 	}
@@ -54,6 +88,14 @@ func (lc *lowerCtx) choosePlayerOpponents(ps *params) error {
 	default:
 		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
+	return lc.choosePlayerShape(ps)
+}
+
+// choosePlayerShape is the rest of choosePlayerOpponents, past the Choices$
+// spelling: no mid-resolution choice beside it, Defined$ You, prompt and AI
+// only. choosePlayer's highest-life pool (Player.Opponent+lifeEQX) enters here
+// directly, since that spelling is its own.
+func (lc *lowerCtx) choosePlayerShape(ps *params) error {
 	if lc.chosenResAb != nil && lc.chosenResAb == lc.ab {
 		return refuse("the one-opponent ChoosePlayer beside a mid-resolution ChoosePlayer")
 	}
@@ -96,7 +138,12 @@ func (lc *lowerCtx) choosePlayerPod(ps *params) error {
 // default (min = max = Amount$ 1). The pick is the resolution's chosen player
 // (kop OpChoosePlayer, RefResChosenPlayer), which this ability's ChosenPlayer
 // reads take — Maddening Hex's Attach to the chosen player.
-func (lc *lowerCtx) choosePlayerRandom(ps *params) error {
+//
+// cs is the instruction's build form: "Random" is Maddening Hex's pool (the
+// bearer left out), "RandomOpp" the plain living opponents (Choices$
+// Player.Opponent / Opponent, kop.ChPlPlain: the same rng draw over the
+// AliveFrom order).
+func (lc *lowerCtx) choosePlayerRandom(ps *params, cs string) error {
 	if v := ps.str("Defined"); v != "" && v != "You" {
 		return refuse("ChoosePlayer Defined$ %q", v)
 	}
@@ -111,7 +158,7 @@ func (lc *lowerCtx) choosePlayerRandom(ps *params) error {
 	}
 	// prompt and AI only
 	ps.consume("ChoiceTitle", "AILogic", "Random", "Defined", "Choices")
-	lc.emit(lInstr{Op: "ChoosePlayer", Obj: lRef{Kind: rYou}, CS: "Random"})
+	lc.emit(lInstr{Op: "ChoosePlayer", Obj: lRef{Kind: rYou}, CS: cs})
 	lc.chosenPlAb = lc.ab
 	return nil
 }
@@ -124,6 +171,9 @@ func (lc *lowerCtx) chosenPlayerDefined(v string) (lRef, bool) {
 	}
 	if r, ok := lc.chosenPlayerResDefined(v); ok {
 		return r, true // lower_chooseplayerres.go
+	}
+	if lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab && (v == "ChosenPlayer" || v == "Player.Chosen") {
+		return lRef{Kind: rResChosenPlayer}, true // the random pick (choosePlayerRandom)
 	}
 	if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab {
 		return lRef{}, false

@@ -1041,7 +1041,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
