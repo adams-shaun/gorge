@@ -444,7 +444,15 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 		s.capFull(StallReplPlus) // a Phantom beside a competition the walk does not merge: gorge asks the order of all
 		return -1
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
-		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
+		if c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
+			if n > 0 {
+				// the optional line beside a competing prevention (a scoped
+				// Effect's, a granted one's): gorge asks the CR 616.1 order over
+				// both with the line's skip, which the walk does not pose; never
+				// drop the line and deal the event as the prevention alone
+				s.capFull(StallReplPlus)
+				return -1
+			}
 			if cs[0].b >= MaxPerm {
 				s.capFull(StallReplCands) // an emblem is never named by an ask
 				return -1
