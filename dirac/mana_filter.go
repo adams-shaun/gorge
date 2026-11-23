@@ -3118,7 +3118,7 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if !t.filtFixed(k, sl) && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour)
+	if _, _, hyb := t.filtHyb(k, sl); !t.filtFixed(k, sl) && !hyb && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour; a hybrid-fee filter's ask lists one option a colour, no second ask: mana_filterhybrid.go)
 		return false
 	}
 	if t.filtFixed(k, sl) {
