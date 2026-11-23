@@ -1574,7 +1574,10 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 			return false
 		}
 	}
-	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
+	// A live reflected Amount$ source (Incubation Druid) has no relaxed
+	// alternative either (mana_reflamt.go): it clears the census's paid list,
+	// so a Signet beside it funds nothing.
+	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p) && !s.reflAmtLive(k, p)
 }
 
 // storeGapLive reports whether p controls an activatable lone storage
