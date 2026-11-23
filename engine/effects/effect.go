@@ -1670,6 +1670,10 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				CostStaticSVars:  c.SVars,
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
+				// RememberObjects$ TriggeredPlayer (Academy Loremaster's
+				// Activator$ Player.IsRemembered RaiseCost): the cost view reads
+				// the player half of the capture.
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 			}
 			if chosenNameReadByParams(params) {
 				// The static's Card.NamedCard referent is the name chosen by THIS
