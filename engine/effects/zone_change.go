@@ -1569,6 +1569,14 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, mo
 		// non-cast Aura, markChangeZoneAttach), or never entered.
 		return
 	}
+	if hasType(h.Game().Obj(moved), "Aura") {
+		// Every Aura battlefield entry carrying AttachedTo$ was marked, so the
+		// entry gate already made the one CR 303.4f choice and tried its attach.
+		// An Aura still unattached here had that attach refused (the bearer is
+		// protected from the entering Aura, CR 702.16c); asking again would
+		// pose a second choice for one entry. CR 704.5m puts it away.
+		return
+	}
 	if playerVal != "" {
 		changeZoneAttachedToPlayer(h, c, sa, moved, playerVal)
 		return

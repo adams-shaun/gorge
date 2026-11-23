@@ -84,22 +84,25 @@ func TestAttachedToValidGraveyardDefinedResolvesTheNamedZone(t *testing.T) {
 // (which would fasten the moved Aura to the resolving spell itself); it
 // resolves as a battlefield card filter and the moved card attaches to the
 // first creature the walk admits.
+// The moved card is the Equipment fixture: an Aura entering through ChangeZone
+// is settled by the engine's entry gate (markChangeZoneAttach), which poses
+// the one CR 303.4f choice, so the post-move rider leaves any Aura alone.
 func TestAttachedToBareCardFilterAttachesTheFirstCreature(t *testing.T) {
 	h, c, ids := attachedToBoard(t)
-	attachedToLanded(h, ids["favor"])
+	attachedToLanded(h, ids["splitter"])
 	attachCreature := &cards.SA{Params: map[string]string{"AttachedTo": "Creature"}}
-	changeZoneAttachedTo(h, c, attachCreature, ChangeZoneOf(attachCreature), ids["favor"])
+	changeZoneAttachedTo(h, c, attachCreature, ChangeZoneOf(attachCreature), ids["splitter"])
 	var attachs []events.Event
 	for _, ev := range h.log {
-		if ev.Kind == events.Attach && ev.Obj == ids["favor"] {
+		if ev.Kind == events.Attach && ev.Obj == ids["splitter"] {
 			attachs = append(attachs, ev)
 		}
 	}
 	if len(attachs) != 1 || len(attachs[0].IDs) != 1 || attachs[0].IDs[0] != ids["bear"] {
-		t.Fatalf("attachs %+v, want one Attach{favor -> bear}", attachs)
+		t.Fatalf("attachs %+v, want one Attach{splitter -> bear}", attachs)
 	}
-	if h.g.Obj(ids["favor"]).AttachedTo != ids["bear"] {
-		t.Fatalf("favor.AttachedTo = %d, want bear %d", h.g.Obj(ids["favor"]).AttachedTo, ids["bear"])
+	if h.g.Obj(ids["splitter"]).AttachedTo != ids["bear"] {
+		t.Fatalf("splitter.AttachedTo = %d, want bear %d", h.g.Obj(ids["splitter"]).AttachedTo, ids["bear"])
 	}
 }
 
@@ -109,9 +112,9 @@ func TestAttachedToBareCardFilterAttachesTheFirstCreature(t *testing.T) {
 // attach to the resolving source.
 func TestAttachedToUnresolvableFilterEmitsOneNoteLeavesUnattached(t *testing.T) {
 	h, c, ids := attachedToBoard(t)
-	attachedToLanded(h, ids["favor"])
+	attachedToLanded(h, ids["splitter"])
 	attachLand := &cards.SA{Params: map[string]string{"AttachedTo": "Land"}}
-	changeZoneAttachedTo(h, c, attachLand, ChangeZoneOf(attachLand), ids["favor"])
+	changeZoneAttachedTo(h, c, attachLand, ChangeZoneOf(attachLand), ids["splitter"])
 	var attachs, notes []events.Event
 	for _, ev := range h.log {
 		switch ev.Kind {
@@ -124,7 +127,7 @@ func TestAttachedToUnresolvableFilterEmitsOneNoteLeavesUnattached(t *testing.T) 
 	if len(attachs) != 0 {
 		t.Fatalf("attachs %+v, want none", attachs)
 	}
-	if len(notes) != 1 || h.g.Obj(ids["favor"]).AttachedTo != 0 {
+	if len(notes) != 1 || h.g.Obj(ids["splitter"]).AttachedTo != 0 {
 		t.Fatalf("notes %+v, want exactly one loud-resolves-to-nothing Note and an unattached card", notes)
 	}
 }
