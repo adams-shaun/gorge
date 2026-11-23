@@ -131,6 +131,20 @@ func ManaAbilitiesProduce(mas []*cards.SA, color string) bool {
 	return false
 }
 
+// ManaAbilitiesCoverIntrinsic is ManaAbilitiesProduce restricted to abilities
+// whose cost is the bare {T} an intrinsic basic-land ability has (CR 305.6): a
+// costed ability that happens to produce the same colour (Cabal Coffers'
+// "{2},{T}: Add {B} for each Swamp you control") is a different ability, so a
+// granted Swamp still gets its own "{T}: Add {B}".
+func ManaAbilitiesCoverIntrinsic(mas []*cards.SA, color string) bool {
+	for _, ma := range mas {
+		if manaAbilityProduced(ma) == color && ManaAbilityCostPrefix(ma) == "" {
+			return true
+		}
+	}
+	return false
+}
+
 // ManaAbilityLabel adds two riders that make a paid ability recognisable on
 // the wheel (a bare "Add B" on Phyrexian Tower's "{T}, Sacrifice a creature:
 // Add {B}{B}" shows no way to sacrifice): a cost beyond the
