@@ -220,6 +220,7 @@ Layla Hassan
 Leeching Licid
 Legion's Judgment
 Leyline Dowser
+Life's Finale
 Light of Day
 Liliana Vess
 Llanowar Loamspeaker
@@ -404,6 +405,7 @@ Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
+Tattoo Ward
 Teferi's Tutelage
 Temporary Insanity
 Territorial Kavu

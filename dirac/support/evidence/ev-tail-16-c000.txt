@@ -284,6 +284,7 @@ Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
 Mirror Entity
+Mirror Gallery
 Misshapen Fiend
 Molten Tributary
 Mosscoat Goriak
@@ -400,6 +401,7 @@ Spell Crumple
 Spell Syphon
 Sphinx Mindbreaker
 Spire Tracer
+Spirespine
 Spore Cloud
 Sprouting Vines
 Stalking Vengeance
