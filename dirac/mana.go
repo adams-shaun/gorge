@@ -1673,14 +1673,13 @@ func (s *State) planSkipGates(k *prep, pk *planner) (deferSkip, comboSkip bool) 
 	return deferSkip, comboSkip
 }
 
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+// planOrder is the plan's source order: the usable sources in battlefield
+// (entry) order, with the payment's restricted-source description rd.
+func (s *State) planOrder(k *prep, p uint8, pk *planner, exclude Obj) (order [MaxPerm]Slot, no int, rd payDesc) {
 	// units: fixed-production sources in battlefield (entry) order, then
 	// choice-shaped sources (any colour, a choice of colours) in battlefield
 	// order (gorge payment_plan.go paymentPlanManaUnitsOnlyCompute).
-	var order [MaxPerm]Slot
-	no := 0
 	m := s.ctrlM[p]
-	var rd payDesc
 	if k.restrSrc {
 		rd = s.payDescNow(exclude) // the restricted sources this payment may spend
 		if pk.rdSet {
@@ -1708,6 +1707,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			order[j], order[j-1] = order[j-1], order[j]
 		}
 	}
+	return order, no, rd
+}
+
+func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+	order, no, rd := s.planOrder(k, p, pk, exclude)
 	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
 		pk.maxN = 1
@@ -1795,13 +1799,20 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	if s.planChosenTrial(k, p, pk, exclude, rv[:no], pcs[:no]) {
 		return
 	}
+	// phase 0 first leaves out the all-at-once sources whose reflected pick is
+	// theirs to make (planEachPick): gorge's planner names no one type over the
+	// several-type production, so its census defers them and a plan the other
+	// sources pay never taps one (mana_tapextra.go srcEachPick). A phase 0 the
+	// others cannot pay reruns with them, the prefix script's activation.
+	skipPick, retry := true, false
 	for phase := 0; phase < 3; phase++ {
 		if phase == 1 && !hasSac && !hasPain || phase == 2 && (!hasGrant || pk.noGrant) {
 			continue
 		}
-		if phase > 0 {
+		if phase > 0 || retry {
 			pk.nu, pk.nt, pk.maxN, pk.colSrc = 0, 0, 0, [5]int{}
 		}
+		sawPick := false
 		for pass := 0; pass < 3; pass++ {
 			for i := 0; i < no && pk.nu < maxUnits; i++ {
 				sl := order[i]
@@ -1912,6 +1923,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					xm, xt = xvTotals(&xv)
 					pick = s.planEachPick(k, sl, pc, &xv, &xm, &xt, &tn, &mask, &dmk)
+					if pick && skipPick && phase == 0 {
+						sawPick = true
+						continue
+					}
 				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
@@ -1981,6 +1996,12 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if pk.found {
 			break
 		}
+		if phase == 0 && skipPick && sawPick {
+			skipPick, retry = false, true
+			phase = -1 // phase 0 again, with the reflected-pick sources
+			continue
+		}
+		skipPick = false
 	}
 	if !pk.found {
 		if pk.dry || pk.try {
