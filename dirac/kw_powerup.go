@@ -68,6 +68,19 @@ func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uin
 	return s.abilityAffords(k, sl, a, &c, av)
 }
 
+// powerUpGrantSearchLists reports whether the relaxed (gaps) walk lists a
+// Power-up activation the printed-cost witness refuses, for the grant search
+// to decide: gorge's prefix search taps the granted mana abilities and its
+// node's own priority walk offers the play once the floating pool pays the
+// reduced charge (offerPays), so three lands Wrenn and Realmbreaker's grant
+// taps fund Goliath, Mass Manipulator's {4}{G} at {3} though the planner's
+// printed price is five (CR 702.193b, 605.1a). grantSearch drops the play
+// when no path pays it (script_gen.go grantCap), so listing it is the search's
+// question, not an offer.
+func powerUpGrantSearchLists(s *State, k *prep) bool {
+	return s.g.availX&availGaps != 0 && k.gen != nil && len(k.gen.grantPC) > 0
+}
+
 // powerUpWitness is the cost gorge's autopay planner prices for Power-up
 // ability a of slot sl: the printed cost with the ability's own reduction
 // and the cost statics composed (planAbilityPaymentLifePips:
