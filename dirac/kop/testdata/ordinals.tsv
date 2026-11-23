@@ -698,6 +698,7 @@ LibTopShuffleSelf	untyped int	5
 ManaRiderDeplete	uint8	1
 ManaRiderNone	uint8	0
 ManaRiderOppGainLife	uint8	2
+ManaRiderStayTapped	uint8	3
 MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
