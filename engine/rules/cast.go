@@ -154,6 +154,15 @@ type pendingCast struct {
 	// grant through it, since after the push (CR 601.2a) the card is on the
 	// stack and a zone re-derivation would wrongly drop the grant.
 	mayPlayIgnore bool `clone:"deep"`
+	// censusWindow marks an activation the priority menu offered through the
+	// census-gap arm (decision.Option.CensusOffer, autoPayOffer's census arm): its funding
+	// is a source the planner cannot price (a fee-carrying dynamic production,
+	// Starfleet Academy's Federation), so the ordinary CR 601.2g window must
+	// list the lands whose mana pays that source's fee even though the colour
+	// they add is not one the cost owes (manaWindowAsk skips
+	// paymentSourceUseful for it). Set by beginActivationPaid, never cloned
+	// away: a search clone replays the same window.
+	censusWindow bool `clone:"deep"`
 	// mayPlayIgnoreType is the grant's MayPlayIgnoreType$ rider (Rakdos, the
 	// Muscle): the same recorded-at-beginCast discipline as mayPlayIgnore,
 	// threading "mana of any type" through the same window and payment.
