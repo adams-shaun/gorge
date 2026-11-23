@@ -214,6 +214,7 @@ Soul Channeling
 Sphere of Reason
 Sphinx of Clear Skies
 Spontaneous Artist
+Sprinting Warbrute
 Square Up
 Static Net
 Staunch Shieldmate

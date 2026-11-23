@@ -80,6 +80,7 @@ Sorcerer's Strongbox
 Soulblade Djinn
 Spectral Flight
 Spore Crawler
+Sprinting Warbrute
 Square Up
 Stalwart Aven
 Stand
