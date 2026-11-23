@@ -556,8 +556,8 @@ type genPrep struct {
 	// override that adds one adds the mana ability that comes with it
 	// (CR 305.6; ovrKeepsMana)
 	landWords kop.SubMask
-	setIdx  []int16
-	setPC   []pcard
+	setIdx    []int16
+	setPC     []pcard
 	// uses: the registered per-table flags (newGenUse; genneed.go), where a
 	// feature's fact goes instead of a new bool here
 	uses useSet
