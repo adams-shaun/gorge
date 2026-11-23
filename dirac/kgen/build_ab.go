@@ -2700,6 +2700,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Override = uint16(i + 1)
+		// the chosen land-type setter's read (Convincing Mirage's AddType$
+		// ChosenType): the static reads its source's perm.chosen
+		// (act_choosetype.go chosenGrant); any other static kind's AddChosen
+		// lowering is the Continuous case's
+		st.AddChosen = s.AddChosen
 	default:
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}

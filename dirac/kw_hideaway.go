@@ -316,7 +316,7 @@ func (s *State) hideLand(k *prep, o Obj) bool {
 		s.enter(k, o, p, false, from)
 	}
 	if deferCount {
-		s.shockLandCount(o, p)
+		s.shockLandCount(k, o, p)
 	}
 	return false
 }

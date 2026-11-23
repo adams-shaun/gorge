@@ -1285,8 +1285,13 @@ type lOverride struct {
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
-	ImpSub            bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
-	ProtFrom          *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
+	// Chosen: the setter's added type is the source's own as-enters ChooseType
+	// answer (Convincing Mirage's AddType$ ChosenType): the record adds no
+	// subtype of its own and the static carries AddChosen; the walk grants
+	// the chosen subtype after the strip (static_layerwalk.go lfxApply4)
+	Chosen   bool
+	ImpSub   bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
+	ProtFrom *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
 }
 
 // Replacement-lite kinds.

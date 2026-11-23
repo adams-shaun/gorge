@@ -143,6 +143,12 @@ func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
 			return refuse("ChooseType Basic Land %s$", k)
 		}
 	}
+	// ETB$ True (Multiversal Passage): Forge's marker that the DB body runs
+	// as the permanent enters — the Moved-to-battlefield replacement's scope
+	// already is, so the value carries no lowering of its own.
+	if v, ok := ps.get("ETB"); ok && strings.TrimSpace(v) != "True" {
+		return refuse("ChooseType Basic Land ETB$ %q", v)
+	}
 	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeBasicLand), Note: "as-enters choice among the basic land types"})
 	return nil
 }
