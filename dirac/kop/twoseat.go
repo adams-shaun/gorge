@@ -8,11 +8,10 @@ package kop
 // marks the one-opponent ChoosePlayer that lowers it otherwise two-seat.
 // ExtExileLandChoose is seat-exact: it runs inside an OpRepeatEachPlayer over
 // the living opponents and reads the loop's own player (act_exilelandchoose).
+// OpMayPlay MayPlayOpponent is not one either: the permission is the targeted
+// exiler's (dirac targetedExiler), whichever opponent the caster targeted. No
+// operand is two-seat only today.
 func TwoSeatInstr(in *Instr) bool {
-	switch in.Op {
-	case OpMayPlay:
-		return in.B.N&MayPlayOpponent != 0 // the exiler: the controller's opponent
-	}
 	return false
 }
 

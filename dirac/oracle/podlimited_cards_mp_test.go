@@ -1,9 +1,11 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // Cards a kgen lowering once marked two-seat only (kop.CardDef.TwoSeat) for
@@ -67,5 +69,31 @@ func TestFourSeatRavenloftPodsLockstep(t *testing.T) {
 	t.Logf("%+v triggers=%d hit counters=%d", y, fired, hits)
 	if y.played == 0 || hits == 0 {
 		t.Fatalf("no creature was exiled with a hit counter: %+v hits=%d", y, hits)
+	}
+}
+
+// TestFourSeatVulcanMindMeldPodsLockstep: Vulcan Mind-Meld's target opponent
+// exiles the caster's top card and may play it, and the caster exiles two of
+// that opponent's: the permission is the targeted exiler's (EffectOwner$
+// Targeted), whichever of the three opponents the caster targeted.
+func TestFourSeatVulcanMindMeldPodsLockstep(t *testing.T) {
+	var down, farExiler int
+	y := playFocusPods(t, "std-trk", "Vulcan Mind-Meld", "Vulcan Mind-Meld\n", []int{0, 1, 2, 3, 4}, func(g *GorgeSide) {
+		for _, ev := range g.E.L.Events {
+			if ev.Kind != events.MoveZone || ev.To != state.ZExile || !strings.HasPrefix(ev.Counter, "exiled_with_face_down") {
+				continue
+			}
+			down++
+			// the looker (Amount) of a card the opponent exiled is the exiler: a
+			// seat other than the one after the caster is a target a two-seat
+			// reading ("the opponent" = the next seat) would miss
+			if src := g.E.G.Obj(ev.IDs[0]); ev.Counter == "exiled_with_face_down_maylook" && src != nil && int32(src.Owner) != ev.Amount && (int32(src.Owner)+1)%4 != ev.Amount {
+				farExiler++
+			}
+		}
+	})
+	t.Logf("%+v face-down exiles=%d by a far opponent=%d", y, down, farExiler)
+	if down == 0 || farExiler == 0 {
+		t.Fatalf("Vulcan Mind-Meld exiled %d cards face down, %d by an opponent past the next seat: %+v", down, farExiler, y)
 	}
 }
