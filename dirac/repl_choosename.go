@@ -67,10 +67,17 @@ func (s *State) nameOptions(k *prep, d *Decision, kind uint8) {
 		return
 	}
 	if kind == akNameLook {
-		if s.pl[s.nextAlive(SeatIx(d.Player))].handN > 0 { // the one opponent: Spyglass's ChoosePlayer is two-seat only (lower_chooseplayer.go)
-			d.Sub = ChGenLookAck // gorge's one-option look_ack before the look (poseLookAck)
-			d.add(MakeAction(AkChoose, 0, 0, 0))
-			return
+		// The look is at the CHOSEN opponent's hand (choosePlayerPod): the
+		// chosen byte holds the player between the player ask and the name
+		// ask, and the name overwrites it, as gorge's ClearChosenPlayer$
+		// Cleanup clears the choice at the same point. An empty hand poses
+		// no look_ack, as gorge's lookless hand does not.
+		if s.g.nask > 0 {
+			if p := s.chosenPlayerOf(s.g.ask[0].sl); p != 255 && s.pl[p].handN > 0 {
+				d.Sub = ChGenLookAck // gorge's one-option look_ack before the look (poseLookAck)
+				d.add(MakeAction(AkChoose, 0, 0, 0))
+				return
+			}
 		}
 		s.nameLookDone()
 	}
@@ -170,11 +177,11 @@ func noteNamedCast(spell bool) {
 
 // nameAskKind is the ask kind of an ExtChooseName instruction: B = 0 the
 // nonland names (Kai Winn), 1 every card's name, 2 every card's name after a
-// look at the opponent's hand (Sorcerous Spyglass: ChoosePlayer, RevealHand
-// Look$ True, NameCard; the lookless hand is posed no look_ack), 3 the nonland
-// names among the opponents' hands, revealed as it enters (Alhammarret, High
-// Arbiter: RevealHand, NameCard ChooseFromDefinedCards$ Remembered; no ask
-// when none was shown).
+// look at the chosen opponent's hand (Sorcerous Spyglass: ChoosePlayer,
+// RevealHand Look$ True, NameCard; the lookless hand is posed no look_ack), 3
+// the nonland names among the opponents' hands, revealed as it enters
+// (Alhammarret, High Arbiter: RevealHand, NameCard ChooseFromDefinedCards$
+// Remembered; no ask when none was shown).
 func nameAskKind(in *kop.Instr) uint8 {
 	switch in.B.N {
 	case 1:

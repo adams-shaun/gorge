@@ -969,11 +969,13 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				}
 				break
 			}
-			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
+			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain):
+			// the pod-wide choice of an opponent, ahead of the look-then-name
+			// ask (choosePlayerPod)
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps, false); err != nil {
+			if err := lc.choosePlayerPod(ps); err != nil {
 				return err
 			}
 		case "RevealHand":
