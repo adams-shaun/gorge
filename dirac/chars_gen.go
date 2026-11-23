@@ -797,7 +797,7 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 	}
 	m |= p.eotKw | p.ovr.kw
 	if s.fxM.has(sl) {
-		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+		m |= s.ctrlKwSince(sl, lts, lost) // GcHasteEOT (static_control.go)
 	}
 	if !lost && s.nkwx != 0 {
 		m |= s.supKw(sl) // grants an ended loss had suppressed
