@@ -1,0 +1,25 @@
+{
+  "card": "Wild Hunger",
+  "class": "lockstep",
+  "why": "gorge's potentialPrefixScript spends its 160-node budget on the untapped lands before the granted any-colour tap that alone makes {R}, so Wild Hunger's flashback {3}{R} is census_incomplete and not offered, while the kernel prices it (tail-15-c000 pair 4, decision 1248); node-for-node alignment of that search is beyond a bounded fix (as Wormhole Serpent)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "wild_hunger_flashback_offer"
+  },
+  "evidence": [
+    "ev-dr-mbc-aabb-c000",
+    "ev-dr-mbc-aabb",
+    "ev-tail-15-c000",
+    "ev-tail-15-c001",
+    "ev-tail-15-c002",
+    "ev-tail-15-s000",
+    "ev-tail-36-c000",
+    "ev-tail-36-c001",
+    "ev-tail-36-c003"
+  ]
+}
