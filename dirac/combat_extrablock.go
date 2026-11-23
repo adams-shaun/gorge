@@ -47,7 +47,7 @@ var coldXblk = newCold[xblkRec]("xblk", func(g *genPrep) int {
 	switch {
 	case g.uses.has(useBlockAny):
 		return maxXblkAny
-	case g.anyExtraBlock:
+	case g.anyExtraBlock || g.uses.has(useBanding): // a banded blocker blocks each member of the band (combat_band.go)
 		return maxXblk
 	}
 	return 0

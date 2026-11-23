@@ -43,7 +43,7 @@ func bandAskScen(t *testing.T, banding int) (*kwBandingScen, [2]Obj) {
 // attackers are declared (engine/rules/banding.go): one ask per attacker with
 // banding that has a candidate, in declaration order, option 0 declining and
 // then each other attacker; a decline hands on to the priority round; an
-// accepted candidate stalls (band formation is not modelled).
+// accepted candidate joins the leader's band (combat_band_form_test.go).
 func TestBandAsk(t *testing.T) {
 	t.Run("one leader", func(t *testing.T) {
 		f, rams := bandAskScen(t, 1)
@@ -85,13 +85,17 @@ func TestBandAsk(t *testing.T) {
 		f.do(t, AkDone, scAny, scAny)
 		f.expect(t, DkPriority, 0)
 	})
-	t.Run("a candidate stalls", func(t *testing.T) {
-		f, _ := bandAskScen(t, 1)
+	t.Run("a candidate joins the band", func(t *testing.T) {
+		f, rams := bandAskScen(t, 1)
 		d := f.expect(t, DkChoose, ChBand)
 		f.s.Apply(bandOpt(t, d, 1))
-		if f.s.g.stalled != StallBand {
-			t.Fatalf("stalled %d (%s), want StallBand", f.s.g.stalled, StallName(f.s.g.stalled))
+		if f.s.g.stalled != 0 {
+			t.Fatalf("stalled %d (%s)", f.s.g.stalled, StallName(f.s.g.stalled))
 		}
+		if id := uint8(f.slot(rams[0])) + 1; f.s.bandOf(f.slot(rams[0])) != id || f.s.bandOf(f.slot(rams[1])) != id {
+			t.Fatalf("bands %d and %d, want both %d", f.s.bandOf(f.slot(rams[0])), f.s.bandOf(f.slot(rams[1])), id)
+		}
+		f.expect(t, DkPriority, 0)
 	})
 }
 

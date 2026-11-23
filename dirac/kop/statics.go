@@ -210,8 +210,7 @@ type Override struct {
 	// keyword slot dirac/manifest/key/keyBanding stays reserved beside it).
 	// The one reader is dirac's hasBanding, which the CR 702.22c band
 	// declaration ask calls (dirac/combat_band.go): the kernel poses gorge's
-	// ask and mirrors the decline; an accepted band stalls (StallBand), band
-	// formation is not modelled.
+	// ask and forms the band an accepted candidate joins (combat_band.go).
 	Banding bool
 	// Horsemanship: the permanent gains horsemanship (CR 702.31b) for as long
 	// as the record lasts (a Pump's KW$ Horsemanship with Duration$ Permanent,

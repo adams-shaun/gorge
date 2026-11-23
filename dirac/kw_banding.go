@@ -8,7 +8,7 @@ import (
 // granted banding is kop.Override.Banding on the active override records,
 // not a keyword bit: kwGen's mask cannot carry it and the projection maps
 // the keyword beside the record, like CantAttack. combat_band.go's CR 702.22c
-// band ask calls this read; band formation itself is not modelled. The
+// band ask and band formation (CR 702.22d-k) call this read. The
 // record's lifetime is the grant's: a Pump Duration$
 // UntilEndOfCombat record carries UntilEndCombat and static_ovendcombat.go
 // drops it leaving the end-of-combat step, a Pump's until-end-of-turn record

@@ -6,9 +6,9 @@ import "testing"
 // planeswalker or battle. Hatut Zeraze, Dross Harvester and Battering Ram
 // (banding) attack the player while Slayer of the Wicked and Setessan Battle
 // Priest attack a planeswalker, so only the first two are band candidates.
-// The recording is marked stalled: the game ends at the kernel's band
-// stall once the first candidate is accepted (band formation is not modelled),
-// after both engines offered the same candidates. The kernel compared only the defending seat and a battle, and offered the
+// The recording runs past the first accepted candidate now that band formation
+// is modelled (CR 702.22d-k); both engines offered the same candidates. The
+// kernel compared only the defending seat and a battle, and offered the
 // planeswalker's attackers too (decision 388 of 388).
 func TestMBCSetessanBattlePriestReprosLockstep(t *testing.T) {
 	t.Parallel()
