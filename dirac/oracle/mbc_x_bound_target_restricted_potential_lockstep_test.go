@@ -27,4 +27,8 @@ func TestMBCSequenceEngineReprosLockstep(t *testing.T) {
 	// gorge offered the activation at a priority decision where the kernel
 	// offered only pass (tail-29-c000 pair 17, decision 325).
 	stdReproNamed(t, "sequence_engine_activation_offer")
+	// CR 601.2b, 601.2c, 602.2b: gorge offered the activation at a priority
+	// decision where the kernel offered only pass (tail-29-c000 pair 44,
+	// decision 338): the Electrostatic Pummeler (mana value 3) in a graveyard.
+	stdReproNamed(t, "x_bound_graveyard_target_counts_elf_mana")
 }
