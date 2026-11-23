@@ -190,6 +190,7 @@ Leyline of Sanctity
 Living Lands
 Loamcrafter Faun
 Looter il-Kor
+Lose Focus
 Lucid Dreams
 Lurebound Scarecrow
 Lurking Nightstalker
@@ -342,6 +343,7 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Ultimo, Civilization's End
 Umbilicus
 Unbreathing Horde
 Undead Warchief
