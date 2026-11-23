@@ -31,6 +31,8 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 		z = kop.ZoneHand
 	case in.Op == kop.OpExile && in.C == 0:
 		z = kop.ZoneExile
+	case togetherExileEx(in):
+		z = kop.ZoneExile
 	case in.Op == kop.OpDestroy && in.C&2 == 0:
 		z, destroy = kop.ZoneGraveyard, true
 	default:
@@ -124,5 +126,19 @@ func (s *State) leaveTogether(k *prep, in *kop.Instr, i uint8) bool {
 	for j, o := range objs[:n] {
 		s.removePerm(k, s.objs[o].slot, zs[j], false)
 	}
+	if in.Op == kop.OpExileEx && in.C&kop.MvRemember != 0 {
+		for _, o := range objs[:n] {
+			s.remember(o) // pick order, as the per-target path remembers each move
+		}
+	}
 	return true
+}
+
+// togetherExileEx is the exile leaveTogether batches beside the plain one: a
+// ChangeZone Origin$ Battlefield that only remembers what it moved (Brago,
+// King Eternal's "exile any number of target nonland permanents you control",
+// RememberChanged$). Its remember is done after the departures, in pick order.
+// Counter riders and the other move flags keep the per-target path.
+func togetherExileEx(in *kop.Instr) bool {
+	return in.Op == kop.OpExileEx && in.C&^(kop.MvRemember|kop.MvFromBattlefield) == 0 && in.A == (kop.ValueRef{}) && in.B.N == 0
 }
