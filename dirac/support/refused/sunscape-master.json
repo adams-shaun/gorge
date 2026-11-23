@@ -1,0 +1,25 @@
+{
+  "card": "Sunscape Master",
+  "class": "lockstep",
+  "why": "gorge's potentialPrefixScript spends its 160-clone budget on the branches of Crossroads Candleguide's repeatable {2} any-colour filter before it funds the {U}{U} of Sunscape Master's {U}{U},{T} activation (both plain and phased runs end budget-limited), so the activation is priced census_incomplete and not offered, while the kernel's mirrored search offers it beside the {G}{G},{T} one gorge's search does fund; node-for-node alignment of that search is beyond a bounded fix (as Smiting Helix)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 175926,
+    "pair": 49,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "candleguide_fee_filter_prefix_budget"
+  },
+  "evidence": [
+    "ev-tail-18-c000",
+    "ev-tail-18-c001",
+    "ev-tail-18-c002",
+    "ev-tail-18-c003",
+    "ev-tail-18-c006",
+    "ev-tail-26-c000",
+    "ev-tail-26-c001",
+    "ev-tail-26-c002",
+    "ev-tail-26-s000"
+  ]
+}
