@@ -440,6 +440,9 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 // unit. Phase 2 registers the grant as payable (planGrantUnit's ordinary loop
 // pass), so this is the deterministic pass 0 of phases 0 and 1 only.
 func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, pass int) {
+	if s.planGainedIntr(k, pk, i, sl, pass) {
+		return // gorge keeps a gained intrinsic ability as a real alternative (mana_gainedintrplan.go)
+	}
 	if pass != 0 || pk.nu >= maxUnits || !s.grantsFixedMana(k, sl) || !s.canTapForManaPC(k, sl, pc) {
 		return
 	}
