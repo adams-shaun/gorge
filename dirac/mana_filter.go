@@ -1239,6 +1239,9 @@ type filtStep struct {
 	sl  Slot
 	ans uint8
 	gap bool
+	// col: a free gap activation's answer is 1+col rather than the source's
+	// lowest colour (mana_gapfreecols.go); 0 is that lowest colour
+	col uint8
 	// alloc: a combination filter's production (Baxter Building: four mana
 	// in any combination), one count per W U B R G slot. It replaces ans's
 	// single colour; the step is still a gap activation (ans > 0).
@@ -2015,6 +2018,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	case st.gap:
 		pc := s.manaPCGen(k, st.sl)
 		c := bits.TrailingZeros8(s.srcMaskAt(pc, st.sl))
+		if st.col > 0 {
+			c = int(st.col - 1)
+		}
 		s.poolAdd(p, c, int(max(pc.manaN, 1)))
 		s.addExtraPick(k, p, st.sl, pc, c)
 		s.artTag(k, p, st.sl, c)
@@ -2767,7 +2773,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.holdDualFilter(k, t, sl) {
 						continue
 					}
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+					if fs.gapFreeTry(k, t, sl, funded, false) {
 						return true
 					}
 				case filt:
@@ -3448,7 +3454,7 @@ func (fs *filtSearch) gapFeeSpendable(k *prep, t *State, sl Slot) bool {
 // so the filter's colours come first there.
 func (fs *filtSearch) twoAbilityGap(k *prep, t *State, sl Slot, funded int) bool {
 	if t.filtIntrinsicFree(k, sl) {
-		return fs.filtColours(k, t, sl, funded) || fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
+		return fs.filtColours(k, t, sl, funded) || fs.gapFreeTry(k, t, sl, funded, true)
 	}
-	return fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) || fs.filtColours(k, t, sl, funded)
+	return fs.gapFreeTry(k, t, sl, funded, true) || fs.filtColours(k, t, sl, funded)
 }
