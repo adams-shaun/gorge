@@ -327,8 +327,12 @@ func (s *State) matchTargetLKI(k *prep, f kop.FilterID, o Obj, ctrl uint8) (m, o
 	if l.obj != o || ob.ver != l.ver+1 {
 		return false, false
 	}
+	owner := ob.owner()
+	if s.g.tli&tliRemLKI != 0 {
+		owner = l.ctrl // a RememberLKI$ capture: "a creature you controlled" reads the last controller (CR 608.2h)
+	}
 	s.g.tli |= tliOn
-	m = s.matchCardGen(k, f, ob.card, ob.owner(), ctrl, o)
+	m = s.matchCardGen(k, f, ob.card, owner, ctrl, o)
 	s.g.tli &^= tliOn
 	return m, true
 }
