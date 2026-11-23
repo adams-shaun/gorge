@@ -364,7 +364,7 @@ next:
 				continue next
 			}
 		}
-		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
+		if !s.tokenLeftBattlefield(o) && !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
@@ -404,7 +404,7 @@ func (s *State) clampDistinctNames(k *prep, in *kop.Instr) {
 					break
 				}
 			}
-			if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+			if dup || s.pickOtherBarred(k, in.F, o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
 				continue
 			}
 			if n < len(seen) {
