@@ -160,6 +160,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// one opponent's discard below is the same.
 			return s.discardSeq(k, in, s.oppsFrom(s.res.e.ctrl))
 		}
+		if !s.duel() && in.Obj == kop.RefOppNonRemCtrl && in.F == 0 && in.C == kop.ChooseSelf {
+			// each opponent who did not sacrifice (Defined$
+			// OppNonRememberedController, Momentum Breaker): the same
+			// choose-in-turn, move-at-once chain over that set (gorge
+			// effDiscard, flushDiscards)
+			return s.discardSeq(k, in, s.oppsNonRemCtrl()) // filter_defined.go
+		}
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			break
