@@ -168,8 +168,15 @@ func (s *State) caGapAnswers(k *prep, sl Slot) uint8 {
 }
 
 // caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
-// a: the c'th answer gorge's search tries (caRank).
+// a: the c'th answer gorge's search tries (caRank). A reflected Amount$
+// source's answers are its reflected candidates in gorge's order instead, the
+// whole evaluated amount in the answer's colour (mana_reflamt.go), the same
+// ask caGapAnswers counts.
 func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
+	if k.isReflAmt(s.cardAt(sl)) {
+		s.reflAmtChainTap(k, p, a, sl, c)
+		return
+	}
 	need := s.playNeed(k, a)
 	s.caActivate(k, p, sl, caRank(s.caAmount(k, sl), &need, c))
 }

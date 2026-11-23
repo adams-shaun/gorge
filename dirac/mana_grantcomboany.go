@@ -61,9 +61,21 @@ func (g *grantSrch) caStep() bool {
 
 // caGapBranch activates the Combo Any gap of candidate i (slot sl) when it is
 // still untapped and makes mana: one colour-ask node, then the allocation's
-// answers in gorge's order (caRank), each continuing the search.
+// answers in gorge's order (caRank), each continuing the search. A reflected
+// Amount$ source's ask is its reflected candidates in gorge's order instead
+// (reflAmtOrder, the play's announced colours first; mana_reflamt.go), the
+// whole evaluated amount floating in the answer's colour.
 func (g *grantSrch) caGapBranch(t *State, i int, sl Slot) bool {
 	if !t.caGaps(g.k, g.p).has(sl) || !g.node() {
+		return false
+	}
+	if g.k.isReflAmt(t.cardAt(sl)) {
+		var order [6]uint8
+		for _, c := range t.reflAmtOrder(g.k, sl, g.d.play, order[:]) {
+			if g.caTry(t, i, sl, int(c)) {
+				return true
+			}
+		}
 		return false
 	}
 	units := t.caAmount(g.k, sl)
@@ -94,8 +106,20 @@ func (g *grantSrch) caTry(t *State, i int, sl Slot, ans int) bool {
 }
 
 // caProduce is caActivate without the Taps notification (the search's next
-// stacks it) and the tap's extra stall (declared where it is replayed).
+// stacks it) and the tap's extra stall (declared where it is replayed). A
+// reflected Amount$ source's whole evaluated amount floats in the answer's
+// colour (mana_reflamt.go reflAmtDo's shape); no candidates means no mana.
 func (s *State) caProduce(k *prep, p uint8, sl Slot, ans int) {
+	if k.isReflAmt(s.cardAt(sl)) {
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+		if n := s.reflAmtN(k, sl); n > 0 && ans >= 0 {
+			s.poolAdd(p, ans, n)
+			s.artTag(k, p, sl, ans)
+		}
+		s.tapExtraStall(k, sl)
+		return
+	}
 	n := s.caAmount(k, sl)
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
@@ -138,7 +162,11 @@ var DebugComboAnyGrantRefused bool
 // eachOrComboAnyApply replays the each-colour or Combo Any gap step st on s.
 func (s *State) eachOrComboAnyApply(k *prep, p uint8, sl Slot, st *grantStep) {
 	if st.gi == stepComboAny {
-		s.caActivate(k, p, sl, int(st.col))
+		if k.isReflAmt(s.cardAt(sl)) {
+			s.reflAmtDo(k, p, sl, int(st.col)) // the whole evaluated amount of the answer's colour (mana_reflamt.go)
+		} else {
+			s.caActivate(k, p, sl, int(st.col))
+		}
 		GrantManaStats.ComboAny.Add(1)
 		return
 	}
