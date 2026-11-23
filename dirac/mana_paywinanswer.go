@@ -75,7 +75,29 @@ func (s *State) windowHybFiltArm(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
 		return true
 	}
-	if !clamp || anyColor || !s.madnessWindowLive() || !s.windowFiltOwedPick(k, p, sl, useful) {
+	if !clamp || anyColor {
+		return false
+	}
+	if !s.madnessWindowLive() || !s.windowFiltOwedPick(k, p, sl, useful) {
+		return noOwed && !potential && s.windowHybFiltFallback(k, p, sl, useful)
+	}
+	s.windowFiltFirstFallback(k, p, sl, useful)
+	return true
+}
+
+// windowHybFiltFallback is a cast's fallback window (a PaymentFallback with no
+// ManaPayment: convoke, Spree, a lowered or free cast) at a hybrid-fee filter
+// beside its plain {C} (Wooded Bastion's "{G/W}, {T}: Add {G}{G}, {G}{W} or
+// {W}{W}") whose fee the floating mana pays. The source's ask lists "Add C",
+// "Add GG", "Add WW" and payexec.WindowAnswer, with nothing owed, takes the
+// lowest symbol listed, never the symbol-less {C}: the filter's lowest colour
+// the clamp keeps (windowFiltFirstFallback). A source the clamp does not offer
+// never reaches here (windowClampSkip), and an unpaid fee lists only {C}.
+func (s *State) windowHybFiltFallback(k *prep, p uint8, sl Slot, useful *kop.ManaCost) bool {
+	if k.gen == nil || s.filtFirstOnly(k, sl) {
+		return false
+	}
+	if _, _, ok := s.filtHyb(k, sl); !ok || !s.filtUsable(k, sl) || !s.filtPaid(k, p, sl) {
 		return false
 	}
 	s.windowFiltFirstFallback(k, p, sl, useful)
