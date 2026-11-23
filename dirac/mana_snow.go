@@ -84,8 +84,8 @@ func (s *State) snowSetAt(p uint8, c int, v uint8) {
 	}
 }
 
-// snowClearAll empties every seat's tally, at a boundary that empties the pool
-// (endStep, finishCleanup, drainMana's every seat, persistEmpty, persistTurn).
+// snowClearAll empties every seat's tally (tests reset with it; the boundary
+// emptiers keep the keep-letter colours' entries instead, talliesKeep).
 func (s *State) snowClearAll() {
 	if sx := coldSnow.of(s); sx != nil {
 		clear(sx)
