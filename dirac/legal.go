@@ -2938,7 +2938,7 @@ func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny b
 				// the pot's wildcard bookkeeping (potentialGrantedUnit's):
 				// bounded mode prices the grant once as wildcard units;
 				// an unbounded pool opens it and adds nothing
-				*open = true
+				*open = !boundedAny
 				if boundedAny {
 					*anyFree += int(gv.manaN)
 					fold(sl, mask, gv.manaN)
