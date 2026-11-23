@@ -45,7 +45,7 @@ const forageExileOpt Slot = NoSlot
 // forageCA reports whether card c's Combo Any census gap is the forage one.
 func (k *prep) forageCA(c CardID) bool {
 	g := k.gen
-	return g != nil && g.anyForageCA && g.isComboAnyCard(c, &k.t.Cards[c]) && kop.ForageManaCost(&k.t.Cards[c].Abilities[g.gapOther(c)].Cost)
+	return g != nil && k.anyForageCA && g.isComboAnyCard(c, &k.t.Cards[c]) && kop.ForageManaCost(&k.t.Cards[c].Abilities[g.gapOther(c)].Cost)
 }
 
 // forageSibling is the index of the mana ability beside ability j of cd the
@@ -73,9 +73,9 @@ func forageSibling(cd *kop.CardDef, j int) (sib int, ok bool) {
 // Combo Any source does not search with it (caMixGap): any gap kind outside the
 // Combo Any one, or a forage card whose other mana ability is not the plain
 // fixed-colour {T} (forageSibling).
-func forageMixGap(t *kop.Table, g *genPrep, i int) bool {
+func forageMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
 	c := CardID(i)
-	if !g.anyForageCA || !g.has(c, gfGapOther) {
+	if !p.anyForageCA || !g.has(c, gfGapOther) {
 		return false
 	}
 	if !g.isComboAnyCard(c, &t.Cards[i]) {
@@ -93,7 +93,7 @@ func forageMixGap(t *kop.Table, g *genPrep, i int) bool {
 // kind the Combo Any search does not chain with it (prepComboAnyMix): an
 // each-colour, restricted, Taps-deferred, rider or counter-cost source.
 func forageMixTable(g *genPrep, p *prep) bool {
-	return g.anyForageCA && (g.anyEachCol || g.anyRestr || g.anyAnyR || g.anyTapsDefer || g.anyManaRider || g.anyDeferred || g.anyRestrScript || p.ctrMana)
+	return p.anyForageCA && (g.anyEachCol || g.anyRestr || g.anyAnyR || g.anyTapsDefer || g.anyManaRider || g.anyDeferred || g.anyRestrScript || p.ctrMana)
 }
 
 // foragePayable reports whether the forage source at sl can pay now: gorge's offer
@@ -129,7 +129,7 @@ func (s *State) forageOpts(k *prep, p uint8, sl Slot, out *[MaxPerm + 1]Slot) in
 // sources caGaps leaves out): the offers' relaxed bound counts them as gorge's
 // census does.
 func (s *State) availForageCA(k *prep, p uint8, a *avail) {
-	if !k.gen.anyForageCA {
+	if !k.anyForageCA {
 		return
 	}
 	for b := s.caGapsF(k, p, true).andNot(s.caGaps(k, p)); b.any(); b = b.rest() {

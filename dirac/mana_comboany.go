@@ -576,7 +576,7 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 // chain with a Combo Any source.
 func caMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
 	c := CardID(i)
-	if g.has(c, gfDiscHand) || p.tapXAb[i] >= 0 || forageMixGap(t, g, i) {
+	if g.has(c, gfDiscHand) || p.tapXAb[i] >= 0 || forageMixGap(t, g, p, i) {
 		return true // a Lion's Eye Diamond, a tap-another source (mana_discardhand.go, mana_tapanother.go): a plain filter is chained (caFiltRefused)
 	}
 	return caGrantRefused(g) && abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability the grant search does not chain (caGrantRefused)
