@@ -232,6 +232,16 @@ func (s *State) spBare(k *prep, cs *[spMax]spCand, c int) bool {
 	return true
 }
 
+// spCandsOptional: one of the c candidates is an Optional$ line.
+func (s *State) spCandsOptional(k *prep, cs *[spMax]spCand, c int) bool {
+	for i := 0; i < c; i++ {
+		if s.spCandAb(k, cs[i]).Repl.C&kop.ReplSPOptional != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // spOrderable reports whether the competition of c >= 2 candidates can be
 // posed as the noncombat ask: no optional line, no DamageAmount$ gate (the
 // amount changes as the picks apply and gorge re-collects), and no host with
@@ -444,15 +454,14 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 		s.capFull(StallReplPlus) // a Phantom beside a competition the walk does not merge: gorge asks the order of all
 		return -1
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
-		if c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
-			if n > 0 {
-				// the optional line beside a competing prevention (a scoped
-				// Effect's, a granted one's): gorge asks the CR 616.1 order over
-				// both with the line's skip, which the walk does not pose; never
-				// drop the line and deal the event as the prevention alone
-				s.capFull(StallReplPlus)
-				return -1
-			}
+		if n > 0 && c >= 1 && s.spCandsOptional(k, &cs, c) {
+			// gorge asks the CR 616.1 order over the walk's candidates and the
+			// optional line, with a skip option (Battletide Alchemist beside a
+			// combat-only Effect's full prevention): the walk cannot pose it
+			s.capFull(StallReplPlus)
+			return -1
+		}
+		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if cs[0].b >= MaxPerm {
 				s.capFull(StallReplCands) // an emblem is never named by an ask
 				return -1
