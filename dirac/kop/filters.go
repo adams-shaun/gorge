@@ -828,7 +828,11 @@ const PredWasCastEnter Pred = 248
 // (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read), 6 cast for its
 // mayhem cost, 7 cast from a graveyard by the reading player
 // (wasCastFromYourGraveyard, read only by a mana restriction: Lord of the
-// Forsaken);
+// Forsaken), 8 cast from a graveyard, any caster (wasCastFromGraveyard,
+// gorge ObjectWasCastFromGraveyard's !IsCopy included: a prepared copy
+// reads false; Ash Zealot, Laquatus's Disdain), 9 cast from a library by
+// the reading player (wasCastFromYourLibrary, gorge castOriginTokens:
+// Melek, Izzet Paragon, Wickerwing Effigy);
 // bit 4 (16) negates the whole read. A spell's origin zone is
 // stackEntry.prov (genPrep.anyCastProv).
 const PredWasCastSpell Pred = 247
