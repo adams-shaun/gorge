@@ -164,6 +164,13 @@ func (ic *instrCtx) opReturn() error {
 			return err
 		}
 	}
+	if _, any := fl["FromAny"]; any && ki.Op == kop.OpReturnEx {
+		// Origin$ All on a remembered card: a library card moves too
+		// (kop.MvEntryRiders' bit, OpReturnEx's C sign bit, set through an int
+		// so the shifted flag wraps into int16)
+		bit := kop.MvEntryRiders
+		ki.C |= int16(bit << 3)
+	}
 	if underOpp {
 		// GainControl$ ChosenPlayer (one opponent): B.N rides beside the library bits
 		if fl["counters"] != "" || fl["from"] == "Library" {
