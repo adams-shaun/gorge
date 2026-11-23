@@ -758,8 +758,12 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 		// potentialPinnedColourPlan; CR 609.4b), {C} stays colourless-only
 		cost = planUnderRider(cost, false, true)
 	}
-	if lifted && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
-		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
+	if lifted && reserved.any() && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
+		// "cost:credit": the greedy credit is no proof, the manual window pays.
+		// A credit that holds back no artifact (no generic, or no untapped
+		// artifact: improviseAloneCast) is planned plainly, whatever the census
+		// pays: a filter's fee is the prefix search's, as for any plain cast
+		return kop.ManaCost{}, false
 	}
 	return cost, true
 }

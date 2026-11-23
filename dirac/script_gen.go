@@ -1410,7 +1410,9 @@ func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
 // gorgeLowers (the old behaviour); the lockstep mutation test only.
 var DebugImproviseAloneUnlowered bool
 
-// improviseAloneObj is improviseAloneCast for the plain cast of object o.
+// improviseAloneObj is improviseAloneCast's read of the card itself, for the
+// plain cast of object o (no mode, target or permission): the same shape
+// check, whatever offer or lowering asks it.
 func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 	if DebugImproviseAloneUnlowered {
 		return false
@@ -1432,6 +1434,24 @@ func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 		return false
 	}
 	return k.t.Cards[c].Cost.Generic == 0 || !s.improviseCreditLive(k, p)
+}
+
+// contribDeclined is contribPays less the plain improvise cast that credits
+// no artifact (improviseAloneObj) and whose cost gorge's cast planner prices
+// (plannedCastCost: no hybrid pip, additional cost or the like): that planner
+// plans it plainly, so it is no "shape:contribution" decline and its
+// lowering and prefix search run like any plain cast's. A hybrid cost the
+// planner leaves to the potential planner keeps the decline (Azor's
+// Elocutors, Inside Out). plain is a cast with no permission or alternative.
+func (s *State) contribDeclined(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
+	if !s.contribPays(k, p, c, o, fromHand) {
+		return false
+	}
+	if plain && s.improviseAloneObj(k, p, o) {
+		_, priced := s.plannedCastCost(k, p, o, 0)
+		return !priced
+	}
+	return true
 }
 
 // improviseCreditLive reports an untapped artifact of p's the improvise
