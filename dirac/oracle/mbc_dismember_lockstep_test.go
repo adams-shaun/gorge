@@ -10,4 +10,10 @@ import "testing"
 func TestMBCDismemberReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "phyrexian_pip_through_filter_chain")
+	// CR 601.2b, 605.3b: at two life under Scald the Islands are Taps-deferred
+	// gaps, so the printed cast census holds one unit; gorge's potential walk
+	// prices Dismember's {1} from an Island, a {B} pip from Relic of Legends and
+	// the other pip as two life, and the kernel left the cast out
+	// (tail-49-c000 pair 5, decision 1576).
+	stdReproNamed(t, "phyrexian_cast_priced_over_taps_deferred_islands")
 }
