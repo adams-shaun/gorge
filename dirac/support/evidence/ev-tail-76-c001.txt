@@ -21,6 +21,7 @@ Barl's Cage
 Battle Squadron
 Battletide Alchemist
 Beacon Hawk
+Bebop, Skull & Crossbones
 Bitter Downfall
 Black Widow, Daring Operative
 Blacksmith's Skill
@@ -100,6 +101,7 @@ Goblin War Party
 Goldmeadow Harrier
 Goliath Paladin
 Guard Duty
+Guildscorn Ward
 Gurgling Anointer
 Haldir, Lórien Lieutenant
 Hamlet Captain
@@ -110,6 +112,7 @@ Hobgoblin Dragoon
 Hookblade Veteran
 Icatian Lieutenant
 Icewind Stalwart
+Impromptu Raid
 Incendiary Oracle
 Infiltrator's Magemark
 Island
@@ -229,6 +232,7 @@ The Shattered States Era
 Thraben Purebloods
 Thriving Heath
 Time Sieve
+Tinder Wall
 Tocasia's Dig Site
 Tocasia's Welcome
 Tokka & Rahzar, Unsupervised
