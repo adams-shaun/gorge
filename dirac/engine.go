@@ -344,6 +344,10 @@ func (s *State) stepRaw(d *Decision) {
 			return
 		case ctlDivide:
 			if s.divA != NoSlot {
+				if s.divRem == 0 { // an as-unblocked election ask (combat_asgngrant.go; divRem 0 marks it)
+					s.electionOptions(k, d)
+					return
+				}
 				s.divideOptions(k, d)
 				return
 			}
@@ -408,6 +412,10 @@ func (s *State) Apply(a Action) {
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
+		if s.divRem == 0 && s.divA != NoSlot { // a division ask always carries divRem > 0: this is the as-unblocked election (combat_asgngrant.go)
+			s.applyElection(a)
+			return
+		}
 		s.applyDivide(k, a)
 	case ctlCleanupDiscard:
 		o := Obj(a.Source())

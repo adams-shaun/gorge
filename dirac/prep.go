@@ -120,6 +120,7 @@ type prep struct {
 	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyAsUnblk    bool   // a card or emblem has a StatAssignCombatDamageAsUnblocked static (the as-unblocked election, combat_asgngrant.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
@@ -550,6 +551,7 @@ func prepare(t *kop.Table) *prep {
 	prepHandStat(t, p) // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
+	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana
