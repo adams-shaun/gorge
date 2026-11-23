@@ -896,6 +896,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if p.ck[ctrSlots-1] != 0 {
 		s.ctrOverRelease(o)
 	}
+	s.stackSrcChosenLKI(k, p, o) // act_choosetype.go
 	ob := &s.objs[o]
 	ob.slot = NoSlot
 	ob.zone = kop.ZoneNone
