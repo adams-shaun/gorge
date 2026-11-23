@@ -2091,6 +2091,9 @@ func (s *State) availAnyR(k *prep, p uint8, a *avail) {
 			continue
 		}
 		if cd := &k.t.Cards[s.cardAt(sl)]; restrWideAnyMana(&cd.Abilities[k.gen.anyR(s.cardAt(sl))]) {
+			if a.xdOn && a.xd.class == pdOther && !s.restrSrcAdmits(k, p, sl, &cd.Abilities[k.gen.anyR(s.cardAt(sl))], &a.xd) {
+				continue // a trigger's own, unless or ward cost is no spell's: its restriction (Web Watch's cast-from-exile) refuses the payment (CR 106.6)
+			}
 			if s.g.availX&availNoWide == 0 {
 				a.addUnits(0x3f, 2) // (no census unit of its own to replace: its only ability is the gap)
 				if s.wideSecond(k, sl) {
