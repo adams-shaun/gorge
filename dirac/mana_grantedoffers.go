@@ -1783,11 +1783,17 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool, alts int, flatAsk bool) (found, stop bool) {
 	// gorge's "choose a mana ability" ask lists the answers of the source's
 	// abilities flattened (a Combo's colours each, an Any ability one
-	// option that asks its colour after) and tries first the ones that name
-	// a colour the play needs (scriptOrderAnswers): a granted {U} before
-	// the printed any-colour ability's answers when the play needs {U}
+	// option that asks its colour after, the filter's colour answers among
+	// them) and tries first the ones that name a colour the play needs
+	// (scriptOrderAnswers): a granted {U} before the printed any-colour
+	// ability's answers when the play needs {U}, a filter's {G} answers
+	// before its printed fixed {C} (Flooded Grove's {G/U}, {T}: Add
+	// {G}{G}/{G}{U}/{U}{U} beside its {T}: Add {C} for a {2}{B}{G} play).
+	// The printed branch's fixed option (stepNamed) and the filter's
+	// non-choice answer wait for pass 2 with the rest (selColours,
+	// filtBranch), so pass 1 carries only the needed-colour answers.
 	lo, hi := uint8(0), uint8(0)
-	if alts > 1 && !tx && !fok && g.needPass(t, i, sl) {
+	if alts > 1 && !tx && g.needPass(t, i, sl) {
 		lo, hi = 1, 2
 	}
 	for g.sel = lo; g.sel <= hi; g.sel++ {
@@ -2684,6 +2690,11 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
 func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
+	// The flattened ask's pass the caller walks (gorge's scriptOrderAnswers):
+	// pass 1 the colours the play needs, pass 2 the rest. The search below is
+	// whole again, as branch keeps its own.
+	sel := g.sel
+	g.sel = 0
 	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
 	// flatAsk: the activation's "choose a mana ability" ask was charged
 	// (gapVisit): gorge's one ask already lists the filter's colour answers
@@ -2702,6 +2713,28 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 	needFirst(order[:n], g.need)
 	if each {
 		n = 1
+	}
+	if sel != 0 {
+		// gorge's scriptOrderAnswers passes over the flattened ask: a
+		// colour-choice filter's answers name a colour each (Option.ManaSymbol,
+		// stepNamed), so pass 1 walks the colours the play needs and pass 2 the
+		// rest (selColours). A fixed production's one option names no colour,
+		// and an any-colour ability's option neither: both wait for pass 2
+		// whole.
+		if n < 2 || uint8(t.filtAb(g.k, sl).ManaColors)&0x3f == uint8(kop.ColAny) {
+			if sel == 1 {
+				return false
+			}
+		} else {
+			m := 0
+			for j := 0; j < n; j++ {
+				if g.need[order[j]] == (sel == 1) {
+					order[m] = order[j]
+					m++
+				}
+			}
+			n = m
+		}
 	}
 	var doomed uint8
 	if n > 1 && g.useOK {
