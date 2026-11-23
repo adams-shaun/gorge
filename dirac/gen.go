@@ -2967,7 +2967,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts)) {
+				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts) || s.newerKwCounterLoss(sl, r.idx, p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -2998,6 +2998,18 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	s.g.nfx++
 	s.fxM.set(sl)
 	return true
+}
+
+// newerKwCounterLoss reports that a repeat of loss/removal override idx on sl
+// must not merge into the record stamped ts: a keyword counter put on since
+// then (CR 122.1b) is older than the repeat's own effect, which takes its
+// grant (CR 613.7; gorge registers the repeat as a new effect with a new
+// timestamp, and the merged record would leave the loss at the first one's).
+func (s *State) newerKwCounterLoss(sl Slot, idx uint8, ts uint16) bool {
+	if ov := &s.k().t.Overrides[idx-1]; !ov.LoseAbilities && ov.RemoveKw == 0 {
+		return false
+	}
+	return ctrKwNewer(s, &s.perms[sl], ts) != 0
 }
 
 // newerLayer6Fx reports an effect record on sl after pool position i that
