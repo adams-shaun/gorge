@@ -9,7 +9,13 @@ import (
 
 // BlgStats counts granted basic-land-type mana views; NonLand counts the
 // ones for cards not printed as lands (the Ashaya class).
-var BlgStats struct{ NonLand atomic.Int64 }
+var BlgStats struct {
+	NonLand atomic.Int64
+	// AltOwn, AltIntr count the taps of an own-vs-intrinsic pair unit
+	// (static_landgrantalt.go) the planner took on its own face and on the
+	// granted intrinsic one
+	AltOwn, AltIntr atomic.Int64
+}
 
 // A granted basic land type (CR 305.6): a Continuous static's
 // AddType$ AllBasicLandType (Leyline of the Guildpact, Prismatic Omen, Dryad
@@ -93,7 +99,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			// keeps the pain pair on painCol: tapPain prices pain only for a
 			// colour outside manaCol, and blgView's mask also subtracts a
 			// single-colour painful ability's exact Produced$ (blgExactPain).
-			if !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
+			if !DebugLandGrantPainOff && !DebugLandGrantGateOff && !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
 				g.blgIdx[i] = int16(len(g.blgPC) / 32)
 				for m := 0; m < 32; m++ {
 					v := base
@@ -136,7 +142,9 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
 					}
 				}
-				v.manaCol |= kop.ColorMask(m)
+				if !blgDropsGrant(&v) {
+					v.manaCol |= kop.ColorMask(m)
+				}
 			} else {
 				v.manaAb = 0 // no own ability: the intrinsic one (manaAbView guards the reads)
 				v.manaCol = kop.ColorMask(m)
@@ -202,13 +210,19 @@ func blgExactPain(pc *pcard) kop.ColorMask {
 // counts per payment (a restricted one, Jasmine Dragon Tea Shop) is not part of
 // the view: the gap and restricted-source models read it from the card.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {
-	if pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana {
+	if pc.manaChosen && !blgThriving(c, pc) || pc.manaDyn || pc.ctrMana || pc.painCol != 0 && !blgPainLand(pc) {
 		return false
 	}
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 			continue
+		}
+		if pc.manaChosen && j == int(pc.manaAb) {
+			continue // a Thriving land's "Combo W Chosen": blgThriving read it whole
+		}
+		if pc.painCol != 0 && j != int(pc.manaAb) {
+			continue // a painland's painful second ability: the pain alternative (mana_pain.go), no view colour
 		}
 		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
 			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
@@ -234,6 +248,9 @@ func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
 	a := &c.Abilities[pc.manaAb]
 	if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 		return false
+	}
+	if blgFilterFirst(c, pc, a) {
+		return true
 	}
 	if a.ManaRider != kop.ManaRiderNone {
 		return true
@@ -319,13 +336,16 @@ func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
 	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
-		m &^= pc.manaCol       // gorge ManaAbilitiesProduce: a printed colour is not appended again
+		m &^= ownMadeCols(pc)  // gorge ManaAbilitiesProduce: a printed colour (a ManaEach ability's extra too) is not appended again
 		m &^= blgExactPain(pc) // a single-colour painful ability's Produced$ is exact too: no intrinsic beside it
 	}
 	if m == 0 {
 		return pc
 	}
 	g := k.gen
+	if v := s.altView(k, sl, c, pc); v != nil {
+		return v // an own ability beside the granted intrinsic one (static_landgrantalt.go)
+	}
 	if g.blgIdx[c] < 0 {
 		s.capFull(StallLandGrant)
 		return pc
@@ -342,7 +362,7 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 //
 //go:noinline
 func (s *State) blgStall(k *prep, sl Slot, c CardID) {
-	if s.blgMask(k, sl)&^k.cards[c].manaCol != 0 {
+	if s.blgMask(k, sl)&^ownMadeCols(&k.cards[c]) != 0 {
 		s.capFull(StallLandGrant)
 	}
 }

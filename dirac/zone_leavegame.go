@@ -169,9 +169,8 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 		}
 	}
 	// CR 800.4a's last step: what p still controls is exiled to its owner
-	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
-		s.leave(k, m.first(), kop.ZoneExile, false)
-		moved = true
+	if s.ctrlM[SeatIx(p)].any() {
+		moved = s.exileControlled(k, p) || moved
 	}
 	// p's pending triggers go with p (gorge dropDepartedTriggers)
 	if s.orderLeft == 0 && s.orderPlace == 0 {
@@ -208,4 +207,32 @@ func (s *State) atkSeatLeft(k *prep, a Slot) uint8 {
 		q = s.objs[t].owner()
 	}
 	return q
+}
+
+// DebugLeaveExileSlotOrder is the mutation: the exile walks slot order, as the
+// kernel did before it followed gorge's object order.
+var DebugLeaveExileSlotOrder bool
+
+// exileControlled exiles what departed seat p still controls in object order,
+// as gorge's ceaseDepartedObjects walks G.Objs: the exile order is the
+// owners' exile positions (a slot-order walk swapped two stolen creatures).
+//
+//go:noinline
+func (s *State) exileControlled(k *prep, p uint8) bool {
+	moved := false
+	if DebugLeaveExileSlotOrder {
+		for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
+			s.leave(k, m.first(), kop.ZoneExile, false)
+			moved = true
+		}
+		return moved
+	}
+	for i := 0; i < int(s.nobj); i++ {
+		ob := &s.objs[Obj(i)]
+		if ob.zone == kop.ZoneBattlefield && s.ctrlM[SeatIx(p)].has(ob.slot) {
+			s.leave(k, ob.slot, kop.ZoneExile, false)
+			moved = true
+		}
+	}
+	return moved
 }

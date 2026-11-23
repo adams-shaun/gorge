@@ -39,6 +39,7 @@ const (
 	otherComboAny  // a Combo Any source (Axebane Guardian, mana_comboany.go): ans is the odometer answer (caActivate)
 	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
 	otherLifePain  // a sole life-only pain unit (lifeOnlyPain): ans is the colour it makes (lifePainDo)
+	otherEach      // a free each-colour source (Faeburrow Elder, mixEach): one of each colour among its permanents
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -70,7 +71,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.gen.anyComboAny && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.gen.anyComboAny && !k.tapMana && !k.gen.anyEachCol && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -101,13 +102,16 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.mixComboAny(k, p, filt).any() {
 		n++
 	}
+	if s.mixEach(k, p, filt).any() {
+		n++
+	}
 	if s.lifeGapMask(k, p).any() {
 		n++
 	}
 	// A counter source beside no filter stays the counter-gap scripts' (a
 	// tap-another or any-colour board): only a counted one is the filter
 	// search's otherGap step.
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p).andNot(ctr)).any()
+	return n >= 2 && !s.scriptGaps(k, p).andNot(s.mixEach(k, p, filt)).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p).andNot(ctr)).any()
 }
 
 // mixDeferred: p's activatable deferred sources (Pyromancer's Goggles,
@@ -184,6 +188,32 @@ func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
 	return s.caGaps(k, p)
 }
 
+// mixEach: p's live free each-colour sources (Faeburrow Elder, "{T}: for each
+// colour among permanents you control, add one mana of that colour") when a
+// filter is a gap beside them (filt). gorge's census misses both (a
+// Special production, a paid filter) and its one prefix search activates every
+// gap in battlefield order (rules scriptSearch.visit), funding a filter's fee
+// from the pool the others made: the filter search takes the source as an
+// otherEach step, the Elder's {G}{W} paying a Signet's {1} (CR 605.3a,
+// 601.2g-h). A fee-paid one (Tarnation Vista) keeps eachSearch's ask nodes
+// and stays refused beside a filter (mixBoard).
+func (s *State) mixEach(k *prep, p uint8, filt bool) slotMask {
+	if !filt || DebugEachNoFilterChain || !k.gen.anyEachCol {
+		return slotMask{}
+	}
+	var m slotMask
+	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
+		if sl := b.first(); s.eachFee(k, sl) == 0 {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// DebugEachNoFilterChain (mutation test only): an each-colour source beside a
+// filter is no step of the filter search again.
+var DebugEachNoFilterChain bool
+
 // caFiltBoard reports whether p's live Combo Any source is a gap of the filter
 // search (mixComboAny beside a live filter on a mixBoard).
 func (s *State) caFiltBoard(k *prep, p uint8) bool {
@@ -250,7 +280,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		filt := s.scriptFilt(k, p).any()
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.mixComboAny(k, p, filt)).or(s.lifeGapMask(k, p))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.mixComboAny(k, p, filt)).or(s.mixEach(k, p, filt)).or(s.lifeGapMask(k, p))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -454,6 +484,8 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 	switch {
 	case t.mixComboAny(k, p, true).has(sl):
 		return fs.comboAnyOther(t, k, sl, try)
+	case t.mixEach(k, p, true).has(sl):
+		return try(otherStep{kind: otherEach}) // one ability: no ask (eachSearch.visit's free gap)
 	case t.scriptAnyR(k, p).has(sl):
 		return fs.anyRGap(k, t, sl, try)
 	case t.scriptTapX(k, p).has(sl):
@@ -750,6 +782,11 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherComboAny:
 		s.caActivate(k, p, st.sl, int(o.ans))
+	case otherEach:
+		s.perms[st.sl].flags |= pfTapped
+		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
+		s.eachProduce(k, p, st.sl, 0)
 	case otherLife:
 		s.lifeGapDo(k, p, st.sl, int(o.ans))
 	case otherLifePain:

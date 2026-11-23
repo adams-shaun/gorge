@@ -204,6 +204,10 @@ type genPrep struct {
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
 	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain- or painland-shaped source
 	blgPC           []pcard        // a plain land's or a painland pair's planner view per granted colour mask
+	altIdx          []int16        // per card: its block of 5 own-vs-intrinsic views in altPC (static_landgrantalt.go), -1 none
+	altPC           []pcard        // the card's own view with the intrinsic alternative's colour (pcard.altCol), per granted colour
+	gateIdx         []int16        // per card: its block of 64 gate-state x granted-colour views in gatePC (static_landgrantgate.go), -1 none
+	gatePC          []pcard        // a gated land's two gate views with every granted colour set merged in
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
@@ -1816,10 +1820,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	g.tyCombat = overridesUncreature(t)
-	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
-	prepFaceDown(g)            // face_facedown.go
-	prepLandGrant(t, p, g)     // static_landtype.go
-	prepLandSet(t, p, g)       // static_landtypesetter.go
+	g.lossSlow = g.anyLoseStat  // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
+	prepFaceDown(g)             // face_facedown.go
+	prepLandGrant(t, p, g)      // static_landtype.go
+	prepLandGrantViews(t, p, g) // static_landgrantalt.go, static_landgrantgate.go
+	prepLandSet(t, p, g)        // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {
@@ -2785,6 +2790,17 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	}
 	if vi >= 0 {
 		if k.gen.blgOn {
+			if v := s.gateGrantView(k, sl, c, vi); v != nil {
+				return v // a gated land's views with the granted intrinsic colour merged in (static_landgrantgate.go)
+			}
+			if k.gen.altIdx != nil && k.gen.altIdx[c] >= 0 {
+				if v := s.altView(k, sl, c, s.manaGateView(k, sl, c, vi)); v != nil {
+					return v // a gated land's own ability beside the granted intrinsic one
+				}
+			}
+			if v := s.identGrantView(k, sl, c, vi); v != nil {
+				return v // a commander-identity land with the granted intrinsic colour merged in (static_landgrantident.go)
+			}
 			s.blgStall(k, sl, c)
 		}
 		if k.gen.anyCondSplit && k.gen.splitAb(c) >= 0 {
