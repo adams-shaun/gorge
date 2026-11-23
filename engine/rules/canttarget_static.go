@@ -134,7 +134,7 @@ func (e *Engine) cantTargetBlocks(b cantTargetBody, id state.ObjID, actor state.
 		}
 		sc := e.specCtx(staticSource, staticController)
 		sc.PreparedSpell = e.preparedSpellOf(host)
-		m, departed := e.matchesDepartedSource(b.validSource, host, sc)
+		m, departed := matchesDepartedSource(e.G, e.departedColors, e, b.validSource, host, sc)
 		if !departed {
 			m = e.matchesSpec(b.validSource, host, sc)
 		}

@@ -26,7 +26,10 @@ func TestDepartedSourceKeepsLastKnownColours(t *testing.T) {
 	}
 
 	blue := func() bool {
-		return func() bool { m, ok := e.matchesDepartedSource("Card.Blue", id, e.specCtx(0, 1)); return ok && m }()
+		return func() bool {
+			m, ok := matchesDepartedSource(e.G, e.departedColors, e, "Card.Blue", id, e.specCtx(0, 1))
+			return ok && m
+		}()
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard || e.Colors(id) != "" {

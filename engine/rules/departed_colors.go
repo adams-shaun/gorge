@@ -15,20 +15,28 @@ import (
 // printed colour: a Quicksilver Gargantuan that died as a colourless copy
 // would still look blue. Any later move of the same object retires the entry,
 // so a graveyard ability (scavenge, unearth) reads the card's own colours.
-func (e *Engine) trackDepartedColors(ev events.Event) {
+func trackDepartedColors(m map[state.ObjID]string, g *state.Game, r colorReader, ev events.Event) map[state.ObjID]string {
 	if ev.Kind != events.MoveZone {
-		return
+		return m
 	}
 	if ev.From == state.ZBattlefield && ev.To != state.ZBattlefield {
-		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
-			if e.departedColors == nil {
-				e.departedColors = make(map[state.ObjID]string)
+		if o := g.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+			if m == nil {
+				m = make(map[state.ObjID]string)
 			}
-			e.departedColors[ev.Obj] = e.Colors(ev.Obj)
-			return
+			m[ev.Obj] = r.Colors(ev.Obj)
+			return m
 		}
 	}
-	delete(e.departedColors, ev.Obj)
+	delete(m, ev.Obj)
+	return m
+}
+
+// colorReader is the slice of the Engine the departure capture and the bound
+// read need: layer-derived colours and the shared layer-5 table.
+type colorReader interface {
+	Colors(state.ObjID) string
+	derivedColorTable() []effects.ObjectColors
 }
 
 // matchesDepartedSource is matchesSpec for an ability source that left the
@@ -38,15 +46,15 @@ func (e *Engine) trackDepartedColors(ev events.Event) {
 // matchesSpec itself rebinds the shared layer-5 table over sc's, so the read
 // goes straight to the filter with a private copy of that table plus host's
 // captured entry; the shared table is never mutated.
-func (e *Engine) matchesDepartedSource(spec string, host state.ObjID, sc effects.SpecContext) (match, handled bool) {
-	letters, ok := e.departedColors[host]
+func matchesDepartedSource(g *state.Game, m map[state.ObjID]string, r colorReader, spec string, host state.ObjID, sc effects.SpecContext) (match, handled bool) {
+	letters, ok := m[host]
 	if !ok {
 		return false, false
 	}
-	if o := e.G.Obj(host); o == nil || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
+	if o := g.Obj(host); o == nil || o.Zone == state.ZBattlefield || o.Zone == state.ZStack {
 		return false, false
 	}
-	src := e.derivedColorTable()
+	src := r.derivedColorTable()
 	table := make([]effects.ObjectColors, 0, len(src)+1)
 	for _, c := range src {
 		if c.ID != host {
@@ -54,5 +62,5 @@ func (e *Engine) matchesDepartedSource(spec string, host state.ObjID, sc effects
 		}
 	}
 	sc.Layers.DerivedColors = append(table, effects.ObjectColors{ID: host, Mask: effects.ColorMaskFromLetters(letters)})
-	return effects.MatchesSpecCtxPtr(e.G, spec, host, &sc), true
+	return effects.MatchesSpecCtxPtr(g, spec, host, &sc), true
 }
