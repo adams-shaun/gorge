@@ -1363,10 +1363,18 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 		e.fireManaSpentTriggers(pc.activationMintEvent(e), nil)
 		e.cast = nil
 	}
+	inResolution := e.resolvingObj != 0 || e.answerInResolution
 	if e.drainAwaitsTarget {
 		e.drainAwaitsTarget = false
-		e.resumeTriggerDrain()
-	} else if e.pending == nil && e.resolvingObj == 0 && !e.answerInResolution {
+		// A cast made while a spell or ability resolves (a Play copy cast
+		// inside a tape resolution) resumes no drain: the drain grants
+		// priority, and nobody has priority during a resolution (CR 117.1,
+		// 608.2). The resolution's own tail drains the triggers and grants
+		// priority once it finishes (CR 117.3b).
+		if !inResolution {
+			e.resumeTriggerDrain()
+		}
+	} else if e.pending == nil && !inResolution {
 		// A cast made while a spell or ability resolves (Etali, Primal
 		// Storm's "cast any number of spells from among them") gives nobody
 		// priority: no player has priority during a resolution (CR 117.1,
