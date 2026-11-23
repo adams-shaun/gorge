@@ -49,8 +49,18 @@ func (s *State) flashbackReachable(k *prep, p uint8, c CardID, o Obj, fc kop.Man
 const flashbackSearchNodes = 160
 
 // flashbackSearchExhausts reports whether the ways to pick the taps that pay fc
-// from p's untapped mana sources outnumber gorge's search budget.
+// from p's untapped mana sources outnumber gorge's search budget, on a board
+// where the search funds a filter's fee at all (an untapped filter with a fee
+// and two or more units: gorge's census.fees() above zero).
 func (s *State) flashbackSearchExhausts(k *prep, p uint8, fc *kop.ManaCost) bool {
+	if !s.filtFeeGaps(k, s.gapMask(k, p, gfFilt)).any() {
+		// No untapped filter's fee is left to fund: gorge's search then funds
+		// nothing (census.fees() is 0, so gapsOnly stops it after the gap
+		// activations, mana_filterfeeorder.go) and never walks the covered
+		// tap choices this count prices; it finishes in a few nodes (Wild
+		// Hunger's {3}{R} once Equip's {3} tapped Flooded Grove).
+		return false
+	}
 	taps := int(fc.Generic) + hybN(fc)
 	for _, n := range fc.Pips {
 		taps += int(n)
