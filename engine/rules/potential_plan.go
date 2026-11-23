@@ -2554,7 +2554,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
 				// A once-only fee-bearing gap nets only what exceeds the source's
 				// own covered production (gapBoundedSupply).
-				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gmp, gextra, fee, best, once, gcost.Tap); bounded {
+				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gcost, gmp, gextra, fee, best, repeats, once, ok); bounded {
 					out.gapSupply += n
 				} else {
 					out.gapGains = true
