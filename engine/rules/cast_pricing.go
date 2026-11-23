@@ -519,7 +519,7 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool) {
+	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, e.castCostFoldsOtherSources(pc)) {
 		return probePayable
 	}
 	return probeManaShort
@@ -531,7 +531,10 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 // Phyrexian Lens's "{T}, Pay 1 life: any colour") fall short of the cost's
 // pool-unit floor. An unbounded ceiling proves nothing, so the historical
 // offer stands (CR 601.2g-h: the window can't make the missing mana).
-func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit, life int32, cost Cost, pool state.Mana) bool {
+func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit, life int32, cost Cost, pool state.Mana, foldsOthers bool) bool {
+	if foldsOthers || !unpricedSourcesPlainTap(w, pc, units) {
+		return false
+	}
 	unpriced, bounded := castWindowUnpricedReach(w, pc, units, nil, nil)
 	if !bounded {
 		return false
@@ -542,6 +545,42 @@ func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowMan
 	}
 	have := int64(pool.Total()) + int64(castWindowUnitsReach(units)) + int64(unpriced)
 	return have < floor
+}
+
+// castCostFoldsOtherSources reports whether pc's payment can draw on more than
+// the window's mana sources: a Convoke/Improvise/Harmonize/Delve spell pays
+// part of its cost with permanents or cards the census never prices, so the
+// reach sum is no upper bound for it (CR 702.51a, 702.66a, 702.180a, 702.66).
+func (e *Engine) castCostFoldsOtherSources(pc *pendingCast) bool {
+	return len(pc.Convoke) > 0 || len(pc.delve) > 0 || e.hasCastConvoke(pc.card) || e.hasCastImprovise(pc.card) ||
+		e.hasKeywordH(pc.card, kwhHarmonize) || e.hasCastDelve(pc.card, pc.isAbility())
+}
+
+// unpricedSourcesPlainTap reports whether every battlefield source the census
+// left unpriced is a producer whose only costs are {T}, life and mana (Phyrexian
+// Lens's "{T}, Pay 1 life", Cabal Coffers's "{2}, {T}"). Only then does dirac
+// share the verdict: a source that also sacrifices, discards or taps another
+// permanent (a Treasure) leaves both engines offering the ask, the cast being
+// reversed at payment (CR 601.2h), so those keep the historical offer.
+func unpricedSourcesPlainTap(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit) bool {
+	p := pc.player
+	priced := make(map[state.ObjID]bool, len(units))
+	for _, u := range units {
+		priced[u.ID] = true
+	}
+	for _, id := range pay.BattlefieldManaSourceIDs(w.Game(), p) {
+		if priced[id] || w.convokeCommitted(pc, id) {
+			continue
+		}
+		for _, ma := range w.castWindowProbeAbilities(p, id) {
+			cost := w.manaAbilityCC(p, id, ma).Cost
+			cost.Life, cost.Tap, cost.Generic, cost.Colored = 0, false, 0, state.Mana{}
+			if !pay.ManaFreeCost(cost) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
