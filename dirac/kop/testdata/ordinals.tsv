@@ -43,6 +43,7 @@ AtkPWHit	untyped int	1
 AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
+AttToSrcBearer	untyped int	16
 AttToYouCtrl	untyped int	8
 AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1

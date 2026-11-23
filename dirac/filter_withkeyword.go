@@ -60,6 +60,31 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 		return cd.HasMadness
 	case kop.KwMultikicker:
 		return cd.HasMultikicker
+	// T13b-2's records: the keywords with no KwMask bit, each its own cold
+	// CardDef field set at the face keyword's lowering arm. Flanking, Disturb,
+	// Mutate and Phasing keep no field: their K: line refuses the whole face,
+	// so no lowered card can print them, and printedKeyword's default false
+	// reads each one as gorge does over the lowered cards.
+	case kop.KwCycling:
+		return cd.HasCycling
+	case kop.KwPrintedWard:
+		return cd.HasWard
+	case kop.KwEnchant:
+		return cd.HasEnchant
+	case kop.KwUnearth:
+		return cd.HasUnearth
+	case kop.KwDecayed:
+		return cd.HasDecayed
+	case kop.KwPersist:
+		return cd.HasPersist
+	case kop.KwDoctorsCompanion:
+		return cd.HasDoctorsCompanion
+	// Flanking, Disturb, Mutate and Phasing: their K: line refuses the whole
+	// face, so no lowered card prints them and the cases read false over the
+	// lowered cards exactly as gorge does. The cases name the KwIDs for the
+	// manifest's active-status gate (their words still lower to FwWithKeyword).
+	case kop.KwFlanking, kop.KwDisturb, kop.KwMutate, kop.KwPhasing:
+		return false
 	}
 	return false
 }

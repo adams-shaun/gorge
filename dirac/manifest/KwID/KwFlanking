@@ -4,4 +4,4 @@ value: 36
 forge: Flanking
 census: kw Flanking all=30 std=0 mbc=2 sole=0
 state: code 0
-status: reserved
+status: active
