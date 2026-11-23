@@ -1,0 +1,27 @@
+{
+  "card": "Wakeroot Elemental",
+  "class": "lockstep",
+  "why": "Dune Chanter grants five untapped lands '{T}: Add one mana of any color' beside Wakeroot Elemental's {G}{G}{G}{G}{G} activation: gorge's composed planner skips granted abilities (census_incomplete) and its prefix search, plain, phased and subsume runs, spends the 164-node budget over the granted gaps without a script, so gorge offers only pass; the kernel's subsume run reaches the five-G line at its 162nd node and offers the play (tail-71-c000 pair 182 decision 636)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 5820644208037978527,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "granted_any_mana_prefix_search_budget_overoffers"
+  },
+  "evidence": [
+    "ev-tail-63-c000",
+    "ev-tail-63-c001",
+    "ev-tail-63-c003",
+    "ev-tail-63-c004",
+    "ev-tail-63-c005",
+    "ev-tail-63-c007",
+    "ev-tail-63-c043",
+    "ev-tail-71-c000",
+    "ev-tail-71-c001",
+    "ev-tail-71-c002",
+    "ev-tail-71-c003"
+  ]
+}
