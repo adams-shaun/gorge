@@ -1084,6 +1084,12 @@ type grantSrch struct {
 	// ghost: the units those steps floated, which price nothing but sit in gorge's
 	// pool, so its payer-state key tells a path that made them from one that did not
 	ghost [kop.NumManaKinds]uint8
+	// feeGhost: the part of ghost a funding tap floated that a census gap's
+	// activation fee may spend (fundRestrAdmits, CR 106.6); filtBranch pays a
+	// filter's fee from it first, as gorge carves the restricted batches before
+	// the ordinary mana. skipFund marks the next branch's mana as that kind.
+	feeGhost [kop.NumManaKinds]uint8
+	skipFund bool
 	// filt: the candidate also has a filter ability ({1},{T}: Add one mana of any
 	// color), a paid census gap of gorge's like the grants (mana_filter.go)
 	filt [MaxPerm]bool
@@ -1919,9 +1925,9 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 		var ok bool
 		switch {
 		case restr:
-			g.skipPool = true
+			g.skipPool, g.skipFund = true, true
 			ok = g.branch(t, i, sl, -1, mask, n, false)
-			g.skipPool = false
+			g.skipPool, g.skipFund = false, false
 		case painFunds(g.k, pc):
 			ok = g.fundPainBranch(t, i, sl, pc) // a painland asks its painful colours too (mana_filtpain.go)
 		case t.ownRestrAb(g.k, sl) != nil && t.ownManaUsable(g.k, sl):
@@ -2489,7 +2495,8 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 		mask = 1 << kop.C
 	}
 	skip := g.skipPool // the printed restricted ability's unspendable mana (mana_grantrestrictedown.go)
-	g.skipPool = false
+	fund := skip && g.skipFund
+	g.skipPool, g.skipFund = false, false
 	if sel == 1 && mask&uint8(kop.ColAny) == uint8(kop.ColAny) {
 		return false // an any-colour ability's option names no colour: its ask waits for pass 2
 	}
@@ -2531,6 +2538,9 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 			gx[c] += n
 			for j := range gx {
 				g.ghost[j] += gx[j]
+				if fund {
+					g.feeGhost[j] += gx[j]
+				}
 			}
 		}
 		t.addXv(SeatIx(g.p), &xv)
@@ -2542,6 +2552,9 @@ func (g *grantSrch) branchSel(t *State, i int, sl Slot, gi int16, mask, n uint8,
 		g.np--
 		for j := range gx {
 			g.ghost[j] -= gx[j]
+			if fund {
+				g.feeGhost[j] -= gx[j]
+			}
 		}
 		t.subXv(SeatIx(g.p), &xv)
 		t.pl[SeatIx(g.p)].pool[c] -= pn
@@ -2657,11 +2670,22 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 		for c, n := range barred {
 			u.pl[SeatIx(g.p)].pool[c] -= n
 		}
+		held, spent := g.feeGhostHeld(u, sl)
+		for c, n := range held {
+			u.pl[SeatIx(g.p)].pool[c] += n
+		}
 		if !u.filtPaid(g.k, g.p, sl) {
 			t.unfork()
 			return false
 		}
 		u.filtDo(g.k, g.p, filtStep{sl: sl, gap: true, ans: 1 + c})
+		for c, n := range held {
+			u.pl[SeatIx(g.p)].pool[c] -= n - spent[c] // the held units the fee left stay ghost
+		}
+		for c, n := range spent {
+			g.ghost[c] -= n
+			g.feeGhost[c] -= n
+		}
 		for c, n := range barred {
 			u.pl[SeatIx(g.p)].pool[c] += n
 		}
@@ -2674,12 +2698,53 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
 			ok = g.visit(u)
 		}
 		t.unfork()
+		for c, n := range spent {
+			g.ghost[c] += n
+			g.feeGhost[c] += n
+		}
 		if ok {
 			return true
 		}
 		g.np--
 	}
 	return false
+}
+
+// feeGhostHeld is the restricted mana a funding tap floated (feeGhost) that
+// the fee of filter sl spends: held joins u's pool for the payment, spent is
+// the part the fee takes (CR 106.6: gorge carves the restricted batches its
+// activation admits before the ordinary mana, so a Powerstone's {C} pays a
+// land's {1} fee and leaves the priced pool whole). The fee is generic, in
+// the C W U B R G order filtFeeSpend spends; a pip, repeatable or hybrid fee
+// reads its own colours (mana_filterpip.go): none is held here.
+func (g *grantSrch) feeGhostHeld(u *State, sl Slot) (held, spent [kop.NumManaKinds]uint8) {
+	if g.feeGhost == ([kop.NumManaKinds]uint8{}) {
+		return
+	}
+	if _, ok := u.filtPip(g.k, sl); ok {
+		return
+	}
+	if _, ok := u.filtRepeatPip(g.k, sl); ok {
+		return
+	}
+	if _, _, ok := u.filtHyb(g.k, sl); ok {
+		return
+	}
+	fee := u.filtFee(g.k, sl)
+	order := [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G}
+	left := fee
+	for _, c := range order {
+		n := min(left, int(g.feeGhost[c]))
+		held[c] = uint8(n)
+		left -= n
+	}
+	left = fee
+	for _, c := range order {
+		take := min(left, int(u.pl[SeatIx(g.p)].pool[c])+int(held[c]))
+		spent[c] = uint8(min(take, int(held[c])))
+		left -= take
+	}
+	return
 }
 
 // feeBarred is the restricted grant mana the prefix floated (grantStep.restr)
