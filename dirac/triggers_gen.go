@@ -262,12 +262,14 @@ func (s *State) enqueueLKI(o Obj, ver uint8, c CardID, ab, ctrl uint8, tobj Obj,
 	if s.npend > n {
 		s.pend[n].li = s.snapLKI(tobj)
 		s.snapshotTrigSpellMV(n, c, ab, tobj)
-		// A Squad ETB trigger captures the payment count as it is queued: the
-		// source can leave the battlefield before the trigger resolves
-		// (Wasteland Raider sacrifices itself), and the count must survive the
-		// move (gorge's TriggerSquadPaid; kw_squadreplicate.go). defSeat is
-		// free for a self-enter trigger, which never has an attack defender.
-		if k := s.k(); k != nil && int(c) < len(k.t.Cards) && k.t.Cards[c].RepeatedKind == kop.RepeatSquad &&
+		// A Squad or Multikicker ETB trigger captures the payment count as it
+		// is queued: the source can leave the battlefield before the trigger
+		// resolves (Wasteland Raider sacrifices itself; a cost sacrifice of a
+		// kicked Lightkeeper of Emeria), and the count must survive the move
+		// (gorge's TriggerSquadPaid and the trigger's LKI; kw_squadreplicate.go).
+		// defSeat is free for a self-enter trigger, which never has an attack
+		// defender.
+		if k := s.k(); k != nil && int(c) < len(k.t.Cards) && capturesKickCount(&k.t.Cards[c]) &&
 			int(ab) < len(k.t.Cards[c].Abilities) {
 			if a := &k.t.Cards[c].Abilities[ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 && int(tobj) < len(s.cold.mkObj) {
 				s.pend[n].defSeat = s.cold.mkObj[tobj]
