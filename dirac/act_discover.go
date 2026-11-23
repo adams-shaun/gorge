@@ -81,8 +81,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 func (s *State) payManaResume(k *prep) {
 	c := s.resPayCost(k) // cost_trighybrid.go
 	paid := s.payReplanned(k, s.g.pickP, &c)
-	if s.parkedWaiting() {
-		s.ctl = ctlExileOrder
+	if s.manaAskWaiting() {
 		return
 	}
 	s.payDone(k, paid)
