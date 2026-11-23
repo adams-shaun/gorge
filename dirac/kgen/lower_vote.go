@@ -35,7 +35,7 @@ import (
 // around it.
 //
 // VoteMessage$ is the prompt and AILogic$ a Forge AI hint; neither changes
-// the rules. StoreVoteNum$ True makes every option body resolve with VoteNum
+// the rules. Secretly$ on the fixed list changes nothing the kernel tracks. StoreVoteNum$ True makes every option body resolve with VoteNum
 // bound to that option's own tally (gorge resolveVoteOutcomes); the option
 // branches lower with the tally value kind and the kernel runs them all in
 // Choices$ order. A read of VoteNum outside an option branch refuses by name.
@@ -99,7 +99,7 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 		case strings.HasPrefix(k, "Condition"):
 		case k == "Defined", k == "Choices", k == "VoteTiedAbility", k == "VoteMessage", k == "AILogic",
 			k == "EachVote", k == "StackDescription", k == "SpellDescription", k == "SubAbility",
-			k == "StoreVoteNum",
+			k == "StoreVoteNum", k == "Secretly",
 			k == "ValidTgts", k == "TgtZone", k == "TargetType",
 			k == "TargetMin", k == "TargetMax", k == "TargetUnique",
 			k == "TargetsWithSameController", k == "TargetsWithDifferentControllers", k == "TargetsWithDefinedController":
@@ -139,7 +139,10 @@ func (lc *lowerCtx) fixedVote(ps *params) error {
 			return err
 		}
 	}
-	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum")
+	// Secretly$ True hides the ballots until every vote is in: the votes are
+	// asked in the same order and tallied the same (gorge effVote keeps the
+	// ask and the tally, withholding only the picks from the public log).
+	ps.consume("VoteMessage", "AILogic", "EachVote", "TargetType", "StoreVoteNum", "Secretly")
 	if store && tie != "" {
 		// gorge's StoreVoteNum branch returns before the tie branch, so a
 		// VoteTiedAbility$ beside StoreVoteNum$ never resolves; do not hide
