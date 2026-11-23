@@ -577,6 +577,9 @@ func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
 	root := e.hypClone(e)
 	found := sr.visit(e, root, 0, false)
 	e.hypRelease(root)
+	if sr.play.Obj == 31 && sr.play.Kind == optCast {
+		println("GORGE-SS cast31 found=", found, "nodes=", sr.nodes, "limited=", sr.limited, "approx=", sr.approx)
+	}
 	if !found {
 		return nil, false
 	}
@@ -887,11 +890,48 @@ func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in de
 func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool) bool {
 	if sr.nodes >= sr.budget {
 		sr.limited = true
+		if sr.play.Obj == 31 && sr.play.Kind == optCast {
+			for i, st := range sr.path {
+				ps := ""
+				for _, pk := range st.Picks {
+					ps += pk.Kind + ":" + pk.Label + ":" + pk.ManaSymbol + " "
+				}
+				println("GORGE-END", i, string(st.Kind), "[", ps, "]")
+			}
+		}
 		return false
 	}
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
+	if sr.play.Obj == 31 && sr.play.Kind == optCast {
+		if d != nil {
+			ol := ""
+			for i := range d.Options {
+				o := &d.Options[i]
+				ol += fmt.Sprintf("#%d %s:%s:%s:ab%d ", o.Index, o.Kind, o.Label, o.ManaSymbol, o.Ability)
+			}
+			pk := ""
+			if len(sr.path) > 0 {
+				last := sr.path[len(sr.path)-1]
+				for _, p := range last.Picks {
+					pk += p.Kind + ":" + p.Label + ":" + p.ManaSymbol + " "
+				}
+			}
+			println("GORGE-DN", sr.nodes, "pathlen", len(sr.path), "pend", string(d.Kind), "src", int(d.Source), "pick[", pk, "]opts[", ol, "]")
+		} else {
+			if len(sr.path) > 0 {
+				last := sr.path[len(sr.path)-1]
+				ps := ""
+				for _, pk := range last.Picks {
+					ps += pk.Kind + ":" + pk.Label + ":" + pk.ManaSymbol + " "
+				}
+				println("GORGE-DN", sr.nodes, "pathlen", len(sr.path), "kind", string(last.Kind), "picks[", ps, "]")
+			} else {
+				println("GORGE-DN", sr.nodes, "root")
+			}
+		}
+	}
 	// Another player's decision (their priority while a trigger resolves,
 	// or the order of their simultaneous triggers the line set off, CR
 	// 603.3b): the searched line assumes they pass, or order the triggers
