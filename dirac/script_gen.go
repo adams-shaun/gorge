@@ -814,10 +814,24 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 // actScriptPays); an announced Sac<X/Spec> is priced at its cheapest announcement
 // (actSourcesAfford: X = 0), so it reads as plain mana.
 func plainPricedCost(ab *kop.Ability) bool {
+	return pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf) &&
+		!(ab.Cost.Flags&kop.CostSac != 0 && !sacXCost(&ab.Cost))
+}
+
+// sacPricedCost is plainPricedCost for a cost whose only non-plain part is its
+// sacrifice-others part ("{1}, Sac<2/Land>"): the prefix search funds its mana
+// part like any activation's (CR 602.2b), hand guides included (actScriptPays).
+func sacPricedCost(ab *kop.Ability) bool {
+	return ab.Cost.Flags&kop.CostSac != 0 &&
+		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf)
+}
+
+// pricedCostBits is the plain-cost test with bad the flag bits the caller
+// refuses.
+func pricedCostBits(ab *kop.Ability, bad kop.CostFlags) bool {
 	return !(ab.Cost.Mana.X != 0 || ab.Cost.XMin != 0 || ab.Cost.Mana.Hyb[0] != 0 ||
 		ab.Cost.Mana.Snow != 0 || ab.Cost.Mana.Phyrexian() || ab.OwnReduce != (kop.ValueRef{}) ||
-		ab.Cost.Flags&(kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf) != 0 ||
-		ab.Cost.Flags&kop.CostSac != 0 && !sacXCost(&ab.Cost))
+		ab.Cost.Flags&bad != 0)
 }
 
 // scriptPrefix plays gorge's script for play a: the search's script, played
