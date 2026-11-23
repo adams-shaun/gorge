@@ -20,7 +20,7 @@ import (
 // four-seat Commander census (podtwoseat_census_mp_test.go, pools cmd5 and
 // edh) fatals on a deck it cannot build.
 var refusedDeckTolerated = map[string]map[string]bool{
-	"mbc": {"Nylea's Presence": true, "Smiting Helix": true},
+	"mbc": {"Nylea's Presence": true},
 }
 
 type deckJSON struct {
