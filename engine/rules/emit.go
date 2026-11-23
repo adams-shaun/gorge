@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/rules/trigmatch"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -1019,5 +1020,9 @@ func (e *Engine) departureLKITypes(o *state.Object, ev events.Event) lkiTypeList
 	if !leaving {
 		return lkiTypeList{}
 	}
-	return lkiTypeList{id: o.ID, types: e.typeCharacteristics(o.ID, 0), set: true}
+	// The walk's semantic all-types marker rides in the list: a Changeling
+	// never materialises its subtypes, so without it a "Spirit.YouOwn" read of
+	// the departed changeling would see only its printed types (CR 702.73a).
+	ty, all := chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+	return lkiTypeList{id: o.ID, types: effects.TypeMatchWords(ty, all), set: true}
 }
