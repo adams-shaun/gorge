@@ -118,7 +118,7 @@ func (s *State) timesKicked(ctx evalCtx) int {
 	// sacrifice does, and Count$SquadPaid still reads the cast's payments
 	// (gorge's TriggerSquadPaid).
 	if e := ctx.e; e != nil && e.kind == seTrigger && e.defSeat != 0 {
-		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && k.t.Cards[e.card].RepeatedKind == kop.RepeatSquad &&
+		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && capturesKickCount(&k.t.Cards[e.card]) &&
 			int(e.ab) < len(k.t.Cards[e.card].Abilities) {
 			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 {
 				return int(e.defSeat)
