@@ -2819,6 +2819,21 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 // The scan over-approximates every route the branch's continuations could
 // use: the pool, every other untapped permanent's printed mana abilities
 // (their costs ignored), intrinsic granted land types, and chosen colours.
+// The prune is faithful only while gorge's own bounded walk still prices the
+// play without the branch: its plain run walks the dead subtree, and where
+// that subtree is small (a one-mana fee beside few funders) the paid
+// answer's funding line is still reached within potentialScriptNodes. A
+// dynamic production amount (AfManaDynamic) is not: gorge's fee-ordered run
+// is never built for such a gap -- potentialPrefixScript's feeGaps read
+// takes availableAmount, which reads a dynamic amount as zero -- so the
+// plain run is the only price, and its walk spends the node budget on the
+// dead subtree (the Federation's {5},{T} beside six Islands: every island
+// order under the free {C} answer) and prices no script. Skipping the
+// branch there lets this search reach a funding line gorge's own walk never
+// reaches and offer a cast gorge withholds (dynfilter seed 11: five casts
+// priced beside D'Vana Tendi that gorge does not offer). So a dynamic
+// amount keeps the free branch, as a second filter gap does.
+//
 // Any route it does not model -- a hand mana guide, a live grant, another gap
 // class (an each-colour or chosen pair, a tap-another, counter, life or
 // distinct-colour source), a StatTapExtra carrier whose extra rides the tap
@@ -2833,6 +2848,14 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// gorge's to walk (its plain run spends the node budget there and
 		// its fee-order run funds the play, CR 605.3b), as holdDualFilter's
 		// lone-filter scope.
+		return false
+	}
+	if t.filtAb(k, sl).AFlags&kop.AfManaDynamic != 0 {
+		// A dynamic production amount: no fee-ordered run is built for the
+		// gap (potentialPrefixScript's feeGaps read takes availableAmount,
+		// which reads a dynamic amount as zero), so the plain run's bounded
+		// walk in the dead subtree is the price and it spends the node
+		// budget there. Keep the free branch.
 		return false
 	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||

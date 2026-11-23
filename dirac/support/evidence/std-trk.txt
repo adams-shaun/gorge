@@ -231,6 +231,7 @@ Spatial Anomaly
 Species 8472
 Spock, Always Your Friend
 Stable Wormhole
+Starfleet Academy
 Starfleet Security
 Starfleet Spanner Jockey
 Steam Vents
@@ -297,6 +298,7 @@ Vexing Drone
 Vulcan
 Vulcan Mind-Meld
 Warp Core
+Warp Speed
 Watery Grave
 Wesley Crusher, Starfleet Cadet
 Will Riker, First in the Field
