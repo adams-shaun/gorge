@@ -26,7 +26,7 @@ dirac (*State).exec	677	235
 dirac (*State).execChangeZoneAll	271	90
 dirac (*State).execExt	315	113
 dirac (*State).execGen	878	319
-dirac (*State).execReturnObj	141	76
+dirac (*State).execReturnObj	141	73
 dirac (*State).expr	157	64
 dirac (*State).exprCold	306	126
 dirac (*State).finishBuild	208	83
