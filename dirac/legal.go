@@ -1048,6 +1048,17 @@ func (s *State) altAddMayRiderCost(cost kop.ManaCost, mayPlay, anyColor bool) ko
 	return cost
 }
 
+// contribOrPlainImproviseDeclines reports whether gorge's potential planner
+// declines the cast's mana shape: a convoke contribution (the planner refuses
+// a convoke cost), or an improvise credit announcing no artifact, whose cast
+// is planned plainly and whose prefix search still funds a census gap
+// (Wooded Bastion's filter fee; improviseAloneCast). A may-play cast's gate is
+// not the potential planner, so it holds for the contribution alone.
+func (s *State) contribOrPlainImproviseDeclines(k *prep, p uint8, c CardID, o Obj, mayPlay bool) bool {
+	return s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
+		(mayPlay || !s.improviseAloneCast(k, p, MakeAction(AkCast, TCode(o), 0, 0)))
+}
+
 // gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour
 // rider when anyColor: a target-priced cast's composed price is funded with
 // its coloured pips as generic (pay.PlanManaUnderRider), so Vanish into
@@ -1057,10 +1068,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) && (mayPlay || !s.improviseAloneCast(k, p, MakeAction(AkCast, TCode(o), 0, 0))) {
-		// gorge's potential planner refuses a convoke cost; an improvise cast that
-		// credits no artifact is planned plainly and its prefix search still funds a
-		// census gap (Wooded Bastion's filter fee; improviseAloneCast)
+	if s.contribOrPlainImproviseDeclines(k, p, c, o, mayPlay) {
 		return false
 	}
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
