@@ -39,18 +39,15 @@ func init() {
 			}
 		}
 	}
-	// withHexproof and withFlash read KwMask bits the kernel already keeps (the
-	// derived mask for a permanent, the printed one for a card); the struct's
-	// PredHasKeyword form, which refuses Flash on the battlefield.
-	for name, bit := range map[string]int{
-		"Hexproof": bits.TrailingZeros32(uint32(kop.KwHexproof)),
-		"Flash":    bits.TrailingZeros32(uint32(kop.KwFlash)),
-	} {
-		bit := bit
-		fwArms["with"+name] = func(c *lClause, _ string) error { return c.setCmp(cmpHasKw, 0, bit, "", "") }
-		for _, p := range [...]string{"without" + name, "!with" + name} {
-			fwArms[p] = func(c *lClause, _ string) error { return c.setCmp(cmpLacksKw, 0, bit, "", "") }
-		}
+	// withFlash reads the KwMask bit the kernel already keeps (the printed mask
+	// for a card), the struct's PredHasKeyword form, which refuses Flash on the
+	// battlefield. withHexproof is not lowered, with or without: gorge matches
+	// by keyword head, so it also matches Hexproof:<spec>, which the plain
+	// KwHexproof bit cannot see (TestWithHexproofStaysRefused).
+	flashBit := bits.TrailingZeros32(uint32(kop.KwFlash))
+	fwArms["withFlash"] = func(c *lClause, _ string) error { return c.setCmp(cmpHasKw, 0, flashBit, "", "") }
+	for _, p := range [...]string{"withoutFlash", "!withFlash"} {
+		fwArms[p] = func(c *lClause, _ string) error { return c.setCmp(cmpLacksKw, 0, flashBit, "", "") }
 	}
 	// ChosenCtrl: controlled by the player the source chose as it entered.
 	fwArms["ChosenCtrl"] = func(c *lClause, _ string) error {
