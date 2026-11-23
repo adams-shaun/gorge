@@ -92,7 +92,9 @@ func TestChoosePlayerRandomRefuses(t *testing.T) {
 	trig := map[string]string{"ValidCard": "Card.nonCreature", "ValidActivatingPlayer": "You"}
 	for _, tc := range []struct{ name, choose, attach, cleanup string }{
 		{"no Random$", "DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent+!EnchantedBy | SubAbility$ DBAttach", "", ""},
-		{"a plain Choices$", "DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent | Random$ True | SubAbility$ DBAttach", "", ""},
+		// Choices$ Player.Opponent with Random$ is the plain-opponents pool now
+		// (TestChoosePlayerRandomOppLowers); an Aura-free spelling of the
+		// Hex pool without Random$ is the first case above
 		{"an Amount$", "DB$ ChoosePlayer | Defined$ You | Choices$ Player.Opponent+!EnchantedBy | Random$ True | Amount$ 2 | SubAbility$ DBAttach", "", ""},
 		{"a non-You chooser", "DB$ ChoosePlayer | Defined$ TargetedOrController | Choices$ Player.Opponent+!EnchantedBy | Random$ True | SubAbility$ DBAttach", "", ""},
 	} {

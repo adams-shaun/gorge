@@ -53,7 +53,7 @@ func (ic *instrCtx) opChoosePlayerRes() error {
 	in := &ic.in
 	// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
 	// (act_chooseplayerres.go)
-	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&(kop.ChoosePlayerFresh|kop.ChoosePlayerForget))
 	return nil
 }
 
@@ -68,10 +68,14 @@ func (ic *instrCtx) opChoosePlayer() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op = kop.OpChoosePlayer
-	if in.CS != "Random" {
+	switch in.CS {
+	case "Random":
+		ki.C = kop.ChPlRandom
+	case "RandomOpp":
+		ki.C = kop.ChPlRandom | kop.ChPlPlain
+	default:
 		return fmt.Errorf("ChoosePlayer build %q", in.CS)
 	}
-	ki.C = kop.ChPlRandom
 	return nil
 }
 
@@ -122,7 +126,7 @@ func (ic *instrCtx) opChoosePlayerEnter() error {
 func (ic *instrCtx) opChoosePlayerMid() error {
 	ki := &ic.ki
 	// a mid-resolution opponent choice (lower_chooseplayermid.go)
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid))
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid)), int16(ic.in.C&kop.ChoosePlayerMidHigh)
 	return nil
 }
 
