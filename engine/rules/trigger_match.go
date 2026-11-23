@@ -219,6 +219,15 @@ type pendingTrigger struct {
 	// Prismari, the Inspiration's instant/sorcery grant): the Demonstrate
 	// shape, pushed with the __kwStorm: payload (engine/rules/storm_granted.go).
 	Storm bool
+	// Ripple is a GRANTED ripple keyword (a layer-6 AddKeyword$ Ripple:<N>,
+	// Thrumming Stone's "Spells you cast have ripple 4"): the Storm shape --
+	// the queue carries the revealed-card count N and the drain pushes a
+	// KeywordTriggerPush whose __kwRippleGranted:<N> payload events.Apply
+	// rebuilds into the same DB$ Ripple body the printed K:Ripple expansion
+	// carries. The trigger line rides Trigger so the resolving object's
+	// OptionalDecider$ may is readable (the granted shape has no face
+	// trigger index to recover it from). Idx and SA are unset for it.
+	Ripple string
 	// Cipher is the combat-damage-to-player trigger a creature's ENCODED
 	// card grants (CR 702.99b: "Whenever that creature deals combat damage
 	// to a player, its controller may cast a copy of the encoded card
@@ -1414,7 +1423,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
 	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
-		if o == nil || o.PhasedOut {
+		if o == nil || phasedOutSkipsWalk(ev, id, o) {
 			return
 		}
 		f := o.Face()
@@ -1468,6 +1477,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 					e.checkGrantedConspireTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedDemonstrateTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedStormTriggers(observer, id, o, f, *ev, objLKI)
+					checkGrantedRippleTriggers(e, observer, id, o, f, *ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, *ev, objLKI)
@@ -2036,18 +2046,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		// trigger carrying the Monarch's grant) -- the early-return path above
 		// reaches this object through checkGrantedAfflictTriggers's own call.
 		e.checkGrantedAfflictTriggers(id, o, f, *ev)
-		// A granted Conspire must fire even when the object's own printed
-		// triggers are live for this event (a spell with its own cast trigger
-		// carrying a Conspire grant) -- the early-return path above reaches this
-		// object through checkGrantedConspireTriggers's own call.
+		// The granted cast-keyword walks (Conspire, Demonstrate, Storm,
+		// Ripple) must fire even when the object's own printed triggers are
+		// live for this event (a spell with its own cast trigger carrying a
+		// grant) -- the same both-paths rule Afflict follows, and the
+		// early-return path above reaches this object through the walks' own
+		// call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, *ev, objLKI)
-		// A granted Demonstrate must fire even when the object's own printed
-		// triggers are live for this event (a spell with its own cast trigger
-		// carrying a Demonstrate grant) -- the same both-paths rule Conspire
-		// follows.
 		e.checkGrantedDemonstrateTriggers(observer, id, o, f, *ev, objLKI)
-		// A granted Storm follows the same both-paths rule.
 		e.checkGrantedStormTriggers(observer, id, o, f, *ev, objLKI)
+		checkGrantedRippleTriggers(e, observer, id, o, f, *ev, objLKI)
 		// A granted Exploit must fire when its creature enters even when the
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
@@ -2994,6 +3002,9 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if e.disableTriggersExcludes(t, source, ev) {
 		return false
 	}
+	if ev.Kind == events.PhaseOut && !phasedOutSourceAdmits(e.G, &t, source) {
+		return false
+	}
 	// NotThisAbility$ True: the event being matched must not have been caused
 	// by the resolution of THIS very trigger instance (Kodama of the East
 	// Tree -- the corpus's one carrier, 1 of 38000+ card files -- is the
@@ -3277,6 +3288,11 @@ func init() {
 		"trig:Discover", "trig:SeekAll", "trig:AbilityTriggered",
 		"trig:Surveil", "trig:Scry",
 		"trig:PhaseOutAll",
+		// trig:PhaseIn / trig:PhaseOut (CR 702.26): matched by
+		// trigmatch.phaseInMatches / phaseOutMatches off the events.PhaseOut
+		// marker (Amount -1 in, 1 out); a phased-out source is admitted only
+		// for its own phased-out look-back (phasedOutSourceAdmits).
+		"trig:PhaseIn", "trig:PhaseOut",
 		// trig-proliferate: "Whenever you proliferate ..." (CR 701.27; the 6
 		// corpus carriers at the pin, Voidwing Hybrid and Ezuri Stalker of
 		// Spheres among them). Matched by trigmatch.proliferateMatches on the
@@ -3340,6 +3356,14 @@ func init() {
 		// already; registering the keyword here completes its
 		// semantics now that api:CopySpellAbility is implemented.
 		"kw:Storm", "kw:Ward", "kw:Annihilator", "kw:Mobilize",
+		// Ripple (CR 702.60): a SpellCast self-trigger (engine/cards/kw_ripple.go)
+		// whose DB$ Ripple body reveals the top N, offers the same-name cards
+		// for free casts (the Play shape, amount All, optional) and bottoms
+		// the rest in a chosen order (the CR 401.4 arrangement ask). The
+		// granted (layer-6 AddKeyword$ Ripple:4) form is synthesized by
+		// checkGrantedRippleTriggers, the Storm precedent. Proof:
+		// rules/ripple_test.go.
+		"kw:Ripple",
 		// Afflict's expansion (engine/cards/keywords.go) is a become-blocked trigger
 		// (trig:AttackerBlocked) whose body drains the defender; the granted
 		// (layer-6 AddKeyword$) form is synthesized by

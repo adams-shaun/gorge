@@ -49,6 +49,7 @@ Count on Luck
 Country Roads
 Crash and Burn
 Cryptcaller Chariot
+Cursecloth Wrappings
 Daretti, Rocketeer Engineer
 Daring Mechanic
 Deathless Pilot
@@ -61,9 +62,11 @@ Diversion Unit
 Draconautics Engineer
 Dracosaur Auxiliary
 Dredger's Insight
+Dune Drifter
 Dynamite Diver
 Earthrumbler
 Elvish Refueler
+Embalmed Ascendant
 Endrider Spikespitter
 Engine Rat
 Explosive Getaway
@@ -92,6 +95,7 @@ Grim Javelineer
 Guardian Sunmare
 Guidelight Matrix
 Guidelight Optimizer
+Guidelight Pathmaker
 Guidelight Synergist
 Haunt the Network
 Haunted Hellride
@@ -128,8 +132,11 @@ Marketback Walker
 Marshals' Pathcruiser
 Maximum Overdrive
 Memory Guardian
+Mendicant Core, Guidelight
 Midnight Mangler
 Migrating Ketradon
+Mindspring Merfolk
+Molt Tender
 Momentum Breaker
 Monument to Endurance
 Mountain
@@ -149,6 +156,7 @@ Perilous Snare
 Plains
 Plow Through
 Point the Way
+Possession Engine
 Pothole Mole
 Pride of the Road
 Prowcatcher Specialist
@@ -229,6 +237,7 @@ Veloheart Bike
 Venomsac Lagac
 Veteran Beastrider
 Vnwxt, Verbose Host
+Voyage Home
 Voyager Glidecar
 Voyager Quickwelder
 Walking Sarcophagus
@@ -242,3 +251,4 @@ Wind-Scarred Crag
 Wreck Remover
 Wreckage Wickerfolk
 Wretched Doll
+Zahur, Glory's Past

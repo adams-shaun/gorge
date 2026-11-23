@@ -328,8 +328,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			pumpPermanent = true
 		case IsNextTurnDuration(pumpDuration):
 			// AddContinuous derives the UntilTurn boundary from the live rotation.
-		case strings.EqualFold(pumpDuration, "EOT") || strings.EqualFold(pumpDuration, "EndOfTurn") ||
-			strings.EqualFold(pumpDuration, "UntilEndOfTurn"):
+		case clonePumpDurationEOT(pumpDuration):
 			pumpUntilEOT = true
 		default:
 			emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
@@ -924,9 +923,18 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 
 // copyPermanentController resolves api:CopyPermanent's Controller$ into the
 // copy's owner(s). It returns the single owner, or -- for the per-player
-// NonRememberedController family -- multiOwner with one entry per player.
+// NonRememberedController / NonTargetedController family -- multiOwner with
+// one entry per player.
 func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentParams, targets []state.Target, emitNote func(events.Event)) (owner state.PlayerID, owners []state.PlayerID, multiOwner bool) {
 	owner = c.Controller
+	// NonTargetedController is owned by the repeat-player table (choose_control.go);
+	// read it there rather than naming the word again in this table. It
+	// complements the resolving ability's target controllers (a departed
+	// target reads its LKI controller), not the remembered set.
+	if repeatPlayersCodes.Code(string(cp.Controller)) == repeatPlayersNonTargetedController {
+		ps, _ := repeatPlayers(h, c, cp.Controller)
+		return owner, ps, true
+	}
 	switch copyPermanentControllerCodes.Code(string(cp.Controller)) {
 	case copyPermanentControllerYou:
 	case copyPermanentControllerTargeted:

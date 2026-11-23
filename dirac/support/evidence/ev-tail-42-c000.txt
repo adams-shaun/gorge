@@ -169,6 +169,7 @@ Furnace Spirit
 Gala Greeters
 Galadhrim Bow
 Galvanic Juggernaut
+Garruk, Primal Hunter
 Gauntlet of Might
 Gaze of Justice
 Ghoulsteed
@@ -256,6 +257,7 @@ Liquify
 Living Lands
 Loamcrafter Faun
 Looter il-Kor
+Lose Focus
 Lucid Dreams
 Lurebound Scarecrow
 Lurking Nightstalker
@@ -288,6 +290,7 @@ Mugging
 Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
+Nature's Cloak
 Nature's Will
 Nectar Faerie
 Needlethorn Drake
@@ -336,6 +339,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Prismwake Merrow
 Protective Bubble
 Psychic Impetus
 Purify the Grave
@@ -454,6 +458,7 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Ultimo, Civilization's End
 Umbilicus
 Unbreathing Horde
 Undead Warchief

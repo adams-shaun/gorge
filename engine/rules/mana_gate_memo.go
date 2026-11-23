@@ -31,6 +31,21 @@ type manaGateMemo struct {
 	ents []manaGateEnt
 	// arena holds every cached answer of the current gen back to back.
 	arena []*cards.SA
+	// grants caches manaGrantGatesHold per printed static for the walk
+	// grantKey/grantSeq name (grantGateMemo): the verdict reads only the
+	// board and the static, never the object the grant is offered to, so one
+	// walk asks it once per static instead of once per (object, static).
+	grants   []grantGateEnt
+	grantKey walkKey
+	grantSeq uint64
+	grantOK  bool
+}
+
+type grantGateEnt struct {
+	src  state.ObjID
+	ctl  state.PlayerID
+	ps   *cards.ParamSet
+	hold bool
 }
 
 type manaGateEnt struct {
@@ -44,7 +59,7 @@ var manaGateMemoVerify = derivedMemoVerifyFlag != ""
 // recycled is m's storage for the next engine: the gen counter carries on,
 // so no recycled entry reads as current.
 func (m *manaGateMemo) recycled() manaGateMemo {
-	return manaGateMemo{gen: m.gen, seq: ^uint64(0), ents: m.ents, arena: m.arena[:0]}
+	return manaGateMemo{gen: m.gen, seq: ^uint64(0), ents: m.ents, arena: m.arena[:0], grants: m.grants[:0]}
 }
 
 // manaGateSlot is the memo slot for one gate question, or -1 when the
@@ -114,4 +129,42 @@ func (e *Engine) manaGateStable(mas []*cards.SA) bool {
 		}
 	}
 	return true
+}
+
+// manaGrantGatesHoldMemo is manaGrantGatesHold (fresh) for one printed AddAbility$ carrier,
+// answered once per walk. The verdict is a pure function of the board (the
+// same walk-fixed inputs the gate memo above keys on: walkKey and derivedSeq,
+// under derivedMemoUsable; scope, usable and seq are the caller's reads of them) and
+// the static itself, so a hit is the answer a fresh read gives. Only a
+// printed view is cached (compiled ParamSet, no Effect-delivered binding),
+// keyed by its source, controller and ParamSet; anything else, or any read
+// outside a memo scope, recomputes. The slice is scanned in insertion order
+// and never ranged for output.
+func manaGrantGatesHoldMemo(m *manaGateMemo, sv staticView, scope func() (walkKey, bool), usable func() bool, seq uint64, keyHit func(k, now walkKey) bool,
+	g *state.Game, classBand func(string, state.ObjID) bool, present func(staticView, string) bool, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool) bool {
+	fresh := func() bool { return manaGrantGatesHold(g, sv, classBand, present, matches) }
+	now, ok := scope()
+	if !ok || !usable() || sv.PS == nil || sv.effectStamp != 0 || sv.Remembered != nil ||
+		sv.castByGrantor || sv.chosenNumberBound || sv.ChosenNumber != 0 || sv.chosenName != "" || sv.chosenNameFrozen ||
+		sv.rememberedPlayers != nil {
+		return fresh()
+	}
+	if !m.grantOK || m.grantSeq != seq || !keyHit(m.grantKey, now) {
+		m.grants = m.grants[:0]
+		m.grantKey, m.grantSeq, m.grantOK = now, seq, true
+	}
+	for i := range m.grants {
+		if g := &m.grants[i]; g.src == sv.Source && g.ctl == sv.Controller && g.ps == sv.PS {
+			if manaGateMemoVerify && g.hold != fresh() {
+				panic("rules: grant gate memo is stale")
+			}
+			return g.hold
+		}
+	}
+	hold := fresh()
+	// fresh may have nested into the memo scope; record only while current.
+	if m.grantOK && m.grantSeq == seq && keyHit(m.grantKey, now) {
+		m.grants = append(m.grants, grantGateEnt{src: sv.Source, ctl: sv.Controller, ps: sv.PS, hold: hold})
+	}
+	return hold
 }

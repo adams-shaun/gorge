@@ -38,11 +38,19 @@ import (
 // (askOptionsCold1, applyAskCold1) have no case for, with the builder of its
 // options and the answer's handler; gen writes askOptionsGen and applyAskGen,
 // which those chains end in. An ask has both directives or neither.
+//
+//	//kmanifest:fword FwFoo
+//	func (s *State) fwFoo(c *fctx, l *kop.FLit) bool { ... }
+//
+// fword: a filter word (kop.FilterWord, a literal of a PredProg program, one
+// file per word, dirac/filter_<name>.go); gen writes fwTable, the package data
+// filterProg indexes by word.
 const (
 	ExtDirective      = "//kmanifest:ext"
 	OpDirective       = "//kmanifest:op"
 	AskOptsDirective  = "//kmanifest:askopts"
 	AskApplyDirective = "//kmanifest:askapply"
+	FWordDirective    = "//kmanifest:fword"
 )
 
 // KernelDir is package dirac's directory, a slash path from the module root.
@@ -77,11 +85,19 @@ type AskHandler struct {
 	ApplyFile   string
 }
 
+// WordHandler is one //kmanifest:fword handler.
+type WordHandler struct {
+	Word   string // the kop.FilterWord constant, e.g. FwFoo
+	Method string // the State method that runs it
+	File   string // its file, a slash path from the module root
+}
+
 // Handlers are the kernel's annotated handlers, each list sorted by code.
 type Handlers struct {
-	Ext []ExtHandler
-	Op  []OpHandler
-	Ask []AskHandler
+	Ext  []ExtHandler
+	Op   []OpHandler
+	Ask  []AskHandler
+	Word []WordHandler
 }
 
 // dirKind is what one directive wants of its handler.
@@ -99,9 +115,10 @@ var (
 	opKind  = dirKind{OpDirective, "Op", "Op", "*prep,*kop.Instr", "bool,bool", "is not a func (*State) (*prep, *kop.Instr) (bool, bool) method"}
 	optKind = dirKind{AskOptsDirective, "ra", "ask", "*prep,*Decision", "", "is not a func (*State) (*prep, *Decision) method"}
 	appKind = dirKind{AskApplyDirective, "ra", "ask", "*prep,Action", "", "is not a func (*State) (*prep, Action) method"}
+	fwKind  = dirKind{FWordDirective, "Fw", "FilterWord", "*fctx,*kop.FLit", "bool", "is not a func (*State) (*fctx, *kop.FLit) bool method"}
 )
 
-var dirKinds = []dirKind{extKind, opKind, optKind, appKind}
+var dirKinds = []dirKind{extKind, opKind, optKind, appKind, fwKind}
 
 // found is one handler a scan met: its directive's kind, the code, the
 // method and the file.
@@ -171,6 +188,8 @@ func ScanKernel(fsys fs.FS) (Handlers, error) {
 			h.Ext = append(h.Ext, ExtHandler{Op: f.code, Method: f.method, File: f.file})
 		case opKind:
 			h.Op = append(h.Op, OpHandler{Op: f.code, Method: f.method, File: f.file})
+		case fwKind:
+			h.Word = append(h.Word, WordHandler{Word: f.code, Method: f.method, File: f.file})
 		}
 	}
 	asks, askErrs := pairAsks(all)
@@ -485,5 +504,34 @@ func genKernelDispatch(h Handlers) string {
 		"// "+AskApplyDirective+" in their feature file (applyAskCold1's last call); false: not one of them.\n",
 		"applyAskGen", "k *prep, a Action",
 		func(a AskHandler) (string, string) { return a.Apply + "(k, a)", a.ApplyFile })
+	return b.String()
+}
+
+// genFilterWords is fwRun and fwHandled, the dispatch of the //kmanifest:fword
+// handlers. fwRun is a switch, not a table of method values: a call through a
+// func value makes its *fctx argument escape, an allocation per literal, and a
+// direct call does not. A word with no handler panics in fwRun, and
+// fwHandled is false for it, which table prep (checkFilterProgs) refuses.
+func genFilterWords(h Handlers) string {
+	var b strings.Builder
+	b.WriteString("\n// fwRun runs a filter program literal's word, whose handler is marked " + FWordDirective + " in its\n" +
+		"// feature file (filterProg's dispatch).\n" +
+		"func (s *State) fwRun(c *fctx, l *kop.FLit) bool {\n\tswitch l.W {\n")
+	for _, w := range h.Word {
+		fmt.Fprintf(&b, "\tcase kop.%s:\n\t\treturn s.%s(c, l) // %s\n", w.Word, w.Method, path.Base(w.File))
+	}
+	b.WriteString("\t}\n\tpanic(\"kernel: filter word not implemented\")\n}\n")
+	b.WriteString("\n// fwHandled reports whether word w has a handler.\nfunc fwHandled(w kop.FilterWord) bool {\n\tswitch w {\n")
+	if len(h.Word) > 0 {
+		b.WriteString("\tcase ")
+		for i, w := range h.Word {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString("kop." + w.Word)
+		}
+		b.WriteString(":\n\t\treturn true\n")
+	}
+	b.WriteString("\t}\n\treturn false\n}\n")
 	return b.String()
 }

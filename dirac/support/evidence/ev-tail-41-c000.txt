@@ -44,6 +44,7 @@ Borne Upon a Wind
 Borrowed Time
 Bring Low
 Brotherhood Outcast
+Burr Grafter
 Butterbur, Bree Innkeeper
 Cabal Coffers
 Cabaretti Courtyard
@@ -81,6 +82,7 @@ Courier Hawk
 Court of Garenbrig
 Crack the Earth
 Crackle with Power
+Crevasse
 Criminal Enterprise
 Crypt Sliver
 Curse of Death's Hold
@@ -112,6 +114,7 @@ Dwarven Forge-Chanter
 Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
+Elrond, Lord of Rivendell
 Empyreal Voyager
 Emrakul's Influence
 Energy Flux
@@ -291,10 +294,12 @@ Quicksilver Geyser
 Radjan Spirit
 Raksha Golden Cub
 Rakshasa Deathdealer
+Ral, Izzet Viceroy
 Rally the Ranks
 Rampaging Ferocidon
 Rank and File
 Ravenous Baboons
+Realmwright
 Reap the Seagraf
 Rebuking Ceremony
 Reckless Abandon
@@ -351,6 +356,7 @@ Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
+Silumgar Spell-Eater
 Silver-Inlaid Dagger
 Silversmote Ghoul
 Skittering Monstrosity
@@ -456,4 +462,5 @@ Woodripper
 Wretched Confluence
 Xander's Lounge
 Xathrid Slyblade
+Yes Man, Personal Securitron
 Zhao, the Seething Flame

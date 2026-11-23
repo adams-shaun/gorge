@@ -96,6 +96,9 @@ type PumpParams struct {
 	// token of that name in every KW$ keyword at resolution ("ChosenColor",
 	// "ChosenType"; Skrelv's "Hexproof:ChosenColor"). Empty when absent.
 	DefinedKW string
+	// CanBlockAny$ True: each pumped creature can block any number of
+	// creatures for the pump's duration (registerPumpCanBlockAny).
+	CanBlockAny bool
 	// Grant is the registration's riders.
 	Grant PumpGrant
 
@@ -165,6 +168,7 @@ func compilePump(sa *cards.SA, dp *DefinedParams) *PumpParams {
 	p.ForgetObjects = strings.TrimSpace(sa.ParamStr(cards.PKForgetObjects))
 	p.ReplaceDyingDefined = strings.TrimSpace(sa.ParamStr(cards.PKReplaceDyingDefined))
 	p.DefinedKW = strings.TrimSpace(sa.ParamStr(cards.PKDefinedKW))
+	p.CanBlockAny = isTrue(sa.ParamStr(cards.PKCanBlockAny))
 	p.Grant = compilePumpGrant(sa)
 	if sa.API == "Pump" {
 		p.Unread = unreadKeys(sa, pumpKnownKeys[:])
@@ -266,6 +270,7 @@ var pumpKnownKeys = [...]string{
 	"AnnounceTitle",
 	"AtEOT",
 	"Boast",
+	"CanBlockAny",
 	"CantCopy",
 	"ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValidDesc",

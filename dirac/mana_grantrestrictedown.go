@@ -30,6 +30,21 @@ func (s *State) ownRestrAb(k *prep, sl Slot) *kop.Ability {
 	return &k.t.Cards[c].Abilities[rec.ab]
 }
 
+// ownRestrAbListed is ownRestrAb for a listing: a gate-off restricted ability
+// (its IsPresent$ mana gate fails) is absent from every list, as gorge lists
+// it nowhere (mana_gate.go's ManaActivationGateHolds holds for the priority
+// offer, the payment window and the planner census; restrDynBesideGrant's
+// same check).
+//
+//go:noinline
+func (s *State) ownRestrAbListed(k *prep, sl Slot) *kop.Ability {
+	ra := s.ownRestrAb(k, sl)
+	if ra != nil && ra.Trig.Cond != 0 && !s.manaGateHolds(k, ra, sl) {
+		return nil
+	}
+	return ra
+}
+
 // grantRestrOwnFirst: the cast window's "choose a mana ability" ask of sl, a
 // table-restricted source whose only own ability is its printed restricted
 // one beside a grant (Cargo Ship's artifact-only {C} under A Realm Reborn),
@@ -57,4 +72,31 @@ func (s *State) grantRestrOwnFirst(k *prep, sl Slot, want uint8) (*kop.Ability, 
 		return nil, false // the grant owes and the printed ability does not: the grant first
 	}
 	return ra, true
+}
+
+// restrDynBesideGrant is grantRestrOwnFirst for a dynamic amount whose
+// restriction the payment may not spend (Woodland Weavemaster's Elf-only mana
+// beside Citanul Hierophants' {T}: Add {G}, paying Paralyze's {4}): gorge's
+// "choose a mana ability" ask still lists the printed ability ahead of the
+// grant, and the window's answer takes it, so the evaluated amount floats
+// restricted and the grant is never tapped (CR 106.6). The ability and its
+// amount, nil with none.
+//
+//go:noinline
+func (s *State) restrDynBesideGrant(k *prep, sl Slot) (*kop.Ability, uint8) {
+	ra := s.ownRestrAb(k, sl)
+	if ra == nil || ra.AFlags&kop.AfManaDynamic == 0 || s.ownManaUsable(k, sl) || !s.restrUsable(k, sl) {
+		return nil, 0
+	}
+	if len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || s.windowGrantMask(k, sl) == 0 {
+		return nil, 0
+	}
+	if ra.Trig.Cond != 0 && !s.condEval(k, ra.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+		return nil, 0 // a gated ability is absent (restrViewW)
+	}
+	n := s.dynManaN(k, ra, sl)
+	if n <= 0 {
+		return nil, 0
+	}
+	return ra, uint8(min(n, maxDynMana))
 }

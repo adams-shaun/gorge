@@ -103,6 +103,11 @@ type Engine struct {
 	// expiringControl guards expireControl against re-entry through the
 	// ControlChange events it emits.
 	expiringControl bool `clone:"reset"`
+	// sbaLossHeld holds CR 800.4a's end of a departed player's control effects
+	// while the SBA check that made the loss applies its batch (CR 704.3: a
+	// creature with lethal damage still dies in the check its stolen controller
+	// loses); checkStateBased sets it around the batch and ends the effects after.
+	sbaLossHeld bool `clone:"reset"`
 	// reconcilingControlStatics guards reconcileControlStatics (engine/rules/
 	// control_static.go) against re-entry through the ControlChange events
 	// IT emits; the same intent-boundary discipline as expiringControl.
@@ -119,6 +124,16 @@ type Engine struct {
 	// paidManaCensus is !Config.DisablePaidManaCensus (paid_mana_census.go);
 	// ON unless a Config explicitly disables it.
 	paidManaCensus bool `clone:"deep"`
+	// scriptSearching marks an engine a payment-prefix search runs on
+	// (sr.run, witnessReachesMode; potential_script.go): the census-gap
+	// autopay offer arm (autoPayOffer's census arm) must not run in any walk the search
+	// reaches. The search's own clones pose priority asks whose offer walk
+	// would otherwise run the arm again -- a nested prefix search, blowing
+	// the node budgets, whose offers the search's own offered/childOffers
+	// scans and a witness reach's end-menu read would then take for the play
+	// being payable before any prefix paid for it. deep: every clone the
+	// search takes carries the gate.
+	scriptSearching bool `clone:"deep"`
 	// skipPass is the hypothetical-only auto-pass of quiet priority windows
 	// (skip_pass.go); set by the search's world setup, never cloned.
 	skipPass uint8 `clone:"reset"`

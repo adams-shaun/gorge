@@ -23,8 +23,8 @@ runs used, the self-play runner, and the training code aren't, so they can't be 
     - **Training from scratch, same schedule:** UWTempo on dirac goes
       from their gen0 (0.38 vs 0.35) to 0.78 by gen17, where theirs reaches
       0.65, against an opponent calibrated to their gen0.
-    - **Adopted:** the encoder ships in the self-play runner as an opt-in, off-by-default recording
-      flag, measured free when off. NetGraph is not adopted.
+    - **Adopted:** the encoder (`dirac/feat/mzxgraph.go`) is an opt-in, off-by-default recording
+      flag of the self-play runner, measured free when off. NetGraph is not adopted.
 
 Their sources are `results/experiments.md`, `results/generations.md`,
 `magezero-faeries-findings.md` and `results/roundrobin-trainlog.txt` on
@@ -335,10 +335,10 @@ Each generation's figure is ±0.03 (95%, 1,000 games). Reading:
 
 ## The encoder as an opt-in flag
 
-The runner's `-mzxgraph` flag wrote MageZero's graph encoding (a Go port of their
+The runner's `-mzxgraph` flag wrote MageZero's graph encoding (`dirac/feat/mzxgraph.go`, a Go port of their
 `StateEncoder`, id-parity tested against their Python vocabulary) as a
 sidecar beside the training corpus, and `-mzgraph` wrote dirac's own features
-as a typed graph. Both are off by default. Off, games were byte-identical in
+(`dirac/feat/mzgraph.go`) as a typed graph. Both are off by default. Off, games were byte-identical in
 12 of 12 benchmark runs, and the instruction-count ratio was 1.0008 median,
 inside run-to-run noise.
 

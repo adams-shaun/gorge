@@ -7,6 +7,7 @@ Arena of the Ancients	72f95c354e5d9fcf	30	1/1		0/1	ix:resp
 Autonomous Assembler	20f34521dfacab01	32	1/1		3/3	
 Barl's Cage	367dabac2acebe4a	37	1/1		1/1	
 Battletide Alchemist	2d901bff5089af14	12	0/0		0/0	
+Bebop, Skull & Crossbones	f0a8a60ced01ba4a	6	2/2		0/1	ix:resp
 Blood Artist	671395814f8e9b91	18	1/1		1/1	
 Body Dropper	d6096376c374c95b	4	2/2		1/1	
 Bow of Nylea	583696fc625c235a	10	1/1		1/1	
@@ -24,7 +25,9 @@ Gate to Seatower	626d5798cf6cdf4f	24	2/2		1/1
 Glademuse	af3fdd5f39123c26	26	1/1		1/1	
 Glasses of Urza	971a4467ff9bc7c3	57	1/1		1/1	
 Goldmeadow Harrier	b91c521e10039418	49	1/1		1/1	
+Guildscorn Ward	95d4e1516f6205d5	4	0/0		1/2	ix:resp
 Herald of the Pantheon	e45ce55b75048c09	38	1/1		0/1	ix:resp
+Impromptu Raid	8683619f1d84d96f	3	1/1		1/1	
 Incendiary Oracle	f70168c6366591a8	33	1/1		1/1	
 Jaheira, Friend of the Forest	13ccd4bc749e19b3	13	0/0		0/0	
 Kavu Chameleon	576d2420e1592743	6	1/1		1/1	
@@ -45,10 +48,12 @@ Saiba Syphoner	5173c779ccde7a78	3	1/1		0/1	ix:resp
 Salvager of Ruin	f54af198fe5fc36e	43	1/1		0/1	ix:resp
 Seat of the Synod	332be3ce1548d204	25	1/1		0/1	ix:resp
 Spin into Myth	87f147f390148b8e	64	0/0		2/2	
+Spoils of the Vault	f1c4dfad316849fd	5	0/0		1/2	ix:resp
 Steadfast Cathar	bb76fc6aed1e6b2e	43	1/1		1/1	
 Stensia Bloodhall	cf9416ea101cfea0	192	2/2		1/1	
 The Balrog, Flame of Udûn	e979961ea92c5bc2	4	1/1		0/1	ix:resp
 Thriving Heath	120ef84f1ef779b9	14	1/1		0/1	ix:resp
+Tinder Wall	d2c1c27986c407fa	15	2/2		0/1	ix:resp
 Tocasia's Dig Site	960dba8fcdb28750	11	2/2		1/1	
 Tomb of Horrors Adventurer	729e0810ab1a1b91	52	2/2		1/1	
 Touchstone	820bb0d84f4e90c3	3	1/1		1/1	
@@ -58,4 +63,5 @@ Vital Splicer	3fc47fca6df29c3d	4	2/2		1/1
 Wall Off	e0a02586c9044c78	11	0/0		2/2	
 Wasteland	406e08c2ec8f89bc	18	2/2		0/1	ix:resp
 Will of the Naga	739a83ecfe919dc6	4	0/0		1/2	ix:resp
+Wingbeat Warrior	e1f73421d1a19422	6	1/1		2/3	ix:resp
 Zoanthrope	e1c9bd2941117b03	19	3/3		1/1	

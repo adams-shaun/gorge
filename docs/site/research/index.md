@@ -123,73 +123,27 @@ Hover a point for its games and interval. The rows are self-paired play gates, i
 
 ## What we know
 
-<div class="grid cards" markdown>
-
--   **1. Search is the strongest lever.**
-
-    With the MLP, strength grows up to about 1600 sims and is flat from 1600 to 3200: 400 vs 100 0.5384 ±0.0154; 3200 vs 1600 0.499 ±0.022. [Search](search.md#3-win-rate-against-simulations)
-
--   **2. cpuct 0.5 with root LCB is worth +5.0 ±1.4 points**
-
-    vs sb-tactical at sims 100, more than any training arm of that period (best +2.7). [AZ loop](az-loop.md#6-the-diagnosis)
-
--   **3. The FDN self-play loop is flat after about seven generations**
-
-    on every recipe tried: az-c6 g7 vs g6 0.500; loop2 k10 vs k9 0.500 ±0.018; f84 26 generations at 0.50 vs prev. [AZ loop](az-loop.md), [instant timing](instant-timing.md)
-
--   **4. The prior already agrees with its own search.**
-
-    KL(visits‖prior) 0.076 and 87% top-1 agreement on a 40k-state pack; 39% of states have a root Q span under 0.02. [Policy target](policy-target-and-react.md#policy-target-quality)
-
--   **5. Changing the policy target does not help.**
-
-    cqraw 0.50475 and PCR 0.5016 against cq at g9, 4,000 games each. [Policy target](policy-target-and-react.md)
-
--   **6. Width does not help.**
-
-    The 2,287,618-parameter W128 MLP scores 0.4514 ±0.0154 vs g26 against W64's 0.4723. [Net width](net-width.md)
-
--   **7. A GNN wins per simulation and loses per second.**
-
-    G_M 0.5302 at equal sims; 0.4855 at equal time, because it costs 18× per searched move. [GNN](gnn.md)
-
--   **8. Holdout loss is not a strength measure.**
-
-    Distillation lowered holdout policy CE from 0.625 to 0.606 and play did not move (0.496–0.500); the v2-off arm had the better loss and the worse play. [GNN](gnn.md)
-
--   **9. Card features pay a little.**
-
-    The v2 entity block adds +0.019 ±0.008 (one standard error) over 8,000 games per arm. [Architecture](architecture.md#entity-records-100-floats-per-visible-card)
-
--   **10. Instant timing is a training-signal problem, not a rule problem.**
-
-    Rules at play only move casts to main 1. Recording held casts as zero-visit candidates moves opponent-turn share 20.9% → 35.2% at equal strength (0.4965). Humans: 49.6%. [React](policy-target-and-react.md#the-react-rule-and-held-cast-recording)
-
--   **11. Closing the opponent's list costs little.**
-
-    Old c3 61.2% closed vs 63.0% open against sb-tactical; knowing the opponent's deck list at sims 1600 is worth +0.6 ±1.2 points. [AZ loop](az-loop.md)
-
--   **12. Against fixed opponents the loop learns fast.**
-
-    UWTempo 0.379 → 0.7765 in 17 generations against search-300 monos; MageZero 0.347 → 0.646. [UWTempo](uwtempo.md)
-
--   **13. Training on the pool you play pays.**
-
-    Pauper g1 beat FDN-trained M_CTLX 0.5630 [0.5412, 0.5846] and took the title six generations running. [Pauper](pauper-retrain.md)
-
--   **14. Simulated card values plateau near ρ 0.5 against 17Lands**
-
-    with scripted pilots, and reach 0.57–0.61 with a trained search pilot. Agreement with 17Lands does not predict drafting strength: the best-agreeing list drafted worst, 45.6%. [Card valuation](card-valuation.md)
-
--   **15. PPO on self-league reward does not transfer.**
-
-    Draft S2 +1.9 points (−0.2, +4.1) over S1; league reward rose while the gauntlet did not. [Draft RL](draft-rl.md)
-
-</div>
+| # | Finding | Evidence (page) |
+|---|---|---|
+| 1 | Search is the strongest lever: strength grows to about 1600 sims, flat from 1600 to 3200 | 400 vs 100 0.5384 ±0.0154; 3200 vs 1600 0.499 ±0.022 ([Search](search.md#3-win-rate-against-simulations)) |
+| 2 | cpuct 0.5 with root LCB is worth +5.0 ±1.4 points vs sb-tactical at sims 100, more than any training arm then (best +2.7) | [AZ loop](az-loop.md#6-the-diagnosis) |
+| 3 | The FDN self-play loop is flat after about seven generations on every recipe tried | az-c6 g7 vs g6 0.500; loop2 k10 vs k9 0.500 ±0.018; f84 26 generations at 0.50 ([AZ loop](az-loop.md), [instant timing](instant-timing.md)) |
+| 4 | The prior already agrees with its own search | KL(visits‖prior) 0.076, 87% top-1 agreement, 39% of states with root Q span under 0.02, on a 40k-state pack ([Policy target](policy-target-and-react.md#policy-target-quality)) |
+| 5 | Changing the policy target does not help | cqraw 0.50475, PCR 0.5016 vs cq at g9, 4,000 games each ([Policy target](policy-target-and-react.md)) |
+| 6 | Width does not help | 2,287,618-parameter W128 0.4514 ±0.0154 vs g26; W64 0.4723 ([Net width](net-width.md)) |
+| 7 | A GNN wins per simulation and loses per second | G_M 0.5302 at equal sims, 0.4855 at equal time, 18× cost per searched move ([GNN](gnn.md)) |
+| 8 | Holdout loss is not a strength measure | Distillation cut holdout policy CE 0.625 → 0.606; play stayed 0.496–0.500 ([GNN](gnn.md)) |
+| 9 | Card features pay a little | v2 entity block +0.019 ±0.008 (one standard error), 8,000 games per arm ([Architecture](architecture.md#entity-records-100-floats-per-visible-card)) |
+| 10 | Instant timing is a training-signal problem | Rules at play only move casts to main 1; recording held casts as zero-visit candidates moves opponent-turn share 20.9% → 35.2% at equal strength (0.4965); humans 49.6% ([React](policy-target-and-react.md#the-react-rule-and-held-cast-recording)) |
+| 11 | Closing the opponent's list costs little | c3 61.2% closed vs 63.0% open vs sb-tactical; knowing the list at sims 1600 +0.6 ±1.2 ([AZ loop](az-loop.md)) |
+| 12 | Against fixed opponents the loop learns fast | UWTempo 0.379 → 0.7765 in 17 generations; MageZero 0.347 → 0.646 ([UWTempo](uwtempo.md)) |
+| 13 | Training on the pool you play pays | Pauper g1 beat FDN-trained M_CTLX 0.5630 [0.5412, 0.5846] and held the title six generations ([Pauper](pauper-retrain.md)) |
+| 14 | Simulated card values plateau near ρ 0.5 vs 17Lands with scripted pilots (0.57–0.61 with a trained search pilot); agreement does not predict drafting: the best-agreeing list drafted worst, 45.6% | [Card valuation](card-valuation.md) |
+| 15 | PPO on self-league reward does not transfer | Draft S2 +1.9 points (−0.2, +4.1) over S1; league reward rose, the gauntlet did not ([Draft RL](draft-rl.md)) |
 
 ## Numbers that disagree
 
-Where two figures on these pages seem to contradict each other, this is why.
+Why figures that look contradictory differ.
 
 | What | The figures | Why they differ |
 |---|---|---|

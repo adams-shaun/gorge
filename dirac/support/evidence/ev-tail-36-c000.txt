@@ -3,6 +3,7 @@ A-Base Camp
 A-Cosmos Elixir
 A-Elderleaf Mentor
 A-Esika's Chariot
+A-Shipwreck Sifters
 Abandon Reason
 Aberrant Return
 Abuna Acolyte
@@ -183,6 +184,7 @@ Hidden Path
 Highland Lake
 Hoarding Ogre
 Honden of Infinite Rage
+Horrid Shadowspinner
 Hot Soup
 Hunted Troll
 Hurricane
@@ -255,6 +257,7 @@ Mindstab
 Minotaur Abomination
 Mite Overseer
 Mobilization
+Molten Firebird
 Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain
@@ -307,6 +310,7 @@ Refurbish
 Rekindling Phoenix
 Renowned Weaver
 Rescuer Chwinga
+Resilient Khenra
 Revolutionist
 Rhox Faithmender
 Righteous Cause
@@ -431,6 +435,7 @@ Wipe Clean
 Witches' Eye
 Woodland Patrol
 Woodwraith Strangler
+Worldsoul Colossus
 Wrap in Flames
 Write into Being
 Xenograft

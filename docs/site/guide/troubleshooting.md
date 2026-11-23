@@ -1,7 +1,6 @@
 # Troubleshooting
 
-The failures you are most likely to hit running gorge's server and bot tools, each with the
-message you see, the cause and the fix.
+Common failures of gorge's server and bot tools: the message, the cause, the fix.
 
 ## Starting up
 
@@ -47,8 +46,8 @@ contains the word, including your own shell or editor. Or pick another `-addr`.
 |---|---|
 | `-bot-policies: bot policy "sb-tactical" reads opponents' decklists and cannot be offered` | `sb-tactical` and `az-redeal` are never seated against a person; leave them out of `-bot-policies` |
 | `-bot-opt "bot.depth=3": bot policy "bot" declares no options` | only `forge-heuristic` declares an option, `hold-instant` ([Bots](../bots/catalogue.md#the-six-registered-bots)) |
-| `-bot-policy "az-redeal" reads opponents' decklists and cannot be the default` | the default policy must be one a person can play against: `bot`, `forge-heuristic`, `forge-heuristic-hold` or `lethal-pressure` |
-| `-pprof requires a loopback listener (got [::]:8080)` | `-pprof` needs `-addr 127.0.0.1:…` |
+| `-bot-policy "az-redeal" reads opponents' decklists and cannot be the default` | the default must be registered, offered, support both formats, seat two or more, and not read decklists (`gorged -h` lists the registered names) |
+| `-pprof requires a loopback listener (got [::]:8080)` | `-pprof` needs a loopback `-addr` (`127.0.0.1:…`) |
 | `-manabrew requires a seat gate: pass -humans or -vsbot`, and the same for `-sbv2` | these wires only serve seats |
 | `-engine: engine "x" is not linked into this server (available: dirac, gorge)` | `-engine` takes `gorge`, the default, or `dirac` ([Serving dirac](dirac.md)) |
 | `dirac plays two seats: pass -seats 2` | `-seats` defaults to 4, and dirac has two |
@@ -122,8 +121,7 @@ cache fills and never affects play. `-art-dir` keeps the cache across a wiped
 
 ### `{"code":"capacity"…}` when creating an event
 
-A server holds `-max-events` events (default 4) that aren't yet COMPLETE. Raise the flag or
-let one finish. See [Draft events](draft.md#what-you-can-choose).
+A server holds `-max-events` events (default 4) that aren't yet COMPLETE. Raise the flag or let one finish. See [Draft events](draft.md#what-you-can-choose).
 
 ## Bot runs
 
@@ -145,7 +143,7 @@ seed; the seed reproduces the game.
 Check the build and the corpus first. A different gorge commit or a different
 `FORGE_REF` (`.cards/cards.lock`) can change every game, and the same command
 on the same build prints the same output. Then check the sample size against the
-[table](bot-games.md#reading-the-result): ±5 points is ordinary noise at 400 games.
+[table](bot-games.md#reading-the-result): ±5 points is ordinary noise at 400 games (95% interval, ±1.96·√(p(1−p)/n)).
 
 ## `repro` prints `DIVERGED`
 

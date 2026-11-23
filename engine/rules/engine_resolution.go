@@ -51,6 +51,9 @@ type engineResolution struct {
 	// power, toughness and counters, read by a source-relative target
 	// filter's CR 608.2b recheck (source_char_lki.go).
 	sourceCharLKI map[state.ObjID]sourceCharSnapshot `clone:"deep"`
+	// departedColors is the layer-derived colour set an object had when it last
+	// left the battlefield, kept until it moves again (departed_colors.go).
+	departedColors map[state.ObjID]string `clone:"deep"`
 	// delayedSourceCharLKI is the pre-departure snapshot of a source that
 	// still names a delayed SpellCast registration, keyed by that source: the
 	// registration's filter bound (Loki's cmcLEX) reads it once the source

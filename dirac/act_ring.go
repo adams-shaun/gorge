@@ -609,18 +609,21 @@ func (s *State) ringCombatHit(k *prep, r *dmgRec) {
 // ringLootDiscard is the loot's discard half (gorge's Discard You TgtChoose
 // 1): with no card in hand nothing; with exactly one the strict-supersets
 // rule discards it silently; with more the player is asked (raRingLoot).
+// It never pops: the caller owns the resolution's one finish (resolveTop's
+// abDelayed arm for the emblem trigger, dredgeResTail for the dredge resume,
+// ringAskLootAnswer for the ask).
 //
 //go:noinline
 func (s *State) ringLootDiscard(k *prep, p uint8) {
 	pl := &s.pl[p]
 	switch {
 	case pl.handN == 0:
-		s.finishResolve(k, false)
+		return
 	case int(pl.handN) == 1 && s.objs[pl.hand[0]].of&ofCopy == 0:
 		s.discardObj(k, pl.hand[0])
-		s.finishResolve(k, false)
+		return
 	case int(pl.handN) == 1:
-		s.finishResolve(k, false) // the only card is a copy, not a discardable card
+		return // the only card is a copy, not a discardable card
 	default:
 		s.res.ask, s.res.askP, s.res.left = raRingLoot, p, 1
 		s.res.chosen = objWord(p)
@@ -690,10 +693,14 @@ func (s *State) ringPromiseReg(k *prep, e *stackEntry) {
 
 // fireRingPromises puts the live level-3 promises on the stack at the
 // end-of-combat step, in registration order, and clears them (the promise is
-// this combat's: gorge's thisTurn rider). The sacrifice entry resolves
-// through resolveDelayed's OpSacrifice arm, whose own version and zone
-// re-check is the CR 400.7 half, with the blocker's controller's sacrifice
-// (sacBlocked, the CR 616.1 park) and the ordinary sacrifice machinery.
+// this combat's: gorge's thisTurn rider). Every registered promise fires:
+// CR 603.7 keeps a delayed trigger that names an object that has since left
+// the battlefield — a blocker that combat damage killed before end of combat —
+// on the stack, resolving to nothing (gorge's fire-time scan only requires the
+// source to still resolve; checkDelayedTriggers' src == nil remove is the sole
+// gate), so the CR 400.7 half is resolveDelayed's own version and zone
+// re-check, with the blocker's controller's sacrifice (sacBlocked, the CR
+// 616.1 park) and the ordinary sacrifice machinery.
 //
 //go:noinline
 func (s *State) fireRingPromises(k *prep) {
@@ -707,9 +714,6 @@ func (s *State) fireRingPromises(k *prep) {
 	n := int(*cnt)
 	for i := 0; i < n; i++ {
 		pr := a[i]
-		if s.objs[pr.obj].ver != pr.ver || s.objs[pr.obj].zone != kop.ZoneBattlefield {
-			continue // CR 400.7: a new object, or gone
-		}
 		s.enqueue(pr.obj, pr.ver, s.objs[pr.obj].card, abDelayed, pr.ctrl, pr.obj, pr.ctrl, int16(kop.OpSacrifice))
 		if st := DebugRingStats; st != nil {
 			st.PromiseFires++

@@ -214,7 +214,7 @@ func (e *Engine) payCast() {
 		// The descriptor carries the announced-X marker (the ability's own
 		// {X} cost was folded), so a CostContainsX batch sees this activation
 		// as an X payment exactly as the offer did.
-		ok, _, spentMana, _, _ := pay.PayManaDescriptorForSpent(asPayer(e), pc.player, paymentForCast(pc, mana), mana,
+		ok, activationAll, spentMana, activationSnow, activationTyped := pay.PayManaDescriptorForSpent(asPayer(e), pc.player, paymentForCast(pc, mana), mana,
 			asEval(e).Conv(pc.player, pc.card, pay.SAActivated), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
@@ -441,6 +441,12 @@ func (e *Engine) payCast() {
 		// X was paid: no event, matching the spell arm's guard.
 		if pc.x != 0 {
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.stackObj, Amount: pc.x})
+		}
+		// What the activation's payment spent (Count$TotalManaSpent <Type>,
+		// Count$ManaColorsPaid), on the ability's own stack object, AFTER the
+		// X event above (its fold resets the flags this one sets).
+		if faceWantsActivationSpend(e.G.Obj(pc.card).Face()) {
+			emitActivationSpend(e, pc.stackObj, activationAll, activationSnow, activationTyped)
 		}
 		if so := e.G.Obj(pc.stackObj); so != nil && pc.modeChosen {
 			effects.RecordCharmChoices(e, pc.card, so.Ability, so.ChosenModes)
@@ -728,6 +734,8 @@ func (e *Engine) payCast() {
 	if pc.altCostPaid {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagAltCostPaid)
 	}
+	// Emerge (CR 702.119): see emergeStamp.
+	flags = emergeStamp(pc, e.G.Obj(pc.card).Face(), flags)
 	// DB$ Play's ReplaceGraveyard$ Exile rider: the played
 	// spell's provenance — "if that spell would be put into your graveyard
 	// this turn, exile it instead" — rides the same pay-time CastInfo every
@@ -866,7 +874,9 @@ func (e *Engine) payCast() {
 	}
 	// Conspire and Teamwork are paid-cost provenance. Emit no marker when
 	// declined so plain casts retain their byte-identical CastInfo stream.
-	for _, ev := range paidTapCastInfo(pc, flags) {
+	// The Emerge sacrifice and its last-known toughness (Count$Emerged) ride
+	// the same trailing slot.
+	for _, ev := range append(paidTapCastInfo(pc, flags), emergedCastInfo(pc, e.G.Obj(pc.card).Face(), flags, sacrificedLKI)...) {
 		e.emit(ev)
 	}
 	// Convoke (CR 702.66): the creatures the caster tapped to
@@ -924,39 +934,11 @@ func (e *Engine) payCast() {
 	// only a face whose SVar table reads the count (faceWantsCastSpend)
 	// stamps the event.
 	if pc.manaSpentOn {
-		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSpent)
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpent, Counter: flags})
-		// The SNOW-unit part of that same spend rides its
-		// own trailing CastInfo: the flag routes the Amount into
-		// Object.ManaSnowSpent, so it never clobbers the unfiltered total the
-		// event just set (the converge/multikick two-event split, applied one
-		// step further). Emitted unconditionally alongside the total -- a cast
-		// that spent no snow mana is a real zero, not an absent one -- so the
-		// filtered Count$CastTotalManaSpent Snow read is exact for the six
-		// Snow carriers without a second gate.
-		snowFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaSnowSpent)
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.manaSpentSnow, Counter: snowFlags})
-		// The TYPED parts of that same spend ride their own
-		// trailing CastInfos, one per tag, each accumulating the earlier
-		// flags -- the same split, applied twice further. Emitted
-		// unconditionally alongside the total -- a cast that spent no mana of
-		// a tag is a real zero, not an absent one -- so the filtered
-		// Count$CastTotalManaSpent Treasure/Cave/Desert read is exact for
-		// their carriers without a second gate. The emission order is total,
-		// then Snow, then Treasure, then Cave, then Desert, then Artifact;
-		// since every later event carries all earlier flags,
-		// events.Apply's CastInfo switch
-		// checks the NEWEST flag first (Artifact, Desert, Cave, Treasure,
-		// Snow, then the total) or every later event would route into the
-		// first tag's field.
-		typedAmounts := [4]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert, pc.manaSpentArtifact}
-		typedFlags := [4]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent, state.FlagManaArtifactSpent}
-		acc := events.FlagsFrom(flags)
-		for t := range typedFlags {
-			acc |= typedFlags[t]
-			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: typedAmounts[t],
-				Counter: events.FlagsString(acc)})
-		}
+		// The snow and typed parts follow as their own trailing CastInfos
+		// (emitSpendCastInfos documents the order and the newest-flag-first
+		// fold).
+		flags = emitSpendCastInfos(e, pc.card, flags, pc.manaSpent, pc.manaSpentSnow,
+			[4]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert, pc.manaSpentArtifact})
 	}
 	if ev, ok := manaColorSpentCastInfo(pc, flags); ok {
 		e.emit(ev)

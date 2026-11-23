@@ -30,6 +30,7 @@ Blistering Dieflyn
 Bloodscent
 Bloodshot Trainee
 Bloodthorn Taunter
+Blue Ward
 Boggart Loggers
 Bonded Construct
 Bonescythe Sliver
@@ -346,6 +347,7 @@ Tireless Provisioner
 Titania, Nature's Force
 Tooth Collector
 Torrential Gearhulk
+Tower Above
 Triton Shorestalker
 Tsabo's Decree
 Tuktuk Grunts

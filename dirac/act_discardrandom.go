@@ -24,6 +24,9 @@ var (
 // snapshot with order-preserving removal; a discard trigger that adds a card
 // to the hand mid-way is not eligible for the rest of this instruction.
 func (s *State) discRandom(k *prep, p uint8, n int) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one discard action (gorge discardRandom)
+	}
 	var eligible [MaxHand]Obj
 	m := int(s.pl[p].handN)
 	copy(eligible[:m], s.pl[p].hand[:m])

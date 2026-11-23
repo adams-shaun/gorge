@@ -1,12 +1,6 @@
 # Play in the browser
 
-This page is for people who want to play against gorge's bots, against friends, or both, in
-a browser. It covers starting `gorged`, what each screen does, the flags that shape tables,
-decks and bots, filing a bug report from a game, and what you are exposed to on a network.
-You need the corpus and the browser client from [Install and build](install.md); the client
-has to be built before `gorged` is.
-
-The commands and responses are from 2026-11-02, and the screenshots from 2026-10-20.
+Play against gorge's bots or friends in a browser. You need the corpus and the built client from [Install and build](install.md). Command output below is from 2026-11-02; the screenshots are from 2026-10-20.
 
 ## Play against a bot
 
@@ -17,11 +11,9 @@ go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-play \
 
 ```text
 gorged: 4 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-play)
-gorged: art prewarm: 1124 distinct card names from testkit/testutil/decks
 ```
 
-Leave it running; Ctrl-C stops it. Open <http://127.0.0.1:8080/>. The lobby lists the bot-only
-tables the server is running and, because of `-vsbot`, a **Play 1v1 vs a bot** panel:
+Leave it running; Ctrl-C stops it. Open <http://127.0.0.1:8080/>. The lobby lists the bot-only tables and, because of `-vsbot`, a **Play 1v1 vs a bot** panel:
 
 <figure markdown>
 ![The gorged lobby: the Play 1v1 vs a bot panel with format, mulligans, deck and bot pickers, the draft entry, the deck win-rate board and the table grid, with a live feed rail on the right](img/lobby.png)
@@ -33,23 +25,14 @@ Pick a format, your deck, the bot's deck (or leave either on *Random*) and a bot
 to that table's join URL, `/t/g1?seat=0&token=…`, and the game starts with the mulligan
 decision.
 
-The flags in that command:
+Pick a format, your deck, the bot's deck (or *Random*) and a bot, then **Start game**. The server makes a private table and returns a seat token. The browser opens `/t/g1?seat=0&token=…` and the game starts at the mulligan.
 
-- `-vsbot` arms the panel. Without it the server is spectator-only: you can watch bot tables,
-  but nothing can sit down.
-- `-addr 127.0.0.1:8080` listens on loopback only. Without the flag `gorged` listens on `:8080`,
-  every interface; see [On a network](#on-a-network).
-- `-dir` is the persistence directory. Give each server its own
-  ([why](#persistence-and-restarts)).
-- `-feedback` is where bug reports go. The default is `feedback/` in the current directory, which
-  is gitignored at the root of a checkout.
+- `-vsbot` arms the panel. Without it the server is spectator-only.
+- `-addr 127.0.0.1:8080` listens on loopback only. The default `:8080` is every interface ([On a network](#on-a-network)).
+- `-dir` is the persistence directory; give each server its own ([why](#persistence-and-restarts)).
+- `-feedback` is where bug reports go (default `feedback/` in the current directory).
 
-The server fetches card images from [Scryfall](https://scryfall.com) and caches them under
-`<dir>/art`, or under `-art-dir` if you set it. At startup it fills that cache in the
-background for every card in every deck, at a limited rate. A line such as
-`art: named lookup Amulet of Vigor: 429, retrying in 1m0s` means Scryfall asked it to slow down;
-it backs off, and missing art never blocks a game. `-prewarm=false` makes no outbound requests
-until a page asks for an image.
+Card images come from [Scryfall](https://scryfall.com), cached under `<dir>/art` or `-art-dir`. Startup fills the cache for every dealt deck at a limited rate. `art: named lookup …: 429, retrying` means Scryfall asked it to slow down; missing art never blocks a game. `-prewarm=false` makes no outbound requests until a page asks.
 
 ## The table
 
@@ -67,86 +50,42 @@ until a page asks for an image.
 | Rail | players, the stack (with per-card "always pass" yields), the pending decision, the game log, and **Restart**, **Concede**, **Options** |
 | Prompt dock | targets, modes, attackers and blockers, scry and surveil arrangement, discard, library search, naming a card, and the mana payment panel when you pay by hand |
 
-Attacks and blocks are made by clicking creatures on the board; the dock offers *Attack with
-all*, *No attack* and *No blocks*. **Restart** starts a new game with the same decks and bot and
-a fresh seed.
+Attack and block by clicking creatures; the dock offers *Attack with all*, *No attack* and *No blocks*. **Restart** starts a new game with the same decks and bot and a fresh seed.
 
-The default keys, which **Options → Keymap** rebinds and `?` lists:
+Default keys: Space passes, Enter ends the turn, Shift+Enter skips the rest of it, Esc stops a run of passes, Ctrl+Shift+Z undoes, `1`-`9` pick an option, Shift+A attacks with all, Shift+N declares no blocks, Shift+P auto-pays. `?` lists every key; **Options → Keymap** rebinds them (source: `web/src/lib/keymap.ts`). Every control is covered in [Gameplay options](../web/gameplay.md).
 
-| Key | Action | Key | Action |
-|---|---|---|---|
-| Space | pass priority once | `1`–`9` | pick option N |
-| Enter | end turn | Shift+A | attack with all |
-| Shift+Enter | skip the rest of the turn | Shift+N | no blocks |
-| Esc | stop a run of passes | Shift+P | auto-pay |
-| Ctrl+Shift+Z | undo | `L` | show or hide the log |
-| Ctrl+Shift+O | options | `Z` | zoom the card under the pointer |
-| `G`, `X` | graveyard or exile of the seat under the pointer | `S` | stack identical permanents |
+**Options** sets how much the client passes for you (presets *Casual*, the default, *No tells* and *Full control*, per-step stops, trigger ordering, step delay) and the board layout ([Table layouts](../web/layouts.md)). Settings live in your browser's local storage.
 
-**Options** sets how much the client passes for you: presets (*Casual*, the default; *No tells*;
-*Full control*), which opponent actions stop you, a per-step stop grid for each player's turn,
-trigger auto-ordering, a step delay and the board layout. Settings live in your browser's local
-storage.
+The **Protocol** switch, in the lobby and in Options, picks how a seat talks to the server: *Native* (gorge's own stream), *ManaBrew* or *SpellBench v2* ([Wires](../architecture/wires.md)). ManaBrew needs `-manabrew` and SpellBench v2 needs `-sbv2`. A wire the server doesn't offer is disabled, and the table plays over Native.
 
-The **Protocol** switch, in the lobby and in Options, chooses how a seat talks to the server when a
-table loads: *Native*, gorge's own stream, *ManaBrew* or *SpellBench v2* ([Wires](../architecture/wires.md)).
-ManaBrew needs a server started with `-manabrew`, and SpellBench v2 one started with `-sbv2`. A wire the server
-doesn't offer is disabled, and every table plays over Native with your choice kept for a server that does.
-Native is the same game on any server. A seat you played over SpellBench v2 goes back to it from your next answer
-after you reload the table on Native.
-
-A ManaBrew seat plays the same game with the same board and prompts. Three things differ, because the
-protocol has no event log and no payment plans: the game log holds only what the page has seen and
-starts empty after a reload, Auto-pay taps through the Auto-fill of the mana window, and the window
-doesn't mark which sources Auto-fill would tap. **Auto-pass when all I could do is make mana**, on by
-default, skips the priority stops ManaBrew's own engine never poses, including the rest of your main
-phase once you have nothing left to play.
-
-A SpellBench v2 seat also plays the same game with the same board and prompts. The protocol is two players,
-so a Commander table or one with more seats plays over Native, with no warning. These differ:
-
-- The board moves when you're asked something, not between your decisions.
-- CAST always pays with the suggested plan, so there is no **Auto-pay** switch and no mana window. To pay
-  another way, or to pay an X above 0, tap your lands first. The taps are always on offer.
-- A land that makes any colour gives the first one, and the server answers a triggered cost and the division
-  of an attacker's damage among several blockers for you.
-- The log holds what the page has seen and starts empty after a reload, and an undo leaves the undone lines in it.
+- **ManaBrew:** same game and prompts. The protocol has no event log and no payment plans, so the log holds only what the page has seen and starts empty after a reload, Auto-pay taps through the mana window's Auto-fill, and the window doesn't mark which sources it would tap. **Auto-pass when all I could do is make mana** (default on) skips priority stops ManaBrew's own engine never poses.
+- **SpellBench v2:** same game and prompts, two players only; a Commander table or one with more seats plays over Native, with no warning. The board moves when you're asked something. CAST always pays with the suggested plan, so there is no **Auto-pay** switch or mana window (to pay another way, or an X above 0, tap lands first). A land that makes any colour gives the first one. The server answers triggered costs and combat damage division. The log starts empty after a reload and an undo leaves the undone lines in it.
 
 ### Mulligans and mana
 
-A play-vs-bot game takes its London mulligan allowance from the lobby (0 to 6; the panel defaults
-to 6). Startup tables use `-mulligans` (default 7; 0 skips the pregame round).
+A play-vs-bot game takes its London mulligan allowance from the lobby (0 to 6; the panel defaults to 6). Startup tables use `-mulligans` (default 7; 0 skips the pregame round).
 
-The server offers **automatic mana payment plans** to human seats (`-auto-mana`, on by default):
-CAST pays with a suggested plan, and the ACTIONS menu and the payment panel let you tap by hand
-instead. Bots use the same plans (`-bot-auto-mana`, on by default).
+Human seats get **automatic mana payment plans** (`-auto-mana`, on by default): CAST pays with a suggested plan, and the ACTIONS menu and payment panel let you tap by hand. Bots use the same plans (`-bot-auto-mana`).
 
 ### Undo
 
-Undo rolls the live match back to the decision you last answered, so pressing it repeatedly walks
-back one of your actions at a time. The bots then re-decide from there.
+Undo rolls the live match back to the decision you last answered; repeat to walk back one action at a time, and the bots re-decide from there.
 
-- Undo is refused at a table with more than one human, because the other player can't be asked.
-- The rewind replays the same seed, so a shuffle you undo past comes back in the same order, and
-  you can then know your next draws. Reseeding would break replay.
+- Refused at a table with more than one human.
+- The rewind replays the same seed, so a shuffle you undo past comes back in the same order and you can learn your next draws.
 
 ### Spectating
 
-Anyone who opens a table without a seat token is a spectator, with a transport to scrub back
-through the match and the log open by default. Each finished match has a frozen replay at
-`/t/<table>/m/<k>`. [Replays](replays.md) covers both.
-
-How much a spectator sees is the server's choice:
+Anyone who opens a table without a seat token is a spectator, with a transport to scrub back through the match. Each finished match has a frozen replay at `/t/<table>/m/<k>` ([Replays](replays.md)).
 
 | Flag | Default | Applies to |
 |---|---|---|
-| `-spectator public\|omniscient` | `public` (hands hidden) | the startup tables `t1`…`tN`, including a `-humans` table |
-| `-vsbot-spectator public\|omniscient` | `public` (hands hidden) | the play-vs-bot tables |
+| `-spectator public\|omniscient` | `public` (hands hidden) | startup tables `t1`…`tN`, including a `-humans` table |
+| `-vsbot-spectator public\|omniscient` | `public` | play-vs-bot tables |
 
 ## Play against other people
 
-A human or mixed game uses table `t1` of the startup tables. `-humans` names which of its seats
-are people, and the rest are bots.
+A human or mixed game uses startup table `t1`; `-humans` names which of its seats are people and the rest are bots.
 
 ```sh
 go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-pvp -feedback /tmp/gorge-play-feedback \
@@ -159,48 +98,28 @@ gorged: table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=355b74f
 gorged: table t1 seat 1 joins at http://127.0.0.1:8080/t/t1?seat=1&token=9579ac2e8bcbdd267ded59a62195d63e
 ```
 
-Send each player their own line. A token is random per start, grants one seat at one table, and is
-the only credential there is. For local testing, `-seat-token devtoken` fixes seat 0's token to
-`devtoken` and the next human seat's to `devtoken-1`.
+Send each player their own line. A token is random per start, grants one seat at one table, and is the only credential. `-seat-token devtoken` (local use only) fixes seat 0's token to `devtoken` and each later human seat's to `devtoken-<seat>`.
 
-- **One browser tab plays one seat.** The seat comes from the URL when the page loads. To play both
-  seats on one machine, open each join URL in its own tab.
-- `-humans` applies to `t1` only, and makes it single-match rather than perpetual.
-- Seats `-humans` doesn't name are bots, using `-bot-policy`. A four-seat Commander pod with two people
-  and two bots is `-format commander -seats 4 -humans 0,1`.
-- There is no turn clock: a human seat waits for its answer indefinitely.
-- `-spectator omniscient` shows every hand to anyone who opens `/t/t1` without a token, including a
-  player in a second tab. Don't use it on a table with people at it.
+- One browser tab plays one seat, chosen by the URL. To play both seats on one machine, open each join URL in its own tab.
+- `-humans` applies to `t1` only and makes it single-match rather than perpetual.
+- Other seats are bots using `-bot-policy`. Two people and two bots in a Commander pod: `-format commander -seats 4 -humans 0,1`.
+- There is no turn clock.
+- `-spectator omniscient` shows every hand to anyone who opens `/t/t1` without a token. Don't use it with people at the table.
 
 For a draft instead of a single game, see [Draft events](draft.md).
 
 ## Tables, formats, decks and seats
 
-`gorged` runs `-tables` perpetual bot-only tables alongside any play-vs-bot games. They are the
-"watch the bots play" half of the lobby, and the deck win-rate board is computed from their finished
-games.
+`gorged` runs `-tables` perpetual bot-only tables beside any play-vs-bot games; they are the lobby's "watch the bots" half, and the deck win-rate board is computed from their finished games. The flags that shape them (`-tables`, `-seats`, `-format`, `-commander-seats`, `-seed`, `-pace`, `-cooldown`, `-perpetual`, `-mulligans`, `-decks`, `-max-on-demand-tables`) are in [gorged flags](../web/flags.md). Worth knowing:
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `-tables N` | 4 | startup tables; `0` runs only play-vs-bot games and events |
-| `-seats N` | 4 | seats per table, 1 to 8 |
-| `-format list` | `constructed` | comma-separated `constructed`, `commander`; table *i* takes `formats[(i-1) mod n]` |
-| `-commander-seats N` | 0 (= `-seats`) | seat count of the commander tables only |
-| `-seed S` | 1 | seed of `t1`; table *i* uses `S+i-1`, and match *k* of a table derives its seed from that |
-| `-pace D` | 50ms | sleep after every decision on bot tables; `0` is flat out, `1.5s` is watchable |
-| `-cooldown D` | 5s | pause between matches on a perpetual table |
-| `-perpetual` | true | start a new match when one ends |
-| `-mulligans N` | 7 | London mulligans per player before turn 1 |
-| `-decks dir` | `testkit/testutil/decks` | the deck JSON files every table and the lobby deal from |
-| `-max-on-demand-tables N` | 32 | how many play-vs-bot tables the process keeps; these are always two seats, one human and one bot |
+- `-tables 0` runs only play-vs-bot games and events. Play-vs-bot tables are always two seats, one human and one bot.
+- `-format` is a comma-separated list; table *i* takes `formats[(i-1) mod n]`.
+- Table *i* uses seed `-seed + i - 1`; match *k* of a table derives its seed from that.
+- `-pace 0` is flat out; `1.5s` is watchable.
 
 ### Decks
 
-The built-in directory holds 15 sixty-card constructed decks and 15 Commander decks;
-`GET /api/decks` lists them with format, archetype and commander. The server splits whatever directory
-you give it into two pools by one rule: a file that names a commander is a Commander deck, everything
-else is constructed. Each Commander deck is validated at startup, and a card the corpus can't resolve
-stops the server before it listens.
+`GET /api/decks` lists the decks with format, archetype and commander. The built-in directory is `testkit/testutil/decks`. A file that names a commander is a Commander deck and everything else is constructed. Each Commander deck is validated at startup, and a card the corpus can't resolve stops the server before it listens. (Count them with `ls testkit/testutil/decks`; the pool changes.)
 
 `cmd/deckimport` converts a plain-text decklist, the usual export format with one card per line and the
 count first, into a deck file. It drops the sideboard, turns a Commander section into the `commander` field
@@ -254,83 +173,27 @@ what is supported.
 
 ## Bots at the table
 
-Every bot seat runs a registered **policy**, a named bot strategy
-([the list](../bots/catalogue.md#the-six-registered-bots)). Policies run inside the `gorged` process,
-deterministically from the match seed.
+Every bot seat runs a registered **policy**, a named strategy ([the list](../bots/catalogue.md#the-six-registered-bots)), inside the `gorged` process, deterministically from the match seed. The flags are in [gorged flags](../web/flags.md): `-bot-policy` (default for startup tables and for a play-vs-bot game that names none), `-bot-policies` (the set the lobby offers), `-bot-common-sense`, `-bot-search-slots`, `-bot-search-parallelism`, `-max-search-tables` and `-sb-agent name=/path` ([SpellBench v2 agents](../bots/spellbench.md)). Search policies queue when slots are busy and never play worse for it.
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `-bot-policy name` | `lethal-pressure` | the policy of every bot seat on the startup tables, and of a play-vs-bot game that names none |
-| `-bot-policies a,b,…` | empty = all eligible | the set the lobby offers |
-| `-bot-common-sense` | off | a guard that drops removal aimed only at the bot's own permanents and answers the mulligan with the constructed rule |
-| `-bot-search-slots N` | GOMAXPROCS/2 | concurrent searched decisions across the process; search policies queue, and never play worse for it |
-| `-bot-search-parallelism N` | 1 | goroutines within one searched decision |
-| `-max-search-tables N` | 8 | live play-vs-bot tables whose bot is a search policy |
-| `-sb-agent name=/path` | | register an external stdio bot as a policy ([SpellBench v2 agents](../bots/spellbench.md)) |
+`sb-tactical` and `az-redeal` read every seat's real decklist, so a server never seats them against a person; naming one in `-bot-policies` is refused at startup ([message](troubleshooting.md#a-flag-is-refused-at-startup)).
 
-`sb-tactical` and `az-redeal` read every seat's real decklist, so a server never seats them against a
-person, and naming one in `-bot-policies` is refused at startup
-([message](troubleshooting.md#a-flag-is-refused-at-startup)).
-
-Per-policy options use `-bot-opt <policy>.<key>=<value>`, the environment variable
-`GORGED_BOT_<POLICY>_<KEY>` or `-bot-config <policy>=<file.json>`, highest precedence first. Only `forge-heuristic`
-declares an option, `hold-instant`, a bool that defaults to `false`; `forge-heuristic-hold` is that policy
-with it armed.
+Per-policy options use `-bot-opt <policy>.<key>=<value>`, the environment variable `GORGED_BOT_<POLICY>_<KEY>` or `-bot-config <policy>=<file.json>`, highest precedence first. `gorged -h` lists each policy's options.
 
 ## A paired bot
 
-A server can seat a bot beside you that weighs each of your decisions as it arrives
-([Play with a bot beside you](../web/paired-play.md)). It is off by default: start the server with
-`-paired-bot az-closed`, and the **Paired bot** panel appears in a rail of its own, on the side of the board away from the stack and log
-(the Layout drawer's **Paired bot** setting can keep it in the main rail or hide it at the screen's edge). Its switch starts on
-when you play alone against bots and off at a table with another human; your browser remembers what you
-choose for each. When you start a game against a bot, the **Paired bot** picker chooses for that game: the
-server's default, another bot the server offers, or none, which takes the panel away. A restart keeps the
-choice.
-
-The bot's pick is marked on the decision itself: a dashed gold ring on what it would press (a card, a
-prompt row, a target, the pass button or **No attack**), and its estimate, *Bot's pick, 62%*, on the
-prompt's controls. A setting in the panel turns the marks off. For each of your decisions the panel lists the options the search weighed, each with the share of its lines
-that looked at it and its estimated chance of winning, and marks the one it recommends. Below the recommendation it lists the line the search expects to follow: up to four of the most-visited plies after that play, who makes each, how much of the search went that way and where those lines end up. The line stops before any ply that depends on cards you can't see, and the panel says when it was cut short. It also marks what the
-bot's own rules would do without searching, and says when search overrules them; a setting in the panel turns
-that off, and your browser remembers it. It only advises.
-Pressing a row does nothing, and you still answer. If you answer differently, a note in the panel and in
-your game log gives both estimates. The notes are your browser's alone; they aren't in a replay or a review.
-
-**What the numbers mean.** Each line plays on from this decision with a fresh guess at the cards you can't
-see, until the game ends or the search stops and scores the position by life, cards in hand and the board.
-*Search looked at 100 lines* counts those lines, and an estimate averages where the lines through that option
-ended up. It's a guide to how the options compare, not a measured win rate.
-
-If the game moves on while the bot is thinking, the panel says the advice is out of date and offers to ask again.
-The next decision asks by itself, and a decision your auto-pass answers never asks. When the server is busy
-with other searches, the panel says so and the advice arrives late.
-
-**What the bot can't see.** It sees what you can see: your deck list and everything you've seen in this game.
-It can't see your opponent's hand, the order of any library or your opponent's deck list. It guesses those
-cards from a set of decks, so when it's wrong about what your opponent holds, its advice is wrong too. It
-weighs priority, attackers, blockers, targets, modes, optional triggers and small choices. For any other
-decision it says so and shows what its rules would do, as it does for a decision in the middle of an effect
-resolving.
+A server can seat a bot beside you that weighs each of your decisions as it arrives ([Play with a bot beside you](../web/paired-play.md) covers what you see and what it can't). It only advises. It is off by default; start the server with `-paired-bot az-closed`.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-paired-bot NAME` | off | The default paired bot: `az-closed`, the search that needs no trained network, or a closed-list search policy linked into the binary. Without it, no game can choose one. With it, a game can also choose `az-closed` or any such policy |
+| `-paired-bot NAME` | off | the default paired bot: `az-closed` (needs no trained network) or a closed-list search policy linked into the binary |
 | `-paired-bot-sims N` | 100 | simulations per request (`az-closed`) |
-| `-paired-bot-decks DIR` | the server's constructed decks | the decks it guesses from (`az-closed`) |
-| `-paired-bot-searches N` | 2 | searches at once across the server; further requests wait |
-| `-paired-bot-shared` | off | also offer it on `t1` when it seats more than one human; every seat is told it's on |
-| `-pod-bot-decks DIR` | off | registers `az-closed-maxn`, the search for Commander pods of up to four seats, guessing from the decks in `DIR` |
+| `-paired-bot-decks DIR` | the server's decks | decks it guesses an opponent's list from (`az-closed`) |
+| `-paired-bot-searches N` | 2 | searches at once across the server; others wait |
+| `-paired-bot-shared` | off | also offer it on `t1` when it seats more than one human |
+| `-pod-bot-decks DIR` | off | registers `az-closed-maxn`, the search for Commander pods of up to four seats |
 | `-pod-bot-sims N` | 64 | simulations per searched decision (`az-closed-maxn`) |
 
-`az-closed` plays two-seat constructed games. A table that leaves the paired bot at the server's default gets
-the first offered bot that plays its format at its seat count, so with `-pod-bot-decks` a four-seat Commander
-pod gets `az-closed-maxn`. That bot also seats as a pod's bot opponents: `-events-bot-policy az-closed-maxn`
-makes it the draft events' default. Its belief should be decks like the pod's own, such as a Commander draft's
-built decks from `draftsim -set MBC -collation draft -format commander -deck-size 60 -structure none -players bot
--events 100 -decks-out DIR` (`make pod-bot-decks`). A request costs a few tenths of a CPU second at 100
-simulations, more late in a long game. Nobody else at the table sees the advice, and it never reaches the game's log or a replay. It runs
-on the gorge engine only; a table on another engine refuses it.
+`az-closed` plays two-seat constructed games. A table that leaves the paired bot at the default gets the first offered bot that plays its format at its seat count, so with `-pod-bot-decks` a four-seat Commander pod gets `az-closed-maxn`. That bot also seats as a pod's bot opponent: `-events-bot-policy az-closed-maxn` makes it the draft events' default. Its belief should be decks like the pod's own; `make pod-bot-decks` writes one from a Commander draft simulation. Nobody else at the table sees the advice, and it never reaches the log or a replay. It runs on the gorge engine only.
 
 ## Persistence and restarts
 
@@ -386,28 +249,22 @@ matched the recording event for event. [Troubleshooting](troubleshooting.md#repr
 
 ## On a network
 
-To let other machines connect, listen on a reachable address, such as the default `:8080`. The join lines the
-server prints say `127.0.0.1`; replace that with the machine's LAN address when you send them.
+To let other machines connect, listen on a reachable address such as the default `:8080`. The join lines print `127.0.0.1`; replace it with the machine's LAN address.
 
-`gorged` has **no login, no TLS and no rate limiting**. The only credential is the per-seat token in a join
-URL. Anyone who can reach the port can:
+`gorged` has **no login, no TLS and no rate limiting**. The per-seat token in a join URL is the only credential. Anyone who can reach the port can:
 
-- list and watch every startup table, with hands hidden unless you pass `-spectator omniscient`;
-- start play-vs-bot games up to `-max-on-demand-tables`, and so spend your CPU;
-- create draft events up to `-max-events`, if you pass `-events`;
-- submit feedback reports, which are written to your disk, size-capped at 12 MiB each.
+- list and watch every startup table (hands hidden unless `-spectator omniscient`);
+- start play-vs-bot games up to `-max-on-demand-tables`, spending your CPU;
+- create draft events up to `-max-events`, if `-events` is on;
+- submit feedback reports, written to your disk, capped at 12 MiB each (`maxFeedbackBytes` in `server/gorged/feedback.go`).
 
-A seat token travels in the URL query string, so it ends up in browser history and in any proxy's access log.
-Feedback reports strip it from the page URL before storing it, but a join URL is itself a credential.
+A seat token travels in the URL query string, so it lands in browser history and proxy logs. Feedback reports strip it from the page URL, but a join URL is itself a credential.
 
-Beyond a trusted LAN, keep `gorged` on loopback and put it behind something that adds authentication and TLS,
-such as an SSH tunnel or a reverse proxy with a login. `-pprof` (runtime profiles) is refused unless the
-listener is loopback, and a proxy in front of it would expose it anyway.
+Beyond a trusted LAN, keep `gorged` on loopback behind something that adds authentication and TLS, such as an SSH tunnel or a reverse proxy with a login. `-pprof` is refused unless the listener is loopback, and a proxy in front of it would expose it anyway.
 
 ## Every flag
 
-Every startup flag, with its default and meaning, is on [gorged flags](../web/flags.md), generated from
-the flag definitions. `go run ./cmd/gorged -h` prints the same list.
+[gorged flags](../web/flags.md) lists every startup flag, generated from the flag definitions; `go run ./cmd/gorged -h` prints the same list.
 
 Everything the browser does goes through the [HTTP API](../api/http.md), so you can drive or inspect a server
 with `curl`.

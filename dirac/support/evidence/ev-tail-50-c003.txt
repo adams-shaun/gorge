@@ -10,10 +10,14 @@ Arcane Investigator
 Architect of the Untamed
 Argent Mutation
 Army of Allah
+Arrogant Wurm
 Ashen Powder
 Auriok Glaivemaster
 Aven Sunstriker
+Aviary Mechanic
 Baloth Woodcrasher
+Balshan Beguiler
+Battered Golem
 Belligerent Whiptail
 Bladeback Sliver
 Blazing Hope
@@ -22,26 +26,36 @@ Bloodchief's Thirst
 Bloodmark Mentor
 Blunt the Assault
 Bog Initiate
+Boneshard Slasher
 Boomerang
 Borborygmos Enraged
 Botanical Plaza
 Branching Evolution
 Brazen Wolves
 Brinebarrow Intruder
+Broken Concentration
+Broodhunter Wurm
+Bull Aurochs
 By Invitation Only
 Byway Courier
 Cabal Archon
+Cabal Pit
 Canopy Spider
+Capricious Sliver
 Careful Study
+Catalog
 Cathartic Adept
 Cemetery Reaper
 Centaur Peacemaker
 Chandra's Fury
+Chillbringer
 Chitinous Cloak
 Citanul Stalwart
+Civic Guildmage
 Combat Research
 Condemn
 Crackling Club
+Crafty Pathmage
 Craven Giant
 Curse of Predation
 Descendant of Masumaro
@@ -59,9 +73,11 @@ Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
+Emmessi Tome
 Empyrial Armor
 Evolution Charm
 Explosive Impact
+Extra Arms
 False Prophet
 Fang Dragon
 Fervent Strike
@@ -74,6 +90,7 @@ Fully Grown
 Furious Reprisal
 Furnace Hellkite
 Fyndhorn Bow
+Galvanic Discharge
 Gimli, Counter of Kills
 Glaive of the Guildpact
 Goliath Paladin
@@ -81,18 +98,24 @@ Graf Reaver
 Grasp of Fate
 Grasping Scoundrel
 Grim Physician
+Grim Reaper's Scythe
 Gruul Nodorog
 Gush
 Gut Shot
 Guul Draz Assassin
 Haunted Fengraf
+Headless Rider
 Heartfire
+Hired Blade
 Hive Stirrings
+Holy Day
 Hookhand Mariner
 Howling Giant
 Hunted Dragon
 Hurly-Burly
+Hydrosurge
 Ichor Synthesizer
+Idolized
 Impostor of the Sixth Pride
 Incremental Blight
 Intelligence Bobblehead
@@ -113,65 +136,98 @@ Kolaghan Warmonger
 Krenko, Tin Street Kingpin
 Lead by Example
 Library
+Lithomantic Barrage
 Loki's Scepter
 Lord of the Undead
 Lotus-Eye Mystics
 Make Mischief
 Manor Gate
+Mantle of Leadership
 Marble Gargoyle
 Mardu Warshrieker
+Merfolk Traders
 Mesa Cavalier
 Metallic Mimic
+Mind Drain
+Mindblaze
 Monastery Swiftspear
+Moorland Inquisitor
 Morningtide
 Mother of Runes
 Mountain
+Mox Sapphire
 Murasa Rootgrazer
 Natural Affinity
+Needle Drop
 Neurok Replica
+Noble Hierarch
 Noose Constrictor
 Nurturing Licid
+Obelisk of Undoing
+Ogre's Cleaver
 Ondu Champion
+Orcish Hellraiser
 Outpost Siege
 Paradigm Shift
 Parch
+Petrified Wood-Kin
 Phyrexian Broodstar
 Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
+Power Word Kill
 Prava of the Steel Legion
+Primal Empathy
 Prophetic Ravings
 Proud Mentor
+Prowler's Helm
 Prowling Pangolin
 Pygmy Pyrosaur
 Pyre Charger
+Rainbow Efreet
 Ranger-Captain of Eos
+Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Regent's Authority
 Renegade Map
+Renewing Dawn
 Revenge of Ravens
 Reverent Hoplite
+Revoke Existence
+Rhythmic Water Vortex
+Righteous War
 Riverglide Pathway
 Robe of Mirrors
+Roc of Kher Ridges
 Roving Harper
+Runaway Trash-Bot
 Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Scaretiller
+Scrapwork Rager
+Scrapyard Steelbreaker
 Scrollshift
 Seller of Songbirds
+Serra Zealot
 Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
+Shire Scarecrow
 Shivan Harvest
+Shrapnel Slinger
+Shu Defender
 Shuko
 Sigarda, Champion of Light
 Skirk Outrider
 Skull Catapult
 Skyhunter Strike Force
+Skywarp Skaab
 Skywing Aven
 Slash the Ranks
 Slashing Tiger
@@ -179,41 +235,59 @@ Soratami Mindsweeper
 Soul of Theros
 Spider-Man, New Champion
 Spiked Baloth
+Spitting Earth
 Spitting Slug
 Squadron Hawk
 Steamclaw
+Stern Proctor
 Stonefury
+Stonework Puma
+Strength of Unity
 Summoner's Sending
 Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Swamp
 Swell of Growth
+Syndicate Trafficker
 Syphon Mind
 Talas Lookout
 Teachings of the Kirin
 Thalia's Lieutenant
 The Rack
+Their Name Is Death
+Thopter Squadron
 Thor, Asgard's Avenger
+Tolarian Academy
 Touch of Brilliance
 Towering-Wave Mystic
 Traitor's Clutch
 Tranquil Thicket
 Traveling Minister
 Tremble
+Uchuulon
 Undead Warchief
 Unfriendly Fire
+Vampire's Kiss
 Vessel of Ephemera
 Veteran Warleader
 Veteran of the Depths
 Village Bell-Ringer
 Vivid Flying Fish
+Volcanic Rush
+Volcanic Spite
 Voldaren Epicure
 Wake Thrasher
 Wall of Ice
 Wandering Goblins
+Wanted Scoundrels
+Warden of the Woods
 Warlock Class
 Wary Okapi
+Watchful Radstag
+Wayward Guide-Beast
 Wicker Witch
+Wild Guess
 Wolfrider's Saddle
 Yavimaya Hollow
 Zhur-Taa Ancient

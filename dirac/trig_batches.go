@@ -480,7 +480,7 @@ func (s *State) damagePlayerHit(k *prep, h *dmgHit) int {
 		s.res.lastDmg = int16(n)
 		return n
 	}
-	s.loseLife(k, pl, n)
+	s.loseLifeDmg(k, pl, n)
 	s.plDmgMark(pl, n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	s.res.lastDmg = int16(n)
 	return n

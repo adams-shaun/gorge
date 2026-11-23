@@ -61,6 +61,48 @@ func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	}
 }
 
+// DebugTypedManaNoTag skips the resolving path's artifact tag (mutation
+// testing only): a resolving DB$ Mana of a typed source adds untagged, while
+// gorge's ManaProducerTag still tags it — the lockstep's tag-count projection
+// must catch it (TestTypedArtifactManaMutation).
+var DebugTypedManaNoTag bool
+
+// TypedManaStats counts the resolving path's typed mana, for oracle tests only.
+type TypedManaStats struct {
+	Added   int // units a resolving DB$ Mana of a typed source tagged (artTagN)
+	Planned int // typed units a planned payment (a cast build) spent (artSync's clamp)
+	Manual  int // typed units a spend outside a planned payment spent
+}
+
+// DebugTypedManaStats is the test hook; nil in normal play.
+var DebugTypedManaStats *TypedManaStats
+
+// artTagN is artTag for n units a resolving spell's or trigger's DB$ Mana of
+// card added at once (poolAddFrom; the source is the stack entry's card, whose
+// printed face gorge's ManaProducerTag reads): the pool's colour bit, the
+// tagged-unit tally (coldArtN, when the table holds one) and a Treasure's
+// tally, the clauses artTag runs after the mana-ability path's add. A
+// restricted add bypasses it (addManaRestr marks poolArtRestr instead).
+func (s *State) artTagN(k *prep, p uint8, card CardID, col, n int) {
+	if n <= 0 || DebugTypedManaNoTag || !k.artMana || !k.cards[card].manaTyped {
+		return
+	}
+	i := SeatIx(p)
+	s.g.poolArt[i] |= 1 << col
+	if sx := coldArtN.of(s); sx != nil {
+		t := &sx[int(i)*kop.NumManaKinds+col]
+		*t = uint8(min(int(*t)+n, 255))
+	}
+	if k.cards[card].castSrc&csTreasure != 0 {
+		if t := &s.g.poolTre[i][col]; *t < 255 {
+			*t = uint8(min(int(*t)+n, 255))
+		}
+	}
+	if st := DebugTypedManaStats; st != nil {
+		st.Added += n
+	}
+}
+
 // treSync is the Treasure half of artSync. gorge spends a plain unit of a
 // colour before a Treasure's (pay.takeUnit), so after any spend the Treasure
 // units still floating in a slot are the fewest the slot's remaining units
@@ -118,6 +160,16 @@ func (s *State) artSync(p uint8) {
 		// left in a slot are the fewest it can hold (treSync's clamp)
 		if sx := coldArtN.of(s); sx != nil {
 			if n := &sx[int(SeatIx(p))*kop.NumManaKinds+c]; *n > s.pl[SeatIx(p)].pool[c] {
+				if st := DebugTypedManaStats; st != nil && int(*n)-int(s.pl[SeatIx(p)].pool[c]) > 0 {
+					// a cast build's payment is the planned one; an ability
+					// activation's build (seAbility) and every other drain are
+					// the manual window's
+					if s.ctl == ctlBuild && s.bld().e.kind == seSpell {
+						st.Planned += int(*n) - int(s.pl[SeatIx(p)].pool[c])
+					} else {
+						st.Manual += int(*n) - int(s.pl[SeatIx(p)].pool[c])
+					}
+				}
 				*n = s.pl[SeatIx(p)].pool[c]
 			}
 		}
@@ -146,22 +198,24 @@ var coldArtN = newCold[uint8]("artn", func(g *genPrep) int {
 // useArtN: the table holds a typed producer (the tally exists).
 var useArtN = newGenUse(tableAnyTypedMana)
 
-// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped).
+// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped)
+// and the tally can be read. A pool unit of a colour is spent plain-first, so
+// two search states that differ in which unit a payment spent (a typed {U}
+// beside a land's) key apart in gorge. That needs mana spent from the pool by
+// the typed producer's own side: a hand-mana card's plain mana beside it, or
+// the typed producer's own mana ability being a repeatable fee (kop.FeeOnlyManaAb:
+// Energy Refractor's "{2}: Add one mana of any color", paid from lands' plain
+// mana), whose prefix search keys states by the tagged units left.
 func tableAnyTypedMana(t *kop.Table) bool {
-	// The tally matters only where a hand-mana card (a Spirit Guide) puts plain
-	// mana beside a typed producer's tagged mana; any typed producer alone
-	// would make a vanilla fixture's table need gen, and the fresh-clone tests
-	// pin a nil gen there. A table with typed producers but no hand-mana card
-	// keeps one bit per colour, as before.
+	// Any typed producer alone would make a vanilla fixture's table need gen,
+	// and the fresh-clone tests pin a nil gen there. A table with typed
+	// producers but neither keeps one bit per colour, as before.
 	hand := false
 	for i := range t.Cards {
 		if t.Cards[i].HandMana != 0 {
 			hand = true
 			break
 		}
-	}
-	if !hand {
-		return false
 	}
 	typed := typedManaSubtypes(t)
 	for i := range t.Cards {
@@ -170,7 +224,7 @@ func tableAnyTypedMana(t *kop.Table) bool {
 			continue
 		}
 		for j := range c.Abilities {
-			if c.Abilities[j].Kind == kop.AbMana {
+			if a := &c.Abilities[j]; a.Kind == kop.AbMana && (hand || kop.FeeOnlyManaAb(a)) {
 				return true
 			}
 		}
@@ -185,7 +239,9 @@ func (s *State) artNClearSeat(p uint8) {
 	}
 }
 
-// artNClearAll empties every seat's tagged-unit tally (a boundary that empties the pool).
+// artNClearAll empties every seat's tagged-unit tally (tests reset with it;
+// the boundary emptiers keep the keep-letter colours' entries instead,
+// talliesKeep).
 func (s *State) artNClearAll() {
 	if sx := coldArtN.of(s); sx != nil {
 		clear(sx)

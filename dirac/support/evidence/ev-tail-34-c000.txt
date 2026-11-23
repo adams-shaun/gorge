@@ -1,5 +1,6 @@
 A-Mentor's Guidance
 A-Phylath, World Sculptor
+A-Saheeli, Filigree Master
 A-Sprouting Goblin
 Aboshan's Desire
 Advanced Stitchwing
@@ -220,6 +221,7 @@ Jace's Phantasm
 Join Forces
 Joraga Auxiliary
 Juju Bubble
+Jungle Weaver
 Jwari Scuttler
 Kazandu Refuge
 Keeper of the Accord
@@ -319,7 +321,6 @@ Quest for the Nihil Stone
 Quilled Wolf
 Quirion Explorer
 Quirion Sentinel
-Rain of Rust
 Raise the Alarm
 Rakdos Riteknife
 Ramosian Sergeant
@@ -373,6 +374,7 @@ Silkbind Faerie
 Silver Myr
 Silverchase Fox
 Sinister Sabotage
+Skeleton Ship
 Slate of Ancestry
 Slinza, the Spiked Stampede
 Smokebraider

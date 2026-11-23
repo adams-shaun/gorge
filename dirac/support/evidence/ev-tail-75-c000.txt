@@ -21,6 +21,7 @@ Ashen Monstrosity
 Aspect of Lamprey
 Assemble the Legion
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -151,6 +152,7 @@ Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -166,10 +168,12 @@ Flare of Denial
 Flatman
 Flowstone Charger
 Forest
+Forked-Branch Garami
 Foxfire Oak
 Frightcrawler
 From the Rubble
 Furious Spinesplitter
+Gary Clone
 Gaze of Granite
 Genestealer Locus
 Geralf's Mindcrusher
@@ -186,6 +190,7 @@ Goblin Arsonist
 Goblin Bushwhacker
 Goblin Deathraiders
 Goblin Tinkerer
+Golem-Skin Gauntlets
 Grave Exchange
 Great Defender
 Greater Harvester
@@ -223,6 +228,7 @@ Jalum Tome
 Jhoira's Familiar
 Jolrael, Voice of Zhalfir
 Judith, the Scourge Diva
+Katara, Waterbending Master
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
@@ -281,6 +287,7 @@ Minotaur, Roxxon CEO
 Mobile Fort
 Mold Demon
 Momentum Rumbler
+Monkey Cage
 Mortal Wound
 Mossbridge Troll
 Mountain
@@ -317,6 +324,7 @@ Peregrine Mask
 Perimeter Captain
 Personal Tutor
 Phantasmal Dreadmaw
+Pia Nalaar, Consul of Revival
 Pillage
 Plains
 Plasmancer
@@ -356,6 +364,7 @@ Rishkar's Expertise
 Riven Turnbull
 River Sneak
 Roaring Slagwurm
+Robot Domination
 Rockshard Elemental
 Rooftop Nuisance
 Rout
@@ -365,6 +374,7 @@ Sacred Prey
 Sage Aven
 Sage of Fables
 Sailor of Means
+Saint Traft and Rem Karolus
 Salvaging Station
 Sanctify
 Sanctum of Stone Fangs
@@ -424,6 +434,7 @@ Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
+Swirling Spriggan
 Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer
@@ -477,6 +488,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Wasteland Raider
 Waterknot
 Weapon Rack
 Wedding Invitation
@@ -494,4 +506,5 @@ Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zhulodok, Void Gorger
 Zuran Enchanter

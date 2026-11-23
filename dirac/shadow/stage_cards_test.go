@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/dirac/oracle"
+	"github.com/adams-shaun/gorge/dirac/shadow"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/testkit/testutil"
@@ -69,15 +70,22 @@ func cardsEnv(t *testing.T) *stageEnv {
 	return &stageEnv{
 		tbl: tbl, deck: deck, kernel: oracle.SetSide(set, tbl, oracle.Config{}),
 		// a quarter of the games each wait for an attachment, a quarter for a token,
-		// a quarter for a spell on the stack
+		// an eighth for a spell on the stack and an eighth for a stack entry with a target
 		want: func(seed uint64, v *view.View, _ *decision.Decision) bool {
-			switch seed % 4 {
-			case 1:
+			switch seed % 8 {
+			case 1, 5:
 				return hasBF(v, func(c *view.CardView) bool { return c.AttachedTo != 0 })
-			case 3:
+			case 3, 7:
 				return hasBF(v, func(c *view.CardView) bool { return c.IsToken })
 			case 2:
 				return len(v.Stack) != 0
+			case 6:
+				for i := range v.Stack {
+					if len(v.Stack[i].Targets) != 0 {
+						return true
+					}
+				}
+				return false
 			}
 			return true
 		},
@@ -111,11 +119,24 @@ func TestStageCardsMatchReplay(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("marks: %d staged positions held an attachment, %d a token, %d a spell on the stack (%d skipped for a token that left the view)", st.attached, st.tokens, st.spells, st.deadTok)
+	t.Logf("marks: %d staged positions held an attachment, %d a token (%d a ceased one), %d a spell on the stack", st.attached, st.tokens, st.ceased, st.spells)
 	t.Logf("%d games: %d positions tried, %d staged (by step %v), %d continuation decisions; unstageable by reason %v", stageGames, st.tried, st.staged, st.byStep, st.contSteps, st.reasons)
 	t.Logf("first detail of each reason: %v", st.firstDetail)
+	t.Logf("%d staged positions held a targeted stack entry; %d positions refused %q", st.targeted, st.reasons[shadow.ReasonStack], shadow.ReasonStack)
+	if st.targeted < 20 {
+		t.Errorf("only %d staged positions held a targeted stack entry", st.targeted)
+	}
+	if st.reasons[shadow.ReasonStack] >= 200 {
+		t.Errorf("%d positions refused %q", st.reasons[shadow.ReasonStack], shadow.ReasonStack)
+	}
 	if st.attached < 20 || st.tokens < 20 || st.spells < 20 {
 		t.Errorf("the pool exercised too little: %d attachment and %d token positions staged", st.attached, st.tokens)
+	}
+	if st.ceased < 20 {
+		t.Errorf("only %d staged positions held a ceased token, need at least 20", st.ceased)
+	}
+	if st.reasons[dirac.ReasonToken] >= 500 {
+		t.Errorf("%d positions refused as a token, need fewer than 500", st.reasons[dirac.ReasonToken])
 	}
 	if st.staged < stageGames*8/10 { // a game that waits for a stack position may never see one
 		t.Errorf("only %d of %d games staged a position", st.staged, stageGames)
@@ -152,6 +173,53 @@ func cardsMutations(tbl *kop.Table) map[string]func(*dirac.World) {
 			}
 		},
 		"tokens dropped": dropTokens(tbl),
+		// each ceased token takes another token card of the table
+		"ceased token's card swapped": func(w *dirac.World) {
+			for i := range w.Objs {
+				if o := &w.Objs[i]; o.Token && o.Zone == kop.ZoneNone {
+					for c := range tbl.Cards {
+						if d := &tbl.Cards[c]; d.Types == kop.TCreature|kop.TToken && len(d.Abilities) == 0 && d.Keywords&^kop.KwFlying == 0 && kop.CardID(c) != o.Card {
+							o.Card = kop.CardID(c)
+							break
+						}
+					}
+				}
+			}
+		},
+		// a ceased token comes back on its owner's battlefield, last in its list
+		"ceased token revived": func(w *dirac.World) {
+			for i := range w.Objs {
+				if o := &w.Objs[i]; o.Token && o.Zone == kop.ZoneNone {
+					n := uint8(0)
+					for j := range w.Objs {
+						if b := &w.Objs[j]; b.Zone == kop.ZoneBattlefield && b.Ctrl == o.Ctrl {
+							n++
+						}
+					}
+					o.Zone, o.Pos = kop.ZoneBattlefield, n
+				}
+			}
+		},
+		// the target moves to another creature on the same battlefield
+		"stack target moved": func(w *dirac.World) {
+			for i := range w.Stack {
+				e := &w.Stack[i]
+				for j := 0; j < int(e.NT); j++ {
+					for c := range w.Objs {
+						if t := &w.Objs[e.Tgt[j]]; dirac.Obj(c) != dirac.Obj(e.Tgt[j]) && isCreature(w, c) && w.Objs[c].Ctrl == t.Ctrl &&
+							(e.Ability || dirac.Obj(c) != e.Obj) {
+							e.Tgt[j] = dirac.TCode(c)
+							break
+						}
+					}
+				}
+			}
+		},
+		"stack target dropped": func(w *dirac.World) {
+			for i := range w.Stack {
+				w.Stack[i].NT = 0
+			}
+		},
 		// the spell goes to its owner's graveyard instead of staying on the stack
 		"stack spell dropped": func(w *dirac.World) {
 			var keep []dirac.WorldStack

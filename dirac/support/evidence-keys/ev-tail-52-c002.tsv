@@ -8,10 +8,12 @@ Angel of Retribution	1fdeaf645468af9a	7	0/0		0/0
 Artificer's Epiphany	903d07f0d10be46f	12	0/0		1/2	ix:resp
 Atreus, Impulsive Son	1dabe6df593fe256	5	1/1		1/1	
 Axegrinder Giant	047eb239134a6028	5	0/0		0/0	
+Balduvian Horde	324f99eb7c1bd8f1	3	1/1		0/1	ix:resp
 Bant Battlemage	993ec98c138f214c	8	2/2		1/1	
 Battle of Frost and Fire	68fa8371837676ee	6	0/0		0/0	
 Battlewing Mystic	fca989b2ad911b7b	3	1/1		3/3	
 Bay Falcon	9104e2d88a908ec0	9	0/0		0/0	
+Berg Strider	2b59f618ea8a8b95	3	1/1		1/1	
 Blaze	ddf0feb339c57dc7	9	0/0		2/4	f0/s/x0,ix:resp
 Boros Keyrune	1c5bb18e73152b0d	28	2/2		1/1	
 Cabal Torturer	e96b3a15339a99b2	7	2/2		1/1	
@@ -35,6 +37,7 @@ Cyclops Electromancer	0483bfe5c09b2070	7	1/1		0/1	ix:resp
 D'Avenant Trapper	82076d21f37926d2	6	1/1		0/1	ix:resp
 Dark Bargain	e1568cd3ec94fc20	8	0/0		1/2	ix:resp
 Dark Tutelage	367685b85a32d00a	3	1/1		1/1	
+Dawnhart Wardens	28754c00f584ab91	5	1/1		0/1	ix:resp
 Deadly Insect	1402b26094c1b513	4	0/0		0/0	
 Deathrender	02190eaaac3fd3c1	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Demon of Catastrophes	2cff4b15102cecfa	4	0/0		1/2	ix:resp
@@ -46,6 +49,7 @@ Dragonborn Looter	a57a3b62b2f05be8	7	1/1		0/1	ix:resp
 Dream Cache	2ea3da62e269bc2a	4	0/0		1/2	ix:resp
 Dusk Legion Zealot	5952c03b21d70d4d	6	1/1		0/1	ix:resp
 Emeria Captain	b6aa017e845a4954	6	1/1		0/1	ix:resp
+Fanatic of Mogis	4ecac99069c2e95e	7	1/1		1/1	
 Felhide Minotaur	0875e8827eb0f555	12	0/0		0/0	
 Fendeep Summoner	d149394aeb420383	13	1/1		1/1	
 Ferocious Zheng	9851f47566dda1d1	9	0/0		0/0	
@@ -56,6 +60,7 @@ Frilled Oculus	7ff7a822235e2088	4	1/1		1/1
 Frost Marsh	7f9bd331a6ab894e	55	1/1		0/1	ix:resp
 Furnace Skullbomb	b64fcfa9ad7552a4	25	2/2		1/1	
 Ghirapur Guide	153803718d3fcc7e	3	1/1		1/1	
+Gilded Goose	a0360c0ad6b14308	3	3/3		1/1	
 Gitaxian Probe	a8d6253847a95b70	20	0/0		2/2	
 Goblin Bruiser	a54fc4f183ef7aac	8	0/0		0/0	
 Goblin Offensive	94e1ba94012331be	4	0/0		2/4	f0/s/x0,ix:resp
@@ -72,22 +77,28 @@ Hate Weaver	af7becdabb1f7ba8	14	1/1		1/1
 Headwater Sentries	4c56e863924b7655	8	0/0		0/0	
 Healing Hands	c3e8ea93cbec6339	4	0/0		1/2	ix:resp
 Herald of Torment	2752cd4f8435d872	6	1/1		3/3	
+Hipparion	5b4f1c81c5e7f240	3	0/0		0/0	
 Hysterical Blindness	192a01ec9ed53384	10	0/0		2/2	
 Imperial Aerosaur	60af6e9e9368b3ac	11	1/1		0/1	ix:resp
 Intrepid Provisioner	a174856a2c5402b5	4	1/1		0/1	ix:resp
+Izzet Staticaster	272fe236b957c166	4	1/1		0/1	ix:resp
 Jeskai Banner	11561a13f0ee8415	6	2/2		1/1	
 Junk Golem	a782e6e36ae5b03f	18	2/2		1/1	
 Kalastria Healer	f4dbc7f6da858a02	4	1/1		0/1	ix:resp
 Kapsho Kitefins	d9793e9e97e2d1fe	17	1/1		1/1	
 Karma	1258b3bc80185803	3	1/1		1/1	
 Keeper of the Cadence	ebae1b1091270ec8	4	1/1		1/1	
+Khenra Spellspear	1d7041c684364383	6	5/5		1/1	
+Knight of the Reliquary	8a9fef39f6849df0	4	1/1		0/1	ix:resp
 Kobold Overlord	b25c0fb4b4ce687d	13	0/0		0/0	
 Kor Blademaster	eb1b05003db7bbf9	11	0/0		0/0	
+Lantern Scout	2acbc05b555cae5e	3	1/1		1/1	
 Lead Golem	088cf7c7bc70275f	13	1/1		1/1	
 Lethal Exploit	ff9641894ca2f611	10	0/0		1/2	ix:resp
 Lightning Stormkin	da4e297ea5315d71	12	0/0		0/0	
 Lord of the Void	99f968e0cbde28c7	8	1/1		0/1	ix:resp
 Loxodon Partisan	299f4ab1e1ba9402	10	1/1		0/1	ix:resp
+Luminous Bonds	1f4cfec8b23f6f52	6	0/0		1/2	ix:resp
 Lunarch Mantle	341c21b0e1789c54	10	0/0		2/2	
 Mana Prism	2bf21718b330daa7	4	2/2		0/1	ix:resp
 Mana Skimmer	5b6deb84020da353	3	1/1		0/1	ix:resp
@@ -110,11 +121,14 @@ Ondu Champion	0bd59850933f4558	6	1/1		1/1
 P-Joven and Chandler	6e2152302ad61d41	8	2/2		0/1	ix:resp
 Palinchron	893da4bcf6531e0a	4	2/2		0/1	ix:resp
 Parasitic Bond	7001e69fe4914c6c	7	1/1		1/2	ix:resp
+Peregrine Drake	1470292dbb04e6ce	3	1/1		0/1	ix:resp
 Pestermite	5c7eff8bf6abf857	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Phantasmal Dragon	5f67de989e1f6eb0	6	1/1		0/1	ix:resp
+Phantom Nantuko	e98f161d962259f5	5	1/1		1/1	
 Phytoburst	49efbdd7fe771eb1	4	0/0		2/2	
 Pit Trap	5984b541d5e13f28	11	1/1		0/1	ix:resp
 Plated Slagwurm	01dc983d52a5e7b8	3	0/0		0/0	
+Power Matrix	71aaa76a87d83ba5	4	1/1		1/1	
 Priest of Fell Rites	3bd6850c1ed6ea9a	7	2/2		0/1	ix:resp
 Prime Speaker Vannifar	7c367748aec5b656	3	1/1		0/1	ix:resp
 Purge	9b65e0eef3c3f9e3	7	0/0		1/2	ix:resp
@@ -136,6 +150,7 @@ Return of the Wildspeaker	297114e70a2dd476	12	0/0		1/2	ix:resp
 Revelation of Power	d3fc7cfff654ca2f	15	0/0		1/2	ix:resp
 Rionya, Fire Dancer	d77e0158c3f6e88f	6	1/1		1/1	
 Root Maze	4cc384f1bd00d686	7	0/0		0/0	
+Rootless Yew	5a204ea9a7e9182d	5	1/1		1/1	
 Rotted Hystrix	e5c52e7b59af328a	8	0/0		0/0	
 Royal Talon Fighter Jet	e0785ed6b3c7a3ca	5	3/3		1/1	
 Sacred Fire	d9be8df3c27a2181	6	0/0		3/4	ix:resp
@@ -151,6 +166,7 @@ Serpent Warrior	89bff50b47228dff	12	1/1		1/1
 Shatterstorm	0ad6e4e54b87e5ee	4	0/0		2/2	
 Sigarda's Summons	651a29bd63c374ff	5	0/0		0/0	
 Sinister Sabotage	3992a074ad8f213b	5	0/0		2/2	
+Sir Shandlar of Eberyn	665a0c85eb9278a5	3	0/0		0/0	
 Skaab Ruinator	7afbccd9280a1af9	76	0/0		2/2	
 Skinwing	e3a7f03e7753af65	19	2/2		1/1	
 Skyrider Patrol	4651ea81e29b015c	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -159,6 +175,7 @@ Snare the Skies	028a925f8387ee48	10	0/0		2/2
 Snow-Covered Island	3020b29d96f5b5b9	77	1/1		0/1	ix:resp
 Solidarity	383a149e356e075e	6	0/0		1/2	ix:resp
 Solstice Zealot	f1eb43ca0aaa6008	11	2/2		1/1	
+Soul Warden	bc262ab83820fa1d	4	1/1		1/1	
 Specter of the Fens	9e7e2da5c5b4ca68	3	1/1		0/1	ix:resp
 Spectral Cloak	5d08032b2832ed57	24	0/0		1/2	ix:resp
 Spell Syphon	1611f6bd766b63a4	10	0/0		1/2	ix:resp
@@ -174,6 +191,8 @@ Sunscorched Desert	5caa00863e2a204a	52	2/2		0/1	ix:resp
 Take to the Streets	7d5deec05535e1ad	4	0/0		1/2	ix:resp
 Talas Researcher	97e0a605b108b317	4	1/1		0/1	ix:resp
 Tenured Inkcaster	8baeebd93af293e0	8	2/2		1/1	
+Terashi's Verdict	f93232fbbfd8ff6e	3	0/0		1/2	ix:resp
+Thermo-Alchemist	cdf1a8421b6b2d4d	4	2/2		1/1	
 Thing Swing	77da7eae4056ee87	4	0/0		1/2	ix:resp
 Thorn Lieutenant	4328f6351cd2aa3f	5	2/2		1/1	
 Thrór's Map	f813eb094107c564	28	2/2		1/1	
@@ -181,12 +200,16 @@ Timber Gorge	06a38e42b25ab7f0	81	1/1		0/1	ix:resp
 Tireless Tribe	3dbee8afdd3a021d	9	1/1		1/1	
 Titanium Golem	c6a9a2e5d0f72608	8	1/1		0/1	ix:resp
 Urza's Guilt	24e0603b1310d7ce	3	0/0		2/2	
+Utter Insignificance	3c4cf4ceba6e6067	7	1/1		2/2	
 Venser, Shaper Savant	9e8f5da28ef08cae	5	1/1		1/1	
 Viashino Grappler	601a461564860e5d	12	1/1		1/1	
+Vision, Spectral Synthezoid	0996f8635718feef	3	0/0		0/0	
 Visions of Beyond	9b5328aeb258c9f2	18	0/0		2/2	
+Volcanic Strength	24aa67fa24912488	3	0/0		2/2	
 Voldaren Duelist	5d82d5e27205c609	7	1/1		0/1	ix:resp
 Vona's Hunger	9e17895e3508a708	9	0/0		2/2	
 Vraska's Scorn	b26fde2380472d03	6	0/0		1/2	ix:resp
 Wild Ceratok	32340638d49c6b07	7	0/0		0/0	
 Witness the Future	f44a54a44aa61aaa	3	0/0		1/2	ix:resp
 Woe Strider	1eb9e48f12335eee	15	2/2		1/3	cast/alt:escaped,ix:resp
+Yuan Shao's Infantry	d9532e2354f9a67a	6	1/1		0/1	ix:resp

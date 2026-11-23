@@ -103,6 +103,7 @@ Dread Drone
 Dread Linnorm
 Dreamcaller Siren
 Dress Down
+Drudge Spell
 Drumhunter
 Duchess, Wayward Tavernkeep
 Durable Coilbug
@@ -164,6 +165,7 @@ Hamza, Guardian of Arashin
 Hapato's Might
 Heavy Mattock
 Hellspark Elemental
+Hexdrinker
 Hostile Realm
 Hunters' Feast
 Hydra Omnivore

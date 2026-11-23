@@ -1,12 +1,13 @@
 # Bot speed
 
-What a bot costs to run, per game, per decision and per simulation, so that a host can size a table and a bot author can budget a search. For
-what each policy does, see [Bots](../bots/index.md) and [Each bot in detail](../bots/catalogue.md#the-six-registered-bots). This page is about speed only.
+What a bot costs per game, per decision and per simulation, so a host can size a table and an author can budget a search. What each policy
+does is on [Each bot in detail](../bots/catalogue.md#the-six-registered-bots). Figures are in [`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json)
+(`bot_games`, `search`), measured 2026-10-31 with `cmd/enginebench`; a bot's registry `Cost` field is a declared number, not one of these.
 
 ## The heuristic bot
 
-Both seats on gorge, FDN pairs, measured 2026-10-31 with one pinned core per run ([gorge's speed](engine.md#current-numbers)). A random player is there for
-comparison, because it costs almost nothing itself.
+Both seats on gorge, FDN pairs, `cmd/enginebench -row bot` and `-row random`, 2026-10-31, one pinned core per run ([gorge's speed](engine.md#current-numbers)).
+A random player is there for comparison, because it costs almost nothing itself.
 
 <figure markdown="span">
 --8<-- "performance/figs/bot-games.svg"
@@ -22,14 +23,14 @@ comparison, because it costs almost nothing itself.
     | random legal action, auto-pay | 14.3 ms a game, 25.9 µs a decision | 14.8 ms, 24.0 µs |
 
 
-A bot game costs no more than a random one, because the bot ends games in fewer turns (18 against 23-42). About 15% of a bot game's CPU is
+A bot game costs no more than a random one, because the bot ends games in fewer turns (18 against 23-42). About 14% of a bot game's CPU (cumulative) is
 the bot's own code ([Where the time goes](engine.md#where-the-time-goes)). [Performance](index.md#the-numbers) has the cost of its port on dirac.
 
 ## Search, per simulation
 
-A search bot's cost is the cost of one simulation times its budget. These rows run an AlphaZero-style PUCT search with a heuristic leaf, re-dealing
-what the seat can't see for every simulation and answering every unsearched decision with the heuristic bot. One pinned core per run, three reps at once on
-cores 24, 26 and 30, 20 CPU-seconds, 2026-10-31.
+A search bot's cost is one simulation times its budget. These rows run an AlphaZero-style PUCT search with a heuristic leaf (`cmd/enginebench -row az`),
+re-dealing what the seat can't see every simulation and answering unsearched decisions with the heuristic bot. One pinned core per run, three reps at once
+on cores 24, 26 and 30, 20 CPU-seconds, 2026-10-31.
 
 ```mermaid
 flowchart LR
@@ -71,6 +72,8 @@ alternating pairs A and B. The gorge row at 1,000 simulations covers only 13-15 
 Cost per simulation grows with the budget because deeper trees replay longer lines. Almost all of a simulation is the rules engine replaying and
 extending a line of play: in a 15-second CPU profile of gorge's row at 100 simulations, `Engine.Submit` is 82% cumulative.
 
+`az-redeal`'s registry entry also declares 247 ms mean per searched decision for a 4-seat Commander pod (`botbench -pod`, one az seat against three `bot`), a separate measurement from these rows.
+
 These rows have no network leaf: `enginebench`'s `az` row has no network option, so a network's cost has to be measured with the network in question.
 
 ## Measuring it
@@ -84,7 +87,7 @@ for n in 25 100 1000; do
 done
 ```
 
-The search rows' JSON line reports `sims_per_cpu_s` and `ms_per_root`. dirac's rows ran a search on both seats through the port of it in the maintainers'
+The search rows' JSON line reports `sims_per_cpu_s` and `ms_per_root`. dirac's rows ran a search on both seats through the port of it in a
 private companion module, so they can't be reproduced from this repository ([Search and bots](../architecture/dirac/search.md)).
 
 To measure a policy inside whole games, `testkit/bench` (`PlayGame`, `RunPairs`) plays seeded games and deck-pair matrices between any `seat.Seat`

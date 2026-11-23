@@ -107,43 +107,50 @@ func audit(fsys fs.FS, reg *cards.Registry, lir func([]string) map[string]string
 }
 
 func auditRows(fsys fs.FS, reg *cards.Registry, lower lowerFunc, o opts) ([]row, error) {
+	rows, _, err := auditInputs(fsys, reg, lower, o)
+	return rows, err
+}
+
+// auditInputs is auditRows with the joined inputs the rows were built from,
+// which -facts reads for the fields a row does not carry.
+func auditInputs(fsys fs.FS, reg *cards.Registry, lower lowerFunc, o opts) ([]row, inputs, error) {
 	ev, err := readEvidence(fsys)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	sc, err := readSidecars(fsys)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	ref, err := readRefused(fsys)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	legacy, err := readLegacy(fsys)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	hunt, err := readHunt(o.HuntKeys)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	xl, err := readXLedger(o.XLedger)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	dx, err := readDiagnosed(o.Diagnosed)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	xm, err := readXMage(o.XMageManifest)
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 
 	names := universe(reg, ev, ref, sc, legacy, hunt, xl, dx, xm)
 	lr, err := lower(append([]string(nil), names...))
 	if err != nil {
-		return nil, err
+		return nil, inputs{}, err
 	}
 	if lr.keys == nil {
 		lr.keys = map[string]string{}
@@ -167,7 +174,7 @@ func auditRows(fsys fs.FS, reg *cards.Registry, lower lowerFunc, o opts) ([]row,
 		rows = append(rows, buildRow(name, in))
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Card < rows[j].Card })
-	return rows, nil
+	return rows, in, nil
 }
 
 // inputs is the read-only view one row is built from.
@@ -215,6 +222,11 @@ func readEvidence(fsys fs.FS) (*evidence, error) {
 		}
 		list := strings.TrimSuffix(path.Base(f), ".txt")
 		for _, n := range readLines(b) {
+			// a row's trailing tab-separated columns (an evidence row's seats
+			// field) are not part of the name
+			if name, _, found := strings.Cut(n, "\t"); found {
+				n = name
+			}
 			e.lists[n] = append(e.lists[n], list)
 		}
 	}
@@ -1163,6 +1175,7 @@ func run(args []string) error {
 	out := flags.String("out", "", "write the rows TSV here (default stdout when no other output is named)")
 	summary := flags.String("summary", "", "write the markdown summary here")
 	need := flags.String("need", "", "write the need TSV here")
+	facts := flags.String("facts", "", "write the per-card facts JSONL here (never committed: a path inside -root must be gitignored)")
 	var o opts
 	flags.StringVar(&o.HuntKeys, "hunt-keys", "", "the hunt's keys.tsv")
 	flags.StringVar(&o.XLedger, "xledger", "", "the X evidence ledger CSV")
@@ -1170,6 +1183,11 @@ func run(args []string) error {
 	flags.StringVar(&o.XMageManifest, "xmage-manifest", "", "xmage's card claim list")
 	if err := flags.Parse(args); err != nil {
 		return err
+	}
+	if *facts != "" {
+		if err := checkFactsPath(*root, *facts, gitIgnored); err != nil {
+			return err
+		}
 	}
 	reg, err := cards.SharedCorpus(*cardsDir)
 	if err != nil {
@@ -1207,11 +1225,18 @@ func run(args []string) error {
 		}
 		return lowerResult{keys: keys, support: support}, nil
 	}
-	rows, err := auditRows(os.DirFS(*root), reg, lower, o)
+	rows, in, err := auditInputs(os.DirFS(*root), reg, lower, o)
 	if err != nil {
 		return err
 	}
 	wrote := false
+	if *facts != "" {
+		fo := factsOptsFor(*root, *cardsDir)
+		if err := writeFile(*facts, func(w io.Writer) error { return writeFacts(w, buildFacts(rows, in, fo)) }); err != nil {
+			return err
+		}
+		wrote = true
+	}
 	if *out != "" {
 		if err := writeFile(*out, func(w io.Writer) error { return writeRows(w, rows) }); err != nil {
 			return err

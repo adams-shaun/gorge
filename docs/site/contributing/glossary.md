@@ -1,30 +1,22 @@
 # Glossary
 
-The words gorge's code, commits, reviews and this site use, for a Go
-developer who knows neither Magic engine internals nor Forge. The first
-group is about cards and the engine; the [second](#repositories-engines-and-process)
-about the repositories, the second engine and how changes land.
+Words gorge's code, commits and reviews use. The first group is cards and the engine; the
+[second](#repositories-engines-and-process) is repositories, the second engine and process.
 
 **Card script.** One text file per card in Forge's corpus,
-`.cards/cardsfolder/<letter>/<name>.txt` (token definitions are under
-`.cards/tokenscripts/`). Each line is a characteristic (`Name:`, `ManaCost:`,
-`Types:`, `PT:`, `Oracle:`) or an ability: `A:` (spell or activated ability),
-`T:` (trigger), `S:` (static), `R:` (replacement), `K:` (keyword), `SVar:`.
-The scripts are GPL-3.0. They are fetched, never committed. See
-[Card pipeline](card-pipeline.md).
+`.cards/cardsfolder/<letter>/<name>.txt` (tokens: `.cards/tokenscripts/`). Lines are
+characteristics (`Name:`, `Types:`, `PT:`, `Oracle:`) or abilities: `A:` spell or activated,
+`T:` trigger, `S:` static, `R:` replacement, `K:` keyword, `SVar:`. GPL-3.0, fetched, never
+committed. See [Card pipeline](card-pipeline.md).
 
-**`$` parameter.** An ability line is a `|`-separated list of `Key$ Value`
-pairs. Examples: `ValidTgts$ Creature` (what may be targeted), `NumDmg$ 3`,
-`AffectedZone$ Hand` (where a static's affected cards are), `EffectZone$
-Graveyard` (where the static's *source* must be for it to function; absent
-means the battlefield, CR 113.6). In the IR they are the `Params` map on each
-ability (`cards.SA`, `cards.Trigger`, `cards.Static`, `cards.Repl`). A
-parameter no code reads is an "unread param", which the param census tracks.
+**`$` parameter.** A `Key$ Value` pair on an ability line: `ValidTgts$ Creature`, `NumDmg$ 3`,
+`AffectedZone$ Hand` (where a static's affected cards are), `EffectZone$ Graveyard` (where its
+*source* must be to function; absent means the battlefield, CR 113.6). In the IR they are the
+`Params` map on `cards.SA`, `cards.Trigger`, `cards.Static` and `cards.Repl`. One no code reads
+is an "unread param", tracked by the param census.
 
-**SVar.** A named value on a card (`SVar:<Name>:<body>`), stored in
-`cards.Face.SVars`. The body is either another ability (a sub-ability that a
-trigger's `Execute$` or an ability's `SubAbility$` names) or a value
-expression (`Count$…`) that a parameter refers to by name.
+**SVar.** A named value (`SVar:<Name>:<body>`) in `cards.Face.SVars`: a sub-ability (named by
+`Execute$` or `SubAbility$`) or a value expression (`Count$…`) a parameter refers to.
 
 **IR (intermediate representation).** What `engine/cards` compiles a script
 into: a `cards.Card` holding one or more `cards.Face`s, each with its
@@ -32,14 +24,11 @@ into: a `cards.Card` holding one or more `cards.Face`s, each with its
 `engine/cards/ir.go`). The whole corpus is cached as
 `.cards/ir-<fingerprint>.gob.gz`.
 
-**Face.** One printed face of a card (`cards.Face`). Most cards have one.
-Split, adventure, modal double-faced and transforming cards have more
-(`ALTERNATE` in the script starts the next one). `Object.Face()` is the face
-an object currently shows.
+**Face.** One printed face (`cards.Face`); split, adventure, modal and transforming cards have
+more (`ALTERNATE` starts the next). `Object.Face()` is the face an object shows.
 
-**Intrinsic.** An ability the rules grant rather than the script prints. The
-script for a basic Forest has no mana ability; `Face.ApplyIntrinsics`
-(`engine/cards/intrinsic.go`) adds "{T}: Add {G}" from the subtype (CR 305.6).
+**Intrinsic.** An ability the rules grant, not the script: a basic Forest's "{T}: Add {G}" comes
+from `Face.ApplyIntrinsics` (`engine/cards/intrinsic.go`, CR 305.6).
 
 **Primitive.** One named engine capability a card needs. `Face.Primitives()`
 (`engine/cards/primitive.go`) lists a face's primitives as prefixed strings,
@@ -57,17 +46,13 @@ and a card is *playable* when every one is implemented:
 `effects.Supported()` returns the implemented set. `make report` compares it
 with the corpus.
 
-**Registry.** `cards.Registry`: every compiled card and token, looked up by
-name (`Registry.Lookup`). Tests get the shared one from
-`testutil.CorpusRegistry(t)`. Not to be confused with the *effect registry*
-in `engine/effects/registry.go` (primitive name → implementation) or the bot
-registry in `bots/`.
+**Registry.** `cards.Registry`: every compiled card and token (`Registry.Lookup`); tests get the
+shared one from `testutil.CorpusRegistry(t)`. Distinct from the *effect registry*
+(`engine/effects/registry.go`) and the bot registry (`bots/`).
 
-**Event.** One entry in the game's log (`events.Event`, kinds in
-`engine/events/event.go`): a zone move, a life change, damage, a tap, a
-choice made. The only way state changes is `events.Apply`. Engine code
-proposes events with `e.emit` (rules) or `Host.Emit` (effects). `events.Kind`
-is append-only.
+**Event.** One entry in the game's log (`events.Event`, kinds in `engine/events/event.go`). State
+changes only through `events.Apply`; engine code proposes events with `e.emit` (rules) or
+`Host.Emit` (effects). `events.Kind` is append-only.
 
 **Chain head.** The event log is a SHA-256 hash chain: each event's hash
 covers the previous one. `Log.Head()` (`engine/events/log.go`) is the latest
@@ -86,44 +71,35 @@ not offered is rejected. The kinds are a closed set
 `modes`, `commander_zone`, `replacement`, `arrange`, `starting_player`.
 Conceding is an option on a priority decision, not a kind.
 
-**Seat.** Whoever answers a seat's decisions: a bot, a test script, a human
-over HTTP. The contract is `seat.Seat` (`engine/seat/seat.go`), whose one
-method is `Decide(ctx, view.View, decision.Decision) (decision.Intent, error)`.
-A seat never sees the engine.
+**Seat.** Whoever answers a seat's decisions (bot, test script, human over HTTP): `seat.Seat`
+(`engine/seat/seat.go`), one method `Decide(ctx, view.View, decision.Decision) (decision.Intent, error)`.
+It never sees the engine.
 
 **View.** One seat's redacted picture of the game (`view.View`, built by
 `view.Project` in `engine/view`): hidden zones are counts, other players'
 decisions are hidden. Clients and bots read state only through a view.
 
-**Projection.** Building a seat's `view.View` from the game state
-(`view.Project`, `view.ProjectFor`, and `view.RedactEvents` for the log).
-"Change a projection" means changing what some seat is shown, which lives in
-`engine/view/card.go` or `engine/view/stack.go`.
+**Projection.** Building a seat's `view.View` (`view.Project`, `view.ProjectFor`;
+`view.RedactEvents` for the log). Lives in `engine/view/card.go` and `stack.go`.
 
-**Replay.** Re-running a match from its `Config` plus recorded intents and
-checking the rebuilt event stream event for event (`engine/replay`,
-`make sim`'s `-verify`, `cmd/repro`). Because all mutation is in the log,
-replay is also how a server serves finished matches and rebuilds a past position.
+**Replay.** Re-running a match from its `Config` plus recorded intents and comparing the rebuilt
+event stream event for event (`engine/replay`, `make sim`'s `-verify`, `cmd/repro`); also how a
+server serves finished matches.
 
-**Ratchet.** A test whose expected value is a committed table and which fails
-in both directions. A new gap fails, and a listed gap that is now closed
-(stale) fails too. Tables only shrink. Examples:
-`engine/rules/testdata/known-unsupported/`, `engine/rules/testdata/paramcensus/`,
-the oracle audit's `known-divergent/` files. See [Testing](testing.md).
+**Ratchet.** A test whose expected value is a committed table and which fails both when a gap
+appears and when a listed gap closes (stale). Tables only shrink, e.g.
+`engine/rules/testdata/known-unsupported/`, `paramcensus/`, the audit's `known-divergent/`.
+See [Testing](testing.md).
 
-**Census.** A test or one-off measurement that walks the whole corpus (or
-every card with a given shape) and counts how many behave a certain way.
-"Measure the class, not the card": a fix is checked against every card
-sharing the bug's shape, not just the reported one. The param census
+**Census.** A walk over the corpus (or every card of one shape) counting how many behave a
+certain way; a fix is checked against the whole class. The param census
 (`engine/rules/paramcensus_test.go`) is a committed one.
 
-**Oracle text / oracle scenario.** A card's printed rules text (the script's
-`Oracle:` line). An *oracle scenario* is a JSON test, played by gorge's oracle runner, whose
-expectations come from the printed text and the CR, not from the script or
-the engine. (Separately, *compliance oracles* compare gorge with other
-engines, XMage and Forge.) Both live in [gorge-compliance](https://github.com/adams-shaun/gorge-compliance); gorge
-keeps the runner and a few residual scenarios under
-`engine/rules/testdata/oracle/`.
+**Oracle text / oracle scenario.** Oracle text is the printed rules text (the `Oracle:` line). An
+*oracle scenario* is a JSON test whose expectations come from it and the CR, played by gorge's
+runner. (*Compliance oracles* instead compare gorge with XMage and Forge.) Both live in
+[gorge-compliance](https://github.com/adams-shaun/gorge-compliance); gorge keeps the runner and
+residual scenarios under `engine/rules/testdata/oracle/`.
 
 **CR citation.** A reference to the
 [Magic: The Gathering Comprehensive Rules](https://magic.wizards.com/en/rules)
@@ -159,45 +135,36 @@ full gorge commit SHA it builds against, mirrored by the gorge
 pseudo-version in its `go.mod`. Moving it is a pull request in the companion
 ([Pinning](../repos/index.md#pinning)).
 
-**`main` / merge queue.** Open pull requests against `main`, branching from `origin/main`. Mergify queues every
-non-draft PR once its `fast` and `lint` checks pass, and merges a batch of up to 10 with a merge commit when the full
-suite is green on it; `main` is also what this site and the published coverage are built from
-([Branch flow](../repos/index.md#branch-flow)).
+**`main` / merge queue.** Every change is a pull request to `main`. Mergify queues each non-draft PR once its
+`fast` and `lint` checks pass, batches up to 10 on a `mergify/merge-queue/*` branch, and merges the batch with a
+merge commit when `ci-ok` is green there. `hotfix/*` branches jump the queue. This site and the published coverage
+are built from `main` ([Branch flow](../repos/index.md#branch-flow)).
 
-**dirac.** The second rules engine in this repository, for two to four seats, built for search and
-self-play. Its whole game is one flat value and one buffer sized to its card table, cloned with one
-or two memory copies and driven as a `Step`/`Apply` state machine, and its cards are tables of *kop*
-instructions, generated from gorge's compiled cards. Play is checked against gorge by a *lockstep
-oracle*. See [dirac](../architecture/dirac/index.md).
+**dirac.** The second rules engine, for up to four seats (`MaxSeats`), built for search and
+self-play: a flat state in one buffer, driven as a `Step`/`Apply` machine, with cards as *kop*
+tables generated from gorge's IR and play checked against gorge by a *lockstep oracle*. See
+[dirac](../architecture/dirac/index.md).
 
 **kop.** dirac's card-effect vocabulary: a closed, append-only set of
 ops, and the tables (`kop.Table`, one entry per card) its interpreter runs.
 The generator that lowers a card's gorge IR into kop tables is `kgen`.
 
-**Lockstep oracle.** A check that plays the same game in two engines at once,
-feeding both the same answers, and at every decision compares their
-projected state and the options each offers; the first difference is
-reported as a divergence. dirac is
-held to gorge this way. (Distinct from the *compliance oracles*, which
-compare gorge with XMage and Forge scenario by scenario.)
+**Lockstep oracle.** Plays one game in two engines with the same answers and compares projected
+state and offered options at every decision; the first difference is a divergence. How dirac is
+held to gorge (not the *compliance oracles*).
 
-**Canonical projection.** The engine-neutral snapshot both sides of a
-lockstep run are reduced to before comparison: per object its card, zone,
-position, flags, counters and derived power/toughness, then life, the stack,
-turn, step and mana. Two engines agree at a decision when their projections
-are equal (`==` on fixed arrays) and they offer the same canonical options.
-See [Verification](../architecture/dirac/oracle.md).
+**Canonical projection.** The engine-neutral snapshot lockstep compares (per object card, zone,
+position, flags, counters, derived P/T; then life, stack, turn, step, mana). See
+[Verification](../architecture/dirac/oracle.md).
 
 **Stall.** A game dirac ends as a draw with a named reason because it can't continue
 correctly. A *capacity* stall means the position no longer fits a fixed array, and it is a declared
 limit. An *unmodelled* stall means gorge does something there that dirac doesn't, and a strict
 lockstep run fails on it. Neither is reported as a divergence.
 
-**kgen.** The generator that lowers gorge's compiled card IR into
-dirac's kop tables, as generated binary tables that are never committed. It reads every
-parameter of a card or refuses to lower it, and a card that doesn't lower stays out of every
-deck dirac accepts. A card that lowers isn't yet supported: that also takes clean lockstep games of the
-evidence corpus, and no refusal by name. See [Cards](../architecture/dirac/cards.md).
+**kgen.** Lowers gorge's IR into dirac's kop tables (binary, never committed); it reads every
+parameter of a card or refuses it. Lowered is not supported: that also takes clean lockstep games
+of the evidence corpus and no refusal by name. See [Cards](../architecture/dirac/cards.md).
 
 **SpellBench v2.** An external, engine-neutral benchmark protocol for Magic
 agents ([jackmaiorino/spellbench](https://github.com/jackmaiorino/spellbench)).
@@ -219,10 +186,9 @@ importing them: `bots.Register`, `server/gorged.RegisterNetBot`,
 **Wire.** A client protocol a game can be played through: gorge's native HTTP API,
 ManaBrew or SpellBench v2. See [Wires](../architecture/wires.md).
 
-**Repo decks.** The 34 deck files in `testkit/testutil/decks/`: 15 60-card constructed
-and 19 Commander. Twelve of the constructed ones are the *pinned* list
-(`testutil.LegacyDeckNames`, after the Legacy format) that the golden games and `mtgsim`
-seat from.
+**Repo decks.** The deck files in `testkit/testutil/decks/`: 60-card constructed and
+Commander. The *pinned* constructed list (`testutil.LegacyDeckNames`, after the Legacy
+format) is what the golden games and `mtgsim` seat from.
 
 **Honest root, `Env` policy.** An honest root is a copy of the game with every hidden card
 redealt from what the seat has seen, for a search to read. An `Env` policy (`bots.Info.Env`)

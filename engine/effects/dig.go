@@ -106,8 +106,14 @@ import (
 //     carries only "0" and "-1").
 //   - SkipReorder$ True suppresses both the bottom default and a
 //     DestinationZone2$ remainder placement: the untaken cards never move,
-//     so they stay on top in their existing relative order (the corpus
-//     never pairs the two; Through the Forest Gate carries it without one).
+//     so they stay on top in their existing relative order. EXCEPT beside
+//     RestRandomOrder$ True (Hide in Plain Sight): there the two params name
+//     one instruction -- "put the rest on the bottom of your library in a
+//     random order" (CR 401.4) -- and SkipReorder$ suppresses only the
+//     chooser's order ask, which RestRandomOrder$ does not pose anyway, so
+//     the rest still moves (to the library bottom, shuffled). Every other
+//     SkipReorder$ carrier leaves the rest where it is (Through the Forest
+//     Gate, which then shuffles).
 //   - WithMayLook$ True (Ixhel, Scion of Atraxa; Gonti; Thief of Sanity;
 //     Scarlet Witch) grants the exiling effect's controller -- never the
 //     exiled card's owner -- a lasting look at the face of every card the
@@ -165,6 +171,25 @@ func digSetOptionPowers(h Host, d *decision.Decision) {
 	for i := range d.Options {
 		d.Options[i].SetProps = []string{strconv.Itoa(chooseCardPower(h, d.Options[i].Obj))}
 	}
+}
+
+// digGreedyTakeRest runs the forced take of the greedy set -- the no-choice
+// tail's and the no-host stand-in's shared move -- in window order, and hands
+// the window's remainder to rest.
+func digGreedyTakeRest(take func(state.ObjID) bool, greedy, top []state.ObjID, rest func([]state.ObjID)) {
+	taken := make(map[state.ObjID]bool, len(greedy))
+	for _, id := range greedy {
+		if take(id) {
+			taken[id] = true
+		}
+	}
+	restIDs := make([]state.ObjID, 0, len(top))
+	for _, id := range top {
+		if !taken[id] {
+			restIDs = append(restIDs, id)
+		}
+	}
+	rest(restIDs)
 }
 
 func effDig(h Host, c *Ctx, sa *cards.SA) {
@@ -459,9 +484,13 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// second destination (DestinationZone2$, placed by LibraryPosition2$).
 		// With DestinationZone2$ Library / "-1" -- the omitted default -- the
 		// cards go to the bottom, in the answered order when two or more remain
-		// (the ask above) and in their existing order otherwise.
+		// (the ask above) and in their existing order otherwise. SkipReorder$
+		// keeps the rest where it is -- except beside RestRandomOrder$ True
+		// (Hide in Plain Sight): there SkipReorder$ suppresses only the
+		// chooser's order ask, which RestRandomOrder$ never poses, and the
+		// shuffle-to-bottom below still runs (CR 401.4).
 		rest := func(ids []state.ObjID) {
-			if skipReorder {
+			if skipReorder && !restRandomOrder {
 				return
 			}
 			if dp.DestZone2Optional && len(ids) > 0 {
@@ -778,19 +807,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// arm -- with the Note that records why the richer path did not run.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 				Text: "takes the first matching card(s) (no engine host to ask)", Secret: true})
-			taken := make(map[state.ObjID]bool, len(greedy))
-			for _, id := range greedy {
-				if take(id) {
-					taken[id] = true
-				}
-			}
-			restIDs := make([]state.ObjID, 0, len(top))
-			for _, id := range top {
-				if !taken[id] {
-					restIDs = append(restIDs, id)
-				}
-			}
-			rest(restIDs)
+			digGreedyTakeRest(take, greedy, top, rest)
 			placePrimary()
 			continue
 		}
@@ -802,7 +819,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// cumulative budget (WithTotalCMC$) allows; everything else in the
 		// window -- unmatched, over-budget and beyond the cap alike -- goes to
 		// the second destination (by default the bottom, ordered) or stays
-		// exactly where it is (SkipReorder$, or a top LibraryPosition2$).
+		// exactly where it is (SkipReorder$ without RestRandomOrder$, or a top
+		// LibraryPosition2$).
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 			saw = true
@@ -824,19 +842,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			emitLook(h, []state.PlayerID{looker}, state.ZLibrary, top, lookText)
 			saw = true
 		}
-		taken := make(map[state.ObjID]bool, len(greedy))
-		for _, id := range greedy {
-			if take(id) {
-				taken[id] = true
-			}
-		}
-		restIDs := make([]state.ObjID, 0, len(top))
-		for _, id := range top {
-			if !taken[id] {
-				restIDs = append(restIDs, id)
-			}
-		}
-		rest(restIDs)
+		digGreedyTakeRest(take, greedy, top, rest)
 		placePrimary()
 	}
 	// The walk completed: release the ride (the same boundary the search and

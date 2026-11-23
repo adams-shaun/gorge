@@ -46,6 +46,13 @@ type Repro struct {
 	Pool  string `json:"pool,omitempty"`
 	Why   string `json:"why,omitempty"`
 	Stall bool   `json:"stall,omitempty"`
+	// Named marks a recording TestReproManifest replays as a subtest of its own:
+	// one whose pool no glob test replays (a globbed pool's recordings are
+	// replayed there, so marking one would play it twice). Served makes its
+	// replay (the manifest's, or its pool's glob) also require the recorded
+	// prefix to be served whole. Both are absent when false.
+	Named  bool `json:"named,omitempty"`
+	Served bool `json:"served,omitempty"`
 	// Actions is the canonical prefix.
 	Actions []Canon `json:"actions"`
 	// Chance, when set, forces the gorge side's random outcomes

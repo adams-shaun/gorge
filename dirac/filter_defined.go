@@ -149,7 +149,7 @@ func (s *State) kdefHit(ctx evalCtx, o Obj, n int) {
 // playerPred is Player.<q> / Opponent.<q> for player p (gorge
 // MatchesPlayerSpecWithSVars): the candidate controls a creature matching
 // in.F (the object filter reads the resolving controller as "you"), has max
-// speed, is corrupted, or controls the most creatures (a tie keeps both);
+// speed, is corrupted, has an empty hand, or controls the most creatures (a tie keeps both);
 // PlayerPredNeg inverts it.
 //
 //go:noinline
@@ -178,6 +178,8 @@ func (s *State) playerPred(k *prep, in *kop.Instr, p uint8) bool {
 		r = s.speedOf(p) >= speedMaxV
 	case kop.PlayerPredCorrupted:
 		r = s.g.poison[p] >= 3
+	case kop.PlayerPredHandEmpty:
+		r = s.pl[p].handN == 0
 	case kop.PlayerPredMostCreatures:
 		r = s.mostCreatures(k, p)
 	}

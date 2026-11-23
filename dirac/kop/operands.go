@@ -44,9 +44,18 @@ const (
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
 // so its flag space is its own): the copied template's counters join the
 // entering copy's counters as it enters (gorge's RememberCloneOrigin$ True +
-// PutCounter EachFromSource$ Remembered rider, CR 707.9b/614.12). No other
-// B.N bit is used by OpBecomeCopy.
+// PutCounter EachFromSource$ Remembered rider, CR 707.9b/614.12).
 const BecomeCopyCtr = 1 << 0
+
+// BecomeCopyEmbalm is OpBecomeCopy's other B.N bit: Embalm$ True (Vizier of
+// Many Faces' "except if CARDNAME was embalmed, the token has no mana cost,
+// it's white, and it's a Zombie in addition to its other types", CR 707.9b).
+// The op's own exception override (C>>1) applies only when the entering
+// object is a token whose copiable values already carry the no-mana-cost
+// copy exception (the embalm mint's mark, read before the template's
+// exceptions join); a hard-cast carrier enters as a plain copy. Gorge:
+// effects/clone.go cloneEmbalmGate, cloneEmbalmProvenance.
+const BecomeCopyEmbalm = 1 << 1
 
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
@@ -208,6 +217,11 @@ const (
 	DurSuspend            = 14                   // a suspended card (CR 702.62b): obj/ver = the exiled card, ctrl = its owner, turn = its time counters; kind marks the final-counter cast ask (kw_suspend.go)
 	DurWhileGrave         = 15                   // an Effect-delivered graveyard MayPlay grant: the record stays live for the rest of the turn when the card returns to the graveyard (gorge re-reads the effect's static, CR 611.2a)
 	DurWhileGraveForget   = DurWhileGrave | 0x10 // ... and ForgetOnMoved$ Exile: a move to exile ends the grant (the bit is a record's free used-count low bit)
+	// DurUntilYourNextUpkeep is an OpOverride duration only (Erhnam Djinn): the
+	// grant lasts through its controller's untap step and ends as their upkeep
+	// begins (gorge dropUntilYourNextUpkeep). It sits above the OpMayPlay until
+	// byte's four duration bits, which this duration never enters.
+	DurUntilYourNextUpkeep = 16
 )
 
 // MoveFlags (OpExileEx C, OpReturnEx C>>3, OpChangeZoneAllEx C>>3).
@@ -224,7 +238,7 @@ const (
 	MvAttacking                    // OpReturnEx C>>3: the permanent enters attacking (Attacking$ True; CR 508.4)
 	MvAlsoSelf                     // OpReturnEx C>>3: ThisDefinedAndTgts$ Self, the source returns too, after the target, as one entry batch
 	MvForgetChanged                // ForgetChanged$ True (OpReturnEx C>>3, OpExileEx C, OpBounce C): each object that moved leaves the resolution's remembered set, order kept (gorge eventForgetChanged); bit 11 is the last positive bit of OpReturnEx's int16 C>>3
-	MvEntryRiders                  // OpChangeZoneAllEx C>>3, onto the battlefield: each entrant gets A.N&255 counters of kind A.N>>8 (A.N 0 = none) and override uint16(B.N)-1 (B.N 0 = none) before its enters checks fire (WithCountersType$ / StaticEffect$; CR 122.6, 603.6b); bit 12 (ChangeZoneAllEx's C sign bit, kept readable by the arithmetic C>>3 shift; no other op reads it)
+	MvEntryRiders                  // OpChangeZoneAllEx C>>3, onto the battlefield: each entrant gets A.N&255 counters of kind A.N>>8 (A.N 0 = none) and override uint16(B.N)-1 (B.N 0 = none) before its enters checks fire (WithCountersType$ / StaticEffect$; CR 122.6, 603.6b); bit 12 (ChangeZoneAllEx's C sign bit, kept readable by the arithmetic C>>3 shift; OpReturnEx reads it as "Origin$ All on a Defined$ Remembered move: a library card moves too", which every other OpReturnEx skips -- Turntimber Symbiosis's counter-bearing put of the card its dig set on top of the library)
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
@@ -279,6 +293,7 @@ const (
 	SrNoShuffle     = 1 << 14 // Shuffle$ False: the library is not shuffled after the moves; a library destination puts the found cards on top in pick order, remembered with SrRemember (Flourishing Bloom-Kin)
 	SrImprint       = 1 << 8  // OpChooseMove from the Library (ChangeZone Imprint$ True under a DigUntil RememberRevealed$): each moved card joins the chosen set (imprint). Read from the instruction's B, never ORed into pickF (bit 8 there is SrOwnZone); bits 4..11 are the graveyard-pick counter kind, which a library pick never reads
 	SrShareLandType = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
+	SrBattleLink    = 1 << 9  // OpChooseMove from the battlefield to exile (Hidden$ True, Duration$ UntilHostLeavesPlay: Glorious Protector, Abdel Adrian, Yannik): nothing is picked once the resolving source has left the battlefield, and each picked non-token permanent is linked to the source (genState.links) so the picked set returns to the battlefield, as one entering batch under its owners' control, when the source leaves (tableLinkRet, pickLink). Read from the instruction's B through battleLinkPick, never ORed into pickF; bit 9 is OpSearchEx's SrShareLandType, which a pick never carries, and also lies in the entry counter kind's bits 4..11 of a graveyard or Hand,Graveyard pick (kind+1 >= 32: FINALITY, TIME, PAGE), so the bit counts only on a zoneless-filter pick without SrHandGrave
 	SrAltOrigin     = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
 )
 

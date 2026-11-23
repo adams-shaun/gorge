@@ -1,12 +1,6 @@
 # Replays
 
-Every finished game in gorge can be replayed from its log, event by event.
-The engine is deterministic, so a replay is not a recording of the screen:
-it rebuilds the game from the seed, the decks and the list of answers each
-player gave. This page covers watching a replay, moving through one, and,
-on a **review server**, reading every decision the game posed: the options
-on offer, the one that was chosen and, for a bot that searches, what it
-considered and why it picked what it did.
+Every finished game can be replayed event by event. A replay rebuilds the game from the seed, the decks and each player's answers ([How replays work](../web/replays.md)); it is not a screen recording. On a **review server** you can also read every decision: the options offered, the one chosen and, for a searching bot, what it considered.
 
 <figure class="gg-annot" markdown>
 <div class="gg-annot-frame" markdown>
@@ -156,8 +150,7 @@ go run ./cmd/gorged review -art-dir /tmp/gorge-art \
   /tmp/gorge-records/*.match.json.gz
 ```
 
-It takes about 10 seconds and plays the same three games every time. The
-screenshots on this page come from `az-redeal-vs-bot`.
+It plays the same three games every time. The screenshots on this page come from `az-redeal-vs-bot`.
 
 ## Moving through a game
 
@@ -287,7 +280,7 @@ The keys do nothing while you are typing in a field.
 ### Skip passes
 
 Most decisions in a game are a priority window with nothing to do: the only
-options are *Pass priority* and *Concede*. In the example game 259 of its 395
+options are *Pass priority* and *Concede*. In the example game (captured 2026-10-20) 259 of its 395
 decisions are like that. On a review server the transport knows every
 decision's options, so with **Skip passes** on (the default), a Decision
 step and Decision playback pass over those and stop only where a player had

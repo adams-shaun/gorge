@@ -16,7 +16,7 @@ import (
 // madness, miracle and suspend_cast rows cannot fire at the pinned gorge:
 // gorge enters those modes itself (rules/altcast.go, rules/miracle.go,
 // rules/turn.go), never as priority options.
-var castMethods = map[string]string{"": "normal", "mayplay": "normal", "mayflash": "normal", "flashback": "flashback",
+var castMethods = map[string]string{"": "normal", "mayplay": "normal", "mayflash": "normal", "offering": "normal", "flashback": "flashback",
 	"plot_cast": "plot", "bestowed": "alternative", "surged": "alternative", "blitzed": "alternative",
 	"emerged": "alternative", "mutated": "alternative", "escape": "escape", "madness": "madness", "miracle": "miracle",
 	"foretell_cast": "foretell", "adventure_alt": "adventure", "split_alt": "split_right", "fuse": "fuse",

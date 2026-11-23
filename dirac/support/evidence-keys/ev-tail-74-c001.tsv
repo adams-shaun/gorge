@@ -45,12 +45,15 @@ Earthquake	3882ef316c40ec4f	3	0/0		2/4	f0/s/x0,ix:resp
 Eldrazi Mimic	6b1013d24eae05a2	104	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Elenda's Hierophant	6d86694d66a8bf2d	93	2/2		0/1	ix:resp
 Endless Wurm	03da579848b635aa	50	1/1		1/1	
+Enraged Huorn	93875840351ef59b	3	1/1		0/1	ix:resp
 Experiment Twelve	13e41580c23f4d25	8	1/1		1/3	cast/alt:none,ix:resp
 Fact or Fiction	95f447018413c208	33	0/0		2/2	
 Feeding Frenzy	4a39c61c8793531d	40	0/0		2/2	
 Fevered Strength	a0e4cc5d832093fa	29	0/0		2/2	
+Flockchaser Phantom	d7f0370d5c2d3a24	12	1/1		0/1	ix:resp
 Forge, Neverwinter Charlatan	db43a16c6b711f8a	6	2/2		0/1	ix:resp
 Fortress Cyclops	23fc6efb54af1f5c	21	2/2		0/1	ix:resp
+Frostwalk Bastion	8423655dbe668b0f	98	3/3		0/1	ix:resp
 Fume Spitter	a4f28529a0a93826	17	1/1		1/1	
 Gang of Devils	84be0e93ad8d752b	15	1/1		0/1	ix:resp
 Giant Scorpion	bd747b73d4c4cd74	35	0/0		0/0	
@@ -67,12 +70,14 @@ Incurable Ogre	681787cddfa04b40	12	0/0		0/0
 Journey to the Lost City	4eef170ad86c5c15	5	1/1		1/1	
 Keldon Strike Team	57c2c998db0656b0	19	1/1		2/3	ix:resp
 Kindred Boon	e2c88ec817636d2e	6	1/1		0/1	ix:resp
+Kodama of the Center Tree	3644f5b6c8d5d6f6	23	0/0		0/0	
 Kraken of the Straits	8fb5ba80342082fe	26	0/0		0/0	
 Krosan Wayfarer	7651b79d528b67ba	4	1/1		0/1	ix:resp
 Leonin Relic-Warder	601cd122f103d3d5	37	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Leonin Squire	90a9d1d2a768e2db	8	1/1		1/1	
 Liliana's Defeat	2e78775fba029012	4	0/0		1/2	ix:resp
 Loathsome Troll	469b920558b716b9	4	1/1		0/1	ix:resp
+Lord Magnus	09c4f0654b20fc88	13	0/0		0/0	
 Lotus Blossom	514fbecf98eeedda	53	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Mad Auntie	a9664ab8a5c7745a	41	1/1		1/1	
 Magmatic Core	baa34c8200e490e6	24	2/2		0/1	ix:resp
@@ -87,7 +92,6 @@ Omarthis, Ghostfire Initiate	df7b7cfc84dbe833	92	2/2		1/3	f0/t0/opt:n,f0/t0/opt:
 Opal Champion	8175f0a2ba2a3563	6	1/1		0/1	ix:resp
 Ophidian	33811f2f2807a41a	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Outbreak	dbd12725d65c3770	34	0/0		2/2	
-Path to the World Tree	2b8378fc7abaecdb	73	2/2		1/1	
 Plague Fiend	cfd04606cf38919f	8	1/1		0/1	ix:resp
 Planar Incision	261ad308fd3e2681	59	0/0		2/2	
 Plow Under	c686a491b05385b4	9	0/0		1/2	ix:resp
@@ -119,6 +123,7 @@ Silver Knight	25e4cfc9cfdf354b	100	0/0		0/0
 Skyshaper	8dd78c7339f347c7	79	1/1		0/1	ix:resp
 Sporocyst	cc2f20ee10bc8b3e	47	2/2		1/1	
 Suncrusher	b89e5660313daaae	29	2/2		1/1	
+Tamiyo's Compleation	f76a4131719bbb0f	40	1/1		2/2	
 Tawnos's Tinkering	2b403e135ed5e945	102	0/0		2/2	
 Temporal Adept	c3ff06319b9e451c	15	1/1		1/1	
 Territorial Baloth	75e9e59164e2c23a	4	1/1		0/1	ix:resp
@@ -133,6 +138,7 @@ Verdant Touch	a54c2fd48bdb41f2	21	0/0		4/4
 Vessel of Endless Rest	15da7f6a07226f22	4	2/2		0/1	ix:resp
 Veteran Adventurer	db01220194d3ce94	13	0/0		0/0	
 Veteran Bodyguard	c780f6233c23bff6	15	0/0		0/0	
+Vine Kami	b142eb8460fd3367	100	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Walking Atlas	25b36b200f913f4d	75	1/1		1/1	
 Weaver of Lightning	a3bff79525b7fc46	24	1/1		0/1	ix:resp
 Wildfire Eternal	b93ba56dcf84e0ab	18	2/2		0/1	ix:resp

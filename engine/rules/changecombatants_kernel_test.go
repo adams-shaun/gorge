@@ -127,9 +127,20 @@ func TestChangeCombatantsWindshaperAsksEachAttackerKernel(t *testing.T) {
 	if got := retargetEvents(eventsSince(e, start)); len(got) != 0 {
 		t.Fatalf("emitted %+v before any answer", got)
 	}
+	if d.ResumeKind != "changecombatants_optional" {
+		t.Fatalf("first ask = %+v, want the may-reselect confirm", d)
+	}
+	d = answerAsk(t, e, 0) // yes
+	if d == nil || d.ResumeKind != "choice" {
+		t.Fatalf("after yes, ask = %+v, want the defender choice", d)
+	}
 	d = answerAsk(t, e, optionIdxForPlayer(t, d, 2))
-	if d == nil {
-		t.Fatal("the second attacker was never asked")
+	if d == nil || d.ResumeKind != "changecombatants_optional" {
+		t.Fatalf("the second attacker's confirm = %+v", d)
+	}
+	d = answerAsk(t, e, 0) // yes
+	if d == nil || d.ResumeKind != "choice" {
+		t.Fatalf("after yes, second ask = %+v, want the defender choice", d)
 	}
 	if next := answerAsk(t, e, optionIdxForPlayer(t, d, 1)); next != nil {
 		t.Fatalf("a third ask was posed: %+v", next)

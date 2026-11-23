@@ -75,6 +75,7 @@ Crowd of Cinders
 Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
+Damocles Base, Sword of Kang
 Dance of Many
 Danitha Capashen, Paragon
 Daring Saboteur
@@ -124,6 +125,7 @@ Femeref Healer
 Field of Reality
 Fire Nation's Conquest
 Flay
+Flummoxed Cyclops
 Folk Medicine
 Forest
 Frenzied Fugue
@@ -148,6 +150,7 @@ Goblin Cohort
 Goblin Piker
 Gold-Forged Thopteryx
 Gorilla Chieftain
+Grand Architect
 Grappler Spider
 Grasping Thrull
 Grasslands
@@ -162,6 +165,7 @@ Gudul Lurker
 Guiding Bolt
 Hapatra's Mark
 Haunter of Nightveil
+He Who Hungers
 Healer of the Pride
 Herald of Dromoka
 Hero of the Nyxborn
@@ -293,6 +297,7 @@ Revered Dead
 Rhox Charger
 Rhys the Redeemed
 Riddlemaster Sphinx
+Riptide Shapeshifter
 Rishadan Port
 Rite of Harmony
 Ritual of Hope
@@ -382,7 +387,7 @@ Thraxodemon
 Time of Need
 Tishana, Voice of Thunder
 Titania's Chosen
-Tramway Station
+Train of Thought
 Transmogrifying Licid
 Traproot Kami
 True Love's Kiss

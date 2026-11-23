@@ -59,6 +59,33 @@ func witnessAnnouncesBeforePaying(root, end witnessTargetReader, g *state.Game, 
 	return survivorsCanTarget(root, p, o.Obj, sa, survivors)
 }
 
+// witnessCostReader is the engine surface the replay's repriced-cost arm
+// (witnessCostRepriced) reads: the cast's price and target census
+// (witnessTargetReader's), plus the offer base, the cost statics and the
+// castability probe the payable-in-isolation check prices with. It keeps the
+// arm off the whole engine (the engineSurface ratchet).
+type witnessCostReader interface {
+	witnessTargetReader
+	CastPaymentCost(p state.PlayerID, id state.ObjID) (decision.PaymentCost, bool)
+	castOfferBase(p state.PlayerID, id state.ObjID) Cost
+	collectCostStatics() costStaticViews
+	offerCastableUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base *Cost, scope costScope, ability bool, hyp *state.Mana) bool
+}
+
+// witnessMenuOffers reports whether the pending decision's menu itself
+// offers the play o: the walk's payment-end acceptance's first arm, before
+// the announcement arm (witnessAnnouncesBeforePaying) and, armed by the
+// caller, the repriced-cost arm (witnessCostRepriced).
+func witnessMenuOffers(d *decision.Decision, o decision.Option) bool {
+	for i := range d.Options {
+		opt := &d.Options[i]
+		if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
+			return true
+		}
+	}
+	return false
+}
+
 // survivorsCanTarget reports whether the candidates left after a payment's
 // sacrifices still admit a legal declaration of sa's targets: its resolved
 // minimum under the cross-target constraints targetChoiceFeasible reads. A

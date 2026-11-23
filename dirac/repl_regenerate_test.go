@@ -140,7 +140,7 @@ func replRegenerateScen(t *testing.T, names ...string) (*scen, map[string]CardID
 	return &scen{s: s, k: s.k()}, id
 }
 
-// TestRegenNinthShieldStalls: pfRegenX plus genState.regenHi hold eight
+// TestRegenNinthShieldStalls: spareRegenX plus the mechRegen bit hold eight
 // regeneration shields (four before kcaps2x; Fog of Gnats' fifth was the
 // kverify-c4 hit); a ninth stalls loud instead of being dropped (gorge
 // stacks every Shield marker). Spending counts back down across the
@@ -200,8 +200,8 @@ func TestSkipUntapTwiceIsOneMark(t *testing.T) {
 	in := kop.Instr{Op: kop.OpSkipUntap, Obj: kop.RefSelf}
 	sc.s.skipUntap(sc.k, &in)
 	sc.s.skipUntap(sc.k, &in)
-	if sc.s.g.stalled != 0 || sc.s.perms[sc.slot(o)].cseen&cseenSkipUntap0 == 0 {
-		t.Fatalf("two effects: stall %q, mark %v", StallName(sc.s.g.stalled), sc.s.perms[sc.slot(o)].cseen&cseenSkipUntap0 != 0)
+	if sc.s.g.stalled != 0 || sc.s.skipUntapMark(sc.slot(o))&1 == 0 {
+		t.Fatalf("two effects: stall %q, mark %v", StallName(sc.s.g.stalled), sc.s.skipUntapMark(sc.slot(o))&1 != 0)
 	}
 	sc2, _ := replRegenerateScen(t, "Oketra's Last Mercy")
 	land := kop.Instr{Op: kop.OpSkipUntap, C: 1}

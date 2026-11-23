@@ -122,8 +122,11 @@ func (s *State) ObjHash(o Obj) uint64 {
 	}
 	// the permanent, every byte (perm has no padding)
 	h = hbytes(h, unsafe.Pointer(&s.perms[ob.slot]), unsafe.Sizeof(s.perms[0]))
-	if x := s.xblkFind(ob.slot); x != nil {
-		h = hmix(h, 0x78626c6b<<24|uint64(x.a)<<16|uint64(x.ord)<<8|uint64(x.div)|uint64(x.adiv)<<56) // combat_extrablock.go
+	if c := coldLoyaltyAct.of(s); int(ob.slot) < len(c) && c[ob.slot] != 0 {
+		h = hmix(h, 0x6c6f79616c<<8|uint64(c[ob.slot])) // this turn's loyalty activations (static_loyaltyact.go)
+	}
+	if x := s.xblkHash(ob.slot); x != 0 {
+		h = hmix(h, x) // the further blocks (combat_extrablock.go)
 	}
 	if s.g.on {
 		if a := s.atchSeat(s.k(), ob.slot); a != 0 {
@@ -208,6 +211,13 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if g.colG != [maxColG]colGrant{} {
 		h = hbytes(h, unsafe.Pointer(&g.colG), unsafe.Sizeof(g.colG)) // static_colourgrant.go
 	}
+	for i := 0; i < int(g.nfx); i++ {
+		// the haste a control record grants (static_control.go ctrlKw) is not
+		// in ObjHash, and dirac/feat's card view encodes it (FeatCtrlKw)
+		if r := &g.fx[i]; r.kind == fxControl && r.r.fl&fcHaste != 0 {
+			h = hmix(h, 0x6374726c6b77<<16|uint64(r.sl))
+		}
+	}
 	if s.exhAny() {
 		h = hbytes(h, unsafe.Pointer(&s.cold.exH[0]), uintptr(len(s.cold.exH))*unsafe.Sizeof(s.cold.exH[0])) // static_cantblockexcept.go
 	}
@@ -217,8 +227,14 @@ func (s *State) genViewHash(h uint64) uint64 {
 	if g.atkHi != 0 {
 		h = s.atkGrpHash(h) // trig_attackers.go
 	}
+	if g.cvokHi != 0 {
+		h = s.convokedHash(h) // kw_convokelist.go
+	}
 	if c := s.atkLastCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // trig_atklastturn.go
+	}
+	if c := s.atkObjCold(); c != nil {
+		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))*unsafe.Sizeof(c[0])) // trig_atkobj.go
 	}
 	if c := s.contractCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // ctr_contract.go
@@ -449,7 +465,10 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			}
 			switch z := s.objs[o].zone; z {
 			case kop.ZoneHand, kop.ZoneLibrary, kop.ZoneGraveyard, kop.ZoneExile:
-				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24)
+				// the option's card too: a choice among hidden-zone cards (a
+				// library search) encodes the card each option offers, so two
+				// libraries in one order must not share a key
+				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24|uint64(s.objs[o].card)<<40)
 			}
 		}
 	}
@@ -506,9 +525,18 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	if s.g.atkHi != 0 {
 		h = s.atkGrpHash(h) // the attacker groups the pending and stacked triggers index
 	}
+	if s.g.cvokHi != 0 {
+		h = s.convokedHash(h) // the convoked sets the stacked spells index (kw_convokelist.go)
+	}
 	h = hmix(h, uint64(s.npend)|uint64(s.orderLeft)<<8|uint64(s.orderN)<<16|uint64(s.orderPlace)<<24|
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)
 	h = hmixSlots(h, s.legDie)
+	if s.ctl == ctlBand {
+		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go)
+	}
+	if s.ctl == ctlReflectPick {
+		h = hmix(h, uint64(s.g.reflMask)|uint64(s.g.reflP)<<8) // the colours asked and the payer (mana_reflectpickask.go)
+	}
 	if s.legSaga.any() {
 		h = hmixSlots(h, s.legSaga)
 	}

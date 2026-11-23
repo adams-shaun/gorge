@@ -1,8 +1,6 @@
 # Support matrix
 
-Each dot is a claim a test holds. Full means the wire plays whole games and a gate fails if it stops. Partial means it plays,
-with the gaps listed below. None means the engine refuses it. The test behind each cell is on [Wires](../architecture/wires.md),
-and `TestWireMatrixPageMatchesScript` keeps that list tied to the CI script.
+Each dot is a claim a test holds. **Full**: the wire plays whole games and a gate fails if it stops. **Partial**: it plays, with the gaps listed below. **None**: the engine refuses it. The test behind each cell is on [Wires](../architecture/wires.md); `TestWireMatrixPageMatchesScript` (`testkit/conformance/matrix_test.go`) ties that page to the CI script.
 
 <div class="gg-matrix" markdown>
 
@@ -43,19 +41,20 @@ and `TestWireMatrixPageMatchesScript` keeps that list tied to the CI script.
 
 ## What dirac refuses
 
-Two seats, Constructed, auto-pay only. It refuses `-events`, search bots, the paired bot and review decisions, naming the
-reason at startup. See [Serving dirac](../guide/dirac.md).
+Two seats, auto-pay only (Constructed, or Commander from a set that holds the decks). It refuses `-events`, search bots, the paired bot and review decisions, naming the reason at startup. See [Serving dirac](../guide/dirac.md).
 
 ## Where each cell is checked in code
 
-| Claim | Code |
+Files, not line numbers: find the symbol in the file.
+
+| Claim | Where |
 |---|---|
-| Engines implement one seam | `engine/game/game.go:95` (`Engine`), `dirac/adapter/replay.go:14` |
-| `-engine` picks the engine | `server/gorged/gorged.go:398` |
-| dirac's refusals | `server/gorged/engine.go:28-49` |
-| `-sbv2` plays the autopay surface on dirac | `server/gorged/engine.go:72` |
-| Paired bot needs gorge | `server/host/pairedbot.go:171` |
-| ManaBrew translator covers every decision kind | `server/manabrew/errors_test.go:161`, `server/manabrew/dispatch.go:17` |
-| ManaBrew reveal gap | `server/manabrew/synthetic.go:42` |
-| ManaBrew alone-restriction in text | `server/manabrew/prompt_combat.go:72` |
+| Engines implement one seam | `engine/game/game.go` (`Engine`), `dirac/adapter/replay.go` |
+| `-engine` picks the engine | `server/gorged/gorged.go` |
+| dirac's refusals | `server/gorged/engine.go` |
+| `-sbv2` plays the autopay surface on dirac | `server/gorged/engine.go` |
+| Paired bot needs gorge | `server/host/pairedbot.go` |
+| ManaBrew translator covers every decision kind | `server/manabrew/errors_test.go`, `server/manabrew/dispatch.go` |
+| ManaBrew reveal gap | `server/manabrew/synthetic.go` |
+| ManaBrew alone-restriction in text | `server/manabrew/prompt_combat.go` |
 | SpellBench dirac env | `dirac/cmd/sbv2dirac/main.go` |

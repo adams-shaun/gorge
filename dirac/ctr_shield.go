@@ -150,6 +150,12 @@ func shieldBesidePlus(g *genPrep) bool {
 // plus-N that changes it, a Crystal Barricade (noncombat), the recipient's
 // or the source's combat prevention (combat).
 func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) bool {
+	return s.shieldOtherBase(k, srcCtrl, srcSl, srcCard, sl, combat, n) || s.spShieldOther(k, srcCtrl, srcSl, srcCard, sl, combat, n)
+}
+
+// shieldOtherBase is shieldOther without the static prevention and Phantom
+// candidates the ordered walks pose beside the shield.
+func (s *State) shieldOtherBase(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) bool {
 	g := k.gen
 	rcp := s.perms[sl].ctrl
 	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
@@ -186,7 +192,7 @@ func (s *State) shieldOrderable(k *prep, src, dst Slot) bool {
 	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, sc, src, s.cardAt(src), rcp, dst, true) > 0 {
 		return true
 	}
-	return s.prevCombatTo(k, dst)
+	return s.prevCombatTo(k, dst) || s.spShieldOther(k, sc, src, s.cardAt(src), dst, true, 1)
 }
 
 // ncShieldSlot is the parked noncombat event's recipient slot, or NoSlot

@@ -209,7 +209,21 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		return false
 	}
 	c0 := cost.AtX(0)
-	return s.sourcesPay(k, p, &c0) || s.turnUpRestrPays(k, p, &c0, sp, sl) || s.turnUpRiderPays(k, p, &c0) || s.turnUpPlannerPays(k, p, &c0) || s.turnUpFilterPays(k, p, sl, mode)
+	return s.turnUpTapPays(k, p, &c0, sp, sl, mode) || s.storeCensusPays(k, p, &c0)
+}
+
+// turnUpTapPays: the untapped sources (or a restricted, rider, planner or
+// filter route) pay the keyword turn-up's cost at the smallest {X}.
+func (s *State) turnUpTapPays(k *prep, p uint8, c0 *kop.ManaCost, sp kop.SpecialMask, sl Slot, mode uint8) bool {
+	return s.sourcesPay(k, p, c0) || s.turnUpRestrPays(k, p, c0, sp, sl) || s.turnUpRiderPays(k, p, c0) || s.turnUpPlannerPays(k, p, c0) || s.turnUpFilterPays(k, p, sl, mode) || s.turnUpTapXPays(k, p, sl, mode)
+}
+
+// turnUpStoreOnly: only an idle storage battery's open production prices the
+// keyword turn-up (turnUpListed's last arm), no source the planner taps does.
+// The action's payment activates that battery first (storeTurnUpTap).
+func (s *State) turnUpStoreOnly(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, mode uint8) bool {
+	c0 := cost.AtX(0)
+	return !s.turnUpTapPays(k, p, &c0, sp, sl, mode) && s.storeCensusPays(k, p, &c0)
 }
 
 // turnUpRiderPays: gorge's potential walk counts a depletion land's whole

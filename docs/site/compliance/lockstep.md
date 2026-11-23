@@ -25,8 +25,8 @@ leads. A gorge change that alters behaviour on a supported card fixes dirac in
 the same change, or makes kgen refuse the card by name (`kgen -refuse`). There is
 no list of tolerated divergences. `scripts/dirac-gate.sh <base>` holds this: it
 runs `kfuzz -absolute` on the committed FDN and BLB slices on both surfaces, and
-also checks the size, allocation and instruction budgets, the refused entries
-and a short synthetic run.
+also checks the state size, allocations, instruction counts, inlining and
+escapes, the refused entries, the pinned games and a short synthetic run.
 
 Two kinds of difference are not divergences, and each is listed in
 [`dirac/docs/DEVIATIONS.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/DEVIATIONS.md):
@@ -82,20 +82,16 @@ cannot return silently.
 
 ## Pinned games
 
-A pinned game is a recorded game: two decklists by card name, a seed and the
-canonical actions, under `dirac/oracle/testdata/pins`. Each is played in lockstep.
-It must reach the conditions its test names, such as a card entering or a trigger
-resolving, and stay clean. Because it does not depend on how a synthetic pool
-deals its pairs, lowering or refusing another card cannot move it. A game that no
-longer reaches its condition fails, so a fix cannot hide by changing the path.
+A recorded game (two decklists by card name, a seed and canonical actions) under
+`dirac/oracle/testdata/pins`, played in lockstep. It must reach the conditions its test names (a card
+entering, a trigger resolving) and stay clean. It does not depend on how a synthetic pool deals pairs,
+so lowering or refusing another card cannot move it, and a fix cannot hide by changing the path.
 
 ## Mutation tests
 
-A clean lockstep run proves nothing if the comparison cannot fail. Many
-class tests have a mutation twin (the `...Mutation` tests in `dirac/oracle`):
-the same games with one behaviour deliberately made wrong, which must diverge.
-`TestAbilitycastMutation` fails if its mutated games do not. The class test shows
-a feature agrees. The mutation test shows the oracle would have seen it differ.
+A clean run proves nothing if the comparison cannot fail. Many class tests have a mutation twin
+(the `...Mutation` tests in `dirac/oracle`, e.g. `TestAbilitycastMutation`): the same games with one
+behaviour made wrong, which must diverge.
 
 ## Refused entries
 
@@ -114,12 +110,10 @@ JSON file in `dirac/support/refused/` with the card, a class (such as
 
 ## Capacity stalls
 
-dirac has fixed capacities: the battlefield, objects, pending triggers, the stack,
-and some rings that track the turn. A game that outgrows one stops as a named
-stall. It is a declared limit, counted per table, printed in the summary line, and
-not compared past that point. It earns coverage up to where it stopped. Raise a
-limit when realistic play hits it. A limit only random play hits is evaluated,
-not raised by default. The list is in
+dirac has fixed capacities (battlefield, objects, pending triggers, the stack, some turn rings). A
+game that outgrows one stops as a named stall: a declared limit, counted per table, printed in the
+summary, not compared past that point. Raise a limit when realistic play hits it; one only random
+play hits is evaluated. The list is in
 [`DEVIATIONS.md`](https://github.com/adams-shaun/gorge/blob/main/dirac/docs/DEVIATIONS.md).
 
 ## dirac's CR coverage

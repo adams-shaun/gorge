@@ -61,10 +61,10 @@ func TestProvenanceGate(t *testing.T) {
 		"Card.!wasCastFromYourHand", "Spell.wasCastFromExile", "Card.CastSa Spell.Mayhem", "Card.wasCast",
 		"Card.Colorless+YouCtrl+YouOwn+wasCastFromHand+cmcGE7"} {
 		g := specProvenanceGate(spec)
-		// wasCastFromHand is the effects-side predicate: it carries "Cast" but
-		// no rules-side stage fires on it.
-		want := spec != "Creature.YouCtrl" && spec != "Card.Other+nonLand" &&
-			spec != "Card.Colorless+YouCtrl+YouOwn+wasCastFromHand+cmcGE7"
+		// wasCastFromHand (no "Your") is the bare hand-provenance word the
+		// rules side now strips too (Wildsear, Yidris, Zhulodok), so it fires
+		// the provHandAny stage.
+		want := spec != "Creature.YouCtrl" && spec != "Card.Other+nonLand"
 		if g.may != want {
 			t.Errorf("%q: may=%v, want %v", spec, g.may, want)
 		}

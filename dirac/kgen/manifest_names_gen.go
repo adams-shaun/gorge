@@ -824,6 +824,9 @@ func init() { enum[kop.ExprKind]("kop.ExSrcRemCounters", kop.ExSrcRemCounters) }
 // dirac/manifest/ExprKind/ExStaticExileKw
 func init() { enum[kop.ExprKind]("kop.ExStaticExileKw", kop.ExStaticExileKw) }
 
+// dirac/manifest/ExprKind/ExVoteTally
+func init() { enum[kop.ExprKind]("kop.ExVoteTally", kop.ExVoteTally) }
+
 // dirac/manifest/KwID/KwStickerSheet
 func init() { enum[kop.KwID]("kop.KwStickerSheet", kop.KwStickerSheet) }
 
@@ -1113,8 +1116,65 @@ func init() { enum[kop.KwID]("kop.KwDivideDamageAmongDefenders", kop.KwDivideDam
 // dirac/manifest/KwID/KwStartingHandFive
 func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 
+// dirac/manifest/KwID/KwCascade
+func init() { enum[kop.KwID]("kop.KwCascade", kop.KwCascade) }
+
+// dirac/manifest/KwID/KwConvoke
+func init() { enum[kop.KwID]("kop.KwConvoke", kop.KwConvoke) }
+
+// dirac/manifest/KwID/KwCycling
+func init() { enum[kop.KwID]("kop.KwCycling", kop.KwCycling) }
+
+// dirac/manifest/KwID/KwDoctorsCompanion
+func init() { enum[kop.KwID]("kop.KwDoctorsCompanion", kop.KwDoctorsCompanion) }
+
+// dirac/manifest/KwID/KwEnchant
+func init() { enum[kop.KwID]("kop.KwEnchant", kop.KwEnchant) }
+
+// dirac/manifest/KwID/KwForetell
+func init() { enum[kop.KwID]("kop.KwForetell", kop.KwForetell) }
+
+// dirac/manifest/KwID/KwHorsemanship
+func init() { enum[kop.KwID]("kop.KwHorsemanship", kop.KwHorsemanship) }
+
+// dirac/manifest/KwID/KwMadness
+func init() { enum[kop.KwID]("kop.KwMadness", kop.KwMadness) }
+
+// dirac/manifest/KwID/KwMegamorph
+func init() { enum[kop.KwID]("kop.KwMegamorph", kop.KwMegamorph) }
+
+// dirac/manifest/KwID/KwMorph
+func init() { enum[kop.KwID]("kop.KwMorph", kop.KwMorph) }
+
+// dirac/manifest/KwID/KwMultikicker
+func init() { enum[kop.KwID]("kop.KwMultikicker", kop.KwMultikicker) }
+
+// dirac/manifest/KwID/KwPersist
+func init() { enum[kop.KwID]("kop.KwPersist", kop.KwPersist) }
+
+// dirac/manifest/KwID/KwPrintedWard
+func init() { enum[kop.KwID]("kop.KwPrintedWard", kop.KwPrintedWard) }
+
+// dirac/manifest/KwID/KwSuspend
+func init() { enum[kop.KwID]("kop.KwSuspend", kop.KwSuspend) }
+
+// dirac/manifest/KwID/KwToxic
+func init() { enum[kop.KwID]("kop.KwToxic", kop.KwToxic) }
+
+// dirac/manifest/KwID/KwUnearth
+func init() { enum[kop.KwID]("kop.KwUnearth", kop.KwUnearth) }
+
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
+
+// dirac/manifest/Pred/PredGoaded
+func init() { enum[kop.Pred]("kop.PredGoaded", kop.PredGoaded) }
+
+// dirac/manifest/Pred/PredMonarchCtrl
+func init() { enum[kop.Pred]("kop.PredMonarchCtrl", kop.PredMonarchCtrl) }
+
+// dirac/manifest/Pred/PredProg
+func init() { enum[kop.Pred]("kop.PredProg", kop.PredProg) }
 
 // dirac/manifest/Pred/PredRingBearer
 func init() { enum[kop.Pred]("kop.PredRingBearer", kop.PredRingBearer) }
@@ -1202,6 +1262,15 @@ func init() { enum[kop.ReplKind]("kop.ReplPreventDamageN", kop.ReplPreventDamage
 
 // dirac/manifest/ReplKind/ReplDamageRedirect
 func init() { enum[kop.ReplKind]("kop.ReplDamageRedirect", kop.ReplDamageRedirect) }
+
+// dirac/manifest/ReplKind/ReplDamageMinus
+func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
+
+// dirac/manifest/ReplKind/ReplDamageSet
+func init() { enum[kop.ReplKind]("kop.ReplDamageSet", kop.ReplDamageSet) }
+
+// dirac/manifest/ReplKind/ReplLifeReduced
+func init() { enum[kop.ReplKind]("kop.ReplLifeReduced", kop.ReplLifeReduced) }
 
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }

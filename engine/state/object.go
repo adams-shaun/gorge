@@ -13,6 +13,12 @@ import (
 type Counter struct {
 	Kind string
 	N    int32
+	// Stamp is the Game.Clock tick at which a keyword counter (CR 122.1b)
+	// was last put on the object: the CR 613.7 timestamp of the layer-6 grant
+	// it makes, so a "loses all abilities" effect older than the counter does
+	// not remove it. Set by events.Apply's CounterChange fold for keyword
+	// counters only; zero on every other kind.
+	Stamp uint32
 }
 
 // Target is a chosen target. Exactly one of Obj and Player is meaningful.
@@ -520,8 +526,9 @@ const (
 	// flag and resolves exactly like the plain cast (the Conspired pattern). It
 	// is conditioned on the additional COST having been paid -- "if this spell
 	// was cast using teamwork" means the tap was paid -- so, like FlagConspired
-	// and FlagOffspringPaid, it is deliberately NOT in CastProvenanceFlags and a
-	// copied Teamwork spell inherits it pending the same separate copy ruling.
+	// and FlagOffspringPaid, it is deliberately NOT in CastProvenanceFlags; the
+	// copy mint (events/apply_copy.go) strips it and TeamworkPaid instead, since
+	// a copy is never cast (CR 702.194b, 707.10).
 	// Appended after FlagBargained to preserve all bits already in main.
 	FlagTeamworkPaid
 	// FlagPreparedCopy marks a cast that rode CR 722.3c's prepared grant: the
@@ -954,6 +961,14 @@ type Object struct {
 	// re-enabling its own tap forever) without ever misreading a human's
 	// legal unlimited activations -- the count is advice, never a gate.
 	ActivatedThisTurn int32
+
+	// RegeneratedThisTurn counts the times this permanent regenerated this
+	// turn (CR 701.19): events.Apply's EndCombatReset fold, for the one
+	// regeneration the effects package's regenerate marks with
+	// events.RegeneratedNotice. Reset at TurnChange and when the object
+	// changes zone (CR 400.7). Count$RegeneratedThisTurn (Spiny Starfish)
+	// reads it.
+	RegeneratedThisTurn int32
 
 	// AttacksThisTurn counts the DeclareAttackers events this object has
 	// attacked in this turn (events.Apply's DeclareAttackers case), reset in
@@ -2023,6 +2038,19 @@ type Object struct {
 	CloneLayers []CloneLayer
 	CloneSeq    int32
 
+	// EmergedToughness is CR 702.119's "the sacrificed creature" toughness:
+	// the toughness an Emerge cast's sacrificed creature last had (CR
+	// 608.2h), carried by a pay-time
+	// CastInfo (FlagAltCostPaid with the events.CastInfoEmerged Text; the
+	// CastFlags word is full, so the emerge cast rides the alternative-cost
+	// bit like Prowl). Count$Emerged and its Emerged$CardToughness operand
+	// read it (Adipose Offspring). It rides the same provenance window as
+	// X/CastFlags and resets alongside them in events.Move; zero for any other
+	// cast and for a COPY. The sacrificed id is not kept: nothing reads it, and
+	// the Object is pinned to whole cache lines (declared beside CloneSeq to fill
+	// its alignment hole).
+	EmergedToughness int32
+
 	// LeftCopyFace is the CopyFace this object last left the battlefield with.
 	// The object is no longer a copy, but what the copy did is not undone: a
 	// leaves-the-battlefield trigger of the copied card fires, and a delayed
@@ -2073,11 +2101,11 @@ type Object struct {
 	// "Intensity" writes it, so a replay rebuilds it.
 	Intensity int32
 
-	// _ pads the Object to 1536 bytes (24 64-byte cache lines), so in the
+	// _ pads the Object to 1600 bytes (25 64-byte cache lines), so in the
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [4]byte
+	_ [60]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed
@@ -2333,7 +2361,24 @@ func (o *Object) FaceDownTypeWords() []string {
 		}
 		return nil
 	}
-	set := strings.TrimSpace(o.FaceDownSetType)
+	return faceDownSetWords(o.FaceDownSetType)
+}
+
+// FaceDownEntryTypeWords is the base type set an object ENTERING face down
+// will carry (CR 708.4, 708.5): the folded FaceDownSetType when one was
+// granted, else {Creature}. Unlike FaceDownTypeWords it does not gate on
+// FaceDownHidden: a Moved replacement's ValidCard$ judges the entering object
+// before the move folds the face-down marker onto it (CR 614.12, 701.58a), so
+// the read answers the set the entry will carry, not the origin-zone card's
+// printed types.
+func (o *Object) FaceDownEntryTypeWords() []string {
+	return faceDownSetWords(o.FaceDownSetType)
+}
+
+// faceDownSetWords is a FaceDownSetType value's type-word set: {Creature} when
+// none was folded, else the set type split on Forge's " & " join.
+func faceDownSetWords(set string) []string {
+	set = strings.TrimSpace(set)
 	if set == "" {
 		return []string{"Creature"}
 	}
@@ -2608,7 +2653,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 		}
 	}
 	if n > 0 {
-		o.Counters = append(o.Counters, Counter{kind, n})
+		o.Counters = append(o.Counters, Counter{Kind: kind, N: n})
 	}
 }
 

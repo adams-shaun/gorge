@@ -126,6 +126,8 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 			n = s.uniqueChainViable(k, ti, &buf, n) // tgt_uniquechain.go
 		}
 	}
+	mustDone := true
+	n, mustDone = s.mustTargetMulti(k, e, t, ti, mt, &buf, n)
 	if n == 0 && mt.picked < mt.max && mt.picked >= mt.min && mt.picked > 0 {
 		// below the maximum with nothing left to target: gorge still asks,
 		// done only (with nothing to target at all a zero-minimum slot asks
@@ -158,7 +160,7 @@ func (s *State) multiTargetStep(k *prep, d *Decision, t *kop.TargetSpec, ti uint
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkTarget, 0, buf[i], 0))
 	}
-	doneOK := mt.picked >= mt.min
+	doneOK := mustTargetDone(mt.picked, mt.min, mustDone)
 	if doneOK && mt.picked == 0 && mt.min == 0 && e.kind == seSpell && e.flags&(sfMayPlay|sfFlashback) == 0 {
 		doneOK = s.emptyTargetSetPayable(k)
 	}
@@ -190,9 +192,25 @@ func (s *State) emptyTargetSetPayable(k *prep) bool {
 	if full == zero && !s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
 		return true
 	}
+	if b.pickN > 0 && s.tapPaysEntry(k, e) {
+		// a convoke cast with creatures already announced: they pay their
+		// share of the cost and are withheld from the window, as at payment
+		// (gorge paymentStranded reads pc.Convoke; convokeTargetAbort)
+		zero = s.convokeApplyPicks(k, zero)
+		return !s.targetWindowShort(k, e, &zero, true)
+	}
 	var av avail
-	s.availFor(k, e.ctrl, &av)
-	return av.affords(&zero, pipMaskOf(&zero), 0)
+	s.availForBuilt(k, e, &av) // the floating restricted mana the spell may spend counts too
+	if av.affords(&zero, pipMaskOf(&zero), 0) {
+		return true
+	}
+	// the pool and plain sources fall short: gorge's paymentStranded reads the
+	// CR 601.2g window, and withholds only when its census is complete and
+	// still short (the candidates' affordableTargets tail, statics_gen.go)
+	if s.windowUnpricedOpen(k, e) {
+		return true
+	}
+	return s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &zero, false)
 }
 
 // finishSlot ends the slot's picks (a divided slot's damage is announced
@@ -350,28 +368,5 @@ func (s *State) hasTargetsMin(k *prep, t *kop.TargetSpec, p uint8, src Slot, sel
 	if n < int(t.Min) {
 		return false
 	}
-	if t.TFlags&kop.TgfSharedCrType != 0 {
-		// returns before the same/different-controller checks below: kgen
-		// refuses a shared-type slot beside SameCtrl/DiffCtrl, so they never meet.
-		return s.tgtSetCap(k, t, buf[:n]) >= t.Min // tgt_setconstraints.go
-	}
-	if t.TFlags&kop.TgfSameController != 0 {
-		var per [MaxSeats]uint8
-		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
-				per[SeatIx(s.ctrlOfObj(Obj(buf[i])))]++
-			}
-		}
-		return seatMax(&per) >= t.Min
-	}
-	if t.TFlags&kop.TgfDiffController != 0 {
-		var seen [MaxSeats]bool
-		for i := 0; i < n; i++ {
-			if isObjTarget(buf[i]) {
-				seen[SeatIx(s.ctrlOfObj(Obj(buf[i])))] = true
-			}
-		}
-		return seatCount(&seen) >= t.Min
-	}
-	return true
+	return s.tgtCapsHold(k, t, buf[:n])
 }

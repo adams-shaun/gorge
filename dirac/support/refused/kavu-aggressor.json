@@ -1,0 +1,31 @@
+{
+  "card": "Kavu Aggressor",
+  "class": "lockstep",
+  "why": "kicked {2}{R}+{4} cast whose {R} only a repeatable fee-only mana ability funds (Signpost Scarecrow's {2}: Add one mana of any colour, beside 4 Plains, a black Pathway and a Gorge): gorge offers the kicked cast (rules potential_repeat_fee.go lifts such an ability to unbounded in the potential bound), the kernel's potential census prices a fee-only mana ability only in the trigger pay gate (mana_repeatpotential.go) and offers no kicked cast (tail-45 pair 7, decision 224); matching gorge's planner search for fee-unit funding is solver machinery over 200 lines, the class Shaman of the Great Hunt is refused for",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "kicked_cast_funded_by_repeat_fee_filter"
+  },
+  "evidence": [
+    "ev-tail-33-c000",
+    "ev-tail-33-c001",
+    "ev-tail-33-c002",
+    "ev-tail-33-c003",
+    "ev-tail-33-c005",
+    "ev-tail-33-c006",
+    "ev-tail-33-c008",
+    "ev-tail-33-c009",
+    "ev-tail-33-c012",
+    "ev-tail-33-c013",
+    "ev-tail-34-c009",
+    "ev-tail-45-c000",
+    "ev-tail-45-c001",
+    "ev-tail-45-c002",
+    "ev-tail-45-c004"
+  ]
+}

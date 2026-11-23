@@ -31,6 +31,21 @@ func (s *State) activationsOfResolving() int {
 // ConditionActivationLimit$ gate never holds.
 var DebugNoActCount bool
 
+// DebugPlannerFlexCensus (TestPlannerRankParityMutation) restores the
+// pre-fix payment-parity behaviour: plainListedPays prices a plain play with
+// payDescNow instead of the play's own payment descriptor (so a restricted
+// alternative the play admits drops from the census and the play falls to the
+// script prefix), and an Improvise cast whose announcements-beside-a-credit
+// do not lower the composed price falls back to the manual window.
+// TestPlannerRankParityMutation sets it and requires the recorded divergences
+// back.
+var DebugPlannerFlexCensus bool
+
+// DebugXWindowSkipLifeOnly (TestXWindowLifeOnlySourceMutation): the {X}
+// witness census skips a life-only mana source (Treasonous Ogre), as it did
+// when availUngranted's tap gate ran before the pain arm.
+var DebugXWindowSkipLifeOnly bool
+
 // activationsOfSource is ExActivations N 1: the evaluating source's non-mana
 // activations this turn, the ActivationLimit$ N offer gate (gorge
 // legal_loyalty.go activationLimitBlocked reads activationUsedCount before

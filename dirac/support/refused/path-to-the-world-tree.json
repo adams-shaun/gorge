@@ -1,0 +1,19 @@
+{
+  "card": "Path to the World Tree",
+  "class": "lockstep",
+  "why": "{2}{W}{U}{B}{R}{G} activation whose blue and red mana only a Lotus Blossom ({T}, sacrifice: one mana of any one colour) and a Celestial Prism ({2}, {T}: one mana of any colour) make: gorge's offer gate prices the activation through its payment planner, which counts neither a dynamic {T}, sacrifice source nor a paid filter as the sole source of a colour, so its menu withholds the activation, while the kernel's census prices both as gaps and offers it (tail-74 pair 24, decision 553); matching the two gaps on one activation is a prefix search and a fee class over 200 lines of solver machinery",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "path_to_the_world_tree_activation"
+  },
+  "evidence": [
+    "ev-tail-74-c000",
+    "ev-tail-74-c001",
+    "ev-tail-74-c002"
+  ]
+}

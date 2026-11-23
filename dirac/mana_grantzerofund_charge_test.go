@@ -13,7 +13,12 @@ import (
 // charge the zero-filter ask once itself, like the filter search does before
 // its one answer (mana_filtzerofund.go): otherwise dirac spends one node fewer
 // per tap than gorge and can reach a script at the budget edge that gorge
-// never reaches.
+// never reaches. The count is one node lower per gap-side City activation
+// than before the flattened-ask charge fix (152): a City activation whose
+// "choose a mana ability" ask was charged asks its filter's colours inside
+// that one ask, as gorge's scriptOrderManaAbilityAnswers flattens them
+// (mana_grantedoffers.go filtBranch's flatAsk), so the colour ask is no node
+// of its own there; the funding tap's zero-filter ask below is untouched.
 func TestGrantZeroFiltTapChargesOnce(t *testing.T) {
 	set := cardsettest.Set(t, "dynfilter")
 	tbl, err := set.Pool()
@@ -43,7 +48,7 @@ func TestGrantZeroFiltTapChargesOnce(t *testing.T) {
 	var gs grantSrch
 	s.grantSearch(k, 0, &kop.ManaCost{Generic: 8}, NoSlot, payDesc{}, [kop.NumManaKinds]bool{}, &gs)
 	tsl := sc.slot(ttc)
-	if !k.gen.anyDynFilt || !k.gen.has(id["Three Tree City"], gfFilt) || s.filtUnits(k, tsl) != 0 || gs.nodes != 152 {
-		t.Fatalf("want the zero-filter shape and 152 nodes (136 without), got %d", gs.nodes)
+	if !k.gen.anyDynFilt || !k.gen.has(id["Three Tree City"], gfFilt) || s.filtUnits(k, tsl) != 0 || gs.nodes != 147 {
+		t.Fatalf("want the zero-filter shape and 147 nodes (152 before the flattened-ask charge), got %d", gs.nodes)
 	}
 }

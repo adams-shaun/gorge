@@ -23,9 +23,19 @@ import (
 func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 	o := s.objRefObj(in.Obj)
 	lastBear := false
-	if o == NoObj && in.Obj == kop.RefAttached && s.objs[s.res.e.obj].zone != kop.ZoneBattlefield {
-		o = s.lastBearerObj(s.res.e.obj)
-		lastBear = o != NoObj
+	if in.Obj == kop.RefAttached && s.objs[s.res.e.obj].zone != kop.ZoneBattlefield {
+		// The source is off the battlefield: its RefAttached read is
+		// gorge's definedSpecEquipped LKI chain (CR 608.2h). lastBear marks
+		// the resolution that had to use the LastBearer itself (the bearer
+		// had already left the battlefield), which no longer moves; the
+		// LKI attach read naming a bearer still on the battlefield still
+		// moves it (Origin$ Battlefield).
+		if s.lkiAttachedHost(s.res.e.obj) == NoObj {
+			if o == NoObj {
+				o = s.lastBearerObj(s.res.e.obj) // the records were lost (a reused pad)
+			}
+			lastBear = o != NoObj
+		}
 	}
 	if o == NoObj || in.C == kop.LibTopShuffleGrave && s.objs[o].zone != kop.ZoneGraveyard {
 		return // (Origin$ Graveyard: a card exiled in response is not shuffled in, nor the library)
@@ -35,7 +45,18 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 		// of the source that went to the library first) does not move, and
 		// the library is shuffled all the same (CR 701.24c)
 	} else if !lastBear {
-		s.moveRef(k, in.Obj, kop.ZoneLibrary, bottom)
+		if in.Obj == kop.RefAttached && s.objs[o].zone != kop.ZoneBattlefield {
+			// RefAttached referent off the battlefield: gorge's
+			// definedSpecEquipped now names the source's LastBearer (CR
+			// 608.2h) wherever it is, and every Enchanted/Equipped
+			// top-shuffle shape in the corpus declares Origin$
+			// Battlefield, so only a referent still on the battlefield
+			// moves; the library is shuffled all the same (CR 701.24c).
+			// Dramatic Accusation's second activation with the creature
+			// already shuffled in (std-mkm pair, decision 516).
+		} else {
+			s.moveRef(k, in.Obj, kop.ZoneLibrary, bottom)
+		}
 	} else if s.objs[o].zone == kop.ZoneBattlefield {
 		// the last bearer returned: gorge's LastBearer names the returned
 		// object, so the Origin$ Battlefield move still applies.
@@ -65,7 +86,7 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 //go:noinline
 func (s *State) libTopInOrder(os []Obj, from []kop.Zone) {
 	for i := len(os) - 1; i >= 0; i-- {
-		s.placeFrom(os[i], kop.ZoneLibrary, false, from[i], false)
+		s.placeFrom(os[i], kop.ZoneLibrary, false, from[i], false, false)
 	}
 }
 

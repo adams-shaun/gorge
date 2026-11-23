@@ -138,8 +138,9 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}
-	ce.remVer &= spellFirstCast          // nor the keywords the spell gained (CR 707.2); the first-cast stamp stays (cast_firstcast.go)
-	ce.prov, ce.spc, ce.etbSrc = 0, 0, 0 // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
+	ce.remVer &= spellFirstCast                               // nor the keywords the spell gained (CR 707.2); the first-cast stamp stays (cast_firstcast.go)
+	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
+	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}
@@ -364,20 +365,33 @@ func (s *State) copyInherited(e *stackEntry, slot int, out *[MaxOptions]TCode) i
 	own := s.copyOwnSlot(k, e, slot) // a chain link's or a mode's election lists its own slot alone
 	for i := 0; i < int(e.nt); i++ {
 		if e.tgt[i] != NoTarget && (own && i == slot || !own && !s.copySubSlot(k, e, i)) {
-			out[n] = e.tgt[i]
+			out[n] = s.copyInhTgt(e.tgt[i], e.tver[i])
 			n++
 		}
 		if i == slot && e.xi != 0 {
 			x := s.xtOf(e)
 			for j := 0; j < int(x.n); j++ {
 				if x.slot[j] == uint8(slot) && n < MaxOptions {
-					out[n] = x.code[j]
+					out[n] = s.copyInhTgt(x.code[j], x.ver[j])
 					n++
 				}
 			}
 		}
 	}
 	return n
+}
+
+// copyInhTgt names an inherited target as the copy's option: a stack ability
+// by its live stack index, or StackTargetGone once it left the stack (CR
+// 707.10c keeps it a target, though an illegal one, and the copy's controller
+// may leave it unchanged; gorge's identity names the vanished object RefNone,
+// which canon's Action gives the option too). Another target is its own code.
+// setCopyTargetsQ takes a StackTargetGone pick back to the departed target.
+func (s *State) copyInhTgt(c TCode, ver uint8) TCode {
+	if !isStackTarget(c) {
+		return c
+	}
+	return s.stackTgtProj(c, ver)
 }
 
 // copyTargetOptions: the inherited targets in slot order, then the
@@ -505,11 +519,33 @@ func (s *State) setCopyTargetsQ(k *prep, e *stackEntry, i int, picks []Obj) {
 		}
 		x.n = m
 	}
+	var gone [maxXTgt + 1]struct { // the inherited stack abilities that left, in option order
+		c   TCode
+		ver uint8
+	}
+	ng := 0
+	if isStackTarget(e.tgt[i]) && s.stackTgtIdx(e.tgt[i], e.tver[i]) < 0 {
+		gone[ng].c, gone[ng].ver = e.tgt[i], e.tver[i]
+		ng++
+	}
+	if e.xi != 0 {
+		x := s.xtOf(e)
+		for j := uint8(0); j < x.n; j++ {
+			if x.slot[j] == uint8(i) && isStackTarget(x.code[j]) && s.stackTgtIdx(x.code[j], x.ver[j]) < 0 && ng < len(gone) {
+				gone[ng].c, gone[ng].ver = x.code[j], x.ver[j]
+				ng++
+			}
+		}
+	}
+	ngi := 0
 	e.tgt[i] = TCode(NoTarget)
 	for n, o := range picks {
 		c := TCode(o)
 		var ver uint8
-		if isObjTarget(c) {
+		if c == StackTargetGone && ngi < ng { // keep the departed target as it was (CR 707.10c)
+			c, ver = gone[ngi].c, gone[ngi].ver
+			ngi++
+		} else if isObjTarget(c) {
 			ver = s.objs[c].ver
 		} else if isStackTarget(c) {
 			ver = s.stackTgtSid(c) // a stack ability is found again by its identity (tgt_stackability.go)

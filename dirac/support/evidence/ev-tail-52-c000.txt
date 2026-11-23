@@ -6,6 +6,7 @@ Aboshan, Cephalid Emperor
 Abzan Runemark
 Acid-Spewer Dragon
 Adorable Kitten
+Adorned Pouncer
 Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
@@ -57,6 +58,7 @@ Bola Slinger
 Bonecrusher Giant
 Boros Keyrune
 Boros Signet
+Borrowing the East Wind
 Boulderfall
 Brainstone
 Breath of Malfegor
@@ -131,6 +133,7 @@ Dreamstalker Manticore
 Dueling Rapier
 Dusk Legion Zealot
 Eagle of the Watch
+Echoing Cavern
 Elite Archers
 Elspeth, Sun's Nemesis
 Emeria Captain
@@ -309,6 +312,7 @@ Noble Steeds
 Noggle Bandit
 Novijen, Heart of Progress
 Oak Street Innkeeper
+Oath of Teferi
 Occult Epiphany
 Ondu Champion
 Order of Yawgmoth
@@ -397,6 +401,7 @@ Scalebane's Elite
 Scavenger Drake
 Scourge of Valkas
 Sea God's Revenge
+Securitron Squadron
 Select for Inspection
 Selesnya Sentry
 Serpent Skin
@@ -496,6 +501,7 @@ Viashino Grappler
 Visara the Dreadful
 Vision, Spectral Synthezoid
 Visions of Beyond
+Volcanic Strength
 Voldaren Duelist
 Vona's Hunger
 Vraska's Scorn

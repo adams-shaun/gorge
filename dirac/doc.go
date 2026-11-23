@@ -166,6 +166,11 @@
 //     ability goes on the stack. A tap cost with exactly N candidates is not
 //     asked (gorge skips it); sacrifice and discard are asked even then. The
 //     chosen objects move when the cost is paid (after targets), as in gorge.
+//   - Exile pick of an exile-from-graveyard mana source (gorge KChoose
+//     "mana_exile", Molt Tender; mana_exilegrave.go): one pick of
+//     AkChoose{source: a graveyard card}, Sub ChWinExile, in graveyard order,
+//     asked even with one candidate; the card is exiled with the source's {T}
+//     and the mana floats (a colour ask follows an any-colour source's pick).
 //   - Effect discards (gorge KModes "discard", options in hand order): Sub
 //     ChDiscard, one pick per card; the picks are recorded and the cards
 //     discarded together in pick order, so the hand (and each card's
@@ -388,8 +393,17 @@
 //     branched on the first 64 per-unit answers in gorge's order (the colours
 //     the play announces first), chained with the other gaps in battlefield
 //     order; a payment window taps it as well (windowComboTap), and a table
-//     holding it beside a filter, a tap-another source, a granted mana ability
-//     or a Lion's Eye Diamond is refused (StallComboAnyMix). The potential walks list
+//     holding it beside a gated or dynamic filter, a tap-another source, a restricted or
+//     costed granted mana ability or a Lion's Eye Diamond is refused (StallComboAnyMix);
+//     plain filters, plain granted abilities (the grant search takes the source as a
+//     candidate, mana_grantcomboany.go) and reflected sources play. A Combo Any
+//     source that pays a forage (Thornvault Forager's "{T}, Forage: Add two mana
+//     in any combination of colors") is the same gap with the forage answered
+//     first (mana_forage.go): the source's ability ask beside its plain {T},
+//     the forage ask (the exile arm, then each Food, asked with two or more
+//     options), then the colours; only the prefix search activates it (no
+//     payment window does), and a table holding it beside another gap kind
+//     is refused (StallComboAnyMix). The potential walks list
 //     a may-play cast gorge's planner leaves unpriced (Tinybones' any-type
 //     mana), so a script can make the pool pay it (pair 7489's Hawk took
 //     the Courtyard's {C}).

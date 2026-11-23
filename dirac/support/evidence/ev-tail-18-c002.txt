@@ -9,6 +9,7 @@ Ancient Copper Dragon
 Angler Drake
 April O'Neil, Human Element
 Ardent Soldier
+Arrow Storm
 Asha's Favor
 Audacity
 Aven Eternal
@@ -24,6 +25,7 @@ Bellowing Elk
 Benevolent Blessing
 Beregond of the Guard
 Bessie, the Doctor's Roadster
+Biomass Mutation
 Bituminous Blast
 Bladebrand
 Blood-Toll Harpy
@@ -32,6 +34,7 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Blossoming Calm
 Blue Elemental Blast
+Blur
 Body of Knowledge
 Boing!
 Bojuka Brigand
@@ -39,6 +42,7 @@ Bold Defense
 Bond of Passion
 Boom
 Boompile
+Borrowing 100,000 Arrows
 Branching Bolt
 Branchloft Pathway
 Breath of Darigaaz
@@ -49,6 +53,7 @@ Capital Guard
 Carnage Interpreter
 Cast into the Fire
 Caustic Hound
+Champion Lancer
 Charcoal Diamond
 Citadel Castellan
 Claim the Firstborn
@@ -58,6 +63,7 @@ Colossal Might
 Compleated Huntmaster
 Conjurer's Mantle
 Conqueror's Flail
+Consecrated by Blood
 Contaminated Aquifer
 Contentious Plan
 Court Hussar
@@ -77,6 +83,7 @@ Demonic Dread
 Deranged Hermit
 Deserter's Quarters
 Devastation Tide
+Diabolic Tutor
 Dictate of Karametra
 Didgeridoo
 Die Young
@@ -103,6 +110,7 @@ Falcon Abomination
 Fallaji Archaeologist
 Fallow Earth
 Feral Instinct
+Feral Invocation
 Filigree Familiar
 Firebreathing
 Flame Discharge
@@ -178,6 +186,7 @@ Lightning Runner
 Llanowar Augur
 Loam Dryad
 Loam Larva
+Lookout's Dispersal
 Lorthos, the Tidemaker
 Lotleth Giant
 Mage-Ring Bully
@@ -241,12 +250,17 @@ Reef Shaman
 Refurbished Familiar
 Relentless Assault
 Remand
+Renegade Tactics
 Resupply
 Rime Transfusion
 Rite of the Raging Storm
+Roiling Regrowth
+Run Ashore
 Rush of Inspiration
 Rusted Sentinel
+Sabertooth Wyvern
 Sacred Guide
+Sage-Eye Avengers
 Said
 Savage Offensive
 Sawblade Slinger
@@ -255,6 +269,7 @@ Screaming Seahawk
 Seal Away
 Seal of Strength
 Searing Light
+Seasoned Marshal
 Seismic Stomp
 Seller of Songbirds
 Sentinel
@@ -266,6 +281,7 @@ Setessan Griffin
 Shadowfeed
 Shimmerdrift Vale
 Shinewend
+Shriekdiver
 Shrink
 Silverbeak Griffin
 Simian Grunts
@@ -298,9 +314,9 @@ Step Through
 Stingscourger
 Stronghold Overseer
 Sundering Eruption
-Sunscape Master
 Svyelunite Priest
 Swamp
+Swarmborn Giant
 Swashbuckling
 Sword of Forge and Frontier
 Syr Faren, the Hengehammer
@@ -319,6 +335,7 @@ The Juzam Master
 The Reaver Cleaver
 Then, Dreadmaws Ate Everyone
 Thirst
+Thopter Arrest
 Thor, Asgard's Avenger
 Thorn Mammoth
 Thunder Spirit
@@ -334,9 +351,12 @@ Tuktuk Scrapper
 Tyrant's Machine
 Ulvenwald Observer
 Unchained Berserker
+Undertow
+Underworld Charger
 Unlicensed Hearse
 Vandalize
 Vault Skyward
+Vedalken Dismisser
 Vesper Ghoul
 Vicious Offering
 Village Rites

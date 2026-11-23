@@ -254,9 +254,11 @@ func (s *State) ctrOrderObservableBy(k *prep, kinds []kop.CounterKind, putter ui
 // an any-kind trigger with no counter gate (the class, speed and mode gates
 // are not counter kinds). No effect reads the counter kind of a
 // CounterAddedOnce event (only the trigger's kind filter does), so the two
-// orders reach the same stack.
+// orders reach the same stack. A CR 603.8 state trigger (Tf4StateCtr) is the
+// same: it queues one instance at the first put that meets its threshold and
+// the later puts find it outstanding, whichever kind each was.
 func ctrOrderInsensitive(a *kop.Ability) bool {
 	g := a.Gate.Ctr
-	return a.Trig.N == kop.TrigNAnyCounter && a.Trig.Flags&kop.TfOncePerTurn != 0 &&
+	return a.Trig.N == kop.TrigNAnyCounter && (a.Trig.Flags&kop.TfOncePerTurn != 0 || a.Trig.Flags4&kop.Tf4StateCtr != 0) &&
 		(g == 0 || g == kop.CtrLevel || g == kop.CtrMaxSpeed || g == kop.CtrMode)
 }

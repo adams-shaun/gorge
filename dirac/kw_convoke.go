@@ -106,8 +106,13 @@ func (s *State) convokeCreditUsed(k *prep, p uint8, c CardID, o Obj, fromHand bo
 	if k.gen == nil || !k.gen.anyConvoke {
 		return cost, slotMask{}
 	}
-	convoke := s.hasConvoke(k, p, c, o, fromHand)
-	improvise := s.isImprovise(k, p, c, o, fromHand)
+	// the keyword is read off the card's own controller (creditReader, gorge
+	// castOfferBase), the taps off p: a seat's emblem ("the next spell you
+	// cast has improvise") reads its owner's exiled card an opponent's
+	// permission casts, and the opponent's artifacts pay the generic
+	q := s.creditReader(p, o)
+	convoke := s.hasConvoke(k, q, c, o, fromHand)
+	improvise := s.isImprovise(k, q, c, o, fromHand)
 	if !convoke && !improvise {
 		return cost, slotMask{}
 	}
@@ -317,6 +322,23 @@ func (s *State) convokePicked(o Obj) bool {
 		}
 	}
 	return false
+}
+
+// convokedPick reports whether announced pick kind kd is a convoked creature:
+// a convoke pick that is not improvise (mode 6) or harmonize (mode 7). The
+// convoked set (stampConvoked) and Convoked$Amount (convokedAmount) share it.
+func convokedPick(kd pickKind) bool { return isConvokePick(kd) && kd&7 <= 5 }
+
+// convokedAmount is the announced convoked creatures' count: convokePickCount
+// less the improvise and harmonize picks (Convoked$Amount, cast.go).
+func (s *State) convokedAmount() int {
+	n := 0
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if convokedPick(s.bld().pickKs[i]) {
+			n++
+		}
+	}
+	return n
 }
 
 func (s *State) convokePickCount() int {
@@ -539,6 +561,21 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	red := s.convokeApplyPicks(k, folded)
 	hidden := s.convokeHidden()
 	s.occ = s.occ.andNot(hidden)
+	// gorge's reverseStrandedPayment (CR 733.1) reverses a cast whose
+	// announcement left a mana payment the window cannot finish BEFORE any
+	// mana ability is activated, so the reversal leaves no window effects.
+	// The announced picks alone are the helpers here (gorge's guard: no
+	// Announced cast, Convoke non-empty); the manual CR 601.2g window route
+	// (manaStep) runs the same check, but a cast whose window gorge never
+	// posed -- the strand check fired in manaWindowAsk before the pose --
+	// reaches payConvoke alone, and paying it blind tapped a still-owed
+	// colour the convoke credits could not fund, then kept the tap and its
+	// floating mana through the reversal (tail-36 pair 66).
+	if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &red) {
+		s.unhide(hidden)
+		s.reverseCast(k)
+		return false
+	}
 	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		// gorge's abortCast keeps the CR 601.2g window's effects through the
@@ -589,6 +626,11 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	s.tapBatchClose(tb)
 	return true
 }
+
+// DebugConvokeAbortCensus restores targetWindowShort's behaviour before the
+// committed picks were re-hidden before its pool-pips-first path (mutation
+// testing only: the lockstep must catch it).
+var DebugConvokeAbortCensus bool
 
 // convokeTargetAbort reports whether the pending convoke cast (or a Play's paid
 // copy cast, copyCastPaid) can no longer
@@ -662,7 +704,16 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, anyColor)
 	if !ok {
+		// CopyFrom restores s.occ too, so the committed picks come back: the
+		// probe re-hides them, or the pool-pips-first path taps a committed
+		// convoke creature a second time and reads a cast payable that
+		// gorge's castWindowReachable (whose units skip convokeCommitted)
+		// cannot reach (CR 601.2h). DebugConvokeAbortCensus keeps the old
+		// behaviour for the mutation test.
 		s.CopyFrom(saved)
+		if !DebugConvokeAbortCensus {
+			s.occ = s.occ.andNot(hide)
+		}
 		ok = s.windowPoolPipsFirst(k, e.ctrl, cost, anyColor) // the walk's order is one path; gorge's probe proves any
 	}
 	s.CopyFrom(saved)
@@ -732,7 +783,7 @@ func (s *State) payConvokeFromPool(k *prep, e *stackEntry, red *kop.ManaCost, an
 	p := e.ctrl
 	var m uint8
 	if s.rbAny(p) {
-		m = s.restrSpendable(k, p, e.card, restrOriginOfEntry(e))
+		m = s.restrSpendable(k, p, e.card, s.restrOriginOfEntry(e))
 	}
 	if m == 0 {
 		s.payFromPoolRider(k, p, red, 0, anyColor)

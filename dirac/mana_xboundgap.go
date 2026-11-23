@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // paidGapMax mirrors gorge's relaxedPaidLimit: a relaxed payment proof
 // enumerates subsets of at most this many paid mana abilities its planner
@@ -13,7 +17,7 @@ const paidGapMax = 3
 // leaves it out. The index is the encounter order, which the fixpoint's first
 // pass fixes the same for every run, so gapSkip's bit i names the same
 // ability in each subset run (xBoundGapSubsets).
-func (d *payDesc) gapNote(sl Slot, j, fee int, never bool) bool {
+func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 	id := uint16(sl)<<4 | uint16(j)
 	for i := 0; i < int(d.gapN) && i < paidGapMax; i++ {
 		if d.gapID[i] == id {
@@ -23,14 +27,68 @@ func (d *payDesc) gapNote(sl Slot, j, fee int, never bool) bool {
 	i := int(d.gapN)
 	if i < paidGapMax {
 		d.gapID[i], d.gapFee[i] = id, uint8(min(fee, 255))
-		if never {
-			d.gapNever |= 1 << i
-		}
 	}
 	if d.gapN < 255 {
 		d.gapN++
 	}
 	return i < paidGapMax && d.gapSkip>>i&1 != 0
+}
+
+// gapProd is a paid gap's production as the lone-gap cut reads it (gorge
+// relaxedPaid.plain, relaxedCutPlain): plain is a fixed or one-colour-choice
+// production of one mana per colour, no extra, restriction, rider, dynamic or
+// colourless part. each: every colour of mask at once (Golgari Signet's {B}{G});
+// otherwise one mana of one colour of mask (Unknown Shores' any colour).
+type gapProd struct {
+	mask  uint8
+	each  bool
+	plain bool
+}
+
+// gapProdOf reads ab's production for the cut. tapExtra is the ability's own
+// TapsForMana extra (paidGapTapExtra), which adds mana the cut does not model.
+func gapProdOf(ab *kop.Ability, tapExtra bool) gapProd {
+	c := ab.ManaColors
+	plain := !tapExtra && ab.AFlags&^kop.AfManaChoice == 0 && ab.ManaRestrict == 0 && ab.ManaRestrictAb == 0 &&
+		ab.ManaN <= 1 && c != 0 && c&^kop.ColAny == 0 && ab.SplitGate == 0 && ab.ManaV == (kop.ValueRef{}) &&
+		ab.ManaRider == kop.ManaRiderNone && ab.ManaHasteValid == 0 && !ab.ManaGrave
+	return gapProd{mask: uint8(c), each: ab.ManaEach, plain: plain}
+}
+
+// gapProdNote records the production of the gap named by slot sl's ability j
+// (gapNote's id), once the gap is booked.
+func (d *payDesc) gapProdNote(sl Slot, j int, pr gapProd) {
+	id := uint16(sl)<<4 | uint16(j)
+	for i := 0; i < int(d.gapN) && i < paidGapMax; i++ {
+		if d.gapID[i] == id {
+			d.gapProd[i] = pr
+			return
+		}
+	}
+}
+
+// cutVecs calls f with each way the gap's production can pay a cost's pips:
+// the whole mask at once, or one colour of the mask.
+func (pr gapProd) cutVecs(f func(v [kop.NumManaKinds]uint8) bool) bool {
+	var v [kop.NumManaKinds]uint8
+	if pr.each {
+		for c := 0; c < 5; c++ {
+			if pr.mask&(1<<c) != 0 {
+				v[c] = 1
+			}
+		}
+		return f(v)
+	}
+	for c := 0; c < 5; c++ {
+		if pr.mask&(1<<c) != 0 {
+			v = [kop.NumManaKinds]uint8{}
+			v[c] = 1
+			if f(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // paidGapProbe is availPotentialFor's read of a mana ability's paid fee: paid
@@ -58,7 +116,7 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 	case !boundedAny:
 		skip = true
 	case d != nil && d.gapTrack:
-		skip = d.gapNote(sl, j, fee.MV(), kop.HybridFilterManaAb(ab))
+		skip = d.gapNote(sl, j, fee.MV())
 		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
 	return paid, skip, repeat
@@ -78,7 +136,8 @@ func paidGapBooked(d *payDesc, sl Slot, j int, ab *kop.Ability, tapExtra bool) {
 	if d == nil {
 		return
 	}
-	d.gapNote(sl, j, int(ab.Cost.Mana.MV()), kop.HybridFilterManaAb(ab))
+	d.gapNote(sl, j, int(ab.Cost.Mana.MV()))
+	d.gapProdNote(sl, j, gapProdOf(ab, tapExtra))
 	if tapExtra || !paidGapNetsNoMana(ab) {
 		d.gapGain = true
 	}
@@ -207,13 +266,24 @@ func xBoundCountCensus(open bool, countEx *avail, units *[maxPotUnits]potUnit, l
 // whose fee nothing else funds adds nothing, so a filter beside one other
 // source pays no more than that source does.
 type gapSubsets struct {
-	n   int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
-	sub [1 << paidGapMax]gapSubset
+	n int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
+	// repeats: an admitted paid gap is repeatable, so the census is not
+	// relaxable and the sweep's supply is the over-bound pool (xBoundPayable)
+	repeats bool
+	sub     [1 << paidGapMax]gapSubset
 }
 
 type gapSubset struct {
 	av  avail
 	fee int
+	// cut: the subset holds one plain paid gap and no hybrid-fee one, so a
+	// reducible cost is priced the way gorge's relaxed proof prices it
+	// (paymentPlanRelaxProof's cutSelfFee): the gap's production comes off the
+	// cost, and its fee is charged as generic against the sources without it,
+	// sub[0]'s census (CR 601.2g-h: its own output cannot pay its own fee).
+	// Two or more gaps may fund each other and keep the units above.
+	cut gapProd
+	has bool
 }
 
 // xBoundGapSubsets fills gs for the payment d (a copy: the probe's fields are
@@ -221,9 +291,10 @@ type gapSubset struct {
 func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	var pu [maxPotUnits]potUnit
 	var av avail
-	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats, d.gapNever = true, 0, 0, false, 0
+	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
+	gs.repeats = d.gapRepeats
 	if n == 0 || n > paidGapMax || d.gapRepeats {
 		// a repeatable gap (Crossroads Candleguide's "{2}: Add one mana of any
 		// color") makes gorge's census non-relaxable: its relaxed proof never
@@ -233,14 +304,6 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	}
 	fees := d.gapFee
 	for m := 0; m < 1<<n; m++ {
-		if never := int(d.gapNever); m&never != 0 {
-			// a hybrid-fee filter has no relaxed alternative (its fee is
-			// floated by the prefix search, which the relaxed subset does not
-			// model), so a subset holding it is priced as the one without it,
-			// fee uncharged
-			gs.sub[m] = gs.sub[m&^never]
-			continue
-		}
 		dm := d
 		dm.gapSkip, dm.gapN = ^uint8(m), 0
 		dm.gapPrice = true
@@ -270,6 +333,11 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 			}
 		}
 		gs.sub[m] = gapSubset{av: sub, fee: fee}
+		if bits.OnesCount(uint(m)) == 1 {
+			if pr := d.gapProd[bits.TrailingZeros(uint(m))]; pr.plain {
+				gs.sub[m].cut, gs.sub[m].has = pr, true
+			}
+		}
 	}
 	gs.n = 1 << n
 }
@@ -277,6 +345,12 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 // affords: some subset pays cost plus its fees.
 func (gs *gapSubsets) affords(cx *kop.ManaCost) bool {
 	for m := 0; m < gs.n; m++ {
+		if sb := &gs.sub[m]; sb.has && cx.Hyb[0] == 0 && cx.Snow == 0 {
+			if gs.sub[0].av.affordsCut(cx, sb) {
+				return true
+			}
+			continue
+		}
 		c := *cx
 		c.Generic = uint8(min(int(c.Generic)+gs.sub[m].fee, 255))
 		if gs.sub[m].av.affords(&c, pipMaskOf(&c), 0) {
@@ -284,4 +358,23 @@ func (gs *gapSubsets) affords(cx *kop.ManaCost) bool {
 		}
 	}
 	return false
+}
+
+// affordsCut: some way the subset's gap makes its mana leaves a cost the
+// sources a (the census without the gap) can pay with the gap's fee on top.
+// Each unit pays a pip of its colour when the cost has one, else a generic
+// (gorge pay.relaxedCutCost).
+func (a *avail) affordsCut(cx *kop.ManaCost, sb *gapSubset) bool {
+	return sb.cut.cutVecs(func(v [kop.NumManaKinds]uint8) bool {
+		c := *cx
+		spare := 0
+		for i, n := range v {
+			use := min(n, c.Pips[i])
+			c.Pips[i] -= use
+			spare += int(n - use)
+		}
+		c.Generic -= uint8(min(spare, int(c.Generic)))
+		c.Generic = uint8(min(int(c.Generic)+sb.fee, 255))
+		return a.affords(&c, pipMaskOf(&c), 0)
+	})
 }

@@ -318,6 +318,11 @@ func plainTapMana(a *lAbility, paid bool) bool {
 // gap the kernel models or the frozen pools prove (refuseMultiMana).
 func manaGapModelled(first, a *lAbility) bool {
 	switch {
+	case forageGapMana(a):
+		// {T}, Forage: Add two mana in any combination of colors beside a plain {T}
+		// first ability (Thornvault Forager): the kernel's Combo Any gap with a forage
+		// (mana_forage.go; the ask order is gorge's ability, forage, colours)
+		return true
 	case storeGapMana(a):
 		// SubCounter<X/KIND> on a later mana ability (Molten Slagheap,
 		// Mage-Ring Network): the kernel's counter-X script gap removes

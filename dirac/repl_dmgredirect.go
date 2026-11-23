@@ -161,7 +161,7 @@ func (s *State) redirCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID
 			return true // a depleting shield on the recipient
 		}
 	}
-	return s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+	return s.prevNextCompetes(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, false)
 }
 
 // redirSpend takes record at's share of an event of n: the amount to

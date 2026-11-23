@@ -106,6 +106,13 @@ var Families = []*Family{
 	},
 	flags("FilterFlags", "F", 16, "mask"),
 	flags("FilterFlags2", "F2", 32, ""),
+	{
+		// FilterWord: a literal of a filter program (kop.FLit, PredProg). Zero
+		// is no word; the kernel's fwTable is indexed by the value, with one
+		// handler per word (//kmanifest:fword).
+		Name: "FilterWord", Pkg: "kop", Prefix: "Fw", Min: 1, Max: 65535, Alloc: Band{Lo: 1, Hi: 65535},
+		check: checkFilterWord,
+	},
 	// KwID 0..31 are the KwMask bit positions, with no constants of their own.
 	{Name: "KwID", Pkg: "kop", Prefix: "Kw", Min: 32, Max: 65535, Alloc: Band{Lo: 32, Hi: 65535}, Seeded: true, Kgen: "enum"},
 	flags("KwMask", "Kw", 32, "mask"),

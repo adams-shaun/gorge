@@ -7,8 +7,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // offers (CR 701.40b-d, 701.58b-d). Cold: reached from execOblige and the
 // priority walk only when the table has one of the ops (genPrep.anyFaceDown).
 
-// Provenance marks. perm.flags has no free bit (13-14 are pfRegenX, cleared
-// every cleanup; 15 is pfSkipUntap), and object.of's eight bits are taken
+// Provenance marks. perm.flags has no free bit (13 is pfBatchGone, 14 pfLastBear
+// and 15 pfSkipUntap), and object.of's eight bits are taken
 // (ofHeld is bit 7, not free). A face-down permanent's perm.gty holds only
 // its derived face-down types (TCreature) plus gtyFaceDown, so the two
 // highest type bits double as provenance there: bit 13 (TToken) means
@@ -233,9 +233,11 @@ func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, 
 func (s *State) manifestDread(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
-		if in.Obj == kop.RefRememberedOwner {
-			// gorge definedSpecRememberedOwner over an empty remembered
-			// set (the ETB exiled nothing): nobody manifests dread.
+		if in.Obj == kop.RefRememberedOwner || in.Obj == kop.RefExiledWithOwner {
+			// gorge definedSpecRememberedOwner over an empty remembered set
+			// (the ETB exiled nothing), and the HasCardsInExile player
+			// filter with no seat's exile holding a card exiled with this
+			// source: nobody manifests dread -- never the controller.
 			return true
 		}
 		p = s.res.e.ctrl
@@ -327,7 +329,7 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) bool {
 			return true
 		}
 		from := s.detach(other)
-		s.placeFrom(other, kop.ZoneGraveyard, false, from, false)
+		s.placeFrom(other, kop.ZoneGraveyard, false, from, false, false)
 		mill = other
 	}
 	// the window's marker (gorge manifestDreadMove: emitted after the moves,

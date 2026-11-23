@@ -184,6 +184,13 @@ func mostLife(lives []int32, lost []bool, p state.PlayerID) bool {
 // table, with an optional table mutation and a per-decision check hook.
 func fourSeatSetPlay(t *testing.T, set cardset.Set, decks [4][]string, mutate func(*kop.Table), check func(*GorgeSide, Side) *Divergence, finish func(*GorgeSide), pol func(uint64) Policy) func(uint64) Result {
 	t.Helper()
+	return fourSeatSetPlayCmd(t, set, decks, nil, mutate, check, finish, pol)
+}
+
+// fourSeatSetPlayCmd is fourSeatSetPlay as a Commander game when commanders
+// is set: seat s's commander is card commanders[s] of its deck.
+func fourSeatSetPlayCmd(t *testing.T, set cardset.Set, decks [4][]string, commanders []int, mutate func(*kop.Table), check func(*GorgeSide, Side) *Divergence, finish func(*GorgeSide), pol func(uint64) Policy) func(uint64) Result {
+	t.Helper()
 	reg := synthReg(t)
 	var lists [][]cardset.Entry
 	for _, d := range decks {
@@ -202,7 +209,8 @@ func fourSeatSetPlay(t *testing.T, set cardset.Set, decks [4][]string, mutate fu
 	}
 	return func(seed uint64) Result {
 		r := &Repro{Format: reproFormat, Decks: [2]string{"x0", "x1"}, Cards: [2][]string{decks[0], decks[1]},
-			MoreDecks: []string{"x2", "x3"}, MoreCards: [][]string{decks[2], decks[3]}, Seed: seed, PassElision: true, Surface: "full"}
+			MoreDecks: []string{"x2", "x3"}, MoreCards: [][]string{decks[2], decks[3]}, Seed: seed, PassElision: true, Surface: "full",
+			Commander: commanders != nil, Commanders: commanders}
 		m, err := r.Matchup(reg)
 		if err != nil {
 			t.Fatal(err)

@@ -49,7 +49,7 @@ fixture keeps only the mode bit (the list is about 24k entries) and
 renumber a recorded name choice and shows up as the same `DIVERGED`.
 
 `cmd/repro/testdata/feedback/20260914T120000Z-fb01/` is a real capture produced by
-`host.SnapshotForFeedback`; regenerate it with
+`(*host.Registry).SnapshotForFeedback`; regenerate it with
 `REPRO_REGEN_FIXTURE=1 go test ./cmd/repro -run TestGenerateCommittedFixture`
 after a corpus pin bump (`FORGE_REF`), or the fixture's own gate reports
 `DIVERGED` exactly as a stale report would.

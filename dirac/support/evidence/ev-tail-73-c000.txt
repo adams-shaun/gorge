@@ -25,6 +25,7 @@ Arcbound Tracker
 Archon of Falling Stars
 Ardenvale Paladin
 Arm-Mounted Anchor
+Arms Race
 Arrogant Poet
 Ashen Rider
 Aspect of Lamprey
@@ -39,6 +40,7 @@ Bankrupt in Blood
 Barrin, Master Wizard
 Beacon Behemoth
 Bedlam Reveler
+Bilbo, Retired Burglar
 Bionic Blow
 Black Market Tycoon
 Blight Grenade
@@ -83,6 +85,7 @@ Cloud Pirates
 Cloudcrown Oak
 Cold-Eyed Selkie
 Collected Company
+Commander's Insignia
 Confessor
 Conjurer's Closet
 Constable of the Realm
@@ -98,6 +101,7 @@ Cunning Geysermage
 Curio Vendor
 Curse of Verbosity
 Cutthroat il-Dal
+Daru Mender
 Dauntless Bodyguard
 Death Pits of Rath
 Deathspore Thallid
@@ -114,6 +118,7 @@ Dimir Aqueduct
 Dismissive Denial
 Diver Skaab
 Djeru's Renunciation
+Dogged Detective
 Dogpile
 Dragon Mantle
 Dreamstone Hedron
@@ -133,11 +138,13 @@ End-Raze Forerunners
 Endless Cockroaches
 Engineered Might
 Ephara's Dispersal
+Epic Struggle
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
 Expedition Raptor
 Eye of Nowhere
+Fabled Path of Searo Point
 Faerie Guidemother
 Faithbearer Paladin
 Falter
@@ -245,6 +252,7 @@ Jodah's Avenger
 Judge of Currents
 Jund Battlemage
 Kalemne, Disciple of Iroas
+Kargan Intimidator
 Kenrith, the Returned King
 Kinjalli's Sunwing
 Kithkin Healer
@@ -263,6 +271,7 @@ Lord of the Accursed
 Lore Seeker
 Lunar Frenzy
 Maelstrom Colossus
+Magmasaur
 Magmatic Sprinter
 Malanthrope
 Malevolent Awakening
@@ -346,7 +355,6 @@ Primeval Force
 Primoc Escapee
 Prizefight
 Protective Bubble
-Puca's Covenant
 Puppet's Verdict
 Puppeteer
 Qilin's Blessing
@@ -490,6 +498,7 @@ Unholy Officiant
 Union of the Third Path
 Unleash Fury
 Unnatural Growth
+Untaidake, the Cloud Keeper
 Unwilling Ingredient
 Urborg Shambler
 Vedalken Ghoul

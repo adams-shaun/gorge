@@ -123,7 +123,9 @@ func (s *State) conspireTrigger(k *prep, e *stackEntry) {
 	if k.gen == nil || !k.gen.anyConspire {
 		return
 	}
+	saved := s.hideInflightCast(e)
 	n, _ := s.stackKwN(k, kop.StackKwConspire, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl))
+	s.restoreInflightCast(e.ctrl, saved)
 	if n == 0 || s.bld().cas != casConspPaid {
 		return
 	}

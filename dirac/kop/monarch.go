@@ -24,6 +24,16 @@ const ExMonarch ExprKind = 218
 // MonarchOpp is ExMonarch's N reading an opponent of the controller.
 const MonarchOpp = 1
 
+// MonarchAny is ExMonarch's N reading whether any player still in the game is
+// the monarch (gorge PlayerCountPlayers$HasPropertyisMonarch: the count of
+// living players holding the designation, which is 0 or 1).
+const MonarchAny = 2
+
+// WhoseMonarch restricts a printed battlefield Phase trigger to the monarch's
+// own turn (gorge ValidPlayer$ Player.isMonarch, playerSpecQualifierIsMonarch).
+// Read with the active seat (monarchTurnIs); elsewhere it fails closed.
+const WhoseMonarch Whose = 203
+
 // TrigNMonarchBeganTurn in Trigger.N of a TrigBecomeMonarch trigger is
 // BeginTurn$ You: the trigger fires only if its controller was the monarch as
 // the turn began (gorge trigmatch.BecomeMonarchMatches, the TurnStartMonarch

@@ -13,6 +13,7 @@ Atraxa's Fall	ee723f1b579e4cf1	32	0/0		2/2
 Aura Gnarlid	a6e9050f3a6a5b0f	95	0/0		0/0	
 Avacyn's Pilgrim	733584ecb79bd8b7	147	1/1		1/1	
 Battlewing Mystic	fca989b2ad911b7b	195	1/1		3/3	
+Beseech the Queen	cc9fbf244ba5bea1	78	0/0		2/2	
 Black Vise	a92f10037b12437d	144	1/1		1/1	
 Blood Fountain	34806907d5b35fe2	172	2/2		1/1	
 Bolt Bend	8a081a1780a70777	46	0/0		2/2	
@@ -60,6 +61,7 @@ Helpful Hunter	41dfc8b1026e22f3	32	1/1		1/1
 Horseshoe Crab	a6a2cbf71afe77e1	181	1/1		1/1	
 Island	763c67ef7a27eaf5	1306	1/1		0/1	ix:resp
 Jaspera Sentinel	fa35bbf5d8e2ca5b	70	1/1		1/1	
+Krosan Tusker	3e24a8ebf255b455	11	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Llanowar Visionary	5aa755495f4a7ab1	92	2/2		1/1	
 Mad Auntie	a9664ab8a5c7745a	144	1/1		1/1	
 Markov Baron	c5d8e8f6b82040be	99	0/0		0/0	
@@ -78,6 +80,7 @@ Plaguemaw Beast	79bc88233e17d3e9	52	1/1		1/1
 Plains	82d63a695487e567	684	1/1		0/1	ix:resp
 Proteus Staff	37b8ae3dbab476e9	118	1/1		1/1	
 Raise the Alarm	28b01806a3f846d9	52	0/0		1/2	ix:resp
+Relic of Progenitus	317974f6c8e368ec	142	2/2		1/1	
 Reveille Squad	98545554383fd78a	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Revenge of Ravens	f2375406053249df	136	1/1		1/1	
 Rhonas's Monument	fccc040cfe42c311	124	1/1		1/1	
@@ -108,4 +111,5 @@ Urborg Repossession	0187c6f697368994	111	0/0		4/4
 Valorous Steed	c0242b513d6cac83	16	1/1		0/1	ix:resp
 Viridian Shaman	dc8232f167e179fd	26	1/1		0/1	ix:resp
 Warrior en-Kor	d229db1728256a51	44	1/1		1/1	
+Willbender	898e317c61bb2fb3	1093	1/1		3/3	
 Wilt	508248d95dc6a0d5	19	1/1		2/2	

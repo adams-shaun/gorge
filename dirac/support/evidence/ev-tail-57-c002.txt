@@ -1,6 +1,7 @@
 A-Deal Gone Bad
 Akki Battle Squad
 Alaborn Veteran
+All Is Dust
 Altar of the Goyf
 Ambuscade
 Angelic Ascension
@@ -29,6 +30,7 @@ Bitter Downfall
 Blazing Sunsteel
 Blessed Orator
 Blight-Breath Catoblepas
+Blood Curdle
 Blood Servitor
 Bloodcrazed Paladin
 Bloodfire Expert
@@ -51,11 +53,14 @@ Cephalid Looter
 Chandra's Phoenix
 Charging Tuskodon
 Circular Logic
+City of Brass
 Civil Servant
 Clay Statue
 Clinging Anemones
+Cloudpost
 Cloudreach Cavalry
 Coastal Piracy
+Cogwork Assembler
 Combat Research
 Consuming Bonfire
 Coralhelm Guide
@@ -76,6 +81,7 @@ Despoiler of Souls
 Devout Harpist
 Diligent Excavator
 Dissenter's Deliverance
+Doctor Jane Foster
 Doorkeeper
 Draco
 Dragon-Style Twins
@@ -92,6 +98,7 @@ Efficient Construction
 Elas il-Kor, Sadistic Pilgrim
 Eldrazi Linebreaker
 Elspeth's Devotee
+Elvish Hexhunter
 Emblem of the Warmind
 Enraged Revolutionary
 Escarpment Fortress
@@ -99,6 +106,7 @@ Essence of Orthodoxy
 Fabricate
 Fangren Pathcutter
 Far Wanderings
+Fates' Reversal
 Fen Stalker
 Fervor
 Festergloom
@@ -108,11 +116,14 @@ Flamekin Herald
 Flaming Sword
 Fledgling Griffin
 Flip the Switch
+Flooded Strand
 Floriferous Vinewall
 Foil
 Fool's Demise
+Forbidden Lore
 Forest
 Foundry of the Consuls
+Fountain of Ichor
 Francisco, Fowl Marauder
 Freyalise's Radiance
 Frillscare Mentor
@@ -132,6 +143,7 @@ Grassland Crusader
 Gravelighter
 Greenwood Sentinel
 Grenzo's Ruffians
+Grim Feast
 Guardian of Cloverdell
 Guma
 Gurgling Anointer
@@ -144,7 +156,10 @@ Haunted Guardian
 Hematite Golem
 Hexgold Slith
 Hijack
+Holy Mantle
 Hopping Automaton
+Horizon Chimera
+Hound Tamer
 Howling Wolf
 Huatli, the Sun's Heart
 Hurly-Burly
@@ -172,9 +187,11 @@ Malakir Cullblade
 Manakin
 Mardu Woe-Reaper
 Marsh Gas
+Maze of Ith
 Merchant Scroll
 Merfolk Looter
 Midnight Banshee
+Mikokoro, Center of the Sea
 Mind Burst
 Minotaur Tactician
 Mirran Spy
@@ -184,6 +201,7 @@ Moonwing Moth
 Mortarion, Daemon Primarch
 Mortician Beetle
 Mountain
+Nacre Talisman
 Narwhal
 Nature's Chant
 Necromancer's Assistant
@@ -211,9 +229,12 @@ Phantasmal Shieldback
 Piety
 Plains
 Powerstone Engineer
+Powerstone Shard
+Prepare
 Prizefighter Construct
 Qarsi High Priest
 Quantum Misalignment
+Queen of Ice
 Quicksmith Genius
 Racecourse Fury
 Raffine's Silencer
@@ -246,6 +267,7 @@ Searing Touch
 See Red
 Seething Song
 Serpent Generator
+Serra Disciple
 Sever Soul
 Shalai, Voice of Plenty
 Shifting Sliver
@@ -260,6 +282,7 @@ Skysovereign, Consul Flagship
 Slumbering Waterways
 Snowfield Sinkhole
 Soaring Show-Off
+Soltari Foot Soldier
 Sorin's Thirst
 Soul Feast
 Soul of New Phyrexia
@@ -279,8 +302,10 @@ Stormcloud Djinn
 Strategic Planning
 Stromkirk Mentor
 Sunscorch Regent
+Sutina, Speaker of the Tajuru
 Swamp
 Symbiosis
+Symmetry Matrix
 Tel-Jilad Stylus
 Telim'Tor's Edict
 Tentative Connection
@@ -291,18 +316,22 @@ Thermal Blast
 Thieves' Guild Enforcer
 Thorn Thallid
 Thoughtbind
+Thriving Bluff
 Thunderbreak Regent
 Thundermaw Hellkite
 Tocasia's Onulet
 Tormod's Cryptkeeper
 Toxic Scorpion
+Trickster's Elk
 Trostani's Judgment
 Trygon Prime
+Tsunami
 Twilight Drover
 Tyranid Invasion
 Tyrant Guard
 Ulrich's Kindred
 Unnatural Predation
+Urborg Elf
 Valor in Akros
 Vanquish the Foul
 Vedalken Entrancer
@@ -312,7 +341,9 @@ Vexing Gull
 Victory's Envoy
 Vile Requiem
 Violet Pall
+Vitu-Ghazi, the City-Tree
 Vulshok Refugee
+Wall of Mulch
 Wall of Omens
 Wall of Wood
 Wandering Goblins
@@ -330,4 +361,5 @@ Withstand
 Wizard's Retort
 Wurm's Tooth
 Yeva's Forcemage
+Young Red Dragon
 Zarda, the Power Princess

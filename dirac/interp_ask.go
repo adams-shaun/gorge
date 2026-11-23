@@ -54,6 +54,12 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		if ok := av.affords(&c, pipMaskOf(&c), 0); ok {
 			return true
 		}
+		// A filter ({1},{T}: Add one mana of any colour) funds the cost from
+		// mana made earlier in the payment (CR 605.3b): gorge's unless window
+		// lists it, so the ask must offer pay where only a filter reaches it.
+		if k.gen != nil && k.gen.anyFilt && s.faceReachFilters(k, p, &av, &c, 0, NoSlot) {
+			return true
+		}
 		// A restricted source whose spend restriction admits a non-spell
 		// payment (the Powerstone's CantCastNonArtifactSpells) funds an
 		// unless, ward or trigger cost too: gorge's unless window lists the
@@ -87,7 +93,13 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		return amt > 0 // gorge triggeredCostDrawCounts: payable once the count resolves; an unresolved or zero X stays unpriceable (decline only)
+		// gorge's UnlessCostResolved folds an unless Draw<X> (and DamageYou<X>,
+		// Discard<Y>) only when the SVar resolves above zero (engine/effects/
+		// unless.go): a zero or unbound X stays raw and hard-declines, so the
+		// unless and effect-election shapes price a 0 as unpayable. The
+		// trigger's own Draw cost window is the exception payAnswerGate opens:
+		// gorge's triggeredCostDrawCounts asks only that the count resolve.
+		return amt > 0
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
 	case payKindReveal:
@@ -226,7 +238,10 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	noPay := stackSelfGone
 	var stall uint8
 	if !stackSelfGone {
-		ok := s.canPayGen(k, p, kind, amt, pips, in.F)
+		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
+		if !ok && kind == kop.PayDraw && amt == 0 && in.Op == kop.OpIfPaid && s.res.e.kind == seTrigger {
+			ok = true // a trigger's own Draw<X> resolving to 0 (a rebound cast spent no mana) is a resolved count: gorge triggeredCostDrawCounts offers pay (CR 118.3: drawing no cards is payable)
+		}
 		if !ok {
 			ok, stall = s.windowPays(k, p, kind, skip, amt, pips)
 		}
@@ -397,6 +412,12 @@ func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 			r := k.gen.grantOf[gi]
 			return !s.restrSrcAdmits(k, p, sl, &k.t.Cards[r.card].Abilities[r.ab], d)
 		}
+	}
+	if k.gen != nil && k.gen.landSet && s.landSetLost(k, sl) {
+		// CR 305.7: a land a type setter made basic lost its printed mana
+		// ability, its restriction with it (Blood Moon on Ancient Ziggurat
+		// leaves the Mountain's unrestricted {R}); the view is the intrinsic one
+		return false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
 	j := firstManaAb(cd)
@@ -702,7 +723,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 	case raGenEntryOrder:
 		s.entryOrderOptions(k, d)
 	case raGenReplOrder, raGenCtrOrder:
-		s.replOrderOptions(d)
+		s.orderOptions(d) // a parked GainLife op's ask is repl_lifeask.go's
 	case raGenUncOrder:
 		s.uncOrderOptions(d) // repl_uncounterable.go
 	case raGenTokCopy:
@@ -781,7 +802,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if d.N != 1 {
 			return false
 		}
-		s.blightSlot(s.objs[Obj(d.Options[0].Source())].slot, s.value(k, s.prog(k)[s.res.pc].A))
+		s.blightSlot(s.objs[Obj(d.Options[0].Source())].slot, s.value(k, s.prog(k)[s.res.pc].A), ctrPutCost)
 		s.g.pickLeft = 0
 		return true
 	}
@@ -916,9 +937,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 					s.payDone(k, false) // the colours taken left it unpaid
 					return
 				}
-			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.parkedWaiting() {
-				s.ctl = ctlExileOrder // a sacrificed source's order ask (payManaResume)
-				return
+			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.manaAskWaiting() {
+				return // a sacrificed source's order ask or a planned tap's reflected pick (payManaResume)
 			} else if !paid {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated
@@ -1039,7 +1059,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pickZ == payPickBlight {
 			if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
-				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A))
+				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A), ctrPutCost)
 			}
 			s.g.pickLeft = 0
 			s.payDone(k, true)
@@ -1122,8 +1142,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenLookAck:
 		s.continueRes(k, 0)
 	case raGenSearch:
-		if a.Kind() == AkDone {
-			s.finishSearch(k)
+		if s.searchEnds(k, a) {
 			return
 		}
 		s.resArm().look[s.g.nlook] = Obj(a.Source())
@@ -1300,9 +1319,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 	case raGenTokCopy:
 		s.tokCopyAnswer(k, a) // repl_tokcopy.go
 	case raGenReplOrder:
-		if s.g.tok.on {
-			s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
-			return
+		if s.orderAnswered(k, a) {
+			return // a contested token creation (repl_tokorder.go) or a parked GainLife op's ask (repl_lifeask.go)
 		}
 		if s.replOrderPick(a) {
 			return // ask again
@@ -1796,8 +1814,8 @@ func (s *State) addSac(sl Slot) {
 // --- searches ---
 
 func (s *State) startSearch(k *prep, in *kop.Instr) bool {
-	if in.Op == kop.OpChooseMove && in.B.N == 1 && s.handExileHostGone() {
-		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go)
+	if in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(k.t, in)) && s.handExileHostGone() {
+		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
 	}
 	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
@@ -1841,7 +1859,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -1944,6 +1962,9 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	case kop.ZoneExile:
 		s.exwPickCands(k, in, d) // zone_exiledwithpick.go: every seat's exile
 		return
+	case kop.ZoneCommand:
+		s.commandCands(k, in, d) // zone_cmdpick.go: Command Beacon's pick
+		return
 	default:
 		return
 	}
@@ -1961,7 +1982,7 @@ func (s *State) searchCands(k *prep, d *Decision) {
 	}
 	selfOnly := in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneGraveyard && in.F != 0 && k.t.Filters[in.F].Flags&kop.FSelf != 0 // Card.StrictlySelf: the resolving source's own card (Genju of the Fields)
 	for _, o := range list {
-		if s.picksHas(o) || selfOnly && o != s.res.e.obj {
+		if s.picksHas(o) || selfOnly && o != s.res.e.obj || s.pickOtherBarred(k, in.F, o) {
 			continue
 		}
 		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) { // a token off the battlefield is no card (CR 111.8)
@@ -2096,6 +2117,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 	// the sixth. The checks fire when the walk ends or suspends.
 	var eb entBatch
 	defer s.fireEntries(k, &eb)
+	if k.gen != nil && k.gen.anyBatch && s.g.nlook > 1 && s.searchZone(k) == kop.ZoneGraveyard {
+		// gorge effHiddenPick moves the picked graveyard cards as one zone
+		// batch: "whenever one or more cards leave your graveyard" fires once
+		// for them (False Memories' exile of seven; trig_leftgraveyard.go)
+		defer s.batchClose(s.batchOpen())
+	}
 	for i := 0; i < int(s.g.nlook); i++ {
 		o := s.resArm().look[i]
 		if z == kop.ZoneNone {
@@ -2139,6 +2166,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				}
 				s.enterOnto(host)
 			}
+		}
+		switch s.payETBFoundGate(k, o, ep, i, z, host) {
+		case payETBPark:
+			return
+		case payETBGrave:
+			continue // the decline branch: the card went to its owner's graveyard instead
 		}
 		if z == kop.ZoneBattlefield && s.handAuraArmed(k) {
 			ans := host // the answered enchant ask is for the parked card, the look's first
@@ -2194,15 +2227,7 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
-			var sl Slot
-			if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
-				sl = s.enterHeld(k, &eb, o, ep, fl&kop.SrTapped != 0, from)
-				if from == kop.ZoneGraveyard {
-					s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
-				}
-			} else {
-				sl = s.enter(k, o, ep, fl&kop.SrTapped != 0, from)
-			}
+			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -2221,12 +2246,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 			// (gorge handLibraryTail -> libraryOrderPlacement bottom=true);
 			// every other library destination stays on top
 			bottom := from == kop.ZoneHand && in != nil && in.B.N&kop.SrHandBottom != 0
-			s.placeFromK(k, o, kop.ZoneLibrary, bottom, from, false)
+			s.placeFromK(k, o, kop.ZoneLibrary, bottom, from, false, false)
 			if fl&kop.SrRemember != 0 {
 				s.remember(o) // Shuffle$ False's library-to-library search, or a hand move's RememberChanged$
 			}
 		default:
-			s.placeFromK(k, o, zz, bb, from, false)
+			s.placeFromK(k, o, zz, bb, from, false, false)
 			if fl&kop.SrRemember != 0 {
 				s.remember(o) // a hand move's RememberChanged$
 			}
@@ -2257,6 +2282,34 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 		host = NoSlot // an Aura's host is for its own entry; the next card finds its own
 	}
 	s.g.nlook = 0
+}
+
+// payETBFoundGate is the pay-before-entering gate of one battlefield-bound found
+// card (payETBEntry): on payETBPark the cards from look[i] on wait for the
+// posed election's answer (repl_paybeforeetb.go), so the look is cut to them.
+func (s *State) payETBFoundGate(k *prep, o Obj, ep uint8, i int, z kop.Zone, host Slot) int {
+	if z != kop.ZoneBattlefield || host != NoSlot {
+		return payETBNone
+	}
+	r := s.payETBEntry(k, o, ep)
+	if r == payETBPark {
+		n := copy(s.resArm().look[:], s.resArm().look[i:s.g.nlook])
+		s.g.nlook = uint8(n)
+	}
+	return r
+}
+
+// enterFound puts one found card onto the battlefield: held in the batch
+// when several enter together, else at once.
+func (s *State) enterFound(k *prep, eb *entBatch, o Obj, ep uint8, tapped bool, from kop.Zone, host Slot) Slot {
+	if s.g.nlook > 1 && host == NoSlot && s.g.entHost == 0 && !(s.g.pre.ordMid && s.g.pre.obj == o) {
+		sl := s.enterHeld(k, eb, o, ep, tapped, from)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o) // trig_leftgraveyard.go, as enter does
+		}
+		return sl
+	}
+	return s.enter(k, o, ep, tapped, from)
 }
 
 // --- dig ---
@@ -2794,7 +2847,7 @@ func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decisio
 			list = pl.hand[:pl.handN]
 		}
 		for _, o := range list {
-			if s.matchCardGen(k, f, s.objs[o].card, pp, ctrl, o) {
+			if !s.pickOtherBarred(k, f, o) && s.matchCardGen(k, f, s.objs[o].card, pp, ctrl, o) {
 				add(o)
 			}
 		}
@@ -2864,9 +2917,34 @@ func (s *State) applyPaySubCounterPick(k *prep, a Action) {
 }
 
 // resSrcSlot is the resolving entry's source permanent's slot (NoSlot when
-// it is not on the battlefield).
+// it is not on the battlefield or is no longer the object the entry came
+// from).
 func (s *State) resSrcSlot(k *prep) Slot {
 	return s.objRef(k, kop.RefSelf)
+}
+
+// resSrcSlotStanding is resSrcSlot without the object-version pin: the slot
+// of the source object as it stands on the battlefield. Only the Sacrifice
+// op's candidate filter reads it (interp.go OpSacrifice and its raSacrifice
+// pick), where gorge's Self predicate is `o.ID == src` with the zone check
+// only (engine/effects/filter.go:178) and never the source incarnation. So a
+// printed trigger's "sacrifice CARDNAME" (Hellspark Elemental's end step)
+// still finds the card that left and returned to the battlefield while the
+// trigger waited (CR 112.7a: the ability's source is the object, a leaves
+// case is the zone check's). Every other reader (offers, cost affordability,
+// targets, counters, bounce) keeps resSrcSlot's pin, where gorge stamps the
+// incarnation (engine/events/apply_trigger.go, counters_put.go,
+// zone_change.go).
+func (s *State) resSrcSlotStanding() Slot {
+	o := s.objRefObj(kop.RefSelf)
+	if o == NoObj {
+		return NoSlot
+	}
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield {
+		return NoSlot
+	}
+	return ob.slot
 }
 
 // digTake moves a taken (looked-at, now zoneless) card to the dig's zone.
@@ -2902,7 +2980,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 			pl.libBottom(o)
 		}
 	default:
-		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, z, false, kop.ZoneLibrary, false, false)
 		if fl&kop.DigFaceDown != 0 && z == kop.ZoneExile {
 			exiler := s.res.e.ctrl
 			if fl&kop.DigExilerOther != 0 {
@@ -2945,7 +3023,7 @@ func (s *State) pileMove(o Obj, z kop.Zone) {
 		return
 	}
 	from := s.detach(o)
-	s.placeFrom(o, z, false, from, false)
+	s.placeFrom(o, z, false, from, false, false)
 }
 
 // targetedExiler is DefinedExiler$ Targeted: the resolving entry's first
@@ -2961,4 +3039,18 @@ func (s *State) targetedExiler(ctrl uint8) uint8 {
 		}
 	}
 	return s.nextSeat(ctrl)
+}
+
+// searchEnds finishes a search on Done, and stalls an any-number search
+// (Trench Gorger) past the look window: gorge keeps taking picks.
+func (s *State) searchEnds(k *prep, a Action) bool {
+	if a.Kind() == AkDone {
+		s.finishSearch(k)
+		return true
+	}
+	if int(s.g.nlook) != len(s.resArm().look) {
+		return false
+	}
+	s.capFull(StallLook)
+	return true
 }

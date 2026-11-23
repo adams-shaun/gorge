@@ -1,33 +1,48 @@
+Adaptive Shimmerer
+Alliance of Arms
 Arashin Cleric
 Archon of Falling Stars
 Astrid Peth
+Avacyn's Pilgrim
 Bag of Holding
 Basal Sliver
+Birthing Hulk
 Biting-Palm Ninja
 Black Market Connections
 Blight Mamba
+Blighted Woodland
+Blinding Radiance
 Boggart Shenanigans
 Bond of Agony
 Bontu's Last Reckoning
 Braids, Cabal Minion
+Carnival
 Chill of Foreboding
 Chimeric Egg
+Copper Longlegs
 Crocanura
 Crushing Vines
 Crystal Rod
+Culling Sun
 Cursed Land
+Dark Depths
 Dark-Dweller Oracle
 Deathgreeter
+Deep Reconnaissance
 Demon's Due
+Demystify
 Destructive Tampering
+Dinosaur Stampede
 Dispense Justice
 Divination
 Dross Prowler
+Echoes of the Kin Tree
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
 Endless Sands
 Esper Panorama
+Fade from History
 Felothar the Steadfast
 Festercreep
 Fiery Temper
@@ -37,6 +52,7 @@ Foulmire Knight
 Foundry Street Denizen
 Foxfire Oak
 Frillscare Mentor
+Game Trail
 General Kudro of Drannith
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
@@ -56,8 +72,11 @@ Hold the Line
 Homarid Explorer
 Hulk, Bruce Banner
 Hunt the Weak
+Icatian Javelineers
 Immersturm Raider
+Imps' Taunt
 Infested Fleshcutter
+Inquisitive Puppet
 Island
 Ithilien Kingfisher
 Jodah, the Unifier
@@ -65,11 +84,14 @@ Jor Kadeen, First Goldwarden
 Judge's Familiar
 Kabira Vindicator
 Karametra's Blessing
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
+Knight of the Stampede
 Kobold Taskmaster
 Launch Party
 Lava Dart
+Lich Lord of Unx
 Life's Legacy
 Liliana's Specter
 Liliana's Steward
@@ -78,19 +100,27 @@ Lord of Atlantis
 Lost Leonin
 Loyal Cathar
 Lure of Prey
+Magus of the Future
 Makindi Stampede
 Massive Might
+Merciless Executioner
 Meteor Shower
 Midnight Arsonist
 Miss Highwater
+Moonglove Winnower
 Mountain
+Natural Connection
+Nature's Way
 Night Terrors
 Norwood Riders
 Nullmage Shepherd
+Okina, Temple to the Grandfathers
+Old Man Willow
 Olivia Voldaren
 Ovalchase Dragster
 Oyobi, Who Split the Heavens
 Paladin of the Bloodstained
+Phyrexia's Core
 Plains
 Plasma Elemental
 Poison-Blade Mentor
@@ -98,10 +128,14 @@ Pridemalkin
 Prologue to Phyresis
 Promise of Aclazotz
 Protocol Knight
+Pyre Zombie
+Pyrrhic Blast
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Ranger's Guile
 Raze to the Ground
+Recruitment Drive
 Relentless Assault
 Remote Isle
 Renegade Freighter
@@ -115,41 +149,66 @@ Run Out of Town
 Sacred Prey
 Sandsower
 Sarulf's Packmate
+Scalding Tarn
 Scouring Swarm
 Secure the Wastes
+Sejiri Merfolk
 Sensor Splicer
 Shadow of Mortality
+Shivan Phoenix
 Shu Elite Infantry
+Skophos Warleader
 Skyshroud Forest
 Slime Molding
 Slinking Serpent
+Smelt-Ward Minotaur
+Sokka, Wolf Cove's Protector
+Solid Ground
 Soltari Emissary
 Soltari Visionary
+Soul of the Harvest
 Soul's Attendant
 Spirit Weaver
+Squire
+Stalwart Aven
+Steadfast Guard
+Still Life
 Stonecloaker
 Stonehands
 Stormcloud Spirit
 Stormscape Familiar
 Strands of Undeath
 Sunblast Angel
+Sunfall
 Survivors' Encampment
 Swamp
 Switcheroo
 Tail Swipe
+Take Down
+Tangled Skyline
+Tangletrap
+Tazeem Raptor
 Tempest Caller
 Temple Bell
+The Alright Henge
 The Duke, Rebel Sentry
 Thousand-Year Elixir
 Thundermare
 Tin-Wing Chimera
+Torch Song
 Transplant Theorist
+Traveler's Amulet
 Trespasser il-Vec
 Trusty Machete
+Tundra
+Valakut Predator
 Vampire Champion
 Viral Drake
 Visions of Beyond
 Volcanic Spray
 Vraan, Executioner Thane
 Wall of Hope
+Watercourser
 Weaponcraft Enthusiast
+Well of Life
+Yavimaya Ancients

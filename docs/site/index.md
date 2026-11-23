@@ -67,7 +67,7 @@ hide:
 [Get started](getting-started.md){ .md-button .md-button--primary }
 { .gg-actions }
 
-Apache-2.0. Not yet at rules parity with mature engines.
+Apache-2.0. Not yet at rules parity with mature engines: [Card support](support/sets.md) has the measured gaps.
 { .gg-small }
 
 </div>

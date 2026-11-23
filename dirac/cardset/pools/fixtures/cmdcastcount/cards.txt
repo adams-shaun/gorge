@@ -1,0 +1,35 @@
+# the Count$TotalCommanderCastFromCommandZone pool (CR 903.8): the cards that read the commander cast count, beside cheap commanders and removal so commanders are recast
+Captain Vargus Wrath
+Commander's Insignia
+Echo Storm
+Empyrial Storm
+Font of Magic
+Fury Storm
+Hatut Zeraze Strike Force
+Jirina Kudro
+Jyoti, Moag Ancient
+The Swarmlord
+Vanguard of the Restless
+Isamaru, Hound of Konda
+Zurgo Bellstriker
+Rofellos, Llanowar Emissary
+Rograkh, Son of Rohgahh
+Tymna the Weaver
+Lightning Bolt
+Shock
+Journey to Nowhere
+Doom Blade
+Unsummon
+Savannah Lions
+Raging Goblin
+Merfolk of the Pearl Trident
+Walking Corpse
+Llanowar Elves
+Giant Growth
+Grizzly Bears
+Runeclaw Bear
+Plains
+Island
+Swamp
+Mountain
+Forest

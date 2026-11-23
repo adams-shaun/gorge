@@ -3,12 +3,15 @@ Aberrant	f658ad29c081c2b3	11	2/2		0/1	ix:resp
 Argivian Restoration	043133d6ecb9cca3	4	0/0		2/2	
 Balan, Wandering Knight	c7f8061e03231a50	8	1/1		1/1	
 Barbarian Outcast	da16308a1489a674	7	1/1		0/1	ix:resp
+Belltoll Dragon	1246891431bf48bf	5	1/1		3/3	
 Benthic Behemoth	bd3ffbd16680c461	8	0/0		0/0	
 Bog Initiate	02ca20c70ddf9aff	23	1/1		1/1	
+Callow Jushi	d3ce2769187f9bdf	9	3/3		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Carrion Wurm	2936e7291a421b2f	8	2/2		1/1	
 Cultist of the Absolute	c1082b0860b4875d	4	0/0		0/0	
 Daru Encampment	dc7564af2926aeb5	4	2/2		0/1	ix:resp
 Denying Wind	ec2609c22e33dc7c	7	0/0		2/2	
+Domesticated Watercourse	19d81338faef33c2	36	3/3		1/1	
 Domri, City Smasher	cd6c5cc5cc4cfe64	6	3/3		0/1	ix:resp
 Doran, the Siege Tower	1aec2dcb0660d470	13	0/0		0/0	
 Dregs of Sorrow	4e2b9ab505ae4f92	5	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
@@ -54,6 +57,7 @@ Tranquil Expanse	e88f65261fa979a4	6	1/1		0/1	ix:resp
 Undertaker	fd5b67c186b3b4c3	4	1/1		0/1	ix:resp
 Unraveling Mummy	55c05caa923fb414	12	2/2		1/1	
 Vihaan, Goldwaker	cdcbb605053d0d60	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Vizier of Many Faces	5989dc4a24635602	8	1/1		0/1	ix:resp
 Voyager Drake	1a506f4d26423351	3	1/1		2/3	ix:resp
 Warteye Witch	34a44d41da6b5bae	5	1/1		1/1	
 Woodcloaker	820fd2434f03613d	22	1/1		3/3	

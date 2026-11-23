@@ -292,8 +292,8 @@ func (bt *Bot) choose(s *dirac.State, d *dirac.Decision) int {
 	switch d.Sub {
 	case dirac.ChGenPip:
 		return firstPip(d)
-	case dirac.ChDivide, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped:
-		return firstMode(d)
+	case dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChBand:
+		return firstMode(d) // the election's lowest mode 0: assign normally (blocked)
 	}
 	if d.Sub == dirac.ChRemCtrKind {
 		if i := ctrChoiceFirst(s, d); i >= 0 {

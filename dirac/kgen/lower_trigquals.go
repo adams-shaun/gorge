@@ -68,7 +68,7 @@ func (cb *cardBuilder) filterPlayerAlt(f *lFilter, zones []kop.Zone, players uin
 			return 0, err
 		}
 		kf.Or = next
-		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
+		if kf.Flags2&kop.F2SameNameAsSource != 0 {
 			cb.out.readsName = true
 		}
 		next = cb.pt.internFilter(kf)

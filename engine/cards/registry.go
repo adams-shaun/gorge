@@ -46,6 +46,17 @@ type Registry struct {
 	// Unsupported appends its result. Only the coverage report sets it;
 	// deck-eligibility readers leave it nil and keep primitive-only semantics.
 	ShapeGate func(*Card) []string
+
+	// Excluded, when set, reports cards the coverage readers must treat as
+	// excluded rather than unplayable: cards the paper rules ban in every
+	// format (ante, dexterity, subgame), which no amount of engine work can
+	// ever make playable. Coverage counts them in Coverage.Excluded and
+	// lists nothing they name in Missing, so they stop sitting in the gap
+	// tables as work to do; CoverageBy skips them the same way, so its row
+	// totals still add up to Coverage's Cards and Supported. Only the
+	// coverage report sets it; deck-eligibility readers leave it nil and
+	// keep primitive-only semantics, exactly like ShapeGate.
+	Excluded func(*Card) bool
 }
 
 func NewRegistry() *Registry {

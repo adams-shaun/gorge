@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strconv"
@@ -44,7 +45,13 @@ type params struct {
 	used map[string]bool
 }
 
-func newParams(m map[string]string) *params { return &params{m: m, used: map[string]bool{}} }
+func newParams(m map[string]string) *params {
+	// m is the card's own map (the registry's, which gorge reads and every
+	// pool of a build shares), so a lowering's rewrite (static_cost.go's
+	// AlternativeCost Spell.Self re-spelling, earthbend's implicit target)
+	// is over a private copy, never the card's
+	return &params{m: maps.Clone(m), used: map[string]bool{}}
+}
 
 func (p *params) get(k string) (string, bool) {
 	v, ok := p.m[k]
@@ -105,8 +112,19 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// voteTally: lowering a StoreVoteNum$ fixed-list Vote's option branch, so
+	// VoteNum is that branch's tally (lower_vote.go).
+	voteTally bool
+
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
+
+	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
+	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
+	// BLOCKER as the trigger object and its controller as the trigger player,
+	// so the blocker spellings read them (lower_trigrefs.go) and every
+	// attacker read refuses (lower_effect.go).
+	emblemBlocks bool
 
 	// emblemDmg: lowering the body of a capturing EOT emblem's DamageDone
 	// trigger. On the recipient-captured shape (ValidTarget$ ...IsRemembered,
@@ -461,6 +479,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			// (lower_handmana.go)
 			continue
 		}
+		if !perm && lc.graveManaLine(a) {
+			// a Jack-o'-Lantern grave mana line: CardDef.GraveMana, no
+			// ability (lower_gravemana.go) -- the kernel's payment window
+			// and the prefix search's funding pass read the byte
+			// (dirac/mana_gravemana.go), so a lowered mana ability would be
+			// one the kernel's mana walk cannot honour
+			continue
+		}
 		n := len(out.Abilities)
 		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
 			entered := lc.chains
@@ -567,6 +593,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
+	lc.refuseRepeatedCombos()      // K:Squad / K:Replicate (lower_squadreplicate.go)
 	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
@@ -600,8 +627,8 @@ func (lc *lowerCtx) lowerImpending() {
 // by lowerKeywords.
 func (lc *lowerCtx) refuseMultikickerCombos() {
 	out := lc.out
-	if out.Multikicker == nil {
-		return
+	if out.Multikicker == nil || out.Repeated != nil {
+		return // a Squad/Replicate card's mana half is not a printed Multikicker (lower_squadreplicate.go)
 	}
 	if out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
 		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
@@ -1108,14 +1135,19 @@ func mergeColours(a, b string) string {
 // plainQuality accepts a protection quality filter of object
 // characteristics only (no controller, owner, source-relative, comparison or
 // state terms), which reads the same on a spell and a permanent.
-func plainQuality(f *lFilter) error {
+func plainQuality(f *lFilter) error { return plainQualityOf(f, false) }
+
+// plainQualityOf is plainQuality; grant also admits the bare multicolored
+// predicate of a granted protection (Guildscorn Ward), which the printed
+// K:Protection route has not been verified for.
+func plainQualityOf(f *lFilter, grant bool) error {
 	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
 		return fmt.Errorf("quality %s", f)
 	}
 	for _, c := range f.Clauses {
-		if c.CmpStat == cmpMonoColor && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
-			// gorge sourceHasQuality's monocolored class (Guardian of the
-			// Guildpact): exactly one colour of the source
+		if (c.CmpStat == cmpMonoColor || grant && c.CmpStat == cmpMultiColor) && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" {
+			// gorge sourceHasQuality's colour classes: monocolored (Guardian of the
+			// Guildpact) and, for a grant, multicolored (Guildscorn Ward)
 			continue
 		}
 		if c.CmpStat == cmpCMC && (c.CmpOp == opGE || c.CmpOp == opLE) && c.CmpV == nil && c.Types == 0 && c.Ctrl == 0 && c.Owner == 0 && c.Flags == 0 && c.Subtype == "" && c.NotSubtype == "" && c.Colors == "" && c.NotColors == "" && c.CmpX == "" && c.CmpCounter == "" {
@@ -1173,7 +1205,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			// Cascade stays refused (lower_effect.go)
 			lc.out.Cascade++
 		case head == "Devoid" && param == "":
-			// lowerRecord reads it (the face is colourless)
+			// lowerRecord reads it (the face is colourless); withDevoid reads the flag
+			lc.out.Devoid = true
 		case strings.TrimSpace(k) == mayNotUntapKW:
 			// CR 502.3: gorge hasUntapStepChoice reads this bare line; the
 			// kernel's untap step asks the controller (repl_untapchoice.go)
@@ -1256,6 +1289,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.84a: gorge kwUnearth expands it into one graveyard
 			// AB$ ChangeZone (Unearth$ True), lowered from that line
 			// (lower_zone.go changeZone)
+			lc.out.HasUnearth = true // the with<Unearth> word's record
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1338,14 +1372,6 @@ func (lc *lowerCtx) lowerKeywords() {
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
-		case head == "Embalm":
-			// CR 702.128a: gorge expands it into a graveyard ability (AB$
-			// CopyPermanent | Cost$ <cost> ExileFromGrave<1/CARDNAME> |
-			// SorcerySpeed$, RemoveCost$, SetColor$ White, AddTypes$
-			// Zombie), lowered from that line
-			if !lc.hasKeywordLine(k) {
-				lc.refuseNode(node, "keyword %q without its ability", head)
-			}
 		case head == "Encore":
 			// CR 702.141a: gorge kwEncore expands it into one graveyard
 			// AB$ Encore (Cost$ <cost> ExileFromGrave<1/CARDNAME>,
@@ -1358,6 +1384,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// | Cost$ <cost> Discard<1/CARDNAME> | ActivationZone$ Hand,
 			// cards/kw_cycling.go), lowered from that line; a cost the
 			// expander cannot read leaves no line and refuses here.
+			// gorge's with<K> registry names plain Cycling only, so
+			// TypeCycling keeps no record and stays an unknown property.
+			lc.out.HasCycling = head == "Cycling"
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1449,6 +1478,22 @@ func (lc *lowerCtx) lowerKeywords() {
 			// reads the raw face keyword (dirac/adapter checkCommander
 			// -> deck.IsPartnerPair on the deck's own cards), so lowering
 			// nothing is exact.
+			lc.out.HasDoctorsCompanion = true // the with<K> word's record
+		case head == "Ward":
+			// CR 702.19a: the cost is the expansion's own lowering (the
+			// spell's ward ask, kw_wardcost.go); the marker is the
+			// with<Ward> word's printed record.
+			lc.out.HasWard = true
+		case head == "Enchant":
+			// CR 702.102a: the target spec is the expansion's own lowering
+			// (the Aura's Enchant); the marker is the with<Enchant> word's
+			// printed record.
+			lc.out.HasEnchant = true
+		case head == "Persist":
+			// CR 702.79a: gorge kwPersist expands it into a dies trigger
+			// (Persist$ True), lowered from that line; the marker is the
+			// with<Persist> word's printed record.
+			lc.out.HasPersist = true
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
@@ -1466,22 +1511,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Kicker = &mc
 		case head == "Multikicker":
-			// CR 702.43: the per-payment additional cost, paid any number of
-			// times as the spell is cast. The kernel's kicked cast asks the
-			// count before X and the targets (multikick, cast.go), so only a
-			// plain mana parameter on a non-{X} spell is modelled; a non-mana,
-			// {X} parameter or {X} base cost refuses (the count bound would be
-			// read before the X announcement).
-			mc, err := parseManaCost(param)
-			if err != nil || param == "" || strings.Contains(param, ":") || mc.None || mc.X {
-				lc.refuseNode(node, "multikicker cost %q", param)
-				continue
-			}
-			if lc.out.Cost.X {
-				lc.refuseNode(node, "multikicker on an {X} spell")
-				continue
-			}
-			lc.out.Multikicker = &mc
+			lc.lowerMultikickerKeyword(node, param) // lower_squadreplicate.go
 		case head == "Morph" || head == "Megamorph" || head == "Disguise":
 			// CR 702.37/702.168/702.169: the keyword parameter is the
 			// turn-face-up cost. The kernel's turn-up action spends only
@@ -2526,14 +2556,8 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			}
 			continue
 		}
-		if head == "RevealChosen" {
-			if err := lc.revealChosenCost(&c, parts, t); err != nil { // lower_revealchosen.go
-				return c, err
-			}
-			continue
-		}
-		if head == "Discard" && parts[0] == "X" {
-			if err := lc.discardXCost(&c, parts, t); err != nil { // lower_costtokenforms.go
+		if handled, err := lc.namedCostToken(&c, head, parts, t); handled { // lower_costtokenforms.go
+			if err != nil {
 				return c, err
 			}
 			continue
@@ -2930,7 +2954,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				parts++
 			}
 		}
-		if parts > 1 {
+		if parts > 1 && !(lc.actCost && parts == 2 && sharedCountPairOK(c)) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}
@@ -2990,11 +3014,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		return lc.sameNameT0OtherFilter() // lower_filterreferents.go
 	}
 	expr = lc.triggeredTargetCtrl(expr)
-	expr, err0 := lc.spawnerTargetCtrl(expr) // lower_filterwords.go
-	if err0 != nil {
-		return nil, err0
-	}
-	expr, err0 = lc.spawnerDefendingCtrl(expr) // lower_filterwords.go
+	expr, err0 := lc.rewriteFilterWords(expr) // lower_filterwords.go
 	if err0 != nil {
 		return nil, err0
 	}
@@ -3036,21 +3056,9 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			c.CmpV = &v
 		}
 		if c.CmpStat == cmpWasCast && lc.spellProvOK && !lc.wasCastOK {
-			// the same words read on a spell on the stack
-			if c.CmpN&wasCastSpentZero != 0 {
-				return nil, refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
+			if err := lc.spellSideCast(c, expr); err != nil { // the same words read on a spell on the stack
+				return nil, err
 			}
-			if c.CmpN&wasCastWebSling != 0 {
-				return nil, refuse("filter %q: webSlinged on a spell", expr)
-			}
-			if c.CmpN&^wasCastNot != wasCastAny {
-				return nil, refuse("filter %q: wasCastFromGraveyard on a spell", expr)
-			}
-			n := spellCast
-			if c.CmpN&wasCastNot != 0 {
-				n = spellNot
-			}
-			c.CmpStat, c.CmpN = cmpWasCastSpell, n
 		}
 	}
 	for _, c := range f.Clauses {
@@ -3403,10 +3411,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// abilities pay only {T} / sacrifice-self
 			return refuse("mana ability with an energy cost")
 		}
-		if ab.Kind == akMana && (cost.Forage != nil || cost.ExileG != nil) {
-			// gorge pays these through the mana-activation walk
-			// (AskManaForage); the kernel's mana abilities have no cost picks
-			return refuse("mana ability with a forage / exile-from-graveyard cost")
+		if ab.Kind == akMana && exileGraveManaRefused(cost) {
+			// gorge pays these in the mana-activation walk (AskManaForage); the kernel's
+			// tap-another search poses only {T} + ExileFromGrave<1/Spec> (exileGraveManaShape)
+			return refuse("%s", exileGraveManaWhy(cost, ps))
 		}
 		if cost.EvidenceN > 0 && (ab.Kind != akActivated || ab.Zone != 0 && ab.Zone != zBattlefield) {
 			// a mana ability would pay it in gorge's mana-activation walk

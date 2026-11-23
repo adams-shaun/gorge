@@ -69,14 +69,14 @@ func TestCopyFromRebasesColdArrays(t *testing.T) {
 	var small, large coldLayout
 	coldMS.set(&small, 1)
 	coldMS.set(&large, 2)
-	coldExw.set(&large, maxExw)
+	coldObjSets.set(&large, maxObjSets)
 	small.size()
 	large.size()
 	var src, dst State
 	src.layOut(&large)
 	src.cold.ms[1].set(3)
 	dst.CopyFrom(&src)
-	if !dst.cold.ms[1].has(3) || len(dst.cold.exw) != maxExw || &dst.cold.buf[0] == &src.cold.buf[0] {
+	if !dst.cold.ms[1].has(3) || len(dst.cold.objSets) != maxObjSets || &dst.cold.buf[0] == &src.cold.buf[0] {
 		t.Fatal("the copy does not hold its own arrays")
 	}
 	dst.cold.ms[1].clr(3)
@@ -92,7 +92,7 @@ func TestCopyFromRebasesColdArrays(t *testing.T) {
 		t.Fatalf("copying between layouts allocates %.0f times", allocs)
 	}
 	dst.CopyFrom(&other)
-	if len(dst.cold.ms) != 1 || len(dst.cold.exw) != 0 || !slices.Equal(dst.cold.buf, other.cold.buf) {
+	if len(dst.cold.ms) != 1 || len(dst.cold.objSets) != 0 || !slices.Equal(dst.cold.buf, other.cold.buf) {
 		t.Fatal("a copy kept its old layout")
 	}
 }

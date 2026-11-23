@@ -91,6 +91,7 @@ Crimson Hellkite
 Crumbling Colossus
 D'Avenant Healer
 Daxos of Meletis
+Deceptive Frostkite
 Deepcavern Imp
 Defender of Law
 Deflection
@@ -218,6 +219,7 @@ Mage Duel
 Manabond
 Manglehorn
 Mardu Banner
+Markov Baron
 Maw of the Obzedat
 Mech Hangar
 Meldweb Curator
@@ -235,6 +237,7 @@ Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
+Moment's Peace
 Monstrous Onslaught
 Mortal's Ardor
 Moss Kami
@@ -253,6 +256,7 @@ Nimraiser Paladin
 No Rest for the Wicked
 Noggle Bridgebreaker
 Noxious Toad
+Nurturing Peatland
 Oasis
 Oath of the Ancient Wood
 Obelisk of Esper
@@ -276,6 +280,7 @@ Press for Answers
 Primordial Ooze
 Prophetic Flamespeaker
 Protector of the Crown
+Quintorius, History Chaser
 Rage Forger
 Rakka Mar
 Ranger's Hawk

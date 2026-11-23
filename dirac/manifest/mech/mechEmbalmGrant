@@ -1,0 +1,6 @@
+family: mech
+name: mechEmbalmGrant
+value: next
+state: objbit 32/64
+status: active
+doc: object mask: graveyard cards with a granted embalm at their mana cost (Cursecloth Wrappings; kw_embalmgrant.go)

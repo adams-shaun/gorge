@@ -120,12 +120,12 @@ func (s *State) dredgeTake(k *prep, p uint8, mode uint8) bool {
 			pl.libLo++
 			s.touch(m)
 			s.objs[m].zone = kop.ZoneNone
-			s.placeFromK(k, m, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+			s.placeFromK(k, m, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		}
 	}
 	if z := s.objs[o].zone; z != kop.ZoneHand && z != kop.ZoneNone && z != kop.ZoneBattlefield {
 		from := s.detach(o)
-		s.placeFromK(k, o, kop.ZoneHand, false, from, false)
+		s.placeFromK(k, o, kop.ZoneHand, false, from, false, false)
 	}
 	return true
 }
@@ -376,6 +376,9 @@ func (s *State) dredgeResTail(k *prep, site objWord, p uint8) {
 		s.finishResolve(k, false)
 	case dredgeResRing:
 		s.ringLootDiscard(k, p) // the draw is done; the loot's discard follows
+		if s.res.ask == raNone {
+			s.finishResolve(k, false) // ringLootDiscard leaves the pop to its caller
+		}
 	default:
 		panic("kernel: bad dredge draw site")
 	}

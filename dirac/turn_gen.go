@@ -30,7 +30,7 @@ const (
 	akEntryOrder uint8 = 10
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
-	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
+	akNameLook   uint8 = 13 // akNameAny after a look_ack at the chosen opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
 	akNameHand   uint8 = 15 // a nonland name among the opponents' revealed hands (ExtChooseName B = 3; Alhammarret, High Arbiter)
 	// akEtbOrder is the CR 616.1 order between a cast spell's effect-carried
 	// enters-with counters and the entrant's own prepared enter body, asked
@@ -79,7 +79,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.g.entExc = 0
 		s.copyExcAdd(k, sl, Slot(x>>8), uint8(x))
 	}
-	if s.g.nexw != 0 {
+	if s.osAnyOf(osMExw) {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
 	if s.g.nchPick != 0 {
@@ -112,7 +112,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
-		s.noteEnter(o, kop.ZoneBattlefield, from, false)
+		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
 	if s.typesGen(k, sl)&kop.TLand == 0 {
 		s.stashClr(k, o) // only a land played from exile keeps its stash counter (gorge)
@@ -250,6 +250,14 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 	s.res.e.x = selfX
 }
 
+// DebugFaceDownFilterPrinted is the lockstep's mutation switch
+// (TestFaceDownEntryCreatureFilterMutation): a face-down ENTRANT is matched
+// by its printed card characteristics during the other permanents'
+// enter-replacement filter, so a `Creature.faceDown` entry filter over a
+// cloaked or manifested noncreature refuses it again (gorge's pre-fix
+// printed-face read), and the same games diverge.
+var DebugFaceDownFilterPrinted bool
+
 // runOthersEnterPrograms applies the "as this enters" replacement of each
 // permanent in m that matches the entrant at sl.
 func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
@@ -270,7 +278,29 @@ func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask)
 				continue
 			}
 			s.occ.set(sl) // the filter reads the entering object
+			// The mutation hook presents the entrant face up for the match
+			// (enterNF's gtyFaceDown | TCreature mark, its ovGenTy flag and
+			// walk flag), so the filter reads the printed card the way
+			// gorge's pre-fix filter did: bytes restored before the next
+			// ability, no mark and no changed byte left behind.
+			fdPrinted := DebugFaceDownFilterPrinted && s.faceDown(k, sl)
+			var (
+				saveGty   kop.TypeMask
+				saveFlags uint8
+				saveWalk  uint8
+			)
+			if fdPrinted {
+				p := &s.perms[sl]
+				saveGty, saveFlags, saveWalk = p.gty, p.ovr.flags, p.ovr.walk
+				p.gty = 0
+				p.ovr.flags &^= ovGenTy
+				p.ovr.walk = 0
+			}
 			ok := s.matchPermGen(k, a.Repl.Filter, sl, sp.ctrl, src, layerFull)
+			if fdPrinted {
+				p := &s.perms[sl]
+				p.gty, p.ovr.flags, p.ovr.walk = saveGty, saveFlags, saveWalk
+			}
 			s.occ.clr(sl)
 			if ok && a.Repl.Cond != 0 && DebugKiraMutate != 2 {
 				// IsPresent$ (Kira Nerys): the entering object is not yet among
@@ -290,12 +320,76 @@ func (s *State) runReplProg(k *prep, sl Slot, c CardID, ab, pc uint8) {
 	s.runReplProgAs(k, sl, c, ab, pc, sl)
 }
 
+// coldReplSrc is the slot+1 of the permanent whose as-enters replacement
+// program is running (runReplProgAs), 0 outside one: an others-enter counter
+// amount reads that source, not the entrant (enterCountValue). It is a cold
+// region, not a genState field, because the fixed-State inventory is pinned
+// (TestNoNewFixedStateFields); only a table with an others-enter replacement
+// carries the byte.
+var coldReplSrc = newCold[uint8]("replSrc", func(g *genPrep) int {
+	for _, f := range g.flags {
+		if f&gfOthersRep != 0 {
+			return 1
+		}
+	}
+	return 0
+})
+
+// replSrcOf is coldReplSrc's byte: 0 for a table without the region.
+func (s *State) replSrcOf() uint8 {
+	if r := coldReplSrc.of(s); len(r) > 0 {
+		return r[0]
+	}
+	return 0
+}
+
+// coldEntryNoRun is 1 while an entry's enter programs run for an entry no
+// resolution run serves: the exile return of a departing player's sweep
+// (returnLinked outside a resolution). gorge runs such a replacement body
+// straight off the emit with no run, so every ask the body poses defaults to
+// its first option (engine/rules/resolution_ask.go's no-host degrade) instead
+// of being queued and posed. Like coldReplSrc, a cold region, not a genState
+// field, because the fixed-State inventory is pinned (TestNoNewFixedStateFields);
+// only a table with an enter replacement carries the byte.
+var coldEntryNoRun = newCold[uint8]("entryNoRun", func(g *genPrep) int {
+	for _, f := range g.flags {
+		if f&gfEnterRepl != 0 {
+			return 1
+		}
+	}
+	return 0
+})
+
+// entryNoRun reports the coldEntryNoRun byte: false for a table without it.
+func (s *State) entryNoRun() bool {
+	if r := coldEntryNoRun.of(s); len(r) > 0 {
+		return r[0] == 1
+	}
+	return false
+}
+
+// setEntryNoRun sets the coldEntryNoRun byte (a table without it keeps none).
+func (s *State) setEntryNoRun(v uint8) {
+	if r := coldEntryNoRun.of(s); len(r) > 0 {
+		r[0] = v
+	}
+}
+
+func (s *State) setReplSrc(v uint8) {
+	if r := coldReplSrc.of(s); len(r) > 0 {
+		r[0] = v
+	}
+}
+
 // runReplProgAs runs it with the permanent at src as the source (an
 // "other permanents enter" replacement). A choice stops it: the rest runs
 // once the choice is answered.
 func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot) {
 	prog := k.t.Cards[c].Abilities[ab].Prog
 	saved := s.res
+	saveSrc := s.replSrcOf()
+	s.setReplSrc(uint8(src) + 1)
+	defer func() { s.setReplSrc(saveSrc) }()
 	if !s.res.active {
 		// a value context for the program: the source as a resolving entry
 		sp := &s.perms[src]
@@ -351,6 +445,17 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					s.touchSl(sl)
 					continue
 				}
+				if s.entryNoRun() {
+					// no resolution run serves the entry (the sweep's exile
+					// return): gorge's body defaults the ask to its first
+					// option -- the first living opponent -- and the program
+					// continues in place (coldEntryNoRun)
+					if q := s.oppsFrom(s.perms[sl].ctrl); q.n > 0 {
+						s.perms[sl].chosen = objWord(q.s[0])
+						s.touchSl(sl)
+					}
+					continue
+				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
 				if !saved.active {
 					s.res = saved
@@ -383,6 +488,25 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					}
 				}
 				s.perms[sl].chosen = objWord(fb)
+				continue
+			}
+			ra := &k.t.Cards[c].Abilities[ab]
+			if s.entryNoRun() && kind != akCtrPick && kind != akCtrPick2 &&
+				!(ra.Repl.Kind == kop.ReplEntersProgram && ra.Repl.C != kop.ReplAfterEnter &&
+					i == 0 && progFirstAskKind(&ra.Prog[0]) == kind) {
+				// no resolution run serves the entry (the sweep's exile
+				// return): gorge's body defaults the ask to its first option
+				// and the program continues in place. The one ask that stays
+				// queued is the entrant's own enters program's first op when
+				// it is a CR 614.12 entry choice: gorge's walker asks it with
+				// the card still in its origin zone, posed even with no run
+				// (repl_etbchoice's park), so it stays queued. An R:
+				// AfterEnter line's choice is not one of those -- enterChoiceKind
+				// skips it, so gorge never walker-poses it, and the line's
+				// body runs straight off the entry emit with no run and
+				// defaults it -- and neither is another permanent's program's
+				// first op: the walker poses the entrant's own choice only.
+				s.entryAskDefault(k, sl, c, kind, in)
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
@@ -434,6 +558,91 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 // against all of them (engine/rules/replacement_etb.go).
 func (s *State) entryAskOutstanding() bool {
 	return s.res.ask != raNone || s.g.pre.state != 0 || s.g.nask > 0
+}
+
+// progFirstAskKind is the CR 614.12 entry-choice kind of an enters program's
+// first op, the one gorge's as-enters-choice walker asks with the card still
+// in its origin zone and the move parked (repl_etbchoice's walk: a colour, a
+// type, a number, a card name). Its kind, 0 when the first op is not such a
+// choice: that body runs straight off the entry emit, and with no resolution
+// run serving the entry its asks default instead of being posed.
+func progFirstAskKind(in *kop.Instr) uint8 {
+	switch in.Op {
+	case kop.OpChooseColor:
+		return akColor
+	case kop.OpChooseType:
+		return akType
+	case kop.OpExt:
+		switch in.Ext() {
+		case kop.ExtChooseNumber:
+			return akNumber
+		case kop.ExtChooseName:
+			return nameAskKind(in)
+		}
+	}
+	return 0
+}
+
+// entryAskDefault answers an as-enters ask of an entry no resolution run
+// serves with gorge's no-host degrade, the pose's first option, and the enters
+// program continues in place: the ask is never queued (engine/rules/
+// resolution_ask.go's Ask, and the asking primitives' deterministic
+// fallbacks). The option list is built from the op at hand (c, in), never
+// through the queue-reading builders: a multi-return sweep can hold an earlier
+// entry's CR 614.12 entry choice in the queue, and those builders would read
+// that card's bounds and colours (numberBounds, colorExclude) or nothing at
+// all (enterCardOptions, which reads the queue the no-run path never filled).
+// The look/name pair (akNameLook) takes the acknowledgment -- a no-op: the
+// chosen byte still holds the looked-at player between the two -- and then the
+// name itself.
+func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.Instr) {
+	if kind == akNameLook {
+		kind = akNameAny
+	}
+	var d Decision
+	d.Kind = DkChoose
+	d.Player = s.perms[sl].ctrl
+	switch kind {
+	case akCard:
+		// gorge's ChooseCard no-host fallback takes the first candidate
+		// (choose_control.go's choices[:min]; the one ExtChooseCardEnter
+		// lowering is mandatory, Min 1)
+		s.enterCards(k, c, s.perms[sl].obj, s.perms[sl].ctrl, &d)
+	case akColor:
+		// the op's own Exclude$ colours, not colorExclude's queued-ask
+		// lookup: gorge's ChooseColor fallback is the first offered colour
+		// (choose.go's opts[0])
+		ex := uint8(in.C) & 31 // W U B R G = bits 0..4
+		for cv := uint8(0); cv < 5; cv++ {
+			if ex&(1<<cv) == 0 {
+				d.add(MakeAction(AkChoose, 0, 0, cv))
+			}
+		}
+	case akNumber:
+		// the op's own bounds, not numberBounds's queued-ask lookup:
+		// gorge's ChooseNumber fallback is the list's floor (opts[0])
+		for n := int(in.B.N); n <= int(in.C); n++ {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
+		}
+	default:
+		s.askOptions(k, &d, kind) // the name and type builders read no queue
+	}
+	// The list is never empty here (Decision.Options is a fixed array; the
+	// count rides d.N): the akCard arm runs only with a candidate
+	// (enterCardNone skips the op), and gorge's no-host fallback over an
+	// empty restricted list records the zero code itself -- the first colour
+	// W, the number 0 -- which a zero option decodes to.
+	a := d.Options[0]
+	p := &s.perms[sl]
+	s.touchSl(sl)
+	if kind == akCard {
+		p.chosen = objWord(a.Source()) // the chosen object rides the action's code
+	} else if kind == akColor || kind == akNumber || kind == akPlayer || isNameAsk(kind) {
+		p.chosen = objWord(a.Mode())
+	} else {
+		v := int(a.Target())<<8 | int(a.Mode())
+		p.chosen = objWord(s.typeVocabCode(k, v))
+	}
 }
 
 // queueAsk queues an as-enters choice for the permanent at sl (no program
@@ -560,7 +769,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 		if toHand {
 			if x.zone == kop.ZoneExile {
 				from := s.detach(l.obj)
-				s.placeFromK(k, l.obj, kop.ZoneHand, false, from, false)
+				s.placeFromK(k, l.obj, kop.ZoneHand, false, from, false, false)
 			}
 			continue
 		}
@@ -602,7 +811,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			}
 			host := s.firstHost(k, l.obj)
 			from := s.detach(l.obj)
-			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
+			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			s.attachTo(k, nsl, host)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
@@ -659,12 +868,32 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
 			from := s.detach(l.obj)
-			nsl := s.enterLinkRet(k, l.obj, x.owner(), from)
+			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
 			}
 		}
 	}
+}
+
+// enterLinkRetRun enters the returning card o and marks the entry's enter
+// programs no-run when no resolution run serves the return (a departed
+// player's sweep, or a loss site's monarch handoff outside a resolution):
+// gorge runs such a replacement body straight off the emit with no run, so
+// every ask it poses defaults to its first option and the program continues
+// in place (coldEntryNoRun).
+//
+//go:noinline
+func (s *State) enterLinkRetRun(k *prep, o Obj, p uint8, from kop.Zone) Slot {
+	noRun := !s.res.active
+	if noRun {
+		s.setEntryNoRun(1)
+	}
+	nsl := s.enterLinkRet(k, o, p, from)
+	if noRun {
+		s.setEntryNoRun(0)
+	}
+	return nsl
 }
 
 // firstHost is the first permanent the returning Aura card o can enchant
@@ -785,14 +1014,15 @@ func (s *State) cleanupGen(k *prep) {
 	// before dropping the bitsets.
 	s.fbClearAll(k)
 	s.encoreClearAll(k)
+	s.embalmClearAll(k)
 	if s.g.nfx > 0 {
 		var ended slotMask
 		for i := 0; i < int(s.g.nfx); i++ {
-			if r := &s.g.fx[i]; r.kind == fxOverride && r.r.eot() {
+			if r := &s.g.fx[i]; ovCleanupEnds(k, r) {
 				ended = ended.with(r.sl)
 			}
 		}
-		s.dropFx(func(i int) bool { r := &s.g.fx[i]; return r.kind == fxOverride && r.r.eot() })
+		s.dropFx(func(i int) bool { return ovCleanupEnds(k, &s.g.fx[i]) })
 		if k.gen.anyNTOv {
 			ended = ended.or(s.dropNextTurnOv()) // Duration$ UntilYourNextTurn (static_control.go)
 		}
@@ -1128,7 +1358,9 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 			s.etbOrderOptions(k, d)
 			return true
 		}
-		if s.g.pre.land {
+		if s.g.pre.ley {
+			d.Player = s.g.leyP // the opening round's seat still holds the offer
+		} else if s.g.pre.land {
 			d.Player = s.preLandSeat() // the land's player still holds priority (a Play's picked land: its caster)
 		} else {
 			d.Player = s.stack[s.sp-1].ctrl
@@ -1245,11 +1477,15 @@ func (s *State) applyGen(k *prep, a Action) {
 			}
 		}
 		s.g.pre.state = 2
-		s.ctl = ctlPriority
-		if s.g.pre.land {
-			s.playLandNow(k, s.g.pre.obj, s.preLandSeat()) // the land enters with the choice made
+		if s.g.pre.ley {
+			s.leyPreEnter(k) // the opening hand's Leyline enters with the choice made
 		} else {
-			s.resolveTop(k) // the permanent enters with the choice made
+			s.ctl = ctlPriority
+			if s.g.pre.land {
+				s.playLandNow(k, s.g.pre.obj, s.preLandSeat()) // the land enters with the choice made
+			} else {
+				s.resolveTop(k) // the permanent enters with the choice made
+			}
 		}
 		// a second pre-ask posed by the resolution (the entry order) stays
 		// posed; otherwise the answered choice is done. The CR 616.1
@@ -1268,6 +1504,14 @@ func (s *State) applyGen(k *prep, a Action) {
 		}
 		if a.Mode() == 1 {
 			o := Obj(a.Source())
+			// CR 614.12: the as-enters choice is part of entering, made while
+			// the card is still in its origin zone. gorge asks it at the
+			// entry boundary, so park the pre-ask with the card still in the
+			// opening hand and let the answer enter it (leyPreEnter).
+			if kind := s.enterChoiceKind(k, s.objs[o].card); kind != 0 && !DebugLeylineMoveBeforeAsk {
+				s.g.pre = preAsk{obj: o, kind: kind, state: 1, ley: true}
+				return
+			}
 			from := s.detach(o)
 			s.leyGemEnter(k, o, s.enter(k, o, s.g.leyP, false, from))
 		} else {
@@ -1335,6 +1579,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
+	} else if ask.kind == akProtector {
+		s.protectorStore(ask.sl, a.Mode()) // face_battle.go
 	} else if ask.kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
@@ -1352,8 +1598,37 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if ask.ts&askETBDeferred != 0 {
 			s.deferredETBFire(k, ask, n0) // ctr_choice.go
 		}
+		// A deferred land play whose entry still asks (the ask-then-elect
+		// chain's opener, repl_shockland.go's shockChainOpener): the mark
+		// moves to the ask the resumption queued, and the count is due only
+		// when the entry's asks are all answered, as gorge settles it
+		// (settleLandPlay, landEntryParked).
+		if ask.ts&askLandPlay != 0 {
+			if s.g.nask > n0 {
+				s.g.ask[s.g.nask-1].ts |= askLandPlay
+			} else {
+				s.pl[s.perms[ask.sl].ctrl].landsPlayed++
+			}
+		}
 	}
 }
+
+// leyPreEnter finishes a Leyline whose as-enters choice was asked while it
+// was still in the opening hand: the answer is in s.g.pre.val, and the enters
+// program consumes it as a played land's does. The opening round then asks
+// the next Leyline or begins the turn (the generator is still in its ask
+// phase with leyOn set).
+func (s *State) leyPreEnter(k *prep) {
+	o := s.g.pre.obj
+	from := s.detach(o)
+	s.leyGemEnter(k, o, s.enter(k, o, s.g.leyP, false, from))
+	s.g.ctlRet, s.ctl = ctlStepBegin, ctlGenAsk
+}
+
+// DebugLeylineMoveBeforeAsk (TestLeylineOpeningChoiceBeforeMoveMutation):
+// moves an opening-hand Leyline onto the battlefield before its as-enters
+// choice, the timing this change fixes.
+var DebugLeylineMoveBeforeAsk bool
 
 // leylineStart begins the opening-hand Leyline asks (gorge's
 // MayEffectFromOpeningHand) before the first turn; false when there is
@@ -1460,6 +1735,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akMode {
 		siegeModeOptions(d) // face_siegemode.go
+		return
+	}
+	if kind == akProtector {
+		s.protectorOptions(d) // face_battle.go
 		return
 	}
 	if kind == akEnchant {

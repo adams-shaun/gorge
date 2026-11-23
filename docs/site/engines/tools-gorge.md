@@ -16,8 +16,7 @@ go run -trimpath ./cmd/forgec compile    # write the IR cache
 go run -trimpath ./cmd/forgec report     # playable cards and the primitives still missing
 ```
 
-`forgec coverage` writes `coverage.md` and `summary.md` into `-out`. The card tables are on
-[Card support](../support/sets.md).
+`forgec coverage` writes `coverage.md` and `summary.md` into `-out`; the card tables are on [Card support](../support/sets.md).
 
 ## mtgsim
 
@@ -27,11 +26,9 @@ go run -trimpath ./cmd/mtgsim -seats 2 -a bot -b lethal-pressure
 go run -trimpath ./cmd/mtgsim -seats 4 -format commander -policies az-redeal,lethal-pressure,-,forge-heuristic
 ```
 
-Game *i* uses seed + *i*. A game that doesn't finish, or doesn't replay under `-verify`, is an error and a non-zero exit.
-`-policies` names a policy for every seat (`-` keeps the plain heuristic); without it `-a` and `-b` name seats 0 and 1.
-Each game line ends with `policies=`, and a seat that searched gets a `search seat` line with its decisions, simulations
-and tree nodes. Seats are asked the way `gorged` asks them: a search policy such as `az-redeal` answers from an honest
-root dealt from its own observation feed, and a heuristic seat from the same reused board.
+Game *i* uses seed + *i*. A game that doesn't finish, or doesn't replay under `-verify`, is a non-zero exit.
+`-policies` names a policy per seat (`-` keeps the plain heuristic); without it `-a` and `-b` name seats 0 and 1.
+A seat that searched gets a `search seat` line with its decisions, simulations and tree nodes. Seats are asked as `gorged` asks them: a search policy such as `az-redeal` answers from an honest root dealt from its own observations.
 `-sb-agent name=/path` adds a SpellBench v2 stdio agent as a policy.
 
 ## cardfuzz
@@ -42,5 +39,4 @@ go run -trimpath ./cmd/cardfuzz -report -missing          # which cards and abil
 go run -trimpath ./cmd/cardfuzz -repro cardfuzz-failures.jsonl -line 1
 ```
 
-It keeps its coverage in `-state` and appends failures to `-failures`. Each failure replays with `-repro`.
-The flags for `-spellbench` and `-manabrew` run the same games through those wires. See [every flag](flags.md#cardfuzz).
+Coverage lives in `-state`; failures append to `-failures` and replay with `-repro`. `-spellbench` and `-manabrew` run the same games through those wires ([every flag](flags.md#cardfuzz)).

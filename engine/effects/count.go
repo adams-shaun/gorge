@@ -355,6 +355,10 @@ const maxCountDepth = 8
 // DungeonsCompleted$ property other than Amount stays unmodelled
 // (handled=false), as before.
 func evalLKIOrDungeonsHeadOK(h Host, c *Ctx, expr string, depth int) (n int32, ok, handled bool) {
+	if body, found := strings.CutPrefix(expr, "Emerged$CardToughness"); found {
+		n, ok = evalEmergedOK(h.Game(), c, body)
+		return n, ok, true
+	}
 	if body, found := strings.CutPrefix(expr, "ReplacedCardLKI$"); found {
 		n, ok = evalReplacedCardLKIOK(h, c, body, depth)
 		return n, ok, true
@@ -719,6 +723,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return v, ok
 	}
 	if v, ok, matched := evalCountBodyPaid(h, c, g, head, arg, depth); matched {
+		return v, ok
+	}
+	if v, ok, matched := evalCountBodyPayment(c, g, head, arg); matched {
 		return v, ok
 	}
 	if v, ok, matched := evalCountBodyPlayer(h, c, g, head, arg, depth); matched {

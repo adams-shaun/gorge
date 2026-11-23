@@ -870,6 +870,7 @@ func payAndShuffleReferents(c *effects.TriggerContext, k cards.TriggerMode, ev e
 	case cards.TriggerPayCumulativeUpkeep:
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
+		c.TriggerPayingMana = events.ManaColorSpentFromText(ev.Text)
 	}
 }
 

@@ -1,13 +1,16 @@
 A-Baleful Beholder
 A-Civil Servant
+A-Cloister Gargoyle
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
 A-The One Ring
+A-Triumphant Adventurer
 Abzan Guide
 Adamaro, First to Desire
 Aerial Modification
 Aeromunculus
 Aesthir Glider
+Aethertorch Renegade
 Aggressive Crag
 Air Nomad Student
 Alaborn Veteran
@@ -27,6 +30,7 @@ Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Baeloth Barrityl, Entertainer
 Balefire Dragon
 Bandage
 Bastion Inventor
@@ -34,6 +38,7 @@ Battlegrace Angel
 Bazaar Trademage
 Bedevil
 Benalish Heralds
+Benefactor's Draught
 Benevolent Hydra
 Binding the Old Gods
 Biolume Egg
@@ -105,6 +110,7 @@ Drinker of Sorrow
 Durkwood Boars
 Dust Bowl
 Dust to Dust
+Dwarven Soldier
 Earthbending Student
 Egon, God of Death
 Elder Druid
@@ -170,6 +176,7 @@ Griffin Dreamfinder
 Grim Hireling
 Grisly Spectacle
 Grixis Panorama
+Grotesque Hybrid
 Growth Spurt
 Gruesome Realization
 Gruul War Plow
@@ -237,6 +244,7 @@ Luminarch Aspirant
 Luminous Wake
 M.O.D.O.K., Evil Intellect
 Machine Man, Model X-51
+Maelstrom Nexus
 Magefire Wings
 Make Mischief
 Malevolent Noble
@@ -325,6 +333,7 @@ Rib Cage Spider
 Riot Ringleader
 Rip-Clan Crasher
 Ripjaw Raptor
+Risen Riptide
 Roaming Ghostlight
 Rockslide Elemental
 Rooftop Nuisance
@@ -346,6 +355,7 @@ Scryb Ranger
 Sealock Monster
 Seaside Haven
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone

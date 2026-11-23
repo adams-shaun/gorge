@@ -50,6 +50,7 @@ Curse of Wizardry
 Dark Salvation
 Dauntless Cathar
 Dead
+Deadfall
 Deep Dish Pizza
 Demon of Wailing Agonies
 Disruptive Pitmage
@@ -157,6 +158,7 @@ Mist-Cloaked Herald
 Moria Marauder
 Mortuary
 Mountain
+Murk Dwellers
 Murkfiend Liege
 Nezahal, Primal Tide
 Ochran Assassin

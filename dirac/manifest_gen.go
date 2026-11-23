@@ -13,43 +13,54 @@ const raAddOrRemoveCounter uint8 = 147
 // ask (dirac/manifest/ask/raChooseSource)
 const raChooseSource uint8 = 148
 
+// ask (dirac/manifest/ask/raCombatant)
+const raCombatant uint8 = 149
+
 // ask (dirac/manifest/ask/raDefeatCast)
 //
 // the transformed free cast ask of a resolving Siege defeat trigger (CR 310.12b, ChDefeatCast; face_battle.go resolveSiegeDefeat)
-const raDefeatCast uint8 = 149
+const raDefeatCast uint8 = 150
 
 // ask (dirac/manifest/ask/raDredgeRes)
-const raDredgeRes uint8 = 150
+const raDredgeRes uint8 = 151
 
 // ask (dirac/manifest/ask/raDungeon)
 //
 // the dungeon choice of a plain Venture (CR 701.49a; act_venture.go dungeonChoose): the venturer's pick among the dungeon cards of the table but Undercity, in key order, gorge's "dungeon" KChoose.
-const raDungeon uint8 = 151
+const raDungeon uint8 = 152
 
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 152
+const raGenClash uint8 = 153
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 153
+const raGenMyriad uint8 = 154
+
+// ask (dirac/manifest/ask/raGenPayETB)
+const raGenPayETB uint8 = 155
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 154
+const raGenPileOpp uint8 = 156
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 155
+const raGenRepeatOptional uint8 = 157
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 156
+const raPodClashOpp uint8 = 158
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 157
+const raRingBearer uint8 = 159
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 158
+const raRingLoot uint8 = 160
+
+// ask (dirac/manifest/ask/raTrigDemoOpp)
+//
+// the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
+const raTrigDemoOpp uint8 = 161
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -707,10 +718,20 @@ func init() {
 	mechName[mechBtTurn] = "btTurn"
 }
 
+// mech (dirac/manifest/mech/mechEmbalmGrant)
+//
+// object mask: graveyard cards with a granted embalm at their mana cost (Cursecloth Wrappings; kw_embalmgrant.go)
+const mechEmbalmGrant mech = 56
+
+func init() {
+	mechWidth[mechEmbalmGrant] = wObj
+	mechName[mechEmbalmGrant] = "embalmGrant"
+}
+
 // mech (dirac/manifest/mech/mechEncSeat0)
 //
 // bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat0 mech = 56
+const mechEncSeat0 mech = 57
 
 func init() {
 	mechWidth[mechEncSeat0] = wSlot
@@ -720,15 +741,65 @@ func init() {
 // mech (dirac/manifest/mech/mechEncSeat1)
 //
 // bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat1 mech = 57
+const mechEncSeat1 mech = 58
 
 func init() {
 	mechWidth[mechEncSeat1] = wSlot
 	mechName[mechEncSeat1] = "encSeat1"
 }
 
+// mech (dirac/manifest/mech/mechHorsemanship)
+//
+// slots whose permanent has horsemanship until end of turn (ExtKwMark KwMarkHorsemanship; kw_kwmark.go)
+const mechHorsemanship mech = 59
+
+func init() {
+	mechWidth[mechHorsemanship] = wSlot
+	mechName[mechHorsemanship] = "horsemanship"
+}
+
+// mech (dirac/manifest/mech/mechHorsemanshipPost)
+//
+// slots marked horsemanship while their permanent had lost all abilities (CR 613.7)
+const mechHorsemanshipPost mech = 60
+
+func init() {
+	mechWidth[mechHorsemanshipPost] = wSlot
+	mechName[mechHorsemanshipPost] = "horsemanshipPost"
+}
+
+// mech (dirac/manifest/mech/mechRemFaceDown)
+//
+// object mask: permanents a RememberSacrificed$ Sacrifice took while they were face down, whose mana value read through Remembered$CardManaCost stays 0 (CR 708.2, 608.2h; sacRemember)
+const mechRemFaceDown mech = 61
+
+func init() {
+	mechWidth[mechRemFaceDown] = wObj
+	mechName[mechRemFaceDown] = "remFaceDown"
+}
+
+// mech (dirac/manifest/mech/mechSkulk)
+//
+// slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
+const mechSkulk mech = 62
+
+func init() {
+	mechWidth[mechSkulk] = wSlot
+	mechName[mechSkulk] = "skulk"
+}
+
+// mech (dirac/manifest/mech/mechSkulkPost)
+//
+// slots marked skulk while their permanent had lost all abilities (CR 613.7)
+const mechSkulkPost mech = 63
+
+func init() {
+	mechWidth[mechSkulkPost] = wSlot
+	mechName[mechSkulkPost] = "skulkPost"
+}
+
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 58
+const numMech mech = 64
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
@@ -738,6 +809,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch kop.ExtOp(in.A.N) {
 	case kop.ExtAddOrRemoveCounter:
 		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
+	case kop.ExtChangeCombatants:
+		return s.changeCombatantsExt(k, in) // act_changecombatants.go
 	case kop.ExtChooseSource:
 		return s.chooseSourceExt(k, in) // act_choosesource.go
 	case kop.ExtClash:
@@ -746,6 +819,12 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
+	case kop.ExtExchangeLife:
+		return s.exchangeLifeExt(k, in) // act_exchangelife.go
+	case kop.ExtMeld:
+		return s.meldExt(k, in) // face_meld.go
+	case kop.ExtMonarchJail:
+		return s.monarchJailOp(k, in) // act_monarchjail.go
 	case kop.ExtMustBlock:
 		return s.mustBlockAtkExt(k, in) // combat_mustblockatk.go
 	case kop.ExtMyriad:
@@ -764,6 +843,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtUnattach:
+		return s.unattachExt(k, in) // act_unattach.go
 	case kop.ExtVenture:
 		return s.ventureExt(k, in) // act_venture.go
 	}
@@ -776,6 +857,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
+	case kop.OpGrantEmbalmOwnCost:
+		return s.execGrantEmbalm(k, in) // kw_embalmgrant.go
 	}
 	return true, false
 }
@@ -792,6 +875,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raChooseSource:
 		s.chooseSourceOptions(k, d) // act_choosesource.go
 		return true
+	case raCombatant:
+		s.changeCombatantOptions(k, d) // act_changecombatants.go
+		return true
 	case raDefeatCast:
 		s.defeatCastOptions(k, d) // face_battle.go
 		return true
@@ -803,6 +889,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 		return true
 	case raDungeon:
 		s.dungeonAskOptions(k, d) // act_venture.go
+		return true
+	case raGenPayETB:
+		s.payETBOptions(k, d) // repl_paybeforeetb.go
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
@@ -829,6 +918,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	case raChooseSource:
 		s.chooseSourceAnswer(k, a) // act_choosesource.go
 		return true
+	case raCombatant:
+		s.changeCombatantAnswer(k, a) // act_changecombatants.go
+		return true
 	case raDefeatCast:
 		s.defeatCastApply(k, a) // face_battle.go
 		return true
@@ -841,6 +933,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	case raDungeon:
 		s.dungeonAskAnswer(k, a) // act_venture.go
 		return true
+	case raGenPayETB:
+		s.payETBAnswer(k, a) // repl_paybeforeetb.go
+		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
 		return true
@@ -849,6 +944,59 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raRingLoot:
 		s.ringAskLootAnswer(k, a) // act_ring.go
+		return true
+	}
+	return false
+}
+
+// fwRun runs a filter program literal's word, whose handler is marked //kmanifest:fword in its
+// feature file (filterProg's dispatch).
+func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
+	switch l.W {
+	case kop.FwAttacking:
+		return s.fwAttacking(c, l) // filter_attacking.go
+	case kop.FwBasePowerCmp:
+		return s.fwBasePowerCmp(c, l) // filter_basepowercmp.go
+	case kop.FwBaseToughnessCmp:
+		return s.fwBaseToughnessCmp(c, l) // filter_basetoughnesscmp.go
+	case kop.FwCMCCmp:
+		return s.fwCMCCmp(c, l) // filter_cmccmp.go
+	case kop.FwChosenCtrl:
+		return s.fwChosenCtrl(c, l) // filter_chosenctrl.go
+	case kop.FwCountersCmp:
+		return s.fwCountersCmp(c, l) // filter_counterscmp.go
+	case kop.FwDoubleFaced:
+		return s.fwDoubleFaced(c, l) // filter_doublefaced.go
+	case kop.FwEnchantedControllerCtrl:
+		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
+	case kop.FwKeyword:
+		return s.fwKeyword(c, l) // filter_keyword.go
+	case kop.FwPowerCmp:
+		return s.fwPowerCmp(c, l) // filter_powercmp.go
+	case kop.FwSameName:
+		return s.fwSameName(c, l) // filter_samenameref.go
+	case kop.FwSharesCr:
+		return s.fwSharesCr(c, l) // filter_sharesreferents.go
+	case kop.FwSharesName:
+		return s.fwSharesName(c, l) // filter_sharesreferents.go
+	case kop.FwSubtype:
+		return s.fwSubtype(c, l) // filter_subtype.go
+	case kop.FwTapped:
+		return s.fwTapped(c, l) // filter_tapped.go
+	case kop.FwTopLibrary:
+		return s.fwTopLibrary(c, l) // filter_toplibrary.go
+	case kop.FwToughnessCmp:
+		return s.fwToughnessCmp(c, l) // filter_toughnesscmp.go
+	case kop.FwWithKeyword:
+		return s.fwWithKeyword(c, l) // filter_withkeyword.go
+	}
+	panic("kernel: filter word not implemented")
+}
+
+// fwHandled reports whether word w has a handler.
+func fwHandled(w kop.FilterWord) bool {
+	switch w {
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

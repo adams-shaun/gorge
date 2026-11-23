@@ -77,9 +77,16 @@ func (s *State) discardChain(k *prep, in *kop.Instr, p uint8) bool {
 			if s.repPending() {
 				s.holdWhole(p)
 			} else {
+				var old uint8
+				if k.gen != nil && k.gen.anyBatch {
+					old = s.batchOpen() // the held players' flush and this last hand are one discard action
+				}
 				s.flushHeldDiscard(k)
 				for pl.handN > 0 {
 					s.discardObj(k, pl.hand[0])
+				}
+				if k.gen != nil && k.gen.anyBatch {
+					s.batchClose(old)
 				}
 			}
 		} else if !s.repPending() {
@@ -142,6 +149,9 @@ func (s *State) holdWhole(p uint8) {
 // flushHeldDiscard moves every held discard, first player first. Every held
 // pick is read back to its card before the first card moves.
 func (s *State) flushHeldDiscard(k *prep) {
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one discard action across every held player (gorge flushDiscards)
+	}
 	h := s.cold.discHeld
 	var picks [MaxSeats - 1][maxDiscHeld]Obj
 	for i, j := 0, 0; i+discHeldBlock <= len(h) && h[i] != 0; i, j = i+discHeldBlock, j+1 {
@@ -169,8 +179,8 @@ func (s *State) flushHeldDiscard(k *prep) {
 // (an each-player op, or several targeted players; a single-player ask must not
 // pick up a stale repNext).
 func (s *State) discardChained(k *prep, in *kop.Instr) bool {
-	if in.Obj == kop.RefEachPlayer || !s.duel() && in.Obj == kop.RefEachOpponent && in.F == 0 && in.C == kop.ChooseSelf {
-		return true // each player, or each opponent at more than two seats (interp.go OpDiscard)
+	if in.Obj == kop.RefEachPlayer || !s.duel() && (in.Obj == kop.RefEachOpponent || in.Obj == kop.RefOppNonRemCtrl) && in.F == 0 && in.C == kop.ChooseSelf {
+		return true // each player, or each opponent (or each non-remembered controller) at more than two seats (interp.go OpDiscard)
 	}
 	sl, ok := tgtSlot(in.Obj)
 	return ok && k.gen != nil && s.res.e.xi != 0 && s.slotHasExtra(&s.res.e, uint8(sl))

@@ -89,6 +89,7 @@ import "embed"
 //go:embed kw_ingest.go
 //go:embed kw_jobselect.go
 //go:embed kw_levelup.go
+//go:embed kw_livingmetal.go
 //go:embed kw_livingweapon.go
 //go:embed kw_melee.go
 //go:embed kw_modular.go
@@ -109,6 +110,7 @@ import "embed"
 //go:embed kw_reinforce.go
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
+//go:embed kw_ripple.go
 //go:embed kw_saddle.go
 //go:embed kw_scavenge.go
 //go:embed kw_soulbond.go

@@ -29,11 +29,9 @@ flowchart LR
 
 ## What agreement means
 
-Two engines agreeing is evidence, not proof. gorge compiles Forge's card
-scripts, so gorge and Forge can share a script bug. dirac lowers gorge's own
-compiled IR, so it shares gorge's reading of the rules. XMage is written
-by hand and shares neither. A ruling that gorge is wrong rests on the printed
-card or the Comprehensive Rules, never on a vote of engines.
+Agreement is evidence, not proof. gorge compiles Forge's scripts, so the two can share a script bug;
+dirac lowers gorge's own IR, so it shares gorge's reading of the rules; XMage is written by hand and
+shares neither. A ruling that gorge is wrong rests on the printed card or the CR, never a vote.
 
 ## The checks
 
@@ -48,24 +46,18 @@ card or the Comprehensive Rules, never on a vote of engines.
 
 ## Scenarios and verdicts
 
-A hand scenario is one JSON file per card. It sets up a board, takes steps
-through gorge's runner, and asserts what a player can observe: zones, life, P/T,
-counters, the stack and the options offered. It is written from the printed
-card, not from gorge's script.
+A hand scenario is one JSON file per card: a board, steps through gorge's runner, and assertions on
+what a player can observe (zones, life, P/T, counters, stack, offered options), written from the
+printed card, not gorge's script.
 
-For XMage, `oraclediff gen` writes scenarios from a set's manifest. Level A is
-one per card. Level B adds one per activated ability, trigger, static and
-attack or block. A Java driver (`oracle/xmageoracle`) replays each in XMage,
-and `oraclediff diff` compares the two engines' snapshots at each checkpoint.
-A verdict's status is one of `agree`, `gorge_wrong`, `xmage_wrong` (with a
-ruling that cites the rules), `diverge` (not triaged), `harness` (the driver
-could not express it) or `xmage_lacks`. Only `agree` and `xmage_wrong` count
-toward a set's claim.
-
-Each set is declared at level A or B in `oracle/compliance/declared.json`, and
-`ratchet.json` holds each set's outstanding count so it can only fall. Run
-`make compliance-status` for the declared sets and their level counts.
-Current per-set numbers are on the [support page](../support/sets.md).
+For XMage, `oraclediff gen` writes scenarios from a set's manifest: Level A one per card, Level B
+adds one per activated ability, trigger, static and attack or block. A Java driver
+(`oracle/xmageoracle`) replays each in XMage and `oraclediff diff` compares snapshots at each
+checkpoint. A verdict is `agree`, `gorge_wrong`, `xmage_wrong` (with a ruling citing the rules),
+`diverge` (untriaged), `harness` (the driver could not express it) or `xmage_lacks`; only `agree`
+and `xmage_wrong` count toward a set's claim. Sets are declared at A or B in
+`oracle/compliance/declared.json` and `ratchet.json` holds each set's outstanding count, which can
+only fall (`make compliance-status`). Per-set numbers: [support page](../support/sets.md).
 
 Neither level says gorge is right about a whole game. Scenarios are short, and
 interactions between cards go untested.
@@ -74,31 +66,22 @@ interactions between cards go untested.
 
 `xengine` plays whole games, then asks the other engines whether they agree.
 
-1. **Play.** gorge plays games with an exploring bot between two-colour decks
-   drawn from a set's supported cards, weighted toward the cards least
-   exercised so far. A coverage ledger records which cards each sweep played
-   and compared.
-2. **Lower.** Each game is cut into windows (a position plus a few decisions)
-   and prefixes (the game from the start to turn N). Each becomes a tape that a
-   follower can replay. Gorge's own runner must first reproduce the lowering.
-   Windows it cannot lower are refused, with a reason.
-3. **Follow.** XMage and Forge each replay the tapes. XMage is driven by the Java
-   driver. Forge is driven by a harness in
-   [our Forge fork](https://github.com/adams-shaun/forge). Their output is never
-   committed, because Forge is GPL-3.0. Any engine can join as a follower:
-   [Bring your engine](engines/index.md) is written for their authors.
-4. **Diff and classify.** `xengine diff` compares each follower's snapshots
-   with gorge's stored result and gives each item a class, written as a repro
-   directory: `agree`, `diverge`, `rng`, `projection_gap`, `decision_shape`,
-   `payment_choice`, `forge_skips_damage_step`, `harness`, `not_sent`,
-   `turn_cap`, `xmage_lacks` and `lower_gap`. A follower that cannot express a
-   position (`decision_shape`) is not an engine bug.
-5. **Adjudicate.** `xengine adjudicate` combines the two followers' diffs into a
-   three-way pattern per item.
-6. **dirac as a fourth side.** With `XENGINE_DIRAC=1`, decks hold only cards
-   dirac plays, and each game first runs in [lockstep](lockstep.md) between
-   gorge and dirac. Each item then also gets dirac's answer: `D=G`, `D!=G`, or
-   `D-` where dirac has none.
+1. **Play.** gorge plays exploring-bot games between two-colour decks from a set's supported cards,
+   weighted to the least-exercised; a coverage ledger records what each sweep played and compared.
+2. **Lower.** Each game is cut into windows (a position plus a few decisions) and prefixes (start to
+   turn N), each a tape a follower can replay. gorge's runner must reproduce the lowering first;
+   windows it cannot lower are refused with a reason.
+3. **Follow.** XMage (Java driver) and Forge ([our fork](https://github.com/adams-shaun/forge)'s
+   harness) replay the tapes. Their output is never committed (Forge is GPL-3.0). Any engine can
+   join: [Bring your engine](engines/index.md).
+4. **Diff and classify.** `xengine diff` compares snapshots with gorge's stored result and writes
+   each item as a repro directory with a class: `agree`, `diverge`, `rng`, `projection_gap`,
+   `decision_shape`, `payment_choice`, `forge_skips_damage_step`, `harness`, `not_sent`, `turn_cap`,
+   `xmage_lacks`, `lower_gap`. A follower that cannot express a position (`decision_shape`) is not an
+   engine bug.
+5. **Adjudicate.** `xengine adjudicate` combines the followers' diffs into a three-way pattern.
+6. **dirac as a fourth side.** With `XENGINE_DIRAC=1`, decks hold only dirac-playable cards and each
+   game first runs in [lockstep](lockstep.md); each item then also gets `D=G`, `D!=G`, or `D-`.
 
 ### Disagreement classes
 
@@ -126,24 +109,17 @@ A sweep commits nothing: its findings are leads for a person.
 
 ## From a finding to a fix
 
-1. **Triage.** The adjudicator writes a ticket draft per `FX|G` cluster. A
-   person reads the printed card and the CR and decides who is wrong.
-2. **Corroborate.** A gorge suspect is checked against both other engines
-   before anyone touches gorge. If two engines agree against gorge, a reading of
-   the rules still decides.
-3. **Fix gorge first.** If gorge is wrong, the fix lands in gorge. dirac follows
-   in the same change, or the card is refused by name.
-4. **Pin.** gorge-compliance moves to the fixed commit by a pin-bump pull
-   request, and the stale ratchet rows show what the fix closed. See
-   [Pinning](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/PINNING.md).
-5. **Upstream.** If the other engine is wrong, a person confirms three things
-   before it is listed as a bug: the printed card or the CR says what should
-   happen; the cause is read in that engine's source at its current upstream
-   branch; and a replay reproduces it with the harness ruled out. It is then
-   reported to the upstream project, and a Forge script that disagrees with the
-   printed card is also fixed on our fork. The confirmed list, with upstream
-   links and states, is in
-   [upstream-bugs.md](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/upstream-bugs.md).
+1. **Triage.** The adjudicator drafts a ticket per `FX|G` cluster; a person reads the printed card
+   and the CR and decides who is wrong.
+2. **Corroborate** a gorge suspect against both other engines; if two agree against gorge, the
+   rules still decide.
+3. **Fix gorge first.** dirac follows in the same change, or the card is refused by name.
+4. **Pin.** gorge-compliance bumps its pin by pull request; stale ratchet rows show what the fix
+   closed ([Pinning](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/PINNING.md)).
+5. **Upstream.** Before an engine is listed as buggy, a person confirms the printed card or CR, reads
+   the cause in its current upstream source, and reproduces it with the harness ruled out. It is then
+   reported upstream (a Forge script that disagrees with the card is also fixed on our fork). The
+   list is [upstream-bugs.md](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/upstream-bugs.md).
 
 A pattern such as `GF|X` is a suspect, and does not go on that list by itself.
 

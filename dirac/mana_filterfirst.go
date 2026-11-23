@@ -173,7 +173,22 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
 		sl := b.first()
 		if s.perms[sl].flags&pfTapped == 0 && s.canTapForMana(k, sl) {
-			n += int(max(s.manaPCGen(k, sl).manaN, 1))
+			// the whole production the census's plain arm adds (mana.go's
+			// availForMode): the tap's own units and the all-at-once rest
+			// (mana_eachcolour.go), as gorge's PotentialMana counts it (CR
+			// 605.3b, 605.1a). Counting only manaN read an "Add {W}{U}" land as
+			// one mana, so its {U} never funded a first-only filter's fee
+			// (Cabal Coffers' {2} beside every Swamp tapped: Korlash, Heir to
+			// Blackblade's {1}{B} activation offered by gorge, never by the
+			// kernel).
+			pc := s.manaPCGen(k, sl)
+			n += int(s.srcYieldAt(k, sl, pc))
+			if k.gen != nil && k.gen.anyTapExtra {
+				xv := s.srcExtra(k, sl, pc)
+				for c := range xv {
+					n += int(xv[c])
+				}
+			}
 		} else if pc := s.manaPCGen(k, sl); s.canSacOnlyForMana(k, sl, pc) {
 			// a sacrifice-only source (an Eldrazi Spawn) is a last-resort
 			// unit of gorge's census, tapped or not (mana_sacsource.go)
@@ -209,6 +224,21 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			n += tx.total
 		}
 	}
+	if k.gen.anyComboAny && s.caGaps(k, p).any() {
+		// a Combo Any source (Axebane Guardian) or a reflected Amount$ one
+		// (Overgrown Battlement): gorge's PotentialMana prices an any-combination
+		// or indeterminate-amount production unbounded (addPotentialMana,
+		// producedOpen), so the source alone covers a first-only filter's fee and
+		// the filter is a census gap beside it (CR 605.3a, 601.2g). DebugComboAnyNoPotential
+		// (mutation test only) leaves it uncounted.
+		if !DebugComboAnyNoPotential {
+			n += potentialUnboundedUnits
+		}
+	}
+	n += s.filtDynamicMana(k, p)
+	if k.gen.anyEachCol && s.eachGapOpen(k, p) {
+		n += potentialUnboundedUnits
+	}
 	if k.gen.anyDeferred {
 		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana
 		// counts it, so Pyromancer's Goggles alone funds Three Tree Mascot's {1}
@@ -227,12 +257,40 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 	return n
 }
 
+// filtDynamicMana is the potential mana of p's untapped "{T}: Add {C} for each
+// ..." sources (Bag End Banquet): gorge's PotentialMana prices an indeterminate
+// Amount$ unbounded whatever it resolves to now (potentialAmount; Banquet with no
+// Food too), so the source alone covers a first-only filter's fee and the
+// filter is a census gap beside it (CR 605.3a, 601.2g). The census itself lists
+// no ability that makes nothing (manaAbilityYieldsNothing), so only the fee test
+// reads it unbounded: the prefix search then funds the fee from the hand guide
+// (Golgari Signet's {1}, a Simian Spirit Guide's {R}).
+func (s *State) filtDynamicMana(k *prep, p uint8) int {
+	n := 0
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if k.gen.flags[c]&gfManaVar == 0 || s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[c]
+		if j := firstManaAb(cd); j >= 0 && cd.Abilities[j].AFlags&kop.AfManaDynamic != 0 && cd.Abilities[j].Cost.Flags == kop.CostTap &&
+			cd.Abilities[j].Cost.Mana.MV() == 0 && cd.Abilities[j].ManaRestrict == 0 {
+			n += potentialUnboundedUnits
+		}
+	}
+	return n
+}
+
 // windowFiltFirstUsable: the live payment window lists the first-only filter at
 // sl: it is usable and the floating mana pays its fee (gorge's window abilities,
-// manaAbilityPayablePool). It is still no unit of the census above.
+// manaAbilityPayablePool). It is still no unit of the census above. A filter
+// whose dynamic amount resolves to nothing is not listed: gorge's
+// windowSourceYields drops a source that adds no mana (payment_window_yield.go).
 func (s *State) windowFiltFirstUsable(k *prep, p uint8, sl Slot) bool {
 	c := s.cardAt(sl)
-	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && s.filtPaid(k, p, sl)
+	return k.gen.has(c, gfFilt) && s.filtFirstOnly(k, sl) && s.filtUsable(k, sl) && s.filtPaid(k, p, sl) &&
+		!s.dynManaYieldsNothing(k, s.filtAb(k, sl), sl) // a dynamic amount at zero makes nothing, so the window never lists it (Cabal Coffers with no Swamp, CR 605.1a)
 }
 
 // windowFiltFirst activates that filter in the window, for the first colour it
@@ -334,3 +392,26 @@ func (s *State) windowFiltAffords(k *prep, p uint8, cost *kop.ManaCost) (bool, u
 	}
 	return ok, stall
 }
+
+// potentialUnboundedUnits stands for gorge's unbounded potential production
+// (potentialUnbounded) in a first-only filter's fee test: far above any fee.
+const potentialUnboundedUnits = 1 << 20
+
+// DebugComboAnyNoPotential (mutation test only): a Combo Any source adds
+// nothing to the potential mana a first-only filter's fee draws on.
+var DebugComboAnyNoPotential bool
+
+// eachGapOpen: p has an activatable each-colour source (Faeburrow Elder,
+// "Produced$ Special EachColorAmong_Valid ..."). gorge's PotentialMana folds
+// the ability through addPotentialMana (potential.go; computePotentialManaAdd),
+// where producedOpen("Special...") is true: the source prices unbounded in every
+// colour, so it alone covers a first-only filter's fee (Orzhov Signet's {1},
+// CR 605.3a, 601.2g) and the filter is a census gap beside it. DebugEachGapNoPotential
+// (mutation test only) leaves it uncounted.
+func (s *State) eachGapOpen(k *prep, p uint8) bool {
+	return !DebugEachGapNoPotential && s.scriptGaps(k, p).any()
+}
+
+// DebugEachGapNoPotential (mutation test only): an each-colour source adds
+// nothing to a first-only filter's fee cover (filtOtherMana).
+var DebugEachGapNoPotential bool

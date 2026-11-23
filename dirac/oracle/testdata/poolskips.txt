@@ -5,6 +5,9 @@ TestAdapterIsALockstepSide/blb/autopay=false
 TestAdapterIsALockstepSide/blb/autopay=true
 TestAdapterIsALockstepSide/fdn/autopay=false
 TestAdapterIsALockstepSide/fdn/autopay=true
+TestAtomCoverage
+TestAtomCoverage/seeds/slices
+TestAtomDiffSlices
 TestBLBLockstepRuns
 TestBLBPoolSupported
 TestBLBRegressPairs
@@ -47,6 +50,7 @@ TestNativeViewMatchesGorgeFDNManualMana/pairs50-75
 TestNativeViewMatchesGorgeFDNManualMana/pairs75-100
 TestPoolFrozen/blb
 TestPoolFrozen/cmd5
+TestPoolFrozen/edh
 TestPoolFrozen/fdn
 TestPoolFrozen/mbc
 TestPoolFrozen/pauper
@@ -55,6 +59,7 @@ TestRecordingStopsAtAConcession
 TestServedFieldsMatchGorge
 TestSliceMatchesPool/blb
 TestSliceMatchesPool/cmd5
+TestSliceMatchesPool/edh
 TestSliceMatchesPool/fdn
 TestSliceMatchesPool/mbc
 TestSliceMatchesPool/pauper

@@ -36,16 +36,19 @@ func TestDBManaActivatedOnlyForms(t *testing.T) {
 			t.Errorf("RestrictValid$ %s: want the named refusal, got %v", rv, err)
 		}
 	}
-	// (c) the marker lifts the artifact and Produced$ Any refusals; an
-	// artifact host with plain mana, or a spell restriction, does not
+	// (c) the marker lifts the Produced$ Any refusal, and an artifact host's
+	// plain or spell-restricted mana lowers: the kernel tags the resolving
+	// path's units (mana_artifact.go artTagN), the restricted ones the other
+	// way (addManaRestr's poolArtRestr). A spell restriction beside
+	// Produced$ Any over a non-artifact host stays refused
 	for _, tc := range []struct {
 		types uint16
 		ps    map[string]string
 		want  string // "" lowers
 	}{
 		{tArtifact, map[string]string{"Produced": "Any", "Amount": "4", "RestrictValid": "Activated"}, ""},
-		{tArtifact, map[string]string{"Produced": "R"}, "DB$ Mana of an artifact source (typed mana)"},
-		{tArtifact, map[string]string{"Produced": "R", "RestrictValid": "Spell.Creature"}, "DB$ Mana of an artifact source (typed mana)"},
+		{tArtifact, map[string]string{"Produced": "R"}, ""},
+		{tArtifact, map[string]string{"Produced": "R", "RestrictValid": "Spell.Creature"}, ""},
 		{0, map[string]string{"Produced": "Any", "Amount": "2", "RestrictValid": "Spell.cmcGE4"}, "DB$ Mana RestrictValid$ over Produced$ Any"},
 	} {
 		lc := newLC(tc.types)

@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwCMCCmp
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwCMCCmp: the object's mana value compares to V by Op (PredCMCLE/PredCMCGE/PredCMCEQ): a face-down object has none (CR 708.2), a spell on the stack counts its X (CR 202.3e).

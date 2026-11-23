@@ -242,6 +242,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Text: "entry awaiting counter-replacement-order choice"}
 	}
+	e.departedColors = trackDepartedColors(e.departedColors, e.G, e, ev)
 	// CountersRemain tags the final, replacement-adjusted MoveZone so
 	// events.Apply and replay preserve the counters in the same fold: the
 	// battlefield departure (hand and library stay explicit resets) and the
@@ -734,9 +735,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// open their own; see Host.BeginDamageBatch) is a batch of one -- its own
 	// batch, opened and closed around the trigger check, so the Once modes
 	// fire per event rather than per turn and the queued referent's amount is
-	// already the batch total. A prevented Damage never reaches here (emit
-	// returned the prevention Note above), and the deferred cast-trigger arm
-	// skips the trigger check entirely, so neither needs a batch.
+	// already the batch total. A prevented Damage never reaches here (emit returned the
+	// prevention Note above), and the deferred cast-trigger arm skips the trigger check entirely, so neither needs a batch.
+	blessBeforeTriggers(e, ev) // CR 702.131b/d: grant precedes the trigger check
 	if e.deferCastTrigger && deferredPushKind(ev.Kind) {
 		// CR 601.2i / 602.2i: the cast/activate trigger must not fire at the
 		// up-front push (601.2a / 602.2a), because the spell or ability is not
@@ -846,7 +847,6 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		ev.Kind == events.TokenCreate || ev.Kind == events.CardToken ||
 		ev.Kind == events.ControlChange {
 		e.checkSpeedStart()
-		e.checkBlessingGrants()
 		e.checkEnduringStoryGrants()
 	}
 	// Any genuinely state-changing event proves the game is making

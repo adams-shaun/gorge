@@ -42,6 +42,7 @@ Belbe's Armor
 Beskir Shieldmate
 Big Game Hunter
 Big Score
+Birthday Escape
 Birthing Hulk
 Black Panther, Claws of Bast
 Bladehold War-Whip
@@ -164,6 +165,7 @@ Galvanic Blast
 Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
+Genesis of the Daleks
 Geosurge
 Giant Cockroach
 Gift of Estates
@@ -206,6 +208,7 @@ Immersturm Raider
 Imp's Mischief
 In the Web of War
 Iname, Death Aspect
+Incandescent Soulstoke
 Ingenious Smith
 Innocence Kami
 Insatiable Appetite
@@ -372,6 +375,7 @@ Shambleshark
 Shard of the Void Dragon
 Shatter
 Shimmering Barrier
+Shyft
 Sigarda, Font of Blessings
 Sigiled Behemoth
 Silvos, Rogue Elemental
@@ -413,6 +417,7 @@ Syndicate Heavy
 Tactical Advantage
 Take into Custody
 Talara's Battalion
+Tanuki Transplanter
 Tapestry of the Ages
 Tectonic Rift
 Tenement Crasher

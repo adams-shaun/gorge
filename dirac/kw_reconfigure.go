@@ -14,10 +14,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - CR 702.151b: an attached Reconfigure card is not a creature. That is the
 //     type switch below, behind genPrep.anyReconfigure and keyed on the
 //     attachment alone, the way gorge derives it (state.Object.
-//     ReconfiguredAttached: AttachedTo != 0). The Creature half only is
-//     stripped; the subtypes stay, as gorge's reconfigureTypeSwitch keeps
-//     them. An Equipment riding an attached Reconfigure card detaches by the
-//     ordinary CR 704.5n arm, because the bearer is no creature any more.
+//     ReconfiguredAttached: AttachedTo != 0). The Creature card type and the
+//     creature subtypes correlated with it (CR 205.1a) are stripped; the
+//     non-creature subtypes (Equipment) stay. An Equipment riding an attached
+//     Reconfigure card detaches by the ordinary CR 704.5n arm, because the
+//     bearer is no creature any more.
 
 // reconfigureAttached reports whether the permanent at sl is an attached
 // Reconfigure card: attached, or its host left since the last state-based
@@ -36,6 +37,22 @@ func (s *State) reconfigureTy(k *prep, sl Slot, t kop.TypeMask) kop.TypeMask {
 		return t &^ kop.TCreature
 	}
 	return t
+}
+
+// reconfigureSubs is reconfigureTy over a derived subtype mask: an attached
+// Reconfigure permanent keeps its non-creature subtypes (Equipment) and loses
+// the creature subtypes that went with the Creature card type the switch took
+// away (CR 205.1a, 702.151b). A card that is not attached, or is face down
+// with its printed face absent (CR 708.2), keeps its mask and marker
+// unchanged. The phasing projection (oracle/projchars.go) calls it too: the
+// switch is derived live state, not a continuous effect, so it stands while
+// the permanent is phased out.
+func (s *State) reconfigureSubs(k *prep, sl Slot, subs kop.SubMask, all bool) (kop.SubMask, bool) {
+	if s.faceDown(k, sl) || !s.reconfigureAttached(k, sl) {
+		return subs, all
+	}
+	subs = subs.AndNot(k.gen.creatSub)
+	return subs, false
 }
 
 // reconfigureSlots is the battlefield's attached Reconfigure permanents

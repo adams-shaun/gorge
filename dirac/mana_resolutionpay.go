@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -35,6 +37,14 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if s.poolPays(p, c) {
 		return
 	}
+	// The restricted mana floating from an earlier ability (Eclipsed Realms'
+	// {G} for Activated abilities of the chosen type) pays the activation too
+	// (CR 106.6; gorge AvailableFor), so the witness taps only what it leaves.
+	d := payDesc{class: pdAct, card: s.bld().e.card, src: s.srcSlot()}
+	rm := s.restrFloatActMask(k, p, &d)
+	if rm != 0 && s.restrFloatPays(p, rm, c) {
+		return
+	}
 	// A lowered hybrid activation's witness is printed-only, like gorge's
 	// planHybridCost (dirac/mana.go's noGrant rule, CR 107.4e's mana
 	// objects: a granted ability is the grant search, phase 2): the
@@ -52,9 +62,24 @@ func (s *State) lowerHybridActivation(k *prep, c *kop.ManaCost) {
 	if held {
 		s.perms[sl].flags |= pfTapped
 	}
-	r := s.hybResolve(k, p, *c, 0)
+	r := s.hybResolveAct(k, p, c, &d, rm, sl)
 	s.g.noGrant, s.g.availX = ng, ax
-	s.tapFor(k, p, &r, 0, NoObj)
+	if rm != 0 {
+		r = s.restrShortAdm(p, rm, r)
+	}
+	// what the witness taps of a restricted source floats under its
+	// restriction, as a spell's witness does (lowerWitnessEx): a hybrid pip
+	// answered with another colour leaves the witness's mana unspent (the
+	// taps stand), and Eclipsed Realms' leftover {R} keeps "Spell.ChosenType,
+	// Activated.ChosenType" (CR 106.6; gorge emits the batch at the tap)
+	if k.restrSrc {
+		pool, untapped := s.pl[p].pool, s.untappedRestrSrcs(k, p)
+		var pk planner
+		s.tapForPK(k, p, &r, 0, NoObj, false, false, &pk)
+		s.witnessManaRestricted(k, p, &pool, untapped, &pk)
+	} else {
+		s.tapFor(k, p, &r, 0, NoObj)
+	}
 	if held {
 		s.perms[sl].flags &^= pfTapped
 	}
@@ -151,8 +176,8 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		if sl == NoSlot {
 			break
 		}
-		if s.parkedWaiting() {
-			return false // a sacrificed source's order ask: the payment runs again after it
+		if s.parkedWaiting() || s.reflectPickPending() {
+			return false // a sacrificed source's order ask or a tap's reflected pick: the payment runs again after it
 		}
 		need = s.restrShortNonSpell(k, p, c) // a tapped source may have floated restricted mana
 	}
@@ -216,19 +241,27 @@ func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 // planner is paid the same way before the push, not by manaStep's post-push tap
 // (payPrefixRest). A prefix that ran without tapping priced the play by
 // planning; gorge pays that at payment, after the push, as manaStep does.
-func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) bool {
+func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
 	pool0 := s.prefixPoolMana(p)
-	ran := false
+	grantFirstRun := false
 	if grantFirst {
 		s.grantPrefix(k, a, p)
-		ran = true
+		ran, grantFirstRun = true, true
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k)
 		}
 	}
 	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
+		// The tapX search's prefix taps the plan's needed colours before the
+		// play (mana_tapanother.go), as gorge's one search does: a gap-funded
+		// activation's printed share is floated here, before the target ask,
+		// not by the post-push planner.
+		tapXBefore := !grantFirstRun && (k.tapMana || k.ctrMana) && s.scriptTapXModelled(k, p).any()
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		ran = true
+		if tapXBefore && !s.scriptTapXModelled(k, p).any() {
+			tapX = true
+		}
 		if s.npend != 0 {
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
 		}
@@ -247,7 +280,7 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 			s.flushPrefixTriggers(k)
 		}
 	}
-	return ran && s.prefixPoolMana(p) > pool0
+	return ran && s.prefixPoolMana(p) > pool0, tapX
 }
 
 // prefixPoolMana is p's floating pool total: the prefix section's taps (and
@@ -264,6 +297,20 @@ func (s *State) prefixPoolMana(p uint8) int {
 	return n
 }
 
+// activatePrefixRest is payPrefixRest for an activation applyPriority is about
+// to build. A prefix that tapped runs it (pref); so does a board with a
+// Taps-deferred source even when no prefix tapped: gorge's planner refuses the
+// deferred sources on its first pass, so a play its plain census cannot price
+// is proved by the potential play's search, which activates the plan before the
+// play (Blisterspit Gremlin's {1} under Manabarbs: the land's trigger sits below
+// the ability, not above it). payPrefixRest returns when the plain census
+// prices the remainder, so a board with no such gap is unchanged.
+func (s *State) activatePrefixRest(k *prep, a Action, p uint8, pref, tapX bool) {
+	if pref || k.gen != nil && k.gen.anyTapsDefer {
+		s.payPrefixRest(k, a, p, tapX)
+	}
+}
+
 // payPrefixRest pays, before the activation's build begins, what a prefix
 // search left of a plain activation cost to the payment planner. The
 // planner's tap fires at manaStep (bsMana), after bsPush has placed the
@@ -275,7 +322,7 @@ func (s *State) prefixPoolMana(p uint8) int {
 // plain planner settles takes this -- one it cannot price keeps its manaStep
 // window arm (sacXWindowPays, equipGapWindowPays, the hybrid arms), and
 // restricted floating mana keeps the shortened cost the planner pays.
-func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
+func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	o, ab := Obj(a.Source()), a.Mode()
 	ob := &s.objs[o]
 	cd := &k.t.Cards[s.cardAt(ob.slot)]
@@ -315,7 +362,50 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	if chk.needT == 0 {
 		return
 	}
-	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer {
+	force = force && abn.NTargets > 0 && abn.Cost.Flags&kop.CostTap != 0
+	if force {
+		// The tapX search's prefix taps the plan's needed-colour sources
+		// before the play (mana_tapanother.go), as gorge's one search does:
+		// float them here so the target ask sees the same board. The
+		// remaining generic is the post-push planner's, as it is in gorge.
+		// Only a play whose own cost taps its source floats: the held {T}
+		// (CR 602.2b) is the play's own unit, so gorge's pre-play floats
+		// cover the whole mana part beside it (Nephalia Smuggler's {3}{U},
+		// {T}, activation_tapx_payment_floats_before_target). A plain-cost
+		// activation's gap float is its prefix's last word: gorge pays the
+		// rest at payment, after the push, and its target ask sees the
+		// board only as far as the gap's float went (a Springleaf Drum
+		// beside an untapped Swamp floating one of a {2B} ability's two
+		// units: no more taps before the target ask).
+		held := sl != NoSlot && abn.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
+		if held {
+			s.perms[sl].flags |= pfTapped
+		}
+		// gorge's search stops at the node where the planner prices the play
+		// from the pool and the census: a prefix float that already covers the
+		// coloured pips beside a census that pays the rest floats no more
+		// (Arc Mage's {2}{R} after Relic of Legends' R).
+		priced := chk
+		priced.try = true
+		s.plan(k, p, &priced, NoObj)
+		if priced.found && !plansAnyColour(&priced) {
+			if held {
+				s.perms[sl].flags &^= pfTapped
+			}
+			return
+		}
+		// Leave one unit (the generic remainder) to the post-push planner, as
+		// gorge's prefix search does.
+		s.payNeededColours(k, p, &cost, max(cost.MV()-1, 0))
+		if held {
+			s.perms[sl].flags &^= pfTapped
+		}
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+		}
+		return
+	}
+	if k.gen == nil || (!k.gen.anyTapsDefer || DebugNoTapsDefer) {
 		return // no Taps-deferred source can be the remainder: the post-push payment, as before
 	}
 	saved := chk
@@ -342,6 +432,53 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8) {
 	}
 	if s.npend != 0 {
 		s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+	}
+}
+
+// payNeededColours taps p's untapped sources of cost's coloured pips until
+// target mana is floating or no such source is left, in the planner's source
+// order. It is the pre-push half of a tapX-funded activation's payment: gorge's
+// prefix search taps the play's needed-colour sources before the play, and the
+// generic remainder after it, so the target ask sees the same board
+// (mana_tapanother.go's tapXPrefix).
+//
+// Each iteration demands one NEW unit of a pip colour, so a colour the board
+// can fund no more of is a clean miss, not the payment: the demand is probed
+// with a dry planner first (it selects the plan without tapping and reports no
+// plan as found == false, the two-pass shape payPrefixRest prices its
+// remainder with), and a probe with no plan stops the pre-float -- the
+// already-floated units stay in the pool and the post-push payment at manaStep
+// pays the rest, the pre-fix shape for a play whose prefix never fired
+// (TestTapxPrefixFloatSkipsUnfundablePip: Smuggler's {3}{U},{T} with Sentinel's
+// unit as the board's only {U}).
+func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target int) {
+	for {
+		if s.prefixPoolMana(p) >= target {
+			return
+		}
+		tappedOne := false
+		for c := 0; c < kop.NumManaKinds; c++ {
+			if cost.Pips[c] == 0 {
+				continue
+			}
+			var one kop.ManaCost
+			one.Pips[c] = s.pl[SeatIx(p)].pool[c] + 1
+			var probe planner
+			probe.dry = true
+			s.tapForPK(k, p, &one, 0, NoObj, false, false, &probe)
+			if !probe.found {
+				return // no plan funds one more of c: the post-push planner pays the rest
+			}
+			before := s.prefixPoolMana(p)
+			s.tapFor(k, p, &one, 0, NoObj)
+			if s.prefixPoolMana(p) > before {
+				tappedOne = true
+				break
+			}
+		}
+		if !tappedOne {
+			return
+		}
 	}
 }
 
@@ -539,4 +676,65 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 			}
 		}
 	}
+}
+
+// DebugRestrictedFloatIgnored (TestRestrictedFloatLoweredActivationMutation):
+// a lowered activation reads no floating restricted mana, as before the fix.
+var DebugRestrictedFloatIgnored bool
+
+// restrFloatActMask is the mask of p's floating restricted batches (State.rb)
+// the activated-ability payment d describes may spend (restrFloatAdmits, so
+// Activated.* restrictions match as Spell.* do); 0 for any other payment.
+func (s *State) restrFloatActMask(k *prep, p uint8, d *payDesc) uint8 {
+	if DebugRestrictedFloatIgnored || d.class != pdAct || !s.rbAny(p) {
+		return 0
+	}
+	return s.restrFloatAdmits(k, p, d)
+}
+
+// restrFloatPays reports whether p's pool with its restricted batches of mask
+// m pays cost.
+func (s *State) restrFloatPays(p, m uint8, cost *kop.ManaCost) bool {
+	var av avail
+	for c, n := range s.pl[SeatIx(p)].pool {
+		if n > 0 {
+			av.addUnits(1<<c, n)
+		}
+	}
+	s.restrAvailAdd(SeatIx(p), m, &av)
+	return av.affords(cost, pipMaskOf(cost), 0)
+}
+
+// hybResolveAct is hybResolve for the activation d describes: the witness's
+// first affordable pip resolution counts the floating restricted mana of the
+// batches in rm and the restricted sources the activation may spend (gorge's
+// planHybridCost reads the planner's pool for it: Eclipsed Realms' any-colour
+// {G} pays the {G/W} before a Plains' {W}).
+func (s *State) hybResolveAct(k *prep, p uint8, c *kop.ManaCost, d *payDesc, rm uint8, skip Slot) kop.ManaCost {
+	if DebugRestrictedFloatIgnored {
+		return s.hybResolve(k, p, *c, 0)
+	}
+	var av avail
+	s.availFor(k, p, &av)
+	if rm != 0 {
+		s.restrAvailAdd(p, rm, &av)
+	}
+	var multi [2]dynUnit
+	nm := 0
+	if k.restrSrc {
+		av, multi, nm = s.restrSrcAvail(k, p, *d, &av, skip)
+	}
+	return av.hybWitnessRiderMulti(*c, 0, false, multi[:nm])
+}
+
+// plansAnyColour reports whether pl's plan taps a source that makes any colour
+// (a Chromatic Lantern): gorge's search keeps floating past a node whose
+// remainder only such a source pays.
+func plansAnyColour(pl *planner) bool {
+	for i := 0; i < pl.nu; i++ {
+		if bits.OnesCount8(pl.types[pl.utyp[i]].mask&0x1f) > 1 {
+			return true
+		}
+	}
+	return false
 }

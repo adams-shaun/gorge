@@ -1,16 +1,21 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Fates' Reversal	989a6cf74b340c4b	59	0/0		2/2	
 Arcbound Worker	297fd50c8b3d55d8	52	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Avoid Fate	b7961e4d29db2491	8	0/0		2/2	
 Borborygmos	733678d02183a894	10	1/1		1/1	
+Broken Dam	eae4bdb1825d132f	4	0/0		2/2	
 Cheering Fanatic	070b39b072960418	8	1/1		0/1	ix:resp
 Chromeshell Crab	a9040a4252993671	4	1/1		2/5	cast/alt:none,f0/t0/opt:n,f0/t0/opt:y
 Civic Wayfinder	cab883f247c9bcc9	45	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Dihada, Binder of Wills	fe433c40b6c7869a	126	3/3		1/1	
 Eel Umbra	4697d310786ff9be	76	0/0		2/2	
+Elfhame Sanctuary	13d6fe35b32644f4	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Emeria, the Sky Ruin	d3bf9cd24f8e92db	16	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Eye of Ugin	94b0dfa7096b569a	37	1/1		1/1	
+Gigadrowse	f351beb77ce513d5	79	1/1		4/4	
 Grasslands	e78c7f7c1c2ff8c5	57	1/1		0/1	ix:resp
 Great Oak Guardian	2425ec1e321d0c15	4	1/1		1/1	
+Guardian of the Gateless	a9056106e5b8d38b	3	1/1		1/1	
 Infernal Kirin	e6ffc1f4a35c5d53	28	1/1		0/1	ix:resp
 Keeper of Secrets	dc6d9afcd7af6a18	29	1/1		1/1	
 Lae'zel's Acrobatics	b6ea9a7b9cc8c918	34	0/0		1/2	ix:resp
@@ -19,9 +24,12 @@ Molten Echoes	b05288eb792e5153	37	1/1		0/1	ix:resp
 Mortipede	ddceae2f80ec8b00	36	1/1		1/1	
 Nature's Embrace	719888e8c71f8240	11	0/0		2/2	
 Norwood Archers	d832436039a5b906	12	0/0		0/0	
+Phantasmal Terrain	df99591256af8d99	4	0/0		1/2	ix:resp
+Porcelain Zealot	602fb2c44019bebd	23	1/1		1/1	
 Pyrrhic Revival	97b41cc2ce400ea8	11	0/0		2/2	
 Scrapwork Mutt	ee97479c0744cdc6	95	2/2		1/1	
 Shinen of Life's Roar	a3d4b6be3f56367e	23	1/1		0/1	ix:resp
+Took Reaper	f0de282312c170db	5	1/1		0/1	ix:resp
 Transguild Courier	dde692be531670d4	708	0/0		0/0	
 Trenchpost	ab01d02d02895b49	45	2/2		1/1	
 Vengeful Dreams	08c470597ad23c03	6	0/0		2/2	
@@ -29,3 +37,4 @@ Vengeful Reaper	9b31c3d443a343ac	3	0/0		1/2	cast/alt:foretold
 Wall of Roots	9fc6da95d4e6fdce	20	1/1		0/1	ix:resp
 Wrenn and Realmbreaker	a0ff901c810dcd71	13	3/3		0/1	ix:resp
 Yavimaya Sapherd	d6425e9b6395b514	46	1/1		0/1	ix:resp
+Zelyon Sword	3971d2269a71f23b	88	1/1		1/1	

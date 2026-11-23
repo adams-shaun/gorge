@@ -161,6 +161,12 @@ func ApplyPtr(g *state.Game, e *Event) {
 	if len(g.Stack) > n {
 		stampPushedAbilitySources(g, n)
 	}
+	// Only a push can raise the mark, and the distinct-source count never
+	// exceeds the stack's length, so a stack that did not grow or is no longer
+	// than the mark cannot raise it.
+	if len(g.Stack) > n && len(g.Stack) > int(g.MaxDistinctOnStackThisTurn) {
+		noteStackHighWater(g)
+	}
 }
 
 // stampPushedAbilitySources records, on every ability object an event just
@@ -272,8 +278,17 @@ func applyKind(g *state.Game, e *Event) {
 	case CastBattlefield:
 		foldCastBattlefield(g, e)
 	case SearchedLibrary:
-		// Pure marker for one completed library search; all resulting card
-		// moves and the shuffle have their own events.
+		// One completed library search; all resulting card moves and the
+		// shuffle have their own events. The only state it folds is the
+		// searching seat's per-turn watcher (Amount 0: the library's own
+		// player searched it; else the searcher is seat Amount-1).
+		searcher := e.Player
+		if e.Amount > 0 {
+			searcher = state.PlayerID(e.Amount - 1)
+		}
+		if validPlayer(g, searcher) {
+			g.Players[searcher].SearchedLibraryThisTurn = true
+		}
 	case KeywordAbilityPush:
 		foldKeywordAbilityPush(g, e)
 	case Discover, Seek, Surveil, Scry, Proliferate, ElementalBend:
@@ -567,6 +582,9 @@ func applyKind(g *state.Game, e *Event) {
 	case DelayedRemove:
 		foldDelayedRemove(g, e)
 	case DelayedPush:
+		if e.Counter == "__kwWarpExile" {
+			g.NoteWarpExile()
+		}
 		foldDelayedPush(g, e)
 	case MergedTriggerPush:
 		foldMergedTriggerPush(g, e)

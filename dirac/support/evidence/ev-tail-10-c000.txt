@@ -15,6 +15,7 @@ Agent of the Fates
 Airdrop Aeronauts
 Alpine Grizzly
 Alpine Houndmaster
+Altar of Shadows
 Amphin Pathmage
 Anax, Hardened in the Forge
 Angel of Light
@@ -67,6 +68,7 @@ Brash Taunter
 Bronze Sable
 Bruna, the Fading Light
 Brutalizer Exarch
+Cabal Shrine
 Cacophodon
 Call of the Conclave
 Canopy Claws
@@ -121,11 +123,13 @@ Donatello's Science Lesson
 Doric, Nature's Warden
 Doublecast
 Drana's Chosen
+Dream Coat
 Dreg Recycler
 Dromosaur
 Duskborne Skymarcher
 Dwarven Bloodboiler
 Dáin of the Ancient Halls
+Earthbrawn
 Eater of the Dead
 Elaborate Firecannon
 Eldrazi Aggressor
@@ -226,6 +230,7 @@ Karsus Depthguard
 Kaya's Onslaught
 Keldon Berserker
 Kenrith, the Returned King
+Killer Instinct
 Kinetic Ooze
 King Suleiman
 Kjeldoran Gargoyle
@@ -233,7 +238,6 @@ Knight of Stromgald
 Knight of the White Orchid
 Kraul Foragers
 Kraul Warrior
-Krosan Druid
 Kuldotha Flamefiend
 Leaf Arrow
 Leapfrog
@@ -324,6 +328,7 @@ Pointed Discussion
 Pontiff of Blight
 Prison Realm
 Prodigal Sorcerer
+Promised Kannushi
 Prophetic Flamespeaker
 Prophetic Ravings
 Proteus Staff
@@ -377,6 +382,7 @@ Seton's Desire
 Severed Strands
 Shadow Stinger
 Shadow Summoning
+Shambling Attendants
 Sheltering Landscape
 Sheoldred's Restoration
 Shi'ar Soldier
@@ -387,7 +393,6 @@ Shivan Oasis
 Sigil of the New Dawn
 Silumgar Assassin
 Silverback Ape
-Skarrg, the Rage Pits
 Skeletal Changeling
 Skitterbeam Battalion
 Skittering Precursor

@@ -5,6 +5,7 @@ A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
 Adorable Kitten
+Adorned Pouncer
 Ajani, Valiant Protector
 Alabaster Host Sanctifier
 Alarum
@@ -350,6 +351,7 @@ Swarming Goblins
 Sword of the Paruns
 Syndicate Infiltrator
 Synth Infiltrator
+Tajuru Paragon
 Take to the Streets
 Talas Researcher
 Temporal Trespass
@@ -380,6 +382,7 @@ Viashino Grappler
 Visara the Dreadful
 Vision, Spectral Synthezoid
 Visions of Beyond
+Volcanic Strength
 Voldaren Duelist
 Vona's Hunger
 Vraska's Scorn

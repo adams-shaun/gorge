@@ -76,6 +76,7 @@ effects/mustblock_api.go effMustBlockChoicePool
 effects/namecard.go nameChoicesFiltered
 effects/phases.go phasesAffectedObjects
 effects/player_filter.go playerControlsMatches
+effects/player_filter.go playerHasCardsInZoneMatches
 effects/pump_params.go sharedPumpGrant
 effects/removecounter.go removeCounterChoose
 effects/resolve.go repeatDefinedGateHolds
@@ -97,7 +98,6 @@ effects/zone_hand.go handMoveOwnersWalk
 effects/zone_hidden.go effHiddenPick
 effects/zone_search.go applyLibrarySearch
 effects/zone_search.go effSearchLibrary
-rules/combat/block.go LandwalkEvades
 rules/layers_types.go Engine.matchesWithCharsPTSlow
 rules/protection.go Engine.sourceHasQuality
 rules/replacement_match.go Engine.replacementMatchesRememberedUngatedBy

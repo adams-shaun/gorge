@@ -1,57 +1,37 @@
 # Playing a seat over HTTP
 
-This page is for authors of bots in any language who want to play a gorge seat over the network. It walks the decision
-round trip with real requests and responses from a live `gorged` (2026-10-31 unless a line says otherwise), explains how to
-answer each decision kind, and lists the errors and pitfalls. The field-by-field reference is the
-[HTTP API reference](../api/http.md); working agents are on [Python and Java examples](examples.md).
+For bot authors in any language: the decision round trip with real requests and responses from a live `gorged` (2026-10-31 unless a
+line says otherwise), how to answer each decision kind, errors and pitfalls. Field reference: [HTTP API](../api/http.md); working
+agents: [Python and Java examples](examples.md).
 
-The HTTP seat is the surface the browser client plays through: a seat the server treats as "human" parks each decision until
-someone posts an answer. A bot is a program holding that seat's token.
+The HTTP seat is what the browser plays through: a "human" seat parks each decision until someone posts an answer. A bot is a program
+holding that seat's token.
 
 ## Start a server that has a seat for you
 
-Two ways, both on `gorged` (build it with `go build ./cmd/gorged` in the repository root, after `make fetch-cards`; a bot
-needs no browser client):
+Build with `go build ./cmd/gorged` after `make fetch-cards`. Use a persistence directory of your own (`-dir`); two servers sharing one corrupt each other.
 
 === "On demand: POST /api/games"
 
     ```console
     $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
         -tables 0 -vsbot -max-on-demand-tables 0 -pace 0 -prewarm=false -bot-policy bot
-    gorged: 0 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
     ```
 
-    `-vsbot` arms `POST /api/games`, which creates a private two-seat table,
-    you (seat 0) against a hosted bot, and hands back that seat's token. A bot
-    can open as many games as it likes. `-max-on-demand-tables 0` lifts the
-    default cap of 32 retained tables, which a training loop hits quickly;
-    `-pace 0` removes the 50 ms pause the server inserts after every
-    decision for human spectators.
+    `-vsbot` arms `POST /api/games`, which creates a private two-seat table (you are seat 0, against a hosted bot) and returns your token.
+    `-max-on-demand-tables 0` lifts the default cap of 32 retained tables; `-pace 0` removes the 50 ms pause after every decision.
 
 === "Fixed seat: -humans"
 
     ```console
     $ ./gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-bots -feedback /tmp/gorge-bots/feedback \
         -tables 1 -seats 2 -humans 0 -seat-token docs-token -pace 0 -prewarm=false -bot-policy bot
-    gorged: 1 tables of 2 on 127.0.0.1:8080 (dir /tmp/gorge-bots)
-    gorged: table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=docs-token
     ```
 
-    `-humans 0` makes seat 0 of table `t1` an HTTP seat; `-seat-token`
-    fixes its token (omit it and the server mints a random one and prints the
-    join URL). Leave `-spectator` at its `public` default: that keeps every
-    hand hidden from an unauthenticated spectator, including the one your bot
-    is playing against. `-spectator omniscient` opens every hand.
+    `-humans 0` makes seat 0 of table `t1` an HTTP seat; `-seat-token` fixes its token (omit it and the server mints one and prints the join URL).
+    Keep `-spectator` at its `public` default, which hides every hand from an unauthenticated spectator; `omniscient` opens every hand.
 
-Use a persistence directory of your own (`-dir`); two servers sharing one
-corrupt each other.
-
-The commands below use two shell variables:
-
-```sh
-GORGE=http://127.0.0.1:8080
-TOKEN=<the seat's token>      # from the POST /api/games reply; docs-token on the fixed seat
-```
+Commands below use `GORGE=http://127.0.0.1:8080` and `TOKEN=<the seat's token>` (`docs-token` on the fixed seat).
 
 ## The round trip
 
@@ -86,17 +66,10 @@ sequenceDiagram
   H-->>B: 200 [{"state":"finished","winner":1,…}]
 ```
 
-`POST .../intent` waits for the engine's verdict. A `204` means the engine
-accepted the answer and the game has moved past that decision. A `409`
-means it was refused, by the wire checks or by the rules engine itself; the
-decision stays pending, unchanged, and you can answer it again. The first
-`POST` for a decision claims it, so a duplicate or concurrent `POST` of the
-same answer is a `409`, never a second `204`. After a `204`, `GET .../pending`
-answers `409` until the game asks your seat something new.
-
-Instead of polling, a bot can open `GET /api/stream` (server-sent events),
-subscribe to its table, and wait for a `decision` frame naming its seat
-before it calls `/pending`. That is shown [below](#push-instead-of-poll-sse).
+`POST .../intent` waits for the engine's verdict. `204` means accepted and the game has moved on. `409` means refused (wire checks or the
+rules engine); the decision stays pending, unchanged, and you can answer again. The first `POST` for a decision claims it, so a duplicate is a
+`409`. After a `204`, `GET .../pending` answers `409` until the game asks your seat something new. Instead of polling, wait for a `decision`
+frame on [SSE](#push-instead-of-poll-sse).
 
 ## Authentication
 
@@ -112,10 +85,8 @@ $ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$GORGE/a
 {"code":"forbidden","message":"claim holds seat 0, not the requested seat 1"} [403]
 ```
 
-Tokens are opaque, 16 random bytes in hex, held in the server's memory
-only: they do not survive a restart, and they are not general
-authentication (there are no users or accounts). Run the server on a
-network you trust, or behind TLS.
+Tokens are opaque, 16 random bytes in hex, held in server memory only (lost on restart), and are not general authentication. Run the
+server on a network you trust, or behind TLS.
 
 ## The endpoints a bot uses
 
@@ -165,34 +136,13 @@ When nothing is pending the answer is `409` with the server's reason:
 ### Read the view
 
 ```console
-$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, active, over, winner, me: .players[0] | {life, hand_size, library_size}, them: .players[1] | {life, hand_size, hand}}'
-{
-  "viewer": 0,
-  "visibility": "seat",
-  "turn": 0,
-  "step": "untap",
-  "active": 0,
-  "over": false,
-  "winner": null,
-  "me": {
-    "life": 20,
-    "hand_size": 7,
-    "library_size": 53
-  },
-  "them": {
-    "life": 20,
-    "hand_size": 7,
-    "hand": null
-  }
-}
+$ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, over, winner, them: .players[1] | {hand_size, hand}}'
+{"viewer": 0, "visibility": "seat", "turn": 0, "step": "untap", "over": false, "winner": null, "them": {"hand_size": 7, "hand": null}}
 ```
 
-The opponent's `hand` is `null` (hidden) where yours is a list of cards with
-`id`, `name`, `types`, `mana_cost` (`"1 W W"`), `power`, `toughness`,
-`tapped` and more. Your own `library` is listed in a canonical order that
-never reveals the real one. The view also embeds the pending `decision`, so a
-policy that always wants the board can skip `/pending` and read both from one
-`GET /view`, at about four times the cost ([below](#latency)).
+The opponent's `hand` is `null` where yours lists cards (`id`, `name`, `types`, `mana_cost`, `power`, `toughness`, `tapped`, ...). Your
+`library` is in a canonical order that never reveals the real one. The view embeds the pending `decision`, so a policy that always wants
+the board can read both from one `GET /view`, at about four times the cost ([Latency](#latency)).
 
 ### Answer
 
@@ -208,35 +158,23 @@ casting spells, covered next: `payment` and `announce`.
 
 ### Casting a spell: payment actions
 
-On a table with automatic mana payment (the default for `-vsbot` games), a
-spell you cannot pay from mana already floating is not offered as a `cast`
-option at all. It arrives as a **payment action** on the priority decision,
-with one or more complete plans saying which permanents the engine will tap:
+On a table with automatic mana payment (the default for `-vsbot` games), a spell you cannot pay from floating mana is not a `cast` option.
+It arrives as a **payment action** on the priority decision, with complete plans saying which permanents the engine will tap:
 
 ```json
-{"seq":44,"player":0,"kind":"priority","prompt":"turn 1, main1 — You have priority","min":1,"max":1,
- "options":[{"index":0,"kind":"activate","label":"Activate Forest for mana","obj":11,"player":0},
-            {"index":1,"kind":"pass","label":"Pass priority","player":0},
-            {"index":2,"kind":"concede","label":"Concede","player":0}],
- "payment_actions":[{"id":"a1ef0fac…","cast":{"object":28,"face":0,"origin":"hand"},"label":"Cast Elvish Mystic",
-   "plans":[{"version":1,"id":"79b02ab3…","cost":{"generic":0,"mana":[0,0,0,0,1,0]},
-     "activations":[{"source":11,"source_zone_seq":41,"ability":{"kind":"intrinsic","intrinsic":"basic_land"},"produces":[0,0,0,0,1,0]}],
-     "pool_spend":[0,0,0,0,0,0],"pool_after":[0,0,0,0,0,0]}]}]}
+"payment_actions":[{"id":"a1ef0fac…","cast":{"object":28,"face":0,"origin":"hand"},"label":"Cast Elvish Mystic",
+  "plans":[{"version":1,"id":"79b02ab3…","cost":{"generic":0,"mana":[0,0,0,0,1,0]},"activations":[…],"pool_spend":[…],"pool_after":[…]}]}]
 ```
 
-To cast it, answer with the action's id and one of its plans **echoed
-verbatim** instead of `choices`:
+Answer with the action's id and one plan **echoed verbatim** instead of `choices`:
 
 ```json
-{"seq":44,"player":0,"payment":{"action_id":"a1ef0fac…","plan":{"version":1,"id":"79b02ab3…", "…": "the plan exactly as received"}}}
+{"seq":44,"player":0,"payment":{"action_id":"a1ef0fac…","plan":{"version":1,"id":"79b02ab3…", "…": "exactly as received"}}}
 ```
 
-The server re-checks the plan against the live game before it admits the
-intent. (A bot that prefers to tap by hand can `activate` its lands; once
-the mana floats, the spell appears as an ordinary `cast` option.) An
-`announce` answer (`{"announce":{"action_id":…}}`) starts the cast without
-a plan and pays in a follow-up mana window, the way the browser's manual
-payment works.
+The server re-checks the plan against the live game. A bot may instead `activate` its lands by hand; once the mana floats, the spell is an
+ordinary `cast` option. `{"announce":{"action_id":…}}` starts the cast without a plan and pays in a follow-up mana window, as the browser's
+manual payment does.
 
 ## Answering each decision kind
 
@@ -258,23 +196,6 @@ examples, not a closed list.
 | `arrange` | Scry, surveil, look-at-the-top orders | an ordered subset, pile A: the ones you pick stay on top, the first you list closest to the top. The rest go where the shared option kind says; `"rest":[…]` orders them when `restable` is true | `bottom`, `graveyard`, `exile`, `hand` |
 | `replacement` | Several replacement effects apply: which first? | one option | `replacement`, `apply`, `decline` |
 | `commander_zone` | Your commander died or was exiled (or would go to hand/library): to the command zone? | one option; on an exile ask, a `leave` whose `mode` is `adventure_recast` / `foretell_cast` / `plot_cast` keeps that cast-from-exile permission | `command_zone`, `leave` |
-
-Real examples, trimmed to their first options:
-
-```json
-{"seq":822,"player":0,"kind":"attackers","prompt":"turn 8 — declare attackers","min":0,"max":1,
- "options":[{"index":0,"kind":"attacker","label":"Attack with Monastery Swiftspear at Bot","obj":27,"player":1}]}
-
-{"seq":1172,"player":0,"kind":"blockers","prompt":"turn 9 — declare blockers","min":0,"max":1,
- "options":[{"index":0,"kind":"block","label":"Snapcaster Mage blocks Goblin Guide","obj":57,"player":0,"attacker":82,"group":"blocker:57"}]}
-
-{"seq":585,"player":0,"kind":"arrange","prompt":"Scry 1: pick the cards to keep on top, in order; the rest go to the bottom of your library in any order you give",
- "min":0,"max":1,"options":[{"index":0,"kind":"bottom","label":"Furycalm Snarl","obj":56,"player":0}],"source":66,"restable":true}
-
-{"seq":2240,"player":0,"kind":"commander_zone","prompt":"Giada, Font of Hope is in the graveyard: put it into the command zone?",
- "min":1,"max":1,"options":[{"index":0,"kind":"command_zone","label":"Put Giada, Font of Hope into the command zone","obj":1,"player":0},
-                            {"index":1,"kind":"leave","label":"Leave it in the graveyard","obj":1,"player":0}],"source":1}
-```
 
 A rules-ignorant fallback that is accepted almost always: at `priority` the
 `pass` option; anywhere else the first `min` options. The example agents
@@ -298,84 +219,48 @@ answer. That holds for a refusal from the rules engine too.
 
 ## Timeouts and disconnects
 
-`gorged` gives an HTTP seat **no deadline**: a parked decision waits until it is answered. If your bot dies, its game waits too,
-and the seat's *caretaker*, the bot that would have played the slot, answers in your place only when the table shuts down.
-An abandoned table still counts against `-max-on-demand-tables`, so a crashed training loop can exhaust it
-(`host: on-demand table limit 32 reached`); `-max-on-demand-tables 0` lifts the cap. `-manabrew-think` is the one think-time knob, and
-it applies only with the ManaBrew wire on.
+`gorged` gives an HTTP seat **no deadline**: a parked decision waits until answered. If your bot dies, its game waits, and the seat's
+*caretaker* answers only when the table shuts down. An abandoned table still counts against `-max-on-demand-tables` (`host: on-demand table
+limit 32 reached`); `0` lifts the cap. `-manabrew-think` is the one think-time knob, and applies only with the ManaBrew wire on.
 
 ## Push instead of poll (SSE)
 
-`GET /api/stream` opens a server-sent-event stream. The first frame is
-`hello` with a session id; post it to `/api/subscribe` with your table and
-`"mode":"focus"`, and the stream carries a `snapshot`, every public `event`,
-and a `decision` frame whenever a decision is posed, naming the seat.
-
-A play-vs-bot table is private: open the stream with your seat's token
-(`Authorization: Bearer <token>` or `?token=`), or the subscribe is answered
-`404` (`host: not found`), exactly as for a table that does not exist. A
-`-humans` table is public and needs no token.
-
-```text
-event: hello
-data: {"v":1,"t":"hello","seq":0,"body":{"session":"sc4947f140c989e0c79de167ffc8caac7","tables":[…]}}
-
-id: sc4947f140c989e0c79de167ffc8caac7:7
-event: decision
-data: {"v":1,"t":"decision","id":7,"table":"t1","match":1,"seq":38,"body":{"player":1,"kind":"priority","prompt":"turn 1, main1 — Player 2 has priority"}}
-```
+`GET /api/stream` opens a server-sent-event stream. The first frame is `hello` with a session id; post it to `/api/subscribe` with your table
+and `"mode":"focus"`, and the stream carries a `snapshot`, every public `event`, and a `decision` frame naming the seat whenever a decision is
+posed. A play-vs-bot table is private: open the stream with your seat's token (`Authorization: Bearer` or `?token=`) or the subscribe is a
+`404` (`host: not found`). A `-humans` table is public and needs no token.
 
 ```console
 $ curl -sN -H "Authorization: Bearer $TOKEN" $GORGE/api/stream      # keep this open
-$ curl -s -X POST -d '{"session":"sc4947f140c989e0c79de167ffc8caac7","table":"g2","mode":"focus"}' $GORGE/api/subscribe
+$ curl -s -X POST -d '{"session":"sc4947…","table":"g2","mode":"focus"}' $GORGE/api/subscribe
 ```
 
-The stream is a *spectator* stream: it shows what the table's spectator
-visibility allows, never your seat's options (the token only admits you to a
-private table). Use
-it as a wake-up: on a `decision` frame for your seat, `GET /pending`; on
-`match_end`, stop. The stream sends a `: ping` comment every 15 s, resumes
-from `Last-Event-ID` within 30 s of a disconnect, and closes with an
+It is a *spectator* stream: it never shows your seat's options. Use it as a wake-up: on a `decision` frame for your seat, `GET /pending`;
+on `match_end`, stop. It sends a `: ping` comment every 15 s, resumes from `Last-Event-ID` within 30 s of a disconnect, and closes with an
 `overflow` frame if your reader falls 256 frames behind.
 
 ## Latency
 
-`examples/bots/python/measure_latency.py` plays ten games answering every decision minimally and times each call. On 2026-10-20,
-over loopback on a Ryzen 9 9950X with `gorged -pace 0`:
+`examples/bots/python/measure_latency.py` plays ten games answering every decision minimally and times each call (2026-10-20, loopback,
+Ryzen 9 9950X, `gorged -pace 0`):
 
-```console
-$ python3 measure_latency.py http://127.0.0.1:8080 10
-poll GET pending  median 0.12 ms, p95 0.19 ms (n=2116)
-poll GET view     median 0.50 ms, p95 1.09 ms (n=2116)
-poll POST intent  median 0.11 ms, p95 0.16 ms (n=2116)
-poll answer -> next own decision visible  median 0.13 ms, p95 0.49 ms (n=2106)
-sse  GET pending  median 0.20 ms, p95 0.29 ms (n=1932)
-sse  GET view     median 0.53 ms, p95 1.52 ms (n=1932)
-sse  POST intent  median 0.12 ms, p95 0.18 ms (n=1932)
-sse  answer -> next own decision visible  median 0.24 ms, p95 0.67 ms (n=1922)
-```
+| Call | Poll median / p95 | SSE median / p95 |
+|---|---|---|
+| `GET pending` | 0.12 / 0.19 ms | 0.20 / 0.29 ms |
+| `GET view` | 0.50 / 1.09 ms | 0.53 / 1.52 ms |
+| `POST intent` | 0.11 / 0.16 ms | 0.12 / 0.18 ms |
+| answer to next own decision visible | 0.13 / 0.49 ms | 0.24 / 0.67 ms |
 
-So one decision costs about 0.25 ms of HTTP when the bot needs only the decision and 0.75 ms when it also reads the view. Polling
-flat out finds the next decision fastest but burns a core; the example agents back off from 2 ms to 50 ms while idle. SSE costs one
-wake-up hop and nothing while idle.
-
-There is no long-poll and no batching: an agent polls or takes the SSE wake-up, one decision per round trip. Training that needs
-engine-speed rollouts should run in Go.
+One decision costs about 0.25 ms of HTTP, or 0.75 ms if the bot also reads the view. Polling flat out is fastest but burns a core (the
+examples back off from 2 ms to 50 ms); SSE costs one wake-up hop and nothing while idle. There is no long-poll or batching, so training
+that needs engine-speed rollouts should run in Go.
 
 ## Pitfalls
 
-- **One creature, one defender.** An `attackers` decision has one option
-  per (creature, defender) pair, and the pairs of one creature share no
-  `group`. Pick at most one option per `obj`; an answer that sends one
-  creature at two defenders is a `409` (`attacker 38 declared against more
-  than one defender`).
-- **Read a stream token-first.** A play-vs-bot table is private, so an
-  SSE subscribe without the seat's token is a `404`
-  ([above](#push-instead-of-poll-sse)).
-- **Spectator visibility.** On a `-humans` server the default spectator
-  visibility is `public`, so `/api/stream` and a seat-less `/view` hide every
-  hand. Don't pass `-spectator omniscient` on a table with people at it.
-- **Concede is an option.** A random policy that samples every priority
-  option will concede in its first few turns. Filter it out.
-- **The first poll can 404.** A fresh table goes live a moment after
-  `POST /api/games` returns.
+- **One creature, one defender.** An `attackers` decision has one option per (creature, defender) pair. Pick at most one per `obj`, or get a
+  `409` (`attacker 38 declared against more than one defender`).
+- **Private tables need the token on the stream** ([above](#push-instead-of-poll-sse)).
+- **Spectator visibility.** On a `-humans` server the default is `public`, so `/api/stream` and a seat-less `/view` hide every hand. Don't pass
+  `-spectator omniscient` on a table with people at it.
+- **Concede is an option.** A random policy that samples every priority option concedes within a few turns. Filter it out.
+- **The first poll can 404.** A fresh table goes live a moment after `POST /api/games` returns.

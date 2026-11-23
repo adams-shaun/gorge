@@ -68,6 +68,22 @@ func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) b
 	return s.prevColAt(k, sl, c, t, combat) >= 0 && !s.noPrev(k, combat)
 }
 
+// prevColRiderHit reports whether a matching colour or scope record carries a
+// rider body (pxRider: the gain or token a prevention runs, repl_prevx.go).
+// Such a record is not a bare prevention however the event is ordered
+// (gorge's allBarePreventions requires With == nil), so a bare unbounded
+// shield beside it does pose the CR 616.1 ask. The shield's own riders are
+// read in prevNextTake; under its bare flag every matching shield is
+// riderless (pnxBare).
+func (s *State) prevColRiderHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
+	for i := range s.g.prevCol {
+		if s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
+			return true
+		}
+	}
+	return false
+}
+
 // DebugPrevColRecolor (TestStrandsLockstepRecolorMutation): a card
 // resolving again moves its earlier records to the new colour, gorge's
 // reading before 690ed17f0.

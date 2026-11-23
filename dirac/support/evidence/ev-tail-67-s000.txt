@@ -5,9 +5,11 @@ A-Rockslide Sorcerer
 A-Umara Mystic
 Accelerated Evolution
 Aerial Assault
+Alela, Cunning Conqueror
 Angelic Field Marshal
 Animate Land
 Appa, the Vigilant
+Archon of Absolution
 Armor Thrull
 Asphodel Wanderer
 Auron, Venerated Guardian
@@ -18,9 +20,12 @@ Basilica Stalker
 Bastion Inventor
 Beast Attack
 Biting Rain
+Blessed Reincarnation
 Blight Sickle
+Blossom Dryad
 Boldwyr Intimidator
 Bolrac-Clan Basher
+Branch of Vitu-Ghazi
 Bubble Smuggler
 Buccaneer's Bravado
 Burning Palm Efreet
@@ -32,6 +37,7 @@ Case the Joint
 Castle
 Chain Lightning
 Champion's Helm
+Chillerpillar
 Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
@@ -48,6 +54,7 @@ Corsairs of Umbar
 Crackling Triton
 Crypt Incursion
 Crystalline Armor
+Curator Beastie
 Custodi Soulbinders
 Daily Bugle Newspaper
 Deadshot
@@ -60,6 +67,7 @@ Drifting Meadow
 Dwarven Vigilantes
 Eidolon of Rhetoric
 Ekthi, Contaminator Priest
+Elspeth, Undaunted Hero
 Emerge Unscathed
 Essence Feed
 Etched Oracle
@@ -77,6 +85,7 @@ Fountain of Cho
 Furnace Celebration
 Furnace Hellkite
 Galvanic Iteration
+Garenbrig Squire
 Gilt-Leaf Palace
 Gnome-Made Engine
 Goblin Glider
@@ -86,7 +95,9 @@ Golgari Raiders
 Gray Merchant of Asphodel
 Guardian Kirin
 Hall
+Hana Kami
 Helitrooper
+Heroes of the Revel
 Heroes' Podium
 Hidden Blade
 Idol of Oblivion
@@ -98,11 +109,16 @@ Infested Fleshcutter
 Irencrag Pyromancer
 Iron Bully
 Island
+Ixidor, Reality Sculptor
+Kaito Shizuki
 Keen-Eyed Raven
+Keeneye Aven
+Keeper of Kookus
 Knight of the Keep
 Kor Castigator
 Lightning Hounds
 Liliana's Steward
+Living End
 Lowland Oaf
 Lucas, the Sharpshooter
 Lyla, Holographic Assistant
@@ -119,6 +135,7 @@ Mother of Runes
 Mothrider Patrol
 Mountain
 Mourning
+Mummy Paramount
 Novice Dissector
 Obscura Initiate
 Onulet
@@ -152,12 +169,14 @@ Savage Conception
 Scepter of Celebration
 Scion of Oona
 Scuttling Butler
+Seal from Existence
 Searing Blood
 Secure the Scene
 Selective Memory
 Settle the Score
 Shadowspear
 Shake the Foundations
+Shang-Chi and the Ten Rings
 Sheoldred
 Shore Keeper
 Simic Keyrune
@@ -193,6 +212,7 @@ Tidal Bore
 Titan Hunter
 Topan Freeblade
 Tor Giant
+Touch the Spirit Realm
 Tranquil Frillback
 Transcendent Master
 Transcendent Message
@@ -212,3 +232,4 @@ Windgrace Acolyte
 Wirecat
 Writhing Necromass
 Young Blue Dragon
+Zulaport Chainmage

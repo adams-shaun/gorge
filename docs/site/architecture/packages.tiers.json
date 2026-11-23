@@ -169,6 +169,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/checkratchet": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/codeshape": {
       "tier": "cmd",
       "status": "TOOL"
@@ -641,6 +645,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/shadowseat": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/canon": {
       "tier": "dirac",
       "status": "EXT"
@@ -662,6 +670,10 @@
       "status": "EXT"
     },
     "dirac/cmd/kmanifest": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
+    "dirac/cmd/shadowbench": {
       "tier": "dirac",
       "status": "EXT"
     },

@@ -46,8 +46,9 @@ func kdiscfiltAb(t *testing.T, d kop.CardDef, flag kop.CostFlags) *kop.Ability {
 // TestDiscardFilteredCost: a filtered discard cost
 // lowers to CostDiscard|CostDiscardFiltered with the candidates' hand filter;
 // a named<self> clause is PredNamed over the card's own id; the filter's
-// alternative split keeps a comma inside a named<Name> argument; a filtered
-// discard beside another counted part refuses.
+// alternative split keeps a comma inside a named<Name> argument; beside a
+// sacrifice it lowers to the side shape (CostDiscardFiltered clear, the
+// discard on DiscardSideN / DiscardSideF, costpair_discardsac_test.go).
 func TestDiscardFilteredCost(t *testing.T) {
 	cell, pt, rs := kdiscfiltBuild(t, "Cell Probe", strings.Join([]string{
 		"Name:Cell Probe",
@@ -105,19 +106,34 @@ func TestDiscardFilteredCost(t *testing.T) {
 		t.Errorf("namedPage, Loose Leaf parse: %v %v", flt, err)
 	}
 
-	_, _, rs = kdiscfiltBuild(t, "Sac Probe", strings.Join([]string{
+	sp, pt, rs := kdiscfiltBuild(t, "Sac Probe", strings.Join([]string{
 		"Name:Sac Probe",
 		"ManaCost:1 B",
 		"Types:Creature Zombie",
 		"PT:2/2",
 		"A:AB$ Draw | Cost$ Sac<1/Creature> Discard<1/Card.Legendary> | SpellDescription$ Draw a card.",
 	}, "\n"))
-	var got []string
-	for _, r := range rs {
-		got = append(got, r.Reason)
+	if len(rs) != 0 {
+		t.Fatalf("Sac Probe refused: %v", rs)
 	}
-	if all := strings.Join(got, " | "); !strings.Contains(all, "beside another counted part") {
-		t.Errorf("sacrifice beside a filtered discard: refusals %q", all)
+	// Skoa, Embermage's shape: the sacrifice keeps Cost.N / Cost.Filter, the
+	// discard carries its own count and hand filter on DiscardSideN /
+	// DiscardSideF, and CostDiscardFiltered stays clear (the flag keeps
+	// meaning "Cost.Filter is the discard's"; cost_discardsac.go)
+	a = kdiscfiltAb(t, sp, kop.CostSac)
+	if a.Cost.Flags&(kop.CostSac|kop.CostDiscard) != kop.CostSac|kop.CostDiscard || a.Cost.Flags&kop.CostDiscardFiltered != 0 {
+		t.Errorf("Sac Probe cost flags %v", a.Cost.Flags)
+	}
+	if a.Cost.N != 1 || a.Cost.DiscardSideN != 1 || a.Cost.DiscardSideF == 0 {
+		t.Errorf("Sac Probe N %d DiscardSideN %d DiscardSideF %d, want the sacrifice's 1 and the discard's 1 with its own filter", a.Cost.N, a.Cost.DiscardSideN, a.Cost.DiscardSideF)
+	}
+	f = pt.filters[a.Cost.Filter]
+	if f.Zone != kop.ZoneNone || f.Types&kop.TCreature == 0 {
+		t.Errorf("Sac Probe sacrifice filter zone %v types %v, want any-zone Creature", f.Zone, f.Types)
+	}
+	f = pt.filters[a.Cost.DiscardSideF]
+	if f.Zone != kop.ZoneHand || f.Types&kop.TLegendary == 0 {
+		t.Errorf("Sac Probe discard filter zone %v types %v", f.Zone, f.Types)
 	}
 
 	set := cardsettest.Set(t, "discfilt")

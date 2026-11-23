@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -96,6 +97,25 @@ func emergeSacrificePart() CostPart {
 	return CostPart{N: 1, Spec: "Creature"}
 }
 
+// offerEmerge offers the Emerge cast (CR 702.118a): "cast this spell by
+// sacrificing a creature and paying the emerge cost reduced by that
+// creature's mana value". It is a casting option, but NOT a plain
+// substitution -- the cast sacrifices a creature AND the cost is reduced by
+// its mana value -- so it does not ride the keyword family of the hand walk.
+// emergeOfferCost composes the printed K:Emerge cost with the mandatory
+// Sac<1/Creature> part, priced separately for each sacrifice candidate.
+// sacAsk permits only candidates whose own reduced cost remains payable.
+// Unsupported printed cost shapes are withheld; the plain cast remains
+// unaffected.
+func offerEmerge(w *legalWalk, p state.PlayerID, id state.ObjID, f *cards.Face, targetsAvailable func() bool) {
+	if _, ok := w.e.emergeOfferCost(p, id, f, func(c Cost) bool {
+		return w.offerCastable(p, id, c, spellScope("emerged"), false)
+	}); ok && targetsAvailable() {
+		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
+			Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
+	}
+}
+
 // emergeBase is shared by offer and payment. The additional creature is the
 // FIRST Sac part, even when the spell's own SpellAbility prints another cost.
 func emergeBase(f *cards.Face) (Cost, bool) {
@@ -146,6 +166,10 @@ func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face
 // at the offer and are settled independently by sacAsk.
 func (e *Engine) emergeSacPayable(pc *pendingCast, oid state.ObjID) bool {
 	candidate := e.emergeCandidateCost(pc.cost, oid)
+	if offeringCast(pc) {
+		// An Offering cast prices the candidate symbol by symbol instead.
+		candidate = offeringCandidateCost(e.G, pc.cost, oid)
+	}
 	delve := int32(0)
 	if e.hasCastDelve(pc.card, pc.isAbility()) {
 		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))

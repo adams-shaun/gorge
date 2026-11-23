@@ -220,6 +220,7 @@ Layla Hassan
 Leeching Licid
 Legion's Judgment
 Leyline Dowser
+Life's Finale
 Light of Day
 Liliana Vess
 Llanowar Loamspeaker
@@ -309,7 +310,6 @@ Rampaging War Mammoth
 Rathi Dragon
 Ravenous Daggertooth
 Ravenous Vampire
-Ray of Revelation
 Razorclaw Bear
 Razorfin Hunter
 Redcap Heelslasher
@@ -396,6 +396,7 @@ Steward of Valeron
 Storm Front
 Storm Seeker
 Stormcaller's Boon
+Subversive Acolyte
 Sudden Impact
 Sun Sentinel
 Sun-Crowned Hunters
@@ -403,6 +404,7 @@ Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
+Tattoo Ward
 Teferi's Tutelage
 Temporary Insanity
 Territorial Kavu

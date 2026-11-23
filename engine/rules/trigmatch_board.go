@@ -56,6 +56,7 @@ func (b *trigBoard) Facts() trigmatch.Facts {
 		PlayingLand:            b.playingLand(),
 		ReplacedAction:         b.replAction,
 		ReplacedObj:            b.replReplaced,
+		PaidTaps:               len(b.castTapped[b.eng().actionCause()]),
 	}
 }
 

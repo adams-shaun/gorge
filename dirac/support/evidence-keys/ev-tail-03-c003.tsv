@@ -8,6 +8,8 @@ Ancestral Memories	2db145ad81aa9166	41	0/0		2/2
 Arcade Cabinet	fa63efc6374df59f	77	2/2		1/1	
 Armor of Faith	949cb883f9f02137	78	1/1		2/2	
 Armored Pegasus	140b02112523d61e	73	0/0		0/0	
+Aven Heartstabber	1045c45dcd06c1da	7	1/1		1/1	
+Avizoa	71798b6633f655ea	7	1/1		1/1	
 Back to Basics	8430fd168a1cfb36	64	0/0		0/0	
 Band Together	4802cf6602503888	37	0/0		1/2	ix:resp
 Borderland Minotaur	a96e5e0c33cfabe2	46	0/0		0/0	
@@ -21,8 +23,12 @@ Conclave Phalanx	d8b9c4b7dc5d87a1	15	1/1		1/1
 Confirm Suspicions	91c91f7d9fc33815	25	0/0		1/2	ix:resp
 Consulate Skygate	f7554bdbe13c0568	121	0/0		0/0	
 Coral Colony	e16a0e950c7bc6f8	64	1/1		1/1	
+Counterbalance	e995a8e6d8a20026	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Courier's Capsule	1b7ff1fddac730d0	51	1/1		0/1	ix:resp
 Crack the Earth	b8a487a7794e2171	53	0/0		2/2	
+Dakmor Salvage	0dc03a7f01177a3e	22	1/1		0/1	ix:resp
+Darksteel Citadel	f025ee4a6db9a83d	35	1/1		0/1	ix:resp
+Deadeye Brawler	a3178bb6611a73d5	11	1/1		1/1	
 Deadly Visit	dabb6e1215294d57	58	0/0		2/2	
 Devils' Playground	9479b44c37ee654f	26	0/0		2/2	
 Dirge of Dread	ca091e723db2bd0c	6	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
@@ -37,10 +43,12 @@ Ephemerate	b9af75abbf33b908	130	0/0		2/2
 Eternal Thirst	efb366071ef84bd1	51	0/0		2/2	
 Ethercaste Knight	95f0fec17752b6b4	82	1/1		1/1	
 Extravagant Spirit	9bca42089c04e1b2	48	1/1		1/1	
+Falkenrath Pit Fighter	c1f50c0e7f7be436	4	1/1		0/1	ix:resp
 Festering Newt	9533361998ba19a1	54	1/1		1/1	
 Fiery Confluence	7ab964d7fa7a1759	26	0/0		2/2	
 Firehoof Cavalry	5a1c39aecb473827	51	1/1		1/1	
 Flowstone Infusion	591210ce9174beea	61	0/0		2/2	
+Forbid	98872c61b7d6812c	4	0/0		2/4	cast/alt:buyback,ix:resp
 Frenetic Ogre	1d5c7e8aa3ae4b90	38	1/1		1/1	
 Fruitcake Elemental	18fdf9cab4adf19b	22	2/2		1/1	
 Funeral Longboat	9879a25a26182c57	82	1/1		1/1	
@@ -49,15 +57,20 @@ Galecaster Colossus	379b218699ce0ebb	29	1/1		1/1
 Gaze of Adamaro	bfcdd0ba895b17cd	50	0/0		2/2	
 Geology Enthusiast	73f5efc959c08368	34	2/2		1/1	
 Glaring Fleshraker	93b4765d59401909	28	2/2		0/1	ix:resp
+Goblinslide	8a27c2612f6d80f0	4	1/1		0/1	ix:resp
 Grey Knight Paragon	9f44c3d13184c487	105	1/1		1/1	
 Heliod, Sun-Crowned	8c6c7bdba81496de	43	2/2		1/1	
 Hill Giant	1029fa7c56e74aea	56	0/0		0/0	
 Horncaller's Chant	a38fa827089bc2c0	26	0/0		1/2	ix:resp
 Howling Wolf	0b8d4da9440b004c	30	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Infiltrate	ecc95ae2c9eab089	69	0/0		2/2	
+Innocent Blood	996bd3e767d659b9	4	0/0		1/2	ix:resp
 Iridescent Angel	0b4e84630e9d9e0a	24	0/0		0/0	
 Jace, Memory Adept	ae85a9bbfd4f5cc5	47	3/3		1/1	
 Jeskai Student	1f12cdcadecbee4a	85	1/1		1/1	
+Kami of False Hope	d2be1c3946e2a958	7	1/1		1/1	
+Karplusan Strider	f6b9894abc19902d	4	0/0		0/0	
+Kiln Fiend	f48235c45c032cfc	10	1/1		0/1	ix:resp
 Knighthood	6c5940b4ac7e4915	79	0/0		0/0	
 Land Tax	d642ef6cab88eea1	92	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lion's Eye Diamond	12a6de36c82b4dfa	84	1/1		1/1	
@@ -72,8 +85,11 @@ Monk of the Open Hand	4e49290eb43a1ef4	77	1/1		1/1
 Myr Kinsmith	9a2ab103a5626d37	72	1/1		1/1	
 Mysterious Pathlighter	88595cc5360c05b2	78	0/0		0/0	
 Mystic Penitent	81a707b59e59dffb	60	0/0		0/0	
+Mystic Speculation	3679c8ecd6438438	27	0/0		3/4	ix:resp
 Mystical Tutor	acf7850891beb1ab	91	0/0		2/2	
 Nadier's Nightblade	4bc93f49ff7d2ba9	43	1/1		1/1	
+Noxious Ghoul	39f3344f342422fa	4	1/1		0/1	ix:resp
+Nyxborn Hydra	9c25b758482a9cc4	9	0/0		2/2	
 Oona's Blackguard	222da0f9f177d937	45	1/1		1/1	
 Pack Mastiff	8a7db21362e44765	49	1/1		1/1	
 Pale Rider of Trostad	5eb73ba1e22d6b33	46	1/1		1/1	
@@ -81,7 +97,10 @@ Peek	748a43f17e67b895	81	0/0		2/2
 Pheres-Band Tromper	05d52832376bcde4	43	1/1		1/1	
 Phthisis	d9345a275944691b	27	0/0		4/4	
 Phyrexian Metamorph	59341bb4c74a8cf0	33	0/0		0/0	
+Plagon, Lord of the Beach	5fbe5f5fe38d0e68	4	2/2		0/1	ix:resp
 Plated Wurm	0a1b3cf437b8b8c8	45	0/0		0/0	
+Plundering Barbarian	199e417624ceffe7	4	1/1		0/1	ix:resp
+Prismatic Strands	ca244764f3fc338c	6	0/0		4/4	
 Profit	760210cab22d8eca	46	0/0		3/5	cast/alt:fused,f1/s
 Prosperous Partnership	5c0254e95623e061	55	2/2		1/1	
 Raise the Palisade	70779aafc8c43777	34	0/0		2/2	
@@ -95,9 +114,12 @@ Sanctum of Fruitful Harvest	af9e6456ca1b5516	40	1/1		1/1
 Sapphire Medallion	53eb9fd5830bb2e7	62	0/0		0/0	
 Scarblade Elite	9ee5cf0b099503e8	26	1/1		1/1	
 Sea Snidd	25952d85c9f9b009	44	1/1		1/1	
+Siege-Gang Commander	c0861a284ed08236	4	2/2		0/1	ix:resp
 Simic Locket	615e791601517bfc	88	2/2		1/1	
 Slag Strider	f0869e0013c57074	17	1/1		0/1	ix:resp
+Snow-Covered Swamp	c7302ea4a23ed037	23	1/1		0/1	ix:resp
 Song of Serenity	ff0ed47970ee047f	57	0/0		0/0	
+Spawning Pool	2ee86d1568fc651b	30	2/2		1/1	
 Stillmoon Cavalier	241f751c887ed57a	17	3/3		1/1	
 Stonewood Invoker	ad787c558f99252d	34	1/1		0/1	ix:resp
 Storm Fleet Pyromancer	cf2de6e0fc839435	24	1/1		1/1	
@@ -107,15 +129,24 @@ Sylvan Shepherd	14d0cf51155e39ca	41	1/1		1/1
 Tamiyo, Inquisitive Student	af0cfd2d6df625c8	56	5/5		1/1	
 Teval's Judgment	753bba5a20175a99	50	1/1		0/1	ix:resp
 The Covert Blue Mage	2bf54753d9951055	52	1/1		1/1	
+Thunderscape Familiar	46a769b4c9ab2b19	4	0/0		0/0	
 Tidehollow Sculler	6240f84c32afbfe4	40	2/2		1/1	
+Tireless Provisioner	8dad1699c126fcd6	8	1/1		0/1	ix:resp
 Tocatli Honor Guard	e0e1e1ef554c6992	64	0/0		0/0	
+Tropical Island	9cc876ae3a437ca2	11	2/2		0/1	ix:resp
 Turbulent Moor	1217598dbb6d6950	492	2/2		0/1	ix:resp
+Unburial Rites	19e5edab5fbf5155	12	0/0		3/4	ix:resp
 Urza, Prince of Kroog	23ede2e771e3f910	56	1/1		1/1	
+Varchild, Betrayer of Kjeldor	7a4db7c486b21c09	4	2/2		0/1	ix:resp
 Vegetation Abomination	ca77287cbbd98ec9	31	1/1		1/1	
+Verdant Confluence	29747444f26d4bf6	7	0/0		2/2	
 Vraska's Stoneglare	132ec89d0cf983bd	37	0/0		1/2	ix:resp
+Wall of Essence	29ac9ddf7d8cbd00	8	1/1		0/1	ix:resp
+Wandering Fumarole	f84e1c5fe2e9edd6	22	2/2		0/1	ix:resp
 Wandering Wolf	458f0f50a48dbb6a	41	0/0		0/0	
 Wax	4ad258bc0f5a8513	49	0/0		2/3	f1/s
 Wei Ambush Force	95d660180e5a4453	31	1/1		1/1	
+Wintermoon Mesa	c187990e9f2c47e6	23	2/2		1/1	
 Wizard Class	717b0a795de8cd58	76	4/4		1/1	
 You Happen On a Glade	3bb2922528935474	42	0/0		1/2	ix:resp
 Zo-Zu the Punisher	b9dca2d3e67badde	47	1/1		1/1	

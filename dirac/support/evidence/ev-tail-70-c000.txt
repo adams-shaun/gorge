@@ -109,6 +109,7 @@ Elusive Tormentor
 Elvish Bard
 Elvish Soultiller
 Emergent Growth
+Endless Evil
 Enlisted Wurm
 Essence Backlash
 Etherium Sculptor
@@ -120,8 +121,10 @@ Familiar's Ruse
 Famished Ghoul
 Far Traveler
 Fast Forward
+Fateful Tempest
 Fathom Fleet Firebrand
 Faultgrinder
+Feast of Blood
 Feed the Clan
 Feeding Frenzy
 Final Reward
@@ -282,6 +285,7 @@ Road of Return
 Roaring Primadox
 Roving Keep
 Ruination Rioter
+Rune of Protection: Blue
 Rush of Blood
 Ruthless Knave
 Saurian Symbiote

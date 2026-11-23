@@ -1,8 +1,7 @@
 # What NOT to do
 
-Every item here is something that has actually gone wrong in this repo.
-Several sessions may share one machine and one `main` checkout, so most of
-these hurt someone other than you.
+Every item here has actually gone wrong in this repo. Sessions share a
+machine and a `main` checkout, so most of these hurt someone else.
 
 ## Git and the shared checkout
 
@@ -72,18 +71,29 @@ these hurt someone other than you.
 - **Don't move `TestHeads` goldens without naming the first diverging event**
   in the commit body (`cmd/headdiff` finds it), and don't write head-move
   prose into `engine/rules/testdata/heads/`.
-- **Don't add a fuzz test to the default build.** A `Fuzz*` target or a
-  seed-sweep test starts with `//go:build fuzz` and runs via `make fuzz` or
-  `go test -tags fuzz`; the default suite skips it.
-  Regression tests pinning a fixed fuzz finding stay untagged.
+- **Don't add a fuzz test to the default build.** A `Fuzz*` target or seed-sweep
+  test starts with `//go:build fuzz` and runs via `make fuzz`. Regression tests
+  pinning a fixed fuzz finding stay untagged.
 - **Don't add a row to `wall_exceptions.txt` / `rss_exceptions.txt`** (`testkit/testutil/testdata/`): they only shrink. Split the over-budget test instead.
 - **Don't write or run a test outside the budget** (4 GB RSS, 4 vCPU, 1 min
-  wall). Don't call `cards.LoadRegistry` in a test (use
+  wall; [invariants.md](invariants.md#workflow)). Don't call `cards.LoadRegistry` in a test (use
   `testkit/testutil.CorpusRegistry`), don't pass `-count=1`, don't run
   `go test ./...` or a whole package uncapped, and don't
   run a known-heavy test whole "for a baseline": measure one chunk under the
   4 GB cap. Split a heavy test into chunk tests sharing fixtures; never
   delete assertions or shrink a census to make it fit.
+- **Don't write a Go test function per recording.** A recording is a JSON file
+  plus a manifest row, never a Go test function; `-run` selection goes through
+  the manifest subtest.
+- **Don't delete a test because it never failed.** Deletion is allowed only
+  under the [deletion rule](invariants.md#workflow): a duplicate by
+  construction, a wrapper that became data, or a subject that is gone. A slow
+  test is split, sharded or moved to the nightly tier with a named owner.
+- **Don't run raw `go test` instead of the make targets.** Use `make test-one`,
+  `make test-targeted` or `make test-smart`; the shim refuses a raw invocation.
+- **Don't add a new test over 60 s at 4 cores.** It is over the one-minute
+  wall: split it into chunk tests that share fixtures, or move it to the
+  nightly tier with a named owner; never trim coverage.
 - **Don't grow `AGENTS.md` with detail.** It is loaded on every agent turn.
   Put the detail in `docs/agents/` or `docs/design/` and link to it.
 - **Don't quote an unmeasured number as fact.** Name the command or report,
@@ -106,9 +116,9 @@ these hurt someone other than you.
 - **Don't stop a server with `pkill -f` or a bare `pgrep -f`.** It has killed a
   session here. Find the pid from the listening socket (`ss -lptn`) and signal
   that pid.
-- **Don't run heavy jobs unbounded or in parallel.** Run one at a time, under
-  a `systemd-run` scope with `MemoryMax`, and set `GOMEMLIMIT`.
-- **Don't put large data in a RAM-backed `/tmp`.**
+- **Don't run heavy jobs unbounded or in parallel.** The `make test-*` targets cap
+  themselves; for anything else use one `systemd-run` scope with `MemoryMax` and `GOMEMLIMIT`.
+- **Don't put large data or worktrees in a RAM-backed `/tmp`.**
 
 ## Dirac
 
@@ -134,3 +144,8 @@ these hurt someone other than you.
   is not a `seat.PaymentPlanConsumer` answering true silently plays its
   fallback's manual mana taps. Bots default to true; an opt-out needs a stated reason in
   `bots/all`'s `paymentOptOut`.
+- **Don't add a Go test for a recording.** Add the JSON under
+  `dirac/oracle/testdata/repro` with `"named": true` (and `"served": true` to
+  require the whole recorded prefix be served); its shard of `TestReproManifest0..7`
+  replays it as a subtest (`-run 'TestReproManifest/<recording>'` finds it).
+  A recording whose pool a glob test replays needs no mark.

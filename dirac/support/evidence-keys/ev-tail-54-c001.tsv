@@ -1,19 +1,44 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Angelic Accord	fdc01926b5d73ea9	5	1/1		0/1	ix:resp
 Basal Sliver	1f4796206e54413b	4	0/0		0/0	
+Bulwark Giant	57ff4dd7192eef34	4	1/1		0/1	ix:resp
+Chaplain's Blessing	0b50f52a5c028528	6	0/0		1/2	ix:resp
+Chronic Flooding	36473e3512f0ce4a	4	1/1		1/2	ix:resp
 Cloud Crusader	6eeb1de2c60e9cbb	4	0/0		0/0	
+Dark Depths	a95ef93398e4037c	15	2/2		0/1	ix:resp
 Demystify	605842db32d63b64	12	0/0		2/2	
+Drooling Ogre	56ae6709babcd246	8	1/1		1/1	
 Echoes of the Kin Tree	b1baaff292cf463c	8	1/1		1/1	
 Escaped Null	fc8dbc27ab855b65	4	2/2		1/1	
 Euroakus	f0de6ea5674e202c	4	2/2		0/1	ix:resp
+Farideh's Fireball	906697cfee3fcb7e	6	0/0		1/2	ix:resp
+Greven, Predator Captain	116b2997693600fa	17	1/1		1/1	
+Grinding Station	c7083e2b738fb48d	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Harvester of Souls	e8cbf473116aadf3	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Hedonist's Trove	998b553e4f84fc01	16	1/1		1/1	
 Hyalopterous Lemure	a621bd503bce0c3f	4	1/1		1/1	
 Icatian Javelineers	897f8f7ca3d5c957	4	1/1		0/1	ix:resp
 Imps' Taunt	72c5abdee323aa6d	4	0/0		3/4	ix:resp
+Infested Thrinax	cced348141149eda	4	1/1		0/1	ix:resp
+Kaervek the Merciless	22a6cd6335718b8d	4	1/1		1/1	
+Kheru Dreadmaw	7ad43a094d6ca625	17	1/1		0/1	ix:resp
+Lich Lord of Unx	c41581077e3ecc84	9	2/2		0/1	ix:resp
+Merciless Executioner	e813a9b8a926e850	8	1/1		0/1	ix:resp
 Momo's Heist	6a6965c84da3860b	16	0/0		2/2	
 Observant Alseid	b64443e26fd66599	5	0/0		2/2	
+Ojutai Monument	a2328477c48dd2bc	3	2/2		0/1	ix:resp
+One Ring to Rule Them All	a75b8857de517027	9	0/0		0/0	
 Promise of Aclazotz	f4c98d81a31a2134	10	1/1		1/2	ix:resp
 Pyre Zombie	99a6a4cb5c543902	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ramosian Rally	d86a39e42e2f43cd	5	0/0		2/2	
+Recruitment Drive	709da7f5880fec20	4	0/0		1/2	ix:resp
+Roots	2aa71535cc9f6b09	3	1/1		1/2	ix:resp
+Search Warrant	c3c5ac3c4eb51685	4	0/0		1/2	ix:resp
+Searing Barrage	4cb46addb57ac1c9	3	0/0		1/2	ix:resp
+Sejiri Merfolk	f230e9ed6a92627c	4	0/0		0/0	
 Sengir Connoisseur	03833e9602fb9c68	3	1/1		0/1	ix:resp
+Shipwreck Singer	e24a1eb52702ce9f	4	2/2		1/1	
 Shrieking Specter	0b7382698d5d62ca	4	1/1		0/1	ix:resp
+Sphere of Annihilation	0f5b2002d2c500d8	4	1/1		0/1	ix:resp
 Surge of Salvation	cf076a6037307579	4	0/0		1/2	ix:resp
+Valakut Predator	af3960f975908611	3	1/1		0/1	ix:resp

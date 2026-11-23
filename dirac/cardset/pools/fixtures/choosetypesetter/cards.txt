@@ -1,0 +1,23 @@
+# The chosen land-type setter (CR 305.7 with AddType$ ChosenType, the
+# source's own as-enters ChooseType Basic Land answer): Convincing Mirage and
+# Phantasmal Terrain enchant lands of other types, Multiversal Passage is the
+# entering land itself, Realmwright grants the type in addition (the
+# Continuous AddChosen static), beside vanilla creatures of the old and new
+# colours (dirac/oracle/choosetypesetter_lockstep_test.go)
+Convincing Mirage
+Phantasmal Terrain
+Realmwright
+Multiversal Passage
+Raging Goblin
+Coral Merfolk
+Typhoid Rats
+Grizzly Bears
+Savannah Lions
+Island
+Swamp
+Forest
+Plains
+Wastes
+Tropical Island
+Bayou
+Savannah

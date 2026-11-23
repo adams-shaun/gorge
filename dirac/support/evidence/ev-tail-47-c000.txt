@@ -5,6 +5,7 @@ Abandon the Post
 Abzan Skycaptain
 Acidic Slime
 Acidic Sliver
+Aegis Angel
 Aeronaut Cavalry
 Anaba Bodyguard
 Anaconda
@@ -319,6 +320,8 @@ Riptide Entrancer
 Rise to the Challenge
 River Darter
 Rockslide Sorcerer
+Rootcoil Creeper
+Rose, Cutthroat Raider
 Rosethorn Halberd
 Royal Assassin
 Sagu Mauler
@@ -405,6 +408,7 @@ Tajuru Stalwart
 Tangleclaw Werewolf
 Tar Pitcher
 Tarox Bladewing
+Tawnos's Weaponry
 Teferi's Tutelage
 Tel-Jilad Archers
 Tempest Harvester
@@ -417,6 +421,7 @@ Thallid Germinator
 Thaumatog
 The Everforger
 The Hunger Tide Rises
+The Master, Gallifrey's End
 The Reality Chip
 Thirsting Shade
 Thornling

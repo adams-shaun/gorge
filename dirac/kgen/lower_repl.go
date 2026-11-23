@@ -8,6 +8,25 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
+// replHeader reads the params every replacement line shares ahead of its
+// event: the ClassBand condition and the plain R: line's Updated shape.
+func replHeader(r cards.Repl, rp *params, rl *lRepl) error {
+	if b, ok := rp.get("ClassBand"); ok {
+		c, err := classBandCond(b) // lower_delayed.go
+		if err != nil {
+			return err
+		}
+		rl.Cond = c
+	}
+	if _, kw := r.Params["Keyword"]; !kw {
+		// a plain R: line (Banner of Kinship): gorge runs its choice on the
+		// entered object; the ETBReplacement keyword's line (Heraldic
+		// Banner) asks while the spell is on the stack
+		rl.S = "Updated"
+	}
+	return nil
+}
+
 // lowerRepl lowers an R: line to a replacement-lite record.
 func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	if printedPreventRepl(r) {
@@ -21,18 +40,8 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}
-	if b, ok := rp.get("ClassBand"); ok {
-		c, err := classBandCond(b) // lower_delayed.go
-		if err != nil {
-			return err
-		}
-		rl.Cond = c
-	}
-	if _, kw := r.Params["Keyword"]; !kw {
-		// a plain R: line (Banner of Kinship): gorge runs its choice on the
-		// entered object; the ETBReplacement keyword's line (Heraldic
-		// Banner) asks while the spell is on the stack
-		rl.S = "Updated"
+	if err := replHeader(r, rp, &rl); err != nil {
+		return err
 	}
 	var err error
 	switch r.Event {
@@ -252,6 +261,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.addCounterRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
+	case "BeginPhase":
+		if err := lc.beginPhaseRepl(rp, &rl); err != nil { // lower_beginphase.go
+			return err
+		}
 	case "TurnFaceUp":
 		if err := lc.turnUpRepl(rp, r.With, &rl); err != nil { // lower_turnfaceuprepl.go
 			return err
@@ -352,6 +365,12 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return err
 	}
 	if ok, err := lc.staticDamagePrevent(rp, w, rl); ok || err != nil { // lower_staticprevent.go
+		return err
+	}
+	if ok, err := lc.damageSetRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
+	}
+	if ok, err := lc.damageMinusRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
 		return err
 	}
 	if rp.str("ActiveZones") != "Battlefield" {
@@ -724,6 +743,23 @@ func (lc *lowerCtx) addCounterRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	return nil
 }
 
+// chainElectionOK reports whether this Tap node's pay-life election lowers:
+// the unchained shock shape (the whole replacement is the one unswitched
+// Tap), or the ask-then-elect chain (Multiversal Passage): an as-enters
+// basic-land ask whose SubAbility$ is the entering land's own pay-life
+// election, the chain's last node. gorge parks the entry on each ask in
+// order and its land play's count waits for the whole entry (settleLandPlay,
+// landEntryParked); the kernel's count-deferral machinery (gfShockEntry,
+// repl_shockland.go) reads the election behind the opener ask (electionPC)
+// and carries the deferral across the chain (answerQueuedAsk). A rider
+// behind any other chain, an others-enter election, or one with a condition
+// of its own stays refused.
+func chainElectionOK(sa, node *cards.SA) bool {
+	return node == sa && sa.Sub == nil ||
+		node != sa && sa.API == "ChooseType" && strings.TrimSpace(sa.Params["Type"]) == "Basic Land" &&
+			sa.Sub == node && node.Sub == nil
+}
+
 // replChain lowers an ETB replacement's ReplaceWith chain: enters tapped,
 // enters with counters, as-enters choices.
 // A chained Tap/PutCounter node may carry its own ConditionCheckSVar$ gate (a
@@ -783,7 +819,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			// a one-card Reveal or Behold (revealLandCost). Anything else
 			// refuses.
 			if uc, ok := ps.get("UnlessCost"); ok {
-				if other || node != sa || sa.Sub != nil || cond.Kind != cNone {
+				if other || cond.Kind != cNone || !chainElectionOK(sa, node) {
 					return refuse("ETB tap UnlessCost on a chained ETB replacement")
 				}
 				if p, ok := ps.get("UnlessPayer"); !ok || p != "You" {
@@ -969,11 +1005,13 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				}
 				break
 			}
-			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain)
+			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain):
+			// the pod-wide choice of an opponent, ahead of the look-then-name
+			// ask (choosePlayerPod)
 			if other || node != sa || !spyglassChain(sa) {
 				return refuse("ETB replacement api ChoosePlayer")
 			}
-			if err := lc.choosePlayer(ps, false); err != nil {
+			if err := lc.choosePlayerPod(ps); err != nil {
 				return err
 			}
 		case "RevealHand":
@@ -997,15 +1035,9 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChooseType":
-			// gorge effChooseType: an absent Defined$ is the controller
-			if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" || ps.str("Type") != "Creature" {
-				return refuse("ChooseType shape")
-			}
-			in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, Note: "choice among creature types"}
-			if err := lc.chooseTypeValid(ps, &in); err != nil {
+			if err := lc.etbChooseType(ps); err != nil { // lower_choosetype.go
 				return err
 			}
-			lc.emit(in)
 		default:
 			return refuse("ETB replacement api %s", node.API)
 		}

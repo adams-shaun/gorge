@@ -149,6 +149,7 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 // source's own tap, yet the permanent is still tapped for mana.
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
+	eachPick := !colour && s.srcEachPick(k, sl, pc) == 1
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
@@ -157,8 +158,12 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 		if a.StFlags&kop.StTapReflect != 0 {
 			// one mana of the type the tap produced: fixed for a source of one
 			// type, the pick's otherwise (and a filter's colour is picked after
-			// its tap; an all-at-once source's types come together, gorge
-			// defers it)
+			// its tap)
+			if eachPick {
+				// an all-at-once source's types come together: the extra is one
+				// more mana of one of them (srcEachPick), no fixed vector
+				return true
+			}
 			m := srcMask(pc)
 			if !colour && m&(m-1) != 0 && pc.manaXv == [kop.NumManaKinds]uint8{} && s.tapExtraPlain(pc) {
 				// one plain tap of several colours: srcReflectPick prices
@@ -197,14 +202,89 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 // filtExtra is the extra a filter activation of sl brings: the filter taps sl
 // for mana, so a StatTapExtra static adds its mana beside the filter's own
 // unit (Badgermole Cub on an earthbent Rumble Arena's {1},{T}). A filter that
-// costs no {T} (a once-each-turn one) taps nothing and brings none. The colour
-// is picked after the tap, so a carrier limited to a {C} tap does not reach it.
+// costs no {T} (a once-each-turn one) taps nothing and brings none. A choice
+// production's colour is picked after the tap, so a carrier limited to a {C}
+// tap does not reach it; a fixed one-colour production's type is known.
 func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
-	if k.gen == nil || !k.gen.anyTapExtra || s.filtAb(k, sl).Cost.Flags&kop.CostTap == 0 {
+	if k.gen == nil || !k.gen.anyTapExtra {
 		return xv
 	}
-	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), true)
+	a := s.filtAb(k, sl)
+	if a.Cost.Flags&kop.CostTap == 0 {
+		return xv
+	}
+	// A reflect carrier's extra is one mana of the type the tap produced (CR
+	// 106.12a): a fixed vector beside a production of one fixed colour, whose
+	// amount may still be dynamic (Cabal Coffers' {B} for each Swamp beside
+	// Mana Flare). A choice or all-at-once production's extra is the pick's,
+	// so only a pick asks srcExtraTapped for the pick's colour; asking for it
+	// beside a fixed production dropped the carrier's vector and the census
+	// read one mana short (Mournwhelk's evoked {3}{B} beside the Coffers). A
+	// plain Produced$ Any is a pick too (it lowers with no AfManaChoice): its
+	// ManaColors is ColAny, and pricing it as a fixed colour would read the
+	// card's first mana ability (Hidden Grotto's {C}) instead of the filter's
+	// chosen colour.
+	colour := a.ManaEach || a.AFlags&kop.AfManaChoice != 0 || bits.OnesCount8(uint8(a.ManaColors)&0x3f) != 1
+	xv, _ = s.srcExtraTapped(k, sl, s.manaPCAt(k, sl), colour)
+	if a.ManaEach && !DebugEachReflectNone {
+		s.filtEachReflect(k, sl, a, &xv)
+	}
 	return xv
+}
+
+// filtReflectPick is the reflected extra (StTapReflect: Mana Flare) of a filter
+// activation whose colour is picked after its tap (Starfleet Academy's
+// {5},{T} any colour): one more mana of the pick, CR 106.12a. filtExtra leaves
+// it out because the pick is unknown there, so the activation floats it
+// beside its own mana. A fixed one-colour production already carries it in
+// filtExtra, and an all-at-once one's is filtEachReflect's (filtExtra).
+func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return 0
+	}
+	a := s.filtAb(k, sl)
+	if a.Cost.Flags&kop.CostTap == 0 || a.ManaEach ||
+		a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
+		return 0
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if s.tapExtraReaches(k, st, sl, ctl) && st.a.Static.StFlags&kop.StTapReflect != 0 {
+			r += uint8(st.a.Static.B)
+		}
+		return true
+	})
+	return r
+}
+
+// DebugEachReflectNone drops the reflected extra of an all-at-once filter's tap
+// (the mutation test: the games must diverge).
+var DebugEachReflectNone bool
+
+// filtEachReflect adds to xv the reflected extra of an all-at-once filter's tap
+// (Sungrass Prairie's {G}{W} under Mirari's Wake: "add one mana of any type that
+// land produced"). The pick is a mid-resolution ask gorge cannot pose inside a
+// mana ability, so it keeps its first candidate (effManaReflected's "chose first
+// reflected colour", ManaReflectedCandidates' W, U, B, R, G order): one more mana
+// of the filter's first colour per reflect carrier reaching the tap.
+func (s *State) filtEachReflect(k *prep, sl Slot, a *kop.Ability, xv *[kop.NumManaKinds]uint8) {
+	first := -1
+	for c, n := range filtEachVec(a) {
+		if n != 0 && c < kop.C {
+			first = c
+			break
+		}
+	}
+	if first < 0 {
+		return
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if sa := &st.a.Static; s.tapExtraReaches(k, st, sl, ctl) && sa.StFlags&kop.StTapReflect != 0 {
+			xv[first] += uint8(sa.B)
+		}
+		return true
+	})
 }
 
 // srcExtraPick is the extra a tap of sl through the ability pc brings when it
@@ -359,6 +439,13 @@ func (s *State) tapExtraStall(k *prep, sl Slot) {
 		return
 	}
 	pc := s.manaPCAt(k, sl)
+	if s.srcEachPick(k, sl, pc) > 0 {
+		// the pick floats unasked (nothing poses its colour ask yet): every
+		// reader of srcExtra outside the census builds and the plan drops it
+		// silently, so the tap refuses the shape as base's srcExtra stall did
+		s.capFull(StallTapExtra)
+		return
+	}
 	if x := s.srcExtra(k, sl, pc); x != pc.manaXv {
 		s.capFull(StallTapExtra)
 	}
@@ -390,6 +477,82 @@ func (s *State) srcReflectPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 	return r
 }
 
+// srcEachPick is the mana the reflected StatTapExtra carriers (StTapReflect)
+// reaching the tap of sl add beside an all-at-once source's whole production
+// (Azorius Chancery's {W}{U}, mana_eachcolour.go): the extra is one mana of ONE
+// of the types the tap produced (CR 106.12a), asked at the tap -- gorge's
+// planner names no one type over the several-type production, so its census
+// defers the source and the prefix script activates it for real, the carrier's
+// colour ask resolving in the same batch (engine/rules mana_activation.go
+// resolveTriggeredManaAbilities). Zero for every other source (srcReflectPick
+// prices a choice source's; a one-type, sacrificed, restricted or painful one
+// stalls as srcExtra reads it).
+func (s *State) srcEachPick(k *prep, sl Slot, pc *pcard) (r uint8) {
+	if k.gen == nil || !k.gen.anyTapExtra || pc == nil || pc.manaAb < 0 || pc.manaSacOnly ||
+		pc.manaXv == [kop.NumManaKinds]uint8{} || !s.tapExtraPlain(pc) {
+		return 0
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachStatic(k, func(st statSrc) bool {
+		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
+			r += uint8(a.B)
+		}
+		return true
+	})
+	return r
+}
+
+// eachPickMask is the types an all-at-once source's tap produces: the colours
+// its pick (srcEachPick) may name.
+func eachPickMask(pc *pcard) uint8 { return uint8(pc.manaCol)&0x3f | xvMask(pc) }
+
+// addEachPick adds the census unit of an all-at-once source's reflected pick:
+// one more mana of one of the produced types, beside the production's own units
+// (the unit's colour, srcExtra's rest). A single pick is one unit of the
+// produced mask; two carriers' picks are independent asks srcExtra stalls on.
+func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
+	if s.srcEachPick(k, sl, pc) == 1 {
+		a.addUnits(eachPickMask(pc), 1)
+	}
+}
+
+// xvTotals is the colours and the total of a plan type's fixed extra.
+func xvTotals(xv *[kop.NumManaKinds]uint8) (xm, xt uint8) {
+	for c, v := range xv {
+		if v > 0 {
+			xm |= 1 << c
+			xt += v
+		}
+	}
+	return xm, xt
+}
+
+// planEachPick turns the plan unit of an all-at-once source under a reflect
+// carrier into the unit its tap makes (srcEachPick): the production is fixed
+// ({W}{U}: the unit's own colour joins the rest in xv), and the tap adds one
+// mana of one of its types, which the search picks per need. It reports whether
+// the source is such a unit.
+func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]uint8, xm, xt, tn, mask, dmk *uint8) bool {
+	if pc.painCol != 0 || s.srcEachPick(k, sl, pc) != 1 {
+		return false
+	}
+	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	xv[col] += pc.manaN
+	*xm |= 1 << col
+	*xt += pc.manaN
+	*mask = eachPickMask(pc)
+	*dmk, *tn = *mask, 1
+	return true
+}
+
+// addXvPick floats a plan type's fixed extra in p's pool. The pick of an
+// all-at-once source's reflected extra (utype.pick) is the controller's to
+// make (reflectPickPark): it reports whether the plan stops for that ask.
+func (s *State) addXvPick(p uint8, ty *utype, col int) bool {
+	s.addXv(p, &ty.xv)
+	return ty.pick && s.reflectPickPark(p, ty, col)
+}
+
 // srcYieldAt is srcYield plus the pick's reflected extra (srcReflectPick): the
 // census unit of a source's tap.
 func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
@@ -409,7 +572,7 @@ func (s *State) srcYieldAt(k *prep, sl Slot, pc *pcard) uint8 {
 // own limit, mana.go addOneColour), so an entry over a {C}-bearing mask would
 // drop the pick the independent units still make.
 func (s *State) addReflectOne(k *prep, a *avail, sl Slot, pc *pcard) {
-	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 {
+	if pc.manaOne || s.srcReflectPick(k, sl, pc) == 0 && !dynPairOne(pc) {
 		return
 	}
 	m := s.srcMaskAt(pc, sl)
@@ -425,7 +588,7 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	if s.srcReflectPick(k, sl, pc) > 0 {
+	if s.srcReflectPick(k, sl, pc) > 0 || s.srcEachPick(k, sl, pc) > 0 {
 		s.capFull(StallTapExtra)
 	}
 	xv := s.srcExtra(k, sl, pc)
@@ -433,6 +596,17 @@ func (s *State) addExtra(k *prep, p uint8, sl Slot, pc *pcard) {
 		s.pl[p].pool[c] += xv[c]
 	}
 	s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
+}
+
+// addExtraPick is addExtra for a tap whose colour col the caller knows: a
+// painful source's extra depends on the pick (addExtraCol prices it), any
+// other source's does not.
+func (s *State) addExtraPick(k *prep, p uint8, sl Slot, pc *pcard, col int) {
+	if pc.painCol != 0 {
+		s.addExtraCol(k, p, sl, pc, col)
+		return
+	}
+	s.addExtra(k, p, sl, pc)
 }
 
 // addExtraCol is addExtra for a tap that made colour col: a painful source's
@@ -450,6 +624,14 @@ func (s *State) addExtraCol(k *prep, p uint8, sl Slot, pc *pcard, col int) {
 		}
 		if r := s.srcReflectPick(k, sl, pc); r > 0 {
 			s.poolAdd(p, col, int(r))
+		}
+		if s.srcEachPick(k, sl, pc) > 0 {
+			// Stays a stall in every walk, the cast window's too: gorge's
+			// ManaReflected ask (all options Kind "mana") is answered by the
+			// oracle harness internally (oracle gorge.go internal), never a
+			// canonical decision, so the kernel must not pose it
+			// (TestEachReflectedPickIsNotPosedInTheWindow).
+			s.capFull(StallTapExtra)
 		}
 		return
 	}
@@ -522,6 +704,9 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, xv[c])
 		}
 	}
+	if s.srcEachPick(k, sl, pc) == 1 {
+		a.remove(eachPickMask(pc), 1)
+	}
 }
 
 // filterOwnTakes is removeSrc for a filter walk, reporting whether the filter
@@ -565,7 +750,7 @@ func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 		n = max(pc.manaN, 1)
 	}
 	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
-		if _, _, r, ok := s.srcExtraPain(k, sl, pc); ok && r > 0 {
+		if _, _, r, ok := s.srcExtraPain(k, sl, pc); ok && r > 0 && (pc.painOnly || m&^(1<<kop.C) != 0) {
 			n += r // the reflected extra rode the unit's amount (addPainAvail)
 		}
 	}
@@ -646,13 +831,25 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 	if m != 0 && k.gen != nil && k.gen.anyTapExtra {
 		xc, xp, r, ok = s.srcExtraPain(k, sl, pc)
 	}
+	both := m&(1<<kop.C) != 0
+	colours := m&^(1<<kop.C) != 0
+	if !colours && !pc.painOnly {
+		r = 0 // only the {C} ability is reachable (a life too low for the pain): its extra is xc's, no pick is made
+	}
+	// a painland's {C} ability and its coloured pick both make 1+r of one type
+	// when the reflected extra is the only thing the {C} ability's extra holds
+	// beyond the pick's (reflectOneType): the source is one tap of 1+r mana of
+	// one type, {C} or a colour of its mask
+	oneType := r > 0 && ok && both && colours && !pc.painOnly && reflectOneType(&xc, &xp, r)
 	if r > 0 {
 		// a reflected extra of a several-type production is one mana of the
 		// pick: the unit's amount carries it, and the one-colour limit keeps
 		// the bound exact (a {W} and a {U} are not payable from one tap). Only
-		// the whole-mask pain-only unit carries it; anything narrower or
-		// modal-priced asks the pick in a shape the bound cannot pose.
-		if !pc.painOnly || m != uint8(kop.ColAny) || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen.anyContGrant {
+		// the whole-mask pain-only unit and the one-type painland carry it;
+		// anything narrower or modal-priced asks the pick in a shape the
+		// bound cannot pose.
+		whole := pc.painOnly && m == uint8(kop.ColAny)
+		if !whole && !oneType || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen.anyContGrant && !oneType {
 			s.capFull(StallTapExtra)
 			return
 		}
@@ -660,15 +857,17 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 	}
 	if m != 0 {
 		a.addUnits(m, n)
-		if r > 0 {
+		switch {
+		case oneType:
+			// the {C} face is the other alternative to the one-colour block
+			s.addOneColourAlt(a, m, n, 1<<kop.C, n, n)
+		case r > 0:
 			s.addOneColour(a, n) // the activation's mana is all one colour of the pick
 		}
 	}
 	if m == 0 || !ok {
 		return
 	}
-	both := m&(1<<kop.C) != 0
-	colours := m&^(1<<kop.C) != 0
 	for c := range xc {
 		nx := xp[c]
 		if both && !colours {
@@ -677,6 +876,9 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 		if nx > 0 {
 			a.addUnits(1<<c, nx)
 		}
+	}
+	if oneType {
+		return // the extras above are the pick's too: nothing is modal
 	}
 	if r > 0 && both && colours {
 		// the modal model varies the base unit only: a pick-dependent extra
@@ -704,6 +906,21 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 		return
 	}
 	a.nModal++
+}
+
+// reflectOneType reports whether a painland's {C} ability and its coloured
+// pick differ in their extras by the reflected mana r of {C} alone: the {C}
+// ability's extra xc holds r more {C} than the pick's xp (a reflect carrier
+// adds one mana of the type the tap produced, and a {C} tap produced {C}),
+// everything else equal. The source then makes 1+r mana of one type either
+// way, which addPainAvail holds as one unit with a {C} alternative.
+func reflectOneType(xc, xp *[kop.NumManaKinds]uint8, r uint8) bool {
+	d := *xc
+	if d[kop.C] < r {
+		return false
+	}
+	d[kop.C] -= r
+	return d == *xp
 }
 
 // modalSet holds the modal sources of a walk that tries each one's mode
@@ -740,3 +957,17 @@ func (s *State) painExtraC(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	return xc[kop.C] - xp[kop.C]
 }
+
+// dynPairOne reports whether pc is an evaluated pair's wide view of any colour
+// (The Beacon of Kahless's Battlefront, mana_dynpair.go): a tap makes wideN
+// mana of ONE chosen colour (CR 106.1, the ability's "choose a color"), not
+// wideN independent any-colour units, so the census prices it as a one-colour
+// record beside the any-colour census ability, as gorge's planner counts it
+// (pay planalts.go: one alternative of wideN mana per colour).
+func dynPairOne(pc *pcard) bool {
+	return !DebugDynPairIndependent && pc.wideN > 1 && pc.wideCol == kop.ColAny && !pc.wideChosen && pc.manaAb >= 0
+}
+
+// DebugDynPairIndependent prices an evaluated pair's wide view as independent
+// any-colour units (the old behaviour); a mutation switch for the lockstep test.
+var DebugDynPairIndependent bool

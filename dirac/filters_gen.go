@@ -126,15 +126,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		}
 	}
 	if fl.Sub != 0 || fl.NotSub != 0 {
-		has := func(i uint8) bool {
-			if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
-				return false // CR 708.2: no subtypes; a copy of one has its exceptions' (CR 707.9b), from the walk
-			}
-			if layer == layerSub {
-				return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
-			}
-			return s.hasSubGen(k, sl, i)
-		}
+		has := func(i uint8) bool { return s.permHasSub(k, sl, i, layer) }
 		if fl.Sub != 0 && !has(fl.Sub-1) || fl.NotSub != 0 && has(fl.NotSub-1) {
 			return false
 		}
@@ -157,12 +149,29 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 		if isAttackingYou(fl) {
 			return s.attackingYou(k, sl, ctrl) // filter_attackingyou.go
 		}
+		if fl.Pred == kop.PredProg {
+			c := s.permFctx(k, sl, ctrl, src, layer)
+			return s.filterProg(fl.PredN, &c) // filter_prog.go
+		}
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV && fl.PredN == 3) && src != NoSlot {
 			return s.powerGEVFrom(k, fl, sl, src) // filter_typesall.go
 		}
 		return s.predPermGen(k, fl, sl, src, layer)
 	}
 	return true
+}
+
+// permHasSub reports whether the permanent at sl has subtype index i, read at
+// layer (a layer-3 read is printed).
+func (s *State) permHasSub(k *prep, sl Slot, i uint8, layer uint8) bool {
+	if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
+		// CR 708.2: no subtypes of its own; an effect's grant still applies (filter_facedownsub.go). A copy of one has its exceptions' (CR 707.9b), from the walk
+		return layer != layerSub && s.faceDownHasSub(k, sl, i)
+	}
+	if layer == layerSub {
+		return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
+	}
+	return s.hasSubGen(k, sl, i)
 }
 
 // sharesColorRem: gorge sharesColorWithOther over the remembered set -- o
@@ -379,7 +388,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		bound = bound || xBoundTarget(k.t, &a.Targets[i])
 	}
 	// a protection quality reads a spell's own mana value, X in it (protSpellXMV)
-	bound = bound || k.gen != nil && k.gen.anyProtF && src == NoSlot && a.NTargets != 0
+	bound = bound || src == NoSlot && protXBoundTarget(k, a)
 	if !bound {
 		return true
 	}
@@ -390,7 +399,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		// gorge prices each announced X against the spell's own payment: a
 		// source whose RestrictValid$ refuses the spell (Ancient Ziggurat's
 		// creature-only mana under Dominate) adds nothing at any X (CR 106.6)
-		d = payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand}}
+		d = payDesc{class: pdSpell, card: c, src: NoSlot, og: restrOrigin{from: kop.ZoneHand, owner: p}}
 		s.availPotentialFor(k, p, &pot, &d, true, &pu)
 	} else {
 		// An activation's announced X is priced against the activation's own
@@ -423,6 +432,19 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 	var countEx avail
 	if !exactKnown {
 		s.xBoundGapSubsets(k, p, d, &gs) // the paid gaps' fees, as gorge's relaxed proof charges them (mana_xboundgap.go)
+		if gs.repeats {
+			// a repeatable paid gap (Llanowar Envoy's "{1}{G}: Add one mana
+			// of any color", no {T}) is activated again as long as its fee
+			// is paid, so one bounded unit undercounts what the announcement
+			// can draw on: UU is two activations off three Forests and a
+			// Countryside. gorge's census is not relaxable then and its
+			// planner finds the payment, so the over-bound pool is the
+			// supply (CR 605.3b, 601.2g; mana_xboundgap.go).
+			dOpen := d
+			dOpen.gapTrack, dOpen.gapSkip, dOpen.gapN, dOpen.gapRepeats, dOpen.gapGain = false, 0, 0, false, false
+			pot = avail{}
+			s.availPotentialFor(k, p, &pot, &dOpen, false)
+		}
 		// A repeatable paid gap's subsets are never priced (xBoundGapSubsets's
 		// gapRepeats arm), so the over-bound stands. When every gap it kept
 		// nets no mana, the covered census alone is the honest supply (gorge
@@ -435,7 +457,7 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 			var pu2 [maxPotUnits]potUnit
 			var supAv avail
 			d2 := d
-			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapNever, d2.gapGain = false, 0, 0, false, 0, false
+			d2.gapTrack, d2.gapSkip, d2.gapN, d2.gapRepeats, d2.gapGain = false, 0, 0, false, false
 			d2.gapSkipPaid = true
 			// a bounded walk (fixed any-colour taps are units) that lists
 			// gorge's planner census: every free production, no paid gap
@@ -783,23 +805,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	}
 	if f2 := fl.Flags2; f2 != 0 {
 		if f2&kop.F2ChosenType != 0 {
-			// a card filter reads the resolution's mid-resolution
-			// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
-			// static source's choice is read by matchMayPlayFilter for a
-			// may-play static, so outside a resolution there is no
-			// choice to read here
-			ch, ok := s.chosenTypeSub(NoSlot)
-			if !ok {
-				return false
-			}
-			has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if outsideSub(k, ch) {
-				has = cd.AllCreatureTypes // a printed changeling has every type
-			}
-			if s.res.bad&resChosenCard != 0 {
-				has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
-			}
-			if !has {
+			if !s.cardChosenTypeOK(k, cd) {
 				return false
 			}
 			f2 &^= kop.F2ChosenType
@@ -849,7 +855,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		mv := s.cardMVIn(k, c, o, fd, ctx)
 		switch fl.Pred {
 		case kop.PredCMCLE:
-			return mv <= n
+			return predCardCMCLE(mv, n) // kw_soulshift.go: the mutation's arm
 		case kop.PredCMCGE:
 			return mv >= n
 		case kop.PredCMCEQ:
@@ -880,13 +886,22 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if fd && fl.Pred == kop.PredMultiColor {
 			return false // colourless, so never more than one colour
 		}
-		return predCardKind(k, fl, c)
+		return predCardKind(k, fl, c, cols)
 	case kop.PredAttached, kop.PredActiveCtrl:
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
 	case kop.PredModified, kop.PredHasCounters:
 		return false // only a battlefield permanent is modified or holds counters here
 	case kop.PredSameNameRem, kop.PredSameNameSelf:
 		return s.predSameNameCard(fl, c, o, fd, ctx)
+	case kop.PredProg:
+		fc := fctx{k: k, o: o, sl: NoSlot, c: c, owner: owner, ctrl: ctrl, src: NoSlot, srcObj: NoObj, fd: fd}
+		if ctx != nil {
+			fc.ctx, fc.hasCtx = *ctx, true
+		}
+		if o != NoObj {
+			fc.zone = s.objs[o].zone
+		}
+		return s.filterProg(fl.PredN, &fc) // filter_prog.go
 	case kop.PredSharesCrCmdr:
 		// the evaluating controller's commanders (a trigger's listener, a
 		// static's own controller); a face-down object has no creature type
@@ -921,6 +936,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if (fl.Pred == kop.PredPowerGEV || fl.Pred == kop.PredToughnessLEV) && fl.PredN == 1 {
 			return s.cardPTEqV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
+		if fl.Pred == kop.PredTotalPT {
+			return s.cardTotalPTPred(k, fl, c, owner, o, fd) // filter_ptvalue.go
+		}
 		if fl.Pred == kop.PredToughnessLEV && fl.PredN == 3 {
 			return s.cardToughnessGEV(k, fl, c, owner, o, fd, ctx) // filter_ptvalue.go
 		}
@@ -944,6 +962,28 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	return true
 }
 
+// cardChosenTypeOK is F2ChosenType for card cd: it has the resolution's
+// ChooseType answer's subtype, or the chosen card type (matchCardOneAt).
+func (s *State) cardChosenTypeOK(k *prep, cd *kop.CardDef) bool {
+	// a card filter reads the resolution's mid-resolution
+	// ChooseType answer (Bloodline Shaman, Elvish Soultiller); a
+	// static source's choice is read by matchMayPlayFilter for a
+	// may-play static, so outside a resolution there is no
+	// choice to read here
+	ch, ok := s.chosenTypeSub(NoSlot)
+	if !ok {
+		return false
+	}
+	has := int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+	if outsideSub(k, ch) {
+		has = cd.AllCreatureTypes // a printed changeling has every type
+	}
+	if s.res.bad&resChosenCard != 0 {
+		has = s.chosenCardTypeHas(cd.Types) // a chosen card type (Winding Way)
+	}
+	return has
+}
+
 // cardCtrlTgtOK reports whether a card matcher's CtrlTgt role holds (matchCardOneAt).
 // A target's controller is a battlefield role; a card matcher has no live
 // target to read, so it fails closed (kgen never lowers it off the
@@ -965,11 +1005,10 @@ func (s *State) offFieldCountersGE(k *prep, n int, o Obj) bool {
 	return s.predCountersGECard(k, o, n)
 }
 
-// predCardPT is matchCardOneAt's power and toughness predicates (PredPowerLE,
-// PredPowerGE, PredToughnessLE, PredStatBox) for card c off the battlefield:
-// the printed P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved
-// target's last known P/T (zone_lki.go).
-func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+// cardPT is card c's power and toughness off the battlefield: the printed
+// P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved target's last
+// known P/T (zone_lki.go).
+func (s *State) cardPT(k *prep, c CardID, owner uint8, o Obj, fd bool) (int, int) {
 	pc := &k.cards[c]
 	s.offZonePTRead(k, c, owner, o) // static_offzonept.go
 	pw, t := int(pc.power), int(pc.tough)
@@ -982,6 +1021,15 @@ func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj
 	if s.g.tli&tliOn != 0 {
 		pw, t = s.lkiPT()
 	}
+	return pw, t
+}
+
+// predCardPT is matchCardOneAt's power and toughness predicates (PredPowerLE,
+// PredPowerGE, PredToughnessLE, PredStatBox) for card c off the battlefield:
+// the printed P/T, a face-down spell's 2/2 (CR 708.4), the CDA's, or a moved
+// target's last known P/T (zone_lki.go).
+func (s *State) predCardPT(k *prep, fl *kop.Filter, c CardID, owner uint8, o Obj, fd bool) bool {
+	pw, t := s.cardPT(k, c, owner, o, fd)
 	n := int(fl.PredN)
 	switch fl.Pred {
 	case kop.PredStatBox:

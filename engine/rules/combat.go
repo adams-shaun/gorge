@@ -303,6 +303,7 @@ func (e *Engine) askAttackers() {
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(p)})
 		return
 	}
+	publishCompanions(asBoard(e), opts, true)
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
 		Prompt: "turn " + strconv.Itoa(int(e.G.Turn)) + " — declare attackers", Options: opts,
 		// The cumulative attack-cost budget: the sum of the chosen options'
@@ -498,7 +499,7 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 	// declaration, not once per attacker.
 	e.openMillBatch()
 	for _, opt := range chosen {
-		if !e.hasKeywordH(opt.Obj, kwhVigilance) {
+		if !e.hasKeywordH(opt.Obj, kwhVigilance) && !combat.AttackVigilance(asBoard(e), opt.Obj) {
 			// CR 508.1f: the player declaring attackers taps them.
 			e.emitTap(opt.Obj, player, false)
 		}
@@ -745,6 +746,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	// the repair (decision.Decision.FitAlone), so a caller cannot build an
 	// answer this rejects without the shared repair repairing it.
 	if err := e.validateAloneDeclaration(chosen, true); err != nil {
+		return err
+	}
+	if err := validateCompanionDeclaration(asBoard(e), chosen, true); err != nil {
 		return err
 	}
 	return e.validateAttackDeclarationChosen(d, in, chosen)
@@ -1044,6 +1048,9 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 	if err := e.validateAloneDeclaration(chosen, false); err != nil {
 		return err
 	}
+	if err := validateCompanionDeclaration(asBoard(e), chosen, false); err != nil {
+		return err
+	}
 	// CR 509.1b: a BlockRestrict ceiling on the defender's blocker count.
 	ids := make([]state.ObjID, 0, len(chosen))
 	for _, o := range chosen {
@@ -1214,12 +1221,18 @@ func (e *Engine) askBlockers() {
 		// Great) is the attacker's second unit: obeyed by a second blocker,
 		// counted per attacker by the same solver.
 		mustBeBlocked := make(map[state.ObjID]bool, len(scope.attackers))
+		mustBeBlockedSpec := make(map[state.ObjID]string, len(scope.attackers))
 		mustBeBlockedTwo := make(map[state.ObjID]bool, len(scope.attackers))
 		lure := make(map[state.ObjID]bool, len(scope.attackers))
 		for _, aid := range scope.attackers {
 			fl := combat.DerivedHiddenFlags(asBoard(e), aid)
-			if fl.MustBlock {
+			if fl.MustBlock || fl.MustBeBlockedByOne {
 				mustBeBlocked[aid] = true
+				if !fl.MustBeBlockedByOne {
+					// A filtered grant (MustBeBlockedBy Creature.Wall) binds
+					// only the pairs whose blocker matches the filter.
+					mustBeBlockedSpec[aid] = fl.MustBlockSpec
+				}
 			}
 			if fl.MustBeBlockedByTwo {
 				mustBeBlockedTwo[aid] = true
@@ -1271,12 +1284,12 @@ func (e *Engine) askBlockers() {
 				dutyPair := requiredBlockers[bid] && combat.MustBlockPairRequired(asBoard(e), bid, aid)
 				mustBlockAllPair := dutyPair && combat.MustBlockAllPair(asBoard(e), bid, aid)
 				// CR 509.1c: a block needing a cost payment is not required.
-				mustBlockPair := dutyPair || (lure[aid] && charge.zero())
+				mustBlockPair := dutyPair || (lure[aid] && charge.zero() && lureBinds(asBoard(e), bid, aid))
 				opt := decision.Option{Index: len(built), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
 					Group: "blocker:" + strconv.FormatUint(uint64(bid), 10), Required: mustBlockPair, BlockMust: mustBlockPair, BlockMustAll: mustBlockAllPair,
-					AttackMust: mustBeBlocked[aid], AttackMustTwo: mustBeBlockedTwo[aid],
+					AttackMust: mustBeBlocked[aid] && mustBeBlockedBinds(asBoard(e), mustBeBlockedSpec[aid], bid, aid), AttackMustTwo: mustBeBlockedTwo[aid],
 					// CR 506.5: this blocker can't be declared ALONE. One
 					// fact per blocker on each of its pairs; the declaration
 					// rule counts it per declaration, not per pair.
@@ -1331,6 +1344,7 @@ func (e *Engine) askBlockers() {
 			br.cursor++
 			continue
 		}
+		publishCompanions(asBoard(e), opts, false)
 		maxSum := 0
 		for _, opt := range opts {
 			if opt.Value > 0 {

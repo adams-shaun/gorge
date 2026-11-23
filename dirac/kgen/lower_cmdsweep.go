@@ -4,7 +4,7 @@ package kgen
 // commanders you own from the command zone and from your graveyard into your
 // hand" (Origin$ Command,Graveyard, ChangeType$ Card.IsCommander+YouOwn,
 // Destination$ Hand). It is lowered to nothing on the same assumption as
-// Command Beacon's pick (kop.W7IsCommander): no seat has a commander, so the
+// the former Command Beacon shortcut (kop.W7IsCommander; Beacon now picks from the command zone, zone_cmdpick.go): no seat has a commander, so the
 // command zone holds nothing and no graveyard card is a commander, and
 // gorge's sweep moves nothing and poses no decision. The rest of the chain
 // (the SubAbility's graveyard shuffle) lowers on its own. The cmd5 pool guard

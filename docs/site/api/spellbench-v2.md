@@ -1121,7 +1121,7 @@ fails the build when `semantic.schema.json` and `kindTable` or `Vocab` disagree 
 `responses.schema.json`'s error codes differ from `errors.go`:
 
 ```text
-go test -run 'TestSemanticSchemaMatchesKindTable|TestSchemaErrorCodesMatchErrorsGo' ./server/spellbench/protocol
+make test-one PKG=./server/spellbench/protocol RUN='^(TestSemanticSchemaMatchesKindTable|TestSchemaErrorCodesMatchErrorsGo)$'
 ```
 
 Three tests hold the other schemas to live messages, through the validator in
@@ -1135,6 +1135,6 @@ evaluates the keywords these files use and refuses a schema with any other:
 | `TestUpstreamCorpusMatchesTheSchemas` | the vendored upstream corpus, without the requests it breaks on purpose to draw `malformed_json`, `malformed_request` or `protocol_mismatch` |
 
 ```text
-go test -run 'TestEngineLinesMatchTheSchemas|TestUpstreamCorpusMatchesTheSchemas' ./cmd/spellbench-gorge-env
-go test -run TestRequestsMatchTheSchemas ./server/spellbench/seat
+make test-one PKG=./cmd/spellbench-gorge-env RUN='^(TestEngineLinesMatchTheSchemas|TestUpstreamCorpusMatchesTheSchemas)$'
+make test-one PKG=./server/spellbench/seat RUN='^TestRequestsMatchTheSchemas$'
 ```

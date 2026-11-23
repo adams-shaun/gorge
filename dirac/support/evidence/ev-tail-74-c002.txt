@@ -11,6 +11,7 @@ Absorb
 Abzan Runemark
 Aim for the Head
 Ajani's Mantra
+Akroma, Angel of Wrath
 Aku Djinn
 Alchemist's Greeting
 Alley Grifters
@@ -38,6 +39,7 @@ Betrayal
 Big Game Hunter
 Black Sun's Twilight
 Blackbloom Rogue
+Blighted Steppe
 Blightwidow
 Blindblast
 Blinding Mage
@@ -45,11 +47,13 @@ Blood Vassal
 Blue Marvel, Adam Brashear
 Boggart Ram-Gang
 Boiling Blood
+Bojuka Bog
 Boulderfall
 Brainsurge
 Bramblecrush
 Bronze Guardian
 Brood Sliver
+Buried Ruin
 Calculated Dismissal
 Capashen Unicorn
 Cartouche of Solidarity
@@ -81,6 +85,7 @@ Curse of Predation
 Cursed Totem
 Daemogoth Titan
 Danitha Capashen, Paragon
+Darkslick Shores
 Darksteel Brute
 Dauntless Bodyguard
 Deadly Insect
@@ -114,7 +119,9 @@ Ember-Fist Zubera
 Emeria Angel
 Encroaching Wastes
 Endless Wurm
+Enraged Huorn
 Entish Restoration
+Equestrian Skill
 Esika's Chariot
 Eternal of Harsh Truths
 Euroakus
@@ -210,6 +217,8 @@ Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Lokhust Heavy Destroyer
+Lord Magnus
+Lotus Blossom
 MACH-1, Swooping Scoundrel
 Mad Auntie
 Magmatic Core
@@ -228,6 +237,7 @@ Mega Flare
 Meng Huo, Barbarian King
 Merciless Executioner
 Metallic Mastery
+Midnight Angel Armor
 Midnight Duelist
 Mighty Emergence
 Millstone
@@ -242,6 +252,7 @@ Moonveil Dragon
 Mountain
 Mulch
 Multiform Wonder
+Mystic Enforcer
 Nature's Chant
 Navigation Orb
 Naya Sojourners
@@ -251,6 +262,7 @@ Nexus of Fate
 Nomads' Assembly
 Norn's Inquisitor
 Novellamental
+Opal Champion
 Oran-Rief Ooze
 Orazca Frillback
 Oreskos Swiftclaw
@@ -258,7 +270,6 @@ Orthodoxy Enforcer
 Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
-Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -387,6 +398,7 @@ Triceraton Regenta
 Tuktuk Rubblefort
 Tuktuk the Explorer
 Turntimber Ascetic
+Turntimber Symbiosis
 Tuya Bearclaw
 Twinshot Sniper
 Two-Headed Zombie
@@ -402,6 +414,7 @@ Venser's Journal
 Verdant Touch
 Verge Rangers
 Vessel of Endless Rest
+Veteran Adventurer
 Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout

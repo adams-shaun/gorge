@@ -104,6 +104,11 @@ func containsStr(ss []string, s string) bool {
 }
 
 func readBlocksBlocker(lc *lowerCtx, tr *lTrigger, v string) (lRef, bool) {
+	if lc.emblemBlocks {
+		// an Effect's Blocks emblem: the kernel hook's trigger object is the
+		// blocker (dirac/trig_emblemblocks.go)
+		return lRef{Kind: rTriggered}, true
+	}
 	if tr.F == nil || len(tr.F.Clauses) != 1 || tr.F.Players != 0 {
 		return lRef{}, false
 	}

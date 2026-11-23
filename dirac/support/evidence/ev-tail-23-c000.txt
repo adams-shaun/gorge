@@ -322,6 +322,7 @@ Rise from the Grave
 Ritual of Rejuvenation
 Riveteers Overlook
 Rock Badger
+Rolling Earthquake
 Rot Wolf
 Rubblehulk
 Rush of Inspiration
@@ -367,15 +368,18 @@ Sphinx-Bone Wand
 Sporoloth Ancient
 Stand United
 Starlit Angel
+Stella Lee, Wild Card
 Stomp and Howl
 Stone Quarry
 Storm, Shaker of Skies
 Story Seeker
 Suit Up
 Sunflare Shaman
+Sunken Ruins
 Sunrise Seeker
 Sunseed Nurturer
 Swamp
+Sword of the Meek
 Symbiote Spawn
 Tenement Crasher
 Tezzeret's Betrayal
@@ -391,6 +395,7 @@ Toils of Night and Day
 Tolarian Serpent
 Tortured Existence
 Towering Gibbon
+Track Down
 Traxos, Scourge of Kroog
 Treetop Sentinel
 Tribal Golem

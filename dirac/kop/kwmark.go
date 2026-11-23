@@ -29,4 +29,14 @@ const (
 	// last (after counters), and a loss of abilities leaves it in force (an
 	// effect, not an ability).
 	KwMarkSwitchPT
+	// KwMarkSkulk is skulk (CR 702.118a) granted until end of turn: the
+	// CardDef.Evasion bit EvSkulk read beside the printed one (MacCready,
+	// Lamplight Mayor; The Master, Mesmerist; Behind the Scenes' PumpAll
+	// sibling), the keyword's own mark as intimidate's.
+	KwMarkSkulk
+	// KwMarkHorsemanship is horsemanship (CR 702.31b) granted until end of
+	// turn: the CardDef.Evasion bit EvHorsemanship read beside the printed
+	// one, as the attacker's restriction and as the blocker's exception
+	// (Riding Red Hare; PumpAll: Merry-Go-Round).
+	KwMarkHorsemanship
 )

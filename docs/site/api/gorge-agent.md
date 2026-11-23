@@ -1,18 +1,13 @@
 # gorge-agent/1
 
-`gorge-agent/1` connects an out-of-process drafter, deck builder or player to
-gorge's limited tools. gorge runs every draft and game and calls **out** to your
-program with batches of questions; your program only answers. It is for training
-and benchmark programs that want many games answered at once, so the wire is
-batched from the start.
+`gorge-agent/1` connects an out-of-process drafter, deck builder or player to gorge's limited tools. gorge runs every
+draft and game and calls **out** to your program with batches of questions; your program only answers. It is built for
+training and benchmark programs that want many games answered at once.
 
-*The transcripts below were produced on 2026-10-30 at commit `834ac7d9a` by piping
-the golden messages through `cmd/extagent` and `examples/extagent/random_agent.py`.*
-
-Choose this wire when your agent runs under `cmd/labdemo` or the `draftlab` library.
-To sit at a table on a running server, use the
-[HTTP decision loop](http.md#the-decision-loop) or [SpellBench v2](spellbench-v2.md)
-instead. `gorged` itself does not speak `gorge-agent/1`.
+Use it under `cmd/labdemo` or the `draftlab` library. To sit at a table on a running server use the
+[HTTP decision loop](http.md#the-decision-loop) or [SpellBench v2](spellbench-v2.md); `gorged` does not speak `gorge-agent/1`.
+The transcripts below came from piping the golden messages through `cmd/extagent` and `examples/extagent/random_agent.py`
+(2026-10-30, commit `834ac7d9a`).
 
 ## Try it
 
@@ -20,14 +15,9 @@ instead. `gorged` itself does not speak `gorge-agent/1`.
 go run ./cmd/labdemo -player ext:exec:examples/extagent/random_agent.py -seed 1
 ```
 
-[`examples/extagent/random_agent.py`](https://github.com/adams-shaun/gorge/blob/main/examples/extagent/random_agent.py)
-is a complete agent of about 200 lines that uses only Python's standard library. It
-answers at random on purpose, so it plays badly and some of its answers get refused.
-Such a run prints lines like this one and carries on:
-
-```text
-extern: ext:py-random@1 decide refused (choices 1 and 0 are mutually exclusive (group "blocker:12")): answered by fallback
-```
+[`random_agent.py`](https://github.com/adams-shaun/gorge/blob/main/examples/extagent/random_agent.py) is a complete
+standard-library agent (about 200 lines). It answers at random, so some answers are refused; the run logs a line like
+`extern: ext:py-random@1 decide refused (...): answered by fallback` and carries on.
 
 ### Where agents plug in
 
@@ -63,27 +53,20 @@ go run ./cmd/labdemo -player ext:unix:/tmp/gorge-agent.sock -seed 1
 
 ## A session
 
-The lines marked `>` are what gorge sends; the rest is what `cmd/extagent -policy
-first -agent demo` wrote back:
+`>` lines are what gorge sends; the rest is what `cmd/extagent -policy first -agent demo` wrote back:
 
 ```text
-> {"v":1,"type":"hello","protocol":"gorge-agent/1","gorge_revision":"8ae5062a351078e5ec2725041bbae15e96d60c72","kinds":["pick","build","decide"]}
-{"v":1,"type":"hello","protocol":"gorge-agent/1","agent":"demo","model_version":"1","kinds":["pick","build","decide"],"view_omit":["library","available","archetype","ability_costs","effective_cost","own_deck","potential","card_lists","derived_chars"]}
+> {"v":1,"type":"hello","protocol":"gorge-agent/1","gorge_revision":"...","kinds":["pick","build","decide"]}
+{"v":1,"type":"hello","protocol":"gorge-agent/1","agent":"demo","model_version":"1","kinds":["pick","build","decide"],"view_omit":[...]}
 > {"v":1,"type":"batch","batch":17,"items":[{"id":41,"kind":"pick", ... }]}
 {"v":1,"type":"result","batch":17,"answers":[{"id":41,"pick":"c1"}]}
-> {"v":1,"type":"batch","batch":18,"items":[{"id":42,"kind":"build", ... }]}
-{"v":1,"type":"result","batch":18,"answers":[{"id":42,"deck":{"main":["c1"],"basics":[19,0,20,0,0]}}]}
-> {"v":1,"type":"batch","batch":19,"items":[{"id":43,"kind":"decide", ... }]}
-{"v":1,"type":"result","batch":19,"answers":[{"id":43,"intent":{"seq":0,"player":0,"choices":[0]}}]}
 > {"v":1,"type":"stream_end","stream":"g12.1"}
 > {"v":1,"type":"bye"}
 ```
 
-The exact bytes of each message type are golden files in
+Exact bytes of every message type are golden files in
 [`draft/draftlab/extern/wire/testdata/`](https://github.com/adams-shaun/gorge/tree/main/draft/draftlab/extern/wire/testdata),
-held by the tests of
-[`draft/draftlab/extern/wire`](https://pkg.go.dev/github.com/adams-shaun/gorge/draft/draftlab/extern/wire),
-the package that defines the wire.
+held by the tests of [`draft/draftlab/extern/wire`](https://pkg.go.dev/github.com/adams-shaun/gorge/draft/draftlab/extern/wire).
 
 ## Handshake
 
@@ -184,8 +167,7 @@ mislabel its data.
 
 ### No timeouts
 
-gorge reads no clock here. A hung agent hangs its games until the program running gorge
-is cancelled, for example with Ctrl-C, so a deadline has to come from the caller's context.
+gorge reads no clock here. A hung agent hangs its games until the caller cancels (Ctrl-C, or a context deadline).
 
 ### Other messages
 
@@ -196,14 +178,10 @@ is cancelled, for example with Ctrl-C, so a deadline has to come from the caller
 
 ## The agent contract
 
-An answer must be a **pure function of its item and the model version**. Batch
-composition, batch order and stream numbers depend on scheduling, so none of them may
-change an answer. Under this contract, a run's results do not depend on the number of
-workers, the flush mode or the batch size. The simple way to keep it is to seed a fresh
-generator from `item["seed"]` for each item, as the example does.
-
-If you break the contract, the run is still recorded exactly and can be replayed from
-its logs and tapes, but a re-run may differ.
+An answer must be a **pure function of its item and the model version**: batch composition, order and stream numbers depend
+on scheduling and must not change an answer. Then results do not depend on worker count, flush mode or batch size. Seed a
+fresh generator from `item["seed"]` per item, as the example does. A broken contract is still recorded exactly and
+replayable from logs and tapes, but a re-run may differ.
 
 ## How batches form
 
@@ -218,11 +196,9 @@ core count. There are two flush modes (`labdemo -ext-flush`, `Options.Flush`):
 
 ## Hidden information
 
-An agent gets the deciding seat's own view, one seat's pack and picks, or one seat's
-pool. It never gets the engine, another seat's view or anything else. One process serving
-several seats receives each seat's redacted view on one connection and could combine
-them, just as one program running two built-in bots could. To keep seats isolated, use
-one endpoint per seat.
+An agent gets only the deciding seat's view, one seat's pack and picks, or one seat's pool, never the engine or another
+seat's view. One process serving several seats could combine their views, as one program running two built-in bots could;
+use one endpoint per seat to keep them isolated.
 
 ## Replay without the model
 

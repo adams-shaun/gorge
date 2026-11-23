@@ -13,6 +13,7 @@ Coruscation Mage
 Court of Embereth
 Dauthi Embrace
 Demand Answers
+Demonic Consultation
 Desperate Lunge
 Destroy Evil
 Diplomatic Escort
@@ -58,6 +59,7 @@ Longshot Squad
 Mad Ratter
 Manor Gate
 Meatsqueak, Hoard Lord
+Misleading Signpost
 Mistmeadow Skulk
 Moment's Peace
 Mountain
@@ -85,6 +87,7 @@ Spin into Myth
 Sting-Slinger
 Stinging Barrier
 Strands of Night
+Street Wraith
 Stronghold Rats
 Surge of Salvation
 Swamp
@@ -92,6 +95,7 @@ Take Up the Shield
 Temple Acolyte
 Thornwind Faeries
 Thought Courier
+Titanoth Rex
 Torch Breath
 Trove Tracker
 Unexpected Fangs

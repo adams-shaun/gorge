@@ -64,9 +64,9 @@ func kpreventalltoShield(c *PickCtx, a Canon) bool {
 }
 
 // kpreventalltoPolicy is castFirstPolicy with at most one prevent-all spell
-// cast a turn (two shields on one creature are the competition the kernel
-// stalls on: StallPrevNext), counting the damage events gorge logged as
-// prevented by a replacement effect (the Note a Prevent$ True line leaves).
+// cast a turn (so the games exercise one shield's prevention at a time),
+// counting the damage events gorge logged as prevented by a replacement
+// effect (the Note a Prevent$ True line leaves).
 func kpreventalltoPolicy(prevented *atomic.Int64) func(uint64) Policy {
 	return func(seed uint64) Policy {
 		inner := castFirstPolicy(seed)

@@ -8,12 +8,13 @@ package kgen
 // Amount$ 2), unrestricted.
 //
 // gorge's planner census leaves it an unrelaxable gap (a hybrid fee has no
-// relaxed alternative, paymentPlanRelaxedAlternatives), so its prefix search
-// funds nothing for it: the fee is paid only from mana already floating. Its
-// activation ask lists the Combo as one option per colour of the amount
-// ("Add WW", "Add BB": pay.ManaAbilityComboColours), after the {C} of the
-// first ability. The kernel plays it as a filter whose fee is the hybrid pip
-// (kop.HybridFilterManaAb, mana_filterhybrid.go).
+// relaxed alternative, paymentPlanRelaxedAlternatives), but its prefix search
+// still funds it as a non-relaxable gap: its fee is one mana per hybrid pip
+// (paymentPlanCensusOf's fund), so the search first taps a covered source to
+// float the pip. Its activation ask lists the Combo as one option per colour
+// of the amount ("Add WW", "Add BB": pay.ManaAbilityComboColours), after the
+// {C} of the first ability. The kernel plays it as a filter whose fee is the
+// hybrid pip (kop.HybridFilterManaAb, mana_filterhybrid.go).
 func hybridFilterMana(first, a *lAbility) bool {
 	c, m := &a.Cost, a.Mana
 	if len(c.Mana.Hybrid) != 1 || c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.C != 0 || c.Mana.X || c.Mana.XX || c.Mana.XXX ||

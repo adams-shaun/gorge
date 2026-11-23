@@ -122,12 +122,12 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
 	}
 	if az, ok := sp.get("AffectedZone"); ok {
-		done, err := lc.affectedZone(sp, st, aff, az) // lower_offzone.go
+		extra, done, err := lc.affectedZone(sp, st, aff, az) // lower_offzone.go
 		if err != nil {
 			return nil, err
 		}
 		if done {
-			return nil, nil
+			return extra, nil
 		}
 	}
 	if sp.is("MayPlay", "True") {
@@ -306,8 +306,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		// "if an opponent would search a library, that player searches the
 		// top four cards instead" -- gorge models neither the search limit
 		// nor any other reader for the grant.
-		if strings.TrimSpace(k) == "LimitSearchLibrary" && st.F != nil && st.F.Players > 0 {
-			st.Kind = "" // view-only: lower to nothing
+		if inertKeywordGrant(sp, st, k) { // lower_grantedsoulshift.go: the grant lowers to nothing
 			return nil, nil
 		}
 		rest, ward, wardLife, err := splitWardGrant(k)
@@ -337,13 +336,13 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, err
 		}
 		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
+		if rest, err = lc.staticBandingGrant(sp, st, rest); err != nil {
+			return nil, err // lower_banding.go
+		}
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err
 			}
-		}
-		if len(fbs) > 0 && lc.out.Types&tArtifact != 0 && filterSelfOnly(st.F) {
-			return nil, refuse("DB$ Mana of an artifact source (typed mana)") // the attacker is this artifact
 		}
 		for _, n := range fbs {
 			// CR 702.189a granted: one latent Attacks trigger per grant

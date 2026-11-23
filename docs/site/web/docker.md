@@ -16,7 +16,7 @@ gorged serves the web client itself, because the build embeds it in the binary. 
 
 ## Run the published image
 
-Every merge to `main` that touches the server, the client or `deploy/docker` publishes the gorged image to Docker Hub as `damadama22/gorged-demo`. Its tags are `latest` and the commit SHA. You need only Docker for this, with no clone, Go or Node:
+A push to `main` that touches `deploy/docker`, `web`, `server/gorged`, `cmd/gorged` or the Makefile runs `.github/workflows/demo-image.yml`. It always builds the image, and pushes it to Docker Hub (`damadama22/gorged-demo`, tags `latest` and the commit SHA) only when the repository holds the Docker Hub secrets; the name comes from the `DEMO_IMAGE` repository variable. You need only Docker, with no clone, Go or Node:
 
 ```sh
 docker run -d --name gorge -p 127.0.0.1:8090:8080 \
@@ -28,7 +28,7 @@ Open <http://127.0.0.1:8090>. Like the compose setup, the first start fetches th
 
 ## Build and start it from source
 
-Build from source for nginx in front, the settings below, or a change of your own. You need Docker with the Compose plugin and `make`. The first start downloads about 140 MB of card scripts and compiles them, so give it a few minutes.
+Build from source for nginx in front, the settings below, or a change of your own. You need Docker with the Compose plugin and `make`. The first start downloads the card scripts (about 140 MB, [Install](../guide/install.md#1-fetch-the-card-corpus)) and compiles them, so give it a few minutes.
 
 1. Clone the repository and enter it.
 
@@ -51,7 +51,7 @@ Build from source for nginx in front, the settings below, or a change of your ow
 
 4. Open <http://127.0.0.1:8090>. Watch the first start with `docker compose -f deploy/docker/compose.yaml logs -f gorged`.
 
-`make demo-image` builds the images without starting them. `make demo-down` stops the containers and keeps the volumes.
+`make demo-image` builds the images without starting them; `make demo-down` stops the containers and keeps the volumes. There is no push target: tag and push by hand.
 
 ## Settings
 

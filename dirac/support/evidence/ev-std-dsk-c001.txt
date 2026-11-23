@@ -1,14 +1,20 @@
 Abandoned Campground
 Acrobatic Cheerleader
 Anthropede
+Appendage Amalgam
 Balustrade Wurm
 Baseball Bat
+Bashful Beastie
 Bear Trap
 Beastie Beatdown
 Break Down the Door
 Broodspinner
+Cackling Slasher
 Cathartic Parting
+Cautious Survivor
+Chainsaw
 Clammy Prowler
+Clockwork Percussionist
 Come Back Wrong
 Commune with Evil
 Conductive Machete
@@ -19,14 +25,18 @@ Cursed Windbreaker
 Defiant Survivor
 Dissection Tools
 Diversion Specialist
+Duskmourn's Domination
 Enduring Courage
 Enduring Curiosity
 Enduring Innocence
+Enduring Vitality
 Enter the Enigma
+Etched Cornfield
 Ethereal Armor
 Exorcise
 Fear of Being Hunted
 Fear of Burning Alive
+Fear of Exposure
 Fear of Immobility
 Fear of Impostors
 Fear of Lost Teeth
@@ -44,11 +54,15 @@ Glimmerburst
 Glimmerlight
 Grasping Longneck
 Hardened Escort
+Haunted Screen
 Horrid Vigor
+House Cartographer
+Impossible Inferno
 Innocuous Rat
 Insidious Fungus
 Irreverent Gremlin
 Island
+Kona, Rescue Beastie
 Leyline of the Void
 Lionheart Glimmer
 Living Phone
@@ -57,8 +71,10 @@ Most Valuable Slayer
 Mountain
 Neglected Manor
 Norin, Swift Survivalist
+Omnivorous Flytrap
 Overlord of the Boilerbilges
 Overlord of the Floodpits
+Overlord of the Hauntwoods
 Overlord of the Mistmoors
 Paranormal Analyst
 Patched Plaything
@@ -72,6 +88,8 @@ Pyroclasm
 Ragged Playmate
 Rampaging Soulrager
 Razorkin Hordecaller
+Razorkin Needlehead
+Razortrap Gorge
 Reluctant Role Model
 Resurrected Cultist
 Rip, Spawn Hunter
@@ -86,7 +104,10 @@ Silent Hallcreeper
 Spineseeker Centipede
 Split Up
 Sporogenic Infection
+Stay Hidden, Stay Silent
 Swamp
+The Rollercrusher Ride
+The Swarmweaver
 Tunnel Surveyor
 Turn Inside Out
 Twist Reality
@@ -94,6 +115,7 @@ Twitching Doll
 Tyvar, the Pummeler
 Under the Skin
 Unnerving Grasp
+Untimely Malfunction
 Unwanted Remake
 Vanish from Sight
 Vengeful Possession

@@ -1,0 +1,6 @@
+family: mech
+name: mechSkulk
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)

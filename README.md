@@ -38,10 +38,9 @@ shown it agrees with gorge on, decision by decision, and refuses the rest by nam
 gorge plays full games and replays them exactly, but it is not at rules parity
 with mature engines and is not ready for production use. dirac agrees with gorge
 on the cards it supports, so it shares gorge's bugs: lockstep can't see a mistake
-both engines make. Coverage comes from `make report` and speed from
-`scripts/xengine-bench.sh gorge dirac`; the figures change with every merge, so
-they are not written here.
-[Performance](https://adams-shaun.github.io/gorge/performance/) has the method.
+both engines make. No figures are written here: coverage comes from `make report`,
+speed from `scripts/xengine-bench.sh gorge dirac`
+([method](https://adams-shaun.github.io/gorge/performance/)).
 
 - **The server** (`gorged`) hosts perpetual bot tables, play-against-a-bot games
   and 4-seat draft events over HTTP and server-sent events. It speaks three
@@ -58,7 +57,7 @@ they are not written here.
 [Install and build](docs/site/guide/install.md#prerequisites) lists the prerequisites.
 
 ```sh
-make fetch-cards compile-cards    # one-time: Forge's scripts into .cards/ (about 140 MB), then the compiled cache
+make fetch-cards compile-cards    # one-time: Forge's scripts into .cards/, then the compiled cache
 make sim                          # 20 verified 4-seat bot games; each prints "replay OK"
 make web                          # optional: the browser client, which needs Node 20.19+
 go build -trimpath -o bin/gorged ./cmd/gorged
@@ -79,10 +78,11 @@ bin/gorged -engine dirac -seats 2 -vsbot -dir /tmp/gorge-dirac
 
 ## The one design rule
 
-Every state change in gorge goes through `events.Apply`. Engine code never writes a
-`state.Game` field; it emits an event into the log. A match is therefore its
-configuration plus its log, and replay, undo, search clones and bug reproduction
-all reuse that one mechanism. A write that bypasses `events.Apply` is a replay bug.
+Every state change goes through `events.Apply`: engine code never writes a
+`state.Game` field, it emits an event into the log. A match is its configuration
+plus its log, so replay, undo, search clones and bug reproduction share one
+mechanism. A write that bypasses `events.Apply` is a replay bug
+([all invariants](docs/site/architecture/invariants.md)).
 
 ## The repository
 
@@ -96,15 +96,15 @@ all reuse that one mechanism. A write that bypasses `events.Apply` is a replay b
 | `web/` | The Svelte browser client |
 | `cmd/` | Product and developer binaries |
 | `testkit/`, `cli/` | Public support packages: test fixtures, game runner, wire conformance, command-line layer |
+| `examples/`, `tools/`, `deploy/` | Example bots, the ManaBrew bridge, container demo files |
 | `internal/` | Import-graph and determinism ratchets, generators |
 | `scripts/`, `docs/` | Contributor and CI scripts; the site (`docs/site`) and decision records (`docs/decisions`) |
 
 `engine/` imports nothing outside itself, and dirac's core imports nothing outside
-`dirac/`. [Repository layout](docs/site/contributing/repo-layout.md)
-has the import rules and where each kind of change goes;
-[The three repositories](docs/site/repos/index.md) covers the public compliance
-repository and the maintainers' private companion module that build on gorge. An AI
-coding agent should start at [AGENTS.md](AGENTS.md).
+`dirac/`. [Repository layout](docs/site/contributing/repo-layout.md) has the import
+rules; [The three repositories](docs/site/repos/index.md) covers the public
+compliance repository and the private companion module that build on gorge. An AI
+coding agent starts at [AGENTS.md](AGENTS.md).
 
 ## License
 

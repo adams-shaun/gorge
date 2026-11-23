@@ -1,10 +1,8 @@
 # The card pipeline
 
-How a Forge card script becomes behaviour in a game, and how gorge measures
-which cards it can play: the contributor's how-to view, for someone about to
-change a card, a parser or a primitive. The runtime internals (the IR types
-in depth, how the engine dispatches primitives during play) are in
-[the card pipeline architecture page](../architecture/gorge/cards.md).
+How a Forge card script becomes behaviour, and how coverage is measured: the
+how-to view for someone changing a card, a parser or a primitive. IR types and
+runtime dispatch are on [the architecture page](../architecture/gorge/cards.md).
 
 ```mermaid
 flowchart LR
@@ -20,18 +18,11 @@ flowchart LR
 
 ## 1. Fetch
 
-`make fetch-cards` builds `bin/forgec` and runs `forgec fetch`
-(`engine/cards/fetch.go`). It does a sparse checkout of Forge's
-`cardsfolder` and token scripts from the fork
-[adams-shaun/forge](https://github.com/adams-shaun/forge) at the commit
-pinned by `FORGE_REF` in the `Makefile`, into the gitignored `.cards/`, and
-writes `.cards/cards.lock` recording the ref, commit and license. When the
-lock changes, the target clears Go's test cache, because the corpus lives
-outside the module and `go test` cannot see that it changed.
-
-The scripts are GPL-3.0 and gorge is Apache-2.0. Nothing under `.cards/` is
-ever committed, and `engine/cards/boundary_test.go` fails the build if a
-script is tracked.
+`make fetch-cards` builds `bin/forgec` and runs `forgec fetch` (`engine/cards/fetch.go`): a sparse
+checkout of `cardsfolder` and the token scripts from
+[adams-shaun/forge](https://github.com/adams-shaun/forge) at `FORGE_REF` into the gitignored `.cards/`,
+plus `.cards/cards.lock` (ref, commit, license). A changed lock clears Go's test cache. The scripts
+are GPL-3.0: nothing under `.cards/` is committed (`engine/cards/boundary_test.go`).
 
 ## 2. Parse and link
 
@@ -41,7 +32,7 @@ script is tracked.
   into a `*cards.Card` with one `*cards.Face` per printed face, each holding
   its `Abilities`, `Triggers`, `Statics`, `Repls`, `Keywords`, `SVars` and
   raw `Params` maps (`engine/cards/ir.go`). Problems come back as
-  non-fatal `cards.Diag`s. The whole corpus produces only a handful.
+  non-fatal `cards.Diag`s.
 - `Card.Link()` (`engine/cards/link.go`) resolves the SVar references
   (`Execute$`, `SubAbility$`, …) into sub-ability trees, and first runs
   `expandKeywords` (`engine/cards/keywords.go`). That rewrites a keyword the
@@ -57,20 +48,16 @@ the output is byte-identical run to run.
 
 ## 3. The IR cache
 
-`make compile-cards` (`forgec compile`) saves the compiled registry to
-`.cards/ir-<fingerprint>.gob.gz` (`cards.CachePath`, `engine/cards/open.go`).
-The fingerprint is `cards.CompilerFingerprint`, a hash of the `engine/cards`
-sources that affect the IR (`engine/cards/fingerprint.go`). So a branch that
-changes the parser writes and reads its own cache file, and never reads one
-built by a different parser. Beside it sits a binary image of the same corpus,
-`.cards/ir-<fingerprint>.seg`, which keeps the loaded corpus out of the garbage collector's
-way. Compiling prunes older sibling caches.
+`make compile-cards` (`forgec compile`) saves the registry to `.cards/ir-<fingerprint>.gob.gz`
+(`cards.CachePath`, `engine/cards/open.go`). The fingerprint, `cards.CompilerFingerprint`
+(`engine/cards/fingerprint.go`), hashes the `engine/cards` sources that affect the IR, so a parser
+change reads and writes its own cache. Beside it sits a binary image,
+`.cards/ir-<fingerprint>.seg`, that keeps the corpus out of the garbage collector's way; compiling
+prunes older caches.
 
-Programs and tests open the corpus with `cards.OpenCorpus(dir)` or
-`cards.SharedCorpus(dir)`. Both load the cache, or recompile from
-`cardsfolder` when it is missing or older than `cards.lock`. Tests use
-`testutil.CorpusRegistry(t)`, which opens the shared registry once per test
-binary and **skips** when `.cards/` is absent.
+Programs open the corpus with `cards.OpenCorpus(dir)` or `cards.SharedCorpus(dir)` (the cache, or a
+recompile when missing or older than `cards.lock`). Tests use `testutil.CorpusRegistry(t)`: one
+shared registry per test binary, **skipping** when `.cards/` is absent.
 
 ## 4. The registry
 
@@ -117,15 +104,8 @@ make report     # prints cards, playable and token counts, then the top missing 
 make coverage   # the same as markdown tables in .coverage/ (gitignored), by type, colour, mana value
 ```
 
-"Playable" means every primitive is registered. It does not mean every
-parameter is honoured or every interaction is right. Three things narrow
-that gap:
-
-- the param census (`TestEveryRepoDeckParamsAreRead`), which tracks
-  parameters no code reads;
-- the oracle scenarios, which check behaviour against the printed text;
-- the compliance oracles, which compare gorge with XMage and Forge.
-
-The scenarios and the oracles live in the public companion repository
-[gorge-compliance](https://github.com/adams-shaun/gorge-compliance), which measures a pinned
-gorge revision. The per-set figures are on [Support by set](../support/sets.md).
+"Playable" means every primitive is registered, not that every parameter is honoured. Three checks
+narrow the gap: the param census (`TestEveryRepoDeckParamsAreRead`), oracle scenarios (behaviour
+against printed text) and the compliance oracles (gorge against XMage and Forge). The last two live
+in [gorge-compliance](https://github.com/adams-shaun/gorge-compliance); per-set figures are on
+[Support by set](../support/sets.md).

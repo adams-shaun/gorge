@@ -1358,10 +1358,13 @@ const (
 	ExileTurnFaceUp
 	// SkipPhase arms a CR 614.10 phase skip (Forge DB$ SkipPhase, False Peace's
 	// "target player skips all combat phases of their next turn"): Player is
-	// the skipping seat and Step the phase's first step (StepBeginCombat, the
-	// only phase modelled). Apply folds it into state.Game.PhaseSkips, where it
-	// waits for the seat's next turn; the TurnChange fold makes it live for that
-	// turn and drops it at the turn after. Appended after ExileTurnFaceUp so
+	// the skipping seat and Step the skipped step (StepBeginCombat, StepUntap
+	// or StepDraw). Apply folds it into state.Game.PhaseSkips: Amount 0 on
+	// StepBeginCombat waits for the seat's next turn, which the TurnChange fold
+	// makes live and drops at the turn after; Amount 1 (the seat's next combat
+	// phase) and 2 (the same, this turn only) and Amount 0 on StepUntap or
+	// StepDraw wait for the step itself; Amount -1 consumes the one-shot bit as
+	// the turn structure skips the step. Appended after ExileTurnFaceUp so
 	// every earlier ordinal, hash chain and golden replay is unchanged.
 	SkipPhase
 	// Haunt records CR 702.55b's exile-haunting-a-creature link: Obj is the
@@ -1383,8 +1386,9 @@ const (
 	// (Forge Mode$ AbilityResolves): Obj is the ability's source permanent,
 	// Player its controller and Amount the AbilityResolved* flag bits. A pure
 	// marker, emitted with the ability's Resolve event and only while a
-	// battlefield permanent carries a Mode$ AbilityResolves line. Appended
-	// after Countered so every earlier ordinal is unchanged.
+	// battlefield permanent carries a Mode$ AbilityResolves line (or a
+	// Mode$ BecomesCrewed line and the resolving ability is a crew ability).
+	// Appended after Countered so every earlier ordinal is unchanged.
 	AbilityResolved
 	// ReverseTurnOrder reverses the game's turn order (Forge's
 	// ReverseTurnOrderEffect, Aeon Engine): the fold toggles
@@ -1403,11 +1407,17 @@ const (
 )
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a
-// Saga chapter ability, and the final chapter's.
+// Saga chapter ability, the final chapter's, and a crew ability.
 const (
 	AbilityResolvedTriggered int32 = 1 << iota
 	AbilityResolvedChapter
 	AbilityResolvedLastChapter
+	// AbilityResolvedCrew marks a resolving crew ability (CR 702.122e): the
+	// `K:Crew` expansion's minted Animate SA carries `Keyword$ Crew`, so the
+	// resolving ability's tag -- not any card name -- identifies it. Mode$
+	// BecomesCrewed reads this bit; it is appended after the chapter bits so
+	// every earlier amount value is unchanged.
+	AbilityResolvedCrew
 )
 
 // PlanarWalkDontPlaneswalkAway is PlanarWalk's Amount flag: the resolving

@@ -82,10 +82,13 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // beside Elven Chorus's granted {T} abilities is a trigger-cost window gorge
 // funds by sacrificing a creature, and its sacrifice is a choose the walk must
 // pause on (ChCostSacrifice) rather than answer by tapping the plain grants.
+// A spend-restricted source (kop.RestrictedTapXOneShape, Grand Architect) is
+// not offered either: the window cannot check its restriction against the
+// payment it serves.
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || kop.RestrictedTapXOneShape(k.tapXAbOf(s.cardAt(o))) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
@@ -109,6 +112,9 @@ func (s *State) winTapN(k *prep, sl Slot) int {
 // source still owes its second permanent (the ask stays posed), else cand and
 // cand2 are the permanents to tap, in pick order.
 func (s *State) winTapPick(k *prep, a Action) (more bool, cand, cand2 Slot) {
+	if k.exileGOf(s.cardAt(s.g.winSrc)) {
+		return false, s.graveIdx(Obj(a.Source())), NoSlot // the exile pick: a graveyard index
+	}
 	sl := s.objs[Obj(a.Source())].slot
 	if s.winTapN(k, s.g.winSrc) == 2 {
 		if s.g.winFirst == 0 {
@@ -125,6 +131,10 @@ func (s *State) winTapPick(k *prep, a Action) (more bool, cand, cand2 Slot) {
 // winTapOptions adds the window pick's options: the source's candidates in
 // battlefield order, less a two-permanent source's first pick.
 func (s *State) winTapOptions(k *prep, p uint8, d *Decision) {
+	if k.exileGOf(s.cardAt(s.g.winSrc)) {
+		s.exileGOptions(k, p, d)
+		return
+	}
 	var cs [MaxPerm]Slot
 	n := s.tapXCands(k, p, s.g.winSrc, &cs)
 	for _, sl := range cs[:n] {
@@ -144,6 +154,9 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 	var cs [MaxPerm]Slot
 	n := s.tapXCands(k, p, sl, &cs)
 	need := s.winTapN(k, sl) // with exactly that many candidates gorge taps them unasked
+	if k.exileGOf(s.cardAt(sl)) {
+		need = 0 // (an exile pick is asked even with one candidate: mana_exilegrave.go)
+	}
 	if n > need && s.g.winMode != winNone {
 		s.g.winSrc = sl
 		s.res.ask, s.res.askP = raGenWinTap, p
@@ -175,6 +188,9 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 
 // windowTapXCol is the colour the window's source sl makes (windowCol).
 func (s *State) windowTapXCol(k *prep, p uint8, cost *kop.ManaCost, sl Slot, anyColor, noOwed bool) uint8 {
+	if col, ok := s.windowSacTapOwed(k, p, sl, cost); ok {
+		return uint8(col) // the window's answer takes sl's owed later sac-tap ability (mana_sactapwin.go)
+	}
 	pc := &k.cards[s.cardAt(sl)]
 	if k.gen != nil {
 		pc = s.manaPCGen(k, sl)
@@ -199,6 +215,9 @@ func (s *State) askOptionsWinTap(k *prep, d *Decision) bool {
 	d.Sub = ChWindowTap
 	if k.sacXOf(s.cardAt(s.g.winSrc)) {
 		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (castWinTapOptions)
+	}
+	if k.exileGOf(s.cardAt(s.g.winSrc)) {
+		d.Sub = ChWinExile
 	}
 	s.winTapOptions(k, s.res.askP, d)
 	return true

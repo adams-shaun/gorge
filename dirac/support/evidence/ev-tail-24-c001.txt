@@ -1,10 +1,12 @@
 A-Baleful Beholder
+A-Cloister Gargoyle
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
 A-The One Ring
 Adamaro, First to Desire
 Aerial Modification
 Aeromunculus
+Aethertorch Renegade
 Aggressive Crag
 Air Nomad Student
 Alaborn Veteran
@@ -53,6 +55,7 @@ Chainer's Edict
 Chandra's Triumph
 Chandra, Legacy of Fire
 Cleansing Wildfire
+Cloister Gargoyle
 Collector's Case
 Conclave Cavalier
 Conifer Strider
@@ -277,6 +280,7 @@ Psionic Entity
 Puppeteer Clique
 Pyrohemia
 Pyromancer's Assault
+Qal Sisma Behemoth
 Radha's Firebrand
 Rampart Crawler
 Read the Bones
@@ -311,6 +315,7 @@ Satyr Piper
 Savannah
 Scryb Ranger
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone

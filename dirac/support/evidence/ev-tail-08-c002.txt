@@ -27,7 +27,6 @@ Battle Sliver
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
@@ -102,7 +101,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Final Payment
 Fists of Flame
 Flare
@@ -153,7 +151,6 @@ Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -206,7 +203,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -226,7 +222,6 @@ Precinct Captain
 Primal Adversary
 Propagator Drone
 Protector of the Wastes
-Puca's Covenant
 Queen's Agent
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -339,7 +334,6 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental
@@ -349,7 +343,6 @@ White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
 Wingmate Roc
-Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Yavimaya Enchantress

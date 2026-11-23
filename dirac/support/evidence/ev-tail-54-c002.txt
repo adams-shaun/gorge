@@ -1,59 +1,115 @@
+Adaptive Shimmerer
+Airdrop Aeronauts
+Airlift Chaplain
 Alley Grifters
+Alliance of Arms
 Alluring Scent
+Almighty Brushwagg
 Ancient Tomb
+Angelfire Crusader
+Angelic Accord
+Angelic Chorus
 Arashin Cleric
 Artificer's Dragon
 Astrid Peth
 Aurochs
+Avacyn's Pilgrim
+Avarice Amulet
 Bag of Holding
+Barbed Field
 Basal Sliver
 Basal Thrull
+Battlefield Butcher
+Bazaar Krovod
+Bearded Axe
+Betrayal of Flesh
 Biting-Palm Ninja
 Black Market Connections
 Blaring Recruiter
+Blight
 Blight Mamba
+Blighted Woodland
+Blinding Radiance
 Boggart Shenanigans
 Bond of Agony
 Bontu's Last Reckoning
+Brine Giant
+Brought Back
+Burst of Strength
+Carnival
+Catapult Squad
+Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
+Chronic Flooding
 Clarion Cathars
+Cloud Crusader
+Copper Longlegs
+Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
+Crop Rotation
 Crushing Vines
 Crystal Rod
+Culling Sun
 Cursed Land
+Dark Depths
 Daryl, Hunter of Walkers
 Deathgreeter
+Deep Reconnaissance
 Demon's Due
+Demystify
+Desert Twister
 Destructive Tampering
+Dinosaur Stampede
 Disorient
 Dispense Justice
 Divination
+Djeru, With Eyes Open
+Downhill Charge
 Dreamcaller Siren
+Drooling Ogre
+Earth Surge
+Echoes of the Kin Tree
 Ekundu Griffin
+Eldrazi Displacer
 Elspeth's Devotee
 Elvish Champion
 Ember-Eye Wolf
+Enatu Golem
+Escaped Null
 Esior, Wardwing Familiar
 Esper Panorama
 Essence Capture
+Euroakus
 Exile into Darkness
+Explosive Welcome
 Eye of Vecna
+Fade from History
+Farideh's Fireball
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
+First Sliver's Chosen
 Flame Sweep
 Flame-Blessed Bolt
+Flaming Fist Officer
 Fleecemane Lion
 Fleshmad Steed
+Font of Fertility
 Forest
+Fortified Rampart
 Foulmire Knight
 Foundry Street Denizen
 Foxfire Oak
 Frillscare Mentor
+Game Trail
+Gavony Silversmith
+Generous Gift
+Ghastly Death Tyrant
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
+Gideon's Reproach
 Glistening Oil
 Gluntch, the Bestower
 Goblin Trashmaster
@@ -61,113 +117,237 @@ Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
+Greven, Predator Captain
+Grinding Station
 Grond, the Gatebreaker
 Harbor Bandit
 Harrowing Journey
 Harvester of Souls
 Heartwood Treefolk
+Hedonist's Trove
+Hedron Rover
+Hellrider
+High-Rise Sawjack
+Hitchclaw Recluse
 Hold the Line
 Homarid Explorer
+Honeymoon Hearse
+Honor Troll
 Hulk, Bruce Banner
+Hungry Spriggan
 Hunt the Weak
+Hyalopterous Lemure
+Hystrodon
+Icatian Javelineers
+Ich-Tekik, Salvage Splicer
 Immersturm Raider
 Implement of Combustion
+Imps' Taunt
 Incubation
 Infested Fleshcutter
+Infested Thrinax
+Inkfathom Infiltrator
+Inquisitive Puppet
+Insight Engine
 Invasion of Kaldheim
+Invigorating Surge
 Iridescent Blademaster
 Iron Man, Tony Stark
+Ironroot Treefolk
 Island
+Ithilien Kingfisher
+Jolt
 Jor Kadeen, First Goldwarden
 Jwar Isle Avenger
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
+Keldon Overseer
+Keymaster Rogue
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
+Kithkin Shielddare
+Knight of the Stampede
 Kobold Taskmaster
 Launch Party
 Lava Dart
+Leveler
+Lhurgoyf
+Lich Lord of Unx
 Life Insurance
+Life's Legacy
 Lightning Rift
 Lightning Serpent
 Liliana's Specter
 Liliana's Steward
+Lord of Atlantis
 Lost Leonin
 Loyal Cathar
+Magus of the Future
 Makindi Stampede
 Malignant Growth
 Mandroid Squadron
 Massive Might
+Merciless Executioner
 Meteor Shower
 Mindstab Thrull
 Miss Highwater
+Momo's Heist
+Moonbow Illusionist
+Moonglove Winnower
+Moss Viper
 Mountain
 Multani's Harmony
+Murder Investigation
+Mystic Melting
+Natural Connection
+Nature's Way
+Night Terrors
+Nightmare
 Norwood Riders
 Nullmage Shepherd
 Nyx Weaver
+Ojutai Monument
+Okina, Temple to the Grandfathers
+Old Gnawbone
+Old Man Willow
+Olivia Voldaren
+One Ring to Rule Them All
 Orim's Prayer
 Ostiary Thrull
+Overflowing Insight
 Pack Rat
 Paladin of the Bloodstained
+Parallel Lives
 Patch Up
+Peak Eruption
+Peema Trailblazer
+Peregrine Mask
+Phantom Tiger
 Pharika's Disciple
+Phyrexia's Core
 Phyrexian Digester
+Pitchstone Wall
+Pitiless Horde
 Plains
 Plasma Elemental
+Plated Rootwalla
 Poison-Blade Mentor
 Pridemalkin
 Prologue to Phyresis
 Promise of Aclazotz
+Pyre Zombie
 Pyromancer's Swath
+Pyrrhic Blast
 Quest for the Goblin Lord
 Racers' Ring
 Radioactive Man
 Rain of Blades
+Rain of Embers
+Ramosian Rally
+Rampaging Brontodon
+Ranger's Guile
 Raze to the Ground
+Recruitment Drive
 Relentless Assault
 Remote Isle
 Renegade Freighter
 Reya Dawnbringer
+Riptide Biologist
 Roc Charger
 Root Spider
+Roots
 Run Out of Town
 Sacred Prey
 Sandbar Merfolk
 Sandsower
+Saproling Symbiosis
 Sarulf's Packmate
+Scalding Tarn
 Scarwood Bandits
+Scatter Ray
 Scouring Swarm
 Secure the Wastes
+Seismic Spike
+Sejiri Merfolk
+Sengir Connoisseur
 Sensor Splicer
 Shadow of Mortality
+Shielded Aether Thief
 Shinka Gatekeeper
+Shipwreck Singer
+Shivan Fire
+Shivan Phoenix
+Shock Troops
+Shower of Sparks
+Shrieking Specter
 Shu Elite Infantry
+Shunt
+Silent Artisan
+Silver Shroud Costume
+Skarrgan Pit-Skulk
+Skeletal Vampire
+Skophos Warleader
+Sky Skiff
 Skyshroud Forest
+Skyshroud Sentinel
 Slimefoot, the Stowaway
 Slinking Serpent
+Smelt-Ward Minotaur
+Sokka, Wolf Cove's Protector
+Solid Ground
 Soltari Visionary
 Soul's Attendant
+Sphere of Annihilation
+Spirit Bonds
 Spirit Weaver
+Spite
+Squire
+Staff of Nin
+Stalwart Aven
+Steadfast Guard
 Stensia Innkeeper
+Still Life
 Stonecloaker
 Stonehands
 Storm Fleet Negotiator
 Stormscape Familiar
 Strands of Undeath
+Summon: Ixion
 Sunblast Angel
+Suq'Ata Assassin
+Surge of Salvation
 Survivors' Encampment
 Swamp
+Switcheroo
+Sylvok Lifestaff
 Tail Swipe
+Take Down
+Tangletrap
+Tazeem Raptor
 Tempest Caller
 Temple Bell
 Terra Ravager
 The Duke, Rebel Sentry
+The Eldest Reborn
+Thousand-Year Elixir
 Thundermare
+Tideshaper Mystic
 Tin-Wing Chimera
+Torch Song
 Transplant Theorist
+Traveler's Amulet
+Trawler Drake
 Trespasser il-Vec
+Triton Cavalry
+Trusted Pegasus
 Trusty Machete
+Tundra
+Twinferno
+Unchecked Growth
+Unwilling Recruit
+Valakut Predator
 Vampire Champion
 Visions of Beyond
 Volcanic Spray
@@ -175,7 +355,11 @@ Vraan, Executioner Thane
 Vulshok Heartstoker
 Wall of Hope
 War Priest of Thune
+Watercourser
 Weaponcraft Enthusiast
 Well of Life
+Wrecking Crew
+Yavimaya Ancients
 Zodiac Horse
+Zombie Goliath
 Éomer, King of Rohan

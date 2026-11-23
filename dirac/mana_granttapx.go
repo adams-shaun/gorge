@@ -40,7 +40,7 @@ func (s *State) grantTapXGaps(k *prep, p uint8) slotMask {
 		sl := b.first()
 		c := s.cardAt(sl)
 		a := k.tapXAbOf(c)
-		if kop.SacXMana(a) {
+		if kop.SacXMana(a) || kop.ExileGManaAb(a) { // (an exile-from-graveyard source's picks are graveyard indices: mana_exilegrave.go)
 			continue
 		}
 		if a.Cost.N == 1 || a.Cost.N == 2 { // (a one-permanent cost with or without {T}: Urza's has none)

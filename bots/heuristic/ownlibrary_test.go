@@ -94,6 +94,7 @@ func TestOwnLibraryIsTheTrueLibraryOverWholeGames(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	for _, tc := range []struct {
 		seed  uint64
 		decks []string

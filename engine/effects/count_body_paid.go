@@ -569,6 +569,9 @@ const (
 	evalCountBodyPaidCardToughness
 	evalCountBodyPaidAttackersDeclared
 	evalCountBodyPaidColorsColorIdentity
+	evalCountBodyPaidTotalManaSpent
+	evalCountBodyPaidManaColorsPaid
+	evalCountBodyPaidXColorPaid
 )
 
 var evalCountBodyPaidCodes = state.NewStrCodes(
@@ -614,4 +617,9 @@ var evalCountBodyPaidCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyPaidCode]{Key: "CardToughness", Val: evalCountBodyPaidCardToughness},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "AttackersDeclared", Val: evalCountBodyPaidAttackersDeclared},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "ColorsColorIdentity", Val: evalCountBodyPaidColorsColorIdentity},
+	// The payment-history heads are evaluated by evalCountBodyPayment
+	// (count_body_payment.go); evalCountBodyPaid hands them on.
+	state.StrEntry[evalCountBodyPaidCode]{Key: "TotalManaSpent", Val: evalCountBodyPaidTotalManaSpent},
+	state.StrEntry[evalCountBodyPaidCode]{Key: "ManaColorsPaid", Val: evalCountBodyPaidManaColorsPaid},
+	state.StrEntry[evalCountBodyPaidCode]{Key: "xColorPaid", Val: evalCountBodyPaidXColorPaid},
 )

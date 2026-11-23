@@ -1,12 +1,9 @@
 # Getting started
 
-This page takes you from a fresh clone to verified bot games, a local server with its API and a
-focused test run. It needs Go and one download of about 140 MB; a browser board also needs Node
-and `make web`. The
-[User's guide](guide/index.md) goes further on hosting and playing;
-[Contributing](contributing/index.md) on changing the code.
-
-[Install and build](guide/install.md#prerequisites) lists the prerequisites.
+From a fresh clone to verified bot games, a local server with its API, and a focused test run.
+You need Go and one download of about 140 MB; a browser board also needs Node and `make web`
+([prerequisites](guide/install.md#prerequisites)). The [User's guide](guide/index.md) covers
+hosting and playing; [Contributing](contributing/index.md) covers changing the code.
 
 ## 1. Fetch and compile the card corpus
 
@@ -21,10 +18,9 @@ make report           # coverage against the implemented primitives
 `FORGE_REF` pins in the `Makefile`, so every number is relative to that pin. The scripts
 are GPL-3.0 and gorge is Apache-2.0, so they stay in the gitignored `.cards/` and are never
 committed ([why](repos/index.md#licensing-and-the-forge-card-scripts)).
-`make compile-cards` prints a couple of diagnostics for rider text it doesn't support;
-those are expected.
+`make compile-cards` prints one non-fatal diagnostic line per rider text it doesn't support.
 
-`make report` begins like this (2026-11-08, at `fc2be1aabe`):
+`make report` begins like this (the values depend on the `FORGE_REF` pin):
 
 ```text
 corpus: <FORGE_REF> @ <FORGE_REF> (GPL-3.0, <n> files)
@@ -32,8 +28,8 @@ cards: <n>  playable: <n> (<pct>)
 tokens: <n>
 ```
 
-A card is *playable* when every primitive its script names is implemented, which doesn't
-promise it behaves correctly; [Card support](support/sets.md) says what does. The report goes
+A card is *playable* when every primitive its script names is implemented; that does not
+promise it behaves correctly ([Card support](support/sets.md) says what does). The report goes
 on to rank the missing primitives by how many cards each would unlock.
 
 ## 2. Play verified games
@@ -59,7 +55,8 @@ seed 43: 2 seats,    590 intents,   3154 events,  20 turns, winner=death-n-taxes
 ```
 
 An *intent* is one answer to a decision, and `chain` is the hash of the game's whole event
-log. The numbers move when a change alters what the games do; these are from 2026-11-08 at `fc2be1aabe`.
+log. The numbers move whenever a change alters what the games do (the committed golden heads
+are in `engine/rules/testdata/heads/`); these were printed at `fc2be1aabe` on 2026-11-08.
 
 ## 3. Run a local server
 
@@ -85,22 +82,21 @@ docker run -d --name gorge -p 127.0.0.1:8090:8080 -v gorge-cards:/cards -v gorge
   damadama22/gorged-demo:latest
 ```
 
-To run the same server on dirac, see [Serving dirac](guide/dirac.md). `bin/gorged -h` lists every flag. A bare `gorged` uses `:8080`, `gorged-data/` and, for bug reports, `feedback/`. Two servers
-must never share one `-dir`, because they silently corrupt each other's matches. At startup the
-server fetches card art for the dealt decks into `<dir>/art`; pass `-prewarm=false` to skip that
-when you are offline. [Play in the browser](guide/play.md) walks through the rest.
+To serve dirac, see [Serving dirac](guide/dirac.md). `bin/gorged -h` lists every flag. A bare `gorged`
+uses `:8080`, `gorged-data/` and `feedback/`; two servers must never share one `-dir` (they corrupt
+each other's matches). At startup it fetches card art for dealt decks into `<dir>/art`
+(`-prewarm=false` skips it offline). [Play in the browser](guide/play.md) has the rest.
 
 ## 4. Run the tests
 
 ```sh
-go test -run '^TestHeads$' ./engine/rules/
-go test -run 'TestOracleRunnerContract' ./engine/rules/
+make test-one PKG=./engine/rules RUN='^TestHeads$'
+make test-one PKG=./engine/rules RUN='^TestOracleRunnerContract$'
 ```
 
-`TestHeads` plays one golden bot game at each of 2, 4, 6 and 8 seats and compares each game's
-chain head with a committed value. [Testing](contributing/testing.md#focused-runs) has how to run
-tests without the whole suite, how to tell a skipped corpus test from a pass, and what each failure
-means.
+`TestHeads` plays golden bot games at 2, 4, 6 and 8 seats and a four-seat Commander game, and compares
+each chain head with a committed value. [Testing](contributing/testing.md#focused-runs) explains the
+make targets, how a skipped corpus test shows up (`ENV`, not a pass), and what each failure means.
 
 ## 5. Reproduce a reported game
 

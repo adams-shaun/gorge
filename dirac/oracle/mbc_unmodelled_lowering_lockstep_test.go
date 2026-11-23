@@ -20,4 +20,15 @@ func TestMBCTail40ReprosLockstep(t *testing.T) {
 	// additional main phase; gorge asks which recipients get a counter and the
 	// kernel stalled on the ask (StallProlif, pair 47).
 	stdReproNamed(t, "prolif_choice")
+	// CR 707.9b: seat 0's Venser, Fervent Forger copies a permanent twice with
+	// "they gain haste" in a pool whose Snow Fortress puts the unmodeled Snow
+	// supertype into every override record's KeepSub; the kernel did not find
+	// the haste-only record and stalled `lowering` (pair 82).
+	stdReproNamed(t, "copy_pump_keyword_record_with_snow_keepsub")
+	// CR 701.34a with CR 603.8: seat 1's proliferate puts three kinds on its
+	// own Merchant Ship, whose "when you control no Islands" state trigger
+	// rides the counter-put event as its only listener. One instance at a
+	// time, whatever kind came first, so the per-kind order reaches no stack;
+	// the kernel stalled on it (StallProlif, tail-40 pair 163).
+	stdReproNamed(t, "prolif_state_trigger_self_listener")
 }

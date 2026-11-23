@@ -36,6 +36,7 @@ Battlefly Swarm
 Battlewise Valor
 Benthic Giant
 Black Dragon
+Black Ward
 Bladewing, Deathless Tyrant
 Blessed Defiance
 Blinding Souleater
@@ -135,12 +136,14 @@ Emissary of Hope
 Enduring Victory
 Epic Proportions
 Equestrian Skill
+Erhnam Djinn
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Ertai Resurrected
 Essence Extraction
 Eternal Isolation
 Evasive Action
+Eviscerator's Insight
 Evolution Charm
 Excoriate
 Explosive Impact
@@ -167,6 +170,7 @@ Generous Pup
 Ghastbark Twins
 Ghen, Arcanum Weaver
 Giant Ox
+Gibbering Kami
 Gideon's Battle Cry
 Gift of Growth
 Gilded Assault Cart
@@ -222,6 +226,7 @@ Hulking Ogre
 Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
+Immoral Bargain
 Impetuous Protege
 Index
 Industrial Advancement
@@ -348,6 +353,7 @@ Plains
 Plunder
 Possessed Skaab
 Pouncing Cheetah
+Powder Keg
 Prava of the Steel Legion
 Presence of the Wise
 Pridemalkin
@@ -364,7 +370,6 @@ Rabid Wolverines
 Radiant Grove
 Rage Thrower
 Rain of Embers
-Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Ravages of War
@@ -402,6 +407,7 @@ Rural Recruit
 Ruthless Predation
 Sadistic Obsession
 Salvage Titan
+Sam's Desperate Rescue
 Sandsteppe War Riders
 Sarkhan's Catharsis
 Satyr Hoplite
@@ -447,6 +453,7 @@ Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
 Soulquake
+Spare from Evil
 Spark Reaper
 Sparkhunter Masticore
 Specter's Wail
@@ -511,6 +518,7 @@ Tormented Hero
 Touch of Brilliance
 Tourach's Canticle
 Tovolar's Huntmaster
+Treasonous Ogre
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort

@@ -1,9 +1,8 @@
 # Training and adoption
 
-This page is for people who build, search with, train or ship a bot policy for gorge. It covers
-what the engine offers search and learning code, how to evaluate a policy, and the ladder a policy
-climbs from a bench experiment to the default bot. gorge ships the engine-side interfaces, the hosted
-bots and their inference code; training tools aren't in this repository.
+For people who build, search with, train or ship a bot policy: what the engine offers search and learning code, how to
+evaluate a policy, and the ladder from a bench experiment to the default bot. gorge ships the engine-side interfaces,
+the hosted bots and their inference code; training tools are not in this repository.
 
 ## The contract a policy answers
 
@@ -63,11 +62,11 @@ matchup.
 
 ## The adoption ladder
 
-A policy moves up one rung at a time, and each rung has a gate.
+A policy moves up one rung at a time, and each rung has a gate. The thresholds below are the maintainers' process, not enforced by a test.
 
 1. **Bench-only.** A `seat.Seat` you drive through `testkit/bench`, with no gate beyond the rules below.
    Research modes (clairvoyant worlds, oracle features) stay here.
-2. **Hosted, opt-in.** Registered with `bots.Register` from an `init` and linked from `bots/all`, so
+2. **Hosted, opt-in.** Registered with `bots.Register` from an `init` and linked into `gorged` (`bots/all` or `cmd/gorged`), so
    `POST /api/games` can select it with `bot_policy`, unless it reads every seat's decklist. A maintainer accepts
    it when:
     - It is seat-honest: nothing the view doesn't show, and an Env seat reads only its honest root.
@@ -82,7 +81,7 @@ A policy moves up one rung at a time, and each rung has a gate.
     - no pair below −5 points;
     - no new stalls or errors.
 
-    The same change regenerates the golden replay heads (`TestHeads`), naming the policy change as the cause.
+    The same change regenerates the golden replay heads (`TestHeads` in `engine/rules`), naming the policy change as the cause.
 
 ## Rules for bot code
 

@@ -197,8 +197,9 @@ type PaymentPlan struct {
 // PlannedCast is the exact cast identity a payment action authorizes.
 //
 // Origin is the zone the cast begins from: "hand", "command_zone" (the plain
-// taxed commander cast), or "exile" / "graveyard" (the plain cast an untyped
-// may-play permission grants a card there) -- or "flashback" (OriginFlashback),
+// taxed commander cast), "exile" / "graveyard" / "library" (the plain cast an
+// untyped may-play permission grants a card there; the library origin is the
+// top card only) -- or "flashback" (OriginFlashback),
 // the CR 702.34a flashback cast of a graveyard card for its primary flashback
 // cost, the one alternative-cost cast a V1 witness pays.
 //
@@ -221,10 +222,15 @@ type PlannedCast struct {
 // further flashback instance (Option.Cost set) is never planned.
 const OriginFlashback = "flashback"
 
+// OriginLibrary is the PlannedCast.Origin of an untyped may-play cast from
+// the top of its controller's library (a permission such as The Reality
+// Chip's; Card.TopLibrary is the only card it covers).
+const OriginLibrary = "library"
+
 // CastMode is the priority-option Mode a planned cast of this origin begins
 // as: the cast's own Mode for a hand alternate-spell-face cast
 // ("adventure_alt"/"omen_alt"), "flashback" for OriginFlashback, "mayplay"
-// for the exile and graveyard may-play origins, "" for the hand and
+// for the exile, graveyard and library may-play origins, "" for the hand and
 // command-zone plain casts.
 func (c PlannedCast) CastMode() string {
 	if c.Mode != "" {
@@ -233,7 +239,7 @@ func (c PlannedCast) CastMode() string {
 	switch c.Origin {
 	case OriginFlashback:
 		return "flashback"
-	case "exile", "graveyard":
+	case "exile", "graveyard", OriginLibrary:
 		return "mayplay"
 	}
 	return ""

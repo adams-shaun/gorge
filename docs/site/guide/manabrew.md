@@ -1,14 +1,8 @@
 # Play gorge in ManaBrew's client
 
-This page is for people who want to play gorge from [ManaBrew](https://docs.manabrew.app/)'s own
-client: its lobby, its deck library, its table and its bots, with gorge as the rules engine. It
-walks through the four processes involved, starting a four-seat Commander pod, what to expect while
-you play, the dirac engine, and what to do when something goes wrong.
+Play gorge from [ManaBrew](https://docs.manabrew.app/)'s own client (its lobby, deck library, table and bots) with gorge as the rules engine. This page covers the processes involved, a four-seat Commander pod, what changes while you play, dirac, and troubleshooting.
 
-The commands, logs and screenshots are from 2026-11-19: ManaBrew v3.42.7 (commit `0193f13`), its web
-client in headless Chrome, and gorge with the ManaBrew wire changes of
-[#1960](https://github.com/adams-shaun/gorge/pull/1960). A gorge from before #1960 refuses every deck
-the client sends and sends prompts the client cannot read.
+Commands, logs and screenshots are from 2026-11-19: ManaBrew v3.42.7 (commit `0193f13`), its web client in headless Chrome, and gorge with the ManaBrew wire changes of [#1960](https://github.com/adams-shaun/gorge/pull/1960). A gorge from before #1960 refuses every deck the client sends and sends prompts the client cannot read.
 
 ## How the pieces fit
 
@@ -24,8 +18,7 @@ game needs four processes, and a fifth for card art:
 | The ManaBrew web client | What you play in | ManaBrew |
 | `manabrew-hub` | ManaBrew's account and deck service; the web client looks up every card's art through it | ManaBrew |
 
-The bridge is original code under gorge's licence. It speaks ManaBrew's published relay and seat
-protocols and contains no ManaBrew source; it rewrites nothing inside a message.
+The bridge is original code under gorge's licence. It speaks ManaBrew's published relay and seat protocols, contains no ManaBrew source, and rewrites nothing inside a message.
 [Its README](https://github.com/adams-shaun/gorge/tree/main/tools/manabrew-bridge) lists every setting.
 ManaBrew itself is AGPL-3.0 and is not part of gorge: you build it from its own repository.
 
@@ -260,9 +253,7 @@ What is different from a ManaBrew-hosted game:
 <figcaption>Game over on turn 43, seen from a seat that had conceded.</figcaption>
 </figure>
 
-The whole game behind these screenshots, from the lobby to the game-over screen, one frame about
-every ten seconds of play. The player passed every turn after the first few and conceded at 13 life;
-the three bots played it out:
+The screenshots come from one game, lobby to game-over, a frame about every ten seconds. The player passed every turn after the first few and conceded at 13 life; three bots played it out:
 
 <figure markdown>
 ![A time lapse of the four-seat game: the lobby, the deck dialog and the table room, the mulligan, casting Sol Ring, then the board filling up turn by turn as the bots attack each other and the player, ending on the game-over screen](img/manabrew/timelapse.gif)

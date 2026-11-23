@@ -1,0 +1,6 @@
+family: mech
+name: mechHorsemanship
+value: 59
+state: slotbit 16/16
+status: active
+doc: slots whose permanent has horsemanship until end of turn (ExtKwMark KwMarkHorsemanship; kw_kwmark.go)

@@ -1,17 +1,15 @@
 # The rules core
 
 Package `engine/rules` is where the Comprehensive Rules (CR) live: casting and
-the stack, state-based actions, triggers, replacement effects, the layer
-system, combat and zones. This page walks through each mechanism with the
-functions that implement it and the CR rules they cite, so that a developer
-who knows Magic can find the code for a rule, and one who does not can see how
-the pieces fit. It assumes you have read [Events and replay](events.md) and
-[Game loop and decisions](game-loop.md).
+the stack, state-based actions, triggers, replacement effects, layers, combat
+and zones. Each section names the functions that implement a mechanism and the
+CR rules they cite. Read [Events and replay](events.md) and
+[Game loop and decisions](game-loop.md) first.
 
 ## The shape of the package
 
-`engine/rules` is the largest package in the repository. Around it sit seven
-sub-packages that each compute one thing and never hold an engine:
+Around `engine/rules` sit seven sub-packages that each compute one thing and
+never hold an engine:
 
 <figure markdown>
 <svg viewBox="0 0 780 330" width="100%" role="img" aria-label="The engine/rules package and its sub-packages, layered: orchestration on top, the resolution kernel, the subsystem packages, characteristic computation, effects, the cost vocabulary, and the core types">
@@ -52,16 +50,17 @@ implements; nothing below the top band emits an event. <code>internal/archtest</
 pins the imports, and each <code>Board</code>'s method count may only shrink.</figcaption>
 </figure>
 
-Inside `rules` itself, a mechanism's files share a name prefix: `cast*`, `trigger*` and
-`triggered_*`, `replace*`, `layer*`, `mana*`, `combat*`, `sba*`, `turn*`, and `stack.go`.
+Inside `rules`, a mechanism's files share a name prefix: `cast*`, `trigger*` and
+`triggered_*`, `replace*`/`replacement*`, `layer*`, `mana*`, `combat*`, `sba*`,
+`turn*`, and `stack.go`.
 
 ## Casting (CR 601)
 
 A cast is a small state machine. `beginCast`
 ([`engine/rules/cast_begin.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/cast_begin.go))
-creates a `pendingCast` on `e.cast`, and `continueCast` runs its stages in
-order. A stage that needs a player's answer poses a decision and returns; the
-answer re-enters `continueCast`, which skips the stages already done.
+creates a `pendingCast` on `e.cast`; `continueCast` runs the stages in order. A
+stage that needs an answer poses a decision and returns; the answer re-enters
+`continueCast`, which skips finished stages.
 
 ```mermaid
 flowchart TD
@@ -79,47 +78,39 @@ flowchart TD
   I --> J["priority to the caster"]
 ```
 
-Three properties matter:
-
-- **Targets before payment.** Targets are chosen (`targetAsk`) before
-  anything is paid (`payCast`), as CR 601.2c-h requires, and the total cost is
-  recomputed for the chosen targets (`repriceForTargets`), because some
-  costs depend on what you target.
-- **Mandatory-target feasibility.** A cast whose mandatory targets cannot all
-  be chosen aborts with `cast aborted: no legal target`. The check
-  (`targetChoiceFeasible`) is the same predicate the priority offer used to
-  decide the cast was available at all, so an offered cast can always
+- **Targets before payment.** Targets are chosen (`targetAsk`) before anything is
+  paid (`payCast`), as CR 601.2c-h requires, and the total cost is recomputed for
+  the chosen targets (`repriceForTargets`).
+- **Mandatory-target feasibility.** If the mandatory targets cannot all be chosen,
+  the cast aborts with `cast aborted: no legal target`. `targetChoiceFeasible` is
+  the same predicate the priority offer used, so an offered cast can always
   announce a legal target.
 - **Illegal casts are reversed forward, not erased** (CR 733.1). The log is
   append-only, so `abortCast` emits compensating events: the spell moves back
-  to where it came from (`MoveZone` with text `reversed`), a
-  `SpellCastReversed` event decrements the "spells cast this turn" tally that
-  the `PutOnStack` had incremented, faces and choices are restored, and the
-  held "when you cast" trigger is dropped. Mana taps in the announced payment
-  window are undone the same way, one `ManaUndo` per tap. Repeating the same
-  aborted cast twice removes the option for that window (CR 733.2), so a bot
-  cannot loop on it.
+  (`MoveZone` with text `reversed`), `SpellCastReversed` decrements the "spells
+  cast this turn" tally `PutOnStack` incremented, faces and choices are restored,
+  and the held "when you cast" trigger is dropped. Announced-payment mana taps
+  are undone with one `ManaUndo` each. Repeating the same aborted cast twice
+  removes the option for that window (CR 733.2), so a bot cannot loop on it.
 
-`CastInfo` records how the spell was cast (the X value, kicker and
-alternative-cost flags). It is emitted only at payment, so an aborted cast
-leaves no cast-time trace.
+`CastInfo` records how the spell was cast (X, kicker and alternative-cost flags).
+It is emitted only at payment, so an aborted cast leaves no cast-time trace.
 
 ## The stack and resolution
 
-`Game.Stack` is a slice of object IDs; the top is the last element. Spells
-and abilities are both objects in the arena: an ability object carries its
-`*cards.SA`, its source and the source's incarnation.
+`Game.Stack` is a slice of object IDs; the top is last. Spells and abilities are
+both arena objects; an ability object carries its `*cards.SA`, its source and
+the source's incarnation.
 
 `resolveTop` ([`engine/rules/stack.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/stack.go))
 resolves the top object:
 
 1. For an ability, check that the source is still the same object (CR 400.7)
    and re-check an intervening "if" condition (CR 603.4).
-2. **Re-check targets** (`legalTargets`, CR 608.2b). If every target is gone
-   or illegal, the object leaves the stack without resolving ("fizzled: no
-   legal targets remain"). A target that left and came back is a new object
-   and so illegal; this is checked by comparing the incarnation stamped on
-   the target when it was chosen.
+2. **Re-check targets** (`legalTargets`, CR 608.2b). If every target is gone or
+   illegal, the object leaves the stack without resolving ("fizzled: no legal
+   targets remain"). A target that left and came back is a new object, caught by
+   comparing the incarnation stamped when it was chosen.
 3. Emit `Resolve` (for a spell) and call `effects.Resolve`, which walks the
    ability's sub-ability chain (see [Cards and primitives](cards.md#resolution-walking-the-chain)).
 4. If a decision is needed mid-way, the resolution kernel takes over
@@ -128,9 +119,10 @@ resolves the top object:
 ## State-based actions (CR 704)
 
 `checkStateBased` ([`engine/rules/sba.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/sba.go))
-applies state-based actions "until none apply, which is what CR 704.3
-requires": a fixed-point loop of at most 32 passes, after which it emits a
-`Note` instead of looping forever. One pass checks, in order:
+applies state-based actions until none apply (CR 704.3): a fixed-point loop of at
+most `maxSBAPasses` (32), after which it emits a `Note` instead of looping. The
+main checks, in order (`sba.go` also handles, for example, Role exclusivity,
+CR 704.5z, and Start your engines! speed, CR 704.5aa):
 
 | CR | Check |
 |---|---|
@@ -140,16 +132,15 @@ requires": a fixed-point loop of at most 32 passes, after which it emits a
 | 704.5j | the legend rule: the controller chooses which to keep (a `choose` decision with `keep` options) |
 | 704.5k | the world rule |
 | 704.5i | a planeswalker with 0 loyalty |
-| 704.5 | a battle with 0 defense |
+| 704.5v | a battle with 0 defense |
 | 704.5d-e | tokens and copies in the wrong zone cease to exist |
 | 704.5m-n | illegal Auras, Equipment and Fortifications |
 | 704.5s | Sagas past their last chapter |
 | 704.5t | completed dungeons |
 
-The checks run after every submitted answer (but never in the middle of a
-cast), after draws, after each combat damage pass and at step boundaries.
-Two fast paths keep this cheap: a quiet-skip when nothing relevant changed,
-and a per-permanent prefilter.
+The checks run after every submitted answer (never mid-cast), after draws, after
+each combat damage pass and at step boundaries. A quiet-skip (nothing relevant
+changed) and a per-permanent prefilter keep this cheap.
 
 ## Triggers
 
@@ -192,13 +183,12 @@ player would next receive priority (CR 117.5).</figcaption>
 
 - **Matching.** After each event is logged and applied, `checkTriggers`
   ([`engine/rules/trigger_match.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/trigger_match.go))
-  looks for triggered abilities it made true. Each event kind carries a
-  trigger-interest class from `events/kindinfo.go`, so only faces whose
-  triggers could care are examined. The per-mode verdict comes from
-  `trigmatch.Match`: a dense table with one matcher per trigger `Mode$`,
-  registered from each mode's file in `rules/trigmatch` (a mode with no matcher
-  never fires). Leaves-the-battlefield triggers are matched against
-  a snapshot of the board from before the event (the CR 603.10a "look back").
+  finds the triggered abilities it made true. The event kind's trigger-interest
+  class (`events/kindinfo.go`) limits which faces are examined. The per-mode
+  verdict is `trigmatch.Match`: a dense table with one matcher per trigger
+  `Mode$`, registered from each mode's file in `rules/trigmatch` (a mode with no
+  matcher never fires). Leaves-the-battlefield triggers match against a snapshot
+  of the board from before the event (CR 603.10a "look back").
 - **Queueing and order.** Matches wait in `pendingTriggers` until
   `priorityRound` calls `putTriggersOnStack`. That sorts them APNAP (active
   player's first, CR 603.3b), asks each controller with two or more for a
@@ -210,17 +200,16 @@ player would next receive priority (CR 117.5).</figcaption>
 - **Delayed triggers** ("at the beginning of the next end step") are game
   state in `Game.Delayed`, registered by a `DelayedRegister` event and fired
   by `checkDelayedTriggers`.
-- **Loop guard.** One trigger may fire at most 256 times for one source, and
-  a livelock watcher aborts a game that repeats a cycle of events without
-  progress.
+- **Loop guard.** One trigger fires at most `maxTriggerFires` (256) times for one
+  source, and a livelock watcher (`livelock.go`) aborts a game that repeats a
+  cycle of events without progress.
 
 ## Replacement and prevention effects (CR 614-616)
 
 Replacement effects ("if X would happen, Y happens instead") change an event
 **before** it is logged. `Engine.emit` calls `applyReplacements`
 ([`engine/rules/replacement.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/replacement.go))
-first; if a replacement substitutes the event, the original is never logged,
-and only the substitute's events are.
+first; a substituted event is never logged, only the substitute's events are.
 
 ```mermaid
 sequenceDiagram
@@ -240,26 +229,24 @@ sequenceDiagram
   Em->>Lg: log and fold the result
 ```
 
-- The replaceable events are the script's `R:Event$` vocabulary, among them `Moved`, `DamageDone`, `Draw`, `GainLife`, `AddCounter`,
-  `CreateToken`, `ProduceMana`, `Untap` and `BeginPhase`, most with their own
-  `replacement_*.go` file.
-- When several apply, the affected player (the object's controller, or the
-  player for a draw) chooses through a `replacement` decision, and the
-  event is parked until they answer. Applicability is re-evaluated after each
-  rewrite (CR 616.1e), and an optional replacement gets an `apply`/`decline`
-  ask.
-- **Prevention is a replacement of the damage event** (CR 615.1):
-  `Prevent$ True` replacements, "prevent all damage" keywords and fog
-  effects are all applied on the damage path. Protection (CR 702.16) is
-  checked even earlier, at the top of `emit`, and records a `Note`
-  ("prevented: protection") instead of the `Damage` event.
+- The replaceable events are the script's `R:Event$` vocabulary (`Moved`,
+  `DamageDone`, `Draw`, `GainLife`, `AddCounter`, `CreateToken`, `ProduceMana`,
+  `Untap`, `BeginPhase`, ...), most with their own `replacement_*.go` file.
+- When several apply, the affected player (the object's controller, or the player
+  for a draw) chooses through a `replacement` decision and the event is parked
+  until they answer. Applicability is re-evaluated after each rewrite (CR
+  616.1e); an optional replacement gets an `apply`/`decline` ask.
+- **Prevention is a replacement of the damage event** (CR 615.1): `Prevent$ True`
+  replacements, "prevent all damage" keywords and fog effects apply on the damage
+  path. Protection (CR 702.16) is checked earlier, at the top of `emit`, and
+  records a `Note` ("prevented: protection") instead of the `Damage` event.
 
 ## Continuous effects and the layer system (CR 613)
 
-A permanent's current characteristics are its printed values with every
-active continuous effect applied in the order CR 613 prescribes. The engine
-never stores derived characteristics in `state.Game`; it computes them on
-demand from the printed face plus the effect list.
+A permanent's current characteristics are its printed values with every active
+continuous effect applied in CR 613 order. The engine never stores derived
+characteristics in `state.Game`; it computes them on demand from the printed face
+plus the effect list.
 
 <figure markdown>
 <svg viewBox="0 0 780 470" width="100%" role="img" aria-label="The CR 613 layer stack as implemented: printed face at the bottom, then layers 1 copy, 2 control, 3 text, 4 type, 5 colour, 6 abilities, and layer 7 power and toughness with sublayers 7a to 7e, with current characteristics on top">
@@ -300,25 +287,22 @@ before switching; the current CR text folds counters into 7c and calls
 switching 7d. Counters and modifiers both add, so the result is the same.</figcaption>
 </figure>
 
-**The effect list.** A continuous effect is a `state.ContinuousEffect`: its
-source, layer and sublayer, timestamp, an `Affects` filter (the same filter
-language as `ValidTgts$`), and the modification (`AddPower`, `SetPower`,
-`AddKeywords`, `AddTypes`, `SetName`, ...). Statics on permanents are
-rescanned into effects; resolving spells add them through
-`Host.AddContinuous`, which emits a `ClockTick` and stamps the new effect with
-the game clock, so timestamps are themselves part of the log. The registry
-lives on the engine (`Engine.continuous`) and is rebuilt identically on
-replay by re-execution.
+**The effect list.** A `state.ContinuousEffect` has a source, layer and sublayer,
+timestamp, an `Affects` filter (the `ValidTgts$` filter language) and the
+modification (`AddPower`, `SetPower`, `AddKeywords`, `AddTypes`, `SetName`, ...).
+Statics on permanents are rescanned into effects; resolving spells add them
+through `Host.AddContinuous`, which emits a `ClockTick` and stamps the effect
+with the game clock, so timestamps are part of the log. The registry lives on the
+engine (`Engine.continuous`) and is rebuilt identically on replay by
+re-execution.
 
 **Ordering.** `active()` ([`engine/rules/layers.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/layers.go))
-returns the live effects "sorted into CR 613 order: layer, then sublayer, then
-timestamp", with a stable sort so equal keys keep registration order. An
-effect whose source has left the battlefield drops out ("which is what makes
-a lord's static bonus vanish the instant the lord dies"), except one-shot
-until-end-of-turn effects, which outlive their source. In layer 6,
-`abilityDependencyOrder` (`rules/chars`) applies CR 613.8 dependencies: one
-effect that changes whether another applies goes first, and a dependency loop
-falls back to timestamp order.
+returns the live effects in CR 613 order (layer, sublayer, timestamp) with a
+stable sort, so equal keys keep registration order. An effect whose source left
+the battlefield drops out (a lord's bonus vanishes when it dies), except one-shot
+until-end-of-turn effects. In layer 6, `abilityDependencyOrder` (`rules/chars`)
+applies CR 613.8 dependencies: an effect that changes whether another applies
+goes first, and a dependency loop falls back to timestamp order.
 
 **The walk.** The read-only computation lives in package `rules/chars`:
 `chars.Types` is the layer-4 walk, `chars.Compute` the full layer 3/5/6 walk,
@@ -331,24 +315,23 @@ func (e *Engine) Power(id state.ObjID) int32
 func (e *Engine) Toughness(id state.ObjID) int32
 ```
 
-The returned slices (keywords, types) alias the engine's scratch buffers and
-are rewritten by the next call; callers copy what they keep. That rule is
-what lets repeated derivation run without allocating.
+The returned slices (keywords, types) alias the engine's scratch buffers and are
+rewritten by the next call; callers copy what they keep. That is what lets
+repeated derivation run without allocating.
 
-**Caching.** Derivation happens constantly (every filter match reads
-keywords and types), so several caches sit in front of it, each keyed on
-something only an event can move:
+**Caching.** Every filter match reads keywords and types, so several caches sit
+in front of derivation, each keyed on something only an event can move:
 
 | Cache | Keyed on | Why it is safe |
 |---|---|---|
 | `active()` effect list | log length, continuous-registry version, static build sequence | the board only changes through logged events |
-| layer-inert reuse | the same key, ignoring `DecisionAsk`, `DecisionMade` and `Priority` events | those fold nothing a layer reads; they are about 70 % of a game's events |
-| walk-scoped `Derived` memo | per legal-actions walk, plus log length, registry version and arena size | the walk is a pure read; inside one walk 75 % of derivations repeated an object already derived |
+| layer-inert reuse | the same key, ignoring `DecisionAsk`, `DecisionMade` and `Priority` events | those fold nothing a layer reads |
+| walk-scoped `Derived` memo | per legal-actions walk, plus log length, registry version and arena size | the walk is a pure read, and derivations inside one walk repeat objects |
 | incremental layer 4/5/6 tables | type, colour and keyword grants | rebuilt when their inputs change |
 
 The layer-inert reuse and the `Derived` memo each have a verify mode
-(`layerInertVerify`, `derivedMemoVerify`) that recomputes on every hit and
-panics on a difference, so a stale entry fails loudly in tests.
+(`layerInertVerify`, `derivedMemoVerify`) that recomputes on every hit and panics
+on a difference, so a stale entry fails loudly in tests.
 
 ## Combat
 
@@ -376,35 +359,32 @@ sequenceDiagram
   E->>E: end of combat: EndCombatReset
 ```
 
-- **Legality** (can this creature attack, can it block that one, menace,
-  "attacks each combat if able", goad) is in package `rules/combat`, as pure
-  predicates over a `Board`. The declaration flow, its validation and the
-  events stay in `rules`.
-- **Defenders.** Each attacker may attack any living opponent, a planeswalker
-  or a battle independently; the decision's options are the legal pairs.
-- **Damage assignment.** There is no damage assignment order: any division
-  of damage that satisfies CR 510.1c is legal, and when the controller has a
-  real choice it is asked as a `choose` decision.
-- **First strike** is two passes inside the one combat damage step, with a
-  priority round between them. `actsThisDamageStep` (CR 510.5) decides which
-  creatures deal damage in each pass.
+- **Legality** (can this creature attack or block that one, menace, "attacks each
+  combat if able", goad) is in `rules/combat` as pure predicates over a `Board`.
+  The declaration flow, validation and events stay in `rules`.
+- **Defenders.** Each attacker may attack any living opponent, planeswalker or
+  battle independently; the decision's options are the legal pairs.
+- **Damage assignment.** There is no damage assignment order: any division that
+  satisfies CR 510.1c is legal, asked as a `choose` decision when the controller
+  has a real choice.
+- **First strike** is two passes inside the one combat damage step with a
+  priority round between them; `actsThisDamageStep` (CR 510.5) decides who deals
+  damage in each pass.
 
 ## Zones and object identity (CR 400.7)
 
-**The arena.** Every card, token, spell and ability is a `state.Object` in
-one dense slice, `Game.Objs`; `Objs[i]` has ID `i+1`, so `ObjID` 0 means "no
-object". Zones are lists of IDs indexed by zone and player; the stack is its
-own list.
+**The arena.** Every card, token, spell and ability is a `state.Object` in one
+dense slice, `Game.Objs`; `Objs[i]` has ID `i+1`, so `ObjID` 0 means "no object".
+Zones are lists of IDs indexed by zone and player; the stack is its own list.
 
 **Identity.** An object keeps its `ObjID` for the whole match, in every zone.
-CR 400.7 says a permanent that leaves the battlefield and returns is a *new*
-object, so the object also carries an `Incarnation` counter, bumped by the
-`MoveZone` fold whenever it crosses the battlefield boundary. Everything that
-must refer to one particular incarnation (a chosen target, a delayed trigger,
-an ability whose source must still be "the same" permanent) records the
-incarnation along with the ID and compares both later. Leaving the
-battlefield also resets the object: control returns to its owner, and
-battlefield-only state such as damage, counters and attachments is cleared.
+CR 400.7 makes a permanent that leaves the battlefield and returns a *new*
+object, so each object carries an `Incarnation`, bumped by the `MoveZone` fold
+whenever it crosses the battlefield boundary. Anything that must name one
+incarnation (a chosen target, a delayed trigger, an ability's source) records the
+incarnation with the ID and compares both later. Leaving the battlefield also
+resets the object: control returns to its owner, and damage, counters and
+attachments are cleared.
 
 ```mermaid
 stateDiagram-v2
@@ -420,31 +400,28 @@ stateDiagram-v2
   end note
 ```
 
-Why a stable ID with a counter rather than a fresh ID per zone change? A
-fresh ID would make the log harder to read and every cross-zone reference
-(the card a trigger "remembered", the creature an Aura was cast on) a lookup
-through a forwarding table. A stable ID keeps the log and the views simple,
-and the incarnation stamp keeps the rules exact. It also gives a fixed
-mapping from each deck card to one object, which dirac's oracle relies
-on.
+A stable ID plus a counter, rather than a fresh ID per zone change, keeps the
+log and views simple and avoids a forwarding table for every cross-zone
+reference (the card a trigger remembered, the creature an Aura was cast on). It
+also fixes the mapping from each deck card to one object, which dirac's oracle
+relies on.
 
 **The game record.** `state.Game`
 ([`engine/state/game.go`](https://github.com/adams-shaun/gorge/blob/main/engine/state/game.go))
-holds the players (life, pool, counters, per-turn tallies), the object arena,
-the stack, turn, step, active player, priority holder and pass count, the
-game-over flag and winner, extra turns and phases, the monarch and initiative,
-the timestamp clock, delayed triggers, and the token and name tables set at
-genesis. Its doc comment says it plainly: only the `events` package may
-mutate it.
+holds the players (life, pool, counters, per-turn tallies), the object arena, the
+stack, turn, step, active player, priority holder and pass count, game-over and
+winner, extra turns and phases, the monarch and initiative, the timestamp clock,
+delayed triggers, and the token and name tables set at genesis. Only the `events`
+package may mutate it.
 
 ## Mana
 
-Each player's pool is a fixed array, `state.Mana`, one slot per colour plus
-colourless (with extra slots for typed mana), alongside restricted mana that
-can only be spent on certain things. Mana abilities resolve immediately and
-never use the stack (CR 605); activating one emits `ManaAdd`, and pools empty
-at the end of each step (CR 500.4) with `ManaClear`. Payment planning is
-described in [Cards and primitives](cards.md#costs-and-payment).
+Each player's pool is a fixed array, `state.Mana`: one slot per colour plus
+colourless (and extra slots for typed mana), alongside restricted mana spendable
+only on certain things. Mana abilities resolve immediately without the stack (CR
+605) and emit `ManaAdd`; pools empty at the end of each step (CR 500.4) with
+`ManaClear`. Payment planning is in
+[Cards and primitives](cards.md#costs-and-payment).
 
 ## Changing the rules core safely
 

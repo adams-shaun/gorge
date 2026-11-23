@@ -27,6 +27,8 @@ Bat Whisperer
 Battle Angels of Tyr
 Beastcaller Savant
 Belbe's Percher
+Billiard Room
+Blackcleave Cliffs
 Blighted Steppe
 Blink Dog
 Blisterspit Gremlin
@@ -39,6 +41,7 @@ Boarding Party
 Boggart Brute
 Boon of Safety
 Borrowed Time
+Botanical Plaza
 Bottle-Cap Blast
 Brambleweft Behemoth
 Breath Weapon
@@ -62,6 +65,7 @@ Cloud Djinn
 Condescend
 Conjurer's Mantle
 Consulate Turret
+Contaminated Ground
 Conversion
 Copperline Gorge
 Cowl Prowler
@@ -83,6 +87,7 @@ Dark Salvation
 Death-Priest of Myrkul
 Devious Cover-Up
 Dirty Rat
+Disappearing Act
 Drowner of Secrets
 Durable Coilbug
 Dust Elemental
@@ -112,6 +117,7 @@ Folk of An-Havva
 Forest
 Gaea's Gift
 Ghalma's Warden
+Ghost Quarter
 Glimmer of Genius
 Gnottvold Hermit
 Goblin Lackey
@@ -144,6 +150,7 @@ Imperial Recovery Unit
 Indatha Crystal
 Indulgent Aristocrat
 Infest
+Intrepid Outlander
 Invasion of Tarkir
 Island
 Jace's Phantasm
@@ -176,6 +183,7 @@ Luke Cage, Hero for Hire
 Lurking Arynx
 Malachite Golem
 Mana Seism
+Manabarbs
 Mantle of the Wolf
 Marchesa's Infiltrator
 Marsh Lurker
@@ -189,6 +197,7 @@ Mirari
 Moaning Wall
 Mogis's Warhound
 Molten Rebuke
+Monastery Loremaster
 Morinfen
 Moriok Scavenger
 Mountain
@@ -229,13 +238,14 @@ Quest for the Nihil Stone
 Quilled Wolf
 Quirion Explorer
 Quirion Sentinel
-Rain of Rust
 Raise the Alarm
+Rakdos Riteknife
 Ramosian Sergeant
 Rampaging Ferocidon
 Rapacious One
 Reality Hemorrhage
 Reclusive Wight
+Reduce
 Resurrection Orb
 Retreat to Coralhelm
 Revenge of the Hunted
@@ -250,6 +260,7 @@ Rukh Egg
 Saheeli's Silverwing
 Salvage Slasher
 Sand Silos
+Sapseep Forest
 Scorch Rider
 Seagraf Skaab
 See the Unwritten
@@ -304,6 +315,7 @@ Then, Dreadmaws Ate Everyone
 Thief of Existence
 Thrull Surgeon
 Thumbscrews
+Thunder Dragon
 Thunder Wall
 Tide Drifter
 Tilonalli's Crown
@@ -322,6 +334,7 @@ Umara Wizard
 Undercellar Myconid
 Undercity Necrolisk
 Unhallowed Phalanx
+Unknown Shores
 Unlikely Aid
 Unnatural Growth
 Vault of the Archangel

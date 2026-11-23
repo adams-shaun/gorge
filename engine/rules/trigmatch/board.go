@@ -174,6 +174,14 @@ type Facts struct {
 	// from a graveyard or exile apart from one merely put onto the
 	// battlefield from there.
 	PlayingLand state.ObjID
+	// PaidTaps is how many objects the activation on the stack (ActionCause)
+	// tapped as a cost: the activation's own paid-tap list (resolution's
+	// Ctx.Paid.Tapped, keyed by that stack object). events.Crew has no
+	// activation id, so a crew ability's CREWERS are associated with their
+	// resolution through this list: a crew cost is exactly the tap election,
+	// so its length is the number of events.Crew markers that activation
+	// emitted. It is 0 outside an activation (and for a triggered ability).
+	PaidTaps int
 	// ReplacedAction and ReplacedObj are the in-flight replacement body's
 	// carried action (events.ActionMarker of the event it replaced, cause
 	// included) and the object that event moved. A body's substituted move

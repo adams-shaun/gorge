@@ -24,3 +24,15 @@ func (s *State) ownTapWalkPlay(k *prep, p uint8, a Action, walk *Decision, built
 	}
 	return hasOption(walk, a)
 }
+
+// eachOnlyOwnTapPlay reports whether play a is a candidate only gorge's
+// PotentialMana bound lists (ownTapWalkPlay: the activation's own {T} source
+// counted in the census) on a board whose only gaps are free each-colour
+// sources (Faeburrow Elder). The gaps walk does not list it, so the planner
+// finds the play insufficient and gorge's prefix search taps the gaps for
+// real: it offers the play only when that search finds a script, as the
+// restricted and counter-cost gaps' search does (scriptDeadEnd; CR 602.2b).
+// unrelaxed: another arm (twoLive, repeatLive) already owns the play's search.
+func (s *State) eachOnlyOwnTapPlay(k *prep, p uint8, a Action, gaps *Decision, unrelaxed bool) bool {
+	return !unrelaxed && a.Kind() == AkActivate && !hasOption(gaps, a) && s.scriptGaps(k, p).any()
+}

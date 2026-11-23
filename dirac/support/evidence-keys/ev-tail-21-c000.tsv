@@ -2,11 +2,14 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Angel of Indemnity	8acfeefee5b15247	4	2/2		0/1	ix:resp
 Ankle Shanker	590283df307482a1	24	1/1		1/1	
 Ashaya's Enduring Bond	5525a26491751198	6	0/0		1/2	ix:resp
+Cave Sense	0a0b38401fb5aafa	13	0/0		1/2	ix:resp
 Chulane, Teller of Tales	4ffb8b2de90d2338	10	2/2		1/1	
+Crimson Acolyte	6dd9bd016b4a6ffd	28	1/1		1/1	
 Fertile Thicket	5160a0a2378b67a6	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Geth, Lord of the Vault	02ed0d66f7629b5d	519	1/1		1/1	
 Glade Gnarr	d8f6218afbbf511e	44	1/1		1/1	
 Golgari Longlegs	cb72f50237c4b8bb	4	0/0		0/0	
+Grolnok, the Omnivore	a7c783e2e88d61d6	17	2/2		1/1	
 Liege of the Axe	c073b87ca5ab2e52	3	1/1		1/3	cast/alt:none,ix:resp
 Myojin of Night's Reach and Grim Betrayal	e6e688c5c10aad88	3	1/1		0/1	ix:resp
 Radha, Heir to Keld	8b60286b25dc07c2	36	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -14,6 +17,8 @@ Raging Regisaur	7cfd00398c53f506	15	1/1		1/1
 Rogue Class	5b7fe1b580e26648	81	3/3		1/1	
 Rukarumel, Biologist	2c95647139240bae	32	1/1		1/1	
 Shilgengar, Sire of Famine	382ac4a8dc3be58a	28	2/2		1/1	
+Spectra Ward	06657ad7e0f94585	15	0/0		2/2	
+Spiteful Visions	d3b7dfc9e5ea03e9	7	2/2		1/1	
 Storvald, Frost Giant Jarl	cb3d136f4d10aa1a	17	3/3		0/1	ix:resp
 Thoughtbound Phantasm	dbe1eba2839f72b3	10	1/1		1/1	
 Thrash	3419ac8aa2d54d32	4	0/0		2/3	f1/s

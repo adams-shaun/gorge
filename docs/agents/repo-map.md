@@ -1,44 +1,40 @@
 # Repo map — what lives where
 
-A lookup table for agents and new contributors. One line per package or
-directory, plus where to go when you need to change a particular kind of
-thing. Where this file and the code disagree, the code wins — fix this file in
-the same commit. `go run ./cmd/pkgmap` prints every package with its purpose
-and tier, generated from the source.
+One line per package or directory, plus where each kind of change goes. Where
+this file and the code disagree, the code wins: fix this file in the same
+commit. `go run ./cmd/pkgmap` prints every package with its purpose and tier,
+generated from the source (classification:
+`docs/site/architecture/packages.tiers.json`).
 
-See also: [invariants.md](invariants.md) (the rules every change must keep)
-and [do-not.md](do-not.md) (the mistakes that have actually happened here).
+See also [invariants.md](invariants.md) and [do-not.md](do-not.md).
 
-This is the index. The package and path rows for the other groups live in the
-per-domain files below; the `dirac/` rows are here because it is a domain of its
-own. This file changes only when a GROUP or DOMAIN appears, not when a package
-does.
+This is the index. Package and path rows for the other groups are in the
+per-domain files below; `dirac/` is here.
 
 ## Groups
 
 | Group | What it holds | Detail |
 |---|---|---|
 | `engine/` | The rules core: `cards`, `deck`, `state`, `decision`, `events`, `effects`, `rules` (+ sub-packages), `replay`, `eventdiff`, `view`, `game` (+`gorgegame`), and `seat` (the `Seat` contract only). Imports nothing outside `engine/`. | [repo-map-engine.md](repo-map-engine.md#engine) |
-| `dirac/` | The second engine, in lockstep with `engine/` and built for machine learning: the two-player `kop`-table engine, its oracle seam to gorge, its table generator, its adapter and its commands. The core imports nothing outside `dirac/`; nothing in `engine/` imports it. | [below](#dirac) |
+| `dirac/` | The second engine, in lockstep with `engine/` and built for machine learning: the `kop`-table engine (two to four seats), its oracle seam to gorge, its table generator, adapter and commands. The core imports nothing outside `dirac/`; nothing in `engine/` imports it. | [below](#dirac) |
 | `bots/` | `botpolicy`, the default `heuristic` bot, the bots registry and the hosted bots with their inference runtime. Imports `engine/` only. | [repo-map-engine.md](repo-map-engine.md#bots) |
-| `server/` | `gorged` (the importable server: `Main`, `Extensions`, `RegisterNetBot`; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`), `protocol`, `manabrew`, `divergence`. | [repo-map-engine.md](repo-map-engine.md#server) |
+| `server/` | `gorged` (the importable server: `Main`, `Extensions`, `RegisterNetBot`; `cmd/gorged` is its thin main), `host` (+`httpapi`, `manabrewhttp`, `sbv2http`), `protocol`, `manabrew`, `divergence`, `matchrecord`, `spellbench`. | [repo-map-engine.md](repo-map-engine.md#server) |
 | `draft/` | The limited stack: `limited` (+`setdata`, `booster`, `draft`, `build`, `pickbot`), `event`, `eventhost`, `gorgedevents`, `draftlab` (+`extern`). `cmd/gorged` links it; only `cmd/gorged`, `cmd/draftsim`, `cmd/labdemo` and `cmd/extagent` may depend on it. | [repo-map-engine.md](repo-map-engine.md#draft) |
-| `internal/`, `testkit/`, `cli/` | `internal/`: architecture ratchets and generators. `testkit/` (test support, the shared bench runner, paymirror) and `cli/` (the command-line parser) are public so outside modules can use them. | [repo-map-internal.md](repo-map-internal.md) |
+| `internal/`, `testkit/`, `cli/` | `internal/`: architecture ratchets and generators. `testkit/` (test support, the shared bench runner, wire conformance, paymirror) and `cli/` (the command-line parser) are public so outside modules can use them. | [repo-map-internal.md](repo-map-internal.md) |
 | `cmd/` | Product and developer binaries. | [repo-map-paths.md](repo-map-paths.md#cmd) |
 | private companion (not in this repo) | Machine learning, reinforcement learning and private experiments. A private module that imports gorge at a pinned commit; gorge never imports it, and nothing in gorge needs it to build or test. Seams: `bots.Register`, `server/gorged.RegisterNetBot` ([ADR 0002](../decisions/0002-public-engines-and-draft.md)). | (private) |
 | gorge-compliance (not in this repo) | The compliance oracles (gorge vs XMage vs Forge), the hand Oracle-text scenario audit and the XMage-ported scenarios, with their coverage targets for a pinned gorge. Public (`github.com/adams-shaun/gorge-compliance`); imports gorge's exported oracle runner, gorge never imports it. gorge keeps the runner (`engine/rules/oracle_*.go`) and the residual `engine/rules/testdata/oracle/` files its card tests load. | [ADR 0001](../decisions/0001-repo-layout.md) amendment 3 |
-| `scripts/` | Contributor and CI helpers only. | [repo-map-paths.md](repo-map-paths.md#everything-else) |
-| `web/` | The Svelte + Vite client. | [repo-map-paths.md](repo-map-paths.md#everything-else) |
-| `docs/` | This guide, living designs (`docs/design/`), decisions (`docs/decisions/`), the public site (`docs/site/`). | [repo-map-paths.md](repo-map-paths.md#everything-else) |
+| `scripts/`, `web/`, `docs/`, `examples/`, `tools/`, `deploy/` | Contributor and CI helpers; the Svelte + Vite client; this guide, living designs, decisions and the public site; example bots; the ManaBrew bridge; container deployment files. | [repo-map-paths.md](repo-map-paths.md#everything-else) |
 
 ## `dirac/`
 
-gorge's second engine: two-player, driven as a `Step`/`Apply` state machine over
-a `kop.Table`, and fast enough for self-play, search and policy training. gorge
-leads and dirac follows decision by decision; a card dirac supports must play
-identically, and anything outside the generated tables stays with gorge. The
-core imports nothing outside `dirac/`. [`dirac/README.md`](../../dirac/README.md)
-has the API, the rules for code that touches `State`, and the import boundary.
+gorge's second engine: two to four seats (`MaxSeats`), driven as a `Step`/`Apply`
+state machine over a `kop.Table`, fast enough for self-play, search and policy
+training. gorge leads and dirac follows decision by decision; a supported card
+must play identically, and anything outside the generated tables stays with
+gorge. [`dirac/README.md`](../../dirac/README.md) has the API, the rules for code
+that touches `State`, and the import boundary. Generated support lists:
+[`dirac/docs/support.md`](../../dirac/docs/support.md).
 
 | Package | What it is | Where a change goes |
 |---|---|---|
@@ -48,8 +44,13 @@ has the API, the rules for code that touches `State`, and the import boundary.
 | `dirac/vanilla` | A hand-written table of basic lands, vanilla creatures and simple spells, with synthetic decks; the small-table test bed. | This table only; keep it hand-written so `dirac/example_test.go` needs no generated tables. |
 | `dirac/feat` | The network feature encoder: a dirac position to the same `policynet` inputs gorge produces. | Encoder and its policynet parity tests. |
 | `dirac/crcoverage` | Test-only CR coverage audit, one file per CR chapter; `TestCRCoverageIsCurrent` checks every row against the code. | The affected rule's row, in the same change as the mechanic. |
+| `dirac/search` | gorge `bots/azmcts`'s AlphaZero PUCT search ported onto dirac state (same algorithm, the production az config). | The search and its parity tests; `dirac/neteval` supplies the evaluator. |
 | `dirac/search/hbot` | The native port of gorge's auto-pay heuristic bot. | Mirror a gorge auto-pay change here; lockstep is the check. |
 | `dirac/search/mull` | gorge's London-mulligan policies as pure functions over a hand. | The same policy change as gorge's, kept pure. |
+| `dirac/shadowseat` | A gorge `seat.Seat` that stages its view with `dirac/shadow`, searches it on dirac and maps the answer onto gorge's options, with a fallback seat and counted reasons. | The seat, its mapping and its tests. |
+| `dirac/lab` | A small wrapper for playing games and setting up experiments on dirac alone: `Config`, `NewGame`, `Game`, `Policy`. Its example is the test that pins [`docs/site/engines/lab.md`](../site/engines/lab.md). | The wrapper; keep its example and that page in step. |
+| `dirac/manifest` | The namespace manifest: one small file per vocabulary code, under `dirac/manifest/<Family>/<GoName>`, giving each code its value once. | Entries via `dirac/cmd/kmanifest`; never renumber. |
+| `dirac/shadow` | Stages a dirac `State` from what one seat can see (a `view.View` plus a caller-supplied assignment of hidden zones), so a bot attached to another engine can search. | The staging and its tests. |
 | `dirac/neteval` | `dirac/search`'s network `Evaluator`: the `dirac/feat` encoder feeding an in-process backend. | The evaluator and its parity tests. |
 | `dirac/oracle` | The engine-neutral seam to gorge: `Side`, `GorgeSide`, `RealKernel`/`FDNSide`, `Lockstep`, `Fuzz`, `Replay`, `Repro` and the policies. | Lockstep and fuzz logic here; its commands live under `oracle/cmd`. |
 | `dirac/kgen` | Lowers gorge's card IR into `kop` tables. | A `names_<mechanic>.go` and/or `opsdoc_<mechanic>.go`; do not edit `names.go` or `opsdoc.go`. A new LIR op's kop form is a handler in its family's `instr_<family>.go` (or a new one) registered with `instrOp` in `init()`; `instr` in `build_ab.go` has no op switch. A new `api:` effect's lowering registers with `apiOp`/`apiPS` in an `api_<family>.go` `init()` (`lower_api.go`), not as a case of `api`; a static Mode$ body registers with `staticMode` in a `static_<family>.go` (`static_mode.go`). |
@@ -61,10 +62,12 @@ has the API, the rules for code that touches `State`, and the import boundary.
 |---|---|---|
 | `dirac/cmd/kgen` | Writes the binary card tables under the corpus (`make dirac-tables`). | Table generation in `dirac/kgen`; keep this main thin. |
 | `dirac/cmd/dplay` | Plays games on dirac alone; reads gorge deck files, and its bots read gorge's compiled cards through `dirac/oracle`. | Its flags are pinned by `TestDplayFlagsDocumented` (`dirac/docs/running.md`); bot play goes through `dirac/oracle`. |
+| `dirac/cmd/kmanifest` | Keeps the namespace manifest and the Go generated from it (`gen [--check]`, `assign`, `check`, `show`, `seed`). | `dirac/manifest`; keep this main thin. |
 | `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine, running gorge as the lockstep shadow. | The protocol and main here; parity in `dirac/oracle`. |
 | `dirac/oracle/cmd/kfuzz` | The lockstep fuzzer over gorge and dirac. | `dirac/oracle`; `scripts/dirac-gate.sh` holds what the change must keep true. |
 | `dirac/oracle/cmd/khbot` | dirac's heuristic-bot parity run. | `dirac/search/hbot` and the `dirac/oracle` policies. |
 | `dirac/oracle/cmd/ksbt` | dirac's sb-tactical parity run. | The `dirac/oracle` policies. |
+| `dirac/oracle/cmd/cardaudit` | One row per card joining gorge's claim, dirac's support lists and sidecar, and the optional hunt ledgers. Read-only: plays no games, builds no tables. | `dirac/oracle` and `dirac/support`. |
 
 ## Where do I change…
 

@@ -2,29 +2,28 @@
 
 dirac is trusted only as far as it agrees with gorge. `dirac/oracle` plays the same decks, seed and answers through both
 engines at once and stops at the first difference. This page says what is compared, how a difference is reported and
-reproduced, and exactly what lockstep proves and doesn't. It is for readers deciding how far a dirac game can be trusted.
+reproduced, and what lockstep proves and doesn't.
 
 ## What lockstep proves, and what it doesn't
 
 **Lockstep shows that the two engines agree. It does not show that they are right.**
 
 dirac is an independent implementation of a reading of the rules that gorge also implements, not an independent reading.
-Its cards are lowered from gorge's compiled IR of the same Forge scripts, and its rules code was written to follow
-gorge's. A bug in that shared reading (a script that encodes a card wrongly, a parameter meaning both engines inherit, a
-shortcut copied from gorge) behaves identically on both sides, and lockstep reports agreement however many games it plays.
+Its cards are lowered from gorge's compiled IR of the same Forge scripts, and its rules code follows gorge's. A bug in
+that shared reading (a script that encodes a card wrongly, a parameter meaning both engines inherit, a shortcut copied
+from gorge) behaves identically on both sides, and lockstep reports agreement however many games it plays.
 
-So a clean run means *dirac played the same game gorge played*, on the cards and the lines those games reached. It says
-nothing about a card or a line no game reached, and nothing about whether gorge's answer was correct.
-
-That is why gorge is checked separately by readings that don't share its source:
+A clean run therefore means *dirac played the same game gorge played*, on the cards and lines those games reached. It
+says nothing about a card or line no game reached, or whether gorge's answer was correct. gorge is checked separately by
+readings that don't share its source:
 
 - [gorge-compliance](https://github.com/adams-shaun/gorge-compliance) compares gorge with **XMage** (hand-written Java card
   implementations) and with **Forge's own engine**, adjudicated by the Comprehensive Rules.
 - Hand-written **Oracle-text scenarios** play a card's printed text through gorge
   ([Testing](../../contributing/testing.md)).
 
-dirac is covered by those checks only indirectly, for behaviour lockstep exercises, because it matches gorge there. They
-are not run against dirac itself. So dirac shares gorge's bugs on the cards it supports.
+Those checks cover dirac only indirectly, for behaviour lockstep exercises, because dirac matches gorge there. They are
+not run against dirac itself, so dirac shares gorge's bugs on the cards it supports.
 
 ## What is compared
 
@@ -42,9 +41,8 @@ flowchart LR
   cmp -->|"first difference"| div["Divergence and a repro"]
 ```
 
-Both engines sit behind one interface, `Side`, over a canonical vocabulary (`Step`, `Apply`, `Terminal`, `Decided`,
-`Project`, `Dirty`, `Turn`, `Err`). Comparing results alone would hide almost every bug: two engines can disagree about a
-trigger on turn 3 and still reach the same winner. Lockstep compares, in order:
+Both engines sit behind one interface, `Side` (`dirac/oracle/canon.go`: `Step`, `Apply`, `Terminal`, `Decided`,
+`Project`, `Dirty`, `Turn`, `Err`). Comparing results alone would hide almost every bug, so lockstep compares, in order:
 
 1. **The options at every decision.** Options are sorted `Canon` values, packed `kind<<26 | src<<17 | tgt<<8 | mode` (`dirac/canon/canon_default.go`) over the
    oracle's own kinds, so the comparison ignores order and catches a missing, extra or differently priced play. A
@@ -58,9 +56,9 @@ trigger on turn 3 and still reach the same winner. Lockstep compares, in order:
 `-surface` picks the options compared. On `autopay`, neither engine offers a plain cast that gorge's payment planner never
 prices. `full`, the default, offers those too, and is the stricter surface.
 
-The network input encoder is also held to gorge here: with a check on, each decision compares `dirac/feat`'s output
-with `bots/policynet`'s, byte for byte. `khbot` runs gorge's heuristic bot and its dirac port on the same decisions and prints
-agreement per kind. `ksbt` does the same for sb-tactical, through a view built from the dirac position.
+The network input encoder is held to gorge here too: with `FeatCheck` on, each decision compares `dirac/feat`'s output
+with `bots/policynet`'s, byte for byte. `khbot` runs gorge's heuristic bot and its dirac port on the same decisions and
+prints agreement per kind; `ksbt` does the same for sb-tactical through a view built from the dirac position.
 
 ## Running it
 
@@ -92,21 +90,20 @@ Every pair that started a game is one of these. A pair that couldn't be built is
 `-absolute` also fails on an `error` skip and on a run that played no game. `-coverage` and `-evidence` count a game with no
 divergence and no unmodelled stall, so a capacity-stalled game earns coverage up to where it stopped.
 
-A clone plays two things: committed slices of the deck pools, the first 1,500 pairs of the `fdn` and `blb` pools at seed 1
-(`dirac/oracle/testdata/slices`), and synthetic decks, which `kfuzz -synth <pool>` deals from a card list. The full deck
-pools aren't published and there is no download for them, so a clone can't rerun a soak over a whole pool or earn FDN and
-BLB evidence from real decks beyond the slices. Everything CI runs needs only the slices and synthetic decks. Latest results
-are on [What it supports](index.md#how-far-lockstep-agrees).
+A clone plays committed slices of the deck pools (the first 1,500 pairs of `fdn` and `blb` at seed 1,
+`dirac/oracle/testdata/slices`) and synthetic decks, which `kfuzz -synth <pool>` deals from a card list. The full deck
+pools aren't published, so everything CI runs needs only the slices and synthetic decks. Latest results are on
+[What it supports](index.md#how-far-lockstep-agrees).
 
-Random answers are a strength here: they reach corners (declining every optional trigger, chump-blocking with everything,
+Random answers are a strength: they reach corners (declining every optional trigger, chump-blocking with everything,
 casting into a counterspell) that a sensible bot never visits.
 
 ## Finding and reproducing a difference
 
-A `Divergence` records the decision number, what disagreed (`options`, `projection`, `decision`, `terminal`, `gorge` or the
-dirac side), the first mismatching field, every mismatching field with both values, and both option lists. It also lists the
-cards it implicates, ranked: the card in an option only one side offers, else the first differing card field. That's an
-upper bound, since a shared mechanism blames its victims.
+A `Divergence` records the decision number, what disagreed (`options`, `projection`, `decision`, `terminal`, `gorge` or
+`kernel`), the first mismatching field, every mismatching field with both values, and both option lists. It also lists
+the cards it implicates, ranked: the card in an option only one side offers, else the first differing card field. That's
+an upper bound, since a shared mechanism blames its victims.
 
 - **Reproducing.** Both engines are deterministic, so the same `-seed`, `-first-pair` and `-pairs` replay the same games
   byte for byte. `-v` adds the last actions and the field diff.
@@ -116,9 +113,8 @@ upper bound, since a shared mechanism blames its victims.
 - **A game dirac played alone.** `-replay FILE` re-executes one in gorge with its chance draws forced, and verifies gorge's log.
 
 When the two disagree, the engine that's wrong under the CR gets the fix. If gorge looks wrong, the evidence is checked
-against XMage and Forge first, the fix lands in gorge, and dirac keeps gorge's behaviour until its gorge pin moves past the
-fix. A card that lowers and still plays wrong can be refused by name until it's fixed
-([Cards](cards.md#lowered-refused-evidenced)).
+against XMage and Forge first and the fix lands in gorge; dirac then follows in the same change, or kgen refuses the card
+by name until it does ([Cards](cards.md#lowered-refused-evidenced)).
 
 ## Four-seat pods
 
@@ -141,15 +137,18 @@ counts the supported cards free of the limit.
 
 ## Where this runs
 
-`make dirac-slices` is the job `dirac-slices` in CI, on every queue batch and pull request. The whole of
-`dirac/oracle` (the job `oracle`) runs in ten parts every 6 hours on `main` and on demand, never on a pull request or a queue batch.
-`scripts/dirac-gate.sh <base>` holds a change to gorge and dirac together: gorge
-leads, and a change that alters behaviour on a supported card fixes dirac in the same change or refuses the card by name.
+- `make dirac-slices` is the `dirac-slices` job in `.github/workflows/ci.yml`: every Mergify queue batch, `main`, the
+  nightly run and on demand, never a pull request's own checks.
+- The whole of `dirac/oracle` is the `oracle` workflow (`.github/workflows/oracle.yml`): ten parts
+  (`scripts/ci-oracle-shard.sh`), started from an hourly cron only when no run began in the last 5h30m, so about every 6
+  hours on `main`, and on demand.
+- `scripts/dirac-gate.sh <base>` holds a change to gorge and dirac together: gorge leads, and a change that alters
+  behaviour on a supported card fixes dirac in the same change or refuses the card by name.
 
 ## CR coverage
 
-dirac keeps a rule-by-rule table of where it stands against the Comprehensive Rules, one file per chapter, with the code
-that decides each rule. `TestCRCoverageIsCurrent` fails when a row stops matching the code, so the table changes in the same
-commit as the behaviour, and [its README](https://github.com/adams-shaun/gorge/blob/main/dirac/crcoverage/README.md) has
-the current count of each status. A row marked `inherits gorge` copies gorge's behaviour, so
+`dirac/crcoverage` keeps a rule-by-rule table against the Comprehensive Rules, one file per chapter, with the code that
+decides each rule. `TestCRCoverageIsCurrent` fails when a row stops matching the code, and
+[its README](https://github.com/adams-shaun/gorge/blob/main/dirac/crcoverage/README.md) has the current count of each
+status. A row marked `inherits gorge` copies gorge's behaviour, so
 [gorge's table](https://github.com/adams-shaun/gorge/tree/main/engine/rules/crcoverage) decides it.

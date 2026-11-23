@@ -1,13 +1,10 @@
 # Repo map — the platform chain: `engine/`, `bots/`, `server/`
 
-Part of the [repo map](repo-map.md) index. See also:
-[invariants.md](invariants.md) (the rules every change must keep) and
-[do-not.md](do-not.md) (the mistakes that have actually happened here).
-
-The import direction is one-way: `engine/` imports nothing outside itself,
-`bots/` imports only `engine/`, and `server/` imports both.
-`internal/archtest`'s `TestDependencyOrderHolds` pins the arrows that must
-never appear (see [invariants.md](invariants.md#1-dependency-direction)).
+Part of the [repo map](repo-map.md) index; see also [invariants.md](invariants.md)
+and [do-not.md](do-not.md). Imports run one way: `engine/` imports nothing
+outside itself, `bots/` imports `engine/` only, and `server/` imports both.
+`TestDependencyOrderHolds` pins the arrows that must never appear
+([invariants.md](invariants.md#1-dependency-direction)).
 
 ## `engine/`
 
@@ -46,14 +43,15 @@ The layering design for `engine/rules` is
 |---|---|
 | `bots/botpolicy` | The one heuristic bot policy (`botpolicy.Decide`), in one copy, shared by `bots/heuristic` and rules' own fuzz driver. Reads a `Board`, never a view or an engine (archtest forbids `view`, `rules`, `seat`). Cast profiles in `bots/botpolicy/profiles/`. |
 | `bots/heuristic` | The default bot: `heuristic.Bot` (`NewBot`, `NewLethalPressureBot`, `NewAttackSimBot`, `NewExploreBot`, `NewCastProfileBot`, …), `heuristic.BoardSeat` (a seat that reads a `botpolicy.Board`), and `PolicyNetBot` (`NewPolicyNetBot`). |
-| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical` and `bots/azredeal`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots are linked through `server/gorged.RegisterNetBot`, which gives each its `-<policy>-net` and related flags. |
+| `bots` | The closed registry of hosted policies (`bots/registry.go`, `bots.Factory`); gorge's built-ins register from `bots/bot`, `bots/lethalpressure`, `bots/sbtactical`, `bots/azredeal` and `bots/forgeheuristic`, linked together by `bots/all`. Companion modules register further bots the same way; network-backed hosted bots are linked through `server/gorged.RegisterNetBot`, which gives each its `-<policy>-net` and related flags. |
 | `bots/sanity` | Opt-in common-sense guard decorator over engine target hints (default off). |
 | `bots/bot`, `bots/lethalpressure`, `bots/azredeal`, `bots/sbtactical` | The hosted policy packages (`az-redeal` and `sb-tactical` are adapters of the hosted-bot-packages design) over the inference runtime below. |
-| `bots/forgeheuristic` | The Forge-derived experimental policy: the production heuristic with Forge's target-selection, timing, deck-shape and combat rules armed; registers as `forge-heuristic`. |
+| `bots/forgeheuristic` | The Forge-derived policy: the production heuristic with Forge's target-selection, timing, deck-shape and combat rules armed; registers as `forge-heuristic` (linked by `bots/all`). |
 | `bots/search`, `bots/sbsearch`, `bots/sbbuiltin`, `bots/castprofile` | The experimental hosted policies `cmd/gorged` links on top of `bots/all`: the search teacher, sb-search-lite-atk, the three SpellBench builtins and cast-profile. Kept out of `bots/all` so `server/host`'s registry-wide gates stay the built-in set's size; `bots/hosttest` gates them through the real host. |
 | `bots/azmcts` | AlphaZero-style PUCT search ([`docs/design/2026-09-27-alphazero-mcts-design.md`](../design/2026-09-27-alphazero-mcts-design.md)). |
 | `bots/gonet` (+`gonettest`) | The `.dzgw` network forward pass the az bots evaluate. |
-| `bots/netsimd` | A SIMD forward pass for the MLP value network: the same arithmetic as `gonet.Net.eval`, with whole-layer AVX-512 kernels and a scalar Go fallback. |
+| `bots/internal/simdk` | The width-generic AVX-512 kernels the network forwards share (GEMM, LayerNorm, GELU), each with a scalar Go twin. |
+| `bots/netsimd` | A SIMD forward pass for the MLP value network: the same arithmetic as `gonet.Net.eval`, whole-layer AVX-512 kernels, scalar Go fallback. |
 | `bots/policynet` | Feature layer of the learned per-option policy: deterministic encoder from a seat's view, MLP, `.gpol` checkpoints. |
 | `bots/searchprobe` | Hidden-information world sampler (`Collector`, `Sample`, `Redealer`, known-card tracking). |
 | `bots/searchseat` | The PIMC search decision function (`Choose`) shared by the teacher corpus generator and `SearchBot`. |
@@ -69,11 +67,12 @@ The layering design for `engine/rules` is
 | `server/host` | Tables (one goroutine each), sessions, snapshots, persistence, undo, the hosted bot-policy vocabulary (`server/host/bot_policy.go`). Its only clock is an injected sleep. |
 | `server/host/httpapi` | `net/http` JSON + SSE + the embedded web client. Every seat route goes through `claimForTable`. |
 | `server/host/manabrewhttp` | The ManaBrew HTTP surface. |
+| `server/host/sbv2http` | A human seat's SpellBench v2 decisions over HTTP (`state`, `stream`, `send`); mounted by `server/gorged` only behind `-sbv2`. |
 | `server/protocol` | Versioned wire types for host↔client. Types only; never imports `rules`. `server/protocol/manabrew` holds the ManaBrew wire types and codecs. |
 | `server/manabrew` (+`mbtest`) | The ManaBrew translator: projects a seat's `view.View` into ManaBrew state, plus a mock client for tests. |
 | `server/divergence` (+`shadow`) | Human-divergence capture records (`divergence-v1`, `triage-v1` JSONL), the materiality predicate, the shadow seed and the shadow answer. Design: [`docs/design/2026-10-10-human-divergence-design.md`](../design/2026-10-10-human-divergence-design.md). |
 | `server/matchrecord` | The portable per-game match record (`gorge-match-1`, `<id>.match.json.gz`): the Config's replay-input subset, the log, the head and provenance; `Write`/`Load`/`Verify`, and `Match.Config`, the Config builder `feedback.Load` shares. Written by `testkit/bench`'s `Hooks.Record`; `cmd/repro` replays it. Never carries token text; never commit a record. |
-| `server/spellbench` (+`cmd/spellbench-gorge-env`) | The SpellBench Protocol v2 environment adapter: catalog, protocol, mapping, session, validation, minihost and goldens. `cmd/spellbench-gorge-env` serves it over stdio. Engine auto-pay is the default (agents never see mana taps); `-manual-mana` restores interactive mana taps. Ported from SpellBench's gorge adapter; see `NOTICE`. |
+| `server/spellbench/*` (+`cmd/spellbench-gorge-env`, `cmd/spellbench-gorge-agent`) | The SpellBench Protocol v2 adapter, one package per concern: `catalog`, `protocol`, `wire`, `mapping`, `identity`, `secrets`, `observe`, `xview`, `gamecfg`, `session`, `env` (the environment role), `agent` (serves gorge's bots in the agent role), `seat` (a v2 stdio agent as a `seat.Seat`), `humanseat` (a human seat over v2), `neutral` (gorge policies in a game another engine hosts), `minihost`, `validate`. `cmd/spellbench-gorge-env` serves it over stdio; engine auto-pay is the default and `-manual-mana` restores interactive mana taps. Ported from SpellBench's gorge adapter; see `NOTICE`. |
 
 ## `draft/`
 

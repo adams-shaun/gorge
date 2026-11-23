@@ -78,6 +78,7 @@ Douser of Lights
 Dream Twist
 Dryad's Revival
 Duergar Assailant
+Dungeon Descent
 Dwarven Armorer
 Dwarven Lieutenant
 Dwarven Weaponsmith
@@ -167,6 +168,7 @@ Kataki, War's Wage
 Krosan Constrictor
 Lagac Lizard
 Lamentation
+Last Chance
 Legolas Greenleaf
 Lightning Axe
 Llanowar Druid
@@ -268,6 +270,7 @@ Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
+Stalwarts of Osgiliath
 Steppe Glider
 Sticky Fingers
 Stinging Hivemaster

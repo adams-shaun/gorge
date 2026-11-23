@@ -1,5 +1,6 @@
 A-Elderleaf Mentor
 Abstruse Interference
+Advocate of the Beast
 Aeolipile
 Aeronaut's Wings
 Aether Shockwave
@@ -10,6 +11,7 @@ Akoum Warrior
 Alabaster Wall
 Alchor's Tomb
 Amulet of Kroog
+Ancient Silver Dragon
 Annoyed Altisaur
 Apprentice Sorcerer
 Arcbound Hybrid
@@ -17,12 +19,16 @@ Archfiend of Sorrows
 Arctic Treeline
 Arena Athlete
 Ashling the Pilgrim
+Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
+Aven Liberator
+Avenger of Zendikar
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
+Barrier Breach
 Bazaar Trademage
 Blade Banish
 Blade Splicer
@@ -51,10 +57,12 @@ Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Champion of Wits
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
 Chatter of the Squirrel
+Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
@@ -63,6 +71,7 @@ Cognivore
 Cold Storage
 Colossus of Akros
 Combust
+Conclave Mentor
 Consuming Sinkhole
 Copper Host Crusher
 Copper Myr
@@ -79,6 +88,7 @@ Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demon of Loathing
 Demonic Tutor
 Demystify
 Deploy the Gatewatch
@@ -92,6 +102,7 @@ Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
 Eidolon of Countless Battles
+Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
 Elite Scaleguard
 Elspeth Tirel
@@ -99,10 +110,12 @@ Elvish Eulogist
 Encroach
 Endurance Bobblehead
 Enthusiastic Mechanaut
+Ertai Resurrected
 Essence Flare
 Eternal Skylord
 Evangel of Synthesis
 Evaporate
+Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
 Eye of Nowhere
@@ -128,6 +141,7 @@ Frogtosser Banneret
 Frontline Devastator
 Frostweb Spider
 Gaea's Embrace
+Garrison Griffin
 Geier Reach Sanitarium
 Genasi Enforcers
 General Kreat, the Boltbringer
@@ -174,6 +188,7 @@ Irini Sengir
 Island
 Ivory Crane Netsuke
 Izzet Charm
+Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
@@ -195,6 +210,7 @@ Loathsome Catoblepas
 Luminarch Ascension
 Lure
 Luxury Suite
+Lydia Frye
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
@@ -227,6 +243,7 @@ Mountain
 Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
+Nadier, Agent of the Duskenel
 Nephalia Smuggler
 Night Scythe
 Nimbus of the Isles
@@ -243,6 +260,7 @@ Overrule
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
+Pest Infestation
 Pestermite
 Phantasmal Sphere
 Phoenix Chick
@@ -253,6 +271,8 @@ Plains
 Plateau
 Prakhata Pillar-Bug
 Precognition Field
+Prized Statue
+Proven Combatant
 Provoke
 Psychic Spear
 Purifying Dragon
@@ -265,6 +285,7 @@ Rakka Mar
 Rakshasa's Secret
 Rampaging Monument
 Ranger Class
+Ravenloft Adventurer
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
@@ -324,23 +345,29 @@ Strandwalker
 Strength of Arms
 Strike It Rich
 Sunblade Angel
+Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
+Tezzeret's Touch
 The Prydwen, Steel Flagship
 The Royal Scions
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
 Thriving Ibex
+Thunder Wall
 Tidal Force
+Titanic Brawl
 Tolarian Sentinel
 Tomb Fortress
 Toph, Earthbending Master
 Traumatic Revelation
+Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
 Turnabout

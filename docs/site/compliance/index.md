@@ -33,7 +33,7 @@ Agreement is evidence, not proof. A ruling that gorge is wrong rests on the prin
 
 - :material-timer-sand: **[What runs where](conformance.md#what-runs-where)**
 
-    Focused tests while you work, the full suite after merge and in CI.
+    Focused tests while you work, then the PR checks, merge-queue batches and nightly runs.
 
 - :material-puzzle-plus: **[Bring your engine](engines/index.md)**
 

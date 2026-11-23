@@ -18,6 +18,7 @@ func init() {
 	staticMode("UntapOtherPlayer", (*staticCtx).modeUntapOtherPlayer)
 	staticMode("CombatDamageToughness", (*staticCtx).modeCombatDamageToughness)
 	staticMode("AssignNoCombatDamage", (*staticCtx).modeAssignNoCombatDamage)
+	staticMode("AssignCombatDamageAsUnblocked", (*staticCtx).modeAssignCombatDamageAsUnblocked)
 	staticMode("ActivateAbilityAsIfHaste", (*staticCtx).modeActivateAbilityAsIfHaste)
 	staticMode("CantBeSuspected", (*staticCtx).modeActivateAbilityAsIfHaste)
 }
@@ -210,6 +211,38 @@ func (sc *staticCtx) modeAssignNoCombatDamage() ([]lStatic, bool, error) {
 	}
 	if sc.st.F == nil {
 		return nil, true, refuse("AssignNoCombatDamage without ValidCard$")
+	}
+	return nil, false, nil
+}
+
+// modeAssignCombatDamageAsUnblocked lowers CR 510.1c's optional "you may have
+// CARDNAME assign its combat damage as though it weren't blocked" (Thorn
+// Elemental, Rhox): the ValidCard$ filter names the creatures the kernel's
+// combat damage step offers the election over (gorge asUnblockedStaticMatches
+// -> asUnblockedNeeding -> askNextCombatAsk, combat_asgngrant.go's
+// nextElection), and the shared readCond has built any IsPresent$ gate into
+// the static's condition (Siege Behemoth's Card.Self+attacking). Every
+// printed corpus carrier spells Optional$ True — the controller's election.
+// A static without it is gorge's mandatory auto-accept reading
+// (asUnblockedStaticMatches' no-Optional arm), which the kernel has no ask
+// for on a printed static: refuse rather than ask where gorge auto-accepts.
+// The Effect-delivered registrations (Outmaneuver, Gurzigost) lower through
+// lower_asgngrant.go's ExtAsgnGrant instead, which refuses the Optional$ True
+// election shape: gorge keeps the election for it, the kernel has no
+// Effect-side ask.
+func (sc *staticCtx) modeAssignCombatDamageAsUnblocked() ([]lStatic, bool, error) {
+	sp := sc.sp
+	readF := sc.readF
+	var err error
+	if !sp.is("Optional", "True") {
+		return nil, true, refuse("AssignCombatDamageAsUnblocked Optional %q", sp.str("Optional"))
+	}
+	sp.consume("Optional")
+	if sc.st.F, err = readF("ValidCard"); err != nil {
+		return nil, true, err
+	}
+	if sc.st.F == nil {
+		return nil, true, refuse("AssignCombatDamageAsUnblocked without ValidCard$")
 	}
 	return nil, false, nil
 }

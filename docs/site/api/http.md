@@ -1,11 +1,9 @@
 # HTTP API reference
 
-`gorged` is gorge's game server: it runs bot tables, seats humans and bots, and serves
-everything over plain HTTP plus one Server-Sent-Events stream. This page is the reference for
-that surface, endpoint by endpoint: who may call what, which flag arms it, the bodies, the
-statuses and the errors. It is for anyone writing a client: a bot that plays a seat over HTTP,
-a dashboard, a replay viewer. For a walkthrough that plays a game end to end, start with
-[Playing a seat over HTTP](../bots/http.md); come back here for the field-by-field detail.
+Reference for `gorged`'s HTTP surface (plain HTTP plus one Server-Sent-Events stream), endpoint by
+endpoint: who may call what, which flag arms it, bodies, statuses, errors. For clients: a bot
+playing a seat, a dashboard, a replay viewer. For a walkthrough, start with
+[Playing a seat over HTTP](../bots/http.md).
 
 The machine-readable spec is the authority, and this page is a reading of it:
 
@@ -17,15 +15,12 @@ The machine-readable spec is the authority, and this page is a reading of it:
 | [Interactive reference](redoc.html) | The spec rendered by Redoc 2.1.5 (needs JavaScript). |
 
 !!! info "How the spec stays true"
-    The spec is derived from the code and guarded by a test,
-    [`server/host/httpapi/openapi_test.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/httpapi/openapi_test.go).
-    It reads every method-qualified route that `server/host/httpapi` and `server/gorged`
-    register, and fails when a registered route is missing from the spec or the spec has an
-    operation that no code registers. It also builds a fully armed handler and checks that each
-    of httpapi's operations is actually routed. Every schema marked `x-go-type` is generated
-    from that Go type's source, so a renamed field or a new one fails the test until the spec
-    is regenerated. The decision-kind enum is compared with `decision.Kinds`. The examples are
-    real responses captured from a live server.
+    [`openapi_test.go`](https://github.com/adams-shaun/gorge/blob/main/server/host/httpapi/openapi_test.go)
+    fails when a route registered by `server/host/httpapi` or `server/gorged` is missing from
+    the spec, or the spec lists an operation no code registers. Every `x-go-type` schema is
+    generated from that Go type's source, so a renamed or new field fails until the spec is
+    regenerated. The `Kind` enum is compared with `decision.Kinds`. Examples are real responses
+    from a live server.
 
     After you change a route or a wire type, regenerate the derived parts and then document
     any new route by hand in `openapi.json`:
@@ -36,77 +31,42 @@ The machine-readable spec is the authority, and this page is a reading of it:
 
 ## Try it
 
-Start a server (`go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0`), then:
-
 ```sh
+go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0
 GORGE=http://127.0.0.1:8080
 curl -s $GORGE/api/tables | python3 -m json.tool | head -20
-curl -sN --max-time 2 $GORGE/api/stream | head -c 300
+curl -sN --max-time 2 $GORGE/api/stream | head -c 300   # first frame: event: hello
 ```
 
-The first command prints:
-
-```json
-[
-    {
-        "id": "t1",
-        "name": "Table 1",
-        "seats": 2,
-        "spectator": "public",
-        "state": "live",
-        "match": 1,
-        "perpetual": false,
-        "format": "constructed",
-        "bot_policy": "lethal-pressure",
-        "seat_names": [
-            "Player 1",
-            "Player 2"
-        ],
-        "mulligans": 7,
-        "auto_mana": true
-    },
-```
-
-and the second printed the stream's first frame, `hello`:
-
-```text
-event: hello
-data: {"v":1,"t":"hello","seq":0,"body":{"session":"sd10b14058b154be1d85ac19eada7c909","tables":[...
-```
+`/api/tables` returns `TableInfo` objects (`id`, `name`, `seats`, `spectator`, `state`, `match`, `format`, `bot_policy`, ...).
 
 ## Who may call what
 
-gorged has no login. A request is either a **spectator** or holds a **seat claim**.
+gorged has no login. A request is a **spectator** or holds a **seat claim**.
 
-- **Spectator.** Every read endpoint works without credentials and returns what the table's
-  spectator visibility allows. `public` hides every hand; `omniscient` shows them. You set it
-  with `-spectator` for the startup tables and `-vsbot-spectator` for play-vs-bot tables.
-- **Seat claim.** A seat token resolves to exactly one (table, seat) pair. Send it as
-  `Authorization: Bearer <token>` or as `?token=<token>`; the header wins when both are present.
-  The server never trusts a seat number the client sends. It only compares that number with
-  the claim:
+- **Spectator:** every read endpoint works without credentials and returns what the table's visibility allows (`public` hides
+  every hand, `omniscient` shows them; `-spectator` for startup tables, `-vsbot-spectator` for play-vs-bot tables).
+- **Seat claim:** a seat token resolves to one (table, seat) pair. Send `Authorization: Bearer <token>` or `?token=<token>`
+  (the header wins). The server compares any seat number the client sends with the claim and never trusts it.
 
 | The request | Result |
 |---|---|
-| Names no seat (no `?seat=`), on a read endpoint | Spectator view; no token is consulted |
-| `?seat=N` or a seat action, on a server with no seat claims at all (no `-humans`, `-vsbot` or `-events`) | 403 `forbidden`, "this server is spectator-only" |
-| Has no valid token | 401 `unauthorized` |
-| The token's table is not this table | 403 `forbidden` |
-| The token's seat is not `N` | 403 `forbidden` |
-| The claim matches | The seat's own view and actions |
+| No `?seat=` on a read endpoint | Spectator view; no token consulted |
+| `?seat=N` or a seat action on a server with no seat claims (no `-humans`, `-vsbot`, `-events`) | 403 `forbidden`, "this server is spectator-only" |
+| No valid token | 401 `unauthorized` |
+| Token for another table, or another seat than `N` | 403 `forbidden` |
+| Claim matches | The seat's own view and actions |
 
-You get a seat token in one of three ways:
+Where tokens come from:
 
-- `POST /api/games` returns one for the seat it creates. That response is the only place
-  the token ever leaves the server.
-- With `-humans 0,2`, gorged mints one per human slot of table `t1` and prints the join URL
-  for each at startup: `table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`.
-- `-seat-token TOKEN` fixes the first human slot's token. It is meant for tests and local use.
+- `POST /api/games` returns one for the seat it creates (the only place a token leaves the server).
+- `-humans 0,2` mints one per human slot of `t1` and prints each join URL at startup
+  (`table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`).
+- `-seat-token TOKEN` fixes the first human slot's token, for tests and local use.
 
 ## Which routes exist
 
-Some routes exist only when a flag mounts them. Without the flag, an `/api/` path answers the
-JSON 404 `no such endpoint`, and a non-API path falls through to the web client.
+Without its flag, an optional `/api/` route answers the JSON 404 `no such endpoint`; a non-API path falls through to the web client.
 
 | Flag | Mounts |
 |---|---|
@@ -120,9 +80,8 @@ JSON 404 `no such endpoint`, and a non-API path falls through to the web client.
 | `-manabrew` | The [ManaBrew wire](manabrew.md) under `/api/manabrew/v0/tables/`. Needs `-humans` or `-vsbot`. |
 | `-sbv2` | [SpellBench v2 seats over HTTP](spellbench-v2.md#extensions-on-the-http-human-seat) under `/api/sbv2/v1/tables/`. Needs `-humans` or `-vsbot`. |
 
-Every other path (`/`, `/t/t1`, …) serves the embedded web client with an SPA fallback to
-`index.html`. A binary built without the web bundle answers those paths with
-`503 web build missing — run make web`; the bundle is embedded at build time, so `make web` comes before `go build`.
+Every other path serves the embedded web client (SPA fallback to `index.html`). A binary built without the bundle answers
+them `503 web build missing — run make web`; the bundle is embedded at build time, so `make web` comes before `go build`.
 
 ## Endpoints
 
@@ -171,42 +130,27 @@ clamp and retry:
 
 #### The paired bot
 
-A server run with `-paired-bot` lets a human player ask a bot to evaluate the decision in front
-of them. It is off by default. It only advises: nothing it says reaches the game, a replay or the
-hash chain, and the seat still answers through `intent`.
+A server run with `-paired-bot` lets a human ask a bot to evaluate the decision in front of them. It is off by default
+and only advises: nothing it says reaches the game, a replay or the hash chain; the seat still answers through `intent`.
 
-The bot sees what the seat can see: its own deck list and everything the seat has observed. It
-doesn't see the opponent's hand, the order of any library or the opponent's deck list; it guesses
-those cards from a set of decks (`-paired-bot-decks`, by default the server's constructed decks).
-The seat comes from the token alone, so spectators and other seats get nothing.
-
-`advice` blocks until the search ends, and hanging up cancels it. `state` is `ready` with a note in
-`explain`, the same shape as a review decision's; `none` when the bot cannot give any answer; or
-`refused`. Every kind of decision a player meets gets an answer. Where search can rank the options
-(priority, attackers, blockers, targets, modes, optional triggers, small choices) the note carries the
-search. Where it cannot (a mulligan, ordering cards or triggers, who plays first, a manual mana tap,
-a choice among many cards or among numbers and names, and any decision posed inside a resolving
-effect) the state is still `ready`, the note has no `search` and its `bot` field names the options the
-bot's own rules would pick, and `reason` says why search did not weigh it. `reason` is always plain words: why a `none` or `refused` has no evaluation,
-or what to know about a `ready` one, such as a search that ran out of time. A decision that has moved
-on, or a seat with nothing pending, is a 409 with code `advice_stale`, which is no failure: the game went
-ahead of the request, so ask about the decision you hold now. Row `choices` index the decision's `options`; a row with `payment` names one of its
-`payment_actions` instead. Row `q` and `root_value` run from -1 to +1 for the seat; the client shows
-them as `(q + 1) * 50` percent. A row with no `visits` has no estimate. The search may add `line`, its
-expected continuation after the chosen row: up to four plies, each `{actor, label, visits, share, q}`
-for the most-visited step, with `share` its fraction of the visits at that decision. It stops before any
-ply that depends on cards the seat cannot see, and `line_end` says why it stopped short (`hidden` or
-`unexplored`).
-
-A table with more than one human doesn't offer it unless the table allows it
-(`-paired-bot-shared`), and then `paired-bot` tells every seat it is on (`shared`). At most one
-search runs per table and `-paired-bot-searches` across the server, at a fixed
-`-paired-bot-sims`; a request past that limit waits its turn rather than failing. A server run
-without `-paired-bot` lets no game choose one.
-
-The browser client asks once per decision as it reaches the seat, and only while the player's switch
-is on; it hangs up when the decision moves on. Asking per decision rather than having the server push
-advice keeps the cost where someone is looking: a seat that is not asking never starts a search.
+- **What it sees:** the seat's own deck list and everything the seat has observed. Opponent hands, library order and
+  the opponent's list are guessed from a set of decks (`-paired-bot-decks`, default the server's constructed decks).
+  The seat comes from the token alone.
+- **`advice` blocks** until the search ends; hanging up cancels it. `state` is `ready` (a note in `explain`, the shape
+  of a review decision's), `none` (no answer possible) or `refused`.
+- **Every decision kind gets an answer.** Where search can rank options (priority, attackers, blockers, targets, modes,
+  optional triggers, small choices) the note carries the `search`. Elsewhere (mulligan, ordering, who plays first, manual
+  taps, large choices, decisions inside a resolving effect) the state is still `ready`, the note has no `search`, `bot`
+  names what the bot's own rules would pick, and `reason` says why. `reason` is plain words for any state.
+- **`advice_stale` (409)** means the game moved on; ask about the decision you hold now.
+- **Rows:** `choices` index the decision's `options` (a row with `payment` names one of its `payment_actions`). `q` and
+  `root_value` run -1 to +1 for the seat (the client shows `(q + 1) * 50` percent); no `visits` means no estimate.
+  `line` is the expected continuation, up to four plies `{actor, label, visits, share, q}`; `line_end` (`hidden` or
+  `unexplored`) says why it stopped short.
+- **Limits:** a table with several humans needs `-paired-bot-shared` (then `paired-bot` tells every seat it is on). One
+  search runs per table and `-paired-bot-searches` across the server, at a fixed `-paired-bot-sims`; extra requests wait.
+  A server without `-paired-bot` lets no game choose one.
+- **Browser client:** asks once per decision, only while the player's switch is on, and hangs up when it moves on.
 
 ### The stream
 
@@ -263,9 +207,8 @@ request without one is a spectator. The backend picks the status and `code` of i
 
 ## The decision loop
 
-A seat plays by repeating one exchange: read the pending decision, then answer it with option
-indices. gorge lists every legal option and validates every answer. A bot can choose badly, but
-it can never choose illegally.
+A seat repeats one exchange: read the pending decision, answer with option indices. gorge lists every legal option and
+validates every answer, so a client can choose badly but never illegally.
 
 ```mermaid
 sequenceDiagram
@@ -275,42 +218,30 @@ sequenceDiagram
   S-->>C: 200 Decision {seq, player, kind, min, max, options[]}
   C->>S: POST .../intent {seq, player, choices:[i,...]}
   alt accepted
-    S-->>C: 204 (the game moves on)
+    S-->>C: 204
   else stale, out of range, wrong player, min/max
     S-->>C: 409 conflict, message = the engine's reason
   end
   C->>S: GET .../pending?seat=0
-  S-->>C: 409 "no decision pending" while the bot thinks, so poll or watch the stream
+  S-->>C: 409 "no decision pending" while the bot thinks: poll or watch the stream
 ```
 
-A real `attackers` decision, as `pending` returned it:
+A real `attackers` decision and its answer (the answer echoes `seq` and `player`):
 
 ```json
-{"seq": 550, "player": 0, "kind": "attackers", "prompt": "turn 4 — declare attackers",
- "min": 0, "max": 1,
- "options": [{"index": 0, "kind": "attacker", "label": "Attack with Experiment One at Bot",
-              "obj": 33, "player": 1}]}
-```
-
-The answer echoes `seq` and `player` and names indices:
-
-```json
+{"seq": 550, "player": 0, "kind": "attackers", "prompt": "turn 4 — declare attackers", "min": 0, "max": 1,
+ "options": [{"index": 0, "kind": "attacker", "label": "Attack with Experiment One at Bot", "obj": 33, "player": 1}]}
 {"seq": 550, "player": 0, "choices": [0]}
 ```
 
-Some rules about intents:
+Rules for intents:
 
-- `choices` must be distinct, in range, and between `min` and `max` in number. The kind's own
-  constraints apply too. For example, at most one option per `group` may be chosen, and an
-  option marked `required` must be included when it can be.
-- A stale `seq` is refused: `intent seq 153, pending decision seq 53`.
-- Wait for a new `seq` before answering again. Resubmitting the same decision before the
-  server has moved on is never useful.
-- A `cast` option on an auto-mana table may come with `payment_actions`. You answer those with
-  the intent's `payment` field (a full plan) or its `announce` field (pay in the payment
-  window) instead of `choices`. A plain `choices: [i]` on the cast option still works.
-- The request body is strict. A field the schema does not name, trailing data, or a body over
-  64 KiB is a 400.
+- `choices` are distinct, in range, and between `min` and `max` in number, plus the kind's own constraints (one option per
+  `group`; a `required` option must be included when it can be).
+- A stale `seq` is refused (`intent seq 153, pending decision seq 53`). Wait for a new `seq` before answering again.
+- A `cast` option on an auto-mana table may carry `payment_actions`: answer with the intent's `payment` (a full plan) or
+  `announce` (pay in the payment window). A plain `choices: [i]` still works.
+- The body is strict: an unknown field, trailing data or more than 64 KiB is a 400.
 
 ### Decision kinds
 
@@ -357,16 +288,12 @@ Every `/api/` error has the same body, `protocol.ErrorBody`:
 
 ## Conventions
 
-- **Unknown fields.** Responses gain fields without notice: that is the additive rule of
-  [the wire protocol](protocol.md#versioning), so ignore fields you do not know. Requests are
-  the opposite: unknown fields are refused.
-- **Omitted vs null.** A field the schema lists as `required` is always present. A Go
-  `omitempty` field is omitted when it is zero, so a missing `obj`, `amount` or `required`
-  means 0 or false. A required array or object can be `null` when the server's value is nil.
-  The schemas say exactly where (`"type": ["array", "null"]`).
-- **Integers.** Seeds are unsigned 64-bit and exceed 2^53, so parse them as 64-bit integers or
-  as strings, not as JS doubles. `viewer` is 255 for a spectator view.
-- **Seats** are 0-indexed (`player`, `seat`). Match indices are 1-indexed.
+- **Unknown fields:** responses gain fields without notice ([additive rule](protocol.md#versioning)), so ignore unknown
+  ones. Requests are the opposite: unknown fields are refused.
+- **Omitted vs null:** a `required` field is always present. An `omitempty` field is omitted when zero (a missing `obj`,
+  `amount` or `required` means 0 or false). A required array or object can be `null` when nil (`"type": ["array", "null"]`).
+- **Integers:** seeds are unsigned 64-bit and exceed 2^53: parse as 64-bit integers or strings. `viewer` is 255 for a spectator view.
+- **Indexing:** seats are 0-indexed (`player`, `seat`); match indices start at 1.
 
 ## Other wires
 

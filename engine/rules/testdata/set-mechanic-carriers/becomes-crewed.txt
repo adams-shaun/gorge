@@ -1,0 +1,5 @@
+g/ghost_ark.txt
+m/mighty_servant_of_leuk_o.txt
+m/mindlink_mech.txt
+m/mobilizer_mech.txt
+p/protean_war_engine.txt

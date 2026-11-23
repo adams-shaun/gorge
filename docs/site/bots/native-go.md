@@ -1,14 +1,10 @@
 # Writing a native Go bot
 
-This page walks a Go developer through a complete bot policy for gorge: the
-interface it implements, registering it with options, playing it against the
-default bot in-process, testing it with the harness gorge runs on its own
-policies, and serving it from a `gorged` binary. The code is in
-[`examples/bots/go`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/go),
-and every command below was run on 2026-10-31 and the duel again on 2026-11-08.
-
-A native seat is the fastest way to play and the only one that can search, because it lives in the
-same process as the engine.
+A complete Go bot policy: the interface, registration with options, playing it against the default bot in process, testing it with
+the harness gorge runs on its own policies, and serving it from a `gorged` binary. Code:
+[`examples/bots/go`](https://github.com/adams-shaun/gorge/blob/main/examples/bots/go) (checked by the `examples` CI job); commands were run on
+2026-10-31, the duel again on 2026-11-08. A native seat is the fastest way to play and the only one that can search, because it lives in the
+engine's process.
 
 ## The interface
 
@@ -56,20 +52,14 @@ delegate what it does not specialise in, and register itself with its
 options.
 
 ```go title="examples/bots/go/allin/allin.go (abridged)"
-const Name = "allin"
-
 func init() {
     bots.Register(bots.Entry{
         Info: bots.Info{
-            Name:        Name,
-            Label:       "All-in (example)",
+            Name: "allin", Label: "All-in (example)", Tier: bots.Experimental,
             Description: "The heuristic bot, but it attacks with every creature of at least min-power power, every combat.",
-            Tier:        bots.Experimental,
             Formats:     []string{"constructed", "commander"},
-            Options: []bots.OptionSpec{{
-                Key: "min-power", Type: "int", Default: "1",
-                Help: "attack only with creatures of at least this power",
-            }},
+            Options: []bots.OptionSpec{{Key: "min-power", Type: "int", Default: "1",
+                Help: "attack only with creatures of at least this power"}},
         },
         New: New,
     })
@@ -77,58 +67,29 @@ func init() {
 
 func New(o bots.Options) (seat.Seat, error) {
     b := heuristic.NewBot(o.Seed)
-    if o.AutoPayMana {
-        b.EnableAutoPayMana()
-    }
+    if o.AutoPayMana { b.EnableAutoPayMana() }
     return &Seat{fallback: b, minPower: int32(o.Int("min-power"))}, nil
 }
-
-func (s *Seat) WantsPaymentActions() bool { return s.fallback.WantsPaymentActions() }
 
 func (s *Seat) Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
     if d.Kind != decision.KAttackers {
         return s.fallback.Decide(ctx, v, d)
     }
-    power := map[state.ObjID]int32{}
-    for _, p := range v.Players {
-        for _, c := range p.Battlefield {
-            power[c.ID] = c.Power
-        }
-    }
     in := decision.Intent{Seq: d.Seq, Player: d.Player}
-    attacking := map[state.ObjID]bool{} // one defender per creature
-    groups := map[string]bool{}         // at most one option per Group
-    for _, o := range d.Options {
-        if attacking[o.Obj] || (o.Group != "" && groups[o.Group]) {
-            continue
-        }
-        if !o.Required && power[o.Obj] < s.minPower {
-            continue
-        }
-        in.Choices = append(in.Choices, o.Index)
-        attacking[o.Obj] = true
-        if o.Group != "" {
-            groups[o.Group] = true
-        }
-    }
+    // ... pick one option per creature whose power >= s.minPower (or Required) ...
     if d.Validate(in) != nil { // a whole-declaration rule we did not model
         return s.fallback.Decide(ctx, v, d)
     }
     return in, nil
 }
+// WantsPaymentActions forwards to s.fallback.WantsPaymentActions().
 ```
 
 Points worth copying:
 
-- **An attackers decision has one option per (creature, defender) pair.**
-  With a planeswalker or battle on the other side, one creature has several
-  options; declare at most one per creature. `Option.Required` marks a
-  creature that must attack (goad, "attacks each combat").
-- **`Validate` before returning.** It runs the same wire rules the host
-  applies, so a seat finds out it was wrong here rather than in a refusal.
-- **Deterministic.** Everything a policy does must be a pure function of its
-  seed and its inputs: seeded `math/rand/v2` only, no wall clock, no `map`
-  iteration order reaching a choice. (The maps above are only looked up.)
+- **One option per (creature, defender) pair** on `attackers`: declare at most one per creature. `Option.Required` marks a creature that must attack.
+- **`Validate` before returning.** It runs the host's wire rules, so you find out here rather than in a refusal.
+- **Deterministic.** Seeded `math/rand/v2` only, no wall clock, no `map` iteration order reaching a choice.
 
 ### The registry entry
 
@@ -159,42 +120,18 @@ it is a programming error. A host supplies values from, highest first:
 3. `-bot-config <policy>=<file.json>` (a flat JSON object; repeatable)
 4. the declared default
 
-`gorged` validates every value before it opens a listener, and its `-help`
-lists every linked policy's options:
+`gorged` validates every value before it opens a listener and its `-help` lists every linked policy's options. A bad value fails at startup:
 
 ```text
-$ ./gorged-allin -help
-...
-Bot policy options (set with -bot-opt <policy>.<key>=<value>, -bot-config <policy>=<file.json>, or GORGED_BOT_<POLICY>_<KEY>):
-  allin (All-in (example)):
-    allin.min-power (int; default "1")  attack only with creatures of at least this power
-
-$ ./gorged-allin -bot-opt allin.min-power=two ...
 gorged: -bot-opt "allin.min-power=two": option "min-power": want int, got "two"
-$ ./gorged-allin -bot-opt allin.speed=2 ...
-gorged: -bot-opt: bot policy "allin" has no option "speed" (known: min-power)
 ```
 
 Option values never appear in `/api/bot-policies`.
 
 ## Its own module
 
-The example is a Go module of its own, as a bot author's would be:
-
-```text title="examples/bots/go/go.mod"
-module github.com/adams-shaun/gorge/examples/bots/go
-
-go 1.25.8
-
-require github.com/adams-shaun/gorge v0.0.0
-
-replace github.com/adams-shaun/gorge => ../../..
-```
-
-Inside this repository the `replace` points at the checkout. Outside it, drop
-the `replace` and require a gorge commit (`go get
-github.com/adams-shaun/gorge@<commit>`). gorge has no third-party
-dependencies, so that is the whole dependency graph.
+The example is a Go module of its own (`examples/bots/go/go.mod`, `replace github.com/adams-shaun/gorge => ../../..`). Outside this repository,
+drop the `replace` and `go get github.com/adams-shaun/gorge@<commit>`. gorge has no third-party dependencies.
 
 ## Play it against the default bot
 
@@ -237,20 +174,6 @@ has three tests a policy should copy. None needs the card corpus:
   its siblings `RunEnvLeakContract` and `RunClosedPrivacyContract` check that
   an Env seat's answers never depend on hidden cards.
 
-```console
-$ go test -v ./allin/
-=== RUN   TestRegistered
---- PASS: TestRegistered (0.00s)
-=== RUN   TestPlaysAgainstTheBot
-    allin_test.go:58: allin won 0 of 10 against bot
---- PASS: TestPlaysAgainstTheBot (1.01s)
-=== RUN   TestHostContract
-    allin_test.go:67: allin: finished turn 20 intents 629 events 3283 rootRefusals 0 feeds false reason ""
---- PASS: TestHostContract (0.05s)
-PASS
-ok  	github.com/adams-shaun/gorge/examples/bots/go/allin	1.062s
-```
-
 ## Serve it
 
 A server is `gorged.Main` plus blank imports: gorge's own bots and yours.
@@ -275,22 +198,10 @@ $ ./gorged-allin -addr 127.0.0.1:8080 -cards ../../../.cards -decks ../../../tes
     -dir /tmp/gorge-allin -feedback /tmp/gorge-allin/feedback -tables 0 -vsbot -pace 0 -prewarm=false \
     -bot-policy bot -bot-opt allin.min-power=2
 $ curl -s http://127.0.0.1:8080/api/bot-policies | jq -r '.policies[].name'
-bot
-allin
-forge-heuristic
-forge-heuristic-hold
-lethal-pressure
 ```
 
-`allin` is now offered to `POST /api/games` (`"bot_policy": "allin"`) and to
-the browser's play-vs-bot picker. The Python example agent played it:
-
-```console
-$ python3 gorge_agent.py --server http://127.0.0.1:8080 --bot-policy allin --policy simple
-created table g1 match 1, seat 0 vs allin
-...
-match finished after 13 turns in 0.7 s: winner us (seat 0, mono-red-prowess)
-```
+`allin` is now offered to `POST /api/games` (`"bot_policy": "allin"`) and the browser's play-vs-bot picker, beside the policies that do not read
+decklists. The [Python example agent](examples.md) can play it with `--bot-policy allin`.
 
 `gorged.Extensions` also carries extra flags (`Flags`), a draft-event runtime (`Events`) and a match-review loader
 (`Review`); `gorged.Serve` runs the same server on a listener you supply, which is how a test drives it. The full Go embedding surface is on

@@ -5,6 +5,7 @@ Anara, Wolvid Familiar
 Anzrag, the Quake-Mole
 Avatar of Growth
 Aven Squire
+Baleful Strix
 Banisher Priest
 Banshee of the Dread Choir
 Bassara Tower Archer
@@ -77,6 +78,7 @@ Orochi Eggwatcher
 Otherworldly Journey
 Overrun
 Perimeter Captain
+Phyrexian Ingester
 Pir, Imaginative Rascal
 Pit Keeper
 Plagon, Lord of the Beach

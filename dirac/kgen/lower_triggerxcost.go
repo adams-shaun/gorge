@@ -44,7 +44,7 @@ func (lc *lowerCtx) payManaX(c lCost, in lInstr) (lInstr, error) {
 	m := c.Mana
 	if !lc.trigOwnCost || m.XX || m.Generic != 0 || m.Pips != [5]int{} || len(m.Hybrid) > 0 || len(m.Twobrid) > 0 ||
 		len(m.Phyrexian) > 0 || m.C > 0 || c.PayLife > 0 || c.Energy > 0 || c.DiscardN > 0 || c.Sac != nil || c.Return != nil ||
-		c.ExileG != nil || c.Forage != nil || c.DrawN > 0 || c.SubCtr > 0 || c.TapN > 0 || c.SacSelf || c.Tap {
+		c.ExileG != nil || c.Forage != nil || c.DrawN > 0 || c.DrawBy != nil || c.SubCtr > 0 || c.TapN > 0 || c.SacSelf || c.Tap {
 		return in, refuse("trigger {X} cost beside other cost parts")
 	}
 	in.CS, in.A = "ManaX", *lc.trigXMax

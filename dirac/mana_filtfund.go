@@ -128,9 +128,12 @@ func (s *State) fundSacOnly(k *prep, p uint8, sl Slot) {
 	s.sacFilterSource(k, sl)
 }
 
-// fundOut: sl is tapped and cannot fund by sacrifice either.
+// fundOut: sl is tapped and cannot fund by sacrifice either. A sole life-only
+// pain unit (Treasonous Ogre's "Pay 3 life: Add {R}", lifeOnlyPain) funds
+// tapped too: its cost taps nothing (CR 605.1a), and gorge's activation loop
+// offers it whatever its tapped state (mana_pain.go canLifeOnlyMana).
 func (s *State) fundOut(k *prep, sl Slot) bool {
-	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl)
+	return s.perms[sl].flags&pfTapped != 0 && !s.fundsBySac(k, sl) && !(k.painMana && lifeOnlyPain(s.manaPCAt(k, sl)))
 }
 
 // fundFree: sl funds a filter now, tapped for mana or sacrificed.

@@ -66,6 +66,7 @@ var (
 	kwhProwess          = newKWHead("Prowess")
 	kwhReach            = newKWHead("Reach")
 	kwhRetrace          = newKWHead("Retrace")
+	kwhRiot             = newKWHead("Riot")
 	kwhSaddle           = newKWHead("Saddle")
 	kwhShadow           = newKWHead("Shadow")
 	kwhSkulk            = newKWHead("Skulk")

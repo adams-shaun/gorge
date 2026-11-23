@@ -1,0 +1,56 @@
+package dirac
+
+import (
+	"sort"
+	"testing"
+	"unsafe"
+
+	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+)
+
+// scratch (dirac-scale-design planner, never committed)
+func TestZZScratchMeasure(t *testing.T) {
+	var s State
+	t.Logf("State %d core %d perms %d (perm %d x %d) cold hdr %d genState? obj %d",
+		unsafe.Sizeof(s), unsafe.Sizeof(s.stateCore), unsafe.Sizeof(s.perms), unsafe.Sizeof(perm{}), MaxPerm, unsafe.Sizeof(s.cold), unsafe.Sizeof(object{}))
+	type row struct {
+		name  string
+		cold  int
+		regs  map[string]int
+	}
+	var rows []row
+	check := func(name string, set cardset.Set) {
+		tbl, err := set.Pool()
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		defer ReleaseTable(tbl)
+		var s State
+		s.Init(tbl, nil, nil, 0, Config{})
+		r := row{name: name, cold: 8 * len(s.cold.buf), regs: map[string]int{}}
+		l := s.cold.layout
+		for _, d := range coldRegs.descs {
+			if l != nil && l.n[d.pos] > 0 {
+				r.regs[d.key] = int(l.n[d.pos]) * d.size
+			}
+		}
+		rows = append(rows, r)
+	}
+	for _, name := range cardset.Names() {
+		check(name, cardsettest.Set(t, name))
+	}
+	for _, name := range cardsettest.SynthNames(t) {
+		check(name, cardsettest.Synth(t, name))
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].cold > rows[j].cold })
+	hist := map[int]int{}
+	for _, r := range rows {
+		hist[r.cold/1024]++
+	}
+	t.Logf("pools %d; cold KiB histogram %v", len(rows), hist)
+	for _, r := range rows[:8] {
+		t.Logf("%s cold %d regs %v", r.name, r.cold, r.regs)
+	}
+	t.Logf("median cold %d", rows[len(rows)/2].cold)
+}

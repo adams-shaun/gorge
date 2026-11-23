@@ -3,65 +3,124 @@ Algorithmic Ferocity
 Amulet of Unmaking
 Annex Sentry
 Antagonize
+Archangel
+Argoth, Sanctum of Nature
 Aven Augur
 Bakersbane Duo
+Barbed Lightning
+Bhaal's Invoker
 Bioessence Hydra
 Biting Tether
 Blessings of Nature
+Blight Keeper
+Bloodbraid Marauder
 Bloodscent
+Bloodshot Trainee
+Blue Ward
 Boggart Loggers
+Bonescythe Sliver
 Bower Passage
 Bristlebud Farmer
+Bumbleflower's Sharepot
 Burlfist Oak
+Burn Down the House
 Cache Grab
+Carrion Locust
+Cauldron Familiar
 Cavalcade of Calamity
+Cemetery Gate
+Clattering Skeletons
 Cloudcrown Oak
 Code of Constraint
+Collective Defiance
+Combustible Gearhulk
+Concentrated Fire
+Conscripted Infantry
 Contract Hero
 Controlled Instincts
+Court Street Denizen
+Crimson Muckwader
+Crumb and Get It
 Curio Vendor
 Cursecatcher
 Custodian of the Trove
+Cyclops of One-Eyed Pass
 Dancing Scimitar
 Darkthicket Wolf
+Daru Spiritualist
+Death Pulse
 Deceptive Landscape
 Defender of Chaos
 Despotic Scepter
 Distortion Strike
 Drownyard Amalgam
 Dungrove Elder
+Echoing Calm
+Elderfang Ritualist
 Energizer
+Enslaved Dwarf
 Eviscerate
 Explore the Underdark
 Extinction
 Farhaven Elf
 Fighting Drake
+Final Death
 Firemind Vessel
+Flametongue Yearling
+Fomori Nomad
 Forceful Denial
 Forest
+Forgotten Cave
 Foundation Breaker
 Fruit of the First Tree
 Gargantos, the Endbringer
 Garruk's Harbinger
+Gates Ablaze
+Gavony Township
 Geistpack Alpha
 Generated Horizons
 Gloomwidow
+Goblin Chieftain
+Goblin Chirurgeon
+Goldlust Triad
 Great Sable Stag
 Hadana's Climb
 Hard Cover
+High Market
 Hildibrand Manderville
 History of Benalia
+Hive Stirrings
+Hollowhead Sliver
 Hunt the Weak
 Hydroform
+Insubordination
+Iona, Shield of Emeria
 Island
+Junún Efreet
+Kelinore Bat
+Kitesail Scout
+Kjeldoran Outrider
+Krark-Clan Ironworks
 Kraul Stinger
 Krosan Drover
+Lash of the Whip
+Lava Dart
 Lay of the Land
+Liberated Dwarf
+Lieutenants of the Guard
 Liliana's Scrounger
 Living Armor
+Loki's Scepter
+Lucky Clover
 Maggot Therapy
+Marrow Shards
 Matter Reshaper
+Melesse Spirit
 Memnite
+Mirror Image
+Mogg Mob
+Momentum Rumbler
+Mortus Strider
 Mountain
 Mox Opal
 Murmuring Phantasm
@@ -69,56 +128,102 @@ Mystic Remora
 Nantuko Mentor
 Narset's Reversal
 Nevermaker
+Nightfire Giant
+Nocturnal Hunger
 Nyxborn Behemoth
 Oath of Jace
+Opal Caryatid
 Order of the Sacred Bell
+Ordruun Commando
+Origin of Captain America
+Outflank
 Paladin of Predation
 Park Heights Maverick
 Pawpatch Formation
 Penumbra Kavu
+Persecute
 Pheres-Band Thunderhoof
+Plague Spores
 Plains
+Poison Arrow
 Primal Forcemage
+Pulverize
 Quag Vampires
 Quarry Hauler
+Ramunap Ruins
 Regal Force
 Reinforced Bulwark
 Relentless Skaabs
 Reminisce
 Ritual of Rejuvenation
+River Bear
+Rona, Disciple of Gix
 Rooting Kavu
 Ruins Recluse
 Rusted Relic
 Rusted Slasher
 Saberclaw Golem
 Sakura-Tribe Scout
+Savor
+Scorchwalker
+Screeching Buzzard
 Serendib Sorcerer
+Silent Skimmer
 Skyscythe Engulfer
+Solar Tide
+Sorin, Solemn Visitor
+Soulbound Guardians
+Spearpoint Oread
 Sphinx of Jwar Isle
 Spike Rogue
+Spireside Infiltrator
 Spore Burst
 Spore Swarm
+Stalking Assassin
 Stampeding Serow
 Stirring Address
+Storm World
 Stunt Double
+Survivors' Encampment
+Sustainer of the Realm
 Swamp
+Swarming of Moria
 Sylvan Basilisk
 Takenuma, Abandoned Mire
 Talas Explorer
 Tear Asunder
 Temur War Shaman
+Tethmos High Priest
+The Haunt of Hightower
 The Hunger Tide Rises
+The Restoration of Eiganjo
+Thraben Charm
+Three Dreams
+Thunder Strike
+Thundermaw Hellkite
+Tooth Collector
 Torrential Gearhulk
+Tower Above
+Tuktuk Grunts
 Turntimber Basilisk
 Twisted Landscape
+Ukud Cobra
 Uncovered Clues
+Unexpected Fangs
 Unexplained Vision
 Urza's Tome
+Vanquish
+Verge Rangers
+Vessel of Ephemera
+Viashino Heretic
+Viashino Sandscout
+Vile Consumption
 Vine Dryad
 Vision Skeins
 Voracious Hydra
 Wanderwine Hub
 War Horn
+Warcry Phoenix
 Westvale Abbey
 Windstorm Drake
 Wizard's Retort
@@ -127,3 +232,4 @@ Wrath of Oko
 Yavimaya's Embrace
 Zegana, Utopian Speaker
 Zephyr Spirit
+Zuko, Avatar Hunter

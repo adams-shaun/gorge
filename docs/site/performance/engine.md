@@ -1,8 +1,10 @@
 # gorge's speed
 
-Engine speed matters twice: once for hosting games, and again because a search bot clones and steps the engine thousands of times per decision.
-This page is for contributors changing engine code: what gorge's benchmark measures, how to run it, the current numbers and where the time
-goes. For gorge against other engines see [Performance](index.md).
+Engine speed matters twice: for hosting games, and because a search bot clones and steps the engine thousands of times per decision.
+For contributors changing engine code: what `cmd/enginebench` measures, how to run it, the numbers and where the time goes. gorge against
+other engines is on [Performance](index.md). Every table below is transcribed in
+[`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json) (`gorge_rows`, `gorge_ops`,
+`regression`, `profile`), and `scripts/docs_perf_figs.py` draws the figures from it.
 
 ## What is measured
 
@@ -58,16 +60,17 @@ make enginebench-verify REV=.
 ```
 
 Knobs for the `make` targets are `BUDGET` (wall seconds for the whole measured phase, default 60), `ROWS`, `REPS`, `SECS`, `PIN`, `GOGC`,
-`BENCH_DIR` and `HEAVY_LOCK`. `scripts/enginebench-lib.sh` documents them.
+`BUILD_ARGS`, `BENCH_DIR`, `MEM_MAX`, `NO_SCOPE` and `HEAVY_LOCK`; `scripts/enginebench-lib.sh` and `enginebench-pair.sh` document them.
 
 ## Current numbers
 
-A 2026-11-05 paired comparison (`make enginebench-pair BASE=b78e4c8b1 CAND=HEAD`, pinned to one core, `GOMAXPROCS=1`, three ABBA reps per row) measured gorge
-HEAD (`0ec285f67`) at 1.06-1.25× the `b78e4c8b1` baseline's CPU per turn on every row: ×1.24-1.25 on `random -autopay`, ×1.11-1.13 on `random`, ×1.12-1.13 on
-`bot -autopay`, ×1.06-1.08 on `bot`, and ×1.05-1.10 on the Burn mirror. That regression is engine work, not a published number: until it is fixed, the rows
-below are the `b78e4c8b1` baseline re-measured on 2026-11-05 as the base arm of that paired run — Go 1.26.3, `GOMAXPROCS=1`, 15 CPU-seconds a run, three reps
-per row, Burn from its own paired run. The [comparison page](index.md) quotes the same baseline for gorge, dated 2026-11-05, and measures dirac at HEAD. HEAD's `clone`
-measures the same as the baseline and `step` about 5% more CPU with GC off.
+**Regression, 2026-11-05.** `make enginebench-pair BASE=b78e4c8b1 CAND=HEAD` (HEAD `0ec285f67`, one pinned core, `GOMAXPROCS=1`, three ABBA reps per
+row) measured HEAD at 1.06-1.25x the baseline's CPU per turn on every row: x1.24-1.25 on `random -autopay`, x1.11-1.13 on `random`,
+x1.12-1.13 on `bot -autopay`, x1.06-1.08 on `bot`, x1.05-1.10 on the Burn mirror. HEAD's `clone` matches the baseline and `step` costs about 5% more CPU with GC off.
+
+That regression is engine work, not a published number. Until it is fixed, the rows below are the `b78e4c8b1` baseline re-measured
+2026-11-05 as the base arm of that paired run: Go 1.26.3, `GOMAXPROCS=1`, 15 CPU-seconds a run, three reps per row, Burn from its own paired
+run. [Performance](index.md) uses the same baseline for gorge and measures dirac at HEAD.
 
 <figure markdown="span">
 --8<-- "performance/figs/regression.svg"

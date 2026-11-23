@@ -27,11 +27,11 @@ Each dot is one wire and one capability. Hover a dot for the reason, or read the
 ## Reading the matrix
 
 - **Autopay** means the seat can have the engine pay. **Manual tap** means the seat can name the source to tap.
-- **Plan choice** is picking among payment plans. gorge builds one plan per cast action, so today a seat accepts it or pays another way ([`payment_plan.go:667`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/payment_plan.go#L667)).
-- **Undo and cancel** is stepping back inside one payment: `undo_tap` and `cancel_cast` ([`announce_pay.go:155`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/announce_pay.go#L155), [`:165`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/announce_pay.go#L165)).
+- **Plan choice** is picking among payment plans. gorge builds one plan per cast action, so today a seat accepts it or pays another way ([`payment_plan.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/payment_plan.go)).
+- **Undo and cancel** is stepping back inside one payment: `undo_tap` and `cancel_cast` ([`announce_pay.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/announce_pay.go)).
 - **Alternative costs** covers kicker, flashback, other cast modes and either-or additional costs.
 - **Mana choices** is choosing the colour a source adds, or which of a source's abilities to use.
-- **Restricted mana** is seeing, and choosing among, mana that carries a spend restriction. The native pool readout names each restriction ([`engine/view/poolrestriction.go`](https://github.com/adams-shaun/gorge/blob/main/engine/view/poolrestriction.go)), and the window lists only mana this payment can spend ([`announce_pay.go:123`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/announce_pay.go#L123)). SpellBench v2 and ManaBrew send a pool of colour counts.
+- **Restricted mana** is seeing, and choosing among, mana that carries a spend restriction. The native pool readout names each restriction ([`engine/view/poolrestriction.go`](https://github.com/adams-shaun/gorge/blob/main/engine/view/poolrestriction.go)), and the window lists only mana this payment can spend ([`announce_pay.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/announce_pay.go)). SpellBench v2 and ManaBrew send a pool of colour counts.
 
 ## How to choose
 

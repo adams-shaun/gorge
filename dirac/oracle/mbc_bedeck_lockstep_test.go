@@ -2,10 +2,12 @@ package oracle
 
 import "testing"
 
-// Bedeck ({B/R}{B/R} instant half of Bedeck // Bedazzle) cast mid-payment:
-// gorge and dirac offered different payment choices at decision 234 of the
-// recorded tail-15-c000 game (autopay, mulligans 1, seed 210986).
+// Bedeck // Bedazzle: dirac offered castface(Bedazzle) at a priority decision
+// where gorge offered only pass (decision 455, tail-15-c000 pair 5). Navigator's
+// Compass made Jungle Basin a Forest, so tapping it asks a wheel of "Add C G"
+// and "Add G"; the lowering could not read the multi-symbol label, aborted, and
+// dropped the legal play from gorge's vocabulary as a lower dead end.
 func TestMBCBedeckReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "bedeck_hybrid_payment_options")
+	stdReproNamed(t, "mana_wheel_multi_symbol_label")
 }

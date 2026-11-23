@@ -126,10 +126,15 @@ func botGames(t *testing.T, policy string, pairs int) (rootRefusals int) {
 // sb-tactical sits only at a bot table, whose decklist opt-in its Env declaration asks
 // for though no root reaches it here.
 func TestBotsPlayDiracGames(t *testing.T) {
+	t.Parallel()
 	for _, policy := range []string{host.BotPolicy, "lethal-pressure", forgeheuristic.Policy, forgeheuristic.HoldPolicy} {
-		t.Run(policy, func(t *testing.T) { botGames(t, policy, 40) })
+		t.Run(policy, func(t *testing.T) {
+			t.Parallel()
+			botGames(t, policy, 40)
+		})
 	}
 	t.Run(sbtactical.Policy, func(t *testing.T) {
+		t.Parallel()
 		if refused := botGames(t, sbtactical.Policy, 40); refused == 0 {
 			t.Error("sb-tactical asked for no root: the refused planner went unexercised")
 		}
