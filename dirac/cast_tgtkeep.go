@@ -174,6 +174,18 @@ func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 		return
 	}
 	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) {
+		if k.painMana && pc.painCol != 0 && !pc.painOnly && !a.pain.on {
+			// the census unit of a kept pain-tap source is the merged mask
+			// its faces make (a Talisman of Unity's "{T}: Add {C}" beside its
+			// "{T}: Add {W} or {G}, deals 1 damage" alternative): a plan may
+			// tap it for either face without consuming the target (CR
+			// 601.2c), so the put-back is the one the availForMode loop
+			// counted for the kept source, addPainAvail's merged unit -- not
+			// the plain {C} face alone, which would strand a target the
+			// coloured face funds
+			s.addPainAvail(k, sl, pc, p, a, nil, true)
+			return
+		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	}
 }
