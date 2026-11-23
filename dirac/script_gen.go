@@ -366,7 +366,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// walk (one conversion per filter) cannot say which a many-times-activated
 	// one pays (mana_filterrepeat.go).
 	repeatLive := s.filtRepeatIn(k, filt)
-	reflLive := ca && s.reflAmtUnbounded(k, caM)
 	var any, gaps Decision
 	s.plainGapsOptions(k, &gaps, filt)
 	s.mergeBareGaps(k, &gaps, filt)
@@ -445,7 +444,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	lifeBuilt, ownBuilt := false, false
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !(reflLive && reflWidePlay(a)) && !(ca && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !(ca && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
