@@ -2994,6 +2994,15 @@ func (fs *filtSearch) passTrigger(k *prep, t *State, funded int) bool {
 	ok := fs.settle(k, c, funded, true)
 	if !ok {
 		fs.stallOf(c)
+		if c.over {
+			// The pass resolved a trigger that killed the payer (Corrupted
+			// Roots' two life at two life): gorge's scriptSearch.visit still
+			// counts the dead child a node before its game-over check, as try's
+			// own-pain case above does, so the line costs its tick (Underworld
+			// Dreams: one dead pass under each funding tap spent gorge's 160
+			// nodes where the kernel's walk stopped at 134).
+			fs.tick()
+		}
 	}
 	t.unfork()
 	if ok {

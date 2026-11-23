@@ -1185,6 +1185,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 	if sr.feeOrder {
 		n = 3
 	}
+	waits := sr.waitsForStack(c)
 	for i := 0; i < n; i++ {
 		ph := sr.phaseAt(i)
 		if !ph.gap && sr.gapsOnly && funded >= sr.funding {
@@ -1219,6 +1220,9 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
+			}
+			if gap && waits && sr.tapActivatedOnPath(c, opt) {
+				continue // a {T} gap is walked once a path: the kernel's slot walk never re-taps it after a trigger of the path untapped it
 			}
 			twin := false
 			if sr.feeOnly || sr.twinCut {
@@ -1273,6 +1277,31 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 		}
 	}
 	return false
+}
+
+// tapActivatedOnPath reports whether opt is the very {T} mana ability the path
+// already activated (a source a trigger of the path untapped again): the
+// kernel funds each slot once, so a waiting trigger's walk never re-taps it.
+// A repeatable ability without {T}, or another ability of the same object, is
+// a different slot and stays walked.
+func (sr *scriptSearch) tapActivatedOnPath(c *Engine, opt *decision.Option) bool {
+	seen := false
+	for i := range sr.path {
+		for _, pk := range sr.path[i].Picks {
+			if pk.Kind == optActivate && pk.Obj == opt.Obj && pk.Ability == opt.Ability {
+				seen = true
+			}
+		}
+	}
+	if !seen {
+		return false
+	}
+	o := c.G.Obj(opt.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(opt.Ability)
+	return ok && pa.SA != nil && c.abilityCompiledCost(pa.SA).Cost.Tap
 }
 
 // coveredSpendable reports whether a covered source's mana can help this
