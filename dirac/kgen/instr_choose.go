@@ -28,8 +28,9 @@ func init() {
 
 func (ic *instrCtx) opChooseColorRes() error {
 	ki := &ic.ki
-	// (Skrelv) OpExt ExtChooseColorRes
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes))
+	// (Skrelv) OpExt ExtChooseColorRes; C = 1 the no-ask white answer of
+	// OrColors$ (lower_choosecolor.go chooseColorOrColors)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes)), int16(ic.in.C)
 	return nil
 }
 
@@ -85,6 +86,13 @@ func (ic *instrCtx) opChooseType() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	if in.C == 0 && in.B.N == kop.ChooseTypeBasicLand {
+		// the answer is a pool subtype index (basicLandAnswer): all five basic
+		// land types must be in the pool table
+		if _, err := ic.cb.subIndexes(basicLandChoice); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
