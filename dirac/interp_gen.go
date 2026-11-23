@@ -1735,10 +1735,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		(!transformedDfc && s.instantStays(k, o, kop.Zone(in.C&7))) {
 		return false
 	}
-	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
-		if in.B.N&kop.RetFromLibrary == 0 || ob.zone != kop.ZoneLibrary {
-			return false // Origin$ Library gates the move to a library card; every other return skips one
-		}
+	if returnSkipsLibrary(in, ob.zone) {
+		return false
 	}
 	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && ob.ver != e.srcVer+1 {
 		return false // the card that died has moved on (exiled from the graveyard in response): a new object
