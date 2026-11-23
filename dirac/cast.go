@@ -267,12 +267,21 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	s.bld().bfl &^= bflAnyColor | bflCostFixed
 	// gorge plans the cost paymentMana leaves, the announced convoke picks
 	// (applyConvoke) already off it
-	pc := planUnderRider(s.convokeApplyPicks(k, s.buildCost(k)), fl&sfAnyMana != 0, bf&bflAnyColor != 0)
+	raw := s.convokeApplyPicks(k, s.buildCost(k))
+	pc := planUnderRider(raw, fl&sfAnyMana != 0, bf&bflAnyColor != 0)
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
 	pcx := pc.AtX(int(e.x))
 	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
+		// an any-colour rider (not any type) keeps the fold only while its
+		// units can pay the relaxed pips coloured; else gorge's pins
+		// (cast_riderpinned.go) fund them
+		if fl&sfAnyMana == 0 && bf&bflAnyColor != 0 {
+			if n := riderPinCount(raw); n != 0 && s.tapRiderPinned(k, e, pc, n, &av) {
+				return
+			}
+		}
 		s.tapFor(k, e.ctrl, &pc, int(e.x), e.obj)
 	}
 }
