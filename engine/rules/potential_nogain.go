@@ -99,8 +99,8 @@ func manaTapAbilityNetsNoMore(c costvocab.Cost, mp *effects.ManaParams, extra st
 // leaves the budget), makes a dynamic amount, or a tap trigger adds mana
 // beside it (extra, CR 605.4a). A net of zero or less converts colour and
 // never raises the supply, so a bound of 0 still holds.
-func gapOnceNetSupply(mp *effects.ManaParams, extra state.Mana, feeTotal, best int32, once bool) (int32, bool) {
-	if !once || feeTotal <= 0 || extra.Total() != 0 {
+func gapOnceNetSupply(mp *effects.ManaParams, extra state.Mana, feeTotal, best int32, once, taps bool) (int32, bool) {
+	if !once || !taps || feeTotal <= 0 || extra.Total() != 0 {
 		return 0, false
 	}
 	amt := availableAmountOf(mp)

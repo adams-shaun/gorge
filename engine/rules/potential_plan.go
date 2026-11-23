@@ -2554,13 +2554,14 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
 				if n, ok := gapSubCounterSupply(e, asPayer(e), p, id, ma, gextra); ok {
 					out.gapSupply += n
-				} else if n, ok := gapOnceNetSupply(gmp, gextra, fee, best, once); ok {
+				} else if n, ok := gapOnceNetSupply(gmp, gextra, fee, best, once, gcost.Tap); ok {
 					// A once-only fee-bearing gap's fixed production nets the
 					// budget its production minus the fee each activation
 					// spends out of it, and the tap is exclusive, so only what
 					// exceeds the source's own covered production extends the
 					// count bound (Fire-Lit Thicket's "{R/G}, {T}: Add {R}{R}",
-					// CR 106.1).
+					// CR 106.1). A once-only gap without {T} shares no tap with
+					// the covered ability and stays a gain.
 					out.gapSupply += n
 				} else {
 					out.gapGains = true
