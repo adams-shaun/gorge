@@ -752,7 +752,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 	var printed map[string]bool // allocated on the first printed grant
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.ParamStr(cards.PKAddAbility))
-		if name == "" || !manaGrantGatesHold(e.G, sv, e.classBandGateHolds, e.presentGate, e.matchesSpecFrom) || !e.matchesSpec(sv.ParamStr(cards.PKAffected), id, e.specCtx(sv.Source, sv.Controller)) {
+		if name == "" || !manaGrantGatesHoldMemo(&e.manaGate, sv, e.walkKeyNow, e.derivedMemoUsable, e.derivedSeq, e.walkKeyHit, e.G, e.classBandGateHolds, e.presentGate, e.matchesSpecFrom) || !e.matchesSpec(sv.ParamStr(cards.PKAffected), id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		source := e.G.Obj(sv.Source)
