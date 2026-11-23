@@ -2776,8 +2776,11 @@ func (s *State) suppressEOT(sl Slot) {
 	}
 	// "can't be blocked this turn" (Rogue's Passage, Kaito, Vampire
 	// Gourmand) is an effect on the creature, not an ability it gains
-	// (gorge: an Effect object's CantBlockBy static), so it stays
-	const keep = kop.KwUnblockable
+	// (gorge: an Effect object's CantBlockBy static), so it stays; so does a
+	// granted "can't block this turn" (Fifty Feet of Rope's Climb Over: a
+	// restriction effect, CR 509.1b, which a later loss of abilities cannot
+	// end -- gorge's IsHiddenRuleEffectKeyword)
+	const keep = kop.KwUnblockable | kop.KwCantBlock
 	var cnt [32]uint8
 	for x := p.eotKw &^ keep; x != 0; x &= x - 1 {
 		cnt[bits.TrailingZeros32(uint32(x))] = 1
