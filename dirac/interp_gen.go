@@ -963,6 +963,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
+		} else if in.B.N == kop.ChooseTypeRandomDeck {
+			// the AtRandom$ CreatureInTargetedDeck shape (Aswan Jaguar):
+			// gorge poses no ask, the engine draws the type over the target
+			// opponent's deck's creature subtypes and stores it as the
+			// source's chosen type (act_randomdecktype.go)
+			s.randomDeckType(k, in)
 		} else {
 			s.res.ask, s.res.askP = raChooseType, e.ctrl
 			return false, true

@@ -1,0 +1,18 @@
+# the choosetypedeck pool (DB$ ChooseType | Type$ CreatureInTargetedDeck |
+# AtRandom$ True; CR 611.3a? Aswan Jaguar): the mid-resolution random
+# creature-type-from-the-target-opponent's-deck choose and its
+# Creature.ChosenType destroy target, plus creature filler so the target's
+# library always names creature subtypes and the destroy always has targets
+Aswan Jaguar
+Grizzly Bears
+Savannah Lions
+Scryb Sprites
+Giant Growth
+Tarfire
+Changeling Outcast
+Lightning Bolt
+Plains
+Island
+Swamp
+Mountain
+Forest
