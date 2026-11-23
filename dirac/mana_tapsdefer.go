@@ -139,23 +139,26 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 	return painN, deferSrc, foreignOnly && deferSrc
 }
 
-// tapsDeferDeadSac is p's tap-and-sacrifice mana sources that the planner
-// defers and whose every deferring watcher is a foreign build ask
-// (tapsWatchClassForeign): gorge's census never lists such a source, and its
-// search, which gap-activates it, ends at the opponent's ask, so no payment or
-// prefix uses it and the plain availability leaves it out. A Treasure under an
-// opponent's Relic Bind has no {T}-only gap of its own for the script to model
-// (scriptTapsDefer), so without this it kept its census unit and the offer
-// priced a cast gorge's autopay surface withholds (census_incomplete).
-func (s *State) tapsDeferDeadSac(k *prep, p uint8) slotMask {
+// tapsDeferDead is p's mana sources that the planner defers and whose every
+// deferring watcher is a foreign build ask (tapsWatchClassForeign): gorge's
+// census never lists such a source, and its search, which gap-activates it,
+// ends at the opponent's ask, so no payment or prefix uses it and the plain
+// availability leaves it out. A Treasure under an opponent's Relic Bind has
+// no {T}-only gap of its own for the script to model (scriptTapsDefer), so
+// without this it kept its census unit and the offer priced a cast gorge's
+// autopay surface withholds (census_incomplete). So does a source whose
+// production the gap does not model -- a Talisman's two abilities under the
+// same Relic Bind -- and the activation it alone funded, such as an Equip
+// {2} paid by that Talisman and a land.
+func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
 	var m slotMask
-	if k.gen == nil || !k.gen.anyTapsDefer || !k.sacMana || !s.subs[kop.TrigTaps].any() {
+	if k.gen == nil || !k.gen.anyTapsDefer || !s.subs[kop.TrigTaps].any() {
 		return m
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
-		if !s.manaPCGen(k, sl).manaSac {
-			continue
+		if pc := s.manaPCGen(k, sl); !pc.manaSac && pc.manaAb < 0 {
+			continue // no mana ability of its own: nothing to leave out
 		}
 		if _, d, f := s.tapsWatchClassForeign(k, p, sl); d && f {
 			m = m.with(sl)
