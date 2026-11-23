@@ -32,6 +32,13 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 // index order shuffles its library and draws 7. Objects are laid out deck by
 // deck in seat order, then the sideboards. At two seats it is exactly Init.
 func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config) {
+	s.InitNStart(tbl, decks, n, seed, cfg, nil)
+}
+
+// InitNStart is InitN with a scripted start (zone_start.go): after the shuffle and
+// the opening deal and before the first turn begins, st's placements are
+// applied. A nil st is exactly InitN. st is read here and never stored.
+func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config, st *Start) {
 	if n < 2 || n > MaxSeats {
 		panic("kernel: seat count out of range")
 	}
@@ -132,6 +139,9 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 		if s.over {
 			return
 		}
+	}
+	if st != nil {
+		s.applyStart(decks, st)
 	}
 	s.startPl = toss
 	// the active player is gorge's zero value until the first turn begins
