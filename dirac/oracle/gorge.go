@@ -1014,6 +1014,15 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			}
 			note("granted/" + o.SVar)
 		case "ability":
+			if o.CensusOffer {
+				// The census-gap arm's offer (engine/rules autoPayCensus) is the
+				// canonical pricing's own play: PotentialPaymentPlans below
+				// lowers it as the script route (play the funding source, then
+				// the ability), the shape the kernel's actScriptPays mirrors. The
+				// bare option's route is a manual payment window, and add()'s
+				// dedupe would let it displace that script.
+				continue
+			}
 			if a, keepDuplicate, ok := grantedOrGainedActivation(o, d.Options[:i], ref); ok {
 				if keepDuplicate {
 					fr.prio = append(fr.prio, prioEntry{a: a, opt: o.Index})
