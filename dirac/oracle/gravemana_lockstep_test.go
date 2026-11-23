@@ -219,9 +219,11 @@ func TestGraveManaTwoSeatLockstep(t *testing.T) {
 	// Seed 2 pins the fee-gap offer class this file's ticket fixed: its
 	// turn-5 priority holds an untapped Heap Gate beside one untapped Swamp
 	// and an empty pool, where the bound's {B} funds the filter's {1} fee and
-	// both engines offer the casts it pays (the census's 16 seeds play clean
-	// under the same read).
-	if sum := graveManaLockstep(t, []uint64{1, 2, 7, 8, 13}, true); sum.manaAfter == 0 {
+	// both engines offer the casts it pays. Seed 16 pins the fee's spend
+	// order: its turn-5 payment holds a {C} and a {U} floating, and gorge's
+	// generic spend takes the {C} first (graveManaFee); a W-first pick leaves
+	// the pools unequal at decision 42.
+	if sum := graveManaLockstep(t, []uint64{1, 2, 7, 8, 13, 16}, true); sum.manaAfter == 0 {
 		t.Fatalf("grave-exiled Jack-o'-Lantern cards %d, no mana add after one: the activation was not exercised", sum.exiled)
 	}
 }

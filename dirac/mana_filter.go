@@ -205,8 +205,13 @@ func (s *State) filtBoundPays(k *prep, p uint8, sl Slot) bool {
 	saved := s.perms[sl].flags
 	s.perms[sl].flags |= pfTapped // the filter's own productions out of the bound
 	var pb avail
-	s.availPotentialFor(k, p, &pb, nil, false)
+	open := s.availPotentialFor(k, p, &pb, nil, false)
 	s.perms[sl].flags = saved
+	if open {
+		// an any-colour production priced unbounded: gorge's census cannot
+		// prove the fee unpayable, so the gate admits the filter too
+		return true
+	}
 	c := kop.ManaCost{Generic: uint8(min(fee, 255))}
 	return pb.affords(&c, pipMaskOf(&c), 0)
 }
