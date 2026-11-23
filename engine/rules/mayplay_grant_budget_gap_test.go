@@ -9,10 +9,10 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// mayplay_grant_budget_gap_test.go pins a measured gap in gorge's potential
-// walk, the one dirac mirrors by refusing the same cast (dirac/script_gen.go,
-// mayPlayJoinSearch): a may-play cast whose only payment runs through a
-// granted mana ability the budgeted prefix search expires before reaching.
+// mayplay_grant_budget_gap_test.go pins the may-play fallback of gorge's
+// potential walk (potentialPrefixScript's last run, dirac's mirror is
+// grantSearch's): a may-play cast whose only payment runs through a granted
+// mana ability the plain prefix search expires before reaching.
 //
 // The board is tail-08 pair 54, decision 573: nine lands under The World
 // Tree ("as long as you control six or more lands, lands you control have
@@ -21,14 +21,11 @@ import (
 // Marsh {W}/{B}, The World Tree {G}); the fifth, Dwarven Hold with no storage
 // counter, makes none, so Age of Ultron's {4}{B} may-play cast is payable only
 // by tapping it for the granted any-colour ability (CR 601.2g, 605.3a).
-// potentialPrefixScript's plain search (five gaps: every land has the granted
-// ability) spends all potentialScriptNodes (164) clones and finds no script
-// (measured: with the budget lifted for this one play it finds the script at
-// 657 nodes, 4x the budget), the phased and subsume fallbacks find none, and the
-// play is left census_incomplete: unpriced, so not offered. Raising the budget
-// or pricing the granted ability's ceiling before the search would move this
-// verdict; whoever does it also moves dirac's mirrored search
-// (mana_grantedoffers.go) and updates this pin, which asserts today's refusal.
+// The plain search (five gaps: every land has the granted ability) spends all
+// potentialScriptNodes (164) clones and finds no script (measured: the script
+// is the 657th node), and the phased and subsume fallbacks find none; the
+// may-play fallback's plain run, potentialMayPlayNodes (1024) clones, finds
+// it, so the cast is priced by that script and offered.
 
 // mayPlayGrantBudgetGapAge puts Age of Ultron in seat 0's exile under its
 // own may-play grant (Chase Stein's, as the recording had it).
@@ -41,9 +38,9 @@ func mayPlayGrantBudgetGapAge(t *testing.T, e *Engine) state.ObjID {
 	return o.ID
 }
 
-// TestMayPlayGrantBudgetGapLeavesTheCastUnpriced: the cast is payable (a
-// search with room finds the script) and gorge's walk leaves it unpriced.
-func TestMayPlayGrantBudgetGapLeavesTheCastUnpriced(t *testing.T) {
+// TestMayPlayGrantBudgetGapPricesTheCast: the cast is payable (a search with
+// room finds the script) and gorge's walk prices it by that script.
+func TestMayPlayGrantBudgetGapPricesTheCast(t *testing.T) {
 	t.Parallel()
 	e := mayPlayBase(t)
 	for _, l := range []struct {
@@ -77,7 +74,11 @@ func TestMayPlayGrantBudgetGapLeavesTheCastUnpriced(t *testing.T) {
 	if plan == nil {
 		t.Fatalf("no may-play plan for Age of Ultron: %s", plansString(pps))
 	}
-	if plan.Plan != nil || len(plan.Script) != 0 || plan.Reason != "unsupported" || plan.Detail != "census_incomplete" {
-		t.Fatalf("the walk now prices the cast (%s, script %d): the budget gap this test pins is closed; update it and dirac's mirror", planString(*plan), len(plan.Script))
+	if plan.Reason != "" || len(plan.Script) == 0 {
+		t.Fatalf("the walk leaves the payable cast unpriced (%s, script %d)", planString(*plan), len(plan.Script))
+	}
+	// the plain run alone could not: its 164 clones expire first
+	if _, why := e.PotentialPlayScript(0, decision.PotentialAction{Kind: "cast", Obj: age, Mode: "mayplay"}, potentialScriptNodes); why == "" {
+		t.Fatalf("precondition: the plain search's budget now reaches the script; the fallback this test pins is dead code")
 	}
 }
