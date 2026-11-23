@@ -7,8 +7,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the cast for a legal target (potential_script.go targetsGone, castTargetsAvailable),
 // and an Aura on a source that is sacrificed to pay falls off as a
 // state-based action (CR 704.5m), so the target is stranded by every plan that
-// uses that source. The consuming sources are the tap-and-sacrifice and the
-// sacrifice-only units, and a depletion rider on its last counter (Sandstone
+// uses that source. The consuming source is a depletion rider on its last counter (Sandstone
 // Needle's "{T}, Remove a depletion counter: Add {R}{R}", then "if there are
 // no depletion counters, sacrifice it", CR 605.3b), whose first activation
 // takes the counter that triggers its sacrifice. A depletion source with a
@@ -30,9 +29,13 @@ func (s *State) consumedAuraHost(k *prep, p uint8, t Obj) (Slot, bool) {
 		return host, ok && a.ManaRider == kop.ManaRiderDeplete &&
 			s.perms[host].ctrN(s, int(a.Cost.Ctr)) == int(a.Cost.N)
 	}
-	m := s.g.availX
-	s.g.availX = availPlain
-	pc := s.manaPCGen(k, host)
-	s.g.availX = m
-	return host, pc.manaSac || pc.manaSacOnly
+	// A tap-and-sacrifice or sacrifice-only host is no stranding: the plain
+	// witness announces the target before the mana is paid (CR 601.2c-h) and
+	// gorge's witnessAnnouncesBeforePaying keeps every candidate the plan did not
+	// itself sacrifice, the Aura the host bears among them (the state-based
+	// action that drops it, CR 704.5m, waits for the cast to finish): Excavation
+	// Technique over Unquestioned Authority on a Catalyst Elemental sacrificed
+	// for {R}{R}. Only the depletion rider above, a script's own sacrifice,
+	// strands it.
+	return host, false
 }
