@@ -15,8 +15,8 @@ import (
 // run dry (windowTapWalk), and it is an untapped mana source to the same two
 // gates the hand guides are (hasUntappedMana, windowUnpricedOpenIf).
 //
-// Activating it pays the {1} fee from the pool's first non-empty kind in W U B
-// R G C order (the fee is unasked: gorge's activation asks no fee pick), moves
+// Activating it pays the {1} fee from the pool's first non-empty kind in C W U
+// B R G order (the fee is unasked: gorge's activation asks no fee pick), moves
 // the card to exile (the CARDNAME exile is unasked too) and adds one mana of
 // the colour the window's cost still owes. Only a cast's or an activation's
 // own payment window lists it, as it lists a hand guide (windowHandMana): the
@@ -63,11 +63,14 @@ func (s *State) graveManaAny(k *prep, p uint8) bool {
 	return o != NoObj
 }
 
-// graveManaFee pays the {1} fee from p's pool: the first non-empty kind in W U
-// B R G C order.
+// graveManaFee pays the {1} fee from p's pool: the first non-empty kind in C
+// W U B R G order (the fee is unasked: gorge's activation asks no fee pick,
+// and its generic spend runs colourless first -- the order the filter fee's
+// own spend reads, mana_mixgaps.go filtFeeSpend; a mixed {C}{U} pool pays the
+// {C}, gravemana lockstep seed 16's turn-5 payment).
 func (s *State) graveManaFee(p uint8) {
 	pl := &s.pl[SeatIx(p)]
-	for c := range pl.pool {
+	for _, c := range [6]int{kop.C, kop.W, kop.U, kop.B, kop.R, kop.G} {
 		if pl.pool[c] != 0 {
 			pl.pool[c]--
 			return
