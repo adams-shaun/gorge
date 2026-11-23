@@ -345,6 +345,14 @@ func (s *State) FeatPoolPays(p uint8, o Obj, mode uint8) bool {
 // FeatPoolPaysPlus is FeatPoolPays over the pool plus extra mana (W U B R G C):
 // what the pool would pay once the bot had floated that much by hand.
 func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bool {
+	return s.featPoolPays(p, o, mode, extra, false)
+}
+
+// featPoolPays is FeatPoolPaysPlus for a cast under the may-play any-colour
+// rider when anyColor: a coloured pip is payable by any coloured unit of the
+// pool, {C} stays strict (gorge's offer gate mayPlayAffordable prices the
+// cast under the rider, CR 609.4b).
+func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool) bool {
 	k := s.k()
 	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
@@ -413,6 +421,9 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	}
 	if k.gen != nil && k.gen.uses.has(useAnyColorSpell) && !s.convAnyType(k, SeatIx(p), o) && s.convAnyColor(k, SeatIx(p), o) {
 		cost = planUnderRider(cost, false, true) // the pool spends under the any-colour conversion (mana_convertcreature.go)
+	}
+	if anyColor && cost.Snow == 0 {
+		return a.affordsAnyColor(&cost, 0) // the credited composed cost, as offerPlay's pool half reads it
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
