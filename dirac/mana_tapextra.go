@@ -824,7 +824,7 @@ func (s *State) addPainAvail(k *prep, sl Slot, pc *pcard, p uint8, a *avail, ms 
 		switch {
 		case oneType:
 			// the {C} face is the other alternative to the one-colour block
-			s.addOneColourAlt(a, m, n, 1<<kop.C, n)
+			s.addOneColourAlt(a, m, n, 1<<kop.C, n, n)
 		case r > 0:
 			s.addOneColour(a, n) // the activation's mana is all one colour of the pick
 		}

@@ -632,6 +632,7 @@ type grantUnit struct {
 	mask, n       uint8
 	one           bool
 	altMask, altN uint8
+	colN          uint8 // the one-colour block's amount when below n (the larger fixed face is altN)
 }
 
 // add merges one grant into u: a larger amount governs, and an equal amount
@@ -669,6 +670,12 @@ func mergeGrantFace(own, grant grantUnit) grantUnit {
 	if grant.n == own.n {
 		grant.one = grant.one && own.one
 	}
+	if own.n > grant.n && (grant.one || grant.n == 1) && !own.one {
+		// the larger fixed face (Palladium Myr's {C}{C}) and the smaller one-colour grant are
+		// alternatives: the grant's one mana is the only coloured mana the tap makes
+		// (CR 106.4, 605.1a), not the face's whole amount in the grant's colours
+		return grantUnit{mask: own.mask | grant.mask, n: own.n, one: true, altMask: own.mask, altN: own.n, colN: grant.n}
+	}
 	own.mask |= grant.mask
 	return own
 }
@@ -684,7 +691,7 @@ func (s *State) addGrantUnit(a *avail, u grantUnit) {
 	}
 	s.addGrantUnits(a, u.mask, u.n)
 	if u.one {
-		s.addOneColourAlt(a, u.mask, u.n, u.altMask, u.altN)
+		s.addOneColourAlt(a, u.mask, u.n, u.altMask, u.altN, u.colN)
 	}
 }
 
