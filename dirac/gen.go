@@ -1081,15 +1081,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.Leyline {
 			g.leyline = true
 		}
-		if c.SelfFlash {
-			p.anySelfFlash, p.anyFlashAny = true, true
-		}
-		for j := range c.Abilities {
-			if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
-				p.anyFlashStat, p.anyFlashAny = true, true
-				pc.flashStat = true
-			}
-		}
+		prepCardFlash(c, pc, p)
 		if len(c.Faces) > 0 {
 			g.anyFaces = true
 			g.anyPrepare = g.anyPrepare || c.FaceMode == kop.FacePrepare

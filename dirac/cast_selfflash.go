@@ -132,3 +132,17 @@ func (s *State) embFlashForget(k *prep, e *stackEntry) {
 		}
 	}
 }
+
+// prepCardFlash opens the cast-time flash gates one card contributes: anySelfFlash,
+// anyFlashStat (a StatCastWithFlash static, pc.flashStat) and their union anyFlashAny.
+func prepCardFlash(c *kop.CardDef, pc *pcard, p *prep) {
+	if c.SelfFlash {
+		p.anySelfFlash, p.anyFlashAny = true, true
+	}
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+			p.anyFlashStat, p.anyFlashAny = true, true
+			pc.flashStat = true
+		}
+	}
+}
