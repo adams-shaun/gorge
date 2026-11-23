@@ -292,33 +292,19 @@ func reflWidePlay(a Action) bool {
 // keeps the painful production whole, so scriptOffers searches the plays it
 // pays beside the gaps walk's.
 func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
-	if !s.reflAmtLive(k, p) {
+	live := false
+	for b := s.caGaps(k, p); b.any() && !live; b = b.rest() {
+		live = k.isReflAmt(s.cardAt(b.first()))
+	}
+	if !live {
 		return false
 	}
-	paid, ok := s.reflAmtBoundPays(k, p, a)
-	return ok && paid
-}
-
-// reflAmtLive reports whether p controls a reflected Amount$ source that can
-// be activated now.
-func (s *State) reflAmtLive(k *prep, p uint8) bool {
-	for b := s.caGaps(k, p); b.any(); b = b.rest() {
-		if k.isReflAmt(s.cardAt(b.first())) {
-			return true
-		}
-	}
-	return false
-}
-
-// reflAmtBoundPays reports whether gorge's PotentialMana bound pays play a
-// (ok false: the play's cost is not priced here).
-func (s *State) reflAmtBoundPays(k *prep, p uint8, a Action) (paid, ok bool) {
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
-		return false, false
+		return false
 	}
 	var pot avail
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
-	return pot.affords(&cost, pipMaskOf(&cost), 0), true
+	return pot.affords(&cost, pipMaskOf(&cost), 0)
 }
