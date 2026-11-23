@@ -450,6 +450,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	var lifeWalk, ownWalk Decision
 	lifeBuilt, ownBuilt := false, false
+	rt := scriptRoute{
+		dh: dh, ca: ca, caM: caM, filt: filt, mix: mix,
+		tapsDef: tapsDef, restr: restr, anyR: anyR, anyDiff: anyDiff,
+		tx: tx, life: life, gaps: &gaps,
+		twoLive: twoLive, repeatLive: repeatLive,
+	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !(ca && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
@@ -462,111 +468,130 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) && !s.phyHalfPlanned(k, p, a) {
 			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
-		if dh {
-			if !s.dhScript(k, a, p, false) {
-				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
-			}
-		} else if ca {
-			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
-				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
-			}
-		} else if (filt.any() || mix) && s.liveGrantGap(k, p) {
-			// a cast beside a filter and a live grant needs both: the grant
-			// search's filter step funds the filter's fee from a granted
-			// sacrifice ability (Rain of Filth's lands; grantSearch's
-			// stepFilt), which the filter-only script skips (grantHasCost).
-			if a.Kind() == AkActivate && s.objs[Obj(a.Source())].zone == kop.ZoneBattlefield {
-				// An activation's line the grant search prices may fund the
-				// filter's fee from a granted tap — and gorge's menu arm
-				// prices an activation from the floating pool or the payment
-				// planner, whose census of sources holds printed abilities
-				// only (pay/board.go PaymentAbility). A line that floats a
-				// grant's mana before the fee prices a set gorge's planner
-				// never sees, so the grant search prices no activation here:
-				// the filter-only script prices the lines the planner does
-				// (its floats are the printed sources', CR 601.2b; tail-26
-				// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
-				// "{2},{T}: one mana of any color", whose fee the grant
-				// search funded with two granted Elf taps). A graveyard or
-				// exile activation (Encore's {7}{U}{U}) is no battlefield
-				// menu arm: gorge's graveyard walk prices it as a cast, the
-				// grants' mana counted, so it takes the grant search below.
-				if !s.filtScript(k, a, p, false) {
-					continue // no script within gorge's search budget (filtScript)
-				}
-			} else if ga, gstall := s.grantActScript(k, a, p); !ga {
-				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
-					// the filter-only script prices it (grantHasCost)
-				} else {
-					// the drop is final — grantCap ran before scriptOffers
-					// (legal.go) — and one of the grant search's lines ran
-					// into a rule gap the kernel stalls by name: declare
-					// it, not a dropped offer (the search declares
-					// nothing, mana_grantedoffers.go grantSearch)
-					s.capStall(gstall)
-					continue // no script within gorge's one search's budget (grantActScript)
-				}
-			}
-		} else if filt.any() || mix {
-			// Beside a filter, gorge still runs its second query over the
-			// census that keeps the Taps-deferred sources out (their extras
-			// ride the taps, addGatedExtra): the same play, the extended gap
-			// set. The filter route's branches spend the first search's budget
-			// on the fee-carrying gap's colour answers (Energy Refractor's
-			// "{2}: Add one mana of any color") before the deferred sources,
-			// so the play is also searched over them when the filter route
-			// found no script for it (the Trapjaw Kelpie lockstep: decision
-			// 402's cast, the second walk's phased run's two island taps).
-			if !s.filtScript(k, a, p, false) &&
-				!(tapsDef.any() && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)) &&
-				!(isCastKind(a.Kind()) && mix && s.tapXFallbackScript(k, a, p)) {
-				continue // no script within gorge's search budget
-			}
-		} else if tapsDef.any() && s.liveGrantGap(k, p) {
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
-				// the drop is final and one of the grant search's lines
-				// ran into a rule gap the kernel stalls by name: declare
-				// it, not a dropped offer (the search declares nothing)
-				s.capStall(gstall)
-				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
-			}
-		} else if tx.any() && !s.tapXDeadEndRoute(k, p, tx, tapsDef) && s.tapXBoard(k, p) {
-			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
-				// every route gave the play up and one of the search's lines
-				// ran into a rule gap the kernel stalls by name: declare it,
-				// not a dropped offer. The drop is final — grantCap ran
-				// before scriptOffers (legal.go) — and the search itself
-				// declares nothing (mana_tapanother.go tapXScript).
-				s.capStall(stall)
-				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
-			}
-		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
-			if found, dead := s.reflScript(k, a, p, false); !found || dead {
-				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
-			}
-		} else if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff) {
-				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
-			}
-		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
-			if !s.eachScript(k, a, p, false) {
-				continue // no script within gorge's search budget (mana_eachfee.go)
-			}
-		} else if restr.any() || s.scriptCtr(k, p).any() {
-			if dead, stall := s.scriptDeadEnd(k, a, p, restr); dead {
-				// the drop is final and one of the counter-cost search's
-				// lines ran into a rule gap the kernel stalls by name:
-				// declare it, not a dropped offer (the search itself
-				// declares nothing: scriptDeadEnd runs ctrScript on a fork,
-				// and unfork discards a declaration made there; tapXScript's
-				// shape)
-				s.capStall(stall)
-				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
-			}
+		if s.scriptRouteDrop(k, &rt, a, p) {
+			continue
 		}
 		d.add(a)
 	}
 	return searched
+}
+
+// scriptRoute carries scriptOffers' search-route inputs to scriptRouteDrop:
+// the board's gap shapes, fixed for the whole candidate loop.
+type scriptRoute struct {
+	dh, ca, mix, twoLive, repeatLive                   bool
+	caM, filt, tapsDef, restr, anyR, anyDiff, tx, life slotMask
+	gaps                                               *Decision
+}
+
+// scriptRouteDrop runs scriptOffers' search-route chain for one candidate
+// play: each arm is gorge's one prefix search on that board shape, and a play
+// the search prices past is dropped. It reports the drop; the latched stalls
+// it declares are the searches', which declare nothing themselves.
+func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) bool {
+	if rt.dh {
+		if !s.dhScript(k, a, p, false) {
+			return true // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
+		}
+	} else if rt.ca {
+		if !s.caSearch(k, a, p, rt.restr, rt.anyR, rt.tapsDef, rt.caM) {
+			return true // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
+		}
+	} else if (rt.filt.any() || rt.mix) && s.liveGrantGap(k, p) {
+		// a cast beside a filter and a live grant needs both: the grant
+		// search's filter step funds the filter's fee from a granted
+		// sacrifice ability (Rain of Filth's lands; grantSearch's
+		// stepFilt), which the filter-only script skips (grantHasCost).
+		if a.Kind() == AkActivate && s.objs[Obj(a.Source())].zone == kop.ZoneBattlefield {
+			// An activation's line the grant search prices may fund the
+			// filter's fee from a granted tap — and gorge's menu arm
+			// prices an activation from the floating pool or the payment
+			// planner, whose census of sources holds printed abilities
+			// only (pay/board.go PaymentAbility). A line that floats a
+			// grant's mana before the fee prices a set gorge's planner
+			// never sees, so the grant search prices no activation here:
+			// the filter-only script prices the lines the planner does
+			// (its floats are the printed sources', CR 601.2b; tail-26
+			// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
+			// "{2},{T}: one mana of any color", whose fee the grant
+			// search funded with two granted Elf taps). A graveyard or
+			// exile activation (Encore's {7}{U}{U}) is no battlefield
+			// menu arm: gorge's graveyard walk prices it as a cast, the
+			// grants' mana counted, so it takes the grant search below.
+			if !s.filtScript(k, a, p, false) {
+				return true // no script within gorge's search budget (filtScript)
+			}
+		} else if ga, gstall := s.grantActScript(k, a, p); !ga {
+			if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
+				// the filter-only script prices it (grantHasCost)
+			} else {
+				// the drop is final — grantCap ran before scriptOffers
+				// (legal.go) — and one of the grant search's lines ran
+				// into a rule gap the kernel stalls by name: declare
+				// it, not a dropped offer (the search declares
+				// nothing, mana_grantedoffers.go grantSearch)
+				s.capStall(gstall)
+				return true // no script within gorge's one search's budget (grantActScript)
+			}
+		}
+	} else if rt.filt.any() || rt.mix {
+		// Beside a filter, gorge still runs its second query over the
+		// census that keeps the Taps-deferred sources out (their extras
+		// ride the taps, addGatedExtra): the same play, the extended gap
+		// set. The filter route's branches spend the first search's budget
+		// on the fee-carrying gap's colour answers (Energy Refractor's
+		// "{2}: Add one mana of any color") before the deferred sources,
+		// so the play is also searched over them when the filter route
+		// found no script for it (the Trapjaw Kelpie lockstep: decision
+		// 402's cast, the second walk's phased run's two island taps).
+		if !s.filtScript(k, a, p, false) &&
+			!(rt.tapsDef.any() && !s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff)) &&
+			!(isCastKind(a.Kind()) && rt.mix && s.tapXFallbackScript(k, a, p)) {
+			return true // no script within gorge's search budget
+		}
+	} else if rt.tapsDef.any() && s.liveGrantGap(k, p) {
+		if ga, gstall := s.grantActScript(k, a, p); !ga {
+			// the drop is final and one of the grant search's lines
+			// ran into a rule gap the kernel stalls by name: declare
+			// it, not a dropped offer (the search declares nothing)
+			s.capStall(gstall)
+			return true // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
+		}
+	} else if rt.tx.any() && !s.tapXDeadEndRoute(k, p, rt.tx, rt.tapsDef) && s.tapXBoard(k, p) {
+		if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
+			// every route gave the play up and one of the search's lines
+			// ran into a rule gap the kernel stalls by name: declare it,
+			// not a dropped offer. The drop is final — grantCap ran
+			// before scriptOffers (legal.go) — and the search itself
+			// declares nothing (mana_tapanother.go tapXScript).
+			s.capStall(stall)
+			return true // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
+		}
+	} else if k.gen.anyRefl && s.reflBoard(k, p, rt.restr, rt.anyR) {
+		if found, dead := s.reflScript(k, a, p, false); !found || dead {
+			return true // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
+		}
+	} else if rt.anyR.any() || rt.tapsDef.any() || rt.anyDiff.any() || rt.life.any() {
+		if s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff) {
+			return true // no script within gorge's budget (mana_window.go scriptDeadEndAny)
+		}
+	} else if !rt.restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
+		if !s.eachScript(k, a, p, false) {
+			return true // no script within gorge's search budget (mana_eachfee.go)
+		}
+	} else if rt.restr.any() || s.scriptCtr(k, p).any() || s.eachOnlyOwnTapPlay(k, p, a, rt.gaps, rt.twoLive || rt.repeatLive) {
+		if dead, stall := s.scriptDeadEnd(k, a, p, rt.restr); dead {
+			// the drop is final and one of the counter-cost search's
+			// lines ran into a rule gap the kernel stalls by name:
+			// declare it, not a dropped offer (the search itself
+			// declares nothing: scriptDeadEnd runs ctrScript on a fork,
+			// and unfork discards a declaration made there; tapXScript's
+			// shape)
+			s.capStall(stall)
+			return true // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
+		}
+	}
+	return false
 }
 
 // mergeBareGaps adds to gaps the plays of the gaps walk with the filters left
