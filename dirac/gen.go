@@ -2793,9 +2793,6 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 		return &noManaPC // genLost covers a face-down permanent (CR 708.2)
 	}
-	if k.gen.landSet && pc.manaAb < 0 && vi < 0 && pc.manaCol == 0 && k.t.Cards[c].Types&kop.TLand != 0 && s.landSetLost(k, sl) {
-		return s.landSetView(k, sl, c) // a land with no mana of its own (Multiversal Passage) under its own chosen-type setter: the intrinsic ability alone
-	}
 	if vi >= 0 {
 		if k.gen.blgOn {
 			if v := s.gateGrantView(k, sl, c, vi); v != nil {
