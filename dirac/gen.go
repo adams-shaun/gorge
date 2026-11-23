@@ -892,7 +892,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
 	}
 	prepCtrAdded(t, p, g) // ctr_addedthisturn.go
-	prepHandStat(t, p)    // cast_handleaves.go
 	if tableSpentGate(t) {
 		g.anySpentGate, g.anySpent, g.anyHist = true, true, true // the Spell.ManaSpent gate reads the spell's recorded spend (trig_spentvalid.go); never anyCastSpent: no planner decline
 	}

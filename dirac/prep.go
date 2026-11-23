@@ -532,6 +532,7 @@ func prepare(t *kop.Table) *prep {
 	p.embPrev = tableEmbHasStaticPrev(t)
 	p.gen = prepareGen(t, p)
 	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
+	prepHandStat(t, p) // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
