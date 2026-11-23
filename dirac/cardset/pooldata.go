@@ -582,11 +582,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 		subSet = all
 	}
-	// A static that grants a basic land type (Urborg's Swamp) makes the kernel
-	// tell a land's printed mana ability from the intrinsic one its own basic
-	// types give (blgPrintedMask): keep the basic land types the included
-	// cards print, so a Plateau's {R} and {W} are not read as printed.
-	keepPrintedBasicLandTypes(dd, pool, &subSet)
+	keepPrintedBasicLandTypes(dd, pool, &subSet) // a granted basic land type keeps the printed ones
 	// The kernel's Role exclusivity keys on the printed Role subtype by
 	// name (dirac/gen.go prepRoles), not on a filter, so keep Role in the
 	// table whenever an included card prints it. Without this the mask()
@@ -852,7 +848,10 @@ func markBasicLandChoice(dd *PoolData, in *kop.Instr, mark func(uint8)) {
 }
 
 // keepPrintedBasicLandTypes adds to subSet the basic land types some pool
-// card prints, when a static of an included card grants one.
+// card prints, when a static of an included card grants one (Urborg's Swamp).
+// The kernel tells a land's printed mana ability from the intrinsic one its own
+// basic types give (blgPrintedMask) only for the types the matchup keeps, so a
+// Plateau's {R} and {W} would read as printed and rank below a granted colour.
 func keepPrintedBasicLandTypes(dd *PoolData, pool []int, subSet *PoolSubMask) {
 	granted := false
 	for _, i := range pool {
