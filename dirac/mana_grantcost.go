@@ -325,6 +325,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		u.grantSacDo(g.k, sl)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
+		sv := g.refreshGrants(u) // (the sacrificed source may have held a grant the others read: mana_grantlive.go)
 		var ok bool
 		switch {
 		case u.over:
@@ -335,6 +336,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
@@ -575,6 +577,7 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		u.grantSacDo(g.k, sl)
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
+		sv := g.refreshGrants(u) // (the sacrificed source may have held a grant the others read: mana_grantlive.go)
 		var ok bool
 		switch {
 		case u.over:
@@ -585,6 +588,7 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
