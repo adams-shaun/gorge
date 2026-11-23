@@ -130,6 +130,23 @@ func (lc *lowerCtx) chooseBasicLandType(ps *params) error {
 	return nil
 }
 
+// chooseBasicLandEnter lowers an as-enters ChooseType | Type$ Basic Land
+// (Realmwright; gorge effChooseType offers the same TypeChoiceLabels("Basic
+// Land") list whether the choice is as-enters or mid-resolution) to the enters
+// program's OpChooseType with B = kop.ChooseTypeBasicLand. The answer is the
+// chosen type's matchup subtype index in the permanent's chosen, the byte an
+// AddType$ ChosenType static and a ChosenType filter read. A narrowed pool, a
+// random pick or a secret answer refuses.
+func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
+	for _, k := range []string{"AtRandom", "ValidTypes", "InvalidTypes", "Secretly"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("ChooseType Basic Land %s$", k)
+		}
+	}
+	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeBasicLand), Note: "as-enters choice among the basic land types"})
+	return nil
+}
+
 // animateChosenLandType lowers the Animate half on obj: the grant without
 // its Types$, copied into the five records.
 func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
@@ -234,4 +251,25 @@ func (lc *lowerCtx) chooseCreatureTypeMid(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// etbChooseType lowers an as-enters ChooseType by its Type$: creature types and
+// the basic land types lower, any other pool refuses.
+func (lc *lowerCtx) etbChooseType(ps *params) error {
+	// gorge effChooseType: an absent Defined$ is the controller
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
+		return refuse("ChooseType shape")
+	}
+	switch ps.str("Type") {
+	case "Creature":
+		in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, Note: "choice among creature types"}
+		if err := lc.chooseTypeValid(ps, &in); err != nil {
+			return err
+		}
+		lc.emit(in)
+		return nil
+	case "Basic Land":
+		return lc.chooseBasicLandEnter(ps)
+	}
+	return refuse("ChooseType shape")
 }

@@ -948,7 +948,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
 		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
 			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
