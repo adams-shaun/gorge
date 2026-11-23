@@ -734,6 +734,8 @@ func (e *Engine) payCast() {
 	if pc.altCostPaid {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagAltCostPaid)
 	}
+	// Emerge (CR 702.119): see emergeStamp.
+	flags = emergeStamp(pc, e.G.Obj(pc.card).Face(), flags)
 	// DB$ Play's ReplaceGraveyard$ Exile rider: the played
 	// spell's provenance — "if that spell would be put into your graveyard
 	// this turn, exile it instead" — rides the same pay-time CastInfo every
@@ -872,7 +874,9 @@ func (e *Engine) payCast() {
 	}
 	// Conspire and Teamwork are paid-cost provenance. Emit no marker when
 	// declined so plain casts retain their byte-identical CastInfo stream.
-	for _, ev := range paidTapCastInfo(pc, flags) {
+	// The Emerge sacrifice and its last-known toughness (Count$Emerged) ride
+	// the same trailing slot.
+	for _, ev := range append(paidTapCastInfo(pc, flags), emergedCastInfo(pc, e.G.Obj(pc.card).Face(), flags, sacrificedLKI)...) {
 		e.emit(ev)
 	}
 	// Convoke (CR 702.66): the creatures the caster tapped to
