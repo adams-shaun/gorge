@@ -1,0 +1,14 @@
+# the banding-blocker pool: a creature that has banding while it blocks by a
+# static (Dire Wolves: while its controller controls a Plains; Banding Sliver:
+# all Slivers) or an activated Pump KW$ Banding (Beast Walkers, Icatian
+# Infantry), beside creatures to attack and double-block with
+# (dirac/oracle/banding_blocker_lockstep_test.go)
+Banding Sliver
+Beast Walkers
+Dire Wolves
+Forest
+Grizzly Bears
+Hill Giant
+Icatian Infantry
+Mountain
+Plains
