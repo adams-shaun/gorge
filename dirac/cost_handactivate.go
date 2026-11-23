@@ -55,7 +55,8 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				}
 			}
 			census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0))
-			if census && !s.handActTapXRoute(k, p) {
+			script := census && s.handActScriptPays(k, p, o, ai)
+			if census && !script && !s.handActTapXRoute(k, p) {
 				continue
 			}
 			if !s.handActCensusPays(k, p, mana, pd, av) {
@@ -77,7 +78,7 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			// withheld. abilityTargetsFeasible's bare probe carries no source
 			// (its colours 0), so protection from a colour never matched.
 			pa := MakeAction(AkActivate, TCode(o), 0, uint8(ai))
-			if s.probeAbilityFrom(k, a, p, s.objs[o].card) && (!census || s.handActTapXPays(k, p, pa)) {
+			if s.probeAbilityFrom(k, a, p, s.objs[o].card) && (!census || script || s.handActTapXPays(k, p, pa)) {
 				d.add(pa)
 			}
 		}
@@ -124,6 +125,28 @@ func (s *State) sacRepeatPays(k *prep, p uint8, mana *kop.ManaCost, pd payDesc) 
 	var pot avail
 	s.availPotentialFor(k, p, &pot, &pd, false)
 	return pot.affords(mana, pipMaskOf(mana), 0)
+}
+
+// handActScriptPays is the planner witness's half of gorge's hand-zone gate
+// (autoPayOffer, CR 602.2b): the plain census holds no unit for a mana
+// ability whose own cost is mana (Crossroads Candleguide's "{2}: Add one mana
+// of any color"), but the planner's witness taps it, so the activation's
+// filter script prices what the census cannot (actScriptPays, the battlefield
+// activation's route). Cold, out of line.
+//
+//go:noinline
+func (s *State) handActScriptPays(k *prep, p uint8, o Obj, ai int) bool {
+	if k.gen == nil || s.cfg&cfgGorgeLowering == 0 || s.g.availX&(availNoActScript|availWalk) != 0 || s.pool != nil && s.pool.inFilt != 0 {
+		return false
+	}
+	if !s.scriptFilt(k, p).any() {
+		return false
+	}
+	x := s.g.availX
+	s.g.availX = x | availNoHandFund
+	ok := s.filtScript(k, MakeAction(AkActivate, TCode(o), 0, uint8(ai)), p, false)
+	s.g.availX = x
+	return ok
 }
 
 // discardSelfCost pays CostDiscardSelf: the source card, still in its
