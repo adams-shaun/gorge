@@ -528,6 +528,9 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	if s.ctl == ctlBand {
 		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go)
 	}
+	if s.ctl == ctlReflectPick {
+		h = hmix(h, uint64(s.g.reflMask)|uint64(s.g.reflP)<<8) // the colours asked and the payer (mana_reflectpickask.go)
+	}
 	if s.legSaga.any() {
 		h = hmixSlots(h, s.legSaga)
 	}
