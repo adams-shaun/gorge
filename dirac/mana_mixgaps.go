@@ -58,10 +58,9 @@ type otherStep struct {
 	// ask offers every X from the counters held down to 0
 	x    uint8
 	xset bool
-	// fo, sib: otherComboAny's forage source (mana_forage.go): the forage option
-	// answered (fo, with ans the colours), or its plain {T} ability (sib)
-	fo  uint8
-	sib bool
+	// fo: otherComboAny of a forage source (mana_forage.go): the forage option
+	// answered; plain then marks its plain sibling ability
+	fo uint8
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -177,7 +176,8 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 	return m
 }
 
-// mixComboAny: p's live Combo Any sources (mana_comboany.go caGaps) when a
+// mixComboAny: p's live Combo Any sources (mana_comboany.go caGapsF, a forage
+// source included when its forage is payable: forageOther) when a
 // filter is a gap beside them (filt). gorge's census misses both (an
 // any-combination production, a paid filter) and its one prefix search
 // activates every gap in battlefield order, funding a filter's fee from the
@@ -228,11 +228,11 @@ func (s *State) caFiltBoard(k *prep, p uint8) bool {
 // caSearch's node): one node, then the allocation's answers in gorge's order,
 // the colours the play announces first (caRank).
 func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
-	if k.isReflAmt(t.cardAt(sl)) {
-		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
-	}
 	if k.forageCA(t.cardAt(sl)) {
 		return fs.forageOther(t, k, sl, try)
+	}
+	if k.isReflAmt(t.cardAt(sl)) {
+		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
 	}
 	if !fs.tick() {
 		return false
@@ -858,12 +858,12 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherComboAny:
-		if k.isReflAmt(s.cardAt(st.sl)) {
-			s.reflAmtOtherDo(k, p, st.sl, o.ans)
+		if k.forageCA(s.cardAt(st.sl)) {
+			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.plain})
 			break
 		}
-		if k.forageCA(s.cardAt(st.sl)) {
-			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.sib})
+		if k.isReflAmt(s.cardAt(st.sl)) {
+			s.reflAmtOtherDo(k, p, st.sl, o.ans)
 			break
 		}
 		s.caActivate(k, p, st.sl, int(o.ans))
