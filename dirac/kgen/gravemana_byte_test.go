@@ -25,16 +25,16 @@ func graveManaSynth(t *testing.T, line string) *lCard {
 
 // TestGraveManaLowersByte: Jack-o'-Lantern's "{1}, Exile CARDNAME from your
 // graveyard: Add one mana of any color" sets CardDef's GraveMana (lCard
-// GraveMana, the colours it adds: any) while the card stays refused on the mana
-// fee (dirac/mana_gravemana.go reads the byte; the funding pass is not in the
-// kernel yet). A coloured fee or another amount is not the shape: no byte.
+// GraveMana, the colours it adds: any) and lowers with no refusal: the line
+// lowers onto the byte (dirac/mana_gravemana.go reads it), not into a mana
+// ability. A coloured fee or another amount is not the shape: no byte.
 func TestGraveManaLowersByte(t *testing.T) {
 	jack := exileGraveLower(t, "Jack-o'-Lantern")
 	if jack.GraveMana != uint8(kop.ColAny) {
 		t.Errorf("Jack-o'-Lantern: GraveMana %#x, want %#x", jack.GraveMana, uint8(kop.ColAny))
 	}
-	if got := keclReason(jack.Refusals); !strings.Contains(got, "a mana fee") {
-		t.Errorf("Jack-o'-Lantern: refusals %q, want the graveyard mana fee still named", got)
+	if got := keclReason(jack.Refusals); got != "" {
+		t.Errorf("Jack-o'-Lantern: refusals %q, want none", got)
 	}
 
 	const line = "A:AB$ Mana | Cost$ %s | ActivationZone$ Graveyard | Produced$ Any%s"
