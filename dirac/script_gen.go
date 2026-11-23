@@ -1424,6 +1424,12 @@ func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 	if k.t.Cards[c].Cost.X != 0 || k.t.Cards[c].Cost.XRed != 0 || k.t.Cards[c].Cost.XPip != 0 {
 		return false // the X ask keeps the manual window (payment_plan.go costAnnouncesX)
 	}
+	if cost := &k.t.Cards[c].Cost; cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian() {
+		// gorge's cast planner declines a plain hybrid pip ("cost:hybrid") before the improvise lift, and the
+		// potential planner then withholds the live credit ("cost:credit", potentialModeCredit): no plain plan,
+		// no prefix search (CR 702.126a, 601.2g-h)
+		return false
+	}
 	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
 		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
 	}
