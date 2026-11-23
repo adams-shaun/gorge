@@ -155,11 +155,18 @@ func (s *State) spreeAffordable(k *prep) bool {
 // being an effect and not a cost (CR 106.12, 605.3: Cabal Pit at 1 life, as
 // availCastWindowFor's announce gate counts it), and a deferred
 // TriggersWhenSpent$ source (Gilanra) counts its mana, which the planner's
-// census omits (mana_deferred.go) and the window offers.
+// census omits (mana_deferred.go) and the window offers. A counter-cost
+// source (availGaps: Mercadian Bazaar's storage counters, a Wall of Roots'
+// counter) is one the window offers too, so it counts at its counters: a
+// Tiered Blade Beam ({1}{W}+{1}) beside one floating R and W is paid by the
+// Bazaar's X of 1 (CR 601.2g).
 //
 //go:noinline
 func (s *State) availSpreeWindow(k *prep, e *stackEntry, av *avail) {
 	x := s.g.availX
+	if k.gen != nil {
+		s.g.availX |= availGaps
+	}
 	if k.painMana {
 		s.g.availX |= availWinCol
 	}
