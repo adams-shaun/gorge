@@ -1,14 +1,27 @@
+A-Elderleaf Mentor
+A-Goldspan Dragon
+Abraded Bluffs
 Abstruse Interference
+Advocate of the Beast
 Aether Shockwave
+Akki Rockspeaker
 Akoum Boulderfoot
 Akoum Warrior
 Amulet of Kroog
 Arcbound Hybrid
 Archfiend of Sorrows
+Arena Athlete
+Arid Archway
 Ashling the Pilgrim
 Asylum Visitor
 Attrition
+Attune with Aether
+Avenger of Zendikar
+Banish from Edoras
+Barrier Breach
+Blade Banish
 Blade Splicer
+Blood Rites
 Bloodcrusher of Khorne
 Bloodghast
 Bloodthirsty Aerialist
@@ -18,36 +31,52 @@ Border Guard
 Boreal Elemental
 Bottle Golems
 Brawl-Bash Ogre
+Bristling Backwoods
 Bull Hippo
 Captivating Vampire
+Cartouche of Zeal
 Castaway's Despair
 Celestial Purge
 Channel the Suns
 Chaotic Goo
+Charging Monstrosaur
 Chatter of the Squirrel
 Cho-Arrim Bruiser
 Cloak of Feathers
 Cloud Elemental
 Cloudchaser Kestrel
 Cognivore
+Combust
+Conclave Mentor
+Conduit Pylons
+Consuming Sinkhole
 Court Homunculus
+Court of Grace
+Creosote Heath
 Curious Altisaur
 Cut
 Damning Verdict
+Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Dementia Bat
 Demon of Loathing
 Demonic Tutor
+Deploy the Gatewatch
 Dismiss
 Draugr Thought-Thief
 Drown in Ichor
 Dryad Greenseeker
 Duskhunter Bat
 Dwarven Warriors
+Eastfarthing Farmer
+Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
+Elvish Eulogist
 Endurance Bobblehead
+Entangler
+Eroded Canyon
 Ertai Resurrected
 Eternal Skylord
 Evaporate
@@ -57,13 +86,16 @@ Facevaulter
 Familiar Ground
 Fault Riders
 Feral Abomination
+Festering Gulch
 Filigree Fracture
+Flamekin Harbinger
 Floating-Dream Zubera
 Flying Dolphin-Fish
 Flywheel Racer
 Forest
 Frogtosser Banneret
 Frontline Devastator
+Gaea's Embrace
 Garrison Griffin
 Gastal Raider
 Genasi Enforcers
@@ -72,6 +104,7 @@ Ghitu Journeymage
 Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Gisa's Bidding
+Glare of Subdual
 Go-Shintai of Shared Purpose
 Goblin Tutor
 Grip of Desolation
@@ -82,24 +115,30 @@ Heliod's Pilgrim
 Heroic Charge
 Highway Robber
 Hold the Line
+Honor the Past
 Idle Thoughts
+Inferno
 Invasion of Segovia
 Island
+Kami of the Hunt
 Knight of Old Benalia
 Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
 Lancer Sliver
 Lavakin Brawler
+Levitating Statue
 Leyline Dowser
 Light the Way
 Lightless Evangel
 Luminarch Ascension
+Lure
 Lydia Frye
 Lys Alana Bowmaster
 Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
+Master of Pearls
 Memory Drain
 Mercurial Spelldancer
 Merrow Witsniper
@@ -122,11 +161,16 @@ Ovalchase Daredevil
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
+Pest Infestation
 Phantasmal Sphere
+Phoenix Chick
 Pious Evangel
+Pious Wayfarer
 Plains
+Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Provoke
 Pygmy Pyrosaur
 Raging Spirit
 Rakka Mar
@@ -134,15 +178,20 @@ Rakshasa's Secret
 Ranger Class
 Ravenous Harpy
 Reckless Imp
+Recross the Paths
 Redwood Treefolk
 Relic of Progenitus
 Rescue Retriever
+Rhox Meditant
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Savage Thallid
 Scragnoth
 Sewerdreg
+Shanna, Sisay's Legacy
 Shieldmate's Blessing
+Sizzle
 Skyclave Shade
 Skyshroud Troll
 Sokka, Swordmaster
@@ -154,6 +203,8 @@ Steady Progress
 Storm Crow
 Strandwalker
 Streaking Oilgorger
+Strike It Rich
+Sunblade Angel
 Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
@@ -162,11 +213,14 @@ Tezzeret's Touch
 The Unspeakable
 Thran Lens
 Thunder Wall
+Titanic Brawl
 Toph, Earthbending Master
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Umbral Juke
 Unnatural Speed
+Unwavering Initiate
 Valakut Fireboar
 Vaporkin
 Veilborn Ghoul
@@ -176,8 +230,13 @@ Viridian Zealot
 Vivid Revival
 Vivisection
 Voda Sea Scavenger
+Walking Archive
+Warleader's Helix
 Wave-Wing Elemental
 Wheel and Deal
 Wild Crocodile
+Wilderness Elemental
 Witch's Mist
 Witness of Tomorrows
+Wose Pathfinder
+Yuma, Proud Protector

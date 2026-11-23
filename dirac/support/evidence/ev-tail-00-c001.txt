@@ -229,6 +229,8 @@ Martial Coup
 Masked Vandal
 Megantic Sliver
 Mind Flayer
+Mirror Universe
+Mirrormere Guardian
 Moonlit Strider
 Morgue Thrull
 Mortis Dogs
@@ -326,6 +328,7 @@ Shivan Wumpus
 Shrink
 Shrivel
 Sickle Ripper
+Siege of Towers
 Silence
 Simic Initiate
 Sinuous Vermin
@@ -422,5 +425,6 @@ Wolfrider's Saddle
 Woolly Loxodon
 Wu Warship
 Yarok, the Desecrated
+Yosei, the Morning Star
 Yoshimaru, Ever Faithful
 Zhang Liao, Hero of Hefei

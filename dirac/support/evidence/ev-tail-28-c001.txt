@@ -28,6 +28,7 @@ Aquastrand Spider
 Archetype of Imagination
 Archfiend of Despair
 Arnjlot's Ascent
+Ashnod's Battle Gear
 Aspect of Gorgon
 Aven of Enduring Hope
 Azorius Cluestone
@@ -80,6 +81,7 @@ Combo Attack
 Confirm Suspicions
 Consulate Turret
 Coral Helm
+Council of Reeds
 Court of Ambition
 Crashing Drawbridge
 Curious Killbot

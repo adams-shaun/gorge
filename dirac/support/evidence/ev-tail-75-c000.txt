@@ -109,6 +109,7 @@ Decree of Silence
 Deepwood Wolverine
 Delraich
 Demon's Disciple
+Demonic Torment
 Dense Foliage
 Depth Charge Colossus
 Deputized Protester
@@ -502,6 +503,7 @@ Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Woolly Razorback
 Yawgmoth Demon
 Yoshimaru, Ever Faithful
 Zap

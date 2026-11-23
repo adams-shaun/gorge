@@ -385,6 +385,7 @@ Stormcrag Elemental
 Stormrider Rig
 Streetbreaker Wurm
 Sultai Scavenger
+Summon the School
 Summon: Good King Mog XII
 Sunblade Angel
 Swamp

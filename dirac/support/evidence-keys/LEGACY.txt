@@ -3431,7 +3431,6 @@ Sickbay Orderly
 Sidequest: Hunt the Mark
 Sidequest: Raise a Chocobo
 Siege Rhino
-Siege Veteran
 Siege Zombie
 Siegehorn Ceratops
 Sifter Wurm
@@ -3771,7 +3770,6 @@ Sultai Soothsayer
 Sulu, Space Swashbuckler
 Summer Bloom
 Summit Intimidator
-Summon the School
 Summoned Dromedary
 Sun Sentinel
 Sun Titan
@@ -3835,7 +3833,6 @@ Syr Vondam, the Lucent
 Systems Override
 Szarel, Genesis Shepherd
 Séance
-T'Challa, the Black Panther
 T'Pol, Vulcan Representative
 Tablet of Discovery
 Tackle Artist

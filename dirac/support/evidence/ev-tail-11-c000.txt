@@ -353,6 +353,7 @@ Raid Bombardment
 Rakdos Trumpeter
 Raptor Hatchling
 Reap the Seagraf
+Recycle
 Redirect
 Rescue
 Righteous Charge
