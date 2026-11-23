@@ -1,0 +1,27 @@
+{
+  "card": "Ray of Revelation",
+  "class": "options-options",
+  "why": "Ray of Revelation's flashback {G} is payable only by Grove of the Burnwillows' {T}: Add {R} or {G} (a census gap through its opponent-gains-1-life rider) beside two more gaps, Darkwater Catacombs' {1},{T} filter and Gemstone Caverns' counter-conditioned mana; gorge's potentialPrefixScript walks the three gaps' colour and funding branches and spends its 160-clone budget (plain run: 164 nodes, limited, 3 gaps, no script) before the Grove G answer, so the cast is priced census_incomplete and not offered, while the kernel's mirrored search offers cast(Ray of Revelation) (CR 605.3b, 601.2g); tail-04-c000 pair 3, decision 1854; node-for-node alignment of that search is beyond a bounded fix (as Fire Dragon, Kor Haven)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "grove_gap_flashback_script_budget"
+  },
+  "evidence": [
+    "ev-tail-04-c000",
+    "ev-tail-04-c001",
+    "ev-tail-04-c002",
+    "ev-tail-04-c003",
+    "ev-tail-15-c000",
+    "ev-tail-15-c001",
+    "ev-tail-15-c002",
+    "ev-tail-15-c004",
+    "ev-tail-15-c005",
+    "ev-tail-15-c006",
+    "ev-tail-15-c066"
+  ]
+}
