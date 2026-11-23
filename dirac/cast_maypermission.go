@@ -288,9 +288,12 @@ func (s *State) mayPlayIgnoreColor(k *prep, p uint8, o Obj) bool {
 // mayPlayIgnoreColor no longer holds it, and the mid-cast price
 // plannedUnderRider takes must still fold the pips under the rider the way
 // gorge's cast planner prices the cast (pay.PlanManaUnderRider; CR 609.4b).
+// The scratch region outlives the build (finishBuild zeroes nothing), so the
+// read is guarded on a live build: a price over the same object taken after
+// the cast (a recast offer) must not fold under its stale rider.
 func (s *State) riderColorSpent(p uint8, o Obj) bool {
 	b := s.bld()
-	return b.e.kind == seSpell && b.e.obj == o && b.e.ctrl == p && b.bfl&bflAnyColor != 0
+	return s.buildLive() && b.e.kind == seSpell && b.e.obj == o && b.e.ctrl == p && b.bfl&bflAnyColor != 0
 }
 
 // mayPlayAnyType reports whether a permission lets p spend mana of any type on the
