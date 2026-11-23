@@ -1949,6 +1949,9 @@ func (g *grantSrch) fundingPass(t *State) (found, stop bool) {
 		}
 		pc := t.manaPCGen(g.k, sl)
 		restr := pc.manaAb < 0
+		if restr && t.fundYieldsNothing(g.k, sl) {
+			continue // gorge's funding pass skips a source that adds nothing (windowSourceYields)
+		}
 		if restr {
 			// a restricted funder (fundRestrAdmits, gorge's coveredSpendable):
 			// its tap burns the walk's node budget with gorge's; its mana
