@@ -848,7 +848,10 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 	}
 	p := s.perms[sl].ctrl
 	f := s.scriptFilt(k, p)
-	if !f.any() || s.filtNetNegative(k, f) != 0 || !s.reflAmtBoundAct(k, sl, a) {
+	if !f.any() {
+		return s.reflAmtActPays(k, sl, a, p) // mana_reflamt.go
+	}
+	if s.filtNetNegative(k, f) != 0 || !s.reflAmtBoundAct(k, sl, a) {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))

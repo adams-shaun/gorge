@@ -154,11 +154,23 @@ func (s *State) reflAmtN(k *prep, sl Slot) int {
 // colour index, C included): the tap, then the whole evaluated amount of that
 // colour (gorge's resolution: one colour ask names all the mana).
 func (s *State) reflAmtDo(k *prep, p uint8, sl Slot, col int) {
+	s.reflAmtTap(k, p, sl, col, true)
+}
+
+// reflAmtNoMana is the answer of a reflected source with no colour to name: the
+// tap alone (gorge's Note).
+const reflAmtNoMana = kop.NumManaKinds
+
+// reflAmtTap is reflAmtDo; notify false leaves the Taps notification to the
+// caller (the grant search's next step stacks it, caProduce).
+func (s *State) reflAmtTap(k *prep, p uint8, sl Slot, col int, notify bool) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
-	s.manaTapped(k, sl)
+	if notify {
+		s.manaTapped(k, sl)
+	}
 	n := s.reflAmtN(k, sl)
-	if n > 0 {
+	if n > 0 && col < reflAmtNoMana {
 		s.poolAdd(p, col, n)
 		s.artTag(k, p, sl, col)
 	}
@@ -174,7 +186,7 @@ func (s *State) reflAmtOrder(k *prep, sl Slot, a Action, out []uint8) []uint8 {
 }
 
 // reflAmtOrderNeed is reflAmtOrder for a play whose announced colours are
-// already read (the filter search's need).
+// already read (the grant search's own need, the filter search's need).
 func (s *State) reflAmtOrderNeed(k *prep, sl Slot, need [kop.NumManaKinds]bool, out []uint8) []uint8 {
 	m := s.reflAmtCols(k, sl)
 	n := 0
@@ -305,12 +317,41 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 
 // reflAmtLive reports whether p controls a live reflected Amount$ source.
 func (s *State) reflAmtLive(k *prep, p uint8) bool {
-	for b := s.caGaps(k, p); b.any(); b = b.rest() {
+	return s.reflAmtUnbounded(k, s.caGaps(k, p))
+}
+
+// reflAmtUnbounded reports whether a live reflected Amount$ source is among the
+// census gaps ca. gorge's planner census lists no unit for it (the amount is
+// deferred) and is unrelaxable with it: no relaxed proof runs, the prefix
+// search prices the play.
+func (s *State) reflAmtUnbounded(k *prep, ca slotMask) bool {
+	for b := ca; b.any(); b = b.rest() {
 		if k.isReflAmt(s.cardAt(b.first())) {
 			return true
 		}
 	}
 	return false
+}
+
+// reflAmtActPays reports whether activation ability a of sl (p's) is a
+// candidate beside a live reflected Amount$ source (Incubation Druid) and a live
+// granted mana ability, with no filter script. gorge's planner census lists no
+// unit for the source (pay.PaymentPlanReflectedShape defers the amount) and is
+// unrelaxable, so a play its PotentialMana bound pays is census-incomplete and
+// takes the one prefix search, which activates the Druid through the manual
+// window (CR 605.3b, 602.2b). The bound lists the play (the Druid folded in
+// every colour its reflection names, reflAmtPotential, gorge
+// addPotentialReflectedAmount); the grant search (grantCap) is the verdict,
+// keeping the candidates it pays and dropping the rest. A board without a
+// grant has no such search for an activation here: not offered.
+func (s *State) reflAmtActPays(k *prep, sl Slot, a *kop.Ability, p uint8) bool {
+	if !(k.gen.anyComboAny && s.reflAmtUnbounded(k, s.caGaps(k, p)) && s.grantGapLive(k, p)) {
+		return false
+	}
+	var pot avail
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0)
 }
 
 // reflAmtBoundAct reports whether gorge's PotentialMana bound pays activation
