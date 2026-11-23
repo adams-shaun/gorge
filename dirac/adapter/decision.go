@@ -374,7 +374,10 @@ func (g *Game) askSource(d *decision.Decision) state.ObjID {
 	if d.Kind == decision.KCommanderZone && len(d.Options) > 0 {
 		return d.Options[0].Obj // the commander its owner is asked about (CR 903.9a)
 	}
-	if g.d.Sub == dirac.ChDivide && len(d.Options) > 0 {
+	// a division's and the as-unblocked election's options name their
+	// subject (the attacker), which the features name nothing of at a
+	// combat damage step (the kernel election poses them, combat_asgngrant.go)
+	if (g.d.Sub == dirac.ChDivide || g.d.Sub == dirac.ChAsUnblocked) && len(d.Options) > 0 {
 		return d.Options[0].Obj
 	}
 	src := g.s.FeatEnterSource()

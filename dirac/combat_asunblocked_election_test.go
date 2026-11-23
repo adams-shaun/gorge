@@ -247,12 +247,14 @@ func TestAsUnblockedElectionGorgeAgrees(t *testing.T) {
 		attackerAlive  bool
 		attackerDamage int
 	}
-	kernelSplits := func(block bool, accept bool) split {
+	kernelSplits := func(block bool, accept bool) (split, uint8) {
 		sc := newScenTableLib(t, tbl, v.Plains, Config{NoElide: true})
 		te, chap := sc.permPair(t, id)
 		sc.asUnblkCombat(t, te, chap, block)
+		prio := uint8(0)
 		if block {
 			d := sc.expect(t, DkChoose, ChAsUnblocked)
+			prio = sc.s.prio // the holder the view-priority override falls back to
 			m := uint8(0)
 			if accept {
 				m = 1
@@ -267,7 +269,7 @@ func TestAsUnblockedElectionGorgeAgrees(t *testing.T) {
 			blockerDamage:  permDamage(sc, chap),
 			attackerAlive:  sc.onBF(te),
 			attackerDamage: permDamage(sc, te),
-		}
+		}, prio
 	}
 	gorgeSplit := func(t *testing.T, block, accept bool) split {
 		t.Helper()
@@ -289,18 +291,39 @@ func TestAsUnblockedElectionGorgeAgrees(t *testing.T) {
 	}{{"accepted", true, true}, {"declined", true, false}, {"unblocked", false, false}} {
 		t.Run(tc.name, func(t *testing.T) {
 			g := gorgeSplit(t, tc.block, tc.accept)
-			k := kernelSplits(tc.block, tc.accept)
+			k, kprio := kernelSplits(tc.block, tc.accept)
 			if g != k {
 				t.Fatalf("gorge %+v, kernel %+v: the damage split diverged", g, k)
+			}
+			if tc.block {
+				// The priority conventions at the election ask, the ones
+				// feat/state.go's combat-damage-step override keys on: the
+				// kernel's holder is the last seat to pass (the seat before
+				// the active one), gorge's step change left priority with
+				// the active player. The override maps the kernel's
+				// fallback to gorge's value, so the encoded election view
+				// reports gorge's Priority; without the ChAsUnblocked arm
+				// it would encode the kernel holder here.
+				if got := gorgeElectionGamePrio; got != gorgeElectionGamePrioActive {
+					t.Fatalf("gorge priority %d at the election ask, want the active player %d", got, gorgeElectionGamePrioActive)
+				}
+				if kprio == uint8(gorgeElectionGamePrioActive) {
+					t.Fatalf("kernel holder %d at the pending election, want the last seat to pass (the seat before the active one; the override maps it back to gorge's active player)", kprio)
+				}
 			}
 		})
 	}
 }
 
-// The gorge fixture's attacker and blocker ids (set by gorgeElectionGame).
+// The gorge fixture's attacker and blocker ids (set by gorgeElectionGame),
+// and the priority state at its as-unblocked election ask: the fixture's
+// Priority/Active when gorge poses the election, which the kernel-holder
+// assertion in TestAsUnblockedElectionGorgeAgrees keys on.
 var (
-	gorgeElectionGameAttacker state.ObjID
-	gorgeElectionGameBlocker  state.ObjID
+	gorgeElectionGameAttacker   state.ObjID
+	gorgeElectionGameBlocker    state.ObjID
+	gorgeElectionGamePrio       state.PlayerID
+	gorgeElectionGamePrioActive state.PlayerID
 )
 
 // gorgeElectionGame plays a gorge game with the Thorn Elemental under seat 0
@@ -387,6 +410,8 @@ func gorgeElectionGame(t *testing.T, thorn, armodon *cards.Card, block, accept b
 				ch = []int{} // the defender declares no blocks (CR 509.1; Min 0)
 			}
 		case decision.KChoose:
+			gorgeElectionGamePrio = e.G.Priority
+			gorgeElectionGamePrioActive = e.G.Active
 			if d.Source != te || len(d.Options) != 2 || d.Options[0].Kind != "asunblocked" {
 				t.Fatalf("unexpected gorge choose decision over %d: %+v", d.Source, d.Options)
 			}

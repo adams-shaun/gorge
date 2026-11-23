@@ -55,6 +55,10 @@ func TestGenBattleRefused(t *testing.T) {
 		// its enters trigger's target, a non-Elf creature with power X or
 		// less (X the lands you control): PredPowerGEV PredN 2
 		"Invasion of Lorwyn": true,
+		// its printed stat:AssignCombatDamageAsUnblocked (the CR 510.1c
+		// election the kernel poses at a combat damage step,
+		// combat_asgngrant.go), the static kind's last refusal
+		"Invasion of Ikoria": true,
 	}
 	var battles []string
 	for _, n := range names {
