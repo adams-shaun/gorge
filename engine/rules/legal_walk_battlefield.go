@@ -436,13 +436,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// offered, and the ability is withheld only when NEITHER cost is
 						// payable.
 						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
-						// censusOffer is cleared before the pool gate reads it:
-						// an offer the pool or the planner witness backs is the
-						// plain walk's own, and only the census arm's script
-						// marks the option (decision.Option.CensusOffer).
-						w.censusOffer = false
-						poolOK := w.offerCastable(p, id, cost, abilityScope(ab), true)
-						printedOK := poolOK || w.autoPayOffer(p, id, i, cost, ab)
+						printedOK := w.printedAbilityOK(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {
 							continue
@@ -494,8 +488,7 @@ func (w *legalWalk) battlefieldWalk() {
 								Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach",
 								GrantStatics:  effects.GrantedStaticModes(ab, abFace.SVars),
 								Loyalty:       abilityLoyaltyFact(o, ab, &cost, loyal),
-								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p,
-								CensusOffer: w.censusOffer})
+								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p, CensusOffer: w.censusOffer})
 						}
 						if altOK {
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
