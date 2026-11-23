@@ -139,11 +139,13 @@ func (s *State) predPermKind(k *prep, fl *kop.Filter, sl Slot) bool {
 
 // predCardKind is predPermKind for a card off the battlefield (printed
 // characteristics); nothing is attached to a card, so PredEquipped fails.
-func predCardKind(k *prep, fl *kop.Filter, c CardID) bool {
+// cols is the colours the card shows the filter (a split card off the stack
+// shows both halves', CR 709.4: Farm // Market is multicoloured in a graveyard).
+func predCardKind(k *prep, fl *kop.Filter, c CardID, cols kop.ColorMask) bool {
 	cd := &k.t.Cards[c]
 	switch fl.Pred {
 	case kop.PredMultiColor:
-		return bits.OnesCount8(uint8(cd.Colors&kop.ColAny)) > 1
+		return bits.OnesCount8(uint8(cols&kop.ColAny)) > 1
 	case kop.PredHistoric:
 		if k.cards[c].types&(kop.TArtifact|kop.TLegendary) != 0 {
 			return true
