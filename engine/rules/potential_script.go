@@ -891,7 +891,7 @@ func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in de
 		// and the seen set only ever holds states an earlier offered scan
 		// did not find the play in, so skipping before that scan cannot lose
 		// an offer. The budget is potentialScriptNodes *distinct* states.
-		if cd := child.Pending(); sr.feeOnly && cd != nil && cd.Kind == decision.KPriority && cd.Player == sr.p && !sr.childOffers(cd, child) && sr.seen[scriptStateKey(child, sr.p)] {
+		if cd := child.Pending(); sr.feeOnly && cd != nil && cd.Kind == decision.KPriority && cd.Player == sr.p && !sr.childOffers(cd, child) && sr.seen[scriptStateKey(child, sr.p, sr.play)] {
 			pool.hypRelease(child)
 			return false
 		}
@@ -995,7 +995,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 			return true
 		}
 	}
-	key := scriptStateKey(c, p)
+	key := scriptStateKey(c, p, sr.play)
 	if sr.seen[key] {
 		return false
 	}
@@ -2232,7 +2232,7 @@ func scriptManaAbilityCostsPayer(pe pay.Engine, p state.PlayerID, source state.O
 // scriptStateKey identifies a payer state for the search's dedup: every
 // pool unit, each own permanent's tapped bit and counters, and the zone
 // sizes a sacrifice or a return changes.
-func scriptStateKey(c *Engine, p state.PlayerID) string {
+func scriptStateKey(c *Engine, p state.PlayerID, play decision.PotentialAction) string {
 	var b strings.Builder
 	pl := c.G.Players[p]
 	fmt.Fprintf(&b, "%v|%v|%v|", pl.Pool, pl.Snow, pl.ManaUnits())
@@ -2240,7 +2240,20 @@ func scriptStateKey(c *Engine, p state.PlayerID) string {
 		o := c.G.Obj(id)
 		fmt.Fprintf(&b, "%d:%t:%v;", id, o.Tapped, o.Counters)
 	}
-	fmt.Fprintf(&b, "|%d|%d|%d", len(c.G.Zone(state.ZGraveyard, p)), len(c.G.Zone(state.ZHand, p)), len(c.G.Stack))
+	fmt.Fprintf(&b, "|%d|%d|%d|", len(c.G.Zone(state.ZGraveyard, p)), len(c.G.Zone(state.ZHand, p)), len(c.G.Stack))
+	// Whether a searched spell's own card is still in hand, beside the hand's
+	// size: a Taps trigger's loot (Unctus's blue creatures) discards a card of
+	// the payer's choice, and of two discards that leave the same count one
+	// keeps the spell in hand and the other has discarded it, so only the first
+	// can cast it (CR 601.2a: a card is cast from where it is).
+	if play.Kind == potentialCastKind && play.Obj != 0 {
+		for _, id := range c.G.Zone(state.ZHand, p) {
+			if id == play.Obj {
+				b.WriteString("h")
+				break
+			}
+		}
+	}
 	return b.String()
 }
 
