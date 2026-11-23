@@ -206,7 +206,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -349,7 +348,6 @@ White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
 Wingmate Roc
-Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Yavimaya Enchantress
