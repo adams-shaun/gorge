@@ -606,8 +606,8 @@ func (s *State) caOffersBoard(k *prep, p uint8, ca bool) bool {
 	if s.caFiltBoard(k, p) {
 		return true
 	}
-	if s.caGaps(k, p).any() && s.scriptFilt(k, p).any() {
-		s.capFull(StallComboAnyMix)
+	if s.caGapsF(k, p, true).any() && s.scriptFilt(k, p).any() {
+		s.capFull(StallComboAnyMix) // a payable forage source (mana_forage.go) counts: gorge's search takes it beside a filter, the filter search has no forage step
 	}
 	return false
 }
