@@ -21,6 +21,7 @@ Armored Guardian
 Atalya, Samite Master
 Atsushi, the Blazing Sky
 Automatic Librarian
+Avatar of Hope
 Azorius First-Wing
 Azorius Ploy
 Barbary Apes
@@ -86,6 +87,7 @@ Deadly Derision
 Deathbonnet Sprout
 Deathreap Ritual
 Deception
+Decree of Justice
 Defiant Greatmaw
 Denethor, Ruling Steward
 Descendant of Masumaro
@@ -105,6 +107,7 @@ Eldritch Evolution
 Elegant Edgecrafters
 Elvish Pathcutter
 Ember Swallower
+Emissary Green
 Endless One
 Energy Refractor
 Erebos, God of the Dead
@@ -170,6 +173,7 @@ Hydrolash
 Hyperion's Atomic Vision
 Immolating Gyre
 Incorrigible Youths
+Indoraptor, the Perfect Hybrid
 Inexorable Tide
 Infernal Contract
 Inflame
@@ -272,6 +276,7 @@ Primal Druid
 Prosperity
 Psychic Corrosion
 Psychic Miasma
+Puppet Master, String Puller
 Pyrokinesis
 Qarsi Sadist
 Quartzwood Crasher
@@ -387,6 +392,7 @@ When We Were Young
 Where We're Going . . .
 Whispering Wizard
 Whispers of Emrakul
+White Ward
 Wicker Warcrawler
 Wild Research
 Wild Wurm
@@ -400,4 +406,5 @@ Yorvo, Lord of Garenbrig
 You Are Already Dead
 Zealous Strike
 Zebra Unicorn
+Zephyrim
 Zodiac Dragon

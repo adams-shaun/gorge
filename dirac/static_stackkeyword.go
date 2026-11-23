@@ -25,6 +25,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mutation test: the grants are ignored, so the lockstep must diverge).
 var DebugStackKwOff bool
 
+// DebugStackGrantIgnoreGate makes stackKwN read every gate as true (the
+// oracle's mutation test: a gated grant then reaches a cast its condition
+// excludes, so the option lists diverge).
+var DebugStackGrantIgnoreGate bool
+
 // prepStackKw sets the StatStackKw gates: a Cascade grant runs the cascade
 // trigger queue, an Improvise grant opens the convoke paths (anyConvoke), a
 // Casualty grant the casualty offer (p.casualty); one restricted to spells
@@ -68,8 +73,16 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 	if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw {
 		return
 	}
-	if a.Static.Zone == kop.ZoneHand {
+	if a.Static.Zone == kop.ZoneHand || a.Static.Zone == kop.ZoneAny {
+		// the push records its origin zone (CastHand's fromHand read; the
+		// StatStackKw-only ZoneAny marker means !wasCastFromYourHand)
 		g.anyCastProv = true
+	}
+	if a.Static.Zone == kop.ZoneExile {
+		// CastExile reads the push's origin zone (stackKwN,
+		// castCameFromExile) and the cast ring, so both must record it
+		g.anyCastProv = true
+		g.castRingOn = true
 	}
 	switch a.Static.A {
 	case kop.StackKwCascade:
@@ -100,7 +113,9 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 // returns the first match's B (the casualty threshold);
 // fromHand answers a wasCastFromYourHand restriction. Walked like
 // mayPlayStatics: the permanents that have not lost their abilities, then
-// emblems. A spell on the stack grants nothing (CR 113.6).
+// emblems. A spell on the stack grants nothing (CR 113.6) EXCEPT its own
+// EffectZone$ Stack self grant (Bloodbraid Marauder), read off the stack
+// entry below.
 func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fromHand bool) (n int, b int16) {
 	if DebugStackKwOff {
 		return 0, 0
@@ -110,12 +125,22 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw || a.Static.A != code || st.ctrl != caster {
 			return true
 		}
+		if a.Static.Zone == kop.ZoneStack {
+			return true // an EffectZone$ Stack self grant functions only on the stack: stackKwSelfN reads it
+		}
 		if a.Static.Zone == kop.ZoneHand && !fromHand {
 			return true
 		}
-		// only a Demonstrate grant carries a gate (kgen lower_stackkw.go); the
-		// caller hides the in-flight cast's push from the cast ring first
-		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
+		if a.Static.Zone == kop.ZoneAny && fromHand {
+			return true // !wasCastFromYourHand
+		}
+		if a.Static.Zone == kop.ZoneExile && !s.castCameFromExile(o, caster) {
+			return true
+		}
+		// a Condition$ / IsPresent$ / CheckSVar$ gate (kgen lower_stackkw.go);
+		// a cast-time caller hides the in-flight cast's push from the cast
+		// ring first (hideInflightCast), as gorge's hasKeywordPriorCasts does
+		if a.Static.Cond2 != 0 && !DebugStackGrantIgnoreGate && !s.statCond(k, st) {
 			return true
 		}
 		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, st.sl, st.emb) {
@@ -126,7 +151,95 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 		}
 		return true
 	})
+	if sn, sb := s.stackKwSelfN(k, code, c, o, caster); sn > 0 {
+		if n == 0 {
+			b = sb
+		}
+		n += sn
+	}
 	return n, b
+}
+
+// stackKwSelfN counts the EffectZone$ Stack self grants on the spell being
+// cast: a printed StatStackKw static of the card itself, read off its stack
+// entry (gorge applies it while the source is on the stack,
+// chars.StaticZoneAdmitsStatic). The spell's controller is its caster, so the
+// static's condition and filter read against the caster; a gate is read like
+// any other stack grant's (DebugStackGrantIgnoreGate, hideInflightCast).
+func (s *State) stackKwSelfN(k *prep, code int16, c CardID, o Obj, caster uint8) (n int, b int16) {
+	if o == NoObj || s.objs[o].zone != kop.ZoneStack {
+		return 0, 0
+	}
+	cd := &k.t.Cards[c]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw || a.Static.A != code || a.Static.Zone != kop.ZoneStack {
+			continue
+		}
+		st := statSrc{a: a, sl: NoSlot, ctrl: caster, obj: o}
+		if a.Static.Cond2 != 0 && !DebugStackGrantIgnoreGate && !s.statCond(k, st) {
+			continue
+		}
+		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, NoSlot, 0) {
+			if n == 0 {
+				b = a.Static.B
+			}
+			n++
+		}
+	}
+	return n, b
+}
+
+// castCameFromExile reports whether the cast of o by caster came from exile:
+// the proposed card is still in exile at an offer; a spell already on the
+// stack reads its entry's provenance (stackEntry.prov, which survives the
+// cast-ring hide); anything else reads the cast ring's origin (noteCast). A
+// cast from anywhere else reads false.
+func (s *State) castCameFromExile(o Obj, caster uint8) bool {
+	if o == NoObj {
+		return false
+	}
+	if s.objs[o].zone == kop.ZoneExile {
+		return true
+	}
+	// a cast-time caller hides the in-flight push from the ring
+	// (hideInflightCast), so the stack entry is the authoritative origin for
+	// a spell that is already on the stack
+	if e := s.spellEntryOf(o); e != nil && e.ctrl == caster && s.objs[o].zone == kop.ZoneStack {
+		return kop.Zone(e.prov&7) == kop.ZoneExile
+	}
+	ring := s.castPushes(caster)
+	for i := len(ring) - 1; i >= 0; i-- {
+		if ring[i].obj == o+1 {
+			return ring[i].prov&castFromMask == castFromExile
+		}
+	}
+	return false
+}
+
+// hideInflightCast removes e's own push from the cast ring while a stack
+// grant's condition is read, so a "first spell each turn" Count$ThisTurnCast
+// gate sees the casts PRIOR to the in-flight one (gorge hasKeywordPriorCasts:
+// trigger_granted.go). It returns the saved push count (0 when the latest
+// push is not e's, so restoreInflightCast is a no-op).
+func (s *State) hideInflightCast(e *stackEntry) uint8 {
+	if e == nil || e.kind != seSpell {
+		return 0
+	}
+	p := e.ctrl
+	n := s.g.hist[p][histCastN]
+	if n == 0 || Obj(s.cold.castRing[int(p)*castRingN+int(n)-1].obj-1) != e.obj {
+		return 0
+	}
+	s.g.hist[p][histCastN] = n - 1
+	return n
+}
+
+// restoreInflightCast puts back the push hideInflightCast removed.
+func (s *State) restoreInflightCast(p uint8, saved uint8) {
+	if saved != 0 {
+		s.g.hist[p][histCastN] = saved
+	}
 }
 
 // grantImprovise: a live StatStackKw Improvise grant reaches p's spell card
@@ -177,10 +290,19 @@ func (s *State) creditOfferLive(k *prep, p uint8, c CardID, o Obj, fromHand bool
 		default:
 			return true
 		}
+		if a.Static.Zone == kop.ZoneStack {
+			return true // an EffectZone$ Stack self grant functions only on the stack: stackKwSelfN reads it
+		}
 		if a.Static.Zone == kop.ZoneHand && !fromHand {
 			return true
 		}
-		if a.Static.Cond2 != 0 && !s.statCond(k, st) {
+		if a.Static.Zone == kop.ZoneAny && fromHand {
+			return true // !wasCastFromYourHand
+		}
+		if a.Static.Zone == kop.ZoneExile && !s.castCameFromExile(o, p) {
+			return true
+		}
+		if a.Static.Cond2 != 0 && !DebugStackGrantIgnoreGate && !s.statCond(k, st) {
 			return true
 		}
 		// the static's own controller is the filter's "you": gorge's derived

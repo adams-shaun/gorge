@@ -172,6 +172,7 @@ Heron-Blessed Geist
 Hormagaunt Horde
 Howling Moon
 Huang Zhong, Shu General
+Huatli, Radiant Champion
 Humble Budoka
 Hydrosurge
 Hypervolt Grasp
@@ -188,6 +189,7 @@ Island
 Isu the Abominable
 Ith, High Arcanist
 Jasconian Isle
+Kami of the Honored Dead
 Kathari Remnant
 Kazuul's Toll Collector
 Keen Glidemaster
@@ -294,6 +296,7 @@ Roots of Wisdom
 Runeboggle
 Sacellum Archers
 Sacred Guide
+Sanctum of Ugin
 Saruli Caretaker
 Savra, Queen of the Golgari
 Scoria Elemental
@@ -316,6 +319,7 @@ Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
 Slith Firewalker
+Sneak Attack
 Spectacle Mage
 Spectral Grasp
 Spell Rupture

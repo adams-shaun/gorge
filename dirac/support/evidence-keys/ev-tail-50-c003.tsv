@@ -1,0 +1,75 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Arrogant Wurm	3b75c14557e3c967	4	0/0		0/0	
+Aviary Mechanic	2c3d145cda1fc70d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Balshan Beguiler	ef0f95af196ba3c3	8	1/1		0/1	ix:resp
+Battered Golem	107d464320eed98b	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Boneshard Slasher	e680b0ec342ef61d	4	0/0		0/0	
+Broken Concentration	16391eb78e895083	6	0/0		2/2	
+Broodhunter Wurm	41f7a81dca08ce7c	5	0/0		0/0	
+Bull Aurochs	e8b7614363e5c2af	10	1/1		0/1	ix:resp
+Cabal Pit	34bfba562cbbc2e4	10	2/2		0/1	ix:resp
+Capricious Sliver	15d04874cd866dae	4	0/0		0/0	
+Catalog	872a9c67e13fb888	6	0/0		1/2	ix:resp
+Chillbringer	046932a4797283c4	3	1/1		0/1	ix:resp
+Civic Guildmage	2d227bef54f5bbbc	5	2/2		0/1	ix:resp
+Crafty Pathmage	64152afeaae1f683	6	1/1		0/1	ix:resp
+Emmessi Tome	7898ce5210055fd3	8	1/1		0/1	ix:resp
+Extra Arms	1f9369e3fea4a554	4	1/1		1/2	ix:resp
+Galvanic Discharge	6d1cdb2d89b14df8	8	0/0		2/2	
+Grim Reaper's Scythe	677bdbb1fd88b07e	6	2/2		1/1	
+Headless Rider	040ea30427e0da3e	8	1/1		0/1	ix:resp
+Hired Blade	c8fcacd83f41658c	10	0/0		0/0	
+Holy Day	ab35c7fd4f28ff7c	4	0/0		1/2	ix:resp
+Hydrosurge	2fdfc8b7c2e2b5b3	8	0/0		1/2	ix:resp
+Idolized	4ee92427e4730044	7	0/0		1/2	ix:resp
+Lithomantic Barrage	3c8cda1bef2ca2f9	4	0/0		1/2	ix:resp
+Mantle of Leadership	363169de3dad98dd	6	1/1		1/2	ix:resp
+Merfolk Traders	947bc3cf08cdf81c	4	1/1		0/1	ix:resp
+Mind Drain	0a0d9ad43731699a	6	0/0		2/2	
+Mindblaze	f4776edc64d8e166	8	0/0		1/2	ix:resp
+Moorland Inquisitor	88e9b50642003f4f	3	1/1		1/1	
+Mox Sapphire	54c024c7fb550b25	10	1/1		0/1	ix:resp
+Needle Drop	9e02bb6d5223851c	4	0/0		1/2	ix:resp
+Noble Hierarch	d92221f4f7ce44ab	8	2/2		1/1	
+Obelisk of Undoing	224aa4bffee5d89d	16	1/1		0/1	ix:resp
+Ogre's Cleaver	447b1ebcb57c7d25	6	1/1		0/1	ix:resp
+Orcish Hellraiser	806a5ea6b710d1f8	4	2/2		0/1	ix:resp
+Petrified Wood-Kin	0d87c8e38bfab4c9	6	0/0		0/0	
+Power Word Kill	45318a71ccacfe63	4	0/0		1/2	ix:resp
+Primal Empathy	b43066bab1f00666	6	1/1		0/1	ix:resp
+Prowler's Helm	d868fc39a0f71d07	4	1/1		0/1	ix:resp
+Rainbow Efreet	250d30146cea4114	6	1/1		1/1	
+Raph's Bravado	50f5c621784b12e7	4	0/0		0/0	
+Ravager's Mace	e0705b716ae49216	6	2/2		0/1	ix:resp
+Renewing Dawn	02ebccc3809a2f14	4	0/0		1/2	ix:resp
+Revoke Existence	07699404bde91ba8	4	0/0		2/2	
+Rhythmic Water Vortex	cd4b1cf1edf20588	6	0/0		1/2	ix:resp
+Righteous War	40c51f9efd125c33	4	0/0		0/0	
+Roc of Kher Ridges	95b66c928ed66c49	6	0/0		0/0	
+Runaway Trash-Bot	73404f69401ec954	10	0/0		0/0	
+Scaretiller	281193a79e032b23	6	1/1		0/1	ix:resp
+Scrapwork Rager	45a56e6108f88ae4	8	2/2		0/1	ix:resp
+Scrapyard Steelbreaker	dd2c3ead0d316af9	4	1/1		0/1	ix:resp
+Serra Zealot	c8dece0ba9eca89a	4	0/0		0/0	
+Shire Scarecrow	1ff22594d5dab825	6	1/1		0/1	ix:resp
+Shrapnel Slinger	44b25f1f8d1a11e3	6	1/1		0/1	ix:resp
+Shu Defender	41f420a0e1a86daf	8	1/1		1/1	
+Skywarp Skaab	069610244a91fdc6	4	1/1		0/1	ix:resp
+Spitting Earth	165a13c062540255	4	0/0		1/2	ix:resp
+Stern Proctor	ea9913a554d11536	6	1/1		1/1	
+Stonework Puma	a8b5b797db518d38	8	0/0		0/0	
+Strength of Unity	58f862bc3966c4f8	6	0/0		1/2	ix:resp
+Sunset Pyramid	9de7b4b5517e2e94	8	2/2		1/1	
+Syndicate Trafficker	9d43eec614f6454f	4	1/1		0/1	ix:resp
+Their Name Is Death	c7e3e72c39f85d32	4	0/0		1/2	ix:resp
+Thopter Squadron	0cb7c50a0b6711b1	4	2/2		0/1	ix:resp
+Tolarian Academy	eff25837d114f092	24	1/1		0/1	ix:resp
+Uchuulon	714dc700afae66a6	6	1/1		1/1	
+Vampire's Kiss	efb69597140fa2ad	58	0/0		2/2	
+Volcanic Rush	56290a59bb4c427a	4	0/0		2/2	
+Volcanic Spite	e9939d36999419f2	12	0/0		2/2	
+Wanted Scoundrels	cd0716629c5d6d86	10	1/1		0/1	ix:resp
+Warden of the Woods	19b9ab6eddfca7fa	19	1/1		0/1	ix:resp
+Watchful Radstag	c2aba4e80e58f435	10	2/2		0/1	ix:resp
+Wayward Guide-Beast	1132410438bda427	4	1/1		0/1	ix:resp
+Wild Guess	8d3dc7eeaeff1e6c	10	0/0		1/2	ix:resp

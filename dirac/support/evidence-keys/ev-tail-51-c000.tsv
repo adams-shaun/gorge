@@ -1,22 +1,30 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Black Ward	91b6233e991e4082	43	0/0		2/2	
 Bladewing, Deathless Tyrant	d6a9e05eb4783f5f	4	1/1		0/1	ix:resp
 Covetous Dragon	a8429b1c3b2c3213	40	1/1		0/1	ix:resp
 Dreampod Druid	7d33cd3e34246fba	75	1/1		1/1	
+Erhnam Djinn	0bff85d6cac34a86	4	1/1		0/1	ix:resp
 Ghen, Arcanum Weaver	63690e701b2a0292	41	1/1		1/1	
+Gibbering Kami	2ffa4d7924a1500a	82	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Goblin Bangchuckers	ac07d45539a44d87	30	1/1		1/1	
 Goblin Vandal	0caa8357284ccd8b	47	1/1		0/1	ix:resp
 Halimar Depths	7493fed802903935	58	2/2		0/1	ix:resp
 Hidden Dragonslayer	d5a170d245b4dbf8	6	1/1		2/3	ix:resp
 Hunding Gjornersen	4e6d5d9c1a412a7d	19	1/1		1/1	
+Immoral Bargain	085cafa194a52215	3	0/0		1/2	ix:resp
 Legacy's Allure	808fbe46c68d3a68	11	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mole Worms	77511e820a18325d	272	1/1		1/1	
 New Frontiers	a85aab0320adffc7	6	0/0		2/4	f0/s/x0,ix:resp
 Possessed Skaab	f787b63b99cf1b2a	17	1/1		0/1	ix:resp
+Powder Keg	2eebfee57ea70614	305	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rayne, Academy Chancellor	5df408c38d8ee25a	27	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sam's Desperate Rescue	f034a8ddbb448709	23	0/0		2/2	
 Shielded Passage	73aedcb1ac815cec	6	0/0		1/2	ix:resp
 Silent Clearing	0fe7935d2020878f	17	2/2		0/1	ix:resp
+Spare from Evil	9e603e1193d0e74f	43	0/0		1/2	ix:resp
 Spreading Algae	1cba2f45d85f605e	14	2/2		2/2	
 Summoning Station	d402adbb28ff7043	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tovolar's Huntmaster	ebc49f1d115b206c	17	4/4		0/1	ix:resp
+Treasonous Ogre	d860ab7d73a6156e	22	2/2		1/1	
 Wand of Orcus	fade594fa2144def	27	4/4		1/1	
 Wickerbough Elder	249f908914c2d428	5	1/1		0/1	ix:resp

@@ -11,4 +11,5 @@ import "testing"
 func TestMBCTail37ReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "prevnext")
+	stdReproNamed(t, "prevnext_gated_plus_host")
 }

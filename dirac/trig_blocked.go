@@ -47,6 +47,9 @@ func (s *State) fireBlockedGen(k *prep) {
 				if a.Trig.Flags2&kop.Tf2BlockedBySelf != 0 && !s.blocks(l.sl, as) {
 					continue
 				}
+				if a.Trig.Filter2 != 0 && !s.blockerMatches(k, l, a, ps[:nb], as) {
+					continue
+				}
 				n0 := s.npend
 				s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
 				if !s.duel() {
@@ -54,7 +57,7 @@ func (s *State) fireBlockedGen(k *prep) {
 					// the Aura/creature the trigger sits on, not the attacker, so
 					// RefDefendingPlayer and defendingSeatF2 need the seat bound
 					// here as an Attacks trigger's is (combat.go fireAttacksGen).
-					s.stampDefSeat(n0, s.atkSeat(k, as))
+					s.stampDefSeat(n0, s.atkSeat(k, as), NoTarget)
 				}
 			}
 		})
@@ -62,6 +65,19 @@ func (s *State) fireBlockedGen(k *prep) {
 	if k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0 {
 		s.fireEmblemsBlocked(k, atk[:na]) // after the listeners: gorge checkEffectCombatTriggers
 	}
+}
+
+// blockerMatches reports whether at least one blocker declared against the
+// attacker at as matches the become-blocked line a's Filter2 (gorge
+// ValidBlocker$, attackerBlockedCandidates), read with the listener l as the
+// filter's source.
+func (s *State) blockerMatches(k *prep, l trigListener, a *kop.Ability, ps []blkPair, as Slot) bool {
+	for _, pr := range ps {
+		if pr.a == as && s.matchPermGen(k, a.Trig.Filter2, pr.b, l.ctrl, l.sl, layerFull) {
+			return true
+		}
+	}
+	return false
 }
 
 // fireBlocksGen fires the blocks triggers (TrigBlocks, gorge Mode$ Blocks)
@@ -103,6 +119,9 @@ func (s *State) fireBlocksGen(k *prep) {
 			}
 		})
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0 {
+		s.fireEmblemsBlocks(k, ps[:nb]) // after the listeners: gorge checkEffectCombatTriggers
+	}
 }
 
 // firePairTrig fires one by-creature become-blocked ability (Tf2PerPair,
@@ -126,7 +145,7 @@ func (s *State) firePairTrig(k *prep, l trigListener, a *kop.Ability, ps []blkPa
 		n0 := s.npend
 		s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, at, s.perms[other].obj, s.perms[other].ctrl, 0)
 		if !s.duel() {
-			s.stampDefSeat(n0, s.atkSeat(k, at))
+			s.stampDefSeat(n0, s.atkSeat(k, at), NoTarget)
 		}
 	}
 }

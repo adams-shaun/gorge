@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Birthday Escape	552200ba12052633	61	0/0		2/2	
 Bladehold War-Whip	4d9c26a6ba898852	11	2/2		0/1	ix:resp
 Body of Research	9e52f339f26672df	14	0/0		2/2	
 Boseiju, Who Shelters All	96ec0145e98229d1	13	1/1		0/1	ix:resp
@@ -7,9 +8,11 @@ Cowardice	8457c3f35278a329	21	1/1		1/1
 Duke Ulder Ravengard	f095912034c95c19	4	1/1		0/1	ix:resp
 Esper Cormorants	cc7aefd33431da12	4	0/0		0/0	
 Extract	474257b5f7cf9bf6	30	0/0		2/2	
+Genesis of the Daleks	d250be510b002862	26	0/0		0/0	
 Goblin Outlander	68467922f4089b5c	4	0/0		0/0	
 Gravepurge	69a852869535d27e	36	0/0		2/2	
 Grazing Gladehart	716aff652e052dce	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Incandescent Soulstoke	09bced760630895a	30	1/1		1/1	
 Innocence Kami	3e85137d4e1dafe1	14	2/2		0/1	ix:resp
 Mahadi, Emporium Master	9983e6c14d8b98e0	4	1/1		0/1	ix:resp
 Moldgraf Monstrosity	14f01081ad952b0e	4	1/1		1/1	
@@ -21,5 +24,7 @@ Phyrexian Gremlins	58318eaa5c37ccfc	4	1/1		0/1	ix:resp
 Plague Dogs	ac92d583eb4f69b3	11	2/2		1/1	
 Sand Strangler	fa017896e01b01fc	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Shimmering Barrier	080399eb2a5f4595	4	1/1		0/1	ix:resp
+Shyft	641df108ee7cc453	47	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Sphere of Duty	4dab6ae4c7660530	6	0/0		0/0	
 Syndicate Heavy	e2a4fb9471b4fce4	8	2/2		1/1	
+Tanuki Transplanter	4668dbf55d442481	54	3/3		1/1	

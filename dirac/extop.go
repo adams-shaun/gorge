@@ -43,8 +43,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTwoPilesSac:
 		return s.pilesStart(k, in), true // act_piles.go
 	case kop.ExtChooseColorRes:
-		s.res.ask, s.res.askP = raChooseColorRes, s.res.e.ctrl // static_colourgrant.go
-		return false, true
+		return s.chooseColorRes(in), true // static_colourgrant.go
 	case kop.ExtColorGrant:
 		s.colGrant(k, in) // static_colourgrant.go
 		return true, true
@@ -263,7 +262,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtChoosePlayerMid:
 		// a mid-resolution opponent choice (repl_chooseplayer.go); false
 		// suspends the program at its ask
-		return s.choosePlayerMid(k), true
+		return s.choosePlayerMid(k, in), true
 	case kop.ExtChooseNumber:
 		// inside an as-enters program: asked before the next priority
 		// (the OpChooseColor arm of execGen)

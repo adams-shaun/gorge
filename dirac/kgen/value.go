@@ -31,6 +31,14 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		}
 		return cst(n), nil
 	}
+	if raw == voteTallyName {
+		v, err := lc.voteTallyValue()
+		if err != nil {
+			return lValue{}, err
+		}
+		v.Neg = neg
+		return v, nil
+	}
 	if strings.Contains(raw, "$") && !neg {
 		// An inline expression (ImmediateTrigger's TriggerAmount$).
 		return lc.svarValue(raw, 0)
@@ -142,12 +150,35 @@ func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
 	return lValue{}, fmt.Errorf("TriggeredAttacker$%s", rest)
 }
 
+// svarHead lowers an SVar$ body: another SVar of the face, or (inside a
+// StoreVoteNum$ option branch) the current tally.
+func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
+	if rest == voteTallyName {
+		return lc.voteTallyValue()
+	}
+	body, ok := lc.face.SVars[rest]
+	if fv, fok := lc.flipSideValue(rest); !ok && fok {
+		return fv, nil
+	}
+	if !ok {
+		return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
+	}
+	v, err := lc.svarValue(body, depth+1)
+	if err != nil {
+		return lValue{}, fmt.Errorf("SVar$%s=%q: %w", rest, body, err)
+	}
+	return v, nil
+}
+
 // svarValue lowers an SVar value body.
 func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	if depth > 4 {
 		return lValue{}, fmt.Errorf("SVar nesting too deep")
 	}
 	body = strings.TrimSpace(body)
+	if body == voteTallyName {
+		return lc.voteTallyValue()
+	}
 	if n, err := strconv.Atoi(body); err == nil {
 		return cst(n), nil
 	}
@@ -387,6 +418,9 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "ParentTargeted", "Targeted", "TriggeredCard", "Sacrificed":
 		if head == "Targeted" {
 			lc.unionProbe("value:Targeted$" + rest)
+		}
+		if head == "TriggeredCard" && lc.emblemBlocks {
+			return lValue{}, refuse("Effect Blocks trigger reads the attacker")
 		}
 		ref := lRef{Kind: rTarget, N: lc.lastTarget()}
 		switch head {
@@ -661,18 +695,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "PlayerCountDefinedNonTriggeredTarget":
 		v, err = lc.nonTrigTargetExtreme(rest) // value_trigreferents.go
 	case "SVar":
-		// gorge count.go: SVar$<name>[/Op] reads another SVar on the face
-		body, ok := lc.face.SVars[rest]
-		if fv, fok := lc.flipSideValue(rest); !ok && fok {
-			v = fv
-			break
-		}
-		if !ok {
-			return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
-		}
-		if v, err = lc.svarValue(body, depth+1); err != nil {
-			return lValue{}, fmt.Errorf("SVar$%s=%q: %w", rest, body, err)
-		}
+		v, err = lc.svarHead(rest, depth)
 	case "Discarded":
 		// gorge refTargetsDiscarded (cr-discarded-cost-value-ref): the card
 		// the spell's own Discard<1/...> cost discarded, read where it is
@@ -1246,11 +1269,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// gorge's zone count over every hand: both players' hand sizes
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rYou}}, {Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: rEachOpp}}}}, nil
 	case "ValidHand Card.ActivePlayerCtrl":
-		// gorge's zone count over every hand, each card controlled by its
-		// owner: the active player's hand size, yours on your turn and the
-		// opponent's otherwise
-		hand := func(r refKind) lValue { return lValue{Kind: vHandSizeOf, N: 1, Ref: lRef{Kind: r}} }
-		return lValue{Kind: vCompare, N: 1, Op: opGE, Sub: []lValue{{Kind: vYourTurns, N: 1}, {Kind: vBranches, Sub: []lValue{hand(rYou), hand(rEachOpp)}}}}, nil
+		return lc.activeHandCount() // the active player's hand at any seat count
 	case "ValidHand Land.YouOwn":
 		// gorge's zone count over every hand (Land Grant): a
 		// general spec counts each hand's matching cards
@@ -1588,12 +1607,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		if strings.Contains(expr, "$") {
 			return lValue{}, fmt.Errorf("Count$%s: aggregate", rest)
 		}
-		f, err := lc.filter(expr)
+		f, own, err := lc.zoneCountFilter(zc.pre, expr) // value_filterheads.go
 		if err != nil {
 			return lValue{}, err
 		}
 		if len(zc.kind) == 1 {
-			return lValue{Kind: zc.kind[0], F: f}, nil
+			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
 	}
@@ -1818,4 +1837,18 @@ func splitThisTurnEnteredCreature(spec string) (creature, other string, ok bool)
 		return "", "", false
 	}
 	return strings.Join(cr, ","), strings.Join(ot, ","), true
+}
+
+// activeHandCount is Count$ValidHand Card.ActivePlayerCtrl (countValue):
+// gorge's zone count over every hand, each card controlled by its owner, is
+// the active player's hand, whoever that is among any number of seats (CR
+// 102.1). The hand walk's PredActiveCtrl reads the owner against the active
+// seat (filters_gen.go); the earlier your-hand / the-opponent's-hand split
+// read one opponent's hand on every opponent's turn, wrong in a pod; seat-exact now.
+func (lc *lowerCtx) activeHandCount() (lValue, error) {
+	f, err := lc.filter("Card.ActivePlayerCtrl")
+	if err != nil {
+		return lValue{}, err
+	}
+	return lValue{Kind: vCountHand, F: f}, nil
 }

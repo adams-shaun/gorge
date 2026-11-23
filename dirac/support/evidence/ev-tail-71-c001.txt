@@ -248,7 +248,6 @@ Militia Rallier
 Mind Rot
 Mine Worker
 Moku, Meandering Drummer
-Molten Ravager
 Momentary Blink
 Monk Idealist
 Morbid Opportunist
@@ -299,6 +298,7 @@ Quandrix Apprentice
 Quirion Beastcaller
 Radiant Epicure
 Rampaging Monument
+Ranger's Firebrand
 Raving Oni-Slave
 Reckless Reveler
 Recruit the Worthy
@@ -330,6 +330,7 @@ Season of Growth
 Season of Renewal
 Serene Heart
 Serum Sovereign
+Shape Anew
 Shield Mate
 Shocker
 Shu Farmer
@@ -382,6 +383,7 @@ Terminal Agony
 Tezzeret's Gambit
 The Archimandrite
 The Cauldron of Eternity
+The Master, Mesmerist
 The Thing
 Thornwatch Scarecrow
 Thragtusk
@@ -413,7 +415,6 @@ Viashino Firstblade
 Vivien, Nature's Avenger
 Vodalian Soldiers
 Voltaic Brawler
-Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror

@@ -34,6 +34,7 @@ Azorius Cluestone
 Balshan Beguiler
 Bargain
 Barrage Ogre
+Barrowin of Clan Undurr
 Basilica Guards
 Battering Krasis
 Beacon of Creation
@@ -71,6 +72,7 @@ Charging Troll
 Chasm Guide
 Chief of the Scale
 Chilling Apparition
+Claim the Precious
 Clan Crafter
 Cloudkin Seer
 Colossal Majesty
@@ -148,6 +150,7 @@ Fire at Will
 Flailing Drake
 Fleeting Memories
 Flickerwisp
+Font of Magic
 Forced Worship
 Forest
 Forest Bear
@@ -200,6 +203,7 @@ Illuminate History
 Illumination
 Infernal Tribute
 Inferno Titan
+Inherited Envelope
 Initiate's Companion
 Inspired Sprite
 Invasion of Xerex
@@ -209,6 +213,7 @@ Isu the Abominable
 Ith, High Arcanist
 Jacked Rabbit
 Jasconian Isle
+Kami of the Honored Dead
 Kathari Remnant
 Kazuul's Toll Collector
 Keen Glidemaster
@@ -314,9 +319,11 @@ Reconstruction
 Recruiter of the Guard
 Reflective Golem
 Resistance Skywarden
+Restless Bloodseeker
 Return Upon the Tide
 Reyhan, Last of the Abzan
 Ridgescale Tusker
+Riding Red Hare
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle
@@ -350,6 +357,7 @@ Sleeping Potion
 Slinking Serpent
 Slippery Scoundrel
 Slith Firewalker
+Sneak Attack
 Soldevi Golem
 Sorin's Guide
 Spectacle Mage
@@ -415,6 +423,7 @@ Tromokratis
 Tyrannize
 Ultimate Alliance
 Unnatural Endurance
+Ur-Drago
 Urza's Factory
 Urza's Science Fair Project
 Vampire Aristocrat

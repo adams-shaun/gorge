@@ -49,6 +49,7 @@ Bramblesnap
 Break of Day
 Briarhorn
 Bright Reprisal
+Brimstone Trebuchet
 Brine Seer
 Bronze Cudgels
 Bronze Sword
@@ -87,6 +88,7 @@ Deathbonnet Sprout
 Debtor's Pulpit
 Defender of the Order
 Deluge
+Devoted Caretaker
 Disciple of Freyalise
 Disciple of Grace
 Disciple of Law
@@ -103,6 +105,7 @@ Dungrove Elder
 Dusk Feaster
 Dwarfhold Champion
 Dwarven Strike Force
+Dúnedain Rangers
 Early Frost
 Eccentric Farmer
 Elder Owyn Lyons
@@ -119,6 +122,7 @@ Explorer's Scope
 Fantastic Elasticity
 Farsight Mask
 Fateful Handoff
+Fatigue
 Festival Crasher
 Fire at Will
 Fists of Ironwood
@@ -134,6 +138,7 @@ Frost Marsh
 Funeral Pyre
 Funeral Rites
 Gaea's Avenger
+Galadriel of Lothlórien
 Garenbrig Carver
 Gate Hound
 Gate of the Black Dragon
@@ -184,6 +189,7 @@ Inspired Sphinx
 Involuntary Cooldown
 Iron Myr
 Iron Will
+Ironfist Crusher
 Island
 Ivory Tower
 Jarl of the Forsaken
@@ -312,6 +318,7 @@ Runed Stalactite
 Runner's Bane
 Rush of Battle
 Sanctuary Cat
+Sand Scout
 Sandstone Deadfall
 Sanguinary Priest
 Saprazzan Bailiff
@@ -338,6 +345,7 @@ Silverwing Squadron
 Simian Brawler
 Simic Charm
 Sinew Sliver
+Six
 Skirk Alarmist
 Skittering Horror
 Skyhunter Cub

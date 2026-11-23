@@ -43,11 +43,13 @@ AtkPWHit	untyped int	1
 AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
+AttToSrcBearer	untyped int	16
 AttToYouCtrl	untyped int	8
 AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
+BecomeCopyEmbalm	untyped int	2
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
@@ -76,15 +78,19 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChPlPlain	int16	2
 ChPlRandom	int16	1
 ChangeTextColour	int16	1
 ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
+ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1
+ChoosePlayerMidHigh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 ChooseTypeBasicLand	untyped int	2
+ChooseTypeRandomDeck	untyped int	3
 ChosenSrcArtifact	untyped int	32
 ChosenSrcLand	untyped int	64
 CloneBatch	untyped int	64
@@ -354,6 +360,7 @@ DurPlot	untyped int	7
 DurPrepared	untyped int	8
 DurSuspend	untyped int	14
 DurUntilYourNextTurn	untyped int	5
+DurUntilYourNextUpkeep	untyped int	16
 DurWarp	untyped int	6
 DurWhileControlSource	untyped int	4
 DurWhileGrave	untyped int	15
@@ -575,6 +582,7 @@ ExtTurnRepl	ExtOp	318
 ExtTwoPilesSac	ExtOp	4
 ExtUnlockDoor	ExtOp	227
 ExtVote	ExtOp	311
+ExtraBlocksAny	uint8	255
 F2AttachedToT0	FilterFlags2	512
 F2BasePermanent	FilterFlags2	8388608
 F2Basic	FilterFlags2	131072
@@ -625,6 +633,7 @@ FToken	FilterFlags	4
 FUntapped	FilterFlags	16
 FaceAdventure	untyped int	2
 FaceFlip	untyped int	9
+FaceMeld	untyped int	10
 FaceModal	untyped int	1
 FaceNone	untyped int	0
 FaceOmen	untyped int	7
@@ -657,6 +666,7 @@ KwHexproofFromInstants	KwMask	16777216
 KwIndestructible	KwMask	8192
 KwKicker	KwMask	2097152
 KwLifelink	KwMask	32
+KwMarkHorsemanship	untyped int	16
 KwMarkInfect	untyped int	2
 KwMarkIntimidate	untyped int	1
 KwMarkSkulk	untyped int	8
@@ -686,6 +696,7 @@ LibChoiceSecond	untyped int	1
 LibThird	untyped int	6
 LibTopGrave	untyped int	10
 LibTopRememberBF	untyped int	13
+LibTopRememberGrave	untyped int	15
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
@@ -726,6 +737,7 @@ MayPlayPayLife	untyped int	-32768
 MayPlayRaiseShift	untyped int	10
 MayPlayZoneMask	untyped int	63
 MinBlockersAll	uint8	255
+MonarchAny	untyped int	2
 MonarchOpp	untyped int	1
 MorphDisguise	uint8	3
 MorphMegamorph	uint8	2
@@ -1013,6 +1025,7 @@ PlaceAsk	untyped int	2
 PlayerPredArtOrEnch	untyped int	4
 PlayerPredControlsCreature	untyped int	1
 PlayerPredCorrupted	untyped int	3
+PlayerPredHandEmpty	untyped int	6
 PlayerPredMaxSpeed	untyped int	2
 PlayerPredMostCreatures	untyped int	5
 PlayerPredNeg	untyped int	256
@@ -1127,12 +1140,14 @@ RefChosen	Ref	13
 RefChosenPlayer	Ref	39
 RefChosenPlayerRes	Ref	41
 RefController	Ref	5
+RefConvoked	Ref	249
 RefDefendingPlayer	Ref	15
 RefDelayedRemembered	Ref	19
 RefDiscarded	Ref	29
 RefEach	Ref	16
 RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
+RefExiledWithOwner	Ref	43
 RefHost	Ref	23
 RefImprinted	Ref	35
 RefLastCreated	Ref	12
@@ -1144,6 +1159,7 @@ RefPromised	Ref	36
 RefRemembered	Ref	18
 RefRememberedController	Ref	28
 RefRememberedOwner	Ref	34
+RefRememberedSet	Ref	248
 RefReplaced	Ref	20
 RefResChosenPlayer	Ref	42
 RefSacrificed	Ref	22
@@ -1175,7 +1191,10 @@ RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
 RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
+RepeatMultikicker	uint8	1
 RepeatPlain	untyped int	1
+RepeatReplicate	uint8	3
+RepeatSquad	uint8	2
 ReplAddCountersOn	ReplKind	21
 ReplAddToken	ReplKind	35
 ReplAfterEnter	untyped int	1
@@ -1202,7 +1221,9 @@ ReplDmgPerm	untyped int	8
 ReplDmgPlayer	untyped int	4
 ReplDmgPowHost	untyped int	256
 ReplDmgRaise	untyped int	32
+ReplDmgSetShift	untyped int	11
 ReplDmgSrcInPlay	untyped int	64
+ReplDmgSrcSpell	untyped int	1024
 ReplDoesntUntap	ReplKind	4
 ReplDoubleCounters	ReplKind	13
 ReplDoubleCountersOn	ReplKind	20
@@ -1230,6 +1251,7 @@ ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
 ReplPayBeforeETB	ReplKind	39
+ReplPhYou	untyped int	1
 ReplPrevSelfIfCounter	untyped int	2
 ReplPrevSelfRemoveDmg	untyped int	4
 ReplPrevSelfRemoveOne	untyped int	1
@@ -1257,6 +1279,7 @@ ReplSPYou	untyped int	1
 ReplSPYourTurn	untyped int	32
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
+ReplUncAnyCtrl	untyped int	1
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
 RetCounterPairShift	untyped int	8
@@ -1271,6 +1294,11 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SkipPhaseAllCombats	untyped int	0
+SkipPhaseDraw	untyped int	2
+SkipPhaseNextCombat	untyped int	3
+SkipPhaseThisTurn	untyped int	4
+SkipPhaseUntap	untyped int	1
 SkipUntapLockAny	untyped int	3
 SkipUntapLockHostStep	untyped int	5
 SkipUntapLockStep	untyped int	2
@@ -1293,6 +1321,7 @@ SrAltOrigin	untyped int	16
 SrAltZoneShift	untyped int	5
 SrAttacking	untyped int	4096
 SrAuraEntry	untyped int	8
+SrBattleLink	untyped int	512
 SrChooserOpp	untyped int	1
 SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
@@ -1365,6 +1394,7 @@ StTapPowerStation	StaticFlags	8
 StTapPowerTough	StaticFlags	16
 StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
+StUnspentYou	StaticFlags	512
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
 StackExileDream	untyped int	2
@@ -1695,6 +1725,8 @@ VTargetPower	VKind	4
 VTargetToughness	VKind	11
 VTriggerAmount	VKind	8
 VX	VKind	1
+VoteBranchStore	untyped int	128
+VoteStore	untyped int	64
 W	untyped int	0
 W7AttachedTo	int16	19
 W7AttackingAlone	int16	3
@@ -1715,6 +1747,10 @@ W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
+W7HasLandwalk	int16	42
+W7HasProtColor	int16	44
+W7HasProtEachColor	int16	45
+W7HasProtQuality	int16	43
 W7Imprinted	int16	25
 W7InZone	int16	4
 W7IsCommander	int16	16
@@ -1731,6 +1767,7 @@ W7NotImprinted	int16	39
 W7SharesCrTrigObj	int16	21
 W7SharesNameLegend	int16	10
 W7Snow	int16	37
+W7WithDevoid	int16	41
 W7WithDisguise	int16	22
 W7WithFlashback	int16	26
 W7WithInfect	int16	28
@@ -1740,6 +1777,7 @@ WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseEnchanted	Whose	202
+WhoseMonarch	Whose	203
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2
 WhoseYou	Whose	1

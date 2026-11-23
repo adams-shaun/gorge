@@ -452,40 +452,19 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: speedTrigger})
 		return
 	}
-	if pt.RadiationDrain {
+	// The four source-less DelayedPush abilities (RadiationDrain, the two
+	// Monarch abilities of CR 725.2, and CR 726.2's initiative venture) share
+	// one emit: each mints a real stack ability from a synthetic body
+	// (engine/events/apply.go's DelayedPush case -- no card SVar, no direct
+	// state mutation), so the ability can be responded to by the ordinary
+	// priority round. They were walked as four arms until the granted
+	// spell-keyword push outgrew pushTrigger's codeshape ceilings; the
+	// payload helper carries each Counter/Amount exactly as its arm did.
+	if counter, amount, ok := pt.delayedPushPayload(); ok {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__radiation_drain"})
-		return
-	}
-	if pt.MonarchDraw {
-		// Use DelayedPush's event-sourced stack-object creation. Apply has a
-		// dedicated synthetic body for this engine-owned trigger, so no card
-		// SVar or direct state mutation is needed.
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_draw"})
-		return
-	}
-	if pt.MonarchSteal {
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: "__monarch_steal", Amount: int32(pt.MonarchTo)})
-		return
-	}
-	if pt.InitiativeVenture {
-		// CR 726.2's source-less "that player ventures into Undercity". Like
-		// MonarchDraw it mints a real stack ability from a synthetic body
-		// (engine/events/apply.go's DelayedPush case), so the venture can be responded
-		// to by the ordinary priority round.
-		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
-			return
-		}
-		e.emit(events.Event{Kind: events.DelayedPush,
-			Player: pt.Controller, Counter: "__initiative_venture"})
+		e.emit(events.Event{Kind: events.DelayedPush, Player: pt.Controller, Counter: counter, Amount: amount})
 		return
 	}
 	// Evoke and Madness are mandatory keyword-triggered abilities minted as
@@ -677,9 +656,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.pushGrantedStorm(pt)
 		return
 	}
-	if pt.Demonstrate {
+	// A granted Ripple (CR 702.60a -- Thrumming Stone's "Spells you cast
+	// have ripple 4") shares the Demonstrate shape: the cast spell rides
+	// IDs as Remembered and the Counter payload "__kwRippleGranted:<line>"
+	// carries the whole derived keyword line, whose count the fold in
+	// engine/events parses into the printed expansion's DB$ Ripple body.
+	// The trigger line also rides recordTriggerLine so the resolving
+	// object's OptionalDecider$ may is readable -- a granted keyword has
+	// no face trigger index to recover it from (the printed path gets the
+	// same ask by pointer identity). The "Granted" suffix and the trailing
+	// colon keep the payload from aliasing the "__kwRipple:4" SVar a
+	// printed K:Ripple:4 line mints.
+	if pt.Demonstrate || pt.Ripple != "" {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
+		}
+		counter, text := "__kwDemonstrate:", "demonstrate ability"
+		if pt.Ripple != "" {
+			counter, text = "__kwRippleGranted:"+pt.Ripple, "ripple ability"
 		}
 		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
 		for _, tgt := range pt.Ctx.Remembered {
@@ -691,13 +685,16 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwDemonstrate:", IDs: ids, Text: "demonstrate ability"})
+			Obj: pt.Source, Counter: counter, IDs: ids, Text: text})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			if pt.Ripple != "" {
+				e.recordTriggerLine(id, pt)
+			}
 		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
@@ -1901,7 +1898,8 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // machinery. The structural discriminator is the contract itself: every
 // Choices$ value must resolve, in the source face's own SVar table, to an
 // ability body. Measured at the corpus pin, every Charm (240), Vote (11),
-// GenericChoice (48) and VillainousChoice (5) trigger body resolves; every
+// GenericChoice (48) and VillainousChoice (5) trigger body resolves, so the
+// ballot and resolution-chooser shapes are excluded by API below; every
 // non-modal carrier (ChooseCard 93, ChoosePlayer 29, PutCounter 10,
 // CopyPermanent 11, Clone 4, Attach, Manifest, and the rest) names at least
 // one unresolvable spec, so the old unconditional ask recorded a bogus
@@ -1916,6 +1914,13 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	// ask so the victim, rather than the trigger controller, is the chooser
 	// and the victim can be captured in Ctx.Remembered first.
 	if sa.API == "VillainousChoice" {
+		return false
+	}
+	// Vote is not CR 603.3c modal placement either: its Choices$ names the
+	// ballot options (CR 701.38a), which effVote asks each voter at
+	// resolution. A placement ask would pose the ballot to the trigger
+	// controller as "modes" and record a ChosenModes effVote never reads.
+	if sa.API == "Vote" {
 		return false
 	}
 	// GenericChoice with a Defined$ other than the trigger controller is the
@@ -2286,3 +2291,24 @@ var targetChooserFromSpecCodes = state.NewStrCodes(
 	state.StrEntry[targetChooserFromSpecCode]{Key: "TriggeredAttackingPlayer", Val: targetChooserFromSpecTriggeredAttackingPlayer},
 	state.StrEntry[targetChooserFromSpecCode]{Key: "TriggeredCardController", Val: targetChooserFromSpecTriggeredCardController},
 )
+
+// delayedPushPayload names the synthetic DelayedPush body of the four
+// source-less engine-owned abilities (the RadiationDrain drain, the two
+// Monarch abilities of CR 725.2 and CR 726.2's initiative venture), with the
+// Amount each former arm carried: the monarch designation for the steal, 0
+// for the rest. ok is false for every other pending trigger.
+func (pt pendingTrigger) delayedPushPayload() (counter string, amount int32, ok bool) {
+	switch {
+	case pt.RadiationDrain:
+		return "__radiation_drain", 0, true
+	case pt.MonarchDraw:
+		// Use DelayedPush's event-sourced stack-object creation. Apply has a
+		// dedicated synthetic body for this engine-owned trigger.
+		return "__monarch_draw", 0, true
+	case pt.MonarchSteal:
+		return "__monarch_steal", int32(pt.MonarchTo), true
+	case pt.InitiativeVenture:
+		return "__initiative_venture", 0, true
+	}
+	return "", 0, false
+}

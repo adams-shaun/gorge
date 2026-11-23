@@ -97,7 +97,11 @@ type Scratch struct {
 	// mid-walk owns private buffers instead of clobbering the outer build's.
 	KW    []string
 	Types []string
-	Depth int
+	// Restrictions is the same scratch for the walk's granted rule-effect
+	// lines (CR 613.11): the lines a layer-6 ability removal cannot end, kept
+	// so the removal arm can restore them. Same depth guard as KW/Types.
+	Restrictions []string
+	Depth        int
 	// Borrowed counts the live borrows of the last build's KW/Types: a spec
 	// match that binds them into its context (rules' matchesSpec) can itself
 	// derive another object, the colour table's build or a predicate's read,

@@ -191,6 +191,15 @@ func classTier(class string) string {
 		strings.Contains(class, "Morph") || strings.Contains(class, "Disguise") || strings.Contains(class, "Transformed") {
 		return "M10b"
 	}
+	// the filter guards (T12's spill): a filter word read in a matcher kind
+	// its manifest entry does not declare, and the spell-ability filter specs
+	// no kernel word lowers yet (T13c's FwSA* family), are mechanism M5 rows
+	if strings.HasPrefix(class, "other:filter word ") ||
+		strings.HasPrefix(class, "other:spell-ability filter ") ||
+		strings.HasPrefix(class, "other:static spell-ability filter ") ||
+		strings.HasPrefix(class, "other:AbilityCast spell-ability filter ") {
+		return "M5"
+	}
 	for _, p := range []string{"prop:", "count:", "param:", "head:"} {
 		if strings.HasPrefix(class, p) {
 			return "G"

@@ -31,6 +31,9 @@ func init() {
 }
 
 func (lc *lowerCtx) apiEffect(sa *cards.SA, ps *params) error {
+	if done, err := lc.monarchJailEffect(ps); done || err != nil {
+		return err // lower_monarchjail.go
+	}
 	if lc.prevColor {
 		return lc.preventColorEffect(ps)
 	}

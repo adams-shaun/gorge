@@ -6,6 +6,7 @@ Anthropede
 Appendage Amalgam
 Arabella, Abandoned Doll
 Attack-in-the-Box
+Balemurk Leech
 Balustrade Wurm
 Baseball Bat
 Bashful Beastie
@@ -122,6 +123,7 @@ Lakeside Shack
 Let's Play a Game
 Leyline of Hope
 Leyline of Resonance
+Leyline of Transformation
 Leyline of the Void
 Lionheart Glimmer
 Live or Die
@@ -129,6 +131,7 @@ Living Phone
 Malevolent Chandelier
 Manifest Dread
 Marina Vendrell's Grimoire
+Marvin, Murderous Mimic
 Meat Locker
 Meathook Massacre II
 Miasma Demon

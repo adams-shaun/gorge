@@ -1,13 +1,15 @@
-# The whole of ./dirac/oracle, every 6 hours on main (operator 11-17: "6+ ... if oracle takes almost an hour"; it was
-# hourly). It never runs on a pull request or a Mergify queue batch: those run dirac-slices (ci.yml).
+# The whole of ./dirac/oracle, about every 2 hours on main (G3, operator 11-23: it was every 6; four batch-passed PRs
+# reddened it on 11-23). It never runs whole on a pull request or a Mergify batch: those run dirac-slices and the
+# oracle-sentinels set (dirac/oracle/testdata/sentinels.txt, ci.yml). A failed run bisects itself: the bisect job
+# finds the first-parent merge that broke the failing tests and opens a DRAFT revert PR (scripts/oracle-bisect.sh).
 # GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
 # going when the next one is due finishes first; the next one waits rather than cancelling it.
 #
 # The cadence is kept by the due job, not by the cron. GitHub delays scheduled events by hours under load and
 # drops some outright (no run is created): with '23 */6 * * *', 11-17..11-19 every 06:23 and 18:23 event was
 # dropped and the 12:23 ones arrived 3-4 hours late, so the oracle ran about twice a day, and after the 00:30 run
-# on 11-19 nothing ran for 10 hours while TestTgteachoppMutation sat red on main. The cron now fires hourly and
-# due starts the oracle only when no run of it started in the last 5h30m; a dropped event costs an hour, not six.
+# on 11-19 nothing ran for 10 hours while TestTgteachoppMutation sat red on main. The cron fires hourly and
+# due starts the oracle only when no run of it started in the last 1h45m; a dropped event costs an hour.
 # A manual dispatch always runs.
 name: oracle
 
@@ -34,7 +36,7 @@ jobs:
     outputs:
       run: ${{ steps.due.outputs.run }}
     steps:
-      - name: Has the oracle run in the last 5h30m?
+      - name: Has the oracle run in the last 1h45m?
         id: due
         env:
           GH_TOKEN: ${{ github.token }}
@@ -43,7 +45,7 @@ jobs:
           now=$(date +%s)
           last=""
           while read -r id at; do
-            [ $((now - $(date -d "$at" +%s))) -ge 19800 ] && break
+            [ $((now - $(date -d "$at" +%s))) -ge 6300 ] && break
             # a run whose due job skipped its oracle jobs does not count
             n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
               --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped")] | length')
@@ -54,7 +56,7 @@ jobs:
             echo "oracle ran recently (run $last): not due"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
-            echo "no oracle run in the last 5h30m: due"
+            echo "no oracle run in the last 1h45m: due"
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
   oracle:
@@ -100,7 +102,116 @@ jobs:
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Test part ${{ matrix.part }} of 10
-        run: bash scripts/ci-oracle-shard.sh ${{ matrix.part }} 10 -timeout 30m
+        run: |
+          bash scripts/ci-oracle-shard.sh ${{ matrix.part }} 10 -timeout 30m 2>&1 | tee shard.log
+          exit "${PIPESTATUS[0]}"
+      - name: Record the failing tests
+        if: failure()
+        run: |
+          grep -oE '^--- FAIL: Test[A-Za-z0-9_]*' shard.log | sed 's/^--- FAIL: //' | sort -u > fails-${{ matrix.part }}.txt || true
+      - name: Upload the failing tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-fails-${{ matrix.part }}
+          path: fails-${{ matrix.part }}.txt
+          if-no-files-found: ignore
       - name: Disk left
         if: always()
         run: df -h .
+  # G3: when an oracle part fails on main, find the first-parent merge that broke the failing tests and open a DRAFT
+  # revert PR of it (Mergify queues every non-draft PR, so a human marks it ready). The write permissions are this
+  # job's alone.
+  bisect:
+    needs: [due, oracle]
+    if: ${{ always() && needs.oracle.result == 'failure' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: oracle-fails-*
+          path: fails
+          merge-multiple: true
+      - name: The failing tests
+        id: tests
+        run: |
+          cat fails/*.txt 2>/dev/null | sort -u > failing.txt || true
+          n=$(wc -l < failing.txt)
+          echo "$n failing tests"; cat failing.txt
+          [ "$n" -gt 0 ] || { echo "no failing test names recorded (a timeout or setup failure): nothing to bisect"; echo "skip=true" >> "$GITHUB_OUTPUT"; }
+      - name: The last good oracle run
+        id: good
+        if: steps.tests.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The head of the latest earlier run on main whose oracle jobs all passed (the way due reads runs).
+          good=""
+          while read -r id sha; do
+            bad=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped" and .conclusion != "success")] | length')
+            ran=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion == "success")] | length')
+            if [ "$bad" = 0 ] && [ "$ran" -gt 0 ]; then good=$sha; break; fi
+          done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&per_page=30" \
+            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.head_sha)\"")
+          [ -n "$good" ] || { echo "no earlier green oracle run found"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          echo "good=$good" >> "$GITHUB_OUTPUT"
+      - name: Read the corpus pin
+        id: pin
+        if: steps.tests.outputs.skip != 'true' && steps.good.outputs.skip != 'true'
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus
+        id: corpus
+        if: steps.pin.outcome == 'success'
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: steps.pin.outcome == 'success' && steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Bisect
+        id: bisect
+        if: steps.pin.outcome == 'success'
+        run: bash scripts/oracle-bisect.sh "${{ steps.good.outputs.good }}" "$GITHUB_SHA" failing.txt
+      - name: Open a draft revert PR
+        if: steps.bisect.outcome == 'success' && steps.bisect.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.bisect.outputs.pr }}
+          CULPRIT: ${{ steps.bisect.outputs.culprit }}
+        run: |
+          git config user.name "gorge oracle bisect"
+          git config user.email "noreply@github.com"
+          br="hotfix/auto-revert-$PR"
+          git switch -c "$br" "$GITHUB_SHA"
+          git revert --no-edit -m 1 "$CULPRIT"
+          git push origin "$br"
+          {
+            echo "The oracle failed on main at $GITHUB_SHA. Bisecting first-parent merges from the last green oracle run blames #$PR ($CULPRIT)."
+            echo
+            echo "Failing tests:"
+            sed 's/^/- /' failing.txt
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "A draft: Mergify queues every non-draft PR, so a human reads the failure, then marks it ready (or closes it and fixes forward). Append the failing tests to dirac/oracle/testdata/sentinels.txt in the fix or the revert."
+            echo
+            echo "---"
+            echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
+          } > body.md
+          gh pr create --draft --base main --head "$br" --title "revert: #$PR reddened the oracle (auto-bisect)" --body-file body.md

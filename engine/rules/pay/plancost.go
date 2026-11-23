@@ -297,6 +297,17 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 		// census's uncovered sources as free, never-executed alternatives,
 		// withheld exactly like the census's own, and the fees of the paid
 		// ones it admits charged as generic.
+		if cut := e.Session().PaymentPlanRelaxedCut; len(cut) != 0 {
+			if relaxedCutReducible(cost) {
+				cost = relaxedCutCost(cost, cut[0].Mana)
+			} else if !slices.Contains(gone, cut[0].Activation.Source) {
+				// a pip the cut could pay in more than one way: the gap stays
+				// a free unit (permissive), its fee still charged
+				choices = append(choices, withhold(cut))
+			}
+		}
+		// the fee is generic mana the gap's own output cannot pay, so it is
+		// charged after the cut
 		cost.Generic += e.Session().PaymentPlanRelaxedFee
 		for _, alts := range e.Session().PaymentPlanRelaxed {
 			if len(alts) == 0 || slices.Contains(gone, alts[0].Activation.Source) {
@@ -482,4 +493,27 @@ func SacrificesLast(p *decision.PaymentPlan) {
 			return
 		}
 	}
+}
+
+// relaxedCutReducible reports whether a relaxed gap's production can be taken
+// off cost pip by pip: a cost of only coloured and generic mana. A hybrid,
+// Phyrexian or snow pip could take the production in a way the reduction does
+// not model, and a proof may only over-produce.
+func relaxedCutReducible(c costvocab.Cost) bool {
+	return len(c.Hybrid)+len(c.Phyrexian)+len(c.Twobrid)+len(c.HybridPhyrexian) == 0 && c.Snow == 0
+}
+
+// relaxedCutCost is cost with the paid gap's production made: each unit pays
+// a pip of its own colour when the cost has one, else a generic. Spending
+// production on a pip is never worse than leaving it unspent, so the result
+// is the cheapest the remaining sources can be asked for (CR 601.2g).
+func relaxedCutCost(c costvocab.Cost, made state.Mana) costvocab.Cost {
+	spare := int32(0)
+	for i := range made {
+		use := min(made[i], c.Colored[i])
+		c.Colored[i] -= use
+		spare += made[i] - use
+	}
+	c.Generic -= min(spare, c.Generic)
+	return c
 }

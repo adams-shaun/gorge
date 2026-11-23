@@ -57,6 +57,7 @@ Boomer Scrapper
 Boon Reflection
 Bumi's Feast Lecture
 Call to the Grave
+Capital Punishment
 Carrion Ants
 Carrion Imp
 Castle
@@ -171,6 +172,7 @@ Haru-Onna
 Haunted Angel
 Haunting Hymn
 Hawkeye, Bowslinger
+Haytham Kenway
 Hazoret the Fervent
 Headless Horseman
 Heaven Sent
@@ -266,6 +268,7 @@ Ominous Parcel
 Overgrown Armasaur
 Pariah's Shield
 Passionate Archaeologist
+Pattern Matcher
 Pentarch Ward
 Phylath, World Sculptor
 Plains
@@ -319,6 +322,7 @@ Shadowcloak Vampire
 Shatterskull Minotaur
 She-Hulk, Wallbreaker
 Sheoldred, the Apocalypse
+Shipwreck Sifters
 Shivan Wurm
 Shocking Grasp
 Shreds of Sanity
@@ -386,6 +390,7 @@ Throes of Chaos
 Thrull Champion
 Tidespout Tyrant
 Time Spiral
+Timeless Witness
 Tireless Missionaries
 Tolarian Scholar
 Torch Courier
@@ -418,6 +423,7 @@ Volcanic Awakening
 Voracious Hatchling
 Vow of Lightning
 Wakandan Shield Guard
+Wall of Diffusion
 Wall of Mist
 Wall of Souls
 Warren Instigator

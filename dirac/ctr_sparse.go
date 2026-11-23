@@ -37,7 +37,8 @@ type ctrOverEntry struct {
 	kind uint16 // a kop.CounterKind, as wide as perm.ck
 	obj  Obj
 	lki  uint8
-	seen bool // perm.cseen's bit for this kind
+	seen bool   // perm.cseen's bit for this kind
+	ts   uint16 // a keyword counter's CR 613.7 stamp (perm.cs)
 }
 
 // key orders the table by lki and object, then kind. The lki and object half is
@@ -120,6 +121,9 @@ func (s *State) ctrOverSet(o Obj, c int, n uint16) bool {
 	if i < 0 {
 		return false
 	}
+	if n > s.g.ctrOver[i].n && ctrKindKw(s.g.ctrOver[i].kind) != 0 {
+		s.g.ctrOver[i].ts = s.tick()
+	}
 	s.g.ctrOver[i].n = n
 	if n == 0 && !s.g.ctrOver[i].seen {
 		s.ctrOverDel(i)
@@ -165,6 +169,9 @@ func (s *State) ctrOverHash(h uint64, o Obj) uint64 {
 		// a kind's high byte folds in above the 8-bit kinds' layout, so a
 		// kind below 256 hashes as it did
 		h = hmix(h, (0x6374726f<<32|v)^uint64(e.kind>>8)<<40)
+		if e.ts != 0 {
+			h = hmix(h, 0x63747374<<32|uint64(e.ts))
+		}
 	}
 	return h
 }
@@ -242,9 +249,9 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 	if used == ctrSlots {
 		top := ctrSlots - 1
 		if c > int(p.ck[top]) {
-			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint16(c)})
+			return s.ctrOverPut(ctrOverEntry{n: n, obj: p.obj, kind: uint16(c), ts: s.kwStamp(c)})
 		}
-		if !s.ctrOverPut(ctrOverEntry{n: p.cn[top], obj: p.obj, kind: p.ck[top], seen: p.cseen&(1<<top) != 0}) {
+		if !s.ctrOverPut(ctrOverEntry{n: p.cn[top], obj: p.obj, kind: p.ck[top], seen: p.cseen&(1<<top) != 0, ts: p.cs[top]}) {
 			return false
 		}
 		used = top
@@ -254,10 +261,10 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 		at--
 	}
 	for i := used; i > at; i-- {
-		p.ck[i], p.cn[i] = p.ck[i-1], p.cn[i-1]
+		p.ck[i], p.cn[i], p.cs[i] = p.ck[i-1], p.cn[i-1], p.cs[i-1]
 		p.cseen = p.cseen&^(1<<i) | (p.cseen<<1)&(1<<i)
 	}
-	p.ck[at], p.cn[at] = uint16(c), n
+	p.ck[at], p.cn[at], p.cs[at] = uint16(c), n, s.kwStamp(c)
 	p.cseen &^= 1 << at
 	return true
 }
@@ -270,17 +277,17 @@ func (p *perm) ctrInsert(s *State, c int, n uint16) bool {
 func (p *perm) ctrFree(s *State, i int) {
 	full := p.ck[ctrSlots-1] != 0
 	for ; i < ctrSlots-1; i++ {
-		p.ck[i], p.cn[i] = p.ck[i+1], p.cn[i+1]
+		p.ck[i], p.cn[i], p.cs[i] = p.ck[i+1], p.cn[i+1], p.cs[i+1]
 		p.cseen = p.cseen&^(1<<i) | (p.cseen>>1)&(1<<i)
 	}
-	p.ck[i], p.cn[i] = 0, 0
+	p.ck[i], p.cn[i], p.cs[i] = 0, 0, 0
 	p.cseen &^= 1 << i
 	if !full {
 		return
 	}
 	if t := s.ctrOverOf(p.obj, 0); len(t) != 0 {
 		e := t[0]
-		p.ck[i], p.cn[i] = e.kind, e.n
+		p.ck[i], p.cn[i], p.cs[i] = e.kind, e.n, e.ts
 		if e.seen {
 			p.cseen |= 1 << i
 		}
@@ -364,3 +371,13 @@ func (p *perm) ctrSeenMask(s *State) uint16 {
 //
 //go:noinline
 func (s *State) ctrStall() { s.capFull(StallCounters) }
+
+// kwStamp is the CR 613.7 timestamp a new counter of kind c takes: a fresh
+// tick for a keyword counter (CR 122.1b; gorge stampKeywordCounter ticks
+// Game.Clock for it and for no other kind), 0 for the rest.
+func (s *State) kwStamp(c int) uint16 {
+	if ctrKindKw(uint16(c)) == 0 {
+		return 0
+	}
+	return s.tick()
+}

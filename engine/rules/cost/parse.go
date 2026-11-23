@@ -1678,3 +1678,11 @@ func matchUnlessAddCounter(inner string) (CostPart, bool) {
 func unlessSpecialShapeOK(c Cost) bool {
 	return c.Waterbend == 0 || (!c.HasManaPayment() && c.Life == 0 && !c.LifeHalfUp && len(c.LifeX) == 0)
 }
+
+// SpecNamesToken reports a part whose spec carries Forge's "token" property
+// term ("Permanent.token+namedWood"): the matching permanents are tokens
+// only. It reads the cost text at the parser boundary so the potential walk
+// asks a bool, not a substring.
+func (p CostPart) SpecNamesToken() bool {
+	return strings.Contains(p.Spec, ".token")
+}

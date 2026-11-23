@@ -12,6 +12,7 @@ Birthing Pod	534d8b3d8c76d316	19	1/1		1/1
 Bloodhall Priest	3d9fe149b2ed6e8f	54	2/2		1/1	
 Blue Scarab	71b862d5637e23d6	4	0/0		2/2	
 Bringer of the Blue Dawn	0be2e3715ce4b357	8	1/1		1/1	
+Changing Loyalty	13be4e423fbf2731	8	2/2		4/4	
 Chastise	88f485b985554995	9	0/0		1/2	ix:resp
 City of Shadows	837ffd332a488745	20	2/2		0/1	ix:resp
 Cloud Manta	05890e73449cc88c	9	0/0		0/0	
@@ -30,6 +31,7 @@ Gerrard's Irregulars	b0187d0403f07e53	28	0/0		0/0
 Graceful Cat	eec039cca980e648	4	1/1		0/1	ix:resp
 Grappling Sundew	6cc6c7d51cd6e7ca	26	1/1		1/1	
 Gravity Well	cdeb9b54c41cc6c3	13	1/1		0/1	ix:resp
+Great Wall	981270f8c4c1597d	9	0/0		0/0	
 Hammer Mage	b238e1189cc972fb	44	1/1		0/1	ix:resp
 Henge of Ramos	4ebbe576e9377a21	5	2/2		0/1	ix:resp
 Hero of Precinct One	5dc5f22bd373fb2d	14	1/1		1/1	
@@ -59,6 +61,7 @@ Quest for Ancient Secrets	853340017d65bdfa	32	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rampaging Aetherhood	48e495bbf40026fa	5	2/2		1/1	
 Road of Return	7f4f313225128665	7	0/0		1/2	ix:resp
 Saiba Trespassers	270080724e9e99d3	5	1/1		1/1	
+Satyr Firedancer	a93e8c9af5ac51b9	16	1/1		1/1	
 Scarwood Treefolk	1d946806f022a43c	11	0/0		0/0	
 Sensei's Divining Top	156db14edbf30aac	81	2/2		1/1	
 Sentinel	8c752872c913e614	3	1/1		0/1	ix:resp
@@ -91,3 +94,4 @@ Wasp, Shrinking Savior	7c5b34a6fb9b1a2d	133	1/1		1/1
 Wicked Guardian	1f407523d7cf9309	32	1/1		1/1	
 Wooded Foothills	38a8ddd6bd08d8e5	14	1/1		0/1	ix:resp
 Yahenni's Expertise	7b46ece9e9bef37c	6	0/0		1/2	ix:resp
+Zombie Ogre	0ba1286b5ecb56a8	18	1/1		0/1	ix:resp

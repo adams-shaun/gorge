@@ -118,6 +118,7 @@ func TestMustAttackOtherPodSkipsBattleOffers(t *testing.T) {
 	sc.perm(staticID, 0)       // the static's controller, seat 0, is excluded
 	bear := sc.perm(bearID, 1) // the affected attacker
 	battle := sc.perm(battleID, 2)
+	s.answerQueuedAsk(k, MakeAction(AkChoose, 0, 0, 0)) // seat 2's protector ask (face_battle.go): seat 0 protects
 	sc.passUntil(t, kop.StepAttackers)
 	d := s.Step()
 	if d.Kind != DkAttackers {

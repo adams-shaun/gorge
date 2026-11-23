@@ -4,6 +4,7 @@ Alliance of Arms
 Alluring Scent
 Almighty Brushwagg
 Angelfire Crusader
+Angelic Accord
 Angelic Chorus
 Arashin Cleric
 Ascend from Avernus
@@ -34,11 +35,14 @@ Bontu's Last Reckoning
 Brambleweft Behemoth
 Brine Giant
 Brought Back
+Bulwark Giant
 Burst of Strength
 Carnival
 Catapult Squad
+Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
+Chronic Flooding
 Clarion Cathars
 Cloud Crusader
 Commune with Dinosaurs
@@ -51,6 +55,7 @@ Crystal Rod
 Crystalline Sliver
 Cursed Land
 Cyclone Summoner
+Dark Depths
 Dark-Dweller Oracle
 Deathgreeter
 Deep Dish Pizza
@@ -65,6 +70,7 @@ Divination
 Djeru, With Eyes Open
 Downhill Charge
 Dragon's Claw
+Drooling Ogre
 Earth Surge
 Echoes of the Kin Tree
 Eldrazi Displacer
@@ -78,6 +84,7 @@ Esper Panorama
 Euroakus
 Explosive Welcome
 Fade from History
+Farideh's Fireball
 Festercreep
 Fiery Temper
 Fire Nation Ambushers
@@ -103,6 +110,8 @@ Golden Demise
 Goldmeadow Lookout
 Grazing Whiptail
 Great Furnace
+Greven, Predator Captain
+Grinding Station
 Grond, the Gatebreaker
 Harbor Bandit
 Harsh Sustenance
@@ -110,6 +119,7 @@ Harvester of Souls
 Haunter of Nightveil
 Haunting Figment
 Heartwood Treefolk
+Hedonist's Trove
 Hedron Rover
 Hellrider
 Hero of Precinct One
@@ -128,6 +138,7 @@ Immersturm Raider
 Implement of Combustion
 Imps' Taunt
 Infested Fleshcutter
+Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
@@ -141,9 +152,11 @@ Jor Kadeen, First Goldwarden
 Judge's Familiar
 Jwar Isle Avenger
 Kabira Vindicator
+Kaervek the Merciless
 Karametra's Blessing
 Keldon Overseer
 Keymaster Rogue
+Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
 Knight of the Stampede
@@ -153,6 +166,7 @@ Launch Party
 Lava Dart
 Leveler
 Lhurgoyf
+Lich Lord of Unx
 Life's Legacy
 Liliana's Specter
 Liliana's Steward
@@ -166,6 +180,7 @@ Makindi Stampede
 Malignant Growth
 Mandroid Squadron
 Massive Might
+Merciless Executioner
 Mindstab Thrull
 Miss Highwater
 Momo's Heist
@@ -183,9 +198,11 @@ Nightmare
 Norwood Riders
 Nullmage Shepherd
 Observant Alseid
+Ojutai Monument
 Okina, Temple to the Grandfathers
 Old Gnawbone
 Olivia Voldaren
+One Ring to Rule Them All
 Orim's Prayer
 Ostiary Thrull
 Ovalchase Dragster
@@ -221,6 +238,7 @@ Ramosian Rally
 Rampaging Brontodon
 Ranger's Guile
 Raze to the Ground
+Recruitment Drive
 Relentless Assault
 Remote Isle
 Renegade Freighter
@@ -228,6 +246,7 @@ Reya Dawnbringer
 Riptide Biologist
 Roc Charger
 Root Spider
+Roots
 Rosnakht, Heir of Rohgahh
 Run Out of Town
 Sacred Prey
@@ -240,12 +259,16 @@ Savage Gorger
 Scalding Tarn
 Scarwood Bandits
 Scatter Ray
+Search Warrant
+Searing Barrage
 Secure the Wastes
 Seismic Spike
+Sejiri Merfolk
 Sengir Connoisseur
 Sensor Splicer
 Setessan Champion
 Shadow of Mortality
+Shipwreck Singer
 Shivan Fire
 Shivan Phoenix
 Shock Troops
@@ -268,6 +291,7 @@ Solid Ground
 Soltari Visionary
 Soul of the Harvest
 Soul's Attendant
+Sphere of Annihilation
 Sphinx of New Prahv
 Spirit Bonds
 Spirit Weaver
@@ -314,6 +338,7 @@ Trusty Machete
 Tundra
 Twinferno
 Unchecked Growth
+Valakut Predator
 Vampire Champion
 Viral Drake
 Visions of Beyond

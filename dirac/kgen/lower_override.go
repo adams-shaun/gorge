@@ -193,10 +193,8 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		o.AllCreatureTypes = true
 	}
 	if t, ok := sp.get("AddType"); ok {
-		for _, w := range strings.Split(t, "&") {
-			if err := lc.overrideAddTypeWord(strings.TrimSpace(w), st, o); err != nil {
-				return nil, err
-			}
+		if err := lc.overrideAddTypes(t, st, o); err != nil {
+			return nil, err
 		}
 	}
 	landwalk, err := lc.overrideAddKeyword(sp, o) // lower_overridelandwalk.go
@@ -207,6 +205,9 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
 			return nil, err
 		}
+	}
+	if o.Chosen && !o.SetLandSub {
+		return nil, refuse("AddType %q", "ChosenType")
 	}
 	if removeCard {
 		o.HasSetTypes = true
@@ -291,6 +292,27 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		return lc.landwalkCompanion(landwalk, st, o, []lStatic{pump, *st})
 	}
 	return lc.landwalkCompanion(landwalk, st, o, []lStatic{*st})
+}
+
+// overrideAddTypes lowers a static's AddType$ word list: the chosen
+// land-type setter's word (Convincing Mirage, Phantasmal Terrain,
+// Multiversal Passage) reads the source's as-enters ChooseType answer
+// (st.AddChosen, kop.Static.AddChosen), and only the CR 305.7 setter behind
+// it grants it — landTypeSetter marks the record SetLandSub with no added
+// subtype of its own. Any other shape refuses after the RemoveLandTypes
+// read, by the word's own class, exactly as this loop refused it before the
+// setter existed.
+func (lc *lowerCtx) overrideAddTypes(t string, st *lStatic, o *lOverride) error {
+	for _, w := range strings.Split(t, "&") {
+		if w = strings.TrimSpace(w); w == "ChosenType" {
+			st.AddChosen, o.Chosen = true, true
+			continue
+		}
+		if err := lc.overrideAddTypeWord(w, st, o); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // overrideAddTypeWord lowers one AddType$ word onto o: a card type, the
@@ -392,7 +414,7 @@ func walkFilterOK(f *lFilter) error {
 	}
 	for _, c := range f.Clauses {
 		switch c.CmpStat {
-		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase, cmpPTBox:
+		case cmpPower, cmpToughness, cmpPowerLTToughness, cmpPowerGTBase, cmpPTBox, cmpSpill:
 			return refuse("override static filter reads P/T")
 		}
 		if c.Flags&(fWithFlying|fWithoutFlying) != 0 {

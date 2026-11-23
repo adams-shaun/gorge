@@ -1,24 +1,41 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ancient Copper Dragon	519b7db72ed3b6be	4	1/1		0/1	ix:resp
 Arcbound Javelineer	04b06dcc80ddd5f3	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Aven Eternal	12ab2ee83d6e1c3a	5	1/1		0/1	ix:resp
 Awaken the Bear	1cd5bcf63f2b9c33	4	0/0		1/2	ix:resp
+Baird, Steward of Argive	5f4e4f769382922d	4	0/0		0/0	
+Bane's Invoker	928fb9ca6cb9408c	4	1/1		0/1	ix:resp
+Baneslayer Angel	9140fba5c203e173	4	0/0		0/0	
 Beastmaster Ascension	174c4d3e405f6d7b	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Beregond of the Guard	f8248994abdef50e	4	1/1		0/1	ix:resp
 Biomass Mutation	8492f4a35c69ded5	3	0/0		2/4	f0/s/x0,ix:resp
 Bladebrand	0b87f0c8602f5390	4	0/0		1/2	ix:resp
+Bloodrage Brawler	7565b1b58835d452	4	1/1		0/1	ix:resp
+Blossoming Calm	d0b37cb5159006d0	8	0/0		2/2	
+Blue Elemental Blast	03cbd3b2a523e2da	4	0/0		1/2	ix:resp
+Boing!	005248d6325a6407	4	0/0		1/2	ix:resp
+Bold Defense	4488929f981a95c1	4	0/0		2/4	cast/alt:kicked,ix:resp
+Boompile	7cb31793138270d4	6	1/1		0/1	ix:resp
+Breath of Darigaaz	f60da5d605260e75	8	0/0		3/4	ix:resp
 Capital Guard	f4eea768da433c25	3	0/0		0/0	
 Cloakwood Hermit	f4506a68ba3c1991	7	0/0		0/0	
+Contaminated Aquifer	001454300b86a4a5	6	2/2		0/1	ix:resp
 Crimson Caravaneer	1b49120797a18a1c	3	1/1		0/1	ix:resp
 Crossover Collaboration	1e0eae4d1f157313	5	0/0		1/2	ix:resp
 Cut of the Profits	56abd60c20aa7473	3	0/0		2/4	f0/s/x0,ix:resp
 Deranged Hermit	d1a0e66f7a30cb6e	4	2/2		0/1	ix:resp
+Diabolic Tutor	62ecf84336d43c4b	4	0/0		1/2	ix:resp
 Dictate of Karametra	4a0a5881d2b511a6	6	1/1		0/1	ix:resp
 Dwarven Nomad	8880f8a1f3b28611	3	1/1		0/1	ix:resp
 Emerald Medallion	e9cda15f0aac6f8e	7	0/0		0/0	
+Falcon Abomination	a0a8215405d18b34	3	1/1		0/1	ix:resp
+Feral Invocation	e4c6a6499b9bccfa	6	0/0		1/2	ix:resp
 Filigree Familiar	0b3c1d3609964d82	8	2/2		1/1	
 Foratog	62f09a62c0ecb8be	4	1/1		0/1	ix:resp
 Force of Vigor	3fbdb6b34f232ffd	3	0/0		1/2	ix:resp
 Glorious Charge	d02d821c7f485ec6	5	0/0		2/2	
 Goblin Bully	03afd80a09e46a73	4	0/0		0/0	
+Gods Willing	6bf91b34f08392ff	4	0/0		1/2	ix:resp
 Hammerhand	47a59d9c7c5fc020	4	1/1		1/2	ix:resp
 Hour of Promise	dd9106bbeec9796d	6	0/0		1/2	ix:resp
 Inordinate Rage	e74da5a3dbd68170	3	0/0		1/2	ix:resp
@@ -26,26 +43,43 @@ Inventor's Axe	0e295d5202518064	10	3/3		1/1
 Jace's Sentinel	9efc7bada1315435	3	0/0		0/0	
 Lava Flow	db86f53915e361b4	5	0/0		1/2	ix:resp
 Loam Larva	96cf16bf7135c959	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Mage-Ring Bully	c85193db2ed07606	4	1/1		0/1	ix:resp
 Magnify	a8cbd1dc854a6ce9	6	0/0		2/2	
 Mogg War Marshal	5488c37636030273	5	3/3		0/1	ix:resp
 Moon Heron	9ba17555eeef31e9	6	0/0		0/0	
 Ornithopter	aaacac67a65ca521	5	0/0		0/0	
 Owlbear Shepherd	9c9fadf56eb87fda	4	1/1		0/1	ix:resp
 Pain	cfc3e6ee7d1f35aa	3	0/0		1/3	f1/s,ix:resp
+Pillar of War	97ec45144bdbb150	8	0/0		0/0	
 Pistus Strike	80cb5cec83bfe616	4	0/0		2/2	
 Profane Memento	c45ea0ab5d182b65	7	1/1		0/1	ix:resp
 Rain of Blades	b39edf9b3f6c80a2	4	0/0		1/2	ix:resp
 Ravenous Vampire	e632fc630d9f14e1	3	1/1		0/1	ix:resp
+Rime Transfusion	ccd3d33e262bee77	4	0/0		1/2	ix:resp
 Roiling Regrowth	148fa66fc9df3500	11	0/0		2/2	
 Sawblade Slinger	99bad7f743bb65e5	6	1/1		0/1	ix:resp
 Seal of Strength	33612ce75bbcf53f	11	1/1		0/1	ix:resp
+Seasoned Marshal	53c73b002c1df044	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shinewend	601e55e8b918bbc1	4	1/1		0/1	ix:resp
+Shriekdiver	4b3b88ce5c9903d2	4	1/1		1/1	
 Sigardian Savior	ec7bd03c9977f538	3	1/1		0/1	ix:resp
+Sinister Gnarlbark	92243cd0120e0c21	4	1/1		1/1	
+Skirk Prospector	f2ecbb7208cc8a2e	4	1/1		0/1	ix:resp
+Skyline Cascade	c7c762bdd79375fd	4	2/2		0/1	ix:resp
+Steel Leaf Champion	8ecf3f8f387a67e4	4	0/0		0/0	
 Stronghold Overseer	5bf5ae6bc53f4001	7	1/1		1/1	
+Swarmborn Giant	521cc44983b7bf7c	4	2/2		1/1	
 Sword of Forge and Frontier	b00971917d808bfa	62	2/2		1/1	
+Tajuru Blightblade	cfe85cef2e99fcb1	8	0/0		0/0	
 Take Inventory	091422296aa3ba25	4	0/0		1/2	ix:resp
 Thalakos Dreamsower	30921808effe6b8d	50	1/1		1/1	
+The Fair Basilica	078441d84e4a9505	6	2/2		0/1	ix:resp
+The Juzam Master	0c4591ee1db6cd2a	4	0/0		0/0	
+Thorn Mammoth	43ab05a999a23613	3	1/1		0/1	ix:resp
 Triceraton Regenta	f60213e14074a2da	4	1/1		0/1	ix:resp
 Unlicensed Hearse	6126e71a1fa4f56b	7	2/2		1/1	
 Virtus the Veiled	6609656b40ab6d6e	4	2/2		0/1	ix:resp
+Wall of Hope	62843a03622fb463	4	1/1		0/1	ix:resp
+Warped Landscape	5e1d13c5f3266dad	10	2/2		0/1	ix:resp
 Wight of the Reliquary	763be0adaf0862d8	7	1/1		0/1	ix:resp
 Winding Way	6396e985c5a41fc6	5	0/0		1/2	ix:resp

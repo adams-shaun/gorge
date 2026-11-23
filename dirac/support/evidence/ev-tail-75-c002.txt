@@ -116,6 +116,7 @@ Fireblade Charger
 Fissure
 Flare of Denial
 Flatman
+Flowstone Charger
 Forest
 Foxfire Oak
 Genestealer Locus
@@ -125,6 +126,7 @@ Gild
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Goblin Deathraiders
 Great Defender
 Greater Harvester
 Griffin Aerie
@@ -287,6 +289,7 @@ Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
+Swirling Spriggan
 Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer
@@ -295,6 +298,7 @@ Tectonic Edge
 Tempestra, Dame of Games
 Territorial Boar
 Thirst for Discovery
+Thistledown Duo
 Thopter Assembly
 Thopter Mechanic
 Thoughtweft Gambit

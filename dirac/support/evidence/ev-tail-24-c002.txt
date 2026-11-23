@@ -49,6 +49,7 @@ Chakram Retriever
 Chandra's Triumph
 Chandra, Legacy of Fire
 Cleansing Wildfire
+Cloister Gargoyle
 Collector's Case
 Conifer Strider
 Consulate Crackdown
@@ -113,6 +114,7 @@ Forsaken Drifters
 Fortuitous Find
 Fracture
 Fungus Sliver
+Gallantry
 Generous Visitor
 Getaway Car
 Glimmer Bairn
@@ -259,6 +261,7 @@ Satyr Piper
 Scryb Ranger
 Sealock Monster
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Sagittars
@@ -294,6 +297,7 @@ Sphere Grid
 Spike Breeder
 Spinal Graft
 Spinal Parasite
+Spirit of the Hearth
 Springjaw Trap
 Sram, Senior Edificer
 Staggershock

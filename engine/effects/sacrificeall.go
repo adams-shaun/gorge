@@ -57,16 +57,7 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			return
 		}
-		if remember {
-			c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
-			// Forge's RememberSacrificed$ also remembers the card (mirroring
-			// effSacrifice's rememberLKICapture), which is what a following
-			// ConditionDefined$ Remembered, Remembered$Amount or
-			// RememberedCard reads, and event-backs it on the source so a
-			// later, independently resolving ability sees the same list.
-			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
-			eventRemember(h, c, id)
-		}
+		captureSacrificed(h, c, id, remember)
 		h.Emit(events.Sacrifice(id))
 	}
 	// A SacrificeAll is one simultaneous event (CR 701.21, 603.10a, 614.6):

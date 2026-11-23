@@ -160,7 +160,7 @@ func (s *State) millShuffling(k *prep, p uint8, n int, c int) {
 		pl.libRemove(o)
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
 }
@@ -260,6 +260,19 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 			if s.pickCommittedSrc(k, b.first()) {
 				continue // a convoke/waterbend pick taps it (excludePickedSources)
 			}
+			if k.gen.anyContGrant && s.g.availX&availPlain == 0 && !s.g.noGrant &&
+				s.grantIdx(k, b.first()) >= 0 && s.planDeferred(k, p, b.first()) && !s.blgIntrinsicUnit(k, b.first()) {
+				// availFor's dual deferGap arm already counted this source through
+				// its granted ability (availGrant, mana.go: the census counts the
+				// grant only when noGrant's prefix search is not pricing the ask,
+				// hence the two extra terms): the permanent taps once for the
+				// window (CR 605.1a), and gorge's census lists one unit for it.
+				// Without them, The Rollercrusher Ride's X ask offered one too
+				// many (choose:x(-,-,10) beside gorge's 9). When the grant is
+				// priced out, availFor skips the source uncounted and this walk
+				// is its modelled gap, so it keeps the unit.
+				continue
+			}
 			if ra, ok := s.riderAbilityOf(k, b.first()); ok {
 				if ra.ManaRider == kop.ManaRiderDeplete {
 					// A depletion land's activation costs a counter, so gorge's window
@@ -288,6 +301,25 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 				pc = s.splitWindowPC(k, b.first()) // gorge's window census reads a Condition-split root alone (mana_condsplit.go)
 			}
 			a.addUnits(s.srcMaskAt(pc, b.first()), srcYield(pc))
+			// gorge's windowTapExtras folds the tap's reflected extra (Mana
+			// Flare's one mana of the type the land produced) into every priced
+			// alternative, a deferred source's own (paymentPlanTapExtraMana):
+			// the same fixed carrier vector the census adds to a counted
+			// source's tap (availForMode's srcExtra units, mana.go). A shape
+			// srcExtra cannot price (a choice, painful or all-at-once
+			// production) carries no vector, as gorge's window census gives a
+			// multi-symbol or Any alternative none, so the ask reads the unit
+			// without it and no stall the plain census never posed.
+			if k.gen != nil && k.gen.anyTapExtra {
+				if xv, hit := s.srcExtraHit(k, b.first(), pc); hit && xv != ([kop.NumManaKinds]uint8{}) &&
+					s.tapExtraPlain(pc) && pc.painCol == 0 {
+					for c := range xv {
+						if xv[c] > 0 {
+							a.addUnits(1<<c, xv[c])
+						}
+					}
+				}
+			}
 		}
 	}
 	if k.gen == nil || k.gen.anyContGrant || len(k.gen.grantPC) == 0 {
@@ -353,7 +385,7 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 		}
 		// a protection quality reads the spell's own mana value, X in it: the
 		// announced X can leave every candidate protected (protSpellXMV)
-		bound = bound || k.gen.anyProtF && e.kind == seSpell && k.cards[e.card].cost.X != 0 && a.NTargets != 0
+		bound = bound || e.kind == seSpell && k.cards[e.card].cost.X != 0 && protXBoundTarget(k, a)
 	}
 	picks := s.convokePickCount() > 0
 	wbX := s.waterbendXBuilding(k) && s.waterbendPickCount() > 0 // a Waterbend<X> pick pays one generic of X (act_waterbend.go)
@@ -461,7 +493,17 @@ func (s *State) xAnswerable(k *prep, a *kop.Ability, e *stackEntry, x int) bool 
 	if e.kind == seSpell {
 		s.g.tgtSelf = e.obj + 1
 	}
-	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, 0xff)
+	// CR 601.2b: X is announced after the modes, so a modal spell's X is judged
+	// against the modes already chosen (gorge chosenModesTargetableAt), not any
+	// mode: Confront the Past's Return mode needs a planeswalker card of mana
+	// value X or less, whatever the Remove mode could do.
+	modes := uint8(0xff)
+	if a.NModes > 0 && e.kind == seSpell {
+		if chosen := a.ModeSet(e.mode) & (1<<a.NModes - 1); chosen != 0 {
+			modes = chosen
+		}
+	}
+	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, modes)
 	if e.kind == seSpell {
 		s.g.tgtSelf = 0
 	}

@@ -60,7 +60,7 @@ func (s *State) tapXGrantOf(k *prep, sl Slot) (gi int16, dual, ok bool) {
 	}
 	gi = gis[0]
 	pc := s.grantView(k.gen, gi, sl)
-	if !pc.manaTap || pc.grantSac || pc.manaSacOnly || grantCostLife(pc) > 0 || k.gen.grantRestr[gi] != 0 || pc.manaMulti || pc.manaChosen {
+	if !pc.manaTap || pc.grantSac || pc.manaSac || pc.manaSacOnly || grantCostLife(pc) > 0 || k.gen.grantRestr[gi] != 0 || pc.manaMulti || pc.manaChosen {
 		return 0, false, false
 	}
 	if !s.ownManaUsable(k, sl) {

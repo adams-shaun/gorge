@@ -3,5 +3,4 @@ Island
 Mountain
 Plains
 Swamp
-Tramway Station
 Transmogrifying Licid

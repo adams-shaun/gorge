@@ -17,6 +17,7 @@ Angry Mob
 Ant-Man, Elusive Avenger
 Arasta of the Endless Web
 Archon of Emeria
+Arco-Flagellant
 Argothian Pixies
 Arisen Gorgon
 Ark of Blight
@@ -150,8 +151,10 @@ Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Halimar Wavewatch
 Hand of the Praetors
 Harpoon Sniper
+Hedron Blade
 Hoarding Recluse
 Hollowhenge Spirit
 Hunting Wilds
@@ -187,11 +190,13 @@ Lulu, Stern Guardian
 Madcap Skills
 Marauding Dreadship
 Mask of Immolation
+Masked Gorgon
 Master's Guidance
 Melira, the Living Cure
 Mephitic Vapors
 Might of the Old Ways
 Mishra's Helix
+Mishra, Artificer Prodigy
 Mistral Charger
 Moat
 Monoskelion
@@ -275,6 +280,7 @@ Sima Yi, Wei Field Marshal
 Sisterhood of Karn
 Skirk Outrider
 Skithiryx, the Blight Dragon
+Skoa, Embermage
 Skyhunter Skirmisher
 Sleep with the Fishes
 Snare Tactician
@@ -304,10 +310,12 @@ Tah-Crop Skirmisher
 Target Minotaur
 Tezzeret's Gatebreaker
 Thassa's Rebuff
+The Swarmlord
 Thriving Isle
 Tomb Robber
 Tome Scour
 Touch of Darkness
+Trap Essence
 Traveler's Amulet
 Treasured Find
 Tresserhorn Sinks

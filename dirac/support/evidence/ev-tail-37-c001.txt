@@ -269,6 +269,7 @@ Ravenous Skirge
 Raving Visionary
 Reach of Branches
 Reap and Sow
+Red Ward
 Reduce to Dreams
 Regal Bloodlord
 Rejuvenation Chamber
@@ -280,6 +281,7 @@ Riptide
 Rising Populace
 Roar of Reclamation
 Robot Chicken
+Rohirrim Lancer
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
@@ -300,6 +302,7 @@ Shadow Lance
 Shadowfeed
 Shatterstorm
 Shimmering Mirage
+Shisato, Whispering Hunter
 Shivan Oasis
 Shrieking Mogg
 Sickle Ripper

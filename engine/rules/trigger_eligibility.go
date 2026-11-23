@@ -281,6 +281,10 @@ var triggerModeEventRows = [...]struct {
 	// default keeps a PhaseOutAll-only face's mask narrow for every other
 	// kind.
 	{cards.TriggerPhaseOutAll, 0},
+	// PhaseIn / PhaseOut read the same past-the-mask marker, gated by their
+	// matchers (trigmatch.phasingMatches).
+	{cards.TriggerPhaseIn, 0},
+	{cards.TriggerPhaseOut, 0},
 	{cards.TriggerSacrificed, 1 << events.MoveZone},
 	{cards.TriggerDiscarded, 1 << events.MoveZone},
 	{cards.TriggerDiscardedAll, 1 << events.MoveZone},
@@ -604,3 +608,32 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerLifeGained, 1 << events.LifeChange},
 	{cards.TriggerPhase, 1 << events.StepChange},
 }
+
+// phasedOutSkipsWalk reports whether the trigger walk skips o for ev: a
+// phased-out permanent, unless it is visited for the look-back below. A
+// phased-out permanent's abilities do not function (CR 702.26b); the one look-back is its own "whenever ~ phases out", which fires
+// off the PhaseOut event that put it out: the event's own permanent, or one
+// that phased out indirectly with it (CR 702.26g). Which trigger lines may
+// fire is phasedOutSourceAdmits.
+func phasedOutSkipsWalk(ev *events.Event, id state.ObjID, o *state.Object) bool {
+	if !o.PhasedOut {
+		return false
+	}
+	return !(ev.Kind == events.PhaseOut && ev.Amount >= 1 && (id == ev.Obj || o.PhasedOutIndirect))
+}
+
+// phasedOutSourceAdmits is the whitelist half of the look-back: on a PhaseOut
+// event a phased-out source admits exactly a Mode$ PhaseOut line whose
+// ValidCard$ reads phasedOutSelf; every other line of a phased-out permanent
+// stays silent. A phased-in source admits everything, as before.
+func phasedOutSourceAdmits(g *state.Game, t *cards.Trigger, source state.ObjID) bool {
+	o := g.Obj(source)
+	if o == nil || !o.PhasedOut {
+		return true
+	}
+	return t.ModeKind() == cards.TriggerPhaseOut && t.ParamStr(cards.PKValidCard) == phasedOutSelfSpec
+}
+
+// phasedOutSelfSpec is the one ValidCard$ spelling the look-back admits (Teferi's
+// Imp, Ertai's Familiar).
+const phasedOutSelfSpec = "Card.phasedOutSelf"

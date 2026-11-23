@@ -76,34 +76,39 @@ func tapsDeferPain(body *cards.SA) uint8 {
 
 // tapsAttachedClass is the payment-planner class of the AttachedBy Taps
 // watcher: a body whose only effect is to destroy the tapped permanent itself
-// (Brink of Disaster's, Cryoshatter's) is a post-payment consequence gorge's
-// planner vets (pay PaymentPlanTapDestroySelfTrigger), so the source stays an
-// ordinary unit (kop.TapPlanOrdinary); an unvetted body defers, as gorge's
-// planner defers any tap a non-damage watcher sees; a damage body (Psychic
-// Venom's payer damage) has a payment tiering the kernel does not mirror yet,
-// so the caller refuses it.
+// (Brink of Disaster's, Cryoshatter's) or to put a poison counter on a player
+// the payment cannot move (Relic Putrescence's) is a post-payment consequence
+// gorge's planner vets (pay PaymentPlanTapConsequenceTrigger: the
+// destroy-self and poison rows), so the source stays an ordinary unit
+// (kop.TapPlanOrdinary); an unvetted body defers, as gorge's planner defers
+// any tap a non-damage watcher sees; a damage body (Psychic Venom's payer
+// damage) has a payment tiering the kernel does not mirror yet, so the caller
+// refuses it. The bool is the vetted-consequence row found (the destroy-self
+// or poison one), the flag tapsAttachedClauses vets the clause table on.
 func tapsAttachedClass(t cards.Trigger) (kop.TapPlan, uint8, bool) {
 	tp8, pn := tapsPlanClass(t.Effect)
-	destroySelf := tp8 == kop.TapPlanDefer && tapsDestroySelf(t)
-	if destroySelf {
-		tp8 = kop.TapPlanOrdinary
+	if tp8 == kop.TapPlanDefer {
+		if tapsDestroySelf(t) || tapsPoison(t) {
+			tp8 = kop.TapPlanOrdinary
+			return tp8, pn, true
+		}
 	}
-	return tp8, pn, destroySelf
+	return tp8, pn, false
 }
 
 // tapsAttachedClauses vets the clause table of a non-Self Taps watcher with no
 // ValidPlayer$: every clause is a plain ownerless one over your own creature
 // (Ctrl You, no flags, no AttachedBy) or, on the enchanted-permanent watcher
 // (any Ctrl, the EquippedBy flag), carries a plan the payment planner can
-// mirror — a deferring body or a vetted destroy-self one. An unvetted
-// AttachedBy body vetoes the lowering.
-func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, destroySelf bool) bool {
+// mirror — a deferring body or a vetted consequence one (destroy-self,
+// poison). An unvetted AttachedBy body vetoes the lowering.
+func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, consequence bool) bool {
 	att := strings.Contains(vc, "AttachedBy")
 	for _, c := range f.Clauses {
 		ok := c.Owner == whoAny && c.CmpStat == cmpNone && c.Special == 0
 		switch {
 		case ok && c.Ctrl == whoYou && c.Flags == 0 && !att:
-		case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer || destroySelf):
+		case ok && c.Ctrl == whoAny && c.Flags == fEquippedBy && (!att || tp8 == kop.TapPlanDefer || consequence):
 		default:
 			return false
 		}
@@ -112,20 +117,24 @@ func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, destroySelf boo
 }
 
 // tapsDestroySelf mirrors gorge's planner recognizer (pay
-// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` watcher: the trigger's
-// keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
-// Battlefield and TriggerDescription) and its body is exactly one Destroy of
-// the tapped permanent itself (Brink of Disaster's "when enchanted permanent
-// becomes tapped, destroy it" on the AttachedBy line; Cryoshatter's on
-// EquippedBy). The trigger resolves after the payment that caused it
-// (CR 405.6c/603.2) and its only effect is to destroy the permanent whose tap
-// already produced its mana (CR 605.4a), so it touches no payment resource and
-// the tapped source stays an ordinary planner unit on both engines
-// (kop.TapPlanOrdinary) instead of a deferred one.
+// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` or `Mode$ TapsForMana`
+// watcher: the trigger's keys are the closed world's (Mode, ValidCard,
+// Execute, TriggerZones naming Battlefield, Activator$ and
+// TriggerDescription; Activator$ is a fire-time filter on who tapped, not an
+// effect key — the real matcher has already vetted that this tap would fire
+// the trigger) and its body is exactly one Destroy of the tapped permanent
+// itself (Brink of Disaster's "when enchanted permanent becomes tapped,
+// destroy it" on the AttachedBy line; Cryoshatter's on EquippedBy; Price of
+// Glory's "Whenever a player taps a land for mana, if it's not that player's
+// turn, destroy that land"). The trigger resolves after the payment that
+// caused it (CR 405.6c/603.2) and its only effect is to destroy the permanent
+// whose tap already produced its mana (CR 605.4a), so it touches no payment
+// resource and the tapped source stays an ordinary planner unit on both
+// engines (kop.TapPlanOrdinary) instead of a deferred one.
 func tapsDestroySelf(t cards.Trigger) bool {
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
 		switch k {
-		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKTriggerDescription.String():
+		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKActivator.String(), cards.PKTriggerDescription.String():
 		case cards.PKTriggerZones.String():
 			if strings.TrimSpace(t.Params[k]) != tapsBattlefieldZone {
 				return false
@@ -157,6 +166,59 @@ func tapsDestroySelf(t cards.Trigger) bool {
 // permanent itself (the LKI copy and the plain card), the closed world of
 // pay.PaymentPlanTapDestroySelfTrigger.
 var tapsDestroySelfRefs = []string{"TriggeredCardLKICopy", "TriggeredCard"}
+
+// tapsPoisonAPI is the Poison effect's API name, the closed world of pay's
+// paymentPlanPoisonAPI.
+const tapsPoisonAPI = "Poison"
+
+// tapsPoison mirrors gorge's planner recognizer (pay
+// PaymentPlanTapPoisonTrigger) over a `Mode$ Taps` watcher: the trigger's
+// keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
+// Battlefield and TriggerDescription) and its body is exactly one Poison of a
+// player the payment cannot move (Relic Putrescence's "whenever enchanted
+// artifact becomes tapped, its controller gets a poison counter" on the
+// AttachedBy line). The trigger resolves after the payment that caused it (CR
+// 405.6c/603.2) and its only effect is a poison counter on that player, so it
+// touches no payment resource and the tapped source stays an ordinary planner
+// unit on both engines (kop.TapPlanOrdinary). The body's Num$ is unread: the
+// amount the effect applies changes nothing about the payment that triggered
+// it. A trigger whose shape the planner cannot vet (another referent, a
+// compound one, a sub-chain, an extra body key) is not known and the caller
+// keeps the body's own class.
+func tapsPoison(t cards.Trigger) bool {
+	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		switch k {
+		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKTriggerDescription.String():
+		case cards.PKTriggerZones.String():
+			if strings.TrimSpace(t.Params[k]) != tapsBattlefieldZone {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	body := t.Effect
+	if body == nil || body.API != tapsPoisonAPI || strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false
+	}
+	d := body.ParamStr(cards.PKDefined)
+	if strings.Contains(d, " & ") {
+		return false
+	}
+	switch strings.TrimSpace(d) {
+	case "You", "Opponent", "EachOpponent", "TriggeredCardController":
+	default:
+		return false
+	}
+	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
+		switch k {
+		case tapsDestroySelfAPIKey, cards.PKDefined.String(), cards.PKNum.String(), cards.PKSpellDescription.String(), cards.PKStackDescription.String():
+		default:
+			return false
+		}
+	}
+	return true
+}
 
 // tapsDestroySelfAPIKey is the dispatch key a constructed body may keep in
 // Params beside SA.API; tapsBattlefieldZone is the Forge TriggerZones$ spelling

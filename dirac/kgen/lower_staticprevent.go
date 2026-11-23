@@ -38,10 +38,25 @@ func (lc *lowerCtx) staticDamagePrevent(rp *params, w *cards.SA, rl *lRepl) (boo
 	if full && rp.peek("ValidTarget") == "Creature.YouCtrl+Other" && rp.peek("IsCombat") == "False" && rp.peek("ValidSource") == "" {
 		return false, nil // Crystal Barricade's own kind (PreventNoncombatToOthers)
 	}
-	if rp.peek("ActiveZones") != "Battlefield" {
-		return true, refuse("repl-hard: DamageDone static prevention ActiveZones %q", rp.peek("ActiveZones"))
+	if az := rp.peek("ActiveZones"); az != "Battlefield" {
+		// An empty ActiveZones$ leaves the line live in every zone of gorge's
+		// replacement scan (forEachReplacementSource visits hand, graveyard
+		// and library); the kernel's prevention scan is the battlefield, so
+		// the line lowers only when the match cannot hold while the printed
+		// permanent is off the battlefield: a filter whose every alternative
+		// names the printed permanent itself (Self) or a permanent it is
+		// attached to (EnchantedBy / EquippedBy — nothing is attached to a
+		// card in hand, in a graveyard or in a library) can never match
+		// there, while a player scope, an absent ValidTarget$ beside an
+		// unanchored ValidSource$ and every plain type or controller word
+		// can (Gaseous Form, Candletrap, Demonic Torment, Armament of Nyx,
+		// Camel; Bronze Horse's line also refuses, its ValidCause$ read has
+		// no kernel damage-site read).
+		if az != "" || !prevAnchored(rp.peek("ValidTarget"), rp.peek("ValidSource")) {
+			return true, refuse("repl-hard: DamageDone static prevention ActiveZones %q", az)
+		}
 	}
-	rp.consume("Prevent", "PreventionEffect", "ActiveZones", "RelativeToSource", "AlwaysReplace")
+	rp.consume("Prevent", "PreventionEffect", "ActiveZones", "RelativeToSource", "AlwaysReplace", "Secondary")
 	if err := lc.staticPrevRecipient(rp, rl); err != nil {
 		return true, err
 	}
@@ -312,4 +327,38 @@ func dumpRepl(w io.Writer, r lRepl) {
 	if r.Kind == "GraveToLibrary" {
 		fmt.Fprintf(w, "    lib bottom=%v shuffle=%v fromBF=%v\n", r.LibBottom, r.LibShuffle, r.LibFromBattlefield)
 	}
+}
+
+// prevAnchored reports whether one of the printed prevention's two filter
+// specs keeps its match off the battlefield of gorge's zone-any replacement
+// scan: every alternative of the spec names the printed permanent itself
+// (Self — a card in hand, in a graveyard or in a library is no damage event's
+// recipient or source) or a permanent the printed permanent itself is
+// attached to (EnchantedBy / EquippedBy — no attachment exists off the
+// battlefield). An absent spec matches every candidate, a player scope
+// matches every player and every plain type or controller word matches a
+// battlefield object, so none of those anchors.
+func prevAnchored(vt, vs string) bool {
+	return prevAnchoredSpec(vt) || prevAnchoredSpec(vs)
+}
+
+func prevAnchoredSpec(spec string) bool {
+	if strings.TrimSpace(spec) == "" {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		anch := false
+		for _, q := range strings.Split(alt, "+") {
+			for _, w := range strings.Split(q, ".") {
+				switch strings.TrimSpace(w) {
+				case "Self", "EnchantedBy", "EquippedBy":
+					anch = true
+				}
+			}
+		}
+		if !anch {
+			return false
+		}
+	}
+	return true
 }

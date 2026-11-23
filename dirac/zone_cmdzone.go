@@ -114,7 +114,7 @@ func (s *State) applyCmdZone(k *prep, c, mode uint8) {
 		return
 	}
 	from := s.detach(o)
-	s.placeFromK(k, o, kop.ZoneCommand, false, from, false)
+	s.placeFromK(k, o, kop.ZoneCommand, false, from, false, false)
 }
 
 // CR 903.9b: a commander that would be put into its owner's hand or library
@@ -224,6 +224,10 @@ func (s *State) cmdZoneAnswer(k *prep, a Action) {
 		p.state = preCmdZoneMove
 	}
 	s.res.ask = raNone
+	if s.dashReturnTrigger() {
+		s.dashReturnAnswered(k) // the delayed dash return runs no program (kw_dash.go)
+		return
+	}
 	in := &s.prog(k)[s.res.pc]
 	switch in.Op {
 	case kop.OpChangeZoneAll, kop.OpChangeZoneAllEx:

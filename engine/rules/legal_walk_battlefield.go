@@ -488,7 +488,7 @@ func (w *legalWalk) battlefieldWalk() {
 								Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach",
 								GrantStatics:  effects.GrantedStaticModes(ab, abFace.SVars),
 								Loyalty:       abilityLoyaltyFact(o, ab, &cost, loyal),
-								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p})
+								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p, CensusOffer: w.censusOffer == censusOfferRef{obj: id, idx: i, set: true}})
 						}
 						if altOK {
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",
@@ -525,7 +525,7 @@ func (w *legalWalk) battlefieldWalk() {
 						panic(fmt.Sprintf("rules: pile-ability skip dropped %d options of obj %d in zone %d", len(*out)-pileMark, id, z))
 					}
 					for _, line := range w.grantedKeywordLines(board, o, id, f, faceFacts) {
-						ab := cards.GrantedKeywordAbility(line)
+						ab := grantedKeywordSA(o, line)
 						if ab == nil || !abilityZoneOK(ab, z) {
 							continue
 						}
@@ -638,9 +638,9 @@ func (w *legalWalk) battlefieldWalk() {
 					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
 						continue
 					}
-					// Activator$ applies to a granted/gained ability exactly as to a
-					// printed one (the source is the recipient permanent).
-					if !e.activatorAllows(p, id, ab) {
+					// Activator$ and ActivationPhases$ apply to a granted/gained ability
+					// as to a printed one (the source is the recipient permanent).
+					if !grantedActivationAllows(e, p, id, ab) {
 						continue
 					}
 					// CR 606.3 for a GAINED or GRANTED loyalty ability: the same

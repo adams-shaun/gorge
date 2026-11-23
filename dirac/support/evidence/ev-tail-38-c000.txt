@@ -1,3 +1,4 @@
+A-Kargan Intimidator
 A-Metropolis Angel
 A-You Come to a River
 Abyssal Gatekeeper
@@ -16,6 +17,7 @@ Aphetto Grifter
 Apprentice Sorcerer
 Armed Response
 Armix, Filigree Thrasher
+Ashad, the Lone Cyberman
 Aspect of Wolf
 Augur il-Vec
 Auriok Bladewarden
@@ -29,6 +31,7 @@ Baloth Cage Trap
 Bane Alley Blackguard
 Batterbone
 Battering Sliver
+Battle Cry
 Bearded Axe
 Billiard Room
 Bitterbow Sharpshooters
@@ -80,6 +83,7 @@ Deface
 Demonlord Belzenlok
 Disciples of Gix
 Distorted Curiosity
+Doctor Doom, King of Latveria
 Doomskar Oracle
 Doomwake Giant
 Dovin's Dismissal
@@ -152,6 +156,7 @@ Hibernation Sliver
 Hissing Quagmire
 Hook Swords
 Horizon Seed
+Hostage Taker
 Hussar Patrol
 Ignite the Future
 Impulse
@@ -207,6 +212,7 @@ Most Wanted
 Mountain
 Mournful Zombie
 Myojin of Life's Web
+Myr Prototype
 Myr Servitor
 Mystic Crusader
 Nema Siltlurker
@@ -333,6 +339,7 @@ The Gaffer
 The One Ring
 The Restoration of Eiganjo
 The Royal Scions
+Thran Power Suit
 Thriving Rats
 Throne of the God-Pharaoh
 Throttle

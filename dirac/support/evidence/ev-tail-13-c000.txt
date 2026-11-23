@@ -72,6 +72,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Collective Restraint
 Commander Eesha
 Commune with Spirits
 Consign to the Pit
@@ -108,6 +109,7 @@ Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
+Dreadful as the Storm
 Dreadhorde Invasion
 Drivnod, Carnage Dominus
 Drove of Elves
@@ -145,6 +147,7 @@ Flowstone Wyvern
 Flurry of Horns
 Folk of An-Havva
 Forest
+Fortified Area
 Foundry Hornet
 Fountain Watch
 Fretwork Colony
@@ -207,6 +210,7 @@ Inexorable Blob
 Inner-Flame Igniter
 Insist
 Inspired Sprite
+Intermediate Chirography
 Invasion of Innistrad
 Invasion of Kaldheim
 Invasion of Lorwyn
@@ -334,6 +338,7 @@ Rift Sower
 Rites of Refusal
 Ritual of Restoration
 Riverwise Augur
+Roadkill Rodney
 Rocky Tar Pit
 Rohgahh, Kher Keep Overlord
 Rolling Temblor
@@ -439,6 +444,7 @@ Urza's Rebuff
 Valiant Changeling
 Value Town
 Vampire Cutthroat
+Vanguard of the Restless
 Vedalken Plotter
 Vengeant Earth
 Vermin Gorger

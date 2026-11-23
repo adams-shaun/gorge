@@ -79,9 +79,14 @@ func (g *genPrep) prepSelfGrant(gp pcard) {
 }
 
 // grantView is the planner view of granted ability gi on the permanent at
-// sl: the table's pcard, or for a self grant the view of the permanent's own
-// colours.
+// sl: the table's pcard, for a self grant the view of the permanent's own
+// colours, and for a gained reflected mana ability the view of the colours
+// the copy reads off its controller's board (gainedReflAt,
+// mana_gainedreflect.go).
 func (s *State) grantView(g *genPrep, gi int16, sl Slot) *pcard {
+	if s.gainedReflAt(g, gi) {
+		return s.gainedReflView(g, gi, sl)
+	}
 	if !g.grantSelf[gi] {
 		return &g.grantPC[gi]
 	}

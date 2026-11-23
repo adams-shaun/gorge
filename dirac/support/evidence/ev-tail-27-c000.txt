@@ -63,6 +63,7 @@ Crimson Fleet Commodore
 Crimson Muckwader
 Cursed Flesh
 Damnation
+Daring Sleuth
 Dark Nourishment
 Dark Petition
 Deal Gone Bad
@@ -128,6 +129,7 @@ Goblin Trailblazer
 God-Favored General
 Goldmane Griffin
 Gossamer Phantasm
+Green Ward
 Grim Lavamancer
 Gruul Locket
 Guul Draz Specter
@@ -266,6 +268,7 @@ Speaker of the Heavens
 Spined Thopter
 Splatter Goblin
 Staff of the Flame Magus
+Stalwarts of Osgiliath
 Steppe Glider
 Sticky Fingers
 Stinging Hivemaster

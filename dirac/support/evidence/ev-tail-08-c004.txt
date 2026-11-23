@@ -12,7 +12,6 @@ Barrenton Cragtreads
 Battle Sliver
 Benalish Marshal
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blood Age General
 Blood Divination
@@ -48,7 +47,6 @@ Elite Javelineer
 Engulf the Shore
 False Demise
 Feast of the Unicorn
-Feedback
 Fists of Flame
 Flare
 Flay
@@ -74,7 +72,6 @@ Ilysian Caryatid
 Imperial Oath
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Island
 Juvenile Gloomwidow

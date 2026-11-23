@@ -298,6 +298,22 @@ func (s *State) snapResTarget(o Obj) {
 	}
 }
 
+// movedTargetLKIRec is snapResTarget's snapshot of a target the resolution
+// moved off the battlefield, independent of a RememberLKI$ flag: a copy
+// source read as Defined$ Targeted (Fractured Identity's new script) needs
+// the controller it had, while only a remembered read carries tliRemLKI.
+// nil when no snapshot covers this object at its current version.
+func (s *State) movedTargetLKIRec(o Obj) *lkiRec {
+	if s.g.tli&tliIdx == 0 || o == NoObj || s.objs[o].zone == kop.ZoneBattlefield {
+		return nil
+	}
+	l := s.lk(s.g.tli & tliIdx)
+	if l.obj != o || s.objs[o].ver != l.ver+1 {
+		return nil
+	}
+	return l
+}
+
 // matchTargetLKI matches a target the resolution moved off the battlefield
 // as gorge does (conditionDefinedMet, targetCountersLKI): the card in its
 // new zone; its power, toughness, tapped and attacking status are the last
@@ -311,8 +327,12 @@ func (s *State) matchTargetLKI(k *prep, f kop.FilterID, o Obj, ctrl uint8) (m, o
 	if l.obj != o || ob.ver != l.ver+1 {
 		return false, false
 	}
+	owner := ob.owner()
+	if s.g.tli&tliRemLKI != 0 {
+		owner = l.ctrl // a RememberLKI$ capture: "a creature you controlled" reads the last controller (CR 608.2h)
+	}
 	s.g.tli |= tliOn
-	m = s.matchCardGen(k, f, ob.card, ob.owner(), ctrl, o)
+	m = s.matchCardGen(k, f, ob.card, owner, ctrl, o)
 	s.g.tli &^= tliOn
 	return m, true
 }

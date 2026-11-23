@@ -15,6 +15,7 @@ Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Aphotic Wisps
+Archway of Innovation
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -68,6 +69,7 @@ Corpse Hauler
 Corrupted Resolve
 Cosmic Epiphany
 Courier Griffin
+Crawling Infestation
 Crimson Roc
 Crucible of Worlds
 Cryptolith Rite
@@ -138,9 +140,11 @@ Filigree Sages
 First-Sphere Gargantua
 Flameshot
 Flanking Troops
+Flooded Grove
 Floodwater Dam
 Flowstone Strike
 Force of Nature
+Foreboding Statue
 Forest
 Foundry Street Denizen
 Free from Flesh
@@ -232,6 +236,7 @@ Lose Calm
 Lumengrid Warden
 Lychguard
 Madame Hydra, Reanimated
+Mage Hunters' Onslaught
 Magic Missile
 Magus of the Disk
 Makeshift Mauler
@@ -250,6 +255,7 @@ Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
 Messenger Drake
+Meticulous Excavation
 Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
@@ -279,6 +285,7 @@ Nightstalker Engine
 Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Noxious Assault
 Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
@@ -310,6 +317,7 @@ Putrid Cyclops
 Pyre Hound
 Quagmire Lamprey
 Quirion Druid
+Radiant's Judgment
 Ragged Veins
 Raise the Draugr
 Raka Disciple
@@ -317,7 +325,6 @@ Rakdos Ickspitter
 Ransom Note
 Rapid Hybridization
 Raven Familiar
-Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Reckless Scholar
@@ -330,6 +337,7 @@ Remove Soul
 Rending Flame
 Retreat to Hagra
 Rhox Bodyguard
+Rimescale Dragon
 Ring of Evos Isle
 Rise Again
 Roadside Reliquary
@@ -409,6 +417,7 @@ Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
 Teething Wurmlet
+Tel-Jilad Defiance
 Territory Culler
 Teyo's Lightshield
 Teysa Karlov

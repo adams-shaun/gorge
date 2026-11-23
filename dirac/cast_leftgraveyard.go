@@ -11,7 +11,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) noteCastFromGrave(o Obj) {
-	s.noteEnter(o, kop.ZoneStack, kop.ZoneGraveyard, false)
+	s.noteEnter(o, kop.ZoneStack, kop.ZoneGraveyard, false, false)
 }
 
 // unnoteCastFromGrave undoes noteCastFromGrave when the cast is reversed

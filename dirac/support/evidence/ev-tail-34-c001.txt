@@ -25,6 +25,7 @@ Aven Trailblazer
 Avenging Arrow
 Bala Ged Recovery
 Bar the Door
+Barret, Avalanche Leader
 Bast, Panther Goddess
 Bat Whisperer
 Battle Angels of Tyr
@@ -272,7 +273,6 @@ Quest for the Nihil Stone
 Quilled Wolf
 Quirion Explorer
 Quirion Sentinel
-Rain of Rust
 Raise the Alarm
 Rakdos Riteknife
 Ramosian Sergeant
@@ -406,6 +406,7 @@ Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
 Wild Ox
+Wildsear, Scouring Maw
 Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken

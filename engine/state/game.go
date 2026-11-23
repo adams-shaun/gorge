@@ -60,6 +60,15 @@ type Player struct {
 	// cleared at TurnChange with the other watchers, so a log-only replay
 	// rebuilds it exactly; clone copies it with the Player struct.
 	WasDealtDamageThisTurn bool
+	// SearchedLibraryThisTurn is set when this seat completed a library
+	// search (CR 701.23) since the last TurnChange -- Count$SearchedLibrary,
+	// Archive Trap's "an opponent searched their library this turn". The
+	// searcher is the seat itself for a search of its own library and the
+	// searching seat for a search of another's (events.SearchedLibrary's
+	// Amount). Folded only by events.Apply and cleared at TurnChange with the
+	// other watchers, so a log-only replay rebuilds it exactly; clone copies
+	// it with the Player struct.
+	SearchedLibraryThisTurn bool
 	// AttackedPlayersThisTurn and AttackedPlaneswalkersThisTurn are the
 	// seat's attack watchers: bit d is set when a creature this seat
 	// controlled was declared attacking player d itself, or a planeswalker
@@ -261,9 +270,20 @@ type ExtraTurn struct {
 
 // Game.PhaseSkips bits (events.SkipPhase, CR 614.10): the seat's combat
 // phases are skipped from its next turn (pending) through that turn (live).
+//
+// The one-shot shapes (DB$ SkipPhase with Step$ or without Start$): the seat's
+// next untap step (SkipUntapPending, consumed as its turn begins), its next
+// draw step (SkipDrawPending, consumed as the step would be entered), its next
+// combat phase (SkipNextCombat, any turn, consumed as the beginning of combat
+// would be entered) and its next combat phase THIS turn (SkipCombatThisTurn,
+// the same but dropped at the turn boundary: Moment of Silence).
 const (
 	SkipCombatPending uint8 = 1 << iota
 	SkipCombatLive
+	SkipUntapPending
+	SkipDrawPending
+	SkipNextCombat
+	SkipCombatThisTurn
 )
 
 // CombatSkipped reports whether seat skips every combat phase of the turn it
@@ -382,6 +402,13 @@ type ExcessDamageVictim struct {
 // Game is the complete authoritative state. Everything a client sees is a
 // projection of this. Only the events package may mutate it.
 type Game struct {
+	// warpExileSeen is set when events.Apply folds a DelayedPush of the
+	// warp end-step exile (Counter "__kwWarpExile") and is never cleared.
+	// While it is false no warp provenance exists, so the rules engine's
+	// log-scan for a warp recast (warpRecastAvailable) cannot succeed and
+	// is skipped. A pure function of the applied events (replay rebuilds
+	// it); Clone copies it with the struct.
+	warpExileSeen bool
 	// goadsSeen is set the first time any object gains a goad (events.Apply's
 	// Goad fold calls NoteGoad) and is never cleared, so while it is false no
 	// object carries a goad and a goad prune has nothing to visit. It is a
@@ -511,6 +538,13 @@ type Game struct {
 	// (Paradox Haze), the CombatsThisTurn/FirstCombat$ shape, so an extra
 	// upkeep cannot re-fire the trigger that granted it.
 	UpkeepsThisTurn int32
+	// MaxDistinctOnStackThisTurn is the turn's high-water mark of distinct
+	// SOURCES with an object on the stack at once (CR 405): a spell and its
+	// own ability count as one source, two abilities of one permanent as one.
+	// events.ApplyPtr raises it after a push, computing the distinct count
+	// only when the stack outgrows the previous mark, and TurnChange clears
+	// it. It backs Forge's Count$MaxDistinctOnStack (Geometric Weird).
+	MaxDistinctOnStackThisTurn int32
 	// ResolvedThisTurn counts, per resolving ability, how many times THAT
 	// ability has resolved this turn, INCLUDING the resolution whose tally is
 	// being read. It backs Forge's Count$ResolvedThisTurn (Sephiroth, Fabled
@@ -689,6 +723,18 @@ type ZoneEntry struct {
 	// a land animated later that turn did not enter as a creature. False for
 	// every other entry.
 	WasCreature bool
+	// LeftCounters is, for a battlefield departure (From == ZBattlefield),
+	// the counters the permanent carried as it left the battlefield, in
+	// Object.Counters' order (Forge keeps the moved card's latest state with
+	// each zone entry, GameAction's lastKnownInfo: "the modified state of
+	// the card is also reported here"; the LKI copy carries the counters,
+	// never the attachment lists). The object itself has lost them since:
+	// Move clears the counters (CR 400.7), and a persist or undying return
+	// adds a counter to the re-entered permanent that it did not carry when
+	// it died. Folded by events.Apply's MoveZone case from the pre-move
+	// object, so a replay derives the identical slice. Nil for every other
+	// entry.
+	LeftCounters []Counter
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its
@@ -1045,6 +1091,13 @@ func (g *Game) NoteGoad() { g.goadsSeen = true }
 // GoadsSeen reports whether any object has ever gained a goad in this game.
 func (g *Game) GoadsSeen() bool { return g.goadsSeen }
 
+// NoteWarpExile records that a warp end-step exile trigger was pushed (see
+// warpExileSeen).
+func (g *Game) NoteWarpExile() { g.warpExileSeen = true }
+
+// WarpExileSeen reports whether any warp exile trigger was ever pushed.
+func (g *Game) WarpExileSeen() bool { return g.warpExileSeen }
+
 // NoteBlockers records that some object's BlockedBy may be non-empty (see
 // blockersLive).
 func (g *Game) NoteBlockers() { g.blockersLive = true }
@@ -1177,7 +1230,10 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 	// Entered is appended to in place by every Move (one entry per zone
 	// entry this turn), so a clone must own its own copy -- sharing the
 	// backing array would let either evolve and corrupt the other (the same
-	// rule as Delayed below and Stack above).
+	// rule as Delayed below and Stack above). The structs' LeftCounters
+	// slice is the one shared part, and safely: the fold copies it out of
+	// the object's live counters and nothing writes an entry's counters
+	// after the patch that lands with the append.
 	c.Entered = append([]ZoneEntry(nil), g.Entered...)
 	// EnteredLastTurn is appended to at every TurnChange, so a clone owns
 	// its own copy -- the same rule as Entered just above.

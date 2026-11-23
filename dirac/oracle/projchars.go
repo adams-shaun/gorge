@@ -117,6 +117,12 @@ var gorgeKwElsewhere = map[string]string{
 	// record's CantAttack, no kernel keyword bit; compared through the attack options
 	"HIDDEN CARDNAME can't attack.": "the override record's CantAttack (kop.Override.CantAttack; compared through the attack options)",
 
+	// a granted Banding (KW$ Banding, Battering Ram): the override record's
+	// Banding, no kernel keyword bit (KwMask is full); compared through the
+	// CR 702.22c band declaration ask the kernel poses for a banding attacker
+	// (dirac/combat_band.go), like CantAttack through the attack options
+	"Banding": "the override record's Banding (kop.Override.Banding; read by hasBanding, compared through the band ask)",
+
 	"Changeling":               "the subtype set (kgen's changelingSubs; CharsProj.Subtypes)",
 	"Beam me up":               "CardDef.BeamMeUp (a graveyard cast for AltCost with a return; kw_beammeup.go)",
 	"Harmonize":                "CardDef.Harmonize (a graveyard cast for AltCost; kw_harmonize.go)",
@@ -147,7 +153,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Reconfigure":         "CardDef.HasReconfigure + the attach and unattach activated abilities (gorge kwReconfigure's expansion, kgen lower_reconfigure.go; the type switch, kernel kw_reconfigure.go; compared through the types, the options and the attach events)",
 	"Choose a Background": "a deckbuilding rule (CR 702.124k, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
 	"Landwalk":            "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
-	"Horsemanship":        "CardDef.Evasion (compared through the block options)",
+	"Horsemanship":        "CardDef.Evasion, the until-end-of-turn mark ExtKwMark sets, or a permanent override record's Horsemanship (kw_kwmark.go; compared through the block options)",
 	"Intimidate":          "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
 	"Wither":              "CardDef.Wither (compared through the -1/-1 counters)",
 	"Undying":             "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
@@ -155,6 +161,8 @@ var gorgeKwElsewhere = map[string]string{
 	"Modular":             "gorge kwModular's entering-counters replacement and dies trigger (CR 702.43a, kgen expandedKeywords; compared through the +1/+1 counters and the zone moves)",
 	"Graft":               "gorge kwGraft's entering-counters replacement and another creature's enters trigger moving a +1/+1 counter (CR 702.58a, kgen expandedKeywords; compared through the +1/+1 counters and the trigger on the stack)",
 	"Rampage":             "gorge kwRampage's attacker-blocked trigger (CR 702.23a, kgen expandedKeywords; compared through the pump on the stack and P/T)",
+	"Squad":               "gorge kwSquad's self-entry trigger minting one token copy per squad payment (CR 702.157a, kgen expandedKeywords + Count$SquadPaid; compared through the tokens and the stack), no battlefield characteristic",
+	"Replicate":           "gorge kwReplicate's SpellCast trigger copying the spell once per replicate payment (CR 702.56a, kgen expandedKeywords + Count$ReplicatePaid; compared through the stack copies), no battlefield characteristic",
 	"Dredge":              "CardDef.Dredge, a replacement of the controller's draw read at every draw (CR 702.52a, kgen lower_dredge.go; compared through the dredge choice, the mill and the graveyard return), no battlefield characteristic",
 	"Umbra armor":         "CardDef.UmbraArmor, a destroy replacement read at every destruction (CR 702.89a, kgen lower_umbraarmor.go, kernel kw_umbraarmor.go; compared through the destroy, the damage and deathtouch clears and the Aura's move to the graveyard), no battlefield characteristic",
 	"Exalted":             "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
@@ -276,6 +284,12 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		// target, block and damage options); black and red keep their bits
 		return 0, true
 	}
+	if strings.HasPrefix(s, "Protection from ") {
+		// a granted protection from a type or another quality that gorge
+		// spells with the "from" form (a Protection effect's Gains$ Artifact):
+		// the kernel holds it as the same quality filter (kop.Override.ProtFrom)
+		return 0, true
+	}
 	if strings.HasPrefix(s, "Protection:") {
 		// a granted "Protection:<spec>" quality the kernel models as a
 		// filter (kop.Static.ProtFrom, kop.Override.ProtFrom): compared
@@ -290,6 +304,26 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 		return 0, true
 	}
 	return 0, false
+}
+
+// protColourSpelling reads a granted "Protection:Card.<Colour>:<desc>[:<exc>]"
+// keyword (a Ward Aura's) as the "Protection from <colour>" it says: the
+// kernel holds both spellings as one colour clause of a quality filter and
+// projects the black and red bits of it.
+func protColourSpelling(k string) string {
+	rest, ok := strings.CutPrefix(k, "Protection:Card.")
+	if !ok {
+		return k
+	}
+	switch spec, _, _ := strings.Cut(rest, ":"); spec {
+	case "Black":
+		return "Protection from black"
+	case "Red":
+		return "Protection from red"
+	case "nonColorless":
+		return "Protection from each color" // Spectra Ward: any source with a colour
+	}
+	return k
 }
 
 // gorgeChars is battlefield object oid's CharsProj from gorge's derived
@@ -312,11 +346,12 @@ func gorgeChars(e *rules.Engine, v *charVocab, oid state.ObjID) (CharsProj, stri
 	kws := d.Keywords
 	eachColor := false
 	for _, k := range kws {
-		eachColor = eachColor || k == "Protection from each color"
+		eachColor = eachColor || k == "Protection from each color" || protColourSpelling(k) != k
 	}
 	if len(printed) > 0 || eachColor {
 		kws = make([]string, 0, len(d.Keywords))
 		for _, k := range d.Keywords {
+			k = protColourSpelling(k)
 			if printed[k] && strings.HasPrefix(k, "Protection from ") && k != "Protection from everything" {
 				continue
 			}

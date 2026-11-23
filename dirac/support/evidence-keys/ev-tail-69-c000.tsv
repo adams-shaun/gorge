@@ -7,13 +7,17 @@ Aura Finesse	c5141cfd6dc35e28	15	0/0		2/2
 Balduvian Conjurer	89057392610de9d3	54	1/1		1/1	
 Boggart Ram-Gang	a4935eb2b8f644a0	4	0/0		0/0	
 Crab Umbra	a0eb7a92af735d8e	39	1/1		2/2	
+Crackling Spellslinger	db1b748a99eaad2f	34	1/1		1/1	
 Curse of Obsession	716ca63a80c517ab	23	2/2		2/2	
 Emrakul's Messenger	5fac83f11283f62b	35	1/1		0/1	ix:resp
 Ghor-Clan Rampager	e313bc45f5bc6a65	5	1/1		0/1	ix:resp
 Gigantiform	b6d87d97c7f133a7	6	1/1		3/6	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Goblin Wizard	0d001d5ae6efb7a3	32	2/2		1/1	
 Ice-Fang Coatl	22fb34dea8535c2e	11	1/1		0/1	ix:resp
 Indrik Umbra	bb525135dc2d1d04	9	0/0		1/2	ix:resp
 Island Fish Jasconius	a63891ec7454a009	93	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Isperia the Inscrutable	ee2ae59345fce8c2	11	1/1		0/1	ix:resp
+Lim-Dûl's Paladin	d4045f930e79d857	84	3/3		1/1	
 Marsh Goblins	d27e819e89b7271a	14	0/0		0/0	
 Molten Influence	8e454f73e6dd4873	3	0/0		2/2	
 Mu Yanling	24b5eec724ce24e4	89	3/3		1/1	
@@ -22,4 +26,6 @@ Rakdos Drake	8c2bf3c50c10506d	49	0/0		0/0
 Redeem the Lost	a7ee522a30bc1392	98	0/0		2/2	
 Return to the Ranks	d27c1d8a962d57d5	19	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Scarecrow	11377e56f9ee9efb	13	1/1		0/1	ix:resp
+Thief of Hope	252dbeda23df1245	15	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Travel Through Caradhras	6de18cef675f73b1	21	0/0		1/2	ix:resp
 Undermountain Adventurer	4910ce625e993c2f	16	2/2		0/1	ix:resp

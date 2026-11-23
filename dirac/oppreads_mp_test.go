@@ -121,13 +121,15 @@ func TestPerSeatBitsFitFourSeats(t *testing.T) {
 }
 
 // TestOppStateTwoSeatMarks: a table whose speed, battle, goad or skip-untap
-// state packs two seats refuses a larger game.
+// state once packed two seats no longer refuses a larger game: each holds every
+// seat (TestSpeedFourSeats, TestSkipUntapPerSeat, TestBattleProtectorChosen,
+// TestGrantedGoadSeat).
 func TestOppStateTwoSeatMarks(t *testing.T) {
 	var tb kop.Table
-	tb.Cards = []kop.CardDef{{Types: kop.TBattle}}
+	tb.Cards = []kop.CardDef{{Types: kop.TBattle}, {Engines: true}}
 	var g genPrep
 	prepTwoSeat(&tb, &g)
-	if !g.twoSeatOnly {
-		t.Fatal("a battle's protector is the one opponent: two seats only")
+	if g.twoSeatOnly {
+		t.Fatal("a battle or a speed card holds every seat: not two seats only")
 	}
 }

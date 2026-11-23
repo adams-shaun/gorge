@@ -92,6 +92,7 @@ Eland Umbra
 Eldrazi Mimic
 Elvish Rejuvenator
 Embodiment of Fury
+Emiel the Blessed
 Empty-Shrine Kannushi
 Enraged Ceratok
 Epicenter
@@ -101,7 +102,9 @@ Explosive Entry
 Eye of Vecna
 Eye of Yawgmoth
 Faerie Seer
+Falter
 Fate Unraveler
+Fifty Feet of Rope
 Fight as One
 Firebrand Ranger
 Flailing Manticore
@@ -180,6 +183,7 @@ Leafcrown Dryad
 Lesser Masticore
 Leyline of Vitality
 Lightning Surge
+Liliana's Talent
 Long Road Home
 Looming Spires
 Lost Soul
@@ -207,6 +211,7 @@ Mothdust Changeling
 Mountain
 Mystic Melting
 Nezahal, Primal Tide
+Niv-Mizzet, Dracogenius
 Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
@@ -220,11 +225,13 @@ Ordruun Veteran
 Outnumber
 Outrider of Jhess
 Overwhelmed Apprentice
+Overwhelming Intellect
 Owlbear
 Ox of Agonas
 Pardic Firecat
 Pariah
 Peek
+Pemmin's Aura
 Pensive Minotaur
 Pestilence Demon
 Phyrexian Marauder

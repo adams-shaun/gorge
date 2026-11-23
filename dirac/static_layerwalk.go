@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The CR 613 layer walk for layers 4, 5 and 7b mirroring gorge's chars.Compute (engine/rules/chars/derive.go) and
 // its layer-4 walk (engine/rules/chars/types.go TypesAndLandSubtypeSet).
@@ -100,8 +104,97 @@ func (s *State) walkSlot(k *prep, sl Slot) bool {
 	return s.perms[sl].ovr.walk&walkOn != 0 || k.gen.fxNeed&(fxNeedGlobal|fxNeedSubGrant) != 0
 }
 
-// collect gathers the effects on sl in timestamp order.
-func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
+// lsrc flags: a source's card prints an override static (lsrcOvr), a
+// subtype-granting Continuous static (lsrcSub), or an override static not
+// limited to its source's host (lsrcGlob).
+const (
+	lsrcOvr uint8 = 1 << iota
+	lsrcSub
+	lsrcGlob
+	lsrcMany // more than 64 abilities: scan them all, no mask
+)
+
+// layerSrcCard is a card's precomputed contribution to the layer walk: the
+// abilities the walk can collect (bit i = cd.Abilities[i]), whether each of
+// those removes abilities or outlives a loss, and the card's source flags.
+// It is computed once per table (prepLayerSrc), not per State: the abilities
+// and the table's overrides are immutable, and the sources themselves stay
+// in statM, so a permanent entering, leaving, phasing, copying or
+// transforming is seen at once with no list to invalidate. A slot's walk
+// filters this per-card record against the slot's own host and filter match.
+type layerSrcCard struct {
+	abs   uint64
+	rem   uint64
+	kept  uint64
+	flags uint8
+}
+
+// layerSrcAbility reports whether the layer walk can collect static a: an
+// override static, or a subtype-granting Continuous static.
+func layerSrcAbility(a *kop.Ability) bool {
+	if a.Kind != kop.AbStatic {
+		return false
+	}
+	switch a.Static.Kind {
+	case kop.StatOverride:
+		return a.Static.Override != 0
+	case kop.StatContinuous:
+		return a.Static.AddSub.Any() || a.Static.AddChosen
+	}
+	return false
+}
+
+// prepLayerSrc builds prep.srcs: one record per card, if the table walks at
+// all. Called from prepare after prepareGen (which runs prepLayerWalk and so
+// sets gfSubGrant and fxNeed).
+func prepLayerSrc(t *kop.Table, p *prep) {
+	g := p.gen
+	if g == nil || g.fxNeed == 0 {
+		return // no walk: no records
+	}
+	srcs := make([]layerSrcCard, len(t.Cards))
+	for i := range t.Cards {
+		cid := CardID(i)
+		var fl uint8
+		if g.has(cid, gfOvrStat) {
+			fl |= lsrcOvr
+		}
+		if g.has(cid, gfSubGrant) {
+			fl |= lsrcSub // a walked slot takes every subtype grant (the fixed path's are not read)
+		}
+		if fl == 0 {
+			continue
+		}
+		if g.has(cid, gfGlobOvr) {
+			fl |= lsrcGlob
+		}
+		var abs, rem, kept uint64
+		cd := &t.Cards[i]
+		if len(cd.Abilities) > 64 {
+			fl |= lsrcMany
+		} else {
+			for j := range cd.Abilities {
+				a := &cd.Abilities[j]
+				if !layerSrcAbility(a) {
+					continue
+				}
+				bit := uint64(1) << uint(j)
+				abs |= bit
+				if isRemover(t, a) {
+					rem |= bit
+				}
+				if keptOnLoss(t, a) {
+					kept |= bit
+				}
+			}
+		}
+		srcs[i] = layerSrcCard{abs: abs, rem: rem, kept: kept, flags: fl}
+	}
+	p.srcs = srcs
+}
+
+// lfxCollectRecords collects sl's own override records, in application order.
+func (s *State) lfxCollectRecords(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 	n := 0
 	if s.fxM.has(sl) {
 		c := 0
@@ -118,87 +211,166 @@ func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
 			}
 		}
 	}
+	return n
+}
+
+// lfxCollectOne collects src's static effects on sl into fx, in timestamp
+// order. sub, glob and the source's card come from the source list (or the
+// live statM walk when the list is unavailable); oneShot, the host check and
+// the loss check are reads of the source as it stands now.
+func (s *State) lfxCollectOne(k *prep, sl, src Slot, cid CardID, abs, rem, kept uint64, flags uint8, fx *[maxLfx]lfx, n int) int {
+	sub := flags&lsrcSub != 0
+	sp := &s.perms[src]
+	oneShot := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
+	if flags&lsrcGlob == 0 && !sub && (sp.attached != sl || src == sl) {
+		return n // an Aura's override reaches only its host (the filter is checked below)
+	}
+	// Whether the source has lost all abilities (CR 613.1f), decided at
+	// most once and only for a static that would not outlive the loss.
+	lostKnown, lost := false, false
+	cd := &k.t.Cards[cid]
+	ts := s.layerTs(src)
+	mask, many := abs, flags&lsrcMany != 0
+	for i := 0; ; i++ {
+		var a *kop.Ability
+		var bit uint64
+		if many {
+			if i >= len(cd.Abilities) {
+				break
+			}
+			a = &cd.Abilities[i]
+		} else {
+			if mask == 0 {
+				break
+			}
+			idx := bits.TrailingZeros64(mask)
+			bit = uint64(1) << uint(idx)
+			mask &= mask - 1
+			a = &cd.Abilities[idx]
+		}
+		if a.Kind != kop.AbStatic {
+			continue
+		}
+		var remover, keep bool
+		if many {
+			remover, keep = isRemover(k.t, a), keptOnLoss(k.t, a)
+		} else {
+			remover, keep = rem&bit != 0, kept&bit != 0
+		}
+		if n >= maxLfx {
+			s.lfxFull(k, sl, src, a, sub)
+			continue
+		}
+		if !oneShot && !lostKnown && !remover && !keep {
+			lost, lostKnown = s.grantSrcLost(k, src), true
+		}
+		if (oneShot || lost && !remover) && !keep {
+			continue // CR 613.6: only an effect that began before layer 6 outlives the loss
+		}
+		var e lfx
+		switch {
+		case a.Static.Kind == kop.StatOverride && a.Static.Override > 0:
+			if src != sl && selfOnlyFilter(k, a.Static.Filter) {
+				continue // a self static (AffectedDefined$ Self) reaches its source only
+			}
+			e = lfx{o: &k.t.Overrides[a.Static.Override-1], a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
+			e.p, e.t = int16(e.o.SetP), int16(e.o.SetT)
+		case sub && a.Static.Kind == kop.StatContinuous && (a.Static.AddSub.Any() || a.Static.AddChosen):
+			e = lfx{a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
+		default:
+			continue
+		}
+		// merge into timestamp order (records first on a tie: they
+		// were applied after the source entered)
+		j := n
+		for j > 0 && fx[j-1].ts > ts {
+			fx[j] = fx[j-1]
+			j--
+		}
+		fx[j] = e
+		n++
+	}
+	return n
+}
+
+// lfxCollectStaticsDirect is lfxCollectStatics without the source list: the
+// walk's statM scan, used when the table has no list region and by the
+// equivalence test (static_layerwalk_srclist_test.go).
+func (s *State) lfxCollectStaticsDirect(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		cid := s.cardAt(src)
-		sub := k.gen.has(cid, gfSubGrant) // a walked slot takes every subtype grant (the fixed path's are not read)
-		if !k.gen.has(cid, gfOvrStat) && !sub {
+		var fl uint8
+		if k.gen.has(cid, gfOvrStat) {
+			fl |= lsrcOvr
+		}
+		if k.gen.has(cid, gfSubGrant) {
+			fl |= lsrcSub
+		}
+		if fl == 0 {
 			continue
 		}
-		sp := &s.perms[src]
-		oneShot := sp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0
-		if !k.gen.has(cid, gfGlobOvr) && !sub && (sp.attached != sl || src == sl) {
-			continue // an Aura's override reaches only its host (the filter is checked below)
+		if k.gen.has(cid, gfGlobOvr) {
+			fl |= lsrcGlob
 		}
-		// Whether the source has lost all abilities (CR 613.1f), decided at
-		// most once and only for a static that would not outlive the loss.
-		lostKnown, lost := false, false
-		cd := &k.t.Cards[cid]
-		ts := s.layerTs(src)
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic {
-				continue
-			}
-			if n >= maxLfx {
-				s.lfxFull(k, sl, src, a, sub)
-				continue
-			}
-			if !oneShot && !lostKnown && !isRemover(k.t, a) && !keptOnLoss(k.t, a) {
-				lost, lostKnown = s.grantSrcLost(k, src), true
-			}
-			if (oneShot || lost && !isRemover(k.t, a)) && !keptOnLoss(k.t, a) {
-				continue // CR 613.6: only an effect that began before layer 6 outlives the loss
-			}
-			var e lfx
-			switch {
-			case a.Static.Kind == kop.StatOverride && a.Static.Override > 0:
-				if src != sl && selfOnlyFilter(k, a.Static.Filter) {
-					continue // a self static (AffectedDefined$ Self) reaches its source only
-				}
-				e = lfx{o: &k.t.Overrides[a.Static.Override-1], a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj}
-				e.p, e.t = int16(e.o.SetP), int16(e.o.SetT)
-			case sub && a.Static.Kind == kop.StatContinuous && (a.Static.AddSub.Any() || a.Static.AddChosen):
-				e = lfx{a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
-			default:
-				continue
-			}
-			// merge into timestamp order (records first on a tie: they
-			// were applied after the source entered)
-			j := n
-			for j > 0 && fx[j-1].ts > ts {
-				fx[j] = fx[j-1]
-				j--
-			}
-			fx[j] = e
-			n++
-		}
+		n = s.lfxCollectOne(k, sl, src, cid, 0, 0, 0, fl|lsrcMany, fx, n)
 	}
-	if k.gen.embSubGrant {
-		// emblems' subtype grants (timestamp 0: oldest)
-		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) {
-				continue
-			}
-			for i := 0; i < int(s.g.nemb[pp]); i++ {
-				e := &k.t.Emblems[s.embIdx(pp, i)-1]
-				for j := range e.Abilities {
-					a := &e.Abilities[j]
-					if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Any() {
-						continue
-					}
-					if n >= maxLfx {
-						s.capFull(StallBoard) // loud: never drop the grant
-						continue
-					}
-					copy(fx[1:n+1], fx[:n])
-					fx[0] = lfx{a: a, src: NoSlot, ctrl: pp, obj: NoObj, ch: 255}
-					n++
+	return n
+}
+
+// lfxCollectStatics collects the static effects on sl in the walk's order.
+// The sources come from the live statM; the table's per-card records supply
+// the ability masks so no ability is rescanned per slot.
+func (s *State) lfxCollectStatics(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
+	if k.srcs == nil {
+		return s.lfxCollectStaticsDirect(k, sl, fx, n)
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		cid := s.cardAt(src)
+		e := &k.srcs[cid]
+		if e.flags == 0 {
+			continue
+		}
+		n = s.lfxCollectOne(k, sl, src, cid, e.abs, e.rem, e.kept, e.flags, fx, n)
+	}
+	return n
+}
+
+// lfxCollectEmblems adds the emblems' subtype grants (timestamp 0: oldest).
+func (s *State) lfxCollectEmblems(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
+	if !k.gen.embSubGrant {
+		return n
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) {
+			continue
+		}
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			for j := range e.Abilities {
+				a := &e.Abilities[j]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || !a.Static.AddSub.Any() {
+					continue
 				}
+				if n >= maxLfx {
+					s.capFull(StallBoard) // loud: never drop the grant
+					continue
+				}
+				copy(fx[1:n+1], fx[:n])
+				fx[0] = lfx{a: a, src: NoSlot, ctrl: pp, obj: NoObj, ch: 255}
+				n++
 			}
 		}
 	}
 	return n
+}
+
+// collect gathers the effects on sl in timestamp order.
+func (s *State) lfxCollect(k *prep, sl Slot, fx *[maxLfx]lfx) int {
+	n := s.lfxCollectRecords(k, sl, fx)
+	n = s.lfxCollectStatics(k, sl, fx, n)
+	return s.lfxCollectEmblems(k, sl, fx, n)
 }
 
 // isRemover reports whether static a takes abilities away itself. Such a
@@ -232,6 +404,7 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 func ovrKeptOnLoss(o *kop.Override) bool {
 	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
 		o.ImpSub || // AddType$ ImprintedCreatureType is a layer-4 part (Duplicant)
+		o.SetLandSub || // the CR 305.7 strip is a layer-4 part (static_landtypesetter.go; the chosen setter's grant beside it)
 		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
@@ -249,7 +422,8 @@ func l4part(e *lfx) bool {
 	}
 	o := e.o
 	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
-		o.ImpSub // AddType$ ImprintedCreatureType: the imprinted card's creature types (Duplicant)
+		o.ImpSub || // AddType$ ImprintedCreatureType: the imprinted card's creature types (Duplicant)
+		o.SetLandSub // the CR 305.7 strip, and the chosen setter's grant beside it (static_landtypesetter.go)
 }
 
 // lfxApplies reports whether e applies to sl given the characteristics
@@ -289,6 +463,16 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 	}
 	if o.SetLandSub {
 		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+		// the chosen land-type setter (Convincing Mirage, Multiversal
+		// Passage): the record adds no subtype of its own and the static's
+		// AddChosen grants its source's own as-enters ChooseType answer
+		// (act_choosetype.go lfxChosen), a basic land type of the strip side
+		if DebugChosenSetNone {
+			// the mutation of TestChosenTypeSetterLockstep: the choice is
+			// never granted
+		} else if k.gen.anyAddChosen && e.a != nil && e.a.Static.AddChosen {
+			lfxChosen(k, e, c)
+		}
 	}
 	c.subs = c.subs.Or(o.AddSub)
 	if o.ImpSub {

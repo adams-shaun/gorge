@@ -22,13 +22,16 @@ func prepUnearth(t *kop.Table, g *genPrep) {
 // just returned (gorge rules/unearth.go unearthEnter): haste until end of
 // turn, and the exile at the beginning of the next end step, a delayed
 // record tracking this incarnation whose act is OpUnearth. Nothing when the
-// return did not happen (the card left the graveyard first).
+// return did not happen (the card left the graveyard first, or came back
+// to the battlefield by another effect meanwhile: a new object, CR 400.7,
+// so the ability's "return this card" found nothing and the riders have no
+// object to attach to; retMiss is the return op's own verdict).
 //
 //go:noinline
 func (s *State) unearth(k *prep) {
 	o := s.res.e.obj
 	ob := &s.objs[o]
-	if ob.zone != kop.ZoneBattlefield {
+	if ob.zone != kop.ZoneBattlefield || s.g.retMiss {
 		return
 	}
 	s.touchSl(ob.slot)

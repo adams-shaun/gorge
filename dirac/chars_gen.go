@@ -422,13 +422,31 @@ func typeVocabSub(k *prep, v int) uint8 {
 	return uint8(base + rank%(int(subOutside)-base))
 }
 
+// creatureSubtypeGone reports whether subtype i went with the Creature card
+// type a rule-based switch removed: impending dormancy (CR 702.176a) or an
+// attached Reconfigure permanent (CR 702.151b), whose creature subtypes go
+// with the lost card type (CR 205.1a). Outside (chosen) creature types go
+// too; a non-creature subtype such as Equipment never does.
+func (s *State) creatureSubtypeGone(k *prep, sl Slot, i uint8) bool {
+	if k.gen == nil || !outsideSub(k, i) && !k.gen.creatSub.Has(int(i)) {
+		return false
+	}
+	if k.gen.anyImpending && s.impendDormant(k, sl) {
+		return true
+	}
+	return k.gen.anyReconfigure && !s.faceDown(k, sl) && s.reconfigureAttached(k, sl)
+}
+
 // hasSubGen reports whether sl has matchup subtype i (subOutside: a
 // creature type outside the matchup's subtypes).
 func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
-	if k.gen != nil && k.gen.anyBestow && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
+	if k.gen != nil && k.gen.anyBestow && !DebugBestowKeepsSubtypes && int(i) == int(k.gen.auraSub) && s.bestowAttached(k, sl) {
 		return true // CR 702.103b: an attached bestow card is an Aura (the subtype too; kw_bestow.go)
 	}
-	if k.gen != nil && k.gen.anyImpending && (outsideSub(k, i) || k.gen.creatSub.Has(int(i))) && s.impendDormant(k, sl) {
+	if k.gen != nil && k.gen.anyBestow && !DebugBestowKeepsSubtypes && (i == subOutside || k.gen.creatSub.Has(int(i))) && s.bestowAttached(k, sl) {
+		return false // CR 205.1a: gone with the Creature type (kw_bestow.go)
+	}
+	if s.creatureSubtypeGone(k, sl, i) {
 		return false // CR 205.1a: gone with the creature type
 	}
 	if k.gen != nil && k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
@@ -601,8 +619,11 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		subs = subs.AndNot(k.gen.creatSub)
 		all = false
 	}
-	if k.gen.anyBestow && k.gen.auraSub >= 0 && s.bestowAttached(k, sl) {
-		subs = subs.With(int(k.gen.auraSub)) // CR 702.103b: the Aura subtype with the Aura type (kw_bestow.go)
+	if k.gen.anyBestow {
+		subs, all = s.bestowSubs(k, sl, subs, all)
+	}
+	if k.gen.anyReconfigure {
+		subs, all = s.reconfigureSubs(k, sl, subs, all)
 	}
 	return subs, all
 }
@@ -779,7 +800,7 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 	}
 	m |= p.eotKw | p.ovr.kw
 	if s.fxM.has(sl) {
-		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+		m |= s.ctrlKwSince(sl, lts, lost) // GcHasteEOT (static_control.go)
 	}
 	if !lost && s.nkwx != 0 {
 		m |= s.supKw(sl) // grants an ended loss had suppressed
@@ -798,6 +819,8 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 		if k.gen.anySuspect {
 			m |= s.suspectKw(k, sl) // CR 701.60a: a base keyword, as the cloak's ward (static_layer6.go)
 		}
+	} else {
+		m |= ctrKwNewer(s, p, lts) // CR 613.7: a counter put on after the loss keeps its grant
 	}
 	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsKw, func(st statSrc) bool {
@@ -1231,9 +1254,14 @@ func (s *State) cardGrantsStatic(k *prep, sl Slot, c CardID, ab uint8) bool {
 // 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
 // card, or, on a copy, the card of the as-enters grant record that grants sl
 // that ability when no record of the current card does (selfGrantHost).
+// Every caller reads an announced granted activation, so a current-card
+// static grant whose granted ability is no activation cannot be the grant
+// they read (cardGrantsAct); the as-enters copy grant record at the same
+// index names the body instead (Thorncaster Sliver's attack trigger sits at
+// index 0 of a copy of it beside the copying card's own grant).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsStatic(k, sl, c, ab) {
+	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsAct(k, sl, c, ab) {
 		// also on a permanent whose printed card is the one it shows: a
 		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
 		// copy effect holds the Pretender's grant (copyGrantsAdd)
@@ -1242,6 +1270,18 @@ func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 		}
 	}
 	return c
+}
+
+// cardGrantsAct is cardGrantsStatic when the granted ability is an
+// activation: only an activated or mana ability is ever announced (CR
+// 602.2), so a live static that grants a trigger at index ab does not make
+// c the card of the granted activation ab being read.
+func (s *State) cardGrantsAct(k *prep, sl Slot, c CardID, ab uint8) bool {
+	if !s.cardGrantsStatic(k, sl, c, ab) {
+		return false
+	}
+	g := &k.t.Cards[c].Abilities[ab]
+	return g.Kind == kop.AbActivated || g.Kind == kop.AbMana
 }
 
 // applyOverride records override idx (from card src) on sl.
@@ -1265,6 +1305,14 @@ func (s *State) applyOverrideFl(k *prep, sl Slot, idx int, src CardID, fl uint8)
 // applyOverridePT applies override idx with its P/T already evaluated.
 func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8, p, t int16) {
 	r := ovRec{idx: uint8(idx + 1), src: src, ts: s.tick(), fl: fl, p: p, t: t}
+	if k.t.Overrides[idx].UntilUpkeep {
+		// The waiting controller, not a set P/T: the row's grant is keyword-only
+		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
+		r.p, r.t = int16(s.res.e.ctrl), 0
+	}
+	if o := &k.t.Overrides[idx]; o.GrantStatics != 0 && !o.HasPT && !o.UntilUpkeep && k.gen != nil && k.gen.anyStatGoad {
+		r.t = grantGoader(k, src, o, s.res.e.ctrl) // act_goad.go
+	}
 	// merge: a re-application accumulates (the reps count) in place. A
 	// record that OVERWRITES colours must not merge: gorge's re-applied
 	// animate grant is a new effect whose layer-5 colour REPLACES, so the
@@ -1282,7 +1330,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// Types$: Gornog's "becomes a Coward") is a subtype setter too: re-applied
 	// after another subtype setter it takes the newest position, not the older
 	// application's (Majestic Metamorphosis between two of Gornog's triggers).
-	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub
+	// A subtype ADDITION (Butch DeLoria's "becomes a Rogue in addition") is
+	// timestamp-ordered the same way (CR 613.1d, 613.7): a repeat takes the
+	// newest position, or a later "becomes a Human" replacement is applied
+	// after the older copy of it (Wishful Merfolk).
+	merge := !ov.HasPT && !ov.HasColors && ov.AddColors == 0 && !ov.HasTypes && !ov.HasSub && !ov.RemoveCreatureSub && !subtypeAddStep(ov)
 	if merge && k.gen.anyOvrStat && s.ovStaticOn(k, sl) {
 		// An override static on the host (an Aura that removes card types)
 		// sits between the older application and this one in timestamp

@@ -33,15 +33,56 @@ func (s *State) mayMill(q seatSeq, n int) bool {
 
 // millTop mills player p's top n cards one at a time (OpMill's loop).
 func (s *State) millTop(p uint8, n int, c int) {
+	if s.g.on {
+		if k := s.k(); k != nil && k.gen != nil && k.gen.anyBatch {
+			defer s.batchClose(s.batchOpen()) // one mill action (gorge effMill)
+		}
+	}
 	pl := &s.pl[p]
 	for i := 0; i < n && pl.libLo < pl.libHi; i++ {
 		o := pl.lib[pl.libLo]
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
+}
+
+// millOp is OpMill's mutable body: every acting player's mill is one action,
+// hence one zone batch (gorge effMill's BeginZoneBatch), so the
+// ChangesZoneAll "from anywhere" line queues once for the whole mill. A
+// MayMill instruction suspends before any card moves; its resume reaches
+// millTop, which opens the same batch.
+func (s *State) millOp(k *prep, in *kop.Instr) bool {
+	q := s.players(k, in.Obj)
+	n := s.value(k, in.A)
+	if in.C&kop.MvMayMill != 0 && n > 0 {
+		return s.mayMill(q, n)
+	}
+	if k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen()) // one mill action (gorge effMill)
+	}
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
+		pl := &s.pl[p]
+		if k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 {
+			s.millShuffling(k, p, n, int(in.C))
+			continue
+		}
+		if k.gen != nil && len(s.cold.parked) != 0 && s.parkMills(k, p, n, int(in.C)) {
+			continue
+		}
+		for i := 0; i < n && pl.libLo < pl.libHi; i++ {
+			o := pl.lib[pl.libLo]
+			pl.libLo++
+			s.touch(o)
+			s.objs[o].zone = kop.ZoneNone
+			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
+			s.millMark(o, int(in.C))
+		}
+	}
+	return true
 }
 
 // millMark records a milled card o in the sets OpMill's flags name: the
@@ -323,7 +364,7 @@ next:
 				continue next
 			}
 		}
-		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
+		if !s.tokenLeftBattlefield(o) && !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
@@ -363,7 +404,7 @@ func (s *State) clampDistinctNames(k *prep, in *kop.Instr) {
 					break
 				}
 			}
-			if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+			if dup || s.pickOtherBarred(k, in.F, o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
 				continue
 			}
 			if n < len(seen) {

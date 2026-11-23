@@ -37,6 +37,7 @@ Armed Assailant
 Arrester's Zeal
 Ashiok's Forerunner
 Atmosphere Surgeon
+Auramancer's Guise
 Aurochs Herd
 Aven Wind Guide
 Awakened Amalgam
@@ -46,6 +47,7 @@ Barbed Shocker
 Bartizan Bats
 Become the Avalanche
 Belle of the Brawl
+Bifurcate
 Black Carriage
 Black Vise
 Blade-Blizzard Kitsune
@@ -120,6 +122,7 @@ Desmond Miles
 Detainment Spell
 Devil Dinosaur
 Dire Fleet Warmonger
+Door to Nothingness
 Dovin's Dismissal
 Drag Under
 Dragon Whelp
@@ -128,6 +131,7 @@ Drannith Magistrate
 Dread Charge
 Dread Fugue
 Drider
+Dryad's Favor
 Durkwood Baloth
 Dwarven Armorer
 Elder Land Wurm
@@ -144,6 +148,7 @@ Esperzoa
 Ether Well
 Ethereal Champion
 Ethereal Usher
+Etrata, the Silencer
 Evie Frye
 Excavated Wall
 Expedition Skulker
@@ -157,6 +162,7 @@ Femeref Enchantress
 Firebrand Ranger
 Flameborn Hellion
 Flash Counter
+Flaying Tendrils
 Fleshtaker
 Floodhound
 Flowstone Thopter
@@ -188,6 +194,7 @@ Goblin Cannon
 Goblin Medics
 Goblin Pyromancer
 Goblin War Wagon
+Goldspan Dragon
 Goma Fada Vanguard
 Graceful Adept
 Grand Warlord Radha
@@ -207,6 +214,7 @@ Hand of Cruelty
 Hawkeye's Shot
 Headless Skaab
 Heartstabber Mosquito
+Heartwood Dryad
 Hedron Rover
 Heir of the Ancient Fang
 Herald of the Host
@@ -329,6 +337,7 @@ Priest of Urabrask
 Primal Surge
 Primal Visitation
 Prismatic Boon
+Pristine Angel
 Protection of the Hekma
 Psionic Gift
 Puncturing Light
@@ -388,6 +397,7 @@ Scout the Wilderness
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
+Scuttlemutt
 Searing Barb
 Selesnya Charm
 Seluma, Light of Aysen
@@ -409,6 +419,7 @@ Singe
 Skillful Lunge
 Sky-Blessed Samurai
 Skyshooter
+Slaughter Singer
 Smoldering Werewolf
 Snarling Undorak
 Snow-Covered Forest
@@ -416,6 +427,7 @@ Somberwald Vigilante
 Sowing Mycospawn
 Space Marine Scout
 Sparring Mummy
+Specter's Shriek
 Spell Crumple
 Spellgorger Barbarian
 Spire Golem
@@ -467,6 +479,7 @@ Throes of Chaos
 Thrun, the Last Troll
 Tideforce Elemental
 Time Elemental
+Timeless Dragon
 Titanic Pelagosaur
 Toil
 Toil to Renown
@@ -491,6 +504,7 @@ Unholy Grotto
 Urbis Protector
 Urborg Justice
 Urgoros, the Empty One
+Vacuumelt
 Vampiric Tutor
 Vastwood Animist
 Vengevine
@@ -500,7 +514,6 @@ Vicious Kavu
 Viper's Kiss
 Viridian Shaman
 Volcanic Fallout
-Wakeroot Elemental
 Wallop
 Wanderguard Sentry
 War Dance

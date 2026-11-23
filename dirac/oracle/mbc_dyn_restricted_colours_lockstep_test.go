@@ -20,11 +20,19 @@ import "testing"
 // The kernel funded with Karplusan's {C} alone, reached the paying line and
 // offered the third activation (decision 1157 of the tail-42 full game, pair
 // 97, seed 569004; act_filter_search_budget_pain_ask).
+//
+// CR 605.3a with CR 601.2h: the same Dauthi Embrace {B}{B}, with Holdout
+// Settlement's tap-an-untapped-creature ask, School of the Unseen's filter and
+// Karplusan Forest all untapped, outruns gorge's 160-node search; the kernel's
+// filter search found the paying line and offered the activation (decision 385
+// of the tail-42 autopay game, pair 11, seed 786007;
+// dauthi_tapx_filter_budget).
 func TestMBCDauthiEmbraceReprosLockstep(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{
 		"dyn_restricted_mana_keeps_its_colours",
 		"act_filter_search_budget_pain_ask",
+		"dauthi_tapx_filter_budget",
 	} {
 		t.Run(name, func(t *testing.T) { stdReproNamed(t, name) })
 	}

@@ -49,7 +49,7 @@ func (s *State) preventMill(k *prep, srcCtrl, rcp uint8, combat bool, n int) boo
 			pl.libLo++
 			s.touch(o)
 			s.objs[o].zone = kop.ZoneNone
-			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		}
 	}
 	return prevented

@@ -22,9 +22,16 @@ import (
 // controller's only gaps, else the scriptDFS chain with the other gaps in
 // battlefield order, the source branched on its colour answers. A payment window
 // (a cast's X or pip ask, a ward or unless cost) taps the source for its amount
-// (windowComboTap, availCA beside availXWindow). A filter, a tap-another source, a
+// (windowComboTap, availCA beside availXWindow). A plain {N},{T} filter (a Signet, a
+// filter land) beside it is chained by the filter search (otherComboAny,
+// mana_mixgaps.go): gorge's PotentialMana prices the source unbounded, so it covers
+// a first-only filter's fee (filtFirstAdmit). A gated-pip, dynamic-amount or
+// restricted-source filter table, a tap-another source, a restricted or costed
 // granted mana ability or a Diamond in the table is refused at its start
-// (StallComboAnyMix).
+// (StallComboAnyMix); a board with a filter and a Combo Any source the search does
+// not chain stalls by name (caOffersBoard). A plain granted mana ability beside it
+// (Citanul Hierophants, Rishkar, Abundant Growth) is one search with the grants
+// (mana_grantcomboany.go); a reflected source is a planner unit beside the gap.
 //
 // The ask is gorge's scriptAnswers: the per-unit colours of an N-unit allocation
 // in odometer order (unit 0 the slowest digit, W U B R G), at most 64 answers; one
@@ -43,7 +50,7 @@ func comboAnyMana(a *kop.Ability) bool {
 		a.AFlags&(kop.AfManaChoice|kop.AfLatent|kop.AfManaEachColor|kop.AfManaChosen|kop.AfManaReflect) == kop.AfManaChoice &&
 		a.ManaColors == kop.ColAny && a.ManaRestrict == 0 && !a.ManaDeferred && !a.ManaEach && a.ManaRider == 0 &&
 		a.SplitGate == 0 && a.SplitCols == 0 &&
-		a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		(a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 || kop.ForageComboAnyAb(a)) &&
 		(a.AFlags&kop.AfManaDynamic != 0 || a.ManaN >= 2)
 }
 
@@ -68,14 +75,19 @@ func (s *State) caAmount(k *prep, sl Slot) int {
 }
 
 // caGaps: p's Combo Any sources that can be activated now and add mana.
-func (s *State) caGaps(k *prep, p uint8) slotMask {
+func (s *State) caGaps(k *prep, p uint8) slotMask { return s.caGapsF(k, p, false) }
+
+// caGapsF is caGaps with the forage sources (mana_forage.go): left out (the
+// windows' and the other searches' view) unless forage, then those whose forage is
+// payable are listed (the Combo Any search's).
+func (s *State) caGapsF(k *prep, p uint8, forage bool) slotMask {
 	if !k.gen.anyComboAny {
 		return slotMask{}
 	}
 	m := s.gapMask(k, p, gfGapOther)
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
-		if !(k.isComboAny(s.cardAt(sl)) || k.isReflAmt(s.cardAt(sl))) || s.caAmount(k, sl) == 0 {
+		if !(k.isComboAny(s.cardAt(sl)) || k.isReflAmt(s.cardAt(sl))) || s.caAmount(k, sl) == 0 || k.forageCA(s.cardAt(sl)) && !(forage && s.foragePayable(k, p, sl)) {
 			m = m.andNot(slotBit(sl))
 		}
 	}
@@ -89,7 +101,7 @@ func (s *State) caGaps(k *prep, p uint8) slotMask {
 // ability or a Lion's Eye Diamond beside it is refused at the table's start
 // (StallComboAnyMix).
 func (s *State) caBoard(k *prep, p uint8) bool {
-	if k.gen == nil || !k.gen.anyComboAny || !s.caGaps(k, p).any() {
+	if k.gen == nil || !k.gen.anyComboAny || !s.caGapsF(k, p, true).any() {
 		return false
 	}
 	if k.gen.anyDiscHand && s.dhGaps(k, p).any() || s.scriptFilt(k, p).any() {
@@ -161,8 +173,15 @@ func (s *State) caGapAnswers(k *prep, sl Slot) uint8 {
 }
 
 // caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
-// a: the c'th answer gorge's search tries (caRank).
+// a: the c'th answer gorge's search tries (caRank). A reflected Amount$
+// source's answers are its reflected candidates in gorge's order instead, the
+// whole evaluated amount in the answer's colour (mana_reflamt.go), the same
+// ask caGapAnswers counts.
 func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
+	if k.isReflAmt(s.cardAt(sl)) {
+		s.reflAmtChainTap(k, p, a, sl, c)
+		return
+	}
 	need := s.playNeed(k, a)
 	s.caActivate(k, p, sl, caRank(s.caAmount(k, sl), &need, c))
 }
@@ -226,7 +245,7 @@ func (s *State) caPotentialOpen(k *prep, p uint8) bool {
 		return false
 	}
 	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
-		if k.isComboAny(s.cardAt(b.first())) {
+		if k.isComboAny(s.cardAt(b.first())) && !(k.forageCA(s.cardAt(b.first())) && !s.foragePayable(k, p, b.first())) {
 			// a reflected Amount$ source beside it is no whole-pool open — its
 			// fold is {C} alone (mana_reflamt.go reflAmtPotential) — so it
 			// stays out and the affords check below reads it
@@ -297,9 +316,19 @@ func caRank(n int, need *[kop.NumManaKinds]bool, r int) int {
 // the tap, then one unit of each answered colour into p's pool.
 func (s *State) caActivate(k *prep, p uint8, sl Slot, ans int) {
 	n := s.caAmount(k, sl)
+	s.caTap(k, sl)
+	s.caAdd(k, p, sl, ans, n)
+}
+
+// caTap taps Combo Any source sl.
+func (s *State) caTap(k *prep, sl Slot) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+}
+
+// caAdd adds the n units answer ans names to p's pool.
+func (s *State) caAdd(k *prep, p uint8, sl Slot, ans, n int) {
 	var got [5]int
 	for u := max(n-3, 0); u < n; u++ {
 		got[caDigit(ans, n, u)]++
@@ -317,6 +346,8 @@ func (s *State) caActivate(k *prep, p uint8, sl Slot, ans int) {
 type caStep struct {
 	sl  Slot
 	ans uint8 // the odometer answer (below maxCAAnswers)
+	fo  uint8 // a forage source (mana_forage.go): the forage option answered
+	sib bool  // a forage source's plain ability, not its forage one
 }
 
 // caSearch is gorge's prefix search over p's Combo Any sources
@@ -337,6 +368,8 @@ type caSearch struct {
 	// the all-one-colour line of two sources.
 	nseen int
 	seen  [potentialScriptNodes]filtKey
+	// own: the object whose {T} the searched activation costs (mana_forage.go ownTapObj)
+	own Obj
 	// stall: the first stall a failed line's fork latched (stallOf), StallNone
 	// none; caScript declares it when the whole search fails
 	stall uint8
@@ -356,6 +389,9 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 		}
 	}
 	key := t.scriptKey(k, cs.p, slotMask{})
+	if t.playInHand(cs.p, cs.a) {
+		key.hh = 1
+	}
 	for i := 0; i < cs.nseen; i++ {
 		if cs.seen[i] == key {
 			return false
@@ -366,10 +402,16 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 		cs.nseen++
 	}
 	var order [MaxPerm]Slot
-	n := t.battlefieldOrder(cs.p, t.caGaps(k, cs.p), order[:], 0)
+	n := t.battlefieldOrder(cs.p, t.caGapsF(k, cs.p, true), order[:], 0)
 	for i := 0; i < n; i++ {
 		if cs.nodes >= potentialScriptNodes {
 			return false
+		}
+		if k.forageCA(t.cardAt(order[i])) {
+			if cs.forageSource(k, t, d, order[i]) {
+				return true
+			}
+			continue
 		}
 		if k.isReflAmt(t.cardAt(order[i])) {
 			// a reflected Amount$ source: the ask is the colour candidates
@@ -412,7 +454,7 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 			ans := caRank(units, &cs.need, r)
 			c := t.fork()
 			c.caActivate(k, cs.p, order[i], ans)
-			cs.path[cs.np] = caStep{order[i], uint8(ans)}
+			cs.path[cs.np] = caStep{sl: order[i], ans: uint8(ans)}
 			cs.np++
 			found := cs.visit(k, c, d, false)
 			if !found {
@@ -432,7 +474,7 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 // finds a script for play a; with apply it plays the script on s (the play's
 // prefix).
 func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
-	cs := caSearch{a: a, p: p, need: s.playNeed(k, a)}
+	cs := caSearch{a: a, p: p, need: s.playNeed(k, a), own: s.ownTapObj(k, a)}
 	var d Decision
 	if !cs.visit(k, s, &d, true) {
 		if cs.stall != 0 {
@@ -445,6 +487,10 @@ func (s *State) caScript(k *prep, a Action, p uint8, apply bool) bool {
 	}
 	if apply {
 		for _, st := range cs.path[:cs.np] {
+			if k.forageCA(s.cardAt(st.sl)) {
+				s.forageReplay(k, p, st) // (mana_forage.go)
+				continue
+			}
 			if k.isReflAmt(s.cardAt(st.sl)) {
 				s.reflAmtDo(k, p, st.sl, int(st.ans)) // the reflected Amount$ source: ans is the colour (mana_reflamt.go)
 				continue
@@ -529,21 +575,64 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 	if !g.anyComboAny {
 		return
 	}
-	g.caMix = g.anyFilt || p.tapMana || len(g.grantPC) != 0 || g.anyDiscHand || g.anyRefl
+	g.caMix = g.anyFilt && caFiltRefused(g) || p.tapMana || len(g.grantPC) != 0 && caGrantRefused(g) || g.anyDiscHand || g.anyRefl && DebugComboAnyReflRefused
+	g.caMix = g.caMix || forageMixTable(g, p)
 	for i := range t.Cards {
 		g.caMix = g.caMix || caMixGap(t, g, p, i)
 	}
+	p.caMixForage = g.caMix && forageCAOnly(t, g)
 }
 
 // caMixGap reports whether card i carries a census-gap kind caBoard does not
 // chain with a Combo Any source.
 func caMixGap(t *kop.Table, g *genPrep, p *prep, i int) bool {
 	c := CardID(i)
-	if g.has(c, gfFilt|gfDiscHand) || p.tapXAb[i] >= 0 {
-		return true // a filter, a Lion's Eye Diamond, a tap-another source (mana_filter.go, mana_discardhand.go, mana_tapanother.go)
+	if g.has(c, gfDiscHand) || p.tapXAb[i] >= 0 || forageMixGap(t, g, p, i) {
+		return true // a Lion's Eye Diamond, a tap-another source (mana_discardhand.go, mana_tapanother.go): a plain filter is chained (caFiltRefused)
 	}
-	return abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability
+	return caGrantRefused(g) && abilityOn(func(a *kop.Ability) bool { return a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 })(&t.Cards[i], i) // a granted mana ability the grant search does not chain (caGrantRefused)
 }
+
+// caOffersBoard reports whether p's live Combo Any source is one scriptOffers
+// models: alone (ca, caBoard) or beside a live filter (caFiltBoard). A live
+// Combo Any source beside a live filter on a board neither search chains (an
+// each-colour source among the gaps, say) stalls the game by name
+// (StallComboAnyMix): gorge's one prefix search activates all of them, so the
+// kernel declares the gap rather than offer plays on half a census.
+func (s *State) caOffersBoard(k *prep, p uint8, ca bool) bool {
+	if ca {
+		return true
+	}
+	if k.gen == nil || !k.gen.anyComboAny {
+		return false
+	}
+	if s.caFiltBoard(k, p) {
+		return true
+	}
+	if s.caGaps(k, p).any() && s.scriptFilt(k, p).any() {
+		s.capFull(StallComboAnyMix)
+	}
+	return false
+}
+
+// caFiltRefused reports whether the table's filters are of a shape the filter
+// search does not take a Combo Any source beside (otherComboAny, mana_mixgaps.go):
+// only the plain {N},{T} filters (Signets, the filter lands) are chained. A
+// first-ability, gated-pip or dynamic-amount filter, or an each-colour or
+// restricted source beside the filters (mixBoard does not count them), stays
+// refused (StallComboAnyMix). DebugComboAnyFiltRefused (mutation test only)
+// refuses every filter, as before the chain.
+func caFiltRefused(g *genPrep) bool {
+	return DebugComboAnyFiltRefused || g.anyFiltPip || g.anyDynFilt || g.anyRestrScript
+}
+
+// DebugComboAnyFiltRefused (mutation test only): a Combo Any source beside a
+// filter is refused at the table's start, as before otherComboAny.
+var DebugComboAnyFiltRefused bool
+
+// DebugComboAnyFiltNoChain (mutation test only): the filter search leaves the
+// Combo Any source out of its gaps, so a Signet's fee is never funded from it.
+var DebugComboAnyFiltNoChain bool
 
 // isComboAnyCard reports whether card c's census gap is its unrestricted Combo Any
 // ability (isComboAny without a prepared table).
@@ -553,4 +642,44 @@ func (g *genPrep) isComboAnyCard(c CardID, cd *kop.CardDef) bool {
 	}
 	j := g.gapOther(c)
 	return j >= 0 && comboAnyMana(&cd.Abilities[j])
+}
+
+// DebugComboAnyReflRefused (mutation test only): a Combo Any source beside a
+// reflected mana source (Fellwar Stone, Exotic Orchard, Plaza of Heroes) is
+// refused at the table's start, as before the lift. A reflected source is a
+// planner unit (its view is a function of the board, manaReflView), so the
+// Combo Any chain adds its gap beside it as beside any printed source.
+var DebugComboAnyReflRefused bool
+
+// caRelaxedMax is the largest amount gorge's relaxed census enumerates for an
+// any-combination production (relaxedAddProduction: one alternative per colour
+// multiset, none above six units).
+const caRelaxedMax = 6
+
+// caRelaxable reports whether gorge's census is relaxable on a board whose only
+// gaps are fixed-amount Combo Any sources: each is a once-only {T} ability the
+// relaxed census enumerates (paymentPlanRelaxedAlternatives), so the relaxed
+// proof drops every play no colour multiset of the sources' amounts pays as
+// "insufficient relaxed_census" and it takes no prefix-search slot
+// (potentialCensusFallback). The candidates are then the gaps walk's alone,
+// not the any-mana walk's whole potential list: Sage of the Maze's two mana
+// beside a Staff of Domination and four Mutagen tokens left the seventeenth
+// play of the any-mana walk out of gorge's sixteen slots, though gorge's walk
+// listed only the nine plays the two mana pays. A dynamic amount (Axebane
+// Guardian), a reflected one, or an amount above caRelaxedMax is no such
+// source and stays unrelaxable.
+func (s *State) caRelaxable(k *prep, p uint8, ca bool) bool {
+	if !ca || !s.caPure(k, p) || s.anyDifferentGaps(k, p).any() || s.lifeGapMask(k, p).any() {
+		return false
+	}
+	for b := s.caGaps(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if k.isReflAmt(s.cardAt(sl)) {
+			return false
+		}
+		if a := k.comboAnyAb(s.cardAt(sl)); a.AFlags&kop.AfManaDynamic != 0 || int(a.ManaN) > caRelaxedMax {
+			return false
+		}
+	}
+	return true
 }

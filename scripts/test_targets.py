@@ -17,9 +17,11 @@ Exit codes: 0 PASS, 1 FAIL, 2 usage, 3 ENV, 4 EMPTY, 5 BUDGET, 75 BUSY.
 """
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
+import zlib
 
 EXIT = {"PASS": 0, "FAIL": 1, "ENV": 3, "EMPTY": 4, "BUDGET": 5, "BUSY": 75}
 
@@ -54,19 +56,34 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # by the recording's basename in the package's _test.go files) plus the fallback families below: the table
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
-# The one Go test that replays the recordings marked "named":true, a subtest each (repro_manifest_test.go).
+# The Go tests that replay the recordings marked "named":true, a subtest each (repro_manifest_test.go): the
+# shards TestReproManifest0..7. MANIFEST_TEST is their common prefix, so an unanchored -run element
+# (TestReproManifest/<recording>) selects the recording in whichever shard holds it; MANIFEST_RX is every
+# shard as one element of an anchored ^(...)$ list.
 MANIFEST_TEST = "TestReproManifest"
-REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
-# Every committed recording's replay (the Std pool families and the ~540 per-card `TestMBC*Repros*Lockstep`) and
-# the refusal-staleness check: about 2.5 min at 4 cores on ./dirac/oracle (11-18, against >15 min for every
-# *Lockstep test). They run whenever a source change reaches ./dirac/oracle (cause 64, 11-18: #1273 changed
-# dirac/filters_gen.go's X-target offer, its `fast` ran the oracle's census only and was green, and its batch
-# went red on TestMBCDominateReprosLockstep and TestMBCSpellBurstReprosLockstep; nothing before the batch ran
-# them), and when a recording changes.
-# Not only the *Lockstep names: ~110 replays are named *ReprosReach, *ReproReaches, *Repro, Repro*Reach (11-18:
-# TestManaRiderDepletionReprosReach went red on main and neither fast nor the batch ran it; ~22 s for all of them).
-REPLAYS = "^Test[A-Za-z0-9_]*Repro[A-Za-z0-9_]*$|^TestRefusedEntriesStillDiverge$"
-REPRO_TESTS = REPRO_TESTS + "|" + REPLAYS
+MANIFEST_RX = MANIFEST_TEST + "[0-9]+"
+# The per-pool lockstep replays (a pool's recordings are replayed by one glob test, one subtest per
+# recording, named by the recording's file name). TF-01 slices them by subtest like the manifest (a
+# test-level slice cannot bound them: a pool of a few hundred recordings is minutes of subtests). Only in the
+# full-coverage fallback string.
+REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
+# The refusal-staleness check, kept whole for every replay arm (it samples entries by name hash).
+REFUSED = "^TestRefusedEntriesStillDiverge$"
+# Every committed recording's replay: the manifest's ~595 named recordings, the oracle's other per-card
+# replay tests (the MBC tables) and the refusal-staleness check. TF-01 (2026-11-20): the precheck no longer
+# runs this blanket — with it 337 of 851 oracle legs ended at the 5m timeout (NOTES 05:55Z), the manifest's
+# subtests alone overrunning the wall — it replays the changed recordings plus a 25% slice (plan's reprosel,
+# slice_lane). The slice rotates with the merge base, so over successive PRs every recording still replays;
+# full coverage lives in the batch, which does not shrink: ci.yml's "Replay the committed repros" step runs
+# `go test -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle` and the queue's test shards run
+# ./dirac/oracle whole. Nothing that leaves the precheck leaves the batch.
+REPLAYS = "^Test[A-Za-z0-9_]*Repro[A-Za-z0-9_]*$|" + REFUSED
+REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REPRO_GLOBS + "|" + REPLAYS
+# The recorded games a precheck leaves to the batch unless their recording changed: the recordings (and the
+# oracle's other per-card replay tests) whose -json Elapsed in a batch run is over the 10 s wall. A card's
+# own fix PR re-records its game shorter (kfuzz -shrink) and drops the entry. Read like the fast tier is;
+# outside testdata so a refresh edits no fixture (a changed fixture runs the package whole).
+SLOW_REPROS = "dirac/oracle/slowrepros.txt"
 # Pinned$..OnlyGrows: the pin and registration ratchets whose names carry none of the words before them (11-17:
 # #611 registered kw:Modular, left its pin in granted-keyword-gaps.txt, and TestGrantedKeywordHeadsAreRegisteredOrPinned
 # failed only in the Mergify batch, three times). About 66 tests in engine/rules and engine/effects, ~5 s.
@@ -94,6 +111,14 @@ GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
 #    step runs their pins either way.
 #  - the lint packages of NARROW_LINT always run whole beside ALWAYS; internal/archtest skips the 386
 #    cross-build unless needs_386.
+# Table data (11-20): the non-Go files tablesrc.go embeds in directories with no Go package (evidence, refusals,
+# pools, set lists, the manifest's keys). A change there moves dirac's tables, and so kgen's supported set, but
+# maps to no package, so it selected nothing that reads the tables: #2803/#2804 went red on kfuzz
+# TestFuzzSynthWithFlag (a game count over the supported set) that no PR's fast had run. Such a change runs
+# TABLE_READERS whole: the tables' reader and kfuzz, whose tests play the synth pools.
+TABLE_DATA = ("dirac/support/", "dirac/cardset/pools/", "dirac/cardset/setlists/", "dirac/manifest/key/",
+              "dirac/manifest/mech/")
+TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -382,8 +407,9 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     nothing here; the REPRO_TESTS families cover them.
 
     A recording marked `"named":true` is replayed by TestReproManifest as the subtest of its own name, so it
-    maps to `TestReproManifest/<name>` (plan folds that to the parent test: a `/` in -run filters the
-    subtests of every other selected test too, which would turn the other tests into empty passes)."""
+    maps to `TestReproManifest/<name>`. plan keeps that path when the run slices (the manifest's -run matches
+    the manifest test alone, so no other test's subtests are filtered) and folds it to the parent test in the
+    full-coverage fallback, where the whole manifest runs anyway (see replay_part)."""
     out, files = {}, {}
     for path in sorted(changes):
         if not path.startswith(REPRO_DIR) or not path.endswith(".repro.json"):
@@ -403,7 +429,7 @@ def repro_named(changes, dirmap, lines_of, cwd=None):
     return out
 
 
-def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=None):
+def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=None, reprosel=None):
     """What test-targeted runs.
 
     changes   {path: ranges}: the changed files; ranges is a list of (start, end) new-file line ranges,
@@ -415,18 +441,67 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     added     paths the diff adds (status A or untracked), as opposed to modifies (added_files), optional
     narrow    None for test-targeted; for test-smart's narrow precheck {"fast": oracle fast-tier names,
               "sha": the commit}, which adds the kind wholeskip (regex is the -skip) -- see RULES above
+    reprosel  the replay-slice inputs (replay_sel), None for full coverage: with them, a replay arm
+              replays the changed recordings plus a 25% slice (slice_lane) and leaves the rest to the
+              batch, and the manifest's subtests run on their own -run appended to the result
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
     nothing). Package names are ./relative, as `go test` takes them. A package whose test helper, import or
     testdata fixture changed runs whole even when it is heavy: the tests it feeds are otherwise unprovable."""
     rel = {v: k for k, v in dirmap.items()}
     src, touched, named, forced_whole, repro = set(), set(), {}, set(), set()
+    # The precheck's replay slice (TF-01): the manifest's subtests (msub), the pool globs' subtests
+    # (gsl, {glob test: recording names}) and the sliced replay tests (tsl) a run with slice inputs
+    # replays, and the packages a replay arm has already covered. All empty keeps the blanket
+    # REPLAYS: reprosel None is the batch's shape, never silently less.
+    sel = {"msub": set(), "tsl": set(), "gsl": {}, "replayed": set()}
+    # every changed recording's basename: its JSON changed, so it replays whatever its replay home
+    changed_recs = {p.rsplit("/", 1)[1][:-len(".repro.json")] for p in changes
+                    if p.startswith(REPRO_DIR) and p.endswith(".repro.json")}
+    if reprosel:
+        slow = set(reprosel.get("slow") or ())
+        named_recs = reprosel.get("named") or ()
+        # a changed recording always replays; an unchanged one only in its lane, and never over the 10 s wall
+        sel["msub"].update(r for r in changed_recs if r in named_recs)
+        sel["msub"].update(n.split("/", 1)[1] for ns in (repro_names or {}).values()
+                           for n in ns if "/" in n)  # repro_names' subtest paths, as repro_named mapped them
+        sel["msub"].update(n for n in named_recs
+                           if n not in changed_recs and n not in slow and slice_lane(n, reprosel.get("sha")))
+        exclude = {t for ns in (repro_names or {}).values() for t in ns if "/" not in t}
+        sel["tsl"] = {t for t in (reprosel.get("tests") or ())
+                      if t not in exclude and t not in slow and slice_lane(t, reprosel.get("sha"))}
+        pools = reprosel.get("pools") or {}
+        rec2pool = {r: pool for pool, rs in pools.items() for r in rs}
+        for g, ps in sorted((reprosel.get("globs") or {}).items()):
+            if g in slow:
+                continue  # over the 10 s wall: the batch replays it; a changed recording of its pools
+                          # still joins another glob of the same pool (the aliases share theirs)
+            ps = set(ps)
+            lane = {r for pool in ps for r in pools.get(pool, ())
+                    if r not in slow and slice_lane(r, reprosel.get("sha"))}
+            lane.update(r for r in changed_recs if rec2pool.get(r) in ps)
+            if lane:
+                sel["gsl"][g] = lane
     for p, names in (repro_names or {}).items():
         if names:
-            # a subtest path (TestReproManifest/<name>) runs as its parent: see repro_named
-            named.setdefault(p, set()).update(n.split("/", 1)[0] for n in names)
+            if reprosel is None:
+                # full coverage: a subtest path (TestReproManifest/<name>) runs as every manifest
+                # shard (MANIFEST_RX), as the one parent test ran before (a '/' in -run would filter the subtests of every other selected test, but
+                # the manifest is the only test here whose subtests matter)
+                named.setdefault(p, set()).update(
+                    MANIFEST_RX if n.split("/", 1)[0] == MANIFEST_TEST else n.split("/", 1)[0] for n in names)
+            else:
+                # the slice's -run matches the manifest test alone, so the subtest keeps its path and
+                # no other selected test's subtests are filtered to it (see replay_part)
+                named.setdefault(p, set()).update(n for n in names if "/" not in n)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
+            continue
+        if path.startswith(TABLE_DATA) and not path.endswith(".go"):
+            for d in TABLE_READERS:
+                if d in dirmap:
+                    touched.add(dirmap[d])
+                    forced_whole.add(dirmap[d])
             continue
         p = pkg_of(path, dirmap)
         if p is None:
@@ -454,6 +529,22 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
         d = rel[p]
         return "./" + d if d != "." else "."
 
+    def replay_part(deps=False):
+        """The replay part a precheck arm appends to the oracle's regex. Without slice inputs, full
+        coverage as before (REPRO_TESTS in the recording arm, REPLAYS alone in the reverse-dependency
+        arm); with them, the refusal check and the 25% test slice — the pool globs are sliced like
+        the rest (they are in reprosel's tests). The manifest's subtests never join this regex: a '/'
+        in a -run filters the subtests of every other selected test to the pattern after it, which
+        would pass the subtest-bearing tests that stay — the guard TestReproCompactRoundTrip, the
+        census tests, TestRefusedEntriesStillDiverge — empty, so they run on their own -run, appended
+        to the result after the plain entries."""
+        if reprosel is None:
+            return REPRO_TESTS if not deps else REPLAYS
+        parts = [REFUSED]
+        if sel["tsl"]:
+            parts.append("|".join(sorted(sel["tsl"])))
+        return "|".join(parts)
+
     out = {}
     skipped = []
     for p in sorted(touched):
@@ -472,11 +563,13 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
         elif heavy:
             names = sorted(named.get(p, ()))
             if names and p in repro:
-                out[lp] = ("named", lp, "^(%s)$|%s|%s" % ("|".join(names), REPRO_TESTS, CENSUS))
+                out[lp] = ("named", lp, "^(%s)$|%s|%s" % ("|".join(names), replay_part(), CENSUS))
+                sel["replayed"].add(lp)
             elif names:
                 out[lp] = ("named", lp, "^(%s)$|%s" % ("|".join(names), CENSUS))
             elif p in repro:
-                out[lp] = ("named", lp, "%s|%s" % (REPRO_TESTS, CENSUS))
+                out[lp] = ("named", lp, "%s|%s" % (replay_part(), CENSUS))
+                sel["replayed"].add(lp)
             else:
                 out[lp] = ("census", lp, CENSUS)
         elif p in src or p in forced_whole or not named.get(p):
@@ -495,9 +588,12 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
             if lp not in HEAVY:
                 out[lp] = ("whole", lp, "")
             elif lp == ORACLE:
-                # a source change the oracle imports can move any recording's replay (REPLAYS above)
-                rx = out[lp][2] if lp in out else CENSUS
-                out[lp] = ("named", lp, rx if REPLAYS in rx else rx + "|" + REPLAYS)
+                # a source change the oracle imports can move any recording's replay (REPLAYS above);
+                # TF-01: the changed recordings plus a 25% slice, not every recording (replay_part)
+                if lp not in sel["replayed"]:
+                    rx = out[lp][2] if lp in out else CENSUS
+                    out[lp] = ("named", lp, rx + "|" + replay_part(deps=True))
+                    sel["replayed"].add(lp)
             elif lp not in out:
                 out[lp] = ("census", lp, CENSUS)
     for lp, rx in GUARDS:
@@ -508,14 +604,28 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     for lp in ALWAYS:
         out[lp] = ("whole", lp, "")
     if narrow is not None:
-        _narrow(out, changes, src, forced_whole, named, deps, local, narrow)
+        _narrow(out, changes, src, forced_whole, named, deps, local, narrow, sel, replay_part())
     res = [out[k] for k in sorted(out)]
+    # TF-01: the replay slice runs on its own -run (replay_part), appended after the plain entries:
+    # the manifest's named recordings and the pool globs' recordings replay as subtests there — the
+    # subtest names are recording file names, unique in the directory, so a pool glob's subtests
+    # matching the pattern are exactly its pools' slice — and no other selected test's subtests are
+    # filtered to them
+    if ORACLE in sel["replayed"]:
+        top = sorted(sel["gsl"])
+        if sel["msub"]:
+            top = [MANIFEST_TEST] + top
+        sub = sel["msub"] | (set().union(*sel["gsl"].values()) if sel["gsl"] else set())
+        if top and sub:
+            res.append(("named", ORACLE, "%s/(%s)" % ("|".join(top), "|".join(sorted(sub)))))
     return res, skipped
 
 
-def _narrow(out, changes, src, forced_whole, named, deps, local, narrow):
+def _narrow(out, changes, src, forced_whole, named, deps, local, narrow, sel, repro_part):
     """test-smart's narrow precheck on top of plan's selection (see RULES above); edits out in place. src is
-    the packages a changed non-test file is in, forced_whole those whose test helpers or fixtures changed."""
+    the packages a changed non-test file is in, forced_whole those whose test helpers or fixtures changed,
+    sel plan's replay-slice state (the manifest entry fires when the oracle runs a replay arm), repro_part
+    the replay part of the oracle's regex (plan's replay_part)."""
     ip = {local(p): p for p in deps}
     reached = {local(p) for p, ds in deps.items() if ds & src}
     for lp in NARROW_HEAVY:
@@ -535,9 +645,11 @@ def _narrow(out, changes, src, forced_whole, named, deps, local, narrow):
         fx = "^(%s)$" % "|".join(fast) if fast else ""
         if kind == "whole":
             names = sorted(named.get(ip.get(ORACLE), ()))
-            parts = (["^(%s)$" % "|".join(names)] if names else []) + [REPRO_TESTS, PINS_TESTS, CENSUS]
+            parts = (["^(%s)$" % "|".join(names)] if names else []) + [repro_part, PINS_TESTS, CENSUS]
             parts += [g for lp, g in GUARDS if lp == ORACLE] + ([fx] if fx else [])
             out[ORACLE] = ("named", ORACLE, "|".join(parts))
+            if sel["msub"] or sel["tsl"] or sel["gsl"]:  # the sliced replay: plan appends its own -run
+                sel["replayed"].add(ORACLE)
         elif ORACLE in reached and fx:
             out[ORACLE] = (kind, ORACLE, rx + "|" + fx)
 
@@ -674,14 +786,81 @@ def fast_tier(path=FAST_TIER):
     return [ln.strip() for ln in read_lines(path) if ln.strip() and not ln.lstrip().startswith("#")]
 
 
+def slow_repros(path=SLOW_REPROS):
+    """The slow list's names (comments and blank lines dropped); empty when the list is absent. The
+    names are recordings the manifest test replays and the oracle's other replay tests, one namespace
+    each (recordings are snake_case, tests CamelCase), so one file holds both."""
+    return [ln.strip() for ln in read_lines(path) if ln.strip() and not ln.lstrip().startswith("#")]
+
+
+def slice_lane(name, sha):
+    """Whether a name (a recording or a replay test) lands in a merge base's 25% replay slice: crc32
+    % 4 equal, so a PR's slice is stable for its base and successive PRs rotate through the names."""
+    return zlib.crc32(name.encode()) % 4 == zlib.crc32((sha or "").encode()) % 4
+
+
+_GLOBPOOL = re.compile(r"stdReprosGlob(?:Pools)?\(t, ((?:\"[A-Za-z0-9-]+\"(?:,\s*)?)+)\)")
+_POOLFIELD = re.compile(r'"pool":"([A-Za-z0-9-]+)"')
+
+
+def replay_sel(dirmap, sha):
+    """plan's reprosel: the recordings the manifest test replays, each pool's recordings and the pool
+    glob tests that replay them (the pool's recordings run as that test's subtests, named by the
+    recording's file name), the oracle's other replay tests, the slow list and the merge base (the
+    slice lane, slice_lane). None when the oracle is not a package of this module, which leaves the
+    replay arms at full coverage (REPLAYS)."""
+    pkg = REPRO_DIR.split("/testdata/")[0]
+    if pkg not in dirmap or not os.path.isdir(REPRO_DIR):
+        return None
+    named, pools = set(), {}
+    for f in sorted(os.listdir(REPRO_DIR)):
+        if not f.endswith(".repro.json"):
+            continue
+        text = "".join(read_lines(REPRO_DIR + f))
+        base = f[:-len(".repro.json")]
+        if '"named":true' in text:
+            named.add(base)
+        m = _POOLFIELD.search(text)
+        if m:
+            pools.setdefault(m.group(1), set()).add(base)
+    globs = {}
+    for f in sorted(os.listdir(pkg)):
+        if not f.endswith("_test.go"):
+            continue
+        lines = read_lines(pkg + "/" + f)
+        for s, e, t in segments(lines):
+            if not t or not re.match(REPRO_GLOBS, t):
+                continue
+            m = _GLOBPOOL.search("\n".join(lines[s - 1:e]))
+            if m:
+                globs[t] = re.findall(r'"([A-Za-z0-9-]+)"', m.group(1))
+    # the test-level slice population: every Test*Repro* name but the manifest itself, the two
+    # sub-second table checks (GUARDS keep them whole), the refusal check, and the pool globs (they
+    # are sliced by subtest above)
+    whole = re.compile("^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REFUSED)
+    tests = set()
+    for f in sorted(os.listdir(pkg)):
+        if not f.endswith("_test.go"):
+            continue
+        for ln in read_lines(pkg + "/" + f):
+            m = _TESTFN.match(ln)
+            if m:
+                n = m.group(1)
+                if re.match(REPLAYS, n) and not whole.match(n) and not n.startswith(MANIFEST_TEST) and n not in globs:
+                    tests.add(n)
+    return {"named": named, "pools": pools, "globs": globs, "tests": tests,
+            "slow": set(slow_repros()), "sha": sha}
+
+
 def cmd_select(a):
     dirmap, deps = go_graph()
     changes = diff_changes(a.base)
+    mb = sh("git", "merge-base", a.base, "HEAD").strip()
     narrow = None
     if a.narrow:
         narrow = {"fast": fast_tier(), "sha": sh("git", "rev-parse", "HEAD", check=False).strip()}
     res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines),
-                       added_files(a.base), narrow)
+                       added_files(a.base), narrow, replay_sel(dirmap, mb))
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:

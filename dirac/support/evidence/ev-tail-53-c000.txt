@@ -30,6 +30,7 @@ Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
 Astrid Peth
+Ate-o'-Clock
 Augury Adept
 Auratog
 Auriok Windwalker
@@ -102,6 +103,7 @@ Dark-Dweller Oracle
 Davriel, Rogue Shadowmage
 Deadly Designs
 Deathgreeter
+Deathless Ancient
 Deathsprout
 Decorated Champion
 Deep-Slumber Titan
@@ -260,6 +262,7 @@ Never
 Niblis of the Breath
 Nightmare Unmaking
 Nimana Skydancer
+Ninja Pizza
 Nirkana Revenant
 Noble Benefactor
 Nullmage Shepherd
@@ -296,6 +299,7 @@ Psychic Miasma
 Pulsemage Advocate
 Pyreswipe Hawk
 Pyroceratops
+Quagmire
 Queen's Bay Soldier
 Rage Reflection
 Raggadragga, Goreguts Boss
@@ -304,6 +308,7 @@ Ranger's Path
 Rebuild
 Recalibrate
 Reflecting Pool
+Relentless Raptor
 Renewal
 Rescue, Pepper Potts
 Resolute Rider
@@ -361,6 +366,7 @@ Strength of Arms
 Strength of the Coalition
 Submerge
 Sunblast Angel
+Sunscourge Champion
 Sunspring Expedition
 Supply
 Swamp

@@ -14,6 +14,7 @@ Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Aphotic Wisps
+Archway of Innovation
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -64,6 +65,7 @@ Corpse Hauler
 Corrupted Resolve
 Cosmic Epiphany
 Courier Griffin
+Crawling Infestation
 Crimson Roc
 Crucible of Worlds
 Cryptolith Rite
@@ -132,6 +134,7 @@ Filigree Sages
 First-Sphere Gargantua
 Flameshot
 Flanking Troops
+Flooded Grove
 Floodwater Dam
 Flowstone Strike
 Forest
@@ -308,7 +311,6 @@ Rakdos Ickspitter
 Ransom Note
 Rapid Hybridization
 Raven Familiar
-Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Reckless Scholar
@@ -399,6 +401,7 @@ Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
 Teething Wurmlet
+Tel-Jilad Defiance
 Territory Culler
 Teyo's Lightshield
 Teysa Karlov

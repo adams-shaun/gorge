@@ -1,0 +1,60 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Adaptive Shimmerer	75ee83c1d8ee7199	4	0/0		0/0	
+Alliance of Arms	9a135e1751c45df9	4	0/0		1/2	ix:resp
+Avacyn's Pilgrim	733584ecb79bd8b7	4	1/1		0/1	ix:resp
+Birthing Hulk	ad8a5c20eb531e53	4	2/2		0/1	ix:resp
+Blighted Woodland	539331b48c45590f	19	2/2		0/1	ix:resp
+Blinding Radiance	b144c92e4b3f456d	4	0/0		2/2	
+Carnival	6492798afb9e7d6a	4	0/0		1/3	f1/s,ix:resp
+Copper Longlegs	b5a09624074a0e37	4	1/1		0/1	ix:resp
+Culling Sun	f557ba64de1fd8e7	8	0/0		2/2	
+Dark Depths	a95ef93398e4037c	4	2/2		0/1	ix:resp
+Deep Reconnaissance	f66226782ae240a0	4	0/0		3/4	ix:resp
+Demystify	605842db32d63b64	5	0/0		1/2	ix:resp
+Dinosaur Stampede	3b532490937f1645	4	0/0		1/2	ix:resp
+Echoes of the Kin Tree	b1baaff292cf463c	4	1/1		0/1	ix:resp
+Fade from History	fd5c0f65be8cbc9f	8	0/0		1/2	ix:resp
+Game Trail	cabb03c62f48ac8b	8	1/1		0/1	ix:resp
+Icatian Javelineers	897f8f7ca3d5c957	8	1/1		0/1	ix:resp
+Imps' Taunt	72c5abdee323aa6d	11	0/0		4/4	
+Inquisitive Puppet	ba27a9d19e91efee	4	2/2		0/1	ix:resp
+Kheru Dreadmaw	7ad43a094d6ca625	3	1/1		0/1	ix:resp
+Knight of the Stampede	eaef18901864ea51	4	0/0		0/0	
+Lich Lord of Unx	c41581077e3ecc84	4	2/2		0/1	ix:resp
+Magus of the Future	4e22184bbb636c9e	4	0/0		0/0	
+Merciless Executioner	e813a9b8a926e850	4	1/1		0/1	ix:resp
+Moonglove Winnower	a61384e4ddb25f46	4	0/0		0/0	
+Natural Connection	44b704788e3dd33b	4	0/0		1/2	ix:resp
+Nature's Way	391c8c421d784fc5	3	0/0		1/2	ix:resp
+Okina, Temple to the Grandfathers	e341adafa89bcca6	8	2/2		0/1	ix:resp
+Old Man Willow	c6cfda86a0a54b3b	4	1/1		0/1	ix:resp
+Phyrexia's Core	40bc72f7c8924480	9	2/2		0/1	ix:resp
+Pyre Zombie	99a6a4cb5c543902	7	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Pyrrhic Blast	fc8d06da16eb38e8	4	0/0		1/2	ix:resp
+Ranger's Guile	da49ee7402a4a2b9	4	0/0		1/2	ix:resp
+Recruitment Drive	709da7f5880fec20	8	0/0		1/2	ix:resp
+Scalding Tarn	ed66f4a302576ea9	7	1/1		0/1	ix:resp
+Sejiri Merfolk	f230e9ed6a92627c	3	0/0		0/0	
+Shivan Phoenix	b03c2b2f4198df01	8	1/1		0/1	ix:resp
+Skophos Warleader	c86d1cf93fa89b31	6	1/1		0/1	ix:resp
+Smelt-Ward Minotaur	202be1c7080cac47	3	1/1		0/1	ix:resp
+Sokka, Wolf Cove's Protector	bbdf9c7ba618825d	6	0/0		0/0	
+Solid Ground	ff9932958768f6c4	4	1/1		0/1	ix:resp
+Soul of the Harvest	6fe49e0f6889290a	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Squire	33c49a6d089c4adf	3	0/0		0/0	
+Stalwart Aven	637c69ea7fa919cf	4	1/1		0/1	ix:resp
+Steadfast Guard	73f8002c49386aad	5	0/0		0/0	
+Still Life	51c89d154f1e9f96	4	1/1		1/1	
+Sunfall	789295309ee19f98	4	0/0		1/2	ix:resp
+Take Down	fde4d25053e5bba1	8	0/0		1/2	ix:resp
+Tangled Skyline	1a7f2b47a075a8e4	4	1/1		0/1	ix:resp
+Tangletrap	c6302ebd703185bc	4	0/0		1/2	ix:resp
+Tazeem Raptor	3f3b0b5637928bb7	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+The Alright Henge	985c89c07f0420dc	4	2/2		1/1	
+Torch Song	901ecdbd4e546011	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Traveler's Amulet	651c2896b79725a3	8	1/1		0/1	ix:resp
+Tundra	3c7f0d7487cd3277	13	2/2		0/1	ix:resp
+Valakut Predator	af3960f975908611	4	1/1		0/1	ix:resp
+Watercourser	cb9a7d0da4caa439	3	1/1		0/1	ix:resp
+Well of Life	8b3395a7925c0105	4	1/1		0/1	ix:resp
+Yavimaya Ancients	267c6295f973c185	4	1/1		1/1	

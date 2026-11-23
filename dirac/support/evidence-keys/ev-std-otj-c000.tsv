@@ -1,56 +1,113 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abraded Bluffs	6b6b264e7ad26121	11	2/2		0/1	ix:resp
+Archangel of Tithes	be4fa43cd51285f0	6	0/0		0/0	
+Armored Armadillo	4b32fa38cbfddcdf	5	2/2		0/1	ix:resp
+Assimilation Aegis	3226f2c27c1112c3	5	3/3		1/1	
+Betrayal at the Vault	c888fe9a1d4f09ff	3	0/0		2/2	
+Binding Negotiation	d4942f243cd51a6e	5	0/0		1/2	ix:resp
+Blacksnag Buzzard	efaef7584ba06130	3	0/0		0/0	
 Blooming Marsh	f00567c750e57583	4	1/1		0/1	ix:resp
 Boom Box	b103147fad65dcb5	4	1/1		0/1	ix:resp
 Botanical Sanctum	ab6d194f2615937a	5	1/1		0/1	ix:resp
 Bovine Intervention	0adfdda9793c5cdc	5	0/0		2/2	
+Bridled Bighorn	580961f80fc3405a	5	2/2		0/1	ix:resp
+Brimstone Roundup	ae4f7f0f33c99b58	6	1/1		0/1	ix:resp
 Bruse Tarl, Roving Rancher	dee1049f04965167	3	2/2		0/1	ix:resp
 Bucolic Ranch	0232ca6259704de2	10	3/3		0/1	ix:resp
 Calamity, Galloping Inferno	a4f7fd7c01e48ac2	6	2/2		0/1	ix:resp
+Canyon Crab	af1c7b927770f070	6	2/2		0/1	ix:resp
 Caught in the Crossfire	e49271b20a647bb4	12	0/0		2/2	
 Claim Jumper	04c2ca0f2a94de6b	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Concealed Courtyard	96fc1b8e6d1f2371	4	1/1		0/1	ix:resp
+Corrupted Conviction	6419616efcc1e3b4	4	0/0		1/2	ix:resp
 Creosote Heath	93b408c87cceebe9	7	2/2		0/1	ix:resp
 Cunning Coyote	7a1c02456a5af588	5	1/1		0/1	ix:resp
 Demonic Ruckus	ec240ccaa2030382	4	1/1		1/2	ix:resp
+Duelist of the Mind	d3f9042cc303fc88	8	1/1		0/1	ix:resp
+Dust Animus	8ad8eea820d195ef	4	0/0		0/0	
 Eroded Canyon	bdc53db583b3140c	5	2/2		0/1	ix:resp
 Ertha Jo, Frontier Mentor	15164481d918f614	32	2/2		1/1	
 Explosive Derailment	ecb051ceda4d1b35	7	0/0		2/2	
+Final Showdown	15a1f87a25c8b0ce	13	0/0		1/2	ix:resp
+Fleeting Reflection	dc7978ea144c4ea6	3	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	7	1/1		0/1	ix:resp
+Forsaken Miner	aabe02f741cf005d	6	1/1		0/1	ix:resp
 Fortune, Loyal Steed	4aa61839cec9c65d	6	3/3		0/1	ix:resp
+Frontier Seeker	b37ed637b9dd07d9	11	1/1		1/1	
+Geyser Drake	2f25077425d7be5f	3	0/0		0/0	
 Gold Pan	c01fca016d42a71d	11	2/2		1/1	
+Hardbristle Bandit	9060c82dcfcbdb7c	4	2/2		0/1	ix:resp
 Hell to Pay	93dc0296ac0bc92f	4	0/0		3/4	f0/s/x0
 Hellspur Posse Boss	d1d5f5a76d428121	6	1/1		0/1	ix:resp
 Highway Robbery	9b1e79f282005e73	6	0/0		2/2	
+Insatiable Avarice	3964377e7899baa4	9	0/0		1/2	ix:resp
 Inspiring Vantage	8a865ee7af6b8d8c	4	1/1		0/1	ix:resp
 Inventive Wingsmith	b096c23b66fc5242	6	1/1		0/1	ix:resp
 Irascible Wolverine	6cbfef3d646d69b0	3	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	36	1/1		0/1	ix:resp
+Jagged Barrens	16819b0a1e565e45	10	2/2		0/1	ix:resp
+Jem Lightfoote, Sky Explorer	5d66f502bcb7d28c	3	1/1		0/1	ix:resp
+Lassoed by the Law	b011cd07233b1372	5	2/2		1/1	
 Lavaspur Boots	cbe206649e13f751	3	1/1		0/1	ix:resp
+Lonely Arroyo	6520617a9a3d9513	11	2/2		1/1	
 Lush Oasis	fe7c371e7501b6d2	8	2/2		0/1	ix:resp
 Luxurious Locomotive	e629bc79c3123194	4	2/2		0/1	ix:resp
 Magebane Lizard	788a30cc9a973e61	6	1/1		0/1	ix:resp
+Mirage Mesa	b12d99fe704675dd	8	1/1		0/1	ix:resp
+Mobile Homestead	a76a42350a8d5ff1	6	2/2		0/1	ix:resp
 Mountain	9e71388353e907ed	128	1/1		0/1	ix:resp
 Mystical Tether	4b69b22e937de0c5	9	1/1		1/1	
 Nurturing Pixie	6efce82c3a27256a	8	1/1		0/1	ix:resp
 Oasis Gardener	27612c7a70b90e2d	8	2/2		0/1	ix:resp
+One Last Job	1c190c7efb9d06bb	4	0/0		1/2	ix:resp
+Ornery Tumblewagg	0be045044c2e696c	4	3/3		0/1	ix:resp
 Outlaw Medic	f81755a2270d60b7	8	1/1		1/1	
 Outlaws' Fury	65fa7455902330bf	6	0/0		1/2	ix:resp
+Phantom Interference	c86b11b699f288a1	32	0/0		1/2	ix:resp
 Plains	82d63a695487e567	109	1/1		0/1	ix:resp
 Prairie Dog	89f11c640f02d70b	3	2/2		0/1	ix:resp
 Prickly Pair	fdb02a6ee72bb46a	10	1/1		0/1	ix:resp
 Prosperity Tycoon	d239354840eb57f6	4	2/2		1/1	
 Quick Draw	bda0e298c432dd8e	6	0/0		1/2	ix:resp
+Rakish Crew	be8524b02c7b0396	3	2/2		0/1	ix:resp
+Raucous Entertainer	2578411b2efaf5c3	4	1/1		0/1	ix:resp
+Raven of Fell Omens	13cf212c29f420ff	4	1/1		0/1	ix:resp
+Reach for the Sky	35bfc2df979f4003	4	1/1		2/2	
 Reckless Lackey	c8593936e9eccca7	9	1/1		0/1	ix:resp
 Redrock Sentinel	9341df2b496df10c	3	1/1		0/1	ix:resp
 Requisition Raid	ba9edd69537ffbd8	4	0/0		1/2	ix:resp
+Resilient Roadrunner	f9c604836f3ddbd0	3	1/1		0/1	ix:resp
+Rise of the Varmints	fe7488a5a79aba3c	3	0/0		1/2	ix:resp
 Rodeo Pyromancers	ad81b55a5a5c8093	3	1/1		0/1	ix:resp
+Rooftop Assassin	10e74597b50aacc8	7	1/1		0/1	ix:resp
+Rustler Rampage	f35afd40cc34d7fe	3	0/0		1/2	ix:resp
+Ruthless Lawbringer	df3f8fc541825063	4	1/1		0/1	ix:resp
+Sandstorm Verge	6ac3dd809e841bda	4	2/2		1/1	
 Scalestorm Summoner	2ffd91d2d6d8720c	10	1/1		1/1	
+Seize the Secrets	f9e12f12200dcb2a	5	0/0		1/2	ix:resp
 Shepherd of the Clouds	315a2e9b7a3da241	3	1/1		0/1	ix:resp
 Sheriff of Safe Passage	54bc83ff3cb4c48d	10	0/0		0/0	
+Shifting Grift	46bbaa0cdfab4a71	3	0/0		0/2	f0/s,ix:resp
 Silver Deputy	978293d4d529a846	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Skulduggery	792462c64d667523	3	0/0		1/2	ix:resp
+Soured Springs	1991b4556f6444e2	10	2/2		0/1	ix:resp
+Spinewoods Paladin	8b9c5f6cbdca358b	3	1/1		0/1	ix:resp
+Spirebluff Canal	51745b5507792659	7	1/1		0/1	ix:resp
+Spring Splasher	86734cfff6e154de	3	1/1		0/1	ix:resp
 Stagecoach Security	aa280bfff147fa9e	4	1/1		0/1	ix:resp
 Steer Clear	55a0e2eed62db21d	4	0/0		1/2	ix:resp
 Sterling Hound	ad90e036a41be697	3	1/1		0/1	ix:resp
+Sterling Keykeeper	4d5a6ba3d1155a36	5	1/1		0/1	ix:resp
 Stingerback Terror	90db03a33eaf1cd8	6	0/0		0/0	
+Swamp	342b413902f441c3	55	1/1		0/1	ix:resp
 Take Up the Shield	d1ebe074e6bd29a8	8	0/0		1/2	ix:resp
 Terror of the Peaks	f79178f89b5af926	5	1/1		1/1	
+The Key to the Vault	01f9b2ae3cca228c	3	2/2		0/1	ix:resp
+Thunder Lasso	b4fc157b9e5d026e	6	3/3		0/1	ix:resp
+Thunder Salvo	e62ecc0c01254580	3	0/0		2/2	
 Tomb Trawler	10a116a053d1e710	6	1/1		1/1	
+Trained Arynx	e401e49c83c0a30f	6	2/2		0/1	ix:resp
 Trick Shot	0e89345bdc0bfcb3	6	0/0		2/2	
+Unfortunate Accident	3bc48f7b0caed389	3	0/0		1/2	ix:resp
+Unscrupulous Contractor	44ac22e9c52d6d75	3	1/1		0/1	ix:resp
+Vengeful Townsfolk	343efa6c3e1de6a3	9	1/1		0/1	ix:resp

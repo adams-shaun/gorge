@@ -380,6 +380,19 @@ func cloneETBShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if _, ok := sa.Param(cards.PKIntoPlayTapped); ok && !p.IntoPlayTappedTrue {
 		return false
 	}
+	// The temporary keyword rider: single-word heads (the AddKeywords$
+	// check) and no PumpDuration$ spelling but the end-of-turn ones the
+	// resolution implements (any other spelling would be a loud Note and a
+	// keyword that outlives its window); a PumpDuration$ with no
+	// PumpKeywords$ names nothing and fails closed.
+	for _, kw := range p.PumpKeywords {
+		if strings.ContainsAny(cards.KeywordHead(kw), " \t") {
+			return false
+		}
+	}
+	if p.PumpDuration != "" && (len(p.PumpKeywords) == 0 || !clonePumpDurationEOT(p.PumpDuration)) {
+		return false
+	}
 	// The characteristic exceptions ride the copy's CopyExcept (CR 707.9b),
 	// so the as-enters route carries them exactly as the becomes-a-copy
 	// route does: a literal P/T (Quicksilver Gargantuan's 7/7), a colour
@@ -461,9 +474,18 @@ func cloneETBForeignShapeOK(sa *cards.SA, p *CloneParams) bool {
 	if sa.HasParam(cards.PKSpellDescription) {
 		keys++
 	}
+	// Defined$ Self is the carrier's own face as the copy source (Essence of
+	// the Wild, Thunderbond Vanguard); Enchanted is its attached creature.
+	def := definedSpecCodes.Code(p.Defined)
 	return len(sa.Params) == keys &&
-		definedSpecCodes.Code(p.Defined) == definedSpecEquipped &&
+		(def == definedSpecEquipped || def == definedSpecSelf) &&
 		definedSpecCodes.Code(p.CloneTarget) == definedSpecReplacedCard
+}
+
+// clonePumpDurationEOT reports whether a PumpDuration$ value is one of the
+// end-of-turn spellings effClone maps to UntilEOT.
+func clonePumpDurationEOT(d string) bool {
+	return strings.EqualFold(d, "EOT") || strings.EqualFold(d, "EndOfTurn") || strings.EqualFold(d, "UntilEndOfTurn")
 }
 
 // cloneSplitIfNew moves every "IfNew <keyword>" member of a Clone's
@@ -508,6 +530,9 @@ var cloneETBShapeKeys = state.NewNameSet(
 	// The Embalm$ gate keys: RemoveCost$ is admitted only beside an
 	// Embalm$ True (cloneETBShapeOK's value checks), the gated-token clause.
 	"Embalm", "RemoveCost",
+	// PumpKeywords$/PumpDuration$ (The Fourteenth Doctor's "gains haste until
+	// end of turn"): admitted as keys, their values held by cloneETBShapeOK.
+	"PumpKeywords", "PumpDuration",
 )
 
 // cloneETBShapeExtraKeys are the keys the implemented as-enters Clone shape

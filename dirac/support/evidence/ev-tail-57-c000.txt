@@ -115,6 +115,7 @@ Drowned Rusalka
 Dusk Legion Dreadnought
 Dutiful Return
 Duty-Bound Dead
+Earthshaker Khenra
 Earthshape
 Ebon Dragon
 Efficient Construction
@@ -124,9 +125,11 @@ Elspeth's Devotee
 Elvish Hexhunter
 Ember Weaver
 Emblem of the Warmind
+Endoskeleton
 Enraged Revolutionary
 Escarpment Fortress
 Essence of Orthodoxy
+Everglove Courier
 Experiment One
 Fabricate
 Fangren Pathcutter
@@ -463,6 +466,7 @@ Warriors' Lesson
 Wee Dragonauts
 Welcome the Dead
 Wheel of Fortune
+Wild-Magic Sorcerer
 Will-Forged Golem
 Windstorm Drake
 Winterthorn Blessing

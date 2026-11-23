@@ -48,6 +48,7 @@ Hammers of Moradin
 Hand of Honor
 Haywire Mite
 Hordeling Outburst
+Hostage Taker
 Hunter's Talent
 Imodane's Recruiter
 Incinerate
@@ -56,6 +57,7 @@ Injector Crocodile
 Ire Shaman
 Island
 Istvan, Butcher of Eln
+Kasmina, Enigmatic Mentor
 Kiln Fiend
 Kira, Great Glass-Spinner
 Kitsa, Otterball Elite
@@ -74,6 +76,7 @@ Mystic of the Hidden Way
 Mystical Teachings
 Norwood Priestess
 On Serra's Wings
+Ophidian
 Orcish Settlers
 Peregrine Drake
 Plains
@@ -94,6 +97,7 @@ Sigil of the New Dawn
 Soul's Attendant
 Spike Colony
 Splendor Mare
+Standard Bearer
 Storm Caller
 Storm the Seedcore
 Subterranean Tremors
@@ -111,6 +115,7 @@ Treasure Hunt
 Trespasser's Curse
 Trial of Ambition
 Unexpected Windfall
+Urza, Lord High Artificer
 Valor
 Venser, Visionary Traveler
 View from Above

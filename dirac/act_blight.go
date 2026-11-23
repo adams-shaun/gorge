@@ -33,7 +33,7 @@ func (s *State) execBlight(k *prep, in *kop.Instr) bool {
 	case c == 0:
 		return true
 	case c == 1:
-		s.blightSlot(buf[0], n)
+		s.blightSlot(buf[0], n, ctrPutEffect)
 		return true
 	}
 	s.res.ask, s.res.askP, s.res.left = raGenBlightPick, p, uint8(n)
@@ -57,17 +57,22 @@ func (s *State) blightCands(k *prep, in *kop.Instr, p uint8, buf *[MaxPerm]Slot)
 }
 
 // blightSlot puts n -1/-1 counters on the creature at sl (gorge
-// blightApply's CounterChange).
-func (s *State) blightSlot(sl Slot, n int) {
+// blightApply's CounterChange). Each placement runs the AddCounter
+// replacements as gorge's emit does (Vizier of Remedies' "minus one"):
+// mode is ctrPutEffect for OpBlight and ctrPutCost for a Blight<N> cost.
+func (s *State) blightSlot(sl Slot, n int, mode ctrPutMode) {
 	k := s.k()
 	if s.putCounterBlocked(k, sl, int(kop.CtrM1M1)) {
 		return
 	}
 	p := &s.perms[sl]
 	p.seeCtr(s)
-	s.placeCounters(k, sl, int(kop.CtrM1M1), n, p.ctrl, ctrPutRaw)
+	n = s.placeCounters(k, sl, int(kop.CtrM1M1), n, p.ctrl, mode)
 	if n > 0 && k.anyCtrAdded {
-		s.ctrNote(k, sl, int(kop.CtrM1M1))
+		// CR 701.60: the blighting player puts the counters (gorge
+		// blight.go emitBlightCounter publishes it), not the resolving
+		// ability's controller counterAdder() would name.
+		s.ctrNoteBy(k, sl, int(kop.CtrM1M1), p.ctrl)
 	}
 }
 
@@ -93,7 +98,7 @@ func (s *State) applyAskBlight(k *prep, a Action) bool {
 	s.res.ask = raNone
 	if a.Kind() == AkChoose {
 		if ob := &s.objs[Obj(a.Source())]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].ctrl == s.res.askP {
-			s.blightSlot(ob.slot, int(s.res.left))
+			s.blightSlot(ob.slot, int(s.res.left), ctrPutEffect)
 		}
 	}
 	s.continueRes(k, 0)

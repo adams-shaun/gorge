@@ -1,0 +1,25 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Bottomless Pool
+1	card	Dazzling Theater
+2	card	Forest
+3	card	Ghostly Keybearer
+4	card	Grizzly Bears
+5	card	Gruff Triplets
+6	card	Island
+7	card	Keys to the House
+8	card	Plains
+9	card	Swamp
+10	card	face:Bottomless Pool#1
+11	card	face:Dazzling Theater#1
+12	card	room:Bottomless Pool#00
+13	card	room:Bottomless Pool#02
+14	card	room:Bottomless Pool#03
+15	card	room:Bottomless Pool#10
+16	card	room:Bottomless Pool#11
+17	card	room:Bottomless Pool#13
+18	card	room:Dazzling Theater#00
+19	card	room:Dazzling Theater#02
+20	card	room:Dazzling Theater#03
+21	card	room:Dazzling Theater#10
+22	card	room:Dazzling Theater#11
+23	card	room:Dazzling Theater#13

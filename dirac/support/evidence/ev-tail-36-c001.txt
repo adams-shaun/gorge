@@ -1,6 +1,7 @@
 A-Cosmos Elixir
 A-Esika's Chariot
 A-Prosperous Thief
+A-Shipwreck Sifters
 Abandon Reason
 Aberrant Return
 Abuna Acolyte
@@ -134,6 +135,7 @@ Hecatomb
 Hidden Path
 Hoarding Ogre
 Honden of Infinite Rage
+Horrid Shadowspinner
 Hot Soup
 Hunted Troll
 Hurricane
@@ -179,6 +181,7 @@ Luminarch Aspirant
 Lurking Deadeye
 Luxa River Shrine
 MJ, Rising Star
+Macetail Hystrodon
 Magmatic Scorchwing
 Malefic Scythe
 Mardu Hordechief
@@ -194,6 +197,7 @@ Mind Warp
 Mindstab
 Minotaur Abomination
 Mobilization
+Molten Firebird
 Mona Lisa, Ever Adaptable
 Morbid Hunger
 Mountain
@@ -238,6 +242,7 @@ Reef Pirates
 Refurbish
 Rekindling Phoenix
 Rescuer Chwinga
+Resilient Khenra
 Rhox Faithmender
 Righteous Cause
 Rogue Kavu

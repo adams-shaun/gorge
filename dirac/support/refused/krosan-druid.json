@@ -1,0 +1,34 @@
+{
+  "card": "Krosan Druid",
+  "class": "options-options",
+  "why": "its kicked cast ({6}{G}{G}) over a floating pool, six Islands under Scald, four Forests and Overflowing Basin's {1},{T} filter exhausts gorge's 160-node potential prefix search (plain, phased and subsume runs; census_incomplete), so the autopay surface withholds it, while the kernel's mirror of the search finds a payment and offers it; tail-49-c000 pair 25 decision 861",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "kicked_cast_gap_search_budget_exhausted"
+  },
+  "evidence": [
+    "ev-tail-10-c000",
+    "ev-tail-10-c002",
+    "ev-tail-10-c004",
+    "ev-tail-10-c005",
+    "ev-tail-10-c006",
+    "ev-tail-10-c007",
+    "ev-tail-10-c011",
+    "ev-tail-10-c014",
+    "ev-tail-10-c015",
+    "ev-tail-10-c019",
+    "ev-tail-10-c022",
+    "ev-tail-10-c023",
+    "ev-tail-49-c000",
+    "ev-tail-49-c001",
+    "ev-tail-49-c002",
+    "ev-tail-49-c003",
+    "ev-tail-49-c004",
+    "ev-tail-49-c008"
+  ]
+}

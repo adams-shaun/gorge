@@ -104,8 +104,40 @@ jobs:
         box: [metal2, metal]
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
+      - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        if: runner.environment == 'self-hosted'
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         if: runner.environment == 'self-hosted'
         with:
@@ -119,9 +151,11 @@ jobs:
         if: runner.environment == 'self-hosted'
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
-          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}')
+          # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
+          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#A$//' | sort -u)
+          # ./dirac/oracle too: ci_shard.sh leaves it out, and dirac-repros compiled it itself (~100-170 s, 11-20).
           # shellcheck disable=SC2086
-          go test -exec /bin/true $pkgs >/dev/null
+          go test -exec /bin/true $pkgs ./dirac/oracle >/dev/null
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
@@ -130,7 +164,41 @@ jobs:
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && !startsWith(github.head_ref, 'hotfix/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        with:
+          fetch-depth: 0
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v5
@@ -178,12 +246,57 @@ jobs:
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Affected packages and their test importers
+        env:
+          CI_FAST_SKIP_KGEN: "1"
+          CI_FAST_SKIP_ORACLE_REPLAY: "1"
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
+    # A push to main whose tree a queue batch already passed (prior) skips lint: the batch ran it on this exact tree
+    # (measured 11-20: 49 main pushes in 13 h, each ~160 s of go vet + fresh-clone-check on a box runner).
+    needs: prior
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/') && !startsWith(github.head_ref, 'hotfix/') && 'gorge-pr' || 'gorge-box') || 'ubuntu-24.04' }}
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        with:
+          # The ratchet guard compares the branch's own head tree with the merge base.
+          fetch-depth: 0
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
+        with:
+          # The ratchet guard compares the branch's own head tree with the merge base.
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -195,6 +308,30 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-lint-${{ github.sha }}
           restore-keys: gocache-lint-
+      - name: Ratchets lower only post-merge
+        if: github.event_name == 'pull_request'
+        env:
+          # The daily bot branch and merge-queue branches are exempt (codeshape.GuardExempt); a
+          # fork's branch name is withheld so it cannot claim the exemption.
+          HEAD_REF: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || '' }}
+          # The PR's own tree. The checkout is the merge ref, which carries main's later operations.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: go run ./cmd/checkratchet "${{ github.event.pull_request.base.sha }}" "$HEAD_REF" "$HEAD_SHA"
+      - name: Merge the current main
+        # A pull request's checkout is the merge ref GitHub computed when the event fired; the job may start much later
+        # (gorge-pr queue wait p90 ~22 min, max ~40, 11-20), and the PR then waits in the Mergify queue. 11-20 #2514
+        # re-added map rows main already had: green alone, a duplicate key once merged, and a red batch. Merging the
+        # main of now before vet (which compiles every package and its tests) catches that class here. A conflict is
+        # left to Mergify, which reports it; the checks below then run on the merge ref as before.
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
+        run: |
+          git fetch -q origin "${{ github.event.pull_request.base.ref }}"
+          if git merge-base --is-ancestor FETCH_HEAD HEAD; then echo "the base has not moved since the merge ref"; exit 0; fi
+          if git -c user.email=ci@invalid -c user.name=ci merge -q --no-edit FETCH_HEAD; then
+            echo "merged the current base: $(git rev-parse --short FETCH_HEAD)"
+          else
+            git merge --abort; echo "::warning::conflicts with the current base; Mergify will report it"
+          fi
       - name: gofmt
         run: |
           out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
@@ -204,6 +341,9 @@ jobs:
       - name: generated types are current
         run: go run ./cmd/gentypes -check
       - name: A fresh clone builds, and dirac's tests skip without a corpus
+        # ~60 s per run. A pull request's own lint skips it (the Mergify batch runs it on the merged tree before
+        # anything lands); batches, main and the nightly keep it.
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
         run: make fresh-clone-check
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -221,7 +361,39 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3, 4, 5]
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -267,11 +439,17 @@ jobs:
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
+        env:
+          # Load is 55-90 on 32 threads with 6 runners x go -p=4 test binaries, each defaulting to GOMAXPROCS=32. The
+          # test budget is 4 vCPU per test (AGENTS.md). Measured 11-20 (8 batches before #2534, 15 after): the sum of
+          # per-package median times fell 4064 -> 2862 s, engine/rules 458 -> 242 s; only dirac and dirac/shadow grew.
+          GOMAXPROCS: "8"
         run: |
           # The nightly run takes every package, experimental ones included.
           # The nightly also holds dirac/docs/support.md and dirac/kgen's pins byte for byte; a PR or queue batch fails
           # only on a fall. Exact pins in a batch failed PRs each green alone: two +1s pinned 24642, the batch 24643 (11-17).
-          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1 DIRAC_SUPPORT_STRICT=1 DIRAC_PIN_STRICT=1; fi
+          # KGEN_NIGHTLY=1 runs dirac/kgen's single-P table build test, which costs a full corpus build.
+          if [ "${{ github.event_name }}" = schedule ]; then export CI_FULL=1 DIRAC_SUPPORT_STRICT=1 DIRAC_PIN_STRICT=1 KGEN_NIGHTLY=1; fi
           pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS")
           echo "$pkgs" | wc -l | xargs echo "packages:"
           count= tags=
@@ -280,12 +458,31 @@ jobs:
           if [ -z "$pkgs" ]; then echo "shard ${{ matrix.shard }} is empty"; exit 0; fi
           # dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, so go spent 190-300 s hashing those
           # files for a test-result cache that never hit in a batch (0 of 6), against ~112 s of tests (11-17).
+          # 11-20: kgen runs beside the shard's other packages, not after them. Serial, it added its ~224 s (median of
+          # the 11-20 batches) to shard 0's ~200 s of other packages, and shard 0 was the slowest shard; together the
+          # shard is bound by its single largest package instead. Its output goes to a file and is printed after.
+          # The packages in scripts/ci-splits.tsv are two entries each (ci_shard.sh): the package, minus its regex, and
+          # <package>#A, the regex (11-20 engine/rules, 11-21 testkit/conformance). The balancer places each; this step
+          # runs whichever it holds as a call of its own, beside the rest. kgen and the split calls log to files printed after.
           kgen=github.com/adams-shaun/gorge/dirac/kgen
-          rest=$(printf '%s\n' $pkgs | grep -vx "$kgen" || true)
-          if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest; fi
-          if printf '%s\n' $pkgs | grep -qx "$kgen"; then go test -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
+          pids=() logs=() rc=0 ex=(-e "$kgen")
+          solo() { local log=$1; shift; go test "$@" >"$log" 2>&1 & pids+=($!); logs+=("$log"); }
+          has() { printf '%s\n' $pkgs | grep -qx "$1"; }
+          if has "$kgen"; then solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
+          while IFS=$'\t' read -r sp rx; do
+            case $sp in '' | '#'*) continue ;; esac
+            ex+=(-e "$sp" -e "$sp#A"); n=${sp##*/}
+            if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|$rx" "$sp"; fi
+            if has "$sp#A"; then solo "$n-a-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
+          done <scripts/ci-splits.tsv
+          rest=$(printf '%s\n' $pkgs | grep -vx "${ex[@]}" || true)
+          if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest || rc=1; fi
+          for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
+          exit $rc
       - name: Golden chain heads
-        if: matrix.shard == 0
+        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 5 was the lightest
+        # (145-465 pkg-seconds) in the 11-20 batches. ci_shard.sh has no weight for this step, so pin it here.
+        if: matrix.shard == 5
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -333,7 +530,39 @@ jobs:
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -387,7 +616,39 @@ jobs:
       matrix:
         part: [0, 1, 2, 3, 4]
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -432,13 +693,45 @@ jobs:
   # dirac plays the committed slices of its FDN and BLB pools against gorge, on both
   # surfaces. A divergence, an unmodelled stall or a hang fails.
   # Not on a pull request's fast stage: it runs on every Mergify queue batch, on main,
-  # nightly and on demand. The whole of dirac/oracle runs every 6 hours in oracle.yml.
+  # nightly and on demand. The whole of dirac/oracle runs about every 2 hours in oracle.yml.
   dirac-slices:
     needs: [prior, prepare]
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -495,14 +788,6 @@ jobs:
           name: slices-summary
           path: slices-summary.json
           retention-days: 90
-      # 11-17: no batch ran a recorded repro (ci_shard.sh leaves dirac/oracle out, the oracle job is dispatch-only),
-      # so main went red four times on repros only a later pull request's fast stage replays: a stale refusal (Maze
-      # of Ith, Lotus Blossom), two halves of one fix (Sword Coast Serpent), and #832 drifting 18 recordings under
-      # #1138's skip guard. Replay every committed repro here, about 3 min at 4 cores.
-      - name: Replay the committed repros
-        # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
-        # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
-        run: go test -timeout 12m -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
@@ -510,13 +795,214 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-dirac-slices-${{ github.sha }}
 
+  # The committed repro replays, split out of dirac-slices (11-20): the two ran serially on one runner (slices and
+  # pods ~3-5 min, then the replays ~4 min) and that job set every batch's wall time, 385-975 s after prepare against
+  # a slowest test shard of ~350 s. Same trigger, same tree, same tables; it now runs beside dirac-slices.
+  dirac-repros:
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    # Two parts (11-20): alone, the replay was 326-335 s of tests plus ~100-170 s compiling ./dirac/oracle, and it set
+    # the batch's wall time (#2711's first batches: 441-519 s against dirac-slices' 204-223 s).
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1]
+    steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
+      - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
+      - name: Restore the corpus
+        id: corpus
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: |
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
+      - name: Stable mtimes for the Go test cache
+        run: bash scripts/ci-stable-mtimes.sh .
+      # 11-17: no batch ran a recorded repro (ci_shard.sh leaves dirac/oracle out, the oracle job is dispatch-only),
+      # so main went red four times on repros only a later pull request's fast stage replays: a stale refusal (Maze
+      # of Ith, Lotus Blossom), two halves of one fix (Sword Coast Serpent), and #832 drifting 18 recordings under
+      # #1138's skip guard. Replay every committed repro here, about 3 min at 4 cores.
+      - name: Replay the committed repros
+        # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
+        # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
+        # The part's half of the listed names, round robin over their sorted order; together the parts run exactly the
+        # tests the one call did (-list matches top-level names as -run does; their subtests all run).
+        env:
+          PART: ${{ matrix.part }}
+        run: |
+          names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle | grep -E '^Test' | sort)
+          [ -n "$names" ] || { echo "go test -list found no repro tests"; exit 1; }
+          rx=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names" | paste -sd'|')
+          echo "part $PART: $(wc -w <<<"${rx//|/ }") of $(wc -l <<<"$names") tests"
+          go test -timeout 12m -run "^($rx)\$" ./dirac/oracle
+
   # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
   # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships
   # with the repo: this plays committed slices and synthetic decks, and the shard script fails on
   # any skip other than the pool-only tests it lists. A pull request saves no cache, so the test
   # result cache never answers for a shard.
+  # G1 (11-23): a fixed set of oracle tests in every batch, beside dirac-repros (see sentinels.txt).
+  oracle-sentinels:
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
+      - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
+      - name: Restore the corpus
+        id: corpus
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: |
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
+      - name: Stable mtimes for the Go test cache
+        run: bash scripts/ci-stable-mtimes.sh .
+      # G1 (11-23): the oracle runs whole only on main, and four PRs that passed their batches reddened it. These
+      # are the tests named in dirac/oracle/testdata/sentinels.txt (four-seat deck and pod lockstep, and every test
+      # that has reddened main's oracle); TestSentinelsExist keeps the list honest.
+      - name: Run the oracle sentinels
+        run: |
+          names=$(grep -vE '^[[:space:]]*(#|$)' dirac/oracle/testdata/sentinels.txt | sed 's/[[:space:]]*#.*//; s/[[:space:]]*$//' | sort -u)
+          [ -n "$names" ] || { echo "sentinels.txt names no tests"; exit 1; }
+          rx=$(paste -sd'|' <<<"$names")
+          want=$(wc -l <<<"$names")
+          echo "$want sentinels"
+          # A sentinel that skips (no corpus, no tables) or never runs must not read green: every name must print --- PASS.
+          go test -v -timeout 15m -run "^($rx)\$" ./dirac/oracle 2>&1 | tee sentinels.log
+          rc=${PIPESTATUS[0]}
+          [ "$rc" -eq 0 ] || exit "$rc"
+          got=$(grep -c '^--- PASS: ' sentinels.log || true)
+          if [ "$got" -lt "$want" ]; then
+            echo "::error::oracle-sentinels: $want sentinels named, only $got passed (missing corpus or tables, a skip, or a name that matches nothing)"
+            grep -E '^--- SKIP: ' sentinels.log || true
+            exit 1
+          fi
+
   oracle:
-    # On demand only here: the whole oracle runs every 6 hours in oracle.yml (operator 11-17), never on a pull
+    # On demand only here: the whole oracle runs about every 2 hours in oracle.yml (operator 11-17), never on a pull
     # request or a queue batch; dirac-slices covers those.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
@@ -650,23 +1136,23 @@ jobs:
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [prior, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, oracle]
+    needs: [prior, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, dirac-repros, oracle-sentinels, oracle]
     runs-on: ubuntu-24.04
     steps:
       - run: |
           # A push to main whose tree a queue batch or pull request passed (prior) skips the heavy jobs.
-          heavy=success fast=skipped
-          if [ "${{ needs.prior.outputs.passed }}" = true ]; then heavy=skipped; fi
+          heavy=success fast=skipped lint=success
+          if [ "${{ needs.prior.outputs.passed }}" = true ]; then heavy=skipped lint=skipped; fi
           # Two-step CI: a pull request (not a Mergify queue batch) runs the fast stage instead of the heavy jobs.
           if [ "${{ github.event_name }}" = pull_request ] && [ "${{ startsWith(github.head_ref, 'mergify/merge-queue/') }}" != true ]; then heavy=skipped fast=success; fi
-          # oracle runs on demand only (every 6 hours in oracle.yml); dirac-slices runs everywhere.
+          # oracle runs on demand only (about every 2 hours in oracle.yml); dirac-slices runs everywhere.
           # The nightly wire chunks are schedule-only, like the step they replaced.
           oracle=skipped slices=$heavy nightly=skipped
           case "${{ github.event_name }}" in
             workflow_dispatch) oracle=success ;;
             schedule) nightly=success ;;
           esac
-          [ "${{ needs.lint.result }}" = success ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
+          [ "${{ needs.lint.result }}" = "$lint" ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.dirac-repros.result }}" = "$slices" ] && [ "${{ needs.oracle-sentinels.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} dirac-repros=${{ needs.dirac-repros.result }} oracle-sentinels=${{ needs.oracle-sentinels.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
       # A pull request or queue batch that passed records the tree it passed, so the push that merges it can skip a rerun
       # (prior, above). Best effort: a failure here only means that push runs everything.
       - name: Read the tree this pull request passed

@@ -28,17 +28,20 @@ func init() {
 
 func (ic *instrCtx) opChooseColorRes() error {
 	ki := &ic.ki
-	// (Skrelv) OpExt ExtChooseColorRes
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes))
+	// (Skrelv) OpExt ExtChooseColorRes; C = 1 the no-ask white answer of
+	// OrColors$ (lower_choosecolor.go chooseColorOrColors)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes)), int16(ic.in.C)
 	return nil
 }
 
 func (ic *instrCtx) opVote() error {
 	ki := &ic.ki
 	in := &ic.in
-	// OpExt ExtVote, F the ballot (battlefield permanents), C bit 0
-	// exile the most-voted
-	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C&1)
+	// OpExt ExtVote, F the card ballot (battlefield permanents), C bit 0
+	// exile the most-voted; the fixed list packs mode bit 1, the choice
+	// count in bits 2..4 and the tie branch in bit 5 (lower_vote.go,
+	// dirac/act_vote.go)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtVote)), int16(in.C)
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
 	}
@@ -50,7 +53,7 @@ func (ic *instrCtx) opChoosePlayerRes() error {
 	in := &ic.in
 	// OpExt ExtChoosePlayerRes, C bit 0 the Player.!IsRemembered pool
 	// (act_chooseplayerres.go)
-	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&kop.ChoosePlayerFresh)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerRes)), int16(in.C&(kop.ChoosePlayerFresh|kop.ChoosePlayerForget))
 	return nil
 }
 
@@ -65,10 +68,14 @@ func (ic *instrCtx) opChoosePlayer() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op = kop.OpChoosePlayer
-	if in.CS != "Random" {
+	switch in.CS {
+	case "Random":
+		ki.C = kop.ChPlRandom
+	case "RandomOpp":
+		ki.C = kop.ChPlRandom | kop.ChPlPlain
+	default:
 		return fmt.Errorf("ChoosePlayer build %q", in.CS)
 	}
-	ki.C = kop.ChPlRandom
 	return nil
 }
 
@@ -83,6 +90,21 @@ func (ic *instrCtx) opChooseType() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.C = kop.OpChooseType, int16(in.C) // C: a card-type category's offered types (lower_choosetype.go)
+	if in.C == 0 && in.B.N == kop.ChooseTypeBasicLand {
+		// the answer is a pool subtype index (basicLandAnswer): all five basic
+		// land types must be in the pool table
+		if _, err := ic.cb.subIndexes(basicLandChoice); err != nil {
+			return err
+		}
+	}
+	if in.B.N == kop.ChooseTypeRandomDeck {
+		// the no-ask fallback records "Human" when the resolving controller
+		// controls no creature (gorge creatureTypeFallback): the word must be
+		// in the pool table, or the kernel could not name the answer
+		if _, err := ic.cb.subIndexes([]string{"Human"}); err != nil {
+			return fmt.Errorf("ChooseType random-deck fallback: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -112,7 +134,7 @@ func (ic *instrCtx) opChoosePlayerEnter() error {
 func (ic *instrCtx) opChoosePlayerMid() error {
 	ki := &ic.ki
 	// a mid-resolution opponent choice (lower_chooseplayermid.go)
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid))
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid)), int16(ic.in.C&kop.ChoosePlayerMidHigh)
 	return nil
 }
 

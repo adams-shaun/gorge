@@ -204,6 +204,12 @@ var predicates = map[string]predFn{
 	"phasedOutOther": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		return src != 0 && o.ID != src && o.PhasedOut && o.Zone == state.ZBattlefield
 	},
+	// phasedOutSelf is the source itself while it is phased out (Teferi's Imp's
+	// and Ertai's Familiar's `Card.phasedOutSelf`: the "whenever ~ phases out"
+	// look-back, CR 702.26b). An unbound source (id 0) matches nothing.
+	"phasedOutSelf": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		return src != 0 && o.ID == src && o.PhasedOut && o.Zone == state.ZBattlefield
+	},
 	// phasedOutPermanent is Forge's phasedOut prefix over Permanent (Disciple
 	// of Caelus Nin's `Card.phasedOutPermanent`): every phased-out
 	// battlefield object is a permanent, so it reads exactly as phasedOut.
@@ -519,7 +525,8 @@ var predicates = map[string]predFn{
 	// FlagTeamworkPaid and survives later CastInfo events and the
 	// stack->battlefield move, so it reads on the spell during resolution
 	// (Timeline Inquiry's ConditionPresent$ Card.Self+Teamwork) and on the
-	// permanent at its ETB. Absent a paid tap it fails closed to false.
+	// permanent at its ETB. Absent a paid tap, or on a copy (never cast,
+	// CR 707.10), it fails closed to false.
 	"Teamwork": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.TeamworkPaid
 	},
@@ -2705,8 +2712,8 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	}
 	// Colour predicates must use the layer-5 derived colours when rules
 	// supplies them: the map's legacy colour functions carry no SpecContext,
-	// so with a table bound they fall through to the word path below.
-	if fn, ok := predicates[p]; ok && !((len(sc.Layers.DerivedColors) != 0 || splitReadAsSpell(o, &sc) || sc.AsPrototype) && colourMapPredicate(p)) {
+	// so a table bound (or the AsFaceDown entry, CR 708.2a) takes the word path.
+	if fn, ok := predicates[p]; ok && !colourMapSkip(p, o, &sc) {
 		return fn(g, o, sc.You, predicateSource(p, &sc)), true
 	}
 	if res, ok := numericPred(p, g, o, sc); ok {
@@ -3310,12 +3317,14 @@ func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecConte
 	// here to the one object that actually carries a change.
 	cs := compiledSpecFor(spec)
 	// A split card read as the spell being cast (splitReadAsSpell) is the
-	// same kind of override: the programs read its combined colours.
+	// same kind of override: the programs read its combined colours. The
+	// AsFaceDown entry override is another: the programs' colour terms read
+	// the printed face, which a face-down entry does not have (CR 708.2a).
 	// A ceased copy is left to compiledMatch's rejection; the programs have no
 	// such check.
 	if ps := sc.PredicatePrograms; ps != nil && !copyCeased(o, sc) && !hasEffectiveNamePtr(o, sc) && !hasDerivedTypeEntryPtr(o, sc) &&
 		(len(sc.Layers.DerivedColors) == 0 || !hasDerivedColorEntryPtr(o, sc)) && !splitReadAsSpell(o, sc) &&
-		!sc.AsPrototype {
+		!sc.AsPrototype && !sc.AsFaceDown {
 		switch ps.evaluateCS(cs, spec, g, o, sc) {
 		case PredicateYes:
 			return true
@@ -3588,12 +3597,23 @@ func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecC
 	if o == nil {
 		return false
 	}
-	if o.Controller != e.Controller {
-		lki := *o
-		lki.Controller = e.Controller
-		o = &lki
-	}
-	return matchesZoneSpecObj(g, spec, o, sc, e.To)
+	// CR 700.9 with CR 400.7 on a battlefield departure: Forge keeps the
+	// moved card's latest state with each per-add entry (GameAction's
+	// lastKnownInfo, "the modified state of the card is also reported
+	// here"), an LKI copy that carries the counters but no attachment
+	// lists. The entry's LeftCounters is that read -- nil is "it carried
+	// none", not "read the object" -- so the LKI copy is unconditional in
+	// this branch: the ordinary matcher answers its counter predicates from
+	// the counters the permanent had on the battlefield, and a permanent
+	// that was not modified when it died is not modified however many
+	// counters a persist or undying return has since added to the
+	// re-entered permanent (Intermediate Chirography's level-3 end-step
+	// condition). Every other field keeps the object's current state, as
+	// before.
+	lki := *o
+	lki.Controller = e.Controller
+	lki.Counters = e.LeftCounters
+	return matchesZoneSpecObj(g, spec, &lki, sc, e.To)
 }
 
 // matchesZoneSpecText is matchesZoneSpecCtx's textual oracle for a

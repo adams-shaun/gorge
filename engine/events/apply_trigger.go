@@ -167,6 +167,7 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 	casualty := false
 	demonstrate := false
 	storm := false
+	ripple := false
 	flanking := false
 	gift := e.Counter == "GiftAbility"
 	melee := e.Counter == "__kwMeleeGranted"
@@ -288,6 +289,25 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 		if _, ok := strings.CutPrefix(e.Counter, "__kwStorm:"); ok {
 			sa = StormGrantedBody()
 			storm = ok
+		}
+		// A granted Ripple (rules.pushTrigger's __kwRippleGranted:<line>
+		// payload, the whole derived keyword line) is the Storm shape:
+		// rebuilt structurally into the printed K:Ripple expansion's body
+		// (engine/cards/kw_ripple.go), the reveal count riding Num$ and the
+		// triggering spell Remembered (IDs). The "Granted" suffix and the
+		// trailing colon keep the payload from aliasing the "__kwRipple:4"
+		// SVar a printed K:Ripple:4 line mints (the Exploit/Offspring
+		// rule). The count is the line's parameter (rippleGrantedNum); a
+		// line this build cannot price mints a Num$ 0 body, which the
+		// DB$ Ripple effect no-ops (the documented Num degrade-to-zero
+		// convention, never a guessed count).
+		if rest, ok := strings.CutPrefix(e.Counter, "__kwRippleGranted:"); ok {
+			sa = &cards.SA{Kind: "DB", API: "Ripple",
+				Params: map[string]string{"Num": "0"}}
+			if n, ok := rippleGrantedNum(rest); ok {
+				sa.Params["Num"] = strconv.Itoa(n)
+			}
+			ripple = true
 		}
 		// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 		// no SVar either: rebuilt structurally into the DB$ Cascade body
@@ -451,9 +471,24 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 	if !gift && keywordTriggerBindsSource(e.Counter, sa) {
 		o.SourceIncarnation = incarnation
 	}
-	if conspire || casualty || demonstrate || storm || flanking || melee || exalted || cipher || gift {
+	if conspire || casualty || demonstrate || storm || ripple || flanking || melee || exalted || cipher || gift {
 		o.Remembered = rememberedFrom(e.IDs)
 	}
+}
+
+// rippleGrantedNum reads the reveal count off a granted ripple keyword line
+// ("Ripple:4" -> 4): the text after the line's colon, trimmed, a positive
+// integer or nothing.
+func rippleGrantedNum(line string) (int, bool) {
+	if j := strings.IndexByte(line, ':'); j >= 0 {
+		line = line[j+1:]
+	}
+	line = strings.TrimSpace(line)
+	n, err := strconv.Atoi(line)
+	if err != nil || n <= 0 {
+		return 0, false
+	}
+	return n, true
 }
 
 // foldKeywordAbilityPush folds Kind KeywordAbilityPush into state.

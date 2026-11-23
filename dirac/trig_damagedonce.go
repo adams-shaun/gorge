@@ -12,11 +12,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // referent's first matching event, with the batch total of the matching
 // events to that referent; trigger_match.go damageBatchKey).
 //
-// Only a combat damage step and ExtEachDamage (dealHitsToOne) coalesce: every
-// other noncombat batch hits each referent at most once (DamageAll, a damage
-// map, a fight's two hits, a replacement-mediated sequence deal one event per
-// distinct recipient), so there a line is its own batch of one and queues on
-// the event's amount. The step's latch is the stack-local refLatch (no State);
+// A combat damage step, ExtEachDamage (dealHitsToOne) and a damage map
+// (damageBatch's pass, which latches on its entries) coalesce: every other
+// noncombat batch hits each referent at most once (DamageAll, a fight's two
+// hits, a replacement-mediated sequence deal one event per distinct
+// recipient), so there a line is its own batch of one and queues on the
+// event's amount. The step's latch is the stack-local refLatch (no State);
 // the batch total is a forward scan of the step's events, so the instance is
 // queued at the first event, in gorge's order, with gorge's closed amount.
 
@@ -125,7 +126,7 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 		return amt, srcObj, s.dmgSeat(rcp, srcCtrl), true
 	}
 	total := int(amt)
-	if rl != nil && rl.r != nil {
+	if rl != nil && (rl.r != nil || rl.only) {
 		for i := 0; i < rl.n; i++ {
 			// an entry of an earlier event: the referent's first event queued
 			// (or failed the gate) already. The copies of one granted line
@@ -144,11 +145,21 @@ func (s *State) ddoLine(k *prep, l trigListener, a *kop.Ability, src Slot, srcOb
 		if DebugRefLatchN != nil {
 			DebugRefLatchN(rl.n)
 		}
-		if !DebugDdoNoLatch {
+		if rl.r == nil {
+			// damageBatch's pass: a damage map can hit one referent twice
+			// (Orcish Cannonade aimed at its own caster), and gorge queues the
+			// line once at the first such entry with the batch's total to it.
+			total = 0
+			for j, c := range rl.codes {
+				if c == rcp && rl.dn[j] > 0 {
+					total += int(rl.dn[j])
+				}
+			}
+		} else if !DebugDdoNoLatch {
 			total = 0
 			for i := 0; i < rl.r.nev; i++ {
 				ev := &rl.r.ev[i]
-				if ev.n <= 0 || !s.sameReferent(rl.r, ev, rcp) || !s.objEventMatch(k, l, a, ev.src) {
+				if ev.n <= 0 || !s.sameReferent(k, ev, rcp) || !s.objEventMatch(k, l, a, ev.src) {
 					continue
 				}
 				total += int(ev.n)
@@ -183,10 +194,12 @@ func (s *State) ddoRecipient(k *prep, l trigListener, t *kop.Trigger, srcObj Obj
 }
 
 // sameReferent: combat event ev lands on the referent rcp names.
-func (s *State) sameReferent(r *dmgRec, ev *dmgEv, rcp TCode) bool {
+func (s *State) sameReferent(k *prep, ev *dmgEv, rcp TCode) bool {
 	if ev.dst == NoSlot {
+		// the same player: at four seats creatures can hit different players
+		// in one step, each its own batch (CR 603.2c)
 		_, ok := recipientPlayer(rcp)
-		return ok
+		return ok && s.combatRcp(k, ev) == rcp
 	}
 	return isObjTarget(rcp) && s.perms[ev.dst].obj == Obj(rcp)
 }
@@ -219,6 +232,7 @@ func (s *State) fireDamageRefs(k *prep, codes []TCode, dn []int16) {
 		if dn[i] <= 0 {
 			continue
 		}
+		rl.at = uint8(i + 1) // the entry being fired: ddoLine's per-referent latch key
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamageEvGen(k, sl, dn[i], isPlayerOrNone(code), false, nil, code, &rl)
 		} else if s.res.e.obj != NoObj {

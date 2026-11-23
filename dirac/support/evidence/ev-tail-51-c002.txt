@@ -94,6 +94,7 @@ Dross Hopper
 Dross Ripper
 Drowsing Tyrannodon
 Dungeon Shade
+Dwarven Mine
 Early Frost
 Echoes of the Kin Tree
 Eddytrail Hawk
@@ -108,12 +109,14 @@ Emerald Dragonfly
 Emissary of Hope
 Epic Proportions
 Equestrian Skill
+Erhnam Djinn
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Ertai Resurrected
 Essence Extraction
 Eternal Isolation
 Evasive Action
+Eviscerator's Insight
 Evolution Charm
 Excoriate
 Eyeblight Massacre
@@ -132,6 +135,7 @@ Gemhide Sliver
 General Thunderbolt Ross
 Generous Pup
 Giant Ox
+Gibbering Kami
 Gideon's Battle Cry
 Gift of Growth
 Gilded Assault Cart
@@ -153,6 +157,7 @@ Guild Thief
 Gut Shot
 Guul Draz Overseer
 Gyre Sage
+Halimar Depths
 Halo Hunter
 Havoc
 Headless Skaab
@@ -169,6 +174,7 @@ Hill Giant
 Horncaller's Chant
 Hound Tamer
 Hulking Ogre
+Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
 Impetuous Protege
@@ -280,12 +286,12 @@ Pygmy Pyrosaur
 Quick-Draw Dagger
 Rabid Wolverines
 Radiant Grove
-Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Ravages of War
 Raven Wings
 Ravenous Sailback
+Rayne, Academy Chancellor
 Regent's Authority
 Reject
 Rejuvenating Springs
@@ -424,6 +430,7 @@ Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul
 Weldfast Engineer
+Wickerbough Elder
 Wight
 Wild Growth
 Wolfrider's Saddle

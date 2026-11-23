@@ -13,9 +13,11 @@ import (
 // here: hasRealCounters) and then the players with one (poison, energy);
 // each chosen recipient gets +1 of each kind it has, and the completed
 // action fires "whenever you proliferate" (events.Proliferate) even when
-// nothing was eligible. The kernel applies each pick as it is answered
-// (gorge applies the whole answer at its commit: the oracle compares at
-// gorge's commit boundaries) and keeps the picks in res.arr then res.peek.
+// nothing was eligible. The kernel keeps the picks in res.arr then res.peek and applies them, in
+// answer order, when the ask closes (gorge applies the whole answer at its
+// commit, effects/counters.go applyProliferate): a placement that holds a CR
+// 616.1 counter-order ask (a doubler beside a plus-N, repl_ctrorder.go) parks
+// there, and the cursor (res.peekI the pick, res.topN the held kind) resumes it.
 // res.left counts the actions still owed. gorge emits one event per kind in
 // the recipient's insertion order while the kernel walks kinds ascending:
 // a recipient with two kinds a counter-added trigger hears stalls
@@ -77,8 +79,16 @@ func (s *State) prolifOptions(k *prep, d *Decision) {
 	d.add(MakeAction(AkDone, 0, 0, 0))
 }
 
+// prolifApplying marks res.restSel while the picks are being applied (the
+// scry rest-phase byte is unused by a proliferate): the op re-run after a
+// counter-order answer resumes the cursor instead of starting afresh.
+const prolifApplying = 0xa5
+
 // proliferate is OpProliferate; false: suspended on the pick.
 func (s *State) proliferate(k *prep, in *kop.Instr) bool {
+	if s.res.restSel == prolifApplying {
+		return s.prolifResume(k) // the order ask was answered
+	}
 	n := s.value(k, in.A)
 	if n <= 0 {
 		return true
@@ -91,7 +101,7 @@ func (s *State) proliferate(k *prep, in *kop.Instr) bool {
 func (s *State) prolifNext(k *prep) bool {
 	r := &s.res
 	for r.left > 0 {
-		r.peekN = 0
+		r.peekN, r.peekI, r.topN = 0, 0, 0
 		var d Decision
 		s.prolifOptions(k, &d)
 		if d.N > 1 {
@@ -109,7 +119,8 @@ func (s *State) prolifDone(k *prep) {
 	s.fireProliferate(k, s.res.e.ctrl)
 }
 
-// answerProlif applies one pick (or Done) of the proliferate ask.
+// answerProlif records one pick (or Done) of the proliferate ask; Done, or
+// the last pick, applies them all.
 func (s *State) answerProlif(k *prep, a Action) {
 	r := &s.res
 	if a.Kind() != AkDone {
@@ -124,7 +135,6 @@ func (s *State) answerProlif(k *prep, a Action) {
 			}
 			r.peekN++
 		}
-		s.prolifApply(k, TCode(o))
 		var d Decision
 		s.prolifOptions(k, &d)
 		if d.N > 1 {
@@ -132,14 +142,50 @@ func (s *State) answerProlif(k *prep, a Action) {
 		}
 	}
 	r.ask = raNone
-	s.prolifDone(k)
-	if s.prolifNext(k) {
+	r.restSel = prolifApplying
+	if !s.prolifApplyAll(k) {
+		s.ctl = ctlResolve // parked on the counter-order ask
+		return
+	}
+	if s.prolifFinish(k) {
 		s.continueRes(k, 0)
 	}
 }
 
-// prolifApply gives recipient o another counter of each kind it has.
-func (s *State) prolifApply(k *prep, o TCode) {
+// prolifResume runs the op again after a counter-order answer: false when it
+// asks again or the next owed action asks.
+func (s *State) prolifResume(k *prep) bool {
+	if !s.prolifApplyAll(k) {
+		return false
+	}
+	return s.prolifFinish(k)
+}
+
+// prolifFinish ends the applied action and starts the next owed one: false
+// when that one asks.
+func (s *State) prolifFinish(k *prep) bool {
+	s.res.restSel, s.res.peekI, s.res.topN = 0, 0, 0
+	s.prolifDone(k)
+	return s.prolifNext(k)
+}
+
+// prolifApplyAll applies the picks from the cursor on; false: parked on a
+// counter-order ask.
+func (s *State) prolifApplyAll(k *prep) bool {
+	r := &s.res
+	for r.peekI < r.peekN {
+		if !s.prolifApply(k, s.prolifPick(int(r.peekI))) {
+			return false
+		}
+		r.peekI++
+		r.topN = 0
+	}
+	return true
+}
+
+// prolifApply gives recipient o another counter of each kind it has; false:
+// parked on the CR 616.1 order ask of one placement (cursor res.topN).
+func (s *State) prolifApply(k *prep, o TCode) bool {
 	if isPlayerOrNone(o) {
 		p := CodeSeat(o)
 		if s.g.poison[p] > 0 {
@@ -157,26 +203,33 @@ func (s *State) prolifApply(k *prep, o TCode) {
 		if s.Rad(p) > 0 {
 			s.addRad(k, p, 1) // act_radiation.go
 		}
-		return
+		return true
 	}
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
-		return
+		return true
 	}
 	sl := ob.slot
-	if s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
+	if s.res.topN == 0 && s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
 		s.capFull(StallProlif)
 	}
 	// bolsterPut puts counters of kind c only, so the kinds held stay the list's
 	var held ctrHeld
-	for _, c := range held[:s.perms[sl].heldKinds(s, &held)] {
+	kinds := held[:s.perms[sl].heldKinds(s, &held)]
+	for j := int(s.res.topN); j < len(kinds); j++ {
+		c := kinds[j]
 		if !kop.IsCounterKind(int(c)) {
 			continue // CtrLevel is no counter (kw_class.go)
 		}
 		if s.perms[sl].ctrN(s, int(c)) > 0 {
+			if k.gen != nil && s.ctrOrderPark(k, sl, int(c), 1) {
+				s.res.topN = uint8(j)
+				return false // the order ask; this placement runs again once it is answered
+			}
 			s.bolsterPut(k, sl, int(c), 1)
 		}
 	}
+	return true
 }
 
 // prolifOrderObservable reports whether the per-kind order of proliferating

@@ -150,17 +150,11 @@ func TestStdDskReprosLockstep(t *testing.T) {
 	stdReprosGlob(t, "std-dsk")
 }
 
-// The same, on the pools the games came from.
-func TestStdPoolReprosLockstep(t *testing.T) {
-	t.Parallel()
-	stdReprosGlobPools(t, "std-msh", "std-fra", "std-fin", "std-tla", "std-mkm", "std-dsk")
-}
-
-// The same, for scripts recorded on the full option surface.
-func TestStdPoolReprosLockstepFull(t *testing.T) {
-	t.Parallel()
-	stdReprosGlobPools(t, "std-tla", "std-lci", "std-fin", "std-ecl", "std-mkm", "std-otj", "std-hob", "std-woe", "std-tdm")
-}
+// No multi-pool alias replays these pools again: TestStdPoolReprosLockstep and TestStdPoolReprosLockstepFull
+// were deleted on 11-22 as duplicates by construction (invariant 7.1). Since 99a3ae2038 (11-11) they globbed by
+// pool the same recordings, with the same registry and the same per-pool table, as each set's own test above
+// (TestStdMshReprosLockstep, TestStdFraReprosLockstep, ... TestStdTdmReprosLockstep), so each of 12 sets' games
+// played twice in every gate, batch and precheck.
 
 // replayRepro plays a fixture's script in lockstep and 200 decisions past it.
 func replayRepro(t *testing.T, reg *cards.Registry, set cardset.Set, name string, autopay, stall bool) {

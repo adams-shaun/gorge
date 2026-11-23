@@ -1,0 +1,10 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Forest
+1	card	Grizzly Bears
+2	card	Insubordination
+3	card	Island
+4	card	Mountain
+5	card	Swamp
+6	card	The Rani
+7	token	c_a_clue_draw
+8	token	mark_of_the_rani

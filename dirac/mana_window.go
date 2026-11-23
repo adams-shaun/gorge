@@ -145,7 +145,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 			return true
 		}
 	}
-	return s.handManaAny(k, e.ctrl) // a hand guide (mana_handguide.go)
+	return s.handManaAny(k, e.ctrl) || s.graveManaAny(k, e.ctrl) // a hand guide, a graveyard source (mana_handguide.go, mana_gravemana.go)
 }
 
 // restrManaUntapped: sl is an untapped permanent with a restricted mana ability.
@@ -292,6 +292,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			if !census && s.windowHandMana(k, p, useful, clamp, anyColor) {
 				continue // a hand guide, listed after every battlefield source (mana_handguide.go); the unless census prices none (unlessWindowUnits)
 			}
+			if !census && s.windowGraveMana(k, p, useful, clamp, anyColor) {
+				continue // a graveyard source, listed last (mana_gravemana.go)
+			}
 			return false, held
 		}
 		if gap {
@@ -302,11 +305,14 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
+		if s.splitWinColArm(k, sl, census, potential) {
+			return true, held
+		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
-		if s.payWinHybFilt(k, p, sl, noOwed && !clamp && !anyColor && !potential) {
-			continue // payWindow: a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
+		if s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) {
+			continue // a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
 		}
 		if payAsk && clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
 			// the clamp kept the source for a filter beside a plain ability: the
@@ -393,10 +399,19 @@ func (s *State) windowGapArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCo
 		return false, false
 	}
 	if k.gen.anyFiltFirst && k.gen.has(s.cardAt(sl), gfFilt) && s.filtFirstOnly(k, sl) {
+		before := s.pl[SeatIx(p)].pool
 		if noOwed && clamp {
 			s.windowFiltFirstFallback(k, p, sl, useful) // mana_filterfirst.go
 		} else {
 			s.windowFiltFirst(k, p, sl, useful, noOwed && !clamp) // mana_filterfirst.go
+		}
+		// A repeatable fee-only filter (Bog Initiate's "{1}: Add {B}") neither taps nor
+		// marks a use (filtUse), so an activation that pays its fee from the colour it
+		// makes returns the pool as it found it and windowPick lists the same source
+		// again: the walk is at a fixed point and no later pick can settle the cost.
+		// The walk fails there (the filter payment search, filtPay, prices the exact plan).
+		if s.filtRepeat(k, sl) && s.pl[SeatIx(p)].pool == before {
+			return false, true
 		}
 		return false, false
 	}
@@ -472,11 +487,30 @@ func (s *State) restrPoolAdmits(k *prep, p uint8) uint8 {
 // windowClampSkip: the clamp reads the colours of each ability the source
 // offers (gorge paymentSourceUseful): a counter-cost ability's colour keeps
 // the source listed (windowCtrOffer), though the window's answer still takes
-// the source's plain first one (windowCol). Reports whether windowPick may
-// skip the source without offering it.
+// the source's plain first one (windowCol). A reflected ability is never
+// priced by that clamp at all (windowReflUseful): gorge's paymentSourceUseful
+// reads its AnnouncedAbilityColours, which returns nothing for an ability
+// whose API is not Mana (Chrome Mox's ManaReflected), and fails open on the
+// empty list. The reflected colours are the census's business
+// (paymentPlanReflectedAlt; the kernel's planner view), not the window
+// listing's. Reports whether windowPick may skip the source without offering
+// it.
 func (s *State) windowClampSkip(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
 	return decided && (s.windowSrcMask(k, o)|s.windowEachMask(k, o))&want == 0 && !s.windowFiltUseful(k, p, o, want) &&
-		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want)
+		!s.windowRestrUseful(k, o, want) && !s.windowCtrOffer(k, p, o, decided, want) && !s.windowTapXSecondUseful(k, p, o, want) &&
+		!s.windowReflUseful(k, o)
+}
+
+// windowReflUseful: sl's card carries a reflected mana ability (a kop
+// AfManaReflect one: Chrome Mox's "{T}: Add one mana of any of the exiled
+// card's colors", Reflecting Pool's ColorOrType$ Type). gorge's window clamp
+// prices none of its colours (paymentSourceUseful's AnnouncedAbilityColours
+// and fixedProductionColours both read an API Mana ability, which the
+// ManaReflected one is not) and fails open, so the source stays listed
+// whatever the cost still owes; a view with no live reflected colours makes
+// no mana and windowSourceUsable refuses it before the clamp runs.
+func (s *State) windowReflUseful(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.flags[s.cardAt(sl)]&gfManaRefl != 0
 }
 
 // windowPick is the window's next source among order (p's battlefield, in
@@ -517,6 +551,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if census && s.ctrCensusOffer(k, p, o) {
 			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
 		}
+		if _, ok := s.windowSacTapOwed(k, p, o, useful); ok {
+			return o, true // the source's owed later sac-tap ability: the window's answer takes it (mana_sactapwin.go)
+		}
 		if s.windowSourceUsable(k, o, p) {
 			if !takeDeferred && s.planDeferred(k, p, o) && !s.blgIntrinsicUnit(k, o) {
 				continue // the window's answer follows the planner's tier: gorge's bot never picks a deferred source (mana_tapsdefer.go); a granted basic land type's intrinsic unit is the exception (blgIntrinsicUnit)
@@ -529,7 +566,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if (s.g.winMode != winNone || s.castTapX(k)) && s.windowTapXOffer(k, p, o, decided, want) {
 			return o, true // a tap-another source (mana_windowtapx.go)
 		}
-		if s.windowCtrOffer(k, p, o, decided, want) {
+		if s.windowCtrOfferFor(k, p, o, decided, want, census) {
 			return o, true // a counter-cost source (mana_countercost.go)
 		}
 		if tapsDef.has(o) {
@@ -559,7 +596,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, true
 		}
-		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && (!clamp && !DebugWinFeeStallsAlways || !s.windowFeeStalls(k, p, o, useful, anyColor)) {
+		if s.windowFiltPick(k, p, o, decided, want, clamp, useful, anyColor) {
 			return o, true
 		}
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
@@ -567,6 +604,25 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowFiltPick: windowPick lists the filter-first source o. It must be
+// usable and useful to the clamp, and a repeatable fee-only filter that cannot
+// bring the owed cost closer to paid (windowFeeStalls) stays off the list.
+// Only an unclamped cast window outside a trigger's own cost window skips that
+// check; the trigger window is checked too, as gorge's
+// windowOnlyStallingConverters does.
+func (s *State) windowFiltPick(k *prep, p uint8, o Slot, decided bool, want uint8, clamp bool, useful *kop.ManaCost, anyColor bool) bool {
+	if k.gen == nil || !k.gen.anyFiltFirst || !s.windowFiltFirstUsable(k, p, o) {
+		return false
+	}
+	if decided && !s.windowFiltUseful(k, p, o, want) {
+		return false
+	}
+	if !clamp && s.g.winMode != winTrig && !DebugWinFeeStallsAlways {
+		return true
+	}
+	return !s.windowFeeStalls(k, p, o, useful, anyColor)
 }
 
 // windowSourceUsable: the manual window's pick may take sl now — a tap, a
@@ -630,7 +686,14 @@ func (s *State) windowCanTap(k *prep, sl Slot) bool {
 	} else {
 		pc = s.windowGrantPC(k, sl)
 	}
-	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) {
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) && s.g.winMode != winTrig && s.g.turnF&turnGateWin != 0 {
+		// A trigger's own cost window (winTrig) keeps the bare CR 119.4 test:
+		// gorge lists the source at exactly its life cost and the payer dies
+		// paying it (Mana Confluence at 1 life, Genesis's {2}{G}). So does the
+		// payment itself: only the offer gate's affordability walk
+		// (windowAffordsTake, turnGateWin) prices the source out; once pay is
+		// chosen, gorge's window answer takes the first listed source, a
+		// Confluence at 1 life included (Mana Leak, mana confluence seed 165).
 		// The unless / ward offer gate prices a paid-life source through
 		// gorge's paid-cost census (painAvailMaskAt; gorge's paidCostShape),
 		// which counts it only while its activation leaves the payer alive.
@@ -949,7 +1012,8 @@ func (s *State) windowColOwed(k *prep, p uint8, cost, owed *kop.ManaCost, sl Slo
 }
 
 // windowDry runs windowTapRider's source walk without its effects: only the
-// pool and the tapped bits move, and both are restored before it returns.
+// pool, the tapped bits, the floating restricted batches and the artifact pool
+// tag move, and all are restored before it returns.
 // ok is whether the window pays cost; known is false when the walk reaches
 // a source whose activation does more than tap and add mana (a window gap
 // other than a first-only filter, a sacrificed source, a source that
@@ -977,6 +1041,11 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 // mana_pain.go).
 func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop bool) {
 	pool := s.pl[p].pool
+	// A filter's fee is spent by the real fee arm (windowDryFilter ->
+	// filtFeeSpend), which carves the floating restricted batches and their
+	// artifact tag as the payment does; the walk restores both with the pool.
+	rb := s.rb[SeatIx(p)]
+	art := s.g.poolArt[SeatIx(p)]
 	var tapped [MaxPerm]Slot
 	var flags [MaxPerm]uint16
 	var used [MaxPerm]uint8
@@ -1030,13 +1099,18 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		s.perms[tapped[i]].flags, s.perms[tapped[i]].actUsed = flags[i], used[i]
 	}
 	s.pl[p].pool = pool
+	s.rb[SeatIx(p)] = rb
+	s.g.poolArt[SeatIx(p)] = art
 	return ok, known, restr, sacStop
 }
 
-// windowDryFilter is windowDry's step over a first-only filter the floating mana
-// pays for (gorge's castWindowReachable, CR 605.3a): the fee comes from what cost
-// can spare and the filter makes a colour cost owes, so it never loses a pip. With
-// nothing to spare the swap gains nothing, and the filter only counts as spent.
+// windowDryFilter is windowDry's step over a first-only filter the floating
+// mana pays for (gorge's castWindowReachable, CR 605.3a): it spends the fee
+// exactly as the real window's filtDo does (the pip, repeat pip or hybrid pip
+// first, then filtFeeSpend's plain pool in C W U B R G order), so a fee that
+// takes a pip the cost still owes leaves the dry walk short just as it leaves
+// the real payment short. The filter's colour is then the one the remaining
+// pool still owes (windowFiltFirst's answer).
 func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	if s.filtRepeat(k, sl) {
 		// repeatable: no use to mark (mana_filterrepeat.go)
@@ -1047,19 +1121,17 @@ func (s *State) windowDryFilter(k *prep, p uint8, cost *kop.ManaCost, sl Slot) {
 	}
 	pl := &s.pl[p]
 	fee := s.filtFee(k, sl)
-	spare := 0
-	for c := range pl.pool {
-		spare += int(pl.pool[c]) - min(int(pl.pool[c]), int(cost.Pips[c]))
+	if col, ok := s.filtPip(k, sl); ok {
+		s.filtPayPip(k, p, sl, col)
+		fee = 0
+	} else if col, ok := s.filtRepeatPip(k, sl); ok {
+		s.filtPayPip(k, p, sl, col) // a fee-only filter's pip first, then its generic part
+		fee--
+	} else if a, b, ok := s.filtHyb(k, sl); ok {
+		s.filtPayHyb(k, p, sl, a, b) // the hybrid pip, in its first printed colour when held
+		fee = 0
 	}
-	if spare < fee {
-		return
-	}
-	for c := range pl.pool {
-		for fee > 0 && pl.pool[c] > cost.Pips[c] {
-			pl.pool[c]--
-			fee--
-		}
-	}
+	s.filtFeeSpend(k, p, sl, fee)
 	ab := s.filtAb(k, sl)
 	if ab.ManaEach {
 		for c, n := range filtEachVec(ab) {
@@ -1254,6 +1326,12 @@ func (s *State) unlessSkipsRider(a *kop.Ability) bool {
 // layout does not move.
 const turnUnlessWin turnFT = 1 << 15
 
+// turnGateWin is turnF's bit 14: the unless window's offer-gate affordability
+// walk (windowAffordsTake) is running, as against the payment walk (payWindow),
+// which shares turnUnlessWin. windowCanTap prices a lethal paid-life source out
+// of the gate only.
+const turnGateWin turnFT = 1 << 14
+
 func (s *State) setUnlessWin(on bool) {
 	if on {
 		s.g.turnF |= turnUnlessWin
@@ -1312,7 +1390,11 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && k.gen.anyFiltFirst && s.scriptFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
+	if unless {
+		s.g.turnF |= turnGateWin
+		defer func() { s.g.turnF &^= turnGateWin }()
+	}
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
@@ -1817,7 +1899,7 @@ func (s *State) restrAdmShortCost(k *prep, e *stackEntry, cost kop.ManaCost) kop
 	if !s.rbAny(e.ctrl) {
 		return cost
 	}
-	if m := s.restrSpendable(k, e.ctrl, e.card, restrOriginOfEntry(e)); m != 0 {
+	if m := s.restrSpendable(k, e.ctrl, e.card, s.restrOriginOfEntry(e)); m != 0 {
 		return s.restrShortAdm(e.ctrl, m, cost)
 	}
 	return cost
@@ -1854,7 +1936,7 @@ func (s *State) restrShortL(k *prep, p uint8, c CardID, og restrOrigin, cost kop
 func (s *State) payRestrRider(k *prep, p uint8, cost *kop.ManaCost, x int, o Obj, anyColor bool) {
 	og := s.restrOriginOfObj(o)
 	if e := s.spellEntryOf(o); e != nil {
-		og = restrOriginOfEntry(e) // the push is behind the payment: the honest read
+		og = s.restrOriginOfEntry(e) // the push is behind the payment: the honest read
 	}
 	m := s.restrSpendable(k, p, s.objs[o].card, og)
 	if m == 0 {
@@ -2694,8 +2776,15 @@ func (s *State) suppressEOT(sl Slot) {
 	}
 	// "can't be blocked this turn" (Rogue's Passage, Kaito, Vampire
 	// Gourmand) is an effect on the creature, not an ability it gains
-	// (gorge: an Effect object's CantBlockBy static), so it stays
-	const keep = kop.KwUnblockable
+	// (gorge: an Effect object's CantBlockBy static), so it stays. So does a
+	// granted "can't block this turn" (Hostile Realm's pump on Tolaria West,
+	// Fifty Feet of Rope's Climb Over: a restriction effect, CR 509.1b / a
+	// hidden rule-effect keyword, CR 613.11): a later lose-all-abilities
+	// effect removes the creature's abilities, not the game rule, so gorge
+	// keeps the restriction (IsHiddenRuleEffectKeyword; the walk's
+	// restrictions buffer, chars/derive.go applyKeywordGrant) and the grant
+	// stays here.
+	const keep = kop.KwUnblockable | kop.KwCantBlock
 	var cnt [32]uint8
 	for x := p.eotKw &^ keep; x != 0; x &= x - 1 {
 		cnt[bits.TrailingZeros32(uint32(x))] = 1
@@ -2764,13 +2853,29 @@ func (s *State) midResAsk(k *prep) bool {
 	return false
 }
 
-// lkiAttached is the permanent o was attached to as it left the
-// battlefield (last known information, CR 608.2h): Adventuring Gear's
-// landfall trigger pumps the creature it equipped though the Gear was
-// destroyed in response (gorge Defined$ Equipped; pairs 15721 47715
-// 85781). The departed permanent's slot keeps its record until a new one
-// enters there; NoObj once it has, or when the host left too.
+// lkiAttached is the object the departed Aura/Equipment o was attached to as
+// it left the battlefield (last known information, CR 608.2h): Adventuring
+// Gear's landfall trigger pumps the creature it equipped though the Gear was
+// destroyed in response (gorge Defined$ Equipped; pairs 15721 47715 85781).
+// The LKI attach paths (lkiAttachedHost) name the host while it is still the
+// incarnation the source left; when they name nothing, the read falls back to
+// the source's LastBearer (lastBearerRef): gorge's definedSpecEquipped
+// (engine/effects/context.go:1726-1728) resolves Defined$ Enchanted/Equipped
+// for a source off the battlefield to its LastBearer, even a bearer that has
+// left the battlefield too (Endless Evil's upkeep copy of the creature Roaring
+// Primadox bounced), while a bearer back on the battlefield is a new object
+// (CR 400.7) and names nothing.
 func (s *State) lkiAttached(o Obj) Obj {
+	if h := s.lkiAttachedHost(o); h != NoObj {
+		return h
+	}
+	return s.lastBearerRef(o)
+}
+
+// lkiAttachedHost is lkiAttached's LKI attach reads: the departed permanent's
+// slot keeps its record until a new one enters there; the versioned attLKI pad
+// covers a reused slot.
+func (s *State) lkiAttachedHost(o Obj) Obj {
 	for sl := Slot(0); sl < MaxPerm; sl++ {
 		if p := &s.perms[sl]; p.obj == o && p.ts != 0 && !s.occ.has(sl) && p.attached != NoSlot {
 			if !s.occ.has(p.attached) {
@@ -3343,7 +3448,7 @@ func (s *State) digMove(k *prep, p uint8, o Obj, z kop.Zone, next, after []Obj) 
 			}
 		}
 	}
-	s.placeFrom(o, z, false, kop.ZoneLibrary, false)
+	s.placeFrom(o, z, false, kop.ZoneLibrary, false, false)
 }
 
 // divPicks lists entry e's target slot's picked objects in pick order (the
@@ -3512,11 +3617,20 @@ func (s *State) tapForHyb(k *prep, p uint8, cost *kop.ManaCost, x int, exclude O
 		s.unfork()
 	}
 	if ok {
-		_, held := s.windowTapRider(k, p, &c, true, anyColor)
+		real, held := s.windowTapRider(k, p, &c, true, anyColor)
 		for col := range held {
 			s.pl[p].pool[col] += held[col]
 		}
-		return true
+		if real || s.winPaused() {
+			return true
+		}
+		// A gap or a restricted source can still leave the dry census
+		// optimistic where the real walk's answers differ (a first-only
+		// filter's fee is now spent as filtDo spends it, windowDryFilter ->
+		// filtFeeSpend). Fall through: the planner may price what the window
+		// tapped, and hybStrand below reverses the cast (CR 601.2g-h, 733.1)
+		// when neither pays, rather than finishing the build short and
+		// panicking in finishBuild's plan.
 	}
 	if known && k.gen != nil && k.gen.blgOn {
 		return s.hybStrand(k, p, &c, anyColor)
@@ -3604,7 +3718,7 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.lowerTargetDepCostCast(k, e)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
-			return s.xSacWindowFirst(k, e, &cost)
+			return s.pickWindowFirst(k, e, &cost)
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)
@@ -3865,7 +3979,7 @@ func (s *State) manaStep(k *prep) bool {
 				return true
 			}
 		default:
-			s.tapFor(k, e.ctrl, &cost, int(e.x), NoObj)
+			return s.abilityPlainMana(k, e, cost, &saved, hostSl, sl, selfUntapped)
 		}
 		s.bld().bfl &^= bflManaStep
 		if hostSl != NoSlot {
@@ -3894,6 +4008,31 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 		s.reverseActivation(k, saved, hostSl, sl, selfUntapped)
 		return true
 	}
+	return false
+}
+
+// abilityPlainMana is manaStep's plain-activation arm: the planner first, so an
+// ordinary cost keeps its witness, then the manual CR 601.2g window when the
+// census has none. The X ask can price an activation through that window
+// (availXWindow and a first-only filter's fee, filtMaxX; CR 605.3b), whose
+// sources the planner does not price. It runs the step's epilogue on every
+// path that keeps the activation, and reports true when the activation was
+// reversed because neither reaches the cost (CR 733.1).
+func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
+		c := xFolded(cost, int(e.x))
+		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
+			return true
+		}
+	}
+	s.bld().bfl &^= bflManaStep
+	if hostSl != NoSlot {
+		s.perms[hostSl].flags &^= pfTapped
+	}
+	if selfUntapped {
+		s.perms[sl].flags &^= pfTapped
+	}
+	s.releaseCostTaps(k, saved)
 	return false
 }
 
@@ -4094,11 +4233,11 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
 		s.untapCost(k, sl)
 	}
-	if f&kop.CostOncePerTurn != 0 && e.ab < 8 {
+	if f&kop.CostOncePerTurn != 0 && e.ab < 8 && s.bld().bfl&bflUsedMark == 0 { // a gained one is in the used pool (static_gainsof.go)
 		s.perms[sl].actUsed |= 1 << e.ab
 	}
 	if f&kop.CostLoyalty != 0 {
-		s.perms[sl].flags |= pfLoyaltyUsed
+		s.noteLoyaltyActivation(k, sl)
 	}
 	if f&kop.CostLoyaltyX != 0 && sl != NoSlot {
 		s.payCounterX(k, sl, int(a.Cost.Ctr), uint8(e.x)) // [-X] loyalty or SubCounter<X/KIND>
@@ -4293,17 +4432,54 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 // castWinTapOptions builds the pick: the source's candidates in battlefield order.
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
+	if s.splitWinColAsk(k, s.g.winSrc) {
+		// a lucky Condition-split arm: the arm's colour ask (gorge's
+		// mana_color choice, ChGenManaChoice), the arm's colours in the
+		// askManaColour order (a printed order, else W U B R G).
+		d.Kind, d.Sub, d.Player = DkChoose, ChGenManaChoice, p
+		a := &k.t.Cards[s.cardAt(s.g.winSrc)].Abilities[k.gen.splitAb(s.cardAt(s.g.winSrc))]
+		var ord [kop.NumManaKinds]uint8
+		n, printed := colourAskOrder(a, uint8(a.SplitCols), &ord)
+		cols := ord[:n]
+		if !printed {
+			cols = cols[:0]
+			for c := uint8(0); c < 5; c++ {
+				if a.SplitCols&(1<<c) != 0 {
+					cols = append(cols, c)
+				}
+			}
+		}
+		for _, c := range cols {
+			d.add(MakeAction(AkChoose, 0, 0, c))
+		}
+		return true
+	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p
 	if k.sacXOf(s.cardAt(s.g.winSrc)) {
 		d.Sub = ChCostSacrifice // a sacrifice-another source asks which to sacrifice (gorge's "sacrifice" choose)
+	}
+	if k.exileGOf(s.cardAt(s.g.winSrc)) {
+		d.Sub = ChWinExile
 	}
 	s.winTapOptions(k, p, d)
 	return true
 }
 
+// applyCastWinCol floats the lucky Condition-split arm's mana in the picked
+// colour; the build's stage runs the window on.
+func (s *State) applyCastWinCol(k *prep, a Action) {
+	b := s.bld()
+	b.bfl &^= bflWinTap
+	s.splitWinColDo(k, b.e.ctrl, s.g.winSrc, int(a.Mode()))
+}
+
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
+	if s.splitWinColAsk(k, s.g.winSrc) {
+		s.applyCastWinCol(k, a)
+		return
+	}
 	more, cand, cand2 := s.winTapPick(k, a)
 	if more {
 		return // the second permanent is asked next

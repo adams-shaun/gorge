@@ -299,7 +299,24 @@ func init() {
 // (gorge effSkipPhase, DB$ SkipPhase with Phase$ BeginCombat, Start$ FromNext,
 // Duration$ UntilTheEndOfTargetedNextTurn; CR 614.10). False Peace, Empty City
 // Ruse. dirac/act_skipphase.go.
+//
+// C is the shape: SkipPhaseAllCombats (0, the above), SkipPhaseUntap (the
+// player's next untap step: Avizoa, Brine Elemental, Dovin, Shisato),
+// SkipPhaseDraw (their next draw step: Fatigue, Ivory Gargoyle, Molten
+// Firebird, Elfhame Sanctuary), SkipPhaseNextCombat (their next combat phase:
+// Blinding Angel, Revenant Patriarch, Stonehorn Dignitary) and
+// SkipPhaseThisTurn (their next combat phase this turn only: Moment of
+// Silence). Obj may name several players (each opponent).
 const ExtSkipPhase ExtOp = 313
+
+// ExtSkipPhase's C operand.
+const (
+	SkipPhaseAllCombats = iota
+	SkipPhaseUntap
+	SkipPhaseDraw
+	SkipPhaseNextCombat
+	SkipPhaseThisTurn
+)
 
 func init() {
 	extOpNames[ExtSkipPhase] = "SkipPhase"

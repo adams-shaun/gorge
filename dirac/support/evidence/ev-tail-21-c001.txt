@@ -56,6 +56,7 @@ Brutal Expulsion
 Caldera Pyremaw
 Candlelit Cavalry
 Carrion Imp
+Cave Sense
 Cave of the Frost Dragon
 Celestial Colonnade
 Cerulean Wisps
@@ -363,6 +364,7 @@ Spinning Wheel Kick
 Spirit Link
 Spit Flame
 Spring of Eternal Peace
+Staff of the Sun Magus
 Standing Troops
 Starfall
 Steelshaper Apprentice

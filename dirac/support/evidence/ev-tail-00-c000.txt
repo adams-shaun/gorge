@@ -159,6 +159,7 @@ Gods' Hall Guardian
 Goldnight Redeemer
 Golgari Keyrune
 Goliath Beetle
+Gollum's Bite
 Gornog, the Red Reaper
 Graceful Cat
 Grave Birthing
@@ -174,6 +175,7 @@ Gwyllion Hedge-Mage
 HYDRA Disintegrator
 Hamza, Guardian of Arashin
 Harnessed Snubhorn
+Hatut Zeraze Strike Force
 Haughty Djinn
 Heartwood Giant
 Hengegate Pathway
@@ -250,7 +252,10 @@ Masked Vandal
 Megantic Sliver
 Mental Journey
 Mind Flayer
+Mirror Universe
+Mirrormere Guardian
 Mold Shambler
+Moonlit Strider
 Morgue Thrull
 Mortis Dogs
 Mountain
@@ -299,6 +304,7 @@ Prismatic Omen
 Prodigious Growth
 Psemilla, Meletian Poet
 Psychic Symbiont
+Pus Kami
 Quakefoot Cyclops
 Quarry Beetle
 Raffine's Tower
@@ -327,6 +333,7 @@ Sage Owl
 Salvaging Station
 Sam, Loyal Attendant
 Samwise Gamgee
+Samwise the Stouthearted
 Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal
@@ -352,6 +359,7 @@ Shivan Wumpus
 Shrink
 Shrivel
 Sickle Ripper
+Siege of Towers
 Silence
 Simic Initiate
 Sinuous Vermin
@@ -458,5 +466,6 @@ Wing Commando
 Wolfrider's Saddle
 Woolly Loxodon
 Wu Warship
+Yosei, the Morning Star
 Yoshimaru, Ever Faithful
 Zhang Liao, Hero of Hefei

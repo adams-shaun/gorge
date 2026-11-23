@@ -8,6 +8,7 @@ Apprentice Necromancer	74a14d570248d376	6	1/1		1/1
 Apprentice Wizard	5caa6fb04a3a746f	18	1/1		0/1	ix:resp
 Arc Lightning	8a8f0908aaf31976	12	0/0		2/2	
 Augur of Bolas	7b06bb126895a420	3	1/1		0/1	ix:resp
+Aven Liberator	133421ad9dd5171d	48	1/1		3/3	
 Azra Oddsmaker	6faa160b06c97242	8	1/1		1/1	
 Baffling End	8e8051861cf923ba	4	2/2		0/1	ix:resp
 Bastion of Remembrance	ba6049c8e1f682fb	4	2/2		0/1	ix:resp
@@ -31,6 +32,7 @@ Dauntless Cathar	d1f139f1ee4f478c	14	1/1		0/1	ix:resp
 Diamond Pick-Axe	60d1a4aaf5e0a7a6	8	1/1		1/1	
 Dirge of Dread	ca091e723db2bd0c	8	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Dreamscape Artist	7cb8d02102553e65	13	1/1		0/1	ix:resp
+Edric, Spymaster of Trest	827cbe2027337694	10	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Emerge Unscathed	7bbf4f768539fe25	9	0/0		2/2	
 Empty the Warrens	3d0f76364fe5b459	6	1/1		2/2	
 Evolution Charm	88c4e685f8c30480	4	0/0		1/2	ix:resp
@@ -40,6 +42,7 @@ Exhume	a4d9145e2a46b94f	4	0/0		2/2
 Eyeblight's Ending	df15c2d9de9e471a	17	0/0		2/2	
 Faerie Swarm	635d32a341839dd5	6	0/0		0/0	
 Faithbearer Paladin	476e5d94f50e852b	6	0/0		0/0	
+Familiar's Ruse	9599ea816a2b3b1e	5	0/0		1/2	ix:resp
 Fanatic of Mogis	4ecac99069c2e95e	6	1/1		0/1	ix:resp
 Feral Shadow	b5ce18e0c66a9ce5	4	0/0		0/0	
 Fiery Impulse	64cd4faa2adc7378	6	0/0		1/2	ix:resp
@@ -49,6 +52,8 @@ Footbottom Feast	74c0fa3327591229	6	0/0		2/2
 Forest	6d0466c30f825dba	230	1/1		0/1	ix:resp
 Gaea's Gift	3336d9ed890d5cfd	14	0/0		2/2	
 Geist of the Moors	0aed5be33427d852	5	0/0		0/0	
+Genasi Enforcers	7ae475822fe905c5	111	2/2		1/1	
+Gigadrowse	f351beb77ce513d5	6	1/1		4/4	
 Gilanra, Caller of Wirewood	dfbd92fe995f0c29	6	1/1		0/1	ix:resp
 God-Eternal Oketra	18963040ad49078b	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Goldnight Commander	36e236bd55a5f133	15	1/1		0/1	ix:resp
@@ -78,6 +83,7 @@ Nemesis Mask	1532618cbeb2a1df	50	1/1		1/1
 Night's Whisper	57c30c3a272643c4	4	0/0		1/2	ix:resp
 Nissa's Judgment	21bbb35d49a3ea44	19	0/0		1/2	ix:resp
 Oathsworn Giant	09f782817486e737	15	0/0		0/0	
+Odric, Lunarch Marshal	6ce612a09bf363c2	53	1/1		1/1	
 Ogre Arsonist	f956aa32c1982738	6	1/1		1/1	
 Orthion, Hero of Lavabrink	28cadd58ee31ceeb	21	2/2		0/1	ix:resp
 Orzhov Enforcer	755e39f604d0ab31	10	1/1		1/1	
@@ -121,6 +127,7 @@ Thrull Parasite	12f64dc43bc33730	4	2/2		1/1
 Tinder Wall	d2c1c27986c407fa	29	2/2		0/1	ix:resp
 Turtleshell Changeling	7a664fbb80e73809	9	1/1		1/1	
 Tyvar's Stand	214e409296439c2b	3	0/0		2/4	f0/s/x0,ix:resp
+Tyvar, the Pummeler	967f63465ddf6d59	3	2/2		1/1	
 Unbounded Potential	3b35b87faf9d9b30	6	0/0		1/2	ix:resp
 Unsubstantiate	ee71dbae075eb7bc	9	0/0		1/2	ix:resp
 Urborg Uprising	39df79c5845df371	8	0/0		1/2	ix:resp
@@ -129,3 +136,4 @@ Wickerbough Elder	249f908914c2d428	6	1/1		0/1	ix:resp
 Wildheart Invoker	fbdd534688dca1a0	10	1/1		0/1	ix:resp
 Windstorm Drake	8231c5f21f7c6fb6	3	0/0		0/0	
 Wood Elves	bf2c249373003b5b	4	1/1		0/1	ix:resp
+Yidris, Maelstrom Wielder	79dc1cc6ea8bae67	24	1/1		1/1	

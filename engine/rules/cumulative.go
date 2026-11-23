@@ -595,7 +595,7 @@ func (e *Engine) paymentManaAskClass(player state.PlayerID, source state.ObjID, 
 		// payment may not spend (CR 106.6: Isolinear Processor's artifact-only
 		// mana for an Aura's trigger cost): with no source left the window
 		// does not open and the payer goes straight to the pay/decline ask.
-		if e.untappedManaSourceFor(player, id, desc) && e.windowSourceYields(player, id) {
+		if e.untappedManaSourceFor(player, id, desc) && e.windowSourceYields(player, id) && !windowOnlyStallingConverters(e, e.availableManaAbilities(player, id), player, id, amount, func() state.Mana { return pay.AvailableFor(asPayer(e), player, desc).Pool }) {
 			sources = append(sources, id)
 		}
 	}

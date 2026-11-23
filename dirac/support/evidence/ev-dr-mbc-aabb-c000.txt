@@ -7,46 +7,66 @@ Arrogant Wurm
 Axgard Cavalry
 Balustrade Spy
 Barter in Blood
+Behold the Multiverse
 Blightbeetle
 Blightsoil Druid
 Blood Knight
 Brainstealer Dragon
 Bushmeat Poacher
 Carrion Feeder
+Cerulean Wisps
+Code of Constraint
 Contagious Vorrac
+Cower in Fear
 Dawntreader Elk
 Destiny Spinner
+Destructive Tampering
+Divination
 Dragon's Smile
+Drift of Phantasms
+Eel Umbra
 Elda, Conjurer of Spectacle
+Enclave Cryptologist
 Escape Tunnel
 Exotic Orchard
 Explore
+Fall from Favor
 Fanatical Devotion
 Feign Death
 Fell
 Fire Servant
 Forest
+Freed from the Real
 Gelatinous Genesis
 Harmonize
 Hickory Woodlot
+Ingot Chewer
 Island
 Jaheira, Friend of the Forest
+Jewel Thief
 Kappa Tech-Wrecker
+Karlach, Fury of Avernus
 Kaya's Ghostform
+Make a Stand
 Marionette Apprentice
 Massacre
 Maular, the Next Evolution
 Meekstone
 Mountain
+Murmuring Mystic
+Ophidian Eye
 Outmaneuver
 Overgrown Battlement
+Pemmin's Aura
 Phantom Centaur
 Phyrexian Rager
 Phyrexian Reclamation
 Piracy Charm
 Plains
 Poison Dart Frog
+Propaganda
 Raiders' Wake
+Ramos, Dragon Engine
 Reckless Impulse
 Reckless Wurm
 Resolute Reinforcements
@@ -55,16 +75,22 @@ Rot Hulk
 Saber Ants
 Season of Growth
 Sengir Autocrat
+Sentinel Sliver
 Shroofus Sproutsire
 Silverglade Pathfinder
 Soltari Trooper
+Specimen Collector
 Spiritmonger
 Spore Frog
+Sticky Fingers
+Storm Sculptor
 Struggle for Skemfar
 Sunscape Familiar
 Swamp
 Tidy Conclusion
 Unburial Rites
+Underworld Breach
 Virtue's Ruin
+Vow of Duty
 Wasteland Viper
 Wild Hunger

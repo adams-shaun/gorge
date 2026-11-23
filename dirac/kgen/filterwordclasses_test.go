@@ -47,10 +47,10 @@ func TestFilterWordClasses(t *testing.T) {
 			t.Errorf("%s: got %s, %v; want box %v", expr, f, err, want)
 		}
 	}
-	// any other pair of comparisons in one clause still refuses (one
-	// predicate per clause): a value bound, NE, a bound past 14, another stat
-	for _, bad := range []string{"Creature.hasXCost+cmcGE4", "Creature.powerGEX+toughnessEQ1", "Creature.powerNE1+toughnessEQ1",
-		"Creature.powerGE15+toughnessEQ1", "Creature.cmcEQ1+powerEQ1"} {
+	// any other pair of comparisons in one clause still refuses unless both
+	// have a filter word (filter_spill.go; TestFilterSpill*): a value bound, a
+	// comparison no word reads
+	for _, bad := range []string{"Creature.hasXCost+cmcGE4", "Creature.powerGEX+toughnessEQ1"} {
 		if f, err := parseFilter(bad, known, known); err == nil {
 			t.Errorf("%s: lowered to %s; want a refusal", bad, f)
 		}

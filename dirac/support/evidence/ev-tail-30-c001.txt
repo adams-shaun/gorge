@@ -140,6 +140,7 @@ Forest
 Forestfolk
 Frazzle
 Frontline Devastator
+Frostwielder
 Gallia of the Endless Dance
 General Kreat, the Boltbringer
 Geralf, Visionary Stitcher
@@ -198,6 +199,7 @@ Judge's Familiar
 Jukai Naturalist
 Juntu Stakes
 Kaervek, the Spiteful
+Kami of the Tended Garden
 Keldon Raider
 Kessig Naturalist
 Ketria Crystal

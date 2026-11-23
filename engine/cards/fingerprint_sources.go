@@ -110,6 +110,7 @@ import "embed"
 //go:embed kw_reinforce.go
 //go:embed kw_renown.go
 //go:embed kw_replicate.go
+//go:embed kw_ripple.go
 //go:embed kw_saddle.go
 //go:embed kw_scavenge.go
 //go:embed kw_soulbond.go

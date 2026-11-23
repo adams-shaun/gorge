@@ -76,6 +76,7 @@ Expose the Culprit
 Extract a Confession
 Ezrim, Agency Chief
 Fae Flight
+Faerie Snoop
 Fanatical Strength
 Felonious Rage
 Festerleech
@@ -99,6 +100,7 @@ Hard-Hitting Question
 Harried Dronesmith
 Hedge Maze
 Hedge Whisperer
+Hide in Plain Sight
 Homicide Investigator
 Hotshot Investigators
 Hunted Bonebrute
@@ -168,6 +170,7 @@ Projektor Inspector
 Public Thoroughfare
 Pyrotechnic Performer
 Rakdos, Patron of Chaos
+Rakish Scoundrel
 Raucous Theater
 Reckless Detective
 Red Herring
@@ -182,6 +185,7 @@ Rubblebelt Maverick
 Rune-Brand Juggler
 Sample Collector
 Sanctuary Wall
+Sanguine Savior
 Sanitation Automaton
 Scene of the Crime
 Seasoned Consultant
@@ -197,6 +201,7 @@ Soul Enervation
 Soul Search
 Steamcore Scholar
 Sudden Setback
+Sumala Sentry
 Surveillance Monitor
 Suspicious Detonation
 Swamp
@@ -221,6 +226,7 @@ Undercover Crocodelf
 Underground Mortuary
 Undergrowth Recon
 Unscrupulous Agent
+Unyielding Gatekeeper
 Urgent Necropsy
 Vannifar, Evolved Enigma
 Vein Ripper

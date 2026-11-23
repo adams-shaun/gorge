@@ -1,0 +1,27 @@
+{
+  "card": "Puca's Covenant",
+  "class": "lockstep",
+  "why": "the untapped Sunlit Marsh, granted '{T}: Add one mana of any color' by The World Tree (nine lands, six or more), taps for {G}, and Rain of Filth gives every land 'Sacrifice this land: Add {B}', so two sacrifices plus the tap pay Puca's Covenant's {2}{B} and one pays Snarespinner's {1}{B} (CR 605.3b, 601.2g); gorge's potentialPrefixScript spends its 160-clone budget (potentialScriptNodes) walking the Rain of Filth sacrifice answers before The World Tree's granted any-colour answer and prices the casts census_incomplete, so priority offers neither Puca's Covenant nor Snarespinner, while the kernel's mirrored grant search offers both (tail-08-c000 pair 13, decision 546); node-for-node alignment of that search is beyond a bounded fix, so the card is refused by name as Kor Haven and Iron Fist, Hero for Hire are, and the recorded game still shows the divergence with it implicated (Snarespinner itself stays evidenced in std-fdn/fdn and is not refused)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "sac_for_mana_after_anycolour_tap_funds_cast"
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c001",
+    "ev-tail-08-c002",
+    "ev-tail-08-c003",
+    "ev-tail-08-s000",
+    "ev-tail-72",
+    "ev-tail-72-c001",
+    "ev-tail-72-c003",
+    "ev-tail-73-c000",
+    "ev-tail-73-c001",
+    "ev-tail-73-c012"
+  ]
+}

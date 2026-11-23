@@ -72,6 +72,7 @@ Charging Tuskodon
 Chatterstorm and Awaken the Woods
 Chicken Egg
 Chief Engineer
+Chong and Lily, Nomads
 Citywatch Sphinx
 Colos Yearling
 Colossal Growth
@@ -81,6 +82,7 @@ Coordinated Charge
 Coral Commando
 Core Prowler
 Corpse Blockade
+Cowed by Wisdom
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
@@ -134,7 +136,6 @@ False Defeat
 Famished Paladin
 Fearless Pup
 Feast or Famine
-Feedback
 Fire Diamond
 Fire-Omen Crane
 Firemane Commando
@@ -299,6 +300,7 @@ Patron of the Vein
 Personal Tutor
 Persuasion
 Phantasmal Shieldback
+Phantom Carriage
 Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar
@@ -381,6 +383,7 @@ Shifting Sliver
 Shimmering Glasskite
 Shipwreck Looter
 Shore Snapper
+Sicarian Infiltrator
 Silent Extraction
 Sinister Possession
 Sink into Takenuma

@@ -64,7 +64,9 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	// CR 702.27/702.28: Shadow creatures can block only Shadow creatures,
 	// and a Shadow creature is blockable only by one. Fear permits only an
 	// artifact or black creature to block it.
-	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) {
+	// A CanBlockIfShadow static (Aether Web, Heartwood Dryad) lets its blocker
+	// block a shadow attacker as though the shadow rule were absent.
+	if b.HasKW(attacker, KWShadow) != b.HasKW(blocker, KWShadow) && !shadowBlockLifted(b, blocker, attacker) {
 		return false
 	}
 	if b.HasKW(attacker, KWFear) && !isArtifactCreature(b, blocker, bo) && !strings.ContainsRune(b.ObjectColors(bo), 'B') {
@@ -97,7 +99,10 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if b.HasKW(attacker, KWHorsemanship) && !b.HasKW(blocker, KWHorsemanship) {
 		return false
 	}
-	if b.HasKW(attacker, KWFlying) && !b.HasKW(blocker, KWFlying) && !b.HasKW(blocker, KWReach) {
+	// A CanBlockIfReach static (Dragon Hunter) lets its blocker block the
+	// flyers it names as though it had reach.
+	if b.HasKW(attacker, KWFlying) && !b.HasKW(blocker, KWFlying) && !b.HasKW(blocker, KWReach) &&
+		!reachBlockLifted(b, blocker, attacker) {
 		return false
 	}
 	// CR 702.14: a creature with landwalk can't be blocked as long as the
@@ -187,13 +192,62 @@ func LandwalkEvades(b Board, blocker, attacker state.ObjID) bool {
 	sc := b.LandSpecCtx(defender, attacker)
 	for _, k := range b.Keywords(attacker) {
 		spec, isLandwalk := LandwalkSpec(k)
-		if !isLandwalk || spec == "" || landwalkIgnored(b, blocker, spec) {
+		if !isLandwalk || spec == "" {
 			continue
 		}
-		for _, land := range g.Zone(state.ZBattlefield, defender) {
-			if effects.MatchesSpecCtx(g, spec, land, sc) {
+		if spec == landwalkYourBasic {
+			if yourBasicLandwalkEvades(b, blocker, a.Controller, defender, sc) {
 				return true
 			}
+			continue
+		}
+		if landwalkSpecEvades(b, blocker, spec, defender, sc) {
+			return true
+		}
+	}
+	return false
+}
+
+// landwalkSpecEvades reports whether the one landwalk line with land filter
+// spec is live against blocker and matches a land the defender controls.
+func landwalkSpecEvades(b Board, blocker state.ObjID, spec string, defender state.PlayerID, sc effects.SpecContext) bool {
+	if landwalkIgnored(b, blocker, spec) {
+		return false
+	}
+	g := b.Game()
+	for _, land := range g.Zone(state.ZBattlefield, defender) {
+		if effects.MatchesSpecCtx(g, spec, land, sc) {
+			return true
+		}
+	}
+	return false
+}
+
+// landwalkYourBasic is the spec Magnigoth Treefolk's `Landwalk:YourBasic`
+// line carries: not a land filter but a dynamic set of lines, one per basic
+// land type among lands the attacker's controller controls (Domain).
+const landwalkYourBasic = "YourBasic"
+
+// landwalkBasicTypes are the basic land types in name order (a fixed array,
+// never a map range, so the expansion is deterministic).
+var landwalkBasicTypes = [...]string{"Forest", "Island", "Mountain", "Plains", "Swamp"}
+
+// yourBasicLandwalkEvades expands a `Landwalk:YourBasic` line into an ordinary
+// `Landwalk:<Type>` line for each basic type among the attacker controller's
+// lands, matched through the same filter and IgnoreLandWalk path as a printed
+// one.
+func yourBasicLandwalkEvades(b Board, blocker state.ObjID, controller, defender state.PlayerID, sc effects.SpecContext) bool {
+	g := b.Game()
+	for _, typ := range landwalkBasicTypes {
+		owned := false
+		for _, land := range g.Zone(state.ZBattlefield, controller) {
+			if effects.MatchesSpecCtx(g, typ, land, sc) {
+				owned = true
+				break
+			}
+		}
+		if owned && landwalkSpecEvades(b, blocker, typ, defender, sc) {
+			return true
 		}
 	}
 	return false

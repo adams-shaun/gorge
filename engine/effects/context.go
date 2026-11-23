@@ -1097,7 +1097,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// the battlefield answers with the controller captured when the
 		// resolution began (CR 608.2h; Forge's getChangeZoneLKIInfo): the live
 		// object's controller was reset to its owner by the departure.
-		return controllersOf(g, targetsControllerLKI(g, c, objectTargets(c.Targets))), true
+		return controllersOf(g, targetsControllerLKI(g, c, objectTargets(chainTargets(c)))), true
 	case definedSpecTargetedPlayer:
 		return targetedPlayers(c), true
 	case definedSpecTargetedOwner:
@@ -2308,6 +2308,32 @@ func targetsControllerLKI(g *state.Game, c *Ctx, ts []state.Target) []state.Targ
 	return out
 }
 
+// captureLinkTargetController records the controller of a link's own
+// mid-resolution target answer before the link moves it, so a later
+// TargetedController read through chainTargets answers the controller the
+// object had when it left (CR 608.2h; Resolve's entry capture covers only
+// Ctx.Targets, the root's list). An entry already captured is kept: it is the
+// earlier state, never the live post-move object.
+func captureLinkTargetController(h Host, c *Ctx, ts []state.Target) {
+	if c == nil || len(ts) == 0 {
+		return
+	}
+	if c.Snap.TargetController == nil {
+		c.Snap.TargetController = make(map[state.ObjID]state.PlayerID)
+	}
+	for _, t := range ts {
+		if t.IsPlayer {
+			continue
+		}
+		if _, ok := c.Snap.TargetController[t.Obj]; ok {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			c.Snap.TargetController[t.Obj] = o.Controller
+		}
+	}
+}
+
 func controllersOf(g *state.Game, ts []state.Target) []state.Target {
 	return relatedPlayers(g, ts, false)
 }
@@ -2762,10 +2788,16 @@ func effectiveSourceRemembered(g *state.Game, tc TriggerContext, src *state.Obje
 	if src == nil {
 		return nil
 	}
-	if len(tc.SourceRemembered) > 0 && tc.SourceIncarnation != src.Incarnation {
+	if tc.servesSnapshot(src) {
 		return tc.SourceRemembered
 	}
 	return src.Remembered
+}
+
+// servesSnapshot reports whether effectiveSourceRemembered answers src from
+// the trigger's fire-time snapshot rather than src's live list.
+func (tc TriggerContext) servesSnapshot(src *state.Object) bool {
+	return src != nil && len(tc.SourceRemembered) > 0 && tc.SourceIncarnation != src.Incarnation
 }
 
 // SourceRemembered is effectiveSourceRemembered for callers outside effects

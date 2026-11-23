@@ -1,0 +1,18 @@
+# Incubation Druid (Amount$ Count$Compare reflected, a census gap) beside a levelled
+# Joraga Treespeaker (its granted "{T}: Add {G}{G}") over plain Swamps and a Forest:
+# Silvos, Rogue Elemental ({3}{G}{G}{G}) and Ancient Brontodon ({6}{G}{G}) are paid
+# only with the Druid's mana, and the board's other permanents are the creatures the
+# reproduced game had out (dirac/mana_reflamt_leveler_test.go).
+Incubation Druid
+Joraga Treespeaker
+Silvos, Rogue Elemental
+Ancient Brontodon
+Bosk Banneret
+A-Cauldron Familiar
+Venerated Rotpriest
+Pathbreaker Ibex
+Nacatl Savage
+Arctic Wolves
+Boros Garrison
+Swamp
+Forest

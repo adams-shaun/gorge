@@ -71,6 +71,7 @@ Lore Weaver
 Madcap Skills
 Mage Slayer
 Merciless Executioner
+Merfolk Seastalkers
 Molten Birth
 Mountain
 Muddle the Mixture
@@ -112,8 +113,10 @@ Stand Together
 Starlit Angel
 Stromgald Crusader
 Swamp
+Swell of Courage
 Sword Coast Serpent
 The Everforger
+Tower of the Magistrate
 Trumpeting Herd
 Turnabout
 Twinferno

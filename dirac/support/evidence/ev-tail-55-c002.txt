@@ -48,6 +48,7 @@ Burning Hands
 Burnt Offering
 Caldera Kavu
 Capsize
+Cascade Bluffs
 Cavalier of Night
 Cavern Crawler
 Centaur Rootcaster
@@ -55,6 +56,7 @@ Champion of Arashin
 Chandra's Revolution
 Chilling Trap
 Circle of Flame
+Circle of Protection: White
 Coal Stoker
 Coerced Confession
 Collective Voyage
@@ -65,6 +67,7 @@ Crimson Mage
 Cruel Edict
 Crystal Slipper
 Cybermen Squadron
+Cytospawn Shambler
 Damping Matrix
 Deep-Sea Terror
 Defiant Salvager
@@ -78,6 +81,7 @@ Dragonspeaker Shaman
 Dreadwurm
 Drogskol Cavalry
 Drowner of Hope
+Duskmantle Operative
 Eidolon of the Great Revel
 Eiganjo Exemplar
 Eldritch Immunity
@@ -161,6 +165,7 @@ Heroic Teamwork
 Hidden Footblade
 Highborn Ghoul
 Huang Zhong, Shu General
+Humble Naturalist
 Hunger of the Nim
 Ifnir Deadlands
 Ignite the Future
@@ -235,6 +240,7 @@ Oxidize
 Panther Warriors
 Parhelion II
 Pathbreaker Ibex
+Peat Bog
 Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
@@ -262,6 +268,7 @@ Samut, Tyrant Smasher
 Sarkhan Vol
 Scale of Chiss-Goria
 Scion of Calamity
+Second Sunrise
 Seraph Sanctuary
 Serpent Assassin
 Seven-Tail Mentor
@@ -271,6 +278,7 @@ Sheltering Word
 Shinka Gatekeeper
 Shroofus Sproutsire
 Siege Veteran
+Sigil of Sleep
 Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
@@ -285,6 +293,7 @@ Smash to Dust
 Snubhorn Sentry
 Soaring Seacliff
 Sokka's Sword Training
+Soliton
 Soul Channeling
 Soul Kiss
 Sparksmith

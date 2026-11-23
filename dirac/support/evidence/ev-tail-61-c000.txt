@@ -127,6 +127,7 @@ Font of Progress
 Force of Vigor
 Forest
 Fortress Cyclops
+Fowl Strike
 Freyalise, Llanowar's Fury
 Frontier Mastodon
 Furious Assault
@@ -200,11 +201,13 @@ Kranioceros
 Krosan Archer
 Leech Gauntlet
 Legacy Weapon
+Leshrac's Rite
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
 Lumbering Satyr
 Magma Sliver
+Magus of the Mirror
 Makindi Aeronaut
 Mana Prism
 Manor Gate
@@ -229,6 +232,7 @@ Monumental Corruption
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Myr Moonvessel
 Mysterious Tome
 Nagao, Bound by Honor
 Najal, the Storm Runner
@@ -239,6 +243,7 @@ Neglected Heirloom
 Nekrataal
 Nettle Drone
 Nightshade Harvester
+Nightsoil Kami
 Nightveil Specter
 Nissa, Resurgent Animist
 Novijen, Heart of Progress
@@ -267,6 +272,7 @@ Plague Rats
 Plains
 Planar Atlas
 Plated Spider
+Ponyback Brigade
 Possessed Centaur
 Pouncing Lynx
 Power Sink
@@ -299,6 +305,7 @@ Riders of Rohan
 Roc Egg
 Rocco, Cabaretti Caterer
 Rogue Refiner
+Rune of Protection: Red
 Safe Haven
 Safehold Sentry
 Sage's Row Denizen
@@ -321,6 +328,7 @@ Sigiled Paladin
 Silverquill Campus
 Simic Signet
 Sip of Hemlock
+Skeleton Key
 Skirk Commando
 Skittering Crustacean
 Skull Raid
@@ -350,6 +358,7 @@ Steely Resolve
 Steppe Lynx
 Stitched Mangler
 Stolen Grain
+Stonehorn Dignitary
 Stonewood Invocation
 Stormscape Master
 Stream of Consciousness
@@ -407,6 +416,7 @@ Uninvited Geist
 Unstable Frontier
 Vampire Revenant
 Vega, the Watcher
+Veiled Ascension
 Verdant Rebirth
 Vexing Bauble
 Viashino Runner

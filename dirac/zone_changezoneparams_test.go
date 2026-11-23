@@ -272,7 +272,7 @@ func TestThisDefinedAndTgtsSelf(t *testing.T) {
 		t.Fatal("both enter tapped")
 	}
 	sc, prog, tgt, src = build()
-	sc.s.placeFrom(src, kop.ZoneExile, false, sc.s.detach(src), false) // no longer in the graveyard
+	sc.s.placeFrom(src, kop.ZoneExile, false, sc.s.detach(src), false, false) // no longer in the graveyard
 	sc.s.exec(sc.k, &prog[0])
 	if !sc.onBF(tgt) || sc.onBF(src) {
 		t.Fatalf("source gone: target on battlefield %v, source %v, want true false", sc.onBF(tgt), sc.onBF(src))

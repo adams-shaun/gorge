@@ -17,6 +17,7 @@ Ambush Krotiq
 Ammit Eternal
 Angelic Captain
 Angelic Voices
+Anhelo, the Painter
 Animist's Might
 Anowon, the Ruin Thief
 Arc Spitter
@@ -86,6 +87,7 @@ Crabapple Cohort
 Crafty Pathmage
 Crimson Manticore
 Crossroads Consecrator
+Cry of the Carnarium
 Cudgel Troll
 Darklit Gargoyle
 Darkwater Egg
@@ -167,6 +169,7 @@ Goblin War Drums
 Grave Titan
 Greensleeves, Maro-Sorcerer
 Grendel, Spawn of Knull
+Grixis Charm
 Grotag Siege-Runner
 Guardian Naga
 Guardian of the Great Conduit
@@ -209,8 +212,10 @@ Ire of Kaminari
 Island
 Ith, High Arcanist
 Jasmine Boreal
+Jeering Instigator
 Jetmir's Garden
 Jungle Lion
+Kami of Empty Graves
 Kamigawa Charm
 Kazuul Warlord
 Kefnet's Monument
@@ -433,6 +438,7 @@ Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
+Turntimber Sower
 Twisted Spider-Clone
 Tyrranax Atrocity
 Undersea Invader

@@ -14,7 +14,10 @@ func TestCloneAddTriggersForms(t *testing.T) {
 		// GainThisAbility$) is the clone-on-battlefield lowering's, so the card
 		// stays refused by the body, not by the AddTriggers$ read
 		{card: "Vesuvan Doppelganger", form: "upkeep Clone body (SetColor$ on the battlefield) refuses", refused: "Clone SetColor$ on the battlefield"},
-		{card: "Callidus Assassin", form: "IntoPlayTapped carrier stays refused (its sameName trigger body)", refused: "sameName"},
+		// its sameName trigger filter lowers now (the plain sameName is
+		// PredSameNameSelf); the body still refuses, on its unread
+		// IntoPlayTapped$ param
+		{card: "Callidus Assassin", form: "IntoPlayTapped carrier stays refused", refused: "Clone unread params"},
 		{card: "Vesuvan Shapeshifter", form: "Duration carrier stays refused", refused: "TurnFaceUp replacement shape"},
 	})
 }

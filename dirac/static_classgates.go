@@ -24,6 +24,7 @@ const (
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 	sclsOffKwG                     // StatOffZoneGrant or StatRetraceGrant, an off-zone grant (kw_offkwgrant.go)
+	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -49,6 +50,9 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				continue
 			}
 			sa := &a.Static
+			if !staticObjectOnly(t, sa) {
+				m |= sclsNonObj
+			}
 			switch sa.Kind {
 			case kop.StatContinuous:
 				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
@@ -199,6 +203,38 @@ func (s *State) sbaPTQuiet(k *prep) bool {
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		if k.gen.sCls[s.cardAt(m.first())]&sclsPTRel != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// staticObjectOnly reports whether sa's effect on a permanent's
+// characteristics reads only objects' own fields: a plain Continuous static
+// (constant amounts, no condition, no grant, no flag) over a filter of
+// controller, ownership, type, colour, subtype and the tapped, attacking,
+// token, self and attached tests; or a kind that changes no characteristic.
+// False for every other kind and filter (a dynamic amount, a condition, a
+// CDA, an override, a control change, a predicate program, a turn tally).
+func staticObjectOnly(t *kop.Table, sa *kop.Static) bool {
+	switch sa.Kind {
+	case kop.StatReduceCost, kop.StatIncreaseCost, kop.StatMayPlayFrom, kop.StatReduceAbility, kop.StatFbGrant, kop.StatWarpGrant,
+		kop.StatEscapeGrant, kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatCantBlock, kop.StatCantBlockBy, kop.StatCantAttack,
+		kop.StatMustAttack, kop.StatCastWithFlash, kop.StatAlternativeCost, kop.StatNoMaxHandSize, kop.StatExtraLandPlay, kop.StatCantBeCast:
+		return true
+	case kop.StatContinuous:
+	default:
+		return false
+	}
+	if sa.StFlags != 0 || sa.VA != (kop.ValueRef{}) || sa.VB != (kop.ValueRef{}) || sa.Cond2 != 0 || sa.Cond != 0 || sa.OvGate != 0 ||
+		sa.Grant != 0 || sa.GrantSt != 0 || sa.AddChosen || sa.Override != 0 {
+		return false
+	}
+	const plain = kop.FOther | kop.FNontoken | kop.FToken | kop.FTapped | kop.FUntapped | kop.FAttacking | kop.FNotAttacking |
+		kop.FSelf | kop.FAttachedBySrc | kop.FNotAttachedBySrc
+	for f := sa.Filter; f != 0; f = t.Filters[f].Or {
+		fl := &t.Filters[f]
+		if fl.CtrlTgt != 0 || fl.Flags&^plain != 0 || fl.Flags2 != 0 || fl.Pred != kop.PredNone || fl.Ctrl > kop.CtrlOpp || fl.Owner > kop.CtrlOpp {
 			return false
 		}
 	}

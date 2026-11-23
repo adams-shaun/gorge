@@ -6,6 +6,7 @@ Aether Gale
 Afterlife
 Aftershock
 Akroan Line Breaker
+Alchemist's Talent
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
@@ -112,6 +113,7 @@ Dimir Cluestone
 Dimir House Guard
 Disembowel
 Disrupt
+Dovin, Architect of Law
 Draconic Lore
 Dragon Tyrant
 Dragonfly Suit
@@ -139,9 +141,11 @@ Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
+Fatal Mutation
 Fathom Fleet Captain
 Favor of the Woods
 Feebleness
+Feline Sovereign
 Ferocious Charge
 Ferocity of the Wilds
 Festival Crasher
@@ -223,6 +227,7 @@ Hope Charm
 Horizon Canopy
 Horned Sliver
 Hunter's Prowess
+Hunting Triad
 Icy Blast
 Ignite the Beacon
 Incursion Specialist
@@ -279,6 +284,7 @@ Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
 Mirror Entity
+Mirror Gallery
 Misshapen Fiend
 Molten Tributary
 Mosscoat Goriak
@@ -395,6 +401,7 @@ Spell Crumple
 Spell Syphon
 Sphinx Mindbreaker
 Spire Tracer
+Spirespine
 Spore Cloud
 Sprouting Vines
 Stalking Vengeance
@@ -428,6 +435,7 @@ Terashi's Grasp
 Termagant Swarm
 Thalakos Seer
 Thassa's Emissary
+The Gitrog Monster
 The Marvelous Scientist
 The Shire
 Thermal Glider

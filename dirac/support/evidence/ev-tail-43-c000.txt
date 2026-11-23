@@ -17,6 +17,7 @@ Armory Guard
 Arwen Undómiel
 Audacious Infiltrator
 Aven Augur
+Aven Shrine
 Bail Out
 Barbed Lightning
 Bastion Enforcer
@@ -30,9 +31,12 @@ Black Cat
 Blessings of Nature
 Blight Keeper
 Blistering Dieflyn
+Bloodbond March
+Bloodbraid Marauder
 Bloodscent
 Bloodshot Trainee
 Bloodthorn Taunter
+Blue Ward
 Boggart Loggers
 Bonded Construct
 Bonescythe Sliver
@@ -139,6 +143,7 @@ Goblin Chirurgeon
 Goblin Goon
 Goblin War Strike
 Goldlust Triad
+Great Intelligence's Plan
 Great Sable Stag
 Greataxe
 Grenzo, Havoc Raiser
@@ -191,6 +196,7 @@ Leaping Lizard
 Leechridden Swamp
 Legion Vanguard
 Liberated Dwarf
+Lieutenants of the Guard
 Lifespark Spellbomb
 Liliana's Scrounger
 Living Armor
@@ -361,6 +367,7 @@ Thallid Germinator
 The Haunt of Hightower
 The Hunger Tide Rises
 The Odd Acorn Gang
+The Rani
 The Restoration of Eiganjo
 Thraben Charm
 Thraben Heretic
@@ -372,6 +379,7 @@ Titania, Nature's Force
 Tooth Collector
 Topple
 Torrential Gearhulk
+Tower Above
 Triton Shorestalker
 Troll Ascetic
 Tuknir Deathlock

@@ -2,13 +2,17 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Dungeon Descent	2b659e4e234ef5f1	76	2/2		0/1	ix:resp
 Azorius Skyguard	eddd2d248f811696	4	0/0		0/0	
 Boar Umbra	1e770ae1ec04610a	26	0/0		1/2	ix:resp
+Deadfall	de2e726397065297	6	0/0		0/0	
+Dwarven Shrine	f8914ed244787862	42	1/1		1/1	
 Echoing Decay	a8542f9d6616d6bf	26	0/0		2/2	
 Ethersworn Sphinx	7441c8b0a779e5b0	6	0/0		0/0	
 Experiment Kraj	c25e2874f458808a	4	1/1		1/1	
+Gaddock Teeg	f1170dae8daf99c1	40	0/0		0/0	
 Gore-House Chainwalker	9e99b84c18da89b6	7	0/0		0/0	
 Indentured Oaf	2d62388fd68e413b	10	0/0		0/0	
 Kasmina, Enigmatic Mentor	a5c5b701557fc287	8	1/1		0/1	ix:resp
 Krile Baldesion	eed196c60c759226	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Murk Dwellers	428a9b4a2292f41e	25	1/1		1/1	
 Orchard Strider	eb693d5a3bd45a77	3	2/2		1/1	
 Pearl Lake Ancient	35ca3cf406685902	6	2/2		1/1	
 Priest of the Haunted Edge	950c09681fd158e3	11	1/1		0/1	ix:resp
@@ -18,5 +22,6 @@ Step Through	8b3ecc1aac6e2d8f	3	1/1		1/2	ix:resp
 Sumala Rumblers	8ae9e40ddf474106	4	1/1		1/1	
 Sword of Fire and Ice and War and Peace	5207cdcd7cb88717	7	2/2		1/1	
 Tarnished Citadel	829de241064cc46c	10	2/2		0/1	ix:resp
+Tasigur's Cruelty	5b09652f4e50a563	3	0/0		1/2	ix:resp
 Thrill-Kill Assassin	a3e1f066671ee55d	79	0/0		0/0	
 Undergrowth Champion	0ddcc44a340be610	11	1/1		1/1	

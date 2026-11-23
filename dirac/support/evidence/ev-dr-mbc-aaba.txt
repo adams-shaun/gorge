@@ -1,9 +1,12 @@
 Aphetto Alchemist
+Aphetto Exterminator
 Azorius Herald
+Baeloth Barrityl, Entertainer
 Bastion Inventor
 Battle Squadron
 Bellowing Tanglewurm
 Bloodthirsty Blade
+Bothersome Quasit
 Brainstorm
 Bria, Riptide Rogue
 Brute Strength
@@ -55,9 +58,11 @@ Kokusho, the Evening Star
 Korvold, Fae-Cursed King
 Lampad of Death's Vigil
 Lava Dart
+Lieutenants of the Guard
 Mental Note
 Mindclaw Shaman
 Mischievous Poltergeist
+Moonlit Strider
 Mountain
 Mwonvuli Acid-Moss
 Mystic Subdual
@@ -86,6 +91,7 @@ Seedguide Ash
 Shadow Rift
 Sheoldred's Edict
 Shredded Sails
+Skinthinner
 Skittering Crustacean
 Skysnare Spider
 Slavering Nulls

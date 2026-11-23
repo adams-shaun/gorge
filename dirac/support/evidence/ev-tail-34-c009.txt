@@ -10,7 +10,6 @@ Forest
 Glimmer of Genius
 Imperial Recovery Unit
 Island
-Kavu Aggressor
 Kithkin Mourncaller
 Knotvine Paladin
 Loran's Escape
@@ -19,7 +18,6 @@ Mountain
 Night Market Guard
 Nurturer Initiate
 Plains
-Rain of Rust
 Ramosian Sergeant
 Swamp
 Tandem Takedown

@@ -2,74 +2,138 @@ A-Riveteers Initiate
 Accursed Centaur
 Act on Impulse
 Ancient Runes
+Angelic Overseer
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Arno Dorian
+Ashcoat Bear
+Auriok Sunchaser
+Auspicious Ancestor
+Ayula, Queen Among Bears
+Azorius Guildgate
 Barrel Down Sokenzan
+Birchlore Rangers
+Birthing Pod
 Bloodscale Prowler
+Blue Scarab
+Boros Guildgate
+Boros Mastiff
 Boulder Salvo
 Brimstone Dragon
+Brindle Shoat
 Bringer of the Blue Dawn
 Butch DeLoria, Tunnel Snake
+Candlelight Vigil
+Castle Raptors
+Celebrity Fencer
 Chakram Slinger
+Changing Loyalty
 Chasm Drake
+Chastise
 Chrome Mox
 City of Shadows
 Cloud Manta
+Cloud's Limit Break
+Colossal Badger
 Contested Game Ball
 Contract Killing
 Copper Tablet
 Coveted Falcon
+Crossbow Infantry
 Crossroads Candleguide
 Curse of Shallow Graves
 Cutthroat Negotiator
 Cyclopean Snare
 Cyclops Superconductor
+Cystbearer
 Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
+Declare Dominance
 Despondent Killbot
+Dimir Guildgate
 Dirty Rat
+Divebomber Griffin
 Dragon Hatchling
 Dramatist's Puppet
 Drider
+Eel-Hounds
+Elven Bow
 Empty the Warrens
+Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
+Fall from Favor
+Famished Foragers
 Fast Forward
 Feast of Dreams
 Festering Wound
 Flowstone Crusher
+Force of Savagery
 Frantic Inventory
 Furnace Scamp
+Galadhrim Ambush
 Gate to the Afterlife
 Gerrard's Irregulars
+Gideon's Lawkeeper
 Gloom Pangolin
 Goblin Firebug
+Golgari Guildgate
+Graceful Cat
+Grappling Sundew
 Grave Betrayal
+Great Wall
+Greenseeker
+Grim Draugr
+Grizzly Ghoul
+Gruul Guildgate
+Hammer Mage
 Harmless Offering
+Harrow
 Henge of Ramos
+Hero of Precinct One
 Hesitation
 Island
+Izzet Guildgate
+Jewel-Eyed Cobra
 Kain, Traitorous Dragoon
+Kami of Fire's Roar
 Karakas
+Kithkin Mourncaller
+Knight of Dawn's Light
+Laccolith Grunt
 Lava Axe
+Leap of Flame
+Leela, Sevateem Warrior
 Leisure Bicycle
 Lightning Prowess
+Living Lands
+Lord of Extinction
+Magma Rift
+Makeshift Battalion
 Markov Enforcer
 Mercadian Bazaar
 Merrow Bonegnawer
 Mizzium Skin
 Moat Piranhas
+Molten Frame
 Molting Harpy
+Monster Manual
+Moss Kami
 Mountain
+Necra Sanctuary
 Necroblossom Snarl
+Necrogen Spellbomb
 Necrosquito
 Nested Shambler
 Nighthawk Scavenger
 Nightmarish End
 No Escape
+Nullmage Advocate
+Open the Vaults
 Orochi Soul-Reaver
+Orzhov Guildgate
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
@@ -77,28 +141,49 @@ Paupers' Cage
 Phyrexian Ghoul
 Pit Imp
 Pit Keeper
+Plains
 Plaza of Heroes
 Polluted Bonds
 Portal to Phyrexia
 Possessed Aven
+Possession Engine
 Psionic Blast
 Pyretic Charge
 Quest for Ancient Secrets
+Quickening Licid
+Rakdos Guildgate
+Rally the Ranks
+Rampaging Aetherhood
 Reality Ripple
 Reckless Air Strike
 Reptilian Recruiter
 Rise from the Nether
+Road of Return
 Rootwater Diver
 Rundvelt Hordemaster
+Sacred Cat
+Saiba Trespassers
+Satyr Firedancer
+Satyr Grovedancer
+Savage Swipe
+Scarwood Treefolk
 Sensei's Divining Top
 Sentinel
 Shambling Goblin
+Shessra, Death's Whisper
+Shrieking Affliction
 Silent Specter
 Sivriss, Nightmare Speaker
 Skulltap
+Skyhunter Cub
+Skyhunter Prowler
+Skyway Sniper
 Slate Street Ruffian
 Slate of Ancestry
 Slip Through Space
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Swamp
 Sokenzan, Crucible of Defiance
 Spark Elemental
 Sparkspitter
@@ -106,22 +191,37 @@ Spell Burst
 Spellbook
 Spined Fluke
 Spontaneous Combustion
+Sporeback Troll
+Stony Strength
 Storm of Memories
+Sunset Revelry
+Sunspire Griffin
 Swamp
+Swift Maneuver
+Swift Warden
+Taranika, Akroan Veteran
+Tel-Jilad Chosen
+Tenth District Guard
 The Surgical Bay
 The Wretched
+Thundering Spineback
 Tigereye Cameo
 Tower of Calamities
+Triad of Fates
 Turbulent Dreams
+Ubul Sar Gatekeepers
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter
 Vapor Snag
+Verduran Emissary
+Vivien's Arkbow
 Warkite Marauder
 Wasp, Shrinking Savior
 Watchful Blisterzoa
 Wei Night Raiders
 Wicked Guardian
+Winter Soldier, Bucky Barnes
 Wishclaw Talisman
 Wishful Merfolk
 Wooded Foothills

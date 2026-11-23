@@ -1,8 +1,10 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Aegis Angel	6a2f88a173216c69	4	1/1		0/1	ix:resp
 Angelic Quartermaster	dff95e4bd78d647c	3	1/1		0/1	ix:resp
 Arcbound Mouser	26b4d818bfe3c22f	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Arcbound Slith	0b3c2cc7ce886497	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Avatar of Fury	d25fb04394bf2fef	7	1/1		1/1	
+Binding Mummy	e965770486f0e87a	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Blessing of Leeches	78ad171ae9ac2412	16	2/2		2/2	
 Bruna, the Fading Light	fcdb8162a4602370	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Copycrook	0789cc923efcaee2	4	0/0		0/0	
@@ -11,17 +13,23 @@ Deeproot Elite	3594fb242ed1ce99	9	1/1		0/1	ix:resp
 Deprive	1d26459c2fe8c56e	5	0/0		1/2	ix:resp
 Electrolyze	ce8ae275e9f076fe	4	0/0		1/2	ix:resp
 Endangered Armodon	94041f1a8e13a88d	6	1/1		0/1	ix:resp
+Evangel of Heliod	a07259ed7a66b942	4	1/1		0/1	ix:resp
 Fyndhorn Elves	d0e49e9ea4984b98	5	1/1		0/1	ix:resp
 Leonin Iconoclast	4b4f09e97b256572	28	1/1		0/1	ix:resp
 Light of Sanction	63a1caafc44b1571	5	0/0		0/0	
+Logic Knot	2cc94b55c4e56e24	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Marjhan	b2dd10d555363432	180	3/3		1/1	
 Mindslicer	425eae823955786b	4	1/1		0/1	ix:resp
 Multani, Yavimaya's Avatar	e3fcf5a6bd4a2eb4	7	1/1		0/1	ix:resp
 Obsidian Obelisk	80d722ea99437183	13	2/2		0/1	ix:resp
 Portent	fa4b5839839d69a8	5	0/0		1/2	ix:resp
 Rakdos Locket	6e5d93db20608c00	3	2/2		0/1	ix:resp
+Rose, Cutthroat Raider	82ffc0cf40bab053	3	2/2		0/1	ix:resp
 Sandstalker Moloch	d8cab91021fffa8a	21	1/1		0/1	ix:resp
 Sea Gate Colossus	75bbda25410a3325	4	0/0		0/0	
 Sprouting Goblin	df5d25c68a8547e3	9	2/2		2/3	ix:resp
+Suffocating Fumes	c4226ef632e56279	5	1/1		1/2	ix:resp
 Tragic Slip	18be260d67aef835	4	0/0		1/2	ix:resp
 Triskaidekaphile	6003187f9da50083	22	2/2		0/1	ix:resp
+Utopia Sprawl	2ac20df01e770a9a	3	1/1		1/2	ix:resp
+Vampiric Embrace	a4fb490fde11100b	4	0/0		1/2	ix:resp

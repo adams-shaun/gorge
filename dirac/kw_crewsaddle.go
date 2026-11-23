@@ -22,8 +22,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Object.SaddledTurn: perm.cseen bit cseenSaddled here.
 
 // cseenSaddled: the permanent is saddled (OpSaddle; gorge SaddledTurn ==
-// the turn). perm.cseen bit 5 (bits 0-4 counters, 6-7 cseenSkipUntap*).
+// the turn). perm.cseen bit 5 (bits 0-4 counters; bits 6-7 free).
+// A Case's solved designation (OpSaddle C=1) is a separate bit, spareSolved.
 const cseenSaddled uint8 = 1 << 5
+
+// spareSolved: the permanent's Case is solved (OpSaddle C=1; gorge
+// Object.Solved). It is permanent, unlike the saddled designation, so it
+// has its own bit: perm.spare bit 4 (bits 0-3 are the P/T switch, the
+// copied-face-down mark and the regeneration shields).
+const spareSolved uint8 = 1 << 4
 
 // prepCrewSaddle sets the prep bits: some ability costs CostTapPower, some
 // program saddles (OpSaddle).
@@ -159,28 +166,37 @@ func (s *State) tapPowerDone() {
 	s.bld().pickK, s.bld().pickLeft = 0, 0
 }
 
-// saddle is OpSaddle: the battlefield permanent Obj becomes saddled.
+// saddle is OpSaddle: C=0 gives the battlefield permanent Obj the saddled
+// designation (and fires BecomesSaddled); C=1 marks a Case solved.
 func (s *State) saddle(k *prep, in *kop.Instr) {
-	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		was := s.perms[sl].cseen&cseenSaddled != 0
-		s.perms[sl].cseen |= cseenSaddled
-		s.touchSl(sl)
-		if in.C == 0 {
-			s.fireBecomesSaddled(k, sl, was)
-		}
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		return
 	}
+	if in.C == 1 {
+		// a Case's solve (CR 719.3b): its own permanent bit, no saddled
+		// designation and no BecomesSaddled trigger
+		s.perms[sl].spare |= spareSolved
+		s.touchSl(sl)
+		return
+	}
+	was := s.perms[sl].cseen&cseenSaddled != 0
+	s.perms[sl].cseen |= cseenSaddled
+	s.touchSl(sl)
+	s.fireBecomesSaddled(k, sl, was)
 }
 
 // unsaddleAll ends every saddled designation as a turn begins (gorge
-// TurnChange: SaddledTurn = 0).
+// TurnChange: SaddledTurn = 0). A Case's solve is a permanent bit of its
+// own (spareSolved), so this clear never touches it.
 //
 //go:noinline
-func (s *State) unsaddleAll(k *prep) {
+func (s *State) unsaddleAll(_ *prep) {
 	if DebugSaddleTgtNoClear { // TestSaddletgtMutation: never clear
 		return
 	}
 	for m := s.occ; m.any(); m = m.rest() {
-		if p := &s.perms[m.first()]; p.cseen&cseenSaddled != 0 && !(k.gen.anySolve && solves(k, s.cardAt(m.first()))) {
+		if p := &s.perms[m.first()]; p.cseen&cseenSaddled != 0 {
 			p.cseen &^= cseenSaddled
 			s.touch(p.obj)
 		}
@@ -198,18 +214,4 @@ func (s *State) execCrewSaddle(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	}
 	return s.execEachFromSource(k, in)
-}
-
-// solves reports whether card c's programs solve it (OpSaddle C = 1): a
-// Case keeps its Solved bit when a turn begins (unsaddleAll, reached only
-// in a pool that saddles too).
-func solves(k *prep, c CardID) bool {
-	for i := range k.t.Cards[c].Abilities {
-		for _, in := range k.t.Cards[c].Abilities[i].Prog {
-			if in.Op == kop.OpSaddle && in.C == 1 {
-				return true
-			}
-		}
-	}
-	return false
 }

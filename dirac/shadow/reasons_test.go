@@ -60,8 +60,25 @@ func TestWorldFromViewReasons(t *testing.T) {
 		}
 	}
 	cases := map[string]func(*shadow.Input){
-		shadow.ReasonOver:     func(in *shadow.Input) { in.View.Over = true },
-		shadow.ReasonSeats:    func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
+		shadow.ReasonOver:  func(in *shadow.Input) { in.View.Over = true },
+		shadow.ReasonSeats: func(in *shadow.Input) { in.View.Players = in.View.Players[:1] },
+		shadow.ReasonSeatLeft: func(in *shadow.Input) {
+			// a four-player view with the last seat out
+			for p := 2; p < 4; p++ {
+				pv := view.PlayerView{ID: state.PlayerID(p), Life: 20, HandSize: 7, LibrarySize: 13, Lost: p == 3}
+				if p == 3 {
+					// a departed seat whose view still shows a hand card
+					pv.Hand = []view.CardView{{ID: 60, Name: "Plains"}}
+				}
+				for i := 0; i < 7; i++ {
+					in.Hidden.Hand[p] = append(in.Hidden.Hand[p], shadow.Card{Obj: dirac.Obj(p*20 + i), Name: "Plains"})
+				}
+				for i := 0; i < 13; i++ {
+					in.Hidden.Library[p] = append(in.Hidden.Library[p], shadow.Card{Obj: dirac.Obj(p*20 + 7 + i), Name: "Savannah Lions"})
+				}
+				in.View.Players = append(in.View.Players, pv)
+			}
+		},
 		shadow.ReasonStack:    func(in *shadow.Input) { in.View.Stack = []view.StackView{{}} },
 		shadow.ReasonPending:  func(in *shadow.Input) { in.View.Pending = []view.PendingView{{}} },
 		shadow.ReasonDecision: func(in *shadow.Input) { in.View.Decision = &decision.Decision{Kind: decision.KTarget} },
@@ -69,6 +86,11 @@ func TestWorldFromViewReasons(t *testing.T) {
 		shadow.ReasonUnmapped: func(in *shadow.Input) { in.ObjOf = func(int) (dirac.Obj, bool) { return 0, false } },
 		shadow.ReasonHidden:   func(in *shadow.Input) { in.Hidden.Library[1] = in.Hidden.Library[1][1:] },
 		shadow.ReasonExile:    func(in *shadow.Input) { in.View.Players[1].Exile = []view.CardView{{Name: "Plains"}} },
+		dirac.ReasonCommander: func(in *shadow.Input) {
+			// a partner pair: two commanders in one roster
+			in.View.Players[0].Commanders = []view.CardView{{ID: 0, Name: "Plains"}, {ID: 1, Name: "Plains"}}
+			in.View.Players[0].CommanderCasts = []int32{0, 0}
+		},
 		shadow.ReasonToken:    func(in *shadow.Input) { bf(in, view.CardView{IsToken: true}) },
 		shadow.ReasonCounter:  func(in *shadow.Input) { bf(in, view.CardView{Counters: map[string]int32{"M1M1": 1}}) },
 		shadow.ReasonAttach:   func(in *shadow.Input) { bf(in, view.CardView{AttachedTo: 5}) },
@@ -83,6 +105,27 @@ func TestWorldFromViewReasons(t *testing.T) {
 			// a Savannah Lions "ability" entry: not a self-counter ability
 			in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}}}
 		},
+	}
+	// a targeted entry whose target is no battlefield object the view shows
+	// (a card in a hand: it left; or a player) is ReasonStack
+	for name, tv := range map[string]view.TargetView{
+		"off the battlefield": {Obj: 3},
+		"a player":            {Player: 1, IsPlayer: true},
+	} {
+		in := reasonsInput()
+		bf(in, view.CardView{})
+		in.View.Stack = []view.StackView{{Kind: "ability", Source: 0, Card: &view.CardView{Name: "Hungry Ghoul"}, Targets: []view.TargetView{tv}}}
+		s, err := shadow.StageFromView(in)
+		var u dirac.ErrUnstageable
+		if !errors.As(err, &u) || u.Reason != shadow.ReasonStack || s != nil {
+			t.Errorf("target %s: got state %v, error %v; want %q", name, s != nil, err, shadow.ReasonStack)
+		}
+	}
+	// a card in a command zone that is no commander of its seat is exile's
+	in := reasonsInput()
+	in.View.Players[1].Command = []view.CardView{{ID: 40, Name: "Plains"}}
+	if _, err := shadow.StageFromView(in); !errors.As(err, new(dirac.ErrUnstageable)) || err.(dirac.ErrUnstageable).Reason != shadow.ReasonExile {
+		t.Errorf("a non-commander in the command zone: got error %v, want %q", err, shadow.ReasonExile)
 	}
 	for _, r := range shadow.Reasons {
 		if _, ok := cases[r]; !ok {

@@ -27,7 +27,13 @@ func (s *State) blocksIfAbleExt(k *prep, in *kop.Instr) {
 }
 
 // blockDuty is the defending player's permanents that block this turn if
-// able (empty when the table never marks one).
+// able (empty when the table never marks one): the ExtBlocksIfAble mark and,
+// when the table holds one, the printed S:Mode$ MustBlock statics
+// (kop.StatMustBlock; dirac/static_mustblock.go).
 func (s *State) blockDuty(k *prep) slotMask {
-	return s.mSlMask(k, mechBlocksIfAble).and(s.ctrlM[s.blockDef()])
+	out := s.mSlMask(k, mechBlocksIfAble).and(s.ctrlM[s.blockDef()])
+	if k.gen != nil && k.gen.uses.has(useMustBlkStat) {
+		out = out.or(s.blockDutyStatic(k))
+	}
+	return out
 }

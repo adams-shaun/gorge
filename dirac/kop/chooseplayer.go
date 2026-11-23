@@ -19,4 +19,12 @@ const OpChoosePlayer Op = 157
 // Random$ True).
 const ChPlRandom int16 = 1
 
+// ChPlPlain is OpChoosePlayer's C bit 1: the pool is every living opponent of
+// the chooser, the source Aura's bearer included (Choices$ Player.Opponent /
+// Opponent with Random$ True: Knight Rampager, Raving Dead, Ruhan of the
+// Fomori, ...). Clear, the bearer is left out (Choices$
+// Player.Opponent+!EnchantedBy, Maddening Hex). Lowered programs keep the
+// bit clear for Maddening Hex, so its recorded program is unchanged.
+const ChPlPlain int16 = 2
+
 func init() { opNames[OpChoosePlayer] = "ChoosePlayer" }

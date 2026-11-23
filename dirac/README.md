@@ -115,11 +115,13 @@ the SpellBench v2 engine may.
 | `dirac/neteval` | Only `bots/netsimd`, `bots/gonet` and `bots/policynet`, the networks and their input types; never the engine. |
 | `dirac/oracle` | Yes: it runs gorge as the oracle. |
 | `dirac/shadow` | `engine/view` and its types only (an observation); never `engine/rules`, `engine/replay` or `dirac/oracle` outside its tests. |
+| `dirac/shadowseat` | `dirac`, `dirac/kop`, `dirac/shadow`, `dirac/search`, `dirac/search/hbot`, `dirac/canon`, `dirac/cardset`, `engine/view`, `engine/decision`, `engine/seat`, `engine/cards` and the standard library except `reflect` and `unsafe`; never `engine/state`, `engine/rules`, `dirac/oracle` or `bots/...` outside its tests (`TestShadowSeatImports`). |
 | `dirac/lab` | `engine/deck` only, to read gorge deck files; never `engine/rules`, `engine/state` or `dirac/oracle`. |
 | `dirac/kgen` | Yes: it lowers gorge's card IR into `kop` tables. |
 | `dirac/adapter` | Yes, gorge's view, decision and card types, but nothing it links may reach `engine/rules`, `engine/replay` or `dirac/oracle` (`TestAdapterLinksNoRulesEngine`): it serves a game with no rules engine built. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
 | `dirac/cmd/dplay` | Yes: it reads gorge's deck files, and its bots read gorge's compiled cards through `dirac/oracle`. |
+| `dirac/cmd/shadowbench` | Yes: it runs gorge (`testkit/bench`, `engine/rules`) as the host and `bots/heuristic` as the opponent. |
 | `dirac/cmd/kmanifest` | Only the module's `cli` package: it reads the manifest and writes source. |
 
 `internal/archtest` holds the core rows (`TestDiracCoreImportsNoGorge`); a new import in the no column is a review failure
@@ -145,6 +147,7 @@ One line per package; the package's `doc.go` (or package comment) is the authori
 | `dirac/canon` | The canonical vocabulary the oracle and the adapter share, and dirac's translation into it. |
 | `dirac/adapter` | A dirac game behind `engine/game`: what `gorged -engine dirac` serves ([serving](docs/serving.md)). |
 | `dirac/shadow` | Stages a `dirac.State` from a seat's observation (`engine/view`) plus a caller-supplied assignment of the hidden zones; `shadow.NewLayout` and `(*Layout).Deal` build that assignment and the object numbering from the game's open deck lists, so a seat with only its view and the lists stages the same way. An unstageable position is a typed `dirac.ErrUnstageable`. [Page](../docs/site/architecture/dirac/shadow.md). |
+| `dirac/shadowseat` | A gorge `seat.Seat` that stages its own view with `dirac/shadow`, searches it with `dirac/search` and maps the chosen dirac actions back onto gorge's options, falling back to another seat (counting why) when it cannot stage or map. [Page](../docs/site/architecture/dirac/shadow.md). |
 | `dirac/lab` | A small wrapper to play games and run experiments on dirac from Go: games from deck lists, `Fork`, a position `Hash`, the `Random`, `HBot` and `Search` policies, `Play`/`Batch` with win rates and Wilson intervals. [Page](../docs/site/engines/lab.md). |
 | `dirac/support` | Which cards are supported: the committed `evidence` and `refused` lists, `focus` lists for evidence pools, `evidence-keys`, `unrefused.tsv` and `coverage-floor.txt`. |
 | `dirac/search` | gorge's `bots/azmcts` PUCT search ported onto `dirac.State`, with its self-play, instant-timing, land, belief and per-creature options. Start at `doc.go`. |
@@ -156,6 +159,7 @@ One line per package; the package's `doc.go` (or package comment) is the authori
 | `dirac/crcoverage` | Test-only CR coverage audit (`README.md` plus one file per CR chapter); `TestCRCoverageIsCurrent` checks every row against the code. |
 | `dirac/cmd/dplay` | Plays dirac games alone and reports them. |
 | `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine. |
+| `dirac/cmd/shadowbench` | Plays the shadow seat against the heuristic bot in gorge games and reports stage rate, fallback reasons and win rate. |
 | `dirac/<topic>_<mechanic>.go` | One file per mechanic; `doc.go` lists the topics. A contributor adds a file rather than appending to a shared one. |
 
 `dirac/testdata/bench/{fdn,blb}` hold the deck files `gorged -engine dirac` serves by default. Commands are described in

@@ -1,67 +1,147 @@
 Adept Watershaper
+Ajani, Outland Chaperone
 Appeal to Eirdu
 Bark of Doran
+Blight Rot
 Bloom Tender
+Blossombind
 Blossoming Defense
+Boldwyr Aggressor
+Boneclub Berserker
+Boulder Dash
+Brambleback Brute
+Bre of Clan Stoutarm
 Brigid's Command
 Bristlebane Battler
 Bristlebane Outrider
 Burdened Stoneback
+Catharsis
 Champion of the Clachan
+Champion of the Path
+Changeling Wayfinder
 Chomping Changeling
+Chronicle of Victory
+Cinder Strike
 Clachan Festival
 Crib Swap
 Crossroads Watcher
 Curious Colossus
 Dawn-Blessed Pennant
+Dawnhand Eulogist
+Deceit
+Dream Harvest
+Dream Seizer
 Dundoolin Weaver
+Eclipsed Realms
+Elder Auntie
 Encumbered Reejerey
+End-Blaze Epiphany
+Enraged Flamecaster
 Evershrike's Gift
 Evolving Wilds
+Explosive Prodigy
+Feed the Flames
+Feisty Spikeling
 Figure of Fable
 Firdoch Core
+Flame-Chain Mauler
 Flock Impostor
 Forest
 Formidable Speaker
 Gallant Fowlknight
 Gathering Stone
+Giantfall
 Gilt-Leaf's Embrace
+Glamer Gifter
+Glamermite
+Glen Elendra Guardian
+Goatnap
 Goldmeadow Nomad
 Great Forest Druid
+Gristle Glutton
 Hallowed Fountain
+Heirloom Auntie
+Hexing Squelcher
+High Perfect Morcant
+Hovel Hurler
+Impolite Entrance
+Iron-Shield Elf
+Island
 Keep Out
 Kinbinding
+Kindle the Inner Flame
+Kinscaer Sentry
+Kirol, Attentive First-Year
 Kithkeeper
+Kulrath Mystic
+Lasting Tarfire
+Lavaleaper
 Liminal Hold
+Loch Mare
 Lys Alana Informant
 Meanders Guide
 Midnight Tilling
 Mirrormind Crown
 Mistmeadow Council
+Moonglove Extractor
 Moonlit Lamenter
+Moonshadow
+Morcant's Eyes
+Mountain
+Mudbutton Cursetosser
 Mutable Explorer
+Nameless Inversion
+Overgrown Tomb
+Personify
+Pestered Wellguard
 Pitiless Fists
 Plains
 Prismabasher
 Prismatic Undercurrents
 Protective Response
 Pyrrhic Strike
+Reckless Ransacking
 Reluctant Dounguard
+Retched Wretch
 Riverguard's Reflexes
 Rooftop Percher
+Run Away Together
 Sapling Nursery
+Scarblade Scout
+Scuzzback Scrounger
+Sear
+Shinestriker
 Shore Lurker
 Slumbering Walker
+Soulbright Seeker
+Sourbread Auntie
+Spell Snare
 Spiral into Solitude
 Springleaf Drum
+Squawkroaster
 Stalactite Dagger
+Steam Vents
+Sting-Slinger
+Summit Sentinel
+Sun-Dappled Celebrant
+Swamp
+Swat Away
+Sygg, Wanderwine Wisdom
+Tanufel Rimespeaker
 Temple Garden
+Temporal Cleansing
 Tend the Sprigs
+Thirst for Identity
 Thoughtweft Charge
 Thoughtweft Imbuer
 Thoughtweft Lieutenant
 Timid Shieldbearer
+Tributary Vaulter
+Tweeze
 Vinebred Brawler
 Virulent Emissary
+Wanderbrine Preacher
 Wanderbrine Trapper
+Wanderwine Distracter
+Wild Unraveling
 Wildvine Pummeler

@@ -1,5 +1,6 @@
 A-Dawnbringer Cleric
 A-Geological Appraiser
+A-Phantom Carriage
 A-Sepulcher Ghoul
 Abbey Griffin
 Abomination, Irradiated Brute
@@ -41,6 +42,7 @@ Bala Ged Recovery
 Baleful Beholder
 Bane's Invoker
 Become the Avalanche
+Bighorner Rancher
 Binding Agony
 Birthing Pod
 Bitterbow Sharpshooters
@@ -112,6 +114,7 @@ Dig Up the Body
 Diregraf Horde
 Dispeller's Capsule
 Doctor Doom, Unrivaled
+Dr. Eggman
 Drannith Magistrate
 Dread Return
 Dreadbore
@@ -448,11 +451,13 @@ Syndicate Enforcer
 T-45 Power Armor
 Tainted Pact
 Tainted Peak
+Tale of Tinúviel
 Task Force
 Temperamental Oozewagg
 Tenacity
 Terravore
 Territorial Allosaurus
+Tetsuo Umezawa
 Thaumatic Compass
 The Crafter
 The Rack

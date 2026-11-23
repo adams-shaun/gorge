@@ -16,6 +16,10 @@ const (
 	// (Ophidian's "If you do, Ophidian assigns no combat damage this turn",
 	// the Laccolith family), read by rules' combat damage amount.
 	ModeAssignNoCombatDamage = "AssignNoCombatDamage"
+	// ModeAttackVigilance names "attacking doesn't cause creatures you control
+	// to tap" (CR 508.1f; Johan's Effect, IsPresent$ Card.EffectSource+untapped),
+	// read by rules' combat.AttackVigilance when attackers are tapped.
+	ModeAttackVigilance = "AttackVigilance"
 )
 
 // effectCombatStatic registers an Effect-delivered combat static as a
@@ -27,6 +31,7 @@ const (
 func effectCombatStatic(h Host, c *Ctx, mode string, params staticLineParams, name, rawDur, dur string, remembered []state.ObjID) bool {
 	switch {
 	case mode == ModeBlockRestrict && staticKeysReadable(params, "Mode", "MaxBlockers", "ValidDefender", "Description"):
+	case mode == ModeAttackVigilance && staticKeysReadable(params, "Mode", "ValidCard", "IsPresent", "Description"):
 	case mode == ModeAssignNoCombatDamage && staticKeysReadable(params, "Mode", "ValidCard", "Description"):
 	default:
 		return false

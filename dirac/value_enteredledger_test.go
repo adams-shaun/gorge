@@ -71,12 +71,12 @@ func TestThisTurnEnteredSaturates(t *testing.T) {
 	sc.s.turn = 1
 	sc.s.enteredRing()
 	for i := 0; i < maxEntered; i++ {
-		sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
+		sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
 	}
 	if sc.s.g.enteredN != maxEntered || sc.s.g.enteredFull || sc.s.g.stalled != 0 {
 		t.Fatalf("after %d adds: n=%d full=%v stalled=%d", maxEntered, sc.s.g.enteredN, sc.s.g.enteredFull, sc.s.g.stalled)
 	}
-	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
 	if !sc.s.g.enteredFull || sc.s.g.enteredN != maxEntered {
 		t.Fatalf("overflow: n=%d full=%v, want n=%d full", sc.s.g.enteredN, sc.s.g.enteredFull, maxEntered)
 	}
@@ -98,15 +98,15 @@ func TestThisTurnEnteredRing(t *testing.T) {
 	sc := newScenTable(t, &tbl, Config{})
 	sc.s.enteredRing()
 	o := sc.perm(v.GrizzlyBears, 0)
-	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
-	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
+	sc.s.noteEnter(o, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
 	x := &kop.Expr{Kind: kop.ExThisTurnEntered, N: int16(kop.ZoneGraveyard), F: fid, F2: fid, From: int8(kop.ZoneBattlefield)}
 	if got := sc.s.thisTurnEntered(sc.k, x, evalCtx{}); got != 2 {
 		t.Fatalf("double entry: got %d, want 2", got)
 	}
 	// It moves on to exile: the two graveyard entries stay, and the move
 	// itself is one exile entry.
-	sc.s.placeFrom(o, kop.ZoneExile, false, kop.ZoneBattlefield, true)
+	sc.s.placeFrom(o, kop.ZoneExile, false, kop.ZoneBattlefield, true, false)
 	if got := sc.s.thisTurnEntered(sc.k, x, evalCtx{}); got != 2 {
 		t.Fatalf("after moving on, graveyard entries: got %d, want 2", got)
 	}
@@ -118,7 +118,7 @@ func TestThisTurnEnteredRing(t *testing.T) {
 	// A token that ceased is still listed (gorge keeps the entry).
 	tok := sc.obj(v.GrizzlyBears, 0)
 	sc.s.objs[tok].of |= ofToken
-	sc.s.noteEnter(tok, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(tok, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
 	sc.s.objs[tok].zone = kop.ZoneNone
 	if got := sc.s.thisTurnEntered(sc.k, x, evalCtx{}); got != 3 {
 		t.Fatalf("ceased token: got %d, want 3", got)
@@ -126,12 +126,12 @@ func TestThisTurnEnteredRing(t *testing.T) {
 	// The wasCreature bit gates the Creature-base alternative: a permanent
 	// that was not a creature when it left does not match it.
 	w := sc.obj(v.GrizzlyBears, 0)
-	sc.s.noteEnter(w, kop.ZoneHand, kop.ZoneBattlefield, false)
+	sc.s.noteEnter(w, kop.ZoneHand, kop.ZoneBattlefield, false, false)
 	z := &kop.Expr{Kind: kop.ExThisTurnEntered, N: int16(kop.ZoneHand), F: fid, F2: fid, From: int8(kop.ZoneBattlefield)}
 	if got := sc.s.thisTurnEntered(sc.k, z, evalCtx{}); got != 0 {
 		t.Fatalf("non-creature departure matched the creature split: got %d, want 0", got)
 	}
-	sc.s.noteEnter(w, kop.ZoneHand, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(w, kop.ZoneHand, kop.ZoneBattlefield, true, false)
 	if got := sc.s.thisTurnEntered(sc.k, z, evalCtx{}); got != 1 {
 		t.Fatalf("creature departure: got %d, want 1", got)
 	}
@@ -167,7 +167,7 @@ func TestThisTurnEnteredBattlefieldCountsACeasedCopyToken(t *testing.T) {
 			if tc.copy {
 				sc.s.objs[o].of |= ofCopy
 			}
-			sc.s.noteEnter(o, kop.ZoneBattlefield, kop.ZoneLibrary, true)
+			sc.s.noteEnter(o, kop.ZoneBattlefield, kop.ZoneLibrary, true, false)
 			if sc.s.g.enteredN != 1 {
 				t.Fatalf("precondition: ring holds %d entries, want 1", sc.s.g.enteredN)
 			}

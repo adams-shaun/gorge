@@ -53,6 +53,7 @@ Chocobo Knights
 Cinder Seer
 Cinderbones
 Cloudthresher
+Coalition Flag
 Combat Medic
 Compulsion
 Coral Eel
@@ -75,6 +76,7 @@ Dwarven Grunt
 Dwarven Lieutenant
 Eagle of the Watch
 Elixir of Vitality
+Empyrial Storm
 Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
@@ -212,6 +214,7 @@ Phyrexian Tribute
 Phyrexian War Beast
 Plague Spitter
 Plains
+Plea for Power
 Portent of Betrayal
 Primal Growth
 Primordial Sage
@@ -226,6 +229,7 @@ Rain of Tears
 Ramosian Sergeant
 Rampant Rejuvenator
 Ranger-Captain of Eos
+Rangers of Ithilien
 Raph's Bravado
 Rat Colony
 Rats of Rath
@@ -289,7 +293,6 @@ Storm of Souls
 Sudden Edict
 Sudden Spinnerets
 Suppressor Skyguard
-Surtland Frostpyre
 Swamp
 Swamp Mosquito
 Tamiyo's Epiphany
@@ -307,7 +310,6 @@ Thundermare
 Thunderwolf Cavalry
 Titanoth Rex
 Torment
-Tramway Station
 Tread Upon
 Treebeard, Gracious Host
 Treeshaker Chimera

@@ -89,12 +89,12 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// V1 plans the ordinary-cast origins: the hand (the original shape),
 	// the command zone (the CR 903.8 plain taxed cast; alternate
 	// command-zone casts -- dash, evoke, bestow, ... -- carry a Mode and are
-	// withheld, as everywhere else), and the exile zone and graveyard, where
-	// only an untyped may-play permission's plain cast is planned (the
-	// "mayplay" cast mode; a MayPlayText$-typed permission, and every
-	// alternative cost, are withheld).  Any other origin fails closed, and
-	// the object must actually sit in its origin's zone: a mislabeled origin
-	// would compose a cost (and, from ZCommand, a commander tax) that
+	// withheld, as everywhere else), and the exile zone, graveyard and
+	// library top, where only an untyped may-play permission's plain cast is
+	// planned (the "mayplay" cast mode; a MayPlayText$-typed permission, and
+	// every alternative cost, are withheld).  Any other origin fails closed,
+	// and the object must actually sit in its origin's zone: a mislabeled
+	// origin would compose a cost (and, from ZCommand, a commander tax) that
 	// beginCast would never charge. The hand's alternate-spell-face casts
 	// (adventure_alt, omen_alt) ride the same body under the flip to the
 	// spell face (plannedAltSpellFace, faceprobe.go).
@@ -108,6 +108,8 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 		originZone = state.ZExile
 	case planCastPaymentCheckedGraveyard:
 		originZone = state.ZGraveyard
+	case planCastPaymentCheckedLibrary:
+		originZone = state.ZLibrary
 	case planCastPaymentCheckedFlashback:
 		// The CR 702.34a flashback cast of a graveyard card for its primary
 		// flashback cost (decision.OriginFlashback): the owner's own card,
@@ -123,6 +125,14 @@ func (e *Engine) planCastPaymentChecked(p state.PlayerID, cast decision.PlannedC
 	// offer's own controller check already gates who may cast it.
 	if o == nil || o.Zone != originZone || (!mayPlay && o.Owner != p) || o.Face() == nil {
 		return PaymentPlanOutcome{Reason: "unsupported"}
+	}
+	if originZone == state.ZLibrary {
+		// A may-play library cast begins only from the top card (the granting
+		// permission covers Card.TopLibrary): anything deeper fails closed.
+		lib := e.G.Zone(state.ZLibrary, o.Controller)
+		if len(lib) == 0 || lib[0] != cast.Object {
+			return PaymentPlanOutcome{Reason: "unsupported"}
+		}
 	}
 	// A hand alternate-spell-face cast (adventure_alt/omen_alt, CR 715.3a,
 	// 720.3) is priced the way beginCast charges it: one FlipFace to the
@@ -359,8 +369,95 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		desc := paymentForCast(pc, cost)
 		av := pay.AvailableFor(asPayer(e), p, desc)
 		conv := asEval(e).Conv(p, cast.Object, desc.SAKind())
+		half := out
 		out = castPlanPipsOutcome(e, p, cost, pc, e.G.Players[p].Life, e.G.Players[p].Snow,
 			av.Pool, av.Typed, conv, rider, out)
+		if out.Plan == nil {
+			out = castPlanPhyrexianReplan(asPayer(e), e, p, cast, cost, mana, rider, plan, half, out, pc, av, conv)
+		}
+	}
+	return out
+}
+
+// castPlanPhyrexianReplans bounds the re-plans of castPlanPhyrexianReplan:
+// each attempt holds at least one more of the previous witness's sources out
+// of the plan, so a cost the pip's colour faces cannot survive without stops
+// the loop long before it.
+const castPlanPhyrexianReplans = 4
+
+// castPlanReplan is the narrow surface the re-plan needs: the cast window's
+// own read beside the reserving planner (planReserving). The interface keeps
+// the re-plan off the engine's own surface (the engineSurface ratchet), the
+// way castPlanPipsWindow does for castPlanPipsOutcome.
+type castPlanReplan interface {
+	castPlanPipsWindow
+	planReserving(p state.PlayerID, id state.ObjID, cost Cost, ability, selfSource bool,
+		parts []planCostPart, plan func(tapR, keptR []state.ObjID) PaymentPlanOutcome) PaymentPlanOutcome
+}
+
+// castPlanPhyrexianReplan re-plans a withheld Phyrexian cast's mana half with
+// the sources its witness tapped held out of the plan, and re-runs the CR
+// 601.2g window check on every re-plan (CR 107.4f, 119.4). The half's witness
+// prices the pip-free mana half (pay.PlanManaHalf) before any pip is answered
+// (CR 601.2b), and the window the pips then resolve in offers every source the
+// witness did not tap (castPlanPipsOutcome): a witness that spent a source the
+// pips' colour faces needed withholds a cast a different assignment pays --
+// Fetid Heath's free "{T}: Add {C}" feeding the generic while its "{W/B},
+// {T}: Add {W}{W}, {W}{B} or {B}{B}" fee ability was the only {B} the window
+// could make (Vault Skirge's {1}{B/P} at one life beside an untapped Fetid
+// Heath and a Forest). The re-plan prices the same half over the other
+// sources, leaving the pip's colour producers to the window. half is the
+// withheld attempt's own half plan; an attempt with no plan stops the loop:
+// the sources excluded so far are ones every remaining assignment must do
+// without, so the pips they were held out for cannot be paid beside the half.
+func castPlanPhyrexianReplan(pe pay.Engine, w castPlanReplan, p state.PlayerID, cast decision.PlannedCast,
+	cost, mana Cost, rider pipRider, plan func(Cost, *pay.Descriptor) PaymentPlanOutcome,
+	half, out PaymentPlanOutcome, pc *pendingCast, av pay.Available, conv *manaConv) PaymentPlanOutcome {
+	if half.Plan == nil {
+		return out
+	}
+	life := w.Game().Players[p].Life
+	replan := func(tapR []state.ObjID) func(Cost, *pay.Descriptor) PaymentPlanOutcome {
+		return func(c Cost, d *pay.Descriptor) PaymentPlanOutcome {
+			if len(cost.Sac) == 0 && len(cost.TapPermanent) == 0 {
+				return pay.PlanPaymentCostWithout(pe, p, cast, c, d, tapR, nil, nil)
+			}
+			// The mana abilities run first (CR 601.2g-h), so a source that
+			// sacrifices itself can use up what an additional cost must
+			// sacrifice.
+			parts, _ := planCostParts(cost, cast.Object, false)
+			return w.planReserving(p, cast.Object, cost, false, false, parts, func(tr, kr []state.ObjID) PaymentPlanOutcome {
+				all := tr
+				if len(tapR) != 0 {
+					all = append(append([]state.ObjID(nil), tr...), tapR...)
+				}
+				return pay.PlanPaymentCostWithout(pe, p, cast, c, d, all, nil, kr)
+			})
+		}
+	}
+	excluded := make([]state.ObjID, 0, len(half.Plan.Activations))
+	for _, a := range half.Plan.Activations {
+		excluded = append(excluded, a.Source)
+	}
+	for attempt := 0; attempt < castPlanPhyrexianReplans; attempt++ {
+		got := planManaUnderRider(pe, p, life, cast, mana, rider, replan(excluded))
+		if got.Plan == nil {
+			return out // no assignment without the excluded sources pays the half
+		}
+		retry := castPlanPipsOutcome(w, p, cost, pc, life, w.Game().Players[p].Snow,
+			av.Pool, av.Typed, conv, rider, got)
+		if retry.Plan != nil {
+			return retry
+		}
+		for _, a := range got.Plan.Activations {
+			seen := false
+			for _, id := range excluded {
+				seen = seen || id == a.Source
+			}
+			if !seen {
+				excluded = append(excluded, a.Source)
+			}
+		}
 	}
 	return out
 }
@@ -1132,6 +1229,16 @@ func plannedPriorityCast(g *state.Game, opt decision.Option) (cast decision.Plan
 		if !plannedMayPlayZone(o.Zone) {
 			return cast, nil, 0, false
 		}
+		if o.Zone == state.ZLibrary {
+			// The granting permission covers Card.TopLibrary: only the top
+			// card of the library it sits in is castable, so the planned
+			// cast names it and the origin check at plan and submit time
+			// re-reads the top.
+			lib := g.Zone(state.ZLibrary, o.Controller)
+			if len(lib) == 0 || lib[0] != opt.Obj {
+				return cast, nil, 0, false
+			}
+		}
 		return decision.PlannedCast{Object: opt.Obj, Face: plannedCastFace(o), Origin: plannedMayPlayOrigin(o.Zone)}, nil, kind, true
 	case planCastFlashback:
 		if o.Zone != state.ZGraveyard {
@@ -1628,7 +1735,7 @@ func (e *Engine) paymentPlanManaUnitsOnlyCompute(p state.PlayerID, only []state.
 			// (one alternative per colour, any literal amount) and an amount-1
 			// Combo/Chosen/ColorIdentity (one alternative per producible
 			// colour). Combo Any and every allocation (amount > 1) stay deferred.
-			if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt); ok {
+			if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt, false); ok {
 				units, idx = setPaymentPlanUnitAlt(units, idx, id, alt)
 				continue
 			}
@@ -1789,6 +1896,7 @@ const (
 	planCastPaymentCheckedGraveyard
 	planCastPaymentCheckedMayPlayMode
 	planCastPaymentCheckedFlashback
+	planCastPaymentCheckedLibrary
 )
 
 var planCastPaymentCheckedCodes = state.NewStrCodes(
@@ -1798,6 +1906,7 @@ var planCastPaymentCheckedCodes = state.NewStrCodes(
 	state.StrEntry[planCastPaymentCheckedCode]{Key: "graveyard", Val: planCastPaymentCheckedGraveyard},
 	state.StrEntry[planCastPaymentCheckedCode]{Key: "mayplay", Val: planCastPaymentCheckedMayPlayMode},
 	state.StrEntry[planCastPaymentCheckedCode]{Key: decision.OriginFlashback, Val: planCastPaymentCheckedFlashback},
+	state.StrEntry[planCastPaymentCheckedCode]{Key: decision.OriginLibrary, Val: planCastPaymentCheckedLibrary},
 )
 
 // plannedCastScope is the cost-static scope a planned cast from zone z is
@@ -1923,9 +2032,10 @@ func (e *Engine) plannedCastComposedCost(p state.PlayerID, cast decision.Planned
 }
 
 // plannedMayPlayZone reports whether z is an origin whose planned cast is an
-// untyped may-play cast (the "mayplay" mode): exile and the graveyard.
+// untyped may-play cast (the "mayplay" mode): exile, the graveyard and the
+// library top.
 func plannedMayPlayZone(z state.Zone) bool {
-	return z == state.ZExile || z == state.ZGraveyard
+	return z == state.ZExile || z == state.ZGraveyard || z == state.ZLibrary
 }
 
 // plannedMayPlayOrigin is the PlannedCast.Origin code of a may-play zone.
@@ -1933,11 +2043,15 @@ func plannedMayPlayOrigin(z state.Zone) string {
 	if z == state.ZGraveyard {
 		return "graveyard"
 	}
+	if z == state.ZLibrary {
+		return decision.OriginLibrary
+	}
 	return "exile"
 }
 
 // plannedCastOption is the priority option an announced or planned cast of
-// cast begins as. A may-play origin (exile, graveyard) begins as Mode
+// cast begins as. A may-play origin (exile, graveyard, library top) begins
+// as Mode
 // "mayplay" so beginCast prices the permission's cost and records the hosts
 // while the card is still in the granted zone; a planned flashback
 // (decision.OriginFlashback) begins as Mode "flashback", the primary
@@ -2036,7 +2150,7 @@ func (e *Engine) targetPaidNeedsPlannedPayment(p state.PlayerID, id state.ObjID)
 	got := e.potentialModeCastPlan(p, o)
 	e.planCoverBoundOn = false
 	e.planConsumptionOnly = false
-	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true) {
+	if got.Plan == nil || got.Reason != "" || !paymentPlanConsumes(*got.Plan) || e.witnessReachesMode(e, p, o, *got.Plan, true, false) {
 		return false
 	}
 	return e.potentialWitnessKeeping(p, o).Reason != ""

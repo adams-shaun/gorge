@@ -25,7 +25,10 @@ import (
 //   - a body gorge's planner defers (tapsPlanClass == TapPlanDefer: it is no
 //     vetted payer damage), so a land the line matches is a tap the planner
 //     never makes (pay.PaymentPlanAbilityTier -> TierDeferred) and the
-//     kernel's census leaves it out (mana_tapsdefer.go tapsWatchClass).
+//     kernel's census leaves it out (mana_tapsdefer.go tapsWatchClass) --
+//     except the vetted destroy-self row (Price of Glory, tapsDestroySelf):
+//     the tapped land stays an ordinary planner unit there, the trigger
+//     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a).
 //
 // Anything else keeps the generic refusal.
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
@@ -61,6 +64,17 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana body that is vetted payer damage: gorge prices the source as a last-resort unit")
 	}
 	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive
+	if tapsDestroySelf(t) {
+		// The destroy-self row (Price of Glory): the trigger resolves after
+		// the payment that caused it (CR 405.6c/603.2) and its only effect is
+		// to destroy the permanent whose tap already produced its mana
+		// (CR 605.4a), so the tapped source stays an ordinary planner unit on
+		// both engines (kop.TapPlanOrdinary; gorge pay
+		// PaymentPlanTapDestroySelfTrigger, widened to Mode$ TapsForMana) and
+		// the trigger still fires on its own at the tap.
+		tr.TapPlan = uint8(kop.TapPlanOrdinary)
+		return nil
+	}
 	tr.TapPlan = uint8(kop.TapPlanDefer)
 	// The class stays Defer (gorge's planner never taps the source), but a
 	// literal damage body naming the tapper still costs the payer life at

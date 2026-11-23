@@ -885,12 +885,15 @@ def test_repro_named_maps_a_named_recording_to_its_manifest_subtest(repo):
 
 def test_plan_runs_a_manifest_subtest_as_its_parent_test():
     # `-run` splits at a slash outside brackets, so a `TestReproManifest/x` element would filter the subtests of
-    # the REPRO_TESTS tests too; the plan selects the parent and the whole manifest runs (about a minute)
+    # the REPRO_TESTS tests too; the plan selects the parents, every manifest shard (TestReproManifest0..7), and the
+    # whole manifest runs
     recording = "dirac/oracle/testdata/repro/marked.repro.json"
     got, _ = planned({recording: None}, repro_names={"m/dirac/oracle": {"TestReproManifest/marked"}})
     kind, rx = got["./dirac/oracle"]
-    assert kind == "named" and rx.startswith("^(TestReproManifest)$|")
+    assert kind == "named" and rx.startswith("^(TestReproManifest[0-9]+)$|")
     assert "/" not in rx
+    for k in range(8):
+        assert re.match(rx, "TestReproManifest%d" % k)
     for name in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
         assert name in rx
 
@@ -959,3 +962,33 @@ def test_fallback_timeout_is_busy_not_budget(tmp_path):
     f.write_text("\n".join([ev("fail", test="TestB"), ev("fail")]))
     rc, out, _ = run_cli(*base, "--fallback", "100%")
     assert rc == 1
+
+
+def test_table_data_change_runs_the_table_readers_whole():
+    # 11-20 #2803/#2804: a change to table data in a directory with no Go package (dirac/support evidence, pools,
+    # set lists) moved kgen's supported set and selected nothing; kfuzz's synth game count went red in the batch.
+    dm = dict(NDIRMAP, **{"dirac/cardset": "m/dirac/cardset", "dirac/oracle/cmd/kfuzz": "m/dirac/oracle/cmd/kfuzz"})
+    dp = dict(NDEPS, **{"m/dirac/cardset": {"m/dirac/cardset"},
+                        "m/dirac/oracle/cmd/kfuzz": {"m/dirac/oracle/cmd/kfuzz", "m/dirac/cardset"}})
+    for path in ("dirac/support/evidence-games.tsv", "dirac/cardset/pools/fdn/a.json",
+                 "dirac/cardset/setlists/FDN.txt", "dirac/manifest/mech/x"):
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [])
+        got = {p: k for k, p, _ in res}
+        assert got.get("./dirac/cardset") == "whole", (path, got)
+        assert got.get("./dirac/oracle/cmd/kfuzz") == "whole", (path, got)
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
+        assert {p: k for k, p, _ in res}.get("./dirac/oracle/cmd/kfuzz") == "whole", path  # not narrowed to census
+
+
+
+
+def test_smart_runs_the_oracle_in_chunks():
+    # 11-20: ./dirac/oracle's census set (~120 tests) and step 4's named set (fast tier + every repro replay) each
+    # summed past the oracle's 5m cap in one call on a loaded box, and test-smart printed BUDGET on diffs that never
+    # touched the oracle. Both run through oracle_chunked: fixed chunks, each its own call.
+    sh = (HERE / "test-targets.sh").read_text()
+    assert "cpk=$(printf '%s\\n' $cpk | grep -vx './dirac/oracle' || true)" in sh
+    assert 'oracle_chunked "$C" \'^TestStd[A-Za-z]*ReprosLockstep\'' in sh
+    assert 'if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx"' in sh
+    assert 'go test -list "$1" ./dirac/oracle' in sh
+    assert "chunks+=('^TestCmd5SliceCleanOnlyGrows$')" in sh

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -33,13 +34,7 @@ func pseudoSubtype(w string) bool {
 // not a subtype (CR 205.4b), so it is never interned from a type line or an
 // AddType: genPrep would otherwise mark it a creature type (dirac/gen.go
 // creatSub) and give it to every Changeling (CR 702.73a).
-func unmodeledSupertype(w string) bool {
-	switch w {
-	case "Snow", "World", "Ongoing":
-		return true
-	}
-	return false
-}
+func unmodeledSupertype(w string) bool { return cardset.UnmodeledSupertype(w) }
 
 // knownSubtype reports whether w is a subtype word of the pool: a word on
 // some pool card's or token's type line (a supertype typeBits does not model
@@ -84,7 +79,10 @@ func (p *pool) knownSubtype(w string) bool {
 				var walk func(m map[string]string)
 				walk = func(m map[string]string) {
 					for _, k := range []string{"Types", "AddType", "AddTypes"} {
-						for _, w := range strings.FieldsFunc(m[k], func(r rune) bool { return r == ',' || r == '&' }) {
+						// a space separates types like a comma (gorge
+						// animateGrant: "Types$ Human Cleric" is Human and
+						// Cleric, two types, never one subtype word)
+						for _, w := range strings.FieldsFunc(m[k], func(r rune) bool { return r == ',' || r == '&' || r == ' ' }) {
 							w = strings.TrimSpace(w)
 							if _, ok := typeBits[w]; !ok && w != "" && !pseudoSubtype(w) && !unmodeledSupertype(w) {
 								p.subs[w] = true
@@ -288,9 +286,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.ExiledWith {
 		fmt.Fprintf(w, " exiledwith")
 	}
-	if c.HandMana != 0 {
-		fmt.Fprintf(w, " handmana=%#x", c.HandMana) // lower_handmana.go
-	}
+	dumpZoneMana(w, c) // handmana= / gravemana= (lower_gravemana.go)
 	if c.CombatHitRec {
 		fmt.Fprintf(w, " combathitrec")
 	}
@@ -609,6 +605,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
+		if s.BlockAmount != 0 {
+			fmt.Fprintf(w, " blockamount=%d", s.BlockAmount)
+		}
 		if s.GrantSt != 0 {
 			fmt.Fprintf(w, " grantst=%d", s.GrantSt)
 		}
@@ -679,6 +678,9 @@ func costString(c lCost) string {
 	if c.DiscardF != nil {
 		p = append(p, fmt.Sprintf("Discard%d%s", c.DiscardN, c.DiscardF))
 	}
+	if discardBesideSacFiltered(c) {
+		p = append(p, fmt.Sprintf("DiscardSide%d%s", c.DiscardN, c.DiscardF))
+	}
 	if c.Discard2N > 0 {
 		f := "Card"
 		if c.Discard2F != nil {
@@ -748,6 +750,8 @@ func costString(c lCost) string {
 	}
 	if c.DrawN > 0 {
 		p = append(p, fmt.Sprintf("Draw%d", c.DrawN))
+	} else if c.DrawBy != nil {
+		p = append(p, fmt.Sprintf("Draw%s", c.DrawBy))
 	}
 	if len(p) == 0 {
 		return "-"

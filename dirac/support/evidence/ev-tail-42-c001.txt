@@ -26,6 +26,7 @@ Ardent Soldier
 Armored Ascension
 Armory Guard
 Ashiok's Adept
+Assemble the Legion
 Astral Dragon
 Attended Healer
 Audacious Infiltrator
@@ -109,6 +110,7 @@ Dread Slaver
 Dream Pillager
 Dross Crocodile
 Drownyard Explorers
+Duergar Mine-Captain
 Echoing Ruin
 Edge of the Divinity
 Eidolon of Inspiration
@@ -237,6 +239,7 @@ Liquify
 Living Lands
 Loamcrafter Faun
 Looter il-Kor
+Lose Focus
 Lucid Dreams
 Lurebound Scarecrow
 Lurking Nightstalker
@@ -267,6 +270,7 @@ Mugging
 Myr Adapter
 Mystic Snake
 Naru Meha, Master Wizard
+Nature's Cloak
 Nature's Will
 Nectar Faerie
 Needlethorn Drake
@@ -305,10 +309,12 @@ Phyrexian Denouncer
 Phyrexian Totem
 Piety
 Plains
+Planar Ally
 Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Prismwake Merrow
 Protective Bubble
 Psychic Impetus
 Rakdos Carnarium

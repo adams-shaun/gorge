@@ -5,8 +5,38 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 )
+
+// The package's one real setlist census: TestStdCensus reads this shared pass
+// and compares it with one fresh pass, so map-order nondeterminism cannot
+// return with two independent computations. The result is read-only — the
+// caller renders and counts it, never writes it.
+var (
+	censusOnce sync.Once
+	censusRes  *stdCensusResult
+	censusErr  error
+)
+
+// sharedCensus runs that census once per package run. The per-caller reads of
+// the standard list and the corpus happen here, so a caller skips or fails on
+// its own before the shared pass matters to it.
+func sharedCensus(t *testing.T) *stdCensusResult {
+	t.Helper()
+	std, err := readCardList(filepath.Join("../../", standardListPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cardsDir := ratchetCards(t)
+	censusOnce.Do(func() {
+		censusRes, censusErr = computeSetlistCensus(testSetlistDir, cardsDir, std)
+	})
+	if censusErr != nil {
+		t.Fatal(censusErr)
+	}
+	return censusRes
+}
 
 // TestStdCensus runs the live census over the real Standard lists and
 // asserts only invariants no grammar change can move: two runs are
@@ -16,51 +46,54 @@ import (
 // bundle rows are pinned on constructed tables (TestStd*Constructed).
 func TestStdCensus(t *testing.T) {
 	heavyParallel(t)
+	first := sharedCensus(t)
+	var md, tsv strings.Builder
+	writeStdCensus(&md, first)
+	if err := writeStdTSV(&tsv, first, nil); err != nil {
+		t.Fatal(err)
+	}
+	wantShort := 0
+	pins := acceptancePins(t)
+	for _, s := range first.sets {
+		pin, ok := pins[s.set]
+		if !ok {
+			t.Fatalf("%s has no acceptance pin", s.set)
+		}
+		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+			t.Error(err)
+		}
+		if s.std {
+			if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
+				wantShort += n
+			}
+		}
+	}
+	if first.stdTotalShort != wantShort {
+		t.Errorf("std total short = %d, want %d from the per-set counts", first.stdTotalShort, wantShort)
+	}
+	// The ALL pin: the check the separate TestStdCensusMatchesRatchet made on a fifth census (11-20: 19 s).
+	if err := judgePin("ALL census", pins["ALL"], [2]int{first.allAccepted, first.allListed}, pinStrict()); err != nil {
+		t.Error(err)
+	}
+	// Two runs are byte-identical: the shared pass against one fresh one.
 	std, err := readCardList(filepath.Join("../../", standardListPath))
 	if err != nil {
 		t.Fatal(err)
 	}
-	cardsDir := ratchetCards(t)
-	var firstMD, firstTSV string
-	for i := 0; i < 2; i++ {
-		res, err := computeSetlistCensus(testSetlistDir, cardsDir, std)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var md, tsv strings.Builder
-		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res, nil); err != nil {
-			t.Fatal(err)
-		}
-		if i == 0 {
-			firstMD, firstTSV = md.String(), tsv.String()
-			wantShort := 0
-			pins := acceptancePins(t)
-			for _, s := range res.sets {
-				pin, ok := pins[s.set]
-				if !ok {
-					t.Fatalf("%s has no acceptance pin", s.set)
-				}
-				if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
-					t.Error(err)
-				}
-				if s.std {
-					if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
-						wantShort += n
-					}
-				}
-			}
-			if res.stdTotalShort != wantShort {
-				t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
-			}
-			continue
-		}
-		if md.String() != firstMD {
-			t.Fatal("census markdown differs between runs")
-		}
-		if tsv.String() != firstTSV {
-			t.Fatal("census TSV differs between runs")
-		}
+	res, err := computeSetlistCensus(testSetlistDir, ratchetCards(t), std)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var md2, tsv2 strings.Builder
+	writeStdCensus(&md2, res)
+	if err := writeStdTSV(&tsv2, res, nil); err != nil {
+		t.Fatal(err)
+	}
+	if md2.String() != md.String() {
+		t.Fatal("census markdown differs between runs")
+	}
+	if tsv2.String() != tsv.String() {
+		t.Fatal("census TSV differs between runs")
 	}
 }
 
@@ -238,39 +271,6 @@ func TestStdCensusTokenUnpack(t *testing.T) {
 	for _, r := range res.tsv {
 		if r.via == "w_4_4_beast_lonely" {
 			t.Fatalf("TSV still has a w_4_4_beast_lonely token refusal: %+v", r)
-		}
-	}
-}
-
-// TestStdCensusRealDeterministic computes the real census twice and requires
-// byte-equal markdown and TSV, so map-order nondeterminism cannot return.
-func TestStdCensusRealDeterministic(t *testing.T) {
-	heavyParallel(t)
-	std, err := readCardList(filepath.Join("../../", standardListPath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	cardsDir := ratchetCards(t)
-	var firstMD, firstTSV string
-	for i := 0; i < 2; i++ {
-		res, err := computeSetlistCensus(testSetlistDir, cardsDir, std)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var md, tsv strings.Builder
-		writeStdCensus(&md, res)
-		if err := writeStdTSV(&tsv, res, nil); err != nil {
-			t.Fatal(err)
-		}
-		if i == 0 {
-			firstMD, firstTSV = md.String(), tsv.String()
-			continue
-		}
-		if md.String() != firstMD {
-			t.Fatal("real census markdown differs between runs")
-		}
-		if tsv.String() != firstTSV {
-			t.Fatal("real census TSV differs between runs")
 		}
 	}
 }
@@ -552,43 +552,5 @@ func TestStdSetsFlag(t *testing.T) {
 	}
 	if !reflect.DeepEqual(res.joint, stdRes.joint) {
 		t.Fatalf("joint changed with non-std list:\nwith: %+v\nwithout: %+v", res.joint, stdRes.joint)
-	}
-}
-
-func TestStdCensusMatchesRatchet(t *testing.T) {
-	heavyParallel(t)
-	std, err := readCardList(filepath.Join("../../", standardListPath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, err := computeSetlistCensus(testSetlistDir, ratchetCards(t), std)
-	if err != nil {
-		t.Fatal(err)
-	}
-	isStd := map[string]bool{}
-	for _, code := range std {
-		isStd[code] = true
-	}
-	wantShort := 0
-	pins := acceptancePins(t)
-	for _, s := range res.sets {
-		pin, ok := pins[s.set]
-		if !ok {
-			t.Fatalf("%s has no acceptance pin", s.set)
-		}
-		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
-			t.Error(err)
-		}
-		if isStd[s.set] {
-			if n := (9*s.listed+9)/10 - s.accepted; n > 0 {
-				wantShort += n
-			}
-		}
-	}
-	if res.stdTotalShort != wantShort {
-		t.Errorf("std total short = %d, want %d from the per-set counts", res.stdTotalShort, wantShort)
-	}
-	if err := judgePin("ALL census", pins["ALL"], [2]int{res.allAccepted, res.allListed}, pinStrict()); err != nil {
-		t.Error(err)
 	}
 }

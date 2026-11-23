@@ -2,7 +2,6 @@ package kgen
 
 import (
 	"testing"
-	"time"
 )
 
 // TestCorpusBuildAcceptance is the build-level acceptance ratchet over ALL.txt:
@@ -14,21 +13,11 @@ import (
 // unless DIRAC_PIN_STRICT=1, and KGEN_REPIN=1 rewrites the row.
 func TestCorpusBuildAcceptance(t *testing.T) {
 	heavyParallel(t)
-	cardsDir := ratchetCards(t)
 	pin, ok := readPinTSV(t, buildAcceptanceTSV)["ALL"]
 	if !ok {
 		t.Fatalf("%s has no ALL row", buildAcceptanceTSV)
 	}
-	start := time.Now()
-	p, err := loadCardList(testSetlistPath(t, "ALL"), cardsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	lw := lowerPool(p)
-	if _, _, _, err := buildPool(lw); err != nil {
-		t.Fatal(err)
-	}
-	cv := computeCoverage(p, lw)
-	t.Logf("ALL build-level: %d of %d build (%v)", cv.lowered, cv.cards, time.Since(start))
+	cv := corpusAcceptance(t)
+	t.Logf("ALL build-level: %d of %d build (%v)", cv.lowered, cv.cards, corpusAccTook)
 	checkPin(t, buildAcceptanceTSV, "ALL", "ALL build-level", pin, [2]int{cv.lowered, cv.cards})
 }

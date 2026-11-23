@@ -22,6 +22,9 @@ func noDefinedTargetSlot(v string) error {
 
 // defined lowers a Defined$ value to a ref.
 func (lc *lowerCtx) defined(v string) (lRef, error) {
+	if lc.emblemBlocks && emblemBlocksAttackerRead(v) {
+		return lRef{}, refuse("Effect Blocks trigger reads the attacker")
+	}
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
@@ -100,10 +103,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
 	case "TriggeredCardOwner":
-		// gorge definedSpecTriggeredCardOwner: the triggering card's
-		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
-		// reads off the trigger object
-		return lRef{Kind: rTriggeredOwner}, nil
+		return lc.triggeredCardOwnerRef(), nil // lower_modeparams.go
 	case "TriggeredObject", "TriggeredObjectLKICopy":
 		// gorge definedSpecTriggeredObject(LKICopy) reads the OBJECT that
 		// caused the trigger: for Mode$ Unattached (the Captain's Hook
@@ -144,25 +144,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
 	case "TriggeredBlockerController":
-		// gorge definedSpecTriggeredCombatantController: the controller of
-		// the captured blocker, read live. A Blocks trigger over the
-		// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
-		// equipped creature) names the host's controller, the one
-		// RefAttachedCtrl reads (Contaminated Bond)
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
-			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
-			return lRef{Kind: rAttachedCtrl}, nil
-		}
-		if tr := lc.ab.Trigger; tr != nil && tr.ByCreature && !tr.AnchorBlocker {
-			// the attacker's "becomes blocked by a creature" trigger (Gloom
-			// Sower): gorge captures no TriggerBlocker role there, so
-			// TriggeredCardController reads the trigger card, the blocker
-			// (TriggerCard = Remembered[0]), live. The kernel's trigger object
-			// is that blocker; RefTriggerTgtCtrl reads its controller live (a
-			// blocker gone from the battlefield reads its owner).
-			return lRef{Kind: rTriggeredTgtCtrl}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
+		return lc.triggeredBlockerController(v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker: lower_trigrefs.go pairs it with the modes
 		// whose kernel record carries the blocker
@@ -859,7 +841,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 		// stays at today's per-resolution lowering.
 		if c.Kind == cRefMatches && c.Ref.Kind == rRemembered &&
 			c.Op == opGE && c.A.Kind == vConst && c.A.N == 1 && !c.Neg &&
-			filterAnyCard(c.F) {
+			lc.remMarkFilterOK(c.F) {
 			c = orCond(c, lCond{Kind: cRemMark})
 		}
 		// ConditionCheckSVar$ beside the present check is a conjunction
@@ -879,6 +861,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 				return lCond{}, err
 			}
 			cmp, ok := ps.get("ConditionSVarCompare")
+			cmp, ok = meldSVarCompareDefault(lc, cmp, ok) // Forge's default compare on a meld face (lower_meld.go)
 			if !ok {
 				return lCond{}, refuse("ConditionCheckSVar$ %q without ConditionSVarCompare$", cs)
 			}
@@ -2088,6 +2071,9 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Basic Land" {
 		return lc.chooseBasicLandType(ps) // lower_choosetype.go
 	}
+	if strings.EqualFold(ps.str("Type"), "CreatureInTargetedDeck") {
+		return lc.chooseCreatureInDeckType(ps) // lower_choosetype.go
+	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}
@@ -2276,30 +2262,102 @@ func (lc *lowerCtx) protKwInto(o *lOverride, kw string) error {
 	if o.AddKw, err = pumpKeywords(rest); err != nil {
 		return err
 	}
+	takeBanding(o)
 	return nil
+}
+
+// pumpKwGrant lowers a battlefield object's keyword-only Pump Duration$
+// whose grant is a layer-6 override record: Permanent (gorge AddContinuous) or
+// UntilYourNextUpkeep (the resolving controller's next upkeep, CR 611.2b), or
+// AsLongAsControl on an object the host controls (pumpAsLongAsControl). Any
+// other duration refuses, as the Duration arm in pumpBody always has.
+func (lc *lowerCtx) pumpKwGrant(d, kw string, obj lRef) error {
+	switch d {
+	case "Permanent":
+		return lc.pumpPermanentKwGrant(kw, obj)
+	case "UntilYourNextUpkeep":
+		return lc.pumpUpkeepKwGrant(kw, obj)
+	case "AsLongAsControl":
+		if lc.pumpObjectRef(obj) {
+			return lc.pumpAsLongAsControl(kw, obj)
+		}
+	}
+	return refuse("Pump Duration %q", d)
 }
 
 // pumpPermanentKwGrant lowers a battlefield object's Pump Duration$
 // Permanent keyword grant: the protection terms and the rest of the keyword
-// list ride one layer-6 override record (the Duration arm in pumpBody).
+// list ride one layer-6 override record (pumpDurationBody).
 func (lc *lowerCtx) pumpPermanentKwGrant(kw string, obj lRef) error {
-	o := &lOverride{}
-	if err := lc.protKwInto(o, kw); err != nil {
-		return err
+	kw, horse := takePermanentHorsemanship(kw)
+	o := &lOverride{Horsemanship: horse}
+	if kw != "" {
+		if err := lc.protKwInto(o, kw); err != nil {
+			return err
+		}
 	}
 	lc.emitOverride(obj, o, "Permanent")
 	return nil
 }
 
-// pumpNextTurnObject lowers a battlefield object's Pump Duration$
-// UntilYourNextTurn: a keyword grant is the ovNT override record (gorge's
-// durationTiming UntilTurn boundary, CR 611.2b; The Undercity's Throne), a
-// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the
-// +N/+M a PTDelta record adds with the counters until the resolving
-// controller's next turn, V'Ger's PumpAll shape), and both parts ride one
-// record together as pumpAllDuration's does. A computed amount refuses: a
-// record's P/T is read once at resolution, which a Count$ amount is not.
-func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw string, hasKW bool) error {
+// pumpUpkeepKwGrant lowers a battlefield object's Pump Duration$
+// UntilYourNextUpkeep keyword grant: one keyword-only override record whose
+// waiting controller is the applied record's p (kop.Override.UntilUpkeep;
+// dirac/static_untilnextupkeep.go). The grant lasts through the controller's
+// untap step and ends as their upkeep begins (gorge dropUntilYourNextUpkeep).
+func (lc *lowerCtx) pumpUpkeepKwGrant(kw string, obj lRef) error {
+	o := &lOverride{UntilUpkeep: true}
+	rest, landwalk, err := lc.splitLandwalkPump(kw) // lower_landwalkgrant.go
+	if err != nil {
+		return err
+	}
+	o.Landwalk = landwalk
+	if rest != "" {
+		if err := lc.protKwInto(o, rest); err != nil {
+			return err
+		}
+	}
+	lc.emitOverride(obj, o, "UntilYourNextUpkeep")
+	return nil
+}
+
+// pumpAsLongAsControl lowers a battlefield object's Pump Duration$
+// AsLongAsControl keyword grant: one host-anchored override record
+// (WhileHost + AsLongAsControl) that gorge starts only while the activator
+// controls the host and ends at the host's control change or phase-out. The
+// can't-attack-or-block sentence is CantAttack beside AddKw CantBlock, so both
+// halves ride the one record.
+func (lc *lowerCtx) pumpAsLongAsControl(kw string, obj lRef) error {
+	o := &lOverride{WhileHost: true, AsLongAsControl: true}
+	rest, both := splitKWSentence(kw, cantAttackOrBlockKW)
+	rest, atk := splitKWSentence(rest, cantAttackKW)
+	o.CantAttack = both || atk
+	if err := lc.protKwInto(o, rest); err != nil {
+		return err
+	}
+	if both {
+		o.AddKw = append(o.AddKw, "CantBlock")
+	}
+	lc.emitOverride(obj, o, "WhileHost")
+	return nil
+}
+
+// pumpObjectDuration lowers a battlefield object's Pump with a Duration$ the
+// kernel keeps as an override record: UntilYourNextTurn (gorge's durationTiming
+// UntilTurn boundary, CR 611.2b; The Undercity's Throne), UntilUntaps (for as
+// long as the activating host remains tapped, registerPumpEffects; the Animate
+// model in animateOverride) and Permanent (a never-expiring layer 7 modify,
+// durationTiming). A keyword grant rides the record's keyword bits; a
+// NumAtt$/NumDef$ pump the same record's PTDelta (static_ptdelta.go: the +N/+M
+// it adds with the counters), and both parts one record together as
+// pumpAllDuration's does. A host-bound record (UntilUntaps) keeps the host's
+// Obj and version in the record's P/T fields (applyWhileHost), so its delta
+// rides the record's table SetP/SetT constants (ptDeltaRecs reads those while
+// the override is WhileHost; basePTGen still skips it, HasPT clear) and its
+// duration is WhileHost (instr_effects maps that to DurPermanent beside the
+// table flag). A computed amount refuses: a record's P/T is read once at
+// resolution, which a Count$ amount is not.
+func (lc *lowerCtx) pumpObjectDuration(ps *params, obj lRef, na, nd bool, kw string, hasKW bool, dur string) error {
 	// "HIDDEN CARDNAME can't attack." (Twisted Caverns): the override
 	// record's CantAttack, no keyword bit; it is a keyword part of the grant
 	cantAtk := false
@@ -2307,19 +2365,31 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		kw, cantAtk = splitKWSentence(kw, cantAttackKW)
 		hasKW = kw != "" || cantAtk
 	}
+	// a permanent horsemanship grant rides the record (lower_kwmark.go)
+	horse := false
+	if dur == "Permanent" && hasKW {
+		kw, horse = takePermanentHorsemanship(kw)
+		hasKW = kw != "" || cantAtk || horse
+	}
+	host := dur == "UntilUntaps"
 	if !na && !nd {
 		if !hasKW {
-			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", "UntilYourNextTurn")
+			return refuse("Pump Duration %q without NumAtt$/NumDef$/KW$", dur)
 		}
-		o := &lOverride{CantAttack: cantAtk}
-		if err := lc.protKwInto(o, kw); err != nil {
-			return err
+		o := &lOverride{CantAttack: cantAtk, Horsemanship: horse}
+		if kw != "" {
+			if err := lc.protKwInto(o, kw); err != nil {
+				return err
+			}
 		}
-		lc.emitOverride(obj, o, "UntilYourNextTurn")
+		if host {
+			o.WhileHost, o.WhileTapped, dur = true, true, "WhileHost"
+		}
+		lc.emitOverride(obj, o, dur)
 		return nil
 	}
-	o := &lOverride{CantAttack: cantAtk}
-	if hasKW {
+	o := &lOverride{CantAttack: cantAtk, Horsemanship: horse}
+	if kw != "" {
 		if err := lc.protKwInto(o, kw); err != nil {
 			return err
 		}
@@ -2337,11 +2407,56 @@ func (lc *lowerCtx) pumpNextTurnObject(ps *params, obj lRef, na, nd bool, kw str
 		}
 	}
 	if !att.isConst() || !def.isConst() {
-		return refuse("Pump Duration UntilYourNextTurn with a computed P/T pump")
+		return refuse("Pump Duration %s with a computed P/T pump", dur)
 	}
 	o.PTDelta, o.PVal, o.TVal = true, att, def
-	lc.emitOverride(obj, o, "UntilYourNextTurn")
+	if host {
+		// the kernel's host-bound record keeps its host in the record's P/T
+		// fields (applyWhileHost), so the pump rides the record's table
+		// constants beside PTDelta/PVal/TVal: ptDeltaRecs reads SetP/SetT of
+		// a WhileHost record, and basePTGen still skips it (HasPT clear)
+		o.SetP, o.SetT = att.N, def.N
+		o.WhileHost, o.WhileTapped, dur = true, true, "WhileHost"
+	}
+	lc.emitOverride(obj, o, dur)
 	return nil
+}
+
+// pumpDurationBody lowers a Pump with a Duration$ onto the kernel's override
+// records: a keyword-only permanent grant (gorge AddContinuous Permanent), one
+// lasting until the controller's next turn (the UntilTurn boundary, CR 611.2b),
+// one lasting while the activating host stays tapped (registerPumpEffects
+// UntilUntaps, the Animate model in animateOverride), or a permanent grant with
+// a P/T part (a never-expiring layer 7 PTDelta record), or UntilYourNextUpkeep
+// (pumpKwGrant). Any other duration, and
+// any of these off the battlefield, refuses.
+func (lc *lowerCtx) pumpDurationBody(ps *params, obj lRef, zone int) error {
+	d, _ := ps.get("Duration")
+	_, na := ps.m["NumAtt"]
+	_, nd := ps.m["NumDef"]
+	kw, hasKW := ps.get("KW")
+	if lc.pumpPlayerRef(obj) {
+		return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
+	}
+	if done, err := lc.pumpTimedObject(ps, obj, zone, d, na, nd, kw, hasKW); done {
+		return err // lower_pumpendcombat.go: UntilYourNextTurn, UntilEndOfCombat
+	}
+	if d == "UntilUntaps" && lc.pumpObjectRef(obj) && zone == zBattlefield {
+		return lc.pumpObjectDuration(ps, obj, na, nd, kw, hasKW, d)
+	}
+	if d == "Permanent" && (na || nd) {
+		// a P/T part makes the Permanent grant a layer 7 PTDelta record
+		// too (Riding the Dilu Horse, Subversive Acolyte); the keyword-only
+		// Permanent grant keeps pumpPermanentKwGrant's shape
+		if lc.pumpObjectRef(obj) && zone == zBattlefield {
+			return lc.pumpObjectDuration(ps, obj, na, nd, kw, hasKW, d)
+		}
+		return refuse("Pump Duration %q", d)
+	}
+	if na || nd || !hasKW || zone != zBattlefield {
+		return refuse("Pump Duration %q", d)
+	}
+	return lc.pumpKwGrant(d, kw, obj)
 }
 
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
@@ -2359,24 +2474,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if done, err := lc.skipNextUntap(ps, obj, zone); done || err != nil {
 		return err
 	}
-	if d, ok := ps.get("Duration"); ok {
-		// Duration$ keyword grants only: a layer-6 permanent grant (gorge
-		// AddContinuous Permanent) or one lasting until the controller's
-		// next turn (the UntilTurn boundary, CR 611.2b), both the kernel's
-		// override record; a P/T change or any other duration refuses
-		_, na := ps.m["NumAtt"]
-		_, nd := ps.m["NumDef"]
-		kw, hasKW := ps.get("KW")
-		if lc.pumpPlayerRef(obj) {
-			return lc.pumpPlayerGrant(ps, obj, zone, d, na, nd, kw, hasKW)
-		}
-		if d == "UntilYourNextTurn" && lc.pumpObjectRef(obj) && zone == zBattlefield {
-			return lc.pumpNextTurnObject(ps, obj, na, nd, kw, hasKW)
-		}
-		if d != "Permanent" || na || nd || !hasKW || zone != zBattlefield {
-			return refuse("Pump Duration %q", d)
-		}
-		return lc.pumpPermanentKwGrant(kw, obj)
+	if _, ok := ps.get("Duration"); ok {
+		return lc.pumpDurationBody(ps, obj, zone)
 	}
 	att, def := lValue{}, lValue{}
 	if a, ok := ps.get("NumAtt"); ok {
@@ -2421,9 +2520,8 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		// grant lands and nothing is offered), so ExtGrantEncore encodes the
 		// grant alone. Any other keyword on a graveyard card stays refused
 		// below.
-		if kw, ok := ps.get("KW"); ok && strings.TrimSpace(kw) == "Encore:CardManaCost" {
-			lc.emit(lInstr{Op: "GrantEncore", Obj: obj})
-			return nil
+		if done, err := lc.pumpGraveyardKwGrant(ps, obj); done {
+			return err // the Encore grant above; Cursecloth Wrappings' embalm (lower_embalmgrant.go)
 		}
 	}
 	kw, hasKW := ps.get("KW")
@@ -2501,6 +2599,10 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 		if err != nil {
 			return err
 		}
+		// a granted Banding is the same record's Banding (lower_banding.go)
+		if rest, err = lc.splitBandingGrant(rest, prot, zone == zBattlefield && lc.pumpObjectRef(obj)); err != nil {
+			return err
+		}
 	}
 	rest, landwalk, err := lc.splitLandwalkPump(rest) // lower_landwalkgrant.go
 	if err != nil {
@@ -2512,7 +2614,7 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if prot.ProtFrom != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
 		return refuse("granted protection to a non-permanent subject")
 	}
-	if rest != "" || prot.ProtFrom == nil && len(fbs)+myriads == 0 && landwalk == nil {
+	if rest != "" || prot.ProtFrom == nil && !prot.Banding && len(fbs)+myriads == 0 && landwalk == nil {
 		ks, err := pumpKeywords(rest)
 		if err != nil {
 			return err
@@ -2525,7 +2627,7 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 			lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(ks, "&")})
 		}
 	}
-	if prot.ProtFrom != nil {
+	if prot.ProtFrom != nil || prot.Banding {
 		// CR 702.16 granted until end of turn: an end-of-turn override record
 		// carrying the protection's quality filter (kop.Override.ProtFrom),
 		// the colour-mask clauses of the "Protection from <colour>" spellings
@@ -2617,6 +2719,11 @@ func pumpKeywords(kw string) ([]string, error) {
 			out = append(out, "PreventCombatDamageFrom")
 		case k == "Wither":
 			out = append(out, "Wither") // CR 702.80 granted; not in simpleKeywords (that map also drives the printed K: switch)
+		case k == "Banding":
+			// a granted Banding (CR 702.22, Battering Ram): no KwMask bit is
+			// free; the head stays in the list and takeBanding moves it onto
+			// the record's Banding (lower_banding.go)
+			out = append(out, "Banding")
 		case k == "Flashback":
 			out = append(out, "FlashbackOwnCost")
 		case strings.HasPrefix(k, "Protection from "):
@@ -2640,25 +2747,18 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err != nil {
 		return err
 	}
+	if done, err := lc.sharedPumpAll(ps, f); done || err != nil {
+		return err // lower_sharedpumpall.go
+	}
 	if kw, ok := ps.m["KW"]; ok && strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(kw), "HIDDEN ")) == skipNextUntapKW {
 		return lc.skipNextUntapAll(ps, f) // Sleep
 	}
 	if dur, ok := ps.get("Duration"); ok {
 		return lc.pumpAllDuration(ps, f, dur)
 	}
-	var scope lRef
-	if vt, ok := ps.get("ValidTgts"); ok {
-		// "creatures target player controls" (gorge targetPlayerKindScope:
-		// only the targeted player's permanents; an unresolvable scope
-		// sweeps nothing): the player target slot rides Obj
-		pf, err := lc.filter(vt)
-		if err != nil {
-			return err
-		}
-		if len(pf.Clauses) != 0 || pf.Players == 0 {
-			return refuse("PumpAll ValidTgts$ %q: not a player target", vt)
-		}
-		scope = lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf})}
+	scope, err := lc.pumpAllScope(ps)
+	if err != nil {
+		return err
 	}
 	if err := lc.pumpAllRemember(ps, f, scope); err != nil { // lower_rememberwritersmass.go
 		return err
@@ -2680,6 +2780,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	mustBlock, eachColor, marks := false, false, 0
 	var afterlives []int
+	var protAll *lOverride
 	var landwalk *lFilter
 	if kw, ok := ps.get("KW"); ok {
 		kw, mustBlock = splitKWSentence(kw, mustBeBlockedKW)
@@ -2693,6 +2794,12 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		kw, marks = splitKwMarks(kw) // lower_kwmark.go
 		if marks != 0 && scope.Kind != rNone {
 			return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", kwMarkNames(marks))
+		}
+		if kw, protAll, err = lc.splitProtSpecAll(kw); err != nil { // lower_protgrant.go
+			return err
+		}
+		if protAll != nil && scope.Kind != rNone {
+			return refuse("PumpAll KW$ Protection:<spec> with a ValidTgts$ player scope")
 		}
 		if kw, landwalk, err = lc.splitLandwalkAll(kw, scope); err != nil { // lower_landwalkall.go
 			return err
@@ -2718,7 +2825,7 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	if err := pumpAllHighKw(&in, hasAtt || hasDef); err != nil { // lower_pumpallhighkw.go
 		return err
 	}
-	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0 || landwalk != nil) || in.CS != "" || hasAtt || hasDef {
+	if !(mustBlock || eachColor || marks != 0 || len(afterlives) > 0 || protAll != nil || landwalk != nil) || in.CS != "" || hasAtt || hasDef {
 		lc.emit(in)
 	}
 	if landwalk != nil {
@@ -2726,6 +2833,13 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 	}
 	if err := lc.grantAfterlifeAll(f, afterlives); err != nil { // lower_afterlifegrant.go
 		return err
+	}
+	if protAll != nil {
+		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
+		// resolves have protection from the quality until end of turn (Spare
+		// from Evil): an end-of-turn override record swept over them
+		lc.out.overrides = append(lc.out.overrides, protAll)
+		lc.emit(lInstr{Op: "OverrideAll", F: f, CS: "EOT", Note: overrideString(protAll), C: len(lc.out.overrides) - 1})
 	}
 	if eachColor {
 		// CR 702.16 + 611.2c: the permanents matching ValidCards$ as this
@@ -2742,6 +2856,25 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 		lc.emit(lInstr{Op: "KwMark", F: f, C: marks, Note: kwMarkNames(marks) + " until end of turn"}) // every permanent matching ValidCards$
 	}
 	return nil
+}
+
+// pumpAllScope lowers PumpAll ValidTgts$ "creatures target player controls"
+// (gorge targetPlayerKindScope: only the targeted player's permanents; an
+// unresolvable scope sweeps nothing): the player target slot rides Obj. No
+// ValidTgts$ is the zero scope.
+func (lc *lowerCtx) pumpAllScope(ps *params) (lRef, error) {
+	vt, ok := ps.get("ValidTgts")
+	if !ok {
+		return lRef{}, nil
+	}
+	pf, err := lc.filter(vt)
+	if err != nil {
+		return lRef{}, err
+	}
+	if len(pf.Clauses) != 0 || pf.Players == 0 {
+		return lRef{}, refuse("PumpAll ValidTgts$ %q: not a player target", vt)
+	}
+	return lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf})}, nil
 }
 
 // pumpAllDuration lowers PumpAll Duration$ UntilYourNextTurn as an
@@ -2835,6 +2968,9 @@ func (lc *lowerCtx) putCounter(ps *params) error {
 			return err
 		}
 		if ok, err := lc.dividedCountersPick(ps); ok || err != nil { // (Vastwood Hydra)
+			return err
+		}
+		if ok, err := lc.dividedCountersRemLKI(ps); ok || err != nil { // (Yannik, Scavenging Sentinel)
 			return err
 		}
 		return lc.dividedCountersLKI(ps) // (Quirion Beastcaller)
@@ -4112,7 +4248,15 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return refuse("ChooseColor outside an as-enters replacement (Defined$ %q)", d)
 	}
 	ps.consume("AILogic", "SubAbility")
+	orColors, err := chooseColorOrColors(ps) // lower_choosecolor.go
+	if err != nil {
+		return err
+	}
 	n := lc.curNode.Sub
+	animate := n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor")
+	if orColors && !animate {
+		return refuse("ChooseColor OrColors$ outside an Animate Colors$ ChosenColor")
+	}
 	if n != nil && n.API == "Pump" && n.Params["DefinedKW"] == "ChosenColor" {
 		// (Skrelv) the colour rides the resolution (res.chosen)
 		// for the chosen-colour grants that follow
@@ -4126,12 +4270,17 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
 		return nil
 	}
-	if n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor") {
+	if animate {
 		// (Puca's Eye, Mondo Gecko) the Animate's
 		// Colors$ ChosenColor reads the resolution's colour (res.chosen)
 		// when the five-record override applies
 		lc.colGrant = true
-		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
+		in := lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"}
+		if orColors {
+			// (Quickchange, Shyft) gorge cannot ask OrColors$: white, no ask
+			in.C, in.Note = 1, "OrColors$: gorge's no-ask white answer"
+		}
+		lc.emit(in)
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {
@@ -4554,4 +4703,39 @@ func (lc *lowerCtx) putCounterExisting(ps *params, obj lRef, n lValue) error {
 	}
 	lc.emit(lInstr{Op: "PutCounterExisting", Obj: obj, B: n})
 	return nil
+}
+
+// emblemBlocksAttackerRead reports whether Defined$ v names the ATTACKER of a
+// Blocks pair (or the trigger object/player a printed Blocks line binds to it):
+// an Effect's Blocks emblem binds the blocker instead
+// (dirac/trig_emblemblocks.go), so these refuse.
+func emblemBlocksAttackerRead(v string) bool {
+	return strings.HasPrefix(v, "TriggeredCard") || strings.HasPrefix(v, "TriggeredAttacker") || strings.HasPrefix(v, "TriggeredObject")
+}
+
+// triggeredBlockerController is Defined$ TriggeredBlockerController.
+func (lc *lowerCtx) triggeredBlockerController(v string) (lRef, error) {
+	if lc.emblemBlocks {
+		// the Effect's Blocks emblem: the trigger object is the blocker
+		return lRef{Kind: rTriggeredTgtCtrl}, nil
+	}
+	// gorge definedSpecTriggeredCombatantController: the controller of
+	// the captured blocker, read live. A Blocks trigger over the
+	// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
+	// equipped creature) names the host's controller, the one
+	// RefAttachedCtrl reads (Contaminated Bond)
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
+		tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
+		return lRef{Kind: rAttachedCtrl}, nil
+	}
+	if tr := lc.ab.Trigger; tr != nil && tr.ByCreature && !tr.AnchorBlocker {
+		// the attacker's "becomes blocked by a creature" trigger (Gloom
+		// Sower): gorge captures no TriggerBlocker role there, so
+		// TriggeredCardController reads the trigger card, the blocker
+		// (TriggerCard = Remembered[0]), live. The kernel's trigger object
+		// is that blocker; RefTriggerTgtCtrl reads its controller live (a
+		// blocker gone from the battlefield reads its owner).
+		return lRef{Kind: rTriggeredTgtCtrl}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 }

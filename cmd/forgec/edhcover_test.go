@@ -157,10 +157,8 @@ func TestEDHPaperWithoutCard(t *testing.T) {
 }
 
 // TestMeasureEDHOverCorpus measures four tiny decks: one fully playable, one
-// blocked by The Fourteenth Doctor (unplayable under the report's shape gate;
-// its cast keeps the loud fallback, pinned by rules'
-// TestFourteenthDoctorETBKeepsLoudFallback), one blocked by a name the corpus
-// lacks, and a collection pool. Split, DFC and A- names resolve.
+// blocked by Shahrazad (unplayable: api:Subgame has no primitive), one blocked
+// by a name the corpus lacks, and a collection pool. Split, DFC and A- names resolve.
 //
 // Not parallel: it sets the shared corpus registry's ShapeGate, as the shape
 // gate's own test does.
@@ -178,8 +176,8 @@ func TestMeasureEDHOverCorpus(t *testing.T) {
 	}
 	write("precon/Good_C99.json", `{"name":"Good","format":"commander","cards":[{"name":"Lightning Bolt","count":1},{"name":"Fire // Ice","count":1},{"name":"Mountain","count":30}]}`)
 	write("precon/Pool_CM9.json", `{"name":"Pool","format":"commander","cards":[{"name":"Sol Ring","count":1}]}`)
-	write("popular/archidekt-1.json", `{"name":"Bad","format":"commander","cards":[{"name":"The Fourteenth Doctor","count":1},{"name":"Lightning Bolt","count":1},{"name":"Delver of Secrets // Insectile Aberration","count":1}]}`)
-	write("popular/archidekt-2.json", `{"name":"Unknown","format":"commander","cards":[{"name":"Not A Real Card Anywhere","count":1},{"name":"The Fourteenth Doctor","count":1}]}`)
+	write("popular/archidekt-1.json", `{"name":"Bad","format":"commander","cards":[{"name":"Shahrazad","count":1},{"name":"Lightning Bolt","count":1},{"name":"Delver of Secrets // Insectile Aberration","count":1}]}`)
+	write("popular/archidekt-2.json", `{"name":"Unknown","format":"commander","cards":[{"name":"Not A Real Card Anywhere","count":1},{"name":"Shahrazad","count":1}]}`)
 	rows, err := readEDHManifest(strings.NewReader(edhTestManifest))
 	if err != nil {
 		t.Fatal(err)
@@ -219,13 +217,13 @@ func TestMeasureEDHOverCorpus(t *testing.T) {
 	if len(rep.Blockers) != 2 {
 		t.Fatalf("blockers = %+v", rep.Blockers)
 	}
-	if b := rep.Blockers[0]; b.Card != "The Fourteenth Doctor" || b.Decks != 2 || b.SoleDecks != 1 || !b.Paper || len(b.Missing) == 0 {
+	if b := rep.Blockers[0]; b.Card != "Shahrazad" || b.Decks != 2 || b.SoleDecks != 1 || !b.Paper || len(b.Missing) == 0 {
 		t.Errorf("first blocker = %+v", b)
 	}
 	if b := rep.Blockers[1]; !b.Unresolved || b.Decks != 1 || b.SoleDecks != 0 {
 		t.Errorf("second blocker = %+v", b)
 	}
-	if md := renderEDH(rep, 50); !strings.Contains(md, "| 1 | The Fourteenth Doctor | 2 | 1 | yes |") {
-		t.Errorf("render lacks the The Fourteenth Doctor row:\n%s", md)
+	if md := renderEDH(rep, 50); !strings.Contains(md, "| 1 | Shahrazad | 2 | 1 | yes |") {
+		t.Errorf("render lacks the Shahrazad row:\n%s", md)
 	}
 }

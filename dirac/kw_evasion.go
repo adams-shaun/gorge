@@ -191,13 +191,15 @@ func (s *State) artifactTy(k *prep, sl Slot) bool {
 }
 
 // evadesShadowFear reports whether the fear / shadow rules forbid blocker b from
-// blocking an attacker with keywords akw (gorge combat.CanBlock):
+// blocking attacker a with keywords akw (gorge combat.CanBlock):
 // CR 702.28b-c a shadow creature blocks and is blocked only by shadow
 // creatures; CR 702.36b a fear creature is blocked only by an artifact
 // creature (its current face, gorge bf.IsArtifact) or a black one
-// (its derived colours).
-func (s *State) evadesShadowFear(k *prep, b Slot, akw, bkw kop.KwMask) bool {
-	if (akw^bkw)&kop.KwShadow != 0 {
+// (its derived colours). A live StatCanBlockIfShadow static on the pair
+// lifts the shadow rule for exactly that pair (gorge shadowBlockLifted;
+// dirac/static_canblockifshadow.go).
+func (s *State) evadesShadowFear(k *prep, b, a Slot, akw, bkw kop.KwMask) bool {
+	if (akw^bkw)&kop.KwShadow != 0 && !s.shadowLifted(k, b, a) {
 		return true
 	}
 	if akw&kop.KwFear != 0 && !s.artifactTy(k, b) && s.colorsAt(k, b)&kop.ColB == 0 {
@@ -230,6 +232,9 @@ func (s *State) evasionAt(k *prep, sl Slot) uint8 {
 func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 	ev := s.evasionAt(k, a)
 	if ev&kop.EvHorsemanship != 0 && s.evasionAt(k, b)&kop.EvHorsemanship == 0 {
+		if DebugLandwalkStats != nil && k.t.Cards[s.cardAt(a)].Evasion&kop.EvHorsemanship == 0 {
+			DebugLandwalkStats.GrantedHorse++ // no printed horsemanship: a mark's grant
+		}
 		return true
 	}
 	if ev&kop.EvIntimidate != 0 && !s.artifactTy(k, b) && s.colorsAt(k, a)&s.colorsAt(k, b)&kop.ColAny == 0 {

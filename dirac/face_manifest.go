@@ -233,9 +233,11 @@ func (s *State) faceDownFromTop(k *prep, p, ctrl uint8, n int, cloaked, tapped, 
 func (s *State) manifestDread(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
 	if p == 255 {
-		if in.Obj == kop.RefRememberedOwner {
-			// gorge definedSpecRememberedOwner over an empty remembered
-			// set (the ETB exiled nothing): nobody manifests dread.
+		if in.Obj == kop.RefRememberedOwner || in.Obj == kop.RefExiledWithOwner {
+			// gorge definedSpecRememberedOwner over an empty remembered set
+			// (the ETB exiled nothing), and the HasCardsInExile player
+			// filter with no seat's exile holding a card exiled with this
+			// source: nobody manifests dread -- never the controller.
 			return true
 		}
 		p = s.res.e.ctrl
@@ -327,7 +329,7 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) bool {
 			return true
 		}
 		from := s.detach(other)
-		s.placeFrom(other, kop.ZoneGraveyard, false, from, false)
+		s.placeFrom(other, kop.ZoneGraveyard, false, from, false, false)
 		mill = other
 	}
 	// the window's marker (gorge manifestDreadMove: emitted after the moves,

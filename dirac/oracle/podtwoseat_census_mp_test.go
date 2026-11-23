@@ -64,7 +64,13 @@ func TestCommanderPodTwoSeatCensus(t *testing.T) {
 		ran++
 		t.Run(pool, func(t *testing.T) {
 			defer remove()
-			podCensus(t, reg, cardsDir, cardset.AllowUnverified(set), pool, dir)
+			// Raw, not AllowUnverified: the census reads the kernel's
+			// preparation, which a gorge-side by-name refusal does not touch
+			// (the kernel still offers the cast the refusal withholds). A
+			// refused card plays its lowered body in the table build, so a
+			// precon holding one (Arcane Wizardry holds Nivix Guildmage) is
+			// classed exactly as it was before the refusal.
+			podCensus(t, reg, cardsDir, cardset.Raw(set), pool, dir)
 		})
 	}
 	if ran == 0 {

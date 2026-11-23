@@ -361,6 +361,10 @@ var addedAfterTheSplit = []string{
 	// events.AbilityResolvedCrew bit). The marker Kind existed, but no
 	// pre-split mode dispatched the new name and no crew ability set the bit.
 	"BecomesCrewed",
+	// CR 702.26: "whenever ~ phases in/out" (Shimmering Efreet, Teferi's Imp)
+	// match the events.PhaseOut marker, the per-permanent siblings of the
+	// PhaseOutAll batch mode.
+	"PhaseIn", "PhaseOut",
 }
 
 func allRegisteredModeNames() []string {

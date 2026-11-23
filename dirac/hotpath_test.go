@@ -54,6 +54,7 @@ func compilerReport(t *testing.T) string {
 // TestHotAccessorsInline: a hot accessor that stops inlining costs a call on every
 // read of a permanent.
 func TestHotAccessorsInline(t *testing.T) {
+	t.Parallel()
 	out := compilerReport(t)
 	const hot = `\(\*State\)\.(typesAt|basePT)\b|\(\*?slotMask\)\.|slotMask\.[a-zA-Z]+\b|slotBit\b`
 	for _, line := range regexp.MustCompile(`.*cannot inline (`+hot+`).*`).FindAllString(out, -1) {
@@ -66,6 +67,7 @@ func TestHotAccessorsInline(t *testing.T) {
 
 // TestNoKernelLocalEscapes: a local moved to the heap allocates on every visit.
 func TestNoKernelLocalEscapes(t *testing.T) {
+	t.Parallel()
 	for _, line := range strings.Split(compilerReport(t), "\n") {
 		if regexp.MustCompile(`^[^ ]+\.go:[0-9]+:[0-9]+: moved to heap: `).MatchString(line) {
 			t.Error(line)

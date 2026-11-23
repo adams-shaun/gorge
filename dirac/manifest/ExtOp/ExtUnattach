@@ -4,4 +4,4 @@ value: 46
 forge: Unattach
 census: api Unattach all=8 std=2 mbc=0 sole=4
 state: code 0
-status: reserved
+status: active

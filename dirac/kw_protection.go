@@ -95,7 +95,8 @@ func (s *State) grantedProtColKw(k *prep, sl Slot) kop.KwMask {
 	var col kop.ColorMask
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 {
+		pf := staticProtFrom(k, a)
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous && a.Static.Kind != kop.StatOverride || pf == 0 {
 			return true
 		}
 		if lost && s.grantTs(st) < lts {
@@ -104,7 +105,7 @@ func (s *State) grantedProtColKw(k *prep, sl Slot) kop.KwMask {
 		if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
 			return true
 		}
-		col |= protColKwOf(k, a.Static.ProtFrom)
+		col |= protColKwOf(k, pf)
 		return true
 	})
 	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
@@ -117,9 +118,9 @@ func (s *State) grantedProtColKw(k *prep, sl Slot) kop.KwMask {
 }
 
 // protColKwOf is a protection quality filter's colour-projection colours:
-// the colours of its colour clauses (CR 702.16), 0 when any clause is beyond
-// a plain colour mask (a type, controller or value term: gorge lists the
-// quality by its spec).
+// the colours of its colour clauses (CR 702.16), a clause beyond
+// a plain colour mask (a type, controller or value term: gorge lists that
+// term by its spec) adds none (Pristine Angel's artifacts beside each color).
 func protColKwOf(k *prep, f kop.FilterID) kop.ColorMask {
 	var kw kop.ColorMask
 	for ; f != 0; f = k.t.Filters[f].Or {
@@ -127,7 +128,7 @@ func protColKwOf(k *prep, f kop.FilterID) kop.ColorMask {
 		if fl.Types != 0 || fl.NotTypes != 0 || fl.Sub != 0 || fl.NotSub != 0 || fl.NotSubs != [4]uint8{} ||
 			fl.Ctrl != 0 || fl.Owner != 0 || fl.Flags != 0 || fl.Flags2 != 0 || fl.NotColors != 0 ||
 			fl.Pred != 0 || fl.PredV != (kop.ValueRef{}) || fl.Each || fl.Zone != 0 || fl.CtrlTgt != 0 {
-			return 0
+			continue // another term of the grant (gorge lists it by its spec)
 		}
 		kw |= fl.Colors
 	}
@@ -195,6 +196,25 @@ func (s *State) protSpellXMV(k *prep, srcCard CardID) int {
 	return 0
 }
 
+// protXBoundTarget: some target slot of a can take a permanent or card, so
+// a protection quality that reads the spell's announced X (protSpellXMV) can
+// leave it without a candidate at some X. A slot that takes only players has
+// no protection quality to read (gorge's xBoundTargetPayable judges an X cost
+// only for a target bounded by X, and its player slots carry no such bound:
+// Mind Shatter's "target player discards X cards at random" is payable at any
+// X its mana pays).
+func protXBoundTarget(k *prep, a *kop.Ability) bool {
+	if k.gen == nil || !k.gen.anyProtF {
+		return false
+	}
+	for i := 0; i < int(a.NTargets); i++ {
+		if a.Targets[i].Kind != kop.TgtPlayer {
+			return true
+		}
+	}
+	return false
+}
+
 // protGranted: a Continuous static's ProtFrom quality, granted to sl,
 // matches the source (CR 702.16; Sword of Wealth and Power's instants and
 // sorceries). A grant is a layer-6 effect, so it does not survive a later
@@ -207,7 +227,8 @@ func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) b
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.ProtFrom == 0 && !a.Static.ProtChosen {
+		pf := staticProtFrom(k, a)
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous && a.Static.Kind != kop.StatOverride || pf == 0 && !a.Static.ProtChosen {
 			return true
 		}
 		if lost && s.grantTs(st) < lts {
@@ -216,10 +237,10 @@ func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) b
 		if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
 			return true
 		}
-		if !(a.Static.ProtFrom != 0 && s.protMatch(k, a.Static.ProtFrom, sl, srcSl, srcCard) || a.Static.ProtChosen && s.protChosenHit(k, st.sl, srcSl, srcCard)) {
+		if !(pf != 0 && s.protMatch(k, pf, sl, srcSl, srcCard) || a.Static.ProtChosen && s.protChosenHit(k, st.sl, srcSl, srcCard)) {
 			return true
 		}
-		if sba && a.Static.ProtExc != 0 && srcSl != NoSlot && s.occ.has(srcSl) &&
+		if sba && !DebugProtectionNoWardException && a.Static.ProtExc != 0 && srcSl != NoSlot && s.occ.has(srcSl) &&
 			s.matchPermGen(k, a.Static.ProtExc, srcSl, st.ctrl, st.sl, layerFull) {
 			return true // the grant's exception spares this attachment (CR 702.16)
 		}
@@ -227,6 +248,27 @@ func (s *State) protGranted(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) b
 		return false
 	})
 	return hit
+}
+
+// DebugProtectionNoWardException is the mutation hook of the granted
+// protection exception (TestProtectionWardExceptionMutation): set, a Ward
+// Aura's own protection is no longer spared at the Aura state-based check.
+var DebugProtectionNoWardException bool
+
+// staticProtFrom is the protection quality filter a static grants: a Continuous
+// static's ProtFrom, or the ProtFrom of the Override record a StatOverride
+// static applies (Hexdrinker's levels 3-7: protection from instants beside
+// its 4/4); 0 for any other static.
+func staticProtFrom(k *prep, a *kop.Ability) kop.FilterID {
+	switch {
+	case a.Kind != kop.AbStatic:
+		return 0
+	case a.Static.Kind == kop.StatContinuous:
+		return a.Static.ProtFrom
+	case a.Static.Kind == kop.StatOverride && a.Static.Override != 0:
+		return k.t.Overrides[a.Static.Override-1].ProtFrom // StatOverride's index is 1-based
+	}
+	return 0
 }
 
 // protChosenHit: the source (the permanent at srcSl, else card srcCard as a
@@ -254,6 +296,9 @@ func prepProtGrant(t *kop.Table, g *genPrep) {
 			g.anyProtGrant, g.anyProtF = true, true
 			g.replBits[i] |= rbProtCol
 		}
+		if protAllGrantIn(t.Cards[i].Abilities, t) {
+			g.replBits[i] |= rbProtAll // a granted protection from everything (Hexdrinker's level 8)
+		}
 		if ovProtFromIn(t.Cards[i].Abilities, t) {
 			// the card's Animate or Pump grant record carries the protection:
 			// the damage sites gate on rbProtCol the same way (anyProtF and
@@ -270,6 +315,27 @@ func prepProtGrant(t *kop.Table, g *genPrep) {
 			g.anyRepl |= rbProtCol
 		}
 	}
+}
+
+// protAllGrantIn reports whether any of the card's abilities is a static whose
+// keywords, or whose Override record's, include protection from everything:
+// the damage sites gate on rbProtAll, which a printed keyword arms (gen.go)
+// and a granted one must too.
+func protAllGrantIn(abs []kop.Ability, t *kop.Table) bool {
+	for j := range abs {
+		a := &abs[j]
+		if a.Kind != kop.AbStatic {
+			continue
+		}
+		if a.Static.Kw&kop.KwProtectionAll != 0 {
+			return true
+		}
+		if a.Static.Kind == kop.StatOverride && a.Static.Override != 0 &&
+			t.Overrides[a.Static.Override-1].AddKw&kop.KwProtectionAll != 0 { // StatOverride's index is 1-based
+			return true
+		}
+	}
+	return false
 }
 
 // protGrantIn reports whether any ability is a Continuous static granting

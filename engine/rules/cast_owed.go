@@ -15,8 +15,24 @@ import (
 // plan's).
 func PendingCastOwed(e *Engine) (owed decision.PaymentCost, ok bool) {
 	pc := e.cast
-	if pc == nil || pc.PaymentFallback == nil {
+	if pc == nil {
 		return owed, false
+	}
+	if pc.PaymentFallback == nil {
+		if len(pc.Convoke) == 0 || pc.isAbility() {
+			return owed, false
+		}
+		// A cast that elected Convoke/Improvise poses the classic window with
+		// no fallback and no ManaPayment: the ask lists what the composed
+		// cost (before the elected creatures' share, CR 702.51a) still owes
+		// after the pool, which is what the window's sources are offered by
+		// (paymentUsefulColours reads manaToPay).
+		mana := e.manaToPay(pc)
+		mana.Generic -= int32(len(pc.delve))
+		if mana.Generic < 0 {
+			mana.Generic = 0
+		}
+		return pay.PaymentOwed(mana, e.G.Players[pc.player].Pool), true
 	}
 	return pay.PaymentOwed(e.castPaymentMana(pc), e.G.Players[pc.player].Pool), true
 }

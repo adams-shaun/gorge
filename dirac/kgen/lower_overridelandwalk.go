@@ -21,7 +21,8 @@ func (lc *lowerCtx) overrideAddKeyword(sp *params, o *lOverride) (*lFilter, erro
 		return nil, err
 	}
 	if rest != "" {
-		if o.AddKw, err = pumpKeywords(rest); err != nil {
+		// the protection terms ride o.ProtFrom (lower_protgrant.go)
+		if err := lc.protKwInto(o, rest); err != nil {
 			return nil, err
 		}
 	}

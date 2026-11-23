@@ -27,7 +27,6 @@ Battle Sliver
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blood Age General
 Blood Divination
@@ -92,7 +91,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Fetid Gargantua
 Fists of Flame
 Flare
@@ -139,7 +137,6 @@ Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -188,7 +185,6 @@ Nether Spirit
 Network Terminal
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Overtaker
@@ -206,7 +202,6 @@ Precinct Captain
 Primal Adversary
 Propagator Drone
 Protector of the Wastes
-Puca's Covenant
 Queen's Agent
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -318,7 +313,6 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
-Wardscale Crocodile
 Warlord's Elite
 Water Elemental
 Wayward Soul
@@ -326,7 +320,6 @@ Weakness
 White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
-Wormhole Serpent
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher

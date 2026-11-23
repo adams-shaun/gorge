@@ -30,7 +30,7 @@ func (s *State) dugBottom(k *prep) {
 	}
 	for _, o := range list[:n] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 	}
 }
 
@@ -63,6 +63,6 @@ func (s *State) remBottom() {
 	}
 	for _, o := range list[:n] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 	}
 }

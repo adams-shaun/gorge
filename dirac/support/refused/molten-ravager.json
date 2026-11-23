@@ -1,0 +1,42 @@
+{
+  "card": "Molten Ravager",
+  "class": "lockstep",
+  "why": "{R} activation funded only by a Simian Spirit Guide in hand beside an untapped Sol Grail and a Signpost Scarecrow (a repeatable fee-only mana ability, {2}: Add one mana of any colour): gorge's potential bound lifts the Scarecrow to unbounded (potential_repeat_fee.go addPotentialRepeatable), prices the activation and lowers it through the guide; the kernel's activation script search funds no hand guide (availNoHandFund, actScriptPays) and prices a fee-only mana ability only in the trigger pay gate (mana_repeatpotential.go), so it offers pass only (tail-45 pair 25, decision 365); matching gorge's planner search for fee-unit funding is solver machinery over 200 lines, the class Kavu Aggressor and Shaman of the Great Hunt are refused for",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "activation_funded_by_repeat_fee_filter_and_hand_guide"
+  },
+  "evidence": [
+    "ev-tail-45-c000",
+    "ev-tail-45-c001",
+    "ev-tail-45-c002",
+    "ev-tail-45-c003",
+    "ev-tail-45-c004",
+    "ev-tail-45-c005",
+    "ev-tail-45-c006",
+    "ev-tail-45-c009",
+    "ev-tail-45-c010",
+    "ev-tail-45-c011",
+    "ev-tail-45-c012",
+    "ev-tail-71-c000",
+    "ev-tail-71-c001",
+    "ev-tail-71-c002",
+    "ev-tail-71-c004",
+    "ev-tail-71-c005",
+    "ev-tail-71-c007",
+    "ev-tail-71-c008",
+    "ev-tail-71-c009",
+    "ev-tail-71-c010",
+    "ev-tail-71-c011",
+    "ev-tail-71-c012",
+    "ev-tail-71-c014",
+    "ev-tail-71-c020",
+    "ev-tail-72-c000",
+    "ev-tail-72-c001"
+  ]
+}

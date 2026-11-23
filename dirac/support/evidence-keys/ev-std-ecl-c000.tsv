@@ -1,68 +1,148 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Adept Watershaper	7a4464f7a7f1b88f	6	0/0		0/0	
+Ajani, Outland Chaperone	484387cf5c7de356	3	3/3		0/1	ix:resp
 Appeal to Eirdu	961847ad5931a09b	4	0/0		1/2	ix:resp
 Bark of Doran	2dd87e4ee23f30ff	7	1/1		0/1	ix:resp
+Blight Rot	afe8e78530836c7d	4	0/0		1/2	ix:resp
 Bloom Tender	2f394ede315987f7	9	1/1		0/1	ix:resp
+Blossombind	ddbfdfe02d0a45fe	4	1/1		1/2	ix:resp
 Blossoming Defense	6880d8f434a2ad1d	18	0/0		2/2	
+Boldwyr Aggressor	145676d5009424ee	13	0/0		0/0	
+Boneclub Berserker	4921fec7aa6e9178	7	0/0		0/0	
+Boulder Dash	622ea7fea53ddf95	12	0/0		2/2	
+Brambleback Brute	734cc14547e0d300	8	1/1		0/1	ix:resp
+Bre of Clan Stoutarm	189a069836ca6b55	9	2/2		0/1	ix:resp
 Brigid's Command	3d68410a185770f1	4	0/0		1/2	ix:resp
 Bristlebane Battler	ba1e34a8dc94b648	8	2/2		0/1	ix:resp
 Bristlebane Outrider	e749b64dbb1d4daf	13	0/0		0/0	
 Burdened Stoneback	f8f4511357c193ad	3	1/1		0/1	ix:resp
+Catharsis	79a2474cf3708c7b	12	2/2		2/3	ix:resp
 Champion of the Clachan	2012362400e68507	3	1/1		0/1	ix:resp
+Champion of the Path	a6bcc7f10a106e9e	5	2/2		0/1	ix:resp
+Changeling Wayfinder	e7ea13fb1acf088e	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Chomping Changeling	bb8fda649b4a24ec	10	1/1		0/1	ix:resp
+Chronicle of Victory	54c7fd45cd0f9ad2	3	1/1		0/1	ix:resp
+Cinder Strike	6acd63fa2d63a99f	6	0/0		2/2	
 Clachan Festival	4f3b7ba464115c2f	4	2/2		0/1	ix:resp
 Crib Swap	27ef3ff7add1acc8	8	0/0		1/2	ix:resp
 Crossroads Watcher	b316e9295b044737	10	1/1		1/1	
 Curious Colossus	5738b84838052cc8	4	1/1		0/1	ix:resp
 Dawn-Blessed Pennant	b703b82db660ee0d	4	2/2		0/1	ix:resp
+Dawnhand Eulogist	7b9e180cdb5ed169	8	1/1		0/1	ix:resp
+Deceit	19af27fcd6b8e541	3	2/2		2/3	cast/alt:none
+Dream Harvest	f707d5f4a5cdd685	3	0/0		2/2	
+Dream Seizer	abcb6ef5f65ae486	6	1/1		1/1	
 Dundoolin Weaver	ee6f858c1b5b7a24	6	1/1		0/1	ix:resp
+Eclipsed Realms	abd017cfdecf24ee	23	2/2		0/1	ix:resp
+Elder Auntie	de281564a34b871a	16	1/1		0/1	ix:resp
 Encumbered Reejerey	c621ed1d22aba491	3	1/1		0/1	ix:resp
+End-Blaze Epiphany	f149c17a7e06147f	7	0/0		2/4	f0/s/x0,ix:resp
+Enraged Flamecaster	f349f6f466e70b23	12	1/1		0/1	ix:resp
 Evershrike's Gift	5cfb06a6f899dbfa	23	1/1		1/2	ix:resp
 Evolving Wilds	a6ee2ff9e998c057	19	1/1		0/1	ix:resp
+Explosive Prodigy	4737356ba438c332	10	1/1		0/1	ix:resp
+Feed the Flames	9e054567b52aedfd	16	0/0		2/2	
+Feisty Spikeling	6862d30f260b2fb4	6	0/0		0/0	
 Figure of Fable	a5d4b0d06d959da8	24	3/3		1/1	
 Firdoch Core	c58cfc5a5b8f0638	4	2/2		0/1	ix:resp
+Flame-Chain Mauler	4bb06ca0601714a8	8	1/1		0/1	ix:resp
 Flock Impostor	04fcb7352439d021	5	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	179	1/1		0/1	ix:resp
 Formidable Speaker	8340d7a94fa328dc	7	2/2		0/1	ix:resp
 Gallant Fowlknight	59833b0002e764cd	6	1/1		0/1	ix:resp
 Gathering Stone	78c6cf9b7d9f48be	3	2/2		0/1	ix:resp
+Giantfall	81f5e719f00b655f	11	0/0		1/2	ix:resp
 Gilt-Leaf's Embrace	c93f66a54ac9c33b	12	1/1		1/2	ix:resp
+Glamer Gifter	508dce1edc938935	5	1/1		0/1	ix:resp
+Glamermite	8383e1a64d1dcb40	6	1/1		0/1	ix:resp
+Glen Elendra Guardian	c01aa99b09fa3372	8	1/1		0/1	ix:resp
+Goatnap	72ca9fa1b54dff68	5	0/0		1/2	ix:resp
 Goldmeadow Nomad	ee9704a9b20b9f98	8	1/1		0/1	ix:resp
 Great Forest Druid	40c22d0b84208bd1	3	1/1		1/1	
+Gristle Glutton	637f69794b11ebcf	16	1/1		1/1	
 Hallowed Fountain	2e6565234179e1ca	19	2/2		0/1	ix:resp
+Heirloom Auntie	90df5971a444e4c7	4	1/1		0/1	ix:resp
+Hexing Squelcher	0197e6f9b537b6ba	5	1/1		0/1	ix:resp
+High Perfect Morcant	4f77ff6630d4f36e	4	2/2		0/1	ix:resp
+Hovel Hurler	7776ce28f4239aa7	23	1/1		1/1	
+Impolite Entrance	157739780ff0026b	8	0/0		1/2	ix:resp
+Iron-Shield Elf	d18a8e20d04f8076	3	1/1		1/1	
+Island	763c67ef7a27eaf5	68	1/1		0/1	ix:resp
 Keep Out	a5e00c682b8d2425	18	0/0		2/2	
 Kinbinding	8aabd1674e709bd4	5	1/1		0/1	ix:resp
+Kindle the Inner Flame	ebf06ca71944b865	3	0/0		2/4	cast/alt:flashback,ix:resp
+Kinscaer Sentry	3b1e8a54f56772b0	3	1/1		0/1	ix:resp
+Kirol, Attentive First-Year	0cf84541e53ff4a2	3	1/1		0/1	ix:resp
 Kithkeeper	da74153348e581e6	8	2/2		1/1	
+Kulrath Mystic	078a762b42e333b4	4	1/1		1/1	
+Lasting Tarfire	6050cb99d2176bd6	5	1/1		0/1	ix:resp
+Lavaleaper	a7d6177c6ca1ce33	4	1/1		1/1	
 Liminal Hold	198bf74f71361664	5	1/1		1/1	
+Loch Mare	aee81dc8b9d06e67	8	2/2		0/1	ix:resp
 Lys Alana Informant	8a0c0fe90f6e949e	4	2/2		0/1	ix:resp
 Meanders Guide	6f1403d8bc209b21	9	1/1		0/1	ix:resp
 Midnight Tilling	109e3f6fcc0c1889	11	0/0		2/2	
 Mirrormind Crown	f430e537b3ad3d86	4	1/1		1/1	
 Mistmeadow Council	9101da23c483b9c1	7	1/1		0/1	ix:resp
+Moonglove Extractor	ba212c168a942c43	4	1/1		0/1	ix:resp
 Moonlit Lamenter	8e9f6f69439c919e	5	1/1		0/1	ix:resp
+Moonshadow	5f799989952eb392	51	1/1		1/1	
+Morcant's Eyes	619eb4da98a59503	9	2/2		0/1	ix:resp
+Mountain	9e71388353e907ed	201	1/1		0/1	ix:resp
+Mudbutton Cursetosser	23661a239f1e14f2	7	1/1		0/1	ix:resp
 Mutable Explorer	27259a97ce0fabc8	5	1/1		1/1	
+Nameless Inversion	8523dd849c4935f0	4	0/0		1/2	ix:resp
+Overgrown Tomb	db95d9f7aa54c3f9	27	2/2		0/1	ix:resp
+Personify	7d643149b45a4042	14	0/0		2/2	
+Pestered Wellguard	414cd6d90e041c23	7	1/1		1/1	
 Pitiless Fists	d378028dce885159	3	1/1		1/2	ix:resp
 Plains	82d63a695487e567	228	1/1		0/1	ix:resp
 Prismabasher	d050be2fad50a7c1	5	1/1		0/1	ix:resp
 Prismatic Undercurrents	00115b1acf96c8a2	9	1/1		0/1	ix:resp
 Protective Response	35fe7f019ae7815e	3	0/0		2/2	
 Pyrrhic Strike	85dd1b09cb5295ac	5	0/0		1/2	ix:resp
+Reckless Ransacking	6e515d977e646e93	5	0/0		1/2	ix:resp
 Reluctant Dounguard	48a41ff03f6b0a34	9	1/1		0/1	ix:resp
+Retched Wretch	6ed083c62082b257	3	1/1		0/1	ix:resp
 Riverguard's Reflexes	575b7a630705b6d7	4	0/0		1/2	ix:resp
 Rooftop Percher	374339ed9364cca0	8	1/1		1/1	
+Run Away Together	57e24937865276ad	4	0/0		1/2	ix:resp
 Sapling Nursery	032e95dea58ad607	6	2/2		0/1	ix:resp
+Scarblade Scout	7200ba68684fad99	4	1/1		0/1	ix:resp
+Scuzzback Scrounger	6811f73535583805	11	1/1		1/1	
+Sear	7e0fab4f47cba733	8	0/0		1/2	ix:resp
+Shinestriker	6de49d52f040117f	3	1/1		0/1	ix:resp
 Shore Lurker	57e3cb87d338992a	12	1/1		1/1	
 Slumbering Walker	2c4bd5aa9d44c9e3	5	1/1		0/1	ix:resp
+Soulbright Seeker	b549fbbcfcddfe5c	6	1/1		1/1	
+Sourbread Auntie	a7a9da6e60f30350	6	1/1		0/1	ix:resp
+Spell Snare	1e125ee7c88bce41	4	0/0		1/2	ix:resp
 Spiral into Solitude	f592e28f84ee6519	6	1/1		1/2	ix:resp
 Springleaf Drum	3a09b53f1dc3c8e1	7	1/1		0/1	ix:resp
+Squawkroaster	97ced9f2a451477a	8	0/0		0/0	
 Stalactite Dagger	145ce1fdb67f8f33	9	2/2		0/1	ix:resp
+Steam Vents	689510ae82dab53e	9	2/2		0/1	ix:resp
+Sting-Slinger	ee92e32781f6fb8d	4	1/1		0/1	ix:resp
+Summit Sentinel	bd57089c1adbdb72	4	1/1		0/1	ix:resp
+Sun-Dappled Celebrant	a561914062283459	5	0/0		0/0	
+Swamp	342b413902f441c3	159	1/1		0/1	ix:resp
+Swat Away	1116ff7f8015f98a	6	0/0		2/2	
+Sygg, Wanderwine Wisdom	a1e9f164ca146289	7	5/5		1/1	
+Tanufel Rimespeaker	4841fc395835ea80	5	1/1		0/1	ix:resp
 Temple Garden	d94cc8cdd2d76039	33	2/2		0/1	ix:resp
+Temporal Cleansing	66ce63dba30f1f03	6	0/0		2/2	
 Tend the Sprigs	519f270059a0273e	10	0/0		2/2	
+Thirst for Identity	8c4e1ebf79deaf2f	12	0/0		2/2	
 Thoughtweft Charge	be0c1076635dd51a	8	0/0		1/2	ix:resp
 Thoughtweft Imbuer	729917da30e2a225	15	1/1		0/1	ix:resp
 Thoughtweft Lieutenant	14a2c8cfa1299efd	10	1/1		1/1	
 Timid Shieldbearer	3fe333e712fa6639	11	1/1		0/1	ix:resp
+Tributary Vaulter	f4690d313cd307f1	10	1/1		1/1	
+Tweeze	128b0150189c78cf	4	0/0		1/2	ix:resp
 Vinebred Brawler	b8a68c1c3e3dab49	8	1/1		1/1	
 Virulent Emissary	2c4daf310cf63ce9	9	1/1		0/1	ix:resp
+Wanderbrine Preacher	2c7543e9f3aa4305	12	1/1		0/1	ix:resp
 Wanderbrine Trapper	38ebb6c3a53e9012	7	1/1		1/1	
+Wanderwine Distracter	b3463c7ec646e83b	13	1/1		1/1	
+Wild Unraveling	29b82bc0f2724e4a	10	0/0		1/2	ix:resp
 Wildvine Pummeler	0fc08f8a22b9bd5f	4	0/0		0/0	
