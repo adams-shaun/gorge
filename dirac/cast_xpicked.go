@@ -52,7 +52,10 @@ func (s *State) excludePickedSources(k *prep, av *avail) {
 		// taps it for the payment all the same, and the X window cannot spend
 		// that tap again (CR 601.2g-h): take its window units out here too.
 		s.removeCA(k, av, sl)
-		if !s.canTapForMana(k, sl) {
+		// A sacrifice-only source (an Eldrazi Scion) is a census unit with no
+		// {T}: the pick taps its creature, so the sacrifice is gone too
+		// (gorge's convokeCommitted drops it from the window's units).
+		if !s.canTapForMana(k, sl) && !s.canSacOnlyAt(k, sl) {
 			continue
 		}
 		pc := &k.cards[s.cardAt(sl)]
