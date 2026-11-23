@@ -201,7 +201,6 @@ Kismet
 Knight of the White Orchid
 Kraul Foragers
 Kraul Warrior
-Krosan Druid
 Kuldotha Flamefiend
 Leaf Arrow
 Leapfrog
