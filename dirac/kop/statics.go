@@ -625,6 +625,12 @@ const (
 	StReduceColor StaticFlags = 1 << 13
 )
 
+// StUnspentYou (aliases StYouHexproof, a Continuous-only bit) on a
+// StatUnspentMana static: it protects only the static's controller's mana
+// (ValidPlayer$ You; Omnath, Locus of Mana), not every seat's (Upwelling,
+// which spells no ValidPlayer$). Neither kind reads the other's bit.
+const StUnspentYou = StYouHexproof
+
 // StatStackKw: the spells the static's controller casts that match Filter
 // (a card on the stack or still in hand) carry the keyword StackKw* code A
 // for the cast-time readers (AffectedZone$ Stack AddKeyword$ Cascade; gorge
