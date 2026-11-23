@@ -11,6 +11,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cost keeps the batteries (trigCostPotentialPays, storeSourceCounts).
 const availNoStore uint16 = 4096
 
+// unlessUnpriced: counter-cost mana ability a is a unit gorge's unless census
+// (rules unlessWindowUnits) lists none for: a storage battery's announced X,
+// or an any-colour production (Vivid Creek's "{T}, remove a charge counter:
+// add one mana of any color"), whose colour the census withholds because the
+// activation asks it (paid_mana_census.go admits a SubCounter fee only on a
+// fixed production, pay.ManaSubCounterOnlyCost). With a Viridescent Bog's {1}
+// funded by a Mountain, "sacrifice Child of Gaea unless you pay {G}{G}" offered
+// pay only here, the second {G} coming from the counter.
+func unlessUnpriced(a *kop.Ability) bool {
+	return kop.StoreManaAb(a) || ctrAnyColour(a)
+}
+
 // canPayGenFor is canPayGen under skip's payment class: an unless cost (pfModes)
 // reads availFor with availNoStore.
 func (s *State) canPayGenFor(k *prep, p uint8, kind int, skip uint16, amt int, pips int16, f kop.FilterID) bool {
@@ -28,7 +40,7 @@ func (s *State) canPayGenFor(k *prep, p uint8, kind int, skip uint16, amt int, p
 // census window (census) offers no storage battery (availNoStore).
 func (s *State) windowCtrOfferFor(k *prep, p uint8, o Slot, decided bool, want uint8, census bool) bool {
 	if census && k.ctrMana {
-		if a := k.ctrAbOf(s.cardAt(o)); a != nil && kop.StoreManaAb(a) {
+		if a := k.ctrAbOf(s.cardAt(o)); a != nil && unlessUnpriced(a) {
 			return false
 		}
 	}
@@ -43,7 +55,7 @@ func (s *State) censusNoStore(k *prep, m slotMask) slotMask {
 	}
 	for b := m; b.any(); b = b.rest() {
 		sl := b.first()
-		if a := k.ctrAbOf(s.cardAt(sl)); a != nil && kop.StoreManaAb(a) {
+		if a := k.ctrAbOf(s.cardAt(sl)); a != nil && unlessUnpriced(a) {
 			m = m.without(sl)
 		}
 	}
