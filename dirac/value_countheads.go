@@ -352,10 +352,14 @@ func (s *State) exwSourceLeft(o Obj) {
 		return
 	}
 	ver := s.objs[o].ver
-	for i := 0; i < int(s.g.nexw); i++ {
-		r := &s.cold.exw[i]
-		if r.src == o && r.fl&exwRev != 0 && r.sver == ver-1 {
-			r.sver = ver
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		rec := &r[i]
+		if rec.src == o && rec.kind&exwRev != 0 && rec.sver == ver-1 {
+			rec.sver = ver
 		}
 	}
 }
@@ -387,11 +391,7 @@ func (s *State) exwCostExilePick(o Obj) {
 	// the craft material always carries the reverse link: the reading
 	// face's ExiledWith$ head is the provenance, whether or not the card text
 	// also names ExiledWithSource (kop.ExwWord)
-	fl := exwRev
-	if s.objs[o].of&ofToken != 0 {
-		fl |= exwTok
-	}
-	s.exwPut(o, e.obj, s.objs[e.obj].ver, fl, int(e.card))
+	s.exwPut(o, e.obj, s.objs[e.obj].ver, exwRev, int(e.card))
 }
 
 // DebugPrimeOdd is TestCountHeadsDeliriumPrimeMutation's switch: "prime" becomes "odd".

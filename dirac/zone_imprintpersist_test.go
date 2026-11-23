@@ -55,7 +55,7 @@ func TestImpPersistSeedsAfterDeparture(t *testing.T) {
 	s.objs[srcObj].zone = kop.ZoneGraveyard
 	s.objs[srcObj].ver++
 	s.leaveGen(sc.k, sl, srcObj)
-	if s.smLen() == 0 {
+	if s.osLen() == 0 {
 		t.Fatalf("leaveGen dropped the Imprinted records: %v", srcMemRecs(s))
 	}
 	// the leaves trigger resolves from the departed incarnation (ver+1).
@@ -70,12 +70,12 @@ func TestImpPersistSeedsAfterDeparture(t *testing.T) {
 	s.objs[srcObj].zone = kop.ZoneBattlefield
 	s.objs[srcObj].ver++
 	rec := srcMemRecs(s)[0]
-	if s.smLiveNow(&rec) {
+	if s.osLiveNow(&rec) {
 		t.Fatalf("the old record is still live before the entry: %v (ver %d)", rec, s.objs[srcObj].ver)
 	}
-	before := s.smLen()
+	before := s.osLen()
 	s.impEnter(srcObj)
-	if after := s.smLen(); after != 0 {
+	if after := s.osLen(); after != 0 {
 		t.Fatalf("the next entry kept the old Imprinted records: %v (rec.src %d, srcObj %d, before %d, after %d, ver %d, zone %d)", srcMemRecs(s), rec.src, srcObj, before, after, s.objs[srcObj].ver, s.objs[srcObj].zone)
 	}
 }
