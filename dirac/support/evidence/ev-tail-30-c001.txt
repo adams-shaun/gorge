@@ -93,6 +93,7 @@ Culling the Weak
 Curse of the Forsaken
 Cursed Flesh
 Darksteel Sentinel
+Deadapult
 Deadly Derision
 Decanter of Endless Water
 Defiant Ogre
@@ -431,6 +432,7 @@ Wellspring
 White Sun's Zenith
 White Widow, Yelena Belova
 Wildwood Tracker
+Willow Priestess
 Winding Way
 Winding Wurm
 Witherbloom Apprentice

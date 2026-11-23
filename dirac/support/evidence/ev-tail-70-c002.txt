@@ -1,14 +1,17 @@
 Abominable Treefolk
 Act of Treason
+Adric, Mathematical Genius
 Aerial Guide
 Aether Swooper
 Aether Tradewinds
+Air-Cult Elemental
 Akoum Warrior
 Alpha Authority
 Amazing Spider-Girl
 Ancient Hydra
 Angel of Sanctions
 Angelic Skirmisher
+Angrath's Marauders
 Apprentice Necromancer
 Artful Takedown
 Artifact Mutation
@@ -18,9 +21,11 @@ Aurochs Herd
 Awakening
 Baloth Cage Trap
 Baloth Packhunter
+Bamboozle
 Baneblade Scoundrel
 Bayou Groff
 Bladed Pinions
+Blighted Cataract
 Blood-Chin Rager
 Bloodhusk Ritualist
 Bloodletter Quill
@@ -29,6 +34,7 @@ Bog Tatters
 Bonded Horncrest
 Boon of Erebos
 Boulderbranch Golem
+Bribery
 Carrion Feeder
 Cathartic Reunion
 Cavalry Drillmaster
@@ -36,11 +42,13 @@ Chain Devil
 Champion's Drake
 Chandra, Flamecaller
 Charge
+Chimney Rabble
 Chrome Host Seedshark
 Cloak of Confusion
 Cloud Manta
 Cobbled Lancer
 Commanding Presence
+Contradict
 Conviction
 Corpsejack Menace
 Court of Cunning
@@ -68,6 +76,7 @@ Elephant-Rat
 Elusive Tormentor
 Emergent Growth
 Enlisted Wurm
+Essence Backlash
 Etherium Sculptor
 Ethersworn Shieldmage
 Experimental Overload
@@ -75,6 +84,7 @@ Faceless Devourer
 Fall of the Thran
 Far Traveler
 Fast Forward
+Fateful Tempest
 Fathom Fleet Firebrand
 Faultgrinder
 Feast of Blood
@@ -109,6 +119,7 @@ Guul Draz Vampire
 Heliod's Punishment
 Hero's Heirloom
 Holy Strength
+Hoof Skulkin
 Hoverguard Sweepers
 Hythonia the Cruel
 Ignite Disorder
@@ -120,10 +131,13 @@ Infected Vermin
 Infectious Bite
 Infestation Expert
 Insolent Neonate
+Iron Man, Titan of Innovation
 Island
 Jace's Scrutiny
+Jack of Hearts, Volatile Hero
 Jolrael's Favor
 Juri, Master of the Revue
+Jwar Isle Refuge
 Jwari Disruption
 Kargan Warleader
 Kathari Bomber
@@ -137,6 +151,7 @@ Legion Loyalist
 Lifespinner
 Lightning Javelin
 Lion Vulture
+Madblind Mountain
 Magnivore
 Managorger Hydra
 Manticore of the Gauntlet
@@ -147,6 +162,7 @@ Maze Abomination
 Mesmeric Trance
 Metropolis Angel
 Minotaur Sureshot
+Moth Herb Elixir
 Mountain
 Mutilate
 Myconid Spore Tender
@@ -154,6 +170,7 @@ Myr Retriever
 Narnam Renegade
 Nature's Spiral
 Necrotic Fumes
+Nettlecyst
 Noble Vestige
 Oath of Eorl
 Oath of Scholars
@@ -167,14 +184,17 @@ Overmaster
 Patagia Viper
 Patchwork Gnomes
 Pestilence
+Phyrexian Ingester
 Phyrexian Reclamation
 Piercing Light
 Piper of the Swarm
 Plains
 Planar Gate
 Plated Onslaught
+Port of Karfell
 Predatory Nightstalker
 Price of Glory
+Primal Beyond
 Primal Frenzy
 Primal Rage
 Putrid Cyclops
@@ -190,10 +210,13 @@ Relentless Skaabs
 Rhystic Scrying
 Roaring Primadox
 Roving Keep
+Rune of Protection: Blue
+Rush of Blood
 Ruthless Knave
 Saurian Symbiote
 Savageborn Hydra
 Saving Grasp
+Scion of Opulence
 Scrollshift
 Scythe Leopard
 Seashell Cameo
@@ -208,6 +231,7 @@ Sigil Blessing
 Silk Net
 Silverflame Squire
 Sire of Stagnation
+Sisay's Ingenuity
 Skull Rend
 Slaughter Specialist
 Slavering Nulls
@@ -216,6 +240,7 @@ Smothering Abomination
 Soilshaper
 Somnophore
 Soratami Seer
+Sorcerer's Broom
 Soul Net
 Souldrinker
 Spectral Hunt-Caller
@@ -232,12 +257,15 @@ Stonecloaker
 Stormbound Geist
 Summer Bloom
 Swamp
+Swirling Torrent
 Syndicate Guildmage
 Take Possession
 Tapestry of the Ages
 Tenacious Hunter
 Terra Ravager
+The Great Mound
 The Juzam Master
+The Monumental Facade
 Thought-Knot Seer
 Thraben Heretic
 Thundering Giant

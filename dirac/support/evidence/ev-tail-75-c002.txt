@@ -106,6 +106,7 @@ Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -190,6 +191,7 @@ Mind Over Matter
 Mindwrack Harpy
 Mobile Fort
 Momentum Rumbler
+Monkey Cage
 Mortal Wound
 Mossbridge Troll
 Mountain
@@ -210,6 +212,7 @@ Obelisk of Grixis
 Ogre Taskmaster
 One-Eyed Scarecrow
 Order of the Sacred Torch
+Overgrown Pest
 Panic Attack
 Paradigm Shift
 Patrol Hound

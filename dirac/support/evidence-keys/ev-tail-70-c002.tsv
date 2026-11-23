@@ -1,38 +1,66 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abominable Treefolk	fdfca5e07ad72560	28	1/1		0/1	ix:resp
+Adric, Mathematical Genius	4d4fbcda60ade6cb	28	2/2		0/1	ix:resp
 Aether Tradewinds	f9156d87b3fe64da	88	0/0		2/2	
+Air-Cult Elemental	21774e1c57d67c14	6	1/1		0/1	ix:resp
+Angrath's Marauders	63e5075f1f3e95e4	10	0/0		0/0	
 Augury Raven	d5abcf28315b7c03	57	0/0		1/2	cast/alt:foretold
 Baloth Packhunter	6b8113bb3ce0d8aa	24	1/1		1/1	
+Bamboozle	2275a5f4de5e43d2	25	0/0		2/2	
 Baneblade Scoundrel	68ad40c5057b9256	56	3/3		1/1	
+Blighted Cataract	3d53b345cfd1309b	65	2/2		0/1	ix:resp
 Bloodletter Quill	c8a7afa19bde8152	34	2/2		1/1	
+Bribery	9fa5348714e62653	31	0/0		2/2	
 Champion's Drake	4800a9aacd05f66d	69	0/0		0/0	
 Chandra, Flamecaller	30d74431c617967b	27	3/3		1/1	
+Chimney Rabble	3a27fbda0e8f087e	9	1/1		1/1	
 Cloak of Confusion	90f656d0d6810a74	39	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Cobbled Lancer	e19902c93301bf53	22	1/1		2/2	
+Contradict	a976bf24425dde79	4	0/0		1/2	ix:resp
 Donatello, Rad Scientist	ab693b153153e835	32	1/1		1/1	
 Enlisted Wurm	2379cdf24ba6ce4a	7	0/0		0/0	
+Essence Backlash	6f29a96d836a278a	10	0/0		2/2	
 Etherium Sculptor	14708d5b63458db7	37	0/0		0/0	
 Ethersworn Shieldmage	da654298061a36fe	20	1/1		1/1	
 Experimental Overload	13488efc4d513edb	20	0/0		2/2	
 Faceless Devourer	d8952091a58701da	6	2/2		1/1	
+Fateful Tempest	6c76c82d152ce805	8	0/0		1/2	ix:resp
 Feast of Blood	5a2b1aef7132372c	4	0/0		1/2	ix:resp
 Geistlight Snare	64f8706efe69c4e1	21	0/0		2/2	
 Goblin Tinkerer	6b086e44a52a7d25	37	1/1		1/1	
+Hoof Skulkin	2e8e524a2b9840f7	33	1/1		1/1	
 Hoverguard Sweepers	d51f1247d80fa429	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Indoctrination Attendant	cf7fb457e65b48e9	5	1/1		0/1	ix:resp
+Iron Man, Titan of Innovation	365efc817b1d6d74	11	1/1		0/1	ix:resp
 Jace's Scrutiny	56f0c774919c038a	32	0/0		1/2	ix:resp
+Jack of Hearts, Volatile Hero	41bb31f6522752e7	6	2/2		0/1	ix:resp
+Jwar Isle Refuge	caeb684ee0ff9e41	101	2/2		0/1	ix:resp
 Kird Ape	8e3500d40a57c816	39	0/0		0/0	
 Last March of the Ents	089246410bd9a4f5	6	0/0		1/2	ix:resp
+Madblind Mountain	9916485f3e3ee686	129	2/2		0/1	ix:resp
 Masterwork of Ingenuity	0f4a39432fa69d5c	79	0/0		0/0	
+Moth Herb Elixir	7c29ae5d150ab664	23	2/2		0/1	ix:resp
 Necrotic Fumes	b77c4f5800755805	16	0/0		1/2	ix:resp
+Nettlecyst	2723501372842b79	28	2/2		1/1	
 Oath of Scholars	0411bd3d8be2c180	42	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Orcish Captain	57a3ce1af9e986be	50	1/1		1/1	
+Phyrexian Ingester	913e7aa36b569aac	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Port of Karfell	49ae8168dcf9ff56	76	2/2		0/1	ix:resp
 Price of Glory	f630452a9b3085db	43	1/1		1/1	
+Primal Beyond	d0599950a3d0b310	93	2/2		0/1	ix:resp
 Raging Goblin	44ec34fae4448efe	4	0/0		0/0	
+Rune of Protection: Blue	edc2ded2a1afb5f6	3	2/2		1/1	
+Rush of Blood	a682aa256712cbfb	30	0/0		1/2	ix:resp
+Scion of Opulence	66ace6aac99d4394	17	2/2		1/1	
 Sire of Stagnation	5cb0ecc72ee62c6d	24	1/1		0/1	ix:resp
+Sisay's Ingenuity	b019d621a9cb9c36	24	1/1		2/2	
 Somnophore	35f2ddafbd1a6430	31	1/1		1/1	
+Sorcerer's Broom	22a56b0bc5e4de74	25	1/1		1/1	
 Soul Net	7a0d39d7856c5626	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Stinging Lionfish	2c5b2a2aae9c297b	66	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Stormbound Geist	af59ab6ec6f392f0	57	1/1		0/1	ix:resp
+Swirling Torrent	e16e98ef26f5625a	4	0/0		1/2	ix:resp
 Terra Ravager	5ef26bf8c53c9e89	22	1/1		0/1	ix:resp
+The Great Mound	b6ce71e2bbd0ebcb	110	3/3		1/1	
+The Monumental Facade	ea2cb2ed3e4b7ee7	144	2/2		0/1	ix:resp
 Timely Hordemate	62b60d4a8a1fd1fb	19	1/1		0/1	ix:resp

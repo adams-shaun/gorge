@@ -39,14 +39,17 @@ Conclave's Blessing	5af9dfb31f932465	8	0/0		2/2
 Corpse Hauler	27ecc9234ab3e274	4	1/1		0/1	ix:resp
 Corrupted Resolve	3baf5d16004767bf	61	0/0		2/2	
 Cosmic Epiphany	c950e9151f22189e	7	0/0		2/2	
+Crawling Infestation	13231593accb4931	11	2/2		0/1	ix:resp
 Crucible of Worlds	8d2ea0313646d32d	84	0/0		0/0	
 Cryptolith Rite	dd93f79887a0dcd9	29	0/0		0/0	
 Dauthi Voidwalker	f39d62532698f41b	4	1/1		1/1	
 Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
 Deep-Sea Serpent	9a1f9e5ccdf0f34b	7	0/0		0/0	
 Defy Gravity	98f2ddc7257662ef	86	0/0		3/4	ix:resp
+Deny Entry	ff528689f9b739e0	6	0/0		2/2	
 Desecration Elemental	dc05770dbe5d2f7e	4	1/1		0/1	ix:resp
 Despoiler of Souls	7f083e1a4127e375	8	1/1		0/1	ix:resp
+Desynchronize	a8a90312e28276a6	3	0/0		1/2	ix:resp
 Dihada's Ploy	15d4bb0d6f6f47ba	4	0/0		2/4	cast/alt:jumpstart,ix:resp
 Diplomacy of the Wastes	db50bc2822feb297	6	0/0		2/2	
 Dire Fleet Hoarder	f6de78b0aa6d8a93	5	1/1		1/1	
@@ -69,7 +72,9 @@ Faithful Pikemaster	380f2a965954a029	21	1/1		1/1
 Falkenrath Marauders	c24f6cec34c705fa	3	1/1		0/1	ix:resp
 Fated Conflagration	a1823dc71deafa3a	6	0/0		1/2	ix:resp
 Fell Specter	32563b2a306c8782	35	2/2		1/1	
+Flooded Grove	090e2ab7f65f41bb	14	2/2		0/1	ix:resp
 Floodwater Dam	e7f087ad9caa2bfb	45	1/1		1/1	
+Foreboding Statue	7218baf87a8e70b9	8	3/3		0/1	ix:resp
 Foundry Street Denizen	c35137876b6a7d14	51	1/1		1/1	
 Free from Flesh	2553d50bb110cfc4	33	0/0		2/2	
 Galina's Knight	4aea64a10c9d23be	24	0/0		0/0	
@@ -130,10 +135,13 @@ Morkrut Behemoth	d17c32024be85eac	6	0/0		0/0
 Mounted Dreadknight	b2a92285d200376c	4	0/0		0/0	
 Mouth	688ea60e783c6a9b	57	0/0		4/5	f1/s
 Multiform Wonder	9b53cdbcb2f74226	7	3/3		1/1	
+Nantuko Monastery	e2e83531b6f7846e	22	2/2		1/1	
+Navigator's Compass	e5eba23c3dc973ec	6	2/2		0/1	ix:resp
 Nefarox, Overlord of Grixis	a9aacbfe586ae325	39	2/2		1/1	
 Nightscape Familiar	5c488d18479da3b1	14	1/1		1/1	
 Nightshade Assassin	25e10d5dbf513315	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nimble Pilferer	953b62840166e05e	5	0/0		0/0	
+Null Elemental Blast	bed074203b6e46af	3	0/0		2/2	
 Nyxborn Marauder	2bc1f3a1990b06be	60	0/0		0/0	
 Ochre Jelly	ebc622363ba712ae	14	1/1		1/1	
 Ogre Gatecrasher	3d49f02f14de222a	9	1/1		0/1	ix:resp
@@ -144,14 +152,17 @@ Ozox, the Clattering King	06dfd9ed321a1eb0	3	1/1		1/1
 Palladium Myr	ca6a2edb4503fb35	47	1/1		1/1	
 Path of Peril	3b0f778ff2c30850	12	0/0		2/2	
 Pawn of Ulamog	c9a354b447b85941	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Pentagram of the Ages	c89d1fc0ea8d2f03	8	1/1		0/1	ix:resp
 Poxwalkers	90e94a09da5889a3	5	1/1		0/1	ix:resp
 Primal Bellow	aac904dc951276ce	6	0/0		1/2	ix:resp
+Primo, the Unbounded	0625bc6580377d1d	23	1/1		0/1	ix:resp
 Pulsating Illusion	1c63bc1bf224d70e	10	1/1		1/1	
 Putrid Cyclops	73c9ebacac1720c6	42	1/1		1/1	
 Quirion Druid	39aeedfab16d6a49	23	1/1		1/1	
 Radiant's Judgment	66526491ab4ddfd5	11	1/1		2/2	
 Raise the Draugr	3a6bce1aceecb102	7	0/0		1/2	ix:resp
 Rakdos Ickspitter	2bd70deef78e941c	18	1/1		0/1	ix:resp
+Rapid Hybridization	21bd5d681243a4cf	13	0/0		1/2	ix:resp
 Reckless Scholar	1d8b8c1f92a50bee	42	1/1		1/1	
 Reclaiming Vines	637ba1a6ed2f3936	41	0/0		2/2	
 Regisaur Alpha	79143c56fe1c40a8	21	1/1		0/1	ix:resp
@@ -160,11 +171,13 @@ Rending Flame	121e4f1a1a8c8243	69	0/0		2/2
 Retreat to Hagra	4ec8e3c5565ef945	8	1/1		0/1	ix:resp
 Ring of Evos Isle	9bff8204f5d902c6	106	3/3		1/1	
 Rise Again	015fe9e41594ddcf	18	0/0		1/2	ix:resp
+Roadside Reliquary	9e401599ca8c9a2e	32	2/2		0/1	ix:resp
 Roil Cartographer	4fe4a0de4ab7a1b5	38	2/2		1/1	
 Roving Harper	0c1aebdec205843b	4	1/1		0/1	ix:resp
 Rust Tick	4907e82ccff4ab39	51	1/1		1/1	
 Sacred Nectar	ce0f509afe7adcdd	30	0/0		1/2	ix:resp
 Saddleback Lagac	2ead5a82d123d7f6	30	1/1		1/1	
+Scion of Glaciers	85c1aecbd398a301	9	1/1		1/1	
 Screamer-Killer	dd99a59579dfa4eb	6	1/1		0/1	ix:resp
 Scuttling Sentinel	3e7044c079b753ad	16	1/1		1/1	
 Sea's Claim	5a85ed60f30c7230	22	0/0		1/2	ix:resp
@@ -196,6 +209,8 @@ Stolen Strategy	b19a632a0e86883c	4	1/1		0/1	ix:resp
 Stolen by the Fae	022e9776c2531f3c	29	0/0		3/4	f0/s/x0
 Swift Response	4deca589d95dd700	8	0/0		2/2	
 Sylvan Tutor	1fb010a6ebf5d921	3	0/0		1/2	ix:resp
+Teething Wurmlet	07537a98df9e69f1	4	1/1		0/1	ix:resp
+Tel-Jilad Defiance	8b82850b89e5fe97	4	0/0		1/2	ix:resp
 Territory Culler	bcfb8b06542b5550	24	1/1		1/1	
 Teyo's Lightshield	8c2093fd7e4e7451	5	1/1		1/1	
 Teysa Karlov	cf7ead8791572676	16	0/0		0/0	

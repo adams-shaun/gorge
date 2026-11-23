@@ -155,6 +155,7 @@ Gustrider Exuberant
 Guul Draz Overseer
 Hagra Constrictor
 Hamletback Goliath
+Harbinger of Spring
 Harsh Judgment
 Heartless Pillage
 Heavy Mattock
@@ -331,6 +332,7 @@ Spined Basher
 Spinning Wheel
 Stall for Time
 Stalwart Pathlighter
+Stasis
 Steel Leaf Paladin
 Stirring Address
 Stolen Goods
@@ -357,6 +359,7 @@ Temporal Fissure
 Terrain Elemental
 Thalakos Mistfolk
 That Which Was Taken
+Thorn Elemental
 Thunderhawk Gunship
 Tidal Courier
 Tin Street Dodger

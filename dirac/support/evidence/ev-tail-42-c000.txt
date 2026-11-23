@@ -407,6 +407,7 @@ Smother
 Soulblade Djinn
 Species Specialist
 Spellbook
+Spellbreaker Behemoth
 Spider Spawning
 Spiderwig Boggart
 Spike Drone

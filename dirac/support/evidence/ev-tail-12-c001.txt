@@ -60,6 +60,7 @@ Coral Eel
 Count Nefaria
 Crater Elemental
 Cunning Sparkmage
+Cylian Sunsinger
 Deathknell Berserker
 Deepfire Elemental
 Deepwater Hypnotist
@@ -304,6 +305,7 @@ Thaumatic Compass
 The Circle of Loyalty
 The Grey Havens
 Third Path Savant
+Thraben Exorcism
 Thumbscrews
 Thundering Chariot
 Thundermare
