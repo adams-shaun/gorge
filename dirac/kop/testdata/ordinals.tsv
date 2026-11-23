@@ -78,12 +78,15 @@ CfManifestRemembered	untyped int	64
 CfRemember	untyped int	4
 CfShuffle	untyped int	2
 CfTapped	untyped int	1
+ChPlPlain	int16	2
 ChPlRandom	int16	1
 ChangeTextColour	int16	1
 ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
 ChooseOpp	untyped int	2
+ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1
+ChoosePlayerMidHigh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 ChooseTypeBasicLand	untyped int	2
