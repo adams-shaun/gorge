@@ -3148,6 +3148,9 @@ func (s *State) grantPlayCost(k *prep, p uint8, a Action, kicked bool) (cost kop
 	if a.Kind() == AkPlot && a.Mode() == 0 {
 		return s.grantPlotCost(k, p, a)
 	}
+	if a.Kind() == AkPlot && a.Mode() == plotModeSuspend {
+		return s.grantSuspendCost(k, p, a)
+	}
 	if s.g.raiseO == 0 {
 		// the cast owes its permission's surcharge (Zero's {2}) once it is
 		// built; the search prices what the cast will pay (CR 601.2f, 118.8)
