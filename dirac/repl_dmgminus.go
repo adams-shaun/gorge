@@ -155,9 +155,12 @@ func (s *State) dmgSetN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp 
 // the gate times two, double-then-set the gate; minus-then-double is not
 // double-then-minus): gorge asks the CR 616.1 order, whose answer changes the
 // amount, and the kernel composes in one fixed order (StallReplPlus, the
-// plus-N competition's cap). Two minus lines commute (their sum, floored).
+// plus-N competition's cap). Two minus lines commute (their sum, floored), but
+// gorge asks their order all the same (applyDamageClassReplacements poses the
+// ask for every two or more matches that are not bare preventions), so the
+// kernel stalls there too rather than deal the damage without the ask.
 func (s *State) dmgRewriteClash(minus, set, doublers int) {
-	if set >= 2 || set == 1 && minus+doublers > 0 || minus > 0 && doublers > 0 {
+	if minus >= 2 || set >= 2 || set == 1 && minus+doublers > 0 || minus > 0 && doublers > 0 {
 		s.capFull(StallReplPlus)
 	}
 }
