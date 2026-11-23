@@ -40,6 +40,19 @@ const (
 	RefSrcOwner Ref = 246
 )
 
+// RefRememberedSet is every object of the resolving entry's remembered set
+// (gorge sharesTypeReferents' Remembered and RememberedLKI, the whole set,
+// engine/effects/filter_attachment.go): a filter word's referent whose read
+// iterates them all, where RefRemembered names only the first card entry.
+// Empty when the entry remembers nothing.
+const RefRememberedSet Ref = 248
+
+// RefConvoked is the creatures that convoked the resolving spell's cast (CR
+// 702.66; gorge sharesTypeReferents' Convoked over Object.Convoked): the
+// cast's stack entry holds their set (cold.convoked, kw_convokelist.go). Empty
+// when the entry is no spell or convoked nothing.
+const RefConvoked Ref = 249
+
 // More Refs, continuing the low values.
 const (
 	RefRemembered           Ref = 18 // the resolution's remembered objects (an Exile/Dig with remember)

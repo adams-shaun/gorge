@@ -93,10 +93,11 @@ var stallCapacityReasons = [...]uint8{
 	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 	// a scaled cumulative upkeep cost past the packed ask (trig_cumulativepay.go)
 	StallCumulativeCost,
-	StallObjSets,   // a 97th live object-set record (zone_objsets.go)
-	StallPrevRider, // a scoped prevention's rider (gain the prevented life) beside what the kernel does not model (repl_prevx.go)
-	StallExTurn,    // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
-	StallMeld,      // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
+	StallObjSets,     // a 97th live object-set record (zone_objsets.go)
+	StallPrevRider,   // a scoped prevention's rider (gain the prevented life) beside what the kernel does not model (repl_prevx.go)
+	StallExTurn,      // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
+	StallMeld,        // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
+	StallConvokedSet, // a seventeenth convoked set held at once, or a seventeenth convoked creature on one cast (kw_convokelist.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{

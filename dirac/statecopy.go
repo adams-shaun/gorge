@@ -168,6 +168,8 @@ type coldArrays struct {
 	objSets []osRec
 	// attacker groups; stackEntry.grp - 1 indexes it (trig_attackers.go)
 	atkGrp []objBits
+	// convoked sets; stackEntry.cvok - 1 indexes it (kw_convokelist.go)
+	convoked []objBits
 	// until-end-of-turn can't-be-blocked-except records (static_cantblockexcept.go)
 	exH []exhRec
 	// this turn's zone entries, in add order (value_enteredledger.go)

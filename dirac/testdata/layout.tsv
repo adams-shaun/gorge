@@ -1,6 +1,6 @@
 # Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
 # class	key	value; field rows: class	field	Type.field	offset	size
-default	size	42552
+default	size	42576
 default	perms%64	0
 default	ObjHash	0x3d6b15d7a9e2fa00
 default	ViewHash	0x63791655cd1c915f
@@ -95,13 +95,14 @@ default	field	genState.fx	2	768
 default	field	genState.nfx	770	1
 default	field	genState.xtp	776	1312
 default	field	genState.atkHi	2088	1
-default	field	genState.tli	2089	1
-default	field	genState.energy	2090	4
-default	field	genState.roll	2094	1
-default	field	genState.drawFirst	2095	1
-default	field	genState.drawStepN	2096	1
-default	field	genState.conn	2097	1
-default	field	genState.held	2098	1
+default	field	genState.cvokHi	2089	1
+default	field	genState.tli	2090	1
+default	field	genState.energy	2091	4
+default	field	genState.roll	2095	1
+default	field	genState.drawFirst	2096	1
+default	field	genState.drawStepN	2097	1
+default	field	genState.conn	2098	1
+default	field	genState.held	2099	1
 default	field	genState.rem	2100	128
 default	field	genState.nrem	2228	1
 default	field	genState.chosen	2230	128
@@ -789,13 +790,14 @@ default	field	coldArrays.ms	32	24
 default	field	coldArrays.mo	56	24
 default	field	coldArrays.objSets	80	24
 default	field	coldArrays.atkGrp	104	24
-default	field	coldArrays.exH	128	24
-default	field	coldArrays.entered	152	24
-default	field	coldArrays.exMark	176	24
-default	field	coldArrays.parked	200	24
-default	field	coldArrays.castRing	224	24
-default	field	coldArrays.discHeld	248	24
-default	field	coldArrays.copyHeld	272	24
-default	field	coldArrays.mk	296	24
-default	field	coldArrays.mkObj	320	24
-default	field	coldArrays.hexUB	344	24
+default	field	coldArrays.convoked	128	24
+default	field	coldArrays.exH	152	24
+default	field	coldArrays.entered	176	24
+default	field	coldArrays.exMark	200	24
+default	field	coldArrays.parked	224	24
+default	field	coldArrays.castRing	248	24
+default	field	coldArrays.discHeld	272	24
+default	field	coldArrays.copyHeld	296	24
+default	field	coldArrays.mk	320	24
+default	field	coldArrays.mkObj	344	24
+default	field	coldArrays.hexUB	368	24

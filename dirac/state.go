@@ -569,6 +569,11 @@ type stackEntry struct {
 	// cast from (kop.Zone), bits 3-7 the creatures that convoked it
 	// (saturating at 31). It takes the struct's padding byte.
 	prov uint8
+	// cvok is the creatures that convoked the spell's cast (CR 702.66),
+	// stamped at payment only for a table that reads them (the genUse
+	// useConvokedReads, kw_convokelist.go): State.cold.convoked index + 1
+	// (0 = none). It takes the struct's padding byte.
+	cvok uint8
 	// spc is the colours of mana spent to cast a spell,
 	// tallied at payment only for a table that reads them
 	// (genPrep.anyColSpent, mana_converge.go): bits 0-9 five 2-bit
