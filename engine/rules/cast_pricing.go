@@ -519,7 +519,8 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, pr.foldsOtherSources()) {
+	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, len(pc.Convoke) > 0 || len(pc.delve) > 0 || e.hasCastConvoke(pc.card) ||
+		e.hasCastImprovise(pc.card) || e.hasKeywordH(pc.card, kwhHarmonize) || e.hasCastDelve(pc.card, pc.isAbility())) {
 		return probePayable
 	}
 	return probeManaShort
@@ -530,7 +531,10 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 // ceiling of what the unpriced sources could add (castWindowUnpricedReach, a
 // Phyrexian Lens's "{T}, Pay 1 life: any colour") fall short of the cost's
 // pool-unit floor. An unbounded ceiling proves nothing, so the historical
-// offer stands (CR 601.2g-h: the window can't make the missing mana).
+// offer stands (CR 601.2g-h: the window can't make the missing mana). So it
+// does when foldsOthers (a Convoke/Improvise/Harmonize/Delve spell pays part of
+// its cost beyond the window's sources, CR 702.51a, 702.66a, 702.180a) or an
+// unpriced source isn't a plain tap/life/mana producer (unpricedSourcesPlainTap).
 func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit, life int32, cost Cost, pool state.Mana, foldsOthers bool) bool {
 	if foldsOthers || !unpricedSourcesPlainTap(w, pc, units) {
 		return false
@@ -545,16 +549,6 @@ func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowMan
 	}
 	have := int64(pool.Total()) + int64(castWindowUnitsReach(units)) + int64(unpriced)
 	return have < floor
-}
-
-// foldsOtherSources reports whether pc's payment can draw on more than
-// the window's mana sources: a Convoke/Improvise/Harmonize/Delve spell pays
-// part of its cost with permanents or cards the census never prices, so the
-// reach sum is no upper bound for it (CR 702.51a, 702.66a, 702.180a, 702.66).
-func (pr *targetCostProbe) foldsOtherSources() bool {
-	e, pc := pr.e, pr.pc
-	return len(pc.Convoke) > 0 || len(pc.delve) > 0 || e.hasCastConvoke(pc.card) || e.hasCastImprovise(pc.card) ||
-		e.hasKeywordH(pc.card, kwhHarmonize) || e.hasCastDelve(pc.card, pc.isAbility())
 }
 
 // unpricedSourcesPlainTap reports whether every battlefield source the census

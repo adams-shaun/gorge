@@ -26,7 +26,7 @@ const (
 	// engineMethodCount is the number of non-test methods on rules.Engine.
 	// Below the measured count (2422): a branch may not lower a ratchet
 	// constant (cmd/checkratchet); a follow-up change on main lowers it.
-	engineMethodCount = 2423
+	engineMethodCount = 2422
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
 	hostMethodCount = 97
