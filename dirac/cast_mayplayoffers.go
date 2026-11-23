@@ -85,5 +85,15 @@ func (s *State) mayPlayPrefixPays(k *prep, p uint8, c CardID, o Obj, anyColor bo
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
 	cost = s.mayRiderCost(cost, anyColor)
-	return s.affordsFor(k, p, &cost)
+	// the search taps the restricted sources the cast may spend too (Reality
+	// Fulcrum's "spend this mana only to cast spells from exile" beside Great
+	// Divide Guide's granted any-colour Ally: Appa's {2}{W}{W} from the
+	// artifact's exile, CR 106.6), so the read counts them as the cast window
+	// does (castAffordsR), as affordsFor alone leaves them out
+	var av avail
+	s.availWindowFor(k, p, &av)
+	if k.sacOnlyMana {
+		s.availTappedSac(k, p, &av)
+	}
+	return s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, &av)
 }
