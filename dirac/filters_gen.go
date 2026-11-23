@@ -885,7 +885,7 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		if fd && fl.Pred == kop.PredMultiColor {
 			return false // colourless, so never more than one colour
 		}
-		return predCardKind(k, fl, c)
+		return predCardKind(k, fl, c, cols)
 	case kop.PredAttached, kop.PredActiveCtrl:
 		return fl.Pred == kop.PredActiveCtrl && owner == s.active // nothing off the battlefield is attached
 	case kop.PredModified, kop.PredHasCounters:
