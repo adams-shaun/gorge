@@ -119,6 +119,14 @@ type avail struct {
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
+	// excl: the lands whose own ability and granted intrinsic one are
+	// alternatives of one tap (static_landgrantalt.go altExcl); a bound over
+	// them picks one face per source (exclAny). Their largest face is in total.
+	excl  [maxAltExcl]altExcl
+	nExcl uint8
+	xMax  uint16
+	// exclAlt: exclAffords' scratch, how many lands of each group take the intrinsic face
+	exclAlt [maxAltExcl]uint8
 	// xd: the payment an {X} ask is bounded by, when xdOn; a granted ability
 	// whose spend restriction refuses it adds nothing (availGrant). A value, not
 	// a pointer, so an avail on the stack keeps no reference to a local.
@@ -545,20 +553,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
-		if pc.manaOne {
-			s.addOneColour(a, pc.manaN)
-		}
-		s.addReflectOne(k, a, sl, pc)
-		s.addEachPick(k, a, sl, pc)
-		if k.gen != nil && k.gen.anyTapExtra {
-			xv := s.srcExtra(k, sl, pc)
-			for c := range xv {
-				if xv[c] > 0 {
-					a.addUnits(1<<c, xv[c])
-				}
-			}
-		}
+		s.availPlainUnit(k, sl, pc, a)
 	}
 	if k.availExt {
 		s.availExt(k, p, a) // pain budget, Phyrexian life (mana_pain.go)
@@ -586,6 +581,9 @@ func (a *avail) affords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 // hybrid paths resolve their pips and call it, never affords: a call cycle
 // would move their resolved costs to the heap.
 func (a *avail) affordsPlain(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+	if a.nExcl != 0 {
+		return a.exclAffords(0, cost, pipMask, extra, false)
+	}
 	if a.pain.on {
 		return a.painAffords(cost, pipMask, extra)
 	}
@@ -659,6 +657,9 @@ func (a *avail) affordsAnyColor(cost *kop.ManaCost, extra int) bool {
 // affordsAnyColorPlain is affordsAnyColor for a cost without hybrid or
 // twobrid pips (no call cycle: see affordsPlain).
 func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
+	if a.nExcl != 0 {
+		return a.exclAffords(0, cost, 0, extra, true)
+	}
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
@@ -897,6 +898,9 @@ type utype struct {
 	pain uint8
 	pair uint8
 	alt  bool
+	// intr: the alternative of the pair is a granted basic land type's intrinsic
+	// ability, which gorge's key 8 orders before the printed one (altPairUnit)
+	intr bool
 	// life: pain is a restricted source's paid life, not damage (restrLifeAb)
 	life bool
 	// rb: a restricted source's larger alternative (restrPairUnit): the
@@ -1329,6 +1333,7 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 // takes through its manual window when that answer still leaves the rest
 // payable (planWindowCol).
 func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem *[kop.NumManaKinds]int, remAny int) int {
+	altStat(pk, ty)
 	if pk.keepCols {
 		return int(pk.bestCol[i])
 	}
@@ -1867,7 +1872,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				} else if pass == 2 || (pass == 0) == choice {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) {
+				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) || pc.altCol != 0 && s.altPairUnit(k, sl, pc, pk, i, mask) { // (altPairUnit: a land's own ability beside its granted intrinsic one, static_landgrantalt.go)
 					continue
 				}
 				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false, -1) {
@@ -2631,6 +2636,9 @@ func (pk *planner) seqLess(a, ac, at *[maxUnits]uint8, an int, b, bc, bt *[maxUn
 			return x < y
 		}
 		if aa, ba := pk.types[at[i]].alt, pk.types[bt[i]].alt; aa != ba {
+			if aa && pk.types[at[i]].intr || ba && pk.types[bt[i]].intr {
+				return aa // pay.CompareSteps reads the ability's kind first: the intrinsic one sorts before the printed one (CR 305.6)
+			}
 			return ba // the source's census ability has the smaller index
 		}
 		if ac[i] != bc[i] {
@@ -2673,8 +2681,14 @@ func (pk *planner) seqTypes(kv *[maxTypes]uint8, seq *[maxUnits]uint8, n int, ou
 	left := *kv
 	for i := 0; i < n; i++ {
 		t := pk.utyp[seq[i]]
-		if pk.pairs && pk.types[t].pair != 0 && !pk.types[t].alt && left[t] == 0 {
-			t = pk.types[t].pair - 1
+		if pk.pairs && pk.types[t].pair != 0 && !pk.types[t].alt {
+			if q := pk.types[t].pair - 1; pk.types[q].intr {
+				if left[q] > 0 {
+					t = q // the intrinsic ability is the smaller alternative: owed first
+				}
+			} else if left[t] == 0 {
+				t = q
+			}
 		}
 		left[t]--
 		out[i] = t
@@ -2716,6 +2730,30 @@ func (pk *planner) takeXv(nd *[kop.NumManaKinds]int, ndAny *int, ty *utype, k in
 			*ndAny = max(*ndAny-v, 0)
 		} else {
 			nd[c] = max(nd[c]-v, 0)
+		}
+	}
+}
+
+// availPlainUnit is availForMode's ordinary census unit for the source at sl:
+// a land whose own ability and granted intrinsic one are alternatives of one
+// tap (static_landgrantalt.go addAltExcl), else its production with its
+// one-colour, reflected, each-colour pick and tap-extra companions.
+func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
+	if pc.altCol != 0 && s.addAltExcl(k, sl, pc, a) {
+		return // own ability or the granted intrinsic one
+	}
+	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	if pc.manaOne {
+		s.addOneColour(a, pc.manaN)
+	}
+	s.addReflectOne(k, a, sl, pc)
+	s.addEachPick(k, a, sl, pc)
+	if k.gen != nil && k.gen.anyTapExtra {
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			if xv[c] > 0 {
+				a.addUnits(1<<c, xv[c])
+			}
 		}
 	}
 }

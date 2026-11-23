@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"errors"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -12,8 +11,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-const landGrantPairRepro = "land_grant_pair"
 
 const landGrantPairWhy = "a granted basic land type beside a mana source whose own ability is not a plain {T}: gorge offers both productions"
 
@@ -25,40 +22,51 @@ func landGrantEntries(names []string) []cardset.Entry {
 	return es
 }
 
-// TestLandGrantPairRefused: Yavimaya, Cradle of Growth (every land is a Forest)
-// beside City of Traitors ({T}: Add {C}{C}) and Ferrous Lake is refused when
-// the matchup is built. gorge appends one intrinsic "{T}: Add {G}" beside the
-// land's own ability (CR 305.6), so a granted Forest offers both productions
-// and the kernel's one-ability view stalled mid-game (evloop tail-11 cycle
-// c000, landgrant after 113 decisions). The refusal names the granter and the
-// non-plain land.
+// landGrantPairDeck holds Ashaya (every nontoken creature a Forest land) and
+// Citanul Hierophants (a granted "{T}: Add {G}" to every creature): a creature
+// land with a granted mana ability beside its intrinsic one: modelled
+// (blgOwnUsable); DebugLandGrantOwnOff restores the refusal (grantsManaTo).
+var landGrantPairDeck = []string{
+	"Ashaya, Soul of the Wild", "Citanul Hierophants", "Arixmethes, Slumbering Isle", "Llanowar Elves", "Elvish Mystic", "Birds of Paradise", "Wall of Omens",
+	"Forest", "Forest", "Forest", "Forest", "Island", "Island", "Swamp", "Plains", "Sol Ring", "Arcane Signet",
+	"Rampant Growth", "Cultivate", "Counterspell", "Beast Within", "Coiling Oracle", "Mulldrifter",
+}
+
+// TestLandGrantPairRefused: Ashaya beside Citanul Hierophants is refused when the
+// matchup is built, naming the two: the creature land has the intrinsic {G}
+// beside the granted one, and gorge lists both (CR 305.6). The same decks
+// without the Hierophants build.
 func TestLandGrantPairRefused(t *testing.T) {
-	corpusDirOrSkip(t)
-	r, err := ReadRepro(filepath.Join("testdata", "repro", landGrantPairRepro+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
+	if isolate(t) {
+		return
 	}
-	set := cardset.AllowUnverified(reproSet(t, r.Pool, r))
-	_, _, _, err = set.Matchup(landGrantEntries(r.Cards[0]), landGrantEntries(r.Cards[1]))
+	dirac.DebugLandGrantOwnOff = true
+	defer func() { dirac.DebugLandGrantOwnOff = false }()
+	set := edhSet(t)
+	var lists [][]cardset.Entry
+	for range 4 {
+		lists = append(lists, landGrantEntries(landGrantPairDeck))
+	}
+	_, _, err := set.MatchupN(lists)
 	var ir *cardset.InteractionRefusal
 	if !errors.As(err, &ir) {
-		t.Fatalf("the recorded pair builds (err %v), want an InteractionRefusal", err)
+		t.Fatalf("the pair builds (err %v), want an InteractionRefusal", err)
 	}
 	if ir.Reason != "landgrant" || ir.Why != landGrantPairWhy {
 		t.Fatalf("refused %q (%s), want landgrant (%s)", ir.Reason, ir.Why, landGrantPairWhy)
 	}
-	for _, n := range []string{"Yavimaya, Cradle of Growth", "City of Traitors", "Ferrous Lake"} {
+	for _, n := range []string{"Ashaya, Soul of the Wild", "Citanul Hierophants"} {
 		if !slices.Contains(ir.Cards, n) {
 			t.Errorf("refusal names %v, want %s among them", ir.Cards, n)
 		}
 	}
-	// the same decks without the non-plain lands build: Yavimaya beside plain
-	// lands is not refused
-	plain := func(names []string) []string {
-		return slices.DeleteFunc(slices.Clone(names), func(n string) bool { return n == "City of Traitors" || n == "Ferrous Lake" })
+	plain := slices.DeleteFunc(slices.Clone(landGrantPairDeck), func(n string) bool { return n == "Citanul Hierophants" })
+	lists = lists[:0]
+	for range 4 {
+		lists = append(lists, landGrantEntries(plain))
 	}
-	if _, _, _, err := set.Matchup(landGrantEntries(plain(r.Cards[0])), landGrantEntries(plain(r.Cards[1]))); err != nil {
-		t.Fatalf("Yavimaya beside plain lands is refused: %v", err)
+	if _, _, err := set.MatchupN(lists); err != nil {
+		t.Fatalf("Ashaya without the Hierophants is refused: %v", err)
 	}
 }
 
@@ -106,8 +114,8 @@ func TestLandGrantFourSeatPlainLands(t *testing.T) {
 	t.Logf("%d decision points with Yavimaya on the battlefield", reached)
 }
 
-// TestLandGrantPairMutation turns the refusal off: the recorded game then
-// builds and stalls landgrant when the grant meets the non-plain land, so the
+// TestLandGrantPairMutation turns the refusal off: the pod then builds and a
+// seed stalls landgrant when the creature land meets the granted ability, so the
 // guard is what keeps the pair out.
 func TestLandGrantPairMutation(t *testing.T) {
 	if isolate(t) {
@@ -115,15 +123,17 @@ func TestLandGrantPairMutation(t *testing.T) {
 	}
 	old := dirac.DebugLandGrantNoPairGuard
 	dirac.DebugLandGrantNoPairGuard = true
-	defer func() { dirac.DebugLandGrantNoPairGuard = old }()
-	r, err := ReadRepro(filepath.Join("testdata", "repro", landGrantPairRepro+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
+	dirac.DebugLandGrantOwnOff = true
+	defer func() { dirac.DebugLandGrantNoPairGuard = old; dirac.DebugLandGrantOwnOff = false }()
+	set := edhSet(t)
+	pod := [4][]string{landGrantPairDeck, landGrantPairDeck, landGrantPairDeck, landGrantPairDeck}
+	play := fourSeatSetPlay(t, set, pod, nil, nil, nil, func(seed uint64) Policy { return combatPolicy(seed, nil) })
+	for seed := uint64(1); seed <= 60; seed++ {
+		if res := play(seed); strings.Contains(res.Stall, "landgrant") || res.Div != nil {
+			return
+		}
 	}
-	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
-	if !strings.HasPrefix(res.Stall, KernelStallPrefix) || !strings.Contains(res.Stall, "landgrant") {
-		t.Fatalf("with the guard off the replay ends %q (div %v), want a landgrant kernel stall", res.Stall, res.Div)
-	}
+	t.Fatal("with the guard off no seed stalled landgrant or diverged")
 }
 
 // landGrantReplay is the first statement of a test that replays a recorded game
@@ -176,6 +186,6 @@ func landGrantRecordingReplay(t *testing.T, name string) bool {
 // mana ability is no plain {T}): TestRefusedEntriesStillDiverge replays them
 // with landGrantReplay.
 var landGrantRefusedCards = map[string]bool{
-	"Barbarian Ring": true, "Blanket of Night": true, "Dryad of the Ilysian Grove": true,
+	"Barbarian Ring": true, "Dryad of the Ilysian Grove": true,
 	"Nylea's Presence": true, "Thermopod": true,
 }
