@@ -30,6 +30,7 @@ func zoneProvAtoms() []FilterAtom {
 		{Name: "fw:Card.inRealZoneBattlefield", GorgeSpec: "Card.inRealZoneBattlefield", Ctx: AtomAnyZone},
 		{Name: "fw:Card.inRealZoneGraveyard", GorgeSpec: "Card.inRealZoneGraveyard", Ctx: AtomAnyZone},
 		{Name: "fw:Card.inRealZone Graveyard", GorgeSpec: "Card.inRealZone Graveyard", Ctx: AtomAnyZone},
+		suspendedAtom,
 	} {
 		out = append(out, a)
 	}
@@ -135,6 +136,9 @@ func TestAtomDiffZoneProvFocus(t *testing.T) {
 	if d := res.Div; d != nil && d.What == "atom" {
 		t.Errorf("pod: decision %d: %s: %s", d.At, d.Field, d.Detail)
 	}
+	// The suspend decks: fw:Card.suspended needs a suspend-cast card in exile
+	// (atomdiff_suspended_focus_test.go), which no seed above plays.
+	games += zoneProvSuspendGames(t, reg, atoms, total)
 	if games == 0 || total.Decisions == 0 {
 		t.Fatalf("%d games, %d compared decisions", games, total.Decisions)
 	}

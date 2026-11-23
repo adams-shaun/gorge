@@ -981,6 +981,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwSharesName(c, l) // filter_sharesreferents.go
 	case kop.FwSubtype:
 		return s.fwSubtype(c, l) // filter_subtype.go
+	case kop.FwSuspended:
+		return s.fwSuspended(c, l) // fw_suspended.go
 	case kop.FwTapped:
 		return s.fwTapped(c, l) // filter_tapped.go
 	case kop.FwTopLibrary:
@@ -996,7 +998,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false
