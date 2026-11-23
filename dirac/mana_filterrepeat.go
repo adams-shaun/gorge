@@ -316,7 +316,10 @@ func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, c
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return second && s.filtFreeTapColourOwn(k, p, sl, own, col)
+	// The swap dominates only when the activation completes col's pips (pool
+	// holds the made unit): with {U}{U} owed, a free Island makes one {U} and
+	// the filter the other, gorge's scriptSearch.feeOnlyAskPrune alike.
+	return second && int(pool[col]) >= int(useful.Pips[col]) && s.filtFreeTapColourOwn(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
