@@ -4,6 +4,10 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// DebugRememberUmbraAura remembers an umbra Aura that answered a victim (the
+// behaviour before the four-seat fix).
+var DebugRememberUmbraAura bool
+
 // destroyAllRemember is OpDestroyAll with RememberDestroyed$ (Starfall
 // Invocation): gorge effDestroyAll remembers each victim, in its
 // battlefield walk order, that actually reached the graveyard. It is also
@@ -23,13 +27,19 @@ func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 		hit = s.regenAll(hit)
 	}
 	var umbra umbraOrder
+	victims := hit                           // the matched permanents: an umbra Aura destroyed in a bearer's place is no victim (CR 702.89a)
 	hit = s.shieldUmbraAllIn(k, hit, &umbra) // CR 122.1c, 702.89a: NoRegen$ suppresses regeneration only
 	var ord [MaxPerm]Slot
 	n := s.listenerOrder(hit, &ord)
 	var objs [MaxPerm]Obj
+	m := 0
 	for i := 0; i < n; i++ {
-		objs[i] = s.perms[ord[i]].obj
+		if victims.has(ord[i]) || DebugRememberUmbraAura {
+			objs[m] = s.perms[ord[i]].obj
+			m++
+		}
 	}
+	n = m
 	s.leaveAllUmbra(k, hit, kop.ZoneGraveyard, &umbra)
 	if in.C&1 == 0 { // seat-ok: an instruction flag bit
 		return

@@ -34,10 +34,10 @@ func (s *State) checkOverN() {
 // nothing in any zone any more, so the next call moves nothing.
 //
 //go:noinline
-func (s *State) sweepDeparted(k *prep) bool {
+func (s *State) sweepDeparted(k *prep, pre uint8) bool {
 	moved := false
 	if s.g.nfx != 0 {
-		s.expireControlPerLoss(k)
+		s.expireControlPerLoss(k, pre)
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) && s.leaveGame(k, p) {
@@ -47,13 +47,28 @@ func (s *State) sweepDeparted(k *prep) bool {
 	return moved
 }
 
-// expireControlPerLoss ends the effects giving each departed seat control one
-// seat at a time in seat order, as gorge's expireControl runs at every
-// PlayerLost emit (a stolen permanent goes back before the next player's
+// outMask is the set of seats out of the game, one bit a seat.
+func (s *State) outMask() uint8 {
+	var m uint8
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			m |= 1 << p
+		}
+	}
+	return m
+}
+
+// expireControlPerLoss ends the effects giving each departed seat control.
+// A seat that left before the state-based pass began (pre: an effect's loss)
+// is passed one seat at a time in seat order, as gorge's expireControl runs at
+// every PlayerLost emit (a stolen permanent goes back before the next player's
 // loss is emitted, so simultaneous losses return their permanents in loss
-// order, not in the effects' timestamp order). A later seat reads as still
-// in the game for its predecessor's pass.
-func (s *State) expireControlPerLoss(k *prep) {
+// order, not in the effects' timestamp order). The seats the pass itself
+// marked lost end their effects together in one pass after its batch applies
+// (gorge's sbaLossHeld and releaseLossHold, CR 704.3, 800.4a), so their
+// permanents return in the effects' order. A later seat reads as still in
+// the game for its predecessor's pass.
+func (s *State) expireControlPerLoss(k *prep, pre uint8) {
 	var lost [MaxSeats]bool
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
@@ -66,16 +81,16 @@ func (s *State) expireControlPerLoss(k *prep) {
 		return // one loss: leaveGame's own pass is the whole of it
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
-		if !lost[p] {
+		if !lost[p] || pre&(1<<p) == 0 {
 			continue
 		}
-		for q := p + 1; q < s.nSeats(); q++ {
-			if lost[q] {
+		for q := uint8(0); q < s.nSeats(); q++ {
+			if lost[q] && (q > p || pre&(1<<q) == 0) {
 				s.pl[SeatIx(q)].lost = false
 			}
 		}
 		s.ctrlExpire(k, false)
-		for q := p + 1; q < s.nSeats(); q++ {
+		for q := uint8(0); q < s.nSeats(); q++ {
 			s.pl[SeatIx(q)].lost = lost[q]
 		}
 	}

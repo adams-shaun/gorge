@@ -45,7 +45,7 @@ func (s *State) sacPartReserved(k *prep, p uint8, part *kop.Cost) slotMask {
 // tapped mana stays floating). It reports whether the cast was reversed.
 func (s *State) xSacWindowFirst(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	if e.flags&sfFree != 0 || cost.X == 0 || e.x == 0 || s.cfg&cfgGorgeSurface == 0 ||
-		s.bld().bfl&bflLowered == 0 || !s.sacPartReserved(k, e.ctrl, spellAddCost(k, e.card)).any() {
+		s.bld().bfl&bflLowered == 0 || !s.xWindowFirstPart(k, e) {
 		return false
 	}
 	if !s.xWindowPay(k, e, cost) {
@@ -54,3 +54,16 @@ func (s *State) xSacWindowFirst(k *prep, e *stackEntry, cost *kop.ManaCost) bool
 	}
 	return false
 }
+
+// xWindowFirstPart reports whether the cast's additional cost is one whose pick
+// gorge poses after the announced {X}'s CR 601.2g window: a Sac part that needs a
+// mana source's permanent (sacPartReserved), or the announced X graveyard exile
+// (Skeletal Scrying: gorge taps the Boros Signet before the exile pick).
+func (s *State) xWindowFirstPart(k *prep, e *stackEntry) bool {
+	c := spellAddCost(k, e.card)
+	return s.sacPartReserved(k, e.ctrl, c).any() || !DebugExileXWindowLate && exileXCost(c)
+}
+
+// DebugExileXWindowLate pays an announced-X lowered cast with an exile-X part at
+// the payment, after the pick (the mutation test: the games must diverge).
+var DebugExileXWindowLate bool
