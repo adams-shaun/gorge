@@ -519,7 +519,7 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else if !pr.unpricedReachShort(convoked, av.Pool) {
+	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool) {
 		return probePayable
 	}
 	return probeManaShort
@@ -531,16 +531,16 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 // Phyrexian Lens's "{T}, Pay 1 life: any colour") fall short of the cost's
 // pool-unit floor. An unbounded ceiling proves nothing, so the historical
 // offer stands (CR 601.2g-h: the window can't make the missing mana).
-func (pr *targetCostProbe) unpricedReachShort(cost Cost, pool state.Mana) bool {
-	unpriced, bounded := castWindowUnpricedReach(pr.e, pr.pc, pr.windowUnits, nil, nil)
+func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit, life int32, cost Cost, pool state.Mana) bool {
+	unpriced, bounded := castWindowUnpricedReach(w, pc, units, nil, nil)
 	if !bounded {
 		return false
 	}
-	floor := castPipsManaFloor(&cost, pr.pl.Life)
+	floor := castPipsManaFloor(&cost, life)
 	if floor < 0 {
 		return false
 	}
-	have := int64(pool.Total()) + int64(castWindowUnitsReach(pr.windowUnits)) + int64(unpriced)
+	have := int64(pool.Total()) + int64(castWindowUnitsReach(units)) + int64(unpriced)
 	return have < floor
 }
 
