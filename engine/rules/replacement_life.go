@@ -270,7 +270,7 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	kind := ""
 	for _, m := range cands {
 		op, ok := e.replaceCountOp(m.id, m.repl, name)
-		floor := ok && strings.HasPrefix(m.repl.ParamStr(cards.PKResult), "LT") && strings.HasPrefix(op, "/LimitMax.")
+		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op)
 		if m.repl.ParamStr(cards.PKResult) != "" && !floor {
 			return false
 		}
@@ -293,6 +293,14 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		kind = k
 	}
 	return true
+}
+
+// isLifeFloor reports a damage floor's gate and body: Result$ LT<n> over a
+// ReplaceCount$ ...LimitMax. clamp (Worship, Ali from Cairo).
+func isLifeFloor(result, op string) bool {
+	const lt, limit = "LT", "/LimitMax."
+	return len(result) > len(lt) && result[:len(lt)] == lt &&
+		len(op) > len(limit) && op[:len(limit)] == limit
 }
 
 // applyLifeReplacement applies one chosen replacement to ev. It returns the
