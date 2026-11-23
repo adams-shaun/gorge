@@ -379,6 +379,12 @@ func (s *State) filtOneShotColStalls(k *prep, p uint8, sl Slot, useful *kop.Mana
 	if col < 0 || col >= kop.NumManaKinds || uint8(a.ManaColors)&(1<<col) == 0 {
 		return false
 	}
+	if a.AFlags&kop.AfManaChoice != 0 && a.ManaN > 1 {
+		// a multi-unit choice is a Produced$ Combo allocation (Mystic Gate's
+		// "{W}{W}, {W}{U}, or {U}{U}"): gorge's oneShotAskPrune fails open on
+		// it (mca.allocation), so every allocation is a node of the search.
+		return false
+	}
 	pool := s.pl[p].pool
 	if m := s.restrPoolAdmits(k, p); m != 0 {
 		s.rbUnits(p, m, &pool)
