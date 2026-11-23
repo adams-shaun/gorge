@@ -1257,6 +1257,10 @@ type filtStep struct {
 	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
 	// mana srcYield's, where the census one makes manaN
 	wide bool
+	// intr: a funding step that answers a two-face land's granted intrinsic
+	// ability (pcard.altCol): one mana of colour ans, none of the own face's
+	// rest (static_landgrantalt.go)
+	intr bool
 	// hand: a funding step that exiles the hand guide at index hidx of the
 	// payer's hand (a Spirit Guide's hand mana ability, mana_handguide.go);
 	// sl is NoSlot
@@ -1996,6 +2000,11 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		if st.wide {
 			n = int(srcYield(s.manaPCGen(k, st.sl)))
 		}
+		if st.intr {
+			s.poolAdd(p, int(st.ans), 1) // the intrinsic ability: one mana, no own-face extra (static_landgrantalt.go)
+			s.artTag(k, p, st.sl, int(st.ans))
+			break
+		}
 		s.poolAdd(p, int(st.ans), n)
 		s.addExtraPick(k, p, st.sl, s.manaPCGen(k, st.sl), int(st.ans))
 		s.artTag(k, p, st.sl, int(st.ans))
@@ -2681,10 +2690,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if !fs.tick() {
 						return false
 					}
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
-					}
-					if fs.filtColours(k, t, sl, funded) {
+					if fs.twoAbilityGap(k, t, sl, funded) {
 						return true
 					}
 				case free:
@@ -2782,6 +2788,12 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
 	if free {
 		pc := t.manaPCGen(k, sl)
+		if pc.altCol != 0 && !DebugLandGrantAltFund {
+			if fs.fundAlt(k, t, sl, pc, funded, gapUsed) {
+				return true, true
+			}
+			return false, false
+		}
 		mask := t.fundMaskAt(k, pc, sl) // a painland asks its painful colours too (mana_filtpain.go)
 		if bits.OnesCount8(mask) == 1 && zeroAsk && fs.zeroFiltAsks(k, t, sl) {
 			// the tap is the new gate's own (fundOne): its ask is charged
@@ -3316,4 +3328,15 @@ func (fs *filtSearch) coveredSpendable(k *prep, t *State, sl Slot) bool {
 		}
 	}
 	return false
+}
+
+// twoAbilityGap is visit's answer order for a gap source with a free and a
+// filter ability: the {C} answer first, then the filter's colours; a granted
+// type's intrinsic {c} (filtIntrinsicFree) is listed after the printed filter,
+// so the filter's colours come first there.
+func (fs *filtSearch) twoAbilityGap(k *prep, t *State, sl Slot, funded int) bool {
+	if t.filtIntrinsicFree(k, sl) {
+		return fs.filtColours(k, t, sl, funded) || fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
+	}
+	return fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) || fs.filtColours(k, t, sl, funded)
 }
