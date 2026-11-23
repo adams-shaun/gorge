@@ -2611,7 +2611,7 @@ func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode)
 // card c under p's control may enchant (enchantCands' per-permanent test).
 func (s *State) enchantHostOK(k *prep, c CardID, p uint8, sl Slot) bool {
 	return s.matchPerm(k, k.t.Cards[c].Enchant.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
-		!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
+		!s.protColFrom(k, sl, k.t.Cards[c].Colors) && // printed or static-granted (Sword of Feast and Famine's black)
 		!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c))
 }
 
