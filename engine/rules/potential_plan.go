@@ -2546,8 +2546,15 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			for _, a := range alts {
 				best = max(best, int32(a.Mana.Total()))
 			}
+			// No skip once an earlier gap cleared relaxable and bounded: a
+			// later repeatable fee-only gap still owes its funding (Energy
+			// Refractor after Mystic Gate, CR 605.3a), and both arms below
+			// are then no-ops.
+			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
 			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
-				if n, ok := gapSubCounterSupply(e, asPayer(e), p, id, ma, gextra); ok {
+				// A once-only fee-bearing gap nets only what exceeds the source's
+				// own covered production (gapBoundedSupply).
+				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gmp, gextra, fee, best, once, gcost.Tap); bounded {
 					out.gapSupply += n
 				} else {
 					out.gapGains = true
@@ -2556,11 +2563,6 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !slices.Contains(out.gaps, id) {
 				out.gaps = append(out.gaps, id)
 			}
-			// No skip once an earlier gap cleared relaxable and bounded: a
-			// later repeatable fee-only gap still owes its funding (Energy
-			// Refractor after Mystic Gate, CR 605.3a), and both arms below
-			// are then no-ops.
-			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
 			if !ok && once {
 				out.onceGap = true
 			}
