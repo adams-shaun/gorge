@@ -47,16 +47,16 @@ func (s *State) selfFlash(k *prep, p uint8, c CardID) bool {
 // castFlash reports whether p may cast card c as though it had flash: a
 // battlefield grant (castStatic), the card's own self grant, or one of p's
 // Effect emblems. gorge reads the one castWithFlash(p, id) for every offer.
-// It inlines to the three guards (a battlefield static in play, the table
-// has a SelfFlash card, the table has an emblem grant) and one call, so a
-// table without any pays the guard tests only.
+// It inlines to one guard (the table has a flash static, a SelfFlash card or
+// an emblem grant, k.anyFlashAny) and one call, so a table without any pays
+// the guard test only.
 func (s *State) castFlash(k *prep, p uint8, c CardID) bool {
-	return (s.statM.any() || k.anySelfFlash || k.anyEmbFlash) && s.castFlashAny(k, p, c)
+	return k.anyFlashAny && s.castFlashAny(k, p, c)
 }
 
 // castFlashAny is castFlash's cold body.
 func (s *State) castFlashAny(k *prep, p uint8, c CardID) bool {
-	return s.statM.any() && s.castStatic(k, kop.StatCastWithFlash, p, c) || k.anySelfFlash && s.selfFlash(k, p, c) || k.anyEmbFlash && s.embFlash(k, p, c)
+	return s.statM.any() && k.anyFlashStat && s.castStatic(k, kop.StatCastWithFlash, p, c) || k.anySelfFlash && s.selfFlash(k, p, c) || k.anyEmbFlash && s.embFlash(k, p, c)
 }
 
 // embFlash reports whether one of player p's emblems (an Effect's
@@ -92,7 +92,7 @@ func prepEmblemCasts(t *kop.Table, p *prep) {
 		}
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
-				p.anyEmbFlash = true
+				p.anyEmbFlash, p.anyFlashAny = true, true // anyFlashAny: castFlash's one inline guard
 			}
 		}
 	}
@@ -129,6 +129,20 @@ func (s *State) embFlashForget(k *prep, e *stackEntry) {
 		}
 		if drop != 0 {
 			s.embCompact(pp, drop)
+		}
+	}
+}
+
+// prepCardFlash opens the cast-time flash gates one card contributes: anySelfFlash,
+// anyFlashStat (a StatCastWithFlash static, pc.flashStat) and their union anyFlashAny.
+func prepCardFlash(c *kop.CardDef, pc *pcard, p *prep) {
+	if c.SelfFlash {
+		p.anySelfFlash, p.anyFlashAny = true, true
+	}
+	for j := range c.Abilities {
+		if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
+			p.anyFlashStat, p.anyFlashAny = true, true
+			pc.flashStat = true
 		}
 	}
 }

@@ -23,6 +23,7 @@ type pcard struct {
 	// fixed census position, unlike a single Combo Chosen ability
 	manaFixedChosen bool
 	manaN           uint8
+	flashStat       bool // the card has a StatCastWithFlash static: castStatic skips every other source
 	manaDyn         bool // a dynamic-amount variant (varPC): gorge's evaluated-amount layer
 	manaOne         bool // Produced$ Any with an amount above one: all of it one colour, whichever is chosen
 	manaTap         bool // the mana ability costs only {T}
@@ -191,6 +192,11 @@ type prep struct {
 	// Effect-delivered "you may cast ... as though they had flash"): the
 	// other guard castFlash adds
 	anyEmbFlash bool
+	// anyFlashStat: some card carries a StatCastWithFlash static (cast_selfflash.go):
+	// guards castStatic's all-seats scan of the battlefield statics
+	anyFlashStat bool
+	// anyFlashAny: anyFlashStat, anySelfFlash or anyEmbFlash: castFlash's one inline guard
+	anyFlashAny bool
 	// anyEmbForget: some emblem carries a ForgetOnCast$ filter for a stack
 	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
 	// (cast_selfflash.go embFlashForget, after the cascade triggers)
