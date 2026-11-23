@@ -340,6 +340,8 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
 		m &^= ownMadeCols(pc)  // gorge ManaAbilitiesProduce: a printed colour (a ManaEach ability's extra too) is not appended again
 		m &^= blgExactPain(pc) // a single-colour painful ability's Produced$ is exact too: no intrinsic beside it
+	} else {
+		m &^= blgFeeDynFirstCols(&k.t.Cards[c], pc) // a fee-paid dynamic one's Produced$ is exact too (Cabal Coffers: static_landgrantfeedyn.go)
 	}
 	if m == 0 {
 		return pc
