@@ -37,11 +37,11 @@ const maxSpill = 4
 type lSpillLit struct {
 	W       kop.FilterWord
 	Neg     bool
-	Op      uint8    // a comparison word's operator (opGE ...)
-	N       int      // the bound, or a keyword bit
-	R       kop.Ref  // a referent word's referent (FwSharesCr, FwSharesName)
-	Counter string   // FwCountersCmp's kind
-	Sub     string   // FwSubtype's subtype
+	Op      uint8   // a comparison word's operator (opGE ...)
+	N       int     // the bound, or a keyword bit
+	R       kop.Ref // a referent word's referent (FwSharesCr, FwSharesName)
+	Counter string  // FwCountersCmp's kind
+	Sub     string  // FwSubtype's subtype
 }
 
 func (l lSpillLit) String() string {

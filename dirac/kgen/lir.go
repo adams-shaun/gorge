@@ -1446,46 +1446,46 @@ type lCard struct {
 	// The printed-keyword records the with<Keyword> filter word reads
 	// (kop.FwWithKeyword's printedKeyword): set at the face keyword's own
 	// lowering arm, copied to the CardDef.Has* field in build.go.
-	HasCycling          bool // printed K:Cycling (CR 702.84b), CardDef.HasCycling
-	HasWard             bool // printed K:Ward:<cost> (CR 702.19a), CardDef.HasWard
-	HasEnchant          bool // printed K:Enchant (CR 702.102a), CardDef.HasEnchant
-	HasUnearth          bool // printed K:Unearth (CR 702.84a), CardDef.HasUnearth
-	HasDecayed          bool // printed K:Decayed (CR 702.130b), CardDef.HasDecayed
-	HasPersist          bool // printed K:Persist (CR 702.79a), CardDef.HasPersist
-	HasDoctorsCompanion bool // printed K:Doctor's companion (CR 702.124m), CardDef.HasDoctorsCompanion
-	Landwalk       *lFilter // K:Landwalk:<land filter> (CR 702.14)
-	ProtColors     string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
-	HexColors      string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
-	ProtFrom       *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
-	Infect         bool     // printed K:Infect (CR 702.90)
-	Devoid         bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
-	Toxic          int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
-	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
-	PreventDmgTo   bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
-	PrevCmbTo      bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
-	PrevCmbBy      bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
-	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
-	Wither         bool     // printed K:Wither (CR 702.80)
-	UmbraArmor     bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
-	Dredge         uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
-	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
-	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
-	Engines        bool     // printed K:Start your engines (CR 702.179a)
-	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
-	Ascend         bool     // printed K:Ascend (CR 702.131)
-	Unleash        bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
-	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
-	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
-	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
-	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
-	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
-	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
-	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)
-	Daybound       bool     // K:Daybound (CR 702.145a-d)
-	Nightbound     bool     // K:Nightbound (CR 702.145e-g)
-	Abilities      []*lAbility
-	Statics        []lStatic
+	HasCycling          bool     // printed K:Cycling (CR 702.84b), CardDef.HasCycling
+	HasWard             bool     // printed K:Ward:<cost> (CR 702.19a), CardDef.HasWard
+	HasEnchant          bool     // printed K:Enchant (CR 702.102a), CardDef.HasEnchant
+	HasUnearth          bool     // printed K:Unearth (CR 702.84a), CardDef.HasUnearth
+	HasDecayed          bool     // printed K:Decayed (CR 702.130b), CardDef.HasDecayed
+	HasPersist          bool     // printed K:Persist (CR 702.79a), CardDef.HasPersist
+	HasDoctorsCompanion bool     // printed K:Doctor's companion (CR 702.124m), CardDef.HasDoctorsCompanion
+	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
+	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
+	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
+	Infect              bool     // printed K:Infect (CR 702.90)
+	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
+	Toxic               int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
+	Cascade             int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
+	PreventDmgTo        bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
+	PrevCmbTo           bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
+	PrevCmbBy           bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
+	Evasion             uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
+	Wither              bool     // printed K:Wither (CR 702.80)
+	UmbraArmor          bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
+	Dredge              uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
+	AloneAtk            bool     // the printed can't-attack-alone keyword (CR 506.5)
+	AloneBlk            bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
+	Engines             bool     // printed K:Start your engines (CR 702.179a)
+	Reconfigure         bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
+	Ascend              bool     // printed K:Ascend (CR 702.131)
+	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
+	AtkFace             bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
+	SagaN               int      // K:Chapter:<count>: the final chapter number (CR 714.1)
+	TapPowerCrew        int      // S:Mode$ TapPowerValue for Crew (graveexile)
+	TapPowerSaddle      int      // S:Mode$ TapPowerValue for Saddle (graveexile)
+	MinBlockers         int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
+	ExtraBlocks         int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
+	Lure                bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
+	MustBeBlocked       bool     // the must-be-blocked keyword (CR 509.1c)
+	Daybound            bool     // K:Daybound (CR 702.145a-d)
+	Nightbound          bool     // K:Nightbound (CR 702.145e-g)
+	Abilities           []*lAbility
+	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$
 	// grants its recipients (lStatic.GrantSt indexes it; lower_grantedstatic.go)
 	GrantedStatics []lStatic

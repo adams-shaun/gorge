@@ -502,10 +502,15 @@ func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 }
 
 // copyKeptSets copies the flags of a card whose abilities keep a remembered or
-// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go).
+// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go),
+// and the printed-keyword records the with<Keyword> word reads
+// (kop.FwWithKeyword's printedKeyword): no KwMask bit is free, so each of
+// those keywords is its own cold field.
 func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
 	d.ImpPersist, d.SrcMem, d.SmSeed = c.ImpPersist, c.SrcMem, c.SmSeed
+	d.HasCycling, d.HasWard, d.HasEnchant = c.HasCycling, c.HasWard, c.HasEnchant
+	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
 func (cb *cardBuilder) record() error {
@@ -544,10 +549,6 @@ func (cb *cardBuilder) record() error {
 	if d.Keywords, err = kwMask(c.Kw); err != nil {
 		return err
 	}
-	// the printed-keyword records the with<Keyword> word reads (kop.FwWithKeyword's
-	// printedKeyword): no KwMask bit is free, so each is its own cold field
-	d.HasCycling, d.HasWard, d.HasEnchant = c.HasCycling, c.HasWard, c.HasEnchant
-	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 	d.PreventDmgTo, d.PreventCombatTo, d.PreventCombatBy = c.PreventDmgTo, c.PrevCmbTo, c.PrevCmbBy
 	d.Colors = colorMask(c.Colors)
 	d.Power, d.Toughness, d.Loyalty = int8(c.P), int8(c.T), int8(c.Loyalty)

@@ -79,6 +79,12 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 		return cd.HasPersist
 	case kop.KwDoctorsCompanion:
 		return cd.HasDoctorsCompanion
+	// Flanking, Disturb, Mutate and Phasing: their K: line refuses the whole
+	// face, so no lowered card prints them and the cases read false over the
+	// lowered cards exactly as gorge does. The cases name the KwIDs for the
+	// manifest's active-status gate (their words still lower to FwWithKeyword).
+	case kop.KwFlanking, kop.KwDisturb, kop.KwMutate, kop.KwPhasing:
+		return false
 	}
 	return false
 }

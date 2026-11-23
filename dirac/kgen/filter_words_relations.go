@@ -29,15 +29,24 @@ func init() {
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers
-	// all three spellings (engine/effects/filter.go's keyword registry).
+	// all three spellings (engine/effects/filter.go's keyword registry), under
+	// the compact key — and, for the names with spaces, the spaced spellings
+	// too (keywordPredicateFor's normalization makes "with Doctor's companion"
+	// and "withDoctor'scompanion" one keyword to gorge, so both lower here).
 	for name, id := range fwKeywordWords {
-		for _, p := range [...]struct {
-			spell string
-			neg   bool
-		}{{"with" + name, false}, {"without" + name, true}, {"!with" + name, true}} {
-			id, neg := id, p.neg
-			fwArms[p.spell] = func(c *lClause, _ string) error {
-				return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
+		spellings := []string{name}
+		if spaced, ok := fwKeywordSpaced[name]; ok {
+			spellings = append(spellings, spaced, " "+spaced)
+		}
+		for _, spell := range spellings {
+			for _, p := range [...]struct {
+				spell string
+				neg   bool
+			}{{"with" + spell, false}, {"without" + spell, true}, {"!with" + spell, true}} {
+				id, neg := id, p.neg
+				fwArms[p.spell] = func(c *lClause, _ string) error {
+					return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
+				}
 			}
 		}
 	}
@@ -49,9 +58,9 @@ func init() {
 	// Convoked (the kernel records the count, never the creatures), and
 	// Sacrificed/Enchanted (not in gorge's vocabulary).
 	for _, fam := range []struct {
-		w     kop.FilterWord
-		head  string
-		refs  map[string]kop.Ref
+		w    kop.FilterWord
+		head string
+		refs map[string]kop.Ref
 	}{
 		{kop.FwSharesCr, "sharesCreatureTypeWith", fwShareRefs},
 		{kop.FwSharesName, "sharesNameWith", fwNameRefs},
@@ -111,6 +120,11 @@ var fwKeywordWords = map[string]kop.KwID{
 	// and the four whose printed face no lowered card can carry
 	"Flanking": kop.KwFlanking, "Disturb": kop.KwDisturb, "Mutate": kop.KwMutate, "Phasing": kop.KwPhasing,
 }
+
+// fwKeywordSpaced are the compact names that also read in a spaced spelling
+// (gorge keywordPredicateFor's normalization removes every space of the
+// token): the corpus writes both.
+var fwKeywordSpaced = map[string]string{"Doctor'scompanion": "Doctor's companion"}
 
 // fwShareRefs maps the sharesCreatureTypeWith referent spellings gorge reads
 // (sharesTypeArg's vocabulary, engine/effects/filter_attachment.go) to the

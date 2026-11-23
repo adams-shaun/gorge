@@ -16,7 +16,16 @@ import (
 // tail pools whose decks are dealt around lowered cards that print the
 // keywords, played under the same atom check over the keyword atoms alone.
 
-var relationsKeywords = []string{"Toxic", "Horsemanship", "Morph", "Megamorph", "Suspend", "Cascade", "Convoke", "Foretell", "Madness", "Multikicker"}
+var relationsKeywords = []string{
+	"Toxic", "Horsemanship", "Morph", "Megamorph", "Suspend", "Cascade", "Convoke", "Foretell", "Madness", "Multikicker",
+	// T13b-2's records: the keywords whose printed face a lowered card can
+	// carry and the setlists hold (Cycling, Ward, Enchant, Unearth). The
+	// others have no carrier anywhere the pools draw from: Flanking, Disturb,
+	// Mutate and Phasing because their K: line refuses the whole face, and
+	// Decayed, Persist and Doctor's companion because no setlist names a card
+	// printing them — so no focus seed can read those words true.
+	"Cycling", "Ward", "Enchant", "Unearth",
+}
 
 // relationsKeywordAtoms is the with/without pair of each printed keyword.
 func relationsKeywordAtoms() []FilterAtom {

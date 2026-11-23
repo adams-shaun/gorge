@@ -117,13 +117,13 @@ func TestFilterWordsRelationsRefuse(t *testing.T) {
 	for _, spec := range []string{
 		// the referents gorge reads whose object the kernel keeps no record of
 		// (the convoked creatures ride stackEntry.prov as a count, never IDs)
-		// and the two the brief names that gorge's own sharesTypeArg never
-		// accepts (Sacrificed, Enchanted)
+		// and the two gorge's own sharesTypeArg never accepts (Sacrificed,
+		// Enchanted)
 		"Creature.sharesCreatureTypeWith Convoked", "Creature.sharesCreatureTypeWith Sacrificed",
 		"Creature.sharesCreatureTypeWith Enchanted",
 		// the sameName base-prefix forms read the base's object, not the
 		// source (gorge sameNameContextBase); the kernel keeps no read of them
-		"Creature.Remembered+sameName", "Creature.Targeted+sameName",
+		"Creature.Remembered+sameName", "Creature.Targeted+sameName", "Creature.Triggered+sameName",
 		"Card.!ChosenCtrl", "Card.!EnchantedControllerCtrl", // gorge refuses the '!' of the link words
 		"Creature.PairedWith", "Creature.!Paired", // need T10's pair record
 		"Creature.leastPower", "Card.CanEnchantSource", // no gorge reader
