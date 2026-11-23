@@ -1391,7 +1391,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 		s.g.turnF |= turnGateWin
 		defer func() { s.g.turnF &^= turnGateWin }()
 	}
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.scriptFilt(k, p).any() || takeDeferred && s.unlessTapFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
