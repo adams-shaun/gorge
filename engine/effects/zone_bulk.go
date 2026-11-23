@@ -148,6 +148,15 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 			lkiEntry = state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner,
 				Colors: LiveColors(h, o), ColorsKnown: true}
 		}
+		// A source destroying itself (Voodoo Doll's "destroy CARDNAME and it
+		// deals damage equal to the number of pin counters on it") reads its
+		// last known counters afterwards (CR 608.2h): the graveyard card's
+		// were cleared by the Move's fold. Never replaces a snapshot the
+		// ability already carries.
+		if id == c.Source && c.LKI == nil {
+			cp := o.CloneDeep()
+			c.LKI = &cp
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
