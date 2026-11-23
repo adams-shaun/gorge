@@ -124,6 +124,14 @@ type prep struct {
 	// genPrep, so the pinned fixed-State inventory is unchanged
 	embPrev bool
 	cda     bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// grantSrcCard: per card, a Continuous static grants a mana ability,
+	// whoever it applies to (prepTokMana; contGrantLive); contGrantAlways: a
+	// mana grant no battlefield card marks (an override record's, a printed
+	// GainsAbilitiesOf one) reads as always on. On prep, not genPrep, so the
+	// pinned fixed-State inventory is unchanged
+	grantSrcCard    []bool
+	contGrantAlways bool
+
 	// landGrantPair: a granted basic land type beside a mana source whose own
 	// ability is no plain {T} one (static_landgrantpair.go): StallLandGrant; on
 	// prep, not genPrep, so the pinned fixed-State inventory is unchanged

@@ -705,13 +705,40 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 	s.painTightAt(k, p, a, int(s.pl[p].life))
 }
 
+// contGrantLive reports whether a granted mana ability can be in force on
+// this board: the table has one (anyContGrant) and either no battlefield
+// card marks it (an override record's grant, a GainsAbilitiesOf$ one:
+// contGrantAlways) or a permanent on either battlefield carries a static that
+// grants one. A table-wide grant with none of its sources in play leaves
+// every unit's pain as its own ability's, so the summed lethal guard
+// (painTightAt) still binds: a Talisman's trigger grant, or an Aura's mana
+// grant in a library, never lifts it (gorge's planner prices the plan
+// whatever the table holds).
+func (s *State) contGrantLive(k *prep) bool {
+	g := k.gen
+	if g == nil || !g.anyContGrant {
+		return false
+	}
+	if k.contGrantAlways {
+		return true
+	}
+	for seat := range s.ctrlM {
+		for m := s.ctrlM[seat]; m.any(); m = m.rest() {
+			if k.grantSrcCard[s.cardAt(m.first())] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // painTightAt is painTight with the life the summed guard reads cut to eff
 // (the payer's life less what a restricted life unit of the payment pays,
 // restrLifeCharge): a painful unit's colours stay in a on the payer's own
 // life, so the groups carry whichever of them eff no longer admits.
 func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 	life := int(s.pl[p].life)
-	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen != nil && k.gen.anyContGrant {
+	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || s.contGrantLive(k) {
 		return // at 1 life availFor already withheld every painful colour
 	}
 	modal := a.nModal != 0 // a source with a {C}-only extra: its groups split even when the budget does not bind
