@@ -2059,6 +2059,14 @@ type potCensus struct {
 	// activation taps both, so the second source makes no unit (CR 601.2g;
 	// gorge's payment search elects and claims pay.ManaTapCandidates once).
 	tapX slotMask
+	// gapTap is the sources whose native tap ability makes a dynamic amount:
+	// gorge's planner census leaves it out (a gap), so its relaxed proof adds
+	// the native production as a unit of its own beside the planner's unit for
+	// a granted {T} ability on the same source (paymentPlanCensusOf; Priest of
+	// Titania under a Huntsman Role: Plains, the Role's {G} and the native {G}
+	// pay {3}). A grant over such a source keeps a unit of its own instead of
+	// widening the native one (potentialGrantedExtra).
+	gapTap slotMask
 }
 
 // unitPain is the pain one recorded unit carries: the activation's own pain
@@ -2575,6 +2583,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic {
+			cen.gapTap = cen.gapTap.with(sl)
 			// gorge's potentialAmount prices an indeterminate Amount$
 			// unbounded in exactly the produced faces it names (CR 107.4a;
 			// rules potential.go addIndeterminatePotentialMana), never in a
@@ -2614,6 +2623,12 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			// dynamic amount (Tower Worker's {C} under Leyline of Abundance's
 			// {G}): gorge folds it into each alternative of the tap
 			s.potentialTapExtraGated(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen, painRefused)
+			// a {T} ability granted beside the dynamic one is a planner unit
+			// of its own, the native production a relaxed one beside it
+			// (gapTap): Priest of Titania under a Huntsman Role makes {G}
+			// twice for gorge's X-bound sweep (CR 601.2b, 602.2b)
+			cen.pain = 0
+			s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
@@ -2891,7 +2906,7 @@ func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny b
 	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
 		mask := s.srcMaskAt(gv, sl)
-		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 {
+		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 && !cen.gapTap.has(sl) {
 			cen.widenGrant(sl, mask, gv.manaN, gv.manaOne)
 			if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 				// the pot's wildcard bookkeeping (potentialGrantedUnit's):
