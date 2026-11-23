@@ -30,6 +30,29 @@ func ctrKw(s *State, p *perm) kop.KwMask {
 	return m
 }
 
+// ctrKwNewer is the keywords p's keyword counters grant that are newer than
+// timestamp ts (CR 613.7): a loses-all-abilities or keyword-removal effect at
+// ts takes every older grant and leaves these (gorge
+// appendNewerCounterKeywords: a counter's stamp strictly above the effect's).
+func ctrKwNewer(s *State, p *perm, ts uint16) kop.KwMask {
+	var m kop.KwMask
+	for i := range p.ck {
+		k := p.ck[i]
+		if k == 0 {
+			return m
+		}
+		if p.cn[i] != 0 && p.cs[i] > ts {
+			m |= ctrKindKw(k)
+		}
+	}
+	for _, e := range s.ctrOverOf(p.obj, 0) {
+		if e.n != 0 && e.ts > ts {
+			m |= ctrKindKw(e.kind)
+		}
+	}
+	return m
+}
+
 // ctrKindKw is the keyword a counter of kind k grants. Flying is the
 // featurized CtrFlying; the other supported kinds sit above CtrCharge.
 func ctrKindKw(k uint16) kop.KwMask {

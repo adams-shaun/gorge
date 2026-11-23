@@ -1,9 +1,9 @@
 # Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
 # class	key	value; field rows: class	field	Type.field	offset	size
-default	size	41720
+default	size	42552
 default	perms%64	0
-default	ObjHash	0x1840693a7b08d20b
-default	ViewHash	0x30fbf5c02563bccf
+default	ObjHash	0x3d6b15d7a9e2fa00
+default	ViewHash	0x63791655cd1c915f
 default	field	stateCore.tbl	0	2
 default	field	stateCore.cfg	2	1
 default	field	stateCore.ctl	3	1
@@ -85,10 +85,10 @@ default	field	stateCore.heldTouch	16748	4
 default	field	stateCore.stamp	16752	488
 default	field	stateCore.Skipped	17240	16
 default	field	stateCore.nlC	17256	8
-default	field	stateCore.g	17264	10504
-default	field	stateCore.outCode	27768	512
-default	field	stateCore.Decisions	28280	4
-default	field	stateCore.payHyb	28284	1
+default	field	stateCore.g	17264	10568
+default	field	stateCore.outCode	27832	512
+default	field	stateCore.Decisions	28344	4
+default	field	stateCore.payHyb	28348	1
 default	field	genState.graveKept	0	1
 default	field	genState.cskip	1	1
 default	field	genState.fx	2	768
@@ -318,34 +318,34 @@ default	field	genState.marks	9880	88
 default	field	genState.ctrCell	9968	24
 default	field	genState.ctrCellHit	9992	1
 default	field	genState.ctrEntry	9993	1
-default	field	genState.ctrOver	9994	256
-default	field	genState.nctrOver	10250	1
-default	field	genState.ctrPad	10251	0
-default	field	genState.imp	10252	32
-default	field	genState.nimp	10284	1
-default	field	genState.linkImp	10285	1
-default	field	genState.embF	10286	4
-default	field	genState.embR	10290	32
-default	field	genState.nseat	10322	1
-default	field	genState.poolTre	10323	24
-default	field	genState.blkDef	10347	1
-default	field	genState.ul	10348	24
-default	field	genState.nul	10372	1
-default	field	genState.dmk	10373	4
-default	field	genState.tgtSpent	10377	1
-default	field	genState.turnF	10378	2
-default	field	genState.dmgAmt	10380	16
-default	field	genState.defCol	10396	2
-default	field	genState.prevX	10398	3
-default	field	genState.tgtMVCd	10402	10
-default	field	genState.tgtMV	10412	5
-default	field	genState.trigMVCd	10418	2
-default	field	genState.trigMV	10420	1
-default	field	genState.rsv	10421	47
-default	field	genState.embX	10468	0
-default	field	genState.atkDef	10468	1
-default	field	genState.mon	10469	1
-default	field	genState.redir	10470	32
+default	field	genState.ctrOver	9994	320
+default	field	genState.nctrOver	10314	1
+default	field	genState.ctrPad	10315	0
+default	field	genState.imp	10316	32
+default	field	genState.nimp	10348	1
+default	field	genState.linkImp	10349	1
+default	field	genState.embF	10350	4
+default	field	genState.embR	10354	32
+default	field	genState.nseat	10386	1
+default	field	genState.poolTre	10387	24
+default	field	genState.blkDef	10411	1
+default	field	genState.ul	10412	24
+default	field	genState.nul	10436	1
+default	field	genState.dmk	10437	4
+default	field	genState.tgtSpent	10441	1
+default	field	genState.turnF	10442	2
+default	field	genState.dmgAmt	10444	16
+default	field	genState.defCol	10460	2
+default	field	genState.prevX	10462	3
+default	field	genState.tgtMVCd	10466	10
+default	field	genState.tgtMV	10476	5
+default	field	genState.trigMVCd	10482	2
+default	field	genState.trigMV	10484	1
+default	field	genState.rsv	10485	47
+default	field	genState.embX	10532	0
+default	field	genState.atkDef	10532	1
+default	field	genState.mon	10533	1
+default	field	genState.redir	10534	32
 default	field	perm.eotKw	0	4
 default	field	perm.eotKwRep	4	8
 default	field	perm.ovr	12	12
@@ -366,11 +366,12 @@ default	field	perm.chosen	46	2
 default	field	perm.bord	48	2
 default	field	perm.atk	50	2
 default	field	perm.ck	52	6
-default	field	perm.cseen	58	1
-default	field	perm.atkVer	59	1
-default	field	perm.spare	60	1
-default	field	perm.card	62	2
-default	field	perm.gty	64	2
+default	field	perm.cs	58	6
+default	field	perm.cseen	64	1
+default	field	perm.atkVer	65	1
+default	field	perm.spare	66	1
+default	field	perm.card	68	2
+default	field	perm.gty	70	2
 default	field	genPrep.creatSub	0	24
 default	field	genPrep.auraSub	24	1
 default	field	genPrep.graveTrig	32	24

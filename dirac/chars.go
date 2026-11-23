@@ -108,10 +108,13 @@ func (s *State) kw(k *prep, sl Slot) kop.KwMask {
 	}
 	// CR 122.1b + 613.1c: the counter grant is a BASE keyword (gorge
 	// BaseKeywords, engine/rules/chars/derive.go), so an active
-	// loses-all-abilities effect clears it too (Abigale's Animate then
-	// keyword counters); a later layer-6 grant still re-adds on top.
+	// loses-all-abilities effect clears it too; a counter put on after the
+	// effect (Abigale's Animate, then keyword counters) is a newer grant
+	// and stays (CR 613.7, ctrKwNewer); a later layer-6 grant re-adds on top.
 	if p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 {
 		m |= ctrKw(s, p)
+	} else {
+		m |= ctrKwNewer(s, p, s.lossFxTs(sl))
 	}
 	if s.statM.any() {
 		_, _, g := s.staticPT(k, sl)

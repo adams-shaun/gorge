@@ -146,6 +146,21 @@ func (s *State) matchKwAssume(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src 
 	return false
 }
 
+// l6CtrKeep is the keywords p's keyword counters keep through e's loss or
+// removal. CR 613.7 (gorge appendNewerCounterKeywords): a keyword counter put
+// on after the effect is a newer grant, and it keeps its keyword through a
+// loss or a removal naming it.
+func (s *State) l6CtrKeep(p *perm, e *l6e) kop.KwMask {
+	if !e.lose && e.rem == 0 {
+		return 0
+	}
+	keep := ctrKwNewer(s, p, e.ts)
+	if !e.lose {
+		keep &= e.rem
+	}
+	return keep
+}
+
 // l6Walk runs the layer-6 walk on sl: its keywords, whether it lost all
 // its abilities and the latest loss's timestamp; w keeps the effects (for
 // grantedKwGen's per-effect list).
@@ -264,6 +279,7 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			lts = max(lts, e.ts)
 		}
 		kw = l6after(e, kw)
+		kw |= s.l6CtrKeep(p, e)
 	}
 	if !lost && s.nkwx != 0 {
 		kw |= s.supKw(sl) // grants an ended loss had suppressed
