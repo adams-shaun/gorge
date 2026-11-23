@@ -360,7 +360,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
-	relax := s.scriptRelax(k, p, filt, caAny || twoLive || sacAny)
+	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
