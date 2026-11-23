@@ -631,7 +631,10 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+	// A table that merely holds a grant card (grantPC) excludes nothing: the ungranted census
+	// leaves a paid filter (Flooded Grove) out, which gorge's planner still funds, so only a
+	// live granted ability can make a cast payable by the grant alone.
+	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	if s.dhWithholdsCast(k, p, o, &cost) {
