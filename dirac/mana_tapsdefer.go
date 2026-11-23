@@ -1296,6 +1296,12 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 // when no plan exists without them a second pass plans with them, in
 // battlefield order like any source.
 func (s *State) planTiered(k *prep, p uint8, pk *planner, exclude Obj) {
+	if pk.plain {
+		// a resolution payment's plan is gorge's plain census: no tiered
+		// pass, whatever the board defers (mana_resolutionpay.go)
+		s.plan(k, p, pk, exclude)
+		return
+	}
 	if k.gen != nil && k.gen.anyComboOff && !pk.comboIn && !DebugComboAnyPlanned {
 		s.planComboTiered(k, p, pk, exclude) // mana_comboanyplan.go
 		return

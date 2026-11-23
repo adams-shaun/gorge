@@ -193,3 +193,28 @@ func spellEvidenceTargets(cd *kop.CardDef) bool {
 	}
 	return false
 }
+
+// trigOwnEvidenceExiled reports whether ob is the dies trigger's own card
+// exiled by that trigger's ExileAnyGrave<1/Card.TriggeredNewCard>
+// CollectEvidence<N> cost (Lamplight Phoenix): the paid cost's exile is one
+// version past the death, and gorge's Defined$ ExiledCards names that card
+// (cumulative.go settleTriggeredMandatory records it in castExiled), so the
+// body's "return it" still finds it. The body runs only after the cost paid.
+func (s *State) trigOwnEvidenceExiled(k *prep, e *stackEntry, ob *object) bool {
+	if e.kind != seTrigger || ob.zone != kop.ZoneExile || ob.ver != e.srcVer+2 {
+		return false
+	}
+	for _, in := range s.prog(k) {
+		if in.C&0xF == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNewEvidence {
+			return true
+		}
+	}
+	return false
+}
+
+// trigDiedObjMovedOn reports whether the card a dies trigger names is a new
+// object: anything past the one version the death made, except the trigger's
+// own cost-exiled card (trigOwnEvidenceExiled).
+func (s *State) trigDiedObjMovedOn(k *prep, e *stackEntry, ob *object) bool {
+	return ob.ver != e.srcVer+1 && !s.trigOwnEvidenceExiled(k, e, ob)
+}

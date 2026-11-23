@@ -16,6 +16,7 @@ Ardent Elementalist
 Artificer Class
 Aspect of Lamprey
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -24,6 +25,7 @@ Baloth Null
 Banishment
 Barkhide Troll
 Barrow Witches
+Basilica Skullbomb
 Bathe in Dragonfire
 Belligerent Sliver
 Bellowing Mauler
@@ -61,9 +63,11 @@ Cinder Shade
 Clear a Path
 Colossal Dreadmaw and Storm Crow
 Continue?
+Crackling Drake
 Creakwood Liege
 Crookclaw Elder
 Crosstown Courier
+Cruel Ultimatum
 Curiosity Crafter
 Daggersail Aeronaut
 Daunting Defender
@@ -123,6 +127,7 @@ Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Goblin Deathraiders
+Golem-Skin Gauntlets
 Great Defender
 Greater Harvester
 Grim Tutor
@@ -145,6 +150,7 @@ Incarnation Technique
 Incisor Steed
 Inspire Awe
 Island
+Jade Idol
 Jalum Tome
 Jolrael, Voice of Zhalfir
 Kazandu Tuskcaller
@@ -157,7 +163,10 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Liliana of the Veil
 Lonis, Genetics Expert
+Lord of Tresserhorn
+Lorthos, the Tidemaker
 Lost in the Mist
 Lost in the Spirit World
 Magma Vein
@@ -178,6 +187,7 @@ Mindwrack Harpy
 Minotaur, Roxxon CEO
 Mobile Fort
 Momentum Rumbler
+Monkey Cage
 Mortal Wound
 Mossbridge Troll
 Mountain
@@ -223,6 +233,8 @@ Return of the Nightstalkers
 Reverberate
 Rimewood Falls
 Rishadan Cutpurse
+River Sneak
+Robot Domination
 Rockshard Elemental
 Rooftop Nuisance
 Rout
@@ -233,6 +245,7 @@ Sage of Fables
 Sailor of Means
 Sanctify
 Sanctum of Stone Fangs
+Sarkhan's Unsealing
 Scab-Clan Mauler
 Scalding Devil
 Scour All Possibilities
@@ -279,6 +292,7 @@ Territorial Boar
 Thirst for Discovery
 Thopter Assembly
 Thopter Mechanic
+Thraximundar
 Threnody Singer
 Thrilling Encore
 Thundersteel Colossus
@@ -304,6 +318,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Wasteland Raider
 Waterknot
 Whiptail Moloch
 Whiptail Wurm
@@ -317,4 +332,5 @@ Yawgmoth Demon
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zhulodok, Void Gorger
 Zuran Enchanter

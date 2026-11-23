@@ -34,6 +34,7 @@ Blessings of Nature
 Blinding Angel
 Bloodpyre Elemental
 Bloody Betrayal
+Boneyard Scourge
 Bontu's Monument
 Borderland Minotaur
 Borderland Ranger
@@ -282,6 +283,7 @@ Raise the Palisade
 Rakdos Signet
 Raphael, Fiendish Savior
 Reap What Is Sown
+Reaper of Sheoldred
 Reshape
 Reshape the Earth
 Revoke Existence

@@ -54,6 +54,7 @@ Brackwater Elemental
 Brandywine Farmer
 Bugenhagen, Wise Elder
 Burning Fields
+Burning Vengeance
 Cabal Patriarch
 Cabaretti Courtyard
 Cao Cao, Lord of Wei
@@ -82,6 +83,7 @@ Dawning Angel
 Death's Shadow
 Delraich
 Demon's Disciple
+Demonic Torment
 Dense Foliage
 Deputized Protester
 Deranged Assistant

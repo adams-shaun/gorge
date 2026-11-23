@@ -1744,7 +1744,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if returnSkipsLibrary(in, ob.zone) {
 		return false
 	}
-	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && ob.ver != e.srcVer+1 {
+	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && s.trigDiedObjMovedOn(k, e, ob) {
 		return false // the card that died has moved on (exiled from the graveyard in response): a new object
 	}
 	if in.Obj == kop.RefTriggerObj && o != e.obj && e.kind == seTrigger && s.trigObjMoved(k, e, ob) {

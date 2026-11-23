@@ -519,10 +519,71 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else {
+	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, len(pc.Convoke) > 0 || len(pc.delve) > 0 || e.hasCastConvoke(pc.card) ||
+		e.hasCastImprovise(pc.card) || e.hasKeywordH(pc.card, kwhHarmonize) || e.hasCastDelve(pc.card, pc.isAbility())) {
 		return probePayable
 	}
 	return probeManaShort
+}
+
+// unpricedReachShort reports whether an INCOMPLETE census still proves cost
+// unpayable: the floating pool, every priced window unit's production and the
+// ceiling of what the unpriced sources could add (castWindowUnpricedReach, a
+// Phyrexian Lens's "{T}, Pay 1 life: any colour") fall short of the cost's
+// pool-unit floor. An unbounded ceiling proves nothing, so the historical
+// offer stands (CR 601.2g-h: the window can't make the missing mana). So it
+// does when foldsOthers (a Convoke/Improvise/Harmonize/Delve spell pays part of
+// its cost beyond the window's sources, CR 702.51a, 702.66a, 702.180a) or an
+// unpriced source isn't a plain tap/life/mana producer (unpricedSourcesPlainTap).
+func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit, life int32, cost Cost, pool state.Mana, foldsOthers bool) bool {
+	if foldsOthers || !unpricedSourcesPlainTap(w, pc, units) {
+		return false
+	}
+	unpriced, bounded := castWindowUnpricedReach(w, pc, units, nil, nil)
+	if !bounded {
+		return false
+	}
+	floor := castPipsManaFloor(&cost, life)
+	if floor < 0 {
+		return false
+	}
+	have := int64(pool.Total()) + int64(castWindowUnitsReach(units)) + int64(unpriced)
+	return have < floor
+}
+
+// unpricedSourcesPlainTap reports whether every battlefield source the census
+// left unpriced is a producer whose only costs are {T}, life and mana (Phyrexian
+// Lens's "{T}, Pay 1 life", Cabal Coffers's "{2}, {T}"). Only then does dirac
+// share the verdict: a source that also sacrifices, discards or taps another
+// permanent (a Treasure) leaves both engines offering the ask, the cast being
+// reversed at payment (CR 601.2h), so those keep the historical offer.
+func unpricedSourcesPlainTap(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit) bool {
+	p := pc.player
+	priced := make(map[state.ObjID]bool, len(units))
+	for _, u := range units {
+		priced[u.ID] = true
+	}
+	for _, id := range pay.BattlefieldManaSourceIDs(w.Game(), p) {
+		if priced[id] || w.convokeCommitted(pc, id) {
+			continue
+		}
+		for _, ma := range w.castWindowProbeAbilities(p, id) {
+			// A "Special ..." production (Bloom Tender's each colour among
+			// permanents) parses to a choice with no counted symbol: the
+			// ceiling reads one unit of it, an under-estimate, so it may still
+			// fund the cost (CR 106.1, 601.2g).
+			if mp := effects.ManaOf(ma); !mp.NeedsChosen && mp.CountsAny &&
+				!pay.IsColourIdentityProduced(mp.Produced) && manaCountsTotal(mp.Counts) == 0 {
+				return false
+			}
+			cost := w.manaAbilityCC(p, id, ma).Cost
+			cost.Life, cost.Tap, cost.Generic, cost.Colored = 0, false, 0, state.Mana{}
+			if !pay.ManaFreeCost(cost) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
@@ -1365,3 +1426,11 @@ var cyclingKeywordCodes = state.NewStrCodes(
 	state.StrEntry[cyclingKeywordCode]{Key: "Cycling", Val: cyclingKeywordCycling},
 	state.StrEntry[cyclingKeywordCode]{Key: "TypeCycling", Val: cyclingKeywordCycling},
 )
+
+// manaCountsTotal is the sum of a Produced$ count vector.
+func manaCountsTotal(counts [6]int32) (total int32) {
+	for _, n := range counts {
+		total += n
+	}
+	return total
+}

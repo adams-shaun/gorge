@@ -279,6 +279,7 @@ Patron of the Vein
 Personal Tutor
 Persuasion
 Phantasmal Shieldback
+Phantom Carriage
 Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar
@@ -337,6 +338,7 @@ Sagittars' Volley
 Salivating Gremlins
 Sandwurm Convergence
 Saprazzan Legate
+Saprazzan Skerry
 Saruman's Trickery
 Scaldkin
 Scaled Herbalist
@@ -357,6 +359,7 @@ Shambling Goblin
 Shifting Sliver
 Shipwreck Looter
 Shore Snapper
+Sicarian Infiltrator
 Silent Extraction
 Sinister Possession
 Sink into Takenuma
