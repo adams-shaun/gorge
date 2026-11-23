@@ -307,6 +307,13 @@ func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool 
 }
 
 // scriptOffers adds to d the plays a scripted prefix pays.
+// plainCastMode reports a cast of the card's printed spell: no mode number,
+// and no may-play, face or warp mode (autopayDropsPlainCast's and
+// plainCastUnsearched's shape).
+func plainCastMode(a Action) bool {
+	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
+}
+
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
@@ -399,10 +406,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.scriptOfferDrops(k, p, a, &skip) {
 			continue
 		}
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
+		if plainCastMode(a) && a.Target() == 0 && hasOption(&real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.plainCastUnsearched(k, p, a) {
+		if plainCastMode(a) && s.plainCastUnsearched(k, p, a) {
 			continue // gorge runs no prefix search for it: the printed sources pay it but the witness eats a target (witness_unreachable, mana_sacsource.go), or the shape is additional_cost and the composition is its only witness, an insufficient one dropped (potentialPlayVerdictShared)
 		}
 		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && a.Mode()&castMayPlay == 0 && !s.modalFloorFree(k, p, s.objs[Obj(a.Source())].card)) {
@@ -493,7 +500,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 			// found no script for it (the Trapjaw Kelpie lockstep: decision
 			// 402's cast, the second walk's phased run's two island taps).
 			if !s.filtScript(k, a, p, false) &&
-				!(tapsDef.any() && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)) {
+				!(tapsDef.any() && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)) &&
+				!(isCastKind(a.Kind()) && mix && s.tapXFallbackScript(k, a, p)) {
 				continue // no script within gorge's search budget
 			}
 		} else if tapsDef.any() && s.liveGrantGap(k, p) {
@@ -590,13 +598,40 @@ func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) (bool, uint8) {
 	return false, stall
 }
 
+// tapXFallbackScript reports a cast a mix board's filter search dropped
+// payable by the tapX search, as scriptPrefix's mix arm plays it: the plain
+// route declines the cast first (plainListedPays — one it lists the plain
+// plan prices or leaves unoffered, never a search), then the filter script,
+// then the tapX prefix beside a live no-{T} tap-another source (Relic of
+// Legends's legendary taps beside an Overflowing Basin pay Death Cloud's
+// {B}{B}{B}). Only a cast: gorge's search prices a play at a node by the
+// planner, and while a cast's planner pays from the floating pool the steps
+// float, an activation's planner prices the mana part from the untapped
+// sources the steps only consume — the Domesticated Watercourse animate
+// beside its tapped self and the Basin stayed unpriced at every node, pool
+// paid or not. A filter-only board gets no fallback: scriptPrefix's mix arm
+// guards the prefix the same way, and gorge's filter route runs no
+// tap-another step there.
+func (s *State) tapXFallbackScript(k *prep, a Action, p uint8) bool {
+	var d Decision
+	s.plainOptions(k, &d, availNoActScript)
+	if s.plainListedPays(k, a, p, &d) {
+		return false // the plain route owns the play: gorge offers it by its plan, or not at all
+	}
+	if !s.tapXTwoLiveSource(k, p) {
+		return false
+	}
+	found, _ := s.tapXScript(k, a, p, false)
+	return found
+}
+
 // autopayDropsPlainCast reports a plain cast the autopay surface leaves out of
 // a potential play's list: gorge's planner prices it or the floating pool pays
 // it, else the oracle drops it (gorge.go, "a plain cast the planner does not
 // price"), whatever prefix a storage battery's or a grant's activation makes
 // of it.
 func (s *State) autopayDropsPlainCast(a Action) bool {
-	return s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0
+	return s.cfg&cfgGorgeAutopay != 0 && plainCastMode(a) && a.Target() == 0
 }
 
 // walkKey orders insufficient play a (the kernel walk's option i) as
