@@ -1,0 +1,25 @@
+{
+  "card": "Spiked Corridor",
+  "class": "lockstep",
+  "why": "gorge's payment planner defers every land under Manabarbs (an unvetted TapsForMana watcher) and prices the plain front-door cast of a Room only by a scripted prefix the autopay surface leaves out, where the kernel's walk lists it and its payment taps lands to lethal damage: tail-34-c000 pair 10 parts at options options (cast Spiked Corridor) and, once that is lifted, at the castface's payment (life 0 against 1)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "room_front_cast_offer"
+  },
+  "evidence": [
+    "ev-tail-34-c000",
+    "ev-tail-34-c001",
+    "ev-tail-34-c002",
+    "ev-tail-34-c003",
+    "ev-tail-34-c004",
+    "ev-tail-55-c000",
+    "ev-tail-55-c002",
+    "ev-tail-55-c003",
+    "ev-tail-55"
+  ]
+}
