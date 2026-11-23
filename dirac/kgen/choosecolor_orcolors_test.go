@@ -28,7 +28,7 @@ func chooseColorResInstrs(lc *lCard) []lInstr {
 func TestChooseColorOrColorsLowers(t *testing.T) {
 	const orColors = "Name:OrColors Probe\nManaCost:1 U\nTypes:Instant\n" +
 		"A:SP$ ChooseColor | Defined$ You | OrColors$ True | SubAbility$ Animate | SpellDescription$ x.\n" +
-		"SVar:Animate:DB$ Animate | ValidTgts$ Creature | Colors$ ChosenColor | OverwriteColors$ True | SpellDescription$ y.\n"
+		"SVar:Animate:DB$ Animate | OverwriteColors$ True | ValidTgts$ Creature | Colors$ ChosenColor | SpellDescription$ y.\n"
 	lc := lowerSynth(t, orColors)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the OrColors probe refuses: %q", keclReason(r))
@@ -51,7 +51,7 @@ func TestChooseColorOrColorsLowers(t *testing.T) {
 	for name, src := range map[string]string{
 		"value": strings.Replace(orColors, "OrColors$ True", "OrColors$ False", 1),
 		"sub": strings.Replace(strings.Replace(orColors, "SubAbility$ Animate", "SubAbility$ Draw", 1),
-			"SVar:Animate:DB$ Animate | ValidTgts$ Creature | Colors$ ChosenColor | OverwriteColors$ True",
+			"SVar:Animate:DB$ Animate | OverwriteColors$ True | ValidTgts$ Creature | Colors$ ChosenColor",
 			"SVar:Draw:DB$ Draw | NumCards$ 1", 1),
 	} {
 		if len(lowerSynth(t, src).Refusals) == 0 {
