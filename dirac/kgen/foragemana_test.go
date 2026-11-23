@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // forageManaProbe lowers and builds a synthetic card and returns its refusals.
@@ -19,7 +20,7 @@ func forageManaProbe(t *testing.T, src string) ([]refusal, []built) {
 		t.Fatalf("link: %v", d)
 	}
 	const name = "Forage Mana Probe"
-	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card}, nDecks: map[string]int{}, reg: &cards.Registry{}}
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card}, nDecks: map[string]int{}, reg: testutil.CorpusRegistry(t)} // (the corpus registry knows the Food subtype)
 	lc := lowerCard(p, name, card, false)
 	if len(lc.Refusals) != 0 {
 		return lc.Refusals, nil
