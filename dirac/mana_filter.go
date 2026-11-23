@@ -3041,6 +3041,15 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// TestDynamicFilterLockstep seed 11)
 		return false
 	}
+	if fs.other.any() {
+		// A mixed board: the root's other-class gaps (a tap-another Holdout
+		// Settlement, spent on this path by its plain {C} before this node)
+		// are no longer live here, so the scan below would read the board as
+		// filters alone. gorge's plain run has no such prune: it walks the
+		// dead subtree and spends its node budget there, so the play it then
+		// cannot reach stays unoffered.
+		return false
+	}
 	if t.scriptAnyR(k, fs.p).or(t.scriptTapX(k, fs.p)).or(t.scriptCtr(k, fs.p)).or(t.lifeGapMask(k, fs.p)).
 		or(t.anyDifferentGaps(k, fs.p)).or(t.scriptGaps(k, fs.p)).or(t.chosenPairGaps(k, fs.p)).any() {
 		return false // another gap class beside the filters: its route is not read here
