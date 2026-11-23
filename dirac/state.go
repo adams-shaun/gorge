@@ -766,6 +766,10 @@ const (
 	// declared for each attacker with banding that has a candidate (combat_band.go;
 	// s.lastPick is the leader asked)
 	ctlBand
+	// ctlReflectPick: the colour of the reflected mana a planned tap of an
+	// all-at-once source makes under a reflect carrier (mana_reflectpickask.go;
+	// the mask and the payer ride genState.reflMask / reflP)
+	ctlReflectPick
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

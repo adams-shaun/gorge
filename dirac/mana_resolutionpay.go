@@ -176,8 +176,8 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		if sl == NoSlot {
 			break
 		}
-		if s.parkedWaiting() {
-			return false // a sacrificed source's order ask: the payment runs again after it
+		if s.parkedWaiting() || s.reflectPickPending() {
+			return false // a sacrificed source's order ask or a tap's reflected pick: the payment runs again after it
 		}
 		need = s.restrShortNonSpell(k, p, c) // a tapped source may have floated restricted mana
 	}
