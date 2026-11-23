@@ -62,6 +62,11 @@ type engineScratch struct {
 	// read by planComposedCostFor's descriptor so a RestrictValid$ spell read
 	// uses the K:Prototype inset colour and mana value.
 	planPrototype bool `clone:"reset"`
+	// planBestowed marks a potential plan for a bestowed cast (CR 702.103b),
+	// read by planComposedCostFor's descriptor so a RestrictValid$ spell read
+	// sees an Aura spell: creature-spell-only mana (Abundant Countryside's
+	// any colour) is no unit of the plan, as the payment reads it.
+	planBestowed bool `clone:"reset"`
 	// prototypeRead is the scoped AsFace(pay.PrototypeRead) read's flag: a
 	// RestrictValid$ spell read then sees the cast's K:Prototype inset
 	// characteristics (CR 718.3a/718.3b). Pure per-call read state.
