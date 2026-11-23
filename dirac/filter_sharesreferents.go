@@ -9,7 +9,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // referents gorge reads whose object the kernel keeps live are the entry's
 // object targets, its remembered object and remembered set, its triggering
 // object, the reading source, the source's imprint, and the creatures that
-// convoked the resolving spell's cast (RefConvoked, convoked.go); the
+// convoked the resolving spell's cast (RefConvoked, kw_convokelist.go); the
 // referents with no kernel record stay unlowered (kgen refuses them:
 // Sacrificed/Enchanted are not in gorge's sharesTypeArg vocabulary at all).
 // Both words read each side's characteristics where it now is, like
@@ -135,7 +135,7 @@ func (s *State) fwReferentObjs(c *fctx, r kop.Ref) []Obj {
 		// the creatures that convoked the resolving spell's cast (CR 702.66;
 		// gorge sharesTypeReferents' Convoked over the resolving source's
 		// Object.Convoked): the cast's stack entry holds their set
-		// (convoked.go). A resolving entry with no convoke, or a read whose
+		// (kw_convokelist.go). A resolving entry with no convoke, or a read whose
 		// context has none, binds nothing — fail closed, never widened.
 		if e := cx.e; e != nil {
 			return s.convokedOf(e)

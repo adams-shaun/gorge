@@ -78,7 +78,7 @@ func TestFilterWordsRelations(t *testing.T) {
 		{"Creature.sharesCreatureTypeWith Remembered", kop.FwSharesCr, 0, false, kop.RefRememberedSet, ""},
 		{"Creature.sharesCreatureTypeWith RememberedLKI", kop.FwSharesCr, 0, false, kop.RefRememberedSet, ""},
 		// the convoked creatures (CR 702.66): the kernel keeps them on the
-		// cast's stack entry (cold.convoked, convoked.go)
+		// cast's stack entry (cold.convoked, kw_convokelist.go)
 		{"Creature.sharesCreatureTypeWith Convoked", kop.FwSharesCr, 0, false, kop.RefConvoked, ""},
 		// the sameName context bases (gorge sameNameContextBase): the head
 		// names the base's referent, the rest carries the bare sameName token,

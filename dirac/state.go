@@ -571,7 +571,7 @@ type stackEntry struct {
 	prov uint8
 	// cvok is the creatures that convoked the spell's cast (CR 702.66),
 	// stamped at payment only for a table that reads them (the genUse
-	// useConvokedReads, convoked.go): State.cold.convoked index + 1
+	// useConvokedReads, kw_convokelist.go): State.cold.convoked index + 1
 	// (0 = none). It takes the struct's padding byte.
 	cvok uint8
 	// spc is the colours of mana spent to cast a spell,

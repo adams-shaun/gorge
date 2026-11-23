@@ -138,7 +138,7 @@ var fwKeywordSpaced = map[string]string{"Doctor'scompanion": "Doctor's companion
 // where RememberedCard names only its first entry), Imprinted (the source's
 // first imprinted card, RefImprinted's read), and Convoked (the creatures
 // that convoked the resolving spell's cast, CR 702.66; the cast's stack
-// entry holds their set, dirac/convoked.go, where the count rode
+// entry holds their set, dirac/kw_convokelist.go, where the count rode
 // stackEntry.prov bits 3-7 alone). Commander, TriggeredAttacker and
 // TriggeredCard keep their own lowerings (cmpSharesCrCmdr, W7SharesCrTrigObj);
 // Sacrificed and Enchanted stay refused, gorge's sharesTypeArg never

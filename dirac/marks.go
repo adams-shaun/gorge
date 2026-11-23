@@ -228,7 +228,7 @@ func (s *State) genViewHash(h uint64) uint64 {
 		h = s.atkGrpHash(h) // trig_attackers.go
 	}
 	if g.cvokHi != 0 {
-		h = s.convokedHash(h) // convoked.go
+		h = s.convokedHash(h) // kw_convokelist.go
 	}
 	if c := s.atkLastCold(); c != nil {
 		h = hbytes(h, unsafe.Pointer(&c[0]), uintptr(len(c))) // trig_atklastturn.go
@@ -526,7 +526,7 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 		h = s.atkGrpHash(h) // the attacker groups the pending and stacked triggers index
 	}
 	if s.g.cvokHi != 0 {
-		h = s.convokedHash(h) // the convoked sets the stacked spells index (convoked.go)
+		h = s.convokedHash(h) // the convoked sets the stacked spells index (kw_convokelist.go)
 	}
 	h = hmix(h, uint64(s.npend)|uint64(s.orderLeft)<<8|uint64(s.orderN)<<16|uint64(s.orderPlace)<<24|
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)

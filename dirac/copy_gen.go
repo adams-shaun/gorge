@@ -140,7 +140,7 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	}
 	ce.remVer &= spellFirstCast                               // nor the keywords the spell gained (CR 707.2); the first-cast stamp stays (cast_firstcast.go)
 	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
-	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; convoked.go)
+	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}

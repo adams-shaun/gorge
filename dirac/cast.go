@@ -1703,7 +1703,7 @@ func (s *State) finishBuild(k *prep) {
 			if k.gen.anyCastProv {
 				s.bld().e.prov |= uint8(min(s.convokePickCount(), 31)) << 3 // Convoked$Amount (trig_gravedrawn.go)
 			}
-			s.stampConvoked(k) // convoked.go: the cast's convoked creatures, beside the count above
+			s.stampConvoked(k) // kw_convokelist.go: the cast's convoked creatures, beside the count above
 		} else if s.bld().bfl&bflLowered != 0 && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
 			// a lowered cast pays what its witness left unpaid (Eaten
 			// Alive's {3}{B} part, chosen after it; an announced X past the

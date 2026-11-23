@@ -1607,7 +1607,7 @@ const FwSameName FilterWord = 8
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesCr)
 //
-// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefRememberedSet, the entry's whole remembered set (gorge's Remembered and RememberedLKI spellings); RefImprinted, the reading source's first imprinted card; RefConvoked, the creatures that convoked the resolving spell's cast (CR 702.66, the cast's stack entry set, convoked.go). Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
+// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefRememberedSet, the entry's whole remembered set (gorge's Remembered and RememberedLKI spellings); RefImprinted, the reading source's first imprinted card; RefConvoked, the creatures that convoked the resolving spell's cast (CR 702.66, the cast's stack entry set, kw_convokelist.go). Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
 const FwSharesCr FilterWord = 9
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesName)
