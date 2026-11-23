@@ -641,6 +641,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 			hc = s.cardAt(s.objs[host].slot)
 		}
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: a.Mode() &^ gainedMode, ctrl: s.prio, trigObj: NoObj}}
+		s.markGainedUsed(&k.t.Cards[hc].Abilities[a.Mode()&^gainedMode], o, host, a.Mode()) // a once-each-turn one (static_gainsof.go)
 	} else if a.Mode()&0x80 != 0 {
 		host := Obj(a.Target())
 		ab := a.Mode() &^ 0x80
