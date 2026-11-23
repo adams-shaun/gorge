@@ -180,7 +180,7 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 // others after them: the filter search takes the Combo Any source as an
 // otherComboAny step, Axebane Guardian's X mana (one colour each, any
 // combination) paying a Signet's {1} (CR 605.3a, 601.2g-h). A reflected
-// Amount$ source is no step (caMix refuses it beside a filter).
+// Amount$ source is a step too, its one colour ask (reflAmtOther).
 func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
 	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
 		return slotMask{}
@@ -224,6 +224,9 @@ func (s *State) caFiltBoard(k *prep, p uint8) bool {
 // caSearch's node): one node, then the allocation's answers in gorge's order,
 // the colours the play announces first (caRank).
 func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	if k.isReflAmt(t.cardAt(sl)) {
+		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
+	}
 	if !fs.tick() {
 		return false
 	}
@@ -797,6 +800,10 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherComboAny:
+		if k.isReflAmt(s.cardAt(st.sl)) {
+			s.reflAmtOtherDo(k, p, st.sl, o.ans)
+			break
+		}
 		s.caActivate(k, p, st.sl, int(o.ans))
 	case otherEach:
 		s.perms[st.sl].flags |= pfTapped
