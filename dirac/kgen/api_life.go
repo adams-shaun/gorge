@@ -159,7 +159,7 @@ func (lc *lowerCtx) apiPoison(sa *cards.SA, ps *params) error {
 		return err
 	}
 	switch who.Kind {
-	case rYou, rEachOpp, rEachPlayer, rTriggeredPlayer, rDefending, rTargetController:
+	case rYou, rEachOpp, rEachPlayer, rTriggeredPlayer, rDefending, rTargetController, rTriggeredTgtCtrl:
 	case rTarget:
 		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
 			return refuse("Poison of a non-player target")

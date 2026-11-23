@@ -18,7 +18,7 @@ import (
 // the emblem's owner). An AttackersDeclared one counts
 // every attacker of the declaration.
 func eotCombatEmblemRefuse(ab *lAbility, recipientCap bool) error {
-	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "DamageDealtOnce" || t.Event == "AttackersDeclared" || t.Event == "Attacks" || t.Event == "AttackerBlocked") {
+	if t := ab.Trigger; t != nil && (t.Event == "DamageDone" || t.Event == "DamageDealtOnce" || t.Event == "AttackersDeclared" || t.Event == "Attacks" || t.Event == "AttackerBlocked" || t.Event == "Blocks") {
 		// the hooks read only these fields: any other trigger rider (an
 		// intervening if, once per turn, your turn only, ...) would be
 		// dropped. Batch/PerRef are the line's own Mode$ DamageDoneOnce

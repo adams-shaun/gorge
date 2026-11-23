@@ -9,7 +9,7 @@ import "testing"
 var effectTriggersDurationForms = []formCase{
 	{card: "False Cure", form: "SP$ Effect Triggers$ LifeGained (until end of turn)", lir: "emblem[0] trigger=1 statics=0 until=EOT"},
 	{card: "Vizkopa Guildmage", form: "AB$ Effect Triggers$ LifeGained ValidPlayer$ You (this turn)", lir: "emblem[0] trigger=2 statics=0 until=EOT"},
-	{card: "Battle Cry", form: "Effect Triggers$ Blocks (no timed emblem hook)", refused: "Effect triggers without a permanent duration"},
+	{card: "Battle Cry", form: "SP$ Effect Triggers$ Blocks (until end of turn)", lir: "emblem[0] trigger=1 statics=0 until=EOT"},
 	{card: "Melee", form: "Effect Duration$ UntilEndOfCombat", refused: "Effect triggers without a permanent duration"},
 }
 

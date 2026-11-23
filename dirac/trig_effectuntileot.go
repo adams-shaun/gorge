@@ -30,6 +30,7 @@ type EffEOTTrigStats struct {
 	BlockedMulti    int // of those, for an attacker blocked by more than one creature
 	BlockedLapsed   int // become-blocked emblem hook runs (a block with attackers) with the emblem's capture lapsed (the object left the battlefield)
 	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, the recipient was not its remembered player, or the damaged permanent was not its remembered object (the recipient capture)
+	BlocksFires     int // blocks emblem triggers queued (fireEmblemsBlocks)
 }
 
 // DebugInnerLightNoAmount is a mutation switch (TestTheInnerLightMutation):
