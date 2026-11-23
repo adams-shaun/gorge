@@ -12,7 +12,10 @@ import (
 // Patriar's Seal and Krark-Clan Ironworks, gorge's potential bound reaches six
 // (the Ironworks' fixed {C}{C} counts once), so only the plain cast is offered.
 func TestEntwineBeyondTheIronworksBoundIsNotOffered(t *testing.T) {
-	set := cardsettest.Synth(t, "dr-mbc-bbbb")
+	// cardsettest.Set, not cardsettest.Synth: only the lockstep oracle and kgen
+	// read raw tables (internal/archtest TestOnlyTheOracleReadsRawTables), and
+	// every card this scenario needs is lowered in the mbc table.
+	set := cardsettest.Set(t, "mbc")
 	var deck []cardset.Entry
 	for _, n := range []string{"Grab the Reins", "Krark-Clan Ironworks", "Patriar's Seal", "Crimson Fleet Commodore", "Mountain", "Plains"} {
 		deck = append(deck, cardset.Entry{Name: n, Count: 1})
