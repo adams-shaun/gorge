@@ -117,6 +117,21 @@ func gapOnceNetSupply(mp *effects.ManaParams, extra state.Mana, feeTotal, best i
 	return max(made-feeTotal-best, 0), true
 }
 
+// gapBoundedSupply is the census's count bound for one gap ability ma that is
+// neither net-free nor a gain: the SubCounter bound if ma has one, else the
+// once-only fee-bearing net (gapOnceNetSupply: a once-only gap's fixed
+// production nets its production minus the fee each activation spends, and the
+// {T} is exclusive, so only what exceeds the source's own covered production
+// best extends the count bound, CR 106.1; Fire-Lit Thicket's "{R/G}, {T}: Add
+// {R}{R}"). A once-only gap without {T} shares no tap with the covered ability
+// and is not bounded here. False means the caller records a gain.
+func gapBoundedSupply(pp potentialPricer, py pay.Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, mp *effects.ManaParams, extra state.Mana, fee, best int32, once, taps bool) (int32, bool) {
+	if n, ok := gapSubCounterSupply(pp, py, p, id, ma, extra); ok {
+		return n, true
+	}
+	return gapOnceNetSupply(mp, extra, fee, best, once, taps)
+}
+
 // gapSubCounterSupply reports the most mana a census-missed ability ma of
 // source id can make, when its Amount$ X is bound by the counters its announced
 // SubCounter<X/Kind> cost can settle (Mercadian Bazaar's "{T}, Remove any
