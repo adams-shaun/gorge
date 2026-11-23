@@ -1,44 +1,26 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const lavaStormRepro = "lava_storm_instant_offered_without_combat"
 
 // Lava Storm ({3}{R}{R}) is castable on a board with Cascade Bluffs (a hybrid-fee
 // filter land) beside Mage-Ring Network (a storage-counter battery): the Mountain
 // pays the Bluffs fee and three Swamps pay the {3} (pool tail-55 pair 46, seed
-// 839419, decision 715: dirac's options carry cast(#49{Lava Storm}), gorge's do
-// not). Gorge's prefix search (rules/potential_script.go) has two gaps there, the
-// filter and the battery, and runs out of its 160-node budget before it finds the
-// script, so the plan is census_incomplete and the cast is not offered; the
-// kernel's mixgaps and ctrScript mirror prices the same board as scripted.
-// Mirroring that budget on mixed filter-plus-battery boards is far over 200 lines
-// of dirac. Lava Storm is refused by name and its recorded game still diverges
-// with it implicated.
+// 839419, decision 715). Gorge's prefix search (rules/potential_script.go) once
+// ran out of its 160-node budget on that board, so the plan was census_incomplete
+// and gorge withheld cast(#49{Lava Storm}) while dirac offered it. The mana
+// planner changes that arrived with origin/main (potential_script.go,
+// potential_plan.go, paid_mana_census.go and the new potential_repeat_fee.go)
+// closed the gap: both engines now offer the cast and the recorded game replays
+// clean, so Lava Storm is not refused and this test pins that.
 func TestMBCLavaStormReprosLockstep(t *testing.T) {
 	t.Parallel()
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+	res := replayRawRepro(t, lavaStormRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", lavaStormRepro, res.Div.At, res.Div)
 	}
-	found := false
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Lava Storm" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != lavaStormRepro {
-			t.Fatalf("Lava Storm's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, lavaStormRepro)
-		}
-		checkRefusedRepro(t, e)
-		found = true
-	}
-	if !found {
-		t.Fatal("Lava Storm has no dirac/support/refused entry: gorge's prefix search runs out of budget on a filter-plus-battery board and withholds the cast the kernel offers")
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", lavaStormRepro, res.Stall)
 	}
 }

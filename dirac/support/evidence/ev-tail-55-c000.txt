@@ -273,6 +273,7 @@ Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
 Last Rites
+Lava Storm
 Legion Lieutenant
 Liliana's Specter
 Living Terrain

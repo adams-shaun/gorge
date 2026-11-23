@@ -234,6 +234,7 @@ Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
 Last Rites
+Lava Storm
 Liliana's Specter
 Living Terrain
 Loathsome Curator

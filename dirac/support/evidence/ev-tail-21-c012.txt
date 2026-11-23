@@ -18,6 +18,7 @@ Golden-Tail Trainer
 Island
 Lambholt Raconteur
 Lash of Thorns
+Lava Storm
 Magmatic Core
 Massacre
 Mind Carver
