@@ -49,9 +49,33 @@ func remPersistKeeps(k *prep, e *stackEntry) bool {
 //go:noinline
 func (s *State) remPersistSeed(k *prep) {
 	e := &s.res.e
+	ver, ok := uint8(0), false
+	for i := 0; i < int(s.g.nlinks); i++ {
+		if l := s.g.links[i]; l.src == e.obj && (l.sver == e.srcVer || l.sver+1 == e.srcVer) {
+			ver, ok = l.sver, true // the fire-time incarnation's own set (its battlefield ver is srcVer or srcVer-1)
+			break
+		}
+	}
+	if !ok && remReadsSet(k, e) {
+		// The fire-time capture was empty: the enters trigger had not
+		// resolved when the source left (the Cloudshift'd Mesmeric Fiend),
+		// so gorge's pending-referent read answers the live list (effects
+		// context.effectiveSourceRemembered) -- the newest kept set, written
+		// by a later battlefield incarnation's enters trigger. A writer
+		// resolution takes nothing: spending the set here would drop the
+		// fire-time record a leaves trigger still reads.
+		for i := 0; i < int(s.g.nlinks); i++ {
+			if l := s.g.links[i]; l.src == e.obj && (!ok || l.sver > ver) {
+				ver, ok = l.sver, true
+			}
+		}
+	}
+	if !ok {
+		return
+	}
 	for i := 0; i < int(s.g.nlinks); i++ {
 		l := s.g.links[i]
-		if l.src != e.obj || l.sver != e.srcVer && l.sver+1 != e.srcVer || !k.t.Cards[s.objs[l.src].card].RemPersist {
+		if l.src != e.obj || l.sver != ver {
 			continue
 		}
 		if s.g.linkHand|s.g.linkHide|s.g.linkAeg != 0 {
@@ -70,15 +94,22 @@ func (s *State) remPersistSeed(k *prep) {
 }
 
 // remPersistKeep keeps the finished entry's remembered set on its source's
-// incarnation (the links) while the source is still that incarnation.
+// incarnation (the links) while the source is still on the battlefield.
+// gorge's write lands on the live object (effects eventRemember), so a
+// source that left and re-entered before its enters trigger resolved — the
+// Cloudshift'd Mesmeric Fiend — keeps on the new incarnation, the one a
+// later leaves trigger reads; a source off the battlefield (the classic
+// O-ring resolution, CR 610.3c) keeps nothing: no trigger of it reads the
+// live list again.
 //
 //go:noinline
 func (s *State) remPersistKeep(e *stackEntry) {
 	if DebugRemPersistNoKeep {
 		return
 	}
-	if ob := &s.objs[e.obj]; ob.zone != kop.ZoneBattlefield || ob.ver != e.srcVer {
-		return // gorge records it on a new incarnation no leaves trigger reads
+	ob := &s.objs[e.obj]
+	if ob.zone != kop.ZoneBattlefield {
+		return
 	}
 	for i := 0; i < int(s.g.nrem); i++ {
 		if s.g.nlinks >= uint8(len(s.g.links)) {
@@ -86,7 +117,23 @@ func (s *State) remPersistKeep(e *stackEntry) {
 			return
 		}
 		l := &s.g.links[s.g.nlinks]
-		l.src, l.sver, l.obj = e.obj, e.srcVer, s.g.rem[i]
+		l.src, l.sver, l.obj = e.obj, ob.ver, s.g.rem[i]
 		s.g.nlinks++
 	}
+}
+
+// remReadsSet reports whether the resolving entry's program reads the
+// remembered set (a Return of RefRemembered): the pair shape's leaves
+// trigger. A writer resolution (the enters trigger's Exile that remembers)
+// takes nothing from the kept sets.
+func remReadsSet(k *prep, e *stackEntry) bool {
+	if e.kind != seTrigger || int(e.ab) >= len(k.t.Cards[e.card].Abilities) {
+		return false
+	}
+	for _, in := range k.t.Cards[e.card].Abilities[e.ab].Prog {
+		if in.Op == kop.OpReturn && in.Obj == kop.RefRemembered {
+			return true
+		}
+	}
+	return false
 }
