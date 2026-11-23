@@ -19,20 +19,12 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 		return lc.choosePlayerRandom(ps) // the Maddening Hex shape
 	}
 	switch ps.str("Choices") {
-	case "Player.Opponent", "Opponent", "Player.Other":
 	case "Player", "Player.!IsRemembered":
 		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
-	default:
-		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
-	if lc.chosenResAb != nil && lc.chosenResAb == lc.ab {
-		return refuse("the one-opponent ChoosePlayer beside a mid-resolution ChoosePlayer")
+	if err := lc.choosePlayerOpponents(ps); err != nil {
+		return err
 	}
-	if v := ps.str("Defined"); v != "" && v != "You" {
-		return refuse("ChoosePlayer Defined$ %q", v)
-	}
-	// prompt and AI only
-	ps.consume("ChoiceTitle", "AILogic")
 	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
 	// Player.Other pool of the resolving controller is the same players in
 	// the same AliveFrom order (gorge models no teams: every other player is
@@ -46,6 +38,48 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 		return nil
 	}
 	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
+	lc.chosenOppAb = lc.ab
+	return nil
+}
+
+// choosePlayerOpponents validates and consumes the prompt-side shape of a
+// ChoosePlayer whose pool is the one opponent (choosePlayer's and
+// choosePlayerPod's shared head): Choices$ an opponent spelling, no
+// mid-resolution choice beside it, Defined$ You, prompt and AI only. The
+// Player / Player.!IsRemembered spellings stay with choosePlayer, which hands
+// them to choosePlayerRes and stops there.
+func (lc *lowerCtx) choosePlayerOpponents(ps *params) error {
+	switch ps.str("Choices") {
+	case "Player.Opponent", "Opponent", "Player.Other":
+	default:
+		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
+	}
+	if lc.chosenResAb != nil && lc.chosenResAb == lc.ab {
+		return refuse("the one-opponent ChoosePlayer beside a mid-resolution ChoosePlayer")
+	}
+	if v := ps.str("Defined"); v != "" && v != "You" {
+		return refuse("ChoosePlayer Defined$ %q", v)
+	}
+	// prompt and AI only
+	ps.consume("ChoiceTitle", "AILogic")
+	return nil
+}
+
+// choosePlayerPod lowers the as-enters opponent choice that opens a chain
+// whose next links read it (Sorcerous Spyglass: ChoosePlayer -> RevealHand
+// Look$ over the chosen player -> NameCard -> Cleanup ClearChosenPlayer$):
+// gorge runs the whole chain in the entry's Updated body, so it asks the
+// choice among the opponents with the permanent on the battlefield (OpExt
+// ExtChoosePlayer, a sole opponent recorded unasked) at any seat count, and
+// the card holds in a pod. The look-then-name ask follows it in the same
+// enters program (lower_choosename.go, ExtChooseName B = 2) and reads the
+// choice while it lasts: the name overwrites the chosen byte the player
+// rode, as gorge's Cleanup clears the choice at the same point.
+func (lc *lowerCtx) choosePlayerPod(ps *params) error {
+	if err := lc.choosePlayerOpponents(ps); err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "ChoosePlayerEnter", Obj: lRef{Kind: rYou}, Note: "choice of an opponent as it enters, ahead of the look-then-name ask"})
 	lc.chosenOppAb = lc.ab
 	return nil
 }
