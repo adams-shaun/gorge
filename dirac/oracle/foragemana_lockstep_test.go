@@ -54,6 +54,7 @@ type foragePod struct {
 
 func newForagePod(t *testing.T, decks [2][]cardset.Entry) foragePod {
 	t.Helper()
+	reg := testutil.CorpusRegistry(t) // first: without .cards the test skips before the corpus-built set loads
 	set, err := cardset.RawByName("foragemana")
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +68,7 @@ func newForagePod(t *testing.T, decks [2][]cardset.Entry) foragePod {
 			t.Fatalf("deck %d: %d cards", i, n)
 		}
 	}
-	return foragePod{reg: testutil.CorpusRegistry(t), set: set, decks: decks}
+	return foragePod{reg: reg, set: set, decks: decks}
 }
 
 // forageTally counts, in gorge's log, the paid forages (the fixture's only forage is the
