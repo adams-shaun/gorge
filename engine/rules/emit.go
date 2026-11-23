@@ -242,6 +242,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
 			Text: "entry awaiting counter-replacement-order choice"}
 	}
+	e.departedColors = trackDepartedColors(e.departedColors, e.G, e, ev)
 	// CountersRemain tags the final, replacement-adjusted MoveZone so
 	// events.Apply and replay preserve the counters in the same fold: the
 	// battlefield departure (hand and library stay explicit resets) and the
