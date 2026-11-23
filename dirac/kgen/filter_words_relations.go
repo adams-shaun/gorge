@@ -184,11 +184,13 @@ func (c *lClause) fwLit(l lSpillLit) error {
 }
 
 // fwArmOrUnknown lowers property p by its arm, or is the unknown-property
-// error: the tail of lClause.prop's switch. The prefixes are the families'
-// heads: with<K> (and its without/!with spellings), the two-token share
-// words, the two link words, and the general sharesNameWith Valid <filter>
-// form (fwSharesNameValid), whose exact one-word carrier filterWordPred2
-// answered before this arm was reached.
+// error: the tail of lClause.prop's switch. The prefix gate names the word
+// families the arm table lowers: with<K> (and its without/!with spellings),
+// the two-token share words, the two link words (T13b), and T13c's zone,
+// printed-layout and base-P/T words, the base compares parameterised by the
+// bound. The general sharesNameWith Valid <filter> form (fwSharesNameValid)
+// is answered first: its exact one-word carrier filterWordPred2 answered
+// before this arm was reached.
 func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 	if inner, neg, ok := sharesNameValidArg(p); ok {
 		return c.fwSharesNameValid(inner, neg, knownSub)
@@ -197,9 +199,15 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		strings.HasPrefix(p, "sharesCreatureTypeWith") || strings.HasPrefix(p, "!sharesCreatureTypeWith") ||
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
 		p == "sameName" || p == "!sameName" ||
-		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" {
+		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
+		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
+		}
+	}
+	for _, pre := range [...]string{"basePower", "baseToughness"} {
+		if _, ok := strings.CutPrefix(p, pre); ok {
+			return c.basePTArm(p, pre) // filter_words_zoneprov.go: the layer-7b base P/T compare
 		}
 	}
 	return fmt.Errorf("unknown property %q", p)
