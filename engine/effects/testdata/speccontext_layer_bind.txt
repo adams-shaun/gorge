@@ -74,6 +74,7 @@ effects/intensify.go effIntensify
 effects/mana_reflected.go reflectedDefinedExtras
 effects/mustblock_api.go effMustBlockChoicePool
 effects/namecard.go nameChoicesFiltered
+effects/namecard.go nameChoicesPure
 effects/phases.go phasesAffectedObjects
 effects/player_filter.go playerControlsMatches
 effects/player_filter.go playerHasCardsInZoneMatches
