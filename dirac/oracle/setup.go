@@ -60,8 +60,8 @@ type Matchup struct {
 	// seats (NewMatchupN), in seat order; nil at two seats, so every
 	// two-seat field above reads as it always has.
 	More []MoreSeat
-	// Start, when non-nil, is the matchup's scripted start (design
-	// scripted-scenario-starts §3): a genesis configuration the gorge side
+	// Start, when non-nil, is the matchup's scripted start (the
+	// scripted-scenario-starts design): a genesis configuration the gorge side
 	// opens in through rules.Config.Start (Matchup.Config copies it; a nil
 	// Start is the ordinary genesis, byte for byte) and the kernel side
 	// mirrors from the same deck indices (RealKernel, T4). A scenario
