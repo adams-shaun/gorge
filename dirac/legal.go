@@ -2625,7 +2625,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			mask |= xvMask(pc) // an all-at-once source adds each of its colours (gorge addPotentialMana: every rune)
 		}
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
-			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
+			mask = s.potentialFirstMask(k, p, sl, pc, d) // the walk below admits its other abilities, each once
 		}
 		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
 		s.potentialTapUnit(k, p, sl, pc, mask, painAdd, fold, painRefused, &cen)
