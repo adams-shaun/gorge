@@ -231,6 +231,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spite
 Spontaneous Combustion
