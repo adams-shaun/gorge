@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
@@ -552,6 +553,16 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	if !known {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "ChooseType Type$ " + cat + " is not a category this engine can ask; the choice falls back to creature types"})
+	}
+	if os.Getenv("GORGE_DEBUG_RANDOMDECK") != "" {
+		print("gorge randomdeck: labels=[")
+		for i, l := range labels {
+			if i > 0 {
+				print(",")
+			}
+			print(l)
+		}
+		print("]\n")
 	}
 	if ChooseTypeAtRandom(sa) && len(labels) > 0 {
 		// AtRandom$ True (Camato Scout, Lydari Druid, Aswan Jaguar): the

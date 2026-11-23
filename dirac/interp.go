@@ -30,6 +30,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpDraw:
 		return s.drawOp(k, in) // kw_dredge.go
 	case kop.OpDestroy:
+		if dbgRandomDeck {
+			print("kernel destroy: obj=", int(in.Obj), " sl=", int(s.objRef(k, in.Obj)), " vic=", int(s.perms[s.objRef(k, in.Obj)].obj), " resEobj=", int(s.res.e.obj), " resKind=", int(s.res.e.kind), "\n")
+			for i := 0; i < 13 && i < int(s.nobj); i++ {
+				print("  kobj", i, "=card", int(s.objs[i].card), " z", int(s.objs[i].zone), "\n")
+			}
+		}
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			if in.C&2 != 0 {
 				s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)

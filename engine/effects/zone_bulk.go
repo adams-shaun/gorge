@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
@@ -59,6 +60,13 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	// Destroy over a lifelink Equipment and its bearer must not make the
 	// bearer's LKI depend on battlefield order), so the snapshot covers all
 	// of them before the first move.
+	if os.Getenv("GORGE_DEBUG_RANDOMDECK") != "" {
+		print("gorge destroy: targets=")
+		for _, t := range c.Targets {
+			print("#", int(t.Obj), " ")
+		}
+		print("\n")
+	}
 	var victims []state.ObjID
 	for _, t := range definedDelayRememberedTargets(h, c, sa) {
 		o := h.Game().Obj(t.Obj)
