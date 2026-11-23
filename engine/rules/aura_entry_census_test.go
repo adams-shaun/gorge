@@ -287,6 +287,8 @@ var auraEntryCensusRules = map[string]string{
 	"stack.go:Engine.ensureLeftTheStack":                        "stack: resting-zone backstop",
 	"stack.go:Engine.resolveTop":                                "stack: resolution",
 	"staging.go:NewStaged":                                      "raw: test-scenario staging (Config.Staged), not a game action",
+	"start.go:startBuilder.placeStartBattlefield":               "marks: scripted-start entry marks its named bearer before the move (an unattached entry is placed, CR 302.6)",
+	"start.go:startBuilder.placeStartPlain":                     "noentry: library to graveyard/exile/hand only",
 	"target_ask.go:Engine.askTargetChained":                     "stack: fizzle off the stack",
 	"token_entry_replacements.go:Engine.applyTokenEntryUpdates": "noentry: a synthetic match event, never emitted",
 }
