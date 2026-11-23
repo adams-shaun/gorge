@@ -2082,6 +2082,15 @@ const ReplPreventDamageN ReplKind = 65
 // DamageDone (dirac/manifest/ReplKind/ReplDamageRedirect)
 const ReplDamageRedirect ReplKind = 66
 
+// repl DamageMinus (dirac/manifest/ReplKind/ReplDamageMinus)
+const ReplDamageMinus ReplKind = 67
+
+// repl DamageSet (dirac/manifest/ReplKind/ReplDamageSet)
+const ReplDamageSet ReplKind = 68
+
+// repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
+const ReplLifeReduced ReplKind = 69
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 

@@ -11,8 +11,7 @@ type lModeOperand struct {
 // modeParam is the one reader of a mode param by param NAME, shared by every
 // mode of a kind (the T17 design): a mode lowering calls it for a param it
 // does not already read, and a mode that reads the param itself is untouched
-// (the additive rule). kind is "trig", "stat" or "repl"; only the trigger
-// kind has arms so far.
+// (the additive rule). kind is "trig", "stat" or "repl".
 //
 // ValidPlayer (a player-event trigger: Drawn). gorge matches the whole
 // grammar of MatchesPlayerSpec against the event's player relative to the
@@ -23,10 +22,15 @@ type lModeOperand struct {
 // Player.Active and the NonActive spellings among them: "the active player"
 // is relative to the turn, not to the listener's controller, and no lockstep
 // card yet vouches for the your-turn reading of NonActive.
+//
+// ValidPlayer (repl, the BeginPhase phase-skip: gorge replacement_match.go's
+// ReplBeginPhase arm matches MatchesPlayerSpec against the phase's player,
+// the active one, relative to the replacement's controller; the kernel's
+// step-boundary scan gates the skip with the same Who codes). A player spec
+// whose scope is not the whole meaning (the LifeReduced floor's
+// You.lifeGE1, whose life compare rides beside the You) is read by its own
+// mode, not here — the additive rule.
 func (lc *lowerCtx) modeParam(kind, mode, param string, ps *params) (lModeOperand, error) {
-	if kind != "trig" {
-		return lModeOperand{}, refuse("%s %s mode param %s$ has no shared reader", kind, mode, param)
-	}
 	switch param {
 	case "ValidPlayer":
 		v := strings.TrimSpace(ps.str(param))

@@ -1523,7 +1523,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if k.gen.anyRepl&rbShield != 0 {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
-		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
@@ -1587,7 +1588,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.toPl[pp] > 0 {
-			s.loseLife(k, pp, int(r.toPl[pp]))
+			s.loseLifeDmg(k, pp, int(r.toPl[pp]))
 			s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 		}
 	}
