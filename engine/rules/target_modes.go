@@ -964,7 +964,7 @@ func (e *Engine) copyTargetAsk(o *state.Object, decls []*cards.SA, nRoot, stage 
 		e.subOfferParent, e.subOfferBound = copyChainParent(answers, stage, nRoot), true
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
-	if src := attachSelfSource(o, sa); src != 0 {
+	if src := attachSelfSource(e.G, o, sa); src != 0 {
 		candidates = slices.DeleteFunc(candidates, func(c targetCandidate) bool { return c.kind != "player" && c.obj == src })
 	}
 	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
