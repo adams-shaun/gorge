@@ -141,6 +141,20 @@ func chainHasOther(t *kop.Table, f kop.FilterID) bool {
 	return false
 }
 
+// pickOtherBarred reports whether a pick candidate o is barred by the
+// filter chain's FOther. gorge's Other is "not the source's own object"
+// (o.ID != sc.Source), and gorge applies it wherever it builds a pick's
+// pool (effHiddenPick, effSearchLibrary, effDig, the costs), so a ChangeType$
+// with Other -- "you may exile another creature card from your graveyard"
+// (Resplendent Marshal) -- never offers the resolving source itself. The
+// perm matcher tests FOther itself (matchPermGen's src); the card-zone
+// pick builders read this beside their matchCardGen. A source that left
+// and returned re-enters as a new object, which the object compare admits
+// as gorge's SourceReturned does.
+func (s *State) pickOtherBarred(k *prep, f kop.FilterID, o Obj) bool {
+	return o == s.res.e.obj && chainHasOther(k.t, f)
+}
+
 // markSrc records that source object src marked the permanent at sl.
 //
 //go:noinline

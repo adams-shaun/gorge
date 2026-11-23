@@ -1,0 +1,8 @@
+family: ReplKind
+name: ReplLifeReduced
+value: next
+forge: LifeReduced
+census: repl LifeReduced all=6 std=0 mbc=0 sole=5
+state: code 0
+status: active
+ticket: dsd-t17c-repl-modes

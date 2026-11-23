@@ -97,6 +97,14 @@ func (ic *instrCtx) opChooseType() error {
 			return err
 		}
 	}
+	if in.B.N == kop.ChooseTypeRandomDeck {
+		// the no-ask fallback records "Human" when the resolving controller
+		// controls no creature (gorge creatureTypeFallback): the word must be
+		// in the pool table, or the kernel could not name the answer
+		if _, err := ic.cb.subIndexes([]string{"Human"}); err != nil {
+			return fmt.Errorf("ChooseType random-deck fallback: %w", err)
+		}
+	}
 	return nil
 }
 

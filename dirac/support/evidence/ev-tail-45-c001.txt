@@ -322,6 +322,7 @@ Sire of Stagnation
 Sister Hospitaller
 Skarrgan Skybreaker
 Sky Skiff
+Smiting Helix
 Smothering Abomination
 Sol Grail
 Somberwald Stag
@@ -390,6 +391,7 @@ Vampire of the Dire Moon
 Vedalken Mesmerist
 Vengeful Reaper
 Verdant Catacombs
+Vial Smasher the Fierce
 Vivien, Arkbow Ranger
 Volatile Arsonist
 Voracious Vacuum

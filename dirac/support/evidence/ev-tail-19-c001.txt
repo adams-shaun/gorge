@@ -38,6 +38,7 @@ Boots of Speed
 Borborygmos
 Brainspoil
 Bristling Hydra
+Broken Dam
 Buoyancy
 Burning Sun's Fury
 Burst of Speed
@@ -224,6 +225,7 @@ Ossuary Rats
 Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
+Phantasmal Terrain
 Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
@@ -233,6 +235,7 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Popular Entertainer
+Porcelain Zealot
 Predator's Rapport
 Pyrrhic Revival
 Quicksilver Amulet

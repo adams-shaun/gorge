@@ -272,7 +272,7 @@ pointer-free buffer and its fork pool, and the transition loop allocates nothing
 **Enforced by:** `scripts/dirac-gate.sh <base>` (lockstep on the committed FDN
 and BLB slices, the size bar, allocations and instructions per transition),
 `make dirac-slices` on every merge-queue batch, `TestColdArraysHoldNoPointers`,
-`TestStateSize`. The whole of `dirac/oracle` runs about every 6 hours on `main`
+`TestStateSize`. The whole of `dirac/oracle` runs about every 2 hours on `main`
 ([`oracle.yml`](../../.github/workflows/oracle.yml)).
 
 ## Contributor guidelines
@@ -304,10 +304,12 @@ and BLB slices, the size bar, allocations and instructions per transition),
    importers) and `lint`, pass. Mergify batches up to 10 queued PRs on a
    `mergify/merge-queue/*` branch, where `ci.yml` runs the full suite once per
    batch: the six test shards (`scripts/ci_shard.sh`), `examples`, `wire-matrix`
-   and `dirac-slices`. The batch merges when `ci-ok` is green; a red batch is
+   `dirac-slices` and `oracle-sentinels`. The batch merges when `ci-ok` is green; a red batch is
    split. A fix for a red `main` goes on a `hotfix/*` branch (or takes the
    `hotfix` label) and jumps the queue. The whole `dirac/oracle` runs on `main`
-   about every 6 hours (`oracle.yml`); `ci.yml` also has a nightly run. The old
+   about every 2 hours (`oracle.yml`); `ci.yml` also has a nightly run. A test that
+   reddens main's oracle is appended to `dirac/oracle/testdata/sentinels.txt` (run in every batch) in its fix or
+   revert PR. The old
    landing train (`land` and `develop` branches, promote PRs) is retired. Never
    run an uncapped `go test ./...` or the whole oracle by hand.
 5. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests

@@ -1574,7 +1574,10 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 			return false
 		}
 	}
-	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p)
+	// A live reflected Amount$ source (Incubation Druid) has no relaxed
+	// alternative either (mana_reflamt.go): it clears the census's paid list,
+	// so a Signet beside it funds nothing.
+	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p) && !s.reflAmtLive(k, p)
 }
 
 // storeGapLive reports whether p controls an activatable lone storage
@@ -2215,6 +2218,13 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 		fs.tick()
 		return false
 	}
+	if k.gen != nil && k.gen.anyRepl&rbPlusDmg != 0 {
+		// gorge's script submits each step at priority, so the state-based
+		// check (CR 704.3) runs between steps: a step's pain damage
+		// redirected onto a creature (Pariah's Shield, CR 614.9) kills a
+		// 0/1 filter before the next step can tap it.
+		c.sba(k)
+	}
 	fs.path[fs.n] = st
 	fs.n++
 	if c.npend <= q {
@@ -2838,6 +2848,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if !fs.tick() {
 						return false
 					}
+					if t.filtHybAskNeeded(k, fs, sl) {
+						if fs.filtHybAsk(k, t, sl, funded) {
+							return true
+						}
+						continue
+					}
 					if fs.twoAbilityGap(k, t, sl, funded) {
 						return true
 					}
@@ -3052,6 +3068,16 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var d Decision
 	if !t.tapXNext(fs.p, &d) {
+		if t.over {
+			// a queued trigger's resolution killed the payer (Manabarbs' damage
+			// at the last life points, CR 704.5a): gorge's visit charges the
+			// dead priority as a node before it returns at the game over, so the
+			// line costs its node as try's own-pain death does, or a search that
+			// walked lethal triggers found a funding line at the budget's edge
+			// that gorge's spent budget never reached (tail-34-c000 pair 2: Vault
+			// of the Archangel beside Unknown Shores under Manabarbs at 2 life)
+			fs.tick()
+		}
 		fs.stallOf(t)
 		return false
 	}
@@ -3261,11 +3287,20 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 // that same ask (pay.ManaAbilityComboColours flattens the Combo into it,
 // mana_filterhybrid.go), so gorge visits no second prompt for them.
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int, asked bool) bool {
+	return fs.filtColoursOf(k, t, sl, funded, colAll, true)
+}
+
+// filtColoursOf is filtColours over the colour answers part names: all of
+// them, or only the colours the play's cost needs, or only the others (a
+// hybrid filter's flattened ask walks the needed colours, {C}, then the rest:
+// filtHybAsk). ask charges the colour ask's own node; the flattened ask has
+// been charged by its caller.
+func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part colPart, ask bool) bool {
 	if t.filtAb(k, sl).ManaEach {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if _, _, hyb := t.filtHyb(k, sl); !t.filtFixed(k, sl) && !hyb && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour; a hybrid-fee filter's ask lists one option a colour, no second ask: mana_filterhybrid.go)
+	if _, _, hyb := t.filtHyb(k, sl); ask && !t.filtFixed(k, sl) && !hyb && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour; a hybrid-fee filter's ask lists one option a colour, no second ask: mana_filterhybrid.go)
 		return false
 	}
 	if t.filtFixed(k, sl) {
@@ -3300,6 +3335,9 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int, asked 
 	}
 	for i := 0; i < n; i++ {
 		c := order[i]
+		if part == colNeeded && !fs.need[c] || part == colRest && fs.need[c] {
+			continue
+		}
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}

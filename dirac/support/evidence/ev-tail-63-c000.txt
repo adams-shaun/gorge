@@ -47,6 +47,7 @@ Barbed Shocker
 Bartizan Bats
 Become the Avalanche
 Belle of the Brawl
+Bifurcate
 Black Carriage
 Black Vise
 Blade-Blizzard Kitsune
@@ -513,7 +514,6 @@ Vicious Kavu
 Viper's Kiss
 Viridian Shaman
 Volcanic Fallout
-Wakeroot Elemental
 Wallop
 Wanderguard Sentry
 War Dance

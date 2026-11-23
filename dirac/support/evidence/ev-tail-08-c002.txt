@@ -27,7 +27,6 @@ Battle Sliver
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
@@ -102,7 +101,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Final Payment
 Fists of Flame
 Flare
@@ -336,7 +334,6 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental

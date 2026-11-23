@@ -6,8 +6,7 @@ package kgen
 //   - Spell.withDevoid lowers through filterWordPred3 (kop.W7WithDevoid, the
 //     printed CardDef.Devoid) like the other with<Keyword> words;
 //   - Spell.wasCastFromYourGraveyard lowers to the PredWasCastSpell origin
-//     spellYourGrave (lower.go reads it through lc.spellGraveOK, which
-//     manaRestrict sets for this filter only);
+//     spellYourGrave (spellSideCast, under manaRestrict's spellProvOK);
 //   - Activated.Equip names no object property in gorge: restrictValidTermMatches
 //     reads the tail as the object filter Card.Equip, whose unknown word
 //     matches nothing (effects.MatchesSpec fails closed), so Ronin, Shadow
@@ -35,9 +34,11 @@ func blankNeverClauses(f *lFilter, alts int, idx []int) bool {
 }
 
 // spellSideCast reads the effects-side wasCast words of clause c on a spell on
-// the stack (cmpWasCast -> cmpWasCastSpell): the bare and negated word, and
-// wasCastFromYourGraveyard where lc.spellGraveOK allows it. The other
-// graveyard spelling, the zero-spend word and webSlinged refuse.
+// the stack (cmpWasCast -> cmpWasCastSpell): the bare and negated word,
+// wasCastFromYourGraveyard (its ByYou spelling too: gorge reads both
+// by == you, cast_provenance.go:573) and the bare graveyard-origin word,
+// spellGrave (gorge ObjectWasCastFromGraveyard: the zone, a keyword cast
+// included). The zero-spend word and webSlinged refuse.
 func (lc *lowerCtx) spellSideCast(c *lClause, expr string) error {
 	if c.CmpN&wasCastSpentZero != 0 {
 		return refuse("filter %q: CastSa Spell.ManaSpent EQ0 on a spell", expr)
@@ -47,8 +48,14 @@ func (lc *lowerCtx) spellSideCast(c *lClause, expr string) error {
 	}
 	n := spellCast
 	switch {
-	case c.CmpN == wasCastYourGrave && lc.spellGraveOK:
+	case c.CmpN == wasCastYourGrave:
 		n = spellYourGrave
+	case c.CmpN == wasCastGrave:
+		n = spellGrave
+	case c.CmpN == wasCastHand|wasCastNot:
+		// !wasCastFromYourHandByYou on a spell: cast, from anywhere but a
+		// hand by you (gorge conditions.go's '!' of the ByYou word)
+		n = spellHandBy | spellNot
 	case c.CmpN&^wasCastNot != wasCastAny:
 		return refuse("filter %q: wasCastFromGraveyard on a spell", expr)
 	case c.CmpN&wasCastNot != 0:

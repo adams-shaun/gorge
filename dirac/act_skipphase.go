@@ -135,6 +135,9 @@ func (s *State) skipUntapTurn() {
 		}
 	}
 	s.step = kop.StepUpkeep
+	if k := s.k(); k.gen != nil && k.gen.anyBeginPhase {
+		s.step = s.phaseSkipNext(k, kop.StepUpkeep) // the landing StepChange meets a printed upkeep skip (repl_beginphase.go)
+	}
 }
 
 // drawStepSkipped reports whether the draw step about to begin does not happen:

@@ -54,10 +54,14 @@ func filterWordPred(p string) (n int, ok bool) {
 		// negation.
 		return int(kop.W7NotImprinted), true
 	}
-	z, found := strings.CutPrefix(p, "inZone")
+	z, found := strings.CutPrefix(p, "inRealZone") // gorge wordInZone: the live read inZone<X> is (filter_word.go:401-415)
+	if !found {
+		z, found = strings.CutPrefix(p, "inZone")
+	}
 	if !found {
 		return filterWordPred2(p) // lower_filterwords.go
 	}
+	z = strings.TrimSpace(z) // parseZone trims, so "inRealZone Graveyard" reads too (gorge's Mimic Vat spelling)
 	for _, w := range filterWordZones {
 		if w == z {
 			return int(kop.W7InZone) | int(thisTurnEnteredZoneWords[z])<<8, true

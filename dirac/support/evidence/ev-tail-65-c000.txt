@@ -25,6 +25,7 @@ Arcane Flight
 Arcbound Whelp
 Archon of Absolution
 Assault Zeppelid
+Assembly Hall
 Attunement
 Banewasp Affliction
 Bastion Protector

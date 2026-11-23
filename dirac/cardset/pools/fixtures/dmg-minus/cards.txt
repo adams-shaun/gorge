@@ -1,0 +1,10 @@
+# the DamageDone minus-one rewrite (Benevolent Unicorn) beside burn
+# (dirac/oracle/repl_modes_lockstep_test.go)
+Benevolent Unicorn
+Grizzly Bears
+Plains
+Forest
+Lightning Bolt
+Shock
+Mountain
+Swamp

@@ -82,6 +82,14 @@ func (s *State) plainCastPainOK(k *prep, p uint8, c CardID, o Obj, cost *kop.Man
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || k.gen == nil || !k.gen.anyTapsMana || cost.X != 0 || s.filtFeeGaps(k, s.scriptFilt(k, p)).any() {
 		return true
 	}
+	if s.g.availX&availGaps != 0 {
+		// The gaps walk lists the candidates gorge's prefix search tries: a land a Taps
+		// watcher defers is no planner unit, so the guard does not bind its taps, and
+		// the search itself prices the play (an instant is offered with the triggers
+		// still on the stack, CR 603.3; a sorcery-speed one dies at resolution,
+		// deferGapWalk's t.over).
+		return true
+	}
 	return s.kickedPotentialPainOK(k, p, c, o, cost)
 }
 

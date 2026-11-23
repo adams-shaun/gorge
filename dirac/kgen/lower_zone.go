@@ -4362,9 +4362,9 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
 	// read the spell being paid for: allowed on this filter only, never
 	// the Activated one (gorge restrictValidTermMatches)
-	save, saveGrave := lc.spellProvOK, lc.spellGraveOK
-	lc.spellProvOK, lc.spellGraveOK = true, true
-	defer func() { lc.spellProvOK, lc.spellGraveOK = save, saveGrave }()
+	save := lc.spellProvOK
+	lc.spellProvOK = true
+	defer func() { lc.spellProvOK = save }()
 	var spellClauses, staticClauses []lClause
 	var act []string
 	var never []int // act terms that match nothing (lower_restrictedmana_words.go)
@@ -4430,7 +4430,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			return refuse("mana restriction %q", rv)
 		}
 	}
-	lc.spellProvOK, lc.spellGraveOK = save, saveGrave
+	lc.spellProvOK = save
 	m.Restrict = nil
 	if len(spellClauses)+len(staticClauses) > 0 {
 		m.Restrict = &lFilter{Clauses: append(spellClauses, staticClauses...)}

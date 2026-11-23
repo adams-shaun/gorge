@@ -643,7 +643,10 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	var f kop.FilterID
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
+		// only a static that prices the card's own cast (ZoneCommand): a
+		// battlefield one the card carries (Strong Back's "Aura spells that
+		// target enchanted creature") prices other spells, bfTgtReduce's census
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone == kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
 			f = a.Static.Filter2
 		}
 	}

@@ -963,6 +963,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
+		} else if in.B.N == kop.ChooseTypeRandomDeck {
+			// the AtRandom$ CreatureInTargetedDeck shape (Aswan Jaguar):
+			// gorge poses no ask, the engine draws the type over the target
+			// opponent's deck's creature subtypes and stores it as the
+			// source's chosen type (act_randomdecktype.go)
+			s.randomDeckType(k, in)
 		} else {
 			s.res.ask, s.res.askP = raChooseType, e.ctrl
 			return false, true
@@ -2651,7 +2657,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, CodeSeat(code), n)
+				s.loseLifeDmg(k, CodeSeat(code), n)
 			}
 			s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 			toPl = true
@@ -2692,11 +2698,14 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
+	lis := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg
+	if lis || k.embDmg() {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		agg.dn = dn[:len(codes)]   // each recipient's share, an AtLeastOneInstance$ gate's read (trig_atleastone.go)
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
+			if lis { // an emblem alone fires per recipient, below
+				s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
+			}
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, TCode(NoTarget), &agg)
 		}

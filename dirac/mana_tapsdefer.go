@@ -290,6 +290,33 @@ func (s *State) tapsDeferLethal(k *prep, p uint8, sl Slot) bool {
 	return pain > 0 && pain >= s.painPlanLife(p)
 }
 
+// playLifeNotSurvived reports whether play a is an activation whose own fixed
+// PayLife<N> reaches p's life as it stands after a script prefix: gorge's
+// harness replays the prefix and re-prices the play, and the planner's lethal
+// guard (pain >= life) prices no activation that would pay the whole life
+// total, so the line the search found is a dead end (CR 119.4, 601.2g;
+// dr-mbc The Cauldron of Eternity beside Burning Earth at 3 life).
+func (s *State) playLifeNotSurvived(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkActivate {
+		return false
+	}
+	o := Obj(a.Source())
+	if o == 0 || int(o) >= len(s.objs) {
+		return false
+	}
+	c := s.objs[o].card
+	ai := int(a.Mode())
+	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
+		return false
+	}
+	ab := &k.t.Cards[c].Abilities[ai]
+	if ab.Kind == kop.AbMana || ab.Cost.Flags&kop.CostPayLife == 0 {
+		return false
+	}
+	owed := lifeCostOwed(&ab.Cost)
+	return owed > 0 && int(s.pl[SeatIx(p)].life) <= owed
+}
+
 // availLeavesOut reports whether availFor left the planner-deferred source at
 // sl out of the availability its walk is building: a deferred source is no
 // census unit (gorge's census never lists it) and only the any-mana and gaps
@@ -1191,6 +1218,9 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 						t.pl[SeatIx(p)].pool[c] -= spill[c] // restricted mana the byte spilled pays nothing either
 					}
 					*dead = !t.scriptCompletes(k, p, a)
+				}
+				if t.playLifeNotSurvived(k, p, a) {
+					*dead = true // the prefix's damage left no life above the play's own life cost: the planner prices no such play
 				}
 				s.unfork()
 				for i := range *pick {

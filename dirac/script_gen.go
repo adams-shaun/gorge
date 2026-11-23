@@ -330,6 +330,15 @@ func plainCastMode(a Action) bool {
 	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
 }
 
+// modalPricedAtPrinted reports a cast whose Spree or Tiered mode costs gorge's
+// potential planner leaves out: a may-play or a flashback cast, composed at
+// its printed cost by potentialModeCastPlan (the "shape:modal_cost" decline
+// is the plain cast's), so its prefix search runs whatever the cheapest
+// mode adds (Great Train Heist's flashback beside a Conduit Pylons).
+func modalPricedAtPrinted(a Action) bool {
+	return a.Mode()&castMayPlay != 0 || a.Mode()&3 == 2
+}
+
 // ctrGapCastMode reports whether a is the printed-cost cast a live
 // counter-cost gap can be load-bearing for beside a filter: not an overload
 // cast (mode 0, target castOverloadTgt), whose cost gorge's offer gates price.
@@ -497,8 +506,8 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if plainCastMode(a) && s.plainCastUnsearched(k, p, a) {
 			continue // gorge runs no prefix search for it: the printed sources pay it but the witness eats a target (witness_unreachable, mana_sacsource.go), or the shape is additional_cost and the composition is its only witness, an insufficient one dropped (potentialPlayVerdictShared)
 		}
-		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && a.Mode()&castMayPlay == 0 && !s.modalFloorFree(k, p, s.objs[Obj(a.Source())].card)) {
-			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana (a may-play cast is priced at its printed cost: potentialPlayVerdictShared's mayplay arm)
+		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && !modalPricedAtPrinted(a) && !s.modalFloorFree(k, p, s.objs[Obj(a.Source())].card)) {
+			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana (a may-play or flashback cast is priced at its printed cost: potentialPlayVerdictShared's mayplay arm, and potentialModeCastPlan for a "flashback" mode)
 		}
 		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
@@ -971,6 +980,15 @@ func plainPricedCost(ab *kop.Ability) bool {
 func sacPricedCost(ab *kop.Ability) bool {
 	return ab.Cost.Flags&kop.CostSac != 0 &&
 		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf)
+}
+
+// sacSelfPricedCost is plainPricedCost for a cost whose only non-plain part is
+// the source's own sacrifice ("{1}{W}, {T}, Sacrifice this land"): it asks
+// nothing, so the prefix search funds its mana part like any activation's
+// (CR 602.2b, 605.3a), the source's {T} among the cost's taps (actScriptPays).
+func sacSelfPricedCost(ab *kop.Ability) bool {
+	return ab.Cost.Flags&kop.CostSacSelf != 0 && ab.Cost.Flags&kop.CostSac == 0 &&
+		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX)
 }
 
 // pricedCostBits is the plain-cost test with bad the flag bits the caller

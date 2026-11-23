@@ -21,6 +21,7 @@ func TestWascastspellLowering(t *testing.T) {
 		{"Card.!wasCastFromYourHand", spellHand | spellNot},
 		{"Card.wasCastFromYourHand", spellHand},
 		{"Card.wasCastFromExile", spellExile},
+		{"Card.wasCastFromGraveyard", spellGrave},
 		{"Card.wasCast+!wasCastFromYourHand", spellNotHand},
 		{"Card.!wasCastFromYourHand+wasCast", spellNotHand},
 		{"Card.wasCast+wasCastFromExile", spellExile},
@@ -55,8 +56,10 @@ func TestWascastspellRefusals(t *testing.T) {
 	for name, lines := range map[string]string{
 		"static":          "S:Mode$ Continuous | Affected$ Creature.YouCtrl+wasCastFromExile | AddPower$ 1",
 		"not cast + from": strings.Replace(kwsTrig, "%s", "Card.!wasCast+wasCastFromExile", 1),
-		"graveyard word":  strings.Replace(kwsTrig, "%s", "Card.wasCastFromGraveyard", 1),
-		"trigger body":    "T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ ProbeDraw\nSVar:ProbeDraw:DB$ Draw | NumCards$ 1 | ConditionDefined$ Self | ConditionPresent$ Card.wasCastFromExile",
+		// the bare graveyard-origin word lowers now (spellGrave, gorge
+		// ObjectWasCastFromGraveyard: the zone, a keyword cast included;
+		// Laquatus's Disdain) -- TestWascastspellLowering names it
+		"trigger body": "T:Mode$ Phase | Phase$ Upkeep | TriggerZones$ Battlefield | Execute$ ProbeDraw\nSVar:ProbeDraw:DB$ Draw | NumCards$ 1 | ConditionDefined$ Self | ConditionPresent$ Card.wasCastFromExile",
 	} {
 		refs, preds := kwascastLower(t, lines)
 		if len(refs) == 0 {

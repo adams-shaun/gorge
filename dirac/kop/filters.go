@@ -316,6 +316,17 @@ const OvChosenType = 3
 // chosen type's matchup subtype index.
 const ChooseTypeBasicLand = 2
 
+// ChooseTypeRandomDeck, in a mid-resolution OpChooseType's B field: the
+// AtRandom$ Type$ CreatureInTargetedDeck shape (Aswan Jaguar's enters
+// trigger, "choose a random creature type from those in target opponent's
+// deck"). gorge effChooseType's AtRandom arm poses no ask: the option list is
+// the sorted creature subtypes the resolution's player target's library
+// prints, one word is taken whole and two or more draw the engine rng once
+// (gorge labels[h.Rand(len(labels))]); the answer is the source's chosen type
+// (dirac act_randomdecktype.go). C names the target slot the deck belongs to
+// (a kop RefTarget: ValidTgts$ Opponent, the resolution's chosen target).
+const ChooseTypeRandomDeck = 3
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 
@@ -828,7 +839,11 @@ const PredWasCastEnter Pred = 248
 // (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read), 6 cast for its
 // mayhem cost, 7 cast from a graveyard by the reading player
 // (wasCastFromYourGraveyard, read only by a mana restriction: Lord of the
-// Forsaken);
+// Forsaken), 8 cast from a graveyard, any caster (wasCastFromGraveyard,
+// gorge ObjectWasCastFromGraveyard's !IsCopy included: a prepared copy
+// reads false; Ash Zealot, Laquatus's Disdain), 9 cast from a library by
+// the reading player (wasCastFromYourLibrary, gorge castOriginTokens:
+// Melek, Izzet Paragon, Wickerwing Effigy);
 // bit 4 (16) negates the whole read. A spell's origin zone is
 // stackEntry.prov (genPrep.anyCastProv).
 const PredWasCastSpell Pred = 247

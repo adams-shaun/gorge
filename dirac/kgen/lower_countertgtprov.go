@@ -8,7 +8,8 @@ package kgen
 // cast, and a copy that was never cast reads false for the positive word, true
 // for the negated one in both. wasCastFromTheirHand is the same predicate as
 // wasCastFromYourHand there (a cast from a hand, any caster). Only the hand
-// (1), exile (3) and cast-not-from-hand (4) families lower; ByYou, bare
+// (1), exile (3), cast-not-from-hand (4) and graveyard-origin (8, gorge
+// ObjectWasCastFromGraveyard; Laquatus's Disdain) families lower; ByYou, bare
 // wasCast, MayPlaySource and Mayhem read the chooser or more state, and refuse.
 func (lc *lowerCtx) counterTgtFilter(tt, vt string) (*lFilter, error) {
 	if tt != "Spell" {
@@ -25,7 +26,7 @@ func (lc *lowerCtx) counterTgtFilter(tt, vt string) (*lFilter, error) {
 		if c.CmpStat != cmpWasCastSpell {
 			continue
 		}
-		if n := c.CmpN & 15; n != spellHand && n != spellExile && n != spellNotHand {
+		if n := c.CmpN & 15; n != spellHand && n != spellExile && n != spellNotHand && n != spellGrave {
 			return nil, refuse("Counter ValidTgts %q: cast provenance outside the origin families", vt)
 		}
 	}
