@@ -56,8 +56,12 @@ ALWAYS = ("./internal/archtest", "./internal/codeshape")
 # by the recording's basename in the package's _test.go files) plus the fallback families below: the table
 # tests that glob the directory and the per-pool lockstep replays (about a minute, not the whole package).
 REPRO_DIR = "dirac/oracle/testdata/repro/"
-# The one Go test that replays the recordings marked "named":true, a subtest each (repro_manifest_test.go).
+# The Go tests that replay the recordings marked "named":true, a subtest each (repro_manifest_test.go): the
+# shards TestReproManifest0..7. MANIFEST_TEST is their common prefix, so an unanchored -run element
+# (TestReproManifest/<recording>) selects the recording in whichever shard holds it; MANIFEST_RX is every
+# shard as one element of an anchored ^(...)$ list.
 MANIFEST_TEST = "TestReproManifest"
+MANIFEST_RX = MANIFEST_TEST + "[0-9]+"
 # The per-pool lockstep replays (a pool's recordings are replayed by one glob test, one subtest per
 # recording, named by the recording's file name). TF-01 slices them by subtest like the manifest (a
 # test-level slice cannot bound them: TestStdPoolReprosLockstepFull replays nine pools' recordings in
@@ -481,10 +485,11 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     for p, names in (repro_names or {}).items():
         if names:
             if reprosel is None:
-                # full coverage: a subtest path (TestReproManifest/<name>) runs as its parent, as
-                # before (a '/' in -run would filter the subtests of every other selected test, but
+                # full coverage: a subtest path (TestReproManifest/<name>) runs as every manifest
+                # shard (MANIFEST_RX), as the one parent test ran before (a '/' in -run would filter the subtests of every other selected test, but
                 # the manifest is the only test here whose subtests matter)
-                named.setdefault(p, set()).update(n.split("/", 1)[0] for n in names)
+                named.setdefault(p, set()).update(
+                    MANIFEST_RX if n.split("/", 1)[0] == MANIFEST_TEST else n.split("/", 1)[0] for n in names)
             else:
                 # the slice's -run matches the manifest test alone, so the subtest keeps its path and
                 # no other selected test's subtests are filtered to it (see replay_part)
@@ -841,7 +846,7 @@ def replay_sel(dirmap, sha):
             m = _TESTFN.match(ln)
             if m:
                 n = m.group(1)
-                if re.match(REPLAYS, n) and not whole.match(n) and n != MANIFEST_TEST and n not in globs:
+                if re.match(REPLAYS, n) and not whole.match(n) and not n.startswith(MANIFEST_TEST) and n not in globs:
                     tests.add(n)
     return {"named": named, "pools": pools, "globs": globs, "tests": tests,
             "slow": set(slow_repros()), "sha": sha}

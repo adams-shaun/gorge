@@ -885,12 +885,15 @@ def test_repro_named_maps_a_named_recording_to_its_manifest_subtest(repo):
 
 def test_plan_runs_a_manifest_subtest_as_its_parent_test():
     # `-run` splits at a slash outside brackets, so a `TestReproManifest/x` element would filter the subtests of
-    # the REPRO_TESTS tests too; the plan selects the parent and the whole manifest runs (about a minute)
+    # the REPRO_TESTS tests too; the plan selects the parents, every manifest shard (TestReproManifest0..7), and the
+    # whole manifest runs
     recording = "dirac/oracle/testdata/repro/marked.repro.json"
     got, _ = planned({recording: None}, repro_names={"m/dirac/oracle": {"TestReproManifest/marked"}})
     kind, rx = got["./dirac/oracle"]
-    assert kind == "named" and rx.startswith("^(TestReproManifest)$|")
+    assert kind == "named" and rx.startswith("^(TestReproManifest[0-9]+)$|")
     assert "/" not in rx
+    for k in range(8):
+        assert re.match(rx, "TestReproManifest%d" % k)
     for name in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
         assert name in rx
 

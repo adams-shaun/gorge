@@ -187,7 +187,7 @@ def test_a_changed_recording_alone_replays_itself_and_the_slice_not_the_manifest
                   reprosel=sel(sha=sha_in_lane((zlib.crc32(rec.encode()) + 1) % 4)))
     kind, rx = oracle(res)
     assert rec in manifest_names(res)
-    assert not re.search(rx, "TestReproManifest")  # the manifest does not fold into the shared -run
+    assert not re.search(rx, "TestReproManifest3")  # the manifest does not fold into the shared -run
     # a recording change replays the other replay tests' slice too (as the blanket did)
     assert any(re.search(rx, t) for t in REPRO_TESTS if t != SLOW_TEST)
 
