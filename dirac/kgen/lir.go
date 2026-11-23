@@ -1425,6 +1425,7 @@ type lCard struct {
 	Bargain        bool            // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool            // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	HandMana       uint8           // a Spirit Guide's hand-zone mana ability (exile this card from your hand: add one fixed colour), CardDef.HandMana (lower_handmana.go)
+	GraveMana      uint8           // a graveyard mana source's colours (1 + exile this card from your graveyard: add one mana of any colour), CardDef.GraveMana (lower_gravemana.go)
 	BeholdN        int             // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
 	BeholdF        *lFilter
 	BeholdExile    bool

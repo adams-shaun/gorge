@@ -473,6 +473,7 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			// (lower_handmana.go)
 			continue
 		}
+		lc.graveManaLine(a) // lower_gravemana.go: the byte only; the line still lowers (and is refused) below
 		n := len(out.Abilities)
 		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
 			entered := lc.chains
