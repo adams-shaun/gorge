@@ -212,10 +212,10 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 			}
 			continue
 		}
+		if s.g.availX&availNoStore != 0 && unlessUnpriced(a) {
+			continue // an unless cost's window prices no battery nor any-colour counter source (mana_unlessnostore.go)
+		}
 		if kop.StoreManaAb(a) {
-			if s.g.availX&availNoStore != 0 {
-				continue // an unless cost's window prices no battery (mana_unlessnostore.go)
-			}
 			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
 			if n > 255 {
 				s.capFull(StallDynMana)
@@ -321,7 +321,7 @@ func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
 		return false
 	}
 	a := k.ctrAbOf(s.cardAt(o))
-	return a != nil && kop.StoreManaAb(a) // a == nil: a non-ctr gap mixed into censusPayGaps' otherGaps mask (Remote Farm, Vivid Grove)
+	return a != nil && unlessUnpriced(a) // a == nil: a non-ctr gap mixed into censusPayGaps' otherGaps mask (Remote Farm, Vivid Grove)
 }
 
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
