@@ -61,9 +61,9 @@ func TestGraveyardCastNeedAnnouncesTheCastsCost(t *testing.T) {
 		if _, _, ok := sc.s.playBaseCost(sc.k, a); ok {
 			t.Fatal("precondition: playBaseCost prices the mayhem cast, so the test does not reach the hint")
 		}
-		need := sc.s.playNeed(sc.k, a)
+		need := sc.s.playNeedHint(sc.k, a)
 		if !need[kop.W] || need[kop.B] || need[kop.C] {
-			t.Fatalf("playNeed of the mayhem cast %v, want the mayhem cost's {W} pip alone", need)
+			t.Fatalf("playNeedHint of the mayhem cast %v, want the mayhem cost's {W} pip alone", need)
 		}
 	})
 	t.Run("harmonize", func(t *testing.T) {
@@ -72,9 +72,9 @@ func TestGraveyardCastNeedAnnouncesTheCastsCost(t *testing.T) {
 		if _, _, ok := sc.s.playBaseCost(sc.k, a); ok {
 			t.Fatal("precondition: playBaseCost prices the harmonize cast, so the test does not reach the hint")
 		}
-		need := sc.s.playNeed(sc.k, a)
+		need := sc.s.playNeedHint(sc.k, a)
 		if !need[kop.B] || need[kop.U] || need[kop.C] {
-			t.Fatalf("playNeed of the harmonize cast %v, want the harmonize cost's {B} pip alone", need)
+			t.Fatalf("playNeedHint of the harmonize cast %v, want the harmonize cost's {B} pip alone", need)
 		}
 	})
 }
