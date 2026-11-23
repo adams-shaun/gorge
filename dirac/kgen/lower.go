@@ -480,7 +480,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 			// (lower_handmana.go)
 			continue
 		}
-		lc.graveManaLine(a) // lower_gravemana.go: the byte only; the line still lowers (and is refused) below
+		if !perm && lc.graveManaLine(a) {
+			// a Jack-o'-Lantern grave mana line: CardDef.GraveMana, no
+			// ability (lower_gravemana.go) -- the kernel's payment window
+			// and the prefix search's funding pass read the byte
+			// (dirac/mana_gravemana.go), so a lowered mana ability would be
+			// one the kernel's mana walk cannot honour
+			continue
+		}
 		n := len(out.Abilities)
 		lc.guard(fmt.Sprintf("A[%d] %s$ %s", i, a.Kind, a.API), func() error {
 			entered := lc.chains
