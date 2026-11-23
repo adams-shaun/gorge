@@ -334,7 +334,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if n <= 0 {
 			break // gorge effSacrifice: an Amount$ of 0 or less sacrifices nothing and asks nothing
 		}
-		src := s.resSrcSlot(k)
+		src := s.resSrcSlotStanding()
 		cnt := s.countSac(k, p, in.F, src)
 		if cnt <= n {
 			if cnt >= 2 {
@@ -940,7 +940,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChSacrifice
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
+			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlotStanding()) && !s.g.sacM.has(sl) {
 				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
