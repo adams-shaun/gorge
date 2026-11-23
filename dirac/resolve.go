@@ -127,12 +127,6 @@ func (s *State) resolveTop(k *prep) {
 			}
 		}
 		if chosen && !any {
-			if dbgRandomDeck {
-				print("kernel fizzle: kind=", int(e.kind), " obj=", int(e.obj), " card=", int(e.card), " ab=", int(e.ab), " nt=", int(e.nt), "\n")
-				for i := 0; i < int(e.nt); i++ {
-					print("   tgt", i, "=", int(e.tgt[i]), " legal=", s.targetStillLegal(k, &e, i), "\n")
-				}
-			}
 			s.finishResolve(k, true)
 			return
 		}

@@ -532,3 +532,29 @@ func (s *State) chosenCardTypeHas(t kop.TypeMask) bool {
 	ch := s.res.chosen
 	return int(ch) < len(cardTypeChoice) && t&cardTypeChoice[ch].bit != 0
 }
+
+// stackSrcChosenLKI snapshots a permanent that records a chosen type as it
+// leaves the battlefield, for each activated ability of it still on the stack
+// (CR 608.2h; gorge sourceCharLKI takes one for every stack object of the
+// departing source, and sourceChosen binds SourceChosenType from it). The
+// ability's Creature.ChosenType target and effect then keep reading the
+// source's last known choice (srcChosen) after the source died in response
+// (Aswan Jaguar destroyed by another Jaguar's resolved ability). Triggers
+// carry theirs from the queueing; an entry that already has a record keeps it.
+func (s *State) stackSrcChosenLKI(o Obj) {
+	ver := s.objs[o].ver
+	li := uint8(0)
+	for i := 0; i < int(s.sp); i++ {
+		e := &s.stack[i]
+		if e.kind != seAbility || e.obj != o || e.srcVer != ver || e.li != 0 {
+			continue
+		}
+		if li == 0 {
+			li = s.snapLKI(o)
+			if li == 0 {
+				return
+			}
+		}
+		e.li = li
+	}
+}

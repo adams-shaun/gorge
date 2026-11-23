@@ -1,14 +1,10 @@
 package dirac
 
 import (
-	"os"
 	"sort"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
-
-// dbgRandomDeck is a temporary diagnosis print.
-var dbgRandomDeck = os.Getenv("GORGE_DEBUG_RANDOMDECK") != ""
 
 // randomDeckType is OpChooseType with B = ChooseTypeRandomDeck: the AtRandom$
 // Type$ CreatureInTargetedDeck pick (Aswan Jaguar). gorge effChooseType's
@@ -66,16 +62,6 @@ func (s *State) randomDeckType(k *prep, in *kop.Instr) {
 		code = list[0] // no draw: gorge takes the one word whole
 	default:
 		code = list[s.rng.IntN(len(list))]
-	}
-	if dbgRandomDeck {
-		print("randomdeck: ctrl=", s.res.e.ctrl, " list=[")
-		for i, si := range list {
-			if i > 0 {
-				print(",")
-			}
-			print(k.t.Subtypes[si])
-		}
-		print("] picked=", k.t.Subtypes[code], "\n")
 	}
 	r := &s.res
 	r.chosen = objWord(code)
