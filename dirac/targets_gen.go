@@ -192,6 +192,13 @@ func (s *State) emptyTargetSetPayable(k *prep) bool {
 	if full == zero && !s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
 		return true
 	}
+	if b.pickN > 0 && s.tapPaysEntry(k, e) {
+		// a convoke cast with creatures already announced: they pay their
+		// share of the cost and are withheld from the window, as at payment
+		// (gorge paymentStranded reads pc.Convoke; convokeTargetAbort)
+		zero = s.convokeApplyPicks(k, zero)
+		return !s.targetWindowShort(k, e, &zero, true)
+	}
 	var av avail
 	s.availForBuilt(k, e, &av) // the floating restricted mana the spell may spend counts too
 	return av.affords(&zero, pipMaskOf(&zero), 0)
