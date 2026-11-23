@@ -104,6 +104,12 @@ type WindowAlt struct {
 	// must not follow this alternative with a no-tap sacrifice Extra
 	// (cast_window.go's castWindowTryAlternative).
 	SelfSac bool
+	// Repeat marks a repeatable fee-only activation (Nomadic Elf's "{1}{G}:
+	// Add one mana of any color"): no {T}, no sacrifice and no limit, so a
+	// payment activates it as often as it can fund the fee (CR 605.3a,
+	// 602.2b). UnlessManaReachable's walk may take the alt again from the
+	// same unit; every other alt is taken once.
+	Repeat bool
 }
 
 // Fee is the alt's activation fee as one mana count, generic and coloured.

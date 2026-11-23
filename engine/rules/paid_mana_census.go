@@ -382,7 +382,9 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 			// The fee's self-sacrifice shape is priced here, at the one call
 			// that owns the engine: the alts builder below stays free of it.
 			selfSac := pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, fee)
+			repeat := repeatableFeeOnlyMana(e, p, id, ma)
 			for _, a := range unlessFeeAlts(ma, fmf, fee, selfSac) {
+				a.Repeat = repeat
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
