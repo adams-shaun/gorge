@@ -235,6 +235,9 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			n += potentialUnboundedUnits
 		}
 	}
+	if k.gen.anyEachCol && s.eachGapOpen(k, p) {
+		n += potentialUnboundedUnits
+	}
 	if k.gen.anyDeferred {
 		// a deferred source's {R} (mana_deferred.go): gorge's PotentialMana
 		// counts it, so Pyromancer's Goggles alone funds Three Tree Mascot's {1}
@@ -371,3 +374,18 @@ const potentialUnboundedUnits = 1 << 20
 // DebugComboAnyNoPotential (mutation test only): a Combo Any source adds
 // nothing to the potential mana a first-only filter's fee draws on.
 var DebugComboAnyNoPotential bool
+
+// eachGapOpen: p has an activatable each-colour source (Faeburrow Elder,
+// "Produced$ Special EachColorAmong_Valid ..."). gorge's PotentialMana folds
+// the ability through addPotentialMana (potential.go; computePotentialManaAdd),
+// where producedOpen("Special...") is true: the source prices unbounded in every
+// colour, so it alone covers a first-only filter's fee (Orzhov Signet's {1},
+// CR 605.3a, 601.2g) and the filter is a census gap beside it. DebugEachGapNoPotential
+// (mutation test only) leaves it uncounted.
+func (s *State) eachGapOpen(k *prep, p uint8) bool {
+	return !DebugEachGapNoPotential && s.scriptGaps(k, p).any()
+}
+
+// DebugEachGapNoPotential (mutation test only): an each-colour source adds
+// nothing to a first-only filter's fee cover (filtOtherMana).
+var DebugEachGapNoPotential bool
