@@ -657,6 +657,13 @@ var etbOptionsCodes = state.NewStrCodes(
 	state.StrEntry[etbOptionsCode]{Key: "evenodd", Val: etbOptionsEvenodd},
 )
 
+// The Keyword$ value of an as-enters replacement and the etbChoiceKind word of
+// a Clone body, named once for the static probe below.
+const (
+	etbReplacementKeyword = "ETBReplacement"
+	etbKindCopy           = "copy"
+)
+
 // ETBChoiceAsks reports whether a battlefield entry of c can pose an
 // as-enters choice -- the shape landEntryParked holds an entry in while its
 // answer is outstanding. It is the static half of faceETBChoice, read off the
@@ -680,7 +687,7 @@ func ETBChoiceAsks(c *cards.Card) bool {
 			if r.With == nil {
 				continue
 			}
-			if r.ParamStr(cards.PKKeyword) != "ETBReplacement" {
+			if r.ParamStr(cards.PKKeyword) != etbReplacementKeyword {
 				// The non-keyword pay-life shape faceETBChoice offers.
 				if etbPayLifeShape(f, r.With) {
 					return true
@@ -691,7 +698,7 @@ func ETBChoiceAsks(c *cards.Card) bool {
 				continue
 			}
 			if kind := etbChoiceKind(r.With.API); kind != "" {
-				if kind != "copy" || effects.CloneETBOffered(r.With, f.SVars) {
+				if kind != etbKindCopy || effects.CloneETBOffered(r.With, f.SVars) {
 					return true
 				}
 				continue
