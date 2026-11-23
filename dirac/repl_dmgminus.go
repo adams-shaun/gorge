@@ -161,3 +161,18 @@ func (s *State) dmgRewriteClash(minus, set, doublers int) {
 		s.capFull(StallReplPlus)
 	}
 }
+
+// dmgRewritePrevClash caps loudly when a minus/set rewrite matched a combat
+// event that a prevention also matches (the source's granted prevention, an
+// Effect in gorge: Benalish Missionary; the recipient's printed or granted
+// prevent-all, or its shield counter): gorge asks the CR 616.1 order between
+// the rewrite and the prevention, and the kernel prevents after rewriting
+// without the ask (StallReplPlus, as dmgRewriteClash).
+func (s *State) dmgRewritePrevClash(k *prep, hits int, srcSl, sl Slot, combat bool) {
+	if hits == 0 || !combat || k.gen == nil || srcSl == NoSlot {
+		return
+	}
+	if s.prevFromGrant(k, srcSl) || sl != NoSlot && (s.prevCombatTo(k, sl) || k.gen.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, true)) {
+		s.capFull(StallReplPlus)
+	}
+}
