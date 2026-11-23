@@ -352,15 +352,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// gorge checkAttackerBlockedTriggers: once per distinct blocked
 		// attacker matching ValidCard$; ValidBlocker$ Card.Self ("whenever
 		// this blocks a creature"), only the attackers the source blocks;
-		// any other ValidBlocker$ (and ValidBlockerAmount$) refuses
+		// any other ValidBlocker$ is a filter over the attacker's blockers
+		// (lower_modeparams.go blockerScope); ValidBlockerAmount$ refuses
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
 		}
-		if vb, ok := tp.get("ValidBlocker"); ok {
-			if vb != "Card.Self" {
-				return refuse("AttackerBlocked ValidBlocker %q", vb)
-			}
-			tr.BlockedBySelf = true
+		if err := lc.blockerScope(tp, tr, readF); err != nil {
+			return err
 		}
 	case "AttackerUnblocked":
 		// gorge checkAttackerUnblockedTriggers: at the declare-blockers

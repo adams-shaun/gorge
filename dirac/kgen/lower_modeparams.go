@@ -81,3 +81,30 @@ func (lc *lowerCtx) drawnScope(tp *params, tr *lTrigger) error {
 	}
 	return nil
 }
+
+// blockerScope lowers an AttackerBlocked line's ValidBlocker$ (gorge
+// attackerBlockedCandidates, rules/trigger_blocks.go): ValidCard$ is read
+// against the blocked attacker and ValidBlocker$ against that attacker's
+// blockers in this declaration; the attacker qualifies when at least one of
+// them matches, and the trigger fires once per such attacker. Card.Self is
+// the blocker-anchored "whenever this blocks a creature" flag; every other
+// spelling is the filter the kernel reads off Trigger.Filter2 (the same slot
+// the by-creature pair mode reads its blocker from), matched with the
+// listener as the filter's source (Card.EquippedBy, Creature.Artifact).
+func (lc *lowerCtx) blockerScope(tp *params, tr *lTrigger, readF func(string) (*lFilter, error)) (err error) {
+	vb, ok := tp.get("ValidBlocker")
+	if !ok {
+		return nil
+	}
+	if vb == "Card.Self" {
+		tr.BlockedBySelf = true
+		return nil
+	}
+	if tr.F2, err = readF("ValidBlocker"); err != nil {
+		return err
+	}
+	if tr.F2 == nil || tr.F2.Players != 0 || len(tr.F2.Clauses) == 0 {
+		return refuse("AttackerBlocked ValidBlocker %q", vb)
+	}
+	return nil
+}
