@@ -1620,6 +1620,9 @@ func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 }
 
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
+	if !apply && s.reflAmtBeyondBound(k, p, a) {
+		return false // gorge's potential walk never lists a play its bound leaves short (a reflected Amount$ source is {C} there; reflAmtBeyondBound)
+	}
 	memo := s.filtMemoLookup(k, a, p, apply)
 	if memo.hit && !DebugFiltMemoCheck {
 		return false // this game already failed this play's search in this transition (mana_filtmemo.go)

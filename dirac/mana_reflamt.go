@@ -293,19 +293,47 @@ func reflWidePlay(a Action) bool {
 // keeps the painful production whole, so scriptOffers searches the plays it
 // pays beside the gaps walk's.
 func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
-	live := false
-	for b := s.caGaps(k, p); b.any() && !live; b = b.rest() {
-		live = k.isReflAmt(s.cardAt(b.first()))
-	}
-	if !live {
+	if !s.reflAmtLive(k, p) {
 		return false
 	}
+	paid, ok := s.reflAmtBoundPays(k, p, a)
+	return ok && paid
+}
+
+// reflAmtLive reports whether p controls a reflected Amount$ source that can
+// be activated now.
+func (s *State) reflAmtLive(k *prep, p uint8) bool {
+	for b := s.caGaps(k, p); b.any(); b = b.rest() {
+		if k.isReflAmt(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflAmtBoundPays reports whether gorge's PotentialMana bound pays play a
+// (ok false: the play's cost is not priced here).
+func (s *State) reflAmtBoundPays(k *prep, p uint8, a Action) (paid, ok bool) {
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
 	if !ok {
-		return false
+		return false, false
 	}
 	var pot avail
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
-	return pot.affords(&cost, pipMaskOf(&cost), 0)
+	return pot.affords(&cost, pipMaskOf(&cost), 0), true
+}
+
+// reflAmtBeyondBound reports whether play a is one a live reflected Amount$
+// source alone would pay, past gorge's bound: the bound folds the source as
+// {C} only (reflAmtPotential), so a coloured pip only its reflected mana
+// funds (the {B} of Whisper Squad's {1}{B} off tapped Swamps, CR 106.7) is
+// in no potential walk of gorge's, and gorge offers no activation or cast
+// for it though the gaps walk lists it.
+func (s *State) reflAmtBeyondBound(k *prep, p uint8, a Action) bool {
+	if !s.reflAmtLive(k, p) {
+		return false
+	}
+	paid, ok := s.reflAmtBoundPays(k, p, a)
+	return ok && !paid
 }
