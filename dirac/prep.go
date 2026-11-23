@@ -123,7 +123,11 @@ type prep struct {
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
 	embPrev bool
-	cda     bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// embExileLeave: some emblem carries a battlefield-origin dies-to-exile
+	// replacement (tableEmbHasExileLeave, repl_exileleaveemb.go); on prep,
+	// not genPrep, so the pinned fixed-State inventory is unchanged
+	embExileLeave bool
+	cda           bool // some card has a characteristic-defining P/T (StatCDAPT)
 	// grantSrcCard: per card, a Continuous static grants a mana ability,
 	// whoever it applies to (prepTokMana; contGrantLive); contGrantAlways: a
 	// mana grant no battlefield card marks (an override record's, a printed
@@ -529,6 +533,7 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.embPrev = tableEmbHasStaticPrev(t)
+	p.embExileLeave = tableEmbHasExileLeave(t)
 	p.gen = prepareGen(t, p)
 	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
 	p.gyCont = tableHasGyCont(t)

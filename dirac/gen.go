@@ -1781,7 +1781,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
-	prepEmbPrev(p, g)   // repl_staticprevent_emblem.go
+	prepEmbRepls(p, g)  // repl_exileleaveemb.go, repl_staticprevent_emblem.go
 	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card

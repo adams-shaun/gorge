@@ -65,10 +65,21 @@ func TestLowerEffectReplNamed(t *testing.T) {
 			t.Fatalf("the probe script itself refuses: %q", keclReason(r))
 		}
 	}
+	// Malicious Eclipse's shape neighbours over another creature or permanent
+	// spec (no other keys, no Duration$) no longer refuse: since T15b the
+	// no-Duration dies-to-exile Effect lowers as the until-end-of-turn emblem
+	// (effectReplEmblem); only ValidLKI$ Creature.OppCtrl keeps the
+	// specialized TurnRepl record above.
+	for _, spec := range []string{"Creature.YouCtrl", "Creature", "Permanent.OppCtrl"} {
+		ec := eclipseBfLower(t, strings.Replace(eclipse, "Creature.OppCtrl", spec, 1))
+		if got := keclReason(ec.Refusals); got != "" {
+			t.Errorf("eclipse %s: refusals %q, want the emblem", spec, got)
+		}
+		if len(ec.Emblems) != 1 || len(ec.Emblems[0].Repls) != 1 || ec.Emblems[0].Repls[0].Kind != "ExileOnLeave" {
+			t.Errorf("eclipse %s: emblems %+v, want one ExileOnLeave emblem", spec, ec.Emblems)
+		}
+	}
 	for _, c := range []struct{ name, base, from, to, want string }{
-		{"eclipse mine", eclipse, "Creature.OppCtrl", "Creature.YouCtrl", `Effect replacement "DeathRep"`},
-		{"eclipse any creature", eclipse, "Creature.OppCtrl", "Creature", `Effect replacement "DeathRep"`},
-		{"eclipse permanent", eclipse, "Creature.OppCtrl", "Permanent.OppCtrl", `Effect replacement "DeathRep"`},
 		{"eclipse to hand", eclipse, "Destination$ Graveyard", "Destination$ Hand", `Effect replacement "DeathRep"`},
 		{"eclipse from anywhere", eclipse, "Origin$ Battlefield |", "Origin$ Any |", `Effect replacement "DeathRep"`},
 		{"eclipse to the library", eclipse, "Destination$ Exile |", "Destination$ Library |", `Effect replacement "DeathRep"`},
@@ -93,4 +104,21 @@ func TestLowerEffectReplNamed(t *testing.T) {
 			t.Errorf("%s: refusals %q, want %q", c.name, got, c.want)
 		}
 	}
+}
+
+// eclipseBfLower lowers one synthetic eclipse-neighbour script the way
+// exileBfSynth does, and returns the whole lowered card.
+func eclipseBfLower(t *testing.T, src string) *lCard {
+	t.Helper()
+	card, diags := cards.ParseBytes("eclipse_probe.txt", []byte(src))
+	if card == nil {
+		t.Fatalf("parse: %v", diags)
+	}
+	if d := card.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	const name = "Exile Bf Probe"
+	p := &pool{names: []string{name}, byName: map[string]*cards.Card{name: card},
+		nDecks: map[string]int{}, reg: &cards.Registry{}}
+	return lowerCard(p, name, card, false)
 }
