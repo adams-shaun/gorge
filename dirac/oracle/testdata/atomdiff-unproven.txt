@@ -41,7 +41,6 @@ fw:Card.blockedBySource
 fw:Card.blockingSource
 fw:Card.counters_GE1_CHARGE
 fw:Card.counters_GE2_P1P1
-fw:Card.equipped
 fw:Card.faceDown
 fw:Card.faceUp
 fw:Card.inZoneBattlefield
