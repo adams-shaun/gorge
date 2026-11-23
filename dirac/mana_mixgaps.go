@@ -482,6 +482,10 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return found
 	}
 	switch {
+	case t.sacHolderSpent(k, sl):
+		// the grant's tap is spent: the holder's printed sacrifice is its one
+		// ability left, a gap step of its own with no ask (mana_sacholder.go)
+		return fs.try(k, t, filtStep{sl: sl, gap: true, sacOnly: true}, funded, true)
 	case t.mixComboAny(k, p, true).has(sl):
 		return fs.comboAnyOther(t, k, sl, try)
 	case t.mixEach(k, p, true).has(sl):
@@ -492,7 +496,7 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return fs.tapXGap(k, t, sl, try)
 	case t.scriptTapsDefer(k, p).has(sl):
 		return fs.tapsDeferGap(k, t, sl, funded)
-	case t.canTapForMana(k, sl):
+	case t.canTapForMana(k, sl) || t.sacHolderGap(k, sl):
 		// several abilities: the "choose a mana ability" ask, one node, the
 		// printed ability's answers first (grantSrch.visit)
 		var gi [maxGrants]int16
@@ -522,7 +526,13 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			return false
 		}
-		if dual {
+		if dual && t.sacHolderGap(k, sl) {
+			// the printed sacrifice answer: it floats the mana and sacrifices
+			// the holder, so the grant is gone with it (mana_sacholder.go)
+			if fs.try(k, t, filtStep{sl: sl, gap: true, sacOnly: true}, funded, true) {
+				return true
+			}
+		} else if dual {
 			pc := t.manaPCGen(k, sl)
 			if colours(-1, t.srcMaskAt(pc, sl), pc.manaN, alts == 1) {
 				return true
