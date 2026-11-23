@@ -48,8 +48,9 @@ func TestReplDmgRewriteGenNeed(t *testing.T) {
 }
 
 // TestReplDmgRewriteClash: minus/set rewrites that match one event beside a
-// non-commuting rewrite cap loudly (gorge asks the CR 616.1 order); two minus
-// lines commute and do not.
+// non-commuting rewrite cap loudly (gorge asks the CR 616.1 order); so do two
+// minus lines, which commute but which gorge asks the order of all the same
+// (two Lashknife Barriers: the mbc damage_minus_pair_order_ask recording).
 func TestReplDmgRewriteClash(t *testing.T) {
 	set := func(a int16, gate int) kop.Repl {
 		return kop.Repl{Kind: kop.ReplDamageSet, A: a, C: int16(kop.ReplDmgSetGE(gate)) | kop.ReplDmgPerm}
@@ -62,7 +63,8 @@ func TestReplDmgRewriteClash(t *testing.T) {
 	}{
 		{"set beside minus", []kop.Repl{set(3, 4), minus}, true},
 		{"two sets", []kop.Repl{set(3, 4), set(2, 3)}, true},
-		{"two minus commute", []kop.Repl{minus, minus}, false},
+		{"two minus ask the order", []kop.Repl{minus, minus}, true},
+		{"one minus alone", []kop.Repl{minus}, false},
 		{"one set alone", []kop.Repl{set(3, 4)}, false},
 		{"set under its gate beside minus", []kop.Repl{set(3, 9), minus}, false},
 	} {
