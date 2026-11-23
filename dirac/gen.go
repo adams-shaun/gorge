@@ -419,13 +419,19 @@ type genPrep struct {
 	// the damage / token / counter / zone replacements and the player
 	// hexproof static (replBits per card, rb* bits); anyRepl gates every
 	// site, so a table without these cards never takes their paths
-	replBits     []uint32
-	anyRepl      uint32
-	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
-	exileAnyC    []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
-	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
-	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
-	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	replBits []uint32
+	anyRepl  uint32
+	// replBits2 is the second replacement-bit word: the rb* enum above filled
+	// its 32 bits (gen.go:570), so the kinds that landed after it mark their
+	// cards here. anyRepl2 gates their sites the way anyRepl does.
+	replBits2     []uint32
+	anyRepl2      uint32
+	anyBeginPhase bool           // some card carries ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	exileOnLeave  []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
+	exileAnyC     []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
+	destroyHeal   []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
+	anyExileAny   bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
+	altFree       []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
@@ -566,6 +572,16 @@ const (
 	eaLibBottom                        // its ReplGraveToLibrary inserts at the bottom (ReplLibBottom)
 	eaLibShuffle                       // ... shuffles after a top insert (ReplLibShuffle)
 	eaLibBattlefield                   // ... applies only to a move from the battlefield (ReplLibBattlefield)
+)
+
+// Replacement bits (genPrep.replBits2): the kinds that landed after the rb*
+// word filled its 32 bits. Bit 0 in anyRepl2 only marks the word's presence
+// sites, the way anyRepl does for the first word.
+const (
+	rb2BeginPhase uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
+	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
+	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
 )
 
 // Replacement bits (genPrep.replBits).
@@ -784,6 +800,46 @@ func prepGraveToLibrary(g *genPrep, t *kop.Table, i int, a *kop.Ability) {
 	}
 }
 
+// prepReplBit2 marks card i's rb2* gate word (the T17c replacement modes:
+// repl_beginphase.go, repl_lifefloor.go, repl_dmgminus.go) and the static
+// scan the kernel's sites read them through.
+func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
+	var bit uint32
+	switch a.Repl.Kind {
+	case kop.ReplBeginPhase:
+		bit = rb2BeginPhase // the step boundary consults the skip (repl_beginphase.go)
+	case kop.ReplLifeReduced:
+		bit = rb2LifeFloor // the damage sites' floor (repl_lifefloor.go)
+	case kop.ReplDamageMinus:
+		bit = rb2DmgMinus // replDamage's minus rewrite (repl_dmgminus.go)
+	case kop.ReplDamageSet:
+		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
+	}
+	g.replBits2[i] |= bit
+	pc.hasStat = true
+}
+
+// prepFoldReplBits folds the per-card replacement gate words onto the any
+// words the sites' gates read.
+func prepFoldReplBits(g *genPrep) {
+	for _, b := range g.replBits {
+		g.anyRepl |= b
+	}
+	for _, b := range g.replBits2 {
+		g.anyRepl2 |= b
+	}
+	g.anyBeginPhase = g.anyRepl2&rb2BeginPhase != 0 // repl_beginphase.go's step-boundary gate
+}
+
+// prepRedNCOpen opens every replDamage site when a noncombat redamage or a
+// player-protection line is in the table: no card carries the bit, so
+// replPlus finds nothing.
+func prepRedNCOpen(p *prep, g *genPrep) {
+	if p.anyRedNC || g.anyRepl&rbPlProt != 0 {
+		g.anyRepl |= rbPlusDmg
+	}
+}
+
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
 	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
@@ -799,6 +855,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
@@ -1335,6 +1392,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet:
+					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
 					pc.hasStat = true
@@ -1762,16 +1821,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepProtGrant(t, g) // kw_protection.go
-	prepProtYours(t, g) // kw_protyours.go
-	for _, b := range g.replBits {
-		g.anyRepl |= b
-	}
+	prepProtGrant(t, g)  // kw_protection.go
+	prepProtYours(t, g)  // kw_protyours.go
+	prepFoldReplBits(g)  // the gate words onto the any words (the sites' gates)
 	prepEntryMerge(t, g) // ctr_entryperkind.go
 	prepBecomeCopy(t, g) // ctr_entryperkind.go
-	if p.anyRedNC || g.anyRepl&rbPlProt != 0 {
-		g.anyRepl |= rbPlusDmg // open every replDamage site; no card carries the bit, so replPlus finds nothing
-	}
+	prepRedNCOpen(p, g)  // the noncombat-redamage openers (repl_plus_sites.go)
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)

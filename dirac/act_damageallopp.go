@@ -58,7 +58,8 @@ func (s *State) damageAllOpp(k *prep, in *kop.Instr, ctrl uint8, n int) {
 			pl = 2
 		}
 	}
-	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		s.damageSeqStart(k, hit, false)
 		s.g.dmgSeqPl = pl
 		s.damageSeqNext(k, n)
@@ -113,7 +114,8 @@ func (s *State) damageOtherOpps(k *prep, ctrl uint8, n int) {
 	if m == 0 {
 		return
 	}
-	if MaxSeats != 2 && k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+	if MaxSeats != 2 && k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		s.damageSeqStart(k, slotMask{}, false)
 		s.g.dmgSeqPl = m | dmgSeqSeat0
 		s.damageSeqNext(k, n)

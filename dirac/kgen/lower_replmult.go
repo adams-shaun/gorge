@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -18,6 +19,76 @@ import (
 // ReplDmgCombat, and inZoneBattlefield as ReplDmgSrcInPlay (gorge
 // replacement_damage.go damageReplacementMatches). The kernel reads it as a
 // ReplDoubleDamageToOpps with Filter/C set (dirac/repl_multipliers.go).
+// damageMinusRepl lowers a printed damage minus (Benevolent Unicorn,
+// Lashknife Barrier; gorge replacement_damage.go's Updated DamageAmount
+// rewrites): DB$ ReplaceEffect | VarName$ DamageAmount with a VarValue$ (an
+// SVar or inline) of ReplaceCount$DamageAmount/Minus.<n>, a ValidSource$ of
+// Spell (the resolving spell; ReplDmgSrcSpell) and the ValidTarget$ words as
+// kop.ReplDmg* bits or a single object filter alternative (Lashknife
+// Barrier's Creature.YouCtrl). The event's damage is that much minus n,
+// floored at none; the kernel reads it beside the plus-N and doubler
+// rewrites (dirac/repl_dmgminus.go). false: not this shape.
+func (lc *lowerCtx) damageMinusRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
+	if w == nil || !withIs(w, "ReplaceEffect", map[string]string{"VarName": "DamageAmount", "VarValue": w.Params["VarValue"]}) {
+		return false, nil
+	}
+	vv := strings.TrimSpace(w.Params["VarValue"])
+	if sv, ok := lc.face.SVars[vv]; ok {
+		vv = strings.TrimSpace(sv)
+	}
+	ns, okN := strings.CutPrefix(vv, "ReplaceCount$DamageAmount/Minus.")
+	nn, errN := strconv.Atoi(ns)
+	if !okN || errN != nil || nn < 1 {
+		return false, nil // the set-to-N shape (damageSetRepl) and the doubler read their own values
+	}
+	if az := rp.str("ActiveZones"); az != "Battlefield" {
+		return true, refuse("repl-hard: DamageDone minus ActiveZones %q", az)
+	}
+	bp := newParams(w.Params)
+	bp.consume("VarName", "VarValue")
+	if left := bp.unread(); len(left) > 0 {
+		return true, refuse("repl-hard: DamageDone minus body params %v", left)
+	}
+	var bits int
+	if vs, ok := rp.get("ValidSource"); ok && strings.TrimSpace(vs) != "Spell" {
+		return true, refuse("repl-hard: DamageDone minus ValidSource %q", vs)
+	} else if ok {
+		bits |= kop.ReplDmgSrcSpell
+	}
+	targets := "Player,Permanent" // no ValidTarget$: any recipient
+	if vt, ok := rp.get("ValidTarget"); ok {
+		targets = vt
+	}
+	var tf *lFilter
+	for _, t := range strings.Split(targets, ",") {
+		switch strings.TrimSpace(t) {
+		case "Opponent":
+			bits |= kop.ReplDmgOppPlayer
+		case "Permanent.OppCtrl":
+			bits |= kop.ReplDmgOppPerm
+		case "Player":
+			bits |= kop.ReplDmgPlayer
+		case "Permanent":
+			bits |= kop.ReplDmgPerm
+		default:
+			if tf != nil {
+				return true, refuse("repl-hard: DamageDone minus ValidTarget %q", targets)
+			}
+			var err error
+			if tf, err = lc.filter(t); err != nil {
+				return true, err
+			}
+			if tf.Players != 0 || len(tf.Clauses) == 0 {
+				// a player-spec word (You): dmgMinusN reads the filter on
+				// permanent recipients only, so the line would never apply
+				return true, refuse("repl-hard: DamageDone minus ValidTarget %q", targets)
+			}
+		}
+	}
+	rl.Kind, rl.Bits, rl.N, rl.F = "DamageMinus", bits, cst(nn), tf
+	return true, nil
+}
+
 func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 	if w == nil || !withIs(w, "ReplaceEffect", map[string]string{"VarName": "DamageAmount", "VarValue": w.Params["VarValue"]}) {
 		return refuse("repl-hard: DamageDone replacement shape")
@@ -434,4 +505,73 @@ func (lc *lowerCtx) preventRemoveCounter(w *cards.SA, rl *lRepl) error {
 		rl.Bits = kop.ReplPrevSelfRemoveDmg
 	}
 	return nil
+}
+
+// damageSetRepl lowers a printed damage set (Divine Presence, Forethought
+// Amulet; gorge replacement_damage.go's Updated DamageAmount rewrites):
+// DB$ ReplaceEffect | VarName$ DamageAmount with a literal VarValue$, a
+// DamageAmount$ GE<k> gate and the ValidTarget$ words as kop.ReplDmg* bits
+// (You: ReplDmgPlayer; the player/permanent words their bits, any other word
+// refuses — no corpus carrier names a filter recipient). The ValidSource$
+// alternatives are the object filter read against the damage source (a
+// resolving spell's card for Instant,Sorcery: the read spMatch's departed
+// source arm makes). The event's damage becomes the set amount when it is k
+// or more (the gate at match time); the gate value rides C's high byte (the
+// low bits stay the ReplDmg* words). The kernel reads it beside the minus
+// rewrite (dirac/repl_dmgminus.go). false: not this shape.
+func (lc *lowerCtx) damageSetRepl(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
+	if w == nil || !withIs(w, "ReplaceEffect", map[string]string{"VarName": "DamageAmount", "VarValue": w.Params["VarValue"]}) {
+		return false, nil
+	}
+	vv := strings.TrimSpace(w.Params["VarValue"])
+	if sv, ok := lc.face.SVars[vv]; ok {
+		vv = strings.TrimSpace(sv)
+	}
+	n, errN := strconv.Atoi(vv)
+	if errN != nil || n < 0 || n > 1<<14 {
+		return false, nil // the minus rewrite and the doubler read their own values
+	}
+	ge, ok := rp.get("DamageAmount")
+	k, errK := strconv.Atoi(strings.TrimPrefix(strings.TrimSpace(ge), "GE"))
+	if !ok || errK != nil || k < 1 || k > 15 || k <= n {
+		return true, refuse("repl-hard: DamageDone set gate %q over %d", ge, n)
+	}
+	if az := rp.str("ActiveZones"); az != "Battlefield" {
+		return true, refuse("repl-hard: DamageDone set ActiveZones %q", az)
+	}
+	bp := newParams(w.Params)
+	bp.consume("VarName", "VarValue")
+	if left := bp.unread(); len(left) > 0 {
+		return true, refuse("repl-hard: DamageDone set body params %v", left)
+	}
+	var bits int
+	if vs, ok := rp.get("ValidSource"); ok {
+		var err error
+		if rl.F2, err = lc.filter(vs); err != nil {
+			return true, err
+		}
+		if rl.F2.Players != 0 || len(rl.F2.Clauses) == 0 {
+			return true, refuse("repl-hard: DamageDone set ValidSource %q", vs)
+		}
+	}
+	targets := "Player,Permanent" // no ValidTarget$: any recipient
+	if vt, ok := rp.get("ValidTarget"); ok {
+		targets = vt
+	}
+	for _, t := range strings.Split(targets, ",") {
+		switch strings.TrimSpace(t) {
+		case "Opponent":
+			bits |= kop.ReplDmgOppPlayer
+		case "Permanent.OppCtrl":
+			bits |= kop.ReplDmgOppPerm
+		case "Player": // "You" is the controller alone (gorge MatchesPlayerSpecFrom): no kernel bit, so it refuses
+			bits |= kop.ReplDmgPlayer
+		case "Permanent":
+			bits |= kop.ReplDmgPerm
+		default:
+			return true, refuse("repl-hard: DamageDone set ValidTarget %q", targets)
+		}
+	}
+	rl.Kind, rl.Bits, rl.N = "DamageSet", bits|kop.ReplDmgSetGE(k), cst(n)
+	return true, nil
 }
