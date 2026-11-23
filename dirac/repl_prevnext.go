@@ -391,7 +391,8 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 	if g.anyRepl&others != 0 {
 		for m := s.statM; m.any(); m = m.rest() {
 			b := m.first()
-			if g.replBits[s.cardAt(b)]&others != 0 && !s.genLost(k, b) {
+			rb := g.replBits[s.cardAt(b)] & others
+			if rb != 0 && !s.genLost(k, b) && !(rb == rbPlusDmg && s.plusHostIdle(k, b)) {
 				return true
 			}
 		}
