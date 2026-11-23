@@ -195,7 +195,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Kuldotha Rebirth
 Kyoshi Warrior Guard
 Lantern Spirit
