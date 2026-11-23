@@ -48,7 +48,47 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		}
 		return true
 	}
-	return w.autoPayPlan(p, id, idx, base, scope, statics)
+	if w.autoPayPlan(p, id, idx, base, scope, statics) {
+		return true
+	}
+	// The census-gap arm (CR 601.2g, 605.3b): the planner declined, but its
+	// source census cannot price every shape on the board -- a fee-carrying
+	// dynamic-amount production (Starfleet Academy's "Federation -- {5}, {T}:
+	// Add X of one chosen colour") joins no census unit in
+	// paymentPlanManaUnits' tap-only admission -- so "insufficient" is no
+	// proof, and the canonical pricing the seat's PotentialPaymentPlans read
+	// carries (potentialCensusFallback: the census's relaxed proof, then the
+	// prefix search over the uncovered sources) may price the activation. Run
+	// the same fallback over the ability option at the walk's PotentialMana
+	// bound, one search slot per attempt (dirac's mirror counts one per
+	// activation), the census cached walk-wide the way autoBound is. The
+	// offer is the script's existence proof only: the payment stays the
+	// ordinary window (armAbilityAutoPay declines the same planner shape),
+	// which revalidates every step; the CR 733.2 hold-out covers an aborted
+	// attempt. A payment-prefix search's own walks (scriptSearching) price
+	// only the plain planner witness: the arm inside a search is the
+	// recursion its node budgets cannot bound.
+	if w.e.scriptSearching {
+		return false
+	}
+	if w.autoCensus == nil {
+		c := w.e.paymentPlanCensusOf(p, w.autoBound)
+		w.autoCensus = &c
+		w.autoCensusSet = true
+	}
+	if w.autoCensus.complete {
+		return false // the census prices every ability: the decline is a proof.
+	}
+	verdict := func() PaymentPlanOutcome { return w.e.planAbilityPayment(p, id, idx) }
+	scripts := 0 // one search slot per attempt
+	got, script := potentialCensusFallback(w.e, p, decision.Option{Kind: optAbility, Obj: id, Ability: idx}, *w.autoBound,
+		PaymentPlanOutcome{Reason: pay.ReasonInsufficient}, false, verdict, 1,
+		w.autoCensus, &w.autoCensusSet, &scripts)
+	if got.Reason != "" || len(script) == 0 {
+		return false
+	}
+	w.censusOffer = censusOfferRef{obj: id, idx: idx, set: true}
+	return true
 }
 
 // autoPayPlan is the ordinary autopay path: run the payment planner and

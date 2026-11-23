@@ -574,6 +574,14 @@ func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a de
 // search's nested witness checks (hypclone.go): the struct holds no engine,
 // so its methods stay off the engine's surface.
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
+	// The search's clones pose priority asks whose offer walks must price
+	// only the plain planner witness (scriptSearching's gate, autoPayOffer's census arm):
+	// the census arm's own prefix search inside a search is the recursion
+	// the node budgets cannot bound, and its offers are not the prefix this
+	// search is out to find.
+	prev := e.scriptSearching
+	e.scriptSearching = true
+	defer func() { e.scriptSearching = prev }()
 	root := e.hypClone(e)
 	found := sr.visit(e, root, 0, false)
 	e.hypRelease(root)
@@ -739,6 +747,15 @@ func (sr *scriptSearch) unattachedSource(c *Engine) bool {
 }
 
 func (sr *scriptSearch) offered(o *decision.Option) bool {
+	if o.CensusOffer {
+		// The census-gap arm's script-backed offer is not the plain listing
+		// the search's probe prices (the kernel's own listing probe excludes
+		// the arm's listings, actScriptPays' availNoActScript): at the
+		// search's root it is the very offer the probe's caller is out to
+		// prove, and taking it for the plain walk's would answer "already
+		// offered" before any prefix paid for the play.
+		return false
+	}
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
 		return false
@@ -2245,6 +2262,14 @@ func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.O
 // keep it disarmed: their inference reads the end menu, which the repricing
 // breaks exactly like any other refusal.
 func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK, priceOK bool) bool {
+	// The reach's clones pose priority asks whose offer walks must price only
+	// the plain planner witness (scriptSearching's gate, autoPayOffer's census arm): a
+	// census arm inside the reach would offer the play on a clone before the
+	// witness's steps paid for it, and the reach's end-menu read would take
+	// that for a reach (sr.priced's winOK/priceOK acceptance).
+	prev := e.scriptSearching
+	e.scriptSearching = true
+	defer func() { e.scriptSearching = prev }()
 	if e.Pending() == nil {
 		return false
 	}
