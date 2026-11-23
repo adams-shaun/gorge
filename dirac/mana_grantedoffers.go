@@ -1955,11 +1955,45 @@ func (g *grantSrch) fundRestrBranch(t *State, i int, sl Slot, ra *kop.Ability, m
 	return g.branch(t, i, sl, -1, uint8(ra.ManaColors)&0x3f, t.restrAbN(g.k, sl, ra), ra.ManaColors&kop.ColAny == kop.ColAny)
 }
 
+// stateKey is gorge's scriptStateKey of the payer's state at node t.
+func (g *grantSrch) stateKey(t *State) grantKey {
+	pl := &t.pl[SeatIx(g.p)]
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
+	if g.k.artMana {
+		t.artSync(g.p)
+		key.art = t.g.poolArt[SeatIx(g.p)]
+	}
+	return key
+}
+
+// seenHoisted reports a node the fee-only run drops before it is charged:
+// gorge's scriptSearch.try hoists the visited-state check ahead of the clone's
+// visit on the fee-only path, so a duplicate payer state is not a node of the
+// budget (potentialScriptNodes counts distinct states). The offered check
+// comes first, as visit's does, so a duplicate whose pool still pays the play
+// is not dropped (seenPays).
+func (g *grantSrch) seenHoisted(t *State) bool {
+	fk := g.stateKey(t).folded()
+	for i := 0; i < g.nseen; i++ {
+		if g.seen[i].folded() == fk {
+			cost := g.cost
+			if g.dyn {
+				cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+			}
+			return !g.seenPays(t, &cost, false)
+		}
+	}
+	return false
+}
+
 // visit is one payer priority of the search on working copy t: the play
 // is found when the pool and the printed sources pay it (gorge
 // offered / priced); else each untapped candidate is activated in turn,
 // its answers branched on in gorge's order, each payer state once.
 func (g *grantSrch) visit(t *State) bool {
+	if g.feeOnly && g.np > 0 && g.seenHoisted(t) {
+		return false // a duplicate payer state is no node of the search (gorge's scriptSearch.try, the hoisted seen check)
+	}
 	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
 	if g.feeOnly && g.seenDuplicate(t) {
 		return false
@@ -2005,12 +2039,7 @@ func (g *grantSrch) visit(t *State) bool {
 			cost = fc
 		}
 	}
-	pl := &t.pl[SeatIx(g.p)]
-	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
-	if g.k.artMana {
-		t.artSync(g.p)
-		key.art = t.g.poolArt[SeatIx(g.p)]
-	}
+	key := g.stateKey(t)
 	// gorge's key reads the floated pool, whose restriction it does not
 	// (scriptStateKey): a state that differs from a seen one only in which
 	// pool units are the play's unspendable ones (ghost) is that state, and
