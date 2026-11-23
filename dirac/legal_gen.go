@@ -273,6 +273,9 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if !s.altAddCastableFrom(k, c, p, o, &altCost, &pc.cost, true, anyMana, av) || !offers || s.castHeldOut(o) {
 			return
 		}
+		if cost.X != 0 && !s.spellXBoundPayable(k, c, p, &cost) {
+			return // some payable X must leave a legal target, as a hand cast's (CR 601.2b, 601.2c; gorge xBoundTargetPayable)
+		}
 		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
 			// (the potential walks list an any-type one: gorge's planner
 			// proves it insufficient, and a scripted prefix may make the
