@@ -518,7 +518,7 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 		manaWalkHasLType(e, statics) {
 		for _, typ := range e.derivedTypesOf(id) {
 			color, ok := cards.IntrinsicManaColor(typ)
-			if !ok || pay.ManaAbilitiesProduce(manaAbilities, color) {
+			if !ok || pay.ManaAbilitiesCoverIntrinsic(manaAbilities, color) {
 				continue
 			}
 			if ma, ok := cards.IntrinsicManaAbility(typ); ok {
