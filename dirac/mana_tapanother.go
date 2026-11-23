@@ -683,6 +683,8 @@ type tapXKey struct {
 	// own enters trigger leaves the stack as deep as the first did
 	bf uint64
 	rb [maxRB]rbatch // restricted mana floating (gorge's key counts every mana unit)
+	// inHand: the searched cast's own card is still in hand (gorge's scriptStateKey)
+	inHand bool
 }
 
 type tapXSearch struct {
@@ -1479,7 +1481,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)]}
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)], inHand: t.playInHand(p, rs.a)}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
