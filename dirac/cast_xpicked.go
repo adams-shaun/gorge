@@ -69,7 +69,14 @@ func (s *State) excludePickedSources(k *prep, av *avail) {
 // pickedForMana reports whether o is a Convoke or Waterbend contribution of
 // the build in progress: it is tapped to pay that cast (CR 702.51a), so it
 // cannot also tap for mana and the cast's mana census must leave it out.
+//
+// It inlines to the two guards (ctl is a build or a build's ask, a superset of buildLive) and one call.
 func (s *State) pickedForMana(o Obj) bool {
+	return (s.ctl == ctlBuild || s.ctl == ctlGenAsk) && s.pickedForManaScan(o)
+}
+
+//go:noinline
+func (s *State) pickedForManaScan(o Obj) bool {
 	if !s.buildLive() {
 		return false
 	}
