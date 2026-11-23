@@ -351,6 +351,9 @@ func (s *State) filtFreeTapColourOwn(k *prep, p uint8, skip, own Slot, col int) 
 		if k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}
+		if s.restrFreeTapColour(k, sl, col) {
+			return true
+		}
 		var pc *pcard
 		if k.gen != nil {
 			pc = s.manaPCGen(k, sl)
@@ -430,4 +433,29 @@ func (s *State) filtPlayDesc(k *prep, a Action) (d payDesc, ok bool) {
 		return s.grantPayDescOf(k, a), true
 	}
 	return payDesc{}, false
+}
+
+// restrFreeTapColour: the source at sl has a restricted bare-{T} mana ability
+// that can make col (Plaza of Heroes' "Add one mana of any color. Spend this
+// mana only to cast a legendary spell"). gorge's feeOnlyFreeTapColour reads
+// every mana ability the source could activate, its restricted one too, and
+// does not ask whether the searched play may spend the mana: the swapped-line
+// cut counts the source as a free maker of col, so a fee-only filter's
+// answer of that colour is dominated and its branch is never walked. A
+// restricted {T}, Pay N life or {T}, Sacrifice ability is not the bare tap
+// (PaymentPlanTapOnlyCost) and fails open. The caller has checked sl is
+// untapped and may act.
+func (s *State) restrFreeTapColour(k *prep, sl Slot, col int) bool {
+	if k.gen == nil || !k.restrSrc {
+		return false
+	}
+	rec := k.gen.restrRecOf(s.cardAt(sl))
+	if rec == nil {
+		return false
+	}
+	ab := &k.t.Cards[rec.card].Abilities[rec.ab]
+	if restrLifeAb(ab) || restrSacSelfAb(ab) {
+		return false
+	}
+	return s.filtRestrMask(k, sl)&(1<<uint(col)) != 0
 }
