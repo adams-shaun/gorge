@@ -32,7 +32,7 @@ func (s *State) castBoundDrops(k *prep, p uint8, a Action) bool {
 	o := Obj(a.Source())
 	c := s.objs[o].card
 	d := s.payDescNow(o)
-	d.repeatBound = true // gorge's bound reads a repeatable fee-only source's colour as many (mana_repeatpotential.go)
+	d.repeatBound = true
 	var av avail
 	if s.availPotentialFor(k, p, &av, &d, false) {
 		return false // open for this payment too: an unrestricted open source
@@ -84,7 +84,7 @@ func (s *State) actBoundDrops(k *prep, p uint8, a Action) bool {
 		return false // the bound is closed for every payment: the gaps walk's plays
 	}
 	var av avail
-	d := payDesc{class: pdAct, card: cid, src: sl}
+	d := payDesc{class: pdAct, card: cid, src: sl, repeatBound: true}
 	if s.availPotentialFor(k, p, &av, &d, false) {
 		return false // open for this payment too: an unrestricted open source
 	}
