@@ -137,6 +137,7 @@ Intimidator Initiate
 Intrusive Packbeast
 Invasion of Ulgrotha
 Island
+Jadar, Ghoulcaller of Nephalia
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
@@ -296,6 +297,7 @@ Whip Vine
 Whispersilk Cloak
 Wild Aesthir
 Wildsize
+Wilhelt, the Rotcleaver
 Wind Zendikon
 Wing Commando
 Woodland Guidance

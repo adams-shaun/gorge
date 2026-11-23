@@ -17,6 +17,7 @@ Armory Guard
 Arwen Undómiel
 Audacious Infiltrator
 Aven Augur
+Aven Shrine
 Bail Out
 Barbed Lightning
 Bastion Enforcer

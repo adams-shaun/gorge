@@ -190,6 +190,7 @@ Goblin Arsonist
 Goblin Bushwhacker
 Goblin Deathraiders
 Goblin Tinkerer
+Golem-Skin Gauntlets
 Grave Exchange
 Great Defender
 Greater Harvester
