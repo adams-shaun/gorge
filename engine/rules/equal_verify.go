@@ -24,7 +24,7 @@ const (
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 52
+	optionFieldCount           = 53
 	grantFieldCount            = 3
 )
 
@@ -304,10 +304,16 @@ func optionEqual(a, b *decision.Option) bool {
 		a.GainedIdx == b.GainedIdx &&
 		a.Granted == b.Granted &&
 		sliceEq(a.GrantStatics, b.GrantStatics) &&
-		a.PlanBacked == b.PlanBacked &&
+		optionOfferFlagsEqual(a, b) &&
 		a.Value == b.Value &&
 		a.Value2 == b.Value2 &&
 		a.TargetHints == b.TargetHints
+}
+
+// optionOfferFlagsEqual compares the server-side offer markers of two options
+// (PlanBacked, CensusOffer), apart from optionEqual to keep its complexity.
+func optionOfferFlagsEqual(a, b *decision.Option) bool {
+	return a.PlanBacked == b.PlanBacked && a.CensusOffer == b.CensusOffer
 }
 
 // optionsEqual is reflect.DeepEqual(a, b) for two option lists.
