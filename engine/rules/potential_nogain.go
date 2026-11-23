@@ -84,6 +84,39 @@ func manaTapAbilityNetsNoMore(c costvocab.Cost, mp *effects.ManaParams, extra st
 	return made <= best && extra.Total() == 0
 }
 
+// gapOnceNetSupply reports the most mana a census-missed ONCE-ONLY fee-bearing
+// ability ma can add beside the covered census units: every activation spends
+// its mana fee (feeTotal, the planner's relaxed-alternatives fee, hybrid pips
+// included) out of the mana the payment can spend and makes its fixed
+// production, so the activation nets at most production − fee whatever funds
+// the fee (CR 106.1, 605.3b, 601.2h). The tap is exclusive (CR 104.3a: one
+// activation per tap), so what the figure may add is only what exceeds best,
+// the source's own best covered production costOutrunsSupply already counts --
+// the source either taps the covered ability or the gap, never both. once is
+// paymentPlanRelaxedAlternatives's once-only verdict (a {T}/{U} cost, a
+// once-only activation limit, a self-sacrifice or self-return part). False
+// when the gap is repeatable (no count bound), has no mana fee (nothing
+// leaves the budget), makes a dynamic amount, or a tap trigger adds mana
+// beside it (extra, CR 605.4a). A net of zero or less converts colour and
+// never raises the supply, so a bound of 0 still holds.
+func gapOnceNetSupply(mp *effects.ManaParams, extra state.Mana, feeTotal, best int32, once bool) (int32, bool) {
+	if !once || feeTotal <= 0 || extra.Total() != 0 {
+		return 0, false
+	}
+	amt := availableAmountOf(mp)
+	if amt <= 0 {
+		return 0, false
+	}
+	made := amt
+	if !mp.CountsAny {
+		made = 0
+		for _, n := range mp.Counts {
+			made += n * amt
+		}
+	}
+	return max(made-feeTotal-best, 0), true
+}
+
 // gapSubCounterSupply reports the most mana a census-missed ability ma of
 // source id can make, when its Amount$ X is bound by the counters its announced
 // SubCounter<X/Kind> cost can settle (Mercadian Bazaar's "{T}, Remove any
