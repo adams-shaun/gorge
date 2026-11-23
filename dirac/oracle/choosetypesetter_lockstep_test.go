@@ -14,17 +14,17 @@ import (
 // TestChosenTypeSetterLockstep plays the chosen land-type setters kgen
 // lowers (Convincing Mirage, Phantasmal Terrain: RemoveLandTypes$ True with
 // AddType$ ChosenType, the source's own as-enters ChooseType Basic Land
-// answer; Realmwright's Continuous AddType$ ChosenType grant beside them) in
-// lockstep with gorge over the choosetypesetter fixture pool. Both decks
+// answer; Realmwright's Continuous AddType$ ChosenType grant beside them; and
+// Multiversal Passage, the entering land's own setter whose ask-then-elect
+// chain queues its pay-2-life election behind the ask, the play's land count
+// waiting for both) in lockstep with gorge over the choosetypesetter fixture
+// pool. Both decks
 // enchant lands of other types (basics, the original duals) and cast
 // creatures of the old and the new colours: the enchanted land is only the
 // chosen basic type, its own mana ability gone and the chosen type's
 // intrinsic one in its place (CR 305.7, 305.6). The preconditions, measured
 // from gorge's side, are that a setter attached and that such an enchanted
-// land was tapped. (Multiversal Passage, the entering land's own setter with
-// a chained pay-2-life rider, still refuses: its election completes a land
-// play whose count gorge takes at the entry's end, the follow-up ticket's
-// shape.)
+// land was tapped.
 //
 // The mutation drops the chosen grant (dirac.DebugChosenSetNone): an
 // enchanted land keeps its old types and lacks the chosen one, so its mana
@@ -35,9 +35,12 @@ func TestChosenTypeSetterLockstep(t *testing.T) {
 	}
 	t.Run("lockstep", func(t *testing.T) {
 		run, st := runChosenSetLockstep(t, 24, true)
-		t.Logf("%d games, %d divergences, %d stalls; setters attached %d, enchanted taps %d", run.games, run.divs, run.stalls, st.attached, st.taps)
+		t.Logf("%d games, %d divergences, %d stalls; setters attached %d, enchanted taps %d, passages entered %d", run.games, run.divs, run.stalls, st.attached, st.taps, st.passages)
 		if st.attached < 4 || st.taps < 4 {
 			t.Errorf("setters attached %d times, enchanted lands tapped %d times: want at least 4 each", st.attached, st.taps)
+		}
+		if st.passages < 2 {
+			t.Errorf("Multiversal Passage entered %d times: the ask-then-elect chain never played", st.passages)
 		}
 	})
 	t.Run("mutation-none", func(t *testing.T) {
@@ -52,7 +55,8 @@ var chosenSetDecks = []fixtureDecks{{
 	{{Name: "Convincing Mirage", Count: 6}, {Name: "Coral Merfolk", Count: 6}, {Name: "Typhoid Rats", Count: 4}, {Name: "Grizzly Bears", Count: 4},
 		{Name: "Island", Count: 6}, {Name: "Forest", Count: 5}, {Name: "Tropical Island", Count: 4}, {Name: "Bayou", Count: 3}, {Name: "Wastes", Count: 2}},
 	{{Name: "Phantasmal Terrain", Count: 6}, {Name: "Realmwright", Count: 3}, {Name: "Raging Goblin", Count: 5},
-		{Name: "Savannah Lions", Count: 4}, {Name: "Plains", Count: 7}, {Name: "Swamp", Count: 6}, {Name: "Savannah", Count: 3}, {Name: "Forest", Count: 3}, {Name: "Island", Count: 3}},
+		{Name: "Savannah Lions", Count: 4}, {Name: "Multiversal Passage", Count: 3}, {Name: "Plains", Count: 6},
+		{Name: "Swamp", Count: 4}, {Name: "Savannah", Count: 3}, {Name: "Forest", Count: 3}, {Name: "Island", Count: 3}},
 }}
 
 // chosenSetWatch are the pool's chosen setters.
@@ -62,6 +66,7 @@ var chosenSetWatch = map[string]bool{"Convincing Mirage": true, "Phantasmal Terr
 type chosenSetStats struct {
 	attached int // setters attached to a land
 	taps     int // lands with a chosen setter attached that were tapped
+	passages int // Multiversal Passages that entered (the ask-then-elect chain)
 }
 
 // chosenSetOn reports whether the land id has a chosen setter attached.
@@ -97,6 +102,12 @@ func chosenSetObserve(ref *GorgeSide, seen *int, st *chosenSetStats) {
 		case events.Tap:
 			if g.Obj(e.Obj) != nil && chosenSetOn(g, e.Obj) {
 				st.taps++
+			}
+		case events.MoveZone:
+			if e.To == state.ZBattlefield {
+				if o := g.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Multiversal Passage" {
+					st.passages++
+				}
 			}
 		}
 	}

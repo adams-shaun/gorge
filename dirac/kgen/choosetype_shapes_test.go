@@ -72,4 +72,43 @@ func TestChooseTypeShapes(t *testing.T) {
 			t.Errorf("as-enters Basic Land with %s lowers, want a refusal", name)
 		}
 	}
+
+	// The ask-then-elect chain (Multiversal Passage): the as-enters basic
+	// land ask whose SubAbility$ is the entering land's own pay-life
+	// election lowers to the enters program ask, then UnlessPaid, then the
+	// tap body the payment skips — the kernel's shock machinery reads the
+	// election behind the ask (repl_shockland.go electionPC) and the land
+	// play's count waits for both asks (answerQueuedAsk).
+	const passage = "Name:Chain Probe\nManaCost:no cost\nTypes:Land\n" +
+		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBPickBL | ReplacementResult$ Updated | Description$ Enters: pick a basic land type, then pay 2 life or enter tapped.\n" +
+		"SVar:DBPickBL:DB$ ChooseType | Type$ Basic Land | ETB$ True | SubAbility$ DBTap\n" +
+		"SVar:DBTap:DB$ Tap | UnlessCost$ PayLife<2> | UnlessPayer$ You | ETB$ True | Defined$ Self\n"
+	lc = lowerSynth(t, passage)
+	if r := lc.Refusals; len(r) != 0 {
+		t.Fatalf("the ask-then-elect chain refuses: %q", keclReason(r))
+	}
+	var chain []lInstr
+	for _, r := range lc.Repls {
+		if r.Kind == "EntersWith" && len(r.Prog) == 3 && r.Prog[0].Op == "ChooseType" {
+			chain = r.Prog
+		}
+	}
+	if chain == nil {
+		t.Fatalf("no ask-then-elect enter program among %+v", lc.Repls)
+	}
+	if chain[0].B.N != kop.ChooseTypeBasicLand || chain[2].Op != "EnterTapped" {
+		t.Fatalf("the ask-then-elect chain lowers to %+v, want ask, election, tap", chain)
+	}
+
+	// The controls: a rider behind a creature-type ask, behind a deeper
+	// chain, or with the election not last refuses; the ask-then-elect
+	// chain's kernel shape is the basic-land ask's alone.
+	creatureRider := strings.Replace(passage, "Type$ Basic Land", "Type$ Creature", 1)
+	if len(lowerSynth(t, creatureRider).Refusals) == 0 {
+		t.Errorf("a pay-life rider behind a creature-type ask lowers, want a refusal")
+	}
+	midRider := strings.Replace(passage, "Defined$ Self", "Defined$ Self | UnlessSwitched$ False", 1)
+	if len(lowerSynth(t, midRider).Refusals) == 0 {
+		t.Errorf("a switched election in the chain lowers, want a refusal")
+	}
 }

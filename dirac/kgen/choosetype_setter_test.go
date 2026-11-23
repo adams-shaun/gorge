@@ -1,8 +1,9 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // TestChooseTypeChosenSetter pins the CR 305.7 land-type setter whose added
@@ -47,20 +48,35 @@ func TestChooseTypeChosenSetter(t *testing.T) {
 		t.Errorf("the chosen setter static carries no AddChosen: %+v", set)
 	}
 
-	// Multiversal Passage: the same setter on the entering land itself. Its
-	// ETB$ True ask lowers; its chained pay-2-life rider still refuses (the
-	// chain's Tap election needs the land-play count deferral widened before
-	// it lowers, the follow-up ticket's shape), so the ETB$ marker itself is
-	// what stays consumed here.
+	// Multiversal Passage: the same setter on the entering land itself. The
+	// chain lowers as ask-then-elect: the enter program is the as-enters
+	// basic-land ask, then the pay-2-life election, then the tap body the
+	// election skips on a payment — the kernel's shock machinery reads the
+	// election behind the ask (repl_shockland.go's widened election pc), so
+	// the land play's count waits for both asks.
 	const passage = "Name:Chosen Setter Land Probe\nManaCost:no cost\nTypes:Land\n" +
 		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBPickBL2 | ReplacementResult$ Updated | Description$ Enters: pick a basic land type, then pay 2 life or enter tapped.\n" +
 		"SVar:DBPickBL2:DB$ ChooseType | Type$ Basic Land | ETB$ True | SubAbility$ DBTap2\n" +
 		"SVar:DBTap2:DB$ Tap | UnlessCost$ PayLife<2> | UnlessPayer$ You | ETB$ True | Defined$ Self\n" +
 		"S:Mode$ Continuous | AddType$ ChosenType | RemoveLandTypes$ True | AffectedDefined$ Self | Description$ The land is of the chosen type.\n"
-	if r := lowerSynth(t, passage).Refusals; len(r) == 0 {
-		t.Errorf("the entering land's chosen setter lowers, want the chained rider's refusal")
-	} else if !strings.Contains(keclReason(r), "ETB tap UnlessCost on a chained ETB replacement") {
-		t.Errorf("the refusal is %q, want the chained rider's own", keclReason(r))
+	lc = lowerSynth(t, passage)
+	if r := lc.Refusals; len(r) != 0 {
+		t.Fatalf("the ask-then-elect chain refuses: %q", keclReason(r))
+	}
+	var prog []lInstr
+	for i := range lc.Repls {
+		if p := lc.Repls[i].Prog; lc.Repls[i].Kind == "EntersWith" && len(p) == 3 && p[0].Op == "ChooseType" {
+			prog = p
+		}
+	}
+	if prog == nil {
+		t.Fatalf("no ask-then-elect enter program among %+v", lc.Repls)
+	}
+	if prog[0].B.N != int(kop.ChooseTypeBasicLand) {
+		t.Errorf("the ask is not the basic-land list: %+v", prog[0])
+	}
+	if prog[2].Op != "EnterTapped" {
+		t.Errorf("the election's tap body is %q, want EnterTapped", prog[2].Op)
 	}
 
 	// The control: a fixed-subtype setter (Spreading Seas) keeps its shape —

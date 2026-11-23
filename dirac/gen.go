@@ -1280,7 +1280,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Repl.Kind {
 				case kop.ReplEntersProgram:
 					g.setFlag(CardID(i), gfEnterRepl)
-					if len(a.Prog) > 0 && a.Prog[0].Op == kop.OpUnlessPaid && (int(a.Prog[0].C&0xF) == kop.PayLife || revealElection(&a.Prog[0])) {
+					if electionPC(a) >= 0 {
 						g.setFlag(CardID(i), gfShockEntry)
 					}
 				case kop.ReplOthersEnterProgram:
@@ -3394,7 +3394,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election
-			if s.shockAmount(k, a.Prog) > 0 {
+			if ep := electionPC(a); ep == 0 && s.value(k, a.Prog[0].A) > 0 {
 				return akPayLife
 			}
 		}

@@ -783,15 +783,21 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			// a one-card Reveal or Behold (revealLandCost). Anything else
 			// refuses.
 			if uc, ok := ps.get("UnlessCost"); ok {
-				if other || node != sa || sa.Sub != nil || cond.Kind != cNone {
-					// A chained node stays refused: its election completes a
-					// land play whose count gorge takes only when the whole
-					// entry's asks are answered (settleLandPlay), and the
-					// kernel's count-deferral machinery (gfShockEntry,
-					// repl_shockland.go) reads the election at prog[0]. A
-					// chain that asks first, then elects (Multiversal
-					// Passage), needs that machinery widened before it can
-					// lower.
+				// The ask-then-elect chain (Multiversal Passage): an as-enters
+				// basic-land ask whose SubAbility$ is the entering land's own
+				// pay-life election, the chain's last node. gorge parks the
+				// entry on each ask in order and its land play's count waits
+				// for the whole entry (settleLandPlay, landEntryParked); the
+				// kernel's count-deferral machinery (gfShockEntry,
+				// repl_shockland.go) reads the election behind the opener ask
+				// (electionPC) and carries the deferral across the chain
+				// (answerQueuedAsk). A rider behind any other chain, an
+				// others-enter election, or one with a condition of its own
+				// stays refused here.
+				elect := node == sa && sa.Sub == nil ||
+					node != sa && sa.API == "ChooseType" && strings.TrimSpace(sa.Params["Type"]) == "Basic Land" &&
+						sa.Sub == node && node.Sub == nil
+				if other || cond.Kind != cNone || !elect {
 					return refuse("ETB tap UnlessCost on a chained ETB replacement")
 				}
 				if p, ok := ps.get("UnlessPayer"); !ok || p != "You" {

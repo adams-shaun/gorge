@@ -1431,6 +1431,18 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if ask.ts&askETBDeferred != 0 {
 			s.deferredETBFire(k, ask, n0) // ctr_choice.go
 		}
+		// A deferred land play whose entry still asks (the ask-then-elect
+		// chain's opener, repl_shockland.go's shockChainOpener): the mark
+		// moves to the ask the resumption queued, and the count is due only
+		// when the entry's asks are all answered, as gorge settles it
+		// (settleLandPlay, landEntryParked).
+		if ask.ts&askLandPlay != 0 {
+			if s.g.nask > n0 {
+				s.g.ask[s.g.nask-1].ts |= askLandPlay
+			} else {
+				s.pl[s.perms[ask.sl].ctrl].landsPlayed++
+			}
+		}
 	}
 }
 
