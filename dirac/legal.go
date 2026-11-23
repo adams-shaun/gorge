@@ -322,7 +322,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
 			continue // gorge's potential planner declines a flashback cast carrying a credit ("cost:credit"): only the floating pool casts it (Inspiring Statuary's improvise)
 		}
-		if !s.flashbackPartsDisjoint(k, p, c, fc) {
+		if !s.flashbackReachable(k, p, c, o, fc) {
 			continue
 		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
