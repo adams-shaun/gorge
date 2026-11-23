@@ -350,7 +350,7 @@ func presenceHolds(h Host, c *Ctx, g *state.Game, typ string) bool {
 
 // historyBranchHolds answers the yes/no branch predicates of this file that
 // cov3BranchHolds's own switch does not carry: Count$Night.<y>.<n>,
-// Count$MaxSpeed, Count$Escaped and Count$wasCastFromYourLibrary.
+// Count$MaxSpeed, Count$Escaped, Count$Emerged and Count$wasCastFromYourLibrary.
 func historyBranchHolds(c *Ctx, g *state.Game, pred string) (holds, ok bool) {
 	you := c.Controller
 	valid := you >= 0 && int(you) < len(g.Players)
@@ -363,6 +363,11 @@ func historyBranchHolds(c *Ctx, g *state.Game, pred string) (holds, ok bool) {
 		// CR 702.138: the source was cast with its Escape cost (the flag
 		// survives onto the permanent for the ETB counters).
 		return src != nil && !src.IsCopy && src.CastFlags&state.FlagEscaped != 0, true
+	case cov3BranchHoldsEmerged:
+		// CR 702.119: the source was cast for its emerge cost (Adipose
+		// Offspring's Count$Emerged.T.1); the emerge cast stamps
+		// FlagAltCostPaid, which names the keyword's cost on a K:Emerge face.
+		return src != nil && !src.IsCopy && altCostKeywordPaid(src, "Emerge"), true
 	}
 	if playerSpecQualifierCodes.Code(pred) == playerSpecQualifierMaxSpeed {
 		// CR 702.179e: the resolving controller has max speed (the player
@@ -446,6 +451,29 @@ func nonActivePlayers(g *state.Game) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// evalEmergedOK is the tail of Emerged$CardToughness (Adipose Offspring's
+// SVar:T): the dispatcher cuts the whole head, so any other Emerged$ property
+// never reaches here and stays unmodelled. It reads the toughness of the
+// creature the source's Emerge cast sacrificed, as it last existed (CR 608.2h)
+// -- events.Apply folded it onto Object.EmergedToughness from the pay-time
+// CastInfo. A source that was not emerged reads a legitimate zero. The tail is
+// empty or a "/Op"; anything else is a longer, unmodelled property name.
+func evalEmergedOK(g *state.Game, c *Ctx, body string) (int32, bool) {
+	tail := strings.TrimSpace(body)
+	op, hasOp := strings.CutPrefix(tail, "/")
+	if !hasOp && len(tail) > 0 {
+		return 0, false
+	}
+	var n int32
+	if src := g.Obj(c.Source); src != nil && !src.IsCopy {
+		n = src.EmergedToughness
+	}
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
 }
 
 // The per-player StoreSVar accumulator (Plague of Vermin's `DB$ StoreSVar |
