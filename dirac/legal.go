@@ -2633,6 +2633,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
+			s.potentialTapExtraOpen(k, sl, pc, fold, &cen, painRefused)
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -2860,6 +2861,35 @@ func (s *State) tapXRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, fold
 // caller has checked k.gen.anyTapExtra, the lethal guard's refusal and the
 // pain-only face.
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
+	s.potentialTapExtraFixed(k, sl, pc, fold, cen)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, mask, r)
+		cen.growTap(sl, r)
+	}
+}
+
+// potentialTapExtraOpen folds a TapsForMana carrier's extra into an open
+// (any-colour) tap's over-bound pool: the fixed vector beside the pick
+// (Deathbloom Gardener's any-colour {G} under Leyline of Abundance's {G}) and
+// the reflected part's fold, whose census unit the census's grown tap already
+// holds (censusOpenTap's recPickDrop over srcYieldAt), so only the over-bound
+// pool keeps it. gorge folds the extra into each alternative of the tap (pay
+// addTapExtra). The lethal guard's refusal and the pain-only face leave it
+// out, as potentialTapExtraGated's gate does.
+func (s *State) potentialTapExtraOpen(k *prep, sl Slot, pc *pcard, fold func(Slot, uint8, uint8), cen *potCensus, painRefused bool) {
+	if k.gen == nil || !k.gen.anyTapExtra || painRefused || pc.painOnly {
+		return
+	}
+	s.potentialTapExtraFixed(k, sl, pc, fold, cen)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, s.srcMaskAt(pc, sl), r)
+	}
+}
+
+// potentialTapExtraFixed is potentialTapExtra's fixed-vector part: the
+// carrier's literal extra folded into the over-bound pool and recorded in the
+// census as its own unit, no reflected part.
+func (s *State) potentialTapExtraFixed(k *prep, sl Slot, pc *pcard, fold func(Slot, uint8, uint8), cen *potCensus) {
 	var xv [kop.NumManaKinds]uint8
 	if pc.painCol != 0 {
 		// a painful source's unit here is its normal ability's: the extra of
@@ -2880,10 +2910,6 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 			fold(sl, 1<<c, v-own)
 			cen.rec(1<<c, v-own)
 		}
-	}
-	if r := s.srcReflectPick(k, sl, pc); r > 0 {
-		fold(sl, mask, r)
-		cen.growTap(sl, r)
 	}
 }
 
