@@ -727,6 +727,36 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
+	// A may-play cast's join census (mayPlayJoinCensusPays: availNoAnyGrant)
+	// credits no any-colour grant: gorge's payment planner prices no granted
+	// mana ability (pay.PaymentAbility holds grants out of the census's
+	// alternatives; only a CR 305.6 intrinsic passes), so the World Tree's
+	// "lands you control have {T}: Add one mana of any color" beside each
+	// land's own tap pays nothing there, and a source whose only mana is such
+	// a grant makes nothing (tail-08 pair 44). Every other read -- the hand
+	// cast's census and the script-route prefix search -- still counts it.
+	if s.g.availX&availNoAnyGrant != 0 && ng > 0 {
+		n2 := 0
+		for i := 0; i < ng; i++ {
+			if s.srcMaskAt(s.grantView(k.gen, gi[i], sl), sl)&uint8(kop.ColAny) == uint8(kop.ColAny) {
+				continue
+			}
+			gi[n2] = gi[i]
+			n2++
+		}
+		if n2 < ng {
+			ng = n2
+			if ng == 0 && !own {
+				return // the source's only mana is an any-colour grant: no payment unit
+			}
+			if !own && ng == 1 {
+				// pc is the first (removed) grant's view: the surviving grant
+				// is the source's unit (grantsAdmitted's pattern)
+				gv := s.grantView(k.gen, gi[0], sl)
+				mask, n = s.srcMaskAt(gv, sl), srcYield(gv)
+			}
+		}
+	}
 	// The tap's reflected extra (Mana Flare over a dual: one more mana of the
 	// type the tap produced, gorge addTapExtra) rides the own face as the plain
 	// census's does (availForMode's srcYieldAt): availGrantExtra prices only a
