@@ -26,6 +26,21 @@ type legalWalk struct {
 	// autoBound is the lazily read PotentialMana bound the autopay offer
 	// (autoPayOffer) prices against; nil until first needed.
 	autoBound *state.Mana
+	// autoCensus is the lazily read planner census (paymentPlanCensusOf,
+	// priced against autoBound) the autopay census arm (autoPayCensus)
+	// shares across every ability the walk prices, the way autoBound shares
+	// the PotentialMana bound; nil until first needed. autoCensusSet feeds
+	// potentialCensusFallback's own walk-wide state (censused).
+	autoCensus    *paymentPlanCensus
+	autoCensusSet bool
+	// censusOffer records that the last autoPayOffer call's census arm
+	// (autoPayCensus) answered: the option the walk then appends is the
+	// arm's script-backed offer (decision.Option.CensusOffer), which the
+	// payment-prefix search's listing probe (sr.offered) must skip, as the
+	// kernel's own listing probe excludes the arm's listings
+	// (actScriptPays' availNoActScript). autoPayOffer clears it on entry; a
+	// pool- or witness-backed offer leaves it false.
+	censusOffer bool
 	// autoPlain/autoPlainP/autoPlainSet are the lazily built payment-window
 	// census (windowManaUnits) the autopay fast path (autoPayFast) shares
 	// across every ability it prices. autoPlainSet distinguishes "not read
