@@ -304,7 +304,15 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		// made after the source's whole ability list has been read.
 		var postAlts []windowManaAlt
 		for _, ma := range e.castWindowProbeAbilities(p, id) {
-			mp := effects.ManaOf(ma)
+			// A Condition-split root whose own gate fails makes its sub's mana
+			// instead (a lucky Gemstone Caverns' any colour, CR 605.1a;
+			// mana_condsplit.go): the alternatives price that production, under
+			// the root's cost.
+			prod := ma
+			if sub := condSplitLiveSub(e, p, id, ma); condSplitRootSuperseded(e, p, id, ma, sub) {
+				prod = sub
+			}
+			mp := effects.ManaOf(prod)
 			restricted := mp.RestrictValid != ""
 			if restricted {
 				if !descRead {
@@ -382,7 +390,7 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				selfSac = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
 				post = selfSac && !cost.Tap
 			}
-			amt, ok := e.castWindowAmount(p, id, o, ma)
+			amt, ok := e.castWindowAmount(p, id, o, prod)
 			if !ok {
 				continue
 			}
