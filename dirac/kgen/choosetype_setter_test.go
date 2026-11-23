@@ -17,9 +17,9 @@ import (
 func TestChooseTypeChosenSetter(t *testing.T) {
 	const mirage = "Name:Chosen Setter Probe\nManaCost:1 U\nTypes:Enchantment Aura\n" +
 		"K:Enchant:Land\n" +
-		"K:ETBReplacement:Other:DBChooseBasic\n" +
-		"SVar:DBChooseBasic:DB$ ChooseType | Type$ Basic Land | SpellDescription$ As CARDNAME enters, choose a basic land type.\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Enchanted | AddType$ ChosenType | RemoveLandTypes$ True | Description$ Enchanted land is the chosen type.\n"
+		"K:ETBReplacement:Other:DBPickBL\n" +
+		"SVar:DBPickBL:DB$ ChooseType | Type$ Basic Land | SpellDescription$ As it enters, this picks a basic land type.\n" +
+		"S:Mode$ Continuous | AffectedDefined$ Enchanted | AddType$ ChosenType | RemoveLandTypes$ True | Description$ The enchanted land is of the chosen type.\n"
 	lc := lowerSynth(t, mirage)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the chosen land-type setter refuses: %q", keclReason(r))
@@ -53,10 +53,10 @@ func TestChooseTypeChosenSetter(t *testing.T) {
 	// it lowers, the follow-up ticket's shape), so the ETB$ marker itself is
 	// what stays consumed here.
 	const passage = "Name:Chosen Setter Land Probe\nManaCost:no cost\nTypes:Land\n" +
-		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBChooseBasic | ReplacementResult$ Updated | Description$ As this land enters, choose a basic land type. Then you may pay 2 life. If you don't, it enters tapped.\n" +
-		"SVar:DBChooseBasic:DB$ ChooseType | ETB$ True | Type$ Basic Land | SubAbility$ DBTap\n" +
-		"SVar:DBTap:DB$ Tap | ETB$ True | Defined$ Self | UnlessCost$ PayLife<2> | UnlessPayer$ You\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | AddType$ ChosenType | RemoveLandTypes$ True | Description$ This land is the chosen type.\n"
+		"R:Event$ Moved | ValidCard$ Card.Self | Destination$ Battlefield | ReplaceWith$ DBPickBL2 | ReplacementResult$ Updated | Description$ Enters: pick a basic land type, then pay 2 life or enter tapped.\n" +
+		"SVar:DBPickBL2:DB$ ChooseType | Type$ Basic Land | ETB$ True | SubAbility$ DBTap2\n" +
+		"SVar:DBTap2:DB$ Tap | UnlessCost$ PayLife<2> | UnlessPayer$ You | ETB$ True | Defined$ Self\n" +
+		"S:Mode$ Continuous | AddType$ ChosenType | RemoveLandTypes$ True | AffectedDefined$ Self | Description$ The land is of the chosen type.\n"
 	if r := lowerSynth(t, passage).Refusals; len(r) == 0 {
 		t.Errorf("the entering land's chosen setter lowers, want the chained rider's refusal")
 	} else if !strings.Contains(keclReason(r), "ETB tap UnlessCost on a chained ETB replacement") {
@@ -67,7 +67,7 @@ func TestChooseTypeChosenSetter(t *testing.T) {
 	// one added subtype, no AddChosen.
 	const seas = "Name:Fixed Setter Probe\nManaCost:1 U\nTypes:Enchantment Aura\n" +
 		"K:Enchant:Land\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Enchanted | AddType$ Island | RemoveLandTypes$ True | Description$ Enchanted land is an Island.\n"
+		"S:Mode$ Continuous | AddType$ Island | RemoveLandTypes$ True | AffectedDefined$ Enchanted | Description$ The enchanted land is an Island.\n"
 	lc = lowerSynth(t, seas)
 	if r := lc.Refusals; len(r) != 0 {
 		t.Fatalf("the fixed-subtype setter control refuses: %q", keclReason(r))
@@ -89,7 +89,7 @@ func TestChooseTypeChosenSetter(t *testing.T) {
 	// A ChosenType word on the override path without the setter behind it
 	// refuses exactly as before this shape, by the AddType$ word's own class.
 	const noSet = "Name:Chosen No Setter Probe\nManaCost:1 U\nTypes:Enchantment\n" +
-		"S:Mode$ Continuous | AffectedDefined$ Self | AddType$ ChosenType | RemoveCardTypes$ True | Description$ probe.\n"
+		"S:Mode$ Continuous | AddType$ ChosenType | RemoveCardTypes$ True | AffectedDefined$ Self | Description$ probe.\n"
 	lc = lowerSynth(t, noSet)
 	if r := lc.Refusals; len(r) == 0 {
 		t.Errorf("AddType$ ChosenType without RemoveLandTypes$ lowers, want a refusal")
