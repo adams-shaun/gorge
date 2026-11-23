@@ -3627,6 +3627,9 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 		if !isGainedMode(a.Mode()) && a.Mode()&0x80 == 0 { // a gained or granted ability names no own index
 			return s.abilityBaseCost(k, Obj(a.Source()), a.Mode())
 		}
+		if !isGainedMode(a.Mode()) {
+			return s.selfGrantedBaseCost(k, a)
+		}
 	case AkCast:
 		// A may-play permission that only opens the zone reads the printed
 		// base too (gorge's scriptPlayBaseCost castModeMayplay admission,
@@ -3641,6 +3644,26 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 		}
 	}
 	return m, 0, false
+}
+
+// selfGrantedBaseCost is the printed cost of an ability the activated
+// permanent grants itself (a Clone's "except it has ..." grant, copyGrantCard;
+// a foreign host's grant stays unread): gorge's scriptPlayBaseCost reads the
+// granted ability's compiled cost beside the pile ability it indexes, so the
+// fee-stall prune (filtUsefulCost) prunes the filter's colours by the same
+// pips, and the kernel's unpruned search no longer exhausts its node budget on
+// a board gorge's pruned one pays.
+func (s *State) selfGrantedBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags, ok bool) {
+	o, host := Obj(a.Source()), Obj(a.Target())
+	if o != host || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].slot == NoSlot {
+		return m, 0, false
+	}
+	ab := a.Mode() &^ 0x80
+	abs := k.t.Cards[s.grantCardAt(k, s.objs[o].slot, ab)].Abilities
+	if int(ab) >= len(abs) || abs[ab].Kind != kop.AbActivated {
+		return m, 0, false
+	}
+	return abs[ab].Cost.Mana, abs[ab].Cost.Flags, true
 }
 
 // grantNeedColours reports the colours m's symbols name, gorge's
