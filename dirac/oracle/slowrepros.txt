@@ -5,12 +5,6 @@
 # (595 subtests, 663 cost-s) and a run of the other 213 replay tests (110 cost-s), both
 # `make test-one PKG=./dirac/oracle` on the capped 4-core wrapper. A card's own fix PR re-records its
 # game shorter (kfuzz -shrink) and drops the entry; refresh the list the same way after a train.
-# The two TestStdPool* entries are the pool aliases: they replay nine and six sets' recordings in one
-# sequential stream (299.8 s and 145.6 s of subtest time in the 11-20 anchor run, 184.5 and 106.5 batch
-# cost-s at 11-14), recordings the per-set globs already replay; their pools stay in the precheck
-# through those globs' subtest slice.
-TestStdPoolReprosLockstep
-TestStdPoolReprosLockstepFull
 TestStorageLandCastAutopayReprosLockstep
 act_offer_funded_by_granted_any_land_mana
 escape_cast_not_script_searched
