@@ -34,7 +34,7 @@ func (w *filtWalk) activateOrders(t avail, set int, filt *[maxFaceFilters]Slot, 
 		var c [maxFiltPermSet]int
 		for i := 0; i < m; {
 			if c[i] < i {
-				if i&1 == 0 {
+				if i&1 == 0 { // seat-ok: Heap's algorithm parity, not a seat
 					ord[0], ord[i] = ord[i], ord[0]
 				} else {
 					ord[c[i]], ord[i] = ord[i], ord[c[i]]
