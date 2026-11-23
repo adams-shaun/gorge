@@ -24,18 +24,58 @@ func init() {
 	fwName[kop.FwWithKeyword] = "FwWithKeyword"
 	fwName[kop.FwChosenCtrl] = "FwChosenCtrl"
 	fwName[kop.FwEnchantedControllerCtrl] = "FwEnchantedControllerCtrl"
+	fwName[kop.FwSharesCr] = "FwSharesCr"
+	fwName[kop.FwSharesName] = "FwSharesName"
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers
-	// all three spellings (engine/effects/filter.go's keyword registry).
+	// all three spellings (engine/effects/filter.go's keyword registry), under
+	// the compact key — and, for the names with spaces, the spaced spellings
+	// too (keywordPredicateFor's normalization makes "with Doctor's companion"
+	// and "withDoctor'scompanion" one keyword to gorge, so both lower here).
 	for name, id := range fwKeywordWords {
-		for _, p := range [...]struct {
-			spell string
-			neg   bool
-		}{{"with" + name, false}, {"without" + name, true}, {"!with" + name, true}} {
-			id, neg := id, p.neg
-			fwArms[p.spell] = func(c *lClause, _ string) error {
-				return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
+		spellings := []string{name}
+		if spaced, ok := fwKeywordSpaced[name]; ok {
+			spellings = append(spellings, spaced, " "+spaced)
+		}
+		for _, spell := range spellings {
+			for _, p := range [...]struct {
+				spell string
+				neg   bool
+			}{{"with" + spell, false}, {"without" + spell, true}, {"!with" + spell, true}} {
+				id, neg := id, p.neg
+				fwArms[p.spell] = func(c *lClause, _ string) error {
+					return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
+				}
+			}
+		}
+	}
+	// the referent words (T13b-2): gorge's two-token
+	// sharesCreatureTypeWith/sharesNameWith <ref> (sharesTypeArg's vocabulary,
+	// resolved by sharesTypeReferents), each a program literal carrying its
+	// referent in R. The referents the kernel keeps no live object of stay
+	// refused (fwShareRefs/fwNameRefs name only what the handler reads):
+	// Convoked (the kernel records the count, never the creatures), and
+	// Sacrificed/Enchanted (not in gorge's vocabulary).
+	for _, fam := range []struct {
+		w    kop.FilterWord
+		head string
+		refs map[string]kop.Ref
+	}{
+		{kop.FwSharesCr, "sharesCreatureTypeWith", fwShareRefs},
+		{kop.FwSharesName, "sharesNameWith", fwNameRefs},
+	} {
+		w, head := fam.w, fam.head
+		for ref, r := range fam.refs {
+			ref, r := ref, r
+			for _, pre := range [...]struct {
+				spell string
+				neg   bool
+			}{{"", false}, {"!", true}} {
+				neg := pre.neg
+				fwArms[pre.spell+head+" "+ref] = func(c *lClause, _ string) error {
+					return c.fwLit(lSpillLit{W: w, Neg: neg, R: r})
+				}
 			}
 		}
 	}
@@ -62,13 +102,55 @@ func init() {
 }
 
 // fwKeywordWords are the printed-keyword words lowered to FwWithKeyword, by
-// gorge's compact keyword name: only keywords whose printed record the kernel
-// keeps (printedKeyword). A keyword with no record (Flanking, Cycling,
-// Disturb ...) stays an unknown property.
+// gorge's compact keyword name (spaces removed): only keywords the word's
+// kernel read answers as gorge does. Flanking, Disturb, Mutate and Phasing
+// lower onto the word's fail-closed default: their K: line refuses the whole
+// face, so no lowered card can print them, and printedKeyword's default
+// false is exact over every lowered card.
 var fwKeywordWords = map[string]kop.KwID{
 	"Toxic": kop.KwToxic, "Horsemanship": kop.KwHorsemanship, "Morph": kop.KwMorph, "Megamorph": kop.KwMegamorph,
 	"Suspend": kop.KwSuspend, "Cascade": kop.KwCascade, "Convoke": kop.KwConvoke, "Foretell": kop.KwForetell,
 	"Madness": kop.KwMadness, "Multikicker": kop.KwMultikicker,
+	// T13b-2's records: the keywords with no KwMask bit. Cycling, Ward,
+	// Enchant, Unearth, Decayed, Persist and Doctor's companion carry their
+	// own cold CardDef field (dirac/filter_withkeyword.go printedKeyword).
+	"Cycling": kop.KwCycling, "Ward": kop.KwPrintedWard, "Enchant": kop.KwEnchant,
+	"Unearth": kop.KwUnearth, "Decayed": kop.KwDecayed, "Persist": kop.KwPersist,
+	"Doctor'scompanion": kop.KwDoctorsCompanion,
+	// and the four whose printed face no lowered card can carry
+	"Flanking": kop.KwFlanking, "Disturb": kop.KwDisturb, "Mutate": kop.KwMutate, "Phasing": kop.KwPhasing,
+}
+
+// fwKeywordSpaced are the compact names that also read in a spaced spelling
+// (gorge keywordPredicateFor's normalization removes every space of the
+// token): the corpus writes both.
+var fwKeywordSpaced = map[string]string{"Doctor'scompanion": "Doctor's companion"}
+
+// fwShareRefs maps the sharesCreatureTypeWith referent spellings gorge reads
+// (sharesTypeArg's vocabulary, engine/effects/filter_attachment.go) to the
+// Ref the program literal carries, for the referents the kernel keeps live:
+// Targeted (the reading context entry's object targets, every slot — the
+// handler iterates them all, so the Ref's slot span is not a bound), Self,
+// RememberedCard (the entry's remembered object, gorge's first card entry),
+// and Imprinted (the source's first imprinted card, RefImprinted's read).
+// Commander, TriggeredAttacker and TriggeredCard keep their own lowerings
+// (cmpSharesCrCmdr, W7SharesCrTrigObj); Remembered/RememberedLKI (the whole
+// set, where the kernel keeps one object) and Convoked (no kernel record)
+// stay refused, as do Sacrificed and Enchanted, which gorge's sharesTypeArg
+// never accepts.
+var fwShareRefs = map[string]kop.Ref{
+	"Targeted": kop.RefTargets0123, "Self": kop.RefSelf,
+	"RememberedCard": kop.RefRemembered, "Imprinted": kop.RefImprinted,
+}
+
+// fwNameRefs is fwShareRefs for sharesNameWith: Targeted, RememberedCard and
+// the triggering object (TriggeredCard, TriggeredCardLKICopy). Remembered and
+// Self keep their struct lowerings (cmpSameNameRem, cmpSameNameSelf), the one
+// Valid <filter> carrier (Permanent.Legendary) its W7SharesNameLegend one;
+// the general Valid <filter> form waits on a nested-filter arm.
+var fwNameRefs = map[string]kop.Ref{
+	"Targeted": kop.RefTargets0123, "RememberedCard": kop.RefRemembered,
+	"TriggeredCard": kop.RefTriggerObj, "TriggeredCardLKICopy": kop.RefTriggerObj,
 }
 
 // fwLit adds one filter-word literal to the clause's program, moving a
@@ -94,9 +176,15 @@ func (c *lClause) fwLit(l lSpillLit) error {
 }
 
 // fwArmOrUnknown lowers property p by its arm, or is the unknown-property
-// error: the tail of lClause.prop's switch.
+// error: the tail of lClause.prop's switch. The prefixes are the families'
+// heads: with<K> (and its without/!with spellings), the two-token share
+// words, and the two link words.
 func (c *lClause) fwArmOrUnknown(p string) error {
-	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") || p == "ChosenCtrl" || p == "EnchantedControllerCtrl" {
+	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") ||
+		strings.HasPrefix(p, "sharesCreatureTypeWith") || strings.HasPrefix(p, "!sharesCreatureTypeWith") ||
+		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
+		p == "sameName" || p == "!sameName" ||
+		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}

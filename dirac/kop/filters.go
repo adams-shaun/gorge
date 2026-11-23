@@ -416,16 +416,20 @@ const (
 // effects/filter_attachment.go attachedToArg) of the class PredN's high byte
 // names (AttToCreature, AttToLand; neither: any permanent, the Card and
 // Permanent classes) and that meets its qualifier: AttToOther, not the
-// filter's source; AttToYouCtrl, controlled by the evaluating controller.
-// Nothing off the battlefield is attached.
+// filter's source; AttToYouCtrl, controlled by the evaluating controller;
+// AttToSrcBearer, the bearer is the one the filter's own source is attached
+// to (gorge's attachedBy, the EnchantedBy and EquippedBy qualifiers' one
+// body, With Great Power and Baki's Curse). Nothing off the battlefield is
+// attached.
 const W7AttachedTo int16 = 19
 
 // W7AttachedTo's PredN high-byte bits (PredN>>8).
 const (
-	AttToCreature = 1
-	AttToLand     = 2
-	AttToOther    = 4
-	AttToYouCtrl  = 8
+	AttToCreature  = 1
+	AttToLand      = 2
+	AttToOther     = 4
+	AttToYouCtrl   = 8
+	AttToSrcBearer = 16
 )
 
 // W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith

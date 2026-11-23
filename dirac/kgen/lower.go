@@ -1290,6 +1290,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.84a: gorge kwUnearth expands it into one graveyard
 			// AB$ ChangeZone (Unearth$ True), lowered from that line
 			// (lower_zone.go changeZone)
+			lc.out.HasUnearth = true // the with<Unearth> word's record
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1384,6 +1385,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// | Cost$ <cost> Discard<1/CARDNAME> | ActivationZone$ Hand,
 			// cards/kw_cycling.go), lowered from that line; a cost the
 			// expander cannot read leaves no line and refuses here.
+			// gorge's with<K> registry names plain Cycling only, so
+			// TypeCycling keeps no record and stays an unknown property.
+			lc.out.HasCycling = head == "Cycling"
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1475,6 +1479,22 @@ func (lc *lowerCtx) lowerKeywords() {
 			// reads the raw face keyword (dirac/adapter checkCommander
 			// -> deck.IsPartnerPair on the deck's own cards), so lowering
 			// nothing is exact.
+			lc.out.HasDoctorsCompanion = true // the with<K> word's record
+		case head == "Ward":
+			// CR 702.19a: the cost is the expansion's own lowering (the
+			// spell's ward ask, kw_wardcost.go); the marker is the
+			// with<Ward> word's printed record.
+			lc.out.HasWard = true
+		case head == "Enchant":
+			// CR 702.102a: the target spec is the expansion's own lowering
+			// (the Aura's Enchant); the marker is the with<Enchant> word's
+			// printed record.
+			lc.out.HasEnchant = true
+		case head == "Persist":
+			// CR 702.79a: gorge kwPersist expands it into a dies trigger
+			// (Persist$ True), lowered from that line; the marker is the
+			// with<Persist> word's printed record.
+			lc.out.HasPersist = true
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
