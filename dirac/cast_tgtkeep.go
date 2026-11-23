@@ -227,7 +227,10 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot) slotMask {
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
-		if sl == t || k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac == 0 {
+		// a source with a plain mana ability beside its sacrifice (Phyrexian
+		// Tower's {T}: Add {C}) still has a unit without the target: masking
+		// it whole would withhold a cast gorge's search funds through it
+		if sl == t || k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac == 0 || k.tapXSecond(s.cardAt(sl)) {
 			continue
 		}
 		if s.tapXCands(k, p, sl, &cs) == 1 && cs[0] == t {
