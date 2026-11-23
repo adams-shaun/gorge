@@ -2683,7 +2683,7 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	if !d.hasPlay {
 		return false
 	}
-	hint := s.playNeed(k, d.play)
+	hint := s.playNeedHint(k, d.play)
 	if hint == need {
 		return false
 	}
@@ -3276,6 +3276,16 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // same set. The card's printed cost is read unreduced (CR 601.2b announces
 // the printed pip colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
+	need, _ = s.playNeedPrinted(k, a)
+	return need
+}
+
+// playNeedHint is playNeed plus the graveyard cast's announced pips
+// (graveyardCastNeedCost, CR 601.2b): a branch-order hint only, read by the
+// searches' second run (grantSearch, tapXScript) after gorge's own order,
+// playNeed's, found nothing. Every other search walks gorge's order alone: the
+// colour a tap-any source floats is the one gorge's engine order picks.
+func (s *State) playNeedHint(k *prep, a Action) (need [kop.NumManaKinds]bool) {
 	if need, ok := s.playNeedPrinted(k, a); ok {
 		return need
 	}
