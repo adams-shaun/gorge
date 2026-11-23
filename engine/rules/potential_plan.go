@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -301,6 +302,11 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	// verdict exactly as before.
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
+	// The relaxed proof counts a land's granted {T} ability beside its printed
+	// one, so seven lands look like fourteen sources and a ten-mana ability
+	// ran three 160-clone searches per priority decision that could only end
+	// at the budget. The supply count has no such slack.
+	skip = skip || census.outruns != nil && census.outruns(o)
 	if skip {
 		return got, nil
 	}
@@ -2414,6 +2420,13 @@ type paymentPlanCensus struct {
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
+	// outruns reports that play o's offer cost needs more mana than the
+	// floating pool and every mana source on the board can make (CR 602.2b:
+	// one tap each). Set only when every mana ability on the board is a lone
+	// {T} making one mana (manaTapSingle), so the count is exact however the
+	// planner prices a source; nil otherwise. A necessary condition only: a
+	// search it skips could not have found a prefix.
+	outruns func(o decision.Option) bool
 	// onceGap: a missed ability is one-shot (its cost taps, sacrifices or
 	// returns the source, or it has a once-only activation limit) and has no
 	// relaxed alternative. A one-shot paid production (a filter land's
@@ -2484,6 +2497,9 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	}
 	var probe *Engine
 	bounded := true // every gap ability so far has a once-only or bounded relaxation
+	// plain: every mana ability on the board is a lone {T} making one mana
+	// (manaTapSingle); sources counts the permanents that have one.
+	plain, sources := true, int32(0)
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		var abs []*cards.SA
 		var face *cards.Face
@@ -2502,6 +2518,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		}
 		if len(abs) == 0 {
 			continue
+		}
+		sources++
+		for _, ma := range abs {
+			plain = plain && manaTapSingle(e, p, id, ma)
 		}
 		var alts []pay.Alt
 		if i, ok := at[id]; ok {
@@ -2589,11 +2609,74 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
+	if plain && !out.complete && !e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
+		// A ProduceMana replacement (Mana Reflection) can make more than one
+		// mana from a tap, so the supply count is no bound.
+		pool := int32(e.G.Players[p].Pool.Total())
+		out.outruns = func(o decision.Option) bool { return abilityOutrunsSupply(e, p, o, pool+sources) }
+	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {
 		out.bound, out.boundPaid = nil, nil
 	}
 	return out
+}
+
+// supplyProofHost is the narrow slice of the engine the supply proof reads
+// (manaTapSingle, abilityOutrunsSupply), so the proof stays out of the
+// engine's method surface (codeshape's EngineSurface).
+type supplyProofHost interface {
+	condSplitHost
+	offerCostHost
+	manaAbilityCC(p state.PlayerID, source state.ObjID, ma *cards.SA) *compiledCost
+	potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana
+	appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA
+}
+
+// anyColourProduced is the Produced$ spellings of one mana of any colour.
+var anyColourProduced = []string{"Any", "Combo Any"}
+
+// manaTapSingle reports whether mana ability ma of source id is a lone {T}
+// that makes exactly one mana: no fee or other cost part, no tap trigger's
+// extra mana, no condition-split production, no chosen or per-object amount.
+// Only a plain one-symbol production or "Any" is read as one mana: a special
+// one (Bloom Tender's one mana per colour among permanents) parses to no
+// colour at all, which would count as nothing.
+func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	mp := effects.ManaOf(ma)
+	if mp.PlainSym == 0 && !slices.Contains(anyColourProduced, mp.Produced) {
+		return false
+	}
+	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
+		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
+}
+
+// abilityOutrunsSupply reports that the printed activated ability o costs
+// more mana, as the offer gate composes it, than supply: the floating pool
+// plus one mana for each source. An ability whose own {T} is a cost cannot
+// be paid from its own source, which is taken out of the supply. Any other
+// play, and a cost whose mana count can fall after announcement (an {X}, a
+// Phyrexian or two-brid symbol, a waterbend part, a creature-tap credit), is never proven.
+func abilityOutrunsSupply(e supplyProofHost, p state.PlayerID, o decision.Option, supply int32) bool {
+	if o.Kind != optAbility || o.SVar != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Keyword != "" {
+		return false
+	}
+	ob := e.Game().Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return false
+	}
+	pa, ok := ob.PileAbilityAt(o.Ability)
+	if !ok || pa.SA == nil || !pa.SA.IsActivated() || cards.IsManaAbilitySA(pa.SA) || pay.TapCreaturesForMana(pa.SA) {
+		return false
+	}
+	c := abilityOfferCostOf(e, p, o.Obj, pa.SA)
+	if c.X != 0 || c.XMin != 0 || c.Waterbend != 0 || c.WaterbendX || len(c.Phyrexian)+len(c.HybridPhyrexian)+len(c.Twobrid) != 0 {
+		return false
+	}
+	if c.Tap && len(e.appendAvailableManaAbilitiesGate(nil, nil, p, o.Obj, true)) != 0 {
+		supply--
+	}
+	return supply < c.CMC()
 }
 
 // tapRepeatBound is how many times a repeatable tap-only mana cost
