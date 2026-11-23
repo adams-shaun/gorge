@@ -158,7 +158,11 @@ func ManaReflectedFold(h Host, sa *cards.SA, objs []state.ObjID) []string {
 		if produce {
 			syms = producibleSymbols(o)
 		} else {
-			syms = ColorsOf(o)
+			// CR 613.1e: "Is" reads the object's current colours, so a
+			// Crimson Wisps recolour (Katilda turned red) narrows it; the
+			// published layer-5 table, when it names o, is the same read
+			// taken inside the layer pass.
+			syms = h.ObjectColors(o)
 			for i := range derived {
 				if derived[i].ID == o.ID {
 					syms = derived[i].Mask.String()
