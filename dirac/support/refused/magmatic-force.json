@@ -1,0 +1,32 @@
+{
+  "card": "Magmatic Force",
+  "class": "options",
+  "why": "an 8-mana cast paid only through eight lands all granted \"{T}: Add one mana of any color\" by The World Tree exhausts gorge's 160-node prefix search before it reaches a paying colour assignment, so the planner leaves it unpriced (unsupported census_incomplete) and the full surface withholds it while the kernel offers it; tail-08 pair 7",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "magmatic_force_world_tree_search_budget"
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c001",
+    "ev-tail-08-c002",
+    "ev-tail-08-c004",
+    "ev-tail-08-s000",
+    "ev-tail-65-c000",
+    "ev-tail-65-c010",
+    "ev-tail-65-c014",
+    "ev-tail-65-c018",
+    "ev-tail-65-c020",
+    "ev-tail-65-c029",
+    "ev-tail-65-c032",
+    "ev-tail-65-c036",
+    "ev-tail-65-c042",
+    "ev-tail-65-c043",
+    "ev-tail-65-c045"
+  ]
+}
