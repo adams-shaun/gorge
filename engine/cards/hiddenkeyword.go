@@ -254,6 +254,12 @@ func MustBeBlockedByFilter(k string) string {
 // a granted ability line (a granted flying) and every printed line, whose
 // sentences the printed K: parser already canonicalised to heads.
 //
+// The Lure sentence (HiddenKeywordAllMustBlock) is deliberately outside the
+// class too: every printed carrier grants it as a quoted ability ("Enchanted
+// creature has 'All creatures able to block this creature do so.'"), so a
+// LATER layer-6 loss ends it like a granted flying (CR 613.1f), unlike the
+// unquoted "can't block" family.
+//
 // UntapNextStep is deliberately outside the class: the untap step consumes
 // the one-shot state flag stamped at grant time
 // (engine/effects registerPumpEffects), not the keyword text, so the line's
@@ -264,7 +270,7 @@ func IsHiddenRuleEffectKeyword(k string) bool {
 	switch HiddenKeywordOf(k) {
 	case HiddenKeywordCantAttackOrBlock, HiddenKeywordCantAttack, HiddenKeywordCantBlock,
 		HiddenKeywordMustBlock, HiddenKeywordCantAttackOrBlockAlone, HiddenKeywordCantAttackAlone,
-		HiddenKeywordCantBlockAlone, HiddenKeywordAllMustBlock, HiddenKeywordMustBeBlockedByTwo,
+		HiddenKeywordCantBlockAlone, HiddenKeywordMustBeBlockedByTwo,
 		HiddenKeywordMustBeBlockedByOne, HiddenKeywordMustBeBlockedByAll, HiddenKeywordCanOnlyAttackAlone,
 		HiddenKeywordCantAttackUnlessGreaterPower, HiddenKeywordCantBlockUnlessGreaterPower,
 		HiddenKeywordCantAttackUnlessTwoOthers, HiddenKeywordCantBlockUnlessTwoOthers,
