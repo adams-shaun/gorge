@@ -2776,10 +2776,14 @@ func (s *State) suppressEOT(sl Slot) {
 	}
 	// "can't be blocked this turn" (Rogue's Passage, Kaito, Vampire
 	// Gourmand) is an effect on the creature, not an ability it gains
-	// (gorge: an Effect object's CantBlockBy static), so it stays; so does a
-	// granted "can't block this turn" (Fifty Feet of Rope's Climb Over: a
-	// restriction effect, CR 509.1b, which a later loss of abilities cannot
-	// end -- gorge's IsHiddenRuleEffectKeyword)
+	// (gorge: an Effect object's CantBlockBy static), so it stays. So does a
+	// granted "can't block this turn" (Hostile Realm's pump on Tolaria West,
+	// Fifty Feet of Rope's Climb Over: a restriction effect, CR 509.1b / a
+	// hidden rule-effect keyword, CR 613.11): a later lose-all-abilities
+	// effect removes the creature's abilities, not the game rule, so gorge
+	// keeps the restriction (IsHiddenRuleEffectKeyword; the walk's
+	// restrictions buffer, chars/derive.go applyKeywordGrant) and the grant
+	// stays here.
 	const keep = kop.KwUnblockable | kop.KwCantBlock
 	var cnt [32]uint8
 	for x := p.eotKw &^ keep; x != 0; x &= x - 1 {
