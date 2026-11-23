@@ -15,7 +15,7 @@ import (
 // here with the reading that keeps each two-seat only, and the cards the pod
 // retirement lifted, which must not come back. The remainder shrinks only:
 // lifting a card moves it from podRefusedCards to podLiftedCards, in the
-// change that lifts it, with its pod lockstep (podlimited_cards_mp_test.go).
+// change that lifts it, with its pod recording (podlimited_recordings_mp_test.go).
 var podRefusedCards = map[string]string{
 	// a LosesGame trigger on a granted Effect: in a pod the game goes on, so
 	// the trigger resolves (copies of the loser's artifacts and creatures from
@@ -28,8 +28,8 @@ var podRefusedCards = map[string]string{
 }
 
 // podLiftedCards are the cards kgen once marked two-seat only that read the
-// seat they name now: each has a four-seat lockstep in
-// podlimited_cards_mp_test.go.
+// seat they name now: each has a four-seat recording replayed in
+// podlimited_recordings_mp_test.go.
 var podLiftedCards = []string{"Ravenloft Adventurer", "Etrata, the Silencer", "The Weaver King", "Vulcan Mind-Meld"}
 
 // TestPodLimitedRemainderRefusedByName: each remaining pod-limited card is
