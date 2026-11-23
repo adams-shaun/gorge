@@ -163,7 +163,6 @@ Necropede
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -262,7 +261,6 @@ Warped Tusker
 Weakness
 Willow Elf
 Winds of Rath
-Wormhole Serpent
 Wu Scout
 Yavimaya Enchantress
 Yukora, the Prisoner
