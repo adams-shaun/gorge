@@ -1296,7 +1296,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 // when none does, as gorge offers. It reports whether it asked.
 func (s *State) pipOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
+	// the faces are announced before the targets (CR 601.2b, 601.2c): gorge's
+	// pending cast prices them with the modifiers composed for no target, so a
+	// ValidTarget$ reduction (Strong Back's {3} off an Aura aimed at its
+	// creature) waits for the answer rather than taking the cheapest target
+	was := s.g.noTgtRed
+	s.g.noTgtRed = was || e.nt == 0 && !s.targetsAnswered()
 	cost := s.buildCost(k)
+	s.g.noTgtRed = was
 	if s.buildingPowerUp(k) {
 		cost = s.buildCostCharge(k) // the faces are priced against the CR 702.193b charge, as gorge's pip ask reads the reduced cost
 	}

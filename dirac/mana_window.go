@@ -3242,7 +3242,7 @@ func (s *State) witnessAtCheapest(k *prep, p uint8, cost *kop.ManaCost, av *avai
 		*cost = s.altAddReduced(k, *cost, s.altAddManaPart(k, e.card))
 		return
 	}
-	if s.spellTgtDep(k, p, e.card, e.obj) && cost.Hyb[0] == 0 &&
+	if s.spellTgtDep(k, p, e.card, e.obj) && cost.Hyb[0] != kop.HybTwobrid && // (a twobrid cost is announced before the payment)
 		(!severalTargets(k, e.card) || e.flags&(sfMayPlay|sfFlashback) == 0) {
 		funded := av.affords(cost, pipMaskOf(cost), 0)
 		if k.gen != nil && len(k.gen.grantPC) != 0 {
