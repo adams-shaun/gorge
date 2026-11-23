@@ -3061,6 +3061,16 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 	}
 	var d Decision
 	if !t.tapXNext(fs.p, &d) {
+		if t.over {
+			// a queued trigger's resolution killed the payer (Manabarbs' damage
+			// at the last life points, CR 704.5a): gorge's visit charges the
+			// dead priority as a node before it returns at the game over, so the
+			// line costs its node as try's own-pain death does, or a search that
+			// walked lethal triggers found a funding line at the budget's edge
+			// that gorge's spent budget never reached (tail-34-c000 pair 2: Vault
+			// of the Archangel beside Unknown Shores under Manabarbs at 2 life)
+			fs.tick()
+		}
 		fs.stallOf(t)
 		return false
 	}
