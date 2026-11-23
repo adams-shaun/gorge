@@ -768,7 +768,7 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 	if found {
 		return true, 0
 	}
-	if printed, _ := s.playNeedPrinted(k, a); printed == s.playNeed(k, a) {
+	if printed, _ := s.playNeedPrinted(k, a); printed == s.playNeedHint(k, a) {
 		return false, stall
 	}
 	if found, st2 := s.tapXScriptNeed(k, a, p, apply, true); found || st2 != 0 {
@@ -793,7 +793,7 @@ func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bo
 		rs.gaps = s.gapSpendableMask(k, rs.gaps, &d)
 	}
 	if hint {
-		rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
+		rs.need = s.playNeedHint(k, a) // the colour ask's order follows the play's pips
 	} else {
 		rs.need, _ = s.playNeedPrinted(k, a)
 	}
