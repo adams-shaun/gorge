@@ -2299,8 +2299,13 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // nothing attached to either. gorge's scriptTwin requires the same printed
 // name and the same activate options; the card definition plus the shared
 // abilities is that same pair (a granted ability is read through the same
-// card's state, so a grant that reaches one reaches the other).
-func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotOf(t, a, b) }
+// card's state, so a grant that reaches one reaches the other). A land
+// animated into a creature (Kamahl, Fist of Krosa's {G} on a Plains) still
+// pairs with an unanimated one: gorge reads the options and the mana-ability
+// sets, which the animate leaves alone (twinSlotFx, ovrKeepsMana); a strict
+// test walked the second Plains' subtree gorge's cut skips, spent the 160-node
+// budget, and left a payable {2}{G}{G}{G} unoffered (CR 605.3a, 601.2g).
+func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotFx(k, t, a, b) }
 
 // twinSlotOf is twinSlot's test, which reads no search state: the grant
 // search's funding loop asks it too (grantSrch.fundTwinTried).
@@ -2369,11 +2374,25 @@ func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 		}
 		ov := &k.t.Overrides[r.r.idx-1]
 		if ov.LoseAbilities || ov.Grant != [2]uint8{} || ov.SetLandSub || ov.HasTypes || ov.HasSub || ov.NameCard != 0 ||
-			ov.AddSub.And(k.gen.landSub).Any() {
+			addsLandSub(k, ov.AddSub) {
 			return false
 		}
 	}
 	return true
+}
+
+// addsLandSub reports whether sub holds a land subtype (landTypeWords). It
+// reads the words, not genPrep.landSub: that strip set is empty unless some
+// override is a CR 305.7 setter, and Navigator's Compass's "becomes an Island
+// in addition" adds a basic land type (CR 305.6: its {T}: Add {U}) with none
+// in the pool.
+func addsLandSub(k *prep, sub kop.SubMask) bool {
+	for i, n := range k.t.Subtypes {
+		if i < kop.MaxSubtypes && sub.Has(i) && landTypeWords[n] {
+			return true
+		}
+	}
+	return false
 }
 
 // deadFunder: sl is a dropped any-colour restricted gap (Gwenna beside a
