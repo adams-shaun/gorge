@@ -1,11 +1,6 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const sorcererFangRepro = "sorcerer_of_the_fang_activation_offer"
 
@@ -14,26 +9,18 @@ const sorcererFangRepro = "sorcerer_of_the_fang_activation_offer"
 // every Swamp tapped, Prismite ("{2}: Add one mana of any color") and a
 // Treasonous Ogre ("Pay 3 life: Add {R}"). The only {B} left is Prismite's, and
 // its {2} fee, with the five generic, is paid from the Grove and six Ogre
-// activations (18 of p1's 20 life), so gorge's prefix search offers the
-// activation at decision 233. The kernel's filter search funds a fee from taps
-// and census gaps; a sole life-only pain unit is neither, so it offers
-// nothing. The card is refused by name; the recorded game still shows the
-// divergence with it implicated.
-func TestMBCSorcererOfTheFangReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+// activations, so gorge's prefix search offers the activation. The kernel's
+// activation read now plans the ability's mana cost beside its own {T} against
+// the same potential bound a cast reads, with the sole life-only pain unit as
+// the plan's last resort (CR 602.2b, 605.3a, 119.4), so it offers it too: the
+// recorded game replays clean and the card is no longer refused
+// (dirac/support/unrefused.tsv). This test pins the unrefusal's proof.
+func TestMBCSorcererOfTheFangReproReplaysClean(t *testing.T) {
+	res := replayRawRepro(t, sorcererFangRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", sorcererFangRepro, res.Div.At, res.Div)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Sorcerer of the Fang" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != sorcererFangRepro {
-			t.Fatalf("Sorcerer of the Fang's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, sorcererFangRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", sorcererFangRepro, res.Stall)
 	}
-	t.Fatal("Sorcerer of the Fang has no dirac/support/refused entry: its activation is payable only through a Prismite fee funded by a life-only Treasonous Ogre")
 }
