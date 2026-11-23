@@ -238,7 +238,7 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 		if entryCloneBody(m) {
 			entryCopied = true
 		}
-		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+		e.runEntryBody(e.replCtx(m, ev), &stored, m.repl.With)
 	}
 	if entryCopied {
 		applyInheritedEntryReplacements(e, e.G, stored)
@@ -394,7 +394,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 	chosen := rc.cands[selected]
 	entryCopied := rc.entryCopied || entryCloneBody(chosen)
 	if !bodyAbsorbed(rc.absorbed, chosen) {
-		e.runReplaceWith(e.replCtx(chosen, rc.ev), rc.ev.Obj, chosen.repl.With, nil)
+		e.runEntryBody(e.replCtx(chosen, rc.ev), &rc.ev, chosen.repl.With)
 	}
 	var remaining []replMatch
 	for i, m := range rc.cands {
@@ -422,7 +422,7 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 		if entryCloneBody(m) {
 			entryCopied = true
 		}
-		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
+		e.runEntryBody(e.replCtx(m, rc.ev), &rc.ev, m.repl.With)
 	}
 	if entryCopied {
 		applyInheritedEntryReplacements(e, e.G, rc.stored)
