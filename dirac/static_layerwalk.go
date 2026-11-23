@@ -1074,7 +1074,7 @@ func (s *State) grantSrcLost(k *prep, src Slot) bool {
 		if !k.gen.has(c, gfLoseStat) || s.perms[ls].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
 			continue
 		}
-		if s.perms[ls].attached == src && ls != src || k.gen.has(c, gfGlobOvr) && ty&kop.TCreature != 0 {
+		if s.perms[ls].attached == src && ls != src || k.gen.has(c, gfGlobOvr) && ty&kop.TCreature != 0 && (ty&kop.TLand != 0 || !landSetLoseOnly(k, c)) {
 			return true
 		}
 	}
