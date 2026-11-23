@@ -306,6 +306,14 @@ func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool 
 		o.anyWalk && s.restrBoundDrops(k, p, a)
 }
 
+// pricedByPrintedSources reports a plain, untargeted cast the printed-source census pays: gorge's planner finds it
+// sufficient and runs no prefix search for it. A Phyrexian cost is no such play: the planner prices its mana half alone
+// (CR 601.2b), so the walk census paying the whole cost, Taps-deferred Islands under Scald counted, proves nothing
+// about the plain offer; the prefix search decides it, as gorge's potential walk does.
+func (s *State) pricedByPrintedSources(k *prep, real *Decision, a Action) bool {
+	return plainCastMode(a) && a.Target() == 0 && hasOption(real, a) && !k.cards[s.objs[Obj(a.Source())].card].cost.Phyrexian()
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 // plainCastMode reports a cast of the card's printed spell: no mode number,
 // and no may-play, face or warp mode (autopayDropsPlainCast's and
@@ -414,10 +422,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.scriptOfferDrops(k, p, a, &skip) {
 			continue
 		}
-		if plainCastMode(a) && a.Target() == 0 && hasOption(&real, a) && !k.cards[s.objs[Obj(a.Source())].card].cost.Phyrexian() {
-			// (a Phyrexian cost is no such play: the planner prices its mana half alone, CR 601.2b, so the walk
-			// census paying the whole cost, Taps-deferred Islands under Scald counted, proves nothing about the plain
-			// offer; the prefix search below decides it, as gorge's potential walk does)
+		if s.pricedByPrintedSources(k, &real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
 		if plainCastMode(a) && s.plainCastUnsearched(k, p, a) {
