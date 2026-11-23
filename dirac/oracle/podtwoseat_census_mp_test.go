@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -101,6 +102,13 @@ func podCensus(t *testing.T, reg *cards.Registry, cardsDir string, set cardset.S
 			es = append(es, cardset.Entry{Name: e.Name, Count: e.Count})
 		}
 		tbl, ids, err := set.MatchupNInert([][]cardset.Entry{es})
+		// A deck holding a card refused by name (dirac/support/refused) never
+		// reaches a table: the kernel plays no game of it, two seats or more.
+		var re *cardset.RefusedError
+		if errors.As(err, &re) && (re.Status == cardset.StatusRefused || re.Status == cardset.StatusNotLowered) {
+			t.Logf("deck %s: skipped, %s is refused", p.Name, re.Card)
+			continue
+		}
 		if err != nil {
 			t.Fatalf("deck %s: %v", p.Name, err)
 		}
