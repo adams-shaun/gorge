@@ -1,9 +1,6 @@
 package oracle
 
-import (
-	"testing"
-	"time"
-)
+import "testing"
 
 // CR 602.2b: a land taps once for one mana, so a ten-mana ability (The World
 // Tree's) beside a few lands is unpayable by any prefix of mana activations,
@@ -14,14 +11,15 @@ import (
 // twice, recorded as a hang). A census whose every mana ability is a lone {T}
 // for one mana now proves the ability outruns the pool plus one mana per
 // source and skips the search; the search slot is still counted, because
-// dirac mirrors the slot accounting. The recording replays clean either way
-// (the answers were never wrong), so the bound is the pin: past it the search
-// runs for plays the supply count refuses again.
+// dirac mirrors the slot accounting.
+//
+// The recording replays clean with or without the skip (the answers were never
+// wrong), so this test pins only that skipping the search hides no play dirac
+// offers. That the search is skipped is pinned by work, not by wall-clock, in
+// engine/rules: TestPotentialCensusFallbackSkipsASearchTheSupplyCountRefuses
+// (the search count) and the census.outruns tests in
+// potential_plan_supply_skip_test.go.
 func TestMBCTail08CensusSearchLockstep(t *testing.T) {
 	t.Parallel()
-	start := time.Now()
 	stdReproNamed(t, "census_search_supply_outruns")
-	if d := time.Since(start); d > 45*time.Second {
-		t.Fatalf("the census-search game replayed in %s: the prefix search runs for an ability the supply count proves unpayable again", d)
-	}
 }
