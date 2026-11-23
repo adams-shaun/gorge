@@ -957,8 +957,12 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwAttacking(c, l) // filter_attacking.go
 	case kop.FwCMCCmp:
 		return s.fwCMCCmp(c, l) // filter_cmccmp.go
+	case kop.FwChosenCtrl:
+		return s.fwChosenCtrl(c, l) // filter_chosenctrl.go
 	case kop.FwCountersCmp:
 		return s.fwCountersCmp(c, l) // filter_counterscmp.go
+	case kop.FwEnchantedControllerCtrl:
+		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
 	case kop.FwKeyword:
 		return s.fwKeyword(c, l) // filter_keyword.go
 	case kop.FwPowerCmp:
@@ -969,6 +973,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwTapped(c, l) // filter_tapped.go
 	case kop.FwToughnessCmp:
 		return s.fwToughnessCmp(c, l) // filter_toughnesscmp.go
+	case kop.FwWithKeyword:
+		return s.fwWithKeyword(c, l) // filter_withkeyword.go
 	}
 	panic("kernel: filter word not implemented")
 }
@@ -976,7 +982,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwCMCCmp, kop.FwCountersCmp, kop.FwKeyword, kop.FwPowerCmp, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp:
+	case kop.FwAttacking, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

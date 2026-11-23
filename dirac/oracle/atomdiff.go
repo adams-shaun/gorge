@@ -33,6 +33,7 @@ type AtomLowerer interface {
 	Filter(spec string, zone kop.Zone) (kop.FilterID, error)
 	Count(head string) (kop.ValueRef, error)
 	Tables() ([]kop.Filter, []kop.Expr)
+	Progs() []kop.FilterProg // the filter-program table the lowered filters index (nil: the game's own)
 	Missing() []string
 }
 
@@ -160,6 +161,7 @@ func (s *AtomStats) Add(o *AtomStats) {
 type atomSet struct {
 	filters []kop.Filter
 	exprs   []kop.Expr
+	progs   []kop.FilterProg
 	fa      []FilterAtom
 	fid     [][len(atomZoneList)]kop.FilterID // per filter atom, per zone of its Ctx
 	skipF   []bool                            // per filter atom: it names a subtype this game\'s table lacks
@@ -210,6 +212,7 @@ func compileAtoms(fa []FilterAtom, ca []CountAtom, tbl *kop.Table) *atomSet {
 		as.skipC[i] = len(comp.Missing()) > 0
 	}
 	as.filters, as.exprs = comp.Tables()
+	as.progs = comp.Progs()
 	return as
 }
 
@@ -223,7 +226,7 @@ func newAtomSet(r *realSide, fa []FilterAtom, ca []CountAtom) *atomSet {
 		return as
 	}
 	var err error
-	if as.ps, err = r.s.NewProbeSet(as.filters, as.exprs); err == nil {
+	if as.ps, err = r.s.NewProbeSetProgs(as.filters, as.exprs, as.progs); err == nil {
 		return as
 	}
 	var okF []FilterAtom
@@ -231,20 +234,20 @@ func newAtomSet(r *realSide, fa []FilterAtom, ca []CountAtom) *atomSet {
 	for _, a := range fa {
 		if one := compileAtoms([]FilterAtom{a}, nil, r.tbl); one.err != nil {
 			return one
-		} else if _, e := r.s.NewProbeSet(one.filters, one.exprs); e == nil {
+		} else if _, e := r.s.NewProbeSetProgs(one.filters, one.exprs, one.progs); e == nil {
 			okF = append(okF, a)
 		}
 	}
 	for _, a := range ca {
 		if one := compileAtoms(nil, []CountAtom{a}, r.tbl); one.err != nil {
 			return one
-		} else if _, e := r.s.NewProbeSet(one.filters, one.exprs); e == nil {
+		} else if _, e := r.s.NewProbeSetProgs(one.filters, one.exprs, one.progs); e == nil {
 			okC = append(okC, a)
 		}
 	}
 	as = compileAtoms(okF, okC, r.tbl)
 	if as.err == nil {
-		if as.ps, err = r.s.NewProbeSet(as.filters, as.exprs); err != nil {
+		if as.ps, err = r.s.NewProbeSetProgs(as.filters, as.exprs, as.progs); err != nil {
 			as.err = err
 		}
 	}

@@ -27,9 +27,19 @@ type ProbeSet struct {
 // prep lays out more or less state than the game's (an atom that turns on a
 // state bank the game's table lacks reads storage the State never allocated).
 func (s *State) NewProbeSet(filters []kop.Filter, exprs []kop.Expr) (*ProbeSet, error) {
+	return s.NewProbeSetProgs(filters, exprs, nil)
+}
+
+// NewProbeSetProgs is NewProbeSet for filters that carry filter programs
+// (kop.PredProg): progs replaces Table.FilterProgs, the program table the
+// overlay filters index (nil keeps the game's own, for filters with none).
+func (s *State) NewProbeSetProgs(filters []kop.Filter, exprs []kop.Expr, progs []kop.FilterProg) (*ProbeSet, error) {
 	base := s.k()
 	ps := &ProbeSet{t: *base.t}
 	ps.t.Filters, ps.t.Exprs = filters, exprs
+	if progs != nil {
+		ps.t.FilterProgs = progs
+	}
 	ps.k = prepare(&ps.t)
 	if ps.k.cold != base.cold || ps.k.coldCmd != base.coldCmd {
 		return nil, errors.New("the probe table's state layout differs from the game's")

@@ -1116,6 +1116,36 @@ func init() { enum[kop.KwID]("kop.KwDivideDamageAmongDefenders", kop.KwDivideDam
 // dirac/manifest/KwID/KwStartingHandFive
 func init() { enum[kop.KwID]("kop.KwStartingHandFive", kop.KwStartingHandFive) }
 
+// dirac/manifest/KwID/KwCascade
+func init() { enum[kop.KwID]("kop.KwCascade", kop.KwCascade) }
+
+// dirac/manifest/KwID/KwConvoke
+func init() { enum[kop.KwID]("kop.KwConvoke", kop.KwConvoke) }
+
+// dirac/manifest/KwID/KwForetell
+func init() { enum[kop.KwID]("kop.KwForetell", kop.KwForetell) }
+
+// dirac/manifest/KwID/KwHorsemanship
+func init() { enum[kop.KwID]("kop.KwHorsemanship", kop.KwHorsemanship) }
+
+// dirac/manifest/KwID/KwMadness
+func init() { enum[kop.KwID]("kop.KwMadness", kop.KwMadness) }
+
+// dirac/manifest/KwID/KwMegamorph
+func init() { enum[kop.KwID]("kop.KwMegamorph", kop.KwMegamorph) }
+
+// dirac/manifest/KwID/KwMorph
+func init() { enum[kop.KwID]("kop.KwMorph", kop.KwMorph) }
+
+// dirac/manifest/KwID/KwMultikicker
+func init() { enum[kop.KwID]("kop.KwMultikicker", kop.KwMultikicker) }
+
+// dirac/manifest/KwID/KwSuspend
+func init() { enum[kop.KwID]("kop.KwSuspend", kop.KwSuspend) }
+
+// dirac/manifest/KwID/KwToxic
+func init() { enum[kop.KwID]("kop.KwToxic", kop.KwToxic) }
+
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
