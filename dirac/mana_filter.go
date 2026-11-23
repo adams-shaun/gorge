@@ -1193,6 +1193,17 @@ func (s *State) gapOthers(k *prep, p uint8) slotMask {
 			}
 		}
 	}
+	if k.anyForageCA {
+		// A forage source whose forage cannot be paid (a graveyard under three
+		// cards, no Food: Thornvault Forager) makes nothing but its plain {T}: Add
+		// {G}, a planner unit (mana_forage.go): it contributes to no payment as a
+		// gap, so it keeps no filter off the filter search.
+		for b := m; b.any(); b = b.rest() {
+			if sl := b.first(); k.forageCA(s.cardAt(sl)) && !s.foragePayable(k, p, sl) {
+				m = m.without(sl)
+			}
+		}
+	}
 	if k.sacOnlyMana {
 		// A sacrifice-only source (an Eldrazi Spawn or Scion token's "Sacrifice
 		// this creature: Add {C}") is a payment-plan last resort, not a census
