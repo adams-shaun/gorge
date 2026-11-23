@@ -171,7 +171,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
@@ -238,7 +238,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, ctrl, m)
 	}
-	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any()) {
+	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.embDmg()) {
 		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
 	}
 }
