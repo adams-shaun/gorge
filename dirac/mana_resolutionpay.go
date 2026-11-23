@@ -295,6 +295,20 @@ func (s *State) prefixPoolMana(p uint8) int {
 	return n
 }
 
+// activatePrefixRest is payPrefixRest for an activation applyPriority is about
+// to build. A prefix that tapped runs it (pref); so does a board with a
+// Taps-deferred source even when no prefix tapped: gorge's planner refuses the
+// deferred sources on its first pass, so a play its plain census cannot price
+// is proved by the potential play's search, which activates the plan before the
+// play (Blisterspit Gremlin's {1} under Manabarbs: the land's trigger sits below
+// the ability, not above it). payPrefixRest returns when the plain census
+// prices the remainder, so a board with no such gap is unchanged.
+func (s *State) activatePrefixRest(k *prep, a Action, p uint8, pref, tapX bool) {
+	if pref || k.gen != nil && k.gen.anyTapsDefer {
+		s.payPrefixRest(k, a, p, tapX)
+	}
+}
+
 // payPrefixRest pays, before the activation's build begins, what a prefix
 // search left of a plain activation cost to the payment planner. The
 // planner's tap fires at manaStep (bsMana), after bsPush has placed the

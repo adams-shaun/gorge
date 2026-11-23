@@ -3472,9 +3472,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if k.gen != nil && s.activateGen(k, a) {
 			break
 		}
-		if pref {
-			s.payPrefixRest(k, a, p, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
-		}
+		s.activatePrefixRest(k, a, p, pref, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
