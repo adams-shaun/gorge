@@ -69,3 +69,11 @@ func (s *State) copyPickWindowFirst(k *prep, e *stackEntry, cost *kop.ManaCost) 
 	// the pick, and the payment reverses the cast after it (CR 601.2h, 733.1)
 	return false
 }
+
+// pickWindowFirst runs, in order, each lowered cast's CR 601.2g window that
+// gorge poses before an additional cost's pick (CR 601.2h): an X sacrifice, a
+// free cast's pick, a Play's paid copy cast's pick. It reports whether one of
+// them reversed the cast.
+func (s *State) pickWindowFirst(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	return s.xSacWindowFirst(k, e, cost) || s.freePickWindowFirst(k, e, cost) || s.copyPickWindowFirst(k, e, cost)
+}
