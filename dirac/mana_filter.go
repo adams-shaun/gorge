@@ -30,7 +30,7 @@ import (
 // Only boards whose census gaps are all filters take it; a filter beside a
 // Bloom Tender or a restricted gap keeps the older scripts' logic.
 
-const potentialScriptNodes = 160 // gorge rules/potential_script.go
+const potentialScriptNodes = 164 // gorge rules/potential_script.go: the pair's stated limit; a board whose every land tap a Taps watcher defers (Manabarbs) reaches a fee gap's funding line at 163 clones, three past the old 160, and the kernel prices such a play
 
 // paySearchNodes bounds a payment plan's search. A payment taps the cost's own
 // sources beside the filters' fees, so its tree is wider than a play prefix's;
