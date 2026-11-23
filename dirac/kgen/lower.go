@@ -864,7 +864,15 @@ func (lc *lowerCtx) lowerRecord() {
 		}
 	}
 	if f.Loyalty != "" {
-		out.Loyalty, _ = strconv.Atoi(f.Loyalty)
+		n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty))
+		if err != nil {
+			// Loyalty:X (Nissa, Steward of Elements): the card enters with X loyalty
+			// (CR 306.5b, 107.3m) but gorge's entry grant reads only a numeric face and
+			// keeps the walker with no counters (engine/rules/sba.go planeswalkerZeroLoyalty);
+			// the kernel would put it in the graveyard at once, so refuse it.
+			lc.refuseNode("Loyalty", "Loyalty %q: a dynamic starting loyalty is not modelled", f.Loyalty)
+		}
+		out.Loyalty = n
 	}
 	if f.Defense != "" {
 		out.Defense, _ = strconv.Atoi(strings.TrimSpace(f.Defense)) // battle (lower_battle.go)
