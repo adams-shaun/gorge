@@ -145,7 +145,7 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 			return true
 		}
 	}
-	return s.handManaAny(k, e.ctrl) // a hand guide (mana_handguide.go)
+	return s.handManaAny(k, e.ctrl) || s.graveManaAny(k, e.ctrl) // a hand guide, a graveyard source (mana_handguide.go, mana_gravemana.go)
 }
 
 // restrManaUntapped: sl is an untapped permanent with a restricted mana ability.
@@ -291,6 +291,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if sl == NoSlot {
 			if !census && s.windowHandMana(k, p, useful, clamp, anyColor) {
 				continue // a hand guide, listed after every battlefield source (mana_handguide.go); the unless census prices none (unlessWindowUnits)
+			}
+			if !census && s.windowGraveMana(k, p, useful, clamp, anyColor) {
+				continue // a graveyard source, listed last (mana_gravemana.go)
 			}
 			return false, held
 		}

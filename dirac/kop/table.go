@@ -249,6 +249,13 @@ type CardDef struct {
 	// untapped-source gates, as gorge's pay.ManaSourceIDs lists the hand after
 	// the battlefield (dirac/mana_handguide.go).
 	HandMana uint8
+	// GraveMana is the colour mask a graveyard mana ability adds (Jack-o'-
+	// Lantern: "{1}, Exile Jack-o'-Lantern from your graveyard: Add one mana
+	// of any color", CR 605.1a, 605.2a; 0 = none; only ColAny is lowered). Its
+	// {1} fee is paid from the floating pool, so it is no CardDef ability: the
+	// kernel reads it as a graveyard source of a cast's or an activation's own
+	// payment window while mana floats (dirac/mana_gravemana.go).
+	GraveMana uint8
 	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
 	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
 	// optional cast is the kicked cast (AkCast mode 1, gorge's
