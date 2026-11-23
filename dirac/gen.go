@@ -1860,8 +1860,8 @@ const (
 	maxUsed   = 16 // once-per-turn records
 	// maxSacOrd bounds one effect's sacrifice batch. The FDN and BLB
 	// 1500-pair lockstep slices reach 12 (measured
-	// 2026-10-22); 16 leaves headroom without paying for a whole board.
-	maxSacOrd = 16
+	// 2026-10-22); 16 held until 2026-11-22, when a four-seat Commander pod sacrificed 24 in one batch, so it holds 64.
+	maxSacOrd = 64
 )
 
 // ovRec is an override record applied to a permanent: Table.Overrides[idx]

@@ -98,10 +98,10 @@ const (
 // cast by the heuristic bot into a four-seat Commander pod picked a ninth
 // creature in 18 of 300 pods, so the class held sixteen objects; the random
 // policy on a board of up to 192 permanents picked a seventeenth, so since
-// 2026-11-19 it holds thirty-two (xtMask a uint32).
-const maxXTgt = 31
+// 2026-11-19 it holds thirty-two, and since 2026-11-22 sixty-four (xtMask a uint64: a "any number of target permanents" spell, Deepglow Skate, picked 40 and 53 in four-seat Commander pods).
+const maxXTgt = 63
 
-type xtMask = uint32
+type xtMask = uint64
 
 // embRemSlots is how many objects one emblem remembers (static_emblemrem.go):
 // the frozen-number byte and embR. The four-seat class has no reserved bytes
@@ -114,7 +114,7 @@ const embRemSlots = 2
 // the sixteen-object free-cast arrays (maxFree), the sixteen-bit codes and the
 // BecomesTarget player/source referent bytes (stackEntry.btPl, trigSA,
 // trigSASid) to phase 0.
-const linkPadN = 28 // 40 before 2026-11-19: the extra-turn riders keep their armed source incarnation (exRideV, exRideC, act_extraturn.go); 24 before 2026-11-19: genState's extra-turn queue (exQ 32+32 objects, act_extraturn.go) and its control bytes moved the State ahead of perms; 88 before that: MaxPerm 192, the three-word slotMask, the 63-record LKI pool, maxXTgt 31 and maxCtrOver 32
+const linkPadN = 20 // 28 before 2026-11-22: maxXTgt 63, maxSacOrd 64; 40 before 2026-11-19: the extra-turn riders keep their armed source incarnation (exRideV, exRideC, act_extraturn.go); 24 before 2026-11-19: genState's extra-turn queue (exQ 32+32 objects, act_extraturn.go) and its control bytes moved the State ahead of perms; 88 before that: MaxPerm 192, the three-word slotMask, the 63-record LKI pool, maxXTgt 31 and maxCtrOver 32
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.
