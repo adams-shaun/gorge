@@ -39,9 +39,13 @@ type lSpillLit struct {
 	Neg     bool
 	Op      uint8   // a comparison word's operator (opGE ...)
 	N       int     // the bound, or a keyword bit
-	R       kop.Ref // a referent word's referent (FwSharesCr, FwSharesName)
+	R       kop.Ref // a referent word's referent (FwSharesCr, FwSharesName, FwSameName)
 	Counter string  // FwCountersCmp's kind
 	Sub     string  // FwSubtype's subtype
+	// Inner is the nested Valid <filter> a FwSharesName literal reads over
+	// the battlefield (kop.FLit.F), parsed but not yet interned: spillProg
+	// lowers it through cb.filter.
+	Inner *lFilter
 }
 
 func (l lSpillLit) String() string {
@@ -259,8 +263,18 @@ func (cb *cardBuilder) spillProg(c *lClause, zone kop.Zone) (kop.FilterProgID, e
 			fl.Arg = int16(l.N)
 		case kop.FwWithKeyword:
 			fl.Arg = int16(l.N) // the KwID
-		case kop.FwSharesCr, kop.FwSharesName:
+		case kop.FwSharesCr, kop.FwSharesName, kop.FwSameName:
 			fl.R = l.R // the referent (filter_sharesreferents.go)
+			if l.Inner != nil {
+				if l.W != kop.FwSharesName || l.R != 0 {
+					return 0, fmt.Errorf("nested filter on %s", fwName[l.W])
+				}
+				id, err := cb.filter(l.Inner, kop.ZoneBattlefield) // the sweep's zone, whatever the candidate's
+				if err != nil {
+					return 0, err
+				}
+				fl.F = id
+			}
 		case kop.FwSubtype:
 			i, ok := cb.pt.sub(l.Sub)
 			if !ok {
