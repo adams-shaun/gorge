@@ -390,7 +390,11 @@ func manaAbView(cd *kop.CardDef, pc *pcard) *kop.Ability {
 // ability is in no table (Leyline of the Guildpact over a Swamp or Stomping
 // Ground: gorge counts the printed abilities and one per granted type, CR 305.6),
 // so the colours the view holds beyond the card's own mana abilities belong here.
-func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
+// A restricted ability payment d refuses is no own ability of this walk (the
+// fixpoint never admits it), so its colours do not shadow a granted type's
+// intrinsic one: Abundant Countryside made an Island offers {C} and {U} to a
+// trigger's {2} though its any-colour creature-only ability adds nothing.
+func (s *State) potentialFirstMask(k *prep, p uint8, sl Slot, pc *pcard, d *payDesc) uint8 {
 	if pc.manaIntrinsic {
 		// the view is the granted types' intrinsic unit (blgView): its colours
 		// are the fold. The card's own abilities (its deferred rider) are the
@@ -408,7 +412,7 @@ func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	var own uint8
 	for j := range cd.Abilities {
-		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) && (d == nil || a.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, a, d)) {
 			own |= uint8(a.ManaColors & 0x3f) // an intrinsic-only view has none (static_landtypesetter.go)
 		}
 	}
