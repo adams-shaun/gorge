@@ -1,6 +1,10 @@
 package rules
 
-import "github.com/adams-shaun/gorge/engine/cards"
+import (
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/state"
+)
 
 // statGrantsLure reports whether a Mode$ Continuous static's AddHiddenKeyword$
 // is the Lure sentence "All creatures able to block CARDNAME do so." (CR
@@ -21,4 +25,13 @@ func withLureGrant(st cards.Static, kws []string) []string {
 		kws = append(kws, st.Params["AddHiddenKeyword"])
 	}
 	return kws
+}
+
+// setStaticKeywordGrant fills a layer-6 keyword effect from a Continuous
+// static: its granted keywords (protection resolved against the source o) and
+// the QuotedAbilityGrant mark a lure grant carries, so a later loss ends it
+// (CR 613.1f) where a spell's unquoted lure requirement survives.
+func setStaticKeywordGrant(kw *state.ContinuousEffect, st cards.Static, o *state.Object) {
+	kw.AddKeywords = effects.ResolveGrantedProtection(withLureGrant(st, statKeywords(st)), o)
+	kw.QuotedAbilityGrant = statGrantsLure(st)
 }

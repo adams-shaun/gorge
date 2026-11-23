@@ -797,7 +797,7 @@ func applyKeywordGrant(kw, restrictions []string, ce *state.ContinuousEffect, co
 	}
 	kw = appendGrantedKeywords(kw, ce.AddKeywords, col)
 	for _, k := range ce.AddKeywords {
-		if cards.IsHiddenRuleEffectKeyword(k) {
+		if cards.IsHiddenRuleEffectKeyword(k) && !(ce.QuotedAbilityGrant && cards.HiddenKeywordOf(k) == cards.HiddenKeywordAllMustBlock) {
 			restrictions = append(restrictions, k)
 		}
 	}

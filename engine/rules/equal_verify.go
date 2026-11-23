@@ -20,7 +20,7 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 136
+	continuousEffectFieldCount = 137
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
@@ -60,6 +60,13 @@ func gainControlGateEqual(a, b *ContinuousEffect) bool {
 		a.GainControlSVarCompare == b.GainControlSVarCompare
 }
 
+// staticMarksEqual compares the marks a printed Continuous static's
+// registration carries (PermanentsOnly, QuotedAbilityGrant), written once at
+// registration and never mutated.
+func staticMarksEqual(a, b *ContinuousEffect) bool {
+	return a.PermanentsOnly == b.PermanentsOnly && a.QuotedAbilityGrant == b.QuotedAbilityGrant
+}
+
 func continuousEffectEqual(a, b *ContinuousEffect) bool {
 	return true &&
 		a.Source == b.Source &&
@@ -75,7 +82,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.Controller == b.Controller &&
 		a.UntilEOT == b.UntilEOT &&
 		a.FromEffect == b.FromEffect &&
-		a.PermanentsOnly == b.PermanentsOnly &&
+		staticMarksEqual(a, b) &&
 		cards.StringMapEqual(a.SVars, b.SVars) &&
 		a.AddPower == b.AddPower &&
 		a.AddToughness == b.AddToughness &&
