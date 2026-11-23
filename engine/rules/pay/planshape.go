@@ -446,20 +446,29 @@ func PaymentPlanTapDamageHits(ref params.Ref, carrierCtrl, activator, tappedCtrl
 }
 
 // PaymentPlanTapDestroySelfTrigger is the destroy-self trigger row: a
-// `Mode$ Taps` trigger on any ValidCard$ whose effect is exactly
-// `DB$ Destroy | Defined$ TriggeredCardLKICopy` (Brink of Disaster's "when
-// enchanted permanent becomes tapped, destroy it"). The trigger resolves
-// after the payment that caused it (CR 405.6c/603.2) and its only effect is
-// to destroy the permanent whose tap already produced its mana (CR 605.4a),
-// so it touches no payment resource and the tapped source stays an ordinary
-// unit. A trigger whose shape the planner cannot vet (another selector, a
-// compound one, a sub-chain, extra body keys) is not known and its source
-// stays deferred. f owns the trigger's Execute$ table.
+// `Mode$ Taps` or `Mode$ TapsForMana` trigger on any ValidCard$ whose effect
+// is exactly `DB$ Destroy | Defined$ TriggeredCardLKICopy` (Brink of
+// Disaster's "when enchanted permanent becomes tapped, destroy it"; Price of
+// Glory's "Whenever a player taps a land for mana, if it's not that player's
+// turn, destroy that land"). The trigger resolves after the payment that
+// caused it (CR 405.6c/603.2) and its only effect is to destroy the permanent
+// whose tap already produced its mana (CR 605.4a), so it touches no payment
+// resource and the tapped source stays an ordinary unit. A trigger whose
+// shape the planner cannot vet (another selector, a compound one, a
+// sub-chain, extra body keys) is not known and its source stays deferred. f
+// owns the trigger's Execute$ table.
 func PaymentPlanTapDestroySelfTrigger(f *cards.Face, t cards.Trigger) bool {
-	if t.ModeKind() != cards.TriggerTaps || !paymentPlanTriggerZoneOK(t) {
+	mk := t.ModeKind()
+	if (mk != cards.TriggerTaps && mk != cards.TriggerTapsForMana) || !paymentPlanTriggerZoneOK(t) {
 		return false
 	}
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
+		if string(k) == cards.PKActivator.String() {
+			// A fire-time filter on who tapped (Price of Glory), not an
+			// effect key: the real matcher has already vetted that this
+			// tap fires the trigger.
+			continue
+		}
 		switch paymentPlanTapDamageTriggerCodes.Code(string(k)) {
 		case paymentPlanTapDamageTriggerKnown:
 		default:
@@ -958,9 +967,10 @@ const (
 )
 
 // paymentPlanTapDamageTriggerCodes is the closed key set of the Taps-watcher
-// trigger rows the planner vets (the tap-damage row and, sharing it, the
-// destroy-self row: both watchers carry Mode$, ValidCard$, Execute$,
-// TriggerZones$ and TriggerDescription$ and nothing else).
+// trigger rows the planner vets (the tap-damage row, the destroy-self row and
+// the poison-counter row: their watchers carry Mode$, ValidCard$, Execute$,
+// TriggerZones$ and TriggerDescription$ and nothing else; the destroy-self
+// row alone also lets Activator$ through, see PaymentPlanTapDestroySelfTrigger).
 var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "Mode", Val: paymentPlanTapDamageTriggerKnown},
 	state.StrEntry[paymentPlanTapDamageTriggerCode]{Key: "ValidCard", Val: paymentPlanTapDamageTriggerKnown},
