@@ -102,6 +102,13 @@ type payDesc struct {
 	// noPair prices the census alone: a chosen-colour widened pair stays its
 	// census unit (mana_chosenprefix.go)
 	noPair bool
+	// noSacRepeat holds out a live sacrifice-any source's repeat units (the
+	// census arm's one-per-candidate record, legal.go sacAnyRepeatUnits): the
+	// read is the once-admission census the kicked offer prices a
+	// dedicated-token payment against before it asks gorge's prefix search
+	// (kw_multikicker.go kickedPotentialPays; gorge's census is unrelaxable
+	// beside the shape, paymentPlanRelaxedAlternatives)
+	noSacRepeat bool
 	// gapTrack, gapSkip, gapN, gapID and gapFee are the X-bound sweep's paid-gap
 	// probe (xBoundGapSubsets): availPotentialFor names each fee-bearing mana
 	// ability it meets and leaves out the ones gapSkip's bits select
