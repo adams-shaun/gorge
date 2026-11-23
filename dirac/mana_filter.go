@@ -1522,9 +1522,11 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 //
 // hybScope: a gap's face holds a hybrid-fee mana ability (Mystic Gate's
 // "{W/U}, {T}: Add {W}{W}, {W}{U} or {U}{U}" beside Energy Refractor), which
-// is gorge's phasedScope arm: the phased run prices the play whether or not
-// the plain run spent its budget, so a plain run that completed short of the
-// budget is followed by it too (CR 601.2g: the fee floats first).
+// is gorge's phasedScope arm, which reads the gaps' hybrid fees only for a
+// cast (an activation falls out at its o.Kind != "cast" test, so the caller
+// passes hybScope for the cast kinds alone): the phased run prices the cast
+// whether or not the plain run spent its budget, so a plain run that completed
+// short of the budget is followed by it too (CR 601.2g: the fee floats first).
 func (fs *filtSearch) phasedFallback(tapsDef slotMask, hybScope bool) bool {
 	return fs.feeOnly && !fs.other.andNot(tapsDef).any() && fs.pay == nil && (fs.nodes >= potentialScriptNodes || hybScope)
 }
@@ -1652,7 +1654,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				fs.stall = ph.stall
 			}
 		}
-	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p), s.gapFaceHybIn(k, fs.gaps)) {
+	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p), isCastKind(a.Kind()) && s.gapFaceHybIn(k, fs.gaps)) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
