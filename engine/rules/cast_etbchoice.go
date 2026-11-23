@@ -135,14 +135,14 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 // keyword list the entrant would have ON the battlefield (printed K:Riot plus
 // the layer-6 AddKeyword$ grants a static like Rhythm of the Wild's
 // "Nontoken creatures you control have riot" delivers) — the same derived
-// read bloodthirstEntryMatch makes. mayHaveDerivedKeywordH rejects the
-// derived walk on the common board (no printed line, no granting static).
+// read bloodthirstEntryMatch makes. The printed line short-circuits first;
+// mayHaveDerivedKeywordH rejects the derived walk on the common board (no
+// printed line, no granting static), so a battlefield→battlefield re-entry,
+// whose pre-fold object still sits in the battlefield zone, reads the same
+// way as every other entry.
 func (e *Engine) enteringRiot(o *state.Object, f *cards.Face) bool {
 	if f.HasKeywordRef(kwRefRiot) {
 		return true
-	}
-	if o.Zone == state.ZBattlefield {
-		return false
 	}
 	_, ok := e.enteringKeywordParam(o.ID, kwhRiot)
 	return ok
