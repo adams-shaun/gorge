@@ -494,7 +494,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// unit here, or no walk would count it and a play it funds would
 		// vanish from the offer (mana_tapsdefer.go).
 		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDead(k, p))
-		m = m.andNot(s.tapsDeferLethalMask(k, p, m)) // a deferred source whose own tap kills the payer funds nothing (mana_tapsdefer.go)
+		if s.g.availX&availNoTapsLethal == 0 {
+			m = m.andNot(s.tapsDeferLethalMask(k, p, m)) // a deferred source whose own tap kills the payer funds nothing (mana_tapsdefer.go)
+		}
 	}
 	for m.any() {
 		sl := m.first()
