@@ -1820,12 +1820,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	g.tyCombat = overridesUncreature(t)
-	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
-	prepFaceDown(g)            // face_facedown.go
-	prepLandGrant(t, p, g)     // static_landtype.go
-	prepLandGrantAlt(t, p, g)  // static_landgrantalt.go
-	prepLandGrantGate(t, p, g) // static_landgrantgate.go
-	prepLandSet(t, p, g)       // static_landtypesetter.go
+	g.lossSlow = g.anyLoseStat  // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
+	prepFaceDown(g)             // face_facedown.go
+	prepLandGrant(t, p, g)      // static_landtype.go
+	prepLandGrantViews(t, p, g) // static_landgrantalt.go, static_landgrantgate.go
+	prepLandSet(t, p, g)        // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {

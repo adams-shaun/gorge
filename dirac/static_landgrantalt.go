@@ -376,3 +376,10 @@ func (fs *filtSearch) fundAlt(k *prep, t *State, sl Slot, pc *pcard, funded int,
 	}
 	return fs.tick() && fs.try(k, t, filtStep{sl: sl, ans: pc.altCol - 1, intr: true}, funded+1, gapUsed)
 }
+
+// prepLandGrantViews builds the landgrant prep-time view tables: the
+// own-vs-intrinsic alternatives and the gated lands' merged gate views.
+func prepLandGrantViews(t *kop.Table, p *prep, g *genPrep) {
+	prepLandGrantAlt(t, p, g)
+	prepLandGrantGate(t, p, g)
+}
