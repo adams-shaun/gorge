@@ -275,7 +275,13 @@ func EmitBlightCounters(e Engine, blights []state.ObjID, cost *Cost, x int32) {
 			if cost.Blight[i].Announced {
 				n = x
 			}
-			e.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1", Amount: n})
+			// The player paying a Blight cost puts the counters (CR 701.60) on a
+			// creature they control: that creature's controller is the adder.
+			adder := state.PlayerID(0)
+			if o := e.Game().Obj(id); o != nil {
+				adder = o.Controller
+			}
+			e.EmitCounterBy(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1", Amount: n}, adder, false)
 		}
 	}
 }
