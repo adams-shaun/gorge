@@ -1093,7 +1093,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		if !mayPlay && s.xTgtDepDeclined(k, p, c, o) {
 			return false
 		}
-		return s.xCostLowers(k, p, c, o)
+		return s.xCostLowers(k, p, c, o, anyColor)
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
@@ -1141,11 +1141,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// no prefix search for a granted source beside it (Abhorrent Oculus'
 		// exile; Urgent Necropsy's evidence beside Insidious Roots' grant)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) || // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
-			mayPlay && s.mayPlayPrefixPays(k, p, c, o) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
+			mayPlay && s.mayPlayPrefixPays(k, p, c, o, anyColor) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
 	}
 	if s.spellTgtDep(k, p, c, o) {
 		if mayPlay {
@@ -1196,7 +1194,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
 	if cd.BeholdExile || (cd.HasMultikicker || cd.HasEscalate) && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
-		return s.optCostCastLowers(k, p, c, o, mayPlay)
+		return s.optCostCastLowers(k, p, c, o, mayPlay, anyColor)
 	}
 	if cd.HasModeCost && !mayPlay && !s.modalFloorFree(k, p, c) {
 		// a Spree or Tiered face whose cheapest mode still costs mana: the
@@ -1233,14 +1231,12 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// gate prices the census here; a targeted one keeps
 		// plainHandPlayLowers' witness-keeps-target arm beside it.
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
-		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) && !s.mayPlayPrefixPays(k, p, c, o) {
+		cost = s.mayRiderCost(cost, anyColor) // the census prices the rider too: an ignore-colour permission funds the pips any mana pays, as the target-priced arm does (pay.PlanManaUnderRider; CR 609.4b)
+		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) && !s.mayPlayPrefixPays(k, p, c, o, anyColor) {
 			return false
 		}
 	}
-	return s.plainHandPlayLowers(k, p, c, o)
+	return s.plainHandPlayLowers(k, p, c, o, anyColor)
 }
 
 // xCostLowers is gorgeLowersRider's {X}-cost arm. An additional-cost shape's
@@ -1251,12 +1247,10 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 // gap -- so an insufficient one drops the play and no prefix search runs for
 // it (potentialPlayVerdictShared). The census pays the cheapest announcement
 // X = 0, as the fixed additional-cost arms below do.
-func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
+func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
 	if addCostShapeUnscripted(k, c) {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
 			return false
 		}
@@ -1276,11 +1270,14 @@ func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
 
 // optCostCastLowers is gorgeLowersRider for a Behold / Multikicker / Escalate /
 // optional-cost cast.
-func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay bool) bool {
+func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay, anyColor bool) bool {
 	// the Diamond gaps are not the census's units either (dhWithholdsCast):
 	// a hand play only they fund gets no prefix, so gorge prices no plan
-	// for it either, before the printed-sources read can count them
+	// for it either, before the printed-sources read can count them. A
+	// may-play cast's planner price carries the mana rider (mayRiderCost),
+	// so the Diamonds' only-funder read prices it too.
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	cost = s.mayRiderCost(cost, anyColor)
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		return false
 	}
@@ -1298,19 +1295,20 @@ func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay boo
 	// A plain Multikicker hand cast is the same: its granted source (Gemhide
 	// Sliver's any-colour mana) is a gap in the planner's census too, and no
 	// prefix search taps it (the availAny/availGaps rule above).
-	return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
+	return mayPlay && s.mayPlayPrefixPays(k, p, c, o, anyColor)
 }
 
 // plainHandPlayLowers is gorgeLowersRider for an ordinary cast.
-func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj) bool {
+func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
 	// an ordinary cast's plain hand play is the planner's own: the census (the
 	// printed sources and the pool) pays it — the Diamond gaps are no units of
 	// that census and its prefix search never funds a hand play, so a hand cast
-	// only they fund is unpriced (dhWithholdsCast, potential_plan.go)
+	// only they fund is unpriced (dhWithholdsCast, potential_plan.go). A
+	// may-play cast falls through here past its own census arm with the
+	// planner's rider-priced cost (mayRiderCost), so the Diamonds' read sees
+	// it too.
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
-	if s.g.mayPlayAny {
-		cost = anyType(cost)
-	}
+	cost = s.mayRiderCost(cost, anyColor)
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		return false
 	}

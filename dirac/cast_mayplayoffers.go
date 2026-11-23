@@ -76,14 +76,14 @@ func (s *State) mayPlayFolds(k *prep, p uint8, o Obj) bool {
 // a tap-another source (Springleaf Drum), a filter (Jeskai Devotee's {1}: any
 // colour), a granted ability (Insidious Roots' Plant), a census gap. The
 // caller's scripted walks (scriptOffers, grantCap) then hold it to a script
-// gorge's search finds (CR 601.2g, 605.3a).
-func (s *State) mayPlayPrefixPays(k *prep, p uint8, c CardID, o Obj) bool {
+// gorge's search finds (CR 601.2g, 605.3a). The composed cost carries the
+// cast's mana rider (mayRiderCost): an ignore-colour permission funds the
+// pips any mana pays (pay.PlanManaUnderRider; CR 609.4b).
+func (s *State) mayPlayPrefixPays(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
 	if k.gen == nil || s.g.availX&(availGaps|availAny) == 0 && len(k.gen.grantPC) == 0 && !s.scriptSourceLive(k, p) {
 		return false
 	}
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
-	if s.g.mayPlayAny {
-		cost = anyType(cost)
-	}
+	cost = s.mayRiderCost(cost, anyColor)
 	return s.affordsFor(k, p, &cost)
 }
