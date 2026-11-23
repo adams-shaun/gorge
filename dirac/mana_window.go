@@ -683,10 +683,14 @@ func (s *State) windowCanTap(k *prep, sl Slot) bool {
 	} else {
 		pc = s.windowGrantPC(k, sl)
 	}
-	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) && s.g.winMode != winTrig {
+	if pc.painOnly && pc.painLife && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) <= int(pc.painN) && s.g.winMode != winTrig && s.g.turnF&turnGateWin != 0 {
 		// A trigger's own cost window (winTrig) keeps the bare CR 119.4 test:
 		// gorge lists the source at exactly its life cost and the payer dies
-		// paying it (Mana Confluence at 1 life, Genesis's {2}{G}).
+		// paying it (Mana Confluence at 1 life, Genesis's {2}{G}). So does the
+		// payment itself: only the offer gate's affordability walk
+		// (windowAffordsTake, turnGateWin) prices the source out; once pay is
+		// chosen, gorge's window answer takes the first listed source, a
+		// Confluence at 1 life included (Mana Leak, mana confluence seed 165).
 		// The unless / ward offer gate prices a paid-life source through
 		// gorge's paid-cost census (painAvailMaskAt; gorge's paidCostShape),
 		// which counts it only while its activation leaves the payer alive.
@@ -1319,6 +1323,12 @@ func (s *State) unlessSkipsRider(a *kop.Ability) bool {
 // layout does not move.
 const turnUnlessWin turnFT = 1 << 15
 
+// turnGateWin is turnF's bit 14: the unless window's offer-gate affordability
+// walk (windowAffordsTake) is running, as against the payment walk (payWindow),
+// which shares turnUnlessWin. windowCanTap prices a lethal paid-life source out
+// of the gate only.
+const turnGateWin turnFT = 1 << 14
+
 func (s *State) setUnlessWin(on bool) {
 	if on {
 		s.g.turnF |= turnUnlessWin
@@ -1377,6 +1387,10 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
+	if unless {
+		s.g.turnF |= turnGateWin
+		defer func() { s.g.turnF &^= turnGateWin }()
+	}
 	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.scriptFilt(k, p).any() || takeDeferred && s.unlessTapFilt(k, p).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
