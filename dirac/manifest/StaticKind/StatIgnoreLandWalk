@@ -4,4 +4,4 @@ value: 26
 forge: IgnoreLandWalk
 census: stat IgnoreLandWalk all=10 std=0 mbc=0 sole=10
 state: code 0
-status: reserved
+status: active

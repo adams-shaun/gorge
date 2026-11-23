@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtMonarchJail
+value: next
+status: active
+doc: Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.

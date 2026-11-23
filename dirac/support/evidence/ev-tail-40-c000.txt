@@ -66,7 +66,9 @@ Broken Visage
 Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
+Cadric, Soul Kindler
 Cankerbloom
+Caribou Range
 Carnage Altar
 Carrion Wall
 Castle Embereth
@@ -136,6 +138,7 @@ Dynacharge
 E. Honda, Sumo Champion
 Elvish Clancaller
 Elvish Harbinger
+Elvish Spirit Guide
 Encampment Keeper
 Endless Scream
 Ertai's Scorn
@@ -166,6 +169,7 @@ Fumble
 Furnace Dragon
 Furnace Scamp
 Futurist Sentinel
+Galadhrim Brigade
 Game-Trail Changeling
 Gavony Trapper
 Geist Snatch
@@ -216,14 +220,17 @@ Isolate
 Jace, Ingenious Mind-Mage
 Jaheira's Respite
 Jokulmorder
+Jyoti, Moag Ancient
 Kabira Outrider
 Kami of Celebration
 Kami of the Hunt
+Kami of the Palace Fields
 Kardur, Doomscourge
 Kargan Dragonlord
 Karona, False God
 Keeper of Fables
 Killian, Ink Duelist
+Kindred Summons
 Knight of Infamy
 Knowledge and Power
 Kolaghan Forerunners
@@ -247,6 +254,7 @@ Lorehold Excavation
 Machinate
 Machine Man, Model X-51
 Mage Duel
+Magister of Worth
 Mai and Zuko
 Manabond
 Manglehorn
@@ -272,6 +280,7 @@ Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
+Moment of Silence
 Moment's Peace
 Monstrous Onslaught
 Morgue Theft
@@ -321,6 +330,7 @@ Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
 Protector of the Crown
+Pyromatics
 Qasali Pridemage
 Quintorius, History Chaser
 Rage Forger
@@ -334,12 +344,14 @@ Razorfin Hunter
 Reiterate
 Reito Lantern
 Reiver Demon
+Relentless Rohirrim
 Relic Bane
 Relic Sloth
 Repercussion
 Rescue
 Resourceful Return
 Restore
+Rimebound Dead
 Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes
@@ -503,6 +515,7 @@ Welcoming Vampire
 When We Were Young
 Whetwheel
 Whisper Agent
+Wicked Wolf
 Wirewood Savage
 Woodland Chasm
 Wrenn's Resolve

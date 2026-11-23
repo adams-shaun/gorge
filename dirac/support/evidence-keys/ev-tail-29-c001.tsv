@@ -12,17 +12,23 @@ Deep Spawn	f037bcdff2014a81	8	2/2		1/1
 Exert Influence	ebe2a8dc8f1a7785	32	0/0		2/2	
 Expel	e87191647094af1a	31	0/0		2/2	
 False Cure	0360245b7b476b01	35	0/0		2/2	
+Horses of the Bruinen	6f25e466cb3413fd	4	0/0		1/2	ix:resp
+Jadar, Ghoulcaller of Nephalia	ace7bae3bb45cd6e	16	1/1		0/1	ix:resp
 Kabira Crossroads	98e364a8bacbdac0	22	2/2		0/1	ix:resp
 Kira, Great Glass-Spinner	079d44d4e2e56c28	6	0/0		0/0	
 Krovikan Elementalist	217bf7e7442ce4aa	4	2/2		1/1	
+Lagonna-Band Storyteller	660f51b52bb897c9	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lair of the Hydra	951c520e32223a06	503	2/2		0/1	ix:resp
 Limits of Solidarity	99a86826eb7d214f	6	1/1		2/2	
+March of the Multitudes	0c78de83d904f522	30	0/0		3/4	f0/s/x0
 Mental Journey	61be8e6a1a976acb	34	1/1		2/2	
+Mosquito Guard	70e6a9fa1bbd29a4	6	1/1		0/1	ix:resp
 Nissa, Genesis Mage	f1faac45886c14d3	10	3/3		0/1	ix:resp
 Omnispell Adept	ace227a11425e546	26	1/1		1/1	
 Order of Sacred Dusk	be8d137b7d20e21c	6	1/1		0/1	ix:resp
 Princess Lucrezia	9f27039bbb326d32	11	1/1		0/1	ix:resp
 Psemilla, Meletian Poet	66ad1f84bd62c4da	16	2/2		0/1	ix:resp
+Rugged Prairie	42f5d5a5722b9f32	14	2/2		0/1	ix:resp
 Sigil of the New Dawn	cf4a3b32ee00eb50	26	1/1		1/1	
 Soaring Seacliff	69bf89b187e933d1	18	2/2		0/1	ix:resp
 Steelshaper Apprentice	1f07be3cc3f57fe9	10	1/1		0/1	ix:resp
@@ -36,4 +42,5 @@ Violent Impact	9564e3ad53a5d68e	6	1/1		2/2
 Viscera Dragger	34b5a5344a3f9bb2	3	2/2		0/1	ix:resp
 Whip Vine	4fccb81b34abd67e	13	1/1		0/1	ix:resp
 Woodland Guidance	fd277173ad691141	30	0/0		2/2	
+Yuna's Whistle	1788f05ee24a09d3	4	0/0		1/2	ix:resp
 Zar Ojanen, Scion of Efrava	d70202443eede704	10	1/1		0/1	ix:resp

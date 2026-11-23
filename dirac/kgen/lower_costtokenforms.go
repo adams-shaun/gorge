@@ -93,7 +93,7 @@ func (lc *lowerCtx) discardXCost(c *lCost, parts []string, t string) error {
 // the parent's targeted player or the triggered player (Tresserhorn's Lord,
 // Academy Loremaster).
 func (lc *lowerCtx) drawCost(c *lCost, parts []string, n int, t string) error {
-	if len(parts) != 2 || n < 1 || c.DrawN != 0 || c.DrawWho != "" {
+	if len(parts) != 2 || n < 1 || c.DrawN != 0 || c.DrawBy != nil || c.DrawWho != "" {
 		return refuse("cost token %q", t)
 	}
 	switch parts[1] {
@@ -108,6 +108,44 @@ func (lc *lowerCtx) drawCost(c *lCost, parts []string, n int, t string) error {
 	}
 	c.DrawN = n
 	return nil
+}
+
+// drawXCost parses Draw<X/You> as a printed trigger's own cost (Champion of
+// Wits: "you may draw cards equal to its power. If you do, ..."). X is the
+// face's SVar:X, read as the cost is paid, not an announced amount; the
+// unless-cost form of Draw<X/You> already lowers through resUnlessToken
+// (lower_costtokens.go). Only the payer draws.
+func (lc *lowerCtx) drawXCost(c *lCost, parts []string, t string) error {
+	if !lc.trigBodyCost || len(parts) != 2 || parts[1] != "You" ||
+		c.DrawN != 0 || c.DrawBy != nil || c.DrawWho != "" {
+		return refuse("cost token %q", t)
+	}
+	if _, ok := lc.face.SVars["X"]; !ok {
+		return refuse("cost token %q without SVar:X", t)
+	}
+	v, err := lc.value("X")
+	if err != nil {
+		return err
+	}
+	c.DrawBy = &v
+	return nil
+}
+
+// namedCostToken lowers the cost tokens with their own head helper before
+// costHand's generic N/Spec dispatch: Discard<X/Spec> and Draw<X/Who> (an X
+// count) and RevealChosen<...> (no payment; an offer gate). handled is false
+// for every other token, so costHand's dispatch falls through. It is a helper
+// so costHand stays inside its codeshape rows.
+func (lc *lowerCtx) namedCostToken(c *lCost, head string, parts []string, t string) (handled bool, err error) {
+	switch {
+	case head == "Discard" && parts[0] == "X":
+		return true, lc.discardXCost(c, parts, t)
+	case head == "Draw" && parts[0] == "X":
+		return true, lc.drawXCost(c, parts, t)
+	case head == "RevealChosen":
+		return true, lc.revealChosenCost(c, parts, t)
+	}
+	return false, nil
 }
 
 // damageYouCost parses DamageYou<N> (gorge payUnlessDamageCost; CR 118.3): the
@@ -233,14 +271,19 @@ func (lc *lowerCtx) drawRecipient(who string) (lRef, error) {
 // final one-part shape check to refuse instead of silently dropping it.
 func (lc *lowerCtx) resTokenInstr(c *lCost, in *lInstr, n int) (int, error) {
 	switch {
-	case c.DrawN > 0:
+	case c.DrawN > 0 || c.DrawBy != nil:
 		// gorge's triggered-cost window (cumulative.go) or an UnlessCost$
 		// (pay/unlessflow.go AdvanceUnless draws for the selected player)
 		if !lc.trigOwnCost && !lc.unlessCost {
 			return n, refuse("resolution draw cost outside a trigger's own or an unless cost")
 		}
 		n++
-		in.CS, in.A = "Draw", cst(c.DrawN)
+		in.CS = "Draw"
+		if c.DrawBy != nil {
+			in.A = *c.DrawBy // Draw<X/You>: the face's SVar:X read as the cost is paid
+		} else {
+			in.A = cst(c.DrawN)
+		}
 		r, err := lc.drawRecipient(c.DrawWho)
 		if err != nil {
 			return n, err

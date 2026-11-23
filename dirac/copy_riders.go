@@ -138,7 +138,10 @@ func (s *State) copyPumpEnter(k *prep, sl Slot, in *kop.Instr) {
 		if o.AddKw != kw {
 			continue
 		}
-		o.AddKw = 0
+		// a kept subtype slot only qualifies a type-setting record (kgen keeps
+		// a printed unmodelled supertype on every record since #3188), so a
+		// keyword-only record may carry one
+		o.AddKw, o.KeepSub = 0, kop.SubMask{}
 		if o != (kop.Override{}) {
 			continue
 		}

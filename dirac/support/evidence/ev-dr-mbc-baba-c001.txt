@@ -12,6 +12,7 @@ Atraxa's Fall
 Aura Gnarlid
 Avacyn's Pilgrim
 Battlewing Mystic
+Beseech the Queen
 Black Vise
 Blood Fountain
 Bolt Bend
@@ -59,6 +60,7 @@ Helpful Hunter
 Horseshoe Crab
 Island
 Jaspera Sentinel
+Krosan Tusker
 Llanowar Visionary
 Mad Auntie
 Markov Baron
@@ -77,6 +79,7 @@ Plaguemaw Beast
 Plains
 Proteus Staff
 Raise the Alarm
+Relic of Progenitus
 Reveille Squad
 Revenge of Ravens
 Rhonas's Monument
@@ -107,4 +110,5 @@ Urborg Repossession
 Valorous Steed
 Viridian Shaman
 Warrior en-Kor
+Willbender
 Wilt

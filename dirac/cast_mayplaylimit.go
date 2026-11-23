@@ -8,7 +8,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // grant's own key, Source + registration Timestamp, since the last
 // TurnChange), not per player. The records one OpMayPlay resolution appends
 // are one grant. They sit next to each other in the pool, and the first of
-// them carries mayUntilHead in its until byte (Dur* values are below 16);
+// them carries mayUntilHead in its until byte (OpMayPlay's Dur* values are
+// below 16; DurUntilYourNextUpkeep is an OpOverride-only value above them);
 // the grant is that record and the non-head limited records after it. Every
 // record of the grant counts the plays it has taken this turn in the
 // mayUntilUsed bits; the cap stays in the kind's MayPlayLimit bits. The

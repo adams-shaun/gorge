@@ -2,6 +2,7 @@ A-Baleful Beholder
 A-Hobbling Zombie
 A-Prosperous Thief
 A-Skyclave Shadowcat
+Abaddon the Despoiler
 Act of Aggression
 Adric, Mathematical Genius
 Aegis Automaton
@@ -127,6 +128,7 @@ Fading Hope
 Faerie Impostor
 Faithless Salvaging
 Fallaji Excavation
+Fangorn, Tree Shepherd
 Fate Forgotten
 Flame Slash
 Flame Spirit
@@ -283,6 +285,7 @@ Ravenous Skirge
 Raving Visionary
 Reach of Branches
 Reap and Sow
+Red Ward
 Reduce to Dreams
 Regal Bloodlord
 Rejuvenation Chamber
@@ -294,6 +297,7 @@ Riptide
 Rising Populace
 Roar of Reclamation
 Robot Chicken
+Rohirrim Lancer
 Rootwater Commando
 Rubblebelt Runner
 Ruby Medallion
@@ -313,7 +317,9 @@ Selkie Hedge-Mage
 Shadow Lance
 Shadowfeed
 Shatterstorm
+Shefet Monitor
 Shimmering Mirage
+Shisato, Whispering Hunter
 Shivan Oasis
 Shrieking Mogg
 Sickle Ripper
@@ -364,6 +370,7 @@ Tangle Spider
 Tangled Islet
 Target Minotaur
 Tattermunge Duo
+Tel-Jilad Wolf
 Temur Runemark
 Tenth District Veteran
 Tergrid's Shadow

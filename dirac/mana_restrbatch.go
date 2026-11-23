@@ -64,6 +64,43 @@ func (s *State) rbClear(p uint8) {
 	s.rb[SeatIx(p)] = [maxRB]rbatch{}
 }
 
+// rbKeep empties p's restricted batches but the units a ManaClear keep
+// protects: gorge's fold keeps a batch whose Persistent flag is set or whose
+// colour slot the keep letters protect, per colour of a merged batch
+// (engine/events/apply_misc.go). pers marks a step boundary, whose fold
+// keeps a persistent-restriction batch whole (rbClearStep's keep); at the
+// turn change gorge's TurnChange demotes every batch first, so only the
+// keep-letter colours survive there. prot 0 keeps exactly what the caller's
+// historical emptier kept.
+func (s *State) rbKeep(p, prot uint8, pers bool) {
+	if prot == 0 {
+		if pers {
+			s.rbClearStep(p)
+		} else {
+			s.rbClear(p)
+		}
+		return
+	}
+	var persKind func(uint8) bool
+	if g := s.k().gen; pers && g != nil && g.restrPers != 0 {
+		persKind = g.restrPersKind
+	}
+	rb := &s.rb[SeatIx(p)]
+	for i := range rb {
+		b := &rb[i]
+		if b.kind == 0 {
+			break
+		}
+		whole := persKind != nil && persKind(b.kind)
+		for c := 0; c < int(kop.NumManaKinds); c++ {
+			if !whole && prot&(1<<uint(c)) == 0 {
+				b.n[c] = 0
+			}
+		}
+	}
+	s.rbCompact(p)
+}
+
 // rbClearStep empties p's restricted mana at a step boundary but the batches
 // of a persistent restriction (genPrep.restrPers): gorge foldManaClear keeps a
 // batch whose Persistent flag is set.

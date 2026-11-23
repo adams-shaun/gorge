@@ -50,6 +50,22 @@ func parentLinkTargets(c *Ctx) []state.Target {
 	return c.Targets
 }
 
+// chainTargets is the "Targeted" list a sub-ability reads after the root's
+// own targets: Ctx.Targets when the root answered any, else the nearest
+// targeting parent link's answer. A ChangeZone sub that asks for its own
+// target mid-resolution records that answer through noteLinkAnswer ->
+// recordParentLink, so a following untargeted link's Defined$ Targeted /
+// TargetedController reads the object the sub chose (Expel the Unworthy's
+// "its controller gains life equal to its mana value", CR 608.2c/608.2h).
+// A Min-0 link that genuinely answered zero records an EMPTY parent link, so
+// this fallback stays empty rather than inventing a target.
+func chainTargets(c *Ctx) []state.Target {
+	if len(c.Targets) > 0 {
+		return c.Targets
+	}
+	return parentLinkTargets(c)
+}
+
 // noteLinkAnswer is how a body that consumes its OWN target answer (rather
 // than through Resolve's generic pre-ask) hands that answer to the recorder.
 func noteLinkAnswer(c *Ctx, ts []state.Target) {

@@ -41,6 +41,7 @@ type pcard struct {
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
 	manaIdent bool          // a commander-identity source's view (kop.Ability.ManaIdentity): gorge's planner appends its unit with the choice-shaped sources even when the identity is one colour (mana_reflected.go identityColours)
 	manaRefl  bool          // an imprint mox's view: gorge's census keeps its unit at the source's battlefield position even when it is a colour choice (mana_imprint.go)
+	altCol    uint8         // a granted basic land type's intrinsic alternative beside this view's own ability: 1 + its colour; the source taps for one of the two (static_landgrantalt.go); 0 none
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
 	restrU    uint8         // a restricted source's planner view: 1 fixed colour, 2 widened {C} unit (mana_restrictedsource.go)
@@ -58,11 +59,12 @@ type pcard struct {
 	wideN      uint8
 	wideCol    kop.ColorMask
 	wideChosen bool
-	restrFloat bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
-	cdRec      bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
-	food       bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
-	manaTyped  bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
-	manaSnow   bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
+	restrLife  uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
+	restrFloat bool  // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
+	cdRec      bool  // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
+	food       bool  // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
+	manaTyped  bool  // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	manaSnow   bool  // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's
@@ -79,7 +81,10 @@ type pcard struct {
 	// alone (Lotus Ring's equipped creature; mana_grantcost.go). Only the
 	// grant search, the gap readers and the manual window read it: the
 	// printed sacrifice readers (manaSacOnly) never see a grant.
-	grantSac    bool
+	grantSac bool
+	// cantAct: the card prints a StatCantActivate static (cast_cantactivate.go):
+	// actForbiddenBy walks only these cards plus emblems.
+	cantAct     bool
 	trigMask    uint32 // bit per kop.TrigEvent the card's triggers listen to
 	hasStat     bool
 	grantStat   bool  // an override static or a continuous static with a Grant
@@ -108,16 +113,35 @@ type prep struct {
 	t             *kop.Table
 	nameRep       []CardID // printed-name representative per card (nameRepOf); nil when every printed name is unique
 	cards         []pcard
-	gen           *genPrep // generated-table extension (gen.go); nil for hand-written tables
-	gyCont        bool     // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
+	srcs          []layerSrcCard // per card, the layer walk's ability masks (prepLayerSrc; static_layerwalk.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	gen           *genPrep       // generated-table extension (gen.go); nil for hand-written tables
+	gyCont        bool           // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold          coldLayout
-	gainsOfAttach bool // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
-	anyNoDmg      bool // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyAsUnblk    bool   // a card or emblem has a StatAssignCombatDamageAsUnblocked static (the as-unblocked election, combat_asgngrant.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
 	embPrev bool
-	cda     bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// embExileLeave: some emblem carries a battlefield-origin dies-to-exile
+	// replacement (tableEmbHasExileLeave, repl_exileleaveemb.go); on prep,
+	// not genPrep, so the pinned fixed-State inventory is unchanged
+	embExileLeave bool
+	cda           bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// grantSrcCard: per card, a Continuous static grants a mana ability,
+	// whoever it applies to (prepTokMana; contGrantLive); contGrantAlways: a
+	// mana grant no battlefield card marks (an override record's, a printed
+	// GainsAbilitiesOf one) reads as always on. On prep, not genPrep, so the
+	// pinned fixed-State inventory is unchanged
+	grantSrcCard    []bool
+	contGrantAlways bool
+
+	// landGrantPair: a granted basic land type beside a mana source whose own
+	// ability is no plain {T} one (static_landgrantpair.go): StallLandGrant; on
+	// prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	landGrantPair bool
 	// gainsOfPair: a GainsAbilitiesOf$ static beside a creature ability its
 	// walk does not model (static_gainsofpair.go): StallGainsOf; on prep, not
 	// genPrep, so the pinned fixed-State inventory is unchanged
@@ -167,6 +191,10 @@ type prep struct {
 	// Effect-delivered "you may cast ... as though they had flash"): the
 	// other guard castFlash adds
 	anyEmbFlash bool
+	// anyEmbForget: some emblem carries a ForgetOnCast$ filter for a stack
+	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
+	// (cast_selfflash.go embFlashForget, after the cascade triggers)
+	anyEmbForget bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
@@ -191,6 +219,17 @@ type prep struct {
 	// the initiative's Undercity (genPrep.dungeon). Prep data like cards,
 	// never a pinned genPrep field (TestNoNewFixedStateFields).
 	dungeons []CardID
+	// anyAbilTgtPT: some activated ability reads its target's power or
+	// toughness: the target's last known P/T is snapshot as it resolves
+	// (value_abiltgtpt.go). A prep field, never a pinned genPrep one.
+	anyAbilTgtPT bool
+	// embalmCard / embalmAb: the granting card and ability index of the
+	// latent embalm body a table's OpGrantEmbalmOwnCost names (prepEmbalmGrant;
+	// kw_embalmgrant.go); anyEmbalmGrant is set when the table grants embalm.
+	// Prep data, never a pinned genPrep field (TestNoNewFixedStateFields).
+	embalmCard     CardID
+	embalmAb       uint8
+	anyEmbalmGrant bool
 	// costObj: some card's cost forages or exiles cards from a graveyard
 	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
 	// payability and pick paths
@@ -214,6 +253,10 @@ type prep struct {
 	// anyUncounter: some card carries ReplSpellsCantBeCountered; OpCounter
 	// scans the battlefield for it (repl_uncounterable.go)
 	anyUncounter bool
+	// uncAnyCtrl: some ReplSpellsCantBeCountered names no controller scope
+	// (ReplUncAnyCtrl): the scan widens to every battlefield permanent, each
+	// line scoping itself (repl_uncounterable.go)
+	uncAnyCtrl bool
 	// sacMana: some card's mana ability sacrifices its source (a
 	// Treasure; pcard.manaSac): guards the sacrifice-cost / mana
 	// disjointness check on the activation walk (cost_disjointmana.go)
@@ -276,6 +319,11 @@ type prep struct {
 	// once each turn (pcard.ctrMana; mana_countercost.go): guards the
 	// prefix-search gap, the -0/-1 toughness read and its SBA
 	ctrMana bool
+	// anyForageCA: a Combo Any source pays a forage ({T}, Forage; mana_forage.go)
+	anyForageCA bool
+	// caMixForage: the table's Combo Any census gaps are all forage ones and the
+	// mix stall (genPrep.caMix) stands (mana_forage.go forageMixIdle)
+	caMixForage bool
 	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb)
 	// or sacrifices one (kop.SacXEachManaAb; mana_tapanother.go): a
 	// prefix-search gap kind
@@ -343,14 +391,14 @@ func prepare(t *kop.Table) *prep {
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.entwine = p.entwine || c.Entwine
 		p.offspring = p.offspring || c.Offspring || c.Buyback || c.Entwine
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
 		// source, not the ability (effects.ManaProducerTag)
 		typedWord := (c.Subtypes[0]&typedSub[0] | c.Subtypes[1]&typedSub[1]) != 0
-		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord
+		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord || c.TypedMana
 		pc.manaSnow = snowMana(c, typedWord)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
@@ -401,7 +449,7 @@ func prepare(t *kop.Table) *prep {
 						p.ctrMana = true
 						p.ctrAb[i] = int8(j)
 					}
-					if kop.TapXMana(a) || kop.SacXMana(a) { // (a sacrifice-another one is the tap-another search's too)
+					if kop.TapXSearchMana(a) { // (a sacrifice-another or exile-from-graveyard one is the tap-another search's too, mana_exilegrave.go)
 						p.tapMana = true // (read per card through p.tapXAb, not a pcard field: the hot record stays as it was)
 						p.tapXAb[i] = int8(j)
 					}
@@ -472,6 +520,7 @@ func prepare(t *kop.Table) *prep {
 			}
 		}
 	}
+	p.uncAnyCtrl = tableHasUncAnyCtrl(t) // repl_uncounterable.go
 	if p.multiMana {
 		for i := range t.Cards {
 			if p.cards[i].manaAb >= 0 {
@@ -496,9 +545,13 @@ func prepare(t *kop.Table) *prep {
 	// and cost path to the generated forms (value_tappower.go)
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.embPrev = tableEmbHasStaticPrev(t)
+	p.embExileLeave = tableEmbHasExileLeave(t)
 	p.gen = prepareGen(t, p)
+	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
+	prepHandStat(t, p) // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
+	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
 	p.availExt = p.painMana || p.phyMana

@@ -19,6 +19,7 @@ func TestCraftShapeAndExpansion(t *testing.T) {
 	// slot), whose parameter carries Forge's trailing display prose.
 	for _, supported := range []string{
 		"8 U XMin4 ExileCtrlOrGrave<X/Permanent.Other+nonLand+hasAbility Activated/nonlands with activated abilities>",
+		"3 R R XMin4 ExileFromGrave<X/Instant.Red+Other;Sorcery.Red+Other/red instant and/or sorcery cards>",
 		"4 ExileCtrlOrGrave<1/Dinosaur.Other> ExileCtrlOrGrave<1/Merfolk.Other>",
 		"4 ExileCtrlOrGrave<1/Dinosaur.Other> ExileCtrlOrGrave<1/Merfolk.Other> ExileCtrlOrGrave<1/Pirate.Other> ExileCtrlOrGrave<1/Vampire.Other>:a Dinosaur, a Merfolk, a Pirate, and a Vampire:the four",
 	} {
@@ -27,7 +28,7 @@ func TestCraftShapeAndExpansion(t *testing.T) {
 		}
 	}
 	for _, exotic := range []string{
-		"3 R R XMin4 ExileFromGrave<X/Instant.Red+Other;Sorcery.Red+Other>",
+		"2 ExileFromHand<1/Creature>", // a material verb this build's craft grammar does not admit
 		"6 ExileCtrlOrGrave<2/Permanent.Other+withSharedCardType>",
 	} {
 		if CraftShapeSupported(exotic) {

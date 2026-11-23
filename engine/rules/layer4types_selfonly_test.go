@@ -39,9 +39,14 @@ func selfOnlyBoard(t testing.TB, n int) (*Engine, state.ObjID) {
 func TestLayer4SelfOnlyTableVisitsOnlyItsSources(t *testing.T) {
 	t.Parallel()
 	e, car := selfOnlyBoard(t, 200)
-	// A face-down goblin: its CR 708.5 base {Creature} differs from the
-	// printed "Creature Goblin", so the full walk lists it and the fast path
-	// must too, although no layer-4 effect names it.
+	// A face-down goblin: its CR 708.5 base {Creature} is the set the walk
+	// derives too, so the table needs no entry for it -- the skip compares
+	// against that base (derivedBaseTypes), not the printed face, and the
+	// filter's fallback (hasTypePrinted's CR 708.8 gate) answers exactly the
+	// face-down words. The walk still VISITS it: a type grant that reaches a
+	// face-down object moves the set away from the base and lands in the
+	// table even when the result re-spells the printed face
+	// (facedown_static_addtype_printed_set_skip).
 	fd := onBoard(t, e, 0, "Name:Hidden Goblin\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
 	e.G.Obj(fd).FaceDown = true
 
@@ -54,8 +59,13 @@ func TestLayer4SelfOnlyTableVisitsOnlyItsSources(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("self-only table %v != full walk %v", got, want)
 	}
-	if len(got) != 2 || got[0].ID != car || got[1].ID != fd {
-		t.Fatalf("table = %v; want the crewed car and the face-down goblin", got)
+	if len(got) != 1 || got[0].ID != car {
+		t.Fatalf("table = %v; want the crewed car only (the face-down goblin's walk equals its face-down base)", got)
+	}
+	// The visited-but-entryless face-down object is still answered: its
+	// derived list is its base, so the table and the fallback agree.
+	if o := e.G.Obj(fd); len(e.typeCharacteristics(o.ID, 0)) != 1 || e.typeCharacteristics(o.ID, 0)[0] != "Creature" {
+		t.Fatalf("face-down goblin's derived types moved: %v", e.typeCharacteristics(o.ID, 0))
 	}
 
 	// Any layer-4 effect that is not a plain Card.Self one (a type lord)

@@ -1,0 +1,20 @@
+# the votestorenum pool (api Vote Choices$ with StoreVoteNum$ True): council's
+# dilemma carriers whose every option resolves with its own tally, plus filler
+# for the four-seat and two-seat lockstep tests
+Capital Punishment
+Emissary Green
+Fateful Tempest
+Lieutenants of the Guard
+Messenger Jays
+Orchard Elemental
+Selvala's Stampede
+Travel Through Caradhras
+Grizzly Bears
+Savannah Lions
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest

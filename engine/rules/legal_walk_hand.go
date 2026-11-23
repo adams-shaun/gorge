@@ -26,6 +26,37 @@ func (w *legalWalk) appendOmenAlt(o *state.Object, sorcery bool) {
 	w.appendAlternateSpellFace(o, sorcery, omenSpellFace(o), "omen_alt")
 }
 
+// appendFaceAlts appends the hand's alternate-face cast offers that stand above
+// the front-face gate: Adventure, Omen and More Than Meets the Eye. A free
+// function over the walk: a new legalWalk method would grow the Engine surface.
+func appendFaceAlts(w *legalWalk, o *state.Object, sorcery bool) {
+	w.appendAdventureAlt(o, sorcery)
+	w.appendOmenAlt(o, sorcery)
+	appendConvertedCast(w, o, sorcery)
+}
+
+// appendConvertedCast appends the hand's More Than Meets the Eye cast of o
+// (CR 702.162a): the card is cast CONVERTED, back face up, for the keyword's
+// cost rather than its mana cost. Like Disturb's graveyard cast beginCast
+// flips to the back face before the ordinary cast transaction, so timing,
+// prohibition and targets are judged on the BACK face (CR 712.11c; the front
+// face's keyword is also considered, CR 712.11d), and the back face's own SP
+// Cost$ extras are paid on top (CR 118.9d). It is its own alternative cost
+// (CR 702.162a): the option carries no AltCostIndex, so it never combines
+// with another one.
+func appendConvertedCast(w *legalWalk, o *state.Object, sorcery bool) {
+	e, p, id := w.e, w.p, o.ID
+	bf, mc, ok := mtmteCast(o)
+	if !ok || w.castRestrictedAsFace(p, id, bf) || e.castSuppressed(p, id) ||
+		!w.spellTimingOK(p, id, bf, sorcery) || !e.castTargetsAvailable(p, id, bf.SpellAbility()) {
+		return
+	}
+	if w.offerCastableAsFace(p, id, bf, pay.WithSpellAbilityExtras(bf, mc), spellScope("converted")) {
+		w.out = append(w.out, decision.Option{Index: len(w.out), Kind: "cast",
+			Label: "Cast " + bf.Name + " (converted)", Obj: id, Mode: "converted"})
+	}
+}
+
 // appendAlternateSpellFace is the ONE home of the hand's alternate-spell-face
 // offer, shared by the Adventure (CR 715.3a) and Omen (CR 720.3a) routes.
 func (w *legalWalk) appendAlternateSpellFace(o *state.Object, sorcery bool, af *cards.Face, mode string) {
@@ -179,8 +210,7 @@ func (w *legalWalk) handWalk() {
 		// casts (castRestrictedAsFace), not the creature front the card-level
 		// continue below reads -- a restriction matching only one face must
 		// decide only that face's offer.
-		w.appendAdventureAlt(o, sorcery)
-		w.appendOmenAlt(o, sorcery)
+		appendFaceAlts(w, o, sorcery)
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
 		// cast transaction; from then on every cost/target/resolution reader
@@ -244,7 +274,7 @@ func (w *legalWalk) handWalk() {
 		if ff, fa := fusedSplitFaces(o); ff != nil {
 			if !w.castRestrictedAsFace(p, id, fa) &&
 				e.fusedTimingOK(p, id, ff, fa, sorcery) &&
-				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
+				fusedCastTargetsAvailable(&e.pricingFused, func(f *cards.Face) bool { return e.splitCastTargetsAvailable(p, id, f) }, ff, fa) {
 				if pricingFusedRead(&e.pricingFused, func() bool { return w.offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) }) {
 					*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
@@ -310,6 +340,11 @@ func (w *legalWalk) handWalk() {
 						Label: "Cast " + f.Name + " (" + label + ")", Obj: id, Mode: sc.mode})
 				}
 			}
+		}
+		// Offering (CR 702.48a) is instant speed, so it sits ABOVE the
+		// sorcery-speed timing gate (like Sneak); see offering.go.
+		if ph.has(phOffering) {
+			offerOffering(w, p, id, f)
 		}
 		if !w.spellTimingOK(p, id, f, sorcery) {
 			// Quantum Reduction's permission is offered only with Teamwork.
@@ -472,7 +507,7 @@ func (w *legalWalk) handWalk() {
 							Label: kp.label, Obj: id, Mode: kp.mode})
 					}
 				}
-			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && targetsAvailable() && e.kickedChainTargetsAvailable(p, id, f.SpellAbility()) {
+			} else if kc, ok := kickerCost(f); ok && w.offerCastable(p, id, pay.RawBaseCost(asPayer(e), p, id).Plus(kc), spellScope("kicked"), false) && (targetsAvailable() || kickedWaivedRootTargetsAvailable(e, p, id, f.SpellAbility())) && e.kickedChainTargetsAvailable(p, id, f.SpellAbility()) {
 				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 					Label: "Cast " + f.Name + " (kicked)", Obj: id, Mode: "kicked"})
 			}
@@ -655,22 +690,10 @@ func (w *legalWalk) handWalk() {
 		if ph.has(phMorph | phMegamorph | phDisguise) {
 			w.appendFaceDownCast(p, id, f, sorcery)
 		}
-		// Emerge (CR 702.118a): "cast this spell by sacrificing a creature and
-		// paying the emerge cost reduced by that creature's mana value". It is
-		// a casting option, but NOT a plain substitution -- the cast sacrifices
-		// a creature AND the cost is reduced by its mana value -- so it does
-		// not ride the keyword family above. emergeOfferCost composes the
-		// printed K:Emerge cost with the mandatory Sac<1/Creature> part,
-		// priced separately for each sacrifice candidate. sacAsk permits only
-		// candidates whose own reduced cost remains payable. Unsupported printed
-		// cost shapes are withheld; the plain cast remains unaffected.
+		// Emerge (CR 702.118a): a casting option that is not a plain
+		// substitution; see emerge.go's offerEmerge.
 		if ph.has(phEmerge) {
-			if _, ok := e.emergeOfferCost(p, id, f, func(c Cost) bool {
-				return w.offerCastable(p, id, c, spellScope("emerged"), false)
-			}); ok && targetsAvailable() {
-				*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
-					Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
-			}
+			offerEmerge(w, p, id, f, targetsAvailable)
 		}
 		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is

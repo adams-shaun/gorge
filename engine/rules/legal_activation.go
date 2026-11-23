@@ -169,6 +169,20 @@ func (e *Engine) activatorAllows(p state.PlayerID, id state.ObjID, ab *cards.SA)
 	return effects.MatchesPlayerSpecFrom(e.G, spec, p, e.controllerOf(id), id)
 }
 
+// grantedActivationAllows is the Activator$ and ActivationPhases$ gate
+// (CR 602.5b) for a granted/gained ability offered on its recipient permanent,
+// the same two gates a printed ability passes.
+func grantedActivationAllows(g grantedActivationGate, p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	return g.activatorAllows(p, id, ab) && g.activationPhasesOK(p, ab)
+}
+
+// grantedActivationGate is the narrow view of the engine grantedActivationAllows
+// reads.
+type grantedActivationGate interface {
+	activatorAllows(p state.PlayerID, id state.ObjID, ab *cards.SA) bool
+	activationPhasesOK(p state.PlayerID, sa *cards.SA) bool
+}
+
 // abilityPresentHolds evaluates an activated ability's IsPresent$ /
 // PresentCompare$ activation gate at OFFER time -- Mistveil Plains' "Activate
 // only if you control two or more white permanents" (IsPresent$

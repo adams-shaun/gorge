@@ -3,11 +3,12 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Fractured Identity's "each player other than its controller creates a
-// token that's a copy of it" (CopyPermanent Controller$
-// NonRememberedController, kop.CopyNonRemCtrl). gorge resolves the owners as
-// every living player from the resolving controller in turn order
-// (AliveFrom) but the remembered permanent's last-known controller
-// (definedSpec NonRememberedController, rememberedControllersLKI), sizes
+// token that's a copy of it" (kop.CopyNonRemCtrl). Its old script spells the
+// source Remembered with Controller$ NonRememberedController; the new one
+// spells it Defined$ Targeted with Controller$ NonTargetedController. gorge
+// resolves the owners as every living player from the resolving controller in
+// turn order (AliveFrom) but the copied permanent's last-known controller
+// (definedSpec NonRememberedController / NonTargetedController), sizes
 // each owner's copies through the CreateToken replacements before the first
 // one enters, and mints them owner by owner inside one zone batch
 // (effCopyPermanent; CR 111.1, 603.6a). The kernel walks the same owners: the
@@ -23,8 +24,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Tests only.
 var DebugNonRemOneOpp bool
 
-// nonRemExcl is the player who gets no copy: the copied remembered object's
-// controller, its RememberLKI$ capture once it left the battlefield.
+// nonRemExcl is the player who gets no copy: the copied permanent's
+// controller. A remembered object reads its RememberLKI$ capture once it left
+// the battlefield; a target (Fractured Identity's new Defined$ Targeted
+// script) reads the last-known controller from the target snapshot, taken as
+// the resolution exiled it (CR 608.2h, 400.7). A live battlefield object
+// reads its current controller.
 func (s *State) nonRemExcl(in *kop.Instr) uint8 {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
@@ -33,6 +38,8 @@ func (s *State) nonRemExcl(in *kop.Instr) uint8 {
 	ctrl := s.objs[o].owner()
 	if s.objs[o].zone == kop.ZoneBattlefield {
 		ctrl = s.perms[s.objs[o].slot].ctrl
+	} else if l := s.movedTargetLKIRec(o); l != nil {
+		ctrl = l.ctrl
 	} else if l := s.remLKIRec(o); l != nil {
 		ctrl = l.ctrl
 	}

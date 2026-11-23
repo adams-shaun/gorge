@@ -97,6 +97,7 @@ func enableClosedTest(t *testing.T) *searchprobe.Belief {
 // human whose deck (mono-red goblins) and sideboard (mono-black aggro) hold
 // cards that appear nowhere in the belief corpus or the bot's own list.
 func TestClosedTestPolicyNeverSeesTheHumansHiddenCards(t *testing.T) {
+	t.Parallel()
 	belief := enableClosedTest(t)
 	reg := testutil.CorpusRegistry(t)
 	RunClosedPrivacyContract(t, ClosedPrivacyContract{

@@ -66,6 +66,23 @@ func (s *State) ctrlKw(sl Slot) kop.KwMask {
 	return m
 }
 
+// ctrlKwSince is ctrlKw for a permanent that lost all its abilities at
+// timestamp lts (CR 613.1f, 613.7): a control record's haste granted before
+// the loss is removed by it, one granted at or after survives (gorge
+// grantLostTo). lost false is ctrlKw.
+func (s *State) ctrlKwSince(sl Slot, lts uint16, lost bool) kop.KwMask {
+	if !lost {
+		return s.ctrlKw(sl)
+	}
+	var m kop.KwMask
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxControl && r.r.fl&fcHaste != 0 && r.r.ts >= lts {
+			m |= kop.KwHaste
+		}
+	}
+	return m
+}
+
 // the pool's ended set is a uint64 bitmask. maxFx 16 -> 32: a declared
 // capacity since 2026-10-27 (every Storm of Souls
 // entrant takes its own override record); 32 -> 64 since 2026-11-03.
@@ -118,8 +135,10 @@ func prepCtrl(t *kop.Table, g *genPrep) {
 			if in.Op == kop.OpGainControl && (in.A.N == kop.DurWhileSource || in.A.N == kop.DurWhileControlSource) {
 				g.ctrlSBA = true
 			}
-			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && in.A.K == kop.VConst && in.A.N == kop.DurUntilYourNextTurn {
-				g.anyNTOv = true
+			if (in.Op == kop.OpOverride || in.Op == kop.OpOverrideAll) && in.A.K == kop.VConst {
+				if in.A.N == kop.DurUntilYourNextTurn {
+					g.anyNTOv = true
+				}
 			}
 		}
 	}
@@ -214,6 +233,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	}
 	if k.ascend {
 		s.blessScan(k) // CR 702.131b (kw_ascend.go)
+	}
+	if k.gen != nil && k.gen.anyWhileHost {
+		s.ovAsLongAsControlDrop(k, p.obj) // CR 611.2b: Pump Duration$ AsLongAsControl (filter_combatwords.go)
 	}
 	if k.gen != nil && k.gen.anyMayWhileSrc {
 		s.mayWhileSrcCtrlDrop(p.obj, to) // CR 611.2b (cast_aslongascontrol.go)
@@ -732,6 +754,8 @@ func (s *State) ovDurFl(dur int16) uint8 {
 	case kop.DurUntilYourNextTurn:
 		s.ovNTArm(s.res.e.ctrl) // static_ovntleave.go
 		return ovNT | (s.res.e.ctrl<<ovNTWhoShift)&ovNTWho
+	case kop.DurUntilYourNextUpkeep:
+		return 0 // the class is the Override row's UntilUpkeep; p carries the controller (static_untilnextupkeep.go)
 	}
 	return 0
 }

@@ -13,7 +13,7 @@ import (
 // restricted ability. The prefix route taps the land before the play, so the
 // activation is offered and the watcher's trigger sits below it.
 func TestDeferredCensusRestrictedGapOffersActivation(t *testing.T) {
-	sc, id := synthScen(t, "tail-70", "Primal Beyond", "Flamekin Brawler", "Price of Glory")
+	sc, id := deferredWatcherScen(t, "Primal Beyond", "Flamekin Brawler", "Price of Glory")
 	sc.s.cfg |= cfgGorgeAutopay // the lockstep's autopay surface
 	fb := sc.perm(id["Flamekin Brawler"], 0)
 	pb := sc.perm(id["Primal Beyond"], 0)

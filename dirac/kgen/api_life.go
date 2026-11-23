@@ -1,6 +1,9 @@
 package kgen
 
 import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -18,6 +21,24 @@ func init() {
 }
 
 func (lc *lowerCtx) apiGainLife(sa *cards.SA, ps *params) error {
+	// Expel the Unworthy's split target: the root's "instead" bound resolves
+	// to zero targets when kicked (TargetMin$/Max$ X=0), while the Kicked-only
+	// ChangeZone sub chooses slot 1; unkicked the root chooses slot 0 and the
+	// sub is skipped. The trailing gain names "its controller" and "its mana
+	// value" of whichever creature was actually exiled, so lower one guarded
+	// arm per kicker outcome reading that slot. Without this the single
+	// lastTarget() read always named slot 1, which exists only when kicked.
+	if sa.API == "GainLife" && !dirac.DebugExpelGainTarget1 {
+		if unkicked, kicked, ok := lc.kickedSplitGain(ps); ok {
+			lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cKicked, Neg: true}, Skip: 1})
+			lc.emit(lInstr{Op: sa.API, Obj: lRef{Kind: rTargetController, N: unkicked},
+				A: lValue{Kind: vMVOf, Ref: lRef{Kind: rTarget, N: unkicked}}})
+			lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cKicked}, Skip: 1})
+			lc.emit(lInstr{Op: sa.API, Obj: lRef{Kind: rTargetController, N: kicked},
+				A: lValue{Kind: vMVOf, Ref: lRef{Kind: rTarget, N: kicked}}})
+			return nil
+		}
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err
@@ -32,6 +53,39 @@ func (lc *lowerCtx) apiGainLife(sa *cards.SA, ps *params) error {
 	}
 	lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
 	return nil
+}
+
+// kickedSplitGain recognizes the one split-target gain shape: Defined$
+// TargetedController over an amount that is exactly Targeted$CardManaCost,
+// in a two-slot chain whose slots are the kicked/un-kicked pair of a
+// conditional target (TargetMin$/Max$ = Count$Kicked.0.1 for the unkicked
+// root and Count$Kicked.1.0 for the sub under its Condition$ Kicked guard).
+// The returned slots are the target indices each arm must read.
+func (lc *lowerCtx) kickedSplitGain(ps *params) (unkicked, kicked int, ok bool) {
+	if ps.str("Defined") != "TargetedController" {
+		return 0, 0, false
+	}
+	amount := strings.TrimSpace(ps.str("LifeAmount"))
+	if body, found := lc.face.SVars[amount]; found {
+		amount = strings.TrimSpace(body)
+	}
+	if amount != "Targeted$CardManaCost" || len(lc.chainT) != 2 {
+		return 0, 0, false
+	}
+	unkicked, kicked = -1, -1
+	for _, t := range lc.chainT {
+		tg := lc.ab.Targets[t]
+		if kickedConstRange(tg.Min, tg.Max, 0, 1) {
+			unkicked = t
+		}
+		if kickedConstRange(tg.Min, tg.Max, 1, 0) {
+			kicked = t
+		}
+	}
+	if unkicked < 0 || kicked < 0 || unkicked == kicked {
+		return 0, 0, false
+	}
+	return unkicked, kicked, true
 }
 
 func (lc *lowerCtx) apiLosesGame(sa *cards.SA, ps *params) error {
@@ -105,7 +159,7 @@ func (lc *lowerCtx) apiPoison(sa *cards.SA, ps *params) error {
 		return err
 	}
 	switch who.Kind {
-	case rYou, rEachOpp, rEachPlayer, rTriggeredPlayer, rDefending, rTargetController:
+	case rYou, rEachOpp, rEachPlayer, rTriggeredPlayer, rDefending, rTargetController, rTriggeredTgtCtrl:
 	case rTarget:
 		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
 			return refuse("Poison of a non-player target")

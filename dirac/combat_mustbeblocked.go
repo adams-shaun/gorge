@@ -51,7 +51,7 @@ const mbBudget = 1 << 20
 // prepMustBlock sets anyMustBlock: some card is printed must-be-blocked, or
 // the table gives mechMustBlocked an arena mask.
 func prepMustBlock(t *kop.Table, g *genPrep) {
-	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone || g.uses.has(useMustBlockAtk) // combat_mustblockatk.go
+	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone || g.uses.has(useMustBlockAtk) || g.uses.has(useMustBlkStat) // combat_mustblockatk.go, static_mustblock.go
 	for i := 0; i < len(t.Cards) && !g.anyMustBlock; i++ {
 		g.anyMustBlock = t.Cards[i].MustBeBlocked
 	}
@@ -490,6 +490,9 @@ func (s *State) extraBlockInPlay(k *prep) bool {
 //
 //go:noinline
 func (s *State) blockerOptionsReq(k *prep, d *Decision, mb slotMask) bool {
+	if s.blockAnyInPlay(k) {
+		return s.blockAnyReqStall(d) // combat_blockany.go: the quota search holds a blocker to two pairs
+	}
 	var lure slotMask
 	if k.gen.anyLure {
 		lure = s.lureAttackers(k)

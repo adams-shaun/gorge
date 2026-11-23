@@ -1,0 +1,19 @@
+# the api:Unattach effect pool (gorge engine/effects/unattach.go): Carry Away's
+# "when this enters, unattach enchanted Equipment" over Equipment that carry a
+# Mode$ Unattached trigger (Captain's Hook, Grafted Wargear, Stitcher's Graft),
+# cheap creatures to equip, and Lightning Bolt / Disenchant for variety, for
+# the oracle's constructed lockstep (dirac/oracle/unattach_effect_lockstep_test.go)
+Carry Away
+Captain's Hook
+Grafted Wargear
+Stitcher's Graft
+Memnite
+Grizzly Bears
+Llanowar Elves
+Hill Giant
+Lightning Bolt
+Disenchant
+Plains
+Island
+Mountain
+Forest

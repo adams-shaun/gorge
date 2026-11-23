@@ -1,11 +1,19 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aegis of the Meek	592dfdb9a706ea29	13	1/1		0/1	ix:resp
 Angry Mob	3c08aa4e8be4850d	8	0/0		0/0	
+Arco-Flagellant	16ed9ca060ead193	58	2/2		3/3	
 Arni Brokenbrow	a0f66776ee95aa02	24	1/1		0/1	ix:resp
 Carrion Rats	32c94f3176d88116	32	2/2		1/1	
 Elvish Handservant	6eaefeb4451623b5	37	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Gloomfang Mauler	c001410e09a6e5f7	3	2/2		1/1	
+Halimar Wavewatch	7a5ac3438176b2b9	68	1/1		1/1	
+Hedron Blade	59d10ada3e9c13b0	25	2/2		1/1	
 Igneous Pouncer	b32afe96715d4d6e	3	2/2		0/1	ix:resp
 Jubilant Skybonder	0ced50c9dafb8a22	6	0/0		0/0	
+Masked Gorgon	b4c83ae1c1a40186	8	0/0		0/0	
+Mishra, Artificer Prodigy	06d2a1d7460b8a9f	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Risk Factor	237ef09e7fee58e3	36	0/0		3/4	cast/alt:jumpstart
 Shambling Shell	52a4eedf3743accb	36	1/1		1/1	
+Skoa, Embermage	a54d8f0d6b0b426b	22	2/2		0/1	ix:resp
+The Swarmlord	0e5ab53330d4ab39	89	1/1		1/1	
+Trap Essence	29242dcb0014439e	11	0/0		2/2	

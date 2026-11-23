@@ -59,6 +59,7 @@ Chaotic Backlash
 Chord of Calling
 Cinder Shade
 Clear a Path
+Colossal Dreadmaw and Storm Crow
 Continue?
 Creakwood Liege
 Crookclaw Elder
@@ -100,6 +101,7 @@ Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -110,6 +112,7 @@ Fireblade Charger
 Fissure
 Flare of Denial
 Flatman
+Flowstone Charger
 Forest
 Foxfire Oak
 Geralf's Mindcrusher
@@ -183,6 +186,7 @@ Muck Rats
 Mystic Skull
 Nakaya Shade
 Neonate's Rush
+Niv-Mizzet, the Firemind
 Nivix Barrier
 Nyx-Fleece Ram
 Oak Street Innkeeper

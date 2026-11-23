@@ -17,9 +17,10 @@ func (s *State) affordsUngrantedCast(k *prep, p uint8, cost *kop.ManaCost, d pay
 }
 
 // ungrCastCensus is the planner census affordsUngrantedCast prices over: the
-// pool and the printed mana sources, a dynamic sacrifice source excepted.
+// pool and the printed mana sources, a dynamic sacrifice source and an all-at-once source
+// under a reflect carrier (eachPickSources: gorge's census defers it) excepted.
 func (s *State) ungrCastCensus(k *prep, p uint8) (avail, modalSet) {
-	var skip slotMask
+	skip := s.eachPickSources(k, p)
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if pc := s.manaPCGen(k, sl); pc.manaDyn && pc.manaSac {

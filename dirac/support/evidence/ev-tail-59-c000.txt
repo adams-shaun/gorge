@@ -175,6 +175,7 @@ Flame Jet
 Flameborn Viron
 Fleetwheel Cruiser
 Flinthoof Boar
+Flourishing Fox
 Flowstone Kavu
 Fogwell's Gym
 Forest
@@ -219,6 +220,7 @@ Hapato's Might
 Haunted Library
 Heavy Mattock
 Hellspark Elemental
+Hexdrinker
 Hostile Desert
 Hostile Realm
 Hunters' Feast
@@ -331,6 +333,7 @@ Nulldrifter
 Nullhide Ferox
 Nylea's Forerunner
 Opportunist
+Orchard Elemental
 Otherworldly Gaze
 Overgrowth Elemental
 Painful Memories
@@ -351,6 +354,7 @@ Pixie Queen
 Plains
 Plated Seastrider
 Plea for Guidance
+Polymorph
 Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
@@ -448,6 +452,7 @@ Spreading Flames
 Spring-Leaf Avenger
 Squee's Toy
 Squee, Goblin Nabob
+Staff of the Ages
 Starfield Mystic
 Stasis Cocoon
 Steadfast Guard
@@ -472,6 +477,7 @@ Talon Sliver
 Tandem Tactics
 Telling Time
 Tempered Veteran
+The Ring Goes South
 The Terror of Serpent's Pass
 The Thing
 The Underworld Cookbook
@@ -500,6 +506,7 @@ Twenty-Toed Toad
 Twilight Panther
 Tyrite Sanctum
 Uncontrollable Anger
+Uncover the Moon-Letters
 Underworld Connections
 Unliving Psychopath
 Unmake

@@ -98,10 +98,14 @@ func (s *State) imprintColours(k *prep, sl Slot) kop.ColorMask {
 	src := s.perms[sl].obj
 	ver := s.objs[src].ver
 	var m kop.ColorMask
-	for i := 0; i < int(s.g.nexw); i++ {
-		r := &s.cold.exw[i]
-		if r.src == src && r.fl&exwRev != 0 && r.sver == ver && s.objs[r.o].zone == kop.ZoneExile {
-			m |= k.t.Cards[s.objs[r.o].card].Colors
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		rec := &r[i]
+		if rec.src == src && rec.kind&exwRev != 0 && rec.sver == ver && s.objs[rec.o].zone == kop.ZoneExile {
+			m |= k.t.Cards[s.objs[rec.o].card].Colors
 		}
 	}
 	return m & kop.ColAny

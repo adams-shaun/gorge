@@ -193,6 +193,13 @@ lowers the rows to the measurement and drops stale ones; it never raises or adds
 one. A renamed or moved function takes its row under the new key in the same
 commit at no higher value.
 
+A pull request that lowers a row or a `ratchet_test.go` constant fails the
+lint job with "lowering is post-merge only": `cmd/checkratchet` compares the
+branch with its merge base. Lowering is post-merge only, so a lowering cannot
+race a branch that grows the same function into one queue batch. The daily
+`ratchet-lower` workflow runs the generator on main and opens a bot PR (rebuilt
+over main when it goes red or conflicting).
+
 **A ratchet is never raised by a branch.** That covers the coverage tables above,
 the constants and `func_ceilings.tsv` in `internal/codeshape`, the constants and
 allow-lists of `internal/archtest`, and `testkit/testutil/agentsdoc_test.go`.
@@ -265,7 +272,7 @@ pointer-free buffer and its fork pool, and the transition loop allocates nothing
 **Enforced by:** `scripts/dirac-gate.sh <base>` (lockstep on the committed FDN
 and BLB slices, the size bar, allocations and instructions per transition),
 `make dirac-slices` on every merge-queue batch, `TestColdArraysHoldNoPointers`,
-`TestStateSize`. The whole of `dirac/oracle` runs about every 6 hours on `main`
+`TestStateSize`. The whole of `dirac/oracle` runs about every 2 hours on `main`
 ([`oracle.yml`](../../.github/workflows/oracle.yml)).
 
 ## Contributor guidelines
@@ -297,10 +304,12 @@ and BLB slices, the size bar, allocations and instructions per transition),
    importers) and `lint`, pass. Mergify batches up to 10 queued PRs on a
    `mergify/merge-queue/*` branch, where `ci.yml` runs the full suite once per
    batch: the six test shards (`scripts/ci_shard.sh`), `examples`, `wire-matrix`
-   and `dirac-slices`. The batch merges when `ci-ok` is green; a red batch is
+   `dirac-slices` and `oracle-sentinels`. The batch merges when `ci-ok` is green; a red batch is
    split. A fix for a red `main` goes on a `hotfix/*` branch (or takes the
    `hotfix` label) and jumps the queue. The whole `dirac/oracle` runs on `main`
-   about every 6 hours (`oracle.yml`); `ci.yml` also has a nightly run. The old
+   about every 2 hours (`oracle.yml`); `ci.yml` also has a nightly run. A test that
+   reddens main's oracle is appended to `dirac/oracle/testdata/sentinels.txt` (run in every batch) in its fix or
+   revert PR. The old
    landing train (`land` and `develop` branches, promote PRs) is retired. Never
    run an uncapped `go test ./...` or the whole oracle by hand.
 5. **Every test fits the budget: 4 GB RSS, 4 vCPU, 1 minute wall.** Run tests
@@ -330,6 +339,20 @@ and BLB slices, the size bar, allocations and instructions per transition),
    a peer's half-written file: check `git status` and mtimes first.
 7. **A change to how a CR rule is handled updates that rule's row in
    `engine/rules/crcoverage/` in the same commit** (see its README).
+7. **The deletion rule.** A test may be deleted only when one of these holds:
+   1. **It is a duplicate by construction.** It replays the same recording, pin
+      or seed, with the same or a weaker check, as a test that stays. The PR
+      names the covering test.
+   2. **It has become data.** A one-line wrapper becomes a manifest row that the
+      remaining test replays under the same name (subtest
+      `TestReproManifest/<recording>`). `-run` selection and the failure message
+      keep working.
+   3. **Its subject is gone.** The code, card or decision kind it pins was
+      removed, and the removing PR deletes it.
+
+   Never delete a test because it has not failed, or because it is slow. A slow
+   test is split, sharded or moved to the nightly tier with a named owner. A
+   regression test for a fixed bug stays, as code or as a manifest row.
 
 ### Commits
 

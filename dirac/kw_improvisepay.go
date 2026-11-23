@@ -10,12 +10,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and stays the manual window's (a greedy credit is no proof of unpayable).
 
 // improviseLifted reports whether gorge's cast planner prices p's cast of c
-// (object o, fromHand) at the improvise credit: a plain hand cast with the one
+// (object o, fromHand) at the improvise credit: a plain hand or command-zone
+// (CR 903.8; the planner's scope is "" for both) cast with the one
 // keyword, no X, and no sacrificed or tapped permanent beside the mana
 // (payment_plan.go paymentPlanCastShapeDetailAltAdd). Convoke and delve keep
 // "shape:contribution".
 func (s *State) improviseLifted(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	if !fromHand || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
+	return s.improviseLiftedFrom(k, p, c, o, fromHand, fromHand)
+}
+
+// improviseLiftedFrom is improviseLifted with plain set for a hand or
+// command-zone origin: the keyword grants still read fromHand.
+func (s *State) improviseLiftedFrom(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
+	if !plain || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
 		s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
 	}
@@ -51,7 +58,7 @@ func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 // search taps the grant: improviseAloneCast).
 func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost *kop.ManaCost) bool {
 	m := s.ctrlM[SeatIx(p)]
-	s.ctrlM[SeatIx(p)] = m.andNot(res)
+	s.ctrlM[SeatIx(p)] = m.andNot(s.improviseWithheld(k, res))
 	var av avail
 	s.availFor(k, p, &av)
 	ok := av.affords(cost, pipMaskOf(cost), 0) ||
@@ -69,22 +76,48 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 // improvisePlanned classifies the mana step of spell entry e when gorge's planner
 // priced its Improvise cast (build.impPlan, set at the cast). With artifacts
 // announced the planned payment is re-armed on what they leave (rearmAutoPay):
-// plan. With none announced beside a credit the offer's witness no longer matches
-// the price (cost_changed) and the cast falls back to the manual window: manual.
-// With no credit at all the witness stands at the printed cost: printed.
+// plan. With none announced beside a credit the cast is the cost_changed
+// fallback (manual: the manual window) only when the unannounced credit lowered
+// the composed price; when the credited price still equals the payment's
+// composed cost (the statics already zeroed the generic the credit covered,
+// CR 601.2f after CR 702.126a) gorge's paymentPlanCheck re-derives the plan's
+// cost from the announcements, matches it, and keeps the offer's witness, so
+// the planned payment runs with the credit's artifacts held back: plan. With no
+// credit at all the witness stands at the printed cost: printed.
 func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed bool) {
 	if k.gen == nil || !k.gen.anyConvoke || !s.bld().impPlan || e.kind != seSpell ||
 		e.flags&(sfMayPlay|sfFlashback|sfKicked) != 0 || !s.tapPaysEntry(k, e) ||
-		!s.improviseLifted(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand) {
+		!s.improviseLiftedFrom(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand, plainCastZone(s.bld().origin)) {
 		return false, false, false
 	}
 	if s.convokePickCount() > 0 {
 		return true, false, false
 	}
 	if s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic).any() {
-		return false, true, false
+		if DebugPlannerFlexCensus || s.improviseCreditPrice(k, e, true) != s.improviseCreditPrice(k, e, false) {
+			return false, true, false
+		}
+		return true, false, false
 	}
 	return false, false, true
+}
+
+// improviseCreditPrice is the offer's credited price composed the way
+// plannedCastCostOf composes it (the credit before the statics, CR 702.126a
+// then 601.2f): the printed cost, then the greedy credit when credit is set,
+// then the cost statics. The offer's cast is plain (cast.go's impPlan arm: a
+// hand cast, no X, no may-play, flashback or alternate shape), so nothing else
+// folds here; convokeCreditFrom reads the offer's hand origin whatever zone the
+// build has moved the card to.
+func (s *State) improviseCreditPrice(k *prep, e *stackEntry, credit bool) kop.ManaCost {
+	cost := k.cards[e.card].cost
+	if credit {
+		cost = s.convokeCreditFrom(k, SeatIx(e.ctrl), e.card, e.obj, true, cost)
+	}
+	if s.statM.any() || k.gen != nil {
+		cost = s.featCost(k, SeatIx(e.ctrl), e.card, e.obj, cost)
+	}
+	return cost
 }
 
 // improvisePlanPay pays an Improvise cast gorge's planner priced, with the
@@ -115,7 +148,8 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	si := SeatIx(e.ctrl)
 	ctrl := s.ctrlM[si]
 	hold := hidden
-	if g := s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic); g.count() == hidden.count() {
+	skipPlan := false
+	if g := s.improviseReserved(k, e.ctrl, k.cards[e.card].cost.Generic); g.count() == hidden.count() || (!DebugPlannerFlexCensus && hidden.count() == 0) {
 		c := *cost
 		t := s.fork()
 		t.ctrlM[si] = ctrl.andNot(g)
@@ -126,19 +160,27 @@ func (s *State) improvisePlanPay(k *prep, e *stackEntry, cost *kop.ManaCost, any
 			}
 		}
 		s.unfork()
-		if !conflict {
+		if conflict && hidden.count() == 0 && !DebugPlannerFlexCensus {
+			// The plan armed at the offer (priced with the greedy credit's
+			// artifacts held back) replans to nothing, so the payment falls
+			// back the way gorge's cost_changed does -- the manual CR 601.2g
+			// window (manaStep).
+			skipPlan = true
+		} else if !conflict {
 			hold = g
 		}
 	}
-	s.ctrlM[si] = ctrl.andNot(hold)
-	paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
-	// Restore the artifacts this payment withheld, not the whole saved mask: the
-	// plan behind tapForTry may have sacrificed an Eldrazi Scion (or another
-	// sacrifice source) to fund the cost, and removePerm cleared its control bit
-	// while its occupancy bit went with it. Putting the old mask back would leave
-	// the sacrificed source in ctrlM with no occupancy, and attackerOptions reads
-	// ctrlM without s.occ: a stale token would be offered as an attacker.
-	s.ctrlM[si] = s.ctrlM[si].or(hold.and(s.occ))
+	if !skipPlan {
+		s.ctrlM[si] = ctrl.andNot(hold)
+		paid = s.tapForTry(k, e.ctrl, cost, int(e.x), e.obj, anyColor)
+		// Restore the artifacts this payment withheld, not the whole saved mask: the
+		// plan behind tapForTry may have sacrificed an Eldrazi Scion (or another
+		// sacrifice source) to fund the cost, and removePerm cleared its control bit
+		// while its occupancy bit went with it. Putting the old mask back would leave
+		// the sacrificed source in ctrlM with no occupancy, and attackerOptions reads
+		// ctrlM without s.occ: a stale token would be offered as an attacker.
+		s.ctrlM[si] = s.ctrlM[si].or(hold.and(s.occ))
+	}
 	if paid {
 		return false, true
 	}
@@ -185,3 +227,28 @@ func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyCo
 	}
 	return false, false
 }
+
+// plainCastZone reports whether a cast from zone z is a plain cast to gorge's
+// planner (scope ""): from a hand or, a commander, the command zone (CR 903.8).
+func plainCastZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
+
+// improviseWithheld is the credited artifacts the plan leaves out of its
+// sources: gorge's planner drops only a tapped source's tapping alternatives
+// (pay.planPaymentCostResolved's withhold), so a sacrifice-only mana artifact
+// (a Gold token) the credit also taps still pays its pip (CR 605.3a mana
+// abilities first, CR 702.126a improvise after).
+func (s *State) improviseWithheld(k *prep, res slotMask) slotMask {
+	if !k.sacOnlyMana || DebugImproviseWithholdAll {
+		return res
+	}
+	for m := res; m.any(); m = m.rest() {
+		if sl := m.first(); s.manaPCAt(k, sl).manaSacOnly {
+			res = res.without(sl)
+		}
+	}
+	return res
+}
+
+// DebugImproviseWithholdAll withholds every credited artifact from the plan's
+// sources, the old behaviour; the lockstep mutation test only.
+var DebugImproviseWithholdAll bool

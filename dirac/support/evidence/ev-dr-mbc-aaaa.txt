@@ -19,6 +19,7 @@ Blastfire Bolt
 Bloodthirsty Aerialist
 Bone Shards
 Boots of Speed
+Brine Elemental
 Brute Force
 Call the Bloodline
 Carrier Thrall
@@ -95,9 +96,11 @@ Serum Powder
 Shifting Sliver
 Silverglade Elemental
 Slurrk, All-Ingesting
+Smiting Helix
 Snarling Gorehound
 Solar Blast
 Spined Megalodon
+Stonehorn Dignitary
 Stormkeld Vanguard
 Sunlance
 Sunscorch Regent

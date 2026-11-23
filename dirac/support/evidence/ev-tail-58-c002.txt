@@ -5,6 +5,7 @@ Abu Ja'far
 Accumulated Knowledge
 Acolyte of Affliction
 Aerie Ouphes
+Ajani, the Greathearted
 Alesha's Vanguard
 Amok
 Animist's Awakening
@@ -22,12 +23,15 @@ Blitz of the Thunder-Raptor
 Bloodfire Infusion
 Bogardan Firefiend
 Boggart Forager
+Bonded Construct
+Bramblesnap
 Break of Day
 Briarhorn
 Bright Reprisal
 Brood Weaver
 Capashen Unicorn
 Casting of Bones
+Cat Warriors
 Ceremonious Rejection
 Chimeric Mass
 Cinder Pyromancer
@@ -42,6 +46,7 @@ Daru Warchief
 Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit
+Deluge
 Disciple of Law
 Disempower
 Dramatic Finale
@@ -56,11 +61,14 @@ Early Frost
 Eccentric Farmer
 Elgaud Inquisitor
 Elite Arrester
+Enraged Giant
+Essence Flare
 Fantastic Elasticity
 Fateful Handoff
 Festival Crasher
 Fire at Will
 Fists of Ironwood
+Flame Rift
 Flamewright
 Forest
 From Beyond
@@ -68,6 +76,8 @@ Funeral Pyre
 Funeral Rites
 Gaea's Avenger
 Gate Hound
+Gate of the Black Dragon
+General's Enforcer
 Geyserfield Stalker
 Ghirapur Aether Grid
 Giant Dustwasp
@@ -77,9 +87,11 @@ Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
 Graf Reaver
+Gravecrawler
 Gravedig
 Grim Wanderer
 Grismold, the Dreadsower
+Ground Rift
 Guardian of Pilgrims
 Guma
 Hamato Ninpō
@@ -88,6 +100,7 @@ Hellkite Punisher
 Hold the Gates
 Hook Swords
 Hound of the Farbogs
+Hunger of the Nim
 Hunted Horror
 Icingdeath, Frost Tyrant
 Incite
@@ -96,6 +109,7 @@ Inquisitor Exarch
 Inspired Insurgent
 Iron Will
 Island
+Ivory Tower
 Jarl of the Forsaken
 Journey to Oblivion
 Kamber, the Plunderer
@@ -107,6 +121,7 @@ Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
 Lagonna-Band Trailblazer
+Lawless Broker
 Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Talons
@@ -116,6 +131,7 @@ Mandible Justiciar
 Mardu Warshrieker
 Mass Diminish
 Maul of the Skyclaves
+Mesmeric Fiend
 Might of Murasa
 Mire Triton
 Mishra's Research Desk
@@ -124,6 +140,7 @@ Mountain
 Murder of Crows
 Natural Obsolescence
 Nether Void
+Nightshade Stinger
 Nissa's Judgment
 No Mercy
 Nullhide Ferox
@@ -142,6 +159,7 @@ Plague Witch
 Plains
 Power Plant Worker
 Prismari Pianist
+Prognostic Sphinx
 Prophet of Distortion
 Pyrostatic Pillar
 Quarrel's End
@@ -165,16 +183,20 @@ Ruinous Intrusion
 Runechanter's Pike
 Rush of Battle
 Sanctuary Cat
+Sanguinary Priest
 Screaming Seahawk
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
+Shambling Vent
+Shard Volley
 Shriekdiver
 Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
 Sinew Sliver
+Skittering Horror
 Skyhunter Cub
 Slith Ascendant
 Sparkmage's Gambit
@@ -182,40 +204,52 @@ Spike Tiller
 Spirit Loop
 Spring-Leaf Avenger
 Squee's Toy
+Staff of Titania
 Stag Beetle
 Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
 Sudden Strength
+Summit Prowler
 Sunder
 Surrak and Goreclaw
 Swamp
 Tainted Strike
+Telepathy
 Tempered Veteran
 Temple Thief
 Tendershoot Dryad
+Terminal Moraine
 Thopter Architect
 Thrull Parasite
 Thunder Spirit
 Thundersong Trumpeter
+Ticked Off
+Tomb Fortress
 Torens, Fist of the Angels
+Touch of Death
 Toymaker
 Traveling Philosopher
 Traverse the Outlands
+Treacherous Blessing
 Tuinvale Treefolk
 Tuktuk Grunts
+Turbulent Springs
+Unbender Tine
 Urbis Protector
 Utter End
 Vebulid
 Vela the Night-Clad
 Vigilance
 Vinelasher Kudzu
+Visions of Brutality
 Vivify
 Vodalian Arcanist
 Voltaic Construct
 Vryn Wingmare
 Wailing Ghoul
 Welkin Guide
+Whipcorder
 Wishcoin Crab
 Witness of Tomorrows
 Woodland Patrol

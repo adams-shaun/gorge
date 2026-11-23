@@ -48,6 +48,7 @@ Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
 Grab the Reins
+Halimar Wavewatch
 Hollow Marauder
 Hopeless Nightmare
 Illusory Ambusher
@@ -105,6 +106,7 @@ Think Twice
 Thwart
 Tolabow, Loch Rascal
 Touch the Spirit Realm
+Treasonous Ogre
 Treasure Dredger
 Undo
 Vile Requiem

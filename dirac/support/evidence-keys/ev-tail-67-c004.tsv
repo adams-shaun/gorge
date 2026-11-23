@@ -17,6 +17,7 @@ Caldera Pyremaw	dcc4cc669da4ed08	22	1/1		1/1
 Caravan Escort	4ea3d5efd4fb1f1d	9	1/1		0/1	ix:resp
 Case the Joint	fe67e10ff42b98c6	87	0/0		2/2	
 Castle	bdd747c6541de8c3	10	0/0		0/0	
+Clackbridge Troll	212b01c55c3d7779	3	2/2		1/1	
 Claim the Firstborn	1d12a6c3b8573e83	28	0/0		2/2	
 Cling to Dust	eff2a23663600334	12	0/0		2/4	cast/alt:escaped,ix:resp
 Clutch of Undeath	892157b3eb04fe49	42	0/0		2/2	
@@ -46,10 +47,12 @@ Galvanic Iteration	ada8cf8d366b9ccb	8	0/0		4/4
 Garenbrig Squire	afed862835858fb6	47	1/1		1/1	
 Gnome-Made Engine	e17a2e3ef946bd26	4	1/1		1/1	
 Goblin Glider	d3adead6b92a74c8	3	0/0		0/0	
+Goblin Racketeer	a2883d47736c3cbe	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Gray Merchant of Asphodel	6acf3c57d9c1a96c	32	1/1		1/1	
 Helitrooper	7df52cfb92bded47	6	1/1		0/1	ix:resp
 Heroes of the Revel	18783c91623faa6b	3	2/2		0/1	ix:resp
 Heroes' Podium	1eba0b74102dcf0e	32	1/1		1/1	
+Implement of Ferocity	8864bda92317400c	4	2/2		1/1	
 Independent Troops	472515492a089d9c	4	0/0		0/0	
 Infernal Pet	8d552c35bb98a29f	32	1/1		1/1	
 Infested Fleshcutter	f04b5704bad4ea4a	7	2/2		0/1	ix:resp
@@ -59,6 +62,7 @@ Knight of the Keep	1f491da90b7a6d1d	18	0/0		0/0
 Kor Castigator	465c9bb276e94804	9	0/0		0/0	
 Lucas, the Sharpshooter	a721a5a1ac39c102	8	1/1		0/1	ix:resp
 Mana Matrix	fef226569f8c91ea	6	0/0		0/0	
+Might Weaver	84cf9afe434c065e	6	1/1		1/1	
 Mirror of Galadriel	b858a50345ecdf42	25	1/1		1/1	
 Moonblade Shinobi	6616d6398e792634	12	2/2		1/1	
 Mourning	6af883be95647e15	131	1/1		2/2	
@@ -101,8 +105,10 @@ Titan Hunter	7c8ac31bf43be3b7	14	2/2		1/1
 Transcendent Master	bc2e8409a1409c12	34	1/1		1/1	
 Trigon of Rage	e338cc69305a890d	44	2/2		1/1	
 Unwilling Ingredient	f5972371134e7e6d	88	1/1		1/1	
+Vampire Lacerator	de252312e424672b	4	1/1		0/1	ix:resp
 Viashino Fangtail	ab80a8bfa58c8a24	37	1/1		1/1	
 Voice of the Provinces	d6bcac1da8dec4f7	3	1/1		0/1	ix:resp
+Voldaren Stinger	01731e8150e7e76d	6	1/1		1/1	
 Well-Laid Plans	ec50d8aae541990f	5	0/0		0/0	
 Whack	320835820407e3b6	7	0/0		2/2	
 Windgrace Acolyte	58988c529a1349bf	7	1/1		1/1	

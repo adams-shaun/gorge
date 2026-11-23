@@ -207,6 +207,13 @@ var expandedHeads = []string{
 	// Epic (CR 702.50a): the rest-of-game no-spells static and the upkeep
 	// copy trigger (engine/cards/kw_epic.go). Added after the split.
 	"Epic",
+	// Ripple (CR 702.60a): a SpellCast self-trigger on the stack whose body is
+	// DB$ Ripple (engine/cards/kw_ripple.go). Added after the split.
+	"Ripple",
+	// Living metal (CR 702.161a): the layer-4 artifact-creature static gated
+	// to the controller's turn (engine/cards/kw_livingmetal.go). Added after
+	// the split.
+	"Living metal",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

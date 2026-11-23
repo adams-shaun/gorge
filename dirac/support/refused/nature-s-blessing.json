@@ -1,0 +1,17 @@
+{
+  "card": "Nature's Blessing",
+  "class": "lockstep",
+  "why": "gorge forms the band an accepted CR 702.22c declaration names (Nature's Blessing grants banding for good); the kernel poses the ask and mirrors the decline but does not model band formation (CR 702.22d-k), so an accepted candidate stalls it at StallBand (dirac/combat_band.go), tail-20-c000 pair 12 decision 561",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 247360081563819643,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "natures_blessing_band_formation_unmodelled"
+  },
+  "evidence": [
+    "ev-tail-20-c000"
+  ]
+}

@@ -56,14 +56,24 @@ func TestChangeZoneParamRefusals(t *testing.T) {
 			kdefWant(t, got, c.want)
 		})
 	}
+	// an "up to one" target admits zero targets (CR 115.10), and a declined
+	// target moves nothing in either engine, so Mandatory$ / Attacking$ beside
+	// one lower (Koya, Death from Above; The Neutrinos)
 	t.Run("Mandatory with an optional target", func(t *testing.T) {
-		got, _ := czLowered(t, "SP$ ChangeZone | Cost$ B | ValidTgts$ Creature.Other | TargetMin$ 0 | TargetMax$ 1 | Mandatory$ True | Origin$ Battlefield | Destination$ Exile")
-		kdefWant(t, got, "Mandatory$ with an optional target")
+		got, ops := czLowered(t, "SP$ ChangeZone | Cost$ B | ValidTgts$ Creature.Other | TargetMin$ 0 | TargetMax$ 1 | Mandatory$ True | Origin$ Battlefield | Destination$ Exile")
+		if len(got) != 0 {
+			t.Fatalf("refused: %q", got)
+		}
+		if !strings.Contains(strings.Join(ops, " "), "Exile:") {
+			t.Errorf("ops %q lack the exile move", ops)
+		}
 	})
 	t.Run("Attacking beside an optional target", func(t *testing.T) {
 		got := kdefRefusals(t, "SP$ ChangeZone | Cost$ B | ValidTgts$ Creature.YouOwn | TargetMin$ 0 | TargetMax$ 1 | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True",
 			"DB$ ChangeZone | Defined$ Remembered | Origin$ All | Destination$ Battlefield | Tapped$ True | Attacking$ True")
-		kdefWant(t, got, "Attacking$ in a chain with an optional target")
+		if len(got) != 0 {
+			t.Fatalf("refused: %q", got)
+		}
 	})
 	// the lifted shapes lower, carrying the new flags
 	for _, c := range []struct{ name, root, want string }{

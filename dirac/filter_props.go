@@ -270,6 +270,13 @@ func (s *State) wordCard2(k *prep, fl *kop.Filter, c CardID, o Obj, fd bool, ctr
 		}
 		return o != NoObj && s.enteredFrom(o, from) != DebugWord7Flip
 	}
+	if fl.PredN&0xff == kop.W7IsCommander {
+		// a card off the battlefield is a commander when its object is its
+		// owner's (CR 903.3: the designation stays with the card in every
+		// zone; gorge reads it on the object): Command Beacon's pick over the
+		// command zone (zone_cmdpick.go). A bare CardID is none.
+		return o != NoObj && s.cfg&cfgCommander != 0 && s.cmdSlot(s.objs[o].owner(), o) >= 0
+	}
 	if fl.PredN&0xff == kop.W7NoNameTwinGrave {
 		// off the battlefield the card has no other self to skip; in the
 		// evaluating controller's graveyard it shares a name with itself
@@ -444,9 +451,30 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 
 // snowWordPerm is W7Snow and W7NonSnow on a battlefield permanent (false for
 // any other sub-kind): the printed Snow supertype; a face-down permanent has
-// only its face-down type words (CR 708.2) and is never snow.
+// only its face-down type words (CR 708.2) and is never snow. It is also the
+// tail of wordPerm3's sub-kinds, so W7WithSkulk (gorge withSkulk as withInfect:
+// the printed keyword or a granted one, kw_kwmark.go hasSkulkPerm) is read here.
 func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	n := fl.PredN & 0xff
+	switch n {
+	case kop.W7WithSkulk:
+		return s.hasSkulkPerm(k, sl)
+	case kop.W7HasLandwalk:
+		return s.hasLandwalkSpec(k, sl, kop.FilterID(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtQuality:
+		return s.hasProtQuality(k, sl, kop.FilterID(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtColor:
+		return s.hasProtColor(k, sl, kop.ColorMask(uint16(fl.PredV.N))) // filter_sharedkw.go
+	case kop.W7HasProtEachColor:
+		return s.hasProtEachColor(k, sl) // filter_sharedkw.go
+	}
+	if n == kop.W7WithDevoid {
+		// gorge withDevoid on a battlefield object: the printed keyword, none
+		// while face down or after a lose-all-abilities effect
+		c := s.cardAt(sl)
+		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.faceDown(k, sl) &&
+			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false
 	}
@@ -475,6 +503,10 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0
 	case kop.W7WithInfect:
 		ans = c != kop.NoCard && k.t.Cards[c].Infect
+	case kop.W7WithDevoid:
+		ans = c != kop.NoCard && k.t.Cards[c].Devoid
+	case kop.W7WithSkulk:
+		ans = c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0
 	case kop.W7Snow:
 		ans = (c != kop.NoCard && k.t.Cards[c].Snow && !fd) != DebugSnowWordFlip
 	case kop.W7NonSnow:
@@ -635,8 +667,10 @@ var DebugSharesCrTrigObjFlip bool
 // it is attached to a battlefield permanent of the class bits names (a
 // creature, a land, else any) that meets the qualifier: AttToOther, not the
 // source slot src (no source excludes nothing, as gorge's Other with no
-// source); AttToYouCtrl, controlled by ctrl (gorge attachedToArg, the
-// qualifier read against the bearer).
+// source); AttToYouCtrl, controlled by ctrl; AttToSrcBearer, the one the
+// filter's own source is attached to (gorge attachedBy, the EnchantedBy and
+// EquippedBy qualifiers' one body — gorge attachedToArg, the qualifier read
+// against the bearer).
 func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slot) bool {
 	h := s.perms[sl].attached
 	if h == NoSlot || !s.occ.has(h) {
@@ -647,6 +681,17 @@ func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slo
 	}
 	if bits&kop.AttToOther != 0 && h == src || bits&kop.AttToYouCtrl != 0 && s.perms[h].ctrl != ctrl {
 		return false
+	}
+	if bits&kop.AttToSrcBearer != 0 {
+		// gorge attachedBy: s.AttachedTo names the bearer, both on the
+		// battlefield; a source with no attachment (or none at all) matches
+		// nothing
+		if src == NoSlot || !s.occ.has(src) {
+			return false
+		}
+		if sh := s.perms[src].attached; sh == NoSlot || sh != h {
+			return false
+		}
 	}
 	return true
 }

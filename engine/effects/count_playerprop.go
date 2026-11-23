@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"slices"
+
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -38,6 +40,26 @@ func playerPropGroupMembers(g *state.Game, c *Ctx, group cov3PlayerGroupCode) []
 		if c.TriggerPlayer.IsPlayer && c.TriggerPlayer.Player >= 0 && int(c.TriggerPlayer.Player) < len(g.Players) {
 			return []state.PlayerID{c.TriggerPlayer.Player}
 		}
+	case cov3PlayerGroupPlayerCountDefinedTriggeredSourceController:
+		if p, ok := TriggeredSourceController(g, c.TriggerContext, c.Remembered); ok && p >= 0 && int(p) < len(g.Players) {
+			return []state.PlayerID{p}
+		}
+	case cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner:
+		// The triggering card's immutable owner (CR 108.3), never the source's.
+		if o := g.Obj(c.TriggerCard); o != nil && o.Owner >= 0 && int(o.Owner) < len(g.Players) {
+			return []state.PlayerID{o.Owner}
+		}
+	case cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou:
+		// The attacked player and the resolving controller: one member when
+		// they are the same seat.
+		var out []state.PlayerID
+		if t := c.AttackedTarget; t.IsPlayer && t.Player >= 0 && int(t.Player) < len(g.Players) {
+			out = append(out, t.Player)
+		}
+		if c.Controller >= 0 && int(c.Controller) < len(g.Players) && !slices.Contains(out, c.Controller) {
+			out = append(out, c.Controller)
+		}
+		return out
 	}
 	return nil
 }

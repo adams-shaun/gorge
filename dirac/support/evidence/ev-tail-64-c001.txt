@@ -203,6 +203,7 @@ Invasion of Dominaria
 Invasion of Tolvada
 Ironclad Krovod
 Ironclaw Orcs
+Ironhoof Boar
 Island
 Ivora, Insatiable Heir
 Ivy Elemental
@@ -227,6 +228,7 @@ Krenko's Enforcer
 Kuldotha Rebirth
 Kumena's Awakening
 Kyoki, Sanity's Eclipse
+Labyrinth Raptor
 Lapse of Certainty
 Lash Out
 Learn from the Past
@@ -235,6 +237,7 @@ Legions to Ashes
 Leyline Prowler
 Life and Limb
 Lightning Blast
+Lightning Skelemental
 Lightning-Rig Crew
 Liliana's Standard Bearer
 Liliana, Death Wielder
@@ -312,6 +315,7 @@ Rabble-Rouser
 Radha's Firebrand
 Radiant, Archangel
 Rainbow Crow
+Rakdos Ringleader
 Ral's Reinforcements
 Ramosian Commander
 Rathi Assassin
@@ -393,6 +397,7 @@ Syndicate Enforcer
 T-45 Power Armor
 Tainted Pact
 Tainted Peak
+Tale of Tinúviel
 Temperamental Oozewagg
 Tenacity
 Terravore
@@ -426,6 +431,7 @@ Tukatongue Thallid
 Uncontrolled Infestation
 Unruly Krasis
 Urborg Syphon-Mage
+Urza, Lord High Artificer
 Valkyrior Skyrider
 Vampiric Tutor
 Vat Emergence

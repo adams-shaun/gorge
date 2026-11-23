@@ -24,8 +24,11 @@ import (
 const (
 	moduleRootFromOracle = "../.."
 
-	refusedPairsMax = 200              // pairs with the card dealt in, once its repro plays clean
-	refusedEntryCap = 90 * time.Second // per entry: 200 pairs fit on a box at load 60
+	// refusedPairsMax bounds the search once a repro plays clean: pairs with the card dealt in. The search is bounded
+	// by pairs only, never by time: 11-22 batch #3458 failed Smiting Helix "inconclusive: 136 pairs of tail-45 in
+	// 1m30s" on a loaded runner, while the same tree found pair 1228 diverging in 33 s on an idle one. A pair budget
+	// gives the same verdict on every box; load only makes it slower.
+	refusedPairsMax = 200
 	refusedGameCap  = 10 * time.Second // a game past this is a hang, which proves nothing
 	// refusedRecentSources is kfuzz's bad-game line: the sources the refusal loop may blame.
 	refusedRecentSources = 8
@@ -225,7 +228,13 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 			continue
 		}
 		t.Run(e.Card, func(t *testing.T) {
-			t.Parallel()
+			if landGrantRefusedCards[e.Card] {
+				if landGrantReplay(t) {
+					return // its pair is refused at deal now: replayed alone with that refusal off
+				}
+			} else {
+				t.Parallel()
+			}
 			checkRefusedEntry(t, e)
 		})
 	}
@@ -261,12 +270,8 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 	if r.diverges(PairingAt(r.pool, e.Repro.Pair, r.seed)) {
 		return
 	}
-	deadline := time.Now().Add(refusedEntryCap)
 	played := 0
 	for pair := 0; played < refusedPairsMax && pair < refusedPairsMax*100; pair++ {
-		if time.Now().After(deadline) {
-			t.Fatalf("inconclusive: %d pairs of %s in %s without a divergence implicating %s", played, e.Repro.Pool, refusedEntryCap, e.Card)
-		}
 		p := PairingAt(r.pool, pair, r.seed)
 		if !r.holdsCard(p) {
 			continue

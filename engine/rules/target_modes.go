@@ -119,13 +119,25 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		// own ask in turn. Seed the binding storage -- the cast's scratch or
 		// the triggered object's map, discriminated exactly as handleTarget's
 		// answer arm does -- so a skipped optional mode's empty group is
-		// recorded where resolution reads it.
+		// recorded where resolution reads it. askCharmSeqSlot persists the
+		// accumulated prefix before every ask it poses (the skip nils ride
+		// with it), so a later answer's positional read is aligned; this tail
+		// store covers the ask-free announcement (every mode skipped) only --
+		// after an ask the flow is no longer this call's to store for: inside
+		// the resolution kernel a served ask recurses through charmSeqAnswer
+		// to the last slot, whose answer finalizes the announcement (and, for
+		// a cast, pays and recycles e.cast), so an unconditional store here
+		// would run after that with a stale (or empty) prefix and clobber the
+		// committed groups.
 		var groups [][]state.Target
-		groups, asked, infeasible = e.askCharmSeqSlot(p, source, svars, root, slots, groups)
+		var next [][]state.Target
+		next, asked, infeasible = e.askCharmSeqSlot(p, source, svars, root, slots, groups)
 		if infeasible {
 			return false, true
 		}
-		e.storeCharmSeqGroups(source, groups)
+		if !asked {
+			e.storeCharmSeqGroups(source, next)
+		}
 		return asked, false
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: len(all), Max: len(all),
@@ -245,6 +257,12 @@ func (e *Engine) askCharmSeqSlot(p state.PlayerID, source state.ObjID, svars map
 				Kind: candidate.kind, Label: e.targetOptionLabel(candidate), Obj: candidate.obj,
 				Player: candidate.player, Controller: e.candidateControllerSeat(candidate)})
 		}
+		// Persist the accumulated prefix (the skip nils ride with it) BEFORE
+		// the ask: the answer's charmSeqAnswer reads the storage positionally
+		// (charmSeqGroups), and inside the resolution kernel the served ask
+		// recurses through it before this frame ever resumes, so the prefix
+		// must already be in place when the handler runs.
+		e.storeCharmSeqGroups(source, out)
 		e.ask(d)
 		return out, true, false
 	}
@@ -280,8 +298,12 @@ func (e *Engine) storeCharmSeqGroups(source state.ObjID, groups [][]state.Target
 
 // charmSeqSVars resolves the SVars map and root Charm SA for a sequential ask's
 // source object, so a re-asked slot resolves its mode body the same way the
-// first pass did: a triggered ability reads its source permanent's face, a
-// spell its own declared face.
+// first pass did: a triggered ability reads the face that OWNS the trigger --
+// the one home, triggerModeCtx, exactly as the placement ask and the
+// resolution recheck do -- never the source's active face alone, which on a
+// copy is the copier's (whose SVars lack the mode bodies, so every re-asked
+// slot resolves to nothing; CR 603.3d, 707.2, 113.7a). A spell reads its own
+// declared face.
 func (e *Engine) charmSeqSVars(source state.ObjID) (map[string]string, *cards.SA, bool) {
 	o := e.G.Obj(source)
 	if o == nil {
@@ -292,7 +314,8 @@ func (e *Engine) charmSeqSVars(source state.ObjID) (map[string]string, *cards.SA
 		if src == nil || src.Face() == nil {
 			return nil, nil, false
 		}
-		return src.Face().SVars, o.Ability, true
+		_, mctx := e.triggerModeCtx(o.Controller, o.ID, o.Ability)
+		return mctx.SVars, o.Ability, true
 	}
 	f := o.Face()
 	if f == nil {
@@ -341,10 +364,19 @@ func (e *Engine) charmSeqAnswer(d *decision.Decision, in decision.Intent, chosen
 		// arms authoritative if it ever does.
 		return
 	}
-	e.storeCharmSeqGroups(d.Source, next)
 	if asked {
+		// This level posed the next ask. Inside the resolution kernel the
+		// served answer recurses to the next charmSeqAnswer, so by the time
+		// this frame resumes the announcement may already be finalized (the
+		// last slot's answer stored the full groups and paid the cast) --
+		// storing this level's stale prefix now would clobber it with a
+		// shorter list, down to the empty one the outermost ask stores. The
+		// completed groups are already recorded: the pre-ask store in
+		// askCharmSeqSlot carried the prefix in, and this level's cast-arm
+		// (or triggered) store above holds it while the ask is open.
 		return
 	}
+	e.storeCharmSeqGroups(d.Source, next)
 	if e.cast != nil {
 		e.payCast()
 		return

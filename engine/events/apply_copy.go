@@ -176,9 +176,11 @@ func foldStackCopy(g *state.Game, e *Event) {
 	// A copy of a spell is a copy of the card as it stands, perpetual
 	// intensity included: "this spell's intensity" reads the same on both.
 	intensity := src.Intensity
-	// Teamwork is a paid additional cost, like Conspire: copies carry the
-	// cost-conditioned bit AND the boolean its count/filter readers inspect.
-	teamworkPaid := src.TeamworkPaid
+	// Teamwork's "cast using teamwork" (CR 702.194b) is whether the player who
+	// cast the spell declared the intention as they cast it; a copy is never
+	// cast (CR 707.10), so it neither inherits the paid boolean nor the flag.
+	// This is dirac's copySpell reading too (dirac/kw_teamwork.go).
+	castFlags &^= state.FlagTeamworkPaid
 	// CR 708.4: a stack COPY of a face-down (morph-family) spell stays
 	// face down. The original's stack marker was folded by the MoveZone
 	// branch above from the face-down entry Counter, but a copy is minted
@@ -255,7 +257,6 @@ func foldStackCopy(g *state.Game, e *Event) {
 	if castFlags&state.FlagPromisedGift != 0 {
 		o.GiftPromisedTo = giftTo
 	}
-	o.TeamworkPaid = teamworkPaid
 	// A copy was never cast (CR 707.10), so it carries no rider grants:
 	// the Spell.MayPlaySource/AddsCounters provenance is a statement about
 	// the original's cast, and FlagAddsCounters is stripped from castFlags

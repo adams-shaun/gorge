@@ -569,3 +569,24 @@ var requirementDefenderCodes = state.NewStrCodes(
 	state.StrEntry[requirementDefenderCode]{Key: "Remembered", Val: requirementDefenderRemembered},
 	state.StrEntry[requirementDefenderCode]{Key: "Remembered.NonActive", Val: requirementDefenderRememberedNonActive},
 )
+
+// AttackVigilance reports whether an Effect-registered AttackVigilance
+// restriction (Johan: "attacking doesn't cause creatures you control to tap
+// this combat if Johan is untapped", CR 508.1f) keeps attacker id untapped as
+// it is declared. ValidCard$ scopes the attacker; IsPresent$ is evaluated on
+// the Effect's source (Card.EffectSource+untapped), so it lapses the moment
+// the source taps or leaves.
+func AttackVigilance(b Board, id state.ObjID) bool {
+	for i, ces := 0, b.Active(); i < len(ces); i++ {
+		ce := &ces[i]
+		if ce.Restriction != effects.ModeAttackVigilance || !b.RestrictionApplies(ce, id) {
+			continue
+		}
+		if spec := ce.RestrictParam(cards.PKIsPresent); spec != "" &&
+			!b.MatchesSpec(spec, ce.Source, ce.Source, ce.Controller, nil, nil, false) {
+			continue
+		}
+		return true
+	}
+	return false
+}

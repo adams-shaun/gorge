@@ -100,6 +100,7 @@ func TestCastProfileDefaultMatchesBotOverWholeGame(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	names, decks := testutil.SampleDecks(t, 4)
 	const seed = 9
 	profile := newDefaultProfileBot(t)
@@ -139,6 +140,7 @@ func TestCastProfileTunedProfileChangesPlay(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow search/self-play test: the Mergify batch runs it (ci-fast runs -short)")
 	}
+	t.Parallel()
 	names, decks := testutil.SampleDecks(t, 4)
 	const seed = 9
 	botRun := playWholeGame(t, seed, names, decks, NewBot, true)

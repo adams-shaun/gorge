@@ -1269,6 +1269,23 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 			if units <= 0 {
 				continue
 			}
+			if pay.PaymentPlanReflectedShape(a.Ma) {
+				// The census lists a reflected ability (Fellwar Stone, Exotic
+				// Orchard) as its {C} stand-in. Resolved unpinned with two or
+				// more colours on offer it poses a colour ask the window's
+				// next tap ask displaces, so the tap would add nothing. Pin
+				// the first reflected colour (CR 605.3a, 106.7, 508.1h); when
+				// the reflection names none, the ability makes no mana and is
+				// not a source.
+				ra, ok := paymentPlanReflectedAlt(e, p, u.ID, a.Ma, a.Amt, false)
+				if !ok {
+					continue
+				}
+				col := oneColourProduced(ra.Counts)
+				pc, _ := cards.ProducedCounts(col)
+				out = append(out, attackManaSource{id: u.ID, ma: pay.WithProduced(a.Ma, a.Ma, col), original: a.Ma, gained: pay.GainedManaRefFor(asPayer(e), p, u.ID, a.Ma), units: a.Amt, counts: pc, amt: a.Amt, life: a.Life, prod: manaUnitsLabel(pc, a.Amt)})
+				continue
+			}
 			out = append(out, attackManaSource{id: u.ID, ma: a.Ma, original: a.Ma, gained: pay.GainedManaRefFor(asPayer(e), p, u.ID, a.Ma), units: units, counts: a.Counts, amt: a.Amt, life: a.Life, prod: manaUnitsLabel(a.Counts, a.Amt)})
 		}
 	}

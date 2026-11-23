@@ -20,7 +20,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // incubate, empower, endure and recruit mint it with their riders, the copy
 // sites mint it as a plain untapped token, copyTokenRewrite, whatever riders
 // the copy instruction carries) but cannot suspend, so a creation contested
-// there stalls (StallTokRewrite). A Role
+// there stalls (StallTokRewrite). The copy sites pose no ask in gorge (matches
+// apply in scan order), so rewriters of one card alone do not stall there. A Role
 // mint (TokAttach) stalls the same way: gorge's applyTokenReplacementToPlan
 // turns it into a plain script mint of the rewriter's card (the Illusion is no
 // Aura, so auraTokenWithheld withholds nothing), which the kernel's attach path
@@ -71,6 +72,7 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 		return tok, n, false, true
 	}
 	card, cands, rew, adds := tok, 0, 0, 0
+	rewDiffer := false // two rewriters name different cards
 	mult := n
 	for m := s.tokSrcM(p); m.any(); m = m.rest() {
 		b := m.first()
@@ -89,6 +91,9 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 					continue
 				}
 				cands++
+				if rew > 0 && card != CardID(a.Repl.C) {
+					rewDiffer = true
+				}
 				rew++
 				card = CardID(a.Repl.C)
 			case kop.ReplCopyFirstToken:
@@ -130,7 +135,10 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 		s.capFull(StallTokRewrite)
 		return tok, 0, false, false
 	}
-	if rew > 0 && cands > 1 {
+	// a copy proposal does not pose the order ask: gorge applies the matches
+	// in scan order (continueCopyTokenProposal), so rewriters of one card
+	// alone leave that card whatever the order (CR 614.1a)
+	if rew > 0 && cands > 1 && !(copySite && cands == rew && !rewDiffer) {
 		s.capFull(StallTokRewrite)
 		return tok, 0, false, false
 	}

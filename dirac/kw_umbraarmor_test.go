@@ -93,6 +93,7 @@ func TestUmbraArmorReplacesDestroy(t *testing.T) {
 	snake2 := sc.wear(id["Snake Umbra"], a)
 	_, tough := sc.s.pt(sc.k, sc.slot(a))
 	sc.s.perms[sc.slot(a)].damage = uint8(tough)
+	sc.s.touchSl(sc.slot(a)) // a write the engine marks (marks.go): sba's clean-scan key reads the mark
 	sc.s.sba(sc.k)
 	if !sc.onBF(a) || !sc.inGrave(snake2) || sc.s.perms[sc.slot(a)].damage != 0 {
 		t.Fatalf("lethal damage: giant on battlefield %v, umbra in graveyard %v, damage %d; want true, true, 0", sc.onBF(a), sc.inGrave(snake2), sc.s.perms[sc.slot(a)].damage)
@@ -102,6 +103,7 @@ func TestUmbraArmorReplacesDestroy(t *testing.T) {
 	snake3 := sc.wear(id["Snake Umbra"], a)
 	sc.s.perms[sc.slot(a)].damage = 1
 	sc.s.perms[sc.slot(a)].flags |= pfDeathtouched
+	sc.s.touchSl(sc.slot(a))
 	sc.s.sba(sc.k)
 	if p := &sc.s.perms[sc.slot(a)]; !sc.onBF(a) || !sc.inGrave(snake3) || p.damage != 0 || p.flags&pfDeathtouched != 0 {
 		t.Fatalf("deathtouch: giant on battlefield %v, umbra in graveyard %v, damage %d, mark %v; want true, true, 0, false", sc.onBF(a), sc.inGrave(snake3), p.damage, p.flags&pfDeathtouched != 0)
@@ -109,6 +111,7 @@ func TestUmbraArmorReplacesDestroy(t *testing.T) {
 
 	// no umbra left: lethal damage kills
 	sc.s.perms[sc.slot(a)].damage = uint8(tough)
+	sc.s.touchSl(sc.slot(a)) // a write the engine marks (marks.go): sba's clean-scan key reads the mark
 	sc.s.sba(sc.k)
 	if sc.onBF(a) {
 		t.Fatal("lethal damage with no umbra left did not kill the giant")

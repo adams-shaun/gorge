@@ -31,6 +31,7 @@ Backwoods Survivalists
 Baleful Ammit
 Balthor the Defiled
 Balthor the Stout
+Bar the Gate
 Barishi
 Battlewise Aven
 Belltower Sphinx
@@ -60,6 +61,7 @@ Cathar's Shield
 Cazur, Ruthless Stalker
 Cemetery Gate
 Cephalid Scout
+Chain of Vapor
 Champion of Lambholt
 Chaos Harlequin
 Charge of the Mites
@@ -286,6 +288,7 @@ Spreading Seas
 Staff of Domination
 Staff of the Mind Magus
 Steel Exemplar
+Stomping Slabs
 Storm, Queen of Wakanda
 Stream of Unconsciousness
 Sultai Banner
@@ -309,6 +312,7 @@ Thran Spider
 Thrill of the Hunt
 Throwing Knife
 Thundersteel Colossus
+Thunderwave
 Titanic Bulvox
 Transcendent Envoy
 Travel Preparations

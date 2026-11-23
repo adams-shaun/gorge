@@ -107,6 +107,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 		}
 	}
 	d.Filters = nonNil(pt.filters)
+	d.FilterProgs = pt.progs
 	d.Exprs = nonNil(pt.exprs)
 	d.Conds = nonNil(pt.conds)
 	d.Overrides = nonNil(pt.overrides)
@@ -119,6 +120,7 @@ func tableOf(p *pool, poolName string, prev []idEntry) (*cardset.PoolData, cover
 	}
 	d.LayerConflicts = nonNil(layerConflicts)
 	d.RoomCards, d.NameReaders, d.AbReducers, d.AbReducerFloor, d.AbReducerTypes, d.AbManaCosted, d.AbManaCostedMV, d.AbManaCostedTypes = guardLists(bs, pt.filters)
+	d.NameReaders = narrowNameReaders(p, all, bs, d.RoomCards, d.NameReaders)
 	return d, pb.cv, pb.idx, nil
 }
 
@@ -191,6 +193,7 @@ func readPool(src fs.FS, name, cardsDir string) (*pool, []byte, []idEntry, error
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%s: %w", name, err)
 	}
+	p.commander = commanderPools[name] // lower_meld.go
 	idsPath := path.Join(dir, idsFile)
 	oldIDs, err := fs.ReadFile(src, idsPath)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {

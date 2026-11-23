@@ -37,6 +37,11 @@ import (
 // controller picks the other order diverges from gorge.
 var DebugCtrOrderIgnore bool
 
+// DebugProlifOrderIgnore is the mutation switch for the proliferate's ask
+// (act_proliferate.go): the answers are ignored only while a proliferate
+// applies its picks, so a controller who picks the other order diverges.
+var DebugProlifOrderIgnore bool
+
 // CtrOrderStats counts the lockstep test's coverage: asks
 // posed.
 var CtrOrderStats struct{ Asked atomic.Int64 }
@@ -256,7 +261,7 @@ func (s *State) ctrOrderApply(k *prep, sl Slot, kind, n int) (int, bool) {
 		return n, false
 	}
 	np := int(ro.ac &^ ctrOrdTag)
-	if DebugCtrOrderIgnore {
+	if DebugCtrOrderIgnore || DebugProlifOrderIgnore && s.res.restSel == prolifApplying {
 		np = 0
 	}
 	used := uint8(0)

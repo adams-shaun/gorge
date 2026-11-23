@@ -94,6 +94,7 @@ help:
 	@echo "  make test-one PKG=./p RUN=TestX — one capped, corpus-checked test run with one verdict line (debugging)"
 	@echo "  make test-targeted  — the packages your diff vs BASE touches plus their test reverse deps (the inner loop)"
 	@echo "  make test-smart     — the precheck, fail-fast, on a committed tree: affected packages + test groups (GORGE_TEST_SMART_GATES=1: the landing gates; precheck is an alias)"
+	@echo "  make bench-tests [PKGS=./p] [LANES=1] [SHARD=i/n] — per-package wall/CPU/RSS and per-test cost under the 1m/4G/4vCPU budget"
 	@echo "  make fresh-clone-check — build, vet and test dirac with no corpus: tests needing tables skip, none fail"
 	@echo "  make enginebench-pair BASE=main CAND=. — paired engine-speed comparison (cmd/enginebench)"
 	@echo "  make enginebench-profile [REV=.]       — CPU/alloc profiles of the bench rows, tops printed"
@@ -279,6 +280,14 @@ test-targeted:
 test-smart:
 	@bash scripts/test-targets.sh smart
 precheck: test-smart
+
+# bench-tests (scripts/bench-tests.sh) measures what the test targets only cap: each package in its own
+# MemoryMax=4G scope with GOMAXPROCS=4 and GOFLAGS='-p=1 -trimpath', `go test -count=1 -json -timeout 15m`.
+# -count=1 is the point here: it measures cost. Output is TSV on stdout; the raw -json stream stays in
+# BENCH_LOG_DIR (default .ds4/scratch/bench-tests).
+.PHONY: bench-tests
+bench-tests:
+	@LANES='$(LANES)' PKGS='$(value PKGS)' SHARD='$(SHARD)' BENCH_LOG_DIR='$(BENCH_LOG_DIR)' bash scripts/bench-tests.sh
 
 .PHONY: report
 report: $(BIN_DIR)/forgec

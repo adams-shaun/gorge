@@ -20,6 +20,12 @@ import (
 // diverges).
 var DebugIgnoreSpawnMana bool
 
+// DebugSacManaAfterPay restores the {X} witness census that dropped a
+// sacrifice-only mana source (the pre-fix availUngranted admission), so the
+// sac-mana-source payment mutation test can replay the locked repro and
+// watch the divergence come back. Only the mutation test sets it.
+var DebugSacManaAfterPay bool
+
 // anySacSource reports whether p controls a source a payment plan could
 // sacrifice: an untapped tap-and-sacrifice source (a Treasure) or any
 // sacrifice-only one (a Spawn, tapped or not). It is the cheap gate before
@@ -300,7 +306,8 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 		// lands beside Havoc Jester)
 		return true
 	}
-	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
+	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) &&
+		!tmp.kickedWaivedFeasible(k, c, p) { // the kicked cast owes no waived root (Bloodchief's Thirst's MV 2 or less root, tgt_kickedroot.go)
 		return tmp.witnessEndsGameWon(k, p, c, n0)
 	}
 	// the plan's mana abilities are activated before the kicker's cost is paid (CR 601.2g-h): a
@@ -411,7 +418,6 @@ func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
 // ctlBuild), so reading its entry there would take the speed of whichever card
 // was built or resolved last.
 func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
-	resolved := false
 	for i := int(n0); i < int(s.npend); {
 		if s.over {
 			return
@@ -461,6 +467,15 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		}
 		e := stackEntry{kind: seTrigger, obj: pt.obj, srcVer: pt.srcVer, card: pt.card, ab: pt.ab, ctrl: pt.ctrl,
 			trigObj: pt.trigObj, trigPl: pt.trigPl, defSeat: pt.defSeat, trigAmt: pt.trigAmt, tgt: noTargets}
+		if s.lowerTrigNoTarget(k, a, pt, e) {
+			// CR 603.3d: the lowering placed it at priority and it was removed
+			// for want of a legal target, before the next source was tapped,
+			// so two such sacrifices never ask the CR 603.3b order
+			s.pushNoTarget(k, e, pt)
+			copy(s.pend[i:], s.pend[i+1:s.npend])
+			s.npend--
+			continue
+		}
 		if instant {
 			// the lowering is done as soon as the play is offered, and an
 			// instant-speed cast is offered with the trigger still on the stack
@@ -485,7 +500,12 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		if plRun {
 			e.tgt[0], e.nt = s.firstPlayerTgt(k, &a.Targets[0], pt), 1
 		}
-		if !single && (a.NTargets != 0 && !plRun || !s.runsPreCast(k, e, a.Prog)) {
+		// a trigger with one required object target (Senator Peacock's "target
+		// creature can't be blocked") is put on the stack and resolved before
+		// the next source is tapped, the lowering answering the target with the
+		// first option: two such sacrifices never ask the CR 603.3b order
+		objTgt := !single && !plRun && s.objTgtFirst(k, a, pt, &e)
+		if !single && (a.NTargets != 0 && !plRun && !objTgt || !s.runsPreCast(k, e, a.Prog)) {
 			i++
 			continue
 		}
@@ -506,19 +526,60 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		s.res = save
 		copy(s.pend[i:], s.pend[i+1:s.npend])
 		s.npend--
-		resolved = true
-	}
-	if resolved {
-		// The pre-cast trigger resolved; the priority it returns to runs its
-		// state-based check before the cast's build continues (CR 704.3). A
-		// drain that took the last opponent -- a Treasure spent for a
-		// lowered hybrid cast beside The Sackville-Bagginses -- ends the
-		// game here (CR 704.5a), before the cast, exactly as gorge's
-		// lowering visits the resulting priority, so the card stays in
-		// hand. resolvePrefixStack takes the same pass after its
-		// resolutions.
+		// Each resolved pre-cast trigger returns to a priority that runs its
+		// state-based check before the next one resolves (CR 117.5, 704.3),
+		// exactly as gorge's lowering does at the pass-round between two
+		// resolutions: a self-damaging ping that took the payer to 0 ends the
+		// game here (CR 704.5a), before a further trigger resolves and
+		// before the cast, so the card stays in hand. resolvePrefixStack
+		// takes the same pass after its resolutions.
 		s.sba(k)
 	}
+}
+
+// lowerTrigNoTarget reports whether pending trigger pt of ability a, as the
+// lowering would place it, has one required target (a battlefield object or a
+// card) with no legal candidate: gorge puts it on the stack and removes it
+// (CR 603.3d), as takePending's build does. Scrap Trawler's "target artifact
+// card in your graveyard with lesser mana value" after a Treasure (mana value
+// 0) was sacrificed for the cast.
+func (s *State) lowerTrigNoTarget(k *prep, a *kop.Ability, pt *pendingTrig, e stackEntry) bool {
+	if a.NTargets != 1 || a.Targets[0].UpTo || a.Targets[0].Kind != kop.TgtObject && a.Targets[0].Kind != kop.TgtCard {
+		return false
+	}
+	save := s.res
+	s.res = resCtx{e: e, active: true, lastTok: NoObj, eachObj: NoObj}
+	var buf [MaxOptions]TCode
+	n := s.targetCands(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, &buf)
+	s.res = save
+	return n == 0
+}
+
+// pushNoTarget puts trigger entry e on the stack ahead of the cast being built
+// and takes it off again, the push-then-removal of a trigger with no legal
+// target (CR 603.3d; the build's own removal is cast.go's "the pushed trigger
+// leaves the stack").
+func (s *State) pushNoTarget(k *prep, e stackEntry, pt *pendingTrig) {
+	s.pushBelowCast(k, e, pt)
+	s.sp--
+	s.touchN++ // the push is progress, as takePending's is
+}
+
+// objTgtFirst aims entry e, pending trigger pt of ability a, at the first
+// legal object for its one required target, as the lowering's default answer
+// does (the options in the order gorge lists them), and reports whether it
+// did. A slot that is optional, takes several objects or names a player is not
+// this one's.
+func (s *State) objTgtFirst(k *prep, a *kop.Ability, pt *pendingTrig, e *stackEntry) bool {
+	if a.NTargets != 1 || a.Targets[0].Kind != kop.TgtObject || a.Targets[0].UpTo || a.Targets[0].Max > 1 || a.Targets[0].Min > 1 {
+		return false
+	}
+	var buf [MaxOptions]TCode
+	if s.targetCands(k, &a.Targets[0], pt.ctrl, NoSlot, pt.obj, &buf) == 0 {
+		return false
+	}
+	e.tgt[0], e.nt = buf[0], 1
+	return true
 }
 
 // lifeRun reports whether prog is only life losses, life gains and draws.
@@ -733,7 +794,7 @@ const castTimingNeutral uint8 = 1<<0 | 1<<1 | castMayPlay | castFree
 // (potential_script.go waitsForStack), so the trigger resolves first.
 func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
 	if a.Kind() == AkCast && a.Mode()&^(castTimingNeutral|castFace) == 0 && a.Mode()&castFace != 0 {
-		return s.roomAltNeedsEmptyStack(k, a) // face_rooms.go
+		return s.faceCastNeedsEmptyStack(k, a) // face_castface.go
 	}
 	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
 		// (a bestowed, kicked, flashback, permission or free cast is timed as its card: CR 702.103a, 702.34a, 307.1, 117.1a)

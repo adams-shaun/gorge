@@ -88,8 +88,41 @@ func (s *State) timesKicked(ctx evalCtx) int {
 	// version (its ETB trigger is queued as it enters); the source object on
 	// the battlefield is still the permanent that reads its spell's count.
 	if ctx.src != NoObj {
-		if ob := &s.objs[ctx.src]; ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
+		ob := &s.objs[ctx.src]
+		if ob.zone == kop.ZoneBattlefield && int(ob.slot) < len(s.cold.mk) {
 			return int(s.cold.mk[ob.slot])
+		}
+		// A Squad permanent reads the count its spell stored: the resolving
+		// entry keeps cold.mkObj[obj] (turn_gen.go clears it only for an entry
+		// that is not the resolving spell), and a Squad pool allocates no
+		// per-slot cold.mk (kw_multikicker.go). A token copy that was never
+		// cast reads 0.
+		if ob.zone == kop.ZoneBattlefield && int(ctx.src) < len(s.cold.mkObj) {
+			if k := s.k(); k != nil && int(ob.card) < len(k.t.Cards) && k.t.Cards[ob.card].RepeatedKind == kop.RepeatSquad {
+				return int(s.cold.mkObj[ctx.src])
+			}
+		}
+		// A Replicate SpellCast trigger's source is the spell on the stack
+		// (trig_selfcast.go's listener), whose count is still cold.mkObj: the
+		// trigger reads Count$ReplicatePaid there, a copy that was never cast
+		// reads 0 (kw_squadreplicate.go).
+		if ob.zone == kop.ZoneStack && int(ctx.src) < len(s.cold.mkObj) {
+			if k := s.k(); k != nil && int(ob.card) < len(k.t.Cards) && k.t.Cards[ob.card].RepeatedKind != 0 {
+				return int(s.cold.mkObj[ctx.src])
+			}
+		}
+	}
+	// A Squad ETB trigger captured the payment count as it was queued
+	// (triggers_gen.go enqueueLKI, pendingTrig.defSeat); the source can leave
+	// the battlefield before the trigger resolves, as Wasteland Raider's own
+	// sacrifice does, and Count$SquadPaid still reads the cast's payments
+	// (gorge's TriggerSquadPaid).
+	if e := ctx.e; e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && capturesKickCount(&k.t.Cards[e.card]) &&
+			int(e.ab) < len(k.t.Cards[e.card].Abilities) {
+			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 {
+				return int(e.defSeat)
+			}
 		}
 	}
 	if e := ctx.e; e != nil && e.kind == seSpell {
@@ -161,6 +194,12 @@ func (s *State) evalV(k *prep, v kop.ValueRef, ctx evalCtx) int {
 		sl := s.slotIfSame(o, e.tver[0])
 		if sl == NoSlot && e.li != 0 && e.kind == seSpell {
 			pw, t := int(s.lk(e.li).power), int(s.lk(e.li).tough)
+			if v.K == kop.VTargetPower {
+				return pw
+			}
+			return t
+		}
+		if pw, t, ok := s.abilTgtLKIPT(e, o); ok && sl == NoSlot {
 			if v.K == kop.VTargetPower {
 				return pw
 			}
@@ -517,8 +556,8 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 		}
 		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
-		if r == kop.RefTriggerSource && e != nil && e.trigSA != 0 {
-			o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e != nil && e.saWord() != 0 {
+			o := Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 			return s.objPT(k, o, s.slotIfSame(o, s.objs[o].ver))
 		}
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
@@ -649,8 +688,8 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
-		if r == kop.RefTriggerSource && e.trigSA != 0 {
-			return Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e.saWord() != 0 {
+			return Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 		}
 		return e.trigObj
 	case kop.RefAttached:
@@ -736,6 +775,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	}
 	if r == kop.RefRememberedOwner {
 		return s.remOwner() // zone_rememberparams.go
+	}
+	if r == kop.RefExiledWithOwner {
+		return s.exiledWithOwnerSeat(ctx) // zone_exiledwith.go
 	}
 	return 255
 }
@@ -840,7 +882,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 			}
 			return 0
 		}
-		if s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o) {
+		if s.refCardMatch(k, f, ob, o, ctx) {
 			return 1
 		}
 		return 0
@@ -968,3 +1010,18 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 	}
 	return NoObj, false
 }
+
+// refCardMatch matches a ref's card off the battlefield against f. A filter
+// that reads the chosen type (Herald's Horn: the revealed library top is
+// Creature.ChosenType) takes the ability source's recorded choice, as gorge's
+// sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
+func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
+	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+	}
+	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
+}
+
+// DebugRefChosenResOnly is the mutation switch: a ref's card reads only the
+// resolution's own ChooseType answer (the games must diverge).
+var DebugRefChosenResOnly bool

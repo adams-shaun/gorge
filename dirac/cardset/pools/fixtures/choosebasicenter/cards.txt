@@ -1,0 +1,9 @@
+# the as-enters basic land choice pool: Realmwright (K:ETBReplacement ->
+# ChooseType Type$ Basic Land, a static AddType$ ChosenType over your lands),
+# beside the basics (dirac/choosetype_basicland_enters_test.go)
+Realmwright
+Island
+Mountain
+Swamp
+Plains
+Forest

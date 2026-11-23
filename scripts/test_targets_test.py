@@ -440,33 +440,71 @@ esac
 """
 
 
-def test_one_uses_the_named_steps_timeout_so_the_cache_entries_match(repo, tmp_path):
-    # -timeout is part of go's test-cache key: test-one's default must be the -timeout targeted and smart pass to a
-    # named -run, or each re-runs what test-one just ran.
+def test_timeout_table_is_one_per_package():
+    # One -timeout per package, whatever mode runs it: a package in two modes with two timeouts has two cache entries.
+    assert tt.timeout_for("./dirac/oracle") == "5m"
+    for pkg in (".", "./engine/rules", "./dirac/kgen", "./server/gorged", "./internal/archtest"):
+        assert tt.timeout_for(pkg) == "5m", pkg
+
+
+def test_dirac_gate_step8_timeouts_are_the_table():
+    # The gate is protected (its step 0 refuses an edit to it) and read from BASE, so it cannot import the table at
+    # run time. Pin its step-8 literals to the table instead: a table change that forgets the gate fails here.
+    gate = (HERE / "dirac-gate.sh").read_text()
+    assert set(re.findall(r"(?:-timeout|test\.timeout) ([0-9]+[sm])", gate)) == {
+        tt.timeout_for("./dirac/oracle")}
+
+
+def test_every_mode_prints_the_cached_count(tmp_path):
+    # The verdict hides whether go answered from its cache unless every mode prints the count. BUDGET/ENV and the
+    # other early exits have no go stream to count, so this is the finish path each of one/targeted/smart uses.
+    f = tmp_path / "t.json"
+    f.write_text("\n".join(PASS + [ev("output", pkg="m/a", out="ok  \tm/a\t(cached)\n"), ev("pass", pkg="m/a")]))
+    for mode in ("one", "targeted", "smart"):
+        rc, out, _ = run_cli("finish", "--mode", mode, "--json", str(f), "--sha", "s", "--pkgs", "./p", "--seconds", "1")
+        assert rc == 0, mode
+        assert "  tests ran=1 skipped=0 packages=1 cached=1" in out.splitlines(), (mode, out)
+        assert out.rstrip().splitlines()[-1] == "test-%s: PASS s ./p 1" % mode
+
+
+def test_one_uses_the_package_table_timeout_and_the_same_flags(repo, tmp_path):
+    # -timeout, -json and -v are part of go's test-cache key: test-one must use the same package timeout and flags
+    # as targeted and smart, or each re-runs what test-one just ran.
     (repo / ".cards" / "cardsfolder").mkdir(parents=True)
     (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
     (tmp_path / "bin").mkdir()
     (tmp_path / "bin" / "go").write_text(STUB_GO)
     (tmp_path / "bin" / "go").chmod(0o755)
+    (tmp_path / "bin" / "make").write_text("#!/bin/sh\nexit 0\n")
+    (tmp_path / "bin" / "make").chmod(0o755)
     calls = tmp_path / "go-calls"
-    env = {"PATH": "%s:%s" % (tmp_path / "bin", os.environ["PATH"]), "GO_CALLS": str(calls), "PKG": "./p", "RUN": "^TestA$",
-           "GORGE_TEST_TARGETS_ENV": str(tmp_path / "none.env")}
-    rc, lines, err = wrapper(repo, "one", env=env)
+    base = {"PATH": "%s:%s" % (tmp_path / "bin", os.environ["PATH"]), "GO_CALLS": str(calls), "RUN": "^TestA$",
+            "GORGE_TEST_TARGETS_ENV": str(tmp_path / "none.env")}
+    rc, lines, err = wrapper(repo, "one", env=dict(base, PKG="./p"))
     assert rc == 0 and lines[0].startswith("test-one: PASS "), err
-    # targeted's loop over the named and census runs: gojson <timeout> -run "${r#*<tab>}" ...
-    named = re.findall(r'gojson (\d+m) -run "\$\{r#', (HERE / "test-targets.sh").read_text())
-    assert named == ["5m"]
     one = [l for l in calls.read_text().splitlines() if l.startswith("test ")][0]
-    assert one.split("-timeout ")[1].split()[0] == named[0], one
+    assert one.split("-timeout ")[1].split()[0] == tt.timeout_for("./p"), one
+    for flag in ("-json", "-v", "-failfast"):
+        assert flag in one.split(), (flag, one)
+    calls.write_text("")
+    rc, lines, err = wrapper(repo, "one", env=dict(base, PKG="./dirac/oracle"))
+    assert rc == 0 and lines[0].startswith("test-one: PASS "), err
+    one = [l for l in calls.read_text().splitlines() if l.startswith("test ")][0]
+    assert one.split("-timeout ")[1].split()[0] == tt.timeout_for("./dirac/oracle") == "5m", one
+    # targeted, smart's named/census/whole steps and the gate read the table, never a literal of their own.
+    sh = (HERE / "test-targets.sh").read_text()
+    assert 'gojson "$(timeout_for "${r%%$\'\\t\'*}")" -run' in sh
+    assert not re.search(r'gojson \d+[sm] ', sh)
 
 
 def test_one_usage_errors_exit_2(repo):
     (repo / ".cards" / "cardsfolder").mkdir(parents=True)
     (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
     for env in ({"PKG": "./...", "RUN": "T"}, {"PKG": "./p"}, {"PKG": "./p", "RUN": "T", "TESTENV": "PATH=/x"},
-                {"PKG": "./p", "RUN": "T", "TIMEOUT": "9m"}, {"PKG": "./p", "RUN": "T", "TIMEOUT": "0s"},
-                {"PKG": "./p", "RUN": "T", "TIMEOUT": "0m"}, {"PKG": "./engine/rules", "RUN": "^Test"},
-                {"PKG": "./engine/rules", "RUN": "^Test.*$"}, {"PKG": "./dirac/oracle", "RUN": "."}):
+                {"PKG": "./p", "RUN": "T", "TIMEOUT": "0s"},
+                {"PKG": "./p", "RUN": "T", "TIMEOUT": "11m"}, {"PKG": "./p", "RUN": "T", "TIMEOUT": "0m"},
+                {"PKG": "./engine/rules", "RUN": "^Test"}, {"PKG": "./engine/rules", "RUN": "^Test.*$"},
+                {"PKG": "./dirac/oracle", "RUN": "."}):
         rc, lines, err = wrapper(repo, "one", env=env)
         assert rc == 2 and not lines, env
 
@@ -824,6 +862,42 @@ def test_repro_named_maps_a_recording_to_its_reader(repo):
     assert got == {}
 
 
+def test_repro_named_maps_a_named_recording_to_its_manifest_subtest(repo):
+    d = repo / "dirac/oracle/testdata/repro"
+    d.mkdir(parents=True)
+    (d / "marked.repro.json").write_text('{"named":true,"pool":"tail-01"}\n')
+    (d / "globbed.repro.json").write_text('{"pool":"custom"}\n')
+    (d / "served.repro.json").write_text('{"named":true,"pool":"tail-02","served":true}\n')
+    sh = lambda *a: subprocess.run(a, cwd=repo, check=True, capture_output=True)
+    sh("git", "add", "dirac/oracle")
+    dm = {"dirac/oracle": "m/dirac/oracle"}
+    read = lambda p: (repo / p).read_text().splitlines() if (repo / p).exists() else []  # as read_lines
+
+    def mapped(*names):
+        return tt.repro_named({"dirac/oracle/testdata/repro/%s.repro.json" % n: None for n in names}, dm, read, cwd=str(repo))
+    assert mapped("marked") == {"m/dirac/oracle": {"TestReproManifest/marked"}}
+    assert mapped("served", "marked") == {"m/dirac/oracle": {"TestReproManifest/marked", "TestReproManifest/served"}}
+    # a recording in a globbed pool is not marked: the glob test replays it, so nothing maps
+    assert mapped("globbed") == {}
+    # a deleted recording reads as empty and maps to nothing
+    assert mapped("gone") == {}
+
+
+def test_plan_runs_a_manifest_subtest_as_its_parent_test():
+    # `-run` splits at a slash outside brackets, so a `TestReproManifest/x` element would filter the subtests of
+    # the REPRO_TESTS tests too; the plan selects the parents, every manifest shard (TestReproManifest0..7), and the
+    # whole manifest runs
+    recording = "dirac/oracle/testdata/repro/marked.repro.json"
+    got, _ = planned({recording: None}, repro_names={"m/dirac/oracle": {"TestReproManifest/marked"}})
+    kind, rx = got["./dirac/oracle"]
+    assert kind == "named" and rx.startswith("^(TestReproManifest[0-9]+)$|")
+    assert "/" not in rx
+    for k in range(8):
+        assert re.match(rx, "TestReproManifest%d" % k)
+    for name in ("TestReproCompactRoundTrip", "TestReproGlobMatchesTable", "ReprosLockstep"):
+        assert name in rx
+
+
 def test_census_selects_the_pin_and_registration_ratchets():
     # 11-17 #611: TestGrantedKeywordHeadsAreRegisteredOrPinned matched no census word, so fast never ran it on the
     # PR and it failed three Mergify batches. The pin ratchets must match, in the py selection and test-smart's C,
@@ -888,3 +962,33 @@ def test_fallback_timeout_is_busy_not_budget(tmp_path):
     f.write_text("\n".join([ev("fail", test="TestB"), ev("fail")]))
     rc, out, _ = run_cli(*base, "--fallback", "100%")
     assert rc == 1
+
+
+def test_table_data_change_runs_the_table_readers_whole():
+    # 11-20 #2803/#2804: a change to table data in a directory with no Go package (dirac/support evidence, pools,
+    # set lists) moved kgen's supported set and selected nothing; kfuzz's synth game count went red in the batch.
+    dm = dict(NDIRMAP, **{"dirac/cardset": "m/dirac/cardset", "dirac/oracle/cmd/kfuzz": "m/dirac/oracle/cmd/kfuzz"})
+    dp = dict(NDEPS, **{"m/dirac/cardset": {"m/dirac/cardset"},
+                        "m/dirac/oracle/cmd/kfuzz": {"m/dirac/oracle/cmd/kfuzz", "m/dirac/cardset"}})
+    for path in ("dirac/support/evidence-games.tsv", "dirac/cardset/pools/fdn/a.json",
+                 "dirac/cardset/setlists/FDN.txt", "dirac/manifest/mech/x"):
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [])
+        got = {p: k for k, p, _ in res}
+        assert got.get("./dirac/cardset") == "whole", (path, got)
+        assert got.get("./dirac/oracle/cmd/kfuzz") == "whole", (path, got)
+        res, _ = tt.plan({path: None}, dm, dp, lambda p: [], None, (), {"fast": [], "sha": "0"})
+        assert {p: k for k, p, _ in res}.get("./dirac/oracle/cmd/kfuzz") == "whole", path  # not narrowed to census
+
+
+
+
+def test_smart_runs_the_oracle_in_chunks():
+    # 11-20: ./dirac/oracle's census set (~120 tests) and step 4's named set (fast tier + every repro replay) each
+    # summed past the oracle's 5m cap in one call on a loaded box, and test-smart printed BUDGET on diffs that never
+    # touched the oracle. Both run through oracle_chunked: fixed chunks, each its own call.
+    sh = (HERE / "test-targets.sh").read_text()
+    assert "cpk=$(printf '%s\\n' $cpk | grep -vx './dirac/oracle' || true)" in sh
+    assert 'oracle_chunked "$C" \'^TestStd[A-Za-z]*ReprosLockstep\'' in sh
+    assert 'if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx"' in sh
+    assert 'go test -list "$1" ./dirac/oracle' in sh
+    assert "chunks+=('^TestCmd5SliceCleanOnlyGrows$')" in sh

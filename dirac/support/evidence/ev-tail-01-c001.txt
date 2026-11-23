@@ -83,6 +83,7 @@ Costly Plunder
 Court of Garenbrig
 Crimson Manticore
 Crossroads Consecrator
+Cry of the Carnarium
 Cudgel Troll
 Darklit Gargoyle
 Darkwater Egg
@@ -181,6 +182,7 @@ Hollowborn Barghest
 Homarid Shaman
 Homarid Spawning Bed
 Hornswoggle
+Horror of the Broken Lands
 Hulk, Bruce Banner
 Hunted Wumpus
 Hyperion's Atomic Vision
@@ -204,6 +206,7 @@ Jasmine Boreal
 Jeering Instigator
 Jetmir's Garden
 Jungle Lion
+Kami of Empty Graves
 Kamigawa Charm
 Kazuul Warlord
 Kefnet's Monument
@@ -420,6 +423,7 @@ Trained Caracal
 Trained Condor
 Transcendent Master
 Turn Against
+Turntimber Sower
 Tyrranax Atrocity
 Unearth
 Unforgiving One

@@ -24,13 +24,58 @@ import (
 // but has not yet.
 const trigRemWaiting = "-"
 
+// trigRemLKIPick marks a reflexive latent handed the battle-link pick's
+// remembered set (RememberObjects$ RememberedLKI): the exiled card is off the
+// battlefield, so its power is only readable from before it left (the
+// pick's remLK accumulation, zone_hiddenpick.go pickLeaves), not from the
+// remembered set itself.
+const trigRemLKIPick = "remLKIPick"
+
+// trigRemInit is trigRemAllowed narrowed to the chains that can honour it: the
+// pick's set is only handed over when the parent's program already holds the
+// battle-link pick (value_remlki.go remLKPick) that accumulates the last-known
+// power. A RememberObjects$ RememberedLKI over any other writer (Goblin Crash
+// Pilot's SacrificeAll) keeps refusing every TriggerRemembered$ read.
+func (lc *lowerCtx) trigRemInit(ps *params) string {
+	r := trigRemAllowed(ps)
+	if r != trigRemLKIPick {
+		return r
+	}
+	if lc.gateOverPick() {
+		return r
+	}
+	return ""
+}
+
+// gateOverPick: the ability's program already holds the battle-link pick
+// (value_remlki.go remLKPick), so the plain ConditionDefined$ Remembered gate
+// reads the pick's own set. That set is the card's only remembered write
+// (gorge zone_change.go: RememberLKI persists nothing on the source) and the
+// chain closes with ClearRemembered$ (Yannik, Scavenging Sentinel), so no
+// earlier resolution's memory can stand on the host and the persistent mark
+// (kop.CondRemMark) is not ORed in.
+func (lc *lowerCtx) gateOverPick() bool {
+	if lc.ab == nil {
+		return false
+	}
+	for _, in := range lc.ab.Prog {
+		if remLKPick(in) {
+			return true
+		}
+	}
+	return false
+}
+
 // trigRemAllowed is the latent's initial TrigRem: waiting when the
 // ImmediateTrigger hands the instance the remembered set (RememberObjects$
-// Remembered), else "" (every TriggerRemembered$ read refuses). It does not
-// consume a parameter.
+// Remembered), the pick's set when it hands RememberedLKI, else "" (every
+// TriggerRemembered$ read refuses). It does not consume a parameter.
 func trigRemAllowed(ps *params) string {
-	if strings.TrimSpace(ps.m["RememberObjects"]) == "Remembered" {
+	switch strings.TrimSpace(ps.m["RememberObjects"]) {
+	case "Remembered":
 		return trigRemWaiting
+	case "RememberedLKI":
+		return trigRemLKIPick
 	}
 	return ""
 }
@@ -50,6 +95,21 @@ func (lc *lowerCtx) triggerRemembered(rest string) (lValue, error) {
 		return lValue{Kind: vCountersOn, Ref: lRef{Kind: rDelayedRemembered}, S: strings.TrimPrefix(rest, "CardCounters.")}, nil
 	}
 	if rest == "CardPower" {
+		if ab := lc.ab; ab != nil && ab.Latent && ab.Name == "ReflexiveTrigger" && ab.TrigRem == trigRemLKIPick {
+			// the pick's remembered card's power (Yannik, Scavenging
+			// Sentinel: RememberObjects$ RememberedLKI, the battle-link pick's
+			// set). The card is in exile at the read, so the number is the
+			// power it had before it left (CR 608.2h, gorge
+			// TriggerRemembered$CardPower), which the pick accumulated into
+			// the resolution's remLK (zone_hiddenpick.go pickLeaves;
+			// refuseRemLKIPT pairs the read with that one writer). The body
+			// reads the captured amount like every TriggerRemembered$ read;
+			// trigRememberedCapture's B is ExRemLKIPT, evaluated in the
+			// parent's context as the trigger is put on the stack.
+			ab.TrigRem = rest
+			lc.remLKN++
+			return lValue{Kind: vTriggerAmount}, nil
+		}
 		// the captured object's power (Thorin, Mountain-king: the creature
 		// the reflexive instance was handed by RememberObjects$ ParentTarget):
 		// live while it is on the battlefield, its last known power once it
@@ -86,8 +146,8 @@ func (lc *lowerCtx) triggerRemembered(rest string) (lValue, error) {
 // unread, so the node refuses as before.
 func (lc *lowerCtx) trigRememberedCapture(ps *params, lat *lAbility) (lValue, error) {
 	rest := lat.TrigRem
-	if rest == "" || rest == trigRemWaiting {
-		return lValue{}, nil
+	if rest == "" || rest == trigRemWaiting || rest == trigRemLKIPick {
+		return lValue{}, nil // no TriggerRemembered$ read: the parameters stay unread, so the node refuses as before
 	}
 	if rest == trigRemXPaid {
 		return lValue{Kind: vX}, nil // lower_triggerxcost.go: the parent's paid X
@@ -123,6 +183,12 @@ func (lc *lowerCtx) trigRememberedCapture(ps *params, lat *lAbility) (lValue, er
 		return lValue{Kind: vRememberedCount, S: "ctx"}, nil
 	case "CardManaCost":
 		return lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}}, nil
+	case "CardPower":
+		// the pick's remembered card's power before it left (Yannik;
+		// triggerRemembered's trigRemLKIPick arm): the sum the pick
+		// accumulated into the resolution's remLK (zone_hiddenpick.go
+		// pickLeaves), read as the trigger is put on the stack
+		return lValue{Kind: vRemLKIPT, N: 0}, nil
 	}
 	// GreatestCardManaCost: the largest mana value among the remembered cards,
 	// wherever they went (a discard Rest in Peace or madness replaced to exile

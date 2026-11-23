@@ -23,10 +23,10 @@ func TestLeftzoneRing(t *testing.T) {
 	// second object counts too, an entry from another zone counts for none.
 	a := sc.obj(v.GrizzlyBears, 0)
 	b := sc.obj(v.HillGiant, 0)
-	sc.s.noteEnter(a, kop.ZoneHand, kop.ZoneGraveyard, false)
-	sc.s.noteEnter(a, kop.ZoneHand, kop.ZoneGraveyard, false)
-	sc.s.noteEnter(b, kop.ZoneExile, kop.ZoneGraveyard, false)
-	sc.s.noteEnter(b, kop.ZoneGraveyard, kop.ZoneBattlefield, true)
+	sc.s.noteEnter(a, kop.ZoneHand, kop.ZoneGraveyard, false, false)
+	sc.s.noteEnter(a, kop.ZoneHand, kop.ZoneGraveyard, false, false)
+	sc.s.noteEnter(b, kop.ZoneExile, kop.ZoneGraveyard, false, false)
+	sc.s.noteEnter(b, kop.ZoneGraveyard, kop.ZoneBattlefield, true, false)
 	x := &kop.Expr{Kind: kop.ExLeftZone, N: int16(kop.ZoneGraveyard)}
 	if got := sc.s.leftZone(sc.k, x, evalCtx{}); got != 2 {
 		t.Fatalf("distinct objects that left the graveyard: got %d, want 2", got)

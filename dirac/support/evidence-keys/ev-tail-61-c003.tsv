@@ -6,7 +6,9 @@ Aligned Heart	ac48147005e691dc	3	1/1		0/1	ix:resp
 Altar of Bhaal	2c178e2719583076	12	1/1		1/2	ix:resp
 Altar of Bone	3893be4fb5dd4f45	4	0/0		2/2	
 An-Havva Inn	d77d5492d44dc5e1	6	0/0		1/2	ix:resp
+Atraxi Warden	179da53a90d48cd9	9	1/1		2/3	cast/alt:none
 Avabruck Caretaker	b03bcc5ed0663c1e	10	2/2		1/1	
+Avenger en-Dal	2a025402d3645256	11	1/1		0/1	ix:resp
 Avenging Hunter	4e2b8b7e1638525e	5	1/1		1/1	
 Bastion Enforcer	7e5903b39c1fa63d	16	0/0		0/0	
 Bootleggers' Stash	75b5a07aaa6eca86	4	0/0		0/0	
@@ -16,6 +18,7 @@ Canopy Gorger	e7b54aa82bec474c	5	0/0		0/0
 Cartouche of Knowledge	8cb24379910756af	6	1/1		1/2	ix:resp
 Centaur Garden	ff58b4102c496896	8	2/2		0/1	ix:resp
 Charity Extractor	53ec04d96dc36c53	4	0/0		0/0	
+Choking Restraints	bd7585c4089a79d9	18	1/1		2/2	
 Churning Eddy	39e3a3133096a784	3	0/0		1/2	ix:resp
 Cloakwood Swarmkeeper	58e95b05d2fc5463	12	1/1		1/1	
 Cogwork Spy	b5a25b41cc931247	33	0/0		0/0	
@@ -23,6 +26,7 @@ Concord with the Kami	bbe13543ee348442	15	1/1		1/1
 Consider	7a4cba30568ede20	3	0/0		2/2	
 Consign	0c419218b21a82f3	5	0/0		3/5	f1/s,ix:resp
 Constable of the Realm	19db6d60af022488	4	2/2		0/1	ix:resp
+Courier's Briefcase	d265c5b5ccfc16b2	52	3/3		1/1	
 Covert Operative	8380f3330f8fa4a4	3	0/0		0/0	
 Crackling Doom	0ca01fc7a2b24900	6	0/0		2/2	
 Crested Herdcaller	9580d51fd54ab725	3	1/1		0/1	ix:resp
@@ -30,9 +34,11 @@ Crush of Wurms	705286b175426a16	4	0/0		4/4
 Curious Killbot	ad94f791ec91bb5c	3	0/0		0/0	
 Daggerdrome Imp	cfba14e98656845e	15	0/0		0/0	
 Davriel's Shadowfugue	f30c39bf525f91c5	4	0/0		1/2	ix:resp
+Daxos's Torment	c024a57b615140b2	27	1/1		0/1	ix:resp
 Defiant Elf	c1ca20a64b2ea853	50	0/0		0/0	
 Demoralize	8c643af1328a02e4	7	0/0		2/2	
 Duskworker	bcdbe10158f077fd	12	2/2		1/1	
+Empty City Ruse	c92c275b9f310605	24	0/0		2/2	
 Endless Cockroaches	68fd180a2299bafa	7	1/1		0/1	ix:resp
 Entish Restoration	441b5885a3ad77b0	6	0/0		1/2	ix:resp
 Eyeblight's Ending	df15c2d9de9e471a	4	0/0		1/2	ix:resp
@@ -50,6 +56,7 @@ Gilt-Blade Prowler	5cc07ae2cf9efd1e	13	1/1		0/1	ix:resp
 Goblin Champion	9fc07f38c302164a	10	1/1		0/1	ix:resp
 Goldnight Commander	36e236bd55a5f133	7	1/1		1/1	
 Grisly Spectacle	6877473beb789280	6	0/0		1/2	ix:resp
+Grovetender Druids	3f3d139471bfcf52	9	1/1		0/1	ix:resp
 Guardian Seraph	6d7b1ef0359a84b4	6	0/0		0/0	
 Hanabi Blast	31d7129bdd3c21db	6	0/0		1/2	ix:resp
 Harsh Scrutiny	13a49b8b2e68ed1f	6	0/0		1/2	ix:resp
@@ -57,12 +64,14 @@ Harvesttide Sentry	972ad275cd946380	5	1/1		0/1	ix:resp
 Heartless Pillage	9b87700dbb54534d	4	0/0		1/2	ix:resp
 Heron's Grace Champion	97c3bbba2dc53da7	6	1/1		0/1	ix:resp
 High Score	453d855d72eb9ce0	7	1/1		0/1	ix:resp
+Humble	8e83f8987fd8c821	8	0/0		2/2	
 Hunting Moa	596e30abfb225bc9	12	3/3		0/1	ix:resp
 Imaginary Friends	0e37cd3d9ce42fd9	12	0/0		1/2	ix:resp
 Implode	786a9b0dee7fea69	22	0/0		2/2	
 Incremental Blight	be7f120b6b999009	3	0/0		1/2	ix:resp
 Incubation Sac	b593d8f8a96e1373	4	1/1		0/1	ix:resp
 Indicate	ef1c064712e2c983	8	0/0		1/2	ix:resp
+Infected Vermin	b6f04c9c20407746	19	2/2		0/1	ix:resp
 Insatiable Gorgers	c6c8440e88021b16	3	0/0		0/0	
 Irradiate	1b9040ae5e285f0a	6	0/0		1/2	ix:resp
 Jade Guardian	42898c050f4cbfb0	9	1/1		0/1	ix:resp
@@ -73,6 +82,7 @@ Karn's Bastion	98a6081c501e9670	14	2/2		1/1
 Kor Duelist	c3a67f40baebbbcf	16	0/0		0/0	
 Koth's Courier	2b8f5704c3cb2d1b	3	0/0		0/0	
 Krosan Archer	9323b5807b64e75d	5	1/1		1/1	
+Leshrac's Rite	bc1064fd9f61f379	19	0/0		1/2	ix:resp
 Llawan, Cephalid Empress	60345dd22540fb45	4	1/1		0/1	ix:resp
 Lumbering Satyr	fcb70906bc9941af	7	0/0		0/0	
 Magma Sliver	e53615a1fa7b9a4b	3	0/0		0/0	
@@ -87,6 +97,7 @@ Monumental Corruption	47b496655b99664a	4	0/0		1/2	ix:resp
 Mysterious Tome	3fcfa031868cda98	6	2/2		1/1	
 Nagao, Bound by Honor	c963f31e43b98e23	8	3/3		0/1	ix:resp
 Nekrataal	7a65e4bf7fd3495c	4	1/1		0/1	ix:resp
+Nettle Drone	ac2c1d677ae4e613	19	2/2		1/1	
 Nightshade Harvester	d7b18cad0b22e186	6	1/1		0/1	ix:resp
 Nissa, Resurgent Animist	c3ba7cb88fc9cbd0	18	1/1		0/1	ix:resp
 Ogre Menial	d243ad0faf12bf89	4	1/1		0/1	ix:resp
@@ -105,11 +116,13 @@ Planar Atlas	4e0f6300b1759c80	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Possessed Centaur	f4726bf12327a9ab	5	0/0		0/0	
 Prescient Chimera	42911beebb74e090	3	1/1		0/1	ix:resp
 Prince Imrahil the Fair	f20af11bec664ce9	4	1/1		0/1	ix:resp
+Pygmy Troll	4c4220c773ac8599	41	2/2		1/1	
 Reckless Pangolin	f11ab55b23c610d2	7	1/1		1/1	
 Relic Barrier	7dbf9a9d52a57e3a	12	1/1		1/1	
 Relic Vial	135468eae14250bb	5	1/1		1/1	
 Rhonas's Monument	fccc040cfe42c311	9	1/1		0/1	ix:resp
 Rhovanion Rampager	e413e73d11e2a414	3	2/2		0/1	ix:resp
+Roc Egg	35282d2815ed9b32	18	1/1		1/1	
 Rogue Refiner	8c65b973d01c2a8f	8	1/1		0/1	ix:resp
 Safe Haven	3aac8cb7b7606633	14	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Safehold Sentry	53adfccf61114bb9	12	1/1		1/1	
@@ -129,6 +142,7 @@ Spitting Drake	c64ca2747c765529	3	1/1		0/1	ix:resp
 Star Pupil	2fda6678e3c83515	5	1/1		0/1	ix:resp
 Steam Spitter	06abe3e636386faa	3	1/1		1/1	
 Steely Resolve	0a25dc23549283d8	4	0/0		0/0	
+Steppe Lynx	c21a4037f95a0a9d	13	1/1		1/1	
 Stolen Grain	6f6ca68d2e959781	10	0/0		1/2	ix:resp
 Stormscape Master	68822a6832f57eb9	4	2/2		0/1	ix:resp
 Stream of Consciousness	74d7eea58e074b03	10	0/0		2/2	
@@ -156,7 +170,9 @@ Vizier of the Scorpion	4d12eb1e9c976a21	7	1/1		0/1	ix:resp
 Volatile Rig	ce0421fdf2b063ac	34	2/2		1/1	
 Volcano Imp	15253aeb6350a3cc	11	1/1		0/1	ix:resp
 Wakandan Tusker	ab3a1ac521046de6	3	1/1		0/1	ix:resp
+Wall of Limbs	69b64208b30076cb	26	2/2		0/1	ix:resp
 Ward Sliver	678b440aee128df1	8	0/0		0/0	
+Watchful Giant	f1b870c783a61fb9	4	1/1		0/1	ix:resp
 Wave of Terror	c64f5e1340fe732a	6	2/2		1/1	
 Wildest Dreams	44f94149c2d4f52b	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Wrack with Madness	1b9e0f7650a52d64	4	0/0		1/2	ix:resp

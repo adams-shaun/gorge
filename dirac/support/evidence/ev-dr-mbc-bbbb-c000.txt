@@ -1,11 +1,15 @@
 Abundant Growth
 Act on Impulse
 Angel of Vitality
+Angel of the Ruins
+Archon of Absolution
 Beanstalk Giant
 Blessed Hippogriff
+Bloodthrone Vampire
 Brood Monitor
 Caltrops
 Clinquant Skymage
+Cloud Elemental
 Collected Company
 Concentrate
 Counterspell
@@ -19,9 +23,11 @@ Diregraf Horde
 Dwarven Miner
 Elite Scaleguard
 Executioner's Capsule
+Ezuri, Claw of Progress
 Falter
 Fatal Push
 Fellwar Stone
+Flame Javelin
 Flesh-Eater Imp
 Fog
 Fog Bank
@@ -34,10 +40,12 @@ Geistblast
 Ghostly Flicker
 Gideon's Lawkeeper
 Glacier Godmaw
+Gloomfang Mauler
 Go for the Throat
 Goblin Bombardment
 Goblin Recruiter
 Grab the Reins
+Halimar Wavewatch
 Hollow Marauder
 Hopeless Nightmare
 Illusory Ambusher
@@ -46,6 +54,7 @@ Island
 Kavu Predator
 Konda, Lord of Eiganjo
 Krark-Clan Ironworks
+Lively Dirge
 Lunar Frenzy
 Manabond
 Mannichi, the Fevered Dream
@@ -69,6 +78,7 @@ Power Matrix
 Primal Growth
 Prizefight
 Puppet Conjurer
+Quakefoot Cyclops
 Rapacious Dragon
 Ravenform
 Regrowth
@@ -76,12 +86,14 @@ Renewed Faith
 Rescind
 Reya Dawnbringer
 Seal of Fire
+Shimmerscale Drake
 Soul Warden
 Spellstutter Sprite
 Spiteful Prankster
 Standstill
 Strangleroot Geist
 Sudden Spinnerets
+Summon Undead
 Swamp
 Symbiosis
 The Rack

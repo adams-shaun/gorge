@@ -42,7 +42,7 @@ func (s *State) castFromStack(k *prep, e *stackEntry) {
 // kernel-native trigger the grant uses (abStorm); a copy of a permanent spell
 // resolves into a token (copy_permanentspell.go, behind genPrep.anyPermCopy).
 func (s *State) queueStormPrinted(k *prep, e *stackEntry) {
-	n := int(s.g.hist[0][histSpells]) + int(s.g.hist[1][histSpells]) - 1
+	n := s.spellsCastThisTurnAll() - 1
 	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, e.ctrl, e.obj, e.ctrl, int16(max(n, 0)))
 }
 
@@ -57,10 +57,31 @@ func (s *State) queueStorm(k *prep, e *stackEntry) {
 	if k.t.Cards[e.card].Storm {
 		return
 	}
+	saved := s.hideInflightCast(e)
 	g, _ := s.stackKwN(k, kop.StackKwStorm, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl))
+	s.restoreInflightCast(e.ctrl, saved)
 	if g == 0 {
 		return
 	}
-	n := int(s.g.hist[0][histSpells]) + int(s.g.hist[1][histSpells]) - 1
+	n := s.spellsCastThisTurnAll() - 1
 	s.enqueue(e.obj, s.objs[e.obj].ver, e.card, abStorm, e.ctrl, e.obj, e.ctrl, int16(max(n, 0)))
+}
+
+// DebugStormTwoSeats is the mutation test's switch: the storm count reads seats
+// 0 and 1 only (the two-seat tally the kernel began with), not every seat.
+// Test-only and cold.
+var DebugStormTwoSeats bool
+
+// spellsCastThisTurnAll is every player's spells cast this turn, this cast
+// included (CR 702.40a "each other spell cast before it this turn", whoever
+// cast it: gorge rules CastThisTurn counts every PutOnStack since TurnChange).
+func (s *State) spellsCastThisTurnAll() int {
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if DebugStormTwoSeats && p > 1 {
+			break
+		}
+		n += int(s.g.hist[p][histSpells])
+	}
+	return n
 }

@@ -222,6 +222,7 @@ Khenra Charioteer
 Kheru Bloodsucker
 Kin-Tree Invocation
 Kindercatch
+Kinnan, Bonder Prodigy
 Kor Celebrant
 Kor Hookmaster
 Kraul Stinger
@@ -289,7 +290,6 @@ Nightsquad Commando
 Nova Cleric
 Null Caller
 Nyxborn Wolf
-O'aka, Traveling Merchant
 Oblation
 Olivia's Bloodsworn
 Olivia's Dragoon
@@ -355,6 +355,7 @@ Seasoned Dungeoneer
 Sedge Scorpion
 Seed of Hope
 Seismic Assault
+Selvala's Stampede
 Servant of Nefarox
 Shaper Apprentice
 Shapers' Sanctuary

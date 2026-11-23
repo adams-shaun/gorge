@@ -72,7 +72,7 @@ func TestSkipUntap(t *testing.T) {
 	}
 	s.res.e.ctrl, s.res.e.obj, s.res.e.srcVer = 0, lion, s.objs[lion].ver
 	for i := 0; i < 3; i++ {
-		s.addRegenShield(sc.slot(lion)) // shields beyond the first live in perm.flags (pfRegenX)
+		s.addRegenShield(sc.slot(lion)) // shields beyond the first live in perm.spare (spareRegenX)
 	}
 	s.exec(sc.k, &skip)
 	if n := s.perms[sc.slot(lion)].regenShields(); n != 3 {

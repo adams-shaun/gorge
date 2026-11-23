@@ -1,0 +1,13 @@
+# the printed phase-skip replacement pool: Eon Hub's upkeep skip,
+# Symbiotic Deployment's draw skip, Infernal Sovereign's draw skip
+# (dirac/oracle/repl_modes_lockstep_test.go)
+Eon Hub
+Symbiotic Deployment
+Divination
+Grizzly Bears
+Island
+Plains
+Infernal Sovereign
+Lightning Bolt
+Mountain
+Forest

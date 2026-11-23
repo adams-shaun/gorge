@@ -13,11 +13,13 @@ Archmage's Charm
 Artificer's Epiphany
 Atreus, Impulsive Son
 Axegrinder Giant
+Balduvian Horde
 Bant Battlemage
 Battle of Frost and Fire
 Battlewing Mystic
 Bay Falcon
 Benalish Trapper
+Berg Strider
 Blaze
 Blessed Respite
 Boros Keyrune
@@ -45,6 +47,7 @@ Cyclops Electromancer
 D'Avenant Trapper
 Dark Bargain
 Dark Tutelage
+Dawnhart Wardens
 Daybreak Chimera
 Deadly Insect
 Deathrender
@@ -63,6 +66,7 @@ Elspeth, Sun's Nemesis
 Emeria Captain
 Emissary of Sunrise
 Excoriate
+Fanatic of Mogis
 Felhide Minotaur
 Fendeep Summoner
 Ferocious Zheng
@@ -77,6 +81,7 @@ Furnace Skullbomb
 Geomancer's Gambit
 Ghirapur Guide
 Gift of Growth
+Gilded Goose
 Gitaxian Probe
 Glistening Dawn
 Glorious Anthem
@@ -96,11 +101,13 @@ Hate Weaver
 Headwater Sentries
 Healing Hands
 Herald of Torment
+Hipparion
 Hysterical Blindness
 Imperial Aerosaur
 Instill Energy
 Intrepid Provisioner
 Island
+Izzet Staticaster
 Jeskai Banner
 Join the Ranks
 Junk Golem
@@ -108,8 +115,11 @@ Kalastria Healer
 Kapsho Kitefins
 Karma
 Keeper of the Cadence
+Khenra Spellspear
+Knight of the Reliquary
 Kobold Overlord
 Kor Blademaster
+Lantern Scout
 Law-Rune Enforcer
 Lead Golem
 Leery Fogbeast
@@ -118,6 +128,7 @@ Lightning Stormkin
 Llanowar Vanguard
 Lord of the Void
 Loxodon Partisan
+Luminous Bonds
 Lunarch Mantle
 Mana Prism
 Mana Skimmer
@@ -145,13 +156,16 @@ Ondu Champion
 P-Joven and Chandler
 Palinchron
 Parasitic Bond
+Peregrine Drake
 Pestermite
 Phantasmal Dragon
 Phantom General
+Phantom Nantuko
 Phytoburst
 Pit Trap
 Plains
 Plated Slagwurm
+Power Matrix
 Priest of Fell Rites
 Prime Speaker Vannifar
 Purge
@@ -177,6 +191,7 @@ Revelation of Power
 Rionya, Fire Dancer
 Rock Badger
 Root Maze
+Rootless Yew
 Rotted Hystrix
 Royal Talon Fighter Jet
 Russet Wolves
@@ -198,6 +213,7 @@ Shatterstorm
 Sigarda's Summons
 Simic Growth Chamber
 Sinister Sabotage
+Sir Shandlar of Eberyn
 Skaab Ruinator
 Skinwing
 Skyrider Patrol
@@ -208,6 +224,7 @@ Snow-Covered Island
 Solidarity
 Solstice Zealot
 Soratami Savant
+Soul Warden
 Specter of the Fens
 Spectral Cloak
 Spell Syphon
@@ -225,7 +242,9 @@ Syndicate Infiltrator
 Take to the Streets
 Talas Researcher
 Tenured Inkcaster
+Terashi's Verdict
 The Falcon, Sam Wilson
+Thermo-Alchemist
 Thing Swing
 Thorn Lieutenant
 Thrór's Map
@@ -233,11 +252,14 @@ Timber Gorge
 Tireless Tribe
 Titanium Golem
 Urza's Guilt
+Utter Insignificance
 Varchild, Betrayer of Kjeldor
 Venser, Shaper Savant
 Verdant Confluence
 Viashino Grappler
+Vision, Spectral Synthezoid
 Visions of Beyond
+Volcanic Strength
 Voldaren Duelist
 Vona's Hunger
 Vraska's Scorn
@@ -245,3 +267,4 @@ Where Ancients Tread
 Wild Ceratok
 Witness the Future
 Woe Strider
+Yuan Shao's Infantry

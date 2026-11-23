@@ -24,7 +24,7 @@ func (s *State) spellToLib(k *prep) {
 	if ob := &s.objs[o]; ob.zone == kop.ZoneStack && ob.of&ofCopy == 0 && e.flags&sfFlashback == 0 {
 		s.touch(o)
 		ob.zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneLibrary, false, kop.ZoneStack, false)
+		s.placeFromK(k, o, kop.ZoneLibrary, false, kop.ZoneStack, false, false)
 	}
 	if ob := &s.objs[o]; ob.zone == kop.ZoneStack && ob.of&ofCopy != 0 {
 		if pl := &s.pl[ob.owner()]; !pl.zoneFull(kop.ZoneLibrary) {

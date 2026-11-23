@@ -42,8 +42,11 @@ Blighted Shaman
 Blood Reckoning
 Blood on the Snow
 Boartusk Liege
+Bombadil's Song
+Brain Pry
 Brokers Hideout
 Cabal Therapist
+Call of the Ring
 Captain America's Motorcycle
 Captain Lannery Storm
 Cateran Brute
@@ -121,6 +124,7 @@ Followed Footsteps
 Forest
 Fractal Summoning
 Freyalise, Llanowar's Fury
+Frodo, Sauron's Bane
 Furious Resistance
 Garruk's Packleader
 Gem of Becoming
@@ -133,6 +137,7 @@ Gitaxian Anatomist
 Gnawing Zombie
 Go Forth
 Goblin Rally
+Gosta Dirk
 Grapple with the Past
 Grave Peril
 Grenzo's Ruffians
@@ -299,6 +304,7 @@ Terra Eternal
 Thaumaturge's Familiar
 Think Tank
 Thirst
+Thousand-legged Kami
 Tishana's Wayfinder
 Tolsimir Wolfblood
 Tormod's Cryptkeeper

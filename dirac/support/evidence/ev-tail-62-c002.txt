@@ -118,7 +118,6 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
-Fire Dragon
 Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
@@ -319,7 +318,6 @@ Silent Observer
 Silver Drake
 Silverclaw Griffin
 Simic Ragworm
-Skarrg, the Rage Pits
 Skinrender
 Skophos Reaver
 Sky Scourer

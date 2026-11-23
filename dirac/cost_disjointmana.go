@@ -46,6 +46,16 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 	}
 }
 
+// restrUnitIn: the restricted payment rd's avail holds a unit of the source
+// at x (restrTapUnit), so reserving x takes that unit out of it.
+func (s *State) restrUnitIn(k *prep, p uint8, x Slot, rd *payDesc) bool {
+	if rd == nil {
+		return false
+	}
+	_, ok := s.restrTapUnit(k, p, x, rd)
+	return ok
+}
+
 // costManaDisjoint reports whether some N candidates of a's Sac or TapX
 // part leave av (the mana walk's availability, the source's own {T}
 // already taken out) able to pay a's mana. A candidate whose use takes
@@ -82,6 +92,15 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		}
 		if x == sl && selfTap {
 			free++ // its {T} already took its mana out of av
+			continue
+		}
+		if tapX && av.ungr && k.gen != nil && s.manaGranted(k, x) && !s.restrUnitIn(k, p, x, rd) {
+			// the ungranted census holds no unit of a source whose only mana
+			// is a granted ability: tapping it for the part takes nothing out
+			// of the mana the printed sources and the floated pool pay (CR
+			// 601.2g-h; Dungeon Descent's legendary creature under Battery
+			// Bearer's granted {C})
+			free++
 			continue
 		}
 		pc := s.manaPCAt(k, x)
@@ -195,9 +214,10 @@ func (s *State) sacShort(k *prep, d *Decision) {
 func (s *State) tapForSacKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *kop.Ability, src Slot) {
 	var pk planner
 	pk.dry = true
+	pk.winCol, pk.winCost = true, *cost
 	s.tapForPK(k, p, cost, x, NoObj, false, false, &pk)
 	if !pk.found {
-		s.tapFor(k, p, cost, x, NoObj) // nothing owed (or no plan: the offer's own panic)
+		s.tapForWindowColour(k, p, cost, x, NoObj) // nothing owed (or no plan: the offer's own panic)
 		return
 	}
 	// the sacrifice candidates in battlefield (entry) order
@@ -218,7 +238,7 @@ func (s *State) tapForSacKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 	}
 	n := int(a.Cost.N)
 	if s.sacLeft(&pk, &cands, nc) >= n || n > nc || n > len(cands) {
-		s.tapFor(k, p, cost, x, NoObj)
+		s.tapForWindowColour(k, p, cost, x, NoObj)
 		return
 	}
 	var idx [MaxPerm]uint8
@@ -228,6 +248,7 @@ func (s *State) tapForSacKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 	for tries := 0; tries < planReservationLimit; tries++ {
 		var r planner
 		r.dry = true
+		r.winCol, r.winCost = true, *cost
 		for i := 0; i < n; i++ {
 			r.kept.set(cands[idx[i]])
 		}
@@ -236,6 +257,7 @@ func (s *State) tapForSacKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 		if r.found && s.sacLeft(&r, &cands, nc) >= n {
 			var w planner
 			w.kept = kept
+			w.winCol, w.winCost = true, *cost
 			s.tapForPK(k, p, cost, x, NoObj, false, false, &w)
 			return
 		}
@@ -251,7 +273,31 @@ func (s *State) tapForSacKept(k *prep, p uint8, cost *kop.ManaCost, x int, a *ko
 			idx[j] = idx[j-1] + 1
 		}
 	}
-	s.tapFor(k, p, cost, x, NoObj)
+	s.tapForWindowColour(k, p, cost, x, NoObj)
+}
+
+// tapForSacCost pays an activation whose cost sacrifices permanents (CR
+// 601.2g before 601.2h): a table with a sacrifice mana source reserves that
+// part's candidates (tapForSacKept); one without passes the plan's sources to
+// the window's colour answer (tapForWindowColour), as gorge's planner leaves
+// the shape to the manual window.
+func (s *State) tapForSacCost(k *prep, p uint8, cost *kop.ManaCost, x int, a *kop.Ability, src Slot) {
+	if !k.sacMana {
+		s.tapForWindowColour(k, p, cost, x, NoObj)
+		return
+	}
+	s.tapForSacKept(k, p, cost, x, a, src)
+}
+
+// tapForWindowColour is tapFor for a payment gorge takes through its manual
+// mana window (an activation whose sacrifice part follows the mana, which
+// armAbilityAutoPay leaves to the window): the plan still selects the sources,
+// but each tap's colour is the window's answer (planWindowCol), not
+// pickUnitColour's Produces preference.
+func (s *State) tapForWindowColour(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj) {
+	var pk planner
+	pk.winCol, pk.winCost = true, *cost
+	s.tapForPK(k, p, cost, x, exclude, false, false, &pk)
 }
 
 // sacLeft counts the candidates pk's selected plan does not sacrifice for

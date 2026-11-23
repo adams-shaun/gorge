@@ -68,7 +68,6 @@ Jace's Archivist
 Kaya's Onslaught
 Kenrith, the Returned King
 Kheru Dreadmaw
-Krosan Druid
 Leonin Squire
 Mageta the Lion
 Maja, Bretagard Protector
@@ -102,7 +101,6 @@ Selective Memory
 Shimmering Grotto
 Shivan Oasis
 Sigil of the New Dawn
-Skarrg, the Rage Pits
 Skeletal Changeling
 Snapsail Glider
 Soulbound Guardians

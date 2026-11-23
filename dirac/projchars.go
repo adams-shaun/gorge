@@ -68,6 +68,19 @@ func (s *State) ProjectChars(p *Projection) {
 				c.Colors = s.copyExcCol(k, sl, c.Colors) &^ kop.ColC
 				c.Kw |= s.copyExcKw(k, sl)
 			}
+			if k.gen != nil && k.gen.anyBestow {
+				// the bestow type switch is derived live state, not a
+				// continuous effect, so it stands while phased out: the Aura
+				// subtype comes with the Aura type, and the creature subtypes
+				// go with the Creature type (CR 702.26b, 702.103b, 205.1a)
+				c.Subs, c.AllSub = s.bestowSubs(k, sl, c.Subs, c.AllSub)
+			}
+			if k.gen != nil && k.gen.anyReconfigure {
+				// the Reconfigure switch is derived live state too: while
+				// attached, the creature subtypes go with the Creature type
+				// (CR 702.26b, 702.151b, 205.1a)
+				c.Subs, c.AllSub = s.reconfigureSubs(k, sl, c.Subs, c.AllSub)
+			}
 			continue
 		}
 		c.Types = s.typesAt(k, sl) &^ kop.TToken

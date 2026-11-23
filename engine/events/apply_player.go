@@ -9,6 +9,7 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -199,6 +200,9 @@ func foldCounterChange(g *state.Game, e *Event) {
 	if e.Text != EntryCounterNotice {
 		if o := g.Obj(e.Obj); o != nil {
 			o.AddCounter(e.Counter, e.Amount)
+			if e.Amount > 0 {
+				stampKeywordCounter(g, o, e.Counter)
+			}
 		}
 	}
 }
@@ -538,6 +542,26 @@ func foldImprint(g *state.Game, e *Event) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// stampKeywordCounter gives a keyword counter (CR 122.1b) just put on o a
+// fresh Game.Clock tick as its CR 613.7 timestamp: the layer-6 keyword grant
+// it makes is newer than every effect registered before the counter, so an
+// earlier "loses all abilities" effect (Abigale's own Animate) leaves it be
+// while a later one removes it. Any other counter kind takes no stamp and no
+// tick. A second counter of the same kind refreshes the stamp (the newer
+// counter's grant is the one that survives an effect between the two).
+func stampKeywordCounter(g *state.Game, o *state.Object, kind string) {
+	if _, ok := cards.CounterKeyword(kind); !ok {
+		return
+	}
+	for i := range o.Counters {
+		if o.Counters[i].Kind == kind {
+			g.Clock++
+			o.Counters[i].Stamp = g.Clock
+			return
 		}
 	}
 }

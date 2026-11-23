@@ -250,8 +250,12 @@ var AbFloorRaised atomic.Int64
 // activation's armed plan both read it, so Hulk, Gamma Goliath's {3} less
 // prices the plan as it prices the charge (CR 601.2f, 602.2b).
 func (s *State) abPlannedCost(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.ManaCost {
-	if k.gen == nil || !k.gen.anyAbReduce {
-		return a.Cost.Mana
+	c := a.Cost.Mana
+	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) && sl != NoSlot {
+		c = s.ownReducedBF(k, a, sl, ctrl) // the ability's own ReduceCost$ comes first (offerCostFor)
 	}
-	return s.abReduced(k, a, sl, ctrl, a.Cost.Mana)
+	if k.gen == nil || !k.gen.anyAbReduce {
+		return c
+	}
+	return s.abReduced(k, a, sl, ctrl, c)
 }

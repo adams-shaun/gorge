@@ -96,6 +96,7 @@ Darksteel Splicer
 Death Stroke
 Death-Hood Cobra
 Deathcap Cultivator
+Deathknell Kami
 Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
@@ -133,6 +134,7 @@ Duty-Bound Dead
 Dwarven Reinforcements
 Dwarven Song
 Earsplitting Rats
+Eccentric Apprentice
 Elena, Turk Recruit
 Elite Guardmage
 Elite Skirmisher
@@ -177,6 +179,7 @@ Gift of Strands
 Gilt-Leaf Ambush
 Gloomdrifter
 Gnarled Mass
+Gnarlroot Trapper
 Goblin Gaveleer
 Goblin Skycutter
 Goblins of the Flarg
@@ -194,6 +197,7 @@ Heir of the Wilds
 Helionaut
 Helium Squirter
 Herald of Secret Streams
+Hexgold Slash
 Hoarding Ogre
 Hollow Trees
 Holy Day
@@ -313,6 +317,7 @@ Rank Officer
 Ravenous Bloodseeker
 Reave Soul
 Reckless Spite
+Remembrance
 Renegade Troops
 Renounce the Guilds
 Repentant Blacksmith
@@ -321,6 +326,7 @@ Resolute Watchdog
 Revenge of the Drowned
 Reverent Hunter
 Ring of Valkas
+Rise of the Eldrazi
 Ritual of Hope
 Robber Fly
 Robe of Mirrors
@@ -427,6 +433,7 @@ Tethered Skirge
 Thallid Devourer
 The Everforger
 The Flux
+Thicket Elemental
 Throne of the High City
 Thunderbreak Regent
 Thundercloud Shaman

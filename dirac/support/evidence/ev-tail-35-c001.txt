@@ -42,6 +42,7 @@ Bramble Armor
 Branching Bolt
 Brazen Borrower
 Bright Reprisal
+Brighthearth Banneret
 Brood Sliver
 Brute Force
 Call to the Feast
@@ -241,6 +242,7 @@ Reservoir Walker
 Rile
 Rise from the Tides
 Royal Talon Fighter Jet
+Rustic Clachan
 Sacred Rites
 Sadistic Obsession
 Samite Healer
@@ -284,6 +286,7 @@ Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
+Street Savvy
 Striped Bears
 Subterranean Shambler
 Sumala Woodshaper
@@ -331,6 +334,7 @@ Vibranium Strike Gauntlets
 Viridian Revel
 Vitalizing Cascade
 Vraska's Fall
+Wandering Troubadour
 Watcher in the Mist
 Watchful Giant
 Watchwolf
@@ -349,3 +353,4 @@ Wrecking Ball
 Writhing Chrysalis
 Yarok's Fenlurker
 Yuan Shao's Infantry
+Zealous Persecution

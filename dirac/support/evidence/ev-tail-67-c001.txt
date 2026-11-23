@@ -87,6 +87,7 @@ Daily Bugle Newspaper
 Daring Fiendbonder
 Dauntless Survivor
 Deadshot
+Death Rattle
 Death's-Head Buzzard
 Deathless Angel
 Deep Reconnaissance
@@ -192,6 +193,7 @@ Island
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
+Keeper of Kookus
 Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
@@ -260,6 +262,7 @@ Path of Anger's Flame
 Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
+Plaguebearer
 Plains
 Pol Jamaar, Illusionist
 Preeminent Captain

@@ -27,6 +27,37 @@ const skwRem uint8 = 1 << 7
 // entry, nothing being able to change one between firing and stacking.
 const skwMany uint8 = 1 << 6
 
+// skwAtkPl marks a pending attack trigger whose bound attack was on a player
+// (combat.go fireAttacksGen): takePending moves it to the entry's mode bit
+// seAtkPlayer, out of settleSrcKw's reach, so it survives the attacker's
+// departure before the trigger resolves (CR 603.3c, 608.2h).
+const skwAtkPl uint8 = 1 << 3
+
+// skwAtkCtrl marks a pending attack trigger (beside skwAtkPl) whose bound
+// attack was on the trigger's own controller (combat.go fireAttacksGen):
+// takePending moves it to the entry's mode bit seAtkCtrl, out of settleSrcKw's
+// reach. Such a trigger stalls at its OpAtkPWGuard (filter_combatwords.go)
+// whether its attacker is alive or has left: gorge's TriggeredDefender.
+// Opponent names nobody for an attacker its controller does not control (Mage
+// Slayer on a stolen creature), so the gone arm must not fall through to a
+// guessed defender.
+const skwAtkCtrl uint8 = 1 << 4
+
+// skwSAHi is the ninth bit of a BecomesTarget trigger's targeting object + 1
+// (trigSA holds the low byte; saWord joins them). Objects in a full 4x100
+// Commander pod reach 489, so a byte wrapped. It lives in skw's free bit 5 on
+// the pending trigger and the stack entry, so the structs do not grow.
+const skwSAHi uint8 = 1 << 5
+
+// saPack splits o's trigSA word (o + 1; 0 = none) into the trigSA byte and the
+// skwSAHi bit.
+func saPack(w objWord) (lo, hi uint8) {
+	return uint8(w), boolBit(w > 0xFF, skwSAHi)
+}
+
+func (e *stackEntry) saWord() objWord  { return objWord(e.trigSA) | objWord(e.skw&skwSAHi)<<3 }
+func (p *pendingTrig) saWord() objWord { return objWord(p.trigSA) | objWord(p.skw&skwSAHi)<<3 }
+
 // boolBit is bit when b, else 0.
 func boolBit(b bool, bit uint8) uint8 {
 	if b {
@@ -58,20 +89,20 @@ func (s *State) settleSrcKw(k *prep, sl Slot, o Obj) {
 	}
 	for i := 0; i < min(int(s.sp), MaxStack); i++ {
 		if e := &s.stack[i]; e.kind != seSpell && e.obj == o && e.srcVer == ver {
-			e.skw = read()
+			e.skw = e.skw&skwSAHi | read()
 		}
 	}
 	for i := uint8(0); i < s.npend; i++ {
 		if p := &s.pend[i]; p.obj == o && p.srcVer == ver {
-			p.skw = p.skw&(skwRem|skwMany) | read()
+			p.skw = p.skw&(skwRem|skwMany|skwSAHi) | read()
 		}
 	}
 	if e := &s.res.e; s.res.active && e.kind != seSpell && e.obj == o && e.srcVer == ver {
-		e.skw = read()
+		e.skw = e.skw&skwSAHi | read()
 	}
 	if s.buildLive() {
 		if e := &s.bld().e; e.kind != seSpell && e.obj == o && e.srcVer == ver {
-			e.skw = read()
+			e.skw = e.skw&skwSAHi | read()
 		}
 	}
 }

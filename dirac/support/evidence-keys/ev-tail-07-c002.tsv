@@ -6,41 +6,54 @@ Ajani Steadfast	e9418b032bc1b358	75	3/3		1/1
 Akoum Hellhound	bc52a5cbf5ba28aa	14	1/1		0/1	ix:resp
 Angrath, Captain of Chaos	533bed112b952fb2	13	1/1		0/1	ix:resp
 Basri, Devoted Paladin	8a00e062284d067c	24	3/3		1/1	
+Bazaar of Baghdad	21323b065843212e	23	1/1		0/1	ix:resp
+Castle Vantress	07c9471be8c79a0c	37	2/2		0/1	ix:resp
+Clambassadors	0e2080b49295bd85	11	1/1		0/1	ix:resp
 Control Magic	97e10dc645eb4fb3	10	0/0		1/2	ix:resp
 Crabapple Cohort	a4cdf6fbb374f8ca	7	0/0		0/0	
 Daredevil, Fearless Fighter	db9be38ebb0bb68b	16	2/2		0/1	ix:resp
+Den of the Bugbear	9f740ee10f8f9ba2	15	2/2		1/1	
 Dunes of the Dead	bbdbf9e7ea1f71bf	82	2/2		0/1	ix:resp
 Dust to Dust	6a41cb08f7af11e9	30	0/0		2/2	
 Emergence Zone	d3676f15bf390e28	144	2/2		1/1	
 Fire	b764aae955f41478	34	0/0		2/3	f1/s
 Flying Crane Technique	1d7266cb0f9b604b	81	0/0		2/2	
+Fresh Meat	a4f252f16336a49d	12	0/0		1/2	ix:resp
 Gallifrey Stands	9dc2990eb79f186b	6	2/2		1/1	
 Glimmerpoint Stag	95860e7fcbe8a673	17	1/1		0/1	ix:resp
 Gouged Zealot	ebc6e1aaa5fd48f5	34	1/1		1/1	
 Grasp of Fate	d65a1c61804b6049	5	1/1		1/1	
 Hallowed Burial	d2496ed561b16c77	69	0/0		2/2	
 Irenicus's Vile Duplication	24caaf207d19cd9c	10	0/0		1/2	ix:resp
+Llanowar Reborn	dee5ae56fa5385c0	23	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Merchant of the Vale	d9b6eff99cf382c7	23	1/1		2/2	
 Mirkwood Spider	07d35e047f3c38e5	17	1/1		1/1	
+Myth Realized	681988063eced015	18	3/3		1/1	
 Natural Emergence	d130bfdd019a3c90	28	1/1		1/1	
 Olivia's Attendants	1e3615126862a268	9	2/2		1/1	
 Papercraft Decoy	dbeae95d6ce6a41c	27	1/1		1/1	
 Queen's Commission	9768658988e7bd74	105	0/0		2/2	
 Quiet Speculation	5e48f2d2c8299182	78	0/0		2/2	
+Renowned Weaver	795e3bfdc4a3bd3d	11	1/1		1/1	
 Repentance	2c15986f77ae2824	15	0/0		1/2	ix:resp
 Ripscale Predator	69949f2709d4212b	30	0/0		0/0	
 Rishadan Dockhand	9b5a25616400f754	48	1/1		0/1	ix:resp
 Sage's Reverie	d6466dc7d7560781	80	1/1		2/2	
 Samut, Voice of Dissent	1d4bb3db4aaed2d7	5	1/1		0/1	ix:resp
+Scattershot Archer	f9da1577e69f2459	4	1/1		1/1	
 Sethron, Hurloon General	b522c1f999e08e0b	10	2/2		1/1	
 Settlement Blacksmith	760446a30a10f7f8	15	1/1		0/1	ix:resp
 Shattering Blow	1d3fd86eb8c61c3d	37	0/0		2/2	
 Soulcipher Board	de7de5a775f7deab	107	3/3		1/1	
+Sphinx's Tutelage	c983a1f64579b5f5	3	2/2		1/1	
 Spiked Baloth	e69d6e3dc3d2948c	9	0/0		0/0	
 Sunblade Samurai	e8993fa65bf9f451	5	1/1		1/1	
 Thalia, Guardian of Thraben	e41cea1a3f043d8d	10	0/0		0/0	
 Uktabi Wildcats	e6459cdab5471be2	5	1/1		1/1	
 Viashino Cutthroat	4ecca2d51605323b	33	1/1		1/1	
+Warped Researcher	2969690d103ed455	3	1/1		0/1	ix:resp
 Wreak Havoc	4cd62fdee6c3e86e	3	0/0		2/2	
 Wurm's Tooth	426163d9b6ef4979	37	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Zap	3b5c3d2d2126e7cf	22	0/0		1/2	ix:resp
 Zephyr Winder	7b20ecf83bd7b23f	33	1/1		1/1	
+Zoetic Cavern	957f7e71c68968ac	24	1/1		0/3	cast/alt:morphed,cast/alt:none,ix:resp

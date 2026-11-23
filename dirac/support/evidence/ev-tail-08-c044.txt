@@ -3,5 +3,4 @@ Island
 Mountain
 Plains
 Swamp
-Thunderscape Master
 Tor Giant

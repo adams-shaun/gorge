@@ -22,6 +22,7 @@ func decayedRegistration(ps *params) bool {
 
 // lowerDecayed lowers K:Decayed.
 func (lc *lowerCtx) lowerDecayed() {
+	lc.out.HasDecayed = true // the with<Decayed> word's printed record
 	lc.out.Kw = append(lc.out.Kw, "CantBlock")
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
 		"Mode": "Attacks", "ValidCard": "Card.Self", "Execute": decayedAttackSVar,

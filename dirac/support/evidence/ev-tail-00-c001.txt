@@ -107,6 +107,7 @@ Evolution Witness
 Fallen Ideal
 Fated Return
 Fathom Fleet Captain
+Fathom Fleet Swordjack
 Fault Line
 Filigree Familiar
 Filthy Cur
@@ -122,6 +123,7 @@ Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Forge Boss
 Form of the Dragon
 Foundry of the Consuls
 Fully Grown
@@ -145,6 +147,7 @@ Goblin Sky Raider
 God-Eternal Oketra
 Golgari Keyrune
 Goliath Beetle
+Gollum's Bite
 Gornog, the Red Reaper
 Graceful Cat
 Grave Birthing
@@ -160,6 +163,7 @@ Gwyllion Hedge-Mage
 HYDRA Disintegrator
 Hamza, Guardian of Arashin
 Harnessed Snubhorn
+Hatut Zeraze Strike Force
 Haughty Djinn
 Heartwood Giant
 Hengegate Pathway
@@ -225,6 +229,7 @@ Martial Coup
 Masked Vandal
 Megantic Sliver
 Mind Flayer
+Moonlit Strider
 Morgue Thrull
 Mortis Dogs
 Mountain
@@ -271,6 +276,7 @@ Prism Ring
 Prismatic Omen
 Prodigious Growth
 Psychic Symbiont
+Pus Kami
 Quarry Beetle
 Raffine's Tower
 Raging Poltergeist
@@ -285,6 +291,7 @@ Repulsor Rays
 Requiem Angel
 Restoration Gearsmith
 Retreat to Emeria
+Ridge Rannet
 Righteous Avengers
 Rishadan Footpad
 Rot Farm Skeleton
@@ -296,6 +303,7 @@ Sage Owl
 Salvaging Station
 Sam, Loyal Attendant
 Samwise Gamgee
+Samwise the Stouthearted
 Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal

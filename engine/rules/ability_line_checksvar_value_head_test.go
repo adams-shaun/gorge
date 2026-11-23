@@ -26,11 +26,12 @@ import (
 //     exercises a head that resolves but was missing from
 //     effects.modelledValueHeads -- the attribution fix moves it, and this
 //     asserts the head is now BOTH attributed and registered.
-//   - Reset (`A:SP$ UntapAll`, head FinishedUpkeepsThisTurn) exercises a
-//     head that does NOT resolve: attribution is correct and
-//     Registry.Unsupported must now name `count:FinishedUpkeepsThisTurn`,
-//     so the card becomes correctly Unsupported (its gate currently fails
-//     open and it is castable any turn).
+//   - Reset (`A:SP$ UntapAll`, head FinishedUpkeepsThisTurn) was the
+//     head that did NOT resolve; the history-head arms now evaluate it, so
+//     it is attributed AND registered like Izzet Generatorium. A head that
+//     resolves no longer has a corpus carrier in this table; a future
+//     unmodelled head takes a `resolves: false` row (attribution correct,
+//     Registry.Unsupported names it).
 func TestAbilityLineCheckSVarValueHead(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -74,7 +75,7 @@ func TestAbilityLineCheckSVarValueHead(t *testing.T) {
 			api:      "UntapAll",
 			check:    "Count$FinishedUpkeepsThisTurn",
 			wantHead: "count:FinishedUpkeepsThisTurn",
-			resolves: false,
+			resolves: true,
 		},
 	}
 	for _, tc := range cases {

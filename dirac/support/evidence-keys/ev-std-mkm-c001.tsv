@@ -1,0 +1,191 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A Killer Among Us	0f73644c2ceac0ff	8	2/2		0/1	ix:resp
+Absolving Lammasu	10fd82590862c7c5	85	2/2		1/1	
+Aftermath Analyst	497292469b5a6e84	12	2/2		0/1	ix:resp
+Agency Coroner	1aa259fec77fc3e3	55	1/1		1/1	
+Agency Outfitter	caf1d52250792d79	25	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Agrus Kos, Spirit of Justice	0e161174f4e693a5	20	2/2		0/1	ix:resp
+Airtight Alibi	1a72d6e5bcc02a43	12	1/1		1/2	ix:resp
+Analyze the Pollen	2d6da5b77c53f7d4	8	0/0		1/2	ix:resp
+Archdruid's Charm	324da5282a0bdc0e	11	0/0		2/2	
+Assemble the Players	4f00b3a5d1cc10ee	81	0/0		0/0	
+Audience with Trostani	64e648d533c07115	5	0/0		1/2	ix:resp
+Aurelia, the Law Above	bb318a34c7c9d5c6	14	2/2		0/1	ix:resp
+Auspicious Arrival	504dc6ae4776eecb	106	0/0		2/2	
+Axebane Ferox	3cecd15ec3dc031e	58	1/1		0/1	ix:resp
+Barbed Servitor	08e3d79b4425ef64	85	3/3		1/1	
+Basilica Stalker	137d79d2299f6810	59	1/1		1/3	cast/alt:disguised,ix:resp
+Behind the Mask	bcf3241377d5c91e	12	0/0		1/2	ix:resp
+Benthic Criminologists	35b598a78d7a16ea	25	2/2		0/1	ix:resp
+Bite Down on Crime	aff3b20be8149a00	8	0/0		2/2	
+Bolrac-Clan Basher	ed3daad830dbc9c6	23	0/0		1/2	cast/alt:disguised
+Branch of Vitu-Ghazi	e1ae654806d5a689	178	2/2		1/3	cast/alt:none,ix:resp
+Bubble Smuggler	a1de6f90724a9920	31	0/0		1/2	cast/alt:disguised
+Burden of Proof	cc75398f0281356e	42	0/0		2/2	
+Call a Surprise Witness	f2418f4995b391e5	45	0/0		2/2	
+Candlestick	5a5e8e1f2e5b2860	27	2/2		0/1	ix:resp
+Case of the Crimson Pulse	59b1a07522d58345	32	3/3		0/1	ix:resp
+Case of the Filched Falcon	1336856cb574fdce	24	3/3		0/1	ix:resp
+Case of the Gateway Express	c96647437f646653	81	2/2		1/1	
+Case of the Gorgon's Kiss	d6f0cc7ca8b68cba	92	2/2		0/1	ix:resp
+Case of the Stashed Skeleton	ae2288c38c10dfff	95	3/3		1/1	
+Case of the Trampled Garden	3b3cfd07bb367f8c	13	3/3		1/1	
+Case of the Uneaten Feast	971c0be2288e89ef	100	3/3		1/1	
+Caught Red-Handed	3dc55bf33a324bfe	27	0/0		2/2	
+Cerebral Confiscation	2a47ca273ae14532	86	0/0		2/2	
+Chalk Outline	23709fbce6aaa304	6	1/1		1/1	
+Clandestine Meddler	0b1406aa1181999d	85	2/2		0/1	ix:resp
+Cold Case Cracker	f462a0c1687bcf65	29	1/1		1/1	
+Commercial District	258e1f537352928b	139	3/3		1/1	
+Convenient Target	3d134803eedac5a2	31	2/2		2/2	
+Cornered Crook	102c4edf08496e1d	20	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Crime Novelist	af186885e251db3a	14	1/1		0/1	ix:resp
+Crimestopper Sprite	16ccd00aa7d15a66	11	1/1		0/1	ix:resp
+Crowd-Control Warden	8d4369529a4d836d	18	0/0		1/2	cast/alt:disguised
+Cryptic Coat	2432e78f5dc44c68	38	2/2		1/1	
+Curious Inquiry	ce15c5de34d09571	15	0/0		1/2	ix:resp
+Deduce	81ee33ec953790b8	43	0/0		2/2	
+Defenestrated Phantom	e807ad91b05c7ca8	60	0/0		1/2	cast/alt:disguised
+Delney, Streetwise Lookout	968ed229619ffc1f	77	0/0		0/0	
+Demand Answers	f16552fd099d7110	8	0/0		1/2	ix:resp
+Doorkeeper Thrull	0820800c4e173b9b	91	0/0		0/0	
+Dramatic Accusation	30bc68b773aa7af7	22	2/2		2/2	
+Due Diligence	3d7ac1cc51627674	89	1/1		2/2	
+Elegant Parlor	325445d71ca7b819	168	3/3		1/1	
+Eliminate the Impossible	816d546ae52465d9	18	0/0		1/2	ix:resp
+Escape Tunnel	d52cf5b130679874	137	2/2		0/1	ix:resp
+Expedited Inheritance	2213a43330514cbe	11	1/1		1/1	
+Expose the Culprit	960774eb6355a8f7	21	0/0		1/2	ix:resp
+Extract a Confession	b4d49555aec54a1c	39	0/0		2/2	
+Ezrim, Agency Chief	b311d2aea8737f8b	31	2/2		1/1	
+Fae Flight	9cea2b3fb0f9e42e	30	1/1		2/2	
+Fanatical Strength	b9b090a4abef5882	20	0/0		1/2	ix:resp
+Felonious Rage	d4b86216ae4046d2	29	0/0		2/2	
+Festerleech	b23585853610199e	97	2/2		1/1	
+Forensic Gadgeteer	1b9998a48faa4f07	14	1/1		1/1	
+Forensic Researcher	25ec89eb4ffbedc4	25	2/2		1/1	
+Forest	6d0466c30f825dba	242	1/1		0/1	ix:resp
+Furtive Courier	be44d124613b6fda	37	1/1		1/1	
+Galvanize	4b3f0d3f8fdb42b8	22	0/0		2/2	
+Gearbane Orangutan	7c06c0446b57b7cb	12	1/1		0/1	ix:resp
+Get a Leg Up	f3cafbf1e124f8f7	23	0/0		2/2	
+Glint Weaver	e492367ef087baa8	16	1/1		0/1	ix:resp
+Goblin Maskmaker	dcaac1a4fc2f9b3a	27	1/1		1/1	
+Gravestone Strider	a1d10dd5f4be22d5	116	2/2		1/1	
+Griffnaut Tracker	3165cc7bbd0a358f	84	1/1		1/1	
+Haazda Vigilante	b30d0fe16e79fabb	72	2/2		1/1	
+Hard-Hitting Question	edb77589e2d23ed1	16	0/0		2/2	
+Harried Dronesmith	5d88fdd1e7840aa6	24	1/1		1/1	
+Hedge Maze	ba81bac29d85fac2	164	3/3		0/1	ix:resp
+Hedge Whisperer	70bfec47e7beb9e3	22	1/1		0/1	ix:resp
+Hide in Plain Sight	2f90502a336aaffc	18	0/0		1/2	ix:resp
+Homicide Investigator	6208da91cc63693e	119	1/1		1/1	
+Hotshot Investigators	89f2ae40d5d9908b	24	1/1		0/1	ix:resp
+Hunted Bonebrute	299b10b854be975b	100	2/2		2/3	cast/alt:disguised
+Illicit Masquerade	a36bb899dde70be3	92	2/2		1/1	
+Incinerator of the Guilty	8c77a18c69420a04	13	1/1		1/1	
+Innocent Bystander	2b54e5f8f59cb2b2	26	1/1		0/1	ix:resp
+Inside Source	ef19970f57eccec4	88	2/2		1/1	
+Island	763c67ef7a27eaf5	388	1/1		0/1	ix:resp
+It Doesn't Add Up	dd96ee1cd4dbdd42	68	0/0		2/2	
+Jaded Analyst	871e0de342d95ea2	28	1/1		1/1	
+Karlov Watchdog	7b8a52fd9b0678ff	63	1/1		1/1	
+Kaya, Spirits' Justice	20a07ee78dc10501	79	4/4		1/1	
+Knife	0ce4115315712bde	91	2/2		1/1	
+Krenko, Baron of Tin Street	b212e033980bd097	30	2/2		1/1	
+Krovod Haunch	2b45d11c0cbda6f9	82	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
+Lamplight Phoenix	cd00e6a0c1bfcf65	23	1/1		1/1	
+Lead Pipe	311255d21f5e2e33	98	3/3		1/1	
+Leering Onlooker	fba0a4455470b185	119	1/1		1/1	
+Lightning Helix	4a3357c036559169	28	0/0		1/2	ix:resp
+Long Goodbye	d3f94d7de0f178a3	75	0/0		2/2	
+Loxodon Eavesdropper	0497acedaf8039f4	10	2/2		0/1	ix:resp
+Lumbering Laundry	53ba9ce8dd003f09	69	1/1		2/3	cast/alt:disguised
+Lush Portico	ecc67034378f9480	170	3/3		0/1	ix:resp
+Macabre Reconstruction	2be7d8a4aaee895c	74	0/0		2/2	
+Magnetic Snuffler	5d50d152ae12047f	68	2/2		1/1	
+Magnifying Glass	a1c4ef9c4fea3e86	117	2/2		1/1	
+Make Your Move	429dbfd63d7373c3	89	0/0		2/2	
+Makeshift Binding	f91e1845e433e21e	92	1/1		1/1	
+Marketwatch Phantom	fcb2078d94635f89	87	1/1		1/1	
+Massacre Girl, Known Killer	ea7182cf7669f926	52	1/1		0/1	ix:resp
+Meddling Youths	f39172ce43c3d395	22	1/1		0/1	ix:resp
+Meticulous Archive	5f367871da61292c	118	3/3		0/1	ix:resp
+Mountain	9e71388353e907ed	302	1/1		0/1	ix:resp
+Murder	cb5577a7bce1d337	64	0/0		1/2	ix:resp
+Museum Nightwatch	276afdaec0cbf86e	58	1/1		2/3	cast/alt:disguised
+Neighborhood Guardian	57c525f1f50d20bf	96	1/1		1/1	
+Nightdrinker Moroii	522503dd7b5911d1	90	1/1		2/3	cast/alt:disguised
+No More Lies	d99afe54fdad4c14	21	0/0		2/2	
+No Witnesses	369fb0e438d13fa9	76	0/0		1/2	ix:resp
+Not on My Watch	242d5dcec132390d	86	0/0		2/2	
+Novice Inspector	f4ccc022afcdfc5f	107	1/1		1/1	
+Officious Interrogation	acb1a977bd628320	20	0/0		1/2	ix:resp
+On the Job	dcf86f865980de12	113	0/0		2/2	
+Out Cold	6dcdcd8db7e41745	30	0/0		1/2	ix:resp
+Outrageous Robbery	067c1cbe2b8ab83d	60	0/0		3/4	f0/s/x0
+Person of Interest	e38db65fb277037f	11	1/1		0/1	ix:resp
+Persuasive Interrogators	81bf372b9c054dde	69	2/2		1/1	
+Pick Your Poison	4a7c1a77422d3be7	9	0/0		1/2	ix:resp
+Plains	82d63a695487e567	3630	1/1		0/1	ix:resp
+Polygraph Orb	f92fd4c51c10ac3d	59	2/2		1/1	
+Pompous Gadabout	c52be76d545643ab	20	0/0		0/0	
+Presumed Dead	1659a2ecc298f4fa	144	0/0		2/2	
+Private Eye	127ce0622d48681c	24	1/1		1/1	
+Proft's Eidetic Memory	e9b06ffc60505e52	28	2/2		1/1	
+Public Thoroughfare	4c8629341c3c5af9	167	2/2		0/1	ix:resp
+Raucous Theater	0b5bf2b32f9ae030	159	3/3		0/1	ix:resp
+Reckless Detective	874a6552942f13cf	23	1/1		0/1	ix:resp
+Red Herring	e2f181faa258aac2	17	1/1		0/1	ix:resp
+Reenact the Crime	cd8c633081093f41	14	0/0		1/2	ix:resp
+Repeat Offender	66fa82d98cebfced	98	1/1		1/1	
+Rope	e80cae970f69ae4b	19	2/2		0/1	ix:resp
+Rot Farm Mortipede	e4c6e5ee92a5a3e8	57	1/1		0/1	ix:resp
+Rubblebelt Braggart	f1dce5353a67ba87	17	1/1		0/1	ix:resp
+Rubblebelt Maverick	9aa3fbd530dbe1f4	14	2/2		0/1	ix:resp
+Sample Collector	869363c4515d787c	20	1/1		0/1	ix:resp
+Sanctuary Wall	46b137c701e17fa7	118	1/1		1/1	
+Sanguine Savior	a96b0537bec5465f	4	1/1		1/3	cast/alt:none,ix:resp
+Sanitation Automaton	19b42ae2b6b7778d	111	1/1		1/1	
+Scene of the Crime	5d7ffcb1cf81d07b	153	3/3		0/1	ix:resp
+Seasoned Consultant	927a0cca4b8573a0	122	1/1		1/1	
+Shadowy Backstreet	5343136500f42eab	132	3/3		0/1	ix:resp
+Sharp-Eyed Rookie	8672f1b65fb121f8	81	1/1		1/1	
+Shock	251ddefdf52e1ce7	27	0/0		2/2	
+Slice from the Shadows	753cea6110cffef0	45	0/0		4/4	
+Slime Against Humanity	73c82ee1001f3c1c	15	0/0		1/2	ix:resp
+Slimy Dualleech	69d320441b36cac7	87	1/1		1/1	
+Snarling Gorehound	336a60769e87626a	82	1/1		1/1	
+Soul Enervation	48d73b4147aebffe	97	2/2		1/1	
+Soul Search	7d1645fff2b76a43	75	0/0		2/2	
+Steamcore Scholar	fa8c8238fd333df8	31	1/1		1/1	
+Sudden Setback	e1198a8e0fc36896	27	0/0		1/2	ix:resp
+Surveillance Monitor	5baab8f7c3efea69	16	2/2		1/1	
+Suspicious Detonation	109263c883224feb	23	0/0		1/2	ix:resp
+Swamp	342b413902f441c3	2277	1/1		0/1	ix:resp
+Tenth District Hero	d48312753d1150e7	155	2/2		1/1	
+Teysa, Opulent Oligarch	77d0f3d59d60dd8d	53	2/2		1/1	
+The Chase Is On	57391296cb35dc30	24	0/0		1/2	ix:resp
+The Pride of Hull Clade	af3f89c1bc7ac9a4	57	1/1		1/1	
+They Went This Way	982f67c5bb258f8f	12	0/0		2/2	
+Thinking Cap	f35c50c733f4d307	79	2/2		1/1	
+Thundering Falls	35886fc473e67573	150	3/3		1/1	
+Topiary Panther	153edc9587acac04	3	1/1		0/1	ix:resp
+Torch the Witness	ad5a78c09f37c738	10	0/0		2/4	f0/s/x0,ix:resp
+Toxin Analysis	7bcaf4ab9b4d0e88	96	0/0		2/2	
+Treacherous Greed	f72fdce0ff2f02d5	59	0/0		2/2	
+Trostani, Three Whispers	f76dcd06e2201776	3	3/3		0/1	ix:resp
+Tunnel Tipster	b948286cec7ee0fa	102	2/2		1/1	
+Unauthorized Exit	b1f34ab7679d10d2	23	0/0		1/2	ix:resp
+Undercity Eliminator	6cff1dda1b75c314	65	1/1		1/1	
+Undercity Sewers	4c25ffe381d6c798	159	3/3		0/1	ix:resp
+Underground Mortuary	f8a3eadbe0d28ac0	143	3/3		0/1	ix:resp
+Undergrowth Recon	83337588e138ec6b	15	1/1		0/1	ix:resp
+Unscrupulous Agent	2958fe2a1604d090	113	1/1		1/1	
+Unyielding Gatekeeper	75eaecbe865d9f66	6	1/1		2/3	cast/alt:none
+Vein Ripper	1ae92b1d42bf02f0	61	2/2		1/1	
+Vengeful Tracker	36779e7f09ef0c5b	24	1/1		0/1	ix:resp
+Warleader's Call	13793cab15ebbd8c	22	1/1		1/1	
+Wispdrinker Vampire	ec9a4e0335c8d298	73	2/2		1/1	
+Wojek Investigator	2f76c7d4e6318c48	68	1/1		1/1	
+Wrench	7992f9a3b6e15ff5	111	2/2		1/1	

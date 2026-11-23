@@ -4,4 +4,5 @@ value: 23
 forge: AssignCombatDamageAsUnblocked
 census: stat AssignCombatDamageAsUnblocked all=14 std=0 mbc=0 sole=13
 state: code 0
-status: reserved
+status: active
+ticket: dsd-t17b-static-modes

@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"slices"
 	"strings"
 )
 
@@ -52,18 +51,18 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 	} else if !plainCount {
 		return refuse("public pick ChangeNum$ %v", n)
 	}
-	if _, ok := ps.get("ExileFaceDown"); ok {
-		// the intermediate face-down exile is unobservable when the chained
-		// Cloak moves every remembered card to the battlefield face down
-		if origin != zBattlefield || dest != zExile || !ps.is("ExileFaceDown", "True") || !ps.is("RememberChanged", "True") || ps.is("WithMayLook", "True") {
-			return refuse("public pick ExileFaceDown$ shape")
-		}
-		ps.consume("ExileFaceDown")
+	if err := pickExileFaceDown(ps, origin, dest); err != nil {
+		return err
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("public pick filter %s", f)
 	}
 	cs := []string{"from=" + zoneLabel[origin]}
+	ul, err := pickUntilLeaves(ps, origin, dest) // Duration$ UntilHostLeavesPlay (kop.SrBattleLink)
+	if err != nil {
+		return err
+	}
+	cs = append(cs, ul...)
 	for _, fl := range flags {
 		switch fl {
 		case "Mandatory", "Remember":
@@ -142,6 +141,36 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 	return nil
 }
 
+// pickExileFaceDown reads ExileFaceDown$ on a public pick: the intermediate
+// face-down exile is unobservable when the chained Cloak moves every
+// remembered card to the battlefield face down.
+func pickExileFaceDown(ps *params, origin, dest int) error {
+	if _, ok := ps.get("ExileFaceDown"); !ok {
+		return nil
+	}
+	if origin != zBattlefield || dest != zExile || !ps.is("ExileFaceDown", "True") || !ps.is("RememberChanged", "True") || ps.is("WithMayLook", "True") {
+		return refuse("public pick ExileFaceDown$ shape")
+	}
+	ps.consume("ExileFaceDown")
+	return nil
+}
+
+// pickUntilLeaves reads Duration$ UntilHostLeavesPlay on a battlefield exile
+// pick (Glorious Protector, Abdel Adrian, Yannik): the picked set returns to
+// the battlefield when the source leaves (CS UntilLeaves, which instr_search.go
+// lowers to kop.SrBattleLink, one link per picked card). Any other duration, or
+// another zone pair, refuses with the known-origin move's reason.
+func pickUntilLeaves(ps *params, origin, dest int) ([]string, error) {
+	dur, ok := ps.get("Duration")
+	if !ok {
+		return nil, nil
+	}
+	if strings.TrimSpace(dur) != "UntilHostLeavesPlay" || origin != zBattlefield || dest != zExile {
+		return nil, refuse("ChangeZone Duration %q", dur)
+	}
+	return []string{"UntilLeaves"}, nil
+}
+
 // pickFetchPlayer resolves a hidden pick's DefinedPlayer$ spelling: the
 // player whose zone the pool is (gorge effHiddenPick's players through the
 // shared selector grammar; gameWide is false whenever the param is present),
@@ -186,46 +215,6 @@ func (lc *lowerCtx) pickEachLoop(loop lRef) {
 	if loop.Kind != rNone {
 		lc.emit(lInstr{Op: "RepeatEach", Obj: loop, C: 1, Skip: 1, Note: "each player picks from their own zone (opponents for EachOpp)"})
 	}
-}
-
-// graveChooser folds a Chooser$ You graveyard pick that walks the opponents
-// (DefinedPlayer$ Opponent, onto the battlefield under your control) into the
-// one opponent's cards asked of You (youPickEachOppGrave). It returns the
-// owner and loop to emit; every other spelling is returned unchanged for
-// graveChooserFlags (lower_gravedefinedplayer.go) to read.
-func (lc *lowerCtx) graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef) {
-	if loop.Kind != rNone && ps.str("Chooser") == "You" && lc.youPickEachOppGrave(f, flags, loop) {
-		return lRef{Kind: rYou}, lRef{}
-	}
-	return owner, loop
-}
-
-// youPickEachOppGrave folds Chooser$ You into a graveyard pick that walks the
-// opponents (DefinedPlayer$ Opponent) onto the battlefield under your control
-// (The Weaver King: "for each opponent, put a creature card from that
-// player's graveyard onto the battlefield under your control"). gorge
-// effHiddenPick walks the opponents and asks the resolving controller
-// (hiddenPickChooser: Chooser$ You) over each opponent's graveyard; the
-// kernel's each-player loop would ask the opponent instead. dirac is
-// two-seat, so the one opponent's graveyard is the GainControl$ pick's
-// game-wide pool (gameGraveCands) narrowed to opponent-owned cards, asked of
-// You and entering under You: the loop is dropped and every clause's owner
-// becomes the opponent. It reports false (refuse) for any other shape: no
-// GainControl$, or a clause that already names an owner or controller.
-func (lc *lowerCtx) youPickEachOppGrave(f *lFilter, flags []string, loop lRef) bool {
-	if loop.Kind != rEachOpp || !slices.Contains(flags, "UnderYourControl") || f == nil || len(f.Clauses) == 0 {
-		return false
-	}
-	for _, c := range f.Clauses {
-		if c.Owner != whoAny || c.Ctrl != whoAny {
-			return false
-		}
-	}
-	for i := range f.Clauses {
-		f.Clauses[i].Owner = whoOpp
-	}
-	lc.twoSeat("a per-opponent graveyard pick asked of You read as the one opponent's cards")
-	return true
 }
 
 // onlyTargetedCtrl reports whether every clause of f is controlled by the

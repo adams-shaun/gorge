@@ -1,15 +1,22 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Amphibious Kavu	78e0b07fc9f4251c	57	2/2		0/1	ix:resp
+Assembly Hall	664121ce79ef3ccd	15	1/1		0/1	ix:resp
+Behind the Scenes	a0923758a5221bfd	25	1/1		1/1	
+Bilbo, Birthday Celebrant	737d2e5b2f80beba	503	1/1		1/1	
 Circle of Protection: Blue	ec0ce586cc523c1a	49	1/1		1/1	
 Etched Champion	62a25ec3aa7338ca	33	0/0		0/0	
 Flame Wave	2fcba72f602d6739	6	0/0		2/2	
+Glorious Protector	c65100149f814a2a	58	1/1		2/3	cast/alt:foretold
 Gremlin Infestation	b3446f0cb3098db2	42	2/2		2/2	
 Herdchaser Dragon	56b123dcff205d47	51	1/1		2/3	ix:resp
 Myr Quadropod	2f1de26117026f1d	10	1/1		0/1	ix:resp
 Nosy Goblin	00734e905797ac9a	205	1/1		1/1	
 On Thin Ice	539ed99d2a375fb5	8	1/1		1/2	ix:resp
 Rite of Undoing	3b7dd316ff799097	8	0/0		1/2	ix:resp
+Sauron, the Dark Lord	0f9e366de3c9a95e	22	4/4		1/1	
 Scorched Earth	d8a8679bc8677fb5	4	0/0		2/4	f0/s/x+,f0/s/x0
 Sickening Dreams	30455d693a21034f	7	0/0		2/2	
 Strength of Lunacy	bb2e2001562c1bf1	4	0/0		1/2	ix:resp
 Tephraderm	61c67a9dbe2ac8be	8	2/2		0/1	ix:resp
 Treasure Cruise	c6a19221bb77f8a1	6	0/0		1/2	ix:resp
+Zalto, Fire Giant Duke	cfc0eb6a3fa27015	7	1/1		0/1	ix:resp

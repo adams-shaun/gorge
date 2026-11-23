@@ -11,6 +11,7 @@ Island
 Marionette Apprentice
 Mountain
 Plains
+Smiting Helix
 Swamp
 Toxic Abomination
 Tragic Fall

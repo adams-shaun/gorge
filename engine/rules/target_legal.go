@@ -92,8 +92,11 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 			// A reflexive ability's bound may count what its spawning
 			// resolution remembered ("return up to THAT MANY target cards":
 			// TargetMax$ X over TriggerRemembered$Amount), which rides the
-			// minted object's own Remembered (engine/rules/reflexive.go).
-			reflexiveCaptured(ctx, nil)
+			// minted object's own Remembered (engine/rules/reflexive.go). The
+			// remembered objects' last-known P/T ride along (CR 608.2h:
+			// Yannik's "distribute X counters ... X the exiled creature's
+			// power" bounds its targets by the power the creature had).
+			reflexiveCaptured(ctx, e.reflexiveRememberedPT[source])
 		}
 	}
 	// The pending cast's own multikicker count (engine/rules/cast.go's multikickAsk):
@@ -881,7 +884,10 @@ func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q,
 			}
 			continue
 		}
-		if effects.MatchesPlayerSpecFrom(e.G, alt, q, you, source) {
+		// The layer-bound entry, so a Player.withMoreCreaturesThanActive
+		// count reads derived types (CR 613.1d: Nissa's animated land is a
+		// creature, Oath of Druids' target) as the filter sites do.
+		if effects.MatchesPlayerSpecCtx(e.G, alt, q, you, e.playerSpecCtx(source)) {
 			return true
 		}
 	}

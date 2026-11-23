@@ -106,8 +106,14 @@ func (e *Engine) evolveResolves(source state.ObjID, tc *effects.TriggerContext) 
 // triggerResolvingCheckHolds); every fire-time site (triggerMatches,
 // the event-matched delayed walker, the AttackerBlocked hook) keeps its own
 // check.
+// modeIsAlways reports a CR 603.8 Mode$ Always state trigger: an ability that
+// triggers from the game state alone, with no event to match.
+func modeIsAlways(t cards.Trigger) bool {
+	return t.Mode == "Always"
+}
+
 func noResolvingCheck(t cards.Trigger) bool {
-	if t.Mode == "Always" {
+	if modeIsAlways(t) {
 		// CR 603.8: a state-triggered ability triggers when the game state
 		// matches its condition and does not trigger again until it has left
 		// the stack. Nothing in 603.8 rechecks the condition as the ability
@@ -835,18 +841,25 @@ func (e *Engine) countPresentCtx(spec string, source state.ObjID, you state.Play
 // clause's PresentPlayer$ counts.
 func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
 	n := 0
-	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZBattlefield {
-			return
+	// Only battlefield permanents count, so read each living seat's battlefield
+	// slice directly rather than walking every zone of every seat through
+	// forEachObject and discarding all but the battlefield (libraries dominate
+	// that walk). The count is a sum, so order cannot reach the result, and
+	// matchesSpec only reads state.
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield {
+				continue
+			}
+			if scope != presentPlayerAny && !presentControllerInScope(e.controllerOf(id), you, scope) {
+				continue
+			}
+			if e.matchesSpec(spec, id, sc) {
+				n++
+			}
 		}
-		if scope != presentPlayerAny && !presentControllerInScope(e.controllerOf(id), you, scope) {
-			return
-		}
-		if e.matchesSpec(spec, id, sc) {
-			n++
-		}
-	})
+	}
 	return n
 }
 

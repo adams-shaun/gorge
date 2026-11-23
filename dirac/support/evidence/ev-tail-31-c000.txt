@@ -65,11 +65,13 @@ Cast Down
 Celestial Flare
 Centaur Rootcaster
 Cephalid Inkshrouder
+Cephalid Shrine
 Chandra, Fire Artisan
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
 Clinging Darkness
+Coalition Relic
 Combine Chrysalis
 Conclave Phalanx
 Conjurer's Closet
@@ -128,6 +130,7 @@ Famished Ghoul
 Fauna Shaman
 Femeref Scouts
 Festival of the Guildpact
+Final Fortune
 Fists of Flame
 Flame Rift
 Fleeting Memories
@@ -170,6 +173,7 @@ Gustrider Exuberant
 Guul Draz Overseer
 Hagra Constrictor
 Hamletback Goliath
+Harbinger of Spring
 Harsh Judgment
 Heartless Pillage
 Heavy Mattock
@@ -276,6 +280,7 @@ Phyrexian Hulk
 Phyrexian Vivisector
 Pious Interdiction
 Plains
+Powder Ganger
 Pre-War Formalwear
 Prismatic Ward
 Profane Tutor
@@ -401,6 +406,7 @@ Troll Ascetic
 Trudge Garden
 Tunneling Geopede
 Twiddle
+Tyrant's Choice
 Tyvar's Stand
 Umara Mystic
 Undead Augur

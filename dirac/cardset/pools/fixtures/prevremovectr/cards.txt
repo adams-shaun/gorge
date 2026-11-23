@@ -9,3 +9,8 @@ Grizzly Bears
 Forest
 Swamp
 Mountain
+# Token-making blockers for TestDamageDoneReplShapeBlockersLockstep (a Knight blocked by tokens,
+# combat damage divided among them)
+Dragon Fodder
+Hordeling Outburst
+Goblin Instigator

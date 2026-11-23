@@ -42,6 +42,7 @@ Bontu's Last Reckoning
 Bramble Armor
 Branching Bolt
 Brazen Borrower
+Brighthearth Banneret
 Brood Sliver
 Brute Force
 Call to the Feast
@@ -160,6 +161,7 @@ Hideous Visage
 Hoofprints of the Stag
 Hookblade
 Hoverguard Observer
+Hundred-Talon Kami
 Hypnotic Grifter
 Hyrax Tower Scout
 Impaler Shrike
@@ -203,6 +205,7 @@ Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
 Marshal's Anthem
+Mass Polymorph
 Meatsqueak, Hoard Lord
 Meltdown
 Merfolk Thaumaturgist
@@ -221,6 +224,7 @@ Mountain Valley
 Myojin of Cleansing Fire
 Myr Galvanizer
 Mystic Zealot
+Nantuko Shrine
 Nantuko Tracer
 Necrogenesis
 Neheb, the Worthy
@@ -271,6 +275,7 @@ Rimeshield Frost Giant
 Rise from the Tides
 Roil's Retribution
 Royal Trooper
+Rustic Clachan
 Sacred Rites
 Sadistic Obsession
 Saprazzan Raider
@@ -299,6 +304,7 @@ Smoldering Spires
 Snapping Sailback
 Soaring Hope
 Soul Stair Expedition
+Space Marine Devastator
 Spellkeeper Weird
 Sphere Grid
 Sphinx of Enlightenment
@@ -313,6 +319,7 @@ Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
+Street Savvy
 Striped Bears
 Subterranean Shambler
 Sumala Woodshaper
@@ -332,6 +339,7 @@ Thassa's Oracle
 Thatcher Revolt
 The Biblioplex
 The Blue Spirit
+The Dalek Emperor
 The Falcon, Sam Wilson
 Thorn of the Black Rose
 Thriving Grubs
@@ -343,6 +351,7 @@ Titan of Eternal Fire
 Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback
+Transmogrify
 Tree Monkey
 Treefolk Umbra
 Tribal Flames
@@ -382,6 +391,7 @@ Worldly Counsel
 Wrap in Flames
 Wreck and Rebuild
 Wrecking Ball
+Wren's Run Hydra
 Writhing Chrysalis
 Yarok's Fenlurker
 Yoke of the Damned

@@ -1,3 +1,4 @@
+A-Dawnbringer Cleric
 A-Guide of Souls
 A-Plate Armor
 A-Tatyova, Steward of Tides
@@ -13,10 +14,14 @@ Aurora Eidolon
 Aven Trooper
 Aven Windreader
 Azimaet Drake
+Azure Mage
+Baleful Strix
 Barbed Sliver
 Battleflight Eagle
 Bearer of Memory
 Beastmaster's Magemark
+Bellows Lizard
+Benevolent Blessing
 Betrayal
 Black Sun's Twilight
 Blackbloom Rogue
@@ -28,9 +33,12 @@ Bounty of the Luxa
 Brainsurge
 Bramblecrush
 Brood Sliver
+Calculated Dismissal
 Capashen Unicorn
 Captured by Lagacs
+Casey Jones, Back Alley Brute
 Cave-In
+Celestial Prism
 Cephalid Illusionist
 Chain Lightning
 Chicken Egg
@@ -40,13 +48,19 @@ Chromatic Star
 City of Brass
 Civic Guildmage
 Cleopatra, Exiled Pharaoh
+Cloudkill
 Colossal Dreadmaw
 Concordant Crossroads
+Condemn
 Constable of the Realm
 Constricting Tendrils
 Contortionist Troupe
+Corrupt
+Creature Bond
 Curse of Predation
+Cursed Totem
 Danitha Capashen, Paragon
+Darksteel Brute
 Dauntless Bodyguard
 Deadeye Plunderers
 Deadly Insect
@@ -60,6 +74,7 @@ Despondency
 Devil Dinosaur
 Devoted Retainer
 Devouring Swarm
+Dire Fleet Interloper
 Divine Smite
 Doom's Servo-Guards
 Dragonborn Looter
@@ -73,14 +88,18 @@ Encroaching Wastes
 Endless Wurm
 Engineered Might
 Entish Restoration
+Equestrian Skill
 Esika's Chariot
 Eternal of Harsh Truths
 Euroakus
 Fact or Fiction
 Faithbearer Paladin
+Fanatical Fever
+Fangs of Kalonia
 Feeding Frenzy
 Feldon, Ronom Excavator
 Ferocious Charge
+Fevered Strength
 Field Marshal
 Fire Ambush
 Firemaw Kavu
@@ -89,9 +108,11 @@ Forest
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Fume Spitter
 Ghalma's Warden
 Ghoulcaller's Bell
 Gift of Paradise
+Gixian Infiltrator
 Glittering Wish
 Gloomhunter
 Go-Shintai of Hidden Cruelty
@@ -106,6 +127,7 @@ Grismold, the Dreadsower
 Gruul Keyrune
 Guardian of the Guildpact
 Guul Draz Assassin
+Hanweir Garrison
 Harpoon Sniper
 Haunted Crossroads
 Hero's Resolve
@@ -118,19 +140,25 @@ Insidious Bookworms
 Involuntary Cooldown
 Island
 Jhoira's Familiar
+Jinxed Idol
+Journey to the Lost City
 Khenra Charioteer
 Kiora's Follower
 Kjeldoran Pride
 Knights of Dol Amroth
 Kor Blademaster
+Krosan Wayfarer
 Land Leeches
 Late to Dinner
 Lava Axe
+Leonin Relic-Warder
 Liliana's Defeat
 Liliana's Elite
 Liliana's Standard Bearer
 Loamdragger Giant
+Loathsome Troll
 Lokhust Heavy Destroyer
+Lotus Blossom
 MACH-1, Swooping Scoundrel
 Mad Auntie
 Magmatic Core
@@ -148,6 +176,7 @@ Mind Ravel
 Mist-Syndicate Naga
 Moldervine Reclamation
 Momentum Rumbler
+Monastery Swiftspear
 Moonveil Dragon
 Mountain
 Multiform Wonder
@@ -160,25 +189,32 @@ Norn's Inquisitor
 Novellamental
 Nylea's Huntmaster
 Omarthis, Ghostfire Initiate
+Opal Champion
 Orazca Frillback
 Oreskos Swiftclaw
+Orthodoxy Enforcer
+Outbreak
 Painwracker Oni
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
 Plague Fiend
 Plains
+Planar Incision
 Planar Portal
 Plow Under
 Pool Resources
 Portent of Betrayal
 Precision Bolt
+Preening Champion
+Preordain
 Prey Upon
 Psychic Strike
 Psychotic Haze
 Pull from Tomorrow
 Putrid Imp
 Pyromantic Pilgrim
+Queen's Agent
 Quicksilver Wall
 Quilled Slagwurm
 Rag Dealer
@@ -186,6 +222,7 @@ Raging Kavu
 Rakshasa's Disdain
 Rally Maneuver
 Rancid Rats
+Razorfin Abolisher
 Razortooth Rats
 Reaper of the Wilds
 Reaping the Rewards
@@ -209,13 +246,17 @@ Sanctify
 Sapphire Dragon
 Savai Thundermane
 Scrivener
+Scroll of the Masters
 Seismic Mage
 Selfless Spirit
+Servant of the Scale
 She-Hulk, Jennifer Walters
 Sheltering Landscape
+Shu Yun, the Silent Tempest
 Sigarda's Summons
 Sign in Blood
 Silent Sentinel
+Silvanus's Invoker
 Silverflame Squire
 Silverskin Armor
 Skirsdag Flayer
@@ -236,15 +277,21 @@ String of Disappearances
 Strip Mine
 Sudden Reclamation
 Sun-Blessed Mount
+Suncrusher
 Sunstrike Legionnaire
 Sunweb
 Surrakar Marauder
 Swamp
+Sweep the Skies
 Talisman of Unity
+Tawnos's Tinkering
 Telepathic Spies
+Temporal Adept
+Territorial Baloth
 The Indomitable
 The Shattered States Era
 Thopter Assembly
+Thought Collapse
 Tideshaper Mystic
 Topaz Dragon
 Towering Indrik
@@ -257,7 +304,11 @@ Unholy Officiant
 Unquestioned Authority
 Urza, Powerstone Prodigy
 Vagrant Plowbeasts
+Vampire Envoy
+Verdant Touch
 Verge Rangers
+Vessel of Endless Rest
+Veteran Adventurer
 Vhati il-Dal
 Vilis, Broker of Blood
 Vineweft
@@ -265,6 +316,7 @@ Vintara Snapper
 Viridian Longbow
 Vulshok Replica
 Wall of Heat
+Warren-Scourge Elf
 Waterkin Shaman
 Weapon Rack
 Wei Scout
@@ -273,3 +325,4 @@ Western Paladin
 Whispers of the Muse
 Wildfire Eternal
 Willow-Wind
+Word of Seizing

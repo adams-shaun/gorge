@@ -8,6 +8,7 @@ Aether Adept
 Aether Inspector
 Aethersnipe
 Agent of Stromgald
+Akoum Refuge
 Akroan Sergeant
 Alluring Suitor
 Alpha Tyrranax
@@ -63,6 +64,7 @@ Cleric of Chill Depths
 Clever Concealment
 Cloak and Dagger
 Clock of Omens
+Coldsteel Heart
 Cone of Flame
 Confidence from Strength
 Conqueror's Pledge
@@ -91,6 +93,7 @@ Elfhame Palace
 Ember Hauler
 Embermaw Hellion
 Emergency Weld
+Endless Sands
 Energy Storm
 Enigmatic Incarnation
 Entropic Specter
@@ -154,6 +157,7 @@ Here Comes a New Hero!
 High Seas
 High-Rise Sawjack
 Hindervines
+Holdout Settlement
 Horizon Explorer
 Horn of Gondor
 Hornet Sting
@@ -175,6 +179,7 @@ Jedit Ojanen, Mercenary
 Jousting Dummy
 Junk Winder
 Kamahl's Desire
+Karplusan Forest
 Kill-Zone Acrobat
 Kindly Customer
 Krosan Archer
@@ -185,6 +190,7 @@ Leyline of Sanctity
 Living Lands
 Loamcrafter Faun
 Looter il-Kor
+Lose Focus
 Lucid Dreams
 Lurebound Scarecrow
 Lurking Nightstalker
@@ -195,6 +201,7 @@ Mage's Guile
 Manipulate Fate
 Marauding Looter
 Mardu Runemark
+Metamorphosis Fanatic
 Meteoric Mace
 Mishra's Command
 Mite Overseer
@@ -207,8 +214,10 @@ Mountain
 Mugging
 Myr Adapter
 Naru Meha, Master Wizard
+Nature's Cloak
 Nectar Faerie
 Needlethorn Drake
+Needleverge Pathway
 Nest Robber
 Night Market Aeronaut
 Nirkana Cutthroat
@@ -236,11 +245,13 @@ Phyrexian Denouncer
 Phyrexian Totem
 Piety
 Plains
+Planar Ally
 Polluted Mire
 Priests of Norn
 Prismatic Strands
 Protective Bubble
 Psychic Impetus
+Rakdos Carnarium
 Ral's Dispersal
 Reality Heist
 Reborn Hope
@@ -261,6 +272,7 @@ Satyr Nyx-Smith
 Savai Sabertooth
 Scalding Devil
 Scholar of Athreos
+School of the Unseen
 Scuttling Doom Engine
 Scythecat Cub
 Separatist Voidmage
@@ -299,6 +311,7 @@ Stolen Grain
 Stolen Vitality
 Strength from the Fallen
 Strength of Isolation
+Subterranean Hangar
 Sunbringer's Touch
 Sunken Hope
 Suppression Bonds
@@ -330,6 +343,7 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Ultimo, Civilization's End
 Umbilicus
 Unbreathing Horde
 Undead Warchief

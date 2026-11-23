@@ -28,7 +28,6 @@ Barrin's Codex
 Battle Sliver
 Benalish Marshal
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blind-Spot Giant
 Blizzard Strix
@@ -112,7 +111,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Fetid Gargantua
 Fists of Flame
 Flare
@@ -168,7 +166,6 @@ Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -181,7 +178,6 @@ Kaervek's Torch
 Kavu Howler
 Kjeldoran Frostbeast
 Kolaghan Warmonger
-Kor Haven
 Krazy Kow
 Kumano, Master Yamabushi
 Last Breath
@@ -230,7 +226,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -255,7 +250,6 @@ Primal Adversary
 Promise of Tomorrow
 Propagator Drone
 Protector of the Wastes
-Puca's Covenant
 Quakefoot Cyclops
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -282,10 +276,12 @@ Scrap Mastery
 Screeching Bat
 Scroll Thief
 Scroll of Fate
+Scroll of Isildur
 Secluded Steppe
 Selesnya Charm
 Selfless Cathar
 Selfless Savior
+Serra Inquisitors
 Serra's Boon
 Serra's Guardian
 Serum Tank
@@ -379,7 +375,6 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental
@@ -389,7 +384,6 @@ Weakness
 White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
-Wormhole Serpent
 Wu Scout
 Wyluli Wolf
 Yarok's Wavecrasher

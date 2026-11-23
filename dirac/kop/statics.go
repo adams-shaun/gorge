@@ -176,6 +176,11 @@ type Override struct {
 	// chars.derive applies it as a final filter after every layer-6 grant,
 	// so the kernel's layer-6 walk drops these bits from its result.
 	CantHaveKw KwMask
+	// UntilUpkeep: the record lasts until the resolving controller's next
+	// upkeep begins (Duration$ UntilYourNextUpkeep, CR 611.2b; Erhnam Djinn).
+	// The applied record keeps that controller in its P/T fields, which a
+	// keyword-only grant does not use (dirac/static_untilnextupkeep.go).
+	UntilUpkeep bool
 	// WhileHost: the record lasts only while the effect's source (its
 	// host) stays on the battlefield (Duration$ UntilHostLeavesPlay or
 	// AsLongAsInPlay; the applied record keeps the host's Obj and ver in its
@@ -186,9 +191,37 @@ type Override struct {
 	// only when the host is tapped as it resolves. Its P/T is SetP/SetT
 	// (the record's P/T fields hold the host).
 	WhileTapped bool
+	// AsLongAsControl: a WhileHost record (Pump Duration$ AsLongAsControl:
+	// Aegis Angel) that starts only when the host is controlled by the
+	// effect's controller and ends for good when the host changes controller
+	// or phases out (gorge expireAsLongAsControl).
+	AsLongAsControl bool
 	// CantAttack: the permanent can't attack (HiddenKeywords$ CARDNAME can't
 	// attack or block., beside AddKw KwCantBlock; KwMask has no free bit).
 	CantAttack bool
+	// UntilEndCombat: the record ends with the combat (Duration$ UntilEndOfCombat
+	// on a Pump of a battlefield object; the kernel drops it on the way out of
+	// StepEndCombat and at cleanup, dirac/static_ovendcombat.go). It is applied
+	// with DurPermanent, so the end-of-turn drop leaves it alone.
+	UntilEndCombat bool
+	// Banding: the permanent gains banding (CR 702.22; a Pump's KW$ Banding,
+	// Battering Ram's UntilEndOfCombat grant). KwMask is full, so the grant is
+	// the record's own field, not a mask bit (kop/keywords.go; the manifest's
+	// keyword slot dirac/manifest/key/keyBanding stays reserved beside it).
+	// The one reader is dirac's hasBanding, which the CR 702.22c band
+	// declaration ask calls (dirac/combat_band.go): the kernel poses gorge's
+	// ask and mirrors the decline; an accepted band stalls (StallBand), band
+	// formation is not modelled.
+	Banding bool
+	// Horsemanship: the permanent gains horsemanship (CR 702.31b) for as long
+	// as the record lasts (a Pump's KW$ Horsemanship with Duration$ Permanent,
+	// Riding the Dilu Horse). The until-end-of-turn grant is ExtKwMark's arena
+	// bit, cleared in the cleanup step; a permanent one has no such home, so
+	// it is the record's own field (as Banding's), which ends with the
+	// permanent (CR 400.7). It reads as CardDef.Evasion EvHorsemanship does
+	// (dirac's evasionGranted, through evasionAt); a layer-6 grant: a record
+	// older than a loss of the permanent's abilities grants nothing.
+	Horsemanship bool
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
@@ -348,6 +381,13 @@ type Emblem struct {
 	// the host already gone is unbounded and fires when the object leaves
 	// again).
 	NotHere bool
+	// Forget: an Effect's ForgetOnCast$ for a stack keyword grant (the "next
+	// spell you cast this turn has cascade" Effects): the whole emblem ends
+	// when the first completed cast matching this filter happens (gorge
+	// effectCastSweep; kernel embForgetOnCast). 0 = no such gate. A
+	// CastWithFlash Effect's own ForgetOnCast$ stays on its Static.Filter2
+	// (embFlashForget), the printed route.
+	Forget FilterID
 }
 
 // HostBound reports whether the emblem's lifetime follows its host object:
@@ -584,6 +624,12 @@ const (
 	// cost first and the shortfall spills to generic (gorge pay CostMods.ApplyTo).
 	StReduceColor StaticFlags = 1 << 13
 )
+
+// StUnspentYou (aliases StYouHexproof, a Continuous-only bit) on a
+// StatUnspentMana static: it protects only the static's controller's mana
+// (ValidPlayer$ You; Omnath, Locus of Mana), not every seat's (Upwelling,
+// which spells no ValidPlayer$). Neither kind reads the other's bit.
+const StUnspentYou = StYouHexproof
 
 // StatStackKw: the spells the static's controller casts that match Filter
 // (a card on the stack or still in hand) carry the keyword StackKw* code A

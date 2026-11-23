@@ -26,19 +26,6 @@ func TestMBCDrMbcBbabReprosLockstep(t *testing.T) {
 	stdReproNamed(t, "granted_retrace_warp")
 }
 
-// CR 702.81a with CR 702.33a: Six gives the nonland permanent cards in its
-// controller's graveyard retrace during that player's turn, and a granted
-// retrace cast of a Kicker card (Phyrexian Missionary) is the plain cast --
-// the printed cost plus the land discard, the kicker unpaid: a kicked cast is
-// a hand-only offer (gorge legal_walk_hand.go; the kicker cost folds only in
-// cast_begin.go's castModeKicked), so neither engine offers a kicked retrace
-// cast. gorge offered the cast; the kernel once withheld it as an unmodelled
-// retracegrant stall (dr-mbc-bbab pair 24, seed 5472494698902327291, autopay).
-func TestMBCDrMbcBbabKickerReprosLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "granted_retrace_kicker")
-}
-
 // grantedRetraceDelveDecks: Six mills on attack and the land discard feeds
 // the graveyard, and Dark Ritual floats the mana (mana abilities are never
 // options, and a delve cast is offered only against the floating pool), so

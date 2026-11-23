@@ -34,7 +34,7 @@ func (s *State) grantSubsume(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pa
 		return false
 	}
 	stall := g.stall
-	if s.grantSearchRun(k, p, cost, ex, d, need, g, &cnt) {
+	if s.grantSearchRun(k, p, cost, ex, d, need, g, &cnt, false) {
 		return true
 	}
 	if stall != 0 {

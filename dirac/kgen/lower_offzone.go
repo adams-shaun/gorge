@@ -273,29 +273,31 @@ func (cb *cardBuilder) offKwGrantAbility(s lStatic) (kop.Ability, []uint8, error
 // off-zone type and keyword grants, and the generic refusal. done reports
 // that the static was handled (lowered or refused) and continuous must
 // return; the off-zone type arm leaves the static to continuous' common tail.
-func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (done bool, err error) {
+func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra []lStatic, done bool, err error) {
 	switch {
 	case az == "Battlefield":
-		return false, nil // the default
+		return nil, false, nil // the default
 	case az == "Stack" && !sp.is("MayPlay", "True"):
-		return true, lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
+		extra, err = lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
+		return extra, true, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback"):
-		return true, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
+		return nil, true, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape"):
-		return true, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
+		return nil, true, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 	case az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp"):
-		return true, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+		return nil, true, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff):
-		return true, graveCountAsStatic(sp, st) // lower_escapegrant.go
+		return nil, true, graveCountAsStatic(sp, st) // lower_escapegrant.go
 	case az == "All" && offZonePTShape(sp, aff):
-		return true, offZonePTStatic(sp, st) // lower_offzonept.go
+		return nil, true, offZonePTStatic(sp, st) // lower_offzonept.go
 	case offZoneEligible(sp, az):
 		z, _ := offZone(az)
-		return lc.offZoneStatic(sp, st, aff, az, z) // the type/keyword arms above
+		handled, err := lc.offZoneStatic(sp, st, aff, az, z) // the type/keyword arms above
+		return nil, handled, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "":
-		return true, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
+		return nil, true, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
 	case !sp.is("MayPlay", "True"):
-		return true, refuse("AffectedZone %q without MayPlay", az)
+		return nil, true, refuse("AffectedZone %q without MayPlay", az)
 	}
-	return false, nil
+	return nil, false, nil
 }

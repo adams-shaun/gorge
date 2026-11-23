@@ -1,0 +1,22 @@
+# the votechoices pool (api Vote Choices$; CR 701.38a will of the council):
+# fixed-list ballots plus filler for the four-seat and two-seat lockstep tests
+Bite of the Black Rose
+Coercive Portal
+Council Guardian
+Expropriate
+Galadriel, Elven-Queen
+Magister of Worth
+Plea for Power
+Sail into the West
+Split Decision
+Trial of a Time Lord
+Tyrant's Choice
+Grizzly Bears
+Savannah Lions
+Lightning Bolt
+Giant Growth
+Plains
+Island
+Swamp
+Mountain
+Forest

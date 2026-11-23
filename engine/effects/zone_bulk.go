@@ -148,6 +148,15 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 			lkiEntry = state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner,
 				Colors: LiveColors(h, o), ColorsKnown: true}
 		}
+		// A source destroying itself (Voodoo Doll's "destroy CARDNAME and it
+		// deals damage equal to the number of pin counters on it") reads its
+		// last known counters afterwards (CR 608.2h): the graveyard card's
+		// were cleared by the Move's fold. Never replaces a snapshot the
+		// ability already carries.
+		if id == c.Source && c.LKI == nil {
+			cp := o.CloneDeep()
+			c.LKI = &cp
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
@@ -462,19 +471,6 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// this package (the sacrifice_audit test only counts its occurrence), so
 	// the absence is the conservative same-as-before no-op, not a regression.
 	remember := sa.ParamStr(cards.PKRememberSacrificed) != ""
-	// rememberLKICapture captures the sacrificed object's LKI (before the
-	// MoveZone resets its counters) into c.Sacrificed, when the flag asks it
-	// to. Idempotent per call site; called exactly once per sacrificed object.
-	rememberLKICapture := func(id state.ObjID) {
-		if remember {
-			c.Sacrificed = append(c.Sacrificed, SacrificedLKI(h, id))
-			// Forge's RememberSacrificed$ also remembers the card, which is
-			// what a following ConditionDefined$ Remembered, Remembered$Amount
-			// or RememberedCard reads (Braids, Scapeshift, Victimize).
-			c.Remembered = append(copyTargets(c.Remembered), state.Target{Obj: id})
-			eventRemember(h, c, id)
-		}
-	}
 	amount := sacrificeAmount(h, c, sa)
 	// An Amount$ of zero has no legal sacrifice and, crucially, no meaningful
 	// answer. Do not produce a 0..0 KChoose merely because eligible cards
@@ -510,7 +506,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			if o := g.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 				continue
 			}
-			rememberLKICapture(id)
+			captureSacrificed(h, c, id, remember)
 			sacrificed = append(sacrificed, id)
 			h.Emit(events.Sacrifice(id))
 		}
@@ -735,7 +731,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: o.Controller,
 				Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
 		}
-		rememberLKICapture(o.ID)
+		captureSacrificed(h, c, o.ID, remember)
 		sacrificed = append(sacrificed, o.ID)
 		h.Emit(events.Sacrifice(o.ID))
 	}

@@ -30,6 +30,29 @@ func ctrKw(s *State, p *perm) kop.KwMask {
 	return m
 }
 
+// ctrKwNewer is the keywords p's keyword counters grant that are newer than
+// timestamp ts (CR 613.7): a loses-all-abilities or keyword-removal effect at
+// ts takes every older grant and leaves these (gorge
+// appendNewerCounterKeywords: a counter's stamp strictly above the effect's).
+func ctrKwNewer(s *State, p *perm, ts uint16) kop.KwMask {
+	var m kop.KwMask
+	for i := range p.ck {
+		k := p.ck[i]
+		if k == 0 {
+			return m
+		}
+		if p.cn[i] != 0 && p.cs[i] > ts {
+			m |= ctrKindKw(k)
+		}
+	}
+	for _, e := range s.ctrOverOf(p.obj, 0) {
+		if e.n != 0 && e.ts > ts {
+			m |= ctrKindKw(e.kind)
+		}
+	}
+	return m
+}
+
 // ctrKindKw is the keyword a counter of kind k grants. Flying is the
 // featurized CtrFlying; the other supported kinds sit above CtrCharge.
 func ctrKindKw(k uint16) kop.KwMask {
@@ -75,31 +98,43 @@ func ctrKindKw(k uint16) kop.KwMask {
 // NoSlot when none): its rider runs after the move (repl_exilerider.go).
 func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8, Slot) {
 	g := k.gen
-	if g == nil || g.exileOnLeave == nil || g.anyRepl&rbExileOnLeave == 0 {
+	if g == nil || g.anyRepl&rbExileOnLeave == 0 {
 		return 0, 0, 0, NoSlot
 	}
 	n := 0
 	src := NoSlot
 	var ctr kop.CounterKind
 	var ctrN uint8
-	for m := s.statM; m.any(); m = m.rest() {
-		b := m.first()
-		// a seat that has left the game's effects no longer apply (CR 800.4a):
-		// gorge's replacement walk (rules/object_query.go forEachObject) visits
-		// only living seats' zones, so its permanent is not consulted even
-		// though the sweep has not moved it yet (zone_leavegame.go)
-		if g.replBits[s.cardAt(b)]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
-			continue
-		}
-		if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
-			n++
-			src = b
-			if kind, amount := exileCounterKind(k.t, s.cardAt(b), g.exileOnLeave[s.cardAt(b)]); kind != 0 {
-				ctr, ctrN = kind, amount
+	if g.exileOnLeave != nil {
+		for m := s.statM; m.any(); m = m.rest() {
+			b := m.first()
+			// a seat that has left the game's effects no longer apply (CR 800.4a):
+			// gorge's replacement walk (rules/object_query.go forEachObject) visits
+			// only living seats' zones, so its permanent is not consulted even
+			// though the sweep has not moved it yet (zone_leavegame.go)
+			if g.replBits[s.cardAt(b)]&rbExileOnLeave == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
+				continue
+			}
+			if s.matchPerm(k, g.exileOnLeave[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
+				n++
+				src = b
+				if kind, amount := exileCounterKind(k.t, s.cardAt(b), g.exileOnLeave[s.cardAt(b)]); kind != 0 {
+					ctr, ctrN = kind, amount
+				}
 			}
 		}
 	}
-	if n > 0 && g.anyExileAny && s.isCreature(k, sl) {
+	// an emblem's dies-to-exile replacement joins the count (Repl.A 0: no
+	// counter, no rider); two or more matches, or one beside a card source,
+	// are dieZone's StallReplLeave below
+	cardN := n
+	if embN := s.embExileLeaveN(k, sl); embN > 0 {
+		n += embN
+		if cardN == 0 && embN == 1 {
+			src = NoSlot // the emblem is the only source: no rider, no counter
+		}
+	}
+	if cardN > 0 && g.anyExileAny && s.isCreature(k, sl) {
 		exileAnyDied() // repl_exileonleave.go
 	}
 	return n, ctr, ctrN, src

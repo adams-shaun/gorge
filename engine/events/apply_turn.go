@@ -48,16 +48,54 @@ func foldSkipTurn(g *state.Game, e *Event) {
 	}
 }
 
-// foldSkipPhase folds Kind SkipPhase into state: the seat's combat phases are
-// skipped from its next turn on (state.Game.PhaseSkips). Only the combat
-// phase is modelled; any other Step is a no-op.
+// foldSkipPhase folds Kind SkipPhase into state.Game.PhaseSkips (CR 614.10).
+// Amount 0 arms the "all combat phases of the seat's next turn" skip
+// (StepBeginCombat), the next untap step (StepUntap) or the next draw step
+// (StepDraw); Amount 1 on StepBeginCombat arms the seat's next combat phase,
+// Amount 2 its next combat phase this turn only. Amount -1 consumes the
+// one-shot bit of the Step: the step the turn structure just skipped.
 func foldSkipPhase(g *state.Game, e *Event) {
-	if validPlayer(g, e.Player) && e.Step == state.StepBeginCombat {
-		if g.PhaseSkips == nil {
-			g.PhaseSkips = map[state.PlayerID]uint8{}
-		}
-		g.PhaseSkips[e.Player] |= state.SkipCombatPending
+	if !validPlayer(g, e.Player) {
+		return
 	}
+	bit := skipPhaseBits(e)
+	if bit == 0 {
+		return
+	}
+	if e.Amount < 0 {
+		if v := g.PhaseSkips[e.Player] &^ bit; v == 0 {
+			delete(g.PhaseSkips, e.Player)
+		} else {
+			g.PhaseSkips[e.Player] = v
+		}
+		return
+	}
+	if g.PhaseSkips == nil {
+		g.PhaseSkips = map[state.PlayerID]uint8{}
+	}
+	g.PhaseSkips[e.Player] |= bit
+}
+
+// skipPhaseBits is the PhaseSkips bit set (or, for Amount -1, cleared) by a
+// SkipPhase event: zero for a step no skip models.
+func skipPhaseBits(e *Event) uint8 {
+	switch e.Step {
+	case state.StepUntap:
+		return state.SkipUntapPending
+	case state.StepDraw:
+		return state.SkipDrawPending
+	case state.StepBeginCombat:
+		switch {
+		case e.Amount < 0:
+			return state.SkipNextCombat | state.SkipCombatThisTurn
+		case e.Amount == 1:
+			return state.SkipNextCombat
+		case e.Amount == 2:
+			return state.SkipCombatThisTurn
+		}
+		return state.SkipCombatPending
+	}
+	return 0
 }
 
 // foldReverseTurnOrder folds Kind ReverseTurnOrder into state: each event
@@ -180,7 +218,7 @@ func foldStepChange(g *state.Game, e *Event) {
 // beginning seat goes live for this turn.
 func advancePhaseSkips(g *state.Game, seat state.PlayerID) {
 	for p, v := range g.PhaseSkips {
-		v &^= state.SkipCombatLive
+		v &^= state.SkipCombatLive | state.SkipCombatThisTurn
 		if p == seat && v&state.SkipCombatPending != 0 {
 			v = v&^state.SkipCombatPending | state.SkipCombatLive
 		}
@@ -237,6 +275,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 			g.Objs[i].DealtDamageThisTurnHere = false
 			g.Objs[i].DamageTakenThisTurnBy = nil
 			g.Objs[i].ActivatedThisTurn = 0
+			g.Objs[i].RegeneratedThisTurn = 0
 			g.Objs[i].AttacksThisTurn = 0
 			g.Objs[i].AttackedTurn, g.Objs[i].AttackedCombat = 0, 0
 			// "Blocked by" is a per-turn fact like "attacked": the history
@@ -309,6 +348,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 		// The per-turn main-phase count is dropped with them.
 		g.MainPhasesThisTurn = 0
 		g.UpkeepsThisTurn = 0
+		g.MaxDistinctOnStackThisTurn = 0
 		// The per-ability resolution tally is a per-turn fact (CR 608.2m
 		// counts resolutions in the turn), so it is dropped at the turn
 		// boundary exactly as CombatsThisTurn is. Clearing (rather than

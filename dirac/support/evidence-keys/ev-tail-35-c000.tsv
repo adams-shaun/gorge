@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Acidic Sliver	4b65991f64350504	34	0/0		0/0	
 Arashi, the Sky Asunder	baef78afa60206ff	14	2/2		0/1	ix:resp
+Brighthearth Banneret	b256ca494a69b7a8	6	1/1		0/1	ix:resp
 Centaur Archer	39ef958207ddb09d	8	1/1		0/1	ix:resp
 Circle of Protection: Artifacts	3ce428490b8c62c0	422	1/1		1/1	
 Cloudshift	0e311ed0dcb83ab7	8	0/0		1/2	ix:resp
@@ -17,20 +18,29 @@ Griselbrand	057aa5f268b980e8	8	1/1		0/1	ix:resp
 Grixis Slavedriver	541c968634caf49e	19	2/2		0/1	ix:resp
 Ground Assault	fbdc98215488daff	8	0/0		1/2	ix:resp
 Hazerider Drake	0de1b3f814fda6cc	14	0/0		0/0	
+Hundred-Talon Kami	761dc5b63f0a8620	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Iraxxa, Empress of Mars	a959f5c624e7418b	15	2/2		1/1	
 Living Twister	85f593357bf7dfe5	21	2/2		1/1	
 Lullmage's Familiar	611ddc03b940268f	473	2/2		1/1	
+Mass Polymorph	4ec827d68a38bd2b	18	0/0		2/2	
 Merfolk Thaumaturgist	5da2937c73d82140	4	1/1		1/1	
+Nantuko Shrine	8a5c54ee53dc83fe	33	1/1		1/1	
 Neheb, the Worthy	90db1502443d8419	42	1/1		0/1	ix:resp
 Patriarch's Desire	7b5d9fd99b1c8a22	6	0/0		1/2	ix:resp
 Perplex	4d6d1c525daa90a1	5	1/1		2/2	
 Rise from the Tides	141a8e8b26f53af0	25	0/0		2/2	
+Rustic Clachan	c9d4d3a960844b06	75	2/2		0/1	ix:resp
+Space Marine Devastator	e8d1388684120b5b	39	2/2		3/3	
 Spirit of the Night	2110ec560698c61c	4	0/0		0/0	
+Street Savvy	c9c174cc36519338	5	0/0		1/2	ix:resp
 Tainted Aether	f50789d29c572840	4	1/1		0/1	ix:resp
+The Dalek Emperor	7ba5d067c88c0b83	22	1/1		0/1	ix:resp
+Transmogrify	a55284eba4358e91	21	0/0		2/2	
 Treefolk Umbra	90275ff41d2a1084	50	0/0		2/2	
 Turtleshell Changeling	7a664fbb80e73809	27	1/1		1/1	
 Valakut, the Molten Pinnacle	b4a0d8a8225356d0	380	2/2		0/1	ix:resp
 Wandering Troubadour	036e26831ff4b9d2	17	1/1		0/1	ix:resp
 Wreck and Rebuild	647265e504ebbf67	46	0/0		4/4	
 Wrecking Ball	e324c83df9f20c00	53	0/0		2/2	
+Wren's Run Hydra	1b089b87bf187252	22	1/1		1/1	
 Writhing Chrysalis	9b2150e6081e120d	5	2/2		1/1	

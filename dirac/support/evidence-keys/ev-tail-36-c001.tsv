@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Esika's Chariot	5a2c801360581e4e	30	3/3		1/1	
+A-Shipwreck Sifters	38c3d89faf32a496	12	2/2		0/1	ix:resp
 Abuna Acolyte	379e0318973e7be1	17	2/2		1/1	
 Acclaimed Contender	5e71ea70e38844be	4	1/1		0/1	ix:resp
 Anathemancer	6f10ca2bf15dee0b	10	2/2		0/1	ix:resp
@@ -21,6 +22,7 @@ False Defeat	c541acc50fb582d4	46	0/0		2/2
 Gilt-Leaf Seer	9d06c466c172e1b7	35	1/1		1/1	
 Glare of Heresy	427b689f598fc0d7	19	0/0		1/2	ix:resp
 Graceful Adept	49f5d8faffac9c7a	4	0/0		0/0	
+Horrid Shadowspinner	aabc661292e4bc61	3	1/1		1/1	
 Illuminator Virtuoso	eb5d385a649be3fc	37	1/1		1/1	
 Iron Apprentice	425e3e1ca60210b8	66	1/1		1/1	
 Jace's Triumph	3f25f1c295d5ba8d	8	0/0		2/2	
@@ -33,8 +35,10 @@ Lae'zel, Vlaakith's Champion	4aa3bd219c19205a	6	0/0		0/0
 Lion Umbra	df937df7d5a79c79	20	0/0		1/2	ix:resp
 Luxa River Shrine	3b2f765842caab39	4	2/2		0/1	ix:resp
 MJ, Rising Star	f42b53942070e4a7	48	1/1		1/1	
+Macetail Hystrodon	dde24b58f315fd9b	3	1/1		1/1	
 Megaton's Fate	1ead3a6526c54a82	22	0/0		1/2	ix:resp
 Mike, the Dungeon Master	b1b9a2fe5eec77fe	25	1/1		1/1	
+Molten Firebird	21c25776b500d52b	3	2/2		0/1	ix:resp
 Myr Scrapling	71933408620d0b2b	4	1/1		0/1	ix:resp
 Netherborn Phalanx	3800049a2ed30fcd	9	2/2		0/1	ix:resp
 Nightmare Incursion	534fbcecc2523e04	34	0/0		2/2	
@@ -42,6 +46,7 @@ Plaxcaster Frogling	39cbdcfd687eb7bb	41	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Pyretic Rebirth	d2969631f113ddcb	4	0/0		1/2	ix:resp
 Quirion Elves	3ed3dcaa9ec24e75	48	2/2		1/1	
 Rakdos Charm	fbcffb2e78481e56	31	0/0		2/2	
+Resilient Khenra	ec70baa2f8edb13a	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rootwater Alligator	abaed5a4fc1fcafa	3	1/1		1/1	
 Sadistic Sacrament	95a1d3aabe0499a5	61	0/0		4/4	
 Scour from Existence	fcbed35ba243109a	6	0/0		1/2	ix:resp
@@ -64,3 +69,4 @@ Vex	a9e2c2aa72489ca9	18	0/0		2/2
 Walking Ballista	4a4e8178dbf73f5e	32	2/2		1/1	
 War Mammoth	ecfd0ba3da926dcc	44	0/0		0/0	
 Well of Ideas	f51110f0ecdd66b4	46	3/3		1/1	
+Worldsoul Colossus	27f287c201bd7a9d	6	0/0		0/0	

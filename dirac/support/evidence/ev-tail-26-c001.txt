@@ -11,6 +11,7 @@ Ancestral Vengeance
 Ancient Runes
 Angelic Overseer
 Arc Lightning
+Arena Trickster
 Armor of Shadows
 Armorcraft Judge
 Arno Dorian
@@ -41,6 +42,7 @@ Celebrity Fencer
 Chain Devil
 Chakram Slinger
 Champion of the Parish
+Changing Loyalty
 Chasm Drake
 Chastise
 Chemister's Insight
@@ -78,6 +80,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams
@@ -101,9 +104,11 @@ Graceful Cat
 Grappling Sundew
 Grave Betrayal
 Gravity Well
+Great Wall
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
+Hammer Mage
 Harrow
 Henge of Ramos
 Hermes, Overseer of Elpis
@@ -124,6 +129,7 @@ Kithkin Mourncaller
 Knight of Dawn's Light
 Laccolith Grunt
 Lava Axe
+Leap of Flame
 Leela, Sevateem Warrior
 Legion Leadership
 Leisure Bicycle
@@ -183,6 +189,7 @@ Pyretic Charge
 Quandrix Pledgemage
 Quest for Ancient Secrets
 Quickening Licid
+Radiant Solar
 Ragnar
 Rally the Ranks
 Rampaging Aetherhood
@@ -226,6 +233,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spite
 Spontaneous Combustion
@@ -279,3 +287,4 @@ Wretched Throng
 Yahenni's Expertise
 You See a Guard Approach
 Zodiac Snake
+Zombie Ogre

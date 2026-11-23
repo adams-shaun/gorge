@@ -38,13 +38,13 @@ const ncPend int16 = -2
 // reads the raise against the running amount (ncPlusLive). A candidate
 // replDamage's fixed order cannot carry (pendBlocked) keeps the event on
 // replDamage's loud paths. It reports whether it parked.
-func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, n int, kw kop.KwMask, plus, rs, prev, shld, pnx uint8, cand [4]Obj, c int) bool {
-	if plus|rs == 0 || prev != 0 || shld != 0 || pnx != 0 {
-		return false
+func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot, n int, kw kop.KwMask, plus, rs, prev, shld, pnx, spv uint8, cand [4]Obj, c int) bool {
+	if plus|rs|spv == 0 || prev&^shld != 0 || shld != 0 && spv == 0 || pnx != 0 {
+		return false // a shield beside the amount changers alone is parkNC's prevented ask (any order gives 0)
 	}
-	mixed := rs != 0
+	mixed := rs != 0 || spv&spShieldAsk != 0 // an all-but shield beside an amount changer: the order decides the amount
 	for i := 0; i < c; i++ {
-		if plus&(1<<i) == 0 && rs&(1<<i) == 0 {
+		if plus&(1<<i) == 0 && rs&(1<<i) == 0 && spv&(1<<i) == 0 && shld&(1<<i) == 0 {
 			mixed = true // a doubling: the order decides the amount
 		}
 	}
@@ -52,7 +52,7 @@ func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code
 		return false
 	}
 	ro := &s.g.ro
-	ro.replHdr = replHdr{n: uint8(c), plus: plus | rs<<plRaiseShift, p: rcp, cand: cand,
+	ro.replHdr = replHdr{n: uint8(c), plus: plus | rs<<plRaiseShift, spv: spv, prev: prev, shld: shld, p: rcp, cand: cand,
 		ac: uint8(c), an: int16(min(n, 1<<14)), askS: srcSl, askD: sl, actl: ctrl, apl: rcp}
 	nc := ncDmg{code: code, ctrl: ctrl, ll: kw&kop.KwLifelink != 0, dt: kw&kop.KwDeathtouch != 0, n: ncPend}
 	if srcSl != NoSlot {
@@ -73,6 +73,14 @@ func (s *State) parkNCPend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code
 // raise picked after a doubling has pushed it past the power applies nothing.
 func (s *State) ncPlusPickNC(i int) {
 	ro := &s.g.ro
+	if ro.spv&(1<<i) != 0 {
+		s.spSpend(i) // a static prevention beside the amount changers (repl_staticprevent.go)
+		return
+	}
+	if ro.shld&(1<<i) != 0 {
+		s.ncPickShieldPend() // the shield beside them (repl_selfph.go)
+		return
+	}
 	if ro.plus&(plRaise(1<<i)|1<<i) == 0 {
 		if ro.an < 1<<12 {
 			ro.an *= 2 // a doubling
@@ -106,6 +114,9 @@ func (s *State) ncPlusPickNC(i int) {
 // other candidate's match does not read the amount.
 func (s *State) ncPlusLive(i int) bool {
 	ro := &s.g.ro
+	if ro.spv&(1<<i) != 0 {
+		return true // a static prevention's match does not read the amount
+	}
 	if ro.plus&plRaise(1<<i) == 0 {
 		return true
 	}
@@ -164,11 +175,15 @@ func (s *State) replDamagePend(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, 
 // (plusBatchAsked, set by replPlusSrcPass and replPlusBatch): a mixed
 // competition's park (ro.ac != 0) keeps its record, whose picks were applied
 // as made (ncPlusPickNC) and whose amount the re-executed op's asked event
-// deals from (replDamagePend); a pure plus-N batch order ask drops the parked
+// deals from (replDamagePend); a PreventNext shields' ask keeps its record
+// too (the shields were spent as picked and prevNextNC wrote the picked
+// order's amount into it); a pure plus-N batch order ask drops the parked
 // event too, since the order cannot change the sum. The walk is dropped and
-// the op re-executes.
+// the op re-executes. prevNextNC runs first so a shields' ask's record
+// carries the picked order's amount (repl_prevnext.go).
 func (s *State) replPlusAskedResume(k *prep) {
-	if s.g.ro.ac != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
+	s.prevNextNC()
+	if s.g.ro.ac != 0 || s.g.ro.pnx != 0 || s.g.ro.shld != 0 && s.g.nc.n < 0 {
 		s.g.ro = replOrd{}
 	} else {
 		s.g.ro, s.g.nc = replOrd{}, ncDmg{}
@@ -184,8 +199,8 @@ func (s *State) replPlusAskedResume(k *prep) {
 // through to (parkNC's m branches, parkShape's replParkOther).
 func (s *State) pendBlocked(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCode, rcp uint8, sl Slot) bool {
 	g := k.gen
-	if g.uses.has(useStaticPrev) {
-		return true // a static prevention beside the competition is a candidate too (spPark applied lone ones)
+	if g.uses.has(useStaticPrev) && !g.uses.has(useStaticOrdered) {
+		return true // a static prevention beside the competition is a candidate too (spPark applied lone ones); the ordered shapes are merged into the walk (spMergeNC)
 	}
 	if g.uses.has(useStatRdr) {
 		if e, ok := s.rdrEvOf(ctrl, srcSl, srcCard, code, false); ok {
@@ -198,7 +213,7 @@ func (s *State) pendBlocked(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, cod
 	if g.anyRedir && s.redirLive() > 0 {
 		return true // an Ext DmgRedirect record is a candidate too (redirTake)
 	}
-	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
+	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot && !selfPh(g) {
 		return true // a self-damage host on the recipient is a candidate too (selfDamageAll)
 	}
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != ctrl {
@@ -212,12 +227,16 @@ func (s *State) pendBlocked(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, cod
 // doubling): its picks are applied as made, not pre-applied.
 func (s *State) roPlusPend() bool {
 	ro := &s.g.ro
-	if ro.plus == 0 {
+	sh := ro.spv&spShieldAsk != 0 // an all-but shield beside the amount changers
+	if ro.plus == 0 && !sh {
 		return false
+	}
+	if sh && ro.plus != 0 {
+		return true
 	}
 	for i := uint(0); i < uint(ro.ac); i++ {
 		b := uint8(1) << i
-		if ro.plus&b == 0 && ro.prev&b == 0 && ro.shld&b == 0 && ro.pnx&b == 0 {
+		if ro.plus&b == 0 && ro.prev&b == 0 && ro.shld&b == 0 && ro.pnx&b == 0 && ro.spv&b == 0 {
 			return true
 		}
 	}

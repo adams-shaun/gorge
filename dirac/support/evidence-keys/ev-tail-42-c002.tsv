@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aether Inspector	9b0ac4bebe64d30b	7	2/2		0/1	ix:resp
 Agent of Stromgald	2d2a89ff44157d86	59	1/1		0/1	ix:resp
+Akoum Refuge	6ec4e7b2176b5cc5	5	2/2		0/1	ix:resp
 Akroan Sergeant	98aadf40896b9c36	11	1/1		0/1	ix:resp
 Alpha Tyrranax	7b22476b7f3cfc03	5	0/0		0/0	
 Angelic Exaltation	e5f94b01be3a78b9	23	1/1		1/1	
@@ -17,6 +18,7 @@ Cascade Seer	0d8a741eeafbaaf5	13	1/1		1/1
 Cinder Elemental	8127b696be375344	35	1/1		1/1	
 Cleric of Chill Depths	352a9ce3336e51d1	16	1/1		0/1	ix:resp
 Clock of Omens	85fe8d2ab09070f1	9	1/1		1/1	
+Coldsteel Heart	41f34b65dcce2e51	6	1/1		0/1	ix:resp
 Containment Construct	b1f0981c6060ed47	21	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crashing Boars	b53e3740e63efb60	11	1/1		0/1	ix:resp
 Dauthi Embrace	602241a53abf525e	39	1/1		1/1	
@@ -26,6 +28,7 @@ Disciple of Malice	2c37176f8532de76	4	1/1		0/1	ix:resp
 Djeru's Resolve	69352f4c386acf71	3	1/1		2/2	
 Duergar Mine-Captain	cb74c6c6095e9139	6	1/1		0/1	ix:resp
 Embermaw Hellion	c38ab3b9ed83c40d	17	0/0		0/0	
+Endless Sands	7f8f894c9122e140	10	3/3		0/1	ix:resp
 Energy Storm	d871160d365cbb04	4	1/1		0/1	ix:resp
 Evolution Sage	b6a032f9f6ebc84c	12	1/1		1/1	
 Fathom Trawl	efaa02b97736a05f	40	0/0		2/2	
@@ -46,22 +49,30 @@ Gwenna, Eyes of Gaea	7fc193932dfb9621	28	2/2		0/1	ix:resp
 Here Comes a New Hero!	f21a99d1b54b0e9f	5	0/0		2/4	f0/s/x0,ix:resp
 High Seas	f1123eda4632ee30	15	0/0		0/0	
 Hindervines	2e4d8cc012bb3e19	14	0/0		1/2	ix:resp
+Holdout Settlement	32d454acbc3831c1	20	2/2		0/1	ix:resp
 Horizon Explorer	e9db3c549bda8685	4	1/1		0/1	ix:resp
 In Garruk's Wake	9cff94b50dc2b039	5	0/0		1/2	ix:resp
 Jedit Ojanen, Mercenary	553ea3777b5c9491	8	1/1		1/1	
 Jousting Dummy	63ce63c50ec523fc	8	1/1		1/1	
 Junk Winder	12f53802239fffad	3	1/1		1/1	
+Karplusan Forest	4647017997969183	15	2/2		0/1	ix:resp
 Leaping Lizard	625ed6b7692cc6c3	9	1/1		1/1	
 Leyline of Sanctity	647f784661a5cd9d	6	0/0		0/0	
+Lose Focus	9c1f3e3d8c982647	4	1/1		4/4	
 Lurebound Scarecrow	7e3b70fe43469e81	4	1/1		0/1	ix:resp
+Metamorphosis Fanatic	a58822314850c393	4	1/1		1/3	cast/alt:miracle,ix:resp
 Mishra's Command	e7b28da8830325d6	3	0/0		2/4	f0/s/x0,ix:resp
 Mite Overseer	4828cebba0459b97	6	1/1		1/1	
 Mordant Dragon	d5ec805145f7ea96	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Myr Adapter	2526b827b3918e17	12	0/0		0/0	
+Nature's Cloak	501092c7f4e5b002	4	0/0		1/2	ix:resp
+Needleverge Pathway	11b8671b35715217	4	2/2		0/1	ix:resp
 Nostalgic Dreams	a4b322b4a8193ab5	8	0/0		1/2	ix:resp
 Phantasmal Dreadmaw	751771b46709f950	7	1/1		0/1	ix:resp
 Phyrexian Totem	f4b8e8372894a900	18	3/3		1/1	
 Piety	90857b1254630440	18	0/0		2/2	
+Planar Ally	d2ec4f177e6c511f	4	1/1		0/1	ix:resp
+Rakdos Carnarium	5dba9a367e40dae4	4	2/2		0/1	ix:resp
 Recall	dc8ab56f9f3ea426	4	0/0		2/4	f0/s/x0,ix:resp
 Roilmage's Trick	c772666c8958cf6b	7	0/0		2/2	
 Sage's Dousing	922939751293a027	8	0/0		2/2	
@@ -70,6 +81,7 @@ Sandsteppe Scavenger	0117911e1bf008b2	15	1/1		1/1
 Saprazzan Outrigger	6a7ea80d2e2cb92e	110	2/2		1/1	
 Satyr Hoplite	cca1d722344ae310	10	1/1		1/1	
 Satyr Nyx-Smith	70735b7e994f2239	3	1/1		1/1	
+School of the Unseen	4221ff0ac5efe1dd	15	2/2		0/1	ix:resp
 Scuttling Doom Engine	10518d2582184a79	5	1/1		0/1	ix:resp
 Serene Steward	e687fbe1aa6d8889	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Shard of the Nightbringer	285d4ae85d640f83	3	1/1		0/1	ix:resp
@@ -78,11 +90,13 @@ Shoulder to Shoulder	aa808ac62763ad11	17	0/0		1/2	ix:resp
 Silverwing Squadron	4ab1f199db90358e	11	1/1		0/1	ix:resp
 Skullmane Baku	cf83b0dc009e2583	15	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Spike Weaver	1fddeff5e55fd148	17	2/2		1/1	
+Subterranean Hangar	762f8a5b71ddc6ca	7	2/2		0/1	ix:resp
 Tatyova, Steward of Tides	e9045dbb56e63567	6	1/1		0/1	ix:resp
 Thran Spider	ba3ddbdface16c4c	26	2/2		1/1	
 Tome Raider	0bf0428aa3ec6432	15	1/1		0/1	ix:resp
 Trigon of Corruption	599a98f6ec879dab	36	2/2		1/1	
 Tyrranax	45bcf5c9a37ba41a	3	1/1		0/1	ix:resp
+Ultimo, Civilization's End	00cd8ea1d6d30c95	3	2/2		0/1	ix:resp
 Umbilicus	44ceed4225b2974d	39	1/1		1/1	
 Ureni's Counsel	2ae493b7cb0f582c	16	0/0		3/4	cast/alt:harmonize
 Ursine Champion	96e821cce6778655	12	1/1		0/1	ix:resp

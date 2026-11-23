@@ -1,0 +1,25 @@
+# the ChangesZoneAll Origin$ Any -> Graveyard batch pool
+# "whenever one or more land cards are put into your graveyard from
+# anywhere" (Titania, Voice of Gaea's shape): Turntimber Sower, Sand Scout,
+# The Gitrog Monster, with mill (Tome Scour), discard (Mind Rot) and
+# destroy-land (Creeping Mold, Armageddon) sources, plus Mephitic Vapors
+# (surveil 2, and -1/-1 that kills Dryad Arbor, an animated land the
+# state-based actions put into the graveyard)
+# (dirac/oracle/czallany_test.go)
+Turntimber Sower
+Sand Scout
+The Gitrog Monster
+Robot Domination
+Tome Scour
+Mind Rot
+Creeping Mold
+Armageddon
+Day of Judgment
+Mephitic Vapors
+Dryad Arbor
+Grizzly Bears
+Forest
+Swamp
+Plains
+Island
+Mountain

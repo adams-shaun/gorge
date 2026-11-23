@@ -24,6 +24,7 @@ func (lc *lowerCtx) changeZone(ps *params) error {
 	if err := lc.changeZoneMove(ps); err != nil {
 		return err
 	}
+	lc.monarchJailMark(ps, start) // lower_monarchjail.go
 	if hasAtEOT {
 		if err := lc.emitChangeZoneAtEOT(start, atEOT); err != nil {
 			return err

@@ -5,5 +5,4 @@ Island
 Mountain
 Plains
 Raven Familiar
-Ray of Revelation
 Swamp

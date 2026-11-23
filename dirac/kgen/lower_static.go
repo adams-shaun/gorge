@@ -9,6 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
+// staticUnreadRefuse refuses a static's unread params; when the static's
+// spell-ability filter (ValidSA$) is among them the refusal names the guard
+// (T12: no kernel word reads it yet, T13c's FwSA* family), for the census to
+// count it.
+func staticUnreadRefuse(left []string) error {
+	if slices.Contains(left, "ValidSA") {
+		return refuse("static spell-ability filter ValidSA %v", left)
+	}
+	return refuse("static unread params %v", left)
+}
+
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
@@ -19,7 +30,7 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "OptionalCost" {
 		return lc.optCostStatic(s) // lower_optcost.go
 	}
-	if s.Mode == "Continuous" && s.Params["CanBlockAmount"] != "" {
+	if s.Mode == "Continuous" && (s.Params["CanBlockAmount"] != "" || s.Params["CanBlockAny"] != "") {
 		if ok, err := lc.extraBlockStatic(s); ok || err != nil {
 			return err // lower_extrablock.go
 		}
@@ -271,7 +282,7 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	}
 	st, extra = sc.st, sc.extra
 	if left := sp.unread(); len(left) > 0 {
-		return nil, refuse("static unread params %v", left)
+		return nil, staticUnreadRefuse(left)
 	}
 	if inner := lc.grantInner; len(inner) > 0 {
 		// a station self grant's inner statics follow the outer static

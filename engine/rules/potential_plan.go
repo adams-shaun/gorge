@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"math/bits"
 	"slices"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -207,7 +209,7 @@ func (e *Engine) potentialPlans(p state.PlayerID, scriptPlays int) []PotentialPl
 			if got.Plan == nil {
 				if alt, ok := e.potentialWitnessSmallerX(p, o, rejectedX); ok {
 					got = alt
-				} else if e.witnessReachesMode(e, p, o, *planned.Plan, true) {
+				} else if e.witnessReachesMode(e, p, o, *planned.Plan, true, false) {
 					// No colouring keeps every source, but the one that
 					// pays by consuming one ends the game in p's favour.
 					got = planned
@@ -300,6 +302,11 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	// verdict exactly as before.
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
+	// The relaxed proof counts a land's granted {T} ability beside its printed
+	// one, so seven lands look like fourteen sources and a ten-mana ability
+	// ran three 160-clone searches per priority decision that could only end
+	// at the budget. The supply count has no such slack.
+	skip = skip || census.outruns != nil && census.outruns(o)
 	if skip {
 		return got, nil
 	}
@@ -416,7 +423,10 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		}
 		// The cast planner's witness also rides Decision.PaymentActions.
 		return got, true
-	case o.Kind == "ability" && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
+	case o.Kind == "ability" && o.SVar == "" && o.GainedSource == 0 && o.AltCostIndex == 0:
+		if o.Keyword != "" {
+			return planKeywordAbility(e, asPayer(e), p, e.G.Obj(o.Obj), o), true
+		}
 		if ob := e.G.Obj(o.Obj); ob != nil && ob.Face() != nil {
 			got := potentialAbilityPlan(e, p, ob, o.Ability, e.G.Players[p].Life)
 			pa, ok := ob.PileAbilityAt(o.Ability)
@@ -469,6 +479,58 @@ func (e *Engine) potentialPlayVerdictShared(p state.PlayerID, o decision.Option,
 		return got, true
 	}
 	return PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}, false
+}
+
+// planKeywordAbility is the witness for a keyword-granted activation (CR
+// 613.1f, an AddKeyword$ or Pump KW$ grant of Cycling, Embalm and the like):
+// the body the offer walk synthesized from the option's keyword line, planned
+// as planAbilityPaymentLifePips plans a printed one, and confirmed against the
+// offer gate when its cost has a part the mana plan does not reserve (Embalm's
+// self-exile). A shape that planner prices with a retry (a Phyrexian pip, a
+// Waterbend part, a creature-tap mana credit, a target-dependent cost static)
+// is left unsupported rather than priced here without it.
+func planKeywordAbility(pl keywordAbilityPlanner, payer pay.Engine, p state.PlayerID, ob *state.Object, o decision.Option) PaymentPlanOutcome {
+	unsupported := PaymentPlanOutcome{Reason: "unsupported", Detail: "shape"}
+	if ob == nil || ob.Face() == nil {
+		return unsupported
+	}
+	ab := grantedKeywordSA(ob, o.Keyword)
+	if ab == nil || cards.IsManaAbilitySA(ab) || pay.TapCreaturesForMana(ab) {
+		return unsupported
+	}
+	cost, ok := pay.FixLifeXCost(payer, p, o.Obj, pl.abilityCompiledCost(ab).Cost)
+	if !ok {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
+	}
+	if len(cost.Phyrexian) != 0 || cost.Waterbend > 0 {
+		return unsupported
+	}
+	if n := pl.ownReduceCostOffer(p, o.Obj, ab, 0); n > 0 && cost.Generic >= n {
+		cost.Generic -= n
+	} else if n > 0 {
+		cost.Generic = 0
+	}
+	statics := pl.collectCostStatics()
+	composed := pl.offerCostForUsing(statics, p, o.Obj, cost, abilityScope(ab))
+	got := pl.planComposedCost(p, o.Obj, composed, true, true)
+	if (got.Plan == nil || got.Reason != "") && statics.validTarget {
+		return unsupported
+	}
+	if got.Plan != nil && got.Reason == "" && abilityPlanUnreservedPart(pl.abilityCompiledCost(ab).Cost) &&
+		!pl.potentialWitnessOffers(p, o, *got.Plan) {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: pay.DetailWitnessNotOffered}
+	}
+	return got
+}
+
+// keywordAbilityPlanner is the slice of the engine planKeywordAbility reads.
+type keywordAbilityPlanner interface {
+	abilityCompiledCost(sa *cards.SA) *compiledCost
+	ownReduceCostOffer(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) int32
+	collectCostStatics() costStaticViews
+	offerCostForUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
+	planComposedCost(p state.PlayerID, id state.ObjID, composed Cost, ability, selfSource bool) PaymentPlanOutcome
+	potentialWitnessOffers(p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool
 }
 
 // spellExtrasAreFixedTaps reports a face whose spell ability adds nothing to the
@@ -597,6 +659,33 @@ func faceModalFloorZero(f *cards.Face) bool {
 type relaxedPaid struct {
 	alts []pay.Alt
 	fee  int32
+	// plain: the production is a fixed one-mana-per-colour or one-mana-of-a-
+	// colour-choice (no extra, rider, restriction, colourless or dynamic
+	// part), so a lone use of it can be priced as a cut of the cost
+	// (paymentPlanRelaxProof's cutSelfFee).
+	plain bool
+}
+
+// relaxedCutPlain reports whether the paid gap's relaxed alternatives are a
+// plain production (relaxedPaid.plain): a TapsForMana extra, a Condition-split
+// arm, a chosen or dynamic or restricted production, or any colourless or
+// multiple-per-colour unit may add mana the cut does not model.
+func relaxedCutPlain(alts []pay.Alt, mp *effects.ManaParams, extra state.Mana, split bool) bool {
+	if split || extra != (state.Mana{}) || mp.NeedsChosen || mp.AnyDifferent || mp.RestrictValid != "" ||
+		mp.Each.Present || mp.AmountTrim != "" || len(alts) == 0 {
+		return false
+	}
+	for _, a := range alts {
+		if a.Mana[state.MC] != 0 {
+			return false
+		}
+		for _, n := range a.Mana {
+			if n > 1 {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // relaxedPaidLimit bounds the paid missed abilities a relaxed proof
@@ -611,16 +700,40 @@ const relaxedPaidLimit = 3
 // for that set already covers it. A relaxed alternative is never
 // executable, so no Plan is returned.
 func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() PaymentPlanOutcome) PaymentPlanOutcome {
-	prev, prevFee := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee
-	defer func() { e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee = prev, prevFee }()
+	prev, prevFee, prevCut := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut
+	defer func() {
+		e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut = prev, prevFee, prevCut
+	}()
 	for mask := 0; mask < 1<<len(c.paid); mask++ {
 		relaxed := slices.Clone(c.relaxed)
 		fee := int32(0)
+		var only *relaxedPaid
 		for i, pd := range c.paid {
 			if mask>>i&1 == 1 {
 				relaxed = append(relaxed, pd.alts)
 				fee += pd.fee
+				only = &c.paid[i]
 			}
+		}
+		if c.cutSelfFee && bits.OnesCount(uint(mask)) == 1 && only.plain {
+			// A lone paid gap's output cannot pay its own fee (CR 601.2g-h):
+			// the run prices each alternative as a cut of the cost, never as a
+			// unit beside the sources that fund the fee. Two or more gaps may
+			// fund each other, which the run does not model, so they keep the
+			// permissive units.
+			relaxed = relaxed[:len(relaxed)-1]
+			if len(relaxed) == 0 {
+				relaxed = [][]pay.Alt{nil}
+			}
+			e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee = relaxed, fee
+			for _, alt := range only.alts {
+				e.PaymentPlanRelaxedCut = []pay.Alt{alt}
+				if got := verdict(); got.Reason != "insufficient" {
+					return PaymentPlanOutcome{Reason: got.Reason, Detail: got.Detail}
+				}
+			}
+			e.PaymentPlanRelaxedCut = nil
+			continue
 		}
 		if len(relaxed) == 0 {
 			relaxed = [][]pay.Alt{nil} // the census alone, still a relaxed run
@@ -1457,7 +1570,7 @@ func (e *Engine) potentialModalCastFreeMode(p state.PlayerID, id state.ObjID) bo
 func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *cards.Face, o decision.Option) (Cost, bool) {
 	cost := pay.RawBaseCost(asPayer(e), p, id)
 	mode := o.Mode
-	code := potentialModeBaseCostCodes.Code(string(mode))
+	code := potentialModeBaseCostCodeFor(string(mode))
 	if castModeCodes.Code(string(mode)) == castModeBargained {
 		// A bargained cast prices like the may-play cast it may ride: the
 		// printed cost plus any grant raise (Bargain adds only a sacrifice).
@@ -1533,6 +1646,8 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		// offer's shape.
 		mc, ok := multikickerCost(f)
 		return cost.Plus(mc), ok
+	case potentialModeBaseCostReplicated, potentialModeBaseCostSquadded:
+		return repeatedModeBaseCost(code, f, cost) // CR 702.56a/702.157a, one payment
 	case potentialModeBaseCostBuyback:
 		bc, ok := buybackCost(f)
 		return cost.Plus(bc), ok
@@ -1589,10 +1704,11 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 			return Cost{}, false
 		}
 		return pay.WithSpellAbilityExtras(af, ParseCost(af.ManaCost)), true
-	case potentialModeBaseCostDisturb:
-		// CR 702.146a: the disturb cost, plus the back face's own SP Cost$
-		// extras, exactly the offer's price (legal_walk_alt.go).
-		bf, dc, ok := disturbCast(e.G.Obj(id))
+	case potentialModeBaseCostDisturb, potentialModeBaseCostConverted:
+		// CR 702.146a / 702.162a: the disturb or MTMtE cost, plus the back
+		// face's own SP Cost$ extras, exactly the offer's price
+		// (legal_walk_alt.go, legal_walk_hand.go).
+		bf, dc, ok := flippedCast(e.G.Obj(id), code == potentialModeBaseCostConverted)
 		if !ok {
 			return Cost{}, false
 		}
@@ -1648,8 +1764,8 @@ func potentialModeCastFace(o *state.Object, mode string) *cards.Face {
 		return roomAlternateCastFace(o)
 	case potentialModeBaseCostAftermath:
 		return aftermathAlternateFace(o)
-	case potentialModeBaseCostDisturb:
-		bf, _, _ := disturbCast(o)
+	case potentialModeBaseCostDisturb, potentialModeBaseCostConverted:
+		bf, _, _ := flippedCast(o, potentialModeBaseCostCodes.Code(string(mode)) == potentialModeBaseCostConverted)
 		return bf
 	}
 	return nil
@@ -2278,6 +2394,11 @@ type paymentPlanCensus struct {
 	// cost includes mana (a filter: Heap Gate's "{1}, {T}: Add one mana of
 	// any color"), each with its fee; relaxed holds the free ones.
 	paid []relaxedPaid
+	// cutSelfFee asks paymentPlanRelaxProof to price a lone plain paid gap as
+	// a cut of the cost, its fee charged against the sources without it (CR
+	// 601.2g-h: the gap's own output cannot pay its own fee). Set by the caller
+	// that wants the tighter proof (xBoundTargetPayable).
+	cutSelfFee bool
 	// fund is the prefix search's funding for a gap ability with no sound
 	// relaxation but a mana fee (a repeatable fee-only ability such as
 	// Orochi Leafcaller's "{G}: Add one mana of any color"): every
@@ -2299,6 +2420,13 @@ type paymentPlanCensus struct {
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
+	// outruns reports that play o's offer cost needs more mana than the
+	// floating pool and every mana source on the board can make (CR 602.2b:
+	// one tap each). Set only when every mana ability on the board is a lone
+	// {T} making one mana (manaTapSingle), so the count is exact however the
+	// planner prices a source; nil otherwise. A necessary condition only: a
+	// search it skips could not have found a prefix.
+	outruns func(o decision.Option) bool
 	// onceGap: a missed ability is one-shot (its cost taps, sacrifices or
 	// returns the source, or it has a once-only activation limit) and has no
 	// relaxed alternative. A one-shot paid production (a filter land's
@@ -2313,6 +2441,10 @@ type paymentPlanCensus struct {
 	// has to spend; false when every one nets no mana (manaAbilityNetsNoMana),
 	// so the covered sources and the pool bound the supply by count.
 	gapGains bool
+	// gapSupply: the most mana the gap abilities that gain only a counter-
+	// bounded amount can add beside the covered sources (gapSubCounterSupply);
+	// they leave gapGains false and are counted in costOutrunsSupply.
+	gapSupply int32
 }
 
 // boundedProof returns the census a bounded necessary-condition proof runs
@@ -2365,6 +2497,11 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	}
 	var probe *Engine
 	bounded := true // every gap ability so far has a once-only or bounded relaxation
+	// lookup only: source -> its index in out.relaxed
+	relaxedTapUnit := make(map[state.ObjID]int)
+	// plain: every mana ability on the board is a lone {T} making one mana
+	// (manaTapSingle); sources counts the permanents that have one.
+	plain, sources := true, int32(0)
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		var abs []*cards.SA
 		var face *cards.Face
@@ -2383,6 +2520,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		}
 		if len(abs) == 0 {
 			continue
+		}
+		sources++
+		for _, ma := range abs {
+			plain = plain && manaTapSingle(e, p, id, ma)
 		}
 		var alts []pay.Alt
 		if i, ok := at[id]; ok {
@@ -2405,15 +2546,23 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			for _, a := range alts {
 				best = max(best, int32(a.Mana.Total()))
 			}
-			out.gapGains = out.gapGains || !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best))
-			if !slices.Contains(out.gaps, id) {
-				out.gaps = append(out.gaps, id)
-			}
 			// No skip once an earlier gap cleared relaxable and bounded: a
 			// later repeatable fee-only gap still owes its funding (Energy
 			// Refractor after Mystic Gate, CR 605.3a), and both arms below
 			// are then no-ops.
 			relaxed, fee, repeats, once, ok := e.paymentPlanRelaxedAlternatives(p, id, ma, &probe)
+			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
+				// A once-only fee-bearing gap nets only what exceeds the source's
+				// own covered production (gapBoundedSupply).
+				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gmp, gextra, fee, best, once, gcost.Tap); bounded {
+					out.gapSupply += n
+				} else {
+					out.gapGains = true
+				}
+			}
+			if !slices.Contains(out.gaps, id) {
+				out.gaps = append(out.gaps, id)
+			}
 			if !ok && once {
 				out.onceGap = true
 			}
@@ -2440,8 +2589,18 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 					// and dirac's mirrored slot accounting.
 					out.relaxable, out.relaxed, out.paid = false, nil, nil
 				} else if fee > 0 {
-					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee})
+					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee,
+						plain: relaxedCutPlain(relaxed, gmp, gextra, condSplitLiveSub(e, p, id, ma) != nil)})
+				} else if at, seen := relaxedTapUnit[id]; seen && gcost.Tap && !gcost.Untap {
+					// A source's free {T} abilities are alternatives of ONE
+					// tap (CR 605.3b, 106.1): Snowfield Sinkhole's {T}: Add
+					// {W} and {T}: Add {B} make one mana between them, so
+					// they are one relaxed unit, not two.
+					out.relaxed[at] = append(slices.Clone(out.relaxed[at]), relaxed...)
 				} else {
+					if gcost.Tap && !gcost.Untap {
+						relaxedTapUnit[id] = len(out.relaxed)
+					}
 					out.relaxed = append(out.relaxed, relaxed)
 				}
 			}
@@ -2463,11 +2622,94 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
+	if plain && !out.complete && !e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
+		// A ProduceMana replacement (Mana Reflection) can make more than one
+		// mana from a tap, so the supply count is no bound.
+		pool := int32(e.G.Players[p].Pool.Total())
+		out.outruns = func(o decision.Option) bool { return abilityOutrunsSupply(e, p, o, pool+sources) }
+	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {
 		out.bound, out.boundPaid = nil, nil
 	}
 	return out
+}
+
+// supplyProofHost is the narrow slice of the engine the supply proof reads
+// (manaTapSingle, abilityOutrunsSupply), so the proof stays out of the
+// engine's method surface (codeshape's EngineSurface).
+type supplyProofHost interface {
+	condSplitHost
+	offerCostHost
+	manaAbilityCC(p state.PlayerID, source state.ObjID, ma *cards.SA) *compiledCost
+	potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.SA) state.Mana
+	appendAvailableManaAbilitiesGate(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID, ignorePayable bool) []*cards.SA
+}
+
+// anyColourProduced is the Produced$ spellings of one mana of any colour.
+var anyColourProduced = []string{"Any", "Combo Any"}
+
+// manaTapSingle reports whether mana ability ma of source id is a lone {T}
+// that makes exactly one mana: no fee or other cost part, no tap trigger's
+// extra mana, no condition-split production, no chosen or per-object amount.
+// Only a plain one-symbol production or "Any" is read as one mana: a special
+// one (Bloom Tender's one mana per colour among permanents) parses to no
+// colour at all, which would count as nothing.
+func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	mp := effects.ManaOf(ma)
+	if mp.PlainSym == 0 && !slices.Contains(anyColourProduced, mp.Produced) {
+		return false
+	}
+	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
+		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
+}
+
+// abilityOutrunsSupply reports that the printed activated ability o costs
+// more mana, as the offer gate composes it, than supply: the floating pool
+// plus one mana for each source. An ability whose own {T} is a cost cannot
+// be paid from its own source, which is taken out of the supply. Any other
+// play, and a cost whose mana count can fall after announcement (an {X}, a
+// Phyrexian or two-brid symbol, a waterbend part, a creature-tap credit), is never proven.
+func abilityOutrunsSupply(e supplyProofHost, p state.PlayerID, o decision.Option, supply int32) bool {
+	if o.Kind != optAbility || o.SVar != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Keyword != "" {
+		return false
+	}
+	ob := e.Game().Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return false
+	}
+	pa, ok := ob.PileAbilityAt(o.Ability)
+	if !ok || pa.SA == nil || !pa.SA.IsActivated() || cards.IsManaAbilitySA(pa.SA) || pay.TapCreaturesForMana(pa.SA) {
+		return false
+	}
+	c := abilityOfferCostOf(e, p, o.Obj, pa.SA)
+	if c.X != 0 || c.XMin != 0 || c.Waterbend != 0 || c.WaterbendX || len(c.Phyrexian)+len(c.HybridPhyrexian)+len(c.Twobrid) != 0 {
+		return false
+	}
+	if c.Tap && len(e.appendAvailableManaAbilitiesGate(nil, nil, p, o.Obj, true)) != 0 {
+		supply--
+	}
+	return supply < c.CMC()
+}
+
+// tapRepeatBound is how many times a repeatable tap-only mana cost
+// (tapOnlyManaCost) can be paid in one payment: every activation taps N
+// distinct untapped permanents of each part, and a mana-payment prefix never
+// untaps them, so the untapped candidates bound the activations. The same
+// bound paymentPlanRelaxedAlternatives prices a missed ability's repeats with
+// and the census's covered-unit gate (paymentPlanCensusOf) reads.
+func tapRepeatBound(pe pay.Engine, p state.PlayerID, id state.ObjID, cost costvocab.Cost) int32 {
+	repeats := int32(-1)
+	for _, part := range cost.TapPermanent {
+		n := int32(len(pay.ManaTapCandidates(pe, p, id, part.Spec, nil))) / part.N
+		if repeats < 0 || n < repeats {
+			repeats = n
+		}
+	}
+	if repeats < 0 {
+		return 0
+	}
+	return repeats
 }
 
 // tapOnlyManaCost reports whether a mana ability's cost is exactly literal
@@ -2570,13 +2812,7 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 		// A repeatable tap-another cost: every activation taps N distinct
 		// untapped permanents of each part, and a mana-payment prefix never
 		// untaps them, so the untapped candidates bound the activations.
-		repeats = -1
-		for _, part := range cost.TapPermanent {
-			n := int32(len(pay.ManaTapCandidates(asPayer(e), p, id, part.Spec, nil))) / part.N
-			if repeats < 0 || n < repeats {
-				repeats = n
-			}
-		}
+		repeats = tapRepeatBound(asPayer(e), p, id, cost)
 		if repeats == 0 {
 			// The cost cannot be paid even once: no unit, still bounded.
 			return nil, 0, 0, false, true
@@ -2706,6 +2942,9 @@ const (
 	potentialModeBaseCostPrototype
 	potentialModeBaseCostMultikick
 	potentialModeBaseCostSuspend
+	potentialModeBaseCostConverted
+	potentialModeBaseCostReplicated
+	potentialModeBaseCostSquadded
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -2727,6 +2966,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "room_alt", Val: potentialModeBaseCostRoomAlt},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "aftermath", Val: potentialModeBaseCostAftermath},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "disturb", Val: potentialModeBaseCostDisturb},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "converted", Val: potentialModeBaseCostConverted},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "adventure_recast", Val: potentialModeBaseCostAdventureRecast},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prepared_copy", Val: potentialModeBaseCostPreparedCopy},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
@@ -2750,4 +2990,42 @@ func (e *Engine) planFaceIdx(id state.ObjID) uint8 {
 		}
 	}
 	return 0
+}
+
+// repeatedModeBaseCost is the potential planner's base+one-payment price for
+// a replicated or squadded cast (the multikicked arm's shape: the count ask
+// settles how many afterwards).
+func repeatedModeBaseCost(code potentialModeBaseCostCode, f *cards.Face, cost Cost) (Cost, bool) {
+	if code == potentialModeBaseCostReplicated {
+		rc, ok := replicateCost(f)
+		return cost.Plus(rc), ok
+	}
+	sc, ok := squadCost(f)
+	return cost.Plus(sc), ok
+}
+
+// repeatedPotentialCode maps the two repeated-additional-cost cast modes to
+// their planner price. They are not keys of potentialModeBaseCostCodes (the
+// mode strings already exist in castModeCodes/modeFlagsCodes, and a duplicate
+// StrCodes key would grow the codeshape ratchet), so the mode is read through
+// the table that already owns the word.
+func repeatedPotentialCode(mode string) potentialModeBaseCostCode {
+	switch {
+	case castModeCodes.Code(mode) == castModeReplicated:
+		return potentialModeBaseCostReplicated
+	case modeFlagsCodes.Code(mode) == modeFlagsSquadded:
+		return potentialModeBaseCostSquadded
+	}
+	return 0
+}
+
+// potentialModeBaseCostCodeFor is the planner price code of a cast mode: the
+// table's code, else the two repeated-payment modes (CR 702.56a/702.157a),
+// whose strings already exist in castModeCodes/modeFlagsCode and so are not
+// duplicated into another StrCodes table (codeshape strCodesKeyDup).
+func potentialModeBaseCostCodeFor(mode string) potentialModeBaseCostCode {
+	if code := potentialModeBaseCostCodes.Code(mode); code != 0 {
+		return code
+	}
+	return repeatedPotentialCode(mode)
 }

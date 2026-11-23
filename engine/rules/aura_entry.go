@@ -145,9 +145,16 @@ func auraEnchantSpec(f *cards.Face) string {
 // it is then neither a candidate itself nor a protection source) and you the
 // player it enters under (a card outside the battlefield is controlled by
 // its owner, which is who events.Move puts it onto the battlefield under).
-// Not targeting: hexproof and shroud are not consulted; protection is (CR
-// 702.16c). out is the scratch buffer the result reuses.
-func auraEnchantCandidates(e *Engine, f *cards.Face, id state.ObjID, you state.PlayerID, out []auraEntryCand) []auraEntryCand {
+// entering is the entering Aura card object, nil for the token half (whose
+// face is judged before the token exists); a bearer a live Aura-shape
+// CantAttach static forbids (cantAttachAuraBlocks) is not a legal answer to
+// the CR 303.4f choice either -- the token half has no entering object to
+// match the static's aura side against, so cantAttachAuraBlocks judges the
+// bearer side alone (the not-yet-minted token satisfies both implemented
+// shapes' bare-Aura aura side by construction). Not targeting: hexproof and
+// shroud are not consulted; protection is (CR 702.16c). out is the scratch
+// buffer the result reuses.
+func auraEnchantCandidates(e *Engine, f *cards.Face, id state.ObjID, you state.PlayerID, entering *state.Object, out []auraEntryCand) []auraEntryCand {
 	out = out[:0]
 	spec := auraEnchantSpec(f)
 	if spec == "Player" || spec == "Opponent" {
@@ -170,12 +177,19 @@ func auraEnchantCandidates(e *Engine, f *cards.Face, id state.ObjID, you state.P
 			}
 		}
 	}
+	aura := state.ObjID(0)
+	if entering != nil {
+		aura = entering.ID
+	}
 	for _, p := range e.G.AliveFrom(0) {
 		for _, bid := range e.G.Zone(zone, p) {
 			if bid == id || !e.matchesSpecFrom(spec, bid, you, id) {
 				continue
 			}
 			if zone == state.ZBattlefield && e.protectedFrom(bid, id) {
+				continue
+			}
+			if cantAttachAuraBlocks(e, aura, bid) {
 				continue
 			}
 			out = append(out, auraEntryCand{obj: bid})
@@ -198,7 +212,7 @@ func auraEntryCandidates(e *Engine, o *state.Object, f *cards.Face, ev *events.E
 		e.entryBasis = &basis
 		defer func() { e.entryBasis = saved }()
 	}
-	cands := auraEnchantCandidates(e, f, o.ID, o.Controller, e.auraEntryCands)
+	cands := auraEnchantCandidates(e, f, o.ID, o.Controller, o, e.auraEntryCands)
 	e.auraEntryCands = cands
 	named, ok := events.NamedAttachEntry(ev)
 	if !ok {
@@ -304,16 +318,19 @@ func dropAuraEntry(e *Engine, obj state.ObjID) {
 
 // auraTokenGate is auraEntryGate's TokenCreate half: CR 303.4g's "If the
 // Aura is a token, it isn't created" when nothing on the board is a legal
-// answer for the token's enchant ability. Every corpus Aura token is minted
+// answer for the token's enchant ability -- the same candidate walk the card
+// entry runs, CantAttach Aura statics included, with no entering object so
+// the statics' bearer side alone is judged. Every corpus Aura token is minted
 // with an AttachedTo$ bearer (effects' auraTokenWithheld refuses the mint
 // when that bearer is gone), so this is the class backstop for a mint whose
-// script names no bearer at all.
+// script names no bearer at all; a mint whose named bearer a CantAttach
+// static protects is refused at its Attach instead (attachRefused).
 func auraTokenGate(e *Engine, ev *events.Event) bool {
 	def := e.G.Tokens[ev.Text]
 	if def == nil || len(def.Faces) == 0 || !faceIsAura(def.Faces[0]) || int(ev.Player) >= len(e.G.Players) {
 		return false
 	}
-	cands := auraEnchantCandidates(e, def.Faces[0], 0, ev.Player, e.auraEntryCands)
+	cands := auraEnchantCandidates(e, def.Faces[0], 0, ev.Player, nil, e.auraEntryCands)
 	e.auraEntryCands = cands
 	if len(cands) > 0 {
 		return false

@@ -12,7 +12,8 @@ import (
 // and a pool's table names a card with more than one face "Front // Back"
 // (Imodane's Recruiter // Train Troops), so a name the table lacks is looked up
 // as the registry's card spells it in full; a name neither form finds is left
-// as written, for the table to refuse by name.
+// as written, for the table to refuse by name. A Universes-Within card a deck
+// listed by its flavour name is looked up by that alias.
 func ReproEntries(reg *cards.Registry, set cardset.Set, names []string) []cardset.Entry {
 	es := make([]cardset.Entry, len(names))
 	for i, n := range names {
@@ -27,6 +28,16 @@ func tableName(reg *cards.Registry, set cardset.Set, name string) string {
 		return name
 	}
 	c, ok := reg.Lookup(name)
+	if ok && len(c.Faces) > 0 && c.Faces[0] != nil {
+		// a Universes-Within card a decklist spells by its flavour name
+		// (Baldin, Century Herdmaster for E. Honda, Sumo Champion): the pool's
+		// table names it as the deck did, the repro as the registry's card
+		for _, a := range c.Faces[0].Aliases {
+			if _, found := set.Lookup(a); found {
+				return a
+			}
+		}
+	}
 	if !ok || len(c.Faces) < 2 {
 		return name
 	}

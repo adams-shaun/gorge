@@ -5,12 +5,15 @@ package neutral_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -161,76 +164,104 @@ func seedCensusState(t *testing.T, g *gamecfg.Game) {
 func TestNeutralViewCensus(t *testing.T) {
 	t.Parallel()
 	reg := testcorpus.Registry(t)
+	var mu sync.Mutex
 	counts := map[string]int{}
 	checked := 0
 	for i := 0; i < 50; i++ {
-		d := catalog.Decks()[i%len(catalog.Decks())]
-		g := testgame.New(t, reg, d.CatalogID, d.CatalogID, byte(i), "none")
-		tr := identity.New(g.R, g.Secret)
-		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
-		bots := testgame.Bots(uint64(i))
-		seeded, forcePass := i != 0, false
-		for n := 0; n < 1200; n++ {
-			pending := g.E.Pending()
-			if g.E.G.Over || pending == nil {
-				break
+		i := i
+		t.Run(fmt.Sprintf("game%02d", i), func(t *testing.T) {
+			t.Parallel()
+			gameCounts, gameChecked := viewCensusGame(t, reg, i)
+			mu.Lock()
+			defer mu.Unlock()
+			for p, n := range gameCounts {
+				counts[p] += n
 			}
-			if !seeded && g.E.G.Turn > 0 {
-				if pending.Kind != decision.KPriority {
-					t.Fatalf("game %d: first turn decision is %v, want priority", i, pending.Kind)
+			checked += gameChecked
+		})
+	}
+	// Parallel subtests finish after this function returns, so the table check
+	// is a cleanup: it sees every game's counts and fails the parent.
+	t.Cleanup(func() {
+		mu.Lock()
+		defer mu.Unlock()
+		baseline := censusBaseline(t)
+		added, unreached := observationDegradationDrift(baseline, counts)
+		if len(added) > 0 || len(unreached) > 0 {
+			t.Fatalf("view census differs from %s:\nnew unequal fields (fix the projection, or add a row by hand if the loss is accepted): %v\nfields that became equal (delete their rows): %v",
+				viewCensusBaseline, added, unreached)
+		}
+		t.Logf("view census: %d decisions, %d unequal fields", checked, len(counts))
+	})
+}
+
+// viewCensusGame plays one seeded game and returns the fields that differ and
+// the decisions it compared. It is a subtest body so the 50 games run in
+// parallel, which keeps the census inside the test budget.
+func viewCensusGame(t *testing.T, reg *cards.Registry, i int) (map[string]int, int) {
+	t.Helper()
+	counts := map[string]int{}
+	checked := 0
+	d := catalog.Decks()[i%len(catalog.Decks())]
+	g := testgame.New(t, reg, d.CatalogID, d.CatalogID, byte(i), "none")
+	tr := identity.New(g.R, g.Secret)
+	builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
+	bots := testgame.Bots(uint64(i))
+	seeded, forcePass := i != 0, false
+	for n := 0; n < 1200; n++ {
+		pending := g.E.Pending()
+		if g.E.G.Over || pending == nil {
+			break
+		}
+		if !seeded && g.E.G.Turn > 0 {
+			if pending.Kind != decision.KPriority {
+				t.Fatalf("game %d: first turn decision is %v, want priority", i, pending.Kind)
+			}
+			seedCensusState(t, g)
+			seeded, forcePass = true, true
+		}
+		if err := tr.Sync(g.R); err != nil {
+			t.Fatalf("game %d step %d: %v", i, n, err)
+		}
+		priority := g.E.G.Priority
+		obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+		if err != nil {
+			t.Fatalf("game %d step %d: observation: %v", i, n, err)
+		}
+		got, err := builders[pending.Player].View(&obs)
+		if err != nil {
+			t.Fatalf("game %d step %d: neutral view: %v", i, n, err)
+		}
+		want := view.Project(g.E.G, g.E, pending.Player, nil)
+		diff := map[string]bool{}
+		censusWalk("", censusJSON(t, want), censusJSON(t, got), diff)
+		for p := range diff {
+			counts[p]++
+		}
+		checked++
+		in := decision.Intent{Seq: pending.Seq, Player: pending.Player}
+		if forcePass {
+			pass := -1
+			for k, opt := range pending.Options {
+				if opt.Kind == "pass" {
+					pass = k
+					break
 				}
-				seedCensusState(t, g)
-				seeded, forcePass = true, true
 			}
-			if err := tr.Sync(g.R); err != nil {
-				t.Fatalf("game %d step %d: %v", i, n, err)
+			if pass < 0 {
+				t.Fatalf("game %d: injected state left no pass option", i)
 			}
-			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+			in.Choices = []int{pass}
+		} else {
+			in, err = bots[pending.Player].Decide(context.Background(), want, *pending)
 			if err != nil {
-				t.Fatalf("game %d step %d: observation: %v", i, n, err)
-			}
-			got, err := builders[pending.Player].View(&obs)
-			if err != nil {
-				t.Fatalf("game %d step %d: neutral view: %v", i, n, err)
-			}
-			want := view.Project(g.E.G, g.E, pending.Player, nil)
-			diff := map[string]bool{}
-			censusWalk("", censusJSON(t, want), censusJSON(t, got), diff)
-			for p := range diff {
-				counts[p]++
-			}
-			checked++
-			in := decision.Intent{Seq: pending.Seq, Player: pending.Player}
-			if forcePass {
-				pass := -1
-				for k, opt := range pending.Options {
-					if opt.Kind == "pass" {
-						pass = k
-						break
-					}
-				}
-				if pass < 0 {
-					t.Fatalf("game %d: injected state left no pass option", i)
-				}
-				in.Choices = []int{pass}
-			} else {
-				in, err = bots[pending.Player].Decide(context.Background(), want, *pending)
-				if err != nil {
-					t.Fatalf("game %d step %d: bot: %v", i, n, err)
-				}
-			}
-			forcePass = false
-			if err := g.Submit(in); err != nil {
-				t.Fatalf("game %d step %d: submit: %v", i, n, err)
+				t.Fatalf("game %d step %d: bot: %v", i, n, err)
 			}
 		}
+		forcePass = false
+		if err := g.Submit(in); err != nil {
+			t.Fatalf("game %d step %d: submit: %v", i, n, err)
+		}
 	}
-	baseline := censusBaseline(t)
-	added, unreached := observationDegradationDrift(baseline, counts)
-	if len(added) > 0 || len(unreached) > 0 {
-		t.Fatalf("view census differs from %s:\nnew unequal fields (fix the projection, or add a row by hand if the loss is accepted): %v\nfields that became equal (delete their rows): %v",
-			viewCensusBaseline, added, unreached)
-	}
-	t.Logf("view census: %d decisions, %d unequal fields", checked, len(counts))
+	return counts, checked
 }

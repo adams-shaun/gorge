@@ -76,7 +76,6 @@ Lunar Force
 March of the Drowned
 Mercurial Pretender
 Meteor Storm
-Molten Ravager
 Monk Idealist
 Mountain
 Mudhole
@@ -104,6 +103,7 @@ Saproling Migration
 Scattershot
 Seasoned Pyromancer
 Silverglade Pathfinder
+Smiting Helix
 Smothering Abomination
 Soul of Shandalar
 Soulmender

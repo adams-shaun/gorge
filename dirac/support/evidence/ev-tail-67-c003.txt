@@ -58,6 +58,7 @@ Confront the Unknown
 Conservator
 Consuming Vapors
 Contagion
+Coralhelm Guide
 Corpse Knight
 Corrupted Zendikon
 Corrupting Licid
@@ -66,6 +67,7 @@ Courier's Capsule
 Crackling Triton
 Crop Rotation
 Crypt Incursion
+Crystalline Armor
 Culling Mark
 Custodi Soulbinders
 Daily Bugle Newspaper
@@ -129,6 +131,7 @@ Helitrooper
 Hemlock Vial
 Heroes of the Revel
 Heroes' Podium
+Hidden Blade
 Honed Khopesh
 Hooting Mandrills
 Horizon Chimera
@@ -197,6 +200,7 @@ Oblation
 Obscura Initiate
 Orcish Bowmasters
 Orim's Touch
+Paradox Engine
 Path of Anger's Flame
 Pentarch Ward
 Pernicious Deed
@@ -214,6 +218,7 @@ Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
 Psychic Spear
+Psychotrope Thallid
 Pulse of the Grid
 Purifying Dragon
 Python
@@ -297,6 +302,7 @@ Tidal Bore
 Titan Hunter
 Titan's Strength
 Topan Freeblade
+Tor Giant
 Tormod's Cryptkeeper
 Tranquil Frillback
 Transcendent Master

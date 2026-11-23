@@ -1,36 +1,57 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Goldspan Dragon	709e74b3e12ae92d	24	1/1		1/1	
 Ancient Silver Dragon	df645b3c75227396	4	1/1		0/1	ix:resp
 Arcbound Hybrid	3677aaa97f6a4c8c	41	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Asylum Visitor	bf728c4d43839c64	4	1/1		0/1	ix:resp
 Attrition	0ef985a4765623fd	4	1/1		0/1	ix:resp
+Aven Liberator	133421ad9dd5171d	4	1/1		1/3	cast/alt:none,ix:resp
+Avian Oddity	1162a2158c07b394	3	2/2		1/1	
 Barrier Breach	5e7933b162e2d6bd	3	1/1		1/2	ix:resp
+Bloodthirsty Aerialist	61faf54556940fd1	10	1/1		0/1	ix:resp
 Brawl-Bash Ogre	61090b900dad4022	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
+Bushi Tenderfoot	0e239a08368a4403	4	3/3		0/1	ix:resp
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
+Champion of Wits	e56fd3fab5a9a1ee	27	2/2		0/1	ix:resp
 Cognivore	067dffb8c72cd043	4	0/0		0/0	
+Colossus of Akros	f965b58ddd1e5fe2	4	1/1		0/1	ix:resp
+Confront the Past	83120d444affddf6	4	0/0		2/4	f0/s/x0,ix:resp
 Consuming Sinkhole	aaba51e0a0b7d214	3	0/0		1/2	ix:resp
 Damning Verdict	1dccb20420d30c22	4	0/0		1/2	ix:resp
 Darksteel Angel	390c64cd170b7e78	3	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	7	1/1		1/1	
+Demon of Loathing	e06d1882a2b202ad	4	1/1		0/1	ix:resp
+Deploy the Gatewatch	6018c9bff07904ba	6	0/0		1/2	ix:resp
 Dismiss	98c54a5dacadbdcc	6	0/0		1/2	ix:resp
 Dryad Greenseeker	10da06049d9715a6	4	1/1		1/1	
+Echo Storm	8ae44a28bdc227ec	26	1/1		2/2	
+Entangler	4bd6de1854dc29ef	4	0/0		1/2	ix:resp
 Feral Abomination	f1081f770e37d37f	4	0/0		0/0	
 Frogtosser Banneret	755c354027fd2824	14	0/0		0/0	
 Frostweb Spider	b2db8676c700f7e1	4	1/1		0/1	ix:resp
 Gaea's Embrace	ee212e4d653d8d21	4	1/1		2/2	
+Gatewatch Beacon	2afa81f64549e9d3	19	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ghost-Lit Stalker	6ad4be817d1f4b90	5	2/2		0/1	ix:resp
 Ghost-Spider, Gwen Stacy	3364cd27780b8394	10	1/1		0/1	ix:resp
 Gisa's Bidding	222d17a4cd4c92c6	6	0/0		1/2	ix:resp
 Go-Shintai of Shared Purpose	2e513825a4c9d0cd	5	1/1		0/1	ix:resp
+Gravespawn Sovereign	7ab74d7b2d80447a	37	1/1		0/1	ix:resp
+Kami of the Hunt	4724dbc55c515a08	6	1/1		0/1	ix:resp
 Knight of Old Benalia	c2e4f7038eb3f6ec	4	1/1		2/3	cast/alt:none
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
 Kukemssa Pirates	0273c4e4bed563ba	25	1/1		0/1	ix:resp
 Lancer Sliver	76a74b77bba6a153	4	0/0		0/0	
+Master of Pearls	0e6ee2f0a655843d	5	1/1		1/3	cast/alt:none,ix:resp
+Memory Drain	c46fd829c51d7202	3	0/0		1/2	ix:resp
 Mesa Falcon	903c7c457b5cb1e4	4	1/1		0/1	ix:resp
 Morbid Bloom	7b097cd23dea84d4	3	0/0		1/2	ix:resp
+Nadier, Agent of the Duskenel	9528eda2438c244d	6	2/2		1/1	
 Pattern of Rebirth	f8d43138beeffdf3	3	1/1		1/2	ix:resp
 Phoenix Chick	9d8ef778dbdb45c5	6	1/1		0/1	ix:resp
 Pious Wayfarer	c2ffbc6dec7b5ccc	4	1/1		0/1	ix:resp
 Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp
+Proven Combatant	119011b6cdeb5d6e	10	1/1		1/1	
+Quickchange	2f616499b41a8ad0	8	0/0		1/2	ix:resp
 Radiant Fountain	1e041f359ea30061	7	2/2		0/1	ix:resp
 Raging Spirit	f9ad9a26c24fae84	4	1/1		1/1	
 Rakshasa's Secret	c17edfcfb9c791fb	6	0/0		1/2	ix:resp
@@ -38,19 +59,30 @@ Rampaging Monument	e375a9b9fca75169	8	1/1		0/1	ix:resp
 Ranger Class	47c93d9c14873a29	6	4/4		1/1	
 Ravenloft Adventurer	31a684881da81801	20	2/2		0/1	ix:resp
 Recross the Paths	0f2572fcd43e9193	3	0/0		1/2	ix:resp
+Redwood Treefolk	74772f6fadc55255	7	0/0		0/0	
 Rescue Retriever	a70a6817ff49a5aa	6	1/1		0/1	ix:resp
 Sarcomancy	456e196305565d59	6	2/2		0/1	ix:resp
 Sewerdreg	dab87112e73f01b2	3	1/1		0/1	ix:resp
+Sideswipe	ba3173428748eaf1	5	0/0		2/2	
 Steady Progress	a4cef3e6d4be2954	6	0/0		1/2	ix:resp
 Sunblade Angel	38ace76c9f490d60	4	0/0		0/0	
 Sure-Footed Infiltrator	c70d5094b324b84f	5	2/2		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	4	1/1		0/1	ix:resp
+Tevesh Szat, Doom of Fools	5872e69f8020c239	6	3/3		0/1	ix:resp
 Tezzeret's Touch	498134adc120c39a	3	1/1		1/2	ix:resp
+The Unspeakable	ca366311c699b77c	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Titanic Brawl	0c104d2b6ec7008a	5	0/0		1/2	ix:resp
+Triumphant Adventurer	2e29e90ce08f62cd	4	1/1		0/1	ix:resp
+True Conviction	ba3973b3d50957e5	4	0/0		0/0	
+Try-My-Deck Elemental	3840eb4b4177eb05	6	0/0		0/0	
 Unwavering Initiate	29b674f3413a81df	4	1/1		0/1	ix:resp
+Urborg, Tomb of Yawgmoth	b8a5b0958546ca96	11	0/0		0/0	
 Urza's Cave	5eaf7852b36bc0df	10	2/2		0/1	ix:resp
 Valakut Fireboar	53ea89743e709d1d	9	1/1		0/1	ix:resp
 Veilborn Ghoul	5cdc9680114ac77a	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Vindictive Flamestoker	38f5dcccbad881ad	6	2/2		0/1	ix:resp
 Vivid Revival	0d44b681287d8277	4	0/0		1/2	ix:resp
 Walking Archive	4650562fe3985ab2	4	2/2		1/1	
 Wild Crocodile	953aede19e3ac2c4	4	1/1		0/1	ix:resp
 Wilderness Elemental	b1ffff6bdc456ae2	4	0/0		0/0	
+Xanthic Statue	9250703625a44a5a	4	1/1		0/1	ix:resp

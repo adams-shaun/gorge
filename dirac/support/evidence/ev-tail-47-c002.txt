@@ -25,6 +25,8 @@ Avatar of Fury
 Aven Tactician
 Aven Wind Mage
 Barony Vampire
+Basilisk Gate
+Behold the Multiverse
 Berserkers' Onslaught
 Binding Mummy
 Blessed Wind
@@ -107,6 +109,7 @@ Endangered Armodon
 Energy Tap
 Environmental Sciences
 Erase
+Evangel of Heliod
 Evincar's Justice
 Evolution Witness
 Expendable Troops
@@ -401,7 +404,9 @@ Twinblade Slasher
 Two-Headed Dragon
 Tyrranax
 Ulgrotha Charm
+Utopia Sprawl
 Vampire Champion
+Vampiric Embrace
 Vaporkin
 Vastwood Fortification
 Vastwood Zendikon
@@ -410,6 +415,8 @@ Vesperlark
 Veteran Explorer
 Viashino Sandstalker
 Viridian Shaman
+Vivid Grove
+Vivid Marsh
 Vizzerdrix
 Volcanic Island
 Voracious Vampire
@@ -438,5 +445,6 @@ Witch Enchanter
 Woodfall Primus
 Wu Scout
 Youthful Knight
+Zhalfirin Void
 Zhang Liao, Hero of Hefei
 Zhur-Taa Swine

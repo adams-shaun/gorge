@@ -41,9 +41,14 @@ func (s *State) choosePlayerResPool(in *kop.Instr) seatSeq {
 	return r
 }
 
-// choosePlayerResRecord makes p the chosen player and remembers it.
-func (s *State) choosePlayerResRecord(p uint8) {
-	s.res.cpl = s.res.cpl&cplRemMask | 1<<p | p<<cplLastShift | cplHas
+// choosePlayerResRecord makes p the chosen player and remembers it, unless c
+// carries kop.ChoosePlayerForget (no RememberChosen$).
+func (s *State) choosePlayerResRecord(p uint8, c int16) {
+	rem := s.res.cpl & cplRemMask
+	if c&kop.ChoosePlayerForget == 0 {
+		rem |= 1 << p
+	}
+	s.res.cpl = rem | p<<cplLastShift | cplHas
 }
 
 // chosenSeatRes is kop.RefChosenPlayerRes: the chosen seat, 255 when none.
@@ -63,7 +68,7 @@ func (s *State) choosePlayerResStart(in *kop.Instr) bool {
 	case 0:
 		s.res.cpl &= cplRemMask
 	case 1:
-		s.choosePlayerResRecord(q.s[0])
+		s.choosePlayerResRecord(q.s[0], in.C)
 	default:
 		s.res.ask, s.res.askP = raChoosePlayerRes, s.res.e.ctrl
 		return false
@@ -82,7 +87,7 @@ func (s *State) choosePlayerResOptions(k *prep, d *Decision) {
 
 // choosePlayerResAnswer records the answer and goes on.
 func (s *State) choosePlayerResAnswer(k *prep, a Action) {
-	s.choosePlayerResRecord(a.Mode())
+	s.choosePlayerResRecord(a.Mode(), s.prog(k)[s.res.pc].C)
 	s.continueRes(k, 0)
 }
 
