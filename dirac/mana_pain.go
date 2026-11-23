@@ -719,12 +719,12 @@ func (s *State) contGrantLive(k *prep) bool {
 	if g == nil || !g.anyContGrant {
 		return false
 	}
-	if g.contGrantAlways {
+	if k.contGrantAlways {
 		return true
 	}
 	for seat := range s.ctrlM {
 		for m := s.ctrlM[seat]; m.any(); m = m.rest() {
-			if g.grantSrcCard[s.cardAt(m.first())] {
+			if k.grantSrcCard[s.cardAt(m.first())] {
 				return true
 			}
 		}

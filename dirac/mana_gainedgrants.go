@@ -64,7 +64,6 @@ func (g *genPrep) addGrantPC(gp pcard, self bool, a *kop.Ability, c CardID, ab u
 	g.grantOf = append(g.grantOf, grantRef{c, ab})
 	if a.AFlags&kop.AfLatent == 0 {
 		g.anyContGrant = true
-		g.contGrantAlways = true
 	}
 }
 
