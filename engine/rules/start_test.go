@@ -17,8 +17,8 @@ const (
 		"A:SP$ Attach | Cost$ W | ValidTgts$ Creature | AILogic$ Pump\nOracle:x\n"
 	// startETB draws a card when it enters: the trigger a scripted start drops.
 	startETB = "Name:Start ETB\nManaCost:1\nTypes:Creature Elf\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ x\n" +
-		"SVar:TrigDraw:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"
+		"T:Mode$ ChangesZone | ValidCard$ Card.Self | Destination$ Battlefield | Origin$ Any | Execute$ EntryDraw | TriggerDescription$ x\n" +
+		"SVar:EntryDraw:DB$ Draw | NumCards$ 1 | Defined$ You\nOracle:x\n"
 )
 
 // startDeck is 40 distinct cards "C0".."C39" so a deck index names one object;

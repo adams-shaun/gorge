@@ -601,7 +601,7 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	// opening-hand round reads it; a mulligan round would redeal it, so the
 	// start applies only with Mulligans 0.
 	if cfg.Start != nil && cfg.Mulligans == 0 && !e.G.Over {
-		e.applyStart(cfg.Start, startIDs)
+		applyStart(e, cfg.Start, startIDs)
 	}
 	// The starting seat is the toss winner resolved over the survivors --
 	// never seat 0 and never a seat the deal eliminated: an early seat that

@@ -80,6 +80,10 @@ func SeedForStarter(seed uint64, seats, want int) uint64 {
 	}
 }
 
+// startBuilder carries the engine through applyStart's passes; its methods
+// are not Engine methods (the engine method count only shrinks).
+type startBuilder struct{ e *Engine }
+
 // startSeatPlan is one seat's resolved placements.
 type startSeatPlan struct {
 	seat     state.PlayerID
@@ -105,22 +109,23 @@ type startSeatPlan struct {
 // leaves nothing on the stack. Library order, per seat: the Library cards
 // top first, then the shuffled remainder minus every placed card, then the
 // unplaced opening-hand cards in hand order.
-func (e *Engine) applyStart(spec *StartSpec, ids [][]state.ObjID) {
+func applyStart(e *Engine, spec *StartSpec, ids [][]state.ObjID) {
+	b := startBuilder{e: e}
 	plans := make([]startSeatPlan, 0, len(spec.Seats))
 	for p := range spec.Seats {
 		if p >= len(ids) || p >= len(e.G.Players) {
 			break
 		}
-		plans = append(plans, e.planStartSeat(state.PlayerID(p), &spec.Seats[p], ids[p]))
+		plans = append(plans, b.planStartSeat(state.PlayerID(p), &spec.Seats[p], ids[p]))
 	}
 	for i := range plans {
-		e.placeStartSeat(&plans[i])
+		b.placeStartSeat(&plans[i])
 	}
 	for i := range plans {
-		e.placeStartAttached(&plans[i], ids)
+		b.placeStartAttached(&plans[i], ids)
 	}
 	for i := range plans {
-		e.finishStartSeat(&plans[i])
+		b.finishStartSeat(&plans[i])
 	}
 	e.pendingTriggers = e.pendingTriggers[:0]
 	e.orderedTriggers = 0
@@ -129,7 +134,8 @@ func (e *Engine) applyStart(spec *StartSpec, ids [][]state.ObjID) {
 
 // planStartSeat resolves a seat's index lists to objects, each card claimed
 // once.
-func (e *Engine) planStartSeat(p state.PlayerID, s *StartSeat, ids []state.ObjID) startSeatPlan {
+func (b startBuilder) planStartSeat(p state.PlayerID, s *StartSeat, ids []state.ObjID) startSeatPlan {
+	e := b.e
 	pl := startSeatPlan{seat: p, spec: s, ids: ids, placed: map[state.ObjID]bool{}}
 	pl.rest = append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
 	pl.hand = append([]state.ObjID(nil), e.G.Zone(state.ZHand, p)...)
@@ -173,13 +179,14 @@ func startObj(ids []state.ObjID, idx int) state.ObjID {
 // placeStartSeat returns the dealt hand to the library, then moves every
 // placed card out of it: graveyard, exile and hand first (plain placements,
 // no replacement rewrites them), then the unattached battlefield cards.
-func (e *Engine) placeStartSeat(pl *startSeatPlan) {
+func (b startBuilder) placeStartSeat(pl *startSeatPlan) {
+	e := b.e
 	for _, id := range pl.hand {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZLibrary})
 	}
-	e.placeStartPlain(pl.grave, state.ZGraveyard)
-	e.placeStartPlain(pl.exile, state.ZExile)
-	e.placeStartPlain(pl.hands, state.ZHand)
+	b.placeStartPlain(pl.grave, state.ZGraveyard)
+	b.placeStartPlain(pl.exile, state.ZExile)
+	b.placeStartPlain(pl.hands, state.ZHand)
 	for _, a := range pl.spec.Attach {
 		if id := startObj(pl.ids, a.Card); id != 0 && slices.Contains(pl.field, id) {
 			pl.attached[id] = true
@@ -187,14 +194,15 @@ func (e *Engine) placeStartSeat(pl *startSeatPlan) {
 	}
 	for _, id := range pl.field {
 		if !pl.attached[id] {
-			e.placeStartBattlefield(pl, id, 0)
+			b.placeStartBattlefield(pl, id, 0)
 		}
 	}
 }
 
 // placeStartPlain moves ids from the library into zone with no replacement
 // pass (CR 614): setup is placement, not an event in the game.
-func (e *Engine) placeStartPlain(ids []state.ObjID, zone state.Zone) {
+func (b startBuilder) placeStartPlain(ids []state.ObjID, zone state.Zone) {
+	e := b.e
 	prior := e.applyingReplacement
 	e.applyingReplacement = true
 	defer func() { e.applyingReplacement = prior }()
@@ -204,7 +212,8 @@ func (e *Engine) placeStartPlain(ids []state.ObjID, zone state.Zone) {
 }
 
 // placeStartAttached enters pl's attached Auras, each on its bearer.
-func (e *Engine) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID) {
+func (b startBuilder) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID) {
+	e := b.e
 	for _, id := range pl.field {
 		if !pl.attached[id] {
 			continue
@@ -220,7 +229,7 @@ func (e *Engine) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID) {
 		if o := e.G.Obj(bearer); o == nil || o.Zone != state.ZBattlefield {
 			bearer = 0
 		}
-		e.placeStartBattlefield(pl, id, bearer)
+		b.placeStartBattlefield(pl, id, bearer)
 	}
 }
 
@@ -228,7 +237,8 @@ func (e *Engine) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID) {
 // the move (as a transformed ChangeZone does, so the entry fold reads the
 // back face), then tapped, counters and SetupSettled. A nonzero bearer
 // enters an Aura attached to it.
-func (e *Engine) placeStartBattlefield(pl *startSeatPlan, id, bearer state.ObjID) {
+func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.ObjID) {
+	e := b.e
 	idx := slices.Index(pl.ids, id)
 	if slices.Contains(pl.spec.BackFace, idx) {
 		// Placement is not a transform (CR 701.28).
@@ -255,7 +265,8 @@ func (e *Engine) placeStartBattlefield(pl *startSeatPlan, id, bearer state.ObjID
 }
 
 // finishStartSeat emits the seat's complete library order and its life.
-func (e *Engine) finishStartSeat(pl *startSeatPlan) {
+func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
+	e := b.e
 	order := append([]state.ObjID(nil), pl.top...)
 	for _, id := range pl.rest {
 		if !pl.placed[id] {
