@@ -2171,6 +2171,9 @@ func (s *State) planUnitColours(k *prep, pc *pcard, sl Slot, mask uint8, granted
 			printed = s.blgPrintedMask(k, sl)
 		}
 	}
+	if first == 0 && printed == 0 {
+		first = s.blgSubsumedFirst(k, sl, pc, mask) // static_landgrantdup.go
+	}
 	return
 }
 

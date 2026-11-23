@@ -582,6 +582,11 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 		subSet = all
 	}
+	// A static that grants a basic land type (Urborg's Swamp) makes the kernel
+	// tell a land's printed mana ability from the intrinsic one its own basic
+	// types give (blgPrintedMask): keep the basic land types the included
+	// cards print, so a Plateau's {R} and {W} are not read as printed.
+	keepPrintedBasicLandTypes(dd, pool, &subSet)
 	// The kernel's Role exclusivity keys on the printed Role subtype by
 	// name (dirac/gen.go prepRoles), not on a filter, so keep Role in the
 	// table whenever an included card prints it. Without this the mask()
@@ -842,6 +847,33 @@ func markBasicLandChoice(dd *PoolData, in *kop.Instr, mark func(uint8)) {
 	for s, n := range dd.Subtypes {
 		if basicLandTypeNames[n] {
 			mark(uint8(s))
+		}
+	}
+}
+
+// keepPrintedBasicLandTypes adds to subSet the basic land types some pool
+// card prints, when a static of an included card grants one.
+func keepPrintedBasicLandTypes(dd *PoolData, pool []int, subSet *PoolSubMask) {
+	granted := false
+	for _, i := range pool {
+		for _, as := range dd.StaticSubs[i] {
+			for _, s := range as.Subs {
+				granted = granted || basicLandTypeNames[dd.Subtypes[s]]
+			}
+		}
+	}
+	if !granted {
+		return
+	}
+	for s, n := range dd.Subtypes {
+		if !basicLandTypeNames[n] {
+			continue
+		}
+		for _, i := range pool {
+			if dd.CardSubs[i].Has(s) {
+				*subSet = subSet.With(s)
+				break
+			}
 		}
 	}
 }
