@@ -105,6 +105,9 @@ func (s *State) expireControlPerLoss(k *prep, pre uint8) {
 // no zone (kop.ZoneNone, which the oracle projects as ZCeased).
 func (s *State) leaveGame(k *prep, p uint8) bool {
 	moved := false
+	if k.gen != nil && k.gen.anyBattle {
+		s.rechooseProtectors(k, p) // CR 310.10 (face_battle.go)
+	}
 	if s.g.nfx != 0 {
 		// every effect giving p control ends first, as gorge's expireControl
 		// runs on the PlayerLost emit (ctrlSeatLeft): a stolen permanent goes
