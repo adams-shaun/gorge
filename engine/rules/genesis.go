@@ -601,7 +601,20 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	// opening-hand round reads it; a mulligan round would redeal it, so the
 	// start applies only with Mulligans 0.
 	if cfg.Start != nil && cfg.Mulligans == 0 && !e.G.Over {
-		applyStart(e, cfg.Start, startIDs)
+		applyStart(startHost{
+			G:    e.G,
+			Emit: e.emit,
+			Replacing: func(on bool) bool {
+				prior := e.applyingReplacement
+				e.applyingReplacement = on
+				return prior
+			},
+			Settle: func() {
+				e.pendingTriggers = e.pendingTriggers[:0]
+				e.orderedTriggers = 0
+				e.cmdZoneScan = len(e.L.Events)
+			},
+		}, cfg.Start, startIDs)
 	}
 	// The starting seat is the toss winner resolved over the survivors --
 	// never seat 0 and never a seat the deal eliminated: an early seat that

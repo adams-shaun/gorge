@@ -80,9 +80,20 @@ func SeedForStarter(seed uint64, seats, want int) uint64 {
 	}
 }
 
-// startBuilder carries the engine through applyStart's passes; its methods
+// startHost is the narrow view of the engine applyStart needs: the game,
+// the one emit path, the replacement-pass guard and the end-of-setup
+// settle. It holds no *Engine, so the engine's reach (engineSurface) does
+// not grow.
+type startHost struct {
+	G         *state.Game
+	Emit      func(events.Event) events.Event
+	Replacing func(on bool) (prior bool) // sets applyingReplacement, returns the old value
+	Settle    func()                     // drops the setup's queued triggers
+}
+
+// startBuilder carries the host through applyStart's passes; its methods
 // are not Engine methods (the engine method count only shrinks).
-type startBuilder struct{ e *Engine }
+type startBuilder struct{ h startHost }
 
 // startSeatPlan is one seat's resolved placements.
 type startSeatPlan struct {
@@ -109,11 +120,11 @@ type startSeatPlan struct {
 // leaves nothing on the stack. Library order, per seat: the Library cards
 // top first, then the shuffled remainder minus every placed card, then the
 // unplaced opening-hand cards in hand order.
-func applyStart(e *Engine, spec *StartSpec, ids [][]state.ObjID) {
-	b := startBuilder{e: e}
+func applyStart(h startHost, spec *StartSpec, ids [][]state.ObjID) {
+	b := startBuilder{h: h}
 	plans := make([]startSeatPlan, 0, len(spec.Seats))
 	for p := range spec.Seats {
-		if p >= len(ids) || p >= len(e.G.Players) {
+		if p >= len(ids) || p >= len(h.G.Players) {
 			break
 		}
 		plans = append(plans, b.planStartSeat(state.PlayerID(p), &spec.Seats[p], ids[p]))
@@ -127,18 +138,16 @@ func applyStart(e *Engine, spec *StartSpec, ids [][]state.ObjID) {
 	for i := range plans {
 		b.finishStartSeat(&plans[i])
 	}
-	e.pendingTriggers = e.pendingTriggers[:0]
-	e.orderedTriggers = 0
-	e.cmdZoneScan = len(e.L.Events)
+	h.Settle()
 }
 
 // planStartSeat resolves a seat's index lists to objects, each card claimed
 // once.
 func (b startBuilder) planStartSeat(p state.PlayerID, s *StartSeat, ids []state.ObjID) startSeatPlan {
-	e := b.e
+	h := b.h
 	pl := startSeatPlan{seat: p, spec: s, ids: ids, placed: map[state.ObjID]bool{}}
-	pl.rest = append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
-	pl.hand = append([]state.ObjID(nil), e.G.Zone(state.ZHand, p)...)
+	pl.rest = append([]state.ObjID(nil), h.G.Zone(state.ZLibrary, p)...)
+	pl.hand = append([]state.ObjID(nil), h.G.Zone(state.ZHand, p)...)
 	avail := map[state.ObjID]bool{}
 	for _, id := range pl.rest {
 		avail[id] = true
@@ -180,9 +189,9 @@ func startObj(ids []state.ObjID, idx int) state.ObjID {
 // placed card out of it: graveyard, exile and hand first (plain placements,
 // no replacement rewrites them), then the unattached battlefield cards.
 func (b startBuilder) placeStartSeat(pl *startSeatPlan) {
-	e := b.e
+	h := b.h
 	for _, id := range pl.hand {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZLibrary})
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZLibrary})
 	}
 	b.placeStartPlain(pl.grave, state.ZGraveyard)
 	b.placeStartPlain(pl.exile, state.ZExile)
@@ -202,18 +211,17 @@ func (b startBuilder) placeStartSeat(pl *startSeatPlan) {
 // placeStartPlain moves ids from the library into zone with no replacement
 // pass (CR 614): setup is placement, not an event in the game.
 func (b startBuilder) placeStartPlain(ids []state.ObjID, zone state.Zone) {
-	e := b.e
-	prior := e.applyingReplacement
-	e.applyingReplacement = true
-	defer func() { e.applyingReplacement = prior }()
+	h := b.h
+	prior := h.Replacing(true)
+	defer h.Replacing(prior)
 	for _, id := range ids {
-		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: zone})
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: zone})
 	}
 }
 
 // placeStartAttached enters pl's attached Auras, each on its bearer.
 func (b startBuilder) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID) {
-	e := b.e
+	h := b.h
 	for _, id := range pl.field {
 		if !pl.attached[id] {
 			continue
@@ -226,7 +234,7 @@ func (b startBuilder) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID)
 			bearer = startObj(ids[a.ToSeat], a.To)
 			break
 		}
-		if o := e.G.Obj(bearer); o == nil || o.Zone != state.ZBattlefield {
+		if o := h.G.Obj(bearer); o == nil || o.Zone != state.ZBattlefield {
 			bearer = 0
 		}
 		b.placeStartBattlefield(pl, id, bearer)
@@ -238,35 +246,34 @@ func (b startBuilder) placeStartAttached(pl *startSeatPlan, ids [][]state.ObjID)
 // back face), then tapped, counters and SetupSettled. A nonzero bearer
 // enters an Aura attached to it.
 func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.ObjID) {
-	e := b.e
+	h := b.h
 	idx := slices.Index(pl.ids, id)
 	if slices.Contains(pl.spec.BackFace, idx) {
 		// Placement is not a transform (CR 701.28).
-		prior := e.applyingReplacement
-		e.applyingReplacement = true
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: 1, Text: "Transformed"})
-		e.applyingReplacement = prior
+		prior := h.Replacing(true)
+		h.Emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: 1, Text: "Transformed"})
+		h.Replacing(prior)
 	}
 	move := events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield}
 	if bearer != 0 {
 		events.MarkNamedAttachEntry(&move, []state.ObjID{bearer})
 	}
-	e.emit(move)
+	h.Emit(move)
 	if slices.Contains(pl.spec.Tapped, idx) {
 		// Tapped is how the card is placed, not an action.
-		e.emit(events.Event{Kind: events.Tap, Obj: id})
+		h.Emit(events.Event{Kind: events.Tap, Obj: id})
 	}
 	for _, c := range pl.spec.Counters {
 		if c.Card == idx && c.N != 0 {
-			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: c.Kind, Amount: c.N})
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: c.Kind, Amount: c.N})
 		}
 	}
-	e.emit(events.Event{Kind: events.SetupSettled, Obj: id})
+	h.Emit(events.Event{Kind: events.SetupSettled, Obj: id})
 }
 
 // finishStartSeat emits the seat's complete library order and its life.
 func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
-	e := b.e
+	h := b.h
 	order := append([]state.ObjID(nil), pl.top...)
 	for _, id := range pl.rest {
 		if !pl.placed[id] {
@@ -278,10 +285,10 @@ func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 			order = append(order, id)
 		}
 	}
-	e.emit(events.Event{Kind: events.LibraryOrder, Player: pl.seat, IDs: order, Secret: true})
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: pl.seat, IDs: order, Secret: true})
 	if pl.spec.Life != nil {
-		if d := *pl.spec.Life - e.G.Players[pl.seat].Life; d != 0 {
-			e.emit(events.Event{Kind: events.LifeChange, Player: pl.seat, Amount: d})
+		if d := *pl.spec.Life - h.G.Players[pl.seat].Life; d != 0 {
+			h.Emit(events.Event{Kind: events.LifeChange, Player: pl.seat, Amount: d})
 		}
 	}
 }
