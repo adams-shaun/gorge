@@ -27,6 +27,7 @@ On every push to main (.github/workflows/queue-precheck.yml) this script:
 Run: python3 scripts/queue_precheck.py [--dry-run] [--head N]   (GITHUB_TOKEN, GITHUB_REPOSITORY in the env)
 """
 import argparse
+import concurrent.futures
 import datetime
 import json
 import os
@@ -110,6 +111,13 @@ BATCH_WAIT = 0
 # The replay set runs in this many concurrent chunks of its listed names: whole, it was a run's longest command
 # (448 s on the home box, 11-22; vet 50, kgen 107, the census 93), and a green run must fit inside a batch (~8 min).
 REPLAY_CHUNKS = 3
+# Attribution probes (11-22): a red run re-ran its failing items on one queue prefix at a time, each in a tree of
+# its own with its own tables, and took 366-653 s (run 45081655420: 6 rounds of 42-95 s of tests plus 2-62 s of
+# corpus and tables, then the main-alone check first). A round now checks up to ATTR_PROBES prefixes of each open
+# range, ATTR_MAX_PROBES in all, concurrently, and the first round also checks main alone: about log4 rounds of the
+# queue, not log2 plus one.
+ATTR_PROBES = 3
+ATTR_MAX_PROBES = 6
 
 
 def batch_numbers(pulls, since):
@@ -213,10 +221,14 @@ class Tree:
         if os.path.exists(cards) and not os.path.exists(os.path.join(path, ".cards")):
             os.symlink(os.path.realpath(cards), os.path.join(path, ".cards"))
 
-    def merge(self, pr):
-        sh("git", "fetch", "-q", "origin", "pull/%d/head" % pr["number"], cwd=self.path)
+    def merge(self, pr, fetch=True):
+        """Merges the PR's head; fetch=False merges the ref an earlier merge fetched (attribution rebuilds a prefix
+        of PRs this run already fetched, and its trees merge concurrently)."""
+        ref = "refs/queue-precheck/%d" % pr["number"]
+        if fetch:
+            sh("git", "fetch", "-q", "origin", "+pull/%d/head:%s" % (pr["number"], ref), cwd=self.path)
         r = sh("git", "-c", "user.email=ci@invalid", "-c", "user.name=ci", "merge", "-q", "--no-edit",
-               "FETCH_HEAD", cwd=self.path, check=False)
+               ref, cwd=self.path, check=False)
         if r.returncode != 0:
             sh("git", "merge", "--abort", cwd=self.path, check=False)
             return False
@@ -368,42 +380,63 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None, tree=False
     return fails
 
 
-def attribute(fails, order, on_main, on_prefix):
+def parallel(jobs):
+    """Runs the thunks concurrently; their results in order."""
+    if len(jobs) <= 1:
+        return [j() for j in jobs]
+    with concurrent.futures.ThreadPoolExecutor(len(jobs)) as ex:
+        return list(ex.map(lambda j: j(), jobs))
+
+
+def probe_points(lo, hi, n=ATTR_PROBES):
+    """Up to n prefixes splitting the open range: the first failing k is in [lo, hi], and hi is known to fail."""
+    return sorted({lo + (hi - lo) * j // (n + 1) for j in range(1, n + 1)})
+
+
+def attribute(fails, order, on_main, on_prefix, run=parallel):
     """Who to blame for each failed item: on_main(items) -> items failing on main alone (dropped: main is red);
     on_prefix(k, items) -> items failing on main plus the first k PRs. The first k at which an item fails blames
-    order[k-1]. Each item's first failing k is found by bisection (an item that fails at k fails at every later
-    k, as the full queue showed), and one run at a k checks every item still open, so a red run builds about
-    log2(len(order)) merged trees instead of one per PR (11-21: 24 min for a 9-PR head). Returns {pr: [items]}."""
-    left = [f for f in fails if f not in set(on_main(fails))]
+    order[k-1]. Each item's first failing k is found by a search over its open range (an item that fails at k fails
+    at every later k, as the full queue showed). A round probes up to ATTR_PROBES prefixes of each open range,
+    ATTR_MAX_PROBES in all, through run (concurrently); one probe checks every open item whose range holds it, and
+    the first round also checks main alone. A red run builds about log4(len(order)) rounds of trees (11-21: one per
+    PR took 24 min for a 9-PR head; 11-22: one per round took up to 653 s). Returns {pr: [items]}."""
     n = len(order)
-    if not left or n == 0:
+    if not fails or n == 0:
         return {}
-
-    def fails_at(k, items):
-        need = [f for f in items if (k, f) not in checked]
-        if need:
-            bad = set(on_prefix(k, need))
-            for f in need:
-                checked[(k, f)] = f in bad
-        return {f for f in items if checked[(k, f)]}
-
-    checked = {(n, f): True for f in left}
+    left = list(fails)
     lo = {f: 1 for f in left}   # the first failing k is >= lo
-    hi = {f: n for f in left}   # and <= hi
+    hi = {f: n for f in left}   # and <= hi (the full queue failed it)
+    checked = {(n, f): True for f in left}
+    first = True
     while True:
         open_ = [f for f in left if lo[f] < hi[f]]
-        if not open_:
+        if not open_ and not first:
             break
-        # One k for the items whose ranges share it: the midpoint of the first open item's range.
-        f0 = open_[0]
-        k = (lo[f0] + hi[f0]) // 2
-        group = [f for f in open_ if lo[f] <= k < hi[f]]
-        bad = fails_at(k, group)
-        for f in group:
-            if f in bad:
-                hi[f] = k
-            else:
-                lo[f] = k + 1
+        ks = []
+        for f in open_:
+            if len(ks) >= ATTR_MAX_PROBES:
+                break
+            if not any(lo[f] <= k < hi[f] for k in ks):
+                ks.extend(k for k in probe_points(lo[f], hi[f]) if k not in ks)
+        ks = sorted(ks[:ATTR_MAX_PROBES])
+        groups = [(k, [f for f in open_ if lo[f] <= k < hi[f] and (k, f) not in checked]) for k in ks]
+        groups = [(k, g) for k, g in groups if g]
+        jobs = [(lambda k=k, g=g: set(on_prefix(k, g))) for k, g in groups]
+        if first:
+            jobs.append(lambda: set(on_main(left)))
+        res = run(jobs)
+        for (k, g), bad in zip(groups, res):
+            for f in g:
+                checked[(k, f)] = f in bad
+                if f in bad:
+                    hi[f] = min(hi[f], k)
+                else:
+                    lo[f] = max(lo[f], k + 1)
+        if first:
+            red = res[-1]
+            left = [f for f in left if f not in red]
+            first = False
     blame = {}
     for f in left:
         blame.setdefault(order[hi[f] - 1]["number"], []).append(f)
@@ -467,19 +500,23 @@ def main():
         return 0
     print("%s combined tree failed: %s" % (time.strftime("%H:%M:%S"), fails))
 
+    # Each probe has a tree of its own (they run concurrently) and merges the heads this run already fetched.
     def on_main(items):
-        tm = Tree(wt, base)
+        path = wt + "-main"
+        tm = Tree(path, base)
         try:
-            return run_checks(wt, pk, kgen, replays, state, only=items)
+            return run_checks(path, pk, kgen, replays, state, only=items)
         finally:
             tm.close()
 
     def on_prefix(k, items):
-        tp = Tree(wt, base)
+        path = "%s-k%d" % (wt, k)
+        tp = Tree(path, base)
         try:
             for p in merged[:k]:
-                tp.merge(p)
-            return run_checks(wt, pk, kgen, replays, state, only=items)
+                tp.merge(p, fetch=False)
+            print(time.strftime("%H:%M:%S"), "attribution: main + %d PRs, %d items" % (k, len(items)), flush=True)
+            return run_checks(path, pk, kgen, replays, state, only=items)
         finally:
             tp.close()
 

@@ -96,3 +96,25 @@ func TestTableKeyCoversEveryKgenDependency(t *testing.T) {
 		t.Error("ci-corpus.sh's table directory key (dk) is not computed from scripts/table-key-files.sh")
 	}
 }
+
+// TestCorpusTablesBuildUnderTheTreeLock: ci-corpus.sh builds a tree's tables holding that tree's lock, with the box
+// lock released, so jobs whose tables differ build at once (11-22: queue-precheck's attribution probes, a tree per
+// queue prefix, each 36-62 s of tables, queued one at a time behind the box lock). The tree is touched before the box
+// lock is released, or another job's age trim could take a fresh cp -a copy (it keeps base's old mtime).
+func TestCorpusTablesBuildUnderTheTreeLock(t *testing.T) {
+	b, err := os.ReadFile("ci-corpus.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// each step is found after the one before it (the header comments name some of them)
+	pos := 0
+	for _, sub := range []string{`cp -a "$base" "$tree"`, `touch "$tree"`, "exec 9>&-", `exec 7>"$tree.lock"; flock 7`,
+		"make dirac-tables", "exec 7>&-"} {
+		i := strings.Index(s[pos:], sub)
+		if i < 0 {
+			t.Fatalf("ci-corpus.sh: no %q after byte %d; want cp -a, touch, release the box lock, take the tree lock, make dirac-tables, release it, in that order", sub, pos)
+		}
+		pos += i + len(sub)
+	}
+}
