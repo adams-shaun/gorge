@@ -11,3 +11,11 @@ func TestMBCWildHungerSearchWalkOffersReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "wild_hunger_flashback_search_walk_offers")
 }
+
+// The walk runs out where the count said it fit: gorge withholds the
+// flashback cast its budget never prices, so dirac must withhold it too
+// (tail-15, pair 5, decision 701).
+func TestMBCWildHungerSearchWalkWithholdsReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "wild_hunger_flashback_search_walk_withholds")
+}
