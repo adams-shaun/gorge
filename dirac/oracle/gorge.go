@@ -753,6 +753,24 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 	return Pack(ActCast, ref(pa.Cast.Object), RefNone, mc), false, ""
 }
 
+// censusOfferKind is the vocabulary kind of an "ability" option the census-gap
+// arm offered (decision.Option.CensusOffer, engine/rules autoPayCensus): it
+// lowers nothing in the offered-options pass.
+const censusOfferKind = "census_offer"
+
+// priorityOptionKind is o.Kind, except that the census-gap arm's "ability"
+// offer reads as censusOfferKind. That offer is the canonical pricing's own
+// play: PotentialPaymentPlans lowers it as the script route (play the funding
+// source, then the ability), the shape the kernel's actScriptPays mirrors. The
+// bare option's route is a manual payment window, and add()'s dedupe would let
+// it displace the script.
+func priorityOptionKind(o *decision.Option) string {
+	if o.CensusOffer && o.Kind == "ability" {
+		return censusOfferKind
+	}
+	return o.Kind
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -778,7 +796,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	// Offered options first: an offered play needs no lowering.
 	for i := range d.Options {
 		o := &d.Options[i]
-		switch o.Kind {
+		switch priorityOptionKind(o) {
 		case "pass":
 			add(prioEntry{a: Pack(ActPass, RefNone, RefNone, 0), opt: o.Index})
 		case "play_land":
@@ -1062,7 +1080,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				continue
 			}
 			add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability)), opt: o.Index})
-		case "activate", "concede":
+		case "activate", "concede", censusOfferKind:
 		default:
 			if c, ok := specialCode(o.Kind); ok {
 				sub := turnUpModeCode(o.Mode)
