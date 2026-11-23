@@ -1674,7 +1674,7 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 	if g.ng[i] == 0 && g.filt[i] && g.k.gen.anyFiltFirst && t.filtFirstOnly(g.k, sl) {
 		// a filter that is its source's only mana ability: no printed
 		// ability to ask beside, one colour ask once its fee is in the pool
-		if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl) {
+		if t.filtUsable(g.k, sl) && t.filtPaid(g.k, g.p, sl) && g.filtBranch(t, i, sl, false) {
 			return true, false
 		}
 		return false, false
@@ -1717,6 +1717,15 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 	alts := g.printedAlts(t, i, sl, grants, fok, tx)
 	asked := g.storeAsked // a storage battery's ask, charged before its branch (gapBranch)
 	g.storeAsked = false
+	// flatAsk: this activation's "choose a mana ability" ask was charged
+	// above (alts > 1, no storage ask before it). gorge's ask flattens the
+	// offered abilities' colour answers into that one ask
+	// (scriptOrderManaAbilityAnswers: the filter's two colours are answers
+	// of the ask beside its printed tap), so the filter's own colour ask
+	// below is that same ask -- no node of its own. Where the ask was not
+	// charged (a single offered ability, a storage battery's ask before its
+	// branch), gorge poses the colour ask alone and the node stays.
+	flatAsk := alts > 1 && !asked
 	if alts > 1 && !asked && !g.node() {
 		return false, true
 	}
@@ -1724,18 +1733,18 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 		return true, false
 	}
 	if !grants {
-		if fok && g.filtBranch(t, i, sl) {
+		if fok && g.filtBranch(t, i, sl, flatAsk) {
 			return true, false
 		}
 		return false, false
 	}
-	return g.gapAbilities(t, i, sl, grants, fok, tx, alts)
+	return g.gapAbilities(t, i, sl, grants, fok, tx, alts, flatAsk)
 }
 
 // gapAbilities is gapVisit's "choose a mana ability" walk: the source's own
 // and granted abilities in gorge's answer order, found when one found the
 // play, stop when the node budget is spent.
-func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool, alts int) (found, stop bool) {
+func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool, alts int, flatAsk bool) (found, stop bool) {
 	// gorge's "choose a mana ability" ask lists the answers of the source's
 	// abilities flattened (a Combo's colours each, an Any ability one
 	// option that asks its colour after) and tries first the ones that name
@@ -1809,7 +1818,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 				return true, false
 			}
 		}
-		if fok && g.filtBranch(t, i, sl) { // (listed after the printed ability, before the grants)
+		if fok && g.filtBranch(t, i, sl, flatAsk) { // (listed after the printed ability, before the grants)
 			return true, false
 		}
 		if blgExtra != 0 && g.branch(t, i, sl, -1, blgExtra, blgN, false) {
@@ -2635,9 +2644,13 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 
 // filtBranch is the filter's colour ask at candidate i (slot sl): its fee comes out
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
-func (g *grantSrch) filtBranch(t *State, i int, sl Slot) bool {
+func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
-	if !each && !g.node() {
+	// flatAsk: the activation's "choose a mana ability" ask was charged
+	// (gapVisit): gorge's one ask already lists the filter's colour answers
+	// beside the other abilities' (scriptOrderManaAbilityAnswers flattens
+	// them), so this colour ask is no node of its own
+	if !each && !flatAsk && !g.node() {
 		return false
 	}
 	var order [5]uint8
