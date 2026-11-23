@@ -314,6 +314,11 @@ type prep struct {
 	// once each turn (pcard.ctrMana; mana_countercost.go): guards the
 	// prefix-search gap, the -0/-1 toughness read and its SBA
 	ctrMana bool
+	// anyForageCA: a Combo Any source pays a forage ({T}, Forage; mana_forage.go)
+	anyForageCA bool
+	// caMixForage: the table's Combo Any census gaps are all forage ones and the
+	// mix stall (genPrep.caMix) stands (mana_forage.go forageMixIdle)
+	caMixForage bool
 	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb)
 	// or sacrifices one (kop.SacXEachManaAb; mana_tapanother.go): a
 	// prefix-search gap kind

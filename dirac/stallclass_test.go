@@ -311,7 +311,7 @@ func TestInteractionRefusalMatchesInitStallOnPools(t *testing.T) {
 			sup := set.Supported()
 			var names []string
 			for i := 0; i < set.NumCards(); i++ {
-				if sup[i] {
+				if sup[i] && set.Names()[i] != forageManaName { // its pairs refuse beside a mix gap by design (mana_forage_idle_test.go)
 					names = append(names, set.Names()[i])
 				}
 			}

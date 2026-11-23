@@ -23,7 +23,7 @@ func exileGraveLower(t *testing.T, name string) *lCard {
 // TestExileGraveManaLowers: Molt Tender's "{T}, Exile a card from your
 // graveyard: Add one mana of any color" lowers with no refusal and builds
 // the kop.ExileGManaAb shape; the other cards whose mana abilities carry an
-// exile-from-graveyard or forage part keep a refusal that names the mechanism
+// exile-from-graveyard part keep a refusal that names the mechanism
 // they wait on.
 func TestExileGraveManaLowers(t *testing.T) {
 	lc := exileGraveLower(t, "Molt Tender")
@@ -52,7 +52,6 @@ func TestExileGraveManaLowers(t *testing.T) {
 		{"Jack-o'-Lantern", "ActivationZone$"},
 		{"Titans' Nest", "RestrictValid$"},
 		{"Rubble Rouser", "rider program"},
-		{"Thornvault Forager", "forage / exile-from-graveyard cost"},
 	} {
 		got := keclReason(exileGraveLower(t, c.card).Refusals)
 		if !strings.Contains(got, c.want) {

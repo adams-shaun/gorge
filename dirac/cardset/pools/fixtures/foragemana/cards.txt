@@ -1,0 +1,17 @@
+# a Combo Any mana source that pays a forage (Thornvault Forager: "{T}, Forage: Add two mana in any combination of colors") beside Food
+# makers (Fierce Witchstalker, Eager Trufflesnout, Curious Pair) and self-mill creatures that stock the graveyard (Stitcher's Supplier,
+# Armored Skaab), and spells the extra mana pays, for the oracle's lockstep (dirac/oracle/foragemana_lockstep_test.go)
+Thornvault Forager
+Fierce Witchstalker
+Eager Trufflesnout
+Curious Pair
+Stitcher's Supplier
+Armored Skaab
+Hill Giant
+Craw Wurm
+Grizzly Bears
+Jayemdae Tome
+Forest
+Swamp
+Mountain
+Island

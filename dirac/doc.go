@@ -396,7 +396,14 @@
 //     holding it beside a gated or dynamic filter, a tap-another source, a restricted or
 //     costed granted mana ability or a Lion's Eye Diamond is refused (StallComboAnyMix);
 //     plain filters, plain granted abilities (the grant search takes the source as a
-//     candidate, mana_grantcomboany.go) and reflected sources play. The potential walks list
+//     candidate, mana_grantcomboany.go) and reflected sources play. A Combo Any
+//     source that pays a forage (Thornvault Forager's "{T}, Forage: Add two mana
+//     in any combination of colors") is the same gap with the forage answered
+//     first (mana_forage.go): the source's ability ask beside its plain {T},
+//     the forage ask (the exile arm, then each Food, asked with two or more
+//     options), then the colours; only the prefix search activates it (no
+//     payment window does), and a table holding it beside another gap kind
+//     is refused (StallComboAnyMix). The potential walks list
 //     a may-play cast gorge's planner leaves unpriced (Tinybones' any-type
 //     mana), so a script can make the pool pay it (pair 7489's Hawk took
 //     the Courtyard's {C}).
