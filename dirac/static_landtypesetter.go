@@ -162,3 +162,31 @@ func (s *State) landSetAlts(k *prep, pk *planner, u int, out *[planLimitAlts]lsA
 	}
 	return n, true
 }
+
+// landSetLoseOnly reports whether every lose-all override static of card c
+// is a land-type setter (CR 305.7: Glaciers' "All Mountains are Plains"). Its
+// loss reaches lands alone, so a creature that is no land (Joraga
+// Treespeaker beside Glaciers) keeps its own statics; grantSrcLost's global
+// branch reads this instead of taking every global lose-all as creature-wide.
+func landSetLoseOnly(k *prep, c CardID) bool {
+	if !k.gen.landSet {
+		return false
+	}
+	cd := &k.t.Cards[c]
+	only := false
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatOverride || a.Static.Override <= 0 {
+			continue
+		}
+		o := &k.t.Overrides[a.Static.Override-1]
+		if !o.LoseAbilities {
+			continue
+		}
+		if !o.SetLandSub {
+			return false
+		}
+		only = true
+	}
+	return only
+}
