@@ -852,7 +852,7 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	if handManaOn(k) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
+	if (handManaOn(k) || graveManaOn(k)) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
 		return false
 	}
 	av := s.g.availX
