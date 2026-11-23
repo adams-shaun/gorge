@@ -1211,6 +1211,30 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
+	if mayPlay {
+		// A plain composed may-play cast's gate is the potential planner's
+		// census -- the pool and the printed and intrinsic sources
+		// (potentialModeCastPlan), never a granted mana ability, which is a
+		// census gap its prefix search bridges (scriptOffers' grant search
+		// holds the offer to the script gorge's search finds). The kernel
+		// census counts the granted sources, so the offer walk's afford read
+		// alone over-offers: The World Tree's "As long as you control six or
+		// more lands, lands you control have "{T}: Add one mana of any
+		// color"" beside four printed sources pays Age of Ultron's 4{B}
+		// may-play cast on the kernel census while gorge's planner leaves it
+		// unpriced, and its one search's budget expires before the fifth
+		// land's granted ability is reached (tail-08 pair 54, decision 573).
+		// An untargeted cast never reaches witnessKeepsTargets' tier-1
+		// census read, so the gate prices the census here; a targeted one
+		// keeps plainHandPlayLowers' witness-keeps-target arm beside it.
+		cost := s.featCost(k, p, c, o, k.cards[c].cost)
+		if s.g.mayPlayAny {
+			cost = anyType(cost)
+		}
+		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
+			return false
+		}
+	}
 	return s.plainHandPlayLowers(k, p, c, o)
 }
 
