@@ -1320,6 +1320,12 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
+	// repUsed: the repeatable fee-only filters (Nomadic Elf) already
+	// activated on this path of an unless / ward census search. They have no
+	// {T} and no limit, but gorge's census prices each as ONE window unit
+	// (pay.UnlessManaReachable walks its units once), so the pay is offered
+	// only where one activation each reaches the cost (CR 118.12, 605.3b).
+	repUsed slotMask
 	// lifePainBound: the potential bound affords the plain hand cast a's
 	// composed cost (lifePainPlanAffords), so the life pass may activate a
 	// sole life-only pain unit (lifeOnlyPain) as the plan's last resort: the
@@ -1985,6 +1991,10 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	if life {
 		fs.lifeUsed = fs.lifeUsed.with(st.sl) // once per path (gorge's gap list)
 	}
+	rep := st.gap && fs.census && fs.pay != nil && t.filtRepeat(k, st.sl)
+	if rep {
+		fs.repUsed = fs.repUsed.with(st.sl) // once per path (an unless census unit)
+	}
 	lifeBefore := c.pl[SeatIx(fs.p)].life
 	c.filtDo(k, fs.p, st)
 	if lifeBefore > 0 && c.pl[SeatIx(fs.p)].life <= 0 {
@@ -1997,6 +2007,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 		// Forest's painful {R} or {G} at one life)
 		if life {
 			fs.lifeUsed = fs.lifeUsed.without(st.sl)
+		}
+		if rep {
+			fs.repUsed = fs.repUsed.without(st.sl)
 		}
 		fs.tick()
 		return false
@@ -2018,6 +2031,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 			if life {
 				fs.lifeUsed = fs.lifeUsed.without(st.sl)
 			}
+			if rep {
+				fs.repUsed = fs.repUsed.without(st.sl)
+			}
 			return false
 		}
 	}
@@ -2035,6 +2051,9 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 	}
 	if life {
 		fs.lifeUsed = fs.lifeUsed.without(st.sl)
+	}
+	if rep {
+		fs.repUsed = fs.repUsed.without(st.sl)
 	}
 	fs.stallOf(c) // the line failed; the fork may have latched a stall (c is live until the deferred unfork)
 	fs.n--
@@ -2157,7 +2176,7 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool, p
 	if freeOnly && !t.canTapForMana(k, sl) {
 		return true // a fee-carrying gap is the phased run's third pass
 	}
-	if fs.lifeUsed.has(sl) {
+	if fs.lifeUsed.has(sl) || fs.repUsed.has(sl) {
 		return true
 	}
 	_, life := t.lifeGapSource(k, sl)
