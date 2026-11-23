@@ -2451,7 +2451,7 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return err
 		}
 		if len(ss) != 1 {
-			return refuse("Effect static %q", st)
+			return lc.emblemStatics(ps, st, ss) // lower_emblempermanent.go
 		}
 		// A may-play over the remembered cards that partitionMayPlay did not
 		// lower: gorge keeps the permission per remembered card (CR 611.2a,
