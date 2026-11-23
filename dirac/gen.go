@@ -551,13 +551,8 @@ type genPrep struct {
 	// (-1: not printed as a land; static_landtypesetter.go)
 	landSet bool
 	landSub kop.SubMask
-	// landWords: every land subtype of the matchup (landTypeWords), set whether
-	// or not a setter is present (landSub is the setter's strip set); an
-	// override that adds one adds the mana ability that comes with it
-	// (CR 305.6; ovrKeepsMana)
-	landWords kop.SubMask
-	setIdx    []int16
-	setPC     []pcard
+	setIdx  []int16
+	setPC   []pcard
 	// uses: the registered per-table flags (newGenUse; genneed.go), where a
 	// feature's fact goes instead of a new bool here
 	uses useSet

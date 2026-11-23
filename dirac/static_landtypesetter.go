@@ -43,11 +43,6 @@ var DebugLandSetOwnMana bool
 // replaced by the intrinsic ones. manaAb names no ability of the card
 // (len(Abilities)), so manaAbView and the guarded direct readers see none.
 func prepLandSet(t *kop.Table, p *prep, g *genPrep) {
-	for i, n := range t.Subtypes {
-		if i < kop.MaxSubtypes && landTypeWords[n] {
-			g.landWords = g.landWords.With(i)
-		}
-	}
 	for i := range t.Overrides {
 		g.landSet = g.landSet || t.Overrides[i].SetLandSub
 	}

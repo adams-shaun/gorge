@@ -2355,10 +2355,7 @@ func twinSlotFx(k *prep, t *State, a, b Slot) bool {
 // abilities, grants one, sets or adds a land subtype or a card's name, or sets
 // the types (an animate that makes the land a creature with a P/T and a
 // keyword: Wakeroot Elemental's), and no override in the perm's own record
-// beyond the generated-types mark. The land subtypes are landWords, the
-// matchup's whole land vocabulary: landSub is empty unless some override is a
-// CR 305.7 setter, and Navigator's Compass's "becomes an Island in addition"
-// adds a basic land type (CR 305.6: its {T}: Add {U}) with none in the pool.
+// beyond the generated-types mark.
 func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 	o := s.perms[sl].ovr
 	o.flags &^= ovGenTy
@@ -2375,11 +2372,25 @@ func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 		}
 		ov := &k.t.Overrides[r.r.idx-1]
 		if ov.LoseAbilities || ov.Grant != [2]uint8{} || ov.SetLandSub || ov.HasTypes || ov.HasSub || ov.NameCard != 0 ||
-			ov.AddSub.And(k.gen.landWords).Any() {
+			addsLandSub(k, ov.AddSub) {
 			return false
 		}
 	}
 	return true
+}
+
+// addsLandSub reports whether sub holds a land subtype (landTypeWords). It
+// reads the words, not genPrep.landSub: that strip set is empty unless some
+// override is a CR 305.7 setter, and Navigator's Compass's "becomes an Island
+// in addition" adds a basic land type (CR 305.6: its {T}: Add {U}) with none
+// in the pool.
+func addsLandSub(k *prep, sub kop.SubMask) bool {
+	for i, n := range k.t.Subtypes {
+		if i < kop.MaxSubtypes && sub.Has(i) && landTypeWords[n] {
+			return true
+		}
+	}
+	return false
 }
 
 // deadFunder: sl is a dropped any-colour restricted gap (Gwenna beside a
