@@ -569,7 +569,7 @@ func (cb *cardBuilder) record() error {
 		d.Bargain = true
 		cb.bargain = true
 	}
-	d.HandMana = c.HandMana // a Spirit Guide's hand mana: no ability (lower_handmana.go)
+	d.HandMana, d.GraveMana = c.HandMana, c.GraveMana // a Spirit Guide's hand mana, a graveyard source's colours: no ability (lower_handmana.go, lower_gravemana.go)
 	if c.Storm {
 		// the printed K:Storm trigger is the kernel's own native trigger
 		// (dirac/kw_storm.go); no ability, no cast-action bit
