@@ -262,8 +262,13 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 		return false
 	}
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
-		!o.Face().HasKeywordRef(kwRefRiot) || o.RiotChoice != "" {
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil || o.RiotChoice != "" {
+		return false
+	}
+	// The same CR 614.12 read faceETBChoice's enteringRiot makes: a granted
+	// riot (Rhythm of the Wild) is an as-enters choice from ANY source
+	// (CR 702.136a), not only the printed K:Riot line.
+	if !e.enteringRiot(o, o.Face()) {
 		return false
 	}
 	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2

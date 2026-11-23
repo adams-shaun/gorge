@@ -131,9 +131,26 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 // Repls), counting into *seen and returning the one whose position is
 // ordinal. fromTemplate marks the copied template's face, whose own copy
 // election is skipped.
+// enteringRiot is the CR 614.12 riot read for one battlefield entry: the
+// keyword list the entrant would have ON the battlefield (printed K:Riot plus
+// the layer-6 AddKeyword$ grants a static like Rhythm of the Wild's
+// "Nontoken creatures you control have riot" delivers) — the same derived
+// read bloodthirstEntryMatch makes. mayHaveDerivedKeywordH rejects the
+// derived walk on the common board (no printed line, no granting static).
+func (e *Engine) enteringRiot(o *state.Object, f *cards.Face) bool {
+	if f.HasKeywordRef(kwRefRiot) {
+		return true
+	}
+	if o.Zone == state.ZBattlefield {
+		return false
+	}
+	_, ok := e.enteringKeywordParam(o.ID, kwhRiot)
+	return ok
+}
+
 func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, ordinal int, seen *int, fromTemplate bool) (etbChoice, bool) {
 	you := o.Controller
-	if f.HasKeywordRef(kwRefRiot) {
+	if e.enteringRiot(o, f) {
 		if *seen == ordinal {
 			return etbChoice{kind: "riot", options: []decision.Option{
 				{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: you},
