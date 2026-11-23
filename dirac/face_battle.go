@@ -6,8 +6,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //   - the defense counters are kop.CtrDefense in perm.ck/cn (the sparse
 //     slots; StallCounters when the overflow table is full);
-//   - the protector is perm.chosen = protChosen|seat (CR 310.10: in two
-//     players the sole opponent, gorge applySiegeProtector poses no ask);
+//   - the protector is perm.chosen = protChosen|seat (CR 310.10: the
+//     controller chooses an opponent as it enters; one living opponent is
+//     recorded unasked, gorge applySiegeProtector's strict-supersets rule, and
+//     more than one is the queued akProtector ask);
 //   - an attacked battle is perm.atk = the battle's Obj, as a planeswalker;
 //   - the defeat is CR 310.12b's intrinsic Siege trigger: when the last
 //     defense counter goes, a kernel-native abSiegeDefeat trigger (the
@@ -76,15 +78,78 @@ var DebugBattleNoDefeatAsk bool
 // at or above it stays kernel-native.
 const abSiegeDefeat uint8 = 248
 
+// protectorCands is the living opponents of battle controller ctrl who may
+// protect it, in seat order from 0 (gorge protectorOpponents over AliveFrom(0)):
+// the one eligibility home of the entry ask and the re-choice after a
+// protector leaves.
+func (s *State) protectorCands(ctrl uint8) seatSeq {
+	q := s.aliveFrom(0)
+	n := uint8(0)
+	for i := uint8(0); i < q.n; i++ {
+		if q.s[i] != ctrl {
+			q.s[n] = q.s[i]
+			n++
+		}
+	}
+	q.n = n
+	return q
+}
+
 // enterBattle gives the battle at sl its entry state after enterGen (which
-// resets perm.chosen): the protector (CR 310.10, the sole opponent in two
-// players). The defense counters are put with the other entry counters.
+// resets perm.chosen): the protector (CR 310.10). One living opponent is
+// recorded unasked; with several, the first is recorded and the controller's
+// choice is queued (akProtector, answered as the entry ask of the other
+// as-enters choices). The defense counters are put with the other entry
+// counters.
 func (s *State) enterBattle(k *prep, sl Slot, ctrl uint8) {
-	pr := s.nextAlive(ctrl) // two live seats only (stallclass.go prepTwoSeat: a battle)
+	q := s.protectorCands(ctrl)
+	pr := ctrl // no living opponent: gorge records no protector
+	if q.n > 0 {
+		pr = q.s[0]
+	}
 	if DebugBattleOwnProtector {
 		pr = ctrl
 	}
 	s.perms[sl].chosen = objWord(protChosen | pr)
+	if q.n > 1 && !DebugBattleOwnProtector {
+		s.queueAskAt(sl, akProtector, NoCard, 0, 0)
+	}
+}
+
+// akProtector is the queued as-enters protector ask (CR 310.10).
+const akProtector uint8 = 34
+
+// protectorOptions poses the protector ask: one option per living opponent of
+// the battle's controller d.Player in seat order (gorge's "protector"
+// options), mode = the seat.
+func (s *State) protectorOptions(d *Decision) {
+	d.Sub = ChGenPlayer
+	q := s.protectorCands(uint8(d.Player))
+	for i := uint8(0); i < q.n; i++ {
+		d.add(MakeAction(AkChoose, 0, 0, q.s[i]))
+	}
+}
+
+// protectorStore records the answered protector on the battle at sl.
+func (s *State) protectorStore(sl Slot, seat uint8) {
+	s.perms[sl].chosen = objWord(protChosen | seat)
+	s.touchSl(sl)
+}
+
+// rechooseProtectors gives each battle protected by seat p, who has just left
+// the game, the first living opponent of its controller as protector (CR
+// 310.10; gorge rechooseDepartedBattleProtector derives it, never asks). A
+// controller with no living opponent keeps the stale protector.
+func (s *State) rechooseProtectors(k *prep, p uint8) {
+	for m := s.occ; m.any(); m = m.rest() {
+		sl := m.first()
+		if pr, ok := s.protector(sl); !ok || pr != p || s.typesAt(k, sl)&kop.TBattle == 0 {
+			continue
+		}
+		if q := s.protectorCands(s.perms[sl].ctrl); q.n > 0 {
+			s.protectorStore(sl, q.s[0])
+		}
+	}
 }
 
 // enterDefense puts the printed Defense counters on the battle at sl through
