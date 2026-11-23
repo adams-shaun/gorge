@@ -2195,6 +2195,18 @@ func foldPickExtra(old potUnit, mask, n uint8, sl Slot, fold func(Slot, uint8, u
 	}
 }
 
+// gatePairUnit prices a gate-on mana pair: gorge's walk sums both listed
+// abilities of the pair in the over-bound pool, while the per-tap census is
+// the planner's one mana-making tap, the larger alternative (CR 605.3b).
+func (c *potCensus) gatePairUnit(sl Slot, col, n uint8, add, fold func(Slot, uint8, uint8)) {
+	if c.on && c.tap[sl].mask != 0 {
+		fold(sl, col, n)
+		c.widenGrant(sl, col, n, false)
+		return
+	}
+	add(sl, col, n)
+}
+
 // widenGrant merges a granted {T} mana ability's production into sl's one tap
 // unit (the per-tap census's one mana per tap): the unit's colours widen and
 // its count grows to the larger production, one tap making either the native
@@ -2650,15 +2662,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		s.potentialTapUnit(k, p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
 		if n := gatePairPotential(pc); n != 0 {
-			// gorge's walk sums both listed abilities of a gate-on pair in
-			// the over-bound pool; the per-tap census is the planner's one
-			// mana-making tap, the larger alternative (CR 605.3b)
-			if cen.on && cen.tap[sl].mask != 0 {
-				fold(sl, uint8(pc.wideCol), n)
-				cen.widenGrant(sl, uint8(pc.wideCol), n, false)
-			} else {
-				add(sl, uint8(pc.wideCol), n)
-			}
+			cen.gatePairUnit(sl, uint8(pc.wideCol), n, add, fold)
 		}
 		s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
 	}
