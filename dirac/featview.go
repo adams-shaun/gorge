@@ -430,6 +430,14 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
 	}
+	if s.g.mayPlayAny && mode == 0 {
+		// the may-play cast being offered spends mana of any type (offerPlay sets
+		// mayPlayAny around gorgeOffersMay): gorge's offer gate prices the pool
+		// against the rider-folded cost, so {U} pays a convoke spell's {G}
+		// (Gather Courage under The Magic Bandit; the planner declines a convoke
+		// cast, so the pool is the only way gorge lists it)
+		cost = anyType(cost)
+	}
 	if k.gen != nil && k.gen.uses.has(useAnyColorSpell) && !s.convAnyType(k, SeatIx(p), o) && s.convAnyColor(k, SeatIx(p), o) {
 		cost = planUnderRider(cost, false, true) // the pool spends under the any-colour conversion (mana_convertcreature.go)
 	}
