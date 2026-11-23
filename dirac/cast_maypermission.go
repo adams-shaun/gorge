@@ -282,6 +282,17 @@ func (s *State) mayPlayIgnoreColor(k *prep, p uint8, o Obj) bool {
 	return false
 }
 
+// riderColorSpent reports whether the cast of o being built carries the
+// any-colour rider of a permission it already spent (spendMayKind left the
+// kind on the build, bflAnyColor): the record is consumed, so
+// mayPlayIgnoreColor no longer holds it, and the mid-cast price
+// plannedUnderRider takes must still fold the pips under the rider the way
+// gorge's cast planner prices the cast (pay.PlanManaUnderRider; CR 609.4b).
+func (s *State) riderColorSpent(p uint8, o Obj) bool {
+	b := s.bld()
+	return b.e.kind == seSpell && b.e.obj == o && b.e.ctrl == p && b.bfl&bflAnyColor != 0
+}
+
 // mayPlayAnyType reports whether a permission lets p spend mana of any type on the
 // card o: a record of that kind, or a static (Tinybones).
 func (s *State) mayPlayAnyType(k *prep, p uint8, o Obj) bool {
