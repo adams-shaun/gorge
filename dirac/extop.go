@@ -43,8 +43,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtTwoPilesSac:
 		return s.pilesStart(k, in), true // act_piles.go
 	case kop.ExtChooseColorRes:
-		s.res.ask, s.res.askP = raChooseColorRes, s.res.e.ctrl // static_colourgrant.go
-		return false, true
+		return s.chooseColorRes(in), true // static_colourgrant.go
 	case kop.ExtColorGrant:
 		s.colGrant(k, in) // static_colourgrant.go
 		return true, true

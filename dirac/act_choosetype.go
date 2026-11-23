@@ -87,16 +87,16 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cd := &k.t.Cards[c]
-	if len(cd.TypeValid) == 0 {
-		return false
-	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
 			continue
 		}
 		for j := range a.Prog {
-			if in := &a.Prog[j]; in.Op == kop.OpChooseType && in.B.N != 0 {
+			if in := &a.Prog[j]; isBasicLandChoose(in) {
+				chooseBasicLandOptions(d) // an as-enters basic land type (Realmwright; act_choosebasicland.go)
+				return true
+			} else if in.Op == kop.OpChooseType && in.B.N != 0 && len(cd.TypeValid) != 0 {
 				for _, v := range cd.TypeValid {
 					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 				}
@@ -137,6 +137,13 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 		}
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
+			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
+				for x := range a.Prog {
+					if isBasicLandChoose(&a.Prog[x]) {
+						g.anyTypeValid = true // typeOptions' gate also covers the as-enters basic land ask
+					}
+				}
+			}
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.AddChosen {
 				g.anyAddChosen = true
 			}
@@ -197,6 +204,9 @@ func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMa
 // has more outside types than the byte has free values. The old pure
 // typeVocabSub mapping stays as the exhausted-table fallback.
 func (s *State) typeVocabCode(k *prep, v int) uint8 {
+	if v >= 0x8000 {
+		return basicLandValue(k, uint16(v)) // an as-enters basic land type's label (act_choosebasicland.go)
+	}
 	if v < 0 || v >= len(k.t.TypeVocab) {
 		return 255
 	}
