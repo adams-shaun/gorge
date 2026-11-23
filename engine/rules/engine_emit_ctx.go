@@ -100,31 +100,12 @@ type engineEmitCtx struct {
 	// Tapping and damage provenance are likewise synchronous event context.
 	tappingForMana      state.ObjID `clone:"reset"`
 	tappingManaProduced string      `clone:"reset"`
-	// manaTapMark is the event-log length just after the most recent
-	// activated mana ability's Tap (engine/rules/mana_activation.go's emitManaTap).
-	// resolveTriggeredManaAbilities scans e.L.Events from here for the
-	// ManaAdd batch the activation produced, to bind each CR 605.3b
-	// triggered mana ability's produced-type set (effects.TriggerContext.
-	// TriggerMana, the ReflectProperty$ Produced read). It is set before the
-	// mana effect resolves -- the actual ManaAdd events do not exist yet at
-	// trigger-match time -- and consumed by the first batch resolution.
-	// Transient engine scratch, zero at every intent boundary (Clone builds a
-	// fresh Engine and never copies it). Zero means no pending activated tap.
-	manaTapMark int `clone:"reset"`
-	// manaTapPendingFrom is pendingTriggers' index boundary emitManaTap's Tap
-	// event queued from (the `before` snapshot) and manaTapSource the
-	// permanent that was tapped. stampTriggeredManaProduced binds the
-	// produced-type set onto the NON-immediate TapsForMana triggers the same
-	// tap queued -- C.A.M.P.'s targeted `Triggers$ TapsForMana` stays in
-	// e.pendingTriggers for its later placement, while an immediate CR 605.3b
-	// batch is stamped with the triggers list resolveTriggeredManaAbilities
-	// receives. Transient engine scratch, zero at every intent boundary
-	// (Clone builds a fresh Engine and never copies it), like manaTapMark.
-	manaTapPendingFrom int            `clone:"reset"`
-	manaTapSource      state.ObjID    `clone:"reset"`
-	tapObj             state.ObjID    `clone:"reset"`
-	tapPlayer          state.PlayerID `clone:"reset"`
-	tapEntering        bool           `clone:"reset"`
+	// manaTapMark, manaTapPendingFrom and manaTapSource (the activated mana
+	// ability's tap bookkeeping) live in engineCastWindows: they are carried
+	// across a clone, and that cluster already has a clone function.
+	tapObj      state.ObjID    `clone:"reset"`
+	tapPlayer   state.PlayerID `clone:"reset"`
+	tapEntering bool           `clone:"reset"`
 
 	// counterAdder is the player causing the CounterChange/PlayerCounterChange
 	// events currently in flight (the repl:AddCounter class's "who would put
