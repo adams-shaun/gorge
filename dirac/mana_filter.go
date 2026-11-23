@@ -1266,6 +1266,11 @@ type filtStep struct {
 	// sl is NoSlot
 	hand bool
 	hidx uint8
+	// grave: a funding step that activates the graveyard mana source at index
+	// gidx of the payer's graveyard (Jack-o'-Lantern, mana_gravemana.go); sl is
+	// NoSlot and ans-1 the colour answered
+	grave bool
+	gidx  uint8
 	// other: a census gap that is no filter (mixed gaps, zmixgaps file), or
 	// an answer or a pass while a step's trigger resolves (act)
 	other otherStep
@@ -1911,6 +1916,10 @@ func (fs *filtSearch) tick() bool {
 func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	if st.hand {
 		s.handFundDo(k, p, st)
+		return
+	}
+	if st.grave {
+		s.graveFundDo(k, p, st)
 		return
 	}
 	if st.other.kind != otherNone {
@@ -2748,11 +2757,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 		}
 	}
-	// The unless / ward census prices no hand mana (unlessWindowUnits), so a
-	// census pay search never reaches a hand guide: gorge offers decline where
-	// only the guide could pay. A plain window's pay probe keeps the guide.
-	if (!fs.census || fs.pay == nil) && funded < fs.fees && handManaOn(k) && fs.handFund(k, t, funded, gapUsed) {
-		return true // a hand guide funds after the battlefield's sources (mana_handguide.go)
+	if fs.fundOffField(k, t, funded, gapUsed) {
+		return true // a hand guide, then a graveyard source, fund after the battlefield's sources (mana_gravemana.go)
 	}
 	return fs.passTrigger(k, t, funded)
 }
@@ -3040,7 +3046,7 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		return false
 	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
-		k.gen.anyDynFilt || len(k.gen.grantPC) != 0 || handManaOn(k) || t.grantsLive(k) {
+		k.gen.anyDynFilt || len(k.gen.grantPC) != 0 || handManaOn(k) || graveManaOn(k) || t.grantsLive(k) {
 		// (a dynamic-amount filter -- Starfleet Academy, Three Tree City -- is a
 		// route the printed-colour scan does not model: gorge's search walks the
 		// free branch there and finds no line where the pruned walk did,
