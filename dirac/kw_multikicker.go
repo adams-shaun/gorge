@@ -219,7 +219,7 @@ func (s *State) offerKickedPotentialOnly(k *prep, d *Decision, p uint8, c CardID
 	if s.cfg&cfgGorgeAutopay == 0 || s.g.availX != 0 || s.castHeldOut(o) { // gorge holds the card's whole cast out after a second undo (CR 733.2)
 		return
 	}
-	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
+	if !(s.spellTargetsFeasibleFrom(k, c, p, o) || s.kickedWaivedFeasible(k, c, p)) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
 		return
 	}
 	s.offerKickedHand(k, d, p, c, o, base, cav)
