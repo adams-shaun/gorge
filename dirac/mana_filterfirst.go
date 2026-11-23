@@ -235,6 +235,7 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			n += potentialUnboundedUnits
 		}
 	}
+	n += s.filtDynamicMana(k, p)
 	if k.gen.anyEachCol && s.eachGapOpen(k, p) {
 		n += potentialUnboundedUnits
 	}
@@ -252,6 +253,31 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		// (mana_filtertapsdefer.go), so a rider beside a plain first ability
 		// counts its rider production too.
 		n += s.filtRiderMana(k, p)
+	}
+	return n
+}
+
+// filtDynamicMana is the potential mana of p's untapped "{T}: Add {C} for each
+// ..." sources (Bag End Banquet): gorge's PotentialMana prices an indeterminate
+// Amount$ unbounded whatever it resolves to now (potentialAmount; Banquet with no
+// Food too), so the source alone covers a first-only filter's fee and the
+// filter is a census gap beside it (CR 605.3a, 601.2g). The census itself lists
+// no ability that makes nothing (manaAbilityYieldsNothing), so only the fee test
+// reads it unbounded: the prefix search then funds the fee from the hand guide
+// (Golgari Signet's {1}, a Simian Spirit Guide's {R}).
+func (s *State) filtDynamicMana(k *prep, p uint8) int {
+	n := 0
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if k.gen.flags[c]&gfManaVar == 0 || s.perms[sl].flags&pfTapped != 0 || s.activationSick(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[c]
+		if j := firstManaAb(cd); j >= 0 && cd.Abilities[j].AFlags&kop.AfManaDynamic != 0 && cd.Abilities[j].Cost.Flags == kop.CostTap &&
+			cd.Abilities[j].Cost.Mana.MV() == 0 && cd.Abilities[j].ManaRestrict == 0 {
+			n += potentialUnboundedUnits
+		}
 	}
 	return n
 }
