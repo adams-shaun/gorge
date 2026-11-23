@@ -490,16 +490,23 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.perms[sl].chosen = objWord(fb)
 				continue
 			}
+			ra := &k.t.Cards[c].Abilities[ab]
 			if s.entryNoRun() && kind != akCtrPick && kind != akCtrPick2 &&
-				!(i == 0 && progFirstAskKind(&k.t.Cards[c].Abilities[ab].Prog[0]) == kind) {
+				!(ra.Repl.Kind == kop.ReplEntersProgram && ra.Repl.C != kop.ReplAfterEnter &&
+					i == 0 && progFirstAskKind(&ra.Prog[0]) == kind) {
 				// no resolution run serves the entry (the sweep's exile
 				// return): gorge's body defaults the ask to its first option
-				// and the program continues in place. The program's first op
-				// when it is a CR 614.12 entry choice is not one of these:
-				// gorge's walker asks it with the card still in its origin
-				// zone, posed even with no run (repl_etbchoice's park), so it
-				// stays queued.
-				s.entryAskDefault(k, sl, kind)
+				// and the program continues in place. The one ask that stays
+				// queued is the entrant's own enters program's first op when
+				// it is a CR 614.12 entry choice: gorge's walker asks it with
+				// the card still in its origin zone, posed even with no run
+				// (repl_etbchoice's park), so it stays queued. An R:
+				// AfterEnter line's choice is not one of those -- enterChoiceKind
+				// skips it, so gorge never walker-poses it, and the line's
+				// body runs straight off the entry emit with no run and
+				// defaults it -- and neither is another permanent's program's
+				// first op: the walker poses the entrant's own choice only.
+				s.entryAskDefault(k, sl, c, kind, in)
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
@@ -577,22 +584,54 @@ func progFirstAskKind(in *kop.Instr) uint8 {
 }
 
 // entryAskDefault answers an as-enters ask of an entry no resolution run
-// serves with gorge's no-run stand-in, the pose's first option, and the enters
+// serves with gorge's no-host degrade, the pose's first option, and the enters
 // program continues in place: the ask is never queued (engine/rules/
-// resolution_ask.go's no-host degrade). The look/name pair (akNameLook) takes
-// the acknowledgment -- a no-op: the chosen byte still holds the looked-at
-// player between the two -- and then the name itself.
-func (s *State) entryAskDefault(k *prep, sl Slot, kind uint8) {
+// resolution_ask.go's Ask, and the asking primitives' deterministic
+// fallbacks). The option list is built from the op at hand (c, in), never
+// through the queue-reading builders: a multi-return sweep can hold an earlier
+// entry's CR 614.12 entry choice in the queue, and those builders would read
+// that card's bounds and colours (numberBounds, colorExclude) or nothing at
+// all (enterCardOptions, which reads the queue the no-run path never filled).
+// The look/name pair (akNameLook) takes the acknowledgment -- a no-op: the
+// chosen byte still holds the looked-at player between the two -- and then the
+// name itself.
+func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.Instr) {
 	if kind == akNameLook {
 		kind = akNameAny
 	}
 	var d Decision
 	d.Kind = DkChoose
 	d.Player = s.perms[sl].ctrl
-	s.askOptions(k, &d, kind)
-	if len(d.Options) == 0 {
-		return // gorge poses no ask over an empty option list: no choice
+	switch kind {
+	case akCard:
+		// gorge's ChooseCard no-host fallback takes the first candidate
+		// (choose_control.go's choices[:min]; the one ExtChooseCardEnter
+		// lowering is mandatory, Min 1)
+		s.enterCards(k, c, s.perms[sl].obj, s.perms[sl].ctrl, &d)
+	case akColor:
+		// the op's own Exclude$ colours, not colorExclude's queued-ask
+		// lookup: gorge's ChooseColor fallback is the first offered colour
+		// (choose.go's opts[0])
+		ex := uint8(in.C) & 31 // W U B R G = bits 0..4
+		for cv := uint8(0); cv < 5; cv++ {
+			if ex&(1<<cv) == 0 {
+				d.add(MakeAction(AkChoose, 0, 0, cv))
+			}
+		}
+	case akNumber:
+		// the op's own bounds, not numberBounds's queued-ask lookup:
+		// gorge's ChooseNumber fallback is the list's floor (opts[0])
+		for n := int(in.B.N); n <= int(in.C); n++ {
+			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
+		}
+	default:
+		s.askOptions(k, &d, kind) // the name and type builders read no queue
 	}
+	// The list is never empty here (Decision.Options is a fixed array; the
+	// count rides d.N): the akCard arm runs only with a candidate
+	// (enterCardNone skips the op), and gorge's no-host fallback over an
+	// empty restricted list records the zero code itself -- the first colour
+	// W, the number 0 -- which a zero option decodes to.
 	a := d.Options[0]
 	p := &s.perms[sl]
 	s.touchSl(sl)
@@ -839,9 +878,10 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 
 // enterLinkRetRun enters the returning card o and marks the entry's enter
 // programs no-run when no resolution run serves the return (a departed
-// player's sweep): gorge runs such a replacement body straight off the emit
-// with no run, so every ask it poses defaults to its first option and the
-// program continues in place (coldEntryNoRun).
+// player's sweep, or a loss site's monarch handoff outside a resolution):
+// gorge runs such a replacement body straight off the emit with no run, so
+// every ask it poses defaults to its first option and the program continues
+// in place (coldEntryNoRun).
 //
 //go:noinline
 func (s *State) enterLinkRetRun(k *prep, o Obj, p uint8, from kop.Zone) Slot {

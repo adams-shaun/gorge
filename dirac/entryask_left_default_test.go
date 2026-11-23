@@ -9,16 +9,17 @@ import (
 )
 
 // leftReturnScen seats MaxSeats players of the pool, every deck four copies
-// of the named card beside Islands, and stands at seat 0's first main phase.
-// Seat 1's Island exiles seat 2's copy of the named card until it leaves
-// (recordExileLink) and seat 1 has lost: the sweep's exile return is the
+// of the named card beside copies of the land, and stands at seat 0's first
+// main phase. Seat 1's land exiles seat 2's copy of the named card until it
+// leaves (recordExileLink) and seat 1 has lost: the sweep's exile return is the
 // entry no resolution run serves (coldEntryNoRun), so the returned card's
 // as-enters asks must be answered unasked with gorge's defaults, never
 // queued and posed.
-func leftReturnScen(t *testing.T, pool, card string) (*scen, CardID) {
+func leftReturnScen(t *testing.T, pool, card, land string, extra ...cardset.Entry) (*scen, CardID) {
 	t.Helper()
 	set := cardsettest.Set(t, pool)
-	entries := []cardset.Entry{{Name: card, Count: 4}, {Name: "Island", Count: 36}}
+	entries := []cardset.Entry{{Name: card, Count: 4}, {Name: land, Count: 36}}
+	entries = append(entries, extra...)
 	decks := make([][]cardset.Entry, MaxSeats)
 	for p := 0; p < MaxSeats; p++ {
 		decks[p] = entries
@@ -73,7 +74,7 @@ func leftReturnScen(t *testing.T, pool, card string) (*scen, CardID) {
 		pl.exileN++
 	}
 
-	// seat 1's Island exiles it until the Island leaves
+	// seat 1's land exiles it until that land leaves
 	var isle Obj
 	{
 		pl := &s.pl[1]
@@ -120,7 +121,7 @@ func leftReturnField(t *testing.T, sc *scen, asked CardID) Slot {
 func TestEnterAsksDefaultAfterControllerLeft(t *testing.T) {
 	// The Rack: the player pick is the one as-enters ask, and it rides the
 	// permanent's chosen byte until a reader (its upkeep trigger) reads it.
-	sc, rack := leftReturnScen(t, "chosenopp", "The Rack")
+	sc, rack := leftReturnScen(t, "chosenopp", "The Rack", "Island")
 	s := sc.s
 	pre := s.outMask()
 	s.pl[1].lost = true
@@ -140,7 +141,7 @@ func TestEnterAsksDefaultAfterControllerLeft(t *testing.T) {
 	// the chosen player) -> NameCard -> Cleanup; the look's acknowledgment
 	// and the name default the same way, and the name overwrites the chosen
 	// byte the player rode.
-	sc, spy := leftReturnScen(t, "spyglass", "Sorcerous Spyglass")
+	sc, spy := leftReturnScen(t, "spyglass", "Sorcerous Spyglass", "Island")
 	s = sc.s
 	pre = s.outMask()
 	s.pl[1].lost = true
