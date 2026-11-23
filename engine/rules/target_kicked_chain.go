@@ -94,26 +94,25 @@ type kickedRootCensus interface {
 // kickedWaivedRootTargetsAvailable is the kicked cast's census when the plain cast's root
 // target is the only thing the plain census found missing (CR 601.2b, 601.2c): a root whose
 // target minimum reads the kicked bit (Tear Asunder's TargetMin$ X over Count$Kicked.0.1)
-// announces nothing when kicked, and the kicked cast's targets are its Kicked-conditioned
-// links alone. It holds when the root's kicked minimum is zero and every such link has its
-// kicked minimum of candidates. A root with no Sub at all (Divine Resilience: "any number of
-// target creatures you control" when kicked) has no link to owe and holds on the root alone,
-// as dirac's kickedWaivedFeasible does. A root the kicked cast still owes, or a chain with
-// sub-abilities but no Kicked-conditioned link, is the plain census's alone.
+// announces nothing when kicked, so the kicked cast owes only the chain links it announces
+// (castSubTargetsOwed): a Kicked-conditioned link (Tear Asunder's second slot) or one whose
+// minimum reads the kicked bit (Highly Illogical's "instead counter target spell"). It holds
+// when the root's kicked minimum is zero and every link the kicked cast announces has its
+// kicked minimum of candidates; a root with no link at all (Divine Resilience: "any number of
+// target creatures you control" when kicked) holds on the root alone, as dirac's
+// kickedWaivedFeasible does. A root the kicked cast still owes is the plain census's alone.
 func kickedWaivedRootTargetsAvailable(e kickedRootCensus, p state.PlayerID, id state.ObjID, root *cards.SA) bool {
 	if root == nil || !effects.TargetsOf(root).Targeted() || e.kickedTargetMin(p, id, root) > 0 {
 		return false
 	}
-	kickedPC, plainPC := &pendingCast{mode: "kicked"}, &pendingCast{}
-	linked := false
+	kickedPC := &pendingCast{mode: "kicked"}
 	for _, sub := range e.collectSubTargetPreAsks(root) {
-		if !castSubTargetsOwed(kickedPC, sub) || castSubTargetsOwed(plainPC, sub) {
+		if !castSubTargetsOwed(kickedPC, sub) {
 			continue
 		}
-		linked = true
 		if need := e.kickedTargetMin(p, id, sub); need > 0 && len(e.legalTargetCandidates(p, id, id, sub)) < need {
 			return false
 		}
 	}
-	return linked || root.Sub == nil
+	return true
 }
