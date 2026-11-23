@@ -17,6 +17,10 @@ import (
 // ValidTgts$ Creature.ChosenType target then reads that choice, so a creature
 // of the drawn type must be targetable. Both decks are the same creature-heavy
 // build, so every drawn type (Cat, Bear, Faerie) has targets on both boards.
+// Tarfire (a Kindred Instant — Goblin) and Changeling Outcast (a changeling
+// printing Shapeshifter) are the option-list witnesses: gorge offers only the
+// creature types a library's creature cards print, so Goblin is never offered
+// and a changeling adds only Shapeshifter, not its expanded roster.
 
 // kchooseDeck is the pool's one deck: Aswan Jaguar plus creatures of three
 // subtypes, spells and forests.
@@ -25,7 +29,9 @@ var kchooseDeck = []cardset.Entry{
 	{Name: "Grizzly Bears", Count: 4},
 	{Name: "Savannah Lions", Count: 4},
 	{Name: "Scryb Sprites", Count: 4},
-	{Name: "Giant Growth", Count: 8},
+	{Name: "Giant Growth", Count: 4},
+	{Name: "Tarfire", Count: 2},
+	{Name: "Changeling Outcast", Count: 2},
 	{Name: "Forest", Count: 16},
 }
 

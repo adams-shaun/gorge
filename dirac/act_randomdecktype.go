@@ -36,10 +36,13 @@ func (s *State) randomDeckType(k *prep, in *kop.Instr) {
 	if p := s.randomDeckPlayer(in); p != 255 {
 		pl := &s.pl[p]
 		for _, o := range pl.lib[pl.libLo:pl.libHi] {
-			c := s.objs[o].card
-			cd := &k.t.Cards[c]
+			cd := &k.t.Cards[s.objs[o].card]
+			if cd.Types&kop.TCreature == 0 {
+				continue // gorge skips a non-creature card (a Kindred spell's creature type is not offered)
+			}
+			subs := printedCreatureSubs(cd)
 			for i := 0; i < len(k.t.Subtypes); i++ {
-				if cd.Subtypes.Has(i) && words[i] {
+				if subs.Has(i) && words[i] {
 					set[i] = true
 				}
 			}
@@ -90,12 +93,26 @@ func (s *State) randomDeckPlayer(in *kop.Instr) uint8 {
 	return CodeSeat(t)
 }
 
+// printedCreatureSubs is the subtypes gorge reads off a card's printed face
+// (Face().Types): a changeling's kgen-expanded roster is not printed, so its
+// printed subtypes stand in (zone_imprint.go's imprinted-type read applies the
+// same rule).
+func printedCreatureSubs(cd *kop.CardDef) kop.SubMask {
+	if cd.AllCreatureTypes {
+		return cd.PrintedSubtypes
+	}
+	return cd.Subtypes
+}
+
 // creatureFallbackSub is gorge creatureTypeFallback reduced to a pool subtype:
 // the first creature subtype word of an object the controller controls, in
 // object order (gorge scans g.Objs, the printed type line and the current
 // face's printed types), else "Human" (the pool table's index; kgen refuses a
-// pool that lacks it). A face-down permanent's printed face has no types
-// (gorge Face's face-down face).
+// pool that lacks it). Within one card the lowest table index stands for gorge's
+// first word in printed type-line order: the kernel keeps no printed order, so
+// a creature printing two creature words in non-table order can differ (reached
+// only when the target's library names no creature type). A face-down
+// permanent's printed face has no types (gorge Face's face-down face).
 func (s *State) creatureFallbackSub(k *prep, words *[kop.MaxSubtypes]bool, ctrl uint8) uint8 {
 	for i := Obj(0); i < s.nobj; i++ {
 		o := &s.objs[i]
@@ -110,9 +127,9 @@ func (s *State) creatureFallbackSub(k *prep, words *[kop.MaxSubtypes]bool, ctrl 
 		if k.cards[c].types&kop.TCreature == 0 {
 			continue
 		}
-		cd := &k.t.Cards[c]
+		subs := printedCreatureSubs(&k.t.Cards[c])
 		for j := 0; j < len(k.t.Subtypes); j++ {
-			if cd.Subtypes.Has(j) && words[j] {
+			if subs.Has(j) && words[j] {
 				return uint8(j)
 			}
 		}
