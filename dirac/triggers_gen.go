@@ -902,6 +902,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 && (rl == nil || !rl.agg) {
+		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
+	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
 			s.eachCommandTrigger(k, ev, f)

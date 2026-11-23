@@ -58,8 +58,29 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 //
 //go:noinline
 func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
-	srcObj := s.perms[src].obj
-	srcCtrl := s.perms[src].ctrl
+	s.fireEmblemsDmgFrom(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, toPlayer, combat, rcp, listeners, latch)
+}
+
+// embDmg reports whether some emblem trigger listens to damage dealt, so a
+// damage site that gates its fire on the battlefield listeners must fire too.
+func (k *prep) embDmg() bool {
+	return k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0
+}
+
+// fireEmblemsDmgSpell is fireEmblemsDmg for noncombat damage whose source is
+// no permanent (a spell such as Cave-In, or an ability that left the
+// battlefield: fireDamageSrc): the emblem trigger fires for the damaged
+// permanent as for any other source (CR 603.2). A source-restricted line
+// matches the source's card, never a battlefield object.
+//
+//go:noinline
+func (s *State) fireEmblemsDmgSpell(k *prep, o Obj, ctrl uint8, amt int16, toPlayer bool, rcp TCode) {
+	s.fireEmblemsDmgFrom(k, NoSlot, o, ctrl, amt, toPlayer, false, rcp, false, nil)
+}
+
+// fireEmblemsDmgFrom is the shared walk: src is NoSlot for a source that is no
+// permanent, srcObj and srcCtrl then name the spell or its last known controller.
+func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
 	dpl := s.dmgSeat(rcp, srcCtrl)
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
@@ -118,7 +139,14 @@ func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bo
 				if DebugEffEOTTrigOppOwner {
 					who = 1 - pp // seat-ok: a test-only mutation (DebugEffEOTTrigOppOwner)
 				}
-				if t.Filter != 0 && !s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull) {
+				if src == NoSlot {
+					if t.Flags&kop.TfSelf != 0 || t.Flags2&kop.Tf2SrcInPlay != 0 {
+						continue // a source that is no permanent: no self line, no ValidSource$ ...inZoneBattlefield
+					}
+					if t.Filter != 0 && (needsAttachedSource(k, t.Filter) || !s.matchCardGen(k, t.Filter, s.objs[srcObj].card, srcCtrl, who, srcObj)) {
+						continue
+					}
+				} else if t.Filter != 0 && !s.matchPermGen(k, t.Filter, src, who, NoSlot, layerFull) {
 					continue
 				}
 				c := s.embCard(pp, i)
