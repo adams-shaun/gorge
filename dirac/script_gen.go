@@ -544,8 +544,10 @@ func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) boo
 		// so the play is also searched over them when the filter route
 		// found no script for it (the Trapjaw Kelpie lockstep: decision
 		// 402's cast, the second walk's phased run's two island taps).
+		// Only where gorge's phased run is in scope (phasedRunInScope): its
+		// script counts for no other play.
 		if !s.filtScript(k, a, p, false) &&
-			!(rt.tapsDef.any() && !s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff)) &&
+			!(rt.tapsDef.any() && s.phasedRunInScope(k, p, a) && !s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff)) &&
 			!(isCastKind(a.Kind()) && rt.mix && s.tapXFallbackScript(k, a, p)) {
 			return true // no script within gorge's search budget
 		}
