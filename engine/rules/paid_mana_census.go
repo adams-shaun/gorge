@@ -2,6 +2,7 @@ package rules
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -190,6 +191,49 @@ func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
 	return out
 }
 
+// comboSplitAlts is the mixed-colour half of a Combo production's census: a
+// "Produced$ Combo <colours>" source with Amount$ n makes n mana in ANY
+// combination of those colours (the card's own text), so a two-mana source
+// pays {W}{G} by one tap, a split pinnedManaAlts' one-alt-per-colour pricing
+// ({W}{W}, {G}{G}) never reaches. Each alt carries one bounded allocation
+// (windowAnyCombinations, the cast window's own expansion) resolved onto its
+// ability (pay.WithManaAllocation), so the activation poses no colour sub-ask:
+// the unless window's tap ask offers it as one option, as it offers a pinned
+// colour. The single-colour allocations stay with pinnedManaAlts, which every
+// caller adds first; a plain "Any", a chosen or AnyDifferent production, an
+// ability pinnedManaAlts excludes, and a production past the allocation bound
+// add nothing (fail closed to the pinned pricing).
+func comboSplitAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
+	ma := alt.Ma
+	mp := effects.ManaOf(ma)
+	if !effects.IsComboAllocation(mp.Produced) || mp.NeedsChosen || mp.AnyDifferent || len(pinnedManaAlts(alt, counts)) == 0 {
+		return nil
+	}
+	var out []windowManaAlt
+	for _, combo := range windowAnyCombinations(counts, alt.Amt) {
+		var symbols strings.Builder
+		colours := 0
+		for c, n := range combo {
+			if n == 0 {
+				continue
+			}
+			colours++
+			for i := int32(0); i < n; i++ {
+				symbols.WriteString(string(cards.ManaSymbol(c)))
+			}
+		}
+		if colours < 2 {
+			continue
+		}
+		a := alt
+		a.Counts = combo
+		a.Amt = 1
+		a.Ma = pay.WithManaAllocation(ma, ma, symbols.String())
+		out = append(out, a)
+	}
+	return out
+}
+
 // fixedManaAlts prices a FIXED production (ProducedCounts' any=false: no
 // colour is chosen on activation) as ONE alternative over its full counts.
 // The activation produces every slot of counts at once, so per-colour
@@ -347,6 +391,9 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 			for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
 				units = pay.AppendUnitAlt(units, id, a)
 			}
+			for _, a := range comboSplitAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
+				units = pay.AppendUnitAlt(units, id, a)
+			}
 		}
 		// A literal mana fee (Apprentice Wizard's "{U}, {T}: Add {C}{C}{C}")
 		// is the one further non-free shape this census prices, and it walks
@@ -439,7 +486,7 @@ func unlessHybridFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost) []windowMan
 func unlessFeeAltsFor(ma *cards.SA, fmf pay.ManaStatic, generic int32, colored state.Mana) []windowManaAlt {
 	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: generic, CostColored: colored}
 	if fmf.Any {
-		return pinnedManaAlts(feeAlt, fmf.Counts)
+		return append(pinnedManaAlts(feeAlt, fmf.Counts), comboSplitAlts(feeAlt, fmf.Counts)...)
 	}
 	if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
 		return []windowManaAlt{a}
