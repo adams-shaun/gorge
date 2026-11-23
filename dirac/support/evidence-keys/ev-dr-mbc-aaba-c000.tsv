@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aphetto Alchemist	4e252f6ab4fdf498	6	1/1		1/3	cast/alt:morphed,ix:resp
 Azorius Herald	d36b9f47f927faa3	4	2/2		1/1	
+Baeloth Barrityl, Entertainer	21781debc1536a8f	10	1/1		1/1	
 Bastion Inventor	af56413740c59913	16	0/0		0/0	
 Battle Squadron	9abd2b3e8682d721	4	0/0		0/0	
 Bellowing Tanglewurm	43304e0cdfa71fa0	4	0/0		0/0	
@@ -71,6 +72,7 @@ Olivia's Bloodsworn	3862c605dfe7fdca	16	1/1		0/1	ix:resp
 Oneirophage	616f792cf36d38a4	10	1/1		1/1	
 Order of Midnight	343ab1eea84097db	12	0/0		1/2	ix:resp
 Ossification	45c09844ca763c44	9	1/1		1/2	ix:resp
+Painter's Studio	5c1791e7917a941c	18	2/2		1/1	
 Plains	82d63a695487e567	238	1/1		0/1	ix:resp
 Prosperous Innkeeper	257f9b3ee0e18d4c	4	2/2		0/1	ix:resp
 Rabbit Battery	696e351f7e2adef3	34	2/2		0/1	ix:resp
