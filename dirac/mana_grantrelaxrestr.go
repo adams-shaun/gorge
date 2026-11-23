@@ -40,16 +40,42 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 		s.availTapX(k, SeatIx(p), &all)
 		s.availTapX(k, SeatIx(p), &kept)
 	}
-	if k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p)) {
+	relax := k.gen.anyFilt && s.filtRelaxable(k, s.scriptFilt(k, p))
+	subsets := 1
+	if relax {
 		// gorge's relaxed proof also appends each subset of the census's paid
 		// alternatives, charging the subset's fees (paymentPlanRelaxProof): a
-		// filter makes up the colour a refused grant lacks, in both reads
-		s.availFilt(k, p, &all)
-		s.availFilt(k, p, &kept)
+		// filter makes up the colour a refused grant lacks, in both reads. A
+		// net-negative filter (Three Tree City's {2},{T} making one mana) is
+		// left out of the subsets that pay without it (mana_filtersubset.go),
+		// and the play is refused only when no subset's kept read pays.
+		subsets = 1 << s.filtNetNegative(k, s.scriptFilt(k, p))
 	}
-	if !all.affords(cost, pm, 0) {
-		return false
+	anyAll := false
+	for m := 0; m < subsets; m++ {
+		a, kp := all, kept
+		if relax {
+			s.g.availX |= availGaps // availFilt honours filtSkip only in the gaps walk
+			s.setFiltSkip(uint8(m))
+			s.availFilt(k, p, &a)
+			s.availFilt(k, p, &kp)
+			s.setFiltSkip(0)
+			s.g.availX = prev
+		}
+		if !a.affords(cost, pm, 0) {
+			continue
+		}
+		anyAll = true
+		if s.relaxKeptPays(k, p, cost, pm, d, &kp) {
+			return false
+		}
 	}
+	return anyAll
+}
+
+// relaxKeptPays is relaxRestrRefuses's kept read: the census without the
+// restricted grants d's payment refuses pays cost.
+func (s *State) relaxKeptPays(k *prep, p uint8, cost *kop.ManaCost, pm uint8, d payDesc, kept *avail) bool {
 	if k.restrSrc {
 		// the restricted planner units the payment may spend (the Artificer's
 		// "{T}: Add {C}. Spend this mana only to activate an ability or cast an
@@ -57,10 +83,10 @@ func (s *State) relaxRestrRefuses(k *prep, p uint8, cost *kop.ManaCost, d payDes
 		// to it) are units of gorge's census per payment (pay/plancost.go
 		// RestrictValidMatches): they stay in the kept read, so a refused grant
 		// that only duplicates one of them leaves the play relaxed-payable
-		u, multi, nm := s.restrSrcAvailD(k, p, d, &kept, NoSlot, false)
-		return !u.affordsMulti(cost, 0, multi[:nm])
+		u, multi, nm := s.restrSrcAvailD(k, p, d, kept, NoSlot, false)
+		return u.affordsMulti(cost, 0, multi[:nm])
 	}
-	return !kept.affords(cost, pm, 0)
+	return kept.affords(cost, pm, 0)
 }
 
 // anyGrantRestr: some granted mana ability of the table carries a spend
