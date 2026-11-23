@@ -124,7 +124,15 @@ func (s *State) specKeepsTarget(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cos
 			return true // a stack, graveyard or exile target: no mana activation takes it
 		}
 		var c1 avail
-		s.availSansObj(k, p, tobj, &c1)
+		if hs, ok := s.consumedAuraHost(k, p, tobj); ok {
+			// an Aura target falls off a source the plan sacrifices (CR 704.5m): hold the host out too
+			held := s.ctrlM[p]
+			s.ctrlM[p] = held.andNot(slotMask{}.with(hs))
+			s.availSansObj(k, p, tobj, &c1)
+			s.ctrlM[p] = held
+		} else {
+			s.availSansObj(k, p, tobj, &c1)
+		}
 		if c1.affords(cost, pipMaskOf(cost), 0) {
 			return true
 		}
