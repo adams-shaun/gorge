@@ -8,6 +8,25 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
+// replHeader reads the params every replacement line shares ahead of its
+// event: the ClassBand condition and the plain R: line's Updated shape.
+func replHeader(r cards.Repl, rp *params, rl *lRepl) error {
+	if b, ok := rp.get("ClassBand"); ok {
+		c, err := classBandCond(b) // lower_delayed.go
+		if err != nil {
+			return err
+		}
+		rl.Cond = c
+	}
+	if _, kw := r.Params["Keyword"]; !kw {
+		// a plain R: line (Banner of Kinship): gorge runs its choice on the
+		// entered object; the ETBReplacement keyword's line (Heraldic
+		// Banner) asks while the spell is on the stack
+		rl.S = "Updated"
+	}
+	return nil
+}
+
 // lowerRepl lowers an R: line to a replacement-lite record.
 func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	if printedPreventRepl(r) {
@@ -21,18 +40,8 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	rp := newParams(r.Params)
 	rp.consume("Event", "ReplaceWith", "ReplacementResult")
 	rl := lRepl{}
-	if b, ok := rp.get("ClassBand"); ok {
-		c, err := classBandCond(b) // lower_delayed.go
-		if err != nil {
-			return err
-		}
-		rl.Cond = c
-	}
-	if _, kw := r.Params["Keyword"]; !kw {
-		// a plain R: line (Banner of Kinship): gorge runs its choice on the
-		// entered object; the ETBReplacement keyword's line (Heraldic
-		// Banner) asks while the spell is on the stack
-		rl.S = "Updated"
+	if err := replHeader(r, rp, &rl); err != nil {
+		return err
 	}
 	var err error
 	switch r.Event {
@@ -252,6 +261,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.addCounterRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
+	case "BeginPhase":
+		if err := lc.beginPhaseRepl(rp, &rl); err != nil { // lower_beginphase.go
+			return err
+		}
 	case "TurnFaceUp":
 		if err := lc.turnUpRepl(rp, r.With, &rl); err != nil { // lower_turnfaceuprepl.go
 			return err
@@ -352,6 +365,12 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return err
 	}
 	if ok, err := lc.staticDamagePrevent(rp, w, rl); ok || err != nil { // lower_staticprevent.go
+		return err
+	}
+	if ok, err := lc.damageSetRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
+		return err
+	}
+	if ok, err := lc.damageMinusRepl(rp, w, rl); ok || err != nil { // lower_replmult.go
 		return err
 	}
 	if rp.str("ActiveZones") != "Battlefield" {

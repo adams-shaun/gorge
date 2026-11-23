@@ -2651,7 +2651,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, CodeSeat(code), n)
+				s.loseLifeDmg(k, CodeSeat(code), n)
 			}
 			s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 			toPl = true

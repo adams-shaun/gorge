@@ -60,6 +60,9 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
 		s.skipUntapTurn() // a pending untap skip enters the upkeep (act_skipphase.go)
 	}
+	if s.step == kop.StepUntap {
+		s.beginTurnPhaseSkip(s.k()) // a printed untap skip enters the upkeep (repl_beginphase.go)
+	}
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
 	s.g.declM = slotMask{}
@@ -184,7 +187,10 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyUntapOther {
 			s.untapOthers(k)
 		}
-		s.step = kop.StepUpkeep
+		// the untap step has no priority round, so its end proposes the next
+		// StepChange here: a printed phase-skip rewrites it (gorge's replacement
+		// pass on the proposal, repl_beginphase.go)
+		s.step = s.phaseSkipNext(k, kop.StepUpkeep)
 	case kop.StepUpkeep:
 		s.upkeepStep(k) // Duration$ UntilYourNextUpkeep ends as the upkeep begins
 		if k.gen != nil && k.gen.anySuspend {
@@ -358,6 +364,9 @@ func (s *State) advance(k *prep) {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
 	} else if k.gen != nil && k.gen.anySkipPhase {
 		next = s.skipCombatNext(next, false) // act_skipphase.go
+	}
+	if k.gen != nil && k.gen.anyBeginPhase {
+		next = s.phaseSkipNext(k, next) // the printed phase-skips (repl_beginphase.go)
 	}
 	s.endStep(next)
 }

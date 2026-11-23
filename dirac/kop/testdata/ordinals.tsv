@@ -1220,7 +1220,9 @@ ReplDmgPerm	untyped int	8
 ReplDmgPlayer	untyped int	4
 ReplDmgPowHost	untyped int	256
 ReplDmgRaise	untyped int	32
+ReplDmgSetShift	untyped int	11
 ReplDmgSrcInPlay	untyped int	64
+ReplDmgSrcSpell	untyped int	1024
 ReplDoesntUntap	ReplKind	4
 ReplDoubleCounters	ReplKind	13
 ReplDoubleCountersOn	ReplKind	20
@@ -1248,6 +1250,7 @@ ReplOppsCantWinGame	ReplKind	9
 ReplOthersDoesntUntap	ReplKind	15
 ReplOthersEnterProgram	ReplKind	7
 ReplPayBeforeETB	ReplKind	39
+ReplPhYou	untyped int	1
 ReplPrevSelfIfCounter	untyped int	2
 ReplPrevSelfRemoveDmg	untyped int	4
 ReplPrevSelfRemoveOne	untyped int	1
@@ -1275,6 +1278,7 @@ ReplSPYou	untyped int	1
 ReplSPYourTurn	untyped int	32
 ReplSpellsCantBeCountered	ReplKind	27
 ReplTurnUpProgram	ReplKind	25
+ReplUncAnyCtrl	untyped int	1
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
 RetCounterPairShift	untyped int	8

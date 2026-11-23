@@ -252,6 +252,10 @@ type prep struct {
 	// anyUncounter: some card carries ReplSpellsCantBeCountered; OpCounter
 	// scans the battlefield for it (repl_uncounterable.go)
 	anyUncounter bool
+	// uncAnyCtrl: some ReplSpellsCantBeCountered names no controller scope
+	// (ReplUncAnyCtrl): the scan widens to every battlefield permanent, each
+	// line scoping itself (repl_uncounterable.go)
+	uncAnyCtrl bool
 	// sacMana: some card's mana ability sacrifices its source (a
 	// Treasure; pcard.manaSac): guards the sacrifice-cost / mana
 	// disjointness check on the activation walk (cost_disjointmana.go)
@@ -515,6 +519,7 @@ func prepare(t *kop.Table) *prep {
 			}
 		}
 	}
+	p.uncAnyCtrl = tableHasUncAnyCtrl(t) // repl_uncounterable.go
 	if p.multiMana {
 		for i := range t.Cards {
 			if p.cards[i].manaAb >= 0 {
