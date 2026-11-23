@@ -1255,7 +1255,9 @@ type filtKey struct {
 	// counters): gorge's key reads every own permanent's counters
 	// (scriptStateKey), so Meadow's {W} made by removing a counter is a new
 	// state beside its plain {W} (mana_filterctrkey.go)
-	ctr  [8]uint16
+	ctr [8]uint16
+	// cx: every own permanent's counters, hashed (mana_filterctrkey.go ctrAllKey)
+	cx   uint64
 	sp   uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
 	hand uint8
 	gy   uint8
@@ -2148,6 +2150,7 @@ func (t *State) scriptKey(k *prep, p uint8, _ slotMask) filtKey {
 		}
 	}
 	t.ctrKey(k, key.bf, &key)
+	t.ctrAllKey(key.bf, &key)
 	return key
 }
 
