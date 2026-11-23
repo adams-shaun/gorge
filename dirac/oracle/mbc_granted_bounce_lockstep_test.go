@@ -12,3 +12,14 @@ func TestMBCMercurialPretenderReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "granted_bounce_funded_by_fee_filter")
 }
+
+// CR 602.2 with CR 605.3b: the same board as above, but the game PAYS the
+// bounce. Seat 0 holds one Island, a Mountain pool, a Sandstone Needle and a
+// Signpost Scarecrow beside the Pretender copy of Flamestick Courier; the
+// recording activates the granted "{2}{U}{U}: Return this creature to its
+// owner's hand" and resolves it (battlefield to hand), so the fee-filter
+// payment search runs through a paid activation, not only the offer.
+func TestMBCMercurialPretenderBouncePaidReprosLockstep(t *testing.T) {
+	t.Parallel()
+	stdReproNamed(t, "granted_bounce_paid_through_fee_filter")
+}
