@@ -94,6 +94,9 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 	add(p.eotKw)
 	add(p.eotKwRep[0])
 	add(p.eotKwRep[1])
+	if s.g.nfx != 0 {
+		add(s.ctrlKw(ob.slot)) // the haste a control record carries (AddKWs$), listed as gorge lists it
+	}
 	sup := false
 	if k.gen != nil && s.nkwx != 0 {
 		sup = !s.genLost(k, ob.slot) // a loss ended: its suppressed grants are back
