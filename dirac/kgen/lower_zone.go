@@ -616,9 +616,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			if !chosenPool { // chosenMidPool already read Chooser$
-				pickOwner, pickLoop = lc.graveChooser(ps, f, flags, pickOwner, pickLoop) // lower_hiddenpick.go
-			}
 			fetched := pickOwner.Kind != rYou && ps.str("DefinedPlayer") != "" && dpScope == dpNone
 			more, err := graveChooserFlags(ps, pickOwner, pickLoop, flags, fetched, chosenPool) // lower_gravedefinedplayer.go
 			if err != nil {

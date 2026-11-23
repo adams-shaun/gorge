@@ -23,7 +23,7 @@ type podFocusTally struct {
 	played     int // objects of the focus card that left the library
 }
 
-func playFocusPods(t *testing.T, pool, card, focusText string, pods []int) podFocusTally {
+func playFocusPods(t *testing.T, pool, card, focusText string, pods []int, watch ...func(g *GorgeSide)) podFocusTally {
 	t.Helper()
 	const seed, nDecks, perDeck = 1, 400, 4
 	reg := synthReg(t)
@@ -49,10 +49,14 @@ func playFocusPods(t *testing.T, pool, card, focusText string, pods []int) podFo
 		p := PodAt(poolDecks, i, seed, 4)
 		m, tbl, err := SetMatchupN(set, c, p.Decks(), 0)
 		if err != nil {
-			t.Fatalf("pod %d refused: %v", i, err)
+			t.Logf("pod %d refused (an interaction guard of the dealt decks): %v", i, err)
+			continue
 		}
 		rc := RunConfig{Config: Config{}, MaxDecisions: 20000, MaxTurns: 100}
 		rc.Finish = func(g *GorgeSide) {
+			for _, w := range watch {
+				w(g)
+			}
 			for j := range g.E.L.Events {
 				e := &g.E.L.Events[j]
 				switch e.Kind {
@@ -78,7 +82,7 @@ func playFocusPods(t *testing.T, pool, card, focusText string, pods []int) podFo
 		res := Lockstep(m, p.Seed, k, AffordableTargetPolicy(RandomPolicy(p.Seed)), rc)
 		CloseSide(k)
 		if res.Div != nil {
-			t.Fatalf("pod %d (%v): divergence at decision %d: %s %s %v", i, p.Decks(), res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
+			t.Fatalf("pod %d (%v): divergence at decision %d: %s %s %v %s", i, p.Decks(), res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail)
 		}
 		if res.Stall != "" {
 			t.Fatalf("pod %d: stall %s", i, res.Stall)

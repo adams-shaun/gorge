@@ -160,9 +160,15 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if x.N == 1 {
 			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
 		}
+		only := uint8(255) // N 2: only the cards player Ref owns (Ravenloft Adventurer's defending player, Etrata's damaged one)
+		if x.N == 2 {
+			if only = s.refPlayer(k, x.Ref, ctx); only == 255 {
+				return 0
+			}
+		}
 		n := 0
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) {
+			if s.out(pp) || only != 255 && pp != only {
 				continue
 			}
 			pl := &s.pl[pp]
