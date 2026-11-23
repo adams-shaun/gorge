@@ -26,6 +26,7 @@ func init() {
 	fwName[kop.FwEnchantedControllerCtrl] = "FwEnchantedControllerCtrl"
 	fwName[kop.FwSharesCr] = "FwSharesCr"
 	fwName[kop.FwSharesName] = "FwSharesName"
+	fwName[kop.FwSameName] = "FwSameName"
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers
@@ -132,22 +133,29 @@ var fwKeywordSpaced = map[string]string{"Doctor'scompanion": "Doctor's companion
 // Targeted (the reading context entry's object targets, every slot — the
 // handler iterates them all, so the Ref's slot span is not a bound), Self,
 // RememberedCard (the entry's remembered object, gorge's first card entry),
-// and Imprinted (the source's first imprinted card, RefImprinted's read).
-// Commander, TriggeredAttacker and TriggeredCard keep their own lowerings
-// (cmpSharesCrCmdr, W7SharesCrTrigObj); Remembered/RememberedLKI (the whole
-// set, where the kernel keeps one object) and Convoked (no kernel record)
-// stay refused, as do Sacrificed and Enchanted, which gorge's sharesTypeArg
-// never accepts.
+// Remembered and RememberedLKI (gorge's whole-set spellings over the SAME
+// sc.Remembered list; the kernel keeps the set, g.rem, so the read is exact
+// where RememberedCard names only its first entry), Imprinted (the source's
+// first imprinted card, RefImprinted's read), and Convoked (the creatures
+// that convoked the resolving spell's cast, CR 702.66; the cast's stack
+// entry holds their set, dirac/convoked.go, where the count rode
+// stackEntry.prov bits 3-7 alone). Commander, TriggeredAttacker and
+// TriggeredCard keep their own lowerings (cmpSharesCrCmdr, W7SharesCrTrigObj);
+// Sacrificed and Enchanted stay refused, gorge's sharesTypeArg never
+// accepting them.
 var fwShareRefs = map[string]kop.Ref{
 	"Targeted": kop.RefTargets0123, "Self": kop.RefSelf,
 	"RememberedCard": kop.RefRemembered, "Imprinted": kop.RefImprinted,
+	"Remembered": kop.RefRememberedSet, "RememberedLKI": kop.RefRememberedSet,
+	"Convoked": kop.RefConvoked,
 }
 
 // fwNameRefs is fwShareRefs for sharesNameWith: Targeted, RememberedCard and
 // the triggering object (TriggeredCard, TriggeredCardLKICopy). Remembered and
 // Self keep their struct lowerings (cmpSameNameRem, cmpSameNameSelf), the one
-// Valid <filter> carrier (Permanent.Legendary) its W7SharesNameLegend one;
-// the general Valid <filter> form waits on a nested-filter arm.
+// Valid <filter> carrier (Permanent.Legendary) its W7SharesNameLegend one,
+// and the general Valid <filter> form lowers as prop's own tail arm
+// (filter.go fwSharesNameValid), the inner filter riding the literal's F.
 var fwNameRefs = map[string]kop.Ref{
 	"Targeted": kop.RefTargets0123, "RememberedCard": kop.RefRemembered,
 	"TriggeredCard": kop.RefTriggerObj, "TriggeredCardLKICopy": kop.RefTriggerObj,
@@ -178,8 +186,13 @@ func (c *lClause) fwLit(l lSpillLit) error {
 // fwArmOrUnknown lowers property p by its arm, or is the unknown-property
 // error: the tail of lClause.prop's switch. The prefixes are the families'
 // heads: with<K> (and its without/!with spellings), the two-token share
-// words, and the two link words.
-func (c *lClause) fwArmOrUnknown(p string) error {
+// words, the two link words, and the general sharesNameWith Valid <filter>
+// form (fwSharesNameValid), whose exact one-word carrier filterWordPred2
+// answered before this arm was reached.
+func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
+	if inner, neg, ok := sharesNameValidArg(p); ok {
+		return c.fwSharesNameValid(inner, neg, knownSub)
+	}
 	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") ||
 		strings.HasPrefix(p, "sharesCreatureTypeWith") || strings.HasPrefix(p, "!sharesCreatureTypeWith") ||
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
@@ -190,4 +203,39 @@ func (c *lClause) fwArmOrUnknown(p string) error {
 		}
 	}
 	return fmt.Errorf("unknown property %q", p)
+}
+
+// sharesNameValidArg splits the general sharesNameWith Valid <filter> word
+// (gorge sharesNameValidBattlefield, engine/effects/filter_attachment.go):
+// the inner filter is what survives in the token, the spec splitters having
+// cut the outer '+' and ',' before the word was read. The zone-suffixed
+// ValidExile/ValidGraveyard spellings are a different, unmodelled referent
+// and stay unknown.
+func sharesNameValidArg(p string) (inner string, neg, ok bool) {
+	if rest, has := strings.CutPrefix(p, "!"); has {
+		neg, p = true, rest
+	}
+	inner, ok = strings.CutPrefix(p, "sharesNameWith Valid ")
+	if !ok {
+		return "", neg, false
+	}
+	inner = strings.TrimSpace(inner)
+	if inner == "" || strings.ContainsAny(inner, "+,") {
+		// gorge never sees an inner with a '+' or ',': the token would have
+		// been cut first; an empty inner is an unbound referent
+		return "", neg, false
+	}
+	return inner, neg, true
+}
+
+// fwSharesNameValid lowers the general form: the word carries the inner
+// filter as its nested-filter operand, lowered over the battlefield the
+// sweep reads (kop.FLit.F; kernel fwSharesName's Valid arm). The parse keeps
+// the inner filter on the spill literal; spillProg interns it.
+func (c *lClause) fwSharesNameValid(inner string, neg bool, knownSub func(string) bool) error {
+	ic, err := parseClause(inner, knownSub)
+	if err != nil {
+		return fmt.Errorf("sharesNameWith Valid %q: %w", inner, err)
+	}
+	return c.fwLit(lSpillLit{W: kop.FwSharesName, Neg: neg, Inner: &lFilter{Clauses: []lClause{ic}}})
 }

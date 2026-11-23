@@ -7,12 +7,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // argument (engine/effects/filter_attachment.go sharesTypeArg's vocabulary,
 // resolved by sharesTypeReferents against the evaluating SpecContext). The
 // referents gorge reads whose object the kernel keeps live are the entry's
-// object targets, its remembered object, its triggering object, the reading
-// source, and the source's imprint; the referents with no kernel record stay
-// unlowered (kgen refuses them: Convoked rides stackEntry.prov as a count,
-// and Sacrificed/Enchanted are not in gorge's sharesTypeArg vocabulary at
-// all). Both words read each side's characteristics where it now is, like
-// sharesCrTrigObj does for the triggering object.
+// object targets, its remembered object and remembered set, its triggering
+// object, the reading source, the source's imprint, and the creatures that
+// convoked the resolving spell's cast (RefConvoked, convoked.go); the
+// referents with no kernel record stay unlowered (kgen refuses them:
+// Sacrificed/Enchanted are not in gorge's sharesTypeArg vocabulary at all).
+// Both words read each side's characteristics where it now is, like
+// sharesCrTrigObj does for the triggering object. FwSameName (the sameName
+// context bases) shares fwReferentObjs too (filter_samenameref.go).
 
 // fwSharesCr is kop.FwSharesCr: the candidate shares a creature type with an
 // object the referent names. Unbound referent: false (gorge's fail-closed
@@ -51,6 +53,24 @@ func (s *State) fwSharesName(c *fctx, l *kop.FLit) bool {
 		cn = s.nameKey(c.c)
 	}
 	if cn == NoCard {
+		return false
+	}
+	if l.F != 0 {
+		// the general Valid <filter> form (gorge sharesNameValidMatches,
+		// engine/effects/filter_attachment.go): some permanent on the
+		// battlefield matching the nested filter — in the evaluating context,
+		// a phased-out permanent off occ (CR 702.26b) — shares the
+		// candidate's name. The candidate itself is not its own match.
+		k := c.k
+		for m := s.occ; m.any(); m = m.rest() {
+			q := m.first()
+			if c.perm() && q == c.sl {
+				continue
+			}
+			if s.matchPermGen(k, l.F, q, c.ctrl, c.src, c.layer) && s.nameCardAt(q) == cn {
+				return true
+			}
+		}
 		return false
 	}
 	for _, r := range s.fwReferentObjs(c, l.R) {
@@ -103,6 +123,24 @@ func (s *State) fwReferentObjs(c *fctx, r kop.Ref) []Obj {
 			out = append(out, Obj(t))
 		}
 		return out
+	}
+	if r == kop.RefRememberedSet {
+		// the entry's remembered set, every object (gorge sharesTypeReferents'
+		// Remembered and RememberedLKI over sc.Remembered, the non-player
+		// part — the kernel's rem holds objects only): a set the word reads
+		// whole, where RefRemembered names only its first entry
+		return s.g.rem[:s.g.nrem]
+	}
+	if r == kop.RefConvoked {
+		// the creatures that convoked the resolving spell's cast (CR 702.66;
+		// gorge sharesTypeReferents' Convoked over the resolving source's
+		// Object.Convoked): the cast's stack entry holds their set
+		// (convoked.go). A resolving entry with no convoke, or a read whose
+		// context has none, binds nothing — fail closed, never widened.
+		if e := cx.e; e != nil {
+			return s.convokedOf(e)
+		}
+		return nil
 	}
 	if o := s.refObjCtx(r, cx); o != NoObj {
 		return []Obj{o}

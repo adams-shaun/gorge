@@ -2042,6 +2042,7 @@ type genState struct {
 	nfx       uint8
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
 	atkHi     uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
+	cvokHi    uint8               // the highest convoked-set index ever taken (the hash walks 1..cvokHi; convoked.go)
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)

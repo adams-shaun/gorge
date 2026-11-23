@@ -967,6 +967,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwKeyword(c, l) // filter_keyword.go
 	case kop.FwPowerCmp:
 		return s.fwPowerCmp(c, l) // filter_powercmp.go
+	case kop.FwSameName:
+		return s.fwSameName(c, l) // filter_samenameref.go
 	case kop.FwSharesCr:
 		return s.fwSharesCr(c, l) // filter_sharesreferents.go
 	case kop.FwSharesName:
@@ -986,7 +988,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

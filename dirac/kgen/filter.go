@@ -93,13 +93,17 @@ const (
 	fNotAttacking  // !attacking (kop.FNotAttacking)
 	fNotAttachedBy // !EnchantedBy / !EquippedBy / !AttachedBy: not the source's host (kop.FNotAttachedBySrc)
 	fNamedCard     // the card-name property NamedCard: the candidate shares the source's chosen card name (gorge namePredicate NamedCard; kop.PredNamedCard)
+	fSameNameRem   // a sameName context base: the head's Remembered prefix names the referent (gorge sameNameContextBase)
+	fSameNameTgt   // a sameName context base: the head's Targeted prefix
+	fSameNameTrig  // a sameName context base: the head's Triggered prefix
 	fFlagCount     = iota
 )
 
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard",
+	"SameNameRem", "SameNameTgt", "SameNameTrig"}
 
 // Controller / owner selectors.
 const (
@@ -633,7 +637,15 @@ func historicClauses(alt string, knownSub func(string) bool, err error) ([]lClau
 func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	head, props, _ := strings.Cut(alt, ".")
 	var c lClause
-	if bits, ok := typeBits[head]; ok {
+	// the sameName context bases (gorge sameNameContextBase, T13b-2
+	// remnants): a Remembered./Targeted./Triggered. head whose rest carries
+	// the bare sameName token names sameName's referent, and the base itself
+	// is rewritten to Card (gorge matchesObjectText drops it). Name-specific,
+	// exactly as gorge's: any other rest, and the '!sameName' token, leaves
+	// the head unknown and the alternative fails closed.
+	if ref, ok := sameNameContextRef(head, props); ok {
+		c.Flags |= ref
+	} else if bits, ok := typeBits[head]; ok {
 		c.Types = bits
 		if head == "Card" {
 			c.Types = 0
@@ -1213,7 +1225,57 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if knownSub(p) {
 		return c.addSubtype(p)
 	}
-	return c.fwArmOrUnknown(p) // filter_words_relations.go
+	return c.fwArmOrUnknown(p, knownSub) // filter_words_relations.go
+}
+
+// sharesNameValidArg and the general Valid <filter> arm live in
+// filter_words_relations.go, beside the other share-word arms.
+
+// sameNameContextRef maps a sameName context base's head prefix to the clause
+// flag that marks it, when the rest carries the bare sameName token (gorge
+// sameNameContextBase, engine/effects/filter_value.go: the Remembered./
+// Targeted./Triggered. prefixes and hasPredicate(rest, "sameName"); the
+// '!'-spelled token is not the contextual one). ok is false for anything
+// else: the head keeps its own parser fate.
+func sameNameContextRef(head, rest string) (uint64, bool) {
+	if !hasPropToken(rest, "sameName") {
+		return 0, false
+	}
+	switch {
+	case strings.HasPrefix(head, "Remembered"):
+		return fSameNameRem, true
+	case strings.HasPrefix(head, "Targeted"):
+		return fSameNameTgt, true
+	case strings.HasPrefix(head, "Triggered"):
+		return fSameNameTrig, true
+	}
+	return 0, false
+}
+
+func hasPropToken(rest, want string) bool {
+	for p := range strings.SplitSeq(rest, "+") {
+		if p == want {
+			return true
+		}
+	}
+	return false
+}
+
+// sameNameBaseRef is a context-base clause's referent Ref: the flag
+// sameNameContextRef set names the object gorge sameNameContextReferent
+// resolves — the entry's first remembered object (RefRemembered), its first
+// live object target (RefTargets0123, the same read the share words'
+// Targeted referent lowers to), or its triggering object (RefTriggerObj).
+func (c *lClause) sameNameBaseRef() (kop.Ref, bool) {
+	switch {
+	case c.Flags&fSameNameRem != 0:
+		return kop.RefRemembered, true
+	case c.Flags&fSameNameTgt != 0:
+		return kop.RefTargets0123, true
+	case c.Flags&fSameNameTrig != 0:
+		return kop.RefTriggerObj, true
+	}
+	return 0, false
 }
 
 // sharesNameWithProp lowers the sharesNameWith property family and reports
@@ -1221,10 +1283,8 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 // source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1. The
 // plain sameName is gorge wordSameName (card.sharesNameWith(source), the
 // resolving ability's source by default, engine/effects/filter_word.go): the
-// same read, so it lowers onto the same pred. Its base-prefix forms
-// (Remembered./Targeted./Triggered., gorge sameNameContextBase) read the
-// base's own object instead, which the kernel keeps no lowered read of: they
-// refuse with a named reason.
+// same read, so it lowers onto the same pred — except beside a context base
+// (fSameName*), where it reads the base's object as kop.FwSameName instead.
 func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 	switch p {
 	case "sharesNameWith Remembered":
@@ -1238,6 +1298,14 @@ func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 		}
 		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
 	case "sameName", "!sameName":
+		if r, ok := c.sameNameBaseRef(); ok {
+			// the context base rewrote the head (sameNameContextRef): gorge
+			// wordSameName reads the base's object (sameNameContextReferent),
+			// not the source. The flag is consumed as the word's referent, no
+			// kop flag of its own (the fEscaped pattern).
+			c.Flags &^= fSameNameRem | fSameNameTgt | fSameNameTrig
+			return true, c.fwLit(lSpillLit{W: kop.FwSameName, Neg: p[0] == '!', R: r})
+		}
 		if c.Flags&(fRemembered|fNotRemembered) != 0 {
 			return true, fmt.Errorf("sameName beside a Remembered base: gorge reads the base's object (sameNameContextBase), not the source")
 		}

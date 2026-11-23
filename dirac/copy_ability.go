@@ -125,6 +125,7 @@ func (s *State) copyAbilityN(k *prep, in *kop.Instr, n int) bool {
 		ce.ctrl = e.ctrl
 		ce.flags &= sfKicked | sfOppCrowned                       // a copy is not cast: no cast provenance (CR 707.10)
 		ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // a copy is not the remembered card: no rider count, no rider source
+		ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; convoked.go)
 		if ce.xi != 0 {
 			from := s.g.xtp[ce.xi-1]
 			ce.xi = 0

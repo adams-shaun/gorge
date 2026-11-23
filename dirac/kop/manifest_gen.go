@@ -1600,35 +1600,40 @@ const FwKeyword FilterWord = 6
 // FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).
 const FwPowerCmp FilterWord = 7
 
+// FilterWord (dirac/manifest/FilterWord/FwSameName)
+//
+// FwSameName: the object shares a printed name with the object the sameName context base names (gorge sameNameContextReferent over Remembered./Targeted./Triggered. bases, engine/effects/filter_value.go): RefRemembered, the entry's first remembered object; RefTargets0123, the entry's object targets, every slot, first live one; RefTriggerObj, the entry's triggering object. The name identity is FwSharesName's: a battlefield permanent reads its layer-3 name, anything else its card, and a face-down candidate has no name (CR 708.2). An unbound referent matches nothing, fail closed.
+const FwSameName FilterWord = 8
+
 // FilterWord (dirac/manifest/FilterWord/FwSharesCr)
 //
-// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefImprinted, the reading source's first imprinted card. Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
-const FwSharesCr FilterWord = 8
+// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefRememberedSet, the entry's whole remembered set (gorge's Remembered and RememberedLKI spellings); RefImprinted, the reading source's first imprinted card; RefConvoked, the creatures that convoked the resolving spell's cast (CR 702.66, the cast's stack entry set, convoked.go). Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
+const FwSharesCr FilterWord = 9
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesName)
 //
-// FwSharesName: the object shares a printed name with an object the referent R names (gorge sharesNameWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefRemembered, the entry's remembered object (the first card entry); RefTriggerObj, the entry's triggering object. A face-down candidate has no name (CR 708.2); an unbound referent matches nothing, fail closed.
-const FwSharesName FilterWord = 9
+// FwSharesName: the object shares a printed name with an object the referent R names (gorge sharesNameWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefRemembered, the entry's remembered object (the first card entry); RefTriggerObj, the entry's triggering object. With a nested filter in F (the general sharesNameWith Valid <filter> form, gorge sharesNameValidMatches) instead: some permanent on the battlefield matching F, in the evaluating context, shares the candidate's name; the candidate itself is not its own match, and a phased-out permanent is off the sweep (CR 702.26b). A face-down candidate has no name (CR 708.2); an unbound referent matches nothing, fail closed.
+const FwSharesName FilterWord = 10
 
 // FilterWord (dirac/manifest/FilterWord/FwSubtype)
 //
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
-const FwSubtype FilterWord = 10
+const FwSubtype FilterWord = 11
 
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 11
+const FwTapped FilterWord = 12
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 12
+const FwToughnessCmp FilterWord = 13
 
 // FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
 //
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
-const FwWithKeyword FilterWord = 13
+const FwWithKeyword FilterWord = 14
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
