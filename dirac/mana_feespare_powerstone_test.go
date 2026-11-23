@@ -3,10 +3,47 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
+
+// feeSpareScen is vanilla's table plus the pin's cards, hand-written (the
+// synthetic pools are the lockstep oracle's and kgen's to read): Urn of
+// Godfire ("{2}: Add one mana of any color", a fee-only filter mana ability),
+// Mox Sapphire, Grim Physician ({B}), Feral Ghoul ({2}{B}) and the Powerstone
+// token — a {C} source restricted to artifact spells and to every non-spell
+// payment (AfManaNonSpell, RestrictValid$ CantCastNonArtifactSpells, CR
+// 106.6). The pips and sizes are the pin's only read of these cards; the
+// shapes are the lowered ones of the tail-50 pool (the Urn FeeOnlyManaAb, the
+// token's ManaRestrict filter over the stack).
+func feeSpareScen(t *testing.T) (sc *scen, id map[string]CardID) {
+	t.Helper()
+	tbl := *v.Table
+	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+	tbl.Filters = append([]kop.Filter(nil), v.Table.Filters...)
+	tbl.Filters = append(tbl.Filters, kop.Filter{Types: kop.TArtifact, Zone: kop.ZoneStack})
+	artifactSpells := kop.FilterID(len(tbl.Filters) - 1)
+	id = map[string]CardID{"Plains": v.Plains, "Swamp": v.Swamp}
+	add := func(cd kop.CardDef) {
+		id[cd.Name] = CardID(len(tbl.Cards))
+		tbl.Cards = append(tbl.Cards, cd)
+	}
+	add(kop.CardDef{Name: "Urn of Godfire", Types: kop.TArtifact,
+		Abilities: []kop.Ability{{Kind: kop.AbMana, Cost: kop.Cost{Mana: kop.ManaCost{Generic: 2}},
+			ManaColors: kop.ColAny, ManaN: 1}}})
+	add(kop.CardDef{Name: "Mox Sapphire", Types: kop.TArtifact,
+		Abilities: []kop.Ability{{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap},
+			ManaColors: kop.ColU, ManaN: 1}}})
+	add(kop.CardDef{Name: "Grim Physician", Cost: kop.ManaCost{Pips: [kop.NumManaKinds]uint8{2: 1}},
+		Types: kop.TCreature, Colors: kop.ColB, Power: 1, Toughness: 2})
+	add(kop.CardDef{Name: "Feral Ghoul", Cost: kop.ManaCost{Generic: 2, Pips: [kop.NumManaKinds]uint8{2: 1}},
+		Types: kop.TCreature, Colors: kop.ColB, Power: 2, Toughness: 2})
+	add(kop.CardDef{Name: "Powerstone Token", Types: kop.TArtifact | kop.TToken,
+		Abilities: []kop.Ability{{Kind: kop.AbMana, AFlags: kop.AfManaNonSpell,
+			Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColC, ManaN: 1, ManaRestrict: artifactSpells}}})
+	sc = newScenTable(t, &tbl, Config{NoElide: true})
+	return sc, id
+}
 
 // CR 106.6, 605.3a: a Powerstone's {C} can't pay a nonartifact spell but does
 // pay the {2} of Urn of Godfire's "{2}: Add one mana of any color", an activated
@@ -15,30 +52,6 @@ import (
 // 745) at the potential walk, Feral Ghoul ({2}{B}, decision 801) in the filter
 // search.
 func TestFeeSparePowerstoneFundsUrnForSpell(t *testing.T) {
-	set := cardsettest.Synth(t, "tail-50")
-	deck := []cardset.Entry{{Name: "Plains", Count: 10}}
-	for _, n := range []string{"Urn of Godfire", "Grim Physician", "Feral Ghoul", "Mox Sapphire", "Swamp", "A-Urza's Command"} {
-		if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
-			t.Fatalf("%s not in the tail-50 table", n)
-		}
-		deck = append(deck, cardset.Entry{Name: n, Count: 1})
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	for i := range tbl.Cards { // (a token def has no name)
-		if c := &tbl.Cards[i]; c.Types&kop.TToken != 0 && c.Types&kop.TArtifact != 0 && len(c.Abilities) == 1 && c.Abilities[0].Kind == kop.AbMana && c.Abilities[0].ManaRestrict != 0 {
-			id["Powerstone Token"] = CardID(i)
-		}
-	}
-	if _, ok := id["Powerstone Token"]; !ok {
-		t.Fatal("precondition: no Powerstone token in the table")
-	}
 	for _, c := range []struct {
 		spell string
 		board []string
@@ -55,7 +68,7 @@ func TestFeeSparePowerstoneFundsUrnForSpell(t *testing.T) {
 		{"Feral Ghoul", []string{"Swamp", "Powerstone Token", "Powerstone Token"}, false}, // the Urn and the Swamp make two mana for {2}{B}
 		{"Feral Ghoul", []string{"Swamp", "Mox Sapphire", "Powerstone Token"}, false},     // one {C} leaves the fee short
 	} {
-		sc := newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+		sc, id := feeSpareScen(t)
 		for _, n := range c.board {
 			sc.perm(id[n], 0)
 		}
