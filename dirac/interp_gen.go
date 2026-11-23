@@ -1730,12 +1730,13 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	// MvTransformed entry of a multi-face card enters with its back face up
 	// (CR 712.14a), so its printed front never enters the battlefield —
 	// gorge's instantCannotEnter exempts it too.
+	fromAny := in.Op == kop.OpReturnEx && fl&kop.MvEntryRiders != 0 // Origin$ All on a remembered card: a library card moves too (OpReturnEx's reading of kop.MvEntryRiders' bit)
 	transformedDfc := fl&kop.MvTransformed != 0 && len(k.t.Cards[ob.card].Faces) >= 2
 	if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZoneStack || ob.zone == kop.ZoneNone || s.tokenLeftBattlefield(o) ||
 		(!transformedDfc && s.instantStays(k, o, kop.Zone(in.C&7))) {
 		return false
 	}
-	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
+	if (ob.zone == kop.ZoneLibrary && !fromAny) || in.B.N&kop.RetFromLibrary != 0 {
 		if in.B.N&kop.RetFromLibrary == 0 || ob.zone != kop.ZoneLibrary {
 			return false // Origin$ Library gates the move to a library card; every other return skips one
 		}
