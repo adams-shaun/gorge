@@ -117,6 +117,14 @@ func ManaReflectedObjects(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 func ManaReflectedFold(h Host, sa *cards.SA, objs []state.ObjID) []string {
 	mr := ManaReflectedOf(sa)
 	produce := mr.ReflectProperty == "Produce"
+	// CR 613.1e: "Is" reads each permanent's current colours, so a layer-5
+	// colour a continuous effect set (Grave Betrayal's black Zombie) counts.
+	// A ManaReflected body names ColorOrType$ Color, which layerTablesFor's
+	// text rule reads as a colour predicate, so the table is published.
+	var derived []ObjectColors
+	if !produce {
+		derived = layerTablesFor(h, sa, nil).DerivedColors
+	}
 	set := map[string]bool{}
 	for _, id := range objs {
 		o := h.Game().Obj(id)
@@ -128,6 +136,12 @@ func ManaReflectedFold(h Host, sa *cards.SA, objs []state.ObjID) []string {
 			syms = producibleSymbols(o)
 		} else {
 			syms = ColorsOf(o)
+			for i := range derived {
+				if derived[i].ID == o.ID {
+					syms = derived[i].Mask.String()
+					break
+				}
+			}
 		}
 		for _, r := range syms {
 			set[string(r)] = true
