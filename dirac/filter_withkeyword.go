@@ -9,6 +9,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // kop.W7WithInfect, filter_props.go). A layer-walk view fails closed, and so
 // does a keyword the table keeps no printed record of (printedKeyword's
 // default): kgen lowers only the keywords listed here (fwKeywordWords).
+// Known limit: gorge's keywordInCtx also sees keywords a layer table derives
+// or grants; the kernel reads the printed record (and the Horsemanship grant)
+// only, so a lowered "gains toxic/cascade/convoke" effect would diverge. No
+// such grant is lowered today.
 //
 //kmanifest:fword FwWithKeyword
 func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {

@@ -46,7 +46,11 @@ func TestFilterWordsRelations(t *testing.T) {
 		{"Card.ChosenCtrl", kop.FwChosenCtrl, 0, false},
 		{"Card.EnchantedControllerCtrl", kop.FwEnchantedControllerCtrl, 0, false},
 	} {
-		for _, z := range []kop.Zone{kop.ZoneBattlefield} {
+		zones := []kop.Zone{kop.ZoneBattlefield}
+		if tc.w == kop.FwWithKeyword {
+			zones = append(zones, kop.ZoneGraveyard, kop.ZoneHand) // the card-zone read
+		}
+		for _, z := range zones {
 			lits := relationsProg(t, NewAtomCompiler(), tc.spec, z)
 			if len(lits) != 1 || lits[0].W != tc.w || lits[0].Arg != tc.arg || lits[0].Neg != tc.neg {
 				t.Errorf("%s: literals %+v, want word %d arg %d neg %v", tc.spec, lits, tc.w, tc.arg, tc.neg)
