@@ -2497,6 +2497,8 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	}
 	var probe *Engine
 	bounded := true // every gap ability so far has a once-only or bounded relaxation
+	// lookup only: source -> its index in out.relaxed
+	relaxedTapUnit := make(map[state.ObjID]int)
 	// plain: every mana ability on the board is a lone {T} making one mana
 	// (manaTapSingle); sources counts the permanents that have one.
 	plain, sources := true, int32(0)
@@ -2587,7 +2589,16 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				} else if fee > 0 {
 					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee,
 						plain: relaxedCutPlain(relaxed, gmp, gextra, condSplitLiveSub(e, p, id, ma) != nil)})
+				} else if at, seen := relaxedTapUnit[id]; seen && gcost.Tap && !gcost.Untap {
+					// A source's free {T} abilities are alternatives of ONE
+					// tap (CR 605.3b, 106.1): Snowfield Sinkhole's {T}: Add
+					// {W} and {T}: Add {B} make one mana between them, so
+					// they are one relaxed unit, not two.
+					out.relaxed[at] = append(slices.Clone(out.relaxed[at]), relaxed...)
 				} else {
+					if gcost.Tap && !gcost.Untap {
+						relaxedTapUnit[id] = len(out.relaxed)
+					}
 					out.relaxed = append(out.relaxed, relaxed)
 				}
 			}
