@@ -762,6 +762,16 @@ func potentialModeCredit(mode string, convoke, improvise, delve bool) (withheld,
 	return false, true
 }
 
+// improviseHasTappers reports whether any permanent could pay one generic of
+// the cast of id through Improvise (CR 702.126a): the credit is optional, and
+// with no untapped artifact to tap it reprices nothing, so a spell that merely
+// carries the keyword (Archway of Innovation's grant) is planned at its raw
+// cost like one without it.
+func (e *Engine) improviseHasTappers(p state.PlayerID, id state.ObjID) bool {
+	_, taps := e.improviseCost(p, id, Cost{Generic: 1 << 20}, nil)
+	return len(taps) != 0
+}
+
 // potentialModeCastPlan prices a cast the cast planner does not witness --
 // an alternative or additional-cost mode (flashback, bestow, kicker,
 // buyback, entwine, surge, evoke, dash, overload, warp, madness, miracle)
@@ -808,7 +818,7 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 	// action is never a cast, so no credit can reprice it.
 	var withheld, credit bool
 	if !e.planIgnoreCredit && pay.SpecialOfCastMode(o.Mode) == pay.SpecialNone {
-		withheld, credit = potentialModeCredit(o.Mode, e.hasCastConvoke(id), e.hasCastImprovise(id), e.hasCastDelve(id, false))
+		withheld, credit = potentialModeCredit(o.Mode, e.hasCastConvoke(id), e.hasCastImprovise(id) && e.improviseHasTappers(p, id), e.hasCastDelve(id, false))
 	}
 	if withheld {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
