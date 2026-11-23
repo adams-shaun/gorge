@@ -287,7 +287,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 			return true
 		}
 	}
-	return s.handManaAny(k, p) // a hand guide (mana_handguide.go)
+	return s.handManaAny(k, p) || s.graveManaAny(k, p) // a hand guide, a graveyard source (mana_handguide.go, mana_gravemana.go)
 }
 
 // targetPaidPlanned: gorge's cast planner takes a Spree or Tiered face, an
