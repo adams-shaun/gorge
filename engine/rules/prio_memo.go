@@ -341,14 +341,23 @@ func (e *Engine) priorityOptions(p state.PlayerID, window *windowCollector) (out
 	// the default build pays nothing on the windows it walks.
 	if !quietOff && window == nil && e.quietUsable() && e.seatQuiet(p) {
 		quietServed.Add(1)
+		if dbgMoltenProbe {
+			fmt.Fprintf(os.Stderr, "zzserve p=%d nev=%d quiet\n", p, len(e.L.Events))
+		}
 		return e.quietOptions(p)
 	}
 	if !e.prioMemoUsable(window) {
 		prioMemoSkips.Add(1)
+		if dbgMoltenProbe {
+			fmt.Fprintf(os.Stderr, "zzserve p=%d nev=%d skip-walk\n", p, len(e.L.Events))
+		}
 		return e.legalActionsWithWindow(p, window)
 	}
 	if m := e.prioMemoLookup(p); m != nil {
 		prioMemoHits.Add(1)
+		if dbgMoltenProbe {
+			fmt.Fprintf(os.Stderr, "zzserve p=%d nev=%d memo-hit\n", p, len(e.L.Events))
+		}
 		if prioMemoVerify {
 			e.prioMemoCheck(p, m)
 		}
@@ -360,6 +369,9 @@ func (e *Engine) priorityOptions(p state.PlayerID, window *windowCollector) (out
 		return res
 	}
 	prioMemoMisses.Add(1)
+	if dbgMoltenProbe {
+		fmt.Fprintf(os.Stderr, "zzserve p=%d nev=%d walk\n", p, len(e.L.Events))
+	}
 	res := e.legalActionsWithWindow(p, nil)
 	e.prioMemoStore(p, res)
 	return res

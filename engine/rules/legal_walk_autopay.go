@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -33,6 +36,9 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	}
 	bound := *w.autoBound
 	probe := base
+	if dbgMoltenProbe {
+		fmt.Fprintf(os.Stderr, "zzautopay p=%d id=%d pool=%v bound=%v base=%+v\n", p, id, w.e.G.Players[p].Pool, bound, base)
+	}
 	if !w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &bound) {
 		return false
 	}
@@ -43,12 +49,19 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	// accept, skip the planner. Under verify mode it still runs the planner
 	// and panics on disagreement, so the two can never silently drift.
 	if w.autoPayFast(p, id, base, ab, statics) {
+		if dbgMoltenProbe {
+			fmt.Fprintf(os.Stderr, "zzautopay fast id=%d ACCEPT\n", id)
+		}
 		if autoPayFastVerify && !w.autoPayPlan(p, id, idx, base, scope, statics) {
 			panic("rules: autopay fast path accepted where the planner declined")
 		}
 		return true
 	}
-	return w.autoPayPlan(p, id, idx, base, scope, statics)
+	got := w.autoPayPlan(p, id, idx, base, scope, statics)
+	if dbgMoltenProbe {
+		fmt.Fprintf(os.Stderr, "zzautopay planner id=%d -> %v\n", id, got)
+	}
+	return got
 }
 
 // autoPayPlan is the ordinary autopay path: run the payment planner and
