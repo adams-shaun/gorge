@@ -218,13 +218,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		tgtOK, twOK := true, false
 		if k.teamwork && k.t.Cards[c].Teamwork != 0 {
-			// the plain and the teamworked cast announce different targets
-			// (kw_teamwork.go): either may be castable alone
+			// the plain and teamworked casts announce different targets (kw_teamwork.go)
 			tgtOK, twOK = s.teamworkTargets(k, c, p)
 		} else {
 			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
+			s.offerKickedRootless(k, d, p, c, o, pc.cost, tgtOK, twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
 			continue
 		}
 		if s.castHeldOut(o) {
