@@ -287,27 +287,37 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 }
 
 // freeCastRaisePayable reports whether a cost-waived cast of o can pay the
-// cost statics' increases (CR 601.2f, 118.9d). A free cast whose raise the
-// floating pool pays is one of gorge's ordinary walk's offers; one it cannot
-// pay is still one of gorge's potential plays when the planner prices it: the
-// full surface reaches it by lowering a potential play, whose plan taps the
-// sources (Urza's Gelatinous Genesis under Thorn of Amethyst: the untapped
-// Island pays the {1}, tail-64 pair 38), and on the autopay surface a
-// planned-zone cast the census pays is one of those potential plays in its
-// own list (Urza's exile-held Lash Out and Vibrating Sphere under Thorn: the
-// Construct token's tap-another mana pays the {1}, tail-64 pair 75 -- the
-// plain walk drops it at the census, and the gaps walk plus scriptOffers
-// carry the tap-another prefix search). That plan covers only the graveyard
-// and exile (mayPlayPlannedZone), so a hand or top-of-library permission
-// still follows the ordinary pool-only gate. An offer the planner leaves
-// unpriced (two matching permissions: "ambiguous") is never reached by a
-// potential play, so it keeps the pool-only gate too.
+// cost statics' increases (CR 601.2f, 118.9d). The composed raise is the
+// spell's TOTAL cost, so its own Delve prices it too (CR 702.66a: gorge's
+// composedOfferCostInto prices the gate at min(generic, the graveyard's
+// size); Vision, Spectral Synthezoid's once-a-turn free cast of the delve
+// Temporal Trespass under Grand Arbiter Augustin IV's {1}: the ten cards in
+// the graveyard delve the {1} away over an empty pool, tail-52 pair 5). A
+// free cast whose raise the floating pool pays is one of gorge's ordinary
+// walk's offers; one it cannot pay is still one of gorge's potential plays
+// when the planner prices it: the full surface reaches it by lowering a
+// potential play, whose plan taps the sources (Urza's Gelatinous Genesis
+// under Thorn of Amethyst: the untapped Island pays the {1}, tail-64 pair
+// 38), and on the autopay surface a planned-zone cast the census pays is one
+// of those potential plays in its own list (Urza's exile-held Lash Out and
+// Vibrating Sphere under Thorn: the Construct token's tap-another mana pays
+// the {1}, tail-64 pair 75 -- the plain walk drops it at the census, and the
+// gaps walk plus scriptOffers carry the tap-another prefix search). That
+// plan covers only the graveyard and exile (mayPlayPlannedZone), so a hand
+// or top-of-library permission still follows the ordinary pool-only gate --
+// the potential walks and the any-mana census included (the walks' probes
+// list the cast, but a hand cast's plan lowers only through the floating
+// pool; Artificer's Epiphany under the same {1} over an empty pool, tail-52
+// pair 5). An offer the planner leaves unpriced (two matching permissions:
+// "ambiguous") is never reached by a potential play, so it keeps the
+// pool-only gate too.
 //
 // The script walks list the free cast even when the census cannot pay the
 // raise, so the prefix search can tap a source for it that the census leaves
 // out: Urza, Lord High Artificer's "Tap an untapped artifact: Add {U}" beside
 // Thorn of Amethyst's {1} on the free may-play cast of Battle of Wits
-// (tail-64 pair 22, decision 702).
+// (tail-64 pair 22, decision 702). The prefix's mana floats into the pool,
+// which is what pays the raise there -- the same pool-only gate.
 func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced bool, av *avail) bool {
 	if !s.freeOwes(k) {
 		return true
@@ -316,7 +326,11 @@ func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced
 	if cost == (kop.ManaCost{}) {
 		return true
 	}
-	if s.g.availX&(availGaps|availAny|availWalk) != 0 {
+	cost = s.delveOfferCredit(k, p, c, o, s.objs[o].zone == kop.ZoneHand, cost)
+	if cost == (kop.ManaCost{}) {
+		return true
+	}
+	if s.g.availX&(availGaps|availAny|availWalk) != 0 && mayPlayPlannedZone(s.objs[o].zone) {
 		return true
 	}
 	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
