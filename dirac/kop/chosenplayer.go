@@ -34,7 +34,17 @@ const RefChosenPlayer Ref = 39
 // one (one is recorded unasked, the oracle's forcedPlayerChoice); the seat
 // stays in the resolution (res.chPl, seat + 1) and RefChosenPlayer reads it
 // while the resolution holds it. dirac/repl_chooseplayer.go.
+//
+// C bit 0 (ChoosePlayerMidHigh) narrows the pool to the opponents whose life
+// total equals the greatest among the opponents (Choices$
+// Player.Opponent+lifeEQX with X the opponents' highest life total: Your
+// Inescapable Doom's "the opponent with the highest life total, you choose one
+// if tied"); the ask lists those in the same order, a lone one is recorded
+// unasked and none leaves no choice.
 const ExtChoosePlayerMid ExtOp = 290
+
+// ChoosePlayerMidHigh is ExtChoosePlayerMid's C bit 0.
+const ChoosePlayerMidHigh = 1
 
 func init() { extOpNames[ExtChoosePlayerMid] = "ChoosePlayerMid" }
 
