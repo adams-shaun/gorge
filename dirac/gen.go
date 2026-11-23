@@ -1535,7 +1535,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
-				if g.isGrantMana(a) {
+				if g.isGrantMana(&t.Cards[i], a) {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
 					gp.manaOne = manaOneColour(a, gp.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen (availGrant's one-colour census, as the printed path's)

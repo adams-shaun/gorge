@@ -3618,6 +3618,9 @@ func (s *State) grantsFixedMana(k *prep, sl Slot) bool {
 	var gi [maxGrants]int16
 	n := s.grantIdxs(k, sl, &gi)
 	for _, i := range gi[:n] {
+		if s.gainedReflAt(k.gen, int16(i)) {
+			continue // a gained copy's colours are read per recipient: nothing fixed (mana_gainedreflect.go)
+		}
 		gp := &k.gen.grantPC[i]
 		if gp.manaTap && !gp.manaSac && !gp.manaSacOnly && !gp.manaChosen && !gp.manaDyn && !gp.manaMulti && gp.manaCol != kop.ColAny && srcMask(gp) != 0 && k.gen.grantRestr[i] == 0 {
 			return true
