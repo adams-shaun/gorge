@@ -371,7 +371,9 @@ func (s *State) riderPC(k *prep, sl Slot, a *kop.Ability) *pcard {
 // amount a.ManaN. answer selects the colour among the mask's bits. The tap's
 // StatTapExtra carrier mana floats beside it (addTapsDeferUnits counts it).
 func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer int) {
-	if pc := s.riderPC(k, sl, a); pc.manaTap {
+	pc := s.riderPC(k, sl, a)
+	if pc.manaTap && a.ManaEach {
+		// the pick is unasked on an all-at-once production: a reflected extra stalls
 		s.addExtra(k, SeatIx(p), sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	}
 	n := int(a.ManaN)
@@ -403,6 +405,10 @@ func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer
 		}
 	} else if mask != 0 {
 		col = bits.TrailingZeros8(mask)
+	}
+	if pc.manaTap {
+		// a reflected extra is one more of the colour this tap made (CR 605.1b)
+		s.addExtraCol(k, SeatIx(p), sl, pc, col)
 	}
 	s.pl[SeatIx(p)].pool[col] += uint8(n)
 	s.artTag(k, p, sl, col)
