@@ -18,6 +18,9 @@ func (s *State) consumedAuraHost(k *prep, p uint8, t Obj) (Slot, bool) {
 	if !s.occ.has(sl) {
 		return NoSlot, false
 	}
+	if s.typesGen(k, sl)&kop.TAura == 0 {
+		return NoSlot, false // an Equipment only unattaches when its bearer goes (CR 704.5n)
+	}
 	host := s.perms[sl].attached
 	if host == NoSlot || host == sl || !s.occ.has(host) || !s.ctrlM[p].has(host) {
 		return NoSlot, false
