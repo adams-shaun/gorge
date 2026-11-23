@@ -63,3 +63,30 @@ func potPainWalk(tmp *[maxPotUnits]potUnit, i, budget, life int, cost *kop.ManaC
 	tmp[i].n = full
 	return false
 }
+
+// plainCastPainOK is the plain hand cast's summed lethal guard under a
+// TapsForMana watcher: gorge prices the cast through its potential planner,
+// which never takes a plan whose summed life plus damage reaches the payer's
+// life (CR 119.4), while the real census caps each colour's sources alone
+// (Manabarbs at 3 life: a Billiard Room's {B}, an Unknown Shores' {C} and a
+// Plains' {W} each look payable beside the other two). The same census read
+// as kickedPotentialPainOK; it keeps the gate's answer (true) off the autopay
+// surfaces, with no such watcher, for an {X} cost, or while the payer holds a
+// multi-unit fee gap (filtFeeGaps): gorge's fee-order fallback floats such a
+// filter's funding first and pays through it with no damage (Overflowing
+// Basin's {1},{T}: {G}{U} beside an Island under Scald at 1 life), a route
+// the potential census, which records the filter's gross unit, cannot see. A
+// one-unit fee source (Unknown Shores' {1},{T}: any colour) takes no such
+// fallback and keeps the census.
+func (s *State) plainCastPainOK(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || k.gen == nil || !k.gen.anyTapsMana || cost.X != 0 || s.filtFeeGaps(k, s.scriptFilt(k, p)).any() {
+		return true
+	}
+	return s.kickedPotentialPainOK(k, p, c, o, cost)
+}
+
+// castPaysUnderPain is castGateOrPoolPays and the plain cast's summed lethal
+// guard in one answer, so priorityOptions reads one condition.
+func (s *State) castPaysUnderPain(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
+	return s.castGateOrPoolPays(k, p, c, o, cost, cav) && s.plainCastPainOK(k, p, c, o, cost)
+}
