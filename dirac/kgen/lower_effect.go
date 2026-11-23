@@ -4260,7 +4260,15 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		return refuse("ChooseColor outside an as-enters replacement (Defined$ %q)", d)
 	}
 	ps.consume("AILogic", "SubAbility")
+	orColors, err := chooseColorOrColors(ps) // lower_choosecolor.go
+	if err != nil {
+		return err
+	}
 	n := lc.curNode.Sub
+	animate := n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor")
+	if orColors && !animate {
+		return refuse("ChooseColor OrColors$ outside an Animate Colors$ ChosenColor")
+	}
 	if n != nil && n.API == "Pump" && n.Params["DefinedKW"] == "ChosenColor" {
 		// (Skrelv) the colour rides the resolution (res.chosen)
 		// for the chosen-colour grants that follow
@@ -4274,12 +4282,17 @@ func (lc *lowerCtx) chooseColorPrevent(ps *params) error {
 		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
 		return nil
 	}
-	if n != nil && n.API == "Animate" && strings.EqualFold(strings.TrimSpace(n.Params["Colors"]), "ChosenColor") {
+	if animate {
 		// (Puca's Eye, Mondo Gecko) the Animate's
 		// Colors$ ChosenColor reads the resolution's colour (res.chosen)
 		// when the five-record override applies
 		lc.colGrant = true
-		lc.emit(lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"})
+		in := lInstr{Op: "ChooseColorRes", Note: "the controller chooses a colour for this resolution"}
+		if orColors {
+			// (Quickchange, Shyft) gorge cannot ask OrColors$: white, no ask
+			in.C, in.Note = 1, "OrColors$: gorge's no-ask white answer"
+		}
+		lc.emit(in)
 		return nil
 	}
 	if n == nil || n.API != "Effect" || n.Sub != nil || lc.preventColorShape(n.Params) != "" {

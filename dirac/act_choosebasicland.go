@@ -14,7 +14,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // vocabulary is the oracle's 0x8000 | FNV-1a(label) & 0x7fff in (target,
 // mode), the card-type ask's encoding (act_choosetype.go cardTypeLabelH). The
 // answer is the chosen type's matchup subtype index in res.chosen (and the
-// source's chosen), so a ChosenType filter reads it as a subtype.
+// source's chosen), so a ChosenType filter reads it as a subtype. An as-enters
+// Type$ Basic Land choice (Realmwright) rides the same marker in the enters
+// program: typeOptions offers the five labels and every as-enters answer
+// site's typeVocabCode maps a label to its matchup subtype index.
 
 // basicLandChoice is gorge's Type$ Basic Land option list, in its order.
 var basicLandChoice = [5]string{"Forest", "Island", "Mountain", "Plains", "Swamp"}
@@ -60,7 +63,12 @@ func chooseBasicLandOptions(d *Decision) {
 //
 //go:noinline
 func basicLandAnswer(k *prep, a Action) uint8 {
-	v := uint16(a.Target())<<8 | uint16(a.Mode())
+	return basicLandValue(k, uint16(a.Target())<<8|uint16(a.Mode()))
+}
+
+// basicLandValue is basicLandAnswer over an option value v: the ask's one
+// answer encoding, shared with the as-enters ask (typeVocabCode).
+func basicLandValue(k *prep, v uint16) uint8 {
 	for i, h := range basicLandLabelH {
 		if h != v {
 			continue
