@@ -81,7 +81,7 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	}
 	verdict := func() PaymentPlanOutcome { return w.e.planAbilityPayment(p, id, idx) }
 	scripts := 0 // one search slot per attempt
-	got, script := potentialCensusFallback(w.e, p, decision.Option{Kind: optAbility, Obj: id, Ability: idx}, *w.autoBound,
+	got, script := potentialCensusFallback(w.e, p, decision.Option{Kind: "ability", Obj: id, Ability: idx}, *w.autoBound,
 		PaymentPlanOutcome{Reason: pay.ReasonInsufficient}, false, verdict, 1,
 		w.autoCensus, &w.autoCensusSet, &scripts)
 	if got.Reason != "" || len(script) == 0 {
