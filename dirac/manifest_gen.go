@@ -982,7 +982,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 	case kop.FwSubtype:
 		return s.fwSubtype(c, l) // filter_subtype.go
 	case kop.FwSuspended:
-		return s.fwSuspended(c, l) // fw_suspended.go
+		return s.fwSuspended(c, l) // filter_suspended.go
 	case kop.FwTapped:
 		return s.fwTapped(c, l) // filter_tapped.go
 	case kop.FwTopLibrary:

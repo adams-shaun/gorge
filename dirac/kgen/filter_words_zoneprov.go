@@ -26,7 +26,7 @@ func init() {
 	// suspended: gorge's compiled `suspended` read (predicates["suspended"],
 	// engine/effects/filter.go:637, consulted before wordSuspended): in
 	// exile with a positive time counter, a Suspend card. The kernel reads
-	// the card's DurSuspend record (dirac/fw_suspended.go). Its manifest
+	// the card's DurSuspend record (dirac/filter_suspended.go). Its manifest
 	// context is "card": a battlefield or stack matcher refuses it.
 	fwArms["suspended"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwSuspended})
