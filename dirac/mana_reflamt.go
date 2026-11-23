@@ -27,9 +27,12 @@ import (
 // ask is the reflected candidates (manaReflectedOrder, the play's announced
 // colours first, gorge's scriptOrderAnswers), one node only when more than
 // one candidate, and the whole evaluated amount floats in the pick's colour.
-// A filter, a tap-another source, a granted mana ability or a Lion's Eye
-// Diamond in the table is refused at its start with the Combo Any source's
-// (StallComboAnyMix: prepComboAnyMix reads the same anyComboAny gate).
+// A plain filter (a Signet) beside it is a step of the filter search, the
+// Druid's ask the reflected candidates (reflAmtOther), and caAny, not ca,
+// gates the bound's plays (script_gen.go). A tap-another source, a granted mana
+// ability or a Lion's Eye Diamond in the table is refused at its start with the
+// Combo Any source's (StallComboAnyMix: prepComboAnyMix reads the same
+// anyComboAny gate).
 
 // useReflAmt: some card's census gap is a reflected Amount$ source (a use
 // bit, not a genPrep field: the fixed State layout is pinned).
