@@ -3317,6 +3317,13 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		// searched and no source census drops it (Scrying Sheets' {1}{S}, {T}
 		// with a snow {C} floating)
 		return cost, ex, need, ok && cost.Snow == 0
+	case AkBestow:
+		// a bestowed cast pays the bestow cost (CR 702.103a, 118.9): gorge's
+		// potential planner prices it from the printed census, so the prefix
+		// search taps a granted source it misses (Abundant Growth's any colour
+		// for the {R} of Everflame Eidolon's bestow) before the play
+		c := s.objs[a.Source()].card
+		return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].BestowCost), ex, need, true
 	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, need, true
