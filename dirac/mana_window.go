@@ -4233,7 +4233,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
 		s.untapCost(k, sl)
 	}
-	if f&kop.CostOncePerTurn != 0 && e.ab < 8 {
+	if f&kop.CostOncePerTurn != 0 && e.ab < 8 && s.bld().bfl&bflUsedMark == 0 { // a gained one is in the used pool (static_gainsof.go)
 		s.perms[sl].actUsed |= 1 << e.ab
 	}
 	if f&kop.CostLoyalty != 0 {
