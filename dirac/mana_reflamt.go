@@ -86,15 +86,17 @@ func producesC(cd *kop.CardDef) bool {
 
 // reflAmtPotential folds the reflected Amount$ source's bound at the
 // per-tap pass (availPotentialFor's pc.manaAb < 0 arm) and reports whether it
-// took the card. gorge's bound (rules potential.go) prices the ability — a
-// blank Produced$ with an indeterminate Amount$ — unbounded in the colourless
-// slot (addPotentialMana's blank-Produced$ "C" with
-// addIndeterminatePotentialMana) AND in each colour the reflection names now
-// (addPotentialReflectedAmount: what the matching lands could produce, tapped
-// or not, CR 106.7), so a live druid beside tapped Swamps funds {B}. The
-// planner census lists no unit (pay.PaymentPlanReflectedShape defers the
-// amount), so the census pass records nothing; the colours are never the
-// whole-pool open the Combo Any source's fold is.
+// took the card. gorge's bound (rules payment_plan_reflected.go
+// addPotentialReflected) prices the ability — a blank Produced$ with an
+// indeterminate Amount$ the shape gate defers — as its fold's own colours,
+// each unbounded (the indeterminate-amount convention,
+// addIndeterminatePotentialMana): the reflection makes whatever the board's
+// matching permanents produce, one colour per activation, so a play's coloured
+// pips read as fundable by it. The planner census lists no unit
+// (pay.PaymentPlanReflectedShape defers the amount), so the census pass
+// records nothing and the over-bound fold keeps the colours — never the
+// whole-pool open the Combo Any source's fold is. A fold naming no colour
+// produces nothing (CR 106.5): no bound at all.
 func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uint16, fold func(Slot, uint8, uint8)) bool {
 	c := s.cardAt(sl)
 	if !k.isReflAmt(c) {
@@ -107,7 +109,9 @@ func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uin
 		}
 	}
 	if s.gapLive(k, s.perms[sl].ctrl, sl) {
-		fold(sl, uint8(kop.ColC)|s.reflAmtCols(k, sl), potentialOpenUnits)
+		if cols := s.reflAmtCols(k, sl); cols != 0 {
+			fold(sl, cols, potentialOpenUnits)
+		}
 	}
 	return true
 }
