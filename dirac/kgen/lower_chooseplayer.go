@@ -18,6 +18,10 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	if ps.str("Choices") == "Player.Opponent+!EnchantedBy" {
 		return lc.choosePlayerRandom(ps) // the Maddening Hex shape
 	}
+	switch ps.str("Choices") {
+	case "Player", "Player.!IsRemembered":
+		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
+	}
 	if err := lc.choosePlayerOpponents(ps); err != nil {
 		return err
 	}
@@ -41,12 +45,12 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 // choosePlayerOpponents validates and consumes the prompt-side shape of a
 // ChoosePlayer whose pool is the one opponent (choosePlayer's and
 // choosePlayerPod's shared head): Choices$ an opponent spelling, no
-// mid-resolution choice beside it, Defined$ You, prompt and AI only.
+// mid-resolution choice beside it, Defined$ You, prompt and AI only. The
+// Player / Player.!IsRemembered spellings stay with choosePlayer, which hands
+// them to choosePlayerRes and stops there.
 func (lc *lowerCtx) choosePlayerOpponents(ps *params) error {
 	switch ps.str("Choices") {
 	case "Player.Opponent", "Opponent", "Player.Other":
-	case "Player", "Player.!IsRemembered":
-		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
 	default:
 		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
