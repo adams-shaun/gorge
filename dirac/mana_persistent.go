@@ -132,11 +132,9 @@ func (s *State) persistEmpty(ec bool) {
 			restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
 		}
 	}
-	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
+	s.g.defSrc = [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
-	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-	s.artNClearAll()
-	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+	s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 }
 
 // persistTurn is the turn change. Gorge's TurnChange zeroes the tally and the
@@ -181,11 +179,9 @@ func (s *State) persistTurn() {
 			}
 		}
 	}
-	s.g.poolArt, s.g.defSrc = restr, [MaxSeats]uint8{}
+	s.g.defSrc = [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}
-	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-	s.artNClearAll()
-	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+	s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 }
 
 // PersistMana is each player's persistent units per colour (State.pm) for the
