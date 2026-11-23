@@ -30,7 +30,7 @@ const (
 	akEntryOrder uint8 = 10
 	akName       uint8 = 11 // an as-enters nonland card name (OpExt ExtChooseName; repl_choosename.go)
 	akNameAny    uint8 = 12 // an as-enters name of any card, lands included (ExtChooseName B = 1)
-	akNameLook   uint8 = 13 // akNameAny after a look_ack at the opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
+	akNameLook   uint8 = 13 // akNameAny after a look_ack at the chosen opponent's hand (ExtChooseName B = 2; Sorcerous Spyglass)
 	akNameHand   uint8 = 15 // a nonland name among the opponents' revealed hands (ExtChooseName B = 3; Alhammarret, High Arbiter)
 	// akEtbOrder is the CR 616.1 order between a cast spell's effect-carried
 	// enters-with counters and the entrant's own prepared enter body, asked

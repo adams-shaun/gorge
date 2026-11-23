@@ -47,9 +47,9 @@ func entersNamingCard(f *cards.Face) bool {
 
 // spyglassChain reports whether sa is exactly Sorcerous Spyglass's as-enters
 // chain: ChoosePlayer -> RevealHand (Look$ True over the chosen player) ->
-// NameCard -> Cleanup (ClearChosenPlayer$ True). The chosen player is the one
-// opponent (choosePlayer), the look is gorge's look_ack (a decision, no
-// state), and the name is any card's, lands included.
+// NameCard -> Cleanup (ClearChosenPlayer$ True). The chosen player is one of
+// the opponents (choosePlayerPod), the look is gorge's look_ack (a decision,
+// no state), and the name is any card's, lands included.
 func spyglassChain(sa *cards.SA) bool {
 	if sa == nil || sa.API != "ChoosePlayer" {
 		return false
@@ -88,10 +88,14 @@ func handNameChain(sa *cards.SA) bool {
 }
 
 // etbChooseName lowers an ETB replacement's NameCard node: the entering
-// permanent's own, unconditional, sole choice among the nonland cards.
+// permanent's own, unconditional, sole choice among the nonland cards. The
+// Spyglass chain (lower_choosename.go spyglassChain) lowers the chain's own
+// links beside it — the pod-wide opponent choice (choosePlayerPod) is ahead
+// of it in the same program.
 func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, cond *lCond) error {
 	chain, hand := spyglassChain(sa), handNameChain(sa)
-	if other || cond.Kind != cNone || len(lc.ab.Prog) != 0 || !chain && !hand && (node != sa || sa.Sub != nil) {
+	if other || cond.Kind != cNone ||
+		!chain && !hand && (len(lc.ab.Prog) != 0 || node != sa || sa.Sub != nil) {
 		return refuse("ETB NameCard beside another ETB replacement part")
 	}
 	if d, ok := ps.get("Defined"); !ok || strings.TrimSpace(d) != "You" {
@@ -104,7 +108,7 @@ func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, co
 			return refuse("ETB NameCard ValidCards$ %q beside the look chain", v)
 		}
 		ps.consume("AILogic")
-		in.B, in.Note = cst(2), "choice of any card name as it enters, after the look at the opponent's hand"
+		in.B, in.Note = cst(2), "choice of any card name as it enters, after the look at the chosen opponent's hand"
 	} else if v := ps.str("ValidCards"); v != "Card.nonLand" {
 		return refuse("ETB NameCard ValidCards$ %q", v)
 	}

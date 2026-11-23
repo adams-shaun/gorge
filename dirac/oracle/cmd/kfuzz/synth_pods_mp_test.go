@@ -38,14 +38,26 @@ func TestFuzzSynthPods(t *testing.T) {
 	for i := range n {
 		n[i], _ = strconv.Atoi(g[i+1])
 	}
-	if n[0] != 6 {
-		t.Errorf("%d games started, want 6:\n%s", n[0], stdout)
+	// A pair the table refuses (an as-enters opponent choice beside another
+	// object's enters replacement, Spyglass beside Authority of the Consuls) is
+	// skipped, so the pods are the played games plus the refused ones.
+	vr := regexp.MustCompile(`std-fdn: (\d+) games \((\d+) refused-card, (\d+) refused-pair, (\d+) error\)`).FindStringSubmatch(stdout)
+	if vr == nil {
+		t.Fatalf("verdict line missing:\n%s", stdout)
+	}
+	refused := 0
+	for _, f := range vr[2:] {
+		k, _ := strconv.Atoi(f)
+		refused += k
+	}
+	if n[0] == 0 || n[0]+refused != 6 {
+		t.Errorf("%d games played and %d pods refused, want 6 pods in all:\n%s", n[0], refused, stdout)
 	}
 	if sum := n[1] + n[2] + n[3] + n[4] + n[5] + n[6]; sum != n[0] {
 		t.Errorf("census sums to %d of %d games: %s", sum, n[0], g[0])
 	}
-	if !strings.Contains(stdout, "std-fdn: 6 games (") {
-		t.Errorf("verdict line missing:\n%s", stdout)
+	if vr[1] != g[1] {
+		t.Errorf("verdict line plays %s games, the pods line %s:\n%s", vr[1], g[1], stdout)
 	}
 	_, again, _ := runKFuzz(t, args...)
 	if again != stdout {
