@@ -184,7 +184,8 @@ func (w *legalWalk) mayPlaySpellWalk() {
 				}
 				base = base.Plus(off.raise)
 			}
-			if printed && !w.castRestrictedCost(p, id, base) && w.mayPlayAffordable(p, id, f, base) {
+			if printed && !w.castRestrictedCost(p, id, base) && w.mayPlayAffordable(p, id, f, base) &&
+				e.xBoundTargetPayable(p, id, id, f.SpellAbility(), base, spellScope("mayplay"), false) {
 				label := "Cast " + f.Name
 				if off.text != "" {
 					// MayPlayText$ is the permission's label, so a card matching
