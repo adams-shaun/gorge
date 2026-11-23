@@ -205,7 +205,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// an announced Sac<X> the floating pool pays at some count: gorge offers
 		// it from the pool (offerSacXMods) and plans nothing, so nothing is
 		// lowered (cost_sacx.go)
-	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
+	} else if !(k.gen != nil && s.contribDeclined(k, p, c, o, ob.zone == kop.ZoneHand, mode&(castMayPlay|castFace|castFaceDown|castWarpRecast|3) == 0)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
 		// the oracle lowers a cast from the hand gorge's cast planner never
