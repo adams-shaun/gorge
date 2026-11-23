@@ -341,7 +341,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		s.windowTapCost(k, sl, sacOnly || noTap)
 		life := s.windowGrantLife(k, sl, pc, col)
 		s.poolAdd(p, col, int(s.windowGrantYield(k, sl, pc, col)))
-		s.addExtraCol(k, p, sl, pc, col)
+		ask := s.windowAddExtra(k, p, sl, pc, col, census, potential, sacOnly, noTap) // an all-at-once source's pick is asked below (mana_eachpickwin.go)
 		s.artTag(k, p, sl, col)
 		if life > 0 {
 			s.loseLife(k, SeatIx(p), int(life)) // a granted ability's life cost, not damage (mana_grantcost.go)
@@ -349,25 +349,38 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		if k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 			s.painDamage(k, sl, p, int(pc.painN)) // the painful ability's rider (mana_pain.go)
 		}
+		if ask {
+			s.eachPickWinPause(sl, col)
+			return true, held
+		}
 		if pc.manaSac || sacOnly {
-			o := s.perms[sl].obj
-			s.fireSac(k, sl)
-			if s.manaSacParks() && s.park(k, o, parkLeave, parkManaHold(col, pc.manaN)) {
-				s.pl[p].pool[col] -= pc.manaN // it floats once the move has its answer (CR 605.3b)
+			if s.windowSacTap(k, p, sl, pc, col) {
 				return true, held
-			}
-			s.leave(k, sl, kop.ZoneGraveyard, false)
-			// a token sacrificed to pay a spell waits in the graveyard for the
-			// state-based check after the cast (gorge's Submit checks only with no
-			// cast pending, so a later choice of the payment still sees it there);
-			// likewise one sacrificed mid-resolution or by a planned activation's
-			// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
-			if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
-				s.ceaseManaToken(o)
 			}
 		}
 	}
 	return true, held
+}
+
+// windowSacTap is the walk's sacrifice of the source at sl it just tapped for
+// col; it reports whether the move parked (the mana floats on its answer).
+func (s *State) windowSacTap(k *prep, p uint8, sl Slot, pc *pcard, col int) bool {
+	o := s.perms[sl].obj
+	s.fireSac(k, sl)
+	if s.manaSacParks() && s.park(k, o, parkLeave, parkManaHold(col, pc.manaN)) {
+		s.pl[p].pool[col] -= pc.manaN // it floats once the move has its answer (CR 605.3b)
+		return true
+	}
+	s.leave(k, sl, kop.ZoneGraveyard, false)
+	// a token sacrificed to pay a spell waits in the graveyard for the
+	// state-based check after the cast (gorge's Submit checks only with no
+	// cast pending, so a later choice of the payment still sees it there);
+	// likewise one sacrificed mid-resolution or by a planned activation's
+	// mana step (bflManaStep). Another cast's token ceases at once (CR 704.3, 704.5d)
+	if s.g.on && s.objs[o].of&ofToken != 0 && s.objs[o].zone == kop.ZoneGraveyard && s.buildLive() && (s.ctl != ctlBuild || s.bld().bfl&bflManaStep == 0) && s.bld().e.kind != seSpell {
+		s.ceaseManaToken(o)
+	}
+	return false
 }
 
 // windowGapArm is windowTapWalk's gap side (a window gap the census prices, windowPick's
@@ -4422,6 +4435,10 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 // castWinTapOptions builds the pick: the source's candidates in battlefield order.
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
+	if s.eachPickWinAsk(k, s.g.winSrc) {
+		s.eachPickWinOptions(k, d) // an all-at-once source's reflected pick (mana_eachpickwin.go)
+		return true
+	}
 	if s.splitWinColAsk(k, s.g.winSrc) {
 		// a lucky Condition-split arm: the arm's colour ask (gorge's
 		// mana_color choice, ChGenManaChoice), the arm's colours in the
@@ -4466,6 +4483,10 @@ func (s *State) applyCastWinCol(k *prep, a Action) {
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
+	if s.eachPickWinAsk(k, s.g.winSrc) {
+		s.eachPickWinDo(s.bld().e.ctrl, a)
+		return
+	}
 	if s.splitWinColAsk(k, s.g.winSrc) {
 		s.applyCastWinCol(k, a)
 		return
