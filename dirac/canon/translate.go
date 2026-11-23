@@ -89,6 +89,20 @@ func GorgeKind(d *dirac.Decision, gen bool) string {
 	return GorgeDKind(d, gen).String()
 }
 
+// targetNoneAction is the canonical form of a target action that names no
+// object: NoTarget declines an "up to one" target; StackTargetGone is a
+// departed stack ability kept as a spell copy's target (CR 707.10c), which
+// gorge's identity names RefNone.
+func targetNoneAction(tgt Ref, mode uint8) (Canon, bool) {
+	switch dirac.TCode(tgt) {
+	case dirac.NoTarget:
+		return Pack(ActDone, RefNone, RefNone, 0), true
+	case dirac.StackTargetGone:
+		return Pack(ActTarget, RefNone, RefNone, mode), true
+	}
+	return 0, false
+}
+
 // Action is a kernel action's canonical form.
 func (r *Translator) Action(a dirac.Action) Canon {
 	src, tgt, mode := Ref(a.Source()), Ref(a.Target()), a.Mode()
@@ -333,8 +347,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkDone:
 		return Pack(ActDone, RefNone, RefNone, 0)
 	case dirac.AkTarget:
-		if dirac.TCode(tgt) == dirac.NoTarget {
-			return Pack(ActDone, RefNone, RefNone, 0) // declining an "up to one" target
+		if c, ok := targetNoneAction(tgt, mode); ok {
+			return c
 		}
 		// the mode byte is the occurrence of a charm's combined target ask
 		// (an object listed in two groups); 0 for every other target
