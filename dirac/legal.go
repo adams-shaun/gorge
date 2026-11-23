@@ -742,12 +742,7 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 		// (mana_phyrexian.go)
 		return s.phyActAffords(k, sl, a, s.perms[sl].ctrl, manaCost, av)
 	}
-	if s.abilityAffords(k, sl, a, &manaCost, av) {
-		// a sorcery-speed play beside Taps-deferred gaps is also searched
-		// (mana_sorcerygap.go)
-		return !s.sorceryGapSearched(k, sl, ab, a) || s.actScriptPays(k, sl, ab, a)
-	}
-	return s.actScriptPays(k, sl, ab, a)
+	return s.abilityAffords(k, sl, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the
