@@ -96,10 +96,28 @@ func (s *State) persistKeep(p uint8, ec bool) [kop.NumManaKinds]uint8 {
 
 // persistEmpty empties both pools but the persistent units (ManaClear), at a
 // step boundary (ec: the end-of-combat step ends) and in the cleanup step.
+// A live StatUnspentMana static keeps its protected slots' whole old pool
+// (gorge's ManaClear keep letters; static_unspentmana.go), captured before
+// the drop like the tallies are.
 func (s *State) persistEmpty(ec bool) {
+	var prot [MaxSeats]uint8
+	var oldPools [MaxSeats][kop.NumManaKinds]uint8
+	if g := s.k().gen; g != nil && g.uses.has(useUnspentMana) {
+		for p := range s.pl {
+			prot[p] = s.unspentMask(s.k(), uint8(p))
+			oldPools[p] = s.pl[p].pool
+		}
+	}
 	var restr [MaxSeats]uint8
 	for p := range s.pl {
 		keep := s.persistKeep(uint8(p), ec)
+		if prot[p] != 0 {
+			for c := 0; c < int(kop.NumManaKinds); c++ {
+				if prot[p]&(1<<uint(c)) != 0 {
+					keep[c] = oldPools[p][c] // the protected slot keeps its whole old pool
+				}
+			}
+		}
 		s.pl[p].pool = keep
 		s.rbClearStep(uint8(p))
 		if s.rbAny(uint8(p)) {
@@ -118,11 +136,31 @@ func (s *State) persistEmpty(ec bool) {
 // ManaClear for a seat whose pool is nonempty, before the first decision of
 // the new turn), empties the now-ordinary units, so both pools empty here.
 func (s *State) persistTurn() {
+	// an UnspentMana keep rides the turn change's ManaClear as any other
+	// boundary's (gorge rules/turn.go setStep emits it here too): the
+	// protected slots keep their old pool through the zeroing.
+	var prot [MaxSeats]uint8
+	var oldPools [MaxSeats][kop.NumManaKinds]uint8
+	if g := s.k().gen; g != nil && g.uses.has(useUnspentMana) {
+		for p := range s.pl {
+			prot[p] = s.unspentMask(s.k(), uint8(p))
+			oldPools[p] = s.pl[p].pool
+		}
+	}
 	s.pm = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.pmOn = 0
 	for p := range s.pl {
 		s.pl[p].pool = [kop.NumManaKinds]uint8{}
 		s.rbClear(uint8(p))
+	}
+	if any := s.unspentProtAny(prot); any {
+		for p := range s.pl {
+			for c := 0; c < int(kop.NumManaKinds); c++ {
+				if prot[p]&(1<<uint(c)) != 0 {
+					s.pl[p].pool[c] = oldPools[p][c]
+				}
+			}
+		}
 	}
 	s.g.poolArt, s.g.defSrc = [MaxSeats]uint8{}, [MaxSeats]uint8{}
 	s.g.defCol = [(MaxSeats + 1) / 2]uint8{}

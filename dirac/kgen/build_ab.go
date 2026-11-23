@@ -1938,6 +1938,18 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "IgnoreLandWalk" {
 		return cb.ignoreLandWalkAbility(s) // static_ignorelandwalk.go
 	}
+	if s.Kind == "MustBlock" {
+		return cb.mustBlockAbility(s) // static_mustblock.go
+	}
+	if s.Kind == "UnspentMana" {
+		return cb.unspentManaAbility(s) // static_unspentmana.go
+	}
+	if s.Kind == "CanBlockIfShadow" {
+		return cb.canBlockIfShadowAbility(s) // static_canblockifshadow.go
+	}
+	if s.Kind == "IgnoreLegendRule" {
+		return cb.ignoreLegendRuleAbility(s) // static_ignorelegendrule.go
+	}
 	return cb.staticIn(s)
 }
 
