@@ -177,6 +177,27 @@ func (s *State) unlessTapFilt(k *prep, p uint8) slotMask {
 	return m
 }
 
+// unlessPricedFilt is m less the filters gorge's unless census leaves out: its
+// literal-mana-fee arm (unlessWindowUnits) lists a fee-carrying ability only
+// with a static positive amount (manaStaticFor Amount > 0), so a filter whose
+// amount is evaluated (AfManaDynamic: Cabal Coffers' "{2}, {T}: Add {B} for
+// each Swamp", Magus of the Coffers) is no unit of an unless window and its
+// fee-funded plan is never offered there (CR 605.3b). The window is the
+// unless walk (turnUnlessWin) or the offer gate's affordability probe
+// (canPayGenFor's availNoStore). Outside an unless
+// window the cast census prices it and m is returned whole.
+func (s *State) unlessPricedFilt(k *prep, m slotMask) slotMask {
+	if !k.gen.anyDynFilt || s.g.turnF&turnUnlessWin == 0 && s.g.availX&availNoStore == 0 {
+		return m
+	}
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); s.filtAb(k, sl).AFlags&kop.AfManaDynamic != 0 {
+			m = m.without(sl)
+		}
+	}
+	return m
+}
+
 // FilterTapMana reports whether a, a mana ability of cd, is a filter the
 // kernel models (filterTapMana).
 func FilterTapMana(cd *kop.CardDef, a *kop.Ability) bool { return filterTapMana(cd, a) }
@@ -320,7 +341,7 @@ func (s *State) faceReachable(k *prep, p uint8, av *avail, r *kop.ManaCost, extr
 func (s *State) faceReachFilters(k *prep, p uint8, av *avail, r *kop.ManaCost, extra int, own Slot) bool {
 	var filt [maxFaceFilters]Slot
 	n := 0
-	for b := s.scriptFilt(k, p); b.any() && n < len(filt); b = b.rest() {
+	for b := s.unlessPricedFilt(k, s.scriptFilt(k, p)); b.any() && n < len(filt); b = b.rest() {
 		if sl := b.first(); sl != own {
 			filt[n] = sl
 			n++
@@ -1715,12 +1736,12 @@ func (s *State) filtPay(k *prep, p uint8, cost *kop.ManaCost, takeDeferred bool)
 	if k.gen == nil || cost == nil || !k.gen.anyFiltFirst && s.g.turnF&turnUnlessWin == 0 { // a non-first filter is priced only by an unless cost's window (gorge unlessWindowUnits prices its paid ability)
 		return false, 0
 	}
-	gaps := s.scriptFilt(k, p)
+	gaps := s.unlessPricedFilt(k, s.scriptFilt(k, p))
 	if takeDeferred {
 		// the census prices the tap filters the first-only partition keeps
 		// out (unlessTapFilt); a plain window's probe keeps the play prefix's
 		// set
-		gaps = gaps.or(s.unlessTapFilt(k, p))
+		gaps = gaps.or(s.unlessPricedFilt(k, s.unlessTapFilt(k, p)))
 	}
 	if !k.gen.anyFiltFirst && !gaps.any() {
 		return false, 0 // no filter gap to price (a table with first-only filters keeps that scope)
