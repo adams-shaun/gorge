@@ -58,7 +58,8 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 				}
 			}
 			census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) && !(mana == &a.Cost.Mana && s.handActFiltAffords(k, p, mana, av))
-			script := census && s.handActScriptPays(k, p, o, ai)
+			pa := MakeAction(AkActivate, TCode(o), 0, uint8(ai))
+			script := census && (s.handActScriptPays(k, p, o, ai) || s.handActFiltPays(k, a, p, pa))
 			if census && !script && !s.handActTapXRoute(k, p) {
 				continue
 			}
@@ -80,7 +81,6 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			// protection from green bars its bloodrush target and the offer is
 			// withheld. abilityTargetsFeasible's bare probe carries no source
 			// (its colours 0), so protection from a colour never matched.
-			pa := MakeAction(AkActivate, TCode(o), 0, uint8(ai))
 			if s.probeAbilityFrom(k, a, p, s.objs[o].card) && (!census || script || s.handActTapXPays(k, p, pa)) {
 				d.add(pa)
 			}
@@ -196,4 +196,30 @@ func (s *State) discardSelfCost(k *prep, e *stackEntry) {
 			s.discardObj(k, o)
 		}
 	}
+}
+
+// handActFiltPays prices a hand activation the printed census cannot pay on a
+// board whose filters include a net-negative one (Llanowar Envoy's repeatable
+// "{1}{G}: Add one mana of any color"): gorge's potential plan chains the
+// filter as often as its fee is funded (Seething Landscape's Cycling {U}{B}{R}
+// off a Swamp and two Envoy activations; CR 602.2b, 605.3a-b, 601.2g), which
+// the census counts once and actScriptPays declines wholesale (a battlefield
+// activation keeps that answer). The filter search is the payment itself, so
+// its verdict is exact; only the real offer walk asks (an outer walk's census
+// stays the plain one) and never from inside a search. Cold, out of line.
+//
+//go:noinline
+func (s *State) handActFiltPays(k *prep, a *kop.Ability, p uint8, pa Action) bool {
+	if k.gen == nil || !plainPricedCost(a) || s.g.availX != 0 || s.cfg&cfgGorgeAutopay == 0 || s.pool != nil && s.pool.inFilt != 0 {
+		return false
+	}
+	f := s.scriptFilt(k, p)
+	if !f.any() || s.filtNetNegative(k, f) == 0 {
+		return false
+	}
+	av := s.g.availX
+	s.g.availX = av | availNoHandFund
+	ok := s.filtScript(k, pa, p, false)
+	s.g.availX = av
+	return ok
 }
