@@ -932,29 +932,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("BecomesTarget shape")
 		}
 	case "Drawn":
-		vc := tp.str("ValidCard")
-		switch vc {
-		case "Card.YouCtrl", "Card.YouOwn":
-			tr.Whose = whoYou
-		case "Card.OppOwn", "Card.OppCtrl":
-			// a card being drawn is in its owner's hand, whose controller
-			// is its owner (CR 108.4a; gorge matches OppCtrl on the drawn
-			// object's Controller, its owner's seat): Sheoldred
-			tr.Whose = whoOpp
-		case "":
-			// ValidPlayer$-scoped draws (gorge drawnMatches, trigmatch/cards.go:474):
-			// the drawing player relative to the controller; Number$ counts the
-			// drawer's own draws, as nthDrawOK does
-			switch vp := tp.str("ValidPlayer"); vp {
-			case "Opponent":
-				tr.Whose = whoOpp
-			case "Player":
-				tr.Whose = whoAny
-			default:
-				return refuse("Drawn ValidCard %q ValidPlayer %q", vc, vp)
-			}
-		default:
-			return refuse("Drawn ValidCard %q", vc)
+		if err := lc.drawnScope(tp, tr); err != nil { // lower_modeparams.go
+			return err
 		}
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
