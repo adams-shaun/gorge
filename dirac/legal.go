@@ -319,7 +319,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.castHeldOut(o) {
 			continue // reversed twice in a row (Eaten Alive's unpayable part, pair 2359)
 		}
-		if s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
+		if s.cfg&cfgGorgeUnpriced != 0 && s.contribCredits(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
 			continue // gorge's potential planner declines a flashback cast carrying a credit ("cost:credit"): only the floating pool casts it (Inspiring Statuary's improvise)
 		}
 		if !s.flashbackReachable(k, p, c, o, fc) {
@@ -338,7 +338,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				continue
 			}
 		}
-		if s.cfg&cfgGorgeAutopay != 0 && !s.FeatPoolPays(p, o, 2) && s.contribPays(k, p, c, o, false) {
+		if s.cfg&cfgGorgeAutopay != 0 && !s.FeatPoolPays(p, o, 2) && s.contribCredits(k, p, c, o, false) {
 			// the autopay surface's credit class: a convoke, improvise or delve
 			// contribution live for the cast (Inspiring Statuary's improvise
 			// grant on Krosan Reclamation's {1}{G} flashback) is one gorge's

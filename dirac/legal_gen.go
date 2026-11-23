@@ -219,7 +219,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if anyMana {
 			cost = anyType(cost)
 		}
-		if s.cfg&cfgGorgeUnpriced != 0 && s.g.availX&availWalk == 0 && s.creditOfferLive(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
+		if s.cfg&cfgGorgeUnpriced != 0 && s.g.availX&availWalk == 0 && s.creditOfferLive(k, p, c, o, s.objs[o].zone == kop.ZoneHand) && !s.improviseCreditEmpty(k, p, c, o, s.objs[o].zone == kop.ZoneHand) &&
 			!s.poolOfferPays(k, p, c, o, &base, &cost, anyMana, anyColor) {
 			// gorge prices no potential play of a may-play cast carrying a
 			// live convoke, improvise or delve credit: the potential plan

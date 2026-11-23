@@ -1546,8 +1546,10 @@ func (s *State) contribDeclined(k *prep, p uint8, c CardID, o Obj, fromHand, pla
 	if !s.contribPays(k, p, c, o, fromHand) {
 		return false
 	}
-	if cost := &k.t.Cards[c].Cost; plain && (cost.X != 0 || cost.XRed != 0 || cost.XPip != 0) && !s.improviseCreditLive(k, p) &&
-		s.isImprovise(k, p, c, o, fromHand) && !s.hasConvoke(k, p, c, o, fromHand) && !s.hasCastDelve(k, p, c, o, fromHand) {
+	if !plain && s.improviseCreditEmpty(k, p, c, o, fromHand) {
+		return false // a permission or mode cast whose only credit is improvise with no artifact to tap: raw cost (planModeCredit)
+	}
+	if cost := &k.t.Cards[c].Cost; plain && (cost.X != 0 || cost.XRed != 0 || cost.XPip != 0) && s.improviseCreditEmpty(k, p, c, o, fromHand) {
 		// an {X} spell with no artifact to tap: the credit is empty (planModeCredit), so
 		// potentialModeCastPlan prices it at its raw cost like an {X} spell without improvise
 		// (xCostLowers; CR 702.126a)
@@ -1562,6 +1564,23 @@ func (s *State) contribDeclined(k *prep, p uint8, c CardID, o Obj, fromHand, pla
 		return !priced
 	}
 	return true
+}
+
+// contribCredits is contribPays less the improvise-only spell with no artifact
+// to tap: that credit is empty (gorge planModeCredit, CR 702.126a), so the
+// potential planner prices the mode cast at its raw cost like a spell without
+// the keyword (Futurist Forge's flashback under Inspiring Statuary).
+func (s *State) contribCredits(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	return s.contribPays(k, p, c, o, fromHand) && !s.improviseCreditEmpty(k, p, c, o, fromHand)
+}
+
+// improviseCreditEmpty: the spell's only credit is improvise and p has no
+// artifact to tap, so gorge's potential planner (planModeCredit) withholds
+// nothing and prices the cast at its raw cost (CR 702.126a).
+func (s *State) improviseCreditEmpty(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
+	q := s.creditReader(p, o)
+	return s.isImprovise(k, q, c, o, fromHand) && !s.hasConvoke(k, q, c, o, fromHand) &&
+		!s.hasCastDelve(k, q, c, o, fromHand) && !s.improviseCreditLive(k, p)
 }
 
 // improviseCreditLive reports an untapped artifact of p's the improvise
