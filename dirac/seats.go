@@ -114,7 +114,7 @@ const embRemSlots = 2
 // the sixteen-object free-cast arrays (maxFree), the sixteen-bit codes and the
 // BecomesTarget player/source referent bytes (stackEntry.btPl, trigSA,
 // trigSASid) to phase 0.
-const linkPadN = 20 // 28 before 2026-11-22: maxXTgt 63, maxSacOrd 64; 40 before 2026-11-19: the extra-turn riders keep their armed source incarnation (exRideV, exRideC, act_extraturn.go); 24 before 2026-11-19: genState's extra-turn queue (exQ 32+32 objects, act_extraturn.go) and its control bytes moved the State ahead of perms; 88 before that: MaxPerm 192, the three-word slotMask, the 63-record LKI pool, maxXTgt 31 and maxCtrOver 32
+const linkPadN = 44 // 20 before 2026-11-22: stackEntry.etbX (two bytes per entry, 48 entries) moved perms by 104 B; 28 before 2026-11-22: maxXTgt 63, maxSacOrd 64; 40 before 2026-11-19: the extra-turn riders keep their armed source incarnation (exRideV, exRideC, act_extraturn.go); 24 before 2026-11-19: genState's extra-turn queue (exQ 32+32 objects, act_extraturn.go) and its control bytes moved the State ahead of perms; 88 before that: MaxPerm 192, the three-word slotMask, the 63-record LKI pool, maxXTgt 31 and maxCtrOver 32
 
 // seatWord is a packed field holding a few bits per seat beside its other
 // bits (genState.speed, genState.freeP): two bytes at four seats.

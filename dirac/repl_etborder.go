@@ -121,7 +121,7 @@ func (s *State) etbOrderAnswer(k *prep, a Action) {
 	p := &s.g.pre
 	e := &s.stack[s.sp-1]
 	if Obj(a.Source()) != e.etbSrc {
-		e.spc &^= spcEtbMask // the own body applies first: the rider is dropped
+		e.spc, e.etbX = e.spc&^spcEtbMask, [2]uint8{} // the own body applies first: the rider is dropped
 	}
 	p.state = 2
 	s.ctl = ctlPriority
