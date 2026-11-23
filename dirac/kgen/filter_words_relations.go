@@ -96,11 +96,13 @@ func (c *lClause) fwLit(l lSpillLit) error {
 	return nil
 }
 
-// fwArmFor is the arm of property p, if any.
-func fwArmFor(p string) (fwArm, bool) {
-	if !strings.HasPrefix(p, "with") && !strings.HasPrefix(p, "!with") && p != "ChosenCtrl" && p != "EnchantedControllerCtrl" {
-		return nil, false
+// fwArmOrUnknown lowers property p by its arm, or is the unknown-property
+// error: the tail of lClause.prop's switch.
+func (c *lClause) fwArmOrUnknown(p string) error {
+	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") || p == "ChosenCtrl" || p == "EnchantedControllerCtrl" {
+		if arm, ok := fwArms[p]; ok {
+			return arm(c, p)
+		}
 	}
-	a, ok := fwArms[p]
-	return a, ok
+	return fmt.Errorf("unknown property %q", p)
 }
