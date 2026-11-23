@@ -1253,6 +1253,10 @@ type grantKey struct {
 	ghost [kop.NumManaKinds]uint8
 	// gorge's key counts the stack, hand and graveyard too (scriptStateKey)
 	sp, hand, gy uint8
+	// inHand: the cast play's own card is still in hand (gorge's scriptStateKey
+	// reads it beside the hand's size): a loot that discards that card or
+	// another leaves two states
+	inHand bool
 	// bf: p's battlefield objects (gorge's key lists each by id): a token a
 	// sacrifice's dies trigger made is a new state (mana_grantcost.go)
 	bf uint64
@@ -2009,6 +2013,14 @@ func (g *grantSrch) fundRestrBranch(t *State, i int, sl Slot, ra *kop.Ability, m
 func (g *grantSrch) stateKey(t *State) grantKey {
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
+	if g.d.play.Kind() == AkCast {
+		for _, o := range pl.hand[:pl.handN] {
+			if o == Obj(g.d.play.Source()) {
+				key.inHand = true
+				break
+			}
+		}
+	}
 	if g.k.artMana {
 		t.artSync(g.p)
 		key.art = t.g.poolArt[SeatIx(g.p)]
@@ -2100,8 +2112,9 @@ func (g *grantSrch) visit(t *State) bool {
 	// state equal in the ghost too is the same payer state in gorge's key
 	// (the key reads the same pool, tapped bits, counters, stack, hand and
 	// graveyard sizes, and neither the cards a discard moved nor which card
-	// went), so it is dropped the same way: Gran-Gran's loot discarding the
-	// cast card first shadows the discard of any other card, and the printed
+	// went, bar the cast card itself), so it is dropped the same way: Gran-Gran's
+	// loot discarding the cast card first shadows no discard of another card
+	// that keeps it in hand (inHand), and the printed
 	// sources the planner would add at the pricing are not offered
 	// (scriptSearch.visit: offered, then seen, then priced).
 	fk := key.folded()
