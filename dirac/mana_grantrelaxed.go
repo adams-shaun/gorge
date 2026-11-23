@@ -23,6 +23,12 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	if a.Kind() != AkActivate || ex != NoSlot {
 		return true
 	}
+	if k.gen.anyComboAny && s.reflAmtUnbounded(k, s.caGaps(k, p)) {
+		// a live reflected Amount$ source (Incubation Druid) leaves gorge's census
+		// unrelaxable too (mana_reflamt.go), so the proof never runs: the prefix
+		// search prices the activation
+		return true
+	}
 	var av avail
 	av.xd, av.xdOn = d, true
 	av.dynSac = true // a dynamic {T}, sacrifice source (Lotus Blossom) is a relaxed unit of its petals' mana: gorge's relaxed alternative takes its larger live amount, once
