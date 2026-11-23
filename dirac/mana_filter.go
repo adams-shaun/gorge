@@ -2581,10 +2581,11 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			// Recorded once the slot is usable, as gorge's scriptTwin list is
 			// (after its availability gates): an earlier source that could not
-			// be activated walked no subtree its later twin would repeat.
-			tried[ntried] = sl
-			ntried++
+			// be activated walked no subtree its later twin would repeat. The
+			// funding arm records below, only for a funder that walks.
 			if gap {
+				tried[ntried] = sl
+				ntried++
 				free := t.canTapForMana(k, sl)
 				filt := t.filtPaid(k, p, sl)
 
@@ -2632,11 +2633,24 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
-				if fs.fundNoTap(k, t, sl, funded, gapUsed) {
+				res, walked := fs.fundNoTap(k, t, sl, funded, gapUsed)
+				if res {
 					return true // a Spawn funds beside the Treasures (mana_filtfund.go); a life-only unit beside the lands
+				}
+				if walked {
+					// the no-tap funder walked its subtree: it is the twin list's member
+					tried[ntried] = sl
+					ntried++
 				}
 				continue
 			}
+			// A funder whose subtree the pass walks is the twin list's member;
+			// one with nothing to walk (its mana ability lost to an animation,
+			// nothing to sacrifice) is not: an earlier such source walked no
+			// subtree its later twin would repeat (gorge's scriptTwin, CR
+			// 605.3b: the animated Swamp beside its plain twin).
+			tried[ntried] = sl
+			ntried++
 			if res, stop := fs.fundTap(k, t, sl, rm, free, funded, gapUsed); stop {
 				return res
 			}
@@ -2659,11 +2673,20 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 // (scriptSearch.activations), so its subtree is walked here, where the plain
 // run's budget meets it; the branch runs only where gorge's planner priced the
 // play (fs.lifePainBound).
-func (fs *filtSearch) fundNoTap(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
-	if t.canSacOnlyNowAt(k, sl) && fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
-		return true
+//
+// walked reports that a subtree was walked (found or not): only such a funder
+// is the twin list's member (see visit).
+func (fs *filtSearch) fundNoTap(k *prep, t *State, sl Slot, funded int, gapUsed bool) (found, walked bool) {
+	if t.canSacOnlyNowAt(k, sl) {
+		if fs.try(k, t, filtStep{sl: sl, sacOnly: true}, funded+1, gapUsed) {
+			return true, true
+		}
+		walked = true
 	}
-	return fs.lifePainBound && t.canLifeOnlyMana(k, sl, fs.p) && fs.lifePainBranch(k, t, sl, funded+1, gapUsed)
+	if fs.lifePainBound && t.canLifeOnlyMana(k, sl, fs.p) {
+		return fs.lifePainBranch(k, t, sl, funded+1, gapUsed), true
+	}
+	return false, walked
 }
 
 // fundTap: one funding tap of sl in visit's pass: its asks and answers in
