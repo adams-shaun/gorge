@@ -69,7 +69,10 @@ func (s *State) blightSlot(sl Slot, n int, mode ctrPutMode) {
 	p.seeCtr(s)
 	n = s.placeCounters(k, sl, int(kop.CtrM1M1), n, p.ctrl, mode)
 	if n > 0 && k.anyCtrAdded {
-		s.ctrNote(k, sl, int(kop.CtrM1M1))
+		// CR 701.60: the blighting player puts the counters (gorge
+		// blight.go emitBlightCounter publishes it), not the resolving
+		// ability's controller counterAdder() would name.
+		s.ctrNoteBy(k, sl, int(kop.CtrM1M1), p.ctrl)
 	}
 }
 
