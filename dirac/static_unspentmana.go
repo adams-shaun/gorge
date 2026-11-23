@@ -72,6 +72,45 @@ func (s *State) unspentEmptyPool(p uint8, prot uint8) {
 	}
 }
 
+// talliesKeep empties a boundary's tag tallies but the entries of the colours
+// a live StatUnspentMana static protects: gorge's clearNonPersistent drains a
+// slot's TypedMana/ArtifactTyped/Snow tallies only for the slots it empties
+// (engine/events/apply_state_helpers.go), so a keep-letter slot's tallies
+// survive with its pool units. The tallies are per seat per colour, exactly
+// the keep mask's per-slot index. restr carries the poolArt bits the caller
+// kept for its restricted batches (poolArtRestr); a kept slot's colour bit
+// and the snow bit ride with them, cleared when nothing of the kind survives.
+func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
+	sx := coldSnow.of(s)
+	ax := coldArtN.of(s)
+	for p := uint8(0); p < s.nSeats(); p++ {
+		m := prot[p]
+		i := SeatIx(p)
+		var art uint8
+		anySnow := false
+		for c := 0; c < int(kop.NumManaKinds); c++ {
+			if m&(1<<uint(c)) == 0 {
+				if sx != nil {
+					sx[int(i)*kop.NumManaKinds+c] = 0
+				}
+				if ax != nil {
+					ax[int(i)*kop.NumManaKinds+c] = 0
+				}
+				s.g.poolTre[i][c] = 0
+				continue
+			}
+			art |= s.g.poolArt[i] & (1 << uint(c))
+			if sx != nil && sx[int(i)*kop.NumManaKinds+c] != 0 {
+				anySnow = true
+			}
+		}
+		if anySnow {
+			art |= poolArtSnow
+		}
+		s.g.poolArt[i] = art | restr[i]
+	}
+}
+
 // unspentProtAny reports whether any seat's keep mask is non-zero.
 func (s *State) unspentProtAny(prot [MaxSeats]uint8) bool {
 	for _, m := range prot {

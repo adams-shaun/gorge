@@ -323,10 +323,7 @@ func (s *State) endStep(next kop.Step) {
 			s.rbClear(p)
 		}
 	}
-	s.g.poolArt = restr
-	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-	s.artNClearAll()
-	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+	s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -475,11 +472,8 @@ func (s *State) finishCleanup(k *prep) {
 				s.rbClear(p)
 			}
 		}
-		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
-		s.g.poolArt = restr
-		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-		s.artNClearAll()
-		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+		s.fbR = [MaxSeats]uint8{}  // already 0 (end of combat dropped it); explicit
+		s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty

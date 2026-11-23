@@ -239,7 +239,9 @@ func (s *State) artNClearSeat(p uint8) {
 	}
 }
 
-// artNClearAll empties every seat's tagged-unit tally (a boundary that empties the pool).
+// artNClearAll empties every seat's tagged-unit tally (tests reset with it;
+// the boundary emptiers keep the keep-letter colours' entries instead,
+// talliesKeep).
 func (s *State) artNClearAll() {
 	if sx := coldArtN.of(s); sx != nil {
 		clear(sx)
