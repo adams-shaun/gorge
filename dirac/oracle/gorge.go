@@ -698,6 +698,29 @@ func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Re
 	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
 }
 
+// impendedCastAction is the canonical action of obj's impending cast
+// (CR 702.176a, cost {2}{W}{W} against the plain {5}{W}{W}), and forgets the
+// plain hand price cached for obj: both casts announce their convoke picks
+// against the same card, so the plain price over-prices the impending
+// announcement (it offers generic picks the impending cost no longer
+// absorbs). With no cached price the frame is gorge's own Submit gate
+// (convokeFrameFor), which prices the pending cast itself.
+func (g *GorgeSide) impendedCastAction(obj state.ObjID, ref func(state.ObjID) Ref) Canon {
+	delete(g.castCost, obj)
+	delete(g.castX, obj)
+	return Pack(ActCastImpended, ref(obj), RefNone, 0)
+}
+
+// plannedCastAction is paymentCastAction, with the impended route's cache
+// forgotten (impendedCastAction).
+func (g *GorgeSide) plannedCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (Canon, bool, string) {
+	a, skip, unknown := paymentCastAction(pa, ref)
+	if pa.Cast.CastMode() == "impended" {
+		a = g.impendedCastAction(pa.Cast.Object, ref)
+	}
+	return a, skip, unknown
+}
+
 // paymentCastAction is the canonical action of a planner-paid cast.
 // casualty, impended and conspired have their own action kinds; the full
 // cast-mode table's modes the table cannot hold use CastModeOther. A hand
@@ -1058,7 +1081,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		if len(pa.Plans) == 0 {
 			continue
 		}
-		a, skip, unknown := paymentCastAction(pa, ref)
+		a, skip, unknown := g.plannedCastAction(pa, ref)
 		if skip {
 			continue
 		}
@@ -1098,7 +1121,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if fc, ok := faceCastCode(pa.Mode); ok && followedFaceRoute(fc) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
-				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+				a = g.impendedCastAction(pa.Obj, ref) // kw_impending.go
 			} else if repeatedCastMode(pa.Mode) {
 				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				mc, _ := castModeCode("kicked")
