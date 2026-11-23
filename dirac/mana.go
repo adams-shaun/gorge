@@ -536,7 +536,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// the exception: its census unit is the intrinsic ability, not the
 		// gap its own ability makes (blgIntrinsicUnit, static_landtype.go),
 		// so it falls through to the ordinary unit below.
-		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+		// deferredFiltFree: a Taps watcher defers a filter land's free ability
+		// in gorge's planner like any land's tap, so the census never lists it.
+		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -2732,6 +2734,18 @@ func (pk *planner) takeXv(nd *[kop.NumManaKinds]int, ndAny *int, ty *utype, k in
 			nd[c] = max(nd[c]-v, 0)
 		}
 	}
+}
+
+// deferredFiltFree reports whether sl is a filter land (Unknown Shores' {T}:
+// Add {C} beside its {1},{T} filter) whose free ability the plain listing
+// leaves out: scriptTapsDefer lists no filter (the filter search walks the
+// free ability as its own branch, and the gaps and any-mana walks count it
+// through availFilt), but gorge's census never lists it under a Taps watcher,
+// so it prices no plain play. Conjurer's Mantle's Equip {1} beside Unknown
+// Shores and two Manabarbs is gorge's search, which runs out of its budget
+// (tail-34 pair 26), not a plain offer.
+func (s *State) deferredFiltFree(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.has(s.cardAt(sl), gfFilt) && s.g.availX&(availGaps|availAny) == 0
 }
 
 // availPlainUnit is availForMode's ordinary census unit for the source at sl:
