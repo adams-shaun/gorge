@@ -488,7 +488,7 @@ func (w *legalWalk) battlefieldWalk() {
 								Grant: e.abilityGrant(id, ab), Attach: ab.API == "Attach",
 								GrantStatics:  effects.GrantedStaticModes(ab, abFace.SVars),
 								Loyalty:       abilityLoyaltyFact(o, ab, &cost, loyal),
-								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p})
+								SelfSkipTurns: abilitySelfSkipTurns(ab), ForeignSource: o.Controller != p, CensusOffer: w.censusOffer == censusOfferRef{obj: id, idx: i, set: true}})
 						}
 						if altOK {
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",

@@ -137,6 +137,7 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 	}
 	e.cast = e.newCast(p, opt.Obj, o.Zone, "", opt.Ability)
 	e.cast.abilityMerged, e.cast.cost, e.cast.mods, e.cast.ownReduce = pa.Merged, cost, mods, own
+	e.cast.censusWindow = opt.CensusOffer
 	if autoPay && opt.AltCostIndex == 0 {
 		e.armAbilityAutoPay(e.cast, opt.Ability)
 	}

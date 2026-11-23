@@ -340,8 +340,10 @@ func (e *Engine) manaWindowAsk() bool {
 			// announced composition absorbs is withheld from the window
 			// (see paymentSourceUseful); if NO source remains the payment
 			// is stranded and the cast aborts exactly as a Done on the
-			// unclamped window would.
-			e.paymentSourceUseful(pc, pc.player, id) {
+			// unclamped window would. A census-offered activation
+			// (pc.censusWindow) keeps every source: its lands pay the fee of
+			// the production the planner cannot price, not a pip.
+			(pc.censusWindow || e.paymentSourceUseful(pc, pc.player, id)) {
 			sources = append(sources, id)
 		}
 	}
