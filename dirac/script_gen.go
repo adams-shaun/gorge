@@ -287,7 +287,7 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 // offerSkip is the script walk loop's drop state: the loop-invariant masks
 // scriptOfferDrops prices a play against.
 type offerSkip struct {
-	d, capSpent, gaps, noWide                 *Decision
+	d, capSpent, gaps, noWide, noWideNF       *Decision
 	sacAny, sacRepeat, wide, mixWide, anyWalk bool
 	anyR                                      slotMask
 }
@@ -302,7 +302,7 @@ func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool 
 	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || hasOption(o.capSpent, a) ||
 		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
 		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
-		o.mixWide && !hasOption(o.noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
+		o.mixWide && !hasOption(o.noWide, a) && !hasOption(o.noWideNF, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
 		o.anyWalk && s.restrBoundDrops(k, p, a)
 }
 
@@ -391,14 +391,22 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if s.cfg&cfgGorgeAutopay != 0 {
 		s.plainOptions(k, &real, availWalk)
 	}
-	var noWide Decision
+	var noWide, noWideNF Decision
 	if mixWide {
 		s.plainOptions(k, &noWide, availGaps|availNoWide) // (gorge's potential walk counts a wide source only for what its restriction admits)
+		// The held-out walk is the fee-charged gaps walk, but the relaxed
+		// proof accepts any subset of the paid gaps, the empty filter subset
+		// included (availNoFilt): a play that subset pays with the wide
+		// source's mana held out is not proven insufficient (tail-42 pair
+		// 49: Subterranean Hangar's storage counters paid Liliana's Contract
+		// beside the School of the Unseen's {2},{T} fee and Gwenna's
+		// creature-only mana, the cast unoffered).
+		s.plainOptions(k, &noWideNF, availGaps|availNoWide|availNoFilt)
 	}
 	skip := offerSkip{
 		d: d, capSpent: capSpent, gaps: &gaps,
 		sacAny: sacAny, sacRepeat: sacRepeat,
-		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide,
+		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide, noWideNF: &noWideNF,
 		anyWalk: src == &any,
 	}
 	for i := 0; i < int(src.N); i++ {
