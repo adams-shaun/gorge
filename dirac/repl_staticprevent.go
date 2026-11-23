@@ -304,7 +304,7 @@ func (s *State) spApply(k *prep, e *spEv) (int, bool) {
 		if a.Repl.C&kop.ReplSPOptional != 0 {
 			if s.g.ro.on && s.spWalkOpt(k, e) {
 				// the frozen combat walk owns this ask (spWalkOpt: the event's
-				// only candidate): the recomputed pass keeps the event whole
+				// optional candidate, alone or beside full preventions): the recomputed pass keeps the event whole
 				// until the walk poses the "may" and the answer (pick or skip)
 				// is dealt as asked (dealAsked); spPark poses a noncombat
 				// event's own
@@ -450,26 +450,32 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	case c >= 1 && n == 0 && s.shieldLateFz(k, fe):
 		// a static prevention or a Phantom's line beside the recipient's shield counter,
 		// which the walk appends after them (repl_selfph.go replShieldCand): gorge asks the order
+	case n > 0 && c == 1 && s.spBesidePrevAll(n) && s.spOptBesidePrev(k, cs[0]):
+		// an Optional$ shield (Battletide Alchemist) beside full preventions: gorge
+		// asks the affected player the order over all of them plus the line's skip
+		// (CR 616.1g); every answer leaves nothing dealt, the full prevention applies
+		ro := &s.g.ro
+		if n+1 > len(ro.cand) {
+			s.capFull(StallReplCands)
+			return -1
+		}
+		ro.cand[n] = s.perms[cs[0].b].obj
+		ro.spv |= 1<<n | spOptionalAsk
+		return n + 1
 	case n > 0 && c == 1 && s.spSelfCand(k, cs[0]):
 		s.capFull(StallReplPlus) // a Phantom beside a competition the walk does not merge: gorge asks the order of all
 		return -1
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
-		if c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
-			if n > 0 {
-				// the optional line beside competing full preventions (a scoped
-				// Effect's, a granted one's): gorge asks the CR 616.1 order over
-				// all of them with the line's skip (spOptionalAsk); whichever
-				// answer, a full prevention remains and leaves nothing dealt.
-				// Anything else beside the line is not posed: never drop the
-				// line and deal the event as the prevention alone
-				if n >= spMax || cs[0].b >= MaxPerm || !s.spBesidePrevAll(n) {
-					s.capFull(StallReplPlus)
-					return -1
-				}
-				s.g.ro.cand[n] = s.perms[cs[0].b].obj
-				s.g.ro.spv |= 1<<n | spOptionalAsk
-				return n + 1
-			}
+		if n > 0 && c >= 1 && s.spCandsOptional(k, &cs, c) {
+			// gorge asks the CR 616.1 order over the walk's candidates and the
+			// optional line, with a skip option. spCombatCands poses the one
+			// optional shield beside full preventions (spOptBesidePrev); what
+			// still stalls here is c >= 2, or an optional line that fails
+			// spOptBesidePrev (DamageAmount$-gated, emblem, self-shield host)
+			s.capFull(StallReplPlus)
+			return -1
+		}
+		if n == 0 && c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if cs[0].b >= MaxPerm {
 				s.capFull(StallReplCands) // an emblem is never named by an ask
 				return -1
@@ -508,10 +514,20 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	return n + c
 }
 
-// spWalkOpt reports whether the frozen walk poses the lone Optional$ line's
-// "may" for this event: replOrderCandsFz collected exactly one candidate and
-// spCombatCands marked it (the walk's shape of spPark's lone-optional ask;
-// gorge asks the line's OptionalDecider$, CR 616.1g). It probes like
+// spOptBesidePrev: static prevention candidate c is an Optional$ shield posed
+// beside the walk's full preventions (spCombatCands): a host on the battlefield
+// with no second shield of its own and no DamageAmount$ gate.
+func (s *State) spOptBesidePrev(k *prep, c spCand) bool {
+	a := s.spCandAb(k, c)
+	return c.b < MaxPerm && !s.spSelfCand(k, c) && a.Repl.Kind == kop.ReplPreventDamageN &&
+		a.Repl.C&(kop.ReplSPOptional|kop.ReplSPDmgLE) == kop.ReplSPOptional
+}
+
+// spWalkOpt reports whether the frozen walk poses the Optional$ line's "may"
+// for this event: replOrderCandsFz collected exactly one candidate and
+// spCombatCands marked it, or collected it beside full preventions (the
+// walk's shape of spPark's lone-optional ask; gorge asks the line's
+// OptionalDecider$, CR 616.1g). It probes like
 // walkAsksRepl, with the ask scratch saved and restored; the probe may stall
 // loud (a competition the walk cannot name), as the walk's own collection
 // would.
@@ -522,9 +538,10 @@ func (s *State) spWalkOpt(k *prep, e *spEv) bool {
 	save := s.g.ro
 	fe := fzEv{src: e.srcSl, dst: e.sl, n: int16(min(e.n, 1<<14)), card: e.srcCard, ctrl: e.srcCtrl, apl: e.rcp}
 	c := s.replOrderCandsFz(k, &fe)
-	mark := s.g.ro.spv&1 != 0 // seat-ok: ro.spv is the walk's candidate bitmask (read before the restore discards the probe's collection)
+	mark := s.g.ro.spv&1 != 0               // seat-ok: ro.spv is the walk's candidate bitmask (read before the restore discards the probe's collection)
+	beside := s.g.ro.spv&spOptionalAsk != 0 // the optional line beside full preventions (spCombatCands)
 	s.g.ro = save
-	return c == 1 && mark
+	return c == 1 && mark || c >= 2 && beside
 }
 
 // DebugSpBesidePcolOff leaves a static prevention beside an Ext PreventDamageScope
@@ -591,6 +608,12 @@ func (s *State) spSpend(i int) {
 func (s *State) spPick(i int) bool {
 	ro := &s.g.ro
 	s.spSpend(i)
+	if ro.spv&spOptionalAsk != 0 && s.spOptionalCand(i) {
+		// gorge offers the "do not apply" answer only while an optional
+		// replacement is still applicable (replacement_choice.go): the shield
+		// spent, the rounds left are the full preventions' alone
+		ro.spv &^= spOptionalAsk
+	}
 	if ro.an <= 0 {
 		return false
 	}
@@ -610,6 +633,12 @@ func (s *State) spPick(i int) bool {
 		}
 	}
 	return left >= 2
+}
+
+// spOptionalCand: candidate i of the ask in progress is an Optional$ line.
+func (s *State) spOptionalCand(i int) bool {
+	a := s.spAbility(s.k(), s.objs[s.g.ro.cand[i]].slot)
+	return a != nil && a.Repl.C&kop.ReplSPOptional != 0
 }
 
 // spAskLive: unused candidate j of the ask in progress is one gorge still
