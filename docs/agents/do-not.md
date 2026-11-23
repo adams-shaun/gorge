@@ -146,5 +146,6 @@ machine and a `main` checkout, so most of these hurt someone else.
   `bots/all`'s `paymentOptOut`.
 - **Don't add a Go test for a recording.** Add the JSON under
   `dirac/oracle/testdata/repro` with `"named": true` (and `"served": true` to
-  require the whole recorded prefix be served); `TestReproManifest` replays it
-  as a subtest. A recording whose pool a glob test replays needs no mark.
+  require the whole recorded prefix be served); its shard of `TestReproManifest0..7`
+  replays it as a subtest (`-run 'TestReproManifest/<recording>'` finds it).
+  A recording whose pool a glob test replays needs no mark.
