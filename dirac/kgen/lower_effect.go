@@ -100,10 +100,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
 	case "TriggeredCardOwner":
-		// gorge definedSpecTriggeredCardOwner: the triggering card's
-		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
-		// reads off the trigger object
-		return lRef{Kind: rTriggeredOwner}, nil
+		return lc.triggeredCardOwnerRef(), nil // lower_modeparams.go
 	case "TriggeredObject", "TriggeredObjectLKICopy":
 		// gorge definedSpecTriggeredObject(LKICopy) reads the OBJECT that
 		// caused the trigger: for Mode$ Unattached (the Captain's Hook
