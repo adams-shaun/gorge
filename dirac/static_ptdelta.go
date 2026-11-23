@@ -24,14 +24,26 @@ func (s *State) ptDeltaFl(k *prep, idx int, fl uint8) uint8 {
 }
 
 // ptDeltaRecs is the sum of the P/T pumps among the override records on sl.
+// A host-bound record's pump is the override's table constants: the record's
+// P/T fields hold the host's Obj and version there (applyWhileHost,
+// filter_combatwords.go), the same shape basePTGen's WhileHost branch reads
+// (chars_gen.go). UntilUntaps is Zelyon Sword's "target creature gets +2/+0
+// for as long as CARDNAME remains tapped".
 //
 //go:noinline
 func (s *State) ptDeltaRecs(k *prep, sl Slot) (dp, dt int) {
 	s.eachOvRec(sl, func(r ovRec) {
-		if k.t.Overrides[r.idx-1].PTDelta {
-			dp += int(r.p) * r.reps()
-			dt += int(r.t) * r.reps()
+		o := &k.t.Overrides[r.idx-1]
+		if !o.PTDelta {
+			return
 		}
+		if o.WhileHost {
+			dp += int(o.SetP) * r.reps()
+			dt += int(o.SetT) * r.reps()
+			return
+		}
+		dp += int(r.p) * r.reps()
+		dt += int(r.t) * r.reps()
 	})
 	return
 }

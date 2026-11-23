@@ -8,8 +8,9 @@ import (
 )
 
 // The granted-horsemanship lockstep (CR 702.31b): Riding Red Hare's Pump KW$
-// Horsemanship is an until-end-of-turn ExtKwMark the kernel reads beside the
-// printed CardDef.Evasion bit, as the attacker's restriction and as a
+// Horsemanship is an until-end-of-turn ExtKwMark, and Riding the Dilu Horse's
+// Duration$ Permanent one an override record's Horsemanship; the kernel reads
+// both beside the printed CardDef.Evasion bit, as the attacker's restriction and as a
 // blocker's exception. The pool is dirac/cardset/pools/fixtures/
 // horsemanshipgrant: Red Hare beside a printed horsemanship creature (Wu
 // Scout) and creatures without it. The kernel's GrantedHorse count proves a
@@ -19,7 +20,7 @@ const horsemanshipGrantPool = "horsemanshipgrant"
 
 var horsemanshipGrantDecks = [2][]cardset.Entry{
 	{
-		{Name: "Riding Red Hare", Count: 10}, {Name: "Glory Seeker", Count: 8}, {Name: "Wu Scout", Count: 2}, {Name: "Plains", Count: 12}, {Name: "Forest", Count: 8},
+		{Name: "Riding Red Hare", Count: 6}, {Name: "Riding the Dilu Horse", Count: 4}, {Name: "Glory Seeker", Count: 8}, {Name: "Wu Scout", Count: 2}, {Name: "Plains", Count: 12}, {Name: "Forest", Count: 8},
 	},
 	{
 		{Name: "Wu Scout", Count: 6}, {Name: "Grizzly Bears", Count: 8}, {Name: "Glory Seeker", Count: 6}, {Name: "Plains", Count: 12}, {Name: "Forest", Count: 8},

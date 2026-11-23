@@ -79,7 +79,10 @@ func (p *pool) knownSubtype(w string) bool {
 				var walk func(m map[string]string)
 				walk = func(m map[string]string) {
 					for _, k := range []string{"Types", "AddType", "AddTypes"} {
-						for _, w := range strings.FieldsFunc(m[k], func(r rune) bool { return r == ',' || r == '&' }) {
+						// a space separates types like a comma (gorge
+						// animateGrant: "Types$ Human Cleric" is Human and
+						// Cleric, two types, never one subtype word)
+						for _, w := range strings.FieldsFunc(m[k], func(r rune) bool { return r == ',' || r == '&' || r == ' ' }) {
 							w = strings.TrimSpace(w)
 							if _, ok := typeBits[w]; !ok && w != "" && !pseudoSubtype(w) && !unmodeledSupertype(w) {
 								p.subs[w] = true

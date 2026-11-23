@@ -1276,6 +1276,7 @@ type lOverride struct {
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
 	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
+	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
