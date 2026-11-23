@@ -66,6 +66,29 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 	return ManaReflectedFold(h, sa, ManaReflectedObjects(h, c, sa))
 }
 
+// ManaReflectedAmountCandidates is the colours a Produce-property reflected
+// ability with an Amount$ and no Produced$ (Incubation Druid: "one mana of
+// any type that a land you control could produce", three with a counter)
+// names right now for source id under player p, in ManaReflectedCandidates'
+// order. Any other ability reads as none: Is and Produced keep the payment
+// plan's shape, and an ability without an Amount$ keeps its census read. The
+// payment bound colours itself from this, since the Amount$ keeps the ability
+// out of the planner's shape.
+func ManaReflectedAmountCandidates(h Host, p state.PlayerID, id state.ObjID, sa *cards.SA) []string {
+	if sa == nil || sa.APIKind() != cards.APIManaReflected {
+		return nil
+	}
+	mr := ManaReflectedOf(sa)
+	if !mr.Produce || !mr.Amount.Present || mr.Produced != "" {
+		return nil
+	}
+	var svars map[string]string
+	if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	return ManaReflectedCandidates(h, NewCtxPtr(id, p, CtxInit{SVars: svars}), sa)
+}
+
 // ManaReflectedObjects is the object walk of ManaReflectedCandidates: the
 // objects Valid$ names right now (a Defined.<name> selector through the
 // ordinary Defined machinery, anything else an object spec matched against
@@ -116,7 +139,7 @@ func ManaReflectedObjects(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 // ("Is"), in the fixed manaReflectedOrder order.
 func ManaReflectedFold(h Host, sa *cards.SA, objs []state.ObjID) []string {
 	mr := ManaReflectedOf(sa)
-	produce := mr.ReflectProperty == "Produce"
+	produce := mr.Produce
 	// CR 613.1e: "Is" reads each permanent's current colours, so a layer-5
 	// colour a continuous effect set (Grave Betrayal's black Zombie) counts.
 	// A ManaReflected body names ColorOrType$ Color, which layerTablesFor's
