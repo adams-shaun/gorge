@@ -835,18 +835,25 @@ func (e *Engine) countPresentCtx(spec string, source state.ObjID, you state.Play
 // clause's PresentPlayer$ counts.
 func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
 	n := 0
-	e.forEachObject(func(id state.ObjID) {
-		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZBattlefield {
-			return
+	// Only battlefield permanents count, so read each living seat's battlefield
+	// slice directly rather than walking every zone of every seat through
+	// forEachObject and discarding all but the battlefield (libraries dominate
+	// that walk). The count is a sum, so order cannot reach the result, and
+	// matchesSpec only reads state.
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil || o.Zone != state.ZBattlefield {
+				continue
+			}
+			if scope != presentPlayerAny && !presentControllerInScope(e.controllerOf(id), you, scope) {
+				continue
+			}
+			if e.matchesSpec(spec, id, sc) {
+				n++
+			}
 		}
-		if scope != presentPlayerAny && !presentControllerInScope(e.controllerOf(id), you, scope) {
-			return
-		}
-		if e.matchesSpec(spec, id, sc) {
-			n++
-		}
-	})
+	}
 	return n
 }
 
