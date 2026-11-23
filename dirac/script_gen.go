@@ -1404,7 +1404,18 @@ func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
 	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 || a.Target() != 0 {
 		return false
 	}
-	o := Obj(a.Source())
+	return s.improviseAloneObj(k, p, Obj(a.Source()))
+}
+
+// DebugImproviseAloneUnlowered withholds the improvise-alone cast from
+// gorgeLowers (the old behaviour); the lockstep mutation test only.
+var DebugImproviseAloneUnlowered bool
+
+// improviseAloneObj is improviseAloneCast for the plain cast of object o.
+func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
+	if DebugImproviseAloneUnlowered {
+		return false
+	}
 	ob := &s.objs[o]
 	if ob.zone == kop.ZoneBattlefield {
 		return false // a permanent on the battlefield is never a spell being cast (kw_delve.go)

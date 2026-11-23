@@ -760,8 +760,8 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 		s.addGrantUnits(a, mask, n)
-		if ng == 0 && pc.manaOne {
-			s.addOneColour(a, n)
+		if ng == 0 && (pc.manaOne || dynPairOne(pc)) {
+			s.addOneColour(a, n) // (an evaluated pair's wide view is one colour too: dynPairOne)
 		} else if ng == 1 && s.g.availX&availHyp == 0 {
 			// a source whose only mana is one grant: its "N mana of any one color" is one colour
 			if gv := s.grantView(k.gen, gi[0], sl); gv.manaOne {
@@ -774,7 +774,7 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	if s.g.availX&availWalk != 0 {
 		if own {
 			s.addGrantUnits(a, mask, n)
-			if pc.manaOne && s.g.availX&availHyp == 0 {
+			if (pc.manaOne || dynPairOne(pc)) && s.g.availX&availHyp == 0 {
 				s.addOneColour(a, n) // the printed amount is one colour, whichever is chosen (availFor's census)
 			}
 		}
@@ -803,7 +803,7 @@ func (s *State) availGrantJoin(k *prep, sl Slot, pc *pcard, a *avail, gi *[maxGr
 	if !own {
 		mask, n = 0, 0
 	}
-	ownFace := grantUnit{mask: mask, n: n, one: own && pc.manaOne}
+	ownFace := grantUnit{mask: mask, n: n, one: own && (pc.manaOne || dynPairOne(pc))}
 	// A printed sacrifice-only ability (an Eldrazi Spawn's) costs no {T} either:
 	// it is a unit of its own beside a tap grant's, and a tapped source still
 	// pays it, though not the tap grant (CR 602.2b, 605.1a).
@@ -3239,12 +3239,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			if !kicked {
 				return cost, ex, need, false // kicked: lowered by its witness (beginCast)
 			}
-			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok {
+			if cost, ok = s.plannedCastCostOf(k, p, Obj(a.Source()), a.Mode()&2, false, true); !ok && !kickMultiPriced(k, s.objs[a.Source()].card) {
 				return cost, ex, need, false
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, k.t.Cards[c].Kicker))
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kickAdd(&k.t.Cards[c])))
 			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}
@@ -3666,4 +3666,28 @@ func (s *State) floatPaysPlay(k *prep, p uint8, cost *kop.ManaCost, d payDesc) b
 		return s.costPartDisjointD(k, p, NoSlot, spellAddCost(k, s.objs[d.play.Source()].card), cost, &av, pipMaskOf(cost), &d)
 	}
 	return true
+}
+
+// DebugGrantKickNoMulti prices a Multikicker cast's granted-mana search at its
+// base alone (the old behaviour; mutation testing only).
+var DebugGrantKickNoMulti bool
+
+// kickAdd is the additional cost the kicked-cast witness (and the granted-mana
+// prefix search pricing the same play) adds to the base: the Kicker cost, or
+// for a Multikicker card its one payment (CR 702.33, 702.43; gorge's composed
+// potential play is the base plus one multikicker payment).
+func kickAdd(cd *kop.CardDef) kop.ManaCost {
+	if cd.HasMultikicker && !DebugGrantKickNoMulti {
+		return cd.Multikicker
+	}
+	return cd.Kicker
+}
+
+// kickMultiPriced reports whether the composed kicked play of card c is priced
+// although the plain planner refuses its shape: a Multikicker card's offered
+// kicked mode is gorge's composed potential play (base plus one payment, CR
+// 702.43), which its granted-mana prefix search prices (Marshal's Anthem under
+// Chromatic Lantern's grant).
+func kickMultiPriced(k *prep, c CardID) bool {
+	return k.t.Cards[c].HasMultikicker && !DebugGrantKickNoMulti
 }

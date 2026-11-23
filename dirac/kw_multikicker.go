@@ -113,6 +113,29 @@ func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost
 	return c
 }
 
+// multikickWitnessCost is the witness's cost for a Multikicker cast whose
+// count is not asked yet: the base plus one payment, then the cost statics
+// (CR 601.2f: a reduction takes its generic off the total with the additional
+// cost in it, as offerKickedHand prices the offer). plain is the cast's cost
+// without the payment, already reduced: it stands when no static changes the
+// total.
+func (s *State) multikickWitnessCost(k *prep, plain kop.ManaCost) kop.ManaCost {
+	e := &s.bld().e
+	cd := &k.t.Cards[e.card]
+	if !(s.statM.any() || k.gen != nil) {
+		return addCost(plain, cd.Multikicker)
+	}
+	fl, fixed := e.flags, s.bld().fixedGen
+	n := s.multikickCount(e)
+	e.flags |= sfKicked
+	s.setMultikick(e, 1)
+	cost := s.buildCost(k)
+	e.flags = fl
+	s.setMultikick(e, n)
+	s.bld().fixedGen = fixed
+	return cost
+}
+
 // kickedAffords is the hand-cast kicked offer's mana gate for the total kc.
 // A Kicker or Multikicker spell that pays with taps or the graveyard (a
 // printed or granted Convoke or Improvise, or a Delve) is offered by gorge's
