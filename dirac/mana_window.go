@@ -3708,7 +3708,7 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.lowerTargetDepCostCast(k, e)
 		if e.flags&sfFree != 0 && cost != (kop.ManaCost{}) || s.bld().bfl&bflLowered != 0 || e.trigPl == trigPlMadness && debugMadnessMutate == 0 || e.trigPl == trigPlMiracle {
-			return s.xSacWindowFirst(k, e, &cost) || s.freePickWindowFirst(k, e, &cost)
+			return s.pickWindowFirst(k, e, &cost)
 		}
 		var saved [len(build{}.picks)]uint8
 		s.holdCostTaps(k, &saved)
