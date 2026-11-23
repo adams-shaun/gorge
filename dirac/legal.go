@@ -1978,6 +1978,11 @@ type potUnit struct {
 	// the sum) and potUnitsAvail skips the pain count cap for it (a one-tap
 	// unit's count is one, not n).
 	pick bool
+	// altMask/altN is the source's own fixed face when it is an alternative
+	// to this one-colour block (mergeTapN: Peat Bog's {B}{B} under Abundant
+	// Growth's one mana of any colour): the tap makes the block or the face,
+	// never both. Such a unit is a pick unit and never merges.
+	altMask, altN uint8
 }
 
 // maxPotUnits bounds the units availPotentialFor records for
@@ -2015,6 +2020,20 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain ui
 	*n++
 }
 
+// recordPotUnitAlt appends the one-colour block mask/cnt with the source's
+// fixed face altMask/altN as its alternative; the unit never merges.
+func recordPotUnitAlt(units *[maxPotUnits]potUnit, n *int, mask, cnt, pain, altMask, altN uint8) {
+	if units[0].n == 0 && units[0].mask != 0 {
+		return // already overflowed: keep the marker
+	}
+	if *n >= maxPotUnits {
+		*units = [maxPotUnits]potUnit{{mask: 1}} // the overflow marker
+		return
+	}
+	units[*n] = potUnit{mask: mask, n: cnt, pain: pain, pick: true, altMask: altMask, altN: altN}
+	*n++
+}
+
 // unrecordPotUnit takes cnt of mask's taps back out of the record (a source's
 // tap production the caller folds into a wider one, tapUnit); an overflowed
 // record keeps its marker and a unit left empty is dropped.
@@ -2023,7 +2042,7 @@ func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain 
 		return // overflowed: the record is incomplete anyway
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask != mask || units[i].pain != pain || units[i].pick != pick {
+		if units[i].mask != mask || units[i].pain != pain || units[i].pick != pick || units[i].altN != 0 {
 			continue
 		}
 		if units[i].n > cnt {
@@ -2170,6 +2189,22 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
 		return false
 	}
+	if t.altN != 0 {
+		c.gap()
+		return true
+	}
+	if col := uint8(ab.ManaColors) &^ drop; ab.ManaRider == kop.ManaRiderDeplete && n > t.n && !t.pick && bits.OnesCount8(col) == 1 {
+		// One tap makes the depletion land's fixed {B}{B} or the grant's
+		// smaller production already recorded (Abundant Growth's one mana of
+		// any colour), never the larger count in the grant's colours: the
+		// wide unit would pay {G}{G} (CR 605.3b). The grant stays the block,
+		// the rider's face its alternative.
+		unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+		t = potUnit{mask: t.mask, n: t.n, pain: min(t.pain, c.unitPain()), pick: true, altMask: col, altN: n}
+		recordPotUnitAlt(&c.units, &c.n, t.mask, t.n, t.pain, t.altMask, t.altN)
+		c.tap[sl] = t
+		return true
+	}
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	// the widened unit keeps the cheaper pain: the over-bound the census is
 	// (a tap makes one mana through whichever of its abilities is cheapest)
@@ -2205,6 +2240,10 @@ func foldPickExtra(old potUnit, mask, n uint8, sl Slot, fold func(Slot, uint8, u
 // not n independent any-colour mana a green and a white pip could split.
 func (c *potCensus) widenGrant(sl Slot, mask, n uint8, one bool) {
 	t := c.tap[sl]
+	if t.altN != 0 {
+		c.gap() // the tap already holds an alternative face: no exact view
+		return
+	}
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	t = potUnit{mask: t.mask | mask, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick || one && n > 1}
 	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
@@ -2223,7 +2262,7 @@ func (c *potCensus) growTap(sl Slot, r uint8) {
 		return
 	}
 	t := c.tap[sl]
-	if t.mask == 0 || int(t.n)+int(r) > 255 {
+	if t.mask == 0 || t.altN != 0 || int(t.n)+int(r) > 255 {
 		c.gap()
 		return
 	}
@@ -2313,7 +2352,7 @@ func potUnitsAdd(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 					return false // more same-pick sources than fit: no exact view
 				}
 				a.one[a.nOne], a.oneMask[a.nOne] = u.n, u.mask
-				a.oneAltMask[a.nOne], a.oneAltN[a.nOne], a.oneCol[a.nOne] = 0, 0, 0
+				a.oneAltMask[a.nOne], a.oneAltN[a.nOne], a.oneCol[a.nOne] = u.altMask, u.altN, 0
 				a.nOne++
 			}
 		}
