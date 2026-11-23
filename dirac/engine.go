@@ -35,7 +35,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	s.InitNStart(tbl, decks, n, seed, cfg, nil)
 }
 
-// InitNStart is InitN with a scripted start (start.go): after the shuffle and
+// InitNStart is InitN with a scripted start (zone_start.go): after the shuffle and
 // the opening deal and before the first turn begins, st's placements are
 // applied. A nil st is exactly InitN. st is read here and never stored.
 func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config, st *Start) {
