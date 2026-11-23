@@ -1,14 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
-
-// mkDebugName is a temporary diagnostic hook (offerKickedHand gates).
-var mkDebugName = os.Getenv("DIRAC_MK_DBG")
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Multikicker (CR 702.43, Forge's K:Multikicker:<cost>): "you may pay [cost]
 // any number of times as you cast this spell". gorge offers the multikicked
@@ -174,23 +166,11 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 	}
 	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
-	if mkDebugName != "" && k.t.Cards[c].Name == mkDebugName {
-		fmt.Fprintf(os.Stderr, "DBG-MK0 %s: censusAff=%v anyTapsMana=%v availX=%d kc=%v av=%+v\n",
-			k.t.Cards[c].Name, aff, k.gen != nil && k.gen.anyTapsMana, s.g.availX, kc, *cav)
-	}
 	if aff && s.cfg&cfgGorgeAutopay != 0 && k.gen != nil && k.gen.anyTapsMana && kc.X == 0 {
 		// gorge prices the kicked cast through its potential planner, whose
 		// summed lethal guard the real census does not carry for a
 		// TapsForMana watcher's damage (Manabarbs at 4 life: six taps)
 		aff = s.kickedPotentialPainOK(k, p, c, o, &kc)
-		if mkDebugName != "" && k.t.Cards[c].Name == mkDebugName {
-			spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
-			var pa avail
-			var pu [maxPotUnits]potUnit
-			okc := s.availPotentialFor(k, p, &pa, &spell, false, &pu)
-			fmt.Fprintf(os.Stderr, "DBG-MK1 %s: painAff=%v potFor=%v potAffords=%v units=%d\n",
-				k.t.Cards[c].Name, aff, okc, pa.affords(&kc, pipMaskOf(&kc), 0), len(pu))
-		}
 	}
 	cd := &k.t.Cards[c]
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
@@ -216,19 +196,10 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
 	}
 	// A Squad/Replicate offer is gorge's replicate/squad option (mode word,
-	// not the kicked mode the multikicker/offspring offer rides). gorge's
-	// planner declines the optional-cost shape for those cards, so that
-	// option is the pool-only legacy one (legal_walk_hand.go's replicate and
-	// squad arms price w.offerCastable, the floating pool alone): the census
-	// gate above is the kicked cast's mirror, whose planner-priced potential
-	// play the replicate shape never is. Under the autopay surface the census
-	// pays a replicate offer whose floats gorge cannot (Changing Loyalty's
-	// {3}{B} beside an untapped Mantle tap the pool never floated), so the
-	// mirror is FeatPoolPays, never true-by-kind.
-	gorgeOK := s.gorgeOffersKicked(p, o)
-	if cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate {
-		gorgeOK = s.FeatPoolPays(p, o, 1)
-	}
+	// not the kicked mode the multikicker/offspring offer rides), so it needs
+	// no gorgeOffersKicked cache read: the real affordability gate above is
+	// the same one legal_walk_hand.go's offer uses.
+	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
 	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
 		!s.dhWithholdsCast(k, p, o, &kc) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
 		s.witnessKeepsTargets(k, p, c, o, &kc) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
