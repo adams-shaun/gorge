@@ -66,3 +66,16 @@ func TestFourSeatSacBatchPast16Lockstep(t *testing.T) {
 	}
 	capacityPod(t, "capacity_sac_batch_past_16_pod80")
 }
+
+// TestFourSeatPendingPast48Lockstep: more than 48 triggers queue at once and
+// all go on the stack (CR 603.3b); MaxPending and MaxStack held 48. A board of
+// about 59 Scute Swarms queues about 60 landfall triggers on one land drop.
+func TestFourSeatPendingPast48Lockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	_, pend, stack := capacityPod(t, "capacity_pending_past_48_triggers_pod73")
+	if pend <= 48 && stack <= 48 {
+		t.Errorf("peak pending %d, stack %d: want one past 48", pend, stack)
+	}
+}
