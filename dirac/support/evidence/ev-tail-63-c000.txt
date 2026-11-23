@@ -37,6 +37,7 @@ Armed Assailant
 Arrester's Zeal
 Ashiok's Forerunner
 Atmosphere Surgeon
+Auramancer's Guise
 Aurochs Herd
 Aven Wind Guide
 Awakened Amalgam
@@ -46,6 +47,7 @@ Barbed Shocker
 Bartizan Bats
 Become the Avalanche
 Belle of the Brawl
+Bifurcate
 Black Carriage
 Black Vise
 Blade-Blizzard Kitsune
@@ -160,6 +162,7 @@ Femeref Enchantress
 Firebrand Ranger
 Flameborn Hellion
 Flash Counter
+Flaying Tendrils
 Fleshtaker
 Floodhound
 Flowstone Thopter
@@ -211,6 +214,7 @@ Hand of Cruelty
 Hawkeye's Shot
 Headless Skaab
 Heartstabber Mosquito
+Heartwood Dryad
 Hedron Rover
 Heir of the Ancient Fang
 Herald of the Host
@@ -393,6 +397,7 @@ Scout the Wilderness
 Screeching Bat
 Scryb Sprites
 Scurry of Gremlins
+Scuttlemutt
 Searing Barb
 Selesnya Charm
 Seluma, Light of Aysen
@@ -414,6 +419,7 @@ Singe
 Skillful Lunge
 Sky-Blessed Samurai
 Skyshooter
+Slaughter Singer
 Smoldering Werewolf
 Snarling Undorak
 Snow-Covered Forest
@@ -421,6 +427,7 @@ Somberwald Vigilante
 Sowing Mycospawn
 Space Marine Scout
 Sparring Mummy
+Specter's Shriek
 Spell Crumple
 Spellgorger Barbarian
 Spire Golem
@@ -507,7 +514,6 @@ Vicious Kavu
 Viper's Kiss
 Viridian Shaman
 Volcanic Fallout
-Wakeroot Elemental
 Wallop
 Wanderguard Sentry
 War Dance

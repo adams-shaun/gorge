@@ -21,6 +21,7 @@ Ashen Monstrosity
 Aspect of Lamprey
 Assemble the Legion
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -189,6 +190,7 @@ Goblin Arsonist
 Goblin Bushwhacker
 Goblin Deathraiders
 Goblin Tinkerer
+Golem-Skin Gauntlets
 Grave Exchange
 Great Defender
 Greater Harvester
@@ -226,6 +228,7 @@ Jalum Tome
 Jhoira's Familiar
 Jolrael, Voice of Zhalfir
 Judith, the Scourge Diva
+Katara, Waterbending Master
 Kayla's Reconstruction
 Kazandu Tuskcaller
 Keskit, the Flesh Sculptor
@@ -321,6 +324,7 @@ Peregrine Mask
 Perimeter Captain
 Personal Tutor
 Phantasmal Dreadmaw
+Pia Nalaar, Consul of Revival
 Pillage
 Plains
 Plasmancer
@@ -370,6 +374,7 @@ Sacred Prey
 Sage Aven
 Sage of Fables
 Sailor of Means
+Saint Traft and Rem Karolus
 Salvaging Station
 Sanctify
 Sanctum of Stone Fangs
@@ -429,6 +434,7 @@ Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
+Swirling Spriggan
 Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer

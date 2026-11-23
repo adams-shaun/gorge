@@ -106,7 +106,7 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
 		}
-		if bs[i].readsName {
+		if bs[i].readsName || len(bs[i].readNames) > 0 {
 			readers = append(readers, i)
 		}
 		// A reducer of activated abilities reaches a mana ability's mana cost
@@ -290,6 +290,17 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		filt(ab.Static.ProtExc)
 		filt(ab.Static.Landwalk)
 		filt(ab.Static.GainsOf)
+		if ab.Static.GainsOf != 0 {
+			// mana_gainedgrants.go reads a foreign card's printed basic land
+			// subtype to tell the CR 305.6 intrinsic mana ability a
+			// GainsAbilitiesOf$ recipient has (Marvin beside an animated
+			// Forest), so the matchup keeps the five basic land types
+			for _, w := range [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"} {
+				if i, ok := pt.subIdx[w]; ok {
+					set[uint8(i)] = true
+				}
+			}
+		}
 		cond(ab.Static.Cond2)
 		val(ab.Static.VA)
 		val(ab.Static.VB)
@@ -398,4 +409,33 @@ func buildPool(lw *lowered) ([]*lCard, []built, *poolTables, error) {
 	}
 	refuseByName(lw, sup)
 	return all, bs, pt, nil
+}
+
+// narrowNameReaders keeps, of the cards that read a name, those that can
+// differ on a Room: one reading by F2SameNameAsSource, or by a literal name
+// that is a door name of a Room of the pool (CR 709.5: a Room's names are its
+// unlocked doors', gorge chars/room_name.go; a card off the battlefield has
+// both, CR 709.4). A named<X> with X no door name never matches a Room, in
+// gorge (sharesName) and in the kernel (the Room's name card is not X's).
+func narrowNameReaders(p *pool, all []*lCard, bs []built, rooms, readers []int) []int {
+	doors := map[string]bool{}
+	for _, r := range rooms {
+		doors[all[r].Name] = true
+		if c := p.byName[all[r].Name]; c != nil {
+			for _, f := range c.Faces {
+				doors[f.Name] = true
+			}
+		}
+	}
+	var out []int
+	for _, i := range readers {
+		keep := bs[i].readsName
+		for _, n := range bs[i].readNames {
+			keep = keep || doors[n]
+		}
+		if keep {
+			out = append(out, i)
+		}
+	}
+	return out
 }

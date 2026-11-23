@@ -14,6 +14,7 @@ Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Aphotic Wisps
+Archway of Innovation
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -133,6 +134,7 @@ Filigree Sages
 First-Sphere Gargantua
 Flameshot
 Flanking Troops
+Flooded Grove
 Floodwater Dam
 Flowstone Strike
 Forest
@@ -155,6 +157,7 @@ Goblin Warchief
 Goliath Spider
 Gorma, the Gullet
 Grandmother Sengir
+Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
@@ -308,7 +311,6 @@ Rakdos Ickspitter
 Ransom Note
 Rapid Hybridization
 Raven Familiar
-Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Reckless Scholar

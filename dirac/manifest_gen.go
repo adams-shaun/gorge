@@ -57,6 +57,11 @@ const raRingBearer uint8 = 159
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
 const raRingLoot uint8 = 160
 
+// ask (dirac/manifest/ask/raTrigDemoOpp)
+//
+// the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
+const raTrigDemoOpp uint8 = 161
+
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
 
@@ -763,10 +768,20 @@ func init() {
 	mechName[mechHorsemanshipPost] = "horsemanshipPost"
 }
 
+// mech (dirac/manifest/mech/mechRemFaceDown)
+//
+// object mask: permanents a RememberSacrificed$ Sacrifice took while they were face down, whose mana value read through Remembered$CardManaCost stays 0 (CR 708.2, 608.2h; sacRemember)
+const mechRemFaceDown mech = 61
+
+func init() {
+	mechWidth[mechRemFaceDown] = wObj
+	mechName[mechRemFaceDown] = "remFaceDown"
+}
+
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 61
+const mechSkulk mech = 62
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -776,7 +791,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 62
+const mechSkulkPost mech = 63
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -784,7 +799,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 63
+const numMech mech = 64
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
@@ -804,6 +819,12 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
+	case kop.ExtExchangeLife:
+		return s.exchangeLifeExt(k, in) // act_exchangelife.go
+	case kop.ExtMeld:
+		return s.meldExt(k, in) // face_meld.go
+	case kop.ExtMonarchJail:
+		return s.monarchJailOp(k, in) // act_monarchjail.go
 	case kop.ExtMustBlock:
 		return s.mustBlockAtkExt(k, in) // combat_mustblockatk.go
 	case kop.ExtMyriad:
@@ -822,6 +843,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtUnattach:
+		return s.unattachExt(k, in) // act_unattach.go
 	case kop.ExtVenture:
 		return s.ventureExt(k, in) // act_venture.go
 	}
@@ -932,20 +955,40 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 	switch l.W {
 	case kop.FwAttacking:
 		return s.fwAttacking(c, l) // filter_attacking.go
+	case kop.FwBasePowerCmp:
+		return s.fwBasePowerCmp(c, l) // filter_basepowercmp.go
+	case kop.FwBaseToughnessCmp:
+		return s.fwBaseToughnessCmp(c, l) // filter_basetoughnesscmp.go
 	case kop.FwCMCCmp:
 		return s.fwCMCCmp(c, l) // filter_cmccmp.go
+	case kop.FwChosenCtrl:
+		return s.fwChosenCtrl(c, l) // filter_chosenctrl.go
 	case kop.FwCountersCmp:
 		return s.fwCountersCmp(c, l) // filter_counterscmp.go
+	case kop.FwDoubleFaced:
+		return s.fwDoubleFaced(c, l) // filter_doublefaced.go
+	case kop.FwEnchantedControllerCtrl:
+		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
 	case kop.FwKeyword:
 		return s.fwKeyword(c, l) // filter_keyword.go
 	case kop.FwPowerCmp:
 		return s.fwPowerCmp(c, l) // filter_powercmp.go
+	case kop.FwSameName:
+		return s.fwSameName(c, l) // filter_samenameref.go
+	case kop.FwSharesCr:
+		return s.fwSharesCr(c, l) // filter_sharesreferents.go
+	case kop.FwSharesName:
+		return s.fwSharesName(c, l) // filter_sharesreferents.go
 	case kop.FwSubtype:
 		return s.fwSubtype(c, l) // filter_subtype.go
 	case kop.FwTapped:
 		return s.fwTapped(c, l) // filter_tapped.go
+	case kop.FwTopLibrary:
+		return s.fwTopLibrary(c, l) // filter_toplibrary.go
 	case kop.FwToughnessCmp:
 		return s.fwToughnessCmp(c, l) // filter_toughnesscmp.go
+	case kop.FwWithKeyword:
+		return s.fwWithKeyword(c, l) // filter_withkeyword.go
 	}
 	panic("kernel: filter word not implemented")
 }
@@ -953,7 +996,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwCMCCmp, kop.FwCountersCmp, kop.FwKeyword, kop.FwPowerCmp, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

@@ -462,6 +462,11 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 				n += h.LifeLostThisTurn(p)
 			}
 			return n, true
+		case cov3PlayerPropSVarAmount:
+			// Plague of Vermin's per-player AdditiveForEach total: the sum
+			// over the remembered seats (the loop binds one) of what the
+			// StoreSVar rounds accumulated for each.
+			return svarAmountSum(h, c, players), true
 		}
 		if _, known := playerScalarProperty(h, g, 0, prop); !known {
 			return 0, false
@@ -953,6 +958,8 @@ const (
 	evalCov3HeadDevoured
 	evalCov3HeadHasNumChosenColorsTriggeredCard
 	evalCov3HeadHasNumChosenColorsOriginalHost
+	evalCov3HeadRegeneratedThisTurn
+	evalCov3HeadMaxDistinctOnStack
 )
 
 var evalCov3HeadCodes = state.NewStrCodes(
@@ -982,6 +989,8 @@ var evalCov3HeadCodes = state.NewStrCodes(
 	state.StrEntry[evalCov3HeadCode]{Key: "Devoured", Val: evalCov3HeadDevoured},
 	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.TriggeredCard", Val: evalCov3HeadHasNumChosenColorsTriggeredCard},
 	state.StrEntry[evalCov3HeadCode]{Key: "HasNumChosenColors.OriginalHost", Val: evalCov3HeadHasNumChosenColorsOriginalHost},
+	state.StrEntry[evalCov3HeadCode]{Key: "RegeneratedThisTurn", Val: evalCov3HeadRegeneratedThisTurn},
+	state.StrEntry[evalCov3HeadCode]{Key: "MaxDistinctOnStack", Val: evalCov3HeadMaxDistinctOnStack},
 )
 
 type cov3BranchHoldsCode uint16
@@ -1000,6 +1009,7 @@ const (
 	cov3BranchHoldsInitiative
 	cov3BranchHoldsNight
 	cov3BranchHoldsEscaped
+	cov3BranchHoldsEmerged
 )
 
 var cov3BranchHoldsCodes = state.NewStrCodes(
@@ -1016,6 +1026,7 @@ var cov3BranchHoldsCodes = state.NewStrCodes(
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Initiative", Val: cov3BranchHoldsInitiative},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Night", Val: cov3BranchHoldsNight},
 	state.StrEntry[cov3BranchHoldsCode]{Key: "Escaped", Val: cov3BranchHoldsEscaped},
+	state.StrEntry[cov3BranchHoldsCode]{Key: "Emerged", Val: cov3BranchHoldsEmerged},
 )
 
 type playerScalarPropertyCode uint16
@@ -1092,6 +1103,7 @@ const (
 	cov3PlayerPropDamageThisTurn
 	cov3PlayerPropBeenDealtCombatDamageSinceLastTurn
 	cov3PlayerPropTiedForHighestLife
+	cov3PlayerPropSVarAmount
 )
 
 var cov3PlayerPropCodes = state.NewStrCodes(
@@ -1101,6 +1113,7 @@ var cov3PlayerPropCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerPropCode]{Key: "DamageThisTurn", Val: cov3PlayerPropDamageThisTurn},
 	state.StrEntry[cov3PlayerPropCode]{Key: "BeenDealtCombatDamageSinceLastTurn", Val: cov3PlayerPropBeenDealtCombatDamageSinceLastTurn},
 	state.StrEntry[cov3PlayerPropCode]{Key: "TiedForHighestLife", Val: cov3PlayerPropTiedForHighestLife},
+	state.StrEntry[cov3PlayerPropCode]{Key: "SVarAmount", Val: cov3PlayerPropSVarAmount},
 )
 
 type cov3PlayerScalarCode uint16

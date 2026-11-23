@@ -948,7 +948,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && !isBasicLandChoose(in) && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
 			s.queueAsk(s.objs[o].slot, 2)
 		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
 			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
@@ -963,6 +963,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// source's earlier one.
 			s.res.chosen = objWord(s.objs[o].chosen)
 			s.res.bad |= resChosenType | card
+		} else if in.B.N == kop.ChooseTypeRandomDeck {
+			// the AtRandom$ CreatureInTargetedDeck shape (Aswan Jaguar):
+			// gorge poses no ask, the engine draws the type over the target
+			// opponent's deck's creature subtypes and stores it as the
+			// source's chosen type (act_randomdecktype.go)
+			s.randomDeckType(k, in)
 		} else {
 			s.res.ask, s.res.askP = raChooseType, e.ctrl
 			return false, true
@@ -1205,7 +1211,15 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
-	if ok := s.exec(k, in); !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
+	ok := s.exec(k, in)
+	if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
+		// CR 903.9b: a commander's bounce parked before it happens; the
+		// answer reruns the instruction, so no later target moves first
+		e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
+		s.g.inLoop = false
+		return false
+	}
+	if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 		w.j = 1 // the extra targets wait for the answer (copy_eachtarget.go, zone_eachreturnask.go)
 		s.g.each = w
 		s.g.inLoop = false
@@ -1419,7 +1433,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(o) // face_omen.go
 			} else {
-				s.placeFromK(k, o, z, false, from, false)
+				s.placeFromK(k, o, z, false, from, false, false)
 			}
 			return true
 		}
@@ -1440,7 +1454,7 @@ func (s *State) moveObj(k *prep, r kop.Ref, o Obj, z kop.Zone) bool {
 			return false // CR 111.8 (zone_tokenleft.go)
 		}
 		from := s.detach(o)
-		s.placeFromK(k, o, z, false, from, false)
+		s.placeFromK(k, o, z, false, from, false, false)
 	}
 	return true
 }
@@ -1622,9 +1636,20 @@ func (s *State) returnAura(k *prep, o Obj, host Slot) bool {
 	}
 	var sl Slot
 	s.enterOnto(host)
-	if from == kop.ZoneGraveyard {
+	switch {
+	case s.g.retAt != 0:
+		// an Aura of a many-object return walk (returnRemembered) answered
+		// its enchant ask outside the walk's frame: its enters check waits
+		// for the walk's end with the others' (execReturnObj), not fired here
+		// and again by fireHeld once eight entrants repeat the held stamps
+		sl = s.enterNF(k, o, ctrl, false, from, 0)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o)
+		}
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+	case from == kop.ZoneGraveyard:
 		sl = s.enterFromGrave(k, o, ctrl, false)
-	} else {
+	default:
 		sl = s.enter(k, o, ctrl, false, from)
 	}
 	s.attachedTo(k, sl, host)
@@ -1716,10 +1741,8 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		(!transformedDfc && s.instantStays(k, o, kop.Zone(in.C&7))) {
 		return false
 	}
-	if ob.zone == kop.ZoneLibrary || in.B.N&kop.RetFromLibrary != 0 {
-		if in.B.N&kop.RetFromLibrary == 0 || ob.zone != kop.ZoneLibrary {
-			return false // Origin$ Library gates the move to a library card; every other return skips one
-		}
+	if returnSkipsLibrary(in, ob.zone) {
+		return false
 	}
 	if in.Obj == kop.RefTriggerObj && o == e.obj && e.kind == seTrigger && s.trigDiedObjMovedOn(k, e, ob) {
 		return false // the card that died has moved on (exiled from the graveyard in response): a new object
@@ -1800,7 +1823,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		s.shuffleLib(s.objs[o].owner()) // a Defined$ library fetch shuffles only when the script owes one (gorge moveDefinedLibraryObjects)
 	}
 	if z != kop.ZoneBattlefield {
-		s.placeFromK(k, o, z, false, from, false)
+		s.placeFromK(k, o, z, false, from, false, false)
 		return false
 	}
 	if k.gen != nil && k.gen.anyMayLimit {
@@ -2018,6 +2041,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					// re-run cannot recover them from the source zone. Place
 					// them now (gorge moved them before the ask) and carry the
 					// per-owner prefix so the re-run keeps move order.
+					carry.bottom = true // zone_changezoneall.go: gorge's cards sit at the bottom until the answer
 					if nz == 2 {
 						pend.place(s, &carry)
 						pend = czallPend{}
@@ -2088,7 +2112,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 					listFrom[nl] = from
 					nl++
 				} else {
-					s.placeFromK(k, o, zz, bb, from, false)
+					s.placeFromK(k, o, zz, bb, from, false, false)
 				}
 			}
 			if nl > 0 {
@@ -2101,6 +2125,7 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		}
 	}
 	pend.place(s, &carry)
+	carry.finish(s)
 	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
 		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
 	}
@@ -2299,6 +2324,9 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
+		if in.Obj == kop.RefRemembered {
+			s.delayEmptyRider(in) // nothing remembered: no copy, but the rider's trigger exists (copy_emptyrider.go)
+		}
 		return false
 	}
 	c := s.objs[o].card
@@ -2587,7 +2615,7 @@ func (s *State) enchantCands(k *prep, c CardID, p uint8, out *[MaxOptions]TCode)
 // card c under p's control may enchant (enchantCands' per-permanent test).
 func (s *State) enchantHostOK(k *prep, c CardID, p uint8, sl Slot) bool {
 	return s.matchPerm(k, k.t.Cards[c].Enchant.Filter, sl, p, NoSlot) && s.kw(k, sl)&kop.KwProtectionAll == 0 &&
-		!(k.gen.anyProtCol && s.protPrinted(k, sl)&k.t.Cards[c].Colors != 0) &&
+		!s.protColFrom(k, sl, k.t.Cards[c].Colors) && // printed or static-granted (Sword of Feast and Famine's black)
 		!(k.gen.anyProtF && s.protQuality(k, sl, NoSlot, c))
 }
 
@@ -2604,8 +2632,11 @@ const NoSubtypeIdx = 254
 // latched) instead of dealt, so the caller's op pauses on the parked event for
 // the answer to re-execute it.
 func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool {
+	if s.g.dmgSeqOn {
+		return s.damageBatchNext(k, codes, amts) // a resumed seq: the hits from dmgSeqI on (repl_plus.go)
+	}
 	kw := s.srcKw(k)
-	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts) {
+	if park && s.replPlusSrcPass(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, kw, codes, amts, true) {
 		return true
 	}
 	inf := k.gen.anyInfect && s.srcInfect(k)
@@ -2615,7 +2646,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	for i, code := range codes {
 		n := amts[i]
 		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
-			n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, false, n)
+			n = s.replDamagePend(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, n, s.res.e.obj)
 		}
 		if n <= 0 {
 			continue
@@ -2626,7 +2657,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 			if inf {
 				s.addPoison(CodeSeat(code), n) // CR 702.90b
 			} else {
-				s.loseLife(k, CodeSeat(code), n)
+				s.loseLifeDmg(k, CodeSeat(code), n)
 			}
 			s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 			toPl = true
@@ -2667,16 +2698,42 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg {
+	lis := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg
+	if lis || k.embDmg() {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		agg.dn = dn[:len(codes)]   // each recipient's share, an AtLeastOneInstance$ gate's read (trig_atleastone.go)
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
-			s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
+			if lis { // an emblem alone fires per recipient, below
+				s.fireDamageEvGen(k, sl, int16(total), toPl, false, nil, TCode(NoTarget), &agg)
+			}
 		} else if s.res.e.obj != NoObj { // a spell, or an ability whose source is gone (pair 3334)
 			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(total), plM, TCode(NoTarget), &agg)
 		}
 		s.fireDamageRefs(k, codes, dn[:len(codes)]) // one Damage event per recipient
 	}
+	return false
+}
+
+// damageBatchNext is a parked damage batch's seq (replPlusSrcPass's at>0 arm,
+// batchSeqStart): the hits from dmgSeqI on, dealt one at a time through
+// damageTo (gorge collects each event's replacements as the event happens,
+// CR 616.1e). A hit two replacements match parks the ask and stops the seq;
+// the answer deals it (dealNC) and the op's re-execution continues here. The
+// batch bracket spans the seq like a sweep's (trig_dmgbatch.go): the
+// once-per-batch lines latch at their first matching event and
+// dmgBatchClose patches their amounts to the whole batch's total.
+func (s *State) damageBatchNext(k *prep, codes []TCode, amts []int) bool {
+	s.dmgBatchOpen() // a resumed seq re-enters with the batch already open
+	for i := int(s.g.dmgSeqI); i < len(codes); i++ {
+		s.damageTo(k, codes[i], amts[i])
+		if s.g.nc.n != 0 {
+			s.g.dmgSeqI = uint8(i + 1)
+			return true // parked: the ask is posed, the seq resumes with the rest
+		}
+		s.g.dmgSeqI = uint8(i + 1)
+	}
+	s.g.dmgSeqOn = false
+	s.dmgBatchClose() // the batch is over: the once lines' amounts are patched in (trig_dmgbatch.go)
 	return false
 }
 

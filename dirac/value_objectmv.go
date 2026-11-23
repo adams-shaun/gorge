@@ -107,8 +107,8 @@ func (s *State) rememberedMV(k *prep) int { return s.rememberedMVAgg(k, false) }
 func (s *State) rememberedMVAgg(k *prep, greatest bool) int {
 	n := 0
 	for _, o := range s.g.rem[:s.g.nrem] {
-		if s.faceDownAt(k, o) {
-			continue // CR 708.2: a face-down permanent or spell has no mana cost
+		if s.faceDownAt(k, o) || s.remFaceDownLeft(k, o) {
+			continue // CR 708.2: a face-down permanent or spell has no mana cost; a sacrificed one had none as it left (CR 608.2h)
 		}
 		ob := &s.objs[o]
 		mv := 0
@@ -168,7 +168,7 @@ func (s *State) mvPerm(k *prep, sl Slot) int {
 func (s *State) copiesBackFace(k *prep, sl Slot) bool {
 	c := s.cardAt(sl)
 	cd := &k.t.Cards[c]
-	if cd.FaceMode != kop.FaceTransform || cd.Face == 0 {
+	if cd.FaceMode != kop.FaceTransform && cd.FaceMode != kop.FaceMeld || cd.Face == 0 { // CR 712.8e / 202.3c: a copy of a melded face prints no cost
 		return false
 	}
 	return s.perms[sl].ovr.flags&ovCopy != 0 || s.objs[s.perms[sl].obj].of&ofCopy != 0

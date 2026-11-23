@@ -1,46 +1,111 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abandon Reason	6e5a195187d78416	37	0/0		2/2	
 Acquisition Octopus	31f4479dc3926084	4	3/3		0/1	ix:resp
+Blessed Defiance	c2e5fcc1266b271d	4	0/0		1/2	ix:resp
 Bolrac-Clan Crusher	bf90e195f0000dc0	14	1/1		1/1	
 Breakneck Berserker	9f71a1cd71b484ec	31	0/0		0/0	
+Bring Low	5ae0f4b057e90163	6	0/0		1/2	ix:resp
+Consulate Dreadnought	54e4a6196d1493fb	6	1/1		0/1	ix:resp
+Crippling Fear	2373c1fe6146def1	4	0/0		1/2	ix:resp
+Crumble	55e213ffccbb74d8	4	0/0		1/2	ix:resp
+Darkslick Drake	0bf1fd6611d52877	4	1/1		0/1	ix:resp
+Darksteel Ingot	401b3bf30da3f255	3	1/1		0/1	ix:resp
+Dauthi Trapper	8227dc8fac724de1	3	1/1		0/1	ix:resp
 Decimate	196b51cd4724262a	9	0/0		1/2	ix:resp
+Deepwood Wolverine	cba01fd1e6003aee	3	1/1		0/1	ix:resp
+Dense Canopy	ea042ebbe2d69c85	4	0/0		0/0	
 Devour in Flames	6fbf34d2297c4942	15	0/0		2/2	
+Dream Stalker	681a9065fb0d0b5f	6	1/1		0/1	ix:resp
+Dreampod Druid	7d33cd3e34246fba	3	1/1		0/1	ix:resp
+Dross Ripper	50ef7f9353c50bc2	5	1/1		0/1	ix:resp
 Dungeon Shade	d2113879f6c8c628	41	1/1		1/1	
+Dwarven Mine	843d1eaa2cf3a21d	13	2/2		0/1	ix:resp
+Early Frost	21247a14d19b3e5f	3	0/0		1/2	ix:resp
 Electrodominance	9d383e6879f1b876	30	0/0		3/4	f0/s/x0
+Elven Chorus	dd3ec256a971bd15	4	0/0		0/0	
+Emerald Dragonfly	f10a2ed066554a83	6	1/1		0/1	ix:resp
+Epic Proportions	b403cfad4d9f9740	4	0/0		2/2	
+Erhnam Djinn	0bff85d6cac34a86	4	1/1		1/1	
+Evasive Action	022c6a0db49d5e7a	4	0/0		1/2	ix:resp
 Flames of the Firebrand	42cf249f1a1880b1	29	0/0		1/2	ix:resp
 Gilded Assault Cart	38da1285d39c7c1b	23	2/2		1/1	
 Goblin Bangchuckers	ac07d45539a44d87	15	1/1		1/1	
 Goblin Masons	82e1fc683e6aa1c6	38	1/1		1/1	
+Grazing Whiptail	9449b95607ada70d	3	0/0		0/0	
 Grim Poppet	a62f287409b0ec19	3	1/1		0/1	ix:resp
+Gyre Sage	1ce6a8bc3b4beb77	7	2/2		0/1	ix:resp
+Halimar Depths	7493fed802903935	8	2/2		0/1	ix:resp
 Headstrong Brute	84ec19ac7a3dfffd	24	0/0		0/0	
 Hibernation Sliver	ce3cda2259bfd1b2	37	0/0		0/0	
 Inescapable Brute	de9a4776bb278d96	6	0/0		0/0	
+Inhumaniac	75cd27223408d881	5	1/1		1/1	
 Joven and Chandler	2e356d08eb2a0f5d	26	2/2		1/1	
+Junktown	ab050ed17f7e9772	4	2/2		0/1	ix:resp
 Keldon Warlord	ba33b5fd6a068357	37	0/0		0/0	
+Kolaghan Aspirant	86057ab8867387a0	4	1/1		0/1	ix:resp
+Life Chisel	f68970bcc73ad374	6	1/1		0/1	ix:resp
+Living Wish	6fb7f80d9baa04ec	4	0/0		1/2	ix:resp
+Loathsome Curator	8c3814a9851a9d15	4	2/2		0/1	ix:resp
+Machine Over Matter	bc48891312f2c6c7	8	0/0		1/2	ix:resp
+Mass Appeal	28177b6c135f63a4	4	0/0		2/2	
+Might Beyond Reason	d44b795ed5ee589f	4	0/0		1/2	ix:resp
+Mole Worms	77511e820a18325d	3	1/1		0/1	ix:resp
+Needle Storm	c8363b1f71dfe359	3	0/0		1/2	ix:resp
+Obsidian Battle-Axe	ff8811efb2a5657a	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Oona's Gatewarden	436cb0d5f1e5a212	5	0/0		0/0	
+Oraxid	fd514f8ab94720ac	4	0/0		0/0	
+Parapet Watchers	0fbbc1a0202444b5	8	1/1		1/1	
 Phylath, World Sculptor	a33ff2d00184e8b8	6	2/2		0/1	ix:resp
+Plague Beetle	0df238da3a5b91d4	8	0/0		0/0	
 Possessed Skaab	f787b63b99cf1b2a	5	1/1		0/1	ix:resp
+Professor of Zoomancy	6f1d4066ce7a08b8	4	1/1		0/1	ix:resp
 Quick-Draw Dagger	2d4aac7960f5b772	3	2/2		0/1	ix:resp
-Rain of Rust	1ff30f6837f2bf5a	47	0/0		2/2	
+Rabid Wolverines	2c14035cdc349a50	6	1/1		0/1	ix:resp
+Rayne, Academy Chancellor	5df408c38d8ee25a	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Reject	4fc509263c52a966	4	0/0		1/2	ix:resp
+Remote Farm	c5acbb4e186efd6e	14	1/1		0/1	ix:resp
 Requiem Angel	b5c1ca991d1c39ca	3	1/1		1/1	
+Retreat to Valakut	1d8b111ad0603ccb	4	1/1		0/1	ix:resp
 Risona, Asari Commander	d69380400c7ed025	26	2/2		1/1	
 Ronin Cavekeeper	891890199c600edf	26	2/2		1/1	
 Rubblebelt Boar	351b8fbb186d9932	3	1/1		0/1	ix:resp
+Sadistic Obsession	619fbb0e16af1b3f	4	0/0		1/2	ix:resp
 Sarkhan's Catharsis	bd6ae9d05e1a33f5	40	0/0		2/2	
 Satyr's Cunning	d860551f9c56692c	57	0/0		3/4	cast/alt:escaped
+Serendib Efreet	6ec0ce8314c3f879	8	1/1		1/1	
 Shambling Remains	ab67cb4c905371b7	33	1/1		1/1	
 Shielded Passage	73aedcb1ac815cec	11	0/0		1/2	ix:resp
+Silent Clearing	0fe7935d2020878f	3	2/2		0/1	ix:resp
+Skysnare Spider	811d52b9f976a6cc	3	0/0		0/0	
 Smashing Spree	cd28590a8b901e70	31	0/0		2/2	
 Sootwalkers	5a0260d4a1080067	6	0/0		0/0	
+Spectral Bears	69c06e2d9858bb80	6	1/1		1/1	
 Sphere of Purity	6c8c985a4bdecf5b	10	0/0		0/0	
+Spring	01e3a4c8257d89af	3	0/0		3/5	f1/s,ix:resp
+Springsage Ritual	b1d394f2a370061a	4	0/0		1/2	ix:resp
+Stew the Coneys	808339bc7c9ac90e	7	0/0		2/2	
+Strength in Numbers	5e65e286a7557e6d	4	0/0		1/2	ix:resp
+Strider Harness	26edbfb8f75ae67b	4	1/1		0/1	ix:resp
 Swirling Sandstorm	1653435a1ee576ab	36	0/0		2/2	
 Tavern Ruffian	26493343e323e465	22	0/0		0/0	
+Theoretical Duplication	c8d57cbeefe3228d	5	0/0		1/2	ix:resp
 Tivadar's Crusade	2cfab29566fb6fca	3	0/0		1/2	ix:resp
+Treetop Warden	0ac1c19d0e2e2035	6	0/0		0/0	
 Tuktuk Rubblefort	44863d344e663577	27	0/0		0/0	
+Turbulent Shore	bbbc6dc90042552f	9	2/2		0/1	ix:resp
 Undercover Butler	b29edeb36b97151e	6	1/1		0/1	ix:resp
+Unexpected Windfall	8ee853710a78d136	4	0/0		1/2	ix:resp
 Unity of Purpose	2cb6723d63bf5d47	41	0/0		1/2	ix:resp
 Unstoppable Ogre	c704eaf896bab710	21	1/1		0/1	ix:resp
+Vedalken Anatomist	df68d0dddb228a91	6	1/1		1/1	
+Veiled Apparition	266ddcabde70aba5	7	1/1		0/1	ix:resp
 Wall of Blood	7cccbe4907d30c54	42	1/1		1/1	
 Wall of Mist	0dc7820f5bddcb25	12	0/0		0/0	
+Warbriar Blessing	3f0ad15433d4aa12	5	1/1		1/2	ix:resp
+Wayward Soul	d37782e04df958f8	3	1/1		0/1	ix:resp
 Weldfast Engineer	a0b2ebcd41085fc9	24	1/1		1/1	
+Wickerbough Elder	249f908914c2d428	4	1/1		0/1	ix:resp
+Wild Growth	9c9c7357d116fe41	8	1/1		1/2	ix:resp
+Woodripper	d2b7077d2ad21412	5	2/2		0/1	ix:resp
+Wormwood Treefolk	304868e906d19bd2	31	2/2		1/1	
 Write into Being	88c764fcd03cbf4b	3	0/0		1/2	ix:resp

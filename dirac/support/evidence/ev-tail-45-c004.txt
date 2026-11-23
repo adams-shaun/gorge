@@ -3,18 +3,23 @@ Abyssal Specter
 Acolyte of Xathrid
 Acridian
 Aether Barrier
+Akki Raider
 Alchemist's Vial
 Alert Shu Infantry
 Ambitious Aetherborn
 Anara, Wolvid Familiar
 Anthroplasm
 Apothecary Initiate
+Arc Blade
 Arc Lightning
 Argothian Opportunist
 Arisen Gorgon
+Arwen Undómiel
 Ashes to Ashes
 Asmira, Holy Avenger
+Assault Formation
 Atzocan Archer
+Axebane Beast
 Ayumi, the Last Visitor
 Bag End Banquet
 Balduvian Horde
@@ -35,22 +40,30 @@ Brazen Freebooter
 Brine Seer
 Call of the Death-Dweller
 Callous Dismissal
+Captain of the Watch
 Carnage Altar
 Celestial Gatekeeper
 Chainflinger
 Chameleon Spirit
 Clairvoyance
 Clock of Omens
+Coalhauler Swine
 Colossus Hammer
 Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
 Court Archers
+Crag Saurian
+Crossroads Consecrator
 Culling Mark
+Curse of the Nightly Hunt
 Dakkon, Shadow Slayer
 Dark Inquiry
 Dark Tutelage
 Darkslick Shores
+Dauntless Escort
+Dauthi Jackal
 Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
@@ -69,10 +82,13 @@ Dwarven Grunt
 Ecstatic Awakener
 Elspeth, Undaunted Hero
 Elven Palisade
+Ephemeron
 Ethereal Elk
 Eviscerator
 Exorcist
+Ezuri, Renegade Leader
 Farhaven Elf
+Fearless Halberdier
 Feign Death
 Fendeep Summoner
 Fiery Conclusion
@@ -84,6 +100,7 @@ Flare of Faith
 Fledgling Dragon
 Fly
 Forest
+Forest Bear
 Foundry Helix
 Freewind Falcon
 Garbage Elemental
@@ -92,6 +109,7 @@ Garruk Wildspeaker
 General's Kabuto
 Ghitu War Cry
 Ghostly Sentinel
+Gideon's Phalanx
 Glade Watcher
 Gleam of Authority
 Goblin Fireleaper
@@ -102,6 +120,7 @@ Grinning Demon
 Guardian Augmenter
 Haazda Officer
 Hag of Death's Legion
+Havengul Skaab
 Haze of Pollen
 Hazel's Brewmaster
 Heart Sliver
@@ -116,6 +135,7 @@ Homarid Warrior
 Honored Hydra
 Hua Tuo, Honored Physician
 Hunter's Insight
+Icatian Town
 Ikiral Outrider
 Illusory Gains
 Improbable Alliance
@@ -127,16 +147,22 @@ Jawbone Skulkin
 Jolrael, Empress of Beasts
 Joust
 Jund Panorama
-Kavu Aggressor
+Kami of Industry
+Kavu Mauler
 Keening Banshee
 Keldon Arsonist
+Keldon Vandals
 Kiku, Night's Flower
 King Harald's Revenge
 Kraul Raider
+Lantern Kami
 Laser Screwdriver
 Leatherback Baloth
 Lightning Reaver
 Lonely Sandbar
+Looming Hoverguard
+Lowland Giant
+Loxodon Sergeant
 MagicConsecrated Sphinx
 Magister Sphinx
 Magus of the Order
@@ -147,19 +173,22 @@ Martyr for the Cause
 Mercurial Pretender
 Meteor Storm
 Moaning Spirit
-Molten Ravager
+Mole Module
 Monk Idealist
 Mountain
 Mudhole
+Murasa Pyromancer
 Naga Vitalist
 Nath's Elite
 Nebelgast Herald
 Necrogen Censer
 Nest Invader
 Nightmare's Thirst
+Nimblewright Schematic
 Niveous Wisps
 Nyx-Fleece Ram
 Nyxathid
+Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
 Omen of the Sea
@@ -167,15 +196,18 @@ Omenspeaker
 One with the Kami
 Onulet
 Patron Wizard
+Personal Sanctuary
 Pilfering Imp
 Plains
 Pollenbright Druid
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
 Quirion Ranger
 Rancid Rats
 Rath's Edge
 Rathi Intimidator
 Razorclaw Bear
+Razorfield Rhino
 Reckless Fireweaver
 Reclaim the Wastes
 Redcap Heelslasher
@@ -187,7 +219,9 @@ Renata, Called to the Hunt
 Repeal
 Repentant Blacksmith
 Respite
+Revenant Patriarch
 Reverent Hunter
+Righteous Confluence
 River Boa
 River Darter
 Roaring Slagwurm
@@ -197,14 +231,17 @@ Safehold Sentry
 Sandstone Needle
 Saproling Burst
 Saproling Migration
+Saw It Coming
 Scalebane's Elite
 Scattershot
 Seasoned Pyromancer
 Seekers' Squire
 Sensory Deprivation
+Shaman of the Great Hunt
 Shambling Remains
 Shield of Duty and Reason
 Shivan Devastator
+Shivan Raptor
 Signpost Scarecrow
 Silverglade Pathfinder
 Simic Cluestone
@@ -212,6 +249,7 @@ Sire of Stagnation
 Skarrgan Skybreaker
 Smothering Abomination
 Sol Grail
+Somberwald Stag
 Soul of Shandalar
 Soulmender
 Sovereign's Bite
@@ -227,8 +265,12 @@ Springing Tiger
 Stasis Cell
 Steel-Plume Marshal
 Stew the Coneys
+Stitch Together
+Stoic Builder
 Storm of Steel
 Stormchaser Chimera
+Stormwatch Eagle
+Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
 Sultai Flayer
@@ -242,11 +284,13 @@ Tajic, Blade of the Legion
 Telekinetic Sliver
 Tempestra, Dame of Games
 Territorial Roc
+Thalisse, Reverent Medium
 Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
+Thrun, the Last Troll
 Thud
 Timbermare
 Toucan-Puffin
@@ -265,11 +309,13 @@ Wake of Vultures
 Warhost's Frenzy
 Weakstone
 Webweaver Changeling
+Weird Harvest
 Welding Sparks
 Whimwader
 Willow Elf
 Windstorm
 Winged Hive Tyrant
+Wingmantle Chaplain
 Wings of Velis Vel
 Wipe Away
 Withstand Death
@@ -277,5 +323,6 @@ Wizard's Staff
 Wrecking Ogre
 Wriggling Grub
 Wu Elite Cavalry
+Yahenni, Undying Partisan
 Yargle and Multani
 Zombie Mob

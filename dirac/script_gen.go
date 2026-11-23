@@ -36,6 +36,11 @@ const (
 	availOwn   uint16 = 1024 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
 )
 
+// availNoAnyGrant: the census holds an any-colour grant out (availGrant), as
+// gorge's payment planner prices no granted mana ability; set only by
+// mayPlayJoinCensusPays.
+const availNoAnyGrant uint16 = 8192
+
 // scriptGaps: p's activatable each-colour sources, a slot mask.
 func (s *State) scriptGaps(k *prep, p uint8) slotMask {
 	if !k.gen.anyEachCol {
@@ -99,18 +104,24 @@ func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
 		if !k.gen.has(s.cardAt(sl), bit) {
 			continue
 		}
-		pm := &s.perms[sl]
-		if s.pickedForMana(pm.obj) {
-			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
+		if s.gapLive(k, p, sl) {
+			m = m.with(sl)
 		}
-		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
-			k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
-			k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)) {
-			continue
-		}
-		m = m.with(sl)
 	}
 	return m
+}
+
+// gapLive reports whether the census-gap source at sl (p's) can be activated
+// for mana now: gapMask's per-slot test, and the one a gap source's potential
+// fold reads (canTapForManaPC rejects every gap source, its manaAb is < 0).
+func (s *State) gapLive(k *prep, p uint8, sl Slot) bool {
+	pm := &s.perms[sl]
+	if s.pickedForMana(pm.obj) {
+		return false // a Convoke/Waterbend pick is tapped for that cast, not for mana
+	}
+	return !(pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) ||
+		k.gen.anyCantAct && s.actForbidden(k, sl, true) || // a CantBeActivated lock (cast_cantactivate.go)
+		k.gen.anyDeferred && k.gen.has(s.cardAt(sl), gfDeferred) && (!s.deferLifeSurvives(k, p, sl) || s.deferNoMana(k, sl)))
 }
 
 // eachColorOut is the mana gap sl adds: one of each colour among p's
@@ -136,8 +147,9 @@ func (s *State) availScript(k *prep, p uint8, a *avail) {
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
 		s.availDH(k, p, a) // a Lion's Eye Diamond's relaxed units (mana_discardhand.go)
 	}
-	if k.gen.anyComboAny && s.caBoard(k, p) {
+	if k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p)) {
 		s.availCA(k, p, a) // a Combo Any source's any-colour units (mana_comboany.go)
+		s.availForageCA(k, p, a)
 	}
 	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
 		s.eachGapUnits(k, p, b.first(), a)
@@ -278,29 +290,141 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 	return addCostShapeUnscripted(k, c)
 }
 
+// offerSkip is the script walk loop's drop state: the loop-invariant masks
+// scriptOfferDrops prices a play against.
+type offerSkip struct {
+	d, capSpent, gaps, noWide, noWideNF       *Decision
+	sacAny, sacRepeat, wide, mixWide, anyWalk bool
+	reflFilt                                  bool // a filter beside a reflected Amount$ source (reflFiltBoard)
+	anyR                                      slotMask
+}
+
+// scriptOfferDrops reports whether the walk loop's play a is not offered in
+// the decision: already on it or on the spent cap, dropped by the sacrifice-
+// any / repeat arms, unfundable by a wide source (the relaxed proof's drop,
+// and the mixed-board noWide arm), or — on the any-mana walk — a play the
+// payment bound built with its restrictions applied cannot afford
+// (restrBoundDrops: a cast, or a plain battlefield activation).
+func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool {
+	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || hasOption(o.capSpent, a) ||
+		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
+		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
+		o.mixWide && !hasOption(o.noWide, a) && !hasOption(o.noWideNF, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
+		o.anyWalk && s.restrBoundDrops(k, p, a) ||
+		o.reflFilt && s.reflAmtBoundFails(k, p, a) // gorge's bound gate refuses it before any search
+}
+
+// pricedByPrintedSources reports a plain, untargeted cast the printed-source census pays: gorge's planner finds it
+// sufficient and runs no prefix search for it. A Phyrexian cost is no such play: the planner prices its mana half alone
+// (CR 601.2b), so the walk census paying the whole cost, Taps-deferred Islands under Scald counted, proves nothing
+// about the plain offer; the prefix search decides it, as gorge's potential walk does.
+func (s *State) pricedByPrintedSources(k *prep, real *Decision, a Action) bool {
+	return plainCastMode(a) && a.Target() == 0 && hasOption(real, a) && !k.cards[s.objs[Obj(a.Source())].card].cost.Phyrexian()
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
-func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
+// plainCastMode reports a cast of the card's printed spell: no mode number,
+// and no may-play, face or warp mode (autopayDropsPlainCast's and
+// plainCastUnsearched's shape).
+func plainCastMode(a Action) bool {
+	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
+}
+
+// modalPricedAtPrinted reports a cast whose Spree or Tiered mode costs gorge's
+// potential planner leaves out: a may-play or a flashback cast, composed at
+// its printed cost by potentialModeCastPlan (the "shape:modal_cost" decline
+// is the plain cast's), so its prefix search runs whatever the cheapest
+// mode adds (Great Train Heist's flashback beside a Conduit Pylons).
+func modalPricedAtPrinted(a Action) bool {
+	return a.Mode()&castMayPlay != 0 || a.Mode()&3 == 2
+}
+
+// ctrGapCastMode reports whether a is the printed-cost cast a live
+// counter-cost gap can be load-bearing for beside a filter: not an overload
+// cast (mode 0, target castOverloadTgt), whose cost gorge's offer gates price.
+func ctrGapCastMode(a Action) bool {
+	return plainCastMode(a) && a.Target() != castOverloadTgt
+}
+
+// filtSecondQuery is the filt branch's second query for a play the filter
+// route found no script for: the extended-gap-set search keeps the play when
+// a Taps-deferred source's census pays it, or, for a printed-cost cast, when a
+// live counter-cost gap is load-bearing: the second query answers for the cast
+// only when the census without the gap cannot pay it and the one with it can
+// (tail-02 pair 91: Cauldron's Gift's {4}{B} through Energy Refractor and
+// Vivid Meadow's counter tap, the cast offered by gorge's potential census,
+// dropped here). An alternative-cost cast (Bash to Bits's {4}{R}{R} flashback
+// beside the same Refractor, Fangs of Kalonia's overload) keeps gorge's own
+// offer gates, not the second query. The counter-gap queries run on a fork: a
+// kept play takes no stall from them, and a search's side state must not leak
+// into the offer walk's later candidates.
+func (s *State) filtSecondQuery(k *prep, a Action, p uint8, restr, anyR, tapsDef, anyDiff slotMask) bool {
+	if tapsDef.any() {
+		// Only where gorge's phased run is in scope (phasedRunInScope): its
+		// script counts for no other play.
+		return s.phasedRunInScope(k, p, a) && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)
+	}
+	ctr := s.scriptCtr(k, p)
+	if !ctrGapCastMode(a) || !ctr.any() {
+		return false
+	}
+	r := s.fork()
+	live := !r.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, ctr, anyDiff)
+	r.unfork()
+	if !live {
+		return false
+	}
+	r2 := s.fork()
+	live = r2.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, slotMask{}, anyDiff) // the counter gap is load-bearing
+	r2.unfork()
+	return live
+}
+
+// scriptOfferFilt is scriptOffers' filter census (filtOnly): the filter
+// sources the walks admit (scriptFilt), kept only when a play beside it can
+// reach the filter route — a mixed board, or no restricted gapOther whose mana
+// no play the walk lists can spend (mana_filter.go restrGapOthers).
+func (s *State) scriptOfferFilt(k *prep, p uint8, mix bool) slotMask {
+	if !k.gen.anyFilt {
+		return slotMask{}
+	}
+	if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
+		return f
+	}
+	return slotMask{}
+}
+
+// caGapMask is the ca search's candidate mask (mana_comboany.go caGaps) when p
+// takes the ca route at all; empty otherwise (the mask is then never read).
+func (s *State) caGapMask(k *prep, p uint8, ca bool) slotMask {
+	if ca {
+		return s.caGaps(k, p)
+	}
+	return slotMask{}
+}
+
+func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
-	var filt slotMask
 	mix := s.mixBoard(k, p)
-	if k.gen.anyFilt {
-		// (filtOnly; a restricted gapOther whose mana no play the walk lists
-		// can spend keeps no filter off the walk: mana_filter.go restrGapOthers)
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
-			filt = f
-		}
-	}
+	filt := s.scriptOfferFilt(k, p, mix)
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
 	ca := k.gen.anyComboAny && s.caBoard(k, p) // a Combo Any source among the gaps (mana_comboany.go)
-	var caM slotMask
-	if ca {
-		caM = s.caGaps(k, p)
-	}
+	caM := s.caGapMask(k, p, ca)
+	// a Combo Any source beside a filter (the filter search's otherComboAny
+	// step): gorge's census is as unrelaxable as with the source alone
+	caAny := s.caOffersBoard(k, p, ca)
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
-	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
+	// raBoard: a live reflected Amount$ source is the board's only modelled
+	// census gap (no filter, no other gap kind beside it). gorge's census is
+	// unrelaxable there (mana_reflamt.go reflAmtBoundPlay), so the candidates
+	// are the any-mana walk and the bound arm admits them (reflAmtBoundPlay).
+	raBoard := !ca && !dh && !filt.any() && !mix && !restr.any() && !anyR.any() &&
+		!tapsDef.any() && !s.scriptCtr(k, p).any() && !tx.any() && !anyDiff.any() && !life.any() &&
+		s.reflAmtLive(k, p)
+	if !dh && !ca && !s.caBesideGrant(k, p) && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -322,7 +446,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
-	relax := s.scriptRelax(k, p, filt, ca || twoLive || sacAny)
+	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny || raBoard)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -332,7 +456,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	s.plainGapsOptions(k, &gaps, filt)
 	s.mergeBareGaps(k, &gaps, filt)
 	src := &gaps
-	if s.scriptAnyWalk(k, p, filt, relax, ca || twoLive) {
+	if s.scriptAnyWalk(k, p, filt, relax, caAny || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
 	}
@@ -353,26 +477,37 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if s.cfg&cfgGorgeAutopay != 0 {
 		s.plainOptions(k, &real, availWalk)
 	}
-	var noWide Decision
+	var noWide, noWideNF Decision
 	if mixWide {
 		s.plainOptions(k, &noWide, availGaps|availNoWide) // (gorge's potential walk counts a wide source only for what its restriction admits)
+		// The held-out walk is the fee-charged gaps walk, but the relaxed
+		// proof accepts any subset of the paid gaps, the empty filter subset
+		// included (availNoFilt): a play that subset pays with the wide
+		// source's mana held out is not proven insufficient (tail-42 pair
+		// 49: Subterranean Hangar's storage counters paid Liliana's Contract
+		// beside the School of the Unseen's {2},{T} fee and Gwenna's
+		// creature-only mana, the cast unoffered).
+		s.plainOptions(k, &noWideNF, availGaps|availNoWide|availNoFilt)
+	}
+	skip := offerSkip{
+		d: d, capSpent: capSpent, gaps: &gaps,
+		sacAny: sacAny, sacRepeat: sacRepeat,
+		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide, noWideNF: &noWideNF,
+		anyWalk: src == &any, reflFilt: s.reflFiltBoard(k, p, ca, filt),
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
-		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || hasOption(capSpent, a) ||
-			s.sacDrops(k, p, sacAny, sacRepeat, &gaps, a) ||
-			wide && !s.wideAdmits(k, a, p, anyR) ||
-			mixWide && !hasOption(&noWide, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) {
+		if s.scriptOfferDrops(k, p, a, &skip) {
 			continue
 		}
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0 && hasOption(&real, a) {
+		if s.pricedByPrintedSources(k, &real, a) {
 			continue // priced by the printed sources: gorge's planner finds it sufficient and runs no prefix search for it
 		}
-		if a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && s.plainCastUnsearched(k, p, a) {
+		if plainCastMode(a) && s.plainCastUnsearched(k, p, a) {
 			continue // gorge runs no prefix search for it: the printed sources pay it but the witness eats a target (witness_unreachable, mana_sacsource.go), or the shape is additional_cost and the composition is its only witness, an insufficient one dropped (potentialPlayVerdictShared)
 		}
-		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && a.Mode()&castMayPlay == 0 && !s.modalFloorFree(k, p, s.objs[Obj(a.Source())].card)) {
-			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana (a may-play cast is priced at its printed cost: potentialPlayVerdictShared's mayplay arm)
+		if cd := &k.t.Cards[s.objs[Obj(a.Source())].card]; isCastKind(a.Kind()) && (s.spellTgtDep(k, p, s.objs[Obj(a.Source())].card, Obj(a.Source())) || cd.HasModeCost && !modalPricedAtPrinted(a) && !s.modalFloorFree(k, p, s.objs[Obj(a.Source())].card)) {
+			continue // gorge searches no prefix for a target-priced cost, nor for a modal one whose cheapest mode still costs mana (a may-play or flashback cast is priced at its printed cost: potentialPlayVerdictShared's mayplay arm, and potentialModeCastPlan for a "flashback" mode)
 		}
 		if isCastKind(a.Kind()) && a.Mode()&castMayPlay == 0 && k.gen.anyOptCost && optCostCard(k, s.objs[Obj(a.Source())].card) {
 			continue // nor for an OptionalCost card: the planner declines it (shape:optional_cost, cost_optional.go); a may-play cast it composes (potentialModeCastPlan)
@@ -393,10 +528,16 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	var lifeWalk, ownWalk Decision
 	lifeBuilt, ownBuilt := false, false
-	searched := 0
+	boundLive := filtDeferBoundLive(sacAny, filt, tapsDef)
+	rt := scriptRoute{
+		dh: dh, ca: ca, caM: caM, filt: filt, mix: mix,
+		tapsDef: tapsDef, restr: restr, anyR: anyR, anyDiff: anyDiff,
+		tx: tx, life: life, gaps: &gaps,
+		twoLive: twoLive, repeatLive: repeatLive,
+	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, boundLive, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
@@ -406,80 +547,174 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) && !s.phyHalfPlanned(k, p, a) {
 			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
-		if dh {
-			if !s.dhScript(k, a, p, false) {
-				continue // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
-			}
-		} else if ca {
-			if !s.caSearch(k, a, p, restr, anyR, tapsDef, caM) {
-				continue // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
-			}
-		} else if (filt.any() || mix) && s.liveGrantGap(k, p) {
-			// a cast beside a filter and a live grant needs both: the grant
-			// search's filter step funds the filter's fee from a granted
-			// sacrifice ability (Rain of Filth's lands; grantSearch's
-			// stepFilt), which the filter-only script skips (grantHasCost).
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
-				if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
-					// the filter-only script prices it (grantHasCost)
-				} else {
-					// the drop is final — grantCap ran before scriptOffers
-					// (legal.go) — and one of the grant search's lines ran
-					// into a rule gap the kernel stalls by name: declare
-					// it, not a dropped offer (the search declares
-					// nothing, mana_grantedoffers.go grantSearch)
-					s.capStall(gstall)
-					continue // no script within gorge's one search's budget (grantActScript)
-				}
-			}
-		} else if filt.any() || mix {
-			if !s.filtScript(k, a, p, false) {
-				continue // no script within gorge's search budget
-			}
-		} else if tapsDef.any() && s.liveGrantGap(k, p) {
-			if ga, gstall := s.grantActScript(k, a, p); !ga {
-				// the drop is final and one of the grant search's lines
-				// ran into a rule gap the kernel stalls by name: declare
-				// it, not a dropped offer (the search declares nothing)
-				s.capStall(gstall)
-				continue // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
-			}
-		} else if tx.any() && !s.tapXDeadEndRoute(k, p, tx, tapsDef) && s.tapXBoard(k, p) {
-			if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
-				// every route gave the play up and one of the search's lines
-				// ran into a rule gap the kernel stalls by name: declare it,
-				// not a dropped offer. The drop is final — grantCap ran
-				// before scriptOffers (legal.go) — and the search itself
-				// declares nothing (mana_tapanother.go tapXScript).
-				s.capStall(stall)
-				continue // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
-			}
-		} else if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
-			if found, dead := s.reflScript(k, a, p, false); !found || dead {
-				continue // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
-			}
-		} else if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
-			if s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff) {
-				continue // no script within gorge's budget (mana_window.go scriptDeadEndAny)
-			}
-		} else if !restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
-			if !s.eachScript(k, a, p, false) {
-				continue // no script within gorge's search budget (mana_eachfee.go)
-			}
-		} else if restr.any() || s.scriptCtr(k, p).any() {
-			if dead, stall := s.scriptDeadEnd(k, a, p, restr); dead {
-				// the drop is final and one of the counter-cost search's
-				// lines ran into a rule gap the kernel stalls by name:
-				// declare it, not a dropped offer (the search itself
-				// declares nothing: scriptDeadEnd runs ctrScript on a fork,
-				// and unfork discards a declaration made there; tapXScript's
-				// shape)
-				s.capStall(stall)
-				continue // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
-			}
+		if s.scriptRouteDrop(k, &rt, a, p) {
+			continue
 		}
 		d.add(a)
 	}
+	return searched
+}
+
+// filtDeferBoundLive: whether gapsOrBoundPlay reads gorge's potential bound: on
+// a sacrifice-any bound, and beside a filter and a Taps-deferred gap (Rikala's
+// Island, Mystic Gate), where gorge's relaxed proof prices the play against its potential
+// bound, which counts a filter's own ability and its fee-making ability both
+// (potentialManaFor's over-bound), while the gaps walk charges the filter's
+// fee and lists less. A play that bound pays is searched all the same, and the
+// gap's tap brings the gated extra mana the planner never prices
+// (Altar Golem's {7} from three Islands under three tide counters, a Forest
+// and a Mystic Gate; tail-02 pair 7).
+func filtDeferBoundLive(sacAny bool, filt, tapsDef slotMask) bool {
+	return sacAny || filt.any() && tapsDef.any()
+}
+
+// scriptRoute carries scriptOffers' search-route inputs to scriptRouteDrop:
+// the board's gap shapes, fixed for the whole candidate loop.
+type scriptRoute struct {
+	dh, ca, mix, twoLive, repeatLive                   bool
+	caM, filt, tapsDef, restr, anyR, anyDiff, tx, life slotMask
+	gaps                                               *Decision
+}
+
+// scriptRouteDrop runs scriptOffers' search-route chain for one candidate
+// play: each arm is gorge's one prefix search on that board shape, and a play
+// the search prices past is dropped. It reports the drop; the latched stalls
+// it declares are the searches', which declare nothing themselves.
+func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) bool {
+	if rt.dh {
+		if !s.dhScript(k, a, p, false) {
+			return true // no script: the discarded hand held the play, or three mana of one colour do not pay it (mana_discardhand.go)
+		}
+	} else if rt.ca {
+		if !s.caSearch(k, a, p, rt.restr, rt.anyR, rt.tapsDef, rt.caM) {
+			return true // no script within gorge's search: no colour answers pay the play (mana_comboany.go)
+		}
+	} else if (rt.filt.any() || rt.mix) && s.liveGrantGap(k, p) {
+		// a cast beside a filter and a live grant needs both: the grant
+		// search's filter step funds the filter's fee from a granted
+		// sacrifice ability (Rain of Filth's lands; grantSearch's
+		// stepFilt), which the filter-only script skips (grantHasCost).
+		if a.Kind() == AkActivate && s.objs[Obj(a.Source())].zone == kop.ZoneBattlefield {
+			// An activation's line the grant search prices may fund the
+			// filter's fee from a granted tap — and gorge's menu arm
+			// prices an activation from the floating pool or the payment
+			// planner, whose census of sources holds printed abilities
+			// only (pay/board.go PaymentAbility). A line that floats a
+			// grant's mana before the fee prices a set gorge's planner
+			// never sees, so the grant search prices no activation here:
+			// the filter-only script prices the lines the planner does
+			// (its floats are the printed sources', CR 601.2b; tail-26
+			// pair 35: the Merfolk's {1}{U} through Henge of Ramos's
+			// "{2},{T}: one mana of any color", whose fee the grant
+			// search funded with two granted Elf taps). A graveyard or
+			// exile activation (Encore's {7}{U}{U}) is no battlefield
+			// menu arm: gorge's graveyard walk prices it as a cast, the
+			// grants' mana counted, so it takes the grant search below.
+			if !s.filtScript(k, a, p, false) {
+				return true // no script within gorge's search budget (filtScript)
+			}
+		} else if ga, gstall := s.grantActScript(k, a, p); !ga {
+			if isCastKind(a.Kind()) && s.filtScript(k, a, p, false) {
+				// the filter-only script prices it (grantHasCost)
+			} else {
+				// the drop is final — grantCap ran before scriptOffers
+				// (legal.go) — and one of the grant search's lines ran
+				// into a rule gap the kernel stalls by name: declare
+				// it, not a dropped offer (the search declares
+				// nothing, mana_grantedoffers.go grantSearch)
+				s.capStall(gstall)
+				return true // no script within gorge's one search's budget (grantActScript)
+			}
+		}
+	} else if rt.filt.any() || rt.mix {
+		// Beside a filter, gorge still runs its second query over the
+		// census that keeps the Taps-deferred sources out (their extras
+		// ride the taps, addGatedExtra): the same play, the extended gap
+		// set. The filter route's branches spend the first search's budget
+		// on the fee-carrying gap's colour answers (Energy Refractor's
+		// "{2}: Add one mana of any color") before the deferred sources,
+		// so the play is also searched over them when the filter route
+		// found no script for it (the Trapjaw Kelpie lockstep: decision
+		// 402's cast, the second walk's phased run's two island taps).
+		// A live counter-cost gap a plain cast cannot pay without takes the
+		// second query too: the plain census keeps the counter-tap ability
+		// out (prepCensusGap's ctrAb read, availCtr's units), so a cast
+		// only that gap's unit pays is priced over the extended census,
+		// and the filter search's fee branches exhaust the budget before
+		// its answer (tail-02 pair 91: Cauldron's Gift's {4}{B} through
+		// Energy Refractor and Vivid Meadow's counter tap, the cast
+		// offered by gorge's potential census, dropped here). The second
+		// query answers for the cast only when the census without the
+		// counter gap cannot pay it and the one with it can -- the gap is
+		// load-bearing -- and only for the printed-cost cast the potential
+		// census prices: an alternative-cost one (Bash to Bits's
+		// {4}{R}{R} flashback beside the same Refractor) keeps gorge's own
+		// offer gates, not the second query.
+		fs := s.filtScript(k, a, p, false)
+		keep := !fs && s.filtSecondQuery(k, a, p, rt.restr, rt.anyR, rt.tapsDef, rt.anyDiff)
+		if !fs && !keep && !(isCastKind(a.Kind()) && rt.mix && s.tapXFallbackScript(k, a, p)) {
+			return true // no script within gorge's search budget
+		}
+	} else if rt.tapsDef.any() && s.liveGrantGap(k, p) {
+		if ga, gstall := s.grantActScript(k, a, p); !ga {
+			// the drop is final and one of the grant search's lines
+			// ran into a rule gap the kernel stalls by name: declare
+			// it, not a dropped offer (the search declares nothing)
+			s.capStall(gstall)
+			return true // the grant search is gorge's one search over the deferred gap and the grants (mana_granttapsdefer.go); a cast too: Quest for Renewal's Taps watcher defers Gold Myr, so five mana from two Mountains, the Myr and two Saprolings under Brightcap Badger pays Quakebringer only by that search
+		}
+	} else if rt.tx.any() && !s.tapXDeadEndRoute(k, p, rt.tx, rt.tapsDef) && s.tapXBoard(k, p) {
+		if offered, stall := s.tapXScriptOffered(k, a, p); !offered {
+			// every route gave the play up and one of the search's lines
+			// ran into a rule gap the kernel stalls by name: declare it,
+			// not a dropped offer. The drop is final — grantCap ran
+			// before scriptOffers (legal.go) — and the search itself
+			// declares nothing (mana_tapanother.go tapXScript).
+			s.capStall(stall)
+			return true // no script within gorge's budget (mana_tapanother.go), nor in the one search beside the grants (mana_granttapx.go, mana_grantsacx.go)
+		}
+	} else if k.gen.anyRefl && s.reflBoard(k, p, rt.restr, rt.anyR) {
+		if found, dead := s.reflScript(k, a, p, false); !found || dead {
+			return true // no script within gorge's budget, or one the pool cannot complete (mana_reflected.go)
+		}
+	} else if rt.anyR.any() || rt.tapsDef.any() || rt.anyDiff.any() || rt.life.any() {
+		if s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff) {
+			return true // no script within gorge's budget (mana_window.go scriptDeadEndAny)
+		}
+	} else if !rt.restr.any() && !s.scriptCtr(k, p).any() && s.eachFeeBoard(k, p) {
+		if !s.eachScript(k, a, p, false) {
+			return true // no script within gorge's search budget (mana_eachfee.go)
+		}
+	} else if rt.restr.any() || s.scriptCtr(k, p).any() || s.eachOnlyOwnTapPlay(k, p, a, rt.gaps, rt.twoLive || rt.repeatLive) {
+		if dead, stall := s.scriptDeadEnd(k, a, p, rt.restr); dead {
+			// the drop is final and one of the counter-cost search's
+			// lines ran into a rule gap the kernel stalls by name:
+			// declare it, not a dropped offer (the search itself
+			// declares nothing: scriptDeadEnd runs ctrScript on a fork,
+			// and unfork discards a declaration made there; tapXScript's
+			// shape)
+			s.capStall(stall)
+			return true // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
+		}
+	} else if s.caBesideGrant(k, p) {
+		// a Combo Any / reflected Amount$ gap beside a live granted mana
+		// ability is one search in gorge (scriptSearch.visit activates
+		// every census gap together), and the grant search is that search
+		// (grantFirstGaps, mana_grantcomboany.go): it prices the play
+		// exactly, so the gaps walk keeping the play's own {T} source
+		// (ownTapBoundKept) over-offers nothing. grantCap never ran it:
+		// the play the grant walk's census cannot pay (the reflected
+		// Amount$ fold is {C} alone) is off the walk, and gorge reaches it
+		// only through its prefix search.
+		if ga, gstall := s.grantActScript(k, a, p); !ga {
+			// the drop is final and one of the grant search's lines ran
+			// into a rule gap the kernel stalls by name: declare it, not
+			// a dropped offer (the search declares nothing, mana_grantedoffers.go)
+			s.capStall(gstall)
+			return true // no script within gorge's one search's budget (mana_grantcomboany.go)
+		}
+	}
+	return false
 }
 
 // mergeBareGaps adds to gaps the plays of the gaps walk with the filters left
@@ -530,13 +765,40 @@ func (s *State) tapXScriptOffered(k *prep, a Action, p uint8) (bool, uint8) {
 	return false, stall
 }
 
+// tapXFallbackScript reports a cast a mix board's filter search dropped
+// payable by the tapX search, as scriptPrefix's mix arm plays it: the plain
+// route declines the cast first (plainListedPays — one it lists the plain
+// plan prices or leaves unoffered, never a search), then the filter script,
+// then the tapX prefix beside a live no-{T} tap-another source (Relic of
+// Legends's legendary taps beside an Overflowing Basin pay Death Cloud's
+// {B}{B}{B}). Only a cast: gorge's search prices a play at a node by the
+// planner, and while a cast's planner pays from the floating pool the steps
+// float, an activation's planner prices the mana part from the untapped
+// sources the steps only consume — the Domesticated Watercourse animate
+// beside its tapped self and the Basin stayed unpriced at every node, pool
+// paid or not. A filter-only board gets no fallback: scriptPrefix's mix arm
+// guards the prefix the same way, and gorge's filter route runs no
+// tap-another step there.
+func (s *State) tapXFallbackScript(k *prep, a Action, p uint8) bool {
+	var d Decision
+	s.plainOptions(k, &d, availNoActScript)
+	if s.plainListedPays(k, a, p, &d) {
+		return false // the plain route owns the play: gorge offers it by its plan, or not at all
+	}
+	if !s.tapXTwoLiveSource(k, p) {
+		return false
+	}
+	found, _ := s.tapXScript(k, a, p, false)
+	return found
+}
+
 // autopayDropsPlainCast reports a plain cast the autopay surface leaves out of
 // a potential play's list: gorge's planner prices it or the floating pool pays
 // it, else the oracle drops it (gorge.go, "a plain cast the planner does not
 // price"), whatever prefix a storage battery's or a grant's activation makes
 // of it.
 func (s *State) autopayDropsPlainCast(a Action) bool {
-	return s.cfg&cfgGorgeAutopay != 0 && a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0 && a.Target() == 0
+	return s.cfg&cfgGorgeAutopay != 0 && plainCastMode(a) && a.Target() == 0
 }
 
 // walkKey orders insufficient play a (the kernel walk's option i) as
@@ -705,11 +967,36 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 // plainPricedCost reports whether ab's printed cost is one the plain planner
 // prices without the asks a build poses first: no X, hybrid, snow, Phyrexian,
 // own-reduce, power-up, waterbend, tap-X or sacrifice part (plainListedPays,
-// actScriptPays).
+// actScriptPays); an announced Sac<X/Spec> is priced at its cheapest announcement
+// (actSourcesAfford: X = 0), so it reads as plain mana.
 func plainPricedCost(ab *kop.Ability) bool {
+	return pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf) &&
+		!(ab.Cost.Flags&kop.CostSac != 0 && !sacXCost(&ab.Cost))
+}
+
+// sacPricedCost is plainPricedCost for a cost whose only non-plain part is its
+// sacrifice-others part ("{1}, Sac<2/Land>"): the prefix search funds its mana
+// part like any activation's (CR 602.2b), hand guides included (actScriptPays).
+func sacPricedCost(ab *kop.Ability) bool {
+	return ab.Cost.Flags&kop.CostSac != 0 &&
+		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf)
+}
+
+// sacSelfPricedCost is plainPricedCost for a cost whose only non-plain part is
+// the source's own sacrifice ("{1}{W}, {T}, Sacrifice this land"): it asks
+// nothing, so the prefix search funds its mana part like any activation's
+// (CR 602.2b, 605.3a), the source's {T} among the cost's taps (actScriptPays).
+func sacSelfPricedCost(ab *kop.Ability) bool {
+	return ab.Cost.Flags&kop.CostSacSelf != 0 && ab.Cost.Flags&kop.CostSac == 0 &&
+		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX)
+}
+
+// pricedCostBits is the plain-cost test with bad the flag bits the caller
+// refuses.
+func pricedCostBits(ab *kop.Ability, bad kop.CostFlags) bool {
 	return !(ab.Cost.Mana.X != 0 || ab.Cost.XMin != 0 || ab.Cost.Mana.Hyb[0] != 0 ||
 		ab.Cost.Mana.Snow != 0 || ab.Cost.Mana.Phyrexian() || ab.OwnReduce != (kop.ValueRef{}) ||
-		ab.Cost.Flags&(kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSac|kop.CostSacSelf) != 0)
+		ab.Cost.Flags&bad != 0)
 }
 
 // scriptPrefix plays gorge's script for play a: the search's script, played
@@ -752,9 +1039,20 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 				// fallback (mana_tapanother.go). Trying the filter first keeps
 				// its trigger order when it is the play's payer (a filter
 				// answer may tap a creature and stack its trigger before the
-				// play is priced, CR 603.3).
-				if !s.filtScript(k, a, p, true) && s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
-					return
+				// play is priced, CR 603.3). A live counter-cost gap beside the
+				// filter is the offer side's second query (scriptOffers' filt
+				// branch) for the printed-cost cast the gap is load-bearing
+				// for: the filter search's fee branches spend its budget before
+				// the counter-tap answer, and the play was kept by the
+				// extended-gap-set search, so the prefix is its script.
+				if !s.filtScript(k, a, p, true) {
+					if s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
+						return
+					}
+					if s.scriptCtr(k, p).any() && ctrGapCastMode(a) {
+						s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.scriptAnyR(k, p),
+							s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.anyDifferentGaps(k, p))
+					}
 				}
 			}
 		}
@@ -851,7 +1149,7 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 // payment actions and the decision's own options) does not hold.
 func (s *State) FeatScripted(p uint8, a Action) bool {
 	k := s.k()
-	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).or(s.lifeGapMask(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && s.caBoard(k, p)) {
+	if !s.scriptAny(k) || !isScriptPlayKind(a.Kind()) || !s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapsDefer(k, p)).or(s.scriptCtr(k, p)).or(s.scriptTapXModelled(k, p)).or(s.lifeGapMask(k, p)).any() && !(k.gen.anyFilt && s.filtOnly(k, p)) && !(k.gen.anyDiscHand && s.dhBoard(k, p)) && !(k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p))) {
 		return false
 	}
 	var d Decision
@@ -949,7 +1247,16 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 		return false // gorge's prefix search prices it, not the census (untappedTapGapLive)
 	}
 	var mav avail
+	// a restricted granted ability this cast's payment may not spend is no unit
+	// of gorge's planner census (pay/plancost.go restrictedRefused, CR 106.6):
+	// Marvin's copy of Overgrown Zealot's turn-face-up-only {T}: Add two mana
+	// funds no spell
+	mav.xd, mav.xdOn = s.grantPayDesc(k, a), true
+	wasX := s.g.availX
+	s.g.availX |= availNoAnyGrant
 	s.availFor(k, p, &mav)
+	s.g.availX = wasX
+	mav.xdOn = false
 	if !mav.affords(cost, pipMaskOf(cost), 0) {
 		return false
 	}
@@ -988,18 +1295,55 @@ func (s *State) ownSacTapNeeded(k *prep, p uint8, cost *kop.ManaCost) bool {
 	return !base.affords(cost, pipMaskOf(cost), 0)
 }
 
+// mayPlayJoinSearch is grantCap's may-play arm for a play mayPlayJoinCensusPays lists: the offer
+// stays when the printed sources pay it, and otherwise holds to gorge's one budgeted prefix search.
+func (s *State) mayPlayJoinSearch(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, g *grantSrch, n *int, d *Decision, capSpent *Decision) {
+	if s.affordsUngrantedPlay(k, p, a, cost, ex, s.grantPayDesc(k, a)) {
+		// the may-play arm's cost is the join census's (the helper
+		// above), not the plain cast's ungranted read below: keep the
+		// offer without the prefix search (Elven Chorus's "{T}: Add one
+		// mana of any color" creatures beside a top-of-library Grazing
+		// Whiptail; CR 601.2g, 118.9)
+		return
+	}
+	// Only the granted units pay it: gorge's potential walk lists the
+	// play, but its planner census -- the pool and the printed and
+	// intrinsic sources (pay PaymentAbility) -- cannot, so the play is
+	// still a potential one and takes gorge's one budgeted prefix
+	// search. The offer holds to that search's verdict, and the play
+	// counts toward the script cap as any play the printed sources
+	// cannot pay (potentialScriptPlays): The World Tree's "As long as
+	// you control six or more lands, lands you control have "{T}: Add
+	// one mana of any color"" beside four printed sources leaves Age of
+	// Ultron's 4{B} may-play cast on the walk when the search's budget
+	// expires before the fifth land's granted ability is reached
+	// (tail-08 pair 54, decision 573), while Elven Chorus's three
+	// any-colour creatures fund Wormwood Treefolk's five-mana cast
+	// there and the search finds it (tail-51-c001, decision 565).
+	if *n++; *n > potentialScriptPlays {
+		d.remove(a) // never searched: unpriced
+		return
+	}
+	if s.grantSearch(k, p, cost, ex, s.grantPayDesc(k, a), need, g) {
+		return
+	}
+	if g.stall != 0 {
+		// the drop is final and one of the search's lines ran into a
+		// rule gap the kernel stalls by name: declare it, not a
+		// dropped offer (the search declares nothing;
+		// mana_grantedoffers.go grantSearch)
+		s.capFull(g.stall)
+	}
+	d.remove(a) // no prefix within gorge's node budget (mana_grantedoffers.go)
+	capSpent.add(a)
+}
+
 func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 	if !s.grantGapLive(k, p) {
 		return
 	}
 	var walk Decision
-	m := availWalk
-	if s.selfGrantLive(k, p) {
-		m |= availHyp // no relaxed proof: gorge's census is not relaxable (mana_owncolours.go)
-	}
-	if s.storeOpenLive(k, p) {
-		m |= availAny // a storage battery folds gorge's potential walk open (mana_storeopen.go)
-	}
+	m := s.grantWalkMode(k, p)
 	s.plainOptions(k, &walk, m)
 	// in gorge's potential walk order (walkKey: the hand, the permission
 	// casts, the graveyard in graveyard order with its flashbacks, the
@@ -1099,11 +1443,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			continue
 		}
 		if s.mayPlayJoinCensusPays(k, p, a, &cost) {
-			// the may-play arm's cost is the join census's (the helper
-			// above), not the plain cast's ungranted read below: keep the
-			// offer without the prefix search (Elven Chorus's "{T}: Add one
-			// mana of any color" creatures beside a top-of-library Grazing
-			// Whiptail; CR 601.2g, 118.9)
+			s.mayPlayJoinSearch(k, p, a, &cost, ex, need, &g, &n, d, capSpent)
 			continue
 		}
 		if s.affordsUngrantedPlay(k, p, a, &cost, ex, s.grantPayDesc(k, a)) {
@@ -1229,6 +1569,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 // a scripted one, and the oracle's priorityVocabulary leaves it out)
 func (s *State) grantSearchAdds(k *prep, p uint8, a Action, d *Decision, g *grantSrch, relaxCensus bool) bool {
 	return !hasOption(d, a) && (g.cheaper && !s.autopayScriptedCast(a) || g.storeStep() && !s.autopayScriptedCast(a) ||
+		s.caOpenGrant(k, p) && !s.autopayScriptedCast(a) || // a Combo Any source folds the walk open: every play the search pays is gorge's (mana_grantcomboany.go)
 		g.np != 0 && s.improviseAloneCast(k, p, a) && !s.autopayScriptedCast(a) ||
 		s.cfg&cfgGorgeAutopay == 0 && relaxCensus && s.tapXCensusGap(k, p).any())
 }
@@ -1244,7 +1585,7 @@ func (s *State) grantRelaxCensus(k *prep, p uint8) bool {
 		gateFilt = s.scriptFilt(k, p)
 	}
 	return s.scriptRelax(k, p, gateFilt,
-		k.gen.anyComboAny && s.caBoard(k, p) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
+		k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p) || s.caOpenGrant(k, p)) || k.tapMana && s.tapXTwoLive(k, p) || sacOpen)
 }
 
 // objPartCast reports a plain cast a whose spell carries a cost part the
@@ -1296,7 +1637,20 @@ func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
 	if a.Kind() != AkCast || a.Mode()&3 != 0 || a.Mode()&(castMayPlay|castFace|castWarp) != 0 || a.Target() != 0 {
 		return false
 	}
-	o := Obj(a.Source())
+	return s.improviseAloneObj(k, p, Obj(a.Source()))
+}
+
+// DebugImproviseAloneUnlowered withholds the improvise-alone cast from
+// gorgeLowers (the old behaviour); the lockstep mutation test only.
+var DebugImproviseAloneUnlowered bool
+
+// improviseAloneObj is improviseAloneCast's read of the card itself, for the
+// plain cast of object o (no mode, target or permission): the same shape
+// check, whatever offer or lowering asks it.
+func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
+	if DebugImproviseAloneUnlowered {
+		return false
+	}
 	ob := &s.objs[o]
 	if ob.zone == kop.ZoneBattlefield {
 		return false // a permanent on the battlefield is never a spell being cast (kw_delve.go)
@@ -1306,14 +1660,41 @@ func (s *State) improviseAloneCast(k *prep, p uint8, a Action) bool {
 	if k.t.Cards[c].Cost.X != 0 || k.t.Cards[c].Cost.XRed != 0 || k.t.Cards[c].Cost.XPip != 0 {
 		return false // the X ask keeps the manual window (payment_plan.go costAnnouncesX)
 	}
+	if cost := &k.t.Cards[c].Cost; cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian() {
+		// gorge's cast planner declines a plain hybrid pip ("cost:hybrid") before the improvise lift, and the
+		// potential planner then withholds the live credit ("cost:credit", potentialModeCredit): no plain plan,
+		// no prefix search (CR 702.126a, 601.2g-h)
+		return false
+	}
 	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
 		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
+	}
+	if h := k.t.Cards[c].Cost; h.Hyb[0] != 0 && h.Hyb[0] != kop.HybTwobrid && !h.Phyrexian() {
+		return false // a hybrid cost is "cost:hybrid" to the cast planner: the potential composition plans it, and any credit keyword is its "cost:credit" decline whether or not an artifact is untapped (potentialModeCastPlan)
 	}
 	if !s.isImprovise(k, p, c, o, fromHand) || s.hasConvoke(k, p, c, o, fromHand) ||
 		s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
 	}
 	return k.t.Cards[c].Cost.Generic == 0 || !s.improviseCreditLive(k, p)
+}
+
+// contribDeclined is contribPays less the plain improvise cast that credits
+// no artifact (improviseAloneObj) and whose cost gorge's cast planner prices
+// (plannedCastCost: no hybrid pip, additional cost or the like): that planner
+// plans it plainly, so it is no "shape:contribution" decline and its
+// lowering and prefix search run like any plain cast's. A hybrid cost the
+// planner leaves to the potential planner keeps the decline (Azor's
+// Elocutors, Inside Out). plain is a cast with no permission or alternative.
+func (s *State) contribDeclined(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
+	if !s.contribPays(k, p, c, o, fromHand) {
+		return false
+	}
+	if plain && s.improviseAloneObj(k, p, o) {
+		_, priced := s.plannedCastCost(k, p, o, 0)
+		return !priced
+	}
+	return true
 }
 
 // improviseCreditLive reports an untapped artifact of p's the improvise

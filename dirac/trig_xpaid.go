@@ -149,7 +149,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 	if z == kop.ZoneLibrary {
 		s.omenToLibrary(e.obj) // face_omen.go
 	} else {
-		s.placeFrom(e.obj, z, false, kop.ZoneStack, false)
+		s.placeFrom(e.obj, z, false, kop.ZoneStack, false, false)
 		s.markedPlot(k, e) // repl_stackexile.go
 		if rebound {
 			s.reboundRegister(k, e)

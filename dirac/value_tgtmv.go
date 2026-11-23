@@ -31,7 +31,23 @@ func (s *State) snapTgtMV(k *prep, e *stackEntry) {
 	}
 	if e.trigObj != NoObj && isObjTarget(TCode(e.trigObj)) && s.objs[e.trigObj].zone == kop.ZoneStack {
 		s.g.trigMVCd, s.g.trigMV = s.stackSpellMVLKI(k, e.trigObj)
+	} else if e.trigObj != NoObj && e.trigMV != 0 && s.isSpellCastTrigger(k, e) {
+		// The spell left the stack (a counterspell) before its SpellCast
+		// trigger resolved: the queue-time snapshot keeps the X it was cast
+		// with (CR 608.2h, 202.3e).
+		s.g.trigMVCd, s.g.trigMV = TCode(e.trigObj)+1, uint8(min(int(e.trigMV), 254))+1
 	}
+}
+
+// isSpellCastTrigger reports whether e is a triggered ability whose event is
+// a spell being cast, the only entries whose trigMV is a spell's mana value
+// (value_spellmv.go; the other trigMV carriers are delayed programs).
+func (s *State) isSpellCastTrigger(k *prep, e *stackEntry) bool {
+	if e.kind != seTrigger || int(e.card) >= len(k.t.Cards) {
+		return false
+	}
+	cd := &k.t.Cards[e.card]
+	return int(e.ab) < len(cd.Abilities) && cd.Abilities[e.ab].Trig.Event == kop.TrigSpellCast
 }
 
 // stackSpellMVLKI is object o's mana value as a spell on the stack (CR

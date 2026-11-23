@@ -24,6 +24,7 @@ Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
+Aven Liberator
 Avenger of Zendikar
 Axgard Armory
 Banish from Edoras
@@ -91,6 +92,7 @@ Demon of Loathing
 Demonic Tutor
 Demystify
 Deploy the Gatewatch
+Devoted Druid
 Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
@@ -101,6 +103,7 @@ Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Echo Storm
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
@@ -109,6 +112,7 @@ Elspeth Tirel
 Elvish Eulogist
 Encroach
 Endurance Bobblehead
+Entangler
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
@@ -278,6 +282,7 @@ Provoke
 Psychic Spear
 Purifying Dragon
 Pygmy Pyrosaur
+Quickchange
 Quicksilver Dagger
 Radiant Fountain
 Raging Spirit
@@ -356,6 +361,7 @@ Tervigon
 Tevesh Szat, Doom of Fools
 Tezzeret's Touch
 The Prydwen, Steel Flagship
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
@@ -371,6 +377,7 @@ Traumatic Revelation
 Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion

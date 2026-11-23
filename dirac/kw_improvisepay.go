@@ -10,12 +10,19 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and stays the manual window's (a greedy credit is no proof of unpayable).
 
 // improviseLifted reports whether gorge's cast planner prices p's cast of c
-// (object o, fromHand) at the improvise credit: a plain hand cast with the one
+// (object o, fromHand) at the improvise credit: a plain hand or command-zone
+// (CR 903.8; the planner's scope is "" for both) cast with the one
 // keyword, no X, and no sacrificed or tapped permanent beside the mana
 // (payment_plan.go paymentPlanCastShapeDetailAltAdd). Convoke and delve keep
 // "shape:contribution".
 func (s *State) improviseLifted(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
-	if !fromHand || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
+	return s.improviseLiftedFrom(k, p, c, o, fromHand, fromHand)
+}
+
+// improviseLiftedFrom is improviseLifted with plain set for a hand or
+// command-zone origin: the keyword grants still read fromHand.
+func (s *State) improviseLiftedFrom(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
+	if !plain || k.t.Cards[c].Cost.X != 0 || !s.isImprovise(k, p, c, o, fromHand) ||
 		s.hasConvoke(k, p, c, o, fromHand) || s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
 	}
@@ -51,7 +58,7 @@ func (s *State) improviseReserved(k *prep, p uint8, gen uint8) slotMask {
 // search taps the grant: improviseAloneCast).
 func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost *kop.ManaCost) bool {
 	m := s.ctrlM[SeatIx(p)]
-	s.ctrlM[SeatIx(p)] = m.andNot(res)
+	s.ctrlM[SeatIx(p)] = m.andNot(s.improviseWithheld(k, res))
 	var av avail
 	s.availFor(k, p, &av)
 	ok := av.affords(cost, pipMaskOf(cost), 0) ||
@@ -80,7 +87,7 @@ func (s *State) improviseSourcesPay(k *prep, p uint8, o Obj, res slotMask, cost 
 func (s *State) improvisePlanned(k *prep, e *stackEntry) (plan, manual, printed bool) {
 	if k.gen == nil || !k.gen.anyConvoke || !s.bld().impPlan || e.kind != seSpell ||
 		e.flags&(sfMayPlay|sfFlashback|sfKicked) != 0 || !s.tapPaysEntry(k, e) ||
-		!s.improviseLifted(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand) {
+		!s.improviseLiftedFrom(k, e.ctrl, e.card, e.obj, s.bld().origin == kop.ZoneHand, plainCastZone(s.bld().origin)) {
 		return false, false, false
 	}
 	if s.convokePickCount() > 0 {
@@ -220,3 +227,28 @@ func (s *State) improviseRoute(k *prep, e *stackEntry, cost *kop.ManaCost, anyCo
 	}
 	return false, false
 }
+
+// plainCastZone reports whether a cast from zone z is a plain cast to gorge's
+// planner (scope ""): from a hand or, a commander, the command zone (CR 903.8).
+func plainCastZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
+
+// improviseWithheld is the credited artifacts the plan leaves out of its
+// sources: gorge's planner drops only a tapped source's tapping alternatives
+// (pay.planPaymentCostResolved's withhold), so a sacrifice-only mana artifact
+// (a Gold token) the credit also taps still pays its pip (CR 605.3a mana
+// abilities first, CR 702.126a improvise after).
+func (s *State) improviseWithheld(k *prep, res slotMask) slotMask {
+	if !k.sacOnlyMana || DebugImproviseWithholdAll {
+		return res
+	}
+	for m := res; m.any(); m = m.rest() {
+		if sl := m.first(); s.manaPCAt(k, sl).manaSacOnly {
+			res = res.without(sl)
+		}
+	}
+	return res
+}
+
+// DebugImproviseWithholdAll withholds every credited artifact from the plan's
+// sources, the old behaviour; the lockstep mutation test only.
+var DebugImproviseWithholdAll bool

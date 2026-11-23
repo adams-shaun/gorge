@@ -1,6 +1,8 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // A mana ability a GainsAbilitiesOf$ recipient has (CR 613.1f, "has all
 // activated abilities of ...", CR 605.1a): Marvin, Murderous Mimic beside a
@@ -36,7 +38,7 @@ func tableHasGainedMana(t *kop.Table) bool {
 	}
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			if gainedManaPlanned(&t.Cards[i].Abilities[j]) {
+			if gainedManaPlanned(&t.Cards[i], &t.Cards[i].Abilities[j]) {
 				return true
 			}
 		}
@@ -44,11 +46,11 @@ func tableHasGainedMana(t *kop.Table) bool {
 	return false
 }
 
-// isGrantMana reports whether mana ability a is a grantPC entry: a latent one
-// (a static's AddAbility$ grant), or in a table with a GainsAbilitiesOf$
-// static a plain printed one (gainedManaPlanned).
-func (g *genPrep) isGrantMana(a *kop.Ability) bool {
-	return a.AFlags&kop.AfLatent != 0 || g.uses.has(useGainsOf) && gainedManaPlanned(a)
+// isGrantMana reports whether mana ability a of card cd is a grantPC entry: a
+// latent one (a static's AddAbility$ grant), or in a table with a
+// GainsAbilitiesOf$ static a plain printed one (gainedManaPlanned).
+func (g *genPrep) isGrantMana(cd *kop.CardDef, a *kop.Ability) bool {
+	return a.AFlags&kop.AfLatent != 0 || g.uses.has(useGainsOf) && gainedManaPlanned(cd, a)
 }
 
 // addGrantPC registers mana ability a of card c (index ab) as a grantPC entry
@@ -65,12 +67,82 @@ func (g *genPrep) addGrantPC(gp pcard, self bool, a *kop.Ability, c CardID, ab u
 	}
 }
 
-// gainedManaPlanned reports whether foreign mana ability a is a planner unit
-// for a GainsOf recipient: an unlimited printed ability whose colours and
-// amount are fixed (a spend restriction is the grant's own, grantRestr).
-func gainedManaPlanned(a *kop.Ability) bool {
-	const unmodelled = kop.AfLatent | kop.AfManaDynamic | kop.AfManaChosen | kop.AfManaReflect | kop.AfManaEachColor
-	return a.Kind == kop.AbMana && a.AFlags&unmodelled == 0 && !gainedManaLimited(a) &&
+// gainedManaIntrinsic reports whether the foreign card's mana ability a is the
+// CR 305.6 intrinsic of one of its basic land subtypes: a bare {T} making one
+// mana of exactly the subtype's colour. gorge's census holds exactly the
+// gained abilities whose line is the parser's "intrinsic: basic land mana"
+// (pay/board.go PaymentAbility's intrinsic branch), which is the intrinsic one;
+// a foreign authored ability with the same shape (the corpus holds none:
+// Murmuring Bosk's authored {T}: Add {W} or {B} beside its Forest's intrinsic
+// is a two-colour choice) is a foreign printed line gorge keeps out.
+func gainedManaIntrinsic(cd *kop.CardDef, a *kop.Ability, subs []string) bool {
+	if a.Kind != kop.AbMana || a.Cost.Flags != kop.CostTap || a.ManaN != 1 ||
+		a.ManaColors&(a.ManaColors-1) != 0 || a.ManaColors&^kop.ColAny != 0 {
+		return false
+	}
+	for i, name := range blgNames {
+		if a.ManaColors != kop.ColorMask(1)<<uint(i) {
+			continue
+		}
+		for j, n := range subs {
+			if n == name && cd.Subtypes.Has(j) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ungrGainedIntr credits slot sl's gained mana abilities whose foreign
+// ability is a CR 305.6 intrinsic (read from the grant's own card, never a
+// pinned genPrep field: TestNoNewFixedStateFields) to the ungranted census av:
+// gorge's census holds a gained ability whose line is the parser's
+// "intrinsic: basic land mana" as a plain unit of the recipient
+// (pay/board.go PaymentAbility, CR 613.1f GainsAbilitiesOf$ beside an
+// animated Forest), while a static AddAbility$ grant and a gained
+// non-intrinsic one (a foreign authored line) stay out of gorge's planner
+// (the V1 exclusion FeatPlannedCast prices over). It runs before ungrAvail's
+// own-unit skips, so the unit lists beside the slot's own and without it.
+func (s *State) ungrGainedIntr(k *prep, p uint8, sl Slot, av *avail, ms *modalSet) {
+	g := k.gen
+	if g == nil || len(g.grantPC) == 0 || !g.uses.has(useGainedMana) {
+		return
+	}
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	for i := 0; i < n; i++ {
+		j := gi[i]
+		r := g.grantOf[j]
+		a := &k.t.Cards[r.card].Abilities[r.ab]
+		if g.grantRestr[j] != 0 || a.AFlags&kop.AfLatent != 0 || !gainedManaPlanned(&k.t.Cards[r.card], a) ||
+			!gainedManaIntrinsic(&k.t.Cards[r.card], a, k.t.Subtypes) {
+			continue
+		}
+		gp := s.grantView(g, j, sl)
+		if !s.canTapForManaPC(k, sl, gp) {
+			continue // the {T} cost: a tapped, lost or once-blocked source makes nothing (CR 302.6)
+		}
+		av.addUnits(s.srcMaskAt(gp, sl), s.srcYieldAt(k, sl, gp))
+	}
+}
+
+// gainedManaPlanned reports whether foreign mana ability a of card cd is a
+// planner unit for a GainsOf recipient: an unlimited printed ability whose
+// colours and amount are fixed (a spend restriction is the grant's own,
+// grantRestr), or a reflected one whose colours the recipient's controller's
+// board resolves (gainedManaReflPlanned, mana_gainedreflect.go).
+func gainedManaPlanned(cd *kop.CardDef, a *kop.Ability) bool {
+	if a.Kind != kop.AbMana {
+		return false
+	}
+	if a.AFlags&kop.AfManaReflect != 0 {
+		// the unmodelled census gap only for the arms no per-recipient read
+		// resolves; a latent one is the static grant's selfPC/selfPC family,
+		// never a gained unit
+		return a.AFlags&kop.AfLatent == 0 && gainedManaReflPlanned(cd, a)
+	}
+	const unmodelled = kop.AfLatent | kop.AfManaDynamic | kop.AfManaChosen | kop.AfManaEachColor
+	return a.AFlags&unmodelled == 0 && !gainedManaLimited(a) &&
 		!a.ManaDeferred && a.ManaColors != 0 && !comboAnyMana(a)
 }
 

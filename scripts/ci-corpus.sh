@@ -43,14 +43,24 @@ if ! grep -qs "$ref" "$base/cards.lock"; then
   rm -rf "$base"; mv "$base.tmp" "$base"
 fi
 [ -d "$tree" ] || cp -a "$base" "$tree"
-# dirac's tables for this tree, built once (the first job of the tree: the prepare stage), under the lock.
+# Touched before the box lock is released: cp -a keeps base's old mtime, and the trims below (another job's, under
+# the box lock) remove trees by age.
+touch "$tree"
+# dirac's tables for this tree, built once (the first job of the tree: the prepare stage), under the tree's own
+# lock, not the box's: a job waits only for a build of its own tables. 11-22: queue-precheck's attribution builds a
+# tree per queue prefix, 36-62 s each, and under the box lock they ran one at a time, behind every other job's.
+exec 9>&-
+exec 7>"$tree.lock"; flock 7
 if [ ! -e "$tree/.tables-ok" ] && [ -z "${CI_CORPUS_NO_TABLES:-}" ]; then
   rm -rf .cards; ln -sfn "$tree" .cards
   make dirac-tables
   touch "$tree/.tables-ok"
 fi
+exec 7>&-
+exec 9>"$root/.lock"; flock 9
 touch "$tree"
 find "$root/tree" -mindepth 1 -maxdepth 1 -type d -mtime +2 -exec rm -rf {} + 2>/dev/null || true
+find "$root/tree" -mindepth 1 -maxdepth 1 -type f -name '*.lock' -mtime +2 -delete 2>/dev/null || true
 # Disk pressure (11-17 22:50: metal's / hit 100%, and runners died "No space left on device" mid-step). Nothing else
 # trims what this box's runners write: the trees above (a full copy per table key, dozens a day) and the shared Go
 # cache. At CI_DISK_TRIM_PCT (65) percent used, remove trees not used for 3 h and Go cache files not used for 6 h.

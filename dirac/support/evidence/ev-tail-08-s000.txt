@@ -20,7 +20,6 @@ Battle Sliver
 Benalish Marshal
 Beorn, Reluctant Host
 Bequeathal
-Bestial Menace
 Bilbo Baggins, Burglar
 Black Market Tycoon
 Blizzard Strix
@@ -86,7 +85,6 @@ Engulf the Shore
 False Demise
 Fearless Liberator
 Feast of the Unicorn
-Feedback
 Fists of Flame
 Flare
 Flay
@@ -96,6 +94,7 @@ Foundry Inspector
 Fruit of Tizerus
 Funnel-Web Recluse
 Garruk's Horde
+Ghost Council of Orzhova
 Ghost-Lit Nourisher
 Glarewielder
 Glimpse the Future
@@ -116,7 +115,6 @@ Hyperion Blacksmith
 Ilysian Caryatid
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Ishgard, the Holy See
 Island
@@ -128,7 +126,6 @@ Juvenile Gloomwidow
 Kaervek's Torch
 Kjeldoran Frostbeast
 Kolaghan Warmonger
-Kor Haven
 Kumano, Master Yamabushi
 Last Breath
 Lat-Nam Adept
@@ -156,13 +153,13 @@ Mind Slash
 Mogg Squad
 Moldering Karok
 Moonsilver Key
+Moroii
 Mortal's Resolve
 Mountain
 Necropede
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Okiba-Gang Shinobi
 Orim's Thunder
 Otherworld Atlas
@@ -172,12 +169,12 @@ Pestilent Wolf
 Pierce Strider
 Pitchburn Devils
 Plains
+Polar Kraken
 Portable Hole
 Possessed Barbarian
 Precinct Captain
 Primal Adversary
 Propagator Drone
-Puca's Covenant
 Quickbeam, Upstart Ent
 Quietus Spike
 Rain of Filth
@@ -189,9 +186,11 @@ Relentless Rats
 Relic Bind
 Righteous Charge
 Righteous Fury
+Rilsa Rael, Kingpin
 Rob the Archives
 Rustspore Ram
 Rustwing Falcon
+Ruthless Deathfang
 Screeching Bat
 Scroll of Fate
 Scroll of Isildur
@@ -204,9 +203,14 @@ Shrine of the Forsaken Gods
 Six-Sided Die
 Skyblade's Boon
 Slingshot Goblin
+Smoldering Stagecoach
 Snarespinner
+Snow-Covered Forest
+Snow-Covered Island
+Snow-Covered Swamp
 Soul Channeling
 Sphere of Reason
+Sphinx of Clear Skies
 Spontaneous Artist
 Sprinting Warbrute
 Square Up
@@ -224,6 +228,7 @@ Swamp
 Talisman of Unity
 Tempest of Light
 Territorial Maro
+Teysa, Envoy of Ghosts
 That Which Was Taken
 The Forgotten Place
 The Terror of Serpent's Pass
@@ -246,14 +251,13 @@ Vexilus Praetor
 Victory's Herald
 Vrock
 Wall of Opposition
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Weakness
 Willow Elf
 Winds of Rath
-Wormhole Serpent
 Wu Scout
 Yavimaya Enchantress
 Yukora, the Prisoner
 Zanarkand, Ancient Metropolis
+Zombie Musher

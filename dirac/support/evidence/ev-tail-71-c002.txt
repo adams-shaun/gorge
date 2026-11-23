@@ -215,7 +215,6 @@ Mind Rot
 Mine Worker
 Moku, Meandering Drummer
 Molderhulk
-Molten Ravager
 Momentary Blink
 Monk Idealist
 Morbid Opportunist
@@ -359,7 +358,6 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
-Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror

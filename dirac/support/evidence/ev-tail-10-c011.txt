@@ -66,7 +66,6 @@ Karsus Depthguard
 Kaya's Onslaught
 Kismet
 Kjeldoran Gargoyle
-Krosan Druid
 Leonin Squire
 Mageta the Lion
 Mahamoti Djinn
@@ -92,7 +91,6 @@ Sandsteppe Scavenger
 Savage Smash
 Scalding Tongs
 Sigil of the New Dawn
-Skarrg, the Rage Pits
 Skeletal Changeling
 Sunscape Familiar
 Surge of Salvation

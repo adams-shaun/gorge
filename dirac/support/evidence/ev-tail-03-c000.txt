@@ -21,6 +21,7 @@ Armored Pegasus
 Artillerize
 Ash Barrens
 Assault Zeppelid
+Astral Drift
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
@@ -81,6 +82,7 @@ Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
+Convincing Mirage
 Coral Colony
 Counterbalance
 Courier's Capsule
@@ -320,6 +322,7 @@ Rakdos Signet
 Rank and File
 Read the Bones
 Reap What Is Sown
+Reaper of Sheoldred
 Renegade Tactics
 Reshape
 Reshape the Earth
@@ -367,6 +370,7 @@ Smite
 Snow-Covered Swamp
 Soaring Hope
 Song of Serenity
+Soraya the Falconer
 Soul Feast
 Spawning Pool
 Spined Megalodon

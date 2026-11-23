@@ -17,9 +17,11 @@ Blur
 Bone Shredder
 Broken Wings
 Campfire
+Captain Sisay
 Cathartic Pyre
 Cephalid Illusionist
 Chandra's Pyrohelix
+Chief Magistrate of Mercadia
 Claws of Gix
 Colossal Dreadmaw
 Cone of Flame
@@ -69,6 +71,7 @@ Order of Yawgmoth
 Orochi Eggwatcher
 Otherworldly Journey
 Overrun
+Palace Jailer
 Perimeter Captain
 Phyrexian Ingester
 Pir, Imaginative Rascal
@@ -107,6 +110,7 @@ Twisted Image
 Two-Handed Axe
 Undercity Informer
 Unseal the Necropolis
+Unwavering Initiate
 Valakut Predator
 Vanish into Eternity
 Vastwood Surge

@@ -322,6 +322,7 @@ Rise from the Grave
 Ritual of Rejuvenation
 Riveteers Overlook
 Rock Badger
+Rolling Earthquake
 Rot Wolf
 Rubblehulk
 Rush of Inspiration
@@ -367,6 +368,7 @@ Sphinx-Bone Wand
 Sporoloth Ancient
 Stand United
 Starlit Angel
+Stella Lee, Wild Card
 Stomp and Howl
 Stone Quarry
 Storm, Shaker of Skies

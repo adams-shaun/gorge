@@ -3,6 +3,7 @@ Algorithmic Ferocity
 Amulet of Unmaking
 Annex Sentry
 Antagonize
+Archangel
 Argoth, Sanctum of Nature
 Aven Augur
 Bakersbane Duo
@@ -20,10 +21,12 @@ Boggart Loggers
 Bonescythe Sliver
 Bower Passage
 Bristlebud Farmer
+Bumbleflower's Sharepot
 Burlfist Oak
 Burn Down the House
 Cache Grab
 Carrion Locust
+Cauldron Familiar
 Cavalcade of Calamity
 Cemetery Gate
 Clattering Skeletons
@@ -78,6 +81,7 @@ Geistpack Alpha
 Generated Horizons
 Gloomwidow
 Goblin Chieftain
+Goblin Chirurgeon
 Goldlust Triad
 Great Sable Stag
 Hadana's Climb
@@ -106,6 +110,7 @@ Liberated Dwarf
 Lieutenants of the Guard
 Liliana's Scrounger
 Living Armor
+Loki's Scepter
 Lucky Clover
 Maggot Therapy
 Marrow Shards
@@ -124,6 +129,7 @@ Nantuko Mentor
 Narset's Reversal
 Nevermaker
 Nightfire Giant
+Nocturnal Hunger
 Nyxborn Behemoth
 Oath of Jace
 Opal Caryatid
@@ -158,6 +164,7 @@ Rusted Relic
 Rusted Slasher
 Saberclaw Golem
 Sakura-Tribe Scout
+Savor
 Scorchwalker
 Screeching Buzzard
 Serendib Sorcerer

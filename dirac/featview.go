@@ -63,6 +63,17 @@ func (s *State) FeatGranted(o Obj) (granted kop.KwMask, printed bool) {
 	return g, printed
 }
 
+// FeatCtrlKw is the keywords o's control records grant (the haste of an
+// until-end-of-turn gain control): fx records are not in ObjHash, so the
+// card view cache keys on them.
+func (s *State) FeatCtrlKw(o Obj) kop.KwMask {
+	ob := &s.objs[o]
+	if s.g.nfx == 0 || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return 0
+	}
+	return s.ctrlKw(ob.slot)
+}
+
 // FeatKwReps counts, per keyword bit, the listings of a granted keyword
 // past its first (saturating at 255): gorge lists a keyword once per
 // effect that grants it (two Fleeting Flights list flying twice; Soulstone
@@ -94,6 +105,9 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 	add(p.eotKw)
 	add(p.eotKwRep[0])
 	add(p.eotKwRep[1])
+	if s.g.nfx != 0 {
+		add(s.ctrlKw(ob.slot)) // the haste a control record carries (AddKWs$), listed as gorge lists it
+	}
 	sup := false
 	if k.gen != nil && s.nkwx != 0 {
 		sup = !s.genLost(k, ob.slot) // a loss ended: its suppressed grants are back
@@ -342,6 +356,14 @@ func (s *State) FeatPoolPays(p uint8, o Obj, mode uint8) bool {
 // FeatPoolPaysPlus is FeatPoolPays over the pool plus extra mana (W U B R G C):
 // what the pool would pay once the bot had floated that much by hand.
 func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bool {
+	return s.featPoolPays(p, o, mode, extra, false)
+}
+
+// featPoolPays is FeatPoolPaysPlus for a cast under the may-play any-colour
+// rider when anyColor: a coloured pip is payable by any coloured unit of the
+// pool, {C} stays strict (gorge's offer gate mayPlayAffordable prices the
+// cast under the rider, CR 609.4b).
+func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool) bool {
 	k := s.k()
 	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
@@ -391,7 +413,7 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 		// gorge's gate is existential over the either-or parts: one whose
 		// picks can be paid and whose mana the pool pays with the spell's
 		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, SeatIx(p), c, o) {
+		if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, SeatIx(p), c, o) {
 			t := addCost(pre, ac.Mana)
 			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
 				t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
@@ -408,8 +430,19 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
 	}
+	if s.g.mayPlayAny && mode == 0 {
+		// the may-play cast being offered spends mana of any type (offerPlay sets
+		// mayPlayAny around gorgeOffersMay): gorge's offer gate prices the pool
+		// against the rider-folded cost, so {U} pays a convoke spell's {G}
+		// (Gather Courage under The Magic Bandit; the planner declines a convoke
+		// cast, so the pool is the only way gorge lists it)
+		cost = anyType(cost)
+	}
 	if k.gen != nil && k.gen.uses.has(useAnyColorSpell) && !s.convAnyType(k, SeatIx(p), o) && s.convAnyColor(k, SeatIx(p), o) {
 		cost = planUnderRider(cost, false, true) // the pool spends under the any-colour conversion (mana_convertcreature.go)
+	}
+	if anyColor && cost.Snow == 0 {
+		return a.affordsAnyColor(&cost, 0) // the credited composed cost, as offerPlay's pool half reads it
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
 }
@@ -606,7 +639,10 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+	// A table that merely holds a grant card (grantPC) excludes nothing: the ungranted census
+	// leaves a paid filter (Flooded Grove) out, which gorge's planner still funds, so only a
+	// live granted ability can make a cast payable by the grant alone.
+	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	if s.dhWithholdsCast(k, p, o, &cost) {
@@ -669,7 +705,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
-	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLifted(k, p, c, o, fromHand)
+	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLiftedFrom(k, p, c, o, fromHand, plainCastZone(s.objs[o].zone))
 	tapRefused := !refused && !optRefused && !spendRefused && !lifted && s.contribPays(k, p, c, o, fromHand)
 	if refused || optRefused || spendRefused || tapRefused {
 		// gorge's planner declines the shape (modal_cost, additional_cost,
@@ -727,14 +763,21 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	}
 	if k.gen != nil && (s.g.mayPlayAny || mode&castMayPlay != 0 && s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
 		cost = anyTypePips(cost) // gorge's planner funds these pips as generic (pay.PlanManaUnderRider)
-	} else if k.gen != nil && mode&castMayPlay != 0 && mode&castFree == 0 && s.mayPlayIgnoreColor(k, p, o) {
+	} else if k.gen != nil && mode&castFree == 0 && (s.riderColorSpent(p, o) || mode&castMayPlay != 0 && s.mayPlayIgnoreColor(k, p, o)) {
 		// an any-colour may-play cast: gorge's potential planner prices its
 		// coloured pips generic too (pay.PlanManaUnderRider,
-		// potentialPinnedColourPlan; CR 609.4b), {C} stays colourless-only
+		// potentialPinnedColourPlan; CR 609.4b), {C} stays colourless-only.
+		// riderColorSpent reads the rider of a permission the cast already
+		// spent (plannedUnderRider's mid-cast price): the record is gone,
+		// so mayPlayIgnoreColor no longer holds it.
 		cost = planUnderRider(cost, false, true)
 	}
-	if lifted && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
-		return kop.ManaCost{}, false // "cost:credit": the greedy credit is no proof, the manual window pays
+	if lifted && reserved.any() && !s.improviseSourcesPay(k, p, o, reserved, &cost) {
+		// "cost:credit": the greedy credit is no proof, the manual window pays.
+		// A credit that holds back no artifact (no generic, or no untapped
+		// artifact: improviseAloneCast) is planned plainly, whatever the census
+		// pays: a filter's fee is the prefix search's, as for any plain cast
+		return kop.ManaCost{}, false
 	}
 	return cost, true
 }
@@ -952,13 +995,30 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		pm := &s.perms[sl]
-		if sl == ex || skip.has(sl) || s.grantMay(k, sl) && s.manaGranted(k, sl) {
+		if sl == ex || skip.has(sl) {
+			continue
+		}
+		// A gained CR 305.6 intrinsic (Marvin, Murderous Mimic's
+		// GainsAbilitiesOf$ beside an animated Forest, CR 613.1f) is one of
+		// gorge's census units beside the slot's own and without it
+		// (ungrGainedIntr), so it is credited before the own-unit skips below
+		// withhold the slot.
+		s.ungrGainedIntr(k, p, sl, av, ms)
+		granted := s.grantMay(k, sl) && s.manaGranted(k, sl)
+		if granted && !s.landSetLost(k, sl) {
+			// the gained intrinsic is already credited once, by ungrGainedIntr above
 			continue
 		}
 		if defer_ && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			continue // the census never lists a deferred source (mana_rider.go); a granted basic land type's intrinsic unit is the exception (static_landtype.go)
 		}
 		pc := s.manaPCGen(k, sl)
+		if granted {
+			// a land a land-type setter blanked (Harbinger of the Seas's Islands)
+			// beside a granted ability: manaPCGen answers the grant, but the
+			// planner's census holds the setter's intrinsic unit (CR 305.6)
+			pc = s.landSetView(k, sl, s.cardAt(sl))
+		}
 		if pc.manaAb < 0 && pm.ovr.flags&ovCopy == 0 || k.gen.anyComboDyn && s.comboDynAt(k, sl, pc) {
 			continue // (a Combo Any of an evaluated amount is no census unit: mana_combodyn.go)
 		}
@@ -980,6 +1040,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 			s.addOneColour(av, pc.manaN)
 		}
 		s.addReflectOne(k, av, sl, pc)
+		s.addEachPick(k, av, sl, pc)
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc) // the planner prices a tap's extra too
 			for c := range xv {

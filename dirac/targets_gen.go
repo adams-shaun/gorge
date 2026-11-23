@@ -192,9 +192,25 @@ func (s *State) emptyTargetSetPayable(k *prep) bool {
 	if full == zero && !s.spellTgtDep(k, e.ctrl, e.card, e.obj) {
 		return true
 	}
+	if b.pickN > 0 && s.tapPaysEntry(k, e) {
+		// a convoke cast with creatures already announced: they pay their
+		// share of the cost and are withheld from the window, as at payment
+		// (gorge paymentStranded reads pc.Convoke; convokeTargetAbort)
+		zero = s.convokeApplyPicks(k, zero)
+		return !s.targetWindowShort(k, e, &zero, true)
+	}
 	var av avail
-	s.availFor(k, e.ctrl, &av)
-	return av.affords(&zero, pipMaskOf(&zero), 0)
+	s.availForBuilt(k, e, &av) // the floating restricted mana the spell may spend counts too
+	if av.affords(&zero, pipMaskOf(&zero), 0) {
+		return true
+	}
+	// the pool and plain sources fall short: gorge's paymentStranded reads the
+	// CR 601.2g window, and withholds only when its census is complete and
+	// still short (the candidates' affordableTargets tail, statics_gen.go)
+	if s.windowUnpricedOpen(k, e) {
+		return true
+	}
+	return s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &zero, false)
 }
 
 // finishSlot ends the slot's picks (a divided slot's damage is announced

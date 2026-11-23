@@ -288,7 +288,6 @@ Orthodoxy Enforcer
 Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
-Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -406,6 +405,7 @@ Swamp
 Sweep the Skies
 Sword of the Animist
 Talisman of Unity
+Tamiyo's Compleation
 Tawnos's Tinkering
 Telepathic Spies
 Temporal Adept

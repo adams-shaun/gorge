@@ -195,6 +195,7 @@ Island
 Isolate
 Jace, Ingenious Mind-Mage
 Jokulmorder
+Jyoti, Moag Ancient
 Kabira Outrider
 Kami of the Palace Fields
 Kardur, Doomscourge
@@ -223,6 +224,7 @@ Lorehold Excavation
 Machinate
 Machine Man, Model X-51
 Mage Duel
+Magister of Worth
 Magmatic Channeler
 Manabond
 Manglehorn
@@ -433,6 +435,7 @@ Vivisurgeon's Insight
 Voltaic Key
 Volunteer Militia
 Vulshok Refugee
+Waker of Waves
 Wand of Denial
 Wand of the Elements
 Wandering Tombshell

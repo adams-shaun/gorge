@@ -93,9 +93,11 @@ var stallCapacityReasons = [...]uint8{
 	StallRedirOrder, // a damage event a redirect record and another replacement both match, or a redirect of a source the kernel does not model: gorge asks the CR 616.1 order (repl_dmgredirect.go)
 	// a scaled cumulative upkeep cost past the packed ask (trig_cumulativepay.go)
 	StallCumulativeCost,
-	StallSrcMem,    // a 65th live per-source Remembered/Imprinted record (zone_srcmem.go)
-	StallPrevRider, // a scoped prevention's rider (gain the prevented life) beside what the kernel does not model (repl_prevx.go)
-	StallExTurn,    // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
+	StallObjSets,     // a 97th live object-set record (zone_objsets.go)
+	StallPrevRider,   // a scoped prevention's rider (gain the prevented life) beside what the kernel does not model (repl_prevx.go)
+	StallExTurn,      // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
+	StallMeld,        // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
+	StallConvokedSet, // a seventeenth convoked set held at once, or a seventeenth convoked creature on one cast (kw_convokelist.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -110,7 +112,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallDmgMarkOrder, // a damage event the per-player mark and another replacement both match: gorge asks the CR 616.1 order, which the mark has no candidate for (repl_dmgmark.go)
 	StallFbGrantStamp, // a stamped flashback grant beside an own-cost flashback static: gorge offers both granted instances (kw_fbgrant.go)
 	StallRestrDefer,   // a non-spell payment only a Taps-deferred restricted source funds: gorge pays it by its prefix search (mana_tapsdefer.go)
-	StallComboAnyMix,  // a Combo Any source (Axebane Guardian) beside another census-gap kind: gorge's one prefix search activates both and the kernel chains it with only some gap kinds (mana_comboany.go)
+	StallComboAnyMix,  // a Combo Any source (Axebane Guardian) beside a census-gap kind the kernel does not chain with it (a restricted or costed grant, a tap-another source, a gated filter; mana_comboany.go)
 	StallDiamondMix,   // a Lion's Eye Diamond beside another census-gap kind: gorge's one prefix search activates both (mana_diamondmix.go)
 	StallStackKwGrant, // a granted convoke/improvise on a Harmonize or alternative-cost cast: gorge's announcement for those routes is unverified (kw_convoke.go)
 	// a requirement- or lure-maximising block declaration with a two-attacker blocker ready: gorge offers its second block too (combat_extrablock.go)
@@ -120,7 +122,7 @@ var stallUnmodelledReasons = [...]uint8{
 	// an attack tax beside a part its walk does not model: an attack requirement, a Taps watcher, a mana source of another shape (combat_attacktax.go)
 	StallAtkTax,
 	StallBlkTax,            // a block tax beside a part its source walk does not model (combat_blocktax.go)
-	StallMyriadPW,          // a Myriad ask whose asked player controls a planeswalker: gorge offers the walker beside the player, the kernel poses the player-and-decline pair (kw_myriad.go)
+	StallMyriadPW,          // no longer raised: a Myriad ask's walker arm is modelled (kw_myriad.go)
 	StallChoosePlayerOrder, // an as-enters opponent choice beside another object's enters replacement: gorge asks the CR 616.1 order (repl_chooseplayer.go)
 	StallTextChange,        // a ChangeText whose from word the target's face reads: gorge rewrites the face, the kernel holds no text (act_changetext.go)
 	StallPrevNext,          // a depleting prevent-the-next-N shield and another damage replacement match one event, or a shield amount of 255 or more (repl_prevnext.go)
@@ -140,25 +142,27 @@ var stallUnmodelledReasons = [...]uint8{
 // together, or a two-seat-only card in a larger game, read off the table. Init
 // uses it as a guard for a hand-built table; pairRefusalN refuses a built
 // matchup with it, so the two cannot disagree.
-func (g *genPrep) initStall(nseat uint8) uint8 {
+func (g *genPrep) initStall(nseat uint8) uint8 { return g.initStallSkip(nseat, false) }
+
+// initStallSkip is initStall with the Combo Any mix (caMix) left out when skipCA
+// (a forage-only table no deck plays: prep.initStallDecks).
+func (g *genPrep) initStallSkip(nseat uint8, skipCA bool) uint8 {
 	switch {
 	case nseat > 2 && g.twoSeatOnly:
 		return StallTwoSeat // prepTwoSeat, below
 	case g.infectStall:
 		return StallInfect // kw_infect.go prepInfect
-	case g.anyRepl&(rbDblLife|rbPlusLife) == rbDblLife|rbPlusLife:
-		return StallLifeRepl // gorge asks the order of a doubler and a plus-N
 	case g.l6Stall:
 		return StallL6Walk // static_layer6.go prepL6
 	case g.anyRepl&rbPrevMill != 0 && g.anyRepl&(rbDblDmg|rbPlusDmg|rbPrevCol) != 0:
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
-	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0:
+	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0 && !selfPhLifted(g):
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
 	case staticPrevStall(g):
 		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
-	case g.caMix:
+	case g.caMix && !skipCA:
 		return StallComboAnyMix // mana_comboany.go prepComboAnyMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
@@ -176,8 +180,10 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 
 // initStall is genPrep.initStall plus the stall flags that live on prep (the
 // fixed-State inventory is pinned, so a new flag cannot join genPrep).
-func (p *prep) initStall(nseat uint8) uint8 {
-	if why := p.gen.initStall(nseat); why != StallNone {
+func (p *prep) initStall(nseat uint8) uint8 { return p.initStallSkip(nseat, false) }
+
+func (p *prep) initStallSkip(nseat uint8, skipCA bool) uint8 {
+	if why := p.gen.initStallSkip(nseat, skipCA); why != StallNone {
 		return why
 	}
 	if p.gainsOfPair {
@@ -243,10 +249,6 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 					})
 			})(c, i)
 		}
-	case StallLifeRepl:
-		text = "a life-gain doubler beside a life-gain plus-N: gorge asks the CR 616.1 order and they do not commute"
-		a = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbDblLife != 0 }
-		b = func(_ *kop.CardDef, i int) bool { return g.replBits[i]&rbPlusLife != 0 }
 	case StallReplPlus:
 		if staticPrevStall(g) {
 			text, a, b = staticPrevPair(g)
@@ -287,7 +289,7 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 	case StallChoosePlayerOrder:
 		text, a, b = choosePlayerStallPair() // repl_chooseplayer.go
 	case StallComboAnyMix:
-		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a filter, a tap-another source, a granted mana ability or a Lion's Eye Diamond: gorge's one prefix search activates both and the kernel chains the Combo Any source with the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
+		text = "an unrestricted Combo Any mana source (Axebane Guardian) beside a restricted or costed granted mana ability, a tap-another source, a Lion's Eye Diamond or a gated, dynamic-amount or restricted-source filter table: gorge's one prefix search activates both and the kernel chains the Combo Any source with the plain filters, the plain granted abilities, the reflected sources and the each-colour, restricted, any-colour restricted, deferred and counter-cost sources only"
 		a = func(cd *kop.CardDef, i int) bool { return g.isComboAnyCard(CardID(i), cd) }
 		b = func(_ *kop.CardDef, i int) bool { return caMixGap(tt, g, pp, i) }
 	case StallTokRewrite:
@@ -341,23 +343,15 @@ const StallTwoSeat = 154
 
 func init() { stallNames[StallTwoSeat] = "twoseat" }
 
-// prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only.
+// prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only
+// (kop.CardTwoSeat). Speed, the skip-untap marks, a battle's protector and a
+// granted static goad's goader are no part of it: each holds every seat
+// (kw_speed.go seatWord, act_skipuntap.go coldSkipUntap, face_battle.go
+// akProtector, act_goad.go grantGoader).
 func prepTwoSeat(t *kop.Table, g *genPrep) {
-	if sp, _ := prepSpeed(t); MaxSeats > 2 && sp {
-		g.twoSeatOnly = true // genState.speed packs two seats' speed, 3 bits each (kw_speed.go)
-		return
-	}
 	for i := range t.Cards {
 		if cardTwoSeat(&t.Cards[i]) {
 			g.twoSeatOnly = true
-			return
-		}
-		if MaxSeats > 2 && skipUntapCard(&t.Cards[i]) {
-			g.twoSeatOnly = true // perm.cseen holds two seats' skip-untap marks (act_skipuntap.go)
-			return
-		}
-		if MaxSeats > 2 && t.Cards[i].Types&kop.TBattle != 0 {
-			g.twoSeatOnly = true // a battle's protector is the one opponent (face_battle.go): gorge asks among the opponents (CR 310.10)
 			return
 		}
 	}
@@ -384,12 +378,8 @@ func skipUntapCard(c *kop.CardDef) bool {
 // census (dirac/oracle TestCommanderPodTwoSeatCensus) ranks them by the pods
 // they block.
 const (
-	TwoSeatKgen       = "kgen"        // kop.CardTwoSeat: the lowering reads a two-player identity (kgen lowerCtx.twoSeat, or a kop.TwoSeatInstr operand)
-	TwoSeatSpeed      = "speed"       // OpChangeSpeed or Start your engines: genState.speed packs two seats (kw_speed.go)
-	TwoSeatSkipUntap  = "skip-untap"  // OpSkipUntap: perm.cseen holds two seats' marks (act_skipuntap.go)
-	TwoSeatBattle     = "battle"      // TBattle: the protector is the one opponent (face_battle.go; CR 310.10)
-	TwoSeatGoadStatic = "goad-static" // a granted StatGoad (kop.StatGoadGranted): no goader seat (act_goad.go prepGoad)
-	TwoSeatCtrAdded   = "ctr-added"   // a counters-added-this-turn condition on the card itself: ctrAdd.e[].fl packs two seats (ctr_addedthisturn.go)
+	TwoSeatKgen     = "kgen"      // kop.CardTwoSeat: the lowering reads a two-player identity (kgen lowerCtx.twoSeat, or a kop.TwoSeatInstr operand)
+	TwoSeatCtrAdded = "ctr-added" // a counters-added-this-turn condition on the card itself: ctrAdd.e[].fl packs two seats (ctr_addedthisturn.go)
 )
 
 // TwoSeatCauses is, per CardID of t, the TwoSeat* classes that make the card
@@ -407,44 +397,16 @@ func TwoSeatCauses(t *kop.Table) [][]string {
 		if cardTwoSeat(cd) {
 			out[c] = append(out[c], TwoSeatKgen)
 		}
-		if cardSpeed(cd) {
-			out[c] = append(out[c], TwoSeatSpeed)
-		}
-		if skipUntapCard(cd) {
-			out[c] = append(out[c], TwoSeatSkipUntap)
-		}
-		if cd.Types&kop.TBattle != 0 {
-			out[c] = append(out[c], TwoSeatBattle)
-		}
-		goad, ctr := false, false
+		ctr := false
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			goad = goad || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && a.Static.OvGate != 0
 			ctr = ctr || anyCtr && (condReadsCtrSelf(t, a.Trig.Cond) || condReadsCtrSelf(t, a.Static.Cond2) || condReadsCtrSelf(t, a.Repl.Cond))
-		}
-		if goad {
-			out[c] = append(out[c], TwoSeatGoadStatic)
 		}
 		if ctr {
 			out[c] = append(out[c], TwoSeatCtrAdded)
 		}
 	}
 	return out
-}
-
-// cardSpeed reports whether c reads or changes speed (prepSpeed's per-card test).
-func cardSpeed(c *kop.CardDef) bool {
-	if c.Engines {
-		return true
-	}
-	for j := range c.Abilities {
-		for _, in := range c.Abilities[j].Prog {
-			if in.Op == kop.OpChangeSpeed {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // TwoSeatOnly reports whether a game of three or more seats on t stops at its

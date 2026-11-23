@@ -13,5 +13,6 @@ Marionette Apprentice
 Mountain
 Plains
 Shard of the Nightbringer
+Smiting Helix
 Swamp
 Tragic Fall

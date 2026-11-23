@@ -214,6 +214,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Icatian Infantry
 Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
@@ -282,6 +283,7 @@ Mountain
 Mudbrawler Raiders
 Mudbutton Torchrunner
 Mulldrifter
+Myr Reservoir
 Mystic Retrieval
 Nagging Thoughts
 Nameless One
@@ -345,6 +347,7 @@ Riot Piker
 Rip-Clan Crasher
 Riverwheel Aerialists
 Ronin Warclub
+Rose Noble
 Rotten Reunion
 Ruinous Minotaur
 Runebound Wolf
@@ -406,6 +409,7 @@ Steward of Valeron
 Stingerfling Spider
 Storm's Wrath
 Strionic Resonator
+Su-Chi
 Sungold Barrage
 Swamp
 Swan Song
@@ -449,6 +453,7 @@ Vengevine
 Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
 Viridescent Wisps
+Vitality Hunter
 Vivien's Talent
 Vraska, Swarm's Eminence
 Wakening Sun's Avatar
@@ -457,6 +462,7 @@ Warped Devotion
 Warped Landscape
 Warriors of Wakanda
 Wash Away
+Watchdog
 Welcoming Vampire
 Whetwheel
 Wild Slash

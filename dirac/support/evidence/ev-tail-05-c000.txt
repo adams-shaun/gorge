@@ -7,6 +7,7 @@ Accursed Spirit
 Aerie Bowmasters
 Aeronaut Admiral
 Aether Poisoner
+Aether Web
 Aetherstream Leopard
 Agent of Shauku
 Akoum Boulderfoot
@@ -99,6 +100,7 @@ Dream Prowler
 Dream's Grip
 Drogskol Reinforcements
 Dross Golem
+Dusk Charger
 Elda, Conjurer of Spectacle
 Elite Cat Warrior
 Elvish Branchbender
@@ -383,6 +385,7 @@ Urborg Elf
 Urza's Tome
 Vampire Hounds
 Venomous Changeling
+Verdant Succession
 Viashivan Dragon
 Vicious Conquistador
 Vigilance
@@ -409,6 +412,7 @@ Wing Shards
 Witch of the Moors
 Woodweaver's Puzzleknot
 Xander's Pact
+Yannik, Scavenging Sentinel
 Yavimaya Hollow
 Yotian Dissident
 Zhalfirin Decoy

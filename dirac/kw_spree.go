@@ -241,7 +241,7 @@ func (s *State) charmTargetAskDead(k *prep) bool {
 				av.addUnits(1<<c, pl.pool[c])
 			}
 		}
-		if s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) {
+		if s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av) {
 			if anyColor && av.affordsAnyColor(&cost, 0) || !anyColor && av.affords(&cost, pipMaskOf(&cost), 0) {
 				return false
 			}
@@ -287,7 +287,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 			return true
 		}
 	}
-	return s.handManaAny(k, p) // a hand guide (mana_handguide.go)
+	return s.handManaAny(k, p) || s.graveManaAny(k, p) // a hand guide, a graveyard source (mana_handguide.go, mana_gravemana.go)
 }
 
 // targetPaidPlanned: gorge's cast planner takes a Spree or Tiered face, an
@@ -348,8 +348,18 @@ func (s *State) targetPaidPlanned(k *prep, p uint8, o Obj) bool {
 			// permanents (Valkyrie Aerial Unit's affinity for a Treasure) has
 			// dropped, so the lowering cannot reach the cast whose total
 			// CR 601.2f fixed before that sacrifice (gorge witnessReachesMode
-			// lists the cast only when the pool pays it)
-			reaches = (ab == 255 || t.abilityTargetsFeasible(k, &cd.Abilities[ab], p, NoSlot, 0xff)) && t.FeatPoolPays(p, o, 0)
+			// lists the cast only when the pool pays it). A card with no
+			// AbSpell is not automatically targetless: an aura's Enchant spec
+			// is its spell target (tspec), and the payment can consume
+			// exactly that creature (Brilliant Wings over the Eldrazi Spawn
+			// whose sac pays its {1}: gorge's replay then lists no cast, the
+			// targets are gone; tail-20 pair 5).
+			// judged as the spell it is (spellTargetsFeasible probes it as one): an
+			// ability probe bars a target only an ability cannot take (Shanna's
+			// "can't be the target of abilities your opponents control" under
+			// Titanic Brawl, CR 115.2), and the cast would read as unreachable
+			feas := t.spellTargetsFeasible(k, c, p) // an aura's Enchant spec is its spell target (tspec); a card with none keeps true
+			reaches = feas && t.FeatPoolPays(p, o, 0)
 			if reaches && t.witnessEndsGameLost(k, p, c, n0) {
 				reaches = false // the sacrifices' triggers end the game against p before the cast (Pain Distributor's damage per Treasure)
 			}

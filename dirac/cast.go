@@ -126,7 +126,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	s.ctl = ctlBuild
 	if k.gen != nil && k.gen.anyConvoke && mode&3 == 0 && s.tapPays(k, p, c, o, ob.zone == kop.ZoneHand) {
 		if _, planned := s.plannedCastCostOf(k, p, o, mode, false, false); planned {
-			if s.improviseLifted(k, p, c, o, ob.zone == kop.ZoneHand) {
+			if s.improviseLiftedFrom(k, p, c, o, ob.zone == kop.ZoneHand, plainCastZone(ob.zone)) {
 				s.bld().impPlan = true // (bflTargetPaid once shared its bit with the retired bflDefeatCast)
 			} else {
 				s.bld().bfl |= bflTargetPaid
@@ -165,7 +165,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		if k.t.Cards[c].HasMultikicker {
 			// the count is asked after the cast action: the witness plans the
 			// offer's own base + one payment (gorge's composed potential play)
-			cost = addCost(cost, k.t.Cards[c].Multikicker)
+			cost = s.multikickWitnessCost(k, cost)
 		}
 		if s.rbAny(p) {
 			// restricted mana the spell may spend (Secluded Courtyard's
@@ -205,7 +205,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// an announced Sac<X> the floating pool pays at some count: gorge offers
 		// it from the pool (offerSacXMods) and plans nothing, so nothing is
 		// lowered (cost_sacx.go)
-	} else if !(k.gen != nil && s.contribPays(k, p, c, o, ob.zone == kop.ZoneHand)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
+	} else if !(k.gen != nil && s.contribDeclined(k, p, c, o, ob.zone == kop.ZoneHand, mode&(castMayPlay|castFace|castFaceDown|castWarpRecast|3) == 0)) && mode&(castFace|castFaceDown|castWarpRecast) == 0 && (s.cfg&cfgGorgeLowering != 0 && mode&3 == 0 && mode != castFree && ob.zone == kop.ZoneHand ||
 		s.cfg&(cfgGorgeLowering|cfgGorgeAutopay) != 0 && (mode&castMayPlay != 0 && mode&castFree == 0 || mode&3 == 2)) &&
 		(typed || fl&sfFbGranted != 0 || !s.plannedUnderRider(p, o, mode&3)) {
 		// the oracle lowers a cast from the hand gorge's cast planner never
@@ -267,12 +267,21 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	s.bld().bfl &^= bflAnyColor | bflCostFixed
 	// gorge plans the cost paymentMana leaves, the announced convoke picks
 	// (applyConvoke) already off it
-	pc := planUnderRider(s.convokeApplyPicks(k, s.buildCost(k)), fl&sfAnyMana != 0, bf&bflAnyColor != 0)
+	raw := s.convokeApplyPicks(k, s.buildCost(k))
+	pc := planUnderRider(raw, fl&sfAnyMana != 0, bf&bflAnyColor != 0)
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
 	pcx := pc.AtX(int(e.x))
 	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
+		// an any-colour rider (not any type) keeps the fold only while its
+		// units can pay the relaxed pips coloured; else gorge's pins
+		// (cast_riderpinned.go) fund them
+		if fl&sfAnyMana == 0 && bf&bflAnyColor != 0 {
+			if n := riderPinCount(raw); n != 0 && s.tapRiderPinned(k, e, pc, n, &av) {
+				return
+			}
+		}
 		s.tapFor(k, e.ctrl, &pc, int(e.x), e.obj)
 	}
 }
@@ -681,8 +690,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if s.cfg&cfgCommander != 0 {
 			// CR 903.8: the command-zone tax, an additional cost. A
-			// command-zone cast is only ever this plain cast
-			// (offerCommanderSlot), so this is the one path it reaches.
+			// command-zone cast is the plain cast or a dashed one
+			// (offerCommanderSlot, offerDashCommand); both reach this path.
 			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
 		}
 		// a reduction applies to the total cost, a flashback or kicked one
@@ -886,7 +895,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// chosen type, tapped by the play's script prefix) is in
 				// gorge's AvailableFor pool, which its xAsk reads; the
 				// cast was offered on it (legal.go restrAffords)
-				s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av)
+				s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av)
 			}
 			mx := av.maxX(&cost, pipMaskOf(&cost))
 			gorgeSurface := s.cfg&cfgGorgeSurface != 0
@@ -1257,14 +1266,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			s.nextStage(k)
 			continue
 		case bsMana:
-			if s.manaStep(k) {
+			if s.manaStage(k) {
 				return false
 			}
 			if s.winPaused() {
 				return s.castWinTapOptions(k, d)
 			}
-			if s.parkedWaiting() {
-				s.ctl = ctlExileOrder // a mana sacrifice's move; the answer floats its mana and this step goes on
+			if s.manaAskWaiting() { // a mana sacrifice's move or a planned tap's reflected pick; the answer floats its mana and this step goes on
 				return false
 			}
 			s.nextStage(k)
@@ -1323,7 +1331,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 			}
 		}
 	} else if s.rbAny(SeatIx(e.ctrl)) {
-		s.restrAvail(k, e.ctrl, e.card, restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
+		s.restrAvail(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &av) // the restricted mana the spell may spend, as the X ask reads it
 	}
 	if e.kind == seSpell {
 		s.addDeferredUnits(k, e.ctrl, &av) // mana_deferred.go
@@ -1343,7 +1351,7 @@ func (s *State) pipOptions(k *prep, d *Decision) bool {
 		rx := r.AtX(int(e.x))
 		// the may-play any-colour rider (CR 609.4b) lets a coloured unit pay a
 		// face of another colour: gorge's announceFeasible prices the face under it
-		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || s.bld().bfl&bflAnyColor != 0 && av.affordsAnyColor(&rx, 0) || hybGateMutation(s.bld().pipN) {
+		if s.faceReachable(k, e.ctrl, &av, &rx, 0) || s.reflAmtFaceReachable(k, e.ctrl, &av, &rx, 0) || s.bld().bfl&bflAnyColor != 0 && av.affordsAnyColor(&rx, 0) || hybGateMutation(s.bld().pipN) {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(c)))
 		}
 	}
@@ -1623,7 +1631,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 			// restricted mana this spell may spend pays first (payRestrSpend):
 			// the sources tap for what it leaves (manaStep tapped them already
 			// when the plan ran there; this keeps the retap a no-op)
-			cost = s.restrShort(k, e.ctrl, e.card, restrOriginOfEntry(ep), cost)
+			cost = s.restrShort(k, e.ctrl, e.card, s.restrOriginOfEntry(ep), cost)
 		}
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
@@ -1702,8 +1710,9 @@ func (s *State) finishBuild(k *prep) {
 				return
 			}
 			if k.gen.anyCastProv {
-				s.bld().e.prov |= uint8(min(s.convokePickCount(), 31)) << 3 // Convoked$Amount (trig_gravedrawn.go)
+				s.bld().e.prov |= uint8(min(s.convokedAmount(), 31)) << 3 // Convoked$Amount (trig_gravedrawn.go)
 			}
+			s.stampConvoked(k) // kw_convokelist.go: the cast's convoked creatures, beside the count above
 		} else if s.bld().bfl&bflLowered != 0 && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
 			// a lowered cast pays what its witness left unpaid (Eaten
 			// Alive's {3}{B} part, chosen after it; an announced X past the
@@ -2293,7 +2302,7 @@ func (s *State) takePending(k *prep, i int) {
 		}
 	}
 	s.bld().e.tgt = noTargets
-	if pt.trigSA != 0 {
+	if pt.saWord() != 0 {
 		// a BecomesTarget player half's targeted seat rides defSeat while
 		// pending (pendingTrig); it is a trigger referent, not an attack
 		// trigger's defender
@@ -2363,7 +2372,7 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 				return false
 			}
 			s.bld().pickK = rest & -rest
-			s.bld().pickLeft = pc.N
+			s.bld().pickLeft = pickCount(pc, s.bld().pickK)
 			if s.bld().pickK == pkDiscard && pc.DiscardX {
 				s.bld().pickLeft = uint8(e.x) // Discard<X/Spec>: the announced X (0 asks nothing)
 			}
@@ -2427,7 +2436,7 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		// a filtered discard (CostDiscardFiltered) offers only the hand
 		// cards matching Cost.Filter (cost_discardfiltered.go); past the
 		// first part's picks a second part offers its own (Discard2F)
-		fmatch, f := c.Flags&kop.CostDiscardFiltered != 0, c.Filter
+		_, f, fmatch := discardPart(c)
 		if s.discardPartTwo(c) {
 			fmatch, f = c.Discard2F != 0, c.Discard2F
 		}

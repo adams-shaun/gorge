@@ -1,0 +1,99 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Azure Beastbinder	23bf5a2392864d7f	4	1/1		0/1	ix:resp
+Bakersbane Duo	6ffef594aee9e88b	17	2/2		1/1	
+Bark-Knuckle Boxer	58b3446bc611d5c6	3	1/1		0/1	ix:resp
+Barkform Harvester	7a983f168e72684f	8	1/1		1/1	
+Bellowing Crier	6ef134c60dacdc47	6	1/1		0/1	ix:resp
+Blossoming Sands	f4363b9404626dd6	6	2/2		0/1	ix:resp
+Brambleguard Veteran	c0af568f19790b4f	7	1/1		0/1	ix:resp
+Builder's Talent	c73d994e25bec7a5	3	5/5		0/1	ix:resp
+Bumbleflower's Sharepot	1876816fa8a361bd	8	2/2		0/1	ix:resp
+Bushy Bodyguard	5586d65f188743b2	12	2/2		2/5	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cache Grab	f9493d496beba169	4	0/0		1/2	ix:resp
+Calamitous Tide	d98f9c9ea939bacc	4	0/0		1/2	ix:resp
+Charmed Sleep	4ede92a22515401c	6	1/1		1/2	ix:resp
+Clement, the Worrywort	de80532ccbe23151	4	1/1		0/1	ix:resp
+Clifftop Lookout	98bb6ea128018b02	8	1/1		0/1	ix:resp
+Colossification	f8062b2c01e2c0de	6	1/1		2/2	
+Consumed by Greed	dbd8ea985d94a585	3	0/0		4/4	
+Curious Forager	eabb0261678c4ddb	15	1/1		1/1	
+Daring Waverider	4ef4fcfb8bf8020e	5	1/1		0/1	ix:resp
+Dazzling Denial	dca723eba608ef5c	9	0/0		2/2	
+Dire Downdraft	fd4187aa1ee24de0	4	0/0		2/2	
+Dour Port-Mage	f4e7fa2ed41ed2ae	6	2/2		0/1	ix:resp
+Dreamdew Entrancer	a69e1ee791eb1168	4	1/1		0/1	ix:resp
+Druid of the Spade	49d248834f7feeb0	16	0/0		0/0	
+Early Winter	f7a6e13f37b0186f	4	0/0		1/2	ix:resp
+Fabled Passage	e5a2e0912dc94b72	13	1/1		0/1	ix:resp
+Fecund Greenshell	d39b1dc94610e1da	3	1/1		1/1	
+Forest	6d0466c30f825dba	209	1/1		0/1	ix:resp
+Fountainport	afe33a4569866fa2	11	4/4		0/1	ix:resp
+Fountainport Bell	2586f6d964a1127e	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Giant Growth	010ba87094de43e0	6	0/0		1/2	ix:resp
+Gossip's Talent	7d9ccefdf83dded6	6	5/5		1/3	f0/t2/opt:n,f0/t2/opt:y
+Hidden Grotto	31d0db94e361f6b8	15	3/3		0/1	ix:resp
+High Stride	72c1bdeb8059d8ea	17	0/0		2/2	
+Hivespine Wolverine	8817ea9a29dd32db	11	1/1		1/1	
+Honored Dreyleader	62ad8911566f27f4	13	2/2		1/1	
+Hunter's Talent	d75cb000e5086da0	9	5/5		1/1	
+Innkeeper's Talent	f26b55fdb380dbca	17	3/3		1/1	
+Island	763c67ef7a27eaf5	242	1/1		0/1	ix:resp
+Keen-Eyed Curator	52dcfcf8218c24e6	4	1/1		1/1	
+Knightfisher	876ffdbc957d3f1e	8	1/1		0/1	ix:resp
+Lightshell Duo	c9c8563e90020949	8	2/2		0/1	ix:resp
+Lilysplash Mentor	36e566c6d4f650c3	76	1/1		1/1	
+Long River Lurker	70628ed767cf744f	15	2/2		0/1	ix:resp
+Long River's Pull	fea3f6c1e03b77b9	16	0/0		4/4	
+Longstalk Brawl	3ad7d531e7740bf3	3	0/0		4/4	
+Mind Spiral	c870d709cdbb9039	18	0/0		4/4	
+Mind Spring	2a0818b51b330676	4	0/0		3/4	f0/s/x0
+Mindwhisker	5048d2d9680c3b44	3	1/1		1/1	
+Mistbreath Elder	3208058dd7cc3d0a	8	1/1		0/1	ix:resp
+Mockingbird	dd0536de4d36b0db	7	0/0		0/0	
+Nettle Guard	3c5a10167ebca2a4	4	2/2		0/1	ix:resp
+Nightwhorl Hermit	f6fb6c1f4253c58c	5	0/0		0/0	
+Oakhollow Village	57c4d606698fa671	8	3/3		0/1	ix:resp
+Otterball Antics	a6df7d764b486634	12	0/0		4/4	
+Overprotect	7f245fc2b60ed0e9	12	0/0		2/2	
+Patchwork Banner	0e0d807f31edad66	9	1/1		1/1	
+Pawpatch Formation	cb455e9b31465254	10	0/0		2/2	
+Pawpatch Recruit	de69a816e9b5393d	7	2/2		2/3	ix:resp
+Pearl of Wisdom	b29ce46731b0dce8	6	0/0		2/2	
+Plains	82d63a695487e567	11	1/1		0/1	ix:resp
+Plumecreed Escort	73c488ed5b50b1c9	10	1/1		0/1	ix:resp
+Polliwallop	262889510fff7d98	7	0/0		2/2	
+Psychic Whorl	40968fa78a9c7c31	3	0/0		1/2	ix:resp
+Rabid Bite	920db26b7062e03f	8	0/0		2/2	
+Run Away Together	57e24937865276ad	17	0/0		2/2	
+Rust-Shield Rampager	16bce7690089d5a6	11	1/1		3/3	
+Savor	145dbfb9a9e43d33	4	0/0		2/2	
+Season of Gathering	4334319547bdd997	7	0/0		2/2	
+Shore Up	20aab02a566ae73e	10	0/0		2/2	
+Shoreline Looter	c8e103bb97667310	5	1/1		0/1	ix:resp
+Short Bow	ba22341fa9979beb	4	1/1		1/1	
+Shrike Force	5bcfb391f7551426	4	0/0		0/0	
+Skyskipper Duo	50b588fbcc7ac86f	10	1/1		1/1	
+Spellgyre	9b89dd1bcc6c139a	6	0/0		2/2	
+Splash Lasher	10604ededa644446	9	2/2		2/3	ix:resp
+Splash Portal	1970a21115b5dc51	26	0/0		2/2	
+Starforged Sword	f7c6b4bc9dec1031	4	2/2		2/3	ix:resp
+Stickytongue Sentinel	060ae96c43461c98	4	1/1		0/1	ix:resp
+Stocking the Pantry	28a49eb1db9ba32f	19	2/2		1/1	
+Sugar Coat	eb75104e7858cc4b	8	0/0		1/2	ix:resp
+Sunshower Druid	002b00ddc6f15f32	7	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	14	1/1		0/1	ix:resp
+Swiftwater Cliffs	7ab254f5d40af342	29	2/2		1/1	
+Sword of Vengeance	1cda9d31916d75c3	10	1/1		1/1	
+Thieving Otter	f711f388daaabfc1	14	1/1		1/1	
+Thornvault Forager	f25942defbda2084	8	3/3		0/1	ix:resp
+Thought Shucker	b45155c3490b0f84	8	1/1		0/1	ix:resp
+Three Tree Rootweaver	f64e011bd10e62cb	4	1/1		0/1	ix:resp
+Three Tree Scribe	fdaf441d9b626970	21	1/1		0/1	ix:resp
+Treeguard Duo	3ffd5a9624e2ec28	8	1/1		0/1	ix:resp
+Treetop Sentries	b3269328cb0d44da	13	1/1		1/1	
+Uncharted Haven	0acf75ba4141b9c1	9	1/1		0/1	ix:resp
+Valley Floodcaller	0d312a909474528e	10	1/1		1/1	
+Valley Mightcaller	1ed175827c63f3a7	7	1/1		0/1	ix:resp
+Waterspout Warden	485a4943c2d0cb4e	9	1/1		1/1	
+Wear Down	b1921877c474288d	15	0/0		4/4	
+Wishing Well	21216690c069acf7	9	1/1		1/1	

@@ -108,3 +108,68 @@ func prepEquipAnim(t *kop.Table, g *genPrep) {
 		}
 	}
 }
+
+// prepAuraAnim sets genPrep.equipAnim (the one flag gating the CR 704.5p attached-creature walk; a new genPrep field would move the pinned layout): CR 704.5p's attached-Aura reach of sba
+// is reachable only when the table holds a printed Aura and an animator that
+// can make it a creature while attached: an override that adds or sets the
+// Creature type whose OpOverride reaches another object (Mercurial
+// Transformation's "target nonland permanent" Octopus animate — pair 29 of
+// tail-46), one an Aura carries over itself (RefSelf), an OpOverrideAll whose
+// filter can still match an Aura, or a copy exception (Nexus of Becoming). It
+// gates sbaAttachedCreatures' call beside prepEquipAnim's reach, so a table
+// with neither keeps the arm off sba's post-pass walk.
+func prepAuraAnim(t *kop.Table, g *genPrep) {
+	aura := false
+	for i := 0; i < len(t.Cards) && !aura; i++ {
+		if t.Cards[i].Types&kop.TAura != 0 {
+			aura = true
+		}
+	}
+	if !aura {
+		return
+	}
+	creatureOvr := func(o uint16) bool {
+		return int(o) < len(t.Overrides) && (t.Overrides[o].AddTypes|t.Overrides[o].SetTypes)&kop.TCreature != 0
+	}
+	// filterMayReachAura is filterMayEquip's read over an Aura: any type, an
+	// Enchantment or Aura type, and never a filter that excludes Auras
+	filterMayReachAura := func(f kop.FilterID) bool {
+		for {
+			fl := &t.Filters[f]
+			if fl.Types == 0 || fl.Types&(kop.TAura|kop.TEnchantment) != 0 {
+				return fl.NotTypes&kop.TAura == 0
+			}
+			if fl.Or == 0 {
+				return false
+			}
+			f = fl.Or
+		}
+	}
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		for j := range c.Abilities {
+			a := &c.Abilities[j]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatOverride && a.Static.Override > 0 &&
+				creatureOvr(a.Static.Override-1) && filterMayReachAura(a.Static.Filter) {
+				g.equipAnim = true
+				return
+			}
+			for _, in := range a.Prog {
+				switch {
+				case in.Op == kop.OpOverride && creatureOvr(uint16(in.C)):
+					if in.Obj != kop.RefSelf || c.Types&kop.TAura != 0 {
+						g.equipAnim = true
+						return
+					}
+				case in.Op == kop.OpOverrideAll && creatureOvr(uint16(in.C)) && filterMayReachAura(in.F):
+					g.equipAnim = true
+					return
+				}
+				if x := copyExcOf(&in); x > 0 && creatureOvr(uint16(x-1)) {
+					g.equipAnim = true // a copy of an Aura made a creature (Nexus of Becoming)
+					return
+				}
+			}
+		}
+	}
+}

@@ -12,15 +12,15 @@ import (
 // kop.SrBattleLink (the picked set returns to the battlefield when the source
 // leaves). Glorious Protector (the any-number pick, no rider) and Abdel Adrian
 // (the pick plus its token rider) lower whole; Yannik's pick lowers with the
-// mandatory exactly-one count and its card now refuses only at the reflexive
-// divided-counters body, never at Duration$. Every other Duration$ on the
+// mandatory exactly-one count and its card lowers whole (the reflexive
+// divided-counters body lowers too; see TestYannikReflexiveDividedCountersLowers). Every other Duration$ on the
 // path, and the zone pairs the link does not model, still refuse.
 func TestBattlefieldPickUntilLeavesLowers(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Glorious Protector", form: "any-number battlefield pick until the host leaves", lir: "ChooseMove obj=You A=Count({types=0x2 notsub=Angel ctrl=1}) C=5 CS=from=Battlefield|UntilLeaves "},
 		{card: "Abdel Adrian, Gorion's Ward", form: "any-number pick plus the token rider", lir: "CS=from=Battlefield|UntilLeaves|Remember"},
 		{card: "Abdel Adrian, Gorion's Ward", form: "token per exiled permanent", lir: "CreateToken obj=You A=RememberedCount(ctx) CS=w_1_1_soldier"},
-		{card: "Yannik, Scavenging Sentinel", form: "mandatory exactly-one pick", lir: "ChooseMove obj=You A=1 C=5 CS=from=Battlefield|UntilLeaves|Remember|Mandatory", refused: "DividedAsYouChoose$ PutCounter outside a Dies Self trigger"},
+		{card: "Yannik, Scavenging Sentinel", form: "mandatory exactly-one pick", lir: "ChooseMove obj=You A=1 C=5 CS=from=Battlefield|UntilLeaves|Remember|Mandatory"},
 		{card: "Lumbering Battlement", form: "ExiledWith reader keeps its own blocker", refused: "ExiledWith reader with a ChooseMove exile"},
 		{card: "Idris, Soul of the TARDIS", form: "Vanishing keeps its own blocker", refused: "keyword \"Vanishing\""},
 	})

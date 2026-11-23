@@ -11,11 +11,13 @@ Ashcoat Bear
 Auriok Sunchaser
 Auspicious Ancestor
 Ayula, Queen Among Bears
+Azorius Guildgate
 Barrel Down Sokenzan
 Birchlore Rangers
 Birthing Pod
 Bloodscale Prowler
 Blue Scarab
+Boros Guildgate
 Boros Mastiff
 Boulder Salvo
 Brimstone Dragon
@@ -48,7 +50,9 @@ Cystbearer
 Dark Temper
 Deadly Dispute
 Death of a Thousand Stings
+Declare Dominance
 Despondent Killbot
+Dimir Guildgate
 Dirty Rat
 Divebomber Griffin
 Dragon Hatchling
@@ -60,6 +64,7 @@ Empty the Warrens
 Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams
@@ -74,6 +79,7 @@ Gerrard's Irregulars
 Gideon's Lawkeeper
 Gloom Pangolin
 Goblin Firebug
+Golgari Guildgate
 Graceful Cat
 Grappling Sundew
 Grave Betrayal
@@ -81,6 +87,7 @@ Great Wall
 Greenseeker
 Grim Draugr
 Grizzly Ghoul
+Gruul Guildgate
 Hammer Mage
 Harmless Offering
 Harrow
@@ -88,6 +95,7 @@ Henge of Ramos
 Hero of Precinct One
 Hesitation
 Island
+Izzet Guildgate
 Jewel-Eyed Cobra
 Kain, Traitorous Dragoon
 Kami of Fire's Roar
@@ -125,6 +133,7 @@ No Escape
 Nullmage Advocate
 Open the Vaults
 Orochi Soul-Reaver
+Orzhov Guildgate
 Orzhov Racketeers
 Paradise Mantle
 Pardic Arsonist
@@ -132,15 +141,19 @@ Paupers' Cage
 Phyrexian Ghoul
 Pit Imp
 Pit Keeper
+Plains
 Plaza of Heroes
 Polluted Bonds
 Portal to Phyrexia
 Possessed Aven
+Possession Engine
 Psionic Blast
 Pyretic Charge
 Quest for Ancient Secrets
 Quickening Licid
+Rakdos Guildgate
 Rally the Ranks
+Rampaging Aetherhood
 Reality Ripple
 Reckless Air Strike
 Reptilian Recruiter
@@ -151,6 +164,7 @@ Rundvelt Hordemaster
 Sacred Cat
 Saiba Trespassers
 Satyr Firedancer
+Satyr Grovedancer
 Savage Swipe
 Scarwood Treefolk
 Sensei's Divining Top
@@ -180,20 +194,22 @@ Spontaneous Combustion
 Sporeback Troll
 Stony Strength
 Storm of Memories
-Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp
 Swift Maneuver
+Swift Warden
 Taranika, Akroan Veteran
 Tel-Jilad Chosen
 Tenth District Guard
 The Surgical Bay
 The Wretched
+Thundering Spineback
 Tigereye Cameo
 Tower of Calamities
 Triad of Fates
 Turbulent Dreams
+Ubul Sar Gatekeepers
 Unholy Strength
 Urabrask's Anointer
 Urza's Filter

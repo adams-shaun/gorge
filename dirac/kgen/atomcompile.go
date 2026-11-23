@@ -39,6 +39,10 @@ func NewAtomCompilerOver(t *kop.Table) *AtomCompiler {
 	if len(pt.exprs) == 0 {
 		pt.exprs = append(pt.exprs, kop.Expr{})
 	}
+	if len(t.FilterProgs) > 0 {
+		pt.progs = append([]kop.FilterProg(nil), t.FilterProgs...)
+		pt.progKey = map[string]kop.FilterProgID{}
+	}
 	pt.subtypes = append([]string(nil), t.Subtypes...)
 	for i, w := range pt.subtypes {
 		pt.subIdx[w] = i
@@ -99,6 +103,13 @@ func (a *AtomCompiler) Count(head string) (kop.ValueRef, error) {
 // compiler's own; a probe set copies nothing, so lower everything first).
 func (a *AtomCompiler) Tables() ([]kop.Filter, []kop.Expr) {
 	return a.cb.pt.filters, a.cb.pt.exprs
+}
+
+// Progs is the filter-program table the lowered filters index (kop.PredProg's
+// PredN): the game's own programs, then those the atoms lowered. nil when no
+// program exists, which keeps the game's table.
+func (a *AtomCompiler) Progs() []kop.FilterProg {
+	return a.cb.pt.progs
 }
 
 // Missing is the subtype names the last Filter or Count asked for that the

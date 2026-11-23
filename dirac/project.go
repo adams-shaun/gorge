@@ -226,6 +226,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	if s.g.pre.state == 1 && s.g.pre.land && s.g.pre.obj == i {
 		po.Ctrl = s.preLandSeat() // a land played from another player's card (Tinybones), its as-enters choice asked first: gorge changed its control at the play
 	}
+	po.Ctrl = s.roLandCtrl(i, ob.zone, po.Ctrl)
 	if s.res.ask == raGenRetChoice && s.g.pre.obj == i && s.g.pre.state != 0 {
 		po.Ctrl = s.res.askP // a GainControl$ return's as-enters choice (Coalstoke Gearhulk): gorge folds the control onto the card before its entry (emitEntryMove)
 	}
@@ -314,6 +315,16 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 
 }
 
+// roLandCtrl is ctrl, or the parked entry-order ask's player when i is a land
+// played from another player's card still in its zone: gorge changed its
+// control at the play (repl_entryorder.go, CR 616.1).
+func (s *State) roLandCtrl(i Obj, z kop.Zone, ctrl uint8) uint8 {
+	if ro := &s.g.ro; ro.n > 0 && ro.entHdr() && ro.pcol&entMode == entLand && ro.entObj() == i && z != kop.ZoneBattlefield {
+		return ro.p
+	}
+	return ctrl
+}
+
 // projExtraStackTgts projects an entry's extra stack-ability targets like
 // slot ones: the live index, or StackTargetGone once the object left
 // (tgt_stackability.go).
@@ -374,6 +385,13 @@ func (s *State) projRest(p *Projection, lib bool) {
 		// a seat's two commanders project as one sum, as the oracle folds
 		// gorge's per-commander lists
 		p.CmdCast[pi] = satAdd8(pl.cmdCast, s.cmdCast2(uint8(pi)))
+		if s.cmdCastInFlight(uint8(pi)) {
+			// gorge counts the cast as it pushes the spell (CR 903.8), so a
+			// decision asked between the push and the commit (the Improvise
+			// helper pick, a target) sees it; the kernel counts at the commit
+			// (onCast)
+			p.CmdCast[pi] = satAdd8(p.CmdCast[pi], 1)
+		}
 		for q := range p.CmdDmg[pi] {
 			p.CmdDmg[pi][q] = satAdd8(pl.cmdDmg[q], s.cmdDmg2(uint8(pi), uint8(q)))
 		}

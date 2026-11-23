@@ -111,15 +111,29 @@ type avail struct {
 	oneMask    [maxOneColour]uint8
 	oneAltMask [maxOneColour]uint8
 	oneAltN    [maxOneColour]uint8
-	nOne       uint8
+	// oneCol is an alt entry's one-colour block when it is smaller than the group its
+	// larger fixed face (oneAltN) shares (Palladium Myr's {C}{C} beside a granted one mana
+	// of any colour): 0 reads one. The block is one tap's mana, the fixed face the other.
+	oneCol [maxOneColour]uint8
+	nOne   uint8
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
+	// excl: the lands whose own ability and granted intrinsic one are
+	// alternatives of one tap (static_landgrantalt.go altExcl); a bound over
+	// them picks one face per source (exclAny). Their largest face is in total.
+	excl  [maxAltExcl]altExcl
+	nExcl uint8
+	xMax  uint16
+	// exclAlt: exclAffords' scratch, how many lands of each group take the intrinsic face
+	exclAlt [maxAltExcl]uint8
 	// xd: the payment an {X} ask is bounded by, when xdOn; a granted ability
 	// whose spend restriction refuses it adds nothing (availGrant). A value, not
 	// a pointer, so an avail on the stack keeps no reference to a local.
 	xd   payDesc
 	xdOn bool
+	// ungr: set by affordsReservingAv on the ungranted census (ungrAvail), which holds no unit of a source whose mana an effect grants: such a tap candidate is no mana the part's reservation takes away (costPartDisjointD)
+	ungr bool
 	// xPlain: set by availXWindow on the plain configuration: a source with its own ability counts that ability only, the one the planner taps (a grant-only source still counts, plan's phase 2 taps it)
 	xPlain bool
 	// capped: set by availForCapped's census, whose loop already counts a Taps-deferred source's own tap once (availScript's gap loop skips it: mana_tapsdefer.go tapsDeferGapOwn)
@@ -173,7 +187,7 @@ func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 	i := a.nOne
 	a.one[i] = n
 	a.oneMask[i] = mask
-	a.oneAltMask[i], a.oneAltN[i] = 0, 0
+	a.oneAltMask[i], a.oneAltN[i], a.oneCol[i] = 0, 0, 0
 	a.nOne++
 	return true
 }
@@ -181,10 +195,13 @@ func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 // addOneColourAlt is addOneColourMask for a merged unit that also keeps the
 // source's own fixed face (altMask, altN) as an alternative to its one-colour
 // block.
-func (s *State) addOneColourAlt(a *avail, mask, n, altMask, altN uint8) {
+func (s *State) addOneColourAlt(a *avail, mask, n, altMask, altN, colN uint8) {
 	if s.addOneColourMask(a, mask, n) && altMask != 0 {
 		i := a.nOne - 1
 		a.oneAltMask[i], a.oneAltN[i] = altMask, altN
+		if colN < n {
+			a.oneCol[i] = colN
+		}
 	}
 }
 
@@ -277,9 +294,13 @@ func (a avail) oneColourAltFits(cost *kop.ManaCost, pipMask uint8, extra int, al
 	if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
 		return true
 	}
+	colN := a.one[i]
+	if a.oneCol[i] != 0 {
+		colN = a.oneCol[i]
+	}
 	for c := uint8(0); c < 5; c++ {
 		b := a
-		b.addUnits(1<<c, a.one[i])
+		b.addUnits(1<<c, colN)
 		if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
 			return true
 		}
@@ -358,6 +379,7 @@ func (a *avail) dropOneColour(mask, n uint8) {
 			a.oneMask[i] = a.oneMask[a.nOne]
 			a.oneAltMask[i] = a.oneAltMask[a.nOne]
 			a.oneAltN[i] = a.oneAltN[a.nOne]
+			a.oneCol[i] = a.oneCol[a.nOne]
 			return
 		}
 	}
@@ -440,6 +462,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 // when withDeferred is set (availForCapped).
 func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferred bool) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
+	a.nExcl, a.xMax = 0, 0 // the two-face lands of an earlier census on this avail (addAltExcl) are not this one's
 	a.capped = withDeferred
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -470,7 +493,10 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// prefix search pays: any other deferred source keeps its ordinary
 		// unit here, or no walk would count it and a play it funds would
 		// vanish from the offer (mana_tapsdefer.go).
-		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDeadSac(k, p))
+		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDead(k, p))
+		if s.g.availX&availNoTapsLethal == 0 {
+			m = m.andNot(s.tapsDeferLethalMask(k, p, m)) // a deferred source whose own tap kills the payer funds nothing (mana_tapsdefer.go)
+		}
 	}
 	for m.any() {
 		sl := m.first()
@@ -514,7 +540,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// the exception: its census unit is the intrinsic ability, not the
 		// gap its own ability makes (blgIntrinsicUnit, static_landtype.go),
 		// so it falls through to the ordinary unit below.
-		if deferSkip && deferGap.has(sl) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+		// deferredFiltFree: a Taps watcher defers a filter land's free ability
+		// in gorge's planner like any land's tap, so the census never lists it.
+		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -531,19 +559,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 			s.addPainAvail(k, sl, pc, p, a, nil, true)
 			continue
 		}
-		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
-		if pc.manaOne {
-			s.addOneColour(a, pc.manaN)
-		}
-		s.addReflectOne(k, a, sl, pc)
-		if k.gen != nil && k.gen.anyTapExtra {
-			xv := s.srcExtra(k, sl, pc)
-			for c := range xv {
-				if xv[c] > 0 {
-					a.addUnits(1<<c, xv[c])
-				}
-			}
-		}
+		s.availPlainUnit(k, sl, pc, a)
 	}
 	if k.availExt {
 		s.availExt(k, p, a) // pain budget, Phyrexian life (mana_pain.go)
@@ -571,6 +587,9 @@ func (a *avail) affords(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 // hybrid paths resolve their pips and call it, never affords: a call cycle
 // would move their resolved costs to the heap.
 func (a *avail) affordsPlain(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+	if a.nExcl != 0 {
+		return a.exclAffords(0, cost, pipMask, extra, false)
+	}
 	if a.pain.on {
 		return a.painAffords(cost, pipMask, extra)
 	}
@@ -644,6 +663,9 @@ func (a *avail) affordsAnyColor(cost *kop.ManaCost, extra int) bool {
 // affordsAnyColorPlain is affordsAnyColor for a cost without hybrid or
 // twobrid pips (no call cycle: see affordsPlain).
 func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
+	if a.nExcl != 0 {
+		return a.exclAffords(0, cost, 0, extra, true)
+	}
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
@@ -882,6 +904,9 @@ type utype struct {
 	pain uint8
 	pair uint8
 	alt  bool
+	// intr: the alternative of the pair is a granted basic land type's intrinsic
+	// ability, which gorge's key 8 orders before the printed one (altPairUnit)
+	intr bool
 	// life: pain is a restricted source's paid life, not damage (restrLifeAb)
 	life bool
 	// rb: a restricted source's larger alternative (restrPairUnit): the
@@ -906,6 +931,9 @@ type utype struct {
 	xv    [kop.NumManaKinds]uint8
 	xmask uint8
 	xt    uint8
+	// pick: an all-at-once source's reflected pick (srcEachPick): the unit
+	// is one mana of one of mask, beside the fixed production xv
+	pick bool
 }
 
 type planner struct {
@@ -1309,8 +1337,16 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 // planTapCol is the colour plan taps unit i with: the search's witness when
 // keepCols, else pickUnitColour, or the window's answer for a payment gorge
 // takes through its manual window when that answer still leaves the rest
-// payable (planWindowCol).
+// payable (planWindowCol). An all-at-once source's reflected pick (utype.pick)
+// is the one colour gorge's unasked carrier takes (addXvPick): the plan floats
+// it when it keeps the rest payable, else the witness's own colour stalls.
 func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem *[kop.NumManaKinds]int, remAny int) int {
+	altStat(pk, ty)
+	if ty.pick && ty.mask != 0 {
+		if c := bits.TrailingZeros8(ty.mask); pk.colourKeepsPayable(c, int(ty.n), rem, remAny, &pk.bestTy, i+1, pk.bestN) {
+			return c // the default pick pays: nothing is asked
+		}
+	}
 	if pk.keepCols {
 		return int(pk.bestCol[i])
 	}
@@ -1849,7 +1885,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				} else if pass == 2 || (pass == 0) == choice {
 					continue
 				}
-				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) {
+				if pc.wideN != 0 && rv[i] == rkWiden && s.restrPairUnit(k, sl, pc, pk, i, true, ra[i]) || pc.altCol != 0 && s.altPairUnit(k, sl, pc, pk, i, mask) { // (altPairUnit: a land's own ability beside its granted intrinsic one, static_landgrantalt.go)
 					continue
 				}
 				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false, -1) {
@@ -1866,6 +1902,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				var xv [kop.NumManaKinds]uint8
 				var xm, xt, tn uint8 = 0, 0, pc.manaN
+				var pick bool
 				if k.gen != nil && k.gen.anyTapExtra && !sacOnly {
 					tn += s.srcReflectPick(k, sl, pc) // a several-colour source under a reflect carrier: one more of its pick
 					if pc.painCol != 0 {
@@ -1873,12 +1910,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					} else {
 						xv = s.srcExtra(k, sl, pc)
 					}
-					for c, v := range xv {
-						if v > 0 {
-							xm |= 1 << c
-							xt += v
-						}
-					}
+					xm, xt = xvTotals(&xv)
+					pick = s.planEachPick(k, sl, pc, &xv, &xm, &xt, &tn, &mask, &dmk)
 				}
 				fl := uint8(bits.OnesCount8(dmk | xm))
 				if phase > 0 && k.painMana && pc.painCol != 0 {
@@ -1891,7 +1924,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.sameRider(rb, irr) {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -1902,7 +1935,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, rb: rb, irr: irr}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -2003,11 +2036,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		u := best[i]
 		sl := pk.units[u]
 		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
-		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
-			s.noteTapSrc(k, &k.cards[s.cardAt(sl)], sl)
-		}
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
+		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
+			s.planNoteTap(k, sl, col)
+		}
 		// a life-only census gap's unit pays its life, not a tap (mana_lifegap.go)
 		if !s.lifeGapPlanCost(k, p, sl) && !ty.sacOnly {
 			s.perms[sl].flags |= pfTapped
@@ -2039,8 +2072,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 			pk.rbOn = true
 		}
-		if ty.xt != 0 {
-			s.addXv(p, &ty.xv)
+		if ty.xt != 0 && s.addXvPick(p, ty, col) {
+			return // the reflected pick's colour ask (mana_reflectpickask.go); the payment runs again after it
 		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
@@ -2137,6 +2170,9 @@ func (s *State) planUnitColours(k *prep, pc *pcard, sl Slot, mask uint8, granted
 		if pc.blgFirst != 0 {
 			printed = s.blgPrintedMask(k, sl)
 		}
+	}
+	if first == 0 && printed == 0 {
+		first = s.blgSubsumedFirst(k, sl, pc, mask) // static_landgrantdup.go
 	}
 	return
 }
@@ -2616,9 +2652,28 @@ func (pk *planner) seqLess(a, ac, at *[maxUnits]uint8, an int, b, bc, bt *[maxUn
 			return x < y
 		}
 		if aa, ba := pk.types[at[i]].alt, pk.types[bt[i]].alt; aa != ba {
+			if aa && pk.types[at[i]].intr || ba && pk.types[bt[i]].intr {
+				return aa // pay.CompareSteps reads the ability's kind first: the intrinsic one sorts before the printed one (CR 305.6)
+			}
 			return ba // the source's census ability has the smaller index
 		}
 		if ac[i] != bc[i] {
+			ta, tb := &pk.types[at[i]], &pk.types[bt[i]]
+			if ta.printed != 0 && ta.printed == tb.printed {
+				if intr := ta.mask &^ ta.printed; intr != 0 {
+					// a granted basic land type's intrinsic alternative
+					// outranks the printed one (pay.CompareSteps compares
+					// the ability kind, "intrinsic" before "printed"),
+					// whichever colour each makes
+					am, bm := uint8(1)<<ac[i], uint8(1)<<bc[i]
+					if am&intr != 0 && bm&ta.printed != 0 {
+						return true
+					}
+					if bm&intr != 0 && am&ta.printed != 0 {
+						return false
+					}
+				}
+			}
 			if f := pk.types[pk.utyp[a[i]]].first; f != 0 {
 				if ac[i] == f-1 {
 					return true
@@ -2642,8 +2697,14 @@ func (pk *planner) seqTypes(kv *[maxTypes]uint8, seq *[maxUnits]uint8, n int, ou
 	left := *kv
 	for i := 0; i < n; i++ {
 		t := pk.utyp[seq[i]]
-		if pk.pairs && pk.types[t].pair != 0 && !pk.types[t].alt && left[t] == 0 {
-			t = pk.types[t].pair - 1
+		if pk.pairs && pk.types[t].pair != 0 && !pk.types[t].alt {
+			if q := pk.types[t].pair - 1; pk.types[q].intr {
+				if left[q] > 0 {
+					t = q // the intrinsic ability is the smaller alternative: owed first
+				}
+			} else if left[t] == 0 {
+				t = q
+			}
 		}
 		left[t]--
 		out[i] = t
@@ -2685,6 +2746,42 @@ func (pk *planner) takeXv(nd *[kop.NumManaKinds]int, ndAny *int, ty *utype, k in
 			*ndAny = max(*ndAny-v, 0)
 		} else {
 			nd[c] = max(nd[c]-v, 0)
+		}
+	}
+}
+
+// deferredFiltFree reports whether sl is a filter land (Unknown Shores' {T}:
+// Add {C} beside its {1},{T} filter) whose free ability the plain listing
+// leaves out: scriptTapsDefer lists no filter (the filter search walks the
+// free ability as its own branch, and the gaps and any-mana walks count it
+// through availFilt), but gorge's census never lists it under a Taps watcher,
+// so it prices no plain play. Conjurer's Mantle's Equip {1} beside Unknown
+// Shores and two Manabarbs is gorge's search, which runs out of its budget
+// (tail-34 pair 26), not a plain offer.
+func (s *State) deferredFiltFree(k *prep, sl Slot) bool {
+	return k.gen != nil && k.gen.has(s.cardAt(sl), gfFilt) && s.g.availX&(availGaps|availAny) == 0
+}
+
+// availPlainUnit is availForMode's ordinary census unit for the source at sl:
+// a land whose own ability and granted intrinsic one are alternatives of one
+// tap (static_landgrantalt.go addAltExcl), else its production with its
+// one-colour, reflected, each-colour pick and tap-extra companions.
+func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
+	if pc.altCol != 0 && s.addAltExcl(k, sl, pc, a) {
+		return // own ability or the granted intrinsic one
+	}
+	a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
+	if pc.manaOne {
+		s.addOneColour(a, pc.manaN)
+	}
+	s.addReflectOne(k, a, sl, pc)
+	s.addEachPick(k, a, sl, pc)
+	if k.gen != nil && k.gen.anyTapExtra {
+		xv := s.srcExtra(k, sl, pc)
+		for c := range xv {
+			if xv[c] > 0 {
+				a.addUnits(1<<c, xv[c])
+			}
 		}
 	}
 }

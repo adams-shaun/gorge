@@ -15,4 +15,5 @@ func TestMBCFangsOfKaloniaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "overload_cast_dynamic_mana_source")
 	stdReproNamed(t, "overload_cast_without_target")
+	stdReproNamed(t, "overload_cast_funded_by_granted_double_mana")
 }

@@ -72,6 +72,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Collective Restraint
 Commander Eesha
 Commune with Spirits
 Consign to the Pit
@@ -146,6 +147,7 @@ Flowstone Wyvern
 Flurry of Horns
 Folk of An-Havva
 Forest
+Fortified Area
 Foundry Hornet
 Fountain Watch
 Fretwork Colony
@@ -208,6 +210,7 @@ Inexorable Blob
 Inner-Flame Igniter
 Insist
 Inspired Sprite
+Intermediate Chirography
 Invasion of Innistrad
 Invasion of Kaldheim
 Invasion of Lorwyn
@@ -441,6 +444,7 @@ Urza's Rebuff
 Valiant Changeling
 Value Town
 Vampire Cutthroat
+Vanguard of the Restless
 Vedalken Plotter
 Vengeant Earth
 Vermin Gorger

@@ -96,6 +96,12 @@ type ContinuousEffect struct {
 	// Effect -- is never a casualty. Rebuilt by re-execution on replay like
 	// every other continuous-effect field.
 	FromEffect bool
+	// QuotedAbilityGrant marks a printed Continuous static whose keyword grant is a
+	// QUOTED ability of the affected object (a lure Aura's "Enchanted
+	// creature has 'All creatures able to block this creature do so.'"), so
+	// a later layer-6 loss ends it (CR 613.1f) instead of the
+	// rule-effect exemption a one-shot spell's grant keeps.
+	QuotedAbilityGrant bool
 	// PermanentsOnly marks a printed Continuous static with no AffectedZone$ naming
 	// another zone: it affects permanents, so nothing off the battlefield (CR 109.2).
 	PermanentsOnly bool

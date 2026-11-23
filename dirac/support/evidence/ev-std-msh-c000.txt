@@ -3,6 +3,7 @@ A.I.M. Scientists
 A.I.M. Synthoids
 Aerial Doombot
 Agent 13, Sharon Carter
+Agent Maria Hill
 Agent Phil Coulson
 Agent of Atlas
 Agents of HYDRA
@@ -154,6 +155,7 @@ S.H.I.E.L.D. Deployment Drone
 S.H.I.E.L.D. Flying Car
 S.H.I.E.L.D. Helicarrier
 S.H.I.E.L.D. Spy Kit
+Savage Land Dinosaur
 Serpent Specialist
 Shang-Chi, Master of Kung Fu
 She-Hulk, Jade Defender

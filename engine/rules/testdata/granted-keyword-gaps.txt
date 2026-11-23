@@ -8,9 +8,6 @@ Battle Cry
 CantSearchLibrary
 Double team
 LimitSearchLibrary
-MustBeBlockedBy Creature
-MustBeBlockedBy Creature.Dalek
-MustBeBlockedBy Creature.Eldrazi
 OnlyUntapChosen
 PayLifeInsteadOf
 Piracy

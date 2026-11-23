@@ -131,6 +131,11 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 			n += int32(len(g.Zone(state.ZHand, state.PlayerID(p))))
 		}
 		return n, true
+	case evalCov3HeadMaxDistinctOnStack:
+		// Geometric Weird's "greatest number of spells and abilities from
+		// different sources that were on the stack at once this turn": the
+		// event-folded per-turn high-water mark.
+		return g.MaxDistinctOnStackThisTurn, true
 	case evalCov3HeadFinishedUpkeepsThisTurn:
 		// Reset's "after their upkeep step": the upkeeps BEGUN this turn
 		// (the event-folded g.UpkeepsThisTurn), less the one the walk is
@@ -166,6 +171,14 @@ func evalHistoryHead(h Host, c *Ctx, g *state.Game, code evalCov3HeadCode, arg s
 			target = c.Source
 		}
 		return chosenColorsShared(h, c, g, target), true
+	case evalCov3HeadRegeneratedThisTurn:
+		// Spiny Starfish: the times the SOURCE regenerated this turn (CR
+		// 701.19), the event-folded Object.RegeneratedThisTurn; zero for a
+		// source that has left the battlefield since (a new object).
+		if o := g.Obj(c.Source); o != nil {
+			return o.RegeneratedThisTurn, true
+		}
+		return 0, true
 	case evalCov3HeadDevoured:
 		return devouredCount(g, c, arg), true
 	case evalCov3HeadLastStateGraveyard, evalCov3HeadLastStateGraveyardWithFallback:
@@ -337,7 +350,7 @@ func presenceHolds(h Host, c *Ctx, g *state.Game, typ string) bool {
 
 // historyBranchHolds answers the yes/no branch predicates of this file that
 // cov3BranchHolds's own switch does not carry: Count$Night.<y>.<n>,
-// Count$MaxSpeed, Count$Escaped and Count$wasCastFromYourLibrary.
+// Count$MaxSpeed, Count$Escaped, Count$Emerged and Count$wasCastFromYourLibrary.
 func historyBranchHolds(c *Ctx, g *state.Game, pred string) (holds, ok bool) {
 	you := c.Controller
 	valid := you >= 0 && int(you) < len(g.Players)
@@ -350,6 +363,11 @@ func historyBranchHolds(c *Ctx, g *state.Game, pred string) (holds, ok bool) {
 		// CR 702.138: the source was cast with its Escape cost (the flag
 		// survives onto the permanent for the ETB counters).
 		return src != nil && !src.IsCopy && src.CastFlags&state.FlagEscaped != 0, true
+	case cov3BranchHoldsEmerged:
+		// CR 702.119: the source was cast for its emerge cost (Adipose
+		// Offspring's Count$Emerged.T.1); the emerge cast stamps
+		// FlagAltCostPaid, which names the keyword's cost on a K:Emerge face.
+		return src != nil && !src.IsCopy && altCostKeywordPaid(src, "Emerge"), true
 	}
 	if playerSpecQualifierCodes.Code(pred) == playerSpecQualifierMaxSpeed {
 		// CR 702.179e: the resolving controller has max speed (the player
@@ -433,4 +451,77 @@ func nonActivePlayers(g *state.Game) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// evalEmergedOK is the tail of Emerged$CardToughness (Adipose Offspring's
+// SVar:T): the dispatcher cuts the whole head, so any other Emerged$ property
+// never reaches here and stays unmodelled. It reads the toughness of the
+// creature the source's Emerge cast sacrificed, as it last existed (CR 608.2h)
+// -- events.Apply folded it onto Object.EmergedToughness from the pay-time
+// CastInfo. A source that was not emerged reads a legitimate zero. The tail is
+// empty or a "/Op"; anything else is a longer, unmodelled property name.
+func evalEmergedOK(g *state.Game, c *Ctx, body string) (int32, bool) {
+	tail := strings.TrimSpace(body)
+	op, hasOp := strings.CutPrefix(tail, "/")
+	if !hasOp && len(tail) > 0 {
+		return 0, false
+	}
+	var n int32
+	if src := g.Obj(c.Source); src != nil && !src.IsCopy {
+		n = src.EmergedToughness
+	}
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
+}
+
+// The per-player StoreSVar accumulator (Plague of Vermin's `DB$ StoreSVar |
+// SVar$ EachPlayer | Type$ AdditiveForEach`, read back by
+// PlayerCountRemembered$SVarAmount). It rides the existing events.StoreSVar
+// fold on the resolving source: one runtime SVar per seat under
+// svarAmountKey, so no new Kind, Event field or Object field is needed, the
+// write is a keyed map insert (no map order reaches an event), and CR 400.7
+// clears it with the rest of the source's runtime SVars when it leaves the
+// stack.
+
+// svarAmountKey is the runtime-SVar name seat p's AdditiveForEach total is
+// stored under. '#' is not a legal SVar-name character, so it cannot collide
+// with a printed or Forge-written name.
+func svarAmountKey(p state.PlayerID) string {
+	return "SVarAmount#" + strconv.Itoa(int(p))
+}
+
+// svarAmountOf is seat p's accumulated AdditiveForEach total on the resolving
+// source; 0 when nothing was stored for the seat.
+func svarAmountOf(h Host, c *Ctx, p state.PlayerID) int32 {
+	if c == nil || c.Source == 0 {
+		return 0
+	}
+	o := h.Game().Obj(c.Source)
+	if o == nil {
+		return 0
+	}
+	return o.RuntimeSVars[svarAmountKey(p)]
+}
+
+// svarAmountSum is the AdditiveForEach totals of the given seats added up.
+func svarAmountSum(h Host, c *Ctx, players []state.PlayerID) int32 {
+	var n int32
+	for _, p := range players {
+		n += svarAmountOf(h, c, p)
+	}
+	return n
+}
+
+// rememberedLoopPlayer is the player a RepeatEach over players currently
+// binds: the last player entry of Ctx.Remembered (RepeatEach appends the loop
+// subject, so it is the newest).
+func rememberedLoopPlayer(c *Ctx) (state.PlayerID, bool) {
+	for i := len(c.Remembered) - 1; i >= 0; i-- {
+		if t := c.Remembered[i]; t.IsPlayer {
+			return t.Player, true
+		}
+	}
+	return 0, false
 }

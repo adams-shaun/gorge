@@ -47,6 +47,7 @@ Boots of Speed
 Borborygmos
 Brainspoil
 Brilliant Spectrum
+Broken Dam
 Bumi, Eclectic Earthbender
 Buoyancy
 Burning Sun's Fury
@@ -179,6 +180,7 @@ Grisly Survivor
 Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
+Guardian of the Gateless
 Guardians of Oboro
 Guilty Conscience
 Halberdier
@@ -266,9 +268,11 @@ Origin of Black Widow
 Orochi Sustainer
 Orzhov Signet
 Ossuary Rats
+Pack Hunt
 Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
+Phantasmal Terrain
 Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
@@ -279,6 +283,7 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Popular Entertainer
+Porcelain Zealot
 Possessed Aven
 Predator's Rapport
 Pulse of Murasa
@@ -436,6 +441,7 @@ Yavimaya Gnats
 Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
+Zelyon Sword
 Zephyr Net
 Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist

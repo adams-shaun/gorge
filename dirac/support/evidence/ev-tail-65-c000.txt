@@ -12,6 +12,7 @@ Akoum Firebird
 Aliban's Tower
 Alpha Deathclaw
 Always Watching
+Amphibious Kavu
 Amulet of Vigor
 And They Shall Know No Fear
 Angel of the Ruins
@@ -24,6 +25,7 @@ Arcane Flight
 Arcbound Whelp
 Archon of Absolution
 Assault Zeppelid
+Assembly Hall
 Attunement
 Banewasp Affliction
 Bastion Protector
@@ -31,6 +33,7 @@ Battle Cry Goblin
 Battle-Rage Blessing
 Beacon of Immortality
 Behind the Scenes
+Bilbo, Birthday Celebrant
 Blisterstick Shaman
 Blood Burglar
 Bogstomper

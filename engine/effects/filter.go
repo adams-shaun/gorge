@@ -525,7 +525,8 @@ var predicates = map[string]predFn{
 	// FlagTeamworkPaid and survives later CastInfo events and the
 	// stack->battlefield move, so it reads on the spell during resolution
 	// (Timeline Inquiry's ConditionPresent$ Card.Self+Teamwork) and on the
-	// permanent at its ETB. Absent a paid tap it fails closed to false.
+	// permanent at its ETB. Absent a paid tap, or on a copy (never cast,
+	// CR 707.10), it fails closed to false.
 	"Teamwork": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.TeamworkPaid
 	},
@@ -3596,12 +3597,23 @@ func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecC
 	if o == nil {
 		return false
 	}
-	if o.Controller != e.Controller {
-		lki := *o
-		lki.Controller = e.Controller
-		o = &lki
-	}
-	return matchesZoneSpecObj(g, spec, o, sc, e.To)
+	// CR 700.9 with CR 400.7 on a battlefield departure: Forge keeps the
+	// moved card's latest state with each per-add entry (GameAction's
+	// lastKnownInfo, "the modified state of the card is also reported
+	// here"), an LKI copy that carries the counters but no attachment
+	// lists. The entry's LeftCounters is that read -- nil is "it carried
+	// none", not "read the object" -- so the LKI copy is unconditional in
+	// this branch: the ordinary matcher answers its counter predicates from
+	// the counters the permanent had on the battlefield, and a permanent
+	// that was not modified when it died is not modified however many
+	// counters a persist or undying return has since added to the
+	// re-entered permanent (Intermediate Chirography's level-3 end-step
+	// condition). Every other field keeps the object's current state, as
+	// before.
+	lki := *o
+	lki.Controller = e.Controller
+	lki.Counters = e.LeftCounters
+	return matchesZoneSpecObj(g, spec, &lki, sc, e.To)
 }
 
 // matchesZoneSpecText is matchesZoneSpecCtx's textual oracle for a

@@ -84,6 +84,7 @@ Crashing Centaur
 Crater Elemental
 Crowded Crypt
 Cunning Sparkmage
+Cylian Sunsinger
 Dawnglare Invoker
 Deathknell Berserker
 Deepfire Elemental
@@ -107,6 +108,7 @@ E. Honda, Sumo Champion
 Eagle of the Watch
 Elixir of Vitality
 Emergency Weld
+Empyrial Storm
 Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
@@ -128,6 +130,7 @@ Force of Despair
 Foresight
 Forest
 Forever Young
+Frightshroud Courier
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
@@ -214,6 +217,7 @@ MACH-1, Swooping Scoundrel
 Macabre Mockery
 Mad Auntie
 Magus of the Coffers
+Malicious Malfunction
 Mana Confluence
 Manaplasm
 Mantle of Leadership
@@ -364,7 +368,6 @@ Sudden Edict
 Sudden Spinnerets
 Sunhome Enforcer
 Suppressor Skyguard
-Surtland Frostpyre
 Survivors' Bond
 Swamp
 Swamp Mosquito
@@ -382,13 +385,13 @@ The Circle of Loyalty
 The Grey Havens
 The Tabernacle at Pendrell Vale
 Third Path Savant
+Thraben Exorcism
 Thumbscrews
 Thundering Chariot
 Thundermare
 Thunderwolf Cavalry
 Titanoth Rex
 Torment
-Tramway Station
 Tranquil Expanse
 Tread Upon
 Treebeard, Gracious Host

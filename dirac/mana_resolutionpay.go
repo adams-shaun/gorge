@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -174,8 +176,8 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 		if sl == NoSlot {
 			break
 		}
-		if s.parkedWaiting() {
-			return false // a sacrificed source's order ask: the payment runs again after it
+		if s.parkedWaiting() || s.reflectPickPending() {
+			return false // a sacrificed source's order ask or a tap's reflected pick: the payment runs again after it
 		}
 		need = s.restrShortNonSpell(k, p, c) // a tapped source may have floated restricted mana
 	}
@@ -295,6 +297,20 @@ func (s *State) prefixPoolMana(p uint8) int {
 	return n
 }
 
+// activatePrefixRest is payPrefixRest for an activation applyPriority is about
+// to build. A prefix that tapped runs it (pref); so does a board with a
+// Taps-deferred source even when no prefix tapped: gorge's planner refuses the
+// deferred sources on its first pass, so a play its plain census cannot price
+// is proved by the potential play's search, which activates the plan before the
+// play (Blisterspit Gremlin's {1} under Manabarbs: the land's trigger sits below
+// the ability, not above it). payPrefixRest returns when the plain census
+// prices the remainder, so a board with no such gap is unchanged.
+func (s *State) activatePrefixRest(k *prep, a Action, p uint8, pref, tapX bool) {
+	if pref || k.gen != nil && k.gen.anyTapsDefer {
+		s.payPrefixRest(k, a, p, tapX)
+	}
+}
+
 // payPrefixRest pays, before the activation's build begins, what a prefix
 // search left of a plain activation cost to the payment planner. The
 // planner's tap fires at manaStep (bsMana), after bsPush has placed the
@@ -364,6 +380,19 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 		held := sl != NoSlot && abn.Cost.Flags&kop.CostTap != 0 && s.perms[sl].flags&pfTapped == 0
 		if held {
 			s.perms[sl].flags |= pfTapped
+		}
+		// gorge's search stops at the node where the planner prices the play
+		// from the pool and the census: a prefix float that already covers the
+		// coloured pips beside a census that pays the rest floats no more
+		// (Arc Mage's {2}{R} after Relic of Legends' R).
+		priced := chk
+		priced.try = true
+		s.plan(k, p, &priced, NoObj)
+		if priced.found && !plansAnyColour(&priced) {
+			if held {
+				s.perms[sl].flags &^= pfTapped
+			}
+			return
 		}
 		// Leave one unit (the generic remainder) to the post-push planner, as
 		// gorge's prefix search does.
@@ -696,4 +725,16 @@ func (s *State) hybResolveAct(k *prep, p uint8, c *kop.ManaCost, d *payDesc, rm 
 		av, multi, nm = s.restrSrcAvail(k, p, *d, &av, skip)
 	}
 	return av.hybWitnessRiderMulti(*c, 0, false, multi[:nm])
+}
+
+// plansAnyColour reports whether pl's plan taps a source that makes any colour
+// (a Chromatic Lantern): gorge's search keeps floating past a node whose
+// remainder only such a source pays.
+func plansAnyColour(pl *planner) bool {
+	for i := 0; i < pl.nu; i++ {
+		if bits.OnesCount8(pl.types[pl.utyp[i]].mask&0x1f) > 1 {
+			return true
+		}
+	}
+	return false
 }

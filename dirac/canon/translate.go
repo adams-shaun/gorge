@@ -89,6 +89,20 @@ func GorgeKind(d *dirac.Decision, gen bool) string {
 	return GorgeDKind(d, gen).String()
 }
 
+// targetNoneAction is the canonical form of a target action that names no
+// object: NoTarget declines an "up to one" target; StackTargetGone is a
+// departed stack ability kept as a spell copy's target (CR 707.10c), which
+// gorge's identity names RefNone.
+func targetNoneAction(tgt Ref, mode uint8) (Canon, bool) {
+	switch dirac.TCode(tgt) {
+	case dirac.NoTarget:
+		return Pack(ActDone, RefNone, RefNone, 0), true
+	case dirac.StackTargetGone:
+		return Pack(ActTarget, RefNone, RefNone, mode), true
+	}
+	return 0, false
+}
+
 // Action is a kernel action's canonical form.
 func (r *Translator) Action(a dirac.Action) Canon {
 	src, tgt, mode := Ref(a.Source()), Ref(a.Target()), a.Mode()
@@ -191,8 +205,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("evoked")
 			return Pack(ActCast, src, RefNone, cm)
 		}
-		if mode == 0 && tgt == 4 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
-			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt):
+		if mode == 0 && tgt == 4 && dashCastOrigin(r.S.ObjZone(dirac.Obj(src))) {
+			// the dash cast (CR 702.109a; kernel kw_dash.go castDashTgt), from
+			// the hand or a commander's command zone (offerDashCommand):
 			// gorge's "dashed" cast option, AltCostIndex 0
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
@@ -332,8 +347,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkDone:
 		return Pack(ActDone, RefNone, RefNone, 0)
 	case dirac.AkTarget:
-		if dirac.TCode(tgt) == dirac.NoTarget {
-			return Pack(ActDone, RefNone, RefNone, 0) // declining an "up to one" target
+		if c, ok := targetNoneAction(tgt, mode); ok {
+			return c
 		}
 		// the mode byte is the occurrence of a charm's combined target ask
 		// (an object listed in two groups); 0 for every other target
@@ -471,8 +486,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// gorge's KCommanderZone packs the commander as source and the
 			// option index as mode (0 command_zone, 1 leave).
 			return Pack(ActCommanderZone, src, RefNone, mode)
-		case dirac.ChDivide:
-			return ch("division", src, mode)
+		case dirac.ChDivide, dirac.ChAsUnblocked:
+			return r.combatDamageChoose(src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
 		case dirac.ChCostForage:
@@ -481,8 +496,8 @@ func (r *Translator) Action(a dirac.Action) Canon {
 				return ch("forage_food", src, 0)
 			}
 			return ch("forage_exile", RefNone, 0)
-		case dirac.ChCostExile:
-			return ch("exilecost", src, 0)
+		case dirac.ChCostExile, dirac.ChWinExile:
+			return ch(exileChooseKind(r.D.Sub), src, 0)
 		case dirac.ChCostReturn:
 			return ch("returncost", src, 0)
 		case dirac.ChCostPutToLib:
@@ -509,6 +524,20 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return ch("number", RefNone, mode)
 	}
 	return Pack(CanonKind(0xFF), src, tgt, mode)
+}
+
+// combatDamageChoose is the combat damage step's choose answer: the damage
+// division's repeatable "division" pick, and the as-unblocked election's
+// "asunblocked" over the attacker — mode 0 assigns normally (blocked), mode
+// 1 as though not blocked (CR 510.1c; combat_asgngrant.go, gorge
+// askNextCombatAsk).
+func (r *Translator) combatDamageChoose(src Ref, mode uint8) Canon {
+	kind := "division"
+	if r.D.Sub == dirac.ChAsUnblocked {
+		kind = "asunblocked"
+	}
+	code, _ := ChooseCode(kind)
+	return Pack(ActChoose+CanonKind(code), src, RefNone, mode)
 }
 
 // voteAction is a vote KChoose option: the card ballot's "vote_card" over
@@ -796,8 +825,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenRingBearer:
 		// gorge effRingTemptsYou's "ring_bearer" KChoose over the creatures
-		// (CR 701.54a): an ordinary object pick, kind "other"
-		return Pack(kind("other"), Ref(src), RefNone, 0), true
+		// (CR 701.54a): choose:other, as gorge's chooseOtherAction encodes it
+		return Pack(ActChoose+ChooseOther, Ref(src), RefNone, 0), true
 	case dirac.ChGenSearch:
 		return Pack(kind("search"), Ref(src), RefNone, 0), true
 	case dirac.ChGenHiddenPick:
@@ -1245,3 +1274,17 @@ func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
 	code, _ := ChooseCode("band")
 	return Pack(ActChoose+CanonKind(code), src, RefNone, 0), true
 }
+
+// exileChooseKind is the canonical choose kind of a graveyard exile pick: gorge's
+// exilecost for a cost's, mana_exile for the pick of an exile-from-graveyard mana
+// source (dirac mana_exilegrave.go).
+func exileChooseKind(sub dirac.ChoiceKind) string {
+	if sub == dirac.ChWinExile {
+		return "mana_exile"
+	}
+	return "exilecost"
+}
+
+// dashCastOrigin reports whether z is a zone the kernel offers a dashed cast
+// from: the hand, or a commander's command zone (kw_dash.go).
+func dashCastOrigin(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }

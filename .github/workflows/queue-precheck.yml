@@ -14,17 +14,25 @@
 # A run is never cancelled; a newer trigger waits as the one pending run (GitHub keeps the newest pending run of the
 # group). 11-21 batch #3045 went red on #2976 (a stale refusal in TestRefusedEntriesStillDiverge, in the replay set)
 # because no check ever finished on it: main moved in bursts every few minutes, each push cancelled the running
-# check (8-15 min), and the 05:54 and 06:07Z runs that would have held #2976 both died. A run also starts when Mergify
-# pushes a batch branch, so the batch being formed is checked at once; a culprit found while its batch runs is still
-# dequeued, and Mergify re-forms the batch without it instead of bisecting.
+# check (8-15 min), and the 05:54 and 06:07Z runs that would have held #2976 both died.
 name: queue-precheck
 
 # 11-21: a pull_request-triggered run died when Mergify closed or reset its batch PR, and between 06:41 and 08:23Z no
 # run finished at all (every push run waited pending behind a batch-PR run, then was replaced), so #3074 (batch #3110)
-# was never checked. Mergify's batch branches are now a push trigger, whose runs outlive the PR.
+# was never checked.
+# 11-23: no batch-branch trigger either. Run 45088771344, started by Mergify's push of mergify/merge-queue/b3a5237d6a,
+# held this concurrency group from 00:26:21Z and was cancelled at 00:40:34Z mid-check, when that batch closed (nothing
+# of ours cancels runs: Mergify or GitHub on the batch close or branch delete). The 22 main-push runs of 00:31-00:39Z
+# waited pending behind it and were replaced; no run went green from 00:16:50 to 00:40Z (23 min). Since
+# queue_conditions require a success here (11-21), a batch forms only from PRs a run has already passed, so a run at
+# batch formation re-checked PRs that had their status and could only hold the gate. Main pushes, the schedule and
+# the home-box heartbeat are the triggers; the schedule is the floor (no push, no
+# batch, no run would deadlock the queue). scripts/queue_precheck_test.py holds the trigger list.
 on:
   push:
-    branches: [main, 'mergify/merge-queue/**']
+    branches: [main]
+  schedule:
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -46,7 +54,9 @@ jobs:
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
         # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
         # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
-        # Otherwise the remote-tracking refs and stale lock files go (checkout fetches them again). No network check:
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
         # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
         # runner (20 s, then a full re-clone; 11-21).
         if: runner.environment == 'self-hosted'
@@ -62,9 +72,19 @@ jobs:
           fi
           if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
           find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
-          rm -rf "$g/refs/remotes"
-          [ ! -f "$g/packed-refs" ] || sed -i '\# refs/remotes/#d' "$g/packed-refs"
       - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+        with:
+          fetch-depth: 0
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v5

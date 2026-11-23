@@ -138,6 +138,7 @@ Esperzoa
 Ether Well
 Ethereal Champion
 Ethereal Usher
+Etrata, the Silencer
 Evie Frye
 Excavated Wall
 Expedition Skulker
@@ -342,6 +343,7 @@ Ratcatcher
 Ravenous Chupacabra
 Ravenous Sailback
 Ray Fillet, Wave Warrior
+Razorlash Transmogrant
 Realmwalker
 Reaping the Graves
 Red Dragon
@@ -391,12 +393,14 @@ Singer of Swift Rivers
 Skillful Lunge
 Sky-Blessed Samurai
 Skyshooter
+Slaughter Singer
 Smoldering Werewolf
 Snarling Undorak
 Snow-Covered Forest
 Somberwald Vigilante
 Sowing Mycospawn
 Sparring Mummy
+Specter's Shriek
 Spell Crumple
 Spellgorger Barbarian
 Spider-Man, Peter Parker
@@ -460,6 +464,7 @@ Tremor
 Triskelavus
 Triton Fortune Hunter
 Turn the Tide
+Twilight Mire
 Unearth
 Unholy Grotto
 Urbis Protector
@@ -474,7 +479,6 @@ Vicious Kavu
 Viper's Kiss
 Viridian Shaman
 Volcanic Fallout
-Wakeroot Elemental
 Wallop
 Wanderguard Sentry
 War Dance

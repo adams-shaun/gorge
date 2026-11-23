@@ -713,6 +713,7 @@ func destroyRememberLKI(ps *params, in *lInstr) error {
 		return refuse("Destroy RememberLKI$/AlwaysRemember$ shape")
 	}
 	in.Note = rememberLKINote
+	in.C |= 4 // the kernel marks the capture (markRemLKI): a later read of the target takes its last controller
 	return nil
 }
 

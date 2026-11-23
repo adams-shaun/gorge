@@ -185,6 +185,7 @@ var modelledValueHeads = []string{
 	"PlayerCountRemembered$Counters",
 	"PlayerCountRemembered$LifeLostThisTurn",
 	"PlayerCountRemembered$LifeTotal",
+	"PlayerCountRemembered$SVarAmount",
 	"PlayerCountRemembered$Valid",
 	"PlayerCountRememberedController$Amount",
 	"PlayerCountRememberedController$CardsInHand",
@@ -299,7 +300,10 @@ var modelledValueHeads = []string{
 	"Escaped",
 	"HasNumChosenColors",
 	"Devoured",
+	"MaxDistinctOnStack",
 	"SearchedLibrary",
+	"Emerged",
+	"RegeneratedThisTurn",
 }
 
 // ModelledValueHeads returns a copy of the modelled count-head list.

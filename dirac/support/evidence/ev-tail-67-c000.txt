@@ -146,6 +146,7 @@ Final-Sting Faerie
 Firebird, Blazing Ranger
 Flametongue Kavu
 Flashfires
+Flensing Raptor
 Fleshpulper Giant
 Floodhound
 Flow of Ideas
@@ -160,6 +161,7 @@ Furnace Hellkite
 Galvanic Iteration
 Garenbrig Squire
 Geth's Grimoire
+Ghosthelm Courier
 Gilt-Leaf Palace
 Glory Bearers
 Gluttonous Zombie
@@ -209,6 +211,7 @@ Irencrag Pyromancer
 Iron Bully
 Iron Suitcase
 Island
+Ixidor, Reality Sculptor
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
@@ -281,10 +284,12 @@ Organ Hoarder
 Orim's Touch
 Paradox Engine
 Path of Anger's Flame
+Pearlspear Courier
 Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
 Pilfering Imp
+Plaguebearer
 Plains
 Plaxmanta
 Pol Jamaar, Illusionist
@@ -346,6 +351,7 @@ Setessan Skirmisher
 Settle the Score
 Shadowspear
 Shake the Foundations
+Shang-Chi and the Ten Rings
 Sheoldred
 Shepherd of the Lost
 Shinen of Fear's Chill

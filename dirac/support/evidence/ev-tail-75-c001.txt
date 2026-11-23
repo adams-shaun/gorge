@@ -17,6 +17,7 @@ Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -134,6 +135,7 @@ Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Goblin Deathraiders
+Golem-Skin Gauntlets
 Great Defender
 Greater Harvester
 Griffin Aerie
@@ -159,6 +161,7 @@ Jace's Erasure
 Jade Idol
 Jalum Tome
 Jolrael, Voice of Zhalfir
+Katara, Waterbending Master
 Kayla's Reconstruction
 Khenra Eternal
 Khenra Spellspear
@@ -257,6 +260,7 @@ Sacred Prey
 Sage Aven
 Sage of Fables
 Sailor of Means
+Saint Traft and Rem Karolus
 Sanctify
 Sarkhan's Unsealing
 Scalding Devil
@@ -335,6 +339,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Wasteland Raider
 Waterknot
 Whiptail Moloch
 Whiptail Wurm

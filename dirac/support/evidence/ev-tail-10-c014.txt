@@ -80,7 +80,6 @@ Kenrith, the Returned King
 Kilo, Apogee Mind
 Kismet
 Kjeldoran Gargoyle
-Krosan Druid
 Kuldotha Flamefiend
 Leonin Squire
 Magefire Wings
@@ -110,7 +109,6 @@ Root-Kin Ally
 Scalding Tongs
 Screeching Phoenix
 Sigil of the New Dawn
-Skarrg, the Rage Pits
 Skeletal Changeling
 Sunscape Familiar
 Surge of Salvation

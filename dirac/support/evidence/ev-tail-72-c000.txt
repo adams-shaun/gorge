@@ -100,7 +100,6 @@ Courser of Kruphix
 Coursers' Accord
 Court of Ire
 Cradle of Vitality
-Creeping Tar Pit
 Cult Guildmage
 Cultbrand Cinder
 Curio Vendor
@@ -174,6 +173,7 @@ Fleet Swallower
 Fleeting Image
 Flooded Shoreline
 Flourishing Strike
+Flowstone Armor
 Flowstone Surge
 Forest
 Forgotten Cave
@@ -305,7 +305,6 @@ Mist Leopard
 Mithril Coat
 Mobile Garrison
 Molderhulk
-Molten Ravager
 Molting Harpy
 Momentous Fall
 Monstrous Carabid
@@ -343,6 +342,7 @@ Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
 Pact of Negation
+Palace Guard
 Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
@@ -368,6 +368,7 @@ Potatoes
 Prepare
 Primal Growth
 Prismatic Geoscope
+Prismatic Lace
 Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
@@ -444,6 +445,7 @@ Setessan Petitioner
 Shadow-Rite Priest
 Shepherd of the Cosmos
 Shield Sphere
+Shield of the Righteous
 Shizo, Death's Storehouse
 Shrewd Negotiation
 Shriek Raptor
@@ -555,6 +557,7 @@ White Orchid Phantom
 Wild Wurm
 Wildsize
 Will of the All-Hunter
+Willbender
 Willow Geist
 Wirewood Channeler
 Woodland Chasm
@@ -563,3 +566,4 @@ Woodwraith Corrupter
 Yasova Dragonclaw
 Yotian Tactician
 Young Blue Dragon
+Zaffai, Thunder Conductor

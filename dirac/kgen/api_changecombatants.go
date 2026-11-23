@@ -22,13 +22,13 @@ func init() { apiOp("ChangeCombatants", (*lowerCtx).changeCombatants) }
 // Attacking$ value (Capricopian's Player.OpponentOf CardController,
 // Portal Manipulator's TargetedPlayer, Tahngarth's .Defending form) resolves
 // as a loud Note and no move, and Optional$ True (Tuvok, Windshaper Planetar)
-// is read as mandatory with a Note. A Defined$ selector other than Valid
+// poses a per-attacker may-reselect confirm the kernel does not lower. A Defined$ selector other than Valid
 // (Kari Zev / Stormforged Armor's Remembered) is unimplemented in the kernel,
 // not a gorge Note, so it refuses on its own reason.
 func (lc *lowerCtx) changeCombatants(sa *cards.SA, ps *params) error {
 	if v, ok := ps.get("Optional"); ok {
 		if strings.TrimSpace(v) == "True" {
-			return refuse("ChangeCombatants Optional$ True: gorge reads it as mandatory")
+			return refuse("ChangeCombatants Optional$ True: the per-attacker may-reselect confirm is not lowered")
 		}
 		return refuse("ChangeCombatants Optional$ %q", strings.TrimSpace(v))
 	}

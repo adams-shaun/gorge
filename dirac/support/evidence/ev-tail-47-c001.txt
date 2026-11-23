@@ -5,6 +5,7 @@ Abandon the Post
 Abzan Skycaptain
 Acidic Slime
 Acidic Sliver
+Aegis Angel
 Aeronaut Cavalry
 Anaba Bodyguard
 Anaconda
@@ -213,6 +214,7 @@ Leonin Elder
 Leonin Iconoclast
 Light of Sanction
 Lignify
+Logic Knot
 Lone Revenant
 Lotleth Troll
 Luminous Broodmoth
@@ -302,6 +304,7 @@ Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
 Rockslide Sorcerer
+Rose, Cutthroat Raider
 Rosethorn Halberd
 Royal Assassin
 Sagu Mauler

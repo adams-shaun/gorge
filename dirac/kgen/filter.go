@@ -93,13 +93,17 @@ const (
 	fNotAttacking  // !attacking (kop.FNotAttacking)
 	fNotAttachedBy // !EnchantedBy / !EquippedBy / !AttachedBy: not the source's host (kop.FNotAttachedBySrc)
 	fNamedCard     // the card-name property NamedCard: the candidate shares the source's chosen card name (gorge namePredicate NamedCard; kop.PredNamedCard)
+	fSameNameRem   // a sameName context base: the head's Remembered prefix names the referent (gorge sameNameContextBase)
+	fSameNameTgt   // a sameName context base: the head's Targeted prefix
+	fSameNameTrig  // a sameName context base: the head's Triggered prefix
 	fFlagCount     = iota
 )
 
 var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "Blocking", "Tapped", "Untapped",
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
-	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard"}
+	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard",
+	"SameNameRem", "SameNameTgt", "SameNameTrig"}
 
 // Controller / owner selectors.
 const (
@@ -146,41 +150,46 @@ const (
 	cmpToughness
 	cmpHasX // the printed mana cost has {X} (hasXCost; no operator)
 	cmpPowerLTToughness
-	cmpMultiColor     // MultiColor: two or more colours (no operator)
-	cmpHistoric       // Historic: artifact, legendary or Saga (no operator)
-	cmpEquipped       // equipped: an Equipment is attached (no operator)
-	cmpEnchanted      // enchanted: an Aura is attached (no operator)
-	cmpHasKw          // with<Keyword>: has keyword bit CmpN (no operator)
-	cmpAttached       // Attached: attached to a permanent (no operator)
-	cmpActiveCtrl     // ActivePlayerCtrl: the active player controls it (no operator)
-	cmpModified       // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
-	cmpHasCounters    // HasCounters: any counter, internal markers included (no operator)
-	cmpTrigPlayerCtrl // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
-	cmpMonstrous      // IsMonstrous: the CR 701.37b monstrous designation (no operator)
-	cmpNoCounters     // !HasCounters: no counter at all (no operator)
-	cmpLacksKw        // !with<Keyword>: lacks keyword bit CmpN (no operator)
-	cmpOutlaw         // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
-	cmpMonoColor      // MonoColor: exactly one colour (no operator)
-	cmpSameNameT0     // target 0 or a permanent sharing its name (Maelstrom Pulse)
-	cmpTotalPT        // totalPT_<op><n>: power plus toughness (Cut Down)
-	cmpBlocked        // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
-	cmpSolved         // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
-	cmpAdventureCard  // AdventureCard: an adventurer card, every zone (no operator)
-	cmpSuspected      // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
-	cmpExiledWith     // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
-	cmpWasCast        // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
-	cmpWasCastSpell   // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
-	cmpPermMark       // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
-	cmpTriggerObj     // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
-	cmpSameNameRem    // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
-	cmpSameNameSelf   // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
-	cmpHasManaAbility // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
-	cmpRenowned       // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
-	cmpAttackingYou   // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
-	cmpSharesCrCmdr   // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
-	cmpPTBox          // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
-	cmpRingBearer     // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
-	cmpGoaded         // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
+	cmpMultiColor       // MultiColor: two or more colours (no operator)
+	cmpHistoric         // Historic: artifact, legendary or Saga (no operator)
+	cmpEquipped         // equipped: an Equipment is attached (no operator)
+	cmpEnchanted        // enchanted: an Aura is attached (no operator)
+	cmpHasKw            // with<Keyword>: has keyword bit CmpN (no operator)
+	cmpAttached         // Attached: attached to a permanent (no operator)
+	cmpActiveCtrl       // ActivePlayerCtrl: the active player controls it (no operator)
+	cmpModified         // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
+	cmpHasCounters      // HasCounters: any counter, internal markers included (no operator)
+	cmpTrigPlayerCtrl   // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
+	cmpMonstrous        // IsMonstrous: the CR 701.37b monstrous designation (no operator)
+	cmpNoCounters       // !HasCounters: no counter at all (no operator)
+	cmpLacksKw          // !with<Keyword>: lacks keyword bit CmpN (no operator)
+	cmpOutlaw           // Outlaw (CmpN 0) / !Outlaw (CmpN 1): an Assassin, Mercenary, Pirate, Rogue or Warlock (no operator)
+	cmpMonoColor        // MonoColor: exactly one colour (no operator)
+	cmpSameNameT0       // target 0 or a permanent sharing its name (Maelstrom Pulse)
+	cmpTotalPT          // totalPT_<op><n>: power plus toughness (Cut Down)
+	cmpBlocked          // blocked: attacking with a blocker recorded (no operator; Tactical Advantage)
+	cmpSolved           // IsSolved (CmpN 1) / !IsSolved (CmpN 0): a Case's solved designation
+	cmpAdventureCard    // AdventureCard: an adventurer card, every zone (no operator)
+	cmpSuspected        // IsSuspected (CmpN 1) / !IsSuspected (CmpN 0): the CR 701.60 suspected designation
+	cmpExiledWith       // ExiledWithSource (CmpN 0) / Defined$ ExiledWith (CmpN 1): exiled with the reading source (no operator)
+	cmpWasCast          // wasCast / !wasCast / wasCastFromGraveyard read as the permanent enters from its own spell (CmpN: wasCast* origin | wasCastNot, origin 3 = wasCastFromYourGraveyard; no operator)
+	cmpWasCastSpell     // wasCastFromYourHand[ByYou] / !wasCastFromYourHand / wasCastFromExile / CastSa Spell.MayPlaySource (or wasCast beside them) read on a spell on the stack (CmpN: spell* origin | spellNot; no operator)
+	cmpPermMark         // attackedThisTurn / dealtDamageThisTurn / dealtDamagetoAny / dealtCombatDamagetoAny, with or without ! (CmpN: kop.PermMark* | kop.PermMarkNot; no operator)
+	cmpTriggerObj       // the resolving trigger's object, wherever it is now (ChooseFromDefined$ TriggeredCards; kernel isTriggerObj; no operator)
+	cmpSameNameRem      // shares a name with an object in the remembered set (gorge sharesNameWith Remembered; no operator)
+	cmpSameNameSelf     // shares the reading source's name (gorge sharesNameWith Self; CmpN 1 negates)
+	cmpHasManaAbility   // hasManaAbility (CmpN 0) / !hasManaAbility (CmpN 1): the printed face has a mana ability (no operator)
+	cmpRenowned         // IsRenowned (CmpN 1) / !IsRenowned (CmpN 0): the CR 702.112b renowned designation
+	cmpAttackingYou     // attackingYou: attacking, the evaluating controller its defending player (kop.PredAttackingYou; no operator)
+	cmpSharesCrCmdr     // sharesCreatureTypeWith Commander: a creature type shared with a commander of the evaluating controller (kop.PredSharesCrCmdr; no operator)
+	cmpPTBox            // two constant power/toughness compares in one clause (powerEQ1+toughnessEQ1, powerGE4+powerLE6): CmpN is the kop.PredStatBox bounds (ptBox; no operator)
+	cmpRingBearer       // IsRingbearer (CmpN 1) / !IsRingbearer (CmpN 0): the candidate is its controller's Ring-bearer (CR 701.54e; kop.PredRingBearer, act_ring.go ringLegend; no operator)
+	cmpGoaded           // IsGoaded (CmpN 1) / !IsGoaded (CmpN 0): the CR 701.15 goaded designation, by any player (kop.PredGoaded; no operator)
+	cmpHasLandwalk      // hasKeywordLandwalk:<spec>: has the derived landwalk whose land filter is CmpFilter (no operator)
+	cmpHasProtQuality   // hasKeywordProtection:<spec>: has the derived protection quality whose source filter is CmpFilter (no operator)
+	cmpHasProtColor     // hasKeywordProtection:<colour>: has protection from a colour in CmpN (no operator)
+	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
+	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -195,6 +204,8 @@ const (
 	spellMayhem    = 6 // CastSa Spell.Mayhem: cast for its mayhem cost (gorge FlagMayhem; a copy reads false)
 	spellYourGrave = 7 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (a mana restriction only)
 	spellNot       = 16
+	spellGrave     = 8 // wasCastFromGraveyard: cast from a graveyard, any caster (gorge ObjectWasCastFromGraveyard: the zone, a keyword cast included)
+	spellLibrary   = 9 // wasCastFromYourLibrary: cast from a library by the caster (gorge castOriginTokens; a library cast is always from the caster's own library)
 )
 
 // cmpWasCast's CmpN (kernel PredWasCastEnter's PredN): the origin the entering
@@ -202,7 +213,7 @@ const (
 const (
 	wasCastAny       = 0
 	wasCastGrave     = 1
-	wasCastHand      = 2 // cast from its owner's hand by the permanent's controller; synthesised for Count$wasCastFromYourHandByYou, never a filter word
+	wasCastHand      = 2 // cast from its owner's hand by the permanent's controller; the filter word !wasCastFromYourHandByYou (negated) and the synthesised Count$wasCastFromYourHandByYou
 	wasCastYourGrave = 3 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (gorge castOriginTokens)
 	wasCastNot       = 4
 	wasCastSpentZero = 8  // CastSa Spell.ManaSpent EQ0: cast, and no mana was spent (gorge castSaTokenHolds)
@@ -239,13 +250,14 @@ type lClause struct {
 	Flags          uint64
 	CmpStat        uint8
 	CmpOp          uint8
-	CmpN           int     // the constant, or
-	CmpX           string  // the SVar naming the bound (cmcLEX)
-	CmpV           *lValue // CmpX lowered
-	CmpCounter     string  // counter kind for cmpCounters
-	Colors         string  // must have this colour (one of WUBRG; "" = none)
-	NotColors      string  // must have none of these colours
-	BasePermanent  bool    // the base head word was Permanent (ThisTurnEntered's card form marks it)
+	CmpN           int      // the constant, or
+	CmpX           string   // the SVar naming the bound (cmcLEX)
+	CmpV           *lValue  // CmpX lowered
+	CmpCounter     string   // counter kind for cmpCounters
+	CmpFilter      *lFilter // the compiled land/quality filter cmpHasLandwalk / cmpHasProtQuality read
+	Colors         string   // must have this colour (one of WUBRG; "" = none)
+	NotColors      string   // must have none of these colours
+	BasePermanent  bool     // the base head word was Permanent (ThisTurnEntered's card form marks it)
 	// SpellBase: the base head word was Spell (gorge's Spell base: an
 	// object on the stack). Read only by a ReduceCost ValidTarget$
 	// (build_ab: a Filter2 in ZoneStack with FSpell); clause refuses it
@@ -627,7 +639,15 @@ func historicClauses(alt string, knownSub func(string) bool, err error) ([]lClau
 func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	head, props, _ := strings.Cut(alt, ".")
 	var c lClause
-	if bits, ok := typeBits[head]; ok {
+	// the sameName context bases (gorge sameNameContextBase, T13b-2
+	// remnants): a Remembered./Targeted./Triggered. head whose rest carries
+	// the bare sameName token names sameName's referent, and the base itself
+	// is rewritten to Card (gorge matchesObjectText drops it). Name-specific,
+	// exactly as gorge's: any other rest, and the '!sameName' token, leaves
+	// the head unknown and the alternative fails closed.
+	if ref, ok := sameNameContextRef(head, props); ok {
+		c.Flags |= ref
+	} else if bits, ok := typeBits[head]; ok {
 		c.Types = bits
 		if head == "Card" {
 			c.Types = 0
@@ -658,6 +678,9 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 			if err := c.prop(p, knownSub); err != nil {
 				return c, fmt.Errorf("%q: %w", alt, err)
 			}
+		}
+		if err := c.monarchCtrlCheck(); err != nil { // filter_monarch.go
+			return c, fmt.Errorf("%q: %w", alt, err)
 		}
 	}
 	return c, nil
@@ -831,7 +854,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// gorge equipped: an Equipment permanent is attached to it
 		return c.setCmp(cmpEquipped, 0, 0, "", "")
 	case "withDefender", "withDeathtouch", "withTrample", "withHaste", "withMenace", "withVigilance", "withReach",
-		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow":
+		"withLifelink", "withIndestructible", "withFirstStrike", "withDoubleStrike", "withShadow", "withFear":
 		// gorge objectHasKeyword over the derived keywords (filter.go's
 		// with<Keyword> registry): PredHasKeyword
 		return c.setCmp(cmpHasKw, 0, withKwBit(p), "", "")
@@ -891,20 +914,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// (lc.exwOK / lc.exwStatic)
 		c.Flags |= fExiledWith
 		return nil
-	case "wasCast", "!wasCast", "wasCastFromGraveyard", "wasCastFromYourGraveyard":
+	case "wasCast", "!wasCast", "wasCastFromGraveyard", "wasCastFromYourGraveyard", "wasCastFromYourGraveyardByYou", "!wasCastFromYourHandByYou":
 		// gorge WasCast / ObjectWasCastFromGraveyard: the permanent entering as
 		// the spell it was cast as. Read only where the kernel sees that spell
 		// still resolving: a battlefield-entering trigger's ValidCard(s)$
-		// (lc.wasCastOK)
-		n := wasCastAny
-		switch p {
-		case "!wasCast":
-			n = wasCastNot
-		case "wasCastFromGraveyard":
-			n = wasCastGrave
-		case "wasCastFromYourGraveyard":
-			n = wasCastYourGrave
-		}
+		// (lc.wasCastOK); wasCastOriginN names each spelling's read
+		n := wasCastOriginN(p)
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastWebSling && n == wasCastAny {
 			// wasCast beside webSlinged, which already implies the cast
 			return nil
@@ -919,21 +934,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		return c.setCmp(cmpWasCast, 0, n, "", "")
-	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile":
+	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile", "!wasCastFromExile", "wasCastFromYourLibrary":
 		// gorge's cast-provenance words (rules castProvenanceAdmits), read on
 		// a spell on the stack: lc.spellProvOK says the filter is a SpellCast
-		// ValidCard$ or a spell's own ConditionPresent$
-		n := spellHand
-		switch p {
-		case "!wasCastFromYourHand", "!wasCastFromTheirHand":
-			// gorge reads wasCastFromTheirHand as a cast from a hand, any
-			// caster (cast_provenance.go): the same predicate as YourHand
-			n = spellHand | spellNot
-		case "wasCastFromYourHandByYou":
-			n = spellHandBy
-		case "wasCastFromExile":
-			n = spellExile
-		}
+		// ValidCard$ or a spell's own ConditionPresent$; spellOriginN names
+		// each spelling's read
+		n := spellOriginN(p)
 		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand"
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
 			c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
@@ -1204,12 +1210,66 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 	if knownSub(p) {
 		return c.addSubtype(p)
 	}
-	return fmt.Errorf("unknown property %q", p)
+	return c.fwArmOrUnknown(p, knownSub) // filter_words_relations.go
+}
+
+// sharesNameValidArg and the general Valid <filter> arm live in
+// filter_words_relations.go, beside the other share-word arms.
+
+// sameNameContextRef maps a sameName context base's head prefix to the clause
+// flag that marks it, when the rest carries the bare sameName token (gorge
+// sameNameContextBase, engine/effects/filter_value.go: the Remembered./
+// Targeted./Triggered. prefixes and hasPredicate(rest, "sameName"); the
+// '!'-spelled token is not the contextual one). ok is false for anything
+// else: the head keeps its own parser fate.
+func sameNameContextRef(head, rest string) (uint64, bool) {
+	if !hasPropToken(rest, "sameName") {
+		return 0, false
+	}
+	switch {
+	case strings.HasPrefix(head, "Remembered"):
+		return fSameNameRem, true
+	case strings.HasPrefix(head, "Targeted"):
+		return fSameNameTgt, true
+	case strings.HasPrefix(head, "Triggered"):
+		return fSameNameTrig, true
+	}
+	return 0, false
+}
+
+func hasPropToken(rest, want string) bool {
+	for p := range strings.SplitSeq(rest, "+") {
+		if p == want {
+			return true
+		}
+	}
+	return false
+}
+
+// sameNameBaseRef is a context-base clause's referent Ref: the flag
+// sameNameContextRef set names the object gorge sameNameContextReferent
+// resolves — the entry's first remembered object (RefRemembered), its first
+// live object target (RefTargets0123, the same read the share words'
+// Targeted referent lowers to), or its triggering object (RefTriggerObj).
+func (c *lClause) sameNameBaseRef() (kop.Ref, bool) {
+	switch {
+	case c.Flags&fSameNameRem != 0:
+		return kop.RefRemembered, true
+	case c.Flags&fSameNameTgt != 0:
+		return kop.RefTargets0123, true
+	case c.Flags&fSameNameTrig != 0:
+		return kop.RefTriggerObj, true
+	}
+	return 0, false
 }
 
 // sharesNameWithProp lowers the sharesNameWith property family and reports
 // whether p is one: Remembered reads the remembered set, Self the reading
-// source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1.
+// source (Marvin, Murderous Mimic), whose ordinary ! prefix is CmpN 1. The
+// plain sameName is gorge wordSameName (card.sharesNameWith(source), the
+// resolving ability's source by default, engine/effects/filter_word.go): the
+// same read, so it lowers onto the same pred — except beside a context base
+// (fSameName*), where it reads the base's object as kop.FwSameName instead.
 func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 	switch p {
 	case "sharesNameWith Remembered":
@@ -1217,6 +1277,23 @@ func (c *lClause) sharesNameWithProp(p string) (bool, error) {
 		// Pact's repeat gate)
 		return true, c.setCmp(cmpSameNameRem, 0, 0, "", "")
 	case "sharesNameWith Self", "!sharesNameWith Self":
+		n := 0
+		if p[0] == '!' {
+			n = 1
+		}
+		return true, c.setCmp(cmpSameNameSelf, 0, n, "", "")
+	case "sameName", "!sameName":
+		if r, ok := c.sameNameBaseRef(); ok {
+			// the context base rewrote the head (sameNameContextRef): gorge
+			// wordSameName reads the base's object (sameNameContextReferent),
+			// not the source. The flag is consumed as the word's referent, no
+			// kop flag of its own (the fEscaped pattern).
+			c.Flags &^= fSameNameRem | fSameNameTgt | fSameNameTrig
+			return true, c.fwLit(lSpillLit{W: kop.FwSameName, Neg: p[0] == '!', R: r})
+		}
+		if c.Flags&(fRemembered|fNotRemembered) != 0 {
+			return true, fmt.Errorf("sameName beside a Remembered base: gorge reads the base's object (sameNameContextBase), not the source")
+		}
 		n := 0
 		if p[0] == '!' {
 			n = 1
@@ -1251,7 +1328,7 @@ func (c *lClause) setWho(dst *uint8, v uint8) error {
 	return nil
 }
 
-// designationWord handles the renowned, Ring-bearer, suspected and goaded
+// designationWord handles the renowned, Ring-bearer, suspected, goaded (and the monarch controller)
 // words. Each is a designation read off the battlefield, CmpN 1 set and 0 not:
 // renowned (CR 702.112b; gorge filter.go IsRenowned: Object.Renowned,
 // cleared off the battlefield), the Ring-bearer (CR 701.54e; gorge
@@ -1272,6 +1349,8 @@ func (c *lClause) designationWord(p string) (ok bool, err error) {
 		return true, c.setCmp(cmpSuspected, 0, n, "", "")
 	case "IsGoaded":
 		return true, c.goadedWord(n) // filter_goaded.go
+	case monarchCtrlWord, monarchEnchNotWrd:
+		return c.monarchCtrlProp(p) // filter_monarch.go
 	}
 	return false, nil
 }

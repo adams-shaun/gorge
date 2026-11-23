@@ -310,6 +310,11 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if b := e.entryBasis; b != nil && b.ID == source {
 		o, basis = b, true
 	}
+	if !basis {
+		if lo := departedSourceLKI(e.G, e.triggerLKI, source); lo != nil {
+			o, basis = lo, true
+		}
+	}
 	if o == nil {
 		return false
 	}

@@ -4,4 +4,4 @@ value: 34
 forge: Mutate
 census: kw Mutate all=34 std=0 mbc=1 sole=2
 state: objobj 236 (mutate)
-status: reserved
+status: active

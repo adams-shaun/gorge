@@ -219,6 +219,7 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
 						if !addPotentialReflected(e, &out, p, id, ma) {
+							addPotentialReflectedAmount(&out, effects.ManaReflectedAmountCandidates(e, p, id, ma))
 							prod := ma
 							if counters {
 								if bounded, ok := potentialSubCounterBounded(e, asPayer(e), p, id, ma); ok {
@@ -234,6 +235,8 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 								e.addPotentialManaOf(&out, prod)
 							}
 							addPotentialRepeatable(e, &out, p, id, ma)
+							addPotentialSacRepeat(e, asPayer(e), &out, p, id, ma)
+							addPotentialTapRepeat(e, asPayer(e), &out, p, id, ma)
 							if sub != nil {
 								e.addPotentialManaOf(&out, sub)
 							}
@@ -369,13 +372,13 @@ func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.S
 	}
 	payer := asPayer(e)
 	productions := pay.PaymentPlanProductions(payer, id, ma)
-	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
+	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1, false); ok {
 		productions = paymentPlanReflectedProductions(alt)
 	}
 	if sub := condSplitLiveSub(e, p, id, ma); sub != nil {
 		productions = append(slices.Clone(productions), pay.PaymentPlanProductions(payer, id, sub)...)
 	}
-	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1); ok {
+	if alt, ok := paymentPlanReflectedAlt(e, p, id, ma, 1, false); ok {
 		// A reflected ability (Reflecting Pool, Exotic Orchard) prints no
 		// Produced$: the tap makes each colour the reflection names, and a
 		// TapsForMana trigger reads that colour (addPotentialReflected).

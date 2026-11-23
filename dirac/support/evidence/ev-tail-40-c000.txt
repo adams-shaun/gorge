@@ -66,7 +66,9 @@ Broken Visage
 Bubble Matrix
 Bull's Strength
 Butterbur, Bree Innkeeper
+Cadric, Soul Kindler
 Cankerbloom
+Caribou Range
 Carnage Altar
 Carrion Wall
 Castle Embereth
@@ -218,6 +220,7 @@ Isolate
 Jace, Ingenious Mind-Mage
 Jaheira's Respite
 Jokulmorder
+Jyoti, Moag Ancient
 Kabira Outrider
 Kami of Celebration
 Kami of the Hunt
@@ -348,6 +351,7 @@ Repercussion
 Rescue
 Resourceful Return
 Restore
+Rimebound Dead
 Ring of Three Wishes
 Ringwarden Owl
 Riot Spikes

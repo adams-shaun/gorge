@@ -37,7 +37,7 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 		return
 	}
 	if in.B.N&kop.MayPlayOpponent != 0 != DebugVulcanWrongHolder {
-		ctrl = s.nextAlive(ctrl) // the permission is the exiler's: the controller's opponent
+		ctrl = s.targetedExiler(ctrl) // the permission is the exiler's: the targeted opponent (interp_ask.go)
 	}
 	headed := false // the first limited record heads the grant (cast_mayplaylimit.go)
 	zone := kop.Zone(in.C & kop.MayPlayZoneMask)

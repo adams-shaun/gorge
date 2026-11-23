@@ -374,7 +374,10 @@ func (s *State) entryOrderPark(k *prep, o Obj, ctrl uint8, mode uint8) bool {
 		return false
 	}
 	c, pair := s.entryComp(k, o, ctrl, NoSlot, false)
-	if !pair || c.over || c.other || s.objs[o].owner() != ctrl {
+	// A played land enters under the player's control whoever owns it (CR 305.1,
+	// 110.2: a land from another seat's zone), and gorge asks that player
+	// (entLand); the other routes keep the owner as the chooser.
+	if !pair || c.over || c.other || (mode != entLand && s.objs[o].owner() != ctrl) {
 		return false
 	}
 	if c.early {
@@ -469,6 +472,7 @@ func (s *State) entryLateSet(k *prep, idx, cls uint8) {
 			// body then), so applying it here would show a tapped land at
 			// the election ask and pay the tap even when the player pays.
 			p.flags &^= pfTapped
+			s.shockTapWins(sl) // a first pick's untap no longer comes last (CR 616.1f)
 			return
 		}
 		p.flags |= pfTapped
@@ -556,7 +560,8 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 			// the entered permanent's queued as-enters election (a shock
 			// land's pay life): gorge asks it before the tail's later found
 			// cards move (shockuntaporder: the election is still posed
-			// whichever body went first)
+			// whichever body went first); a parked tail waits behind it
+			// (zone_parkedtail.go)
 			return
 		}
 		if s.res.left != 0 && s.unparkTail(k) {
@@ -673,10 +678,30 @@ func (s *State) entryParkFound(k *prep, o Obj, ctrl uint8) bool {
 // entry of the card it just moved, when a tap and an untap are still left; its later
 // cards move once the order is applied (unparkTail runs the tail kind). false: no re-ask.
 func (s *State) entryLateTail(k *prep, kind uint8) bool {
-	if k.gen == nil || !k.gen.anyEntUntap || s.g.nask != 0 || !s.res.active || !s.entryLatePark() {
+	if k.gen == nil || !k.gen.anyEntUntap || !s.entryAsksOnlyElection() || !s.res.active || !s.entryLatePark() {
 		return false
 	}
 	s.res.left = kind
+	return true
+}
+
+// entryAsksOnlyElection: no ask is queued but the entrant's own shock-land
+// pay-life election, which gorge poses after the re-ask (CR 616.1f), the
+// election's tap being one of the bodies the re-ask orders (shockLateTap).
+func (s *State) entryAsksOnlyElection() bool {
+	ro := &s.g.ro
+	if s.g.nask == 0 {
+		return true
+	}
+	if ro.n == 0 || !ro.entHdr() {
+		return false
+	}
+	sl := s.objs[ro.entObj()].slot
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind != akPayLife || a.sl != sl {
+			return false
+		}
+	}
 	return true
 }
 

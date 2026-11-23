@@ -155,6 +155,7 @@ Fire Ambush
 Fire Prophecy
 Firemaw Kavu
 Flameskull
+Flockchaser Phantom
 Forest
 Forge, Neverwinter Charlatan
 Fortress Cyclops
@@ -210,6 +211,7 @@ Inferno Fist
 Insidious Bookworms
 Involuntary Cooldown
 Island
+Jerren, Corrupted Bishop
 Jhoira's Familiar
 Jinxed Idol
 Journey to the Lost City
@@ -296,12 +298,12 @@ Outbreak
 Oversold Cemetery
 Painwracker Oni
 Paladin Danse, Steel Maverick
-Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
 Phyrexian Plaguelord
 Phyrexian Prowler
+Phyrexian Tyranny
 Plague Fiend
 Plague Myr
 Plains
@@ -421,6 +423,7 @@ Swamp
 Sweep the Skies
 Sword of the Animist
 Talisman of Unity
+Tamiyo's Compleation
 Tar Pit Warrior
 Tawnos's Tinkering
 Tawnos, Urza's Apprentice

@@ -22,6 +22,7 @@ Bulwark
 Bumbleflower's Sharepot
 Cache Grab
 Capture of Jingzhou
+Carry Away
 Cat Burglar
 Celebrate the Harvest
 Chamber Sentry
@@ -102,11 +103,13 @@ Kamber, the Plunderer
 Kederekt Parasite
 Khalni Heart Expedition
 Kjeldoran Gargoyle
+Kor Spiritdancer
 Labyrinth of Skophos
 Leeching Sliver
 Leering Gargoyle
 Llanowar Mentor
 Magnus the Red
+Magus of the Library
 Makindi Stampede
 Marsh Flitter
 Master Trinketeer
@@ -141,6 +144,7 @@ Phantom Nomad
 Plague Wight
 Plains
 Pouncing Cheetah
+Power Taint
 Prophet of Kruphix
 Prowler, Misguided Mentor
 Pyromancer's Gauntlet

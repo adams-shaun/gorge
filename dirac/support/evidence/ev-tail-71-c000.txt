@@ -1,5 +1,6 @@
 A-Armory Veteran
 A-Dokuchi Silencer
+A-Faceless Haven
 A-Orcish Bowmasters
 A-Skull Skaab
 A-The Meathook Massacre
@@ -262,8 +263,8 @@ Militia Rallier
 Mind Rot
 Mindlash Sliver
 Mine Worker
+Mistmeadow Vanisher
 Moku, Meandering Drummer
-Molten Ravager
 Momentary Blink
 Monk Idealist
 Morbid Opportunist
@@ -349,6 +350,7 @@ Scion Summoner
 Scoria Wurm
 Scrappy Bruiser
 Scryb Sprites
+Scrying Sheets
 Scuttlegator
 Season of Growth
 Season of Renewal
@@ -448,7 +450,6 @@ Vivien, Nature's Avenger
 Vodalian Soldiers
 Voltaic Brawler
 Voodoo Doll
-Wakeroot Elemental
 Wanderer's Twig
 Wandering Ones
 Wave of Terror

@@ -118,7 +118,7 @@ func (s *State) timesKicked(ctx evalCtx) int {
 	// sacrifice does, and Count$SquadPaid still reads the cast's payments
 	// (gorge's TriggerSquadPaid).
 	if e := ctx.e; e != nil && e.kind == seTrigger && e.defSeat != 0 {
-		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && k.t.Cards[e.card].RepeatedKind == kop.RepeatSquad &&
+		if k := s.k(); k != nil && int(e.card) < len(k.t.Cards) && capturesKickCount(&k.t.Cards[e.card]) &&
 			int(e.ab) < len(k.t.Cards[e.card].Abilities) {
 			if a := &k.t.Cards[e.card].Abilities[e.ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 {
 				return int(e.defSeat)
@@ -556,8 +556,8 @@ func (s *State) refPT(k *prep, r kop.Ref, ctx evalCtx) (int, int) {
 		}
 		return pw, t
 	case kop.RefTriggerObj, kop.RefTriggerSource, kop.RefSacrificed, kop.RefDelayedRemembered:
-		if r == kop.RefTriggerSource && e != nil && e.trigSA != 0 {
-			o := Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e != nil && e.saWord() != 0 {
+			o := Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 			return s.objPT(k, o, s.slotIfSame(o, s.objs[o].ver))
 		}
 		if r == kop.RefTriggerObj && e != nil && e.trigObj != NoObj {
@@ -688,8 +688,8 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 			objWord(s.objs[e.trigObj].ver) != e.remVer {
 			return NoObj // a new object since registration (CR 400.7; gorge dropDelayedRememberedMoved)
 		}
-		if r == kop.RefTriggerSource && e.trigSA != 0 {
-			return Obj(e.trigSA - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
+		if r == kop.RefTriggerSource && e.saWord() != 0 {
+			return Obj(e.saWord() - 1) // code-ok: trigSA stores the object + 1 (the BecomesTarget targeting spell/ability)
 		}
 		return e.trigObj
 	case kop.RefAttached:
@@ -882,7 +882,7 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 			}
 			return 0
 		}
-		if s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o) {
+		if s.refCardMatch(k, f, ob, o, ctx) {
 			return 1
 		}
 		return 0
@@ -1010,3 +1010,18 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 	}
 	return NoObj, false
 }
+
+// refCardMatch matches a ref's card off the battlefield against f. A filter
+// that reads the chosen type (Herald's Horn: the revealed library top is
+// Creature.ChosenType) takes the ability source's recorded choice, as gorge's
+// sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
+func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
+	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+	}
+	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
+}
+
+// DebugRefChosenResOnly is the mutation switch: a ref's card reads only the
+// resolution's own ChooseType answer (the games must diverge).
+var DebugRefChosenResOnly bool

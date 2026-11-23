@@ -203,6 +203,7 @@ Legolas, Counter of Kills
 Leyline of Vitality
 Lightning Dart
 Lightning Diadem
+Lochmere Serpent
 Locthwain Lancer
 Lonis, Genetics Expert
 Loxodon Lifechanter
@@ -350,6 +351,7 @@ Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
+Silumgar Spell-Eater
 Silver-Inlaid Dagger
 Silversmote Ghoul
 Skittering Monstrosity
@@ -449,4 +451,5 @@ Woodland Sleuth
 Wretched Confluence
 Xander's Lounge
 Xathrid Slyblade
+Yes Man, Personal Securitron
 Zhao, the Seething Flame

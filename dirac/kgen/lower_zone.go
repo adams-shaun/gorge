@@ -616,9 +616,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if counterKind != "" && dest == zBattlefield {
 				cs += "|counters=" + counterKind
 			}
-			if !chosenPool { // chosenMidPool already read Chooser$
-				pickOwner, pickLoop = lc.graveChooser(ps, f, flags, pickOwner, pickLoop) // lower_hiddenpick.go
-			}
 			fetched := pickOwner.Kind != rYou && ps.str("DefinedPlayer") != "" && dpScope == dpNone
 			more, err := graveChooserFlags(ps, pickOwner, pickLoop, flags, fetched, chosenPool) // lower_gravedefinedplayer.go
 			if err != nil {
@@ -642,14 +639,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
-			// Command Beacon's "put your commander into your hand": lowered
-			// to nothing on the assumption that no seat has a commander
-			// (kop.W7IsCommander), so the command zone holds no other card
-			// and gorge's pick over the empty pool moves nothing and poses no
-			// decision; the cmd5 pool guard reads the counter
-			noteCmdShortcut(cmdShortcutCommandBeacon)
-			ps.consume("SelectPrompt")
-			return nil
+			// Command Beacon's "put your commander into your hand": gorge
+			// effHiddenPick over the command zone (public, game-wide, the
+			// YouOwn filter keeps the controller's commanders). A Commander
+			// game asks the pick (one option still ends in a choose) and then
+			// the CR 903.9b move; a game with no commander has an empty pool
+			// and no ask. The kernel walks the command zone (searchCands).
+			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		return refuse("ChangeType$ move %s->%s", zoneLabel[origin], zoneLabel[dest])
 	}
@@ -718,14 +714,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		return err
 	}
 	// Mandatory$ True on a targeted or Defined known-origin move is a no-op in
-	// gorge (it reads cz.Mandatory only in the hand, hidden and search walks).
-	if v, ok := ps.get("Mandatory"); ok {
-		if v != "True" {
-			return refuse("ChangeZone Mandatory$ %q", v)
-		}
-		if lc.optionalTarget() {
-			return refuse("Mandatory$ with an optional target (gorge re-asks a declined up-to target at resolution; gorge finding)")
-		}
+	// gorge (it reads cz.Mandatory only in the hand, hidden and search walks);
+	// a declined "up to one" target moves nothing in either engine (Koya).
+	if v, ok := ps.get("Mandatory"); ok && v != "True" {
+		return refuse("ChangeZone Mandatory$ %q", v)
 	}
 
 	if rt, ok := ps.get("RememberTargets"); ok {
@@ -853,9 +845,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			if v != "True" {
 				return refuse("ChangeZone Attacking$ %q", v)
 			}
-			if lc.optionalTarget() {
-				return refuse("Attacking$ in a chain with an optional target (gorge re-asks a declined up-to target at resolution; gorge finding)")
-			}
 			in.CS = strings.TrimPrefix(in.CS+"|Attacking", "|")
 		}
 		if self {
@@ -918,6 +907,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if origin != zNone && origin != zAny {
 		in.CS = strings.TrimPrefix(in.CS+"|from="+zoneLabel[origin], "|")
 	}
+	fromAnyOrigin(ps, obj, dest, &in)
 	if dualDef {
 		in.CS = strings.TrimPrefix(in.CS+"|from=Graveyard,Exile", "|") // the object may have moved from one zone to the other
 	}
@@ -974,22 +964,6 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.ab.Prog[len(lc.ab.Prog)-1].Obj = obj
 	}
 	return nil
-}
-
-// optionalTarget reports whether the ability being lowered has a target slot
-// that may be empty (TargetMin$ 0, "up to N"). gorge re-asks the target of a
-// ChangeZone at resolution when the announcement left it empty and, with the
-// ask unanswered, resolves the Defined$ default (the source): a declined
-// "up to one" target still moves the source (The Neutrinos, Koya; kernel
-// lockstep matchup 1 seed 1). The lifted shapes beside such a slot are
-// refused until gorge stops re-asking.
-func (lc *lowerCtx) optionalTarget() bool {
-	for i := range lc.ab.Targets {
-		if t := &lc.ab.Targets[i]; t.Min.isConst() && t.Min.N == 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // alsoSelf reads ThisDefinedAndTgts$: gorge appends the named extra objects
@@ -1161,6 +1135,9 @@ func overrideString(o *lOverride) string {
 	}
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
+	}
+	if o.Horsemanship {
+		p = append(p, "horsemanship")
 	}
 	if o.NoCost {
 		p = append(p, "nocost")
@@ -1399,22 +1376,21 @@ func (lc *lowerCtx) dig(ps *params) error {
 		}
 		flags = append(flags, "pos="+lp)
 	}
+	_, hasDest2 := ps.m["DestinationZone2"]
+	skipReorder := strings.TrimSpace(ps.m["SkipReorder"]) == "True"
+	restRandomOrder := ps.is("RestRandomOrder", "True")
 	var restTop, restAsk bool
-	if _, d2 := ps.m["DestinationZone2"]; !d2 && strings.TrimSpace(ps.m["SkipReorder"]) == "True" {
-		// gorge effDig's rest(): SkipReorder$ leaves the remainder in place
-		// before LibraryPosition2$ is read, so the position is moot (the
-		// Undercity's Throne of the Dead Three)
+	if !hasDest2 && skipReorder && !restRandomOrder {
+		// gorge effDig's rest(): SkipReorder$ without RestRandomOrder$ leaves
+		// the remainder in place before LibraryPosition2$ is read, so the
+		// position is moot (the Undercity's Throne of the Dead Three)
 		ps.consume("LibraryPosition2")
 	} else if restTop, restAsk, err = lc.digRestTop(ps, who, n, take, dest, dest2); err != nil {
 		return err
 	}
-	if v, ok := ps.get("SkipReorder"); ok {
-		// gorge effDig: SkipReorder$ True leaves the untaken cards where
-		// they are, on top in their order (Knight-Errant of Eos, which
-		// then shuffles); beside a DestinationZone2$ it is unread there
-		if _, d2 := ps.m["DestinationZone2"]; v != "True" || d2 || ps.is("RestRandomOrder", "True") {
-			return refuse("SkipReorder %q beside a remainder placement", v)
-		}
+	if rt, err := digSkipReorderRest(ps, hasDest2, restRandomOrder); err != nil {
+		return err
+	} else if rt {
 		restTop = true
 	}
 	if restTop {
@@ -1517,6 +1493,31 @@ func filterReadsRemembered(f *lFilter) bool {
 		}
 	}
 	return false
+}
+
+// digSkipReorderRest reads Dig's SkipReorder$ for the rest placement and
+// returns whether the untaken cards stay on top (the DigRestTop flag).
+// gorge effDig: SkipReorder$ True leaves the untaken cards where they are,
+// on top in their order (Knight-Errant of Eos, which then shuffles; Through
+// the Forest Gate); beside a DestinationZone2$ it is unread there. BESIDE
+// RestRandomOrder$ True (Hide in Plain Sight) the two name one instruction
+// -- "put the rest on the bottom of your library in a random order":
+// SkipReorder$ suppresses only the chooser's order ask, which
+// RestRandomOrder$ never poses, so it is inert and the shuffled-to-bottom
+// lower (DigRandomOrder, no RestTop) is the whole behaviour (CR 401.4).
+func digSkipReorderRest(ps *params, hasDest2, restRandomOrder bool) (bool, error) {
+	v, ok := ps.get("SkipReorder")
+	if !ok {
+		return false, nil
+	}
+	skipReorder := strings.TrimSpace(v) == "True"
+	if !skipReorder || hasDest2 {
+		return false, refuse("SkipReorder %q beside a remainder placement", v)
+	}
+	if restRandomOrder {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (lc *lowerCtx) digUntil(ps *params) error {
@@ -1766,12 +1767,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	lc.exwOK = zone == zExile
 	optional := !ps.is("Mandatory", "True")
 	choices := ps.str("Choices")
+	oppChooser := false
 	if v := ps.str("ControlledByPlayer"); v != "" && !optional {
-		// the kernel evaluates a mandatory ChooseCard from the resolving
-		// controller too, but no lowered mandatory shape applies the
-		// restriction: applying it only under optional would silently draw
-		// the candidates from every seat, so refuse instead.
-		return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+		// gorge controlledByChoicePlayerChooser: the pool is the chooser's own
+		// objects. The kernel matches a mandatory pick's pool from the
+		// resolving controller's seat, so the restriction is spelled in that
+		// base (chooseCardChooserPool); any other value refuses.
+		prop, opp, ok := chooseCardChooserPool(lc, ps, v, targeted)
+		if !ok {
+			return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+		}
+		choices = addFilterProp(choices, prop)
+		oppChooser = opp
+		ps.consume("ControlledByPlayer")
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
@@ -1814,8 +1822,8 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
 			// Slaughter, Wormfang Crab). Without the armed choice it is
 			// unresolved and refuses.
-			if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
-				(v != "ChosenPlayer" && v != "Player.Chosen") {
+			if !(oppChooser && v == "Opponent") && (lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
+				(v != "ChosenPlayer" && v != "Player.Chosen")) {
 				return refuse("ChooseCard Defined$ %q", v)
 			}
 			chooser = lRef{Kind: rEachOpp}
@@ -1852,7 +1860,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		}
 		ps.consume("Defined", "MinAmount")
 	}
-	if optional && (zone != zBattlefield || ps.str("Amount") != "" && ps.str("Amount") != "1") {
+	if optional && (!optionalPickZone(zone) || ps.str("Amount") != "" && ps.str("Amount") != "1") {
 		return refuse("optional ChooseCard")
 	}
 	if !targeted && !fromDefined {
@@ -1872,6 +1880,40 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// optionalPickZone reports the zones an optional (up to one) ChooseCard
+// picks from through the kernel's pool walk: the battlefield and the three
+// per-player card zones (the library has its own shape, chooseLibraryUpTo).
+func optionalPickZone(z int) bool {
+	return z == zBattlefield || z == zHand || z == zGraveyard || z == zExile
+}
+
+// chooseCardChooserPool is a mandatory ChooseCard's ControlledByPlayer$
+// Chooser as the filter property that restricts the pool to the chooser's own
+// objects in the kernel's base: the resolving controller's own pick (no
+// Defined$, or You) is YouCtrl; an opponent's (Defined$ Opponent, or the
+// armed ChoosePlayer's Defined$ ChosenPlayer; the one opponent in a two-seat
+// pod) is OppCtrl, because the kernel matches that pick's pool from the
+// resolving controller (chooseCardBase). opp reports the second. A target
+// chooser, each-player Defined$ and every other value are not lowered.
+func chooseCardChooserPool(lc *lowerCtx, ps *params, v string, targeted bool) (prop string, opp, ok bool) {
+	if v != "Chooser" || targeted {
+		return "", false, false
+	}
+	switch d := ps.str("Defined"); d {
+	case "", "You":
+		return "YouCtrl", false, true
+	case "Opponent":
+		lc.twoSeat("ChooseCard pool of the one opponent's objects")
+		return "OppCtrl", true, true
+	case "ChosenPlayer", "Player.Chosen":
+		if lc.chosenOppAb != nil && lc.chosenOppAb == lc.ab {
+			lc.twoSeat("ChooseCard pool of the one opponent's objects")
+			return "OppCtrl", true, true
+		}
+	}
+	return "", false, false
 }
 
 // chooseLibraryUpTo lowers an optional ChooseCard among the library cards the
@@ -2443,12 +2485,19 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.noRegenRemembered(ps, ss); ok || err != nil { // lower_noregen.go
 		return err
 	}
+	// the UnspentMana read runs before the duration arms: it refuses every
+	// shape but the Last Agni Kai form itself (lower_unspentmana.go), so an
+	// unread UnspentMana body cannot flow into the Duration$Permanent emblem
+	// or effectStaticEOT, which assume every static they take is one they read
+	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
+		return err
+	}
 	if ps.is("Duration", "Permanent") {
 		if ok, err := lc.partitionMayPlay(ps, ss); ok || err != nil {
 			return err
 		}
 		if len(ss) != 1 {
-			return refuse("Effect static %q", st)
+			return lc.emblemStatics(ps, st, ss) // lower_emblempermanent.go
 		}
 		// A may-play over the remembered cards that partitionMayPlay did not
 		// lower: gorge keeps the permission per remembered card (CR 611.2a,
@@ -2462,9 +2511,6 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return refuse("Effect MayPlay over the remembered cards, unsupported shape")
 		}
 		return lc.emblemStatic(ps, ss[0])
-	}
-	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
-		return err
 	}
 	if obj, ok := lc.chosenMayPlayNextTurn(ps, ss); ok { // lower_effectdurations.go
 		return lc.effectTargetStatic(ps, ss[0], obj)
@@ -2941,6 +2987,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
 		return err
 	}
+	if err := emblemBlocksEarlyRefuse(ps, t, eot); err != nil {
+		return err
+	}
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
 	}
@@ -2971,14 +3020,18 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	if err := emblemBlocksRefuse(t, eot, hasCap || mem.kind != memNone); err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
 	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemBlocks = eot && t.Mode == "Blocks"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemDmg = false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg = false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
@@ -3039,7 +3092,9 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 		// at cleanup (dropEOTEmblems), gorge's turn-change drop of the
 		// Effect's delayed trigger (False Cure)
 		return eot
-	case "DamageDoneOnce":
+	case "DamageDoneOnce", "Blocks":
+		// the end-of-turn Blocks line is the per-pair emblem hook
+		// (fireEmblemsBlocks); an until-your-next-turn one has none
 		return eot
 	case "DamageDealtOnce":
 		return paired
@@ -3254,8 +3309,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		return nil, "", false, err
 	}
 	if t, ok := ps.get("Types"); ok {
-		for _, w := range strings.Split(t, ",") {
-			w = strings.TrimSpace(w)
+		// gorge animateGrant types (combatfx.go): commas separate like
+		// whitespace, so "Types$ Human Cleric" is Human and Cleric, two
+		// types, never one subtype word with a space
+		words := strings.Fields(strings.ReplaceAll(t, ",", " "))
+		for _, w := range words {
 			if b, ok := typeAddBit(w); ok {
 				o.AddTypes |= b
 				continue
@@ -3276,7 +3334,7 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.HasSetTypes = true
 			o.SetTypes, o.AddTypes = o.AddTypes&^tSupertype, o.AddTypes&tSupertype
 			o.HasSetSubtypes = true
-			if err := o.keepSubtypes(strings.Split(t, ",")); err != nil {
+			if err := o.keepSubtypes(words); err != nil {
 				return nil, "", false, err
 			}
 		} else {
@@ -4026,7 +4084,7 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
-	lat.TrigRem = trigRemAllowed(ps) // lower_trigremembered.go
+	lat.TrigRem = lc.trigRemInit(ps) // lower_trigremembered.go
 	savedRemX := lc.trigRemX
 	lc.trigRemX = false
 	if lc.trigXPaid && strings.TrimSpace(ps.m["RememberSVarAmount"]) == "X" {
@@ -4304,9 +4362,9 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
 	// read the spell being paid for: allowed on this filter only, never
 	// the Activated one (gorge restrictValidTermMatches)
-	save, saveGrave := lc.spellProvOK, lc.spellGraveOK
-	lc.spellProvOK, lc.spellGraveOK = true, true
-	defer func() { lc.spellProvOK, lc.spellGraveOK = save, saveGrave }()
+	save := lc.spellProvOK
+	lc.spellProvOK = true
+	defer func() { lc.spellProvOK = save }()
 	var spellClauses, staticClauses []lClause
 	var act []string
 	var never []int // act terms that match nothing (lower_restrictedmana_words.go)
@@ -4372,7 +4430,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			return refuse("mana restriction %q", rv)
 		}
 	}
-	lc.spellProvOK, lc.spellGraveOK = save, saveGrave
+	lc.spellProvOK = save
 	m.Restrict = nil
 	if len(spellClauses)+len(staticClauses) > 0 {
 		m.Restrict = &lFilter{Clauses: append(spellClauses, staticClauses...)}
@@ -4431,7 +4489,7 @@ func restrictAbZones(act []string, f *lFilter) (zones []kop.Zone, ok bool) {
 func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana) error {
 	amt := m.Amount
 	if rv, ok := ps.get("RestrictValid"); ok {
-		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) && (!restrictedLifeUnit(ab.Cost, m) || lc.restrictedLifeBackFace()) {
+		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) && (!(restrictedLifeUnit(ab.Cost, m) || restrictedSacSelfUnit(ab.Cost, m) || restrictedSacXUnit(ab.Cost, m) || restrictedTapXUnit(ab.Cost, m)) || lc.restrictedLifeBackFace()) {
 			// gorge's cast-window probe prices a restricted source whose
 			// cost goes beyond {T}; the kernel's restricted gap does not yet
 			// prove identical for one (see lower_restrictedmana.go), so the
@@ -5352,4 +5410,38 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 		return obj, flags, err
 	}
 	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
+}
+
+// emblemBlocksEarlyRefuse refuses an end-of-turn Blocks emblem that names a
+// capture (RememberObjects$) before the capture machinery sees it.
+func emblemBlocksEarlyRefuse(ps *params, t cards.Trigger, eot bool) error {
+	if _, rem := ps.get("RememberObjects"); rem && eot && t.Mode == "Blocks" {
+		return refuse("Effect Blocks trigger with a capture")
+	}
+	return nil
+}
+
+// emblemBlocksRefuse refuses what the kernel Blocks emblem hook cannot carry:
+// a capture and an attacker filter (dirac/trig_emblemblocks.go).
+func emblemBlocksRefuse(t cards.Trigger, eot, captured bool) error {
+	if !eot || t.Mode != "Blocks" {
+		return nil
+	}
+	if captured {
+		return refuse("Effect Blocks trigger with a capture")
+	}
+	if t.ParamStr(cards.PKValidBlocked) != "" {
+		return refuse("Effect Blocks trigger ValidBlocked$")
+	}
+	return nil
+}
+
+// fromAnyOrigin marks an Origin$ All put of a remembered card onto the
+// battlefield (Turntimber Symbiosis's put after its dig set the pick on top of
+// the library): the card moves from whichever zone it is in, a library card
+// included (OpReturnEx reads kop.MvEntryRiders' bit).
+func fromAnyOrigin(ps *params, obj lRef, dest int, in *lInstr) {
+	if o := strings.TrimSpace(ps.m["Origin"]); (o == "All" || o == "Any") && obj.Kind == rRemembered && dest == zBattlefield {
+		in.CS = strings.TrimPrefix(in.CS+"|FromAny", "|")
+	}
 }

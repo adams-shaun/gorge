@@ -119,6 +119,13 @@ type lowerCtx struct {
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
 
+	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
+	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
+	// BLOCKER as the trigger object and its controller as the trigger player,
+	// so the blocker spellings read them (lower_trigrefs.go) and every
+	// attacker read refuses (lower_effect.go).
+	emblemBlocks bool
+
 	// emblemDmg: lowering the body of a capturing EOT emblem's DamageDone
 	// trigger. On the recipient-captured shape (ValidTarget$ ...IsRemembered,
 	// the recipient branch of lower_effeottrig.go emblemCaptureFilter) the
@@ -157,7 +164,6 @@ type lowerCtx struct {
 	wasCastOK      bool      // the filter being read is a battlefield-entering trigger's ValidCard(s)$: wasCast may lower
 	cantCastProv   bool      // the filter being read is a CantBeCast ValidCard$: wasCastFromTheirHand may lower (kernel matchSpellCardOffer)
 	tgtProv        bool      // the filter being read is a plain Counter's ValidTgts$ (TgtSpell): wasCastFromTheirHand may lower (lower_countertgtprov.go)
-	spellGraveOK   bool      // the spell-side read may lower wasCastFromYourGraveyard (a mana ability's Spell. RestrictValid$ only, lower_restrictedmana_words.go)
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
@@ -471,6 +477,14 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 		if !perm && lc.handManaLine(a) {
 			// a Spirit Guide's hand mana: CardDef.HandMana, no ability
 			// (lower_handmana.go)
+			continue
+		}
+		if !perm && lc.graveManaLine(a) {
+			// a Jack-o'-Lantern grave mana line: CardDef.GraveMana, no
+			// ability (lower_gravemana.go) -- the kernel's payment window
+			// and the prefix search's funding pass read the byte
+			// (dirac/mana_gravemana.go), so a lowered mana ability would be
+			// one the kernel's mana walk cannot honour
 			continue
 		}
 		n := len(out.Abilities)
@@ -1275,6 +1289,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			// CR 702.84a: gorge kwUnearth expands it into one graveyard
 			// AB$ ChangeZone (Unearth$ True), lowered from that line
 			// (lower_zone.go changeZone)
+			lc.out.HasUnearth = true // the with<Unearth> word's record
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1369,6 +1384,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// | Cost$ <cost> Discard<1/CARDNAME> | ActivationZone$ Hand,
 			// cards/kw_cycling.go), lowered from that line; a cost the
 			// expander cannot read leaves no line and refuses here.
+			// gorge's with<K> registry names plain Cycling only, so
+			// TypeCycling keeps no record and stays an unknown property.
+			lc.out.HasCycling = head == "Cycling"
 			if !lc.hasKeywordLine(k) {
 				lc.refuseNode(node, "keyword %q without its ability", head)
 			}
@@ -1460,6 +1478,22 @@ func (lc *lowerCtx) lowerKeywords() {
 			// reads the raw face keyword (dirac/adapter checkCommander
 			// -> deck.IsPartnerPair on the deck's own cards), so lowering
 			// nothing is exact.
+			lc.out.HasDoctorsCompanion = true // the with<K> word's record
+		case head == "Ward":
+			// CR 702.19a: the cost is the expansion's own lowering (the
+			// spell's ward ask, kw_wardcost.go); the marker is the
+			// with<Ward> word's printed record.
+			lc.out.HasWard = true
+		case head == "Enchant":
+			// CR 702.102a: the target spec is the expansion's own lowering
+			// (the Aura's Enchant); the marker is the with<Enchant> word's
+			// printed record.
+			lc.out.HasEnchant = true
+		case head == "Persist":
+			// CR 702.79a: gorge kwPersist expands it into a dies trigger
+			// (Persist$ True), lowered from that line; the marker is the
+			// with<Persist> word's printed record.
+			lc.out.HasPersist = true
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
@@ -2920,7 +2954,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				parts++
 			}
 		}
-		if parts > 1 && !(lc.actCost && parts == 2 && discardBesideSelfExile(c)) {
+		if parts > 1 && !(lc.actCost && parts == 2 && sharedCountPairOK(c)) {
 			return c, refuse("cost %q: a forage / exile part beside another counted part", s)
 		}
 	}
@@ -3377,10 +3411,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// abilities pay only {T} / sacrifice-self
 			return refuse("mana ability with an energy cost")
 		}
-		if ab.Kind == akMana && (cost.Forage != nil || cost.ExileG != nil) {
-			// gorge pays these through the mana-activation walk
-			// (AskManaForage); the kernel's mana abilities have no cost picks
-			return refuse("mana ability with a forage / exile-from-graveyard cost")
+		if ab.Kind == akMana && exileGraveManaRefused(cost) {
+			// gorge pays these in the mana-activation walk (AskManaForage); the kernel's
+			// tap-another search poses only {T} + ExileFromGrave<1/Spec> (exileGraveManaShape)
+			return refuse("%s", exileGraveManaWhy(cost, ps))
 		}
 		if cost.EvidenceN > 0 && (ab.Kind != akActivated || ab.Zone != 0 && ab.Zone != zBattlefield) {
 			// a mana ability would pay it in gorge's mana-activation walk

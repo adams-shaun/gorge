@@ -64,6 +64,7 @@ Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
 Crop Rotation
+Crown of Gondor
 Crushing Vines
 Cryptborn Horror
 Crystal Rod
@@ -186,6 +187,7 @@ Inkfathom Infiltrator
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
+Iron Golem
 Iron Man, Tony Stark
 Ironhoof Ox
 Ironroot Treefolk
@@ -284,6 +286,7 @@ Phantom Tiger
 Pharika's Disciple
 Phyrexia's Core
 Phyrexian Digester
+Pirated Copy
 Pitchstone Wall
 Pitiless Horde
 Plague Stinger

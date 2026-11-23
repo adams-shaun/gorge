@@ -103,6 +103,7 @@ Dark-Dweller Oracle
 Davriel, Rogue Shadowmage
 Deadly Designs
 Deathgreeter
+Deathless Ancient
 Deathsprout
 Decorated Champion
 Deep-Slumber Titan
@@ -307,6 +308,7 @@ Ranger's Path
 Rebuild
 Recalibrate
 Reflecting Pool
+Relentless Raptor
 Renewal
 Rescue, Pepper Potts
 Resolute Rider

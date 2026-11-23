@@ -197,7 +197,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Power
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Power
 				} else {
 					n += refPower(h, o, lki)
@@ -211,7 +211,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Power + sacLKI.Toughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power + c.Snap.Toughness
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Power + pt.Toughness
 				} else {
 					n += refPower(h, o, lki) + refToughness(h, o, lki)
@@ -248,7 +248,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Toughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Toughness
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Toughness
 				} else {
 					n += refToughness(h, o, lki)
@@ -858,6 +858,14 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 				return toughness
 			}
 		}
+		return h.Toughness(o.ID)
+	}
+	// The same every-zone CDA read refPower carries (CR 208.2a, 604.3):
+	// Phyrexian Ingester's "+X/+Y, where X is the exiled creature card's power
+	// and Y is its toughness" reads an exiled Abominable Treefolk through its
+	// counting CDA for both heads, so the two cannot disagree -- the power arm
+	// alone left the Ingester a 4/3 against the kernel's 4/4.
+	if !snapshot && o.Face() != nil && o.Face().CharacteristicDefining() {
 		return h.Toughness(o.ID)
 	}
 	_, dt := o.CounterPTTotals()

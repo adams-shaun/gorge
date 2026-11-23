@@ -153,7 +153,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Reconfigure":         "CardDef.HasReconfigure + the attach and unattach activated abilities (gorge kwReconfigure's expansion, kgen lower_reconfigure.go; the type switch, kernel kw_reconfigure.go; compared through the types, the options and the attach events)",
 	"Choose a Background": "a deckbuilding rule (CR 702.124k, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
 	"Landwalk":            "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
-	"Horsemanship":        "CardDef.Evasion, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
+	"Horsemanship":        "CardDef.Evasion, the until-end-of-turn mark ExtKwMark sets, or a permanent override record's Horsemanship (kw_kwmark.go; compared through the block options)",
 	"Intimidate":          "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
 	"Wither":              "CardDef.Wither (compared through the -1/-1 counters)",
 	"Undying":             "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",

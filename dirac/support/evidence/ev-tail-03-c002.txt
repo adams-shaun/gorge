@@ -22,6 +22,7 @@ Assault Zeppelid
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
+Avizoa
 Azra Oddsmaker
 Back to Basics
 Band Together
@@ -30,6 +31,7 @@ Befriending the Moths
 Bitter Reunion
 Blade Banish
 Blessings of Nature
+Blinding Angel
 Bloodpyre Elemental
 Bloody Betrayal
 Bontu's Monument
@@ -61,12 +63,14 @@ Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
 Cloud Cover
+Coalition Honor Guard
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
 Conclave Phalanx
 Confirm Suspicions
 Consulate Skygate
+Convincing Mirage
 Coral Colony
 Counterbalance
 Courier's Capsule
@@ -79,6 +83,7 @@ Cryptothrall
 Cyclopean Snare
 Dakmor Salvage
 Damning Verdict
+Darksteel Citadel
 Dawnstrike Paladin
 Deadeye Brawler
 Deadly Visit
@@ -99,6 +104,7 @@ Duergar Hedge-Mage
 Dust Elemental
 Eerie Procession
 Eiganjo Uprising
+Eiganjo, Seat of the Empire
 Elvish Eulogist
 Elvish Vanguard
 Ember Beast
@@ -345,6 +351,7 @@ Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage
 Thran Golem
+Thrill-Kill Disciple
 Thunderscape Familiar
 Tiana, Ship's Caretaker
 Tidehollow Sculler
@@ -353,6 +360,7 @@ Tocatli Honor Guard
 Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
+Tropical Island
 Trynn, Champion of Freedom
 Turbulent Moor
 Twisted Justice
@@ -373,6 +381,7 @@ Vraan, Executioner Thane
 Vraska's Stoneglare
 Wall of Essence
 Wall of Torches
+Wandering Fumarole
 Wandering Wolf
 Warden of the First Tree
 Wax

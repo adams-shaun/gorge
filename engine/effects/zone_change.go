@@ -1119,7 +1119,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// battlefield departure's controller to its owner (CR 400.7), so this
 		// is the last point the pre-move controller is readable.
 		if cz.RememberLKI {
-			c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
+			recordRememberedLKI(h, c, o) // zone_change_lkipt.go
 		}
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceNamesExiledWithSource(h, c.Source) || cz.Imprint || cz.ExiledWithEffectSource) {
 			ev.IDs = []state.ObjID{c.Source}
@@ -1567,6 +1567,14 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, mo
 		o.AttachedTo != 0 || o.HasAttachedPlayer {
 		// Already attached as it entered (the engine settled a marked
 		// non-cast Aura, markChangeZoneAttach), or never entered.
+		return
+	}
+	if hasType(h.Game().Obj(moved), "Aura") {
+		// Every Aura battlefield entry carrying AttachedTo$ was marked, so the
+		// entry gate already made the one CR 303.4f choice and tried its attach.
+		// An Aura still unattached here had that attach refused (the bearer is
+		// protected from the entering Aura, CR 702.16c); asking again would
+		// pose a second choice for one entry. CR 704.5m puts it away.
 		return
 	}
 	if playerVal != "" {
@@ -2149,7 +2157,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	ev := moveZoneEvent(c, id, from, to)
 	if cz.RememberLKI {
 		if o := h.Game().Obj(id); o != nil {
-			c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner})
+			recordRememberedLKI(h, c, o) // zone_change_lkipt.go
 		}
 	}
 	if to == state.ZExile && len(ev.IDs) == 0 && (faceNamesExiledWithSource(h, c.Source) || cz.Imprint || cz.ExiledWithEffectSource) {

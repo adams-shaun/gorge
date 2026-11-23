@@ -207,6 +207,7 @@ Lingering Phantom
 Llawan, Cephalid Empress
 Lumbering Satyr
 Magma Sliver
+Magus of the Mirror
 Makindi Aeronaut
 Mana Prism
 Manor Gate
@@ -231,6 +232,7 @@ Monumental Corruption
 Mountain
 Muddle the Mixture
 Mwonvuli Acid-Moss
+Myr Moonvessel
 Mysterious Tome
 Nagao, Bound by Honor
 Najal, the Storm Runner
@@ -270,6 +272,7 @@ Plague Rats
 Plains
 Planar Atlas
 Plated Spider
+Ponyback Brigade
 Possessed Centaur
 Pouncing Lynx
 Power Sink

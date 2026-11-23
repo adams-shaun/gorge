@@ -65,7 +65,7 @@ const (
 	ExLifeLostThisTurn             // life the controller lost this turn
 	ExSum                          // Sub[0] + Sub[1] (an SVar-named modifier: /Plus.Y, /Minus.Y via a negated Sub[1])
 	ExHandSizeOf                   // cards in player Ref's hand
-	ExCountExile                   // exiled cards matching F (all exile zones; F.Owner narrows)
+	ExCountExile                   // exiled cards matching F (all exile zones; F.Owner narrows); N 1 the distinct card types, N 2 only the cards player Ref owns
 	ExOppsLostLife                 // the number of the controller's opponents who lost life this turn
 	ExMVOf                         // the mana value of object Ref's card (printed; X counts 0); RefRemembered sums the set, or with N == AggGreatestMV takes the largest
 	ExCountAtLeast                 // Sub[0] if battlefield objects matching F number at least N, else Sub[1] (Count$Compare)

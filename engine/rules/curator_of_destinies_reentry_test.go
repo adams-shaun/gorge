@@ -12,7 +12,10 @@ import (
 // CR 400.7, lockstep pairs 52526/97100: a SECOND Curator of Destinies
 // resolution — the Sphinx left the battlefield and returned as a new object —
 // must remember only ITS OWN resolution's cards. The card's Forge script
-// never clears its remembered list (no DBCleanup).IsRemembered
+// never clears its remembered list (no DBCleanup); the TwoPiles resolution
+// itself does — Forge's TwoPilesEffect empties the source's remembered list
+// once both pile bodies ran, and the Separate line carries neither
+// KeepRemembered$ nor RememberChosen$ (cr-g314).IsRemembered
 // | Origin$ Library`) swept a first-resolution card that was back in the
 // library into the graveyard with the second pile. The kernel (resolve.go
 // "a resolution remembers afresh") leaves that card in the library.
@@ -137,10 +140,14 @@ func curatorReentryEngine(t *testing.T) (*Engine, Config, []state.ObjID, state.O
 			t.Fatalf("first unchosen-pile card %d zone = %s, want graveyard", id, z)
 		}
 	}
-	// Precondition for the bug: the first resolution DID write its remembered
-	// set on the Curator's persistent (event-backed) list.
-	if cur := e.G.Obj(curatorID); cur == nil || len(cur.Remembered) != curatorRevealTop {
-		t.Fatalf("Curator remembered set = %+v, want %d entries after the first resolution", cur.Remembered, curatorRevealTop)
+	// Precondition: the first resolution DID write its reveal set on the
+	// Curator's persistent (event-backed) list during the resolution, and
+	// Forge's TwoPiles clear (the Separate line carries neither
+	// KeepRemembered$ nor RememberChosen$) empties it once both pile bodies
+	// ran — the recycled card below is therefore not remembered when the
+	// second resolution sweeps.
+	if cur := e.G.Obj(curatorID); cur == nil || len(cur.Remembered) != 0 {
+		t.Fatalf("Curator remembered set = %+v, want empty after the first resolution (Forge's TwoPiles clear)", cur.Remembered)
 	}
 	return e, cfg, revealIDs, curatorID
 }

@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"slices"
 	"strings"
 )
 
@@ -216,46 +215,6 @@ func (lc *lowerCtx) pickEachLoop(loop lRef) {
 	if loop.Kind != rNone {
 		lc.emit(lInstr{Op: "RepeatEach", Obj: loop, C: 1, Skip: 1, Note: "each player picks from their own zone (opponents for EachOpp)"})
 	}
-}
-
-// graveChooser folds a Chooser$ You graveyard pick that walks the opponents
-// (DefinedPlayer$ Opponent, onto the battlefield under your control) into the
-// one opponent's cards asked of You (youPickEachOppGrave). It returns the
-// owner and loop to emit; every other spelling is returned unchanged for
-// graveChooserFlags (lower_gravedefinedplayer.go) to read.
-func (lc *lowerCtx) graveChooser(ps *params, f *lFilter, flags []string, owner, loop lRef) (lRef, lRef) {
-	if loop.Kind != rNone && ps.str("Chooser") == "You" && lc.youPickEachOppGrave(f, flags, loop) {
-		return lRef{Kind: rYou}, lRef{}
-	}
-	return owner, loop
-}
-
-// youPickEachOppGrave folds Chooser$ You into a graveyard pick that walks the
-// opponents (DefinedPlayer$ Opponent) onto the battlefield under your control
-// (The Weaver King: "for each opponent, put a creature card from that
-// player's graveyard onto the battlefield under your control"). gorge
-// effHiddenPick walks the opponents and asks the resolving controller
-// (hiddenPickChooser: Chooser$ You) over each opponent's graveyard; the
-// kernel's each-player loop would ask the opponent instead. dirac is
-// two-seat, so the one opponent's graveyard is the GainControl$ pick's
-// game-wide pool (gameGraveCands) narrowed to opponent-owned cards, asked of
-// You and entering under You: the loop is dropped and every clause's owner
-// becomes the opponent. It reports false (refuse) for any other shape: no
-// GainControl$, or a clause that already names an owner or controller.
-func (lc *lowerCtx) youPickEachOppGrave(f *lFilter, flags []string, loop lRef) bool {
-	if loop.Kind != rEachOpp || !slices.Contains(flags, "UnderYourControl") || f == nil || len(f.Clauses) == 0 {
-		return false
-	}
-	for _, c := range f.Clauses {
-		if c.Owner != whoAny || c.Ctrl != whoAny {
-			return false
-		}
-	}
-	for i := range f.Clauses {
-		f.Clauses[i].Owner = whoOpp
-	}
-	lc.twoSeat("a per-opponent graveyard pick asked of You read as the one opponent's cards")
-	return true
 }
 
 // onlyTargetedCtrl reports whether every clause of f is controlled by the

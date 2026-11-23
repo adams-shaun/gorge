@@ -13,7 +13,6 @@ Back to Basics
 Ball Lightning
 Beloved Chaplain
 Benevolent Bodyguard
-Bestial Menace
 Blindblast
 Blor the Impervious
 Bombard
@@ -50,6 +49,7 @@ Forest
 Fortify
 Fyndhorn Elves
 Galvanic Blast
+Ghostly Prison
 Gluntch, the Bestower
 Goblin Gang Leader
 Grizzly Fate
@@ -101,6 +101,7 @@ Spectral Procession
 Spidersilk Armor
 Staggershock
 Storm-Kiln Artist
+Su-Chi Cave Guard
 Sumala Rumblers
 Swamp
 Thassa's Emissary

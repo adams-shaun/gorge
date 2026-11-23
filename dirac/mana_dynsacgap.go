@@ -53,7 +53,7 @@ func (s *State) lowerDynSacGap(k *prep) {
 		if !s.dynSacFloatable(k, p, sl) {
 			continue
 		}
-		s.dynSacFloat(k, p, sl, &cost)
+		s.dynSacFloat(k, p, sl, grantNeedColours(cost))
 		av.dynSac = false
 		s.availForMode(k, p, &av, slotMask{}, false)
 		if av.affords(&cost, pips, 0) {
@@ -92,7 +92,7 @@ func (s *State) dynSacFloatable(k *prep, p uint8, sl Slot) bool {
 // mirrors. Its colour answer is the script ask's (fundOrder): the source's
 // printed colour order, the colours it does not name after in W U B R G C
 // order, the play's needed colours moved first.
-func (s *State) dynSacFloat(k *prep, p uint8, sl Slot, cost *kop.ManaCost) {
+func (s *State) dynSacFloat(k *prep, p uint8, sl Slot, need [kop.NumManaKinds]bool) {
 	pc := s.manaPCGen(k, sl)
 	mask := s.srcMaskAt(pc, sl)
 	var ord [kop.NumManaKinds]uint8
@@ -113,7 +113,7 @@ func (s *State) dynSacFloat(k *prep, p uint8, sl Slot, cost *kop.ManaCost) {
 		ord[n] = uint8(bits.TrailingZeros8(m))
 		n++
 	}
-	needFirst(ord[:n], grantNeedColours(*cost))
+	needFirst(ord[:n], need)
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)

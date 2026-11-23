@@ -55,6 +55,7 @@ Goblin Gang Leader
 Goblin Matron
 Goblin Warchief
 Grandmother Sengir
+Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
@@ -106,7 +107,6 @@ Pyre Hound
 Quagmire Lamprey
 Ragged Veins
 Ransom Note
-Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Release to Memory

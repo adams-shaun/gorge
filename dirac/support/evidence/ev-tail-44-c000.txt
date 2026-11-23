@@ -80,7 +80,6 @@ Cragplate Baloth
 Cranial Plating
 Crazed Goblin
 Creature Bond
-Creeping Tar Pit
 Cruel Tutor
 Cunning Advisor
 Curiosity Crafter
@@ -98,6 +97,7 @@ Deathgaze Cockatrice
 Deconstruct
 Delusions of Mediocrity
 Demonlord Belzenlok
+Dermoplasm
 Devout Monk
 Diabolic Machine
 Diregraf Rebirth
@@ -107,6 +107,7 @@ Dizzy Spell
 Dogged Pursuit
 Downpour
 Draconic Disciple
+Drannith Healer
 Dream Twist
 Drown in Sorrow
 Duskrider Peregrine
@@ -383,6 +384,7 @@ Terashi's Verdict
 Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
+There and Back Again
 Thermo-Alchemist
 They Came from the Pipes
 Thornglint Bridge

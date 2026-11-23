@@ -316,6 +316,17 @@ const OvChosenType = 3
 // chosen type's matchup subtype index.
 const ChooseTypeBasicLand = 2
 
+// ChooseTypeRandomDeck, in a mid-resolution OpChooseType's B field: the
+// AtRandom$ Type$ CreatureInTargetedDeck shape (Aswan Jaguar's enters
+// trigger, "choose a random creature type from those in target opponent's
+// deck"). gorge effChooseType's AtRandom arm poses no ask: the option list is
+// the sorted creature subtypes the resolution's player target's library
+// prints, one word is taken whole and two or more draw the engine rng once
+// (gorge labels[h.Rand(len(labels))]); the answer is the source's chosen type
+// (dirac act_randomdecktype.go). C names the target slot the deck belongs to
+// (a kop RefTarget: ValidTgts$ Opponent, the resolution's chosen target).
+const ChooseTypeRandomDeck = 3
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 
@@ -416,16 +427,20 @@ const (
 // effects/filter_attachment.go attachedToArg) of the class PredN's high byte
 // names (AttToCreature, AttToLand; neither: any permanent, the Card and
 // Permanent classes) and that meets its qualifier: AttToOther, not the
-// filter's source; AttToYouCtrl, controlled by the evaluating controller.
-// Nothing off the battlefield is attached.
+// filter's source; AttToYouCtrl, controlled by the evaluating controller;
+// AttToSrcBearer, the bearer is the one the filter's own source is attached
+// to (gorge's attachedBy, the EnchantedBy and EquippedBy qualifiers' one
+// body, With Great Power and Baki's Curse). Nothing off the battlefield is
+// attached.
 const W7AttachedTo int16 = 19
 
 // W7AttachedTo's PredN high-byte bits (PredN>>8).
 const (
-	AttToCreature = 1
-	AttToLand     = 2
-	AttToOther    = 4
-	AttToYouCtrl  = 8
+	AttToCreature  = 1
+	AttToLand      = 2
+	AttToOther     = 4
+	AttToYouCtrl   = 8
+	AttToSrcBearer = 16
 )
 
 // W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith
@@ -604,6 +619,34 @@ const W7WithSkulk int16 = 40
 // zone. A mana restriction's Spell.withDevoid reads it on the card paid for.
 // Corrupted Crossroads.
 const W7WithDevoid int16 = 41
+
+// W7HasLandwalk (PredWord7 sub-kind 42): the permanent has the landwalk whose
+// land filter is PredV's FilterID (the SharedKeywordsZone$ PumpAll lowering,
+// dirac/filter_sharedkw.go). Read over the derived keywords: the printed
+// CardDef.Landwalk unless it lost its abilities, a Continuous static's
+// Static.Landwalk, or an override record's Override.Landwalk.
+const W7HasLandwalk int16 = 42
+
+// W7HasProtQuality (PredWord7 sub-kind 43): the permanent has the protection
+// quality whose source filter is PredV's FilterID (the SharedKeywordsZone$
+// PumpAll lowering, dirac/filter_sharedkw.go). Read over the derived
+// keywords: the printed CardDef.ProtFrom unless it lost its abilities, a
+// Continuous static's Static.ProtFrom, or an override record's
+// Override.ProtFrom.
+const W7HasProtQuality int16 = 43
+
+// W7HasProtColor (PredWord7 sub-kind 44): the permanent has protection from
+// any colour in PredV's colour mask (the SharedKeywordsZone$ PumpAll lowering,
+// dirac/filter_sharedkw.go). Read over the derived keywords: printed
+// ProtColors, the KwProtBlack/KwProtRed bits, a chosen-colour grant (colProtOf)
+// and a Continuous static's or override record's colour ProtFrom clause.
+const W7HasProtColor int16 = 44
+
+// W7HasProtEachColor (PredWord7 sub-kind 45): the permanent has protection
+// from every colour ("Protection from each color"), the SharedKeywordsZone$
+// PumpAll lowering's family spelling (dirac/filter_sharedkw.go). Read over the
+// same derived protection colours as W7HasProtColor, all five required.
+const W7HasProtEachColor int16 = 45
 
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
@@ -796,7 +839,11 @@ const PredWasCastEnter Pred = 248
 // (CastSa Spell.MayPlaySource, gorge's FlagMayPlay read), 6 cast for its
 // mayhem cost, 7 cast from a graveyard by the reading player
 // (wasCastFromYourGraveyard, read only by a mana restriction: Lord of the
-// Forsaken);
+// Forsaken), 8 cast from a graveyard, any caster (wasCastFromGraveyard,
+// gorge ObjectWasCastFromGraveyard's !IsCopy included: a prepared copy
+// reads false; Ash Zealot, Laquatus's Disdain), 9 cast from a library by
+// the reading player (wasCastFromYourLibrary, gorge castOriginTokens:
+// Melek, Izzet Paragon, Wickerwing Effigy);
 // bit 4 (16) negates the whole read. A spell's origin zone is
 // stackEntry.prov (genPrep.anyCastProv).
 const PredWasCastSpell Pred = 247

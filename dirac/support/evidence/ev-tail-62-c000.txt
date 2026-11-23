@@ -79,6 +79,7 @@ Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
+Coercive Portal
 Consulate Crackdown
 Copper Gnomes
 Coronation of Chaos
@@ -140,7 +141,6 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
-Fire Dragon
 Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
@@ -240,6 +240,7 @@ Mardu Runemark
 Martyr's Soul
 Mass Manipulation
 Massive Raid
+Master of Dark Rites
 Matoc, Lavamancer
 Medusa, Inhuman Queen
 Memory Lapse
@@ -355,6 +356,7 @@ Sever the Bloodline
 Shadow Guildmage
 Shalai's Acolyte
 Sharktocrab
+Shattering Spree
 She-Hulk, Attorney-at-Law
 Sheltered Aerie
 Sheoldred's Headcleaver
@@ -371,7 +373,6 @@ Silver Drake
 Silverclaw Griffin
 Silverquill Silencer
 Simic Ragworm
-Skarrg, the Rage Pits
 Skinrender
 Skophos Reaver
 Sky Scourer

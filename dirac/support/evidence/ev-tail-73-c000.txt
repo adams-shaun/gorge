@@ -85,6 +85,7 @@ Cloud Pirates
 Cloudcrown Oak
 Cold-Eyed Selkie
 Collected Company
+Commander's Insignia
 Confessor
 Conjurer's Closet
 Constable of the Realm
@@ -100,6 +101,7 @@ Cunning Geysermage
 Curio Vendor
 Curse of Verbosity
 Cutthroat il-Dal
+Daru Mender
 Dauntless Bodyguard
 Death Pits of Rath
 Deathspore Thallid
@@ -116,6 +118,7 @@ Dimir Aqueduct
 Dismissive Denial
 Diver Skaab
 Djeru's Renunciation
+Dogged Detective
 Dogpile
 Dragon Mantle
 Dreamstone Hedron
@@ -135,6 +138,7 @@ End-Raze Forerunners
 Endless Cockroaches
 Engineered Might
 Ephara's Dispersal
+Epic Struggle
 Epitaph Golem
 Eternal Taskmaster
 Excommunicate
@@ -248,6 +252,7 @@ Jodah's Avenger
 Judge of Currents
 Jund Battlemage
 Kalemne, Disciple of Iroas
+Kargan Intimidator
 Kenrith, the Returned King
 Kinjalli's Sunwing
 Kithkin Healer
@@ -266,6 +271,7 @@ Lord of the Accursed
 Lore Seeker
 Lunar Frenzy
 Maelstrom Colossus
+Magmasaur
 Magmatic Sprinter
 Malanthrope
 Malevolent Awakening
@@ -349,7 +355,6 @@ Primeval Force
 Primoc Escapee
 Prizefight
 Protective Bubble
-Puca's Covenant
 Puppet's Verdict
 Puppeteer
 Qilin's Blessing

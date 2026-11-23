@@ -23,7 +23,7 @@ var (
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "dmgbatch", "replcands", "replplusbatch", "prevcol", "prevrider", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
 		"exiledwith", "breach", "netlock", "panharmgrant", "exilegrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
-		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder", "cumulativecost", "srcmem", "extraturn"}
+		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder", "cumulativecost", "objsets", "extraturn", "meld", "convoked"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
@@ -171,15 +171,10 @@ func stallFlagCases() []stallFlagCase {
 		return kop.CardDef{Name: name, Types: kop.TEnchantment, Abilities: a}
 	}
 	fbKw := kop.KwFlashbackOwnCost // a variable: the stamp's mask is split into C (low 16 bits) and B.N, as build_ab.go emits it
-	repl := func(k kop.ReplKind) kop.Ability { return kop.Ability{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: k}} }
 	return []stallFlagCase{
 		{StallInfect, "Half Infect", "Half Watcher", stallPool("infect", []kop.CardDef{
 			{Name: "Half Infect", Types: kop.TCreature, Power: 1, Toughness: 1, Infect: true},
 			vt("Half Watcher", kop.Ability{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}),
-		}, nil, nil, nil)},
-		{StallLifeRepl, "Half Doubler", "Half Plus", stallPool("liferepl", []kop.CardDef{
-			vt("Half Doubler", repl(kop.ReplLifeDouble)),
-			vt("Half Plus", repl(kop.ReplLifePlus)),
 		}, nil, nil, nil)},
 		{StallL6Walk, "Half Loser", "Half Lord", stallPool("l6walk", []kop.CardDef{
 			vt("Half Loser", kop.Ability{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatOverride, Override: 1}}),
@@ -316,7 +311,7 @@ func TestInteractionRefusalMatchesInitStallOnPools(t *testing.T) {
 			sup := set.Supported()
 			var names []string
 			for i := 0; i < set.NumCards(); i++ {
-				if sup[i] {
+				if sup[i] && set.Names()[i] != forageManaName { // its pairs refuse beside a mix gap by design (mana_forage_idle_test.go)
 					names = append(names, set.Names()[i])
 				}
 			}

@@ -339,6 +339,7 @@ Polluted Mire
 Predatory Sliver
 Priests of Norn
 Prismatic Strands
+Prismwake Merrow
 Protective Bubble
 Psychic Impetus
 Purify the Grave
@@ -457,6 +458,7 @@ Turntimber Ranger
 Twitch
 Tyrranax
 Ultimate Price
+Ultimo, Civilization's End
 Umbilicus
 Unbreathing Horde
 Undead Warchief

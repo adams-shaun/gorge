@@ -336,6 +336,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			return nil, err
 		}
 		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
+		if rest, err = lc.staticBandingGrant(sp, st, rest); err != nil {
+			return nil, err // lower_banding.go
+		}
 		if rest != "" {
 			if st.Kw, err = pumpKeywords(rest); err != nil {
 				return nil, err

@@ -14,8 +14,8 @@ const (
 	MaxDeck    = 100 // cards per seat's deck (a Commander deck's 100)
 	MaxSide    = 15  // cards per seat's sideboard (a Config's; each one is an object, so MaxObj bounds the decks and sideboards together)
 	MaxPerm    = 192 // battlefield slots, shared by the pod; the slot mask's three words hold up to 192. 112 before 2026-11-19, when random-policy four-seat Commander pods filled it in 8 of 256 cmd5 pods (40-card cuts) and reached 188 at 192
-	MaxStack   = 48  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
-	MaxPending = 48  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
+	MaxStack   = 80  // stack entries (24 before 2026-11-03, raised with MaxPending: the triggers a pending queue holds all go on the stack together, CR 603.3b)
+	MaxPending = 80  // triggered abilities waiting to be put on the stack (24 before 2026-11-03: Return to the Light Realms bringing back a graveyard of creatures beside three enters listeners queues more)
 	MaxHand    = MaxDeck
 	MaxDelayed = 32 // 16 before 2026-11-03: each earthbent land keeps its leave-keyed return record while it lives
 )
@@ -279,6 +279,12 @@ type perm struct {
 	bord     objWord          // a last bearer's host (static_lastbearer.go); blocker: declaration order (damage assignment order); attacker: declaration order (Attacks trigger queueing)
 	atk      TCode            // attacker: the defender it attacks (PlayerTarget* or a planeswalker Obj)
 	ck       [ctrSlots]uint16 // general counter slots' kinds (see p1)
+	// cs is each general slot's CR 613.7 timestamp (the layer clock, State.ts)
+	// when a keyword counter (CR 122.1b) was last put on, gorge's
+	// state.Counter.Stamp; 0 for every other kind, so equal counter states stay
+	// equal bytes. It moves with ck/cn (ctrInsert, ctrFree); the overflow
+	// table's entries carry theirs (ctrOverEntry.ts).
+	cs [ctrSlots]uint16
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
 	// is general slot i (a seen slot keeps its kind at count 0), then
@@ -316,14 +322,6 @@ var _ = [1]struct{}{}[kop.CtrStun-ctrSlots]
 const (
 	cseenP1 uint8 = 1 << (ctrSlots + iota) // +1/+1 seen
 	cseenDT                                // deathtouch mark seen
-)
-
-// cseen's top bits (not counter bits, perm.flags holds no free bit):
-// the permanent doesn't untap during player 0's / player 1's next untap
-// step (an OpSkipUntap effect that player controls).
-const (
-	cseenSkipUntap0 uint8 = 1 << 6
-	cseenSkipUntap1 uint8 = 1 << 7
 )
 
 // ctrN is p's count of counter kind c.
@@ -378,7 +376,11 @@ func (p *perm) setCtrN(s *State, c, n int) bool {
 	}
 	for i := range p.ck {
 		if int(p.ck[i]) == c {
+			grew := n > int(p.cn[i])
 			p.cn[i] = uint16(n)
+			if grew && ctrKindKw(uint16(c)) != 0 {
+				p.cs[i] = s.tick() // a put refreshes the stamp (gorge stampKeywordCounter)
+			}
 			if n == 0 && p.cseen&(1<<i) == 0 {
 				p.ctrFree(s, i)
 			}
@@ -521,11 +523,12 @@ type stackEntry struct {
 	// (pendingTrig.defSeat/trigSA; its identity there is wardSid): the object
 	// half keeps trigObj, so neither can share that slot.
 	btPl      uint8
-	trigSA    uint8
+	trigSA    uint8 // low byte of the targeting object + 1; the ninth bit is skw's skwSAHi (saWord)
 	trigSASid uint8
 	// defSeat is an attack trigger's defending player + 1, bound as it was
 	// queued (pendingTrig.defSeat; 0 = none; defSeatObj tags an attack on a
-	// planeswalker or battle). At two seats only a TriggeredDefender damage
+	// planeswalker or battle, whose object defSeatIxMask indexes in the cold
+	// atkObj table: trig_atkobj.go). At two seats only a TriggeredDefender damage
 	// trigger is bound, when the attacker may leave before it resolves. A
 	// Squad self-ETB trigger stores its cast's payment count here instead
 	// (1..maxMultikick; triggers_gen.go enqueueLKI copies it from the
@@ -566,6 +569,11 @@ type stackEntry struct {
 	// cast from (kop.Zone), bits 3-7 the creatures that convoked it
 	// (saturating at 31). It takes the struct's padding byte.
 	prov uint8
+	// cvok is the creatures that convoked the spell's cast (CR 702.66),
+	// stamped at payment only for a table that reads them (the genUse
+	// useConvokedReads, kw_convokelist.go): State.cold.convoked index + 1
+	// (0 = none). It takes the struct's padding byte.
+	cvok uint8
 	// spc is the colours of mana spent to cast a spell,
 	// tallied at payment only for a table that reads them
 	// (genPrep.anyColSpent, mana_converge.go): bits 0-9 five 2-bit
@@ -573,6 +581,11 @@ type stackEntry struct {
 	// bits 11-15 the extra +1/+1 counters the spell enters
 	// with (ctr_effectentry.go). A stack copy is never cast: 0.
 	spc uint16
+	// etbX holds the third and fourth Effect-made enters-with counts of a spell
+	// (ctr_effectentry.go): the pair code in spc holds the first two (or a
+	// first alone), and an effect the code cannot hold lands here, each its
+	// own count of 1..255. Zero is none.
+	etbX [2]uint8
 }
 
 // pendingTrig is a triggered ability waiting to be put on the stack.
@@ -609,7 +622,7 @@ type pendingTrig struct {
 	// ability's stack identity rides wardSid (the same byte a ward trigger's
 	// answered ability uses): the source permanent can itself be a trigger's
 	// source, so the object alone does not name the entry a counter removes.
-	trigSA  uint8
+	trigSA  uint8 // low byte of the targeting object + 1; the ninth bit is skw's skwSAHi (saWord)
 	trigAmt int16
 	li      uint8 // the triggering object's last known information: LKI pool index (zone_lki.go)
 	// remVer is a delayed program's remembered object's ver at registration
@@ -758,6 +771,10 @@ const (
 	// declared for each attacker with banding that has a candidate (combat_band.go;
 	// s.lastPick is the leader asked)
 	ctlBand
+	// ctlReflectPick: the colour of the reflected mana a planned tap of an
+	// all-at-once source makes under a reflect carrier (mana_reflectpickask.go;
+	// the mask and the payer ride genState.reflMask / reflP)
+	ctlReflectPick
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

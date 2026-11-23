@@ -1,8 +1,11 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Altar of Shadows	de4f10673664a2cd	30	2/2		1/1	
 Architects of Will	7fbaf26a33a22cac	4	2/2		0/1	ix:resp
 Arlinn Kord	864d4f5db06f4549	54	5/5		1/1	
 Bloodfray Giant	29e72d77a656a80c	31	0/0		0/0	
+Cabal Shrine	dfc5635bcc779031	50	1/1		1/1	
 Carnival Hellsteed	6fdc6dedc07ec404	20	0/0		0/0	
+Dream Coat	99c1e2442c62ecb7	36	1/1		2/2	
 Earthbrawn	9aa68de96603afca	15	1/1		2/2	
 Entrancing Lyre	bf32474a1ca5fbae	46	1/1		1/1	
 Greater Realm of Preservation	0c390bbf9a25505d	10	1/1		1/1	
@@ -11,6 +14,7 @@ Mana Vortex	908ef9a77d958549	14	3/3		1/1
 Path of Annihilation	19ef615b94a9ed40	4	2/2		0/1	ix:resp
 Promised Kannushi	6dafb96dfd7f373e	48	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Severed Strands	b6f7c031df4a255b	5	0/0		2/2	
+Shambling Attendants	ccb61061658a6149	8	0/0		0/0	
 Silumgar Assassin	7c864ce380fdbb9e	6	1/1		1/3	cast/alt:none,ix:resp
 The Seedcore	9d0542c6b6eeae3d	34	3/3		1/1	
 Unblinking Bleb	29cade0725c96e06	5	1/1		1/5	cast/alt:none,f0/t0/opt:n,f0/t0/opt:y,ix:resp

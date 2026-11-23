@@ -198,22 +198,24 @@ var coldArtN = newCold[uint8]("artn", func(g *genPrep) int {
 // useArtN: the table holds a typed producer (the tally exists).
 var useArtN = newGenUse(tableAnyTypedMana)
 
-// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped).
+// tableAnyTypedMana reports whether any card's mana is typed (prep.go manaTyped)
+// and the tally can be read. A pool unit of a colour is spent plain-first, so
+// two search states that differ in which unit a payment spent (a typed {U}
+// beside a land's) key apart in gorge. That needs mana spent from the pool by
+// the typed producer's own side: a hand-mana card's plain mana beside it, or
+// the typed producer's own mana ability being a repeatable fee (kop.FeeOnlyManaAb:
+// Energy Refractor's "{2}: Add one mana of any color", paid from lands' plain
+// mana), whose prefix search keys states by the tagged units left.
 func tableAnyTypedMana(t *kop.Table) bool {
-	// The tally matters only where a hand-mana card (a Spirit Guide) puts plain
-	// mana beside a typed producer's tagged mana; any typed producer alone
-	// would make a vanilla fixture's table need gen, and the fresh-clone tests
-	// pin a nil gen there. A table with typed producers but no hand-mana card
-	// keeps one bit per colour, as before.
+	// Any typed producer alone would make a vanilla fixture's table need gen,
+	// and the fresh-clone tests pin a nil gen there. A table with typed
+	// producers but neither keeps one bit per colour, as before.
 	hand := false
 	for i := range t.Cards {
 		if t.Cards[i].HandMana != 0 {
 			hand = true
 			break
 		}
-	}
-	if !hand {
-		return false
 	}
 	typed := typedManaSubtypes(t)
 	for i := range t.Cards {
@@ -222,7 +224,7 @@ func tableAnyTypedMana(t *kop.Table) bool {
 			continue
 		}
 		for j := range c.Abilities {
-			if c.Abilities[j].Kind == kop.AbMana {
+			if a := &c.Abilities[j]; a.Kind == kop.AbMana && (hand || kop.FeeOnlyManaAb(a)) {
 				return true
 			}
 		}
@@ -237,7 +239,9 @@ func (s *State) artNClearSeat(p uint8) {
 	}
 }
 
-// artNClearAll empties every seat's tagged-unit tally (a boundary that empties the pool).
+// artNClearAll empties every seat's tagged-unit tally (tests reset with it;
+// the boundary emptiers keep the keep-letter colours' entries instead,
+// talliesKeep).
 func (s *State) artNClearAll() {
 	if sx := coldArtN.of(s); sx != nil {
 		clear(sx)

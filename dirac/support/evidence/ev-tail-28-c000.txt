@@ -29,6 +29,7 @@ Aquastrand Spider
 Archetype of Imagination
 Archfiend of Despair
 Arnjlot's Ascent
+Ashnod's Battle Gear
 Aspect of Gorgon
 Aven of Enduring Hope
 Azorius Cluestone
@@ -61,6 +62,7 @@ Brindle Boar
 Bringer of the Black Dawn
 Bringer of the Blue Dawn
 Broodstar
+Brothers Yamazaki
 Bull Cerodon
 Burning Cloak
 Caress of Phyrexia
@@ -81,6 +83,7 @@ Combo Attack
 Confirm Suspicions
 Consulate Turret
 Coral Helm
+Council of Reeds
 Court of Ambition
 Crashing Drawbridge
 Curious Killbot
@@ -150,6 +153,7 @@ Fire Urchin
 Fire at Will
 Fleeting Memories
 Flickerwisp
+Font of Magic
 Forced Worship
 Forest
 Forest Bear
@@ -173,6 +177,7 @@ Golden-Tail Disciple
 Gonti, Lord of Luxury
 Grafted Butcher
 Gravecrawler
+Great Hall of Starnheim
 Griffin Protector
 Grimdancer
 Grizzled Wolverine
@@ -321,6 +326,7 @@ Resistance Skywarden
 Return Upon the Tide
 Reyhan, Last of the Abzan
 Ridgescale Tusker
+Riding Red Hare
 Rograkh, Son of Rohgahh
 Roots of Wisdom
 Runeboggle

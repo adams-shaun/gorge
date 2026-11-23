@@ -80,6 +80,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams
@@ -232,6 +233,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spite
 Spontaneous Combustion

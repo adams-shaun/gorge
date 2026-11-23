@@ -82,6 +82,7 @@ Cliffside Lookout
 Clinging Anemones
 Cloaked Siren
 Clockwork Condor
+Compleat Devotion
 Consuming Aetherborn
 Consuming Vapors
 Contact Other Plane
@@ -111,6 +112,7 @@ Divine Offering
 Diviner of Mist
 Doc Ock, Evil Inventor
 Doomsday Specter
+Dredge the Mire
 Druid of the Anima
 Dune Diviner
 Dunes of the Dead
@@ -142,7 +144,6 @@ Feroz's Ban
 Fevered Suspicion
 Fierce Guardianship
 Fire
-Fire Dragon
 Firebreathing
 Firemantle Mage
 Flare of Denial
@@ -417,6 +418,7 @@ Tempest Caller
 Thalia, Guardian of Thraben
 The Mending of Dominaria
 The Torment of Gollum
+The Vision and Scarlet Witch
 Thrive
 Thriving Rats
 Throne of Geth
@@ -466,7 +468,6 @@ Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
 Woolly Mammoths
-Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth
 Yavimaya Iconoclast

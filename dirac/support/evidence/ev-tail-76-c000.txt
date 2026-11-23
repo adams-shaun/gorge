@@ -22,6 +22,7 @@ Barl's Cage
 Battle Squadron
 Battletide Alchemist
 Beacon Hawk
+Bebop, Skull & Crossbones
 Bitter Downfall
 Black Widow, Daring Operative
 Blacksmith's Skill
@@ -29,7 +30,6 @@ Blight Pile
 Blightbelly Rat
 Blood Artist
 Body Dropper
-Bogardan Phoenix
 Bojuka Brigand
 Borrowed Grace
 Bow of Nylea
@@ -156,6 +156,7 @@ Myojin of Cleansing Fire
 Nantuko Calmer
 Nantuko Cultivator
 Nantuko Elder
+Necrogen Rotpriest
 Nephalia Smuggler
 Niblis of Frost
 Nocturnal Feeder

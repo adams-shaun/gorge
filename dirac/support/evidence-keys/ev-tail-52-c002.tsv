@@ -8,10 +8,12 @@ Angel of Retribution	1fdeaf645468af9a	7	0/0		0/0
 Artificer's Epiphany	903d07f0d10be46f	12	0/0		1/2	ix:resp
 Atreus, Impulsive Son	1dabe6df593fe256	5	1/1		1/1	
 Axegrinder Giant	047eb239134a6028	5	0/0		0/0	
+Balduvian Horde	324f99eb7c1bd8f1	3	1/1		0/1	ix:resp
 Bant Battlemage	993ec98c138f214c	8	2/2		1/1	
 Battle of Frost and Fire	68fa8371837676ee	6	0/0		0/0	
 Battlewing Mystic	fca989b2ad911b7b	3	1/1		3/3	
 Bay Falcon	9104e2d88a908ec0	9	0/0		0/0	
+Berg Strider	2b59f618ea8a8b95	3	1/1		1/1	
 Blaze	ddf0feb339c57dc7	9	0/0		2/4	f0/s/x0,ix:resp
 Boros Keyrune	1c5bb18e73152b0d	28	2/2		1/1	
 Cabal Torturer	e96b3a15339a99b2	7	2/2		1/1	
@@ -58,6 +60,7 @@ Frilled Oculus	7ff7a822235e2088	4	1/1		1/1
 Frost Marsh	7f9bd331a6ab894e	55	1/1		0/1	ix:resp
 Furnace Skullbomb	b64fcfa9ad7552a4	25	2/2		1/1	
 Ghirapur Guide	153803718d3fcc7e	3	1/1		1/1	
+Gilded Goose	a0360c0ad6b14308	3	3/3		1/1	
 Gitaxian Probe	a8d6253847a95b70	20	0/0		2/2	
 Goblin Bruiser	a54fc4f183ef7aac	8	0/0		0/0	
 Goblin Offensive	94e1ba94012331be	4	0/0		2/4	f0/s/x0,ix:resp
@@ -85,6 +88,7 @@ Kalastria Healer	f4dbc7f6da858a02	4	1/1		0/1	ix:resp
 Kapsho Kitefins	d9793e9e97e2d1fe	17	1/1		1/1	
 Karma	1258b3bc80185803	3	1/1		1/1	
 Keeper of the Cadence	ebae1b1091270ec8	4	1/1		1/1	
+Khenra Spellspear	1d7041c684364383	6	5/5		1/1	
 Knight of the Reliquary	8a9fef39f6849df0	4	1/1		0/1	ix:resp
 Kobold Overlord	b25c0fb4b4ce687d	13	0/0		0/0	
 Kor Blademaster	eb1b05003db7bbf9	11	0/0		0/0	
@@ -117,11 +121,14 @@ Ondu Champion	0bd59850933f4558	6	1/1		1/1
 P-Joven and Chandler	6e2152302ad61d41	8	2/2		0/1	ix:resp
 Palinchron	893da4bcf6531e0a	4	2/2		0/1	ix:resp
 Parasitic Bond	7001e69fe4914c6c	7	1/1		1/2	ix:resp
+Peregrine Drake	1470292dbb04e6ce	3	1/1		0/1	ix:resp
 Pestermite	5c7eff8bf6abf857	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Phantasmal Dragon	5f67de989e1f6eb0	6	1/1		0/1	ix:resp
+Phantom Nantuko	e98f161d962259f5	5	1/1		1/1	
 Phytoburst	49efbdd7fe771eb1	4	0/0		2/2	
 Pit Trap	5984b541d5e13f28	11	1/1		0/1	ix:resp
 Plated Slagwurm	01dc983d52a5e7b8	3	0/0		0/0	
+Power Matrix	71aaa76a87d83ba5	4	1/1		1/1	
 Priest of Fell Rites	3bd6850c1ed6ea9a	7	2/2		0/1	ix:resp
 Prime Speaker Vannifar	7c367748aec5b656	3	1/1		0/1	ix:resp
 Purge	9b65e0eef3c3f9e3	7	0/0		1/2	ix:resp
@@ -168,6 +175,7 @@ Snare the Skies	028a925f8387ee48	10	0/0		2/2
 Snow-Covered Island	3020b29d96f5b5b9	77	1/1		0/1	ix:resp
 Solidarity	383a149e356e075e	6	0/0		1/2	ix:resp
 Solstice Zealot	f1eb43ca0aaa6008	11	2/2		1/1	
+Soul Warden	bc262ab83820fa1d	4	1/1		1/1	
 Specter of the Fens	9e7e2da5c5b4ca68	3	1/1		0/1	ix:resp
 Spectral Cloak	5d08032b2832ed57	24	0/0		1/2	ix:resp
 Spell Syphon	1611f6bd766b63a4	10	0/0		1/2	ix:resp
@@ -192,6 +200,7 @@ Timber Gorge	06a38e42b25ab7f0	81	1/1		0/1	ix:resp
 Tireless Tribe	3dbee8afdd3a021d	9	1/1		1/1	
 Titanium Golem	c6a9a2e5d0f72608	8	1/1		0/1	ix:resp
 Urza's Guilt	24e0603b1310d7ce	3	0/0		2/2	
+Utter Insignificance	3c4cf4ceba6e6067	7	1/1		2/2	
 Venser, Shaper Savant	9e8f5da28ef08cae	5	1/1		1/1	
 Viashino Grappler	601a461564860e5d	12	1/1		1/1	
 Vision, Spectral Synthezoid	0996f8635718feef	3	0/0		0/0	

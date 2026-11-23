@@ -249,6 +249,13 @@ type CardDef struct {
 	// untapped-source gates, as gorge's pay.ManaSourceIDs lists the hand after
 	// the battlefield (dirac/mana_handguide.go).
 	HandMana uint8
+	// GraveMana is the colour mask a graveyard mana ability adds (Jack-o'-
+	// Lantern: "{1}, Exile Jack-o'-Lantern from your graveyard: Add one mana
+	// of any color", CR 605.1a, 605.2a; 0 = none; only ColAny is lowered). Its
+	// {1} fee is paid from the floating pool, so it is no CardDef ability: the
+	// kernel reads it as a graveyard source of a cast's or an activation's own
+	// payment window while mana floats (dirac/mana_gravemana.go).
+	GraveMana uint8
 	// OptCost, OptBehold: S:Mode$ OptionalCost ("as an additional cost to
 	// cast this spell, you may blight N / behold a <type>", CR 601.2b): the
 	// optional cast is the kicked cast (AkCast mode 1, gorge's
@@ -666,6 +673,19 @@ type CardDef struct {
 	// carries that ability index in place of the printed one
 	// (dirac/kw_cleave.go).
 	CleaveAb uint8
+	// The printed-keyword records the with<Keyword> filter word reads
+	// (kop.FwWithKeyword's printedKeyword; no KwMask bit is free, and the
+	// keyword's own lowering keeps no marker of its own): set by kgen at the
+	// face keyword's lowering arm. A granted keyword is NOT one of these
+	// (gorge keywordInCtx's derived list is the known limit the word's doc
+	// carries).
+	HasCycling          bool // printed Cycling (CR 702.84b; the hand's cycling cast)
+	HasWard             bool // printed Ward (CR 702.19a; the spell's ward ask)
+	HasEnchant          bool // printed Enchant (CR 702.102a; the Aura's target spec)
+	HasUnearth          bool // printed Unearth (CR 702.84a; the graveyard's unearth cast)
+	HasDecayed          bool // printed Decayed (CR 702.130b; the decayed token)
+	HasPersist          bool // printed Persist (CR 702.79a; the dies trigger)
+	HasDoctorsCompanion bool // printed Doctor's companion (CR 702.124m; the deck rule)
 	// CleaveCost is the cleave cost (CleaveAb != 0).
 	CleaveCost ManaCost
 	// HasBestow is printed bestow (CR 702.103; no KwMask bit is free): the
@@ -896,6 +916,15 @@ const (
 	// layer timestamp and no Mode$ Transformed trigger; leaving the
 	// battlefield it is its top half again (CR 710.2).
 	FaceFlip
+	// FaceMeld is a meld card that carries the meld-result face (CR 712.4,
+	// 701.42): Faces[1] is the melded permanent's face, which the object's
+	// card shows only while it is melded (OpExt ExtMeld turns it, the
+	// partner's object parks in ZoneNone and the pair rides the cold
+	// meldLink array, dirac/face_meld.go). The result def's mana cost is
+	// the sum of the two front faces' mana values (CR 712.4c/202.3c), folded
+	// by kgen (lower_meld.go). The pair's other half lowers as a single-faced
+	// card.
+	FaceMeld
 )
 
 // RoomState is the Faces index of a Room's battlefield state showing face
@@ -968,3 +997,8 @@ func (m SubMask) AndNot(o SubMask) SubMask { return SubMask{m[0] &^ o[0], m[1] &
 // attacked player's whole creature count (gorge combat.DefenderCreatureCount),
 // so one creature of theirs that cannot block makes the attacker unblockable.
 const MinBlockersAll uint8 = 255
+
+// ExtraBlocksAny is CardDef.ExtraBlocks' (and a StatExtraBlock's Static.A)
+// CanBlockAny$ True form: the creature can block any number of creatures
+// (CR 509.1a), where 1 is CanBlockAmount$ 1. A Static.A of 0 is amount 1.
+const ExtraBlocksAny uint8 = 255

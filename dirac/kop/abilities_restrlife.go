@@ -2,17 +2,18 @@ package kop
 
 // RestrictedLifeShape reports whether mana ability a is a spend-restricted
 // "{T}, Pay N life: Add <mana>" of one fixed colour or colourless, one or
-// several mana, with a spell restriction and no flag, rider, program or
-// each-colour production (Gnarlroot Trapper's Elf-only {G}, Untaidake's
-// legendary-only {C}{C}): the shape the kernel plans as a last-resort unit
-// (dirac mana_restrictedcost.go). A choice or any-colour production
-// (Thieving Varmint's two mana of any one colour) is a window gap the kernel
+// several mana, or of any colour one amount below or at two (Thieving
+// Varmint's two mana of any one colour), with a spell restriction and no
+// flag, rider, program or each-colour production (Gnarlroot Trapper's
+// Elf-only {G}, Untaidake's legendary-only {C}{C}): the shape the kernel
+// plans as a last-resort unit (dirac mana_restrictedcost.go). A colour
+// choice among printed colours (Produced$ Combo) is a window gap the kernel
 // does not price with a life cost.
 func RestrictedLifeShape(a *Ability) bool {
 	c := a.ManaColors & 0x3f
 	return a.Kind == AbMana && a.ManaRestrict != 0 && a.ManaRestrictAb == 0 && a.Cost.Flags == CostTap|CostPayLife && a.Cost.N >= 1 &&
 		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && !a.ManaEach && !a.ManaDeferred && len(a.Prog) == 0 &&
-		a.ManaRider == ManaRiderNone && a.ManaN <= 2 && c != 0 && c&(c-1) == 0 && a.ManaColors&^ColAny&^ColC == 0 &&
+		a.ManaRider == ManaRiderNone && a.ManaN <= 2 && c != 0 && (c&(c-1) == 0 || c == ColAny) && a.ManaColors&^ColAny&^ColC == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
@@ -30,4 +31,20 @@ func RestrictedLifeManaAb(cd *CardDef, j int) bool {
 		}
 	}
 	return true
+}
+
+// RestrictedTapXOneShape reports whether mana ability a is a spend-restricted
+// "Tap an untapped <spec> you control: Add <mana>" with no {T} (Grand
+// Architect's {C}{C} for an artifact spell or an artifact's ability, tapping
+// a blue creature): the TapXManaOne cost with one or two mana of one fixed
+// colour and a spell and/or activated-ability restriction, no flag, rider,
+// program or each-colour production. The kernel floats its mana restricted
+// (dirac mana_tapanother.go tapXDo) and counts it only for the payments its
+// restriction admits (tapXUnitAdmits).
+func RestrictedTapXOneShape(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && a.Cost.Flags == CostTapX && a.Cost.N == 1 &&
+		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.AFlags == 0 && !a.ManaEach && !a.ManaDeferred && len(a.Prog) == 0 &&
+		a.ManaRider == ManaRiderNone && a.ManaN >= 1 && a.ManaN <= 2 && c != 0 && c&(c-1) == 0 && c&^(ColAny|ColC) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }

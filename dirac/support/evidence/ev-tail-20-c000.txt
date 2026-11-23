@@ -75,6 +75,7 @@ Crowd of Cinders
 Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
+Damocles Base, Sword of Kang
 Dance of Many
 Danitha Capashen, Paragon
 Daring Saboteur
@@ -149,6 +150,7 @@ Goblin Cohort
 Goblin Piker
 Gold-Forged Thopteryx
 Gorilla Chieftain
+Grand Architect
 Grappler Spider
 Grasping Thrull
 Grasslands
@@ -386,7 +388,6 @@ Time of Need
 Tishana, Voice of Thunder
 Titania's Chosen
 Train of Thought
-Tramway Station
 Transmogrifying Licid
 Traproot Kami
 True Love's Kiss

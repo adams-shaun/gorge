@@ -698,6 +698,29 @@ func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Re
 	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
 }
 
+// impendedCastAction is the canonical action of obj's impending cast
+// (CR 702.176a, cost {2}{W}{W} against the plain {5}{W}{W}), and forgets the
+// plain hand price cached for obj: both casts announce their convoke picks
+// against the same card, so the plain price over-prices the impending
+// announcement (it offers generic picks the impending cost no longer
+// absorbs). With no cached price the frame is gorge's own Submit gate
+// (convokeFrameFor), which prices the pending cast itself.
+func (g *GorgeSide) impendedCastAction(obj state.ObjID, ref func(state.ObjID) Ref) Canon {
+	delete(g.castCost, obj)
+	delete(g.castX, obj)
+	return Pack(ActCastImpended, ref(obj), RefNone, 0)
+}
+
+// plannedCastAction is paymentCastAction, with the impended route's cache
+// forgotten (impendedCastAction).
+func (g *GorgeSide) plannedCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (Canon, bool, string) {
+	a, skip, unknown := paymentCastAction(pa, ref)
+	if pa.Cast.CastMode() == "impended" {
+		a = g.impendedCastAction(pa.Cast.Object, ref)
+	}
+	return a, skip, unknown
+}
+
 // paymentCastAction is the canonical action of a planner-paid cast.
 // casualty, impended and conspired have their own action kinds; the full
 // cast-mode table's modes the table cannot hold use CastModeOther. A hand
@@ -730,6 +753,24 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 	return Pack(ActCast, ref(pa.Cast.Object), RefNone, mc), false, ""
 }
 
+// censusOfferKind is the vocabulary kind of an "ability" option the census-gap
+// arm offered (decision.Option.CensusOffer, engine/rules autoPayCensus): it
+// lowers nothing in the offered-options pass.
+const censusOfferKind = "census_offer"
+
+// priorityOptionKind is o.Kind, except that the census-gap arm's "ability"
+// offer reads as censusOfferKind. That offer is the canonical pricing's own
+// play: PotentialPaymentPlans lowers it as the script route (play the funding
+// source, then the ability), the shape the kernel's actScriptPays mirrors. The
+// bare option's route is a manual payment window, and add()'s dedupe would let
+// it displace the script.
+func priorityOptionKind(o *decision.Option) string {
+	if o.CensusOffer && o.Kind == "ability" {
+		return censusOfferKind
+	}
+	return o.Kind
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -755,7 +796,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	// Offered options first: an offered play needs no lowering.
 	for i := range d.Options {
 		o := &d.Options[i]
-		switch o.Kind {
+		switch priorityOptionKind(o) {
 		case "pass":
 			add(prioEntry{a: Pack(ActPass, RefNone, RefNone, 0), opt: o.Index})
 		case "play_land":
@@ -1021,19 +1062,25 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// A saddle ability a static grants (Jandor, Fortuned Traveler's
 				// "has saddle 2"): the kernel's latent-ability activation,
 				// told apart by the granting permanent (kgen
-				// lower_saddlegrant.go). Only saddle is modelled: the other
-				// granted-keyword abilities keep the anchored note below.
+				// lower_saddlegrant.go). Only saddle and the embalm below are
+				// modelled: the other granted-keyword abilities keep the
+				// anchored note below.
 				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
 					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
 					continue
 				}
+			}
+			if o.Keyword == grantedEmbalmLine && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 {
+				// Cursecloth Wrappings' granted embalm (kgen lower_embalmgrant.go)
+				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
+				continue
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
 			}
 			add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability)), opt: o.Index})
-		case "activate", "concede":
+		case "activate", "concede", censusOfferKind:
 		default:
 			if c, ok := specialCode(o.Kind); ok {
 				sub := turnUpModeCode(o.Mode)
@@ -1052,12 +1099,15 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		if len(pa.Plans) == 0 {
 			continue
 		}
-		a, skip, unknown := paymentCastAction(pa, ref)
+		a, skip, unknown := g.plannedCastAction(pa, ref)
 		if skip {
 			continue
 		}
 		if unknown != "" {
 			note(unknown)
+			continue
+		}
+		if pa.Cast.Origin == decision.OriginLibrary && libraryMayPlayLowersFirst(g, pa, a) {
 			continue
 		}
 		replaced := false
@@ -1077,6 +1127,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	for _, pp := range e.PotentialPaymentPlans(d.Player) {
 		pa := pp.Action
 		var a Canon
+		kw := "" // the keyword line a keyword-granted ability play carries
 		switch pa.Kind {
 		case "cast":
 			// The planner prices the face routes the kernel offers from its
@@ -1088,7 +1139,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if fc, ok := faceCastCode(pa.Mode); ok && followedFaceRoute(fc) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
-				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
+				a = g.impendedCastAction(pa.Obj, ref) // kw_impending.go
 			} else if repeatedCastMode(pa.Mode) {
 				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				mc, _ := castModeCode("kicked")
@@ -1114,6 +1165,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
 			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
 				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			} else if pa.Ability < 0 && g.grantedEmbalm(pa.Obj) {
+				a = grantedEmbalmAction(ref(pa.Obj)) // as the offer above
+				kw = grantedEmbalmLine
 			}
 		case "turn_face_up":
 			var ok bool
@@ -1175,7 +1229,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			g.Stats.note(&g.Stats.UnpricedPlays, "no plan: "+pa.Label)
 			continue
 		}
-		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode},
+		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode, Keyword: kw},
 			plan: decision.ClonePaymentPlan(*pp.Plan)}
 		if (pa.Kind == "ability" || a.Kind() == ActCastFace) && !g.lowerCompletes(&pe) {
 			// the witness funds only the mana half of a Phyrexian
@@ -1190,6 +1244,19 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		add(pe)
 	}
 	sort.Slice(fr.prio, func(i, j int) bool { return fr.prio[i].a < fr.prio[j].a })
+}
+
+// libraryMayPlayLowersFirst reports that a planned may-play library cast the
+// planner prices lowers by floating the witness first (prLower, the route the
+// kernel's own payment mirrors: its floats precede the cast's target ask).
+// Only a cast the planner withholds -- a witness whose payment consumes the
+// permanent granting the may-play permission (CR 601.6 keeps the proposal
+// legal, so the planned payment proposes first) -- lowers as a planned payment.
+func libraryMayPlayLowersFirst(g *GorgeSide, pa decision.PaymentAction, a Canon) bool {
+	pe := prioEntry{a: a, kind: prLower,
+		play: payexec.Play{Kind: "cast", Obj: pa.Cast.Object, Mode: pa.Cast.CastMode()},
+		plan: decision.ClonePaymentPlan(pa.Plans[0])}
+	return g.lowerCompletes(&pe)
 }
 
 // reposeSingle poses a priority frame: every entry once.
@@ -2296,6 +2363,20 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 	return o.Face().Abilities[i].IsCopyGranted()
 }
 
+// grantedEmbalmLine is the keyword line Cursecloth Wrappings' pump grants.
+const grantedEmbalmLine = "Embalm:CardManaCost"
+
+// grantedEmbalmAction is the kernel's granted embalm of the card src
+// (dirac kw_embalmgrant.go): the granted-ability activation with the card as
+// its source and no grantor, the target code 0 its canonical form reads as ref
+// 0 whatever granted it.
+func grantedEmbalmAction(src Ref) Canon { return Pack(ActActivate, src, Ref(0), 255) }
+
+// grantedEmbalm reports whether id holds the embalm of grantedEmbalmLine.
+func (g *GorgeSide) grantedEmbalm(id state.ObjID) bool {
+	return slices.Contains(g.E.Derived(id).Keywords, grantedEmbalmLine)
+}
+
 // selfKeywordGrant reports whether a continuous effect on object id itself
 // grants it the derived keyword line line and leaves its abilities alone
 // (Domesticated Watercourse's Animate registers Source: id, Affects:
@@ -2304,6 +2385,13 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 // that source, so neither matches.
 func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 	line = strings.TrimSpace(line)
+	if line == grantedEmbalmLine {
+		// Cursecloth Wrappings' Pump registers its embalm grant the same
+		// way (Source: the target, Affects: Card.Self), but the kernel
+		// reads it as the granted embalm with no grantor
+		// (grantedEmbalmAction), not as the permanent's own grant.
+		return false
+	}
 	for _, ce := range g.E.RegisteredContinuous() {
 		if ce.Source != id || ce.Layer != state.LAbilities || ce.RemoveAbilities || ce.GrantedStatic || !strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {
 			continue

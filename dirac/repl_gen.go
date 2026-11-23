@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -35,6 +37,18 @@ func (s *State) replNIn(k *prep, m slotMask, b uint32) int {
 		}
 	}
 	return n
+}
+
+// selfDmgStep is replDamage's self-damage line (rbSelfDmg: Anti-Venom,
+// a Phantom, Istvan): the amount after it and whether it prevented it all.
+// A Phantom's line that gorge orders beside other replacements waits for the
+// ask (selfPhWaits).
+func (s *State) selfDmgStep(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) (int, bool) {
+	if k.gen.anyRepl&rbSelfDmg == 0 || sl == NoSlot || s.selfPhWaits(k, srcCtrl, srcSl, srcCard, sl, combat, n) {
+		return n, false
+	}
+	n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n)
+	return n, n <= 0
 }
 
 // replDamage is the amount of damage a source controlled by srcCtrl deals
@@ -107,10 +121,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
-	if g.anyRepl&rbSelfDmg != 0 && sl != NoSlot {
-		if n = s.selfDamageAll(k, sl, srcCtrl, srcSl, srcCard, combat, n); n <= 0 {
-			return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
-		}
+	var stopped bool
+	if n, stopped = s.selfDmgStep(k, srcCtrl, srcSl, srcCard, sl, combat, n); stopped {
+		return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
 	}
 	if g.anyRepl&rbShield != 0 && !combat && sl != NoSlot && s.shieldN(sl) > 0 && !s.noPrev(k, combat) {
 		n = s.shieldNC(k, srcCtrl, srcSl, srcCard, sl, n) // CR 122.1c (combat: shieldCombat)
@@ -123,6 +136,13 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		n = s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
 		n = s.statPrevNC(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_staticprevent.go
 	}
+	var minusHits, setHits, dblHits int
+	if g.anyRepl2&rb2DmgMinus != 0 {
+		n, minusHits = s.dmgMinusN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_dmgminus.go
+	}
+	if g.anyRepl2&rb2DmgSet != 0 {
+		n, setHits = s.dmgSetN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_dmgminus.go
+	}
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
 		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 		if g.anyDmgMark {
@@ -130,10 +150,12 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
 			}
 		}
+		dblHits = c
 		for ; c > 0 && n < 1<<12; c-- {
 			n *= 2
 		}
 	}
+	s.dmgRewriteClash(minusHits, setHits, dblHits) // repl_dmgminus.go
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
@@ -611,6 +633,7 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			}
 		}
 	}
+	printed := false
 	if fe.dst != NoSlot && s.prevCombatTo(k, fe.dst) {
 		// one candidate per granted Effect record covering the To side (two
 		// Mazes of Ith on one creature are two Effects in gorge, CR 616.1),
@@ -621,16 +644,33 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		if n, m = s.appendPrevGrants(&s.g.ro, n, k, fe.dst, false, true, StallShield); n < 0 {
 			return -n - 1
 		}
-		if (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
-			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst) {
-			if n == len(ro.cand) {
-				s.capFull(StallShield) // loud: never truncate the candidates
-				return n
-			}
-			ro.cand[n] = s.perms[fe.dst].obj
-			ro.prev |= 1 << n
-			n++
+		printed = (m == 0 && s.kwGen(k, fe.dst)&kop.KwPreventCombatDamageTo != 0) ||
+			k.gen != nil && k.gen.replBits[s.cardAt(fe.dst)]&(rbPrevCombatTo|rbPrevDmgTo) != 0 && !s.genLost(k, fe.dst)
+	}
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go), the
+		// ask's earlier options beside the printed prevent-all: gorge's scan
+		// collects the effect records the shields are before the printed
+		// lines, so they are collected here ahead of it (the noncombat twin
+		// parkNC does the same)
+		code := PlayerCode(rcp)
+		if fe.dst != NoSlot {
+			code = TCode(s.perms[fe.dst].obj)
 		}
+		ro.pnx = 0
+		if n = s.prevNextCands(k, code, fsl, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
+			return 0
+		}
+		ro.prev &^= ro.pnx
+	}
+	if printed {
+		if n == len(ro.cand) {
+			s.capFull(StallShield) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fe.dst].obj
+		ro.prev |= 1 << n
+		n++
 	}
 	if g.anyPrevFrom && s.prevFromGrant(k, fsl) {
 		// the source's granted prevention (Maze of Ith's Effect, gorge's
@@ -666,33 +706,18 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 	}
 	// CR 122.1c: gorge appends the shield counter's prevention after the
 	// printed and granted-keyword matches (replacement.go), so it is the
-	// last candidate here too.
-	if fe.dst != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k, true) {
-		if n == len(ro.cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return n
-		}
-		ro.cand[n] = s.perms[fe.dst].obj
-		ro.prev |= 1 << n
-		ro.shld |= 1 << n
-		n++
+	// last candidate here too; beside a static prevention or a Phantom's line,
+	// which are printed matches in the object scan, it follows them (below).
+	if !spShieldLate(g) {
+		n = s.replShieldCand(k, fe, n)
 	}
-	if g.anyRepl&rbPrevCol != 0 {
-		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		code := PlayerCode(rcp)
-		if fe.dst != NoSlot {
-			code = TCode(s.perms[fe.dst].obj)
-		}
-		ro.pnx = 0
-		if n = s.prevNextCands(k, code, fsl, true, &ro.cand, n, &ro.pnx, ro.prev); n < 0 {
-			return 0
-		}
-		ro.prev &^= ro.pnx
-	}
-	if g.uses.has(useStaticPrev) {
+	if g.uses.has(useStaticPrev) || selfPh(g) {
 		if n = s.spCombatCands(k, fe, sc, rcp, n); n < 0 {
 			return 0 // repl_staticprevent.go
 		}
+	}
+	if spShieldLate(g) {
+		n = s.replShieldCand(k, fe, n)
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, sc, n) {
 		return 0 // repl_dmgmark.go
@@ -704,6 +729,23 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 		return 1 // no order ask (repl_bareprev.go): replCombatGen prevented it
 	}
 	ro.p = rcp
+	return n
+}
+
+// replShieldCand appends the SHIELD counter's prevention (CR 122.1c) as the
+// last of the n candidates of frozen combat event fe; the new count.
+func (s *State) replShieldCand(k *prep, fe *fzEv, n int) int {
+	ro := &s.g.ro
+	if fe.dst != NoSlot && k.gen.anyRepl&rbShield != 0 && s.shieldN(fe.dst) > 0 && !s.noPrev(k, true) {
+		if n == len(ro.cand) {
+			s.capFull(StallShield) // loud: never truncate the candidates
+			return n
+		}
+		ro.cand[n] = s.perms[fe.dst].obj
+		ro.prev |= 1 << n
+		ro.shld |= 1 << n
+		n++
+	}
 	return n
 }
 
@@ -871,6 +913,9 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	if ro.pnx&(1<<i) != 0 {
 		return s.g.prevCol[ro.cand[i]].col != 0 && (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true)
 	}
+	if ro.spv&(1<<i) != 0 {
+		return s.spCandLive(k, i) // a static prevention: repl_staticprevent.go
+	}
 	if ro.pcol&(1<<i) != 0 {
 		return (ro.askD == NoSlot || s.occ.has(ro.askD)) && !s.noPrev(k, true) // an effect record: it lasts the turn
 	}
@@ -936,7 +981,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 	if ro.shld != 0 {
 		other := false
 		for j := 0; j < int(ro.ac); j++ {
-			if ro.prev&(1<<j) != 0 && ro.shld&(1<<j) == 0 &&
+			if (ro.prev&(1<<j) != 0 && ro.shld&(1<<j) == 0 || s.spFullAsk(k, j)) &&
 				(ro.used&(1<<j) != 0 || s.replCandLive(k, j)) {
 				other = true
 				break
@@ -1042,7 +1087,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
 		s.noteDmgTaken(ro.apl, n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
-		s.loseLife(k, ro.apl, n)
+		s.loseLifeDmg(k, ro.apl, n)
 		s.plDmgMark(ro.apl, n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -1075,6 +1120,10 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.preventCombatEv(k, r, &r.ev[i]) // combat_prevention.go
 		return 0
 	}
+	if s.selfPhDeal(k, src.ctrl, ev.src, ev.dst, n) {
+		s.preventCombatEv(k, r, &r.ev[i]) // the Phantom's line on an unasked event (repl_selfph.go)
+		return 0
+	}
 	if k.gen.anyRepl&rbPrevCol != 0 {
 		// a lone Ext PreventNext shield, spent as the event is dealt (repl_prevnext.go)
 		code := src.atk // the player the source attacks
@@ -1094,7 +1143,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
 		s.noteDmgTaken(CodeSeat(src.atk), n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
-		s.loseLife(k, CodeSeat(src.atk), n)
+		s.loseLifeDmg(k, CodeSeat(src.atk), n)
 		s.plDmgMark(CodeSeat(src.atk), n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else {
 		sl := ev.dst
@@ -1166,7 +1215,16 @@ func (s *State) replOrderPick(a Action) bool {
 		}
 		if ro.prev&(1<<i) != 0 {
 			if !ro.on {
+				if ro.pnx != 0 {
+					// the picked printed prevention is terminal: it prevents
+					// the whole event, so the shields never apply and are
+					// not spent (gorge handleDamageReplacementChoice)
+					ro.an = 0
+				}
 				s.replNCPickShield(s.k(), int(i))
+				if s.g.nc.n == ncPend {
+					ro.an = 0 // a prevention picked in the pend ask leaves nothing (repl_selfph.go)
+				}
 			}
 			return false
 		}
@@ -1187,8 +1245,13 @@ func (s *State) replOrderPick(a Action) bool {
 				left++
 			}
 		}
+		if left < 2 && ro.on && ro.spv != 0 {
+			s.spApplyLeft(s.k())
+		}
 		if left < 2 && !ro.on {
-			s.replNCAutoShield(s.k())
+			if !pend {
+				s.replNCAutoShield(s.k()) // the pend ask's leftover shield is ncPlusLeftovers'
+			}
 			if s.g.nc.n == ncPend {
 				// gorge re-collects the rest after the last pick: the last
 				// remaining candidate applies automatically (a raise past
@@ -1358,8 +1421,11 @@ func (s *State) damageSeqNext(k *prep, n int) {
 // and the recipient's SHIELD counter (CR 122.1c, appended last as gorge
 // appends it after the printed matches). The recipient's own printed
 // K:Prevent "all damage" line (Dawn Elemental) is one of those printed
-// matches: it is collected in the scan too, so it is a candidate here before
-// the shield. Protection prevents the damage before the replacements
+// matches: it is collected in the scan too, so it is a candidate here after
+// the PreventNext shields (gorge scans its effect records first) and before
+// the counter. Beside the shields it is the one competitor the ask models
+// (below); beside anything else the shields still stall. Protection prevents
+// the damage before the replacements
 // (gorge emit). A pure plus-N competition is parked with its sum (the same
 // in every order); a mixed one — a plus-N addition or a raise beside a
 // doubling — with the amount unknown (ncPend), the picks applied as made
@@ -1368,16 +1434,16 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	if s.statRdrStall(k, ctrl, srcSl, srcCard, code, false) {
 		return false // a static redirect beside another candidate is gorge's ask: stalled (repl_staticredirect.go)
 	}
-	if parked, handled := s.spPark(k, ctrl, srcSl, srcCard, code, n, kw); handled {
+	g := k.gen
+	if parked, handled := s.spParkEarly(k, ctrl, srcSl, srcCard, code, n, kw); handled {
 		return parked // a static prevention's ask (repl_staticprevent.go)
 	}
-	g := k.gen
 	ro := &s.g.ro
 	plusOnly := replPlusOnly(g)
 	// parked: an earlier event of this op is parked on its ask (nc.n -1 is a
 	// parked, prevented one), and ro holds that ask
 	parked := s.g.nc.n != 0
-	if !plusOnly && g.anyRepl&(rbDblDmg|rbPrevNC|rbShield|rbPrevCol|rbPrevDmgTo) == 0 || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
+	if s.parkNCNoKinds(g, plusOnly) || n <= 0 || ctrl >= MaxSeats || ro.on || ro.n > 0 && !parked {
 		return false
 	}
 	rcp := uint8(255)
@@ -1450,11 +1516,26 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			}
 		}
 	}
+	var pnx uint8
+	if g.anyRepl&rbPrevCol != 0 {
+		// Ext PreventNext's shields on the recipient (repl_prevnext.go), the
+		// ask's earlier options: gorge's scan collects the effect records the
+		// shields are (engine/rules applyReplacementsDispatch's active-effect
+		// pass) before the printed lines, so the options name the shields
+		// first
+		if c = s.prevNextCands(k, code, srcSl, false, &cand, c, &pnx, prev); c < 0 {
+			return false
+		}
+		prev &^= pnx
+	}
 	// the recipient's own printed K:Prevent "all damage" line (replDamage's
-	// prevAnyTo arm): a printed match, so it is offered before the shield
-	// (gorge appends the shield after the printed matches)
-	if c = s.parkPrevAny(k, &cand, c, sl, &prev); c < 0 {
+	// prevAnyTo arm): a printed match, so it is offered after the shields
+	// (gorge scans the effect records before the printed lines)
+	var pAny uint8
+	if c2 := s.parkPrevAny(k, &cand, c, sl, &prev); c2 < 0 {
 		return false
+	} else if c2 > c {
+		pAny, c = 1<<c, c2
 	}
 	var pcol uint8
 	if g.anyRepl&rbPrevCol != 0 {
@@ -1465,30 +1546,21 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		}
 		prev |= pcol
 	}
-	if sl != NoSlot && g.anyRepl&rbShield != 0 && s.shieldN(sl) > 0 && !s.noPrev(k, false) {
-		if c == len(cand) {
-			s.capFull(StallShield) // loud: never truncate the candidates
-			return false
-		}
-		cand[c] = s.perms[sl].obj
-		prev |= 1 << c
-		shld |= 1 << c
-		c++
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, false); c < 0 {
+		return false
 	}
-	var pnx uint8
-	if g.anyRepl&rbPrevCol != 0 {
-		// Ext PreventNext's shields on the recipient (repl_prevnext.go)
-		if c = s.prevNextCands(k, code, srcSl, false, &cand, c, &pnx, prev); c < 0 {
-			return false
-		}
-		prev &^= pnx
-		if pnx != 0 && c >= 2 && s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
-			s.capFull(StallPrevNext)
-			return false
-		}
+	if s.pnxAskStalls(k, ctrl, srcSl, srcCard, rcp, sl, pnx, pAny, prev, shld, plus, rs, c) {
+		return false
 	}
 	if g.anyDmgMark && s.dmgMarkCompetesEv(rcp, ctrl, c) {
 		return false // repl_dmgmark.go
+	}
+	c, spv, done := s.parkNCStatic(k, ctrl, srcSl, srcCard, code, n, kw, c, prev|shld|pnx|pcol, &cand, &plus, &rs)
+	if done != 0 {
+		return done == 2
+	}
+	if c = s.parkShieldAt(k, sl, c, &cand, &prev, &shld, true); c < 0 {
+		return false
 	}
 	if c < 2 {
 		return false
@@ -1506,8 +1578,11 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 		s.capFull(StallReplPlus)
 		return false
 	}
-	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, cand, c) {
+	if s.parkNCPend(k, ctrl, srcSl, srcCard, code, rcp, sl, n, kw, plus, rs, prev, shld, pnx, spv, cand, c) {
 		return true
+	}
+	if s.parkNCStaticStall(spv) {
+		return false
 	}
 	// A shield candidate (or another prevention) stops the whole event, so
 	// skip replDamage: it would spend the counter while parking and stall on
@@ -1536,6 +1611,25 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 	}
 	s.g.nc = nc
 	return true
+}
+
+// pnxAskStalls reports that a parked PreventNext shields' competition still
+// stalls (parkNC): gorge poses the CR 616.1 ask over the shields and every
+// other candidate, but the walk below models the shields beside the
+// recipient's own bare printed prevention only (a pick of the printed line
+// stops the event with the shields unspent, gorge
+// handleDamageReplacementChoice's terminal arm). Every other competitor (a
+// doubler, a plus-N line, the SHIELD counter, a colour record) still stalls,
+// loudly and before any dealing.
+func (s *State) pnxAskStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, pnx, pAny, prev, shld, plus, rs uint8, c int) bool {
+	if pnx == 0 || c < 2 || !s.prevNextCompetes(k, ctrl, srcSl, srcCard, rcp, sl, false, false) {
+		return false
+	}
+	if pAny == 0 || prev != pAny || shld != 0 || plus != 0 || rs != 0 || c != bits.OnesCount8(pnx)+1 {
+		s.capFull(StallPrevNext)
+		return true
+	}
+	return false
 }
 
 // parkPlusCand appends the battlefield plus-N candidate at b (an addition or
@@ -1590,7 +1684,7 @@ func (s *State) dealNC(k *prep) {
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
-		s.loseLife(k, CodeSeat(code), n)
+		s.loseLifeDmg(k, CodeSeat(code), n)
 		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]

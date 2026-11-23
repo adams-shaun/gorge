@@ -14,6 +14,7 @@ Angry Mob
 Ant-Man, Elusive Avenger
 Arasta of the Endless Web
 Archon of Emeria
+Arco-Flagellant
 Argothian Pixies
 Arisen Gorgon
 Ark of Blight
@@ -52,6 +53,7 @@ Citizen's Crowbar
 Cleric of the Forward Order
 Clutch of Undeath
 Colossal Dreadmaw
+Commander Mustard
 Concentrated Fire
 Conduit of Ruin
 Contagion
@@ -86,6 +88,7 @@ Eiganjo Castle
 Electrostatic Bolt
 Electrostatic Field
 Elfhame Palace
+Elvish Handservant
 Enraged Killbot
 Erratic Visionary
 Etched Monstrosity
@@ -146,6 +149,7 @@ Grim Giganotosaurus
 Grim Initiate
 Grotag Night-Runner
 Guul Draz Vampire
+Halimar Wavewatch
 Hand of the Praetors
 Harpoon Sniper
 Hissing Miasma
@@ -275,6 +279,7 @@ Sima Yi, Wei Field Marshal
 Sisterhood of Karn
 Skirk Outrider
 Skithiryx, the Blight Dragon
+Skoa, Embermage
 Skyclave Pick-Axe
 Skyhunter Skirmisher
 Sleep with the Fishes

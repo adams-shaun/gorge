@@ -96,7 +96,7 @@ func (s *State) suspendAction(k *prep, o Obj, p uint8) {
 	cd := &k.t.Cards[c]
 	s.payHandSpecial(k, p, s.adjustCost(k, p, c, o, cd.SuspendCost), o)
 	from := s.detach(o)
-	s.placeFrom(o, kop.ZoneExile, false, from, false)
+	s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 	s.suspendAdd(o, int(cd.Suspend))
 	s.passes = 0
 }

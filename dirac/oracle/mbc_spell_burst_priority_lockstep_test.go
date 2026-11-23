@@ -31,4 +31,15 @@ func TestMBCSpellBurstReprosLockstep(t *testing.T) {
 	// announcement the pool plus every census unit's largest production
 	// cannot fund is refused, as the kernel's exact per-tap sweep always did.
 	stdReproNamed(t, "xbound_fee_gap")
+	// Decision 370 of tail-26-s000 (seed 306680, pair 17): gorge offers
+	// cast(Spell Burst,-,0) next to the buyback cast; the kernel only the latter.
+	stdReproNamed(t, "spell_burst_buyback_x_zero_option")
+	// Decision 887 of tail-26-c000 (seed 302352, pair 3): over the stack's
+	// Death of a Thousand Stings (mana value 5), gorge offers the buyback
+	// cast (Mode "buyback", the Offspring shape); the kernel offered no cast
+	// of Spell Burst at all.
+	stdReproNamed(t, "spell_burst_buyback_x_cast_missing")
+	// Decision 716 of tail-26-c000 (seed 934284, pair 168): gorge offers
+	// cast(Spell Burst,-,0) next to the buyback cast; the kernel only the latter.
+	stdReproNamed(t, "spell_burst_plain_cast_missing")
 }

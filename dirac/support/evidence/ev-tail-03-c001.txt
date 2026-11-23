@@ -83,6 +83,7 @@ Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
 Contradict
+Convincing Mirage
 Coral Colony
 Counterbalance
 Courier's Capsule
@@ -329,6 +330,7 @@ Rank and File
 Raphael, Fiendish Savior
 Read the Bones
 Reap What Is Sown
+Reaper of Sheoldred
 Renegade Tactics
 Reshape
 Reshape the Earth
@@ -379,6 +381,7 @@ Snow-Covered Swamp
 Soaring Hope
 Somberwald Stag
 Song of Serenity
+Soraya the Falconer
 Soul Feast
 Spawning Pool
 Spined Megalodon

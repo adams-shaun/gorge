@@ -1,5 +1,6 @@
 Aphetto Alchemist
 Azorius Herald
+Baeloth Barrityl, Entertainer
 Bastion Inventor
 Battle Squadron
 Bellowing Tanglewurm
@@ -34,6 +35,7 @@ Forest
 Forsake the Worldly
 Gaea's Embrace
 Glacial Crasher
+Go for Blood
 Goblin War Party
 Goblin Wizardry
 Grateful Apparition
@@ -54,6 +56,7 @@ Keeper of Keys
 Kokusho, the Evening Star
 Lampad of Death's Vigil
 Lava Dart
+Lieutenants of the Guard
 Mental Note
 Mindclaw Shaman
 Mischievous Poltergeist
@@ -68,6 +71,7 @@ Olivia's Bloodsworn
 Oneirophage
 Order of Midnight
 Ossification
+Painter's Studio
 Plains
 Prosperous Innkeeper
 Rabbit Battery

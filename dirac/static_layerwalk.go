@@ -273,7 +273,7 @@ func (s *State) lfxCollectOne(k *prep, sl, src Slot, cid CardID, abs, rem, kept 
 			if src != sl && selfOnlyFilter(k, a.Static.Filter) {
 				continue // a self static (AffectedDefined$ Self) reaches its source only
 			}
-			e = lfx{o: &k.t.Overrides[a.Static.Override-1], a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj}
+			e = lfx{o: &k.t.Overrides[a.Static.Override-1], a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
 			e.p, e.t = int16(e.o.SetP), int16(e.o.SetT)
 		case sub && a.Static.Kind == kop.StatContinuous && (a.Static.AddSub.Any() || a.Static.AddChosen):
 			e = lfx{a: a, ts: ts, src: src, ctrl: sp.ctrl, obj: sp.obj, ch: uint8(sp.chosen)}
@@ -404,6 +404,7 @@ func keptOnLoss(t *kop.Table, a *kop.Ability) bool {
 func ovrKeptOnLoss(o *kop.Override) bool {
 	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
 		o.ImpSub || // AddType$ ImprintedCreatureType is a layer-4 part (Duplicant)
+		o.SetLandSub || // the CR 305.7 strip is a layer-4 part (static_landtypesetter.go; the chosen setter's grant beside it)
 		o.HasColors || o.AddColors != 0 || o.NameCard != 0
 }
 
@@ -421,7 +422,8 @@ func l4part(e *lfx) bool {
 	}
 	o := e.o
 	return o.HasTypes || o.AddTypes != 0 || o.HasSub || o.AddSub.Any() || o.AllCreatureTypes || o.RemoveCreatureSub || o.RemoveTypes != 0 ||
-		o.ImpSub // AddType$ ImprintedCreatureType: the imprinted card's creature types (Duplicant)
+		o.ImpSub || // AddType$ ImprintedCreatureType: the imprinted card's creature types (Duplicant)
+		o.SetLandSub // the CR 305.7 strip, and the chosen setter's grant beside it (static_landtypesetter.go)
 }
 
 // lfxApplies reports whether e applies to sl given the characteristics
@@ -461,6 +463,16 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 	}
 	if o.SetLandSub {
 		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
+		// the chosen land-type setter (Convincing Mirage, Multiversal
+		// Passage): the record adds no subtype of its own and the static's
+		// AddChosen grants its source's own as-enters ChooseType answer
+		// (act_choosetype.go lfxChosen), a basic land type of the strip side
+		if DebugChosenSetNone {
+			// the mutation of TestChosenTypeSetterLockstep: the choice is
+			// never granted
+		} else if k.gen.anyAddChosen && e.a != nil && e.a.Static.AddChosen {
+			lfxChosen(k, e, c)
+		}
 	}
 	c.subs = c.subs.Or(o.AddSub)
 	if o.ImpSub {

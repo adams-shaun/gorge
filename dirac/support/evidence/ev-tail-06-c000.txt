@@ -215,6 +215,7 @@ Jamuraan Lion
 Jedit Ojanen
 Jeering Homunculus
 Jewel Thief
+Jirina Kudro
 Jolted Awake
 Jovial Evil
 Juntu Stakes
@@ -274,6 +275,7 @@ Molten Vortex
 Mortivore
 Mothdust Changeling
 Mountain
+Mr. Monopoly, On the Go
 Mystic Melting
 Necrogoyf
 Nev, the Practical Dean
@@ -460,6 +462,7 @@ Whispersilk Cloak
 Wild Defiance
 Wildwood Rebirth
 Winged Sliver
+Winnow
 Wirewood Pride
 Witch's Familiar
 Witch's Oven

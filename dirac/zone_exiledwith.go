@@ -17,12 +17,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     while the source is the incarnation that exiled the card or a resolving
 //     trigger fired from it.
 //
-// State's cold exw holds one record per (card, source): fl bit 0 the reverse link,
-// bit 1 the forward one. Only a card that reads the link (CardDef.ExiledWith,
-// genPrep.exwRec) records, and only inside a resolution, except the cast
-// spell's own BeholdExile cost, whose exile carries the spell as its source in
-// gorge (EmitChoiceCosts; kernel act_beholdexile.go writes that record
-// through exwPut). gorge's Incarnation advances on a battlefield
+// State's cold object-set store (zone_objsets.go) holds one record per (card,
+// source), kind osExw with the flags in kind's high nibble: exwRev the reverse
+// link, exwFwd the forward one. Only a card that reads the link
+// (CardDef.ExiledWith, genPrep.exwRec) records, and only inside a resolution,
+// except the cast spell's own BeholdExile cost, whose exile carries the spell
+// as its source in gorge (EmitChoiceCosts; kernel act_beholdexile.go writes
+// that record through exwPut). gorge's Incarnation advances on a battlefield
 // crossing; the kernel's object ver on every zone change, so the stamp is the
 // source's ver at the exile; the rule is that of gen.links
 // (zone_rememberpersist.go): live at the same ver, or, for a resolving trigger,
@@ -33,10 +34,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // by a non-trigger ability after the source left is not modelled and no lifted
 // card has the shape.
 
+// The exiled-with flags, in osRec.kind's high nibble (zone_objsets.go);
+// exwRev and exwFwd are independent (a refresh restates the rest, keeping
+// the forward bit). A token records the same flag bits as any other object:
+// gorge keeps no forward entry for it, so exwPut sets none.
 const (
-	exwRev uint8 = 1 << iota // the reverse scalar is live
-	exwFwd                   // the forward ExiledCards entry is live
-	exwTok                   // o is a token (no forward entry; gorge records none)
+	exwRev uint8 = 1 << 4 // the reverse scalar is live
+	exwFwd uint8 = 1 << 5 // the forward ExiledCards entry is live
 )
 
 // genPrep.exwRec bits: the card reads the link; its text names
@@ -45,25 +49,6 @@ const (
 	exwRecRead uint8 = 1 << iota
 	exwRecRev
 )
-
-// maxExw bounds the links of a table with a card that records them.
-const maxExw = 64
-
-// coldExw is the links, for a table whose cards record them (exwPut's
-// callers); an empty one is simply full.
-var coldExw = newCold[exwRec]("exw", func(g *genPrep) int {
-	if g.anyExW || g.anyFaceExile {
-		return maxExw
-	}
-	return 0
-}).view(func(c *coldArrays) *[]exwRec { return &c.exw })
-
-// exwRec is one exiled-with link: card o exiled by src (stamp sver).
-type exwRec struct {
-	o, src Obj
-	sver   uint8
-	fl     uint8
-}
 
 // DebugExwIgnoreVer is the mutation hook (TestExwMutation): the reverse link
 // is live whatever the source's ver, a flickered source still finds its cards.
@@ -131,10 +116,13 @@ func (s *State) exwOpAt(k *prep) *kop.Instr {
 //
 //go:noinline
 func (s *State) exwExile(k *prep, o Obj) {
-	g := &s.g
-	for i := 0; i < int(g.nexw); i++ {
-		if r := &s.cold.exw[i]; r.o == o && r.fl&exwRev != 0 {
-			r.fl &^= exwRev
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		if rec := &r[i]; rec.o == o && rec.kind&exwRev != 0 {
+			rec.kind &^= exwRev
 			if DebugExwStats != nil {
 				DebugExwStats.RevCleared++
 			}
@@ -157,11 +145,7 @@ func (s *State) exwExile(k *prep, o Obj) {
 	if k.gen.exwRec[e.card]&exwRecRev != 0 || in != nil && exwProvOp(in) {
 		fl = exwRev
 	}
-	if tok := s.objs[o].of&ofToken != 0; tok {
-		if fl != 0 {
-			fl |= exwTok
-		}
-	} else if in != nil && exwForwardOp(in.Op) {
+	if tok := s.objs[o].of&ofToken != 0; !tok && in != nil && exwForwardOp(in.Op) {
 		fl |= exwFwd
 	}
 	if fl == 0 {
@@ -171,35 +155,28 @@ func (s *State) exwExile(k *prep, o Obj) {
 }
 
 // exwPut writes (or refreshes) the record of card o exiled by src, stamped
-// sver, for the reading card `card` (the stats' key). A full pool is
-// StallExiledWith.
+// sver, for the reading card `card` (the stats' key). A full store is
+// StallObjSets (the pool's own StallExiledWith number stays reserved).
 func (s *State) exwPut(o, src Obj, sver, fl uint8, card int) {
-	g := &s.g
-	for i := 0; i < int(g.nexw); i++ {
-		if r := &s.cold.exw[i]; r.o == o && r.src == src {
-			r.fl, r.sver = r.fl&exwFwd|fl, sver
+	r := s.cold.objSets
+	n := s.osLen()
+	for i := 0; i < n; i++ {
+		if rec := &r[i]; rec.o == o && rec.src == src && rec.osKind() == osExw {
+			rec.kind, rec.sver = osExw|rec.osFlags()&exwFwd|fl, sver
 			if DebugExwStats != nil {
 				DebugExwStats.noteRec(card)
 			}
 			return
 		}
 	}
-	if int(g.nexw) >= len(s.cold.exw) {
-		n := 0
-		for i := 0; i < int(g.nexw); i++ {
-			if s.cold.exw[i].fl&(exwRev|exwFwd|exwFace) != 0 {
-				s.cold.exw[n] = s.cold.exw[i]
-				n++
-			}
-		}
-		g.nexw = uint8(n)
-		if n >= len(s.cold.exw) {
-			s.capFull(StallExiledWith)
+	if n >= len(r) {
+		s.osGC()
+		if n = s.osLen(); n >= len(r) {
+			s.capFull(StallObjSets)
 			return
 		}
 	}
-	s.cold.exw[g.nexw] = exwRec{o: o, src: src, sver: sver, fl: fl}
-	g.nexw++
+	r[n] = osRec{o: o, src: src, sver: sver, kind: osExw | fl}
 	if DebugExwStats != nil {
 		DebugExwStats.noteRec(card)
 	}
@@ -222,13 +199,16 @@ func (st *ExwStats) noteRec(card int) {
 //
 //go:noinline
 func (s *State) exwLeaveExile(o Obj) {
-	g := &s.g
-	for i := 0; i < int(g.nexw); i++ {
-		if r := &s.cold.exw[i]; r.o == o && r.fl&(exwRev|exwFwd|exwFace) != 0 {
-			if r.fl&exwRev != 0 && DebugExwStats != nil {
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		if rec := &r[i]; rec.o == o && rec.kind&(exwRev|exwFwd|exwFace) != 0 {
+			if rec.kind&exwRev != 0 && DebugExwStats != nil {
 				DebugExwStats.RevCleared++
 			}
-			r.fl &^= exwRev | exwFwd | exwFace | exwLook1
+			rec.kind &^= exwRev | exwFwd | exwFace | exwLook1
 		}
 	}
 }
@@ -242,11 +222,14 @@ func (s *State) exwEnter(o Obj, from kop.Zone) {
 	if from == kop.ZoneStack {
 		return
 	}
-	g := &s.g
-	for i := 0; i < int(g.nexw); i++ {
-		r := &s.cold.exw[i]
-		if r.src == o && r.fl&exwFwd != 0 {
-			r.fl &^= exwFwd
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		rec := &r[i]
+		if rec.src == o && rec.kind&exwFwd != 0 {
+			rec.kind &^= exwFwd
 			if DebugExwStats != nil {
 				DebugExwStats.FwdCleared++
 			}
@@ -264,19 +247,23 @@ func (s *State) exwHas(o, src Obj, trig bool, fire uint8) bool {
 		return true
 	}
 	ver := s.objs[src].ver
-	for i := 0; i < int(s.g.nexw); i++ {
-		r := &s.cold.exw[i]
-		if r.o != o || r.src != src {
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		rec := &r[i]
+		if rec.o != o || rec.src != src {
 			continue
 		}
-		if r.fl&exwFwd != 0 {
+		if rec.kind&exwFwd != 0 {
 			return true
 		}
-		if r.fl&exwRev == 0 {
+		if rec.kind&exwRev == 0 {
 			continue
 		}
-		if DebugExwIgnoreVer || ver == r.sver ||
-			!DebugExwNoFire && trig && (fire == r.sver || fire == r.sver+1) {
+		if DebugExwIgnoreVer || ver == rec.sver ||
+			!DebugExwNoFire && trig && (fire == rec.sver || fire == rec.sver+1) {
 			return true
 		}
 	}
@@ -348,9 +335,15 @@ func (s *State) exwCount(ctx evalCtx) int {
 // exwCount (ExExiledWithN) and exwCard (PredExiledWith) already share -- so
 // a player ref and a count or filter cannot disagree about which cards the
 // link holds. 255 when no seat's exile holds one (gorge manifests dread for
-// nobody). gorge resolves the same grammar over every living seat and acts
-// on EACH match; the corpus carrier (Unidentified Hovership's leave
-// trigger) exiles at most one card, so at most one seat can match.
+// nobody).
+//
+// gorge resolves the same grammar over every living seat and acts on EACH
+// match, while the ref is one seat. Several linked cards in ONE seat's exile
+// agree (gorge asks that seat once). A SECOND seat holding a linked card is
+// the shape the ref cannot represent: it latches StallLowering (an
+// unreachable shape, never a silent divergence) and the first seat is
+// returned. The corpus carrier (Unidentified Hovership's leave trigger,
+// TargetMax$ 1) exiles at most one card, so no seat but one ever matches.
 func (s *State) exiledWithOwnerSeat(ctx evalCtx) uint8 {
 	if ctx.src == NoObj {
 		return 255
@@ -359,18 +352,25 @@ func (s *State) exiledWithOwnerSeat(ctx evalCtx) uint8 {
 	if ctx.e != nil {
 		trig, fire = ctx.e.kind == seTrigger, ctx.e.srcVer
 	}
+	first := uint8(255)
 	for p := 0; p < int(s.nSeats()); p++ {
 		if s.out(uint8(p)) {
 			continue
 		}
 		pl := &s.pl[p]
 		for j := 0; j < int(pl.exileN); j++ {
-			if s.exwHas(pl.exile[j], ctx.src, trig, fire) {
-				return uint8(p)
+			if !s.exwHas(pl.exile[j], ctx.src, trig, fire) {
+				continue
 			}
+			if first == 255 {
+				first = uint8(p)
+			} else if first != uint8(p) {
+				s.capFull(StallLowering) // a second seat holds a linked card: gorge acts on every seat, the ref names one
+			}
+			break
 		}
 	}
-	return 255
+	return first
 }
 
 func init() { stallNames[StallExiledWith] = "exiledwith" }

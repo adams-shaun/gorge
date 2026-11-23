@@ -38,6 +38,7 @@ Boots of Speed
 Borborygmos
 Brainspoil
 Bristling Hydra
+Broken Dam
 Buoyancy
 Burning Sun's Fury
 Burst of Speed
@@ -91,6 +92,7 @@ Eiganjo Exemplar
 Electrosiphon
 Elemental Augury
 Elephant Resurgence
+Elfhame Sanctuary
 Ellivere of the Wild Court
 Emeria, the Sky Ruin
 Epiphany at the Drownyard
@@ -142,6 +144,7 @@ Grisly Survivor
 Grizzled Leotau
 Gruesome Scourger
 Guan Yu, Sainted Warrior
+Guardian of the Gateless
 Guardians of Oboro
 Guilty Conscience
 Halberdier
@@ -222,6 +225,7 @@ Ossuary Rats
 Pang Tong, "Young Phoenix"
 Pardic Swordsmith
 Pearl Medallion
+Phantasmal Terrain
 Phantom Centaur
 Phyrexian Colossus
 Phyrexian Delver
@@ -231,6 +235,7 @@ Pincer Spider
 Pinnacle of Rage
 Plains
 Popular Entertainer
+Porcelain Zealot
 Predator's Rapport
 Pyrrhic Revival
 Quicksilver Amulet
@@ -310,6 +315,7 @@ Theros Charm
 Thornwatch Scarecrow
 Titanium Man
 Tolarian Entrancer
+Took Reaper
 Tortured Existence
 Transguild Courier
 Traveling Philosopher
@@ -359,6 +365,7 @@ Wyrm's Crossing Patrol
 Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
+Zelyon Sword
 Zephyr Net
 Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist

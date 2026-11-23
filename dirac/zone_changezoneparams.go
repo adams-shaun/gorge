@@ -44,7 +44,7 @@ func (s *State) millTop(p uint8, n int, c int) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
 }
@@ -78,7 +78,7 @@ func (s *State) millOp(k *prep, in *kop.Instr) bool {
 			pl.libLo++
 			s.touch(o)
 			s.objs[o].zone = kop.ZoneNone
-			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+			s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 			s.millMark(o, int(in.C))
 		}
 	}
@@ -364,7 +364,7 @@ next:
 				continue next
 			}
 		}
-		if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
+		if !s.tokenLeftBattlefield(o) && !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) { // a token off the battlefield is no card (CR 111.8)
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
@@ -404,7 +404,7 @@ func (s *State) clampDistinctNames(k *prep, in *kop.Instr) {
 					break
 				}
 			}
-			if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+			if dup || s.pickOtherBarred(k, in.F, o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
 				continue
 			}
 			if n < len(seen) {

@@ -12,6 +12,7 @@ Baseball Bat	3d8de30527de66a5	3	3/3		0/1	ix:resp
 Bashful Beastie	48ae72be72a60c09	6	1/1		0/1	ix:resp
 Bear Trap	84c11baf5d45f604	4	1/1		0/1	ix:resp
 Beastie Beatdown	feba4f988dfa9075	27	0/0		2/2	
+Bedhead Beastie	dd4e8769cb2c74be	3	1/1		0/1	ix:resp
 Betrayer's Bargain	d676d58f3fe93619	5	0/0		2/2	
 Blazemire Verge	a73db51c9fa14694	15	2/2		0/1	ix:resp
 Bleeding Woods	077a898a3203d61d	4	1/1		0/1	ix:resp
@@ -31,6 +32,7 @@ Conductive Machete	00b704910893c666	4	2/2		0/1	ix:resp
 Coordinated Clobbering	f5ec29d106107e73	4	0/0		1/2	ix:resp
 Cracked Skull	4fd6e5b0a41d5031	4	2/2		1/2	ix:resp
 Creeping Peeper	cd210f9a7a708185	10	1/1		0/1	ix:resp
+Cult Healer	a70a5e39397ec42a	64	2/2		0/1	ix:resp
 Cursed Recording	9ad02f6e62247dae	4	2/2		0/1	ix:resp
 Cursed Windbreaker	24a29e4c6fc5d243	6	2/2		1/1	
 Cynical Loner	2cdf64edf1ac0f35	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -94,6 +96,7 @@ Gloomlake Verge	2b937bf8904d284c	36	2/2		0/1	ix:resp
 Grab the Prize	cc605a6d62df3c14	4	0/0		1/2	ix:resp
 Grand Entryway	ae6f8b2dbbf5a633	4	2/2		0/1	ix:resp
 Grasping Longneck	6492594225186ff2	4	1/1		0/1	ix:resp
+Growing Dread	0fb9bb0239435edc	44	2/2		1/1	
 Hand That Feeds	aa6cf6bcc53ceb66	6	1/1		0/1	ix:resp
 Hardened Escort	21b05b149868ac20	4	1/1		0/1	ix:resp
 Haunted Screen	ff496b6c310db187	6	3/3		0/1	ix:resp
@@ -138,6 +141,7 @@ Neglected Manor	7683b951635e381e	3	1/1		0/1	ix:resp
 Norin, Swift Survivalist	a31917a3160b5c56	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Oblivious Bookworm	84ffd180649a9ed6	44	1/1		0/1	ix:resp
 Omnivorous Flytrap	f9a5a0f85017dcf5	26	2/2		0/1	ix:resp
+Optimistic Scavenger	c5467c4aff6db05b	51	2/2		1/1	
 Overlord of the Balemurk	8846f417c01f8d51	4	2/2		1/3	cast/alt:none,ix:resp
 Overlord of the Boilerbilges	8ef1c2a03d1c7503	5	2/2		2/3	ix:resp
 Overlord of the Floodpits	a875a526978b75c1	4	2/2		2/3	ix:resp
@@ -176,11 +180,13 @@ Scrabbling Skullcrab	f2dcdf71ffae20ee	62	2/2		1/1
 Seized from Slumber	154c9a0e3197acb4	3	0/0		1/2	ix:resp
 Shardmage's Rescue	4a2002ba91452373	4	0/0		1/2	ix:resp
 Sheltered by Ghosts	dd4ac65e51635908	4	1/1		1/2	ix:resp
+Shepherding Spirits	d16db6559fd51d14	5	1/1		0/1	ix:resp
 Shrewd Storyteller	a1f7418d52385b3f	4	1/1		0/1	ix:resp
 Shroudstomper	c5687fa4e9c9dc61	3	2/2		0/1	ix:resp
 Silent Hallcreeper	5d4598b0031afae9	3	1/1		0/1	ix:resp
 Slavering Branchsnapper	3257e9570a50d05f	7	1/1		1/1	
 Smoky Lounge	7ecc574e897abdc8	4	2/2		0/1	ix:resp
+Spectral Snatcher	c3a32a3d47069c4a	3	2/2		0/1	ix:resp
 Spineseeker Centipede	0c5049eff1b5f439	4	1/1		0/1	ix:resp
 Split Up	02787bd3216d25be	4	0/0		1/2	ix:resp
 Splitskin Doll	9565d946514b0916	4	1/1		0/1	ix:resp

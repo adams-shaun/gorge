@@ -17,9 +17,9 @@ import (
 
 // Projection limits.
 const (
-	MaxInst  = dirac.MaxObj // card instances (Ref 0..MaxInst-1)
-	MaxStack = 48           // dirac.MaxStack: every kernel stack entry is compared
-	MaxTgts  = 4            // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
+	MaxInst  = dirac.MaxObj   // card instances (Ref 0..MaxInst-1)
+	MaxStack = dirac.MaxStack // every kernel stack entry is compared
+	MaxTgts  = 4              // kop.MaxTargets is 5, but a choose-two Command projects <= 3 targets
 )
 
 // Zone codes (gorge's state.Zone numbering).
@@ -392,6 +392,22 @@ func nameHash(s string) uint32 {
 // layer-applied values engine/view projects) directly: view.ProjectInto
 // carries the same fields as strings and maps, and the oracle runs at every
 // decision, so it reads the source the view itself reads.
+// projectBlockers records on each of attacker o's blockers (instance inst) the
+// attacker it blocks. A blocker off the battlefield carries no block: the block
+// window may sacrifice a declared blocker before the declaration commits
+// (completeBlockPay), leaving a stale entry in BlockedBy for a creature that
+// blocks nothing (the attacker stays blocked, CR 509.1h).
+func projectBlockers(g *state.Game, id *identity, p *Projection, o *state.Object, inst int) {
+	for _, b := range o.BlockedBy {
+		if ob := g.Obj(b); ob == nil || ob.Zone != state.ZBattlefield {
+			continue
+		}
+		if bi := id.ref(g, b); bi < MaxInst && p.Cards[bi].Blocks == RefNone {
+			p.Cards[bi].Blocks = Ref(inst)
+		}
+	}
+}
+
 func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr string) {
 	g := e.G
 	id.sync(g)
@@ -472,11 +488,7 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 				}
 			}
 			c.AttachedTo = id.ref(g, o.AttachedTo)
-			for _, b := range o.BlockedBy {
-				if bi := id.ref(g, b); bi < MaxInst && p.Cards[bi].Blocks == RefNone {
-					p.Cards[bi].Blocks = Ref(inst)
-				}
-			}
+			projectBlockers(g, id, p, o, inst)
 		}
 		for _, ct := range o.Counters {
 			if o.Zone == state.ZHand || o.Zone == state.ZGraveyard || o.Zone == state.ZLibrary {
@@ -633,9 +645,18 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 // copy's "except it has myriad" or Clone AddTriggers$ trigger
 // (copyGrantedTriggerOf, copyAddTriggerOf) or a trigger a Clone's
 // GainThisAbility$ kept on the copy (cloneKeptTriggerOf).
+//
+// A trigger the copy basis's printed face already holds is no such grant but
+// a copiable value (CR 707.2) the kernel lists under the copied card: a
+// Cryptoplasm copy of Battle Angels of Tyr that kept its own upkeep trigger
+// carries the copied card's Myriad keyword trigger at its printed index
+// beside the appended one, and it is named 0x80|that index, not 255.
 func grantedTriggerAt(m *Matchup, g *state.Game, o *state.Object, ab uint8) bool {
 	if ab&0x80 == 0 || ab == 255 {
 		return false
+	}
+	if n := rootTriggerCount(g, o); n >= 0 && int(ab&0x7F) < n {
+		return false // printed on the copy basis's face: a copiable value, the kernel lists it under the copied card
 	}
 	if printsTriggersOf(m, o.Face()) {
 		return false // a plain copy of a card that prints its triggers (Mirror Image as Herald of the Host): the kernel lists them under the copied card

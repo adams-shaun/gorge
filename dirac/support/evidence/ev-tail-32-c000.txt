@@ -53,6 +53,7 @@ Brand
 Brawl-Bash Ogre
 Brood Birthing
 Bull Hippo
+Bushi Tenderfoot
 Cartouche of Zeal
 Cast Down
 Castaway's Despair
@@ -106,6 +107,7 @@ Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Echo Storm
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
@@ -114,6 +116,7 @@ Elspeth Tirel
 Elvish Eulogist
 Encroach
 Endurance Bobblehead
+Entangler
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
@@ -164,6 +167,7 @@ Goblin Bombardment
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
+Gravespawn Sovereign
 Griffin Protector
 Grip of Desolation
 Grollub
@@ -283,6 +287,7 @@ Proven Combatant
 Provoke
 Psychic Spear
 Pygmy Pyrosaur
+Quickchange
 Quicksilver Dagger
 Radiant Fountain
 Raging Spirit
@@ -376,6 +381,7 @@ Traumatic Revelation
 Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion

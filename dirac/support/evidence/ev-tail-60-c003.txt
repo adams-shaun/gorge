@@ -204,6 +204,7 @@ Skin Invasion
 Skinwing
 Sky Terror
 Skyreach Manta
+Smiting Helix
 Soltari Emissary
 Spectral Guardian
 Spider Spawning

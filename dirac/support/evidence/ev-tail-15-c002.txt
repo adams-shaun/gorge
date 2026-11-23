@@ -135,6 +135,7 @@ Goblin Warchief
 Goliath Spider
 Gorma, the Gullet
 Grandmother Sengir
+Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
@@ -257,7 +258,6 @@ Raise the Draugr
 Rakdos Ickspitter
 Ransom Note
 Raven Familiar
-Ray of Revelation
 Reckless Amplimancer
 Reckless Scholar
 Reclaiming Vines

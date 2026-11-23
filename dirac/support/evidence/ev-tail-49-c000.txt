@@ -32,6 +32,7 @@ Avaricious Dragon
 Axegrinder Giant
 Bad Moon
 Balan, Wandering Knight
+Ballista Squad
 Barbarian Outcast
 Batroc the Leaper
 Batterbone
@@ -134,6 +135,7 @@ Escape Velocity
 Eternity Vessel
 Ever After
 Evernight Shade
+Evil Twin
 Exhaustion
 Expedite
 Extinguish the Light
@@ -231,7 +233,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Kuldotha Rebirth
 Lantern Spirit
 Lantern of Revealing
@@ -433,7 +434,6 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
-Thunderscape Master
 Tide Skimmer
 Tidings
 Torment
@@ -482,6 +482,7 @@ Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Wirewood Lodge
+Woodcloaker
 Woodland Wanderer
 Woodwraith Strangler
 Wose Pathfinder

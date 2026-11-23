@@ -82,8 +82,19 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	// afford a credited residual the census refuses, and a Thalia-style
 	// increase prices the offer the cast must pay
 	cost = s.adjustCost(k, p, c, o, cost)
-	ok := s.affordsFor(k, p, &cost) || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) ||
-		s.painCastAffords(k, p, &cost)
+	winOK := s.affordsFor(k, p, &cost)
+	painOK := s.painCastAffords(k, p, &cost)
+	ok := winOK || s.ctrWindowAffords(k, p, &cost) || s.restrCastAffords(k, p, o, &cost) || s.filterCastAffords(k, p, o, &cost) || painOK
+	// The window's pain read is an over-bound (painAvailMask's availWin arm:
+	// a pain-only source's colour with no lethal guard, gorge's shared
+	// windowManaUnitsWith census), so the window alone affording is no offer:
+	// gorge's askMadnessCast gate still runs provenUnpayable, whose planner
+	// census (painCastAffords' availFor, lethal guard included, CR 119.4) a
+	// pain-only funding turns "insufficient", and whose proof legs below drop
+	// the offer exactly as gorge's does
+	if ok && winOK && !painOK && !credited && s.madnessPainDenied(k, p, o, &cost) {
+		return false
+	}
 	var stall uint8
 	if !ok {
 		if credited {
@@ -94,7 +105,7 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 			// drop is final for the madness cast, so it declares it rather
 			// than losing the offer silently (tapXScript's shape)
 			ok, stall = s.windowAffords(k, p, &cost)
-			if !ok && (k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any()) || s.sacOtherManaLive(k, p)) {
+			if !ok && (k.gen != nil && (k.gen.anyCondSplit || s.scriptTapsDefer(k, p).any() || k.gen.anyFilt && s.filtHybIn(k, s.scriptFilt(k, p))) || s.sacOtherManaLive(k, p)) {
 				// gorge prices the madness cast against the potential pool
 				// too, which counts a source the census defers (mana_condsplit.go's
 				// River of Tears, and a Taps-deferred one: Burning Earth beside
@@ -103,7 +114,12 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 				// unpayable, mana_tapsdefer.go), and one that sacrifices another
 				// permanent for its mana (Jungle Patrol's "Sacrifice a token
 				// named Wood: Add {R}", potentialGapCost's CostSac arm; CR
-				// 601.2g); without either the census and window say the same.
+				// 601.2g), and a hybrid-fee filter whose fee is no floating
+				// mana (Sunken Ruins' "{U/B}, {T}: Add {U}{U}, {U}{B}, or
+				// {B}{B}": a paid gap gorge's census cannot relax, so its
+				// "insufficient" is never a proof, and a tap of another land
+				// pays the fee, CR 605.3a); without any the census and window
+				// say the same.
 				// The over-bound alone is gorge's offerCastablePotential leg:
 				// its gate still runs provenUnpayable (altcast.go askMadnessCast),
 				// whose verdict here is the failed probe's "insufficient" and
@@ -133,6 +149,31 @@ func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 		return false
 	}
 	return s.spellTargetsFeasible(k, c, p)
+}
+
+// madnessPainDenied: the unless-window census affordsFor reads lists a
+// pain-only source (Centaur Garden's "{T}: Add {G}. It deals 1 damage to you")
+// with no lethal guard, but gorge's askMadnessCast gate drops the offer when
+// its planner finds the cost insufficient and the census is complete
+// (provenUnpayable): the planner never takes a payment whose damage would
+// kill its payer (CR 119.4; payment_plan.go's lethal guard). The window read
+// alone afforded the cost, the planner's census (painCastAffords, lethal
+// guard included) does not, and no gap stands in the proof's way.
+func (s *State) madnessPainDenied(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	if !k.painMana {
+		return false
+	}
+	// gorge provenUnpayable's legs, over the same census gaps the arms above
+	// read (madnessDeferProofClass): a planner-deferred, restricted, paid
+	// filter, counter-cost or sacrificed-other source is a gap the planner's
+	// census leaves unpriced, so its "insufficient" is no proof (the offer
+	// stays, priced on the potential bound); a complete census's own
+	// "insufficient" is, and the relaxed-alternative and count proofs cover
+	// the incomplete ones whose gaps gain nothing
+	complete, relaxable, gains := s.madnessDeferProofClass(k, p, o)
+	return complete ||
+		relaxable && s.madnessRelaxProven(k, p, o, cost) ||
+		!gains && s.madnessCountProven(k, p, o, cost)
 }
 
 // madnessDeferProofClass classes p's census gaps for the creditless madness
@@ -210,7 +251,10 @@ func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relax
 		// a tap trigger that adds mana beside a source's tap makes a production
 		// no census unit prices (CR 605.4a)
 		if k.gen.anyTapExtra {
-			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
+			pc := s.windowGrantPC(k, sl)
+			// an all-at-once source's reflected pick (srcEachPick) is no unit
+			// of this proof either: gorge defers the source
+			if _, hit := s.srcExtraHit(k, sl, pc); hit || s.srcEachPick(k, sl, pc) > 0 {
 				complete, relaxable, gains = false, false, true
 			}
 		}
@@ -456,7 +500,7 @@ func (s *State) madnessWindowLive() bool {
 func (s *State) madnessReversed(o Obj) {
 	if s.objs[o].zone == kop.ZoneExile {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneGraveyard, false, from, false)
+		s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false)
 	}
 }
 

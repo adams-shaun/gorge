@@ -401,6 +401,7 @@ Spell Swindle
 Spellbound Dragon
 Sphere of Resistance
 Spined Karok
+Spirit Shield
 Spiteful Prankster
 Split-Tail Miko
 Sprouting Goblin
@@ -413,7 +414,6 @@ Stir the Sands
 Stronghold Overseer
 Summon Undead
 Sundering Eruption
-Sunscape Master
 Svyelunite Priest
 Swamp
 Swarm Surge
@@ -452,6 +452,7 @@ Torch Courier
 Treasury Thrull
 Treva's Ruins
 Triceraton Regenta
+Truth or Consequences
 Tuktuk Scrapper
 Tymna the Weaver
 Tyrant's Machine

@@ -165,6 +165,7 @@ Galvanic Blast
 Garruk's Harbinger
 Gate of the Black Dragon
 Gearsmith Prodigy
+Genesis of the Daleks
 Geosurge
 Giant Cockroach
 Gift of Estates
@@ -374,6 +375,7 @@ Shambleshark
 Shard of the Void Dragon
 Shatter
 Shimmering Barrier
+Shyft
 Sigarda, Font of Blessings
 Sigiled Behemoth
 Silvos, Rogue Elemental
@@ -415,6 +417,7 @@ Syndicate Heavy
 Tactical Advantage
 Take into Custody
 Talara's Battalion
+Tanuki Transplanter
 Tapestry of the Ages
 Tectonic Rift
 Tenement Crasher

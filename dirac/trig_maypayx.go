@@ -90,7 +90,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 				one = t // the restricted sources a non-spell payment may spend count once each too
 			}
 		}
-		mx = min(mx, one.total-s.trigXFiltExcess(k, p))
+		mx = min(mx, one.total+s.trigXLethalPain(k, p)-s.trigXFiltExcess(k, p))
 	}
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
@@ -109,10 +109,13 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 // ability has no free tap in gorge's census and is priced net of its fee by
 // triggeredCostXPaidNet, so it keeps its units here.
 func (s *State) trigXFiltExcess(k *prep, p uint8) int {
-	if k.gen == nil || !k.gen.anyFilt || k.gen.anyFiltFirst {
+	if k.gen == nil || !k.gen.anyFilt {
 		return 0
 	}
-	return s.filtBoundExtra(k, p)
+	// the first-and-only test is per card: anyFiltFirst is only the table's
+	// "some card has one", and a Mystic Gate beside such a card still has its
+	// free tap
+	return s.filtBoundExtraSkip(k, p, true)
 }
 
 // trigXTapExtras is the mana the controller's tap triggers add across every
@@ -140,6 +143,13 @@ func (s *State) trigXTapExtras(k *prep, p uint8) (n int) {
 				np += int(xp[c])
 			}
 			n += max(nc, np)
+			continue
+		}
+		if s.srcEachPick(k, sl, pc) > 0 {
+			// the pick floats unasked (nothing poses its colour ask yet);
+			// srcExtra reads the production alone, so the bound would be one
+			// short and the ask options smaller than gorge's
+			s.capFull(StallTapExtra)
 			continue
 		}
 		for _, v := range s.srcExtra(k, sl, pc) {

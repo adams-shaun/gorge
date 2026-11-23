@@ -47,7 +47,6 @@ Eye of Ugin
 Feeling of Dread
 Feral Prowler
 Feroz's Ban
-Fire Dragon
 Firebreathing
 Flare of Denial
 Flower
@@ -165,6 +164,5 @@ Voyaging Satyr
 Warmonger
 Wellwisher
 Whipstitched Zombie
-Wormhole Serpent
 Zephid
 Zof Consumption

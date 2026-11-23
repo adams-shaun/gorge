@@ -10,6 +10,7 @@ Barrier Breach	5e7933b162e2d6bd	3	1/1		1/2	ix:resp
 Bloodthirsty Aerialist	61faf54556940fd1	10	1/1		0/1	ix:resp
 Brawl-Bash Ogre	61090b900dad4022	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bull Hippo	555877f6a29d6648	3	0/0		0/0	
+Bushi Tenderfoot	0e239a08368a4403	4	3/3		0/1	ix:resp
 Celestial Purge	fc7614349e489e95	4	0/0		1/2	ix:resp
 Champion of Wits	e56fd3fab5a9a1ee	27	2/2		0/1	ix:resp
 Cognivore	067dffb8c72cd043	4	0/0		0/0	
@@ -23,6 +24,8 @@ Demon of Loathing	e06d1882a2b202ad	4	1/1		0/1	ix:resp
 Deploy the Gatewatch	6018c9bff07904ba	6	0/0		1/2	ix:resp
 Dismiss	98c54a5dacadbdcc	6	0/0		1/2	ix:resp
 Dryad Greenseeker	10da06049d9715a6	4	1/1		1/1	
+Echo Storm	8ae44a28bdc227ec	26	1/1		2/2	
+Entangler	4bd6de1854dc29ef	4	0/0		1/2	ix:resp
 Feral Abomination	f1081f770e37d37f	4	0/0		0/0	
 Frogtosser Banneret	755c354027fd2824	14	0/0		0/0	
 Frostweb Spider	b2db8676c700f7e1	4	1/1		0/1	ix:resp
@@ -32,6 +35,7 @@ Ghost-Lit Stalker	6ad4be817d1f4b90	5	2/2		0/1	ix:resp
 Ghost-Spider, Gwen Stacy	3364cd27780b8394	10	1/1		0/1	ix:resp
 Gisa's Bidding	222d17a4cd4c92c6	6	0/0		1/2	ix:resp
 Go-Shintai of Shared Purpose	2e513825a4c9d0cd	5	1/1		0/1	ix:resp
+Gravespawn Sovereign	7ab74d7b2d80447a	37	1/1		0/1	ix:resp
 Kami of the Hunt	4724dbc55c515a08	6	1/1		0/1	ix:resp
 Knight of Old Benalia	c2e4f7038eb3f6ec	4	1/1		2/3	cast/alt:none
 Kruin Striker	dbb51f5c9bae5ba2	4	1/1		0/1	ix:resp
@@ -47,6 +51,7 @@ Phoenix Chick	9d8ef778dbdb45c5	6	1/1		0/1	ix:resp
 Pious Wayfarer	c2ffbc6dec7b5ccc	4	1/1		0/1	ix:resp
 Prized Statue	3fc6347c4a4dd774	4	2/2		0/1	ix:resp
 Proven Combatant	119011b6cdeb5d6e	10	1/1		1/1	
+Quickchange	2f616499b41a8ad0	8	0/0		1/2	ix:resp
 Radiant Fountain	1e041f359ea30061	7	2/2		0/1	ix:resp
 Raging Spirit	f9ad9a26c24fae84	4	1/1		1/1	
 Rakshasa's Secret	c17edfcfb9c791fb	6	0/0		1/2	ix:resp
@@ -69,6 +74,7 @@ The Unspeakable	ca366311c699b77c	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Titanic Brawl	0c104d2b6ec7008a	5	0/0		1/2	ix:resp
 Triumphant Adventurer	2e29e90ce08f62cd	4	1/1		0/1	ix:resp
 True Conviction	ba3973b3d50957e5	4	0/0		0/0	
+Try-My-Deck Elemental	3840eb4b4177eb05	6	0/0		0/0	
 Unwavering Initiate	29b674f3413a81df	4	1/1		0/1	ix:resp
 Urborg, Tomb of Yawgmoth	b8a5b0958546ca96	11	0/0		0/0	
 Urza's Cave	5eaf7852b36bc0df	10	2/2		0/1	ix:resp

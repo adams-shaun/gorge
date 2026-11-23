@@ -50,6 +50,9 @@ func effStoreSVar(h Host, c *Ctx, sa *cards.SA) {
 	switch effStoreSVarCodes.Code(string(typ)) {
 	case effStoreSVarNumber:
 		// The evaluated forms: NumResolved's grammar covers each.
+	case effStoreSVarAdditiveForEach:
+		storeAdditiveForEach(h, c, sa)
+		return
 	default:
 		// Triggered/Targeted (and anything else) read a property this
 		// primitive does not evaluate; no write, and a loud Note naming the
@@ -72,10 +75,39 @@ type effStoreSVarCode uint16
 
 const (
 	effStoreSVarNumber effStoreSVarCode = iota + 1
+	effStoreSVarAdditiveForEach
 )
 
 var effStoreSVarCodes = state.NewStrCodes(
 	state.StrEntry[effStoreSVarCode]{Key: "Number", Val: effStoreSVarNumber},
 	state.StrEntry[effStoreSVarCode]{Key: "Calculate", Val: effStoreSVarNumber},
 	state.StrEntry[effStoreSVarCode]{Key: "CountSVar", Val: effStoreSVarNumber},
+	state.StrEntry[effStoreSVarCode]{Key: "AdditiveForEach", Val: effStoreSVarAdditiveForEach},
 )
+
+// storeAdditiveForEach is Type$ AdditiveForEach (Plague of Vermin's
+// `SVar$ EachPlayer | Expression$ X`): inside a RepeatEach over players it adds
+// the evaluated Expression$ to the running total kept for the loop's CURRENT
+// player (the newest player entry of Ctx.Remembered), across every round of
+// an enclosing Repeat, so PlayerCountRemembered$SVarAmount reads each seat's
+// own sum back. The total is the seat's runtime SVar svarAmountKey, written
+// through events.StoreSVar like every other store. Outside a player loop, or
+// with an unresolvable Expression$, nothing is written and a Note says so,
+// the same loud degrade as the other types.
+func storeAdditiveForEach(h Host, c *Ctx, sa *cards.SA) {
+	p, ok := rememberedLoopPlayer(c)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "StoreSVar Type$ AdditiveForEach has no loop player (no value stored)"})
+		return
+	}
+	v, ok := NumResolved(h, c, sa, cards.PKExpression.String(), 0)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "StoreSVar Expression$ " + strings.TrimSpace(sa.ParamStr(cards.PKExpression)) +
+				" is not resolvable (no value stored)"})
+		return
+	}
+	h.Emit(events.Event{Kind: events.StoreSVar, Obj: c.Source, Text: svarAmountKey(p),
+		Amount: svarAmountOf(h, c, p) + v})
+}

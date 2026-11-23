@@ -22,6 +22,7 @@ Beast Attack
 Biting Rain
 Blessed Reincarnation
 Blight Sickle
+Blossom Dryad
 Boldwyr Intimidator
 Bolrac-Clan Basher
 Branch of Vitu-Ghazi
@@ -36,6 +37,7 @@ Case the Joint
 Castle
 Chain Lightning
 Champion's Helm
+Chillerpillar
 Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
@@ -108,6 +110,7 @@ Irencrag Pyromancer
 Iron Bully
 Island
 Ixidor, Reality Sculptor
+Kaito Shizuki
 Keen-Eyed Raven
 Keeneye Aven
 Keeper of Kookus
@@ -173,6 +176,7 @@ Selective Memory
 Settle the Score
 Shadowspear
 Shake the Foundations
+Shang-Chi and the Ten Rings
 Sheoldred
 Shore Keeper
 Simic Keyrune

@@ -352,15 +352,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// gorge checkAttackerBlockedTriggers: once per distinct blocked
 		// attacker matching ValidCard$; ValidBlocker$ Card.Self ("whenever
 		// this blocks a creature"), only the attackers the source blocks;
-		// any other ValidBlocker$ (and ValidBlockerAmount$) refuses
+		// any other ValidBlocker$ is a filter over the attacker's blockers
+		// (lower_modeparams.go blockerScope); ValidBlockerAmount$ refuses
 		if tr.F, err = readF("ValidCard"); err != nil {
 			return err
 		}
-		if vb, ok := tp.get("ValidBlocker"); ok {
-			if vb != "Card.Self" {
-				return refuse("AttackerBlocked ValidBlocker %q", vb)
-			}
-			tr.BlockedBySelf = true
+		if err := lc.blockerScope(tp, tr, readF); err != nil {
+			return err
 		}
 	case "AttackerUnblocked":
 		// gorge checkAttackerUnblockedTriggers: at the declare-blockers
@@ -383,10 +381,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// cycle this card" (ValidCard$ Card.Self, no TriggerZones$: it
 		// fires from wherever the discard put it), or a battlefield
 		// "whenever you/a player cycle(s) a card" over the cycled card
-		// and its owner (ValidPlayer$ You); Other/FirstTime$ refuse
+		// and its owner (ValidPlayer$ You); FirstTime$ refuses. Other is no
+		// restriction: the cycled card is in the graveyard it was discarded
+		// to, never the battlefield listener itself (Drannith Stinger)
 		vc := tp.str("ValidCard")
 		self := vc == "Card.Self" && tr.Zone == 0
-		if !self && (tr.Zone != zBattlefield || strings.Contains(vc, "Self") || strings.Contains(vc, "Other")) {
+		if !self && (tr.Zone != zBattlefield || strings.Contains(vc, "Self")) {
 			return refuse("Cycled ValidCard %q TriggerZones %d", vc, tr.Zone)
 		}
 		if tr.F, err = readF("ValidCard"); err != nil {
@@ -423,8 +423,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		//     over the equipped creature (every clause EquippedBy), with no
 		//     ValidPlayer$ (any tapper): Captain America, Living Legend's
 		//     Creature.YouCtrl, Hawkeye's Bow's Creature.EquippedBy, and
-		//     Cryoshatter's Card.AttachedBy (a destroy-self body is vetted
-		//     ordinary, tapsDestroySelf; an unvetted body defers the tap).
+		//     Cryoshatter's Card.AttachedBy (a destroy-self or poison-counter
+		//     body is vetted ordinary, tapsAttachedClass; an unvetted body
+		//     defers the tap).
 		//     A FirstTime$ True line (Captain America, Living Legend) is the
 		//     same watcher with the tapped-this-turn mark consulted first.
 		// FirstTime$ True ("the first time it has become tapped this turn",
@@ -597,6 +598,9 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tp.str("ValidPlayer") == "Player.EnchantedController" {
 			// gorge playerEnchantedController: the bearer's controller
 			w, ok = whoEnchCtrl, true
+		}
+		if tp.str("ValidPlayer") == "Player.isMonarch" {
+			w, ok = whoMonarch, true // lower_monarch.go: the monarch's turn
 		}
 		if tp.str("ValidPlayer") == "Player.Chosen" && lc.granted == 0 && tr.Zone == zBattlefield && entersChoosingPlayer(lc.face) {
 			// the opponent the source chose as it entered (lower_chooseplayerenter.go)
@@ -928,29 +932,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			return refuse("BecomesTarget shape")
 		}
 	case "Drawn":
-		vc := tp.str("ValidCard")
-		switch vc {
-		case "Card.YouCtrl", "Card.YouOwn":
-			tr.Whose = whoYou
-		case "Card.OppOwn", "Card.OppCtrl":
-			// a card being drawn is in its owner's hand, whose controller
-			// is its owner (CR 108.4a; gorge matches OppCtrl on the drawn
-			// object's Controller, its owner's seat): Sheoldred
-			tr.Whose = whoOpp
-		case "":
-			// ValidPlayer$-scoped draws (gorge drawnMatches, trigmatch/cards.go:474):
-			// the drawing player relative to the controller; Number$ counts the
-			// drawer's own draws, as nthDrawOK does
-			switch vp := tp.str("ValidPlayer"); vp {
-			case "Opponent":
-				tr.Whose = whoOpp
-			case "Player":
-				tr.Whose = whoAny
-			default:
-				return refuse("Drawn ValidCard %q ValidPlayer %q", vc, vp)
-			}
-		default:
-			return refuse("Drawn ValidCard %q", vc)
+		if err := lc.drawnScope(tp, tr); err != nil { // lower_modeparams.go
+			return err
 		}
 		if n, ok := tp.get("Number"); ok {
 			tr.NthDraw, _ = strconv.Atoi(n)
@@ -1651,7 +1634,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// a Case's solve gate as the second presence clause (gorge
 		// trigger_condition.go: IsPresent2$ with its own compare, GE1 by
 		// default): only the source's own Solved designation is read
-		if strings.TrimSpace(ip2) != "Card.Self+!IsSolved" && strings.TrimSpace(ip2) != "Card.Self+IsSolved" {
+		if !meldPresent2OK(lc, ip2) {
 			return refuse("IsPresent2$ %q", ip2)
 		}
 		for _, k := range [...]string{"PresentCompare2", "PresentZone2", "PresentDefined2", "PresentPlayer2"} {

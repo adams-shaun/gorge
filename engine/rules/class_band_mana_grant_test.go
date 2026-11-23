@@ -5,7 +5,47 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
+
+// A Class level's granted mana ability is live only from that level (CR 716.2b):
+// Alchemist's Talent's level-2 "Treasures you control have '{T}, Sacrifice this
+// artifact: Add two mana of any one color'" must not reach a Treasure while the
+// Class is still at level 1. The mana scan read the grant without its ClassBand$
+// gate, so gorge offered a {4} activation off two level-1 Treasures (dirac and
+// the printed card: three mana, not affordable).
+func TestClassBandGatesTheGrantedManaAbility(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	talent := mustCorpusCard(t, reg, "Alchemist's Talent")
+
+	e := printedAddabilityEngine(t, talent)
+	talentID := moveCardToBattlefield(t, e, talent)
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 0, Text: "c_a_treasure_sac"})
+	var tok state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.IsToken {
+			tok = id
+		}
+	}
+	if tok == 0 {
+		t.Fatal("precondition: the Treasure token was not minted")
+	}
+	if got := e.G.Obj(talentID).ClassLevel(); got != 1 {
+		t.Fatalf("precondition: Class level = %d, want 1", got)
+	}
+	if got := len(e.availableManaAbilities(0, tok)); got != 1 {
+		t.Fatalf("level 1: Treasure has %d mana abilities, want only its printed add-one", got)
+	}
+
+	e.emit(events.Event{Kind: events.ClassLevelChange, Obj: talentID, Amount: 1})
+	if got := e.G.Obj(talentID).ClassLevel(); got != 2 {
+		t.Fatalf("precondition: Class level = %d after the level-up, want 2", got)
+	}
+	if got := len(e.availableManaAbilities(0, tok)); got != 2 {
+		t.Fatalf("level 2: Treasure has %d mana abilities, want the printed add-one plus the granted add-two", got)
+	}
+}
 
 // CR 716.2: Alchemist's Talent's "Treasures you control have '{T}, Sacrifice
 // this artifact: Add two mana of any one color'" is its level-2 ability. The

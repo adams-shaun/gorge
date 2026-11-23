@@ -78,6 +78,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams
@@ -170,6 +171,7 @@ Paradise Mantle
 Pardic Arsonist
 Patriot, Young Avenger
 Paupers' Cage
+Persistent Petitioners
 Pharika's Libation
 Phyrexian Ghoul
 Pit Imp
@@ -230,6 +232,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spite
 Spontaneous Combustion
@@ -240,7 +243,6 @@ Stone Haven Outfitter
 Stony Strength
 Storm of Memories
 Strategic Intervention
-Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp

@@ -31,6 +31,7 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anyAtkLast {
 		s.atkLastTurnEnd() // the outgoing seat's attacks become its last turn's (trig_atklastturn.go)
 	}
+	s.atkObjReset() // the turn's attacked objects (trig_atkobj.go)
 	s.newTurnGen()
 	if k := s.k(); k.gen != nil && k.gen.anySaddle {
 		s.unsaddleAll(k)
@@ -58,6 +59,9 @@ func (s *State) beginTurn(p uint8) {
 	s.step = kop.StepUntap
 	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
 		s.skipUntapTurn() // a pending untap skip enters the upkeep (act_skipphase.go)
+	}
+	if s.step == kop.StepUntap {
+		s.beginTurnPhaseSkip(s.k()) // a printed untap skip enters the upkeep (repl_beginphase.go)
 	}
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
@@ -183,7 +187,10 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyUntapOther {
 			s.untapOthers(k)
 		}
-		s.step = kop.StepUpkeep
+		// the untap step has no priority round, so its end proposes the next
+		// StepChange here: a printed phase-skip rewrites it (gorge's replacement
+		// pass on the proposal, repl_beginphase.go)
+		s.step = s.phaseSkipNext(k, kop.StepUpkeep)
 	case kop.StepUpkeep:
 		s.upkeepStep(k) // Duration$ UntilYourNextUpkeep ends as the upkeep begins
 		if k.gen != nil && k.gen.anySuspend {
@@ -307,14 +314,22 @@ func (s *State) endStep(next kop.Step) {
 		s.firebendEnd(next) // firebending red survives the combat steps, PersistentMana$ units every step (kw_firebend.go, mana_persistent.go)
 		return
 	}
+	prot := s.unspentProt() // an UnspentMana keep rides this boundary (static_unspentmana.go)
+	var restr [MaxSeats]uint8
 	for p := uint8(0); p < s.nSeats(); p++ {
-		s.pl[p].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(p)
+		s.unspentEmptyPool(p, prot[p])
+		if prot[p] != 0 {
+			// the keep letters protect a slot's restricted batches too
+			// (gorge foldManaClear: r.Persistent || keep[slot])
+			s.rbKeep(p, prot[p], true)
+			if s.rbAny(p) {
+				restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+			}
+		} else {
+			s.rbClear(p)
+		}
 	}
-	s.g.poolArt = [MaxSeats]uint8{}
-	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-	s.artNClearAll()
-	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+	s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -349,6 +364,9 @@ func (s *State) advance(k *prep) {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
 	} else if k.gen != nil && k.gen.anySkipPhase {
 		next = s.skipCombatNext(next, false) // act_skipphase.go
+	}
+	if k.gen != nil && k.gen.anyBeginPhase {
+		next = s.phaseSkipNext(k, next) // the printed phase-skips (repl_beginphase.go)
 	}
 	s.endStep(next)
 }
@@ -448,15 +466,23 @@ func (s *State) finishCleanup(k *prep) {
 		// 514.3a priority in it can still spend them (mana_persistent.go)
 		s.persistEmpty(true)
 	} else {
+		prot := s.unspentProt() // an UnspentMana keep rides the cleanup boundary too
+		var restr [MaxSeats]uint8
 		for p := uint8(0); p < s.nSeats(); p++ {
-			s.pl[p].pool = [kop.NumManaKinds]uint8{}
-			s.rbClear(p)
+			s.unspentEmptyPool(p, prot[p])
+			if prot[p] != 0 {
+				// the keep letters protect a slot's restricted batches too
+				// (gorge foldManaClear: r.Persistent || keep[slot])
+				s.rbKeep(p, prot[p], true)
+				if s.rbAny(p) {
+					restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+				}
+			} else {
+				s.rbClear(p)
+			}
 		}
-		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
-		s.g.poolArt = [MaxSeats]uint8{}
-		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-		s.artNClearAll()
-		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+		s.fbR = [MaxSeats]uint8{}  // already 0 (end of combat dropped it); explicit
+		s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
@@ -548,17 +574,21 @@ func (s *State) sba(k *prep) bool {
 		s.dropUncounterGone() // a protected spell that left the stack (repl_uncounterable.go)
 	}
 	for {
+		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
 		if s.cmdZoneAsk() { // CR 903.9a, before the lose checks (zone_cmdzone.go)
 			return true
 		}
-		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
+		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) && !s.retAuraAskQueued() {
 			// state-based checks unattach (each pass: a host that died in
 			// the last one too), and a casualty's parked ask or a legend ask
 			// is still that pass (CR 704.3, 704.5n, 704.5p): gorge's check
-			// returns at its first order ask and its answer re-enters it
+			// returns at its first order ask and its answer re-enters it. A
+			// returning Aura's host ask (queueAskRet) is posed in the middle
+			// of the batch that returned it, before the next pass: the
+			// departed host's Equipment stays attached until it is answered
 			s.lingerDrain(k)
 		}
 		// gorge's loss order (checkLoseConditions): every life loss, then
@@ -673,7 +703,7 @@ func (s *State) sba(k *prep) bool {
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
 				if !s.duel() {
-					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+					s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
@@ -702,7 +732,7 @@ func (s *State) sba(k *prep) bool {
 			}
 			// CR 800.4a: the departed seats' objects left, at the pass end
 			// (gorge sweepDepartedPlayers runs after every pass's batch)
-			if !s.duel() && s.sweepDeparted(k) {
+			if !s.duel() && s.sweepDeparted(k, pre) {
 				continue
 			}
 			return s.sbaClean(k)
@@ -712,7 +742,7 @@ func (s *State) sba(k *prep) bool {
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
 			if !s.duel() {
-				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+				s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 			}
 			s.legDie = die
 			s.legSaga = s.sagasDue(k)
@@ -757,7 +787,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
-		if !s.duel() && s.sweepDeparted(k) {
+		if !s.duel() && s.sweepDeparted(k, pre) {
 			continue
 		}
 		if askAfter && s.parkedWaiting() {
@@ -1189,8 +1219,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if k.gen != nil && k.gen.anyWarp && s.objs[ref].zone == kop.ZoneExile {
 			s.warpRecastGrant(ref)
 		}
-	case kop.OpBounce, opDashReturn:
-		s.leave(k, sl, kop.ZoneHand, false) // opDashReturn: CR 702.109a's end-step return (kw_dash.go)
+	case opDashReturn:
+		s.dashReturn(k, sl) // CR 702.109a's end-step return (kw_dash.go)
+	case kop.OpBounce:
+		s.leave(k, sl, kop.ZoneHand, false)
 	default:
 		panic("kernel: delayed trigger action not implemented: " + kop.Op(e.trigAmt).String())
 	}
@@ -1245,11 +1277,15 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 			cand = s.ctrlM[p] // a derived Legendary is not in legM (printed types only)
 		}
 		no := s.battlefieldOrder(p, cand, ord[:], 0)
+		lgEx := k.gen != nil && k.gen.uses.has(useLgExempt)
 		n := 0
 		for i := 0; i < no; i++ {
 			sl := ord[i]
 			if s.typesAt(k, sl)&kop.TLegendary == 0 {
 				continue
+			}
+			if lgEx && s.legendExemptGen(k, sl) {
+				continue // the legend rule doesn't apply to it (CR 704.5j; static_ignorelegendrule.go)
 			}
 			nm := s.legendName(k, sl) // by name: Witness Protection renames (CR 704.5j; pair 28);
 			// token cards of different scripts that print the same name are one

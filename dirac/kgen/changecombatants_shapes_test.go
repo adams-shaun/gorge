@@ -6,7 +6,8 @@ import "testing"
 // shape over one target lowers to the ChangeCombatants extension (Misleading
 // Signpost, Portal Mage); every other corpus shape refuses by name so the
 // census keeps a reason instead of a bare api blocker. Tuvok and Windshaper
-// Planetar carry Optional$ True (gorge reads it as mandatory), Capricopian and
+// Planetar carry Optional$ True (a per-attacker confirm the kernel does not
+// lower), Capricopian and
 // Portal Manipulator carry an Attacking$ value gorge resolves as a Note, and
 // Tahngarth's .Defending form is the same Note route.
 var changeCombatantsForms = []formCase{

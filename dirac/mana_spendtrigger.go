@@ -75,6 +75,46 @@ func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
 	}
 }
 
+// planNoteTap is noteTapSrc for the planner's tap of sl making col. Under a
+// granted any-colour ability (Path of Ancestry beside Chromatic Lantern) gorge's
+// witness activates the granted ability for the source (planned witnesses list
+// the grant), and TriggersWhenSpent$ rides the producing printed ability's
+// batch only, so the cast reads no rider (CR 106.3, 603.2; pair 22: Rogue
+// Refiner beside Aetherflux Conduit). DebugGrantRiderMutate makes the tap
+// count regardless.
+func (s *State) planNoteTap(k *prep, sl Slot, col int) {
+	pc := &k.cards[s.cardAt(sl)]
+	if pc.castSrc&csObserved != 0 && DebugGrantRiderMutate == 0 && s.grantMakes(k, sl, col) {
+		return
+	}
+	s.noteTapSrc(k, pc, sl)
+}
+
+// DebugGrantRiderMutate is the lockstep mutation switch (test only): 1 a
+// granted ability's tap counts for the printed ability's rider.
+var DebugGrantRiderMutate uint8
+
+// grantMakes reports whether a granted mana ability admitted for the payment
+// being built makes colour col at sl.
+func (s *State) grantMakes(k *prep, sl Slot, col int) bool {
+	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) {
+		return false
+	}
+	var gi [maxGrants]int16
+	n := s.grantIdxs(k, sl, &gi)
+	if n == 0 {
+		return false
+	}
+	d := s.payDescNow(NoObj)
+	n = s.grantsAdmitted(k, sl, &gi, n, &d)
+	for i := 0; i < n; i++ {
+		if s.srcMaskAt(s.grantView(k.gen, gi[i], sl), sl)&(1<<uint(col)) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // plainObs: the observed source at sl is read only by its own SpellCast rider
 // (castProvOK): no rider-haste grant (manaHasteRider) and no deferred source
 // (fireDeferredRider, deferredSpent), the readers that take obsSl alone.

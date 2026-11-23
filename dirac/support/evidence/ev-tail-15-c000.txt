@@ -144,6 +144,7 @@ Flooded Grove
 Floodwater Dam
 Flowstone Strike
 Force of Nature
+Foreboding Statue
 Forest
 Foundry Street Denizen
 Free from Flesh
@@ -164,6 +165,7 @@ Goblin Warchief
 Goliath Spider
 Gorma, the Gullet
 Grandmother Sengir
+Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
@@ -234,6 +236,7 @@ Lose Calm
 Lumengrid Warden
 Lychguard
 Madame Hydra, Reanimated
+Mage Hunters' Onslaught
 Magic Missile
 Magus of the Disk
 Makeshift Mauler
@@ -252,6 +255,7 @@ Mask of the Jadecrafter
 Maze Skullbomb
 Mending Hands
 Messenger Drake
+Meticulous Excavation
 Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
@@ -281,6 +285,7 @@ Nightstalker Engine
 Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Noxious Assault
 Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
@@ -320,7 +325,6 @@ Rakdos Ickspitter
 Ransom Note
 Rapid Hybridization
 Raven Familiar
-Ray of Revelation
 Reaver Drone
 Reckless Amplimancer
 Reckless Scholar
@@ -333,6 +337,7 @@ Remove Soul
 Rending Flame
 Retreat to Hagra
 Rhox Bodyguard
+Rimescale Dragon
 Ring of Evos Isle
 Rise Again
 Roadside Reliquary

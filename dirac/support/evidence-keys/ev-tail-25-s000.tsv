@@ -23,6 +23,7 @@ Bulwark	2980465ff461e019	17	1/1		0/1	ix:resp
 Bumbleflower's Sharepot	1876816fa8a361bd	536	2/2		1/1	
 Cache Grab	f9493d496beba169	248	0/0		2/2	
 Capture of Jingzhou	c7fb69ca82d85833	18	0/0		2/2	
+Carry Away	f1067611103f8fda	4	1/1		1/2	ix:resp
 Cat Burglar	0696c02150892d22	22	1/1		1/1	
 Celebrate the Harvest	5fbb01ff39eff446	7	0/0		2/2	
 Chamber Sentry	71bd91e2be766705	56	2/2		0/1	ix:resp
@@ -103,11 +104,13 @@ Kamber, the Plunderer	efa465ee002f6556	11	2/2		0/1	ix:resp
 Kederekt Parasite	bacc1f2e2ab14bcf	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Khalni Heart Expedition	42b0df3222cddaf9	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Kjeldoran Gargoyle	4ea5b58f403addb9	13	1/1		1/1	
+Kor Spiritdancer	475b690b81602848	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Labyrinth of Skophos	f330b671049c0e49	223	2/2		1/1	
 Leeching Sliver	f0632ef45814734e	10	1/1		0/1	ix:resp
 Leering Gargoyle	f63b662b7fc3709d	6	1/1		1/1	
 Llanowar Mentor	25821a67aaf48219	27	1/1		0/1	ix:resp
 Magnus the Red	73060a0f62ff0999	8	1/1		0/1	ix:resp
+Magus of the Library	51dff5c468be1095	18	2/2		1/1	
 Makindi Stampede	b0c4992494a39d8d	16	1/1		1/2	ix:resp
 Marsh Flitter	cd134f8ba7a0079d	22	2/2		1/1	
 Master Trinketeer	f4cf75a532c2b647	9	1/1		1/1	
@@ -142,6 +145,7 @@ Phantom Nomad	c68f1be63b8e1973	12	0/0		0/0
 Plague Wight	5264a5fb69556b9b	32	1/1		0/1	ix:resp
 Plains	82d63a695487e567	553	1/1		0/1	ix:resp
 Pouncing Cheetah	e47f9929490889a3	28	0/0		0/0	
+Power Taint	0df2231c7a435a9e	4	2/2		2/2	
 Prophet of Kruphix	b09551353210e3b7	13	0/0		0/0	
 Prowler, Misguided Mentor	c15781daed17e55c	16	1/1		0/1	ix:resp
 Pyromancer's Gauntlet	07ad9ab057846ee9	4	0/0		0/0	

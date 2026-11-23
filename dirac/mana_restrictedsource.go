@@ -80,9 +80,21 @@ type payDesc struct {
 	// potential gate price a pdOther payment with the battery unbounded, as
 	// gorge's potentialManaFor does without the flag (mana_storesource.go).
 	subBound bool
+	// repeatBound marks the bound a play's offer is priced against
+	// (restrBoundDrops): gorge's potentialManaFor lifts a repeatable fee-only
+	// ability's colours to potentialUnbounded for every payment
+	// (mana_repeatpotential.go).
+	repeatBound bool
 	// og is the cast a spell payment funds, read by a provenance restriction
 	// the zero value fails closed
 	og restrOrigin
+	// permSrc: the activated ability's source was a battlefield permanent this
+	// build's own cost moved (payDescNow read the source's entry LKI record,
+	// zone_lki.go), so the payment is still the battlefield activation it was
+	// announced as: a battlefield-only restriction (kop.ZoneNone, kgen's
+	// inZoneBattlefield) matches it by card (CR 106.6, 601.2g-h; gorge spends
+	// the mana before the cost objects, so its zone read never sees the move)
+	permSrc bool
 	// play is the action the payment funds when the search needs its timing
 	// (grantPayDesc): a sorcery-speed play waits for a stack its prefix grew
 	play    Action
@@ -95,12 +107,18 @@ type payDesc struct {
 	// noPair prices the census alone: a chosen-colour widened pair stays its
 	// census unit (mana_chosenprefix.go)
 	noPair bool
+	// noSacRepeat holds out a live sacrifice-any source's repeat units (the
+	// census arm's one-per-candidate record, legal.go sacAnyRepeatUnits): the
+	// read is the once-admission census the kicked offer prices a
+	// dedicated-token payment against before it asks gorge's prefix search
+	// (kw_multikicker.go kickedPotentialPays; gorge's census is unrelaxable
+	// beside the shape, paymentPlanRelaxedAlternatives)
+	noSacRepeat bool
 	// gapTrack, gapSkip, gapN, gapID and gapFee are the X-bound sweep's paid-gap
 	// probe (xBoundGapSubsets): availPotentialFor names each fee-bearing mana
 	// ability it meets and leaves out the ones gapSkip's bits select
 	gapTrack bool
 	gapSkip  uint8
-	gapNever uint8 // the gaps no relaxed subset may charge (a hybrid-fee filter)
 	gapN     uint8
 	gapID    [paidGapMax]uint16
 	gapFee   [paidGapMax]uint8
@@ -174,7 +192,7 @@ func restrSrcAb(a *kop.Ability) bool {
 	// census gap of restrAnyTapMana (mana_nocounter.go)
 	return a.Kind == kop.AbMana && a.ManaRestrict != 0 && !a.ManaNoCounter && !restrWideAnyMana(a) &&
 		a.AFlags&^(kop.AfManaNonSpell|kop.AfManaDynamic|kop.AfManaChoice|kop.AfManaChosen) == 0 &&
-		(a.Cost.Flags == kop.CostTap || restrLifeAb(a)) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		(a.Cost.Flags == kop.CostTap || restrLifeAb(a) || restrSacSelfAb(a)) && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		(a.ManaColors&0x3f != 0 || a.AFlags&kop.AfManaChosen != 0)
 }
 
@@ -207,7 +225,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			for n := 0; n <= maxDynMana; n++ {
 				g.rs.views = append(g.rs.views, pcard{manaAb: int8(j), manaCol: a.ManaColors, manaN: uint8(n), manaTap: true, manaDyn: true})
 			}
-		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 && !restrLifeAb(a) &&
+		case pc.manaAb >= 0 && pc.manaTap && !pc.manaMulti && pc.painCol == 0 && !restrLifeAb(a) && !restrSacSelfAb(a) &&
 			(!pc.manaChosen || a.AFlags&kop.AfManaChosen != 0):
 			rec.kind = rkWiden
 			v := *pc
@@ -257,6 +275,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				v.restrLife = a.Cost.N
 				g.rs.life = true
 			}
+			v.manaSac = restrSacSelfAb(a)
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -297,12 +316,23 @@ func (s *State) payDescNow(exclude Obj) payDesc {
 		case seSpell:
 			og := s.restrOriginOfObj(e.obj)
 			if s.bld().bfl&bflPushed != 0 {
-				og = restrOriginOfEntry(e)
+				og = s.restrOriginOfEntry(e)
 			}
 			og.bestowed = e.bestowedEntry() // CR 702.103b
 			return payDesc{class: pdSpell, card: e.card, src: NoSlot, og: og}
 		case seAbility:
-			return payDesc{class: pdAct, card: e.card, src: s.srcSlot()}
+			src := s.srcSlot()
+			if src == NoSlot && e.li != 0 && s.lk(e.li).obj == e.obj {
+				// the payment's own cost moved the source (a sacrifice-this, an
+				// exile-this, the picked cost it matched): its LKI record is the
+				// source's, as it last existed on the battlefield, so the
+				// activation is still the battlefield one it was announced as
+				// (CR 601.2g-h; Parcel Myr's {2}, Sacrifice Parcel Myr).
+				// A hand or graveyard activation's source was never a permanent
+				// and no record of it is taken (a cycling's discarded card).
+				return payDesc{class: pdAct, card: e.card, src: NoSlot, permSrc: true}
+			}
+			return payDesc{class: pdAct, card: e.card, src: src}
 		}
 		return payDesc{class: pdOther, src: NoSlot}
 	}
@@ -338,6 +368,9 @@ func (s *State) restrFloatAdmits(k *prep, p uint8, d *payDesc) uint8 {
 func (s *State) restrSrcAdmits(k *prep, p uint8, sl Slot, a *kop.Ability, d *payDesc) bool {
 	if DebugRestrictedSource == 1 || DebugRestrictedSource == 2 {
 		return DebugRestrictedSource == 1
+	}
+	if DebugRestrTapXMutate >= 2 && kop.RestrictedTapXOneShape(a) && (DebugRestrTapXMutate == 2 && d.class == pdAct || DebugRestrTapXMutate == 3 && d.class == pdSpell) {
+		return false // the restricted tap-another lockstep mutation (mana_tapanother.go)
 	}
 	switch d.class {
 	case pdSpell:
@@ -473,7 +506,9 @@ func (s *State) restrChoseHas(k *prep, sl Slot, c CardID) bool {
 // permanent (an unearth from the graveyard, a cycling from the hand) matches
 // only a zone-free alternative (kop.ZoneAny): a ZoneNone one is kgen's
 // inZoneBattlefield (gorge restrictValidTermMatches' needsBattlefield, CR
-// 106.6).
+// 106.6). d.permSrc names a source the payment's own cost moved (Parcel Myr
+// sacrificed by its {2}: the payment is still the battlefield activation
+// announced), so the battlefield-only alternative matches it by card.
 func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payDesc) bool {
 	if d.src != NoSlot {
 		return s.matchPerm(k, f, d.src, p, sl)
@@ -483,7 +518,7 @@ func (s *State) restrActMatch(k *prep, p uint8, sl Slot, f kop.FilterID, d *payD
 		if fl.Special != 0 {
 			continue // a Static.* alternative: never an activated ability
 		}
-		if fl.Zone == kop.ZoneNone {
+		if fl.Zone == kop.ZoneNone && !d.permSrc {
 			continue // a battlefield-only alternative
 		}
 		fl.Zone = kop.ZoneNone
@@ -694,6 +729,7 @@ func (s *State) restrSrcAvail(k *prep, p uint8, d payDesc, av *avail, skip Slot)
 func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot, withDeferred bool) (t avail, multi [2]dynUnit, nm int) {
 	t = *av
 	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
+	lifeUsed := 0 // the life the restricted life units counted so far pay
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		if sl == skip || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
@@ -731,6 +767,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			t.addXv(v)
 		case rkExt:
+			if restrLifeUnit(v) && !s.restrLifeCharge(k, p, &t, int(v.restrLife), &lifeUsed) {
+				continue // its life and the plan's painful sources' reach the payer's
+			}
 			t.addUnits(s.srcMaskAt(v, sl), v.manaN)
 			if v.manaOne {
 				s.addOneColourMask(&t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
@@ -946,6 +985,23 @@ func (s *State) filtRestrMask(k *prep, sl Slot) uint8 {
 		m &= -m
 	}
 	return m
+}
+
+// filtRestrOtherAdmits: the restricted ability filtRestrMask reads at sl may pay
+// a non-spell, non-activation payment (a Powerstone's {C}, CR 106.6). An unless
+// or ward census pay search (filtSearch.census) funds a filter's {1} fee only
+// from sources gorge's unlessWindowUnits lists, and that census keeps a
+// restricted source out unless its restriction admits pay.PurposeOther: an
+// "activate an ability or cast an artifact spell" {C} (Automated Artificer)
+// funds no Shadowblood Ridge fee beside a Rhystic Study's {1}, so gorge offers
+// decline only there.
+func (s *State) filtRestrOtherAdmits(k *prep, p uint8, sl Slot) bool {
+	c := s.cardAt(sl)
+	rec := k.gen.restrRecOf(c)
+	if rec == nil {
+		return false
+	}
+	return s.restrSrcAdmits(k, p, sl, &k.t.Cards[c].Abilities[rec.ab], &payDesc{class: pdOther, src: NoSlot})
 }
 
 // filtRestrDo plays the restricted answer st: the source's restricted mana

@@ -18,14 +18,17 @@ fw:Card.!EnchantedBy
 fw:Card.!EquippedBy
 fw:Card.!IsCommander
 fw:Card.!withIndestructible
+fw:Card.!withMenace
 fw:Card.!withShadow
 fw:Card.AdventureCard
 fw:Card.AttachedBy
 fw:Card.ChosenColor
+fw:Card.ChosenCtrl
 fw:Card.ChosenType
 fw:Card.CrewedThisTurn
 fw:Card.DamagedBy
 fw:Card.EnchantedBy
+fw:Card.EnchantedControllerCtrl
 fw:Card.EnchantedPlayerCtrl
 fw:Card.EquippedBy
 fw:Card.IsCommander
@@ -37,7 +40,7 @@ fw:Card.Snow
 fw:Card.blockedBySource
 fw:Card.blockingSource
 fw:Card.counters_GE1_CHARGE
-fw:Card.equipped
+fw:Card.counters_GE2_P1P1
 fw:Card.faceDown
 fw:Card.faceUp
 fw:Card.inZoneBattlefield
@@ -47,8 +50,10 @@ fw:Card.nonSnow
 fw:Card.sharesNameWith Valid Permanent.Legendary
 fw:Card.withIndestructible
 fw:Card.withInfect
+fw:Card.withMenace
 fw:Card.withShadow
 fw:Card.withWarp
 fw:Card.withoutIndestructible
+fw:Card.withoutMenace
 fw:Card.withoutShadow
 fw:Creature.attackingSame

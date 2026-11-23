@@ -139,23 +139,26 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 	return painN, deferSrc, foreignOnly && deferSrc
 }
 
-// tapsDeferDeadSac is p's tap-and-sacrifice mana sources that the planner
-// defers and whose every deferring watcher is a foreign build ask
-// (tapsWatchClassForeign): gorge's census never lists such a source, and its
-// search, which gap-activates it, ends at the opponent's ask, so no payment or
-// prefix uses it and the plain availability leaves it out. A Treasure under an
-// opponent's Relic Bind has no {T}-only gap of its own for the script to model
-// (scriptTapsDefer), so without this it kept its census unit and the offer
-// priced a cast gorge's autopay surface withholds (census_incomplete).
-func (s *State) tapsDeferDeadSac(k *prep, p uint8) slotMask {
+// tapsDeferDead is p's mana sources that the planner defers and whose every
+// deferring watcher is a foreign build ask (tapsWatchClassForeign): gorge's
+// census never lists such a source, and its search, which gap-activates it,
+// ends at the opponent's ask, so no payment or prefix uses it and the plain
+// availability leaves it out. A Treasure under an opponent's Relic Bind has
+// no {T}-only gap of its own for the script to model (scriptTapsDefer), so
+// without this it kept its census unit and the offer priced a cast gorge's
+// autopay surface withholds (census_incomplete). So does a source whose
+// production the gap does not model -- a Talisman's two abilities under the
+// same Relic Bind -- and the activation it alone funded, such as an Equip
+// {2} paid by that Talisman and a land.
+func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
 	var m slotMask
-	if k.gen == nil || !k.gen.anyTapsDefer || !k.sacMana || !s.subs[kop.TrigTaps].any() {
+	if k.gen == nil || !k.gen.anyTapsDefer || !s.subs[kop.TrigTaps].any() {
 		return m
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
-		if !s.manaPCGen(k, sl).manaSac {
-			continue
+		if pc := s.manaPCGen(k, sl); !pc.manaSac && pc.manaAb < 0 {
+			continue // no mana ability of its own: nothing to leave out
 		}
 		if _, d, f := s.tapsWatchClassForeign(k, p, sl); d && f {
 			m = m.with(sl)
@@ -259,6 +262,59 @@ func (s *State) tapsCensusPain(k *prep, p uint8, sl Slot) uint8 {
 	}
 	pain, _ := s.tapsWatchClass(k, p, sl)
 	return uint8(min(max(pain, 0), 255))
+}
+
+// tapsDeferLethalMask is the slots of m for which tapsDeferLethal holds.
+func (s *State) tapsDeferLethalMask(k *prep, p uint8, m slotMask) slotMask {
+	var out slotMask
+	for ; m.any(); m = m.rest() {
+		if sl := m.first(); s.tapsDeferLethal(k, p, sl) {
+			out = out.with(sl)
+		}
+	}
+	return out
+}
+
+// tapsDeferLethal reports whether a Taps-deferred source's tap deals its payer
+// the damage its watcher discloses (tapsCensusPain: Manabarbs' literal 1) and
+// that damage alone reaches the payer's life: gorge's planner cuts every plan
+// whose summed pain reaches it (payment_plan.go's lethal guard), so the
+// source is no unit of an offer's census. A source the prefix search models
+// as a gap never reaches here (availFor's deferGap skip); the one kept as an
+// ordinary unit (a two-ability land such as Unknown Shores) needs the guard.
+func (s *State) tapsDeferLethal(k *prep, p uint8, sl Slot) bool {
+	if !s.tapsDeferred(k, p, sl) {
+		return false
+	}
+	pain := int(s.tapsCensusPain(k, p, sl))
+	return pain > 0 && pain >= s.painPlanLife(p)
+}
+
+// playLifeNotSurvived reports whether play a is an activation whose own fixed
+// PayLife<N> reaches p's life as it stands after a script prefix: gorge's
+// harness replays the prefix and re-prices the play, and the planner's lethal
+// guard (pain >= life) prices no activation that would pay the whole life
+// total, so the line the search found is a dead end (CR 119.4, 601.2g;
+// dr-mbc The Cauldron of Eternity beside Burning Earth at 3 life).
+func (s *State) playLifeNotSurvived(k *prep, p uint8, a Action) bool {
+	if a.Kind() != AkActivate {
+		return false
+	}
+	o := Obj(a.Source())
+	if o == 0 || int(o) >= len(s.objs) {
+		return false
+	}
+	c := s.objs[o].card
+	ai := int(a.Mode())
+	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
+		return false
+	}
+	ab := &k.t.Cards[c].Abilities[ai]
+	if ab.Kind == kop.AbMana || ab.Cost.Flags&kop.CostPayLife == 0 {
+		return false
+	}
+	owed := lifeCostOwed(&ab.Cost)
+	return owed > 0 && int(s.pl[SeatIx(p)].life) <= owed
 }
 
 // availLeavesOut reports whether availFor left the planner-deferred source at
@@ -623,6 +679,13 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		// payment_plan_interference.go paymentPlanTapObservers).
 		pc := s.riderPC(k, sl, a)
 		n := max(a.ManaN, 1) + s.srcReflectPick(k, sl, pc)
+		if k.gen.anyTapExtra && s.srcEachPick(k, sl, pc) > 0 {
+			// the pick floats unasked (nothing poses its colour ask yet);
+			// srcExtra reads the production alone, and a payment priced on it
+			// would drop the pick silently (mana_eachpick_stall_test.go)
+			s.capFull(StallTapExtra)
+			return
+		}
 		if k.gen.anyTapExtra {
 			xv := s.srcExtra(k, sl, pc)
 			for c := range xv {
@@ -652,6 +715,13 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	mask := s.srcMaskAt(pc, sl)
 	if col, ok := tapsDeferPainCol(k, pc, mask); ok {
 		mask |= 1 << col // the paid-life ability is one more relaxed alternative of the source
+	}
+	if k.gen.anyTapExtra && s.srcEachPick(k, sl, pc) > 0 {
+		// the pick floats unasked (nothing poses its colour ask yet);
+		// srcExtra reads the production alone, and a payment priced on it
+		// would drop the pick silently (mana_eachpick_stall_test.go)
+		s.capFull(StallTapExtra)
+		return
 	}
 	av.addUnits(mask, s.srcYieldAt(k, sl, pc))
 	if k.gen.anyTapExtra {
@@ -807,7 +877,7 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
 		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
 		s.pl[p].pool[pcol]++
-		s.addExtra(k, p, sl, pc)
+		s.addExtraCol(k, p, sl, pc, pcol) // the tap's StatTapExtra mana floats beside it, of the pick this tap made (CR 106.12a)
 		s.artTag(k, p, sl, pcol)
 		s.painDamage(k, sl, p, int(pc.painN))
 		return
@@ -817,7 +887,12 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int) {
 	}
 	col := bits.TrailingZeros8(mask)
 	s.pl[p].pool[col] += max(pc.manaN, 1) // a several-mana fixed-colour tap floats all of it (tapsDeferYield)
-	s.addExtra(k, p, sl, pc)              // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
+	// the tap's StatTapExtra mana floats beside it, the pick-priced reflection
+	// one more of the pick this float names (CR 106.12a; addExtra stalls on it,
+	// and a dropped play this census prices was the offer divergence: Mana
+	// Flare over a lucky Gemstone Caverns funding Evincar's Justice with a
+	// Plains, pool dr-mbc-abbb pair 45)
+	s.addExtraCol(k, p, sl, pc, col)
 	s.artTag(k, p, sl, col)
 	if k.painMana && pc.painCol != 0 && pc.painOnly {
 		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
@@ -982,6 +1057,14 @@ type deferGapScratch struct {
 	nu      int
 	nodes   int
 	stall   uint8
+	// limited: the search ran past gorge's node budget (scriptSearch.limited),
+	// the condition for its subsume run (deferSubsume).
+	limited bool
+	// subsume: this is the subsume run, whose multi-answer colour asks keep
+	// only the colours costCol (the play's coloured pips) still lacks of the
+	// node's pool.
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 }
 
 func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
@@ -990,11 +1073,70 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	}
 	TapsDeferGapStats.Searches.Add(1)
 	var w deferGapScratch
-	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead,
-		a.Kind() == AkActivate && s.restrictedGrantLive(k, p),
-		s.playNeedsEmptyStack(k, a),
-		cp == nil && isAbilityPlay(a), // gorge's potentialTwinCut on the prefix search
-		&w, false)
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	resolvePlay := s.playNeedsEmptyStack(k, a)
+	twinCut := cp == nil && isAbilityPlay(a) // gorge's potentialTwinCut on the prefix search
+	if deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w, false) {
+		return true
+	}
+	if !w.limited {
+		return false
+	}
+	return s.deferSubsume(k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut)
+}
+
+// deferSubsume is gorge's subsume run (potentialPrefixScript's third search,
+// the one mana_grantsubsume.go models for the grant walk) over the deferred
+// gaps: where the plain search ran out of its node budget and the play's base
+// cost is coloured pips alone, gorge searches again with every multi-answer
+// colour ask narrowed to the colours the node's pool still lacks of that cost
+// (a covered colour pays nothing more, CR 601.2g-h, 605.1a). A basic land
+// beside a dual land under Manabarbs (seven gaps, one {U} Aura) spends the
+// plain search's 164 nodes on the dual land's two off-colour answers at every
+// depth; the subsume run drops them and finds the Islands' line.
+func (s *State) deferSubsume(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool) bool {
+	cnt, ok := s.playCostCounts(k, a)
+	if !ok {
+		return false
+	}
+	var w deferGapScratch
+	w.subsume, w.costCol = true, cnt
+	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w, false)
+}
+
+// deferSubsumeKeeps is subsumeAnswers' keep-rule for answer ai of gap sl's
+// colour ask, read against the node's pool (gorge's, restricted units too):
+// kept when the pool holds fewer of the answer's colour than the cost asks.
+// Only the plain fixed-colour shape names its answers' colours here; a rider
+// or restricted gap's ask keeps every answer, as the plain run does.
+func (s *State) deferSubsumeKeeps(k *prep, sl Slot, ai int, costCol, pool *[kop.NumManaKinds]uint8) bool {
+	if s.restrCensusTapsGapShape(k, sl) || s.restrTapsGapShape(k, sl) {
+		return true
+	}
+	if _, ok := s.riderAbilityOf(k, sl); ok {
+		return true
+	}
+	pc := s.blgGapPC(k, sl)
+	mask := s.srcMaskAt(pc, sl)
+	var col int
+	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) >= int(pc.painN) && ai == bits.OnesCount8(mask) {
+		col = int(pcol)
+	} else {
+		for i := 0; i < ai; i++ {
+			mask &= mask - 1
+		}
+		col = bits.TrailingZeros8(mask)
+	}
+	return costCol[col] > pool[col]
+}
+
+// budgetExit records that the walk ended on gorge's node budget and, when a
+// rule-gap stall was seen on the way, declares the capacity full.
+func (w *deferGapScratch) budgetExit(s *State) {
+	w.limited = true
+	if w.stall != 0 {
+		s.capFull(w.stall)
+	}
 }
 
 // deferGapWalk is one visit of gorge's search at the used subset: the replay
@@ -1005,10 +1147,12 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
 	n := len(order)
 	{
+		var nodePool [kop.NumManaKinds]uint8 // the pool this node's children's asks read (the subsume run)
+		if w.subsume {
+			nodePool = s.poolProj(p)
+		}
 		if w.nodes++; w.nodes > potentialScriptNodes {
-			if w.stall != 0 {
-				s.capFull(w.stall) // past gorge's search budget: no script
-			}
+			w.budgetExit(s) // past gorge's search budget: no script
 			return false
 		}
 		if w.nu > 0 {
@@ -1016,6 +1160,9 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			replay := deferReplay(t, k, p, a, order, w.used[:w.nu], w.answers[:w.nu], tapsDef, &spill)
+			if w.subsume {
+				nodePool = t.poolProj(p)
+			}
 			charge, fits := s.deferChainCharge(k, t, w.nodes, order, w.used[:w.nu], replay, post, resolvePlay, twinCut)
 			if w.stall == 0 {
 				w.stall = t.g.stalled
@@ -1032,9 +1179,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// unsaturated is deliberate, an approximation that may still
 				// find a line rather than a modelled clone count.
 				s.unfork()
-				if w.stall != 0 {
-					s.capFull(w.stall)
-				}
+				w.budgetExit(s)
 				return false
 			}
 			w.nodes += charge
@@ -1074,6 +1219,9 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					}
 					*dead = !t.scriptCompletes(k, p, a)
 				}
+				if t.playLifeNotSurvived(k, p, a) {
+					*dead = true // the prefix's damage left no life above the play's own life cost: the planner prices no such play
+				}
 				s.unfork()
 				for i := range *pick {
 					(*pick)[i] = -1
@@ -1110,13 +1258,14 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// the activation's colour ask is a clone of gorge's search of its
 				// own, beside the one per answer (scriptSearch.visit)
 				if w.nodes += add; w.nodes > potentialScriptNodes {
-					if w.stall != 0 {
-						s.capFull(w.stall)
-					}
+					w.budgetExit(s)
 					return false
 				}
 			}
 			for ai := 0; ai < na; ai++ {
+				if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, &nodePool) {
+					continue // the subsume run's ask keeps only the colours the pool lacks
+				}
 				w.used[w.nu], w.answers[w.nu] = int8(i), uint8(ai)
 				w.nu++
 				ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
@@ -1277,4 +1426,26 @@ func (w *twinWalk) skip(s *State, order []Slot, i int) bool {
 	w.at[w.n] = int8(i)
 	w.n++
 	return false
+}
+
+// otherGapTwin is visit's other-gap branch with gorge's twin cut
+// (scriptTwin, potential_script.go activations) applied to a Taps-deferred
+// land: a source indistinguishable from one this pass already walked reaches
+// no payer state its subtree did not, so it is no branch and no node. gorge
+// runs the cut over every activation of the census, a land under Manabarbs
+// among them (a Taps-deferred gap is a census gap there), while the branch
+// beside the filter sources returned before the cut; the five-permanent
+// walk of Unknown Shores beside four lands under Manabarbs then cost about
+// twice gorge's nodes (TestFilterSearchNodeBudgetParity). The cut runs where
+// visit's own does, on a fee-only or printed-activation search; the other
+// gap classes keep their walk.
+func (fs *filtSearch) otherGapTwin(k *prep, t *State, sl Slot, funded int, tried *[MaxPerm]Slot, ntried *int) bool {
+	if (fs.feeOnly || isAbilityPlay(fs.a)) && t.scriptTapsDefer(k, fs.p).has(sl) {
+		if fs.twinTried(k, t, sl, tried[:*ntried]) {
+			return false
+		}
+		tried[*ntried] = sl
+		*ntried++
+	}
+	return fs.otherGap(k, t, sl, funded)
 }

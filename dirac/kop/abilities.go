@@ -383,12 +383,15 @@ func SecondTapAnotherManaAb(cd *CardDef, first, j int) bool {
 }
 
 // TapXMana is either tap-other-permanents mana shape.
-func TapXMana(a *Ability) bool { return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) }
+func TapXMana(a *Ability) bool {
+	return TapXManaAb(a) || TapXManaTwo(a) || TapXManaOne(a) || RestrictedTapXOneShape(a)
+}
 
 // BoundedOnceManaAb reports whether a is a no-{T} repeatable mana source whose
 // gorge potential bound admits its fixed production once: Krark-Clan
 // Ironworks' sacrifice (SacAnyManaAb) or Urza's tap of an untapped artifact
-// ({U}, TapXManaOne of one fixed colour). Its census is unrelaxable (a
+// ({U}, TapXManaOne of one fixed colour) or Grand Architect's restricted {C}{C}
+// (RestrictedTapXOneShape: PotentialMana admits it once). Its census is unrelaxable (a
 // repeatable cost that is no bounded tap part for the relaxation's once
 // proof), so every census-incomplete insufficient play takes a search slot,
 // but the plays searched are the gaps walk's.
@@ -397,7 +400,7 @@ func BoundedOnceManaAb(a *Ability) bool {
 		return true
 	}
 	_, fixed := TapXFixedColour(a)
-	return fixed && TapXManaOne(a)
+	return fixed && (TapXManaOne(a) || RestrictedTapXOneShape(a))
 }
 
 // TapXFixedColour is the colour of tap-another ability a's production when it
@@ -570,6 +573,24 @@ func SacXEachManaAb(a *Ability) bool {
 		c&^ColAny == 0 && c&(c-1) != 0
 }
 
+// ExileGManaAb reports whether mana ability a is "{T}, Exile <N> cards from your
+// graveyard: Add one mana of any color" (Molt Tender's "{T}, Exile a card from
+// your graveyard: Add one mana of any color"): a mana-free {T} plus an
+// ExileFromGrave<1/Spec> part (not the CARDNAME singleton, the
+// live-opponent count or the announced X), one mana of any colour or ManaN of one
+// fixed colour, unrestricted, no rider. gorge pays the exile in its mana-activation
+// walk (pay manacostwalk.go, AskManaExile: one "mana_exile" pick, asked even with
+// one candidate), its planner prices no Exile part, so the source is a census gap the
+// kernel activates in the tap-another search (kernel mana_exilegrave.go).
+func ExileGManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostExileGrave && a.Cost.N == 1 &&
+		!a.Cost.ExileBf && !a.Cost.ExileHand && !a.Cost.ExileGSelf && !a.Cost.DiscardHand &&
+		a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach &&
+		(a.ManaN >= 1 && c != 0 && c&(c-1) == 0 || a.ManaN <= 1 && c == ColAny) && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.ManaRider == ManaRiderNone && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
 // SacAnyManaAb reports whether mana ability a is "Sacrifice a <spec>: Add
 // <one fixed colour>" with no {T} (Krark-Clan Ironworks' "Sacrifice an artifact:
 // Add {C}{C}"): exactly one sacrificed permanent matching Cost.Filter, the
@@ -624,9 +645,14 @@ func SecondSacTapManaAb(cd *CardDef, first, j int) bool {
 	return SacTapFixedManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
 }
 
+// TapXSearchMana is a mana ability the kernel's tap-another search activates:
+// a tap-another or sacrifice-another source or an exile-from-graveyard one
+// (ExileGManaAb).
+func TapXSearchMana(a *Ability) bool { return TapXMana(a) || SacXMana(a) || ExileGManaAb(a) }
+
 // SacXMana is either sacrifice-another-permanent mana shape.
 func SacXMana(a *Ability) bool {
-	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a)
+	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a) || SacXRestrManaAb(a)
 }
 
 // SacXAnyColour reports whether sacrifice-another mana ability a makes one
@@ -755,6 +781,9 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 			break
 		}
 	}
+	if ForageComboAnyAb(a) {
+		return true // a Combo Any census gap with a forage cost (forage_mana.go; kernel mana_forage.go)
+	}
 	if j != first {
 		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondTapXOneManaAb(cd, first, j) || SecondSacTapManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
 			StoreManaAb(a) ||
@@ -766,7 +795,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true

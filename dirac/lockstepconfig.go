@@ -160,7 +160,7 @@ func (s *State) millShuffling(k *prep, p uint8, n int, c int) {
 		pl.libRemove(o)
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 		s.millMark(o, c)
 	}
 }
@@ -493,7 +493,17 @@ func (s *State) xAnswerable(k *prep, a *kop.Ability, e *stackEntry, x int) bool 
 	if e.kind == seSpell {
 		s.g.tgtSelf = e.obj + 1
 	}
-	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, 0xff)
+	// CR 601.2b: X is announced after the modes, so a modal spell's X is judged
+	// against the modes already chosen (gorge chosenModesTargetableAt), not any
+	// mode: Confront the Past's Return mode needs a planeswalker card of mana
+	// value X or less, whatever the Remove mode could do.
+	modes := uint8(0xff)
+	if a.NModes > 0 && e.kind == seSpell {
+		if chosen := a.ModeSet(e.mode) & (1<<a.NModes - 1); chosen != 0 {
+			modes = chosen
+		}
+	}
+	ok := s.abilityTargetsFeasible(k, a, e.ctrl, src, modes)
 	if e.kind == seSpell {
 		s.g.tgtSelf = 0
 	}

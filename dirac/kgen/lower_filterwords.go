@@ -54,10 +54,14 @@ func filterWordPred(p string) (n int, ok bool) {
 		// negation.
 		return int(kop.W7NotImprinted), true
 	}
-	z, found := strings.CutPrefix(p, "inZone")
+	z, found := strings.CutPrefix(p, "inRealZone") // gorge wordInZone: the live read inZone<X> is (filter_word.go:401-415)
+	if !found {
+		z, found = strings.CutPrefix(p, "inZone")
+	}
 	if !found {
 		return filterWordPred2(p) // lower_filterwords.go
 	}
+	z = strings.TrimSpace(z) // parseZone trims, so "inRealZone Graveyard" reads too (gorge's Mimic Vat spelling)
 	for _, w := range filterWordZones {
 		if w == z {
 			return int(kop.W7InZone) | int(thisTurnEnteredZoneWords[z])<<8, true
@@ -206,6 +210,11 @@ func attachedToWord(p string) (n int, ok bool) {
 		bits |= kop.AttToOther
 	case "YouCtrl":
 		bits |= kop.AttToYouCtrl
+	case "EnchantedBy", "EquippedBy":
+		// the attached-bearer qualifiers' one body (gorge attachedBy: the
+		// bearer is what the filter's own source is attached to; With Great
+		// Power, Baki's Curse)
+		bits |= kop.AttToSrcBearer
 	default:
 		return 0, false
 	}

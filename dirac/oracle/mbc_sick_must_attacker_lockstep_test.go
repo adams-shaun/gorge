@@ -12,4 +12,10 @@ import "testing"
 func TestMBCHearthKamiReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "sick_must_attacker_no_haste_defender_not_required")
+	// CR 601.2b, 601.2c: Hearth Kami's {X}, Sacrifice: destroy target artifact
+	// with mana value X, with one untapped land and the only artifact (Mine
+	// Worker) at mana value 2, has no announcement of X that both pays and
+	// leaves a legal target. Gorge offered it anyway (decision 421 of
+	// tail-71-c000 pair 3, seed 967027, autopay).
+	stdReproNamed(t, "x_bound_target_unpayable_x_sac_self")
 }

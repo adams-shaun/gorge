@@ -876,7 +876,8 @@ const (
 	PKPreventionEffect
 	// A Mode$ Continuous static's CanBlockAmount$ N / CanBlockAny$ True: the
 	// affected creature can block N additional / any number of creatures
-	// (CR 509.1a). Appended: earlier ordinals stay stable.
+	// (CR 509.1a). A Pump's CanBlockAny$ True is the same grant until end of
+	// turn (effects.registerPumpCanBlockAny). Appended: earlier ordinals stay stable.
 	PKCanBlockAmount
 	PKCanBlockAny
 	// XColor$ names the colour(s) the {X} part of a cost must be paid with
@@ -982,6 +983,12 @@ const (
 	// cards.CantAttachAuraShape and rules' cantAttachAuraBlocks. Appended:
 	// earlier ordinals stay stable.
 	PKValidCardToTarget
+	// KeepRemembered$ on a TwoPiles resolution: present (Forge's hasParam,
+	// any value) the resolution leaves the source's remembered list alone
+	// instead of clearing it once both pile bodies ran (Hostile
+	// Negotiations' YouChoose keeps it for TheyChoose). Read by effects'
+	// twoPilesKeepsRemembered. Appended: earlier ordinals stay stable.
+	PKKeepRemembered
 	paramKeyCount
 )
 
@@ -1829,6 +1836,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKValidCauser:                      "ValidCauser",
 	PKPaid:                             "Paid",
 	PKSacEachValid:                     "SacEachValid",
+	PKKeepRemembered:                   "KeepRemembered",
 }
 
 // String is the key's Forge text.

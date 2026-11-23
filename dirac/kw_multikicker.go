@@ -113,6 +113,29 @@ func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost
 	return c
 }
 
+// multikickWitnessCost is the witness's cost for a Multikicker cast whose
+// count is not asked yet: the base plus one payment, then the cost statics
+// (CR 601.2f: a reduction takes its generic off the total with the additional
+// cost in it, as offerKickedHand prices the offer). plain is the cast's cost
+// without the payment, already reduced: it stands when no static changes the
+// total.
+func (s *State) multikickWitnessCost(k *prep, plain kop.ManaCost) kop.ManaCost {
+	e := &s.bld().e
+	cd := &k.t.Cards[e.card]
+	if !(s.statM.any() || k.gen != nil) {
+		return addCost(plain, cd.Multikicker)
+	}
+	fl, fixed := e.flags, s.bld().fixedGen
+	n := s.multikickCount(e)
+	e.flags |= sfKicked
+	s.setMultikick(e, 1)
+	cost := s.buildCost(k)
+	e.flags = fl
+	s.setMultikick(e, n)
+	s.bld().fixedGen = fixed
+	return cost
+}
+
 // kickedAffords is the hand-cast kicked offer's mana gate for the total kc.
 // A Kicker or Multikicker spell that pays with taps or the graveyard (a
 // printed or granted Convoke or Improvise, or a Delve) is offered by gorge's
@@ -150,7 +173,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		aff = s.kickedPotentialPainOK(k, p, c, o, &kc)
 	}
 	cd := &k.t.Cards[c]
-	if s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
 		// A target-priced cast (Esior, Wardwing Familiar's raise on a spell
 		// that may target it): gorge's witness prices the composed total
 		// from the planner's census and the census/prefix fallback declines
@@ -158,7 +181,8 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// census gap beside the raise (Song of Freyalise's creature mana
 		// funding the kicker's {B}, the dr-mbc-bbab Tear Asunder repro at
 		// decision 621) leaves the play census_incomplete and the autopay
-		// surface drops it. The plain census read (kickedAffords) does not
+		// surface drops it (so does the lowering surface: Imps' Taunt's buyback
+		// beside Esior and a granted sacrifice mana ability). The plain census read (kickedAffords) does not
 		// hold here: the search that prices a play the covered sources
 		// cannot pay is the one gorge never runs (CR 601.2f).
 		aff = s.ungrantedPaysNoDH(k, p, c, o, &kc)
@@ -170,6 +194,14 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// Skin-Witch paid through Rain of Filth's grants)
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
+		if aff && k.gen != nil && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixBoard(k, p) {
+			// a census gap that is a filter beside another gap kind (School of
+			// the Unseen's {2},{T} beside Holdout Settlement's tapped creature):
+			// gorge's census for the kicked total is incomplete and only its
+			// budgeted prefix search prices the play, so the units census above
+			// is no proof (CR 601.2g; tail-42 pair 49, Caligo Skin-Witch)
+			aff = s.filtScript(k, MakeAction(AkCast, TCode(o), 0, 1), p, false)
+		}
 	}
 	// A Squad/Replicate offer is gorge's replicate/squad option (mode word,
 	// not the kicked mode the multikicker/offspring offer rides), so it needs
@@ -177,7 +209,8 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	// the same one legal_walk_hand.go's offer uses.
 	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
 	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
-		!s.dhWithholdsCast(k, p, o, &kc) { // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		!s.dhWithholdsCast(k, p, o, &kc) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		s.witnessKeepsTargets(k, p, c, o, &kc) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
@@ -194,7 +227,7 @@ func (s *State) offerKickedPotentialOnly(k *prep, d *Decision, p uint8, c CardID
 	if s.cfg&cfgGorgeAutopay == 0 || s.g.availX != 0 || s.castHeldOut(o) { // gorge holds the card's whole cast out after a second undo (CR 733.2)
 		return
 	}
-	if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
+	if !(s.spellTargetsFeasibleFrom(k, c, p, o) || s.kickedWaivedFeasible(k, c, p)) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, plainBase, false, false, av) {
 		return
 	}
 	s.offerKickedHand(k, d, p, c, o, base, cav)
@@ -231,15 +264,22 @@ func (s *State) kickedArmOffer(k *prep, a Action) bool {
 // gorge itself produces are mirrored.
 
 func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, d *payDesc) bool {
+	if paid, hid := s.kickedPotentialSansDeferred(k, p, c, o, kc, d); hid {
+		return paid // a sorcery-speed cast the Taps-deferred sources alone fund is no play (kickedPotentialSansDeferred below)
+	}
 	if s.contribPays(k, p, c, o, true) {
 		return false // the potential planner refuses a credit-bearing cast, and "kicked" is no altCastModes row (cost:credit)
 	}
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
 	}
-	if kc.X != 0 {
-		return false // the planner prices the largest X the sources fund: unmodelled here
-	}
+	// kc's own {X} contributes nothing here: gorge's offer gate (legal_walk_hand
+	// buybackCost/offerCastable) prices the composed {X} cost at X = 0
+	// conservatively -- "a spell offering itself is withheld only when even X=0
+	// is unpayable" (offerCostFor) -- and the seat announces X at the cast, so
+	// the potential census paying the X-free total is exactly gorge's offer.
+	// (The "largest X the sources fund" read is the lowered witness's pricing,
+	// cast.go's kicked arm, not the offer gate.) affords ignores an {X} already.
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X> the composition declines too, so only the floating pool offers it (cost_sacx.go)
 	}
@@ -273,6 +313,23 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 	if !pa.affords(kc, pipMaskOf(kc), 0) {
 		return false
 	}
+	if s.sacRepeatAnyLive(k, p) {
+		// A dedicated-token sacrifice-any source's census is unrelaxable in
+		// gorge (paymentPlanRelaxedAlternatives: a repeatable cost that
+		// removes no once-only part), so its planner prices the payment from
+		// its census only when the printed sources and one activation pay it,
+		// and otherwise through its budgeted prefix search
+		// (potentialCensusFallback, potential_script.go) — the per-candidate
+		// repeats the census records (legal.go sacAnyRepeatUnits) are no
+		// proof of it, and the search they stand in for can exhaust its node
+		// budget (Rude Awakening's entwined {6}{G}{G} beside four Prism
+		// tokens: the search branches five colours per activation and dies
+		// inside potentialScriptNodes, so gorge drops the offer). The kernel
+		// asks the same search the walk's plays take (mana_tapanother.go
+		// tapXScript) once the once-admission census (the repeats held out)
+		// cannot price the total.
+		return s.kickSacRepeatPays(k, p, c, o, d, kc)
+	}
 	if !potUnitsAvail(&px, &pu, int(s.pl[SeatIx(p)].life)) {
 		if open {
 			return false // no bounded census beside an unbounded fold
@@ -280,6 +337,50 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 		return true // the record is incomplete: keep the over-bound answer
 	}
 	return px.affords(kc, pipMaskOf(kc), 0) && potUnitsPainAffords(&pu, int(s.pl[SeatIx(p)].life), kc)
+}
+
+// sacRepeatAnyLive is sacRepeatLive (mana_tapanother.go) narrowed to an
+// any-colour production: a live sacrifice-any mana source whose cost
+// sacrifices dedicated tokens and whose production is any colour (Diamond
+// Kaleidoscope's "Sacrifice a Prism token: Add one mana of any color"). Its
+// census gorge cannot relax, so its repeats beyond the potential bound's one
+// admission are the budgeted prefix search's proof, never a census one.
+func (s *State) sacRepeatAnyLive(k *prep, p uint8) bool {
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.SacAnyManaAb(ab) && ab.ManaColors == kop.ColAny &&
+			k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// kickSacRepeatPays is the kicked cast's potential-pool answer beside a live
+// dedicated-token sacrifice-any source (sacRepeatAnyLive). The once-admission
+// census (sacAnyRepeatUnits held out) prices the total when the printed
+// sources and one activation pay it: gorge's planner prices the payment from
+// its census, whose prefix search's first leaf funds that one activation.
+// Otherwise gorge's budgeted prefix search decides, and the kernel asks the
+// same search the walk's plays take (tapXScriptOffered): a final drop whose
+// line latched a rule gap is declared, the walk arms' shape.
+func (s *State) kickSacRepeatPays(k *prep, p uint8, c CardID, o Obj, d *payDesc, kc *kop.ManaCost) bool {
+	var pf, pc avail
+	var pcu [maxPotUnits]potUnit
+	nd := *d
+	nd.noSacRepeat = true
+	s.availPotentialFor(k, p, &pf, &nd, false, &pcu)
+	life := int(s.pl[SeatIx(p)].life)
+	if potUnitsAvail(&pc, &pcu, life) && pc.affords(kc, pipMaskOf(kc), 0) &&
+		potUnitsPainAffords(&pcu, life, kc) {
+		return true
+	}
+	offered, stall := s.tapXScriptOffered(k, MakeAction(AkCast, TCode(o), 0, 1), p)
+	if !offered {
+		s.capStall(stall)
+		return false
+	}
+	return true
 }
 
 // kickedPotentialPainOK: the potential census's units afford kc within the
@@ -420,4 +521,46 @@ func (s *State) answerMultikick(k *prep, a Action) {
 		s.setMultikick(e, n)
 	}
 	s.nextStage(k)
+}
+
+// capturesKickCount is a card whose self-ETB trigger carries its cast's
+// payment count in pendingTrig.defSeat from the moment it is queued: a Squad
+// card, or a pure Multikicker one (Replicate's trigger is a SpellCast one).
+// The permanent may be sacrificed with the trigger on the stack, and gorge
+// still reads the count off the trigger's last known information (CR 603.10a).
+func capturesKickCount(c *kop.CardDef) bool {
+	return c.RepeatedKind == kop.RepeatSquad || c.HasMultikicker && c.RepeatedKind != kop.RepeatReplicate
+}
+
+// kickedPotentialSansDeferred prices a sorcery-speed kicked cast's potential
+// arm without the Taps-deferred sources (Scald beside an Island, CR 603.2,
+// 605.3a). gorge's planner never lists such a source, so a kicked total only
+// its mana pays is a census gap: the play is census_incomplete and only a
+// prefix search could fund it, but the source's tap queues the watcher's
+// trigger above the play and a sorcery-speed cast needs an empty stack
+// (CR 307.1, 602.5d); the multikicked play finds no script (witness_not_offered
+// at every node) and the autopay surface drops it. An instant or flash cast
+// waits for no stack, so its potential arm keeps the deferred units. hid
+// reports that the sources were hidden, paid the arm's answer without them.
+func (s *State) kickedPotentialSansDeferred(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, d *payDesc) (paid, hid bool) {
+	if k.gen == nil || !k.gen.anyTapsDefer || !s.subs[kop.TrigTaps].any() || k.cards[c].instant || s.castFlash(k, p, c) {
+		return false, false
+	}
+	var m slotMask
+	for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
+		if sl := b.first(); s.perms[sl].flags&pfTapped == 0 && s.hasManaAbility(k, sl) && s.tapsDeferred(k, p, sl) {
+			m = m.with(sl)
+		}
+	}
+	if !m.any() {
+		return false, false
+	}
+	t := s.fork()
+	defer s.unfork()
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		t.perms[sl].flags |= pfTapped
+		t.touchSl(sl)
+	}
+	return t.kickedPotentialPays(k, p, c, o, kc, d), true
 }

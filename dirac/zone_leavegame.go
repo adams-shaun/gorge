@@ -34,14 +34,66 @@ func (s *State) checkOverN() {
 // nothing in any zone any more, so the next call moves nothing.
 //
 //go:noinline
-func (s *State) sweepDeparted(k *prep) bool {
+func (s *State) sweepDeparted(k *prep, pre uint8) bool {
 	moved := false
+	if s.g.nfx != 0 {
+		s.expireControlPerLoss(k, pre)
+	}
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) && s.leaveGame(k, p) {
 			moved = true
 		}
 	}
 	return moved
+}
+
+// outMask is the set of seats out of the game, one bit a seat.
+func (s *State) outMask() uint8 {
+	var m uint8
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			m |= 1 << p
+		}
+	}
+	return m
+}
+
+// expireControlPerLoss ends the effects giving each departed seat control.
+// A seat that left before the state-based pass began (pre: an effect's loss)
+// is passed one seat at a time in seat order, as gorge's expireControl runs at
+// every PlayerLost emit (a stolen permanent goes back before the next player's
+// loss is emitted, so simultaneous losses return their permanents in loss
+// order, not in the effects' timestamp order). The seats the pass itself
+// marked lost end their effects together in one pass after its batch applies
+// (gorge's sbaLossHeld and releaseLossHold, CR 704.3, 800.4a), so their
+// permanents return in the effects' order. A later seat reads as still in
+// the game for its predecessor's pass.
+func (s *State) expireControlPerLoss(k *prep, pre uint8) {
+	var lost [MaxSeats]bool
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		lost[p] = s.out(p)
+		if lost[p] {
+			n++
+		}
+	}
+	if n < 2 {
+		return // one loss: leaveGame's own pass is the whole of it
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if !lost[p] || pre&(1<<p) == 0 {
+			continue
+		}
+		for q := uint8(0); q < s.nSeats(); q++ {
+			if lost[q] && (q > p || pre&(1<<q) == 0) {
+				s.pl[SeatIx(q)].lost = false
+			}
+		}
+		s.ctrlExpire(k, false)
+		for q := uint8(0); q < s.nSeats(); q++ {
+			s.pl[SeatIx(q)].lost = lost[q]
+		}
+	}
 }
 
 // leaveGame applies CR 800.4a for departed seat p in object order, as gorge's
@@ -53,6 +105,9 @@ func (s *State) sweepDeparted(k *prep) bool {
 // no zone (kop.ZoneNone, which the oracle projects as ZCeased).
 func (s *State) leaveGame(k *prep, p uint8) bool {
 	moved := false
+	if k.gen != nil && k.gen.anyBattle {
+		s.rechooseProtectors(k, p) // CR 310.10 (face_battle.go)
+	}
 	if s.g.nfx != 0 {
 		// every effect giving p control ends first, as gorge's expireControl
 		// runs on the PlayerLost emit (ctrlSeatLeft): a stolen permanent goes
@@ -117,9 +172,8 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 		}
 	}
 	// CR 800.4a's last step: what p still controls is exiled to its owner
-	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
-		s.leave(k, m.first(), kop.ZoneExile, false)
-		moved = true
+	if s.ctrlM[SeatIx(p)].any() {
+		moved = s.exileControlled(k, p) || moved
 	}
 	// p's pending triggers go with p (gorge dropDepartedTriggers)
 	if s.orderLeft == 0 && s.orderPlace == 0 {
@@ -156,4 +210,32 @@ func (s *State) atkSeatLeft(k *prep, a Slot) uint8 {
 		q = s.objs[t].owner()
 	}
 	return q
+}
+
+// DebugLeaveExileSlotOrder is the mutation: the exile walks slot order, as the
+// kernel did before it followed gorge's object order.
+var DebugLeaveExileSlotOrder bool
+
+// exileControlled exiles what departed seat p still controls in object order,
+// as gorge's ceaseDepartedObjects walks G.Objs: the exile order is the
+// owners' exile positions (a slot-order walk swapped two stolen creatures).
+//
+//go:noinline
+func (s *State) exileControlled(k *prep, p uint8) bool {
+	moved := false
+	if DebugLeaveExileSlotOrder {
+		for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
+			s.leave(k, m.first(), kop.ZoneExile, false)
+			moved = true
+		}
+		return moved
+	}
+	for i := 0; i < int(s.nobj); i++ {
+		ob := &s.objs[Obj(i)]
+		if ob.zone == kop.ZoneBattlefield && s.ctrlM[SeatIx(p)].has(ob.slot) {
+			s.leave(k, ob.slot, kop.ZoneExile, false)
+			moved = true
+		}
+	}
+	return moved
 }

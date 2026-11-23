@@ -123,7 +123,6 @@ False Defeat
 Famished Paladin
 Fearless Pup
 Feast or Famine
-Feedback
 Fire Diamond
 Fire-Omen Crane
 Flensermite
@@ -203,6 +202,7 @@ Join the Dance
 Josu Vess, Lich Knight
 Journeyer's Kite
 Joven and Chandler
+Jungle Patrol
 Karsus Depthguard
 Kavu Scout
 Kazuul's Fury

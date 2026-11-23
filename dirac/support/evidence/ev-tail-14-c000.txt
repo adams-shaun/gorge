@@ -82,6 +82,7 @@ Coordinated Charge
 Coral Commando
 Core Prowler
 Corpse Blockade
+Cowed by Wisdom
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
@@ -135,7 +136,6 @@ False Defeat
 Famished Paladin
 Fearless Pup
 Feast or Famine
-Feedback
 Fire Diamond
 Fire-Omen Crane
 Firemane Commando
@@ -218,6 +218,7 @@ Join the Dance
 Josu Vess, Lich Knight
 Journeyer's Kite
 Joven and Chandler
+Jungle Patrol
 Karsus Depthguard
 Kavu Scout
 Kazuul's Fury
@@ -299,6 +300,7 @@ Patron of the Vein
 Personal Tutor
 Persuasion
 Phantasmal Shieldback
+Phantom Carriage
 Phenomenon Investigators
 Phyrexian Broodlings
 Pia and Kiran Nalaar

@@ -54,6 +54,55 @@ func (lc *lowerCtx) dividedCountersAnyX(ps *params) (bool, error) {
 	return true, nil
 }
 
+// dividedCountersRemLKI lowers the reflexive trigger "distribute X +1/+1
+// counters among any number of target creatures, where X is the exiled
+// creature's power" (Yannik, Scavenging Sentinel; gorge counters_put.go
+// AnnouncedDivision over the body's X:TriggerRemembered$CardPower): an
+// ImmediateTrigger handed the battle-link pick's remembered set
+// (RememberObjects$ RememberedLKI) whose PutCounter P1P1 reads CounterNum$,
+// TargetMax$ and DividedAsYouChoose$ as one SVar TriggerRemembered$CardPower,
+// TargetMin$ 0. The capture is the set's summed last-known power, taken as
+// the reflexive trigger is put on the stack (lower_trigremembered.go's
+// trigRemLKIPick arm); the slot is TgfBoundsV 0..X with DivValue the captured
+// amount, and the body's CounterNum is the same capture. Any other divided
+// shape refuses.
+func (lc *lowerCtx) dividedCountersRemLKI(ps *params) (bool, error) {
+	name := strings.TrimSpace(ps.str("DividedAsYouChoose"))
+	if name == "" || strings.TrimSpace(lc.face.SVars[name]) != "TriggerRemembered$CardPower" {
+		return false, nil
+	}
+	if ps.str("CounterNum") != name || ps.str("TargetMax") != name || ps.str("TargetMin") != "0" || ps.str("CounterType") != "P1P1" {
+		return true, refuse("divided PutCounter shape (CounterNum$ %q, TargetMax$ %q, TargetMin$ %q, CounterType$ %q)", ps.str("CounterNum"), ps.str("TargetMax"), ps.str("TargetMin"), ps.str("CounterType"))
+	}
+	if lc.ab == nil || !lc.ab.Latent || lc.ab.Name != "ReflexiveTrigger" || lc.ab.TrigRem != trigRemLKIPick {
+		return true, refuse("divided PutCounter by the remembered card's power outside a reflexive trigger handed the pick's set")
+	}
+	vt, ok := ps.get("ValidTgts")
+	if !ok {
+		return true, refuse("divided PutCounter without ValidTgts$")
+	}
+	for _, k := range []string{"TargetUnique", "TargetsWithSameController", "TargetsWithDifferentControllers", "TgtZone", "Defined", "Choices"} {
+		if _, ok := ps.get(k); ok {
+			return true, refuse("divided PutCounter with %s$", k)
+		}
+	}
+	f, err := lc.filter(vt)
+	if err != nil {
+		return true, err
+	}
+	if f.Players != 0 {
+		return true, refuse("divided PutCounter target filter %q names players", vt)
+	}
+	ps.consume("TgtPrompt")
+	x, err := lc.value(name) // lower_trigremembered.go: the captured amount
+	if err != nil {
+		return true, err
+	}
+	t := lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(0), Max: x, Divided: kop.DivValue, DividedV: x})
+	lc.emit(lInstr{Op: "DividedCounters", Obj: lRef{Kind: rTarget, N: t}, Note: "distribute the exiled card's last-known power among 0..X targets"})
+	return true, nil
+}
+
 // dividedCountersPick lowers the dies trigger "you may distribute a number of
 // +1/+1 counters equal to the number it had among any number of creatures you
 // control" (Vastwood Hydra; gorge counters_put.go putCounterPickDistribute):

@@ -247,6 +247,7 @@ Library
 Lithomantic Barrage
 Living Hive
 Loam Dweller
+Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
 Lord of the Undead
@@ -341,6 +342,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Riding the Dilu Horse
 Righteous War
 Riptide
 Riverglide Pathway
@@ -356,6 +358,7 @@ Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
+Saheeli, Filigree Master
 Sandstone Bridge
 Savage Twister
 Scale Blessing

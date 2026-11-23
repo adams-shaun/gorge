@@ -6,6 +6,7 @@ Aether Gale
 Afterlife
 Aftershock
 Akroan Line Breaker
+Alchemist's Talent
 Alert Heedbonder
 Ambuscade
 Angel of Mercy
@@ -140,6 +141,7 @@ Faerie Formation
 Fall of the Hammer
 Family's Favor
 Farbog Boneflinger
+Fatal Mutation
 Fathom Fleet Captain
 Favor of the Woods
 Feebleness
@@ -282,6 +284,7 @@ Mindshrieker
 Minion of Tevesh Szat
 Mirkwood Spider
 Mirror Entity
+Mirror Gallery
 Misshapen Fiend
 Molten Tributary
 Mosscoat Goriak
@@ -398,6 +401,7 @@ Spell Crumple
 Spell Syphon
 Sphinx Mindbreaker
 Spire Tracer
+Spirespine
 Spore Cloud
 Sprouting Vines
 Stalking Vengeance

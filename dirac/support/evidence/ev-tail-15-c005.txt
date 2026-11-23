@@ -48,6 +48,7 @@ Gert and Old Lace, Runaways
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
+Great Hall of Starnheim
 Grenzo's Cutthroat
 Grey Knight Paragon
 Grim Feast
@@ -93,7 +94,6 @@ Psychic Impetus
 Quagmire Lamprey
 Ragged Veins
 Ransom Note
-Ray of Revelation
 Reaver Drone
 Release to Memory
 Relic of Progenitus

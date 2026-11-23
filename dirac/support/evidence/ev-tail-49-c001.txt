@@ -28,6 +28,7 @@ Batroc the Leaper
 Batterbone
 Battle Mammoth
 Battlefly Swarm
+Belltoll Dragon
 Benthic Behemoth
 Berserk Murlodont
 Biomathematician
@@ -50,6 +51,7 @@ Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
 Call the Scions
+Callow Jushi
 Captain America, Steve Rogers
 Carrion Wurm
 Casting of Bones
@@ -217,7 +219,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Kuldotha Rebirth
 Lantern Spirit
 Lantern of Revealing
@@ -416,7 +417,6 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
-Thunderscape Master
 Tide Skimmer
 Tidings
 Torment

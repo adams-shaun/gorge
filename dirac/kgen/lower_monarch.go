@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The monarch (CR 725): api BecomeMonarch (gorge effects/game.go
 // effBecomeMonarch) lowers as OpExt ExtBecomeMonarch over the player who
@@ -70,15 +74,29 @@ func monarchCheck(cdp string) (lCond, bool) {
 	return lCond{Kind: cValue, A: lValue{Kind: vMonarch, N: n, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)}, true
 }
 
+// whoMonarch is the trigger Whose of ValidPlayer$ Player.isMonarch (Archivist
+// of Gondor's "the monarch's end step"): the active player is the monarch.
+// build_ab.go casts it to kop.Whose, so it must equal kop.WhoseMonarch.
+const whoMonarch uint8 = 203
+
+var _ = [1]struct{}{}[int(whoMonarch)-int(kop.WhoseMonarch)]
+
+// monarchHeldValue is PlayerCountPlayers$HasPropertyisMonarch (gorge
+// hasPropertyStateBacked, g.IsMonarch over the living players): 1 while some
+// player still in the game is the monarch, 0 when the designation is unheld
+// (Archivist of Gondor's and Crown of Gondor's "if there is no monarch"). It
+// is ExMonarch's MonarchAny form.
+func monarchHeldValue() lValue {
+	return lValue{Kind: vMonarch, N: kop.MonarchAny, Sub: []lValue{cst(1), cst(0)}}
+}
+
 // monarchEffectTrigger refuses an Effect's Mode$ BecomeMonarch trigger by
-// name: Palace Jailer's "exile target creature an opponent controls until an
-// opponent becomes the monarch" (CR 610.3). gorge registers the trigger as a
-// static delayed promise that returns the card when an opponent of the
-// Effect's controller becomes the monarch, but its exile does not read the
-// promise: a card is exiled even when an opponent became the monarch after the
-// ability triggered, which CR 610.3b forbids (gorge's 610.3a/b guard,
-// effects exileHostGoneFor, reads only Duration$ UntilHostLeavesPlay). gorge
-// does not play the card text yet, so the kernel has nothing to follow.
+// name: the only shape the kernel plays is Palace Jailer's "exile target
+// creature an opponent controls until an opponent becomes the monarch" (CR
+// 610.3), exactly, which changeZone lowers as one ExtMonarchJail
+// (lower_monarchjail.go, dirac/act_monarchjail.go). Any other Effect that
+// arms a BecomeMonarch trigger, or a Jailer whose params differ, reaches
+// here.
 func monarchEffectTrigger() error {
-	return refuse("Effect Mode$ BecomeMonarch trigger: an exile until an opponent becomes the monarch (Palace Jailer) is not modelled; gorge's exile misses CR 610.3b for it")
+	return refuse("Effect Mode$ BecomeMonarch trigger: an exile until an opponent becomes the monarch outside Palace Jailer's exact shape is not modelled")
 }

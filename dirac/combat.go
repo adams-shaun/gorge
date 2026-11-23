@@ -73,6 +73,9 @@ func (s *State) declareMustAttack(k *prep) {
 			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
 				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
 			}
+			if atkTaxOn(k) && !s.atkTaxRequired(k, sl) {
+				continue // CR 508.1d: a requirement that costs mana is none (combat_attacktax.go)
+			}
 			def := s.nextAlive(s.active)
 			if s.cantAtkPairPlayer(k, sl, def) {
 				// the player pair is forbidden (combat_cantattack.go): a
@@ -172,7 +175,7 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		// defenders: the defending player, then each planeswalker they
 		// control in slot order
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(def), 0))
-		if gd && s.goadedAt(k, sl) || s.attackPlayerOnly(k, sl) {
+		if s.goadPlayersOnly(k, sl, gd && s.goadedAt(k, sl)) || s.attackPlayerOnly(k, sl) {
 			continue // a goad is satisfied by attacking a player only (act_goad.go), and so is Encore's duty (combat_attacksifable.go)
 		}
 		for pm := s.ctrlM[def]; pm.any(); pm = pm.rest() {
@@ -303,6 +306,7 @@ func (s *State) mustAttackOther(k *prep, sl Slot) (uint8, bool) {
 //go:noinline
 func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool) (playerOnly bool) {
 	sick := s.atkHasteSick(k, sl)
+	gpo := s.goadPlayersOnly(k, sl, goaded) // combat_taxgoad.go: under a tax only with a free player pair
 	excl, exclOK := s.mustAttackOther(k, sl)
 	otherLegal := false
 	if exclOK {
@@ -315,9 +319,11 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			break
 		}
 	}
-	if q, ok := s.encoreSeat(k, sl); ok {
-		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
-		return false
+	if q, ok := s.encoreSeat(k, sl); ok && !s.atkTaxEncoreCharged(k, sl) {
+		// kw_encore.go: the named opponent alone (CR 508.1d); gorge's keep-loop drops every battle pair
+		// too (SatisfiedByOffer scores a battle 0), so attackerOptions adds none
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
+		return true
 	}
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
@@ -339,7 +345,7 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 			continue // MustAttack$ Player.Other: another player is a legal defender
 		}
 		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
-		if goaded || exclOK && otherLegal {
+		if gpo || exclOK && otherLegal {
 			// a goad is satisfied by a player only (CR 701.15b), and under
 			// MustAttack$ Player.Other another legal player pair satisfies
 			// the named duty, so gorge's offer filter drops every walker
@@ -381,7 +387,8 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
-			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) {
+			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) &&
+			(!atkTaxOn(k) || s.atkTaxRequired(k, sl)) {
 			return true
 		}
 	}
@@ -495,7 +502,7 @@ func (s *State) finishAttacks(k *prep) {
 			n0 := s.npend
 			s.fireEmblemsAttack(k) // gorge: the delayed check after the event's face triggers
 			if !s.duel() && !DebugDropDefSeat {
-				s.stampDefSeat(n0, s.firstAtkSeat(k), false) // the declaration's first event's seat (a player)
+				s.stampDefSeat(n0, s.firstAtkSeat(k), NoTarget) // the declaration's first event's seat (a player)
 			}
 		}
 		if s.subs[kop.TrigTaps].any() {
@@ -534,6 +541,7 @@ func (s *State) fireAttacksGen(k *prep) {
 	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) && !k.gen.ringOn() {
 		return
 	}
+	s.atkObjReset() // this declaration's attacked objects (trig_atkobj.go)
 	var atk [MaxPerm]Slot
 	na := 0
 	for p := uint8(0); p < MaxSeats; p++ {
@@ -613,7 +621,7 @@ func (s *State) fireAttacksGen(k *prep) {
 				if !s.duel() {
 					s.g.atkDef = 0
 					if !DebugDropDefSeat {
-						s.stampDefSeat(n0, q, isObjTarget(def))
+						s.stampDefSeat(n0, q, def)
 					}
 				}
 				first = false
@@ -647,7 +655,15 @@ func (s *State) firstAtkSeat(k *prep) uint8 {
 // defSeatObj tags an attack trigger's defSeat whose attack event was on a
 // planeswalker or battle: the low bits are the defending seat + 1, this bit
 // says the attacker attacked an object. A defSeat without it names a player.
+// Bits 3..6 (defSeatIxMask) are the attacked object's index + 1 in the cold
+// atkObj table (trig_atkobj.go), 0 = none.
 const defSeatObj = 0x80
+
+const (
+	defSeatSeatMask = 0x07
+	defSeatIxShift  = 3
+	defSeatIxMask   = 0x0f << defSeatIxShift
+)
 
 // defSeatPack is an attack trigger's defSeat byte: defending seat q + 1,
 // tagged defSeatObj when the attack was on a planeswalker or battle; noSeat
@@ -664,16 +680,20 @@ func defSeatPack(q uint8, obj bool) uint8 {
 }
 
 // defSeatSeat is the defending seat a defSeat byte names (0 = none).
-func defSeatSeat(d uint8) uint8 { return (d &^ defSeatObj) - 1 }
+func defSeatSeat(d uint8) uint8 { return (d & defSeatSeatMask) - 1 }
 
 // stampDefSeat binds defending seat q to the pending triggers from n0 on
 // (pendingTrig.defSeat, tagged when the attack event was on a planeswalker or
-// battle); noSeat binds none.
-func (s *State) stampDefSeat(n0 uint8, q uint8, obj bool) {
+// battle, at, which then also keeps the object's atkObj index); noSeat binds
+// none.
+func (s *State) stampDefSeat(n0 uint8, q uint8, at TCode) {
 	if q == noSeat {
 		return
 	}
-	d := defSeatPack(q, obj)
+	d := defSeatPack(q, isObjTarget(at))
+	if isObjTarget(at) {
+		d |= s.atkObjIntern(at) << defSeatIxShift
+	}
 	for i := n0; i < s.npend; i++ {
 		s.pend[i].defSeat = d
 	}
@@ -729,7 +749,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 			}
 			return
 		}
-		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
+		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
 			return // gorge Alone$ / Attacked$ (filter_predicates.go)
 		}
 		if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
@@ -749,7 +769,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 				// the event; at two seats only a TriggeredDefender damage
 				// reads the seat, and binding every trigger would change
 				// the others' reads.
-				s.stampDefSeat(n0, s.atkSeat(k, as), isObjTarget(s.perms[as].atk))
+				s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
 			}
 		}
 	}
@@ -784,7 +804,7 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	if akw&kop.KwProtectionAll != 0 {
 		return false
 	}
-	if (akw|bkw)&(kop.KwFear|kop.KwShadow) != 0 && s.evadesShadowFear(k, b, akw, bkw) {
+	if (akw|bkw)&(kop.KwFear|kop.KwShadow) != 0 && s.evadesShadowFear(k, b, a, akw, bkw) {
 		return false
 	}
 	if k.gen != nil && k.gen.anyLandwalk && s.landwalkEvades(k, b, a) {
@@ -1197,7 +1217,7 @@ func (s *State) finishBlocks(k *prep) {
 	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
-	if k.gen != nil && s.subs[kop.TrigBlocks].any() {
+	if k.gen != nil && (s.subs[kop.TrigBlocks].any() || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
 		s.fireBlocksGen(k)
 	}
 	if k.gen != nil && k.gen.anyUnblocked {
@@ -1318,6 +1338,21 @@ func (s *State) dealsNow(k *prep, sl Slot, first bool) bool {
 // by an emblem (gorge combatDamageAmount,
 // engine/rules/statics_assignment.go).
 func (s *State) combatAmount(k *prep, sl Slot) int {
+	if s.g.ro.on && selfPh(k.gen) {
+		return s.frozenCombatAmt(sl, s.combatAmountLive(k, sl)) // repl_selfph.go
+	}
+	return s.combatAmountLive(k, sl)
+}
+
+// replOrderPossible: some damage replacement of the table can pose gorge's
+// CR 616.1 order ask on a combat pass (a doubler, a shield, a scoped
+// prevention, plus-N additions, a static prevention, a Phantom's line).
+func replOrderPossible(g *genPrep) bool {
+	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g)
+}
+
+// combatAmountLive is combatAmount read from the permanent as it stands.
+func (s *State) combatAmountLive(k *prep, sl Slot) int {
 	amt := s.power(k, sl)
 	if k.gen != nil && k.gen.anyCdmgTough {
 		amt = s.combatAmtTough(k, sl)
@@ -1353,7 +1388,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		kw := s.kw(k, a)
 		dt := kw&kop.KwDeathtouch != 0
-		if ap.flags&pfBlocked == 0 || s.asUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver (combat_asgngrant.go)
+		if ap.flags&pfBlocked == 0 || s.assignsUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver, an accepted election (combat_asgngrant.go)
 			s.toDefender(k, &r, a, pw)
 			continue
 		}
@@ -1464,8 +1499,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if pw <= 0 {
 			continue
 		}
-		if s.blockedTwo(b) {
-			s.blockerTwoDamage(k, &r, b, pw) // CR 510.1d (combat_extrablock.go)
+		if s.blockedMany(b) {
+			s.blockerMultiDamage(k, &r, b, pw) // CR 510.1d (combat_extrablock.go)
 			continue
 		}
 		a := bp.blocking
@@ -1482,13 +1517,14 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		// so shieldCombat must leave all the shields to it (a shield on a
 		// later event is a candidate of the same ask, not an automatic
 		// spend before the ask is answered).
-		if (k.gen.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(k.gen) || k.gen.uses.has(useStaticPrev)) && !s.g.ro.on {
+		if replOrderPossible(k.gen) && !s.g.ro.on {
 			s.replOrderFreeze(k, &r, first) // gorge's replacement-order ask
 		}
 		if k.gen.anyRepl&rbShield != 0 {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
-		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
@@ -1552,7 +1588,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.toPl[pp] > 0 {
-			s.loseLife(k, pp, int(r.toPl[pp]))
+			s.loseLifeDmg(k, pp, int(r.toPl[pp]))
 			s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 		}
 	}
@@ -1649,7 +1685,11 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {
-		n = s.replLife(k, p, n) // act_discover.go
+		if an, asked := s.lifeAsked(p); asked {
+			n = an
+		} else if n = s.lifeGainN(k, p, n); s.over {
+			return // an unstaged site's order ask (StallLifeRepl)
+		}
 	}
 	s.pl[p].life += int16(n)
 	s.pl[p].lifeGained += int16(n)
@@ -1667,6 +1707,14 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	if !ans {
 		s.scrCombatEnter() // arm A of scr starts afresh (scratch.go)
 		s.xblkDivReset()
+		if k.anyAsUnblk {
+			// the as-unblocked election's marks are this pass's (gorge
+			// beginCombatPass rebuilds electQueue/doneElect per pass;
+			// combat_asgngrant.go): only this player's attackers carry them
+			for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+				s.clrElect(am.first())
+			}
+		}
 	}
 	// api:Fog (gorge damageStep's fogActive): no damage pass at all; the
 	// damage divisions are still asked first (gorge asks them before its
@@ -1675,6 +1723,12 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	// keeps the assignments fogUnpreventable selects, all of them for the
 	// kernel's blanket static): the ordinary pass runs (static_cantprevent.go).
 	fog := k.gen != nil && s.g.fog && !s.noPrev(k, true)
+	// the as-unblocked election (combat_asgngrant.go), asked before every
+	// damage division (gorge askNextCombatAsk's fixed queue order)
+	if s.nextElection(k, first) {
+		s.ctl = ctlDivide
+		return
+	}
 	if s.cfg&cfgAutoDivide == 0 && s.nextDivision(k, first) {
 		s.ctl = ctlDivide
 		return
@@ -1750,27 +1804,14 @@ func splits(p, n int) int {
 func (s *State) nextDivision(k *prep, first bool) bool {
 	// attackers in battlefield (entry) order, as gorge askNextDivision
 	var order [MaxPerm]Slot
-	no := 0
-	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
-		a := am.first()
-		if s.perms[a].flags&pfAttacking == 0 {
-			continue
-		}
-		j := no
-		for j > 0 && s.perms[order[j-1]].ts > s.perms[a].ts {
-			order[j] = order[j-1]
-			j--
-		}
-		order[j] = a
-		no++
-	}
+	no := s.attackersInZoneOrder(&order) // combat_asgngrant.go
 	for oi := 0; oi < no; oi++ {
 		a := order[oi]
 		ap := &s.perms[a]
 		if ap.flags&pfAttacking == 0 || ap.flags&pfBlocked == 0 || s.combatArm().divDone.has(a) {
 			continue
 		}
-		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
+		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.assignsUnblocked(k, a) { // routes whole to the player: no division
 			continue
 		}
 		pw := s.combatAmount(k, a)

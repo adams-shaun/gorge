@@ -29,6 +29,11 @@ func init() {
 	// companion restriction sentences (combat.ParseHiddenKeyword; CR 509.1c,
 	// 508.1c-d): askBlockers publishes the first two as per-pair / per-attacker
 	// requirements, publishCompanions the rest as option facts.
+	// kw:MustBeBlockedBy <filter> is the granted filtered requirement (The
+	// Masamune, Ace's Baseball Bat, Slayer's Cleaver); the census keys on the
+	// whole head, so each carrier's filter is its own key.
+	effects.RegisterNonAPI("kw:MustBeBlockedBy Creature", "kw:MustBeBlockedBy Creature.Dalek",
+		"kw:MustBeBlockedBy Creature.Eldrazi")
 	effects.RegisterNonAPI("kw:MustBeBlockedByAll", "kw:MustBeBlockedByOne", "kw:CanOnlyAttackAlone",
 		"kw:CantAttackUnlessGreaterPower", "kw:CantBlockUnlessGreaterPower",
 		"kw:CantAttackUnlessTwoOthers", "kw:CantBlockUnlessTwoOthers", "kw:CantAttackUnlessBlackOrGreen")

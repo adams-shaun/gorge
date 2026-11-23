@@ -9,7 +9,13 @@ import (
 
 // BlgStats counts granted basic-land-type mana views; NonLand counts the
 // ones for cards not printed as lands (the Ashaya class).
-var BlgStats struct{ NonLand atomic.Int64 }
+var BlgStats struct {
+	NonLand atomic.Int64
+	// AltOwn, AltIntr count the taps of an own-vs-intrinsic pair unit
+	// (static_landgrantalt.go) the planner took on its own face and on the
+	// granted intrinsic one
+	AltOwn, AltIntr atomic.Int64
+}
 
 // A granted basic land type (CR 305.6): a Continuous static's
 // AddType$ AllBasicLandType (Leyline of the Guildpact, Prismatic Omen, Dryad
@@ -28,12 +34,15 @@ var BlgStats struct{ NonLand atomic.Int64 }
 // blgFirst naming its first ability's colour for the payment window (the
 // printed ability's, else the lowest granted one). One source is one tap,
 // so the union is only valid when every own mana ability is a plain {T}
-// ability of one colour making one mana (prepMultiMana's shape), or there
-// is none: any other affected source stalls StallLandGrant.
+// ability of one colour making one mana (prepMultiMana's shape), a
+// prepPainMana painland pair (the appended intrinsics join the normal
+// alternatives on manaCol, the pain pair stays on painCol), or there is
+// none: any other affected source stalls StallLandGrant.
 
 // StallLandGrant: a card with a granted basic land type whose own mana
 // ability is not the plain {T}-for-one-mana shape (a {T}: Add {C}{C} land,
-// a painland, a chosen, restricted, dynamic or granted ability), or that
+// a chosen, restricted, dynamic or granted ability) and not a painland pair
+// (prepPainMana's shape: the appended intrinsics join manaCol), or that
 // lost its abilities: one source would have to offer two different
 // productions, which the one-ability pcard cannot hold.
 const StallLandGrant = 120
@@ -67,7 +76,9 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			on = on || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && meets(a.Static.AddSub)
+			// an AddType$ ChosenType static grants a basic land type when its
+			// host chose one (Realmwright; the as-enters ask offers the five)
+			on = on || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (meets(a.Static.AddSub) || a.Static.AddChosen && basic.Any())
 		}
 	}
 	for i := range t.Overrides {
@@ -82,6 +93,25 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 		g.blgIdx[i] = -1
 		base := p.cards[i]
 		if !blgPlain(&t.Cards[i], &base) {
+			// A painland pair (prepPainMana's shape) keeps its pain pair
+			// beside the appended intrinsics: gorge appends the intrinsic per
+			// granted colour no listed ability's Produced$ names exactly, and
+			// the painful choice's Combo is not one, so the view folds the
+			// appended colours into manaCol (the normal alternatives) and
+			// keeps the pain pair on painCol: tapPain prices pain only for a
+			// colour outside manaCol, and blgView's mask also subtracts a
+			// single-colour painful ability's exact Produced$ (blgExactPain).
+			if !DebugLandGrantPainOff && !DebugLandGrantGateOff && !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
+				g.blgIdx[i] = int16(len(g.blgPC) / 32)
+				for m := 0; m < 32; m++ {
+					v := base
+					v.manaCol |= kop.ColorMask(m)
+					v.manaMulti = bits.OnesCount8(uint8(v.manaCol&0x3f)) > 1
+					v.blgFirst = blgFirstOf(&t.Cards[i], &base)
+					g.blgPC = append(g.blgPC, v)
+				}
+				continue
+			}
 			// A rider-first source (Gemstone Mine) is no census unit of its
 			// own under the planner's shape tier, but the intrinsic abilities
 			// a granted basic land type gives it are: one view per granted
@@ -114,7 +144,9 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 						first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
 					}
 				}
-				v.manaCol |= kop.ColorMask(m)
+				if !blgDropsGrant(&v) {
+					v.manaCol |= kop.ColorMask(m)
+				}
 			} else {
 				v.manaAb = 0 // no own ability: the intrinsic one (manaAbView guards the reads)
 				v.manaCol = kop.ColorMask(m)
@@ -148,19 +180,51 @@ func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
 	return m
 }
 
+// blgFirstOf names a view's first ability's colour for the payment window:
+// the printed first mana ability's (a Combo its printed token order), else
+// the lowest granted one (prepLandGrant's plain and painland branches).
+func blgFirstOf(c *kop.CardDef, base *pcard) uint8 {
+	first := bits.TrailingZeros8(uint8(base.manaCol & 0x3f))
+	if ab := manaAbView(c, base); ab != nil && ab.AFlags&kop.AfManaChoice != 0 {
+		var ord [5]uint8
+		if manaColourOrder(ab, &ord) > 0 {
+			first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
+		}
+	}
+	return uint8(first + 1)
+}
+
+// blgExactPain is the colour a card's single-colour painful ability produces
+// exactly (painCol one WUBRG bit, not a Combo or Any): gorge's
+// intrinsic-append dedup (ManaAbilitiesProduce) counts it, so a granted type
+// of that colour adds no intrinsic ability and the source keeps that
+// production painful.
+func blgExactPain(pc *pcard) kop.ColorMask {
+	if pc.painCol != 0 && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 {
+		return pc.painCol
+	}
+	return 0
+}
+
 // blgPlain reports whether card c's own mana abilities (pc its facts) are
 // all plain {T} abilities making one mana of one colour, or it has none. A
 // later ability the planner census misses (a {1},{T} filter, Rumble Arena) or
 // counts per payment (a restricted one, Jasmine Dragon Tea Shop) is not part of
 // the view: the gap and restricted-source models read it from the card.
 func blgPlain(c *kop.CardDef, pc *pcard) bool {
-	if pc.manaChosen || pc.manaDyn || pc.painCol != 0 || pc.ctrMana {
+	if pc.manaChosen && !blgThriving(c, pc) || pc.manaDyn || pc.ctrMana || pc.painCol != 0 && !blgPainLand(pc) {
 		return false
 	}
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 			continue
+		}
+		if pc.manaChosen && j == int(pc.manaAb) {
+			continue // a Thriving land's "Combo W Chosen": blgThriving read it whole
+		}
+		if pc.painCol != 0 && j != int(pc.manaAb) {
+			continue // a painland's painful second ability: the pain alternative (mana_pain.go), no view colour
 		}
 		if j != int(pc.manaAb) && (censusGapMana(a) || restrSrcAb(a)) {
 			continue // a costed or restricted ability beside the first: the census gap / restricted-source machinery's, not a view colour
@@ -186,6 +250,9 @@ func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
 	a := &c.Abilities[pc.manaAb]
 	if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
 		return false
+	}
+	if blgFilterFirst(c, pc, a) {
+		return true
 	}
 	if a.ManaRider != kop.ManaRiderNone {
 		return true
@@ -271,12 +338,16 @@ func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
 	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
-		m &^= pc.manaCol // gorge ManaAbilitiesProduce: a printed colour is not appended again
+		m &^= ownMadeCols(pc)  // gorge ManaAbilitiesProduce: a printed colour (a ManaEach ability's extra too) is not appended again
+		m &^= blgExactPain(pc) // a single-colour painful ability's Produced$ is exact too: no intrinsic beside it
 	}
 	if m == 0 {
 		return pc
 	}
 	g := k.gen
+	if v := s.altView(k, sl, c, pc); v != nil {
+		return v // an own ability beside the granted intrinsic one (static_landgrantalt.go)
+	}
 	if g.blgIdx[c] < 0 {
 		s.capFull(StallLandGrant)
 		return pc
@@ -293,7 +364,7 @@ func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 //
 //go:noinline
 func (s *State) blgStall(k *prep, sl Slot, c CardID) {
-	if s.blgMask(k, sl)&^k.cards[c].manaCol != 0 {
+	if s.blgMask(k, sl)&^ownMadeCols(&k.cards[c]) != 0 {
 		s.capFull(StallLandGrant)
 	}
 }
@@ -341,7 +412,11 @@ func manaAbView(cd *kop.CardDef, pc *pcard) *kop.Ability {
 // ability is in no table (Leyline of the Guildpact over a Swamp or Stomping
 // Ground: gorge counts the printed abilities and one per granted type, CR 305.6),
 // so the colours the view holds beyond the card's own mana abilities belong here.
-func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
+// A restricted ability payment d refuses is no own ability of this walk (the
+// fixpoint never admits it), so its colours do not shadow a granted type's
+// intrinsic one: Abundant Countryside made an Island offers {C} and {U} to a
+// trigger's {2} though its any-colour creature-only ability adds nothing.
+func (s *State) potentialFirstMask(k *prep, p uint8, sl Slot, pc *pcard, d *payDesc) uint8 {
 	if pc.manaIntrinsic {
 		// the view is the granted types' intrinsic unit (blgView): its colours
 		// are the fold. The card's own abilities (its deferred rider) are the
@@ -359,7 +434,7 @@ func (s *State) potentialFirstMask(k *prep, sl Slot, pc *pcard) uint8 {
 	}
 	var own uint8
 	for j := range cd.Abilities {
-		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbMana && !(pc.manaAb >= 0 && manaAbView(cd, pc) == nil) && (d == nil || a.ManaRestrict == 0 || s.restrSrcAdmits(k, p, sl, a, d)) {
 			own |= uint8(a.ManaColors & 0x3f) // an intrinsic-only view has none (static_landtypesetter.go)
 		}
 	}

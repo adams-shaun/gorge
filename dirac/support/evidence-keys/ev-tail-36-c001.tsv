@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Esika's Chariot	5a2c801360581e4e	30	3/3		1/1	
+A-Shipwreck Sifters	38c3d89faf32a496	12	2/2		0/1	ix:resp
 Abuna Acolyte	379e0318973e7be1	17	2/2		1/1	
 Acclaimed Contender	5e71ea70e38844be	4	1/1		0/1	ix:resp
 Anathemancer	6f10ca2bf15dee0b	10	2/2		0/1	ix:resp
@@ -21,6 +22,7 @@ False Defeat	c541acc50fb582d4	46	0/0		2/2
 Gilt-Leaf Seer	9d06c466c172e1b7	35	1/1		1/1	
 Glare of Heresy	427b689f598fc0d7	19	0/0		1/2	ix:resp
 Graceful Adept	49f5d8faffac9c7a	4	0/0		0/0	
+Horrid Shadowspinner	aabc661292e4bc61	3	1/1		1/1	
 Illuminator Virtuoso	eb5d385a649be3fc	37	1/1		1/1	
 Iron Apprentice	425e3e1ca60210b8	66	1/1		1/1	
 Jace's Triumph	3f25f1c295d5ba8d	8	0/0		2/2	

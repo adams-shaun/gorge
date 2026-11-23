@@ -1,0 +1,7 @@
+# End-of-turn Effects on Mode$ Blocks (Benefactor's Draught: "Until end of turn, whenever a creature an opponent controls blocks,
+# draw a card"; Battle Cry: "Whenever a creature blocks this turn, it gets +0/+1") with vanilla blockers (dirac/oracle/blocksemblem_lockstep_test.go)
+Battle Cry
+Benefactor's Draught
+Forest
+Grizzly Bears
+Plains

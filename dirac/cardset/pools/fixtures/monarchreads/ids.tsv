@@ -1,0 +1,32 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Archivist of Gondor
+1	card	Azure Fleet Admiral
+2	card	Court of Embereth
+3	card	Court of Grace
+4	card	Crimson Fleet Commodore
+5	card	Crown of Gondor
+6	card	Elite Vanguard
+7	card	Fall from Favor
+8	card	Forest
+9	card	Goblin Piker
+10	card	Grizzly Bears
+11	card	Hill Giant
+12	card	Isamaru, Hound of Konda
+13	card	Island
+14	card	Lightning Bolt
+15	card	Mirri, Cat Warrior
+16	card	Mountain
+17	card	Palace Sentinels
+18	card	Plains
+19	card	Queen Marchesa
+20	card	Savannah Lions
+21	card	Shock
+22	card	Suntail Hawk
+23	card	Swamp
+24	card	Throne of the High City
+25	card	Wind Drake
+26	token	b_1_1_assassin_deathtouch_haste
+27	token	r_3_1_knight
+28	token	w_1_1_spirit_flying
+29	token	w_4_4_angel_flying
+30	card	Palace Jailer

@@ -58,6 +58,11 @@ type built struct {
 	// readsName: one of the card's filters reads a name (F2SameNameAsSource,
 	// PredNamed); a matchup that also holds a Room refuses (roomNameGuard).
 	readsName bool
+	// readNames: the literal names its PredNamed clauses read (clause()). Those
+	// alone do not set readsName: a Room carries only its doors' names (CR 709.5),
+	// so a read of any other name is false of a Room in gorge and the kernel
+	// alike (narrowNameReaders keeps a reader only if one is a door name).
+	readNames []string
 }
 
 // newPoolTables starts the side tables; the subtype table holds the pool
@@ -219,6 +224,12 @@ func buildCard(pt *poolTables, c *lCard) built {
 				// potential_plan.go paymentPlanRelaxedAlternatives
 				// enumerates no colour for the production)
 				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
+			}
+			if r := exileGraveManaRefusal(a); r != "" {
+				why = r // (an exile-from-graveyard source outside the modelled shape names its restriction, rider or zone)
+			}
+			if r := forageManaRefusal(a); r != "" {
+				why = r // (a forage cost beside a production other than the unrestricted Combo Any one)
 			}
 			if kop.FeeComboAnyManaAb(a) {
 				// the combination search has no fee-funded form: a Combo Any
@@ -491,10 +502,15 @@ func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 }
 
 // copyKeptSets copies the flags of a card whose abilities keep a remembered or
-// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go).
+// imprinted set past one resolution (zone_rememberpersist.go, zone_srcmem.go),
+// and the printed-keyword records the with<Keyword> word reads
+// (kop.FwWithKeyword's printedKeyword): no KwMask bit is free, so each of
+// those keywords is its own cold field.
 func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.RemPersist, d.RemSeed, d.RemKeep = c.RemPersist, c.RemSeed, c.RemKeep
 	d.ImpPersist, d.SrcMem, d.SmSeed = c.ImpPersist, c.SrcMem, c.SmSeed
+	d.HasCycling, d.HasWard, d.HasEnchant = c.HasCycling, c.HasWard, c.HasEnchant
+	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
 func (cb *cardBuilder) record() error {
@@ -561,7 +577,7 @@ func (cb *cardBuilder) record() error {
 		d.Bargain = true
 		cb.bargain = true
 	}
-	d.HandMana = c.HandMana // a Spirit Guide's hand mana: no ability (lower_handmana.go)
+	d.HandMana, d.GraveMana = c.HandMana, c.GraveMana // a Spirit Guide's hand mana, a graveyard source's colours: no ability (lower_handmana.go, lower_gravemana.go)
 	if c.Storm {
 		// the printed K:Storm trigger is the kernel's own native trigger
 		// (dirac/kw_storm.go); no ability, no cast-action bit
@@ -1210,22 +1226,14 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.DiscardN > 0 {
-		set(kop.CostDiscard, c.DiscardN)
-	}
+	discardCountPart(&out, c, set, &counted)
 	discardXCostPart(c, &out) // Discard<X/Spec>: CostDiscard with N 0, the announced X
 	if c.DiscardHand {
 		out.DiscardHand = true
 	}
 	out.DiscardRandom = discardRandomPart(c)
-	if c.DiscardF != nil {
-		// a filtered discard shares Cost.N (the card count) and Cost.Filter
-		// (the candidates' spec, the hand zone): alone among the counted
-		// parts
-		out.Flags |= kop.CostDiscardFiltered
-		if out.Filter, err = cb.filter(c.DiscardF, kop.ZoneHand); err != nil {
-			return out, err
-		}
+	if err = cb.discardFilterPart(&out, c); err != nil {
+		return out, err
 	}
 	if c.DiscardSelf {
 		out.Flags |= kop.CostDiscardSelf
@@ -1396,7 +1404,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 // the source's own graveyard exile (discardBesideSelfExile). Any other pair
 // stays refused.
 func countedPartsOK(c *lCost, out *kop.Cost, counted int) bool {
-	return discardBesideSac(c, out, counted) || counted == 2 && discardBesideSelfExile(*c)
+	return discardBesideSac(c, out, counted) || counted == 2 && sharedCountPairOK(*c)
 }
 
 // hasDrawCost reports a Draw<N/Who> or Draw<X/Who> part. Only a trigger's own
@@ -1509,7 +1517,7 @@ func (cb *cardBuilder) filterZones(f *lFilter, zones []kop.Zone) (kop.FilterID, 
 		if i == 0 {
 			kf.PickDistinctPower = f.PickDistinctPower
 		}
-		if kf.Flags2&kop.F2SameNameAsSource != 0 || kf.Pred == kop.PredNamed {
+		if kf.Flags2&kop.F2SameNameAsSource != 0 {
 			cb.out.readsName = true
 		}
 		next = cb.pt.internFilter(kf)
@@ -1902,6 +1910,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		// off the battlefield nothing is solved (gorge clears Solved on
 		// the zone move)
 		kf.Pred, kf.PredN = kop.PredSolved, int16(c.CmpN)
+	case cmpMonarchCtrl:
+		// a battlefield permanent's controller against the monarch
+		// (kernel monarchCtrlPredicate); no off-battlefield reading
+		if zone != kop.ZoneBattlefield {
+			return kf, fmt.Errorf("the monarch controller word off the battlefield")
+		}
+		kf.Pred, kf.PredN = kop.PredMonarchCtrl, int16(c.CmpN)
 	case cmpRenowned, cmpAttackingYou, cmpGoaded:
 		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
@@ -1927,17 +1942,14 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredFaceDown // a face-down battlefield permanent (kernel faceDownPred)
 	case cmpPowerGTBase:
 		kf.Pred = kop.PredPowerGTBase // current power > base power (kernel powerGTBase)
+	case cmpHasLandwalk, cmpHasProtQuality, cmpHasProtColor, cmpHasProtEachColor:
+		return kf, cb.sharedKeywordClause(&kf, c)
 	case cmpWord7:
 		if c.CmpN == cmpNoNameGrave {
 			return kf, refuse("doesNotShareNameWith YourGraveyard without OtherYourBattlefield")
 		}
-		if c.CmpN == int(kop.W7NoAbilities) && zone == kop.ZoneBattlefield {
-			// a permanent's granted or lost abilities change the answer
-			return kf, refuse("NoAbilities on the battlefield")
-		}
-		if c.CmpN == int(kop.W7EnteredFromBF) && zone == kop.ZoneBattlefield {
-			// the word reads a card's latest arrival; a permanent has none to read
-			return kf, refuse("ThisTurnEnteredFrom_Battlefield on the battlefield")
+		if err := word7ZoneRefusal(c, zone); err != nil {
+			return kf, err
 		}
 		if c.CmpN == int(kop.W7EnchPlayerCtrl) && zone != kop.ZoneBattlefield {
 			// the kernel reads the source's enchanted seat against a permanent's controller
@@ -1985,11 +1997,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredWasCastSpell, int16(c.CmpN)
 	case cmpTotalPT, cmpBlocked:
-		// battlefield-only high predicates (kernel predPermCold)
-		if zone != kop.ZoneBattlefield {
-			return kf, refuse("totalPT / blocked off the battlefield")
-		}
+		// blocked is battlefield-only (kernel predPermCold); totalPT reads
+		// the printed power plus toughness of a card in a hidden zone too
+		// (kernel predCardCold; Meek Attack's hand pick)
 		if c.CmpStat == cmpBlocked {
+			if zone != kop.ZoneBattlefield {
+				return kf, refuse("blocked off the battlefield")
+			}
 			kf.Pred = kop.PredBlocked
 			break
 		}
@@ -2066,6 +2080,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("named clause %q names %d pool entries", c.Name, len(ix))
 		}
 		kf.Pred, kf.PredN = kop.PredNamed, -1
+		cb.out.readNames = append(cb.out.readNames, c.Name)
 		if len(ix) == 1 {
 			kf.PredN = int16(ix[0])
 		}
@@ -2659,8 +2674,10 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileHost, ko.CantAttack = o.WhileHost, o.CantAttack
 	ko.UntilUpkeep = o.UntilUpkeep
 	ko.WhileTapped = o.WhileTapped
+	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
 	ko.Banding = o.Banding
+	ko.Horsemanship = o.Horsemanship
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
@@ -2714,7 +2731,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	var keep []uint8
 	for i, w := range cb.pt.subtypes {
-		if o.Kept.Has(w) {
+		if o.Kept.Has(w) || unmodeledSupertype(w) {
 			keep = append(keep, uint8(i))
 		}
 	}

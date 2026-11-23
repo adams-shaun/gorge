@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -188,6 +191,49 @@ func pinnedManaAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
 	return out
 }
 
+// comboSplitAlts is the mixed-colour half of a Combo production's census: a
+// "Produced$ Combo <colours>" source with Amount$ n makes n mana in ANY
+// combination of those colours (the card's own text), so a two-mana source
+// pays {W}{G} by one tap, a split pinnedManaAlts' one-alt-per-colour pricing
+// ({W}{W}, {G}{G}) never reaches. Each alt carries one bounded allocation
+// (windowAnyCombinations, the cast window's own expansion) resolved onto its
+// ability (pay.WithManaAllocation), so the activation poses no colour sub-ask:
+// the unless window's tap ask offers it as one option, as it offers a pinned
+// colour. The single-colour allocations stay with pinnedManaAlts, which every
+// caller adds first; a plain "Any", a chosen or AnyDifferent production, an
+// ability pinnedManaAlts excludes, and a production past the allocation bound
+// add nothing (fail closed to the pinned pricing).
+func comboSplitAlts(alt windowManaAlt, counts [6]int32) []windowManaAlt {
+	ma := alt.Ma
+	mp := effects.ManaOf(ma)
+	if !effects.IsComboAllocation(mp.Produced) || mp.NeedsChosen || mp.AnyDifferent || len(pinnedManaAlts(alt, counts)) == 0 {
+		return nil
+	}
+	var out []windowManaAlt
+	for _, combo := range windowAnyCombinations(counts, alt.Amt) {
+		var symbols strings.Builder
+		colours := 0
+		for c, n := range combo {
+			if n == 0 {
+				continue
+			}
+			colours++
+			for i := int32(0); i < n; i++ {
+				symbols.WriteString(string(cards.ManaSymbol(c)))
+			}
+		}
+		if colours < 2 {
+			continue
+		}
+		a := alt
+		a.Counts = combo
+		a.Amt = 1
+		a.Ma = pay.WithManaAllocation(ma, ma, symbols.String())
+		out = append(out, a)
+	}
+	return out
+}
+
 // fixedManaAlts prices a FIXED production (ProducedCounts' any=false: no
 // colour is chosen on activation) as ONE alternative over its full counts.
 // The activation produces every slot of counts at once, so per-colour
@@ -217,6 +263,30 @@ func manaSubCounterCarried(o *state.Object, cost Cost) bool {
 	return true
 }
 
+// unlessEvaluatedArmAdmits reports whether the evaluated-amount arm takes one
+// of the census window's mana abilities. A restricted batch joins the
+// evaluated-amount arm only when its restriction admits the PurposeOther
+// payment (CR 106.6: Vhal, Candlekeep Researcher's toughness-sized {C} can't
+// cast a spell from hand but pays an unless tax).
+// The evaluated-amount arm also admits a deterministic self-sacrifice
+// activation when the paid census is on: Lotus Blossom's
+// "{T}, Sacrifice: Add X mana of any one color, X its petal counters" is the
+// same class the paid-cost census counts for a fixed amount (Treasure, Lotus
+// Petal), and the CR 605.3a window can activate it. The tap half is the arm's
+// !o.Tapped; the sacrifice half is the census's own unblocked-self-sacrifice
+// rule. sacCostOf prices the ability lazily (nil when the paid census is off).
+func unlessEvaluatedArmAdmits(py pay.Engine, p state.PlayerID, id state.ObjID, o *state.Object, ma *cards.SA, mf pay.ManaStatic, sacCostOf func() Cost) bool {
+	sacCost := Cost{}
+	if !mf.TapOnly && sacCostOf != nil {
+		sacCost = sacCostOf()
+	}
+	return mf.Amount <= 0 && (mf.TapOnly ||
+		(pay.CastWindowSelfSacCost(py, p, id, sacCost) &&
+			!pay.ActivationTapCostUnavailable(o, &sacCost))) && !o.Tapped &&
+		(!mf.RestrictValid ||
+			pay.UnlessRestrictionAdmitsOther(py, p, effects.ManaOf(ma).RestrictValid, id))
+}
+
 // unlessWindowUnits is the census the unless-cost windows read:
 // windowManaUnitsPaid plus the free abilities whose colour is chosen on
 // activation (CR 605.3a), which that census withholds. They arrive pinned, one
@@ -241,12 +311,11 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 		}
 		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
 			mf := e.manaStaticFor(p, id, ma)
-			// A restricted batch joins the evaluated-amount arm only when its
-			// restriction admits the PurposeOther payment (CR 106.6: Vhal,
-			// Candlekeep Researcher's toughness-sized {C} can't cast a spell
-			// from hand but pays an unless tax).
-			if mf.Amount <= 0 && mf.TapOnly && !o.Tapped && (!mf.RestrictValid ||
-				pay.UnlessRestrictionAdmitsOther(asPayer(e), p, effects.ManaOf(ma).RestrictValid, id)) {
+			var sacCostOf func() Cost
+			if e.paidManaCensus {
+				sacCostOf = func() Cost { return e.manaAbilityCC(p, id, ma).Cost }
+			}
+			if unlessEvaluatedArmAdmits(asPayer(e), p, id, o, ma, mf, sacCostOf) {
 				if probe == nil {
 					probe = e.paymentPlanTappedProbe(p)
 				}
@@ -295,6 +364,12 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 					}
 				}
 			}
+			if alts, ok := identityManaAlts(asPayer(e), p, o, ma, mf); ok {
+				for _, a := range alts {
+					units = pay.AppendUnitAlt(units, id, a)
+				}
+				continue
+			}
 			if !mf.Any || !mf.FreeCost || mf.Amount <= 0 ||
 				(mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) {
 				continue
@@ -314,6 +389,9 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				continue
 			}
 			for _, a := range pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
+				units = pay.AppendUnitAlt(units, id, a)
+			}
+			for _, a := range comboSplitAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts) {
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
@@ -378,11 +456,37 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 // the census convention).
 func unlessFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost, selfSac bool) []windowManaAlt {
 	if !castWindowGenericCostShape(fee) && !selfSac {
+		if castWindowHybridFeeCost(fee) {
+			return unlessHybridFeeAlts(ma, fmf, fee)
+		}
 		return nil
 	}
-	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: fee.Generic, CostColored: fee.Colored}
+	return unlessFeeAltsFor(ma, fmf, fee.Generic, fee.Colored)
+}
+
+// unlessHybridFeeAlts prices a hybrid-pip fee (Fetid Heath's "{W/B}, {T}: Add
+// {W}{W}, {W}{B}, or {B}{B}") as the cast window does: one alternative set per
+// assignment of the pips to a colour of their pair (CR 107.4b), each fee a
+// concrete coloured mask the reach walk funds from the floating mana (CR
+// 605.3b). Two assignments that give the same fee and production would be one
+// tap, so a repeated fee mask is skipped.
+func unlessHybridFeeAlts(ma *cards.SA, fmf pay.ManaStatic, fee Cost) []windowManaAlt {
+	masks := castWindowHybridFeeMasks(fee.Hybrid, fee.Colored)
+	var out []windowManaAlt
+	for i, mask := range masks {
+		if slices.Contains(masks[:i], mask) {
+			continue
+		}
+		out = append(out, unlessFeeAltsFor(ma, fmf, fee.Generic, mask)...)
+	}
+	return out
+}
+
+// unlessFeeAltsFor is unlessFeeAlts' production side over a settled fee.
+func unlessFeeAltsFor(ma *cards.SA, fmf pay.ManaStatic, generic int32, colored state.Mana) []windowManaAlt {
+	feeAlt := windowManaAlt{Ma: ma, Amt: fmf.Amount, CostGeneric: generic, CostColored: colored}
 	if fmf.Any {
-		return pinnedManaAlts(feeAlt, fmf.Counts)
+		return append(pinnedManaAlts(feeAlt, fmf.Counts), comboSplitAlts(feeAlt, fmf.Counts)...)
 	}
 	if a, ok := fixedMultiColourAlt(feeAlt, fmf.Counts); ok {
 		return []windowManaAlt{a}
@@ -437,4 +541,34 @@ func (e *Engine) availablePaidAbilities(p state.PlayerID, id state.ObjID, o *sta
 		}
 	}
 	return out, maxLife
+}
+
+// wubrgIndex is colour letter c's index in W U B R G order, or -1.
+func wubrgIndex(c string) int {
+	for i, l := range [...]string{"W", "U", "B", "R", "G"} {
+		if c == l {
+			return i
+		}
+	}
+	return -1
+}
+
+// identityManaAlts prices "Add one mana of any color in your commander's
+// color identity" (Command Tower, CR 903.4, 605.3a) for unlessWindowUnits: a
+// free-tap, amount-1 ability is a finite colour pick, one pinned alt per
+// identity colour, so the offer gate prices it exactly as the activation it
+// later taps. No identity colour prices nothing (fail closed); ok is false for
+// any other ability.
+func identityManaAlts(e pay.Engine, p state.PlayerID, o *state.Object, ma *cards.SA, mf pay.ManaStatic) ([]windowManaAlt, bool) {
+	if !mf.FreeCost || mf.Amount != 1 || (mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped) ||
+		!pay.IsColourIdentityProduced(effects.ManaOf(ma).Produced) {
+		return nil, false
+	}
+	var counts [6]int32
+	for _, c := range pay.CommanderIdentityColours(e, p) {
+		if i := wubrgIndex(c); i >= 0 {
+			counts[i] = 1
+		}
+	}
+	return pinnedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, counts), true
 }

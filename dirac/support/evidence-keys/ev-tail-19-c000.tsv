@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Fates' Reversal	989a6cf74b340c4b	44	0/0		2/2	
 Arcbound Worker	297fd50c8b3d55d8	1507	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Broken Dam	431f11404d32a868	43	0/0		2/2	
 Cheering Fanatic	070b39b072960418	4	1/1		1/1	
 Chromeshell Crab	a9040a4252993671	9	1/1		2/5	cast/alt:none,f0/t0/opt:n,f0/t0/opt:y
 Countervailing Winds	d3e4ee66fc4a30d5	3	1/1		1/2	ix:resp
@@ -8,10 +9,15 @@ Eel Umbra	4697d310786ff9be	4	0/0		1/2	ix:resp
 Elfhame Sanctuary	13d6fe35b32644f4	57	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Frodo, Adventurous Hobbit	51384cbec8d1f43e	258	2/2		1/1	
 Gigadrowse	f351beb77ce513d5	5	1/1		4/4	
+Guardian of the Gateless	a9056106e5b8d38b	9	1/1		0/1	ix:resp
 Lae'zel's Acrobatics	b6ea9a7b9cc8c918	48	0/0		2/2	
 Mastery of the Unseen	f475c018ea4ac049	26	2/2		1/1	
+Pack Hunt	de89bc308e0e218c	14	0/0		2/2	
+Phantasmal Terrain	df99591256af8d99	45	0/0		2/2	
+Porcelain Zealot	8d525af947df0462	43	1/1		1/1	
 Pyrrhic Revival	97b41cc2ce400ea8	15	0/0		1/2	ix:resp
 Quillspike	967829a5b30e9eaa	332	1/1		1/1	
 Took Reaper	f0de282312c170db	56	1/1		0/1	ix:resp
 Transguild Courier	dde692be531670d4	75	0/0		0/0	
 Vengeful Dreams	08c470597ad23c03	19	0/0		2/2	
+Zelyon Sword	3971d2269a71f23b	32	1/1		0/1	ix:resp

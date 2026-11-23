@@ -36,7 +36,6 @@ Ben-Ben, Akki Hermit
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Bird Admirer
 Black Market Tycoon
 Black Panther, Most Dangerous
@@ -63,6 +62,7 @@ Call to the Netherworld
 Calming Verse
 Canopy Gorger
 Captain America, Liberator
+Captain Vargus Wrath
 Carefree Swinemaster
 Carnage Tyrant
 Cavern Thoctar
@@ -117,6 +117,7 @@ Djinn of Infinite Deceits
 Domestication
 Dora Milaje Elite
 Drana's Emissary
+Drannith Stinger
 Dread Specter
 Dream Prowler
 Dream Thief
@@ -143,7 +144,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Fetid Gargantua
 Final Death
 Final Payment
@@ -201,12 +201,12 @@ Ilysian Caryatid
 Imperial Oath
 Improbable Alliance
 Indulgent Tormentor
+Infernal Tutor
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Invasion of Theros
-Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -225,7 +225,6 @@ Keeper of the Cadence
 Kefnet the Mindful
 Kjeldoran Frostbeast
 Kolaghan Warmonger
-Kor Haven
 Krazy Kow
 Kronch Wrangler
 Krovikan Mist
@@ -250,6 +249,7 @@ Mardu Hateblade
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
+Mask of the Mimic
 Mass Appeal
 Mass Diminish
 Mawloc
@@ -279,7 +279,6 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
-O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
 Orim's Thunder
@@ -306,7 +305,7 @@ Primal Adversary
 Promise of Tomorrow
 Propagator Drone
 Protector of the Wastes
-Puca's Covenant
+Quakefoot Cyclops
 Queen's Agent
 Quickbeam, Upstart Ent
 Quietus Spike
@@ -348,6 +347,7 @@ Selesnya Charm
 Selfless Cathar
 Selfless Savior
 Sell-Sword Brute
+Serra Inquisitors
 Serra's Boon
 Serra's Guardian
 Serum Tank
@@ -416,7 +416,6 @@ The World Tree
 Thopter Mechanic
 Thraben Valiant
 Thran War Machine
-Thunderscape Master
 Tor Giant
 Treasure Trove
 Treespring Lorian
@@ -435,6 +434,7 @@ Uncontrollable Anger
 Underhanded Designs
 Unravel the Aether
 Updraft
+Upwelling
 Urborg Drake
 Valko Indorian
 Valorous Steed
@@ -453,7 +453,6 @@ Vulpine Goliath
 Wall of Opposition
 War Falcon
 Warcry Phoenix
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental
@@ -463,7 +462,6 @@ White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
 Wingmate Roc
-Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Wyluli Wolf

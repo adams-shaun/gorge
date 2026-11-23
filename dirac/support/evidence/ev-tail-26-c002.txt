@@ -40,6 +40,7 @@ Castle Raptors
 Celebrity Fencer
 Chakram Slinger
 Chandra's Magmutt
+Changing Loyalty
 Chaosphere
 Chasm Drake
 Chastise
@@ -223,7 +224,6 @@ Steadfast Unicorn
 Stitched Drake
 Stony Strength
 Storm of Memories
-Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp

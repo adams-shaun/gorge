@@ -47,12 +47,17 @@ type ScriptStep struct {
 // beyond either stays unpriced (never a proof). Both are stated limits, not
 // proofs of completeness: a query with more than sixteen plays the printed
 // sources cannot pay leaves the later ones census_incomplete, and so does a
-// search that needs more than 160 clones. (Four plays left a legal play
+// search that needs more than 164 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
-// Standard games, at about 2% more clones than four.)
+// Standard games, at about 2% more clones than four. 164: a board whose
+// every land tap is Taps-deferred by an outside watcher -- Manabarbs, whose
+// trigger each gap activation stacks for the walk's passes arm to resolve --
+// reached a fee-gap's funding line at 163 clones (the fee gap's {1} beside
+// Silver Myr paying a {U}{U} attach), three past the old 160, and the kernel's
+// mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
 const (
 	potentialScriptPlays = 16
-	potentialScriptNodes = 160
+	potentialScriptNodes = 164
 )
 
 // potentialCastKind is the potential play kind a plain cast's prefix search
@@ -118,7 +123,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		// permission, at the printed cost) takes the same order as a hand
 		// cast: its plain walk taps Baxter Building's free {C} ability first
 		// and spends the budget before the {4} filter is funded.
-		if phased && o.Kind == optCast && (o.Mode == "" || o.Mode == "mayplay") && o.AltCostIndex == 0 &&
+		if phased && (o.Kind == optCast && (o.Mode == "" || o.Mode == "mayplay") || o.Kind == optAbility) && o.AltCostIndex == 0 &&
 			len(sr.feeGaps) != 0 && !sr.phasedScope(e) {
 			sr.feeOrder = true
 		}
@@ -433,9 +438,10 @@ type scriptNeedReader interface {
 // twobrid or hybrid-Phyrexian pip needs each of its faces; a Phyrexian pip
 // needs its colour (its life face is not mana). The set is only the search's
 // branch-order preference -- it changes which equal answers a colour ask's
-// search tries first, never which answers exist. A cast of a mode or an
-// alternative cost (MayPlay*, flashback) whose pips the printed base does not
-// carry leaves the set empty, and so the engine order.
+// search tries first, never which answers exist. A cast of a card mode or an
+// alternative cost (flashback, kicker) whose pips the printed base does not
+// carry leaves the set empty, and so the engine order; a may-play cast reads
+// the printed base (scriptPlayBaseCost).
 func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
 	var need [state.MC + 1]bool
 	add := func(c costvocab.Cost) {
@@ -479,19 +485,25 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 
 // scriptPlayBaseCost is the cost the searched play's base face announces (CR
 // 601.2b: the caster announces each pip's colour before targets): a plain
-// cast's printed mana cost, an ability's compiled cost. ok is false when the
-// play's cost is not the printed base one -- a cast of a mode or an
-// alternative cost (MayPlay*, flashback), an unresolvable ability, or a play
-// that is neither kind -- so both need-readers (scriptNeedColours, the
-// search's branch-order preference, and scriptNeedCounts, the subsume run's
-// prune bound) leave the cost unread rather than guess one.
+// cast's printed mana cost, an ability's compiled cost. A may-play cast (a
+// permission that only opens the zone: Summoning Materia's top of the
+// library) reads the printed base too -- scriptSpendableGaps' same
+// admission, which prices its payment descriptor with castOfferBase
+// (scriptPlayDesc), and dirac's mirror prices the play by the printed pips
+// beside it (mana_filter.go gapFilteredPlay admits castMayPlay). ok is false
+// when the play's cost is not the printed base one -- a cast of a card mode
+// or an alternative cost (flashback, kicker, bargain), an unresolvable
+// ability, or a play that is neither kind -- so both need-readers
+// (scriptNeedColours, the search's branch-order preference, and
+// scriptNeedCounts, the subsume run's prune bound) leave the cost unread
+// rather than guess one.
 func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) (costvocab.Cost, bool) {
 	if o == nil || o.Face() == nil {
 		return costvocab.Cost{}, false
 	}
 	switch a.Kind {
 	case "cast":
-		if a.Mode != "" {
+		if a.Mode != "" && castModeCodes.Code(a.Mode) != castModeMayplay {
 			return costvocab.Cost{}, false
 		}
 		return r.castOfferBase(p, a.Obj), true
@@ -510,9 +522,9 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 // cost's coloured pips per colour, ok false when the cost has a part whose
 // payment any colour may help (a generic, snow or X pip, a hybrid, Phyrexian,
 // twobrid or hybrid-Phyrexian face) or that the base cost does not announce
-// (a mode or alternative cost; scriptPlayBaseCost): the subsume run's
-// colour-ask filter prunes a colour only when floating more of it can pay
-// nothing.
+// (a non-"mayplay" mode or an alternative cost; scriptPlayBaseCost): the
+// subsume run's colour-ask filter prunes a colour only when floating more of
+// it can pay nothing.
 func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
 	var counts [state.MC + 1]int32
 	c, ok := scriptPlayBaseCost(r, o, p, a)
@@ -539,7 +551,8 @@ func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a d
 // part whose payment any colour may help beyond a generic one (an X, snow,
 // forage or hybrid-family pip -- a generic pip is fine, payable with any
 // colour) or that the base cost does not announce (scriptPlayBaseCost: a
-// mode or alternative cost). The set may be empty (an all-generic cost), and
+// non-"mayplay" mode or an alternative cost). The set may be empty (an
+// all-generic cost), and
 // the prune then drops every colour ask answer of a fee-only repeatable gap:
 // a conversion that never raises the spendable total cannot help pay it.
 func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
@@ -566,6 +579,14 @@ func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a de
 // search's nested witness checks (hypclone.go): the struct holds no engine,
 // so its methods stay off the engine's surface.
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
+	// The search's clones pose priority asks whose offer walks must price
+	// only the plain planner witness (scriptSearching's gate, autoPayOffer's census arm):
+	// the census arm's own prefix search inside a search is the recursion
+	// the node budgets cannot bound, and its offers are not the prefix this
+	// search is out to find.
+	prev := e.scriptSearching
+	e.scriptSearching = true
+	defer func() { e.scriptSearching = prev }()
 	root := e.hypClone(e)
 	found := sr.visit(e, root, 0, false)
 	e.hypRelease(root)
@@ -689,6 +710,25 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 	return false
 }
 
+// presentGone reports whether the path has broken the searched activated
+// ability's IsPresent$ gate ("Activate only if you control a Sliver", Sliver
+// Hive): a prefix that sacrifices the only Sliver for Phyrexian Tower's mana
+// leaves the pool pricing the play, but the offer gate no longer lists it
+// (CR 602.5b, abilityPresentHolds). The line continues instead of ending in
+// a script the play cannot follow, so the branch that sacrifices another
+// creature is searched.
+func (sr *scriptSearch) presentGone(c *Engine) bool {
+	if sr.play.Kind != optAbility {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(sr.play.Ability)
+	return ok && pa.SA != nil && !c.abilityPresentHolds(sr.p, sr.play.Obj, pa.SA)
+}
+
 // unattachedSource reports whether the path has detached the source of the
 // searched Reconfigure unattach ability (the prefix sacrificed its bearer):
 // the offer gate withholds an Unattach$ ability while its source is
@@ -712,6 +752,15 @@ func (sr *scriptSearch) unattachedSource(c *Engine) bool {
 }
 
 func (sr *scriptSearch) offered(o *decision.Option) bool {
+	if o.CensusOffer {
+		// The census-gap arm's script-backed offer is not the plain listing
+		// the search's probe prices (the kernel's own listing probe excludes
+		// the arm's listings, actScriptPays' availNoActScript): at the
+		// search's root it is the very offer the probe's caller is out to
+		// prove, and taking it for the plain walk's would answer "already
+		// offered" before any prefix paid for the play.
+		return false
+	}
 	a := sr.play
 	if sr.printedOnly && (o.SVar != "" || o.GainedSource != 0) {
 		return false
@@ -760,7 +809,7 @@ func (sr *scriptSearch) priced(pool *Engine, c *Engine) bool {
 	if sr.phasedOutOfScope(c) {
 		return false // the fallback's scope: a consuming cost, a hybrid-fee gap, or a plain fee-only budget exhaustion
 	}
-	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true) {
+	if paymentPlanConsumes(*got.Plan) && !c.witnessReachesMode(pool, sr.p, o, *got.Plan, true, true) {
 		// winOK: a payment whose own sacrifice trigger ends the game in the
 		// payer's favour still reaches the play (CR 104.3, 603.3b), exactly
 		// as the plan offer counts it (payment_plan.go's witnessReachesMode
@@ -842,7 +891,7 @@ func (sr *scriptSearch) try(pool *Engine, c *Engine, d *decision.Decision, in de
 		// and the seen set only ever holds states an earlier offered scan
 		// did not find the play in, so skipping before that scan cannot lose
 		// an offer. The budget is potentialScriptNodes *distinct* states.
-		if cd := child.Pending(); sr.feeOnly && cd != nil && cd.Kind == decision.KPriority && cd.Player == sr.p && !sr.childOffers(cd, child) && sr.seen[scriptStateKey(child, sr.p)] {
+		if cd := child.Pending(); sr.feeOnly && cd != nil && cd.Kind == decision.KPriority && cd.Player == sr.p && !sr.childOffers(cd, child) && sr.seen[scriptStateKey(child, sr.p, sr.play)] {
 			pool.hypRelease(child)
 			return false
 		}
@@ -946,7 +995,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 			return true
 		}
 	}
-	key := scriptStateKey(c, p)
+	key := scriptStateKey(c, p, sr.play)
 	if sr.seen[key] {
 		return false
 	}
@@ -959,7 +1008,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && !sr.unattachedSource(c) && sr.priced(pool, c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && !sr.unattachedSource(c) && !sr.presentGone(c) && sr.priced(pool, c) {
 		return true
 	}
 	if sr.activations(pool, c, d, gaps, p, funded, gapUsed) {
@@ -1999,7 +2048,14 @@ func (sr *scriptSearch) feeOnlyAskPrune(c *Engine, d *decision.Decision, answers
 						// first cut already drops the rest, and the scan is a read
 						// of the live board that must not run for a branch this
 						// ask does not keep.
-						if short < before && !sr.feeOnlyFreeTapColour(c, d.Source, int(j)) {
+						//
+						// The swap only dominates when this activation completes
+						// the colour's pips: with {U}{U} owed, the free Island
+						// makes one {U} and the filter must make the other (the
+						// swapped line would tap the Island inside the bounded
+						// funding, past the fee's own count), so a colour still
+						// short after the activation keeps its branch.
+						if short < before && (after[j] < sr.pipCol[j] || !sr.feeOnlyFreeTapColour(c, d.Source, int(j))) {
 							wanted = true
 						}
 					}
@@ -2176,7 +2232,7 @@ func scriptManaAbilityCostsPayer(pe pay.Engine, p state.PlayerID, source state.O
 // scriptStateKey identifies a payer state for the search's dedup: every
 // pool unit, each own permanent's tapped bit and counters, and the zone
 // sizes a sacrifice or a return changes.
-func scriptStateKey(c *Engine, p state.PlayerID) string {
+func scriptStateKey(c *Engine, p state.PlayerID, play decision.PotentialAction) string {
 	var b strings.Builder
 	pl := c.G.Players[p]
 	fmt.Fprintf(&b, "%v|%v|%v|", pl.Pool, pl.Snow, pl.ManaUnits())
@@ -2184,7 +2240,20 @@ func scriptStateKey(c *Engine, p state.PlayerID) string {
 		o := c.G.Obj(id)
 		fmt.Fprintf(&b, "%d:%t:%v;", id, o.Tapped, o.Counters)
 	}
-	fmt.Fprintf(&b, "|%d|%d|%d", len(c.G.Zone(state.ZGraveyard, p)), len(c.G.Zone(state.ZHand, p)), len(c.G.Stack))
+	fmt.Fprintf(&b, "|%d|%d|%d|", len(c.G.Zone(state.ZGraveyard, p)), len(c.G.Zone(state.ZHand, p)), len(c.G.Stack))
+	// Whether a searched spell's own card is still in hand, beside the hand's
+	// size: a Taps trigger's loot (Unctus's blue creatures) discards a card of
+	// the payer's choice, and of two discards that leave the same count one
+	// keeps the spell in hand and the other has discarded it, so only the first
+	// can cast it (CR 601.2a: a card is cast from where it is).
+	if play.Kind == potentialCastKind && play.Obj != 0 {
+		for _, id := range c.G.Zone(state.ZHand, p) {
+			if id == play.Obj {
+				b.WriteString("h")
+				break
+			}
+		}
+	}
 	return b.String()
 }
 
@@ -2204,12 +2273,28 @@ func (e *Engine) potentialWitnessReaches(p state.PlayerID, o decision.Option, pl
 // from pool's hypothetical-clone pool (pool is e, or the live engine whose
 // own hypothetical search made e).
 func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
-	return e.witnessReachesMode(pool, p, o, plan, false)
+	return e.witnessReachesMode(pool, p, o, plan, false, false)
 }
 
 // witnessReachesMode is witnessReachesFrom, counting a game the witness's
-// own triggers end in p's favour as a reach when winOK.
-func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK bool) bool {
+// own triggers end in p's favour as a reach when winOK. priceOK arms
+// witnessCostRepriced, the consuming-cost acceptance the script search's
+// priced() wants: a consuming payment may consume a permanent one of the
+// play's own cost statics counts, which the replay's end re-ask reprices
+// (CR 601.2f), and the search's acceptance is "the plan is the payment",
+// not "the end menu re-offers the play". Callers that infer an offer from
+// the reach (targetPaidNeedsPlannedPayment's planned-payment conclusion)
+// keep it disarmed: their inference reads the end menu, which the repricing
+// breaks exactly like any other refusal.
+func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK, priceOK bool) bool {
+	// The reach's clones pose priority asks whose offer walks must price only
+	// the plain planner witness (scriptSearching's gate, autoPayOffer's census arm): a
+	// census arm inside the reach would offer the play on a clone before the
+	// witness's steps paid for it, and the reach's end-menu read would take
+	// that for a reach (sr.priced's winOK/priceOK acceptance).
+	prev := e.scriptSearching
+	e.scriptSearching = true
+	defer func() { e.scriptSearching = prev }()
 	if e.Pending() == nil {
 		return false
 	}
@@ -2282,13 +2367,13 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 			return false
 		}
 		if next == len(steps) {
-			for i := range d.Options {
-				opt := &d.Options[i]
-				if opt.Kind == o.Kind && opt.Obj == o.Obj && opt.Ability == o.Ability && opt.Mode == o.Mode && opt.AltCostIndex == o.AltCostIndex {
-					return true
-				}
+			if witnessMenuOffers(d, o) {
+				return true
 			}
 			if witnessAnnouncesBeforePaying(e, c, e.G, p, o, plan) {
+				return true
+			}
+			if priceOK && witnessCostRepriced(c, e, c.G, p, o, plan) {
 				return true
 			}
 			if len(c.G.Stack) <= rootStack || waits >= 4 {
@@ -2327,6 +2412,78 @@ func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.O
 	ok := visit(root, 0, e.G.Players[p].Pool, 0)
 	pool.hypRelease(root)
 	return ok
+}
+
+// costTotal is a PaymentCost's mana value in units (CR 202.3): the generic
+// part plus every coloured unit.
+func costTotal(c decision.PaymentCost) int {
+	n := int(c.Generic)
+	for _, u := range c.Mana {
+		n += int(u)
+	}
+	return n
+}
+
+// witnessCostRepriced is the replay's consuming-cost arm, beside
+// witnessAnnouncesBeforePaying's target one: some step of plan sacrifices (or
+// returns) a permanent one of the play's own cost statics counts -- a
+// Treasure token's mana paying an affinity discount away -- so the menu the
+// re-ask poses at the payment's end recomputes a HIGHER price than the
+// payment locks. CR 601.2f orders it the other way: the total cost is
+// determined at the announcement -- the state the replay started from
+// (start), before the plan's steps -- and is paid as determined, so the end
+// menu's recomputed price cannot refuse an announcement the plan already
+// priced and validates. The replay has proved the plan's steps run and float
+// the payment's mana (the pool at the end is the floated one, the play not
+// yet announced); accept when every refusal reason but the price is ruled
+// out: the recomputed price (CastPaymentCost at the end) is strictly above
+// the locked one, the play's targets all survive the payment (the target arm
+// above owns a lost one), the recomputed price is payable in isolation (an
+// unbounded pool pays it, so the end refusal is the floated mana, not a
+// gate) and the locked price is payable from that floated pool (the pure
+// pool-only question, pay.PoolCanPay -- the paying primitive would spend the
+// node's pool). Plain casts only: a Mode prices its own charge, and an
+// alternate-cost index (AltCostIndex) prices the option's own scope, neither
+// of which the printed-price comparison reads.
+func witnessCostRepriced(end, start witnessCostReader, g *state.Game, p state.PlayerID, o decision.Option, plan decision.PaymentPlan) bool {
+	// Plain casts only: a Mode prices its own charge, and an alternate-cost
+	// cast's plan.Cost prices the option's own scope, not the printed one
+	// CastPaymentCost recomputes.
+	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 {
+		return false
+	}
+	// The announcement priced the plan: the price the announcement state
+	// (start, before the plan's steps) recomputes is the plan's own total.
+	startCost, ok := start.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(startCost) != costTotal(plan.Cost) {
+		return false
+	}
+	obj := g.Obj(o.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	endCost, ok := end.CastPaymentCost(p, o.Obj)
+	if !ok || costTotal(endCost) <= costTotal(plan.Cost) {
+		return false
+	}
+	if sa := obj.Face().SpellAbility(); sa != nil && !end.castTargetsAvailable(p, o.Obj, sa) {
+		return false
+	}
+	var locked Cost
+	locked.Generic = int32(plan.Cost.Generic)
+	for i := range locked.Colored {
+		locked.Colored[i] = int32(plan.Cost.Mana[i])
+	}
+	// Pool-only feasibility, and pure: the walked node must stay unmutated,
+	// so the paying primitive (pay.PayMana) cannot run here -- a spend it
+	// emits strands the node's own pass-walk fallback, whose clone must
+	// still hold the floated pool.
+	if !pay.PoolCanPay(locked, g.Players[p].Pool) {
+		return false
+	}
+	base := pay.WithSpellAbilityExtras(obj.Face(), end.castOfferBase(p, o.Obj))
+	hyp := state.Mana{1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28, 1 << 28}
+	return end.offerCastableUsing(end.collectCostStatics(), p, o.Obj, &base, spellScope(""), false, &hyp)
 }
 
 // PotentialPlayScript is the exact fallback for a potential play the

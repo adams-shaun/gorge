@@ -123,6 +123,35 @@ if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
 	# A run that fell back from the configured gate box: the box is down, so every seat's heavy run lands here at
 	# once; cap it lower (test-remote.sh, GORGE_REMOTE_FALLBACK_CPU).
 	[ -z "${TEST_TARGETS_FALLBACK:-}" ] || { cpu=$fcpu%; procs=$fprocs; }
+	# A host-wide run slot (11-23): every seat's local run was capped at 4 cores, but nothing capped how many ran at
+	# once. 22 ran together on the 32-core home box (load 99), and tests that pass alone hit the 60 s budget. A run
+	# takes one of GORGE_LOCAL_SLOTS flock slots (default nproc/4; 0 turns it off) and holds it through the exec below,
+	# so it is released when the run exits. It waits up to GORGE_LOCAL_SLOT_WAIT seconds (default 1800), then BUSY.
+	if [ "$mode" != list ] && [ "$mode" != smart ]; then
+		nslots=${GORGE_LOCAL_SLOTS:-$(($(nproc) / 4))}
+		case $nslots in '' | *[!0-9]*) nslots=1 ;; esac
+		if [ "$nslots" -gt 0 ]; then
+			sdir=${GORGE_LOCAL_SLOT_DIR:-$HOME/.cache/gorge/local-test-slots}
+			swait=${GORGE_LOCAL_SLOT_WAIT:-1800}
+			case $swait in '' | *[!0-9]*) swait=1800 ;; esac
+			if mkdir -p "$sdir" 2>/dev/null; then
+				sdeadline=$((SECONDS + swait)) slot= snoted=
+				while :; do
+					for i in $(seq 1 "$nslots"); do
+						exec 8>>"$sdir/slot$i" || continue
+						if flock -n 8; then slot=$i; break; fi
+						exec 8>&-
+					done
+					[ -z "$slot" ] || break
+					[ "$SECONDS" -lt "$sdeadline" ] || verdict BUSY "all $nslots local test slots ($sdir) stayed busy for ${swait}s; finish with a BUSY concern instead of retrying"
+					[ -n "$snoted" ] || { echo "test-targets: note: all $nslots local test slots are busy; waiting for one" >&2; snoted=1; }
+					sleep 2
+				done
+			else
+				echo "test-targets: note: cannot create $sdir; running without a local slot" >&2
+			fi
+		fi
+	fi
 	if [ "$mode" = list ] || [ "$mode" = smart ]; then
 		: # list runs go list only; smart caps each of its own steps
 	elif systemd-run --user --scope -q true >/dev/null 2>&1; then
@@ -209,8 +238,8 @@ if [ "$mode" = one ]; then
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_PIN_STRICT | DIRAC_SUPPORT_STRICT | DIRAC_UPDATE_SUPPORT | DIRAC_UPDATE_LAYOUT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | CRYOSHATTER_RECORD | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_PIN_STRICT DIRAC_SUPPORT_STRICT DIRAC_UPDATE_SUPPORT DIRAC_UPDATE_LAYOUT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD CRYOSHATTER_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_PIN_STRICT | DIRAC_SUPPORT_STRICT | DIRAC_UPDATE_SUPPORT | DIRAC_UPDATE_LAYOUT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | CRYOSHATTER_RECORD | MAGESLAYER_RECORD | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_PIN_STRICT DIRAC_SUPPORT_STRICT DIRAC_UPDATE_SUPPORT DIRAC_UPDATE_LAYOUT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD CRYOSHATTER_RECORD MAGESLAYER_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg
@@ -377,6 +406,9 @@ fi
 # fast tier and every repro replay) each summed past the 5m cap in one call on a loaded box (0.2-0.7 idle cores),
 # so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet (91-195 s) is
 # a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+# ORACLE_CHUNKS round-robin chunks (11-21: 4 still let one chunk pass the 5m cap on a loaded gate box, test-smart
+# BUDGET on #3135's diff, which never touched the oracle; each extra chunk costs a few seconds of binary start).
+ORACLE_CHUNKS=8
 oracle_chunked() {
 	local names rx k chunks=() r=0
 	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | sort) || names=
@@ -386,8 +418,8 @@ oracle_chunked() {
 		return
 	fi
 	! grep -qx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" || chunks+=('^TestCmd5SliceCleanOnlyGrows$')
-	for k in 0 1 2 3; do
-		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k 'NR % 4 == k' | paste -sd'|')
+	for ((k = 0; k < ORACLE_CHUNKS; k++)); do
+		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k -v n=$ORACLE_CHUNKS 'NR % n == k' | paste -sd'|')
 		[ -z "$rx" ] || chunks+=("^($rx)\$")
 	done
 	for rx in "${chunks[@]}"; do

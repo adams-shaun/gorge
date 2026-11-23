@@ -36,7 +36,10 @@ const (
 	otherChosen    // a chosen-colour pair source (mana_chosenfilter.go): its plain {T} ability or the land-only pair
 	otherTapsDefer // a Taps-deferred gap (Grove of the Burnwillows' rider) beside a filter: the script search's answer ans (tapsDeferApply)
 	otherRider     // a bounded rider source (mixRider): ans is tapGapChoice's engine-order answer
+	otherComboAny  // a Combo Any source (Axebane Guardian, mana_comboany.go): ans is the odometer answer (caActivate)
 	otherLife      // a life-only mana ability (kop.GapLifeManaAb): ans is the colour it makes (lifeGapDo)
+	otherLifePain  // a sole life-only pain unit (lifeOnlyPain): ans is the colour it makes (lifePainDo)
+	otherEach      // a free each-colour source (Faeburrow Elder, mixEach): one of each colour among its permanents
 )
 
 // otherStep is one activation of a gap that is no filter.
@@ -51,6 +54,13 @@ type otherStep struct {
 	// (ctrAb1) rather than its counter one (ctrGap)
 	col   int8
 	plain bool
+	// x, xset: otherCtr's storage battery X ask answer (storeGapX): gorge's
+	// ask offers every X from the counters held down to 0
+	x    uint8
+	xset bool
+	// fo: a forage source's election (otherComboAny, forageOther): the option
+	// index forageOpts lists; plain answers its ability ask with the plain {T}
+	fo uint8
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -64,7 +74,7 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
-	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.tapMana && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
+	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.gen.anyComboAny && !k.tapMana && !k.gen.anyEachCol && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
 		return false
 	}
 	filt := s.scriptFilt(k, p).any()
@@ -92,13 +102,19 @@ func (s *State) mixBoard(k *prep, p uint8) bool {
 	if s.mixRider(k, p, filt).any() {
 		n++
 	}
+	if s.mixComboAny(k, p, filt).any() {
+		n++
+	}
+	if s.mixEach(k, p, filt).any() {
+		n++
+	}
 	if s.lifeGapMask(k, p).any() {
 		n++
 	}
 	// A counter source beside no filter stays the counter-gap scripts' (a
 	// tap-another or any-colour board): only a counted one is the filter
 	// search's otherGap step.
-	return n >= 2 && !s.scriptGaps(k, p).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p).andNot(ctr)).any()
+	return n >= 2 && !s.scriptGaps(k, p).andNot(s.mixEach(k, p, filt)).or(s.scriptRestr(k, p).andNot(def)).or(s.scriptCtr(k, p).andNot(ctr)).any()
 }
 
 // mixDeferred: p's activatable deferred sources (Pyromancer's Goggles,
@@ -160,6 +176,75 @@ func (s *State) mixRider(k *prep, p uint8, filt bool) slotMask {
 	return m
 }
 
+// mixComboAny: p's live Combo Any sources (mana_comboany.go caGaps) when a
+// filter is a gap beside them (filt). gorge's census misses both (an
+// any-combination production, a paid filter) and its one prefix search
+// activates every gap in battlefield order, funding a filter's fee from the
+// others after them: the filter search takes the Combo Any source as an
+// otherComboAny step, Axebane Guardian's X mana (one colour each, any
+// combination) paying a Signet's {1} (CR 605.3a, 601.2g-h). A reflected
+// Amount$ source is a step too, its one colour ask (reflAmtOther).
+func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
+	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
+		return slotMask{}
+	}
+	return s.caGapsF(k, p, true) // the forage sources too: forageOther branches them (mana_forage.go)
+}
+
+// mixEach: p's live free each-colour sources (Faeburrow Elder, "{T}: for each
+// colour among permanents you control, add one mana of that colour") when a
+// filter is a gap beside them (filt). gorge's census misses both (a
+// Special production, a paid filter) and its one prefix search activates every
+// gap in battlefield order (rules scriptSearch.visit), funding a filter's fee
+// from the pool the others made: the filter search takes the source as an
+// otherEach step, the Elder's {G}{W} paying a Signet's {1} (CR 605.3a,
+// 601.2g-h). A fee-paid one (Tarnation Vista) keeps eachSearch's ask nodes
+// and stays refused beside a filter (mixBoard).
+func (s *State) mixEach(k *prep, p uint8, filt bool) slotMask {
+	if !filt || DebugEachNoFilterChain || !k.gen.anyEachCol {
+		return slotMask{}
+	}
+	var m slotMask
+	for b := s.scriptGaps(k, p); b.any(); b = b.rest() {
+		if sl := b.first(); s.eachFee(k, sl) == 0 {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// DebugEachNoFilterChain (mutation test only): an each-colour source beside a
+// filter is no step of the filter search again.
+var DebugEachNoFilterChain bool
+
+// caFiltBoard reports whether p's live Combo Any source is a gap of the filter
+// search (mixComboAny beside a live filter on a mixBoard).
+func (s *State) caFiltBoard(k *prep, p uint8) bool {
+	return k.gen != nil && k.gen.anyComboAny && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixComboAny(k, p, true).any() && s.mixBoard(k, p)
+}
+
+// comboAnyOther branches Combo Any gap sl's colour ask at a priority node (the
+// caSearch's node): one node, then the allocation's answers in gorge's order,
+// the colours the play announces first (caRank).
+func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	if k.isReflAmt(t.cardAt(sl)) {
+		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
+	}
+	if k.forageCA(t.cardAt(sl)) {
+		return fs.forageOther(t, k, sl, try) // a forage source's ability, forage and colour asks (mana_forage.go)
+	}
+	if !fs.tick() {
+		return false
+	}
+	units := t.caAmount(k, sl)
+	for r, na := 0, caAnswerCount(units); r < na; r++ {
+		if try(otherStep{kind: otherComboAny, ans: uint8(caRank(units, &fs.need, r))}) {
+			return true
+		}
+	}
+	return false
+}
+
 // riderOther branches rider gap sl's answers at a priority node (otherGap's
 // last arm; false for a slot that is no mixRider gap): its colour ask, when it
 // has one, is one node, its answers in scriptDFS's order (the play's announced
@@ -204,7 +289,7 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 	var m slotMask
 	if s.mixBoard(k, p) {
 		filt := s.scriptFilt(k, p).any()
-		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.lifeGapMask(k, p))
+		m = s.scriptAnyR(k, p).or(s.scriptTapX(k, p)).or(s.mixDeferred(k, p, true)).or(s.mixCtr(k, p, filt)).or(s.mixRider(k, p, filt)).or(s.mixComboAny(k, p, filt)).or(s.mixEach(k, p, filt)).or(s.lifeGapMask(k, p))
 	}
 	if len(k.gen.grantPC) != 0 && s.grantsLive(k) {
 		for b := s.ctrlM[SeatIx(p)].and(s.occ); b.any(); b = b.rest() {
@@ -285,7 +370,37 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 		if !fs.tick() {
 			return false
 		}
-		if try(otherStep{kind: otherTapXPlain}) {
+		if mc := k.cards[t.cardAt(sl)].manaCol; mc&(mc-1) != 0 {
+			// the plain ability is an any-colour one: its colour ask behind
+			// the ability ask, the play's announced ones first, as the
+			// tap-another search's colour asks order them (gorge
+			// scriptOrderAnswers; the payment window's answer is a colour
+			// the play still owes, not W)
+			if !fs.tick() {
+				return false
+			}
+			var order [5]uint8
+			no := 0
+			for col := uint8(0); col < 5; col++ {
+				if fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for col := uint8(0); col < 5; col++ {
+				if !fs.need[col] {
+					order[no] = col
+					no++
+				}
+			}
+			for i := 0; i < 5; i++ {
+				if try(otherStep{kind: otherTapXPlain, ans: order[i]}) {
+					return true
+				}
+			}
+			// no colour of the plain ability paid: the ask's other answer,
+			// the tap-another one, is below
+		} else if try(otherStep{kind: otherTapXPlain}) {
 			return true
 		}
 	}
@@ -315,12 +430,36 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 				no++
 			}
 		}
+		// The plain run's one-shot flexible gap prune (gorge's oneShotAskPrune,
+		// potential_script.go): the tap-another source's colour ask is a gap's
+		// like any other, so while a fixed pip is owed a colour that fills none
+		// is dropped (Saruli Caretaker beside a fee-only repeatable filter: the
+		// four colours the play's BBB does not name spent the node budget
+		// before the Llanowar Envoy that pays was the tapped creature). Fail
+		// open when no colour fills a pip.
+		oneShot := fs.feeOnly && !fs.phased && fs.usefulOK
+		if oneShot {
+			any := false
+			for _, col := range order {
+				if !t.ctrOneShotColStalls(k, p, sl, &fs.useful, int(col)) {
+					any = true
+					break
+				}
+			}
+			oneShot = any
+		}
 		for i := 0; i < 5; i++ {
+			if oneShot && t.ctrOneShotColStalls(k, p, sl, &fs.useful, int(order[i])) {
+				continue
+			}
 			if try(otherStep{kind: otherTapX, ans: order[i], cand: a, cand2: b}) {
 				return true
 			}
 		}
 		return false
+	}
+	if k.exileGOf(t.cardAt(sl)) {
+		return fs.exileGGap(nc, &cs, colours) // the exile pick, then the colour (mana_exilegrave.go)
 	}
 	if k.sacXOf(t.cardAt(sl)) {
 		// A sacrifice-another source asks no colour: its whole production
@@ -403,13 +542,21 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 		return found
 	}
 	switch {
+	case t.sacHolderSpent(k, sl):
+		// the grant's tap is spent: the holder's printed sacrifice is its one
+		// ability left, a gap step of its own with no ask (mana_sacholder.go)
+		return fs.try(k, t, filtStep{sl: sl, gap: true, sacOnly: true}, funded, true)
+	case t.mixComboAny(k, p, true).has(sl):
+		return fs.comboAnyOther(t, k, sl, try)
+	case t.mixEach(k, p, true).has(sl):
+		return try(otherStep{kind: otherEach}) // one ability: no ask (eachSearch.visit's free gap)
 	case t.scriptAnyR(k, p).has(sl):
 		return fs.anyRGap(k, t, sl, try)
 	case t.scriptTapX(k, p).has(sl):
 		return fs.tapXGap(k, t, sl, try)
 	case t.scriptTapsDefer(k, p).has(sl):
 		return fs.tapsDeferGap(k, t, sl, funded)
-	case t.canTapForMana(k, sl):
+	case t.canTapForMana(k, sl) || t.sacHolderGap(k, sl):
 		// several abilities: the "choose a mana ability" ask, one node, the
 		// printed ability's answers first (grantSrch.visit)
 		var gi [maxGrants]int16
@@ -439,7 +586,13 @@ func (fs *filtSearch) otherGap(k *prep, t *State, sl Slot, funded int) bool {
 			}
 			return false
 		}
-		if dual {
+		if dual && t.sacHolderGap(k, sl) {
+			// the printed sacrifice answer: it floats the mana and sacrifices
+			// the holder, so the grant is gone with it (mana_sacholder.go)
+			if fs.try(k, t, filtStep{sl: sl, gap: true, sacOnly: true}, funded, true) {
+				return true
+			}
+		} else if dual {
 			pc := t.manaPCGen(k, sl)
 			if colours(-1, t.srcMaskAt(pc, sl), pc.manaN, alts == 1) {
 				return true
@@ -580,10 +733,16 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		return false
 	}
 	if ctrAnyColour(ab) {
-		// The any-colour ability is flattened into one option per colour in
-		// the "choose a mana ability" ask (announce_pay.go
-		// AnnouncedAbilityColours), so its colours are answers of that ask,
-		// not a second ask: the tick above already charged the node.
+		// The prefix search's activation ask lists the source's abilities
+		// (the plain {T} first, then the counter one) and the counter
+		// ability's colour is a second ask, one more node of gorge's budget
+		// (scriptSearch.visit; the payment window's flattening into one
+		// option per colour, announce_pay.go AnnouncedAbilityColours, is not
+		// this ask). A source with the one ability poses only the colour ask,
+		// which the activation's own node already counts.
+		if k.ctrSecond(c) && !fs.tick() {
+			return false
+		}
 		order := t.ctrColOrder(k, fs.a)
 		// The one-shot flexible gap's colour prune (gorge's oneShotAskPrune,
 		// potential_script.go, cut D): while a fixed pip is owed, a colour
@@ -609,6 +768,22 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 			}
 		}
 		return false
+	}
+	if kop.StoreManaAb(ab) {
+		if n := t.perms[sl].ctrN(t, int(ab.Cost.Ctr)); n > 0 {
+			// a storage battery's counter ability asks X (gorge's X ask, one
+			// node, then every X from the counters held down to 0, each a
+			// subtree: grantSrch.storeBranch is the grant search's twin)
+			if !fs.tick() {
+				return false
+			}
+			for x := min(n, 255); x >= 0; x-- {
+				if try(otherStep{kind: otherCtr, col: -1, x: uint8(x), xset: true}) {
+					return true
+				}
+			}
+			return false
+		}
 	}
 	return try(otherStep{kind: otherCtr, col: -1})
 }
@@ -681,8 +856,25 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		s.chosenGapDo(k, p, st.sl, o.plain)
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
+	case otherComboAny:
+		if k.isReflAmt(s.cardAt(st.sl)) {
+			s.reflAmtOtherDo(k, p, st.sl, o.ans)
+			break
+		}
+		if k.forageCA(s.cardAt(st.sl)) {
+			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.plain}) // (mana_forage.go)
+			break
+		}
+		s.caActivate(k, p, st.sl, int(o.ans))
+	case otherEach:
+		s.perms[st.sl].flags |= pfTapped
+		s.touchSl(st.sl)
+		s.manaTapped(k, st.sl)
+		s.eachProduce(k, p, st.sl, 0)
 	case otherLife:
 		s.lifeGapDo(k, p, st.sl, int(o.ans))
+	case otherLifePain:
+		s.lifePainDo(k, p, st.sl, int(o.ans))
 	case otherCtr:
 		if o.plain {
 			// the plain first {T} ability's answer: the counters and the use
@@ -692,7 +884,11 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		}
 		// remove counters, tap, add mana, spend the use (ctrGap); the SBA a
 		// -0/-1 counter may kill with
-		s.ctrGap(k, p, st.sl, int(o.col))
+		if o.xset {
+			s.storeGapX(k, p, st.sl, k.ctrAbOf(s.cardAt(st.sl)), int(o.x)) // the X ask's answer
+		} else {
+			s.ctrGap(k, p, st.sl, int(o.col))
+		}
 		s.sba(k)
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped

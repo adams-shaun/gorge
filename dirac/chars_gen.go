@@ -797,7 +797,7 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 	}
 	m |= p.eotKw | p.ovr.kw
 	if s.fxM.has(sl) {
-		m |= s.ctrlKw(sl) // GcHasteEOT (static_control.go)
+		m |= s.ctrlKwSince(sl, lts, lost) // GcHasteEOT (static_control.go)
 	}
 	if !lost && s.nkwx != 0 {
 		m |= s.supKw(sl) // grants an ended loss had suppressed
@@ -816,6 +816,8 @@ func (s *State) kwGen(k *prep, sl Slot) kop.KwMask {
 		if k.gen.anySuspect {
 			m |= s.suspectKw(k, sl) // CR 701.60a: a base keyword, as the cloak's ward (static_layer6.go)
 		}
+	} else {
+		m |= ctrKwNewer(s, p, lts) // CR 613.7: a counter put on after the loss keeps its grant
 	}
 	if s.statM.any() || s.anyEmb() {
 		s.eachStaticC(k, sclsKw, func(st statSrc) bool {
@@ -1249,9 +1251,14 @@ func (s *State) cardGrantsStatic(k *prep, sl Slot, c CardID, ab uint8) bool {
 // 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
 // card, or, on a copy, the card of the as-enters grant record that grants sl
 // that ability when no record of the current card does (selfGrantHost).
+// Every caller reads an announced granted activation, so a current-card
+// static grant whose granted ability is no activation cannot be the grant
+// they read (cardGrantsAct); the as-enters copy grant record at the same
+// index names the body instead (Thorncaster Sliver's attack trigger sits at
+// index 0 of a copy of it beside the copying card's own grant).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsStatic(k, sl, c, ab) {
+	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsAct(k, sl, c, ab) {
 		// also on a permanent whose printed card is the one it shows: a
 		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
 		// copy effect holds the Pretender's grant (copyGrantsAdd)
@@ -1260,6 +1267,18 @@ func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 		}
 	}
 	return c
+}
+
+// cardGrantsAct is cardGrantsStatic when the granted ability is an
+// activation: only an activated or mana ability is ever announced (CR
+// 602.2), so a live static that grants a trigger at index ab does not make
+// c the card of the granted activation ab being read.
+func (s *State) cardGrantsAct(k *prep, sl Slot, c CardID, ab uint8) bool {
+	if !s.cardGrantsStatic(k, sl, c, ab) {
+		return false
+	}
+	g := &k.t.Cards[c].Abilities[ab]
+	return g.Kind == kop.AbActivated || g.Kind == kop.AbMana
 }
 
 // applyOverride records override idx (from card src) on sl.
@@ -1287,6 +1306,9 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		// The waiting controller, not a set P/T: the row's grant is keyword-only
 		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
 		r.p, r.t = int16(s.res.e.ctrl), 0
+	}
+	if o := &k.t.Overrides[idx]; o.GrantStatics != 0 && !o.HasPT && !o.UntilUpkeep && k.gen != nil && k.gen.anyStatGoad {
+		r.t = grantGoader(k, src, o, s.res.e.ctrl) // act_goad.go
 	}
 	// merge: a re-application accumulates (the reps count) in place. A
 	// record that OVERWRITES colours must not merge: gorge's re-applied

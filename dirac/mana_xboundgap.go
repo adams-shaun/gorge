@@ -17,7 +17,7 @@ const paidGapMax = 3
 // leaves it out. The index is the encounter order, which the fixpoint's first
 // pass fixes the same for every run, so gapSkip's bit i names the same
 // ability in each subset run (xBoundGapSubsets).
-func (d *payDesc) gapNote(sl Slot, j, fee int, never bool) bool {
+func (d *payDesc) gapNote(sl Slot, j, fee int) bool {
 	id := uint16(sl)<<4 | uint16(j)
 	for i := 0; i < int(d.gapN) && i < paidGapMax; i++ {
 		if d.gapID[i] == id {
@@ -27,9 +27,6 @@ func (d *payDesc) gapNote(sl Slot, j, fee int, never bool) bool {
 	i := int(d.gapN)
 	if i < paidGapMax {
 		d.gapID[i], d.gapFee[i] = id, uint8(min(fee, 255))
-		if never {
-			d.gapNever |= 1 << i
-		}
 	}
 	if d.gapN < 255 {
 		d.gapN++
@@ -119,7 +116,7 @@ func (d *payDesc) paidGapProbe(census, boundedAny bool, sl Slot, j int, ab *kop.
 	case !boundedAny:
 		skip = true
 	case d != nil && d.gapTrack:
-		skip = d.gapNote(sl, j, fee.MV(), kop.HybridFilterManaAb(ab))
+		skip = d.gapNote(sl, j, fee.MV())
 		repeat = ab.Cost.Flags&(kop.CostTap|kop.CostSacSelf|kop.CostOncePerTurn|kop.CostOncePerGame) == 0
 	}
 	return paid, skip, repeat
@@ -139,7 +136,7 @@ func paidGapBooked(d *payDesc, sl Slot, j int, ab *kop.Ability, tapExtra bool) {
 	if d == nil {
 		return
 	}
-	d.gapNote(sl, j, int(ab.Cost.Mana.MV()), kop.HybridFilterManaAb(ab))
+	d.gapNote(sl, j, int(ab.Cost.Mana.MV()))
 	d.gapProdNote(sl, j, gapProdOf(ab, tapExtra))
 	if tapExtra || !paidGapNetsNoMana(ab) {
 		d.gapGain = true
@@ -269,8 +266,11 @@ func xBoundCountCensus(open bool, countEx *avail, units *[maxPotUnits]potUnit, l
 // whose fee nothing else funds adds nothing, so a filter beside one other
 // source pays no more than that source does.
 type gapSubsets struct {
-	n   int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
-	sub [1 << paidGapMax]gapSubset
+	n int // the subsets priced; 0 when the board has no paid gap or more than paidGapMax
+	// repeats: an admitted paid gap is repeatable, so the census is not
+	// relaxable and the sweep's supply is the over-bound pool (xBoundPayable)
+	repeats bool
+	sub     [1 << paidGapMax]gapSubset
 }
 
 type gapSubset struct {
@@ -291,9 +291,10 @@ type gapSubset struct {
 func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	var pu [maxPotUnits]potUnit
 	var av avail
-	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats, d.gapNever = true, 0, 0, false, 0
+	d.gapTrack, d.gapSkip, d.gapN, d.gapRepeats = true, 0, 0, false
 	s.availPotentialFor(k, p, &av, &d, true, &pu)
 	n := int(d.gapN)
+	gs.repeats = d.gapRepeats
 	if n == 0 || n > paidGapMax || d.gapRepeats {
 		// a repeatable gap (Crossroads Candleguide's "{2}: Add one mana of any
 		// color") makes gorge's census non-relaxable: its relaxed proof never
@@ -303,14 +304,6 @@ func (s *State) xBoundGapSubsets(k *prep, p uint8, d payDesc, gs *gapSubsets) {
 	}
 	fees := d.gapFee
 	for m := 0; m < 1<<n; m++ {
-		if never := int(d.gapNever); m&never != 0 {
-			// a hybrid-fee filter has no relaxed alternative (its fee is
-			// floated by the prefix search, which the relaxed subset does not
-			// model), so a subset holding it is priced as the one without it,
-			// fee uncharged
-			gs.sub[m] = gs.sub[m&^never]
-			continue
-		}
 		dm := d
 		dm.gapSkip, dm.gapN = ^uint8(m), 0
 		dm.gapPrice = true

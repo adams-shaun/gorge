@@ -74,7 +74,7 @@ func (s *State) libWindowCands(k *prep, f kop.FilterID, p uint8, d *Decision) in
 	n, w := 0, min(s.value(k, in.A), pl.libLen())
 	for i := 0; i < w; i++ {
 		o := pl.lib[int(pl.libLo)+i]
-		if s.inSet(&s.g.chosen, s.g.nchosen, o) || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+		if s.inSet(&s.g.chosen, s.g.nchosen, o) || s.pickOtherBarred(k, f, o) || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
 			continue
 		}
 		n++

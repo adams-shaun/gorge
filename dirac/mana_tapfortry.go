@@ -42,7 +42,7 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		// when it finds a witness, so a planner-priceable cast keeps the
 		// planner's ObjID-ordered payment), then pay that window rather than
 		// panicking on the missing plan.
-		if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+		if !s.tbPoolOffer(k, e, short, anyColor) && s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
 			return false
 		}
 		if !s.tapForHyb(k, e.ctrl, cost, int(e.x), e.obj, anyColor) {
@@ -62,4 +62,55 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	s.releaseCostTaps(k, saved)
 	s.reverseCast(k)
 	return true
+}
+
+// tbPoolOffer reports whether gorge offered the planned twobrid cast being
+// built as its legacy pool cast and the caster announced other faces. Gorge's
+// planTwobridCost tries every face assignment in mask order (bit i set: pip i's
+// two generic; colour faces first) and keeps the first that pays; when the
+// floating pool alone pays that assignment the offer carries no payment plan
+// (the legacy cast option), so an announcement of other faces is paid through
+// gorge's manual CR 601.2g window in battlefield order, not a fresh planner
+// witness (CR 107.4e, 601.2b, 601.2g): Magmablood Archaic's {2/R}{2/R}{2/R}
+// over a floating {R}{R}{R}, announced {2}{R}{R}, taps the first land for the
+// last generic. cost is the resolved cost the planner would pay; a cost whose
+// faces cannot be swapped (a Phyrexian pip, a generic part a reduction ate)
+// keeps the planner.
+func (s *State) tbPoolOffer(k *prep, e *stackEntry, cost kop.ManaCost, anyColor bool) bool {
+	base := s.buildCost0(k)
+	n := base.TbN()
+	if base.Phyrexian() || n == 0 || int(s.bld().pipN) != n {
+		return false
+	}
+	ann := int(s.bld().pipC[0]) & (1<<n - 1)
+	for m := 0; m < 1<<n; m++ {
+		c := cost
+		for i := 0; i < n; i++ {
+			a, b := ann>>i&1, m>>i&1
+			if a == b {
+				continue
+			}
+			col := base.TbCol(i)
+			if a == 1 { // announced two generic, this assignment the colour
+				if c.Generic < 2 {
+					return false
+				}
+				c.Generic -= 2
+				c.Pips[col]++
+				continue
+			}
+			if c.Pips[col] == 0 {
+				return false
+			}
+			c.Pips[col]--
+			c.Generic += 2
+		}
+		var pk planner
+		pk.try, pk.dry = true, true
+		s.tapForPK(k, e.ctrl, &c, int(e.x), e.obj, false, anyColor, &pk)
+		if pk.needT == 0 || pk.found {
+			return pk.needT == 0 && m != ann
+		}
+	}
+	return false
 }

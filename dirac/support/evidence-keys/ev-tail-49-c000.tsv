@@ -1,11 +1,13 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Balan, Wandering Knight	c7f8061e03231a50	15	1/1		1/1	
+Ballista Squad	ba9f12cf8fc371f7	153	1/1		1/1	
 Barbarian Outcast	da16308a1489a674	11	1/1		0/1	ix:resp
 Callow Jushi	d3ce2769187f9bdf	17	3/3		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Carrion Wurm	2936e7291a421b2f	16	2/2		0/1	ix:resp
 Denying Wind	ec2609c22e33dc7c	8	0/0		1/2	ix:resp
 Domesticated Watercourse	19d81338faef33c2	114	3/3		1/1	
 Doran, the Siege Tower	1aec2dcb0660d470	4	0/0		0/0	
+Evil Twin	24b8e2f5b62cd0c9	67	0/0		0/0	
 Fistful of Force	e819891001879cca	10	0/0		2/2	
 Greater Mossdog	007aae63a3fde104	8	0/0		0/0	
 Iname as One	311249091c1f9d59	3	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
@@ -23,3 +25,4 @@ Sprouting Thrinax	7bed128a091fa610	3	1/1		1/1
 Vihaan, Goldwaker	cdcbb605053d0d60	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Vizier of Many Faces	5989dc4a24635602	11	1/1		0/1	ix:resp
 Voyager Drake	1a506f4d26423351	5	1/1		3/3	
+Woodcloaker	820fd2434f03613d	15	1/1		3/3	

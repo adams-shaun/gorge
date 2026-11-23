@@ -27,9 +27,12 @@ import (
 // ask is the reflected candidates (manaReflectedOrder, the play's announced
 // colours first, gorge's scriptOrderAnswers), one node only when more than
 // one candidate, and the whole evaluated amount floats in the pick's colour.
-// A filter, a tap-another source, a granted mana ability or a Lion's Eye
-// Diamond in the table is refused at its start with the Combo Any source's
-// (StallComboAnyMix: prepComboAnyMix reads the same anyComboAny gate).
+// A plain filter (a Signet) beside it is a step of the filter search, the
+// Druid's ask the reflected candidates (reflAmtOther), and caAny, not ca,
+// gates the bound's plays (script_gen.go). A tap-another source, a granted mana
+// ability or a Lion's Eye Diamond in the table is refused at its start with the
+// Combo Any source's (StallComboAnyMix: prepComboAnyMix reads the same
+// anyComboAny gate).
 
 // useReflAmt: some card's census gap is a reflected Amount$ source (a use
 // bit, not a genPrep field: the fixed State layout is pinned).
@@ -86,16 +89,17 @@ func producesC(cd *kop.CardDef) bool {
 
 // reflAmtPotential folds the reflected Amount$ source's bound at the
 // per-tap pass (availPotentialFor's pc.manaAb < 0 arm) and reports whether it
-// took the card. gorge's bound (rules potential.go) prices the ability — a
-// blank Produced$ with an indeterminate Amount$ — unbounded in the colourless
-// slot ONLY (addPotentialMana normalizes the blank Produced$ to "C" and
-// addIndeterminatePotentialMana folds the indeterminate amount unbounded
-// there; addPotentialReflected's shape refuses the Amount$, so the reflected
-// arm never runs): the coloured pips a play needs stay bound by the lands, so
-// the druid's own Adapt {3}{G}{G} beside one Forest is not offered. The
-// planner census lists no unit (pay.PaymentPlanReflectedShape defers the
-// amount), so the census pass records nothing and the over-bound fold keeps
-// {C} — never the whole-pool open the Combo Any source's fold is.
+// took the card. gorge's bound (rules payment_plan_reflected.go
+// addPotentialReflected) prices the ability — a blank Produced$ with an
+// indeterminate Amount$ the shape gate defers — as its fold's own colours,
+// each unbounded (the indeterminate-amount convention,
+// addIndeterminatePotentialMana): the reflection makes whatever the board's
+// matching permanents produce, one colour per activation, so a play's coloured
+// pips read as fundable by it. The planner census lists no unit
+// (pay.PaymentPlanReflectedShape defers the amount), so the census pass
+// records nothing and the over-bound fold keeps the colours — never the
+// whole-pool open the Combo Any source's fold is. A fold naming no colour
+// produces nothing (CR 106.5): no bound at all.
 func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uint16, fold func(Slot, uint8, uint8)) bool {
 	c := s.cardAt(sl)
 	if !k.isReflAmt(c) {
@@ -107,8 +111,10 @@ func (s *State) reflAmtPotential(k *prep, sl Slot, pc *pcard, done *[MaxPerm]uin
 			done[sl] |= 1 << j
 		}
 	}
-	if s.canTapForManaPC(k, sl, pc) {
-		fold(sl, uint8(kop.ColC), potentialOpenUnits)
+	if s.gapLive(k, s.perms[sl].ctrl, sl) {
+		if cols := s.reflAmtCols(k, sl); cols != 0 {
+			fold(sl, cols, potentialOpenUnits)
+		}
 	}
 	return true
 }
@@ -148,11 +154,23 @@ func (s *State) reflAmtN(k *prep, sl Slot) int {
 // colour index, C included): the tap, then the whole evaluated amount of that
 // colour (gorge's resolution: one colour ask names all the mana).
 func (s *State) reflAmtDo(k *prep, p uint8, sl Slot, col int) {
+	s.reflAmtTap(k, p, sl, col, true)
+}
+
+// reflAmtNoMana is the answer of a reflected source with no colour to name: the
+// tap alone (gorge's Note).
+const reflAmtNoMana = kop.NumManaKinds
+
+// reflAmtTap is reflAmtDo; notify false leaves the Taps notification to the
+// caller (the grant search's next step stacks it, caProduce).
+func (s *State) reflAmtTap(k *prep, p uint8, sl Slot, col int, notify bool) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
-	s.manaTapped(k, sl)
+	if notify {
+		s.manaTapped(k, sl)
+	}
 	n := s.reflAmtN(k, sl)
-	if n > 0 {
+	if n > 0 && col < reflAmtNoMana {
 		s.poolAdd(p, col, n)
 		s.artTag(k, p, sl, col)
 	}
@@ -164,6 +182,12 @@ func (s *State) reflAmtDo(k *prep, p uint8, sl Slot, col int) {
 // colours moved to the front (scriptOrderAnswers). out must hold 6; the
 // returned slice is the answers.
 func (s *State) reflAmtOrder(k *prep, sl Slot, a Action, out []uint8) []uint8 {
+	return s.reflAmtOrderNeed(k, sl, s.playNeed(k, a), out)
+}
+
+// reflAmtOrderNeed is reflAmtOrder for a play whose announced colours are
+// already read (the grant search's own need, the filter search's need).
+func (s *State) reflAmtOrderNeed(k *prep, sl Slot, need [kop.NumManaKinds]bool, out []uint8) []uint8 {
 	m := s.reflAmtCols(k, sl)
 	n := 0
 	for m != 0 {
@@ -171,8 +195,46 @@ func (s *State) reflAmtOrder(k *prep, sl Slot, a Action, out []uint8) []uint8 {
 		n++
 		m &= m - 1
 	}
-	needFirst(out[:n], s.playNeed(k, a))
+	needFirst(out[:n], need)
 	return out[:n]
+}
+
+// reflAmtNone is the filter search's answer of a reflected Amount$ source with
+// no candidate: the tap, no mana (reflAmtChainTap's empty branch).
+const reflAmtNone = 0xff
+
+// reflAmtOther branches reflected Amount$ gap sl's colour ask at a priority
+// node of the filter search: the candidates in engine order, the colours the
+// play announces first, one answer when a single candidate names no ask. The
+// answer is the colour the whole amount floats in (reflAmtDo), not a Combo Any
+// allocation (comboAnyOther).
+func (fs *filtSearch) reflAmtOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	var order [6]uint8
+	cols := t.reflAmtOrderNeed(k, sl, fs.need, order[:])
+	if len(cols) == 0 {
+		return try(otherStep{kind: otherComboAny, ans: reflAmtNone})
+	}
+	if len(cols) > 1 && !fs.tick() {
+		return false // the colour ask's node
+	}
+	for _, col := range cols {
+		if try(otherStep{kind: otherComboAny, ans: col}) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflAmtOtherDo plays the filter search's step of reflected Amount$ source sl.
+func (s *State) reflAmtOtherDo(k *prep, p uint8, sl Slot, ans uint8) {
+	if ans != reflAmtNone {
+		s.reflAmtDo(k, p, sl, int(ans))
+		return
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.tapExtraStall(k, sl)
 }
 
 // reflAmtAnswers is the colour ask's answer count (one, the deterministic
@@ -251,4 +313,134 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 		}
 	}
 	s.reflAmtDo(k, p, sl, col)
+}
+
+// reflAmtLive reports whether p controls a live reflected Amount$ source.
+func (s *State) reflAmtLive(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.uses.has(useReflAmt) {
+		return false
+	}
+	return s.reflAmtUnbounded(k, s.caGaps(k, p))
+}
+
+// reflAmtUnbounded reports whether a live reflected Amount$ source is among the
+// census gaps ca. gorge's planner census lists no unit for it (the amount is
+// deferred) and is unrelaxable with it: no relaxed proof runs, the prefix
+// search prices the play.
+func (s *State) reflAmtUnbounded(k *prep, ca slotMask) bool {
+	for b := ca; b.any(); b = b.rest() {
+		if k.isReflAmt(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflAmtActPays reports whether activation ability a of sl (p's) is a
+// candidate beside a live reflected Amount$ source (Incubation Druid) and a live
+// granted mana ability, with no filter script. gorge's planner census lists no
+// unit for the source (pay.PaymentPlanReflectedShape defers the amount) and is
+// unrelaxable, so a play its PotentialMana bound pays is census-incomplete and
+// takes the one prefix search, which activates the Druid through the manual
+// window (CR 605.3b, 602.2b). The bound lists the play (the Druid folded in
+// every colour its reflection names, reflAmtPotential, gorge
+// addPotentialReflectedAmount); the grant search (grantCap) is the verdict,
+// keeping the candidates it pays and dropping the rest. A board without a
+// grant has no such search for an activation here: not offered.
+func (s *State) reflAmtActPays(k *prep, sl Slot, a *kop.Ability, p uint8) bool {
+	if !(k.gen.anyComboAny && s.reflAmtUnbounded(k, s.caGaps(k, p)) && s.grantGapLive(k, p)) {
+		return false
+	}
+	var pot avail
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0)
+}
+
+// reflAmtBoundAct reports whether gorge's PotentialMana bound pays activation
+// ability a of slot sl on a board with a live reflected Amount$ source. The
+// bound prices the Druid as {C} alone (reflAmtPotential), and gorge pays an
+// activation from its planner after the bound lists it (autoPayOffer): an
+// activation the bound leaves short is never offered, and no prefix search
+// runs for it as it does for a cast. A {G} ability beside a counter-bearing
+// Druid, every Forest tapped, and a Cascade Bluffs the filter script chains
+// (Whip Silk's "{G}: Return Whip Silk to its owner's hand") is not offered
+// (CR 605.3b: the Druid's mana is real, gorge's planner defers it).
+func (s *State) reflAmtBoundAct(k *prep, sl Slot, a *kop.Ability) bool {
+	p := s.perms[sl].ctrl
+	if !s.reflAmtLive(k, p) {
+		return true
+	}
+	var pot avail
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0)
+}
+
+// reflAmtBoundPlay reports whether play a is one gorge's PotentialMana bound
+// pays on a board with a live reflected Amount$ source (Incubation Druid).
+// That census gap is unrelaxable and unbounded in gorge
+// (paymentPlanRelaxedAlternatives reads a Mana API only), so gorge's prefix
+// search runs for every census-incomplete play the bound lists, and the
+// search colours the whole amount: three {B} pay the {B}{B} of a play the
+// gaps walk cannot fund once a painful land's colour is withheld at one life
+// (Vengeant Vampire beside Ifnir Deadlands, Nomad Stadium and a Druid with
+// counters, CR 119.4). The bound (the druid folded as {C}, reflAmtPotential)
+// keeps the painful production whole, so scriptOffers searches the plays it
+// pays beside the gaps walk's.
+//
+// On a filterless board the bound-paid plays are not the gaps walk's — the
+// plain census prices the Druid's mana nowhere — so the census's
+// unrelaxability (raBoard in scriptOffers) makes the any-mana walk the
+// candidates' source and this read the admission arm; the route is the
+// search the board's other census gap shapes take, the grant search beside a
+// live granted mana ability (caBesideGrant), whose chain colours the whole
+// amount (reflAmtOrder). A filter board's filter search prices them instead
+// (reflAmtOther), so the bound arm keeps its Combo Any gate there
+// (caOffersBoard).
+//
+// It is the only wide arm: a plain cast the bound does not pay is searched
+// by no one (Forgotten Harvest's {1}{G} beside a tapped Forest and a Swamp: the
+// Druid's three {G} would pay it, but the bound folds the Druid as {C} only,
+// the coloured pip unfunded, so gorge lists no play and offers no cast).
+func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
+	pays, known := s.reflAmtBoundVerdict(k, p, a)
+	return known && pays
+}
+
+// reflFiltBoard reports a filter beside a live reflected Amount$ source and no
+// Combo Any board (ca): the board scriptOffers drops plays gorge's bound
+// refuses on (reflAmtBoundFails).
+func (s *State) reflFiltBoard(k *prep, p uint8, ca bool, filt slotMask) bool {
+	return !ca && filt.any() && s.reflAmtLive(k, p)
+}
+
+// reflAmtBoundVerdict is gorge's PotentialMana bound's verdict on play a beside
+// a live reflected Amount$ source: pays says the bound covers the play's cost,
+// known is false when there is no live source or the play's cost cannot be
+// priced here.
+func (s *State) reflAmtBoundVerdict(k *prep, p uint8, a Action) (pays, known bool) {
+	if !s.reflAmtLive(k, p) {
+		return false, false
+	}
+	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
+	if !ok {
+		return false, false
+	}
+	var pot avail
+	d := s.grantPayDesc(k, a)
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&cost, pipMaskOf(&cost), 0), true
+}
+
+// reflAmtBoundFails reports a play gorge's bound cannot pay beside a live
+// reflected Amount$ source (the bound prices the source {C} alone, so a coloured
+// pip stays with the lands: reflAmtPotential). gorge's autopay offer gates every
+// play on that bound before it plans or searches (legal_walk_autopay.go
+// autoPayOffer), so a play the kernel's gaps walk lists on a filter's output,
+// the filter's coloured fee funded by the source's colourless {C} the bound
+// cannot count (Cascade Bluffs' {U/R} beside an Incubation Druid), is no offer.
+func (s *State) reflAmtBoundFails(k *prep, p uint8, a Action) bool {
+	pays, known := s.reflAmtBoundVerdict(k, p, a)
+	return known && !pays
 }
