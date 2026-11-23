@@ -746,7 +746,7 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 	if s.abilityAffords(k, sl, a, &manaCost, s.actGrantCensus(k, sl, av, &gc)) {
 		// a sorcery-speed play beside Taps-deferred gaps is also searched
 		// (mana_sorcerygap.go)
-		return !s.sorceryGapSearched(k, sl, ab, a) || s.actScriptPays(k, sl, ab, a)
+		return !s.sorceryGapSearched(k, sl, ab, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 	}
 	return s.actScriptPays(k, sl, ab, a)
 }
