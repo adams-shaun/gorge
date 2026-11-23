@@ -113,3 +113,96 @@ func (s *State) windowGraveMana(k *prep, p uint8, useful *kop.ManaCost, clamp, a
 	s.poolAdd(p, s.graveManaCol(k, p, mask, useful), 1)
 	return true
 }
+
+// The prefix search (filtSearch) funds through a graveyard source after the
+// battlefield's and the hand's (gorge's scriptSearch.activations walks the raw
+// priority's activate options, which list a graveyard source last and only
+// while mana floats: TestGraveManaGorgeProbe Q1, Q1b). The search runs only
+// where another gap (a filter) already starts it: gorge's planner prices no
+// graveyard source, so Jack alone never makes a cast affordable
+// (TestGraveManaGorgeProbe Q2) and no search is begun for it.
+//
+// Like a hand guide's, the activation is a covered funding step (funded+1, no
+// gap used) whose mana the raw priority list counts and the planner did not,
+// so fs.hands is held over its subtree (terminal, try). Unlike it, the
+// activation asks a colour (askManaColor lists WUBRG): the ask is one node of
+// the search and each colour answer is one branch, the colours the play needs
+// first (scriptOrderAnswers; needFirst).
+//
+// An unless or ward census pay search and an activation's own payment
+// (fs.noHand: actScriptPays, gorge's planner prices from the census) fund
+// through none, as they fund through no hand guide: those windows list the
+// battlefield alone and the census prices no graveyard source.
+
+// DebugNoGraveFund leaves the graveyard sources out of the prefix search's
+// funding pass (mutation testing only: the lockstep must catch it).
+var DebugNoGraveFund bool
+
+// graveFundDo plays a graveyard source's funding step on s (filtDo): the fee,
+// the exile, then the answered colour.
+func (s *State) graveFundDo(k *prep, p uint8, st filtStep) {
+	pl := &s.pl[SeatIx(p)]
+	if int(st.gidx) >= int(pl.graveN) || st.ans == 0 {
+		return
+	}
+	o := pl.grave[st.gidx]
+	if k.t.Cards[s.objs[o].card].GraveMana == 0 {
+		return
+	}
+	s.graveManaFee(p)
+	if k.artMana {
+		s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
+	}
+	s.exileFromGrave(o)
+	s.poolAdd(p, int(st.ans-1), 1)
+}
+
+// fundOffField is visit's funding pass over the zones beside the battlefield:
+// the hand's guides (mana_handguide.go), then the graveyard's sources, in the
+// order gorge's raw priority lists their activations. The unless / ward census
+// prices no hand mana (unlessWindowUnits) and no graveyard mana, so a census
+// pay search never reaches either: gorge offers decline where only a guide or
+// Jack could pay. A plain window's pay probe keeps them.
+func (fs *filtSearch) fundOffField(k *prep, t *State, funded int, gapUsed bool) bool {
+	if fs.census && fs.pay != nil || funded >= fs.fees {
+		return false
+	}
+	return handManaOn(k) && fs.handFund(k, t, funded, gapUsed) || graveManaOn(k) && fs.graveFund(k, t, funded, gapUsed)
+}
+
+// graveFund is the prefix search's funding pass over the payer's graveyard:
+// each graveyard mana source in graveyard order is one funding activation,
+// its colour ask answered in turn.
+func (fs *filtSearch) graveFund(k *prep, t *State, funded int, gapUsed bool) bool {
+	if DebugNoGraveFund || fs.noHand || !t.graveManaAny(k, fs.p) {
+		return false
+	}
+	pl := &t.pl[SeatIx(fs.p)]
+	for i := 0; i < int(pl.graveN); i++ {
+		mask := k.t.Cards[t.objs[pl.grave[i]].card].GraveMana & 0x1f
+		if mask == 0 {
+			continue
+		}
+		var order [5]uint8
+		n := 0
+		for c := uint8(0); c < 5; c++ {
+			if mask&(1<<c) != 0 {
+				order[n] = c
+				n++
+			}
+		}
+		needFirst(order[:n], fs.need)
+		if n > 1 && !fs.tick() { // the colour ask is a node of the search
+			return false
+		}
+		fs.hands++
+		for _, c := range order[:n] {
+			if fs.try(k, t, filtStep{sl: NoSlot, grave: true, gidx: uint8(i), ans: 1 + c}, funded+1, gapUsed) {
+				fs.hands--
+				return true
+			}
+		}
+		fs.hands--
+	}
+	return false
+}

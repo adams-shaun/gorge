@@ -25,6 +25,10 @@ import (
 
 const gravePlains = "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n"
 
+// graveScarecrow is a fee-only filter ({2}: Add one mana of any color), Signpost
+// Scarecrow's mana ability.
+const graveScarecrow = "Name:Grave Scarecrow\nTypes:Artifact Creature Scarecrow\nPT:2/4\nA:AB$ Mana | Cost$ 2 | Produced$ Any\nOracle:x\n"
+
 const graveProbeSpell = "Name:Grave Probe Spell\nManaCost:%s\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n"
 
 // graveProbeBoard is one scenario: seat 0 holds the spell (cost) in hand,
@@ -178,6 +182,69 @@ func TestGraveManaGorgeProbe(t *testing.T) {
 			t.Logf("Q1 %-28s raw activates %s -> Jack offered=%v", tc.name, b.list(act), got)
 			if got != tc.want {
 				t.Errorf("Q1 %s: Jack activate offered = %v, want %v", tc.name, got, tc.want)
+			}
+		}
+	})
+
+	// Q1b: the raw activate order of a hand guide and the graveyard source (the
+	// kernel's funding passes follow it: hand guides, then the graveyard).
+	t.Run("Q1b guide and Jack order", func(t *testing.T) {
+		t.Parallel()
+		b := newGraveProbe(t, "W", nil, 1, "R")
+		act := b.rawActivates()
+		t.Logf("Q1b hand Simian + graveyard Jack, {R} floating: raw activates %s", b.list(act))
+		if len(act) != 2 || b.name(act[0]) != "Simian Spirit Guide@hand" || act[1].Obj != b.jack {
+			t.Errorf("Q1b: raw activates %s, want the hand guide then Jack", b.list(act))
+		}
+	})
+
+	// Q2b: the scripts beside a fee-only filter (Signpost Scarecrow, {2}: one mana of
+	// any color). Measured: Jack is in the script only where the filter is no
+	// live census gap (its {2} fee out of the potential pool's reach, so the
+	// full search runs); a live gap makes the relaxed planner offer the cast
+	// early, and the script ends before Jack (the payment window takes it,
+	// Q3). Jack's answer is the colour the cost needs.
+	t.Run("Q2b filter gap", func(t *testing.T) {
+		t.Parallel()
+		m, sc := apMountain, graveScarecrow
+		const (
+			mtn  = "priority(activate:Mountain@battlefield:)"
+			jack = "priority(activate:Jack-o'-Lantern@graveyard:)"
+			ask  = "choose(mana:Jack-o'-Lantern@graveyard:%s)"
+		)
+		for _, tc := range []struct {
+			name  string
+			cost  string
+			lands []string
+			pool  string
+			want  []string
+		}{
+			// the Scarecrow's {2} fee is out of the one Mountain's reach: no live gap, Jack funds
+			{"Mountain + Scarecrow, {W}", "W", []string{m, sc}, "", []string{mtn, jack, fmt.Sprintf(ask, "W")}},
+			// the colour answered is the one the cost needs, not the first of W U B R G
+			{"Mountain + Scarecrow, {U}", "U", []string{m, sc}, "", []string{mtn, jack, fmt.Sprintf(ask, "U")}},
+			{"Mountain + Scarecrow, {G}", "G", []string{m, sc}, "", []string{mtn, jack, fmt.Sprintf(ask, "G")}},
+			// {R} already floating: the first step drops (Jack is never the first step of an empty pool)
+			{"Scarecrow, {R} floating, {W}", "W", []string{sc}, "R", []string{jack, fmt.Sprintf(ask, "W")}},
+			// a live gap: the planner offers the cast after one tap and the script ends there
+			{"3 Mountain + Scarecrow, {W}{W}", "WW", []string{m, m, m, sc}, "", []string{mtn}},
+		} {
+			b := newGraveProbe(t, tc.cost, tc.lands, 0, tc.pool)
+			if live := len(tc.want) == 1; b.potentialCast() != live {
+				t.Errorf("Q2b %s: the planner's offer of the cast is %v, want %v", tc.name, !live, live)
+			}
+			script, why := b.e.PotentialPlayScript(0, decision.PotentialAction{Kind: "cast", Obj: b.spell}, potentialScriptNodes)
+			var steps []string
+			for _, st := range script {
+				var picks []string
+				for _, p := range st.Picks {
+					picks = append(picks, fmt.Sprintf("%s:%s:%s", p.Kind, b.name(decision.Option{Obj: p.Obj}), p.ManaSymbol))
+				}
+				steps = append(steps, string(st.Kind)+"("+strings.Join(picks, ",")+")")
+			}
+			t.Logf("Q2b %-44s steps=%v reason=%q", tc.name, steps, why)
+			if why != "" || strings.Join(steps, " ") != strings.Join(tc.want, " ") {
+				t.Errorf("Q2b %s: script %v (reason %q), want %v", tc.name, steps, why, tc.want)
 			}
 		}
 	})
