@@ -12,6 +12,7 @@ Barrenton Cragtreads
 Battle Sliver
 Benalish Marshal
 Bequeathal
+Bestial Menace
 Black Market Tycoon
 Blood Age General
 Blood Divination
@@ -84,6 +85,7 @@ Living Totem
 Lone Missionary
 Loxodon Mystic
 M.O.D.O.K., Evil Intellect
+Magmatic Force
 Marsh Casualties
 Mascot Exhibition
 Midnight Ritual
