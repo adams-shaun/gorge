@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -60,7 +59,7 @@ func TestSacAnyRepeatFundsCycling(t *testing.T) {
 // synthScenCfg is synthScen under cfg.
 func synthScenCfg(t *testing.T, pool string, cfg Config, names ...string) (*scen, map[string]CardID) {
 	t.Helper()
-	set := cardsettest.Synth(t, pool)
+	set := synthSet(t, pool)
 	var deck []cardset.Entry
 	for _, n := range names {
 		deck = append(deck, cardset.Entry{Name: n, Count: 1})
