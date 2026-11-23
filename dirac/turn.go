@@ -308,11 +308,22 @@ func (s *State) endStep(next kop.Step) {
 		s.firebendEnd(next) // firebending red survives the combat steps, PersistentMana$ units every step (kw_firebend.go, mana_persistent.go)
 		return
 	}
+	prot := s.unspentProt() // an UnspentMana keep rides this boundary (static_unspentmana.go)
+	var restr [MaxSeats]uint8
 	for p := uint8(0); p < s.nSeats(); p++ {
-		s.pl[p].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(p)
+		s.unspentEmptyPool(p, prot[p])
+		if prot[p] != 0 {
+			// the keep letters protect a slot's restricted batches too
+			// (gorge foldManaClear: r.Persistent || keep[slot])
+			s.rbKeep(p, prot[p], true)
+			if s.rbAny(p) {
+				restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+			}
+		} else {
+			s.rbClear(p)
+		}
 	}
-	s.g.poolArt = [MaxSeats]uint8{}
+	s.g.poolArt = restr
 	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 	s.artNClearAll()
 	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
@@ -449,12 +460,23 @@ func (s *State) finishCleanup(k *prep) {
 		// 514.3a priority in it can still spend them (mana_persistent.go)
 		s.persistEmpty(true)
 	} else {
+		prot := s.unspentProt() // an UnspentMana keep rides the cleanup boundary too
+		var restr [MaxSeats]uint8
 		for p := uint8(0); p < s.nSeats(); p++ {
-			s.pl[p].pool = [kop.NumManaKinds]uint8{}
-			s.rbClear(p)
+			s.unspentEmptyPool(p, prot[p])
+			if prot[p] != 0 {
+				// the keep letters protect a slot's restricted batches too
+				// (gorge foldManaClear: r.Persistent || keep[slot])
+				s.rbKeep(p, prot[p], true)
+				if s.rbAny(p) {
+					restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+				}
+			} else {
+				s.rbClear(p)
+			}
 		}
 		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
-		s.g.poolArt = [MaxSeats]uint8{}
+		s.g.poolArt = restr
 		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
 		s.artNClearAll()
 		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
@@ -1252,11 +1274,15 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 			cand = s.ctrlM[p] // a derived Legendary is not in legM (printed types only)
 		}
 		no := s.battlefieldOrder(p, cand, ord[:], 0)
+		lgEx := k.gen != nil && k.gen.uses.has(useLgExempt)
 		n := 0
 		for i := 0; i < no; i++ {
 			sl := ord[i]
 			if s.typesAt(k, sl)&kop.TLegendary == 0 {
 				continue
+			}
+			if lgEx && s.legendExemptGen(k, sl) {
+				continue // the legend rule doesn't apply to it (CR 704.5j; static_ignorelegendrule.go)
 			}
 			nm := s.legendName(k, sl) // by name: Witness Protection renames (CR 704.5j; pair 28);
 			// token cards of different scripts that print the same name are one

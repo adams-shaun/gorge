@@ -1384,6 +1384,7 @@ StTapPowerStation	StaticFlags	8
 StTapPowerTough	StaticFlags	16
 StTapReflect	StaticFlags	4
 StTargetsFilter2	StaticFlags	64
+StUnspentYou	StaticFlags	512
 StWithoutManaCost	StaticFlags	8
 StYouHexproof	StaticFlags	512
 StackExileDream	untyped int	2

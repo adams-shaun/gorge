@@ -804,7 +804,7 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	if akw&kop.KwProtectionAll != 0 {
 		return false
 	}
-	if (akw|bkw)&(kop.KwFear|kop.KwShadow) != 0 && s.evadesShadowFear(k, b, akw, bkw) {
+	if (akw|bkw)&(kop.KwFear|kop.KwShadow) != 0 && s.evadesShadowFear(k, b, a, akw, bkw) {
 		return false
 	}
 	if k.gen != nil && k.gen.anyLandwalk && s.landwalkEvades(k, b, a) {

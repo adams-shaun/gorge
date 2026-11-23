@@ -51,7 +51,7 @@ const mbBudget = 1 << 20
 // prepMustBlock sets anyMustBlock: some card is printed must-be-blocked, or
 // the table gives mechMustBlocked an arena mask.
 func prepMustBlock(t *kop.Table, g *genPrep) {
-	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone || g.uses.has(useMustBlockAtk) // combat_mustblockatk.go
+	g.anyMustBlock = g.ix[mechMustBlocked] != arenaNone || g.ix[mechBlocksIfAble] != arenaNone || g.uses.has(useMustBlockAtk) || g.uses.has(useMustBlkStat) // combat_mustblockatk.go, static_mustblock.go
 	for i := 0; i < len(t.Cards) && !g.anyMustBlock; i++ {
 		g.anyMustBlock = t.Cards[i].MustBeBlocked
 	}

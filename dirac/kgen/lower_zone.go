@@ -2485,6 +2485,13 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.noRegenRemembered(ps, ss); ok || err != nil { // lower_noregen.go
 		return err
 	}
+	// the UnspentMana read runs before the duration arms: it refuses every
+	// shape but the Last Agni Kai form itself (lower_unspentmana.go), so an
+	// unread UnspentMana body cannot flow into the Duration$Permanent emblem
+	// or effectStaticEOT, which assume every static they take is one they read
+	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
+		return err
+	}
 	if ps.is("Duration", "Permanent") {
 		if ok, err := lc.partitionMayPlay(ps, ss); ok || err != nil {
 			return err
@@ -2504,9 +2511,6 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return refuse("Effect MayPlay over the remembered cards, unsupported shape")
 		}
 		return lc.emblemStatic(ps, ss[0])
-	}
-	if ok, err := lc.unspentRedEOT(ps, ss); ok || err != nil {
-		return err
 	}
 	if obj, ok := lc.chosenMayPlayNextTurn(ps, ss); ok { // lower_effectdurations.go
 		return lc.effectTargetStatic(ps, ss[0], obj)
