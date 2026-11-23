@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -39,10 +40,10 @@ var kmanaonlyFilters = map[string]bool{"Quirion Elves": true, "Nomadic Elf": tru
 	"Agent of Stromgald": true, "Bog Initiate": true, "Energy Refractor": true, "Prismite": true,
 	"Crossroads Candleguide": true, "Signpost Scarecrow": true, "Urn of Godfire": true, "Llanowar Envoy": true}
 
-// kmanaonlyRun plays seeds with pol, failing on each divergence or unmodelled
-// stall, and returns the number of games it played. byName counts, from
-// gorge's side, each carrier's mana-ability activations.
-func kmanaonlyRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[string]int) int {
+// kmanaonlyRun plays seeds from through to on dk with pol, failing on each
+// divergence or unmodelled stall, and returns the number of games it played.
+// byName counts, from gorge's side, each carrier's mana-ability activations.
+func kmanaonlyRun(t *testing.T, dk [2][]cardset.Entry, pol func(uint64) Policy, from, to uint64, byName map[string]int) int {
 	t.Helper()
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
@@ -54,7 +55,7 @@ func kmanaonlyRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[st
 		t.Fatal(err)
 	}
 	var decks [2][]*cards.Card
-	for s, d := range kmanaonlyDecks {
+	for s, d := range dk {
 		for _, e := range d {
 			c, ok := reg.Lookup(e.Name)
 			if !ok {
@@ -68,12 +69,12 @@ func kmanaonlyRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[st
 			t.Fatalf("deck %d: %d cards", s, len(decks[s]))
 		}
 	}
-	tbl, _, _, err := set.Matchup(kmanaonlyDecks[0], kmanaonlyDecks[1])
+	tbl, _, _, err := set.Matchup(dk[0], dk[1])
 	if err != nil {
 		t.Fatal(err)
 	}
 	seen := 0
-	for seed := uint64(1); seed <= n; seed++ {
+	for seed := from; seed <= to; seed++ {
 		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
 		m, err := NewMatchup(reg, [2]string{"mo-a", "mo-b"}, decks, 1)
 		if err != nil {
@@ -127,22 +128,115 @@ func kmanaonlyRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[st
 	return seen
 }
 
-// TestManaOnlyFilterLockstep: random and explore policies, no divergence and
-// no unmodelled stall, and the explore run activates every carrier at least
-// once so the lockstep actually compares its mana walk.
+// TestManaOnlyFilterLockstep: the random policy over 48 seeds, no divergence
+// and no unmodelled stall.
 func TestManaOnlyFilterLockstep(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	if n := kmanaonlyRun(t, pkPolicy, 48, nil); n != 48 {
+	if n := kmanaonlyRun(t, kmanaonlyDecks, pkPolicy, 1, 48, nil); n != 48 {
 		t.Fatalf("played %d of 48 seeds", n)
 	}
+}
+
+// TestManaOnlyFilterExploreLockstep: the explore policy over 64 seeds, no
+// divergence and no unmodelled stall (split from TestManaOnlyFilterLockstep
+// to fit the test budget). Which carriers the run reaches moves with every
+// decision the bots' choices shift, so it only logs their activation counts;
+// TestManaOnlyCarrierForcedLines holds each carrier to an activation.
+func TestManaOnlyFilterExploreLockstep(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	byName := map[string]int{}
-	kmanaonlyRun(t, ExplorePolicy, 64, byName)
-	for name := range kmanaonlyFilters {
+	kmanaonlyRun(t, kmanaonlyDecks, ExplorePolicy, 1, 64, byName)
+	for _, name := range kmanaonlyCarriers() {
 		t.Logf("%s activated %d times on gorge's side", name, byName[name])
-		if byName[name] == 0 {
-			t.Errorf("%s was never activated on gorge's side", name)
+	}
+}
+
+// kmanaonlyCarriers is kmanaonlyFilters' names in order.
+func kmanaonlyCarriers() []string {
+	names := make([]string, 0, len(kmanaonlyFilters))
+	for name := range kmanaonlyFilters {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// kmanaonlyForced is the first deck with every other carrier replaced by
+// copies of carrier and every basic land by the one basic that feeds it
+// (Mountain for Agent of Stromgald's {R}, else Forest): the off-colour spells
+// stay, so paying for them wants the carrier's filtered mana. Agent of
+// Stromgald, which makes only {B}, gets Doom Blades for its spells, the
+// pool's one black spell.
+func kmanaonlyForced(carrier string) [2][]cardset.Entry {
+	land := "Forest"
+	black := carrier == "Agent of Stromgald"
+	if black {
+		land = "Mountain"
+	}
+	var d []cardset.Entry
+	extra, lands, spells := 0, 0, 0
+	for _, e := range kmanaonlyDecks[0] {
+		switch {
+		case kmanaonlyBasic[e.Name]:
+			lands += e.Count
+		case kmanaonlyFilters[e.Name] && e.Name != carrier:
+			extra += e.Count
+		case black && !kmanaonlyFilters[e.Name]:
+			spells += e.Count
+		default:
+			d = append(d, e)
+		}
+	}
+	if spells > 0 {
+		d = append(d, cardset.Entry{Name: "Doom Blade", Count: spells})
+	}
+	for i := range d {
+		if d[i].Name == carrier {
+			d[i].Count += extra
+		}
+	}
+	d = append(d, cardset.Entry{Name: land, Count: lands})
+	return [2][]cardset.Entry{d, kmanaonlyDecks[1]}
+}
+
+var kmanaonlyBasic = map[string]bool{"Forest": true, "Swamp": true, "Plains": true, "Mountain": true, "Island": true}
+
+// kmanaonlyForcedExempt are the carriers no forced line reaches. Bog
+// Initiate's "{1}: Add {B}" is a fee-only source: gorge's autopay takes it
+// only when no cheaper source pays the {B}, and the canonical surface offers
+// no manual mana activation, nor can a lockstep game stack a library, to
+// force it (none of 12 seeds on a one-Swamp deck, nor 6 on an Agent of
+// Stromgald deck, activated it). engine/rules' TestRepeatableFeeOnlyManaFundsTwoPips
+// and TestRepeatableFeeOnlyBesideRefractorFundsTwoPips cover the line gorge
+// offers through it.
+var kmanaonlyForcedExempt = map[string]bool{"Bog Initiate": true}
+
+// TestManaOnlyCarrierForcedLines is each carrier's forced line: the explore
+// bot on a deck stacked with that carrier (kmanaonlyForced), seed by seed
+// until gorge activates the carrier's mana ability, so the lockstep compares
+// every carrier's mana walk whatever the 64-seed sweep reaches. Each game is
+// a full lockstep, failing on a divergence or an unmodelled stall.
+func TestManaOnlyCarrierForcedLines(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	const tries = 4
+	for _, name := range kmanaonlyCarriers() {
+		if kmanaonlyForcedExempt[name] {
+			continue
+		}
+		var got int
+		for seed := uint64(1); seed <= tries && got == 0; seed++ {
+			byName := map[string]int{}
+			kmanaonlyRun(t, kmanaonlyForced(name), ExplorePolicy, seed, seed, byName)
+			got = byName[name]
+		}
+		if got == 0 {
+			t.Errorf("%s was never activated on gorge's side in %d forced games", name, tries)
 		}
 	}
 }
