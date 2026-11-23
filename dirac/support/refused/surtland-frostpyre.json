@@ -1,0 +1,21 @@
+{
+  "card": "Surtland Frostpyre",
+  "class": "lockstep",
+  "why": "Surtland Frostpyre's {2}{U}{U}{R}, {T}, Sacrifice activation whose only {R} is a Prism token sacrificed for mana (Diamond Kaleidoscope) beside Vigil for the Lost: the sacrificed Prism queues Vigil's pay-X trigger, whose ask gorge poses with a third, manual route (trigger_cost_pay_manual, a window over every untapped mana source) while the kernel's tap-another search poses two answers; gorge's prefix search (potentialScriptNodes 160) spends its node budget in that window before it reaches the red answer, so gorge's menu lacks the activation and the kernel's carries it (tail-12 pair 27, decision 876); mirroring the manual window node for node is over 200 lines of solver machinery",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "sac_mana_funds_sorcery_sac_land_activation"
+  },
+  "evidence": [
+    "ev-tail-12-c000",
+    "ev-tail-12-c001",
+    "ev-tail-12-c002",
+    "ev-tail-30-c029",
+    "ev-tail-30-c042"
+  ]
+}
