@@ -1215,7 +1215,7 @@ func (s *State) finishBlocks(k *prep) {
 	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
-	if k.gen != nil && s.subs[kop.TrigBlocks].any() {
+	if k.gen != nil && (s.subs[kop.TrigBlocks].any() || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
 		s.fireBlocksGen(k)
 	}
 	if k.gen != nil && k.gen.anyUnblocked {

@@ -189,7 +189,7 @@ type genPrep struct {
 	anyNTEndEmb     bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
 	anyEmbGrant     bool           // some emblem's Continuous static grants an ability (globalGrantsGen's emblem pass)
 	embObjEv        uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
-	embCombatEv     uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
+	embCombatEv     uint32         // events (DamageDone, AttackersDeclared, LifeGained, BecomesBlocked, Blocks) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant        bool           // some override or static grants an ability
 	meleeGrant      bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
 	anyWard         bool           // some card has printed ward: abilities get a stack identity (cast.go push; wardedIndex)
@@ -1720,7 +1720,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked, kop.TrigBlocks:
 					g.embCombatEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDealtOnce:
 					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)
