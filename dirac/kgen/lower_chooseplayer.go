@@ -18,6 +18,31 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	if ps.str("Choices") == "Player.Opponent+!EnchantedBy" {
 		return lc.choosePlayerRandom(ps) // the Maddening Hex shape
 	}
+	if err := lc.choosePlayerOpponents(ps); err != nil {
+		return err
+	}
+	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
+	// Player.Other pool of the resolving controller is the same players in
+	// the same AliveFrom order (gorge models no teams: every other player is
+	// an opponent), so it lowers the same (Discerning Financier)
+	if mid {
+		// the chain reads the choice: gorge asks it mid-resolution whatever
+		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
+		// a sole opponent recorded unasked) and the card holds at any pod
+		lc.emit(lInstr{Op: "ChoosePlayerMid", Note: "a mid-resolution choice of an opponent, read by this chain"})
+		lc.chosenMidAb = lc.ab
+		return nil
+	}
+	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
+	lc.chosenOppAb = lc.ab
+	return nil
+}
+
+// choosePlayerOpponents validates and consumes the prompt-side shape of a
+// ChoosePlayer whose pool is the one opponent (choosePlayer's and
+// choosePlayerPod's shared head): Choices$ an opponent spelling, no
+// mid-resolution choice beside it, Defined$ You, prompt and AI only.
+func (lc *lowerCtx) choosePlayerOpponents(ps *params) error {
 	switch ps.str("Choices") {
 	case "Player.Opponent", "Opponent", "Player.Other":
 	case "Player", "Player.!IsRemembered":
@@ -33,19 +58,24 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	}
 	// prompt and AI only
 	ps.consume("ChoiceTitle", "AILogic")
-	// the mid-resolution ask is among the OPPONENTS (kop.oppsFrom); a
-	// Player.Other pool of the resolving controller is the same players in
-	// the same AliveFrom order (gorge models no teams: every other player is
-	// an opponent), so it lowers the same (Discerning Financier)
-	if mid {
-		// the chain reads the choice: gorge asks it mid-resolution whatever
-		// the seat count, so the kernel does too (OpExt ExtChoosePlayerMid,
-		// a sole opponent recorded unasked) and the card holds at any pod
-		lc.emit(lInstr{Op: "ChoosePlayerMid", Note: "a mid-resolution choice of an opponent, read by this chain"})
-		lc.chosenMidAb = lc.ab
-		return nil
+	return nil
+}
+
+// choosePlayerPod lowers the as-enters opponent choice that opens a chain
+// whose next links read it (Sorcerous Spyglass: ChoosePlayer -> RevealHand
+// Look$ over the chosen player -> NameCard -> Cleanup ClearChosenPlayer$):
+// gorge runs the whole chain in the entry's Updated body, so it asks the
+// choice among the opponents with the permanent on the battlefield (OpExt
+// ExtChoosePlayer, a sole opponent recorded unasked) at any seat count, and
+// the card holds in a pod. The look-then-name ask follows it in the same
+// enters program (lower_choosename.go, ExtChooseName B = 2) and reads the
+// choice while it lasts: the name overwrites the chosen byte the player
+// rode, as gorge's Cleanup clears the choice at the same point.
+func (lc *lowerCtx) choosePlayerPod(ps *params) error {
+	if err := lc.choosePlayerOpponents(ps); err != nil {
+		return err
 	}
-	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
+	lc.emit(lInstr{Op: "ChoosePlayerEnter", Obj: lRef{Kind: rYou}, Note: "choice of an opponent as it enters, ahead of the look-then-name ask"})
 	lc.chosenOppAb = lc.ab
 	return nil
 }
