@@ -1414,10 +1414,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
-			// face's own abilities (lowerFace, lower_station.go). The
-			// parameter (the older K:Station:<N>, dropped upstream) is the
-			// creature threshold, which the face's own STATION N+ static
-			// carries; gorge reads neither, so neither does the kernel
+			// face's own abilities (lowerFace, lower_station.go). The older
+			// K:Station:<N> threshold rides the STATION N+ static; unread
 			lc.station = true
 		case head == "Melee":
 			// CR 702.121a: gorge kwMelee expands it into an Attacks Self

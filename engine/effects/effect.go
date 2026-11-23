@@ -1675,14 +1675,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// the player half of the capture.
 				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 			}
-			if chosenNameReadByParams(params) {
-				// The static's Card.NamedCard referent is the name chosen by THIS
-				// resolution, copied onto the effect (Forge's EffectEffect); the
-				// cleanup that follows must not retract it.
-				if o := h.Game().Obj(c.Source); o != nil {
-					ce.ChosenName, ce.ChosenNameFrozen = o.ChosenName, true
-				}
-			}
+			effectCopyChosenName(h, c, params, &ce)
 			effectContinuous(h, ce)
 			registered = true
 		case cards.StaticMustAttack:
@@ -1911,4 +1904,16 @@ func untilUntapsBind(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) 
 // Permanent duration.
 func effectDurationPermanent(rawDur string) bool {
 	return strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+}
+
+// effectCopyChosenName copies the name chosen by THIS resolution onto the
+// effect when the static's Card.NamedCard referent reads it (Forge's
+// EffectEffect); the cleanup that follows must not retract it.
+func effectCopyChosenName(h Host, c *Ctx, params map[string]string, ce *state.ContinuousEffect) {
+	if !chosenNameReadByParams(params) {
+		return
+	}
+	if o := h.Game().Obj(c.Source); o != nil {
+		ce.ChosenName, ce.ChosenNameFrozen = o.ChosenName, true
+	}
 }
