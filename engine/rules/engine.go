@@ -105,6 +105,12 @@ type Config struct {
 	// narrow census (the A/B control). Genesis configuration like
 	// WindowDiagnostics; replay must pass the same value.
 	DisablePaidManaCensus bool
+	// Start, when non-nil, is a scripted start (start.go): genesis deals and
+	// shuffles as usual, then rearranges each seat into the described position
+	// before turn 1, as events in the hash chain. nil (every Config before
+	// this field) is the ordinary genesis, byte for byte. It applies only with
+	// Mulligans 0. Genesis configuration: a replay must pass the same value.
+	Start *StartSpec
 	// Tokens is the token definitions the decks in this match can create --
 	// cards.Registry.Tokens. Adopted by reference as Game.Tokens in New (never
 	// copied, never written) so events.Apply's TokenCreate case has something
