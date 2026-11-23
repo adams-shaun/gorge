@@ -397,10 +397,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) || k.gen.uses.has(useStaticPrev)) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
-			// answer. The recipients freeze in gorge's sweep order
+			// answer (a static prevention's optional ask is posed per event too:
+			// spPark). The recipients freeze in gorge's sweep order
 			// (effDamageAll: seat 0's battlefield in entry order, then seat
 			// 1's, then the players).
 			s.damageSeqStart(k, hit, in.B.N&1 != 0) // seat-ok: an instruction flag bit
