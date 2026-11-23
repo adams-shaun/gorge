@@ -58,10 +58,10 @@ type otherStep struct {
 	// ask offers every X from the counters held down to 0
 	x    uint8
 	xset bool
-	// fo, sib: otherComboAny's forage source (mana_forage.go): the forage option
-	// answered (fo, with ans the colours), or its plain {T} ability (sib)
-	fo  uint8
-	sib bool
+	// forage: otherComboAny is a forage source's activation (mana_forage.go):
+	// fo the forage option answered, sib its plain ability instead
+	forage, sib bool
+	fo          uint8
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -189,7 +189,7 @@ func (s *State) mixComboAny(k *prep, p uint8, filt bool) slotMask {
 	if !filt || DebugComboAnyFiltNoChain || !k.gen.anyComboAny {
 		return slotMask{}
 	}
-	return s.caGapsF(k, p, true) // a forage source whose forage is payable is a gap of the search too (forageOther)
+	return s.caGapsF(k, p, true) // a payable forage source is a step too (forageOther)
 }
 
 // mixEach: p's live free each-colour sources (Faeburrow Elder, "{T}: for each
@@ -232,7 +232,7 @@ func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherSt
 		return fs.reflAmtOther(t, k, sl, try) // a reflected Amount$ source names one colour for all its mana (mana_reflamt.go)
 	}
 	if k.forageCA(t.cardAt(sl)) {
-		return fs.forageOther(t, k, sl, try)
+		return fs.forageOther(t, k, sl, try) // its asks are its own nodes (forageWalk), the first one included
 	}
 	if !fs.tick() {
 		return false
@@ -858,12 +858,12 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 	case otherTapsDefer:
 		s.tapsDeferApply(k, p, st.act, st.sl, o.ans) // the play the search prices (st.act) orders the production ask's answers
 	case otherComboAny:
-		if k.isReflAmt(s.cardAt(st.sl)) {
-			s.reflAmtOtherDo(k, p, st.sl, o.ans)
+		if o.forage {
+			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.sib})
 			break
 		}
-		if k.forageCA(s.cardAt(st.sl)) {
-			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.sib})
+		if k.isReflAmt(s.cardAt(st.sl)) {
+			s.reflAmtOtherDo(k, p, st.sl, o.ans)
 			break
 		}
 		s.caActivate(k, p, st.sl, int(o.ans))

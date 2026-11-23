@@ -27,13 +27,14 @@ import (
 // colour ask. A card whose other mana ability is not the one plain fixed-colour {T}
 // is refused at the table's start (StallComboAnyMix, forageMixGap).
 //
-// The forage source is a gap of the search alone: caGaps leaves it out, so the
-// payment windows (availCA, windowComboTap: gorge's window auto-answers the ability
-// ask with the printed {G}) and the filter, grant and tap-another searches never see
-// it; a table holding it beside a gap kind the Combo Any search does not chain
-// stalls by name instead (prepComboAnyMix). The search is caSearch's: a forage
-// source is tried as its ability ask, forage ask and colour ask nodes, in gorge's
-// order (forageSource), and a found script replays its tap, forage and mana.
+// The forage source is a gap of the Combo Any search and a step of the filter
+// search (mixComboAny, forageOther): caGaps leaves it out, so the payment windows
+// (availCA, windowComboTap: gorge's window auto-answers the ability ask with the
+// printed {G}) and the grant and tap-another searches never see it; a table holding
+// it beside a gap kind neither search chains stalls by name instead
+// (prepComboAnyMix). Both searches walk its asks the same way (forageWalk): its
+// ability ask, forage ask and colour ask nodes, in gorge's order, and a found
+// script replays its tap, forage and mana.
 
 // DebugForagePickLast answers the forage ask with the last option where the search
 // and its replay choose (mutation testing only: the lockstep must catch it).
@@ -205,63 +206,35 @@ func (cs *caSearch) branch(k *prep, t *State, d *Decision, st caStep, do func(c 
 // Every ask is one node (a Submit's visit): the ability ask, the forage ask or the
 // colour ask it leads to, and the colour ask after each forage answer.
 func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
-	c := t.cardAt(sl)
 	if cs.own != NoObj && t.perms[sl].obj == cs.own {
 		return false // the searched activation's own {T} source: its mana leaves that cost unpayable (CR 602.2b; gorge's ownTapSource)
 	}
-	j := int(k.gen.gapOther(c))
-	sib, _ := forageSibling(&k.t.Cards[c], j)
-	if !cs.tick() { // the activation's first ask
-		return false
-	}
-	var opts [MaxPerm + 1]Slot
-	n := t.forageOpts(k, cs.p, sl, &opts)
-	units := t.caAmount(k, sl)
-	forage := func() bool {
-		if sib >= 0 && !cs.tick() { // the forage ask (two or more options), else the colour ask
-			return false
-		}
-		for oi := 0; oi < n; oi++ {
-			o := oi
-			if DebugForagePickLast {
-				o = n - 1 - oi
-			}
-			if n >= 2 && !cs.tick() { // the colour ask after the forage answer
-				return false
-			}
-			for r, na := 0, caAnswerCount(units); r < na; r++ {
-				ans := caRank(units, &cs.need, r)
-				opt := opts[o]
-				if cs.branch(k, t, d, caStep{sl: sl, ans: uint8(ans), fo: uint8(o)}, func(f *State) { f.forageActivate(k, cs.p, sl, opt, ans) }) {
-					return true
-				}
-			}
-		}
-		return false
-	}
-	plain := func() bool {
-		return cs.branch(k, t, d, caStep{sl: sl, sib: true}, func(f *State) { f.forageSibActivate(k, cs.p, sl, sib) })
-	}
-	if sib >= 0 && sib < j {
-		return plain() || forage()
-	}
-	return forage() || sib >= 0 && plain()
+	return forageWalk(k, t, cs.p, sl, &cs.need, cs.tick,
+		func(opt Slot, o, ans int) bool {
+			return cs.branch(k, t, d, caStep{sl: sl, ans: uint8(ans), fo: uint8(o)}, func(f *State) { f.forageActivate(k, cs.p, sl, opt, ans) })
+		},
+		func(sib int) bool {
+			return cs.branch(k, t, d, caStep{sl: sl, sib: true}, func(f *State) { f.forageSibActivate(k, cs.p, sl, sib) })
+		})
 }
 
-// forageOther is forageSource's branch in the filter search (comboAnyOther): the
-// same asks and nodes, the forage source one gap of the filter search's path.
-func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+// forageWalk is the ask walk both searches share (forageSource, forageOther):
+// the forage source at sl's asks and answers in gorge's order, one tick per ask
+// (the caller's node), each forage answer handed to forage (the option, its
+// index, the colour answer) and the sibling's plain ability to plain. The first
+// ask is the walk's own tick, so a caller branches here before charging it.
+func forageWalk(k *prep, t *State, p uint8, sl Slot, need *[kop.NumManaKinds]bool, tick func() bool, forage func(opt Slot, o, ans int) bool, plain func(sib int) bool) bool {
 	c := t.cardAt(sl)
 	j := int(k.gen.gapOther(c))
 	sib, _ := forageSibling(&k.t.Cards[c], j)
-	if !fs.tick() { // the activation's first ask
+	if !tick() { // the activation's first ask
 		return false
 	}
 	var opts [MaxPerm + 1]Slot
-	n := t.forageOpts(k, fs.p, sl, &opts)
+	n := t.forageOpts(k, p, sl, &opts)
 	units := t.caAmount(k, sl)
-	forage := func() bool {
-		if sib >= 0 && !fs.tick() { // the forage ask (two or more options), else the colour ask
+	forageArm := func() bool {
+		if sib >= 0 && !tick() { // the forage ask (two or more options), else the colour ask
 			return false
 		}
 		for oi := 0; oi < n; oi++ {
@@ -269,22 +242,22 @@ func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep
 			if DebugForagePickLast {
 				o = n - 1 - oi
 			}
-			if n >= 2 && !fs.tick() { // the colour ask after the forage answer
+			if n >= 2 && !tick() { // the colour ask after the forage answer
 				return false
 			}
 			for r, na := 0, caAnswerCount(units); r < na; r++ {
-				if try(otherStep{kind: otherComboAny, ans: uint8(caRank(units, &fs.need, r)), fo: uint8(o)}) {
+				if forage(opts[o], o, caRank(units, need, r)) {
 					return true
 				}
 			}
 		}
 		return false
 	}
-	plain := func() bool { return try(otherStep{kind: otherComboAny, sib: true}) }
+	plainArm := func() bool { return plain(sib) }
 	if sib >= 0 && sib < j {
-		return plain() || forage()
+		return plainArm() || forageArm()
 	}
-	return forage() || sib >= 0 && plain()
+	return forageArm() || sib >= 0 && plainArm()
 }
 
 // forageReplay plays the found script's step st of the forage source on s.
@@ -357,4 +330,15 @@ func (s *State) initStallDecks(k *prep) uint8 {
 		skip = !k.forageCA(s.objs[o].card)
 	}
 	return k.initStallSkip(s.nSeats(), skip)
+}
+
+// forageOther is comboAnyOther's branch for a forage source: forageSource's asks
+// and answers as filter-search steps (the ability ask beside a plain sibling,
+// the forage ask, the colour ask), in gorge's order.
+func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	return forageWalk(k, t, fs.p, sl, &fs.need, fs.tick,
+		func(_ Slot, o, ans int) bool {
+			return try(otherStep{kind: otherComboAny, forage: true, fo: uint8(o), ans: uint8(ans)})
+		},
+		func(int) bool { return try(otherStep{kind: otherComboAny, forage: true, sib: true}) })
 }
