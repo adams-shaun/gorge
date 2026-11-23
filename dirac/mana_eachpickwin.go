@@ -18,9 +18,6 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // is no ask, and a {C}-bearing production's candidates depend on the carrier's
 // widening, which this arm does not model.
 func (s *State) eachPickWinCols(k *prep, sl Slot) uint8 {
-	if k.gen == nil || !k.gen.anyTapExtra {
-		return 0
-	}
 	pc := s.manaPCGen(k, sl)
 	if s.srcEachPick(k, sl, pc) != 1 {
 		return 0
