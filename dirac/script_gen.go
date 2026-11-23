@@ -322,31 +322,44 @@ func plainCastMode(a Action) bool {
 	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
 }
 
+// scriptOfferFilt is scriptOffers' filter census (filtOnly): the filter
+// sources the walks admit (scriptFilt), kept only when a play beside it can
+// reach the filter route — a mixed board, or no restricted gapOther whose mana
+// no play the walk lists can spend (mana_filter.go restrGapOthers).
+func (s *State) scriptOfferFilt(k *prep, p uint8, mix bool) slotMask {
+	if !k.gen.anyFilt {
+		return slotMask{}
+	}
+	if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
+		return f
+	}
+	return slotMask{}
+}
+
+// caGapMask is the ca search's candidate mask (mana_comboany.go caGaps) when p
+// takes the ca route at all; empty otherwise (the mask is then never read).
+func (s *State) caGapMask(k *prep, p uint8, ca bool) slotMask {
+	if ca {
+		return s.caGaps(k, p)
+	}
+	return slotMask{}
+}
+
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
-	var filt slotMask
 	mix := s.mixBoard(k, p)
-	if k.gen.anyFilt {
-		// (filtOnly; a restricted gapOther whose mana no play the walk lists
-		// can spend keeps no filter off the walk: mana_filter.go restrGapOthers)
-		if f := s.scriptFilt(k, p); f.any() && (mix || !s.gapOthers(k, p).andNot(s.restrGapOthers(k, p)).any()) {
-			filt = f
-		}
-	}
+	filt := s.scriptOfferFilt(k, p, mix)
 	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
 	dh := k.gen.anyDiscHand && s.dhBoard(k, p) // Lion's Eye Diamonds the only gaps (mana_discardhand.go)
 	ca := k.gen.anyComboAny && s.caBoard(k, p) // a Combo Any source among the gaps (mana_comboany.go)
-	var caM slotMask
-	if ca {
-		caM = s.caGaps(k, p)
-	}
+	caM := s.caGapMask(k, p, ca)
 	// a Combo Any source beside a filter (the filter search's otherComboAny
 	// step): gorge's census is as unrelaxable as with the source alone
 	caAny := s.caOffersBoard(k, p, ca)
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
-	if !dh && !ca && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
+	if !dh && !ca && !s.caBesideGrant(k, p) && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
 		return
 	}
 	// With only restricted gaps (Giada, a Courtyard) gorge's census is
@@ -589,6 +602,23 @@ func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) boo
 			// shape)
 			s.capStall(stall)
 			return true // no script within gorge's budget (mana_countercost.go ctrScript; a counter-cost gap alone, no restricted source beside it)
+		}
+	} else if s.caBesideGrant(k, p) {
+		// a Combo Any / reflected Amount$ gap beside a live granted mana
+		// ability is one search in gorge (scriptSearch.visit activates
+		// every census gap together), and the grant search is that search
+		// (grantFirstGaps, mana_grantcomboany.go): it prices the play
+		// exactly, so the gaps walk keeping the play's own {T} source
+		// (ownTapBoundKept) over-offers nothing. grantCap never ran it:
+		// the play the grant walk's census cannot pay (the reflected
+		// Amount$ fold is {C} alone) is off the walk, and gorge reaches it
+		// only through its prefix search.
+		if ga, gstall := s.grantActScript(k, a, p); !ga {
+			// the drop is final and one of the grant search's lines ran
+			// into a rule gap the kernel stalls by name: declare it, not
+			// a dropped offer (the search declares nothing, mana_grantedoffers.go)
+			s.capStall(gstall)
+			return true // no script within gorge's one search's budget (mana_grantcomboany.go)
 		}
 	}
 	return false
