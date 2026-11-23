@@ -314,7 +314,7 @@ func plainCastMode(a Action) bool {
 	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
 }
 
-func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) {
+func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	var filt slotMask
@@ -443,7 +443,6 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	var lifeWalk, ownWalk Decision
 	lifeBuilt, ownBuilt := false, false
-	searched := 0
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !(reflLive && reflWidePlay(a)) && !(ca && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
@@ -560,6 +559,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		}
 		d.add(a)
 	}
+	return searched
 }
 
 // mergeBareGaps adds to gaps the plays of the gaps walk with the filters left

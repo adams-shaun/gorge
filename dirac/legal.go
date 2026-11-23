@@ -419,9 +419,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
 			s.grantCap(k, d, p, &capSpent)
 		}
-		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, &capSpent, p)
-		}
+		s.scriptWalk(k, d, &capSpent, p, sorc)
 	}
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
