@@ -202,6 +202,7 @@ Ilysian Caryatid
 Imperial Oath
 Improbable Alliance
 Indulgent Tormentor
+Infernal Tutor
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
@@ -249,6 +250,7 @@ Mardu Hateblade
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
+Mask of the Mimic
 Mass Appeal
 Mass Diminish
 Mawloc
