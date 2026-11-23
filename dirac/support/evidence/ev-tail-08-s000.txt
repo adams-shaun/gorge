@@ -20,6 +20,7 @@ Battle Sliver
 Benalish Marshal
 Beorn, Reluctant Host
 Bequeathal
+Bestial Menace
 Bilbo Baggins, Burglar
 Black Market Tycoon
 Blizzard Strix
@@ -139,6 +140,7 @@ Loxodon Mystic
 Lynx
 M.O.D.O.K., Evil Intellect
 Magmaroth
+Magmatic Force
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
@@ -252,6 +254,7 @@ Vexilus Praetor
 Victory's Herald
 Vrock
 Wall of Opposition
+Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Weakness

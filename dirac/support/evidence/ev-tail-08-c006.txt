@@ -8,6 +8,7 @@ Aven Gagglemaster
 Awaken the Woods
 Ballynock Trapper
 Bequeathal
+Bestial Menace
 Blind-Spot Giant
 Bronze Sword
 Bronze Walrus
@@ -118,6 +119,7 @@ Vengeful Vampire
 Vexilus Praetor
 Vulpine Goliath
 War Falcon
+Wardscale Crocodile
 Warlord's Elite
 Water Elemental
 Wayward Servant
