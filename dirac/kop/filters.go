@@ -316,6 +316,17 @@ const OvChosenType = 3
 // chosen type's matchup subtype index.
 const ChooseTypeBasicLand = 2
 
+// ChooseTypeRandomDeck, in a mid-resolution OpChooseType's B field: the
+// AtRandom$ Type$ CreatureInTargetedDeck shape (Aswan Jaguar's enters
+// trigger, "choose a random creature type from those in target opponent's
+// deck"). gorge effChooseType's AtRandom arm poses no ask: the option list is
+// the sorted creature subtypes the resolution's player target's library
+// prints, one word is taken whole and two or more draw the engine rng once
+// (gorge labels[h.Rand(len(labels))]); the answer is the source's chosen type
+// (dirac act_randomdecktype.go). C names the target slot the deck belongs to
+// (a kop RefTarget: ValidTgts$ Opponent, the resolution's chosen target).
+const ChooseTypeRandomDeck = 3
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 
