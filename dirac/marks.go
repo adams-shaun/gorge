@@ -462,7 +462,10 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 			}
 			switch z := s.objs[o].zone; z {
 			case kop.ZoneHand, kop.ZoneLibrary, kop.ZoneGraveyard, kop.ZoneExile:
-				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24)
+				// the option's card too: a choice among hidden-zone cards (a
+				// library search) encodes the card each option offers, so two
+				// libraries in one order must not share a key
+				h = hmix(h, uint64(o)|uint64(z)<<8|uint64(s.objs[o].owner())<<16|uint64(s.zoneIndex(Obj(o)))<<24|uint64(s.objs[o].card)<<40)
 			}
 		}
 	}
