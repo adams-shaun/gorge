@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -96,5 +97,77 @@ func TestCorpusRegistryResolvesUnderAnExportedGitDir(t *testing.T) {
 	}
 	if _, ok := reg.Lookup("Lightning Bolt"); !ok {
 		t.Fatal("corpus opened under an exported GIT_DIR but does not contain Lightning Bolt; the registry is not the real corpus")
+	}
+}
+
+func writeCorpus(t *testing.T, dir, lock string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dir, ".cards", "cardsfolder"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if lock != "" {
+		if err := os.WriteFile(filepath.Join(dir, ".cards", "cards.lock"), []byte(lock), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestPickCorpusPrefersTheWorktreesOwn(t *testing.T) {
+	root := t.TempDir()
+	main, wt := filepath.Join(root, "main"), filepath.Join(root, "wt")
+	writeCorpus(t, main, "old")
+	// The main checkout's is used while the worktree has none.
+	if err := os.MkdirAll(wt, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pickCorpus(filepath.Join(main, ".git"), wt), filepath.Join(main, ".cards"); got != want {
+		t.Fatalf("got %s, want main's %s", got, want)
+	}
+	// A symlinked own .cards counts and wins.
+	real := filepath.Join(root, "real")
+	writeCorpus(t, real, "new")
+	if err := os.Symlink(filepath.Join(real, ".cards"), filepath.Join(wt, ".cards")); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pickCorpus(filepath.Join(main, ".git"), wt), filepath.Join(wt, ".cards"); got != want {
+		t.Fatalf("got %s, want own %s", got, want)
+	}
+}
+
+func TestPickCorpusFreshCloneIsTheOwnPath(t *testing.T) {
+	root := t.TempDir()
+	if got, want := pickCorpus(filepath.Join(root, ".git"), root), filepath.Join(root, ".cards"); got != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
+}
+
+func TestCheckCorpusPin(t *testing.T) {
+	root := t.TempDir()
+	mk := filepath.Join(root, "Makefile")
+	if err := os.WriteFile(mk, []byte("X ?= 1\nFORGE_REF  ?= abc123\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeCorpus(t, filepath.Join(root, "ok"), `{"ref": "abc123", "commit": "abc123"}`)
+	writeCorpus(t, filepath.Join(root, "stale"), `{"ref": "def456"}`)
+	writeCorpus(t, filepath.Join(root, "nolock"), "")
+	if err := checkCorpusPin(filepath.Join(root, "ok", ".cards"), mk); err != nil {
+		t.Errorf("matching pin: %v", err)
+	}
+	err := checkCorpusPin(filepath.Join(root, "stale", ".cards"), mk)
+	if err == nil || !strings.Contains(err.Error(), "abc123") || !strings.Contains(err.Error(), "make link-cards") {
+		t.Errorf("stale pin: got %v, want an error naming FORGE_REF and the fix", err)
+	}
+	if err := checkCorpusPin(filepath.Join(root, "nolock", ".cards"), mk); err != nil {
+		t.Errorf("no cards.lock: %v", err)
+	}
+	if err := checkCorpusPin(filepath.Join(root, "absent", ".cards"), mk); err != nil {
+		t.Errorf("no corpus: %v", err)
+	}
+}
+
+func TestGorgeCardsDirWins(t *testing.T) {
+	t.Setenv("GORGE_CARDS_DIR", "/nonexistent/corpus")
+	if got, ok := SharedCorpusDir("."); !ok || got != "/nonexistent/corpus" {
+		t.Fatalf("got %q %v", got, ok)
 	}
 }
