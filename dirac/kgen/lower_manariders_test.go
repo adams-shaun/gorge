@@ -49,8 +49,6 @@ var manaRiderCards = []struct {
 	// TapsForMana triggers beyond a mana extra: a token for an opponent, a
 	// doubled land, a conditional extra
 	{"Forbidden Orchard", "trigger mode TapsForMana"},
-	{"Vorinclex, Voice of Hunger", "trigger mode TapsForMana"},
-	{"Treasure Nabber", "trigger mode TapsForMana"},
 	{"Elvish Guidance", "trigger mode TapsForMana"},
 	{"Gauntlet of Power", "trigger mode TapsForMana"},
 	{"Zhur-Taa Druid", "trigger mode TapsForMana"},

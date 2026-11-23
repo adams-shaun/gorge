@@ -34,15 +34,33 @@ import (
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
 	const generic = "trigger mode TapsForMana"
 	// no Activator$: any player's tap (Manabarbs); Player.NonActive: only a
-	// tap by a player other than the active one (Price of Glory)
+	// tap by a player other than the active one (Price of Glory); You/Opponent
+	// (Sanctimony, Savage Firecat, Treasure Nabber, War's Toll): only a tap by
+	// the listener's controller, or by any opponent of it (seat-exact) -- the
+	// tapper gate Trig.Whose already carries (trig_tapsvalid.go tapsWhoseOK at
+	// the fire, tapsWatchClassForeign's whoseOK in the deferral classing), the
+	// gate gorge's real matcher reads the Activator$ with
+	// (paymentPlanTapObservers)
 	nonActive := false
+	var whose uint8
 	switch v := strings.TrimSpace(tp.str("Activator")); v {
 	case "":
 	case "Player.NonActive":
 		nonActive = true
 		tp.consume("Activator")
+	case "You":
+		whose = whoYou
+		tp.consume("Activator")
+	case "Opponent":
+		whose = whoOpp
+		tp.consume("Activator")
 	default:
 		return refuse("%s", generic)
+	}
+	if whose != whoAny && tp.str("ValidPlayer") != "" {
+		// gorge matches both specs (the Activator$ over the tapper, the
+		// ValidPlayer$ over it too): an AND this lowering does not vet
+		return refuse("TapsForMana ValidPlayer$ beside Activator$ You/Opponent")
 	}
 	vc := strings.TrimSpace(tp.str("ValidCard"))
 	if vc == "" || strings.Contains(vc, "Self") {
@@ -64,6 +82,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana body that is vetted payer damage: gorge prices the source as a last-resort unit")
 	}
 	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive
+	tr.Whose = whose
 	if tapsDestroySelf(t) {
 		// The destroy-self row (Price of Glory): the trigger resolves after
 		// the payment that caused it (CR 405.6c/603.2) and its only effect is
