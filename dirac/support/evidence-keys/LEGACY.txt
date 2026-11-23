@@ -538,7 +538,6 @@ Brush Off
 Brushfire Elemental
 Brutal Expulsion
 Budding Insurgent
-Builder's Talent
 Bulwark Ox
 Bumi, Eclectic Earthbender
 Burn, Burn, Tree and Fern
@@ -739,7 +738,6 @@ Conciliator's Duelist
 Conduct Electricity
 Confusticate and Bebother
 Constrictor Sage
-Consumed by Greed
 Consuming Ashes
 Consuming Fervor
 Contaminated Landscape
@@ -1090,7 +1088,6 @@ Eagle of the Great Shelf
 Eagle's Rescue
 Eagles of the North
 Eardrum Rattler
-Early Winter
 Earth King's Lieutenant
 Earth Kingdom Soldier
 Earth Rumble Wrestlers
@@ -2605,7 +2602,6 @@ Nessian Boar
 Nessian Wanderer
 Nesting Bot
 Nether Horror
-Nettle Guard
 Nettletooth Djinn
 Network Disruptor
 Neurok Prodigy
@@ -2950,7 +2946,6 @@ Pyroceratops
 Pyrotechnic Performer
 Pyrotechnics
 Q, Your Illustrious Host
-Qal Sisma Behemoth
 Qarsi Revenant
 Qasali Pridemage
 Qo'noS Quartermaster
