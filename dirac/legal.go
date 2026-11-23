@@ -2279,7 +2279,7 @@ func potUnitsAdd(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 					return false // more same-pick sources than fit: no exact view
 				}
 				a.one[a.nOne], a.oneMask[a.nOne] = u.n, u.mask
-				a.oneAltMask[a.nOne], a.oneAltN[a.nOne] = 0, 0
+				a.oneAltMask[a.nOne], a.oneAltN[a.nOne], a.oneCol[a.nOne] = 0, 0, 0
 				a.nOne++
 			}
 		}
