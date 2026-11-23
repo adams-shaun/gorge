@@ -30,9 +30,12 @@ func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 	}
 	c := s.objs[o].card
 	if !k.gen.has(c, gfEnterRepl) {
-		return false
-	}
-	if s.cloneAskKind(k, c) != 0 {
+		kind := s.protectorPreKind(k, c, ctrl) // face_battle.go: a returning battle's protector
+		if kind == 0 {
+			return false
+		}
+		s.g.pre = preAsk{obj: o, kind: kind, state: preReturnOp}
+	} else if s.cloneAskKind(k, c) != 0 {
 		s.g.pre = preAsk{obj: o, kind: akClone, state: preReturn}
 	} else if kind := s.enterChoiceKind(k, c); kind != 0 {
 		s.g.pre = preAsk{obj: o, kind: kind, state: preReturnOp} // Lifecraft Engine's creature type, asked in the graveyard

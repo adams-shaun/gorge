@@ -336,23 +336,15 @@ const StallTwoSeat = 154
 
 func init() { stallNames[StallTwoSeat] = "twoseat" }
 
-// prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only.
+// prepTwoSeat sets genPrep.twoSeatOnly when any card of t is two-seat only
+// (kop.CardTwoSeat). Speed, the skip-untap marks, a battle's protector and a
+// granted static goad's goader are no part of it: each holds every seat
+// (kw_speed.go seatWord, act_skipuntap.go coldSkipUntap, face_battle.go
+// akProtector, act_goad.go grantGoader).
 func prepTwoSeat(t *kop.Table, g *genPrep) {
-	if sp, _ := prepSpeed(t); MaxSeats > 2 && sp {
-		g.twoSeatOnly = true // genState.speed packs two seats' speed, 3 bits each (kw_speed.go)
-		return
-	}
 	for i := range t.Cards {
 		if cardTwoSeat(&t.Cards[i]) {
 			g.twoSeatOnly = true
-			return
-		}
-		if MaxSeats > 2 && skipUntapCard(&t.Cards[i]) {
-			g.twoSeatOnly = true // perm.cseen holds two seats' skip-untap marks (act_skipuntap.go)
-			return
-		}
-		if MaxSeats > 2 && t.Cards[i].Types&kop.TBattle != 0 {
-			g.twoSeatOnly = true // a battle's protector is the one opponent (face_battle.go): gorge asks among the opponents (CR 310.10)
 			return
 		}
 	}
@@ -379,12 +371,8 @@ func skipUntapCard(c *kop.CardDef) bool {
 // census (dirac/oracle TestCommanderPodTwoSeatCensus) ranks them by the pods
 // they block.
 const (
-	TwoSeatKgen       = "kgen"        // kop.CardTwoSeat: the lowering reads a two-player identity (kgen lowerCtx.twoSeat, or a kop.TwoSeatInstr operand)
-	TwoSeatSpeed      = "speed"       // OpChangeSpeed or Start your engines: genState.speed packs two seats (kw_speed.go)
-	TwoSeatSkipUntap  = "skip-untap"  // OpSkipUntap: perm.cseen holds two seats' marks (act_skipuntap.go)
-	TwoSeatBattle     = "battle"      // TBattle: the protector is the one opponent (face_battle.go; CR 310.10)
-	TwoSeatGoadStatic = "goad-static" // a granted StatGoad (kop.StatGoadGranted): no goader seat (act_goad.go prepGoad)
-	TwoSeatCtrAdded   = "ctr-added"   // a counters-added-this-turn condition on the card itself: ctrAdd.e[].fl packs two seats (ctr_addedthisturn.go)
+	TwoSeatKgen     = "kgen"      // kop.CardTwoSeat: the lowering reads a two-player identity (kgen lowerCtx.twoSeat, or a kop.TwoSeatInstr operand)
+	TwoSeatCtrAdded = "ctr-added" // a counters-added-this-turn condition on the card itself: ctrAdd.e[].fl packs two seats (ctr_addedthisturn.go)
 )
 
 // TwoSeatCauses is, per CardID of t, the TwoSeat* classes that make the card
@@ -402,44 +390,16 @@ func TwoSeatCauses(t *kop.Table) [][]string {
 		if cardTwoSeat(cd) {
 			out[c] = append(out[c], TwoSeatKgen)
 		}
-		if cardSpeed(cd) {
-			out[c] = append(out[c], TwoSeatSpeed)
-		}
-		if skipUntapCard(cd) {
-			out[c] = append(out[c], TwoSeatSkipUntap)
-		}
-		if cd.Types&kop.TBattle != 0 {
-			out[c] = append(out[c], TwoSeatBattle)
-		}
-		goad, ctr := false, false
+		ctr := false
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			goad = goad || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && a.Static.OvGate != 0
 			ctr = ctr || anyCtr && (condReadsCtrSelf(t, a.Trig.Cond) || condReadsCtrSelf(t, a.Static.Cond2) || condReadsCtrSelf(t, a.Repl.Cond))
-		}
-		if goad {
-			out[c] = append(out[c], TwoSeatGoadStatic)
 		}
 		if ctr {
 			out[c] = append(out[c], TwoSeatCtrAdded)
 		}
 	}
 	return out
-}
-
-// cardSpeed reports whether c reads or changes speed (prepSpeed's per-card test).
-func cardSpeed(c *kop.CardDef) bool {
-	if c.Engines {
-		return true
-	}
-	for j := range c.Abilities {
-		for _, in := range c.Abilities[j].Prog {
-			if in.Op == kop.OpChangeSpeed {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // TwoSeatOnly reports whether a game of three or more seats on t stops at its

@@ -3337,6 +3337,9 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 	if kind == 0 && !land {
 		kind = s.unleashPreKind(k, c) // kw_unleash.go
 	}
+	if kind == 0 && !land {
+		kind = s.protectorPreKind(k, c, s.stack[s.sp-1].ctrl) // face_battle.go
+	}
 	if kind == 0 {
 		return false
 	}

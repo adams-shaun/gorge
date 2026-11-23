@@ -333,7 +333,7 @@ func chooseSeatSlots(o *decision.Option, objRef, seat Ref) (src, tgt Ref) {
 		return src, tgt
 	}
 	switch o.Kind {
-	case "player", "primary", "destination", "divide", "proliferate":
+	case "player", "protector", "primary", "destination", "divide", "proliferate":
 		tgt = seat
 	case "enchant":
 		src = seat
@@ -450,6 +450,9 @@ func cumulativeKindAlias(kind string) string {
 func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
 	if d.ResumeKind == "mustblock" && o.Kind == "object" {
 		return "card"
+	}
+	if o.Kind == "protector" {
+		return "player" // CR 310.10: the battle's protector pick is the kernel's ChGenPlayer (face_battle.go akProtector)
 	}
 	return cumulativeKindAlias(o.Kind)
 }

@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Object.SaddledTurn: perm.cseen bit cseenSaddled here.
 
 // cseenSaddled: the permanent is saddled (OpSaddle; gorge SaddledTurn ==
-// the turn). perm.cseen bit 5 (bits 0-4 counters, 6-7 cseenSkipUntap*).
+// the turn). perm.cseen bit 5 (bits 0-4 counters; bits 6-7 free).
 // A Case's solved designation (OpSaddle C=1) is a separate bit, spareSolved.
 const cseenSaddled uint8 = 1 << 5
 
