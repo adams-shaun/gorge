@@ -301,20 +301,11 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 	// verdict exactly as before.
 	skip := !census.relaxable && census.bounded &&
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
-	if !skip && census.relaxable && len(census.tapOnly) != 0 && len(census.paid) == 0 && census.fund == 0 {
-		// The relaxed proof above counts a land's granted {T} ability beside
-		// its printed one, so seven lands look like fourteen sources and the
-		// search runs on a ten-mana cost it can never pay. One {T} pays one
-		// ability, so with those units merged the same necessary condition is
-		// tight; like the bounded proof it only elides a search that could
-		// not succeed and is never reported. Only a census with no fee-carrying
-		// gap: a fee is paid from floating mana the relaxed model cannot
-		// restrict (a Powerstone's {C} pays a filter land's {1} though it
-		// cannot pay the spell), so the proof could refuse a payable play.
-		tight := *census
-		tight.mergeTap = true
-		skip = e.paymentPlanRelaxProof(tight, verdict).Reason == pay.ReasonInsufficient
-	}
+	// The relaxed proof counts a land's granted {T} ability beside its printed
+	// one, so seven lands look like fourteen sources and a ten-mana ability
+	// ran three 160-clone searches per priority decision that could only end
+	// at the budget. The supply count has no such slack.
+	skip = skip || census.outruns != nil && census.outruns(o)
 	if skip {
 		return got, nil
 	}
@@ -708,14 +699,10 @@ const relaxedPaidLimit = 3
 // for that set already covers it. A relaxed alternative is never
 // executable, so no Plan is returned.
 func (e *Engine) paymentPlanRelaxProof(c paymentPlanCensus, verdict func() PaymentPlanOutcome) PaymentPlanOutcome {
-	prev, prevFee, prevCut, prevMerge := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut, e.PaymentPlanRelaxedMerge
+	prev, prevFee, prevCut := e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut
 	defer func() {
-		e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut, e.PaymentPlanRelaxedMerge = prev, prevFee, prevCut, prevMerge
+		e.PaymentPlanRelaxed, e.PaymentPlanRelaxedFee, e.PaymentPlanRelaxedCut = prev, prevFee, prevCut
 	}()
-	e.PaymentPlanRelaxedMerge = nil
-	if c.mergeTap {
-		e.PaymentPlanRelaxedMerge = c.tapOnly
-	}
 	for mask := 0; mask < 1<<len(c.paid); mask++ {
 		relaxed := slices.Clone(c.relaxed)
 		fee := int32(0)
@@ -2432,17 +2419,13 @@ type paymentPlanCensus struct {
 	// gaps lists, in zone order, the sources with an ability the census
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
-	// tapOnly lists, in zone order, the gap sources whose every mana ability
-	// taps them: a payment uses at most one of those abilities (CR 602.2b), so
-	// a land with a printed and a granted {T} ability is one unit, not two.
-	// Only the search-skip proof reads it (mergeTap); the relaxed proof that
-	// reports a verdict keeps its two units. Empty when any mana ability on
-	// the board is repeatable: the planner's one unit per source then
-	// undercounts what a real payment makes.
-	tapOnly []state.ObjID
-	// mergeTap makes paymentPlanRelaxProof join each tapOnly source's relaxed
-	// alternatives to its census unit (pay.Session.PaymentPlanRelaxedMerge).
-	mergeTap bool
+	// outruns reports that play o's offer cost needs more mana than the
+	// floating pool and every mana source on the board can make (CR 602.2b:
+	// one tap each). Set only when every mana ability on the board is a lone
+	// {T} making one mana (manaTapSingle), so the count is exact however the
+	// planner prices a source; nil otherwise. A necessary condition only: a
+	// search it skips could not have found a prefix.
+	outruns func(o decision.Option) bool
 	// onceGap: a missed ability is one-shot (its cost taps, sacrifices or
 	// returns the source, or it has a once-only activation limit) and has no
 	// relaxed alternative. A one-shot paid production (a filter land's
@@ -2512,8 +2495,10 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		at[u.ID] = i
 	}
 	var probe *Engine
-	bounded := true     // every gap ability so far has a once-only or bounded relaxation
-	repeatable := false // some mana ability, covered or not, can be activated more than once
+	bounded := true // every gap ability so far has a once-only or bounded relaxation
+	// plain: every mana ability on the board is a lone {T} making one mana
+	// (manaTapSingle); sources counts the permanents that have one.
+	plain, sources := true, int32(0)
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		var abs []*cards.SA
 		var face *cards.Face
@@ -2533,14 +2518,15 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		if len(abs) == 0 {
 			continue
 		}
+		sources++
+		for _, ma := range abs {
+			plain = plain && manaTapSingle(e, p, id, ma)
+		}
 		var alts []pay.Alt
 		if i, ok := at[id]; ok {
 			alts = pay.PaymentPlanQueryAlternatives(asPayer(e), units[i])
 		}
 		for _, ma := range abs {
-			if !repeatable && !manaCostOnce(e.manaAbilityCC(p, id, ma).Cost, ma, id) {
-				repeatable = true
-			}
 			covered := false
 			for _, a := range alts {
 				if pay.SameManaAbility(a.Ma, ma) {
@@ -2618,18 +2604,13 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 				}
 			}
 		}
-		if slices.Contains(out.gaps, id) && everyManaAbilityTaps(e, p, id, abs) {
-			out.tapOnly = append(out.tapOnly, id)
-		}
 	}
 	if out.complete {
-		out.relaxable, out.relaxed, out.paid, out.gaps, out.tapOnly = false, nil, nil, nil, nil
+		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
-	if repeatable {
-		// The planner prices a covered source as one unit, so a repeatable one
-		// (Treasonous Ogre's "Pay 3 life: Add {R}", used twice by a real
-		// payment) makes the merged proof undercount: the tight skip is off.
-		out.tapOnly = nil
+	if plain && !out.complete {
+		pool := int32(e.G.Players[p].Pool.Total())
+		out.outruns = func(o decision.Option) bool { return abilityOutrunsSupply(e, p, o, pool+sources) }
 	}
 	out.bounded = bounded && !out.complete && !out.relaxable
 	if !out.bounded {
@@ -2638,31 +2619,41 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	return out
 }
 
-// everyManaAbilityTaps reports whether each of abs, the mana abilities of
-// source id, has {T} in its cost: the source then makes mana at most once in a
-// payment (CR 602.2b), whichever ability it uses.
-func everyManaAbilityTaps(e *Engine, p state.PlayerID, id state.ObjID, abs []*cards.SA) bool {
-	for _, ma := range abs {
-		if !e.manaAbilityCC(p, id, ma).Cost.Tap {
-			return false
-		}
-	}
-	return true
+// manaTapSingle reports whether mana ability ma of source id is a lone {T}
+// that makes exactly one mana: no fee or other cost part, no tap trigger's
+// extra mana, no condition-split production, no chosen or per-object amount.
+func manaTapSingle(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	mp := effects.ManaOf(ma)
+	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
+		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
 }
 
-// manaCostOnce reports whether the mana ability ma of source id can be
-// activated at most once in a payment: its cost taps or untaps the source,
-// sacrifices or returns it, or it carries an activation limit of one.
-func manaCostOnce(cost costvocab.Cost, ma *cards.SA, id state.ObjID) bool {
-	once := cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
-		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
-	for _, part := range cost.Sac {
-		once = once || pay.PlanSelfCost(part, id)
+// abilityOutrunsSupply reports that the printed activated ability o costs
+// more mana, as the offer gate composes it, than supply: the floating pool
+// plus one mana for each source. An ability whose own {T} is a cost cannot
+// be paid from its own source, which is taken out of the supply. Any other
+// play, and a cost whose mana count can fall after announcement (an {X}, a
+// Phyrexian or two-brid symbol, a waterbend part, a creature-tap credit), is never proven.
+func abilityOutrunsSupply(e *Engine, p state.PlayerID, o decision.Option, supply int32) bool {
+	if o.Kind != optAbility || o.SVar != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Keyword != "" {
+		return false
 	}
-	for _, part := range cost.Return {
-		once = once || pay.PlanSelfCost(part, id)
+	ob := e.G.Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return false
 	}
-	return once
+	pa, ok := ob.PileAbilityAt(o.Ability)
+	if !ok || pa.SA == nil || pa.SA.Kind != "AB" || cards.IsManaAbilitySA(pa.SA) || pay.TapCreaturesForMana(pa.SA) {
+		return false
+	}
+	c := abilityOfferCostOf(e, p, o.Obj, pa.SA)
+	if c.X != 0 || c.XMin != 0 || c.Waterbend != 0 || c.WaterbendX || len(c.Phyrexian)+len(c.HybridPhyrexian)+len(c.Twobrid) != 0 {
+		return false
+	}
+	if c.Tap && len(e.appendAvailableManaAbilitiesGate(nil, nil, p, o.Obj, true)) != 0 {
+		supply--
+	}
+	return supply < c.CMC()
 }
 
 // tapRepeatBound is how many times a repeatable tap-only mana cost
@@ -2758,7 +2749,14 @@ func (e *Engine) paymentPlanRelaxedAlternatives(p state.PlayerID, id state.ObjID
 	// relaxation below, but the prefix search still has to fund each
 	// activation, so the census reads its fee even when ok is false.
 	fee = cost.Generic + cost.Colored.Total()
-	once = manaCostOnce(cost, ma, id)
+	once = cost.Tap || cost.Untap || strings.TrimSpace(ma.ParamStr(cards.PKActivationLimit)) == "1" ||
+		strings.TrimSpace(ma.ParamStr(cards.PKGameActivationLimit)) == "1"
+	for _, part := range cost.Sac {
+		once = once || pay.PlanSelfCost(part, id)
+	}
+	for _, part := range cost.Return {
+		once = once || pay.PlanSelfCost(part, id)
+	}
 	if len(cost.Phyrexian)+len(cost.Twobrid)+len(cost.HybridPhyrexian) != 0 {
 		return nil, 0, 0, false, false
 	}

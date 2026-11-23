@@ -313,14 +313,6 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 			if len(alts) == 0 || slices.Contains(gone, alts[0].Activation.Source) {
 				continue
 			}
-			if src := alts[0].Activation.Source; slices.Contains(e.Session().PaymentPlanRelaxedMerge, src) {
-				// The source's own unit and this alternative share one {T}:
-				// a payment uses one of them, so they are one unit.
-				if i := slices.IndexFunc(units, func(u WindowUnit) bool { return u.ID == src }); i >= 0 {
-					choices[i] = append(slices.Clip(choices[i]), withhold(alts)...)
-					continue
-				}
-			}
 			choices = append(choices, withhold(alts))
 		}
 		ps.outer = choices

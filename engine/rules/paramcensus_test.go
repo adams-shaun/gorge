@@ -2041,11 +2041,11 @@ var apiSpecificRulesSA = map[string][]string{
 	// Workshop's Activation$ Metalcraft), the triggered-mana recognition and
 	// the resolution chain. An ability's Cost$ is read once, by
 	// pay.AbilityCompiledCost through the ability's cost slot, for every API.
-	"ManaAbilityCostPrefix":                {"Mana"},
-	"manaCostOnce":                         {"Mana"},
-	"ManaActivationGateHolds":              {"Mana"},
-	"Engine.resolveManaAbilityRefOriginal": {"Mana"},
-	"Engine.resolveManaEffect":             {"Mana"},
+	"ManaAbilityCostPrefix":                 {"Mana"},
+	"Engine.paymentPlanRelaxedAlternatives": {"Mana"},
+	"ManaActivationGateHolds":               {"Mana"},
+	"Engine.resolveManaAbilityRefOriginal":  {"Mana"},
+	"Engine.resolveManaEffect":              {"Mana"},
 	// The Charm mode paths (modeTargetsAvailable, modalTargetSA) read the
 	// MODE bodies' targeting through effects.TargetsOf's compiled
 	// TargetParams, so they carry no read of their own. The Charm's own

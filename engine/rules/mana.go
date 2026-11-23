@@ -573,6 +573,12 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 // card, and legalActionsPriced stamps it on the ability's "ability" option,
 // so the two can never disagree about what an activation will charge.
 func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA) string {
+	return formatCost(abilityOfferCostOf(e, p, id, ab))
+}
+
+// abilityOfferCostOf is abilityOfferCost's composed cost before it is
+// rendered.
+func abilityOfferCostOf(e *Engine, p state.PlayerID, id state.ObjID, ab *cards.SA) Cost {
 	cost := e.abilityCompiledCost(ab).Cost
 	// The ability's own ReduceCost$ (Otawara's Channel): the same
 	// composition the offer gate and beginActivation's charge apply, so
@@ -583,7 +589,7 @@ func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA
 		cost.Generic = 0
 	}
 	cost = e.powerUpReducedCost(id, ab, cost)
-	return formatCost(e.offerCostFor(p, id, cost, abilityScope(ab)))
+	return e.offerCostFor(p, id, cost, abilityScope(ab))
 }
 
 // manaActivationCostMarker is the wire marker added to a priority
