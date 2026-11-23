@@ -1710,7 +1710,7 @@ func (s *State) finishBuild(k *prep) {
 				return
 			}
 			if k.gen.anyCastProv {
-				s.bld().e.prov |= uint8(min(s.convokePickCount(), 31)) << 3 // Convoked$Amount (trig_gravedrawn.go)
+				s.bld().e.prov |= uint8(min(s.convokedAmount(), 31)) << 3 // Convoked$Amount (trig_gravedrawn.go)
 			}
 			s.stampConvoked(k) // kw_convokelist.go: the cast's convoked creatures, beside the count above
 		} else if s.bld().bfl&bflLowered != 0 && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {

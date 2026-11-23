@@ -324,6 +324,23 @@ func (s *State) convokePicked(o Obj) bool {
 	return false
 }
 
+// convokedPick reports whether announced pick kind kd is a convoked creature:
+// a convoke pick that is not improvise (mode 6) or harmonize (mode 7). The
+// convoked set (stampConvoked) and Convoked$Amount (convokedAmount) share it.
+func convokedPick(kd pickKind) bool { return isConvokePick(kd) && kd&7 <= 5 }
+
+// convokedAmount is the announced convoked creatures' count: convokePickCount
+// less the improvise and harmonize picks (Convoked$Amount, cast.go).
+func (s *State) convokedAmount() int {
+	n := 0
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if convokedPick(s.bld().pickKs[i]) {
+			n++
+		}
+	}
+	return n
+}
+
 func (s *State) convokePickCount() int {
 	n := 0
 	for i := 0; i < int(s.bld().pickN); i++ {
