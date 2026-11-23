@@ -1,0 +1,9 @@
+# Incubation Druid (Amount$ Count$Compare reflected {C}, a census gap) beside
+# Thieving Varmint (a restricted any-colour source that opens the nil-payment
+# bound), over plain Swamps and Forests, with Abzan Kin-Guard ({3}{G}) the cast
+# only the Druid's {C} funds (dirac/mana_reflamt_bound_test.go).
+Incubation Druid
+Thieving Varmint
+Abzan Kin-Guard
+Swamp
+Forest
