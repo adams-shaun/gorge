@@ -202,7 +202,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castGateOrPoolPays(k, p, c, o, cost, cav) {
+		if !s.castGateOrPoolPays(k, p, c, o, cost, cav) || !s.plainCastPainOK(k, p, c, o, cost) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)

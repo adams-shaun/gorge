@@ -63,3 +63,18 @@ func potPainWalk(tmp *[maxPotUnits]potUnit, i, budget, life int, cost *kop.ManaC
 	tmp[i].n = full
 	return false
 }
+
+// plainCastPainOK is the plain hand cast's summed lethal guard under a
+// TapsForMana watcher: gorge prices the cast through its potential planner,
+// which never takes a plan whose summed life plus damage reaches the payer's
+// life (CR 119.4), while the real census caps each colour's sources alone
+// (Manabarbs at 3 life: a Billiard Room's {B}, an Unknown Shores' {C} and a
+// Plains' {W} each look payable beside the other two). The same census read
+// as kickedPotentialPainOK; it keeps the gate's answer (true) off the autopay
+// surfaces, with no such watcher, or for an {X} cost.
+func (s *State) plainCastPainOK(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost) bool {
+	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 || k.gen == nil || !k.gen.anyTapsMana || cost.X != 0 {
+		return true
+	}
+	return s.kickedPotentialPainOK(k, p, c, o, cost)
+}
