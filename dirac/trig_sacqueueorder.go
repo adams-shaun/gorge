@@ -46,7 +46,7 @@ func (s *State) gameGraveCands(k *prep, in *kop.Instr, d *Decision) {
 		}
 		pl := &s.pl[p]
 		for _, o := range pl.grave[:pl.graveN] {
-			if s.picksHas(o) {
+			if s.picksHas(o) || s.pickOtherBarred(k, in.F, o) {
 				continue
 			}
 			if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o) { // a token off the battlefield is no card (CR 111.8)
