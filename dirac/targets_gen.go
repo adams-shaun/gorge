@@ -193,7 +193,7 @@ func (s *State) emptyTargetSetPayable(k *prep) bool {
 		return true
 	}
 	var av avail
-	s.availFor(k, e.ctrl, &av)
+	s.availForBuilt(k, e, &av) // the floating restricted mana the spell may spend counts too
 	return av.affords(&zero, pipMaskOf(&zero), 0)
 }
 
