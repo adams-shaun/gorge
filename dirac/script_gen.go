@@ -1427,6 +1427,9 @@ func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
 		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
 	}
+	if h := k.t.Cards[c].Cost; h.Hyb[0] != 0 && h.Hyb[0] != kop.HybTwobrid && !h.Phyrexian() {
+		return false // a hybrid cost is "cost:hybrid" to the cast planner: the potential composition plans it, and any credit keyword is its "cost:credit" decline whether or not an artifact is untapped (potentialModeCastPlan)
+	}
 	if !s.isImprovise(k, p, c, o, fromHand) || s.hasConvoke(k, p, c, o, fromHand) ||
 		s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
