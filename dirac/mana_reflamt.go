@@ -345,6 +345,16 @@ func (s *State) reflAmtBoundAct(k *prep, sl Slot, a *kop.Ability) bool {
 // keeps the painful production whole, so scriptOffers searches the plays it
 // pays beside the gaps walk's.
 //
+// On a filterless board the bound-paid plays are not the gaps walk's — the
+// plain census prices the Druid's mana nowhere — so the census's
+// unrelaxability (raBoard in scriptOffers) makes the any-mana walk the
+// candidates' source and this read the admission arm; the route is the
+// search the board's other census gap shapes take, the grant search beside a
+// live granted mana ability (caBesideGrant), whose chain colours the whole
+// amount (reflAmtOrder). A filter board's filter search prices them instead
+// (reflAmtOther), so the bound arm keeps its Combo Any gate there
+// (caOffersBoard).
+//
 // It is the only wide arm: a plain cast the bound does not pay is searched
 // by no one (Forgotten Harvest's {1}{G} beside a tapped Forest and a Swamp: the
 // Druid's three {G} would pay it, but the bound folds the Druid as {C} only,

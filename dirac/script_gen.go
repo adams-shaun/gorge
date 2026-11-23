@@ -367,6 +367,13 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	caAny := s.caOffersBoard(k, p, ca)
 	anyDiff := s.anyDifferentGaps(k, p) // a Firemind Vessel among the gaps (mana_distinctcolours.go)
 	life := s.lifeGapMask(k, p)         // a life-only mana ability among the gaps (mana_lifegap.go)
+	// raBoard: a live reflected Amount$ source is the board's only modelled
+	// census gap (no filter, no other gap kind beside it). gorge's census is
+	// unrelaxable there (mana_reflamt.go reflAmtBoundPlay), so the candidates
+	// are the any-mana walk and the bound arm admits them (reflAmtBoundPlay).
+	raBoard := !ca && !dh && !filt.any() && !mix && !restr.any() && !anyR.any() &&
+		!tapsDef.any() && !s.scriptCtr(k, p).any() && !tx.any() && !anyDiff.any() && !life.any() &&
+		s.reflAmtLive(k, p)
 	if !dh && !ca && !s.caBesideGrant(k, p) && !s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(filt).or(s.scriptCtr(k, p)).or(tx).or(anyDiff).or(life).any() {
 		return
 	}
@@ -389,7 +396,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// fodder can be a mana source the bound already prices.
 	sacAny, sacOpen := s.tapXSacAnyBound(k, p)
 	sacRepeat, twoLive := s.sacRepeatBoard(k, p, sacOpen)
-	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny)
+	relax := s.scriptRelax(k, p, filt, caAny && !s.caRelaxable(k, p, ca) || twoLive || sacAny || raBoard)
 	// A live repeatable fee-only filter (Nomadic Elf) has no relaxed or bounded
 	// proof in gorge either: it searches every insufficient play, and the gaps
 	// walk (one conversion per filter) cannot say which a many-times-activated
@@ -479,7 +486,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
-		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !(caAny && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
+		if !s.gapsOrBoundPlay(k, p, sacAny, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
 			if !relax {
 				searched++
 			}
