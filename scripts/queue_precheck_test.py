@@ -174,3 +174,16 @@ def test_tree_wide_ratchets_run_for_any_go_change():
     pkgs = {g[0][0]: g for g in qp.TREE_WIDE}
     assert pkgs["./internal/codeshape"][1:] == ("", "")  # the whole package: every function, shape and strings ratchet
     assert pkgs["./internal/archtest"][2] == "^TestEngineCompilesFor32Bit$"  # all but the ~50 s 386 build
+
+
+def test_the_gate_runs_on_main_pushes_only():
+    # 11-23 00:26-00:40Z: run 45088771344, started by a mergify/merge-queue/* push, held the one concurrency slot and
+    # was cancelled when its batch closed; 22 main-push runs waited behind it and none ran (23 min with no green run).
+    # A batch forms only from PRs a run already passed, so a batch-branch run only blocks the gate.
+    import re
+    wf = (HERE.parent / ".github/workflows/queue-precheck.yml").read_text()
+    on = wf[wf.index("\non:\n"):wf.index("\npermissions:")]
+    assert re.search(r"^  push:\n    branches: \[main\]$", on, re.M), on
+    assert "mergify" not in on and "pull_request" not in on
+    assert "schedule:" in on  # the floor
+    assert re.search(r"^concurrency:\n  group: queue-precheck\n  cancel-in-progress: false$", wf, re.M)
