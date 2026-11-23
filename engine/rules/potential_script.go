@@ -697,6 +697,25 @@ func (sr *scriptSearch) targetsGone(c *Engine) bool {
 	return false
 }
 
+// presentGone reports whether the path has broken the searched activated
+// ability's IsPresent$ gate ("Activate only if you control a Sliver", Sliver
+// Hive): a prefix that sacrifices the only Sliver for Phyrexian Tower's mana
+// leaves the pool pricing the play, but the offer gate no longer lists it
+// (CR 602.5b, abilityPresentHolds). The line continues instead of ending in
+// a script the play cannot follow, so the branch that sacrifices another
+// creature is searched.
+func (sr *scriptSearch) presentGone(c *Engine) bool {
+	if sr.play.Kind != optAbility {
+		return false
+	}
+	o := c.G.Obj(sr.play.Obj)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(sr.play.Ability)
+	return ok && pa.SA != nil && !c.abilityPresentHolds(sr.p, sr.play.Obj, pa.SA)
+}
+
 // unattachedSource reports whether the path has detached the source of the
 // searched Reconfigure unattach ability (the prefix sacrificed its bearer):
 // the offer gate withholds an Unattach$ ability while its source is
@@ -967,7 +986,7 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		// planner's "insufficient" below covers every other continuation.
 		gaps = c.scriptNodeGaps(p)
 	}
-	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && !sr.unattachedSource(c) && sr.priced(pool, c) {
+	if (gapUsed || sr.nodePlans) && !sr.waitsForStack(c) && !sr.targetsGone(c) && !sr.unattachedSource(c) && !sr.presentGone(c) && sr.priced(pool, c) {
 		return true
 	}
 	if sr.activations(pool, c, d, gaps, p, funded, gapUsed) {
