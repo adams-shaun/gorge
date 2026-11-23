@@ -155,7 +155,8 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 			n *= 2
 		}
 	}
-	s.dmgRewriteClash(minusHits, setHits, dblHits) // repl_dmgminus.go
+	s.dmgRewriteClash(minusHits, setHits, dblHits)                 // repl_dmgminus.go
+	s.dmgRewritePrevClash(k, minusHits+setHits, srcSl, sl, combat) // repl_dmgminus.go
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
