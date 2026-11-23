@@ -30,6 +30,7 @@ Bartolomé del Presidio
 Basilica Screecher
 Beanstalk Giant
 Beast Mode
+Beast Walkers
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
@@ -154,6 +155,7 @@ Goblin Masons
 Goblin Piledriver
 Golgari Thug
 Gorehorn Minotaurs
+Grand Melee
 Grave Upheaval
 Gravedig
 Greatsword

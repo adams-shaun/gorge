@@ -361,6 +361,7 @@ Tervigon
 Tevesh Szat, Doom of Fools
 Tezzeret's Touch
 The Prydwen, Steel Flagship
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
@@ -376,6 +377,7 @@ Traumatic Revelation
 Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion
