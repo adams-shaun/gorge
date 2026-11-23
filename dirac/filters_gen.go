@@ -485,7 +485,6 @@ func (s *State) xBoundPayable(k *prep, a *kop.Ability, c CardID, p uint8, src Sl
 		}
 		s.g.probe.x = uint8(x + 1)
 		ok = s.abilityTargetsFeasible(k, a, p, src, 0xff)
-		println("DBGX", x, ok, exactKnown, gs.n, countKnown)
 	}
 	s.g.probe = probe{}
 	return ok
