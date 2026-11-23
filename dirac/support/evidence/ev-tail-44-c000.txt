@@ -97,6 +97,7 @@ Deathgaze Cockatrice
 Deconstruct
 Delusions of Mediocrity
 Demonlord Belzenlok
+Dermoplasm
 Devout Monk
 Diabolic Machine
 Diregraf Rebirth
@@ -106,6 +107,7 @@ Dizzy Spell
 Dogged Pursuit
 Downpour
 Draconic Disciple
+Drannith Healer
 Dream Twist
 Drown in Sorrow
 Duskrider Peregrine

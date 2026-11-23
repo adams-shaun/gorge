@@ -273,6 +273,7 @@ Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
 Rising of the Day
+Rootrunner
 Sabertooth Nishoba
 Saddle of the Cavalier
 Savage Punch
@@ -316,6 +317,7 @@ Sudden Strength
 Summoner's Pact
 Sunbond
 Sundial of the Infinite
+Super Combo
 Svogthos, the Restless Tomb
 Swamp
 Sworn Companions
@@ -358,6 +360,7 @@ Utopia Vow
 Utrom Monitor
 Vampire of the Dire Moon
 Vampiric Link
+Vanguard Suppressor
 Vengeful Reaper
 Vengeful Rebel
 Vessel of Nascency

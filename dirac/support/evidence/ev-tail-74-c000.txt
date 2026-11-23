@@ -303,6 +303,7 @@ Patient Rebuilding
 Peggy Carter, Secret Agent
 Phyrexian Plaguelord
 Phyrexian Prowler
+Phyrexian Tyranny
 Plague Fiend
 Plague Myr
 Plains
