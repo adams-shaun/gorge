@@ -762,14 +762,19 @@ func potentialModeCredit(mode string, convoke, improvise, delve bool) (withheld,
 	return false, true
 }
 
-// improviseHasTappers reports whether any permanent could pay one generic of
-// the cast of id through Improvise (CR 702.126a): the credit is optional, and
-// with no untapped artifact to tap it reprices nothing, so a spell that merely
-// carries the keyword (Archway of Innovation's grant) is planned at its raw
-// cost like one without it.
-func (e *Engine) improviseHasTappers(p state.PlayerID, id state.ObjID) bool {
-	_, taps := e.improviseCost(p, id, Cost{Generic: 1 << 20}, nil)
-	return len(taps) != 0
+// planModeCredit reports the cast mode's optional convoke/improvise/delve
+// credit verdict (potentialModeCredit), or no credit when none can reprice
+// the plan: credit planning is off, or the mode is a special action, which is
+// never a cast. A spell carrying Improvise (improvise) is credited only when
+// some permanent could pay one generic through it (taps; CR 702.126a: the
+// credit is optional, and with no untapped artifact to tap it reprices
+// nothing), so a spell that merely carries the keyword (Archway of
+// Innovation's grant) is planned at its raw cost like one without it.
+func planModeCredit(ignoreCredit bool, mode string, convoke, improvise, taps, delve bool) (withheld, credit bool) {
+	if ignoreCredit || pay.SpecialOfCastMode(mode) != pay.SpecialNone {
+		return false, false
+	}
+	return potentialModeCredit(mode, convoke, improvise && taps, delve)
 }
 
 // potentialModeCastPlan prices a cast the cast planner does not witness --
@@ -814,12 +819,11 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 	// A convoke/improvise/delve credit is an optional announcement that
 	// reprices the cast: a printed-cost cast keeps the cast planner's own
 	// answer, and an alternative-cost keyword mode is planned at its
-	// no-credit cost with the old unknown verdict kept on failure. A special
-	// action is never a cast, so no credit can reprice it.
-	var withheld, credit bool
-	if !e.planIgnoreCredit && pay.SpecialOfCastMode(o.Mode) == pay.SpecialNone {
-		withheld, credit = potentialModeCredit(o.Mode, e.hasCastConvoke(id), e.hasCastImprovise(id) && e.improviseHasTappers(p, id), e.hasCastDelve(id, false))
-	}
+	// no-credit cost with the old unknown verdict kept on failure. The
+	// Improvise tapper walk is a pure read (one generic over Cost{Generic:
+	// 1 << 20}), so it runs before planModeCredit's guard.
+	_, tapped := e.improviseCost(p, id, Cost{Generic: 1 << 20}, nil)
+	withheld, credit := planModeCredit(e.planIgnoreCredit, o.Mode, e.hasCastConvoke(id), e.hasCastImprovise(id), len(tapped) != 0, e.hasCastDelve(id, false))
 	if withheld {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:credit"}
 	}
