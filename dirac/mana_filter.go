@@ -1555,6 +1555,21 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // spend the budget (gorge's planner still offers the play on a search_limit
 // plan, legal_walk_autopay.go autoPayPlan).
 //
+// lifePainOnPath reports whether the search's path so far activated a sole
+// life-only pain unit (lifePainBranch). Its mana floats beyond the census,
+// which already counts the unit once, so a node past it prices the play with
+// no filter gap used: gorge's prefix search offers at the first payer
+// priority where the planner pays from the floating pool, a gap or none
+// (scriptSearch.visit).
+func (fs *filtSearch) lifePainOnPath() bool {
+	for i := 0; i < fs.n; i++ {
+		if fs.path[i].other.kind == otherLifePain {
+			return true
+		}
+	}
+	return false
+}
+
 // lifePainPlanAffords reports whether gorge's potential planner prices the
 // plain hand cast a (its PotentialMana bound affords the composed cost, the
 // plain witness arm's read): the filter search's life pass then activates a
@@ -1606,12 +1621,20 @@ func (s *State) lifePainLive(k *prep, p uint8) bool {
 // lifePainActAffords is lifePainPlanAffords's arm for a printed activated
 // ability (CR 602.2b): gorge's potential planner gives it a witness for its
 // offer-time mana cost (potential_plan.go PotentialPaymentPlans), planned
-// beside the ability's own tap, which an ability that taps its source leaves
-// to the plain cast's read alone (Dungeon Shade's "{B}" has none).
+// beside the ability's own tap (Dungeon Shade's "{B}" has none); one that taps
+// its source has no witness, and a live sole life-only pain unit alone lets
+// the search's life pass reach it.
 func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 	cost, ex, ok := s.activationMana(k, o, a.Mode())
-	if !ok || ex != NoSlot || cost.X != 0 || !s.lifePainLive(k, p) {
+	if !ok || cost.X != 0 || !s.lifePainLive(k, p) {
 		return false
+	}
+	if ex != NoSlot {
+		// an ability that taps its source is no planned witness: gorge's prefix
+		// search offers it at the first payer priority where a sole life-only
+		// pain unit's mana pays, which the walk's life pass then reaches
+		// (lifePainOnPath, Sorcerer of the Fang's activation).
+		return true
 	}
 	var pb avail
 	sp := s.grantPayDescOf(k, a)
@@ -2513,7 +2536,7 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}
-	if !(gapUsed || fs.hands > 0) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+	if !(gapUsed || fs.hands > 0 || fs.lifePainOnPath()) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
 		return false
 	}
 	// A filter gap whose own tap queues a Taps trigger is the window's
