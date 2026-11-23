@@ -294,6 +294,7 @@ func (s *State) plainCastUnsearched(k *prep, p uint8, a Action) bool {
 type offerSkip struct {
 	d, capSpent, gaps, noWide, noWideNF       *Decision
 	sacAny, sacRepeat, wide, mixWide, anyWalk bool
+	reflFilt                                  bool // a filter beside a reflected Amount$ source (reflFiltBoard)
 	anyR                                      slotMask
 }
 
@@ -308,7 +309,8 @@ func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool 
 		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
 		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
 		o.mixWide && !hasOption(o.noWide, a) && !hasOption(o.noWideNF, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
-		o.anyWalk && s.restrBoundDrops(k, p, a)
+		o.anyWalk && s.restrBoundDrops(k, p, a) ||
+		o.reflFilt && s.reflAmtBoundFails(k, p, a) // gorge's bound gate refuses it before any search
 }
 
 // pricedByPrintedSources reports a plain, untargeted cast the printed-source census pays: gorge's planner finds it
@@ -420,7 +422,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		d: d, capSpent: capSpent, gaps: &gaps,
 		sacAny: sacAny, sacRepeat: sacRepeat,
 		wide: wide, anyR: anyR, mixWide: mixWide, noWide: &noWide, noWideNF: &noWideNF,
-		anyWalk: src == &any,
+		anyWalk: src == &any, reflFilt: s.reflFiltBoard(k, p, ca, filt),
 	}
 	for i := 0; i < int(src.N); i++ {
 		a := src.Options[i]
