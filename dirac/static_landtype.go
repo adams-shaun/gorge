@@ -99,7 +99,7 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			// keeps the pain pair on painCol: tapPain prices pain only for a
 			// colour outside manaCol, and blgView's mask also subtracts a
 			// single-colour painful ability's exact Produced$ (blgExactPain).
-			if !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
+			if !DebugLandGrantPainOff && !DebugLandGrantGateOff && !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
 				g.blgIdx[i] = int16(len(g.blgPC) / 32)
 				for m := 0; m < 32; m++ {
 					v := base
