@@ -1275,7 +1275,7 @@ func (s *State) grantCap(k *prep, d *Decision, p uint8, capSpent *Decision) {
 			if s.tapXOffGrant(k, p) {
 				found, stall = s.tapXScript(k, a, p, false)
 			}
-			if !found && !s.ctrGapsOutsideGrantSearch(k, p) {
+			if !found && !s.scriptCtr(k, p).any() {
 				// Gorge's script search covers every census gap — granted units,
 				// tap-another-permanent gaps and counter-cost mana (Wall of Roots'
 				// counter beside Wrenn and Realmbreaker's grant) alike (CR 605.1a,
