@@ -19,13 +19,15 @@ const actFeeAnyColourRepro = "act_fee_anycolour_funds_hybrid"
 // gap walked in the phased run's first phase both engines offer it and the
 // recorded game replays clean; the card is no longer refused
 // (dirac/support/unrefused.tsv) and this test pins the unrefusal's proof.
+//
+// The recording also plays the offer: it picks the activation at decision 482,
+// answers the two {G/U} pip announcements (decisions 483 and 484: blue, then
+// green) and passes until the ability resolves (485 and 486). The autopay
+// surface pays with no manual window ask, and the lockstep compares both
+// engines' taps, fee activations and produced colours through it. stdReproNamed
+// fails if any recorded action is skipped, so a drifted recording cannot pass
+// as a different game.
 func TestMBCShamanOfTheGreatHuntReprosLockstep(t *testing.T) {
 	t.Parallel()
-	res := replayRawRepro(t, actFeeAnyColourRepro)
-	if res.Div != nil {
-		t.Fatalf("%s's recorded game diverges at %d: %s", actFeeAnyColourRepro, res.Div.At, res.Div)
-	}
-	if res.StallUnmodelled {
-		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", actFeeAnyColourRepro, res.Stall)
-	}
+	stdReproNamed(t, actFeeAnyColourRepro)
 }
