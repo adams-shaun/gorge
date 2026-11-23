@@ -1,0 +1,24 @@
+{
+  "card": "Sprinting Warbrute",
+  "class": "lockstep",
+  "why": "gorge's potentialPrefixScript spends its 160-clone budget walking the Rain of Filth sacrifice answers of the lands before The World Tree's granted any-colour answer, so a spell whose {R} comes only from that grant (Sprinting Warbrute {4}{R} and its dash cost {3}{R}) is priced census_incomplete and not offered, while the kernel's mirrored grant search offers it; node-for-node alignment of that search is beyond a bounded fix (as O'aka, Traveling Merchant)",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "world_tree_any_colour_red_prefix_budget"
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c001",
+    "ev-tail-08-c002",
+    "ev-tail-08-c003",
+    "ev-tail-08-c006",
+    "ev-tail-08-c007",
+    "ev-tail-08-s000",
+    "ev-tail-26-c061"
+  ]
+}
