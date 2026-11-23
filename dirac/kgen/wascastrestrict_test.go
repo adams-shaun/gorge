@@ -58,6 +58,7 @@ func TestWascastrestrictLowering(t *testing.T) {
 		{"wasCastFromYourHand", spellHand},
 		{"wasCastFromYourHandByYou", spellHandBy},
 		{"wasCast+!wasCastFromYourHand", spellNotHand},
+		{"wasCastFromGraveyard", spellGrave},
 	} {
 		printed := kwrLower(t, kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell."+c.word)
 		if len(printed.Refusals) != 0 {
@@ -77,6 +78,25 @@ func TestWascastrestrictLowering(t *testing.T) {
 	}
 	if cl := kwrRestrOf(t, ww); cl.CmpStat != cmpWasCastSpell || cl.CmpN != spellExile || cl.CmpN&15 != 3 {
 		t.Errorf("combo any: CmpStat %v CmpN %d, want cmpWasCastSpell %d", cl.CmpStat, cl.CmpN, spellExile)
+	}
+
+	// the bare graveyard-origin word lowers on a granted ability too
+	gg := kwrLower(t, kwrGrantee, strings.Replace(kwrGrant, "%s", "Spell.wasCastFromGraveyard", 1))
+	if len(gg.Refusals) != 0 {
+		t.Fatalf("granted wasCastFromGraveyard refused: %v", gg.Refusals)
+	}
+	gn := 0
+	for _, ab := range gg.Abilities {
+		if ab.Latent && ab.Kind == akMana {
+			gn++
+			if ab.Mana == nil || ab.Mana.Restrict == nil || len(ab.Mana.Restrict.Clauses) != 1 ||
+				ab.Mana.Restrict.Clauses[0].CmpStat != cmpWasCastSpell || ab.Mana.Restrict.Clauses[0].CmpN != spellGrave {
+				t.Errorf("granted graveyard restriction %+v, want cmpWasCastSpell %d", ab.Mana, spellGrave)
+			}
+		}
+	}
+	if gn != 1 {
+		t.Errorf("%d latent graveyard mana abilities, want 1", gn)
 	}
 
 	// Mm'menon's granted ability: Latent, with the restriction
@@ -100,15 +120,14 @@ func TestWascastrestrictLowering(t *testing.T) {
 }
 
 // TestWascastrestrictRefusals: the spellings that are not gorge's
-// pending-guarded families stay refused by name.
+// pending-guarded families stay refused by name. (The bare graveyard-origin
+// word lowers now: TestWascastrestrictLowering.)
 func TestWascastrestrictRefusals(t *testing.T) {
 	for name, c := range map[string]struct{ head, lines, want string }{
 		"bare wasCast":      {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell.wasCast", "bare wasCast"},
 		"not wasCast":       {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell.!wasCast", "bare wasCast"},
-		"graveyard":         {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell.wasCastFromGraveyard", "wasCastFromGraveyard on a spell"},
 		"activated":         {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Activated.wasCastFromExile", "cast-provenance word outside"},
 		"spell and bare":    {kwrArtifact, "A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ Spell.wasCastFromExile,Spell.wasCast", "bare wasCast"},
-		"granted graveyard": {kwrGrantee, strings.Replace(kwrGrant, "%s", "Spell.wasCastFromGraveyard", 1), "wasCastFromGraveyard on a spell"},
 		"granted activated": {kwrGrantee, strings.Replace(kwrGrant, "%s", "Activated.wasCastFromExile", 1), "cast-provenance word outside"},
 		"granted ability":   {kwrGrantee, strings.Replace(kwrGrant, "%s", "Activated.Artifact", 1), "granted mana ability with a spend restriction"},
 	} {
