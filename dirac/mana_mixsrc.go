@@ -40,5 +40,5 @@ func (fs *filtSearch) mixSrcGap(k *prep, t *State, sl Slot, funded int, rm uint8
 			return true
 		}
 	}
-	return filt && fs.filtColours(k, t, sl, funded)
+	return filt && fs.filtColours(k, t, sl, funded, false)
 }
