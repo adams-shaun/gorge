@@ -135,6 +135,12 @@ func (sc *Scenario) GameSeed(seed uint64) uint64 {
 	return rules.SeedForStarter(seed, sc.Players, sc.Active)
 }
 
+// commander reports whether the scenario is a Commander game.
+func (sc *Scenario) commander() bool { return sc.Game == "commander" }
+
+// basicsFiller reports whether the scenario pads its decks with basics.
+func (sc *Scenario) basicsFiller() bool { return sc.Filler == "basics" }
+
 // Validate checks sc against the corpus: the vocabularies, the focus card and
 // its keys, and the section-1 refusals -- a card the scenario's table cannot
 // hold (a name the corpus does not resolve), a battlefield card with an
@@ -146,7 +152,7 @@ func (sc *Scenario) Validate(reg *cards.Registry) error {
 	if sc.Players != 2 && sc.Players != 4 {
 		return fmt.Errorf("scenario %s: players %d: want 2 or 4", sc.Focus, sc.Players)
 	}
-	if sc.Game == "commander" {
+	if sc.commander() {
 		if sc.Players != 4 {
 			return fmt.Errorf("scenario %s: game commander: want 4 players, not %d (Commander is four players, never fewer)", sc.Focus, sc.Players)
 		}
@@ -170,7 +176,7 @@ func (sc *Scenario) Validate(reg *cards.Registry) error {
 	if !slices.Contains(scenarioOppents, sc.Opponent) {
 		return fmt.Errorf("scenario %s: opponent %q: want one of %s", sc.Focus, sc.Opponent, strings.Join(scenarioOppents, "|"))
 	}
-	if sc.Filler != "basics" && !strings.HasPrefix(sc.Filler, "deck:") {
+	if !sc.basicsFiller() && !strings.HasPrefix(sc.Filler, "deck:") {
 		return fmt.Errorf("scenario %s: filler %q: want basics or deck:<name>", sc.Focus, sc.Filler)
 	}
 	focus, err := sc.focusCard(reg)
@@ -518,7 +524,7 @@ func (c *Corpus) ScenarioMatchup(sc *Scenario, mulligans int) (*Matchup, error) 
 	if err != nil {
 		return nil, err
 	}
-	if sc.Game == "commander" {
+	if sc.commander() {
 		m.Commander = true
 		for p := 0; p < sc.Players; p++ {
 			if cmd, partner := plans[p].commanderPair(); cmd >= 0 {
@@ -620,17 +626,16 @@ func (c *Corpus) layoutSeat(sc *Scenario, p int) (*seatPlan, error) {
 			return nil, err
 		}
 	}
-	for _, list := range [...][2]any{{"graveyard", seat.Graveyard}, {"exile", seat.Exile}} {
-		for _, name := range list[1].([]string) {
+	for _, list := range [...]struct {
+		names []string
+		into  *[]int
+	}{{seat.Graveyard, &pl.grave}, {seat.Exile, &pl.exile}} {
+		for _, name := range list.names {
 			ix, err := add(name)
 			if err != nil {
 				return nil, err
 			}
-			if list[0] == "graveyard" {
-				pl.grave = append(pl.grave, ix)
-			} else {
-				pl.exile = append(pl.exile, ix)
-			}
+			*list.into = append(*list.into, ix)
 		}
 	}
 	for _, name := range append(slices.Clone(seat.Library), seat.LibraryTop...) {
@@ -730,7 +735,7 @@ func (c *Corpus) fillSeat(sc *Scenario, p int, pl *seatPlan) error {
 		return nil
 	}
 	need := scenarioDeckSize - len(pl.deck)
-	if sc.Filler == "basics" {
+	if sc.basicsFiller() {
 		focus, ok := c.Reg.Lookup(sc.Focus)
 		if !ok {
 			return fmt.Errorf("scenario %s: the scenario's table cannot hold it: no card by that name", sc.Focus)
