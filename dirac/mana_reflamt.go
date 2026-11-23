@@ -252,6 +252,36 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	s.reflAmtDo(k, p, sl, col)
 }
 
+// reflAmtLive reports whether p controls a live reflected Amount$ source.
+func (s *State) reflAmtLive(k *prep, p uint8) bool {
+	for b := s.caGaps(k, p); b.any(); b = b.rest() {
+		if k.isReflAmt(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflAmtBoundAct reports whether gorge's PotentialMana bound pays activation
+// ability a of slot sl on a board with a live reflected Amount$ source. The
+// bound prices the Druid as {C} alone (reflAmtPotential), and gorge pays an
+// activation from its planner after the bound lists it (autoPayOffer): an
+// activation the bound leaves short is never offered, and no prefix search
+// runs for it as it does for a cast. A {G} ability beside a counter-bearing
+// Druid, every Forest tapped, and a Cascade Bluffs the filter script chains
+// (Whip Silk's "{G}: Return Whip Silk to its owner's hand") is not offered
+// (CR 605.3b: the Druid's mana is real, gorge's planner defers it).
+func (s *State) reflAmtBoundAct(k *prep, sl Slot, a *kop.Ability) bool {
+	p := s.perms[sl].ctrl
+	if !s.reflAmtLive(k, p) {
+		return true
+	}
+	var pot avail
+	d := payDesc{class: pdAct, card: s.cardAt(sl), src: sl}
+	s.availPotentialFor(k, p, &pot, &d, false)
+	return pot.affords(&a.Cost.Mana, pipMaskOf(&a.Cost.Mana), 0)
+}
+
 // reflAmtBoundPlay reports whether play a is one gorge's PotentialMana bound
 // pays on a board with a live reflected Amount$ source (Incubation Druid).
 // That census gap is unrelaxable and unbounded in gorge
@@ -264,11 +294,7 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 // keeps the painful production whole, so scriptOffers searches the plays it
 // pays beside the gaps walk's.
 func (s *State) reflAmtBoundPlay(k *prep, p uint8, a Action) bool {
-	live := false
-	for b := s.caGaps(k, p); b.any() && !live; b = b.rest() {
-		live = k.isReflAmt(s.cardAt(b.first()))
-	}
-	if !live {
+	if !s.reflAmtLive(k, p) {
 		return false
 	}
 	cost, _, _, ok := s.grantPlayCost(k, p, a, true)
