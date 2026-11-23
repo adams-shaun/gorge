@@ -483,12 +483,12 @@ func (s *State) promoKw(k *prep, sl Slot, m kop.KwMask) {
 // kwGrantFx records an until-end-of-turn grant of m to sl at a new
 // timestamp; an older record's same keywords give way (only the newest
 // grant of a keyword decides whether a removal took it). "Can't be
-// blocked" is an effect, not an ability (suppressEOT keeps it): never
-// recorded, so it applies last.
+// blocked" and "can't block" are effects, not abilities (suppressEOT keeps
+// them): never recorded, so they apply last.
 //
 //go:noinline
 func (s *State) kwGrantFx(sl Slot, m kop.KwMask) {
-	m &^= kop.KwUnblockable
+	m &^= kop.KwUnblockable | kop.KwCantBlock
 	if m == 0 {
 		return
 	}
