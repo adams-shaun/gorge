@@ -8,7 +8,7 @@ import (
 
 const reflAmtDruid = "Name:Reflect Druid\nManaCost:1 G\nTypes:Creature Elf Druid\nPT:0/2\n" +
 	"A:AB$ ManaReflected | Cost$ T | ColorOrType$ Type | Valid$ Land.YouCtrl | Amount$ ReflAmt | ReflectProperty$ Produce\n" +
-	"SVar:Y:Count$Valid Card.Self+counters_GE1_P1P1\nSVar:ReflAmt:Count$Compare Y GE1.3.1\nOracle:x\n"
+	"SVar:Cnt:Count$Valid Card.Self+counters_GE1_P1P1\nSVar:ReflAmt:Count$Compare Cnt GE1.3.1\nOracle:x\n"
 
 func reflAmtLand(name, colour string) string {
 	return "Name:" + name + "\nTypes:Basic Land " + name + "\nA:AB$ Mana | Cost$ T | Produced$ " + colour + " | SpellDescription$ Add {" + colour + "}.\nOracle:x\n"
