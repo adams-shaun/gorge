@@ -230,6 +230,14 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && g.ix[mechExileEx] != arenaNone {
 		n += s.exScopeN(k, ob.slot) // an Effect's turn-long scope (repl_turnrepl.go)
 	}
+	// an emblem's dies-to-exile replacement never parks a move: the ask's
+	// source list names only cards, so a parked ask beside an emblem would
+	// silently skip it. The move happens now; on the death dieZone's
+	// two-or-more count stalls StallReplLeave (repl_exileleaveemb.go), or
+	// exiles when the emblem is the only source.
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && s.embExileLeaveN(k, ob.slot) > 0 {
+		return false
+	}
 	return n > 1 && !s.moveAnswered(o)
 }
 
