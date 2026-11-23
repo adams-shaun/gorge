@@ -1,0 +1,6 @@
+family: KwID
+name: KwSuspend
+value: next
+forge: Suspend
+state: code 0
+status: active
