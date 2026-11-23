@@ -286,7 +286,7 @@ func (s *State) payBlightPicks(k *prep) {
 			continue
 		}
 		if ob := &s.objs[s.bld().picks[i]]; ob.zone == kop.ZoneBattlefield {
-			s.blightSlot(ob.slot, n)
+			s.blightSlot(ob.slot, n, ctrPutCost)
 		}
 	}
 }

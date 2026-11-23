@@ -802,7 +802,7 @@ func (s *State) autoPayPick(k *prep) bool {
 		if d.N != 1 {
 			return false
 		}
-		s.blightSlot(s.objs[Obj(d.Options[0].Source())].slot, s.value(k, s.prog(k)[s.res.pc].A))
+		s.blightSlot(s.objs[Obj(d.Options[0].Source())].slot, s.value(k, s.prog(k)[s.res.pc].A), ctrPutCost)
 		s.g.pickLeft = 0
 		return true
 	}
@@ -1060,7 +1060,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pickZ == payPickBlight {
 			if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
-				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A))
+				s.blightSlot(ob.slot, s.value(k, s.prog(k)[r.pc].A), ctrPutCost)
 			}
 			s.g.pickLeft = 0
 			s.payDone(k, true)
