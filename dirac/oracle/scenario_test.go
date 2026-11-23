@@ -133,8 +133,52 @@ func TestScenarioValidate(t *testing.T) {
 		t.Fatal("Zhur-Taa Goblin: want an as-enters choice (riot)")
 	}
 
+	// The pay-life as-enters shape (a non-keyword R:Event$ Moved body) and
+	// the wasCast history spellings are what the findings measured missing.
+	proc, ok := reg.Lookup("Phyrexian Processor")
+	if !ok {
+		t.Fatal("Phyrexian Processor not in corpus")
+	}
+	if !rules.ETBChoiceAsks(proc) {
+		t.Fatal("Phyrexian Processor: want an as-enters choice (pay life)")
+	}
+	for _, name := range []string{"Zacama, Primal Calamity", "Wedding Ring"} {
+		card, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("%s not in corpus", name)
+		}
+		if keys := CoverageKeys(card); !strings.Contains(strings.Join(keys, " "), "f0/t0") {
+			t.Fatalf("%s keys %v: want f0/t0", name, keys)
+		}
+	}
+
 	cases := []scenarioValidateCase{
 		{name: "example", wantErr: ""},
+		{name: "pay-life as-enters", wantErr: "as-enters choice",
+			mutate: func(sc *Scenario) {
+				setSeat(sc, "p1", func(s *ScenarioSeat) { s.Battlefield = []string{"Phyrexian Processor"} })
+			}},
+		{name: "wasCastByYou key", wantErr: "wascast",
+			mutate: func(sc *Scenario) {
+				sc.Focus = "Zacama, Primal Calamity"
+				sc.Keys = []string{"f0/t0"}
+			}},
+		{name: "bare wasCast key", wantErr: "wascast",
+			mutate: func(sc *Scenario) {
+				sc.Focus = "Wedding Ring"
+				sc.Keys = []string{"f0/t0"}
+			}},
+		{name: "padded setup key", wantErr: `setup seat "p01"`,
+			mutate: func(sc *Scenario) { sc.Seats["p01"] = ScenarioSeat{Hand: []string{"Swamp"}} }},
+		{name: "zero counters", wantErr: "want at least 1",
+			mutate: func(sc *Scenario) {
+				setSeat(sc, "p0", func(s *ScenarioSeat) { s.Counters = map[string]map[string]int32{"Nantuko Shade": {"P1P1": 0}} })
+			}},
+		{name: "zero life", wantErr: "life 0",
+			mutate: func(sc *Scenario) {
+				zero := int32(0)
+				setSeat(sc, "p0", func(s *ScenarioSeat) { s.Life = &zero })
+			}},
 		{name: "unknown key", wantErr: "f0/a9",
 			mutate: func(sc *Scenario) { sc.Keys = []string{"f0/a9"} }},
 		{name: "history key", wantErr: "kicked",
@@ -306,6 +350,63 @@ func TestScenarioLayout(t *testing.T) {
 		t.Fatal("m.Config: Start not carried")
 	}
 
+	// An Aura attached to the other seat's creature: with no battlefield copy
+	// of its own it is a copy after the library mentions, joins the seat's
+	// battlefield, and the start's Attach points at the bearer's deck index.
+	aura := baseValidateScenario()
+	setSeat(aura, "p0", func(s *ScenarioSeat) {
+		s.Attached = []ScenarioAttach{{Card: "Pacifism", To: "p1:Grizzly Bears"}}
+	})
+	am, err := c.ScenarioMatchup(aura, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := name(am.Decks[0], 6); got != "Pacifism" {
+		t.Fatalf("aura p0 deck[6]: %s, want Pacifism", got)
+	}
+	as := am.Start.Seats[0]
+	if got := as.Battlefield; !equalInts(got, []int{1, 2, 3, 4, 6}) {
+		t.Fatalf("aura p0 battlefield: %v, want [1 2 3 4 6]", got)
+	}
+	if len(as.Attach) != 1 || as.Attach[0] != (rules.StartAttach{Card: 6, ToSeat: 1, To: 0}) {
+		t.Fatalf("aura p0 attach: %+v, want [{6 1 0}]", as.Attach)
+	}
+	// A bearer no seat placed is refused.
+	noBearer := baseValidateScenario()
+	setSeat(noBearer, "p0", func(s *ScenarioSeat) {
+		s.Attached = []ScenarioAttach{{Card: "Pacifism", To: "p1:Llanowar Elves"}}
+	})
+	if _, err := c.ScenarioMatchup(noBearer, 0); err == nil {
+		t.Fatal("aura with no bearer placement: accepted")
+	}
+
+	// Commanders: a name with no placement is its own copy after the
+	// mentions; a name placed once reuses that copy.
+	cmdr := baseValidateScenario()
+	cmdr.Players, cmdr.Game = 4, "commander"
+	cmdr.Seats["p2"], cmdr.Seats["p3"] = ScenarioSeat{}, ScenarioSeat{}
+	setSeat(cmdr, "p0", func(s *ScenarioSeat) {
+		s.Hand, s.Tapped, s.Counters = nil, nil, nil
+		s.Battlefield = []string{"Swamp"}
+		s.Commanders = []string{"Nantuko Shade"}
+	})
+	setSeat(cmdr, "p1", func(s *ScenarioSeat) { s.Commanders = []string{"Grizzly Bears"} })
+	cm, err := c.ScenarioMatchup(cmdr, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cm.Commander {
+		t.Fatal("commander scenario: Matchup.Commander unset")
+	}
+	// p0: Swamp (0), library Swamp (1), then the command-zone Nantuko Shade.
+	if cm.Commanders[0] != 2 || cm.Partners[0] != -1 {
+		t.Fatalf("p0 commander %d partner %d, want 2 -1", cm.Commanders[0], cm.Partners[0])
+	}
+	// p1 places Grizzly Bears (0) and names it: it reuses that copy.
+	if cm.Commanders[1] != 0 {
+		t.Fatalf("p1 commander %d, want 0 (the placed copy)", cm.Commanders[1])
+	}
+
 	// Mulligans 0 only.
 	if _, err := c.ScenarioMatchup(sc, 1); err == nil || !strings.Contains(err.Error(), "mulligans 0") {
 		t.Fatalf("mulligans 1: %v", err)
@@ -346,9 +447,6 @@ func equalInts(a, b []int) bool {
 	}
 	return true
 }
-
-// scenarioJSONMarshal re-parses sc through the file format (a test builds a
-// wide scenario in Go, then feeds it in as bytes).
 
 // setSeat mutates seat pN of sc's setup (a map value is not addressable).
 func setSeat(sc *Scenario, seat string, f func(*ScenarioSeat)) {

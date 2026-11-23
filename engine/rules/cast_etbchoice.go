@@ -32,12 +32,7 @@ func (e *Engine) etbPayLifeBound(o *state.Object, with *cards.SA) (int, bool) {
 	if with == nil || o.Face() == nil {
 		return 0, false
 	}
-	body, present := o.Face().SVars["X"]
-	if !present || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
-		return 0, false
-	}
-	c := ParseCost(with.ParamStr(cards.PKCost))
-	if len(c.LifeX) == 0 {
+	if !etbPayLifeShape(o.Face(), with) {
 		return 0, false
 	}
 	bound := int(e.G.Players[o.Controller].Life)
@@ -682,7 +677,14 @@ func ETBChoiceAsks(c *cards.Card) bool {
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
-			if r.With == nil || r.ParamStr(cards.PKKeyword) != "ETBReplacement" {
+			if r.With == nil {
+				continue
+			}
+			if r.ParamStr(cards.PKKeyword) != "ETBReplacement" {
+				// The non-keyword pay-life shape faceETBChoice offers.
+				if etbPayLifeShape(f, r.With) {
+					return true
+				}
 				continue
 			}
 			if effects.ChooseTypeAtRandom(r.With) {
@@ -694,21 +696,21 @@ func ETBChoiceAsks(c *cards.Card) bool {
 				}
 				continue
 			}
-			if etbPayLifeShape(f, r.With) {
-				return true
-			}
 		}
 	}
 	return false
 }
 
-// etbPayLifeShape is the static half of etbPayLifeBound: the "as CARDNAME
-// enters, pay any amount of life" shape -- a body with a PayLife<X> cost
-// whose face SVar X is Count$xPaid.
+// etbPayLifeShape is the static half of etbPayLifeBound, which calls it so
+// the two cannot drift: the "as CARDNAME enters, pay any amount of life"
+// shape -- a body with a PayLife<X> cost whose face SVar X is Count$xPaid.
 func etbPayLifeShape(f *cards.Face, with *cards.SA) bool {
+	if f == nil || with == nil {
+		return false
+	}
 	body, ok := f.SVars["X"]
 	if !ok || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
 		return false
 	}
-	return strings.Contains(with.ParamStr(cards.PKCost), "PayLife")
+	return len(ParseCost(with.ParamStr(cards.PKCost)).LifeX) > 0
 }

@@ -194,7 +194,7 @@ func (sc *Scenario) Validate(reg *cards.Registry) error {
 	}
 	for _, key := range scenarioSortedKeys(sc.Seats) {
 		n, err := strconv.Atoi(strings.TrimPrefix(key, "p"))
-		if err != nil || n < 0 || n >= sc.Players {
+		if err != nil || n < 0 || n >= sc.Players || key != fmt.Sprintf("p%d", n) {
 			return fmt.Errorf("scenario %s: setup seat %q: want p0..p%d", sc.Focus, key, sc.Players-1)
 		}
 	}
@@ -230,12 +230,19 @@ func (sc *Scenario) validateKeys(focus *cards.Card) error {
 }
 
 // historyMarkers are the script spellings of the history a placed permanent
-// has none of: kicker payments (the bare filter word covers Count$Kicked and
-// Condition$ Kicked), what entered the battlefield this or last turn
-// (Count$ThisTurnEntered_ / Count$LastTurnEntered_) and what the card was
-// cast from (the wasCastFrom family, cast_provenance.go). Matched
-// case-insensitively over the key's whole script text.
-var historyMarkers = []string{"kicked", "thisturnentered", "lastturnentered", "wascastfrom"}
+// has none of: the per-object cast flags the filter and Count heads read
+// (kicked covers Count$Kicked and Condition$ Kicked; bargained, surged,
+// prowled and escaped are effects/compiled_predicate.go's flag words; foretold
+// is filter.go's and Count$Foretold's; the evoked/dashed-style flags are read
+// only by rules' alt-cost code, not by a script word, so they are not here),
+// what entered the battlefield this or last turn (Count$ThisTurnEntered_ /
+// Count$LastTurnEntered_) and how the card was cast (wascast covers wasCast,
+// wasCastByYou and the wasCastFrom family, cast_provenance.go). Matched
+// case-insensitively over the key's whole script text, a safe over-match: a
+// refused key costs a scenario, an accepted one credits a key placement
+// cannot reach.
+var historyMarkers = []string{"kicked", "bargained", "surged", "prowled", "escaped", "foretold",
+	"thisturnentered", "lastturnentered", "wascast"}
 
 // keyReadsHistory returns the first history marker the key's script text
 // reads, "" when it reads none.
@@ -257,35 +264,32 @@ func keyReadsHistory(c *cards.Card, key string) string {
 // its params and sub-ability chain, for a trigger its own params (a
 // ValidCard$ Card.Self+kicked reads history from the trigger, not the body)
 // plus its effect chain and the SVar bodies its params name. "" false when
-// the key names no slot of the card.
+// the key names no slot of the card. The slots come from coverageInventory,
+// the one enumeration CoverageKeys is built on, so the two cannot disagree on
+// an index.
 func keyBlob(c *cards.Card, key string) (string, bool) {
-	for fi, f := range c.Faces {
-		if f == nil {
+	for _, slot := range coverageInventory(c) {
+		if slot.key != key {
 			continue
 		}
-		for i, a := range f.Abilities {
-			if a == nil || a.Kind != "AB" {
-				continue
-			}
-			if k := fmt.Sprintf("f%d/a%d", fi, i); k == key {
-				return saBlob(f, a), true
-			}
+		var fi, idx int
+		var kind rune
+		if _, err := fmt.Sscanf(key, "f%d/%c%d", &fi, &kind, &idx); err != nil {
+			return "", false
 		}
-		for i, t := range f.Triggers {
-			if t.Effect == nil || bookkeepingTrigger(t) {
-				continue
-			}
-			if k := fmt.Sprintf("f%d/t%d", fi, i); k == key {
-				var b strings.Builder
-				for _, pk := range scenarioSortedKeys(t.Params) {
-					b.WriteString(t.Params[pk])
-					b.WriteString(" ")
-					blobSVars(f, t.Params[pk], &b, 0)
-				}
-				b.WriteString(saBlob(f, t.Effect))
-				return b.String(), true
-			}
+		f := c.Faces[fi]
+		if kind != 't' {
+			return saBlob(f, slot.sa), true
 		}
+		t := f.Triggers[idx]
+		var b strings.Builder
+		for _, pk := range scenarioSortedKeys(t.Params) {
+			b.WriteString(t.Params[pk])
+			b.WriteString(" ")
+			blobSVars(f, t.Params[pk], &b, 0)
+		}
+		b.WriteString(saBlob(f, slot.sa))
+		return b.String(), true
 	}
 	return "", false
 }
@@ -400,7 +404,13 @@ func (sc *Scenario) validateSeat(reg *cards.Registry, p int, s ScenarioSeat) err
 			if strings.TrimSpace(kind) == "" {
 				return fmt.Errorf("scenario %s: p%d counters %s: empty counter kind", sc.Focus, p, name)
 			}
+			if n := s.Counters[name][kind]; n <= 0 {
+				return fmt.Errorf("scenario %s: p%d counters %s %s: %d: want at least 1", sc.Focus, p, name, kind, n)
+			}
 		}
+	}
+	if s.Life != nil && *s.Life <= 0 {
+		return fmt.Errorf("scenario %s: p%d life %d: want at least 1", sc.Focus, p, *s.Life)
 	}
 	if n := len(s.Commanders); n > 2 {
 		return fmt.Errorf("scenario %s: p%d: %d commanders: a seat has at most two (CR 903.3c)", sc.Focus, p, n)
@@ -411,15 +421,6 @@ func (sc *Scenario) validateSeat(reg *cards.Registry, p int, s ScenarioSeat) err
 		}
 	}
 	return nil
-}
-
-// AttachedCards is the seat's attached entries' Aura card names, in order.
-func (s ScenarioSeat) AttachedCards() []string {
-	out := make([]string, 0, len(s.Attached))
-	for _, a := range s.Attached {
-		out = append(out, a.Card)
-	}
-	return out
 }
 
 // attachRef splits an attach bearer ref: "pN:Name" or "Name". seat -1 means
