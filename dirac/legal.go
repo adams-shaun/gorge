@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -63,6 +65,7 @@ func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *k
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
+	fmt.Fprintf(os.Stderr, "DBG prio p%d hand %d pool %v turn %d\n", d.Player, s.pl[SeatIx(d.Player)].handN, s.pl[SeatIx(d.Player)].pool, s.turn)
 	p := s.prio
 	pl := &s.pl[p]
 	sorc := s.sorcerySpeed(p)
@@ -78,6 +81,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
 		c := s.objs[o].card
+		fmt.Fprintf(os.Stderr, "DBG hand %q land %v\n", k.t.Cards[c].Name, k.cards[c].land)
 		pc := &k.cards[c]
 		if pc.land {
 			if sorc && pl.landsPlayed < s.landLimit(k, p) {
@@ -202,7 +206,14 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castPaysUnderPain(k, p, c, o, cost, cav) {
+		paidOK := s.castPaysUnderPain(k, p, c, o, cost, cav)
+		gt := uint16(0)
+		if m := s.ctrlM[SeatIx(p)]; m.any() {
+			gt = s.perms[m.first()].flags & pfTapped
+		}
+		fmt.Fprintf(os.Stderr, "DBG cast %q cost %+v poolpays=%v planned=%v poolp=%v cav=%+v gateTapped=%d\n",
+			k.t.Cards[c].Name, *cost, paidOK, s.gorgeOffers(p, o, 0), s.FeatPlannedCast(p, o, 0), s.FeatPoolPays(p, o, 0), *cav, gt)
+		if !paidOK {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -490,7 +501,9 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedPoolOK(k, p, sl, a) {
 				continue // a max-speed grant is offered from the floating pool alone (kw_maxspeed.go)
 			}
-			if s.canActivate(k, sl, ai, a, sorc, av) {
+			okAct := s.canActivate(k, sl, ai, a, sorc, av)
+			if okAct {
+				fmt.Fprintf(os.Stderr, "DBG act %q cost g%d pips %v flags %d zone %d\n", cd.Name, a.Cost.Mana.Generic, a.Cost.Mana.Pips, a.Cost.Flags, s.objs[s.perms[sl].obj].zone)
 				d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai)))
 				if st := DebugSnowStats; st != nil && a.Cost.Mana.Snow != 0 {
 					st.Offered++

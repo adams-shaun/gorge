@@ -141,6 +141,18 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 			}
 		}
 	}
+	// A filter whose fee the floating pool cannot pay is no census gap:
+	// gorge's census (payment_plan.go paymentPlanCensusOf) admits a mana
+	// ability only through manaAbilityPayablePool, which prices the fee
+	// against the floating pool, so an unpayable fee leaves the ability out
+	// and the planner's insufficient is then a proof — no prefix search, no
+	// offer. The pool's own read is filtPaid (mana_filterpip.go), the same
+	// arms the payment window's windowFiltUseful lists the filter by.
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); !s.filtPaid(k, p, sl) {
+			m = m.without(sl) // the fee is unpayable: gorge's census lists no ability of it
+		}
+	}
 	// A filter whose amount resolves to zero makes nothing (gorge's
 	// manaAbilityYieldsNothing: Baldur's Gate's "X mana of any one color, X =
 	// other Gates" beside no other Gate). The census lists no ability of it,
