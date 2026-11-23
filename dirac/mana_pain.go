@@ -325,6 +325,14 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 func (s *State) tapPain(k *prep, p uint8, sl Slot, col int) {
 	if pc := s.manaPCGen(k, sl); k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 		s.painDamage(k, sl, p, int(pc.painN))
+		if k.gen != nil && k.gen.uses.has(useStatRdr) {
+			// A prefix step is a decision gorge answers one activation at a
+			// time, and its boundary runs the state-based check (CR 117.3c,
+			// 704.3): damage a static redirect (Pariah's Shield) landed on a
+			// creature kills it before the next step, so a filter that took
+			// the redirect's damage is gone when the search reaches for it.
+			s.sba(k)
+		}
 	}
 }
 
