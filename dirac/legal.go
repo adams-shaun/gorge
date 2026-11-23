@@ -2683,7 +2683,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if skip {
 					continue
 				}
-				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
+				if !open && !potentialCovers(&others, &ab.Cost.Mana) && !s.feeSpareCovers(k, p, sl, ab, d, &others) {
 					continue
 				}
 				if !s.censusTapXClaim(k, p, sl, j, ab, &cen) {
