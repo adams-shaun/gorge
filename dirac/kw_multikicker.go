@@ -279,6 +279,23 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 	if !pa.affords(kc, pipMaskOf(kc), 0) {
 		return false
 	}
+	if s.sacRepeatAnyLive(k, p) {
+		// A dedicated-token sacrifice-any source's census is unrelaxable in
+		// gorge (paymentPlanRelaxedAlternatives: a repeatable cost that
+		// removes no once-only part), so its planner prices the payment from
+		// its census only when the printed sources and one activation pay it,
+		// and otherwise through its budgeted prefix search
+		// (potentialCensusFallback, potential_script.go) — the per-candidate
+		// repeats the census records (legal.go sacAnyRepeatUnits) are no
+		// proof of it, and the search they stand in for can exhaust its node
+		// budget (Rude Awakening's entwined {6}{G}{G} beside four Prism
+		// tokens: the search branches five colours per activation and dies
+		// inside potentialScriptNodes, so gorge drops the offer). The kernel
+		// asks the same search the walk's plays take (mana_tapanother.go
+		// tapXScript) once the once-admission census (the repeats held out)
+		// cannot price the total.
+		return s.kickSacRepeatPays(k, p, c, o, d, kc)
+	}
 	if !potUnitsAvail(&px, &pu, int(s.pl[SeatIx(p)].life)) {
 		if open {
 			return false // no bounded census beside an unbounded fold
@@ -286,6 +303,50 @@ func (s *State) kickedPotentialPays(k *prep, p uint8, c CardID, o Obj, kc *kop.M
 		return true // the record is incomplete: keep the over-bound answer
 	}
 	return px.affords(kc, pipMaskOf(kc), 0) && potUnitsPainAffords(&pu, int(s.pl[SeatIx(p)].life), kc)
+}
+
+// sacRepeatAnyLive is sacRepeatLive (mana_tapanother.go) narrowed to an
+// any-colour production: a live sacrifice-any mana source whose cost
+// sacrifices dedicated tokens and whose production is any colour (Diamond
+// Kaleidoscope's "Sacrifice a Prism token: Add one mana of any color"). Its
+// census gorge cannot relax, so its repeats beyond the potential bound's one
+// admission are the budgeted prefix search's proof, never a census one.
+func (s *State) sacRepeatAnyLive(k *prep, p uint8) bool {
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.SacAnyManaAb(ab) && ab.ManaColors == kop.ColAny &&
+			k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// kickSacRepeatPays is the kicked cast's potential-pool answer beside a live
+// dedicated-token sacrifice-any source (sacRepeatAnyLive). The once-admission
+// census (sacAnyRepeatUnits held out) prices the total when the printed
+// sources and one activation pay it: gorge's planner prices the payment from
+// its census, whose prefix search's first leaf funds that one activation.
+// Otherwise gorge's budgeted prefix search decides, and the kernel asks the
+// same search the walk's plays take (tapXScriptOffered): a final drop whose
+// line latched a rule gap is declared, the walk arms' shape.
+func (s *State) kickSacRepeatPays(k *prep, p uint8, c CardID, o Obj, d *payDesc, kc *kop.ManaCost) bool {
+	var pf, pc avail
+	var pcu [maxPotUnits]potUnit
+	nd := *d
+	nd.noSacRepeat = true
+	s.availPotentialFor(k, p, &pf, &nd, false, &pcu)
+	life := int(s.pl[SeatIx(p)].life)
+	if potUnitsAvail(&pc, &pcu, life) && pc.affords(kc, pipMaskOf(kc), 0) &&
+		potUnitsPainAffords(&pcu, life, kc) {
+		return true
+	}
+	offered, stall := s.tapXScriptOffered(k, MakeAction(AkCast, TCode(o), 0, 1), p)
+	if !offered {
+		s.capStall(stall)
+		return false
+	}
+	return true
 }
 
 // kickedPotentialPainOK: the potential census's units afford kc within the
