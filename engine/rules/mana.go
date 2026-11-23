@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -295,10 +294,6 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 	desc := offerPayment(id, ability, scope)
 	if !ability {
 		desc.NoMana = manaSpendCastBan(e.G, id)
-	}
-	if dbgMoltenProbe && (id == 51 || id == 50) && ability {
-		rm := len(e.G.Players[p].RestrictedMana)
-		fmt.Fprintf(os.Stderr, "zzfeas p=%d id=%d hyp=%v onlyTag=%q restricted=%d\n", p, id, hyp != nil, desc.OnlyTag, rm)
 	}
 	if desc.NoMana {
 		raw := pay.RawBaseCost(asPayer(e), p, id)

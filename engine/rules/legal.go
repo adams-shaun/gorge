@@ -1,15 +1,10 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/state"
 )
-
-var dbgMoltenProbe = os.Getenv("ZZ_MOLTEN_PROBE") != ""
 
 // modalLandBack identifies the only Modal DFC face that may be selected by
 // the hand-zone modal-land action. Keeping the shape check here makes offer
@@ -133,17 +128,6 @@ func (e *Engine) legalActionsWalkWithWindow(p state.PlayerID, hyp *state.Mana, c
 	// chain heads (legalActionWalks is not copied by Clone and never reaches
 	// a view, an option list or a log).
 	e.legalActionWalks++
-	if dbgMoltenProbe && forAsk && p == 1 {
-		pool := e.G.Players[p].Pool
-		n := len(e.L.Events)
-		tail := ""
-		for i := n - 6; i < n; i++ {
-			if i >= 0 {
-				tail += fmt.Sprintf(" |%d:%s", i, e.L.Events[i].Kind)
-			}
-		}
-		fmt.Fprintf(os.Stderr, "zzask p=%d pool=%v nev=%d tail=%s\n", p, pool, n, tail)
-	}
 	// The walk is a pure read, so every Derived it makes is memoized for the
 	// walk's duration (engine/rules/derivedmemo.go).
 	e.beginDerivedMemo()

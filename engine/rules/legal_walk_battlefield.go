@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -437,11 +436,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// offered, and the ability is withheld only when NEITHER cost is
 						// payable.
 						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
-						oc := w.offerCastable(p, id, cost, abilityScope(ab), true)
-						printedOK := oc || w.autoPayOffer(p, id, i, cost, ab)
-						if dbgMoltenProbe && (id == 51 || id == 50) {
-							fmt.Fprintf(os.Stderr, "zzgate p=%d id=%d i=%d offerCastable=%v printedOK=%v cost=%+v\n", p, id, i, oc, printedOK, cost)
-						}
+						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {
 							continue
@@ -485,9 +480,6 @@ func (w *legalWalk) battlefieldWalk() {
 						// offer gates exist to withhold.
 						if o.AttachedTo == 0 && ab.API == "Attach" && effects.AttachOf(ab).Unattach {
 							continue
-						}
-						if printedOK && dbgMoltenProbe {
-							fmt.Fprintf(os.Stderr, "zzoffer id=%d ab=%d pool=%v\n", id, i, w.e.G.Players[p].Pool)
 						}
 						if printedOK {
 							*out = append(*out, decision.Option{Index: len(*out), Kind: "ability",

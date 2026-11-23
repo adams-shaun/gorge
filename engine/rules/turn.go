@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -1132,13 +1131,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 	}
 	if window != nil {
 		d.WindowReasons = window.finish(d.Options)
-	}
-	if dbgMoltenProbe && p == 1 && len(e.L.Events) >= 2078 {
-		for _, o := range d.Options {
-			if o.Obj != 0 {
-				fmt.Fprintf(os.Stderr, "zzdec p=%d nev=%d opt kind=%s obj=%d ab=%d\n", p, len(e.L.Events), o.Kind, o.Obj, o.Ability)
-			}
-		}
 	}
 	e.ask(d)
 	e.notePriorityWalk(p, d, ep, ver, objs)
