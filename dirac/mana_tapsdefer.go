@@ -264,6 +264,32 @@ func (s *State) tapsCensusPain(k *prep, p uint8, sl Slot) uint8 {
 	return uint8(min(max(pain, 0), 255))
 }
 
+// tapsDeferLethalMask is the slots of m for which tapsDeferLethal holds.
+func (s *State) tapsDeferLethalMask(k *prep, p uint8, m slotMask) slotMask {
+	var out slotMask
+	for ; m.any(); m = m.rest() {
+		if sl := m.first(); s.tapsDeferLethal(k, p, sl) {
+			out = out.with(sl)
+		}
+	}
+	return out
+}
+
+// tapsDeferLethal reports whether a Taps-deferred source's tap deals its payer
+// the damage its watcher discloses (tapsCensusPain: Manabarbs' literal 1) and
+// that damage alone reaches the payer's life: gorge's planner cuts every plan
+// whose summed pain reaches it (payment_plan.go's lethal guard), so the
+// source is no unit of an offer's census. A source the prefix search models
+// as a gap never reaches here (availFor's deferGap skip); the one kept as an
+// ordinary unit (a two-ability land such as Unknown Shores) needs the guard.
+func (s *State) tapsDeferLethal(k *prep, p uint8, sl Slot) bool {
+	if !s.tapsDeferred(k, p, sl) {
+		return false
+	}
+	pain := int(s.tapsCensusPain(k, p, sl))
+	return pain > 0 && pain >= s.painPlanLife(p)
+}
+
 // availLeavesOut reports whether availFor left the planner-deferred source at
 // sl out of the availability its walk is building: a deferred source is no
 // census unit (gorge's census never lists it) and only the any-mana and gaps
