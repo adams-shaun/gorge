@@ -570,6 +570,7 @@ func prepComboAnyMix(t *kop.Table, g *genPrep, p *prep) {
 	for i := range t.Cards {
 		g.caMix = g.caMix || caMixGap(t, g, p, i)
 	}
+	p.caMixForage = g.caMix && forageCAOnly(t, g)
 }
 
 // caMixGap reports whether card i carries a census-gap kind caBoard does not

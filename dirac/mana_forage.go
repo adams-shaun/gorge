@@ -286,3 +286,36 @@ func comboAnyGapAb(p *prep, a *kop.Ability, first bool) bool {
 	p.anyForageCA = p.anyForageCA || forage
 	return first || forage
 }
+
+// forageCAOnly reports whether every Combo Any census gap of t is a forage one: no
+// plain Combo Any source and no reflected Amount$ one (the two other sources of
+// genPrep.anyComboAny). StallComboAnyMix then follows the forage sources alone.
+func forageCAOnly(t *kop.Table, g *genPrep) bool {
+	for i := range t.Cards {
+		cd := &t.Cards[i]
+		if c := CardID(i); g.isComboAnyCard(c, cd) && !kop.ForageManaCost(&cd.Abilities[g.gapOther(c)].Cost) {
+			return false
+		}
+		first := firstManaAb(cd)
+		for j := range cd.Abilities {
+			if a := &cd.Abilities[j]; a.Kind == kop.AbMana && j == first && reflAmtManaAb(a) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// initStallDecks is the stall the game just laid out stalls at: prep.initStall, but
+// a table whose Combo Any mix is the forage sources' alone (caMixForage: Thornvault
+// Forager beside the blb pool's filters, grants and tap-another sources) stalls only
+// when a deck or sideboard holds a forage source. A whole-pool table played with
+// decks that hold none is a game the mix never reaches; a built matchup holds its
+// decks' cards alone, so its pair refusal (stallclass.go pairRefusalN) is unchanged.
+func (s *State) initStallDecks(k *prep) uint8 {
+	skip := k.caMixForage
+	for o := Obj(0); skip && int(o) < int(s.nobj); o++ {
+		skip = !k.forageCA(s.objs[o].card)
+	}
+	return k.initStallSkip(s.nSeats(), skip)
+}

@@ -312,6 +312,9 @@ type prep struct {
 	ctrMana bool
 	// anyForageCA: a Combo Any source pays a forage ({T}, Forage; mana_forage.go)
 	anyForageCA bool
+	// caMixForage: the table's Combo Any census gaps are all forage ones and the
+	// mix stall (genPrep.caMix) stands (mana_forage.go forageMixIdle)
+	caMixForage bool
 	// tapMana: some card's mana ability taps another permanent (kop.TapXManaAb)
 	// or sacrifices one (kop.SacXEachManaAb; mana_tapanother.go): a
 	// prefix-search gap kind
