@@ -419,6 +419,9 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		if head == "Targeted" {
 			lc.unionProbe("value:Targeted$" + rest)
 		}
+		if head == "TriggeredCard" && lc.emblemBlocks {
+			return lValue{}, refuse("Effect Blocks trigger reads the attacker")
+		}
 		ref := lRef{Kind: rTarget, N: lc.lastTarget()}
 		switch head {
 		case "ParentTargeted":

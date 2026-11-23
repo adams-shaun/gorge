@@ -22,6 +22,9 @@ func noDefinedTargetSlot(v string) error {
 
 // defined lowers a Defined$ value to a ref.
 func (lc *lowerCtx) defined(v string) (lRef, error) {
+	if lc.emblemBlocks && emblemBlocksAttackerRead(v) {
+		return lRef{}, refuse("Effect Blocks trigger reads the attacker")
+	}
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
@@ -144,25 +147,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
 	case "TriggeredBlockerController":
-		// gorge definedSpecTriggeredCombatantController: the controller of
-		// the captured blocker, read live. A Blocks trigger over the
-		// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
-		// equipped creature) names the host's controller, the one
-		// RefAttachedCtrl reads (Contaminated Bond)
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
-			tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
-			return lRef{Kind: rAttachedCtrl}, nil
-		}
-		if tr := lc.ab.Trigger; tr != nil && tr.ByCreature && !tr.AnchorBlocker {
-			// the attacker's "becomes blocked by a creature" trigger (Gloom
-			// Sower): gorge captures no TriggerBlocker role there, so
-			// TriggeredCardController reads the trigger card, the blocker
-			// (TriggerCard = Remembered[0]), live. The kernel's trigger object
-			// is that blocker; RefTriggerTgtCtrl reads its controller live (a
-			// blocker gone from the battlefield reads its owner).
-			return lRef{Kind: rTriggeredTgtCtrl}, nil
-		}
-		return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
+		return lc.triggeredBlockerController(v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// gorge TriggerBlocker: lower_trigrefs.go pairs it with the modes
 		// whose kernel record carries the blocker
@@ -4705,4 +4690,39 @@ func (lc *lowerCtx) putCounterExisting(ps *params, obj lRef, n lValue) error {
 	}
 	lc.emit(lInstr{Op: "PutCounterExisting", Obj: obj, B: n})
 	return nil
+}
+
+// emblemBlocksAttackerRead reports whether Defined$ v names the ATTACKER of a
+// Blocks pair (or the trigger object/player a printed Blocks line binds to it):
+// an Effect's Blocks emblem binds the blocker instead
+// (dirac/trig_emblemblocks.go), so these refuse.
+func emblemBlocksAttackerRead(v string) bool {
+	return strings.HasPrefix(v, "TriggeredCard") || strings.HasPrefix(v, "TriggeredAttacker") || strings.HasPrefix(v, "TriggeredObject")
+}
+
+// triggeredBlockerController is Defined$ TriggeredBlockerController.
+func (lc *lowerCtx) triggeredBlockerController(v string) (lRef, error) {
+	if lc.emblemBlocks {
+		// the Effect's Blocks emblem: the trigger object is the blocker
+		return lRef{Kind: rTriggeredTgtCtrl}, nil
+	}
+	// gorge definedSpecTriggeredCombatantController: the controller of
+	// the captured blocker, read live. A Blocks trigger over the
+	// source's own host (ValidCard$ Card.AttachedBy: the enchanted or
+	// equipped creature) names the host's controller, the one
+	// RefAttachedCtrl reads (Contaminated Bond)
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "Blocks" && tr.F != nil && len(tr.F.Clauses) == 1 &&
+		tr.F.Players == 0 && tr.F.Clauses[0] == (lClause{Flags: fEquippedBy}) {
+		return lRef{Kind: rAttachedCtrl}, nil
+	}
+	if tr := lc.ab.Trigger; tr != nil && tr.ByCreature && !tr.AnchorBlocker {
+		// the attacker's "becomes blocked by a creature" trigger (Gloom
+		// Sower): gorge captures no TriggerBlocker role there, so
+		// TriggeredCardController reads the trigger card, the blocker
+		// (TriggerCard = Remembered[0]), live. The kernel's trigger object
+		// is that blocker; RefTriggerTgtCtrl reads its controller live (a
+		// blocker gone from the battlefield reads its owner).
+		return lRef{Kind: rTriggeredTgtCtrl}, nil
+	}
+	return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
 }

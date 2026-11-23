@@ -2945,6 +2945,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
 		return err
 	}
+	if err := emblemBlocksEarlyRefuse(ps, t, eot); err != nil {
+		return err
+	}
 	if t.Effect == nil {
 		t.Effect = cards.ResolveSVar(lc.face.SVars, t.Params["Execute"])
 	}
@@ -2975,14 +2978,18 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	if err := emblemBlocksRefuse(t, eot, hasCap || mem.kind != memNone); err != nil {
+		return err
+	}
 	saved := len(lc.out.Abilities)
 	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
 	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemBlocks = eot && t.Mode == "Blocks"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemDmg = false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg = false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
@@ -3043,7 +3050,9 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 		// at cleanup (dropEOTEmblems), gorge's turn-change drop of the
 		// Effect's delayed trigger (False Cure)
 		return eot
-	case "DamageDoneOnce":
+	case "DamageDoneOnce", "Blocks":
+		// the end-of-turn Blocks line is the per-pair emblem hook
+		// (fireEmblemsBlocks); an until-your-next-turn one has none
 		return eot
 	case "DamageDealtOnce":
 		return paired
@@ -5359,6 +5368,30 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 		return obj, flags, err
 	}
 	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
+}
+
+// emblemBlocksEarlyRefuse refuses an end-of-turn Blocks emblem that names a
+// capture (RememberObjects$) before the capture machinery sees it.
+func emblemBlocksEarlyRefuse(ps *params, t cards.Trigger, eot bool) error {
+	if _, rem := ps.get("RememberObjects"); rem && eot && t.Mode == "Blocks" {
+		return refuse("Effect Blocks trigger with a capture")
+	}
+	return nil
+}
+
+// emblemBlocksRefuse refuses what the kernel Blocks emblem hook cannot carry:
+// a capture and an attacker filter (dirac/trig_emblemblocks.go).
+func emblemBlocksRefuse(t cards.Trigger, eot, captured bool) error {
+	if !eot || t.Mode != "Blocks" {
+		return nil
+	}
+	if captured {
+		return refuse("Effect Blocks trigger with a capture")
+	}
+	if t.ParamStr(cards.PKValidBlocked) != "" {
+		return refuse("Effect Blocks trigger ValidBlocked$")
+	}
+	return nil
 }
 
 // fromAnyOrigin marks an Origin$ All put of a remembered card onto the
