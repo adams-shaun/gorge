@@ -580,3 +580,39 @@ func TestBlightCountersBeforeSacrifice(t *testing.T) {
 		t.Fatalf("the blighted source died with %d -1/-1 counters, want 1 (counters precede the sacrifice)", n)
 	}
 }
+
+// TestBlightLedgerActorIsTheBlighter mirrors engine/rules
+// TestBlightCountersAreAddedByTheBlightingPlayer: High Perfect Morcant's
+// each-opponent blight (CR 701.60) is a counter the OPPONENT puts, so the
+// Count$CountersAddedThisTurn ledger records seat 1, never Morcant's
+// controller (farm ECL-s119 xe:RAND:3:13:w12 step 25, Lasting Tarfire).
+func TestBlightLedgerActorIsTheBlighter(t *testing.T) {
+	sc, id := keclScen(t, []cardset.Entry{
+		{Name: "High Perfect Morcant", Count: 1},
+		{Name: "Grizzly Bears", Count: 2},
+		{Name: "Plains", Count: 20},
+	})
+	sc.k.anyCtrAdded = true
+	hp := sc.perm(id["High Perfect Morcant"], 0)
+	opp := sc.perm(id["Grizzly Bears"], 1)
+	sc.perm(id["Grizzly Bears"], 1)
+	sc.s.fireObj(sc.k, kop.TrigETB, sc.slot(hp), hp, 0, 0)
+	var d Decision
+	for i := 0; i < 12; i++ {
+		d = sc.s.Step()
+		if d.Kind == DkChoose {
+			break
+		}
+		if d.Kind == DkPriority {
+			sc.s.Apply(MakeAction(AkPass, 0, 0, 0))
+		}
+	}
+	if d.Kind != DkChoose || d.Sub != ChGenBlightPick {
+		t.Fatalf("Morcant ask kind %d sub %d, want ChGenBlightPick", d.Kind, d.Sub)
+	}
+	sc.s.Apply(MakeAction(AkChoose, TCode(opp), 0, 0))
+	keclResolveAll(t, sc)
+	if got := sc.s.g.ctrAdd.pl; got != 1<<1 {
+		t.Fatalf("ledger actor mask %b, want only seat 1 (the blighter)", got)
+	}
+}

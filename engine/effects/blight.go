@@ -83,8 +83,7 @@ func effBlight(h Host, c *Ctx, sa *cards.SA) {
 		case len(eligible) == 1:
 			// Strict-supersets: one eligible creature is no choice. Place
 			// the counters silently — no decision, no stand-in Note.
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: eligible[0],
-				Counter: "M1M1", Amount: n})
+			emitBlightCounter(h, p, eligible[0], n)
 		default:
 			d := &decision.Decision{Player: p, Kind: decision.KChoose,
 				Min: 1, Max: 1, Source: c.Source,
@@ -112,8 +111,7 @@ func effBlight(h Host, c *Ctx, sa *cards.SA) {
 			// a bot-answered ask emits the same events this silent path does.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 				Text: "blights the first matching creature (no engine host to ask)", Secret: true})
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: eligible[0],
-				Counter: "M1M1", Amount: n})
+			emitBlightCounter(h, p, eligible[0], n)
 		}
 	}
 }
@@ -128,9 +126,19 @@ func blightApply(h Host, p state.PlayerID, n int32, picks []state.ObjID) {
 		if o == nil || o.Zone != state.ZBattlefield || o.Controller != p {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
-			Counter: "M1M1", Amount: n})
+		emitBlightCounter(h, p, id, n)
 	}
+}
+
+// emitBlightCounter puts n -1/-1 counters on id with p published as the
+// counter adder: CR 701.60 has the player who blights put the counters, so
+// "if you put a counter on a creature this turn" (Count$CountersAddedThisTurn)
+// and ValidSource$ AddCounter replacements attribute them to p, never to the
+// resolving ability's controller (the engine's fallback).
+func emitBlightCounter(h Host, p state.PlayerID, id state.ObjID, n int32) {
+	previous := h.SetCounterAdder(p)
+	h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "M1M1", Amount: n})
+	h.SetCounterAdder(previous)
 }
 
 // blightKeys are the Blight parameters effBlight models (see effBlight).
