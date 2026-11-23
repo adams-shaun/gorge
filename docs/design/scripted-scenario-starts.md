@@ -1,13 +1,13 @@
 # Scripted scenario starts for the dirac lockstep
 
 Status: design, not implemented. Base `origin/main` `b527652de9` (2026-11-23); every `path:line` is at
-that commit unless marked four-yay. Anything not read from code is marked INFERRED.
+that commit unless marked fleet-repo. Anything not read from code is marked INFERRED.
 
 ## Why
 
 evloop credits 5.3 cards/h against a 100/h target (`fleet/evloop/status.json` at 2026-11-23T10:47:
 `credited_per_h` 5.3, `credited_24h` 127, `games_24h` 1,264,594, `core_min_per_card` 26.5, `need` 252,
-`blocked` 176; the brief's 244/172 were an earlier read). Its 11-19 census of 218 stuck cards (four-yay
+`blocked` 176; the brief's 244/172 were an earlier read). Its 11-19 census of 218 stuck cards (fleet-repo
 `ops/fleet/evloop/README.md:143`, commit `734f5a0a6d`) puts 110 in "cast, but an ability key never used". A random
 deal cannot fix that: 64 need an enabler, 14 a board or combat state, 12 a morph turned face up, 5 a threshold
 and 10 commander play. The scripted decks (`scripted/*.txt`, README:126) only shape the deck list. Games still
@@ -167,7 +167,7 @@ Proposed rule, for runs named `sc-<pool>-NNN`:
 - Pod scenarios (commander) write pod rows, which are report-only today (README:31-33, OD-4 stage 1). They
   credit nothing until `EvidencePodMinPlays` lands.
 
-## 6. evloop integration (four-yay `ops/fleet/evloop`)
+## 6. evloop integration (fleet-repo `ops/fleet/evloop`)
 
 A stuck card's class comes from its pulled coverage, reach and bad-game rows, the same way the 11-19 census
 did. Each class has its own generator in `scenarios.py` (new):
@@ -209,8 +209,8 @@ Every gorge ticket rebases and runs `scripts/pr-precheck.sh origin/main` before 
 | T6 | repro and replay carry the start (`Repro.Start` inline; format `koracle-repro-3` only when present) | `repro.go`, `replay.go`, `repro_wire.go` | `make test-one PKG=./dirac/oracle RUN='^TestScriptedStartRepro'` PASS (write, read, replay, same verdict) | medium | T4 |
 | T7 | `kfuzz -scenario <dir>` (runs `sc-<name>`, `.coverage`, `.evidence`, `.verdict`) | `dirac/oracle/cmd/kfuzz/{main.go,scenario.go}` | `make test-one PKG=./dirac/oracle/cmd/kfuzz RUN='^TestScenarioRun'` PASS | medium | T4, T5, T6 |
 | T8 | evidence rule §5: `EvidenceScriptedMinGames`, writer support for `sc-` runs, sidecar columns. **Operator sign-off before merge** | `dirac/oracle/evidence.go`, `scripts/dirac-first-refusals.py`, `scripts/dirac_evidence_scripted_test.py`, `dirac/kgen/support_test.go` | `python3 -m unittest scripts/dirac_evidence_scripted_test.py` OK. `make test-one PKG=./dirac/kgen RUN='^TestSupport'` PASS | medium | T7 |
-| T9 | four-yay evloop: class generators, `sc-` runs, `status.json` `scripted_credited_24h` | four-yay `ops/fleet/evloop/{scenarios.py,evloop_box.py,evloop.py,test_scenarios.py}` | `python3 -m unittest ops/fleet/evloop/test_scenarios.py` OK. One dry cycle on the box shows `sc-` runs in `scripted.tsv` | medium | T7 (credit: T8) |
-| T10 | hand-written scenarios: 14 board/combat, 4 threshold | four-yay `ops/fleet/evloop/scenarios/*.json` | each loads (`kfuzz -scenario <file> -pairs 1`), 0 `setup` divergences | low | T7 |
+| T9 | fleet-repo evloop: class generators, `sc-` runs, `status.json` `scripted_credited_24h` | fleet-repo `ops/fleet/evloop/{scenarios.py,evloop_box.py,evloop.py,test_scenarios.py}` | `python3 -m unittest ops/fleet/evloop/test_scenarios.py` OK. One dry cycle on the box shows `sc-` runs in `scripted.tsv` | medium | T7 (credit: T8) |
+| T10 | hand-written scenarios: 14 board/combat, 4 threshold | fleet-repo `ops/fleet/evloop/scenarios/*.json` | each loads (`kfuzz -scenario <file> -pairs 1`), 0 `setup` divergences | low | T7 |
 | T11 | v2 placement: `face_down`, `tokens`, Equipment attach. Only if T9's `scripted.tsv` lists cards that need them | `start.go` (both), `scenario.go` | the T4 test grows fixtures for each, PASS | medium | T4 |
 | T12 | commander pod scenarios, 4 seats | `scenario.go`, the T9 generator | the T4 test covers a 4-seat commander fixture, PASS. Credits wait on OD-4 stage 2 | medium | T4, OD-4 |
 
