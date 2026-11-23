@@ -5,7 +5,10 @@ import (
 	"unsafe"
 )
 
-// maxStateBytes is the State bar: 44 KiB since 2026-11-19, when the operator
+// maxStateBytes is the State bar: 45 KiB since 2026-11-22, when the operator
+// signed off maxXTgt 31 -> 63 and maxSacOrd 16 -> 64 for four-seat Commander
+// pods: State 38072 -> 38776 B, the largest pool's 45056 -> 45768 B.
+// Before it the bar was 44 KiB since 2026-11-19, when the operator
 // ordered dirac's capacity stalls in four-seat Commander pods removed:
 // MaxPerm 112 -> 192 (a three-word slotMask), the LKI pool 31 -> 63 records
 // (its subtype sets moved to a cold region), maxXTgt 15 -> 31, maxCtrOver
@@ -35,7 +38,7 @@ import (
 // 9168 B, no trend with size. It was 9 KB since CardID became 16 bits
 // (8.6 KB then), and 8 KB before that. Moving this bar is a deliberate decision, never
 // the side effect of a change.
-const maxStateBytes = 44 * 1024
+const maxStateBytes = 45 * 1024
 
 // stateBar is the State bar the size tests read.
 const stateBar = maxStateBytes
