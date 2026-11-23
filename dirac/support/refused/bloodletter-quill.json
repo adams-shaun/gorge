@@ -1,7 +1,7 @@
 {
   "card": "Bloodletter Quill",
   "class": "options-options",
-  "why": "its {U}{B}: Remove a blood counter ability beside Price of Glory's Taps-deferred lands (TapsForMana destroy, not the vetted Mode$ Taps destroy-self row) needs gorge's prefix search, whose depth-first walk of ten gaps exhausts its 160-clone budget before the Island plus Jwar Isle Refuge line, so gorge leaves the play census_incomplete and unoffered while the kernel's chain model finds it at node 90 and offers it; tail-70 pair 29 (options at decision 764)",
+  "why": "its {U}{B}: Remove a blood counter ability beside Price of Glory's Taps-deferred lands (TapsForMana destroy, not the vetted Taps destroy-self row) needs gorge's prefix search, whose depth-first walk of ten gaps exhausts its 160-clone budget before the Island plus Jwar Isle Refuge line, so gorge leaves the play census_incomplete and unoffered while the kernel's chain model finds it at node 90 and offers it; tail-70 pair 29 (options at decision 764)",
   "repro": {
     "pool": "custom",
     "surface": "autopay",
