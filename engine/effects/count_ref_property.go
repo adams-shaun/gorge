@@ -197,7 +197,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Power
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Power
 				} else {
 					n += refPower(h, o, lki)
@@ -211,7 +211,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Power + sacLKI.Toughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Power + c.Snap.Toughness
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Power + pt.Toughness
 				} else {
 					n += refPower(h, o, lki) + refToughness(h, o, lki)
@@ -248,7 +248,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 					n += sacLKI.Toughness
 				} else if lki && c.Snap.PTValid {
 					n += c.Snap.Toughness
-				} else if pt, ok := targetPTLKI(c, o); ok && !lki {
+				} else if pt, ok := refDepartedPT(h, c, ref, o); ok && !lki {
 					n += pt.Toughness
 				} else {
 					n += refToughness(h, o, lki)
