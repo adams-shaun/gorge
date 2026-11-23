@@ -547,6 +547,17 @@ type Option struct {
 	// client never sees it, and every option the ordinary (manual) policy is
 	// offered leaves it false, so the manual arithmetic is byte-identical.
 	PlanBacked bool `json:"-"`
+	// CensusOffer is server-side only (json:"-") and marks an "ability"
+	// option the census-gap autopay arm (engine/rules' autoPayCensus) offered
+	// although the plain planner cannot price it: the offer's existence is
+	// the census's prefix script, which the seat plays before the ability and
+	// pays through the ordinary manual window. The payment-prefix search's
+	// "does the plain walk list this play" probe (sr.offered) skips it, as
+	// the kernel's own listing probe excludes the arm's listings
+	// (actScriptPays' availNoActScript) -- a script the arm's offer would
+	// otherwise be taken for at the search's root. A human client never
+	// sees it.
+	CensusOffer bool `json:"-"`
 	// Value is the option's price under a decision carrying a cumulative
 	// budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values
 	// of the picked cards, so each offered card names its own mana value here
