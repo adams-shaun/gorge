@@ -28,12 +28,15 @@ var BlgStats struct{ NonLand atomic.Int64 }
 // blgFirst naming its first ability's colour for the payment window (the
 // printed ability's, else the lowest granted one). One source is one tap,
 // so the union is only valid when every own mana ability is a plain {T}
-// ability of one colour making one mana (prepMultiMana's shape), or there
-// is none: any other affected source stalls StallLandGrant.
+// ability of one colour making one mana (prepMultiMana's shape), a
+// prepPainMana painland pair (the appended intrinsics join the normal
+// alternatives on manaCol, the pain pair stays on painCol), or there is
+// none: any other affected source stalls StallLandGrant.
 
 // StallLandGrant: a card with a granted basic land type whose own mana
 // ability is not the plain {T}-for-one-mana shape (a {T}: Add {C}{C} land,
-// a painland, a chosen, restricted, dynamic or granted ability), or that
+// a chosen, restricted, dynamic or granted ability) and not a painland pair
+// (prepPainMana's shape: the appended intrinsics join manaCol), or that
 // lost its abilities: one source would have to offer two different
 // productions, which the one-ability pcard cannot hold.
 const StallLandGrant = 120
@@ -82,6 +85,25 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 		g.blgIdx[i] = -1
 		base := p.cards[i]
 		if !blgPlain(&t.Cards[i], &base) {
+			// A painland pair (prepPainMana's shape) keeps its pain pair
+			// beside the appended intrinsics: gorge appends the intrinsic per
+			// granted colour no listed ability's Produced$ names exactly, and
+			// the painful choice's Combo is not one, so the view folds the
+			// appended colours into manaCol (the normal alternatives) and
+			// keeps the pain pair on painCol: tapPain prices pain only for a
+			// colour outside manaCol, and blgView's mask also subtracts a
+			// single-colour painful ability's exact Produced$ (blgExactPain).
+			if !blgRiderFirst(&t.Cards[i], &base) && base.painCol != 0 && !base.painOnly && prepPainMana(&t.Cards[i], &base) {
+				g.blgIdx[i] = int16(len(g.blgPC) / 32)
+				for m := 0; m < 32; m++ {
+					v := base
+					v.manaCol |= kop.ColorMask(m)
+					v.manaMulti = bits.OnesCount8(uint8(v.manaCol&0x3f)) > 1
+					v.blgFirst = blgFirstOf(&t.Cards[i], &base)
+					g.blgPC = append(g.blgPC, v)
+				}
+				continue
+			}
 			// A rider-first source (Gemstone Mine) is no census unit of its
 			// own under the planner's shape tier, but the intrinsic abilities
 			// a granted basic land type gives it are: one view per granted
@@ -146,6 +168,32 @@ func (s *State) blgPrintedMask(k *prep, sl Slot) uint8 {
 		}
 	}
 	return m
+}
+
+// blgFirstOf names a view's first ability's colour for the payment window:
+// the printed first mana ability's (a Combo its printed token order), else
+// the lowest granted one (prepLandGrant's plain and painland branches).
+func blgFirstOf(c *kop.CardDef, base *pcard) uint8 {
+	first := bits.TrailingZeros8(uint8(base.manaCol & 0x3f))
+	if ab := manaAbView(c, base); ab != nil && ab.AFlags&kop.AfManaChoice != 0 {
+		var ord [5]uint8
+		if manaColourOrder(ab, &ord) > 0 {
+			first = int(ord[0]) // a Combo answers its printed token order (Combo G W: {G})
+		}
+	}
+	return uint8(first + 1)
+}
+
+// blgExactPain is the colour a card's single-colour painful ability produces
+// exactly (painCol one WUBRG bit, not a Combo or Any): gorge's
+// intrinsic-append dedup (ManaAbilitiesProduce) counts it, so a granted type
+// of that colour adds no intrinsic ability and the source keeps that
+// production painful.
+func blgExactPain(pc *pcard) kop.ColorMask {
+	if pc.painCol != 0 && bits.OnesCount8(uint8(pc.painCol)&0x1f) == 1 {
+		return pc.painCol
+	}
+	return 0
 }
 
 // blgPlain reports whether card c's own mana abilities (pc its facts) are
@@ -271,7 +319,8 @@ func (s *State) blgGapPC(k *prep, sl Slot) *pcard {
 func (s *State) blgView(k *prep, sl Slot, c CardID, pc *pcard) *pcard {
 	m := s.blgMask(k, sl)
 	if pc.manaAb >= 0 && !s.riderDeferred(k, sl) {
-		m &^= pc.manaCol // gorge ManaAbilitiesProduce: a printed colour is not appended again
+		m &^= pc.manaCol       // gorge ManaAbilitiesProduce: a printed colour is not appended again
+		m &^= blgExactPain(pc) // a single-colour painful ability's Produced$ is exact too: no intrinsic beside it
 	}
 	if m == 0 {
 		return pc
