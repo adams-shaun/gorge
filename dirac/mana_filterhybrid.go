@@ -96,3 +96,43 @@ func (s *State) filtPayHyb(k *prep, p uint8, sl Slot, a, b int) {
 	}
 	s.filtPayPip(k, p, sl, b)
 }
+
+// colPart names the colour answers filtColoursOf walks.
+type colPart uint8
+
+const (
+	colAll    colPart = iota // every colour the ask offers
+	colNeeded                // the colours the searched play's cost names
+	colRest                  // the others
+)
+
+// filtHybAskNeeded reports whether the hybrid filter at sl makes a colour the
+// searched play's cost names: gorge's scriptOrderAnswers then hoists that
+// colour's answer of the filter's one flattened ask ("Pay {G/U}: Add {G}{G}"
+// beside "Add {C}", pay.ManaAbilityComboColours) ahead of {C}.
+func (s *State) filtHybAskNeeded(k *prep, fs *filtSearch, sl Slot) bool {
+	if _, _, ok := s.filtHyb(k, sl); !ok {
+		return false
+	}
+	ab := s.filtAb(k, sl)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if fs.need[c] && uint8(ab.ManaColors)&(1<<uint(c)) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// filtHybAsk walks a hybrid filter's flattened ask in gorge's order once a
+// colour of it is needed: the needed colours' answers, then {C}, then the other
+// colours' (scriptOrderAnswers keeps the engine's order inside each half).
+// The ask itself is charged by the caller: a flattened ask has no second one.
+func (fs *filtSearch) filtHybAsk(k *prep, t *State, sl Slot, funded int) bool {
+	if fs.filtColoursOf(k, t, sl, funded, colNeeded, false) {
+		return true
+	}
+	if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+		return true
+	}
+	return fs.filtColoursOf(k, t, sl, funded, colRest, false)
+}
