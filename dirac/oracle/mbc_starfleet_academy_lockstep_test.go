@@ -1,11 +1,6 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const starfleetAcademyRepro = "paid_dynamic_mana_source_cast_offer"
 
@@ -14,25 +9,18 @@ const starfleetAcademyRepro = "paid_dynamic_mana_source_cast_offer"
 // creature types among non-Borg creatures you control). Gorge's prefix search
 // exhausts its 160-node budget on the plain and the phased runs (the paid
 // dynamic gap's fee branches over the Forests and an Orion land) and withholds
-// the cast (decision 305 of std-trk pair 41); the kernel's open any-colour
-// production offers it. Mirroring the budgeted node walk is past a bounded
-// change, so the card is refused by name and the recorded game still shows the
-// divergence with it implicated.
+// the cast (decision 305 of std-trk pair 41). The kernel used to offer it: its
+// freeBranchHopeless prune (#2670) skipped the dead free branches gorge walks.
+// The prune now fails open beside a dynamic-amount filter, so both engines
+// withhold the cast, the card is no longer refused (dirac/support/unrefused.tsv)
+// and the recorded game replays in lockstep.
 func TestMBCStarfleetAcademyReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+	t.Parallel()
+	res := replayRawRepro(t, starfleetAcademyRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", starfleetAcademyRepro, res.Div.At, res.Div)
 	}
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Starfleet Academy" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != starfleetAcademyRepro {
-			t.Fatalf("Starfleet Academy's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, starfleetAcademyRepro)
-		}
-		checkRefusedRepro(t, e)
-		return
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", starfleetAcademyRepro, res.Stall)
 	}
-	t.Fatal("Starfleet Academy has no dirac/support/refused entry: gorge withholds the cast its dynamic gap funds, the kernel offers it")
 }

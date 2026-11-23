@@ -1,11 +1,6 @@
 package oracle
 
-import (
-	"os"
-	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/cardset"
-)
+import "testing"
 
 const warpSpeedRepro = "filter_five_unit_fee_script_budget_exhausted"
 
@@ -15,28 +10,18 @@ const warpSpeedRepro = "filter_five_unit_fee_script_budget_exhausted"
 // Gorge's prefix search walks the filter's five-unit fee through every land's
 // colour ask and exhausts its 160-node budget (plain and phased) with no
 // script, so it offers pass alone at decision 681 (std-trk pair 128, seed
-// 697578); the kernel's filter search funds the same line in 9 nodes and
-// offers both activations. Matching gorge's exhaustion node for node is far
-// past bounded dirac code, so Warp Speed is refused by name and its recorded
-// game still diverges with it implicated.
+// 697578). The kernel's filter search used to fund the line in 9 nodes: its
+// freeBranchHopeless prune (#2670) skipped the dead free branches gorge walks.
+// The prune now fails open beside a dynamic-amount filter, so both engines
+// offer pass alone, Warp Speed is no longer refused
+// (dirac/support/unrefused.tsv) and the recorded game replays in lockstep.
 func TestMBCWarpSpeedReprosLockstep(t *testing.T) {
-	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
-	if err != nil {
-		t.Fatal(err)
+	t.Parallel()
+	res := replayRawRepro(t, warpSpeedRepro)
+	if res.Div != nil {
+		t.Fatalf("%s's recorded game diverges at %d: %s", warpSpeedRepro, res.Div.At, res.Div)
 	}
-	found := false
-	for i := range entries {
-		e := &entries[i]
-		if e.Card != "Warp Speed" {
-			continue
-		}
-		if e.Repro.Pool != "custom" || e.Repro.File != warpSpeedRepro {
-			t.Fatalf("Warp Speed's entry replays %s/%s, want custom/%s", e.Repro.Pool, e.Repro.File, warpSpeedRepro)
-		}
-		checkRefusedRepro(t, e)
-		found = true
-	}
-	if !found {
-		t.Fatal("Warp Speed has no dirac/support/refused entry: its activation is priced through a five-unit filter fee gorge's prefix search cannot reach")
+	if res.StallUnmodelled {
+		t.Fatalf("%s's recorded game ends at an unmodelled stall: %q", warpSpeedRepro, res.Stall)
 	}
 }
