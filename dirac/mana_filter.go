@@ -2948,11 +2948,12 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 // (an X, hybrid, snow or Phyrexian cost): the prune must never drop a branch
 // a real plan could use.
 func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
-	if fs.gaps.many() {
-		// A second filter gap: the dead subtree under the free branch is
-		// gorge's to walk (its plain run spends the node budget there and
-		// its fee-order run funds the play, CR 605.3b), as holdDualFilter's
-		// lone-filter scope.
+	if fs.gaps.or(fs.other).many() {
+		// A second gap, a filter or another class's step (Holdout Settlement's
+		// tap-another mana beside School of the Unseen): the dead subtree under
+		// the free branch is gorge's to walk (its plain run spends the node
+		// budget there and its fee-order run funds the play, CR 605.3b), as
+		// holdDualFilter's lone-filter scope.
 		return false
 	}
 	if fs.floated && t.filtFeeGaps(k, fs.gaps).any() {
