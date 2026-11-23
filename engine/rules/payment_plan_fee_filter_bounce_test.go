@@ -8,7 +8,7 @@ const (
 	fpbIsland   = "Name:Test Island\nTypes:Land Island\nA:AB$ Mana | Cost$ T | Produced$ U | SpellDescription$ Blue mana.\nOracle:x\n"
 	fpbMountain = "Name:Test Mountain\nTypes:Land Mountain\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Red mana.\nOracle:x\n"
 	fpbScare    = "Name:Test Signpost\nManaCost:4\nTypes:Artifact Creature Scarecrow\nPT:2/4\nK:Vigilance\n" +
-		"A:AB$ Mana | Cost$ 2 | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n"
+		"A:AB$ Mana | Cost$ 2 | Produced$ Any | SpellDescription$ Filter.\nOracle:x\n"
 	fpbBouncer = "Name:Test Bouncer\nManaCost:5 U\nTypes:Creature Shapeshifter\nPT:2/2\n" +
 		"A:AB$ ChangeZone | Cost$ 2 U U | Defined$ Self | Origin$ Battlefield | Destination$ Hand | SpellDescription$ Return.\nOracle:x\n"
 )
