@@ -111,7 +111,11 @@ type avail struct {
 	oneMask    [maxOneColour]uint8
 	oneAltMask [maxOneColour]uint8
 	oneAltN    [maxOneColour]uint8
-	nOne       uint8
+	// oneCol is an alt entry's one-colour block when it is smaller than the group its
+	// larger fixed face (oneAltN) shares (Palladium Myr's {C}{C} beside a granted one mana
+	// of any colour): 0 reads one. The block is one tap's mana, the fixed face the other.
+	oneCol [maxOneColour]uint8
+	nOne   uint8
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
@@ -175,7 +179,7 @@ func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 	i := a.nOne
 	a.one[i] = n
 	a.oneMask[i] = mask
-	a.oneAltMask[i], a.oneAltN[i] = 0, 0
+	a.oneAltMask[i], a.oneAltN[i], a.oneCol[i] = 0, 0, 0
 	a.nOne++
 	return true
 }
@@ -183,10 +187,13 @@ func (s *State) addOneColourMask(a *avail, mask, n uint8) bool {
 // addOneColourAlt is addOneColourMask for a merged unit that also keeps the
 // source's own fixed face (altMask, altN) as an alternative to its one-colour
 // block.
-func (s *State) addOneColourAlt(a *avail, mask, n, altMask, altN uint8) {
+func (s *State) addOneColourAlt(a *avail, mask, n, altMask, altN, colN uint8) {
 	if s.addOneColourMask(a, mask, n) && altMask != 0 {
 		i := a.nOne - 1
 		a.oneAltMask[i], a.oneAltN[i] = altMask, altN
+		if colN < n {
+			a.oneCol[i] = colN
+		}
 	}
 }
 
@@ -279,9 +286,13 @@ func (a avail) oneColourAltFits(cost *kop.ManaCost, pipMask uint8, extra int, al
 	if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
 		return true
 	}
+	colN := a.one[i]
+	if a.oneCol[i] != 0 {
+		colN = a.oneCol[i]
+	}
 	for c := uint8(0); c < 5; c++ {
 		b := a
-		b.addUnits(1<<c, a.one[i])
+		b.addUnits(1<<c, colN)
 		if b.oneColourAltFits(cost, pipMask, extra, alts[1:], plain) {
 			return true
 		}
@@ -360,6 +371,7 @@ func (a *avail) dropOneColour(mask, n uint8) {
 			a.oneMask[i] = a.oneMask[a.nOne]
 			a.oneAltMask[i] = a.oneAltMask[a.nOne]
 			a.oneAltN[i] = a.oneAltN[a.nOne]
+			a.oneCol[i] = a.oneCol[a.nOne]
 			return
 		}
 	}
