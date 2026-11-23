@@ -53,6 +53,10 @@ type otherStep struct {
 	// (ctrAb1) rather than its counter one (ctrGap)
 	col   int8
 	plain bool
+	// x, xset: otherCtr's storage battery X ask answer (storeGapX): gorge's
+	// ask offers every X from the counters held down to 0
+	x    uint8
+	xset bool
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -657,6 +661,22 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		}
 		return false
 	}
+	if kop.StoreManaAb(ab) {
+		if n := t.perms[sl].ctrN(t, int(ab.Cost.Ctr)); n > 0 {
+			// a storage battery's counter ability asks X (gorge's X ask, one
+			// node, then every X from the counters held down to 0, each a
+			// subtree: grantSrch.storeBranch is the grant search's twin)
+			if !fs.tick() {
+				return false
+			}
+			for x := min(n, 255); x >= 0; x-- {
+				if try(otherStep{kind: otherCtr, col: -1, x: uint8(x), xset: true}) {
+					return true
+				}
+			}
+			return false
+		}
+	}
 	return try(otherStep{kind: otherCtr, col: -1})
 }
 
@@ -743,7 +763,11 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 		}
 		// remove counters, tap, add mana, spend the use (ctrGap); the SBA a
 		// -0/-1 counter may kill with
-		s.ctrGap(k, p, st.sl, int(o.col))
+		if o.xset {
+			s.storeGapX(k, p, st.sl, k.ctrAbOf(s.cardAt(st.sl)), int(o.x)) // the X ask's answer
+		} else {
+			s.ctrGap(k, p, st.sl, int(o.col))
+		}
 		s.sba(k)
 	case otherGrant:
 		s.perms[st.sl].flags |= pfTapped
