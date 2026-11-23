@@ -13,16 +13,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // lockstep projection carries FaceDown on an exiled object (dirac/oracle
 // project.go FFaceDown), so the mark is state, not a view.
 //
-// It rides the exiled-with link pool (zone_exiledwith.go) as two bits of
-// exwRec.fl: exwFace (the card is exiled face down) and exwLook1 (the looker
-// is player 1). No State byte. Readers that gorge makes skip a face-down
+// It rides the exiled-with link pool (zone_exiledwith.go) as two flag bits of
+// the osExw record (zone_objsets.go): exwFace (the card is exiled face down)
+// and exwLook1 (the looker is player 1). No State byte. Readers that gorge
+// makes skip a face-down
 // object (hasXCost, faceUp, the exile ability walk) are not reached by this
 // pool: the kernel lowers no ActivationZone$ Exile ability and no CMC-partial
 // filter over exile, so there is no further reader to agree with.
 
 const (
-	exwFace  uint8 = 1 << 3 // the card is exiled face down (a Dig's ExileFaceDown$ WithMayLook$)
-	exwLook1 uint8 = 1 << 4 // its looker is player 1 (else player 0)
+	exwFace  uint8 = 1 << 6 // the card is exiled face down (a Dig's ExileFaceDown$ WithMayLook$)
+	exwLook1 uint8 = 1 << 7 // its looker is player 1 (else player 0)
 )
 
 // DebugExileFaceUp is the mutation hook (TestExilefdMutation): the Dig's
@@ -66,8 +67,12 @@ func (s *State) faceDownExile(o, src Obj, looker uint8) {
 
 // faceDownExiled: o is in exile face down.
 func (s *State) faceDownExiled(o Obj) bool {
-	for i := 0; i < int(s.g.nexw); i++ {
-		if r := &s.cold.exw[i]; r.o == o && r.fl&exwFace != 0 {
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
 			return true
 		}
 	}
@@ -77,9 +82,13 @@ func (s *State) faceDownExiled(o Obj) bool {
 // FaceDownLooker is the player who may look at the face-down exiled card o
 // (gorge MayLookPlayer), or 255 when o is not exiled face down.
 func (s *State) FaceDownLooker(o Obj) uint8 {
-	for i := 0; i < int(s.g.nexw); i++ {
-		if r := &s.cold.exw[i]; r.o == o && r.fl&exwFace != 0 {
-			return r.fl >> 4 & 1
+	r := s.cold.objSets
+	for i := range r {
+		if r[i].kind == 0 {
+			break
+		}
+		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
+			return rec.kind >> 7 & 1
 		}
 	}
 	return 255

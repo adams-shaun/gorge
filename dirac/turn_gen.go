@@ -79,7 +79,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.g.entExc = 0
 		s.copyExcAdd(k, sl, Slot(x>>8), uint8(x))
 	}
-	if s.g.nexw != 0 {
+	if s.osAnyOf(osMExw) {
 		s.exwEnter(o, from) // a source entering other than from the stack clears its forward links (zone_exiledwith.go)
 	}
 	if s.g.nchPick != 0 {
