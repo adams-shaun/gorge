@@ -3,7 +3,6 @@ package oracle
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
@@ -202,9 +201,7 @@ func (r *realSide) stackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 }
 
 func (r *realSide) Step() CDecision {
-	fmt.Fprintf(os.Stderr, "DS4KSTEP enter n=%d\n", r.d.N)
 	r.s.StepInto(&r.d)
-	fmt.Fprintf(os.Stderr, "DS4KSTEP posed n=%d kind=%d\n", r.d.N, r.d.Kind)
 	if OccupancyHook != nil {
 		OccupancyHook(&r.s)
 	}
@@ -212,11 +209,6 @@ func (r *realSide) Step() CDecision {
 	r.opts = r.opts[:0]
 	for _, a := range r.d.Options[:r.d.N] {
 		r.opts = append(r.opts, r.canon(a))
-	}
-	if os.Getenv("GORGE_DS4_DEBUG") != "" && r.d.N > 2 {
-		for i, a := range r.d.Options[:r.d.N] {
-			fmt.Fprintf(os.Stderr, "DS4KCANN %d raw=%v canon=%v str=%q\n", i, uint32(a), uint32(r.opts[i]), r.opts[i].String())
-		}
 	}
 	out := CDecision{Kind: r.dkind(), Player: r.d.Player, Options: append([]Canon(nil), r.opts...)}
 	sortCanon(out.Options)

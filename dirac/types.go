@@ -1,11 +1,6 @@
 package dirac
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // CardID indexes the matchup's card table (kop.Table.Cards); 255 = none.
 type CardID = kop.CardID
@@ -237,9 +232,6 @@ func (s *State) canonKey(d *Decision, a Action) uint32 {
 func (s *State) sortCanonical(d *Decision) {
 	var keys [MaxOptions]uint32
 	n := int(d.N)
-	if os.Getenv("GORGE_DS4_DEBUG") != "" {
-		fmt.Fprintf(os.Stderr, "DS4KSORT enter n=%d\n", n)
-	}
 	for i := 0; i < n; i++ {
 		keys[i] = s.canonKey(d, d.Options[i])
 	}

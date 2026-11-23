@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"os"
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -1124,13 +1123,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 		window = newWindowCollector(p)
 	}
 	d := e.arenaDecision()
-	if os.Getenv("GORGE_DS4_DEBUG") != "" {
-		last := ""
-		if n := len(e.L.Events); n > 0 {
-			last = fmt.Sprintf("%v", e.L.Events[n-1].Kind)
-		}
-		fmt.Fprintf(os.Stderr, "DS4ASK priority p=%d eng=%p pool=%v life=%d turn=%d ev=%d last=%v step=%v\n", p, e, e.G.Players[p].Pool, e.G.Players[p].Life, e.G.Turn, len(e.L.Events), last, e.G.Step)
-	}
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)
 	*d = decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
@@ -1141,11 +1133,6 @@ func (e *Engine) askPriority(p state.PlayerID) {
 		d.WindowReasons = window.finish(d.Options)
 	}
 	e.ask(d)
-	if os.Getenv("GORGE_DS4_DEBUG") != "" && len(d.Options) > 2 {
-		for i := range d.Options {
-			fmt.Fprintf(os.Stderr, "DS4OPT %d %s %q obj=%d mode=%q\n", i, d.Options[i].Kind, d.Options[i].Label, d.Options[i].Obj, d.Options[i].Mode)
-		}
-	}
 	e.notePriorityWalk(p, d, ep, ver, objs)
 }
 

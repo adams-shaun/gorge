@@ -1,9 +1,6 @@
 package rules
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -425,13 +422,6 @@ func (w *legalWalk) handWalk() {
 			}
 		} else if plain := pay.WithSpellAbilityExtras(f, convokeBase); (w.offerCastable(p, id, plain, spellScope(""), false) || w.reducedOptionalCastable(p, id, plain)) && targetsAvailable() &&
 			e.xBoundTargetPayable(p, id, id, f.SpellAbility(), plain, spellScope(""), false) {
-			if os.Getenv("GORGE_DS4_DEBUG") != "" && plain.CMC() >= 3 {
-				hyp := "nil"
-				if w.hyp != nil {
-					hyp = "hyp"
-				}
-				fmt.Fprintf(os.Stderr, "DS4GDEBUG plain cast add %s hyp=%s plain=%v pool=%v life=%d\n", f.Name, hyp, plain.CMC(), w.e.G.Players[p].Pool, w.e.G.Players[p].Life)
-			}
 			w.add("cast", w.castLabel(f), id)
 		}
 		if views := e.optionalCostViews(costStatics.get(), p, id); len(views) > 0 {

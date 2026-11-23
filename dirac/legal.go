@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -204,17 +202,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if os.Getenv("GORGE_DS4_DEBUG") != "" && !s.castPaysUnderPain(k, p, c, o, cost, cav) && int(cost.Generic)+cost.MV() > 0 && !cav.affords(cost, pipMaskOf(cost), 0) {
-			fmt.Fprintf(os.Stderr, "DS4DEBUG castPaysUnderPain=false card=%v p=%d life=%d cost=%v painOn=%v availTotal=%d pool=%v\n", c, p, s.pl[p].life, *cost, cav.pain.on, cav.total, s.pl[p].pool)
-			for m := s.ctrlM[p]; m.any(); m = m.rest() {
-				sl := m.first()
-				fmt.Fprintf(os.Stderr, "DS4DEBUG   perm card=%v tapped=%v sick=%v painCol=%v manaAb=%v\n", s.cardAt(sl), s.perms[sl].flags&pfTapped != 0, s.activationSick(k, sl), s.manaPCAt(k, sl).painCol, s.manaPCAt(k, sl).manaAb)
-			}
-			for i := 0; i < cav.n; i++ {
-				fmt.Fprintf(os.Stderr, "DS4DEBUG   unit mask=%x n=%d\n", cav.mask[i], cav.cnt[i])
-			}
-		}
-		if !s.castPaysUnderPain(k, p, c, o, cost, cav) {
+		if !s.castPaysUnderPain(k, p, c, o, cost, cav) && !s.instantTapsLethalPays(k, p, c, o, cost) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
