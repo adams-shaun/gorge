@@ -2250,6 +2250,18 @@ func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int, drop uint8) {
 // makes nothing), the planner's natural amount, while the over-bound pool
 // keeps the unbounded fold. It reports it handled.
 func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus, fold func(Slot, uint8, uint8), drop uint8) bool {
+	if c.on && censusRestrDynAny(ab) {
+		// a restricted evaluated any-colour source the payment admits (Seance
+		// Board's soul counters) is a unit of gorge's planner census at what it
+		// makes now: n mana of one colour. The walk still folds it open (false).
+		n := uint8(min(max(s.dynManaN(k, ab, sl), 0), 255))
+		if manaOneColour(ab, n) {
+			recordPotUnit(&c.units, &c.n, uint8(ab.ManaColors), n, c.unitPain(), true)
+		} else {
+			c.recTapDrop(sl, uint8(ab.ManaColors), n, drop)
+		}
+		return false
+	}
 	if !c.on || ab.AFlags&kop.AfManaDynamic == 0 || ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 || anyDifferentTapAb(ab) {
 		return false
 	}
@@ -3653,4 +3665,13 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 	}
 	base.Generic = uint8(g)
 	return base
+}
+
+// censusRestrDynAny: ab is a restricted evaluated-amount any-colour mana ability
+// (Seance Board: "{T}: Add X mana of any one color ... spend this mana only to
+// cast instant and sorcery spells"), the shape the per-tap census records at
+// the amount it makes now (CR 106.6, 601.2g).
+func censusRestrDynAny(ab *kop.Ability) bool {
+	return ab.ManaRestrict != 0 && ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaColors == kop.ColAny &&
+		ab.AFlags&kop.AfManaEachColor == 0 && !anyDifferentTapAb(ab)
 }
