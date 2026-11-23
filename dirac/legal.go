@@ -992,7 +992,7 @@ func (s *State) gorgeOffersMay(p uint8, o Obj, anyColor bool) bool {
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return s.FeatPoolPays(p, o, 0) || s.gorgeLowersRider(p, o, true, anyColor)
+	return s.FeatPoolPays(p, o, 0) || anyColor && s.featPoolPays(p, o, 0, nil, true) || s.gorgeLowersRider(p, o, true, anyColor)
 }
 
 // offerSourcesAfford: p's sources pay cost through the offer gate -- the
