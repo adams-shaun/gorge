@@ -254,6 +254,14 @@ func MustBeBlockedByFilter(k string) string {
 // a granted ability line (a granted flying) and every printed line, whose
 // sentences the printed K: parser already canonicalised to heads.
 //
+// The Lure sentence (HiddenKeywordAllMustBlock) is in the class: a spell's
+// unquoted "all creatures able to block target creature this turn do so"
+// (Taunting Challenge, Alluring Scent) is a CR 509.1c requirement a later
+// loss cannot end. A carrier that grants it as a QUOTED ability ("Enchanted
+// creature has 'All creatures able to block this creature do so.'") is an
+// ability of the object instead; the layer walk exempts that grant by the
+// effect's QuotedAbilityGrant mark (chars.applyKeywordGrant), not by this predicate.
+//
 // UntapNextStep is deliberately outside the class: the untap step consumes
 // the one-shot state flag stamped at grant time
 // (engine/effects registerPumpEffects), not the keyword text, so the line's
