@@ -70,17 +70,29 @@ func (g *grantSrch) caGapBranch(t *State, i int, sl Slot) bool {
 		return false
 	}
 	if g.k.isReflAmt(t.cardAt(sl)) {
-		var order [6]uint8
-		for _, c := range t.reflAmtOrder(g.k, sl, g.d.play, order[:]) {
-			if g.caTry(t, i, sl, int(c)) {
-				return true
-			}
-		}
-		return false
+		return g.reflGapBranch(t, i, sl)
 	}
 	units := t.caAmount(g.k, sl)
 	for r, na := 0, caAnswerCount(units); r < na; r++ {
 		if g.caTry(t, i, sl, caRank(units, &g.need, r)) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflGapBranch is caGapBranch for a reflected Amount$ source (Incubation
+// Druid): the whole evaluated amount floats in one of the reflected colours,
+// the ones the play announces first (reflAmtOrderNeed); no colour at all is
+// the tap alone (mana_reflamt.go).
+func (g *grantSrch) reflGapBranch(t *State, i int, sl Slot) bool {
+	var order [6]uint8
+	cols := t.reflAmtOrderNeed(g.k, sl, g.need, order[:])
+	if len(cols) == 0 {
+		cols = append(order[:0], reflAmtNoMana)
+	}
+	for _, c := range cols {
+		if g.caTry(t, i, sl, int(c)) {
 			return true
 		}
 	}
@@ -111,13 +123,7 @@ func (g *grantSrch) caTry(t *State, i int, sl Slot, ans int) bool {
 // colour (mana_reflamt.go reflAmtDo's shape); no candidates means no mana.
 func (s *State) caProduce(k *prep, p uint8, sl Slot, ans int) {
 	if k.isReflAmt(s.cardAt(sl)) {
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		if n := s.reflAmtN(k, sl); n > 0 && ans >= 0 {
-			s.poolAdd(p, ans, n)
-			s.artTag(k, p, sl, ans)
-		}
-		s.tapExtraStall(k, sl)
+		s.reflAmtTap(k, p, sl, ans, false) // ans is the colour (mana_reflamt.go)
 		return
 	}
 	n := s.caAmount(k, sl)
@@ -163,10 +169,11 @@ var DebugComboAnyGrantRefused bool
 func (s *State) eachOrComboAnyApply(k *prep, p uint8, sl Slot, st *grantStep) {
 	if st.gi == stepComboAny {
 		if k.isReflAmt(s.cardAt(sl)) {
-			s.reflAmtDo(k, p, sl, int(st.col)) // the whole evaluated amount of the answer's colour (mana_reflamt.go)
-		} else {
-			s.caActivate(k, p, sl, int(st.col))
+			s.reflAmtDo(k, p, sl, int(st.col)) // the colour (mana_reflamt.go)
+			GrantManaStats.ComboAny.Add(1)
+			return
 		}
+		s.caActivate(k, p, sl, int(st.col))
 		GrantManaStats.ComboAny.Add(1)
 		return
 	}
