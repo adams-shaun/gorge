@@ -117,20 +117,24 @@ func tapsAttachedClauses(f *lFilter, vc string, tp8 kop.TapPlan, consequence boo
 }
 
 // tapsDestroySelf mirrors gorge's planner recognizer (pay
-// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` watcher: the trigger's
-// keys are the closed world's (Mode, ValidCard, Execute, TriggerZones naming
-// Battlefield and TriggerDescription) and its body is exactly one Destroy of
-// the tapped permanent itself (Brink of Disaster's "when enchanted permanent
-// becomes tapped, destroy it" on the AttachedBy line; Cryoshatter's on
-// EquippedBy). The trigger resolves after the payment that caused it
-// (CR 405.6c/603.2) and its only effect is to destroy the permanent whose tap
-// already produced its mana (CR 605.4a), so it touches no payment resource and
-// the tapped source stays an ordinary planner unit on both engines
-// (kop.TapPlanOrdinary) instead of a deferred one.
+// PaymentPlanTapDestroySelfTrigger) over a `Mode$ Taps` or `Mode$ TapsForMana`
+// watcher: the trigger's keys are the closed world's (Mode, ValidCard,
+// Execute, TriggerZones naming Battlefield, Activator$ and
+// TriggerDescription; Activator$ is a fire-time filter on who tapped, not an
+// effect key — the real matcher has already vetted that this tap would fire
+// the trigger) and its body is exactly one Destroy of the tapped permanent
+// itself (Brink of Disaster's "when enchanted permanent becomes tapped,
+// destroy it" on the AttachedBy line; Cryoshatter's on EquippedBy; Price of
+// Glory's "Whenever a player taps a land for mana, if it's not that player's
+// turn, destroy that land"). The trigger resolves after the payment that
+// caused it (CR 405.6c/603.2) and its only effect is to destroy the permanent
+// whose tap already produced its mana (CR 605.4a), so it touches no payment
+// resource and the tapped source stays an ordinary planner unit on both
+// engines (kop.TapPlanOrdinary) instead of a deferred one.
 func tapsDestroySelf(t cards.Trigger) bool {
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
 		switch k {
-		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKTriggerDescription.String():
+		case cards.PKMode.String(), cards.PKValidCard.String(), cards.PKExecute.String(), cards.PKActivator.String(), cards.PKTriggerDescription.String():
 		case cards.PKTriggerZones.String():
 			if strings.TrimSpace(t.Params[k]) != tapsBattlefieldZone {
 				return false

@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // Non-static Mode$ TapsForMana triggers played decision by decision against
 // gorge (dirac/kgen lower_tapsformana.go): Price of Glory destroys a land
-// tapped for mana by the player whose turn it is not, and its deferral keeps
-// such a land out of gorge's planner (the kernel's tapsWatchClass), so an
-// autopay cast taps another source or none.
+// tapped for mana by the player whose turn it is not. Its destroy-self effect
+// is a vetted post-payment consequence, so such a land is an ordinary payment
+// unit in gorge's planner and the kernel (CR 603.2, 605.4a), and an autopay
+// cast may tap it. Rikala's gated Island is the case that still defers.
 //
 // TestTapsForManaTriggerLockstep replays the recorded games (no divergence,
 // every scripted action offered, the effect reached); TestTapsForManaTriggerRecord
@@ -50,9 +50,9 @@ func tapsForManaCases() []effectLongCase {
 			reached: func(g *GorgeSide) bool { return priceOfGloryDestroyed(g, true) },
 		},
 		{
-			// gorge's planner defers a land Price of Glory would destroy, so
-			// the opponent's held Bolt is not offered from it on autopay
-			name:    "price_of_glory_defers_foreign_land_so_held_bolt_is_not_offered_autopay",
+			// a land Price of Glory would destroy still pays: the opponent's
+			// held Bolt is offered and cast from it on autopay
+			name:    "price_of_glory_foreign_land_pays_held_bolt_autopay",
 			prefer:  []string{"Price of Glory"},
 			decks:   pog("Lightning Bolt"),
 			surface: "autopay",
@@ -432,27 +432,5 @@ func TestTapsForManaTriggerRecord(t *testing.T) {
 			}
 			t.Fatalf("no seed reached the effect of %s", c.name)
 		})
-	}
-}
-
-// TestTapsForManaTriggerDeferralMutation: with the Taps-watcher classification
-// dropped (dirac.DebugNoTapsDefer) the recorded autopay game diverges from
-// gorge, proof the repro exercises Price of Glory's deferral of the
-// opponent's land.
-func TestTapsForManaTriggerDeferralMutation(t *testing.T) {
-	if isolate(t) {
-		return
-	}
-	dirac.DebugNoTapsDefer = true
-	defer func() { dirac.DebugNoTapsDefer = false }()
-	reg := synthReg(t)
-	c := tapsForManaCases()[1]
-	r, err := ReadRepro(filepath.Join("testdata", "repro", c.name+".repro.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	res, _ := effectLongPlay(t, reg, c, r, printedDelveSet(t, r.Cards), &ScriptPolicy{Actions: r.Actions})
-	if res.Div == nil {
-		t.Fatal("no divergence with the Taps-watcher classification dropped: the recorded game does not exercise the deferral")
 	}
 }
