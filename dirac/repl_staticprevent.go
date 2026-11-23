@@ -446,12 +446,19 @@ func (s *State) spCombatCands(k *prep, fe *fzEv, sc, rcp uint8, n int) int {
 	case c < 2 || s.spBare(k, &cs, c) || !s.spOrderable(k, &cs, c):
 		if c == 1 && s.spCandAb(k, cs[0]).Repl.C&kop.ReplSPOptional != 0 {
 			if n > 0 {
-				// the optional line beside a competing prevention (a scoped
+				// the optional line beside competing full preventions (a scoped
 				// Effect's, a granted one's): gorge asks the CR 616.1 order over
-				// both with the line's skip, which the walk does not pose; never
-				// drop the line and deal the event as the prevention alone
-				s.capFull(StallReplPlus)
-				return -1
+				// all of them with the line's skip (spOptionalAsk); whichever
+				// answer, a full prevention remains and leaves nothing dealt.
+				// Anything else beside the line is not posed: never drop the
+				// line and deal the event as the prevention alone
+				if n >= spMax || cs[0].b >= MaxPerm || !s.spBesidePrevAll(n) {
+					s.capFull(StallReplPlus)
+					return -1
+				}
+				s.g.ro.cand[n] = s.perms[cs[0].b].obj
+				s.g.ro.spv |= 1<<n | spOptionalAsk
+				return n + 1
 			}
 			if cs[0].b >= MaxPerm {
 				s.capFull(StallReplCands) // an emblem is never named by an ask
