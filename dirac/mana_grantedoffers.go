@@ -1796,7 +1796,11 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 	if alts > 1 && !tx && g.needPass(t, i, sl) {
 		lo, hi = 1, 2
 	}
-	for g.sel = lo; g.sel <= hi; g.sel++ {
+	// the pass is the loop's own: a callee that drops g.sel for its own
+	// subtree (filtBranch) must not re-run its caller's pass, so each
+	// iteration hands the pass to g.sel at the head
+	for pass := lo; pass <= hi; pass++ {
+		g.sel = pass
 		blgExtra, blgN := uint8(0), uint8(0)
 		if g.ca[i] && g.sel != 1 && t.caGaps(g.k, g.p).has(sl) && g.caGapBranch(t, i, sl) {
 			// the printed Combo Any ability's answers first: its option names no
@@ -2691,10 +2695,11 @@ func (s *State) stepColours(k *prep, sl Slot, gi int16, mask uint8, out *[kop.Nu
 // of the pool, then the colours in turn (gorge's askManaColor, mana_filter.go).
 func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 	// The flattened ask's pass the caller walks (gorge's scriptOrderAnswers):
-	// pass 1 the colours the play needs, pass 2 the rest. The search below is
-	// whole again, as branch keeps its own.
+	// pass 1 the colours the play needs, pass 2 the rest. The colour walk and
+	// the search under it run whole: g.sel drops for them and the caller's
+	// pass comes back at every exit (gapAbilities hands each pass to g.sel
+	// at its loop head, so a left-behind 0 would corrupt the next pass).
 	sel := g.sel
-	g.sel = 0
 	each := t.filtAb(g.k, sl).ManaEach // a fixed production: no colour ask, one branch (mana_filtereach.go)
 	// flatAsk: the activation's "choose a mana ability" ask was charged
 	// (gapVisit): gorge's one ask already lists the filter's colour answers
@@ -2755,6 +2760,7 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 			return false
 		}
 	}
+	g.sel = 0
 	for j := 0; j < n; j++ {
 		c := order[j]
 		if doomed&(1<<c) != 0 {
@@ -2775,6 +2781,7 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 		}
 		if !u.filtPaid(g.k, g.p, sl) {
 			t.unfork()
+			g.sel = sel
 			return false
 		}
 		u.filtDo(g.k, g.p, filtStep{sl: sl, gap: true, ans: 1 + c})
@@ -2802,10 +2809,12 @@ func (g *grantSrch) filtBranch(t *State, i int, sl Slot, flatAsk bool) bool {
 			g.feeGhost[c] += n
 		}
 		if ok {
+			g.sel = sel
 			return true
 		}
 		g.np--
 	}
+	g.sel = sel
 	return false
 }
 
@@ -3009,7 +3018,8 @@ func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d 
 	}
 	t := s.fork()
 	defer s.unfork()
-	return g.visit(t)
+	ok := g.visit(t)
+	return ok
 }
 
 // stallOf records the stall a node's fork latched (capFull) while the line ran
