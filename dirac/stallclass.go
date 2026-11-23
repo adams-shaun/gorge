@@ -141,7 +141,11 @@ var stallUnmodelledReasons = [...]uint8{
 // together, or a two-seat-only card in a larger game, read off the table. Init
 // uses it as a guard for a hand-built table; pairRefusalN refuses a built
 // matchup with it, so the two cannot disagree.
-func (g *genPrep) initStall(nseat uint8) uint8 {
+func (g *genPrep) initStall(nseat uint8) uint8 { return g.initStallSkip(nseat, false) }
+
+// initStallSkip is initStall with the Combo Any mix (caMix) left out when skipCA
+// (a forage-only table no deck plays: prep.initStallDecks).
+func (g *genPrep) initStallSkip(nseat uint8, skipCA bool) uint8 {
 	switch {
 	case nseat > 2 && g.twoSeatOnly:
 		return StallTwoSeat // prepTwoSeat, below
@@ -157,7 +161,7 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
 		return StallDiamondMix // mana_diamondmix.go prepDiamondMix
-	case g.caMix:
+	case g.caMix && !skipCA:
 		return StallComboAnyMix // mana_comboany.go prepComboAnyMix
 	case g.fbStampOwnCost:
 		return StallFbGrantStamp // kw_fbgrant.go prepFbStamp
@@ -175,8 +179,10 @@ func (g *genPrep) initStall(nseat uint8) uint8 {
 
 // initStall is genPrep.initStall plus the stall flags that live on prep (the
 // fixed-State inventory is pinned, so a new flag cannot join genPrep).
-func (p *prep) initStall(nseat uint8) uint8 {
-	if why := p.gen.initStall(nseat); why != StallNone {
+func (p *prep) initStall(nseat uint8) uint8 { return p.initStallSkip(nseat, false) }
+
+func (p *prep) initStallSkip(nseat uint8, skipCA bool) uint8 {
+	if why := p.gen.initStallSkip(nseat, skipCA); why != StallNone {
 		return why
 	}
 	if p.gainsOfPair {
