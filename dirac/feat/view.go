@@ -681,6 +681,10 @@ func (e *Encoder) cachedCard(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 		// the projection names the attached-to and blocked objects by
 		// object; the hash has their slots
 		key = mix64(key, uint64(att)|uint64(blk)<<16)
+		if kw := s.FeatCtrlKw(o); kw != 0 {
+			// the haste a control record carries is not in the object hash
+			key = mix64(key, uint64(kw)|0x6374726c6b77<<16)
+		}
 	} else if g, rep := s.FeatGrantedOffRep(o); g != 0 {
 		// a keyword granted off the battlefield (not in the hash), and how
 		// many times it was granted
