@@ -78,8 +78,8 @@ func (s *State) caAmount(k *prep, sl Slot) int {
 func (s *State) caGaps(k *prep, p uint8) slotMask { return s.caGapsF(k, p, false) }
 
 // caGapsF is caGaps with the forage sources (mana_forage.go): left out (the
-// windows' and the other searches' view) unless forage, then those whose forage is
-// payable are listed (the Combo Any search's).
+// windows' and the grant and tap-another searches' view) unless forage, then those
+// whose forage is payable are listed (the Combo Any and filter searches').
 func (s *State) caGapsF(k *prep, p uint8, forage bool) slotMask {
 	if !k.gen.anyComboAny {
 		return slotMask{}
