@@ -1519,8 +1519,15 @@ func (s *State) storeGapLive(k *prep, p uint8) bool {
 // it with the free gaps in its first phase, ahead of the funding and the fee
 // gaps (tapsDef is the board's Taps-deferred mask). Boards with another
 // kind of gap keep the plain run's answer.
-func (fs *filtSearch) phasedFallback(tapsDef slotMask) bool {
-	return fs.feeOnly && !fs.other.andNot(tapsDef).any() && fs.pay == nil && fs.nodes >= potentialScriptNodes
+//
+// A cast whose gaps hold a hybrid fee (Mystic Gate's {W/U}) is inside gorge's
+// phasedScope, so its phased run follows a failed plain run whatever the
+// plain run spent: the plain run's fee-stall cuts (filtFeeColStalls) end it
+// early, and the phased run, which has none, walks the lines they dropped
+// (hybScope; Energy Refractor beside a Swamp and a Mystic Gate, for Shatter
+// Assumptions' {1}{B}{B}).
+func (fs *filtSearch) phasedFallback(tapsDef slotMask, hybScope bool) bool {
+	return fs.feeOnly && !fs.other.andNot(tapsDef).any() && fs.pay == nil && (fs.nodes >= potentialScriptNodes || hybScope)
 }
 
 // filtFunders counts p's untapped battlefield sources that are no gap and
@@ -1646,7 +1653,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				fs.stall = ph.stall
 			}
 		}
-	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p)) {
+	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p), isCastKind(a.Kind()) && s.gapFaceHybIn(k, fs.gaps)) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
 		// filter's branches: its phased run walks the funding line the plain
 		// order walked past (potentialPrefixScript)
