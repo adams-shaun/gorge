@@ -2268,6 +2268,8 @@ type genState struct {
 	// resolution decisions in progress
 	pickLeft       uint8                   // picks still owed
 	pickP          uint8                   // the player picking
+	reflMask       uint8                   // a planned tap's reflected pick waiting on its colour ask: the colours it offers (mana_reflectpickask.go; 0: none)
+	reflP          uint8                   // the player whose tap it was
 	pickZ          uint8                   // destination zone / flags of the pick op
 	pickF          uint16                  // the pick op's flags
 	winSrc         Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)

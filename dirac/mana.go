@@ -2068,8 +2068,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			}
 			pk.rbOn = true
 		}
-		if ty.xt != 0 {
-			s.addXvPick(p, ty, col)
+		if ty.xt != 0 && s.addXvPick(p, ty, col) {
+			return // the reflected pick's colour ask (mana_reflectpickask.go); the payment runs again after it
 		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {

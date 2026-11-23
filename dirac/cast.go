@@ -1263,8 +1263,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if s.winPaused() {
 				return s.castWinTapOptions(k, d)
 			}
-			if s.parkedWaiting() {
-				s.ctl = ctlExileOrder // a mana sacrifice's move; the answer floats its mana and this step goes on
+			if s.manaAskWaiting() { // a mana sacrifice's move or a planned tap's reflected pick; the answer floats its mana and this step goes on
 				return false
 			}
 			s.nextStage(k)

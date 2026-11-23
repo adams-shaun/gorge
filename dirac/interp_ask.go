@@ -937,9 +937,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 					s.payDone(k, false) // the colours taken left it unpaid
 					return
 				}
-			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.parkedWaiting() {
-				s.ctl = ctlExileOrder // a sacrificed source's order ask (payManaResume)
-				return
+			} else if paid := s.payReplanned(k, s.g.pickP, &c); s.manaAskWaiting() {
+				return // a sacrificed source's order ask or a planned tap's reflected pick (payManaResume)
 			} else if !paid {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated

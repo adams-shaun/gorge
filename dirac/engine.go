@@ -323,6 +323,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
 			return
+		case ctlReflectPick:
+			s.reflectPickOptions(d) // mana_reflectpickask.go
+			return
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
 			return
@@ -388,6 +391,8 @@ func (s *State) Apply(a Action) {
 		s.applyBand(k, a) // combat_band.go
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
+	case ctlReflectPick:
+		s.applyReflectPick(k, a) // mana_reflectpickask.go
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
