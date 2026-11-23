@@ -29,7 +29,7 @@ func (g *grantSrch) feeOrderOf(s *State) bool {
 	if !g.limited || !g.d.hasPlay || g.phasedScope(s) {
 		return false
 	}
-	printed := g.d.play.Kind() == AkCast && (g.d.play.Mode() == 0 || g.d.play.Mode() == castMayPlay) ||
+	printed := (g.d.play.Kind() == AkCast && (g.d.play.Mode() == 0 || g.d.play.Mode() == castMayPlay)) ||
 		isAbilityPlay(g.d.play)
 	if !printed {
 		return false
