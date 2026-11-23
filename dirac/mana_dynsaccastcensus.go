@@ -20,7 +20,7 @@ func (s *State) affordsUngrantedCast(k *prep, p uint8, cost *kop.ManaCost, d pay
 // pool and the printed mana sources, a dynamic sacrifice source and an all-at-once source
 // under a reflect carrier (eachPickSources: gorge's census defers it) excepted.
 func (s *State) ungrCastCensus(k *prep, p uint8) (avail, modalSet) {
-	skip := s.eachPickSources(k, p)
+	skip := s.eachPickSources(k, p).or(s.dynFiltIntrinsic(k, p)) // (a dynamic paid filter's intrinsic unit goes with its census gap: mana_dynfiltintrinsic.go)
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
 		if pc := s.manaPCGen(k, sl); pc.manaDyn && pc.manaSac {
