@@ -471,6 +471,16 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 				switch in.Op {
 				case kop.OpChooseType:
 					choosesType = true
+					if in.C == 0 && in.B.N == kop.ChooseTypeBasicLand {
+						// a basic land type answer is a table subtype whichever
+						// land the matchup prints (Realmwright's AddChosen grant
+						// reads it; gorge's answer may be any of the five)
+						for s, n := range dd.Subtypes {
+							if basicLandTypeNames[n] {
+								mark(uint8(s))
+							}
+						}
+					}
 				case kop.OpOverride, kop.OpOverrideAll:
 					// (OpOverrideAll: gorge's AnimateAll type grants are compared
 					// by the projection too -- Breach the Multiverse's Phyrexian)
@@ -825,3 +835,7 @@ func remapFilterProgs(progs []kop.FilterProg, subMap map[uint8]uint8) []kop.Filt
 	}
 	return out
 }
+
+// basicLandTypeNames are gorge's Type$ Basic Land option labels
+// (effects.TypeChoiceLabels("Basic Land")).
+var basicLandTypeNames = map[string]bool{"Forest": true, "Island": true, "Mountain": true, "Plains": true, "Swamp": true}
