@@ -201,7 +201,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// potentialMayPlayNodes: tail-08 pair 54's Age of Ultron cast is payable
 	// only through the fifth land's granted ability, the 657th node of the
 	// plain order.
-	if o.Kind == optCast && o.Mode == "mayplay" && plain.limited {
+	if o.Kind == optCast && castModeCodes.Code(o.Mode) == castModeMayplay && plain.limited {
 		big := build(false, potentialMayPlayNodes)
 		if big != nil {
 			big.feeStall = true
