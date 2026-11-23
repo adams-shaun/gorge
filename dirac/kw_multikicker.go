@@ -515,6 +515,15 @@ func (s *State) answerMultikick(k *prep, a Action) {
 	s.nextStage(k)
 }
 
+// capturesKickCount is a card whose self-ETB trigger carries its cast's
+// payment count in pendingTrig.defSeat from the moment it is queued: a Squad
+// card, or a pure Multikicker one (Replicate's trigger is a SpellCast one).
+// The permanent may be sacrificed with the trigger on the stack, and gorge
+// still reads the count off the trigger's last known information (CR 603.10a).
+func capturesKickCount(c *kop.CardDef) bool {
+	return c.RepeatedKind == kop.RepeatSquad || c.HasMultikicker && c.RepeatedKind != kop.RepeatReplicate
+}
+
 // kickedPotentialSansDeferred prices a sorcery-speed kicked cast's potential
 // arm without the Taps-deferred sources (Scald beside an Island, CR 603.2,
 // 605.3a). gorge's planner never lists such a source, so a kicked total only
