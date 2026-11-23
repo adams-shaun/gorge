@@ -4,6 +4,7 @@ A-Speakeasy Server
 A-Stitched Assistant
 A-Sunbathing Rootwalla
 Advanced Stitchwing
+Aetherflame Wall
 Ajani, Inspiring Leader
 Akiri, Line-Slinger
 Alchemist's Retrieval
@@ -89,6 +90,7 @@ Clinging Mists
 Collective Unconscious
 Compelling Deterrence
 Concord with the Kami
+Cooperation
 Cracked Earth Technique
 Crawl from the Cellar
 Crovax the Cursed

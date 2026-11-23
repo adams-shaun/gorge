@@ -53,6 +53,7 @@ Migration Path
 Mines of Moria
 Most Wanted
 Myojin of Life's Web
+Myr Prototype
 Nema Siltlurker
 Norwood Ranger
 Oblivion Stone
@@ -83,6 +84,7 @@ Tangle Mantis
 Terravore
 Thaumaturge's Familiar
 The One Ring
+Thran Power Suit
 Throne of the God-Pharaoh
 Tidal Force
 Tidal Visionary
