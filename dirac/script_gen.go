@@ -1527,9 +1527,6 @@ func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 	if sp := k.t.Cards[c].SpellCost; sp.Flags != 0 || sp.N != 0 || sp.Ctr != 0 {
 		return false // an additional sacrifice or tap part keeps it (payment_plan.go spellCost)
 	}
-	if h := k.t.Cards[c].Cost; h.Hyb[0] != 0 && h.Hyb[0] != kop.HybTwobrid && !h.Phyrexian() {
-		return false // a hybrid cost is "cost:hybrid" to the cast planner: the potential composition plans it, and any credit keyword is its "cost:credit" decline whether or not an artifact is untapped (potentialModeCastPlan)
-	}
 	if !s.isImprovise(k, p, c, o, fromHand) || s.hasConvoke(k, p, c, o, fromHand) ||
 		s.hasCastDelve(k, p, c, o, fromHand) {
 		return false
@@ -1542,14 +1539,26 @@ func (s *State) improviseAloneObj(k *prep, p uint8, o Obj) bool {
 // (plannedCastCost: no hybrid pip, additional cost or the like): that planner
 // plans it plainly, so it is no "shape:contribution" decline and its
 // lowering and prefix search run like any plain cast's. A hybrid cost the
-// planner leaves to the potential planner keeps the decline (Azor's
-// Elocutors, Inside Out). plain is a cast with no permission or alternative.
+// planner leaves to the potential planner keeps the decline (Inside Out,
+// a hybrid cost with an artifact to tap; Azor's Elocutors with none is
+// planned at its raw cost). plain is a cast with no permission or alternative.
 func (s *State) contribDeclined(k *prep, p uint8, c CardID, o Obj, fromHand, plain bool) bool {
 	if !s.contribPays(k, p, c, o, fromHand) {
 		return false
 	}
+	if cost := &k.t.Cards[c].Cost; plain && (cost.X != 0 || cost.XRed != 0 || cost.XPip != 0) && !s.improviseCreditLive(k, p) &&
+		s.isImprovise(k, p, c, o, fromHand) && !s.hasConvoke(k, p, c, o, fromHand) && !s.hasCastDelve(k, p, c, o, fromHand) {
+		// an {X} spell with no artifact to tap: the credit is empty (planModeCredit), so
+		// potentialModeCastPlan prices it at its raw cost like an {X} spell without improvise
+		// (xCostLowers; CR 702.126a)
+		return false
+	}
 	if plain && s.improviseAloneObj(k, p, o) {
-		_, priced := s.plannedCastCost(k, p, o, 0)
+		// a plain hybrid cost (no artifact to tap, improviseAloneObj) is priced by the potential
+		// planner's resolved pips (planHybridCost), not declined as the cast planner's "cost:hybrid"
+		cost := &k.t.Cards[c].Cost
+		hyb := cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian()
+		_, priced := s.plannedCastCostOf(k, p, o, 0, hyb, false)
 		return !priced
 	}
 	return true
