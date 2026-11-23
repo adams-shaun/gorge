@@ -78,3 +78,9 @@ func (s *State) plainCastPainOK(k *prep, p uint8, c CardID, o Obj, cost *kop.Man
 	}
 	return s.kickedPotentialPainOK(k, p, c, o, cost)
 }
+
+// castPaysUnderPain is castGateOrPoolPays and the plain cast's summed lethal
+// guard in one answer, so priorityOptions reads one condition.
+func (s *State) castPaysUnderPain(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
+	return s.castGateOrPoolPays(k, p, c, o, cost, cav) && s.plainCastPainOK(k, p, c, o, cost)
+}
