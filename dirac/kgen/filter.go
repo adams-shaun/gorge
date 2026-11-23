@@ -204,6 +204,8 @@ const (
 	spellMayhem    = 6 // CastSa Spell.Mayhem: cast for its mayhem cost (gorge FlagMayhem; a copy reads false)
 	spellYourGrave = 7 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (a mana restriction only)
 	spellNot       = 16
+	spellGrave     = 8 // wasCastFromGraveyard: cast from a graveyard, any caster (gorge ObjectWasCastFromGraveyard: the zone, a keyword cast included)
+	spellLibrary   = 9 // wasCastFromYourLibrary: cast from a library by the caster (gorge castOriginTokens; a library cast is always from the caster's own library)
 )
 
 // cmpWasCast's CmpN (kernel PredWasCastEnter's PredN): the origin the entering
@@ -211,7 +213,7 @@ const (
 const (
 	wasCastAny       = 0
 	wasCastGrave     = 1
-	wasCastHand      = 2 // cast from its owner's hand by the permanent's controller; synthesised for Count$wasCastFromYourHandByYou, never a filter word
+	wasCastHand      = 2 // cast from its owner's hand by the permanent's controller; the filter word !wasCastFromYourHandByYou (negated) and the synthesised Count$wasCastFromYourHandByYou
 	wasCastYourGrave = 3 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (gorge castOriginTokens)
 	wasCastNot       = 4
 	wasCastSpentZero = 8  // CastSa Spell.ManaSpent EQ0: cast, and no mana was spent (gorge castSaTokenHolds)
@@ -912,20 +914,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// (lc.exwOK / lc.exwStatic)
 		c.Flags |= fExiledWith
 		return nil
-	case "wasCast", "!wasCast", "wasCastFromGraveyard", "wasCastFromYourGraveyard":
+	case "wasCast", "!wasCast", "wasCastFromGraveyard", "wasCastFromYourGraveyard", "wasCastFromYourGraveyardByYou", "!wasCastFromYourHandByYou":
 		// gorge WasCast / ObjectWasCastFromGraveyard: the permanent entering as
 		// the spell it was cast as. Read only where the kernel sees that spell
 		// still resolving: a battlefield-entering trigger's ValidCard(s)$
-		// (lc.wasCastOK)
-		n := wasCastAny
-		switch p {
-		case "!wasCast":
-			n = wasCastNot
-		case "wasCastFromGraveyard":
-			n = wasCastGrave
-		case "wasCastFromYourGraveyard":
-			n = wasCastYourGrave
-		}
+		// (lc.wasCastOK); wasCastOriginN names each spelling's read
+		n := wasCastOriginN(p)
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastWebSling && n == wasCastAny {
 			// wasCast beside webSlinged, which already implies the cast
 			return nil
@@ -940,21 +934,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		return c.setCmp(cmpWasCast, 0, n, "", "")
-	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile":
+	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile", "!wasCastFromExile", "wasCastFromYourLibrary":
 		// gorge's cast-provenance words (rules castProvenanceAdmits), read on
 		// a spell on the stack: lc.spellProvOK says the filter is a SpellCast
-		// ValidCard$ or a spell's own ConditionPresent$
-		n := spellHand
-		switch p {
-		case "!wasCastFromYourHand", "!wasCastFromTheirHand":
-			// gorge reads wasCastFromTheirHand as a cast from a hand, any
-			// caster (cast_provenance.go): the same predicate as YourHand
-			n = spellHand | spellNot
-		case "wasCastFromYourHandByYou":
-			n = spellHandBy
-		case "wasCastFromExile":
-			n = spellExile
-		}
+		// ValidCard$ or a spell's own ConditionPresent$; spellOriginN names
+		// each spelling's read
+		n := spellOriginN(p)
 		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand"
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
 			c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
