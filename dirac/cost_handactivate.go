@@ -57,7 +57,7 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 					aff = t.affords(mana, pipMaskOf(mana), 0)
 				}
 			}
-			census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0))
+			census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) && !(mana == &a.Cost.Mana && s.handActFiltAffords(k, p, mana, av))
 			script := census && s.handActScriptPays(k, p, o, ai)
 			if census && !script && !s.handActTapXRoute(k, p) {
 				continue
@@ -86,6 +86,33 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			}
 		}
 	}
+}
+
+// handActFiltAffords: the paid filter sources (Golgari Signet's "{1}, {T}: Add
+// {B}{G}") fund a hand activation's mana beside the plain sources, each fee
+// taken out of the other mana (CR 605.3a-b, 602.2b): Spectator Seating's {W}
+// pays the Signet's {1}, and the Signet's {B}{G} pays Hollow One's cycling
+// {2}. gorge prices a hand ability on the payment planner's census, which
+// lists such a filter; the plain census leaves every filter out. The window's
+// own filter walk (faceReachFilters) charges each fee from the rest, so a
+// filter whose fee takes the only mana of a colour the cost needs does not
+// pay it (Herd Migration's {1}{G} over a Bountiful Promenade and a Desolate
+// Mire). Only the printed cost: a reduced one (Otawara's channel, costs {1}
+// less per legendary creature) stays priced by the plain census alone, where
+// the filter walk offers a play gorge does not (measured on the Otawara
+// repro). Only in the real offer walk (availX 0): the script walks (availX
+// nonzero) price a hand activation on the census alone, as the payment's
+// prefix search does, so a filter-funded cycling the walk admitted there left
+// the play's own payment to the plain planner and stranded the card in hand
+// (Wormwood Treefolk's Elven Chorus mana, Minion of Tevesh Szat's Fetid Heath
+// fee). Cold, out of line.
+//
+//go:noinline
+func (s *State) handActFiltAffords(k *prep, p uint8, mana *kop.ManaCost, av *avail) bool {
+	if s.g.availX != 0 || k.gen == nil || !k.gen.anyFilt || !s.scriptFilt(k, p).any() {
+		return false
+	}
+	return s.faceReachFilters(k, p, av, mana, 0, NoSlot)
 }
 
 // handActCensusPays is gorge's hand-zone ability gate (legal_walk_battlefield:
