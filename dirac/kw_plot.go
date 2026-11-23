@@ -153,11 +153,15 @@ func (s *State) offerSpecialHand(k *prep, d *Decision, p uint8, o Obj, c CardID,
 		s.walkHandAvail(k, p, payDesc{class: pdOther, src: NoSlot}, &ha)
 		av = &ha
 	}
-	if !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrOtherFallback(k, p, &pc, av)) {
+	census := !av.affords(&pc, pipMaskOf(&pc), 0) && (!s.rbAny(p) && !k.restrSrc || !s.restrOtherFallback(k, p, &pc, av))
+	if census && !s.handActTapXRoute(k, p) {
 		return
 	}
 	if s.castHeldOut(o) || k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return // gorge castSuppressed / castRestricted gate the hand card first
+	}
+	if census && !s.handActTapXPays(k, p, act) {
+		return // CR 702.62a, 605.3a: the tap-another route (Urza) funds the special action, as handActTapXPays prices a hand activation
 	}
 	d.add(act)
 }
