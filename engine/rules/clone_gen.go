@@ -491,6 +491,12 @@ func cloneFieldsEngineResolution(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.sourceCharLKI[k0] = nv0
 		}
 	}
+	if e.departedColors != nil {
+		c.departedColors = make(map[state.ObjID]string, len(e.departedColors))
+		for k0, v0 := range e.departedColors {
+			c.departedColors[k0] = v0
+		}
+	}
 	if e.delayedSourceCharLKI != nil {
 		c.delayedSourceCharLKI = make(map[state.ObjID]sourceCharSnapshot, len(e.delayedSourceCharLKI))
 		for k0, v0 := range e.delayedSourceCharLKI {
