@@ -16,7 +16,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var useLgExempt = newGenUse(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatIgnoreLegendRule) })
 
 // legendExemptGen reports whether a live StatIgnoreLegendRule static exempts
-// the permanent at sl from the legend rule (gorge legendRuleExempt).
+// the permanent at sl from the legend rule (gorge legendRuleExempt). Its own
+// scan, not staticFlagGen: the blanket form (Mirror Gallery) carries no
+// ValidCard$, and matchPermGen's empty filter matches nothing.
 func (s *State) legendExemptGen(k *prep, sl Slot) bool {
-	return s.staticFlagGen(k, kop.StatIgnoreLegendRule, sl)
+	if k.gen == nil || !k.gen.uses.has(useLgExempt) {
+		return false
+	}
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatIgnoreLegendRule && s.statCond(k, st) &&
+			(a.Static.Filter == 0 || s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull)) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
 }

@@ -23,12 +23,30 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var useMustBlkStat = newGenUse(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatMustBlock) })
 
 // blockDutyStatic is the defending player's permanents a live StatMustBlock
-// static binds.
+// static binds. Its own scan per slot, not staticFlagGen: an absent
+// ValidCreature$ (gorge matches any creature) carries Filter 0, and
+// matchPermGen's empty filter matches nothing.
 func (s *State) blockDutyStatic(k *prep) slotMask {
 	out := slotMask{}
+	if k.gen == nil || !k.gen.uses.has(useMustBlkStat) {
+		return out
+	}
 	for m := s.ctrlM[s.blockDef()]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.typesAt(k, sl)&kop.TCreature != 0 && s.staticFlagGen(k, kop.StatMustBlock, sl) {
+		if s.typesAt(k, sl)&kop.TCreature == 0 {
+			continue
+		}
+		hit := false
+		s.eachStatic(k, func(st statSrc) bool {
+			a := st.a
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustBlock && s.statCond(k, st) &&
+				(a.Static.Filter == 0 || s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull)) {
+				hit = true
+				return false
+			}
+			return true
+		})
+		if hit {
 			out = out.with(sl)
 		}
 	}

@@ -1,6 +1,11 @@
 package kgen
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
 
 // The T17b static-mode ports: each mode's census example cards lower.
 // These are the sole-blocker carriers of the four classes — a card listed
@@ -31,4 +36,38 @@ func TestStatModePortsLower(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestStatModePortsRefuses: the shapes the four modes' bodies do not model
+// refuse by name, fail-closed the way gorge reads them — a MustBlock
+// ValidCard$ binds nothing in gorge's matcher, an UnspentMana player scope
+// the fold does not read would over-protect, an unknown ManaType$ word leaves
+// the line out of gorge's keep set.
+func TestStatModePortsRefuses(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		params map[string]string
+		want   string
+	}{
+		{"MustBlock ValidCard", map[string]string{"Mode": "MustBlock", "ValidCard": "Creature"}, "MustBlock ValidCard"},
+		{"UnspentMana opponent scope", map[string]string{"Mode": "UnspentMana", "ValidPlayer": "Player.Opponent"}, "UnspentMana ValidPlayer"},
+		{"UnspentMana unknown colour", map[string]string{"Mode": "UnspentMana", "ManaType": "Sprocket"}, "UnspentMana ManaType"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			lc := statLower(t, c.params)
+			if len(lc.Refusals) == 0 || !strings.Contains(lc.Refusals[0].Reason, c.want) {
+				t.Errorf("refusals %v, want one naming %q", lc.Refusals, c.want)
+			}
+		})
+	}
+}
+
+// statLower lowers one synthesized S: static with the given params.
+func statLower(t *testing.T, params map[string]string) *lCard {
+	t.Helper()
+	face := &cards.Face{Name: "Synthetic", ManaCost: "1 W", Types: []string{"Enchantment"},
+		Statics: []cards.Static{{Mode: params["Mode"], Params: params}}}
+	card := &cards.Card{Faces: []*cards.Face{face}}
+	p := &pool{byName: map[string]*cards.Card{"Synthetic": card}, nDecks: map[string]int{}, reg: &cards.Registry{}}
+	return lowerCard(p, "Synthetic", card, false)
 }
