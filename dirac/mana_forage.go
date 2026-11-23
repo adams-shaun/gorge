@@ -248,6 +248,45 @@ func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
 	return forage() || sib >= 0 && plain()
 }
 
+// forageOther is forageSource's branch in the filter search (comboAnyOther): the
+// same asks and nodes, the forage source one gap of the filter search's path.
+func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	c := t.cardAt(sl)
+	j := int(k.gen.gapOther(c))
+	sib, _ := forageSibling(&k.t.Cards[c], j)
+	if !fs.tick() { // the activation's first ask
+		return false
+	}
+	var opts [MaxPerm + 1]Slot
+	n := t.forageOpts(k, fs.p, sl, &opts)
+	units := t.caAmount(k, sl)
+	forage := func() bool {
+		if sib >= 0 && !fs.tick() { // the forage ask (two or more options), else the colour ask
+			return false
+		}
+		for oi := 0; oi < n; oi++ {
+			o := oi
+			if DebugForagePickLast {
+				o = n - 1 - oi
+			}
+			if n >= 2 && !fs.tick() { // the colour ask after the forage answer
+				return false
+			}
+			for r, na := 0, caAnswerCount(units); r < na; r++ {
+				if try(otherStep{kind: otherComboAny, ans: uint8(caRank(units, &fs.need, r)), fo: uint8(o)}) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	plain := func() bool { return try(otherStep{kind: otherComboAny, sib: true}) }
+	if sib >= 0 && sib < j {
+		return plain() || forage()
+	}
+	return forage() || sib >= 0 && plain()
+}
+
 // forageReplay plays the found script's step st of the forage source on s.
 func (s *State) forageReplay(k *prep, p uint8, st caStep) {
 	if st.sib {
