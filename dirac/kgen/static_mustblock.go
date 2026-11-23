@@ -9,13 +9,24 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // spelling it must not lower: gorge's matcher would bind nothing and the
 // kernel's blockDuty would. The kernel reads it live in blockDuty beside the
 // ExtBlocksIfAble mark (dirac/static_mustblock.go), so the lowering carries
-// only the filter; the shared gates (Condition$, IsPresent$) ride Cond2.
+// only the filter; a shared gate (Condition$, IsPresent$) refuses, because
+// gorge gates the printed static only in MustBlockPairRequired
+// (combat/block.go) while the kernel gates at the candidates read.
 func init() {
 	staticMode("MustBlock", (*staticCtx).modeMustBlock)
 }
 
 func (sc *staticCtx) modeMustBlock() ([]lStatic, bool, error) {
 	sp := sc.sp
+	if sc.st.Cond.Kind != cNone {
+		// gorge gates a printed MustBlock only in MustBlockPairRequired
+		// (combat/block.go), never in MustBlockCandidates; the kernel gates
+		// at the candidates read (blockDutyStatic's statCond), so a gated
+		// spelling would demand the block in gorge and not here. No corpus
+		// carrier spells one (the census shape is the bare
+		// ValidCreature$ Card.Self|Creature), so refuse the shape.
+		return nil, true, refuse("MustBlock with a Condition$ / IsPresent$ / CheckSVar$ gate")
+	}
 	var err error
 	if _, ok := sp.get("ValidCreature"); ok {
 		if sc.st.F, err = sc.readF("ValidCreature"); err != nil {

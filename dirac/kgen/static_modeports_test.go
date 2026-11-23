@@ -53,6 +53,7 @@ func TestStatModePortsRefuses(t *testing.T) {
 		want   string
 	}{
 		{"MustBlock ValidCard", map[string]string{"Mode": "MustBlock", "ValidCard": "Creature"}, "MustBlock ValidCard"},
+		{"MustBlock with a condition", map[string]string{"Mode": "MustBlock", "ValidCreature": "Card.Self", "Condition": "PlayerTurn"}, "MustBlock with a Condition$"},
 		{"UnspentMana opponent scope", map[string]string{"Mode": "UnspentMana", "ValidPlayer": "Player.Opponent"}, "UnspentMana ValidPlayer"},
 		{"UnspentMana unknown colour", map[string]string{"Mode": "UnspentMana", "ManaType": "Sprocket"}, "UnspentMana ManaType"},
 	} {
