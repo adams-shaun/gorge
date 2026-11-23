@@ -730,6 +730,9 @@ func (s *State) availGrant(k *prep, sl Slot, pc *pcard, a *avail) {
 	var gi [maxGrants]int16
 	ng := s.grantIdxs(k, sl, &gi)
 	own := s.ownManaUsable(k, sl)
+	if ng == 0 && pc.altCol != 0 && s.addAltExcl(k, sl, pc, a) {
+		return // a land's own ability beside its granted intrinsic one, a grant-free source of a table that has grants (static_landgrantalt.go)
+	}
 	// A may-play cast's join census (mayPlayJoinCensusPays: availNoAnyGrant)
 	// credits no any-colour grant: gorge's payment planner prices no granted
 	// mana ability (pay.PaymentAbility holds grants out of the census's
