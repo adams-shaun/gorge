@@ -163,6 +163,12 @@ func (s *State) reflAmtDo(k *prep, p uint8, sl Slot, col int) {
 // colours moved to the front (scriptOrderAnswers). out must hold 6; the
 // returned slice is the answers.
 func (s *State) reflAmtOrder(k *prep, sl Slot, a Action, out []uint8) []uint8 {
+	return s.reflAmtOrderNeed(k, sl, s.playNeed(k, a), out)
+}
+
+// reflAmtOrderNeed is reflAmtOrder for a play whose announced colours are
+// already read (the filter search's need).
+func (s *State) reflAmtOrderNeed(k *prep, sl Slot, need [kop.NumManaKinds]bool, out []uint8) []uint8 {
 	m := s.reflAmtCols(k, sl)
 	n := 0
 	for m != 0 {
@@ -170,8 +176,46 @@ func (s *State) reflAmtOrder(k *prep, sl Slot, a Action, out []uint8) []uint8 {
 		n++
 		m &= m - 1
 	}
-	needFirst(out[:n], s.playNeed(k, a))
+	needFirst(out[:n], need)
 	return out[:n]
+}
+
+// reflAmtNone is the filter search's answer of a reflected Amount$ source with
+// no candidate: the tap, no mana (reflAmtChainTap's empty branch).
+const reflAmtNone = 0xff
+
+// reflAmtOther branches reflected Amount$ gap sl's colour ask at a priority
+// node of the filter search: the candidates in engine order, the colours the
+// play announces first, one answer when a single candidate names no ask. The
+// answer is the colour the whole amount floats in (reflAmtDo), not a Combo Any
+// allocation (comboAnyOther).
+func (fs *filtSearch) reflAmtOther(t *State, k *prep, sl Slot, try func(otherStep) bool) bool {
+	var order [6]uint8
+	cols := t.reflAmtOrderNeed(k, sl, fs.need, order[:])
+	if len(cols) == 0 {
+		return try(otherStep{kind: otherComboAny, ans: reflAmtNone})
+	}
+	if len(cols) > 1 && !fs.tick() {
+		return false // the colour ask's node
+	}
+	for _, col := range cols {
+		if try(otherStep{kind: otherComboAny, ans: col}) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflAmtOtherDo plays the filter search's step of reflected Amount$ source sl.
+func (s *State) reflAmtOtherDo(k *prep, p uint8, sl Slot, ans uint8) {
+	if ans != reflAmtNone {
+		s.reflAmtDo(k, p, sl, int(ans))
+		return
+	}
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.tapExtraStall(k, sl)
 }
 
 // reflAmtAnswers is the colour ask's answer count (one, the deterministic
