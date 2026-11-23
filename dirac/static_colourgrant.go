@@ -141,3 +141,19 @@ func (s *State) applyAskColGrant(k *prep, a Action) bool {
 	s.continueRes(k, 0)
 	return true
 }
+
+// chooseColorRes is ExtChooseColorRes: the resolving controller is asked for
+// a colour (raChooseColorRes) and the instruction stops for the answer
+// (false). C = 1 (OrColors$ True, Quickchange, Shyft): gorge effChooseColor
+// cannot ask the shape (chooseColorOptions: unaskable, a Note) and records
+// the first-WUBRG fallback "W" without a decision, so the resolution's
+// colour is white and the instruction runs on (true).
+func (s *State) chooseColorRes(in *kop.Instr) bool {
+	if in.C == 1 {
+		s.res.chosen = objWord(1)
+		s.res.col = 1 // the ChosenColor filters' copy (applyAskColGrant)
+		return true
+	}
+	s.res.ask, s.res.askP = raChooseColorRes, s.res.e.ctrl
+	return false
+}

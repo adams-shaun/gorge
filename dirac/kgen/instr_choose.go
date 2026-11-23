@@ -28,8 +28,9 @@ func init() {
 
 func (ic *instrCtx) opChooseColorRes() error {
 	ki := &ic.ki
-	// (Skrelv) OpExt ExtChooseColorRes
-	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes))
+	// (Skrelv) OpExt ExtChooseColorRes; C = 1 the no-ask white answer of
+	// OrColors$ (lower_choosecolor.go chooseColorOrColors)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseColorRes)), int16(ic.in.C)
 	return nil
 }
 

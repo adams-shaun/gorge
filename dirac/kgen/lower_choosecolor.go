@@ -35,3 +35,20 @@ func chooseColorExclude(ps *params) (int, error) {
 	}
 	return m, nil
 }
+
+// chooseColorOrColors reads a mid-resolution ChooseColor's OrColors$ True
+// ("becomes the color or colors of your choice", Quickchange, Shyft). gorge
+// effChooseColor (chooseColorOptions) cannot ask the shape: it notes it and
+// records the first-WUBRG fallback "W" with no decision, so the lowering is
+// the resolution's no-ask white answer (ExtChooseColorRes C = 1). Any other
+// value refuses.
+func chooseColorOrColors(ps *params) (bool, error) {
+	v, ok := ps.get("OrColors")
+	if !ok {
+		return false, nil
+	}
+	if !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return false, refuse("ChooseColor OrColors$ %q", v)
+	}
+	return true, nil
+}
