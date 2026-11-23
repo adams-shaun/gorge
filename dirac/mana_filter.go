@@ -2260,7 +2260,9 @@ func (fs *filtSearch) skipSlot(k *prep, t *State, sl Slot, gap, freeOnly bool, p
 			// fee (Hydraulic Helper's artifact-only {U} funding Baxter
 			// Building's {4} for Shuri).
 			d := t.grantPayDesc(k, fs.a)
-			if !t.gapSpendable(k, sl, &d) {
+			if !t.gapSpendable(k, sl, &d) && !fs.gapFeeSpendable(k, t, sl) {
+				// (still a funding source for a census gap's fee: a Powerstone's
+				// {C} pays Hall of Tagsin's {1}, CR 106.6, as coveredSpendable)
 				return true
 			}
 		}
@@ -3334,11 +3336,15 @@ func (fs *filtSearch) coveredSpendable(k *prep, t *State, sl Slot) bool {
 	if t.gapSpendable(k, sl, &d) {
 		return true
 	}
-	// a restricted covered source can still pay a census gap's activation
-	// fee even when the play itself cannot spend it (Vhal's "{C} ... can't
-	// be spent to cast a spell from hand" pays School of the Unseen's {2},
-	// whose mana the cast spends, CR 106.6): the fee is an activation of the
-	// gap, not the play, so test each gap source
+	return fs.gapFeeSpendable(k, t, sl)
+}
+
+// gapFeeSpendable: a restricted covered source can still pay a census gap's
+// activation fee even when the play itself cannot spend it (Vhal's "{C} ...
+// can't be spent to cast a spell from hand" pays School of the Unseen's {2},
+// whose mana the cast spends, CR 106.6): the fee is an activation of the gap,
+// not the play, so test each gap source.
+func (fs *filtSearch) gapFeeSpendable(k *prep, t *State, sl Slot) bool {
 	for b := fs.gaps.or(fs.other); b.any(); b = b.rest() {
 		if gid := b.first(); gid != sl {
 			fd := payDesc{class: pdAct, card: t.cardAt(gid), src: gid}
