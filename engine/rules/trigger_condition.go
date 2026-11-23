@@ -106,8 +106,14 @@ func (e *Engine) evolveResolves(source state.ObjID, tc *effects.TriggerContext) 
 // triggerResolvingCheckHolds); every fire-time site (triggerMatches,
 // the event-matched delayed walker, the AttackerBlocked hook) keeps its own
 // check.
+// modeIsAlways reports a CR 603.8 Mode$ Always state trigger: an ability that
+// triggers from the game state alone, with no event to match.
+func modeIsAlways(t cards.Trigger) bool {
+	return t.Mode == "Always"
+}
+
 func noResolvingCheck(t cards.Trigger) bool {
-	if t.Mode == "Always" {
+	if modeIsAlways(t) {
 		// CR 603.8: a state-triggered ability triggers when the game state
 		// matches its condition and does not trigger again until it has left
 		// the stack. Nothing in 603.8 rechecks the condition as the ability
