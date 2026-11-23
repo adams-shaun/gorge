@@ -1374,6 +1374,9 @@ type filtKey struct {
 	sp   uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
 	hand uint8
 	gy   uint8
+	// hh: 1 when the searched spell's own card is still in hand
+	// (State.playInHand; zero for a play that is no cast), gorge's scriptStateKey.
+	hh uint8
 }
 
 // maxFiltPath bounds one searched path. gorge's scriptSearch has no path
@@ -1999,7 +2002,11 @@ var DebugFiltNodeBudget int
 
 // DebugFiltTryGapExempt limits try's priced-node exemption from the visited-set
 // cut to gap lines, as it was before the hand guides' funding pass shared it
-// (mutation testing only: the Spirit Guide lockstep must catch it).
+// (mutation testing only: the Spirit Guide lockstep must catch it). It also
+// leaves out the mark of the play's own card in hand (filtKey.hh): that mark
+// tells apart the states a guide's exile of the play's own card and of another
+// guide would otherwise share, so with it the exemption's nodes are keyed
+// apart already and only this older, coarser key makes the cut observable.
 var DebugFiltTryGapExempt bool
 
 // tick counts one visited node; false once the budget is spent.
@@ -2228,8 +2235,8 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 		// so a priced node is never skipped. The budget is potentialScriptNodes
 		// *distinct* states. A node is priced only once a gap or a hand guide
 		// has made mana the raw priority list did not count (visit's scan), and
-		// a guide's exile leaves the same key whichever guide it was (the
-		// play's own card among them).
+		// a guide's exile leaves the same key whichever guide it was, bar the
+		// play's own card (hh).
 		if fs.feeOnly && !((gapUsed || fs.hands > 0 && !DebugFiltTryGapExempt) && fs.offers(k, c)) && fs.seenKey(k, c) {
 			fs.n--
 			if life {
@@ -2276,7 +2283,14 @@ func (fs *filtSearch) stallOf(c *State) {
 
 // stateKey is the visited-state key of node t.
 func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
-	return t.scriptKey(k, fs.p, fs.other)
+	key := t.scriptKey(k, fs.p, fs.other)
+	// whether the searched spell's own card is still in hand, beside the hand's
+	// size (gorge's scriptStateKey): a loot that discards that card or another
+	// leaves two states.
+	if t.playInHand(fs.p, fs.a) && !DebugFiltTryGapExempt {
+		key.hh = 1
+	}
+	return key
 }
 
 // seenTable is the visited set the active search fills: the play search's

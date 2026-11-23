@@ -389,6 +389,9 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 		}
 	}
 	key := t.scriptKey(k, cs.p, slotMask{})
+	if t.playInHand(cs.p, cs.a) {
+		key.hh = 1
+	}
 	for i := 0; i < cs.nseen; i++ {
 		if cs.seen[i] == key {
 			return false
