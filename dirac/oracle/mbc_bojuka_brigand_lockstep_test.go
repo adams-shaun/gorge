@@ -7,8 +7,9 @@ import "testing"
 // prevent X of that damage" both apply to the attackers' combat damage to the
 // Alchemist's controller, so gorge asks that player which applies first, with
 // the line's skip (decision 1668 of tail-76-c000 pair 52). The kernel dropped
-// the optional line and dealt the damage without the ask; it now stalls loud
-// (replplus) on the competition, so the recording is a declared stall.
+// the optional line and dealt the damage without the ask; it now poses the ask
+// (the optional line beside full preventions, spOptionalAsk), so the recording
+// replays in lockstep with no stall.
 func TestMBCBojukaBrigandReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "scoped_prevention_beside_optional_static_prevention")
