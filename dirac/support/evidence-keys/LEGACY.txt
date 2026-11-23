@@ -215,7 +215,6 @@ Armament Corps
 Armament Dragon
 Armguard Familiar
 Armistice
-Armix, Filigree Thrasher
 Armor Wars
 Armored Armadillo
 Armored Guardian
@@ -667,7 +666,6 @@ Cheerful Osteomancer
 Chekov and McCoy
 Chelonian Tackle
 Chief Kyle, Transporter Tech
-Chief Magistrate of Mercadia
 Chief Warg's Company
 Child of Alara
 Child of Gaea
@@ -842,7 +840,6 @@ Cuboid Colony
 Culling Dais
 Culling Ritual
 Cultbrand Cinder
-Cultivate
 Cultivator Colossus
 Cunning Strike
 Curious Forager
@@ -2039,7 +2036,6 @@ Jeskai Revelation
 Jeskai Shrinekeeper
 Jet, Freedom Fighter
 Jetmir, Nexus of Revels
-Jewel Thief
 Jhessian Balmgiver
 Jhessian Zombies
 Jhoira, Ageless Innovator
@@ -2086,7 +2082,6 @@ Karador, Ghost Chieftain
 Karakyk Guardian
 Karametra's Acolyte
 Karfell Kennel-Master
-Karlach, Fury of Avernus
 Karn, Argent Defender
 Karrthus, Tyrant of Jund
 Kastral, the Windcrested
@@ -2998,7 +2993,6 @@ Promise of Power
 Promise of Tomorrow
 Promising Duskmage
 Prompto Argentum
-Propaganda
 Prophesied End
 Prophetic Titan
 Prosper, Tome-Bound
@@ -4490,7 +4484,6 @@ Voracious Wurm
 Vorel of the Hull Clade
 Vorosh, the Hunter
 Vote Out
-Vow of Duty
 Vow to Erebor
 Voyage's End
 Voyager Quickwelder

@@ -160,6 +160,7 @@ Furnace Hellkite
 Galvanic Iteration
 Garenbrig Squire
 Geth's Grimoire
+Ghosthelm Courier
 Gilt-Leaf Palace
 Glory Bearers
 Gluttonous Zombie
@@ -282,6 +283,7 @@ Organ Hoarder
 Orim's Touch
 Paradox Engine
 Path of Anger's Flame
+Pearlspear Courier
 Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
