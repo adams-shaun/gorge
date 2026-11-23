@@ -606,7 +606,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	if k.gen == nil {
 		return true
 	}
-	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p)) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+	if (len(k.gen.grantPC) != 0 || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
 		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
 	}
 	if s.dhWithholdsCast(k, p, o, &cost) {
