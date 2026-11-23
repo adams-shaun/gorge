@@ -1767,12 +1767,19 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	lc.exwOK = zone == zExile
 	optional := !ps.is("Mandatory", "True")
 	choices := ps.str("Choices")
+	oppChooser := false
 	if v := ps.str("ControlledByPlayer"); v != "" && !optional {
-		// the kernel evaluates a mandatory ChooseCard from the resolving
-		// controller too, but no lowered mandatory shape applies the
-		// restriction: applying it only under optional would silently draw
-		// the candidates from every seat, so refuse instead.
-		return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+		// gorge controlledByChoicePlayerChooser: the pool is the chooser's own
+		// objects. The kernel matches a mandatory pick's pool from the
+		// resolving controller's seat, so the restriction is spelled in that
+		// base (chooseCardChooserPool); any other value refuses.
+		prop, opp, ok := chooseCardChooserPool(lc, ps, v, targeted)
+		if !ok {
+			return refuse("mandatory ChooseCard ControlledByPlayer$ %q", v)
+		}
+		choices = addFilterProp(choices, prop)
+		oppChooser = opp
+		ps.consume("ControlledByPlayer")
 	}
 	if cbp := ps.str("ControlledByPlayer"); cbp != "" && optional {
 		// gorge controlledByChoicePlayer Chooser: the pick's pool is the
@@ -1815,8 +1822,8 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
 			// Slaughter, Wormfang Crab). Without the armed choice it is
 			// unresolved and refuses.
-			if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
-				(v != "ChosenPlayer" && v != "Player.Chosen") {
+			if !(oppChooser && v == "Opponent") && (lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
+				(v != "ChosenPlayer" && v != "Player.Chosen")) {
 				return refuse("ChooseCard Defined$ %q", v)
 			}
 			chooser = lRef{Kind: rEachOpp}
@@ -1853,7 +1860,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		}
 		ps.consume("Defined", "MinAmount")
 	}
-	if optional && (zone != zBattlefield || ps.str("Amount") != "" && ps.str("Amount") != "1") {
+	if optional && (!optionalPickZone(zone) || ps.str("Amount") != "" && ps.str("Amount") != "1") {
 		return refuse("optional ChooseCard")
 	}
 	if !targeted && !fromDefined {
@@ -1873,6 +1880,40 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// optionalPickZone reports the zones an optional (up to one) ChooseCard
+// picks from through the kernel's pool walk: the battlefield and the three
+// per-player card zones (the library has its own shape, chooseLibraryUpTo).
+func optionalPickZone(z int) bool {
+	return z == zBattlefield || z == zHand || z == zGraveyard || z == zExile
+}
+
+// chooseCardChooserPool is a mandatory ChooseCard's ControlledByPlayer$
+// Chooser as the filter property that restricts the pool to the chooser's own
+// objects in the kernel's base: the resolving controller's own pick (no
+// Defined$, or You) is YouCtrl; an opponent's (Defined$ Opponent, or the
+// armed ChoosePlayer's Defined$ ChosenPlayer; the one opponent in a two-seat
+// pod) is OppCtrl, because the kernel matches that pick's pool from the
+// resolving controller (chooseCardBase). opp reports the second. A target
+// chooser, each-player Defined$ and every other value are not lowered.
+func chooseCardChooserPool(lc *lowerCtx, ps *params, v string, targeted bool) (prop string, opp, ok bool) {
+	if v != "Chooser" || targeted {
+		return "", false, false
+	}
+	switch d := ps.str("Defined"); d {
+	case "", "You":
+		return "YouCtrl", false, true
+	case "Opponent":
+		lc.twoSeat("ChooseCard pool of the one opponent's objects")
+		return "OppCtrl", true, true
+	case "ChosenPlayer", "Player.Chosen":
+		if lc.chosenOppAb != nil && lc.chosenOppAb == lc.ab {
+			lc.twoSeat("ChooseCard pool of the one opponent's objects")
+			return "OppCtrl", true, true
+		}
+	}
+	return "", false, false
 }
 
 // chooseLibraryUpTo lowers an optional ChooseCard among the library cards the
