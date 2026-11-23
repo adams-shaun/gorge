@@ -811,11 +811,13 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 // plainPricedCost reports whether ab's printed cost is one the plain planner
 // prices without the asks a build poses first: no X, hybrid, snow, Phyrexian,
 // own-reduce, power-up, waterbend, tap-X or sacrifice part (plainListedPays,
-// actScriptPays).
+// actScriptPays); an announced Sac<X/Spec> is priced at its cheapest announcement
+// (actSourcesAfford: X = 0), so it reads as plain mana.
 func plainPricedCost(ab *kop.Ability) bool {
 	return !(ab.Cost.Mana.X != 0 || ab.Cost.XMin != 0 || ab.Cost.Mana.Hyb[0] != 0 ||
 		ab.Cost.Mana.Snow != 0 || ab.Cost.Mana.Phyrexian() || ab.OwnReduce != (kop.ValueRef{}) ||
-		ab.Cost.Flags&(kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSac|kop.CostSacSelf) != 0)
+		ab.Cost.Flags&(kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf) != 0 ||
+		ab.Cost.Flags&kop.CostSac != 0 && !sacXCost(&ab.Cost))
 }
 
 // scriptPrefix plays gorge's script for play a: the search's script, played
