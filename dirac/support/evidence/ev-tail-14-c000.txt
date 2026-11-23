@@ -241,6 +241,7 @@ Living Lightning
 Living Tsunami
 Llanowar Elite
 Llanowar Scout
+Lone Wolf
 Loran's Escape
 Lorescale Coatl
 Lothlórien Lookout

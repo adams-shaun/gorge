@@ -103,6 +103,7 @@ Feign Death
 Field Marshal
 Fiend Artisan
 Fiery Finish
+Fire-Lit Thicket
 Fireblade Artist
 Fireblast
 Flametongue Kavu
@@ -227,6 +228,7 @@ Oggyar Battle-Seer
 Ominous Parcel
 Pariah's Shield
 Passionate Archaeologist
+Pattern Matcher
 Pentarch Ward
 Phylath, World Sculptor
 Plains
@@ -338,6 +340,7 @@ Tidespout Tyrant
 Tireless Missionaries
 Tolarian Scholar
 Torch Courier
+Tornado Elemental
 Tragic Poet
 Tranquilize
 Twilight Drover

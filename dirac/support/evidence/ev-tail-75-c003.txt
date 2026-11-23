@@ -125,11 +125,13 @@ Flowstone Charger
 Forest
 Forked-Branch Garami
 Foxfire Oak
+Gary Clone
 Gift of Fangs
 Gift of Paradise
 Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
+Golem-Skin Gauntlets
 Great Defender
 Greater Harvester
 Grim Tutor
@@ -269,6 +271,7 @@ Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
+Siege Behemoth
 Sigil of Valor
 Silent Extraction
 Simian Brawler
@@ -344,6 +347,7 @@ Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Woolly Razorback
 Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
