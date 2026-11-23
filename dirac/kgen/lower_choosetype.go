@@ -252,3 +252,24 @@ func (lc *lowerCtx) chooseCreatureTypeMid(ps *params) error {
 	lc.emit(in)
 	return nil
 }
+
+// etbChooseType lowers an as-enters ChooseType by its Type$: creature types and
+// the basic land types lower, any other pool refuses.
+func (lc *lowerCtx) etbChooseType(ps *params) error {
+	// gorge effChooseType: an absent Defined$ is the controller
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
+		return refuse("ChooseType shape")
+	}
+	switch ps.str("Type") {
+	case "Creature":
+		in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, Note: "choice among creature types"}
+		if err := lc.chooseTypeValid(ps, &in); err != nil {
+			return err
+		}
+		lc.emit(in)
+		return nil
+	case "Basic Land":
+		return lc.chooseBasicLandEnter(ps)
+	}
+	return refuse("ChooseType shape")
+}

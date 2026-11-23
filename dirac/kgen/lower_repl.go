@@ -997,23 +997,8 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChooseType":
-			// gorge effChooseType: an absent Defined$ is the controller
-			if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
-				return refuse("ChooseType shape")
-			}
-			switch ps.str("Type") {
-			case "Creature":
-				in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, Note: "choice among creature types"}
-				if err := lc.chooseTypeValid(ps, &in); err != nil {
-					return err
-				}
-				lc.emit(in)
-			case "Basic Land":
-				if err := lc.chooseBasicLandEnter(ps); err != nil { // lower_choosetype.go
-					return err
-				}
-			default:
-				return refuse("ChooseType shape")
+			if err := lc.etbChooseType(ps); err != nil { // lower_choosetype.go
+				return err
 			}
 		default:
 			return refuse("ETB replacement api %s", node.API)
