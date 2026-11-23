@@ -320,8 +320,10 @@ func (s *State) attackOffersN(k *prep, d *Decision, o Obj, sl Slot, goaded bool)
 		}
 	}
 	if q, ok := s.encoreSeat(k, sl); ok && !s.atkTaxEncoreCharged(k, sl) {
-		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0)) // kw_encore.go: the named opponent alone (CR 508.1d)
-		return false
+		// kw_encore.go: the named opponent alone (CR 508.1d); gorge's keep-loop drops every battle pair
+		// too (SatisfiedByOffer scores a battle 0), so attackerOptions adds none
+		d.add(MakeAction(AkAttack, TCode(o), PlayerCode(q), 0))
+		return true
 	}
 	for q := uint8(0); q < s.nSeats(); q++ {
 		if q == s.active || s.out(q) {
