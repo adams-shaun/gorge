@@ -2411,7 +2411,7 @@ func twinSlotFx(k *prep, t *State, a, b Slot) bool {
 // and land types alone: no record but a Table.Overrides one that loses
 // abilities, grants one, sets or adds a land subtype or a card's name, or sets
 // the types (an animate that makes the land a creature with a P/T and a
-// keyword: Wakeroot Elemental's), and no override in the perm's own record
+// keyword: Wakeroot Elemental's), a layer-2 control record aside, and no override in the perm's own record
 // beyond the generated-types mark.
 func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 	o := s.perms[sl].ovr
@@ -2423,6 +2423,9 @@ func (s *State) ovrKeepsMana(k *prep, sl Slot) bool {
 		r := &s.g.fx[i]
 		if r.sl != sl {
 			continue
+		}
+		if r.kind == fxControl {
+			continue // a layer-2 control change (Memnarch's stolen Grotto) leaves its mana abilities alone
 		}
 		if r.kind != fxOverride || r.r.idx == 0 {
 			return false
