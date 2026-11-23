@@ -1646,10 +1646,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				fs.stall = ph.stall
 			}
 		}
-	} else if !found && fs.phasedFallback(s.scriptTapsDefer(k, p)) {
+	} else if !found && (fs.phasedFallback(s.scriptTapsDefer(k, p)) || s.hybridPhasedScope(k, a, &fs)) {
 		// gorge's plain run spent its node budget on a repeatable fee-only
-		// filter's branches: its phased run walks the funding line the plain
-		// order walked past (potentialPrefixScript)
+		// filter's branches, or a hybrid-fee gap puts the play in the phased
+		// order's own scope (phasedScope): its phased run walks the funding
+		// line the plain order walked past or pruned (potentialPrefixScript)
 		ph := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
 			usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, phased: true, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
 		if found = ph.visit(k, t, 0, false); found {
