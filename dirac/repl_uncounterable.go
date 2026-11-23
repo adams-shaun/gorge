@@ -33,6 +33,20 @@ const uncOrdTag = 0xe0
 
 func init() { stallNames[StallUncounterOrder] = "uncounterorder" }
 
+// tableHasUncAnyCtrl reports whether some ReplSpellsCantBeCountered names no
+// controller scope (Repl.C = kop.ReplUncAnyCtrl): the scan then widens to
+// every battlefield permanent, each line scoping itself.
+func tableHasUncAnyCtrl(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplSpellsCantBeCountered && a.Repl.C != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // DebugUncounterOff skips the battlefield scan (the mutation: the kernel
 // counters a spell gorge refuses to).
 var DebugUncounterOff bool
@@ -178,35 +192,49 @@ func (s *State) uncGate(k *prep, i int) (unc, park bool) {
 
 // uncOrderPose poses the ask: the countered spell's controller (CR 616.1's
 // affected player, gorge replChoiceCounter's t.Controller) picks which
-// candidate applies first. The candidates are gorge counterReplacementMatchesAll's,
-// in its scan order: the battlefield matches (the spell's controller's
-// battlefield, entry order) and the spell's own line, which the printed
-// walk reads on the stack — a zone forEachObject walks under seat 0
-// (object_query.go), so it precedes another seat's battlefield and follows
-// the spell controller's own when that is seat 0. false when this run
-// cannot pose it (another order header is live, or the candidates do not
-// re-gather cleanly), which keeps the stall.
+// candidate applies first. The candidates are gorge counterReplacementMatchesAll's
+// in its scan order: each seat's battlefield in entry order, seat 0 first,
+// with the spell's own line between them — the stack is one of the zones
+// the printed walk reads under seat 0 (object_query.go), so it follows seat
+// 0's battlefield and precedes seat 1's, whoever casts the spell. false
+// when this run cannot pose it (another order header is live, more
+// candidates than the ask carries, or the candidates do not re-gather
+// cleanly), which keeps the stall.
 func (s *State) uncOrderPose(k *prep, i int, p uint8, nScan, self int) bool {
 	ro := &s.g.ro
 	total := nScan + self
 	if total > len(ro.cand) || ro.n != 0 || s.g.nc.n != 0 || !s.res.active {
 		return false
 	}
-	var cands [4]Obj
-	if n, cond := s.uncounterScan(k, &s.stack[i], &cands); n != nScan || cond {
-		return false
-	}
 	e := &s.stack[i]
-	at := 0
-	if e.ctrl != 0 && self != 0 {
-		ro.cand[0] = e.obj
-		at = 1
+	at, got, condAll := 0, 0, false
+	for seat := uint8(0); seat < s.nSeats(); seat++ {
+		var bf [MaxPerm]Slot
+		nbf := s.battlefieldOrder(seat, s.statM.and(s.ctrlM[seat]), bf[:], 0)
+		for bi := 0; bi < nbf; bi++ {
+			n1, cond := s.uncounterSrc(k, bf[bi], e)
+			if cond {
+				condAll = true
+			}
+			for j := 0; j < n1; j++ {
+				if at >= len(ro.cand) {
+					return false // loud: never truncate the candidates
+				}
+				ro.cand[at] = s.perms[bf[bi]].obj
+				at++
+			}
+			got += n1
+		}
+		if seat == 0 && self != 0 {
+			if at >= len(ro.cand) {
+				return false // loud: never truncate the candidates
+			}
+			ro.cand[at] = e.obj
+			at++
+		}
 	}
-	for j := 0; j < nScan; j++ {
-		ro.cand[at+j] = cands[j]
-	}
-	if e.ctrl == 0 && self != 0 {
-		ro.cand[at+nScan] = e.obj
+	if condAll || got != nScan || at != total {
+		return false // a conditional line, or the re-gather disagrees: the stall keeps
 	}
 	ro.n, ro.p, ro.ac, ro.fin = uint8(total), p, uncOrdTag, false
 	s.res.ask, s.res.askP = raGenUncOrder, p
@@ -307,23 +335,54 @@ func (s *State) dropUncounterGone() {
 // spell's controller's battlefield); cond reports a counted ability whose
 // Repl.Cond this count does not price, which keeps the order ask off.
 func (s *State) uncounterScan(k *prep, e *stackEntry, cands *[4]Obj) (n int, cond bool) {
-	for m := s.statM.and(s.ctrlM[e.ctrl]); m.any(); m = m.rest() {
+	// A line naming no controller scope (ReplUncAnyCtrl: Leyline of
+	// Lifeforce, Root Sliver) matches the spells of every controller, so the
+	// scan widens to every battlefield permanent and each line scopes itself
+	// (gorge counterReplacementMatchesAll's object walk with the plain
+	// counterValidSA read). Without one, the structural YouCtrl read keeps
+	// the scan on the spell's controller's permanents.
+	m := s.statM
+	if !k.uncAnyCtrl {
+		m = m.and(s.ctrlM[e.ctrl])
+	}
+	for ; m.any(); m = m.rest() {
 		src := m.first()
-		if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || k.gen != nil && s.ovrLoses(k, src) {
-			continue // the source lost its abilities
+		n1, c := s.uncounterSrc(k, src, e)
+		if c {
+			cond = true
 		}
-		cd := &k.t.Cards[s.cardAt(src)]
-		for j := range cd.Abilities {
-			a := &cd.Abilities[j]
-			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplSpellsCantBeCountered && s.uncounterMatch(k, a.Repl.Filter, e) {
-				if a.Repl.Cond != 0 {
-					cond = true // gorge replacementConditionHolds gates this line too
-				}
-				if cands != nil && n < len(cands) {
-					cands[n] = s.perms[src].obj
-				}
-				n++
+		for j := 0; j < n1; j++ {
+			if cands != nil && n < len(cands) {
+				cands[n] = s.perms[src].obj
 			}
+			n++
+		}
+	}
+	return n, cond
+}
+
+// uncounterSrc counts the live ReplSpellsCantBeCountered abilities of the
+// permanent at src whose Filter matches the spell of stack entry e (still
+// with its abilities), and reports whether a matched line's Repl.Cond is one
+// the count does not price.
+func (s *State) uncounterSrc(k *prep, src Slot, e *stackEntry) (n int, cond bool) {
+	if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || k.gen != nil && s.ovrLoses(k, src) {
+		return 0, false // the source lost its abilities
+	}
+	cd := &k.t.Cards[s.cardAt(src)]
+	for j := range cd.Abilities {
+		a := &cd.Abilities[j]
+		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplSpellsCantBeCountered {
+			continue
+		}
+		if a.Repl.C == 0 && s.perms[src].ctrl != e.ctrl {
+			continue // the source's controller casts the spell (the YouCtrl read)
+		}
+		if s.uncounterMatch(k, a.Repl.Filter, e) {
+			if a.Repl.Cond != 0 {
+				cond = true // gorge replacementConditionHolds gates this line too
+			}
+			n++
 		}
 	}
 	return n, cond

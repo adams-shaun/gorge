@@ -2736,25 +2736,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	}
 	switch r.Kind {
 	case "EntersWith":
-		switch {
-		case len(r.Prog) == 1 && r.Prog[0].Op == "EnterTapped" && r.Cond.Kind == cNone:
-			rp.Kind = kop.ReplEntersTapped
-		case len(r.Prog) == 1 && r.Prog[0].Op == "EnterWithCounters" && r.Prog[0].A.isConst() && r.Cond.Kind == cNone:
-			rp.Kind = kop.ReplEntersWithCounters
-			rp.A = int16(r.Prog[0].A.N)
-			k, err := counterKind(r.Prog[0].CS)
-			if err != nil {
-				return ka, err
-			}
-			rp.C = int16(k)
-		default:
-			rp.Kind = kop.ReplEntersProgram
-			if r.S == "Updated" {
-				rp.C = kop.ReplAfterEnter
-			}
-			if ka.Prog, err = cb.prog(r.Prog); err != nil {
-				return ka, err
-			}
+		if err := cb.replEntersWith(r, &ka); err != nil {
+			return ka, err
 		}
 	case "OthersEnterWith":
 		rp.Kind = kop.ReplOthersEnterProgram
@@ -2944,10 +2927,81 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("life plus %v", r.N)
 		}
 		rp.A = int16(r.N.N)
+	case "BeginPhaseSkip", "LifeFloor", "DamageMinus", "DamageSet":
+		if err := cb.replRewrite(r, rp); err != nil {
+			return ka, err
+		}
 	default:
 		return ka, fmt.Errorf("replacement %s", r.Kind)
 	}
 	return ka, nil
+}
+
+// replEntersWith builds the EntersWith replacement: the two bare shapes
+// (enters tapped, enters with counters) or the general program.
+func (cb *cardBuilder) replEntersWith(r lRepl, ka *kop.Ability) (err error) {
+	rp := &ka.Repl
+	switch {
+	case len(r.Prog) == 1 && r.Prog[0].Op == "EnterTapped" && r.Cond.Kind == cNone:
+		rp.Kind = kop.ReplEntersTapped
+	case len(r.Prog) == 1 && r.Prog[0].Op == "EnterWithCounters" && r.Prog[0].A.isConst() && r.Cond.Kind == cNone:
+		rp.Kind = kop.ReplEntersWithCounters
+		rp.A = int16(r.Prog[0].A.N)
+		k, err := counterKind(r.Prog[0].CS)
+		if err != nil {
+			return err
+		}
+		rp.C = int16(k)
+	default:
+		rp.Kind = kop.ReplEntersProgram
+		if r.S == "Updated" {
+			rp.C = kop.ReplAfterEnter
+		}
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// replRewrite builds the T17c replacement modes' abilities: the phase skip
+// (lower_beginphase.go), the life floor (lower_liferepl.go) and the damage
+// minus and set rewrites (lower_replmult.go).
+func (cb *cardBuilder) replRewrite(r lRepl, rp *kop.Repl) (err error) {
+	switch r.Kind {
+	case "BeginPhaseSkip":
+		rp.Kind = kop.ReplBeginPhase               // lower_beginphase.go
+		rp.A, rp.C = int16(r.Phase), int16(r.Bits) // kop.ReplPhYou: the controller's own turns only
+	case "LifeFloor":
+		rp.Kind = kop.ReplLifeReduced // lower_liferepl.go
+		if !r.N.isConst() || r.N.N < 1 {
+			return fmt.Errorf("life floor %v", r.N)
+		}
+		rp.A = int16(r.N.N)
+	case "DamageMinus":
+		rp.Kind = kop.ReplDamageMinus // lower_replmult.go
+		if !r.N.isConst() || r.N.N < 1 {
+			return fmt.Errorf("damage minus %v", r.N)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+		if r.F != nil {
+			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
+	case "DamageSet":
+		rp.Kind = kop.ReplDamageSet // lower_replmult.go
+		if !r.N.isConst() || r.N.N < 0 || kop.ReplDmgSetGateOf(int16(r.Bits)) == 0 || r.Bits&^kop.ReplDmgSetGE(15) == 0 {
+			return fmt.Errorf("damage set %v to %#x", r.N, r.Bits)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+		if r.F2 != nil {
+			if rp.Filter2, err = cb.filter(r.F2, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // prog builds an op program (one kop instruction per LIR instruction, so
@@ -3181,6 +3235,7 @@ func anyKeptObjectClause(c lClause) bool {
 // (Chimil, the Inner Sun, Sphinx of the Final Word).
 func cantCounterRepl(ka kop.Ability, r lRepl, cb *cardBuilder) (kop.Ability, error) {
 	ka.Repl.Kind = kop.ReplSpellsCantBeCountered
+	ka.Repl.C = int16(r.Bits) // kop.ReplUncAnyCtrl: the line names no controller scope
 	f, err := cb.filter(r.F, kop.ZoneStack)
 	if err != nil {
 		return ka, err

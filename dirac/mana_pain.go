@@ -363,7 +363,8 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	// does ask there, so two or more pure plus-N replacements matching the
 	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
 	// reach two candidates for a land's self-damage today.
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}

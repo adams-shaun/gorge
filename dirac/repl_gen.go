@@ -136,6 +136,13 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		n = s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
 		n = s.statPrevNC(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_staticprevent.go
 	}
+	var minusHits, setHits, dblHits int
+	if g.anyRepl2&rb2DmgMinus != 0 {
+		n, minusHits = s.dmgMinusN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_dmgminus.go
+	}
+	if g.anyRepl2&rb2DmgSet != 0 {
+		n, setHits = s.dmgSetN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_dmgminus.go
+	}
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
 		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
 		if g.anyDmgMark {
@@ -143,10 +150,12 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
 			}
 		}
+		dblHits = c
 		for ; c > 0 && n < 1<<12; c-- {
 			n *= 2
 		}
 	}
+	s.dmgRewriteClash(minusHits, setHits, dblHits) // repl_dmgminus.go
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
@@ -1078,7 +1087,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		s.noteCmdDamage(ro.askS, ro.apl, n)
 		s.noteDmgTaken(ro.apl, n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, ro.apl) // value_oppsdamaged.go
-		s.loseLife(k, ro.apl, n)
+		s.loseLifeDmg(k, ro.apl, n)
 		s.plDmgMark(ro.apl, n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else if sl := ro.askD; s.occ.has(sl) {
 		p := &s.perms[sl]
@@ -1134,7 +1143,7 @@ func (s *State) dealCombatEvent(k *prep, r *dmgRec, i int, fe *fzEv) int {
 		s.noteCmdDamage(ev.src, CodeSeat(src.atk), n)
 		s.noteDmgTaken(CodeSeat(src.atk), n)  // kw_bloodthirst.go
 		s.notePlDamaged(k, CodeSeat(src.atk)) // value_oppsdamaged.go
-		s.loseLife(k, CodeSeat(src.atk), n)
+		s.loseLifeDmg(k, CodeSeat(src.atk), n)
 		s.plDmgMark(CodeSeat(src.atk), n) // the redirect's damage (gorge events.foldDamage at the new recipient)
 	} else {
 		sl := ev.dst
@@ -1675,7 +1684,7 @@ func (s *State) dealNC(k *prep) {
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
 		s.notePlDamagedNC(k, code)        // value_oppsdamaged.go
-		s.loseLife(k, CodeSeat(code), n)
+		s.loseLifeDmg(k, CodeSeat(code), n)
 		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]

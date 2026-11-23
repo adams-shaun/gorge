@@ -324,7 +324,7 @@ func (s *State) statRdrDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 	}
 	s.noteDmgTaken(CodeSeat(to), n) // kw_bloodthirst.go
 	s.notePlDamagedNC(k, to)        // value_oppsdamaged.go
-	s.loseLife(k, CodeSeat(to), n)
+	s.loseLifeDmg(k, CodeSeat(to), n)
 	s.res.lastDmg = int16(n)
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, srcCtrl, n)
