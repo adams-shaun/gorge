@@ -663,10 +663,16 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		return false
 	}
 	if ctrAnyColour(ab) {
-		// The any-colour ability is flattened into one option per colour in
-		// the "choose a mana ability" ask (announce_pay.go
-		// AnnouncedAbilityColours), so its colours are answers of that ask,
-		// not a second ask: the tick above already charged the node.
+		// The prefix search's activation ask lists the source's abilities
+		// (the plain {T} first, then the counter one) and the counter
+		// ability's colour is a second ask, one more node of gorge's budget
+		// (scriptSearch.visit; the payment window's flattening into one
+		// option per colour, announce_pay.go AnnouncedAbilityColours, is not
+		// this ask). A source with the one ability poses only the colour ask,
+		// which the activation's own node already counts.
+		if k.ctrSecond(c) && !fs.tick() {
+			return false
+		}
 		order := t.ctrColOrder(k, fs.a)
 		// The one-shot flexible gap's colour prune (gorge's oneShotAskPrune,
 		// potential_script.go, cut D): while a fixed pip is owed, a colour
