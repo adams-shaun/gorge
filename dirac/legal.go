@@ -1099,20 +1099,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
 	if cd.HasAltAdd {
-		cost := s.altAddMayRiderCost(s.altAddPlanCost(k, p, c, o), mayPlay, anyColor)
-		if s.g.availX&availGaps != 0 {
-			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
-		}
-		if s.ungrantedPaysNoDH(k, p, c, o, &cost) { // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
-			return true
-		}
-		// the planner's census has no granted source, so a cost only a granted ability
-		// pays is a census gap: gorge's prefix search taps it first and the cast is
-		// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
-		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h).
-		// A filter-only board is a script gap as well: the prefix search activates the
-		// filter first (Llanowar Envoy's {1}{G} makes the {B} Bone Shards costs; CR 601.2g)
-		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
+		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
@@ -1209,34 +1196,56 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
-	if mayPlay {
-		// A plain composed may-play cast's gate is the potential planner's
-		// census -- the pool and the printed and intrinsic sources
-		// (potentialModeCastPlan) -- or the prefix its census gap takes: a
-		// granted mana ability is a census gap the composition leaves out, and
-		// the potential walk then searches for it (potentialCensusFallback), so
-		// the gate prices the gaps read as the sibling arms do, and the
-		// caller's scripted walks (scriptOffers, grantCap) hold the surviving
-		// offer to a script gorge's search finds (mayPlayPrefixPays). The
-		// kernel census counts the granted sources, so the offer walk's afford
-		// read alone over-offers: The World Tree's "As long as you control six
-		// or more lands, lands you control have "{T}: Add one mana of any
-		// color"" beside four printed sources pays Age of Ultron's 4{B}
-		// may-play cast on the kernel census while gorge's planner leaves it
-		// unpriced, and its one search's budget expires before the fifth
-		// land's granted ability is reached (tail-08 pair 54, decision 573);
-		// Elven Chorus's three any-colour creatures fund Wormwood Treefolk's
-		// five-mana cast there, and gorge's search finds it. An untargeted
-		// cast never reaches witnessKeepsTargets' tier-1 census read, so the
-		// gate prices the census here; a targeted one keeps
-		// plainHandPlayLowers' witness-keeps-target arm beside it.
-		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		cost = s.mayRiderCost(cost, anyColor) // the census prices the rider too: an ignore-colour permission funds the pips any mana pays, as the target-priced arm does (pay.PlanManaUnderRider; CR 609.4b)
-		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) && !s.mayPlayPrefixPays(k, p, c, o, anyColor) {
-			return false
-		}
+	if mayPlay && !s.mayPlayGatePays(k, p, c, o, anyColor) {
+		return false
 	}
 	return s.plainHandPlayLowers(k, p, c, o, anyColor)
+}
+
+// altAddLowers is gorgeLowersRider's alternative-additional-cost arm.
+func (s *State) altAddLowers(k *prep, p uint8, c CardID, o Obj, mayPlay, anyColor bool) bool {
+	cost := s.altAddMayRiderCost(s.altAddPlanCost(k, p, c, o), mayPlay, anyColor)
+	if s.g.availX&availGaps != 0 {
+		return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
+	}
+	if s.ungrantedPaysNoDH(k, p, c, o, &cost) { // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
+		return true
+	}
+	// the planner's census has no granted source, so a cost only a granted ability
+	// pays is a census gap: gorge's prefix search taps it first and the cast is
+	// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
+	// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h).
+	// A filter-only board is a script gap as well: the prefix search activates the
+	// filter first (Llanowar Envoy's {1}{G} makes the {B} Bone Shards costs; CR 601.2g)
+	return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
+}
+
+// mayPlayGatePays is gorgeLowersRider's plain composed may-play arm: whether the potential planner's
+// census or the prefix its census gap takes pays the cast.
+func (s *State) mayPlayGatePays(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
+	// A plain composed may-play cast's gate is the potential planner's
+	// census -- the pool and the printed and intrinsic sources
+	// (potentialModeCastPlan) -- or the prefix its census gap takes: a
+	// granted mana ability is a census gap the composition leaves out, and
+	// the potential walk then searches for it (potentialCensusFallback), so
+	// the gate prices the gaps read as the sibling arms do, and the
+	// caller's scripted walks (scriptOffers, grantCap) hold the surviving
+	// offer to a script gorge's search finds (mayPlayPrefixPays). The
+	// kernel census counts the granted sources, so the offer walk's afford
+	// read alone over-offers: The World Tree's "As long as you control six
+	// or more lands, lands you control have "{T}: Add one mana of any
+	// color"" beside four printed sources pays Age of Ultron's 4{B}
+	// may-play cast on the kernel census while gorge's planner leaves it
+	// unpriced, and its one search's budget expires before the fifth
+	// land's granted ability is reached (tail-08 pair 54, decision 573);
+	// Elven Chorus's three any-colour creatures fund Wormwood Treefolk's
+	// five-mana cast there, and gorge's search finds it. An untargeted
+	// cast never reaches witnessKeepsTargets' tier-1 census read, so the
+	// gate prices the census here; a targeted one keeps
+	// plainHandPlayLowers' witness-keeps-target arm beside it.
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	cost = s.mayRiderCost(cost, anyColor) // the census prices the rider too: an ignore-colour permission funds the pips any mana pays, as the target-priced arm does (pay.PlanManaUnderRider; CR 609.4b)
+	return s.ungrantedPaysNoDH(k, p, c, o, &cost) || s.mayPlayPrefixPays(k, p, c, o, anyColor)
 }
 
 // xCostLowers is gorgeLowersRider's {X}-cost arm. An additional-cost shape's
