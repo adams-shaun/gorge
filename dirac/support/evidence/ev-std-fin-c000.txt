@@ -1,57 +1,99 @@
+Absolute Virtue
 Adelbert Steiner
+Adventurer's Inn
 Aettir and Priwen
+Ahriman
+Ashe, Princess of Dalmasca
+Auron's Inspiration
+Balamb Garden, SeeD Academy
+Baron, Airship Kingdom
 Barret Wallace
 Battle Menu
 Black Mage's Rod
 Blazing Bomb
+Blitzball
+Cargo Ship
 Chocobo Kick
 Circle of Power
 Clive's Hideaway
+Clive, Ifrit's Dominant
+Coeurl
+Coliseum Behemoth
 Combat Tutorial
 Commune with Beavers
 Coral Sword
 Cornered by Black Mages
 Crossroads Village
+Dark Confidant
+Dark Knight's Greatsword
 Deadly Embrace
+Delivery Moogle
 Demon Wall
+Dragoon's Lance
 Dragoon's Wyvern
 Dreams of Laguna
+Eden, Seat of the Sanctum
 Edgar, King of Figaro
+Eject
+Elixir
+Evil Reawakened
+Excalibur II
 Fang, Fearless l'Cie
 Fight On!
 Forest
 Freya Crescent
+Gaelicat
 Garland, Knight of Cornelia
+Genji Glove
 Gigantoad
+Gohn, Town of Ruin
+Gongaga, Reactor Town
+Guadosalam, Farplane Gateway
 Gysahl Greens
+Haste Magic
 Hecteyes
+Hope Estheim
 Ice Magic
+Insomnia, Crown City
 Instant Ramen
 Ishgard, the Holy See
 Island
+Item Shopkeep
 Jecht, Reluctant Guardian
 Jidoor, Aristocratic Capital
 Jill, Shiva's Dominant
 Joshua, Phoenix's Dominant
+Laughing Mad
 Light of Judgment
 Lightning, Security Sergeant
 Lindblum, Industrial Regency
+Loporrit Scout
 Louisoix's Sacrifice
 Lunatic Pandora
 Machinist's Arsenal
 Magic Pot
+Magitek Infantry
+Magitek Scythe
 Midgar, City of Mako
+Minwu, White Mage
 Monk's Fist
 Moogles' Valor
 Mountain
+Ninja's Blades
+Omega, Heartless Evolution
 Opera Love Song
+Overkill
 Paladin's Arms
 Plains
+Poison the Waters
+Prishe's Wanderings
 Qiqirn Merchant
 Queen Brahne
 Qutrub Forayer
 Rabanastre, Royal City
+Raubahn, Bull of Ala Mhigo
 Red Mage's Rapier
+Relm's Sketching
 Reno and Rude
 Resentful Revelation
 Retrieve the Esper
@@ -61,15 +103,22 @@ Sabotender
 Sage's Nouliths
 Sahagin
 Sandworm
+Sephiroth's Intervention
+Sephiroth, Planet's Heir
 Shantotto, Tactician Magician
 Sharlayan, Nation of Scholars
+Shinra Reinforcements
+Sidequest: Card Collection
 Sidequest: Catch a Fish
+Slash of Light
+Sleep Magic
 Snow Villiers
 Stiltzkin, Moogle Merchant
 Stuck in Summoner's Sanctum
 Summon: Bahamut
 Summon: Choco/Mog
 Summon: Fat Chocobo
+Summon: G.F. Cerberus
 Summon: Knights of Round
 Suplex
 Swallowed by Leviathan
@@ -77,13 +126,30 @@ Swamp
 Syncopate
 Tellah, Great Sage
 The Earth Crystal
+The Final Days
+The Fire Crystal
 The Gold Saucer
+The Lunar Whale
 The Prima Vista
 The Regalia
+The Wind Crystal
+Thief's Knife
+Tidus, Blitzball Star
 Tonberry
+Traveling Chocobo
 Treno, Dark City
+Ultima
+Undercity Dire Rat
+Valkyrie Aerial Unit
+Vector, Imperial Capital
+Warrior's Sword
 Wastes
+White Auracite
+White Mage's Staff
 Windurst, Federation Center
 World Map
+Xande, Dark Mage
 Y'shtola Rhul
+You're Not Alone
+Zack Fair
 Zanarkand, Ancient Metropolis
