@@ -194,6 +194,14 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// Skin-Witch paid through Rain of Filth's grants)
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
+		if aff && k.gen != nil && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixBoard(k, p) {
+			// a census gap that is a filter beside another gap kind (School of
+			// the Unseen's {2},{T} beside Holdout Settlement's tapped creature):
+			// gorge's census for the kicked total is incomplete and only its
+			// budgeted prefix search prices the play, so the units census above
+			// is no proof (CR 601.2g; tail-42 pair 49, Caligo Skin-Witch)
+			aff = s.filtScript(k, MakeAction(AkCast, TCode(o), 0, 1), p, false)
+		}
 	}
 	// A Squad/Replicate offer is gorge's replicate/squad option (mode word,
 	// not the kicked mode the multikicker/offspring offer rides), so it needs
