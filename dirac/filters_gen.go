@@ -165,7 +165,12 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 // layer (a layer-3 read is printed).
 func (s *State) permHasSub(k *prep, sl Slot, i uint8, layer uint8) bool {
 	if s.faceDown(k, sl) && (layer == layerSub || !s.blankCopy(sl)) {
-		return false // CR 708.2: no subtypes; a copy of one has its exceptions' (CR 707.9b), from the walk
+		// CR 708.2: no subtypes of its own; a copy of one has its exceptions'
+		// (CR 707.9b), from the walk. A later layer-4 effect still gives it
+		// types (Blades of Velis Vel's every creature type on a face-down
+		// Akroma makes her a Wall, CR 613.1d): the walk seeds a face-down
+		// permanent with none and applies the effects over them.
+		return layer != layerSub && k.gen != nil && k.gen.fxNeed != 0 && s.walkSlot(k, sl) && s.walkHasSub(k, sl, i)
 	}
 	if layer == layerSub {
 		return int(i) < len(k.t.Subtypes) && k.t.Cards[s.cardAt(sl)].Subtypes.Has(int(i))
