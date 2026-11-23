@@ -5,6 +5,5 @@ Ionize
 Island
 Mountain
 Plains
-Surtland Frostpyre
 Swamp
 Teferi's Protege
