@@ -2958,7 +2958,15 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
 	if free && fs.freeBranchHopeless(k, t, sl) {
-		return true, filt && fs.filtColours(k, t, sl, funded)
+		if filt && fs.filtColours(k, t, sl, funded) {
+			return true, true
+		}
+		// The paid answers found no line: gorge's ask still lists the free {C}
+		// answer, and its node is one of the 160 the budget counts (the
+		// transposed subtree below it is deduped, so the one node is its
+		// whole cost). Charging it keeps the later branches on gorge's node
+		// numbers.
+		return true, filt && fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
 	}
 	return false, false
 }
