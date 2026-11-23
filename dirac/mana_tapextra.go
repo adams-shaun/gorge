@@ -546,11 +546,15 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 }
 
 // addXvPick floats a plan type's fixed extra in p's pool. The pick of an
-// all-at-once source's reflected extra (utype.pick) is asked at the tap, which
-// a planned tap poses nowhere: it stalls.
-func (s *State) addXvPick(p uint8, ty *utype) {
+// all-at-once source's reflected extra (utype.pick) is one more mana of the
+// colour col the plan chose. A planned tap poses no ask: gorge's carrier
+// resolution inside the activation has no run to serve it and takes the first
+// produced type in W U B R G C order (engine/effects mana_reflected.go,
+// ManaReflectedCandidates), the lowest bit of the unit's mask. A plan that
+// picks another type is a colour the tap would have to be asked: it stalls.
+func (s *State) addXvPick(p uint8, ty *utype, col int) {
 	s.addXv(p, &ty.xv)
-	if ty.pick {
+	if ty.pick && (ty.mask == 0 || col != bits.TrailingZeros8(ty.mask)) {
 		s.capFull(StallTapExtra)
 	}
 }

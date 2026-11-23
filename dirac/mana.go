@@ -1333,9 +1333,16 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 // planTapCol is the colour plan taps unit i with: the search's witness when
 // keepCols, else pickUnitColour, or the window's answer for a payment gorge
 // takes through its manual window when that answer still leaves the rest
-// payable (planWindowCol).
+// payable (planWindowCol). An all-at-once source's reflected pick (utype.pick)
+// is the one colour gorge's unasked carrier takes (addXvPick): the plan floats
+// it when it keeps the rest payable, else the witness's own colour stalls.
 func (s *State) planTapCol(k *prep, p uint8, pk *planner, i int, ty *utype, rem *[kop.NumManaKinds]int, remAny int) int {
 	altStat(pk, ty)
+	if ty.pick && ty.mask != 0 {
+		if c := bits.TrailingZeros8(ty.mask); pk.colourKeepsPayable(c, int(ty.n), rem, remAny, &pk.bestTy, i+1, pk.bestN) {
+			return c // the default pick pays: nothing is asked
+		}
+	}
 	if pk.keepCols {
 		return int(pk.bestCol[i])
 	}
@@ -2062,7 +2069,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.rbOn = true
 		}
 		if ty.xt != 0 {
-			s.addXvPick(p, ty)
+			s.addXvPick(p, ty, col)
 		}
 		s.artTag(k, p, sl, col)
 		if pk.rdynOn && sl == pk.rdyn {
