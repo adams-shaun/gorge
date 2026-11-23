@@ -92,7 +92,7 @@ func prepEmblemCasts(t *kop.Table, p *prep) {
 		}
 		for j := range t.Emblems[i].Abilities {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
-				p.anyEmbFlash = true
+				p.anyEmbFlash, p.anyFlashAny = true, true // anyFlashAny: castFlash's one inline guard
 			}
 		}
 	}

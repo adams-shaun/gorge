@@ -1075,9 +1075,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepStaticClasses(t, g)
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
-	if p.anyEmbFlash {
-		p.anyFlashAny = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
-	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
