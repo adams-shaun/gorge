@@ -71,6 +71,10 @@ func prepTokMana(t *kop.Table, g *genPrep) {
 			if int(a.Static.Grant-1) >= len(c.Abilities) || c.Abilities[a.Static.Grant-1].Kind != kop.AbMana {
 				continue
 			}
+			if g.grantSrcCard == nil {
+				g.grantSrcCard = make([]bool, len(t.Cards))
+			}
+			g.grantSrcCard[i] = true
 			if filterAttachedOnly(t, a.Static.Filter) {
 				g.anyContGrant = true // availFor counts the grant beside the host's own ability (New Horizons' Forest)
 				continue              // the grantM walk's (an Aura's / Equipment's host)
@@ -103,6 +107,7 @@ func prepOvrManaGrant(t *kop.Table, g *genPrep) {
 				for _, gr := range t.Overrides[in.C].Grant {
 					if gr != 0 && int(gr-1) < len(c.Abilities) && c.Abilities[gr-1].Kind == kop.AbMana {
 						g.anyContGrant = true // the record grant is availFor's dual census (mana_grantedoffers.go)
+						g.contGrantAlways = true
 						return
 					}
 				}

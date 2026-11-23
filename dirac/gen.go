@@ -197,6 +197,8 @@ type genPrep struct {
 	btWatch         bool           // some BecomesTarget trigger watches other objects (Pawpatch Recruit; trig_becomestarget.go)
 	btSpell         bool           // ... and one counts a creature spell on the stack (kop.Tf2SpellToo: Surrak)
 	anyContGrant    bool           // some card has contGrant: the grant walk and availFor read it
+	grantSrcCard    []bool         // per card: a Continuous static grants a mana ability, whoever it applies to (contGrantLive)
+	contGrantAlways bool           // a mana grant no battlefield card marks (an override record's, a printed GainsAbilitiesOf one): contGrantLive reads it as always on
 	anySelfGrant    bool           // some granted mana ability reflects its grantee's colours (grantSelf)
 	grantSelf       []bool         // parallel to grantPC: the grant reads the grantee's own colours (selfPC)
 	selfPC          [32]pcard      // a self grant's planner view per colour mask (mana_owncolours.go)
