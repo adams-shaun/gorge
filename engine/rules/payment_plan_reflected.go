@@ -74,6 +74,21 @@ func addPotentialReflected(e *Engine, m *state.Mana, p state.PlayerID, id state.
 	return true
 }
 
+// addPotentialReflectedAmount colours the bound for a ManaReflected ability
+// whose Amount$ keeps it out of the planner's shape (effects.
+// ManaReflectedAmountCandidates names the symbols). The caller still folds the
+// ability's blank-Produced$ {C} stand-in; this adds each colour the reflection
+// names right now, unbounded as the amount is indeterminate. CR 106.7 prices
+// what the lands "could produce" from their printed mana abilities, tapped or
+// not, so a live druid beside tapped Swamps funds {B}.
+func addPotentialReflectedAmount(m *state.Mana, syms []string) {
+	for _, sym := range syms {
+		if i := state.ManaIndex(sym[0]); i >= 0 {
+			m[i] = saturatingPotentialMana(m[i], potentialUnbounded)
+		}
+	}
+}
+
 // setPaymentPlanUnitAlt puts alt into source id's unit (units[idx], idx < 0:
 // none yet): it replaces the alternative the shared census already listed
 // for the same ability (its colourless stand-in for a reflected ability),
