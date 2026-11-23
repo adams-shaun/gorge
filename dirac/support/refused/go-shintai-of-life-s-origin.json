@@ -1,0 +1,18 @@
+{
+  "card": "Go-Shintai of Life's Origin",
+  "class": "options-options",
+  "why": "Go-Shintai's {W}{U}{B}{R}{G},{T} activation is payable (Pillarverge Pathway W, Swamp B, Akoum Refuge R, Forest G, and School of the Unseen's U with its {2} fee paid by a Forest and an Eldrazi Scion's sacrifice) but found only by gorge's prefix search (the planner prices no filter); School's fee gap beside five coloured pips and the Scion's sacrifice-only source makes both the plain and the phased search exhaust their 160-node budget with no script, so gorge offers no activation while the kernel offers it (CR 605.3, 601.2g-h; tail-42 pair 37)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "go_shintai_filter_fee_script_budget_exhausted"
+  },
+  "evidence": [
+    "ev-tail-42-c000",
+    "ev-tail-42-c001"
+  ]
+}
