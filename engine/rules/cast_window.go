@@ -382,7 +382,13 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				selfSac = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
 				post = selfSac && !cost.Tap
 			}
-			amt, ok := e.castWindowAmount(p, id, o, ma)
+			// A Condition-split root whose own gate fails makes its sub's mana
+			// instead (Gemstone Caverns with a luck counter: any colour, not
+			// {C}); windowManaUnits withholds that choice-shaped production,
+			// so it is priced here from the sub.
+			prod := castWindowCondSplitProduction(e, p, id, ma)
+			mp = effects.ManaOf(prod)
+			amt, ok := e.castWindowAmount(p, id, o, prod)
 			if !ok {
 				continue
 			}
@@ -479,6 +485,18 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 	}
 	return windowUnits
+}
+
+// castWindowCondSplitProduction is the mana ability whose production the cast
+// window prices for ma: its Condition-split sub when the root's own gate
+// provably fails and the sub's gate holds (mana_condsplit.go), else ma. A sub
+// that needs a recorded colour choice stays with the root.
+func castWindowCondSplitProduction(h condSplitHost, p state.PlayerID, id state.ObjID, ma *cards.SA) *cards.SA {
+	sub := condSplitLiveSub(h, p, id, ma)
+	if condSplitRootSuperseded(h, p, id, ma, sub) && !effects.ManaOf(sub).NeedsChosen {
+		return sub
+	}
+	return ma
 }
 
 // maxWindowAnyCombination bounds the concrete allocations windowAnyCombinations
