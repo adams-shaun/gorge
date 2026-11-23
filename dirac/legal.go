@@ -2620,8 +2620,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
 			// the tap's TapsForMana extra is a fixed vector beside the pick
 			// (Deathbloom Gardener's any-colour {G} under Leyline of Abundance's
-			// {G}): gorge folds it into each alternative of the tap
-			s.potentialTapExtraGated(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen, painRefused)
+			// {G}): gorge folds it into each alternative of the tap. A reflected
+			// carrier's part is one mana of the pick, which the census's grown
+			// tap unit already holds (censusOpenTap's recPickDrop over
+			// srcYieldAt), so only the over-bound pool keeps it here.
+			if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
+				s.potentialTapExtraFixed(k, sl, pc, fold, &cen)
+				if r := s.srcReflectPick(k, sl, pc); r > 0 {
+					fold(sl, s.srcMaskAt(pc, sl), r)
+				}
+			}
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -2849,6 +2857,17 @@ func (s *State) tapXRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, fold
 // caller has checked k.gen.anyTapExtra, the lethal guard's refusal and the
 // pain-only face.
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
+	s.potentialTapExtraFixed(k, sl, pc, fold, cen)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, mask, r)
+		cen.growTap(sl, r)
+	}
+}
+
+// potentialTapExtraFixed is potentialTapExtra's fixed-vector part: the
+// carrier's literal extra folded into the over-bound pool and recorded in the
+// census as its own unit, no reflected part.
+func (s *State) potentialTapExtraFixed(k *prep, sl Slot, pc *pcard, fold func(Slot, uint8, uint8), cen *potCensus) {
 	var xv [kop.NumManaKinds]uint8
 	if pc.painCol != 0 {
 		// a painful source's unit here is its normal ability's: the extra of
@@ -2869,10 +2888,6 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 			fold(sl, 1<<c, v-own)
 			cen.rec(1<<c, v-own)
 		}
-	}
-	if r := s.srcReflectPick(k, sl, pc); r > 0 {
-		fold(sl, mask, r)
-		cen.growTap(sl, r)
 	}
 }
 
