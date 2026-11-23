@@ -3736,7 +3736,6 @@ Spell Swindle
 Spellbook Seeker
 Spellgorger Weird
 Spelltithe Enforcer
-Sphere of Safety
 Sphinx Sovereign
 Sphinx of False Conclusions
 Sphinx of Uthuun

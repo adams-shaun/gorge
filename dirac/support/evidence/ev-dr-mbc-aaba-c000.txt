@@ -1,5 +1,6 @@
 Aphetto Alchemist
 Azorius Herald
+Baeloth Barrityl, Entertainer
 Bastion Inventor
 Battle Squadron
 Bellowing Tanglewurm
@@ -70,6 +71,7 @@ Olivia's Bloodsworn
 Oneirophage
 Order of Midnight
 Ossification
+Painter's Studio
 Plains
 Prosperous Innkeeper
 Rabbit Battery
