@@ -8,11 +8,11 @@ import (
 )
 
 // TestReflAmtBoundCountsTheDruidBesideAnOpenRestrictedSource: Incubation Druid's
-// {C} is in gorge's potential bound (the blank Produced$ with an indeterminate
-// Amount$ is unbounded in {C}, mana_reflamt.go), so beside Thieving Varmint -- a
-// restricted any-colour source that opens the bound for no payment and adds
-// nothing to a spell its caster owns -- the bound built for Abzan Kin-Guard's
-// payment is two Swamps, a Forest and the Druid's {C}, which pays {3}{G}. The
+// reflection is in gorge's potential bound (an indeterminate Amount$ is
+// unbounded in the fold's own colours, mana_reflamt.go), so beside Thieving
+// Varmint -- a restricted any-colour source that opens the bound for no payment
+// and adds nothing to a spell its caster owns -- the bound built for Abzan
+// Kin-Guard's payment is two Swamps, a Forest and the Druid's mana, which pays {3}{G}. The
 // kernel's fold was gated on canTapForManaPC, false for any census gap, so the
 // bound priced the cast at three mana and restrBoundDrops dropped it (tail-55
 // pair 170, decision 163).
