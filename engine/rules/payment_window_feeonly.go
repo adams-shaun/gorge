@@ -14,21 +14,21 @@ import (
 // takes the first listed source re-activates Bog Initiate's "{1}: Add {B}."
 // forever: each fee eats the mana the last activation made (tail-49 pair 47,
 // Lapis Lazuli Talisman's "you may pay {3}").
-func (e *Engine) windowOnlyStallingConverters(p state.PlayerID, id state.ObjID, amount Cost, d paymentDescriptor) bool {
+func windowOnlyStallingConverters(pp potentialPricer, mas []*cards.SA, p state.PlayerID, id state.ObjID, amount Cost, poolOf func() state.Mana) bool {
 	n := 0
 	var pool state.Mana
-	for _, ma := range e.availableManaAbilities(p, id) {
+	for _, ma := range mas {
 		if pay.InstantSpeedOnly(ma) {
 			continue
 		}
-		if !repeatableFeeOnlyMana(e, p, id, ma) {
+		if !repeatableFeeOnlyMana(pp, p, id, ma) {
 			return false
 		}
 		if n == 0 {
-			pool = pay.AvailableFor(asPayer(e), p, d).Pool
+			pool = poolOf()
 		}
 		n++
-		if !feeOnlyConversionStalls(e, p, id, ma, amount, pool) {
+		if !feeOnlyConversionStalls(pp, p, id, ma, amount, pool) {
 			return false
 		}
 	}

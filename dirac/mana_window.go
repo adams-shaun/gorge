@@ -593,7 +593,7 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			}
 			return o, true
 		}
-		if k.gen != nil && k.gen.anyFiltFirst && s.windowFiltFirstUsable(k, p, o) && (!decided || s.windowFiltUseful(k, p, o, want)) && (!clamp && s.g.winMode != winTrig && !DebugWinFeeStallsAlways || !s.windowFeeStalls(k, p, o, useful, anyColor)) {
+		if s.windowFiltPick(k, p, o, decided, want, clamp, useful, anyColor) {
 			return o, true
 		}
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
@@ -601,6 +601,25 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		}
 	}
 	return NoSlot, false
+}
+
+// windowFiltPick: windowPick lists the filter-first source o. It must be
+// usable and useful to the clamp, and a repeatable fee-only filter that cannot
+// bring the owed cost closer to paid (windowFeeStalls) stays off the list.
+// Only an unclamped cast window outside a trigger's own cost window skips that
+// check; the trigger window is checked too, as gorge's
+// windowOnlyStallingConverters does.
+func (s *State) windowFiltPick(k *prep, p uint8, o Slot, decided bool, want uint8, clamp bool, useful *kop.ManaCost, anyColor bool) bool {
+	if k.gen == nil || !k.gen.anyFiltFirst || !s.windowFiltFirstUsable(k, p, o) {
+		return false
+	}
+	if decided && !s.windowFiltUseful(k, p, o, want) {
+		return false
+	}
+	if !clamp && s.g.winMode != winTrig && !DebugWinFeeStallsAlways {
+		return true
+	}
+	return !s.windowFeeStalls(k, p, o, useful, anyColor)
 }
 
 // windowSourceUsable: the manual window's pick may take sl now — a tap, a
