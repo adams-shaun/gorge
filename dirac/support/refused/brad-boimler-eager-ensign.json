@@ -1,0 +1,19 @@
+{
+  "card": "Brad Boimler, Eager Ensign",
+  "class": "unmodelled-replctr",
+  "why": "Brad Boimler's tap trigger adds one to every counter put on a permanent its controller controls until end of turn, and beside a counter doubler (Dr. Joseph M'Benga) on a creature's entry counters gorge stages the entry and asks the CR 616.1 order before the move, where the kernel poses that ask only for a resolving OpPutCounter, so the entry placement stalls replctr (std-trk pair 4); an entry-route order ask is well past bounded dirac code",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "counter_order_entry_boimler_beside_doubler_unmodelled"
+  },
+  "evidence": [
+    "ev-std-trk-c000",
+    "ev-std-trk",
+    "std-trk"
+  ]
+}
