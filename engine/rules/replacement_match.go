@@ -155,7 +155,7 @@ func (e *Engine) replacementMatchesEffectCreatedToken(r cards.Repl, source state
 // predicate body without the ActiveZones$ gate; only the wrappers above
 // reach it.
 func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
-	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, tokenOverride, e.replSourceController(source), nil, chosenCapture{})
+	return e.replacementMatchesRememberedUngatedBy(r, source, ev, remembered, rememberedPlayers, tokenOverride, replSourceController(e.G, e.batchDeparted, source, e.controllerOf(source)), nil, chosenCapture{})
 }
 
 // replSourceController is the controller a printed replacement line reads its
@@ -164,15 +164,15 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 // damage SBA as the creatures he protects) reads the controller its departure
 // captured: the live object has reverted to its owner, who may not be who
 // controlled it on the battlefield (CR 614.6, 603.10a).
-func (e *Engine) replSourceController(source state.ObjID) state.PlayerID {
-	if o := e.G.Obj(source); o != nil && o.Zone != state.ZBattlefield {
-		for _, d := range e.batchDeparted {
+func replSourceController(g *state.Game, departed []batchDeparture, source state.ObjID, live state.PlayerID) state.PlayerID {
+	if o := g.Obj(source); o != nil && o.Zone != state.ZBattlefield {
+		for _, d := range departed {
 			if d.id == source {
 				return d.controller
 			}
 		}
 	}
-	return e.controllerOf(source)
+	return live
 }
 
 // replacementMatchesGranted is the matcher for a GRANTED static replacement
