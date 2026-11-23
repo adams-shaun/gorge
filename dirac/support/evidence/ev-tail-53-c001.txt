@@ -2,6 +2,7 @@ A Little Chat
 A-Death-Priest of Myrkul
 A-Geological Appraiser
 A-Glittermonger
+A-Llanowar Greenwidow
 A-Midnight Assassin
 Access Tunnel
 Adrix and Nev, Twincasters
@@ -28,6 +29,7 @@ Artifact Blast
 Artisan of Kozilek
 Asgardian Inspiration
 Astrid Peth
+Ate-o'-Clock
 Augury Adept
 Auratog
 Auriok Windwalker
@@ -39,6 +41,7 @@ Battle-Rage Blessing
 Bear Umbra
 Befuddle
 Beloved Princess
+Beta Ray Bill
 Big Play
 Bladed Bracers
 Blasphemous Act
@@ -256,6 +259,7 @@ Never
 Niblis of the Breath
 Nightmare Unmaking
 Nimana Skydancer
+Ninja Pizza
 Nirkana Revenant
 Noble Benefactor
 Nullmage Shepherd
@@ -393,6 +397,7 @@ Urborg Volcano
 Utvara Hellkite
 Vampire of the Dire Moon
 Venom Sliver
+Veteran Dungeoneer
 Vigilant Drake
 Viral Drake
 Viscera Seer
@@ -418,6 +423,7 @@ Wild Wanderer
 Winter Sky
 Witherbloom Apprentice
 Wizard's Lightning
+Wolf Pack
 Wooded Ridgeline
 World-Weary
 Worm Harvest

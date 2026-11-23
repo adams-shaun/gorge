@@ -71,6 +71,7 @@ Guardian of the Great Conduit	ebf3277a228cc855	22	0/0		0/0
 Guul Draz Overseer	22714f5ed449960a	14	1/1		0/1	ix:resp
 Hagra Constrictor	5a7a2afd14245239	42	0/0		0/0	
 Hamletback Goliath	791250dadb6daf4f	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Harbinger of Spring	2a847af3ceae74a6	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Harsh Judgment	6c4ec44eb8af6c1a	12	0/0		0/0	
 Heavy Mattock	6ca0c122b876acff	20	1/1		0/1	ix:resp
 Herald of Ilharg	3af0bfa01d0a5670	7	1/1		0/1	ix:resp
@@ -156,6 +157,7 @@ Spectral Deluge	1993a963cf617474	29	0/0		2/4	cast/alt:foretold,ix:resp
 Spider-Man, Web-Spinner	5870664c9adbf21c	34	1/1		0/1	ix:resp
 Spinning Wheel	f005f9e2f54d0933	36	2/2		1/1	
 Stalwart Pathlighter	d431d05199fe6733	30	1/1		0/1	ix:resp
+Stasis	7a4efe950b7c9189	20	1/1		0/1	ix:resp
 Steel Leaf Paladin	389d4e1ab4f79170	30	1/1		1/1	
 Stolen Goods	cccaac3c003e1622	10	0/0		1/2	ix:resp
 Stone Idol Generator	533d2ea003468621	23	2/2		1/1	
@@ -169,6 +171,7 @@ Teetering Peaks	9b85f329ce66e1f6	3	2/2		0/1	ix:resp
 Teferi's Sentinel	ef30422435b04c2e	42	0/0		0/0	
 Tel-Jilad Fallen	156d14d81f8628cd	26	0/0		0/0	
 Thalakos Mistfolk	5cd7e5a0f5223c62	64	1/1		1/1	
+Thorn Elemental	b52c523e49ff5e41	10	0/0		0/0	
 Thunderhawk Gunship	d51f1c6ce5c56081	20	3/3		1/1	
 Tin Street Dodger	a12e8099e671343b	41	1/1		1/1	
 Torsten, Founder of Benalia	54000818637d3a72	12	2/2		0/1	ix:resp

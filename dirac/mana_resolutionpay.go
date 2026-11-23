@@ -164,14 +164,20 @@ func (s *State) payReplanned(k *prep, p uint8, cost *kop.ManaCost) bool {
 	// payment funds it first (CR 106.6: gorge's planner pool is AvailableFor's
 	// PurposeOther view), so the sources tap only for what it leaves
 	need := s.restrShortNonSpell(k, p, c)
+	// The plan is gorge's plain census (resPayFund's pay.PlanPaymentCost):
+	// no tiered fallback pass. A source a Taps watcher defers (Manabarbs)
+	// or a Combo Any source is never one of its units, so a cost only those
+	// fund has no witness and takes the manual window (resPayFund's
+	// rp.manual), whose taps are its answer's (trigWindowPays); the tiered
+	// passes are the potential play's prefix gaps', never a payment's.
 	var dry planner
-	dry.dry, dry.noGrant = true, true
+	dry.dry, dry.noGrant, dry.plain = true, true, true
 	s.tapPlanNeed(k, p, &need, 0, NoObj, true, false, &dry)
 	if dry.needT > 0 && !dry.found {
 		return s.trigWindowPays(k, p, &c) // gorge's manual window: tap every useful source, no owed answer
 	}
 	for i := 0; i < MaxPerm && !s.poolPays(p, &need); i++ {
-		pk := planner{noGrant: true}
+		pk := planner{noGrant: true, plain: true}
 		sl := s.tapForPK(k, p, &need, 0, NoObj, true, false, &pk)
 		if sl == NoSlot {
 			break
@@ -737,4 +743,13 @@ func plansAnyColour(pl *planner) bool {
 		}
 	}
 	return false
+}
+
+// runPrefixesGated is runPrefixes behind its four gates, tested inline so a table
+// with none of them skips the call.
+func (s *State) runPrefixesGated(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
+	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+		return s.runPrefixes(k, a, p, grants, grantFirst)
+	}
+	return false, false
 }

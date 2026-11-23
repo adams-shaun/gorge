@@ -60,6 +60,7 @@ Corpse Hauler
 Corrupted Resolve
 Cosmic Epiphany
 Courier Griffin
+Crawling Infestation
 Crimson Roc
 Crucible of Worlds
 Cryptolith Rite
@@ -73,8 +74,10 @@ Declare Dominance
 Deep-Sea Serpent
 Defy Gravity
 Deluge of Doom
+Deny Entry
 Desecration Elemental
 Despoiler of Souls
+Desynchronize
 Dihada's Ploy
 Dingus Staff
 Diplomacy of the Wastes
@@ -118,8 +121,10 @@ Femeref Scouts
 Festival of the Guildpact
 First-Sphere Gargantua
 Flameshot
+Flooded Grove
 Floodwater Dam
 Flowstone Strike
+Foreboding Statue
 Forest
 Foundry Street Denizen
 Free from Flesh
@@ -217,6 +222,8 @@ Mountain
 Mounted Dreadknight
 Mouth
 Multiform Wonder
+Nantuko Monastery
+Navigator's Compass
 Nefarox, Overlord of Grixis
 Nessian Game Warden
 Nightscape Familiar
@@ -225,6 +232,7 @@ Nightstalker Engine
 Nimble Pilferer
 Nissa's Triumph
 Novellamental
+Null Elemental Blast
 Nyxborn Marauder
 Obelisk of Esper
 Ochre Jelly
@@ -239,12 +247,14 @@ Palladium Myr
 Parasitic Grasp
 Path of Peril
 Pawn of Ulamog
+Pentagram of the Ages
 Perimeter Patrol
 Phthisis
 Plains
 Plated Rootwalla
 Poxwalkers
 Primal Bellow
+Primo, the Unbounded
 Psychic Impetus
 Pulsating Illusion
 Putrid Cyclops
@@ -257,6 +267,7 @@ Rain of Salt
 Raise the Draugr
 Rakdos Ickspitter
 Ransom Note
+Rapid Hybridization
 Raven Familiar
 Reckless Amplimancer
 Reckless Scholar
@@ -270,6 +281,7 @@ Retreat to Hagra
 Rhox Bodyguard
 Ring of Evos Isle
 Rise Again
+Roadside Reliquary
 Roil Cartographer
 Romana II
 Roving Harper
@@ -278,6 +290,7 @@ Sacred Nectar
 Saddleback Lagac
 Sanguine Glorifier
 Saprazzan Outrigger
+Scion of Glaciers
 Screamer-Killer
 Scuttling Sentinel
 Sea's Claim
@@ -334,6 +347,8 @@ Swift Response
 Sylvan Tutor
 TVA Bureaucrat
 Talisman of Resilience
+Teething Wurmlet
+Tel-Jilad Defiance
 Territory Culler
 Teyo's Lightshield
 Teysa Karlov
