@@ -1380,6 +1380,10 @@ type filtSearch struct {
 	// carry a multi-unit fee (feeGaps), then the other gaps (mana_filterfeeorder.go).
 	feeOrder bool
 	feeGaps  slotMask
+	// floated: the payer held floating mana when the search began. Under it
+	// holdDualFilter and freeBranchHopeless stand down for a fee-carrying
+	// filter, leaving the plain walk and fee-order fallback gorge runs.
+	floated bool
 }
 
 // deferGapLeft: the search still holds an untapped filter gap whose tap
@@ -1560,6 +1564,14 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	fs.other = s.otherGaps(k, p, a)
 	fs.lifePainBound = s.lifePainPlanAffords(k, a, p)
 	fs.feeOnly = s.filtRepeatIn(k, fs.gaps)
+	fs.floated = poolTotal(&s.pl[SeatIx(p)]) > 0
+	if !fs.floated {
+		var rb [kop.NumManaKinds]uint8
+		s.rbUnits(p, s.rbAll(p), &rb)
+		for _, n := range rb {
+			fs.floated = fs.floated || n > 0
+		}
+	}
 	if a.Kind() == AkActivate {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
@@ -2476,8 +2488,17 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 // cost). A face cast (modal_spell, adventure_alt, ...) runs the plain order
 // alone, so its free tap spends the budget first and the play stays unpriced
 // (Monica Rambeau's Photon beside Baxter Building).
+//
+// The hold stands in for gorge's plain run spending its budget on the free
+// branch and its fee-order run floating the funding first: that funding is
+// the whole fee in taps, each adding one unit, and the filter is activated
+// once the fee is on the pool. With mana already floating the fee is payable
+// after fewer taps, so the hold would stop early where gorge's fee-order run
+// taps all of the funding and leaves the floating unit unspent. A search that
+// began with mana floating therefore walks the plain order to its budget (as
+// gorge's does) and the fee-order fallback (feeOrderFallback) follows.
 func (fs *filtSearch) holdDualFilter(k *prep, t *State, sl Slot) bool {
-	return fs.gaps.count() == 1 && fs.a.Kind() == AkCast && (fs.a.Mode() == 0 || fs.a.Mode() == castMayPlay) && fs.a.Target() == 0 &&
+	return !fs.floated && fs.gaps.count() == 1 && fs.a.Kind() == AkCast && (fs.a.Mode() == 0 || fs.a.Mode() == castMayPlay) && fs.a.Target() == 0 &&
 		fs.fees > 0 && fs.fundN >= fs.fees && comboFiltAb(t.filtAb(k, sl))
 }
 
@@ -2863,6 +2884,16 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// gorge's to walk (its plain run spends the node budget there and
 		// its fee-order run funds the play, CR 605.3b), as holdDualFilter's
 		// lone-filter scope.
+		return false
+	}
+	if fs.floated && t.filtFeeGaps(k, fs.gaps).any() {
+		// A fee-carrying filter with mana already floating: the prune stands
+		// in for gorge's plain run, which walks the free branch to its budget
+		// and then runs its fee-order run (feeOrderFallback), whose funding
+		// is the full fee in taps whatever floats already. The pruned plain
+		// walk finds the shorter line (the fee's last unit is the floating
+		// one) and the play pays one tap fewer than gorge's: seed 119 of the
+		// second-ability lockstep (a {C} left from the turn's earlier cast).
 		return false
 	}
 	if !fs.usefulOK || k.gen == nil || !k.gen.anyFilt || k.gen.anyTapExtra || k.gen.anyAnyAct || k.gen.anyContGrant ||
