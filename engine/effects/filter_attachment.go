@@ -502,14 +502,19 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 			}
 		}
 	case sharesTypeReferentsRememberedCard:
-		for _, t := range sc.Remembered {
+		resolution, persistent := filterRemembered(g, &sc)
+		for _, t := range append(resolution[:len(resolution):len(resolution)], persistent...) {
 			if !t.IsPlayer {
 				ts = append(ts, t)
 				break // the FIRST card entry, per Forge's RememberedCard
 			}
 		}
 	case sharesTypeReferentsRemembered, sharesTypeReferentsRememberedLKI:
-		for _, t := range sc.Remembered {
+		// The host's remembered cards, never the object the trigger fired on
+		// (Resplendent Marshal's "shares a creature type with the exiled
+		// card" must not read the Marshal itself).
+		resolution, persistent := filterRemembered(g, &sc)
+		for _, t := range append(resolution[:len(resolution):len(resolution)], persistent...) {
 			if !t.IsPlayer {
 				ts = append(ts, t)
 			}
