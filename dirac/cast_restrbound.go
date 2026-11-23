@@ -32,6 +32,7 @@ func (s *State) castBoundDrops(k *prep, p uint8, a Action) bool {
 	o := Obj(a.Source())
 	c := s.objs[o].card
 	d := s.payDescNow(o)
+	d.repeatBound = true // gorge's bound reads a repeatable fee-only source's colour as many (mana_repeatpotential.go)
 	var av avail
 	if s.availPotentialFor(k, p, &av, &d, false) {
 		return false // open for this payment too: an unrestricted open source

@@ -11,16 +11,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (trigCostPotentialPays, the subBound descriptor) therefore offers "pay" for a
 // cumulative upkeep of {4} beside a Plains, a Mountain and an Agent of
 // Stromgald, whose real yield is two mana: the payer elects pay, the charge
-// fails (CR 118.3) and the payer declines. Every other payment keeps the
-// source's production counted once.
+// fails (CR 118.3) and the payer declines. The cast bound (castBoundDrops,
+// repeatBound) reads it the same way: gorge lifts it for every payment's bound.
+// Every other payment keeps the source's production counted once.
 
 // addOrMergeRepeat is potCensus.addOrMerge for the fixed production of ab, plus
 // the unbounded lift of its colours when ab is a repeatable fee-only ability
-// and d is the trigger pay gate's descriptor. The census (cen.on) keeps the
-// natural amount.
+// and d is the trigger pay gate's descriptor or the cast bound's (repeatBound).
+// The census (cen.on) keeps the natural amount.
 func (s *State) addOrMergeRepeat(c *potCensus, sl Slot, ab *kop.Ability, d *payDesc, drop uint8, add, fold func(Slot, uint8, uint8)) {
 	c.addOrMerge(sl, ab, drop, add, fold)
-	if c.on || d == nil || !d.subBound || !kop.FeeOnlyManaAb(ab) {
+	if c.on || d == nil || !(d.subBound || d.repeatBound) || !kop.FeeOnlyManaAb(ab) {
 		return
 	}
 	fold(sl, uint8(ab.ManaColors), potentialOpenUnits)
