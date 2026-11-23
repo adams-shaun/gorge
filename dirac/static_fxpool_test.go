@@ -103,4 +103,5 @@ func TestFxPoolHashStable(t *testing.T) {
 // version, CR 506.4c): every perm byte is hashed, and nothing else changed.
 // It moved again when dirac became one four-seat build: the object and code
 // fields of perm are sixteen bits wide (TestPermSize).
-const fxPoolHashPin = 0xb4b234bddfc5c55c
+// It moved again when perm gained cs, a stamp per keyword counter (CR 613.7: ctrKwNewer).
+const fxPoolHashPin = 0x313affeb07fd32d8
