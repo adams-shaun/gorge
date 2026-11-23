@@ -2994,7 +2994,7 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 	if rm := t.mixSrcMask(k, sl); free && rm != 0 {
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
-	if free && fs.freeBranchHopeless(k, t, sl) {
+	if free && !fs.freeSubtreeExhausts(k, t, sl) && fs.freeBranchHopeless(k, t, sl) {
 		if filt && fs.filtColours(k, t, sl, funded) {
 			return true, true
 		}
@@ -3006,6 +3006,28 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 		return true, filt && fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true)
 	}
 	return false, false
+}
+
+// freeSubtreeExhausts reports whether the dead subtree below sl's free ability
+// holds as many distinct tap states as gorge's plain run has nodes: every
+// subset of the other untapped sources the search may tap first. Gorge walks
+// the gaps before the funding sources, so a filter first in its order (Starfleet
+// Academy, whose {5} fee nothing floats yet: its activation is the forced plain
+// {C}) sends the run down that whole subtree and it spends all
+// potentialScriptNodes there, offering nothing. Skipping it hands the kernel the
+// budget gorge lacks (Academy Ruins' "{1}{U}, {T}" beside Starfleet Academy and
+// eight other lands: the kernel found the line at node 34). The small subtrees
+// the prune exists for (Vault of the Archangel beside Unknown Shores: five other
+// sources at most) stay skipped.
+func (fs *filtSearch) freeSubtreeExhausts(k *prep, t *State, sl Slot) bool {
+	n := 0
+	for b := t.ctrlM[SeatIx(fs.p)].and(t.occ); b.any(); b = b.rest() {
+		o := b.first()
+		if o != sl && o != fs.own && t.perms[o].flags&pfTapped == 0 && t.canTapForMana(k, o) {
+			n++
+		}
+	}
+	return n >= bits.Len(uint(potentialScriptNodes))
 }
 
 // freeBranchHopeless reports whether activating sl's free mana ability cannot
