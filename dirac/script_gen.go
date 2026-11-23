@@ -330,6 +330,47 @@ func plainCastMode(a Action) bool {
 	return a.Kind() == AkCast && a.Mode()&3 == 0 && a.Mode()&(castMayPlay|castFace|castWarp) == 0
 }
 
+// ctrGapCastMode reports whether a is the printed-cost cast a live
+// counter-cost gap can be load-bearing for beside a filter: not an overload
+// cast (mode 0, target castOverloadTgt), whose cost gorge's offer gates price.
+func ctrGapCastMode(a Action) bool {
+	return plainCastMode(a) && a.Target() != castOverloadTgt
+}
+
+// filtSecondQuery is the filt branch's second query for a play the filter
+// route found no script for: the extended-gap-set search keeps the play when
+// a Taps-deferred source's census pays it, or, for a printed-cost cast, when a
+// live counter-cost gap is load-bearing: the second query answers for the cast
+// only when the census without the gap cannot pay it and the one with it can
+// (tail-02 pair 91: Cauldron's Gift's {4}{B} through Energy Refractor and
+// Vivid Meadow's counter tap, the cast offered by gorge's potential census,
+// dropped here). An alternative-cost cast (Bash to Bits's {4}{R}{R} flashback
+// beside the same Refractor, Fangs of Kalonia's overload) keeps gorge's own
+// offer gates, not the second query. The counter-gap queries run on a fork: a
+// kept play takes no stall from them, and a search's side state must not leak
+// into the offer walk's later candidates.
+func (s *State) filtSecondQuery(k *prep, a Action, p uint8, restr, anyR, tapsDef, anyDiff slotMask) bool {
+	if tapsDef.any() {
+		// Only where gorge's phased run is in scope (phasedRunInScope): its
+		// script counts for no other play.
+		return s.phasedRunInScope(k, p, a) && !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), anyDiff)
+	}
+	ctr := s.scriptCtr(k, p)
+	if !ctrGapCastMode(a) || !ctr.any() {
+		return false
+	}
+	r := s.fork()
+	live := !r.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, ctr, anyDiff)
+	r.unfork()
+	if !live {
+		return false
+	}
+	r2 := s.fork()
+	live = r2.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, slotMask{}, anyDiff) // the counter gap is load-bearing
+	r2.unfork()
+	return live
+}
+
 // scriptOfferFilt is scriptOffers' filter census (filtOnly): the filter
 // sources the walks admit (scriptFilt), kept only when a play beside it can
 // reach the filter route — a mixed board, or no restricted gapOther whose mana
@@ -572,11 +613,23 @@ func (s *State) scriptRouteDrop(k *prep, rt *scriptRoute, a Action, p uint8) boo
 		// so the play is also searched over them when the filter route
 		// found no script for it (the Trapjaw Kelpie lockstep: decision
 		// 402's cast, the second walk's phased run's two island taps).
-		// Only where gorge's phased run is in scope (phasedRunInScope): its
-		// script counts for no other play.
-		if !s.filtScript(k, a, p, false) &&
-			!(rt.tapsDef.any() && s.phasedRunInScope(k, p, a) && !s.scriptDeadEndAny(k, a, p, rt.restr, rt.anyR, rt.tapsDef, s.scriptCtr(k, p), rt.anyDiff)) &&
-			!(isCastKind(a.Kind()) && rt.mix && s.tapXFallbackScript(k, a, p)) {
+		// A live counter-cost gap a plain cast cannot pay without takes the
+		// second query too: the plain census keeps the counter-tap ability
+		// out (prepCensusGap's ctrAb read, availCtr's units), so a cast
+		// only that gap's unit pays is priced over the extended census,
+		// and the filter search's fee branches exhaust the budget before
+		// its answer (tail-02 pair 91: Cauldron's Gift's {4}{B} through
+		// Energy Refractor and Vivid Meadow's counter tap, the cast
+		// offered by gorge's potential census, dropped here). The second
+		// query answers for the cast only when the census without the
+		// counter gap cannot pay it and the one with it can -- the gap is
+		// load-bearing -- and only for the printed-cost cast the potential
+		// census prices: an alternative-cost one (Bash to Bits's
+		// {4}{R}{R} flashback beside the same Refractor) keeps gorge's own
+		// offer gates, not the second query.
+		fs := s.filtScript(k, a, p, false)
+		keep := !fs && s.filtSecondQuery(k, a, p, rt.restr, rt.anyR, rt.tapsDef, rt.anyDiff)
+		if !fs && !keep && !(isCastKind(a.Kind()) && rt.mix && s.tapXFallbackScript(k, a, p)) {
 			return true // no script within gorge's search budget
 		}
 	} else if rt.tapsDef.any() && s.liveGrantGap(k, p) {
@@ -954,9 +1007,20 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 				// fallback (mana_tapanother.go). Trying the filter first keeps
 				// its trigger order when it is the play's payer (a filter
 				// answer may tap a creature and stack its trigger before the
-				// play is priced, CR 603.3).
-				if !s.filtScript(k, a, p, true) && s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
-					return
+				// play is priced, CR 603.3). A live counter-cost gap beside the
+				// filter is the offer side's second query (scriptOffers' filt
+				// branch) for the printed-cost cast the gap is load-bearing
+				// for: the filter search's fee branches spend its budget before
+				// the counter-tap answer, and the play was kept by the
+				// extended-gap-set search, so the prefix is its script.
+				if !s.filtScript(k, a, p, true) {
+					if s.tapXTwoLiveSource(k, p) && s.tapXPrefix(k, a, p) {
+						return
+					}
+					if s.scriptCtr(k, p).any() && ctrGapCastMode(a) {
+						s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.scriptAnyR(k, p),
+							s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.anyDifferentGaps(k, p))
+					}
 				}
 			}
 		}
