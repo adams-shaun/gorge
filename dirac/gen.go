@@ -32,11 +32,10 @@ type genPrep struct {
 	// that actually has a value.
 	flags     []uint32
 	smallRecs []cardSmall
-	handStat  []bool // card i has a static whose condition reads a hand size (Hellbent; cast_handleaves.go)
-	leyline   bool   // some card is a Leyline
-	anyUmbra  bool   // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
-	anySrcMem bool   // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
-	anySnow   bool   // some card's printed or ability cost asks {S} or reads the snow spent (kop.ManaCost.Snow, CardDef.SpentSnow): the cold region holds the snow tally (mana_snow.go)
+	leyline   bool // some card is a Leyline
+	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
+	anySrcMem bool // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
+	anySnow   bool // some card's printed or ability cost asks {S} or reads the snow spent (kop.ManaCost.Snow, CardDef.SpentSnow): the cold region holds the snow tally (mana_snow.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)
@@ -893,7 +892,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
 	}
 	prepCtrAdded(t, p, g) // ctr_addedthisturn.go
-	prepHandStat(t, g)    // cast_handleaves.go
+	prepHandStat(t, p)    // cast_handleaves.go
 	if tableSpentGate(t) {
 		g.anySpentGate, g.anySpent, g.anyHist = true, true, true // the Spell.ManaSpent gate reads the spell's recorded spend (trig_spentvalid.go); never anyCastSpent: no planner decline
 	}

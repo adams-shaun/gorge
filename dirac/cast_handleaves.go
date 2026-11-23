@@ -34,7 +34,7 @@ func (s *State) battlefieldHasCDAPT(k *prep) bool {
 	for seat := range s.ctrlM {
 		for m := s.ctrlM[seat]; m.any(); m = m.rest() {
 			c := s.cardAt(m.first())
-			if k.gen.flags[c]&gfCDAPT != 0 || (len(k.gen.handStat) > 0 && k.gen.handStat[c]) {
+			if k.gen.flags[c]&gfCDAPT != 0 || (len(k.handStat) > 0 && k.handStat[c]) {
 				return true
 			}
 		}
@@ -44,7 +44,7 @@ func (s *State) battlefieldHasCDAPT(k *prep) bool {
 
 // prepHandStat marks every card with a static whose condition reads a hand
 // size (ExHandSizeOf), directly or through an And.
-func prepHandStat(t *kop.Table, g *genPrep) {
+func prepHandStat(t *kop.Table, p *prep) {
 	any := false
 	for i := range t.Exprs {
 		any = any || t.Exprs[i].Kind == kop.ExHandSizeOf
@@ -52,12 +52,12 @@ func prepHandStat(t *kop.Table, g *genPrep) {
 	if !any {
 		return
 	}
-	g.handStat = make([]bool, len(t.Cards))
+	p.handStat = make([]bool, len(t.Cards))
 	for c := range t.Cards {
 		ab := t.Cards[c].Abilities
 		for i := range ab {
 			if ab[i].Kind == kop.AbStatic && condReadsHand(t, ab[i].Static.Cond2) {
-				g.handStat[c] = true
+				p.handStat[c] = true
 			}
 		}
 	}
