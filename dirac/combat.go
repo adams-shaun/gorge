@@ -1388,7 +1388,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		}
 		kw := s.kw(k, a)
 		dt := kw&kop.KwDeathtouch != 0
-		if ap.flags&pfBlocked == 0 || s.asUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver (combat_asgngrant.go)
+		if ap.flags&pfBlocked == 0 || s.assignsUnblocked(k, a) { // ExtAsgnGrant: Outmaneuver, an accepted election (combat_asgngrant.go)
 			s.toDefender(k, &r, a, pw)
 			continue
 		}
@@ -1523,7 +1523,8 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		if k.gen.anyRepl&rbShield != 0 {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
-		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)
@@ -1587,7 +1588,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 	}
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		if r.toPl[pp] > 0 {
-			s.loseLife(k, pp, int(r.toPl[pp]))
+			s.loseLifeDmg(k, pp, int(r.toPl[pp]))
 			s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 		}
 	}
@@ -1706,6 +1707,14 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	if !ans {
 		s.scrCombatEnter() // arm A of scr starts afresh (scratch.go)
 		s.xblkDivReset()
+		if k.anyAsUnblk {
+			// the as-unblocked election's marks are this pass's (gorge
+			// beginCombatPass rebuilds electQueue/doneElect per pass;
+			// combat_asgngrant.go): only this player's attackers carry them
+			for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
+				s.clrElect(am.first())
+			}
+		}
 	}
 	// api:Fog (gorge damageStep's fogActive): no damage pass at all; the
 	// damage divisions are still asked first (gorge asks them before its
@@ -1714,6 +1723,12 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	// keeps the assignments fogUnpreventable selects, all of them for the
 	// kernel's blanket static): the ordinary pass runs (static_cantprevent.go).
 	fog := k.gen != nil && s.g.fog && !s.noPrev(k, true)
+	// the as-unblocked election (combat_asgngrant.go), asked before every
+	// damage division (gorge askNextCombatAsk's fixed queue order)
+	if s.nextElection(k, first) {
+		s.ctl = ctlDivide
+		return
+	}
 	if s.cfg&cfgAutoDivide == 0 && s.nextDivision(k, first) {
 		s.ctl = ctlDivide
 		return
@@ -1789,27 +1804,14 @@ func splits(p, n int) int {
 func (s *State) nextDivision(k *prep, first bool) bool {
 	// attackers in battlefield (entry) order, as gorge askNextDivision
 	var order [MaxPerm]Slot
-	no := 0
-	for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
-		a := am.first()
-		if s.perms[a].flags&pfAttacking == 0 {
-			continue
-		}
-		j := no
-		for j > 0 && s.perms[order[j-1]].ts > s.perms[a].ts {
-			order[j] = order[j-1]
-			j--
-		}
-		order[j] = a
-		no++
-	}
+	no := s.attackersInZoneOrder(&order) // combat_asgngrant.go
 	for oi := 0; oi < no; oi++ {
 		a := order[oi]
 		ap := &s.perms[a]
 		if ap.flags&pfAttacking == 0 || ap.flags&pfBlocked == 0 || s.combatArm().divDone.has(a) {
 			continue
 		}
-		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) {
+		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.assignsUnblocked(k, a) { // routes whole to the player: no division
 			continue
 		}
 		pw := s.combatAmount(k, a)

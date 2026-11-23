@@ -1,0 +1,11 @@
+# the widened printed-counter scope: Root Sliver makes every controller's
+# Sliver spells uncounterable beside counterspells
+# (dirac/oracle/repl_modes_lockstep_test.go)
+Root Sliver
+Allosaurus Shepherd
+Grizzly Bears
+Forest
+Plains
+Counterspell
+Cancel
+Island

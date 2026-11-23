@@ -955,12 +955,18 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 	switch l.W {
 	case kop.FwAttacking:
 		return s.fwAttacking(c, l) // filter_attacking.go
+	case kop.FwBasePowerCmp:
+		return s.fwBasePowerCmp(c, l) // filter_basepowercmp.go
+	case kop.FwBaseToughnessCmp:
+		return s.fwBaseToughnessCmp(c, l) // filter_basetoughnesscmp.go
 	case kop.FwCMCCmp:
 		return s.fwCMCCmp(c, l) // filter_cmccmp.go
 	case kop.FwChosenCtrl:
 		return s.fwChosenCtrl(c, l) // filter_chosenctrl.go
 	case kop.FwCountersCmp:
 		return s.fwCountersCmp(c, l) // filter_counterscmp.go
+	case kop.FwDoubleFaced:
+		return s.fwDoubleFaced(c, l) // filter_doublefaced.go
 	case kop.FwEnchantedControllerCtrl:
 		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
 	case kop.FwKeyword:
@@ -977,6 +983,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwSubtype(c, l) // filter_subtype.go
 	case kop.FwTapped:
 		return s.fwTapped(c, l) // filter_tapped.go
+	case kop.FwTopLibrary:
+		return s.fwTopLibrary(c, l) // filter_toplibrary.go
 	case kop.FwToughnessCmp:
 		return s.fwToughnessCmp(c, l) // filter_toughnesscmp.go
 	case kop.FwWithKeyword:
@@ -988,7 +996,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSubtype, kop.FwTapped, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

@@ -902,6 +902,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 && (rl == nil || !rl.agg) {
+		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
+	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
 			s.eachCommandTrigger(k, ev, f)
@@ -1087,7 +1090,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	if !life && !dealt {
 		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.toPl[pp] > 0 {
-				s.loseLife(k, pp, int(r.toPl[pp]))
+				s.loseLifeDmg(k, pp, int(r.toPl[pp]))
 				s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			}
 		}
@@ -1130,7 +1133,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
-			s.loseLife(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
+			s.loseLifeDmg(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
 			s.plDmgMark(CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)

@@ -2071,6 +2071,9 @@ func (lc *lowerCtx) chooseType(ps *params) error {
 	if ps.str("Type") == "Basic Land" {
 		return lc.chooseBasicLandType(ps) // lower_choosetype.go
 	}
+	if strings.EqualFold(ps.str("Type"), "CreatureInTargetedDeck") {
+		return lc.chooseCreatureInDeckType(ps) // lower_choosetype.go
+	}
 	if ps.str("Type") != "Creature" {
 		return refuse("ChooseType shape")
 	}

@@ -58,5 +58,9 @@ while IFS=$'\t' read -r m p r; do
   [ "$p" = ./dirac/oracle ] && to=15m
   go test -timeout "$to" -short -run "$r" "$p" || rc=1
 done <<<"$list"
+# Always, whatever the diff selects: nothing under .ds4/ (seat scratch) is tracked. A seat that force-adds a .ds4
+# report passes its own targeted tests and only a batch shard catches it (11-23: #3835 reddened batches 4024 and
+# 4074 with .ds4/report-cs1.md). The test reads git ls-files only, in milliseconds.
+go test -timeout 2m -short -run '^TestNothingUnderDS4IsTracked$' ./testkit/testutil || rc=1
 [ -n "$list" ] || echo "ci-fast: the diff selects no tests"
 exit $rc

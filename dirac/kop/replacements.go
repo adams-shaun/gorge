@@ -1,8 +1,8 @@
 package kop
 
-// ReplDamagePlus recipient bits (Repl.C), relative to the replacement's
-// controller; ReplDmgNonCombat restricts it to noncombat damage, ReplDmgCombat
-// to combat damage.
+// ReplDamagePlus / ReplDamageMinus recipient bits (Repl.C), relative to the
+// replacement's controller; ReplDmgNonCombat restricts it to noncombat
+// damage, ReplDmgCombat to combat damage.
 const (
 	ReplDmgOppPlayer = 1 << iota // an opponent
 	ReplDmgOppPerm               // a permanent an opponent controls
@@ -14,7 +14,31 @@ const (
 	ReplDmgCtrHost               // ReplDamagePlus: Repl.A is a counter kind; the amount added is the host's count of that kind at application time (Fated Firepower)
 	ReplDmgPowHost               // ReplDamagePlus: the amount added is the host's power at application time (Repl.A unused; Hawkeye, Young Avenger)
 	ReplDmgCombat                // ReplDoubleDamageToOpps: combat damage only (IsCombat$ True; Charging Tuskodon)
+	ReplDmgSrcSpell              // ReplDamageMinus: the source is the resolving spell (ValidSource$ Spell; Benevolent Unicorn), no battlefield source
 )
+
+// Repl.C of ReplBeginPhase (the printed phase-skip, R:Event$ BeginPhase |
+// Phase$ <p> | Skip$ True; gorge replacement_phase.go): 0 applies every turn
+// (Sands of Time, Stasis), ReplPhYou only during the replacement controller's
+// own turns (ValidPlayer$ You; Necropotence).
+const ReplPhYou = 1
+
+// Repl.C of ReplSpellsCantBeCountered: 0 matches the spells its controller
+// casts (the kernel's structural YouCtrl scan), ReplUncAnyCtrl the spells of
+// every controller (ValidSA$ names no YouCtrl/wasCastByYou: Leyline of
+// Lifeforce, Root Sliver; gorge counterValidSA scopes per alternative).
+const ReplUncAnyCtrl = 1
+
+// Repl.C of ReplDamageSet: the low bits the ReplDmg* recipient words and the
+// top bits the DamageAmount$ GE gate (the event's damage becomes Repl.A when
+// it is that much or more; Divine Presence, Forethought Amulet). The shift
+// clears ReplDmgSrcSpell's bit and caps the gate at 15.
+const ReplDmgSetShift = 11
+
+func ReplDmgSetGE(k int) int { return k << ReplDmgSetShift }
+
+// ReplDmgSetGateOf reads a ReplDamageSet's gate out of its C.
+func ReplDmgSetGateOf(c int16) int { return int(uint16(c)) >> ReplDmgSetShift }
 
 // ReplKind is a replacement-lite effect's kind (the kernel's narrow form of
 // CR 614: one fixed rewrite per kind, no ordering choice). Append-only.

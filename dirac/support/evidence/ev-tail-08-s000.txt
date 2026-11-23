@@ -20,7 +20,6 @@ Battle Sliver
 Benalish Marshal
 Beorn, Reluctant Host
 Bequeathal
-Bestial Menace
 Bilbo Baggins, Burglar
 Black Market Tycoon
 Blizzard Strix
@@ -86,7 +85,6 @@ Engulf the Shore
 False Demise
 Fearless Liberator
 Feast of the Unicorn
-Feedback
 Fists of Flame
 Flare
 Flay
@@ -253,7 +251,6 @@ Vexilus Praetor
 Victory's Herald
 Vrock
 Wall of Opposition
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Weakness

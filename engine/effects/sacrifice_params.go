@@ -56,8 +56,16 @@ func sacrificeEachValid(h Host, c *Ctx, sa *cards.SA) {
 		effSacrifice(h, c, sa)
 		return
 	}
-	for _, part := range parts {
-		effSacrifice(h, c, sacEachValidPartSA(sa, part))
+	for i, part := range parts {
+		ps := sacEachValidPartSA(sa, part)
+		if i > 0 {
+			// The earlier part's departures changed the board (an animator
+			// that left ends its animation of another permanent), and Resolve
+			// published the layer tables once for the whole node: take them
+			// again so this part's pool reads the board as it now stands.
+			c.Layers = layerTablesFor(h, ps, c)
+		}
+		effSacrifice(h, c, ps)
 	}
 }
 

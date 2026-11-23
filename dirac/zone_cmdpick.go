@@ -19,7 +19,7 @@ func (s *State) commandCands(k *prep, in *kop.Instr, d *Decision) {
 		if o == NoObj || s.objs[o].zone != kop.ZoneCommand || s.picksHas(o) {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
+		if !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) && s.pickFits(k, in.F, o, false) {
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}

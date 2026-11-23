@@ -1411,12 +1411,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 			flags = append(flags, k)
 		}
 	}
-	if !ps.is("ForceRevealToController", "True") && cards.DigRevealsPick(ps.m, lc.face.Oracle) {
-		// The new corpus dropped ForceRevealToController$ True from the
-		// "you may reveal a card from among them" digs; gorge effDig reads
-		// the same rule (cards.DigRevealsPick), so the table carries the flag.
-		flags = append(flags, "ForceRevealToController")
-	}
+	flags = digRevealPickFlag(ps, lc.face.Oracle, flags) // lower_digparams.go
 	if ps.is("PromptToSkipOptionalAbility", "True") || ps.str("OptionalAbilityPrompt") != "" {
 		// gorge effDig's promptToSkipOptional: either spelling names the same
 		// optional take as Optional$ True (the take is a 0..N election, and
@@ -4368,9 +4363,9 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 	// the cast-provenance words (wasCastFromExile, !wasCastFromYourHand)
 	// read the spell being paid for: allowed on this filter only, never
 	// the Activated one (gorge restrictValidTermMatches)
-	save, saveGrave := lc.spellProvOK, lc.spellGraveOK
-	lc.spellProvOK, lc.spellGraveOK = true, true
-	defer func() { lc.spellProvOK, lc.spellGraveOK = save, saveGrave }()
+	save := lc.spellProvOK
+	lc.spellProvOK = true
+	defer func() { lc.spellProvOK = save }()
 	var spellClauses, staticClauses []lClause
 	var act []string
 	var never []int // act terms that match nothing (lower_restrictedmana_words.go)
@@ -4436,7 +4431,7 @@ func (lc *lowerCtx) manaRestrict(rv string, m *lMana) error {
 			return refuse("mana restriction %q", rv)
 		}
 	}
-	lc.spellProvOK, lc.spellGraveOK = save, saveGrave
+	lc.spellProvOK = save
 	m.Restrict = nil
 	if len(spellClauses)+len(staticClauses) > 0 {
 		m.Restrict = &lFilter{Clauses: append(spellClauses, staticClauses...)}

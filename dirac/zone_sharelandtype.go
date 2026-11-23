@@ -35,7 +35,7 @@ func (s *State) shareLandTypeCands(k *prep, in *kop.Instr, d *Decision, list []O
 		if s.picksHas(o) || !common.And(k.t.Cards[s.objs[o].card].Subtypes).Any() {
 			continue
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}

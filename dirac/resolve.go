@@ -979,7 +979,8 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return 0
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
@@ -998,7 +999,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
-		s.loseLife(k, CodeSeat(code), n)
+		s.loseLifeDmg(k, CodeSeat(code), n)
 		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]
@@ -1023,7 +1024,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if k.gen != nil && e.obj != NoObj {

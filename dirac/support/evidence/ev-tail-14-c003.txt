@@ -27,7 +27,6 @@ Entrapment Maneuver
 Essence Drain
 Eviscerate
 Experimental Augury
-Feedback
 Firemane Commando
 Flensermite
 Flitterstep Eidolon

@@ -27,7 +27,6 @@ Battle Sliver
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Black Market Tycoon
 Blood Age General
 Blood Divination
@@ -92,7 +91,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Fetid Gargantua
 Fists of Flame
 Flare
@@ -315,7 +313,6 @@ Vrock
 Vulpine Goliath
 Wall of Opposition
 War Falcon
-Wardscale Crocodile
 Warlord's Elite
 Water Elemental
 Wayward Soul

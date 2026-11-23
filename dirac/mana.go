@@ -462,6 +462,7 @@ func (s *State) availForExcluding(k *prep, p uint8, a *avail, ex slotMask) {
 // when withDeferred is set (availForCapped).
 func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferred bool) {
 	a.total, a.n, a.nOne, a.nModal, a.pain.on = 0, 0, 0, 0, false
+	a.nExcl, a.xMax = 0, 0 // the two-face lands of an earlier census on this avail (addAltExcl) are not this one's
 	a.capped = withDeferred
 	pl := &s.pl[p]
 	for c := 0; c < kop.NumManaKinds; c++ {
@@ -493,7 +494,9 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// unit here, or no walk would count it and a play it funds would
 		// vanish from the offer (mana_tapsdefer.go).
 		deferGap = s.scriptTapsDefer(k, p).or(s.tapsDeferDead(k, p))
-		m = m.andNot(s.tapsDeferLethalMask(k, p, m)) // a deferred source whose own tap kills the payer funds nothing (mana_tapsdefer.go)
+		if s.g.availX&availNoTapsLethal == 0 {
+			m = m.andNot(s.tapsDeferLethalMask(k, p, m)) // a deferred source whose own tap kills the payer funds nothing (mana_tapsdefer.go)
+		}
 	}
 	for m.any() {
 		sl := m.first()

@@ -1251,9 +1251,14 @@ func (s *State) cardGrantsStatic(k *prep, sl Slot, c CardID, ab uint8) bool {
 // 0x80|ab) hosted by the battlefield permanent at sl names: sl's current
 // card, or, on a copy, the card of the as-enters grant record that grants sl
 // that ability when no record of the current card does (selfGrantHost).
+// Every caller reads an announced granted activation, so a current-card
+// static grant whose granted ability is no activation cannot be the grant
+// they read (cardGrantsAct); the as-enters copy grant record at the same
+// index names the body instead (Thorncaster Sliver's attack trigger sits at
+// index 0 of a copy of it beside the copying card's own grant).
 func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 	c := s.cardAt(sl)
-	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsStatic(k, sl, c, ab) {
+	if !s.ownGrants(k, sl, c, ab) && !s.cardGrantsAct(k, sl, c, ab) {
 		// also on a permanent whose printed card is the one it shows: a
 		// Grizzly Bears turned into a copy of a Pretender copy by a permanent
 		// copy effect holds the Pretender's grant (copyGrantsAdd)
@@ -1262,6 +1267,18 @@ func (s *State) grantCardAt(k *prep, sl Slot, ab uint8) CardID {
 		}
 	}
 	return c
+}
+
+// cardGrantsAct is cardGrantsStatic when the granted ability is an
+// activation: only an activated or mana ability is ever announced (CR
+// 602.2), so a live static that grants a trigger at index ab does not make
+// c the card of the granted activation ab being read.
+func (s *State) cardGrantsAct(k *prep, sl Slot, c CardID, ab uint8) bool {
+	if !s.cardGrantsStatic(k, sl, c, ab) {
+		return false
+	}
+	g := &k.t.Cards[c].Abilities[ab]
+	return g.Kind == kop.AbActivated || g.Kind == kop.AbMana
 }
 
 // applyOverride records override idx (from card src) on sl.

@@ -36,7 +36,6 @@ Ben-Ben, Akki Hermit
 Benalish Marshal
 Benalish Missionary
 Bequeathal
-Bestial Menace
 Bird Admirer
 Black Market Tycoon
 Black Panther, Most Dangerous
@@ -145,7 +144,6 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
-Feedback
 Fetid Gargantua
 Final Death
 Final Payment
@@ -203,6 +201,7 @@ Ilysian Caryatid
 Imperial Oath
 Improbable Alliance
 Indulgent Tormentor
+Infernal Tutor
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
@@ -250,6 +249,7 @@ Mardu Hateblade
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
+Mask of the Mimic
 Mass Appeal
 Mass Diminish
 Mawloc
@@ -453,7 +453,6 @@ Vulpine Goliath
 Wall of Opposition
 War Falcon
 Warcry Phoenix
-Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental

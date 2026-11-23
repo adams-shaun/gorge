@@ -5,6 +5,7 @@ Barkform Harvester
 Bellowing Crier
 Blossoming Sands
 Brambleguard Veteran
+Builder's Talent
 Bumbleflower's Sharepot
 Bushy Bodyguard
 Cache Grab
@@ -13,6 +14,7 @@ Charmed Sleep
 Clement, the Worrywort
 Clifftop Lookout
 Colossification
+Consumed by Greed
 Curious Forager
 Daring Waverider
 Dazzling Denial
@@ -20,6 +22,7 @@ Dire Downdraft
 Dour Port-Mage
 Dreamdew Entrancer
 Druid of the Spade
+Early Winter
 Fabled Passage
 Fecund Greenshell
 Forest
@@ -46,6 +49,7 @@ Mind Spring
 Mindwhisker
 Mistbreath Elder
 Mockingbird
+Nettle Guard
 Nightwhorl Hermit
 Oakhollow Village
 Otterball Antics
@@ -54,15 +58,19 @@ Patchwork Banner
 Pawpatch Formation
 Pawpatch Recruit
 Pearl of Wisdom
+Plains
 Plumecreed Escort
 Polliwallop
+Psychic Whorl
 Rabid Bite
 Run Away Together
 Rust-Shield Rampager
+Savor
 Season of Gathering
 Shore Up
 Shoreline Looter
 Short Bow
+Shrike Force
 Skyskipper Duo
 Spellgyre
 Splash Lasher
@@ -72,9 +80,11 @@ Stickytongue Sentinel
 Stocking the Pantry
 Sugar Coat
 Sunshower Druid
+Swamp
 Swiftwater Cliffs
 Sword of Vengeance
 Thieving Otter
+Thornvault Forager
 Thought Shucker
 Three Tree Rootweaver
 Three Tree Scribe

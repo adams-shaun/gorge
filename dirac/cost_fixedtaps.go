@@ -47,11 +47,22 @@ func (s *State) affordsUngrantedReserving(k *prep, p uint8, cost *kop.ManaCost, 
 // (chosenPairPrefix's search: its assignments applied to ungrAvail's).
 func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, c *kop.Cost, src Slot, av *avail, ms *modalSet) bool {
 	pm := pipMaskOf(cost)
+	rm := s.restrFloatAdmits(k, SeatIx(p), &d)
 	for m := 0; m < 1<<ms.n; m++ {
 		b := ms.modes(*av, m)
 		b.ungr = true
 		if b.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, c, cost, &b, pm) {
 			return true
+		}
+		if rm != 0 {
+			// the floating restricted batches the payment may spend (CR 106.6:
+			// Karn's {C} barring only spells) are pool mana, no candidate's
+			// own, so they join the mana the part's candidates stay apart from
+			t := b
+			s.restrAvailAdd(SeatIx(p), rm, &t)
+			if t.affords(cost, pm, 0) && s.costPartDisjoint(k, p, src, c, cost, &t, pm) {
+				return true
+			}
 		}
 		if k.restrSrc && d.class != pdNone && s.restrSrcAffords(k, SeatIx(p), d, cost, &b, ex, 0) {
 			// restricted mana the plain avail cannot show: keep the old

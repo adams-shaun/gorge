@@ -150,7 +150,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		p := q.s[i]
 		code := PlayerCode(p)
 		m := n
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 			if m = s.replDamagePend(k, ctrl, sl, card, code, m, o); m <= 0 {
 				continue
 			}
@@ -160,7 +161,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyInfect && infect {
 			s.addPoison(p, m)
 		} else {
-			s.loseLife(k, p, m)
+			s.loseLifeDmg(k, p, m)
 		}
 		s.plDmgMark(p, m) // wasDealtDamageThisTurn's seat arm (gen.go)
 		s.res.lastDmg = int16(m)
@@ -170,7 +171,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
@@ -215,7 +216,8 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 		return
 	}
 	m := n
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		m = s.replDamagePend(k, ctrl, NoSlot, card, code, m, o)
 	}
 	s.g.plusBatchAsked = false
@@ -236,7 +238,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, ctrl, m)
 	}
-	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any()) {
+	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.embDmg()) {
 		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
 	}
 }
