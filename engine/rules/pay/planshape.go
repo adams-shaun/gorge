@@ -970,7 +970,10 @@ var paymentPlanTapDamageTriggerCodes = state.NewStrCodes(
 )
 
 // UnlessManaReachable reports whether pool plus one production alternative
-// per window unit (or none of a unit) can satisfy cost's mana/life component.
+// per window unit (or none of a unit) -- with a unit the census marked
+// Repeat re-enterable in the same branch (CR 605.3a: a fee-only no-tap
+// activation repeats while the floating mana funds it) -- can satisfy
+// cost's mana/life component.
 // It is the exact affordability question the offer gate and the window's
 // safety ordering both ask: a unit with several free abilities offers its
 // alternatives as a CHOICE (the payer taps the permanent for one of them),
@@ -1006,6 +1009,21 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 	budget := cost.ManaPipCount()
 	for i := range units {
 		budget += int(unitMaxFee(units[i]))
+	}
+	// A Repeat unit's fee is charged EVERY activation (CR 605.3a), and each
+	// charge is funded from mana the base pool or an earlier activation
+	// supplied. The one-fee-per-unit bound above no longer counts those
+	// repeats, so add a per-repeat-unit allowance: the whole stock of mana
+	// any repeat's fee can draw on, namely the pip count the cost still
+	// needs, the base pool, and one production per other unit (a minimal
+	// payable branch never draws on more than it can fund). The 1<<18 node
+	// cap still terminates the search, failing closed.
+	if repeatStock := manaRepeatStock(cost, pool, units); repeatStock > 0 {
+		for i := range units {
+			if f := unitMaxFee(units[i]); f > 0 && unitRepeats(units[i]) {
+				budget += int(f) * repeatStock
+			}
+		}
 	}
 	// The walk takes units in index order, so a fee-carrying unit listed
 	// before the source that funds its fee would never see that mana (a Mire's
@@ -1055,8 +1073,19 @@ func UnlessManaReachable(e Engine, p state.PlayerID, cost costvocab.Cost, pool, 
 					if !ok {
 						continue
 					}
+					// CR 605.3a: a Repeat alt leaves its source untapped
+					// and unsacrificed with no activation limit, so the
+					// SAME branch may activate it again once the new
+					// floating mana funds the fee: re-enter at i, not
+					// past it. Each step still consumes one of
+					// `remaining` and the node budget bounds the walk,
+					// so the repeat terminates.
+					nextStart := i + 1
+					if a.Repeat {
+						nextStart = i
+					}
 					tryFee := func(afterFee state.Mana) bool {
-						return rec(i+1, remaining-1, ManaAdd(ManaSub(afterFee, pool), a.Mana()), lifeLeft-a.Life)
+						return rec(nextStart, remaining-1, ManaAdd(ManaSub(afterFee, pool), a.Mana()), lifeLeft-a.Life)
 					}
 					found := tryFee(funded)
 					if !found && a.CostGeneric > 0 && manaCovers(floating, a.CostColored) {
@@ -1096,6 +1125,35 @@ func unitMaxFee(u WindowUnit) int32 {
 		fee = max(fee, a.Fee())
 	}
 	return fee
+}
+
+// unitRepeats reports whether any of a unit's alternatives re-enters the
+// reach walk (pay.WindowAlt.Repeat, the unless census's repeatable fee-only
+// arm).
+func unitRepeats(u WindowUnit) bool {
+	for _, a := range u.Alts {
+		if a.Repeat {
+			return true
+		}
+	}
+	return false
+}
+
+// manaRepeatStock is the mana a repeatable unit's fees can draw on before the
+// cost is payable: the pip count the cost still needs, the base pool, and one
+// production from every other unit (a minimal payable branch funds its
+// repeats from the pool and the window's other productions alone -- beyond
+// that the node cap fails closed).
+func manaRepeatStock(cost costvocab.Cost, pool state.Mana, units []WindowUnit) int {
+	stock := cost.ManaPipCount() + int(pool.Total())
+	for i := range units {
+		amt := int32(0)
+		for _, a := range units[i].Alts {
+			amt = max(amt, a.Amt)
+		}
+		stock += int(max(amt, 1))
+	}
+	return stock
 }
 
 // feeFromMana pays one activation's literal mana fee (WindowAlt.CostGeneric

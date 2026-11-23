@@ -382,7 +382,16 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 			// The fee's self-sacrifice shape is priced here, at the one call
 			// that owns the engine: the alts builder below stays free of it.
 			selfSac := pay.CastWindowSelfSacFeeCost(asPayer(e), p, id, fee)
+			// CR 605.3a: a fee whose whole cost is mana, on a source the
+			// activation leaves untapped and unsacrificed, has no activation
+			// limit, so the payment may activate it again once the floating
+			// mana funds the fee a second time (Nomadic Elf's "{1}{G}: Add
+			// one mana of any color" pays {3}{U}{U} twice over). The reach
+			// walk re-enters the unit (pay.WindowAlt.Repeat); every other
+			// fee shape repeats exactly once.
+			repeat := repeatableFeeOnlyMana(e, p, id, ma)
 			for _, a := range unlessFeeAlts(ma, fmf, fee, selfSac) {
+				a.Repeat = repeat
 				units = pay.AppendUnitAlt(units, id, a)
 			}
 		}
