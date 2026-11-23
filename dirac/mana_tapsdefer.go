@@ -1030,6 +1030,14 @@ type deferGapScratch struct {
 	nu      int
 	nodes   int
 	stall   uint8
+	// limited: the search ran past gorge's node budget (scriptSearch.limited),
+	// the condition for its subsume run (deferSubsume).
+	limited bool
+	// subsume: this is the subsume run, whose multi-answer colour asks keep
+	// only the colours costCol (the play's coloured pips) still lacks of the
+	// node's pool.
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 }
 
 func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
@@ -1038,11 +1046,70 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	}
 	TapsDeferGapStats.Searches.Add(1)
 	var w deferGapScratch
-	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead,
-		a.Kind() == AkActivate && s.restrictedGrantLive(k, p),
-		s.playNeedsEmptyStack(k, a),
-		cp == nil && isAbilityPlay(a), // gorge's potentialTwinCut on the prefix search
-		&w, false)
+	noGrant := a.Kind() == AkActivate && s.restrictedGrantLive(k, p)
+	resolvePlay := s.playNeedsEmptyStack(k, a)
+	twinCut := cp == nil && isAbilityPlay(a) // gorge's potentialTwinCut on the prefix search
+	if deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w, false) {
+		return true
+	}
+	if !w.limited {
+		return false
+	}
+	return s.deferSubsume(k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut)
+}
+
+// deferSubsume is gorge's subsume run (potentialPrefixScript's third search,
+// the one mana_grantsubsume.go models for the grant walk) over the deferred
+// gaps: where the plain search ran out of its node budget and the play's base
+// cost is coloured pips alone, gorge searches again with every multi-answer
+// colour ask narrowed to the colours the node's pool still lacks of that cost
+// (a covered colour pays nothing more, CR 601.2g-h, 605.1a). A basic land
+// beside a dual land under Manabarbs (seven gaps, one {U} Aura) spends the
+// plain search's 164 nodes on the dual land's two off-colour answers at every
+// depth; the subsume run drops them and finds the Islands' line.
+func (s *State) deferSubsume(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool) bool {
+	cnt, ok := s.playCostCounts(k, a)
+	if !ok {
+		return false
+	}
+	var w deferGapScratch
+	w.subsume, w.costCol = true, cnt
+	return deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w, false)
+}
+
+// deferSubsumeKeeps is subsumeAnswers' keep-rule for answer ai of gap sl's
+// colour ask, read against the node's pool (gorge's, restricted units too):
+// kept when the pool holds fewer of the answer's colour than the cost asks.
+// Only the plain fixed-colour shape names its answers' colours here; a rider
+// or restricted gap's ask keeps every answer, as the plain run does.
+func (s *State) deferSubsumeKeeps(k *prep, sl Slot, ai int, costCol, pool *[kop.NumManaKinds]uint8) bool {
+	if s.restrCensusTapsGapShape(k, sl) || s.restrTapsGapShape(k, sl) {
+		return true
+	}
+	if _, ok := s.riderAbilityOf(k, sl); ok {
+		return true
+	}
+	pc := s.blgGapPC(k, sl)
+	mask := s.srcMaskAt(pc, sl)
+	var col int
+	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && int(s.pl[SeatIx(s.perms[sl].ctrl)].life) >= int(pc.painN) && ai == bits.OnesCount8(mask) {
+		col = int(pcol)
+	} else {
+		for i := 0; i < ai; i++ {
+			mask &= mask - 1
+		}
+		col = bits.TrailingZeros8(mask)
+	}
+	return costCol[col] > pool[col]
+}
+
+// budgetExit records that the walk ended on gorge's node budget and, when a
+// rule-gap stall was seen on the way, declares the capacity full.
+func (w *deferGapScratch) budgetExit(s *State) {
+	w.limited = true
+	if w.stall != 0 {
+		s.capFull(w.stall)
+	}
 }
 
 // deferGapWalk is one visit of gorge's search at the used subset: the replay
@@ -1053,10 +1120,12 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
 	n := len(order)
 	{
+		var nodePool [kop.NumManaKinds]uint8 // the pool this node's children's asks read (the subsume run)
+		if w.subsume {
+			nodePool = s.poolProj(p)
+		}
 		if w.nodes++; w.nodes > potentialScriptNodes {
-			if w.stall != 0 {
-				s.capFull(w.stall) // past gorge's search budget: no script
-			}
+			w.budgetExit(s) // past gorge's search budget: no script
 			return false
 		}
 		if w.nu > 0 {
@@ -1064,6 +1133,9 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 			t.g.noGrant = noGrant
 			var spill [kop.NumManaKinds]uint8
 			replay := deferReplay(t, k, p, a, order, w.used[:w.nu], w.answers[:w.nu], tapsDef, &spill)
+			if w.subsume {
+				nodePool = t.poolProj(p)
+			}
 			charge, fits := s.deferChainCharge(k, t, w.nodes, order, w.used[:w.nu], replay, post, resolvePlay, twinCut)
 			if w.stall == 0 {
 				w.stall = t.g.stalled
@@ -1080,9 +1152,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// unsaturated is deliberate, an approximation that may still
 				// find a line rather than a modelled clone count.
 				s.unfork()
-				if w.stall != 0 {
-					s.capFull(w.stall)
-				}
+				w.budgetExit(s)
 				return false
 			}
 			w.nodes += charge
@@ -1158,13 +1228,14 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// the activation's colour ask is a clone of gorge's search of its
 				// own, beside the one per answer (scriptSearch.visit)
 				if w.nodes += add; w.nodes > potentialScriptNodes {
-					if w.stall != 0 {
-						s.capFull(w.stall)
-					}
+					w.budgetExit(s)
 					return false
 				}
 			}
 			for ai := 0; ai < na; ai++ {
+				if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, &nodePool) {
+					continue // the subsume run's ask keeps only the colours the pool lacks
+				}
 				w.used[w.nu], w.answers[w.nu] = int8(i), uint8(ai)
 				w.nu++
 				ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
