@@ -1252,6 +1252,10 @@ type filtStep struct {
 	// sacrifice (an Eldrazi Spawn): it adds its mana, is not tapped, and ceases
 	// (mana_sacsource.go)
 	sacOnly bool
+	// lifeFund: a funding source whose mana ability costs only life
+	// (Treasonous Ogre): its life is paid and its mana floats, repeatably
+	// (mana_lifefund.go)
+	lifeFund bool
 	// wide: a funding source's answer is a gate-on pair's larger ability (the
 	// second of Whisperer of the Wilds' two: gorge's ability ask lists both
 	// and the search takes each in turn; mana_gate.go gatedLargerPair), its
@@ -1357,6 +1361,8 @@ type filtSearch struct {
 	// (scriptSearch.visit) walks its gap list once: each gap activates at most
 	// once per path.
 	lifeUsed slotMask
+	// lifeSteps: the life-only funding steps on this path (mana_lifefund.go)
+	lifeSteps int
 	// repUsed: the repeatable fee-only filters (Nomadic Elf) already
 	// activated on this path of an unless / ward census search. They have no
 	// {T} and no limit, but gorge's census prices each as ONE window unit
@@ -1921,6 +1927,10 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 	pl := &s.pl[SeatIx(p)]
 	if st.sacOnly {
 		s.fundSacOnly(k, p, st.sl) // (mana_filtfund.go)
+		return
+	}
+	if st.lifeFund {
+		s.fundLifeOnly(k, p, st.sl) // (mana_lifefund.go)
 		return
 	}
 	if st.gap && st.ans > 0 {
@@ -2492,7 +2502,10 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}
-	if !(gapUsed || fs.hands > 0) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+	if !(gapUsed || fs.hands > 0) {
+		return fs.lifeFundedPays(k, t) // (a life-only source's floated mana: mana_lifefund.go)
+	}
+	if !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
 		return false
 	}
 	// A filter gap whose own tap queues a Taps trigger is the window's
@@ -2679,38 +2692,8 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			if gap {
 				tried[ntried] = sl
 				ntried++
-				free := t.canTapForMana(k, sl)
-				filt := t.filtPaid(k, p, sl)
-
-				if handled, res := fs.gapFreeSpecial(k, t, sl, funded, free, filt); handled {
-					if res {
-						return true
-					}
-					continue
-				}
-				switch {
-				case free && filt:
-					// two abilities: the ask, its {C} answer first
-					if !fs.tick() {
-						return false
-					}
-					if fs.twoAbilityGap(k, t, sl, funded) {
-						return true
-					}
-				case free:
-					if fs.holdDualFilter(k, t, sl) {
-						continue
-					}
-					if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
-						return true
-					}
-				case filt:
-					if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
-						continue // every colour the fee-only repeatable activation can make is doomed
-					}
-					if fs.filtColours(k, t, sl, funded) {
-						return true
-					}
+				if stop, res := fs.gapSlot(k, t, sl, funded); stop {
+					return res
 				}
 				continue
 			}
@@ -2723,10 +2706,22 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 			}
 			free := t.fundFree(k, sl)
 			if !free && rm == 0 {
+				// A life-only source funds first: its step counts toward the offer
+				// (lifeSteps), which the lifePainBranch walk of fundNoTap does not,
+				// and the visited set keys both by the same pool and life, so a
+				// lifePainBranch node reached first would hide the lifeFund one.
+				lifeWalked := false
+				if t.lifeFundAt(k, p, sl) {
+					lifeWalked = true // the life-only funder walks a subtree too (mana_lifefund.go)
+					if fs.lifeFund(k, t, sl, funded, gapUsed) {
+						return true // a life-only source funds as often as the life allows
+					}
+				}
 				res, walked := fs.fundNoTap(k, t, sl, funded, gapUsed)
 				if res {
 					return true // a Spawn funds beside the Treasures (mana_filtfund.go); a life-only unit beside the lands
 				}
+				walked = walked || lifeWalked
 				if walked {
 					// the no-tap funder walked its subtree: it is the twin list's member
 					tried[ntried] = sl
@@ -2753,6 +2748,45 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 		return true // a hand guide funds after the battlefield's sources (mana_handguide.go)
 	}
 	return fs.passTrigger(k, t, funded)
+}
+
+// gapSlot walks a gap slot's asks and answers in visit's gap pass: the slot's
+// free tap, its paid {C} filter and its colours, its dual-filter hold and its
+// fee-only activation stalls. stop reports that visit ends with res (a priced
+// plan reached the play, or the node budget is spent, which also skips visit's
+// later arms); otherwise the pass goes on to the next slot.
+func (fs *filtSearch) gapSlot(k *prep, t *State, sl Slot, funded int) (stop, res bool) {
+	free := t.canTapForMana(k, sl)
+	filt := t.filtPaid(k, fs.p, sl)
+
+	if handled, res := fs.gapFreeSpecial(k, t, sl, funded, free, filt); handled {
+		return res, res
+	}
+	switch {
+	case free && filt:
+		// two abilities: the ask, its {C} answer first
+		if !fs.tick() {
+			return true, false
+		}
+		if fs.twoAbilityGap(k, t, sl, funded) {
+			return true, true
+		}
+	case free:
+		if fs.holdDualFilter(k, t, sl) {
+			return false, false
+		}
+		if fs.try(k, t, filtStep{sl: sl, gap: true}, funded, true) {
+			return true, true
+		}
+	case filt:
+		if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
+			return false, false // every colour the fee-only repeatable activation can make is doomed
+		}
+		if fs.filtColours(k, t, sl, funded) {
+			return true, true
+		}
+	}
+	return false, false
 }
 
 // fundNoTap is the funding pass's source with no {T} mana ability to tap: a
