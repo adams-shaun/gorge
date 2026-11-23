@@ -7,6 +7,7 @@ Agent of the Iron Throne
 Akroan Horse
 Alchemist's Retrieval
 Alirios, Enraptured
+Allosaurus Shepherd
 Altar of Dementia
 Ambush
 Ancient Excavation
@@ -185,6 +186,7 @@ Lady Orca
 Landbind Ritual
 Lattice-Blade Mantis
 Lay Bare
+Leyline of Lifeforce
 Lifespark Spellbomb
 Lulu, Stern Guardian
 Madcap Skills

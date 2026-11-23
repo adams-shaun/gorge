@@ -36,6 +36,7 @@ Autumnal Gloom
 Avacynian Priest
 Avatar of Slaughter
 Ayula's Influence
+Azure Fleet Admiral
 Azusa's Many Journeys
 Banishment Decree
 Basal Thrull
@@ -336,6 +337,7 @@ Shell Skulkin
 Sheltering Word
 Shinka Gatekeeper
 Shroofus Sproutsire
+Sigil of Sleep
 Silvos, Rogue Elemental
 Sisay's Ingenuity
 Skirsdag Supplicant
@@ -424,6 +426,7 @@ Wild Might
 Wind Spirit
 Windscouter
 Witch Enchanter
+Worship
 Yawgmoth's Agenda
 Your Temple Is Under Attack
 Yuffie, Materia Hunter

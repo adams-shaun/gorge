@@ -17,6 +17,7 @@ Angel of Deliverance
 Angel of Retribution
 Arcane Investigator
 Architect of the Untamed
+Armament of Nyx
 Armory of Iroas
 Army of Allah
 Army of the Damned
@@ -244,6 +245,7 @@ Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
 Library
+Lier, Disciple of the Drowned
 Lithomantic Barrage
 Living Hive
 Loam Dweller

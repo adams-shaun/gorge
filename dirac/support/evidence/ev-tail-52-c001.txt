@@ -289,6 +289,7 @@ Rionya, Fire Dancer
 Rock Badger
 Ronom Serpent
 Root Maze
+Root Sliver
 Rootless Yew
 Rotted Hystrix
 Royal Talon Fighter Jet
@@ -306,6 +307,7 @@ Scalebane's Elite
 Scavenger Drake
 Scourge of Valkas
 Sea God's Revenge
+Securitron Squadron
 Select for Inspection
 Selesnya Sentry
 Serpent Skin

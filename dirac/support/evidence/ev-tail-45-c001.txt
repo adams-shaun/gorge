@@ -91,6 +91,7 @@ Dinosaur Stampede
 Discombobulate
 Distract
 Djinn of the Lamp
+Dragon Appeasement
 Dragonshift
 Dreamscape Artist
 Dreamspoiler Witches
@@ -184,6 +185,7 @@ Hunter's Insight
 Icatian Town
 Ikiral Outrider
 Illusory Gains
+Imaryll, Elfhame Elite
 Improbable Alliance
 Initiate's Companion
 Inquisition of Kozilek

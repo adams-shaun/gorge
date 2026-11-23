@@ -60,6 +60,7 @@ Circle of Protection: Artifacts
 Claws of Valakut
 Cloaked Siren
 Codex Shredder
+Consume Strength
 Convolute
 Crovax, Ascendant Hero
 Cryoclasm
@@ -202,6 +203,7 @@ Mountain Valley
 Myojin of Cleansing Fire
 Myr Galvanizer
 Mystic Zealot
+Nantuko Shrine
 Nantuko Tracer
 Neheb, the Worthy
 Nezumi Cutthroat
@@ -272,6 +274,7 @@ Smoldering Spires
 Snapping Sailback
 Soaring Hope
 Soul Stair Expedition
+Space Marine Devastator
 Spellkeeper Weird
 Sphere Grid
 Sphinx of Enlightenment
@@ -316,6 +319,7 @@ Titan of Eternal Fire
 Tolarian Emissary
 Tor Wauki the Younger
 Tranquil Frillback
+Transmogrify
 Tree Monkey
 Treefolk Umbra
 Tribal Flames
