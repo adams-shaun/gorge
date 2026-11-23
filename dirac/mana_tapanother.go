@@ -1299,14 +1299,33 @@ func (s *State) tapXPlainDo(k *prep, p uint8, sl Slot, ask uint8) {
 // its ability ask (rules scriptSearch.visit, an activation of a census gap,
 // then scriptAnswers over the ask): the plain first ability first, and the
 // caller then tries the tap-another one when it has a candidate (live). With
-// one payable ability nothing is asked. handled: the search found a path
-// (found) or ran out of nodes (!found); the caller returns found then.
-func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, live bool) (found, handled bool) {
-	if !k.tapXSecond(t.cardAt(sl)) || !t.canTapForMana(k, sl) {
+// one payable ability nothing is asked. An any-colour plain ability asks its
+// colour behind the ability ask, the play's announced ones first, as the
+// counter sibling's does (ctrAbilityAsk): the payment window's answer is a
+// colour the play still owes, not W (Relic of Legends funding a red play).
+// handled: the search found a path (found) or ran out of nodes (!found); the
+// caller returns found then.
+func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8, live bool) (found, handled bool) {
+	c := t.cardAt(sl)
+	if !k.tapXSecond(c) || !t.canTapForMana(k, sl) {
 		return false, false
 	}
 	if live && !rs.tick() { // the ability ask
 		return false, true
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 {
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		for i := 0; i < 5; i++ {
+			if !rs.subsumeKeeps(t, cols[i]) {
+				continue
+			}
+			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+				return true, true
+			}
+		}
+		return false, false
 	}
 	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 		return true, true
@@ -1548,7 +1567,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			}
 			continue
 		}
-		if found, handled := rs.tapXAbilityAsk(k, t, sl, live.has(sl)); handled {
+		if found, handled := rs.tapXAbilityAsk(k, t, sl, &cols, live.has(sl)); handled {
 			return found
 		}
 		if rider.has(sl) {
