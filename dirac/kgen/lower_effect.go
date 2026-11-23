@@ -100,16 +100,7 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
 	case "TriggeredCardOwner":
-		// gorge definedSpecTriggeredCardOwner: the triggering card's
-		// immutable owner (CR 108.3), the player kernel RefTriggerObjOwner
-		// reads off the trigger object. A Drawn trigger binds no object (its
-		// event is the drawing player's): the drawn card's owner is that
-		// player (CR 108.4a, a card is drawn from its owner's library into
-		// its owner's hand), the trigger player (Spiteful Visions).
-		if tr := lc.ab.Trigger; tr != nil && tr.Event == "Drawn" {
-			return lRef{Kind: rTriggeredPlayer}, nil
-		}
-		return lRef{Kind: rTriggeredOwner}, nil
+		return lc.triggeredCardOwnerRef(), nil // lower_modeparams.go
 	case "TriggeredObject", "TriggeredObjectLKICopy":
 		// gorge definedSpecTriggeredObject(LKICopy) reads the OBJECT that
 		// caused the trigger: for Mode$ Unattached (the Captain's Hook

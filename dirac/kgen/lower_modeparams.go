@@ -22,7 +22,7 @@ type lModeOperand struct {
 // Player.Other, Player and the empty value. Every other qualifier refuses,
 // Player.Active and the NonActive spellings among them: "the active player"
 // is relative to the turn, not to the listener's controller, and no lockstep
-// card yet vouches for the two-seat your-turn reading of NonActive.
+// card yet vouches for the your-turn reading of NonActive.
 func (lc *lowerCtx) modeParam(kind, mode, param string, ps *params) (lModeOperand, error) {
 	if kind != "trig" {
 		return lModeOperand{}, refuse("%s %s mode param %s$ has no shared reader", kind, mode, param)
@@ -107,4 +107,18 @@ func (lc *lowerCtx) blockerScope(tp *params, tr *lTrigger, readF func(string) (*
 		return refuse("AttackerBlocked ValidBlocker %q", vb)
 	}
 	return nil
+}
+
+// triggeredCardOwnerRef is Defined$ TriggeredCardOwner (gorge
+// definedSpecTriggeredCardOwner): the triggering card's immutable owner
+// (CR 108.3), the player kernel RefTriggerObjOwner reads off the trigger
+// object. A Drawn trigger binds no object (its event is the drawing
+// player's): the drawn card's owner is that player (CR 108.4a, a card is drawn
+// from its owner's library into its owner's hand), the trigger player
+// (Spiteful Visions).
+func (lc *lowerCtx) triggeredCardOwnerRef() lRef {
+	if tr := lc.ab.Trigger; tr != nil && tr.Event == "Drawn" {
+		return lRef{Kind: rTriggeredPlayer}
+	}
+	return lRef{Kind: rTriggeredOwner}
 }
