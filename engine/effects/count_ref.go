@@ -464,7 +464,14 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		sc.Captured = nil
 		return refTargets(h, &sc, inner)
 	}
-	switch refTargetsCodes.Code(string(ref)) {
+	// The <List>Cards spelling of a paid cost list this table names (the
+	// ff076d4 corpus's RevealedCards$, Dragon's Fire's X) is that paid list;
+	// paidCostTargets reads both spellings.
+	code := refTargetsCodes.Code(string(ref))
+	if base, ok := strings.CutSuffix(ref, "Cards"); ok && code == 0 && refTargetsCodes.Code(base) == refTargetsExiled {
+		code = refTargetsExiled
+	}
+	switch code {
 	case refTargetsTargeted:
 		return chainTargets(c), true
 	case refTargetsParentTarget:
@@ -1017,7 +1024,6 @@ var refTargetsCodes = state.NewStrCodes(
 	state.StrEntry[refTargetsCode]{Key: "ExiledWith", Val: refTargetsExiledWith},
 	state.StrEntry[refTargetsCode]{Key: "Exiled", Val: refTargetsExiled},
 	state.StrEntry[refTargetsCode]{Key: "Revealed", Val: refTargetsExiled},
-	state.StrEntry[refTargetsCode]{Key: "RevealedCards", Val: refTargetsExiled},
 	state.StrEntry[refTargetsCode]{Key: "ExiledCards", Val: refTargetsExiledCards},
 	state.StrEntry[refTargetsCode]{Key: "Equipped", Val: refTargetsEquipped},
 	state.StrEntry[refTargetsCode]{Key: "Enchanted", Val: refTargetsEquipped},
