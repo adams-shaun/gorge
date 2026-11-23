@@ -2424,7 +2424,11 @@ func (fs *filtSearch) lifePass(k *prep, t *State, order []Slot, funded int) bool
 // activation taps nothing and gorge's gap-list rule does not reach it, so a
 // later node of the same path may activate it again while the payer survives
 // (the state keys of the nodes between keep the lines distinct).
-func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int, gapUsed bool) bool {
+// The activation counts as a gap use (terminal's gapUsed): the unit's own
+// mana is what funds the play beside a board whose plain census cannot (two
+// Swamps and the Ogre for Rhystic Syphon's {3}{B}{B}: Swamp, Swamp and three
+// activations), so the node it leaves is priced like a gap's.
+func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int) bool {
 	pc := t.manaPCAt(k, sl)
 	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[t.cardAt(sl)].Abilities) {
 		return false
@@ -2440,13 +2444,13 @@ func (fs *filtSearch) lifePainBranch(k *prep, t *State, sl Slot, funded int, gap
 		}
 		needFirst(order[:], fs.need) // gorge's scriptOrderAnswers on the colour ask
 		for _, c := range order {
-			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, gapUsed) {
+			if fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: c}}, funded, true) {
 				return true
 			}
 		}
 		return false
 	}
-	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, gapUsed)
+	return fs.try(k, t, filtStep{sl: sl, other: otherStep{kind: otherLifePain, ans: uint8(bits.TrailingZeros8(uint8(a.ManaColors)))}}, funded, true)
 }
 
 // restrictedAnswers tries a restricted ability's colour answers (rm) of the
@@ -2595,8 +2599,8 @@ func (fs *filtSearch) slotUnusable(k *prep, t *State, sl Slot, gap bool) bool {
 	if gap && k.gen.anyFiltFirst {
 		return !t.filtUsable(k, sl)
 	}
-	if t.fundOut(k, sl) {
-		return true
+	if t.fundOut(k, sl) && !(!gap && fs.lifePainBound && t.canLifeOnlyMana(k, sl, fs.p)) {
+		return true // (a life-only pain unit's cost taps nothing: tapped it still funds, fundNoTap)
 	}
 	return !gap && !fs.coveredSpendable(k, t, sl)
 }
@@ -2770,7 +2774,7 @@ func (fs *filtSearch) fundNoTap(k *prep, t *State, sl Slot, funded int, gapUsed 
 		walked = true
 	}
 	if fs.lifePainBound && t.canLifeOnlyMana(k, sl, fs.p) {
-		return fs.lifePainBranch(k, t, sl, funded+1, gapUsed), true
+		return fs.lifePainBranch(k, t, sl, funded+1), true
 	}
 	return false, walked
 }
