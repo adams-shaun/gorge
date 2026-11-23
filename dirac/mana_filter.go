@@ -2778,6 +2778,12 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if !fs.tick() {
 						return false
 					}
+					if t.filtHybAskNeeded(k, fs, sl) {
+						if fs.filtHybAsk(k, t, sl, funded) {
+							return true
+						}
+						continue
+					}
 					if fs.twoAbilityGap(k, t, sl, funded) {
 						return true
 					}
@@ -3196,11 +3202,20 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 }
 
 func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
+	return fs.filtColoursOf(k, t, sl, funded, colAll, true)
+}
+
+// filtColoursOf is filtColours over the colour answers part names: all of
+// them, or only the colours the play's cost needs, or only the others (a
+// hybrid filter's flattened ask walks the needed colours, {C}, then the rest:
+// filtHybAsk). ask charges the colour ask's own node; the flattened ask has
+// been charged by its caller.
+func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part colPart, ask bool) bool {
 	if t.filtAb(k, sl).ManaEach {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
 	}
-	if _, _, hyb := t.filtHyb(k, sl); !t.filtFixed(k, sl) && !hyb && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour; a hybrid-fee filter's ask lists one option a colour, no second ask: mana_filterhybrid.go)
+	if _, _, hyb := t.filtHyb(k, sl); ask && !t.filtFixed(k, sl) && !hyb && !kop.FeeDynManaAb(t.filtAb(k, sl)) && !fs.tick() { // (a fixed production asks no colour, nor does Cabal Coffers' one {B} for each Swamp: one ability, one colour; a hybrid-fee filter's ask lists one option a colour, no second ask: mana_filterhybrid.go)
 		return false
 	}
 	if t.filtFixed(k, sl) {
@@ -3235,6 +3250,9 @@ func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
 	}
 	for i := 0; i < n; i++ {
 		c := order[i]
+		if part == colNeeded && !fs.need[c] || part == colRest && fs.need[c] {
+			continue
+		}
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
