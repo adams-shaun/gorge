@@ -253,6 +253,34 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	s.reflAmtDo(k, p, sl, col)
 }
 
+// reflAmtUnbounded reports whether a live reflected Amount$ source is among the
+// census gaps ca. gorge's census gives a ManaReflected gap no relaxed
+// alternative (paymentPlanRelaxedAlternatives reads API Mana only), so the
+// census is not bounded and the bounded necessary-condition proof never skips
+// a prefix search: every insufficient play the potential walk lists takes a
+// search slot, not only the gaps walk's (a Humble Naturalist's G beside an
+// adapted Incubation Druid pays Circle of Dreams Druid's {G}{G}{G} by the
+// Druid's three G, which the {C}-only gaps walk lists no play for).
+func (s *State) reflAmtUnbounded(k *prep, ca slotMask) bool {
+	for b := ca; b.any(); b = b.rest() {
+		if k.isReflAmt(s.cardAt(b.first())) {
+			return true
+		}
+	}
+	return false
+}
+
+// reflWidePlay reports whether play a is one the unbounded search
+// (reflAmtUnbounded) takes beyond the gaps walk: a plain cast. gorge's walk
+// lists a kicked or targeted cast, a face cast and an activation by their own
+// gates (the census search finds no script for them beside the Druid on the
+// recorded boards: own_tapped_source_walk_candidate_beside_reflected_druid,
+// reflected_amount_gap_bound_counts_own_tap_source), so they keep the gaps
+// walk's candidates.
+func reflWidePlay(a Action) bool {
+	return a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0
+}
+
 // reflAmtBoundPlay reports whether play a is one gorge's PotentialMana bound
 // pays on a board with a live reflected Amount$ source (Incubation Druid).
 // That census gap is unrelaxable and unbounded in gorge
