@@ -112,10 +112,11 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 		return potentialScriptNodes
 	}
 	n := 0
-	if !s.filtFundable(k, p, f) {
-		return 0
-	}
-	relaxable := s.filtRelaxable(k, f)
+	// An unfundable board (a live storage battery, a tap-two source, too many paid gaps)
+	// leaves the census unrelaxable: gorge clears its paid list, but a hybrid fee's
+	// funding (census.fund, once-only) is counted whatever the census relaxes, so the
+	// hybrid fees still owe their funding below (Sunken Ruins' {U/B} beside Sand Silos).
+	relaxable := s.filtFundable(k, p, f) && s.filtRelaxable(k, f)
 	for ; f.any(); f = f.rest() {
 		if !relaxable && s.filtFeeUncounted(k, f.first()) {
 			continue // an unrelaxable census clears paid: a first-and-only filter's fee is no funding step (census.fees)
