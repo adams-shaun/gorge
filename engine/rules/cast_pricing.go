@@ -519,10 +519,29 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else {
+	} else if !pr.unpricedReachShort(convoked, av.Pool) {
 		return probePayable
 	}
 	return probeManaShort
+}
+
+// unpricedReachShort reports whether an INCOMPLETE census still proves cost
+// unpayable: the floating pool, every priced window unit's production and the
+// ceiling of what the unpriced sources could add (castWindowUnpricedReach, a
+// Phyrexian Lens's "{T}, Pay 1 life: any colour") fall short of the cost's
+// pool-unit floor. An unbounded ceiling proves nothing, so the historical
+// offer stands (CR 601.2g-h: the window can't make the missing mana).
+func (pr *targetCostProbe) unpricedReachShort(cost Cost, pool state.Mana) bool {
+	unpriced, bounded := castWindowUnpricedReach(pr.e, pr.pc, pr.windowUnits, nil, nil)
+	if !bounded {
+		return false
+	}
+	floor := castPipsManaFloor(&cost, pr.pl.Life)
+	if floor < 0 {
+		return false
+	}
+	have := int64(pool.Total()) + int64(castWindowUnitsReach(pr.windowUnits)) + int64(unpriced)
+	return have < floor
 }
 
 // manaToPay is the CR 601.2f total-cost composition for pc: resolvedMana
