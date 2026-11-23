@@ -32,6 +32,7 @@ type podWitnessTally struct {
 	card                       string
 	triggers, counters, played int
 	protectors, farExilers     int
+	dutyBesideBattle           int
 	speedSeat                  [4]int
 	activations                int
 }
@@ -39,6 +40,7 @@ type podWitnessTally struct {
 // tallyPodGame reads gorge's finished game for card's mechanism events.
 func tallyPodGame(g *GorgeSide, card, counter string) podWitnessTally {
 	y := podWitnessTally{card: card}
+	battle := false // a battle has entered with its chosen protector
 	named := func(id state.ObjID) bool {
 		o := g.E.G.Obj(id)
 		return o != nil && o.Face() != nil && o.Face().Name == card
@@ -54,6 +56,15 @@ func tallyPodGame(g *GorgeSide, card, counter string) podWitnessTally {
 			y.counters++
 		case e.Kind == events.Choose && e.Counter == "protector":
 			y.protectors++ // CR 310.10
+			battle = true
+		case e.Kind == events.HadToAttack && battle:
+			// CR 508.1d, 506.7: a creature of the card's name was bound to attack beside a battle
+			// it could have attacked (an Encore token's duty names one opponent, a player only)
+			for _, id := range e.IDs {
+				if named(id) {
+					y.dutyBesideBattle++
+				}
+			}
 		case e.Kind == events.SpeedChange && int(e.Player) < len(y.speedSeat):
 			y.speedSeat[e.Player]++
 		case e.Kind == events.MoveZone && named(e.Obj) && e.To != state.ZHand && e.To != state.ZLibrary:
@@ -87,6 +98,8 @@ var podWitnessCheck = map[string]struct {
 		"a card exiled face down by an opponent past the next seat"},
 	"battle_protector": {"Invasion of Zendikar", "", func(y podWitnessTally) bool { return y.protectors > 0 && y.played > 0 },
 		"a battle entering with a chosen protector"},
+	"encore_battle": {"Impulsivity", "", func(y podWitnessTally) bool { return y.dutyBesideBattle > 0 },
+		"an Encore token bound to attack one opponent while a battle is in play"},
 	"speed": {"Pride of the Road", "", func(y podWitnessTally) bool { return y.speedSeat[2] > 0 && y.speedSeat[3] > 0 },
 		"speed starting at seats 2 and 3"},
 	"skip_untap": {"Homarid Warrior", "", func(y podWitnessTally) bool { return y.played > 0 && y.activations > 0 },
