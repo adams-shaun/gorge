@@ -119,6 +119,9 @@ func (s *State) fireBlocksGen(k *prep) {
 			}
 		})
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0 {
+		s.fireEmblemsBlocks(k, ps[:nb]) // after the listeners: gorge checkEffectCombatTriggers
+	}
 }
 
 // firePairTrig fires one by-creature become-blocked ability (Tf2PerPair,
