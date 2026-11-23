@@ -544,6 +544,21 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 	red := s.convokeApplyPicks(k, folded)
 	hidden := s.convokeHidden()
 	s.occ = s.occ.andNot(hidden)
+	// gorge's reverseStrandedPayment (CR 733.1) reverses a cast whose
+	// announcement left a mana payment the window cannot finish BEFORE any
+	// mana ability is activated, so the reversal leaves no window effects.
+	// The announced picks alone are the helpers here (gorge's guard: no
+	// Announced cast, Convoke non-empty); the manual CR 601.2g window route
+	// (manaStep) runs the same check, but a cast whose window gorge never
+	// posed -- the strand check fired in manaWindowAsk before the pose --
+	// reaches payConvoke alone, and paying it blind tapped a still-owed
+	// colour the convoke credits could not fund, then kept the tap and its
+	// floating mana through the reversal (tail-36 pair 66).
+	if s.bld().bfl&bflMsDone == 0 && s.paymentStranded(k, e, &red) {
+		s.unhide(hidden)
+		s.reverseCast(k)
+		return false
+	}
 	ok, held := s.windowTapUseful(k, e.ctrl, &red, &folded, !anyType && !anyColor, anyColor, s.bld().pipN == 0, false)
 	if !ok {
 		// gorge's abortCast keeps the CR 601.2g window's effects through the
