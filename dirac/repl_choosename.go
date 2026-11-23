@@ -141,7 +141,18 @@ func (s *State) namedActivation(k *prep, e *stackEntry, l trigListener, a *kop.A
 		return false
 	}
 	c, ok := s.chosenNameOf(l.sl)
-	return ok && c == e.card
+	if !ok {
+		return false
+	}
+	card := e.card
+	if e.kind == seAbility && e.obj != NoObj {
+		// the source of the activation is the object, whose card a granted
+		// ability's entry does not carry: Q, Stacking the Deck's Play granted
+		// to an exiled Stable Wormhole names Q's card, while gorge's
+		// SpellAbilityCast trigger reads the host's name (std-trk pair 430)
+		card = s.objs[e.obj].card
+	}
+	return c == card
 }
 
 // noteNamedCast counts one queued Tf4NamedCast trigger (oracle tests).
