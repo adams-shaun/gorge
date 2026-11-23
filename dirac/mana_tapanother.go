@@ -756,8 +756,29 @@ func tapXPairAt(n, qi int) (int, int) {
 // may still price the play, and the offer walk declares the stall only where
 // it drops it (tapXScriptOffered, scriptOffers, grantCap).
 //
+// The colour ask walks gorge's own announced set (playNeedPrinted: empty for a
+// graveyard cast, whose mode gorge leaves unread), so a tap-any-colour source
+// floats the colour gorge's engine order picks. Only when that walk finds
+// nothing is it run again with the graveyard cast's announced pips
+// (playNeed's hint, CR 601.2b), as grantSearch does.
+//
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8) {
+	found, stall := s.tapXScriptNeed(k, a, p, apply, false)
+	if found {
+		return true, 0
+	}
+	if printed, _ := s.playNeedPrinted(k, a); printed == s.playNeed(k, a) {
+		return false, stall
+	}
+	if found, st2 := s.tapXScriptNeed(k, a, p, apply, true); found || st2 != 0 {
+		return found, st2
+	}
+	return false, stall
+}
+
+//go:noinline
+func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bool, uint8) {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
@@ -771,7 +792,11 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 		d := s.grantPayDesc(k, a)
 		rs.gaps = s.gapSpendableMask(k, rs.gaps, &d)
 	}
-	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
+	if hint {
+		rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
+	} else {
+		rs.need, _ = s.playNeedPrinted(k, a)
+	}
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
 		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
