@@ -15,15 +15,15 @@ import (
 // a folded grant: each put is 1 + Hardened Scales's 1 = 2, so 4 in all, not 6.
 
 const kamiFixtureSrc = "Name:Fixture Kami\nManaCost:2 G\nTypes:Creature Spirit\nPT:1/1\n" +
-	"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Permanent.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ AddOneMoreCounters | Description$ x\n" +
-	"SVar:AddOneMoreCounters:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ X\n" +
-	"SVar:X:ReplaceCount$CounterNum/Plus.1\n" +
+	"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Permanent.YouCtrl+inZoneBattlefield | ValidCounterType$ P1P1 | ReplaceWith$ DBOneMore | Description$ x\n" +
+	"SVar:DBOneMore:DB$ ReplaceCounter | Amount$ N | ChooseCounter$ True | ValidCounterType$ P1P1\n" +
+	"SVar:N:ReplaceCount$CounterNum/Plus.1\n" +
 	"Oracle:x\n"
 
 const scalesFixtureSrc = "Name:Fixture Scales\nManaCost:2 G\nTypes:Enchantment\n" +
-	"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Creature.YouCtrl | ValidCounterType$ P1P1 | ReplaceWith$ AddOneMoreCounters | Description$ x\n" +
-	"SVar:AddOneMoreCounters:DB$ ReplaceCounter | ValidCounterType$ P1P1 | ChooseCounter$ True | Amount$ X\n" +
-	"SVar:X:ReplaceCount$CounterNum/Plus.1\n" +
+	"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Creature.YouCtrl | ValidCounterType$ P1P1 | ReplaceWith$ DBOneMore | Description$ x\n" +
+	"SVar:DBOneMore:DB$ ReplaceCounter | Amount$ N | ChooseCounter$ True | ValidCounterType$ P1P1\n" +
+	"SVar:N:ReplaceCount$CounterNum/Plus.1\n" +
 	"Oracle:x\n"
 
 func TestEntryCountersOwnModifierExcludedUnderTwoEffects(t *testing.T) {
