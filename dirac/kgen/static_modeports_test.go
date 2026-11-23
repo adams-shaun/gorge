@@ -14,10 +14,13 @@ import (
 // today) is what the RED run pins.
 //
 // TestStatModePortsLower: MustBlock, UnspentMana, CanBlockIfShadow and
-// IgnoreLegendRule lower through the shared static machinery — the mode body
-// consumes the mode's params, readCond reads the shared gates, and the build
-// emits the manifest kind. gorge registers all four (engine/rules/statics.go,
-// block_restrict.go, statics_echo.go, sba.go's IgnoreLegendRule walk).
+// IgnoreLegendRule lower AND BUILD through the shared static machinery — the
+// mode body consumes the mode's params, readCond reads the shared gates, and
+// the build emits the manifest kind (staticFor's per-kind builder). The pool
+// is built, not just lowered: the LIR layer alone accepts any kind name, so
+// only the build exercises the builder dispatch. gorge registers all four
+// (engine/rules/statics.go, block_restrict.go, statics_echo.go, sba.go's
+// IgnoreLegendRule walk).
 func TestStatModePortsLower(t *testing.T) {
 	for _, c := range []struct {
 		mode  string
@@ -29,9 +32,9 @@ func TestStatModePortsLower(t *testing.T) {
 		{"IgnoreLegendRule", []string{"Brothers Yamazaki", "Cadric, Soul Kindler", "Council of Reeds", "Mirror Gallery", "Try-My-Deck Elemental"}},
 	} {
 		t.Run(c.mode, func(t *testing.T) {
-			for _, c := range lowerNamed(t, c.names) {
-				for _, r := range c.Refusals {
-					t.Errorf("%s: refused: %s", c.Name, r.Reason)
+			for _, c := range lowerPoolBuilt(t, c.names) {
+				for _, r := range c.refusals {
+					t.Errorf("%s: refused: %s", c.name, r.Reason)
 				}
 			}
 		})
