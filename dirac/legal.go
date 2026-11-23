@@ -776,10 +776,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		if !s.ownTapBoundKept(k, sl) {
 			s.removeSrc(k, &av2, sl, pc) // (the gaps walk's bound keeps the source's own mana: mana_reflamtowntap.go)
 		}
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
+		plain := av2.affords(cost, pm, 0)
+		if !plain && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
+			if !plain {
+				return s.actRestrDisjoint(k, sl, a, cost, &av2, sl, pm) // cost_restrdisjoint.go
+			}
 			return s.costManaDisjoint(k, sl, a, &av2, pm)
 		}
 		return true
@@ -794,10 +798,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 && !own {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
+	plain := av.affords(cost, pm, 0)
+	if !plain && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
+		if !plain {
+			return s.actRestrDisjoint(k, sl, a, cost, av, skip, pm) // cost_restrdisjoint.go
+		}
 		return s.costManaDisjoint(k, sl, a, av, pm)
 	}
 	return true
