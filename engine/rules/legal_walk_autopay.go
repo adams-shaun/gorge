@@ -51,6 +51,16 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 	return w.autoPayPlan(p, id, idx, base, scope, statics) || w.autoPayCensus(p, id, idx)
 }
 
+// printedAbilityOK is the printed-cost gate of the activated-ability offer:
+// the pool pays it, or the autopay offer proves it payable. w.censusOffer is
+// cleared before the pool gate reads it: an offer the pool or the planner
+// witness backs is the plain walk's own, and only the census arm's script
+// marks the option (decision.Option.CensusOffer).
+func (w *legalWalk) printedAbilityOK(p state.PlayerID, id state.ObjID, idx int, cost Cost, ab *cards.SA) bool {
+	w.censusOffer = false
+	return w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, idx, cost, ab)
+}
+
 // autoPayPlan is the ordinary autopay path: run the payment planner and
 // confirm its witness with the engine's own offer gate, exactly as autoPayOffer
 // always did before the fast path existed.
