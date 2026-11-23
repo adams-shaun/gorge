@@ -14,12 +14,24 @@ package dirac
 // Skull's "{T}: Add one mana of any color" on every land).
 
 // feeOrderOf reports whether gorge's fee-order run follows the plain run g,
-// which found no script (mana_filterfeeorder.go feeOrderFallback): a plain
-// cast of the printed cost with a fee gap among the candidates, outside the
-// phased order's own scope (phasedScope), whose plain run's budget ran out (a
-// completed search saw every state the reordered one reaches).
+// which found no script (mana_filterfeeorder.go feeOrderFallback): a play at
+// the printed cost — a plain cast (mode 0), a mayplay cast (mode castMayPlay,
+// the granted from-exile permission's printed-cost cast) or an activation
+// (gorge's optAbility; isAbilityPlay is the printed/gained twin cut) — with a
+// fee gap among the candidates, outside the phased order's own scope
+// (phasedScope), whose plain run's budget ran out (a completed search saw
+// every state the reordered one reaches). This is gorge potentialPrefixScript
+// build's condition (optCast Mode "" or "mayplay", or optAbility, at the
+// alternative-cost index 0): the activation's fee-carrying gap pays its filter
+// fees the same way (CR 601.2g), so its budget-spent plain run takes the fee
+// order too (Electric Eel beside Vine Trellis and Slagwurm Armor).
 func (g *grantSrch) feeOrderOf(s *State) bool {
-	if !g.limited || !g.d.hasPlay || g.d.play.Kind() != AkCast || g.d.play.Mode() != 0 || g.phasedScope(s) {
+	if !g.limited || !g.d.hasPlay || g.phasedScope(s) {
+		return false
+	}
+	printed := g.d.play.Kind() == AkCast && (g.d.play.Mode() == 0 || g.d.play.Mode() == castMayPlay) ||
+		isAbilityPlay(g.d.play)
+	if !printed {
 		return false
 	}
 	for i := 0; i < g.gapN; i++ {
