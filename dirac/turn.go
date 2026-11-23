@@ -549,6 +549,7 @@ func (s *State) sba(k *prep) bool {
 		s.dropUncounterGone() // a protected spell that left the stack (repl_uncounterable.go)
 	}
 	for {
+		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
@@ -677,7 +678,7 @@ func (s *State) sba(k *prep) bool {
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
 				if !s.duel() {
-					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+					s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
@@ -706,7 +707,7 @@ func (s *State) sba(k *prep) bool {
 			}
 			// CR 800.4a: the departed seats' objects left, at the pass end
 			// (gorge sweepDepartedPlayers runs after every pass's batch)
-			if !s.duel() && s.sweepDeparted(k) {
+			if !s.duel() && s.sweepDeparted(k, pre) {
 				continue
 			}
 			return s.sbaClean(k)
@@ -716,7 +717,7 @@ func (s *State) sba(k *prep) bool {
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
 			if !s.duel() {
-				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+				s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 			}
 			s.legDie = die
 			s.legSaga = s.sagasDue(k)
@@ -761,7 +762,7 @@ func (s *State) sba(k *prep) bool {
 		}
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
-		if !s.duel() && s.sweepDeparted(k) {
+		if !s.duel() && s.sweepDeparted(k, pre) {
 			continue
 		}
 		if askAfter && s.parkedWaiting() {
