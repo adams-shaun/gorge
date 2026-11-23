@@ -1907,9 +1907,11 @@ func chooseCardChooserPool(lc *lowerCtx, ps *params, v string, targeted bool) (p
 	case "", "You":
 		return "YouCtrl", false, true
 	case "Opponent":
+		lc.twoSeat("ChooseCard pool of the one opponent's objects")
 		return "OppCtrl", true, true
 	case "ChosenPlayer", "Player.Chosen":
 		if lc.chosenOppAb != nil && lc.chosenOppAb == lc.ab {
+			lc.twoSeat("ChooseCard pool of the one opponent's objects")
 			return "OppCtrl", true, true
 		}
 	}
