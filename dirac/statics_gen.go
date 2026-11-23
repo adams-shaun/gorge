@@ -644,16 +644,18 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 			f = a.Static.Filter2
 		}
 	}
-	if f == 0 {
+	if f == 0 && !s.bfTgtReduce(k, e) {
 		return n
 	}
-	for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
-		if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
-			// an earlier slot's target already satisfies the reduction, so the
-			// cost is reduced whatever this slot picks (Run Over's second
-			// target, the creature an opponent controls, once its first is a
-			// Vehicle; gorge asks a later chain link's target unfiltered)
-			return n
+	if f != 0 {
+		for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
+			if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
+				// an earlier slot's target already satisfies the reduction, so the
+				// cost is reduced whatever this slot picks (Run Over's second
+				// target, the creature an opponent controls, once its first is a
+				// Vehicle; gorge asks a later chain link's target unfiltered)
+				return n
+			}
 		}
 	}
 	s.g.noTgtRed = true
@@ -688,12 +690,87 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 		// (castWindowReachable; a planner-deferred River of Tears): every candidate stays payable
 		return n
 	}
+	if f != 0 {
+		m := 0
+		for i := 0; i < n; i++ {
+			if c := buf[i]; s.costTargetMatch(k, f, e.ctrl, c) {
+				buf[m] = c
+				m++
+			}
+		}
+		return m
+	}
+	// A battlefield target-gated ReduceCost (Killian, Ink Duelist's "Spells
+	// you cast that target a creature cost {2} less to cast") made the
+	// offer's optimistic probe price the cast at its reduced cost
+	// (costTargetOK's no-target arm), so the menu prices each candidate with
+	// it as the chosen target, exactly what the charge will read (CR
+	// 601.2c before 601.2f): one neither the pool nor the CR 601.2g window
+	// can pay is withheld, as gorge's affordableTargetCandidates withholds
+	// it (CR 601.2c, 733.1: choosing it can only reverse the cast).
 	m := 0
 	for i := 0; i < n; i++ {
-		if c := buf[i]; s.costTargetMatch(k, f, e.ctrl, c) {
-			buf[m] = c
+		if s.tgtRedPrice(k, e, buf[i], &av) {
+			buf[m] = buf[i]
 			m++
 		}
 	}
 	return m
+}
+
+// bfTgtReduce reports whether a battlefield target-gated ReduceCost static
+// prices the spell being built (a ReduceCost with a ValidTarget$ carried by
+// one of the caster's other permanents, or a StReduceAny one): the offer's
+// optimistic probe (costTargetOK's no-target arm) applied it, so
+// affordableTargets must reprice per candidate. The applicability gate is
+// the one adjustCostGenB applies the static under.
+func (s *State) bfTgtReduce(k *prep, e *stackEntry) bool {
+	p := e.ctrl
+	found := false
+	s.eachStaticC(k, sclsReduce, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost &&
+			a.Static.Zone != kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 &&
+			(stc.ctrl == p || a.Static.StFlags&kop.StReduceAny != 0) {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+// tgtRedPrice prices the cast being built with candidate c as the answer of
+// the target slot being posed (the build's target set the charge reads, CR
+// 601.2c before 601.2f) and reports whether the pool (av) or the CR 601.2g
+// window can pay it (affordableTargetCandidates' probe arms).
+func (s *State) tgtRedPrice(k *prep, e *stackEntry, c TCode, av *avail) bool {
+	ti := s.bld().ti
+	if ti >= kop.MaxTargets {
+		return false
+	}
+	nt, old := e.nt, e.tgt[ti]
+	e.tgt[ti] = c
+	if e.nt <= ti {
+		e.nt = ti + 1
+	}
+	marked := s.markCostComposition()
+	cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, k.t.Cards[e.card].Cost)
+	s.unmarkCostComposition(marked)
+	e.nt, e.tgt[ti] = nt, old
+	cd := &k.t.Cards[e.card]
+	if e.flags&sfAnyMana != 0 {
+		cost = anyType(cost)
+	}
+	if e.flags&sfKicked != 0 {
+		cost = s.addKickerPayments(cd, e, cost)
+	}
+	// the announced X is part of the price the payment charges (affordableTargets)
+	cost = cost.AtX(int(e.x))
+	if av.affords(&cost, pipMaskOf(&cost), 0) {
+		return true
+	}
+	if s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &cost, false) {
+		return true // the window's concrete productions reach this candidate's price
+	}
+	return false
 }
