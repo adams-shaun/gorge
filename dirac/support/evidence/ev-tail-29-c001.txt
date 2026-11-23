@@ -117,6 +117,7 @@ Heated Debate
 Hieromancer's Cage
 High Ground
 Hindering Touch
+Horses of the Bruinen
 Howling Banshee
 Icatian Scout
 Ideas Unbound
@@ -134,6 +135,7 @@ Kira, Great Glass-Spinner
 Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
+Lagonna-Band Storyteller
 Lair of the Hydra
 Leonardo, Worldly Warrior
 Leonin Bladetrap
@@ -146,6 +148,7 @@ Lossarnach Captain
 Lost Leonin
 Ludevic's Test Subject
 Magma Jet
+March of the Multitudes
 Master of Diversion
 Mental Journey
 Merrow Grimeblotter
@@ -154,6 +157,7 @@ Midnight Scavengers
 Mind Games
 Mistford River Turtle
 Moku, Meandering Drummer
+Mosquito Guard
 Mountain
 Mudhole
 Myojin of Cryptic Dreams

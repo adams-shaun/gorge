@@ -8,6 +8,7 @@ Aunt May	f04b857772f3ae3c	8	1/1		0/1	ix:resp
 Bagel and Schmear	ab5e2cdddac64d0b	19	2/2		0/1	ix:resp
 Beetle, Legacy Criminal	15e8310391b17168	3	1/1		0/1	ix:resp
 Behold the Sinister Six!	de3d7a3230ce7995	3	0/0		1/2	ix:resp
+Biorganic Carapace	01ea555c3ad55a4b	6	2/2		0/1	ix:resp
 Black Cat, Cunning Thief	8be5e00138a30d11	3	1/1		1/1	
 Cheering Crowd	ca53d745112154fe	3	1/1		1/1	
 City Pigeon	6f6ee5cd04edcf7b	4	1/1		0/1	ix:resp
@@ -117,6 +118,7 @@ Spider-Sense	f6e9101d70aad771	3	0/0		2/4	cast/alt:webslinged,ix:resp
 Spider-Slayer, Hatred Honed	0405d5d8d1edb273	4	2/2		0/1	ix:resp
 Spider-Suit	08dd313eb2811b8e	14	1/1		0/1	ix:resp
 Spider-UK	2a228cfba8bdfa66	6	1/1		1/3	cast/alt:webslinged,ix:resp
+Spider-Woman, Stunning Savior	c19dc8cbff33738e	3	0/0		0/0	
 Spinneret and Spiderling	f1b14ccba84929d4	175	2/2		1/1	
 Starling, Aerial Ally	6f8e4654a3566d87	27	1/1		1/1	
 Steel Wrecking Ball	b965947f36a7374c	18	2/2		1/1	
@@ -125,6 +127,7 @@ Strength of Will	6220ab56c1ae1d86	5	0/0		1/2	ix:resp
 Suburban Sanctuary	9d2123023bcead75	10	2/2		0/1	ix:resp
 Subway Train	8064806c13999701	13	2/2		1/1	
 Sudden Strike	b0ef743b925d1e67	3	0/0		1/2	ix:resp
+Sun-Spider, Nimble Webber	9dc67829647d560f	5	1/1		0/1	ix:resp
 Supportive Parents	9909a1f1e2e1a1ef	6	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	57	1/1		0/1	ix:resp
 Swarm, Being of Bees	09c399c3daf815a3	21	0/0		1/2	cast/alt:mayhem
@@ -148,3 +151,5 @@ Web-Warriors	0a9b7347b2829187	6	1/1		1/1
 Whoosh!	4cf75ac67e803c1e	11	0/0		4/4	
 Wild Pack Squad	2b71e011535cf19b	8	1/1		0/1	ix:resp
 Wisecrack	aa11918ebcf1207e	6	0/0		2/2	
+With Great Power . . .	fbbb9f502207efe5	38	0/0		2/2	
+Wraith, Vicious Vigilante	a9a96a656301b516	8	0/0		0/0	

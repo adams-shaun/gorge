@@ -7,6 +7,7 @@ Aunt May
 Bagel and Schmear
 Beetle, Legacy Criminal
 Behold the Sinister Six!
+Biorganic Carapace
 Black Cat, Cunning Thief
 Cheering Crowd
 City Pigeon
@@ -116,6 +117,7 @@ Spider-Sense
 Spider-Slayer, Hatred Honed
 Spider-Suit
 Spider-UK
+Spider-Woman, Stunning Savior
 Spinneret and Spiderling
 Starling, Aerial Ally
 Steel Wrecking Ball
@@ -124,6 +126,7 @@ Strength of Will
 Suburban Sanctuary
 Subway Train
 Sudden Strike
+Sun-Spider, Nimble Webber
 Supportive Parents
 Swamp
 Swarm, Being of Bees
@@ -147,3 +150,5 @@ Web-Warriors
 Whoosh!
 Wild Pack Squad
 Wisecrack
+With Great Power . . .
+Wraith, Vicious Vigilante
