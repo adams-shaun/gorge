@@ -132,10 +132,6 @@ var quietCoveredSections = map[string]bool{
 	// (quietManaCeiling), which already includes every tappable source, so
 	// the offer only ever narrows what that blocker already blocks on.
 	"autoPayOffer": true,
-	// printedAbilityOK is battlefieldWalk's printed-cost gate: the pool check
-	// then autoPayOffer (and its census-gap arm, priced against the same
-	// PotentialMana bound), so the same blocker covers it.
-	"printedAbilityOK": true,
 	// The Q2 extractions (design §3.3): manaSection is the walk's mana
 	// section itself, which the proof never blocks on (§2.3) and the quiet
 	// serve runs verbatim; postWalkTail is the filters/pass/concede/result

@@ -126,7 +126,7 @@ type Engine struct {
 	paidManaCensus bool `clone:"deep"`
 	// scriptSearching marks an engine a payment-prefix search runs on
 	// (sr.run, witnessReachesMode; potential_script.go): the census-gap
-	// autopay offer arm (autoPayCensus) must not run in any walk the search
+	// autopay offer arm (autoPayOffer's census arm) must not run in any walk the search
 	// reaches. The search's own clones pose priority asks whose offer walk
 	// would otherwise run the arm again -- a nested prefix search, blowing
 	// the node budgets, whose offers the search's own offered/childOffers

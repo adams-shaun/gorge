@@ -155,7 +155,7 @@ type pendingCast struct {
 	// stack and a zone re-derivation would wrongly drop the grant.
 	mayPlayIgnore bool `clone:"deep"`
 	// censusWindow marks an activation the priority menu offered through the
-	// census-gap arm (decision.Option.CensusOffer, autoPayCensus): its funding
+	// census-gap arm (decision.Option.CensusOffer, autoPayOffer's census arm): its funding
 	// is a source the planner cannot price (a fee-carrying dynamic production,
 	// Starfleet Academy's Federation), so the ordinary CR 601.2g window must
 	// list the lands whose mana pays that source's fee even though the colour

@@ -9,7 +9,7 @@ import (
 )
 
 // TestStarfleetMenuOfferFallsBackToCensusScript pins the interactive priority
-// menu's census-gap arm (legal_walk_autopay.go's autoPayCensus): at a live
+// menu's census-gap arm (legal_walk_autopay.go's autoPayOffer census arm): at a live
 // priority ask (hyp nil) the menu offers Academy Ruins' {1}{U}, {T}
 // graveyard-recall ability although the floating pool holds no {U} and the
 // only {U} on the board is Starfleet Academy's Federation ability ({5},{T}:

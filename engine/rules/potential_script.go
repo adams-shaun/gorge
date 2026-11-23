@@ -575,7 +575,7 @@ func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a de
 // so its methods stay off the engine's surface.
 func (sr *scriptSearch) run(e *Engine) ([]ScriptStep, bool) {
 	// The search's clones pose priority asks whose offer walks must price
-	// only the plain planner witness (scriptSearching's gate, autoPayCensus):
+	// only the plain planner witness (scriptSearching's gate, autoPayOffer's census arm):
 	// the census arm's own prefix search inside a search is the recursion
 	// the node budgets cannot bound, and its offers are not the prefix this
 	// search is out to find.
@@ -2263,7 +2263,7 @@ func (e *Engine) witnessReachesFrom(pool *Engine, p state.PlayerID, o decision.O
 // breaks exactly like any other refusal.
 func (e *Engine) witnessReachesMode(pool *Engine, p state.PlayerID, o decision.Option, plan decision.PaymentPlan, winOK, priceOK bool) bool {
 	// The reach's clones pose priority asks whose offer walks must price only
-	// the plain planner witness (scriptSearching's gate, autoPayCensus): a
+	// the plain planner witness (scriptSearching's gate, autoPayOffer's census arm): a
 	// census arm inside the reach would offer the play on a clone before the
 	// witness's steps paid for it, and the reach's end-menu read would take
 	// that for a reach (sr.priced's winOK/priceOK acceptance).
