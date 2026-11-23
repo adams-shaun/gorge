@@ -1982,6 +1982,17 @@ func (g *grantSrch) visit(t *State) bool {
 			cheap = true
 		}
 	}
+	if g.d.hasPlay && g.d.play.Kind() == AkCast && g.sacrificed() {
+		// ... and so is a permanent the path sacrificed: a granted {T},
+		// sacrifice mana ability (Goldspan Dragon's Treasures) leaves the
+		// board before the cast is priced again, and a price that reads it
+		// (Into Thin Air's affinity for artifacts, CR 702.41a) asks more
+		// mana at the node than at the root. The dearer price is the node's
+		// (CR 601.2f); a cheaper one is the answered branch's above.
+		if fc, _, _, ok := t.grantPlayCost(g.k, g.p, g.d.play, true); ok && grantCostCheaper(g.cost, fc) {
+			cost = fc
+		}
+	}
 	pl := &t.pl[SeatIx(g.p)]
 	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
 	if g.k.artMana {
