@@ -127,7 +127,7 @@ func TestPotentialCensusFallbackSkipsASearchTheSupplyCountRefuses(t *testing.T) 
 // ssTender taps for one mana of each colour among the permanents its
 // controller has (Bloom Tender): a tap that makes more than one mana.
 const ssTender = "Name:Supply Tender\nManaCost:1 G\nTypes:Creature Elf Druid\nPT:1/1\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ Special EachColorAmong_Valid Permanent.YouCtrl | SpellDescription$ For each color among permanents you control, add one mana of that color.\nOracle:x\n"
+	"A:AB$ Mana | Cost$ T | Produced$ Special EachColorAmong_Valid Permanent.YouCtrl | SpellDescription$ Add one mana per colour you control.\nOracle:x\n"
 
 // A source whose tap makes a per-object number of mana is no one-mana source:
 // counting it as one would prove an ability unpayable that the player pays
