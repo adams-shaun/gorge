@@ -519,7 +519,7 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 			pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}, windowUnits) {
 			return probePayable
 		}
-	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, e.castCostFoldsOtherSources(pc)) {
+	} else if !unpricedReachShort(pr.e, pr.pc, pr.windowUnits, pr.pl.Life, convoked, av.Pool, pr.foldsOtherSources()) {
 		return probePayable
 	}
 	return probeManaShort
@@ -547,11 +547,12 @@ func unpricedReachShort(w castPlanPipsWindow, pc *pendingCast, units []windowMan
 	return have < floor
 }
 
-// castCostFoldsOtherSources reports whether pc's payment can draw on more than
+// foldsOtherSources reports whether pc's payment can draw on more than
 // the window's mana sources: a Convoke/Improvise/Harmonize/Delve spell pays
 // part of its cost with permanents or cards the census never prices, so the
 // reach sum is no upper bound for it (CR 702.51a, 702.66a, 702.180a, 702.66).
-func (e *Engine) castCostFoldsOtherSources(pc *pendingCast) bool {
+func (pr *targetCostProbe) foldsOtherSources() bool {
+	e, pc := pr.e, pr.pc
 	return len(pc.Convoke) > 0 || len(pc.delve) > 0 || e.hasCastConvoke(pc.card) || e.hasCastImprovise(pc.card) ||
 		e.hasKeywordH(pc.card, kwhHarmonize) || e.hasCastDelve(pc.card, pc.isAbility())
 }
