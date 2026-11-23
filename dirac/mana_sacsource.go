@@ -306,7 +306,8 @@ func (s *State) kickWitness(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCos
 		// lands beside Havoc Jester)
 		return true
 	}
-	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) {
+	if ab := spellAb(k, c); ab != 255 && plannerConsumesSac(&pk) && !tmp.abilityTargetsFeasible(k, &k.t.Cards[c].Abilities[ab], p, NoSlot, 0xff) &&
+		!tmp.kickedWaivedFeasible(k, c, p) { // the kicked cast owes no waived root (Bloodchief's Thirst's MV 2 or less root, tgt_kickedroot.go)
 		return tmp.witnessEndsGameWon(k, p, c, n0)
 	}
 	// the plan's mana abilities are activated before the kicker's cost is paid (CR 601.2g-h): a
