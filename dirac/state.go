@@ -198,8 +198,6 @@ const (
 	pfOnceGame    // a once-per-game ("activate only once") ability of this permanent was activated
 	pfDtMore      // a second deathtouch mark (gorge adds a "Deathtouched" counter per deathtouch damage event)
 	pfBatchGone   // the slot's leave has fired in a simultaneous departure still on the battlefield (zones.go fireLeave); removePerm clears it
-	pfElectAsk    // the as-unblocked election of this damage step was asked for this attacker (combat_asgngrant.go); cleared each fresh damageStep
-	pfElectUnblk  // its election was ACCEPTED: the attacker assigns its whole combat damage to the defending player (CR 510.1c); cleared each fresh damageStep
 )
 
 // faceDown reports whether the permanent at sl is face down (CR 708.2;

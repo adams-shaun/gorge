@@ -3,8 +3,6 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -21,32 +19,32 @@ import (
 // blocker takes nothing and still hits back), a declined one assigns
 // ordinarily, and an unblocked carrier is asked nothing. The damage split is
 // played through gorge and the kernel over the same shapes and asserted
-// equal (both the corpus carrier Thorn Elemental over a real pool table, and
-// gorge's fixture driving the same printed static through its own engine).
+// equal (a hand-built carrier over the vanilla table with the lowered
+// static, and gorge's fixture driving the same printed static through its
+// own engine; the corpus carriers' lowering is kgen's
+// TestCombatDamageAssignLower).
 
-// asUnblkPool is the tail pool holding the census carrier Thorn Elemental
-// (StatAssignCombatDamageAsUnblocked); Trained Armodon is its vanilla 3/3
-// blocker. A corpus without this binary's synthetic pools skips.
-func asUnblkPool(t *testing.T) (*kop.Table, map[string]kop.CardID) {
+// asUnblkTable is the vanilla table with Thorn Elemental (7/7, the printed
+// stat:AssignCombatDamageAsUnblocked static over itself) and its vanilla 3/3
+// blocker Trained Armodon appended (static_cantuntap_test.go's shape).
+func asUnblkTable(t *testing.T) (*kop.Table, map[string]kop.CardID) {
 	t.Helper()
-	const pool = "tail-31"
-	set := cardsettest.Synth(t, pool)
-	deck := []cardset.Entry{{Name: "Thorn Elemental", Count: 1}, {Name: "Trained Armodon", Count: 1}}
-	for _, e := range deck {
-		i, ok := set.Lookup(e.Name)
-		if !ok || !set.Supported()[i] {
-			t.Skipf("%s is not supported in the %s pool", e.Name, pool)
-		}
+	tbl := *v.Table
+	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+	tbl.Filters = append([]kop.Filter(nil), v.Table.Filters...)
+	tbl.Exprs = make([]kop.Expr, 1)
+	tbl.Filters = append(tbl.Filters, kop.Filter{Flags: kop.FSelf})
+	self := kop.FilterID(len(tbl.Filters) - 1)
+	tbl.Cards = append(tbl.Cards,
+		kop.CardDef{Name: "Thorn Elemental", Types: kop.TCreature, Power: 7, Toughness: 7,
+			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{
+				Kind: kop.StatAssignCombatDamageAsUnblocked, Filter: self}}}},
+		kop.CardDef{Name: "Trained Armodon", Types: kop.TCreature, Power: 3, Toughness: 3})
+	id := map[string]kop.CardID{
+		"Thorn Elemental": kop.CardID(len(tbl.Cards) - 2),
+		"Trained Armodon": kop.CardID(len(tbl.Cards) - 1),
 	}
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]kop.CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	return tbl, id
+	return &tbl, id
 }
 
 func (sc *scen) permPair(t *testing.T, id map[string]kop.CardID) (Obj, Obj) {
@@ -127,12 +125,9 @@ func electionOpt(t *testing.T, d Decision, m uint8) Action {
 }
 
 func TestAsUnblockedElection(t *testing.T) {
-	tbl, id := asUnblkPool(t)
-	sc := newScenTableLib(t, tbl, id["Thorn Elemental"], Config{NoElide: true})
+	tbl, id := asUnblkTable(t)
+	sc := newScenTableLib(t, tbl, v.Plains, Config{NoElide: true})
 	te, chap := sc.permPair(t, id)
-	if int(v.Plains) >= len(tbl.Cards) {
-		t.Fatal("the pool table is smaller than the scenario library expects")
-	}
 
 	t.Run("accepted routes the whole power to the defender", func(t *testing.T) {
 		sc.asUnblkCombat(t, te, chap, true)
@@ -191,6 +186,43 @@ func TestAsUnblockedElection(t *testing.T) {
 			t.Fatalf("attacker damage %d, want 0", got)
 		}
 	})
+
+	t.Run("the accepted attacker untaps next turn", func(t *testing.T) {
+		sc4 := newScenTableLib(t, tbl, id["Thorn Elemental"], Config{NoElide: true})
+		te4, chap4 := sc4.permPair(t, id)
+		sc4.asUnblkCombat(t, te4, chap4, true)
+		d := sc4.expect(t, DkChoose, ChAsUnblocked)
+		sc4.s.Apply(electionOpt(t, d, 1))
+		sc4.passUntil(t, kop.StepMain2)
+		// the attacker is seat 0's: it untaps at seat 0's next untap step,
+		// turn 4's (turn 3 is seat 1's). The untap step runs at step entry,
+		// so the first decision of turn 4 is past it
+		for i := 0; i < 80; i++ {
+			d := sc4.s.Step()
+			if sc4.s.turn > 3 {
+				break
+			}
+			if d.Kind != DkPriority {
+				// seat 1's turn: decline its empty declarations and pass on
+				a := MakeAction(AkPass, 0, 0, 0)
+				for j := 0; j < int(d.N); j++ {
+					if d.Options[j].Kind() == AkDone {
+						a = d.Options[j]
+						break
+					}
+				}
+				sc4.s.Apply(a)
+				continue
+			}
+			sc4.s.Apply(MakeAction(AkPass, 0, 0, 0))
+		}
+		if sc4.s.turn != 4 {
+			t.Fatalf("never reached seat 0's turn 4 (turn %d)", sc4.s.turn)
+		}
+		if sc4.s.perms[sc4.slot(te4)].flags&pfTapped != 0 {
+			t.Fatal("the accepted attacker stayed tapped past the next untap step")
+		}
+	})
 }
 
 // TestAsUnblockedElectionGorgeAgrees drives gorge over the same three shapes
@@ -198,10 +230,12 @@ func TestAsUnblockedElection(t *testing.T) {
 // the kernel's (gorge's own seat lives in engine/rules'
 // combat_as_unblocked_test.go; this is the cross-engine split check).
 func TestAsUnblockedElectionGorgeAgrees(t *testing.T) {
-	tbl, id := asUnblkPool(t)
+	tbl, id := asUnblkTable(t)
+	// the Description/Oracle wording is paraphrased (the GPL boundary): the
+	// engine reads the mode's name and params only
 	thorn := cmdTestCard(t, "Name:Thorn Elemental\nManaCost:5 G G\nTypes:Creature Elemental\nPT:7/7\n"+
-		"S:Mode$ AssignCombatDamageAsUnblocked | ValidCard$ Card.Self | Optional$ True | Description$ You may have CARDNAME assign its combat damage as though it weren't blocked.\n"+
-		"Oracle:You may have Thorn Elemental assign its combat damage as though it weren't blocked.\n")
+		"S:Mode$ AssignCombatDamageAsUnblocked | ValidCard$ Card.Self | Optional$ True | Description$ CARDNAME may assign its combat damage as though it were not blocked.\n"+
+		"Oracle:Thorn Elemental may assign its combat damage as though it were not blocked.\n")
 	armodon := cmdTestCard(t, "Name:Trained Armodon\nManaCost:1 G G\nTypes:Creature Elephant\nPT:3/3\nOracle:x\n")
 
 	// split is the kernel's split for the named variant, read off the same
@@ -214,7 +248,7 @@ func TestAsUnblockedElectionGorgeAgrees(t *testing.T) {
 		attackerDamage int
 	}
 	kernelSplits := func(block bool, accept bool) split {
-		sc := newScenTableLib(t, tbl, id["Thorn Elemental"], Config{NoElide: true})
+		sc := newScenTableLib(t, tbl, v.Plains, Config{NoElide: true})
 		te, chap := sc.permPair(t, id)
 		sc.asUnblkCombat(t, te, chap, block)
 		if block {

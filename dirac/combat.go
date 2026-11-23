@@ -1389,7 +1389,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		kw := s.kw(k, a)
 		dt := kw&kop.KwDeathtouch != 0
 		if ap.flags&pfBlocked == 0 || s.asUnblocked(k, a) || // ExtAsgnGrant: Outmaneuver (combat_asgngrant.go)
-			k.anyAsUnblk && ap.flags&pfElectUnblk != 0 { // an accepted as-unblocked election routes whole to the player (CR 510.1c)
+			k.anyAsUnblk && s.electMarks(a)&electUnblkMark != 0 { // an accepted as-unblocked election routes whole to the player (CR 510.1c)
 			s.toDefender(k, &r, a, pw)
 			continue
 		}
@@ -1712,7 +1712,7 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 			// beginCombatPass rebuilds electQueue/doneElect per pass;
 			// combat_asgngrant.go): only this player's attackers carry them
 			for am := s.ctrlM[s.active]; am.any(); am = am.rest() {
-				s.perms[am.first()].flags &^= pfElectAsk | pfElectUnblk
+				s.clrElect(am.first())
 			}
 		}
 	}
@@ -1812,7 +1812,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 			continue
 		}
 		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.asUnblocked(k, a) ||
-			k.anyAsUnblk && ap.flags&pfElectUnblk != 0 { // an accepted election routes whole to the player: no division
+			k.anyAsUnblk && s.electMarks(a)&electUnblkMark != 0 { // an accepted election routes whole to the player: no division
 			continue
 		}
 		pw := s.combatAmount(k, a)
