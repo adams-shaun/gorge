@@ -141,18 +141,6 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 			}
 		}
 	}
-	// A filter whose fee the floating pool cannot pay is no census gap:
-	// gorge's census (payment_plan.go paymentPlanCensusOf) admits a mana
-	// ability only through manaAbilityPayablePool, which prices the fee
-	// against the floating pool, so an unpayable fee leaves the ability out
-	// and the planner's insufficient is then a proof — no prefix search, no
-	// offer. The pool's own read is filtPaid (mana_filterpip.go), the same
-	// arms the payment window's windowFiltUseful lists the filter by.
-	for b := m; b.any(); b = b.rest() {
-		if sl := b.first(); !s.filtPaid(k, p, sl) {
-			m = m.without(sl) // the fee is unpayable: gorge's census lists no ability of it
-		}
-	}
 	// A filter whose amount resolves to zero makes nothing (gorge's
 	// manaAbilityYieldsNothing: Baldur's Gate's "X mana of any one color, X =
 	// other Gates" beside no other Gate). The census lists no ability of it,
@@ -166,7 +154,61 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 			}
 		}
 	}
+	// A filter whose fee the floating pool does not pay stands only where
+	// gorge's census admits it: paymentPlanCensusOf lists a mana ability
+	// through manaAbilityPayablePool, which prices the fee against the
+	// potential walk's bound less the source's own production (a source's own
+	// production never funds its own paid activation, potential.go's
+	// fixpoint). Heap Gate's {1},{T} beside one untapped Swamp at an empty
+	// pool is a paid census gap -- the {B} the bound holds funds the fee and
+	// the prefix search offers the casts it pays (gravemana lockstep seed 2,
+	// turn 5) -- while one whose fee nothing but its own production covers is
+	// out of the census and the planner's insufficient is a proof: no prefix
+	// search, no offer (the same board beside no other source, where the
+	// search's own free tap floated the fee's mana and offered casts gorge's
+	// planner never priced). The pool-pays read (filtPaid) is the cheap arm;
+	// the bound's is filtBoundPays (below).
+	for b := m; b.any(); b = b.rest() {
+		if sl := b.first(); !s.filtPaid(k, p, sl) && !s.filtBoundPays(k, p, sl) {
+			m = m.without(sl) // the fee is out of gorge's census (potential_plan.go)
+		}
+	}
 	return m
+}
+
+// filtBoundPays reports gorge's census admission of the filter at sl: its
+// fee-bearing ability the potential bound less the source's own production
+// covers (potential_plan.go paymentPlanCensusOf's manaAbilityPayablePool arm
+// with hyp = the potential walk's bound; a source's own production never
+// funds its own paid activation, potential.go's fixpoint). The read is the
+// kernel's bound walk (availPotentialFor, nil payment: gorge's census admits
+// every restricted production beside no payment, potential.go
+// potentialRestrictionAdmits) run with the filter's slot tapped, so the bound
+// holds every other source's production and none of the filter's -- the priced
+// pool gorge's covers test reads -- and the fee is tested against it whole.
+// The walk re-tests every unadmitted ability each pass, so the bound's final
+// answer is the admission's: a fee only a later pass's production covers
+// admits there.
+//
+// The bound lacks a production another source's paid admission drew from the
+// filter's own one. No source of that shape reaches this read: a mana ability
+// whose fee is mana and whose source has no free tap is the card's first mana
+// ability (kop.FilterManaAb), and a table holding one takes scriptFilt to its
+// first-ability mask (mana_filterfirst.go) -- the gap arm this gate sits in is
+// empty there -- while a zero-mana-fee paid ability (a sacrifice, life or
+// tap-another cost) is admitted on the first pass and never drew mana.
+func (s *State) filtBoundPays(k *prep, p uint8, sl Slot) bool {
+	fee := s.filtFee(k, sl)
+	if fee <= 0 {
+		return true
+	}
+	saved := s.perms[sl].flags
+	s.perms[sl].flags |= pfTapped // the filter's own productions out of the bound
+	var pb avail
+	s.availPotentialFor(k, p, &pb, nil, false)
+	s.perms[sl].flags = saved
+	c := kop.ManaCost{Generic: uint8(min(fee, 255))}
+	return pb.affords(&c, pipMaskOf(&c), 0)
 }
 
 // unlessTapFilt is the unless / ward census's tap-filter gaps: the payer's
