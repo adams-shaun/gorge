@@ -1500,17 +1500,22 @@ func (s *State) bfObjKey(p uint8) uint64 {
 
 // node charges one search node; false when the budget is spent.
 func (g *grantSrch) node() bool {
-	if g.phased && !g.visitNode {
+	if g.phased && g.feeOnly && !g.visitNode {
 		// gorge's phased run spends its budget on cloned payer states: its
 		// scriptSearch.try takes one clone per answer and scriptSearch.visit
 		// charges the node at the clone. The kernel also charges each ask
 		// branch separately (the choose-a-mana-ability and colour asks), so a
 		// phased run that charged both would spend gorge's 160 clones on half
-		// the states. The phased order charges payer states alone.
+		// the states. A repeatable fee-only filter's run charges payer states
+		// alone (gorge hoists the visited-state check for it, so a duplicate
+		// state is no node); any other phased run charges every ask clone as
+		// the plain one does (Alchemist's Talent's two Treasures and Graven
+		// Cairns: gorge's 7-step script is its 260th node, not the 164th
+		// payer state, and the 160 budget refuses it).
 		return true
 	}
 	limit := potentialScriptNodes
-	if g.phased {
+	if g.phased && g.feeOnly {
 		limit = phasedScriptNodes
 	}
 	if g.nodes >= limit {
