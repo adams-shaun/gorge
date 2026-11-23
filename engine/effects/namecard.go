@@ -107,7 +107,7 @@ func NameChoicesFromListCtx(g *state.Game, spec, description, chooseFromList str
 		})
 	}
 	out := cachedNameChoices(key, func() []string {
-		return nameChoicesFiltered(g, spec, chooseFromList, strict, sc)
+		return nameChoicesPure(g, spec, chooseFromList, strict, sc)
 	})
 	if nameChoicesMemoVerify && sc.ResolutionStateBound() {
 		if fresh := nameChoicesFiltered(g, spec, chooseFromList, strict, sc); !slices.Equal(fresh, out) {
@@ -147,6 +147,68 @@ func pureNameSpecIgnoresContext(sc *SpecContext) bool {
 		}
 	}
 	return true
+}
+
+// nameChoicesPure is nameChoicesFiltered for a pure printed-type spec
+// (pureNameSpec), answered without decoding the universe. Such a spec's
+// verdict reads only the face's printed type words (and which face slot it
+// is), so every nameable face is keyed by (alternate mode, copy-face slot,
+// type words) straight from the image rows, and the matcher runs once per
+// distinct key on one representative card instead of once per card. The
+// result is exactly nameChoicesFiltered's (TestNameChoicesPureMatchesFiltered
+// walks the whole corpus against it).
+func nameChoicesPure(g *state.Game, spec, chooseFromList string, strict bool, sc *SpecContext) []string {
+	if spec == "" || g.NameUniverse == nil {
+		return nameChoicesFiltered(g, spec, chooseFromList, strict, sc)
+	}
+	allowed := nameSet(g.NameUniverseNames)
+	seen := make(map[string]bool)
+	filtered := make([]string, 0, 1024)
+	verdict := make(map[string]bool)
+	o := new(state.Object)
+	var kb []byte
+	g.NameUniverse.EachNameableFaceTypes(func(ord, face int, name, mode string, types []string) {
+		if name == "" || seen[name] || (allowed != nil && !allowed[name]) {
+			return
+		}
+		kb = append(kb[:0], mode...)
+		kb = append(kb, 0)
+		if face > 0 || mode == cards.AlternateSplit {
+			kb = append(kb, 1)
+		} else {
+			kb = append(kb, 0)
+		}
+		for _, t := range types {
+			kb = append(kb, 0)
+			kb = append(kb, t...)
+		}
+		ok, known := verdict[string(kb)]
+		if !known {
+			c := g.NameUniverse.Card(ord)
+			if c == nil || face >= len(c.Faces) || c.Faces[face] == nil {
+				return
+			}
+			*o = state.Object{Card: c}
+			if face > 0 || c.AlternateMode == cards.AlternateSplit {
+				o.SetCopyFace(c.Faces[face])
+			}
+			ok = MatchesObjectCtx(g, spec, o, specCtx(sc))
+			verdict[string(kb)] = ok
+		}
+		if ok {
+			seen[name] = true
+			filtered = append(filtered, name)
+		}
+	})
+	if len(filtered) == 0 {
+		if chooseFromList != "" || strict {
+			return nil
+		}
+		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
+	}
+	filtered = filterNameList(filtered, chooseFromList)
+	sort.Strings(filtered)
+	return filtered
 }
 
 // nameChoicesFiltered is the uncached ValidCards$ filter walk. sc carries the
