@@ -22,6 +22,7 @@ Chained Brute	37d290aaf746f2d9	8	1/1		0/1	ix:resp
 Chandra's Magmutt	7757f41a5802a709	4	1/1		0/1	ix:resp
 Chaos Warp	0b9de0035d6cff8f	4	0/0		2/2	
 Circle of Protection: Artifacts	3ce428490b8c62c0	10	1/1		1/1	
+Consume Strength	b02c57fe3b69d0c2	4	0/0		2/2	
 Cryoclasm	9a9993515c722447	4	0/0		1/2	ix:resp
 Cunning Survivor	13338735196bcb92	3	1/1		1/1	
 Cursebreak	37225a435e154287	14	0/0		1/2	ix:resp
@@ -87,6 +88,7 @@ Merry, Esquire of Rohan	4b8905e28bd5a275	5	1/1		1/1
 Mishra's Groundbreaker	b0fcce98d4f69c9d	8	1/1		0/1	ix:resp
 Moonlit Wake	7236c0b6e690155f	8	1/1		1/1	
 Morality Shift	15f8aeca9585997a	6	0/0		1/2	ix:resp
+Nantuko Shrine	c9e058944ba0d92c	126	1/1		1/1	
 Neheb, the Worthy	90db1502443d8419	4	1/1		0/1	ix:resp
 Night Market Aeronaut	3cb30788cde2d13d	6	0/0		0/0	
 No-Dachi	ea1094f206fb3be5	8	1/1		1/1	
@@ -121,6 +123,7 @@ Silhana Starfletcher	b4e1bd0ccc2562c6	5	1/1		0/1	ix:resp
 Sleeper Dart	0c0a85eef837c572	10	2/2		0/1	ix:resp
 Sleeper's Robe	d084e42fd67d32f8	8	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Snapping Sailback	eeb484d8b040b0b3	10	1/1		0/1	ix:resp
+Space Marine Devastator	e8d1388684120b5b	9	2/2		3/3	
 Spiketail Drake	d499f012ead0ff56	20	1/1		1/1	
 Stave Off	6d2408ac536bc8eb	16	0/0		2/2	
 Stensia Uprising	f7d68c1c00fb8c95	6	1/1		1/1	
@@ -144,6 +147,7 @@ Thriving Rhino	a069032a813bb848	21	2/2		1/1
 Tidal Kraken	a5fdfc19be3e9500	3	0/0		0/0	
 Titan of Eternal Fire	94ef666f34e726ed	4	0/0		0/0	
 Tolarian Emissary	d5e9d9b355244895	8	1/1		2/3	ix:resp
+Transmogrify	a55284eba4358e91	3	0/0		2/2	
 Tree Monkey	a5f8de427e39cb68	6	0/0		0/0	
 Treefolk Umbra	90275ff41d2a1084	9	0/0		1/2	ix:resp
 Triton Waverider	b17f1c2cd2dc170d	23	1/1		1/1	

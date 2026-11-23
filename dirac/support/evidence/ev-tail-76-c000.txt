@@ -14,6 +14,7 @@ Arcbound Bruiser
 Arena of the Ancients
 Armguard Familiar
 Arrester's Zeal
+Ashling, Flame Dancer
 Aspect of Gorgon
 Autonomous Assembler
 Avenging Druid
@@ -162,6 +163,7 @@ Niblis of Frost
 Nocturnal Feeder
 Oathsworn Vampire
 Ojutai's Summons
+Ominous Roost
 One With the Wind
 One with Nature
 Painted Bluffs
@@ -185,6 +187,7 @@ Renegade Troops
 Repulsor Bots
 Returned Reveler
 Rhonas the Indomitable
+Rhox
 Rhox Pummeler
 Rishadan Footpad
 Rockcaster Platoon

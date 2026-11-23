@@ -138,6 +138,7 @@ Flooded Grove
 Floodwater Dam
 Flowstone Strike
 Forest
+Fortune Thief
 Foundry Street Denizen
 Free from Flesh
 Fungus Elemental
@@ -227,6 +228,7 @@ Lose Calm
 Lumengrid Warden
 Lychguard
 Madame Hydra, Reanimated
+Mage Hunters' Onslaught
 Magic Missile
 Magus of the Disk
 Makeshift Mauler

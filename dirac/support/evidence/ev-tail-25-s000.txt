@@ -170,6 +170,7 @@ Seeker of Insight
 Shimmer Dragon
 Shredding Winds
 Sickleslicer
+Siege Veteran
 Sift
 Sigarda's Aid
 Sinuous Striker
@@ -194,6 +195,7 @@ Summoner's Bane
 Svyelun of Sea and Sky
 Swamp
 Sweltering Suns
+T'Challa, the Black Panther
 Tajuru Beastmaster
 Talas Scout
 Tendrils of Despair
@@ -208,6 +210,7 @@ Turn to Dust
 Undersea Invader
 Ur-Golem's Eye
 Ursapine
+Ventifact Bottle
 Verdigris
 Vermin Gorger
 Viconia, Drow Apostate
