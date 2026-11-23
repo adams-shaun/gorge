@@ -87,8 +87,8 @@ func (s *State) faceCastable(k *prep, p uint8, o Obj, c CardID, sorc bool) bool 
 				// drops the play ("unsupported: witness_unreachable").
 				ok = false
 			}
-			if ok && s.faceLowerDiscardsCast(k, p, o, &cost) {
-				ok = false // the lowering discards the card it casts (face_lowerdiscard.go): gorge's lower dead end
+			if ok && s.faceLowerUnmakesCast(k, p, o, &cost) {
+				ok = false // the lowering's answered asks unmake the cast (face_lowerdiscard.go): gorge's lower dead end
 			}
 		}
 	}
