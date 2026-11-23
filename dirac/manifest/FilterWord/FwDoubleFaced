@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwDoubleFaced
+value: next
+contexts: perm,card
+status: active
+doc: FwDoubleFaced: the candidate's card is a two-faced card of either transforming kind (gorge wordDoubleFaced, engine/effects/filter_word.go:949: o.Card.BackFaceIsBattlefieldOnly, engine/cards/layout.go:17; the kernel reads CardDef.Faces==2 with FaceMode FaceTransform or FaceModal); a printed read, a face-down or transformed face changes nothing.

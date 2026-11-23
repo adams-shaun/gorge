@@ -263,6 +263,8 @@ func (cb *cardBuilder) spillProg(c *lClause, zone kop.Zone) (kop.FilterProgID, e
 			fl.Arg = int16(l.N)
 		case kop.FwWithKeyword:
 			fl.Arg = int16(l.N) // the KwID
+		case kop.FwBasePowerCmp, kop.FwBaseToughnessCmp:
+			fl.V = kop.Const(l.N) // the layer-7b base P/T bound
 		case kop.FwSharesCr, kop.FwSharesName, kop.FwSameName:
 			fl.R = l.R // the referent (filter_sharesreferents.go)
 			if l.Inner != nil {
