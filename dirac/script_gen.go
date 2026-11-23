@@ -973,6 +973,15 @@ func sacPricedCost(ab *kop.Ability) bool {
 		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX|kop.CostSacSelf)
 }
 
+// sacSelfPricedCost is plainPricedCost for a cost whose only non-plain part is
+// the source's own sacrifice ("{1}{W}, {T}, Sacrifice this land"): it asks
+// nothing, so the prefix search funds its mana part like any activation's
+// (CR 602.2b, 605.3a), the source's {T} among the cost's taps (actScriptPays).
+func sacSelfPricedCost(ab *kop.Ability) bool {
+	return ab.Cost.Flags&kop.CostSacSelf != 0 && ab.Cost.Flags&kop.CostSac == 0 &&
+		pricedCostBits(ab, kop.CostPowerUp|kop.CostWaterbend|kop.CostTapX)
+}
+
 // pricedCostBits is the plain-cost test with bad the flag bits the caller
 // refuses.
 func pricedCostBits(ab *kop.Ability, bad kop.CostFlags) bool {
