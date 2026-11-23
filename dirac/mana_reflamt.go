@@ -317,6 +317,9 @@ func (s *State) windowReflAmtTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 
 // reflAmtLive reports whether p controls a live reflected Amount$ source.
 func (s *State) reflAmtLive(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.uses.has(useReflAmt) {
+		return false
+	}
 	return s.reflAmtUnbounded(k, s.caGaps(k, p))
 }
 
