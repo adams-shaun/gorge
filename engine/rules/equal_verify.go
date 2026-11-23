@@ -305,7 +305,6 @@ func optionEqual(a, b *decision.Option) bool {
 		a.Granted == b.Granted &&
 		sliceEq(a.GrantStatics, b.GrantStatics) &&
 		a.PlanBacked == b.PlanBacked &&
-		a.CensusOffer == b.CensusOffer &&
 		a.Value == b.Value &&
 		a.Value2 == b.Value2 &&
 		a.TargetHints == b.TargetHints

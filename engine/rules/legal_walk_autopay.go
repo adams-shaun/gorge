@@ -48,7 +48,7 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 		}
 		return true
 	}
-	return w.autoPayPlan(p, id, idx, base, scope, statics) || w.autoPayCensus(p, id, idx)
+	return w.autoPayPlan(p, id, idx, base, scope, statics)
 }
 
 // autoPayPlan is the ordinary autopay path: run the payment planner and
@@ -56,57 +56,6 @@ func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base
 // always did before the fast path existed.
 func (w *legalWalk) autoPayPlan(p state.PlayerID, id state.ObjID, idx int, base Cost, scope costScope, statics costStaticViews) bool {
 	return w.autoPayConfirm(p, id, base, scope, statics, w.e.planAbilityPayment(p, id, idx))
-}
-
-// autoPayCensus is the census-gap arm of autoPayOffer (CR 601.2g, 605.3b):
-// when the planner declines because its source census cannot price a shape
-// on the board -- a fee-carrying dynamic-amount production (Starfleet
-// Academy's "Federation — {5}, {T}: Add X of one chosen colour") joins no
-// census unit in paymentPlanManaUnits' tap-only admission -- the planner's
-// "insufficient" is no proof, and the canonical pricing the seat's
-// PotentialPaymentPlans read carries (potentialCensusFallback: the census's
-// relaxed proof, then the prefix search over the uncovered sources) does
-// price the activation. The menu must match that pricing: run the same
-// fallback over the ability option, at the walk's PotentialMana bound (the
-// census's own hyp), with one search slot per attempt (dirac's mirror counts
-// one per activation) and the census cached walk-wide the way autoBound is.
-//
-// The offer is the script's existence proof only: a script is the prefix a
-// seat plays before the ability, and the payment itself stays the ordinary
-// window (armAbilityAutoPay declines the same planner shape and leaves it),
-// which revalidates every step against the real state -- the CR 733.2
-// hold-out covers an aborted attempt.
-func (w *legalWalk) autoPayCensus(p state.PlayerID, id state.ObjID, idx int) bool {
-	if w.e.scriptSearching {
-		// A payment-prefix search's own walks (its clones' priority asks, a
-		// witness reach's end menu) price only the plain planner witness:
-		// the arm's prefix search inside a search is the recursion the node
-		// budgets cannot bound, and its offers are not the prefix the search
-		// is out to find (scriptSearching, potential_script.go).
-		return false
-	}
-	if *w.autoBound == w.e.G.Players[p].Pool {
-		return false // nothing to tap: the pool is already the bound.
-	}
-	if w.autoCensus == nil {
-		c := w.e.paymentPlanCensusOf(p, w.autoBound)
-		w.autoCensus = &c
-		w.autoCensusSet = true
-	}
-	if w.autoCensus.complete {
-		return false // the census prices every ability: the decline is a proof.
-	}
-	o := decision.Option{Kind: optAbility, Obj: id, Ability: idx}
-	verdict := func() PaymentPlanOutcome { return w.e.planAbilityPayment(p, id, idx) }
-	scripts := 0 // one search slot per attempt
-	got, script := potentialCensusFallback(w.e, p, o, *w.autoBound,
-		PaymentPlanOutcome{Reason: pay.ReasonInsufficient}, false, verdict, 1,
-		w.autoCensus, &w.autoCensusSet, &scripts)
-	if got.Reason == "" && len(script) > 0 {
-		w.censusOffer = true
-		return true
-	}
-	return false
 }
 
 // autoPayPhyrexian is the autopay offer for a cost carrying Phyrexian pips
