@@ -2297,8 +2297,13 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // nothing attached to either. gorge's scriptTwin requires the same printed
 // name and the same activate options; the card definition plus the shared
 // abilities is that same pair (a granted ability is read through the same
-// card's state, so a grant that reaches one reaches the other).
-func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotOf(t, a, b) }
+// card's state, so a grant that reaches one reaches the other). A land
+// animated into a creature (Kamahl, Fist of Krosa's {G} on a Plains) still
+// pairs with an unanimated one: gorge reads the options and the mana-ability
+// sets, which the animate leaves alone (twinSlotFx, ovrKeepsMana); a strict
+// test walked the second Plains' subtree gorge's cut skips, spent the 160-node
+// budget, and left a payable {2}{G}{G}{G} unoffered (CR 605.3a, 601.2g).
+func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotFx(k, t, a, b) }
 
 // twinSlotOf is twinSlot's test, which reads no search state: the grant
 // search's funding loop asks it too (grantSrch.fundTwinTried).
