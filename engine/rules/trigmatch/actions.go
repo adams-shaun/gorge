@@ -387,14 +387,29 @@ const ChainNoTarget = "countered: no legal targets"
 // is a new object (CR 400.7), which no targeting before the move named. A
 // player never becomes a new object, so the player case scans to TurnChange.
 //
-// Events recorded for the same stack object ev.Obj are the SAME targeting
-// (a spell's later target groups, the event itself when the log already holds
-// it) and never count as an earlier time. A TargetsChosen with no stack
-// object is a hand-built fixture emit and counts like any other.
+// A spell or ability naming the same object in two of its target groups
+// (Seeds of Strength's clauses) targets it once (CR 115.3, 603.2), so an
+// earlier event of the same stack object naming the same target rejects this
+// one, as valiantFirstTimeTargetedByYouThisTurn's per-spell dedupe does; a
+// group naming another target is no earlier time for this one. The event
+// itself, when the log already holds it, is skipped by its identifying
+// fields. A TargetsChosen with no stack object is a hand-built fixture emit
+// and counts like any other.
 func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player bool) bool {
 	var unplaced []state.ObjID
-	for i := len(e.Log().Events) - 1; i >= 0; i-- {
-		le := e.Log().Events[i]
+	log := e.Log().Events
+	skipLast := false
+	if n := len(log); n > 0 {
+		last := log[n-1]
+		skipLast = last.Kind == ev.Kind && last.Obj == ev.Obj &&
+			last.Amount == ev.Amount && last.Player == ev.Player &&
+			slices.Equal(last.IDs, ev.IDs)
+	}
+	for i := len(log) - 1; i >= 0; i-- {
+		if i == len(log)-1 && skipLast {
+			continue
+		}
+		le := log[i]
 		if le.Kind == events.TurnChange {
 			return true
 		}
@@ -407,7 +422,7 @@ func firstTimeTargetedThisTurn(e Board, ev events.Event, id state.ObjID, player 
 			unplaced = append(unplaced, le.Obj)
 			continue
 		}
-		if le.Kind != events.TargetsChosen || (ev.Obj != 0 && le.Obj == ev.Obj) || slices.Contains(unplaced, le.Obj) {
+		if le.Kind != events.TargetsChosen || slices.Contains(unplaced, le.Obj) {
 			continue
 		}
 		if player {
