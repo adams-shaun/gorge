@@ -2834,7 +2834,7 @@ func (fs *filtSearch) visit(k *prep, t *State, funded int, gapUsed bool) bool {
 					if fs.feeOnly && t.filtRepeat(k, sl) && fs.activationStalls(k, t, sl) {
 						continue // every colour the fee-only repeatable activation can make is doomed
 					}
-					if fs.filtColours(k, t, sl, funded) {
+					if fs.filtColours(k, t, sl, funded, false) {
 						return true
 					}
 				}
@@ -3097,7 +3097,7 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
 	if free && !fs.freeSubtreeExhausts(k, t, sl) && fs.freeBranchHopeless(k, t, sl) {
-		if filt && fs.filtColours(k, t, sl, funded) {
+		if filt && fs.filtColours(k, t, sl, funded, false) {
 			return true, true
 		}
 		// The paid answers found no line: gorge's ask still lists the free {C}
@@ -3237,7 +3237,12 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 	return false
 }
 
-func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int) bool {
+// filtColours branches on the colour ask of the filter at sl. asked is that the
+// source's ability ask was already spent (a free {C}
+// ability beside the filter): a hybrid-fee filter's colours are options of
+// that same ask (pay.ManaAbilityComboColours flattens the Combo into it,
+// mana_filterhybrid.go), so gorge visits no second prompt for them.
+func (fs *filtSearch) filtColours(k *prep, t *State, sl Slot, funded int, asked bool) bool {
 	if t.filtAb(k, sl).ManaEach {
 		// a fixed production: no colour ask, one activation (mana_filtereach.go)
 		return fs.try(k, t, filtStep{sl: sl, ans: 1, gap: true}, funded, true)
@@ -3505,7 +3510,7 @@ func (fs *filtSearch) gapFeeSpendable(k *prep, t *State, sl Slot) bool {
 // so the filter's colours come first there.
 func (fs *filtSearch) twoAbilityGap(k *prep, t *State, sl Slot, funded int) bool {
 	if t.filtIntrinsicFree(k, sl) {
-		return fs.filtColours(k, t, sl, funded) || fs.gapFreeTry(k, t, sl, funded, true)
+		return fs.filtColours(k, t, sl, funded, false) || fs.gapFreeTry(k, t, sl, funded, true)
 	}
-	return fs.gapFreeTry(k, t, sl, funded, true) || fs.filtColours(k, t, sl, funded)
+	return fs.gapFreeTry(k, t, sl, funded, true) || fs.filtColours(k, t, sl, funded, true)
 }
