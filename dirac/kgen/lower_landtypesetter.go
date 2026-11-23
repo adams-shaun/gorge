@@ -21,8 +21,11 @@ import "strings"
 // same landSetLost view (overrideStatic exempts SetLandSub from its refusal
 // of a global lose-all over non-creatures). A setter with more than the
 // basic types (Celestial Dawn's colour setting, Conversion, Glaciers) stays
-// refused by the words it adds. A chosen type (Convincing Mirage's
-// AddType$ ChosenType) is refused by AddType$.
+// refused by the words it adds. One chosen spelling lowers: AddType$
+// ChosenType (Convincing Mirage, Phantasmal Terrain, Multiversal Passage),
+// the record adding no subtype of its own and the static carrying AddChosen,
+// the source's own as-enters ChooseType answer (lower_override.go); any
+// other ChosenType shape on the override path refuses by the word's class.
 func landTypeSetter(v string, st *lStatic, o *lOverride, removesTypes bool) error {
 	if strings.TrimSpace(v) != "True" {
 		return refuse("RemoveLandTypes %q", v)
@@ -30,7 +33,10 @@ func landTypeSetter(v string, st *lStatic, o *lOverride, removesTypes bool) erro
 	if removesTypes || o.SetTypes != 0 || o.RemoveTypes != 0 || o.AllCreatureTypes || o.LoseAbilities {
 		return refuse("RemoveLandTypes$ beside another type change or a lose-all")
 	}
-	if len(o.SetSubtypes) == 0 {
+	if len(o.SetSubtypes) == 0 && !o.Chosen {
+		// o.Chosen: the added type is the source's own as-enters ChooseType
+		// answer (Convincing Mirage's AddType$ ChosenType); the record adds
+		// no subtype of its own and the static's AddChosen reads it.
 		return refuse("RemoveLandTypes$ adds no basic land type")
 	}
 	for _, w := range o.SetSubtypes {

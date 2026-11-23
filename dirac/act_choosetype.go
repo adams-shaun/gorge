@@ -144,8 +144,14 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 					}
 				}
 			}
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.AddChosen {
+			if a.Kind == kop.AbStatic && a.Static.AddChosen {
+				// the Continuous grant (Realmwright) and the chosen land-type
+				// setter's override static (Convincing Mirage) both read
+				// perm.chosen
 				g.anyAddChosen = true
+				if a.Static.Kind == kop.StatOverride && a.Static.Override != 0 && t.Overrides[a.Static.Override-1].SetLandSub {
+					g.chosenSet = true // the walk reads the choice (refreshTy; gen.go)
+				}
 			}
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && filterChosenType(t, a.Trig.Filter) {
 				g.chosenCardTgt = true // Chronicle of Victory's "a spell of the chosen type"
@@ -245,6 +251,11 @@ func (s *State) outsideCode(k *prep, v int) uint8 {
 func (s *State) outsideCodeExact(k *prep, ch uint8) bool {
 	return int(ch) >= len(k.t.Subtypes) && ch < subOutside && s.outCode[ch] != 0
 }
+
+// DebugChosenSetNone is the mutation switch of TestChosenTypeSetterLockstep:
+// the chosen land-type setter's grant (static_layerwalk.go lfxApply4) never
+// applies.
+var DebugChosenSetNone bool
 
 // lfxChosen applies a walked AddChosen static's grant to c: a matchup
 // subtype bit, or an outside-type grant (c.outs) naming its type
