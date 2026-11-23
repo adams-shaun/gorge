@@ -194,7 +194,20 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 	}
 	if t, ok := sp.get("AddType"); ok {
 		for _, w := range strings.Split(t, "&") {
-			if err := lc.overrideAddTypeWord(strings.TrimSpace(w), st, o); err != nil {
+			if w = strings.TrimSpace(w); w == "ChosenType" {
+				// The chosen land-type setter's word (Convincing Mirage,
+				// Phantasmal Terrain, Multiversal Passage): the static reads
+				// the source's as-enters ChooseType answer (st.AddChosen,
+				// kop.Static.AddChosen), and only the CR 305.7 setter behind
+				// it grants it — landTypeSetter marks the record SetLandSub
+				// with no added subtype of its own. Any other shape refuses
+				// after the RemoveLandTypes read below, by the word's own
+				// class, exactly as this loop refused it before the setter
+				// existed.
+				st.AddChosen, o.Chosen = true, true
+				continue
+			}
+			if err := lc.overrideAddTypeWord(w, st, o); err != nil {
 				return nil, err
 			}
 		}
@@ -207,6 +220,9 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		if err := landTypeSetter(v, st, o, removeCard || removeCreature); err != nil {
 			return nil, err
 		}
+	}
+	if o.Chosen && !o.SetLandSub {
+		return nil, refuse("AddType %q", "ChosenType")
 	}
 	if removeCard {
 		o.HasSetTypes = true

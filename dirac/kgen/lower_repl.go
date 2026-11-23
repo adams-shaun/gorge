@@ -784,6 +784,14 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			// refuses.
 			if uc, ok := ps.get("UnlessCost"); ok {
 				if other || node != sa || sa.Sub != nil || cond.Kind != cNone {
+					// A chained node stays refused: its election completes a
+					// land play whose count gorge takes only when the whole
+					// entry's asks are answered (settleLandPlay), and the
+					// kernel's count-deferral machinery (gfShockEntry,
+					// repl_shockland.go) reads the election at prog[0]. A
+					// chain that asks first, then elects (Multiversal
+					// Passage), needs that machinery widened before it can
+					// lower.
 					return refuse("ETB tap UnlessCost on a chained ETB replacement")
 				}
 				if p, ok := ps.get("UnlessPayer"); !ok || p != "You" {

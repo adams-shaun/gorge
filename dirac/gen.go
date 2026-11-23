@@ -64,6 +64,7 @@ type genPrep struct {
 	embSubGrant     bool  // an emblem has a Continuous subtype grant (walked on every walk slot)
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
 	anyAddChosen    bool  // some static is AddType$ ChosenType (kop.Static.AddChosen; act_choosetype.go)
+	chosenSet       bool  // an override static is the chosen land-type setter (Convincing Mirage): its host walks so the choice is read at walk time (refreshTy)
 	chosenCardTgt   bool  // some card target's or spell-cast trigger's filter reads the source permanent's chosen type (act_choosetype.go)
 	castBoundSrc    bool  // some spell-cast trigger's filter reads a value, with the trigger's source as the source (trig_castbound.go)
 	anyLoseRec      bool  // some override record removes abilities
@@ -3172,6 +3173,12 @@ func (s *State) refreshTy(k *prep) {
 			src := sm.first()
 			if a := s.perms[src].attached; a != NoSlot && k.gen.has(s.cardAt(src), gfOvrStat) {
 				if one.has(a) || recs.has(a) {
+					walk = walk.with(a)
+				}
+				if k.gen.chosenSet {
+					// the chosen land-type setter reads its source's
+					// as-enters choice at walk time (lfxApply4; Convincing
+					// Mirage), so its host always walks
 					walk = walk.with(a)
 				}
 				one = one.with(a)
