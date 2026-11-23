@@ -609,3 +609,36 @@ func (g *genPrep) isComboAnyCard(c CardID, cd *kop.CardDef) bool {
 // planner unit (its view is a function of the board, manaReflView), so the
 // Combo Any chain adds its gap beside it as beside any printed source.
 var DebugComboAnyReflRefused bool
+
+// caRelaxedMax is the largest amount gorge's relaxed census enumerates for an
+// any-combination production (relaxedAddProduction: one alternative per colour
+// multiset, none above six units).
+const caRelaxedMax = 6
+
+// caRelaxable reports whether gorge's census is relaxable on a board whose only
+// gaps are fixed-amount Combo Any sources: each is a once-only {T} ability the
+// relaxed census enumerates (paymentPlanRelaxedAlternatives), so the relaxed
+// proof drops every play no colour multiset of the sources' amounts pays as
+// "insufficient relaxed_census" and it takes no prefix-search slot
+// (potentialCensusFallback). The candidates are then the gaps walk's alone,
+// not the any-mana walk's whole potential list: Sage of the Maze's two mana
+// beside a Staff of Domination and four Mutagen tokens left the seventeenth
+// play of the any-mana walk out of gorge's sixteen slots, though gorge's walk
+// listed only the nine plays the two mana pays. A dynamic amount (Axebane
+// Guardian), a reflected one, or an amount above caRelaxedMax is no such
+// source and stays unrelaxable.
+func (s *State) caRelaxable(k *prep, p uint8, ca bool) bool {
+	if !ca || !s.caPure(k, p) || s.anyDifferentGaps(k, p).any() || s.lifeGapMask(k, p).any() {
+		return false
+	}
+	for b := s.caGaps(k, p); b.any(); b = b.rest() {
+		sl := b.first()
+		if k.isReflAmt(s.cardAt(sl)) {
+			return false
+		}
+		if a := k.comboAnyAb(s.cardAt(sl)); a.AFlags&kop.AfManaDynamic != 0 || int(a.ManaN) > caRelaxedMax {
+			return false
+		}
+	}
+	return true
+}
