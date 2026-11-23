@@ -22,7 +22,8 @@ import (
 
 const maxConvoked = 16
 
-// StallConvokedSet: a seventeenth convoked set held at once.
+// StallConvokedSet: a seventeenth convoked set held at once, or a
+// seventeenth convoked creature on one cast (stampConvoked).
 const StallConvokedSet = 194
 
 func init() { stallNames[StallConvokedSet] = "convoked" }
@@ -100,9 +101,14 @@ var noConvoked objBits
 
 // stampConvoked records the cast being paid's convoked creatures on its
 // stack entry (cast.go's convoke payment arm, beside the Convoked$Amount
-// count): the cast's own picks, a colour pip or a generic, on the
-// battlefield to tap (payConvoke's own gate); improvise (mode 6) and
-// harmonize (mode 7) picks are not convoked.
+// count): the cast's own picks, a colour pip or a generic (payConvoke
+// only offers battlefield creatures, so every pick is one at pick time);
+// improvise (mode 6) and harmonize (mode 7) picks are not convoked. No
+// zone filter here: gorge records the pay IDs at commit whatever zone the
+// creature is in by then (cast_commit.go folds pc.Convoke's IDs into
+// Object.Convoked, and its g.Obj check passes for an object that moved),
+// so a pick whose creature has left the battlefield still names it --
+// convokedOf reads each object where it now is.
 func (s *State) stampConvoked(k *prep) {
 	if !k.gen.uses.has(useConvokedReads) {
 		return
@@ -111,8 +117,15 @@ func (s *State) stampConvoked(k *prep) {
 	n := 0
 	for i := 0; i < int(s.bld().pickN); i++ {
 		kd := s.bld().pickKs[i]
-		if !isConvokePick(kd) || kd&7 > 5 || s.objs[s.bld().picks[i]].zone != kop.ZoneBattlefield {
+		if !isConvokePick(kd) || kd&7 > 5 {
 			continue
+		}
+		if n == maxConvoked {
+			// Over the record width: stall, the same capacity contract
+			// the pool below holds (a seventeenth convoked creature on
+			// one cast).
+			s.capFull(StallConvokedSet)
+			return
 		}
 		cv[n] = s.bld().picks[i]
 		n++
