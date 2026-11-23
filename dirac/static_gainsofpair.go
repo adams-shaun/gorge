@@ -6,8 +6,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // beside a creature whose activated ability the gained-ability walk does not
 // model (gainedModelled: a battlefield one with a once-per-game, once-each-turn
 // or loyalty cost, exhaust or a host cost). An off-battlefield one (cycling,
-// channel) and an index past 63 stay runtime stalls, not refusals: recorded
-// games hold a Marvin beside a cycling creature. A mana ability is neither:
+// channel) is skipped by the offer walk (gainedOffer, CR 113.6b: the copy
+// lives on a battlefield recipient, so it functions nowhere); an index past
+// 63 stays a runtime stall, not a refusal: recorded games hold a Marvin beside
+// a cycling creature. A mana ability is neither:
 // it is never a priority option, so the offer walk skips it (gainedOffer),
 // and the matchup plays. gorge counts a gained once-limited activation per (recipient, foreign
 // object, ability index) over the recipient's stint (legal_granted.go
@@ -102,8 +104,9 @@ func hasBroadGainsOf(t *kop.Table, c *kop.CardDef) bool {
 // activation limit, exhaust or host cost. A mana ability is left out: it is
 // not a priority option, so the offer walk skips it (gainedOffer); the
 // payment planner's gained-source limit is not a refusal. A hand-zone one
-// (cycling) stays a runtime stall: recorded games with such pairs never reach
-// the battlefield with it.
+// (cycling) is no stall at all: the offer walk skips it (gainedOffer, CR
+// 113.6b -- the gained copy lives on a battlefield recipient, so it
+// functions nowhere).
 func gainsOfUnmodelledCreature(c *kop.CardDef) bool {
 	if c.Types&kop.TCreature == 0 {
 		return false
