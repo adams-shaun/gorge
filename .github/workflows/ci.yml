@@ -693,7 +693,7 @@ jobs:
   # dirac plays the committed slices of its FDN and BLB pools against gorge, on both
   # surfaces. A divergence, an unmodelled stall or a hang fails.
   # Not on a pull request's fast stage: it runs on every Mergify queue batch, on main,
-  # nightly and on demand. The whole of dirac/oracle runs every 6 hours in oracle.yml.
+  # nightly and on demand. The whole of dirac/oracle runs about every 2 hours in oracle.yml.
   dirac-slices:
     needs: [prior, prepare]
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
@@ -903,8 +903,96 @@ jobs:
   # with the repo: this plays committed slices and synthetic decks, and the shard script fails on
   # any skip other than the pool-only tests it lists. A pull request saves no cache, so the test
   # result cache never answers for a shard.
+  # G1 (11-23): a fixed set of oracle tests in every batch, beside dirac-repros (see sentinels.txt).
+  oracle-sentinels:
+    needs: [prior, prepare]
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
+    steps:
+      - name: Heal the runner's workspace (self-hosted)
+        # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
+        # already exists") and turned 13+ PRs' fast and lint red. Before checkout, as the runner user: a repository whose
+        # refs do not list, or whose objects fail a quick connectivity check, is deleted, so checkout clones afresh.
+        # Otherwise only stale lock files go: a healthy workspace keeps its refs, so checkout fetches incrementally (deleting
+        # refs/remotes on every run made checkout re-fetch every ref: 27-31 s per job, 11-21). A checkout that still fails
+        # removes .git and checks out again (the steps after it). No network check:
+        # a fetch from the workspace hangs once checkout has removed its auth header, and timed out on every healthy
+        # runner (20 s, then a full re-clone; 11-21).
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          ws=$GITHUB_WORKSPACE g=$GITHUB_WORKSPACE/.git
+          [ -d "$g" ] || exit 0
+          why=
+          timeout 10 git -C "$ws" for-each-ref >/dev/null 2>&1 || why="for-each-ref failed"
+          if [ -z "$why" ]; then
+            rc=0; timeout 2 git -C "$ws" fsck --connectivity-only --no-dangling >/dev/null 2>&1 || rc=$?
+            case $rc in 0 | 124) ;; *) why="fsck failed ($rc)" ;; esac   # 124: over 2 s, not a verdict
+          fi
+          if [ -n "$why" ]; then echo "::warning::workspace git store broken ($why): removing $g"; rm -rf "$g"; exit 0; fi
+          find "$g" -name '*.lock' -mmin +5 -delete 2>/dev/null || true
+      - uses: actions/checkout@v4
+        id: checkout
+        continue-on-error: ${{ runner.environment == 'self-hosted' }}
+      - name: Re-clone a broken workspace (self-hosted)
+        if: steps.checkout.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "::warning::checkout failed in this runner's workspace: removing its .git for a fresh clone"
+          rm -rf "$GITHUB_WORKSPACE/.git"
+      - uses: actions/checkout@v4
+        if: steps.checkout.outcome == 'failure'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Read the corpus pin
+        id: pin
+        run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
+      - name: Keep the corpus on the box (self-hosted)
+        if: runner.environment == 'self-hosted'
+        run: bash scripts/ci-corpus.sh
+      - name: Restore the corpus
+        id: corpus
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: .cards
+          key: cards-${{ steps.pin.outputs.forge_ref }}-${{ hashFiles('engine/cards/**/*.go') }}
+          restore-keys: cards-${{ steps.pin.outputs.forge_ref }}-
+      - name: Fetch and compile the corpus
+        if: runner.environment == 'github-hosted' && steps.corpus.outputs.cache-hit != 'true'
+        run: make fetch-cards compile-cards
+      - name: Refuse to run without the corpus
+        run: |
+          test -s .cards/cards.lock || { echo "no .cards corpus: every corpus test would skip"; exit 1; }
+          grep -q "${{ steps.pin.outputs.forge_ref }}" .cards/cards.lock || { echo ".cards is not at FORGE_REF"; cat .cards/cards.lock; exit 1; }
+      - name: Restore the Go cache
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/go-build
+          key: gocache-dirac-slices-${{ github.sha }}
+          restore-keys: gocache-dirac-slices-
+      - name: Build dirac's card tables
+        run: |
+          # On the box, ci-corpus.sh built this tree's tables once and .cards holds them; elsewhere build them here.
+          if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
+      - name: Stable mtimes for the Go test cache
+        run: bash scripts/ci-stable-mtimes.sh .
+      # G1 (11-23): the oracle runs whole only on main, and four PRs that passed their batches reddened it. These
+      # are the tests named in dirac/oracle/testdata/sentinels.txt (four-seat deck and pod lockstep, and every test
+      # that has reddened main's oracle); TestSentinelsExist keeps the list honest.
+      - name: Run the oracle sentinels
+        run: |
+          names=$(grep -vE '^[[:space:]]*(#|$)' dirac/oracle/testdata/sentinels.txt | sed 's/[[:space:]]*#.*//; s/[[:space:]]*$//' | sort -u)
+          [ -n "$names" ] || { echo "sentinels.txt names no tests"; exit 1; }
+          rx=$(paste -sd'|' <<<"$names")
+          echo "$(wc -l <<<"$names") sentinels"
+          go test -timeout 15m -run "^($rx)\$" ./dirac/oracle
+
   oracle:
-    # On demand only here: the whole oracle runs every 6 hours in oracle.yml (operator 11-17), never on a pull
+    # On demand only here: the whole oracle runs about every 2 hours in oracle.yml (operator 11-17), never on a pull
     # request or a queue batch; dirac-slices covers those.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
@@ -1038,7 +1126,7 @@ jobs:
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [prior, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, dirac-repros, oracle]
+    needs: [prior, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, dirac-repros, oracle-sentinels, oracle]
     runs-on: ubuntu-24.04
     steps:
       - run: |
@@ -1047,14 +1135,14 @@ jobs:
           if [ "${{ needs.prior.outputs.passed }}" = true ]; then heavy=skipped lint=skipped; fi
           # Two-step CI: a pull request (not a Mergify queue batch) runs the fast stage instead of the heavy jobs.
           if [ "${{ github.event_name }}" = pull_request ] && [ "${{ startsWith(github.head_ref, 'mergify/merge-queue/') }}" != true ]; then heavy=skipped fast=success; fi
-          # oracle runs on demand only (every 6 hours in oracle.yml); dirac-slices runs everywhere.
+          # oracle runs on demand only (about every 2 hours in oracle.yml); dirac-slices runs everywhere.
           # The nightly wire chunks are schedule-only, like the step they replaced.
           oracle=skipped slices=$heavy nightly=skipped
           case "${{ github.event_name }}" in
             workflow_dispatch) oracle=success ;;
             schedule) nightly=success ;;
           esac
-          [ "${{ needs.lint.result }}" = "$lint" ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.dirac-repros.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} dirac-repros=${{ needs.dirac-repros.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
+          [ "${{ needs.lint.result }}" = "$lint" ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.dirac-repros.result }}" = "$slices" ] && [ "${{ needs.oracle-sentinels.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} dirac-repros=${{ needs.dirac-repros.result }} oracle-sentinels=${{ needs.oracle-sentinels.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
       # A pull request or queue batch that passed records the tree it passed, so the push that merges it can skip a rerun
       # (prior, above). Best effort: a failure here only means that push runs everything.
       - name: Read the tree this pull request passed
