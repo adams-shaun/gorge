@@ -1299,6 +1299,9 @@ type filtKey struct {
 	sp   uint8 // gorge's key counts the stack, hand and graveyard too (a Taps trigger's loot)
 	hand uint8
 	gy   uint8
+	// hh: 1 when the searched spell's own card is still in hand
+	// (filtSearch.stateKey only; zero elsewhere), gorge's scriptStateKey.
+	hh uint8
 }
 
 // maxFiltPath bounds one searched path. gorge's scriptSearch has no path
@@ -2187,7 +2190,21 @@ func (fs *filtSearch) stallOf(c *State) {
 
 // stateKey is the visited-state key of node t.
 func (fs *filtSearch) stateKey(k *prep, t *State) filtKey {
-	return t.scriptKey(k, fs.p, fs.other)
+	key := t.scriptKey(k, fs.p, fs.other)
+	// whether the searched spell's own card is still in hand, beside the hand's
+	// size (gorge's scriptStateKey): a loot that discards that card or another
+	// leaves two states. Only this search mirrors it; the combo-any search
+	// (caSearch) shares scriptKey and keys the hand by its size alone.
+	if fs.a.Kind() == AkCast {
+		pl := &t.pl[SeatIx(fs.p)]
+		for _, o := range pl.hand[:pl.handN] {
+			if o == Obj(fs.a.Source()) {
+				key.hh = 1
+				break
+			}
+		}
+	}
+	return key
 }
 
 // seenTable is the visited set the active search fills: the play search's
