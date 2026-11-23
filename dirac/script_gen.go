@@ -36,6 +36,11 @@ const (
 	availOwn   uint16 = 1024 // with availGaps: an activation's own {T} source stays in the census, as gorge's PotentialMana bound counts it (mana_ownwalk.go)
 )
 
+// availNoAnyGrant: the census holds an any-colour grant out (availGrant), as
+// gorge's payment planner prices no granted mana ability; set only by
+// mayPlayJoinCensusPays.
+const availNoAnyGrant uint16 = 8192
+
 // scriptGaps: p's activatable each-colour sources, a slot mask.
 func (s *State) scriptGaps(k *prep, p uint8) slotMask {
 	if !k.gen.anyEachCol {
@@ -1095,7 +1100,10 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 	// Marvin's copy of Overgrown Zealot's turn-face-up-only {T}: Add two mana
 	// funds no spell
 	mav.xd, mav.xdOn = s.grantPayDesc(k, a), true
+	wasX := s.g.availX
+	s.g.availX |= availNoAnyGrant
 	s.availFor(k, p, &mav)
+	s.g.availX = wasX
 	mav.xdOn = false
 	if !mav.affords(cost, pipMaskOf(cost), 0) {
 		return false
