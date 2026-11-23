@@ -13,14 +13,19 @@ import (
 // (Jack-o'-Lantern: AB$ Mana | Cost$ 1 ExileFromGrave<1/CARDNAME> |
 // ActivationZone$ Graveyard | Produced$ Any; CR 605.1a, 605.2a) and reports
 // whether the line has that exact shape: a lone generic {1} fee beside the
-// CARDNAME exile, one mana of any colour, and no other parameter. It sets the
-// byte only: the caller still lowers the line, so graveManaFee's refusal
-// stands until the funding pass lands (dirac/mana_gravemana.go reads the byte).
+// CARDNAME exile, one mana of any colour, and no other parameter. The byte is
+// the whole model (dirac/mana_gravemana.go): the kernel's payment window and
+// the prefix search's funding pass read it, pay the {1} fee from the floating
+// pool and exile the card, so the line lowers no ability -- a mana ability
+// here would be one the kernel's mana walk cannot honour (build.go refuses
+// it). The card is two-seat: the window and the funding pass play in a
+// two-seat game, and a pod of more seats refuses the table (StallTwoSeat).
 func (lc *lowerCtx) graveManaLine(sa *cards.SA) bool {
 	if sa.Kind != "AB" || sa.API != "Mana" || lc.out.GraveMana != 0 || !graveManaParams(sa) {
 		return false
 	}
 	lc.out.GraveMana = uint8(kop.ColAny)
+	lc.twoSeat("the grave mana source's activation window and funding pass play in a two-seat game (dirac mana_gravemana.go)")
 	return true
 }
 

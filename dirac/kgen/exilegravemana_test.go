@@ -49,7 +49,6 @@ func TestExileGraveManaLowers(t *testing.T) {
 
 	for _, c := range []struct{ card, want string }{
 		{"Sunken Palace", "TriggersWhenSpent$"},
-		{"Jack-o'-Lantern", "ActivationZone$"},
 		{"Titans' Nest", "RestrictValid$"},
 		{"Rubble Rouser", "rider program"},
 	} {
