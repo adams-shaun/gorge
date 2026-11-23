@@ -2308,7 +2308,6 @@ type genState struct {
 		ts   uint16 // the tick the Aegis copy went live (aegisApply; zone_exilethenattach.go)
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
-	nexw     uint8
 	linkHide uint16 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
@@ -2679,7 +2678,7 @@ const (
 	StallObsSrc        = 70  // a ninth observed mana source (Spell.ManaFromCard.StrictlySelf reader), or a second beside a deferred or haste one, tapped by one cast (mana_spendtrigger.go)
 	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card (cast_copycast.go)
 	StallDynMana       = 89  // a dynamic mana ability's amount above maxDynMana, its autopay variants (gen.go manaPCGen; value_gravecounts.go)
-	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
+	StallExiledWith    = 96  // more than exwCopyMax cards exiled with the resolving source (copy_exiledwith.go); the store's own full case is StallObjSets
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
 	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
