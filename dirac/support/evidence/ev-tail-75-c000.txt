@@ -324,6 +324,7 @@ Peregrine Mask
 Perimeter Captain
 Personal Tutor
 Phantasmal Dreadmaw
+Pia Nalaar, Consul of Revival
 Pillage
 Plains
 Plasmancer
@@ -373,6 +374,7 @@ Sacred Prey
 Sage Aven
 Sage of Fables
 Sailor of Means
+Saint Traft and Rem Karolus
 Salvaging Station
 Sanctify
 Sanctum of Stone Fangs
