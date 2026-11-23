@@ -11,7 +11,7 @@ func TestPaymentPlanEqualMatchesDeepEqual(t *testing.T) {
 		reflect.TypeFor[PaymentActivation]():  5,
 		reflect.TypeFor[PaymentCost]():        2,
 		reflect.TypeFor[PaymentAbility]():     4,
-		reflect.TypeFor[PaymentConsequence](): 6,
+		reflect.TypeFor[PaymentConsequence](): 5,
 	} {
 		if typ.NumField() != n {
 			t.Fatalf("%s has %d fields, payment_plan_equal.go was written against %d: extend it", typ, typ.NumField(), n)
@@ -38,7 +38,6 @@ func TestPaymentPlanEqualMatchesDeepEqual(t *testing.T) {
 		func(p *PaymentPlan) { p.Activations[0].Produces[2] = 1 },
 		func(p *PaymentPlan) { p.Activations[0].Consequence = nil },
 		func(p *PaymentPlan) { p.Activations[0].Consequence = &PaymentConsequence{Life: 1, Sacrifice: true} },
-		func(p *PaymentPlan) { p.Activations[0].Consequence.Fee = 1 },
 		func(p *PaymentPlan) { p.Activations[0].Consequence = &PaymentConsequence{Life: 1} }, // equal pointee, new pointer
 		func(p *PaymentPlan) { p.PoolSpend[0] = 7 },
 		func(p *PaymentPlan) { p.PoolAfter[1] = 7 },

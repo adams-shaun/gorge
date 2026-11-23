@@ -141,12 +141,6 @@ type PaymentConsequence struct {
 	NoUntap bool `json:"no_untap,omitempty"`
 	// ReturnToHand: the source returns to its owner's hand.
 	ReturnToHand bool `json:"return_to_hand,omitempty"`
-	// Fee is the literal generic mana the activation pays beside its tap
-	// (a "{N}, {T}: Add ..." mana ability), charged from the floating pool
-	// before the production resolves (CR 605.3b). It is what the step's
-	// activation spends beyond the tap; the pool the cost later settles
-	// from already lacks it.
-	Fee uint32 `json:"fee,omitempty"`
 }
 
 // IsZero reports whether c sets no consequence at all.
@@ -182,9 +176,6 @@ func (c PaymentConsequence) validate() error {
 	}
 	if c.Damage > maxPaymentQuantity {
 		return fmt.Errorf("consequence damage overflows engine amount")
-	}
-	if c.Fee > maxPaymentQuantity {
-		return fmt.Errorf("consequence fee overflows engine amount")
 	}
 	return nil
 }
@@ -601,27 +592,6 @@ func appendPaymentPlanCanonical(b []byte, p PaymentPlan) []byte {
 		b = appendU32(b, c.flags())
 		b = appendU32(b, c.Life)
 		b = appendU32(b, c.Damage)
-	}
-	// The fee section is appended only when some step carries a fee, so
-	// every plan without one keeps its exact pre-fee identity (the
-	// consequences trailer's own rule, one section over).
-	hasFee := false
-	for _, a := range p.Activations {
-		if a.Consequence != nil && a.Consequence.Fee > 0 {
-			hasFee = true
-			break
-		}
-	}
-	if !hasFee {
-		return b
-	}
-	b = appendString(b, "fees")
-	for _, a := range p.Activations {
-		var c PaymentConsequence
-		if a.Consequence != nil {
-			c = *a.Consequence
-		}
-		b = appendU32(b, c.Fee)
 	}
 	return b
 }

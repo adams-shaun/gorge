@@ -1373,14 +1373,6 @@ export interface PaymentConsequence {
    * ReturnToHand: the source returns to its owner's hand.
    */
   return_to_hand?: boolean;
-  /**
-   * Fee is the literal generic mana the activation pays beside its tap
-   * (a "{N}, {T}: Add ..." mana ability), charged from the floating pool
-   * before the production resolves (CR 605.3b). It is what the step's
-   * activation spends beyond the tap; the pool the cost later settles
-   * from already lacks it.
-   */
-  fee?: number;
 }
 
   /**

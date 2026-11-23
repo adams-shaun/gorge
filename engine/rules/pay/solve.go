@@ -546,16 +546,3 @@ func PoolPay(c cost.Cost, p state.Mana) (state.Mana, bool) {
 	}
 	return pay.Pool, true
 }
-
-// PayFeeFromPool charges one literal generic mana fee (a mana ability's own
-// "{N}" activation cost, pay.Consequence.Fee) from a floating pool and
-// returns the pool left. It is PoolPay of the fee-only cost, so it spends
-// exactly what the live activation's own payment spends from the pool
-// (ResolveManaWith's generic deduction: colourless first, then WUBRG) and
-// cannot disagree with it. ok is false when the pool cannot fund the fee.
-func PayFeeFromPool(fee uint32, p state.Mana) (state.Mana, bool) {
-	if fee == 0 {
-		return p, true
-	}
-	return PoolPay(cost.Cost{Generic: int32(fee)}, p)
-}

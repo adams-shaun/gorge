@@ -156,7 +156,7 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 			}
 		}
 		if i < next {
-			continue // completed: its checked production (and its paid fee) already floats.
+			continue // completed: its checked production already floats.
 		}
 		step, reason := pay.PaymentPlanStepReady(asPayer(e), pc.player, units, pa)
 		if reason != "" {
@@ -164,17 +164,6 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 		}
 		if i == next {
 			first = step
-		}
-		// A fee-bearing step's literal mana fee is charged from the floating
-		// pool before its production joins it (CR 605.3b) -- exactly what the
-		// step's activation below will spend. A fee the pool cannot fund is a
-		// plan that can no longer be executed as witnessed.
-		if fee := step.Consequence.Fee; fee > 0 {
-			paid, ok := pay.PayFeeFromPool(fee, pool)
-			if !ok {
-				return paymentFallbackProductionChanged, units, pay.Alt{}, false
-			}
-			pool = paid
 		}
 		pool = pay.ManaAdd(pool, step.Mana)
 	}
@@ -250,7 +239,7 @@ func (e *Engine) executePlannedManaActivationUnits(pc *pendingCast, units []wind
 	if e.cast != pc {
 		return true // the activation itself settled or reversed the cast.
 	}
-	if !pay.PaymentPlanProducedExactly(asPayer(e), pc.player, mark, pa.Produces, step.Consequence.Fee) {
+	if !pay.PaymentPlanProducedExactly(asPayer(e), pc.player, mark, pa.Produces) {
 		// The source produced something other than its step: stop before
 		// any further planned source; the manual window names the reason.
 		e.paymentPlanFallback(pc, paymentFallbackProductionChanged)

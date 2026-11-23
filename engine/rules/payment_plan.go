@@ -1474,7 +1474,6 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	var pain int64
 	lastResort := false
 	seen := make(map[state.ObjID]bool, len(plan.Activations))
-	steps := make([]pay.Alt, 0, len(plan.Activations))
 	for _, pa := range plan.Activations {
 		if seen[pa.Source] {
 			return fmt.Errorf("payment source %d reused", pa.Source)
@@ -1489,7 +1488,6 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		}
 		pain += pay.ConsequencePain(step.Consequence)
 		lastResort = lastResort || step.Tier == pay.TierLastResort
-		steps = append(steps, step)
 		produced = pay.ManaAdd(produced, step.Mana)
 	}
 	// The lethal guard and the phase rule (spec 5): a witness never kills its
@@ -1602,23 +1600,7 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 	} else {
 		poolFor()
 	}
-	// The steps run in the witness's order: each step's literal mana fee is
-	// charged from the floating mana before its production joins it
-	// (CR 605.3b), exactly as the planner's witnessFloating and the
-	// executor's per-step revalidation price the charges. Without a fee
-	// step the sum is the historical pool plus every step's production.
-	floating := initial
-	for _, step := range steps {
-		if fee := step.Consequence.Fee; fee > 0 {
-			paid, ok := pay.PayFeeFromPool(fee, floating)
-			if !ok {
-				return fmt.Errorf("payment witness fee not payable")
-			}
-			floating = paid
-		}
-		floating = pay.ManaAdd(floating, step.Mana)
-	}
-	payment, ok := resolveManaWith(cost, floating, state.Mana{}, [8]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
+	payment, ok := resolveManaWith(cost, pay.ManaAdd(initial, produced), state.Mana{}, [8]state.Mana{}, e.G.Players[p].Life, false, pipRider{}, nil)
 	expected := pay.Witness(cost, initial, produced, nil, payment.Pool)
 	if !ok || pay.ManaAmount(payment.Pool) != plan.PoolAfter || expected.PoolSpend != plan.PoolSpend {
 		return fmt.Errorf("payment witness does not settle")
