@@ -16,7 +16,7 @@ func refDepartedPT(h Host, c *Ctx, ref string, o *state.Object) (TargetPT, bool)
 	if pt, ok := targetPTLKI(c, o); ok {
 		return pt, true
 	}
-	if ref != "TriggeredAttacker" && ref != "TriggeredAttackerLKICopy" {
+	if definedSpecCodes.Code(ref) != definedSpecTriggeredAttacker {
 		return TargetPT{}, false
 	}
 	// A characteristic-defining P/T functions in every zone (CR 208.2a, 604.3):
