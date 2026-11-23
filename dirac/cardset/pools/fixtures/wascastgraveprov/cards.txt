@@ -1,0 +1,26 @@
+# the graveyard- and library-origin cast provenance pool (T13c): the SpellCast
+# triggers reading where a spell was cast from (Ash Zealot and Laquatus's
+# Disdain read wasCastFromGraveyard, Melek, Izzet Paragon and Wickerwing
+# Effigy read wasCastFromYourLibrary), the flashback spells whose casts
+# originate in a graveyard (Otterball Antics, Antiquities on the Loose), the
+# free library casts Cosmic Cube offers after attacking, and cheap spells,
+# creatures and basics (dirac/oracle/wascastgraveprov_test.go)
+Ash Zealot
+Laquatus's Disdain
+Otterball Antics
+Antiquities on the Loose
+Melek, Izzet Paragon
+Wickerwing Effigy
+Cosmic Cube
+Memnite
+Ornithopter
+Savannah Lions
+Coral Merfolk
+Hill Giant
+Healer's Hawk
+Opt
+Shock
+Divination
+Plains
+Island
+Mountain
