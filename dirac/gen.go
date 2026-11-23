@@ -202,8 +202,8 @@ type genPrep struct {
 	selfPC          [32]pcard      // a self grant's planner view per colour mask (mana_owncolours.go)
 	blgOn           bool           // a static or override adds a basic land type: manaPCGen reads the granted intrinsic abilities (static_landtype.go)
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
-	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain-shaped land
-	blgPC           []pcard        // a plain land's planner view per granted colour mask
+	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain- or painland-shaped source
+	blgPC           []pcard        // a plain land's or a painland pair's planner view per granted colour mask
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)

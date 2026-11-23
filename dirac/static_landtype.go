@@ -28,12 +28,15 @@ var BlgStats struct{ NonLand atomic.Int64 }
 // blgFirst naming its first ability's colour for the payment window (the
 // printed ability's, else the lowest granted one). One source is one tap,
 // so the union is only valid when every own mana ability is a plain {T}
-// ability of one colour making one mana (prepMultiMana's shape), or there
-// is none: any other affected source stalls StallLandGrant.
+// ability of one colour making one mana (prepMultiMana's shape), a
+// prepPainMana painland pair (the appended intrinsics join the normal
+// alternatives on manaCol, the pain pair stays on painCol), or there is
+// none: any other affected source stalls StallLandGrant.
 
 // StallLandGrant: a card with a granted basic land type whose own mana
 // ability is not the plain {T}-for-one-mana shape (a {T}: Add {C}{C} land,
-// a painland, a chosen, restricted, dynamic or granted ability), or that
+// a chosen, restricted, dynamic or granted ability) and not a painland pair
+// (prepPainMana's shape: the appended intrinsics join manaCol), or that
 // lost its abilities: one source would have to offer two different
 // productions, which the one-ability pcard cannot hold.
 const StallLandGrant = 120

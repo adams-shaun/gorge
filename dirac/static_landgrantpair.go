@@ -76,8 +76,8 @@ func landGrantPairOn(t *kop.Table, p *prep, g *genPrep) bool {
 }
 
 // landGrantStalls: card i has no planner view (blgIdx < 0: its own mana
-// ability is no plain {T} one), is in reach of the grant, and would gain a
-// granted colour its own ability does not make.
+// ability is neither a plain {T} one nor a painland pair), is in reach of
+// the grant, and would gain a granted colour its own ability does not make.
 func landGrantStalls(t *kop.Table, p *prep, g *genPrep, i int, granted kop.ColorMask, anyCard bool) bool {
 	if g.blgIdx[i] >= 0 || !anyCard && t.Cards[i].Types&kop.TLand == 0 {
 		return false
