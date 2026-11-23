@@ -1949,6 +1949,9 @@ func (g *grantSrch) fundRestrBranch(t *State, i int, sl Slot, ra *kop.Ability, m
 // its answers branched on in gorge's order, each payer state once.
 func (g *grantSrch) visit(t *State) bool {
 	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
+	if g.feeOnly && g.seenDuplicate(t) {
+		return false
+	}
 	g.visitNode = true
 	ok := g.node()
 	g.visitNode = false
@@ -2099,6 +2102,40 @@ func (g *grantSrch) visit(t *State) bool {
 		return ok
 	}
 	return false
+}
+
+// seenDuplicate is gorge's hoisted visited-state check (scriptSearch.try,
+// cut G), run where its search repeats a fee-only filter: a payer state a
+// node already visited is no node of the budget, so the duplicate is dropped
+// before it is charged, unless the node's own pool pays the play (gorge's
+// childOffers scan comes first, and visit's seen check then prices it).
+// Phased runs charge payer states alone, which is the same rule.
+func (g *grantSrch) seenDuplicate(t *State) bool {
+	if g.nseen == 0 {
+		return false
+	}
+	pl := &t.pl[SeatIx(g.p)]
+	key := grantKey{tapped: t.tappedOf(g.p), pool: pl.pool, ghost: g.ghost, sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(g.p)}
+	if g.k.artMana {
+		t.artSync(g.p)
+		key.art = t.g.poolArt[SeatIx(g.p)]
+	}
+	fk := key.folded()
+	dup := false
+	for i := 0; i < g.nseen && !dup; i++ {
+		dup = g.seen[i].folded() == fk
+	}
+	if !dup {
+		return false
+	}
+	cost := g.cost
+	if g.dyn {
+		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	cheaper := g.cheaper
+	pays := g.seenPays(t, &cost, false)
+	g.cheaper = cheaper
+	return !pays
 }
 
 // twinCutOn is gorge's twin-cut scope for the search's branches (scriptTwin,
