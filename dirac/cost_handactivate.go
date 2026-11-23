@@ -29,6 +29,9 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
 				continue
 			}
+			if s.castHeldOut(o) {
+				continue // CR 733.2: reversed twice in a row with no progress holds the card's every offer out (gorge castSuppressed), as priorityGraveAct reads it
+			}
 			if a.Cost.Flags&kop.CostSac != 0 && s.countCostSac(k, p, &a.Cost, NoSlot) < int(a.Cost.N) {
 				// a sacrifice part needs its candidates on the battlefield:
 				// Edge of Autumn's cycling ("Sacrifice a land") is no option
