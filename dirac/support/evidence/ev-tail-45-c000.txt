@@ -145,6 +145,7 @@ Fireblast
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flamestick Courier
 Flare of Faith
 Flash Flood
 Fledgling Dragon
