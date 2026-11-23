@@ -1103,6 +1103,15 @@ func (s *State) deferSubsumeKeeps(k *prep, sl Slot, ai int, costCol, pool *[kop.
 	return costCol[col] > pool[col]
 }
 
+// budgetExit records that the walk ended on gorge's node budget and, when a
+// rule-gap stall was seen on the way, declares the capacity full.
+func (w *deferGapScratch) budgetExit(s *State) {
+	w.limited = true
+	if w.stall != 0 {
+		s.capFull(w.stall)
+	}
+}
+
 // deferGapWalk is one visit of gorge's search at the used subset: the replay
 // on a fork and the play's offered check, then the children, then the pass.
 // The context is explicit parameters, not a struct: s and k flow into probes
@@ -1116,10 +1125,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 			nodePool = s.poolProj(p)
 		}
 		if w.nodes++; w.nodes > potentialScriptNodes {
-			w.limited = true
-			if w.stall != 0 {
-				s.capFull(w.stall) // past gorge's search budget: no script
-			}
+			w.budgetExit(s) // past gorge's search budget: no script
 			return false
 		}
 		if w.nu > 0 {
@@ -1146,10 +1152,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// unsaturated is deliberate, an approximation that may still
 				// find a line rather than a modelled clone count.
 				s.unfork()
-				w.limited = true
-				if w.stall != 0 {
-					s.capFull(w.stall)
-				}
+				w.budgetExit(s)
 				return false
 			}
 			w.nodes += charge
@@ -1225,10 +1228,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				// the activation's colour ask is a clone of gorge's search of its
 				// own, beside the one per answer (scriptSearch.visit)
 				if w.nodes += add; w.nodes > potentialScriptNodes {
-					w.limited = true
-					if w.stall != 0 {
-						s.capFull(w.stall)
-					}
+					w.budgetExit(s)
 					return false
 				}
 			}
