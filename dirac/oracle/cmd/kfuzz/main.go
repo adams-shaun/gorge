@@ -247,6 +247,9 @@ func run() int {
 	)
 	flag.Parse()
 	defer startProfile(*cpuProf, *memProf)()
+	if os.Getenv("KFUZZ_BLOCKDUMP") != "" {
+		dirac.DebugBlockDump = true // TEMPORARY (delete before commit)
+	}
 	verboseFDN = *verbose
 	reproEvents = *eventTail
 	coveragePath = *covPath
