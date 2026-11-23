@@ -47,6 +47,9 @@ func (s *State) fireBlockedGen(k *prep) {
 				if a.Trig.Flags2&kop.Tf2BlockedBySelf != 0 && !s.blocks(l.sl, as) {
 					continue
 				}
+				if a.Trig.Filter2 != 0 && !s.blockerMatches(k, l, a, ps[:nb], as) {
+					continue
+				}
 				n0 := s.npend
 				s.objTrigGen(k, kop.TrigBecomesBlocked, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
 				if !s.duel() {
@@ -62,6 +65,19 @@ func (s *State) fireBlockedGen(k *prep) {
 	if k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0 {
 		s.fireEmblemsBlocked(k, atk[:na]) // after the listeners: gorge checkEffectCombatTriggers
 	}
+}
+
+// blockerMatches reports whether at least one blocker declared against the
+// attacker at as matches the become-blocked line a's Filter2 (gorge
+// ValidBlocker$, attackerBlockedCandidates), read with the listener l as the
+// filter's source.
+func (s *State) blockerMatches(k *prep, l trigListener, a *kop.Ability, ps []blkPair, as Slot) bool {
+	for _, pr := range ps {
+		if pr.a == as && s.matchPermGen(k, a.Trig.Filter2, pr.b, l.ctrl, l.sl, layerFull) {
+			return true
+		}
+	}
+	return false
 }
 
 // fireBlocksGen fires the blocks triggers (TrigBlocks, gorge Mode$ Blocks)
