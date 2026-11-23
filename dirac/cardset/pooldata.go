@@ -78,6 +78,19 @@ type PoolData struct {
 	CardPrinted [][]uint8
 }
 
+// UnmodeledSupertype reports whether w is a supertype the kernel's type mask
+// does not model (CR 205.4a: Snow, World and Ongoing; Basic and Legendary have
+// type bits). The table carries one as a subtype slot only when a filter or
+// effect of the pool names it, and a type-setting override keeps that slot
+// (CR 205.1a) without being a reason to give it one.
+func UnmodeledSupertype(w string) bool {
+	switch w {
+	case "Snow", "World", "Ongoing":
+		return true
+	}
+	return false
+}
+
 // PoolMaxSubtypes bounds a pool table's subtype list (PoolData.Subtypes). The
 // pool data carries a subtype as a byte index (CardRefSubs, StaticSubs,
 // OverrideSubs, CardPrinted) and a filter's Sub, NotSub and NotSubs as the
@@ -307,6 +320,21 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
+// keptSubtypeNeedsSlot reports whether a subtype an override keeps earns a
+// table slot: some pool card prints it. A supertype slot (UnmodeledSupertype)
+// is kept only when another reader gave it one, never a slot of its own.
+func keptSubtypeNeedsSlot(dd *PoolData, pool []int, s uint8) bool {
+	if UnmodeledSupertype(dd.Subtypes[s]) {
+		return false
+	}
+	for _, i := range pool {
+		if dd.CardSubs[i].Has(int(s)) {
+			return true
+		}
+	}
+	return false
+}
+
 // matchupOverrides is the matchup's copy of the pool's override list, its
 // subtype masks and NameCard remapped. The list is the pool's, so a CR 305.7
 // land-type setter of a card outside this matchup (Blood Moon beside a deck
@@ -495,11 +523,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		// the view drops printed subtypes outside the table once an override
 		// has set them.
 		for _, s := range dd.OverrideSubs[o].Keep {
-			for _, i := range pool {
-				if dd.CardSubs[i].Has(int(s)) {
-					mark(s)
-					break
-				}
+			if keptSubtypeNeedsSlot(dd, pool, s) {
+				mark(s)
 			}
 		}
 	}

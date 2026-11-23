@@ -2722,7 +2722,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	var keep []uint8
 	for i, w := range cb.pt.subtypes {
-		if o.Kept.Has(w) {
+		if o.Kept.Has(w) || unmodeledSupertype(w) {
 			keep = append(keep, uint8(i))
 		}
 	}

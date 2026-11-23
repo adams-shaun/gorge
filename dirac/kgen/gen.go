@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -33,13 +34,7 @@ func pseudoSubtype(w string) bool {
 // not a subtype (CR 205.4b), so it is never interned from a type line or an
 // AddType: genPrep would otherwise mark it a creature type (dirac/gen.go
 // creatSub) and give it to every Changeling (CR 702.73a).
-func unmodeledSupertype(w string) bool {
-	switch w {
-	case "Snow", "World", "Ongoing":
-		return true
-	}
-	return false
-}
+func unmodeledSupertype(w string) bool { return cardset.UnmodeledSupertype(w) }
 
 // knownSubtype reports whether w is a subtype word of the pool: a word on
 // some pool card's or token's type line (a supertype typeBits does not model
