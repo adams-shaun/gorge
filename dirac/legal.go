@@ -715,7 +715,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// of it -- gorge's pool branch prices the pool alone -- so the
 		// sources read below is skipped when poolOK held.
 		poolOK = s.poolPaysAct(k, p.ctrl, &mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
-		if !poolOK && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
+		if !poolOK && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) && !powerUpGrantSearchLists(s, k) {
 			return false
 		}
 	}
