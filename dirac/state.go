@@ -574,6 +574,11 @@ type stackEntry struct {
 	// bits 11-15 the extra +1/+1 counters the spell enters
 	// with (ctr_effectentry.go). A stack copy is never cast: 0.
 	spc uint16
+	// etbX holds the third and fourth Effect-made enters-with counts of a spell
+	// (ctr_effectentry.go): the pair code in spc holds the first two (or a
+	// first alone), and an effect the code cannot hold lands here, each its
+	// own count of 1..255. Zero is none.
+	etbX [2]uint8
 }
 
 // pendingTrig is a triggered ability waiting to be put on the stack.
