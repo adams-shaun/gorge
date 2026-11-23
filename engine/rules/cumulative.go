@@ -2485,6 +2485,15 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	// One sacrifice action and, for several permanents, one simultaneous
 	// departure (CR 701.21a, 610.3d): see emitSacrifices.
 	e.emitSacrifices(liveSacs)
+	// The cost's exiled cards are this body's "Exiled" paid list (the
+	// castExiled discipline): `Defined$ ExiledCards` reads them (CR 118.12,
+	// 603.4 -- Lamplight Phoenix returns the card its own cost exiled).
+	if len(tc.exiles) > 0 {
+		if e.castExiled == nil {
+			e.castExiled = make(map[state.ObjID][]state.ObjID)
+		}
+		e.castExiled[rp.obj] = append(e.castExiled[rp.obj], tc.exiles...)
+	}
 	for _, id := range tc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
