@@ -436,6 +436,7 @@ Yavimaya Gnats
 Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
+Zelyon Sword
 Zephyr Net
 Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist
