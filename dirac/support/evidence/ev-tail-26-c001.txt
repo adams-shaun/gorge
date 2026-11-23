@@ -80,6 +80,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams

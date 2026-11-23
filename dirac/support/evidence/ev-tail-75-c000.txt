@@ -21,6 +21,7 @@ Ashen Monstrosity
 Aspect of Lamprey
 Assemble the Legion
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -430,6 +431,7 @@ Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
+Swirling Spriggan
 Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer

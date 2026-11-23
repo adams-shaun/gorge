@@ -368,6 +368,7 @@ Potatoes
 Prepare
 Primal Growth
 Prismatic Geoscope
+Prismatic Lace
 Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
@@ -444,6 +445,7 @@ Setessan Petitioner
 Shadow-Rite Priest
 Shepherd of the Cosmos
 Shield Sphere
+Shield of the Righteous
 Shizo, Death's Storehouse
 Shrewd Negotiation
 Shriek Raptor

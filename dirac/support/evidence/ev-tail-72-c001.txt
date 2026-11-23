@@ -103,6 +103,7 @@ Djeru and Hazoret
 Djeru's Renunciation
 Dragonspark Reactor
 Drake Familiar
+Drake Umbra
 Dromar's Cavern
 Drown in Shapelessness
 Drowned
@@ -131,6 +132,7 @@ Fleet Swallower
 Fleeting Image
 Flooded Shoreline
 Flourishing Strike
+Flowstone Armor
 Flowstone Surge
 Forest
 Foul Orchard
@@ -260,6 +262,7 @@ Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
 Novice Occultist
+Now for Wrath, Now for Ruin!
 Nylea's Intervention
 Obelisk of Jund
 Offalsnout
@@ -282,6 +285,7 @@ Phantasmal Form
 Pheres-Band Warchief
 Phyrexian Revoker
 Pieces of the Puzzle
+Pillar of the Paruns
 Piracy Charm
 Plague Rats
 Plains
@@ -379,6 +383,7 @@ Skyline Scout
 Slippery Scoundrel
 Sly Spy
 Snake Pit
+Soul Diviner
 Southern Elephant
 Spellshock
 Spined Thopter

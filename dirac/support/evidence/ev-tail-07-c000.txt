@@ -82,6 +82,7 @@ Cliffside Lookout
 Clinging Anemones
 Cloaked Siren
 Clockwork Condor
+Compleat Devotion
 Consuming Aetherborn
 Consuming Vapors
 Contact Other Plane
@@ -111,6 +112,7 @@ Divine Offering
 Diviner of Mist
 Doc Ock, Evil Inventor
 Doomsday Specter
+Dredge the Mire
 Druid of the Anima
 Dune Diviner
 Dunes of the Dead
