@@ -139,9 +139,40 @@ def test_attribute_bisects_and_shares_runs():
     def on_prefix(k, items):
         calls.append(k)
         return [i for i in items if k >= first[i]]
-    blame = qp.attribute([a, b], order, lambda items: [], on_prefix)
+    rounds = []
+
+    def run(jobs):
+        rounds.append(len(jobs))
+        return [j() for j in jobs]
+    blame = qp.attribute([a, b], order, lambda items: [], on_prefix, run=run)
     assert blame == {105: [a], 112: [b]}
-    assert len(set(calls)) <= 2 * 4 and len(calls) == len(set(calls))  # ~log2(16) per item, each k run once
+    assert len(calls) == len(set(calls))  # each k run once
+    # 11-22: one prefix per round was 8 rounds here; up to ATTR_PROBES per open range, concurrently, is 3
+    assert len(rounds) <= 3 and max(rounds) <= qp.ATTR_MAX_PROBES + 1
+
+
+def test_attribute_replays_the_11_22_red_in_two_rounds_with_main_in_the_first():
+    # run 45081655420 (11-22 23:17Z): 14 PRs merged, #3124 (12th) and #3137 (13th) each broke a replay; the serial
+    # bisection took the main-alone check plus 5 rounds of prefixes (653 s).
+    order = [pr(n) for n in (3483, 3482, 3484, 3489, 3488, 3182, 3122, 3495, 3490, 3491, 3188, 3124, 3137, 3494)]
+    a, b = ("test", "./dirac/oracle", "TestStdSetReprosLockstep"), ("test", "./dirac/oracle", "TestMBCSetessanBattlePriestReprosLockstep")
+    first = {a: 12, b: 13}
+    rounds, mains = [], []
+
+    def run(jobs):
+        rounds.append(len(jobs))
+        return [j() for j in jobs]
+    blame = qp.attribute([a, b], order, lambda items: mains.append(len(rounds)) or [],
+                         lambda k, items: [i for i in items if k >= first[i]], run=run)
+    assert blame == {3124: [a], 3137: [b]}
+    assert mains == [1]  # main alone runs beside the first round's probes
+    assert len(rounds) <= 3
+
+
+def test_probe_points_split_the_open_range():
+    assert qp.probe_points(1, 16) == [4, 8, 12]
+    assert qp.probe_points(5, 8) == [5, 6, 7]
+    assert qp.probe_points(12, 13) == [12]
 
 
 def test_conflicting_prs_do_not_use_a_slot():
