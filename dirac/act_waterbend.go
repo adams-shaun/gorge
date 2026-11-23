@@ -586,12 +586,15 @@ func (s *State) sacAnyManaGap(k *prep, p uint8) bool {
 // windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
 // at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
 // census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature
-// spell). An amount read off the board is priced only when it is positive.
+// spell). An amount read off the board is priced only when it is positive; one that
+// resolves to zero adds nothing and gorge's probe never lists the ability
+// (manaAbilityYieldsNothing, dynManaYieldsNothing: Nardole, Resourceful Cyborg with no
+// counter), so no production is left unpriced and the census stays complete.
 func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 	if !restrSrcAb(a) {
 		return false
 	}
-	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0
+	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0 || s.dynManaYieldsNothing(k, a, sl)
 }
 
 // windowCensusComplete reports whether gorge's window census prices every source of
