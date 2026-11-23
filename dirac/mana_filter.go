@@ -1606,11 +1606,11 @@ func (s *State) lifePainLive(k *prep, p uint8) bool {
 // lifePainActAffords is lifePainPlanAffords's arm for a printed activated
 // ability (CR 602.2b): gorge's potential planner gives it a witness for its
 // offer-time mana cost (potential_plan.go PotentialPaymentPlans), planned
-// beside the ability's own tap, which an ability that taps its source leaves
-// to the plain cast's read alone (Dungeon Shade's "{B}" has none).
+// beside the ability's own tap; a source that taps for mana itself is left to
+// the plain cast's read alone (Dungeon Shade's "{B}" has none).
 func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 	cost, ex, ok := s.activationMana(k, o, a.Mode())
-	if !ok || ex != NoSlot || cost.X != 0 || !s.lifePainLive(k, p) {
+	if !ok || ex != NoSlot && s.canTapForMana(k, ex) || cost.X != 0 || !s.lifePainLive(k, p) {
 		return false
 	}
 	var pb avail
