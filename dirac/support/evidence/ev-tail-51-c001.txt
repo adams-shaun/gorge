@@ -32,6 +32,7 @@ Battlewise Valor
 Beacon Bolt
 Benthic Giant
 Black Dragon
+Black Ward
 Blade Historian
 Bladewing, Deathless Tyrant
 Blessed Defiance
@@ -116,11 +117,13 @@ Elven Lyre
 Emerald Dragonfly
 Epic Proportions
 Equestrian Skill
+Erhnam Djinn
 Erkenbrand, Lord of Westfold
 Errand-Rider of Gondor
 Essence Extraction
 Eternal Isolation
 Evasive Action
+Eviscerator's Insight
 Evolution Charm
 Excoriate
 Explosive Impact
@@ -142,6 +145,7 @@ General Thunderbolt Ross
 Generous Pup
 Ghen, Arcanum Weaver
 Giant Ox
+Gibbering Kami
 Gideon's Battle Cry
 Gift of Growth
 Gilded Assault Cart
@@ -183,6 +187,7 @@ Hulking Ogre
 Hunding Gjornersen
 Ichor Explosion
 Ideas Unbound
+Immoral Bargain
 Impetuous Protege
 Industrial Advancement
 Inescapable Brute
@@ -308,7 +313,6 @@ Rabid Wolverines
 Radiant Grove
 Rage Thrower
 Rain of Embers
-Rain of Rust
 Ranger Class
 Ranger-Captain of Eos
 Ravages of War
@@ -345,6 +349,7 @@ Rural Recruit
 Ruthless Predation
 Sadistic Obsession
 Salvage Titan
+Sam's Desperate Rescue
 Sandsteppe War Riders
 Sarkhan's Catharsis
 Satyr's Cunning
@@ -385,6 +390,7 @@ Soramaro, First to Dream
 Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
+Spare from Evil
 Spark Reaper
 Sparkhunter Masticore
 Specter's Wail

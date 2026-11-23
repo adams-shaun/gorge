@@ -1279,14 +1279,17 @@ func applyProliferate(h Host, c *Ctx, sa *cards.SA, picks []state.Target) {
 
 // effRegenerate grants a this-turn shield consumed by ReplaceDestruction. A
 // source that left the battlefield and returned since the ability was pushed
-// is a new object (CR 400.7): "Regenerate CARDNAME" does nothing to it.
+// is a new object (CR 400.7): "Regenerate CARDNAME" does nothing to it. A
+// target that phased out since the push is treated as though it does not
+// exist (CR 702.25b), so the shield is not granted either (Forge
+// PhasesEffect.resolve's isPhasedOut guard, engine/effects/phases.go).
 func effRegenerate(h Host, c *Ctx, sa *cards.SA) {
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Zone != state.ZBattlefield || sourceLeftSincePush(h, c, o) {
+		if o == nil || o.Zone != state.ZBattlefield || o.PhasedOut || sourceLeftSincePush(h, c, o) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: "Shield", Amount: 1})

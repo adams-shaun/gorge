@@ -64,6 +64,7 @@ type genPrep struct {
 	embSubGrant     bool  // an emblem has a Continuous subtype grant (walked on every walk slot)
 	anyTypeValid    bool  // some card's as-enters type ask is narrowed by ValidTypes$ (CardDef.TypeValid; act_choosetype.go)
 	anyAddChosen    bool  // some static is AddType$ ChosenType (kop.Static.AddChosen; act_choosetype.go)
+	chosenSet       bool  // an override static is the chosen land-type setter (Convincing Mirage): its host walks so the choice is read at walk time (refreshTy)
 	chosenCardTgt   bool  // some card target's or spell-cast trigger's filter reads the source permanent's chosen type (act_choosetype.go)
 	castBoundSrc    bool  // some spell-cast trigger's filter reads a value, with the trigger's source as the source (trig_castbound.go)
 	anyLoseRec      bool  // some override record removes abilities
@@ -96,10 +97,10 @@ type genPrep struct {
 	anyBestow       bool // a card has printed bestow (CardDef.HasBestow; kw_bestow.go)
 	anyReconfigure  bool // a card has printed Reconfigure (CardDef.HasReconfigure; kw_reconfigure.go)
 	anyKickCost     bool // a card has a non-mana kicker cost (CardDef.KickerCost; kw_kicker.go)
-	anyMultikick    bool // a card has Multikicker (CardDef.HasMultikicker; cast.go's bsMulti, cold.mk)
+	anyMultikick    byte // a repeated additional cost, in bits (the byte its bool occupied): mkAny (cold.mkObj, any Multikicker/Squad/Replicate) and mkPerm (cold.mk, a pure Multikicker's permanent readers); a Squad self-ETB reads its captured count (kw_multikicker.go, kw_squadreplicate.go)
 	anyEvTargets    bool // a spell's CollectEvidence<X> is the targets' total mana value (kop.EvidenceTargetsMV; cost_collectevidencex.go)
 	anyOptCost      bool // a card has an OptionalCost part (CardDef.OptCost/OptBehold; cost_optional.go)
-	equipAnim       bool // an Equip ability and a Creature-adding override: an Equipment can be a creature (CR 704.5p sba arm; static_equipanimated.go)
+	equipAnim       bool // an Equip ability and a Creature-adding override (an Equipment can be a creature), or a printed Aura and one its filter can reach (an attached Aura can be): CR 704.5p sba arm; static_equipanimated.go
 	tyPost          bool // anyBestow || anyImpending: typesGen's switches after the overrides (kw_impending.go)
 	anyDiscAll      bool // some trigger is Mode$ DiscardedAll (trig_discardedall.go)
 	anyAbilityCast  bool // some trigger is Mode$ AbilityCast (trig_abilitycast.go)
@@ -189,7 +190,7 @@ type genPrep struct {
 	anyNTEndEmb     bool           // some emblem ends at its controller's next turn's cleanup (kop.Emblem.UntilEndOfNextTurn; static_emblemdurations.go)
 	anyEmbGrant     bool           // some emblem's Continuous static grants an ability (globalGrantsGen's emblem pass)
 	embObjEv        uint32         // object events (bit per TrigEvent) some emblem trigger listens to (fireEmblemsObj)
-	embCombatEv     uint32         // events (DamageDone, AttackersDeclared, LifeGained) some emblem trigger listens to (trig_effectuntileot.go)
+	embCombatEv     uint32         // events (DamageDone, AttackersDeclared, LifeGained, BecomesBlocked, Blocks) some emblem trigger listens to (trig_effectuntileot.go)
 	anyGrant        bool           // some override or static grants an ability
 	meleeGrant      bool           // some static grants Melee (kop.Ability.MeleeGrant): slotTriggers places it as gorge's keyword walk does (kw_melee.go)
 	anyWard         bool           // some card has printed ward: abilities get a stack identity (cast.go push; wardedIndex)
@@ -202,8 +203,12 @@ type genPrep struct {
 	selfPC          [32]pcard      // a self grant's planner view per colour mask (mana_owncolours.go)
 	blgOn           bool           // a static or override adds a basic land type: manaPCGen reads the granted intrinsic abilities (static_landtype.go)
 	blgSub          [5]uint8       // the Plains Island Swamp Mountain Forest subtype indexes (subOutside: not in the matchup)
-	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain-shaped land
-	blgPC           []pcard        // a plain land's planner view per granted colour mask
+	blgIdx          []int16        // per card: its block of 32 views in blgPC, -1 when not a plain- or painland-shaped source
+	blgPC           []pcard        // a plain land's or a painland pair's planner view per granted colour mask
+	altIdx          []int16        // per card: its block of 5 own-vs-intrinsic views in altPC (static_landgrantalt.go), -1 none
+	altPC           []pcard        // the card's own view with the intrinsic alternative's colour (pcard.altCol), per granted colour
+	gateIdx         []int16        // per card: its block of 64 gate-state x granted-colour views in gatePC (static_landgrantgate.go), -1 none
+	gatePC          []pcard        // a gated land's two gate views with every granted colour set merged in
 	globGrant       bool           // a global override static grants an ability (Ygra; static_layerwalk.go globalGrants)
 	anyHist         bool           // some trigger reads the turn history bank (expend, the N-th spell; value_turnhistory.go)
 	anyPrevFrom     bool           // some program grants KwPreventCombatDamageFrom (repl_regenerate.go)
@@ -305,6 +310,7 @@ type genPrep struct {
 	partyRole       [4]uint8       // the matchup subtype index of Cleric, Rogue, Warrior, Wizard (subOutside: absent; act_remember.go partySize)
 	outlawSub       [5]uint8       // the matchup subtype index of Assassin, Mercenary, Pirate, Rogue, Warlock (subOutside: absent; filter_valueheads.go PredOutlaw)
 	anyRemSac       bool           // some OpSacrifice remembers what it sacrifices (B.N&1, RememberSacrificed$; act_remember.go)
+	anyRemLKIPick   bool           // some expr is ExRemLKIPT: a battle-link remember pick accumulates the picked card's last-known power into the resolution's remLK (zone_hiddenpick.go pickLeaves; Yannik)
 	anyDiscard      bool           // some OpDiscard: a held discard has room (coldArrays.discHeld)
 	anyRemDisc      bool           // some OpDiscard remembers what it discards (B.N&1, RememberDiscarded$; act_remember.go)
 	anySpellMana    bool           // some spell ability's program carries an OpAddMana (mana_dbresolve.go)
@@ -328,6 +334,7 @@ type genPrep struct {
 	anyAnyAct       bool           // some ability is activatable by any player (Ability.AnyActivator; cast_anyactivator.go)
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
+	anyMeld         bool           // some program is ExtMeld (face_meld.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad         bool           // some program is OpGoad (act_goad.go)
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
@@ -412,13 +419,19 @@ type genPrep struct {
 	// the damage / token / counter / zone replacements and the player
 	// hexproof static (replBits per card, rb* bits); anyRepl gates every
 	// site, so a table without these cards never takes their paths
-	replBits     []uint32
-	anyRepl      uint32
-	exileOnLeave []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
-	exileAnyC    []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
-	destroyHeal  []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
-	anyExileAny  bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
-	altFree      []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	replBits []uint32
+	anyRepl  uint32
+	// replBits2 is the second replacement-bit word: the rb* enum above filled
+	// its 32 bits (gen.go:570), so the kinds that landed after it mark their
+	// cards here. anyRepl2 gates their sites the way anyRepl does.
+	replBits2     []uint32
+	anyRepl2      uint32
+	anyBeginPhase bool           // some card carries ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	exileOnLeave  []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
+	exileAnyC     []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
+	destroyHeal   []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
+	anyExileAny   bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
+	altFree       []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
@@ -561,6 +574,16 @@ const (
 	eaLibBattlefield                   // ... applies only to a move from the battlefield (ReplLibBattlefield)
 )
 
+// Replacement bits (genPrep.replBits2): the kinds that landed after the rb*
+// word filled its 32 bits. Bit 0 in anyRepl2 only marks the word's presence
+// sites, the way anyRepl does for the first word.
+const (
+	rb2BeginPhase uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
+	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
+	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+)
+
 // Replacement bits (genPrep.replBits).
 const (
 	rbDblDmg       uint32 = 1 << iota // ReplDoubleDamageToOpps
@@ -612,7 +635,7 @@ const rbDmgCompete = rbDblDmg | rbPrevNC | rbPrevDmgTo | rbPrevCol | rbShield | 
 // carries rbPlusDmg too, and its order ask changes the amount, so a table with
 // one is never plus-only (repl_staticprevent.go).
 func replPlusOnly(g *genPrep) bool {
-	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr)
+	return g != nil && g.anyRepl&rbPlusDmg != 0 && g.anyRepl&rbDmgCompete == 0 && !g.uses.has(useStaticPrev) && !g.uses.has(useStatRdr) && !selfPh(g)
 }
 
 type grantRef struct {
@@ -777,6 +800,46 @@ func prepGraveToLibrary(g *genPrep, t *kop.Table, i int, a *kop.Ability) {
 	}
 }
 
+// prepReplBit2 marks card i's rb2* gate word (the T17c replacement modes:
+// repl_beginphase.go, repl_lifefloor.go, repl_dmgminus.go) and the static
+// scan the kernel's sites read them through.
+func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
+	var bit uint32
+	switch a.Repl.Kind {
+	case kop.ReplBeginPhase:
+		bit = rb2BeginPhase // the step boundary consults the skip (repl_beginphase.go)
+	case kop.ReplLifeReduced:
+		bit = rb2LifeFloor // the damage sites' floor (repl_lifefloor.go)
+	case kop.ReplDamageMinus:
+		bit = rb2DmgMinus // replDamage's minus rewrite (repl_dmgminus.go)
+	case kop.ReplDamageSet:
+		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
+	}
+	g.replBits2[i] |= bit
+	pc.hasStat = true
+}
+
+// prepFoldReplBits folds the per-card replacement gate words onto the any
+// words the sites' gates read.
+func prepFoldReplBits(g *genPrep) {
+	for _, b := range g.replBits {
+		g.anyRepl |= b
+	}
+	for _, b := range g.replBits2 {
+		g.anyRepl2 |= b
+	}
+	g.anyBeginPhase = g.anyRepl2&rb2BeginPhase != 0 // repl_beginphase.go's step-boundary gate
+}
+
+// prepRedNCOpen opens every replDamage site when a noncombat redamage or a
+// player-protection line is in the table: no card carries the bit, so
+// replPlus finds nothing.
+func prepRedNCOpen(p *prep, g *genPrep) {
+	if p.anyRedNC || g.anyRepl&rbPlProt != 0 {
+		g.anyRepl |= rbPlusDmg
+	}
+}
+
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
 	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
@@ -792,6 +855,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		enteredNeed: enteredNeed,
 		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
+		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
@@ -961,9 +1025,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
-	prepCastLimit(t, g) // static_castlimit.go
-	prepCantSac(t, g)   // static_cantsacrifice.go, before prepCantAct reads it
-	prepCantAct(t, g)   // cast_cantactivate.go
+	prepCastLimit(t, g)  // static_castlimit.go
+	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
+	prepCantAct(t, p, g) // cast_cantactivate.go
 	g.anyCantTgt = tableHasStatic(t, kop.StatCantTarget)
 	g.anyMaxBlk = tableHasStatic(t, kop.StatMaxBlockers)
 	g.anyUntapOther = tableHasStatic(t, kop.StatUntapOther)
@@ -1004,17 +1068,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.partyRole = partyRoles(t)
 	g.outlawSub = outlawSubs(t) // filter_valueheads.go
 	g.anyRemSac = tableRemembersOp(t, kop.OpSacrifice) || tableRemembersIfPaidSac(t)
+	g.anyRemLKIPick = tableReadsRemLKIPT(t) // the battle-link pick's writer gate (zone_rememberlki.go)
 	g.anyUnion = tableUnion(t)
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	prepStaticClasses(t, g)
-	prepHexOwn(t, g) // kw_hexproofcolor.go
-	for i := range t.Emblems {
-		for j := range t.Emblems[i].Abilities {
-			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash {
-				p.anyEmbFlash, p.anyFlashAny = true, true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
-			}
-		}
+	prepHexOwn(t, g)      // kw_hexproofcolor.go
+	prepEmblemCasts(t, p) // cast_selfflash.go
+	if p.anyEmbFlash {
+		p.anyFlashAny = true // an Effect-delivered spell-flash grant (cast_selfflash.go embFlash)
 	}
 	for i := range t.Cards {
 		c := &t.Cards[i]
@@ -1121,12 +1183,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if c.OptCost.Flags != 0 || c.OptBehold || c.OptWaterbend != 0 {
 			g.anyOptCost = true
 		}
-		if c.KickerCost.Flags != 0 {
-			g.anyKickCost = true
+		if hasKickPickCost(c) {
+			g.anyKickCost = true // a kicked cast's non-mana pick part (Kicker; Squad/Replicate's repeated pick)
 		}
-		if c.HasMultikicker {
-			g.anyMultikick = true
-		}
+		g.noteRepeatedCost(c)
 		g.anyBeam = g.anyBeam || c.BeamMeUp
 		if c.TapPays() || c.Harmonize {
 			g.anyConvoke = true
@@ -1286,7 +1346,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				switch a.Repl.Kind {
 				case kop.ReplEntersProgram:
 					g.setFlag(CardID(i), gfEnterRepl)
-					if len(a.Prog) > 0 && a.Prog[0].Op == kop.OpUnlessPaid && (int(a.Prog[0].C&0xF) == kop.PayLife || revealElection(&a.Prog[0])) {
+					if electionPC(a) >= 0 {
 						g.setFlag(CardID(i), gfShockEntry)
 					}
 				case kop.ReplOthersEnterProgram:
@@ -1341,6 +1401,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet:
+					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
 					pc.hasStat = true
@@ -1495,7 +1557,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfDiscHand) // a prefix-search gap alone, never a planner unit (mana_discardhand.go)
 					g.anyDiscHand = true
 				}
-				if comboAnyMana(a) && j == firstManaAb(&t.Cards[i]) {
+				if comboAnyGapAb(p, a, j == firstManaAb(&t.Cards[i])) {
 					g.anyComboAny, g.anyWindowGap = true, true // a census gap (gfGapOther, censusGapMana), never a planner unit; the window taps it (mana_comboany.go)
 				}
 				if reflAmtManaAb(a) && j == firstManaAb(&t.Cards[i]) {
@@ -1542,13 +1604,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
-				if g.isGrantMana(a) {
+				if g.isGrantMana(&t.Cards[i], a) {
 					var gp pcard
 					gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
 					gp.manaOne = manaOneColour(a, gp.manaN) // a grant's "two mana of any one color" is one colour, whichever is chosen (availGrant's one-colour census, as the printed path's)
-					gp.manaTap = a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
 					gp.manaOne = manaOneColour(a, gp.manaN) // Nature's Embrace's "two mana of any one color": one colour for both (CR 106.1)
-					prepGrantCost(&gp, a)                   // {T} + pay N life, sacrifice this alone (mana_grantcost.go)
+					prepGrantCost(&gp, a)                   // {T} + pay N life, sacrifice this alone, {T} + sacrifice this (mana_grantcost.go)
 					self := a.AFlags&kop.AfManaReflect != 0 && a.ManaAmong == 0
 					if self {
 						g.prepSelfGrant(gp) // mana_owncolours.go
@@ -1719,13 +1780,16 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom {
 				g.anyMayPlay = true // an Effect-delivered library-top permission (cast_staticpaylife.go)
 			}
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatRetraceGrant {
+				g.offZoneGrantPrep(a, p) // an emblem's retrace grant (Wrenn and Six) turns on the graveyard offer too (kw_offkwgrant.go)
+			}
 			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwProwess != 0 {
 				g.anyProwessGrant = true
 			} else if a.Kind == kop.AbTriggered {
 				switch a.Trig.Event {
 				case kop.TrigETB, kop.TrigDies, kop.TrigLeaves, kop.TrigSacrificed:
 					g.embObjEv |= 1 << a.Trig.Event
-				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked:
+				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked, kop.TrigBlocks:
 					g.embCombatEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDealtOnce:
 					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)
@@ -1766,16 +1830,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepProtGrant(t, g) // kw_protection.go
-	prepProtYours(t, g) // kw_protyours.go
-	for _, b := range g.replBits {
-		g.anyRepl |= b
-	}
+	prepProtGrant(t, g)  // kw_protection.go
+	prepProtYours(t, g)  // kw_protyours.go
+	prepFoldReplBits(g)  // the gate words onto the any words (the sites' gates)
 	prepEntryMerge(t, g) // ctr_entryperkind.go
 	prepBecomeCopy(t, g) // ctr_entryperkind.go
-	if p.anyRedNC || g.anyRepl&rbPlProt != 0 {
-		g.anyRepl |= rbPlusDmg // open every replDamage site; no card carries the bit, so replPlus finds nothing
-	}
+	prepRedNCOpen(p, g)  // the noncombat-redamage openers (repl_plus_sites.go)
 	// a filter a reducer takes to nothing is the source's own mana (mana_filterfree.go)
 	prepFiltFree(t, g, p)
 	g.anyScriptGap = g.anyEachCol || g.anyRestrScript || g.anyAnyR || g.anyFilt || p.tapMana // (a tap-another-permanent mana gap: mana_tapanother.go)
@@ -1786,7 +1846,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepReplMult(t, g)
 	prepDmgMark(t, g)   // repl_dmgmark.go
 	prepPlProtAll(t, g) // static_plprot.go
-	prepEmbPrev(p, g)   // repl_staticprevent_emblem.go
+	prepEmbRepls(p, g)  // repl_exileleaveemb.go, repl_staticprevent_emblem.go
 	prepEmbPlHex(t, g)  // static_emblemphex.go
 	if g.anyPlProtAll {
 		// open every replDamage site the way rbPlProt does above: no card
@@ -1804,10 +1864,11 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCastBound(t, g)  // trig_castbound.go
 	prepL6(t, g)
 	prepCtrl(t, g)
-	prepTokMana(t, g)
-	prepOvrManaGrant(t, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
+	prepTokMana(t, p, g)
+	prepOvrManaGrant(t, p, g) // mana_grantedoffers.go: an override record's mana grant is the dual census too
 	prepMonstrosity(t, g)
-	prepAnyAct(t, g) // cast_anyactivator.go
+	prepAbilTgtPT(t, p) // value_abiltgtpt.go
+	prepAnyAct(t, g)    // cast_anyactivator.go
 	prepDiscAll(t, g)
 	prepAbilityCast(t, g)
 	prepGoad(t, g)           // act_goad.go
@@ -1818,15 +1879,17 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
+	prepMeld(t, g)        // face_meld.go
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, p, g)     // act_initiative.go
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	g.tyCombat = overridesUncreature(t)
-	g.lossSlow = g.anyLoseStat // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
-	prepFaceDown(g)            // face_facedown.go
-	prepLandGrant(t, p, g)     // static_landtype.go
-	prepLandSet(t, p, g)       // static_landtypesetter.go
+	g.lossSlow = g.anyLoseStat  // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
+	prepFaceDown(g)             // face_facedown.go
+	prepLandGrant(t, p, g)      // static_landtype.go
+	prepLandGrantViews(t, p, g) // static_landgrantalt.go, static_landgrantgate.go
+	prepLandSet(t, p, g)        // static_landtypesetter.go
 	for i := range t.Overrides {
 		o := &t.Overrides[i]
 		if o.AddTypes&kop.TLegendary != 0 || o.HasTypes && o.SetTypes&kop.TLegendary != 0 {
@@ -1836,6 +1899,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	g.tyPost = g.anyBestow || g.anyImpending || g.anyReconfigure
 	prepEquipAnim(t, g)     // static_equipanimated.go
+	prepAuraAnim(t, g)      // static_equipanimated.go: CR 704.5p's attached-Aura reach beside prepEquipAnim's
 	prepGainsOfAttach(t, p) // static_unattachcreature.go
 	prepTrigAtk(t, g)       // trig_attackers.go
 	prepBatchPool(t, g)     // trig_batchmembers.go
@@ -1846,8 +1910,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepChoosePlayer(t, g)           // repl_chooseplayer.go
 	prepTokListAdd(t, g)             // repl_toklistadd.go
 	p.gainsOfPair = gainsOfPairOn(t) // static_gainsofpair.go; on prep, not genPrep: the pinned fixed-State inventory is unchanged
+	// after prepLandGrant; on prep, not genPrep: the pinned fixed-State inventory is unchanged
+	p.landGrantPair = landGrantPairOn(t, p, g) // static_landgrantpair.go
 	prepCold(g, &p.cold)
-	prepGrantAct(t, p) // act_grantledger.go
+	prepGrantAct(t, p)     // act_grantledger.go
+	prepSkipPhaseOne(t, p) // act_skipphase.go
+	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	return g
 }
 
@@ -1862,8 +1930,8 @@ const (
 	maxUsed   = 16 // once-per-turn records
 	// maxSacOrd bounds one effect's sacrifice batch. The FDN and BLB
 	// 1500-pair lockstep slices reach 12 (measured
-	// 2026-10-22); 16 leaves headroom without paying for a whole board.
-	maxSacOrd = 16
+	// 2026-10-22); 16 held until 2026-11-22, when a four-seat Commander pod sacrificed 24 in one batch, so it holds 64.
+	maxSacOrd = 64
 )
 
 // ovRec is an override record applied to a permanent: Table.Overrides[idx]
@@ -2038,6 +2106,7 @@ type genState struct {
 	nfx       uint8
 	xtp       [maxXTPool]xTargets // stackEntry.xi - 1 indexes it
 	atkHi     uint8               // the highest attacker group ever taken (the hash walks 1..atkHi)
+	cvokHi    uint8               // the highest convoked-set index ever taken (the hash walks 1..cvokHi; kw_convokelist.go)
 	tli       uint8               // LKI index of a target the resolving entry moved off the battlefield; bit 7: a filter is reading it (zone_lki.go)
 	energy    [MaxSeats]uint8     // each player's energy counters (CR 122.1; saturates at 255; act_energy.go)
 	roll      uint8               // the last OpRollDie result (ExRollResult; act_energy.go)
@@ -2161,6 +2230,7 @@ type genState struct {
 	tgtSelf    Obj             // the card a feasibility check is for, plus one (0: none): a graveyard or exile card leaves that zone for the stack when cast, and the spell build a post-push sweep prices (its X ask) is on the stack already; CR 115.5 makes both no target of their own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	sbaFP      [6]byte         // the non-object half of sba's clean-scan key (static_sbaskip.go); fills the padding before tokFrz
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
 	tokFrzOn   bool            // tokFrz is in force
 	sweep      sweepSusp       // a copy-all sweep parked on a copy's as-enters ask (copy_allpark.go)
@@ -2264,6 +2334,8 @@ type genState struct {
 	// resolution decisions in progress
 	pickLeft       uint8                   // picks still owed
 	pickP          uint8                   // the player picking
+	reflMask       uint8                   // a planned tap's reflected pick waiting on its colour ask: the colours it offers (mana_reflectpickask.go; 0: none)
+	reflP          uint8                   // the player whose tap it was
 	pickZ          uint8                   // destination zone / flags of the pick op
 	pickF          uint16                  // the pick op's flags
 	winSrc         Slot                    // the tap-another source whose pick a payment window waits on (mana_windowtapx.go)
@@ -2304,7 +2376,6 @@ type genState struct {
 		ts   uint16 // the tick the Aegis copy went live (aegisApply; zone_exilethenattach.go)
 	} // exiled until the source leaves (OpExileUntilLeaves)
 	nlinks   uint8
-	nexw     uint8
 	linkHide uint16 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
@@ -2634,10 +2705,10 @@ const (
 	// 20 was a Taps trigger in a table with a granted mana ability; a granted ability's tap now fires Taps triggers like any other
 	StallInfect    = 21 // infect or toxic in a table with a damage replacement-order ask or a counter-added trigger (gen infectStall; kw_infect.go)
 	StallReplPlus  = 22 // a damage plus-N replacement and a non-commuting damage replacement match one event: gorge's CR 616.1 order ask, whose answer changes the amount (trig_oneormore.go; two plus-N additions commute and are asked as a no-op)
-	StallLifeRepl  = 25 // a life-gain doubler and a life-gain plus-N in one table: gorge's CR 616.1 order ask (they do not commute; act_discover.go)
+	StallLifeRepl  = 25 // a life-gain doubler and a plus-N compete for a gain at a site that cannot suspend (lifelink, extort, a trigger batch, SetLife...): gorge asks the CR 616.1 order; only the resolving GainLife op poses it (repl_lifeask.go)
 	StallProlif    = 26 // a proliferate gorge orders differently: more than 16 picks, or a recipient with two counter kinds in a table with a counter-added trigger (act_proliferate.go)
 	StallTapPick   = 27 // a tap-any-number cost (CostTapPower, Crew / Saddle) picked past build.picks' 24 (12 before kcaps2x; kw_crewsaddle.go)
-	StallRegen     = 28 // a ninth regeneration shield on one permanent: pfRegenX plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
+	StallRegen     = 28 // a ninth regeneration shield on one permanent: perm.spare's two bits plus the arena's mechRegen bit hold eight (4 before kcaps2x; repl_regenerate.go; kverify-c4)
 	StallLook      = 29 // a dig window wider than genState.look's 24 (12 before kcaps2x; Ulamog's "exile the top twenty"; Hatchery Spider's undergrowth; selfcast): the window used to truncate silently
 	StallCtrOrder  = 30 // an OpPutCountersFrom of two or more counter kinds in a table with a counter-added trigger: gorge fires per kind in the source's insertion order, the kernel walks kinds ascending (ctr_clear.go; eachfromsource)
 	StallGrants    = 31 // more than maxGrants granted mana abilities on one permanent (mana_grantedoffers.go grantIdxs), or more emblem grants to one permanent than globalGrantsGen's emblem pass holds (act_empower.go)
@@ -2660,7 +2731,7 @@ const (
 	StallOptions       = 48  // a combat declaration has more attack or block pairs than MaxOptions (combat.go optionsFull)
 	StallRoleMulti     = 49  // an AttachedTo$ token mint would create a number of tokens other than one (static_roletokens.go)
 	StallSrcMark       = 50  // more than maxSrcMark DamagedBy / CrewedThisTurn sources marked permanents this turn (genState.marks; filter_combatwords.go)
-	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle (or left): gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, a trigger with no bound defending player read for an entering attacker's defender (enterDefenderFallback) or a defending player's permanent (defendingSeatF2)
+	StallDefenderPW    = 51  // a TriggeredDefender damage whose attacker attacks a planeswalker or battle, or has left after attacking one: gorge damages the defending seat instead (OpAtkPWGuard; filter_combatwords.go); past two seats, a trigger with no bound defending player read for an entering attacker's defender (enterDefenderFallback) or a defending player's permanent (defendingSeatF2)
 	StallTokAtkAsk     = 52  // a TokenAttacking$ True mint while the opponent has a planeswalker or battle: gorge asks the CR 508.4 defender (filter_combatwords.go)
 	StallDmgLatch      = 53  // a ninth DamageDealtOnce listener of one source in one combat damage batch (triggers_gen.go dmgLatch)
 	StallReplCands     = 54  // a fifth competing replacement candidate for one event or untap (replOrd.cand; repl_gen.go, act_energy.go)
@@ -2675,7 +2746,7 @@ const (
 	StallObsSrc        = 70  // a ninth observed mana source (Spell.ManaFromCard.StrictlySelf reader), or a second beside a deferred or haste one, tapped by one cast (mana_spendtrigger.go)
 	StallCopyCast      = 88  // a Play CopyCard$ cast of a multi-face card other than an Adventure card (cast_copycast.go)
 	StallDynMana       = 89  // a dynamic mana ability's amount above maxDynMana, its autopay variants (gen.go manaPCGen; value_gravecounts.go)
-	StallExiledWith    = 96  // more than maxExw live exiled-with links (zone_exiledwith.go)
+	StallExiledWith    = 96  // more than exwCopyMax cards exiled with the resolving source (copy_exiledwith.go); the store's own full case is StallObjSets
 	StallBreach        = 94  // more picks than the chosen set holds (Breach the Multiverse; act_millthenreturn.go) (reinstate maxDynMana 40 + loud StallDynMana on the rebased tree (The Core's dynamic amount reached 21 in the gravecounts lockstep: gorge produced 21, kernel truncated to 20); NumStall 128 untouched, the name registers cold-side)
 	StallNetLock       = 85  // a ninth permanent locked by Braided Net at once (nlA, nlB, nlC; act_lockpermanent.go)
 	StallExileGrant    = 138 // a ninth live exile grant (Q, Stacking the Deck; genState.qgO; cast_exilegrant.go)
@@ -2687,7 +2758,8 @@ const (
 	StallExileRider    = 115 // a dies-to-exile replacement's rider (Kalitas's Zombie token) that cannot run exactly: it competes with another replacement in a CR 616.1 order, its source left before the exile move, or its prog asked or parked (repl_exilerider.go)
 	StallRedirCap      = 185 // a fifth redirect record in one turn (genState.redir; repl_dmgredirect.go)
 	StallExTurn        = 194 // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
-	NumStall           = 195 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
+	StallMeld          = 195 // a seventeenth melded permanent at once (maxMeldLinks), or a melded permanent leaving under a Rest in Peace-style graveyard replacement (face_meld.go)
+	NumStall           = 196 // fixed capacity of the reason tables (StallName), not last+1: a new reason takes the next free value below it and registers its name in its own file; at most 255 (reasons are uint8)
 )
 
 // StallName is reason r's short name ("" for StallNone).
@@ -2768,7 +2840,18 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	if k.gen.flags[c]&gfManaVar != 0 {
 		vi = k.gen.manaVar(c)
 	}
-	if (pc.manaAb >= 0 || vi >= 0) && s.genLost(k, sl) {
+	// The loss check covers every card with mana facts, not only the ones
+	// holding a planner unit: a source whose ability is a census gap the
+	// planner defers (a dynamic amount whose cost the planner cannot run,
+	// a restricted or deferred one) keeps its production colours on
+	// manaCol with manaAb and vi at -1 (the prep above). It too loses its
+	// abilities -- to a land-type setter above all (CR 305.7: Sand Silos'
+	// storage-counter ability under Blood Moon), but to a one-shot loss or
+	// a face-down turn as well -- and then makes only what the setter's
+	// basic land types' intrinsic abilities make, or nothing.
+	// A land with no mana facts of its own (Eye of Ugin) is no exception to
+	// the setter: it too has the intrinsic abilities of the new basic types.
+	if (pc.manaAb >= 0 || vi >= 0 || pc.manaCol != 0 || k.gen.landSet && k.gen.setIdx[c] >= 0 && s.landSetLost(k, sl)) && s.genLost(k, sl) {
 		if k.gen.landSet && s.landSetLost(k, sl) {
 			return s.landSetView(k, sl, c) // only the new basic types' intrinsic abilities (static_landtypesetter.go)
 		}
@@ -2776,6 +2859,17 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 	}
 	if vi >= 0 {
 		if k.gen.blgOn {
+			if v := s.gateGrantView(k, sl, c, vi); v != nil {
+				return v // a gated land's views with the granted intrinsic colour merged in (static_landgrantgate.go)
+			}
+			if k.gen.altIdx != nil && k.gen.altIdx[c] >= 0 {
+				if v := s.altView(k, sl, c, s.manaGateView(k, sl, c, vi)); v != nil {
+					return v // a gated land's own ability beside the granted intrinsic one
+				}
+			}
+			if v := s.identGrantView(k, sl, c, vi); v != nil {
+				return v // a commander-identity land with the granted intrinsic colour merged in (static_landgrantident.go)
+			}
 			s.blgStall(k, sl, c)
 		}
 		if k.gen.anyCondSplit && k.gen.splitAb(c) >= 0 {
@@ -2943,7 +3037,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
 			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
-				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts)) {
+				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts) || s.newerKwCounterLoss(sl, r.idx, p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
 				if merge {
@@ -2974,6 +3068,18 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	s.g.nfx++
 	s.fxM.set(sl)
 	return true
+}
+
+// newerKwCounterLoss reports that a repeat of loss/removal override idx on sl
+// must not merge into the record stamped ts: a keyword counter put on since
+// then (CR 122.1b) is older than the repeat's own effect, which takes its
+// grant (CR 613.7; gorge registers the repeat as a new effect with a new
+// timestamp, and the merged record would leave the loss at the first one's).
+func (s *State) newerKwCounterLoss(sl Slot, idx uint8, ts uint16) bool {
+	if ov := &s.k().t.Overrides[idx-1]; !ov.LoseAbilities && ov.RemoveKw == 0 {
+		return false
+	}
+	return ctrKwNewer(s, &s.perms[sl], ts) != 0
 }
 
 // newerLayer6Fx reports an effect record on sl after pool position i that
@@ -3136,6 +3242,12 @@ func (s *State) refreshTy(k *prep) {
 				if one.has(a) || recs.has(a) {
 					walk = walk.with(a)
 				}
+				if k.gen.chosenSet {
+					// the chosen land-type setter reads its source's
+					// as-enters choice at walk time (lfxApply4; Convincing
+					// Mirage), so its host always walks
+					walk = walk.with(a)
+				}
 				one = one.with(a)
 				m = m.with(a)
 			}
@@ -3270,6 +3382,10 @@ type preAsk struct {
 	// clone election (copy_templatechoice.go); ask2 is its kind, val2 the answer
 	ask2 uint8
 	val2 uint8
+	// ley: a Leyline begun from the opening hand (CR 103.6a) with an as-enters
+	// choice, asked while it is still in the hand (CR 614.12); the answered
+	// choice enters it from the opening round, as a played land's does.
+	ley bool
 }
 
 // preEnterAsk poses e's as-enters choice before the permanent spell
@@ -3296,6 +3412,9 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 	}
 	if kind == 0 && !land {
 		kind = s.unleashPreKind(k, c) // kw_unleash.go
+	}
+	if kind == 0 && !land {
+		kind = s.protectorPreKind(k, c, s.stack[s.sp-1].ctrl) // face_battle.go
 	}
 	if kind == 0 {
 		return false
@@ -3342,7 +3461,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			}
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election
-			if s.shockAmount(k, a.Prog) > 0 {
+			if ep := electionPC(a); ep == 0 && s.value(k, a.Prog[0].A) > 0 {
 				return akPayLife
 			}
 		}

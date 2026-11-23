@@ -40,6 +40,7 @@ Candlelight Vigil
 Castle Raptors
 Celebrity Fencer
 Chakram Slinger
+Changing Loyalty
 Chasm Drake
 Chastise
 Chemister's Insight
@@ -62,6 +63,7 @@ Deadly Dispute
 Death of a Thousand Stings
 Declare Dominance
 Despondent Killbot
+Dinosaur Hunter
 Dirty Rat
 Divebomber Griffin
 Domri's Ambush
@@ -76,6 +78,7 @@ Empyrial Armor
 Enigma Eidolon
 Excogitator Sphinx
 Faithless Looting
+Fall from Favor
 Famished Foragers
 Fast Forward
 Feast of Dreams
@@ -99,6 +102,7 @@ Graceful Cat
 Grappling Sundew
 Grave Betrayal
 Gravity Well
+Great Wall
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
@@ -121,6 +125,7 @@ Kithkin Mourncaller
 Knight of Dawn's Light
 Laccolith Grunt
 Lava Axe
+Leap of Flame
 Leela, Sevateem Warrior
 Legion Leadership
 Leisure Bicycle
@@ -166,6 +171,7 @@ Paradise Mantle
 Pardic Arsonist
 Patriot, Young Avenger
 Paupers' Cage
+Persistent Petitioners
 Pharika's Libation
 Phyrexian Ghoul
 Pit Imp
@@ -180,6 +186,7 @@ Pyretic Charge
 Quandrix Pledgemage
 Quest for Ancient Secrets
 Quickening Licid
+Radiant Solar
 Ragnar
 Rally the Ranks
 Rampaging Aetherhood
@@ -225,6 +232,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spite
 Spontaneous Combustion
@@ -281,3 +289,4 @@ Wretched Throng
 Yahenni's Expertise
 You See a Guard Approach
 Zodiac Snake
+Zombie Ogre

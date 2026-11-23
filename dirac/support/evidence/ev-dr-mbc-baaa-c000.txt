@@ -14,10 +14,12 @@ Breakthrough
 Breath Weapon
 Cartouche of Ambition
 Chain of Vapor
+Coercive Portal
 Commander Eesha
 Corpse Connoisseur
 Costly Plunder
 Counterbalance
+Court of Grace
 Dance of the Tumbleweeds
 Death's Shadow
 Direct Current
@@ -25,9 +27,11 @@ Dragon Sniper
 Dread Drone
 Electrostatic Field
 Endrek Sahr, Master Breeder
+Entangler
 Fanning the Flames
 Festercreep
 Flame Wave
+Flametongue Kavu
 Forest
 Foulmire Knight
 Gamekeeper
@@ -57,6 +61,7 @@ Kitsa, Otterball Elite
 Lay Claim
 Liliana's Devotee
 Liliana's Specter
+Master Splicer
 Merchant of the Vale
 Merfolk Thaumaturgist
 Meria's Outrider
@@ -74,17 +79,21 @@ Peregrine Drake
 Plains
 Plundering Barbarian
 Predatory Nightstalker
+Pyroblast
 Pyrokinesis
 Read the Bones
 Repulse
 River Bear
+Rock Slide
 Sabertooth Wyvern
 Sacred Cat
+Samurai of the Pale Curtain
 Shabraz, the Skyshark
 Shadow Prophecy
 Sigil of the New Dawn
 Soul's Attendant
 Spike Colony
+Standard Bearer
 Storm Caller
 Storm the Seedcore
 Subterranean Tremors
@@ -103,11 +112,13 @@ Trial of Ambition
 Unexpected Windfall
 Urza, Lord High Artificer
 Valor
+Venser, Visionary Traveler
 View from Above
 Virus Beetle
 Visara the Dreadful
 Volcanic Spite
 Vow of Malice
+Wander in Death
 Weaponcraft Enthusiast
 Wheel and Deal
 Wirewood Channeler

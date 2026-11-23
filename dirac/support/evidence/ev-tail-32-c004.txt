@@ -1,44 +1,96 @@
 A-Elderleaf Mentor
+Advocate of the Beast
 Aeronaut's Wings
+Aether Shockwave
+Akoum Boulderfoot
+Akoum Warrior
+Amulet of Kroog
+Arcbound Hybrid
 Arctic Treeline
+Arena Athlete
+Ashling the Pilgrim
+Attrition
 Attune with Aether
+Avenger of Zendikar
 Barbed Batterfist
+Barrier Breach
 Blade Banish
 Blade Splicer
 Blood Age General
+Blood Rites
+Bloodcrusher of Khorne
+Blunt the Assault
+Boggart Arsonists
+Border Guard
 Boreal Elemental
+Bottle Golems
 Brawl-Bash Ogre
 Brood Birthing
+Bull Hippo
+Cartouche of Zeal
 Castaway's Despair
 Cateran Enforcer
+Channel the Suns
+Chaotic Goo
+Charging Monstrosaur
+Chatter of the Squirrel
 Cho-Arrim Bruiser
 Clot Sliver
+Combust
+Conclave Mentor
+Consuming Sinkhole
+Curious Altisaur
 Cut
 Dark Betrayal
+Dark Ritual
 Death-Hood Cobra
 Definitely Not a Turtle
+Dementia Bat
 Demonic Tutor
 Drana, Liberator of Malakir
 Dryad Greenseeker
 Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
+Eastfarthing Farmer
+Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
+Elvish Eulogist
 Enthusiastic Mechanaut
+Eternal Skylord
+Evaporate
 Expedition Diviner
+Explosive Impact
 Eye of Nowhere
+Facevaulter
+Fault Riders
 Feral Ridgewolf
 Filigree Fracture
+Flamekin Harbinger
 Floating-Dream Zubera
 Flying Dolphin-Fish
+Flywheel Racer
 Forest
 Fourth Bridge Prowler
+Frontline Devastator
+Frostweb Spider
 Gaea's Embrace
+Garrison Griffin
 Genasi Enforcers
 Ghastly Demise
+Ghitu Journeymage
+Ghost-Lit Stalker
+Gisa's Bidding
+Glare of Subdual
+Go-Shintai of Shared Purpose
 Goblin Bombardment
 Goblin Hero
+Goblin Tutor
+Grip of Desolation
+Grollub
+Hasran Ogress
 Haunted Cloak
+Heart Sliver
 Heroic Charge
 Hold the Line
 Honor the Past
@@ -49,26 +101,39 @@ Island
 Izzet Charm
 Koilos Roc
 Krenko's Enforcer
+Kruin Striker
+Kukemssa Pirates
 Lace with Moonglove
+Lancer Sliver
 Lavakin Brawler
 Liliana's Defeat
 Liliana's Devotee
 Luminarch Ascension
 Magma Phoenix
 Magnivore
+Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
 Master Decoy
 Merrow Bonegnawer
+Merrow Witsniper
+Mesa Lynx
 Mind Drain
 Mindless Null
+Mire Blight
+Mistcutter Hydra
 Mistmeadow Skulk
+Mortician Beetle
 Mountain
 Mystic Restraints
 Nephalia Smuggler
+Night Scythe
+Nimbus of the Isles
 Nyxborn Marauder
 Ogre Berserker
 Ondu Cleric
+Oni Possession
+Ovalchase Daredevil
 Pattern of Rebirth
 Peer Through Depths
 Penance Stare
@@ -76,29 +141,49 @@ Pest Infestation
 Pillar of Light
 Plains
 Prakhata Pillar-Bug
+Prized Statue
 Provoke
 Psychic Spear
+Pygmy Pyrosaur
 Quicksilver Dagger
 Raging Spirit
 Raiding Nightstalker
+Rakshasa's Secret
+Ranger Class
+Ravenous Harpy
 Raving Oni-Slave
+Reckless Imp
 Recross the Paths
+Redwood Treefolk
+Relic of Progenitus
 Rescue Retriever
 Rhox Brute
+Rofellos, Llanowar Emissary
+Root Greevil
 Rotted Hulk
+Rotting Mastodon
 Rust Monster
 Sandstone Warrior
+Sarcomancy
 Scragnoth
 Seismic Strike
+Shieldmate's Blessing
 Showdown of the Skalds
+Sizzle
 Skirk Shaman
 Skyclave Cleric
+Skyshroud Troll
 Skyswimmer Koi
 Slaughter Cry
+Sokka, Swordmaster
+Sonic Screwdriver
 Soul Bleed
+Squall Line
 Stampeding Horncrest
 Steady Progress
 Storm Crow
+Strike It Rich
+Sunblade Angel
 Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
@@ -109,14 +194,18 @@ Titanic Brawl
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
+True Conviction
 Umbral Juke
+Unwavering Initiate
 Valley Rannet
 Vaporkin
+Veilborn Ghoul
 Viashivan Dragon
 Viridian Zealot
 Vivid Revival
 Walking Archive
 Warleader's Helix
+Wild Crocodile
 Wilderness Elemental
 Windreader Sphinx
 Wose Pathfinder

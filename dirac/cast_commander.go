@@ -45,7 +45,17 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 	if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 		return
 	}
+	if k.gen != nil && k.gen.anyDash && k.t.Cards[c].HasDash {
+		s.offerDashCommand(k, d, p, o, c, av) // kw_dash.go: before the plain affordability gate
+	}
 	cost := pc.cost
+	if k.gen != nil && k.gen.anyConvoke && s.isImprovise(k, p, c, o, false) && !s.hasConvoke(k, p, c, o, false) && !DebugCommanderNoCredit {
+		// gorge's offer credits a command-zone cast's printed generic with its
+		// untapped artifacts (improvise alone) before the tax and the statics
+		// (CR 702.126a, 903.8); a convoke grant (We Ride at Dawn over Olivia) is
+		// no credit there: gorge prices the raw cost and withholds the cast
+		cost = s.convokeCreditFrom(k, p, c, o, false, cost)
+	}
 	addCommanderTax(&cost, s.commanderTax(p, o))
 	if s.statM.any() || k.gen != nil {
 		// the same reduction the hand walk composes (adjustFit), over the
@@ -92,6 +102,10 @@ func (s *State) commanderTax(p uint8, o Obj) uint8 {
 	return uint8(t)
 }
 
+// DebugCommanderNoCredit (test only) leaves the improvise credit off the
+// command-zone offer's price, the old behaviour.
+var DebugCommanderNoCredit bool
+
 // DebugFreeCmdNoTax (test only, TestPlayCommandZoneLowers): a free cast
 // (OpCastFree, Geode Golem's) from the command zone pays no commander tax.
 var DebugFreeCmdNoTax bool
@@ -106,4 +120,14 @@ func addCommanderTax(c *kop.ManaCost, tax uint8) {
 		g = 255
 	}
 	c.Generic = uint8(g)
+}
+
+// cmdCastInFlight reports p's commander cast from the command zone pushed
+// but not yet committed (onCast counts it at the commit).
+func (s *State) cmdCastInFlight(p uint8) bool {
+	if s.cfg&cfgCommander == 0 || !s.buildLive() || s.sp == 0 {
+		return false
+	}
+	b := s.bld()
+	return b.bfl&bflPushed != 0 && b.origin == kop.ZoneCommand && s.stack[s.sp-1].ctrl == p
 }

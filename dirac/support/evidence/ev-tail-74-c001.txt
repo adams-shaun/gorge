@@ -127,6 +127,7 @@ Emeria Angel
 Enclave Cryptologist
 Encroaching Wastes
 Endless Wurm
+Enraged Huorn
 Entish Restoration
 Equestrian Skill
 Esika's Chariot
@@ -147,12 +148,14 @@ Fire Ambush
 Fire Prophecy
 Firemaw Kavu
 Flameskull
+Flockchaser Phantom
 Forest
 Forge, Neverwinter Charlatan
 Fortress Cyclops
 Frightcrawler
 From the Rubble
 Frontier Mastodon
+Frostwalk Bastion
 Fume Spitter
 Gaea's Bounty
 Gamekeeper
@@ -211,6 +214,7 @@ Kindred Boon
 Kiora's Follower
 Kjeldoran Pride
 Knights of Dol Amroth
+Kodama of the Center Tree
 Kolvori, God of Kinship
 Kor Blademaster
 Kraken of the Straits
@@ -230,6 +234,7 @@ Liliana's Elite
 Liliana's Standard Bearer
 Loathsome Troll
 Lokhust Heavy Destroyer
+Lord Magnus
 Lore Seeker
 Lotus Blossom
 MACH-1, Swooping Scoundrel
@@ -283,7 +288,6 @@ Orthodoxy Enforcer
 Outbreak
 Painwracker Oni
 Paladin Danse, Steel Maverick
-Path to the World Tree
 Pathbreaker Ibex
 Patient Rebuilding
 Peggy Carter, Secret Agent
@@ -401,6 +405,7 @@ Swamp
 Sweep the Skies
 Sword of the Animist
 Talisman of Unity
+Tamiyo's Compleation
 Tawnos's Tinkering
 Telepathic Spies
 Temporal Adept
@@ -450,6 +455,7 @@ Veteran Bodyguard
 Vhati il-Dal
 Viashino Bladescout
 Vilis, Broker of Blood
+Vine Kami
 Vineweft
 Vintara Snapper
 Viridian Longbow

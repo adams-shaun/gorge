@@ -21,12 +21,14 @@ Bygone Marvels
 Cache Grab
 Cackling Imp
 Call of the Wild
+Champion of the Perished
 Clay Revenant
 Coastal Tower
 Colossal Growth
 Cradle Guard
 Crocodile of the Crossing
 Deathcap Cultivator
+Deathknell Kami
 Defense of the Heart
 Demolition Stomper
 Dining Room
@@ -73,6 +75,7 @@ One with Death
 Pawpatch Formation
 Phyrexian Rager
 Phyrexian Vault
+Pippin, Warden of Isengard
 Placid Rottentail
 Putrefaction
 Qasali Slingers
@@ -108,6 +111,7 @@ Tempered Sliver
 Terra Stomper
 Tethered Skirge
 Thallid Devourer
+Thicket Elemental
 Tome of the Guildpact
 Toski, Bearer of Secrets
 Treefolk Harbinger

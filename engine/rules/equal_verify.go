@@ -20,11 +20,11 @@ import (
 // it is compared here.
 
 const (
-	continuousEffectFieldCount = 136
+	continuousEffectFieldCount = 137
 	attackOfferFieldCount      = 4
 	blockChargeFieldCount      = 7
 	objectTypesFieldCount      = 3
-	optionFieldCount           = 49
+	optionFieldCount           = 53
 	grantFieldCount            = 3
 )
 
@@ -60,6 +60,13 @@ func gainControlGateEqual(a, b *ContinuousEffect) bool {
 		a.GainControlSVarCompare == b.GainControlSVarCompare
 }
 
+// staticMarksEqual compares the marks a printed Continuous static's
+// registration carries (PermanentsOnly, QuotedAbilityGrant), written once at
+// registration and never mutated.
+func staticMarksEqual(a, b *ContinuousEffect) bool {
+	return a.PermanentsOnly == b.PermanentsOnly && a.QuotedAbilityGrant == b.QuotedAbilityGrant
+}
+
 func continuousEffectEqual(a, b *ContinuousEffect) bool {
 	return true &&
 		a.Source == b.Source &&
@@ -75,7 +82,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.Controller == b.Controller &&
 		a.UntilEOT == b.UntilEOT &&
 		a.FromEffect == b.FromEffect &&
-		a.PermanentsOnly == b.PermanentsOnly &&
+		staticMarksEqual(a, b) &&
 		cards.StringMapEqual(a.SVars, b.SVars) &&
 		a.AddPower == b.AddPower &&
 		a.AddToughness == b.AddToughness &&
@@ -297,10 +304,16 @@ func optionEqual(a, b *decision.Option) bool {
 		a.GainedIdx == b.GainedIdx &&
 		a.Granted == b.Granted &&
 		sliceEq(a.GrantStatics, b.GrantStatics) &&
-		a.PlanBacked == b.PlanBacked &&
+		optionOfferFlagsEqual(a, b) &&
 		a.Value == b.Value &&
 		a.Value2 == b.Value2 &&
 		a.TargetHints == b.TargetHints
+}
+
+// optionOfferFlagsEqual compares the server-side offer markers of two options
+// (PlanBacked, CensusOffer), apart from optionEqual to keep its complexity.
+func optionOfferFlagsEqual(a, b *decision.Option) bool {
+	return a.PlanBacked == b.PlanBacked && a.CensusOffer == b.CensusOffer
 }
 
 // optionsEqual is reflect.DeepEqual(a, b) for two option lists.
@@ -316,7 +329,9 @@ func optionsEqual(a, b []decision.Option) bool {
 	return true
 }
 
-// attackerDutyFlagsEqual compares the three attack-duty marks on an option.
+// attackerDutyFlagsEqual compares the three attack-duty marks on an option and
+// its whole-declaration companion facts (AloneOnly, CompanionNeed/From).
 func attackerDutyFlagsEqual(a, b *decision.Option) bool {
-	return a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo && a.AttackOne == b.AttackOne
+	return a.AttackMust == b.AttackMust && a.AttackMustTwo == b.AttackMustTwo && a.AttackOne == b.AttackOne &&
+		a.AloneOnly == b.AloneOnly && a.CompanionNeed == b.CompanionNeed && sliceEq(a.CompanionFrom, b.CompanionFrom)
 }

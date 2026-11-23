@@ -2,16 +2,25 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Avenger en-Dal	2a025402d3645256	27	1/1		1/1	
 Brainwash	ac79a1487b6187ca	4	0/0		1/2	ix:resp
 Crush of Wurms	705286b175426a16	3	0/0		3/4	ix:resp
+Fowl Strike	dea96e99c4ae6466	4	1/1		1/2	ix:resp
 Godsire	0db8825a910a1172	6	1/1		1/1	
 Harvesttide Sentry	972ad275cd946380	4	1/1		0/1	ix:resp
+Leshrac's Rite	bc1064fd9f61f379	4	0/0		1/2	ix:resp
+Magus of the Mirror	9e5a89b573931a96	18	1/1		1/1	
 Manta Ray	0d2950bc8ae6f797	17	1/1		1/1	
 Merfolk Seastalkers	e82d29f926e6691a	4	1/1		1/1	
+Myr Moonvessel	f33d65ec092c08be	57	1/1		1/1	
 Necrotic Ooze	e7cd7a154f211343	4	0/0		0/0	
+Nightsoil Kami	40359be7b34df224	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nightveil Specter	5f7f0c173890fbc1	7	1/1		1/1	
+Ponyback Brigade	47eb32ffd54ddc46	3	2/2		2/3	cast/alt:none
 Rogue Refiner	8c65b973d01c2a8f	9	1/1		1/1	
+Rune of Protection: Red	04c317f4d10051da	5	2/2		1/1	
 Simic Signet	cd035891212300a7	27	1/1		0/1	ix:resp
+Skeleton Key	04b5c65f2f58cbbc	4	2/2		0/1	ix:resp
 Sliver Overlord	43009ffad0faba66	6	2/2		1/1	
 Spitemare	d2409eb07cf60e21	3	1/1		0/1	ix:resp
+Stonehorn Dignitary	aeedade8155a3eb8	4	1/1		0/1	ix:resp
 Stormscape Master	68822a6832f57eb9	3	2/2		0/1	ix:resp
 Strength of the Pack	b9a36872db415715	9	0/0		1/2	ix:resp
 Struggle for Skemfar	4c8d1011a102b213	5	0/0		2/4	cast/alt:foretold,ix:resp
@@ -22,6 +31,7 @@ Triumph of the Hordes	bc04a07654e449f7	9	0/0		2/2
 Turn Aside	974d5e263056d6c6	6	0/0		1/2	ix:resp
 Turret Ogre	3647c4dc86e0ae70	22	1/1		1/1	
 Vega, the Watcher	4766d7571493f1fa	23	1/1		1/1	
+Veiled Ascension	0dd8a57d1f914c15	17	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Volcano Imp	15253aeb6350a3cc	8	1/1		1/1	
 Voracious Cobra	ce8618beffe13418	10	1/1		0/1	ix:resp
 Wit's End	9dc4d80b76f5e090	6	0/0		1/2	ix:resp

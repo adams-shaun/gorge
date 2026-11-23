@@ -285,6 +285,7 @@ Revered Dead
 Rhox Charger
 Rhys the Redeemed
 Riddlemaster Sphinx
+Riptide Shapeshifter
 Rishadan Port
 Rite of Harmony
 Ritual of Hope
@@ -367,12 +368,13 @@ Tel-Jilad Lifebreather
 Tezzeret's Touch
 Thassa's Bounty
 The Blackstaff of Waterdeep
+Thorough Investigation
 Thraxodemon
 Time of Need
 Tishana, Voice of Thunder
 Titania's Chosen
 Titanic Ultimatum
-Tramway Station
+Train of Thought
 Transmogrifying Licid
 Traproot Kami
 True Love's Kiss
@@ -389,6 +391,7 @@ Utrom Monitor
 Vastwood Surge
 Vectis Agents
 Veil of Assimilation
+Vigean Graftmage
 Vigorspore Wurm
 Vivien, Champion of the Wilds
 Volatile Claws

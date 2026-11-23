@@ -13,6 +13,7 @@ Agent of Erebos
 Agoraphobia
 Ajani, Strength of the Pride
 Akroma's Will
+Alabaster Host Intercessor
 Alabaster Mage
 Algae Gharial
 Alpine Guide
@@ -143,7 +144,6 @@ Fable of Wolf and Owl
 Faerie Noble
 Faerie Trickery
 Fall of the Gavel
-Feast of Worms
 Feral Roar
 Feral Shadow
 Ferrous Lake
@@ -378,6 +378,7 @@ Skyscanner
 Skyshroud Condor
 Sledding Otter-Penguin
 Sleep of the Dead
+Slip On the Ring
 Smelted Chargebug
 Smoldering Crater
 Snow-Covered Wastes
@@ -437,6 +438,7 @@ Topan Freeblade
 Torch Song
 Tormentor Exarch
 Tortoise Formation
+Tower of the Magistrate
 Traverse Eternity
 Tree Monkey
 Treetop Ambusher

@@ -1,4 +1,5 @@
 A-Elderleaf Mentor
+A-Goldspan Dragon
 Abstruse Interference
 Advanced Hoverguard
 Advocate of the Beast
@@ -25,7 +26,9 @@ Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
+Aven Liberator
 Avenger of Zendikar
+Avian Oddity
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
@@ -38,6 +41,7 @@ Blood Age General
 Blood Rites
 Bloodcrusher of Khorne
 Bloodfire Colossus
+Bloodthirsty Aerialist
 Blue Sun's Zenith
 Blunt the Assault
 Boggart Arsonists
@@ -49,12 +53,14 @@ Brand
 Brawl-Bash Ogre
 Brood Birthing
 Bull Hippo
+Bushi Tenderfoot
 Cartouche of Zeal
 Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Champion of Wits
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
@@ -66,8 +72,10 @@ Cloud Elemental
 Cloudchaser Kestrel
 Cognivore
 Cold Storage
+Colossus of Akros
 Combust
 Conclave Mentor
+Confront the Past
 Consuming Sinkhole
 Copper Host Crusher
 Copper Myr
@@ -85,8 +93,10 @@ Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demon of Loathing
 Demonic Tutor
 Demystify
+Deploy the Gatewatch
 Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
@@ -97,6 +107,7 @@ Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Echo Storm
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
@@ -105,6 +116,7 @@ Elspeth Tirel
 Elvish Eulogist
 Encroach
 Endurance Bobblehead
+Entangler
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
@@ -112,6 +124,7 @@ Eternal Skylord
 Ethercaste Knight
 Evangel of Synthesis
 Evaporate
+Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
 Eye of Nowhere
@@ -137,11 +150,13 @@ Frontline Devastator
 Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
+Gatewatch Beacon
 Geier Reach Sanitarium
 Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
 Ghitu Journeymage
+Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Gisa's Bidding
@@ -152,6 +167,7 @@ Goblin Bombardment
 Goblin Hero
 Goblin Tutor
 Goliath, Mass Manipulator
+Gravespawn Sovereign
 Griffin Protector
 Grip of Desolation
 Grollub
@@ -181,6 +197,7 @@ Irini Sengir
 Island
 Ivory Crane Netsuke
 Izzet Charm
+Kami of the Hunt
 Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
@@ -212,7 +229,9 @@ Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
 Master Decoy
+Master of Pearls
 Meldweb Strider
+Memory Drain
 Memory Worm
 Mercurial Spelldancer
 Merrow Bonegnawer
@@ -235,6 +254,7 @@ Mountain
 Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
+Nadier, Agent of the Duskenel
 Nephalia Smuggler
 Night Scythe
 Nimbus of the Isles
@@ -263,9 +283,11 @@ Pollenbright Wings
 Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Proven Combatant
 Provoke
 Psychic Spear
 Pygmy Pyrosaur
+Quickchange
 Quicksilver Dagger
 Radiant Fountain
 Raging Spirit
@@ -280,6 +302,7 @@ Raving Oni-Slave
 Razorjaw Oni
 Reckless Imp
 Recross the Paths
+Redwood Treefolk
 Relic of Progenitus
 Renounce
 Rescue Retriever
@@ -307,6 +330,7 @@ Shackles
 Shanna, Sisay's Legacy
 Shieldmate's Blessing
 Showdown of the Skalds
+Sideswipe
 Sizzle
 Skyclave Cleric
 Skyclave Shade
@@ -338,20 +362,26 @@ Tail Slash
 Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
+Tevesh Szat, Doom of Fools
 Tezzeret's Touch
 The Prydwen, Steel Flagship
 The Royal Scions
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
 Thriving Ibex
 Thunder Wall
+Titanic Brawl
 Tolarian Sentinel
 Tomb Fortress
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
+Triumphant Adventurer
 Tromell, Seymour's Butler
+True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion
@@ -361,6 +391,7 @@ Umbral Juke
 Unnatural Speed
 Untamed Wilds
 Unwavering Initiate
+Urborg, Tomb of Yawgmoth
 Urza's Cave
 Valakut Fireboar
 Valkyrior Skyrider
@@ -370,6 +401,7 @@ Veilborn Ghoul
 Venomous Vines
 Vexing Sphinx
 Viashivan Dragon
+Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
 Vivisection
@@ -389,4 +421,5 @@ Witch's Mist
 Witness of Tomorrows
 Woodland Bellower
 Wose Pathfinder
+Xanthic Statue
 Zuko's Offense

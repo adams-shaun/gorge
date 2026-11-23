@@ -64,7 +64,7 @@ func TestRiderGrantIntrinsicPotentialMask(t *testing.T) {
 		t.Fatalf("precondition: no multi-colour intrinsic view (intrinsic %v multi %v)", pc.manaIntrinsic, pc.manaMulti)
 	}
 	want := uint8(kop.ColU | kop.ColB)
-	if got := uint8(sc.s.potentialFirstMask(sc.k, sl, pc)) & 0x3f; got != want {
+	if got := uint8(sc.s.potentialFirstMask(sc.k, 0, sl, pc, nil)) & 0x3f; got != want {
 		t.Fatalf("potentialFirstMask %d, want the two granted colours %d: the fold prices the view, not the rider's any-colour", got, want)
 	}
 }

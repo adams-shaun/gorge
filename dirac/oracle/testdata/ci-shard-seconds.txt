@@ -1077,8 +1077,6 @@ TestStdMetaReprosLockstep 12.2
 TestStdMkmReprosLockstep 16.6
 TestStdMshReprosLockstep 24.5
 TestStdOtjReprosLockstep 7.8
-TestStdPoolReprosLockstep 106.5
-TestStdPoolReprosLockstepFull 184.5
 TestStdSetReprosLockstep 20.8
 TestStdSosReprosLockstep 2.0
 TestStdSpmReprosLockstep 5.9

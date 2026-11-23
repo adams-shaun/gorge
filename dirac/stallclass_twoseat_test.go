@@ -26,8 +26,8 @@ func TestTwoSeatRefusedOnlyPastTwo(t *testing.T) {
 	}
 }
 
-// TestCardTwoSeat: the kgen mark and the single-opponent operands both make
-// a card two-seat only; an ordinary program does not.
+// TestCardTwoSeat: the kgen mark makes a card two-seat only; an ordinary
+// program, or one whose permission goes to the targeted exiler, does not.
 func TestCardTwoSeat(t *testing.T) {
 	prog := func(in kop.Instr) kop.CardDef {
 		return kop.CardDef{Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{in}}}}
@@ -39,10 +39,13 @@ func TestCardTwoSeat(t *testing.T) {
 	marked := plain
 	marked.TwoSeat = true
 	may := prog(kop.Instr{Op: kop.OpMayPlay, B: kop.ValueRef{N: kop.MayPlayOpponent}})
-	for name, c := range map[string]kop.CardDef{"marked": marked, "may play for the opponent": may} {
-		if !cardTwoSeat(&c) {
-			t.Errorf("%s: not two-seat only", name)
-		}
+	if !cardTwoSeat(&marked) {
+		t.Error("a kgen-marked card is not two-seat only")
+	}
+	// the permission is the targeted exiler's (targetedExiler), whichever
+	// opponent was targeted: it plays at any seat count (Vulcan Mind-Meld)
+	if cardTwoSeat(&may) {
+		t.Error("may play for the targeted opponent: two-seat only")
 	}
 	// a return under the chosen opponent enters under the resolution's
 	// choice (retUnderOppSeat): it plays at any seat count
@@ -53,7 +56,12 @@ func TestCardTwoSeat(t *testing.T) {
 	tb := &kop.Table{Cards: []kop.CardDef{plain, may}}
 	g := &genPrep{}
 	prepTwoSeat(tb, g)
+	if g.twoSeatOnly {
+		t.Fatal("prepTwoSeat refused a table with no two-seat card")
+	}
+	tb.Cards = append(tb.Cards, marked)
+	prepTwoSeat(tb, g)
 	if !g.twoSeatOnly {
-		t.Fatal("prepTwoSeat missed the may-play card")
+		t.Fatal("prepTwoSeat missed the marked card")
 	}
 }

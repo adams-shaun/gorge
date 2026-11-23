@@ -47,13 +47,16 @@ Dwarven Pony	96246eee0f502e5e	39	1/1		1/1
 Ebony Charm	5dea4cc8b6be209e	4	0/0		1/2	ix:resp
 Eland Umbra	b693dd23ab09cb5d	5	0/0		2/2	
 Elvish Rejuvenator	edb4a17dc336dc5d	6	1/1		0/1	ix:resp
+Emiel the Blessed	e3abd5a8a0e7924b	7	2/2		1/1	
 Empty-Shrine Kannushi	38c4bab7c7ce2f4d	6	0/0		0/0	
 Epicenter	b322ab100cc87e6c	20	0/0		2/2	
 Ethereal Absolution	2159b7e43df6974b	4	1/1		1/1	
 Evil Eye of Urborg	ec6214ca053a2b3c	4	1/1		0/1	ix:resp
 Explosive Entry	906a34f6165115cd	4	0/0		1/2	ix:resp
 Eye of Vecna	23795ed80fe81fb6	4	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Falter	ba8e49a4b34db86a	26	0/0		2/2	
 Fate Unraveler	f410e6d665272d87	4	1/1		0/1	ix:resp
+Fifty Feet of Rope	1db4d6a7b2c4ee1c	8	3/3		1/1	
 Flailing Manticore	90361690b6513961	6	2/2		1/1	
 Flaming Gambit	bf84f651764049e6	17	0/0		6/6	
 Flutterfox	ef85a3cafc8dc210	23	0/0		0/0	
@@ -94,6 +97,7 @@ Launch Party	d479c94261de88c1	12	0/0		1/2	ix:resp
 Lazotep Behemoth	67f04a7bb0d03581	13	0/0		0/0	
 Leafcrown Dryad	74bf0d948b5d0de0	8	0/0		2/2	
 Lesser Masticore	8e6b2d0d3a9d627c	25	2/2		1/2	ix:resp
+Liliana's Talent	772923268fb1c116	4	1/1		2/2	
 Long Road Home	1cade38c0d07384a	9	0/0		1/2	ix:resp
 Looming Spires	30a2a2b92249acdb	12	2/2		0/1	ix:resp
 Luminesce	1cd98c6e217709c2	5	0/0		1/2	ix:resp
@@ -109,6 +113,7 @@ Mindwhip Sliver	c6a8c28cc53cdf4a	8	0/0		0/0
 Minotaur Sureshot	86cc30139afb9893	12	1/1		1/1	
 Mortivore	60e0f5d0791933c3	5	1/1		0/1	ix:resp
 Mothdust Changeling	b417968044716945	4	1/1		1/1	
+Niv-Mizzet, Dracogenius	48eacd6d658b4518	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Nomad Mythmaker	4c0cc99de3532940	8	1/1		0/1	ix:resp
 Oath of Druids	2d208a3cbe6a6051	8	1/1		0/1	ix:resp
 Obstinate Gargoyle	0ccf333e045d3797	9	1/1		0/1	ix:resp
@@ -116,10 +121,12 @@ Onward	3383e5e976b8b339	12	0/0		4/5	f1/s
 Oona's Grace	21754f394ff86b9a	6	0/0		1/2	ix:resp
 Ordruun Veteran	5ad7b1cd2719077a	8	1/1		0/1	ix:resp
 Outrider of Jhess	f98e5919a3f9570b	4	1/1		1/1	
+Overwhelming Intellect	7615d79969392b2f	3	0/0		1/2	ix:resp
 Owlbear	2dbd77869402f934	6	1/1		1/1	
 Ox of Agonas	a612d758f883f7f8	26	1/1		1/3	cast/alt:escaped,ix:resp
 Pardic Firecat	4d8cc25f4c68e5e5	10	0/0		0/0	
 Pariah	bd429c7470c13f71	14	0/0		1/2	ix:resp
+Pemmin's Aura	3b8626f99de937ca	12	4/4		2/2	
 Pensive Minotaur	0c7eaf562e123f44	27	0/0		0/0	
 Pestilence Demon	477063dc1e48e429	3	1/1		1/1	
 Pull from the Deep	ab9a3cfefa890e04	16	0/0		1/2	ix:resp

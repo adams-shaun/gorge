@@ -190,7 +190,7 @@ func blockHistoryMatches(kind wordKind, key string, g *state.Game, o *state.Obje
 	case wordBlockedBySource:
 		// Forge's blockedBySource: the object is being blocked by the source
 		// -- the source is one of THIS object's blockers.
-		return containsID(o.BlockedBy, sc.Source)
+		return sc.Source != 0 && containsID(o.BlockedBy, sc.Source)
 	case wordBlockedByValid:
 		return blockHistoryNames(g, o.BlockedByThisTurn, key, sc)
 	case wordBlockedValid:

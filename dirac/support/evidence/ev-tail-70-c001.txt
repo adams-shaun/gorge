@@ -104,6 +104,7 @@ Fall of the Thran
 Famished Ghoul
 Far Traveler
 Fast Forward
+Fateful Tempest
 Faultgrinder
 Feed the Clan
 Feeding Frenzy
@@ -218,6 +219,7 @@ Overmaster
 Patagia Viper
 Patchwork Gnomes
 Pestilence
+Phyrexian Ingester
 Phyrexian Reclamation
 Piercing Light
 Piper of the Swarm

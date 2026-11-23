@@ -8,9 +8,9 @@ import (
 // markAttack sets the attacker marks of o from the view of its card: whether
 // it attacks and which player, and whether it became blocked. A creature
 // attacking a planeswalker or a battle is refused by checkCard.
-func markAttack(o *dirac.WorldObj, cv *view.CardView, name string) error {
+func (b *builder) markAttack(o *dirac.WorldObj, cv *view.CardView, name string) error {
 	if cv.Attacking {
-		if cv.AttackingPlayer == nil || *cv.AttackingPlayer >= 2 {
+		if cv.AttackingPlayer == nil || int(*cv.AttackingPlayer) >= len(b.in.View.Players) {
 			return bad(dirac.ReasonCombat, "%s attacks no seat", name)
 		}
 		o.Attacking, o.AtkSeat = true, uint8(*cv.AttackingPlayer)

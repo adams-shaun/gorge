@@ -23,8 +23,18 @@ var (
 	CantActHeld, CantActManaHeld, CantActCondHeld uint64
 )
 
-// prepCantAct arms genPrep.anyCantAct when some card has a StatCantActivate.
-func prepCantAct(t *kop.Table, g *genPrep) {
+// prepCantAct arms genPrep.anyCantAct when some card has a StatCantActivate,
+// and marks each such card in pcard.cantAct: actForbiddenBy skips the rest.
+func prepCantAct(t *kop.Table, p *prep, g *genPrep) {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			a := &t.Cards[i].Abilities[j]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCantActivate {
+				p.cards[i].cantAct = true
+				break
+			}
+		}
+	}
 	g.anyCantAct = tableHasStatic(t, kop.StatCantActivate) || g.anyCantSac
 }
 
@@ -55,15 +65,70 @@ func (s *State) actForbiddenAb(k *prep, sl Slot, mana, loyal bool) bool {
 	return s.actForbiddenBy(k, sl, s.perms[sl].ctrl, mana, loyal)
 }
 
+// eachCantActStatic is actForbiddenBy's eachStatic: it walks only a
+// permanent whose card prints a StatCantActivate (pcard.cantAct) and every
+// emblem (which has no card), in eachStatic's order. A card without the
+// static has no ability the callback accepts, so the verdict is unchanged.
+func (s *State) eachCantActStatic(k *prep, f func(st statSrc) bool) {
+	for m := s.statM; m.any(); m = m.rest() {
+		sl := m.first()
+		c := s.cardAt(sl)
+		if !k.cards[c].cantAct {
+			continue
+		}
+		lost := s.genLost(k, sl)
+		p := &s.perms[sl]
+		cd := &k.t.Cards[c]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if lost && !s.ovGateKeptOnLoss(k, sl, a) {
+				continue
+			}
+			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {
+				if !f(statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
+					return
+				}
+			}
+		}
+	}
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		lost := s.out(pp)
+		for i := 0; i < int(s.g.nemb[pp]); i++ {
+			e := &k.t.Emblems[s.embIdx(pp, i)-1]
+			if lost && !e.UntilNextTurn {
+				continue
+			}
+			sl, obj := NoSlot, NoObj
+			if e.HostBound() {
+				if obj = s.embObj(pp, i); s.objs[obj].zone != kop.ZoneBattlefield {
+					continue
+				}
+				sl = s.objs[obj].slot
+			}
+			for j := range e.Abilities {
+				a := &e.Abilities[j]
+				if a.Kind == kop.AbStatic {
+					if !f(statSrc{a: a, sl: sl, ctrl: pp, obj: obj, emb: pp<<4 | uint8(i+1)}) {
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
 // actForbiddenBy is actForbiddenAb for the player p activating (the
 // permanent's controller, or another player of an any-player ability:
 // cast_anyactivator.go).
 func (s *State) actForbiddenBy(k *prep, sl Slot, p uint8, mana, loyal bool) bool {
+	if !k.gen.anyCantAct {
+		return false
+	}
 	if mana && DebugCantActMana {
 		return false
 	}
 	hit, cond := false, false
-	s.eachStatic(k, func(stc statSrc) bool {
+	s.eachCantActStatic(k, func(stc statSrc) bool {
 		a := stc.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantActivate {
 			return true

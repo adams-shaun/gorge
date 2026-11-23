@@ -108,6 +108,8 @@ func (ic *instrCtx) opOverride() error {
 		ki.A = kop.Const(kop.DurPermanent)
 	case "UntilYourNextTurn":
 		ki.A = kop.Const(kop.DurUntilYourNextTurn)
+	case "UntilYourNextUpkeep":
+		ki.A = kop.Const(kop.DurUntilYourNextUpkeep)
 	case "WhileHost":
 		ki.A = kop.Const(kop.DurPermanent) // Override.WhileHost bounds it by the host
 	default:

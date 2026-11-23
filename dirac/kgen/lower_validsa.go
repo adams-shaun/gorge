@@ -30,11 +30,11 @@ func (lc *lowerCtx) validSAHead(v, mode string, tr *lTrigger) (bool, error) {
 		case strings.HasPrefix(alt, "Spell.") && !strings.Contains(alt, " "):
 			rest = append(rest, "Card."+strings.TrimPrefix(alt, "Spell."))
 		default:
-			return true, refuse("ValidSA %q", v)
+			return true, refuse("spell-ability filter ValidSA %q", v)
 		}
 	}
 	if nTgt != 1 || len(rest) == 0 || tr.F != nil || inner == "" || strings.ContainsAny(inner, "~<>,") {
-		return true, refuse("ValidSA %q", v)
+		return true, refuse("spell-ability filter ValidSA %q", v)
 	}
 	var err error
 	if tr.F, err = lc.filter(strings.Join(rest, ",")); err != nil {
@@ -44,7 +44,7 @@ func (lc *lowerCtx) validSAHead(v, mode string, tr *lTrigger) (bool, error) {
 		return true, err
 	}
 	if tr.F2.Players != 0 || len(tr.F2.Clauses) == 0 {
-		return true, refuse("ValidSA %q", v)
+		return true, refuse("spell-ability filter ValidSA %q", v)
 	}
 	tr.OrTargets = true
 	return true, nil

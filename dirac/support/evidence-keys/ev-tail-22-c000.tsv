@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Teferi, Time Raveler	7d19ac53e72fef06	6	2/2		0/1	ix:resp
 Aeromoeba	93cf093bf2ec38b2	35	1/1		1/1	
+Atarka Efreet	e1f0a6d75cc36db2	3	1/1		1/3	cast/alt:none,ix:resp
 Battle Screech	cceacfbdc171022f	27	0/0		4/4	
 Blanka, Ferocious Friend	e20cebde1b88bc44	5	1/1		0/1	ix:resp
 Brainstealer Dragon	c209c9e9cd4d0b18	9	2/2		1/1	
@@ -8,9 +9,14 @@ Dissatisfied Customer	4a31058d79528d27	42	1/1		1/1
 Dovescape	a965cab69b5ef853	3	1/1		0/1	ix:resp
 Fleshformer	24f35c9c5b121dfe	783	1/1		1/1	
 Grafted Exoskeleton	6cdc8e12681bc58f	12	2/2		1/1	
+Hell-Bent Raider	3214732b1aa8da7b	20	1/1		1/1	
 Hundroog	3ddfc3c91edfedb1	3	1/1		0/1	ix:resp
 Last Laugh	7c29352523413074	4	2/2		0/1	ix:resp
 Nimrodel Watcher	1a1ffad7f3ad3916	93	1/1		1/1	
+Rattleclaw Mystic	e561d568059011af	800	2/2		2/3	cast/alt:morphed
+Razorgrass Screen	9fea07e7a5028b38	69	0/0		0/0	
 Samurai of the Pale Curtain	37b995f06ad7ec91	33	2/2		0/1	ix:resp
+Sanctum of Calm Waters	bfe063a79b5dafbc	42	1/1		1/1	
 Skeletal Scrying	7d6abeddf0bbef9c	14	0/0		2/4	f0/s/x0,ix:resp
 Triton Wavebreaker	c354f5419878ec5c	58	0/0		2/2	
+Wand of the Worldsoul	31d889de7efabf91	16	2/2		1/1	

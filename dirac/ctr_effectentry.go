@@ -43,8 +43,8 @@ const (
 	spcEtbMask  = 0x1f << spcEtbShift
 )
 
-// StallEffEtbCtr: more than 21 extra counters pending on one spell, a second
-// effect beside more than 4 (or beside one of more than 4), or a third effect.
+// StallEffEtbCtr: more than 21 extra counters pending on one spell, a later effect of more than 4 beside another, more than 15 effects of one size, a second
+// (the third and later effects ride stackEntry.etbX: nibbles counting effects of 1..4 counters).
 const StallEffEtbCtr = 117
 
 func init() { stallNames[StallEffEtbCtr] = "effetbctr" }
@@ -113,6 +113,19 @@ func etbOwnPrepares(t *kop.Table, pc *pcard, c CardID) bool {
 	return found
 }
 
+// etbXGet and etbXSet read and write the number of effects of n (1..4)
+// counters beyond the pair code, one nibble each in stackEntry.etbX. Several
+// effects of one spell on an entrant with no other source of entry counters
+// are separate puts and commute, so the multiset is exact.
+func etbXGet(e *stackEntry, n int) int {
+	return int(e.etbX[(n-1)>>1]>>(uint(n-1)&1*4)) & 15
+}
+
+func etbXSet(e *stackEntry, n, v int) {
+	sh := uint(n-1) & 1 * 4
+	e.etbX[(n-1)>>1] = e.etbX[(n-1)>>1]&^(15<<sh) | uint8(v)<<sh
+}
+
 // effEtbCtr is ExtEffEtbCtr: the resolving SpellCast trigger's spell (still on
 // the stack) will enter with max(B, 0) more P1P1 counters.
 func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
@@ -150,11 +163,14 @@ func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
 			continue
 		}
 		code, ok := etbCodeAdd(int(e.spc&spcEtbMask)>>spcEtbShift, n)
-		if !ok {
+		if ok {
+			e.spc = e.spc&^spcEtbMask | uint16(code)<<spcEtbShift
+		} else if e.spc&spcEtbMask != 0 && n <= 4 && etbXGet(e, n) < 15 {
+			etbXSet(e, n, etbXGet(e, n)+1) // a later effect the pair code cannot hold
+		} else {
 			s.capFull(StallEffEtbCtr)
 			return
 		}
-		e.spc = e.spc&^spcEtbMask | uint16(code)<<spcEtbShift
 		EffEtbStats.Applied.Add(1)
 		if n >= 2 {
 			EffEtbStats.Big.Add(1)
@@ -169,28 +185,54 @@ func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
 // entry's triggers).
 func (s *State) effEtbEnter(k *prep, sl Slot, p *perm) {
 	a, b := etbCodeParts(int(s.res.e.spc&spcEtbMask) >> spcEtbShift)
-	if DebugEffEtbCtr && a+b > 0 {
-		if b > 0 {
+	var xs [4]int // effects beyond the pair, as counts of effects of 1..4 counters
+	nx, xsum := 0, 0
+	for n := 1; n <= 4; n++ {
+		xs[n-1] = etbXGet(&s.res.e, n)
+		nx += xs[n-1]
+		xsum += xs[n-1] * n
+	}
+	if DebugEffEtbCtr && a+b+xsum > 0 {
+		switch {
+		case nx > 0:
+			for n := 1; n <= 4; n++ { // one counter fewer on the first extra effect
+				if xs[n-1] > 0 {
+					xs[n-1]--
+					if n > 1 {
+						xs[n-2]++
+					} else {
+						nx--
+					}
+					xsum--
+					break
+				}
+			}
+		case b > 0:
 			b--
-		} else {
+		default:
 			a--
 		}
 	}
-	if a+b == 0 {
+	if a+b+xsum == 0 {
 		return
 	}
-	if b > 0 && !s.entryPlan(k, sl, p) {
-		// two effects on an entrant with no other source of entry counters:
-		// gorge does not stage the entry (entryBodyCandidates), so each
-		// effect's body runs as its own put (ctr_entryperkind.go)
+	if (b > 0 || nx > 0) && !s.entryPlan(k, sl, p) {
+		// two or more effects on an entrant with no other source of entry
+		// counters: gorge does not stage the entry (entryBodyCandidates), so
+		// each effect's body runs as its own put (ctr_entryperkind.go)
 		for _, n := range [2]int{a, b} {
 			if n > 0 {
 				s.placeCounters(k, sl, int(kop.CtrP1P1), n, p.ctrl, ctrPutBy)
 			}
 		}
+		for n := 1; n <= 4; n++ {
+			for i := 0; i < xs[n-1]; i++ {
+				s.placeCounters(k, sl, int(kop.CtrP1P1), n, p.ctrl, ctrPutBy)
+			}
+		}
 		return
 	}
-	n := a + b
+	n := a + b + xsum
 	if k.gen.anyEntryMerge && s.entryAcc(int(kop.CtrP1P1), n) {
 		return // joins the entry's one put (ctr_entryperkind.go)
 	}

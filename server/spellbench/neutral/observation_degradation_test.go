@@ -37,6 +37,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -214,83 +215,111 @@ func TestObservationDegradationCensus(t *testing.T) {
 	t.Parallel()
 	reg := testcorpus.Registry(t)
 	names := testutil.LegacyDeckNames()
+	var mu sync.Mutex
 	counts := map[string]int{}
 	checked := 0
 	for i := 0; i < observationDegradationGames; i++ {
-		name := names[i%len(names)]
-		g := observationDegradationGame(t, reg, testutil.RepoDeck(t, reg, name), byte(i))
-		tr := identity.New(g.R, g.Secret)
-		builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
-		bots := testgame.Bots(uint64(i))
-		for n := 0; n < 1200; n++ {
-			pending := g.E.Pending()
-			if g.E.G.Over || pending == nil {
-				break
+		i := i
+		t.Run(fmt.Sprintf("game%03d", i), func(t *testing.T) {
+			t.Parallel()
+			gameCounts, gameChecked := observationDegradationCensusGame(t, reg, names, i)
+			mu.Lock()
+			defer mu.Unlock()
+			for p, n := range gameCounts {
+				counts[p] += n
 			}
-			if err := tr.Sync(g.R); err != nil {
-				t.Fatalf("game %d (%s) step %d: %v", i, name, n, err)
-			}
-			priority := g.E.G.Priority
-			obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
-			if err != nil {
-				t.Fatalf("game %d (%s) step %d: observation: %v", i, name, n, err)
-			}
-			got, err := builders[pending.Player].View(&obs)
-			if err != nil {
-				t.Fatalf("game %d (%s) step %d: neutral view: %v", i, name, n, err)
-			}
-			want := observationDegradationNative(g, pending.Player)
-			diff := map[string]bool{}
-			censusWalk("", censusJSON(t, want), censusJSON(t, got), diff)
-			for p := range diff {
-				counts[p]++
-			}
-			checked++
-			in, err := bots[pending.Player].Decide(context.Background(), want, *pending)
-			if err != nil {
-				t.Fatalf("game %d (%s) step %d: bot: %v", i, name, n, err)
-			}
-			if err := g.Submit(in); err != nil {
-				t.Fatalf("game %d (%s) step %d: submit: %v", i, name, n, err)
-			}
+			checked += gameChecked
+		})
+	}
+	// Parallel subtests finish after this function returns, so the table check
+	// is a cleanup: it sees every game's counts and fails the parent.
+	t.Cleanup(func() {
+		mu.Lock()
+		defer mu.Unlock()
+		if checked == 0 {
+			t.Fatal("precondition: the corpus compared no decisions")
 		}
-	}
-	if checked == 0 {
-		t.Fatal("precondition: the corpus compared no decisions")
-	}
-	if len(counts) == 0 {
-		t.Fatal("precondition: no field differed, so the census proves nothing")
-	}
-	prior, err := os.ReadFile(observationDegradationBaseline)
-	if err != nil {
-		t.Fatal(err)
-	}
-	table := parseObservationDegradation(t, prior)
-	added, unreached := observationDegradationDrift(table, counts)
-	if len(added) > 0 {
-		t.Fatalf("the plain v2 observation differs from the native view at %d path(s) with no row in %s: %s\n"+
-			"fix the observation, or add a row by hand if the loss is accepted",
-			len(added), observationDegradationBaseline, strings.Join(added, ", "))
-	}
-	for p, row := range table {
-		row.count = counts[p]
-		table[p] = row
-	}
-	if os.Getenv("OBSDEG_REGEN") != "" {
-		for _, p := range unreached {
-			delete(table, p)
+		if len(counts) == 0 {
+			t.Fatal("precondition: no field differed, so the census proves nothing")
 		}
-		if err := os.WriteFile(observationDegradationBaseline, []byte(renderObservationDegradation(table)), 0o644); err != nil {
+		prior, err := os.ReadFile(observationDegradationBaseline)
+		if err != nil {
 			t.Fatal(err)
 		}
-		return
+		table := parseObservationDegradation(t, prior)
+		added, unreached := observationDegradationDrift(table, counts)
+		if len(added) > 0 {
+			t.Fatalf("the plain v2 observation differs from the native view at %d path(s) with no row in %s: %s\n"+
+				"fix the observation, or add a row by hand if the loss is accepted",
+				len(added), observationDegradationBaseline, strings.Join(added, ", "))
+		}
+		for p, row := range table {
+			row.count = counts[p]
+			table[p] = row
+		}
+		if os.Getenv("OBSDEG_REGEN") != "" {
+			for _, p := range unreached {
+				delete(table, p)
+			}
+			if err := os.WriteFile(observationDegradationBaseline, []byte(renderObservationDegradation(table)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			return
+		}
+		if len(unreached) > 0 {
+			t.Fatalf("%d path(s) in %s no longer differ: %s\ndelete their rows, so a return is caught (OBSDEG_REGEN=1 does it)",
+				len(unreached), observationDegradationBaseline, strings.Join(unreached, ", "))
+		}
+		t.Logf("observation degradation census: %d decisions, %d unequal fields", checked, len(counts))
+		for _, line := range strings.Split(strings.TrimSpace(renderObservationDegradation(table)), "\n") {
+			t.Logf("%s", line)
+		}
+	})
+}
+
+// observationDegradationCensusGame plays one seeded game and returns the fields
+// that differ and the decisions it compared. It is a subtest body so the 100
+// games run in parallel, which keeps the census inside the test budget.
+func observationDegradationCensusGame(t *testing.T, reg *cards.Registry, names []string, i int) (map[string]int, int) {
+	t.Helper()
+	counts := map[string]int{}
+	checked := 0
+	name := names[i%len(names)]
+	g := observationDegradationGame(t, reg, testutil.RepoDeck(t, reg, name), byte(i))
+	tr := identity.New(g.R, g.Secret)
+	builders := [2]*neutral.Builder{neutral.NewBuilder(reg), neutral.NewBuilder(reg)}
+	bots := testgame.Bots(uint64(i))
+	for n := 0; n < 1200; n++ {
+		pending := g.E.Pending()
+		if g.E.G.Over || pending == nil {
+			break
+		}
+		if err := tr.Sync(g.R); err != nil {
+			t.Fatalf("game %d (%s) step %d: %v", i, name, n, err)
+		}
+		priority := g.E.G.Priority
+		obs, err := (&observe.Projector{R: g.R, IDs: tr}).Observation(pending.Player, observe.State{PriorityHolder: &priority})
+		if err != nil {
+			t.Fatalf("game %d (%s) step %d: observation: %v", i, name, n, err)
+		}
+		got, err := builders[pending.Player].View(&obs)
+		if err != nil {
+			t.Fatalf("game %d (%s) step %d: neutral view: %v", i, name, n, err)
+		}
+		want := observationDegradationNative(g, pending.Player)
+		diff := map[string]bool{}
+		censusWalk("", censusJSON(t, want), censusJSON(t, got), diff)
+		for p := range diff {
+			counts[p]++
+		}
+		checked++
+		in, err := bots[pending.Player].Decide(context.Background(), want, *pending)
+		if err != nil {
+			t.Fatalf("game %d (%s) step %d: bot: %v", i, name, n, err)
+		}
+		if err := g.Submit(in); err != nil {
+			t.Fatalf("game %d (%s) step %d: submit: %v", i, name, n, err)
+		}
 	}
-	if len(unreached) > 0 {
-		t.Fatalf("%d path(s) in %s no longer differ: %s\ndelete their rows, so a return is caught (OBSDEG_REGEN=1 does it)",
-			len(unreached), observationDegradationBaseline, strings.Join(unreached, ", "))
-	}
-	t.Logf("observation degradation census: %d decisions, %d unequal fields", checked, len(counts))
-	for _, line := range strings.Split(strings.TrimSpace(renderObservationDegradation(table)), "\n") {
-		t.Logf("%s", line)
-	}
+	return counts, checked
 }

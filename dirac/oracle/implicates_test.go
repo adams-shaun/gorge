@@ -177,3 +177,39 @@ func TestCoverageEvidenceFloor(t *testing.T) {
 		t.Errorf("Evidence = %v, want %v", got, want)
 	}
 }
+
+func TestImplicatesNamesTheEnabler(t *testing.T) {
+	m := implicatesMatchup()
+	// Alpha is the offered cast; the enabler #2 is Beta (deck 1's first card).
+	d := &Divergence{What: "options", Field: "options",
+		RefOptions: []string{"pass(-,-,0)", "cast(#0,-,0)"},
+		KerOptions: []string{"pass(-,-,0)"},
+		Enablers:   []string{"#2"}}
+	if n := m.InstanceCard(2); n != "Beta" {
+		t.Fatalf("precondition: #2 is %q, want Beta", n)
+	}
+	if got, want := d.Implicates(m), []string{"Alpha", "Beta"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Implicates = %v, want %v: the option's card, then its enabler", got, want)
+	}
+	// A duplicate enabler card (both Betas, and the cast's own card) is named once.
+	d.Enablers = []string{"#2", "#1", "#0"}
+	if got, want := d.Implicates(m), []string{"Alpha", "Beta"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("duplicate enablers: Implicates = %v, want %v", got, want)
+	}
+	// A token enabler names no card.
+	d.Enablers = []string{"#9"}
+	if got, want := d.Implicates(m), []string{"Alpha"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("token enabler: Implicates = %v, want %v", got, want)
+	}
+	d.Enablers = nil
+	if got, want := d.Implicates(m), []string{"Alpha"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("no enablers: Implicates = %v, want %v", got, want)
+	}
+	// Enablers extend a non-empty list only: with no differing option the
+	// last sourced action still answers.
+	d = &Divergence{What: "options", RefOptions: []string{"cast(#0,-,0)"}, KerOptions: []string{"cast(#0,-,0)"},
+		Enablers: []string{"#2"}, LastSourced: "cast(#3,-,0)"}
+	if got, want := d.Implicates(m), []string{"Gamma"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("empty diff: Implicates = %v, want %v", got, want)
+	}
+}

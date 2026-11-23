@@ -225,9 +225,9 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if sc, ok := surgeCost(f); ok {
 			cost = sc
 		}
-	case castModeDisturb:
-		// CR 702.146a: the FRONT face's disturb cost replaces the mana cost.
-		if dc, ok := disturbCost(o.Card.Faces[0]); ok {
+	case castModeDisturb, castModeConverted:
+		// CR 702.146a / 702.162a: the FRONT face's disturb or MTMtE cost replaces the mana cost.
+		if dc, ok := flippedCastCost(castModeCodes.Code(string(opt.Mode)), o.Card.Faces[0]); ok {
 			cost = dc
 		}
 	case castModeEntwined:
@@ -532,7 +532,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		if mc, ok := mayflashExtraCost(f); ok {
 			cost = cost.Plus(mc)
 		}
-	case castModeEmerged:
+	case castModeEmerged, castModeOffering:
 		// Emerge (CR 702.118a): the emerge cast pays the printed K:Emerge cost
 		// in place of the mana cost AND sacrifices a creature, whose mana
 		// value reduces the cost. The reduction is NOT applied here -- the
@@ -543,7 +543,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// gone falls back to the empty cost like the keyword family above, and
 		// without the Sac part the cast is an ordinary (over-charged) emerge;
 		// the offer gate only ever routes here with the keyword present.
-		if ec, ok := emergeBase(f); ok {
+		if ec, ok := sacReducedBase(f, cost, castModeCodes.Code(opt.Mode)); ok {
 			cost = ec
 		} else {
 			cost = Cost{}
@@ -588,7 +588,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// spell's own additional cost (Eviscerator's Insight's sacrifice,
 		// Electric Revelation's discard) is still paid. The offer gate
 		// (legal.go's flashback walk) folds the same extras.
-		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode || opt.Mode == "disturb" ||
+		opt.Mode == "flashback" || opt.Mode == "escape" || opt.Mode == beamMeUpMode || flippedFaceMode(opt.Mode) ||
 		// CR 702.138a, 118.9d: escape is an alternative cost, so the spell's
 		// own additional cost (Village Rites' sacrifice, Thrill of
 		// Possibility's discard) is still paid on top of the escape cost.
@@ -1240,7 +1240,7 @@ func (e *Engine) continueCast() {
 	// Emerge's sacrifice (CR 702.118a) reduces the total cost (601.2f), so it
 	// is announced before the targets like the other reductions. Every other
 	// cost object is chosen at payment (costObjectAsks, CR 601.2h).
-	if pc := e.cast; pc != nil && pc.emerge && e.sacAsk() {
+	if pc := e.cast; pc != nil && reducesBySac(pc) && e.sacAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays
@@ -1384,12 +1384,14 @@ const (
 	castModeMorphed
 	castModeMayflash
 	castModeEmerged
+	castModeOffering
 	castModeLand
 	castModeOptionalcost
 	castModeCleaved
 	castModePrototype
 	castModeBeamMeUp
 	castModeDisturb
+	castModeConverted
 )
 
 var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
@@ -1409,6 +1411,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "suspend_cast", Val: castModeSuspendCast},
 	state.StrEntry[castModeCode]{Key: "defeat_cast", Val: castModeDefeatCast},
 	state.StrEntry[castModeCode]{Key: "disturb", Val: castModeDisturb},
+	state.StrEntry[castModeCode]{Key: "converted", Val: castModeConverted},
 	state.StrEntry[castModeCode]{Key: "plot", Val: castModePlot},
 	state.StrEntry[castModeCode]{Key: "plot_cast", Val: castModePlotCast},
 	state.StrEntry[castModeCode]{Key: "prepared_copy", Val: castModePreparedCopy},
@@ -1430,6 +1433,7 @@ var castModeCodes = state.NewStrCodes(append([]state.StrEntry[castModeCode]{
 	state.StrEntry[castModeCode]{Key: "disguised", Val: castModeMorphed},
 	state.StrEntry[castModeCode]{Key: "mayflash", Val: castModeMayflash},
 	state.StrEntry[castModeCode]{Key: "emerged", Val: castModeEmerged},
+	state.StrEntry[castModeCode]{Key: "offering", Val: castModeOffering},
 	state.StrEntry[castModeCode]{Key: "land", Val: castModeLand},
 	// The optional additional-cost cast variant (engine/rules/legal_walk_hand.go's
 	// and legal_walk_alt.go's spellScope("optionalcost")). The mode's

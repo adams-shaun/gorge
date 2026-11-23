@@ -14,6 +14,7 @@ Coruscation Mage	2849aac56a5f549e	32	2/2		3/3
 Court of Embereth	99120ae728451c7d	38	2/2		1/1	
 Dauthi Embrace	602241a53abf525e	10	1/1		1/1	
 Demand Answers	f16552fd099d7110	21	0/0		2/2	
+Demonic Consultation	256385ce1854e9e7	4	0/0		1/2	ix:resp
 Desperate Lunge	08b8108499d14cea	6	0/0		1/2	ix:resp
 Destroy Evil	ef35eccd7631cb76	6	0/0		1/2	ix:resp
 Diplomatic Escort	0257ea0fd1b273a6	4	1/1		0/1	ix:resp
@@ -59,6 +60,7 @@ Longshot Squad	4234186386788518	4	1/1		0/1	ix:resp
 Mad Ratter	2772ab2364ff6aa0	22	1/1		0/1	ix:resp
 Manor Gate	44621889df5914cd	23	1/1		0/1	ix:resp
 Meatsqueak, Hoard Lord	500c39ad9311b7a2	6	1/1		0/1	ix:resp
+Misleading Signpost	772d75ac59a14af1	92	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Mistmeadow Skulk	9b174e2944506280	11	0/0		0/0	
 Moment's Peace	fe31fc1a37b5c083	114	0/0		4/4	
 Mountain	9e71388353e907ed	41	1/1		0/1	ix:resp
@@ -86,6 +88,7 @@ Spin into Myth	87f147f390148b8e	14	0/0		1/2	ix:resp
 Sting-Slinger	ee92e32781f6fb8d	3	1/1		1/1	
 Stinging Barrier	6d5b31969994594e	40	1/1		1/1	
 Strands of Night	81a498df6049aedd	7	1/1		1/1	
+Street Wraith	02f61cb82bf04ebb	3	1/1		0/1	ix:resp
 Stronghold Rats	50790d38e7bb9478	4	1/1		0/1	ix:resp
 Surge of Salvation	cf076a6037307579	16	0/0		1/2	ix:resp
 Swamp	342b413902f441c3	8	1/1		0/1	ix:resp
@@ -93,6 +96,7 @@ Take Up the Shield	d1ebe074e6bd29a8	20	0/0		1/2	ix:resp
 Temple Acolyte	a34ab08f2f5e65dd	8	1/1		0/1	ix:resp
 Thornwind Faeries	e177a21a7516649a	21	1/1		1/1	
 Thought Courier	3eba88a01c77ba43	4	1/1		0/1	ix:resp
+Titanoth Rex	86832bae3e36db31	5	2/2		1/1	
 Torch Breath	bcdc54c9376ce0ce	21	0/0		3/4	f0/s/x0
 Trove Tracker	3a30c0efd7b57f72	31	2/2		1/1	
 Unexpected Fangs	cf031ccd09750d99	5	0/0		1/2	ix:resp

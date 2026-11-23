@@ -246,9 +246,12 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 		break
 	}
 	if !found && completed && resume <= kop.StepCleanup {
-		next = resume
+		// gorge's extraPhaseBoundary answers (resume, true) here, so the walk
+		// counts as spliced: a one-shot combat skip is not spent on the
+		// ordinary combat an additional main phase resumes at
+		next, found = resume, true
 	}
-	next = s.skipCombatNext(next)
+	next = s.skipCombatNext(next, found)
 	switch next {
 	case kop.StepBeginCombat:
 		if g.phCnt&15 < 15 {

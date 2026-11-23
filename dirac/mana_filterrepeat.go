@@ -19,9 +19,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // gap before it in zone order cleared both flags (Mystic Gate before Energy
 // Refractor still funds Lavaclaw Reaches' animation).
 
-// filtRepeat: the filter at sl is a repeatable fee-only one.
+// filtRepeat: the filter at sl is a repeatable fee-only one. A gap that is no
+// filter (a taps-deferred source the unless census also walks, mana_mixgaps.go)
+// is not.
 func (s *State) filtRepeat(k *prep, sl Slot) bool {
-	return k.gen.anyFiltRepeat && kop.FeeOnlyManaAb(s.filtAb(k, sl))
+	return k.gen.anyFiltRepeat && k.gen.filt(s.cardAt(sl)) >= 0 && kop.FeeOnlyManaAb(s.filtAb(k, sl))
 }
 
 // filtRepeatIn: some filter of f is a repeatable fee-only one.
@@ -103,19 +105,41 @@ func (s *State) filtRepeatPotential(k *prep, p uint8, sl Slot, av *avail, have *
 // step costs a node); otherwise the fundable filters' fees summed, none when
 // the search's funding is unrelaxable. A hybrid fee counts like any other:
 // its activation spends the pip from floating mana (mana_filterhybrid.go), so
-// the search must first tap a covered source to float it.
+// the search must first tap a covered source to float it. A first-and-only
+// filter's fee is a `paid` entry, which an unrelaxable census has cleared
+// (filtFirstFreeFee): it funds nothing there, while a relaxable census counts
+// it.
 func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	if s.filtRepeatIn(k, f) {
 		return potentialScriptNodes
 	}
 	n := 0
-	if !s.filtFundable(k, p, f) {
-		return 0
-	}
+	// An unfundable board (a live storage battery, a tap-two source, too many paid gaps)
+	// leaves the census unrelaxable: gorge clears its paid list, but a hybrid fee's
+	// funding (census.fund, once-only) is counted whatever the census relaxes, so the
+	// hybrid fees still owe their funding below (Sunken Ruins' {U/B} beside Sand Silos).
+	relaxable := s.filtFundable(k, p, f) && s.filtRelaxable(k, f)
 	for ; f.any(); f = f.rest() {
+		if !relaxable && s.filtFeeUncounted(k, f.first()) {
+			continue // an unrelaxable census clears paid: a first-and-only filter's fee is no funding step (census.fees)
+		}
 		n += s.filtFee(k, f.first())
 	}
 	return n
+}
+
+// filtFeeUncounted reports a filter gap whose fee gorge's unrelaxable census
+// does not count: any gap with a sound relaxed alternative (neither a hybrid
+// fee nor a repeatable one) is no `fund` entry, and the unrelaxable census
+// cleared the `paid` list that would have carried its fee, whether the
+// filter is a card's first-and-only ability or a second one beside a free
+// {T} ability (Prismatic Lens beside Sunken Ruins' hybrid fee: gorge's
+// census funds 1, the Ruins' own fee).
+func (s *State) filtFeeUncounted(k *prep, sl Slot) bool {
+	if _, _, hyb := s.filtHyb(k, sl); hyb {
+		return false
+	}
+	return !s.filtRepeat(k, sl)
 }
 
 // scriptAnyWalk: the prefix search's candidates are the any-mana walk, not the
@@ -128,7 +152,8 @@ func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bo
 	return !relax
 }
 
-// windowFeeStalls: the payment window must not list the repeatable fee-only
+// windowFeeStalls: the payment window (a trigger's own cost window too:
+// gorge's windowOnlyStallingConverters) must not list the repeatable fee-only
 // filter at sl, because activating it cannot bring the owed cost closer to
 // paid. Its fee spends as much mana as it makes, so it only converts pool mana
 // into a colour of its own, and that helps exactly when the colour fills a
@@ -138,8 +163,8 @@ func (s *State) scriptAnyWalk(k *prep, p uint8, filt slotMask, relax, unrelax bo
 // first, then its generic part from the pool in pay/solve.go's order ({C}, W,
 // U, B, R, G), whatever the cost's pips still need; a hybrid pip, an any-type rider or no owed cost fails open.
 func (s *State) windowFeeStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, anyColor bool) bool {
-	if useful == nil || anyColor || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
-		return false // a trigger's own cost window (winTrig) carries no pending cast, so gorge's paymentSourceUseful clamp never runs: it lists the filter
+	if useful == nil || anyColor || useful.Hyb[0] != 0 || !s.filtRepeat(k, sl) {
+		return false
 	}
 	fee := s.filtRepeatCost(k, sl)
 	ab := s.filtAb(k, sl)
@@ -224,7 +249,30 @@ func pipSum(p *[kop.NumManaKinds]uint8) (n int) {
 // branches and starved the line that pays the play without the filter, whose
 // offer then went missing. useful nil (the play's printed pips unread,
 // filtUsefulCost) fails open: the branch is explored.
-func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot) bool {
+func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, d *payDesc) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, true, d)
+}
+
+// filtFeeColDoomed is filtFeeColStalls' first cut alone: col fills no fixed pip
+// the play still lacks once the fee is paid. The activation-site prune reads
+// only this (gorge's scriptSearch.feeOnlyGapDoomed, potential_script.go, has
+// no free-tap-colour test): a fixed {B} filter (Bog Initiate's "{1}: Add {B}")
+// beside a Swamp is still the only source of a second {B}, and the swapped
+// line the second cut relies on needs the colour ask the fixed production
+// never poses.
+func (s *State) filtFeeColDoomed(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, d *payDesc) bool {
+	return s.filtFeeColCut(k, p, sl, useful, col, own, false, d)
+}
+
+// filtFeeColCut is the one body of both: second arms the free-tap-colour cut.
+// d is the searched play's payment (filtPlayDesc): the pool the cut reads
+// holds the restricted batches THAT payment may spend, as gorge's stash does
+// (scriptSearch.actPool, pay.AvailableFor over the play's descriptor). A
+// Powerstone's artifact-only {C} is no mana of a nonartifact cast, so a fee
+// the plain pool cannot pay fails the cut open (the fee is paid with it at
+// the activation, CR 106.6, but the stash never held it). nil reads the
+// payment being made (payDescNow): the grant search's.
+func (s *State) filtFeeColCut(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int, own Slot, second bool, d *payDesc) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || !s.filtRepeat(k, sl) {
 		return false
 	}
@@ -238,7 +286,13 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 		return false
 	}
 	pool := s.pl[p].pool
-	if m := s.restrPoolAdmits(k, p); m != 0 {
+	m := uint8(0)
+	if d != nil {
+		m = s.restrFloatAdmits(k, p, d)
+	} else {
+		m = s.restrPoolAdmits(k, p)
+	}
+	if m != 0 {
 		s.rbUnits(p, m, &pool)
 	}
 	before := feeOnlyShort(&useful.Pips, &pool)
@@ -262,7 +316,10 @@ func (s *State) filtFeeColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost
 	// spent. S makes any colour, so it can stand in for every colour X can;
 	// a source whose cost also spends a counter, a permanent or life is a
 	// different class (the swap would lose that other use) and fails open.
-	return s.filtFreeTapColourOwn(k, p, sl, own, col)
+	// The swap dominates only when the activation completes col's pips (pool
+	// holds the made unit): with {U}{U} owed, a free Island makes one {U} and
+	// the filter the other, gorge's scriptSearch.feeOnlyAskPrune alike.
+	return second && int(pool[col]) >= int(useful.Pips[col]) && s.filtFreeTapColourOwn(k, p, sl, own, col)
 }
 
 // filtFreeTapColour reports whether p controls an untapped source other than
@@ -315,17 +372,20 @@ func (s *State) filtFreeTapColourOwn(k *prep, p uint8, skip, own Slot, col int) 
 // pip the pool lacks, and a covered colour pays the generic part just as
 // well. gorge's oneShotAskPrune (potential_script.go, cut D) is the same
 // rule. The class is a gap that is not the fee-only repeatable one
-// (filtFeeColStalls) and whose ability costs no mana (a fee would make the
-// opening-pool read wrong); anything else fails open.
+// (filtFeeColStalls); the pool read is the activation's opening one, before
+// any ability fee is paid, as gorge's actPool is; anything else fails open.
 func (s *State) filtOneShotColStalls(k *prep, p uint8, sl Slot, useful *kop.ManaCost, col int) bool {
 	if useful == nil || useful.Hyb[0] != 0 || s.g.winMode == winTrig || s.filtRepeat(k, sl) {
 		return false
 	}
 	a := s.filtAb(k, sl)
-	if a.Cost.Mana.Generic != 0 || pipSum(&a.Cost.Mana.Pips) != 0 || a.Cost.Mana.Hyb != ([4]kop.ColorMask{}) {
+	if col < 0 || col >= kop.NumManaKinds || uint8(a.ManaColors)&(1<<col) == 0 {
 		return false
 	}
-	if col < 0 || col >= kop.NumManaKinds || uint8(a.ManaColors)&(1<<col) == 0 {
+	if a.AFlags&kop.AfManaChoice != 0 && a.ManaN > 1 {
+		// a multi-unit choice is a Produced$ Combo allocation (Mystic Gate's
+		// "{W}{W}, {W}{U}, or {U}{U}"): gorge's oneShotAskPrune fails open on
+		// it (mca.allocation), so every allocation is a node of the search.
 		return false
 	}
 	pool := s.pl[p].pool
@@ -358,4 +418,16 @@ func (s *State) filtUsefulCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
 		return kop.ManaCost{}, false
 	}
 	return m, true
+}
+
+// filtPlayDesc is the payment of the play a filter search prices, as gorge's
+// scriptPlayDesc names it for the fee-stall prune's pool: a cast's spell, an
+// activation's ability. ok false for any other play (gorge's prune fails open
+// there, and the kernel keeps reading the payment being made).
+func (s *State) filtPlayDesc(k *prep, a Action) (d payDesc, ok bool) {
+	switch a.Kind() {
+	case AkCast, AkActivate:
+		return s.grantPayDescOf(k, a), true
+	}
+	return payDesc{}, false
 }

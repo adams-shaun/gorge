@@ -35,11 +35,15 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.destroyRemember(k, sl, in.C) // RememberDestroyed$ (act_remember.go)
 				break
 			}
+			o := s.perms[sl].obj
 			if in.C&1 != 0 { // seat-ok: an instruction flag bit
 				s.destroyNoRegen(k, sl)
-				break
+			} else {
+				s.destroy(k, sl)
 			}
-			s.destroy(k, sl)
+			if in.C&4 != 0 {
+				s.markRemLKI(o) // RememberLKI$ + AlwaysRemember$ (act_remember.go)
+			}
 		}
 	case kop.OpExile:
 		s.moveRef(k, in.Obj, kop.ZoneExile, false)
@@ -56,7 +60,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		case kop.LibThird:
 			s.toLibraryThird(k, in) // act_lockpermanent.go
 		case kop.LibBottomRememberGrave:
-			s.toLibraryRemember(k, in) // zone_tolibraryremember.go
+			s.toLibraryRemember(k, in, true) // zone_tolibraryremember.go
+		case kop.LibTopRememberGrave:
+			s.toLibraryRemember(k, in, false)
 		case kop.LibTopGrave, kop.LibBottomGrave:
 			s.toLibraryGrave(k, in) // zone_tolibrarygrave.go
 		case kop.LibBottomRememberBF:
@@ -124,6 +130,9 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 	case kop.OpGainLife:
 		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
+		if s.lifePark(k, in, q, n) {
+			break // the CR 616.1 order ask of a doubler and a plus-N (repl_lifeask.go)
+		}
 		for i := uint8(0); i < q.n; i++ {
 			s.gainLife(k, q.s[i], n)
 		}
@@ -151,6 +160,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// one opponent's discard below is the same.
 			return s.discardSeq(k, in, s.oppsFrom(s.res.e.ctrl))
 		}
+		if !s.duel() && in.Obj == kop.RefOppNonRemCtrl && in.F == 0 && in.C == kop.ChooseSelf {
+			// each opponent who did not sacrifice (Defined$
+			// OppNonRememberedController, Momentum Breaker): the same
+			// choose-in-turn, move-at-once chain over that set (gorge
+			// effDiscard, flushDiscards)
+			return s.discardSeq(k, in, s.oppsNonRemCtrl()) // filter_defined.go
+		}
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
 			break
@@ -174,7 +190,6 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			// (Last Rites, Death Cloud) discards nothing and asks nothing
 			break
 		}
-		pl := &s.pl[p]
 		if in.C == kop.ChooseRandom {
 			// gorge effDiscardRandom draws once per pick even when the
 			// pick is forced (one eligible card), so this arm must run
@@ -184,13 +199,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			break
 		}
 		if n >= s.handDiscardable(p) {
-			for i := uint8(0); i < pl.handN; {
-				if s.objs[pl.hand[i]].of&ofCopy != 0 || s.park(k, pl.hand[i], parkDiscard, 0) {
-					i++
-					continue
-				}
-				s.discardObj(k, pl.hand[i])
-			}
+			s.discardWholeHand(k, p)
 			break
 		}
 		s.res.ask = raDiscard
@@ -236,30 +245,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		s.res.askP = p
 		return false
 	case kop.OpMill:
-		q := s.players(k, in.Obj)
-		n := s.value(k, in.A)
-		if in.C&kop.MvMayMill != 0 && n > 0 {
-			return s.mayMill(q, n)
-		}
-		for i := uint8(0); i < q.n; i++ {
-			p := q.s[i]
-			pl := &s.pl[p]
-			if k.gen != nil && k.gen.anyRepl&rbGraveLib != 0 {
-				s.millShuffling(k, p, n, int(in.C))
-				continue
-			}
-			if k.gen != nil && len(s.cold.parked) != 0 && s.parkMills(k, p, n, int(in.C)) {
-				continue
-			}
-			for i := 0; i < n && pl.libLo < pl.libHi; i++ {
-				o := pl.lib[pl.libLo]
-				pl.libLo++
-				s.touch(o)
-				s.objs[o].zone = kop.ZoneNone
-				s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
-				s.millMark(o, int(in.C))
-			}
-		}
+		return s.millOp(k, in)
 	case kop.OpFight, kop.OpBite:
 		a, dealt := s.fightSource(k, in)
 		if dealt {
@@ -355,7 +341,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if n <= 0 {
 			break // gorge effSacrifice: an Amount$ of 0 or less sacrifices nothing and asks nothing
 		}
-		src := s.resSrcSlot(k)
+		src := s.resSrcSlotStanding()
 		cnt := s.countSac(k, p, in.F, src)
 		if cnt <= n {
 			if cnt >= 2 {
@@ -418,10 +404,12 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				hit = hit.with(sl)
 			}
 		}
-		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) || k.gen.uses.has(useStaticPrev) ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
-			// answer. The recipients freeze in gorge's sweep order
+			// answer (a static prevention's optional ask is posed per event too:
+			// spPark). The recipients freeze in gorge's sweep order
 			// (effDamageAll: seat 0's battlefield in entry order, then seat
 			// 1's, then the players).
 			s.damageSeqStart(k, hit, in.B.N&1 != 0) // seat-ok: an instruction flag bit
@@ -470,8 +458,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if s.anyRegen(hit) {
 			hit = s.regenAll(hit)
 		}
-		hit = s.shieldUmbraAll(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
-		s.leaveAll(k, hit, kop.ZoneGraveyard)
+		s.shieldUmbraAllLeave(k, hit) // CR 122.1c then 702.89a, after regeneration (gorge effDestroyAll; kw_umbraarmor.go)
 	case kop.OpPumpAll:
 		if in.Obj != kop.RefNone {
 			s.pumpAllScoped(k, in) // zone_rememberparams.go
@@ -550,8 +537,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if in.Obj == kop.RefSelf && s.res.e.kind == seAbility && ob.ver != s.res.e.srcVer {
 			break // the activated ability's source returned and left again: a new object (CR 400.7; Postmortem Professor)
 		}
-		if kop.Zone(in.C) == kop.ZoneBattlefield && s.cloneReturnPark(k, o, ob.owner()) {
-			return false // the clone election is asked with the card still in its zone (copy_cloneenter.go)
+		if kop.Zone(in.C) == kop.ZoneBattlefield && s.plainReturnParks(k, o, ob.owner()) {
+			return false // the clone election or the CR 616.1 entry-order ask, the card still in its zone (copy_cloneenter.go, repl_entryorder.go)
 		}
 		s.execReturnSimple(k, in, o)
 	case kop.OpRepeat:
@@ -703,7 +690,8 @@ func (s *State) execEachOpponentDamage(k *prep, in *kop.Instr) {
 		s.damageSeqNext(k, n)
 		return
 	}
-	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen)) {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		s.damageSeqStart(k, slotMask{}, false)
 		s.g.dmgSeqPl = seatBits(s.oppsFrom(e.ctrl))
 		s.damageSeqNext(k, n)
@@ -837,7 +825,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 			if k.gen != nil && k.gen.anyFaces {
 				z = s.stackExitFace(k, o, z, false) // face_castface.go
 			}
-			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+			s.placeFromK(k, o, z, bottom, kop.ZoneStack, false, false)
 			return
 		}
 		if i := s.stackIndexOf(o); i >= 0 {
@@ -849,7 +837,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 		if k.gen != nil && k.gen.anyFaces {
 			z = s.stackExitFace(k, o, z, false) // face_castface.go
 		}
-		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false)
+		s.placeFromK(k, o, z, bottom, kop.ZoneStack, false, false)
 	case kop.ZoneNone:
 	case kop.ZonePhased, kop.ZonePhasedInd:
 		// CR 702.26b: a phased-out permanent can't be affected, so a move
@@ -866,7 +854,7 @@ func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
 			return // a CR 903.9b commander move parked before it happens
 		}
 		from := s.detach(o)
-		s.placeFromK(k, o, z, bottom, from, false)
+		s.placeFromK(k, o, z, bottom, from, false, false)
 	}
 }
 
@@ -889,9 +877,9 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 	if effect && k.gen != nil && k.gen.anyRepl&rbDiscETB != 0 && s.discardToBattlefield(k, o, from) {
 		mad = false
 	} else if mad {
-		s.placeFromK(k, o, kop.ZoneExile, false, from, false)
+		s.placeFromK(k, o, kop.ZoneExile, false, from, false, false)
 	} else {
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false, false)
 	}
 	s.noteDisc(o) // value_discardedthisturn.go
 	if !mad && k.mayhem {
@@ -962,7 +950,7 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 		d.Kind, d.Sub = DkChoose, ChSacrifice
 		for m := s.ctrlM[r.askP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlot(k)) && !s.g.sacM.has(sl) {
+			if s.sacMatch(k, s.prog(k)[r.pc].F, sl, r.askP, s.resSrcSlotStanding()) && !s.g.sacM.has(sl) {
 				d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 			}
 		}
@@ -1228,9 +1216,7 @@ func (s *State) finishPeek(k *prep) {
 		parked = s.parkRests(k, rest[:nr], remember)
 	}
 	if parked >= 0 {
-		for i := 0; i < parked; i++ { // earlier rest cards move at once
-			s.putRest(k, rest[i])
-		}
+		s.putRests(k, rest[:parked]) // earlier rest cards move at once
 		// the asked ones wait in the library but off its list, as gorge's
 		// look leaves them (zone 0, no position), on top of which the
 		// kept cards go
@@ -1243,9 +1229,7 @@ func (s *State) finishPeek(k *prep) {
 		}
 	}
 	s.returnKept(k, p, top)
-	for _, o := range rest[:nr] {
-		s.putRest(k, o)
-	}
+	s.putRests(k, rest[:nr])
 	if k.gen != nil && (k.gen.anyScryTrig || k.gen.anyScryTally) && r.ask == raScryTop {
 		s.scryAnswered(k, p) // value_scrytally.go
 	}
@@ -1267,6 +1251,19 @@ func (s *State) returnKept(k *prep, p uint8, top int) {
 	}
 }
 
+// putRests sends the cards the arrange did not keep on top. A surveil's whole
+// pile B goes to the graveyard as ONE zone batch (gorge arrange.go: Forge's
+// SurveilEffect fires triggerChangesZoneAll once), so a ChangesZoneAll "from
+// anywhere" line queues once for the pile, not per card.
+func (s *State) putRests(k *prep, rest []Obj) {
+	if s.res.ask != raScryTop && k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen())
+	}
+	for _, o := range rest {
+		s.putRest(k, o)
+	}
+}
+
 // putRest sends one card the arrange did not keep on top to the bottom
 // (scry) or the graveyard (surveil).
 func (s *State) putRest(k *prep, o Obj) {
@@ -1275,7 +1272,7 @@ func (s *State) putRest(k *prep, o Obj) {
 		s.pl[s.res.askP].libBottom(o)
 		return
 	}
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if s.prog(k)[s.res.pc].C&kop.MvRemember != 0 {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}

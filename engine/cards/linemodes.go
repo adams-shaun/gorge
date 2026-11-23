@@ -188,7 +188,17 @@ const (
 	// trigger walk when the cost is paid, appended so every earlier ordinal
 	// is unchanged.
 	TriggerPayCumulativeUpkeep TriggerMode = 119
-	TriggerModeCount                       = 120 // one past the last; sizes a dense per-TriggerMode array
+	// BecomesCrewed (CR 702.122e: "whenever this Vehicle becomes crewed" is
+	// "whenever a crew ability of this Vehicle resolves"), appended so every
+	// earlier ordinal is unchanged.
+	TriggerBecomesCrewed TriggerMode = 120
+	// PhaseIn / PhaseOut (CR 702.26: "whenever ~ phases in", "whenever ~ phases
+	// out"; King of the Oathbreakers, Shimmering Efreet, Teferi's Imp), the
+	// per-permanent siblings of PhaseOutAll, appended so every earlier ordinal
+	// is unchanged.
+	TriggerPhaseIn   TriggerMode = 121
+	TriggerPhaseOut  TriggerMode = 122
+	TriggerModeCount             = 123 // one past the last; sizes a dense per-TriggerMode array
 )
 
 var triggerModeNames = [TriggerModeCount]string{
@@ -311,6 +321,9 @@ var triggerModeNames = [TriggerModeCount]string{
 	TriggerAdapt:                      "Adapt",
 	TriggerDestroyed:                  "Destroyed",
 	TriggerPayCumulativeUpkeep:        "PayCumulativeUpkeep",
+	TriggerBecomesCrewed:              "BecomesCrewed",
+	TriggerPhaseIn:                    "PhaseIn",
+	TriggerPhaseOut:                   "PhaseOut",
 }
 
 var triggerModeCodes = func() StrCodes[TriggerMode] {

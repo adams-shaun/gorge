@@ -40,7 +40,7 @@ func TestUnstageableReasons(t *testing.T) {
 	}
 	cases := map[string]func(*dirac.World){
 		dirac.ReasonTable:   func(w *dirac.World) { w.Tbl = nil },
-		dirac.ReasonSeats:   func(w *dirac.World) { w.NSeat = 3 },
+		dirac.ReasonSeats:   func(w *dirac.World) { w.NSeat = 5 },
 		dirac.ReasonLayout:  func(w *dirac.World) { w.Objs[0], w.Objs[39] = w.Objs[39], w.Objs[0] },
 		dirac.ReasonCard:    func(w *dirac.World) { w.Objs[3].Card = vanilla.LightningBolt },
 		dirac.ReasonZone:    func(w *dirac.World) { w.Objs[3].Zone = kop.ZoneExile },
@@ -55,6 +55,11 @@ func TestUnstageableReasons(t *testing.T) {
 		dirac.ReasonLife:     func(w *dirac.World) { w.Life[0] = 1 << 20 },
 		dirac.ReasonToken:    func(w *dirac.World) { w.Objs[3].Token = true },
 		dirac.ReasonAttach:   func(w *dirac.World) { w.Objs[3].Attached, w.Objs[3].Host = true, 4 },
+		dirac.ReasonCommander: func(w *dirac.World) {
+			// two objects in one command zone
+			w.Commander, w.Cmd[0] = true, 3
+			w.Objs[3].Zone, w.Objs[3].Pos, w.Objs[4].Zone, w.Objs[4].Pos = kop.ZoneCommand, 0, kop.ZoneCommand, 0
+		},
 		dirac.ReasonStackEntry: func(w *dirac.World) {
 			w.Stack = []dirac.WorldStack{{Obj: 3, Ctrl: w.Objs[3].Owner}} // a spell whose card is in a hand
 		},
@@ -86,4 +91,59 @@ func TestUnstageableReasons(t *testing.T) {
 			t.Errorf("case %q is not in UnstageableReasons", r)
 		}
 	}
+}
+
+// TestStageStackPriorityRule: a non-empty stack may only be staged when its top
+// entry belongs to the active seat, whoever holds priority. The other seat's
+// top entry cannot tell a round that started at its controller (0 passes) from
+// one that started at the active seat after a resolution (also 0 passes).
+func TestStageStackPriorityRule(t *testing.T) {
+	ab := dirac.SelfCounterAbility(&vanilla.Table.Cards[vanilla.HungryGhoul])
+	if ab < 0 {
+		t.Fatalf("Hungry Ghoul has no self-counter ability: %d", ab)
+	}
+	for _, tc := range []struct {
+		name   string
+		ctrl   uint8
+		prio   uint8
+		refuse bool
+	}{
+		{"seat-1-prio-0", 1, 0, true},
+		{"seat-1-prio-1", 1, 1, true},
+		{"seat-0-prio-0", 0, 0, false},
+		{"seat-0-prio-1", 0, 1, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := stageBase()
+			ghouls := stageBattlefieldGhouls(&w)
+			w.Active = 0
+			w.Prio = tc.prio
+			w.Stack = []dirac.WorldStack{{Ability: true, Obj: ghouls[tc.ctrl], Ctrl: tc.ctrl, Ab: uint8(ab)}}
+			s, err := dirac.NewFromWorld(&w)
+			var u dirac.ErrUnstageable
+			if tc.refuse {
+				if !errors.As(err, &u) || u.Reason != dirac.ReasonPriority || s != nil {
+					t.Fatalf("got state %v, error %v; want %q", s != nil, err, dirac.ReasonPriority)
+				}
+				return
+			}
+			if err != nil || s == nil {
+				t.Fatalf("did not stage: state %v, error %v", s != nil, err)
+			}
+		})
+	}
+}
+
+// stageBattlefieldGhouls puts a Hungry Ghoul and a Savannah Lions on each
+// seat's battlefield and returns each ghoul's object index. The two highest
+// library cards become the permanents, leaving the library places dense.
+func stageBattlefieldGhouls(w *dirac.World) [2]dirac.Obj {
+	var ghouls [2]dirac.Obj
+	for p := uint8(0); p < 2; p++ {
+		base := int(p) * 20
+		w.Objs[base+19] = dirac.WorldObj{Card: vanilla.HungryGhoul, Owner: p, Ctrl: p, Zone: kop.ZoneBattlefield, Pos: 0}
+		w.Objs[base+18] = dirac.WorldObj{Card: vanilla.SavannahLions, Owner: p, Ctrl: p, Zone: kop.ZoneBattlefield, Pos: 1}
+		ghouls[p] = dirac.Obj(base + 19)
+	}
+	return ghouls
 }

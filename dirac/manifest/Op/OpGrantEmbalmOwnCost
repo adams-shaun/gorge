@@ -1,0 +1,7 @@
+family: Op
+name: OpGrantEmbalmOwnCost
+value: next
+approval: agent-20261120T084641Z-18ce0a1f brief, design decision 1 (ExtOp is full at NumExtOps 321; KwMask is full)
+status: active
+ticket: agent-20261120T084641Z-18ce0a1f
+doc: object Obj (a creature card in its owner's graveyard) gains embalm, with a cost equal to its mana cost, until end of turn (Cursecloth Wrappings; CR 702.128a); C = the index of the granting card's latent embalm body (dirac/kw_embalmgrant.go)

@@ -262,8 +262,13 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 		return false
 	}
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
-		!o.Face().HasKeywordRef(kwRefRiot) || o.RiotChoice != "" {
+	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil || o.RiotChoice != "" {
+		return false
+	}
+	// The same CR 614.12 read faceETBChoice's enteringRiot makes: a granted
+	// riot (Rhythm of the Wild) is an as-enters choice from ANY source
+	// (CR 702.136a), not only the printed K:Riot line.
+	if !enteringRiot(e, o, o.Face(), false) {
 		return false
 	}
 	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
@@ -657,7 +662,16 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
-	if !o.Face().IsBattle() {
+	// CR 310.10 over CR 707.2: the type-bearing face of this entry is not
+	// always o.Face() -- an answered as-enters clone's copy basis is
+	// installed only AFTER the entry move folds (engine/effects/clone.go), so
+	// a Clone entering as a copy of a Siege is a Battle entry even though the
+	// printed face still reads Clone. entryCopyBasisFace is the ONE home for
+	// that read: it is the same face the entry's own counter grants read
+	// (engine/rules/entry_counters.go), so the copy's defense counters and
+	// its protector are judged from the same face, and a declined election
+	// (no ETBCloneChoiceValid template) falls through to o.Face().
+	if face := e.entryCopyBasisFace(o); face == nil || !face.IsBattle() {
 		return false
 	}
 	// A protector already recorded (a re-entering object keeps none -- Move
@@ -666,10 +680,16 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if o.ProtectorValid {
 		return false
 	}
+	// The option shape is the player-pick convention every other
+	// seat-facing ask follows (the Aura entry's "enchant a player" arm,
+	// engine/rules/aura_entry.go): Label the seat-facing name, Player the
+	// chosen seat, Obj zero -- the decision's Source already names the
+	// battle, and a scenario (matchPick's seat-ref arm) names the answer by
+	// the player, never the battle.
 	var opts []decision.Option
 	for idx, p := range e.protectorOpponents(o.Controller) {
 		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
-			Label: seatFacingName(e.G, p), Obj: o.ID, Player: p})
+			Label: seatFacingName(e.G, p), Player: p})
 	}
 	if len(opts) == 0 {
 		return false

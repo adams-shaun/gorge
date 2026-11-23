@@ -5,16 +5,15 @@ import (
 	"testing"
 )
 
-// The triggered artifact mana census: the only two
-// accepted cards whose triggered ability made fixed mana from an artifact
-// source -- Myr Moonvessel's dies trigger and The Vision and Scarlet Witch's
-// spell-cast trigger -- diverged on both lockstep surfaces. gorge records an
-// artifact source's mana as typed (effects.ManaProducerTag) and
-// pay.PlanPoolOK refuses a pool holding typed mana; the kernel's pool keeps
-// no typed bit. The whole class is refused at the Mana lowering.
+// The resolving DB$ Mana of an artifact source lowers now that the kernel
+// tags the units it adds the way the mana-ability path does (poolAddFrom's
+// artTagN; gorge effects.ManaProducerTag reads the printed face), and gorge's
+// planned payment reads a typed unit as plain mana of its colour (pay.PlanPool;
+// the lift's lockstep, dirac/oracle/typedartmana_lockstep_test.go, diverged on
+// no decision at either seat count).
 var trigmanaForms = []formCase{
-	{card: "Myr Moonvessel", form: "an artifact's triggered fixed mana is typed: refused", refused: "typed mana"},
-	{card: "The Vision and Scarlet Witch", form: "an artifact's triggered fixed mana is typed: refused", refused: "typed mana"},
+	{card: "Myr Moonvessel", form: "an artifact's triggered fixed mana lowers: the resolving path tags it (mana_artifact.go artTagN)", lir: "AddMana obj=You A=1 CS=C"},
+	{card: "The Vision and Scarlet Witch", form: "an artifact's triggered fixed mana lowers: the resolving path tags it", lir: "AddMana obj=You A=1 CS=R"},
 	{card: "Burning-Tree Emissary", form: "a nonartifact source's triggered fixed mana still lowers", lir: "AddMana obj=You A=1 CS=R"},
 }
 

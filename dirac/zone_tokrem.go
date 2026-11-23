@@ -14,28 +14,29 @@ func (s *State) tokenMemos(in *kop.Instr, o Obj) {
 		s.imprint(o) // zone_imprint.go
 	}
 	if uint16(in.B.N)&kop.TokRememberSrc != 0 && s.res.active && s.res.e.obj != NoObj {
-		s.smAddAt(s.res.e.obj, o, smRem, s.objs[o].ver+1) // the entry that follows bumps ver (zones.go)
+		s.osAddAt(osRem, o, s.res.e.obj, s.objs[o].ver+1) // the token (src key) remembers its creating source; the entry that follows bumps ver (zones.go)
 	}
 }
 
-// srcRemObj is the object token src remembers: the first live smRem record
+// srcRemObj is the object token src remembers: the first live osRem record
 // keyed by src (NoObj when none). The record dies with the token's
-// incarnation (smLiveNow), as gorge's per-object Remembered list does.
+// incarnation (osLiveNow), as gorge's per-object Remembered list does.
 func (s *State) srcRemObj(src Obj) Obj {
 	if src == NoObj {
 		return NoObj
 	}
-	r := coldSrcMem.of(s)
+	r := s.cold.objSets
 	for i := range r {
-		if r[i].fl == 0 {
+		if r[i].kind == 0 {
 			break
 		}
-		if r[i].src == src && r[i].fl&smRem != 0 && s.smLiveNow(&r[i]) {
+		rec := &r[i]
+		if rec.src == src && rec.inKinds(osMRem) && s.osLiveNow(rec) {
 			if DebugSrcMemStats != nil {
 				DebugSrcMemStats.Reads++
 				DebugSrcMemStats.Matched++
 			}
-			return r[i].o
+			return rec.o
 		}
 	}
 	return NoObj

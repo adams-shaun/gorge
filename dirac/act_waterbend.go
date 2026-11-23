@@ -586,12 +586,15 @@ func (s *State) sacAnyManaGap(k *prep, p uint8) bool {
 // windowPricesRestr: gorge's window probe prices restricted mana ability a of the source
 // at sl for a payment its restriction admits (castWindowRestrictedSpendable), so the
 // census holds its units (The Emperor of Palamecia's {U} or {R} for a noncreature
-// spell). An amount read off the board is priced only when it is positive.
+// spell). An amount read off the board is priced only when it is positive; one that
+// resolves to zero adds nothing and gorge's probe never lists the ability
+// (manaAbilityYieldsNothing, dynManaYieldsNothing: Nardole, Resourceful Cyborg with no
+// counter), so no production is left unpriced and the census stays complete.
 func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 	if !restrSrcAb(a) {
 		return false
 	}
-	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0
+	return a.AFlags&kop.AfManaDynamic == 0 || s.dynManaN(k, a, sl) > 0 || s.dynManaYieldsNothing(k, a, sl)
 }
 
 // windowCensusComplete reports whether gorge's window census prices every source of
@@ -599,6 +602,13 @@ func (s *State) windowPricesRestr(k *prep, sl Slot, a *kop.Ability) bool {
 // spend, and the window probe does not price, understates what the window can produce
 // (CR 106.6). Gorge: castWindowCensusComplete.
 func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
+	// gorge's census walks the hand and the graveyard too: a mana ability that
+	// works from there (a Spirit Guide, Jack-o'-Lantern's graveyard fee) is
+	// one it does not price, and a fee-paying graveyard one is listed only
+	// while mana floats (castWindowCensusComplete, CR 605.1a, 601.2g)
+	if s.handManaAny(k, e.ctrl) || s.graveManaAny(k, e.ctrl) {
+		return false
+	}
 	// a source the build committed (a convoke pick, withheld from s.occ) is
 	// no census source at all (gorge's census skips convokeCommitted)
 	if k.tapMana && s.tapXCensusGap(k, e.ctrl).and(s.occ).any() {
@@ -669,7 +679,10 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		// no printed one, and a tap extra can still ride it (Honest Work's
 		// Humble Merchant under Badgermole Cub).
 		if k.gen.anyTapExtra {
-			if _, hit := s.srcExtraHit(k, sl, s.windowGrantPC(k, sl)); hit {
+			pc := s.windowGrantPC(k, sl)
+			// an all-at-once source's reflected pick (srcEachPick) is priced
+			// only by the census and plan, not by this probe: gorge defers it
+			if _, hit := s.srcExtraHit(k, sl, pc); hit || s.srcEachPick(k, sl, pc) > 0 {
 				return false
 			}
 		}

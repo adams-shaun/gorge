@@ -5,6 +5,7 @@ Abandon the Post
 Abzan Skycaptain
 Acidic Slime
 Acidic Sliver
+Aegis Angel
 Aeronaut Cavalry
 Anaba Bodyguard
 Anaconda
@@ -32,6 +33,7 @@ Barony Vampire
 Basilisk Gate
 Behold the Multiverse
 Berserkers' Onslaught
+Binding Mummy
 Biting Rain
 Blessing of Leeches
 Blisterstick Shaman
@@ -116,6 +118,7 @@ Endangered Armodon
 Energy Tap
 Environmental Sciences
 Erase
+Evangel of Heliod
 Evincar's Justice
 Evolution Witness
 Expendable Troops
@@ -211,6 +214,7 @@ Leonin Elder
 Leonin Iconoclast
 Light of Sanction
 Lignify
+Logic Knot
 Lone Revenant
 Lotleth Troll
 Luminous Broodmoth
@@ -300,6 +304,7 @@ Riptide Biologist
 Riptide Entrancer
 Rise to the Challenge
 Rockslide Sorcerer
+Rose, Cutthroat Raider
 Rosethorn Halberd
 Royal Assassin
 Sagu Mauler
@@ -372,6 +377,7 @@ Story Seeker
 Stronghold Confessor
 Subira, Tulzidi Caravanner
 Sudden Impact
+Suffocating Fumes
 Sulfurous Springs
 Sunder from Within
 Supply Runners
@@ -412,7 +418,9 @@ Twinblade Slasher
 Two-Headed Dragon
 Tyrranax
 Ulgrotha Charm
+Utopia Sprawl
 Vampire Champion
+Vampiric Embrace
 Vaporkin
 Vastwood Fortification
 Vastwood Zendikon

@@ -57,8 +57,10 @@ func init() {
 // value other than Remembered/Targeted, a ChosenPile$/UnchosenPile$ value
 // that is not an SVar name of the resolving face (the TurnFaceUp/ToHand/
 // ToGrave one-offs), and a Separator$/Chooser$ selector this resolver
-// cannot evaluate. AILogic$/RememberChosen$/KeepRemembered$ and the
-// description params are unread display/AI metadata.
+// cannot evaluate. AILogic$ and the description params are unread display/AI
+// metadata. Once both pile bodies ran the source's remembered list is cleared
+// (Forge's source.clearRemembered()) unless KeepRemembered$ or RememberChosen$
+// is present (twoPilesRunPiles).
 func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	if v := strings.TrimSpace(sa.ParamStr(cards.PKLeftRightPile)); v != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -70,18 +72,22 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	spec := DefinedOf(sa).Cards.Text
-	battlefield := false
+	battlefield, graveyard := false, false
 	if spec == "" {
 		if v := strings.TrimSpace(sa.ParamStr(cards.PKZone)); v != "" {
-			if !cards.TwoPilesBattlefieldShape(sa) {
+			switch {
+			case cards.TwoPilesBattlefieldShape(sa):
+				battlefield = true
+			case cards.TwoPilesGraveyardShape(sa):
+				graveyard = true
+			default:
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "unimplemented TwoPiles shape: Zone$ " + v})
 				return
 			}
-			battlefield = true
 		}
 	}
-	if !battlefield && !cards.TwoPilesDefinedCardsSupported(spec) {
+	if !battlefield && !graveyard && !cards.TwoPilesDefinedCardsSupported(spec) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: DefinedCards$ " + spec})
 		return
@@ -99,15 +105,19 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	var pool state.PlayerID
 	var ids []state.ObjID
 	g := h.Game()
-	if battlefield {
+	if battlefield || graveyard {
 		p, ok := twoPilesPoolPlayer(h, c, sa)
 		if !ok {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented TwoPiles shape: the battlefield pool names no player this engine can resolve"})
+				Text: "unimplemented TwoPiles shape: the pool names no player this engine can resolve"})
 			return
 		}
 		pool = p
-		ids = twoPilesBattlefieldSet(h, c, sa, pool)
+		if battlefield {
+			ids = twoPilesBattlefieldSet(h, c, sa, pool)
+		} else {
+			ids = twoPilesGraveyardSet(h, c, sa, pool)
+		}
 	} else {
 		ids = twoPilesFixedSet(h, c, spec)
 	}
@@ -129,7 +139,7 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	}
 	var sep, chooser state.PlayerID
 	ok := true
-	if battlefield && chooseSpec == "" {
+	if (battlefield || graveyard) && chooseSpec == "" {
 		// "that player's choice": the pool player picks the pile.
 		chooser = pool
 	} else {
@@ -143,7 +153,7 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 	// The same player for both roles never resolves twice: with sepSpec
 	// defaulted to chooseSpec the Separator$ ask IS the Chooser$ ask -- one
 	// CR 801.5b opponent ask, never two.
-	if (battlefield && sepSpec == "") || sepSpec == chooseSpec {
+	if ((battlefield || graveyard) && sepSpec == "") || sepSpec == chooseSpec {
 		sep = chooser
 	} else {
 		sep, ok = twoPilesPlayer(h, c, sa, "Separator", sepSpec)
@@ -276,6 +286,9 @@ func twoPilesRunPiles(h Host, c *Ctx, sa *cards.SA, chosenBody, unchosenBody str
 		twoPilesRunPile(h, c, chosenBody, pileA)
 		twoPilesRunPile(h, c, unchosenBody, pileB)
 	}
+	if !twoPilesKeepsRemembered(sa) && !twoPilesRemembersChosen(sa) {
+		clearSourceRemembered(h, c)
+	}
 }
 
 // effTwoPilesDefined is the DefinedPiles$ arm (Hostile Negotiations): the two
@@ -364,6 +377,25 @@ func twoPilesBattlefieldSet(h Host, c *Ctx, sa *cards.SA, pool state.PlayerID) [
 	for _, id := range g.Zone(state.ZBattlefield, pool) {
 		if o := g.Obj(id); o != nil && o.Controller == pool &&
 			MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// twoPilesGraveyardSet is the graveyard-pool shape's card set (Death or
+// Glory): the pool player's graveyard cards the ValidCards$ spec matches, in
+// zone order (deterministic). The spec can read a colour, keyword or P/T, so
+// the context binds the on-demand layer tables (CR 613.3) before matching.
+func twoPilesGraveyardSet(h Host, c *Ctx, sa *cards.SA, pool state.PlayerID) []state.ObjID {
+	g := h.Game()
+	spec := twoPilesValidCards(sa)
+	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
+	var ids []state.ObjID
+	for _, id := range g.Zone(state.ZGraveyard, pool) {
+		if o := g.Obj(id); o != nil && o.Controller == pool &&
+			MatchesSpecCtx(g, spec, id, sc) {
 			ids = append(ids, id)
 		}
 	}

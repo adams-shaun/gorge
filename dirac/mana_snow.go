@@ -84,8 +84,8 @@ func (s *State) snowSetAt(p uint8, c int, v uint8) {
 	}
 }
 
-// snowClearAll empties every seat's tally, at a boundary that empties the pool
-// (endStep, finishCleanup, drainMana's every seat, persistEmpty, persistTurn).
+// snowClearAll empties every seat's tally (tests reset with it; the boundary
+// emptiers keep the keep-letter colours' entries instead, talliesKeep).
 func (s *State) snowClearAll() {
 	if sx := coldSnow.of(s); sx != nil {
 		clear(sx)
@@ -106,6 +106,7 @@ func (s *State) snowTag(k *prep, p uint8, sl Slot, col int) {
 func (s *State) poolAddFrom(k *prep, p uint8, card CardID, col, n int) {
 	s.poolAdd(p, col, n)
 	s.snowTagN(k, p, card, col, n)
+	s.artTagN(k, p, card, col, n) // an artifact's (or a Desert's, a Cave's) mana is typed (mana_artifact.go)
 }
 
 // snowTagN is snowTag for n units a resolving spell or ability of card added

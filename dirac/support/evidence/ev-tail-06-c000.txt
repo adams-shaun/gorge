@@ -58,6 +58,7 @@ Borderland Ranger
 Boros Elite
 Borrowed Malevolence
 Borrowing 100,000 Arrows
+Bothersome Quasit
 Brass Man
 Breaching Hippocamp
 Brood Weaver
@@ -116,6 +117,7 @@ Dreamdrinker Vampire
 Dwarven Demolition Team
 Dwarven Pony
 Ebony Charm
+Efreet Weaponmaster
 Eland Umbra
 Eldrazi Mimic
 Elvish Rejuvenator
@@ -173,6 +175,7 @@ Gold-Forged Thopteryx
 Golem's Heart
 Golgari Keyrune
 Golgari Raiders
+Gollum, Patient Plotter
 Graviton, Fundamental Force
 Great Defender
 Green Goblin, Back for More
@@ -204,6 +207,7 @@ Innocent Blood
 Invoke the Divine
 Iron-Heart Chimera
 Island
+Ivory Gargoyle
 Ixidor's Will
 Izzet Boilerworks
 Jaddi Offshoot
@@ -211,6 +215,7 @@ Jamuraan Lion
 Jedit Ojanen
 Jeering Homunculus
 Jewel Thief
+Jirina Kudro
 Jolted Awake
 Jovial Evil
 Juntu Stakes
@@ -244,6 +249,7 @@ Lost Soul
 Loxodon Warhammer
 Luminesce
 Luminous Angel
+MacCready, Lamplight Mayor
 Magnetic Mine
 Magus of the Bridge
 Malcator, Purity Overseer
@@ -269,6 +275,7 @@ Molten Vortex
 Mortivore
 Mothdust Changeling
 Mountain
+Mr. Monopoly, On the Go
 Mystic Melting
 Necrogoyf
 Nev, the Practical Dean
@@ -354,6 +361,7 @@ Sarkhan's Triumph
 Scale the Heights
 Scaled Behemoth
 Scurrilous Sentry
+Scuttling Death
 Second Thoughts
 Selhoff Entomber
 Sentinel's Mark
@@ -377,6 +385,7 @@ Snake Umbra
 Snapping Thragg
 Soltari Lancer
 Soot Imp
+Soothing of Sméagol
 Soratami Mirror-Guard
 Soul Collector
 Soul Link
@@ -453,6 +462,7 @@ Whispersilk Cloak
 Wild Defiance
 Wildwood Rebirth
 Winged Sliver
+Winnow
 Wirewood Pride
 Witch's Familiar
 Witch's Oven

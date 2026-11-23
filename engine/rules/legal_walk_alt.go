@@ -184,7 +184,7 @@ func (w *legalWalk) mayPlaySpellWalk() {
 				}
 				base = base.Plus(off.raise)
 			}
-			if printed && !w.castRestrictedCost(p, id, base) && w.mayPlayAffordable(p, id, f, base) {
+			if printed && !w.castRestrictedCost(p, id, base) && mayPlayCastable(w, p, id, f, base) {
 				label := "Cast " + f.Name
 				if off.text != "" {
 					// MayPlayText$ is the permission's label, so a card matching
@@ -893,6 +893,14 @@ func (w *legalWalk) exileCastsWalk() {
 // cost (AlternateAdditionalCost) at least one of its parts is affordable with
 // it, the existential gate the plain hand cast uses. beginCast's "mayplay"
 // case asks which part (CR 601.2b).
+// mayPlayCastable is the printed-cost may-play gate: the cost is payable and an
+// X-bound-target spell has an X that is payable with a legal target (CR 601.2b,
+// 601.2c).
+func mayPlayCastable(w *legalWalk, p state.PlayerID, id state.ObjID, f *cards.Face, base Cost) bool {
+	return w.mayPlayAffordable(p, id, f, base) &&
+		w.e.xBoundTargetPayable(p, id, id, f.SpellAbility(), base, spellScope("mayplay"), false)
+}
+
 func (w *legalWalk) mayPlayAffordable(p state.PlayerID, id state.ObjID, f *cards.Face, base Cost) bool {
 	parts := altAddCostParts(f)
 	if len(parts) == 0 {

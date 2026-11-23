@@ -230,6 +230,14 @@ func (s *State) graveMoveCompetes(k *prep, o Obj) bool {
 	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && g.ix[mechExileEx] != arenaNone {
 		n += s.exScopeN(k, ob.slot) // an Effect's turn-long scope (repl_turnrepl.go)
 	}
+	// an emblem's dies-to-exile replacement never parks a move: the ask's
+	// source list names only cards, so a parked ask beside an emblem would
+	// silently skip it. The move happens now; on the death dieZone's
+	// two-or-more count stalls StallReplLeave (repl_exileleaveemb.go), or
+	// exiles when the emblem is the only source.
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield && s.embExileLeaveN(k, ob.slot) > 0 {
+		return false
+	}
 	return n > 1 && !s.moveAnswered(o)
 }
 
@@ -747,7 +755,7 @@ func (s *State) runParkedRest(k *prep, o Obj, remember bool) {
 	}
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	if remember {
 		s.surveilRemember(o) // RememberMoved$ (zone_rememberwrites.go)
 	}
@@ -763,7 +771,7 @@ func (s *State) runParkedMill(k *prep, o Obj, x uint8) {
 	pl.libLo++
 	s.touch(o)
 	s.objs[o].zone = kop.ZoneNone
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	s.millMark(o, millParkFlags(x))
 }
 
@@ -833,11 +841,35 @@ func (s *State) runParkedDread(k *prep, o Obj) {
 		return // the card left the library while it waited
 	}
 	from := s.detach(o)
-	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false)
+	s.placeFromK(k, o, kop.ZoneGraveyard, false, from, false, false)
 }
 
 // sbaChainEnd closes gorge's sbaChain: a state-based pass with no casualty
 // ends the chain, and its tokens cease in that pass (CR 704.5d).
 func (s *State) sbaChainEnd(k *prep) {
 	s.mObjZero(k, mechSBAChain)
+}
+
+// loweringTap reports whether the live build is in the cast's pre-cast
+// lowering: the witness's sources activated at priority, before the push, as
+// gorge's script does one activation at a time. A sacrificed source whose move
+// competes (CR 616.1) has its order ask answered by that script, the first
+// option, inside the activation (leaveAskedFirst); nothing resumes after an
+// ask the lowering would park.
+func (s *State) loweringTap() bool {
+	if s.ctl != ctlBuild || !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	return b.stage == bsPush && b.bfl&(bflLowered|bflPushed) == bflLowered
+}
+
+// leaveForMana moves a source sacrificed for mana to the graveyard: inside the
+// cast's lowering a competing move's order ask is the script's, answered first.
+func (s *State) leaveForMana(k *prep, sl Slot) {
+	if s.loweringTap() {
+		s.leaveAskedFirst(k, sl)
+		return
+	}
+	s.leave(k, sl, kop.ZoneGraveyard, false)
 }

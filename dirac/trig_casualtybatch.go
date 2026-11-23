@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // kernel follows for the gorge pin. Cold and out of
 // line.
 
@@ -49,5 +51,27 @@ func (c *casBatch) holdEnd(s *State, k *prep) {
 	if c.held {
 		s.holdClose(k, c.hr)
 		c.held = false
+	}
+}
+
+// placeCasualties removes the pass's permanents in order, the creature
+// casualties' first nd as one placement batch: a ChangesZoneAll "from
+// anywhere" line fires from the placement, so a sweep of several animated
+// lands (or any batch line whose event is the placement) queues once. The
+// hold closes after the last casualty, outside that batch, so a held return's
+// enters check is not folded into it.
+func (s *State) placeCasualties(k *prep, order []Slot, zs []kop.Zone, nd int, cb *casBatch) {
+	var po uint8
+	if nd > 0 && k.gen != nil && k.gen.anyBatch {
+		po = s.batchOpen()
+	}
+	for i := range order {
+		s.removePerm(k, order[i], zs[i], false)
+		if i+1 == nd {
+			if nd > 0 && k.gen != nil && k.gen.anyBatch {
+				s.batchClose(po)
+			}
+			cb.holdEnd(s, k)
+		}
 	}
 }

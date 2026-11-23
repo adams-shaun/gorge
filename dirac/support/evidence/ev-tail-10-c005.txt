@@ -73,7 +73,6 @@ Karsus Depthguard
 Kaya's Onslaught
 Kismet
 Kjeldoran Gargoyle
-Krosan Druid
 Leonin Squire
 Loam Larva
 Mageta the Lion
@@ -113,7 +112,6 @@ Shields of Velis Vel
 Shimmering Grotto
 Shivan Oasis
 Sigil of the New Dawn
-Skarrg, the Rage Pits
 Skeletal Changeling
 Snapsail Glider
 Spirit en-Kor

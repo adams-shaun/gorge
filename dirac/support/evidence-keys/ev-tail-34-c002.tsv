@@ -18,6 +18,8 @@ Bala Ged Recovery	401dd68eb61297e2	11	1/1		2/2
 Bat Whisperer	29747ad756f336ae	49	1/1		1/1	
 Battle Angels of Tyr	a689afca4fb83792	4	2/2		0/1	ix:resp
 Belbe's Percher	b84ecdc7ad352072	12	0/0		0/0	
+Billiard Room	682c8acf7b85ad96	9	2/2		0/1	ix:resp
+Blackcleave Cliffs	5290ffc390e8beb0	19	1/1		0/1	ix:resp
 Blink Dog	aacd8ee1dd365cc6	22	1/1		1/1	
 Blisterspit Gremlin	0507d0496de16707	38	2/2		1/1	
 Bloodboil Sorcerer	636ea6ce1be3237b	16	2/2		1/1	
@@ -26,6 +28,7 @@ Bloodrock Cyclops	a2296e27a7d51ad6	18	0/0		0/0
 Boarding Party	35d8cf4563926d4b	7	0/0		0/0	
 Boggart Brute	37fdaa583b60d57d	38	0/0		0/0	
 Borrowed Time	d493f30f5d5648e5	18	1/1		0/1	ix:resp
+Botanical Plaza	1412c9c4a0f7601b	11	2/2		0/1	ix:resp
 Bottle-Cap Blast	116d7c74137c9f2b	6	0/0		1/2	ix:resp
 Breath Weapon	6c72fcf95e6c8301	9	0/0		1/2	ix:resp
 Brutal Nightstalker	1897205843323e73	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -41,6 +44,7 @@ Cloud Djinn	a812238101317d00	5	0/0		0/0
 Condescend	304bf14391dbea3e	5	0/0		2/4	f0/s/x0,ix:resp
 Conjurer's Mantle	2d1d6a410eb60a1e	18	2/2		0/1	ix:resp
 Consulate Turret	c27fb123ea5e8358	6	2/2		0/1	ix:resp
+Contaminated Ground	813d1cdca2882484	3	1/1		1/2	ix:resp
 Conversion	a42a844cb2bb5fe2	17	1/1		1/1	
 Cowl Prowler	05ae4194008e303a	24	0/0		0/0	
 Crackle with Power	7e5e54cbb0bfc45d	16	0/0		2/4	f0/s/x0,ix:resp
@@ -53,6 +57,7 @@ Cut Down	4fd0d68c04b020b3	72	0/0		2/2
 Cynette, Jelly Drover	0303cedd43138e16	71	2/2		1/1	
 Death-Priest of Myrkul	920fe7fd716042c6	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Devious Cover-Up	ed7f2da9b625f962	5	0/0		2/2	
+Disappearing Act	3da9dabaeefbc705	3	0/0		1/2	ix:resp
 Drowner of Secrets	8e20471d9f471955	18	1/1		1/1	
 Durable Coilbug	efb5769f88b179f9	8	1/1		0/1	ix:resp
 Dust Elemental	fdc7f8006602e759	4	1/1		0/1	ix:resp
@@ -71,6 +76,7 @@ Feeling of Dread	241a982a8cdc587a	46	0/0		3/4	ix:resp
 Feral Ridgewolf	47515d89963aed0f	13	1/1		1/1	
 Flamespeaker Adept	e9ce9e1d4bb3da02	36	1/1		1/1	
 Gaea's Gift	3336d9ed890d5cfd	54	0/0		2/2	
+Ghost Quarter	ca09fdf61aed907a	15	2/2		0/1	ix:resp
 Gnottvold Hermit	17456bf0bd6d7170	41	2/2		1/1	
 Goblin Lackey	c44a234eb3e63298	23	1/1		0/1	ix:resp
 Goreclaw, Terror of Qal Sisma	a23def3dc0c69956	45	1/1		1/1	
@@ -94,6 +100,7 @@ Hythonia the Cruel	848646303c75f9e0	21	2/2		1/1
 Indatha Crystal	79d3a836a3c4d841	7	2/2		0/1	ix:resp
 Indulgent Aristocrat	68278f751e6ecfe7	52	1/1		1/1	
 Infest	b598d28c543e0cb4	62	0/0		2/2	
+Intrepid Outlander	d52569a23afcf20e	3	1/1		0/1	ix:resp
 Invasion of Tarkir	c21d35b737585aa4	31	2/2		1/1	
 Jace's Phantasm	bf47f871eee1cc32	20	0/0		0/0	
 Join Forces	2422c0b8b2a61d80	11	0/0		1/2	ix:resp
@@ -116,6 +123,7 @@ Loxodon Warhammer	8f3a4d0d46f3dd63	8	1/1		0/1	ix:resp
 Loyal Cathar	bf5e95081352064c	10	1/1		0/1	ix:resp
 Lurking Arynx	ed64482f5f63363f	31	1/1		1/1	
 Mana Seism	2ec5efd0fe527406	14	0/0		1/2	ix:resp
+Manabarbs	e80beafdf392e990	4	1/1		1/1	
 Mantle of the Wolf	e3b91b0829f0dda5	41	1/1		2/2	
 Marchesa's Infiltrator	d36f58a63a27ffa0	14	2/2		0/1	ix:resp
 Marsh Lurker	28e25b261d594595	39	1/1		1/1	
@@ -126,6 +134,7 @@ Mirari	0798ce9a833d7a44	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Moaning Wall	37746ffeec440433	4	1/1		1/1	
 Mogis's Warhound	fdb5063003e14ee4	27	0/0		2/2	
 Molten Rebuke	3d523f49cc791838	24	0/0		1/2	ix:resp
+Monastery Loremaster	cc31fdd4a837a26c	3	1/1		1/3	cast/alt:none,ix:resp
 Moriok Scavenger	8dc2eb0d015b2cc5	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Muck Rats	8bb462cea17f2348	77	0/0		0/0	
 Naga Oracle	3435162dc3dc6d1b	66	1/1		1/1	
@@ -151,9 +160,11 @@ Pyretic Prankster	2ff78fa0b0ad3b0b	14	2/2		0/1	ix:resp
 Quilled Wolf	c370c0510cb3bd8d	63	1/1		1/1	
 Quirion Sentinel	e25ee8e986b04c46	60	1/1		1/1	
 Raise the Alarm	28b01806a3f846d9	11	0/0		1/2	ix:resp
+Rakdos Riteknife	f79b37a5324cfece	10	2/2		0/1	ix:resp
 Rampaging Ferocidon	eda74882b2d7b0a2	24	1/1		1/1	
 Rapacious One	075a8e1bf7b0f561	5	1/1		0/1	ix:resp
 Reality Hemorrhage	f750614ff7a1cf16	22	0/0		2/2	
+Reduce	a370d37a3890e81f	10	0/0		3/5	f1/s,ix:resp
 Resurrection Orb	f65d46e9d2df2e05	16	2/2		1/1	
 Revenge of the Hunted	9a415f4f87bf49ec	30	0/0		4/4	
 Ringskipper	ffd3b94828592736	4	1/1		0/1	ix:resp
@@ -161,6 +172,7 @@ Riot Piker	fbc7c74e669a6768	18	0/0		0/0
 Rise from the Grave	9e955d6101b447c7	43	0/0		2/2	
 Rolling Hamsphere	d12f4c5417a44406	7	2/2		1/1	
 Saheeli's Silverwing	e0dde5374110c68e	12	1/1		1/1	
+Sapseep Forest	e27d23c1b7535617	11	2/2		0/1	ix:resp
 Scorch Rider	2729f6e9cf88a48a	20	1/1		3/3	
 Seagraf Skaab	1b1faa0b9a4b960c	13	0/0		0/0	
 See the Unwritten	91cd171fee3fb015	12	0/0		1/2	ix:resp
@@ -199,6 +211,7 @@ Tajuru Archer	29f7ee658f19ac71	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Tangle Hulk	5a7d5ae3e890e59f	6	1/1		0/1	ix:resp
 Then, Dreadmaws Ate Everyone	d501b3a8e6ec0e7e	8	0/0		3/4	f0/s/x0
 Thief of Existence	e32b079e2e9b3a12	46	1/1		1/1	
+Thunder Dragon	77e10d036e30174b	3	1/1		0/1	ix:resp
 Tide Drifter	d6941e075dce4027	12	0/0		0/0	
 Tilonalli's Crown	9c1f6d159b98937c	21	1/1		1/2	ix:resp
 Toxic Scorpion	ad7d8ccb818cb28e	86	1/1		1/1	
@@ -208,6 +221,7 @@ Ulvenwald Captive	a5afc3fc5efc4a7a	73	3/3		1/1
 Umara Wizard	b6b2c622f5783e4a	130	2/2		0/1	ix:resp
 Undercity Necrolisk	e9e27229d758fc3f	35	1/1		1/1	
 Unhallowed Phalanx	f1aa2a0c1e034e34	18	0/0		0/0	
+Unknown Shores	2683b7c693b35487	10	2/2		0/1	ix:resp
 Unnatural Growth	d99b640ec4a701a4	11	1/1		0/1	ix:resp
 Vault of the Archangel	e1b51cf4d24117e3	36	2/2		1/1	
 Venerable Monk	84f3a878d25902cc	11	1/1		0/1	ix:resp

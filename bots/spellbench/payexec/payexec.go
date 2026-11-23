@@ -119,14 +119,16 @@ const (
 
 // Play names the option a lowering ends by selecting: a cast (Kind "cast":
 // the ordinary cast with Mode "", or a cast in Mode -- flashback, bestowed,
-// kicked ... -- never an alternative cost index) or a printed activated
-// ability (Kind "ability": the pile index Ability, no SVar/Keyword/gained
-// anchor, no alternative cost).
+// kicked ... -- never an alternative cost index) or an activated ability
+// (Kind "ability": the pile index Ability, no SVar/gained anchor, no
+// alternative cost; Keyword names the keyword line a keyword grant gave the
+// ability, empty for a printed one).
 type Play struct {
 	Kind    string
 	Obj     state.ObjID
 	Ability int
 	Mode    string
+	Keyword string
 }
 
 // Matches reports whether o is the play's own option.
@@ -135,7 +137,7 @@ func (p Play) Matches(o *decision.Option) bool {
 		return false
 	}
 	if p.Kind == "ability" {
-		return o.Ability == p.Ability && o.SVar == "" && o.Keyword == "" && o.GainedSource == 0
+		return o.Ability == p.Ability && o.SVar == "" && o.Keyword == p.Keyword && o.GainedSource == 0
 	}
 	return true
 }
@@ -574,6 +576,13 @@ func (pc *manaPick) pick(admitGranted bool) ([]int, bool) {
 		if best < 0 {
 			continue
 		}
+		if len(members) > 1 && pc.act.Ability.Kind == decision.PaymentAbilityIntrinsic {
+			// gorge appends a land's intrinsic abilities after its printed ones,
+			// so a step that names the intrinsic ability is the last tied option:
+			// a painland's {U} under an Island grant is its intrinsic ability,
+			// not the painful one's flattened {U} listed before it (CR 305.6)
+			best = members[len(members)-1]
+		}
 		if pc.prove != nil && len(members) > 1 {
 			if pc.prove(pc.d, pc.act, []int{best}) {
 				return []int{best}, true
@@ -669,13 +678,16 @@ func labelProduction(label string) (amt decision.ManaAmount, any bool, combo []i
 		return amt, false, nil, false
 	}
 	for _, r := range tail {
+		if r == ' ' {
+			continue // a Produced$ of several symbols labels "Add C G"
+		}
 		c := strings.IndexRune(syms, r)
 		if c < 0 {
 			return amt, false, nil, false
 		}
 		amt[c]++
 	}
-	return amt, false, nil, true
+	return amt, false, nil, amt != decision.ManaAmount{}
 }
 
 var numberWords = []string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",

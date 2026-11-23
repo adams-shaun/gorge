@@ -1,4 +1,5 @@
 A-Hobbling Zombie
+A-Llanowar Loamspeaker
 A.I.M. Bot
 Abbey Gargoyles
 Abolish
@@ -25,6 +26,7 @@ Assassin's Strike
 Augmenting Automaton
 Aven Smokeweaver
 Baboon Spirit
+Backfire
 Basalt Monolith
 Basri's Solidarity
 Beacon Hawk
@@ -37,6 +39,7 @@ Bogardan Firefiend
 Boggart Forager
 Bonded Construct
 Bonds of Quicksilver
+Bramblesnap
 Break of Day
 Briarhorn
 Bronze Cudgels
@@ -91,6 +94,7 @@ Elgaud Inquisitor
 Elite Headhunter
 Emissary of the Sleepless
 Enraged Giant
+Enraged Killbot
 Essence Flare
 Eternal Flame
 Fantastic Elasticity
@@ -168,6 +172,7 @@ Lazotep Plating
 Lembas
 Leopard-Spotted Jiao
 Lethal Exploit
+Lifeblood Hydra
 Lightning Dragon
 Lightning Talons
 Llanowar Visionary
@@ -218,6 +223,7 @@ Overflowing Basin
 Peat Bog
 Peema Aether-Seer
 Pegasus Courser
+Pelt Collector
 Phantatog
 Pheres-Band Tromper
 Plague Beetle
@@ -250,6 +256,7 @@ Rith's Grove
 Riveteers Initiate
 Rooftop Bypass
 Rootwater Diver
+Ruinous Intrusion
 Rumbleweed
 Runechanter's Pike
 Runed Stalactite
@@ -275,6 +282,7 @@ Silverwing Squadron
 Simian Brawler
 Simic Charm
 Sinew Sliver
+Six
 Skittering Horror
 Skyhunter Cub
 Skystrike Officer
@@ -285,11 +293,13 @@ Soul of Innistrad
 Sparkmage's Gambit
 Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
+Spike Tiller
 Spine of Ish Sah
 Spirit Loop
 Sprouting Phytohydra
 Staff of Titania
 Stag Beetle
+Stand Together
 Status
 Steadfast Guard
 Stone-Seeder Hierophant
@@ -349,6 +359,7 @@ Weatherseed Faeries
 Welkin Guide
 Wheel of Fortune
 Whipcorder
+Wild Wanderer
 Wishcoin Crab
 Witness of Tomorrows
 Woebringer Demon

@@ -87,16 +87,16 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cd := &k.t.Cards[c]
-	if len(cd.TypeValid) == 0 {
-		return false
-	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
 			continue
 		}
 		for j := range a.Prog {
-			if in := &a.Prog[j]; in.Op == kop.OpChooseType && in.B.N != 0 {
+			if in := &a.Prog[j]; isBasicLandChoose(in) {
+				chooseBasicLandOptions(d) // an as-enters basic land type (Realmwright; act_choosebasicland.go)
+				return true
+			} else if in.Op == kop.OpChooseType && in.B.N != 0 && len(cd.TypeValid) != 0 {
 				for _, v := range cd.TypeValid {
 					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
 				}
@@ -137,8 +137,21 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 		}
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.AddChosen {
+			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
+				for x := range a.Prog {
+					if isBasicLandChoose(&a.Prog[x]) {
+						g.anyTypeValid = true // typeOptions' gate also covers the as-enters basic land ask
+					}
+				}
+			}
+			if a.Kind == kop.AbStatic && a.Static.AddChosen {
+				// the Continuous grant (Realmwright) and the chosen land-type
+				// setter's override static (Convincing Mirage) both read
+				// perm.chosen
 				g.anyAddChosen = true
+				if a.Static.Kind == kop.StatOverride && a.Static.Override != 0 && t.Overrides[a.Static.Override-1].SetLandSub {
+					g.chosenSet = true // the walk reads the choice (refreshTy; gen.go)
+				}
 			}
 			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && filterChosenType(t, a.Trig.Filter) {
 				g.chosenCardTgt = true // Chronicle of Victory's "a spell of the chosen type"
@@ -197,6 +210,9 @@ func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMa
 // has more outside types than the byte has free values. The old pure
 // typeVocabSub mapping stays as the exhausted-table fallback.
 func (s *State) typeVocabCode(k *prep, v int) uint8 {
+	if v >= 0x8000 {
+		return basicLandValue(k, uint16(v)) // an as-enters basic land type's label (act_choosebasicland.go)
+	}
 	if v < 0 || v >= len(k.t.TypeVocab) {
 		return 255
 	}
@@ -235,6 +251,11 @@ func (s *State) outsideCode(k *prep, v int) uint8 {
 func (s *State) outsideCodeExact(k *prep, ch uint8) bool {
 	return int(ch) >= len(k.t.Subtypes) && ch < subOutside && s.outCode[ch] != 0
 }
+
+// DebugChosenSetNone is the mutation switch of TestChosenTypeSetterLockstep:
+// the chosen land-type setter's grant (static_layerwalk.go lfxApply4) never
+// applies.
+var DebugChosenSetNone bool
 
 // lfxChosen applies a walked AddChosen static's grant to c: a matchup
 // subtype bit, or an outside-type grant (c.outs) naming its type
@@ -510,4 +531,33 @@ func cardTypeAnswer(a Action) uint8 {
 func (s *State) chosenCardTypeHas(t kop.TypeMask) bool {
 	ch := s.res.chosen
 	return int(ch) < len(cardTypeChoice) && t&cardTypeChoice[ch].bit != 0
+}
+
+// stackSrcChosenLKI snapshots a permanent that records a chosen type as it
+// leaves the battlefield, for each activated ability of it still on the stack
+// (CR 608.2h; gorge sourceCharLKI takes one for every stack object of the
+// departing source, and sourceChosen binds SourceChosenType from it). The
+// ability's Creature.ChosenType target and effect then keep reading the
+// source's last known choice (srcChosen) after the source died in response
+// (Aswan Jaguar destroyed by another Jaguar's resolved ability). Triggers
+// carry theirs from the queueing; an entry that already has a record keeps it.
+func (s *State) stackSrcChosenLKI(k *prep, p *perm, o Obj) {
+	if p.chosen == 255 || k.gen == nil {
+		return
+	}
+	ver := s.objs[o].ver
+	li := uint8(0)
+	for i := 0; i < int(s.sp); i++ {
+		e := &s.stack[i]
+		if e.kind != seAbility || e.obj != o || e.srcVer != ver || e.li != 0 {
+			continue
+		}
+		if li == 0 {
+			li = s.snapLKI(o)
+			if li == 0 {
+				return
+			}
+		}
+		e.li = li
+	}
 }

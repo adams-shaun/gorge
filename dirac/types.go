@@ -151,12 +151,20 @@ const (
 	ChCommanderZone             // source = the commander, mode 0 = command zone / 1 = leave it (CR 903.9a/b; zone_cmdzone.go)
 	ChVoteCard                  // source = the permanent voted for (gorge effCardVote's KChoose option kind "vote_card", CR 701.38a; act_vote.go)
 	ChDrawUpto                  // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
+	ChBand                      // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
+	ChAsUnblocked               // source = the attacking creature; mode 1 = assign its combat damage as though not blocked / 0 = assign normally (gorge askNextCombatAsk's "asunblocked" KChoose; combat_asgngrant.go)
 )
 
 // ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",
 // mode = the count; kw_multikicker.go). Explicit ordinal, the iota tail stays
 // untouched.
 const ChMultikick ChoiceKind = 254
+
+// ChVoteChoice is a fixed-list will-of-the-council vote pick (gorge effVote's
+// KChoose option kind "vote"; CR 701.38a): source = the choice index, in
+// Choices$ order (the tally stores index + 1 in res.arr). Explicit ordinal
+// beside ChMultikick (act_vote.go).
+const ChVoteChoice ChoiceKind = 215
 
 // Decision is the next question the game asks a player.
 type Decision struct {

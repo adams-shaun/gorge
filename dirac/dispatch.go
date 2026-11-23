@@ -126,7 +126,7 @@ func (s *State) askOptionsCold1(k *prep, d *Decision) bool {
 	case raGenDestAlt:
 		s.destAltOptions(d) // zone_destalt.go
 	case raChoosePlayerMid:
-		s.chosenPlayerMidOptions(d) // repl_chooseplayer.go
+		s.chosenPlayerMidOptions(k, d) // repl_chooseplayer.go
 	case raTapOrUntapAll:
 		s.tapOrUntapAllOptions(d) // act_taporuntapall.go
 	case raGenClash:
@@ -186,6 +186,26 @@ func (s *State) execCold4(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpAtEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
 			s.atEOTRider(s.perms[sl].obj, in.C == 1)
+		} else if _, isTgt := tgtSlot(in.Obj); in.C == 0 && in.Obj != kop.RefSelf && !isTgt {
+			// A Pump/Animate subject (Self or a target) that has left the
+			// battlefield is skipped by gorge before it schedules anything
+			// (Deathknell Kami sacrificed with its {2} pumps still on the
+			// stack): no promise, so no end-step trigger to order.
+			// A next-end-step sacrifice is promised on the remembered object
+			// even when it is not on the battlefield: a one-card Dig that
+			// misses (no creature in the window) remembers the card it moved
+			// to the graveyard, and gorge's scheduleAtEOTRider still
+			// registers the untracked __kwEncoreSacrifice promise, so the end
+			// step puts a no-op trigger on the stack (CR 603.7). The exile
+			// rider is incarnation-tracked and is dropped once its object has
+			// left, so it keeps the battlefield-slot requirement.
+			// A token is never in that set: gorge's Return moves nothing for
+			// a destroyed token (CR 111.7: it ceases to exist, no card went
+			// to the graveyard), so its affected set is empty and no delayed
+			// trigger is registered (Come Back Wrong on a token).
+			if o := s.objRefObj(in.Obj); o != NoObj && s.objs[o].of&ofToken == 0 {
+				s.atEOTRider(o, false)
+			}
 		}
 	case kop.OpSkipNextUntap:
 		if in.F != 0 {
@@ -452,9 +472,11 @@ func (s *State) askOptionsCold4(k *prep, d *Decision) bool {
 	case raGenPileOpp:
 		s.pileOppOptions(d) // act_twopiles.go
 	case raGenMyriad:
-		s.myriadOptions(d) // kw_myriad.go
+		s.myriadOptions(k, d) // kw_myriad.go
 	case raPodClashOpp:
 		s.clashOppOptions(d) // act_clash.go
+	case raTrigDemoOpp:
+		s.demoOppOptions(d) // kw_demonstrate.go
 	case raGenSupport:
 		d.Sub = ChGenBolster // gorge's "counter_pick"
 		s.supportOptions(k, &s.prog(k)[s.res.pc], d)
@@ -475,6 +497,8 @@ func (s *State) applyAskCold4(k *prep, a Action) bool {
 		s.myriadAnswer(k, a) // kw_myriad.go
 	case raPodClashOpp:
 		s.clashOppAnswer(k, a) // act_clash.go
+	case raTrigDemoOpp:
+		s.demoOppAnswer(k, a) // kw_demonstrate.go
 	case raGenSupport:
 		s.answerSupport(k, a)
 	default:
@@ -725,7 +749,7 @@ func (s *State) applyAskPauperkw(k *prep, a Action) bool {
 	}
 	if s.objs[o].zone == kop.ZoneExile {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneGraveyard, false, from, false) // gorge madnessDeclined
+		s.placeFrom(o, kop.ZoneGraveyard, false, from, false, false) // gorge madnessDeclined
 	}
 	return true
 }

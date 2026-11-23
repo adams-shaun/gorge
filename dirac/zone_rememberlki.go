@@ -33,6 +33,13 @@ func (s *State) remLKAdd(k *prep, sl Slot, bits int) {
 			pw = int(k.cards[s.cardAt(sl)].tough)
 		}
 	}
+	s.remLKSum(pw)
+}
+
+// remLKSum adds pw to the resolution's remLK sum with remLKAdd's saturation;
+// the battle-link pick's writer (pickRemLKPower) passes the power it captured
+// before the move.
+func (s *State) remLKSum(pw int) {
 	v := int(s.res.remLK) + pw
 	if v > 32767 {
 		v = 32767
@@ -40,4 +47,47 @@ func (s *State) remLKAdd(k *prep, sl Slot, bits int) {
 		v = -32767
 	}
 	s.res.remLK = int16(v)
+}
+
+// pickRemLKPower is the battle-link remember pick's writer (Yannik,
+// Scavenging Sentinel): the picked card's last-known power joins the
+// resolution's remLK sum before it leaves (CR 608.2h, gorge
+// TriggerRemembered$CardPower), the read the reflexive trigger captures as
+// it is put on the stack. The gate is the table's own ExRemLKIPT read
+// (genPrep.anyRemLKIPick) plus the pick's shape: a battlefield pick linked to
+// its host (SrBattleLink) that remembers. A token is never written: it ceases
+// in exile (CR 111.7) and gorge's read over the remembered set skips it.
+// ok is false with the pre-move power when the pick is the writer's shape.
+//
+//go:noinline
+func (s *State) pickRemLKPower(k *prep, o Obj) (pw int, ok bool) {
+	if k.gen == nil || !k.gen.anyRemLKIPick || !s.res.active || s.objs[o].of&ofToken != 0 {
+		return 0, false
+	}
+	pr := s.prog(k)
+	if int(s.res.pc) >= len(pr) {
+		return 0, false
+	}
+	in := &pr[s.res.pc]
+	if !battleLinkPick(k.t, in) || s.g.pickF&kop.SrRemember == 0 {
+		return 0, false
+	}
+	sl := s.objs[o].slot
+	if sl == NoSlot {
+		return 0, false
+	}
+	pw, _ = s.ptGen(k, sl)
+	return pw, true
+}
+
+// tableReadsRemLKIPT reports some expr of t is ExRemLKIPT (genPrep.anyRemLKIPick,
+// the battle-link pick writer's gate: the pick accumulates only where this
+// table reads the accumulator).
+func tableReadsRemLKIPT(t *kop.Table) bool {
+	for i := range t.Exprs {
+		if t.Exprs[i].Kind == kop.ExRemLKIPT {
+			return true
+		}
+	}
+	return false
 }

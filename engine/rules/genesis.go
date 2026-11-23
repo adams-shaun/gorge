@@ -438,6 +438,7 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	// the terminal marker must follow the public toss Note so the host can
 	// recognize and persist the complete genesis burst.
 	e.deferGameOver = true
+	var startIDs [][]state.ObjID // seat deck objects, kept only for Config.Start
 	for i, deck := range cfg.Decks {
 		if i >= len(cfg.Names) {
 			// A malformed Config with more
@@ -456,6 +457,9 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 		ids := make([]state.ObjID, 0, len(deck))
 		for _, c := range deck {
 			ids = append(ids, e.G.AddObject(c, p).ID)
+		}
+		if cfg.Start != nil {
+			startIDs = append(startIDs, ids)
 		}
 		e.G.SetZone(state.ZLibrary, p, ids)
 		if i < len(cfg.Sideboards) && len(cfg.Sideboards[i]) > 0 {
@@ -593,6 +597,25 @@ func (e *Engine) genesisDeal(cfg Config, tossAsk bool) *Engine {
 	// event: genesis is replayed from Config (including its seeded toss), and
 	// preserving the historic event stream keeps recorded matches replayable.
 	events.Apply(e.G, events.Event{Kind: events.StartingPlayerChange, Player: start})
+	// A scripted start (Config.Start) rearranges the dealt game before the
+	// opening-hand round reads it; a mulligan round would redeal it, so the
+	// start applies only with Mulligans 0.
+	if cfg.Start != nil && cfg.Mulligans == 0 && !e.G.Over {
+		applyStart(startHost{
+			G:    e.G,
+			Emit: e.emit,
+			Replacing: func(on bool) bool {
+				prior := e.applyingReplacement
+				e.applyingReplacement = on
+				return prior
+			},
+			Settle: func() {
+				e.pendingTriggers = e.pendingTriggers[:0]
+				e.orderedTriggers = 0
+				e.cmdZoneScan = len(e.L.Events)
+			},
+		}, cfg.Start, startIDs)
+	}
 	// The starting seat is the toss winner resolved over the survivors --
 	// never seat 0 and never a seat the deal eliminated: an early seat that
 	// decked out during its own opening draw (Over still false, since other

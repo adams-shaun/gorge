@@ -195,7 +195,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Kuldotha Rebirth
 Kyoshi Warrior Guard
 Lantern Spirit
@@ -385,7 +384,6 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
-Thunderscape Master
 Tidings
 Torment
 Touch of Brilliance

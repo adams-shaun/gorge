@@ -15,7 +15,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 700.2g | follows | `engine/rules/target_modes.go#copyCharmModes` | `TestCopyCharmAsksEveryChosenTargetMode` | copies keep modes |
 | 700.2h | follows | `engine/rules/cast_asks.go#Engine.castModeAsk` | `TestRequisitionRaidSpreeChargesEachChosenMode` `TestMetamorphicBlastSpreeUnaffordableModeNotOffered` |  |
 | 700.2i | follows | `engine/effects/charm.go#CharmPawprints` `engine/effects/charm.go#CharmResolveOrder` | `TestPawprintBudget` `TestPawprintModesResolveInPrintedOrder` `TestPawprintBurrowTargetOrder` `TestModeDecisionPublishesPresentZeroBudget` `TestCharmPawprintPresenceAndPricing` | root `Pawprint$` publishes Decision.MaxSum over the modes' Option.Value; chosen modes resolve in printed order, repeats stable |
-| 700.3 | partial | `engine/effects/twopiles.go#effTwoPiles` | - | gorge: Zone$/DefinedPiles$/LeftRight shapes move nothing, LOUD |
+| 700.3 | partial | `engine/effects/twopiles.go#effTwoPiles` `engine/cards/twopiles_shape.go#TwoPilesShapeSupported` | `TestBendOrBreakTwoPiles` `TestDeathOrGloryTwoPiles` | gorge: LeftRightPile$ and Zone$ shapes other than the Battlefield and Graveyard pools move nothing, LOUD |
 | 700.3a-c | follows | `engine/effects/twopiles.go#effTwoPiles` | - | piles are choices; cards stay until pick |
 | 700.3d | partial | `engine/effects/twopiles.go#effTwoPiles` | - | one-card set forced into pile A |
 | 700.4 | follows | `engine/rules/trigmatch/zone.go#ZoneChangeMatchesWithCapture` | - |  |
@@ -324,14 +324,14 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 712.8 | follows | `engine/state/object.go#Object.Face` `engine/cards/parse.go#ParseBytes` | - | one Face per side |
 | 712.8a | partial | `engine/events/apply_zone.go#move` | `TestTransformDFCLeavesBattlefieldFrontFace` `TestCR712ModalDFCLandBackResetsToFrontOnExit` | reset only on leaving battlefield; back-face spell leaving stack keeps back face |
 | 712.8b | follows | `engine/events/apply_meld.go#unmeld` | - | - |
-| 712.8c | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` | defeat cast flips before the stack |
+| 712.8c | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` `TestConvertedSpellManaValueIsFrontFace` | defeat and converted casts flip before the stack; mana value from the front face |
 | 712.8d,f | follows | `engine/state/object.go#Object.Face` `engine/state/object.go#Object.faceSlow` | `TestManaValueModalDFCBackFaceIsItsOwn` | Face()=Faces[FaceIdx] |
 | 712.8e | follows | `engine/state/mana_value.go#manaValueAs` | `TestManaValueTransformedBackFaceIsFrontFace` `TestSephirothTransformsOnlyOnFourthResolution` |  |
 | 712.8g | follows | `engine/events/apply_meld.go#foldMeld` `engine/state/mana_value.go#manaValueAs` | `TestManaValueMeldedPermanentSumsFrontFaces` |  |
 | 712.9-712.10 | deviates | `engine/effects/resolve.go#effSetState` `engine/effects/zone_change.go#applyTransformed` | - | any 2-face card transforms; no DFC, face-down or instant-face gate |
-| 712.11-712.11a | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` | front face by default; transformed cast puts back face up |
+| 712.11-712.11a | follows | `engine/rules/cast_begin.go#Engine.beginCastWith` | `TestDefeatedBattleOffersTransformedCast` `TestOptimusPrimeCastsConvertedForMTMTECost` | front face by default; transformed cast puts back face up |
 | 712.11b-712.11c | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestModalSpellBackFaceRestrictionWithholdsOffer` `TestModalSpellOfferSurvivesFrontFaceRestriction` | - |
-| 712.11d | not-impl | - | - | LOUD: Disturb and More Than Meets the Eye keywords unregistered |
+| 712.11d | follows | `engine/rules/legal_walk_hand.go#appendConvertedCast` | `TestOptimusPrimeCastsConvertedForMTMTECost` | the front face's More Than Meets the Eye ability is read when evaluating the converted cast (the back face is what is judged, 712.11c) |
 | 712.12 | follows | `engine/rules/legal_walk_hand.go#legalWalk.handWalk` | `TestCR712ModalDFCLandBackIsOfferedPlayedAndReplays` `TestCR712ModalDFCLandLandOffersBothFaces` | - |
 | 712.13 | follows | `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | - | face carried stack to battlefield |
 | 712.13a | unknown | - | - | not located |

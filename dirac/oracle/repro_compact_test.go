@@ -69,6 +69,13 @@ func TestReproCompactRoundTrip(t *testing.T) {
 			if _, ok := file["readable"]; ok {
 				t.Fatal("file still carries the derived readable field")
 			}
+			// the manifest marks are written only when true (omitempty), so a stored
+			// false (or any other value) is a hand edit that would drop out on a re-record
+			for _, k := range []string{"named", "served"} {
+				if v, ok := file[k]; ok && string(v) != "true" {
+					t.Fatalf("%q is %s: a mark is stored as true or left out", k, v)
+				}
+			}
 			// the file is the canonical compact encoding: Write and the
 			// sweep both go through compactReproJSON, and re-encoding the
 			// raw JSON must reproduce it byte for byte (a literal '&' in a
@@ -132,6 +139,15 @@ func TestReproCompactRoundTrip(t *testing.T) {
 			if err := json.Unmarshal(b, &fresh); err != nil {
 				t.Fatal(err)
 			}
+			if fresh.Named != old.Named || fresh.Served != old.Served {
+				t.Fatalf("manifest marks moved: named %v -> %v, served %v -> %v", old.Named, fresh.Named, old.Served, fresh.Served)
+			}
+			if _, ok := file["named"]; ok != old.Named {
+				t.Fatalf("file has named=%v but the decoded repro says %v", ok, old.Named)
+			}
+			if _, ok := file["served"]; ok != old.Served {
+				t.Fatalf("file has served=%v but the decoded repro says %v", ok, old.Served)
+			}
 			if fresh.Seed != old.Seed {
 				t.Fatalf("seed moved: %d -> %d", old.Seed, fresh.Seed)
 			}
@@ -156,7 +172,7 @@ func TestReproCompactRoundTrip(t *testing.T) {
 // path TestReproCompactRoundTrip pins the corpus to, and decodes to the game
 // it was built from.
 func TestReproWriteCompact(t *testing.T) {
-	r := &Repro{Format: reproFormat, Decks: [2]string{"d0", "d1"}, Seed: 42,
+	r := &Repro{Format: reproFormat, Decks: [2]string{"d0", "d1"}, Seed: 42, Named: true, Served: true,
 		Cards:   [2][]string{{"A&B <C>"}, nil},
 		Actions: []Canon{canon.Pack(canon.ActPass, canon.RefNone, canon.RefNone, 0)}}
 	path := filepath.Join(t.TempDir(), "w.repro.json")
@@ -194,6 +210,9 @@ func TestReproWriteCompact(t *testing.T) {
 	}
 	if back.Seed != r.Seed || len(back.Actions) != 1 || back.Actions[0] != r.Actions[0] {
 		t.Fatal("written repro does not decode to the game it was built from")
+	}
+	if !back.Named || !back.Served || !bytes.Contains(raw, []byte(`"named":true`)) || !bytes.Contains(raw, []byte(`"served":true`)) {
+		t.Fatalf("written repro lost its manifest marks: %s", raw)
 	}
 	if back.Cards[0][0] != "A&B <C>" {
 		t.Fatalf("written repro changed a card name to %q", back.Cards[0][0])

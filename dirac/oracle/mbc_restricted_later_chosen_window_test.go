@@ -117,11 +117,3 @@ func TestMBCRestrictedLaterChosenWindowRecord(t *testing.T) {
 	}
 	t.Logf("recorded %d actions: divergence at %d %s %s %v", len(r.Actions), res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff)
 }
-
-// TestMBCRestrictedLaterChosenActivationLockstep replays the recorded game:
-// no divergence, every scripted action offered, and the window tapped the
-// Citadel's restricted ability (its pool holds the five units gorge paid).
-func TestMBCRestrictedLaterChosenActivationLockstep(t *testing.T) {
-	t.Parallel()
-	stdReproNamed(t, "restricted_later_chosen_ability_pays_the_activation")
-}

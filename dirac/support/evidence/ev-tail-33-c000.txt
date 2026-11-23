@@ -158,6 +158,7 @@ Feroz's Ban
 Fill with Fright
 Final Flourish
 Fire Nation Occupation
+Fishliver Oil
 Flame Elemental
 Flawless Maneuver
 Flip the Switch
@@ -225,7 +226,6 @@ Jhoira's Familiar
 Kamahl, Pit Fighter
 Kambal, Consul of Allocation
 Katara, Heroic Healer
-Kavu Aggressor
 Kindly Stranger
 Kinscaer Harpoonist
 Kird Chieftain
@@ -235,6 +235,7 @@ Kor Line-Slinger
 Kozilek's Unsealing
 Krark-Clan Grunt
 Kydele, Chosen of Kruphix
+Kyodai, Soul of Kamigawa
 Land Grant
 Lava Coil
 Leaden Fists

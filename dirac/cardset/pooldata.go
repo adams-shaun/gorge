@@ -56,6 +56,7 @@ type PoolData struct {
 	StaticSubs          [][]AbSubs
 	OverrideSubs        []OvSubs
 	Filters             []kop.Filter
+	FilterProgs         []kop.FilterProg // the programs of PredProg filters; [0] unused, nil when no filter is a program
 	Exprs               []kop.Expr
 	Conds               []kop.Cond
 	Overrides           []kop.Override
@@ -75,6 +76,19 @@ type PoolData struct {
 	// kgen adds every pool creature type to its CardSubs; nil for any other
 	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
 	CardPrinted [][]uint8
+}
+
+// UnmodeledSupertype reports whether w is a supertype the kernel's type mask
+// does not model (CR 205.4a: Snow, World and Ongoing; Basic and Legendary have
+// type bits). The table carries one as a subtype slot only when a filter or
+// effect of the pool names it, and a type-setting override keeps that slot
+// (CR 205.1a) without being a reason to give it one.
+func UnmodeledSupertype(w string) bool {
+	switch w {
+	case "Snow", "World", "Ongoing":
+		return true
+	}
+	return false
 }
 
 // PoolMaxSubtypes bounds a pool table's subtype list (PoolData.Subtypes). The
@@ -306,6 +320,21 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
+// keptSubtypeNeedsSlot reports whether a subtype an override keeps earns a
+// table slot: some pool card prints it. A supertype slot (UnmodeledSupertype)
+// is kept only when another reader gave it one, never a slot of its own.
+func keptSubtypeNeedsSlot(dd *PoolData, pool []int, s uint8) bool {
+	if UnmodeledSupertype(dd.Subtypes[s]) {
+		return false
+	}
+	for _, i := range pool {
+		if dd.CardSubs[i].Has(int(s)) {
+			return true
+		}
+	}
+	return false
+}
+
 // matchupOverrides is the matchup's copy of the pool's override list, its
 // subtype masks and NameCard remapped. The list is the pool's, so a CR 305.7
 // land-type setter of a card outside this matchup (Blood Moon beside a deck
@@ -442,6 +471,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 				switch in.Op {
 				case kop.OpChooseType:
 					choosesType = true
+					markBasicLandChoice(dd, &in, mark)
 				case kop.OpOverride, kop.OpOverrideAll:
 					// (OpOverrideAll: gorge's AnimateAll type grants are compared
 					// by the projection too -- Breach the Multiverse's Phyrexian)
@@ -494,11 +524,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		// the view drops printed subtypes outside the table once an override
 		// has set them.
 		for _, s := range dd.OverrideSubs[o].Keep {
-			for _, i := range pool {
-				if dd.CardSubs[i].Has(int(s)) {
-					mark(s)
-					break
-				}
+			if keptSubtypeNeedsSlot(dd, pool, s) {
+				mark(s)
 			}
 		}
 	}
@@ -555,6 +582,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 		subSet = all
 	}
+	keepPrintedBasicLandTypes(dd, pool, &subSet) // a granted basic land type keeps the printed ones
 	// The kernel's Role exclusivity keys on the printed Role subtype by
 	// name (dirac/gen.go prepRoles), not on a filter, so keep Role in the
 	// table whenever an included card prints it. Without this the mask()
@@ -608,8 +636,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		}
 		return m
 	}
-	t.Filters = make([]kop.Filter, len(dd.Filters))
-	copy(t.Filters, dd.Filters)
+	t.Filters = slices.Clone(dd.Filters)
+	t.FilterProgs = remapFilterProgs(dd.FilterProgs, subMap)
 	for k := range t.Filters {
 		f := &t.Filters[k]
 		if f.Sub > 0 {
@@ -772,6 +800,79 @@ func remapSubtypePreds(f *kop.Filter, subMap map[uint8]uint8) {
 			f.PredN = int16(m) + 1
 		} else {
 			f.PredN = 0
+		}
+	}
+}
+
+// remapFilterProgs copies the pool's filter programs for a matchup's table,
+// renumbering each FwSubtype literal's pool subtype index as remapSubtypePreds
+// does PredSubtype's: a subtype no object of the matchup has maps past every
+// subtype, so the literal never holds.
+func remapFilterProgs(progs []kop.FilterProg, subMap map[uint8]uint8) []kop.FilterProg {
+	if progs == nil {
+		return nil
+	}
+	out := make([]kop.FilterProg, len(progs))
+	for i, p := range progs {
+		out[i].Lits = append([]kop.FLit(nil), p.Lits...)
+		for j := range out[i].Lits {
+			if l := &out[i].Lits[j]; l.W == kop.FwSubtype {
+				if m, ok := subMap[uint8(l.Arg)]; ok {
+					l.Arg = int16(m)
+				} else {
+					l.Arg = NoSubtype - 1
+				}
+			}
+		}
+	}
+	return out
+}
+
+// basicLandTypeNames are gorge's Type$ Basic Land option labels
+// (effects.TypeChoiceLabels("Basic Land")).
+var basicLandTypeNames = map[string]bool{"Forest": true, "Island": true, "Mountain": true, "Plains": true, "Swamp": true}
+
+// markBasicLandChoice marks the five basic land subtypes when in is a ChooseType
+// Basic Land: its answer is a table subtype whichever land the matchup prints
+// (Realmwright's AddChosen grant reads it; gorge's answer may be any of the
+// five).
+func markBasicLandChoice(dd *PoolData, in *kop.Instr, mark func(uint8)) {
+	if in.C != 0 || in.B.N != kop.ChooseTypeBasicLand {
+		return
+	}
+	for s, n := range dd.Subtypes {
+		if basicLandTypeNames[n] {
+			mark(uint8(s))
+		}
+	}
+}
+
+// keepPrintedBasicLandTypes adds to subSet the basic land types some pool
+// card prints, when a static of an included card grants one (Urborg's Swamp).
+// The kernel tells a land's printed mana ability from the intrinsic one its own
+// basic types give (blgPrintedMask) only for the types the matchup keeps, so a
+// Plateau's {R} and {W} would read as printed and rank below a granted colour.
+func keepPrintedBasicLandTypes(dd *PoolData, pool []int, subSet *PoolSubMask) {
+	granted := false
+	for _, i := range pool {
+		for _, as := range dd.StaticSubs[i] {
+			for _, s := range as.Subs {
+				granted = granted || basicLandTypeNames[dd.Subtypes[s]]
+			}
+		}
+	}
+	if !granted {
+		return
+	}
+	for s, n := range dd.Subtypes {
+		if !basicLandTypeNames[n] {
+			continue
+		}
+		for _, i := range pool {
+			if dd.CardSubs[i].Has(s) {
+				*subSet = subSet.With(s)
+				break
+			}
 		}
 	}
 }

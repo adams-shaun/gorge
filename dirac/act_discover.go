@@ -28,7 +28,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		for i := 0; i < int(s.g.nrem); i++ {
 			if o := s.g.rem[i]; s.objs[o].zone == kop.ZoneExile && !s.freeQueued(o) {
 				from := s.detach(o)
-				s.placeFrom(o, kop.ZoneHand, false, from, false)
+				s.placeFrom(o, kop.ZoneHand, false, from, false, false)
 			}
 		}
 		if k.gen != nil && k.gen.anyKwAct {
@@ -54,7 +54,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false, false)
 		pc := &k.cards[s.objs[o].card]
 		if !pc.land && s.splitMV(k, s.objs[o].card, o, int(pc.total)) <= n { // CR 709.4b: the exiled split card shows both halves
 			found = o
@@ -69,7 +69,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 	}
 	for _, o := range ex[:ne] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 	}
 	s.g.nrem, s.g.remCnt = 0, 0
 	if found != NoObj {
@@ -81,8 +81,7 @@ func (s *State) discover(k *prep, in *kop.Instr) {
 func (s *State) payManaResume(k *prep) {
 	c := s.resPayCost(k) // cost_trighybrid.go
 	paid := s.payReplanned(k, s.g.pickP, &c)
-	if s.parkedWaiting() {
-		s.ctl = ctlExileOrder
+	if s.manaAskWaiting() {
 		return
 	}
 	s.payDone(k, paid)

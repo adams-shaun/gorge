@@ -258,6 +258,7 @@ Skarrgan Skybreaker
 Skatewing Spy
 Sky Crier
 Slagstone Refinery
+Slice and Dice
 Slinking Skirge
 Sly Instigator
 Smell Fear
@@ -308,7 +309,6 @@ Vent Sentinel
 Viashino Firstblade
 Vodalian Soldiers
 Voltaic Brawler
-Wakeroot Elemental
 Webspinner Cuff
 Weight of Memory
 Weldfast Wingsmith

@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // pairWhere: where the second Goblin (Bolg's Company's sacrifice fodder, and
@@ -31,27 +32,58 @@ type equipBoard struct {
 	equipped          bool
 }
 
-func equipAutopayScen(t *testing.T, cfg Config, b equipBoard) *scen {
-	t.Helper()
+// equipTable is the equipautopay table of the sweep, built once: the
+// sweep opens a scenario per board and path, and the table is read-only.
+type equipTable struct {
+	tbl  *kop.Table
+	id   map[string]CardID
+	skip string
+	err  error
+}
+
+// equipTableMemo is set by the sweep's first scenario; only
+// TestCrudeBentBladeEquipAutopayPlans opens one, from one goroutine.
+var equipTableMemo *equipTable
+
+func equipTableOf(set cardset.Set) *equipTable {
+	et := &equipTable{}
 	names := []string{"Crude Bent Blade", "Dwarven Mauler", "Bolg's Company", "Fearsome Goblin Pair", "Mountain", "Swamp"}
 	deck := []cardset.Entry{}
 	for _, n := range names {
 		deck = append(deck, cardset.Entry{Name: n, Count: 1})
 	}
-	set := cardsettest.Set(t, "equipautopay")
 	for _, e := range deck {
 		if i, ok := set.Lookup(e.Name); !ok || !set.Supported()[i] {
-			t.Skipf("%s not supported in the equipautopay table", e.Name)
+			et.skip = e.Name + " not supported in the equipautopay table"
+			return et
 		}
 	}
 	tbl, da, _, err := set.Matchup(deck, deck)
 	if err != nil {
-		t.Fatal(err)
+		et.err = err
+		return et
 	}
-	id := map[string]CardID{}
+	et.tbl = tbl
+	et.id = map[string]CardID{}
 	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
+		et.id[tbl.Cards[c].Name] = c
 	}
+	return et
+}
+
+func equipAutopayScen(t *testing.T, cfg Config, b equipBoard) *scen {
+	t.Helper()
+	if equipTableMemo == nil {
+		equipTableMemo = equipTableOf(cardsettest.Set(t, "equipautopay"))
+	}
+	et := equipTableMemo
+	if et.err != nil {
+		t.Fatal(et.err)
+	}
+	if et.skip != "" {
+		t.Skip(et.skip)
+	}
+	tbl, id := et.tbl, et.id
 	sc := newScenTableLib(t, tbl, id["Swamp"], cfg)
 	set1 := func(o Obj, st uint8) Obj {
 		switch st {
@@ -123,6 +155,7 @@ func equipWalk(t *testing.T, cfg Config, b equipBoard, path []int, offers *int) 
 // payable, whichever target or cost pick follows (a panic "autopay found no
 // plan" is a kernel defect, xengine farm RAND-c4-g19).
 func TestCrudeBentBladeEquipAutopayPlans(t *testing.T) {
+	t.Parallel()
 	offers := 0
 	cfgs := []Config{{NoElide: true}, {NoElide: true, GorgeLowering: true}, {NoElide: true, GorgeLowering: true, GorgeAutopaySurface: true}}
 	for _, cfg := range cfgs {

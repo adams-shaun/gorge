@@ -3,5 +3,6 @@ name: ReplBeginPhase
 value: 42
 forge: BeginPhase
 census: repl BeginPhase all=21 std=0 mbc=0 sole=11
-state: slotbit 16 (phasing)
-status: reserved
+state: code 0
+status: active
+ticket: dsd-t17c-repl-modes

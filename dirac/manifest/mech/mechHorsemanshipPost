@@ -1,0 +1,6 @@
+family: mech
+name: mechHorsemanshipPost
+value: 60
+state: slotbit 16/16
+status: active
+doc: slots marked horsemanship while their permanent had lost all abilities (CR 613.7)

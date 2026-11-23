@@ -15,7 +15,13 @@ func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
 	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a) {
 		return true
 	}
-	return s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a)
+	if s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a) {
+		if DebugLandwalkStats != nil {
+			DebugLandwalkStats.GrantedEvades++
+		}
+		return true
+	}
+	return false
 }
 
 // landwalkPumped: an override record on attacker a carrying a Landwalk filter
@@ -41,6 +47,9 @@ func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
 // landwalkHit: the defending player (blocker b's controller) controls a land
 // matching the landwalk filter f of attacker a.
 func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a Slot) bool {
+	if k.gen != nil && k.gen.uses.has(useIgnoreLandWalk) {
+		return s.landwalkHitLinks(k, f, b, a) // static_ignorelandwalk.go
+	}
 	def := s.perms[b].ctrl
 	for m := s.ctrlM[def]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -71,6 +80,9 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, a, st.ctrl, st.sl, layerKw) &&
 			s.landwalkHit(k, ab.Static.Landwalk, b, a) {
 			hit = true
+			if DebugLandwalkStats != nil && k.t.Filters[ab.Static.Filter].Flags&kop.FAttachedBySrc != 0 {
+				DebugLandwalkStats.AttachedEvades++ // an Aura's or an Equipment's grant
+			}
 			return false
 		}
 		return true
@@ -179,13 +191,15 @@ func (s *State) artifactTy(k *prep, sl Slot) bool {
 }
 
 // evadesShadowFear reports whether the fear / shadow rules forbid blocker b from
-// blocking an attacker with keywords akw (gorge combat.CanBlock):
+// blocking attacker a with keywords akw (gorge combat.CanBlock):
 // CR 702.28b-c a shadow creature blocks and is blocked only by shadow
 // creatures; CR 702.36b a fear creature is blocked only by an artifact
 // creature (its current face, gorge bf.IsArtifact) or a black one
-// (its derived colours).
-func (s *State) evadesShadowFear(k *prep, b Slot, akw, bkw kop.KwMask) bool {
-	if (akw^bkw)&kop.KwShadow != 0 {
+// (its derived colours). A live StatCanBlockIfShadow static on the pair
+// lifts the shadow rule for exactly that pair (gorge shadowBlockLifted;
+// dirac/static_canblockifshadow.go).
+func (s *State) evadesShadowFear(k *prep, b, a Slot, akw, bkw kop.KwMask) bool {
+	if (akw^bkw)&kop.KwShadow != 0 && !s.shadowLifted(k, b, a) {
 		return true
 	}
 	if akw&kop.KwFear != 0 && !s.artifactTy(k, b) && s.colorsAt(k, b)&kop.ColB == 0 {
@@ -218,6 +232,9 @@ func (s *State) evasionAt(k *prep, sl Slot) uint8 {
 func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 	ev := s.evasionAt(k, a)
 	if ev&kop.EvHorsemanship != 0 && s.evasionAt(k, b)&kop.EvHorsemanship == 0 {
+		if DebugLandwalkStats != nil && k.t.Cards[s.cardAt(a)].Evasion&kop.EvHorsemanship == 0 {
+			DebugLandwalkStats.GrantedHorse++ // no printed horsemanship: a mark's grant
+		}
 		return true
 	}
 	if ev&kop.EvIntimidate != 0 && !s.artifactTy(k, b) && s.colorsAt(k, a)&s.colorsAt(k, b)&kop.ColAny == 0 {
@@ -237,5 +254,8 @@ func (s *State) evasionEvades(k *prep, b, a Slot) bool {
 func (s *State) skulkEvades(k *prep, b, a Slot) bool {
 	bp, _ := s.ptGen(k, b)
 	ap, _ := s.ptGen(k, a)
+	if bp > ap && DebugLandwalkStats != nil && k.t.Cards[s.cardAt(a)].Evasion&kop.EvSkulk == 0 {
+		DebugLandwalkStats.GrantedSkulk++ // no printed skulk: a static's or a mark's grant
+	}
 	return bp > ap
 }

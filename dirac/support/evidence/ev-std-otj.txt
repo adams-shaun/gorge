@@ -137,6 +137,7 @@ Nezumi Linkbreaker
 Nimble Brigand
 Nurturing Pixie
 Oasis Gardener
+Oko, the Ringleader
 Omenport Vigilante
 One Last Job
 Ornery Tumblewagg
@@ -202,6 +203,7 @@ Slickshot Vault-Buster
 Smuggler's Surprise
 Snakeskin Veil
 Soured Springs
+Spinewoods Armadillo
 Spinewoods Paladin
 Spirebluff Canal
 Spring Splasher

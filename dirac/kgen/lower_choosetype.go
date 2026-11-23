@@ -130,6 +130,29 @@ func (lc *lowerCtx) chooseBasicLandType(ps *params) error {
 	return nil
 }
 
+// chooseBasicLandEnter lowers an as-enters ChooseType | Type$ Basic Land
+// (Realmwright; gorge effChooseType offers the same TypeChoiceLabels("Basic
+// Land") list whether the choice is as-enters or mid-resolution) to the enters
+// program's OpChooseType with B = kop.ChooseTypeBasicLand. The answer is the
+// chosen type's matchup subtype index in the permanent's chosen, the byte an
+// AddType$ ChosenType static and a ChosenType filter read. A narrowed pool, a
+// random pick or a secret answer refuses.
+func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
+	for _, k := range []string{"AtRandom", "ValidTypes", "InvalidTypes", "Secretly"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("ChooseType Basic Land %s$", k)
+		}
+	}
+	// ETB$ True (Multiversal Passage): Forge's marker that the DB body runs
+	// as the permanent enters — the Moved-to-battlefield replacement's scope
+	// already is, so the value carries no lowering of its own.
+	if v, ok := ps.get("ETB"); ok && strings.TrimSpace(v) != "True" {
+		return refuse("ChooseType Basic Land ETB$ %q", v)
+	}
+	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeBasicLand), Note: "as-enters choice among the basic land types"})
+	return nil
+}
+
 // animateChosenLandType lowers the Animate half on obj: the grant without
 // its Types$, copied into the five records.
 func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
@@ -211,6 +234,48 @@ func (cb *cardBuilder) chosenTypeOverridesOK(first int) error {
 	return nil
 }
 
+// chooseCreatureInDeckType lowers a mid-resolution ChooseType | Type$
+// CreatureInTargetedDeck (Aswan Jaguar's enters trigger, "choose a random
+// creature type from those in target opponent's deck"). gorge effChooseType
+// takes the category's option list from the resolving effect's own targets:
+// CreatureInTargetedDeckLabels reads the first player target's library and
+// offers the creature subtypes its cards print. AtRandom$ True (gorge
+// ChooseTypeAtRandom) makes the engine draw the type and pose no ask, so the
+// op is marked B = kop.ChooseTypeRandomDeck with C naming that target slot
+// (ValidTgts$ Opponent, the resolution's chosen target); the kernel's answer
+// samples the same library and stores the answer on the source (dirac
+// act_randomdecktype.go). IsCurse$ is a targeting note gorge never reads; the
+// ask over the deck's labels without AtRandom$ True, and an AtRandom$ value
+// gorge does not take, keep the ChooseType shape refusal.
+func (lc *lowerCtx) chooseCreatureInDeckType(ps *params) error {
+	if v, ok := ps.get("AtRandom"); !ok || !strings.EqualFold(strings.TrimSpace(v), "True") {
+		return refuse("ChooseType shape")
+	}
+	ps.get("IsCurse") // gorge never reads it
+	obj, err := lc.objOrTarget(ps, "", zNone)
+	if err != nil {
+		return err
+	}
+	if obj.Kind != rTarget {
+		return refuse("ChooseType CreatureInTargetedDeck without its own target slot")
+	}
+	t := &lc.ab.Targets[obj.N]
+	if t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
+		return refuse("ChooseType CreatureInTargetedDeck target slot is not a player")
+	}
+	// gorge reads the first player target of the resolution (gorge
+	// CreatureInTargetedDeckLabels over c.Targets): the slot C names must be
+	// the only one before it, so an earlier player target cannot shadow it.
+	for i := 0; i < obj.N; i++ {
+		if f := lc.ab.Targets[i].F; f != nil && f.Players != 0 {
+			return refuse("ChooseType CreatureInTargetedDeck behind an earlier player target")
+		}
+	}
+	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeRandomDeck),
+		C: int(tgtRefOf(obj.N)), Note: "random creature type from the target opponent's deck"})
+	return nil
+}
+
 // chooseCreatureTypeMid lowers a mid-resolution creature-type ChooseType
 // (Kindred Charge; A Killer Among Us's enters trigger, "then secretly
 // choose Human, Merfolk, or Goblin"). gorge effChooseType: an absent
@@ -234,4 +299,25 @@ func (lc *lowerCtx) chooseCreatureTypeMid(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// etbChooseType lowers an as-enters ChooseType by its Type$: creature types and
+// the basic land types lower, any other pool refuses.
+func (lc *lowerCtx) etbChooseType(ps *params) error {
+	// gorge effChooseType: an absent Defined$ is the controller
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
+		return refuse("ChooseType shape")
+	}
+	switch ps.str("Type") {
+	case "Creature":
+		in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, Note: "choice among creature types"}
+		if err := lc.chooseTypeValid(ps, &in); err != nil {
+			return err
+		}
+		lc.emit(in)
+		return nil
+	case "Basic Land":
+		return lc.chooseBasicLandEnter(ps)
+	}
+	return refuse("ChooseType shape")
 }

@@ -539,12 +539,13 @@ const WAIT_MS = 20_000;
  * delivering frames and the same endpoints answer curl in 0-1ms. The panel's
  * only recovery paths (the SSE-driven view refetch and the 1s pending poll)
  * both ride that stalled pool, so the game — paced 1.5s per decision — sits
- * unanswered for the whole stall and the drive/crossing budgets must absorb
- * one full stall each. Measured stalls: 5.3s, 11s, 11.2s (single-worktree
- * probes) and 41s (the smoke gate's own failing run). WAIT_MS (20s) is fine
- * for every assertion that does not straddle a stall; the wire-index drive and
- * its crossing assertion get STALL_MS instead, and the test's own timeout is
- * raised to hold drive + crossing + one stall each with margin.
+ * unanswered for the whole stall and the drive/crossing/undo budgets must
+ * absorb one full stall each. Measured stalls: 5.3s, 11s, 11.2s
+ * (single-worktree probes) and 41s (the smoke gate's own failing run). WAIT_MS
+ * (20s) is fine for every assertion that does not straddle a stall; the
+ * wire-index drive, its crossing assertion and the undo step get STALL_MS
+ * instead, and the test's own timeout is raised to hold drive + crossing + one
+ * undo retry with margin.
  */
 const STALL_MS = 90_000;
 // The drive loop's wall-clock bound: its HTTP polls are Node-side (they do
@@ -1618,6 +1619,9 @@ async function playFromHand(page: Page, hand: Locator, card: Locator, action: ()
   }, { timeout: 5_000 }).toBe(0).then(() => true, () => false);
 }
 
+/** Casts in a row that may miss before the play loop passes instead (see playLandUndoAndSpell). */
+const MAX_MISSED_CASTS = 2;
+
 /**
  * The controls that answer a mana-payment window, in the order a player would want them: fill the
  * rest with the suggested sources, pay once nothing is owed, else give up the cast. Never a source
@@ -1791,13 +1795,23 @@ const LAND_CONTROL = '.handfan [data-obj] [data-play-land]';
  * taken it back, played one again and cast a spell with auto-pay, playing a land each turn until then.
  */
 async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): Promise<void> {
-  const deadline = Date.now() + WIRE_GAME_MS;
+  // The undo step may be retried once after a stall, so the drive budget holds
+  // the normal walk plus both attempts; the test's own timeout is raised to
+  // match (see its setTimeout).
+  const deadline = Date.now() + WIRE_GAME_MS + 2 * STALL_MS;
   const hand = page.locator('.handfan [data-obj]');
   const asked = page.locator(`${PAYMENT_ANSWERS}, ${PICKABLE}, ${FOOTER}`);
   let undone = false;
   let land = false;
   let spell = false;
   let spellTries = 0;
+  // Casts in a row that did not leave the hand: an offered spell the seat cannot pay is cancelled from
+  // its payment window (PAYMENT_ANSWERS ends with Cancel). Retried in the same window, that cast and
+  // cancel repeat until the server's livelock detector ends the match (11-21 #3113: Llanowar Elves cast
+  // and cancelled 40 times on turn 1, "match crashed: livelock detected", and the reload then showed
+  // the table's match list). After MAX_MISSED_CASTS the seat passes, so the game moves to a window,
+  // or a turn, with the mana the spell needs.
+  let missedCasts = 0;
   const did: string[] = [];
   while (Date.now() < deadline && !(land && spell)) {
     const landCard = hand.filter({ has: page.locator('[data-play-land]') }).first();
@@ -1843,47 +1857,58 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
           // needs the play's own window seen above the target first and one undo clicked: a client
           // still parked on the land decision (its view lagging the play POST) must not pass the
           // first poll with nothing undone.
-          let clicks = 0;
-          let sawAbove = false;
-          await expect.poll(async () => {
-            const now = await pendingSeq(seat);
-            if (now !== null && now > landSeq) sawAbove = true;
-            if (sawAbove && clicks > 0 && now !== null && now <= landSeq) {
-              if ((await nativeHand(seat)) === handBefore) return true;
-            }
-            // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
-            // human seat and an in-flight post), so an ask a rewind re-parks needs no answer: it
-            // would only commit an intent the next undo takes back again. But the click itself must
-            // wait for a parked decision: the server accepts an undo whenever the seat has a logged
-            // intent left — it need not be pending (Registry.Undo reserves one intent per click,
-            // server/host/undo.go) — so a click fired while nothing is parked, and every further
-            // click the 100 ms poll fires through that stretch (the machine acting between
-            // decisions, /pending a 409), queues another rewind; the queued rewinds then walk back
-            // past the land play and across the turn's draw, where the hand can never equal
-            // handBefore again (measured on the gate box: a red at 23.6 s with the walk-back's whole
-            // budget gone). Skipping the click until a decision is parked keeps one rewind per
-            // click, and the hold below keeps the next one queued behind a landing rewind.
-            const asking = await pendingSeq(seat);
-            if (asking === null) return false;
-            const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
-            if (!clicked) return false;
-            clicks++;
-            // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
-            // and each rewind takes back one of the seat's own actions. Hold the next click until
-            // the pending seq moves off the value read at the click, or the walk back is already
-            // done, so a second undo never queues behind an unlanded first: queued undos are
-            // serviced in order, and walking more than one action past the land crosses the turn's
-            // draw, where the hand can never equal handBefore again. The move may be a fall (the
-            // rewind landed) or a rise (the machine answered the read window in between, and the
-            // queued rewind will take that answer back); both leave the next click pointed at the
-            // action this walk back wants.
-            await expect.poll(async () => {
-              const later = await pendingSeq(seat);
-              return later !== asking || (later !== null && later <= landSeq);
-            }, { timeout: 5_000, intervals: [100] }).toBe(true).then(() => true, () => false);
-            return false;
-          }, { message: `${label} undo returns the land to the hand`, timeout: WAIT_MS, intervals: [100] }).toBe(true);
-          undone = true;
+          //
+          // One walk gets the full stall budget, and a miss is retried once (logged) instead of
+          // failing the whole test. The retry may start after the first rewind landed, so it accepts
+          // the hand without clicking again.
+          const undoOnce = async (retry: boolean): Promise<boolean> => {
+            let clicks = 0;
+            let sawAbove = retry;
+            return await expect.poll(async () => {
+              const now = await pendingSeq(seat);
+              if (now !== null && now > landSeq) sawAbove = true;
+              if (sawAbove && (clicks > 0 || retry) && now !== null && now <= landSeq) {
+                if ((await nativeHand(seat)) === handBefore) return true;
+              }
+              // The seat's answerable slot is prompt-independent (ActionCluster gates undo on the sole
+              // human seat and an in-flight post), so an ask a rewind re-parks needs no answer: it
+              // would only commit an intent the next undo takes back again. But the click itself must
+              // wait for a parked decision: the server accepts an undo whenever the seat has a logged
+              // intent left — it need not be pending (Registry.Undo reserves one intent per click,
+              // server/host/undo.go) — so a click fired while nothing is parked, and every further
+              // click the 100 ms poll fires through that stretch (the machine acting between
+              // decisions, /pending a 409), queues another rewind; the queued rewinds then walk back
+              // past the land play and across the turn's draw, where the hand can never equal
+              // handBefore again (measured on the gate box: a red at 23.6 s with the walk-back's whole
+              // budget gone). Skipping the click until a decision is parked keeps one rewind per
+              // click, and the hold below keeps the next one queued behind a landing rewind.
+              const asking = await pendingSeq(seat);
+              if (asking === null) return false;
+              const clicked = await page.locator('[data-cluster-undo]:enabled').click({ timeout: 2_000 }).then(() => true, () => false);
+              if (!clicked) return false;
+              clicks++;
+              // The server answers an undo with 204 and rewinds later, on the match's own goroutine,
+              // and each rewind takes back one of the seat's own actions. Hold the next click until
+              // the pending seq moves off the value read at the click, or the walk back is already
+              // done, so a second undo never queues behind an unlanded first: queued undos are
+              // serviced in order, and walking more than one action past the land crosses the turn's
+              // draw, where the hand can never equal handBefore again. The move may be a fall (the
+              // rewind landed) or a rise (the machine answered the read window in between, and the
+              // queued rewind will take that answer back); both leave the next click pointed at the
+              // action this walk back wants.
+              await expect.poll(async () => {
+                const later = await pendingSeq(seat);
+                return later !== asking || (later !== null && later <= landSeq);
+              }, { timeout: 5_000, intervals: [100] }).toBe(true).then(() => true, () => false);
+              return false;
+            }, { message: `${label} undo returns the land to the hand${retry ? ' (retry)' : ''}`, timeout: STALL_MS, intervals: [100] }).toBe(true).then(() => true, () => false);
+          };
+          let takenBack = await undoOnce(false);
+          if (!takenBack) {
+            console.log(`${label} undo step timed out; retrying once`);
+            takenBack = await undoOnce(true);
+          }
+          if (takenBack) undone = true;
         }
       }
     } else if (land && !spell && ((await visible(spellCard)) || (await visible(landCard)))) {
@@ -1900,6 +1925,14 @@ async function playLandUndoAndSpell(page: Page, label: string, seat: SeatRef): P
           }
           return spellCard.locator('button[aria-haspopup="menu"]');
         });
+        missedCasts = spell ? 0 : missedCasts + 1;
+        if (!spell && missedCasts >= MAX_MISSED_CASTS) {
+          did.push('pass-unpayable');
+          missedCasts = 0;
+          await answerOpenAsk(page);
+          await page.waitForTimeout(100);
+          continue;
+        }
       }
       if (!spell && (await visible(landCard))) {
         did.push('land');
@@ -1925,7 +1958,7 @@ for (const [engine, base] of [['gorge', WIRE_GORGE], ['dirac', WIRE_DIRAC]] as c
       test.skip(!base, 'SMOKE_WIRE_GORGE/SMOKE_WIRE_DIRAC unset — run via scripts/smoke.sh');
 
       test('plays a land, undoes it, casts a spell, reads the log and concedes', async ({ browser, request }) => {
-        test.setTimeout(WIRE_GAME_MS + 60_000);
+        test.setTimeout(WIRE_GAME_MS + 2 * STALL_MS + 60_000);
         const b = base as string;
         const label = `[${engine} ${wire}]`;
         // POST /api/games deals a random deck from a random seed. gorge's pool holds decks whose lands

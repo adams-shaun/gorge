@@ -106,7 +106,7 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		if !s.matchSpellCard(k, st.Filter, c, p, ctx.ctrl, mo, ctx.srcSl, emb) {
 			return
 		}
-		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c)) {
+		if st.StFlags&kop.StTargetsFilter2 != 0 && (s.g.noTgtRed || !s.costTargetOK(k, st.Filter2, p, c, ctx.srcSl)) {
 			return
 		}
 		if st.StFlags&(kop.StBargained|kop.StReduceColor) != 0 {
@@ -199,6 +199,14 @@ func (s *State) matchSpellCard(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 // follows to the frozen capture once a ClearNamedCard$ chain wiped the
 // source (repl_namecard.go).
 func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8) bool {
+	return s.matchSpellAltCtx(k, fl, c, owner, ctrl, o, src, emb, nil)
+}
+
+// matchSpellAltCtx is matchSpellAlt with an evaluation context (nil for the
+// ordinary read): the CantBeCast cast gate's X look-ahead sets ctx.xmv so a
+// CMC predicate reads the candidate at an announced X (CR 202.3e), while
+// every other caller keeps the nil context it always passed.
+func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8, ctx *evalCtx) bool {
 	if fl.Zone == kop.ZoneStack {
 		fl.Zone = kop.ZoneNone
 	}
@@ -208,7 +216,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		// (gorge state.ContinuousEffect.ChosenName; repl_namecard.go)
 		named := s.srcNamedCard(src, emb)
 		fl.Pred = kop.PredNone
-		return named != NoCard && named == c && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return named != NoCard && named == c && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// the static source's own as-enters colour (Iona, Shield of
@@ -227,7 +235,7 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 			has = cd.AllCreatureTypes
 		}
 		fl.Flags2 &^= kop.F2ChosenType
-		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenColor != 0 {
 		// Iona, Shield of Emeria's "spells of the chosen color": the static
@@ -235,9 +243,9 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 		ch, ok := s.chosenTypeSub(src)
 		has := ok && ch <= 4 && k.t.Cards[c].Colors&(kop.ColW<<ch) != 0
 		fl.Flags2 &^= kop.F2ChosenColor
-		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
-	return s.matchCardOneAt(k, &fl, c, owner, ctrl, o, nil, true)
+	return s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 }
 
 // targetsAnswered reports whether the build's target stages have passed: the
@@ -254,18 +262,21 @@ func (s *State) targetsAnswered() bool {
 // costTargetOK: the spell being built targets an object matching f, or (no
 // target chosen yet) some object could be such a target: a battlefield
 // object, or for a stack-zone f (a Spell head: Out of Air's Spell.Creature)
-// a spell on the stack (costTargetMatch, filter_heads.go).
-func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
+// a spell on the stack (costTargetMatch, filter_heads.go). f reads from the
+// static's side: src is its source slot, so a battlefield ReduceCost whose
+// ValidTarget$ is relative to its source (Strong Back's Creature.EnchantedBy)
+// matches the creature that source enchants (CR 601.2f).
+func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID, src Slot) bool {
 	if s.ctl == ctlBuild && (s.bld().e.nt > 0 || s.targetsAnswered()) { // once the ask is answered, none means an "up to" answered with none
 		e := &s.bld().e
 		for i := 0; i < int(e.nt); i++ {
-			if s.costTargetMatch(k, f, p, e.tgt[i]) {
+			if s.costTargetMatchSrc(k, f, p, e.tgt[i], src) {
 				return true
 			}
 		}
 		x := s.xtOf(e)
 		for j := 0; j < int(x.n); j++ {
-			if s.costTargetMatch(k, f, p, x.code[j]) {
+			if s.costTargetMatchSrc(k, f, p, x.code[j], src) {
 				return true
 			}
 		}
@@ -283,7 +294,7 @@ func (s *State) costTargetOK(k *prep, f kop.FilterID, p uint8, c CardID) bool {
 	n := s.targetCands(k, t, p, NoSlot, NoObj, &buf)
 	s.g.probe = pr
 	for i := 0; i < n; i++ {
-		if s.costTargetMatch(k, f, p, buf[i]) {
+		if s.costTargetMatchSrc(k, f, p, buf[i], src) {
 			return true
 		}
 	}
@@ -632,20 +643,25 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	var f kop.FilterID
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
+		// only a static that prices the card's own cast (ZoneCommand): a
+		// battlefield one the card carries (Strong Back's "Aura spells that
+		// target enchanted creature") prices other spells, bfTgtReduce's census
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone == kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
 			f = a.Static.Filter2
 		}
 	}
-	if f == 0 {
+	if f == 0 && !s.bfTgtReduce(k, e) {
 		return n
 	}
-	for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
-		if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
-			// an earlier slot's target already satisfies the reduction, so the
-			// cost is reduced whatever this slot picks (Run Over's second
-			// target, the creature an opponent controls, once its first is a
-			// Vehicle; gorge asks a later chain link's target unfiltered)
-			return n
+	if f != 0 {
+		for i := 0; i < int(s.bld().ti) && i < kop.MaxTargets; i++ {
+			if s.costTargetMatch(k, f, e.ctrl, e.tgt[i]) {
+				// an earlier slot's target already satisfies the reduction, so the
+				// cost is reduced whatever this slot picks (Run Over's second
+				// target, the creature an opponent controls, once its first is a
+				// Vehicle; gorge asks a later chain link's target unfiltered)
+				return n
+			}
 		}
 	}
 	s.g.noTgtRed = true
@@ -680,12 +696,87 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 		// (castWindowReachable; a planner-deferred River of Tears): every candidate stays payable
 		return n
 	}
+	if f != 0 {
+		m := 0
+		for i := 0; i < n; i++ {
+			if c := buf[i]; s.costTargetMatch(k, f, e.ctrl, c) {
+				buf[m] = c
+				m++
+			}
+		}
+		return m
+	}
+	// A battlefield target-gated ReduceCost (Killian, Ink Duelist's "Spells
+	// you cast that target a creature cost {2} less to cast") made the
+	// offer's optimistic probe price the cast at its reduced cost
+	// (costTargetOK's no-target arm), so the menu prices each candidate with
+	// it as the chosen target, exactly what the charge will read (CR
+	// 601.2c before 601.2f): one neither the pool nor the CR 601.2g window
+	// can pay is withheld, as gorge's affordableTargetCandidates withholds
+	// it (CR 601.2c, 733.1: choosing it can only reverse the cast).
 	m := 0
 	for i := 0; i < n; i++ {
-		if c := buf[i]; s.costTargetMatch(k, f, e.ctrl, c) {
-			buf[m] = c
+		if s.tgtRedPrice(k, e, buf[i], &av) {
+			buf[m] = buf[i]
 			m++
 		}
 	}
 	return m
+}
+
+// bfTgtReduce reports whether a battlefield target-gated ReduceCost static
+// prices the spell being built (a ReduceCost with a ValidTarget$ carried by
+// one of the caster's other permanents, or a StReduceAny one): the offer's
+// optimistic probe (costTargetOK's no-target arm) applied it, so
+// affordableTargets must reprice per candidate. The applicability gate is
+// the one adjustCostGenB applies the static under.
+func (s *State) bfTgtReduce(k *prep, e *stackEntry) bool {
+	p := e.ctrl
+	found := false
+	s.eachStaticC(k, sclsReduce, func(stc statSrc) bool {
+		a := stc.a
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost &&
+			a.Static.Zone != kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 &&
+			(stc.ctrl == p || a.Static.StFlags&kop.StReduceAny != 0) {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+// tgtRedPrice prices the cast being built with candidate c as the answer of
+// the target slot being posed (the build's target set the charge reads, CR
+// 601.2c before 601.2f) and reports whether the pool (av) or the CR 601.2g
+// window can pay it (affordableTargetCandidates' probe arms).
+func (s *State) tgtRedPrice(k *prep, e *stackEntry, c TCode, av *avail) bool {
+	ti := s.bld().ti
+	if ti >= kop.MaxTargets {
+		return false
+	}
+	nt, old := e.nt, e.tgt[ti]
+	e.tgt[ti] = c
+	if e.nt <= ti {
+		e.nt = ti + 1
+	}
+	marked := s.markCostComposition()
+	cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, k.t.Cards[e.card].Cost)
+	s.unmarkCostComposition(marked)
+	e.nt, e.tgt[ti] = nt, old
+	cd := &k.t.Cards[e.card]
+	if e.flags&sfAnyMana != 0 {
+		cost = anyType(cost)
+	}
+	if e.flags&sfKicked != 0 {
+		cost = s.addKickerPayments(cd, e, cost)
+	}
+	// the announced X is part of the price the payment charges (affordableTargets)
+	cost = cost.AtX(int(e.x))
+	if av.affords(&cost, pipMaskOf(&cost), 0) {
+		return true
+	}
+	if s.windowCensusComplete(k, e) && !s.targetWindowShort(k, e, &cost, false) {
+		return true // the window's concrete productions reach this candidate's price
+	}
+	return false
 }

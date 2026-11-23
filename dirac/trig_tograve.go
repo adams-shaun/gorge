@@ -49,6 +49,9 @@ func (s *State) fireToGrave(k *prep, o Obj, from kop.Zone) {
 		if !s.trigOK(k, l, a) {
 			return
 		}
+		if !s.batchTrigOK(l, a, o) {
+			return // a "one or more" line already queued in the open batch
+		}
 		s.queueTrig(k, l, a, o, owner, 0)
 	})
 }

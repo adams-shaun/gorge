@@ -28,6 +28,11 @@ const supportNode = "support"
 type supportLists struct {
 	refused   map[string]*cardset.RefusedEntry
 	evidenced map[string]bool
+	// podEvidenced names whose evidence row carries a seats field of three or
+	// more: the card has a clean pod game. It is report only — statusOf does
+	// not read it, so a pod game does not evidence a card the support rule
+	// (which stage 2, OD-4, may change) does not already cover.
+	podEvidenced map[string]bool
 }
 
 func readSupport(src fs.FS) (*supportLists, error) {
@@ -35,7 +40,7 @@ func readSupport(src fs.FS) (*supportLists, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &supportLists{refused: map[string]*cardset.RefusedEntry{}, evidenced: map[string]bool{}}
+	s := &supportLists{refused: map[string]*cardset.RefusedEntry{}, evidenced: map[string]bool{}, podEvidenced: map[string]bool{}}
 	for i := range entries {
 		s.refused[entries[i].Card] = &entries[i]
 	}
@@ -48,8 +53,18 @@ func readSupport(src fs.FS) (*supportLists, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, n := range parseCardList(b) {
-			s.evidenced[n] = true
+		for _, r := range parseCardRows(b) {
+			if r.col == "" {
+				// A plain row is the evidence that makes a card supported.
+				// A tabbed row (Name\t<seats>) is pod evidence, and a pod game
+				// does not evidence a card: stage 1's support rule is
+				// unchanged, so it only feeds podEvidenced.
+				s.evidenced[r.name] = true
+				continue
+			}
+			if n, err := strconv.Atoi(strings.TrimSpace(r.col)); err == nil && n >= 3 {
+				s.podEvidenced[r.name] = true
+			}
 		}
 	}
 	return s, nil
@@ -73,6 +88,17 @@ func (s *supportLists) evidencedFor(name string) bool {
 	}
 	f := firstFace(name)
 	return f != "" && s.evidenced[f]
+}
+
+// podEvidencedFor reports whether an evidence list names the card with a seats
+// field of three or more — the card has a clean pod game — by its full name or,
+// for a split card, its first face.
+func (s *supportLists) podEvidencedFor(name string) bool {
+	if s.podEvidenced[name] {
+		return true
+	}
+	f := firstFace(name)
+	return f != "" && s.podEvidenced[f]
 }
 
 // refusedFor is the refusal naming the card, by its full name or, for a split card, its
@@ -245,17 +271,32 @@ func refuseCard(root, card, class, why string, repro cardset.RefusedRepro) (stri
 	return path, os.WriteFile(path, b, 0o644)
 }
 
-// cutLine removes the line "name\n" from b, which starts with a newline.
+// cutLine removes the line "name" from b, which starts with a newline. The
+// line may carry trailing tab-separated columns (an evidence row's seats
+// field), which go with it.
 func cutLine(b []byte, name string) ([]byte, bool) {
 	before, after, found := bytes.Cut(b, []byte("\n"+name+"\n"))
 	if !found {
-		return b, false
+		before, after, found = bytes.Cut(b, []byte("\n"+name+"\t"))
+		if !found {
+			return b, false
+		}
+		// The row carries columns: drop the rest of it, up to but not
+		// including the newline that ends it, so no column is left behind as
+		// a row of its own.
+		if i := bytes.IndexByte(after, '\n'); i >= 0 {
+			after = after[i+1:]
+		} else {
+			after = nil
+		}
 	}
 	return append(append(before, '\n'), after...), true
 }
 
 // unrefuseCard deletes card's refused entry under root and restores the evidence rows
-// refuseCard took.
+// refuseCard took. Every row already in the list keeps its trailing columns (an
+// evidence row's seats field); only the restored card is inserted as a plain name,
+// and the next pod run's landing records the card's pod games again.
 func unrefuseCard(root, card string) error {
 	path := refusedPath(root, card)
 	b, err := os.ReadFile(path)
@@ -273,11 +314,23 @@ func unrefuseCard(root, card string) error {
 		if err != nil {
 			return err
 		}
-		lines := parseCardList(old)
-		if i, found := slices.BinarySearch(lines, card); !found {
-			lines = slices.Insert(lines, i, card)
+		rows := parseCardRows(old)
+		i, found := slices.BinarySearchFunc(rows, card, func(r cardRow, name string) int {
+			return strings.Compare(r.name, name)
+		})
+		if !found {
+			rows = slices.Insert(rows, i, cardRow{name: card})
 		}
-		if err := os.WriteFile(list, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+		var out strings.Builder
+		for _, r := range rows {
+			out.WriteString(r.name)
+			if r.col != "" {
+				out.WriteByte('\t')
+				out.WriteString(r.col)
+			}
+			out.WriteByte('\n')
+		}
+		if err := os.WriteFile(list, []byte(out.String()), 0o644); err != nil {
 			return err
 		}
 		restored = true

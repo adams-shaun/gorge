@@ -21,9 +21,11 @@ Armored Pegasus
 Artillerize
 Ash Barrens
 Assault Zeppelid
+Astral Drift
 Auriok Salvagers
 Avatar of Will
 Aven Heartstabber
+Avizoa
 Azorius Skyguard
 Azra Oddsmaker
 Back to Basics
@@ -34,6 +36,7 @@ Bitter Reunion
 Blackcleave Cliffs
 Blade Banish
 Blessings of Nature
+Blinding Angel
 Bloodpyre Elemental
 Bloody Betrayal
 Bog Gnarr
@@ -71,6 +74,7 @@ Clear the Land
 Clever Lumimancer
 Clockwork Drawbridge
 Cloud Cover
+Coalition Honor Guard
 Coast Watcher
 Colossus, Steel Stalwart
 Conclave Cavalier
@@ -78,6 +82,7 @@ Conclave Phalanx
 Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
+Convincing Mirage
 Coral Colony
 Counterbalance
 Courier's Capsule
@@ -164,6 +169,7 @@ Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin Chainwhirler
+Goblin Dynamo
 Goblin King
 Goblinslide
 Golden Ratio
@@ -316,6 +322,7 @@ Rakdos Signet
 Rank and File
 Read the Bones
 Reap What Is Sown
+Reaper of Sheoldred
 Renegade Tactics
 Reshape
 Reshape the Earth
@@ -363,6 +370,7 @@ Smite
 Snow-Covered Swamp
 Soaring Hope
 Song of Serenity
+Soraya the Falconer
 Soul Feast
 Spawning Pool
 Spined Megalodon
@@ -401,6 +409,7 @@ The Hunter Maze
 The Triumph of Anax
 Thermal Blast
 Thran Golem
+Thrill-Kill Disciple
 Thunderscape Familiar
 Tiana, Ship's Caretaker
 Tidehollow Sculler
@@ -423,6 +432,7 @@ Urza, Prince of Kroog
 Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
+Venerable Kumo
 Verdant Confluence
 Veteran Swordsmith
 Violent Eruption

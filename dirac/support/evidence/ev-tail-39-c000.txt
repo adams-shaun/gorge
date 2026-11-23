@@ -188,6 +188,7 @@ Glorious Charge
 Glyph Keeper
 Goblin Flectomancer
 Goblin War Buggy
+Gorilla Tactics
 Gretchen Titchwillow
 Grim Discovery
 Grisly Salvage
@@ -213,6 +214,7 @@ Humble the Brute
 Humongulus
 Hundroog
 Hydromorph Guardian
+Icatian Infantry
 Imperial Cosmographer
 Infectious Bloodlust
 Inheritance
@@ -281,6 +283,7 @@ Mountain
 Mudbrawler Raiders
 Mudbutton Torchrunner
 Mulldrifter
+Myr Reservoir
 Mystic Retrieval
 Nagging Thoughts
 Nameless One
@@ -344,6 +347,7 @@ Riot Piker
 Rip-Clan Crasher
 Riverwheel Aerialists
 Ronin Warclub
+Rose Noble
 Rotten Reunion
 Ruinous Minotaur
 Runebound Wolf
@@ -380,6 +384,7 @@ Skystrike Officer
 Slaughterhouse Bouncer
 Slaying Fire
 Sleeper's Guile
+Sloppity Bilepiper
 Smokespew Invoker
 Smoldering Tar
 Snapping Drake
@@ -404,6 +409,7 @@ Steward of Valeron
 Stingerfling Spider
 Storm's Wrath
 Strionic Resonator
+Su-Chi
 Sungold Barrage
 Swamp
 Swan Song
@@ -418,8 +424,10 @@ Tar Snare
 Teeterpeak Ambusher
 Tempered Sliver
 The Balrog, Flame of Udûn
+The Black Breath
 The Fabulous Frog-Man
 The Falcon, Airship Restored
+Thelonite Hermit
 Time of Heroes
 Timely Interference
 Tin Street Cadet
@@ -445,6 +453,7 @@ Vengevine
 Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
 Viridescent Wisps
+Vitality Hunter
 Vivien's Talent
 Vraska, Swarm's Eminence
 Wakening Sun's Avatar
@@ -453,6 +462,7 @@ Warped Devotion
 Warped Landscape
 Warriors of Wakanda
 Wash Away
+Watchdog
 Welcoming Vampire
 Whetwheel
 Wild Slash

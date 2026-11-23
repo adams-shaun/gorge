@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Aurora Phoenix	ca003654b160b1c1	75	1/1		1/1	
 Chord of Calling	489d5a625e4a793f	7	0/0		2/4	f0/s/x0,ix:resp
 Cruel Ultimatum	4bfee4e48c71cd4c	4	0/0		2/2	
 Decree of Silence	4e080ebdb24c9660	3	3/3		1/3	f0/t1/opt:n,f0/t1/opt:y
@@ -6,11 +7,23 @@ Deranged Assistant	3c4feec229066b8d	37	1/1		1/1
 Drillworks Mole	3e28842be3313a86	66	1/1		1/1	
 Duplicant	bbb589d10e319964	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Emperor Crocodile	5a8629a1e375ce45	22	1/1		0/1	ix:resp
+Fanatic of Rhonas	1f2f3fbc450f8da1	24	3/3		1/1	
 Flatman	e606e0b81146a517	13	1/1		1/1	
+Forked-Branch Garami	cf3b8000130d64d1	26	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Gary Clone	c41d09476d5d31d3	34	2/2		3/3	
+Golem-Skin Gauntlets	f81eca004283c826	71	1/1		0/1	ix:resp
+Katara, Waterbending Master	a999af55c1108e94	52	2/2		1/1	
 Linessa, Zephyr Mage	18db11e6132ffd80	95	2/2		1/1	
 Lord of Tresserhorn	72f4e772c2a607b1	21	2/2		1/1	
+Monkey Cage	1e08d9a17e1ff6f5	28	1/1		1/1	
+Pia Nalaar, Consul of Revival	e09d09dff567d812	426	2/2		1/1	
+Robot Domination	eb84aa824e4da4e3	32	2/2		0/1	ix:resp
+Saint Traft and Rem Karolus	2137764665c53840	208	2/2		1/1	
 Sarkhan's Unsealing	b834df11b022df5b	56	2/2		1/1	
 Shield of the Oversoul	f4fc36cf05ef7866	3	0/0		1/2	ix:resp
+Swirling Spriggan	ce83a657150f24fe	7	1/1		1/1	
 Thraximundar	a604fdce3d028283	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Thrilling Encore	53c365c97c426094	48	0/0		2/2	
 Veiling Oddity	a17321c17a72d6a0	17	1/1		3/3	
+Wasteland Raider	a3b8d5024cfc0236	34	2/2		3/3	
+Zhulodok, Void Gorger	0c8da53082280b89	3	0/0		0/0	

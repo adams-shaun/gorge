@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -405,7 +406,11 @@ func (e *Engine) roleSBA(b *sbaBatch) {
 // undo (an Aura whose current enchant spec does not admit the bearer, an
 // Equipment whose bearer is not a creature its Equip keyword names or is an
 // attached Reconfigure or an impending permanent, a Fortification whose
-// bearer is not a land). The predicates are the same ones attachmentSBAs reads below, so an attach the
+// bearer is not a land), or -- the Aura arm alone -- to a bearer a live
+// Aura-shape CantAttach static forbids (cantAttachAuraBlocks): that
+// restriction is attach-side only, never an un-attach, so it is not part of
+// attachmentSBAs' sweep. The rest of the predicates are the same ones
+// attachmentSBAs reads below, so an attach the
 // SBA would undo is exactly an attach that is refused. note is true when the
 // refusal is worth a Note (an illegal bearer) rather than silent (the
 // same-bearer no-op of CR 701.3b's "the effect does nothing"). The gate is
@@ -426,7 +431,14 @@ func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
 	}
 	switch {
 	case e.isAura(o):
-		return !e.auraStillMatchesEnchant(o, bearer), true
+		// A live Aura-shape CantAttach static (cards.CantAttachAuraShape)
+		// forbids a second Aura the same way: a token minted with an
+		// AttachedTo$ bearer reaches this gate after its fold, its CR 303.4g
+		// candidate walk having passed on the bearer other Auras may still
+		// legally enchant. An already-attached Aura re-attaching to its own
+		// bearer returned above; the static's source is never "Other" to
+		// itself, so its own attaches read free.
+		return !e.auraStillMatchesEnchant(o, bearer) || cantAttachAuraBlocks(e, o.ID, bearer.ID), true
 	case e.isEquipment(o):
 		// CR 702.150c: an attached Reconfigure card is not a creature, and
 		// an impending permanent is not yet a creature either. A bearer the
@@ -582,12 +594,19 @@ func (e *Engine) hasType(o *state.Object, t string) bool {
 		return false
 	}
 	if o.Zone == state.ZBattlefield {
-		for _, x := range e.typeCharacteristics(o.ID, 0) {
+		// The walk's all-creature-types marker rides beside the list: a
+		// Changeling (CR 702.73a, every creature type, none materialised
+		// into the list) must answer true for any creature subtype. The
+		// tail answers the same words effects' hasType (filter_type.go)
+		// answers from the printed Changeling CDA, so a subtype word no
+		// Changeling grants (Aura, Arcane) still reads false.
+		ty, all := chars.TypesAndAllCreatureTypes(asChars(e), e.active(), o.ID, 0)
+		for _, x := range ty {
 			if strings.EqualFold(x, t) {
 				return true
 			}
 		}
-		return false
+		return all && effects.CreatureTypeWords(t)
 	}
 	f := o.Face()
 	if f == nil {

@@ -4,6 +4,7 @@ A-Leyline of Resonance
 A-Scout the Wilderness
 A-Skyclave Shadowcat
 Abbot of Keral Keep
+Abdel Adrian, Gorion's Ward
 Abduction
 Aberrant Researcher
 Aether Channeler
@@ -55,6 +56,7 @@ Boartusk Liege
 Bonescythe Sliver
 Boreal Elemental
 Brimstone Volley
+Burrowing
 Camaraderie
 Canoptek Scarab Swarm
 Cantivore
@@ -75,6 +77,7 @@ Cliffside Lookout
 Clinging Anemones
 Cloaked Siren
 Clockwork Condor
+Compleat Devotion
 Consuming Aetherborn
 Consuming Vapors
 Contact Other Plane
@@ -102,6 +105,7 @@ Divine Offering
 Diviner of Mist
 Doc Ock, Evil Inventor
 Doomsday Specter
+Dredge the Mire
 Druid of the Anima
 Dune Diviner
 Dunes of the Dead
@@ -132,7 +136,6 @@ Feroz's Ban
 Fevered Suspicion
 Fierce Guardianship
 Fire
-Fire Dragon
 Firebreathing
 Firemantle Mage
 Flare of Denial
@@ -268,6 +271,7 @@ Orzhov Keyrune
 Pacification Array
 Pack's Disdain
 Papercraft Decoy
+Patron of the Wild
 Pearl-Ear, Imperial Advisor
 Perimeter Sergeant
 Piston-Fist Cyclops
@@ -367,6 +371,7 @@ Spirit Mantle
 Spitting Slug
 Stamina
 Starstorm
+Steadfast Sentinel
 Stench of Decay
 Stinging Shot
 Stoneforge Mystic
@@ -388,6 +393,7 @@ Tempest Caller
 Thalia, Guardian of Thraben
 The Mending of Dominaria
 The Torment of Gollum
+The Vision and Scarlet Witch
 Thrive
 Thriving Rats
 Throne of Geth
@@ -436,7 +442,6 @@ Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
 Woolly Mammoths
-Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth
 Yavimaya Iconoclast

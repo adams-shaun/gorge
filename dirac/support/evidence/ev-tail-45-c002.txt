@@ -2,10 +2,12 @@ A-Exhibition Magician
 Abyssal Specter
 Acolyte of Xathrid
 Acridian
+Aether Barrier
 Akki Raider
 Alchemist's Vial
 Alert Shu Infantry
 Ambitious Aetherborn
+Anara, Wolvid Familiar
 Anthroplasm
 Aphetto Alchemist
 Apothecary Initiate
@@ -13,12 +15,18 @@ Arc Blade
 Argothian Opportunist
 Argothian Treefolk
 Arisen Gorgon
+Arwen Undómiel
 Ashes to Ashes
+Asmira, Holy Avenger
+Assault Formation
 Atzocan Archer
 Aven Initiate
 Axebane Beast
+Ayumi, the Last Visitor
+Bag End Banquet
 Balduvian Dead
 Balduvian Horde
+Basic Conjuration
 Battering Craghorn
 Bearscape
 Belbe's Armor
@@ -31,6 +39,7 @@ Blightstep Pathway
 Blood Pet
 Bonders' Enclave
 Bonesplitter Sliver
+Boundless Realms
 Brazen Freebooter
 Brine Seer
 Call of the Death-Dweller
@@ -45,17 +54,24 @@ Chameleon Spirit
 Chosen of Markov
 Chronomaton
 Citizen's Crowbar
+Cityscape Leveler
+Clearwater Goblet
 Colossus Hammer
 Constricting Sliver
 Copper Longlegs
 Coppercoat Vanguard
 Corrupted Harvester
+Court Archers
+Crossroads Consecrator
+Culling Mark
 Curse of the Nightly Hunt
 Dance of the Skywise
 Dark Inquiry
 Dark Tutelage
 Darkslick Shores
 Darksteel Juggernaut
+Dauntless Escort
+Dauthi Jackal
 Deadeye Tracker
 Defiant Elf
 Defiler of Souls
@@ -81,6 +97,7 @@ Elven Palisade
 Elvish Dreadlord
 Ethereal Elk
 Eviscerator
+Ezuri, Renegade Leader
 Farhaven Elf
 Fearless Halberdier
 Feign Death
@@ -97,6 +114,7 @@ Flare of Faith
 Flash Flood
 Fledgling Dragon
 Forest
+Forest Bear
 Foundry Helix
 Frozen Shade
 Fíli and Kíli, Joyous
@@ -106,15 +124,19 @@ Garruk Wildspeaker
 General's Kabuto
 Ghitu War Cry
 Gideon's Phalanx
+Glade Watcher
 Gleam of Authority
 Gloomdrifter
+Goblin Fireleaper
 Goblin Hero
 Goldenhide Ox
+Golgari Signet
 Great Hart
 Grinning Demon
 Guardian Augmenter
 Haazda Officer
 Hag of Death's Legion
+Havengul Skaab
 Haze of Pollen
 Heart Sliver
 Heartbeat of Spring
@@ -123,6 +145,7 @@ Herald of Kozilek
 Herald of Secret Streams
 Herald of War
 Hero's Demise
+Heronblade Elite
 Hidden Guerrillas
 Hua Tuo, Honored Physician
 Hungry Spriggan
@@ -134,24 +157,31 @@ Inquisition of Kozilek
 Iron Lad, Young Avenger
 Ironclad Slayer
 Island
+Izzet Charm
 Jawbone Skulkin
 Jewel-Eyed Cobra
+Jolrael, Empress of Beasts
 Joust
 Jund Panorama
-Kavu Aggressor
+Karok Wrangler
+Kavu Mauler
 Keldon Arsonist
 Keldon Necropolis
 Keldon Vandals
 Kiku, Night's Flower
 King Harald's Revenge
 Kraul Raider
+Lantern Kami
 Laser Screwdriver
 Lawbringer
+Leatherback Baloth
 Lightning Reaver
 Lonely Sandbar
+Looming Hoverguard
 Lowland Giant
 Loxodon Sergeant
 Magus of the Order
+Many Partings
 March of the Drowned
 Marrow Bats
 Martyr for the Cause
@@ -159,53 +189,73 @@ Mercurial Pretender
 Meteor Storm
 Moaning Spirit
 Mole Module
-Molten Ravager
 Monk Idealist
 Mountain
+Ms. Marvel, Elastic Ally
 Mudhole
+Murasa Pyromancer
 Murasa Rootgrazer
 Mycoid Shepherd
 Mystic Penitent
+Naga Vitalist
+Nath's Elite
 Nebelgast Herald
 Necrogen Censer
+Nest Invader
 Nezumi Graverobber
 Nightmare's Thirst
 Nimblewright Schematic
 Ninja of the Deep Hours
 Niveous Wisps
+Nyx-Fleece Ram
 Nyxathid
 Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
 Omenspeaker
+One with the Kami
 Onulet
+Outland Liberator
+Pale Recluse
 Personal Sanctuary
 Phantom Centaur
 Phyrexian Defiler
 Pilfering Imp
 Plains
+Pollenbright Druid
 Polymorphist's Jest
 Quicksilver, Pietro Maximoff
 Quirion Ranger
+Raking Canopy
 Rancid Rats
 Rankle, Master of Pranks
 Rath's Edge
 Rathi Intimidator
+Razorclaw Bear
 Razorfield Rhino
 Reckless Fireweaver
+Reclaim the Wastes
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
 Regress
 Remote Isle
+Renata, Called to the Hunt
 Repeal
+Resounding Roar
 Respite
+Revenant Patriarch
 Reverent Hunter
 Righteous Confluence
+River Boa
 River Darter
+Roaring Slagwurm
 Rootbreaker Wurm
+Safehold Duo
 Safehold Sentry
 Sanctum of Tranquil Light
+Sandstone Needle
+Saproling Burst
 Saproling Migration
 Scalebane's Elite
 Scattershot
@@ -220,11 +270,14 @@ Shield of Duty and Reason
 Shivan Raptor
 Signpost Scarecrow
 Silverglade Pathfinder
+Simic Cluestone
 Sister Hospitaller
 Skarrgan Skybreaker
 Sky Skiff
+Smiting Helix
 Smothering Abomination
 Sol Grail
+Somberwald Stag
 Sorin's Vengeance
 Soul of Shandalar
 Soulcage Fiend
@@ -232,15 +285,23 @@ Soulmender
 Sovereign's Bite
 Spare Supplies
 Spectator Seating
+Spider-Man, Miles Morales
+Spire Winder
+Splinterfright
 Spoils of Evil
+Sporesower Thallid
+Springing Tiger
 Stasis Cell
 Steel-Plume Marshal
 Stew the Coneys
 Stitch Together
+Stoic Builder
 Storm of Steel
 Stormchaser Chimera
+Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
+Sultai Flayer
 Sunbathing Rootwalla
 Surgehacker Mech
 Swamp
@@ -256,6 +317,7 @@ Thoughtflare
 Thrashing Wumpus
 Thrun, the Last Troll
 Thud
+Timbermare
 Tormented Thoughts
 Toski, Bearer of Secrets
 Toucan-Puffin
@@ -271,20 +333,26 @@ Vampire of the Dire Moon
 Vedalken Mesmerist
 Vengeful Reaper
 Verdant Catacombs
+Vivien, Arkbow Ranger
 Volatile Arsonist
 Voracious Vacuum
 Wake of Vultures
 Warhost's Frenzy
+Watcher of the Spheres
 Weakstone
+Weird Harvest
 Welding Sparks
 Whispers of Emrakul
 Willow Elf
+Windstorm
 Winged Hive Tyrant
+Wingmantle Chaplain
 Wings of Velis Vel
 Withstand Death
 Wizard's Staff
 Wriggling Grub
 Wu Elite Cavalry
+Yahenni, Undying Partisan
 Yargle and Multani
 Yotian Medic
 Zhang He, Wei General

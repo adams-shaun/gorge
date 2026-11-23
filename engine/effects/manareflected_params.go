@@ -28,6 +28,9 @@ type ManaReflectedParams struct {
 
 	// ReflectProperty$, trimmed (Produce / Is / Produced).
 	ReflectProperty string
+	// Produce: ReflectProperty$ is Produce (what the matching objects' mana
+	// abilities could produce), compiled once.
+	Produce bool
 	// WidenType: ColorOrType$ Type admits colourless.
 	WidenType bool
 	// Valid$, trimmed: the objects reflected from.
@@ -87,6 +90,7 @@ var manaReflectedFront [1 << 10]atomic.Pointer[ManaReflectedParams]
 func compileManaReflected(sa *cards.SA, dp *DefinedParams, ap *ActivationParams) *ManaReflectedParams {
 	p := &ManaReflectedParams{paramBinding: bindParams(sa)}
 	p.ReflectProperty = strings.TrimSpace(sa.ParamStr(cards.PKReflectProperty))
+	p.Produce = p.ReflectProperty == "Produce"
 	p.WidenType = strings.TrimSpace(sa.ParamStr(cards.PKColorOrType)) == "Type"
 	p.Valid = strings.TrimSpace(sa.ParamStr(cards.PKValid))
 	p.Produced = strings.TrimSpace(sa.ParamStr(cards.PKProduced))

@@ -101,6 +101,7 @@ Forest
 Foulmire Knight
 Fracturing Gust
 Frost Lynx
+Fury Storm
 Galestrike
 Garruk's Lost Wolf
 Gatekeeper Gargoyle
@@ -124,6 +125,7 @@ Heated Debate
 Hieromancer's Cage
 High Ground
 Hindering Touch
+Horses of the Bruinen
 Howling Banshee
 Icatian Scout
 Ideas Unbound
@@ -135,6 +137,7 @@ Intimidator Initiate
 Intrusive Packbeast
 Invasion of Ulgrotha
 Island
+Jadar, Ghoulcaller of Nephalia
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
@@ -157,6 +160,7 @@ Lossarnach Captain
 Lost Leonin
 Ludevic's Test Subject
 Magma Jet
+March of the Multitudes
 Master of Diversion
 Maximus, Knight Apparent
 Mental Journey
@@ -164,9 +168,11 @@ Merrow Grimeblotter
 Metalwork Colossus
 Midnight Scavengers
 Mind Games
+Misleading Signpost
 Mistford River Turtle
 Mogg Jailer
 Moku, Meandering Drummer
+Mosquito Guard
 Mountain
 Mudhole
 Myojin of Cryptic Dreams
@@ -184,6 +190,7 @@ Octomancer
 Odric's Outrider
 Omnispell Adept
 Oppressive Will
+Order of Sacred Dusk
 Ornamental Courage
 Pendrell Mists
 Penregon Strongbull
@@ -193,6 +200,7 @@ Plague Sliver
 Plains
 Plow Through Reito
 Polyraptor
+Portal Mage
 Press into Service
 Prickly Marmoset
 Priest of Titania
@@ -258,6 +266,7 @@ Talisman of Resilience
 Tar Pit Warrior
 Terisiare's Devastation
 Thalakos Drifters
+Thancred Waters
 Thornscape Familiar
 Thornwind Faeries
 Thousand Winds
@@ -288,6 +297,7 @@ Whip Vine
 Whispersilk Cloak
 Wild Aesthir
 Wildsize
+Wilhelt, the Rotcleaver
 Wind Zendikon
 Wing Commando
 Woodland Guidance

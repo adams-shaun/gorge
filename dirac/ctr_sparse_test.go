@@ -89,11 +89,23 @@ func TestSparseCountersMatchDense(t *testing.T) {
 			}
 			// q marked every held kind seen; match only when p did too
 			if p.ctrSeenMask(s) == q.ctrSeenMask(sq) && (p.ck != q.ck || p.cn != q.cn || p.p1 != q.p1 || p.cseen != q.cseen ||
-				!slices.Equal(s.g.ctrOver[:s.g.nctrOver], sq.g.ctrOver[:sq.g.nctrOver])) {
+				!slices.Equal(unstamped(s.g.ctrOver[:s.g.nctrOver]), unstamped(sq.g.ctrOver[:sq.g.nctrOver]))) {
 				t.Fatalf("run %d step %d: same state, different bytes %v/%v vs %v/%v", run, step, p.ck, p.cn, q.ck, q.cn)
 			}
 		}
 	}
+}
+
+// unstamped copies overflow entries without their CR 613.7 stamps: a keyword
+// counter's stamp is the layer clock when it was put on, so rebuilding the same
+// counts in another order stamps them differently (perm.cs is left out of the
+// in-place comparison for the same reason).
+func unstamped(es []ctrOverEntry) []ctrOverEntry {
+	out := slices.Clone(es)
+	for i := range out {
+		out[i].ts = 0
+	}
+	return out
 }
 
 // ctrOverScen is a permanent to pile counters on.
@@ -273,10 +285,11 @@ func TestCtrOverFullStalls(t *testing.T) {
 // TestPermSize pins perm's size. The object index and the codes are sixteen
 // bits (obj, chosen, bord, atk: Obj, objWord, TCode). The 16-bit counter
 // kinds (ck) added three bytes, attack-version bookkeeping (atkVer) one and
-// the P/T-switch mark byte (spare) one.
+// the P/T-switch mark byte (spare) one; the keyword counters' CR 613.7
+// stamps (cs, three uint16) four more.
 func TestPermSize(t *testing.T) {
 	var p perm
-	want := uintptr(68)
+	want := uintptr(72)
 	if got := unsafeSizeofPerm(&p); got != want {
 		t.Fatalf("perm is %d bytes, want %d", got, want)
 	}

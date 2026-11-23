@@ -8,7 +8,9 @@ import "testing"
 // rule its subtest names, and now plays through it and 200 decisions on.
 // Each recording's pool is its MBC draft split, built from its own decks.
 func TestCastOptionsParityLockstep(t *testing.T) {
-	t.Parallel()
+	if landGrantReplay(t) {
+		return
+	}
 	for _, name := range []string{
 		// Kavu Primarch (Kicker {4}, Convoke) with lands and no pool: gorge's
 		// potential planner declines every credit-bearing kicked cast

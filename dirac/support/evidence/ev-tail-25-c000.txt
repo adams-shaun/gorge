@@ -60,6 +60,7 @@ Caller of Gales
 Captain America, Steve Rogers
 Captain's Defense
 Capture of Jingzhou
+Carry Away
 Cat Burglar
 Cathartic Operation
 Celebrate the Harvest
@@ -129,6 +130,7 @@ Erebos, Bleak-Hearted
 Etherium Spinner
 Everflame Eidolon
 Expedition Skulker
+Expel the Unworthy
 Fable of the Mirror-Breaker
 Failed Conversion
 Fall to Earth
@@ -138,6 +140,7 @@ Fangren Hunter
 Fell Shepherd
 Fencing Ace
 Festive Funeral
+Fiery Inscription
 Fire-Omen Crane
 Fireslinger
 Forest
@@ -351,6 +354,7 @@ Sift
 Sigarda's Aid
 Silverglade Elemental
 Silverquill Lecturer
+Sinuous Striker
 Sire of Insanity
 Skillful Lunge
 Skinbrand Goblin
@@ -430,6 +434,7 @@ Vapor Snare
 Vedalken Entrancer
 Vengeance
 Venomous Hierophant
+Ventifact Bottle
 Verdigris
 Vermin Gorger
 Vessel of Paramnesia

@@ -10,6 +10,31 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// clearSourceRemembered is Forge's source.clearRemembered(): it empties the
+// ctx-level list and, when the source object's persistent list held entries,
+// emits the clear-remembered Choose the replay folds (an empty clear is not an
+// event, so chain heads do not move for nothing). It reports whether it emitted.
+func clearSourceRemembered(h Host, c *Ctx) bool {
+	c.Remembered = nil
+	if c.Source == 0 {
+		return false
+	}
+	if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
+		// CR 400.7: a pending trigger that is answering from its fire-time
+		// snapshot (the source re-entered as a new object while it waited)
+		// belongs to the OLD object, so its cleanup forgets that snapshot
+		// only; the live list is the new object's own memory (Mesmeric
+		// Fiend blinked with its ETB pending: the old leave trigger's
+		// cleanup must not drop the card the new Fiend exiled).
+		if c.TriggerContext.servesSnapshot(o) {
+			return false
+		}
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
+		return true
+	}
+	return false
+}
+
 func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// Forge's CleanUpEffect: ClearRemembered$ True clears the host card's
 	// remembered list (the persistent list the next resolution of this card
@@ -27,15 +52,7 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// emit -- that is what moved the 4- and 6-seat heads.)
 	noted := false
 	if strings.EqualFold(sa.ParamStr(cards.PKClearRemembered), "True") {
-		c.Remembered = nil
-		if c.Source != 0 {
-			if o := h.Game().Obj(c.Source); o != nil && len(o.Remembered) > 0 {
-				// A real clear: the event is what a replay folds, so the next
-				// resolution of this card sees the empty list.
-				h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
-				noted = true
-			}
-		}
+		noted = clearSourceRemembered(h, c)
 	}
 	// ClearChosenCard$ / ClearChosenPlayer$ (Party Thrasher's DBClearChosen,
 	// Wishclaw Talisman's DBCleanup, Vial Smasher's): the same discipline as
@@ -280,6 +297,9 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if transform && dayNightBound(h, o.ID) {
 			continue
 		}
+		if transform && setStateSelfIsNewObject(h, c, o) {
+			continue
+		}
 		if setStateFlipMode(sa) && !setStateFlipGate(o) {
 			continue
 		}
@@ -293,6 +313,28 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(flip)
 		setstateRememberChanged(c, sa, o.ID)
 	}
+}
+
+// setStateSelfIsNewObject reports that o is the resolving ability's own source
+// but a different object than the one the ability was created for (CR 400.7,
+// CR 701.28f: a transform instruction naming an object that is not the
+// object it was when instructed does nothing). Archangel Avacyn's delayed
+// "transform at the beginning of the next upkeep" is registered while she is on
+// the battlefield; bounced and flashed back in with that trigger on the stack,
+// the new permanent is not the one to transform. delayedSourceReturned compares
+// the source's current incarnation against the stamp taken at the ability's
+// registration or push, so an ability that names an affected object other than
+// its creator (tc.DelayedSelf) is excused there.
+//
+// An activated ability is left to selfDefinedTarget's off-battlefield
+// exception: one pushed from a graveyard may return its own source and then
+// transform it, and that return is the identity its body names.
+func setStateSelfIsNewObject(h Host, c *Ctx, o *state.Object) bool {
+	if o.ID != c.Source || !delayedSourceReturned(h.Game(), c) {
+		return false
+	}
+	ro := h.Game().Obj(c.ResolvingObj)
+	return ro != nil && ro.StackKind != state.StackKindActivated
 }
 
 // setstateRememberChanged honours a SetState body's RememberChanged$ True: each

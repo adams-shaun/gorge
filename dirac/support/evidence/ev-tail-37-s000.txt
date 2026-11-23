@@ -2,17 +2,25 @@ Act of Aggression
 Aegis Automaton
 Aeronaut Cavalry
 Aggressive Urge
+Ancient Tomb
 Angel of the Dawn
 Angelsong
 Arcane Adaptation
+Arcbond
 Ardoz, Cobbler of War
+Aspect of Wolf
 Avatar of the Resolute
+Aven Reedstalker
+Back to Nature
 Barricade Breaker
+Big Wheel
 Blackcleave Goblin
 Blightreaper Thallid
 Blind Zealot
 Boseiju Reaches Skyward
+Break Down
 Brightstone Ritual
+Calamity of Cinders
 Calming Licid
 Captain Ripley Vance
 Cave-In
@@ -23,33 +31,62 @@ Cloud, Midgar Mercenary
 Cloudreach Cavalry
 Commander's Authority
 Concordia Pegasus
+Contagion Clasp
+Contested War Zone
+Crawling Chorus
 Crimson Kobolds
 Curse of Chaos
+Damn
 Dance with Devils
 Darkness
 Decompose
 Deer-Dog
+Delightful Discovery
 Drag to the Underworld
+Dragon Roost
+Driven
+Drownyard Temple
+Dusk's Landing
 Duskrider Falcon
+Dynavolt Tower
 Ebony Rhino
 Elder Cathar
 Elderfang Venom
 Elderleaf Mentor
 Elvish Ranger
+Emerald Oryx
 Emeria's Call
+Endrider Spikespitter
+Exultant Cultist
+Fading Hope
+Faerie Impostor
+Faithless Salvaging
+Far Fortune, End Boss
 Fate Forgotten
 Flame Slash
+Flameshot
 Fledgling Dragon
+Flowstone Slide
 Forest
 Fourth Bridge Prowler
 Frozen Shade
 Gaea's Touch
+Gev, Scaled Scorch
+Ghostfire Blade
+Giant Ankheg
 Goblin Patrol
+Golden Urn
+Golgari Grave-Troll
+Gore Swine
 Gornog, the Red Reaper
+Grave Venerations
+Gruul Turf
+Guard Gomazoa
 Guild Artisan
 Halo Hopper
 Hand of Silumgar
 Herald of Slaanesh
+Hired Claw
 Humiliate
 Icatian Priest
 Incubator Drone
@@ -57,73 +94,141 @@ Indestructible Aura
 Invading Manticore
 Island
 Isolation Cell
+Jhessian Lookout
 Jungle Delver
+Kavu Glider
+Kaysa
+Kindred Denial
 King's Assassin
 Kitsune Diviner
 Knight of Cliffhaven
+Kolaghan Monument
 Lazotep Reaver
+Legion Loyalty
 Loxodon Anchorite
 Loxodon Gatekeeper
 Lux Cannon
+Maestros Theater
+Markov Blademaster
 Maulfist Doorbuster
+Maze of Shadows
+Meishin, the Mind Cage
 Mephidross Vampire
 Millennial Gargoyle
+Millstone
+Mindstatic
 Mob
 Moltensteel Dragon
 Morbid Plunder
 Mountain
+Navigation Orb
 Nearheath Chaplain
 Norika Yamazaki, the Poet
 Noxious Dragon
+Nullify
 Off Balance
+Orochi Merge-Keeper
 Parapet Thrasher
 Peregrine Griffin
+Pestilent Souleater
 Phyrexian Missionary
+Pierce the Sky
 Pillar Tombs of Aku
 Plains
+Polluted Delta
 Possessed Nomad
 Prakhata Club Security
+Precipitous Drop
 Priest of the Crossing
 Primaris Chaplain
 Prismari Campus
+Professor Hulk
+Psionic Sliver
+Pulse of the Tangle
+Pummeler for Hire
 Pumpkin Bombs
 Purgatory
 Qilin's Blessing
+Quicksilver Gargantuan
+Rampaging Growth
 Ravenous Skirge
+Raving Visionary
+Reap and Sow
+Red Ward
+Reduce to Dreams
 Regal Bloodlord
+Rejuvenation Chamber
 Rekindled Flame
 Reviving Melody
+Rime Dryad
+Riptide
 Rising Populace
 Roar of Reclamation
+Robot Chicken
+Rohirrim Lancer
 Rumbling Baloth
+Rustmouth Ogre
+Said
+Sarkhan's Dragonfire
+Savage Stomp
+Scalding Tongs
 Scorch Spitter
+Sea Legs
 Selesnya Signet
 Shadow Lance
 Shadowfeed
+Shefet Monitor
+Shisato, Whispering Hunter
+Shivan Oasis
 Sickle Ripper
 Siege Smash
+Sightless Ghoul
 Silumgar Butcher
+Silundi Vision
 Siren of the Silent Song
+Skin Invasion
 Skred
 Sky Ruin Drake
+Snap
 Soltari Priest
+Soratami Rainshaper
 Sorin's Vengeance
 Sosuke's Summons
+Soul Reap
 Spawning Breath
+Spellbane Centaur
+Spineless Thug
 Stand Firm
+Star Compass
+Steelburr Champion
+Storm, Shaker of Skies
+Stormrider Rig
+Sun-Collared Raptor
 Sunstrike Legionnaire
 Swamp
+Swampbenders
 Tainted Adversary
+Tangle Spider
+Tangled Islet
+Tel-Jilad Wolf
 Temur Runemark
 Tenth District Veteran
+Tergrid's Shadow
 Terminal Agony
 The Meathook Massacre
+Thornglint Bridge
 Thraben Inspector
+Thragtusk
+Tidal Barracuda
 Tradewind Rider
+Trollbred Guardian
 Twilight Prophet
 Undead Butler
+Undo
+Urza's Blueprints
 Vault Guardsman
 Vectis Dominator
+Wakedancer
 Walking Corpse
 Warped Physique
 Warrior's Charge
@@ -132,4 +237,7 @@ Wei Elite Companions
 White Glove Gourmand
 Wicker Witch
 Wielding the Green Dragon
+Wring Flesh
+Yorvo, Lord of Garenbrig
 You See a Pair of Goblins
+Zealot of the God-Pharaoh

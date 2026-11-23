@@ -15,5 +15,4 @@ Kyren Negotiations
 Mountain
 Plains
 Swamp
-Wakeroot Elemental
 War Dance

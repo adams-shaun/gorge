@@ -16,6 +16,7 @@ Anthousa, Setessan Hero
 Aphetto Alchemist
 Arc Lightning
 Arcane Teachings
+Arcbound Wanderer
 Archfiend of Despair
 Argivian Phalanx
 Argothian Opportunist
@@ -86,6 +87,7 @@ Dark-Dweller Oracle
 Darksteel Splicer
 Death-Hood Cobra
 Deathcap Cultivator
+Deathknell Kami
 Debt to the Kami
 Deekah, Fractal Theorist
 Deepglow Skate
@@ -154,6 +156,7 @@ Geistlight Snare
 Geode Golem
 Gerrard's Command
 Gift of Strands
+Gilt-Leaf Ambush
 Gnarled Mass
 Goblin Gaveleer
 Goblin Skycutter
@@ -207,6 +210,7 @@ Ledev Guardian
 Lesser Gargadon
 Level Up
 Leyline of the Meek
+Library of Alexandria
 Lifeline
 Lightning Blow
 Liquimetal Coating

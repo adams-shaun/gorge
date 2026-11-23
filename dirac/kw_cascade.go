@@ -6,6 +6,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mutation test: the lockstep must diverge without it).
 var DebugIgnoreCascade bool
 
+// DebugGrantedCascade, when set, receives the number of cascade triggers a
+// live StatStackKw grant queued (the printed instances are not counted). The
+// oracle's cast-from-exile lockstep sets it, so a green game is not one where
+// the grant never reached the cast.
+var DebugGrantedCascade func(n int)
+
 // cascadeProg is the resolution of a cascade trigger (CR 702.85a, gorge
 // effects/cascade.go): exile until a cheaper nonland card (OpDiscover C=2),
 // offer its free cast, then bottom it if it is still in exile (C=3).
@@ -23,7 +29,14 @@ var cascadeProg = [3]kop.Instr{
 func (s *State) queueCascade(k *prep, e *stackEntry) {
 	n := int(k.t.Cards[e.card].Cascade)
 	if k.gen.anyStackKw {
+		// a gated grant reads the casts before this one (gorge
+		// hasKeywordPriorCasts): hide the in-flight push from the cast ring
+		saved := s.hideInflightCast(e)
 		g, _ := s.stackKwN(k, kop.StackKwCascade, e.card, e.obj, e.ctrl, s.castFromHandBy(e, e.ctrl)) // one more per granting static (cascadeInstances)
+		s.restoreInflightCast(e.ctrl, saved)
+		if DebugGrantedCascade != nil {
+			DebugGrantedCascade(g)
+		}
 		n += g
 	}
 	if n == 0 || s.isSpellCopy(e.obj) {
@@ -51,7 +64,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		for i := 0; i < int(s.g.nrem); i++ {
 			if o := s.g.rem[i]; s.objs[o].zone == kop.ZoneExile && !s.freeQueued(o) {
 				from := s.detach(o)
-				s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+				s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 			}
 		}
 		return
@@ -79,7 +92,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false)
+		s.placeFrom(o, kop.ZoneExile, false, kop.ZoneLibrary, false, false)
 		pc := &k.cards[s.objs[o].card]
 		if !pc.land && s.splitMV(k, s.objs[o].card, o, int(pc.total)) < mv { // CR 709.4b: the exiled split card shows both halves
 			found = o
@@ -96,7 +109,7 @@ func (s *State) cascade(k *prep, in *kop.Instr) {
 	}
 	for _, o := range ex[:ne] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneLibrary, true, from, false)
+		s.placeFrom(o, kop.ZoneLibrary, true, from, false, false)
 	}
 	s.g.nrem, s.g.remCnt = 0, 0
 	if found != NoObj {

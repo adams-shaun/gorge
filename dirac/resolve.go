@@ -97,12 +97,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 		s.bestowResolve(k, &e) // CR 702.103e (kw_bestow.go)
 	}
-	if k.gen != nil && e.kind == seSpell && isObjTarget(e.tgt[0]) && e.li == 0 {
-		// the target's last known P/T (Condemn); a sacrificed cost's LKI,
-		// already held, is kept (RefSacrificed: Kazuul's Fury deals the
-		// sacrificed creature's power, not its target's)
-		s.res.e.li = s.snapLKI(Obj(e.tgt[0]))
-	}
+	s.snapResolveTgtLKI(k, &e) // the target's last known P/T (value_abiltgtpt.go)
 	// fizzle: every chosen target illegal
 	if e.nt > 0 {
 		any := false
@@ -355,7 +350,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			if z == kop.ZoneLibrary {
 				s.omenToLibrary(e.obj) // face_omen.go
 			} else {
-				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
+				s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false, false)
 				if !fizzled {
 					s.markedPlot(k, e) // repl_stackexile.go
 				}
@@ -524,7 +519,7 @@ func (s *State) counterAt(k *prep, i int) {
 		if k.gen != nil && k.gen.anyFaces {
 			z = s.stackExitFace(k, e.obj, z, false) // face_castface.go
 		}
-		s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false)
+		s.placeFromK(k, e.obj, z, false, kop.ZoneStack, false, false)
 	}
 }
 
@@ -785,7 +780,10 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 	return ob.owner()
 }
 
-// value evaluates a ValueRef.
+// DebugOthersEnterEntrantValue (TestOthersEnterCountersSourceValueMutation):
+// an others-enter program's amount reads the entering permanent again.
+var DebugOthersEnterEntrantValue bool
+
 // enterCountValue is value for the amount of an enters-with-counters
 // replacement, which counts for the entering permanent (sl, controlled by
 // ctrl): its "other" is that permanent, not the source of the effect that
@@ -793,12 +791,21 @@ func (s *State) ctrlOfObj(o Obj) uint8 {
 // Breacher, which counts the Skiff), and its "you" is that permanent's
 // controller, not the effect's (All-Fates Stalker's return of Gigastorm Titan
 // under Bioengineered Future counts lands that entered under the Titan's
-// controller).
+// controller). A program running as another permanent's others-enter
+// replacement (replSrcOf) reads that source instead.
 func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) int {
 	if v.K == kop.VExpr {
 		c := s.ctxEntry(&s.res.e)
 		c.ctrl = ctrl
 		c.src, c.srcSl = s.perms[sl].obj, sl
+		if r := s.replSrcOf(); r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+			// another permanent's others-enter program (Arwen, Weaver of
+			// Hope): its amount is the source's, with the source's "you"
+			// (CR 614.12)
+			src := Slot(r - 1)
+			c.ctrl = s.perms[src].ctrl
+			c.src, c.srcSl = s.perms[src].obj, src
+		}
 		return s.expr(k, v.N, c)
 	}
 	if v.K != kop.VCountFilter {
@@ -868,6 +875,12 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 			// printed (or characteristic-defining) P/T: a graveyard card
 			// exiled by Morbid Bloom still has its toughness (CR 608.2g/h).
 			if o := s.objRefObj(kop.RefTarget0); o != NoObj {
+				if pw, t, ok := s.abilTgtLKIPT(&s.res.e, o); ok {
+					if v.K == kop.VTargetPower {
+						return pw
+					}
+					return t
+				}
 				pw, t := s.objPT(k, o, NoSlot)
 				if v.K == kop.VTargetPower {
 					return pw
@@ -966,7 +979,8 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 		return 0
 	}
 	e := &s.res.e
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
@@ -985,7 +999,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	if isPlayerOrNone(code) {
 		s.noteDmgTaken(CodeSeat(code), n) // kw_bloodthirst.go
-		s.loseLife(k, CodeSeat(code), n)
+		s.loseLifeDmg(k, CodeSeat(code), n)
 		s.plDmgMark(CodeSeat(code), n) // wasDealtDamageThisTurn's seat arm (gen.go)
 	} else {
 		ob := &s.objs[code]
@@ -1010,7 +1024,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if k.gen != nil && e.obj != NoObj {
@@ -1028,7 +1042,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
@@ -1080,14 +1094,16 @@ func (s *State) oneOpp(k *prep, r kop.Ref) uint8 {
 }
 
 // oneOppOf is oneOpp for entry e (nil: none), controller ctrl and source
-// obj. Past two seats an attack trigger's defending player is the one bound
-// as it was queued (defSeat), else the seat its attacking source attacks.
+// obj. An attack trigger's defending player is the one bound as it was
+// queued (defSeat; at two seats too, where the attacker may have left before
+// the damage resolves), else past two seats the seat its attacking source
+// attacks.
 func (s *State) oneOppOf(k *prep, r kop.Ref, e *stackEntry, ctrl uint8, obj Obj) uint8 {
+	if r == kop.RefDefendingPlayer && e != nil && e.kind == seTrigger && e.defSeat != 0 {
+		return defSeatSeat(e.defSeat)
+	}
 	if s.duel() {
 		return s.nextSeat(ctrl)
-	}
-	if r == kop.RefDefendingPlayer && e != nil && e.kind == seTrigger && e.defSeat != 0 {
-		return e.defSeat - 1
 	}
 	if r == kop.RefDefendingPlayer && obj != NoObj {
 		if ob := &s.objs[obj]; ob.zone == kop.ZoneBattlefield && s.perms[ob.slot].flags&pfAttacking != 0 {

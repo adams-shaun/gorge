@@ -548,8 +548,18 @@ func newFloatReorder(a, b *rules.Engine, cast state.ObjID, sources []state.ObjID
 	}
 	// Only a genuine reorder earns the allowance: identical lists leave the
 	// spell's boundary and snapshots compared exactly.
-	r.enteredReordered = !slices.Equal(a.G.Entered, b.G.Entered) && sameEntryMultiset(a.G.Entered, b.G.Entered)
+	r.enteredReordered = !slices.EqualFunc(a.G.Entered, b.G.Entered, func(x, y state.ZoneEntry) bool {
+		return entryKey(x) == entryKey(y)
+	}) && sameEntryMultiset(a.G.Entered, b.G.Entered)
 	return r
+}
+
+// entryKey is a zone entry's comparable key: ZoneEntry's LeftCounters slice
+// keeps the struct itself non-comparable (the CR 400.7 counters a
+// battlefield departure carried out), so the entry maps and the reorder
+// check compare the render of the whole struct instead.
+func entryKey(z state.ZoneEntry) string {
+	return render(reflect.ValueOf(z), 4)
 }
 
 // sameEntryMultiset reports whether two zone-entry lists hold the same
@@ -558,15 +568,15 @@ func sameEntryMultiset(a, b []state.ZoneEntry) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	n := make(map[state.ZoneEntry]int, len(a))
+	n := make(map[string]int, len(a))
 	for _, z := range a {
-		n[z]++
+		n[entryKey(z)]++
 	}
 	for _, z := range b {
-		if n[z] == 0 {
+		if n[entryKey(z)] == 0 {
 			return false
 		}
-		n[z]--
+		n[entryKey(z)]--
 	}
 	return true
 }
@@ -1068,13 +1078,13 @@ func floatTriggerOnly(a, b *rules.Engine, fork int, rep *Report) string {
 	if !maps.Equal(newKeys(a), newKeys(b)) {
 		return "new_objects"
 	}
-	masked := func(es []state.ZoneEntry) map[state.ZoneEntry]int {
-		out := map[state.ZoneEntry]int{}
+	masked := func(es []state.ZoneEntry) map[string]int {
+		out := map[string]int{}
 		for _, z := range es {
 			if isNew(z.Obj) {
 				z.Obj = 0
 			}
-			out[z]++
+			out[entryKey(z)]++
 		}
 		return out
 	}

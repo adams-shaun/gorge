@@ -149,6 +149,7 @@ Fumble
 Furnace Dragon
 Furnace Scamp
 Futurist Sentinel
+Galadhrim Brigade
 Game-Trail Changeling
 Gavony Trapper
 Geist Snatch
@@ -194,11 +195,14 @@ Island
 Isolate
 Jace, Ingenious Mind-Mage
 Jokulmorder
+Jyoti, Moag Ancient
 Kabira Outrider
+Kami of the Palace Fields
 Kardur, Doomscourge
 Kargan Dragonlord
 Karona, False God
 Killian, Ink Duelist
+Kindred Summons
 Knight of Infamy
 Knowledge and Power
 Kolaghan Forerunners
@@ -220,6 +224,7 @@ Lorehold Excavation
 Machinate
 Machine Man, Model X-51
 Mage Duel
+Magister of Worth
 Magmatic Channeler
 Manabond
 Manglehorn
@@ -242,6 +247,7 @@ Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
+Moment of Silence
 Moment's Peace
 Monstrous Onslaught
 Morgue Theft
@@ -286,6 +292,7 @@ Primaris Chaplain
 Primordial Ooze
 Prophetic Flamespeaker
 Protector of the Crown
+Pyromatics
 Qasali Pridemage
 Quintorius, History Chaser
 Rakdos Cluestone
@@ -295,6 +302,7 @@ Ravenous Bloodseeker
 Razorfin Hunter
 Reito Lantern
 Reiver Demon
+Relentless Rohirrim
 Relic Bane
 Relic Sloth
 Repercussion
@@ -427,6 +435,7 @@ Vivisurgeon's Insight
 Voltaic Key
 Volunteer Militia
 Vulshok Refugee
+Waker of Waves
 Wand of Denial
 Wand of the Elements
 Wandering Tombshell

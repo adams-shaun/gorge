@@ -19,10 +19,13 @@ import (
 // lowering is a DealDamage on the defending player (two-player: the
 // controller's opponent; past two seats the seat of the Attacks event that
 // queued the trigger, stackEntry.defSeat: seat-exact) marked DmgAtkedObj, behind
-// OpAtkPWGuard C AtkPWHit, which stalls the game when the attacker left, or
-// attacks the trigger's controller, where gorge's .Opponent qualifier names
-// nobody. DealDamageFrom (Mage Slayer's DamageSource$) has no planeswalker
-// recipient: dmgSrcPlayers adds a plain guard that stalls on one.
+// OpAtkPWGuard C AtkPWHit, which stalls the game when the attacker left
+// while attacking an object or attacks the trigger's controller, where
+// gorge's .Opponent qualifier names nobody; a gone attacker that attacked a
+// player passes, on the queue-time defSeat. Mage Slayer's DamageSource$
+// DealDamageFrom (CS defending) damages that object too, behind the same
+// guard: the kernel's defending mode deals through dmgSrcObject
+// (act_damagefrom.go).
 const triggeredDefenderOrPW = "TriggeredDefender.Opponent & Valid Planeswalker.TriggeredDefender"
 
 func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {

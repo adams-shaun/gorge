@@ -1,3 +1,4 @@
+Afterlife
 Afterlife Insurance
 Akroan Phalanx
 Altar's Reap
@@ -27,6 +28,7 @@ Combo Attack
 Dakmor Plague
 Daring Saboteur
 Dark-Dweller Oracle
+Death-Hood Cobra
 Devout Witness
 Dockside Chef
 Driver of the Dead
@@ -34,6 +36,7 @@ Drumhunter
 E. Honda, Sumo Champion
 Electric Revelation
 Elemental Bond
+Epicure of Blood
 Esior, Wardwing Familiar
 Essence Scatter
 Expedite
@@ -46,6 +49,7 @@ Gift of the Viper
 Graaz, Unstoppable Juggernaut
 Grimclaw Bats
 Guardian Naga
+Gurmag Angler
 Herald of the Host
 Hope and Glory
 Hunter's Ambush
@@ -73,9 +77,11 @@ Negate
 New Frontiers
 Oath of Druids
 Oblivion Strike
+Pelakka Wurm
 Perilous Research
 Phyrexian Gargantua
 Phyrexian Missionary
+Phyrexian Triniform
 Plains
 Preordain
 Priest of Titania
@@ -90,6 +96,7 @@ Rust Goliath
 Seeker of the Way
 Seething Anger
 Sentinel of the Eternal Watch
+Shieldhide Dragon
 Shinen of Life's Roar
 Sigil of Sleep
 Six
@@ -97,6 +104,7 @@ Skeletal Scrying
 Skullport Merchant
 Skyhunter Skirmisher
 Snuff Out
+Song of Freyalise
 Spike Weaver
 Spirit Mantle
 Spirited Companion
@@ -112,6 +120,7 @@ Terror
 Tetsuko Umezawa, Fugitive
 Thunderfoot Baloth
 Thunderous Orator
+Timberland Ancient
 Time Ebb
 Toggo, Goblin Weaponsmith
 Tragic Slip

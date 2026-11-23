@@ -107,6 +107,7 @@ Dark Salvation
 Dauntless Cathar
 Dawnhart Rejuvenator
 Dead
+Deadfall
 Death Bomb
 Deep Dish Pizza
 Dehydration
@@ -133,6 +134,7 @@ Dueling Coach
 Durkwood Baloth
 Duskworker
 Dwarven Bloodboiler
+Dwarven Shrine
 Dáin's Company
 Eagle of Deliverance
 Earth Servant
@@ -182,6 +184,7 @@ Forest
 Forsaken City
 Frenzied Fugue
 Frost Ogre
+Gaddock Teeg
 Ghost-Spider, Gwen Stacy
 Gild
 Gird for Battle
@@ -316,6 +319,7 @@ Moria Marauder
 Morkrut Banshee
 Mortuary
 Mountain
+Murk Dwellers
 Murkfiend Liege
 Myr Mindservant
 N'Yami-Class Mother Ship
@@ -432,6 +436,7 @@ Skyreach Manta
 Slimebind
 Sling-Gang Lieutenant
 Smelted Chargebug
+Smiting Helix
 Soltari Emissary
 Sonic Burst
 Spawn of Thraxes
@@ -463,6 +468,7 @@ Tainted Strike
 Tangle Golem
 Tarkir Charm
 Tarnished Citadel
+Tasigur's Cruelty
 Tawnos's Wand
 Tek
 Tenacity

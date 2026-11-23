@@ -8,6 +8,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -23,16 +24,17 @@ import (
 //     Pothole Mole, Under the Skin;
 //   - Attacking$ True (TokenAttacks "entered attacking"): Kinscaer Sentry (a
 //     hand pick), Persistent Marshstalker;
-//   - targeted Mandatory$ (a no-op): Disruptor Wanderglyph;
+//   - targeted Mandatory$ (a no-op): Disruptor Wanderglyph, Koya, Death from
+//     Above (an "up to one" target);
+//   - a declined "up to one" target (CR 115.10; the move does nothing): the
+//     eager policy never declines on its own, so every fourth seed declines
+//     Koya's and The Neutrinos' ask;
 //   - DifferentNames$ on a library search: Fblthp, Knows the Way;
 //   - ThisDefinedAndTgts$ Self: Floodpits Drowner (shuffle into libraries),
 //     Sandman, Shifting Scoundrel (return from the graveyard).
 //
 // Not in the pool: Grim Reaper, Lethal Legionnaire (build-refused on its
-// finality counter), The Neutrinos and Koya, Death from Above (kgen refuses
-// Attacking$ / Mandatory$ beside an "up to one" target: gorge re-asks a
-// declined target at resolution and moves the source, see lower_zone.go
-// optionalTarget).
+// finality counter).
 
 var kczDecks = [][2][]cardset.Entry{{
 	// M0 mill / graveyard
@@ -51,12 +53,12 @@ var kczDecks = [][2][]cardset.Entry{{
 	// M1 attacking
 	{
 		{Name: "Grizzly Bears", Count: 5}, {Name: "Kinscaer Sentry", Count: 4}, {Name: "Persistent Marshstalker", Count: 4},
-		{Name: "Daggerfang Duo", Count: 3}, {Name: "Deathcap Marionette", Count: 2},
-		{Name: "Plains", Count: 11}, {Name: "Swamp", Count: 11},
+		{Name: "Daggerfang Duo", Count: 3}, {Name: "Deathcap Marionette", Count: 2}, {Name: "Koya, Death from Above", Count: 3},
+		{Name: "Plains", Count: 10}, {Name: "Swamp", Count: 9},
 	},
 	{
 		{Name: "Kinscaer Sentry", Count: 6}, {Name: "Grizzly Bears", Count: 4}, {Name: "Disruptor Wanderglyph", Count: 3},
-		{Name: "Plains", Count: 14}, {Name: "Mountain", Count: 13},
+		{Name: "The Neutrinos", Count: 3}, {Name: "Plains", Count: 13}, {Name: "Mountain", Count: 11},
 	},
 }, {
 	// M2 search / self
@@ -78,6 +80,7 @@ var kczCarriers = []string{
 	"Rainveil Rejuvenator", "Patchwork Beastie", "Mole Man, Moloid Master", "Carrion Cruiser", "Pothole Mole",
 	"Under the Skin", "Kinscaer Sentry", "Persistent Marshstalker", "Disruptor Wanderglyph",
 	"Fblthp, Knows the Way", "Floodpits Drowner", "Sandman, Shifting Scoundrel",
+	"Koya, Death from Above", "The Neutrinos",
 }
 
 const kczMin = 10
@@ -115,6 +118,18 @@ func kczPolicy(seed uint64, played map[string]int, gs **GorgeSide, gm *kczGame) 
 		src := ""
 		if ob := c.G.E.G.Obj(d.Source); ob != nil && ob.Face() != nil {
 			src = ob.Face().Name
+		}
+		// The eager policy never declines an "up to one" target ask on its
+		// own, so every fourth seed declines Koya's and The Neutrinos' ask:
+		// CR 115.10 makes zero targets legal, and the declined move must
+		// move nothing in both engines.
+		if seed%4 == 0 && d.Kind == decision.KTarget {
+			for _, n := range []string{"Koya, Death from Above", "The Neutrinos"} {
+				if strings.Contains(d.Prompt, "Choose a target for "+n) {
+					gm.add("decline:" + n)
+					return Pack(ActDone, RefNone, RefNone, 0)
+				}
+			}
 		}
 		opt, ok := c.G.GorgeOption(a)
 		switch d.ResumeKind {
@@ -174,6 +189,8 @@ func kczScan(g *GorgeSide, gm *kczGame) {
 			who := "Kinscaer Sentry"
 			if n := name(ev.Obj); n == "Persistent Marshstalker" {
 				who = n
+			} else if trig == "The Neutrinos" {
+				who = trig
 			}
 			gm.add("attacks:" + who)
 		case events.MoveZone:
@@ -312,19 +329,21 @@ func TestCzparamsLockstep(t *testing.T) {
 	for _, want := range []string{
 		"mill_optional:yes", "mill_optional:no", "hidden_pick_confirm:yes", "hidden_pick_confirm:no", "attacks",
 		"fblthp2", "floodpits2", "sandman2", "mandatory:Disruptor Wanderglyph",
+		"mandatory:Koya, Death from Above", "attacks:The Neutrinos",
+		"decline:Koya, Death from Above", "decline:The Neutrinos",
 	} {
 		if branch[want] < kczMin {
 			t.Errorf("branch %s in %d games, want at least %d", want, branch[want], kczMin)
 		}
 	}
 	nAtk := 0
-	for _, c := range []string{"Kinscaer Sentry", "Persistent Marshstalker"} {
+	for _, c := range []string{"Kinscaer Sentry", "Persistent Marshstalker", "The Neutrinos"} {
 		if branch["attacks:"+c] > 0 {
 			nAtk++
 		}
 	}
-	if nAtk < 2 {
-		t.Errorf("entered attacking from %d of the 2 Attacking carriers, want 2", nAtk)
+	if nAtk < 3 {
+		t.Errorf("entered attacking from %d of the 3 Attacking carriers, want 3", nAtk)
 	}
 	if len(stalls) != 0 {
 		t.Errorf("kernel capacity stalls %v", stalls)

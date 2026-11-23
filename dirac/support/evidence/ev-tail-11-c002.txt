@@ -6,7 +6,10 @@ Abstruse Interference
 Academy Drake
 Aether Helix
 Agent of Erebos
+Agoraphobia
 Ajani, Strength of the Pride
+Akroma's Will
+Alabaster Mage
 Algae Gharial
 Anarchy
 Anax and Cymede
@@ -23,6 +26,7 @@ Azusa's Many Journeys
 Barbarian Lunatic
 Barrenton Cragtreads
 Battle Frenzy
+Battlewise Hoplite
 Belbe's Percher
 Bellowing Aegisaur
 Benthicore
@@ -49,11 +53,14 @@ Charnel Troll
 Chillbringer
 Chronicler of Heroes
 Citadel of Pain
+City of Traitors
+Clearwater Pathway
 Cobalt Golem
 Collective Nightmare
 Consecrate
 Consecrated by Blood
 Countersquall
+Craven Hulk
 Crested Herdcaller
 Cryptolith Rite
 Crystal, Inhuman Princess
@@ -77,6 +84,7 @@ Dwarven Hammer
 Electrostatic Field
 Elspeth, Sun's Champion
 Elvish Warmaster
+Ensouled Scimitar
 Ephara's Warden
 Eternity Snare
 Execute
@@ -95,7 +103,9 @@ Forced Fruition
 Forest
 Fruition
 Funeral Charm
+Galerider Sliver
 Game Trail
+Gerrard's Wisdom
 Ghoulcaller Gisa
 Gift of Wrath
 Glamdring
@@ -103,6 +113,7 @@ Gloomwidow
 Goblin Gaveleer
 Goblin Razerunners
 Goblin Settler
+Goblin War Cry
 Goldenglow Moth
 Grappling Sundew
 Grave Strength
@@ -110,6 +121,7 @@ Graveborn Muse
 Gravelgill Duo
 Grotesque Demise
 Hellkite Whelp
+Hematite Golem
 Henge Guardian
 Hideous End
 Highland Weald
@@ -127,12 +139,15 @@ Justiciar's Portal
 Juvenile Mist Dragon
 Kagemaro's Clutch
 Kamahl's Desire
+Kami of Twisted Reflection
 Kindly Stranger
 Kjeldoran Dead
 Labyrinth Champion
+Larder Zombie
 Last-Ditch Effort
 Lay Down Arms
 Lead Astray
+Leaden Myr
 Leonin Den-Guard
 Leyline Invocation
 Library of Alexandria
@@ -158,9 +173,11 @@ Mishra's Factory
 Mistveil Plains
 Moment of Defiance
 Morgue Burst
+Mortal Obstinacy
 Mountain
 Murder of Crows
 Naya Hushblade
+Naya Panorama
 Nekrataal
 Nighthowler
 Numbing Jellyfish
@@ -169,6 +186,7 @@ Ob Nixilis's Cruelty
 Ojutai's Breath
 Ojutai's Summons
 Path of Bravery
+Pendelhaven
 Phyrexian Warhorse
 Pirate's Pillage
 Plains
@@ -180,6 +198,7 @@ Proteus Staff
 Psionic Blast
 Raid Bombardment
 Rakdos Trumpeter
+Raptor Hatchling
 Reap the Seagraf
 Rescue
 Resounding Thunder
@@ -188,17 +207,22 @@ Riot Spikes
 Rotting Giant
 Rotting Regisaur
 Sacrifice
+Sanguine Statuette
 Sanity Gnawers
+Scrapyard Recombiner
+Seachrome Coast
 Secrets of the Key
 Seedcradle Witch
 Seer's Lantern
 Send to Sleep
+Sentinels of Glen Elendra
 Shacklegeist
 Shire Scarecrow
 Shire Terrace
 Shiv's Embrace
 Shu Elite Companions
 Silumgar Butcher
+Silver Seraph
 Sima Yi, Wei Field Marshal
 Sinkhole
 Skyknight Legionnaire
@@ -213,6 +237,7 @@ Spelleater Wolverine
 Spike-Tailed Ceratops
 Spiketail Hatchling
 Spinal Villain
+Spinneret Sliver
 Spirit Loop
 Squealing Devil
 Stampede Driver
@@ -234,6 +259,7 @@ Tawnos's Tinkering
 Tendrils of Despair
 Territorial Roc
 Testament Bearer
+The Everforger
 The Revelations of Ezio
 Three Dreams
 Tibalt, Rakish Instigator
@@ -241,10 +267,12 @@ Timid Drake
 Torch Song
 Tormentor Exarch
 Tortoise Formation
+Traverse Eternity
 Treetop Ambusher
 Treetop Scout
 Triangle of War
 True Polymorph
+Ugin's Conjurant
 Ulamog, the Ceaseless Hunger
 Ulcerate
 Unnatural Speed
@@ -257,6 +285,7 @@ Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
 Wall of Limbs
+Wash Out
 Waste Away
 Weapons Trainer
 Welding Jar
@@ -269,4 +298,5 @@ Wirewood Channeler
 Worldly Counsel
 Worthy Knight
 Wrecking Crew
+Yotian Soldier
 Zulaport Cutthroat

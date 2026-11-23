@@ -32,6 +32,13 @@ func (s *State) Init(tbl *Table, deckA, deckB []CardID, seed uint64, cfg Config)
 // index order shuffles its library and draws 7. Objects are laid out deck by
 // deck in seat order, then the sideboards. At two seats it is exactly Init.
 func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config) {
+	s.InitNStart(tbl, decks, n, seed, cfg, nil)
+}
+
+// InitNStart is InitN with a scripted start (zone_start.go): after the shuffle and
+// the opening deal and before the first turn begins, st's placements are
+// applied. A nil st is exactly InitN. st is read here and never stored.
+func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64, cfg Config, st *Start) {
 	if n < 2 || n > MaxSeats {
 		panic("kernel: seat count out of range")
 	}
@@ -116,7 +123,7 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 	}
 	s.initSideboards(&cfg)
 	if s.g.on {
-		if why := s.k().initStall(s.nSeats()); why != StallNone {
+		if why := s.initStallDecks(s.k()); why != StallNone {
 			s.stall(why) // loud; a built matchup refuses first (stallclass.go)
 		}
 	}
@@ -132,6 +139,9 @@ func (s *State) InitN(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed uint64
 		if s.over {
 			return
 		}
+	}
+	if st != nil {
+		s.applyStart(decks, st)
 	}
 	s.startPl = toss
 	// the active player is gorge's zero value until the first turn begins
@@ -228,6 +238,7 @@ func (s *State) Elide(d *Decision) {
 
 func (s *State) stepRaw(d *Decision) {
 	k := s.k()
+	s.filtMemoReset()
 	for {
 		d.N = 0
 		d.Sub = ChNone
@@ -316,8 +327,14 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlLegend:
 			s.legendOptions(k, d)
 			return
+		case ctlBand:
+			s.bandOptions(k, d) // combat_band.go
+			return
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
+			return
+		case ctlReflectPick:
+			s.reflectPickOptions(d) // mana_reflectpickask.go
 			return
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
@@ -327,6 +344,10 @@ func (s *State) stepRaw(d *Decision) {
 			return
 		case ctlDivide:
 			if s.divA != NoSlot {
+				if s.divRem == 0 { // an as-unblocked election ask (combat_asgngrant.go; divRem 0 marks it)
+					s.electionOptions(k, d)
+					return
+				}
 				s.divideOptions(k, d)
 				return
 			}
@@ -350,6 +371,7 @@ func (s *State) stepRaw(d *Decision) {
 // Apply answers the last Decision with a, which must be one of its Options.
 func (s *State) Apply(a Action) {
 	k := s.k()
+	s.filtMemoReset()
 	s.Decisions++
 	switch s.ctl {
 	case ctlMullDeclare:
@@ -379,13 +401,21 @@ func (s *State) Apply(a Action) {
 		s.applyResolve(k, a)
 	case ctlLegend:
 		s.applyLegend(k, a)
+	case ctlBand:
+		s.applyBand(k, a) // combat_band.go
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
+	case ctlReflectPick:
+		s.applyReflectPick(k, a) // mana_reflectpickask.go
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
+		if s.divRem == 0 && s.divA != NoSlot { // a division ask always carries divRem > 0: this is the as-unblocked election (combat_asgngrant.go)
+			s.applyElection(a)
+			return
+		}
 		s.applyDivide(k, a)
 	case ctlCleanupDiscard:
 		o := Obj(a.Source())

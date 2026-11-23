@@ -34,7 +34,6 @@ Island
 Joust
 Laser Screwdriver
 Mercurial Pretender
-Molten Ravager
 Monk Idealist
 Mountain
 Mudhole
@@ -54,6 +53,7 @@ Seasoned Pyromancer
 Skarrgan Skybreaker
 Skirk Drill Sergeant
 Smellerbee, Rebel Fighter
+Smiting Helix
 Soul of Shandalar
 Spoils of Evil
 Steel-Plume Marshal

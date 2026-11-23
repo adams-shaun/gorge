@@ -8,6 +8,7 @@ Angel of Mercy
 Angel's Tomb
 Angrath's Rampage
 Annex Sentry
+Archivist
 Armored Pegasus
 Artificer's Intuition
 Ashiok's Forerunner
@@ -63,10 +64,13 @@ Egon, God of Death
 Elemental Spectacle
 Elvish Skysweeper
 Ensoul Artifact
+Entropic Eidolon
+Expel from Orazca
 Explosive Vegetation
 Fade from Memory
 Fae of Wishes
 Favored of Iroas
+Fight Rigging
 Final Flare
 Firefiend Elemental
 Fledgling Griffin
@@ -107,6 +111,7 @@ Iron Man, Futurist Paragon
 Island
 Jackhammer
 Jungle Troll
+Key to the City
 Khalni Garden
 Knotvine Paladin
 Korlessa, Scale Singer
@@ -138,9 +143,11 @@ Mother Bear
 Mountain
 Muxus, Goblin Grandee
 Mycologist
+Necromantic Summons
 Nessian Wanderer
 Nighthawk Scavenger
 Norwood Archers
+Nyx Weaver
 Omen
 Onward
 Order of Whiteclay
@@ -183,6 +190,7 @@ Sandblast
 Satyr Piper
 Scryb Ranger
 Seasoned Pyromancer
+Segovian Sword
 Seismic Elemental
 Sejiri Steppe
 Selesnya Cluestone
@@ -199,6 +207,7 @@ Sightless Ghoul
 Silk Net
 Skaab Wrangler
 Skophos Warleader
+Sky Tether
 Skyblade of the Legion
 Smite the Monstrous
 Smog Elemental
@@ -213,6 +222,7 @@ Spectral Cloak
 Sphere Grid
 Spike Breeder
 Spirit of the Hearth
+Springjaw Trap
 Staggershock
 Steadfast Armasaur
 Stitched Assistant
@@ -251,6 +261,7 @@ Untamed Kavu
 Vengeant Earth
 Vile Deacon
 Vincent, Vengeful Atoner
+Vito, Thorn of the Dusk Rose
 Vivid Crag
 Volley of Boulders
 Voyage's End

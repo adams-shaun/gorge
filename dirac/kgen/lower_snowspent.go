@@ -10,6 +10,9 @@ import "strings"
 // read: a face that reads both refuses, and so does the Snow form in the clone
 // ask's bound (another spell's spend). Any other body is countValue's.
 func (lc *lowerCtx) castSpentCount(rest string, depth int) (lValue, error) {
+	if rest == voteTallyName {
+		return lc.voteTallyValue()
+	}
 	snow := rest == "CastTotalManaSpent Snow"
 	if strings.HasPrefix(rest, "Adamant_") || strings.HasPrefix(rest, "Adamant.") {
 		return lc.adamantValue(rest) // lower_evoke.go

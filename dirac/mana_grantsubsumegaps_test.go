@@ -92,7 +92,7 @@ func TestGrantSubsumeCtrGapPrune(t *testing.T) {
 	if cm := s.scriptCtr(k, 0); cm.count() != 5 {
 		t.Fatalf("scriptCtr lists %d makers, want the five counter-cost gaps", cm.count())
 	}
-	if s.grantSearchRun(k, 0, &cost, ex, d, need, &g, nil) {
+	if s.grantSearchRun(k, 0, &cost, ex, d, need, &g, nil, false) {
 		t.Fatalf("the plain run paid {G}{G}{U}{U}{U}{U} within the budget (%d nodes, %d steps)",
 			g.nodes, g.np)
 	}

@@ -1,0 +1,53 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Adaptive Shimmerer	75ee83c1d8ee7199	3	0/0		0/0	
+Alliance of Arms	9a135e1751c45df9	4	0/0		1/2	ix:resp
+Avarice Amulet	7614f33e3e36a7b4	3	2/2		0/1	ix:resp
+Betrayal of Flesh	356bd2dfb10485c4	3	0/0		2/2	
+Blight	6c8e96939eba1648	4	1/1		1/2	ix:resp
+Blighted Woodland	539331b48c45590f	9	2/2		0/1	ix:resp
+Blinding Radiance	b144c92e4b3f456d	7	0/0		2/2	
+Bulwark Giant	57ff4dd7192eef34	4	1/1		0/1	ix:resp
+Catapult Squad	696939a0e7530f97	4	1/1		0/1	ix:resp
+Chaplain's Blessing	0b50f52a5c028528	3	0/0		1/2	ix:resp
+Dark Depths	a95ef93398e4037c	3	2/2		0/1	ix:resp
+Festercreep	80ef7a355cc064ad	4	1/1		0/1	ix:resp
+Flaming Fist Officer	330c7beb8f6b7d22	3	1/1		1/1	
+Game Trail	cabb03c62f48ac8b	11	1/1		0/1	ix:resp
+Generous Gift	99ef723b7270c912	4	0/0		1/2	ix:resp
+Hyalopterous Lemure	a621bd503bce0c3f	4	1/1		1/1	
+Icatian Javelineers	897f8f7ca3d5c957	4	1/1		0/1	ix:resp
+Inkfathom Infiltrator	e7b08625f598e832	4	0/0		0/0	
+Inquisitive Puppet	ba27a9d19e91efee	8	2/2		0/1	ix:resp
+Insight Engine	2ba04f8cc55a9010	4	1/1		0/1	ix:resp
+Ithilien Kingfisher	c1b5e652714eb249	5	1/1		0/1	ix:resp
+Keymaster Rogue	de3245638c3b6a75	6	1/1		1/1	
+Kithkin Shielddare	69520ae50b054e98	6	1/1		1/1	
+Mindstab Thrull	0fc43882e1a4929a	8	1/1		0/1	ix:resp
+Moonbow Illusionist	ea8aae6a80753e03	4	1/1		1/1	
+Nahiri's Machinations	3a1ea40ab8f636ec	4	2/2		0/1	ix:resp
+Observant Alseid	b64443e26fd66599	4	0/0		2/2	
+Ojutai Monument	a2328477c48dd2bc	3	2/2		0/1	ix:resp
+Okina, Temple to the Grandfathers	e341adafa89bcca6	10	2/2		0/1	ix:resp
+One Ring to Rule Them All	a75b8857de517027	7	0/0		0/0	
+Peregrine Mask	44c06b809fddb7a1	4	1/1		0/1	ix:resp
+Phyrexia's Core	40bc72f7c8924480	7	2/2		0/1	ix:resp
+Pitiless Horde	44a7879ce579e387	7	1/1		1/3	cast/alt:dashed,ix:resp
+Recruitment Drive	709da7f5880fec20	3	0/0		1/2	ix:resp
+Scalding Tarn	ed66f4a302576ea9	6	1/1		0/1	ix:resp
+Sejiri Merfolk	f230e9ed6a92627c	4	0/0		0/0	
+Shipwreck Singer	e24a1eb52702ce9f	3	2/2		1/1	
+Shower of Sparks	2062c1002ead9e29	4	0/0		1/2	ix:resp
+Silver Shroud Costume	ca50866c30b37654	4	2/2		0/1	ix:resp
+Smelt-Ward Minotaur	202be1c7080cac47	3	1/1		0/1	ix:resp
+Sokka, Wolf Cove's Protector	bbdf9c7ba618825d	6	0/0		0/0	
+Spirit Bonds	e7c465c6decd43ce	4	2/2		0/1	ix:resp
+Spite	2f2c96a3e1df499f	4	0/0		2/3	f1/s
+Steadfast Guard	73f8002c49386aad	4	0/0		0/0	
+Summon: Ixion	b259b22d1b8bec30	4	0/0		0/0	
+Suq'Ata Assassin	47081b39159b3cdb	5	1/1		0/1	ix:resp
+Tideshaper Mystic	9a39ada751155557	4	1/1		0/1	ix:resp
+Traveler's Amulet	651c2896b79725a3	6	1/1		1/1	
+Trawler Drake	1251e8e535e4f401	5	1/1		0/1	ix:resp
+Triton Cavalry	3c793ede5724bdd3	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Valakut Predator	af3960f975908611	3	1/1		0/1	ix:resp
+Watercourser	cb9a7d0da4caa439	4	1/1		1/1	

@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -108,6 +109,10 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 			}
 		}
 	}
+	embalm, err := cloneEnterEmbalmShape(ps)
+	if err != nil {
+		return err
+	}
 	exc, hasExc, myriads, err := lc.copyExceptionsMyriad(ps, true)
 	if err != nil {
 		return err
@@ -115,6 +120,11 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	grant, err := lc.cloneEnterGrant(ps) // lower_cloneentergrant.go
 	if err != nil {
 		return err
+	}
+	if embalm && hasExc {
+		if err := cloneEnterEmbalmGated(exc, grant, myriads); err != nil {
+			return err
+		}
 	}
 	if myriads > 0 {
 		// "except it has myriad" (Auton Soldier; CR 707.9b, 702.116a-b):
@@ -139,9 +149,16 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 		lc.out.overrides = append(lc.out.overrides, grant)
 		in.A = cst(len(lc.out.overrides)) // index+1
 	}
+	flags := 0
 	if rememberCounters {
-		in.B = cst(int(kop.BecomeCopyCtr))
+		flags |= kop.BecomeCopyCtr
 		in.Note = "with the copy origin's counters"
+	}
+	if embalm && hasExc {
+		flags |= kop.BecomeCopyEmbalm
+	}
+	if flags != 0 {
+		in.B = cst(flags)
 	}
 	if lc.replOptional {
 		in.C = 1
@@ -150,7 +167,41 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 		lc.out.overrides = append(lc.out.overrides, exc)
 		in.C |= len(lc.out.overrides) << 1 // index+1
 		in.Note = "except " + overrideString(exc)
+		if embalm {
+			in.Note = "if embalmed, " + in.Note
+		}
 	}
 	lc.emit(in)
+	return nil
+}
+
+// cloneEnterEmbalmShape reads the Embalm$ gate of an as-enters copy body and
+// holds gorge's shape of it (effects clone_params.go cloneETBShapeOK): an
+// Embalm$ spelling other than True fails closed, and RemoveCost$ is lowered
+// only as an Embalm$ True body's "no mana cost" rider, never as an
+// unconditional one (it would rewrite a hard-cast carrier's mana cost).
+func cloneEnterEmbalmShape(ps *params) (embalm bool, err error) {
+	if v, ok := ps.get("Embalm"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return false, refuse("ETB copy Embalm$ %q (gorge fails an Embalm$ other than True closed)", v)
+		}
+		embalm = true
+	}
+	if v, ok := ps.get("RemoveCost"); ok && (!embalm || !strings.EqualFold(strings.TrimSpace(v), "True")) {
+		return false, refuse("ETB copy RemoveCost$ %q without Embalm$ True (gorge withholds an unconditional no-mana-cost rider)", v)
+	}
+	return embalm, nil
+}
+
+// cloneEnterEmbalmGated holds an Embalm$ True body's exception override to the
+// riders gorge gates (cloneEmbalmGate: AddTypes$, SetColor$, RemoveCost$): the
+// kernel gate drops the whole override for a hard-cast carrier, so any other
+// exception beside it (gorge applies those ungated) refuses.
+func cloneEnterEmbalmGated(exc *lOverride, grant *lOverride, myriads int) error {
+	gated := lOverride{AddTypes: exc.AddTypes, AddSubtypes: exc.AddSubtypes,
+		SetColors: exc.SetColors, HasSetColors: exc.HasSetColors, NoCost: exc.NoCost}
+	if grant != nil || myriads > 0 || !reflect.DeepEqual(*exc, gated) {
+		return refuse("ETB copy Embalm$ True beside an exception gorge applies ungated (only AddTypes$, SetColor$, RemoveCost$ ride the gate)")
+	}
 	return nil
 }

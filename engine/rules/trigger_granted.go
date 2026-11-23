@@ -86,23 +86,6 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 	}
 }
 
-// hasKeywordPriorCasts is hasKeywordH for the spell id being cast, read the way
-// queueCascadeTriggers reads a cascade grant (the stackGrantCast scratch): the
-// in-flight cast's own PutOnStack is already in the log, so an inclusive
-// Count$ThisTurnCast would fail the "first spell you cast each turn" grants'
-// CheckSVar$ X / SVarCompare$ EQ0 gate (Elda, Conjurer of Spectacle) for the
-// very cast the grant is for. The scratch makes the cast ledger count prior
-// casts only; it is set around this one pure read and cleared before it
-// returns, with the layer lists invalidated either side (cascade.go).
-func (e *Engine) hasKeywordPriorCasts(id state.ObjID, h kwHead) bool {
-	e.stackGrantCast = id
-	e.invalidateScratchLayerLists()
-	has := e.hasKeywordH(id, h)
-	e.stackGrantCast = 0
-	e.invalidateScratchLayerLists()
-	return has
-}
-
 // checkGrantedDemonstrateTriggers synthesizes Demonstrate's copy trigger
 // (CR 702.152) for a spell that currently HAS the keyword but does not print
 // it: a layer-6 grant (Silverquill Lecturer's "Creature spells you cast have
@@ -131,7 +114,25 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 	if ev.Kind != events.PutOnStack || id != ev.Obj {
 		return
 	}
-	if f.HasKeywordRef(kwRefDemonstrate) || !e.hasKeywordPriorCasts(id, kwhDemonstrate) {
+	if f.HasKeywordRef(kwRefDemonstrate) {
+		return
+	}
+	// The grant read: hasKeywordH for the spell id being cast the way
+	// queueCascadeTriggers reads a cascade grant (the stackGrantCast
+	// scratch, was hasKeywordPriorCasts): the in-flight cast's own
+	// PutOnStack is already in the log, so an inclusive Count$ThisTurnCast
+	// would fail the "first spell you cast each turn" grants' CheckSVar$
+	// X / SVarCompare$ EQ0 gate (Elda, Conjurer of Spectacle) for the very
+	// cast the grant is for -- the scratch makes the cast ledger count
+	// prior casts only. It was a single-caller Engine method and the
+	// engine-method ratchet is frozen (this file adds the granted-ripple
+	// walk), so its body is inline.
+	e.stackGrantCast = id
+	e.invalidateScratchLayerLists()
+	has := e.hasKeywordH(id, kwhDemonstrate)
+	e.stackGrantCast = 0
+	e.invalidateScratchLayerLists()
+	if !has {
 		return
 	}
 	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
@@ -163,6 +164,117 @@ func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjI
 				}),
 			}, ev, nil)
 		}
+	}
+}
+
+// kwhRipple is the Ripple head the granted-ripple walk reads.
+var kwhRipple = newKWHead("Ripple")
+
+// checkGrantedRippleTriggers synthesizes Ripple's cast trigger (CR 702.60a)
+// for each instance of the keyword a spell HAS beyond the ones it prints: a
+// layer-6 grant (Thrumming Stone's "Spells you cast have ripple 4",
+// AffectedZone$ Stack) gives the spell the same rules text as a printed
+// keyword, and the printed K:Ripple expansion (engine/cards/kw_ripple.go)
+// only covers printed lines. Without this walk the granted spell's trigger
+// never fires -- the keyword grant reaches the derived keyword list but no
+// trigger exists for it. It is the Storm shape (checkGrantedStormTriggers):
+// the synthesized trigger reuses the printed expansion's trigger (Mode$
+// SpellCast, ValidCard$ Card.Self, TriggerZones$ Stack, OptionalDecider$
+// You), and the granted keyword line rides the push's __kwRippleGranted:<line>
+// payload (its count the fold in engine/events parses; a malformed or
+// non-positive count fails closed to a no-op body).
+//
+// Each instance triggers separately (CR 702.60b), so unlike Storm and
+// Demonstrate a face that PRINTS Ripple is not skipped: the derived list
+// holds the printed lines first (in printed order) and then the granted
+// ones, the printed expansion already owns the first len(printed) of them,
+// and every derived line past that gets one synthesized trigger. Thrumming
+// Stone plus a Surging card therefore ripples twice. A copy emits StackCopy,
+// not PutOnStack, so the synthesis cannot fire on its own output; and a
+// spell cast by the ripple itself has the grant (the stone affects every
+// spell you cast), so the chain ripples again. Like every checkGranted* walk
+// this is a read-only derived-characteristics check; granting stays in the
+// continuous-effect system. It runs on BOTH the faceMayTrigger early-return
+// path and the full path, and its gate is ordered cheap-first -- event kind,
+// then object identity -- before the derived keyword scan allocates.
+//
+// It is a free function rather than an Engine method: the engine-method
+// ratchet is frozen, and the walk needs nothing but the *Engine it reads
+// through. Its push arm lives in rules' pushTrigger, shared with the granted
+// Demonstrate push (the KeywordTriggerPush shape both mint), keyed on the
+// pendingTrigger's Ripple line.
+func checkGrantedRippleTriggers(e *Engine, observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.PutOnStack || id != ev.Obj {
+		return
+	}
+	// The grant is read the way the granted-storm walk reads its layer-6
+	// grant: hasKeywordH over the spell's derived keyword list, where the
+	// stone's Affected$ Card.YouCtrl+wasCast | AffectedZone$ Stack spec has
+	// already matched the in-flight cast (the spell's own PutOnStack is the
+	// provenance the wasCast predicate reads).
+	if !e.hasKeywordH(id, kwhRipple) {
+		return
+	}
+	// The scan takes every derived line with the head's interned ordinal (the
+	// interner folds case, so a grant spelled "ripple 4" matches), in
+	// deterministic derived-keyword order, and drops the leading printed
+	// instances the face's own expansion already triggers for.
+	printed := 0
+	if f.HasKeywordRef(kwRefRipple) {
+		for _, k := range f.Keywords {
+			if cards.KeywordHeadIDOf(cardsKeywordHead(k)) == kwhRipple.ID {
+				printed++
+			}
+		}
+	}
+	var ns []string
+	for _, k := range e.Derived(id).Keywords {
+		if cards.KeywordHeadIDOf(cardsKeywordHead(k)) != kwhRipple.ID {
+			continue
+		}
+		if printed > 0 {
+			printed--
+			continue
+		}
+		// The line rides the queue whole; the push's fold in engine/events
+		// parses the count off it and degrades a malformed or non-positive
+		// one to a no-op body (the documented Num degrade-to-zero
+		// convention, never a guessed count).
+		ns = append(ns, k)
+	}
+	if len(ns) == 0 {
+		return
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ SpellCast | ValidCard$ Card.Self | TriggerZones$ Stack | OptionalDecider$ You | TriggerDescription$ Ripple | Keyword$ Ripple")
+	if !ok {
+		return
+	}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	for _, line := range ns {
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			return
+		}
+		e.triggerFireCount[key]++
+		e.queueTrigger(observer, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			// The line rides pendingTrigger.Trigger so recordTriggerLine keys
+			// the resolving object's OptionalDecider$ may (the granted shape
+			// has no face trigger index to recover it from).
+			Trigger: t,
+			Ripple:  line,
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
+				Remembered:     triggerRemembered(ev, id),
+				LKI:            objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			}),
+		}, ev, nil)
 	}
 }
 

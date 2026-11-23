@@ -50,6 +50,25 @@ envfile=${GORGE_TEST_TARGETS_ENV:-${XDG_CONFIG_HOME:-$HOME/.config}/gorge/test-t
 # shellcheck disable=SC1090
 [ ! -r "$envfile" ] || { set -a; . "$envfile"; set +a; }
 py=(python3 -I "$top/scripts/test_targets.py")
+# timeout_for PKG: the one -timeout every mode uses for that package. The table lives in test_targets.py so the
+# shell, the Python selector and the dirac gate cannot drift into a second cache entry for the same package.
+timeout_for() { "${py[@]}" timeout --pkg "$1"; }
+# group_by_timeout PKG...: set G_TO and G_PKGS to the packages grouped by their timeout, in first-seen order.
+# A `go test` call takes one -timeout, so packages with a different one run in a separate call.
+group_by_timeout() {
+	G_TO=() G_PKGS=()
+	local p to i
+	for p in "$@"; do
+		to=$(timeout_for "$p") || return 1
+		for i in "${!G_TO[@]}"; do
+			[ "${G_TO[i]}" = "$to" ] || continue
+			G_PKGS[i]+=" $p"
+			continue 2
+		done
+		G_TO+=("$to")
+		G_PKGS+=("$p")
+	done
+}
 BASE=${BASE:-origin/main}
 t0=$SECONDS
 sha=$(git rev-parse --short=10 HEAD 2>/dev/null || echo -)
@@ -104,6 +123,35 @@ if [ -z "${TEST_TARGETS_SCOPED:-}" ]; then
 	# A run that fell back from the configured gate box: the box is down, so every seat's heavy run lands here at
 	# once; cap it lower (test-remote.sh, GORGE_REMOTE_FALLBACK_CPU).
 	[ -z "${TEST_TARGETS_FALLBACK:-}" ] || { cpu=$fcpu%; procs=$fprocs; }
+	# A host-wide run slot (11-23): every seat's local run was capped at 4 cores, but nothing capped how many ran at
+	# once. 22 ran together on the 32-core home box (load 99), and tests that pass alone hit the 60 s budget. A run
+	# takes one of GORGE_LOCAL_SLOTS flock slots (default nproc/4; 0 turns it off) and holds it through the exec below,
+	# so it is released when the run exits. It waits up to GORGE_LOCAL_SLOT_WAIT seconds (default 1800), then BUSY.
+	if [ "$mode" != list ] && [ "$mode" != smart ]; then
+		nslots=${GORGE_LOCAL_SLOTS:-$(($(nproc) / 4))}
+		case $nslots in '' | *[!0-9]*) nslots=1 ;; esac
+		if [ "$nslots" -gt 0 ]; then
+			sdir=${GORGE_LOCAL_SLOT_DIR:-$HOME/.cache/gorge/local-test-slots}
+			swait=${GORGE_LOCAL_SLOT_WAIT:-1800}
+			case $swait in '' | *[!0-9]*) swait=1800 ;; esac
+			if mkdir -p "$sdir" 2>/dev/null; then
+				sdeadline=$((SECONDS + swait)) slot= snoted=
+				while :; do
+					for i in $(seq 1 "$nslots"); do
+						exec 8>>"$sdir/slot$i" || continue
+						if flock -n 8; then slot=$i; break; fi
+						exec 8>&-
+					done
+					[ -z "$slot" ] || break
+					[ "$SECONDS" -lt "$sdeadline" ] || verdict BUSY "all $nslots local test slots ($sdir) stayed busy for ${swait}s; finish with a BUSY concern instead of retrying"
+					[ -n "$snoted" ] || { echo "test-targets: note: all $nslots local test slots are busy; waiting for one" >&2; snoted=1; }
+					sleep 2
+				done
+			else
+				echo "test-targets: note: cannot create $sdir; running without a local slot" >&2
+			fi
+		fi
+	fi
 	if [ "$mode" = list ] || [ "$mode" = smart ]; then
 		: # list runs go list only; smart caps each of its own steps
 	elif systemd-run --user --scope -q true >/dev/null 2>&1; then
@@ -142,18 +190,19 @@ dirac_tables() { # needed before any dirac package plays a game; a no-op when th
 }
 
 # gojson TIMEOUT args...: one `go test -json` call appended to $json; sets rc to the worst status so far.
+# -json, -v and -failfast are always the same flags: they are part of go's test-cache key.
 rc=0
 gojson() {
 	local to=$1
 	shift
-	go test -json -failfast -timeout "$to" "$@" >>"$json" 2>&1
+	go test -json -v -failfast -timeout "$to" "$@" >>"$json" 2>&1
 	local r=$?
 	[ "$r" -le "$rc" ] || rc=$r
 	return $r
 }
 finish() { # finish NAMED_IMPORT_PATHS: classify $json, print detail and the verdict, exit
 	local out pyrc vline st
-	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1" ${fbcap:+--fallback "$fbcap"})
+	out=$("${py[@]}" finish --mode "$mode" --json "$json" --rc "$rc" --sha "$sha" --pkgs "$pkgs_label" --seconds $((SECONDS - t0)) --named "$1" --base "$BASE" ${fbcap:+--fallback "$fbcap"})
 	pyrc=$?
 	printf '%s\n' "$out"
 	if [ "$mode" = smart ]; then
@@ -178,19 +227,19 @@ if [ "$mode" = one ]; then
 			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
 		;;
 	esac
-	# 5m, the same -timeout as targeted's and smart's named and census steps: -timeout is part of go's test-cache key,
-	# so a test-one at 2m and the same -run at 5m were two cache entries and every test-one result re-ran in targeted
-	# (test-cache-audit 2026-11-14).
-	to=${TIMEOUT:-5m}
+	# The package's table timeout, the same one targeted and smart pass to this package's runs: -timeout is part
+	# of go's test-cache key, so a test-one at 2m and the same -run at 5m were two cache entries and every test-one
+	# result re-ran in targeted (test-cache-audit 2026-11-14). TIMEOUT is an explicit debugging override.
+	to=${TIMEOUT:-$(timeout_for "$pkg")}
 	[[ $to =~ ^([0-9]+)([sm])$ ]] || usage "TIMEOUT is Ns or Nm"
 	secs=${BASH_REMATCH[1]}
 	[ "${BASH_REMATCH[2]}" = s ] || secs=$((secs * 60))
-	[ "$secs" -ge 1 ] && [ "$secs" -le 300 ] || usage "TIMEOUT is between 1s and 5m"
+	[ "$secs" -ge 1 ] && [ "$secs" -le 600 ] || usage "TIMEOUT is between 1s and 10m"
 	[ -z "${TAGS:-}" ] || [[ $TAGS =~ ^[A-Za-z0-9_,]+$ ]] || usage "TAGS is a comma list of build tags"
 	envs=()
 	for kv in ${TESTENV:-}; do
-		case ${kv%%=*} in KGEN_REPIN | DIRAC_PIN_STRICT | DIRAC_SUPPORT_STRICT | DIRAC_UPDATE_SUPPORT | DIRAC_UPDATE_LAYOUT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | CRYOSHATTER_RECORD | GORGE_POOLS) envs+=("$kv") ;;
-		*) usage "TESTENV allows only KGEN_REPIN DIRAC_PIN_STRICT DIRAC_SUPPORT_STRICT DIRAC_UPDATE_SUPPORT DIRAC_UPDATE_LAYOUT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD CRYOSHATTER_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
+		case ${kv%%=*} in KGEN_REPIN | DIRAC_PIN_STRICT | DIRAC_SUPPORT_STRICT | DIRAC_UPDATE_SUPPORT | DIRAC_UPDATE_LAYOUT | KOP_ORDINALS_REGEN | PINS_RECORD | CMD5_CLEAN_REPIN | MANAFLARE_CAST_RECORD | CRYOSHATTER_RECORD | MAGESLAYER_RECORD | GORGE_POOLS) envs+=("$kv") ;;
+		*) usage "TESTENV allows only KGEN_REPIN DIRAC_PIN_STRICT DIRAC_SUPPORT_STRICT DIRAC_UPDATE_SUPPORT DIRAC_UPDATE_LAYOUT KOP_ORDINALS_REGEN PINS_RECORD CMD5_CLEAN_REPIN MANAFLARE_CAST_RECORD CRYOSHATTER_RECORD MAGESLAYER_RECORD GORGE_POOLS (got ${kv%%=*})" ;;
 		esac
 	done
 	pkgs_label=$pkg
@@ -198,11 +247,10 @@ if [ "$mode" = one ]; then
 	args=(-run "$RUN")
 	[ -z "${SKIP:-}" ] || args+=(-skip "$SKIP")
 	[ -z "${TAGS:-}" ] || args+=(-tags "$TAGS")
-	[ -z "${V:-}" ] || args+=(-v)
 	case ${SHORT:-} in 1) args+=(-short) ;; esac
 	args+=("$pkg")
 	[ -z "${UPDATE:-}" ] || args+=(-args -update)
-	env ${envs[@]+"${envs[@]}"} go test -json -failfast -timeout "$to" "${args[@]}" >>"$json" 2>&1
+	env ${envs[@]+"${envs[@]}"} go test -json -v -failfast -timeout "$to" "${args[@]}" >>"$json" 2>&1
 	rc=$?
 	finish "$mod/${pkg#./}"
 fi
@@ -237,10 +285,14 @@ if [ "$mode" = targeted ]; then
 	[ "$dirac" = 0 ] || dirac_tables
 	# The cheap named/census runs first: a whole-package BUDGET below must not hide their failures.
 	for r in "${runs[@]+"${runs[@]}"}"; do
-		gojson 5m -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
+		gojson "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
 	if [ "${#whole[@]}" -gt 0 ]; then
-		gojson 10m -p "$lp" "${whole[@]}" || finish ""
+		group_by_timeout "${whole[@]}" || finish ""
+		for i in "${!G_TO[@]}"; do
+			read -r -a group <<<"${G_PKGS[i]}"
+			gojson "${G_TO[i]}" -p "$lp" "${group[@]}" || finish ""
+		done
 	fi
 	finish "$(IFS=,; echo "${named[*]-}")"
 fi
@@ -349,9 +401,36 @@ if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/' 'engine/' go.mod go.sum)"
 	esac
 fi
 
+# oracle_chunked RUN [SKIP]: ./dirac/oracle's tests matching RUN (less SKIP) in fixed chunks of their sorted names,
+# each its own go test call with the oracle's cap. 11-20: its census set (~120 tests) and step 4's named set (the
+# fast tier and every repro replay) each summed past the 5m cap in one call on a loaded box (0.2-0.7 idle cores),
+# so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet (91-195 s) is
+# a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+# ORACLE_CHUNKS round-robin chunks (11-21: 4 still let one chunk pass the 5m cap on a loaded gate box, test-smart
+# BUDGET on #3135's diff, which never touched the oracle; each extra chunk costs a few seconds of binary start).
+ORACLE_CHUNKS=8
+oracle_chunked() {
+	local names rx k chunks=() r=0
+	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | sort) || names=
+	[ -z "${2:-}" ] || names=$(grep -vE "$2" <<<"$names" || true)
+	if [ -z "$names" ]; then # nothing listed (a stub go, a build error): the one call, as before; it reports why
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$1" ${2:+-skip "$2"} ./dirac/oracle >>"$json" 2>&1
+		return
+	fi
+	! grep -qx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" || chunks+=('^TestCmd5SliceCleanOnlyGrows$')
+	for ((k = 0; k < ORACLE_CHUNKS; k++)); do
+		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k -v n=$ORACLE_CHUNKS 'NR % n == k' | paste -sd'|')
+		[ -z "$rx" ] || chunks+=("^($rx)\$")
+	done
+	for rx in "${chunks[@]}"; do
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$rx" ./dirac/oracle >>"$json" 2>&1 || { r=$?; break; }
+	done
+	return $r
+}
+
 echo "== 3 census and coverage tests, unrefusal proof"
 dirac_tables
-C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|EnumConst|^TestHeads$|^TestSetHeads$|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
+C='Census|Covers|IsCurrent|Ratchet|Padded|HasAClass|FileNames|OnlyShrinks|IotaBlock|NoVerbatim|PublicBoundary|Acceptance|ReprosLockstep|ReproManifest|EnumConst|^TestHeads$|^TestSetHeads$|Pinned$|AreRegistered|ParamsAreRead|FilesWellFormed|KnownKeys|OnlyGrows|^TestKopOrdinalsUnchanged$|^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$'
 # The narrow precheck widens it to the audit's test groups (pins, layout, lint, replay) that C's names miss,
 # the ones with reds first: the State layout and size, enum values, ParamsAreRead and KnownUnsupported, the
 # generated-file freshness pins, the setdata and spellbench support pins, KnownKeys, the zero-alloc pins,
@@ -366,10 +445,30 @@ cpk=$({ git grep -lE "^func Test[A-Za-z0-9_]*($C)" -- '*_test.go'; git grep -lE 
 ncpk=$(wc -w <<<"$cpk")
 if sel=$(printf '%s\n' $cpk | "${py[@]}" census --base "$BASE") && [ -n "$sel" ]; then cpk=$sel; fi
 echo "census packages: $(wc -w <<<"$cpk") of $ncpk"
-capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' $cpk ./internal/archtest >>"$json" 2>&1
-rc=$?
+# ./dirac/oracle's census tests run in calls of their own (below), so it leaves the package groups here.
+oracle_census=
+if grep -qx './dirac/oracle' <<<"$(printf '%s\n' $cpk)"; then
+	oracle_census=1
+	cpk=$(printf '%s\n' $cpk | grep -vx './dirac/oracle' || true)
+fi
+group_by_timeout $cpk ./internal/archtest || finish ""
+for i in "${!G_TO[@]}"; do
+	read -r -a group <<<"${G_PKGS[i]}"
+	capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "${G_TO[i]}" -run "$C" -skip '^TestStd[A-Za-z]*ReprosLockstep' "${group[@]}" >>"$json" 2>&1
+	rc=$?
+	[ "$rc" = 0 ] || break
+done
+# ./dirac/oracle's census tests (~120: the repro families, the pins, the cmd5 clean-pair ratchet) summed past the
+# oracle's 5m cap in one call on a loaded box (11-20: 264 s done and 7 tests unfinished at 0.2 idle cores, the cmd5
+# ratchet alone 174-195 s), so test-smart printed BUDGET on every diff that selected them (any diff outside a Go
+# package does). They run in fixed chunks of their sorted names, each its own call with the same cap; the cmd5
+# ratchet is a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+if [ "$rc" = 0 ] && [ -n "$oracle_census" ]; then
+	oracle_chunked "$C" '^TestStd[A-Za-z]*ReprosLockstep'
+	rc=$?
+fi
 if [ "$rc" = 0 ]; then
-	capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB KERNEL_UNREFUSE_BASE="$BASE" go test -json -failfast -timeout 5m -run '^TestUnrefusalNeedsProof$' ./dirac/oracle >>"$json" 2>&1
+	capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB KERNEL_UNREFUSE_BASE="$BASE" go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run '^TestUnrefusalNeedsProof$' ./dirac/oracle >>"$json" 2>&1
 	rc=$?
 fi
 [ "$rc" = 0 ] || finish ""
@@ -474,7 +573,7 @@ if [ "$smart" = gates ]; then
 
 	if grep -q 'dirac gate: skipped' "$S/dg"; then
 		echo "== 4b repro tables (the dirac gate skipped)"
-		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
 		rc=$?
 		[ "$rc" = 0 ] || finish ""
 	fi
@@ -498,24 +597,29 @@ elif [ "$smart" = narrow ]; then
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		IFS=$'\t' read -r how pkg rx <<<"$r"
 		[ "$how" = run ] || continue
-		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 5m -run "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
+		if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx" || { rc=$?; finish ""; }; continue; fi
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for "$pkg")" -run "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
 	done
 	if [ "${#whole[@]}" -gt 0 ]; then
-		capped 12G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -failfast -timeout 10m -p "$lp" "${whole[@]}" >>"$json" 2>&1 || { rc=$?; finish ""; }
+		group_by_timeout "${whole[@]}" || finish ""
+		for i in "${!G_TO[@]}"; do
+			read -r -a group <<<"${G_PKGS[i]}"
+			capped 12G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -v -failfast -timeout "${G_TO[i]}" -p "$lp" "${group[@]}" >>"$json" 2>&1 || { rc=$?; finish ""; }
+		done
 	fi
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		IFS=$'\t' read -r how pkg rx <<<"$r"
 		[ "$how" = skip ] || continue
-		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -failfast -timeout 15m -skip "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=3GiB go test -json -v -failfast -timeout "$(timeout_for "$pkg")" -skip "$rx" "$pkg" >>"$json" 2>&1 || { rc=$?; finish ""; }
 	done
 	# A named run that matched nothing is EMPTY, not a pass: classify the stream before step 5 replaces it.
 	nm=$(IFS=,; echo "${named[*]-}")
-	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" ${fbcap:+--fallback "$fbcap"} >/dev/null || finish "$nm"
+	"${py[@]}" finish --mode "$mode" --json "$json" --rc 0 --sha "$sha" --pkgs "$pkgs_label" --seconds 0 --named "$nm" --base "$BASE" ${fbcap:+--fallback "$fbcap"} >/dev/null || finish "$nm"
 else
 	echo "== 4 skipped (GORGE_TEST_SMART_GATES=0: the lander runs the affected and dirac gates)"
 	if [ -n "$(git diff --name-only "$mb" HEAD -- 'dirac/oracle/testdata/repro/')" ]; then
 		echo "== 4b repro tables (the diff touches dirac/oracle/testdata/repro/)"
-		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -failfast -timeout 10m -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
+		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run '^TestStd[A-Za-z]*ReprosLockstep' ./dirac/oracle >>"$json" 2>&1
 		rc=$?
 		[ "$rc" = 0 ] || finish ""
 	fi
@@ -524,5 +628,5 @@ fi
 echo "== 5 wire goldens"
 : >"$json"
 rc=0
-gojson 3m -run '^TestNativeWireGolden$' ./server/gorged
+gojson "$(timeout_for ./server/gorged)" -run '^TestNativeWireGolden$' ./server/gorged
 finish "$mod/server/gorged"

@@ -145,7 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			continue
 		}
-		if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
+		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
 			continue
 		}
 		if !haveAv {
@@ -202,7 +202,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castGateOrPoolPays(k, p, c, o, cost, cav) {
+		if !s.castPaysUnderPain(k, p, c, o, cost, cav) && !s.instantTapsLethalPays(k, p, c, o, cost) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -218,13 +218,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		tgtOK, twOK := true, false
 		if k.teamwork && k.t.Cards[c].Teamwork != 0 {
-			// the plain and the teamworked cast announce different targets
-			// (kw_teamwork.go): either may be castable alone
+			// the plain and teamworked casts announce different targets (kw_teamwork.go)
 			tgtOK, twOK = s.teamworkTargets(k, c, p)
 		} else {
 			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
+			s.offerKickedRootless(k, d, p, c, o, pc.cost, tgtOK, twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -283,9 +283,6 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
 			continue // (cast as though it had flash: High Fae Trickster)
 		}
-		if k.gen != nil && k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
-			continue
-		}
 		if !haveAv {
 			s.availFor(k, p, &av)
 			haveAv = true
@@ -307,6 +304,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 		}
 		fc = s.delveOfferCredit(k, p, c, o, false, fc)
+		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &fc, &av) {
+			continue // the flashback cost's own X (CR 202.3e, 107.3b)
+		}
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &fc, &av) || !s.spellTargetsFeasibleFrom(k, c, p, o) || k.gen != nil && !s.spellCostsFeasible(k, c, p, o) {
 			continue // (an additional cost too: Thrill of Possibility's discard with an empty hand)
 		}
@@ -322,7 +322,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if s.cfg&cfgGorgeUnpriced != 0 && s.contribPays(k, p, c, o, false) && !s.FeatPoolPays(p, o, 2) {
 			continue // gorge's potential planner declines a flashback cast carrying a credit ("cost:credit"): only the floating pool casts it (Inspiring Statuary's improvise)
 		}
-		if !s.flashbackPartsDisjoint(k, p, c, fc) {
+		if !s.flashbackReachable(k, p, c, o, fc) {
 			continue
 		}
 		if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && tgtDepReduce(&k.t.Cards[c]) && severalTargets(k, c) && !s.FeatPoolPays(p, o, 2) {
@@ -419,9 +419,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
 			s.grantCap(k, d, p, &capSpent)
 		}
-		if s.scriptAny(k) && s.g.availX == 0 {
-			s.scriptOffers(k, d, &capSpent, p)
-		}
+		s.scriptWalk(k, d, &capSpent, p, sorc)
 	}
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
@@ -672,7 +670,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Kind == kop.AbActivated && a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
 		return false
 	}
-	if f&kop.CostLoyalty != 0 && (!sorc || p.flags&pfLoyaltyUsed != 0) {
+	if f&kop.CostLoyalty != 0 && (!sorc || s.loyaltyUsedAtLimit(k, sl)) {
 		return false
 	}
 	if f&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
@@ -691,6 +689,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if k.gen != nil && k.gen.anyAbReduce {
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions
 	}
+	poolOK := false
 	if k.gen != nil && k.gen.anyPowerUp && f&kop.CostPowerUp != 0 {
 		// The autopay planner prices the PRINTED cost composed with the cost
 		// statics (planAbilityPayment calls offerCostFor, which folds the
@@ -699,37 +698,57 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// printed cost it cannot witness is not offered (powerUpWitness; gorge seed-1
 		// Hercules: {4}{G} reduced to {2}, three untapped Forests, no offer).
 		// The floating pool paying the reduced cost is enough: the plan is
-		// then a pool choice. So: offered iff the pool pays the reduced cost
-		// or the sources pay the printed one AFTER the cost statics
+		// then a pool choice, and gorge prices that pool through
+		// pay.AvailableFor (manaFeasibleDescriptorKind, CR 106.6): the
+		// restricted batches the activation may spend count with it -- a
+		// CantCastNonArtifactSpells batch leaves every non-spell payment
+		// class free (pay/payment.go), so it pays a Power-up activation
+		// (powerup_offer_restrbatch_ignored: Hydraulic Helper's batch beside
+		// Loki Laufeyson's {3}). So: offered iff that pool pays the reduced
+		// cost or the sources pay the printed one AFTER the cost statics
 		// (powerup_cost_static_planner_prices_reduced_print_torch: Hulk, Gamma
 		// Goliath's {3} Power-up reduction makes Human Torch, Johnny Storm's
 		// {6}{R} affordable from the sources at {3}{R}); the charge is always
 		// the reduced one (buildCostCharge), and the plan/charge mismatch
 		// falls back to the manual mana window (powerUpPlanRejected,
-		// mana_window.go).
-		if !s.poolPays(p.ctrl, &mana) && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) {
+		// mana_window.go). On the pool branch the untapped sources stay out
+		// of it -- gorge's pool branch prices the pool alone -- so the
+		// sources read below is skipped when poolOK held.
+		poolOK = s.poolPaysAct(k, p.ctrl, &mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
+		if !poolOK && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) && !powerUpGrantSearchLists(s, k) {
 			return false
 		}
 	}
-	if sourcesPay(&mana) {
-		manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
-		if f&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
-			manaCost = s.waterbendCredit(k, p.ctrl, sl, a, manaCost)
-		}
-		if k.phyMana && manaCost.Phyrexian() {
-			// offered while some colour / life mix of its pips is payable
-			// (mana_phyrexian.go)
-			if !s.phyActAffords(k, sl, a, p.ctrl, manaCost, av) {
-				return false
-			}
-		} else if !s.abilityAffords(k, sl, a, &manaCost, av) && !s.actScriptPays(k, sl, ab, a) {
-			return false
-		}
+	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
+		return false
 	}
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
+}
+
+// actSourcesAfford is canActivate's untapped-sources read: the cheapest legal
+// announcement (cost_sacx.go), the Waterbend credit, then the sources or the
+// filter script pay it. It is the only mana read of an activation the
+// floating pool does not already pay.
+func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana kop.ManaCost, av *avail) bool {
+	manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
+	if a.Cost.Flags&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
+		manaCost = s.waterbendCredit(k, s.perms[sl].ctrl, sl, a, manaCost)
+	}
+	if k.phyMana && manaCost.Phyrexian() {
+		// offered while some colour / life mix of its pips is payable
+		// (mana_phyrexian.go)
+		return s.phyActAffords(k, sl, a, s.perms[sl].ctrl, manaCost, av)
+	}
+	var gc avail
+	if s.abilityAffords(k, sl, a, &manaCost, s.actGrantCensus(k, sl, av, &gc)) {
+		// a sorcery-speed play beside Taps-deferred gaps is also searched
+		// (mana_sorcerygap.go)
+		return !s.sorceryGapSearched(k, sl, ab, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
+	}
+	return s.actScriptPays(k, sl, ab, a)
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the
@@ -757,10 +776,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 		if !s.ownTapBoundKept(k, sl) {
 			s.removeSrc(k, &av2, sl, pc) // (the gaps walk's bound keeps the source's own mana: mana_reflamtowntap.go)
 		}
-		if !av2.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
+		plain := av2.affords(cost, pm, 0)
+		if !plain && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, &av2, sl, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, &av2)) {
 			return false
 		}
 		if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
+			if !plain {
+				return s.actRestrDisjoint(k, sl, a, cost, &av2, sl, pm) // cost_restrdisjoint.go
+			}
 			return s.costManaDisjoint(k, sl, a, &av2, pm)
 		}
 		return true
@@ -775,10 +798,14 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 	if f&kop.CostTap != 0 && !own {
 		skip = sl
 	}
-	if !av.affords(cost, pm, 0) && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
+	plain := av.affords(cost, pm, 0)
+	if !plain && !(k.restrSrc && s.actRestrAffords(k, sl, a, cost, av, skip, s.perms[sl].ctrl)) && (!s.rbAny(s.perms[sl].ctrl) || !s.actPoolAffords(k, sl, cost, av)) {
 		return false
 	}
 	if f&kop.CostTapX != 0 || f&kop.CostSac != 0 && k.sacMana {
+		if !plain {
+			return s.actRestrDisjoint(k, sl, a, cost, av, skip, pm) // cost_restrdisjoint.go
+		}
 		return s.costManaDisjoint(k, sl, a, av, pm)
 	}
 	return true
@@ -790,6 +817,12 @@ func (s *State) abilityAffords(k *prep, sl Slot, a *kop.Ability, cost *kop.ManaC
 // gets that script played at its prefix (CR 601.2g-h) rather than reaching the
 // mana step with no plan.
 const availNoActScript uint16 = 2048
+
+// availNoHandFund is a mode bit read only by filtScript's entry: the search is an
+// activation's payment (actScriptPays), which gorge's planner prices from the census,
+// and the census prices no hand source (mana_handguide.go). The play's prefix search
+// (scriptOffers) keeps the guides.
+const availNoHandFund uint16 = 4096
 
 // actScriptPays prices an activation whose plain census is short against the
 // filter script (mana_filter.go filtScript), the route scriptOffers gives a
@@ -818,16 +851,48 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 	// A table without a generated extension has k.gen == nil (prep.go), so
 	// scriptFilt would dereference nil. A granted/gained ability's index (255)
 	// names no printed ability, so its MakeAction could never list.
-	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !plainPricedCost(a) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
+	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !(plainPricedCost(a) || sacPricedCost(a) || sacSelfPricedCost(a)) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
 		return false
 	}
 	p := s.perms[sl].ctrl
 	f := s.scriptFilt(k, p)
-	if !f.any() || s.filtNetNegative(k, f) != 0 {
+	if !f.any() {
+		return s.reflAmtActPays(k, sl, a, p) // mana_reflamt.go
+	}
+	if s.filtNetNegative(k, f) != 0 || !s.reflAmtBoundAct(k, sl, a) {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	return s.filtScript(k, pa, p, false)
+	if (handManaOn(k) || graveManaOn(k)) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
+		return false
+	}
+	av := s.g.availX
+	if !sacPricedCost(a) && !sacSelfPricedCost(a) { // a sacrifice cost's play is gorge's prefix search, which keeps the guides
+		s.g.availX = av | availNoHandFund
+	}
+	ok := s.filtScript(k, pa, p, false)
+	s.g.availX = av
+	return ok
+}
+
+// relaxedWalkLists reports whether the relaxed census's walk (the gaps walk)
+// lists the activation a. On a relaxable census gorge's relaxed proof
+// (paymentPlanRelaxProof) reads no hand mana: a play it cannot pay is
+// "insufficient" and runs no prefix search, so a Spirit Guide's {R} never
+// funds a search that the relaxed filters' colours leave short (Golgari
+// Signet's {B}{G} beside Plains and a Simian Spirit Guide: Goblin
+// Fireleaper's {1}{R} pump, CR 605.1a). The filters' subsets matter only for
+// a net-negative one, which actScriptPays has already declined.
+func (s *State) relaxedWalkLists(k *prep, a Action) bool {
+	// actScriptPays runs under an outer walk (canActivate), and plainOptions
+	// ends with availX = 0: restore the outer walk's census and filter skip.
+	x, sk := s.g.availX, s.filtSkip()
+	var d Decision
+	s.setFiltSkip(0)
+	s.plainOptions(k, &d, availGaps|availNoActScript)
+	s.g.availX = x
+	s.setFiltSkip(sk)
+	return hasOption(&d, a)
 }
 
 // countUntapped counts p's untapped permanents matching f.
@@ -856,8 +921,8 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	if s.objs[o].zone == kop.ZoneHand && s.objs[o].owner() == p {
 		others--
 	}
-	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= int(ac.N)
-	if ac.Flags&kop.CostDiscardFiltered != 0 {
+	discardOK := ac.Flags&kop.CostDiscard == 0 || others >= discardCount(ac)
+	if _, _, filtered := discardPart(ac); filtered {
 		// a filtered discard (Magmatic Insight's land card) never takes the
 		// card being cast, whatever its filter says (cost_discardfiltered.go)
 		discardOK = s.discardPayable(k, p, ac, o)
@@ -944,7 +1009,7 @@ func (s *State) gorgeOffersMay(p uint8, o Obj, anyColor bool) bool {
 	if s.FeatPlannedCast(p, o, 0) {
 		return true
 	}
-	return s.FeatPoolPays(p, o, 0) || s.gorgeLowersRider(p, o, true, anyColor)
+	return s.FeatPoolPays(p, o, 0) || anyColor && s.featPoolPays(p, o, 0, nil, true) || s.gorgeLowersRider(p, o, true, anyColor)
 }
 
 // offerSourcesAfford: p's sources pay cost through the offer gate -- the
@@ -989,6 +1054,26 @@ func (s *State) gorgeLowers(p uint8, o Obj, mayPlay bool) bool {
 	return s.gorgeLowersRider(p, o, mayPlay, false)
 }
 
+// altAddMayRiderCost prices an any-colour may-play cast's composed AltAdd
+// price under the rider: its coloured pips go generic (pay.PlanManaUnderRider;
+// CR 609.4b). Under the mayPlayAny permission the cost is already priced by
+// anyType (altAddPlanCost), so the rider applies only beside it.
+func (s *State) altAddMayRiderCost(cost kop.ManaCost, mayPlay, anyColor bool) kop.ManaCost {
+	if anyColor && mayPlay && !s.g.mayPlayAny {
+		return planUnderRider(cost, false, true) // an any-colour may-play cast funds the composed price with its coloured pips generic (pay.PlanManaUnderRider; CR 609.4b)
+	}
+	return cost
+}
+
+// contribOrPlainImproviseDeclines reports whether gorge's potential planner
+// declines the cast's mana shape: a convoke contribution (the planner refuses
+// a convoke cost; an improvise cast crediting no artifact is no contribution:
+// improviseAloneObj, contribDeclined). A may-play cast's gate is not the
+// potential planner, so it holds for the contribution alone.
+func (s *State) contribOrPlainImproviseDeclines(k *prep, p uint8, c CardID, o Obj, mayPlay bool) bool {
+	return s.contribDeclined(k, p, c, o, s.objs[o].zone == kop.ZoneHand, !mayPlay)
+}
+
 // gorgeLowersRider is gorgeLowers for a may-play cast under the any-colour
 // rider when anyColor: a target-priced cast's composed price is funded with
 // its coloured pips as generic (pay.PlanManaUnderRider), so Vanish into
@@ -998,8 +1083,8 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	k := s.k()
 	c := s.objs[o].card
 	cd := &k.t.Cards[c]
-	if s.contribPays(k, p, c, o, s.objs[o].zone == kop.ZoneHand) {
-		return false // gorge's potential planner refuses a convoke cost
+	if s.contribOrPlainImproviseDeclines(k, p, c, o, mayPlay) {
+		return false
 	}
 	if s.waterbendOwnPart(k, p, c, o) != 0 {
 		return false // ... and a waterbend one (potentialModeCastPlan, "shape:contribution")
@@ -1016,26 +1101,16 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return false
 	}
 	if cd.Cost.X != 0 {
-		return s.xCostLowers(k, p, c, o)
+		if !mayPlay && s.xTgtDepDeclined(k, p, c, o) {
+			return false
+		}
+		return s.xCostLowers(k, p, c, o, anyColor)
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
 	}
 	if cd.HasAltAdd {
-		cost := s.altAddPlanCost(k, p, c, o)
-		if s.g.availX&availGaps != 0 {
-			return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
-		}
-		if s.ungrantedPaysNoDH(k, p, c, o, &cost) { // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
-			return true
-		}
-		// the planner's census has no granted source, so a cost only a granted ability
-		// pays is a census gap: gorge's prefix search taps it first and the cast is
-		// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
-		// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h).
-		// A filter-only board is a script gap as well: the prefix search activates the
-		// filter first (Llanowar Envoy's {1}{G} makes the {B} Bone Shards costs; CR 601.2g)
-		return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
+		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
 	}
 	if ac := spellAddCost(k, c); ac.Flags&kop.CostTapX != 0 || ac.Flags&kop.CostSac != 0 && k.sacMana {
 		// a permanent tapped for the part is no mana source, and a source that
@@ -1064,11 +1139,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		// no prefix search for a granted source beside it (Abhorrent Oculus'
 		// exile; Urgent Necropsy's evidence beside Insidious Roots' grant)
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) || // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
-			mayPlay && s.mayPlayPrefixPays(k, p, c, o) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
+			mayPlay && s.mayPlayPrefixPays(k, p, c, o, anyColor) // (a may-play cast is composed, not declined: Urgent Necropsy from Outrageous Robbery's exile)
 	}
 	if s.spellTgtDep(k, p, c, o) {
 		if mayPlay {
@@ -1119,7 +1192,7 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
 	if cd.BeholdExile || (cd.HasMultikicker || cd.HasEscalate) && !mayPlay || k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) {
-		return s.optCostCastLowers(k, p, c, o, mayPlay)
+		return s.optCostCastLowers(k, p, c, o, mayPlay, anyColor)
 	}
 	if cd.HasModeCost && !mayPlay && !s.modalFloorFree(k, p, c) {
 		// a Spree or Tiered face whose cheapest mode still costs mana: the
@@ -1134,7 +1207,56 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
 		return s.ungrantedPaysNoDH(k, p, c, o, &cost) // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
 	}
-	return s.plainHandPlayLowers(k, p, c, o)
+	if mayPlay && !s.mayPlayGatePays(k, p, c, o, anyColor) {
+		return false
+	}
+	return s.plainHandPlayLowers(k, p, c, o, anyColor)
+}
+
+// altAddLowers is gorgeLowersRider's alternative-additional-cost arm.
+func (s *State) altAddLowers(k *prep, p uint8, c CardID, o Obj, mayPlay, anyColor bool) bool {
+	cost := s.altAddMayRiderCost(s.altAddPlanCost(k, p, c, o), mayPlay, anyColor)
+	if s.g.availX&availGaps != 0 {
+		return s.affordsFor(k, p, &cost) // with the mana a scripted prefix makes (scriptOffers)
+	}
+	if s.ungrantedPaysNoDH(k, p, c, o, &cost) { // the Diamonds alone fund it: gorge's planner prices no plan for a hand play
+		return true
+	}
+	// the planner's census has no granted source, so a cost only a granted ability
+	// pays is a census gap: gorge's prefix search taps it first and the cast is
+	// offered once the mana floats (Deadly Precision's {B} from Great Divide Guide's
+	// grant, the guide also the creature the cast sacrifices; CR 601.2g before 601.2h).
+	// A filter-only board is a script gap as well: the prefix search activates the
+	// filter first (Llanowar Envoy's {1}{G} makes the {B} Bone Shards costs; CR 601.2g)
+	return k.gen != nil && (len(k.gen.grantPC) != 0 || s.scriptSourceLive(k, p) || k.gen.anyFilt && s.filtOnly(k, p)) && s.affordsFor(k, p, &cost)
+}
+
+// mayPlayGatePays is gorgeLowersRider's plain composed may-play arm: whether the potential planner's
+// census or the prefix its census gap takes pays the cast.
+func (s *State) mayPlayGatePays(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
+	// A plain composed may-play cast's gate is the potential planner's
+	// census -- the pool and the printed and intrinsic sources
+	// (potentialModeCastPlan) -- or the prefix its census gap takes: a
+	// granted mana ability is a census gap the composition leaves out, and
+	// the potential walk then searches for it (potentialCensusFallback), so
+	// the gate prices the gaps read as the sibling arms do, and the
+	// caller's scripted walks (scriptOffers, grantCap) hold the surviving
+	// offer to a script gorge's search finds (mayPlayPrefixPays). The
+	// kernel census counts the granted sources, so the offer walk's afford
+	// read alone over-offers: The World Tree's "As long as you control six
+	// or more lands, lands you control have "{T}: Add one mana of any
+	// color"" beside four printed sources pays Age of Ultron's 4{B}
+	// may-play cast on the kernel census while gorge's planner leaves it
+	// unpriced, and its one search's budget expires before the fifth
+	// land's granted ability is reached (tail-08 pair 54, decision 573);
+	// Elven Chorus's three any-colour creatures fund Wormwood Treefolk's
+	// five-mana cast there, and gorge's search finds it. An untargeted
+	// cast never reaches witnessKeepsTargets' tier-1 census read, so the
+	// gate prices the census here; a targeted one keeps
+	// plainHandPlayLowers' witness-keeps-target arm beside it.
+	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	cost = s.mayRiderCost(cost, anyColor) // the census prices the rider too: an ignore-colour permission funds the pips any mana pays, as the target-priced arm does (pay.PlanManaUnderRider; CR 609.4b)
+	return s.ungrantedPaysNoDH(k, p, c, o, &cost) || s.mayPlayPrefixPays(k, p, c, o, anyColor)
 }
 
 // xCostLowers is gorgeLowersRider's {X}-cost arm. An additional-cost shape's
@@ -1145,12 +1267,10 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 // gap -- so an insufficient one drops the play and no prefix search runs for
 // it (potentialPlayVerdictShared). The census pays the cheapest announcement
 // X = 0, as the fixed additional-cost arms below do.
-func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
+func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
 	if addCostShapeUnscripted(k, c) {
 		cost := s.featCost(k, p, c, o, k.cards[c].cost)
-		if s.g.mayPlayAny {
-			cost = anyType(cost)
-		}
+		cost = s.mayRiderCost(cost, anyColor)
 		if !s.ungrantedPaysNoDH(k, p, c, o, &cost) {
 			return false
 		}
@@ -1170,11 +1290,14 @@ func (s *State) xCostLowers(k *prep, p uint8, c CardID, o Obj) bool {
 
 // optCostCastLowers is gorgeLowersRider for a Behold / Multikicker / Escalate /
 // optional-cost cast.
-func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay bool) bool {
+func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay, anyColor bool) bool {
 	// the Diamond gaps are not the census's units either (dhWithholdsCast):
 	// a hand play only they fund gets no prefix, so gorge prices no plan
-	// for it either, before the printed-sources read can count them
+	// for it either, before the printed-sources read can count them. A
+	// may-play cast's planner price carries the mana rider (mayRiderCost),
+	// so the Diamonds' only-funder read prices it too.
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
+	cost = s.mayRiderCost(cost, anyColor)
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		return false
 	}
@@ -1192,19 +1315,20 @@ func (s *State) optCostCastLowers(k *prep, p uint8, c CardID, o Obj, mayPlay boo
 	// A plain Multikicker hand cast is the same: its granted source (Gemhide
 	// Sliver's any-colour mana) is a gap in the planner's census too, and no
 	// prefix search taps it (the availAny/availGaps rule above).
-	return mayPlay && s.mayPlayPrefixPays(k, p, c, o)
+	return mayPlay && s.mayPlayPrefixPays(k, p, c, o, anyColor)
 }
 
 // plainHandPlayLowers is gorgeLowersRider for an ordinary cast.
-func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj) bool {
+func (s *State) plainHandPlayLowers(k *prep, p uint8, c CardID, o Obj, anyColor bool) bool {
 	// an ordinary cast's plain hand play is the planner's own: the census (the
 	// printed sources and the pool) pays it — the Diamond gaps are no units of
 	// that census and its prefix search never funds a hand play, so a hand cast
-	// only they fund is unpriced (dhWithholdsCast, potential_plan.go)
+	// only they fund is unpriced (dhWithholdsCast, potential_plan.go). A
+	// may-play cast falls through here past its own census arm with the
+	// planner's rider-priced cost (mayRiderCost), so the Diamonds' read sees
+	// it too.
 	cost := s.featCost(k, p, c, o, k.cards[c].cost)
-	if s.g.mayPlayAny {
-		cost = anyType(cost)
-	}
+	cost = s.mayRiderCost(cost, anyColor)
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		return false
 	}
@@ -1252,7 +1376,7 @@ func (s *State) twobridSpentReader(k *prep, p uint8, o Obj) bool {
 // gorge's prefix search taps before it prices the play again (Bloom Tender's
 // colours beside a Swamp pay Bogslither's Embrace's {1}{B}; CR 601.2b, 601.2f).
 func (s *State) scriptSourceLive(k *prep, p uint8) bool {
-	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && s.caBoard(k, p)
+	return s.scriptGaps(k, p).or(s.scriptRestr(k, p)).or(s.scriptAnyR(k, p)).or(s.scriptTapXModelled(k, p)).or(s.scriptCtrModelled(k, p)).or(s.scriptCtr(k, p)).any() || k.gen.anyComboAny && (s.caBoard(k, p) || s.caFiltBoard(k, p))
 }
 
 // altAddPlanCost is the mana gorge's potential planner prices an either-or additional
@@ -1297,7 +1421,7 @@ func severalTargets(k *prep, c CardID) bool {
 func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
-	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
+	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
 		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
 }
 
@@ -1345,7 +1469,7 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 		return true
 	}
 	ac := spellAddCost(k, c)
-	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= int(ac.N)) && s.beholdPayable(k, p, c, o) {
+	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
 	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
@@ -1902,6 +2026,11 @@ type potUnit struct {
 	// the sum) and potUnitsAvail skips the pain count cap for it (a one-tap
 	// unit's count is one, not n).
 	pick bool
+	// altMask/altN is the source's own fixed face when it is an alternative
+	// to this one-colour block (mergeTapN: Peat Bog's {B}{B} under Abundant
+	// Growth's one mana of any colour): the tap makes the block or the face,
+	// never both. Such a unit is a pick unit and never merges.
+	altMask, altN uint8
 }
 
 // maxPotUnits bounds the units availPotentialFor records for
@@ -1939,6 +2068,20 @@ func recordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain ui
 	*n++
 }
 
+// recordPotUnitAlt appends the one-colour block mask/cnt with the source's
+// fixed face altMask/altN as its alternative; the unit never merges.
+func recordPotUnitAlt(units *[maxPotUnits]potUnit, n *int, mask, cnt, pain, altMask, altN uint8) {
+	if units[0].n == 0 && units[0].mask != 0 {
+		return // already overflowed: keep the marker
+	}
+	if *n >= maxPotUnits {
+		*units = [maxPotUnits]potUnit{{mask: 1}} // the overflow marker
+		return
+	}
+	units[*n] = potUnit{mask: mask, n: cnt, pain: pain, pick: true, altMask: altMask, altN: altN}
+	*n++
+}
+
 // unrecordPotUnit takes cnt of mask's taps back out of the record (a source's
 // tap production the caller folds into a wider one, tapUnit); an overflowed
 // record keeps its marker and a unit left empty is dropped.
@@ -1947,7 +2090,7 @@ func unrecordPotUnit(units *[maxPotUnits]potUnit, n *int, mask uint8, cnt, pain 
 		return // overflowed: the record is incomplete anyway
 	}
 	for i := 0; i < *n; i++ {
-		if units[i].mask != mask || units[i].pain != pain || units[i].pick != pick {
+		if units[i].mask != mask || units[i].pain != pain || units[i].pick != pick || units[i].altN != 0 {
 			continue
 		}
 		if units[i].n > cnt {
@@ -1986,6 +2129,14 @@ type potCensus struct {
 	// activation taps both, so the second source makes no unit (CR 601.2g;
 	// gorge's payment search elects and claims pay.ManaTapCandidates once).
 	tapX slotMask
+	// gapTap is the sources whose native tap ability makes a dynamic amount:
+	// gorge's planner census leaves it out (a gap), so its relaxed proof adds
+	// the native production as a unit of its own beside the planner's unit for
+	// a granted {T} ability on the same source (paymentPlanCensusOf; Priest of
+	// Titania under a Huntsman Role: Plains, the Role's {G} and the native {G}
+	// pay {3}). A grant over such a source keeps a unit of its own instead of
+	// widening the native one (potentialGrantedExtra).
+	gapTap slotMask
 }
 
 // unitPain is the pain one recorded unit carries: the activation's own pain
@@ -2086,6 +2237,22 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	if !c.on || ab.Cost.Flags&kop.CostTap == 0 || t.mask == 0 {
 		return false
 	}
+	if t.altN != 0 {
+		c.gap()
+		return true
+	}
+	if col := uint8(ab.ManaColors) &^ drop; ab.ManaRider == kop.ManaRiderDeplete && n > t.n && !t.pick && bits.OnesCount8(col) == 1 {
+		// One tap makes the depletion land's fixed {B}{B} or the grant's
+		// smaller production already recorded (Abundant Growth's one mana of
+		// any colour), never the larger count in the grant's colours: the
+		// wide unit would pay {G}{G} (CR 605.3b). The grant stays the block,
+		// the rider's face its alternative.
+		unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+		t = potUnit{mask: t.mask, n: t.n, pain: min(t.pain, c.unitPain()), pick: true, altMask: col, altN: n}
+		recordPotUnitAlt(&c.units, &c.n, t.mask, t.n, t.pain, t.altMask, t.altN)
+		c.tap[sl] = t
+		return true
+	}
 	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	// the widened unit keeps the cheaper pain: the over-bound the census is
 	// (a tap makes one mana through whichever of its abilities is cheapest)
@@ -2093,6 +2260,54 @@ func (c *potCensus) mergeTapN(sl Slot, ab *kop.Ability, n, drop uint8) bool {
 	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
 	c.tap[sl] = t
 	return true
+}
+
+// foldPickExtra is the over-bound's share of a merge into a pick unit: sl's tap
+// unit old was grown by a reflected TapsForMana extra (growTap), so one tap
+// makes its n mana all of the pick, whichever colour of the widened mask the
+// pick is. The further {T} ability's colours (mask, n mana each) the merge adds
+// to that mask therefore carry the extra too, as the first ability's colours
+// did (Sacred Peaks' {R} beside its {W} under Keeper of Progenitus: {R}{R} or
+// {W}{W}, CR 605.3b, 106.1). Colours old already held keep their fold.
+func foldPickExtra(old potUnit, mask, n uint8, sl Slot, fold func(Slot, uint8, uint8)) {
+	if !old.pick || old.n <= n {
+		return
+	}
+	if m := mask &^ old.mask; m != 0 {
+		fold(sl, m, old.n-n)
+	}
+}
+
+// gatePairUnit prices a gate-on mana pair: gorge's walk sums both listed
+// abilities of the pair in the over-bound pool, while the per-tap census is
+// the planner's one mana-making tap, the larger alternative (CR 605.3b).
+func (c *potCensus) gatePairUnit(sl Slot, col, n uint8, add, fold func(Slot, uint8, uint8)) {
+	if c.on && c.tap[sl].mask != 0 {
+		fold(sl, col, n)
+		c.widenGrant(sl, col, n, false)
+		return
+	}
+	add(sl, col, n)
+}
+
+// widenGrant merges a granted {T} mana ability's production into sl's one tap
+// unit (the per-tap census's one mana per tap): the unit's colours widen and
+// its count grows to the larger production, one tap making either the native
+// production or the granted one. The unit keeps its pick mark and the cheaper
+// pain, as mergeTapN's widening does. one marks a grant of "N mana of any one
+// color" (CR 106.4): the tap's n mana are all one colour of the mask, so the
+// unit is a same-pick one (potUnitsAvail prices it as a one-colour source),
+// not n independent any-colour mana a green and a white pip could split.
+func (c *potCensus) widenGrant(sl Slot, mask, n uint8, one bool) {
+	t := c.tap[sl]
+	if t.altN != 0 {
+		c.gap() // the tap already holds an alternative face: no exact view
+		return
+	}
+	unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+	t = potUnit{mask: t.mask | mask, n: max(t.n, n), pain: min(t.pain, c.unitPain()), pick: t.pick || one && n > 1}
+	recordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+	c.tap[sl] = t
 }
 
 // growTap widens sl's recorded tap unit by r more mana of the same pick (a
@@ -2107,7 +2322,7 @@ func (c *potCensus) growTap(sl Slot, r uint8) {
 		return
 	}
 	t := c.tap[sl]
-	if t.mask == 0 || int(t.n)+int(r) > 255 {
+	if t.mask == 0 || t.altN != 0 || int(t.n)+int(r) > 255 {
 		c.gap()
 		return
 	}
@@ -2134,6 +2349,18 @@ func (c *potCensus) recStore(sl Slot, ab *kop.Ability, n int, drop uint8) {
 // makes nothing), the planner's natural amount, while the over-bound pool
 // keeps the unbounded fold. It reports it handled.
 func (s *State) censusDynamicAb(k *prep, sl Slot, ab *kop.Ability, c *potCensus, fold func(Slot, uint8, uint8), drop uint8) bool {
+	if c.on && censusRestrDynAny(ab) {
+		// a restricted evaluated any-colour source the payment admits (Seance
+		// Board's soul counters) is a unit of gorge's planner census at what it
+		// makes now: n mana of one colour. The walk still folds it open (false).
+		n := uint8(min(max(s.dynManaN(k, ab, sl), 0), 255))
+		if manaOneColour(ab, n) {
+			recordPotUnit(&c.units, &c.n, uint8(ab.ManaColors), n, c.unitPain(), true)
+		} else {
+			c.recTapDrop(sl, uint8(ab.ManaColors), n, drop)
+		}
+		return false
+	}
 	if !c.on || ab.AFlags&kop.AfManaDynamic == 0 || ab.ManaColors == kop.ColAny || ab.AFlags&kop.AfManaEachColor != 0 || anyDifferentTapAb(ab) {
 		return false
 	}
@@ -2160,6 +2387,11 @@ func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 	if units[0].mask != 0 && units[0].n == 0 {
 		return false // the overflow marker: the record is incomplete
 	}
+	return potUnitsAdd(a, units, life)
+}
+
+// potUnitsAdd is potUnitsAvail's walk over a record already known complete.
+func potUnitsAdd(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 	for i := 0; i < maxPotUnits; i++ {
 		u := units[i]
 		if u.mask == 0 {
@@ -2180,7 +2412,7 @@ func potUnitsAvail(a *avail, units *[maxPotUnits]potUnit, life int) bool {
 					return false // more same-pick sources than fit: no exact view
 				}
 				a.one[a.nOne], a.oneMask[a.nOne] = u.n, u.mask
-				a.oneAltMask[a.nOne], a.oneAltN[a.nOne] = 0, 0
+				a.oneAltMask[a.nOne], a.oneAltN[a.nOne], a.oneCol[a.nOne] = u.altMask, u.altN, 0
 				a.nOne++
 			}
 		}
@@ -2250,10 +2482,30 @@ func (s *State) censusOpenTap(k *prep, p uint8, sl Slot, pc *pcard, boundedAny b
 
 // censusPickOwns reports whether censusOpenTap records sl's open tap in the
 // census as a same-pick unit: the census is on and a reflected TapsForMana
-// extra (srcReflectPick) reaches the tap, so potentialAnyColourUnit must fold
-// the production into the over-bound pool alone.
+// extra (srcReflectPick) reaches the tap, or the tap makes all its mana one
+// colour of the caster's choosing (censusPickAmount), so
+// potentialAnyColourUnit must fold the production into the over-bound pool
+// alone.
 func (s *State) censusPickOwns(k *prep, sl Slot, pc *pcard, cen *potCensus) bool {
-	return cen.on && s.srcReflectPick(k, sl, pc) > 0
+	return cen.on && (s.srcReflectPick(k, sl, pc) > 0 || s.censusPickAmount(k, sl, pc, srcYield(pc)))
+}
+
+// censusPickAmount reports whether sl's open tap makes n mana all in one
+// colour of the caster's choosing, so the census records one same-pick unit,
+// not n independent any-colour units: a ColAny production with no per-unit
+// colour choice (manaOneColour's shape; the static one is pcard.manaOne), a
+// dynamic amount read off the ability at what it makes now (Lotus Blossom's
+// petals, CR 601.2g). n of one is a plain any-colour unit.
+func (s *State) censusPickAmount(k *prep, sl Slot, pc *pcard, n uint8) bool {
+	if n <= 1 || pc.manaCol != kop.ColAny || pc.manaChosen {
+		return false
+	}
+	if pc.manaOne {
+		return true
+	}
+	cd := &k.t.Cards[s.cardAt(sl)]
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) &&
+		manaOneColour(&cd.Abilities[pc.manaAb], n)
 }
 
 // potentialTapUnit records a source's tap production in availPotentialFor: a
@@ -2299,8 +2551,30 @@ func (s *State) potentialTapUnit(k *prep, p uint8, sl Slot, pc *pcard, mask uint
 		}
 	}
 	cen.pain = 0 // the tap's extra is priced unpainted, as before the gate pair
+	s.potentialTapExtraGated(k, sl, pc, mask, fold, cen, painRefused)
+}
+
+// potentialTapExtraGated is potentialTapExtra behind its caller-side checks:
+// a TapsForMana carrier exists, the lethal guard did not refuse the tap's
+// production and the source is not a pain-only face.
+func (s *State) potentialTapExtraGated(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus, painRefused bool) {
 	if k.gen != nil && k.gen.anyTapExtra && !painRefused && !pc.painOnly {
 		s.potentialTapExtra(k, sl, pc, mask, fold, cen)
+	}
+}
+
+// grantGapGain books gorge's gapGains for a granted any-colour {T} ability on
+// a host whose own ability cannot tap (Paradise Mantle on a creature): the
+// planner's census misses the grant and the host has no covered production to
+// net it against (manaTapAbilityNetsNoMore needs best > 0), so the grant raises
+// the mana a payment can spend and the X-bound sweep's count proof has no
+// supply bound (paymentPlanCensusOf, CR 106.1, 605.3b, 601.2h).
+func (s *State) grantGapGain(k *prep, sl Slot, pc *pcard, d *payDesc, cen *potCensus) {
+	if d == nil || !cen.on || k.gen == nil || !pc.manaTap || pc.manaCol != kop.ColAny || pc.manaChosen || pc.manaMulti {
+		return
+	}
+	if pc != &k.cards[s.cardAt(sl)] && !s.ownManaUsable(k, sl) {
+		d.gapGain = true
 	}
 }
 
@@ -2404,6 +2678,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		markCensusAbDone(pc, sl, &done)
+		s.grantGapGain(k, sl, pc, d, &cen)
 		// the printed ability's own activation pain: when it reaches the
 		// life its production is no census unit, the fold keeps it (a
 		// pain-only source makes nothing there, a paid face beside a normal
@@ -2422,6 +2697,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic {
+			cen.gapTap = cen.gapTap.with(sl)
 			// gorge's potentialAmount prices an indeterminate Amount$
 			// unbounded in exactly the produced faces it names (CR 107.4a;
 			// rules potential.go addIndeterminatePotentialMana), never in a
@@ -2437,8 +2713,15 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				// makes now (Lotus Blossom's petals, CR 601.2g); recTap is
 				// a no-op when the census is off. A lethal-guard refusal
 				// drops the production's colours out of that unit too
-				// (recTapDrop).
-				cen.recTapDrop(sl, s.srcMaskAt(pc, sl), srcYield(pc), painDrop)
+				// (recTapDrop). One tap's mana is all one colour of the
+				// caster's choosing (censusPickAmount), so the unit is a
+				// same-pick one, not n independent any-colour units.
+				n := srcYield(pc)
+				if s.censusPickAmount(k, sl, pc, n) {
+					cen.recPickDrop(sl, s.srcMaskAt(pc, sl), n, painDrop)
+				} else {
+					cen.recTapDrop(sl, s.srcMaskAt(pc, sl), n, painDrop)
+				}
 			} else if cen.on {
 				// the census reads the source at the amount it makes now, the
 				// planner's natural one (an Everflowing Chalice holding no
@@ -2450,10 +2733,21 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			} else {
 				painAdd(sl, s.srcMaskAt(pc, sl), potentialOpenUnits)
 			}
+			// the tap's TapsForMana extra is a fixed vector beside the
+			// dynamic amount (Tower Worker's {C} under Leyline of Abundance's
+			// {G}): gorge folds it into each alternative of the tap
+			s.potentialTapExtraGated(k, sl, pc, s.srcMaskAt(pc, sl), fold, &cen, painRefused)
+			// a {T} ability granted beside the dynamic one is a planner unit
+			// of its own, the native production a relaxed one beside it
+			// (gapTap): Priest of Titania under a Huntsman Role makes {G}
+			// twice for gorge's X-bound sweep (CR 601.2b, 602.2b)
+			cen.pain = 0
+			s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
 			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
+			s.potentialTapExtraOpen(k, sl, pc, fold, &cen, painRefused)
 			continue
 		}
 		mask := s.srcMaskAt(pc, sl)
@@ -2461,15 +2755,15 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			mask |= xvMask(pc) // an all-at-once source adds each of its colours (gorge addPotentialMana: every rune)
 		}
 		if pc.manaMulti && k.gen != nil && done[sl] != ^uint16(0) && pc.manaAb >= 0 {
-			mask = s.potentialFirstMask(k, sl, pc) // the walk below admits its other abilities, each once
+			mask = s.potentialFirstMask(k, p, sl, pc, d) // the walk below admits its other abilities, each once
 		}
 		// painAdd is cenMaskAdd when the lethal guard refuses the printed ability's production
 		s.potentialTapUnit(k, p, sl, pc, mask, painAdd, fold, painRefused, &cen)
 		cen.pain = 0 // the gate pair's and the granted units are priced unpainted
 		if n := gatePairPotential(pc); n != 0 {
-			add(sl, uint8(pc.wideCol), n) // gorge's walk sums both listed abilities of a gate-on pair
+			cen.gatePairUnit(sl, uint8(pc.wideCol), n, add, fold)
 		}
-		s.potentialGrantedExtra(k, sl, d, boundedAny, add, &open, &anyFree)
+		s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
 	}
 	for progressed := k.gen != nil; progressed; {
 		progressed = false
@@ -2504,7 +2798,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				if skip {
 					continue
 				}
-				if !open && !potentialCovers(&others, &ab.Cost.Mana) {
+				if !open && !potentialCovers(&others, &ab.Cost.Mana) && !s.feeSpareCovers(k, p, sl, ab, d, &others) {
 					continue
 				}
 				if !s.censusTapXClaim(k, p, sl, j, ab, &cen) {
@@ -2544,10 +2838,11 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				anyAdd := func(sl Slot, mask, n uint8) {
 					cen.anyAddAb(sl, ab, mask, n, abDrop, addAb, fold)
 				}
-				if !s.addAnyDifferentOrOpen(sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
+				if !s.addAnyDifferentOrOpen(k, p, sl, ab, boundedAny, len(units) != 0, anyAdd, &anyFree, &open) {
 					s.addOrMergeRepeat(&cen, sl, ab, d, abDrop, addAb, fold)
 				}
-				open = s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, &cen, fold) || open
+				open = s.sacAnyRepeatUnitsFor(d, k, p, sl, ab, abDrop, &cen, fold) || open
+				s.tapXRepeatUnits(k, p, sl, ab, fold)
 			}
 		}
 	}
@@ -2556,6 +2851,16 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 		*units[0] = cen.units
 	}
 	return open
+}
+
+// sacAnyRepeatUnitsFor is sacAnyRepeatUnits unless the pay description holds
+// the sacrifice-any repeats out (payDesc.noSacRepeat, the kicked cast's
+// potential price): then the census keeps only the source's one activation.
+func (s *State) sacAnyRepeatUnitsFor(d *payDesc, k *prep, p uint8, sl Slot, ab *kop.Ability, abDrop uint8, cen *potCensus, fold func(Slot, uint8, uint8)) bool {
+	if d != nil && d.noSacRepeat {
+		return false
+	}
+	return s.sacAnyRepeatUnits(k, p, sl, ab, abDrop, cen, fold)
 }
 
 // sacAnyRepeatUnits is availPotentialFor's census arm for a live sacrifice-any
@@ -2570,25 +2875,92 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 // sweep still refuses a play that one activation cannot fund, as gorge's
 // planner does.
 //
+// A fixed-production one (Jungle Patrol's "Sacrifice a token named Wood: Add
+// {R}") repeats in the plain potential fold the way gorge's bound does
+// (rules potential_repeat_fee.go addPotentialSacRepeat, CR 605.1a): the
+// production once per extra candidate, its own mask and count, never the
+// whole-pool open (CR 107.4a: a fixed colour never leaves its face). On the
+// census only the any-colour production is open and folded; the units'
+// record is the real verdict (n of the mask, one per candidate), and the
+// bounded count proofs read that census, not the fold.
+//
 // The unrecord takes back the pain the ordinary unit was recorded with
 // (cen.unitPain: abPain plus the tap's foreign damage the census carries for
 // the source); the replacement units carry cen.pain alone — the sacrifice
 // activations never tap the source, so the Taps watchers' damage prices no
 // repeat. It reports the production's open fold.
 func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, abDrop uint8, cen *potCensus, fold func(Slot, uint8, uint8)) (open bool) {
-	if !cen.on || !kop.SacAnyManaAb(ab) {
+	if !kop.SacAnyManaAb(ab) {
 		return false
 	}
 	var cs [MaxPerm]Slot
-	if n := s.sacXCands(k, p, sl, ab, &cs); n >= 2 {
-		open = true
-		if m := uint8(ab.ManaColors) &^ abDrop; m != 0 {
-			unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
-			recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
+	n := s.sacXCands(k, p, sl, ab, &cs)
+	if n < 2 {
+		return false
+	}
+	m := uint8(ab.ManaColors) &^ abDrop
+	anyCol := ab.ManaColors == kop.ColAny
+	if !cen.on {
+		// the plain potential fold has no per-tap census beside it: the
+		// repeats are the fold's whole extra, priced once per extra
+		// candidate in the production's own mask (gorge
+		// addPotentialSacRepeat), and an open production opens the fold as
+		// gorge's producedOpen prices it
+		open = anyCol
+		if m != 0 && !open && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			fold(sl, m, uint8(min((n-1)*max(int(ab.ManaN), 1), 255)))
+		}
+		return open
+	}
+	// Only the any-colour production is open in gorge's fold. A
+	// fixed-colour one (Krark-Clan Ironworks' {C}{C}) counts once in
+	// PotentialMana, so its repeats are neither open nor folded: the
+	// bound stays gorge's and a cast only the repeats fund is no play
+	// (pair 67: Grab the Reins' entwined cast beside two artifacts).
+	open = anyCol
+	if !anyCol && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken == 0 {
+		// gorge's bound prices a fixed production beside non-token fodder
+		// once (addPotentialSacRepeat returns on it): the unit the ordinary
+		// walk recorded already is that one activation, so the census keeps
+		// it (swapping one of its ManaN for n would count Krark-Clan
+		// Ironworks' {C}{C} as three mana beside two artifacts).
+		return open
+	}
+	if m != 0 {
+		unrecordPotUnit(&cen.units, &cen.n, m, 1, cen.unitPain(), false)
+		recordPotUnit(&cen.units, &cen.n, m, uint8(min(n, 255)), cen.pain, false)
+		if anyCol {
 			fold(sl, m, uint8(min(n, 255)))
 		}
 	}
 	return open
+}
+
+// tapXRepeatUnits is availPotentialFor's fold arm for a fixed-production
+// tap-another mana ability (Urza, Lord High Artificer's "Tap an untapped
+// artifact you control: Add {U}"): once admitted, it repeats once per extra
+// untapped candidate its cost can tap, the way gorge's bound does
+// (potential_repeat_fee.go addPotentialTapRepeat, CR 605.1a, 601.2g: each
+// activation taps the cost's candidates while paying, so the untapped ones
+// bound the activations). The ability's own shape checks say the rest: a
+// once-only limit or a restriction is another Cost flag the shape refuses, an
+// any-colour production stays the fold's open (potentialOpenProduction, as
+// gorge's producedOpen prices it), and the census unit is the once-admission
+// the plain tap unit already recorded -- the repeats live in the fold alone,
+// like the bound's other fixed repeats (addPotentialSacRepeat's shape, the
+// one-per-source census above).
+func (s *State) tapXRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, fold func(Slot, uint8, uint8)) {
+	if !kop.TapXManaOne(ab) {
+		return
+	}
+	if _, fixed := kop.TapXFixedColour(ab); !fixed {
+		return // an any-colour production: the fold is already open
+	}
+	repeats := s.countUntapped(k, p, ab.Cost.Filter, sl) / int(ab.Cost.N)
+	if repeats < 2 {
+		return
+	}
+	fold(sl, uint8(ab.ManaColors), uint8(min((repeats-1)*max(int(ab.ManaN), 1), 255)))
 }
 
 // potentialTapExtra folds a TapsForMana carrier's extra (Heartbeat of Spring:
@@ -2603,7 +2975,47 @@ func (s *State) sacAnyRepeatUnits(k *prep, p uint8, sl Slot, ab *kop.Ability, ab
 // caller has checked k.gen.anyTapExtra, the lethal guard's refusal and the
 // pain-only face.
 func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold func(Slot, uint8, uint8), cen *potCensus) {
-	xv := s.srcExtra(k, sl, pc)
+	s.potentialTapExtraFixed(k, sl, pc, fold, cen)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, mask, r)
+		cen.growTap(sl, r)
+	}
+}
+
+// potentialTapExtraOpen folds a TapsForMana carrier's extra into an open
+// (any-colour) tap's over-bound pool: the fixed vector beside the pick
+// (Deathbloom Gardener's any-colour {G} under Leyline of Abundance's {G}) and
+// the reflected part's fold, whose census unit the census's grown tap already
+// holds (censusOpenTap's recPickDrop over srcYieldAt), so only the over-bound
+// pool keeps it. gorge folds the extra into each alternative of the tap (pay
+// addTapExtra). The lethal guard's refusal and the pain-only face leave it
+// out, as potentialTapExtraGated's gate does.
+func (s *State) potentialTapExtraOpen(k *prep, sl Slot, pc *pcard, fold func(Slot, uint8, uint8), cen *potCensus, painRefused bool) {
+	if k.gen == nil || !k.gen.anyTapExtra || painRefused || pc.painOnly {
+		return
+	}
+	s.potentialTapExtraFixed(k, sl, pc, fold, cen)
+	if r := s.srcReflectPick(k, sl, pc); r > 0 {
+		fold(sl, s.srcMaskAt(pc, sl), r)
+	}
+}
+
+// potentialTapExtraFixed is potentialTapExtra's fixed-vector part: the
+// carrier's literal extra folded into the over-bound pool and recorded in the
+// census as its own unit, no reflected part.
+func (s *State) potentialTapExtraFixed(k *prep, sl Slot, pc *pcard, fold func(Slot, uint8, uint8), cen *potCensus) {
+	var xv [kop.NumManaKinds]uint8
+	if pc.painCol != 0 {
+		// a painful source's unit here is its normal ability's: the extra of
+		// that tap (srcExtraPain's xc); the painful pick's is priced where
+		// that alternative is (a stall counted when it cannot be)
+		var ok bool
+		if xv, _, _, ok = s.srcExtraPain(k, sl, pc); !ok {
+			return
+		}
+	} else {
+		xv = s.srcExtra(k, sl, pc)
+	}
 	for c, v := range xv {
 		// srcExtra holds the source's own all-at-once rest (pcard.manaXv),
 		// which the tap's colour mask already priced; only the carrier's part
@@ -2613,28 +3025,48 @@ func (s *State) potentialTapExtra(k *prep, sl Slot, pc *pcard, mask uint8, fold 
 			cen.rec(1<<c, v-own)
 		}
 	}
-	if r := s.srcReflectPick(k, sl, pc); r > 0 {
-		fold(sl, mask, r)
-		cen.growTap(sl, r)
-	}
 }
 
 // potentialGrantedExtra admits the mana abilities granted to sl beside its own
-// one (an aura's "{T}: Add two mana of any one color"): each counts on its own,
-// as gorge's walk admits each of a source's abilities. A source with no usable
-// grant leaves open and anyFree alone.
-func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add func(Slot, uint8, uint8), open *bool, anyFree *int) {
+// one (an aura's "{T}: Add one mana of any color"): the over-bound pool counts
+// each on its own, as gorge's walk admits each of a source's abilities, while
+// the per-tap census prices a {T}-costed grant into the source's one tap unit
+// -- a source taps once (CR 605.3b; gorge's planner makes one mana per tap),
+// so the grant widens that unit's colours instead of adding a second mana
+// beside the native production, and an X-bound-target sweep's verdict
+// (xBoundPayable) reads the board the planner does. A grant without the
+// source's tap unit (no native {T} ability) or one that costs more than the
+// tap keeps the unit of its own. A source with no usable grant leaves open
+// and anyFree alone.
+func (s *State) potentialGrantedExtra(k *prep, sl Slot, d *payDesc, boundedAny bool, add, fold func(Slot, uint8, uint8), cen *potCensus, open *bool, anyFree *int) {
 	if k.gen == nil || len(k.gen.grantPC) == 0 || !s.grantMay(k, sl) || !s.ownManaUsable(k, sl) {
 		return
 	}
 	var gi [maxGrants]int16
 	for i, ng := 0, s.potentialGrants(k, sl, &gi, d); i < ng; i++ {
 		gv := s.grantView(k.gen, gi[i], sl)
+		mask := s.srcMaskAt(gv, sl)
+		if cen.on && gv.manaTap && cen.tap[sl].mask != 0 && !cen.gapTap.has(sl) {
+			cen.widenGrant(sl, mask, gv.manaN, gv.manaOne)
+			if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
+				// the pot's wildcard bookkeeping (potentialGrantedUnit's):
+				// bounded mode prices the grant once as wildcard units;
+				// an unbounded pool opens it and adds nothing
+				*open = !boundedAny
+				if boundedAny {
+					*anyFree += int(gv.manaN)
+					fold(sl, mask, gv.manaN)
+				}
+				continue
+			}
+			fold(sl, mask, gv.manaN)
+			continue
+		}
 		if gv.manaCol == kop.ColAny && !gv.manaChosen && !gv.manaMulti {
 			*open = s.potentialGrantedUnit(gv, sl, boundedAny, add, anyFree) || *open
 			continue
 		}
-		add(sl, s.srcMaskAt(gv, sl), gv.manaN)
+		add(sl, mask, gv.manaN)
 	}
 }
 
@@ -2670,9 +3102,13 @@ func (c *potCensus) anyTapP(ab *kop.Ability) bool {
 // over-bound pool keeps the fold. drop is the widening colours a lethal-guard
 // refusal prices at nothing (cenPainDrop's).
 func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n, drop uint8, add, fold func(Slot, uint8, uint8)) {
-	if c.anyTapP(ab) && c.mergeTap(sl, ab, drop) {
-		fold(sl, mask, n)
-		return
+	if c.anyTapP(ab) {
+		old := c.tap[sl]
+		if c.mergeTap(sl, ab, drop) {
+			fold(sl, mask, n)
+			foldPickExtra(old, mask, n, sl, fold)
+			return
+		}
 	}
 	add(sl, mask, n)
 }
@@ -2682,11 +3118,48 @@ func (c *potCensus) anyAddAb(sl Slot, ab *kop.Ability, mask, n, drop uint8, add,
 // the pool alone, so it counts once as gorge's census does. drop is the colours
 // a lethal-guard refusal prices at nothing (cenPainDrop's).
 func (c *potCensus) addOrMerge(sl Slot, ab *kop.Ability, drop uint8, add, fold func(Slot, uint8, uint8)) {
-	if c.mergeTap(sl, ab, drop) {
+	if ab.ManaEach {
+		// An all-at-once production makes manaN mana of EACH colour in its
+		// mask (addFiltUnits' split), so the census records one unit per
+		// colour. One union unit would price the tap at ONE mana of one of
+		// its colours, the choose-one semantics a Combo dual carries, and
+		// strand an X-bound announcement the source funds (Golgari Signet's
+		// {1},{T}: Add {B}{G} under Repeal's cmcEQX target). The tap note
+		// stays empty: one unit cannot widen to a per-colour vector, so a
+		// further tap ability records its own unit (potentialTapUnit's
+		// all-at-once branch).
+		if c.on {
+			if t := c.tap[sl]; t.mask != 0 {
+				unrecordPotUnit(&c.units, &c.n, t.mask, t.n, t.pain, t.pick)
+				c.tap[sl] = potUnit{}
+			}
+			for mk, n := range filtEachVec(ab) {
+				if n != 0 {
+					c.recDrop(sl, uint8(1<<uint(mk)), n, drop)
+				}
+			}
+		}
 		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 		return
 	}
-	c.recDrop(sl, uint8(ab.ManaColors), max(ab.ManaN, 1), drop)
+	old := c.tap[sl]
+	if c.mergeTap(sl, ab, drop) {
+		fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		foldPickExtra(old, uint8(ab.ManaColors), max(ab.ManaN, 1), sl, fold)
+		return
+	}
+	if c.on && ab.ManaEach {
+		// an all-at-once production (Simic Signet's {G}{U}) makes every
+		// colour it names in one activation (CR 106.3): one unit a colour,
+		// not one unit of either (gorge ProducedCounts sums each colour)
+		for col, n := range filtEachVec(ab) {
+			if n != 0 {
+				c.recDrop(sl, 1<<col, n, drop)
+			}
+		}
+	} else {
+		c.recDrop(sl, uint8(ab.ManaColors), max(ab.ManaN, 1), drop)
+	}
 	fold(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
 }
 
@@ -2878,8 +3351,17 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 // ability. On the census (units) a fixed any-colour production joins modal
 // once, the same bound the walk prices an open source's own tap at, while an
 // each-colour one is unbounded to the census and joins nothing (a dynamic
-// one's faces join unbounded).
-func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+// one's faces join unbounded) -- except on the X-bound sweep's per-tap
+// census (boundedAny, kgen's EachColorAmong production): gorge's planner
+// census misses it and prices the play only through paymentPlanRelaxProof's
+// relaxation of the missed ability, one activation making one mana of each
+// colour among its permanents (Bloom Tender's shape, doc.go), so the census
+// prices the production there too, one unit per colour. An omitted one made
+// the record's refusal a proof where the relaxation pays: Thrive's {G} off
+// Faeburrow Elder ("{T}: add one mana of each colour among permanents you
+// control") was refused and the cast dropped from the priority options
+// (tail-07 pair 144, decision 335).
+func (s *State) addAnyDifferentOrOpen(k *prep, p uint8, sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
 	if anyDifferentTapAb(ab) {
 		add(sl, 0x1f, 1)
 		return true
@@ -2888,6 +3370,17 @@ func (s *State) addAnyDifferentOrOpen(sl Slot, ab *kop.Ability, boundedAny, cens
 		if census && !boundedAny && ab.ManaColors == kop.ColAny &&
 			ab.AFlags&(kop.AfManaDynamic|kop.AfManaEachColor|kop.AfManaChoice) == 0 {
 			add(sl, uint8(ab.ManaColors), max(ab.ManaN, 1))
+		}
+		if census && boundedAny && ab.AFlags&kop.AfManaEachColor != 0 {
+			// the relaxation's units (eachColorOut's colours, CR 118.3c's one
+			// mana per tap per colour; addOrMerge's all-at-once split): one
+			// per-colour unit, never a union one, so an announcement the one
+			// tap funds is priced and one it cannot fund is not
+			if n := max(ab.ManaN, 1); n != 0 {
+				for m := uint8(s.eachColorOut(k, p, sl)); m != 0; m &= m - 1 {
+					add(sl, m&-m, n)
+				}
+			}
 		}
 		*open = s.potentialExtraUnit(ab, sl, boundedAny, add, anyFree) || *open
 		return true
@@ -3055,9 +3548,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 	// activation's (mana_granttapsdefer.go)
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	// runPrefixes' four gates, tested inline so a table with none of them skips the call
-	pref := false
+	pref, tapX := false, false
 	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
-		pref = s.runPrefixes(k, a, p, grants, grantFirst)
+		pref, tapX = s.runPrefixes(k, a, p, grants, grantFirst)
 	}
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
@@ -3094,6 +3587,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castDashTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyDash {
 			s.g.impCast = true // the dash cost (kw_dash.go): beginCast marks the entry dashed
+			s.noteDashCmdCast(a)
 		}
 		if a.Target() == castForetellTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyForetell {
 			s.g.impCast = true // the foretell cost (kw_foretell.go): beginCast marks the entry foretold
@@ -3137,9 +3631,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if k.gen != nil && s.activateGen(k, a) {
 			break
 		}
-		if pref {
-			s.payPrefixRest(k, a, p) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
-		}
+		s.activatePrefixRest(k, a, p, pref, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
@@ -3203,7 +3695,7 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 		s.enter(k, o, p, false, from)
 	}
 	if deferCount && !counted {
-		s.shockLandCount(o, p)
+		s.shockLandCount(k, o, p)
 	}
 	s.passes = 0
 }
@@ -3279,4 +3771,13 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 	}
 	base.Generic = uint8(g)
 	return base
+}
+
+// censusRestrDynAny: ab is a restricted evaluated-amount any-colour mana ability
+// (Seance Board: "{T}: Add X mana of any one color ... spend this mana only to
+// cast instant and sorcery spells"), the shape the per-tap census records at
+// the amount it makes now (CR 106.6, 601.2g).
+func censusRestrDynAny(ab *kop.Ability) bool {
+	return ab.ManaRestrict != 0 && ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaColors == kop.ColAny &&
+		ab.AFlags&kop.AfManaEachColor == 0 && !anyDifferentTapAb(ab)
 }

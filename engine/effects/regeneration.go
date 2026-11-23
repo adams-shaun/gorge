@@ -156,5 +156,5 @@ func regenerate(h Host, o *state.Object) {
 		// RegenerationEffect passes the card's controller as the tapper).
 		h.EmitTap(id, o.Controller, false)
 	}
-	h.Emit(events.Event{Kind: events.EndCombatReset, Obj: id})
+	h.Emit(events.Event{Kind: events.EndCombatReset, Obj: id, Text: events.RegeneratedNotice})
 }

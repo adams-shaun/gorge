@@ -47,9 +47,10 @@ import (
 // first, which keeps the most in. With none, a tapXType obligation stays with the
 // engine's board-aware payment.
 //
-// A lone required attacker that can't attack alone (CR 506.5) binds only while
-// it has a partner: with none, no declaration obeys the requirement without
-// breaking the restriction (CR 508.1d).
+// A required attacker bound by a declaration rule (can't attack alone, can only
+// attack alone, needs companions: CR 506.5, 508.1c) binds only while some legal
+// declaration obeys it: a lone one needs a partner, and one the core declares
+// against its rule is dropped from the core (CR 508.1d).
 func (d *Decision) requiredCore() []int {
 	core := d.requiredPicks()
 	for len(core) > 0 && !d.ChargeTapPoolFit(core) {
@@ -61,8 +62,14 @@ func (d *Decision) requiredCore() []int {
 		}
 		core = slices.Delete(slices.Clip(core), worst, worst+1)
 	}
-	if len(core) == 1 && d.Kind == KAttackers && d.Options[core[0]].AloneRestricted && d.alonePartner(core[0]) < 0 {
+	if d.Kind != KAttackers {
+		return core
+	}
+	if len(core) == 1 && !d.AloneLegal(core) && d.alonePartner(core[0]) < 0 {
 		return nil
+	}
+	for pos := d.aloneViolator(core); len(core) > 1 && pos >= 0; pos = d.aloneViolator(core) {
+		core = slices.Delete(slices.Clip(core), pos, pos+1)
 	}
 	return core
 }
@@ -361,7 +368,7 @@ func (d *Decision) requiredAt(c int) bool {
 // its partner (CR 506.5, alonePartner).
 func (d *Decision) FitRequired(choices []int) []int {
 	out := d.fitRequiredPreferred(choices)
-	if len(out) == 1 && d.Kind == KAttackers && d.requiredAt(out[0]) && d.Options[out[0]].AloneRestricted {
+	if len(out) == 1 && d.Kind == KAttackers && d.requiredAt(out[0]) && !d.AloneLegal(out) {
 		if p := d.alonePartner(out[0]); p >= 0 {
 			return []int{out[0], p}
 		}

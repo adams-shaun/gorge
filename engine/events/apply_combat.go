@@ -285,7 +285,20 @@ func foldEndCombatReset(g *state.Game, e *Event) {
 	// Obj zero retains the original whole-combat reset. A nonzero Obj
 	// removes only that permanent (regeneration).
 	resetCombat(g, e.Obj)
+	// The regeneration itself (CR 701.19a) is the reset tagged with
+	// RegeneratedNotice; the per-turn tally Count$RegeneratedThisTurn reads.
+	if e.Text == RegeneratedNotice {
+		if o := g.Obj(e.Obj); o != nil {
+			o.RegeneratedThisTurn++
+		}
+	}
 }
+
+// RegeneratedNotice is the Text an EndCombatReset{Obj} carries when it is the
+// last step of a regeneration (engine/effects/regeneration.go's regenerate)
+// rather than another removal from combat (combatfx.go). The reset happens
+// either way; the tag only adds the permanent's RegeneratedThisTurn tally.
+const RegeneratedNotice = "regenerated"
 
 // foldCmdDamage folds Kind CmdDamage into state.
 func foldCmdDamage(g *state.Game, e *Event) {

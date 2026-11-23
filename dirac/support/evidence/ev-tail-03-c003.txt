@@ -18,6 +18,8 @@ Artillerize
 Ash Barrens
 Auriok Salvagers
 Avatar of Will
+Aven Heartstabber
+Avizoa
 Azorius Skyguard
 Azra Oddsmaker
 Back to Basics
@@ -59,6 +61,7 @@ Confirm Suspicions
 Consulate Dreadnought
 Consulate Skygate
 Coral Colony
+Counterbalance
 Courier's Capsule
 Cowl Prowler
 Crack the Earth
@@ -67,8 +70,11 @@ Crown of Flames
 Crush Dissent
 Cryptothrall
 Cyclopean Snare
+Dakmor Salvage
 Damning Verdict
+Darksteel Citadel
 Dawnstrike Paladin
+Deadeye Brawler
 Deadly Visit
 Defend the Campus
 Defenders of Humanity
@@ -99,6 +105,7 @@ Ethercaste Knight
 Excise
 Extravagant Spirit
 Falkenrath Celebrants
+Falkenrath Pit Fighter
 Fauna Shaman
 Fen Hauler
 Festering Newt
@@ -108,6 +115,7 @@ Flicker of Fate
 Flowstone Infusion
 Fogwalker
 Font of Mythos
+Forbid
 Forest
 Frenetic Ogre
 Fruitcake Elemental
@@ -126,6 +134,7 @@ Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
 Goblin King
+Goblinslide
 Goggles of Night
 Golden Ratio
 Grave Bramble
@@ -156,6 +165,7 @@ Impale
 Implement of Malice
 In Too Deep
 Infiltrate
+Innocent Blood
 Invincible Hymn
 Iridescent Angel
 Island
@@ -164,9 +174,12 @@ Jeskai Student
 Jolrael, Mwonvuli Recluse
 Just the Wind
 Kalonian Behemoth
+Kami of False Hope
 Kami of Restless Shadows
+Karplusan Strider
 Katilda, Dawnhart Prime
 Kazarov, Sengir Pureblood
+Kiln Fiend
 Knighthood
 Kor Castigator
 Kraul Raider
@@ -205,12 +218,15 @@ Muzzle
 Myr Kinsmith
 Mysterious Pathlighter
 Mystic Penitent
+Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
+Noxious Ghoul
+Nyxborn Hydra
 Oko's Hospitality
 Ollenbock Escort
 Oona's Blackguard
@@ -227,9 +243,12 @@ Pheres-Band Tromper
 Phthisis
 Phyrexian Metamorph
 Phyrexian Rebirth
+Plagon, Lord of the Beach
 Plains
 Plated Wurm
+Plundering Barbarian
 Predator, Flagship
+Prismatic Strands
 Profit
 Prosperous Partnership
 Psychic Allergy
@@ -260,6 +279,7 @@ Servant of the Scale
 Shifting Ceratops
 Shinen of Stars' Light
 Shu Defender
+Siege-Gang Commander
 Silver Drake
 Simic Locket
 Skitterbeam Battalion
@@ -269,9 +289,11 @@ Sliptide Serpent
 Sliversmith
 Smellerbee, Rebel Fighter
 Smite
+Snow-Covered Swamp
 Soaring Hope
 Somberwald Stag
 Song of Serenity
+Spawning Pool
 Spined Megalodon
 Spreading Rot
 Sprout
@@ -299,29 +321,38 @@ Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage
 Thran Golem
+Thunderscape Familiar
 Tidehollow Sculler
+Tireless Provisioner
 Tocatli Honor Guard
 Tome Shredder
 Torbran, Thane of Red Fell
 Trailblazer
+Tropical Island
 Trynn, Champion of Freedom
 Turbulent Moor
 Twisted Justice
 Tyvar Kell
 Ulgrotha Charm
 Ulvenwald Observer
+Unburial Rites
 Unlikely Alliance
 Urza, Prince of Kroog
+Varchild, Betrayer of Kjeldor
 Vastwood Animist
 Vegetation Abomination
+Verdant Confluence
 Veteran Swordsmith
 Voidslime
 Vorapede
 Vraan, Executioner Thane
 Vraska's Stoneglare
+Wall of Essence
+Wandering Fumarole
 Wandering Wolf
 Wax
 Wei Ambush Force
+Wintermoon Mesa
 Wirewood Symbiote
 Wizard Class
 Wolfcaller's Howl

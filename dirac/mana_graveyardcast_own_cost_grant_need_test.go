@@ -40,8 +40,8 @@ func TestGraveyardCastNeedPricesAGrantsOwnCost(t *testing.T) {
 	if _, _, ok := sc.s.playBaseCost(sc.k, a); ok {
 		t.Fatal("precondition: playBaseCost prices the mode-2 cast, so the test does not reach the hint")
 	}
-	got, want := sc.s.playNeed(sc.k, a), grantNeedColours(price)
+	got, want := sc.s.playNeedHint(sc.k, a), grantNeedColours(price)
 	if got != want {
-		t.Fatalf("playNeed of the grant's own-cost cast = %v, want the grant cost %v's %v", got, price, want)
+		t.Fatalf("playNeedHint of the grant's own-cost cast = %v, want the grant cost %v's %v", got, price, want)
 	}
 }

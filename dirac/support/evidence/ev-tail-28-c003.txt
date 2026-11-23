@@ -12,6 +12,7 @@ Ad Nauseam
 Air Servant
 Allied Teamwork
 Alora, Merry Thief
+Alphinaud Leveilleur
 Altar's Light
 Ancient Lumberknot
 Ancient Runes
@@ -20,7 +21,9 @@ Angelic Overseer
 Annihilate
 Apostle of Purifying Light
 Aquastrand Spider
+Archetype of Imagination
 Archfiend of Despair
+Arnjlot's Ascent
 Aspect of Gorgon
 Aven of Enduring Hope
 Balshan Beguiler
@@ -46,6 +49,7 @@ Bringer of the Blue Dawn
 Broodstar
 Caress of Phyrexia
 Carrion Grub
+Cast into Darkness
 Cateran Kidnappers
 Charging Troll
 Chasm Guide
@@ -57,6 +61,7 @@ Combo Attack
 Consulate Turret
 Coral Helm
 Daze
+Death Pit Offering
 Deathbringer Thoctar
 Deathforge Shaman
 Dematerialize
@@ -67,6 +72,7 @@ Distorted Curiosity
 Diversionary Tactics
 Divine Favor
 Dominating Licid
+Doomgape
 Drag to the Bottom
 Dragon Arch
 Dragonsguard Elite
@@ -80,6 +86,7 @@ Eidolon of Astral Winds
 Elemental Appeal
 Elemental, My Dear
 Elf Replica
+Embrace the Unknown
 Emergent Growth
 Entrapment Maneuver
 Exotic Curse
@@ -137,6 +144,7 @@ Illuminate History
 Infernal Tribute
 Inferno Titan
 Initiate's Companion
+Inspired Sprite
 Invasion of Xerex
 Island
 Ith, High Arcanist
@@ -188,6 +196,7 @@ Nip Gwyllion
 Norn's Wellspring
 Nylea's Emissary
 Ondu Spiritdancer
+Opaline Unicorn
 Orazca Raptor
 Orchard Spirit
 Ordeal of Purphoros
@@ -208,6 +217,8 @@ Prakhata Club Security
 Psychosis Crawler
 Puppet Master
 Pure Reflection
+Raging Cougar
+Raging Poltergeist
 Raise the Palisade
 Rapid Decay
 Ratchet Bomb

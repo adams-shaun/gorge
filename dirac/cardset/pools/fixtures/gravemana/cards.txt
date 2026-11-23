@@ -1,0 +1,20 @@
+# a graveyard mana source (Jack-o'-Lantern: "{1}, Exile Jack-o'-Lantern from your graveyard: Add one mana of any color")
+# beside self-mill and discard enablers that stock the graveyard, cheap spells of every colour the extra mana pays,
+# basic lands and a fee-only filter land (Heap Gate's {1}, {T}: Add one mana of any color, whose live fee gap makes
+# the relaxed planner offer the wrong-colour casts whose windows take Jack), for the kernel's window and gate tests
+# (dirac/mana_gravemana_test.go) and the lockstep (dirac/oracle/gravemana_lockstep_test.go)
+Jack-o'-Lantern
+Stitcher's Supplier
+Armored Skaab
+Mind Rot
+Hill Giant
+Grizzly Bears
+Lightning Bolt
+Giant Growth
+Counterspell
+Heap Gate
+Forest
+Swamp
+Mountain
+Island
+Plains

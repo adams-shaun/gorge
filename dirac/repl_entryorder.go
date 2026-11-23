@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // tap and an untap are both left (CR 616.1f) and otherwise applies in scan
 // order. The kernel poses the same ask with the object still in its zone, on
 // the two routes that carry a land onto the battlefield in the lockstep
-// pools (a land play; a resolving program's hand or ChangeZone move; a
+// pools (a land play; a resolving program's hand, plain return or ChangeZone move; a
 // Hideaway's play of its hidden land, kw_hideaway.go), as
 // DkChoose + ChGenReplOrder over s.g.ro. A dig's or a search's found land (a
 // DigUntil, a Dig, a library search) is asked the same way with the card still
@@ -26,6 +26,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // DebugEntryOrderTapLast skips the ask and always applies the tap last (the
 // mutation test: gorge poses the order, so the lockstep must diverge).
 var DebugEntryOrderTapLast bool
+
+// DebugEntryOrderNoReturnPark restores the old plain-return route, which never
+// parked the ask (the mutation test: the return of an enters-tapped land beside
+// an "enters untapped" body stalls again).
+var DebugEntryOrderNoReturnPark bool
 
 // StallEntryOrder: a tap and an untap body compete over a permanent entering
 // by a route that cannot pose the order ask (a token not minted by a copy op, a clone, a spell
@@ -369,7 +374,10 @@ func (s *State) entryOrderPark(k *prep, o Obj, ctrl uint8, mode uint8) bool {
 		return false
 	}
 	c, pair := s.entryComp(k, o, ctrl, NoSlot, false)
-	if !pair || c.over || c.other || s.objs[o].owner() != ctrl {
+	// A played land enters under the player's control whoever owns it (CR 305.1,
+	// 110.2: a land from another seat's zone), and gorge asks that player
+	// (entLand); the other routes keep the owner as the chooser.
+	if !pair || c.over || c.other || (mode != entLand && s.objs[o].owner() != ctrl) {
 		return false
 	}
 	if c.early {
@@ -464,6 +472,7 @@ func (s *State) entryLateSet(k *prep, idx, cls uint8) {
 			// body then), so applying it here would show a tapped land at
 			// the election ask and pay the tap even when the player pays.
 			p.flags &^= pfTapped
+			s.shockTapWins(sl) // a first pick's untap no longer comes last (CR 616.1f)
 			return
 		}
 		p.flags |= pfTapped
@@ -547,6 +556,14 @@ func (s *State) applyEntryResolve(k *prep, a Action) {
 	case entAsk:
 		return
 	case entFin:
+		if s.g.nask != 0 && s.midResAsk(k) {
+			// the entered permanent's queued as-enters election (a shock
+			// land's pay life): gorge asks it before the tail's later found
+			// cards move (shockuntaporder: the election is still posed
+			// whichever body went first); a parked tail waits behind it
+			// (zone_parkedtail.go)
+			return
+		}
 		if s.res.left != 0 && s.unparkTail(k) {
 			return // a dig's or search's later cards, parked behind the late ask
 		}
@@ -602,6 +619,27 @@ func (s *State) entryParkOp(k *prep, in *kop.Instr, o Obj, ctrl uint8) bool {
 	return true
 }
 
+// plainReturnParks parks the plain OpReturn move of o to the battlefield on
+// its first ask: the clone election, else the entry order.
+func (s *State) plainReturnParks(k *prep, o Obj, ctrl uint8) bool {
+	return s.cloneReturnPark(k, o, ctrl) || s.entryParkReturn(k, o, ctrl)
+}
+
+// entryParkReturn parks the plain OpReturn move of o to the battlefield under
+// ctrl (execReturnSimple), o still in its zone, the same ask as entryParkOp's;
+// the answer runs the instruction again (applyEntryResolve), and the move
+// consumes it as the permanent enters. true when the resolution is suspended.
+func (s *State) entryParkReturn(k *prep, o Obj, ctrl uint8) bool {
+	if DebugEntryOrderNoReturnPark || k.gen == nil || !k.gen.anyEntUntap || !s.res.active || s.res.ask != raNone {
+		return false
+	}
+	if !s.entryOrderPark(k, o, ctrl, entOp) {
+		return false
+	}
+	s.res.ask, s.res.askP = raGenEntryOrder, s.g.ro.p
+	return true
+}
+
 // entryParkDig parks the move of o onto the battlefield that a dig or a mass move makes (a
 // DigUntil's found card, a Dig's taken card, a ChangeZoneAll's card), o still in the library with
 // the rest of the look. Only the two-body competition is ordered here, one tap
@@ -640,10 +678,30 @@ func (s *State) entryParkFound(k *prep, o Obj, ctrl uint8) bool {
 // entry of the card it just moved, when a tap and an untap are still left; its later
 // cards move once the order is applied (unparkTail runs the tail kind). false: no re-ask.
 func (s *State) entryLateTail(k *prep, kind uint8) bool {
-	if k.gen == nil || !k.gen.anyEntUntap || s.g.nask != 0 || !s.res.active || !s.entryLatePark() {
+	if k.gen == nil || !k.gen.anyEntUntap || !s.entryAsksOnlyElection() || !s.res.active || !s.entryLatePark() {
 		return false
 	}
 	s.res.left = kind
+	return true
+}
+
+// entryAsksOnlyElection: no ask is queued but the entrant's own shock-land
+// pay-life election, which gorge poses after the re-ask (CR 616.1f), the
+// election's tap being one of the bodies the re-ask orders (shockLateTap).
+func (s *State) entryAsksOnlyElection() bool {
+	ro := &s.g.ro
+	if s.g.nask == 0 {
+		return true
+	}
+	if ro.n == 0 || !ro.entHdr() {
+		return false
+	}
+	sl := s.objs[ro.entObj()].slot
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind != akPayLife || a.sl != sl {
+			return false
+		}
+	}
 	return true
 }
 

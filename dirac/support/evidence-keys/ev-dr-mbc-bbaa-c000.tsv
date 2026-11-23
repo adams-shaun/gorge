@@ -3,6 +3,7 @@ Abolish	0ef68ef586d04323	16	0/0		1/2	ix:resp
 About Face	f6c8796991030b6a	8	0/0		1/2	ix:resp
 Against All Odds	8c621690ec89e21e	7	0/0		1/2	ix:resp
 Ancient Hydra	1d6b1f03245622a0	23	2/2		1/1	
+Ancient Silverback	d267d6a555fe934e	11	1/1		1/1	
 Angelic Exaltation	e5f94b01be3a78b9	12	1/1		0/1	ix:resp
 Assault Formation	92df6603b58b8614	15	2/2		1/1	
 Ballynock Cohort	2a8977159e26a462	9	0/0		0/0	
@@ -10,6 +11,7 @@ Banishing Slash	febf18b340355138	4	0/0		1/2	ix:resp
 Barrowgoyf	832ad4ab055efb28	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Battle Angels of Tyr	3f671ba536129558	19	2/2		0/1	ix:resp
 Beast Within	3b0bc887448dc429	11	0/0		2/2	
+Bellowing Aegisaur	7e2bab72ece3023b	5	1/1		0/1	ix:resp
 Bewilder	97b0db74eb511e8b	46	0/0		2/2	
 Bhaal's Invoker	a1f34b0d24818ed7	26	1/1		0/1	ix:resp
 Bitter Reunion	be7b57c719911746	88	2/2		1/1	
@@ -17,6 +19,7 @@ Blasting Station	6e7e2b8c2378eb8d	10	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Boggart Harbinger	eb2ba9743938cd6d	64	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Carrion Imp	241ceccdfc3204a3	22	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Challenger Troll	783ed452b945433c	11	0/0		0/0	
+Charging Monstrosaur	9bfd313317e938bd	22	0/0		0/0	
 Claustrophobia	c6f9b581467745af	7	1/1		1/2	ix:resp
 Cloud Djinn	a812238101317d00	6	0/0		0/0	
 Cloud Spirit	6d27d0f2b0a2af11	6	0/0		0/0	
@@ -27,6 +30,7 @@ Crashing Drawbridge	06ea1b237f6cd791	14	1/1		1/1
 Cytoplast Root-Kin	5791a0e2db10fd55	3	3/3		1/3	f0/t1/opt:n,f0/t1/opt:y
 Darksteel Mutation	e7c8fac27a36752d	10	0/0		2/2	
 Deceiver Exarch	2b21a5f4f8601e6e	4	1/1		0/1	ix:resp
+Decree of Justice	e55fa52487e504e7	5	2/2		3/6	f0/s/x0,f0/t0/opt:n,f0/t0/opt:y
 Dreadhound	9ec4acad7524cafc	6	3/3		0/1	ix:resp
 Dynacharge	ab87a6da0e82fe16	28	0/0		4/4	
 Eldrazi Skyspawner	e623e0ccd875b260	24	1/1		1/1	
@@ -35,16 +39,20 @@ Engineered Explosives	b83f46106a9e57ba	31	1/1		1/1
 Evangel of Heliod	a07259ed7a66b942	18	1/1		0/1	ix:resp
 Expunge	acab15ef5633eda8	3	1/1		2/2	
 Exsanguinate	1132aca7332a5ed5	17	0/0		3/4	f0/s/x0
+Fae Offering	2673882d2a0a6567	13	1/1		0/1	ix:resp
 Faerie Mechanist	8853bef975cea2b8	16	1/1		0/1	ix:resp
 Falkenrath Noble	b85338ebee1a65ab	30	1/1		1/1	
 Felidar Umbra	99db4a60643e631a	44	1/1		2/2	
 Feral Hydra	6077a7089b2cbe25	4	1/1		1/1	
 Flock Impostor	04fcb7352439d021	6	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	61	1/1		0/1	ix:resp
+Generous Gift	99ef723b7270c912	19	0/0		2/2	
+Giant Spider	483542faca64a414	14	0/0		0/0	
 Gloom Sower	59f32076a85977fe	10	1/1		0/1	ix:resp
 Goblinslide	8a27c2612f6d80f0	6	1/1		0/1	ix:resp
 Goldlust Triad	c03817f71c7d5c26	18	2/2		1/1	
 Goldmeadow Harrier	b91c521e10039418	4	1/1		0/1	ix:resp
+Guardian of Faith	5356bd879f7dfd06	4	1/1		1/1	
 Halimar Depths	7493fed802903935	106	2/2		0/1	ix:resp
 Healer's Hawk	8f8feddee07aade2	12	0/0		0/0	
 Hieroglyphic Illumination	80fa422ced7c9871	3	1/1		1/2	ix:resp
@@ -59,8 +67,10 @@ Killer Whale	0baffafee6b01bea	17	1/1		1/1
 Kor Cartographer	1d0b9a025e607225	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kor Firewalker	dfb876411ab03679	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Leap	e9790221ec848e27	38	0/0		2/2	
+Linvala, the Preserver	687c0eae8c5a9aa2	14	2/2		0/1	ix:resp
 Lore Weaver	556249d5d3f50502	37	2/2		1/1	
 Madcap Skills	cf357134ab1827b4	4	0/0		2/2	
+Mage Slayer	ca0e2eb0b434905a	7	2/2		0/1	ix:resp
 Merciless Executioner	e813a9b8a926e850	15	1/1		0/1	ix:resp
 Merfolk Seastalkers	e82d29f926e6691a	49	1/1		1/1	
 Molten Birth	c16506e41d2ac1fa	6	0/0		2/2	
@@ -77,7 +87,10 @@ Prosperous Pirates	42aa175306eb1b53	24	1/1		1/1
 Pyrohemia	ea83acaa6c386b7e	6	2/2		1/1	
 Quest for Pure Flame	497d8d9ea2f89b37	12	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Quest for the Gravelord	5fd7720e1de61f2b	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Quirion Elves	3ed3dcaa9ec24e75	38	2/2		1/1	
+Ramosian Rally	d86a39e42e2f43cd	16	0/0		1/2	ix:resp
 Reality Shift	84fc1f7ca3bb0d0c	16	0/0		2/2	
+Recross the Paths	0f2572fcd43e9193	39	0/0		1/2	ix:resp
 Relic Crush	47e826cde94b4b3f	12	0/0		2/2	
 Renegade Warlord	dfd2b5c2f85093f0	5	1/1		1/1	
 Reverent Mantra	b6d100c622180da9	4	0/0		1/2	ix:resp
@@ -88,6 +101,7 @@ Sea Gate	efaa5aa35469a6a4	109	1/1		0/1	ix:resp
 Sea Gate Oracle	22b5ef54d75339bc	26	1/1		1/1	
 Sejiri Merfolk	f230e9ed6a92627c	32	0/0		0/0	
 Send in the Pest	2c3ae66b17de743c	13	0/0		2/2	
+Set Adrift	200c7ecbeca5ce1c	5	0/0		1/2	ix:resp
 Sheoldred, Whispering One	d851189ee73e198f	6	2/2		0/1	ix:resp
 Shimmering Glasskite	3dda422322364257	33	1/1		1/1	
 Sign in Blood	f57e2b0b7a937a0b	70	0/0		2/2	
@@ -100,7 +114,10 @@ Starlit Angel	de16ea44303d57ae	3	0/0		0/0
 Stromgald Crusader	d997c13e23aa7c1a	6	2/2		0/1	ix:resp
 Swamp	342b413902f441c3	46	1/1		0/1	ix:resp
 Sword Coast Serpent	83de716a8959c970	69	0/0		2/2	
+The Everforger	31feb7628d98a000	85	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Tower of the Magistrate	7cd3f5a2f4e55ed5	36	2/2		1/1	
 Trumpeting Herd	2514362987e6ef18	19	0/0		2/2	
+Turnabout	39f0619628aba853	55	0/0		2/2	
 Twinferno	8d38211c9bc6a051	33	0/0		2/2	
 Ultimate Price	d4b34ea3ed7fd1c6	3	0/0		1/2	ix:resp
 Vigean Graftmage	3ccd0ed1c483cb70	19	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y

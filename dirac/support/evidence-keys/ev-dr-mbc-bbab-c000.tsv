@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Afterlife	e15f7bc71c352041	16	0/0		2/2	
 Afterlife Insurance	7da3f443ae85ad97	4	0/0		1/2	ix:resp
 Akroan Phalanx	291cabfc8a474a09	25	1/1		1/1	
 Altar's Reap	1f099f5c445cdf39	6	0/0		2/2	
@@ -28,6 +29,7 @@ Combo Attack	57ea5b2dcc2a9fa4	15	0/0		2/2
 Dakmor Plague	93fb8181691ea982	5	0/0		1/2	ix:resp
 Daring Saboteur	bec4cc31ae601303	15	2/2		1/1	
 Dark-Dweller Oracle	07d7e74c9db96c68	4	1/1		1/1	
+Death-Hood Cobra	d778d66aca808390	18	2/2		1/1	
 Devout Witness	021ad1b40484461b	15	1/1		1/1	
 Dockside Chef	f712a353245f54bc	21	1/1		1/1	
 Driver of the Dead	02e3ebf3eb5af09d	7	1/1		0/1	ix:resp
@@ -35,6 +37,7 @@ Drumhunter	92f6bd0c70eff24d	15	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 E. Honda, Sumo Champion	124dc608d0228f3f	3	1/1		1/1	
 Electric Revelation	25a8c22df611b5d4	8	0/0		4/4	
 Elemental Bond	15aa5bc4ac4acb26	3	1/1		0/1	ix:resp
+Epicure of Blood	a2398f24b5c838b0	38	1/1		1/1	
 Esior, Wardwing Familiar	e17616d3a2ae6da4	10	0/0		0/0	
 Essence Scatter	2d525323d9246cf1	4	0/0		1/2	ix:resp
 Expedite	d3d4bb74e8e7cf02	4	0/0		1/2	ix:resp
@@ -47,6 +50,7 @@ Gift of the Viper	18a501711cabcd9c	10	0/0		1/2	ix:resp
 Graaz, Unstoppable Juggernaut	2762731a83de14e7	5	0/0		0/0	
 Grimclaw Bats	471121e2882fdd90	11	1/1		1/1	
 Guardian Naga	af616cebb82ce6ec	4	0/0		2/2	
+Gurmag Angler	a7213679169a0ada	4	0/0		0/0	
 Herald of the Host	00893f152af766be	6	1/1		0/1	ix:resp
 Hope and Glory	7fe1d6488c698106	16	0/0		2/2	
 Hunter's Ambush	4cd7cb236db4e7bd	22	0/0		1/2	ix:resp
@@ -74,9 +78,11 @@ Negate	575fbd46f9f739c6	4	0/0		1/2	ix:resp
 New Frontiers	a85aab0320adffc7	10	0/0		2/4	f0/s/x0,ix:resp
 Oath of Druids	2d208a3cbe6a6051	3	1/1		0/1	ix:resp
 Oblivion Strike	4d1a879863db0d9c	4	0/0		1/2	ix:resp
+Pelakka Wurm	592e6c2bd449a711	3	2/2		0/1	ix:resp
 Perilous Research	13b8ebcaa82f7b5b	23	0/0		2/2	
 Phyrexian Gargantua	23aede10b514e6ca	10	1/1		0/1	ix:resp
 Phyrexian Missionary	710b5e39d99cc700	31	1/1		3/3	
+Phyrexian Triniform	312f25d9a02c6a85	12	2/2		0/1	ix:resp
 Plains	82d63a695487e567	68	1/1		0/1	ix:resp
 Preordain	fa0c0a98b3980e23	8	0/0		2/2	
 Priest of Titania	801249adc6b6762c	17	1/1		1/1	
@@ -91,6 +97,7 @@ Rust Goliath	a98a1281872fb8d2	23	0/0		2/2
 Seeker of the Way	20971ad18fa3f937	6	2/2		0/1	ix:resp
 Seething Anger	4e8f75ebf047b4ca	10	0/0		3/4	ix:resp
 Sentinel of the Eternal Watch	7ff135e2f641f35a	4	1/1		0/1	ix:resp
+Shieldhide Dragon	35ad53aed5d1ded0	3	1/1		2/3	cast/alt:none
 Shinen of Life's Roar	a3d4b6be3f56367e	4	1/1		0/1	ix:resp
 Sigil of Sleep	ea864aa9ea45d8e3	8	1/1		1/2	ix:resp
 Six	877b0f4c485a326c	31	1/1		0/1	ix:resp
@@ -98,6 +105,7 @@ Skeletal Scrying	7d6abeddf0bbef9c	40	0/0		4/4
 Skullport Merchant	1583aa43e8719ef2	12	2/2		1/1	
 Skyhunter Skirmisher	5a9ceca7024f74d3	11	0/0		0/0	
 Snuff Out	09fedbc7f0a78c6f	6	0/0		1/2	ix:resp
+Song of Freyalise	b580310c64b6a4db	7	0/0		0/0	
 Spike Weaver	1fddeff5e55fd148	10	2/2		1/1	
 Spirit Mantle	eba02dec60b18756	18	0/0		2/2	
 Spirited Companion	02235b86b60a6f7d	3	1/1		1/1	
@@ -113,6 +121,7 @@ Terror	f6c7d4dbf74ab1a3	7	0/0		2/2
 Tetsuko Umezawa, Fugitive	1b4d4d11305629c2	6	0/0		0/0	
 Thunderfoot Baloth	c96de14370b69943	4	0/0		0/0	
 Thunderous Orator	77123ef1accdf943	8	1/1		1/1	
+Timberland Ancient	065dc4846ebe01b3	3	1/1		0/1	ix:resp
 Time Ebb	5ce7954f106aec41	6	0/0		2/2	
 Toggo, Goblin Weaponsmith	e12229df9ccb1411	8	1/1		0/1	ix:resp
 Tragic Slip	18be260d67aef835	6	0/0		1/2	ix:resp

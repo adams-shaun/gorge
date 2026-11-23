@@ -325,6 +325,14 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 func (s *State) tapPain(k *prep, p uint8, sl Slot, col int) {
 	if pc := s.manaPCGen(k, sl); k.painMana && pc.painCol != 0 && (pc.painOnly || uint8(pc.manaCol)&(1<<col) == 0) {
 		s.painDamage(k, sl, p, int(pc.painN))
+		if k.gen != nil && k.gen.uses.has(useStatRdr) {
+			// A prefix step is a decision gorge answers one activation at a
+			// time, and its boundary runs the state-based check (CR 117.3c,
+			// 704.3): damage a static redirect (Pariah's Shield) landed on a
+			// creature kills it before the next step, so a filter that took
+			// the redirect's damage is gone when the search reaches for it.
+			s.sba(k)
+		}
 	}
 }
 
@@ -363,7 +371,8 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	// does ask there, so two or more pure plus-N replacements matching the
 	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
 	// reach two candidates for a land's self-damage today.
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}
@@ -702,8 +711,43 @@ type painAvail struct {
 //
 //go:noinline
 func (s *State) painTight(k *prep, p uint8, a *avail) {
+	s.painTightAt(k, p, a, int(s.pl[p].life))
+}
+
+// contGrantLive reports whether a granted mana ability can be in force on
+// this board: the table has one (anyContGrant) and either no battlefield
+// card marks it (an override record's grant, a GainsAbilitiesOf$ one:
+// contGrantAlways) or a permanent on either battlefield carries a static that
+// grants one. A table-wide grant with none of its sources in play leaves
+// every unit's pain as its own ability's, so the summed lethal guard
+// (painTightAt) still binds: a Talisman's trigger grant, or an Aura's mana
+// grant in a library, never lifts it (gorge's planner prices the plan
+// whatever the table holds).
+func (s *State) contGrantLive(k *prep) bool {
+	g := k.gen
+	if g == nil || !g.anyContGrant {
+		return false
+	}
+	if k.contGrantAlways {
+		return true
+	}
+	for seat := range s.ctrlM {
+		for m := s.ctrlM[seat]; m.any(); m = m.rest() {
+			if k.grantSrcCard[s.cardAt(m.first())] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// painTightAt is painTight with the life the summed guard reads cut to eff
+// (the payer's life less what a restricted life unit of the payment pays,
+// restrLifeCharge): a painful unit's colours stay in a on the payer's own
+// life, so the groups carry whichever of them eff no longer admits.
+func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 	life := int(s.pl[p].life)
-	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || k.gen != nil && k.gen.anyContGrant {
+	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || s.contGrantLive(k) {
 		return // at 1 life availFor already withheld every painful colour
 	}
 	modal := a.nModal != 0 // a source with a {C}-only extra: its groups split even when the budget does not bind
@@ -758,16 +802,16 @@ func (s *State) painTight(k *prep, p uint8, a *avail) {
 		}
 		pa.cnt[g]++
 	}
-	if rpAny && (sum >= life || modal) {
+	if rpAny && (sum >= eff || modal) {
 		// the groups' budget counts activations, not mana: a unit whose tap
 		// makes one mana of the pick more has no per-activation price here
 		s.capFull(StallTapExtra)
 		return
 	}
-	if sum < life && !modal {
+	if sum < eff && !modal {
 		return
 	}
-	pa.budget = uint8(min(life-1, 255))
+	pa.budget = uint8(min(eff-1, 255))
 	// take the painful colours back out of a: each painland unit is its
 	// normal ability's, each pain-only unit none
 	for g := uint8(0); g < pa.n; g++ {

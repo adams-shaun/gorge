@@ -59,6 +59,7 @@ const (
 	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
+	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rCount
 )
 
@@ -103,6 +104,7 @@ var refNames = [...]string{
 	rChosenPlayerRes:      "ChosenPlayerRes",
 	rTriggerOpps:          "TriggerOpps",
 	rResChosenPlayer:      "ResChosenPlayer",
+	rExiledWithOwner:      "ExiledWithOwner",
 }
 
 type lRef struct {
@@ -245,6 +247,8 @@ const (
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
+	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
+	vCmdCastTotal        // the controller's casts of its own commanders from the command zone (kop.ExTotalCommanderCastFromCommandZone; value_cmdcast.go)
 	vCount_
 )
 
@@ -364,6 +368,8 @@ var valNames = [...]string{
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
+	vVoteTally:           "VoteTally",
+	vCmdCastTotal:        "CmdCastTotal",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -778,7 +784,7 @@ type lCost struct {
 	ExileHand      bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
-	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost only)
+	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost, or a Squad/Replicate payment scaled to the count; kw_squadreplicate.go)
 	EnergyBy       *lValue  // PayEnergy<X>/<SVar>: the amount read as the cost is offered (a resolution unless cost)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
@@ -789,6 +795,7 @@ type lCost struct {
 	Return         *lFilter // Return<N/Spec>: return ReturnN permanents you control matching (a resolution cost only)
 	ReturnN        int
 	DrawN          int      // Draw<N/Who>: draw N cards (a trigger's own or an unless cost)
+	DrawBy         *lValue  // Draw<X/Who>: the face's SVar:X drawn as the cost is paid (Champion of Wits)
 	DrawWho        string   // the drawing player's Forge selector (You, Player.targetedBy, Player.TriggeredPlayer)
 	DamageYouN     int      // DamageYou<N>: the resolving source deals N damage to the payer (an unless cost)
 	DiscardX       bool     // Discard<X/Spec>: discard the announced X hand cards (a spell's or activated ability's own cost; kop.Cost.DiscardX)
@@ -813,7 +820,7 @@ func (c lCost) pureMana() bool {
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
-		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
+		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
 }
 
@@ -1176,6 +1183,9 @@ type lStatic struct {
 	Amount      lValue
 	Cost        lCost
 	Zone        int
+	// BlockAmount: an ExtraBlock grant's kop.ExtraBlocksAny (CanBlockAny$
+	// True), 0 for the amount-1 grant
+	BlockAmount int
 	Override    *lOverride
 	// ProtFrom: a Continuous grant's protection qualities (kop.Static.ProtFrom)
 	ProtFrom *lFilter
@@ -1259,9 +1269,14 @@ type lOverride struct {
 	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
 	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
 	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
+	UntilUpkeep       bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
 	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
 	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
+	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
+	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
@@ -1270,8 +1285,13 @@ type lOverride struct {
 	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
 	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
 	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
-	ImpSub            bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
-	ProtFrom          *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
+	// Chosen: the setter's added type is the source's own as-enters ChooseType
+	// answer (Convincing Mirage's AddType$ ChosenType): the record adds no
+	// subtype of its own and the static carries AddChosen; the walk grants
+	// the chosen subtype after the strip (static_layerwalk.go lfxApply4)
+	Chosen   bool
+	ImpSub   bool     // AddType$ ImprintedCreatureType: the imprinted card's creature types (kop.Override.ImpSub; Duplicant)
+	ProtFrom *lFilter // a granted protection's sources (kop.Override.ProtFrom): colour-mask clauses for the ProtectionFrom<Colour> spellings, lc.filter's clauses for Protection:<spec>
 }
 
 // Replacement-lite kinds.
@@ -1298,6 +1318,7 @@ type lRepl struct {
 	// Origin$ Battlefield / ActiveZones$ Battlefield).
 	LibBottom, LibShuffle, LibFromBattlefield bool
 	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
+	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 }
 
 // lCard is a lowered card.
@@ -1322,6 +1343,8 @@ type lCard struct {
 	Flash          bool
 	Kicker         *manaCost
 	Multikicker    *manaCost   // K:Multikicker:<cost> (CR 702.43): the per-payment additional cost, paid any number of times
+	Repeated       *lCost      // K:Squad / K:Replicate: the full per-payment cost (lower_squadreplicate.go)
+	RepeatedKind   uint8       // kop.Repeat*: which keyword owns the multikicker slot
 	KickerCost     *lCost      // K:Kicker with one Sac<1/..> or Return<1/..> part: Kicker is then zero mana (lower_kickercost.go)
 	Spree          bool        // K:Spree (CR 702.172) or K:Tiered (CR 702.183): ModeCost holds each mode's additional mana cost
 	ModeCost       [4]manaCost // Spree/Tiered: mode i's ModeCost$
@@ -1408,6 +1431,7 @@ type lCard struct {
 	Bargain        bool            // printed K:Bargain (CR 702.166), CardDef.Bargain
 	Storm          bool            // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	HandMana       uint8           // a Spirit Guide's hand-zone mana ability (exile this card from your hand: add one fixed colour), CardDef.HandMana (lower_handmana.go)
+	GraveMana      uint8           // a graveyard mana source's colours (1 + exile this card from your graveyard: add one mana of any colour), CardDef.GraveMana (lower_gravemana.go)
 	BeholdN        int             // RaiseCost Cost$ BeholdExile<1/Type> (the Lorwyn Champions): behold one permanent or hand card of BeholdF and exile it (lower_beholdexile.go)
 	BeholdF        *lFilter
 	BeholdExile    bool
@@ -1425,38 +1449,49 @@ type lCard struct {
 	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)
 	Gift           bool     // K:Gift (CR 702.174): the GiftAbility body is spliced at the head of the spell, or is the permanent's ETB gift trigger
-	Landwalk       *lFilter // K:Landwalk:<land filter> (CR 702.14)
-	ProtColors     string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
-	HexColors      string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
-	ProtFrom       *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
-	Infect         bool     // printed K:Infect (CR 702.90)
-	Toxic          int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
-	Cascade        int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
-	PreventDmgTo   bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
-	PrevCmbTo      bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
-	PrevCmbBy      bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
-	Evasion        uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
-	Wither         bool     // printed K:Wither (CR 702.80)
-	UmbraArmor     bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
-	Dredge         uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
-	AloneAtk       bool     // the printed can't-attack-alone keyword (CR 506.5)
-	AloneBlk       bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
-	Engines        bool     // printed K:Start your engines (CR 702.179a)
-	Reconfigure    bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
-	Ascend         bool     // printed K:Ascend (CR 702.131)
-	Unleash        bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
-	AtkFace        bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
-	SagaN          int      // K:Chapter:<count>: the final chapter number (CR 714.1)
-	TapPowerCrew   int      // S:Mode$ TapPowerValue for Crew (graveexile)
-	TapPowerSaddle int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers    int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
-	ExtraBlocks    int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
-	Lure           bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
-	MustBeBlocked  bool     // the must-be-blocked keyword (CR 509.1c)
-	Daybound       bool     // K:Daybound (CR 702.145a-d)
-	Nightbound     bool     // K:Nightbound (CR 702.145e-g)
-	Abilities      []*lAbility
-	Statics        []lStatic
+	// The printed-keyword records the with<Keyword> filter word reads
+	// (kop.FwWithKeyword's printedKeyword): set at the face keyword's own
+	// lowering arm, copied to the CardDef.Has* field in build.go.
+	HasCycling          bool     // printed K:Cycling (CR 702.84b), CardDef.HasCycling
+	HasWard             bool     // printed K:Ward:<cost> (CR 702.19a), CardDef.HasWard
+	HasEnchant          bool     // printed K:Enchant (CR 702.102a), CardDef.HasEnchant
+	HasUnearth          bool     // printed K:Unearth (CR 702.84a), CardDef.HasUnearth
+	HasDecayed          bool     // printed K:Decayed (CR 702.130b), CardDef.HasDecayed
+	HasPersist          bool     // printed K:Persist (CR 702.79a), CardDef.HasPersist
+	HasDoctorsCompanion bool     // printed K:Doctor's companion (CR 702.124m), CardDef.HasDoctorsCompanion
+	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
+	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
+	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
+	Infect              bool     // printed K:Infect (CR 702.90)
+	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
+	Toxic               int      // printed K:Toxic:<N> instances, summed (CR 702.164c)
+	Cascade             int      // printed K:Cascade instances (CR 702.85a/c): CardDef.Cascade
+	PreventDmgTo        bool     // printed "Prevent all damage that would be dealt to CARDNAME." (CardDef.PreventDmgTo)
+	PrevCmbTo           bool     // printed combat-scoped "dealt to CARDNAME" (CardDef.PreventCombatTo)
+	PrevCmbBy           bool     // printed combat-scoped "dealt by CARDNAME" (CardDef.PreventCombatBy)
+	Evasion             uint8    // printed Horsemanship / Intimidate (kop.Ev* bits)
+	Wither              bool     // printed K:Wither (CR 702.80)
+	UmbraArmor          bool     // printed K:Umbra armor (CR 702.89a): CardDef.UmbraArmor
+	Dredge              uint8    // printed K:Dredge:N (CR 702.52a): CardDef.Dredge
+	AloneAtk            bool     // the printed can't-attack-alone keyword (CR 506.5)
+	AloneBlk            bool     // the printed can't-block-alone keyword, and the compound's block half (CR 506.5)
+	Engines             bool     // printed K:Start your engines (CR 702.179a)
+	Reconfigure         bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
+	Ascend              bool     // printed K:Ascend (CR 702.131)
+	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
+	AtkFace             bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
+	SagaN               int      // K:Chapter:<count>: the final chapter number (CR 714.1)
+	TapPowerCrew        int      // S:Mode$ TapPowerValue for Crew (graveexile)
+	TapPowerSaddle      int      // S:Mode$ TapPowerValue for Saddle (graveexile)
+	MinBlockers         int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
+	ExtraBlocks         int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
+	Lure                bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
+	MustBeBlocked       bool     // the must-be-blocked keyword (CR 509.1c)
+	Daybound            bool     // K:Daybound (CR 702.145a-d)
+	Nightbound          bool     // K:Nightbound (CR 702.145e-g)
+	Abilities           []*lAbility
+	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$
 	// grants its recipients (lStatic.GrantSt indexes it; lower_grantedstatic.go)
 	GrantedStatics []lStatic
@@ -1530,6 +1565,10 @@ type lEmblem struct {
 	// NumAmount and Once: the frozen number rides the trigger as its amount,
 	// and the emblem ends after it fires once (OneOff$ True)
 	NumAmount, Once bool
+	// Forget: an Effect's ForgetOnCast$ for a StackKw / ReduceCost static:
+	// the emblem ends when the first completed cast matching this filter
+	// happens (kop.Emblem.Forget)
+	Forget *lFilter
 }
 
 type refusal struct {

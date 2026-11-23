@@ -36,29 +36,68 @@ seed=${CONFORMANCE_SEED:-$((($(date -u +%s) - $(date -u -d 2026-01-01 +%s)) / 86
 failed=0
 
 # row CELL TIERS COMMAND...: runs COMMAND when TIERS holds this run's tier.
+# The commit and pr tiers start every row at once and report them in order (report_rows, at the end): run one
+# after another, the commit tier's nine rows took ~330 s of a box runner's slot, the longest row ~55 s (11-20
+# batches). Each row has its own log and its own tests() output. The nightly tier (cardfuzz, the tagged wire
+# suites) stays serial.
+# The rows that run ./testkit/conformance (a ~500 CPU-s package, already parallel inside) run one after another in
+# one chain beside the others (11-21: four at once on a loaded box ran 353-369 s and hit tests()'s 5m timeout in
+# batches #3079 and #3080; the dumps showed games still moving, parked on their next answer, not a hang).
+cells=() pids=() heavy=()
 row() {
-	local cell=$1 tiers=$2
+	local cell=$1 tiers=$2 log
 	log="$work/${cell//\//-}.log"
 	shift 2
 	case " $tiers " in
 	*" $tier "*) ;;
 	*) return 0 ;;
 	esac
-	if "$@" >"$log" 2>&1 && ! grep -q -- '--- SKIP' "$log"; then
-		echo "$cell PASS"
+	cells+=("$cell")
+	# set -e: a failing row must record its status, not end the script.
+	if [ "$tier" = nightly ]; then
+		run_row "$log" "$@"
+	elif [[ " $* " == *" ./testkit/conformance "* ]]; then
+		heavy+=("$(printf '%q ' "$log" "$@")")
 	else
-		echo "$cell FAIL"
-		grep -- '--- SKIP' "$log" || true
-		grep -B12 -A12 -E -- '^\s*--- FAIL' "$log" || true
-		tail -20 "$log"
-		failed=1
+		run_row "$log" "$@" &
+		pids+=($!)
 	fi
+}
+
+run_row() {
+	local log=$1 rc=0
+	shift
+	"$@" >"$log" 2>&1 || rc=$?
+	echo "$rc" >"$log.rc"
+}
+
+# report_rows: waits for the rows and prints one PASS or FAIL line per cell, in the script's order.
+report_rows() {
+	local cell log h
+	if [ "${#heavy[@]}" -gt 0 ]; then
+		(for h in "${heavy[@]}"; do eval "run_row $h"; done) &
+		pids+=($!)
+	fi
+	[ "${#pids[@]}" -eq 0 ] || wait "${pids[@]}" || true
+	for cell in "${cells[@]+"${cells[@]}"}"; do
+		log="$work/${cell//\//-}.log"
+		if [ "$(cat "$log.rc" 2>/dev/null)" = 0 ] && ! grep -q -- '--- SKIP' "$log"; then
+			echo "$cell PASS"
+		else
+			echo "$cell FAIL"
+			grep -- '--- SKIP' "$log" || true
+			grep -B12 -A12 -E -- '^\s*--- FAIL' "$log" || true
+			tail -20 "$log"
+			failed=1
+		fi
+	done
 }
 
 # tests PKG NAME...: runs the named tests of one package, each of which must pass.
 # go test exits 0 on a name that matches nothing, so each one is looked for.
 tests() {
-	local pkg=$1 name pattern output="$work/tests.log"
+	local pkg=$1 name pattern output
+	output=$(mktemp "$work/tests.XXXXXX")
 	shift
 	pattern=$(IFS='|'; echo "$*")
 	go test -v -timeout 5m -run "^($pattern)\$" "$pkg" | tee "$output" || return 1
@@ -105,4 +144,5 @@ row dirac/manabrew/bot 'commit nightly pr' tests ./testkit/conformance TestBotTh
 row dirac/v2/harness 'nightly' wiretests ./server/host/sbv2http TestSBV2ServesADiracGame
 row dirac/v2/stdio-agent 'nightly' wiretests ./server/spellbench/seat TestV2AgentSeatPlaysDiracGame
 
+report_rows
 exit "$failed"

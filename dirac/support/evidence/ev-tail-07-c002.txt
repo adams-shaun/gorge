@@ -35,6 +35,7 @@ Barge In
 Barrage of Expendables
 Basri, Devoted Paladin
 Battle-Mad Ronin
+Bazaar of Baghdad
 Bilbo's Burglaring
 Biogenic Ooze
 Biting Tether
@@ -52,11 +53,13 @@ Captain's Defense
 Carapace Forger
 Carrier Pigeons
 Carrion
+Castle Vantress
 Centaur Courser
 Centaur Veteran
 Charging Paladin
 Chief Magistrate of Mercadia
 Cinder Giant
+Clambassadors
 Clinging Anemones
 Cloaked Siren
 Consuming Vapors
@@ -77,6 +80,7 @@ Dawn Evangel
 Deathgaze Cockatrice
 Debt to the Deathless
 Decimator Web
+Den of the Bugbear
 Desert
 Disruption Protocol
 Distorting Wake
@@ -104,7 +108,6 @@ Feral Prowler
 Fevered Suspicion
 Fierce Guardianship
 Fire
-Fire Dragon
 Firebreathing
 Firemantle Mage
 Flare of Denial
@@ -113,6 +116,7 @@ Force Spike
 Forest
 Foriysian Interceptor
 Fragmentize
+Fresh Meat
 Frogify
 Frozen Aether
 Furyblade Vampire
@@ -172,6 +176,7 @@ Leyline Prowler
 Lich's Tomb
 Lightning Coils
 Liliana's Mastery
+Llanowar Reborn
 Lock and Load
 Lone Rider
 Lost in Memories
@@ -182,6 +187,7 @@ Majestic Metamorphosis
 Mandible Justiciar
 Manor Skeleton
 Master of Waves
+Merchant of the Vale
 Messenger Drake
 Mighty Leap
 Mirkwood Spider
@@ -194,6 +200,7 @@ Molting Snakeskin
 Moment of Truth
 Mordenkainen's Polymorph
 Mountain
+Myth Realized
 Natural Emergence
 Neoform
 Nether Spirit
@@ -238,6 +245,7 @@ Ransack the Lab
 Ravenous Squirrel
 Regal Bloodlord
 Reiterate
+Renowned Weaver
 Repentance
 Resurrection
 Riddlekeeper
@@ -263,6 +271,7 @@ Saving Grasp
 Sawtooth Loon
 Sawtooth Ogre
 Scatter Ray
+Scattershot Archer
 Scoria Elemental
 Scrabbling Claws
 Screamreach Brawler
@@ -291,6 +300,7 @@ Spark Mage
 Spark Reaper
 Speaker of the Heavens
 Spectral Sliver
+Sphinx's Tutelage
 Spider-Man, Hometown Hero
 Spider-Man, Web-Spinner
 Spike Drone
@@ -346,6 +356,7 @@ Vow of Malice
 Vraska's Fall
 Wandering Treefolk
 Warmonger
+Warped Researcher
 Wayward Servant
 Wellwisher
 Whipstitched Zombie
@@ -353,7 +364,6 @@ Will of the All-Hunter
 Windrider Patrol
 Wolfsbane, Highland Hero
 Woodvine Elemental
-Wormhole Serpent
 Wreak Havoc
 Wurm's Tooth
 Yavimaya Iconoclast
@@ -361,3 +371,4 @@ You Find the Villains' Lair
 Zap
 Zektar Shrine Expedition
 Zephyr Winder
+Zoetic Cavern

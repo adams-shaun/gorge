@@ -262,6 +262,19 @@ func (s *State) enqueueLKI(o Obj, ver uint8, c CardID, ab, ctrl uint8, tobj Obj,
 	if s.npend > n {
 		s.pend[n].li = s.snapLKI(tobj)
 		s.snapshotTrigSpellMV(n, c, ab, tobj)
+		// A Squad or Multikicker ETB trigger captures the payment count as it
+		// is queued: the source can leave the battlefield before the trigger
+		// resolves (Wasteland Raider sacrifices itself; a cost sacrifice of a
+		// kicked Lightkeeper of Emeria), and the count must survive the move
+		// (gorge's TriggerSquadPaid and the trigger's LKI; kw_squadreplicate.go).
+		// defSeat is free for a self-enter trigger, which never has an attack
+		// defender.
+		if k := s.k(); k != nil && int(c) < len(k.t.Cards) && capturesKickCount(&k.t.Cards[c]) &&
+			int(ab) < len(k.t.Cards[c].Abilities) {
+			if a := &k.t.Cards[c].Abilities[ab]; a.Trig.Event == kop.TrigETB && a.Trig.Flags&kop.TfSelf != 0 && int(tobj) < len(s.cold.mkObj) {
+				s.pend[n].defSeat = s.cold.mkObj[tobj]
+			}
+		}
 	}
 }
 
@@ -382,7 +395,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 				if s.stateTrigOutstanding(l.obj, l.ab) {
 					return
 				}
-			} else if a.Gate.Ctr != 0 && !s.crossingOK(l.sl, a, int(amt)) {
+			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(l.sl, a, int(amt)) {
 				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
 		}
@@ -573,7 +586,7 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 // command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	f := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) || !s.trigOK(k, l, a) {
+		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) && !(a.Trig.Whose == kop.WhoseMonarch && s.monarchTurnIs(s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)
@@ -889,6 +902,9 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 	if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
 	}
+	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 && (rl == nil || !rl.agg) {
+		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
+	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
 			s.eachCommandTrigger(k, ev, f)
@@ -1074,7 +1090,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 	if !life && !dealt {
 		for pp := uint8(0); pp < MaxSeats; pp++ {
 			if r.toPl[pp] > 0 {
-				s.loseLife(k, pp, int(r.toPl[pp]))
+				s.loseLifeDmg(k, pp, int(r.toPl[pp]))
 				s.plDmgMark(pp, int(r.toPl[pp])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			}
 		}
@@ -1117,7 +1133,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
-			s.loseLife(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
+			s.loseLifeDmg(k, CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl]))
 			s.plDmgMark(CodeSeat(s.perms[sl].atk), int(r.dealtPl[sl])) // wasDealtDamageThisTurn's seat arm (gen.go)
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)

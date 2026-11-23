@@ -21,10 +21,14 @@ import "strings"
 // below N; dirac mana_grantcost.go), and so does "Sacrifice this" alone
 // (Lotus Ring's equipped creature: the step sacrifices the source, tapped
 // or summoning-sick alike, CR 602.2b, and a resolution-time payment's
-// manual mana window sacrifices it too). Any other shape -- a mana
-// fee or a dynamic amount (Evendo's "{G}, {T}: Add {G} for each creature"),
-// {T} with a sacrifice (a granted Treasure ability) or another non-tap part,
-// a chosen colour -- would be counted as plain mana or not at all, so it is
+// manual mana window sacrifices it too). "{T}, Sacrifice this" rides it as
+// well (Lotus Ring's upstream script, Goldspan Dragon's granted Treasure
+// ability): priced as the tap grant it is -- only an untapped, non-sick
+// bearer activates it (CR 302.6) -- whose step and the manual mana window
+// also sacrifice the source (dirac mana_grantcost.go). Any other shape -- a
+// mana fee or a dynamic amount (Evendo's "{G}, {T}: Add {G} for each
+// creature"), a sacrifice of other permanents or another non-tap part, a
+// chosen colour -- would be counted as plain mana or not at all, so it is
 // refused.
 
 // grantedManaShape reports why granted mana ability ab is outside the
@@ -36,7 +40,7 @@ func grantedManaShape(ab *lAbility) string {
 	c := &ab.Cost
 	if !grantedManaCostShape(c) || c.Untap || c.Sac != nil || c.DiscardN > 0 || c.DiscardX || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr > 0 ||
 		c.TapN > 0 || c.TapHost || c.SacHost || c.TapPowN > 0 || c.Forage != nil || c.ExileG != nil || c.Energy != 0 ||
-		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 || c.DamageYouN > 0 {
+		c.ReturnSelf || c.ExileSelf || c.Return != nil || c.DrawN > 0 || c.DrawBy != nil || c.DamageYouN > 0 {
 		return "granted mana ability whose cost is not {T}"
 	}
 	m := &c.Mana
@@ -67,10 +71,12 @@ func grantedManaShape(ab *lAbility) string {
 }
 
 // grantedManaCostShape reports whether c's tap, sacrifice and life parts are
-// one of the three granted shapes the kernel's grant search steps pay: {T}
-// alone, {T} + pay N life (Forgotten Monument; the step pays the life), or
+// one of the four granted shapes the kernel's grant search steps pay: {T}
+// alone, {T} + pay N life (Forgotten Monument; the step pays the life),
 // sacrifice this alone (Lotus Ring; the step sacrifices the source, tapped
-// or not). The other cost parts are grantedManaShape's.
+// or not), or {T} + sacrifice this (Lotus Ring's upstream script, Goldspan
+// Dragon's granted Treasure ability; the step taps and sacrifices the
+// source). The other cost parts are grantedManaShape's.
 func grantedManaCostShape(c *lCost) bool {
 	if c.LifeX {
 		return false
@@ -79,6 +85,8 @@ func grantedManaCostShape(c *lCost) bool {
 	case c.Tap && !c.SacSelf:
 		return c.PayLife >= 0 && c.PayLife <= 255
 	case c.SacSelf && !c.Tap:
+		return c.PayLife == 0
+	case c.Tap && c.SacSelf:
 		return c.PayLife == 0
 	}
 	return false

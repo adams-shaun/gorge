@@ -111,6 +111,7 @@ Evolving Adaptive
 Faerie Noble
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -122,6 +123,7 @@ Flare of Denial
 Flatman
 Flowstone Charger
 Forest
+Forked-Branch Garami
 Foxfire Oak
 Gift of Fangs
 Gift of Paradise
@@ -138,6 +140,7 @@ Haazda Officer
 Harbinger of Night
 Harmless Assault
 Herd Gnarr
+Hero of the Dunes
 Hibernation
 Honden of Life's Web
 Howl of the Night Pack
@@ -212,6 +215,7 @@ Oak Street Innkeeper
 Obelisk of Grixis
 Ogre Taskmaster
 One-Eyed Scarecrow
+Order of the Sacred Torch
 Panic Attack
 Paradigm Shift
 Parallel Lives
@@ -243,6 +247,7 @@ Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
 River Sneak
+Robot Domination
 Rockshard Elemental
 Rout
 Rune-Cervin Rider
@@ -260,6 +265,7 @@ Sedgemoor Witch
 Seething Pathblazer
 Selhoff Occultist
 Shaman of Spring
+Shield of the Oversoul
 Shimmer of Possibility
 Show of Valor
 Shrine Keeper
@@ -282,6 +288,7 @@ Spindrift Drake
 Spirit Shackle
 Spirited Companion
 Spitebellows
+Spiteful Squad
 Spitfire Handler
 Sultai Emissary
 Sunscorched Desert

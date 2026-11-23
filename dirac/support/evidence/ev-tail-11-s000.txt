@@ -51,6 +51,7 @@ Deadeye Harpooner
 Deceiver Exarch
 Defiant Falcon
 Demonic Consultation
+Desiccated Naga
 Desmond Miles
 Destined
 Devour Flesh
@@ -62,14 +63,15 @@ Dragonstalker
 Dream's Grip
 Druidic Satchel
 Dwarven Hammer
+Elephant Graveyard
 Elven Rite
 Emry, Lurker of the Loch
 Ensouled Scimitar
 Eternity Snare
 Faerie Noble
-Feast of Worms
 Feral Roar
 Feral Shadow
+Fiery Islet
 Firebolt
 Flametongue Kavu
 Fleshtaker
@@ -117,6 +119,12 @@ Leaden Myr
 Leonin Den-Guard
 Leyline Invocation
 Life Burst
+Liliana Vess
+Liliana, Death Wielder
+Liliana, Death's Majesty
+Liliana, Waker of the Dead
+Liliana, the Last Hope
+Liliana, the Necromancer
 Llanowar Loamspeaker
 Loam Lion
 Lose Hope
@@ -129,6 +137,7 @@ Mana Geyser
 Mer Man
 Metathran Transport
 Midsummer Revel
+Minas Tirith
 Mind Knives
 Mindless Conscription
 Monstrous Growth

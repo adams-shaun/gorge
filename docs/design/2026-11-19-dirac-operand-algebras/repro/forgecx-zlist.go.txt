@@ -1,0 +1,51 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/effects"
+)
+
+// gap-plan scratch: forgecx list <dir> prints name<TAB>types<TAB>playable<TAB>missing primitives.
+func init() {
+	if len(os.Args) < 3 || os.Args[1] != "list" {
+		return
+	}
+	r, err := loadReportRegistry(os.Args[2])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	r.ShapeGate = etbCopyShapeGate
+	sup := effects.Supported()
+	var lines []string
+	for _, c := range r.AllCards() {
+		name := ""
+		types := ""
+		for _, f := range c.Faces {
+			if f.Name != "" {
+				name = f.Name
+				types = fmt.Sprint(f.Types)
+				break
+			}
+		}
+		miss := r.Unsupported(c, sup)
+		if name == "" {
+			continue
+		}
+		sort.Strings(miss)
+		play := "1"
+		if len(miss) > 0 {
+			play = "0"
+		}
+		lines = append(lines, name+"\t"+types+"\t"+play+"\t"+strings.Join(miss, ","))
+	}
+	sort.Strings(lines)
+	for _, l := range lines {
+		fmt.Println(l)
+	}
+	os.Exit(0)
+}

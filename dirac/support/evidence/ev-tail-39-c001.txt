@@ -157,6 +157,7 @@ Geralf's Mindcrusher
 Gerrard's Battle Cry
 Ghost Lantern
 Ghost Quarter
+Ghostflame Sliver
 Ghostly Touch
 Ghoul's Feast
 Giant's Ire
@@ -350,6 +351,7 @@ Skystrike Officer
 Slaughterhouse Bouncer
 Slaying Fire
 Sleeper's Guile
+Sloppity Bilepiper
 Smokespew Invoker
 Snapping Drake
 Soaring Thought-Thief
@@ -384,6 +386,7 @@ Tar Snare
 Teeterpeak Ambusher
 Teferi's Care
 Tempered Sliver
+The Black Breath
 The Fabulous Frog-Man
 The Falcon, Airship Restored
 Time of Heroes

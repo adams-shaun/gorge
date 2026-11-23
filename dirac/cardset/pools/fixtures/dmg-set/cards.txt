@@ -1,0 +1,10 @@
+# the DamageDone set-to-N rewrite (Divine Presence) beside big burn
+# (dirac/oracle/repl_modes_lockstep_test.go)
+Divine Presence
+Grizzly Bears
+Plains
+Forest
+Lightning Bolt
+Lava Axe
+Hill Giant
+Mountain

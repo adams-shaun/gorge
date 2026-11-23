@@ -32,10 +32,13 @@ var DebugDmgSrcPlLKI uint8
 // source is the loop's object (RefEach, read live; the entry's trigger
 // record is not its last known information) and the one recipient its
 // controller. gorge's loop is one damage batch (DamageMap$ True), so a
-// DamageDealtOnce listener would latch once over every pass where the
-// kernel's passes are each their own batch: it stalls loudly
-// (StallLowering), as does the order ask, which cannot park inside the
-// loop (StallReplPlus).
+// DamageDealtOnce line latches per dealing source over the loop (gorge
+// trigger_match.go damageBatchKey); the loop binds each creature exactly
+// once, so the line queues once, at its source's own pass, carrying that
+// pass's amount -- the pass's fire (below) is that game, and a line the
+// event fails (CombatDamage$, Descendant of Kiyomaro) queues nothing. A
+// DamageDealtOnce line does not stall here, though the order ask still
+// cannot park inside the loop (StallReplPlus).
 func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	eachCtrl := in.B.N == kop.DmgFromEachCtrl
@@ -97,13 +100,20 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			return
 		}
 	}
-	var q seatSeq
-	if eachCtrl {
-		if s.subs[kop.TrigDamageDealtOnce].any() {
-			s.capFull(StallLowering) // gorge latches it once over the whole loop
-			s.g.plusBatchAsked = false
+	// the defending mode behind the AtkPWHit guard (lower_tokenattacking.go):
+	// the attack was on a planeswalker or battle, which gorge's Valid
+	// Planeswalker.TriggeredDefender arm names instead of the defending
+	// player, whose .Opponent arm names nobody there (CR 603.3c, 608.2h);
+	// the source read above, live or its last known information, deals
+	// through dmgSrcObject as the any-target form does.
+	if !eachCtrl && in.B.N == 1 && in.C == int16(kop.RefDefendingPlayer) {
+		if a := s.attackedObjOr(k, NoTarget); a != NoTarget {
+			s.dmgSrcObject(k, Obj(a), o, sl, kw, ctrl, infect, int(n))
 			return
 		}
+	}
+	var q seatSeq
+	if eachCtrl {
 		q = seatOne(ctrl)
 	} else {
 		q = s.eachPlayers(k, kop.Ref(in.C))
@@ -126,7 +136,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		plCodes[i], plAmts[i] = PlayerCode(q.s[i]), int(n)
 		ne++
 	}
-	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne]) {
+	if s.replPlusSrcPass(k, ctrl, sl, card, kw, plCodes[:ne], plAmts[:ne], false) {
 		if eachCtrl {
 			s.capFull(StallReplPlus) // a park inside the RepeatEach loop cannot resume
 		}
@@ -140,7 +150,8 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		p := q.s[i]
 		code := PlayerCode(p)
 		m := n
-		if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 {
+		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
+			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 			if m = s.replDamagePend(k, ctrl, sl, card, code, m, o); m <= 0 {
 				continue
 			}
@@ -150,7 +161,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyInfect && infect {
 			s.addPoison(p, m)
 		} else {
-			s.loseLife(k, p, m)
+			s.loseLifeDmg(k, p, m)
 		}
 		s.plDmgMark(p, m) // wasDealtDamageThisTurn's seat arm (gen.go)
 		s.res.lastDmg = int16(m)
@@ -160,7 +171,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
@@ -197,7 +208,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	}
 	card := s.objs[o].card
 	code := TCode(dst)
-	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
+	if s.replPlusSrcPass(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}, false) {
 		return
 	}
 	if s.dmgSrcOrderStalls(k, ctrl, NoSlot, card, kw, []TCode{code}, []int{n}) {
@@ -205,7 +216,8 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 		return
 	}
 	m := n
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
+		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
 		m = s.replDamagePend(k, ctrl, NoSlot, card, code, m, o)
 	}
 	s.g.plusBatchAsked = false
@@ -226,7 +238,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, ctrl, m)
 	}
-	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any()) {
+	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.embDmg()) {
 		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
 	}
 }

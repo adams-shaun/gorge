@@ -68,6 +68,7 @@ Child of Thorns
 Citizen's Arrest
 Clinging Mists
 Cobblebrute
+Collective Restraint
 Commander Eesha
 Commune with Spirits
 Consign to the Pit
@@ -100,6 +101,7 @@ Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
+Dreadful as the Storm
 Dreadhorde Invasion
 Drivnod, Carnage Dominus
 Drove of Elves
@@ -199,6 +201,7 @@ Inexorable Blob
 Inner-Flame Igniter
 Insist
 Inspired Sprite
+Intermediate Chirography
 Invasion of Innistrad
 Invasion of Kaldheim
 Invasion of Lorwyn
@@ -316,11 +319,13 @@ Redress Fate
 Refuse to Yield
 Relic Putrescence
 Resistance Fighter
+Resounding Scream
 Retrieve
 Rhox Pummeler
 Rift Sower
 Rites of Refusal
 Riverwise Augur
+Roadkill Rodney
 Rocky Tar Pit
 Rolling Temblor
 Rot Shambler

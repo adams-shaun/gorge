@@ -21,6 +21,11 @@ var DebugNoExtraTurnBegun bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExVoteTally:
+		// the StoreVoteNum option branch being resolved (act_vote.go): the
+		// per-option tally the vote wrote after the last voter. Only a
+		// flagged vote branch sets voteCur, so no other read sees a value.
+		return int(s.resArm().voteCounts[s.resArm().voteCur])
 	case kop.ExOppsAttacked:
 		return s.exOppsAttacked(x.N, ctx) // value_oppsattacked.go
 	case kop.ExTargetPlayers:
@@ -96,13 +101,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExRemLKIPT:
 		return s.remLKIPT() // zone_rememberlki.go
 	case kop.ExExiledWithN:
-		switch x.N {
-		case 1:
-			return s.exwMVSum(k, ctx) // value_countheads.go
-		case 2:
-			return s.exwSharedTypes(k, ctx) // value_countheads.go
-		}
-		return s.exwCount(ctx) // zone_exiledwith.go
+		return s.exwArm(k, x, ctx) // value_countheads.go
 	case kop.ExCountHand:
 		if x.N == 1 {
 			return s.countLibrary(k, x, ctx) // value_countheads.go
@@ -124,6 +123,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.chosenNumberOfFor(ctx.src, ctx.srcSl) // repl_choosenumber.go
 	case kop.ExUnlockedDoors:
 		return s.unlockedDoors(k, ctx.ctrl) // value_countheads.go
+	case kop.ExTotalCommanderCastFromCommandZone:
+		return s.cmdCastTotal(ctx.ctrl) // value_cmdcast.go
 	case kop.ExCmdGreatestMV:
 		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
 	case kop.ExRevolt:
@@ -159,20 +160,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		if x.N == 1 {
 			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
 		}
-		n := 0
-		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) {
-				continue
-			}
-			pl := &s.pl[pp]
-			for j := 0; j < int(pl.exileN); j++ {
-				o := pl.exile[j]
-				if s.matchCardGenAt(k, x.F, s.objs[o].card, pp, ctx.ctrl, o, &ctx) {
-					n++
-				}
-			}
-		}
-		return n
+		return s.countExile(k, x, ctx)
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
 	case kop.ExStepIn:
@@ -392,4 +380,30 @@ func (s *State) oppsLifeLost(p uint8) int {
 		}
 	}
 	return v
+}
+
+// countExile is ExCountExile: the exiled cards matching x.F in every living
+// seat's exile, or with N 2 only the cards player x.Ref owns (Ravenloft
+// Adventurer's defending player, Etrata's damaged one).
+func (s *State) countExile(k *prep, x *kop.Expr, ctx evalCtx) int {
+	only := uint8(255) // N 2: only the cards player Ref owns (Ravenloft Adventurer's defending player, Etrata's damaged one)
+	if x.N == 2 {
+		if only = s.refPlayer(k, x.Ref, ctx); only == 255 {
+			return 0
+		}
+	}
+	n := 0
+	for pp := uint8(0); pp < s.nSeats(); pp++ {
+		if s.out(pp) || only != 255 && pp != only {
+			continue
+		}
+		pl := &s.pl[pp]
+		for j := 0; j < int(pl.exileN); j++ {
+			o := pl.exile[j]
+			if s.matchCardGenAt(k, x.F, s.objs[o].card, pp, ctx.ctrl, o, &ctx) {
+				n++
+			}
+		}
+	}
+	return n
 }

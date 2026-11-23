@@ -48,6 +48,7 @@ Bonepicker Skirge
 Bookwurm
 Boros Locket
 Brain Gorgers
+Burrenton Bombardier
 Burrenton Shield-Bearers
 Cabal Patriarch
 Cabal Therapy
@@ -79,7 +80,6 @@ Cragplate Baloth
 Cranial Plating
 Crazed Goblin
 Creature Bond
-Creeping Tar Pit
 Cruel Tutor
 Cunning Advisor
 Curiosity Crafter
@@ -97,6 +97,7 @@ Deathgaze Cockatrice
 Deconstruct
 Delusions of Mediocrity
 Demonlord Belzenlok
+Dermoplasm
 Devout Monk
 Diabolic Machine
 Diregraf Rebirth
@@ -106,6 +107,7 @@ Dizzy Spell
 Dogged Pursuit
 Downpour
 Draconic Disciple
+Drannith Healer
 Dream Twist
 Drown in Sorrow
 Duskrider Peregrine
@@ -313,6 +315,7 @@ Rise of Eagles
 Rise of the Witch-king
 Rise to Glory
 Rising of the Day
+Rootrunner
 Runehorn Hellkite
 Sabertooth Nishoba
 Saddle of the Cavalier
@@ -368,6 +371,7 @@ Summoner's Pact
 Sunbond
 Sundering Vitae
 Sundial of the Infinite
+Super Combo
 Surge of Thoughtweft
 Svogthos, the Restless Tomb
 Swamp
@@ -380,6 +384,7 @@ Terashi's Verdict
 Termination Facilitator
 Teshar, Ancestor's Apostle
 Thassa's Oracle
+There and Back Again
 Thermo-Alchemist
 They Came from the Pipes
 Thornglint Bridge
@@ -416,6 +421,7 @@ Utopia Vow
 Utrom Monitor
 Vampire of the Dire Moon
 Vampiric Link
+Vanguard Suppressor
 Vedalken Aethermage
 Vengeful Reaper
 Vengeful Rebel

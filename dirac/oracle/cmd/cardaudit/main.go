@@ -222,6 +222,11 @@ func readEvidence(fsys fs.FS) (*evidence, error) {
 		}
 		list := strings.TrimSuffix(path.Base(f), ".txt")
 		for _, n := range readLines(b) {
+			// a row's trailing tab-separated columns (an evidence row's seats
+			// field) are not part of the name
+			if name, _, found := strings.Cut(n, "\t"); found {
+				n = name
+			}
 			e.lists[n] = append(e.lists[n], list)
 		}
 	}

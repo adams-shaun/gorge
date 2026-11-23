@@ -292,6 +292,16 @@ type Cost struct {
 	// full). Only a spell's own alternative cost carries them.
 	Discard2N uint8
 	Discard2F FilterID
+	// DiscardSideN / DiscardSideF: a filtered discard part that sits beside
+	// a sacrifice on an activated ability (Skoa, Embermage: Discard<1/Card.
+	// namedSkoa, Embermage> Sac<2/Mountain>). Cost.N / Cost.Filter stay the
+	// sacrifice's, so every sacrifice reader is unchanged; the discard's
+	// count and hand-card filter ride these table bytes. Set only with
+	// CostSac|CostDiscard and CostDiscardFiltered clear (the flag keeps
+	// meaning "Filter is the discard's"); dirac.discardPart is the one
+	// reader. Table bytes, not CostFlags bits (the words are full).
+	DiscardSideN uint8
+	DiscardSideF FilterID
 	// DiscardX: the CostDiscard part's count is the announced X
 	// (Discard<X/Spec>, CR 107.3, 601.2b, 601.2h; Abandon Hope's
 	// "Discard X cards" beside its printed {X}, Channeled Force's with

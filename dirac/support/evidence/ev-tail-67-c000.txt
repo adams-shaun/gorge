@@ -16,6 +16,7 @@ Air Nomad Student
 Akki Underminer
 Akrasan Squire
 Akroan Crusader
+Alela, Cunning Conqueror
 Alloy Myr
 Alms Beast
 Altar of Dementia
@@ -43,6 +44,7 @@ Beast Attack
 Biting Rain
 Blade Splicer
 Blastfire Bolt
+Blessed Reincarnation
 Blight Sickle
 Blisterspit Gremlin
 Blossom Dryad
@@ -91,6 +93,7 @@ Crackling Triton
 Crop Rotation
 Crypt Incursion
 Crystalline Armor
+Curator Beastie
 Custodi Soulbinders
 Cyclops Superconductor
 Daily Bugle Newspaper
@@ -143,6 +146,7 @@ Final-Sting Faerie
 Firebird, Blazing Ranger
 Flametongue Kavu
 Flashfires
+Flensing Raptor
 Fleshpulper Giant
 Floodhound
 Flow of Ideas
@@ -157,6 +161,7 @@ Furnace Hellkite
 Galvanic Iteration
 Garenbrig Squire
 Geth's Grimoire
+Ghosthelm Courier
 Gilt-Leaf Palace
 Glory Bearers
 Gluttonous Zombie
@@ -206,10 +211,12 @@ Irencrag Pyromancer
 Iron Bully
 Iron Suitcase
 Island
+Ixidor, Reality Sculptor
 Jackalope Herd
 Kaito Shizuki
 Keen-Eyed Raven
 Keeneye Aven
+Keeper of Kookus
 Ken, Burning Brawler
 Khalni Gem
 Kirtar's Wrath
@@ -277,10 +284,12 @@ Organ Hoarder
 Orim's Touch
 Paradox Engine
 Path of Anger's Flame
+Pearlspear Courier
 Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
 Pilfering Imp
+Plaguebearer
 Plains
 Plaxmanta
 Pol Jamaar, Illusionist
@@ -342,6 +351,7 @@ Setessan Skirmisher
 Settle the Score
 Shadowspear
 Shake the Foundations
+Shang-Chi and the Ten Rings
 Sheoldred
 Shepherd of the Lost
 Shinen of Fear's Chill

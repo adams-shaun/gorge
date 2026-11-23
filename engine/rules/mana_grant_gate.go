@@ -28,6 +28,11 @@ func manaGrantConditionHolds(g *state.Game, sv staticView, present func(staticVi
 	if !presentGatesHold(sv, present) {
 		return false
 	}
+	// A kw:Class grant's ClassBand$ (CR 716.2): the granted ability is live
+	// only once the Class has reached that level.
+	if !classBandHolds(g, sv.ParamStr(cards.PKClassBand), sv.Source) {
+		return false
+	}
 	if !topCardOfLibraryGateHolds(g, sv, matches) {
 		return false
 	}
@@ -47,4 +52,12 @@ func presentGatesHold(sv staticView, present func(staticView, string) bool) bool
 		}
 	}
 	return true
+}
+
+// manaGrantGatesHold is the gate a continuous mana-ability grant passes before
+// its Affected$ is matched: the granting Class level must be the permanent's
+// current level (CR 716.2; classBand is the engine's classBandGateHolds) and
+// the grant's Condition$ must hold.
+func manaGrantGatesHold(g *state.Game, sv staticView, classBand func(string, state.ObjID) bool, present func(staticView, string) bool, matches func(string, state.ObjID, state.PlayerID, state.ObjID) bool) bool {
+	return classBand(sv.ParamStr(cards.PKClassBand), sv.Source) && manaGrantConditionHolds(g, sv, present, matches)
 }

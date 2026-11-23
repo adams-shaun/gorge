@@ -165,6 +165,7 @@ Hair-Strung Koto
 Hammerfist Giant
 Hancock, Ghoulish Mayor
 Heart-Piercer Manticore
+Hell-Bent Raider
 Higure, the Still Wind
 Hippo-Cows
 Homarid Warrior
@@ -186,7 +187,6 @@ Indomitable Ancients
 Insight
 Inspired Skypainter
 Invasion of Muraganda
-Iron Fist, Hero for Hire
 Irreverent Revelers
 Island
 Ithilien Kingfisher
@@ -331,6 +331,7 @@ Rustmouth Ogre
 Sage's Row Savant
 Sakura-Tribe Springcaller
 Samurai of the Pale Curtain
+Sanctum of Calm Waters
 Sandbar Merfolk
 Savage Order
 Scepter of Empires
@@ -438,7 +439,7 @@ Wake Thrasher
 Wakening Sun's Avatar
 Wall of Stone
 Wand of Vertebrae
-Wardscale Crocodile
+Wand of the Worldsoul
 Warmind Infantry
 Waterspout Djinn
 Wavebreak Hippocamp

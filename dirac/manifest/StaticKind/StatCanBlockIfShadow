@@ -4,4 +4,5 @@ value: 33
 forge: CanBlockIfShadow
 census: stat CanBlockIfShadow all=4 std=0 mbc=0 sole=4
 state: code 0
-status: reserved
+status: active
+ticket: dsd-t17b-static-modes
