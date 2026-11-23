@@ -541,7 +541,10 @@ func (s *State) chosenCardTypeHas(t kop.TypeMask) bool {
 // source's last known choice (srcChosen) after the source died in response
 // (Aswan Jaguar destroyed by another Jaguar's resolved ability). Triggers
 // carry theirs from the queueing; an entry that already has a record keeps it.
-func (s *State) stackSrcChosenLKI(o Obj) {
+func (s *State) stackSrcChosenLKI(k *prep, p *perm, o Obj) {
+	if p.chosen == 255 || k.gen == nil {
+		return
+	}
 	ver := s.objs[o].ver
 	li := uint8(0)
 	for i := 0; i < int(s.sp); i++ {
