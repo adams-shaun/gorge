@@ -700,6 +700,11 @@ type tapXSearch struct {
 	need    [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	stall   uint8                  // the first stall a failed line's fork latched (stallOf), StallNone none
 	nodes   int
+	limited bool // the node budget ran out (gorge scriptSearch.limited)
+	// subsume: this is the subsume run (mana_tapxsubsume.go), whose colour
+	// asks keep only the colours costCol still lacks
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 	nseen   int
 	seen    [potentialScriptNodes]tapXKey
 	n       int
@@ -816,7 +821,7 @@ func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bo
 	// granted mana is the grant search's (grantPrefix / grantCap), for a cast as
 	// for an activation: no gap of this search activates a grant, so none prices it
 	t.g.noGrant = true
-	if !rs.settle(k, t, false) || rs.n == 0 {
+	if (!rs.settle(k, t, false) || rs.n == 0) && !s.tapXSubsume(k, a, &rs) {
 		// not found. A line that ran into a rule gap the kernel stalls by name
 		// (gorge asks the order the kernel cannot model; the play would be
 		// offered only its mana pays it) is reported to the caller, never
@@ -1085,6 +1090,7 @@ func (rs *tapXSearch) leftOwnZone(t *State) bool {
 
 func (rs *tapXSearch) tick() bool {
 	if rs.nodes >= potentialScriptNodes {
+		rs.limited = true
 		return false
 	}
 	rs.nodes++
@@ -1327,6 +1333,9 @@ func (rs *tapXSearch) ctrAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8) 
 			return false, true
 		}
 		for i := 0; i < 5; i++ {
+			if !rs.subsumeKeeps(t, cols[i]) {
+				continue
+			}
 			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
 				return true, true
 			}
@@ -1392,9 +1401,30 @@ func (rs *tapXSearch) pairAsk(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 			if debugTapXMutate == 1 {
 				c = 0
 			}
+			if !rs.subsumeKeeps(t, c) {
+				continue
+			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
 				return true, true
 			}
+		}
+	}
+	return false, false
+}
+
+// ctrColourAsk is the colour ask of an any-colour counter-cost ability, the
+// announced colours in order (the subsume run keeps only the lacking ones).
+// stop reports the search ended here: found is its answer.
+func (rs *tapXSearch) ctrColourAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (found, stop bool) {
+	if !rs.tick() { // the colour ask
+		return false, true
+	}
+	for i := 0; i < 5; i++ {
+		if !rs.subsumeKeeps(t, cols[i]) {
+			continue
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+			return true, true
 		}
 	}
 	return false, false
@@ -1508,13 +1538,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if ab := k.ctrAbOf(t.cardAt(sl)); ctrAnyColour(ab) {
 				// an any-colour counter ability (Vivid Grove's second) asks
 				// its colour after the ability: the announced ones first
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				for i := 0; i < 5; i++ {
-					if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
-						return true
-					}
+				if found, stop := rs.ctrColourAsk(k, t, sl, &cols); stop {
+					return found
 				}
 				continue
 			}
@@ -1604,6 +1629,9 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 		c := cols[i]
 		if debugTapXMutate == 1 {
 			c = 0
+		}
+		if !rs.subsumeKeeps(t, c) {
+			continue
 		}
 		if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
 			return true, true
