@@ -2218,6 +2218,13 @@ func (fs *filtSearch) try(k *prep, t *State, st filtStep, funded int, gapUsed bo
 		fs.tick()
 		return false
 	}
+	if k.gen != nil && k.gen.anyRepl&rbPlusDmg != 0 {
+		// gorge's script submits each step at priority, so the state-based
+		// check (CR 704.3) runs between steps: a step's pain damage
+		// redirected onto a creature (Pariah's Shield, CR 614.9) kills a
+		// 0/1 filter before the next step can tap it.
+		c.sba(k)
+	}
 	fs.path[fs.n] = st
 	fs.n++
 	if c.npend <= q {
