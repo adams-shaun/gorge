@@ -38,7 +38,7 @@ func tableHasGainedMana(t *kop.Table) bool {
 	}
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
-			if gainedManaPlanned(&t.Cards[i].Abilities[j]) {
+			if gainedManaPlanned(&t.Cards[i], &t.Cards[i].Abilities[j]) {
 				return true
 			}
 		}
@@ -46,11 +46,11 @@ func tableHasGainedMana(t *kop.Table) bool {
 	return false
 }
 
-// isGrantMana reports whether mana ability a is a grantPC entry: a latent one
-// (a static's AddAbility$ grant), or in a table with a GainsAbilitiesOf$
-// static a plain printed one (gainedManaPlanned).
-func (g *genPrep) isGrantMana(a *kop.Ability) bool {
-	return a.AFlags&kop.AfLatent != 0 || g.uses.has(useGainsOf) && gainedManaPlanned(a)
+// isGrantMana reports whether mana ability a of card cd is a grantPC entry: a
+// latent one (a static's AddAbility$ grant), or in a table with a
+// GainsAbilitiesOf$ static a plain printed one (gainedManaPlanned).
+func (g *genPrep) isGrantMana(cd *kop.CardDef, a *kop.Ability) bool {
+	return a.AFlags&kop.AfLatent != 0 || g.uses.has(useGainsOf) && gainedManaPlanned(cd, a)
 }
 
 // addGrantPC registers mana ability a of card c (index ab) as a grantPC entry
@@ -114,7 +114,7 @@ func (s *State) ungrGainedIntr(k *prep, p uint8, sl Slot, av *avail, ms *modalSe
 		j := gi[i]
 		r := g.grantOf[j]
 		a := &k.t.Cards[r.card].Abilities[r.ab]
-		if g.grantRestr[j] != 0 || a.AFlags&kop.AfLatent != 0 || !gainedManaPlanned(a) ||
+		if g.grantRestr[j] != 0 || a.AFlags&kop.AfLatent != 0 || !gainedManaPlanned(&k.t.Cards[r.card], a) ||
 			!gainedManaIntrinsic(&k.t.Cards[r.card], a, k.t.Subtypes) {
 			continue
 		}
@@ -126,12 +126,23 @@ func (s *State) ungrGainedIntr(k *prep, p uint8, sl Slot, av *avail, ms *modalSe
 	}
 }
 
-// gainedManaPlanned reports whether foreign mana ability a is a planner unit
-// for a GainsOf recipient: an unlimited printed ability whose colours and
-// amount are fixed (a spend restriction is the grant's own, grantRestr).
-func gainedManaPlanned(a *kop.Ability) bool {
-	const unmodelled = kop.AfLatent | kop.AfManaDynamic | kop.AfManaChosen | kop.AfManaReflect | kop.AfManaEachColor
-	return a.Kind == kop.AbMana && a.AFlags&unmodelled == 0 && !gainedManaLimited(a) &&
+// gainedManaPlanned reports whether foreign mana ability a of card cd is a
+// planner unit for a GainsOf recipient: an unlimited printed ability whose
+// colours and amount are fixed (a spend restriction is the grant's own,
+// grantRestr), or a reflected one whose colours the recipient's controller's
+// board resolves (gainedManaReflPlanned, mana_gainedreflect.go).
+func gainedManaPlanned(cd *kop.CardDef, a *kop.Ability) bool {
+	if a.Kind != kop.AbMana {
+		return false
+	}
+	if a.AFlags&kop.AfManaReflect != 0 {
+		// the unmodelled census gap only for the arms no per-recipient read
+		// resolves; a latent one is the static grant's selfPC/selfPC family,
+		// never a gained unit
+		return a.AFlags&kop.AfLatent == 0 && gainedManaReflPlanned(cd, a)
+	}
+	const unmodelled = kop.AfLatent | kop.AfManaDynamic | kop.AfManaChosen | kop.AfManaEachColor
+	return a.AFlags&unmodelled == 0 && !gainedManaLimited(a) &&
 		!a.ManaDeferred && a.ManaColors != 0 && !comboAnyMana(a)
 }
 
