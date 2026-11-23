@@ -158,6 +158,33 @@ type engineCastWindows struct {
 	// "your turn": an instant cast on an opponent's turn accumulates too.
 	manaExpended     []int32 `clone:"deep"`
 	manaExpendedTurn int32   `clone:"deep"`
+
+	// manaTapMark is the event-log length just after the most recent
+	// activated mana ability's Tap (engine/rules/mana_activation.go's emitManaTap).
+	// resolveTriggeredManaAbilities scans e.L.Events from here for the
+	// ManaAdd batch the activation produced, to bind each CR 605.3b
+	// triggered mana ability's produced-type set (effects.TriggerContext.
+	// TriggerMana, the ReflectProperty$ Produced read). It is set before the
+	// mana effect resolves -- the actual ManaAdd events do not exist yet at
+	// trigger-match time -- and consumed by the first batch resolution.
+	// Transient engine scratch. It is zero at an intent boundary except while
+	// the activation is parked on a colour ask its own mana effect poses (a
+	// Pay {2}: Add one mana of any one color arm: Three Tree City), so a
+	// clone made there carries it: the answered ask's batch still reaches the
+	// triggered mana ability (Mana Flare's extra) the prefix search clones
+	// price the play by. Zero means no pending activated tap.
+	manaTapMark int `clone:"deep"`
+	// manaTapPendingFrom is pendingTriggers' index boundary emitManaTap's Tap
+	// event queued from (the `before` snapshot) and manaTapSource the
+	// permanent that was tapped. stampTriggeredManaProduced binds the
+	// produced-type set onto the NON-immediate TapsForMana triggers the same
+	// tap queued -- C.A.M.P.'s targeted `Triggers$ TapsForMana` stays in
+	// e.pendingTriggers for its later placement, while an immediate CR 605.3b
+	// batch is stamped with the triggers list resolveTriggeredManaAbilities
+	// receives. Transient engine scratch, carried across a clone like
+	// manaTapMark.
+	manaTapPendingFrom int         `clone:"deep"`
+	manaTapSource      state.ObjID `clone:"deep"`
 }
 
 // ledgerCastView is one logged cast the ledger evaluates (Engine.ledgerCast).

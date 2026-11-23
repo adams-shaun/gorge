@@ -1293,6 +1293,9 @@ func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	}
 	c.manaExpended = append([]int32(nil), e.manaExpended...)
 	c.manaExpendedTurn = e.manaExpendedTurn
+	c.manaTapMark = e.manaTapMark
+	c.manaTapPendingFrom = e.manaTapPendingFrom
+	c.manaTapSource = e.manaTapSource
 }
 
 func cloneFieldsEngineResolveKernel(c, e *Engine, sp *Spare, remap *cloneRemap) {
