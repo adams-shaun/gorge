@@ -576,6 +576,13 @@ func (pc *manaPick) pick(admitGranted bool) ([]int, bool) {
 		if best < 0 {
 			continue
 		}
+		if len(members) > 1 && pc.act.Ability.Kind == decision.PaymentAbilityIntrinsic {
+			// gorge appends a land's intrinsic abilities after its printed ones,
+			// so a step that names the intrinsic ability is the last tied option:
+			// a painland's {U} under an Island grant is its intrinsic ability,
+			// not the painful one's flattened {U} listed before it (CR 305.6)
+			best = members[len(members)-1]
+		}
 		if pc.prove != nil && len(members) > 1 {
 			if pc.prove(pc.d, pc.act, []int{best}) {
 				return []int{best}, true

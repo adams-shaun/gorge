@@ -41,6 +41,7 @@ type pcard struct {
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
 	manaIdent bool          // a commander-identity source's view (kop.Ability.ManaIdentity): gorge's planner appends its unit with the choice-shaped sources even when the identity is one colour (mana_reflected.go identityColours)
 	manaRefl  bool          // an imprint mox's view: gorge's census keeps its unit at the source's battlefield position even when it is a colour choice (mana_imprint.go)
+	altCol    uint8         // a granted basic land type's intrinsic alternative beside this view's own ability: 1 + its colour; the source taps for one of the two (static_landgrantalt.go); 0 none
 	blgFirst  uint8         // a granted basic land type's view: 1 + its first ability's colour, the payment window's answer (static_landtype.go); 0 otherwise
 	rankCol   kop.ColorMask // a restricted source's colours as gorge's rank keys read them (all its alternatives', admitted or not); 0: manaCol
 	restrU    uint8         // a restricted source's planner view: 1 fixed colour, 2 widened {C} unit (mana_restrictedsource.go)
