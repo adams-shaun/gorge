@@ -851,7 +851,7 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 	// A table without a generated extension has k.gen == nil (prep.go), so
 	// scriptFilt would dereference nil. A granted/gained ability's index (255)
 	// names no printed ability, so its MakeAction could never list.
-	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !(plainPricedCost(a) || sacPricedCost(a)) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
+	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !(plainPricedCost(a) || sacPricedCost(a) || sacSelfPricedCost(a)) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
 		return false
 	}
 	p := s.perms[sl].ctrl
@@ -867,7 +867,7 @@ func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
 		return false
 	}
 	av := s.g.availX
-	if !sacPricedCost(a) { // a sacrifice cost's play is gorge's prefix search, which keeps the guides
+	if !sacPricedCost(a) && !sacSelfPricedCost(a) { // a sacrifice cost's play is gorge's prefix search, which keeps the guides
 		s.g.availX = av | availNoHandFund
 	}
 	ok := s.filtScript(k, pa, p, false)
