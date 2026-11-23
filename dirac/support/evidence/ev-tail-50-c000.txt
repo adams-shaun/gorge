@@ -358,6 +358,7 @@ Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
+Saheeli, Filigree Master
 Sandstone Bridge
 Savage Twister
 Scale Blessing
