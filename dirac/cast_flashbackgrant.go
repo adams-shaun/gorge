@@ -23,8 +23,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Revelations' seven mana beside eight sources). Nor does it run out when the
 // printed sources make every coloured pip (Gysahl Greens' {G} beside a
 // Treasure): the granted mana only fills the generic part, and the first line
-// the search walks finds it. The cut approximates that budget; it does not
-// model the search's order.
+// the search walks finds it. The count only decides where the search is not
+// run: a board whose choices fit the budget is offered from it (the kernel's
+// search does not find every route gorge's walk does there), while a board
+// whose choices exceed it is left to grantCap's grantSearch, the mirror of
+// gorge's prefix chain (potentialPrefixScript), which prices the cast at its
+// offer in gorge's walk order.
 func (s *State) flashbackReachable(k *prep, p uint8, c CardID, o Obj, fc kop.ManaCost) bool {
 	if !s.flashbackPartsDisjoint(k, p, c, fc) {
 		return false
@@ -34,14 +38,18 @@ func (s *State) flashbackReachable(k *prep, p uint8, c CardID, o Obj, fc kop.Man
 	}
 	d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 	if s.affordsUngrantedCast(k, p, &fc, d) {
+		return true // gorge's planner prices it from the printed census: no search runs
+	}
+	if s.g.availX&availWalk != 0 {
+		// gorge's potential walk lists the cast and its search may finish
+		// within the budget: grantCap's grantSearch, the mirror of that
+		// search, decides on the offer (a flashback cast takes a slot of the
+		// walk in gorge's order like any other cast).
 		return true
 	}
-	// Only a pip the printed sources cannot make sends the search down the
-	// granted source's branch alone; a shortfall in the generic part is paid
-	// by tapping anything, which the first line the search walks does.
-	pips := fc
-	pips.Generic = 0
-	return s.affordsUngrantedCast(k, p, &pips, d)
+	// No search runs: the planner's census_incomplete verdict alone withholds
+	// the cast, unless the census gap is not a live grant gap.
+	return s.grantGapLive(k, p)
 }
 
 // flashbackSearchNodes is gorge's potentialScriptNodes: the distinct tap states

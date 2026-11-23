@@ -1515,7 +1515,11 @@ func (g *grantSrch) node() bool {
 		return true
 	}
 	limit := potentialScriptNodes
-	if g.phased && g.feeOnly {
+	if g.phased && g.feeOnly && !(g.d.hasPlay && g.d.play.Mode()&3 != 0) {
+		// A moded cast (a flashback, kicker, escape or mayhem one) is priced
+		// by gorge's single chain on the engine's colour order: its printed
+		// base is never read (scriptPlayBaseCost), so the slack the phased
+		// budget grants the base-reading runs has no run to spend it on.
 		limit = phasedScriptNodes
 	}
 	if g.nodes >= limit {
