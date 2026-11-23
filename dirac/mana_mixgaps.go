@@ -424,7 +424,28 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 				no++
 			}
 		}
+		// The plain run's one-shot flexible gap prune (gorge's oneShotAskPrune,
+		// potential_script.go): the tap-another source's colour ask is a gap's
+		// like any other, so while a fixed pip is owed a colour that fills none
+		// is dropped (Saruli Caretaker beside a fee-only repeatable filter: the
+		// four colours the play's BBB does not name spent the node budget
+		// before the Llanowar Envoy that pays was the tapped creature). Fail
+		// open when no colour fills a pip.
+		oneShot := fs.feeOnly && !fs.phased && fs.usefulOK
+		if oneShot {
+			any := false
+			for _, col := range order {
+				if !t.ctrOneShotColStalls(k, p, sl, &fs.useful, int(col)) {
+					any = true
+					break
+				}
+			}
+			oneShot = any
+		}
 		for i := 0; i < 5; i++ {
+			if oneShot && t.ctrOneShotColStalls(k, p, sl, &fs.useful, int(order[i])) {
+				continue
+			}
 			if try(otherStep{kind: otherTapX, ans: order[i], cand: a, cand2: b}) {
 				return true
 			}
