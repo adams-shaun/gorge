@@ -123,3 +123,30 @@ func TestPotentialCensusFallbackSkipsASearchTheSupplyCountRefuses(t *testing.T) 
 		})
 	}
 }
+
+// ssTender taps for one mana of each colour among the permanents its
+// controller has (Bloom Tender): a tap that makes more than one mana.
+const ssTender = "Name:Supply Tender\nManaCost:1 G\nTypes:Creature Elf Druid\nPT:1/1\n" +
+	"A:AB$ Mana | Cost$ T | Produced$ Special EachColorAmong_Valid Permanent.YouCtrl | SpellDescription$ For each color among permanents you control, add one mana of that color.\nOracle:x\n"
+
+// A source whose tap makes a per-object number of mana is no one-mana source:
+// counting it as one would prove an ability unpayable that the player pays
+// (gorge hid an activation dirac offered, tests TestStdEclReprosLockstep).
+func TestCensusOutrunsIsOffForASourceThatTapsForSeveralMana(t *testing.T) {
+	t.Parallel()
+	e, _, _ := newFixtureDeck(t, 9413, ppFiller)
+	onBoardReady(t, e, 0, ssBig)
+	onBoardReady(t, e, 0, ssGranter)
+	onBoardReady(t, e, 0, ssTender)
+	onBoard(t, e, 0, ssForest)
+	e.G.Step = state.StepMain1
+	ppPriority(t, e)
+
+	census := e.paymentPlanCensusOf(0, &state.Mana{})
+	if census.complete {
+		t.Fatal("precondition: want an incomplete census (the granted ability is a gap)")
+	}
+	if census.outruns != nil {
+		t.Fatal("census.outruns is set: a Special production was read as one mana")
+	}
+}

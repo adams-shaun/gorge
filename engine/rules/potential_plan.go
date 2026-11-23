@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -2608,7 +2609,9 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 	if out.complete {
 		out.relaxable, out.relaxed, out.paid, out.gaps = false, nil, nil, nil
 	}
-	if plain && !out.complete {
+	if plain && !out.complete && !e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
+		// A ProduceMana replacement (Mana Reflection) can make more than one
+		// mana from a tap, so the supply count is no bound.
 		pool := int32(e.G.Players[p].Pool.Total())
 		out.outruns = func(o decision.Option) bool { return abilityOutrunsSupply(e, p, o, pool+sources) }
 	}
@@ -2622,8 +2625,14 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 // manaTapSingle reports whether mana ability ma of source id is a lone {T}
 // that makes exactly one mana: no fee or other cost part, no tap trigger's
 // extra mana, no condition-split production, no chosen or per-object amount.
+// Only a plain one-symbol production or "Any" is read as one mana: a special
+// one (Bloom Tender's one mana per colour among permanents) parses to no
+// colour at all, which would count as nothing.
 func manaTapSingle(e *Engine, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
 	mp := effects.ManaOf(ma)
+	if mp.PlainSym == 0 && mp.Produced != "Any" && mp.Produced != "Combo Any" {
+		return false
+	}
 	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
 		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
 }
