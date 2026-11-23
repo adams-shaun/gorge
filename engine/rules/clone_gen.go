@@ -34,7 +34,6 @@ func cloneEngineFields(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	cloneFieldsEngineParked(c, e, sp, remap)
 	cloneFieldsEngineParked2(c, e, sp, remap)
 	cloneFieldsEngineCastWindows(c, e, sp, remap)
-	cloneFieldsEngineEmitCtx(c, e, sp, remap)
 	cloneFieldsEngineResolveKernel(c, e, sp, remap)
 	cloneFieldsPaySession(c, e, sp, remap)
 }
@@ -1294,9 +1293,6 @@ func cloneFieldsEngineCastWindows(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	}
 	c.manaExpended = append([]int32(nil), e.manaExpended...)
 	c.manaExpendedTurn = e.manaExpendedTurn
-}
-
-func cloneFieldsEngineEmitCtx(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.manaTapMark = e.manaTapMark
 	c.manaTapPendingFrom = e.manaTapPendingFrom
 	c.manaTapSource = e.manaTapSource
