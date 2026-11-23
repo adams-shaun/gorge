@@ -20,7 +20,7 @@ ev-dr-mbc-abba-c000	96
 ev-dr-mbc-abba-c001	3
 ev-dr-mbc-abba-c002	4
 ev-dr-mbc-abbb	112
-ev-dr-mbc-abbb-c000	64
+ev-dr-mbc-abbb-c000	32
 ev-dr-mbc-abbb-c001	45
 ev-dr-mbc-abbb-s000	20
 ev-dr-mbc-baaa	184
@@ -35,7 +35,7 @@ ev-dr-mbc-babb	119
 ev-dr-mbc-babb-c000	43
 ev-dr-mbc-babb-c001	11
 ev-dr-mbc-bbaa	200
-ev-dr-mbc-bbaa-c000	200
+ev-dr-mbc-bbaa-c000	8
 ev-dr-mbc-bbaa-c001	128
 ev-dr-mbc-bbab	155
 ev-dr-mbc-bbab-c000	28
@@ -44,7 +44,7 @@ ev-dr-mbc-bbba	168
 ev-dr-mbc-bbba-c000	6
 ev-dr-mbc-bbba-c001	7
 ev-dr-mbc-bbbb	136
-ev-dr-mbc-bbbb-c000	14
+ev-dr-mbc-bbbb-c000	8
 ev-dr-mbc-bbbb-c001	16
 ev-std-big	200
 ev-std-big-c000	200
@@ -52,7 +52,7 @@ ev-std-blb	200
 ev-std-dft	200
 ev-std-dft-c000	8
 ev-std-dsk	190
-ev-std-dsk-c000	60
+ev-std-dsk-c000	125
 ev-std-dsk-c001	8
 ev-std-ecl	194
 ev-std-ecl-c000	7
@@ -102,8 +102,8 @@ ev-tail-00-s000	63
 ev-tail-00-s001	47
 ev-tail-00-s002	61
 ev-tail-00-s003	37
-ev-tail-01-c000	26
-ev-tail-01-c001	50
+ev-tail-01-c000	51
+ev-tail-01-c001	157
 ev-tail-01-c002	110
 ev-tail-01-c003	11
 ev-tail-01-c004	171
@@ -203,7 +203,7 @@ ev-tail-01-c097	8
 ev-tail-01-c098	8
 ev-tail-01-c099	8
 ev-tail-01-c100	16
-ev-tail-02-c000	5
+ev-tail-02-c000	92
 ev-tail-02-c001	2
 ev-tail-02-c002	31
 ev-tail-02-c003	7
@@ -502,7 +502,7 @@ ev-tail-05-c059	16
 ev-tail-05-c060	8
 ev-tail-05-c061	8
 ev-tail-06	216
-ev-tail-06-c000	135
+ev-tail-06-c000	7
 ev-tail-06-c001	5
 ev-tail-06-c002	50
 ev-tail-06-c003	12
@@ -547,8 +547,8 @@ ev-tail-06-c041	16
 ev-tail-06-c042	16
 ev-tail-06-c043	16
 ev-tail-06-s000	38
-ev-tail-07-c000	64
-ev-tail-07-c001	200
+ev-tail-07-c000	8
+ev-tail-07-c001	128
 ev-tail-07-c002	8
 ev-tail-07-c003	7
 ev-tail-07-c004	6
@@ -879,7 +879,7 @@ ev-tail-11-c080	6
 ev-tail-11-c081	10
 ev-tail-11-c082	3
 ev-tail-11-s000	46
-ev-tail-12-c000	7
+ev-tail-12-c000	110
 ev-tail-12-c001	112
 ev-tail-12-c002	15
 ev-tail-12-c003	30
@@ -969,7 +969,7 @@ ev-tail-12-c086	7
 ev-tail-12-c087	7
 ev-tail-12-c088	7
 ev-tail-12-s000	47
-ev-tail-13-c000	41
+ev-tail-13-c000	13
 ev-tail-13-c001	37
 ev-tail-13-c002	9
 ev-tail-13-c003	131
@@ -1061,7 +1061,7 @@ ev-tail-13-c088	8
 ev-tail-13-c089	8
 ev-tail-13-c090	16
 ev-tail-13-s000	46
-ev-tail-14-c000	36
+ev-tail-14-c000	17
 ev-tail-14-c001	121
 ev-tail-14-c002	7
 ev-tail-14-c003	7
@@ -1133,7 +1133,7 @@ ev-tail-14-c068	8
 ev-tail-14-c069	8
 ev-tail-14-c070	16
 ev-tail-14-s000	47
-ev-tail-15-c000	16
+ev-tail-15-c000	8
 ev-tail-15-c001	12
 ev-tail-15-c002	27
 ev-tail-15-c003	164
@@ -1233,7 +1233,7 @@ ev-tail-15-c096	8
 ev-tail-15-c097	8
 ev-tail-15-c098	8
 ev-tail-15-s000	55
-ev-tail-16-c000	6
+ev-tail-16-c000	10
 ev-tail-16-c001	88
 ev-tail-16-c002	7
 ev-tail-16-c003	159
@@ -1508,7 +1508,7 @@ ev-tail-19-c088	8
 ev-tail-19-c089	8
 ev-tail-19-c090	8
 ev-tail-19-s000	55
-ev-tail-20-c000	22
+ev-tail-20-c000	7
 ev-tail-20-c001	24
 ev-tail-20-c002	3
 ev-tail-20-c003	4
@@ -2158,7 +2158,7 @@ ev-tail-27-c098	8
 ev-tail-27-c099	16
 ev-tail-27-s000	63
 ev-tail-27-s001	61
-ev-tail-28-c000	15
+ev-tail-28-c000	7
 ev-tail-28-c001	32
 ev-tail-28-c002	8
 ev-tail-28-c003	13
@@ -2225,7 +2225,7 @@ ev-tail-28-c063	8
 ev-tail-28-c064	8
 ev-tail-28-c065	8
 ev-tail-28-c066	8
-ev-tail-29-c000	14
+ev-tail-29-c000	30
 ev-tail-29-c001	8
 ev-tail-29-c002	186
 ev-tail-29-c003	128
@@ -2466,8 +2466,8 @@ ev-tail-31-c077	8
 ev-tail-31-c078	8
 ev-tail-31-c079	16
 ev-tail-31-s000	44
-ev-tail-32-c000	13
-ev-tail-32-c001	7
+ev-tail-32-c000	7
+ev-tail-32-c001	8
 ev-tail-32-c002	15
 ev-tail-32-c003	28
 ev-tail-32-c004	28
@@ -2599,7 +2599,7 @@ ev-tail-33-c045	8
 ev-tail-33-c046	32
 ev-tail-33-s000	31
 ev-tail-33-s001	32
-ev-tail-34-c000	23
+ev-tail-34-c000	105
 ev-tail-34-c001	25
 ev-tail-34-c002	8
 ev-tail-34-c003	6
@@ -2720,8 +2720,8 @@ ev-tail-35-c032	64
 ev-tail-35-c033	7
 ev-tail-35-c034	32
 ev-tail-35-s000	51
-ev-tail-36-c000	7
-ev-tail-36-c001	16
+ev-tail-36-c000	16
+ev-tail-36-c001	57
 ev-tail-36-c002	44
 ev-tail-36-c003	6
 ev-tail-36-c004	16
@@ -2781,7 +2781,7 @@ ev-tail-36-c057	16
 ev-tail-36-c058	8
 ev-tail-36-c059	8
 ev-tail-36-c060	8
-ev-tail-37-c000	134
+ev-tail-37-c000	138
 ev-tail-37-c001	81
 ev-tail-37-c002	37
 ev-tail-37-c003	160
@@ -2898,7 +2898,7 @@ ev-tail-38-c055	8
 ev-tail-38-c056	16
 ev-tail-38-s000	10
 ev-tail-39	200
-ev-tail-39-c000	26
+ev-tail-39-c000	27
 ev-tail-39-c001	13
 ev-tail-39-c002	6
 ev-tail-39-c003	49
@@ -2915,8 +2915,8 @@ ev-tail-39-c013	8
 ev-tail-39-c014	8
 ev-tail-39-c015	16
 ev-tail-39-c016	16
-ev-tail-40-c000	5
-ev-tail-40-c001	7
+ev-tail-40-c000	4
+ev-tail-40-c001	3
 ev-tail-40-c002	122
 ev-tail-40-c003	129
 ev-tail-40-c004	125
@@ -3052,7 +3052,7 @@ ev-tail-41-c034	7
 ev-tail-41-c035	8
 ev-tail-41-c036	7
 ev-tail-41-s000	55
-ev-tail-42-c000	4
+ev-tail-42-c000	20
 ev-tail-42-c001	39
 ev-tail-42-c002	3
 ev-tail-42-c003	96
@@ -3188,7 +3188,7 @@ ev-tail-43-c037	8
 ev-tail-43-c038	4
 ev-tail-43-s000	55
 ev-tail-44	200
-ev-tail-44-c000	25
+ev-tail-44-c000	57
 ev-tail-44-c001	4
 ev-tail-44-c002	185
 ev-tail-44-c003	173
@@ -3241,7 +3241,7 @@ ev-tail-44-c049	8
 ev-tail-44-c050	8
 ev-tail-44-c051	8
 ev-tail-44-s000	55
-ev-tail-45-c000	32
+ev-tail-45-c000	16
 ev-tail-45-c001	8
 ev-tail-45-c002	8
 ev-tail-45-c003	8
@@ -3507,7 +3507,7 @@ ev-tail-48-c049	8
 ev-tail-48-c050	8
 ev-tail-48-s000	32
 ev-tail-49	131
-ev-tail-49-c000	12
+ev-tail-49-c000	11
 ev-tail-49-c001	19
 ev-tail-49-c002	112
 ev-tail-49-c003	123
@@ -3774,7 +3774,7 @@ ev-tail-52-c072	8
 ev-tail-52-c073	8
 ev-tail-52-s000	60
 ev-tail-53	200
-ev-tail-53-c000	41
+ev-tail-53-c000	16
 ev-tail-53-c001	5
 ev-tail-53-c002	4
 ev-tail-53-c003	85
@@ -3802,7 +3802,7 @@ ev-tail-53-c024	8
 ev-tail-53-c025	8
 ev-tail-53-c026	8
 ev-tail-53-c027	8
-ev-tail-54-c000	9
+ev-tail-54-c000	4
 ev-tail-54-c001	4
 ev-tail-54-c002	5
 ev-tail-54-c003	3
@@ -3897,7 +3897,7 @@ ev-tail-54-c091	8
 ev-tail-54-c092	16
 ev-tail-54-c093	16
 ev-tail-55	200
-ev-tail-55-c000	53
+ev-tail-55-c000	28
 ev-tail-55-c001	24
 ev-tail-55-c002	8
 ev-tail-55-c003	180
@@ -3932,7 +3932,7 @@ ev-tail-55-c031	8
 ev-tail-55-s000	44
 ev-tail-55-s001	64
 ev-tail-56	134
-ev-tail-56-c000	16
+ev-tail-56-c000	59
 ev-tail-56-c001	55
 ev-tail-56-c002	6
 ev-tail-56-c003	8
@@ -4397,8 +4397,8 @@ ev-tail-63-c052	8
 ev-tail-63-c053	8
 ev-tail-63-c054	8
 ev-tail-63-s000	42
-ev-tail-64-c000	7
-ev-tail-64-c001	6
+ev-tail-64-c000	149
+ev-tail-64-c001	151
 ev-tail-64-c002	118
 ev-tail-64-c003	144
 ev-tail-64-c004	32
@@ -4569,7 +4569,7 @@ ev-tail-66-c037	8
 ev-tail-66-c038	8
 ev-tail-66-c039	8
 ev-tail-66-s000	61
-ev-tail-67-c000	4
+ev-tail-67-c000	23
 ev-tail-67-c001	1
 ev-tail-67-c002	4
 ev-tail-67-c003	2
@@ -4803,7 +4803,7 @@ ev-tail-69-c093	8
 ev-tail-69-c094	8
 ev-tail-69-s000	59
 ev-tail-69-s001	60
-ev-tail-70-c000	14
+ev-tail-70-c000	25
 ev-tail-70-c001	15
 ev-tail-70-c002	7
 ev-tail-70-c003	13
@@ -4958,7 +4958,7 @@ ev-tail-71-c078	16
 ev-tail-71-c079	16
 ev-tail-71-s000	42
 ev-tail-72	200
-ev-tail-72-c000	3
+ev-tail-72-c000	14
 ev-tail-72-c001	6
 ev-tail-72-c002	101
 ev-tail-72-c003	4
@@ -4982,7 +4982,7 @@ ev-tail-73-c009	4
 ev-tail-73-c010	5
 ev-tail-73-c011	2
 ev-tail-73-c012	3
-ev-tail-74-c000	172
+ev-tail-74-c000	8
 ev-tail-74-c001	30
 ev-tail-74-c002	22
 ev-tail-74-c003	8
@@ -5090,7 +5090,7 @@ ev-tail-75-c006	7
 ev-tail-75-c007	8
 ev-tail-75-c008	8
 ev-tail-75-c009	8
-ev-tail-76-c000	3
+ev-tail-76-c000	8
 ev-tail-76-c001	18
 ev-tail-76-c002	59
 ev-tail-76-c003	113
