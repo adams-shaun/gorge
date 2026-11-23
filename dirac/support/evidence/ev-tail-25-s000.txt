@@ -22,49 +22,64 @@ Bulwark
 Bumbleflower's Sharepot
 Cache Grab
 Capture of Jingzhou
+Carry Away
 Cat Burglar
 Celebrate the Harvest
+Chamber Sentry
 Chimeric Staff
 Choking Tethers
 Clawing Torment
 Congregation at Dawn
 Consuming Blob
 Containment Membrane
+Cragsmasher Yeti
 Craven Giant
 Crook of Condemnation
 Crumb and Get It
 Crushing Pain
+Curious Homunculus
 Cyclonic Rift
 Daemogoth Woe-Eater
 Dark Privilege
+Deadly Designs
 Deepfathom Skulker
 Deeproot Champion
+Demonic Rising
 Descent into Avernus
+Desperate Farmer
 Diamond Valley
 Discombobulate
 Dormant Gomazoa
 Dromoka Monument
 Dromoka's Gift
 Duel for Dominance
+Dutiful Thrull
 Eater of Hope
 Eidolon of Philosophy
 Electropotence
 Enchanted Evening
 Expedition Skulker
+Expel the Unworthy
 Fable of the Mirror-Breaker
 Failed Conversion
+Fall to Earth
 Fallen Cleric
 Fang Dragon
 Fangren Hunter
+Fell Shepherd
+Fiery Inscription
+Fireslinger
 Forest
 Forging the Anchor
 Fractal Harness
 Fresh Volunteers
+Gargos, Vicious Watcher
 Giant Harbinger
 Glassblower's Puzzleknot
 Gods' Hall Guardian
 Golgari Cluestone
 Gone Missing
+Gorilla Pack
 Griffin Sentinel
 Guardian Idol
 Hada Freeblade
@@ -75,27 +90,33 @@ Heart Warden
 Henchfiend of Ukor
 Hornet Queen
 Howling Gale
+Hyperion, Supreme Hero
 Hypnotic Sprite
 Insidious Dreams
 Inversion Behemoth
 Iron League Steed
 Island
+Jori En, Ruin Diver
 Journey for the Elixir
 Jungle Shrine
 Kamber, the Plunderer
+Kederekt Parasite
 Khalni Heart Expedition
 Kjeldoran Gargoyle
+Kor Spiritdancer
 Labyrinth of Skophos
 Leeching Sliver
 Leering Gargoyle
 Llanowar Mentor
 Magnus the Red
+Magus of the Library
 Makindi Stampede
 Marsh Flitter
 Master Trinketeer
 Memory Erosion
 Merfolk Pupil
 Miner's Bane
+Minister of Impediments
 Mirrorshell Crab
 Moggcatcher
 Mountain
@@ -103,6 +124,7 @@ Narnam Renegade
 Necrotic Hex
 Nessian Game Warden
 Nesting Dovehawk
+Nexus Wardens
 Nightveil Predator
 Nocturnal Hunger
 Oceanus Dragon
@@ -119,14 +141,19 @@ Patrol Signaler
 Pawpatch Formation
 Persist
 Phantom Nomad
+Plague Wight
 Plains
 Pouncing Cheetah
+Power Taint
 Prophet of Kruphix
 Prowler, Misguided Mentor
 Pyromancer's Gauntlet
 Quest for the Nihil Stone
+Rampaging Hippo
 Reckless Amplimancer
 Rejuvenating Springs
+Repulse
+Resistance Squad
 Return Upon the Tide
 Revered Unicorn
 Rhystic Tutor
@@ -144,6 +171,8 @@ Shimmer Dragon
 Shredding Winds
 Sickleslicer
 Sift
+Sigarda's Aid
+Sinuous Striker
 Sire of Insanity
 Skillful Lunge
 Skinbrand Goblin
@@ -153,19 +182,25 @@ Snow Day
 Song-Mad Treachery
 Spirit of Resistance
 Spiritual Sanctuary
+Spitebellows
 Spore Crawler
 Sporecrown Thallid
 Spotter Thopter
+Stampeding Elk Herd
+Steelgaze Griffin
 Strix Serenade
 Stromkirk Mentor
 Summoner's Bane
 Svyelun of Sea and Sky
 Swamp
+Sweltering Suns
 Tajuru Beastmaster
 Talas Scout
+Tendrils of Despair
 The Spear of Leonidas
 Thorin, King of Durin's Folk
 Thornhide Wolves
+Thrummingbird
 Thrun, Breaker of Silence
 Thundering Rebuke
 Treacherous Vampire

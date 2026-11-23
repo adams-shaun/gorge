@@ -1,0 +1,3061 @@
+173	85	other:Defined$ "_"
+172	46	other:filter "_": unknown filter head "_"
+109	0	param:Cleanup.ClearImprinted
+47	1	other:filter "_": IsImprinted outside a chain that writes the impr
+41	0	other:reads Remembered written by another ability (the kernel's re
+39	4	other:Defined$ Targeted with no ancestor target slot
+38	32	kw:Banding
+37	32	other:Effect replacement "_"
+37	0	other:Defined$ "_" outside a whenever-this-blocks trigger (Mode$ A
+34	1	other:Defined$ Imprinted outside a DigUntil ImprintFound$
+34	10	other:filter "_": ExiledWithSource outside a resolution-time mover
+34	2	kw:Mutate
+34	24	other:Effect replacement shape
+33	4	kw:Flanking
+32	1	param:trigger.WerewolfUntransformCondition
+32	3	trig:Mutates
+32	2	other:Vote param "_"
+31	0	param:trigger.WerewolfTransformCondition
+31	11	other:ETB replacement api Sacrifice
+31	26	other:Effect triggers without a permanent duration
+31	7	api:StoreSVar
+30	25	other:Pump Duration "_"
+30	25	kw:Splice
+29	11	other:filter "_": empty filter
+29	0	prop:withoutFlanking
+28	15	other:Effect static "_"
+27	22	stat:OptionalAttackCost
+27	18	other:mana ability with a conditional or unbounded rider program
+27	18	repl:DamageDone replacement shape
+27	21	other:Effect triggers with RememberObjects$ "_"
+27	27	kw:Soulshift
+26	8	other:ValidSA "_"
+26	20	kw:Protection
+26	1	prop:PairedWith
+25	18	other:AffectedZone "_" without MayPlay
+25	6	other:kicker cost "_"
+25	0	other:Pump RememberObjects$ "_"
+25	19	kw:Disturb
+25	0	kw:Soulbond
+25	0	api:Pair
+25	0	prop:!Paired
+24	1	other:CopySpellAbility outside a SpellCast trigger's Defined$ Trig
+24	8	param:Effect.ForgetOnMoved
+24	5	other:RepeatEach DefinedCards$ "_"
+23	13	other:RaiseCost Cost$ "_"
+23	9	other:Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile,
+23	16	repl:Draw replacement
+23	1	kw:Vanishing
+22	15	count:Valid
+22	2	other:amount "_" names no SVar
+22	9	other:AbilityCast ValidSA$ "_"
+22	0	other:CounterRemoved CounterType$ TIME on the battlefield
+21	4	other:Condition$ "_"
+21	14	other:static Condition "_"
+20	17	api:Learn
+20	15	kw:Strive
+20	9	other:delayed trigger Phase/End Of Turn
+20	0	kw:Devour
+20	19	other:ChooseSource Effect replacement shape
+19	17	prop:sharesCreatureTypeWith
+19	7	other:hand move DefinedPlayer$ "_"
+19	0	param:ChangeZone.Imprint
+19	4	other:ChooseType shape
+19	14	other:Taps ValidCard "_"
+19	0	kw:Mentor
+19	0	param:PutCounter.Mentor
+19	13	other:player static
+19	15	other:ConditionManaSpent$ outside its own enters trigger's body
+19	0	kw:Replicate
+19	0	count:ReplicatePaid
+19	13	other:RepeatEach body Choices$ "_"
+19	11	repl:BeginPhase replacement
+19	10	other:delayed trigger RememberObjects "_"
+18	13	other:Effect DamageDone redirect DamageTarget$ "_"
+18	5	other:RepeatEach RepeatPlayers "_"
+18	6	other:optional ChooseCard
+18	11	other:Animate dynamic type "_"
+17	8	other:RememberedLKI$ over a set not written by one Sacrifice Remem
+17	15	other:DB$ Mana of an artifact source (typed mana)
+17	13	other:Effect static Continuous param MayPlay
+17	13	kw:Blitz
+16	3	other:ETB replacement api ChoosePlayer
+16	2	param:ChangeZone.Duration
+16	2	other:Dig ExileFaceDown$ shape
+16	15	api:PreventDamage
+16	9	other:Effect RememberObjects "_"
+16	0	kw:Squad
+16	0	count:SquadPaid
+16	5	other:MayLookAt shape
+16	14	other:Animate Abilities$ granted to an object other than the sourc
+16	13	cost:ExiledMoveToGrave
+16	8	param:ChangeZone.Chooser
+16	12	other:AffectedZone Stack grant of "_"
+16	7	other:RepeatEach cards Zone$ "_"
+16	4	other:Effect StaticAbilities$ "_" beside Triggers$ (a Duration$)
+15	5	other:Defined$ RememberedController without a remembering Counter 
+15	7	other:Origin "_"
+15	10	other:RemoveKeyword "_"
+15	15	kw:Cipher
+15	13	kw:Riot
+15	14	other:Effect CantBlockBy shape
+15	0	kw:Awaken
+15	2	other:Defined$ "_": player qualifier
+15	14	param:Animate.RemoveLandTypes
+14	11	kw:Emerge
+14	8	other:filter "_": "_": two comparisons in one clause
+14	10	other:ControlledBy TriggeredDefendingPlayer outside an Attacks or 
+14	6	count:ValidExile
+14	3	other:filter "_": "_": compare "_"
+14	11	other:ChangeType$ with ValidTgts$
+14	4	other:PeekAndReveal RevealOptional$ shape
+14	0	kw:Scavenge
+14	0	other:SVar __kwScavengeX="_": value head Exiled$
+14	12	other:AtEOT "_"
+14	11	other:filtered discard cost outside an activated ability
+14	11	count:TotalCommanderCastFromCommandZone
+14	6	other:mandatory ChooseCard ControlledByPlayer$ "_"
+14	11	other:Protection Gains$ "_" (only a chosen colour lowers)
+14	0	other:Pump ForgetImprinted$ "_" outside the persist shape
+14	14	stat:AssignCombatDamageAsUnblocked
+14	6	other:Defined$ "_" outside a damage trigger the kernel's trigger o
+13	0	other:trigger second filter {players=N
+13	0	types=NxN}
+13	0	other:Pump ImprintCards$ "_"
+13	4	other:exile cost "_"
+13	9	prop:suspended
+13	11	other:Repeat without RepeatCheckSVar$ or RepeatDefined$
+13	2	other:RollDice Amount$ "_"
+13	8	other:Animate AtEOT on a set
+13	4	other:ETB replacement api Reveal
+13	8	count:DevotionDual
+13	12	other:SkipPhase Phase$ "_" Start$ "_" Duration$ "_" Step$ "_" (onl
+13	0	param:ChangeZone.ExileFaceDown
+13	5	other:Play RememberPlayed
+13	2	other:SacrificeAll without ValidCards$ (Defined$ "_")
+13	6	prop:ChosenCtrl
+13	5	other:Phases Defined$ "_"
+13	2	param:Reveal.Random
+13	12	other:AlternativeCost shape
+13	11	trig:TapsForMana
+12	10	kw:Freerunning
+12	9	kw:Eternalize
+12	8	other:Counter replacement shape
+12	0	prop:kicked N
+12	8	other:ReplaceDyingDefined "_"
+12	10	other:RaiseCost Type "_"
+12	10	kw:Enlist
+12	7	other:SVar X="_": Targeted$ with no target slot
+12	9	repl:DamageDone static prevention ActiveZones ""
+12	10	other:CastWithFlash shape
+12	10	other:Effect replacement ExileOnMoved$ "_"
+12	2	param:static.ValidSA
+12	9	other:no target and no Defined$
+12	6	other:ChooseCard Defined$ "_"
+12	12	other:mana restriction on a source whose cost goes beyond {T}
+12	0	param:Pump.ForgetObjects
+12	0	api:VillainousChoice
+12	0	param:Tap.AnyNumber
+12	0	param:Tap.CardChoices
+12	0	param:Tap.ChoiceAmount
+12	0	param:Tap.RememberTapped
+12	5	other:ChangesZone Any->Graveyard
+12	1	other:ETB counter shape
+11	8	other:cumulative upkeep cost "_" (only a mana, life, default disca
+11	10	other:Clone NewName$ on the battlefield
+11	10	param:Discard.RevealNumber
+11	0	kw:Conspire
+11	0	count:Conspired
+11	2	stat:CantPlayLand
+11	10	other:MayPlay zone "_"
+11	6	other:delayed trigger ChangesZone shape
+11	11	api:Detain
+11	8	other:filter "_": wasCastFromGraveyard on a spell
+11	4	count:xPaid
+11	0	other:ChoosePlayer Choices$ "_"
+11	10	kw:Reinforce
+11	7	other:resolution cost shape
+11	2	other:AttackerBlockedByCreature ValidCard "_" ValidBlocker "_"
+11	8	api:DigMultiple
+11	9	kw:Spectacle
+11	10	other:TgtZone "_"
+11	0	kw:Champion
+11	0	param:Pump.NoteCards
+11	0	param:Pump.NoteCardsFor
+11	8	kw:Phasing
+11	10	kw:Landwalk
+11	0	other:SVar NumInHand="_": TargetedController$CardsInHand
+11	0	other:SVar NumInLib="_": TargetedController$CardsInLibrary
+11	0	param:Reveal.ValidTgts
+11	10	other:morph cost "_"
+11	4	other:DB$ Mana under a CR N.Na mana ability gorge resolves on the 
+11	0	kw:Tribute
+11	0	prop:notTributed
+10	9	other:N mana abilities: mana ability N (cost none, produces WUBRG)
+10	9	count:CastTotalManaSpent
+10	0	kw:Haunt
+10	0	param:ChangeZone.Haunt
+10	0	prop:HauntedBy
+10	3	other:Play without ValidSA
+10	7	other:MoveCounter CounterType "_"
+10	3	other:optional ChooseCard Defined$ "_"
+10	8	other:Attach Object "_" with Optional$
+10	7	api:GainControlVariant
+10	2	other:ChangeZone to graveyard
+10	1	param:Pump.RememberTargets
+10	4	other:CantBeCast Caster "_"
+10	9	other:tap cost "_" outside a printed trigger's own cost
+10	0	param:Effect.ForgetCounter
+10	6	other:ChangesZone Graveyard->Battlefield
+10	0	other:Defined$ ParentTarget with no target slot
+10	7	param:CopyPermanent.SetCreatureTypes
+10	9	kw:MayFlashSac
+10	3	other:ChangeZoneAll Defined$ "_"
+10	8	param:DigUntil.Shuffle
+10	3	kw:Prowl
+10	8	other:Counter TargetType "_" without Triggered
+10	3	other:SetState Mode$ "_"
+10	3	other:AddType "_"
+10	10	other:instr N PutCounter: counter kind "_"
+10	2	param:ChangeZoneAll.ExileFaceDown
+10	6	other:read ahead (CR N.Nb): the kernel has no lore-count entry cho
+10	3	other:AttackersDeclared AttackedTarget "_"
+10	0	other:ETB replacement api DayTime
+10	9	kw:Prevent all damage that would be dealt to CARDNAME.
+10	8	other:GainControl LoseControl "_"
+10	1	cost:SubCounter
+10	9	other:SVar X="_": value head TriggeredPlayer$
+10	9	api:SkipTurn
+10	0	other:Effect Duration$ UntilTheEndOfYourNextUntap in a mana abilit
+10	6	other:Effect static mode CantRegenerate
+10	8	repl:ProduceMana replacement
+10	7	other:SVar X="_": value head Exiled$
+10	10	stat:IgnoreLandWalk
+10	9	other:alternate additional cost "_"
+10	0	other:GenericChoice without TempRemember Chooser
+10	8	other:AttachedTo$ "_"
+10	8	other:CopySpellAbility TargetType "_"
+10	5	other:Play ValidZone$ Exile without IsRemembered
+10	3	kw:Companion
+9	9	other:AffectedZone Stack grant with a Condition$ / IsPresent$ / Ch
+9	4	count:ThisTurnActivated
+9	3	stat:ManaConvert
+9	1	param:ChooseCard.RememberChosen
+9	3	param:ChoosePlayer.Random
+9	4	api:TimeTravel
+9	8	other:AttackerBlocked ValidBlocker "_"
+9	7	other:N mana abilities: not a fixed-colour set, nor a plain {T} ab
+9	6	other:Counter Defined$ "_" outside a SpellCast trigger
+9	5	other:Effect StaticAbilities$ "_" beside Triggers$ (RememberObject
+9	0	other:ValidActivatingPlayer "_"
+9	3	other:filter "_": wasCast outside a battlefield-entering trigger's
+9	0	kw:Amplify
+9	0	kw:Storied
+9	6	prop:TopGraveyardCreature
+9	8	other:ETB replacement api Animate
+9	9	kw:Ingest
+9	5	other:MustBlock DefinedAttacker$ "_"
+9	8	other:TapsForMana extra of any colour: the trigger asks a colour c
+9	6	cost:Unattach
+9	0	param:Pump.ClearNotedCardsFor
+9	5	kw:Hexproof
+9	0	trig:DayTimeChanges
+9	1	kw:Provoke
+9	4	stat:IgnoreLegendRule
+9	3	other:Blocks trigger body reads Remembered
+9	7	param:Animate.Replacements
+9	3	other:ReduceCost Type "_"
+9	8	prop:withToxic
+9	9	other:mana restriction on a PayLife source: gorge plans it last-re
+9	7	other:Clone: the source is not a creature or planeswalker
+9	7	other:ChangesZoneAll Any->Graveyard
+9	3	other:filter "_": unblocked outside a ninjutsu Return cost
+9	3	other:NameCard ValidCards$ "_"
+9	9	other:alternative cost with a non-mana part (the kernel offers man
+9	8	other:Effect SetChosenNumber$ outside an emblem ReduceCost
+9	6	other:filter "_": a Spell head outside a ReduceCost ValidTarget$
+9	9	other:DamageSource$ to Self
+9	6	other:GainsAbilitiesOf$ "_": artifact or land sources
+9	4	param:CopyPermanent.TokenAttacking
+8	7	other:RepeatEach body op DealDamage on the repeated player
+8	7	other:mana restriction "_"
+8	2	param:Effect.EffectOwner
+8	4	param:trigger.ValidPlayer
+8	0	param:DamageAll.RememberDamaged
+8	4	other:DestroyAll ValidTgts$ "_": a target-scoped sweep is not mode
+8	3	other:mana symbol "_"
+8	1	other:CopySpellAbility of an unfiltered spell
+8	0	other:Play Controller "_"
+8	4	param:Dig.Choser
+8	5	other:ETB NameCard ValidCards$ "_"
+8	3	other:ChangesZoneAll body reads the batch
+8	8	other:sacrifice cost "_" beside a second sacrifice part
+8	7	kw:Persist
+8	5	other:Effect without statics
+8	5	other:delayed trigger RememberObjects "_" in a triggered ability (
+8	0	param:trigger.LifeAmount
+8	0	param:trigger.LifeTotal
+8	7	kw:Equip
+8	0	param:ChangeZone.ActivationPhases
+8	5	other:ChangeZone Origin$ Graveyard,Exile ChangeType$ "_" without I
+8	3	other:DamageAll DamageSource$ "_"
+8	1	trig:RolledDie
+8	3	other:RepeatEach without RepeatPlayers$
+8	6	other:SetState Transform on a layout the kernel does not turn (N)
+8	4	other:DigUntil onto the battlefield of a Valid$ that may admit an 
+8	6	other:CanBlockAny$ "_": a blocker of several attackers (CR N.Na, N
+8	4	other:ExiledWith reader with a ChooseMove exile: gorge's exiled-wi
+8	2	other:phase "_"
+8	4	prop:IsGoaded
+8	8	other:ChooseSource Effect replacement param DamageTarget
+8	6	cost:Draw
+8	4	other:DamageSource$ to a target slot that may name a player
+8	0	other:MustBlock Defined$ "_"
+8	7	other:library position N
+8	1	other:reveal cost "_"
+8	0	other:SVar X="_": value head SVar$CostCountersRemoved names no SVa
+8	5	other:Clone Defined$ "_"
+8	8	other:CanBlockAmount$ "_": a blocker of several attackers (CR N.Na
+8	8	other:opening-hand effect RevealCard: the kernel's Leyline ask mod
+8	5	other:Effect MayPlay shape
+8	5	param:trigger.OneOff
+8	3	other:ChooseCard Amount$ "_"
+8	8	other:ETB copy of "_" (not a creature or artifact)
+8	8	other:mana ability adding several colours at once from a cost beyo
+8	6	api:ControlPlayer
+8	3	other:Play ConditionCheckSVar
+8	8	other:mana ability cost RemoveCtr: the kernel's mana walk cannot a
+8	5	other:Clone Duration$ "_"
+8	7	kw:UntapAdjust
+8	6	other:Effect CantBlockBy ValidBlocker "_"
+8	6	other:CheckDefinedPlayer "_"
+8	8	param:ChooseColor.OrColors
+8	1	prop:IsTriggerRemembered
+8	4	other:filter "_": AttachedTo Targeted beside the node's own target
+8	6	other:Panharmonicon with a partial ValidMode$ / ValidCause$ / Dest
+8	4	other:Attacks Attacked "_"
+8	6	stat:MustBlock
+8	7	other:Animate Duration "_"
+8	0	other:Play Defined$ "_"
+7	5	prop:withCycling
+7	6	repl:Draw replacement with an optional or choice body
+7	5	other:emblem trigger "_"
+7	7	other:Defined$ "_" outside an attack trigger of the controller's o
+7	4	other:delayed trigger ChangesZone return shape
+7	0	other:Activator$ Player with a cost other than plain mana
+7	1	other:ChangeTargets Defined$ "_" outside a SpellCast trigger
+7	5	param:DamageAll.ValidTgts
+7	5	other:ChooseEach shape
+7	2	kw:Compleated
+7	2	other:filter "_": a cast-provenance word outside a SpellCast Valid
+7	7	repl:LifeReduced replacement
+7	0	param:Cleanup.ClearChosenPlayer
+7	5	other:ChooseType Card ValidTypes "_"
+7	4	other:Play PlayCost
+7	7	count:Compare
+7	0	other:mixed player/object target {players=N
+7	0	trig:TurnBegin
+7	7	other:AffectedZone Stack grant: Affected$ "_" does not name the ca
+7	1	param:Pump.ActivationPhases
+7	4	prop:!firstTurnControlled
+7	6	other:protection "_": quality {types=NxN cmp(N N N  )}
+7	0	other:ChangeZone Origin$ Stack shape
+7	6	other:Attach Object "_" with Choices$
+7	1	param:static.MayPlayIgnoreColor
+7	6	other:ExchangeControl Defined$ "_"
+7	5	prop:sharesNameWith TriggeredCard
+7	2	other:ProtectionAll Gains$ "_" outside a chosen-colour grant
+7	6	api:ExchangeLife
+7	6	kw:Annihilator
+7	3	trig:RolledDieOnce
+7	2	param:CopySpellAbility.CopyForEachCanTarget
+7	5	other:Defined$ "_" without a damage object referent
+7	7	other:equip shape
+7	4	other:DividedAsYouChoose$ PutCounter outside a Dies Self trigger
+7	3	trig:LosesGame
+7	5	other:Drawn ValidCard "_"
+7	5	other:TargetsWithDefinedController$ "_"
+7	3	kw:Enchant
+7	5	other:AbilityCast ValidActivatingPlayer$ "_"
+7	0	other:SVar X="_": value head Revealed$
+7	6	api:ChangeCombatants
+7	2	stat:AttackRestrict
+7	4	other:Play ConditionCompare
+7	4	other:DamageSource$ with an amount other than the source's power
+7	4	prop:NotDefinedTargeted
+7	2	prop:attackedThisCombat
+7	0	other:SetState TurnFaceUp Defined$
+7	4	other:Manifest RememberManifested$
+7	4	other:ChangeZone Optional$ on a Remembered Library->Battlefield mo
+7	0	other:SVar NumInYard="_": TargetedController$CardsInGraveyard
+7	5	other:RollDice Modifier$ "_"
+7	3	other:Clone CloneTarget$ "_"
+7	5	param:Fight.TargetUnique
+7	7	param:CopySpellAbility.NonLegendary
+7	0	other:Activator$ Player with ValidTgts$
+7	7	other:AddHiddenKeyword "_"
+7	7	other:activation condition And(YourTurn(),Value(opN,StepIn,N)) on 
+7	6	other:CantAttackUnless Cost$ "_": a non-mana, coloured or Phyrexia
+7	4	other:Play Valid$ "_" without YouOwn/YouCtrl
+7	4	other:SVar X="_": value head TriggerRemembered$CardPower outside a
+7	7	faces
+7	5	other:Effect DamageDone redirect ValidTarget$ "_"
+7	2	other:AffectedZone Stack grant: Affected$ word "_"
+7	3	other:Effect static Duration$ "_"
+6	5	prop:CanEnchantSource
+6	6	kw:Bands with other
+6	1	other:filter "_": wasCastFromTheirHand outside a CantBeCast ValidC
+6	1	api:ControlSpell
+6	1	other:Effect MustAttack shape
+6	3	other:Origin$ Hand,Graveyard to Exile
+6	0	other:BecomesTarget shape
+6	4	api:Unattach
+6	2	other:Effect static MustAttack$ "_"
+6	5	count:TriggerRememberAmount
+6	6	other:mana ability adding several colours at once beside another m
+6	2	other:CantSacrifice ValidCause$ "_"
+6	5	other:Protection Choices$ "_" (only AnyColor lowers)
+6	6	other:set P/T "_"/"_": the per-affected word
+6	4	cost:ExileFromTop
+6	3	param:Animate.RemoveTypes
+6	4	other:SVar X="_": value head TriggerRemembered$CardManaCost outsid
+6	0	param:static.Origin
+6	2	other:filter "_": bound X reads a loyalty [-X]
+6	3	other:GainControl AllValid$ beside ValidTgts$
+6	4	stat:UnspentMana
+6	0	param:PeekAndReveal.ImprintRevealed
+6	2	other:Play ConditionDefined
+6	4	param:PutCounter.RememberCards
+6	5	count:AltCost
+6	1	other:Pump DefinedKW$ "_" outside a chosen-colour grant
+6	5	count:MostProminentCreatureType
+6	2	param:static.Phases
+6	5	prop:basePowerEQN
+6	6	param:static.AddReplacementEffect
+6	2	other:Defined$ TargetedPlayer without a player target slot
+6	5	param:trigger.Metalcraft
+6	2	other:Play Card.Self outside Amount$ All, ValidZone$ Exile, ValidS
+6	3	param:CopySpellAbility.Controller
+6	2	other:Attached ValidSource$ "_" ValidTarget$ "_"
+6	3	other:CopyPermanent Controller "_"
+6	3	other:Effect Duration "_"
+6	2	other:ChangeType$ move Graveyard->Battlefield
+6	5	param:trigger.CheckOnTriggeredCard
+6	3	other:Effect trigger RememberObjects$ Remembered: the trigger is n
+6	5	count:ThisTurnCast
+6	4	kw:Prevent all damage that would be dealt by CARDNAME.
+6	3	trig:FlippedCoin
+6	3	other:mana "_"
+6	6	repl:CreateToken AddToken without ValidPlayer$ You
+6	5	other:Effect StaticAbilities$ "_" beside Triggers$
+6	1	other:move Hand->Battlefield
+6	5	other:global override RemoveCreatureTypes without RemoveCardTypes
+6	0	other:Activator$ "_"
+6	1	trig:ChangesController
+6	3	other:ChangesZoneAll Library->Graveyard
+6	6	other:CDA shape
+6	3	other:exile cost "_" outside a spell's own cost
+6	3	trig:SpellCopy
+6	0	other:imprints without an unconditional Cleanup ClearImprinted$ (g
+6	3	other:Counter RememberCountered$ shape
+6	4	repl:DamageDone doubler ValidSource "Card,Emblem"
+6	0	other:SVar NumInYard="_": TargetedPlayer$ with no target slot
+6	0	other:SVar NumInHand="_": TargetedPlayer$ with no target slot
+6	0	other:SVar NumInLib="_": TargetedPlayer$ with no target slot
+6	4	other:Effect replacement Duration$
+6	3	other:Play Valid$ "_"
+6	4	other:life cost PayLife<X> with SVar X "_"
+6	6	other:Token AtEOT "_"
+6	4	other:delayed upkeep trigger RememberObjects "_": a set of several
+6	4	prop:blockedThisTurn
+6	4	other:ChangeType$ move Hand->Library
+6	6	other:mana ability with a forage / exile-from-graveyard cost
+6	4	repl:GainLife replacement
+6	0	other:ChoosePlayer Choices$ "_" without RememberChosen$ True
+5	5	other:flashback cost "_": flashback cost parts other than one sacr
+5	5	param:Pump.CanBlockAmount
+5	4	other:Clone unread params [ChoiceZone]
+5	2	other:ClassBand on a ReduceCost static
+5	4	other:suspend "_"
+5	1	param:Destroy.RememberTargets
+5	4	other:RepeatEach body TokenAttacking$ "_"
+5	2	other:CantAttack Target$ "_"
+5	4	prop:ControlledBy TargetedController
+5	0	cost:ExileCtrlOrGrave
+5	5	other:ChangeText Defined$ "_"
+5	2	other:DamageSource$ to TargetControllerN
+5	4	param:ImmediateTrigger.RememberObjects
+5	0	param:DamageAll.ReplaceDyingDefined
+5	3	other:SacrificeAll Defined$ DelayTriggerRememberedLKI outside a de
+5	0	count:TimesKicked
+5	4	other:sacrifice cost "_" outside a spell's or activated ability's 
+5	0	count:TimesMutated
+5	1	other:ValidPlayer "_"
+5	1	other:Activation "_" outside a mana ability
+5	2	param:Dig.Attacking
+5	1	param:ChangeZone.FaceDown
+5	2	other:Play Amount "_"
+5	5	kw:Toxic
+5	4	kw:Crew
+5	5	other:Cycled ValidCard "_" TriggerZones N
+5	5	other:AddTrigger "_": more than one trigger
+5	0	count:Result
+5	5	other:Clone template: need exactly one of ValidTgts$, Defined$, Ch
+5	0	other:Defined$ "_" outside a RepeatEach body
+5	5	other:ChooseSource Effect replacement param Prevent
+5	4	other:RepeatEach body RememberDiscarded$ "_"
+5	5	other:cost with two counted parts
+5	1	other:trigger {X} cost beside other cost parts
+5	1	other:Hidden$ without ChangeType$
+5	1	other:Defined$ "_" on a multi-target slot
+5	0	trig:Exerted
+5	5	other:filter "_": "_": two colours in one clause
+5	4	other:RepeatEach body LifeAmount$ "_"
+5	3	param:AddTurn.ValidTgts
+5	4	kw:Skulk
+5	3	other:DB$ Mana Defined$
+5	5	param:static.AddTrigger
+5	3	other:ReduceCost$ value reads a target
+5	5	prop:stickered
+5	4	other:SVar X="_": value head Enchanted$
+5	2	other:SVar Y="_": Remembered$CardToughness
+5	5	other:DB$ Mana in an activated ability
+5	3	param:static.Announce
+5	2	other:Investigate Defined$ "_"
+5	3	other:public pick Chooser$ "_"
+5	4	other:TargetsWithDefinedController$ TriggeredCardController outsid
+5	5	other:Animate staticAbilities$ "_"
+5	0	other:ChangeZone Imprint$ on a Return move
+5	0	param:ChooseCard.Reveal
+5	1	param:Token.ValidTgts
+5	3	trig:Crewed
+5	2	other:graveyard choice without an owner
+5	4	other:Effect static mode CantBeCast
+5	3	param:ChooseCard.AtRandom
+5	2	other:Effect StaticAbilities$ "_" beside Triggers$ (gorge implemen
+5	2	api:BecomesBlocked
+5	3	other:Effect static mode CantAttack without RememberObjects$
+5	0	other:Destroy RememberLKI$ beside a remembered characteristic read
+5	4	other:CheckSVar$ on a mana ability
+5	1	other:CantBeActivated off the battlefield
+5	0	kw:Undaunted
+5	0	other:SVar __kwUndauntedN="_": not a value expression
+5	4	other:delayed trigger Phase/MainN,MainN
+5	3	other:Remembered$CardPower over a set of more than one (the writer
+5	4	prop:ControlledBy TriggeredPlayer
+5	1	other:a Remembered read beside a Pump RememberObjects$ ThisTargete
+5	0	other:optional ChooseCard with ValidTgts$
+5	4	param:Charm.Random
+5	5	other:OptionalCost static with Activator$
+5	2	prop:OwnedBy TriggeredTarget
+5	3	other:DamageDoneOnce body reads TriggeredSources
+5	0	other:ChooseSource source "_"
+5	2	other:OptionalCost cost "_"
+5	5	other:Attach Object "_"
+5	4	other:self-enters IsPresent$ "_" reads EnchantedBy before the Aura
+5	3	repl:Moved to Graveyard shape
+5	5	kw:Epic
+5	4	other:evoke cost "_"
+5	0	param:ChangeZone.ForgetOtherTargets
+5	5	count:CountersAddedThisTurn
+5	5	other:Protection Defined$
+5	3	param:DealDamage.ExcessDamage
+5	2	other:CopyPermanent AtEOT "_"
+5	5	other:Activation "_"
+5	5	other:ChangeZone AtEOT beside Defined$ "_" Destination$ "_"
+5	4	prop:dealtDamageToYouThisTurn
+5	1	param:ChangeZoneAll.ForgetChanged
+5	4	other:ChangeType$ move Graveyard->Library
+5	0	other:Reveal RevealDefined$ "_"
+5	0	param:trigger.ForReveal
+5	2	other:RepeatEach body ChangeType$ "_"
+5	4	other:Counter Defined$ ValidStack "_"
+5	4	count:Landfall
+5	0	param:DigUntil.ImprintRevealed
+5	3	other:Effect trigger RememberObjects$ Targeted over a pair: the ch
+5	0	other:ChangeZone Defined$ TopOfLibrary Library->Exile with ExileFa
+5	1	repl:LoseMana replacement
+5	3	param:Effect.ReplacementEffects
+5	0	api:AssignGroup
+5	2	param:Goad.Duration
+5	5	cost:Reveal
+5	5	other:ChangeTargets TargetType "_"
+5	0	api:BlankLine
+5	4	other:Optional$ on a Hand discard of a non-You player (each-player
+5	5	other:flashback cost "_"
+4	4	other:IsPresentN$ "_"
+4	1	trig:AbilityTriggered
+4	2	other:Transformed$ of TriggeredNew
+4	2	other:Origin$ Battlefield,Stack ValidTgts$ "_"
+4	4	other:mana ability with an energy cost
+4	3	other:TargetsForEachPlayer$ shape "_": target filter is not oppone
+4	4	other:granted mana ability whose cost is not {T}
+4	2	other:PresentZone "_" of a source-relative filter
+4	3	other:RemoveLandTypes$ beside another type change or a lose-all
+4	2	other:SharedRestrictions "_"
+4	3	other:SVar X="_": PlayerCountPropertyYou$OpponentsAttackedThisComb
+4	3	count:ValidGraveyard
+4	0	api:ChooseDirection
+4	4	param:static.AddColor
+4	3	other:AddsCounters$ mana rider: gorge's planner defers the source 
+4	3	other:put-card-to-library cost "_"
+4	3	other:GenericChoice without SetChosenMode$ True
+4	0	param:Cleanup.ForgetDefined
+4	1	other:Defined$ Targeted over N target slots outside an effect's su
+4	2	other:Effect static unread [ReplacementEffects]
+4	4	other:Activator$ Player with an activation condition or a target
+4	4	other:Effect static mode CantGainLife without RememberObjects$
+4	3	param:DigUntil.GainControl
+4	1	prop:inRealZoneBattlefield
+4	3	prop:AttachedTo Creature.EnchantedBy
+4	0	other:madness cost "_"
+4	1	prop:withMorph
+4	4	api:Balance
+4	2	count:ValidHand
+4	3	trig:Countered
+4	1	repl:RollDice replacement
+4	4	prop:SharesColorWith MostProminentColor
+4	2	other:CopySpellAbility Defined$ Parent Optional$
+4	0	other:AttackerBlockedByCreature trigger body reads Remembered
+4	4	other:Defined$ "_" outside a Blocks trigger over the attached crea
+4	4	other:Improvise with {X}
+4	4	other:resolution mana cost {NC}
+4	0	other:Play ImprintPlayed
+4	4	other:Effect CantBlockBy RememberObjects "_"
+4	3	param:ExchangeControl.TargetsWithSameCardType
+4	1	other:SpellAbilityCast ValidCard$ "_"
+4	2	other:MoveCounter Source "_"
+4	4	other:ReduceCost AffectedZone "_"
+4	2	prop:DefendingPlayerCtrl
+4	4	other:Fight TargetMin$ "_" TargetMax$ "_": only Defined$ with N/N 
+4	2	other:TwoPiles DefinedCards$ "_"
+4	2	param:ChangeZone.AITgtOwnCards
+4	4	prop:withHorsemanship
+4	3	other:SkipReorder "_" beside a remainder placement
+4	4	kw:Cumulative upkeep
+4	3	other:RepeatEach body NumDmg$ "_"
+4	2	other:AddPhase ExtraPhaseDelayedTrigger$
+4	4	count:ValidAll
+4	0	api:PermanentCreature
+4	4	prop:sameName
+4	4	other:TokenAttacking$ True in a trigger other than the controller'
+4	4	other:ThisDefinedAndTgts$ Self on a Exile move
+4	3	count:NumDamageThisTurn
+4	2	param:trigger.ValidCard
+4	1	count:TotalDamageDoneByThisTurn
+4	1	other:RememberDamaged$ with a remembered player observed
+4	3	kw:HIDDEN CARDNAME can't attack.
+4	4	other:MayPlayDontGrantZonePermissions$ "_" on zone "_"
+4	3	other:exile cost ExileFromGrave<X/..> in "_" beside no printed {X}
+4	3	other:Animate staticAbilities$ "_" shape
+4	2	param:CopySpellAbility.RememberNewCard
+4	1	prop:ControlledBy ParentTarget
+4	0	param:PutCounter.MaxFromEffect
+4	0	param:PutCounter.UpTo
+4	4	other:mana ability cost SacSelf+Mana: the kernel's mana walk canno
+4	4	other:ThisDefinedAndTgts$ Self on a Bounce move
+4	3	other:replacement unread params [IsPresent]
+4	4	other:TokenAttacking$ "_"
+4	3	other:Counter TargetType "_"
+4	1	prop:TriggeredCards
+4	1	other:ETB replacement ChangeZone shape
+4	3	prop:Transformed
+4	1	trig:Shuffled
+4	1	param:PutCounter.Optional
+4	2	param:FlipCoin.FlipUntilYouLose
+4	3	other:delayed trigger Phase/Cleanup
+4	2	param:DealDamage.TargetingPlayer
+4	1	repl:Transform replacement
+4	3	kw:Afflict
+4	3	kw:Ward
+4	4	other:ChooseSource Effect replacement param ActiveZones
+4	2	other:Effect CantBeActivated shape
+4	4	other:ETB ChooseCard beside another ETB replacement part
+4	2	param:Regenerate.RegenerationAbility
+4	1	param:Effect.ActivationPhases
+4	1	prop:withoutSuspend
+4	3	other:RaiseCost "_"
+4	3	other:Clone AddTypes$ on the battlefield
+4	2	other:ChangeZone Defined$ "_" to a library: the CR N.N arrangement
+4	4	prop:!kicked
+4	4	param:Sacrifice.ChangeNum
+4	4	other:delayed trigger ChangesZone RememberObjects "_"
+4	0	other:RememberTargets on a Graveyard->Exile move
+4	4	other:CopyPermanent DefinedName$ "_": the named card is not a land
+4	3	other:delayed trigger RememberedLKI over a multi-object target slo
+4	0	param:ChooseCard.ForgetChosen
+4	3	repl:Moved to 
+4	4	other:charm count CharmNum$ "_" with MinCharmNum$ "_"
+4	4	prop:OwnedBy TargetedPlayer
+4	3	other:ReduceCost ValidSpell "_"
+4	0	param:static.GainsValidAbilities
+4	3	other:AffectedZone "_" without MayPlay (Unearth grant not modelled
+4	4	count:Adamant
+4	3	other:ChangeZone GainControl$ "_"
+4	0	other:SVar X="_": Imprinted$CardManaCost
+4	0	prop:prowled
+4	2	stat:AttackRequirement
+4	2	prop:TopLibrary
+4	0	other:ChoiceZone "_"
+4	4	param:trigger.TriggerController
+4	3	trig:Clashed
+4	2	kw:CARDNAME can be your commander.
+4	0	prop:ChosenCardStrict
+4	1	param:Dig.ExileWithCounters
+4	4	other:counter compare N
+4	0	prop:sharesNameWith Imprinted
+4	4	other:GameLoss replacement shape
+4	0	other:ChangesZone Exile->Any
+4	1	cost:Exile
+4	1	param:ChangeZoneAll.RememberLKI
+4	0	other:Cleanup ClearChosenColor$ outside a chosen-colour grant
+4	0	other:ChooseColor outside an as-enters replacement: a Mana ability
+4	3	other:TriggersWhenSpent$ on a source that is not legendary
+4	4	other:SVar X="_": value modifier "_"
+4	2	other:Reveal Defined$ "_"
+4	1	other:RepeatEach body ConditionCheckSVar$ "_"
+4	1	other:AddPhase AfterPhase$ "_"
+4	3	stat:CantAttach
+4	2	prop:ControlledBy TargetedPlayer
+4	2	repl:BeginTurn replacement
+4	4	other:target count X..X outside a spell
+4	4	prop:attackedLastTurn
+4	1	other:delayed trigger Phase/Upkeep->
+4	3	other:Attach Choices$ with Defined$ "_"
+4	1	count:ManaPool
+4	1	param:PumpAll.ActivationPhases
+4	3	count:YourLifeTotal
+4	4	other:mana ability cost T+SacSelf+Mana: the kernel's mana walk can
+4	1	param:static.ValidAfterStack
+4	4	other:granted ability "_"
+4	3	other:Effect ForgetOnCast$ beside a static other than one CastWith
+4	4	other:counter cost "_" outside an unless cost
+4	4	other:target count X..X
+4	3	kw:Horsemanship
+4	2	cost:PutCardToLibFromHand
+4	4	other:Counter TargetValidTargeting "_" has no inRealZoneBattlefiel
+4	3	other:Effect continuous shape
+4	2	other:RepeatEach DefinedCards$ Targeted over N chain target slots
+4	4	other:ChangeZoneAll UseAllOriginZones$ without Shuffle$ True
+4	4	other:SVar X="_": Sacrificed$CardManaCost
+4	0	other:ChooseType InvalidTypes$
+4	2	other:RepeatEach body ValidCards$ "_"
+4	3	other:Destroy RememberDestroyed$ with TargetMax$ "_"
+4	1	other:Effect static mode CantAttack
+4	2	api:DayTime
+4	1	prop:DoubleFaced
+4	2	other:Play WithTotalCMC
+4	0	other:OptionalCost on a permanent spell
+4	4	other:Effect static Continuous Affected$ "_"
+4	3	other:TriggerZones$ Graveyard over Mode$ DamageDoneOnce: the kerne
+4	0	other:delayed trigger ChangesController/
+4	3	kw:CantSearchLibrary
+4	3	other:GenericChoice branch "_"
+4	2	param:TapAll.RememberTapped
+4	3	other:CantBeCast Card.NamedCard Caster "_"
+4	3	other:SVar X="_": value head Discarded$CardManaCost
+4	3	other:ETB replacement api StoreSVar
+4	4	count:TotalOppPoisonCounters
+4	1	other:Defined$ "_" outside a Phase/Drawn/LifeGained/LifeLost/Spell
+4	0	param:DigUntil.NoMoveRevealed
+4	4	other:shuffled move of several targets with TargetMin$ N TargetMax
+4	1	other:cost "_": a forage / exile part beside another counted part
+3	2	other:Clone CloneTarget$ Valid "_" without NotDefinedTargeted
+3	0	other:Dig Imprint$ read by the script
+3	2	other:Effect static mode RaiseCost without RememberObjects$
+3	2	trig:ExcessDamage
+3	2	repl:AddCounter ValidPlayer shape
+3	0	param:Destroy.Activator
+3	3	other:MoveCounter ValidSource$
+3	1	other:RemoveType "_"
+3	0	param:CopyPermanent.AddSVars
+3	0	param:CopyPermanent.AddTriggers
+3	1	prop:withHexproof
+3	0	other:hand move with counters/override
+3	0	param:PutCounter.Placer
+3	3	other:SetColor "_"
+3	3	prop:TopGraveyard
+3	3	other:ETB copy chained rider without RememberCloneOrigin$
+3	1	prop:sharesCardTypeWith TriggeredCard
+3	1	stat:CantPayLife
+3	2	param:Token.ActivationPhases
+3	2	other:CopyPermanent SetPower "_" SetToughness "_"
+3	0	count:ValidCommand
+3	0	other:TurnFaceUp replacement shape
+3	1	other:PutCounter without CounterType
+3	0	prop:wasCastFromYourGraveyardByYou
+3	0	other:delayed end-of-combat trigger RememberObjects "_": a set of 
+3	0	prop:sharesNameWith Remembered.ExiledWithSource
+3	0	other:ETB replacement api ChooseEvenOdd
+3	0	param:Destroy.ActivationPhases
+3	0	param:Destroy.CheckSVar
+3	0	param:PeekAndReveal.NoPeek
+3	1	other:RememberDamaged$ on a DealDamageDivided
+3	3	other:Effect static mode CantTarget without RememberObjects$
+3	0	count:Madness
+3	1	other:PutCounter Choices$ with ValidTgts$
+3	0	cost:Mana
+3	0	param:RollDice.Defined
+3	0	api:Block
+3	1	other:RemoveFromCombat UnblockCreaturesBlockedOnlyBy$
+3	2	other:charm count CharmNum$ "_"
+3	3	other:Discard UnlessType$ shape
+3	0	param:CopySpellAbility.ChooseOnlyOne
+3	0	other:ChangesZone Stack->Graveyard
+3	3	cost:untapYType
+3	3	other:AB$ Mana with a target: gorge resolves it on the stack and a
+3	3	kw:Gravestorm
+3	1	prop:!TriggeredTarget
+3	3	count:EachSpentToCast
+3	3	param:Destroy.TargetingPlayer
+3	2	count:CountersRemovedThisTurn
+3	3	count:CardNumColors
+3	3	other:SVar X="_": filter "_": unknown filter head "_"
+3	3	count:DifferentCounterKinds
+3	3	repl:DamageDone prevent-and-remove-counter body
+3	3	other:kicked target range shape
+3	2	other:SVar X="_": PlayerCountRegisteredOpponents$HighestLifeLostTh
+3	3	param:Attach.AlternateCost
+3	3	other:miracle cost "_"
+3	3	other:SVar X="_": value head Discarded$Amount
+3	3	other:instr N SkipIf: mana value compare N against a value
+3	1	stat:CantCrew
+3	3	prop:AttachedTo Creature.EquippedBy
+3	3	param:DealDamage.Radiance
+3	3	other:Effect static mode MustBlock without RememberObjects$
+3	3	other:Effect TapsForMana trigger until end of turn: gorge defers t
+3	3	param:Sacrifice.Destroy
+3	1	prop:sharesNameWith YourGraveyard
+3	2	param:PutCounter.CounterNumPerDefined
+3	3	trig:Exiled
+3	0	other:Effect CantRegenerate ParentTarget without the previous Deal
+3	0	stat:BlockRestrict
+3	3	count:ScryNum
+3	1	prop:ThisTurnEnteredFrom_Graveyard
+3	2	other:Clone SetPower$ on the battlefield
+3	3	other:UnlessDefender$ "_"
+3	1	prop:!wasCastFromYourHandByYou
+3	3	other:ETB copy NewName$
+3	0	param:ChangeZone.CheckSVar
+3	3	other:PumpAll Duration$ "_"
+3	1	param:Effect.Name
+3	3	other:mana ability cost T+RemoveCtr: the kernel's mana walk cannot
+3	2	other:exile pick with counters/override
+3	2	prop:withFlash
+3	3	other:resolution RemoveAnyCounter cost shape
+3	3	other:LibraryPositionN N of a non-constant or reordered window
+3	1	stat:CantBeCopied
+3	3	count:MostCardName
+3	3	other:PayEnergy<X> outside an unless cost
+3	3	other:CDA SetColor "_"
+3	2	param:ChangeZone.SameNameAsEach
+3	3	stat:MustTarget
+3	1	trig:Destroyed
+3	0	other:ChooseCard ValidTgts$ "_" with TargetMin$
+3	3	other:SVar X="_": PlayerCountOpponents$HasPropertywasDealtNonComba
+3	0	other:discard mode Defined of a non-You discarder
+3	3	kw:Escape
+3	2	other:ChooseSource Effect condition
+3	3	other:DamageAll ValidTarget "_"
+3	3	other:Effect static mode CantBlock without RememberObjects$
+3	2	other:resolution exile-from-graveyard cost of the source
+3	1	other:spell waterbend "_": a variable amount is not modelled
+3	3	other:hand move ChangeNum$ HandSizeOf(n=N,You)
+3	3	param:FlipCoin.Defined
+3	1	other:SVar NoMonarch="_": PlayerCountPlayers$HasPropertyisMonarch
+3	2	other:N mana abilities: mana ability N (cost none, produces C) is 
+3	0	param:CopySpellAbility.Optional
+3	1	other:OptionalDecider "_"
+3	1	param:ExchangeControl.TargetsWithSharedCardType
+3	3	other:CantBeCast NumLimitEachTurn with ValidCard "_"
+3	3	other:static grants N abilities
+3	1	other:ReduceCost Color$ with a non-literal Amount$
+3	1	other:RaiseCost "_" (cost part)
+3	1	other:Destroy RememberLKI$ with TargetMax$ "_"
+3	2	prop:sharesCreatureTypeWith Sacrificed
+3	1	other:DamageDone DamageAmount$ "_" on a line that reads no recipie
+3	2	other:ETB copy replacement shape
+3	3	cost:DefinedCost_Self
+3	2	prop:EnchantedControllerCtrl
+3	1	other:Drawn ValidCard "_" ValidPlayer "_"
+3	0	param:x.AddsKeywords
+3	0	param:x.AddsKeywordsValid
+3	2	other:Dig RememberRevealed$ over a window that is not revealed
+3	0	count:Presence
+3	0	param:RevealHand.RememberTargets
+3	3	prop:leastPower
+3	3	param:Scry.Optional
+3	3	other:ReduceCost Color$ with IgnoreGeneric$
+3	2	other:SetState Defined$ "_"
+3	3	prop:Kicked
+3	0	other:ChooseType Basic Land without a Types$ ChosenType Animate
+3	1	other:PutCounter kind choice on the remembered set
+3	2	other:Effect static mode CantBlock
+3	3	other:Counter TargetType "_" ValidTgts "_"
+3	1	other:ChangeTargets ConditionTargetValidTargeting$: gorge skips th
+3	0	other:reveal-chosen cost "_": not a chosen creature type
+3	1	other:ChangeType$ move Exile->Hand
+3	3	kw:Undying
+3	1	other:MaxSpeed granted ability "_" is not a plain activated abilit
+3	0	other:SVar NumInHand="_": value head PlayerCountRememberedControll
+3	0	other:SVar NumInLib="_": value head PlayerCountRememberedControlle
+3	0	trig:Vote
+3	1	param:PutCounter.TargetingPlayer
+3	3	api:ExchangeLifeVariant
+3	3	other:CantPreventDamage ValidSource$ "_"
+3	1	param:DealDamage.TargetsAtRandom
+3	0	api:ChooseEvenOdd
+3	0	other:MayPlayPlayer$ "_"
+3	2	other:RepeatEach body Chooser$ "_"
+3	3	other:N mana abilities: mana ability N (cost none, produces U) is 
+3	0	count:ChosenSize
+3	3	prop:blockingRemembered
+3	2	other:buyback cost "_"
+3	3	prop:TriggeredSource
+3	2	other:Effect static mode CantAttackUnless without RememberObjects$
+3	0	param:Effect.ImprintOnHost
+3	1	other:RepeatEach body RememberTokens$ "_"
+3	2	other:CantBeCast ValidCard "_"
+3	3	param:static.AdjustLandPlays
+3	3	kw:Prevent all combat damage that would be dealt to and dealt by CARDNAME.
+3	0	other:RepeatEach imprint ChooseCard Choices$ "_"
+3	0	other:assimilate not of a graveyard target
+3	2	stat:IgnoreHexproof
+3	2	trig:Connives
+3	3	param:static.RaiseMaxHandSize
+3	3	other:mana ability cost T+Sac: the kernel's mana walk cannot activ
+3	2	other:ChooseNumber Secretly$: the secret election is not modelled
+3	2	other:exile-self cost beside another non-mana part
+3	1	param:PutCounter.RememberTargets
+3	2	other:AffectedZone "_" without MayPlay (Encore grant not modelled)
+3	1	other:CantGainLife ValidPlayer "_"
+3	2	param:Animate.LeaveBattlefield
+3	0	other:RememberLKI$ on a move of two or more targets whose chain re
+3	2	prop:ControlledBy TriggeredTarget
+3	3	other:Buyback beside another cast route or additional cost
+3	3	repl:dies-to-exile rider ImmediateTrigger
+3	2	cost:RemoveAnyCounter
+3	3	other:ControlledBy TriggeredDefendingPlayer outside an Attacks tri
+3	2	other:UntapType$ with Defined$
+3	3	other:CastWithFlash self grant IsPresent "_"
+3	0	other:delayed trigger RememberedLKI over a ChangeZoneAll sweep: th
+3	3	api:BidLife
+3	2	other:Effect untap denial "_" (Affected$ Creature.RememberedPlayer
+3	2	other:Effect MustAttack player scope "_"
+3	3	other:SVar X="_": value head Tapped$
+3	3	kw:CARDNAME can't block.
+3	0	param:GainControl.Choices
+3	0	param:GainControl.Chooser
+3	3	cost:GainLife
+3	3	other:target count N..CastBattlefield
+3	2	cost:Sac
+3	2	other:MaxTotalTargetCMC$ outside an optional graveyard slot
+3	3	other:charm ChoiceRestriction$ on an activated ability: gorge maps
+3	0	param:static.GainsAbilitiesOfDefined
+3	0	param:CopyPermanent.AtEOT
+3	3	other:multi-pick charm mode target bounds N..X
+3	2	other:SVar X="_": value head PlayerCountDefinedRegistered$
+3	3	other:hand move of N cards shuffled into the library
+3	3	param:static.DrawLimit
+3	2	other:global layer-N override with condition N
+3	1	trig:DungeonCompleted
+3	1	other:RepeatEach body RememberChosen$ "_"
+3	2	other:RepeatEach StartingWith "_"
+3	3	other:PutCounter ExistingCounter with EachExistingCounter$
+3	1	other:CopyPermanent Choices$ beside Defined$
+3	3	trig:MilledAll
+3	3	trig:TokenCreated
+3	2	other:RepeatEach body RememberChanged$ "_"
+3	2	param:ChangeZone.ForgetOtherRemembered
+3	1	other:RepeatEach body ControlledByPlayer$ "_"
+3	1	trig:AbilityResolves
+3	2	other:CantBeActivated without ValidCard$
+3	1	repl:Attached replacement
+3	3	other:Effect static mode CantPlayLand
+3	3	prop:withDisturb
+3	3	other:LibraryPosition "_"
+3	2	other:Play ManaConversion
+3	3	other:FlipCoin NoCall$ True with Amount$ "_"
+3	2	param:Pump.Radiance
+3	2	prop:milledThisTurn
+3	1	prop:hasNonManaActivatedAbility
+3	2	prop:sharesCardTypeWith RememberedLKI
+3	2	other:Effect trigger RememberObjects$ Remembered: not a permanent 
+3	2	other:Continuous without Affected
+3	1	other:loyalty mana choice amount or restriction
+3	3	other:delayed SpellCast body reads "_"
+3	3	other:EachDamage EachToItself$
+3	0	other:GainControl AddKWs "_" with LoseControl "_"
+3	3	count:UrzaLands
+2	0	other:TwoPiles DefinedPiles$
+2	2	other:CopySpellAbility of an ability whose ValidTgts$ "_" reads mo
+2	1	other:ReduceCost Activator "_"
+2	2	other:ChangeZone Optional$ on a Target Graveyard->Battlefield move
+2	0	other:random graveyard exile outside the DefinedPlayer$ You, Chang
+2	1	other:TriggerZones$ Graveyard over Mode$ DamageDone: the kernel's 
+2	1	count:LastStateBattlefield
+2	0	param:Destroy.ForgetOtherTargets
+2	2	param:ChangeZone.TargetsWithDifferentCMC
+2	0	other:PutCounterAll Placer$
+2	0	prop:AttachedTo Creature.IsRemembered
+2	2	other:AddTurn rider DBDelTrig: Phase$ "_"
+2	0	param:FlipCoin.ActivationAfterBlockers
+2	0	param:FlipCoin.ActivationPhases
+2	0	other:SVar X="_": Remembered$GreatestCardManaCost
+2	2	param:ChangeZone.LockInText
+2	0	param:Dig.SetChosenPlayer
+2	2	repl:DrawCards replacement
+2	2	other:SVar X="_": TriggerObjectsAttackers$GreatestCardPower outsid
+2	0	prop:foretold
+2	0	other:SVar X="_": ExiledWith$CardPower
+2	0	other:RemoveCounter Choices$ with ChoiceZone$
+2	0	other:SVar X="_": value head TriggerObjectsCards$
+2	2	prop:withDoctor's companion
+2	2	prop:NotDefinedOriginalHost
+2	0	types=NxNf}
+2	2	other:continuous static affecting players N (only "_" is read)
+2	0	other:exile pick with Optional$
+2	2	param:ChangeZone.AnnounceType
+2	1	other:SVar X="_": PlayerCountPlayers$HighestLifeTotal
+2	0	other:SetChosenMode GenericChoice Defined$ "_"
+2	2	kw:Flashback
+2	1	other:Animate type "_"
+2	2	kw:Outlast
+2	0	param:Tap.TargetingPlayer
+2	0	param:Tap.TargetingPlayerControls
+2	2	other:exert cost "_"
+2	1	other:Taps trigger on a card with a mana ability whose body is not
+2	2	other:Attach Object "_": target slot N takes several objects
+2	2	other:ChangeText of words "_" "_"
+2	1	other:Effect DamageDone doubling ValidSource$ "_"
+2	1	prop:Above
+2	2	other:DB$ Mana RestrictValid$ over Produced$ Any
+2	2	other:Defined$ "_" outside an Attacks or Blocks trigger
+2	2	other:delayed upkeep trigger in a mana ability
+2	0	other:TwoPiles Separator$ "_", chooser "_"
+2	0	other:SVar Y="_": value head SVar$EvenResults names no SVar
+2	2	other:DigUntil RememberRevealed$ with the found card entering the 
+2	2	other:SVar X="_": value head TriggerRemembered$Amount outside a re
+2	2	prop:withCascade
+2	1	other:Clone AddTriggers$ on the battlefield
+2	0	other:ChooseColor outside an as-enters replacement: an Effect othe
+2	1	other:SetState RememberChanged$
+2	1	param:Mana.CombatMana
+2	1	other:RepeatEach body EffectOwner$ "_"
+2	1	param:static.MayPlayWithFlash
+2	0	param:Pump.Origin
+2	2	other:PumpAll KW$ "_": a keyword the kernel prepass reads only off
+2	2	param:Pump.ThisDefinedAndTgts
+2	1	cost:ExileFromGrave
+2	0	prop:sharesNameWith NonToken
+2	0	param:trigger.CanTargetOtherCondition
+2	2	prop:attacking ChosenPlayer
+2	0	param:Pump.ActivationFirstCombat
+2	1	other:Play ReplaceGraveyardValid
+2	2	other:SetLife of Remembered
+2	2	other:Activations ValidSA "_" (only Activated.Exhaust is lowered)
+2	0	other:Dig Imprint$ on a permanent outside a take-all to exile
+2	2	param:ChangeZone.AttachedToPlayer
+2	0	other:Clone Choices$ "_"
+2	2	other:multi-pick charm mode target bounds N..N
+2	1	param:static.CheckSecondSVar
+2	1	kw:Bloodthirst
+2	2	other:activation condition Value(opN,AttackedThisTurn,N) on a grav
+2	1	other:TargetsWithDefinedController$ TriggeredDefendingPlayer: not 
+2	2	other:ChangeZone DefinedPlayer$ Player.Opponent
+2	2	other:ConditionDefined$ Sacrificed with a filter that reads state,
+2	1	param:ChangeZone.AIMinTgts
+2	0	other:ETB NameCard beside another ETB replacement part
+2	2	stat:CantTransform
+2	2	param:PutCounter.RemovePhase
+2	2	other:AnimateAll Abilities$ "_": ThrowPunch is not a mana ability
+2	2	prop:canProduceManaColor Colorless
+2	2	other:SVar X="_": TriggeredCard$CardNumColors outside a SpellCast 
+2	1	param:CopyPermanent.AddAbilities
+2	1	other:SVar ClueResearch="_": PlayerCountPropertyYou$SacrificedThis
+2	2	other:named clause beside a predicate (Pred N)
+2	2	other:TwoPiles pile actions
+2	1	param:Token.TokenBlocking
+2	2	prop:Damaged
+2	2	prop:withoutHorsemanship
+2	0	param:ChangeZone.Amount
+2	0	param:ChangeZone.ChoiceZone
+2	1	prop:withFreerunning
+2	2	other:Clone ExcludeChosen$ on the battlefield
+2	2	repl:Mill replacement
+2	2	other:resolution return cost of N
+2	1	param:DealDamage.AlternateCost
+2	2	other:discard mode Random of an each-player Defined$
+2	0	kw:Fortify
+2	0	prop:FortifiedBy
+2	2	other:N mana abilities: mana ability N (cost {N}, produces B) is n
+2	2	other:SharedKeywordsZone "_"
+2	1	other:random graveyard move without DefinedPlayer$ over a pool tha
+2	0	trig:Saddled
+2	1	other:divided damage over an Announce$ X total: gorge announces no
+2	2	other:GainControl NewController "_"
+2	2	other:charm with more than N modes
+2	0	prop:withFlanking
+2	1	api:GameDrawn
+2	0	prop:sharesCardTypeWith Imprinted.ExiledWithSource
+2	1	other:DamageAll DamageSource$ beside ValidPlayers
+2	0	count:ValidLibrary
+2	0	other:DigUntil RememberFound$ beside RememberRevealed$
+2	1	prop:TriggeredCard
+2	0	param:Pump.RememberPumped
+2	0	other:N mana abilities: mana ability N (cost none, produces BR) is
+2	2	prop:sharesNameWith ValidExile Card.ExiledWithSource
+2	1	other:ChangeZone Optional$ with Chooser$ on a known-origin move
+2	0	other:RememberTargets on a Graveyard->Battlefield move
+2	0	other:AddOrRemoveCounter TgtZone$ "_"
+2	0	other:N mana abilities: mana ability N (cost none, produces WU) is
+2	2	count:DomainActivePlayer
+2	2	other:escalate cost "_"
+2	1	kw:Exploit
+2	2	other:CopyPermanent AddStaticAbilities$ "_": only a copy's own equ
+2	0	other:ChooseFromDefined$ TriggeredCards Destination$ "_"
+2	0	other:multikicker on an {X} spell
+2	1	other:Transformed$ Defined$ Remembered without this chain's own se
+2	2	other:GainsAbilitiesOfZones$ "_"
+2	1	other:ExcessSVar with a DamageSource$
+2	2	prop:withKicker
+2	2	other:SVar X="_": TargetedPlayer$ValidGraveyard Creature.YouOwn
+2	2	other:twobrid with {X}
+2	1	other:Effect static mode CantLoseLife without RememberObjects$
+2	2	repl:Destroy replacement shape
+2	2	other:Effect static Continuous lowered to StackKw
+2	0	other:hand move ChangeNum$ HandSizeOf(TargetN)
+2	1	cost:ExileAnyGrave
+2	1	other:ChangesZone Library->Graveyard with an optional pay-cost bod
+2	1	other:SVar X="_": value head ChosenCard$
+2	2	param:ChangeZone.AlternateCost
+2	1	other:RaiseCost Activator "_"
+2	1	prop:AttachedTo Player.EnchantedBy
+2	0	other:DigUntil ImprintFound$ shape
+2	1	kw:Dethrone
+2	1	param:static.Relative
+2	1	trig:CounterTypeAddedAll
+2	2	other:ChooseColor outside an as-enters replacement: a RevealHand s
+2	2	other:Effect static unread [AtEOT]
+2	1	other:Always IsPresent$ "_" (threshold "_")
+2	2	prop:EnchantedBy Aura.Other
+2	0	other:Remembered$CardPower over a set of more than one (no remembe
+2	1	param:Pump.TargetingPlayer
+2	2	prop:DirectlyAbove
+2	2	prop:OwnedBy EnchantedController
+2	2	other:TriggerZones$ Graveyard over Mode$ LifeGained: the kernel's 
+2	0	other:sharesNameWith Targeted sweep beyond the battlefield
+2	0	param:Effect.CheckSVar
+2	2	other:Repeat RepeatOptional$ beside a RepeatCheckSVar$ or RepeatDe
+2	0	param:Sacrifice.ValidCard
+2	0	prop:TriggeredSources
+2	1	other:bestow cost "_"
+2	2	other:SVar Z="_": SVar$Y="_": Sacrificed$Amount
+2	0	other:RememberTargets read outside its own resolution
+2	2	other:Play TargetMin
+2	2	other:once-each-turn trigger on a granted or emblem ability
+2	1	param:Dig.RememberMovedToZone
+2	0	other:NameCard AtRandom$ "_"
+2	2	other:SVar X="_": PlayerCountPropertyYou$DamageThisTurn
+2	1	other:ActivatorThisTurnCast over ValidCard "_": a comparison other
+2	1	param:Untap.ActivationPhases
+2	1	other:SVar X="_": Targeted$CardCounters.ALL
+2	1	other:PutCounter Choices$ with a CounterType$ list
+2	1	other:SVar X="_": TargetedPlayer$CreaturesInPlay
+2	1	kw:Umbra armor
+2	1	param:CopySpellAbility.AddTypes
+2	1	other:Defined$ "_" outside a whenever-this-blocks trigger (Mode$ B
+2	1	other:Fuse with a SubAbility$ link's target: gorge's fused cast as
+2	2	kw:Prevent all damage that would be dealt to and dealt by CARDNAME.
+2	2	other:SetState Optional$
+2	2	count:ValidBattlefield
+2	0	param:Tap.AlwaysRemember
+2	0	count:OptionalGenericCostPaid
+2	1	other:ValidSAonCard "_" on SpellCast
+2	0	param:static.ManaConversion
+2	2	param:ImmediateTrigger.OptionalDecider
+2	2	other:CantTarget EffectZone$
+2	0	param:RevealHand.ImprintRevealed
+2	1	other:search onto the battlefield for N cards with a filter that m
+2	2	prop:dealtDamageToOppThisTurn
+2	2	other:ChangesZoneAll Any->Library
+2	2	other:N mana abilities: mana ability N (cost none, produces R) is 
+2	1	prop:ControllerControlsIsland
+2	2	other:N mana abilities: mana ability N (cost none, produces B) is 
+2	1	prop:attacking TriggeredAttackedTarget
+2	0	prop:withSuspend
+2	1	kw:Training
+2	2	other:SVar X="_": TargetedPlayer$CardsInGraveyard
+2	2	other:instr N SkipIf: player-only filter where an object filter is
+2	1	other:DisableTriggers ValidCard$ "_"
+2	1	repl:Scry replacement
+2	1	other:DestAltSVar$ "_" without MANDATORY (a destination choice)
+2	1	trig:LifeLostAll
+2	0	other:sacrifice cost "_" beside a self-sacrifice
+2	0	other:protection "_": filter "_": a Spell head outside a ReduceCos
+2	2	repl:DamageDone self prevention ValidSource "Creature.enchanted"
+2	0	other:Defined$ TargetedController with no target slot
+2	0	param:ChangeZone.Activator
+2	2	other:TriggerZones$ Graveyard over Mode$ Attacks: the kernel's wal
+2	2	param:Counter.Destination
+2	0	other:ChooseNumber Defined$ "_"
+2	0	repl:DamageDone ReplaceDamage Amount$ "PaidAmount"
+2	1	other:xmin cost "_" on a spell's Cost$: gorge folds no floor into 
+2	2	other:AddOrRemoveCounter RemoveConditionSVar$ "_" (the condition p
+2	0	param:ChangeZone.Foretold
+2	1	prop:ExiledByYou
+2	2	other:SVar Y="_": PlayerCountOpponents$HighestCardsDrawn
+2	2	other:RemoveCounter Choices$ with CounterType$ "_"
+2	2	other:SVar X="_": Sacrificed$Valid "_": only Card.<creature type>,
+2	0	param:Draw.Activator
+2	2	other:Proliferate Amount$ "_"
+2	0	param:DealDamage.AnnounceTitle
+2	0	other:Reveal NumCards$ X
+2	2	other:AddTrigger of mode AttackerBlockedByCreature
+2	1	other:TapsForMana reflected mana over ValidCard$ "_": not a land f
+2	2	other:MayPlay Library with RaiseCost$
+2	2	other:ChangesZone Exile->Battlefield: gorge reads the entering sou
+2	2	param:static.EffectZone
+2	2	other:Effect static mode ManaConvert without RememberObjects$
+2	1	kw:Melee
+2	1	other:delayed trigger ValidPlayer "_"
+2	2	other:ConditionActivationLimit$ outside a printed battlefield acti
+2	0	prop:ControlledBy ChoosingPlayer
+2	2	other:Effect stack-exile replacement body
+2	2	other:SVar X="_": TargetedPlayer$DamageThisTurn
+2	1	param:trigger.ValidSource
+2	2	other:AnimateAll Abilities$ "_": ABDamage is not a mana ability
+2	1	other:Effect static mode CantChangeLife without RememberObjects$
+2	1	other:flashback cost "_": exile cost "_" outside a spell's own cos
+2	2	other:SVar X="_": TargetedController$CardsInHand
+2	1	other:exile cost "_" outside an activated ability's or a spell's o
+2	0	other:Play SorcerySpeed
+2	1	other:SVar X="_": Remembered$CardToughness
+2	2	param:ChangeZone.LeaveBattlefield
+2	2	kw:Bushido
+2	2	other:ChangesZone Library->Graveyard of the card itself
+2	2	param:static.MustAttack
+2	1	other:Phases AllValid$ beside ValidTgts$
+2	1	prop:Time Lord
+2	0	prop:sharesCardTypeWith TriggeredCardLKICopy
+2	0	param:Effect.ValidTgts
+2	0	other:NameCard ChooseFromList$ "_"
+2	0	prop:AttachedTo Card.IsRemembered
+2	1	param:ExchangeControl.RememberExchanged
+2	0	param:ExchangeControl.TargetsWithSharedTypes
+2	2	other:Token TokenPower$ with TokenAttacking$
+2	1	other:optional ChooseCard from the library with AtRandom$
+2	0	other:ChangesZone Stack->Any
+2	0	param:trigger.APlayerHasMoreLifeThanEachOther
+2	0	other:RepeatEach RepeatCards$ "_" reads Remember
+2	2	prop:DiscardedThisTurn
+2	0	other:Effect DamageDone doubling ActiveZones$ "_"
+2	2	param:Pump.CanBlockAny
+2	1	other:MayPlay Library with ValidAfterStack$
+2	0	prop:blockedByValidThisTurn ParentTarget
+2	0	prop:blockedByRemembered
+2	0	param:Cleanup.ClearCoinFlips
+2	1	param:FlipCoin.Flipper
+2	0	param:Cleanup.ClearChosenType
+2	2	other:ChangeZoneAll Shuffle$ with LibraryPosition$
+2	1	other:public pick ValidTgts$ "_" DefinedPlayer$ "_"
+2	2	other:Effect DamageDoneOnce body reads TriggeredTargetLKICopy
+2	2	other:Attach Object "_" without ValidTgts$
+2	1	other:ChangesZone Graveyard->Battlefield with an optional pay-cost
+2	1	other:RepeatEach body NumCards$ "_"
+2	2	other:Token AttachedTo "_"
+2	0	repl:AddCounter putter shape
+2	2	other:life cost "_"
+2	2	other:OptionalDecider$ on a Draw by Defending
+2	2	other:RepeatEach body RememberPumped$ "_"
+2	2	other:mana ability cost T+other: the kernel's mana walk cannot act
+2	1	count:Foretold
+2	2	other:N mana abilities: mana ability N (cost none, produces G) is 
+2	1	param:Goad.RememberGoaded
+2	1	other:ChooseCard ValidTgts$ "_" with Defined$ "_"
+2	1	other:CantBlockUnless Cost$ "_": a non-mana, coloured or Phyrexian
+2	1	other:ETB replacement api Discard
+2	0	other:ChangesZoneAll Hand->Exile
+2	0	other:ChangesZoneAll without ValidCards
+2	0	trig:AttackerBlockedOnce
+2	2	other:LandPlayed IsPresent$
+2	2	other:SVar Y="_": value head Discarded$CardManaCost
+2	2	other:DB$ StoreSVar: api StoreSVar
+2	1	prop:CanEnchantEquippedBy
+2	0	other:SVar X="_": value head TriggeredPlayersTargets$
+2	0	other:DamageDoneOnce body reads TriggeredPlayersTargets$Amount
+2	2	other:instr N Destroy: ref TargetsN
+2	0	prop:attackersBandedWith
+2	0	param:PutCounter.RememberCostMana
+2	1	other:delayed beginning-of-combat trigger without ThisTurn$
+2	1	other:SVar X="_": value head TriggeredCardController$
+2	0	prop:CanBeEnchantedBy
+2	0	param:GainControl.Optional
+2	0	repl:DamageDone doubler ValidSource "Creature.EquippedBy"
+2	0	prop:numColorsEQN
+2	1	kw:Firebending
+2	2	other:Animate staticAbilities$ "_" sets no P/T
+2	2	other:SVar X="_": PlayerCountPlayers$LowestValidLibrary Card.YouOw
+2	1	other:Play ValidZone$ "_"
+2	2	repl:Draw replacement WinsGame (gorge never replaces an empty-library draw)
+2	1	prop:AllColors
+2	0	other:delayed trigger SpellAbilityCast/
+2	1	other:Defined$ "_" outside a dies trigger's own exile-and-evidence
+2	1	prop:withConvoke
+2	0	other:ChooseCard ValidTgts$ "_"
+2	1	other:RepeatEach body TokenAmount$ "_"
+2	1	other:mana restriction "_": Static.Foretelling special action
+2	0	other:CantBeActivated ValidSA "_"
+2	2	param:Pump.ValidAfterStack
+2	1	param:Dig.DestZone2Optional
+2	0	param:PutCounter.TgtZone
+2	0	param:CopyPermanent.PumpKeywords
+2	1	other:resolution ExileAnyGrave cost shape
+2	1	prop:ControlledBy Player.TriggeredTarget
+2	2	param:ChangeZone.NumCards
+2	2	other:Mandatory$ with an optional target (gorge re-asks a declined
+2	1	param:Fight.Optional
+2	1	other:filtered discard cost outside a battlefield activated abilit
+2	0	other:ChangeZone DefinedPlayer$ RememberedController
+2	0	other:RepeatEach imprint ChooseCard Defined$ "_"
+2	0	other:OptionalDecider$ on a Draw by EachPlayer
+2	2	other:keyword static whose Affected$ tests a keyword (layer-N self
+2	0	param:ChangeZoneAll.Hidden
+2	0	param:LoseLife.ForgetOtherTargets
+2	0	param:LoseLife.RememberTargets
+2	2	other:Defined$ "_" outside an opponent-source BecomesTarget watche
+2	1	other:Clone ChoiceZone$ on the battlefield
+2	0	trig:BecomesTargetOnce
+2	2	repl:DamageDone prevent-and-counters shape
+2	2	param:RepeatEach.ChangeZoneTable
+2	2	param:Pump.ValidCard
+2	2	count:MaxOppDamageThisTurn
+2	2	other:Clone TgtZone$ on the battlefield
+2	2	other:resolution SubCounter cost of kind "_"
+2	2	trig:MilledOnce
+2	1	prop:sharesNameWith
+2	0	param:ChooseType.Note
+2	0	param:static.IgnoreEffectCost
+2	0	param:static.ValidCard
+2	0	param:static.Affected
+2	2	other:Always CheckSVar$
+2	1	prop:AttachedTo You
+2	2	other:CopyPermanent RemoveCardTypes "_" RemoveSubTypes "_"
+2	1	other:counter cost "_" outside an activated ability's own cost
+2	1	other:return-self cost beside another non-mana part
+2	1	api:EndCombatPhase
+2	0	param:ChangeZone.ShuffleChangedPile
+2	2	other:xmin cost "_" beside no supported announced X
+2	1	stat:CountersRemain
+2	1	other:delayed trigger Phase/Declare Attackers
+2	1	other:CantPutCounter ValidPlayer "_" (player counters are not lowe
+2	0	param:Tap.ConditionPlayerContains
+2	0	param:Tap.ConditionPlayerDefined
+2	1	prop:attackingYouOrYourPW
+2	0	other:revealed/shuffled move
+2	1	other:RepeatEach cards ChangeZoneTable$ True body CopyPermanent (o
+2	1	param:CopyPermanent.NewName
+2	0	param:ChangeZone.FaceDownSetType
+2	1	prop:sharesNameWith Battlefield
+2	0	other:N mana abilities: mana ability N (cost none, produces RG) is
+2	2	other:Animate staticAbilities$ "_" beside a duration other than Pe
+2	1	other:ETB replacement api Mill
+2	1	param:ChangeZone.AnyNumber
+2	2	other:counter cost "_"
+2	1	other:Defined$ "_" with N target slots
+2	2	param:static.TopCardOfLibraryIs
+2	1	other:ExiledWith reader with a ExileUntilLeaves exile: gorge's exi
+2	0	other:CantAttack without ValidCard$
+2	2	other:ThisTargetedController unless payer outside a chained single
+2	0	other:ConditionManaNotSpent$ outside its own enters trigger's body
+2	2	other:ActivationLimit "_"
+2	0	other:SVar X="_": TriggeredSpellAbility$ outside a SpellCast trigg
+2	1	other:delayed SpellCast without ThisTurn$
+2	0	other:life cost PayLife<X> on a non-spell, non-activated ability
+2	2	other:ChangesZoneAll without Destination
+2	2	other:Defined$ "_" outside the remembered-persist enters/leaves pa
+2	1	param:ChangeZone.MaxTotalTargetPower
+2	1	other:ETB replacement api RollDice
+2	1	other:Animate Optional$ on a non-Self object
+2	1	count:LifeAmount
+2	1	cost:ExileFromStack
+2	1	other:Poison of TriggeredTgtCtrl
+2	1	other:ChangeType$ move Battlefield->Library
+2	0	count:Devotion
+2	0	kw:Rebound
+2	2	other:land-type grant AllNonBasicLandType (not expanded to the lan
+2	0	param:Pump.Activator
+2	2	other:SVar X="_": value head PlayerCountPropertywithAtLeastNMoreLa
+2	1	prop:withMutate
+2	0	other:Phases RememberAffected$
+2	0	prop:wasDealtExcessDamageThisTurn
+2	2	other:ETB replacement api SacrificeAll
+2	1	other:WithTotalCMC$ "_" is not a positive constant
+2	1	param:Protection.Choser
+2	2	param:Pump.PumpZone
+2	0	param:DigUntil.FoundLibraryPosition
+2	2	other:Clone CloneZone$ on the battlefield
+2	0	param:NameCard.ValidTgts
+2	1	other:replacement unread params [CheckSVar SVarCompare]
+2	2	other:delayed upkeep trigger ValidPlayer "_"
+2	2	other:ManaReflected Valid$ "_"
+2	1	other:ChangeZone Optional$ on a Chosen Library->Battlefield move
+2	1	prop:blockingEquipped
+2	1	other:delayed trigger RememberObjects "_": target slot N
+2	2	other:SVar X="_": PlayerCountOpponents$HasPropertywithMoreLandsTha
+2	1	param:RemoveCounter.Optional
+2	1	param:RemoveCounter.RememberAmount
+2	1	param:x.TriggersWhenSpent
+2	2	other:chain link excused by an unpaid kicked cost declares a copy 
+2	2	other:Effect static filter {types=NxN ChosenType} reads the effect
+2	0	param:DelayedTrigger.IsPresent
+2	0	param:DelayedTrigger.PresentZone
+2	2	param:ExchangeControl.TargetsWithRelatedProperty
+2	0	param:ChangeZone.ConditionLifeAmount
+2	0	param:ChangeZone.ConditionLifeTotal
+2	2	other:Token TokenPower$/TokenToughness$ with only one side
+2	2	param:ChangeZone.AttachAfter
+2	1	prop:!sharesCreatureTypeWith Valid Creature.YouCtrl
+2	0	prop:spectacle
+2	2	param:AddPhase.ConditionFirstCombat
+2	2	other:SVar X="_": PlayerCountPlayers$HasPropertyLostLifeThisTurn
+2	2	prop:surged
+2	1	other:hand move filter {types=NxNf} may admit an Aura
+2	0	other:UntapAll Defined$ "_"
+2	2	trig:BecomeRenowned
+2	1	other:ChangeZone Origin$ Sideboard to Library
+2	2	other:DiscardedAll FirstTime$
+2	1	other:library position N of Target from Battlefield
+2	0	param:Token.TokenColors
+2	0	param:Token.TokenTypes
+2	2	other:Effect static unread [MayPlayPlayer]
+2	0	other:N mana abilities: mana ability N (cost none, produces UB) is
+2	2	prop:hasKeywordEnchant:Creature
+2	2	other:N mana abilities: mana ability N (cost none, produces W) is 
+2	1	other:Always without IsPresent$
+2	1	other:PutCounter Choices$ with MinChoiceAmount$
+2	2	repl:dies-to-exile from any zone
+2	1	other:SVar X="_": Remembered$DifferentCardNames
+2	0	other:ETB ChooseCard Defined$ "_"
+2	2	prop:DamagedBy Equipped
+2	2	stat:PlayerMustAttack
+2	0	other:static SpellCast trigger body is not the proven ask-free rid
+2	0	other:LandPlayed Static$
+2	2	other:AddPhase ExtraPhase$ "_"
+2	2	prop:EnteredUnder You
+2	2	other:draw cost "_": drawing player "_"
+2	0	other:LandPlayed ValidSA$
+2	2	other:ETB replacement api RemoveCounter
+2	2	kw:Poisonous
+2	1	other:public pick ChangeNum$ CountGraveyard({types=NxN owner=N})
+2	1	other:landwalk "_"
+2	1	api:Planeswalk
+2	0	prop:OwnedBy Player.NotedForStargate
+2	2	other:delayed end-of-combat trigger ValidPlayer "_"
+2	1	prop:!copiedSpell
+2	2	other:instr N Dig: dig position N
+2	2	other:Play ValidZone$ Library with Valid$ "_"
+2	2	other:ETB copy chained rider ImmediateTrigger
+2	1	other:delayed trigger Remembered over a ChangeZoneAll's changed se
+2	2	other:chosen-colour Animate target slot: not one battlefield perma
+2	0	other:Hand,Graveyard pick with RememberChanged$
+2	1	other:Pump over Defined$ "_": not a creature-only filter
+2	0	other:hand move DefinedPlayer$ Targeted without one player target
+2	1	other:AddTurn N
+2	0	other:Effect static mode CantPhaseIn
+2	0	prop:RememberedPlayerOwn/NMinus.N
+2	0	other:Draw Upto$ beside RememberDrawn$
+2	0	other:RepeatEach body Controller$ "_"
+2	1	other:RepeatEach body ChangeNum$ "_"
+2	1	other:granted trigger "_"
+2	1	other:hand ability without discarding itself
+2	0	other:Effect static mode NumLoyaltyAct without RememberObjects$
+2	0	other:DigUntil ImprintFound$ without a Play of the imprinted card
+2	0	other:ChangesZone Hand->Battlefield
+2	0	other:AlterAttribute Attributes$ "_"
+2	0	prop:harnessed
+2	0	other:hand move ChangeNum$ -RememberedCount(ctx)-N
+2	0	other:ChangeZone DefinedPlayer$ Targeted with no target slot
+2	1	other:EffectZone "_"
+2	2	other:counter cost "_": AddCounter target "_"
+2	2	other:SVar X="_": value head TriggerRemembered$CardToughness
+2	2	repl:Explore replacement
+2	0	other:N mana abilities: mana ability N (cost none, produces GW) is
+2	1	other:hand move flag UnderYourControl
+2	0	param:PumpAll.CheckSVar
+2	0	other:TargetsForEachPlayer$ shape "_": a non-OppCtrl alternative
+2	2	other:replacement unread params [ValidCause]
+2	2	other:AffectedZone "_" without MayPlay (Scavenge grant not modelle
+2	1	other:exile pick with RememberChanged$
+2	1	repl:DamageDone self prevention ValidSource "Creature.blockedBySource"
+1	1	other:Airbend with TgtZone$ (a spell or non-battlefield target)
+1	1	other:ChangeZone Optional$ on a Target Graveyard->Library move
+1	0	other:GameWin ValidPlayer "_"
+1	0	other:GameLoss ValidPlayer "_"
+1	0	param:Pump.OptionQuestion
+1	0	param:Pump.Optional
+1	1	repl:CreateToken rewriter TokenScript "c_a_clue_draw,c_a_food_sac,c_a_treasure_sac"
+1	1	kw:MustBeBlockedBy Creature.Dalek
+1	1	other:SVar X="_": value head DungeonsCompleted$Valid Card.namedTom
+1	1	other:AddStaticAbility DragonReduce: EffectZone "_"
+1	1	prop:ControlledBy Player.wasDealtCombatDamageThisTurnBy Creature.Pirate GEN
+1	1	other:SVar X="_": value head Crewed$
+1	1	api:ReverseTurnOrder
+1	0	other:Delirium$/Revolt$ on a DamagePlus replacement (the kernel do
+1	0	prop:NotedNameAetherSearcher
+1	1	other:RemoveCounterAll without CounterType$
+1	1	other:return-self cost outside an activated ability
+1	0	other:PutCounter kind list entry "_": counter kind "_"
+1	0	other:ChangesZoneAll dies of {types=NxN sub=Cat ctrl=N Other}
+1	1	other:TokenCreatedOnce OnlyFirst$
+1	0	prop:withProtection
+1	0	prop:withPartner
+1	1	prop:!namedAkron Legionnaire
+1	0	prop:!CastSaSource
+1	0	other:CounterRemoved ValidCard$ "_"
+1	0	param:RemoveCounterAll.ValidZone
+1	1	other:CounterPlayerAddedAll player recipient "_"
+1	0	other:delayed trigger AttackersDeclared/
+1	0	other:AddPhase FollowedBy$ without ConditionPhases$ MainN,MainN
+1	1	other:Pump Duration UntilYourNextTurn with a computed P/T pump
+1	1	other:SVar X="_": TargetedPlayer$DomainPlayer
+1	1	other:SVar Y="_": TriggeredDefendingPlayer$LifeTotal
+1	0	stat:Devotion
+1	0	other:exile pick flag ForgetChanged
+1	1	other:Animate Power$ "_": SVar X="_": Remembered$CardPower/Times.N
+1	1	stat:NoCleanupDamage
+1	1	other:spend gate on a SpellCast trigger
+1	1	other:SVar X="_": Convoked$Amount outside its own enters trigger
+1	1	other:SVar X="_": TriggeredAttacker$Valid Card.Legendary
+1	1	prop:basePowerLEN
+1	0	prop:ControlledBy Opponent.castSpellThisTurn
+1	0	other:DestroyAll RememberAllObjects$: the remembered destroyed set
+1	1	param:static.FromDraftNotes
+1	1	prop:withMadness
+1	1	other:SVar AntagonismX="_": value head TriggeredPlayer$
+1	1	other:replacement unread params [Hellbent]
+1	0	other:SVar X="_": SVar$Y="_": PlayerCountOpponents$ConditionLTZ Li
+1	0	other:SVar Y="_": PlayerCountOpponents$ConditionLTZ LifeTotal: onl
+1	1	other:optional trigger player under ValidPlayer$
+1	0	other:mana choice amount "_" over "_"
+1	1	prop:setHML
+1	0	other:SVar Y="_": PlayerCountPropertyYou$OpponentsAttackedThisComb
+1	0	prop:enlistedThisCombat
+1	1	kw:Renown
+1	1	param:Dig.StaticEffect
+1	0	param:trigger.OrderDuplicates
+1	1	other:AnimateAll CantHaveKeyword$
+1	1	prop:withModular
+1	1	prop:ControllerControlsMoreLand
+1	0	prop:ControlledBy Player.NotedForWar
+1	0	prop:ControlledBy Player.NotedForPeace
+1	1	other:conditional/chained/self ETB untap shape
+1	1	other:SVar ArcheryX="_": value head OriginalHost$
+1	1	other:CantHaveKeyword "_" (its head covers the kernel's hexproof-f
+1	0	param:SacrificeAll.Controller
+1	0	other:SVar Monarch="_": PlayerCountPlayers$HasPropertyisMonarch
+1	0	param:Sacrifice.OrString
+1	0	other:loyalty ability adding several colours at once
+1	1	other:Attach Object "_" without Defined$ Self
+1	1	repl:DamageDone self prevention ValidSource "Creature.blockingSource"
+1	1	prop:AttachedTo TriggeredAttackerLKICopy
+1	1	other:SVar X="_": TriggeredAttacker$CardManaCost
+1	0	other:ClassBand on a DamagePlus replacement
+1	1	param:Pump.CounterNum
+1	1	other:resolution mill cost shape
+1	0	other:CantBeActivated off the battlefield (AffectedZone "_")
+1	0	kw:Spells and abilities you control can't cause you to search your library.
+1	0	prop:OwnedBy Player.Opponent
+1	0	other:ChangeZoneAll Origin$ Graveyard,Hand with RememberChanged$
+1	0	repl:PayLife replacement
+1	1	other:SVar X="_": Remembered$DifferentCardManaCost
+1	0	other:ward blight cost
+1	0	count:AllFourBend
+1	0	trig:ElementalBend
+1	0	param:DealDamage.CounterNum
+1	1	other:SVar X="_": PlayerCountPlayers$HasPropertyattackedYouTheirLa
+1	1	other:RememberChain$ False delayed trigger shape
+1	1	repl:Cascade replacement
+1	1	param:DestroyAll.Optional
+1	1	other:instr N SkipIf: counter compare N
+1	1	other:Amass Defined$ "_"
+1	1	other:SVar Y="_": ExiledWith$DifferentCardManaCost
+1	1	other:ChangesZone Battlefield->Hand with an optional pay-cost body
+1	1	other:SVar X="_": PlayerCountPlayers$ConditionGEN CardsDiscardedTh
+1	1	prop:ControlledBy Player.isMonarch
+1	1	other:SVar Y="_": Sacrificed$CardTypes
+1	1	other:ImmediateTrigger RememberObjects$ Targeted of a non-battlefi
+1	0	other:SVar X="_": value head ImprintedLKI$
+1	0	other:filter "_": bound X names no SVar
+1	1	other:RepeatEach cards DealDamage body Defined$ "_"
+1	0	prop:withoutCumulative upkeep
+1	0	other:ChangeText in a N ability
+1	0	other:Mill Imprint$ outside one chain
+1	1	other:public pick DefinedPlayer$ "_": ChangeZone DefinedPlayer$ Tr
+1	1	other:instr N ChooseMove: toughness compare against a value
+1	1	other:cast-from-hand gate on a SpellCast trigger
+1	0	prop:!ThisTurnEnteredFrom_Battlefield
+1	1	kw:Read ahead
+1	1	other:TapsForMana IsPresent$ "_" with PresentDefined$
+1	1	param:Draw.AnnounceType
+1	0	prop:ControlledBy NextOpponentToYourLeft
+1	1	other:SVar BasriX="_": TriggerObjectsAttackers$Valid Creature.!tok
+1	1	param:Protection.Radiance
+1	1	other:CopyPermanent Choices$ beside WithDifferentNames$
+1	1	other:SVar ReduceCost="_": value head TargetedObjectsDistinct$
+1	0	prop:sharesNameWith Graveyard
+1	0	other:Dig NoLooking$ beside ExileFaceDown$
+1	1	prop:!ControlledBy EnchantedOwner
+1	0	other:SVar X="_": PlayerCountOpponents$HasPropertyLostLifeThisTurn
+1	0	other:ChangesZone Any->Exile
+1	0	other:RepeatEach imprint ChooseCard shape
+1	1	repl:CreateToken rewriter TokenScript "c_a_food_sac,c_a_treasure_sac"
+1	1	other:SVar X="_": ThisTargetedPlayer$Valid Creature.YouCtrl of a s
+1	1	other:SVar Y="_": PlayerCountOpponents$HasPropertyhasFewerCreature
+1	0	other:filter "_": RememberedPlayerCtrl outside a RepeatEach player
+1	1	prop:ControlledBy TriggeredSourceSAController
+1	1	other:MoveCounter RememberAmount$
+1	1	other:TargetsForEachPlayer$ shape "_": TargetMin$ is not N
+1	0	param:PumpAll.SharedKeywordsZone
+1	0	param:PumpAll.SharedRestrictions
+1	0	param:static.SecondSVarCompare
+1	1	other:mana ability cost PayLife+Mana: the kernel's mana walk canno
+1	1	other:TriggerZones$ Graveyard over Mode$ Surveil: the kernel's wal
+1	1	param:static.RemoveNonManaAbilities
+1	1	param:ChangeZone.ChangeNumDesc
+1	1	other:SVar X="_": PlayerCountPropertyYou$DamageToOppsThisTurn
+1	1	other:PutCounter unread params [EachFromSource]
+1	1	other:mana ability cost T+Discard+Mana: the kernel's mana walk can
+1	0	other:CounterPlayerAddedAll ValidObjectToSource$
+1	1	other:RepeatEach cards loop body RemoveCounter with a SubAbility$
+1	0	other:replacement unread params [EnduringStory]
+1	0	other:ChangeZone DefinedPlayer$ RememberedOwner outside the rememb
+1	0	param:trigger.SnowSpentForCardsColor
+1	0	other:Effect MustAttack Duration$ "_"
+1	1	count:AttackersDeclared
+1	1	other:CounterAddedOnce FirstTime$ on ValidCard$ "_"
+1	0	other:SVar X="_": RememberedLKI$CardNumColors
+1	0	prop:FoughtThisTurn
+1	0	prop:SharesCMCWith TriggeredCard
+1	1	other:activation condition Value(opN,LifeGainedThisTurn,N) on a gr
+1	1	other:RepeatEach body RememberSacrificed$ "_"
+1	1	other:UntapAll RememberUntapped$
+1	0	prop:wasCastFromGraveyardByYou
+1	0	other:DamageDoneOnce body reads TriggeredTargets
+1	1	other:DB$ CopySpellAbility: CopySpellAbility outside a SpellCast t
+1	0	head:PlayerCountDefinedTriggeredAttackedTarget
+1	1	other:PutCounter CounterTypes$ special entry "_"
+1	0	api:PermanentNoncreature
+1	0	other:spell ability on a permanent card
+1	1	param:x.Each
+1	0	prop:OwnerDoesntControl
+1	1	other:divided PutCounter by X outside a spell with an {X} cost
+1	1	param:Effect.Defined
+1	1	other:SVar X="_": TargetedPlayer$Valid Artifact.tapped+YouCtrl
+1	0	prop:!namedBurning-Rune Demon
+1	0	prop:SharesColorWith TriggeredProduced
+1	1	other:multi-pick charm on a Latent ability
+1	0	trig:ManaAdded
+1	0	prop:greatestRememberedCMC
+1	1	other:N mana abilities: mana ability N (cost {N}, produces WU) is 
+1	0	param:Token.TargetMax
+1	0	param:Token.TargetMin
+1	1	other:PutCounter Choices$ with ForColor$
+1	1	prop:sharesCreatureTypeWith Enchanted
+1	0	cost:ChooseCreatureType
+1	1	param:trigger.AttackDifferentPlayers
+1	0	prop:sharesNameWith ChosenCard
+1	0	param:Pump.Mandatory
+1	0	other:ChangeTargets with both Defined$ and TargetType$
+1	1	count:ThisTurnEntered
+1	1	other:N mana abilities: mana ability N (cost {N}, produces WUBRG) 
+1	1	trig:CaseSolved
+1	1	repl:CreateToken IsPresent
+1	1	other:SVar X="_": value head TriggeredBlocker$
+1	1	param:DestroyAll.NoRegenValid
+1	0	types=NxN sub=Sliver
+1	1	other:shuffled move from -
+1	1	kw:Fabricate
+1	1	param:ChooseCard.EachDifferentPower
+1	1	other:OptionalCost cost "_": a creature type chosen as a cost part
+1	1	param:Dig.FromBottom
+1	1	other:DB$ RemoveCounter: RemoveCounter Any CounterNum TriggerAmoun
+1	1	prop:sharesCardTypeWith ValidExile Card.ExiledWithSource
+1	1	count:TypesSharedWith
+1	1	other:ChangesZone Any->Graveyard with an optional pay-cost body
+1	0	prop:doesNotShareNameWith Room.YouCtrl
+1	0	count:DistinctUnlockedDoors
+1	1	other:SVar X="_": TriggeredSource$CardPower
+1	1	other:SVar X="_": TargetedPlayer$CardsDrawn
+1	1	other:StaticEffect unread [SetColor]
+1	1	other:blight cost beside another counted part
+1	1	other:SVar X="_": PlayerCountRegisteredOpponents$NonCombatDamageDe
+1	0	other:Connive of several targets
+1	0	param:RollDice.RememberHighestPlayer
+1	1	other:hand move of each opponent with AuraEntry
+1	0	param:ChooseNumber.Notify
+1	0	param:ChooseNumber.ValidTgts
+1	1	kw:As an additional cost to cast creature spells, you may pay any amount of mana. If you do, that creature enters with that many additional +1/+1 counters on it.
+1	1	other:ChooseColor outside an as-enters replacement
+1	1	param:Dig.ChangeType
+1	0	other:ST$ Discard: discard mode Defined with DefinedCards$ "_"
+1	0	other:ability kind ST
+1	0	prop:setARN
+1	0	other:Defined$ TargetedOwner with no target slot
+1	0	cost:RollDice
+1	1	other:RepeatEach cards loop body emitted N instructions
+1	1	other:activation condition Value(opN,ThisTurnEntered({types=NxN su
+1	1	prop:!namedClever Conjurer
+1	1	param:trigger.Adamant
+1	0	types=NxN Token
+1	0	ty
+1	1	param:trigger.ConditionYouCastThisTurn
+1	0	other:AlterAttribute Prepared Defined$ "_"
+1	0	prop:prepared
+1	1	other:delayed SpellCast without ValidCard$
+1	1	other:activation condition And(And(Present({types=NxN sub=Swamp ct
+1	1	param:static.ValidPlayer
+1	1	other:ConditionCheckSVar$ "_" without ConditionSVarCompare$
+1	1	prop:blockingEnchanted
+1	1	other:SVar X="_": ReplacedCard$CastTotalManaSpent Artifact outside
+1	1	prop:!TriggeredNewCard
+1	0	other:ChangeZoneAll RememberChanged$ "_"
+1	1	prop:notExertedThisTurn
+1	0	other:SVar X="_": value head TriggeredPlayersAttackedTarget$
+1	1	other:SVar Z="_": SVar$Y="_": TargetedPlayer$TotalCommanderCastFro
+1	1	kw:Protection from NotCommanderColorID
+1	1	other:Origin$ Battlefield,Stack to Library
+1	1	other:instr N Mill: controller/owner of target slot N
+1	1	other:Effect static CastWithFlash beside a delayed SpellCast copy 
+1	1	param:Counter.Optional
+1	1	param:PumpAll.Defined
+1	1	other:flashback cost "_": discard cost "_"
+1	0	prop:ControlledBy TriggeredCardController
+1	1	other:CantBeCast Card.NamedCard beside no as-enters NameCard
+1	0	param:ChooseSource.ChoiceTitle
+1	0	param:ChooseSource.RememberChosen
+1	0	param:PutCounter.PutOnEachOther
+1	0	param:PutCounter.ChoicesDesc
+1	1	other:RepeatEach body ChangeValid$ "_"
+1	1	other:Destroy RememberDestroyed$ of TargetsN
+1	0	param:static.AddStaticAbility
+1	1	other:MayPlayText$ graveyard grant of a land you may not own: gorg
+1	1	other:ConditionPresent$ with ConditionZone$ "_" and ConditionDefin
+1	1	param:Token.AnnounceTitle
+1	0	other:SVar Y="_": value head ExiledCards$
+1	0	other:SVar RememberedCMC="_": Remembered$CardCounters.RUST
+1	0	other:sweep ValidTgts "_"
+1	1	other:lone reflected mana ability reading the graveyard
+1	0	other:SVar X="_": RememberedLKI$CardCounters.VOYAGE
+1	0	param:static.Duration
+1	1	other:Destroy RememberDestroyed$ of Self
+1	0	stat:ForetellAnyTurn
+1	0	other:TriggerZones$ Graveyard over Mode$ Scry: the kernel's walk f
+1	1	other:Overload of Counter has no each-variant
+1	0	other:ChangeZone DefinedPlayer$ TriggeredAttackingPlayer: Defined$
+1	0	other:Defined$ "_" outside a combat damage-to-you trigger the kern
+1	0	trig:AttackerUnblockedOnce
+1	0	other:Animate HiddenKeywords$ "_"
+1	1	other:unless cost "_" in a delayed body
+1	1	param:DealDamage.RememberAmount
+1	1	other:AddStaticAbility PowerGrave: granted Continuous static has n
+1	1	other:TriggerZones$ Graveyard over Mode$ RolledDie: the kernel's w
+1	0	other:DB$ Destroy: Defined$ Imprinted outside a DigUntil ImprintFo
+1	1	prop:SharesColorWith TopOfLibrary
+1	1	other:N mana abilities: mana ability N (cost {N}, produces UBR) is
+1	0	other:delayed trigger ChangesZone return params [GainControl Tappe
+1	1	other:evidence cost on a mana ability or outside a battlefield abi
+1	1	prop:sharesCreatureTypeWithAll Tapped
+1	1	other:PutCounter choice of N counter kinds (at most N)
+1	1	prop:lowestCMC
+1	1	other:activation condition Value(opN,ThisTurnEntered({types=NxN no
+1	0	count:CardBasePower
+1	0	other:SVar X="_": TargetedPlayer$Valid Artifact.YouCtrl
+1	0	param:Pump.Choices
+1	1	repl:DamageDone doubler without ValidSource
+1	1	prop:EnchantedPlayerCtr
+1	0	prop:attacking EnchantedPlayer
+1	1	prop:NameNotEnchantingEnchantedPlayer
+1	1	other:public pick DefinedPlayer$ "_": ChangeZone DefinedPlayer$ Pl
+1	0	other:SVar CurseX="_": TargetedPlayer$Valid Permanent.YouCtrl
+1	1	kw:Embalm
+1	1	other:Clone unread params [Duration]
+1	1	count:DraftNotesHighest
+1	1	other:SVar X="_": value head TriggeredPlayersDefenders$
+1	1	prop:activated
+1	1	other:SVar X="_": PlayerCountOpponents$HasPropertyIsRememberedOrCo
+1	0	param:Dig.FaceDown
+1	0	param:Dig.FaceDownPower
+1	0	param:Dig.FaceDownSetType
+1	0	param:Dig.FaceDownToughness
+1	0	param:Dig.GainControl
+1	0	other:delayed upkeep trigger RememberObjects "_" of no target: the
+1	0	prop:ThisTurnCast
+1	1	param:Sacrifice.UnlessColor
+1	0	other:RepeatEach RepeatCards$ "_" reads Imprint
+1	1	other:PumpAll keyword above bit N beside NumAtt$/NumDef$
+1	0	param:ChangeZone.StaticEffectCheckSVar
+1	0	param:ChangeZone.StaticEffectSVarCompare
+1	0	other:Repeat RepeatOptional$ body shape Dig$ (no change test)
+1	1	other:AddStaticAbility StaticPump: granted Continuous static has n
+1	1	other:SVar Z="_": PlayerCountPropertyYou$SacrificedThisTurn Artifa
+1	0	repl:dies-to-exile counter rider
+1	1	other:SVar X="_": SVar$B="_": value head TriggeredPlayer$
+1	0	prop:Chosen
+1	0	param:ChangeZoneAll.OptionQuestion
+1	0	param:ChangeZoneAll.Optional
+1	0	other:Play Defined$ Remembered with Valid$/ValidZone$
+1	1	other:AnimateAll Abilities$ "_": Fight is not a mana ability
+1	0	other:RememberTargets on a Graveyard->Library move
+1	1	param:Destroy.ConditionNoDifferentColors
+1	0	other:SVar NumInYard="_": value head PlayerCountDefinedRememberedO
+1	0	other:SVar NumInHand="_": value head PlayerCountDefinedRememberedO
+1	0	other:SVar NumInLib="_": value head PlayerCountDefinedRememberedOw
+1	1	other:other-object ETB replacement without ActiveZones Battlefield
+1	0	param:ChangeZoneAll.FaceDown
+1	0	param:ChangeZoneAll.FaceDownPower
+1	0	param:ChangeZoneAll.FaceDownSetType
+1	0	param:ChangeZoneAll.FaceDownToughness
+1	0	other:TriggerZones$ Graveyard over Mode$ TurnFaceUp: the kernel's 
+1	0	other:SVar X="_": PlayerCountOpponents$HasPropertyNotedForIntellig
+1	0	prop:ControlledBy Player.NotedForDiversion
+1	1	other:ValidCause$ "_" on a ChangesZoneAll trigger
+1	0	param:Pump.CheckSVar
+1	1	prop:blockedBySourceThisTurn
+1	1	other:hybrid mana {N(BG)(BG)(BG)(BG)(BG)}: more than N pips (gorge
+1	0	param:Tap.OpponentTurn
+1	1	other:hybrid mana {N(BR)(BR)(BR)(BR)(BR)}: more than N pips (gorge
+1	0	prop:sharesAllCardTypesWithOther Remembered
+1	0	param:Mill.ShowMilledCards
+1	1	other:RearrangeTopOfLibrary NumCards HandSizeOf(n=N,You)
+1	0	prop:sharesCreatureTypeWith Valid Creature.YouCtrl
+1	1	prop:yardGreatestPower
+1	1	prop:!Historic
+1	1	other:Effect static mode IgnoreHexproof without RememberObjects$
+1	0	prop:!namedDetention Sphere
+1	1	other:CopyPermanent Populate$ beside PumpKeywords$
+1	0	other:TargetsWithDefinedController$ TriggeredTarget outside a dama
+1	0	other:hybrid mana {N(RG)(RG)(RG)(RG)(RG)}: more than N pips (gorge
+1	1	other:discard cost "_"
+1	1	other:SVar C="_": SVar$B="_": SVar$A="_": Sacrificed$Amount
+1	1	other:discard-hand cost on a mana ability beside a part other than
+1	1	count:ValidSelf
+1	1	other:Draw Upto$ by EachPlayer
+1	0	prop:SharesCMCWith Discarded
+1	0	other:CopySpellAbility TargetMin
+1	1	repl:CreateToken rewriter ValidToken "Creature.YouCtrl"
+1	1	other:hybrid mana {N(WB)(WB)(WB)(WB)(WB)}: more than N pips (gorge
+1	1	other:TwoPiles battlefield pile action
+1	0	prop:ControlledBy Player.Other
+1	1	other:set P/T "_"/"_": a live value on a non-attached static
+1	0	kw:ProtectionFromBlue
+1	0	kw:ProtectionFromGreen
+1	0	kw:ProtectionFromWhite
+1	1	other:hybrid mana {N(UR)(UR)(UR)(UR)(UR)}: more than N pips (gorge
+1	1	other:ThisDefinedAndTgts$ "_"
+1	0	param:CopySpellAbility.SetPower
+1	0	param:CopySpellAbility.SetToughness
+1	0	param:ChangeZone.TargetUnique
+1	0	param:ChangeZone.ValidTgts
+1	0	other:SVar XN="_": SVar$YN="_": value modifier "_": SVar ZN="_": T
+1	0	other:SVar XN="_": SVar$YN="_": value head TriggeredBlocker$
+1	1	repl:CreateToken rewriter ValidToken "Artifact.YouCtrl"
+1	1	other:delayed trigger RememberObjects "_" in a triggered ability: 
+1	1	other:AnimateAll Abilities$ "_": DrAbs is not a mana ability
+1	1	other:activation condition Value(opN,HandSizeOf(n=N,You),N) on a g
+1	0	other:AnimateAll Abilities$ "_": ABRemoveCounter is not a mana abi
+1	1	other:N mana abilities: mana ability N (cost {N}, produces UB) is 
+1	0	trig:Foretell
+1	1	other:SVar X="_": TargetedPlayer$CardsDiscardedThisTurn
+1	1	param:Counter.TargetsWithControllerProperty
+1	1	other:Animate staticAbilities$ "_" on a non-Self object
+1	1	other:EACH pick Graveyard->Hand
+1	1	other:TriggerZones$ Graveyard over Mode$ DungeonCompleted: the ker
+1	1	other:AddStaticAbility Roomharmonicon: Panharmonicon with a partia
+1	1	prop:!namedDutiful Replicator
+1	1	other:SVar Z="_": value modifier "_": no compound form for an SVar
+1	0	other:delayed end-of-combat trigger RememberObjects "_" of no targ
+1	1	other:UntapAll ControllerUntaps$
+1	1	kw:Protection from cardColors
+1	1	prop:!namedEbondeath; Dracolich
+1	0	param:CopyPermanent.TargetingPlayer
+1	0	param:CopyPermanent.TargetingPlayerControls
+1	1	param:static.ValidZone
+1	0	other:Origin$ Library,Graveyard search with DifferentNames$
+1	0	other:PutCounterAll ValidZone$
+1	1	other:Effect ETB-counters replacement body
+1	0	count:YouRolledThisTurn
+1	1	param:AnimateAll.RemoveCreatureTypes
+1	1	other:SVar X="_": value head DungeonsCompleted$DifferentCardNames
+1	1	other:PutCounter CounterTypes$ ChosenFromList
+1	1	prop:OwnedBy TriggeredAttackingPlayer
+1	1	other:SVar X="_": Targeted$AllTypes
+1	1	other:ChangeType$ move Exile->Library
+1	0	other:SVar Y="_": Sacrificed$Valid "_": only Card.<creature type>,
+1	0	other:SVar X="_": TriggeredAttacker$CardToughness
+1	0	other:SVar Y="_": value head TriggeredBlocker$
+1	1	stat:SurveilNum
+1	1	other:library position N of TriggeredNew from Graveyard
+1	1	other:power compare against a value
+1	0	count:LastTurnEntered
+1	1	param:Counter.ConditionWouldDestroy
+1	1	trig:Investigated
+1	1	other:ChangesZone Graveyard->Any with an optional pay-cost body
+1	0	other:SVar X="_": value head TriggeredPlayersOpponentVotedDiff$
+1	1	param:Animate.TargetType
+1	1	other:TriggeredSpellAbility$CardPower
+1	1	repl:CreateToken Layer
+1	1	other:source-in-play flag on a DamageDealtOnce trigger
+1	1	other:SVar X="_": PlayerCountRegisteredOpponents$HasPropertywasDea
+1	1	other:mana ability with an exile-self cost
+1	0	param:ChangeZone.ForetoldCost
+1	0	prop:CanBeSacrificedBy
+1	0	param:GainControl.TargetingPlayer
+1	0	param:GainControl.TargetingPlayerControls
+1	1	other:SVar X="_": PlayerCountOpponents$LowestValid Creature.YouCtr
+1	1	other:SVar X="_": PlayerCountPropertyYou$SacrificedThisTurn Perman
+1	0	other:Play Defined$ ExiledWith Amount$ "_"
+1	1	stat:WitherDamage
+1	1	prop:!sharesCreatureTypeWith Convoked
+1	1	prop:numColorsEQX
+1	1	param:Pump.DefinedLandwalk
+1	1	api:ExchangeTextBox
+1	1	other:PumpAll Targeted.Other beyond a constant pump of the one tar
+1	1	other:PutCounter Choices$ with CounterTypes$
+1	0	param:PutCounter.IsPresent
+1	0	param:PutCounter.PresentDefined
+1	0	other:ChooseNumber MatchedAbility$: the secret election is not mod
+1	1	other:station granted static beside its own Condition$
+1	0	other:OptionalDecider$ on a Draw by EachOpp
+1	1	other:replacement unread params [IsPresent PresentCompare PresentZ
+1	0	prop:ThisTurnEnteredFrom_Exile
+1	0	other:ChangeZone Origin$ Sideboard to 
+1	1	prop:surveilledThisTurn
+1	1	other:Goad$ on a Override static
+1	1	other:RepeatEach cards ChangeZoneTable$ True body Token (only a lo
+1	0	api:TaporUntapAll
+1	1	other:RepeatEach body RepeatCards$ "_"
+1	0	other:SVar Y="_": SVar$X="_": value head PlayerCountRememberedCont
+1	1	other:static trigger body api PutCounter resolves from the stack i
+1	1	prop:ControlledBy EnchantedController.!isMonarch
+1	0	prop:greatestPowerControlledByRemembered
+1	1	other:surge cost "_"
+1	1	other:ETB tap shape
+1	0	other:SVar DiceResult="_": value head TriggerCountMax$
+1	1	other:TokenScript list "_" with TokenAmount$
+1	0	other:filter "_": NotDefinedTriggeredAttacker outside an Attacks t
+1	0	other:LandPlayed NotFirstLand$
+1	0	other:AdjustLandPlays "_"
+1	1	prop:sharesCardTypeWith Sacrificed
+1	1	other:CastWithFlash self grant with CheckSVar$ (the gate is read w
+1	1	prop:greatestCMC_Creature
+1	0	stat:PlotZone
+1	1	other:GainControl static "_"
+1	0	other:return cost on a spell
+1	1	repl:RemoveCounter replacement
+1	1	other:SVar X="_": PlayerCountOpponents$LifeLostLastTurn
+1	0	prop:CanBeTargetedByTriggeredSpellAbility
+1	1	other:replacement unread params [Origin ValidCause]
+1	0	param:Token.ConditionLifeAmount
+1	0	param:Token.ConditionLifeTotal
+1	1	other:DB$ GainControl: Defined$ "_"
+1	1	other:SVar X="_": TriggeredCard$ChromaSource outside a SpellCast t
+1	1	other:TwoPiles battlefield Defined$
+1	1	other:a chain link's copy target declaration with a divided slot
+1	1	other:DB$ Effect: Effect RememberObjects "_"
+1	1	other:hybrid mana {N(RW)(RW)(RW)(RW)(RW)(RW)}: more than N pips (g
+1	1	kw:Jump-start
+1	1	other:RemoveCounter All of every kind on a player (EachOpp)
+1	0	param:static.PlayerTurn
+1	1	param:PutCounter.ChoiceOptional
+1	1	kw:Myriad
+1	1	other:flashback cost "_": sacrifice cost "_" outside a spell's or 
+1	0	param:trigger.Spell
+1	1	other:SVar X="_": value head TargetedObjects$
+1	1	other:AnimateAll Abilities$ "_": TapDestroy is not a mana ability
+1	1	prop:hadToAttackThisCombat
+1	0	repl:CreateToken rewriter ValidToken "Fish"
+1	0	repl:CreateToken rewriter ValidToken "Shark"
+1	1	prop:hasKeywordCARDNAME count as Flame Burst.
+1	0	types=NxNf ctrl=N}
+1	0	other:Effect CantRegenerate without the previous RememberDamaged$ 
+1	0	other:Effect static mode CantBeActivated without RememberObjects$
+1	1	cost:DefinedCost_Remembered_Minus2
+1	0	param:Token.ActivationAfterBlockers
+1	1	kw:IfNew Vanishing
+1	1	other:activation condition Value(opN,HighestOppPoison,N) on a grav
+1	1	other:ExileAnyGrave cost outside a trigger's own cost
+1	0	param:Animate.RememberTargets
+1	1	prop:baseLoyaltyEQX
+1	0	param:Draw.ReduceAmount
+1	0	trig:Fight
+1	1	trig:PayLife
+1	0	other:Animate Colors$ "_" outside a chosen-colour grant
+1	1	other:Repeat RepeatOptional$ beside ValidTgts$
+1	1	other:alternative cost with an exile-from-hand part on a card the 
+1	1	other:MoveCounter ValidDefined$
+1	1	param:CopySpellAbility.SetColor
+1	1	other:DamageSource$ to You
+1	1	count:StartingPlayer
+1	1	param:trigger.WhileKeyword
+1	1	other:ChangeZone DefinedPlayer$ TriggeredSourceController: Defined
+1	1	api:RollPlanarDice
+1	0	other:AlterAttribute Suspected RememberAltered$
+1	1	other:PutCounter Choices$ with Chooser$ "_"
+1	0	prop:EnchantedPlayerOwn
+1	1	prop:Equip
+1	0	other:Untap replacement shape
+1	1	other:EachDamage DefinedDamagers$ Targeted.YouCtrl over N slots (g
+1	1	other:ChosenMode granted DamageDoneOnce trigger: gorge fires it pe
+1	1	other:replacement unread params [AddSVar]
+1	0	other:EACH pick Battlefield->Exile
+1	1	other:N mana abilities: mana ability N (cost {N}, produces RG) is 
+1	1	other:AnimateAll Abilities$ "_": ABDealDamage is not a mana abilit
+1	1	prop:gotBlockedThisTurn
+1	0	other:ChangesZoneAll dies of {types=NxN ctrl=N Other
+1	0	types=NxN c
+1	1	other:Pump KWChoice Duration "_"
+1	1	other:SVar X="_": PlayerCountPlayers$ConditionLEY LifeTotal
+1	0	other:Repeat RepeatOptional$ beside RepeatOptionalDecider$
+1	1	other:Start your engines! beside a Moved replacement
+1	1	count:FatefulHour
+1	0	prop:blockedRemembered
+1	0	param:x.AddsKeywordsUntil
+1	0	prop:ControlledBy Opponent.IsCorrupted
+1	1	other:protection "_": quality {types=NxNf cmp(N N N  CORRUPTION)}
+1	0	other:hybrid mana {N(UB)(UB)(UB)(UB)(UB)}: more than N pips (gorge
+1	0	other:Manifest Defined$ Remembered with DefinedPlayer$
+1	1	other:CopyPermanent Populate$ beside TokenTapped$
+1	1	other:MayFlashCost on an {X} spell
+1	0	param:ChangeZone.IsPresent
+1	0	param:ChangeZone.PresentZone
+1	0	kw:Decayed
+1	1	other:Optional$ with StrictAmount$ "_" on a sacrifice
+1	1	other:AddStaticAbility Hexproof: granted Continuous static has no 
+1	1	param:Animate.ValidCards
+1	1	other:player-scoped Pump grant keyword "_" until end of turn
+1	0	other:ChangeZone Optional$ on a Remembered Any->Battlefield move
+1	0	head:ReplaceCount
+1	0	other:ChangeZoneAll Shuffle$ from the battlefield beyond the targe
+1	0	other:MayPlayAltManaCost "_"
+1	1	other:SVar X="_": PlayerCountOpponents$HasPropertyIsCorrupted
+1	1	other:Effect static mode MinMaxBlocker without RememberObjects$
+1	1	trig:Milled
+1	0	prop:OwnedBy Player.Active
+1	0	param:static.AddPower
+1	0	param:static.AddToughness
+1	0	other:ChangesZone Any->Stack
+1	0	param:FlipCoin.RememberResult
+1	0	api:OpenAttraction
+1	0	param:RollDice.ToVisitYourAttractions
+1	0	prop:nonLand/Times.N
+1	0	other:DigUntil RememberRevealed$ shape
+1	1	other:Effect DamageDone doubling ValidTarget$ "_"
+1	1	prop:blockingSelf
+1	1	other:DB$ SacrificeAll: SacrificeAll Defined$ DelayTriggerRemember
+1	1	other:FlipCoin branch "_" reads X
+1	0	prop:sharesControllerWith Imprinted
+1	1	other:hybrid mana {N(WU)(WU)(WU)(WU)(WU)}: more than N pips (gorge
+1	1	prop:MostProminentColor black
+1	0	other:MoveCounter RememberPut$
+1	0	other:Token PumpKeywords$ beside another remembered set
+1	1	other:ChangesZone Graveyard->Hand
+1	1	prop:setATQ
+1	1	other:SVar AffectedX="_": value head ChosenCard$
+1	0	other:ChooseType Card Defined "_"
+1	1	kw:MustBeBlockedByTwo
+1	0	other:CDA colour/type static with a condition
+1	1	prop:madness
+1	1	other:Room door line naming an SVar body (AddAbility$)
+1	1	param:RemoveCounter.UpTo
+1	0	other:SVar X="_": TriggeredTarget$LifeTotal outside a damage-to-pl
+1	1	other:ETB replacement api Attach
+1	1	other:EachDamage ToEachOther$
+1	1	other:mana ability with a return-self cost
+1	1	prop:wasDealtNonCombatDamageThisTurn
+1	1	param:static.ExcludeZone
+1	1	prop:SharesColorWith ChosenCard
+1	0	trig:Enlisted
+1	1	other:!blocking in a battlefield-origin ChangesZone ValidCard$
+1	1	other:AddOrRemoveCounter RememberRemovedCards$ (no remembered-card
+1	1	other:instr N LoseLife: ControlledBy TriggeredDefendingPlayer outs
+1	0	other:Effect static AssignCombatDamageAsUnblocked ValidCard$ "_"
+1	1	other:activation condition And(Value(opN,OppLifeLostThisTurn,N),Yo
+1	0	other:ChangeZone Optional$ on a Target Graveyard->Exile move
+1	0	other:CantBeCast Card.Self without EffectZone$ All
+1	1	other:SVar X="_": PlayerCountOpponents$LowestValid Land.Basic+YouC
+1	1	prop:AttachedTo Card.Self
+1	0	other:ChooseNumber unread params [Random]
+1	1	prop:MostProminentColor red
+1	1	other:SVar X="_": Spawner>TriggeredCard$CardPower
+1	1	prop:withAwaken
+1	0	other:Effect static mode IgnoreLegendRule without RememberObjects$
+1	0	other:ChooseColor outside an as-enters replacement (Defined$ "_")
+1	0	repl:CreateToken Amount "HalfDown"
+1	1	other:Effect MayPlayAltManaCost "_"
+1	0	other:PutCounter Choices$ with ChoiceAmount$
+1	1	other:SVar X="_": TriggeredCard$AttachedTo Aura.YouCtrl
+1	1	other:SetState TurnFaceUp RevealFirst$
+1	1	other:Effect StaticAbilities$ "_" beside Triggers$ (static Continu
+1	1	other:SVar HavocX="_": value head TriggeredPlayer$
+1	0	other:Effect static unread [MayLookAt]
+1	1	param:Pump.AlternateCost
+1	1	other:Defined$ TriggeredCardOpponent Draw beside OptionalDecider$
+1	1	other:AtEOTTrig "_"
+1	1	prop:blockedByThisTurn
+1	1	other:SVar X="_": Equipped$CardManaCost
+1	1	other:SVar Y="_": PlayerCountOpponents$HasPropertywithMoreCreature
+1	1	param:Draw.TapCreaturesForMana
+1	1	other:SVar X="_": PlayerCountOpponents$CardsDrawn
+1	0	other:destination Command
+1	0	other:ChangeType$ move Command->Battlefield
+1	0	prop:HasDevoured
+1	1	other:GainControl AllValid$ "_" reads Triggered
+1	0	other:SVar X="_": TriggeredExploited$CardPower outside an Exploite
+1	0	other:Exploited ValidCard "_"
+1	1	other:DamageDoneOnce FirstTime$
+1	1	other:SVar HereticX="_": Remembered$GreatestCardManaCost
+1	1	other:mana ability cost TapX: the kernel's mana walk cannot activa
+1	0	other:delayed dies trigger over N chain target slots
+1	0	other:Pump RememberObjects$ "_" beside [ShowCurrentCard]
+1	1	other:RemoveCounter Any CounterNum X
+1	1	trig:PayCumulativeUpkeep
+1	1	other:Always IsPresentN$
+1	1	other:SVar X="_": value head TargetedObjectsDistinct$
+1	1	param:Counter.DestinationChoice
+1	1	other:ChangeZone DefinedPlayer$ Player.Other
+1	1	other:Discover free cast with a program tail (the kernel defers th
+1	1	prop:!sharesLandTypeWith Valid Land.YouCtrl
+1	0	param:CopyPermanent.TokenRemembered
+1	1	stat:ManaRestriction
+1	1	prop:attacking Player
+1	1	prop:sharesCardTypeWith Exiled
+1	0	head:PlayerCountHasLost
+1	1	other:replacement unread params [SVarCompare]
+1	0	param:ChangeZone.RandomOrder
+1	1	other:value head Spawner>TriggerCount$
+1	1	other:DisableTriggers Origin$ "_"
+1	1	other:instr N ChangeZoneAll: TargetedPlayerCtrl off the battlefiel
+1	1	prop:!OwnedBy ActivePlayer
+1	1	cost:DefinedSACost_TriggeredSpellAbility
+1	1	other:Effect untap denial "_" (Affected$ Artifact.RememberedPlayer
+1	1	repl:RollPlanarDice replacement
+1	1	other:ChangeZoneAll Origin$ Hand,Graveyard with ValidTgts$
+1	0	other:ChangeZoneAll Duration$ UntilHostLeavesPlay beyond battlefie
+1	1	other:SVar X="_": TriggeredSource$CardToughness
+1	1	other:graveyard pick DefinedPlayer$ Player to Hand
+1	0	param:ChangeZone.DestinationAlternative
+1	1	other:Effect static Continuous param ControlVote
+1	0	prop:CanPayManaCost
+1	0	other:RemoveFromCombat RememberRemovedFromCombat$
+1	1	other:SVar Y="_": value head TriggeredCardLKI$
+1	0	other:Always PresentZone$ "_"
+1	1	other:ChangeZoneAll Origin$ Hand,Graveyard with PowerUp$
+1	1	count:SingleMaxDamageThisTurn
+1	1	other:MustBlock TargetMin$ "_"
+1	0	other:ChangeZone Optional$ on a TriggeredNew Graveyard->Exile move
+1	1	kw:Afterlife
+1	1	other:Draw Upto$ by EachOpp
+1	0	other:SVar X="_": TriggeredCard$CardCounters outside a leaves-the-
+1	0	param:Effect.AddSVar
+1	0	param:Effect.CounterNum
+1	0	param:Effect.CounterType
+1	0	count:NumCombatDamageThisTurn
+1	1	kw:Mobilize
+1	0	param:Sacrifice.StrictAmount
+1	1	cost:Return
+1	1	other:TriggerZones$ Graveyard over Mode$ Milled: the kernel's walk
+1	1	other:RearrangeTopOfLibrary NumCards Count({types=NxN sub=Wizard})
+1	1	kw:Infect
+1	0	repl:DamageDone doubler ValidSource "Creature.Other"
+1	1	other:AddStaticAbility BuffTokens: granted Continuous static has n
+1	0	other:hand move of each opponent with UntilLeaves
+1	1	param:Draw.NumCardsDesc
+1	0	param:static.DeclaresBlockers
+1	0	other:OriginAlternative$ "_"
+1	1	other:SVar X="_": PlayerCountPropertyYou$BeenDealtCombatDamageSinc
+1	1	prop:TriggeredAttacker
+1	0	prop:!numColorsEQN
+1	1	repl:DamageDone ActiveZones
+1	1	other:SVar X="_": PlayerCountPlayers$HighestValid Creature.YouCtrl
+1	1	prop:!AllColors
+1	1	param:static.ValidAttackerRelative
+1	1	repl:DamageDone self replacement ValidSource
+1	1	prop:sharesNameWith ExiledWith
+1	1	other:ETB replacement api SetState
+1	0	prop:attackedYouThisTurn
+1	0	other:TwoPiles UnchosenPile$ on the library's bottom: gorge's swee
+1	0	other:ChangeZone DefinedPlayer$ Player with Chooser$ You: one play
+1	1	param:CopyPermanent.SetLoyalty
+1	0	param:ChangeZone.Reorder
+1	0	other:ChangeZoneAll Defined$ Targeted without one target slot
+1	0	param:ChangeZone.WithMayLook
+1	1	prop:withDecayed
+1	1	prop:SharesColorWith Valid Creature.YouCtrl
+1	1	other:alternative destination shape
+1	1	prop:!NoAbilities
+1	0	other:Manifest Defined$ Remembered with Amount$ "_"
+1	0	prop:sharesNameWith MovedToGrave
+1	1	other:Defined$ "_" read by something other than the node's subject
+1	1	repl:CreateToken Optional
+1	1	other:Defined$ Targeted target union for op Tap
+1	0	param:Effect.ForgetOnCast
+1	1	prop:blockedValidThisTurn Card.StrictlySelf
+1	0	prop:OppProtect
+1	1	other:damage ValidSource "_": inZoneBattlefield on some alternativ
+1	0	other:ExchangeControl without ValidTgts$
+1	1	other:hand move Attacking$ "_" to Battlefield
+1	1	other:other:count ThisTurnCast "_": a comparison other than a cons
+1	1	other:MayPlay Affected$ "_": a later Permanent alternative off the
+1	1	other:SVar Treasure="_": value head ReplacedCardLKI$
+1	0	other:RepeatEach body RememberRevealed$ "_"
+1	1	other:multi-pick charm mode target bounds N..Count({types=NxN ctrl
+1	0	param:LoseLife.ReduceAmount
+1	1	api:RestartGame
+1	1	other:DB$ Mana RestrictValid$ "_"
+1	1	other:Effect DamageDone redirect body
+1	1	prop:hasKeywordConvoke
+1	0	prop:SharesColorWith
+1	1	prop:EquippedByValid Equipment.Legendary
+1	0	param:static.AffectedZone
+1	1	other:PutCounter Choices$ with RememberAmount$
+1	1	prop:turnedFaceUpThisTurn
+1	1	other:Entwine on a charm that is not a plain choose-one spell
+1	1	other:SVar X="_": RememberedLKI$Valid Card.YouCtrl
+1	1	param:DealDamage.RememberTargets
+1	0	param:Token.ValidAfterStack
+1	1	param:DealDamage.ValidAfterStack
+1	1	param:Draw.ValidAfterStack
+1	0	other:PlayerCountOpponents$HasPropertycontrolsArtifact
+1	1	param:static.ReplaceGraveyard
+1	1	other:graveyard Animate static Affected$ "_" (lands playable)
+1	1	prop:countersReceivedThisTurn_GEN_PNPN_You
+1	1	other:Effect UntilUntaps untap RememberObjects "_"
+1	0	other:RepeatEach body ForgetObjects$ "_"
+1	1	other:Repeat RepeatOptional$ body shape Discard$ (no change test)
+1	1	other:Sacrificed Self alternative with ActivationLimit
+1	1	other:gift condition "_"
+1	0	other:ChangeZone Imprint$ outside one chain
+1	0	param:SacrificeAll.ImprintSacrificed
+1	1	param:trigger.NotThisAbility
+1	0	prop:SharesColorWith Equipped
+1	0	prop:sharesCreatureTypeWith Equipped
+1	0	param:DealDamage.ActivationPhases
+1	0	other:SVar X="_": PlayerCountPropertyYou$HasPropertyBeenAttackedTh
+1	1	other:SVar SacrificedPermanentsTypes="_": PlayerCountPropertyYou$S
+1	1	other:mana ability cost PayLife+OncePerTurn: the kernel's mana wal
+1	1	stat:FlipCoinDoubler
+1	0	param:Cleanup.ClearTriggered
+1	0	prop:DamagedByCard.YouCtrl;Emblem.YouCtrl
+1	1	prop:DamagedBy Enchanted
+1	0	prop:attackedThisCombat GEN
+1	1	prop:countersReceivedThisTurn_GEN_Any_You
+1	1	other:ChangesZoneAll Origin "_"
+1	1	other:trigger IsPresent$ "_" reads the block relation at trigger t
+1	1	prop:ControllerControlsAtLeastAsManyLand
+1	0	other:SVar X="_": value head Discarded$Valid Land
+1	0	param:DealDamage.NonBasicSpell
+1	0	other:cleave Cost$ "_" has an {X}, hybrid or Phyrexian symbol
+1	1	param:DealDamage.NoRedirection
+1	1	other:SVar LandsEntered="_": PlayerCountOpponents$ConditionGEN Thi
+1	0	other:AddOrRemoveCounter DefinedPlayer$ "_" (another player's ask)
+1	1	param:static.cmcGT
+1	1	param:x.OpponentTurn
+1	1	repl:Connive replacement
+1	1	param:Destroy.Radiance
+1	1	other:SVar X="_": TargetedPlayer$Counters.Poison
+1	1	other:RepeatEach body Amount$ "_"
+1	1	other:ChangeZone Origin$ Sideboard without Hidden$ True
+1	0	other:Token PumpDuration$ "_"
+1	0	param:ImmediateTrigger.XAnnounceTitle
+1	0	param:ImmediateTrigger.XColor
+1	0	other:GenericChoice of a target player with ShowChoice$
+1	0	other:TokenScript list "_" with RememberTokens$
+1	1	param:Charm.Chooser
+1	0	other:ETB replacement api LoseLife
+1	0	prop:wasCastFromCommand
+1	1	prop:YouCtrl$GreatestCardPower
+1	1	other:flashback cost "_": cost token "_"
+1	1	count:ChromaSource
+1	1	other:Defined$ "_" on DealDamage
+1	0	param:PutCounter.Activator
+1	1	other:AnimateAll Abilities$ "_": LVAbs is not a mana ability
+1	0	other:hand move of each opponent with Remember
+1	1	other:StaticEffect affected "_"
+1	0	param:DealDamage.AnnounceType
+1	0	param:DealDamage.Max
+1	0	param:DealDamage.Min
+1	1	other:target count N..PowerOf(Self)
+1	0	param:Play.ForgetRemembered
+1	1	other:instr N PumpAll: power compare against a value
+1	1	other:Effect MayPlay AffectedZone "_" with ExileOnMoved "_"
+1	0	other:ChoosePlayer Choices$ "_" with Defined$ "_"
+1	1	other:DamageDoneOnce body reads TriggeredTarget$LifeLostThisTurn
+1	0	param:ChooseType.ChooseNoted
+1	1	other:library-to-library search position N
+1	1	other:optional ChooseCard from the library not straight after a Re
+1	1	stat:CombatDamageNegatePower
+1	0	other:ChangesZone Origin$ Hand,Graveyard,Exile,Stack,Library,Comma
+1	1	other:SVar Y="_": TriggeredDefendingPlayer$CardsInLibrary
+1	1	other:AnimateAll Abilities$ "_": Sizzle is not a mana ability
+1	1	param:Draw.RaiseCost
+1	0	prop:OwnedBy Opponent
+1	1	other:SVar OtherLost="_": value head PlayerCountDefinedRegistered.
+1	0	other:mana "_" with Amount$
+1	0	other:EachDamage to EachOpp
+1	1	other:SVar X="_": PlayerCountPlayers$LowestValidHand Card.YouOwn
+1	1	prop:!blockedThisTurn
+1	0	kw:Sunburst
+1	0	other:SVar X="_": Equipped$CardCounters.ALL
+1	1	kw:Absorb
+1	0	other:Attach Object "_" with RememberAttached$
+1	0	param:Pump.ConditionPlayerContains
+1	0	param:Pump.ConditionPlayerDefined
+1	0	param:Animate.RememberObjects
+1	0	other:StaticEffect unread [AddReplacementEffect AddTrigger]
+1	1	prop:hasAbility Activated.hasTapCost
+1	1	trig:ExcessDamageAll
+1	0	param:Pump.SharedKeywordsZone
+1	0	param:Pump.SharedRestrictions
+1	1	other:mana ability cost RemoveCtr+OncePerTurn: the kernel's mana w
+1	1	other:Activator$ Player outside a battlefield non-mana AB$
+1	1	prop:SharesColorWith LastCastThisTurn
+1	1	other:Effect untap denial "_" (Affected$ Land.RememberedPlayerCtrl
+1	0	other:TapsForMana ValidCard "_": beyond a type filter
+1	1	other:ActivationLimit "_" outside a printed battlefield non-mana a
+1	0	other:Effect static unread [ActivationPhases]
+1	1	other:ChooseColor unread params [Choices]
+1	0	other:Clone CloneTarget$ Valid without NotDefinedTargeted beside c
+1	0	param:Pump.AnnounceTitle
+1	0	param:ChangeZone.AnnounceTitle
+1	1	other:Overload of CopyAsToken has no each-variant
+1	0	param:Dig.AdditionalDesc
+1	0	param:Dig.AnnounceTitle
+1	0	param:Phases.AnnounceTitle
+1	0	count:YourCountersRAD
+1	0	other:ETB replacement api Radiation
+1	1	prop:AttachedTo Card.EnchantedBy
+1	1	other:multi-pick charm with TargetUnique
+1	1	other:Effect static mode AlternativeCost without RememberObjects$
+1	0	param:Clash.Defined
+1	1	stat:BlockTapped
+1	1	other:Connive of TriggeredSource
+1	1	other:Effect static Continuous param DeclaresAttackers
+1	0	other:DamageSource$ to Remembered
+1	1	param:ChangeZone.TargetingPlayer
+1	1	other:ActivatorThisTurnCast over ValidCard "_": a filter flag
+1	0	prop:wasCastFromYourLibrary
+1	0	prop:withPersist
+1	1	other:instr N ChooseMove: TargetedPlayerCtrl off the battlefield
+1	1	other:resolution evidence cost shape
+1	0	param:PutCounter.ConditionPlayerContains
+1	0	param:PutCounter.ConditionPlayerDefined
+1	1	prop:DefenderCtrlForRemembered
+1	1	other:SVar X="_": PlayerCountPropertyYou$LandsPlayed
+1	1	prop:hasKeywordLandwalk:Island
+1	0	param:RemoveCounter.Activator
+1	0	other:ETB ChooseCard Choices$ "_"
+1	1	other:ManaReflected Valid$ "_" without YouCtrl
+1	1	prop:withUnearth
+1	1	other:SetMaxHandSize "_"
+1	0	prop:ControlledBy ThisTargetedPlayer
+1	0	param:Effect.sVars
+1	0	prop:inRealZone Graveyard
+1	1	param:Counter.RememberSplicedOntoCounteredSpell
+1	1	prop:SharesColorWith Sacrificed
+1	1	other:ChangeZone Defined$ TopOfLibrary Library->Exile with Remembe
+1	1	other:Play ShowCardToActivator
+1	1	count:CardPower
+1	1	other:Remembered$CardPower over a set of more than one (more than 
+1	1	other:SetChosenMode GenericChoice unread params [LockInText]
+1	1	param:CopySpellAbility.TargetValidTargeting
+1	0	other:Clone unread params [ChoiceTitle]
+1	0	param:ChangeZone.FaceDownPower
+1	0	param:ChangeZone.FaceDownToughness
+1	1	other:mana value compare N against a value
+1	0	other:Overload of Exile from Graveyard
+1	0	prop:Worthy
+1	1	other:target count N..Devotion
+1	1	param:Pump.LeaveBattlefield
+1	1	other:ETB replacement api FlipCoin
+1	1	other:N mana abilities: mana ability N (cost {N}, produces BR) is 
+1	0	count:Freerunning
+1	1	other:ChosenMode AddStaticAbility "_" Mode$ RaiseCost
+1	1	other:Airbend Defined$ "_"
+1	0	cost:RevealOrChoose
+1	0	other:Effect static unread [EffectOwner]
+1	1	other:Effect DamageDone redirect replacement list "_"
+1	0	param:ChangeZoneAll.Imprint
+1	1	other:SVar X="_": PlayerCountOpponents$HasPropertywasDealtCombatDa
+1	1	param:static.AddSVar
+1	1	other:mana ability cost T+TapX: the kernel's mana walk cannot acti
+1	0	param:ChangeZone.WithTotalPower
+1	0	count:CardNumAttacksThisTurn
+1	1	other:Token AtEOT SacrificeCombat outside an Attacks trigger
+1	1	other:TriggerZones$ Graveyard over Mode$ CounterAddedOnce: the ker
+1	1	other:SVar X="_": value head TriggerRemembered$CardTypes
+1	0	count:TotalManaSpent
+1	1	other:copy exception AddKeywords$ Myriad: gorge gives the copy its
+1	0	param:Draw.OrOtherConditionSVarCompare
+1	0	param:Scry.OrOtherConditionSVarCompare
+1	1	other:NoAbilities on the battlefield
+1	1	other:GainControl "_" with NewController$ "_"
+1	1	prop:hasKeywordCARDNAME count as Muscle Burst.
+1	0	prop:withoutAt the beginning of your upkeep
+1	0	kw:At the beginning of your upkeep, destroy this creature unless you pay {1} for each music counter on it
+1	1	param:FlipCoin.ForEachPlayer
+1	0	other:RemoveCounter All of every kind on a player (TargetN)
+1	0	other:SVar OneEach="_": HasCardsIn spec "_"
+1	0	other:ChangesZone Any->Command
+1	0	count:CommanderCastFromCommandZone
+1	0	other:ConditionManaNotSpent$ beside ConditionCompare$
+1	1	other:Effect MustBlock shape
+1	0	other:ExcessSVar on a target that may be neither creature nor plan
+1	0	prop:attacking TriggeredDefender
+1	1	other:ChangeZone DefinedPlayer$ Remembered
+1	1	other:the ETB replacement reads Remembered written by another abil
+1	1	other:land-type grant AllBasicLandType (not expanded to the land t
+1	0	param:Draw.ActivationPhases
+1	0	param:Draw.PlayerTurn
+1	1	other:ChangeZoneAll ForgetOtherRemembered$ with a target player
+1	1	other:SVar X="_": value head Discarded$Valid Card.Zombie
+1	0	other:DigUntil RememberFound$ beside ImprintFound$
+1	0	other:Effect UntilHostLeavesPlay untap RememberObjects "_"
+1	0	other:DamageDoneOnce body reads TriggeredSourcesController
+1	1	count:CreaturesAttackedThisTurn
+1	0	other:RollDice ResultSVar$ "_" shadowed by a card SVar
+1	1	other:escape cost "_": exile cost "_" outside a spell's own cost
+1	1	param:Effect.ExileOnMoved
+1	0	trig:FightOnce
+1	1	other:SVar DiffX="_": value head TriggeredPlayer$
+1	1	param:Investigate.Optional
+1	0	types=NxN ctrl=N
+1	0	t
+1	1	other:counter kind "_"
+1	0	kw:After you roll a die, you may pay 1 life. If you do, increase or decrease the result by 1. Do this only once each turn.
+1	1	cost:ExileSameGrave
+1	1	param:AnimateAll.RemoveLandTypes
+1	1	param:static.ValidDefender
+1	0	other:RepeatEach body ChoiceTitleAppend$ "_"
+1	1	other:Effect StaticAbilities$ "_" beside Triggers$ (static CantBlo
+1	0	prop:withForetell
+1	1	kw:Intimidate
+1	1	other:gated mana ability among N mana abilities
+1	0	other:Always IsPresent$ "_" (counter kind "_")
+1	0	other:AffectedZone "_" without MayPlay (Sneak grant not modelled)
+1	0	other:Hand,Graveyard pick with WithCountersAmount$
+1	1	other:instr N Search: named clause "_" names N pool entries
+1	1	param:Dig.ForEachColorPair
+1	1	prop:ManaSpent EQN
+1	1	other:hybrid mana {N(RW)(RW)(RW)(RW)(RW)}: more than N pips (gorge
+1	1	prop:NotedNameNobleBanneret
+1	1	param:DealDamage.AIExpectAmount
+1	0	other:AffectedZone "_" without MayPlay (Mayhem grant not modelled)
+1	0	count:BloodthirstAmount
+1	1	other:RepeatEach body DefinedCards$ "_"
+1	1	other:MayFlashCost on a multi-face card
+1	1	stat:NumLoyaltyAct
+1	1	other:variable casualty (Casualty:X, its riders "_") is not lowere
+1	0	param:EndTurn.Defined
+1	0	param:EndTurn.Optional
+1	1	other:exile pick ChangeNum$ CountExile({types=NxN owner=N})
+1	1	other:graveyard pick Chooser$ "_"
+1	0	param:ChangeZone.TargetMax
+1	0	param:ChangeZone.TargetMin
+1	1	prop:ControlledBy Player.EnchantedController
+1	1	other:CopyPermanent PumpDuration "_"
+1	0	other:SVar X="_": value head TriggerRemembered$CardManaCostLKI
+1	1	other:Emblem static filter {types=NxN ctrl=N ChosenType} reads the
+1	1	other:mana ability adding several colours at once under a spend re
+1	0	other:exile pick with DefinedPlayer$
+1	0	api:ManaReflected
+1	1	other:ETB copy AddKeywords Changeling: a CDA, not an exception (go
+1	1	count:YouCastThisGame
+1	1	other:ChooseColor outside an as-enters replacement: a Dig sub-abil
+1	1	other:Always LifeAmount$
+1	0	other:N mana abilities: mana ability N (cost {N}, produces ) is no
+1	1	other:mana choice over "_"
+1	1	param:DigUntil.XMax
+1	0	param:static.ControlOpponentsSearchingLibrary
+1	1	other:target count N..PowerOf(Triggered)
+1	1	param:Dig.RandomChange
+1	0	other:Defined$ "_" outside a printed battlefield trigger
+1	0	other:CounterRemoved CounterType$ "_"
+1	0	other:MaxTotalTargetCMC$ X is not a literal N..N
+1	0	prop:IsTargeting Valid Permanent.YouCtrl~Other
+1	0	other:mayhem cost "_"
+1	0	other:exile cost "_": a variable bound
+1	0	other:StaticEffect unread [RemoveCreatureTypes]
+1	0	other:Phases WontPhaseInNormal$
+1	0	other:RepeatEach body Defined$ "_"
+1	1	other:hybrid mana {N(GU)(GU)(GU)(GU)(GU)}: more than N pips (gorge
+1	0	head:CardTriggeredTarget
+1	1	other:mana ability cost SacSelf+Discard: the kernel's mana walk ca
+1	0	other:TokenScript list "_" with TokenOwner$
+1	0	other:RepeatEach body CounterNum$ "_"
+1	1	other:hybrid mana {N(GW)(GW)(GW)(GW)(GW)}: more than N pips (gorge
+1	1	other:SVar X="_": PlayerCountPlayers$HasPropertyDefending
+1	1	other:SVar X="_": TargetedPlayer$Valid Creature.YouCtrl+ChosenType
+1	1	prop:greatestCMC_Artifact
+1	1	other:Effect Mode$ BecomeMonarch trigger: an exile until an oppone
+1	1	prop:NotedTypes
+1	1	param:x.Condition
+1	1	prop:withFading
+1	1	other:SVar X="_": RememberedLKI$CardCounters.ALL
+1	1	other:SVar X="_": PlayerCountPropertyYou$DomainPlayer
+1	1	prop:sharesNameWith Valid Creature.YouCtrl
+1	1	param:PreventDamage.AlternateCost
+1	1	other:GiftAbility: DB$ AddTurn: AddTurn Defined$ "_"
+1	1	other:mana ability cost other+Mana: the kernel's mana walk cannot 
+1	0	other:CantBeActivated Card.NamedCard beside no as-enters NameCard
+1	1	other:ETB replacement api ImmediateTrigger
+1	1	other:self-reading static condition: counts a card type the static
+1	1	other:SVar X="_": Remembered$ChromaSource.Green/Twice
+1	0	other:SVar TotalPower="_": value head ChosenCard$
+1	1	prop:BottomGraveyard
+1	0	prop:TopGraveyardN
+1	1	repl:DamageDone prevent-and-counters body
+1	0	other:TwoPiles FaceDown$ "_"
+1	1	other:Token TokenPower$ on a non-creature token "_"
+1	0	other:SVar NumInYard="_": TargetedPlayer$CardsInGraveyard
+1	1	other:untap-self cost outside an activated battlefield ability
+1	1	other:Effect static player Continuous without SetMaxHandSize/Adjus
+1	0	other:delayed trigger AbilityCast/
+1	0	other:delayed trigger over a ChangeZoneAll ForgetOtherRemembered$ 
+1	0	other:trigger PresentDefined$ "_"
+1	1	other:repeatable charm: mode counts need N bits (the mode byte hol
+1	1	other:delayed trigger Phase/MainN
+1	1	stat:CantChangeLife
+1	0	param:ChangeZone.TargetsAtRandom
+1	0	other:ETB replacement api ChooseDirection
+1	1	other:Effect static mode AssignCombatDamageAsUnblocked without Rem
+1	1	prop:EnteredSinceYourLastTurn
+1	0	other:SVar Z="_": SVar$X="_": SpellTargeted$CardManaCostLKI over N
+1	0	types=NxN
+1	0	types=Nx
+1	0	param:Destroy.AnnounceTitle
+1	0	other:Animate Abilities$ "_" is not an AB$ Play
+1	0	other:StaticEffect unread [SetName]
+1	0	param:Token.WithCountersAmount
+1	0	param:Token.WithCountersType
+1	0	other:PlayerCountOpponents$HasPropertyNotedForSilence
+1	0	count:RememberedNumber
+1	1	param:ChangeZone.WithTotalCMC
+1	1	other:CounterRemoved CounterType$ PNPN: its removal by damage and 
+1	1	other:AddStaticAbility Static: static mode AssignCombatDamageAsUnb
+1	1	other:AnimateAll Abilities$ "_": Counter is not a mana ability
+1	1	prop:ControlledBy RememberedController
+1	1	prop:leastToughness
+1	0	param:PutCounter.ConditionDefined
+1	1	prop:isCastFaceDown
+1	1	other:AddStaticAbility "_": more than one static
+1	1	prop:PowerUp
+1	1	other:ConniveNum Count({types=NxN Attacking})
+1	1	other:discard mode Random with DiscardValid$
+1	0	prop:CostsPhyrexianMana
+1	0	other:GainControl AllValid$ "_" reads Chosen
+1	0	other:RepeatEach body CardChoices$ "_"
+1	0	other:a Condition-gated mana ability beyond the Condition-split sh
+1	1	other:discard mode "_"
+1	1	other:Defined$ "_" outside an Attacks trigger
+1	1	other:DB$ Pump: Pump RememberObjects$ "_" beside [Defined]
+1	1	other:ChangesZoneAll Graveyard->Exile
+1	0	other:ChangeZone Optional$ on a Self Battlefield->Exile move
+1	0	param:Untap.Radiance
+1	0	param:UntapAll.ActivationPhases
+1	0	param:UntapAll.CheckSVar
+1	0	param:DealDamage.ExcessDamageCondition
+1	1	kw:Exalted
+1	1	prop:attackingBattle
+1	1	prop:ProtectedBy TriggeredTarget
+1	0	other:Graveyard,Exile pick ChangeNum$ CountGraveyard({types=NxN ow
+1	0	other:SVar X="_": value head PlayerCountHasLost$
+1	0	prop:withoutRampage
+1	0	kw:Rampage
+1	0	param:ChangeZone.NoShuffle
+1	0	prop:startedTheTurnUntapped
+1	0	stat:MaxCounter
+1	1	repl:dies-to-exile rider PutCounter
+1	1	other:SVar CardsToGraveyard="_": PlayerCountOpponents$ConditionGEN
+1	0	other:SVar RavingXOpp="_": value modifier "_"
+1	1	other:SharedKeywordsZone$ family keyword: Akroma, Angel of Fury pr
+1	0	other:hand move ChangeNum$ X
+1	1	other:random graveyard move ChangeNum$ X
+1	1	kw:Protection from EachCMCAmongDefined
+1	1	kw:Battle cry
+1	0	param:CopyPermanent.TokenTapped
+1	1	other:replacement unread params [FirstExtraCardDrawnThisTurn]
+1	0	other:RememberLKI$ with an owner read
+1	0	other:CounterRemovedOnce CounterType$ TIME on the battlefield
+1	1	prop:NotedColor
+1	1	count:LifeYourTeamGainedThisTurn
+1	0	other:GainControl AllValid$ "_" reads Targeted
+1	1	prop:AttachedTo Creature.attacking
+1	0	prop:numTypesGEN
+1	1	other:PutCounter unread params [UnlessCost UnlessPayer UnlessSwitc
+1	1	prop:sharesCreatureTypeWith Remembered
+1	1	other:AnimateAll Abilities$ "_": ABRegen is not a mana ability
+1	1	param:ChangeZone.AttachedTo
+1	1	other:SetLife Redistribute$
+1	1	other:divided PutCounter outside the ability's root target declara
+1	0	other:ChooseSource UnlessCost$ (any player may pay before the pick
+1	1	other:shuffled move from Exile
+1	1	prop:SharesColorWith Valid Creature.Legendary
+1	0	other:Proliferate RememberPut$
+1	1	param:Animate.RememberAnimated
+1	1	other:RaiseCost "_" (mana part)
+1	1	other:ChooseColor outside an as-enters replacement: a Token sub-ab
+1	0	other:SearchedLibrary Secondary$
+1	0	stat:DrawFromBottom
+1	1	prop:attacking Valid Planeswalker.OppCtrl
+1	0	other:SVar XJockey="_": PlayerCountPropertyYou$LandsPlayed
+1	1	other:instr N TapAll: named clause "_" names N pool entries
+1	1	other:SVar X="_": TargetedController$LandsInGraveyard
+1	0	prop:!wasCastFromExile
+1	0	other:AbilityCast trigger on an Effect
+1	1	other:SVar SameType="_": Remembered$SharesCardTypes
+1	1	other:SVar X="_": value head TriggeredActivator$
+1	1	prop:MostProminentColor white
+1	1	other:SVar X="_": TriggeredSpellAbility$TimesKicked
+1	1	other:AddStaticAbility RuneFlightST: granted Continuous static has
+1	1	other:AddStaticAbility RuneMightST: granted Continuous static has 
+1	1	other:AddStaticAbility RuneMortalityST: granted Continuous static 
+1	1	other:AddStaticAbility RuneSpeedST: granted Continuous static has 
+1	1	other:AddStaticAbility RuneSustenanceST: granted Continuous static
+1	0	other:DigUntil ImprintFound$ without the random-order bottom of th
+1	0	other:ExcessSVar condition
+1	1	other:ValidCause$ "_" on a ChangesZone trigger
+1	1	other:Effect trigger RememberObjects$ Targeted over a pair: the Ef
+1	0	kw:Partner
+1	1	other:N mana abilities: mana ability N (cost {N}, produces GW) is 
+1	0	param:PreventDamage.Activator
+1	1	stat:IgnorePlaneswalkerZeroLoyaltyRule
+1	1	other:Panharmonicon with a Condition$ / IsPresent$ / CheckSVar$ ga
+1	1	other:SVar X="_": Remembered$ChromaSource.Blue
+1	0	param:Token.Activator
+1	1	count:Initiative
+1	1	other:Revolt$ "_"
+1	1	other:EachDamage target slot N: not one object
+1	1	other:EachDamage to Triggered
+1	1	param:Token.ConditionChosenColor
+1	0	param:CopyPermanent.AtEOTCondition
+1	0	param:CopyPermanent.AtEOTDesc
+1	0	param:Charm.ActivationPhases
+1	0	param:Charm.PlayerTurn
+1	1	param:AddTurn.SkipUntap
+1	1	param:Fight.TargetsAtRandom
+1	0	param:Discard.Activator
+1	1	other:filter "_": webSlinged outside a battlefield-entering trigge
+1	0	param:DamageAll.ActivationPhases
+1	0	param:DamageAll.CheckSVar
+1	1	other:SVar X="_": SVar$Y="_": PlayerCountPlayers$HighestLifeTotal
+1	1	other:SVar X="_": TriggeredAttacker$Valid Card.attacking Opponent
+1	1	other:MoveCounter CounterNum Any
+1	0	param:ChooseCard.ChoiceDesc
+1	0	param:ChooseCard.ImprintChosen
+1	1	other:N mana abilities: mana ability N (cost {N}, produces U) is n
+1	1	prop:blockedValidThisTurn Creature.Blue
+1	0	prop:ControlledBy ParentTargetedController
+1	0	other:ChooseColor outside an as-enters replacement: a RepeatEach s
+1	1	other:CopyPermanent Choices$ beside Pawprint$
+1	0	prop:couldAttackButNotAttacking
+1	0	other:SVar X="_": value head TriggerRemembered$Valid Card.nonLand
+1	1	param:ChangeZone.DifferentCMC
+1	1	prop:SecondSpellCastThisTurn
+1	1	param:static.ManaRestriction
+1	1	other:AddStaticAbility SedgeSliverST: granted Continuous static ha
+1	1	count:wasCastFromYourHand
+1	1	param:AddTurn.PlayerTurn
+1	0	other:ChangesZoneAll dies of {types=NxN ctrl=N
+1	0	types=NxN ctrl=N}
+1	1	other:chosen-colour ProtectionAll ValidPlayers$
+1	1	other:RepeatEach body RememberObjects$ "_"
+1	0	other:DamageMap$ True with DamageSource$: the kernel has no damage
+1	1	trig:DamagePreventedOnce
+1	1	other:mana ability cost T+Mana: a fee-funded Combo Any production 
+1	0	prop:sharesCardTypeWith Imprinted
+1	1	other:RemoveCounter Choices$ with UpTo$
+1	1	other:SVar X="_": TriggerObjectsCurrentCastSpells$Valid Sorcery,In
+1	1	other:AttackerUnblocked TriggerZones N
+1	1	param:trigger.DefendingPlayerPoisoned
+1	1	api:ExchangePower
+1	1	other:Shuffle Defined$ RememberedOwner after a ToLibrary Remember 
+1	0	param:Goad.NoLonger
+1	0	param:DamageResolve.RememberDamaged
+1	0	param:DamageResolve.ReplaceDyingDefined
+1	1	other:AnimateAll Abilities$ "_": ABPump is not a mana ability
+1	1	other:instr N ChooseMove: power compare against a value
+1	0	other:SVar X="_": RememberedLKI$GreatestCardPower
+1	0	other:RepeatEach greatest-power ChooseCard shape
+1	1	other:Effect static mode CantPlayLand without RememberObjects$
+1	0	other:Animate Toughness$ "_": SVar X="_": TriggeredAttacker$CardTo
+1	0	other:Animate Power$ "_": SVar Y="_": value head TriggeredBlocker$
+1	1	other:ChangeZone Attacking$ "_"
+1	1	other:Defined$ "_": controlsCreature with a count suffix or conjun
+1	1	other:library position N of Equipped from Battlefield
+1	0	param:ChangeZone.TargetValidTargeting
+1	0	prop:DamagedBySpider.YouCtrl
+1	1	prop:ControllerControlsLand_LEN
+1	1	other:GainControl static affected {types=NxN Remembered}
+1	0	prop:IsTargeting Valid Permanent
+1	0	other:SVar NumInLib="_": TriggeredTarget$CardsInLibrary
+1	0	other:ChooseSource without its prevention Effect
+1	1	other:Effect AsLongAsControl untap target slot N
+1	1	other:AnimateAll Abilities$ "_": ShovingMatch is not a mana abilit
+1	1	other:SVar X="_": Sacrificed$CardCounters.CHARGE
+1	0	count:MaxCombatDamageThisTurn
+1	1	param:EachDamage.DamageDesc
+1	1	other:ChangeType$ move Battlefield->Exile without Hidden$
+1	1	prop:exploited
+1	1	other:random graveyard move with ForgetOtherRemembered$
+1	0	other:Effect static MustAttack param AffectedZone without Remember
+1	1	other:activation condition Value(opN,OppsLostLife(n=N),N) on a gra
+1	1	other:mana ability cost Discard: the kernel's mana walk cannot act
+1	1	other:graveyard pick DefinedPlayer$ "_": ChangeZone DefinedPlayer$
+1	1	other:N mana abilities: mana ability N (cost {N}, produces RW) is 
+1	1	kw:MustBeBlockedBy Creature.Eldrazi
+1	1	other:DB$ DealDamage: value head Spawner>SVar$
+1	1	other:Animate Power$ "_": SVar X="_": value head Discarded$CardMan
+1	1	param:LoseLife.AILifeThreshold
+1	1	prop:NotedNameSmugglerCaptain
+1	0	other:SVar Y="_": PlayerCountOpponents$ConditionGEN ThisTurnEntere
+1	0	other:SVar X="_": PlayerCountOpponents$ConditionGEN CardsDrawn: on
+1	0	param:trigger.APlayerHasMostCardsInHand
+1	0	param:Regenerate.RememberObjects
+1	1	kw:Harmonize
+1	1	other:MinMaxBlocker ValidCard "_"
+1	1	other:RearrangeTopOfLibrary NumCards X
+1	0	prop:ClassLevelUp
+1	1	other:SVar Z="_": PlayerCountPlayers$HighestLifeTotal
+1	1	other:AnimateAll Abilities$ "_": ABControl is not a mana ability
+1	0	other:WithCountersAmount$ on a graveyard pick
+1	0	other:SVar X="_": PlayerCountPlayers$LowestValid Creature.YouCtrl
+1	0	param:DamageAll.XMax
+1	0	param:SacrificeAll.Activator
+1	1	param:Mana.Optional
+1	1	prop:delved
+1	0	prop:CanEnchantRemembered
+1	0	kw:HIDDEN CARDNAME can't attack or block.
+1	1	other:Effect static mode CantPhaseOut
+1	0	other:unknown zone "_"
+1	0	other:Pump RememberObjects$ ThisTargetedCard in a nested or modal 
+1	1	other:Play from Graveyard without Amount$ N
+1	1	prop:Other.YouOwn
+1	1	prop:WithSameName
+1	1	prop:FromTopGrave
+1	0	param:Draw.Amount
+1	0	prop:NotedGuessPhantasm
+1	0	prop:sharesCardTypeWith Targeted
+1	0	other:ChooseCard ValidTgts$ "_" with TgtZone$
+1	1	other:Discarded ValidCause$ "_" beside ValidCard$ "_"
+1	1	other:Effect DamageDone trigger ValidTarget other than Player
+1	1	other:Defined$ TargetedAndYou with ValidTgts$ "_"
+1	1	other:UnlessResolveSubs inside a guarded node
+1	1	param:static.AddNames
+1	1	other:ConniveNum CreaturesDied
+1	0	prop:TriggeredAttackers
+1	1	prop:!namedStaff of Eden; Vault's Key
+1	0	param:ChoosePlayer.Secretly
+1	1	other:alternative cost with an exile part other than ExileFromHand
+1	1	other:mana ability cost T+PayLife+Mana: the kernel's mana walk can
+1	0	param:CopyPermanent.AttachedTo
+1	0	param:CopyPermanent.RememberTokens
+1	1	prop:AttachedBy Communicator
+1	0	other:foretell cost "_"
+1	1	other:RepeatEach body ClearRemembered$ "_"
+1	1	prop:blockingValid Goblin
+1	1	kw:OnlyUntapChosen
+1	1	other:TargetsWithDefinedController$ TriggeredDefendingPlayer outsi
+1	1	other:SVar X="_": value head Discarded$CardMulticolor.N.N
+1	1	other:AddTrigger of mode AttackerBlocked
+1	1	repl:DamageDone self replacement IsCombat
+1	0	param:PumpAll.PumpZone
+1	0	prop:ControlledBy DelayTriggerRemembered
+1	1	stat:GainLifeRadiation
+1	0	other:RepeatEach body RevealDefined$ "_"
+1	0	prop:lowestRememberedCMC
+1	1	other:SVar X="_": TriggerObjectsAttackers$Amount outside a batch A
+1	1	other:SVar NumScrolls="_": Targeted$CardCounters.PNPN
+1	1	other:divided PutCounter shape (CounterNum$ "_", TargetMax$ "_", T
+1	1	other:GainControl AllValid$ "_": negated IsCommander
+1	1	other:ChooseColor outside an as-enters replacement: a DamageAll su
+1	1	other:SVar X="_": PlayerCountOpponents$HasPropertycontrolsPermanen
+1	0	param:DealDamage.CheckSVar
+1	0	param:DealDamage.SVarCompare
+1	1	prop:MostProminentColor green
+1	0	other:PlayerCountOpponents$HasPropertycontrolsCreature.powerGEN
+1	0	other:SVar X="_": ExiledWith$Colors
+1	1	other:Effect static mode CantPutCounter
+1	1	param:ChooseCard.EachBasicType
+1	1	other:chosen-colour Effect RememberObjects$ "_"
+1	0	other:TriggerZones$ Graveyard over Mode$ DayTimeChanges: the kerne
+1	1	other:StaticEffect unread [AddAbility RemoveSubTypes]
+1	0	other:SVar Y="_": value head TriggerRemembered$CardPower outside a
+1	0	other:targeted ChangeZone without Origin
+1	0	other:SVar TotalPower="_": ExiledWith$CardPower
+1	0	other:ETB replacement api Cleanup
+1	1	other:SVar DBSize="_": value head TriggerRemembered$Amount outside
+1	1	other:SVar X="_": PlayerCountPlayers$HighestCardsInGraveyard
+1	1	other:instr N Search: RememberChanged$ on a search into a library
+1	1	other:ChangeZone Optional$ "_"
+1	0	prop:DrawnThisTurn
+1	0	param:PutCounter.RememberPut
+1	0	count:LeftGraveyardThisTurn
+1	1	other:activation condition Present({types=NxN ctrl=N owner=N cmp(N
+1	1	other:RearrangeTopOfLibrary RearrangePlayer$
+1	0	count:DamageAmount
+1	0	other:DamageDone DamageAmount$ "_"
+1	1	other:SVar X="_": PlayerCountPlayers$LifeLostThisTurn
+1	1	prop:sharesCreatureTypeWith Self
+1	0	param:Effect.OpponentTurn
+1	0	stat:CantDiscard
+1	0	param:Tap.Tapper
+1	0	param:DealDamage.Activator
+1	0	other:Reveal NumCards$ Count({types=NxN sub=Goblin ctrl=N})
+1	1	cost:2U
+1	0	prop:hasAbility Activated.otherAbility
+1	0	param:PumpAll.AtEOT
+1	1	other:may-flash cost "_"
+1	1	repl:Proliferate replacement
+1	1	cost:LifeTotalHalfUp
+1	1	other:ChangeZone DefinedPlayer$ Opponent
+1	0	other:SVar X="_": value head PlayerCountRememberedController$
+1	0	other:SVar X="_": value head PlayerCountRememberedOwner$
+1	1	prop:inRealZoneGraveyard
+1	1	other:SVar X="_": TriggeredDefendingPlayer$CardsInLibrary
+1	1	kw:Unleash
+1	0	other:SetState Transform with ValidTgts$
+1	1	param:Animate.AITgtsStrict
+1	0	param:trigger.ValidActivatingPlayer
+1	1	prop:doesNotShareNameWith Card.token
+1	1	count:SacrificedThisTurn
+1	0	param:trigger.TargetRelativeToSource
+1	0	param:Token.AddTriggersFrom
+1	0	other:Defined$ ExiledWith with Optional$
+1	0	repl:dies-to-exile rider GainLife
+1	0	other:GenericChoice of the controller below a triggered ability's 
+1	0	param:static.GainsAbilitiesLimitPerTurn
+1	0	other:granted mana ability with a dynamic amount
+1	1	prop:wasDealtDamageByThisGame
+1	1	other:two ChoiceRestriction$ charms on one card
+1	1	other:OriginAlternative$ with ChangeNum$ N
+1	1	other:hand move ChangeNum$ PowerOf(Sacrificed)
+1	0	prop:nonCopiedSpell
+1	1	other:Effect static mode CombatDamageToughness without RememberObj
+1	1	other:instr N PumpUntilEOT: ControlledBy TriggeredDefendingPlayer 
+1	0	param:trigger.ExcludedOrigins
+1	0	kw:MustBeBlockedBy Creature
+1	0	other:AddStaticAbility Masarmonicon: static unread params [ValidZo
+1	0	other:WithCountersType$ "_"
+1	0	prop:withSkulk
+1	0	stat:CantExile
+1	0	other:StaticEffect unread [RemoveCreatureTypes SetColor]
+1	0	trig:UntapAll
+1	0	param:Sacrifice.ConditionDefined
+1	1	other:SVar X="_": TargetedPlayer$ValidGraveyard Instant.YouOwn,Sor
+1	1	other:AffectedZone "_" without MayPlay (Dredge grant not modelled)
+1	1	other:Attacking$ in a chain with an optional target (gorge re-asks
+1	0	other:trigger Phase$ "_" includes the untap step (no priority; the
+1	1	other:SVar X="_": PlayerCountPlayers$CardsDiscardedThisTurn
+1	0	prop:OwnedBy Spawner>TriggeredTarget
+1	0	other:SVar Z="_": value head TriggerObjectsCards$
+1	1	repl:DamageDone doubler ValidSource "Creature.EnchantedBy"
+1	0	other:public pick ChangeNum$ -RememberedCount(ctx)-N
+1	0	prop:sharesCardTypeWithOther Remembered
+1	0	param:trigger.TargetMax
+1	0	param:trigger.TargetMin
+1	0	count:ScryBottom
+1	0	other:Scry trigger ToBottom$
+1	1	other:ChooseNumber Guesser$: the secret election is not modelled
+1	0	param:ExchangeControl.Optional
+1	0	param:static.AdditionalVillainousChoice
+1	0	trig:PhaseOutAll
+1	0	param:DealDamage.RememberDamaged
+1	0	param:DealDamage.ReplaceDyingDefined
+1	1	other:instr N Return: counter kind "_"
+1	1	param:trigger.OpponentTurn
+1	0	other:SVar Y="_": Imprinted$CardManaCost
+1	0	other:hand move filter {types=NxNf notsub=Saga} may admit an Aura
+1	1	prop:blockingAlone
+1	0	prop:!dealtCombatDamageThisTurn Creature
+1	1	other:ChangesZoneAll dies of {types=NxN all=NxN ctrl=N}
+1	1	other:RemoveCounter Any CounterNum Count({types=NxN sub=Elf ctrl=N
+1	0	param:DigUntil.MaxRevealed
+1	1	other:ChangeZoneAll Origin$ Hand,Graveyard outside Destination$ Li
+1	0	prop:NamedCard/Times.N
+1	0	prop:SharesCMCWith Imprinted.ExiledWithSource
+1	1	other:SVar X="_": PlayerCountOpponents$HighestCardsDrawn
+1	1	kw:Trample
+1	0	param:ChangeZone.DifferentPower
+1	1	param:Draw.ManaRestriction
+1	0	other:second exile cost part "_"
+1	1	prop:!namedTiamat
+1	0	prop:doesNotShareNameWith Remembered
+1	0	param:Counter.Activator
+1	0	param:trigger.Mandatory
+1	1	other:Phases PhaseInOrOut$
+1	1	prop:blockedValidThisTurn Zombie
+1	0	other:warp cost "_"
+1	1	other:teamwork condition compare "_"
+1	0	param:GainLife.ConditionLifeAmount
+1	0	param:GainLife.ConditionLifeTotal
+1	0	other:AddTurn Defined$ "_"
+1	1	cost:PutCardToLibFromBattlefield
+1	0	other:SVar X="_": PlayerCountOpponents$CardsDiscardedThisTurn
+1	0	other:SVar Y="_": value head Revealed$
+1	1	count:LifeYouGainedThisTurn
+1	0	other:CantTarget AffectedZone "_"
+1	1	other:AddStaticAbility PWTomik: static mode AttackRestrict
+1	0	other:DamageAll DamageSource$ ParentTarget names a slot that is no
+1	1	other:SVar HalfLife="_": TargetedPlayer$StartingLife
+1	1	count:CardCounters
+1	0	other:SVar Y="_": value head SVar$CostCountersRemoved names no SVa
+1	1	other:N mana abilities: mana ability N (cost none, produces RWB) i
+1	0	other:SetState Transform Choices$ with Amount$
+1	1	other:global lose-all override over non-creatures
+1	1	param:Untap.OpponentTurn
+1	1	prop:!equipped
+1	0	param:DigUntil.ForgetOtherRemembered
+1	1	other:mana ability cost T+Sac+Mana: the kernel's mana walk cannot 
+1	1	prop:WithDifferentNames
+1	0	other:SVar Y="_": RememberedLKI$CardManaCost over a set not writte
+1	0	other:SVar X="_": SVar$Y="_": RememberedLKI$CardManaCost over a se
+1	0	other:ChangeZoneAll Origin$ Graveyard,Hand with IsPresent$
+1	1	repl:DamageDone self prevention ValidSource "Creature.inZoneBattlefield+withFirst Strike"
+1	1	other:ChooseColor outside an as-enters replacement: a GainLife sub
+1	1	other:Counter-lose Effect ForgetOnMoved$ "_"
+1	1	stat:SetCost
+1	1	prop:greatestPowerControlledByYou
+1	1	other:protection "_": quality {types=NxN Legendary}
+1	0	api:ElementalBend
+1	0	param:DigUntil.NoMoveFound
+1	0	param:DigUntil.NoneFoundDestination
+1	0	param:DigUntil.NoneFoundLibraryPosition
+1	0	param:DigUntil.ShuffleCondition
+1	1	other:delayed trigger without RememberObjects$: the body reads Rem
+1	1	repl:CopySpell replacement
+1	0	param:Charm.RandomCompare
+1	0	param:Charm.RandomCompareSVar
+1	1	param:Sacrifice.Random
+1	0	repl:dies-to-exile rider AddTurn
+1	0	other:resolution mana cost {NCC}
+1	1	other:resolution mana-and-exile cost of N cards
+1	1	prop:Disturb
+1	0	api:ChangeX
+1	0	param:trigger.HasXManaCost
+1	0	other:N mana abilities: mana ability N (cost none, produces WBGC) 
+1	1	other:ETB copy chained rider shape
+1	0	other:Condition$ OptionalCost with ConditionOptionalPaid "_"
+1	1	kw:HIDDEN During your next untap step, as you untap your permanents, return CARDNAME to its owner's hand.
+1	0	other:Attach Choices$ with RememberAttached$
+1	1	other:AttachedTo$ ParentTarget on a Target return
+1	1	prop:EquippedByTargeted
+1	1	other:shuffled move of several targets from Battlefield
+1	1	other:repeatable charm with N modes (the count byte holds N)
+1	1	prop:!Legendary
+1	1	other:ReplaceDyingDefined$ "_" on a Pump/Fight
+1	1	other:AddStaticAbility BurgeoningUntap: granted UntapOtherPlayer s
+1	1	other:SVar X="_": Targeted$CardCounters.PNPN
+1	1	prop:ManaCostN
+1	0	other:ChangesZone Battlefield->Exile with an optional pay-cost bod
+1	1	other:metalcraft-gated mana ability beside another mana ability
+1	1	param:Destroy.TargetsWithEqualToughness
+1	0	other:ETB replacement api Effect
+1	1	other:PutCounter unread params [ConditionCheckSVar]
+1	1	other:SVar X="_": PlayerCountPlayers$Counters.RAD
+1	1	other:SVar X="_": value head SVar$Result names no SVar
+1	1	prop:withLevel up
+1	1	other:Clone SetColor$ on the battlefield
+1	1	other:SVar X="_": TriggeredTarget$Counters.RAD
+1	1	other:Effect replacement ForgetOnMoved$ "_"
+1	1	param:Mill.Mode
+1	0	param:Token.AICheckSVar
+1	0	param:Token.AISVarCompare
+1	1	other:Effect static mode CantTarget
+1	1	other:AffectedZone Graveyard flashback grant with EffectZone "_"
+1	1	other:WithCountersAmount$ X on a library search
+1	1	param:Shuffle.Optional
+1	1	other:activation PlayerTurn$ "_" beside another condition
+1	1	param:PutCounter.AIActivateLast
+1	1	other:Graveyard,Exile pick ChangeNum$ RefCount({types=NxN},Remembe
+1	1	other:Clone unread params [Embalm]
+1	0	prop:withEmbalm
+1	1	other:SVar X="_": PlayerCountOpponents$HasPropertyhasFewerCreature
+1	1	param:trigger.NoColoredMana
+1	1	other:ThisDefinedAndTgts$ with LibraryPosition$
+1	1	other:TriggerZones$ Graveyard over Mode$ Proliferate: the kernel's
+1	0	other:SVar N="_": Targeted$ with no target slot
+1	0	param:DamageResolve.NoPrevention
+1	0	other:NoPrevention$ on a damage-map node
+1	0	other:echo cost "_" (only a plain mana cost, a default discard or 
+1	0	other:SVar X="_": Targeted$CardNumNotedTypes
+1	0	param:ChooseType.TypesFromDefined
+1	0	param:static.GainTextAbilities
+1	0	param:static.GainTextOf
+1	0	other:SVar X="_": value head TriggeredSpellAbility>TargetedObjects
+1	0	repl:AddCounter putter body
+1	1	other:Animate sVars$ "_"
+1	0	other:SVar Difference="_": value modifier "_": SVar X="_": Targete
+1	1	other:ConditionDefined$ Sacrificed without exactly one sacrifice p
+1	1	other:StaticEffect unread [AddAbility]
+1	0	prop:sharesBlockingAssignmentWith
+1	0	other:CantTarget SourceCanOnlyTarget$
+1	0	other:DigUntil ImprintFound$ of another player's library
+1	1	prop:attackedBattleThisTurn
+1	0	param:Draw.ActivationGameTypes
+1	0	count:ColorsColorIdentity
+1	1	other:target count N..Kicked(N,N)
+1	0	prop:dealtCombatDamageThisTurn Player
+1	1	param:static.ValidAttacked
+1	1	other:Clash branch "_" reads X
+1	1	api:MultiplePiles
+1	1	other:SVar X="_": Targeted$TotalDamageReceivedThisTurn
+1	1	other:SVar CreaturesEntered="_": PlayerCountOpponents$ConditionGEN
+1	0	kw:HIDDEN Damage that would be dealt to CARDNAME can't be redirected.
+1	1	other:Surveil trigger FirstTime$
+1	1	other:SVar X="_": TriggeredTarget$Counters.Poison
+1	1	other:UntapType$ with UntapExactly$
+1	0	param:Effect.Affected
+1	0	param:Effect.AffectedZone
+1	1	other:Play Defined$ ExiledWith with UnlessCost$
+1	1	prop:blockedOrBeenBlockedSinceYourLastUpkeep
+1	1	other:filter "_": "_": totalPT compare "_"
+1	0	other:public pick DefinedPlayer$ "_": ChangeZone DefinedPlayer$ Ch
+1	1	other:instr N Dig: counter kind "_"
+1	1	prop:withoutDecayed
+1	0	other:Effect static mode ReduceCost
+1	0	other:SVar Y="_": SVar$X="_": PlayerCountRemembered$Amount outside
+1	1	other:ChosenMode AddStaticAbility "_" Mode$ Panharmonicon
+1	0	other:Overload of a RememberLKI$ Exile: the sweep has no per-objec
+1	1	param:Untap.ConditionDefined
+1	1	prop:sharesNameWith Targeted
+1	1	param:Tap.RememberTargets
+1	0	param:Protection.Activator
+1	1	param:GainControl.TargetsAtRandom
+1	1	prop:dealtCombatDamageThisTurn You
+1	1	prop:leastPowerControlledByTriggeredDefendingPlayer
+1	1	other:SVar X="_": TriggerObjectsAttackers$CardPower outside a batc
+1	1	prop:hasANonBasicLandType
+1	0	other:RememberTargets on a Battlefield->Hand move
+1	0	other:shuffled move from Hand
+1	0	other:DrainMana Defined$ "_" is not a player selector
+1	0	other:ETB replacement without ReplaceWith
+1	0	prop:OwnedBy Player.TriggeredTarget
+1	1	other:Effect CantBlockBy RememberObjects LKICopy
+1	1	other:SVar Y="_": PlayerCountOpponents$HasPropertyIsCorrupted
+1	0	other:Pump TargetType "_" TgtZone "_" ValidTgts "_"
+1	0	other:exile pick ChangeNum$ CountExile({types=NxN Remembered
+1	0	typ
+1	0	param:Draw.AILifeThreshold
+1	1	prop:blockedValidThisTurn Creature.Legendary
+1	0	param:x.Defined
+1	0	stat:ManaBurn
+1	1	prop:MostProminentColor blue
+1	1	other:FirstCombat$ "_" on a Phase trigger
+1	0	prop:!ChosenCardStrict
+1	0	other:Effect DamageDone redirect ValidTgts$ "_" names a player
+1	1	other:SVar XPower="_": value head TriggerRemembered$CardPower outs
+1	1	param:static.LethalDamageByPower
+1	0	other:PutCounter Choices$ with Optional$
+1	1	other:Discover Defined$
+1	0	other:DamageDoneOnce ValidTarget "_" mixes players and objects

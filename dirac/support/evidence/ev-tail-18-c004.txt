@@ -1,10 +1,15 @@
 Agoraphobia
+Ancient Copper Dragon
 Arcbound Javelineer
 Aven Eternal
 Awaken the Bear
+Baird, Steward of Argive
+Bane's Invoker
+Baneslayer Angel
 Battle Mastery
 Beastmaster Ascension
 Befoul
+Beregond of the Guard
 Bessie, the Doctor's Roadster
 Biomass Mutation
 Bituminous Blast
@@ -12,10 +17,18 @@ Blacklance Paragon
 Bladebrand
 Blood-Toll Harpy
 Bloodcrusher of Khorne
+Bloodrage Brawler
+Blossoming Calm
+Blue Elemental Blast
+Boing!
+Bold Defense
+Boompile
+Breath of Darigaaz
 Bronzeplate Boar
 Capital Guard
 Claim the Firstborn
 Cloakwood Hermit
+Contaminated Aquifer
 Crimson Caravaneer
 Crooked Custodian
 Crossover Collaboration
@@ -25,11 +38,14 @@ Cut of the Profits
 Daring Piracy
 Dark Favor
 Deranged Hermit
+Diabolic Tutor
 Dictate of Karametra
 Die Young
 Drumbellower
 Dwarven Nomad
 Emerald Medallion
+Falcon Abomination
+Feral Invocation
 Filigree Familiar
 Flare
 Flicker
@@ -40,6 +56,7 @@ Gleeful Arsonist
 Glimpse of Nature
 Glorious Charge
 Goblin Bully
+Gods Willing
 Gore Swine
 Hammerhand
 High Priest of Penance
@@ -55,6 +72,7 @@ Krovikan Fetish
 Lava Flow
 Lavaborn Muse
 Loam Larva
+Mage-Ring Bully
 Magnify
 Masked Blackguard
 Mephitic Vapors
@@ -68,6 +86,7 @@ Ornithopter
 Owlbear Shepherd
 Pain
 Peace of Mind
+Pillar of War
 Pistus Strike
 Plains
 Profane Memento
@@ -77,25 +96,38 @@ Pyretic Charge
 Quilled Sliver
 Rain of Blades
 Ravenous Vampire
+Rime Transfusion
 Roiling Regrowth
 Said
 Sawblade Slinger
 Seal of Strength
+Seasoned Marshal
 Sergeant-at-Arms
 Shadowfeed
+Shinewend
+Shriekdiver
 Sigardian Savior
+Sinister Gnarlbark
+Skirk Prospector
+Skyline Cascade
 Slumbering Dragon
 Soulstealer Axe
 Spiteful Prankster
 Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
+Steel Leaf Champion
 Stronghold Overseer
 Swamp
 Swarm Surge
+Swarmborn Giant
 Sword of Forge and Frontier
+Tajuru Blightblade
 Take Inventory
 Thalakos Dreamsower
+The Fair Basilica
+The Juzam Master
+Thorn Mammoth
 Thoughtrender Lamia
 Time of Need
 Triceraton Regenta
@@ -105,6 +137,8 @@ Vicious Offering
 Village Rites
 Virtus the Veiled
 Wall of Distortion
+Wall of Hope
+Warped Landscape
 Whirlwind
 Wight of the Reliquary
 Wily Goblin

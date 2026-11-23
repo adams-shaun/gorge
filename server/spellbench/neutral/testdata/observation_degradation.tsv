@@ -43,3 +43,5 @@ stack[].kicks	28	rare
 players[].battlefield[].counters.Deathtouched	0	rare
 players[].exile[].types	0	rare
 stack[].card.keywords[]	0	rare
+players[].battlefield[].blocked	4	rare
+players[].graveyard_size	1	rare

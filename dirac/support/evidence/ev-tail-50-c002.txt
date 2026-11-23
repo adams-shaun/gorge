@@ -1,4 +1,6 @@
+A-Canopy Tactician
 A-Hall of Tagsin
+A-Jackhammer
 A-Urza's Command
 Aetheric Amplifier
 Agadeem Occultist
@@ -11,11 +13,14 @@ Angel of Retribution
 Arcane Investigator
 Argent Mutation
 Army of the Damned
+Arrogant Wurm
 Ashen Powder
 Augur of Bolas
 Auriok Glaivemaster
 Awakening of Vitu-Ghazi
 Baloth Woodcrasher
+Battered Golem
+Battle Hymn
 Belligerent Whiptail
 Berserk Murlodont
 Bladeback Sliver
@@ -29,12 +34,16 @@ Boneshard Slasher
 Boomerang
 Bramblewood Paragon
 Branching Evolution
+Briber's Purse
 Brinebarrow Intruder
+Broodhunter Wurm
+Bull Aurochs
 Burning Oil
 Byway Courier
 Cabal Archon
 Cabal Pit
 Canopy Spider
+Capricious Sliver
 Careful Study
 Casting of Bones
 Cathartic Adept
@@ -42,12 +51,14 @@ Cemetery Reaper
 Centaur Peacemaker
 Certain Death
 Chandra's Fury
+Chandra's Revolution
 Charge Across the Araba
 Chocobo Knights
 Citanul Stalwart
 Cloakwood Swarmkeeper
 Combat Research
 Condemn
+Conifer Wurm
 Converter Beast
 Corpse Connoisseur
 Crackling Club
@@ -58,12 +69,14 @@ Cyclops of One-Eyed Pass
 Dark Heart of the Wood
 Dawn of the Dead
 Descendant of Masumaro
+Desert of the Fervent
 Deviant Glee
 Dina, Essence Brewer
 Doom Whisperer
 Dovin's Veto
 Draconic Disciple
 Dragon Mantle
+Dragonlord Atarka
 Dread Statuary
 Dross Hopper
 Drove of Elves
@@ -73,22 +86,27 @@ Elspeth's Nightmare
 Elvish Farmer
 Elvish Lyrist
 Elvish Visionary
+Emmessi Tome
 Empyrial Armor
 Evolution Charm
 Excavation Mole
 Explosive Impact
+Extra Arms
 Falkenrath Pit Fighter
 Fang Dragon
 Fervent Strike
 Festering Mummy
 Final Parting
 Flamecast Wheel
+Flowstone Mauler
 Forebear's Blade
 Forest
 Frost Trickster
 Fully Grown
 Furious Reprisal
 Furnace Hellkite
+Fyndhorn Bow
+Galvanic Discharge
 Garruk's Companion
 Geist of the Archives
 Gimli, Counter of Kills
@@ -101,6 +119,7 @@ Grasp of Fate
 Grasping Scoundrel
 Grim Physician
 Grim Reaper's Scythe
+Gruul Nodorog
 Guardians' Pledge
 Gush
 Gut Shot
@@ -112,6 +131,7 @@ Heartfire
 Hero of the Pride
 Hive Stirrings
 Hookhand Mariner
+Howling Giant
 Hurly-Burly
 Hymn of Rebirth
 Ichor Synthesizer
@@ -127,6 +147,7 @@ Kaijin of the Vanishing Touch
 Karplusan Forest
 Kavu Lair
 Kessig Flamebreather
+Khorvath Brightflame
 Kithkin Greatheart
 Knight of Sorrows
 Kobold Drill Sergeant
@@ -136,11 +157,13 @@ Kraul Foragers
 Krenko, Tin Street Kingpin
 Lead by Example
 Library
+Lithomantic Barrage
 Lochmere Serpent
 Loki's Scepter
 Long-Finned Skywhale
 Lord of the Undead
 Lu Bu, Master-at-Arms
+Magmatic Scorchwing
 Make Mischief
 Mana Seism
 Manor Gate
@@ -148,24 +171,34 @@ Marble Gargoyle
 Mardu Warshrieker
 Mesa Cavalier
 Metallic Mimic
+Mindblaze
 Moldering Karok
 Monastery Swiftspear
 Morningtide
 Mother of Runes
 Mountain
+Mox Sapphire
 Natural Affinity
+Needle Drop
 Neurok Replica
 Nightwind Glider
+Noble Hierarch
 Noose Constrictor
 Novablast Wurm
 Nurturing Licid
 Oath of Mages
 Oathsworn Giant
+Obelisk of Undoing
+Ogre's Cleaver
+Oil-Gorger Troll
 Ondu Champion
+Orcish Hellraiser
 Outpost Siege
 Paradigm Shift
+Parch
 Passwall Adept
 Perilous Research
+Petrified Wood-Kin
 Phyrexian Broodstar
 Plaguemaw Beast
 Plains
@@ -176,10 +209,13 @@ Prime Speaker Vannifar
 Prodigy's Prototype
 Prophetic Ravings
 Proud Mentor
+Prowler's Helm
 Prowling Pangolin
+Puncture Blast
 Pygmy Pyrosaur
 Pyre Charger
 Rampaging Cyclops
+Raph's Bravado
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -190,19 +226,29 @@ Revive the Shire
 Riptide
 Riverglide Pathway
 Robe of Mirrors
+Roc of Kher Ridges
+Ronin Houndmaster
 Rotted Hulk
 Roving Harper
+Rulik Mons, Warren Chief
+Runaway Trash-Bot
 Runed Servitor
 Sabertooth Alley Cat
 Sagu Archer
 Sandstone Bridge
+Savage Twister
+Scaretiller
+Scrapwork Rager
+Scrapyard Steelbreaker
 Scrollshift
 Segmented Wurm
 Seller of Songbirds
 Seshiro the Anointed
 Shadowbeast Sighting
 Sheltering Word
+Shire Scarecrow
 Shivan Harvest
+Shrapnel Slinger
 Shuko
 Sigarda, Champion of Light
 Skeleton Crew
@@ -216,14 +262,18 @@ So Shiny
 Soratami Mindsweeper
 Spider-Man, New Champion
 Spiked Baloth
+Spitting Earth
 Spitting Slug
 Steamclaw
 Stern Proctor
 Stonefury
+Stonework Puma
 Storm Fleet Sprinter
 Stroke of Genius
 Summoner's Sending
+Sunhome, Fortress of the Legion
 Sunscape Apprentice
+Sunset Pyramid
 Survivor of the Unseen
 Swamp
 Swarmyard
@@ -235,7 +285,9 @@ Temporal Machinations
 Thalia's Lieutenant
 The Rack
 Thirsting Bloodlord
+Thopter Squadron
 Thor, Asgard's Avenger
+Tolarian Academy
 Touch of Brilliance
 Towering-Wave Mystic
 Traitor's Clutch
@@ -243,6 +295,7 @@ Traveling Minister
 Tremble
 Undead Warchief
 Unfriendly Fire
+Urn of Godfire
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
@@ -250,20 +303,27 @@ Veteran of the Depths
 Village Bell-Ringer
 Vindictive Mob
 Vivid Flying Fish
+Volcanic Rush
+Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
 Wall of Ice
+Wandering Goblins
 Warlock Class
 Warpath
 Wary Okapi
 Watcher of the Spheres
+Watchful Radstag
+Wayward Guide-Beast
 Wicker Witch
+Wild Guess
 Wildwood Geist
 Wind-Kin Raiders
 Wirewood Hivemaster
 Wish Good Luck
 Wolfrider's Saddle
 Yavimaya Hollow
+Zhur-Taa Ancient
 Zodiac Dog
 Zodiac Horse

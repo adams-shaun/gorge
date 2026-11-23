@@ -17,6 +17,7 @@ Appa, Aang's Companion
 Arden Angel
 Ardenvale Tactician
 Armored Galleon
+Arwen, Weaver of Hope
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
@@ -29,9 +30,11 @@ Bartolomé del Presidio
 Basilica Screecher
 Beanstalk Giant
 Beast Mode
+Beast Walkers
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
+Blanket of Night
 Blazing Sunsteel
 Blinding Drone
 Blitz Leech
@@ -52,6 +55,7 @@ Cackling Counterpart
 Capashen Knight
 Carnifex Demon
 Cathars' Crusade
+Cathodion
 Censor
 Charix, the Raging Isle
 Chitinous Cloak
@@ -71,6 +75,7 @@ Corrupt Eunuchs
 Court of Grace
 Crater Hellion
 Crawling Chorus
+Crawling Filth
 Crucible of Fire
 Cryptic Serpent
 Crystal Chimes
@@ -150,6 +155,7 @@ Goblin Masons
 Goblin Piledriver
 Golgari Thug
 Gorehorn Minotaurs
+Grand Melee
 Grave Upheaval
 Gravedig
 Greatsword
@@ -264,6 +270,7 @@ Order of the Ebon Hand
 Order of the Stars
 Oswald Fiddlebender
 Pain Seer
+Palace Jailer
 Patron of the Arts
 Persistent Specimen
 Pile On
@@ -291,6 +298,7 @@ Rootbound Crag
 Roterothopter
 Rubble Reading
 Ruin Crab
+Rune of Protection: Black
 Runed Stalactite
 Ryusei, the Falling Star
 Saber Ants
@@ -357,6 +365,7 @@ Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
+Torii Watchward
 Treefolk Harbinger
 Treefolk Healer
 Tunneling Geopede

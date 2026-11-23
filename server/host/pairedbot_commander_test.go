@@ -87,6 +87,7 @@ type PairedStatusView = protocol.PairedBotStatus
 // The real closed search, over a belief of Commander decks, advises a human at
 // a 2-seat Commander table.
 func TestPairedBotAdvisesACommanderTable(t *testing.T) {
+	t.Parallel()
 	adviseCommanderTable(t, 2, &bots.Entry{
 		Info: bots.Info{Name: "test-commander", Tier: bots.Experimental, Env: true, Search: true, ClosedLists: true,
 			Formats: []string{"commander"}, MaxSeats: 2},
@@ -97,6 +98,7 @@ func TestPairedBotAdvisesACommanderTable(t *testing.T) {
 // table at the default offers it, and a priority decision is advised with a
 // search.
 func TestPairedBotAdvisesAFourSeatCommanderTable(t *testing.T) {
+	t.Parallel()
 	adviseCommanderTable(t, 4, &bots.Entry{Info: azredeal.ClosedMaxNInfo(4)},
 		func(b *searchprobe.Belief) bots.Factory { return azredeal.ClosedMaxNFactory(b, 4) })
 }

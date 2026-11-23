@@ -19,7 +19,7 @@ func (s *State) endTurnExile() {
 			s.touch(x.obj)
 			ob := &s.objs[x.obj]
 			ob.zone = kop.ZoneNone
-			s.placeFrom(x.obj, kop.ZoneExile, false, kop.ZoneStack, false)
+			s.placeFrom(x.obj, kop.ZoneExile, false, kop.ZoneStack, false, false)
 		}
 	}
 }

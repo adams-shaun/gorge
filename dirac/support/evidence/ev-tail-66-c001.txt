@@ -94,6 +94,7 @@ Elvish Hexhunter
 Elvish Reclaimer
 Elvish Vanguard
 Etherium Astrolabe
+Exploding Barrel
 Explosive Welcome
 Extortion
 Extractor Demon
@@ -139,9 +140,11 @@ Grizzly Fate
 Gruul Keyrune
 Guise of Fire
 Haazda Marshal
+Haazda Shield Mate
 Haru-Onna
 Haunted Angel
 Haunting Hymn
+Haytham Kenway
 Hazoret the Fervent
 Headless Horseman
 Heaven Sent

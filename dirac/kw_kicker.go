@@ -28,21 +28,32 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugKickerCostFree bool
 
 // kickerCostPick is the cost whose pick parts a kicked spell owes (its
-// CardDef.KickerCost), or nil.
-func kickerCostPick(k *prep, e *stackEntry) *kop.Cost {
+// CardDef.KickerCost, or a Squad/Replicate payment's non-mana part scaled to
+// the answered count), or nil.
+func (s *State) kickerCostPick(k *prep, e *stackEntry) *kop.Cost {
 	if e.flags&sfKicked == 0 || DebugKickerCostFree {
 		return nil
 	}
-	if cd := &k.t.Cards[e.card]; cd.KickerCost.Flags != 0 {
+	cd := &k.t.Cards[e.card]
+	if rc := repeatPart(cd); rc != nil {
+		return s.repeatPickCost(cd, s.multikickCount(e)) // kw_squadreplicate.go
+	}
+	if cd.KickerCost.Flags != 0 {
 		return &cd.KickerCost
 	}
 	return nil
 }
 
 // kickerCostOffer: p may cast o (card c) kicked: the kicker's sacrifice or
-// return has a candidate (gorge offerCastable over base + kicker). A card
-// without a kicker cost is always true.
+// return, or a Squad/Replicate payment's non-mana part, has one candidate
+// (gorge offerCastable over base + the payment). A card without such a cost
+// is always true.
 func (s *State) kickerCostOffer(k *prep, p uint8, c CardID, o Obj) bool {
-	kc := &k.t.Cards[c].KickerCost
+	cd := &k.t.Cards[c]
+	if rc := repeatPart(cd); rc != nil {
+		one, ok := repeatScale(*rc, 1)
+		return ok && s.pickCostPayable(k, p, &one, o)
+	}
+	kc := &cd.KickerCost
 	return kc.Flags == 0 || s.pickCostPayable(k, p, kc, o)
 }

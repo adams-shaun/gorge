@@ -583,7 +583,16 @@ func (e *Encoder) addCard(s *dirac.State, o dirac.Obj, z uint8) int32 {
 func (e *Encoder) cardView(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 	line := s.Line()
 	h := &e.ohint[o]
-	if line != 0 && h.line == line && h.z == z && h.ctx == e.ctx && h.vc != nil &&
+	// a hint is valid only for the same control-record keywords: a control
+	// record's haste (FeatCtrlKw) is not an object write, so ChangedSince
+	// does not see it come or go
+	hc := e.ctx
+	if z == zBattlefield {
+		if kw := s.FeatCtrlKw(o); kw != 0 {
+			hc = mix64(hc, uint64(kw)|0x6374726c6b77<<16)
+		}
+	}
+	if line != 0 && h.line == line && h.z == z && h.ctx == hc && h.vc != nil &&
 		!s.ChangedSince(o, h.at) {
 		if vc := e.useView(h.key); vc != nil {
 			h.vc = vc
@@ -592,12 +601,12 @@ func (e *Encoder) cardView(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 	}
 	if e.hbase != nil {
 		r := &e.oroot[o]
-		if r.epoch == s.Epoch() && r.z == z && r.ctx == e.ctx && r.vc != nil &&
+		if r.epoch == s.Epoch() && r.z == z && r.ctx == hc && r.vc != nil &&
 			!s.Changed(o) {
 			if vc := e.useView(r.key); vc != nil {
 				r.vc = vc
 				if line != 0 {
-					h.line, h.at, h.ctx, h.key, h.vc, h.z = line, s.Touches(), e.ctx, vc.key, vc, z
+					h.line, h.at, h.ctx, h.key, h.vc, h.z = line, s.Touches(), hc, vc.key, vc, z
 				}
 				return vc
 			}
@@ -605,11 +614,11 @@ func (e *Encoder) cardView(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 	}
 	vc := e.cachedCard(s, o, z)
 	if line != 0 {
-		h.line, h.at, h.ctx, h.key, h.vc, h.z = line, s.Touches(), e.ctx, vc.key, vc, z
+		h.line, h.at, h.ctx, h.key, h.vc, h.z = line, s.Touches(), hc, vc.key, vc, z
 	}
 	if e.hbase != nil && !s.Changed(o) {
 		r := &e.oroot[o]
-		r.epoch, r.ctx, r.key, r.vc, r.z = s.Epoch(), e.ctx, vc.key, vc, z
+		r.epoch, r.ctx, r.key, r.vc, r.z = s.Epoch(), hc, vc.key, vc, z
 	}
 	return vc
 }
@@ -681,6 +690,10 @@ func (e *Encoder) cachedCard(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 		// the projection names the attached-to and blocked objects by
 		// object; the hash has their slots
 		key = mix64(key, uint64(att)|uint64(blk)<<16)
+		if kw := s.FeatCtrlKw(o); kw != 0 {
+			// the haste a control record carries is not in the object hash
+			key = mix64(key, uint64(kw)|0x6374726c6b77<<16)
+		}
 	} else if g, rep := s.FeatGrantedOffRep(o); g != 0 {
 		// a keyword granted off the battlefield (not in the hash), and how
 		// many times it was granted

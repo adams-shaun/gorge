@@ -90,6 +90,7 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 	}
 	pt.Ctx.Remembered = append([]state.Target(nil), remembered...)
 	pt.Ctx.Snap.TargetPT = rememberedPTLKI(e, e.G, pt.Ctx.Remembered)
+	pt.Ctx.Snap.TargetPT = mergeMovedRememberedPT(pt.Ctx.Snap.TargetPT, c.Snap.TargetPT, e.G, pt.Ctx.Remembered)
 	e.pendingTriggers = append(e.pendingTriggers, pt)
 	return true
 }
@@ -194,6 +195,32 @@ func rememberedPTLKI(h ptReader, g *state.Game, remembered []state.Target) map[s
 		}
 		out[t.Obj] = effects.TargetPT{Power: h.Power(t.Obj), Toughness: h.Toughness(t.Obj),
 			Tapped: o.Tapped, Attacking: o.IsAttacking}
+	}
+	return out
+}
+
+// mergeMovedRememberedPT adds the spawning resolution's last-known P/T of
+// each remembered object that is no longer on the battlefield (a RememberLKI$
+// move captured it before the exile, CR 608.2h: Yannik, Scavenging Sentinel's
+// "the exiled creature's power") to the queue-time map, which only reads
+// battlefield objects. It returns out (a fresh map when it was nil); nil when
+// nothing is added.
+func mergeMovedRememberedPT(out, spawned map[state.ObjID]effects.TargetPT, g *state.Game, remembered []state.Target) map[state.ObjID]effects.TargetPT {
+	for _, t := range remembered {
+		pt, ok := spawned[t.Obj]
+		if t.IsPlayer || !ok {
+			continue
+		}
+		if _, held := out[t.Obj]; held {
+			continue
+		}
+		if o := g.Obj(t.Obj); o == nil || o.Zone == state.ZBattlefield {
+			continue
+		}
+		if out == nil {
+			out = make(map[state.ObjID]effects.TargetPT)
+		}
+		out[t.Obj] = pt
 	}
 	return out
 }

@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Knockout Blow	a17f6cd44465f85e	5	0/0		1/2	ix:resp
+Alchemist's Talent	160784b14a94d37d	29	4/4		1/1	
 Arcbound Fiend	24c6d79edfa05966	15	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Awe Strike	0cc1ed4a4c521f44	60	0/0		2/2	
 Barren Moor	c2157da399144158	22	2/2		0/1	ix:resp
@@ -8,8 +9,10 @@ Caves of Chaos Adventurer	6a9a180d3ca67687	14	2/2		0/1	ix:resp
 Cloaked Cadet	c1f170bebd1d3c8c	43	2/2		1/1	
 Cradle of the Accursed	0cc816db1071128f	12	2/2		0/1	ix:resp
 Daru Sanctifier	2026a3bfd61e13c0	4	1/1		2/3	ix:resp
+Dovin, Architect of Law	a36e77190e0a6a92	18	3/3		1/1	
 Endure	335b1dc99cbed009	3	0/0		1/2	ix:resp
 Fathom Fleet Captain	1cc82bbc037572ef	40	1/1		0/1	ix:resp
+Feline Sovereign	9a2ab7c34d09faf3	11	1/1		1/1	
 Fire Nation Ambushers	687cc967fcbbb86f	6	0/0		0/0	
 Flickering Spirit	bc00313018941c6c	53	1/1		1/1	
 Goremand	ba9fe8070275284c	6	1/1		2/2	
@@ -18,6 +21,7 @@ Graven Cairns	4ddc60c0fd4700da	551	2/2		0/1	ix:resp
 Hagi Mob	9f857e2b2254a54d	48	1/1		1/1	
 Hashep Oasis	a7b27a5deb7a6d41	182	3/3		0/1	ix:resp
 Horizon Canopy	ed9455bf841f57c8	107	2/2		0/1	ix:resp
+Hunting Triad	8016b6fec7f3aa99	7	1/1		1/2	ix:resp
 Malevolent Noble	f5c25c33ed92acad	7	1/1		0/1	ix:resp
 Martial Impetus	bbad586f29553889	4	1/1		1/2	ix:resp
 Molten Tributary	a50ec9606708580b	7	2/2		0/1	ix:resp
@@ -30,6 +34,7 @@ Sister Repentia	b5db81529912b33e	22	1/1		3/3
 Soul Summons	7c94a9a30c897604	3	0/0		1/2	ix:resp
 Sword of Body and Mind	582d12230bcd95d1	11	2/2		0/1	ix:resp
 Tainted Wood	840e9f366f30515b	247	2/2		0/1	ix:resp
+The Gitrog Monster	92d5f547e9188283	4	2/2		0/1	ix:resp
 Uncle's Musings	283c22e3d94b8bbb	5	0/0		2/2	
 Voice of the Woods	ad802ed30e3b5149	36	1/1		0/1	ix:resp
 Woodland Mystic	0ecd723cc325a8df	51	1/1		1/1	

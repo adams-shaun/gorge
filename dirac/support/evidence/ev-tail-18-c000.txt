@@ -111,6 +111,7 @@ Decimator Beetle
 Demonic Dread
 Denry Klin, Editor in Chief
 Deranged Hermit
+Desert Cerodon
 Deserter's Quarters
 Desolation Twin
 Devastation Tide
@@ -193,6 +194,7 @@ Goldenglow Moth
 Golgari Rotwurm
 Gore Swine
 Grafted Wargear
+Greater Sandwurm
 Grim Return
 Grove of the Guardian
 Guardians' Pledge
@@ -327,6 +329,7 @@ Rebuff the Wicked
 Recoil
 Reef Shaman
 Refurbished Familiar
+Reiterating Bolt
 Relentless Assault
 Remand
 Renegade Tactics
@@ -340,6 +343,7 @@ Rootwire Amalgam
 Run Ashore
 Rush of Inspiration
 Rusted Sentinel
+Ruthless Radrat
 Ruthless Sniper
 Sabertooth Wyvern
 Sacred Guide
@@ -397,6 +401,7 @@ Spell Swindle
 Spellbound Dragon
 Sphere of Resistance
 Spined Karok
+Spirit Shield
 Spiteful Prankster
 Split-Tail Miko
 Sprouting Goblin
@@ -409,7 +414,6 @@ Stir the Sands
 Stronghold Overseer
 Summon Undead
 Sundering Eruption
-Sunscape Master
 Svyelunite Priest
 Swamp
 Swarm Surge
@@ -448,11 +452,13 @@ Torch Courier
 Treasury Thrull
 Treva's Ruins
 Triceraton Regenta
+Truth or Consequences
 Tuktuk Scrapper
 Tymna the Weaver
 Tyrant's Machine
 Ulvenwald Observer
 Unchained Berserker
+Undertow
 Underworld Charger
 Unifying Theory
 Unlicensed Hearse

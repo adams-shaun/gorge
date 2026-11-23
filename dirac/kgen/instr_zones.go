@@ -40,9 +40,13 @@ func (ic *instrCtx) opExile() error {
 			return err
 		}
 	}
-	if (in.Obj.Kind == rSelf || in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredSource) && fl["from"] == "Battlefield" {
-		// a triggering permanent that left before the exile resolved is
-		// a new object this ability cannot find (CR 400.7, 608.2b)
+	if fl["from"] == "Battlefield" {
+		// Origin$ Battlefield on any referent: only one still on the
+		// battlefield moves (gorge effChangeZone's Origin$ precondition).
+		// A triggering permanent that left before the exile resolved is a
+		// new object this ability cannot find (CR 400.7, 608.2b); an
+		// Enchanted/Equipped referent reads as LastBearer off the
+		// battlefield (CR 608.2h) and does not move either.
 		ki.C |= kop.MvFromBattlefield
 	}
 	if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -97,6 +101,16 @@ func (ic *instrCtx) opToLibrary() error {
 	if _, rem := fl["Remember"]; rem && in.C == 0 && in.Obj.Kind == rSelf && fl["from"] == "Battlefield" {
 		ki.C = kop.LibTopRememberBF // dirac/zone_tolibrarybfremember.go
 	}
+	if _, rem := fl["Remember"]; rem && fl["from"] == "Graveyard" {
+		// RememberChanged$ on an Origin$ Graveyard move (a target, or the
+		// trigger object itself): the card that reached the library joins
+		// the remembered set the following read sees.
+		if in.C == 0 {
+			ki.C = kop.LibTopRememberGrave // dirac/zone_tolibraryremember.go
+		} else if in.C == 1 {
+			ki.C = kop.LibBottomRememberGrave // dirac/zone_tolibraryremember.go
+		}
+	}
 	if _, ok := fl["TopShuffle"]; ok {
 		ki.C = kop.LibTopShuffle
 		if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
@@ -149,6 +163,13 @@ func (ic *instrCtx) opReturn() error {
 		if err := ic.counters(); err != nil {
 			return err
 		}
+	}
+	if _, any := fl["FromAny"]; any && ki.Op == kop.OpReturnEx {
+		// Origin$ All on a remembered card: a library card moves too
+		// (kop.MvEntryRiders' bit, OpReturnEx's C sign bit, set through an int
+		// so the shifted flag wraps into int16)
+		bit := kop.MvEntryRiders
+		ki.C |= int16(bit << 3)
 	}
 	if underOpp {
 		// GainControl$ ChosenPlayer (one opponent): B.N rides beside the library bits

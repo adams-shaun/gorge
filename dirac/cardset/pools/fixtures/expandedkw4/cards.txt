@@ -1,0 +1,67 @@
+# the expandedkw4 pool (the gap-4 keyword wave: K:Soulshift, K:Reinforce,
+# K:Embalm, K:Eternalize lowered from gorge's expansions; CR 702.46a, 702.77a,
+# 702.128a, 702.129a). The carriers die into graveyards of Spirits (soulshift),
+# reinforce from hand and embalm/eternalize out of the graveyard; vanilla
+# creatures and burn fill the games so creatures die and the graveyards fill.
+# No other +1/+1-counter source, graveyard-to-hand return or token-copy maker
+# is in the pool, so the lockstep's fired counts (a soulshift return, a
+# reinforce activation, an embalm or eternalize token) read cleanly.
+Adorned Pouncer
+Angel of Sanctions
+Aven Initiate
+Body of Jukai
+Break Ties
+Brighthearth Banneret
+Burrenton Bombardier
+Burr Grafter
+Crawling Filth
+Deathknell Kami
+Dreamstealer
+Earthbrawn
+Earthshaker Khenra
+Elder Pine of Jukai
+Fanatic of Rhonas
+Fowl Strike
+Gibbering Kami
+Harbinger of Spring
+He Who Hungers
+Hundred-Talon Kami
+Hunting Triad
+Kami of Empty Graves
+Kami of Lunacy
+Kami of the Honored Dead
+Kami of the Palace Fields
+Kami of the Tended Garden
+Labyrinth Guardian
+Moonlit Strider
+Mosquito Guard
+Nightsoil Kami
+Promised Kannushi
+Proven Combatant
+Pus Kami
+Resilient Khenra
+Rootrunner
+Rustic Clachan
+Scathe Zombies
+Scuttling Death
+Steadfast Sentinel
+Swell of Courage
+Thief of Hope
+Thousand-legged Kami
+Timeless Dragon
+Timeless Witness
+Torii Watchward
+Venerable Kumo
+Vine Kami
+Vizier of Many Faces
+Wren's Run Hydra
+Elite Vanguard
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Doom Blade
+Plains
+Island
+Swamp
+Mountain
+Forest

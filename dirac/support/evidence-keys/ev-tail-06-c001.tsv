@@ -19,6 +19,7 @@ Blade-Blizzard Kitsune	11c8b41b0ba61047	8	1/1		0/1	ix:resp
 Blessed Spirits	099a77f93ebd3199	4	1/1		0/1	ix:resp
 Blighted Fen	527fb3db343cd3ce	14	2/2		0/1	ix:resp
 Borderland Ranger	df9f7d2121c58d46	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bothersome Quasit	a534d4091e9ffc88	5	1/1		0/1	ix:resp
 Breaching Hippocamp	859c390f3b1d2ce5	4	1/1		1/1	
 Brotherhood Patriarch	22211f7692e1bf6e	8	1/1		0/1	ix:resp
 Budoka Gardener	7453a9f3d3de9a60	16	2/2		0/1	ix:resp
@@ -134,6 +135,7 @@ Ritual of the Machine	d78e81c20f7a9d4f	5	0/0		2/2
 Sand Golem	d9ac3e149da26b4c	4	1/1		0/1	ix:resp
 Scale the Heights	6d2bcf1eccf4bb46	4	0/0		1/2	ix:resp
 Scurrilous Sentry	b2dc53918be5a171	5	2/2		0/1	ix:resp
+Scuttling Death	9a9e55822a572cd8	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Second Thoughts	b3d331bae2dfe458	4	0/0		2/2	
 Selhoff Entomber	d065004c4dcd2872	5	1/1		0/1	ix:resp
 Shepherd of Heroes	861694d2920567de	4	1/1		1/1	
@@ -144,6 +146,7 @@ Skirk Ridge Exhumer	3cc109eee1bbae21	8	1/1		0/1	ix:resp
 Smoldering Werewolf	184def3dacc71907	14	3/3		1/1	
 Snake Umbra	a28446c942e166d3	4	0/0		1/2	ix:resp
 Snapping Thragg	5a6d43aabe999bbe	4	1/1		1/3	cast/alt:morphed,ix:resp
+Soothing of Sméagol	b4be9bd8febc45f7	26	0/0		2/2	
 Soratami Mirror-Guard	6d152a067b2d9d32	4	1/1		0/1	ix:resp
 Soul Link	d127c511383c6dea	8	2/2		1/2	ix:resp
 Spectral Prison	27c76075410db912	4	1/1		1/2	ix:resp

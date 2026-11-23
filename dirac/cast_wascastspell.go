@@ -40,6 +40,8 @@ type WasCastSpellStats struct {
 	Elsewhere    int // reads of a spell cast from another zone
 	Matched      int // reads that held
 	ResGraveyard int // held reads of the resolving spell cast from a graveyard (Otterball Antics, Antiquities on the Loose)
+	FromGrave    int // reads of a spell cast from a graveyard, any caster (wasCastFromGraveyard, Laquatus's Disdain)
+	FromLibrary  int // reads of a spell cast from a library (wasCastFromYourLibrary, Melek, Wickerwing Effigy)
 }
 
 // DebugWasCastSpellStats, when non-nil, accumulates the counters above.
@@ -75,6 +77,12 @@ func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 			} else {
 				st.Elsewhere++
 			}
+			if from == kop.ZoneGraveyard {
+				st.FromGrave++
+			}
+			if from == kop.ZoneLibrary {
+				st.FromLibrary++
+			}
 		}
 	}
 	var r bool
@@ -89,6 +97,21 @@ func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 		r = cast && from == kop.ZoneExile
 	case 4:
 		r = cast && from != kop.ZoneHand
+	case 7:
+		// wasCastFromYourGraveyard: the latest cast came from a graveyard, by the reading player
+		r = cast && from == kop.ZoneGraveyard && by == you
+	case 8:
+		// wasCastFromGraveyard: the latest cast came from a graveyard, any
+		// caster (a flashback cast included). gorge's ObjectWasCastFromGraveyard
+		// holds the !IsCopy guard on the whole word (state/object.go:720), so a
+		// prepared copy -- whose origin zone the entry records for the other
+		// arms (CR 707.12) -- reads false, as its test pins.
+		r = cast && from == kop.ZoneGraveyard && s.objs[o].of&ofCopy == 0
+	case 9:
+		// wasCastFromYourLibrary: the latest cast came from a library by the
+		// reading player (gorge castOriginTokens: byYou; a library cast is
+		// always from the caster's own library)
+		r = cast && from == kop.ZoneLibrary && by == you
 	case 5:
 		r = cast && may // CastSa Spell.MayPlaySource: through a play permission (trig_mayplaystatic.go)
 	case 6:

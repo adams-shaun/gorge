@@ -4,12 +4,14 @@ Aether Mutation
 Ageless Guardian
 Agent of the Shadow Thieves
 Alms of the Vein
+Ambitious Farmhand
 Angel's Mercy
 Angelic Wall
 Appeal
 Araba Mothrider
 Arcane Flight
 Archangel's Light
+Archmage of Echoes
 Archon of Redemption
 Ardent Militia
 Arm-Mounted Anchor
@@ -21,12 +23,16 @@ Bar the Door
 Battle Angels of Tyr
 Bazaar Krovod
 Belbe's Percher
+Billiard Room
 Blink Dog
 Blockbuster
 Blood Clock
 Bloodied Ghost
+Bloodrock Cyclops
+Boarding Party
 Boon of Safety
 Borrowed Time
+Bottle-Cap Blast
 Brazen Borrower
 Breath Weapon
 Bushmeat Poacher
@@ -41,10 +47,12 @@ Conjurer's Mantle
 Consulate Turret
 Conversion
 Cowl Prowler
+Crash
 Crash the Party
 Crash the Ramparts
 Crown of Empires
 Cruel Deceiver
+Cryptoplasm
 Crystal Ball
 Crystalline Nautilus
 Culmination of Studies
@@ -82,6 +90,7 @@ Exoskeletal Armor
 Experimental Augury
 Ezuri's Brigade
 False Peace
+Feeling of Dread
 Feral Ridgewolf
 First Volley
 Folk of An-Havva
@@ -114,15 +123,19 @@ Hunter's Edge
 Hydroid Krasis
 Hythonia the Cruel
 Indulgent Aristocrat
+Infest
 Inspiration
 Invasion of Ergamon
+Invasion of Tarkir
 Island
 Jace's Phantasm
 Join Forces
 Joraga Auxiliary
+Jwari Scuttler
 Keldon Halberdier
 Kitesail Apprentice
 Kitsune Dawnblade
+Kobold Drill Sergeant
 Kolaghan Skirmisher
 Kronch Wrangler
 Krosan Avenger
@@ -140,6 +153,7 @@ Lurking Arynx
 Malachite Golem
 Mana Seism
 Mantle of the Wolf
+Marchesa's Infiltrator
 Marsh Lurker
 Master of the Pearl Trident
 Maze Sentinel
@@ -149,6 +163,7 @@ Mind Over Matter
 Ministrant of Obligation
 Minn, Wily Illusionist
 Mirari
+Mogis's Warhound
 Morinfen
 Moriok Scavenger
 Mountain
@@ -156,7 +171,10 @@ Muck Rats
 Naga Oracle
 Nefashu
 Neurok Stealthsuit
+Nezumi Bladeblesser
+Nightwing Shade
 Nissa's Chosen
+Nissa's Renewal
 Notorious Assassin
 Nurturer Initiate
 Oboro Breezecaller
@@ -175,9 +193,9 @@ Pull from Tomorrow
 Pyretic Prankster
 Quilled Wolf
 Quirion Sentinel
-Rain of Rust
 Raise the Alarm
 Rampaging Ferocidon
+Reality Hemorrhage
 Reclusive Wight
 Reduce
 Resurrection Orb
@@ -187,12 +205,15 @@ Rile
 Ringskipper
 Rise from the Grave
 Rising of the Day
+Rolling Hamsphere
 Ruination
 Rukh Egg
 Saheeli's Silverwing
+Sapseep Forest
 Seagraf Skaab
 Senseless Rage
 Serum Visions
+Sever the Bloodline
 Shadow Rift
 Showstopping Surprise
 Shu General
@@ -232,6 +253,7 @@ Thrull Surgeon
 Thumbscrews
 Thunder Wall
 Tide Drifter
+Tilonalli's Crown
 Tombfire
 Touch of Death
 Toxic Scorpion
@@ -243,6 +265,7 @@ Ulamog's Crusher
 Ulvenwald Captive
 Undercity Necrolisk
 Unhallowed Phalanx
+Unknown Shores
 Unlikely Aid
 Unnatural Growth
 Venerable Monk
@@ -254,9 +277,11 @@ Vodalian Arcanist
 Voice of All
 Warpath Ghoul
 Wasteful Harvest
+Watchwing Scarecrow
 Wild Elephant
 Wild Ox
 Winds of Qal Sisma
 Witness the End
 Xerex Strobe-Knight
 Yavimaya Scion
+Zada's Commando

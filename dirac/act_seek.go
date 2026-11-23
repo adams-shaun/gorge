@@ -43,7 +43,7 @@ func (s *State) seek(k *prep, in *kop.Instr) {
 	}
 	for _, o := range sel[:max(n, 0)] {
 		from := s.detach(o)
-		s.placeFrom(o, kop.ZoneHand, false, from, false)
+		s.placeFrom(o, kop.ZoneHand, false, from, false, false)
 		if in.C&1 != 0 { // seat-ok: an instruction flag bit
 			s.remember(o)
 		}

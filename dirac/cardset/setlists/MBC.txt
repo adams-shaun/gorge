@@ -1546,6 +1546,7 @@ Reprobation
 Repulse
 Requisition Raid
 Rescind
+Reset
 Resolute Reinforcements
 Rest in Peace
 Restock
@@ -1729,6 +1730,7 @@ Skewer the Critics
 Skinthinner
 Skirge Familiar
 Skittering Crustacean
+Skullmulcher
 Skullport Merchant
 Skullsnatcher
 Skullwinder

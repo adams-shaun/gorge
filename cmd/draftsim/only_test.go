@@ -42,19 +42,36 @@ func runDigest(t *testing.T, o options) (string, *result, string) {
 }
 
 // TestDraftsimDefaultDigest: without -only the packs, picks, builds and
-// output of the default runs are the bytes they were before -only existed.
+// output of the default FDN run are the bytes they were before -only existed.
+// The MBC default run is not pinned to a digest: its output moves with every
+// card support change, and TestDraftsimOnly holds it to the full sheet-name
+// list instead (the set's source list, not a committed value).
 func TestDraftsimDefaultDigest(t *testing.T) {
 	dir := corpusReady(t)
 	want := map[string]string{
-		"MBC": "440f4a8a1905661da56d15ded17f1c0107e175e143a85abc97a477572412c52a",
 		"FDN": "10fb1252ce8a9373e4be769c5157d399cb330dd87ed7560f8d342334ed42132f",
 	}
 	for _, o := range defaultRuns(dir) {
+		if _, ok := want[o.set]; !ok {
+			continue
+		}
 		got, _, _ := runDigest(t, o)
 		if got != want[o.set] {
 			t.Errorf("%s default run digest %s, want %s", o.set, got, want[o.set])
 		}
 	}
+}
+
+// withoutFillReport drops the -only fill report lines, which the default run does not print.
+func withoutFillReport(out string) string {
+	var b strings.Builder
+	for _, line := range strings.SplitAfter(out, "\n") {
+		if strings.HasPrefix(line, "only: ") || strings.HasPrefix(line, "  sheet ") {
+			continue
+		}
+		b.WriteString(line)
+	}
+	return b.String()
 }
 
 // sheetNamesOf is every name on spec's sheets, sorted.
@@ -109,7 +126,7 @@ func TestDraftsimOnly(t *testing.T) {
 	}
 	base := defaultRuns(dir)[0]
 	base.events = 1
-	_, def, _ := runDigest(t, base)
+	_, def, defOut := runDigest(t, base)
 	o := base
 	o.only = all
 	_, full, fullOut := runDigest(t, o)
@@ -118,6 +135,9 @@ func TestDraftsimOnly(t *testing.T) {
 	}
 	if !strings.Contains(fullOut, "only: "+all+", ") {
 		t.Fatalf("no fill report:\n%s", fullOut)
+	}
+	if got := withoutFillReport(fullOut); got != defOut {
+		t.Fatal("an -only list of every sheet name changed the default MBC output outside the fill report")
 	}
 
 	newCmd := map[string]bool{}

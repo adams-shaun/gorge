@@ -68,6 +68,7 @@ Call the Scions
 Candlelit Cavalry
 Captivating Gyre
 Carrion Imp
+Cave Sense
 Cave of the Frost Dragon
 Celestial Colonnade
 Cerulean Sphinx
@@ -83,6 +84,7 @@ Copperline Gorge
 Courageous Outrider
 Court of Bounty
 Cradle Guard
+Crimson Acolyte
 Crossover Collaboration
 Crosswinds
 Crovax, Ascendant Hero
@@ -184,6 +186,7 @@ Grand Arbiter Augustin IV
 Grateful Apparition
 Green Scarab
 Grendel, Spawn of Knull
+Grolnok, the Omnivore
 Grounded
 Guided Strike
 Hag of Dark Duress
@@ -397,10 +400,12 @@ Soltari Monk
 Song of Freyalise
 Soul Bleed
 Sparkshaper Visionary
+Spectra Ward
 Sphinx Mindbreaker
 Spinning Wheel Kick
 Spirit Link
 Spit Flame
+Spiteful Visions
 Spring of Eternal Peace
 Sprouting Phytohydra
 Staff of the Sun Magus

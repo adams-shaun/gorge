@@ -30,21 +30,28 @@ const (
 	shockQueued        // posed as a queued as-enters ask (suspended)
 )
 
-// shockAmount is the life N of the as-enters pay-life election at prog[0],
-// or 0 when prog is not that shape.
-func (s *State) shockAmount(k *prep, prog []kop.Instr) int {
-	if len(prog) == 0 {
-		return 0
+// electionPC is the pc of an enters program's as-enters pay-life election:
+// 0 for the shock lands' opener (an OpUnlessPaid PayLife, or the reveal
+// election repl_revealland.go lowers), 1 behind an as-enters basic-land ask
+// (the ask-then-elect chain, Multiversal Passage: the opener's answer queues
+// the election, and the play's deferred count moves with it, answerQueuedAsk),
+// or -1 when the program has no such election.
+func electionPC(a *kop.Ability) int {
+	if len(a.Prog) == 0 {
+		return -1
 	}
-	in := &prog[0]
-	if in.Op != kop.OpUnlessPaid || int(in.C&0xF) != kop.PayLife {
-		return 0
+	switch a.Prog[0].Op {
+	case kop.OpUnlessPaid:
+		if int(a.Prog[0].C&0xF) == kop.PayLife || revealElection(&a.Prog[0]) {
+			return 0
+		}
+	case kop.OpChooseType:
+		if a.Prog[0].B.N == kop.ChooseTypeBasicLand &&
+			len(a.Prog) > 1 && a.Prog[1].Op == kop.OpUnlessPaid && int(a.Prog[1].C&0xF) == kop.PayLife {
+			return 1
+		}
 	}
-	n := s.value(k, in.A)
-	if n < 1 {
-		return 0
-	}
-	return n
+	return -1
 }
 
 // shockCardAmount finds card c's as-enters pay-life election amount.
@@ -53,8 +60,10 @@ func (s *State) shockCardAmount(k *prep, c CardID) int {
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
-			if n := s.shockAmount(k, a.Prog); n > 0 {
-				return n
+			if ep := electionPC(a); ep >= 0 {
+				if n := s.value(k, a.Prog[ep].A); n > 0 {
+					return n
+				}
 			}
 		}
 	}
@@ -90,13 +99,16 @@ func (s *State) shockOptions(k *prep, d *Decision) {
 // program reaches its OpUnlessPaid: an answered pre-ask pays the life and
 // skips the Tap body, or declines and lets it run. Without an answer (a
 // permanent put onto the battlefield mid-resolution) the ask is queued at
-// this instruction, as gorge defers it behind the suspended resolution.
+// this instruction, as gorge defers it behind the suspended resolution. The
+// election is the program's opener (the shock lands) or sits behind its
+// as-enters basic-land ask (the ask-then-elect chain, electionPC).
 func (s *State) shockAt(k *prep, sl Slot, c CardID, ab uint8, in *kop.Instr, pc int) (res, skip int) {
 	if pc == 0 && revealElection(in) {
 		s.queueElection(sl, akReveal, c, ab, 0) // repl_revealland.go
 		return shockQueued, 0
 	}
-	if pc != 0 || in.Op != kop.OpUnlessPaid || int(in.C&0xF) != kop.PayLife {
+	if pc != electionPC(&k.t.Cards[c].Abilities[ab]) ||
+		in.Op != kop.OpUnlessPaid || int(in.C&0xF) != kop.PayLife {
 		return shockNo, 0
 	}
 	n := s.value(k, in.A)
@@ -133,15 +145,33 @@ func (s *State) queueElection(sl Slot, kind uint8, c CardID, ab, pc uint8) {
 // shockLandCount marks the play's queued election (askLandPlay) so
 // answerQueuedAsk takes the land count when the answer completes the play;
 // a play that queued no ask (the ask table's capacity stall) takes it now.
-func (s *State) shockLandCount(o Obj, p uint8) {
+// The ask-then-elect chain's opener ask carries the mark until its answer
+// queues the election, which answerQueuedAsk moves it onto: the count waits
+// for the whole entry's asks, as gorge's settleLandPlay does.
+func (s *State) shockLandCount(k *prep, o Obj, p uint8) {
 	if s.g.nask > 0 {
 		a := &s.g.ask[s.g.nask-1]
-		if (a.kind == akPayLife || a.kind == akReveal) && a.sl == s.objs[o].slot {
+		if a.sl == s.objs[o].slot && (a.kind == akPayLife || a.kind == akReveal || s.shockChainOpener(k, a)) {
 			a.ts |= askLandPlay
 			return
 		}
 	}
 	s.pl[p].landsPlayed++
+}
+
+// shockChainOpener reports whether ask a is an as-enters choice that opens an
+// ask-then-elect entry (electionPC 1): the election still ahead of its
+// program, so the land play's deferred count is not yet due.
+func (s *State) shockChainOpener(k *prep, a *askRec) bool {
+	if a.card == NoCard || a.pc != 1 {
+		return false
+	}
+	t := &k.t.Cards[a.card]
+	if int(a.ab) >= len(t.Abilities) {
+		return false
+	}
+	ab := &t.Abilities[a.ab]
+	return ab.Kind == kop.AbReplacement && ab.Repl.Kind == kop.ReplEntersProgram && electionPC(ab) == 1
 }
 
 // shockAnswer applies the queued election's answer and runs the rest of the
@@ -177,6 +207,17 @@ func (s *State) shockUntapWins(sl Slot) {
 	for i := 0; i < int(s.g.nask); i++ {
 		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
 			a.ts |= askUntapWins
+		}
+	}
+}
+
+// shockTapWins undoes shockUntapWins for the permanent at sl's queued election:
+// the late re-ask (CR 616.1f) left the election's own tap as the body applied
+// last, so a decline taps it after all.
+func (s *State) shockTapWins(sl Slot) {
+	for i := 0; i < int(s.g.nask); i++ {
+		if a := &s.g.ask[i]; a.kind == akPayLife && a.sl == sl {
+			a.ts &^= askUntapWins
 		}
 	}
 }

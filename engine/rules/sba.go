@@ -355,6 +355,7 @@ func (e *Engine) checkStateBased() {
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
 		// own attempts are made under. That player's permanents stay until the
 		// batch has applied, so one that dies in this check still dies.
+		e.sbaLossHeld = len(b.losses) > 0
 		for _, l := range b.losses {
 			e.losePlayer(l.player, l.text)
 		}
@@ -367,6 +368,13 @@ func (e *Engine) checkStateBased() {
 		// wait for the pass after the answer.
 		if g := e.firstLegendGroup(groups); g != nil {
 			if e.pending == nil && e.choosing == chooseNone && e.legendBatch == nil {
+				// end the hold on a departed player's control effects (sbaLossHeld): a creature that
+				// left in the batch is already gone, one still standing returns to the controller the
+				// surviving effects give it
+				if e.sbaLossHeld {
+					e.sbaLossHeld = false
+					e.expireControl(controlOnEvent)
+				}
 				e.sweepDepartedPlayers(tried)
 				e.parkLegendChoice(*g, b)
 				if e.legendBatch != nil {
@@ -388,6 +396,14 @@ func (e *Engine) checkStateBased() {
 		}
 		askedBefore := e.pending
 		e.applySBABatch(&b)
+		// end the hold on a departed player's control effects (sbaLossHeld): a creature that
+		// left in the batch is already gone, one still standing returns to the controller the
+		// surviving effects give it
+		if e.sbaLossHeld {
+			e.sbaLossHeld = false
+			e.expireControl(controlOnEvent)
+		}
+		forgetHealedCasualties(e.G, &b, tried)
 		asked := e.pending != nil && e.pending != askedBefore
 		if asked {
 			for _, c := range b.dead {

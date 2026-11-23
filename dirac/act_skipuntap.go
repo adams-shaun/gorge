@@ -4,10 +4,41 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// useSkipUntapMark: some card's program is an OpSkipUntap. Its per-permanent
+// marks (one bit per seat) live in a per-slot cold region, so a table without
+// one pays nothing and perm.cseen keeps no seat-sized field.
+var useSkipUntapMark = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Cards {
+		if skipUntapCard(&t.Cards[i]) {
+			return true
+		}
+	}
+	return false
+})
+
+// coldSkipUntap is each battlefield slot's OpSkipUntap marks: bit p is set
+// when seat p's effect keeps the permanent tapped through p's next untap step.
+// A perSlot region, zeroed when the slot takes a new permanent (CR 400.7: the
+// mark leaves with it).
+var coldSkipUntap = newCold[uint8]("skipUntap", func(g *genPrep) int {
+	if g != nil && g.uses.has(useSkipUntapMark) {
+		return MaxPerm
+	}
+	return 0
+}).perSlot()
+
+// skipUntapMark is sl's OpSkipUntap mark bits (bit p: seat p's effect).
+func (s *State) skipUntapMark(sl Slot) uint8 {
+	if c := coldSkipUntap.of(s); int(sl) < len(c) {
+		return c[sl]
+	}
+	return 0
+}
+
 // pfSkipUntap is CR 611.2b's "doesn't untap during your next untap step"
 // one-shot (gorge Object.CantUntapNextStep): the untap step skips the
 // permanent and clears it (turn.go, act_energy.go untapStepGen); a new
-// permanent starts without it. Bit 15 of perm.flags (pfRegenX holds 13-14).
+// permanent starts without it. Bit 15 of perm.flags.
 const pfSkipUntap uint16 = 1 << 15
 
 // noUntapCreat shifts a seat's bit in gen.noUntapL from its lands to its
@@ -54,8 +85,10 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 		return
 	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
-		s.perms[sl].cseen |= cseenSkipUntap0 << p
-		s.touchSl(sl)
+		if c := coldSkipUntap.of(s); int(sl) < len(c) {
+			c[sl] |= 1 << SeatIx(p)
+			s.touchSl(sl)
+		}
 	}
 }
 
@@ -66,7 +99,7 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 // untapLocked itself, once the election is answered.
 func (s *State) skipsUntap(k *prep, sl Slot) bool {
 	a := s.active
-	if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 {
+	if s.skipUntapMark(sl)&(1<<SeatIx(a)) != 0 {
 		return true
 	}
 	if s.g.noUntapL == 0 || s.perms[sl].ctrl != a {
@@ -84,10 +117,11 @@ func (s *State) skipsUntap(k *prep, sl Slot) bool {
 func (s *State) expireSkipUntap() {
 	a := s.active
 	s.g.noUntapL &^= 1<<a | noUntapCreat<<a
-	for m := s.occ; m.any(); m = m.rest() {
+	c := coldSkipUntap.of(s)
+	for m := s.occ; m.any() && len(c) != 0; m = m.rest() {
 		sl := m.first()
-		if s.perms[sl].cseen&(cseenSkipUntap0<<a) != 0 {
-			s.perms[sl].cseen &^= cseenSkipUntap0 << a
+		if c[sl]&(1<<SeatIx(a)) != 0 {
+			c[sl] &^= 1 << SeatIx(a)
 			s.touchSl(sl)
 		}
 	}

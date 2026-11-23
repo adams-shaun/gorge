@@ -4,4 +4,4 @@ value: 69
 forge: TotalCommanderCastFromCommandZone
 census: count TotalCommanderCastFromCommandZone all=16 std=0 mbc=0 sole=11
 state: player 2 (player facts)
-status: reserved
+status: active

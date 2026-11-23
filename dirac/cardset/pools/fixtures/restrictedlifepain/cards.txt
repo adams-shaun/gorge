@@ -1,0 +1,7 @@
+# a restricted "{T}, Pay N life" unit beside a painland: gorge's lethal guard sums the unit's life with the
+# painland's damage (CR 119.4; dirac/mana_restrictedlife_painland_test.go)
+Untaidake, the Cloud Keeper
+Scabland
+Spider-Man, Peter Parker
+Plains
+Island

@@ -11,6 +11,7 @@ Archwing Dragon	0a78094c510428b0	7	1/1		0/1	ix:resp
 Ardent Elementalist	d2f8bb0c16df872a	4	1/1		0/1	ix:resp
 Artificer Class	302c5045449dec8d	6	4/4		0/1	ix:resp
 Aspect of Lamprey	6fc0c557ac1286b4	6	1/1		1/2	ix:resp
+Aurora Phoenix	fed59ac1eb8de8cd	3	1/1		1/1	
 Avatar of Discord	b9f1150a034aa0d7	24	1/1		0/1	ix:resp
 Baloth Null	8101dc1a6af1be62	4	1/1		0/1	ix:resp
 Banishment	b9774dc62ffa1ac0	4	1/1		0/1	ix:resp
@@ -41,6 +42,7 @@ Continue?	98902ea995c0af08	72	0/0		2/2
 Crackling Drake	0b288d2cb9bcfacf	3	1/1		0/1	ix:resp
 Creakwood Liege	024ea4ddbe311bb9	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Crosstown Courier	7e69ce8231238c8a	5	1/1		0/1	ix:resp
+Cruel Ultimatum	4bfee4e48c71cd4c	8	0/0		2/2	
 Curiosity Crafter	a4da71997a7b3da3	6	1/1		0/1	ix:resp
 Daggersail Aeronaut	0bec55c4e284cd91	4	0/0		0/0	
 Daunting Defender	d021c9c7280589a8	4	0/0		0/0	
@@ -74,10 +76,13 @@ Fetid Imp	ea1ab007dfd1789d	4	1/1		1/1
 Fiendslayer Paladin	68edba6adbfbd593	8	0/0		0/0	
 Flatman	e606e0b81146a517	4	1/1		0/1	ix:resp
 Flowstone Charger	82844a5a5c4e2da4	51	1/1		0/1	ix:resp
+Forked-Branch Garami	cf3b8000130d64d1	5	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Foxfire Oak	d7c598193f362cc2	8	1/1		1/1	
+Gary Clone	c41d09476d5d31d3	10	2/2		3/3	
 Gift of Fangs	49cc6cc04d154a07	3	0/0		1/2	ix:resp
 Gingerbread Cabin	d4e8fb080b7c2502	21	2/2		0/1	ix:resp
 Goblin Deathraiders	a2f8bdec89dbd670	3	0/0		0/0	
+Golem-Skin Gauntlets	f81eca004283c826	17	1/1		0/1	ix:resp
 Great Defender	a82248cd82c9c7cd	4	0/0		2/2	
 Greater Harvester	67536f9bd0946c68	9	2/2		0/1	ix:resp
 Grim Tutor	3c205ffe7a0c8491	7	0/0		1/2	ix:resp
@@ -91,10 +96,12 @@ Incisor Steed	b63c79756c62d52d	7	0/0		0/0
 Inspire Awe	4ba7bf93e292aa35	5	0/0		2/2	
 Jade Idol	2bdcbfab3f7d428f	3	1/1		0/1	ix:resp
 Jolrael, Voice of Zhalfir	d820dbaa78d6c5dd	4	2/2		1/1	
+Katara, Waterbending Master	a999af55c1108e94	10	2/2		1/1	
 Khenra Eternal	bbfaac847623256e	8	1/1		1/1	
 Kodama's Reach	d19ff79f49b69152	5	0/0		1/2	ix:resp
 Leyline of Punishment	a208ab9103b24afb	3	0/0		0/0	
 Lightwielder Paladin	51c47c5f3b89f4eb	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Liliana of the Veil	94fdb5c1f05fc1ec	3	3/3		0/1	ix:resp
 Lonis, Genetics Expert	56cf6f7d2b4018c1	11	3/3		0/1	ix:resp
 Lord of Tresserhorn	72f4e772c2a607b1	5	2/2		0/1	ix:resp
 Lorthos, the Tidemaker	5cd3c3c9c194785c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -110,6 +117,7 @@ Mardu Woe-Reaper	5366c241abe69207	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Masked Blackguard	a8a142ebd47fd68d	8	1/1		1/1	
 Maze Rusher	a3c81f9a2ec016a3	3	0/0		0/0	
 Mobile Fort	8fb50bf5e67964bd	3	1/1		0/1	ix:resp
+Monkey Cage	a45c6512486da53d	35	1/1		0/1	ix:resp
 Mortal Wound	729e89f45b704a01	7	1/1		2/2	
 Mossbridge Troll	a2f9885034ff3846	41	1/1		0/1	ix:resp
 Mox Tantalite	149b5f504ed2bfc3	3	1/1		2/3	cast/alt:none
@@ -133,10 +141,12 @@ Return of the Nightstalkers	ae076966896c28c5	33	0/0		2/2
 Reverberate	8c12f6b85df24db4	17	0/0		1/2	ix:resp
 Rimewood Falls	b8d8696df1812ae6	8	2/2		0/1	ix:resp
 River Sneak	d88e48fe811e750b	4	1/1		0/1	ix:resp
+Robot Domination	eb84aa824e4da4e3	11	2/2		0/1	ix:resp
 Rout	997bf004717e1754	3	0/0		1/2	ix:resp
 Rune-Cervin Rider	e0097db62c3e1ef5	4	1/1		0/1	ix:resp
 Sacred Prey	6d70d4fc5e353f8a	4	1/1		0/1	ix:resp
 Sage of Fables	342d74db99e45380	4	1/1		0/1	ix:resp
+Saint Traft and Rem Karolus	86fc90b2edbf2ff6	33	2/2		1/1	
 Sanctify	2eb6f8c724bf7475	4	0/0		1/2	ix:resp
 Sarkhan's Unsealing	b834df11b022df5b	8	2/2		1/1	
 Scalding Devil	94e641cef9ffd015	5	1/1		0/1	ix:resp
@@ -185,6 +195,7 @@ Volcanic Torrent	f70a594d1f3f6854	6	0/0		2/2
 Volcanic Upheaval	d97388eadf6ec52e	7	0/0		2/2	
 Voyager Staff	77b389b2300f95bd	5	1/1		0/1	ix:resp
 Wall of Vines	6774bb37bbfe991d	4	0/0		0/0	
+Wasteland Raider	a3b8d5024cfc0236	9	2/2		3/3	
 Waterknot	05167c17b6f76869	6	1/1		2/2	
 Whiptail Moloch	a967abda94d124df	4	1/1		0/1	ix:resp
 Whiptail Wurm	abd9cc724c731b0d	21	0/0		0/0	
@@ -193,4 +204,5 @@ Wingsteed Rider	e6db7dd507207bea	62	1/1		1/1
 Wolfwillow Haven	a509f4b6ecdab8a3	37	2/2		2/2	
 Yoshimaru, Ever Faithful	14668ac55e175b70	83	1/1		1/1	
 Zealot's Conviction	c407e402be3771ac	4	0/0		1/2	ix:resp
+Zhulodok, Void Gorger	0c8da53082280b89	5	0/0		0/0	
 Zuran Enchanter	a2f171098b78c241	6	1/1		0/1	ix:resp

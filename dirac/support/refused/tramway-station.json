@@ -1,0 +1,26 @@
+{
+  "card": "Tramway Station",
+  "class": "options",
+  "why": "gorge's payment planner tiers a mana ability whose cost sacrifices ANOTHER permanent (Diamond Kaleidoscope's Prism-token sacrifice) as TierDeferred (engine/rules/pay/planshape.go PaymentPlanShapeTierOf), builds no witness and withholds the {2}{B}{R}, {T}, sacrifice-self draw that the kernel offers and CR 605.3a/601.2g allow; a plan witness step carrying a sacrifice victim is a versioned wire change of 250-400 lines, beyond a bounded fix",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "sac_other_mana_source"
+  },
+  "evidence": [
+    "ev-tail-12-c000",
+    "ev-tail-12-c001",
+    "ev-tail-12-c002",
+    "ev-tail-20-c000",
+    "ev-tail-20-c001",
+    "ev-tail-20-c002",
+    "ev-tail-20-c003",
+    "ev-tail-20-c004",
+    "ev-tail-20-c005",
+    "ev-tail-20-c059"
+  ]
+}

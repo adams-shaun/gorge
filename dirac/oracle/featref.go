@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -827,4 +828,34 @@ func effectSpec(sa *cards.SA, manaCost string) feat.EffectSpec {
 		}
 	}
 	return e
+}
+
+// enablers is the canonical object ("#<n>") of every source in the first
+// payment plan of gorge's planner-paid action for each of refOnly, in option
+// then activation order, without repeats. Options with no planned payment
+// contribute nothing; a source that is no card instance (an ability, a
+// player) is skipped.
+func (g *GorgeSide) enablers(refOnly []string) []string {
+	if g.fr == nil || g.E == nil || g.E.G == nil {
+		return nil
+	}
+	var out []string
+	for _, o := range refOnly {
+		for i := range g.fr.prio {
+			pe := &g.fr.prio[i]
+			if pe.kind != prPlan || pe.a.String() != o || len(pe.pay.Plans) == 0 {
+				continue
+			}
+			for _, act := range pe.pay.Plans[0].Activations {
+				r := g.id.ref(g.E.G, act.Source)
+				if r == RefNone || r >= RefStack {
+					continue
+				}
+				if s := fmt.Sprintf("#%d", r); !slices.Contains(out, s) {
+					out = append(out, s)
+				}
+			}
+		}
+	}
+	return out
 }

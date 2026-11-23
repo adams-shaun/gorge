@@ -53,6 +53,7 @@ Borderland Ranger
 Boros Elite
 Borrowed Malevolence
 Borrowing 100,000 Arrows
+Bothersome Quasit
 Brass Man
 Breaching Hippocamp
 Brood Weaver
@@ -347,6 +348,7 @@ Sarkhan's Triumph
 Scale the Heights
 Scaled Behemoth
 Scurrilous Sentry
+Scuttling Death
 Second Thoughts
 Selhoff Entomber
 Sentinel's Mark
@@ -370,6 +372,7 @@ Snake Umbra
 Snapping Thragg
 Soltari Lancer
 Soot Imp
+Soothing of Sméagol
 Soratami Mirror-Guard
 Soul Collector
 Soul Link

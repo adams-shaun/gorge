@@ -106,7 +106,11 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			return Pack(ActBottom, ref(o.Obj), RefNone, 0), true
 		}
 	case decision.KTriggerOrder:
-		return Pack(ActOrder, ref(o.Obj), RefNone, 0), true
+		// Two simultaneous triggers from one source share their Obj, so the
+		// option's occurrence among that source's options disambiguates the
+		// order: the kernel's AkOrder mode is exactly that occurrence
+		// (types.go, cast.go orderOccurrence).
+		return Pack(ActOrder, ref(o.Obj), RefNone, uint8(triggerOrderOccurrence(d, o))), true
 	case decision.KTriggerOptional:
 		switch o.Kind {
 		case "yes":
@@ -167,9 +171,10 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			}
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(mode)), true
 		}
-		if o.Kind == "multikick" {
-			// CR 702.43: gorge multikickAsk's count pick (Option.Amount),
-			// the kernel's DkChoose/ChMultikick
+		if isRepeatedCountKind(o.Kind) {
+			// CR 702.43/702.56a/702.157a: the count pick of gorge's
+			// multikickAsk / replicateAsk / squadAsk (Option.Amount), the
+			// kernel's one DkChoose/ChMultikick ask for all three
 			code, _ := chooseCode("multikick")
 			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(o.Amount)), o.Amount >= 0 && o.Amount < 256
 		}
@@ -220,14 +225,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		}
 		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
-			// An option kind the table lacks: still canonical as
-			// choose:other over its object (or its index when it names
-			// none); the caller counts it under Stats.Unknown.
-			g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")
-			if o.Obj != 0 {
-				return Pack(ActChoose+chooseOther, ref(o.Obj), RefNone, 0), true
-			}
-			return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
+			return g.chooseOtherAction(o)
 		}
 		k := ActChoose + CanonKind(code)
 		src, tgt := chooseSeatSlots(o, ref(o.Obj), pl(o.Player))
@@ -308,6 +306,23 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 	return 0, false
 }
 
+// chooseOtherAction is a KChoose option whose kind ChooseKinds lacks: still
+// canonical as choose:other over its object (or its index when it names none),
+// and counted under Stats.Unknown. The Ring-bearer pick is the exception:
+// effRingTemptsYou's "ring_bearer" (CR 701.54a) is the kernel's
+// ChGenRingBearer lowering, choose:other over the creature, and the kind stays
+// out of ChooseKinds because its position is the choose ordinal.
+func (g *GorgeSide) chooseOtherAction(o *decision.Option) (Canon, bool) {
+	if o.Kind == "ring_bearer" {
+		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
+	}
+	g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")
+	if o.Obj != 0 {
+		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
+	}
+	return Pack(ActChoose+chooseOther, RefNone, RefNone, uint8(o.Index)), o.Index < 256
+}
+
 // chooseSeatSlots is the (source, target) of a KChoose option: the object's
 // ref in the source slot, and a player-bearing option (no object) names its
 // seat in the target slot, except a player-enchanting Aura's as-enters pick
@@ -318,7 +333,7 @@ func chooseSeatSlots(o *decision.Option, objRef, seat Ref) (src, tgt Ref) {
 		return src, tgt
 	}
 	switch o.Kind {
-	case "player", "primary", "destination", "divide", "proliferate":
+	case "player", "protector", "primary", "destination", "divide", "proliferate":
 		tgt = seat
 	case "enchant":
 		src = seat
@@ -436,6 +451,9 @@ func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
 	if d.ResumeKind == "mustblock" && o.Kind == "object" {
 		return "card"
 	}
+	if o.Kind == "protector" {
+		return "player" // CR 310.10: the battle's protector pick is the kernel's ChGenPlayer (face_battle.go akProtector)
+	}
 	return cumulativeKindAlias(o.Kind)
 }
 
@@ -486,4 +504,26 @@ func (g *GorgeSide) addOrRemoveKindAction(o *decision.Option) (Canon, bool) {
 	}
 	code, _ := chooseCode(arm)
 	return Pack(ActChoose+CanonKind(code), g.id.ref(g.E.G, o.Obj), RefNone, uint8(c)), true
+}
+
+// triggerOrderOccurrence is a trigger-order option's position among the
+// same source's options (the kernel's AkOrder mode, cast.go orderOccurrence).
+func triggerOrderOccurrence(d *decision.Decision, o *decision.Option) int {
+	occ := 0
+	for i := range d.Options {
+		oi := &d.Options[i]
+		if oi == o {
+			break
+		}
+		if oi.Obj == o.Obj {
+			occ++
+		}
+	}
+	return occ
+}
+
+// isRepeatedCountKind reports the three repeated-additional-cost count picks
+// the kernel poses as one DkChoose/ChMultikick ask.
+func isRepeatedCountKind(kind string) bool {
+	return kind == "multikick" || kind == "replicate" || kind == "squad"
 }

@@ -48,6 +48,6 @@ func (s *State) millCostPay(k *prep, p uint8, n int) {
 		pl.libLo++
 		s.touch(o)
 		s.objs[o].zone = kop.ZoneNone
-		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false)
+		s.placeFromK(k, o, kop.ZoneGraveyard, false, kop.ZoneLibrary, false, false)
 	}
 }

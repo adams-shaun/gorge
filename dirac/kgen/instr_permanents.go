@@ -20,6 +20,7 @@ func init() {
 	instrOp("BreachChoose", (*instrCtx).opBreachChoose)
 	instrOp("BreachReturn", (*instrCtx).opBreachReturn)
 	instrOp("Airbend", (*instrCtx).opAirbend)
+	instrOp("Meld", (*instrCtx).opMeld)
 	instrOp("ChangeTargets", (*instrCtx).opChangeTargets)
 	instrOp("Phases", (*instrCtx).opPhases)
 	instrOp("Attach", (*instrCtx).opAttach)
@@ -131,6 +132,13 @@ func (ic *instrCtx) opAirbend() error {
 		}
 	}
 	return nil
+}
+
+// opMeld is OpExt ExtMeld (dirac/face_meld.go): Obj the source, F the
+// partner's filter.
+func (ic *instrCtx) opMeld() error {
+	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtMeld))
+	return ic.objFilter(kop.ZoneBattlefield)
 }
 
 func (ic *instrCtx) opChangeTargets() error {

@@ -7,7 +7,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // this Saga"). gorge's effCopyPermanent resolves the selector through
 // exiledWithSet, so the copy source is every card in any seat's exile zone
 // exiled with the resolving source, seat 0 first and in exile order. The
-// kernel keeps that association in the cold exw table (zone_exiledwith.go);
+// kernel keeps that association in the cold object-set store's osExw records (zone_exiledwith.go);
 // this op walks the same zones in the same order, reads each card through the
 // lowered PredExiledWith filter (s.exwCard), sizes every source's copy count
 // through the CreateToken replacements first (as copyAllEach does), then
@@ -22,9 +22,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // before fireEntries, and gorge's zone batch spans the parked ask, so those
 // copies' enters checks would be dropped. An exiled card is not a
 // battlefield permanent, so the copy has no template slot (NoSlot).
+
+// exwCopyMax bounds the copy sources this op enumerates (the old exw store's
+// maxExw; the store's own cap is maxObjSets, zone_objsets.go): a 65th card
+// exiled with the source stalls StallExiledWith, whose number stays reserved.
+const exwCopyMax = 64
+
 func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 	e := &s.res.e
-	var ord [maxExw]Obj
+	var ord [exwCopyMax]Obj
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
@@ -50,7 +56,7 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 	ctrl := e.ctrl
 	// Size every source's copy count before the first copy enters, as gorge's
 	// CopyPermanent Defined arm does (a CreateToken rewriter is read once).
-	var cnt [maxExw]int16
+	var cnt [exwCopyMax]int16
 	var rwCard CardID
 	rwN, rewritten := 0, false
 	for i := 0; i < n; i++ {

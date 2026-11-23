@@ -4,4 +4,5 @@ value: 28
 forge: MustBlock
 census: stat MustBlock all=8 std=0 mbc=0 sole=6
 state: slotobj 112 (must-block target)
-status: reserved
+status: active
+ticket: dsd-t17b-static-modes

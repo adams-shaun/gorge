@@ -8,6 +8,12 @@
 #               focus pool per list in dirac/support/focus (fx-<set>: std-<set> dealt around
 #               the cards that list names, kfuzz -focus); 1500 pairs each, seed 1, the random policy
 #   the forms   surfaces autopay and full, mulligans 0 and 1
+#   the pods    a run named pod-<pool> (POOLS="pod-cmd5 pod-edh") plays <pool>'s decks as
+#               four-seat pods, PODS pods (one game each, 0: 1500) cut to CMD_MINI cards: its
+#               -evidence rows carry the seat count, which scripts/dirac-first-refusals.py
+#               evidence --pools pod-<pool> copies into dirac/support/evidence, and its
+#               evidence-games row carries the clean pod games; a pod run writes no coverage,
+#               so it names no card's plays
 #
 # POOLS, SURFACES and MULLIGANS narrow a run, and only the named runs' files change.
 # PLAY_REFUSED=1 plays the refused cards too; GATE_SLICE=1 plays a deck pool's supported cards
@@ -40,6 +46,7 @@ for pool in $pools; do
 	case $pool in
 	std-* | dr-* | tail-*) what=(-synth "$pool") ;;
 	fx-*) what=(-synth "std-${pool#fx-}" -focus "$top/dirac/support/focus/$pool.txt") ;;
+	pod-*) what=(-kernel "${pool#pod-}" -seats 4 -pods "${PODS:-1500}" -cmd-mini "${CMD_MINI:-60}") ;;
 	*) what=(-kernel "$pool") ;;
 	esac
 	for surface in $surfaces; do
@@ -51,9 +58,14 @@ for pool in $pools; do
 			*) [ -n "${GATE_SLICE:-}" ] || extra=(-evidence "$run.evidence") ;;
 			esac
 			[ -n "${PLAY_REFUSED:-}" ] && extra+=(-play-refused)
+			# a pod run writes no coverage or branches: kfuzz refuses them with -seats above 2
+			case $pool in
+			pod-*) measured=() ;;
+			*) measured=(-coverage "$run.coverage" -branches "$run.branches") ;;
+			esac
 			"$out/kfuzz" "${what[@]}" -first-pair 0 -pairs 1500 -seed 1 -keep-going \
 				-surface "$surface" -mulligans "$m" -shrink 0 -workers "$workers" -absolute \
-				-implicates-all -coverage "$run.coverage" -branches "$run.branches" -out "$run.repros" "${extra[@]}" >"$run.out" 2>&1
+				-implicates-all "${measured[@]}" -out "$run.repros" "${extra[@]}" >"$run.out" 2>&1
 			rc=$?
 			echo "$rc" >"$run.rc"
 			if [ "$rc" != 0 ]; then

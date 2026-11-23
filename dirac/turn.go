@@ -31,6 +31,7 @@ func (s *State) beginTurn(p uint8) {
 	if k := s.k(); k.gen != nil && k.gen.anyAtkLast {
 		s.atkLastTurnEnd() // the outgoing seat's attacks become its last turn's (trig_atklastturn.go)
 	}
+	s.atkObjReset() // the turn's attacked objects (trig_atkobj.go)
 	s.newTurnGen()
 	if k := s.k(); k.gen != nil && k.gen.anySaddle {
 		s.unsaddleAll(k)
@@ -56,6 +57,12 @@ func (s *State) beginTurn(p uint8) {
 		s.embTurnStart(k, p) // UntilTheEndOfYourNextTurn: this turn is its last (static_emblemdurations.go)
 	}
 	s.step = kop.StepUntap
+	if k := s.k(); k.gen != nil && k.gen.anySkipPhase {
+		s.skipUntapTurn() // a pending untap skip enters the upkeep (act_skipphase.go)
+	}
+	if s.step == kop.StepUntap {
+		s.beginTurnPhaseSkip(s.k()) // a printed untap skip enters the upkeep (repl_beginphase.go)
+	}
 	s.ctl = ctlStepBegin
 	s.carry = carryNone
 	s.g.declM = slotMask{}
@@ -70,6 +77,7 @@ func (s *State) beginTurn(p uint8) {
 		}
 		pm.actUsed = 0
 		pm.flags &^= pfLoyaltyUsed
+		s.resetLoyaltyActivations(m.first())
 	}
 	for i := 0; i < int(s.nobj); i++ {
 		if s.objs[i].activations() != 0 {
@@ -179,8 +187,12 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyUntapOther {
 			s.untapOthers(k)
 		}
-		s.step = kop.StepUpkeep
+		// the untap step has no priority round, so its end proposes the next
+		// StepChange here: a printed phase-skip rewrites it (gorge's replacement
+		// pass on the proposal, repl_beginphase.go)
+		s.step = s.phaseSkipNext(k, kop.StepUpkeep)
 	case kop.StepUpkeep:
+		s.upkeepStep(k) // Duration$ UntilYourNextUpkeep ends as the upkeep begins
 		if k.gen != nil && k.gen.anySuspend {
 			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
 		}
@@ -196,10 +208,8 @@ func (s *State) beginStep(k *prep) {
 		}
 		s.openPriority()
 	case kop.StepDraw:
-		if s.turn == 1 && s.nSeats() == 2 {
-			// CR 103.8a skips the starting player's first draw step in a
-			// two-player game only; CR 103.8c: no one skips it at more
-			s.step = kop.StepMain1
+		if s.drawStepSkipped(k) {
+			s.step = kop.StepMain1 // the draw step does not happen (act_skipphase.go)
 			return
 		}
 		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
@@ -304,14 +314,22 @@ func (s *State) endStep(next kop.Step) {
 		s.firebendEnd(next) // firebending red survives the combat steps, PersistentMana$ units every step (kw_firebend.go, mana_persistent.go)
 		return
 	}
+	prot := s.unspentProt() // an UnspentMana keep rides this boundary (static_unspentmana.go)
+	var restr [MaxSeats]uint8
 	for p := uint8(0); p < s.nSeats(); p++ {
-		s.pl[p].pool = [kop.NumManaKinds]uint8{}
-		s.rbClear(p)
+		s.unspentEmptyPool(p, prot[p])
+		if prot[p] != 0 {
+			// the keep letters protect a slot's restricted batches too
+			// (gorge foldManaClear: r.Persistent || keep[slot])
+			s.rbKeep(p, prot[p], true)
+			if s.rbAny(p) {
+				restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+			}
+		} else {
+			s.rbClear(p)
+		}
 	}
-	s.g.poolArt = [MaxSeats]uint8{}
-	s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-	s.artNClearAll()
-	s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+	s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	s.step = next
 	s.ctl = ctlStepBegin
 }
@@ -337,6 +355,7 @@ func (s *State) advance(k *prep) {
 		if k.gen != nil && k.gen.anyRepl&rbPrevCol != 0 {
 			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
 		}
+		s.ovEndCombat(k) // static_ovendcombat.go: the Pump Duration$ UntilEndOfCombat override records
 	case kop.StepCleanup:
 		// a cleanup priority round (triggers) ends: another cleanup step
 		next = kop.StepCleanup
@@ -344,7 +363,10 @@ func (s *State) advance(k *prep) {
 	if k.gen != nil && k.gen.anyAddPhase {
 		next = s.addPhaseNext(next) // extra phases and the phase ledger (act_addphase.go)
 	} else if k.gen != nil && k.gen.anySkipPhase {
-		next = s.skipCombatNext(next) // act_skipphase.go
+		next = s.skipCombatNext(next, false) // act_skipphase.go
+	}
+	if k.gen != nil && k.gen.anyBeginPhase {
+		next = s.phaseSkipNext(k, next) // the printed phase-skips (repl_beginphase.go)
 	}
 	s.endStep(next)
 }
@@ -408,9 +430,9 @@ func (s *State) finishCleanup(k *prep) {
 		if p.flags&pfDeathtouched != 0 {
 			p.cseen |= cseenDT // gorge lists the removed mark at 0
 		}
-		p.flags &^= pfDeathtouched | pfDtMore | pfRegen | pfRegenX
+		p.flags &^= pfDeathtouched | pfDtMore | pfRegen
 		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
-		p.spare &^= spareSwitchPT // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
+		p.spare &^= spareSwitchPT | spareRegenX // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
@@ -444,15 +466,23 @@ func (s *State) finishCleanup(k *prep) {
 		// 514.3a priority in it can still spend them (mana_persistent.go)
 		s.persistEmpty(true)
 	} else {
+		prot := s.unspentProt() // an UnspentMana keep rides the cleanup boundary too
+		var restr [MaxSeats]uint8
 		for p := uint8(0); p < s.nSeats(); p++ {
-			s.pl[p].pool = [kop.NumManaKinds]uint8{}
-			s.rbClear(p)
+			s.unspentEmptyPool(p, prot[p])
+			if prot[p] != 0 {
+				// the keep letters protect a slot's restricted batches too
+				// (gorge foldManaClear: r.Persistent || keep[slot])
+				s.rbKeep(p, prot[p], true)
+				if s.rbAny(p) {
+					restr[p] = s.g.poolArt[p] & poolArtRestr // a kept batch stays typed (Karn, Legacy Reforged)
+				}
+			} else {
+				s.rbClear(p)
+			}
 		}
-		s.fbR = [MaxSeats]uint8{} // already 0 (end of combat dropped it); explicit
-		s.g.poolArt = [MaxSeats]uint8{}
-		s.g.poolTre = [MaxSeats][kop.NumManaKinds]uint8{}
-		s.artNClearAll()
-		s.snowClearAll() // the pool's snow tally empties with it (mana_snow.go)
+		s.fbR = [MaxSeats]uint8{}  // already 0 (end of combat dropped it); explicit
+		s.talliesKeep(prot, restr) // a kept slot's tag tallies survive with it (mana_snow.go, mana_artifact.go)
 	}
 	// CR 514.3a: the state-based check follows the 514.1/514.2 actions; when
 	// one is performed the active player gets priority even with an empty
@@ -544,17 +574,21 @@ func (s *State) sba(k *prep) bool {
 		s.dropUncounterGone() // a protected spell that left the stack (repl_uncounterable.go)
 	}
 	for {
+		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
 		if s.cmdZoneAsk() { // CR 903.9a, before the lose checks (zone_cmdzone.go)
 			return true
 		}
-		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) {
+		if s.g.lingerM.any() && !s.parkedWaiting() && !s.legendOwed(k) && !s.retAuraAskQueued() {
 			// state-based checks unattach (each pass: a host that died in
 			// the last one too), and a casualty's parked ask or a legend ask
 			// is still that pass (CR 704.3, 704.5n, 704.5p): gorge's check
-			// returns at its first order ask and its answer re-enters it
+			// returns at its first order ask and its answer re-enters it. A
+			// returning Aura's host ask (queueAskRet) is posed in the middle
+			// of the batch that returned it, before the next pass: the
+			// departed host's Equipment stays attached until it is answered
 			s.lingerDrain(k)
 		}
 		// gorge's loss order (checkLoseConditions): every life loss, then
@@ -594,107 +628,10 @@ func (s *State) sba(k *prep) bool {
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
-		var die, gy, pwz, aur, anni slotMask
+		sm := s.sbaBoard(k)
+		die, gy, pwz, aur, anni := sm.die, sm.gy, sm.pwz, sm.aur, sm.anni
+		umbra := sm.umbra // the pass's umbra-spared hosts (kw_umbraarmor.go)
 		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
-		// statics in force but none that can lower a toughness (kprio2)
-		ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
-		m := s.occ
-		for m.any() {
-			sl := m.first()
-			m = m.rest()
-			p := &s.perms[sl]
-			if p.p1 > 0 && p.ctrLow(int(kop.CtrM1M1)) > 0 {
-				anni = anni.with(sl) // CR 704.5q, after the departures: a casualty leaves with its counters (CR 704.8)
-			}
-			t := s.typesAt(k, sl)
-			if t&kop.TCreature != 0 {
-				// toughness can only be <= damage or <= 0 when something
-				// lowered it or damage is marked
-				// A timestamped override record can set the base P/T (a
-				// value-driven Animate: HandSize can be 0), so the printed
-				// toughness is not enough for the no-damage shortcut.
-				if p.damage == 0 && p.flags&pfDeathtouched == 0 && p.ctrLow(int(kop.CtrM1M1)) == 0 && p.eotT >= 0 && !s.sbaPTMoved(k, sl) && (!s.statM.any() || ptQuiet && p.ovr.walk&walkOn == 0) &&
-					p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
-					goto noncreature
-				}
-				_, tough := s.pt(k, sl)
-				if tough <= 0 {
-					die = die.with(sl)
-					gy = gy.with(sl)
-					continue
-				}
-				// The deathtouch mark alone is lethal (CR 704.5h): a wither or
-				// infect hit marks no damage (gorge destroyLethalDamage).
-				if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
-					s.kw(k, sl)&kop.KwIndestructible == 0 {
-					if r := s.destroyLine(k, sl, true); r != drNone {
-						if r == drHeal {
-							s.cfgx |= cfgxDestroyHealPass // CR 614.1: the counters leave, so a 0-toughness creature still dies next pass
-						}
-						continue
-					}
-					if s.canRegen(sl) {
-						s.regenerate(sl)
-						continue
-					}
-					if s.sbaSpare(k, sl, &die) {
-						continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
-					}
-					die = die.with(sl)
-				}
-			}
-		noncreature:
-			// one test for the common permanent: none of the three checks
-			// below applies without an Aura, a planeswalker or an attachment
-			if t&(kop.TAura|kop.TPlaneswalker) == 0 && p.attached == NoSlot {
-				continue
-			}
-			if t&kop.TAura != 0 && s.atchSeat(k, sl) != 0 {
-				// a player-attached Aura (the Enchant:Player curses): gorge
-				// attachmentSBAs' HasAttachedPlayer arm (engine/rules/attach.go:128)
-				// -- a lost seat cannot stay enchanted (CR 800.4a) and an
-				// Aura whose own Enchant spec no longer admits the seat
-				// (a control change moved a YouCtrl line) goes to the
-				// graveyard like any illegal attachment. The player-keyword
-				// protection grant gorge's playerProtectedFrom reads has no
-				// kernel arm: no supported table grants one beside a curse.
-				if !s.playerAuraLegal(k, sl) {
-					gy = gy.with(sl)
-					aur = aur.with(sl)
-				}
-			} else if t&kop.TAura != 0 && (p.attached == NoSlot || !s.enchantLegal(k, sl)) && !s.sbaBestowDetach(k, sl) {
-				// unattached, or attached to something it can no longer
-				// legally enchant (CR 704.5m: Imprisoned in the Moon makes
-				// Witness Protection's creature a land); a bestowed Aura
-				// detaches and stays instead (CR 702.103f)
-				gy = gy.with(sl)
-				aur = aur.with(sl)
-			}
-			if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
-				// an Equipment whose creature is no longer one (Imprisoned
-				// in the Moon) becomes unattached and stays (CR 704.5n;
-				// gorge attachmentSBAs; pair 9856). Under a legend ask it
-				// stays attached: gorge parks the pass's batch with the ask
-				// (CR 704.3), and the pass after the answer detaches it
-				// (Crystallized Serah transformed beside another)
-				h := p.attached
-				s.touchSl(h)
-				if k.gen != nil && k.gen.anyUnattach {
-					// gorge's Equipment-bearer arm publishes the detach with
-					// the bearer (CR 704.5n, attachmentSBAs)
-					s.fireUnattached(k, sl, h)
-				}
-				p.attached = NoSlot
-				s.touchSl(sl)
-				if k.gen != nil && k.gen.anyAegis {
-					s.aegisUnlink(k, sl, h, false) // zone_exilethenattach.go
-				}
-			}
-			if t&kop.TPlaneswalker != 0 && p.ctrLow(int(kop.CtrLoyalty)) == 0 {
-				gy = gy.with(sl)
-				pwz = pwz.with(sl)
-			}
-		}
 		if k.ctrMana {
 			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
 		}
@@ -766,7 +703,7 @@ func (s *State) sba(k *prep) bool {
 			// apply, a token outside the battlefield still there (pair 3630)
 			if s.legendRule(k) {
 				if !s.duel() {
-					s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+					s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 				}
 				s.legSaga = s.sagasDue(k) // parked with the ask (applyLegend)
 				return true
@@ -795,7 +732,7 @@ func (s *State) sba(k *prep) bool {
 			}
 			// CR 800.4a: the departed seats' objects left, at the pass end
 			// (gorge sweepDepartedPlayers runs after every pass's batch)
-			if !s.duel() && s.sweepDeparted(k) {
+			if !s.duel() && s.sweepDeparted(k, pre) {
 				continue
 			}
 			return s.sbaClean(k)
@@ -805,7 +742,7 @@ func (s *State) sba(k *prep) bool {
 		// the answer applies ahead of the non-kept legends
 		if s.legendRule(k) {
 			if !s.duel() {
-				s.sweepDeparted(k) // gorge sweeps before it parks (rules/sba.go)
+				s.sweepDeparted(k, pre) // gorge sweeps before it parks (rules/sba.go)
 			}
 			s.legDie = die
 			s.legSaga = s.sagasDue(k)
@@ -820,17 +757,7 @@ func (s *State) sba(k *prep) bool {
 		// defeated battles (to the graveyard), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
-		n := 0
-		dw := die.or(wld)
-		for _, gm := range [5]slotMask{die, wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
-			for p := uint8(0); p < MaxSeats; p++ {
-				n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order[:], n)
-			}
-		}
-		for _, q := range rolL[:nrol] {
-			order[n] = q
-			n++
-		}
+		n, sagaFrom := s.sbaDepartOrder(k, die, wld, pwz, bat, aur, rolL[:nrol], &umbra, order[:])
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
@@ -848,21 +775,19 @@ func (s *State) sba(k *prep) bool {
 			if i == nd {
 				cb.batchEnd(s)
 			}
+			if i >= sagaFrom {
+				s.fireSac(k, order[i]) // the Sacrificed triggers just before the Saga's own leave (sagaSBA's order), after the pass's earlier casualties' triggers
+			}
 			s.fireLeave(k, order[i], zs[i])
 		}
 		cb.batchEnd(s)
-		for i := 0; i < n; i++ {
-			s.removePerm(k, order[i], zs[i], false)
-			if i+1 == nd {
-				cb.holdEnd(s, k)
-			}
-		}
+		s.placeCasualties(k, order[:n], zs[:n], nd, &cb)
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
 		}
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
-		if !s.duel() && s.sweepDeparted(k) {
+		if !s.duel() && s.sweepDeparted(k, pre) {
 			continue
 		}
 		if askAfter && s.parkedWaiting() {
@@ -870,6 +795,75 @@ func (s *State) sba(k *prep) bool {
 			return true
 		}
 	}
+}
+
+// sbaDepartOrder builds a pass's departure order: the creature casualties
+// (lethal damage, zero toughness), then the world rule's losers,
+// planeswalkers with no loyalty, defeated battles and unattached Auras;
+// within each, each seat's battlefield list in seat order, then the Sagas
+// due for sacrifice (sagaDepart). An umbra-spared Aura takes its host's place
+// in the creature walk (umbraWalk). It returns the order's length and the
+// index of its first Saga (sagaDepart), for the leave loop's fireSac.
+func (s *State) sbaDepartOrder(k *prep, die, wld, pwz, bat, aur slotMask, rolL []Slot, umbra *umbraOrder, order []Slot) (int, int) {
+	n := s.umbraWalk(die, umbra, order, 0)
+	dw := die.or(wld)
+	for _, gm := range [4]slotMask{wld.andNot(die), pwz.andNot(dw), bat.andNot(dw.or(pwz)), aur.andNot(dw.or(pwz).or(bat))} {
+		for p := uint8(0); p < MaxSeats; p++ {
+			n = s.battlefieldOrder(p, gm.and(s.ctrlM[p]), order, n)
+		}
+	}
+	for _, q := range rolL {
+		order[n] = q
+		n++
+	}
+	return s.sagaDepart(k, order, n)
+}
+
+// umbraWalk appends mask in battlefield order. An Aura an umbra armor answer
+// destroyed takes its host's position in that seat's walk (gorge's
+// replaceSBADestruction / effDestroyAll destroys the Aura while it processes
+// that victim), not its own slot.
+func (s *State) umbraWalk(mask slotMask, umbra *umbraOrder, out []Slot, n int) int {
+	if umbra == nil || umbra.n == 0 || DebugUmbraOwnSlotOrder {
+		for p := uint8(0); p < MaxSeats; p++ {
+			n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), out, n)
+		}
+		return n
+	}
+	for p := uint8(0); p < MaxSeats; p++ {
+		m := mask.and(s.ctrlM[p])
+		for i := 0; i < umbra.n; i++ {
+			host, aura := umbra.pairs[i][0], umbra.pairs[i][1]
+			if !s.umbraMoves(umbra, i) {
+				continue // a victim Aura gorge reaches before its host stays at its own slot
+			}
+			if s.ctrlM[p].has(aura) {
+				m = m.without(aura) // emitted at its host's position instead
+			}
+			if s.ctrlM[p].has(host) {
+				m = m.with(host) // a marker for the Aura's position
+			}
+		}
+		n0 := n
+		n = s.battlefieldOrder(p, m, out, n)
+		for j := n0; j < n; j++ {
+			aura, ok := s.auraOf(umbra, out[j])
+			if !ok {
+				continue
+			}
+			if mask.has(out[j]) {
+				// the host is also a casualty: the Aura goes first, as gorge
+				// destroys it while processing the host's destruction
+				copy(out[j+1:n+1], out[j:n])
+				out[j] = aura
+				n++
+				j++
+				continue
+			}
+			out[j] = aura
+		}
+	}
+	return n
 }
 
 // playerAuraLegal reports whether the player-attached Aura at sl is still
@@ -934,6 +928,20 @@ func (s *State) leaveAll(k *prep, mask slotMask, z kop.Zone) {
 	for p := uint8(0); p < MaxSeats; p++ {
 		n = s.battlefieldOrder(p, mask.and(s.ctrlM[p]), order[:], n)
 	}
+	s.leaveOrder(k, order[:], n, z)
+}
+
+// leaveAllUmbra is leaveAll for a destroy-all whose umbra answers are
+// recorded in u: each Aura takes its host's position in the departure walk
+// (gorge's effDestroyAll destroys it while processing that victim).
+func (s *State) leaveAllUmbra(k *prep, mask slotMask, z kop.Zone, u *umbraOrder) {
+	var order [MaxPerm]Slot
+	n := s.umbraWalk(mask, u, order[:], 0)
+	s.leaveOrder(k, order[:], n, z)
+}
+
+// leaveOrder applies the departure batch in order[:n].
+func (s *State) leaveOrder(k *prep, order []Slot, n int, z kop.Zone) {
 	if len(s.cold.parked) != 0 && z == kop.ZoneGraveyard && s.res.active {
 		first := n
 		for i, sl := range order[:n] {
@@ -1211,8 +1219,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		if k.gen != nil && k.gen.anyWarp && s.objs[ref].zone == kop.ZoneExile {
 			s.warpRecastGrant(ref)
 		}
-	case kop.OpBounce, opDashReturn:
-		s.leave(k, sl, kop.ZoneHand, false) // opDashReturn: CR 702.109a's end-step return (kw_dash.go)
+	case opDashReturn:
+		s.dashReturn(k, sl) // CR 702.109a's end-step return (kw_dash.go)
+	case kop.OpBounce:
+		s.leave(k, sl, kop.ZoneHand, false)
 	default:
 		panic("kernel: delayed trigger action not implemented: " + kop.Op(e.trigAmt).String())
 	}
@@ -1267,11 +1277,15 @@ func (s *State) legendGroup(k *prep, peek bool) bool {
 			cand = s.ctrlM[p] // a derived Legendary is not in legM (printed types only)
 		}
 		no := s.battlefieldOrder(p, cand, ord[:], 0)
+		lgEx := k.gen != nil && k.gen.uses.has(useLgExempt)
 		n := 0
 		for i := 0; i < no; i++ {
 			sl := ord[i]
 			if s.typesAt(k, sl)&kop.TLegendary == 0 {
 				continue
+			}
+			if lgEx && s.legendExemptGen(k, sl) {
+				continue // the legend rule doesn't apply to it (CR 704.5j; static_ignorelegendrule.go)
 			}
 			nm := s.legendName(k, sl) // by name: Witness Protection renames (CR 704.5j; pair 28);
 			// token cards of different scripts that print the same name are one

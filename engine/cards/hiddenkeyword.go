@@ -51,6 +51,15 @@ var canonicalKeywordHeads = map[string]string{
 	"cardname can't attack or block alone.":                      "CantAttackOrBlockAlone",
 	"cardname can't attack alone.":                               "CantAttackAlone",
 	"cardname can't block alone.":                                "CantBlockAlone",
+	// CR 509.1c / 508.1c-d: the combat requirement and restriction sentences
+	// whose behaviour combat.ParseHiddenKeyword reads (engine/rules/combat/restrictions.go).
+	"cardname must be blocked by exactly one creature if able.":                "MustBeBlockedByOne",
+	"cardname can only attack alone.":                                          "CanOnlyAttackAlone",
+	"cardname can't attack unless a creature with greater power also attacks.": "CantAttackUnlessGreaterPower",
+	"cardname can't block unless a creature with greater power also blocks.":   "CantBlockUnlessGreaterPower",
+	"cardname can't attack unless at least two other creatures attack.":        "CantAttackUnlessTwoOthers",
+	"cardname can't block unless at least two other creatures block.":          "CantBlockUnlessTwoOthers",
+	"cardname can't attack unless a black or green creature also attacks.":     "CantAttackUnlessBlackOrGreen",
 }
 
 // HiddenUntapNextStepKeyword is the EXACT Forge sentence a Pump/PumpAll `KW$
@@ -135,6 +144,18 @@ const (
 	HiddenKeywordCantBlockAlone
 	HiddenKeywordAllMustBlock
 	HiddenKeywordMustBeBlockedByTwo
+	HiddenKeywordMustBeBlockedByOne
+	HiddenKeywordMustBeBlockedByAll
+	HiddenKeywordCanOnlyAttackAlone
+	HiddenKeywordCantAttackUnlessGreaterPower
+	HiddenKeywordCantBlockUnlessGreaterPower
+	HiddenKeywordCantAttackUnlessTwoOthers
+	HiddenKeywordCantBlockUnlessTwoOthers
+	HiddenKeywordCantAttackUnlessBlackOrGreen
+	// HiddenKeywordMustBeBlockedBy is "MustBeBlockedBy <blocker filter>": a
+	// granted block requirement satisfied by one blocker matching the filter
+	// (The Masamune, Slayer's Cleaver). The filter rides the head text.
+	HiddenKeywordMustBeBlockedBy
 	HiddenKeywordCount
 )
 
@@ -162,6 +183,24 @@ var hiddenKeywordHeadCodes = NewStrCodes(
 	StrEntry[HiddenKeyword]{Key: "all creatures able to block cardname do so.", Val: HiddenKeywordAllMustBlock},
 	StrEntry[HiddenKeyword]{Key: "mustbeblockedbytwo", Val: HiddenKeywordMustBeBlockedByTwo},
 	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by two or more creatures if able.", Val: HiddenKeywordMustBeBlockedByTwo},
+	StrEntry[HiddenKeyword]{Key: "mustbeblockedbyone", Val: HiddenKeywordMustBeBlockedByOne},
+	StrEntry[HiddenKeyword]{Key: "cardname must be blocked by exactly one creature if able.", Val: HiddenKeywordMustBeBlockedByOne},
+	// MustBeBlockedByAll:<blocker filter>:<text> is the printed Lure with a
+	// blocker filter (Marble Priest, Talruum Piper); the filter rides the
+	// keyword line, read by combat.ParseHiddenKeyword.
+	StrEntry[HiddenKeyword]{Key: "mustbeblockedbyall", Val: HiddenKeywordMustBeBlockedByAll},
+	StrEntry[HiddenKeyword]{Key: "canonlyattackalone", Val: HiddenKeywordCanOnlyAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cardname can only attack alone.", Val: HiddenKeywordCanOnlyAttackAlone},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlessgreaterpower", Val: HiddenKeywordCantAttackUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless a creature with greater power also attacks.", Val: HiddenKeywordCantAttackUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cantblockunlessgreaterpower", Val: HiddenKeywordCantBlockUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block unless a creature with greater power also blocks.", Val: HiddenKeywordCantBlockUnlessGreaterPower},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlesstwoothers", Val: HiddenKeywordCantAttackUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless at least two other creatures attack.", Val: HiddenKeywordCantAttackUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cantblockunlesstwoothers", Val: HiddenKeywordCantBlockUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cardname can't block unless at least two other creatures block.", Val: HiddenKeywordCantBlockUnlessTwoOthers},
+	StrEntry[HiddenKeyword]{Key: "cantattackunlessblackorgreen", Val: HiddenKeywordCantAttackUnlessBlackOrGreen},
+	StrEntry[HiddenKeyword]{Key: "cardname can't attack unless a black or green creature also attacks.", Val: HiddenKeywordCantAttackUnlessBlackOrGreen},
 )
 
 // HiddenKeywordOf resolves one keyword line to its HiddenKeyword code,
@@ -176,5 +215,69 @@ func HiddenKeywordOf(k string) HiddenKeyword {
 	if head == "" {
 		return HiddenKeywordNone
 	}
-	return hiddenKeywordHeadCodes.Code(lowerASCIIString(head))
+	low := lowerASCIIString(head)
+	if len(low) > len(mustBeBlockedByPrefix) && low[:len(mustBeBlockedByPrefix)] == mustBeBlockedByPrefix {
+		return HiddenKeywordMustBeBlockedBy
+	}
+	return hiddenKeywordHeadCodes.Code(low)
+}
+
+// mustBeBlockedByPrefix opens the filtered must-be-blocked grant; the trailing
+// space keeps mustbeblockedbyall / -one / -two on their own table entries.
+const mustBeBlockedByPrefix = "mustbeblockedby "
+
+// MustBeBlockedByFilter returns the blocker filter text of a
+// "MustBeBlockedBy <filter>" keyword, verbatim ("" when k is another keyword).
+func MustBeBlockedByFilter(k string) string {
+	if HiddenKeywordOf(k) != HiddenKeywordMustBeBlockedBy {
+		return ""
+	}
+	head := KeywordHead(k)
+	for i := 0; i < len(head); i++ {
+		if head[i] == ' ' {
+			for i < len(head) && head[i] == ' ' {
+				i++
+			}
+			return head[i:]
+		}
+	}
+	return ""
+}
+
+// IsHiddenRuleEffectKeyword reports whether one derived keyword line is one
+// of the attack/block restriction or requirement sentences the CR applies as
+// a game-rule effect rather than an ability of the object: CR 613.11's class
+// ("say that a creature must attack this turn if able" -- the can't-attack,
+// can't-block, must-be-blocked and alone/unless siblings) is applied after
+// all other continuous effects, so a LATER layer-6 "loses all abilities"
+// (CR 613.1f) cannot end it, exactly as it cannot end a Pacifism. It DOES end
+// a granted ability line (a granted flying) and every printed line, whose
+// sentences the printed K: parser already canonicalised to heads.
+//
+// The Lure sentence (HiddenKeywordAllMustBlock) is in the class: a spell's
+// unquoted "all creatures able to block target creature this turn do so"
+// (Taunting Challenge, Alluring Scent) is a CR 509.1c requirement a later
+// loss cannot end. A carrier that grants it as a QUOTED ability ("Enchanted
+// creature has 'All creatures able to block this creature do so.'") is an
+// ability of the object instead; the layer walk exempts that grant by the
+// effect's QuotedAbilityGrant mark (chars.applyKeywordGrant), not by this predicate.
+//
+// UntapNextStep is deliberately outside the class: the untap step consumes
+// the one-shot state flag stamped at grant time
+// (engine/effects registerPumpEffects), not the keyword text, so the line's
+// loss to an ability removal is not observable. The whitelist is explicit, so
+// a future sentence meaning an ABILITY starts as one (a removal ends it)
+// instead of silently surviving every removal.
+func IsHiddenRuleEffectKeyword(k string) bool {
+	switch HiddenKeywordOf(k) {
+	case HiddenKeywordCantAttackOrBlock, HiddenKeywordCantAttack, HiddenKeywordCantBlock,
+		HiddenKeywordMustBlock, HiddenKeywordCantAttackOrBlockAlone, HiddenKeywordCantAttackAlone,
+		HiddenKeywordCantBlockAlone, HiddenKeywordAllMustBlock, HiddenKeywordMustBeBlockedByTwo,
+		HiddenKeywordMustBeBlockedByOne, HiddenKeywordMustBeBlockedByAll, HiddenKeywordCanOnlyAttackAlone,
+		HiddenKeywordCantAttackUnlessGreaterPower, HiddenKeywordCantBlockUnlessGreaterPower,
+		HiddenKeywordCantAttackUnlessTwoOthers, HiddenKeywordCantBlockUnlessTwoOthers,
+		HiddenKeywordCantAttackUnlessBlackOrGreen, HiddenKeywordMustBeBlockedBy:
+		return true
+	}
+	return false
 }

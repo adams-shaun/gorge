@@ -68,6 +68,19 @@ func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uin
 	return s.abilityAffords(k, sl, a, &c, av)
 }
 
+// powerUpGrantSearchLists reports whether the relaxed (gaps) walk lists a
+// Power-up activation the printed-cost witness refuses, for the grant search
+// to decide: gorge's prefix search taps the granted mana abilities and its
+// node's own priority walk offers the play once the floating pool pays the
+// reduced charge (offerPays), so three lands Wrenn and Realmbreaker's grant
+// taps fund Goliath, Mass Manipulator's {4}{G} at {3} though the planner's
+// printed price is five (CR 702.193b, 605.1a). grantSearch drops the play
+// when no path pays it (script_gen.go grantCap), so listing it is the search's
+// question, not an offer.
+func powerUpGrantSearchLists(s *State, k *prep) bool {
+	return s.g.availX&availGaps != 0 && k.gen != nil && len(k.gen.grantPC) > 0
+}
+
 // powerUpWitness is the cost gorge's autopay planner prices for Power-up
 // ability a of slot sl: the printed cost with the ability's own reduction
 // and the cost statics composed (planAbilityPaymentLifePips:
@@ -240,6 +253,15 @@ func (g *grantSrch) seenPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 		g.cheaper = cheap
 		return true
 	}
+	// An activation's offer reads the pool and the printed sources together
+	// (the walk's activateOffers), not the pool alone: a folded-equal node whose
+	// pool is spendable where the seen one's ghost unit was not (Woodland
+	// Weavemaster's granted {G} after its Elf-only printed mana, CR 106.6)
+	// still offers it, as gorge's node does.
+	if g.d.hasPlay && g.d.play.Kind() == AkActivate && t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d) && g.witnessKeeps(t, cost) {
+		g.cheaper = cheap
+		return true
+	}
 	return false
 }
 
@@ -251,9 +273,21 @@ func (g *grantSrch) leafPays(t *State, cost *kop.ManaCost, cheap bool) bool {
 		g.cheaper = true // the node's walk lists the play the root price refused
 		return true
 	}
-	if t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d) && g.witnessKeeps(t, cost) {
+	if g.ungrantedPays(t, cost) && g.witnessKeeps(t, cost) {
 		g.cheaper = cheap
 		return true
 	}
 	return false
+}
+
+// ungrantedPays is the planner's price of the play from the pool and the printed
+// sources at node t. A spell's census leaves out a dynamic {T}, sacrifice source
+// (Lotus Blossom: gorge's payment planner cannot price it, ungrCastCensus), so a
+// cast it would complete is the search's gap step to float, not a priced leaf
+// (mana_grantdynsac.go).
+func (g *grantSrch) ungrantedPays(t *State, cost *kop.ManaCost) bool {
+	if g.d.hasPlay && isCastKind(g.d.play.Kind()) && g.d.play.Kind() != AkActivate && g.k.t != nil && !t.fixedTapsCast(g.k, g.d.play) {
+		return t.affordsUngrantedCast(g.k, g.p, cost, g.d)
+	}
+	return t.affordsUngrantedPlay(g.k, g.p, g.d.play, cost, g.ex, g.d)
 }

@@ -30,3 +30,15 @@ func (s *State) grantPlotCost(k *prep, p uint8, a Action) (cost kop.ManaCost, ex
 	c := s.objs[a.Source()].card
 	return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].PlotCost), NoSlot, need, true
 }
+
+// grantSuspendCost prices the suspend special action (CR 702.62a) for the
+// grant search, grantPlotCost's arm for suspend: gorge's walk lists it as a
+// "suspend" cast priced at its suspend cost, a play of its own beside the
+// card's plain cast, so the search funds that cost (kw_suspend.go). Without
+// it the closed sacrifice-any bound's check (sacPotPays) reads the action
+// unpriced and drops a hand card only the bound's tap-another repeats fund
+// (tapXRepeatUnits, gorge addPotentialTapRepeat).
+func (s *State) grantSuspendCost(k *prep, p uint8, a Action) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
+	c := s.objs[a.Source()].card
+	return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].SuspendCost), NoSlot, need, true
+}

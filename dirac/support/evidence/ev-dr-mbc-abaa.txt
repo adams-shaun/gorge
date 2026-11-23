@@ -20,6 +20,7 @@ Cephalid Broker
 Changeling Outcast
 Cheering Fanatic
 Cloudkill
+Coalition Honor Guard
 Cold-Water Snapper
 Congregate
 Corrupt
@@ -33,6 +34,7 @@ Deekah, Fractal Theorist
 Deepwood Legate
 Devoted Druid
 Diminish
+Dusk Charger
 Elite Cat Warrior
 Essence Extraction
 Faerie Guidemother

@@ -17,6 +17,7 @@ Artificer Class
 Ashen Monstrosity
 Aspect of Lamprey
 Attune with Aether
+Aurora Phoenix
 Avatar of Discord
 Avatar of Growth
 Aven Fogbringer
@@ -72,6 +73,7 @@ Crackling Drake
 Creakwood Liege
 Crookclaw Elder
 Crosstown Courier
+Cruel Ultimatum
 Cunning Survivor
 Curiosity Crafter
 Daggersail Aeronaut
@@ -123,7 +125,9 @@ Flare of Denial
 Flatman
 Flowstone Charger
 Forest
+Forked-Branch Garami
 Foxfire Oak
+Gary Clone
 Gift of Fangs
 Gift of Paradise
 Gild
@@ -131,6 +135,7 @@ Gingerbread Cabin
 Glimmervoid
 Gnarled Effigy
 Goblin Deathraiders
+Golem-Skin Gauntlets
 Great Defender
 Greater Harvester
 Griffin Aerie
@@ -156,6 +161,7 @@ Jace's Erasure
 Jade Idol
 Jalum Tome
 Jolrael, Voice of Zhalfir
+Katara, Waterbending Master
 Kayla's Reconstruction
 Khenra Eternal
 Khenra Spellspear
@@ -166,6 +172,7 @@ Launch
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin
+Liliana of the Veil
 Lonis, Genetics Expert
 Lord of Tresserhorn
 Lorthos, the Tidemaker
@@ -192,6 +199,7 @@ Mind Over Matter
 Minotaur, Roxxon CEO
 Mobile Fort
 Momentum Rumbler
+Monkey Cage
 Mortal Wound
 Mossbridge Troll
 Mountain
@@ -243,6 +251,7 @@ Rimewood Falls
 Rishadan Cutpurse
 Rishkar's Expertise
 River Sneak
+Robot Domination
 Rockshard Elemental
 Rooftop Nuisance
 Rout
@@ -251,6 +260,7 @@ Sacred Prey
 Sage Aven
 Sage of Fables
 Sailor of Means
+Saint Traft and Rem Karolus
 Sanctify
 Sarkhan's Unsealing
 Scalding Devil
@@ -329,6 +339,7 @@ Volcanic Upheaval
 Voyager Staff
 Wall of Vines
 Warmonger Hellkite
+Wasteland Raider
 Waterknot
 Whiptail Moloch
 Whiptail Wurm
@@ -343,4 +354,5 @@ Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
 Zendikar Farguide
+Zhulodok, Void Gorger
 Zuran Enchanter

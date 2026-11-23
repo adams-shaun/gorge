@@ -141,6 +141,20 @@ func chainHasOther(t *kop.Table, f kop.FilterID) bool {
 	return false
 }
 
+// pickOtherBarred reports whether a pick candidate o is barred by the
+// filter chain's FOther. gorge's Other is "not the source's own object"
+// (o.ID != sc.Source), and gorge applies it wherever it builds a pick's
+// pool (effHiddenPick, effSearchLibrary, effDig, the costs), so a ChangeType$
+// with Other -- "you may exile another creature card from your graveyard"
+// (Resplendent Marshal) -- never offers the resolving source itself. The
+// perm matcher tests FOther itself (matchPermGen's src); the card-zone
+// pick builders read this beside their matchCardGen. A source that left
+// and returned re-enters as a new object, which the object compare admits
+// as gorge's SourceReturned does.
+func (s *State) pickOtherBarred(k *prep, f kop.FilterID, o Obj) bool {
+	return o == s.res.e.obj && chainHasOther(k.t, f)
+}
+
 // markSrc records that source object src marked the permanent at sl.
 //
 //go:noinline
@@ -223,6 +237,30 @@ func (s *State) dmgByGrantHost(k *prep, src Slot) bool {
 			return true
 		}
 	}
+	if k.gen.globTrigGrant {
+		// a grant not limited to a host (Vampiric Sliver gives every Sliver
+		// the DamagedBy trigger): the permanent at src holds it when the
+		// static's filter matches it, so its damage is recorded
+		for g := s.statM; g.any(); g = g.rest() {
+			a := g.first()
+			c := s.cardAt(a)
+			if !k.gen.has(c, gfGlobGrant) || int(c) >= len(k.gen.dmgBy) || !k.gen.dmgBy[c] {
+				continue
+			}
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				ab := &cd.Abilities[i]
+				if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Grant == 0 ||
+					filterAttachedOnly(k.t, ab.Static.Filter) {
+					continue
+				}
+				st := statSrc{a: ab, sl: a, ctrl: s.perms[a].ctrl, obj: s.perms[a].obj}
+				if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, src, st.ctrl, a, layerKw) {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
 
@@ -298,6 +336,32 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 	}
 }
 
+// atkPWGuardStalls reports whether gorge's TriggeredDefender damage behind
+// an OpAtkPWGuard names nobody the kernel can damage. The attacker present:
+// it attacks a planeswalker or battle (without the C AtkPWHit object form),
+// or the trigger's own controller, whom gorge's .Opponent qualifier names
+// nobody for (an attacker the controller does not control: Mage Slayer on a
+// stolen creature). The attacker gone: gorge binds the defending player as
+// the trigger is queued (CR 603.10, 608.2h) and deals the damage there from
+// the attacker's last known information, which the kernel does only for a
+// bound player, or, behind C AtkPWHit, for a bound planeswalker or battle
+// (the atkObj table's object; attackedObjOr). An unset defSeat, or an
+// object-tagged one without that object, names no such recipient; a bound
+// seat that is the trigger's own controller is the .Opponent case again, not
+// a damage recipient.
+func (s *State) atkPWGuardStalls(k *prep, sl Slot, in *kop.Instr) bool {
+	if sl == NoSlot {
+		d := s.res.e.defSeat
+		if d == 0 || defSeatSeat(d) == s.res.e.ctrl {
+			return true
+		}
+		// an object attack is damaged only behind C AtkPWHit, from the table
+		// that kept the object as the trigger was queued (trig_atkobj.go)
+		return d&defSeatObj != 0 && (in.C&kop.AtkPWHit == 0 || s.atkObjOf(d) == NoTarget)
+	}
+	return in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl
+}
+
 // execMcombat runs the ops (the tail of execPrepare's
 // chain); done=false means the op is not one of these.
 //
@@ -305,11 +369,7 @@ func (s *State) noteCrewPick(k *prep, sl Slot) {
 func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
 	case kop.OpAtkPWGuard:
-		// the attacker attacks a planeswalker or battle, or is gone; or
-		// it attacks the trigger's own controller, whom gorge's
-		// TriggeredDefender.Opponent names nobody for (an attacker the
-		// controller does not control: Mage Slayer on a stolen creature)
-		if sl := s.objRef(k, kop.RefTriggerObj); sl == NoSlot || in.C&kop.AtkPWHit == 0 && isObjTarget(s.perms[sl].atk) || s.atkSeat(k, sl) == s.res.e.ctrl {
+		if s.atkPWGuardStalls(k, s.objRef(k, kop.RefTriggerObj), in) {
 			s.capFull(StallDefenderPW)
 		}
 	default:
@@ -321,9 +381,17 @@ func (s *State) execMcombat(k *prep, in *kop.Instr) (ok, done bool) {
 // attackedObjOr is code, or the planeswalker/battle the trigger object is
 // attacking when it attacks one (OpDealDamage B.N DmgAtkedObj behind
 // OpAtkPWGuard C AtkPWHit; gorge's Valid Planeswalker.TriggeredDefender arm).
+// An attacker that has left the battlefield (or come back as a new object)
+// names the object the trigger bound as it was queued (CR 603.3c, 608.2h).
 func (s *State) attackedObjOr(k *prep, code TCode) TCode {
 	if sl := s.objRef(k, kop.RefTriggerObj); sl != NoSlot {
 		if a := s.perms[sl].atk; isObjTarget(a) {
+			return a
+		}
+		return code
+	}
+	if e := &s.res.e; e.kind == seTrigger {
+		if a := s.atkObjOf(e.defSeat); a != NoTarget {
 			return a
 		}
 	}
@@ -358,10 +426,12 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if in.B.N&kop.TokAttackAsk == 0 {
 		atk = s.riderSeat(p)
 	}
-	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.opponentHasWalker(k, p) {
+	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.riderSeatHasWalker(k, p) {
 		// Adeline's "that player or a planeswalker they control": gorge asks
 		// (CR 508.4, tokenAttackingRider); tokenDefenderAsk poses the pick
 		// before the mint, so only a mint path without it (a batch) lands here.
+		// Only the rider's own seat counts: another opponent's planeswalker is
+		// no candidate for this iteration's token (gorge's candidate list).
 		s.capFull(StallDefenderPW)
 		return
 	}
@@ -375,17 +445,18 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	s.setEnterAttacker(k, sl, atk)
 }
 
-// opponentHasWalker reports whether a living opponent of p controls a face-up
-// planeswalker (gorge tokenAttackingRider's candidate list past the player).
-func (s *State) opponentHasWalker(k *prep, p uint8) bool {
-	for opp := uint8(0); opp < s.nSeats(); opp++ {
-		if opp == p || s.pl[opp].lost {
-			continue
-		}
-		for q := s.ctrlM[opp]; q.any(); q = q.rest() {
-			if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
-				return true
-			}
+// riderSeatHasWalker reports whether the seat a TokenAttacking$ rider names
+// for a token p mints (riderSeat) is a living seat other than p controlling a
+// face-up planeswalker (gorge tokenAttackingRider's candidate list past the
+// player): the pick riderDefenderAsk poses when it does.
+func (s *State) riderSeatHasWalker(k *prep, p uint8) bool {
+	seat := CodeSeat(s.riderSeat(p))
+	if seat == p || s.pl[seat].lost {
+		return false
+	}
+	for q := s.ctrlM[seat]; q.any(); q = q.rest() {
+		if sl := q.first(); s.typesGen(k, sl)&kop.TPlaneswalker != 0 && !s.faceDown(k, sl) {
+			return true
 		}
 	}
 	return false
@@ -409,7 +480,7 @@ func (s *State) enterDefenderFallback(k *prep, p uint8) TCode {
 func (s *State) enterDefenderFallbackOf(k *prep, p uint8) (fb TCode, unbound bool) {
 	if e := &s.res.e; s.res.active && e.kind == seTrigger {
 		if e.defSeat != 0 {
-			return PlayerCode(e.defSeat - 1), false
+			return PlayerCode(defSeatSeat(e.defSeat)), false
 		}
 		return TCode(NoTarget), true
 	}
@@ -605,7 +676,28 @@ func (s *State) applyWhileHost(k *prep, sl Slot, idx int, e *stackEntry) {
 	if !s.hostHere(e) || k.t.Overrides[idx].WhileTapped && s.perms[s.objs[e.obj].slot].flags&pfTapped == 0 {
 		return // a WhileTapped host that is not tapped starts nothing (gorge registerAnimateEffects)
 	}
+	if k.t.Overrides[idx].AsLongAsControl && s.perms[s.objs[e.obj].slot].ctrl != e.ctrl {
+		return // gorge checkValidDuration: the host is not controlled by the activator
+	}
 	s.applyOverridePT(k, sl, idx, e.card, 0, int16(e.obj), int16(e.srcVer))
+}
+
+// ovAsLongAsControlDrop ends the Duration$ AsLongAsControl override records
+// whose host is object o: o changed controller or phased out (gorge
+// expireAsLongAsControl). The records start only under the effect's
+// controller (applyWhileHost), so any control change of the host ends them,
+// and a phase-out is for good: phasing in does not bring them back.
+//
+//go:noinline
+func (s *State) ovAsLongAsControlDrop(k *prep, o Obj) {
+	if !s.fxM.any() {
+		return
+	}
+	s.dropFx(func(i int) bool {
+		r := &s.g.fx[i]
+		return r.kind == fxOverride && k.t.Overrides[r.r.idx-1].AsLongAsControl && Obj(r.r.p) == o
+	})
+	s.refreshTy(k)
 }
 
 // hostLeft ends the effects whose host is object o, leaving the

@@ -21,7 +21,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the foreign card's body (a cost's Self, and the effect's, is the recipient).
 
 // StallGainsOf: a gained ability the walk does not model (an activation
-// limit, once each turn, a loyalty ability, one that works from another zone,
+// limit, a loyalty ability, one that works from another zone,
 // or an index past 63). A gained mana ability is not a priority option in
 // either engine, so the offer walk skips it (gainedOffer) rather than stalling,
 // unless it carries a limit the payment planner does not record
@@ -202,9 +202,22 @@ func (s *State) gainedOffer(k *prep, d *Decision, st statSrc, first int, fo Obj,
 			}
 			continue
 		}
-		if !gainedModelled(a, j) {
+		if a.Kind == kop.AbActivated && a.ActZone != kop.ZoneNone {
+			// CR 113.6, 602.2: a gained ability keeps the zone it works from,
+			// and every recipient is a battlefield permanent (Resurrected
+			// Cultist's graveyard return): never offered, gorge's walk too.
+			continue
+		}
+		once := gainedOncePerTurn(a, j)
+		if !gainedModelled(a, j) && !once {
 			s.capFull(StallGainsOf)
 			return false
+		}
+		if once && s.usedThisTurnBy(st.obj, gainedMode|uint8(j), fo) {
+			// CR 602.5b: "activate only once each turn" is counted per
+			// recipient, foreign object and ability index (gorge legal_granted.go
+			// gainedActivationsUsed); a used one is no longer an option
+			continue
 		}
 		if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(st.ctrl, &a.Cost.Mana) {
 			// gorge's granted sweep prices a gained ability against the
@@ -231,6 +244,33 @@ func gainedModelled(a *kop.Ability, j int) bool {
 	const limits = kop.CostOncePerGame | kop.CostOncePerTurn | kop.CostLoyalty
 	return a.Kind == kop.AbActivated && j < 64 && a.ActZone == kop.ZoneNone &&
 		a.Cost.Flags&limits == 0 && !a.Exhaust && a.Cost.Host == 0
+}
+
+// gainedOncePerTurn reports whether gained ability j is modelled by the walk
+// as a once-each-turn one: gainedModelled's shape but for the once-each-turn
+// cost, which the used pool records per (recipient, foreign object, 0xC0|index)
+// (markGainedUsed; usedThisTurnBy). gainedModelled itself, and so the pair
+// refusal (static_gainsofpair.go), still counts such an ability as unmodelled.
+func gainedOncePerTurn(a *kop.Ability, j int) bool {
+	const limits = kop.CostOncePerGame | kop.CostLoyalty
+	return a.Kind == kop.AbActivated && j < 64 && a.ActZone == kop.ZoneNone &&
+		a.Cost.Flags&kop.CostOncePerTurn != 0 && a.Cost.Flags&limits == 0 && !a.Exhaust && a.Cost.Host == 0
+}
+
+// markGainedUsed records the gained once-each-turn activation being built (the
+// recipient o activating the foreign host's ability ab, mode 0xC0|ab) in the
+// used pool, flagged bflUsedMark so a reversed activation (CR 733.1) gives the
+// turn's allowance back. payAbilityCosts reads the flag to leave the
+// recipient's own actUsed bits alone.
+func (s *State) markGainedUsed(a *kop.Ability, o, host Obj, mode uint8) {
+	if !gainedOncePerTurn(a, int(mode&^gainedMode)) {
+		return
+	}
+	n := s.g.nused
+	s.markUsedBy(o, mode, host)
+	if s.g.nused > n {
+		s.bld().bfl |= bflUsedMark
+	}
 }
 
 // optionListed reports whether act is already among d's options from first on.

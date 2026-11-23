@@ -1,0 +1,23 @@
+{
+  "card": "Creeping Tar Pit",
+  "class": "options-options",
+  "why": "gorge's prefix search floats the Swamp's Urban Utopia-granted ability's {B} first and Nomadic Elf's {1}{G} fee then spends it (generic in WUBRG order), so Creeping Tar Pit's {1}{U}{B} is unpaid after 22 nodes; the kernel's granted-mana plus repeatable-filter search finds the line that funds the Elf from Forests first and offers it (tail-44 focus pair 6, decision 589)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "creeping_tar_pit_paid_filter_chain"
+  },
+  "evidence": [
+    "ev-tail-44-c000",
+    "ev-tail-44-c001",
+    "ev-tail-44-c002",
+    "ev-tail-44-s000",
+    "ev-tail-71-c018",
+    "ev-tail-72-c000",
+    "ev-tail-72-c001"
+  ]
+}

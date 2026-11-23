@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Geological Appraiser	2062d10998a489c2	4	1/1		0/1	ix:resp
+Access Tunnel	fb2458a9b7dd5372	9	2/2		0/1	ix:resp
 Aether Helix	9bb2cf6c7c3923b4	4	0/0		1/2	ix:resp
 Allied Reinforcements	f2bf3bfffaab9a35	35	0/0		2/2	
 Araumi of the Dead Tide	506046ed94ca55cf	34	1/1		1/1	
@@ -16,6 +17,7 @@ Burning Sands	a5c5d203bc17d844	14	1/1		1/1
 Cage of Hands	718f75ab6a03ff51	20	1/1		1/2	ix:resp
 Capenna Express	14d12371dd258f48	19	2/2		1/1	
 Captivating Crew	5e4c81cd885534e7	12	1/1		0/1	ix:resp
+Chilling Grasp	02dee3d77ce58698	7	0/0		1/2	ix:resp
 Cleanup Crew	c69660e9a28bb4e3	6	1/1		0/1	ix:resp
 Converter Beast	6868c47d95f52022	3	1/1		0/1	ix:resp
 Coordinated Charge	e46a48e21a51e938	3	1/1		2/2	
@@ -47,12 +49,14 @@ Hillcomber Giant	4c6c437af952eb7f	16	0/0		0/0
 Incubation	20d776d3fa7384f0	21	0/0		2/3	f1/s
 Insufferable Balladeer	81a1d08c996c167b	8	1/1		0/1	ix:resp
 Jarl of the Forsaken	968b3777486682de	9	1/1		1/3	cast/alt:foretold,ix:resp
+Knollspine Invocation	077188677e888c07	4	1/1		0/1	ix:resp
 Lightbringer	b69b35382c2de020	26	1/1		0/1	ix:resp
 Lobber Crew	f953cfee1abad26e	26	2/2		0/1	ix:resp
 Magma Spray	83327047ef23f767	34	0/0		2/2	
 Magus of the Wheel	baddf6eb04b8e4b4	6	1/1		0/1	ix:resp
 Master of the Pearl Trident	cd8596ea6c9aa031	4	0/0		0/0	
 Megatog	626103d08b44458e	6	1/1		1/1	
+Mobilized District	856586b783aecd53	8	2/2		0/1	ix:resp
 Molten Blast	71a2dc698d8d3ada	10	0/0		1/2	ix:resp
 Moorland Drifter	d1c11696b5ea2d60	20	0/0		0/0	
 Mossdog	b735d7471f6aaf01	26	1/1		1/1	
@@ -67,10 +71,12 @@ Prosperous Bandit	fce44f66f51a4d3e	28	2/2		3/3
 Queen's Bay Soldier	826476243226586a	4	0/0		0/0	
 Rage Reflection	311208cc8c519c0b	13	0/0		0/0	
 Rebuild	d8f0b9ea49bb4a03	5	1/1		2/2	
+Reflecting Pool	f4c39894703ffd56	6	1/1		0/1	ix:resp
 Resolute Rider	add537d5b4a730e3	7	2/2		1/1	
 Savage Surge	bd052708b0cbc992	22	0/0		2/2	
 Savvy Hunter	9144cd6674735fff	27	3/3		0/1	ix:resp
 Scrabbling Claws	6eb3bea6f4aea3e6	6	2/2		0/1	ix:resp
+Scrubland	55f15e2ff0942d36	11	2/2		0/1	ix:resp
 Second Sight	aedd8e8e32245187	4	0/0		1/2	ix:resp
 Servant of Tymaret	1d9e38f6e49be18e	8	2/2		1/1	
 Silverclaw Griffin	bc0dfcec65b8df5c	6	0/0		0/0	
@@ -81,12 +87,15 @@ Sram's Expertise	3d6f9e1bba259270	4	0/0		1/2	ix:resp
 Strength of Arms	76e00955475ded60	15	0/0		2/2	
 Swooping Lookout	8ffc621d7bf5fa5a	32	0/0		0/0	
 Tahngarth's Rage	e289075ec25c7fbd	9	0/0		1/2	ix:resp
+Taiga Stadium	6aa86cfd651943a2	12	1/1		0/1	ix:resp
 Tidal Courier	557216d70d6dee17	22	2/2		1/1	
 Titania, Proud Pummeler	846a81bc6f9ef671	18	1/1		0/1	ix:resp
 Treetop Ambusher	2f223c522dcb36b9	45	1/1		2/3	ix:resp
 Tribute to Urborg	bf87a23c83ff38b6	3	0/0		2/4	cast/alt:kicked,ix:resp
 Trickster Mage	6b04ece329c886a9	48	1/1		1/1	
 Underworld Coinsmith	f888186c8c4b4fc8	11	2/2		1/1	
+Urborg Volcano	46cf5b9919431142	10	1/1		0/1	ix:resp
+Veteran Dungeoneer	4abbe10a086b6275	8	1/1		0/1	ix:resp
 Viscera Seer	b302889b0943be56	4	1/1		0/1	ix:resp
 Vug Lizard	8b6006d80adf6e8c	10	1/1		1/1	
 Vulshok Splitter	1c5e1615c4bc41ae	7	2/2		1/1	

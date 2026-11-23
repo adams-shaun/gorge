@@ -220,10 +220,10 @@ func (ic *instrCtx) opBecomeCopy() error {
 		return err
 	}
 	if in.B.Kind != vNone {
-		if !isConstN(in.B, int(kop.BecomeCopyCtr)) {
+		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm) != 0 || in.B.N == 0 {
 			return fmt.Errorf("BecomeCopy B %v", in.B)
 		}
-		ki.B = kop.Const(int(kop.BecomeCopyCtr))
+		ki.B = kop.Const(in.B.N)
 	}
 	ki.C = int16(in.C & 1)
 	if x := in.C >> 1; x > 0 {

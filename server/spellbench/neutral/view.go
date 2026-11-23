@@ -344,13 +344,15 @@ func (b *Builder) View(o *protocol.Observation) (view.View, error) {
 		if len(ctr) > 0 {
 			pv.Counters = ctr
 		}
-		// designations: view.PlayerView's only designation field is
-		// HasInitiative (CR 726.1). The monarch has no view.View field native
-		// uses, so a "monarch" entry is deliberately not turned into an
-		// invented field here; the observation still carries it for other
-		// clients. A null designations array stays "nothing declared".
+		// designations: view.PlayerView carries the initiative (CR 726.1) and
+		// the monarch (CR 725.1). The observation names both, so the rebuild
+		// sets the same fields native projects from state. A null designations
+		// array stays "nothing declared".
 		if slices.Contains(p.Designations, "initiative") {
 			pv.HasInitiative = true
+		}
+		if slices.Contains(p.Designations, "monarch") {
+			pv.IsMonarch = true
 		}
 		zone := func(rs []protocol.ObjectRecord, costs bool) ([]view.CardView, error) {
 			out := make([]view.CardView, 0, len(rs))
@@ -544,12 +546,21 @@ func (b *Builder) buildCard(r protocol.ObjectRecord, costs bool) (view.CardView,
 	}
 	if p := r.Permanent; p != nil {
 		cv.Tapped, cv.Damage, cv.SummonSick, cv.Attacking = p.Tapped, int32(p.Damage), p.SummoningSick, p.Attacking
-		if p.Attacking && p.AttackTarget != nil && p.AttackTarget.Player != nil {
-			who, err := Seat(*p.AttackTarget.Player)
-			if err != nil {
-				return view.CardView{}, err
+		if p.Attacking {
+			// AttackingPermanent is native's "attacks a permanent rather than a
+			// player" (CR 508.1b). The observation names a player target
+			// whenever the defender is a player; an object target names the
+			// permanent, and a nil target means that permanent is hidden from
+			// this viewer (observe keeps it out of Ref). Either way the
+			// attacker is not attacking a player.
+			cv.AttackingPermanent = p.AttackTarget == nil || p.AttackTarget.Object != nil
+			if p.AttackTarget != nil && p.AttackTarget.Player != nil {
+				who, err := Seat(*p.AttackTarget.Player)
+				if err != nil {
+					return view.CardView{}, err
+				}
+				cv.AttackingPlayer = &who
 			}
-			cv.AttackingPlayer = &who
 		}
 		// permanent counters: the host normalises counter names (Section
 		// 6.10); native view.View.Counters holds the engine's own spellings

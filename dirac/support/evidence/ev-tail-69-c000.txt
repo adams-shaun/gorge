@@ -78,6 +78,7 @@ Council of Advisors
 Countless Gears Renegade
 Crab Umbra
 Crackdown
+Crackling Spellslinger
 Cranial Ram
 Criminal Enterprise
 Crypt Ripper
@@ -166,6 +167,7 @@ Gnoll War Band
 Go Blank
 Goblin Recruiter
 Goblin War Cry
+Goblin Wizard
 Gorgon's Head
 Gorilla Titan
 Graaz, Unstoppable Juggernaut
@@ -218,6 +220,7 @@ Iroas's Champion
 Iron Lance
 Island
 Island Fish Jasconius
+Isperia the Inscrutable
 Ivory Charm
 Jagged-Scar Archers
 Javelin of Lightning
@@ -241,6 +244,7 @@ Labyrinth Raptor
 Lantern Scout
 Leonin Den-Guard
 Lightning Cloud
+Lim-Dûl's Paladin
 Llanowar Behemoth
 Lokhust Heavy Destroyer
 Lounge
@@ -392,6 +396,7 @@ Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thief of Hope
 Thing in the Ice
 Thirst for Meaning
 Thorn of the Black Rose
@@ -407,6 +412,7 @@ Torrential Gearhulk
 Tortoise Formation
 Training Grounds
 Traitorous Blood
+Travel Through Caradhras
 Treasure Hunt
 Triangle of War
 Triskelion

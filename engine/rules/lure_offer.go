@@ -54,7 +54,10 @@ func lurePairFilter(b combat.Board, scope *blockPairScope, defender state.Player
 			lureIDs = append(lureIDs, aid)
 		}
 	}
-	duty := combat.LureDutyBlockers(zone, lureIDs, admissible)
+	// The duty reads the pairs the lure actually binds: a filtered lure
+	// (Marble Priest's Walls) does not bind the other creatures.
+	bound := func(blk, a state.ObjID) bool { return admissible(blk, a) && lureBinds(b, blk, a) }
+	duty := combat.LureDutyBlockers(zone, lureIDs, bound)
 	dutySet := make(map[state.ObjID]bool, len(duty))
 	for _, b := range duty {
 		dutySet[b] = true
@@ -65,7 +68,7 @@ func lurePairFilter(b combat.Board, scope *blockPairScope, defender state.Player
 	spill := combat.LureSpillBlockers(duty, lureIDs, func(a state.ObjID) bool {
 		b, ok := scope.bounds[a]
 		return ok && b[1] == 1
-	}, admissible)
+	}, bound)
 	return func(bid, aid state.ObjID) bool {
 		if lure[aid] || spill[bid] {
 			return true
@@ -73,14 +76,39 @@ func lurePairFilter(b combat.Board, scope *blockPairScope, defender state.Player
 		if dutySet[bid] {
 			return false // the duty binds: the lure takes every blocker it can host
 		}
-		bound, ok := scope.bounds[aid]
-		if !ok || bound[0] < 2 {
+		floor, ok := scope.bounds[aid]
+		if !ok || floor[0] < 2 {
 			return true // no blocker floor above one
 		}
 		declared := 0
 		if o := g.Obj(aid); o != nil {
 			declared = len(o.BlockedBy)
 		}
-		return combat.LureFloorMet(bound[0], declared, bid, aid, zone, dutySet, admissible)
+		return combat.LureFloorMet(floor[0], declared, bid, aid, zone, dutySet, admissible)
 	}
+}
+
+// lureBinds reports whether the lure duty on attacker binds blocker: every
+// creature able to block for the Lure sentence, only the creatures matching
+// the filter for "MustBeBlockedByAll:<filter>" (CR 509.1c; Marble Priest's
+// Walls, Talruum Piper's flyers). The filter resolves against the blocker
+// with the attacker as the spec source.
+func lureBinds(b combat.Board, blocker, attacker state.ObjID) bool {
+	spec := combat.DerivedHiddenFlags(b, attacker).AllMustBlockSpec
+	if spec == "" {
+		return true
+	}
+	a := b.Game().Obj(attacker)
+	return a != nil && b.MatchesSpec(spec, blocker, attacker, a.Controller, nil, nil, false)
+}
+
+// mustBeBlockedBinds reports whether blocker obeys attacker's "must be blocked
+// if able" requirement: any blocker for the unfiltered form, only a creature
+// matching spec for "MustBeBlockedBy <filter>" (CR 509.1c; The Masamune).
+func mustBeBlockedBinds(b combat.Board, spec string, blocker, attacker state.ObjID) bool {
+	if spec == "" {
+		return true
+	}
+	a := b.Game().Obj(attacker)
+	return a != nil && b.MatchesSpec(spec, blocker, attacker, a.Controller, nil, nil, false)
 }

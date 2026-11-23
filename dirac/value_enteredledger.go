@@ -35,7 +35,10 @@ var coldEntered = newCold[zoneEntry]("entered", func(g *genPrep) int {
 // Obj is two; flags bit 0 is gorge's WasCreature, the creature status at a
 // departure (CR 603.10a) or the card's face at a battlefield entry; the bits
 // from enteredLeftShift up (one at two seats, two at four) are the controller
-// a battlefield departure left under, gorge's Controller. Owner, PermanentCard and Sacrificed are not read by
+// a battlefield departure left under, gorge's Controller; the bit above them
+// is gorge's LeftCounters non-nil, the counters the permanent carried as it
+// left the battlefield (Forge's per-add LKI, the counters only). Owner,
+// PermanentCard and Sacrificed are not read by
 // any Count$ThisTurnEntered head and are not ported.
 type zoneEntry struct {
 	o     Obj
@@ -52,7 +55,15 @@ func (e *zoneEntry) from() uint8 { return e.tf >> 4 }
 const (
 	enteredWasCreature uint8 = 1
 	enteredLeftShift         = 1 // zoneEntry.flags: the departure's controller, MaxSeats-1 wide
+	// enteredModifiedShift is gorge's LeftCounters bit (nil vs not), above
+	// the controller bits (MaxSeats-1 needs two).
+	enteredModifiedShift = enteredLeftShift + 2
 )
+
+// enteredModified is zoneEntry.flags' LeftCounters bit: the counters the
+// permanent carried as it left the battlefield, Forge's per-add LKI (CR 400.7
+// clears them off the object; see matchDeparture).
+const enteredModified uint8 = 1 << enteredModifiedShift
 
 // noteLeftController records on o's battlefield departure, just added, the
 // controller it left under (CR 603.10a).
@@ -67,13 +78,23 @@ func (s *State) noteLeftController(o Obj, ctrl uint8) {
 }
 
 // matchDeparture is matchCardEntered for a battlefield departure: "you control" reads
-// the controller it left under, "you own" its owner.
+// the controller it left under, "you own" its owner. PredModified and
+// PredHasCounters are not card-form predicates: the matchCardOne path answers
+// them false (only a battlefield permanent holds counters), so a departure
+// that carried counters answers them from the entry's LeftCounters bit
+// instead -- Forge's per-add LKI is the card as it left the battlefield, its
+// counters with it and its attachment lists gone, while a persist or undying
+// return has since added a counter to a permanent that died with none
+// (Intermediate Chirography). The bit rides the alternative: the predicate is
+// stripped and the alternative's remaining conditions match the card form as
+// before.
 func (s *State) matchDeparture(k *prep, f kop.FilterID, e *zoneEntry, ctx evalCtx) bool {
 	if f == 0 {
 		return true
 	}
 	ob := &s.objs[e.o]
 	left := e.leftController()
+	countered := e.flags&enteredModified != 0
 	for ; f != 0; f = k.t.Filters[f].Or {
 		fl := k.t.Filters[f]
 		if fl.Flags&kop.FOther != 0 && e.o == ctx.src || fl.Flags&kop.FSelf != 0 && e.o != ctx.src {
@@ -83,6 +104,21 @@ func (s *State) matchDeparture(k *prep, f kop.FilterID, e *zoneEntry, ctx evalCt
 			continue
 		}
 		fl.Ctrl = kop.CtrlAny
+		if fl.Pred == kop.PredModified || fl.Pred == kop.PredHasCounters {
+			// gorge's LeftCounters LKI: the departure's own counters answer
+			// both (the counter half of modifiedPermanent and
+			// wordHasCounters read the LKI copy's counters; the attachment
+			// halves read none, the LKI carrying no attachment lists).
+			if !countered {
+				continue
+			}
+			mod := fl
+			mod.Pred = kop.PredNone
+			if s.matchCardOne(k, &mod, ob.card, ob.owner(), ctx.ctrl, e.o) {
+				return true
+			}
+			continue
+		}
 		if s.matchCardOne(k, &fl, ob.card, ob.owner(), ctx.ctrl, e.o) {
 			return true
 		}
@@ -98,10 +134,13 @@ func (e *zoneEntry) leftController() uint8 {
 // noteEnter appends one add. The ring never overwrites: once maxEntered
 // entries are stored the next add sets enteredFull and stalls (a generated
 // table stops at its next step), so the valid entries are always
-// entered[0:enteredN] in add order.
+// entered[0:enteredN] in add order. leftCounters is whether a battlefield
+// departure carried counters out of the battlefield (gorge's
+// ZoneEntry.LeftCounters non-nil, Forge's per-add LKI), computed by leave
+// before the unattach clears them.
 //
 //go:noinline
-func (s *State) noteEnter(o Obj, to, from kop.Zone, wasCreature bool) {
+func (s *State) noteEnter(o Obj, to, from kop.Zone, wasCreature, leftCounters bool) {
 	if !s.g.enteredOn || s.g.enteredFull || s.turn == 0 {
 		return
 	}
@@ -114,9 +153,13 @@ func (s *State) noteEnter(o Obj, to, from kop.Zone, wasCreature bool) {
 	e.o, e.tf, e.flags = o, uint8(to)&0x0f|uint8(from)<<4, 0
 	if to == kop.ZoneBattlefield {
 		wasCreature = s.k().t.Cards[s.objs[o].card].Types&kop.TCreature != 0
+		leftCounters = false // gorge's slice is a battlefield departure's only
 	}
 	if wasCreature {
 		e.flags |= enteredWasCreature
+	}
+	if leftCounters {
+		e.flags |= enteredModified
 	}
 	s.g.enteredN++
 }

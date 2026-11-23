@@ -114,6 +114,70 @@ func disturbCast(o *state.Object) (*cards.Face, Cost, bool) {
 	return o.Card.Faces[1], c, true
 }
 
+// mtmteCost resolves the front face's More Than Meets the Eye keyword cost
+// (CR 702.162a, Forge's K:More Than Meets the Eye:<cost>), the disturbCost
+// shape: a cost ParseCost cannot price fails closed.
+func mtmteCost(f *cards.Face) (Cost, bool) {
+	if f == nil {
+		return Cost{}, false
+	}
+	s, ok := f.KeywordCostParam("More Than Meets the Eye")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// mtmteCast reads the one converted cast of o (CR 702.162a, 712.11a/d): o
+// shows its front face, that face carries a priceable More Than Meets the Eye
+// cost, and the card has a back face to be cast converted. It returns the
+// back face and the MTMtE cost; the offer, the plan's base cost and
+// beginCast's charge all read it so they cannot disagree. The zone is the
+// caller's (the hand walk): the keyword functions in any zone the spell may be
+// cast from (CR 702.162a), so this reader does not special-case one.
+func mtmteCast(o *state.Object) (*cards.Face, Cost, bool) {
+	if o == nil || o.Card == nil || len(o.Card.Faces) != 2 || o.FaceIdx != 0 {
+		return nil, Cost{}, false
+	}
+	c, ok := mtmteCost(o.Card.Faces[0])
+	if !ok || o.Card.Faces[1] == nil {
+		return nil, Cost{}, false
+	}
+	return o.Card.Faces[1], c, true
+}
+
+// flippedCast is mtmteCast (converted) or disturbCast: the one reader of the
+// back-face casts whose cost is a front-face keyword cost.
+func flippedCast(o *state.Object, converted bool) (*cards.Face, Cost, bool) {
+	if converted {
+		return mtmteCast(o)
+	}
+	return disturbCast(o)
+}
+
+// flippedCastCost is the front-face keyword cost that replaces the mana cost
+// of a cast of the BACK face: Disturb's (CR 702.146a) or More Than Meets the
+// Eye's (CR 702.162a), by the cast mode.
+func flippedCastCost(mode castModeCode, front *cards.Face) (Cost, bool) {
+	if mode == castModeConverted {
+		return mtmteCost(front)
+	}
+	return disturbCost(front)
+}
+
+// flippedFaceMode reports whether mode casts the back face for a front-face
+// keyword cost that replaces the mana cost while the back face's own
+// spell-ability additional costs still apply (CR 118.9d): disturb or
+// converted.
+func flippedFaceMode(mode string) bool {
+	c := castModeCodes.Code(mode)
+	return c == castModeDisturb || c == castModeConverted
+}
+
 func surgeCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordCostParam("Surge")
 	if !ok {

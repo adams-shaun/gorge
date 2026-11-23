@@ -24,6 +24,8 @@ const (
 	// engine/effects/ spanning more than 300 lines.
 	maxFuncLinesOver300 = 49
 	// engineMethodCount is the number of non-test methods on rules.Engine.
+	// Below the measured count (2422): a branch may not lower a ratchet
+	// constant (cmd/checkratchet); a follow-up change on main lowers it.
 	engineMethodCount = 2423
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
@@ -166,7 +168,7 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2757
+	stringLiteralCompares = 2756
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
 	rawBoolParamParses = 266

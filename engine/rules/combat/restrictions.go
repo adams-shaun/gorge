@@ -40,6 +40,25 @@ type HiddenKeywordFlags struct {
 	// blocker obeys none of it; it is a separate unit from MustBlock, which
 	// the same attacker usually carries too.
 	MustBeBlockedByTwo bool
+	// MustBeBlockedByOne is CR 509.1c's "CARDNAME must be blocked by exactly
+	// one creature if able." (Nacatl War-Pride): a block requirement whose
+	// only obeying declaration is one blocker, so MinMaxBlockerBounds pins
+	// the blocker count of the attacker to [1,1].
+	MustBeBlockedByOne bool
+	// AllMustBlockSpec narrows AllMustBlock to the blockers matching the
+	// filter ("MustBeBlockedByAll:Creature.Wall:...", Marble Priest): empty
+	// is every creature able to block (the Lure sentence).
+	AllMustBlockSpec string
+	// MustBlockSpec narrows MustBlock to the blockers matching the filter
+	// ("MustBeBlockedBy Creature.Wall", The Masamune's grant): empty is the
+	// unfiltered "must be blocked if able." and any blocker obeys it.
+	MustBlockSpec string
+	// AttackCompanion / BlockCompanion are CR 508.1c's whole-declaration
+	// restrictions on declaring this creature as an attacker / blocker beside
+	// others ("can only attack alone", "can't attack unless a creature with
+	// greater power also attacks"); see companion.go.
+	AttackCompanion Companion
+	BlockCompanion  Companion
 }
 
 // ParseHiddenKeyword reads one derived keyword line into its combat meaning.
@@ -75,6 +94,13 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		// MustBlockCandidates): a keyword head and a static mode are
 		// separate namespaces.
 		return HiddenKeywordFlags{MustBlock: true}
+	case cards.HiddenKeywordMustBeBlockedBy:
+		// The granted filtered spelling; "Creature" is every blocker.
+		spec := cards.MustBeBlockedByFilter(k)
+		if spec == unfilteredBlockerSpec {
+			spec = ""
+		}
+		return HiddenKeywordFlags{MustBlock: true, MustBlockSpec: spec}
 	case cards.HiddenKeywordUntapNextStep:
 		return HiddenKeywordFlags{UntapNextStep: true}
 	case cards.HiddenKeywordCantAttackOrBlockAlone:
@@ -94,6 +120,24 @@ func ParseHiddenKeyword(k string) HiddenKeywordFlags {
 		// CR 509.1c: every creature able to block this attacker must block
 		// it; a per-pair duty read by askBlockers.
 		return HiddenKeywordFlags{AllMustBlock: true}
+	case cards.HiddenKeywordMustBeBlockedByAll:
+		// The same duty, bound only to the blockers the keyword's filter
+		// names (its first parameter).
+		return HiddenKeywordFlags{AllMustBlock: true, AllMustBlockSpec: keywordParam(k)}
+	case cards.HiddenKeywordMustBeBlockedByOne:
+		return HiddenKeywordFlags{MustBeBlockedByOne: true}
+	case cards.HiddenKeywordCanOnlyAttackAlone:
+		return HiddenKeywordFlags{AttackCompanion: CompanionOnlyAlone}
+	case cards.HiddenKeywordCantAttackUnlessGreaterPower:
+		return HiddenKeywordFlags{AttackCompanion: CompanionGreaterPower}
+	case cards.HiddenKeywordCantBlockUnlessGreaterPower:
+		return HiddenKeywordFlags{BlockCompanion: CompanionGreaterPower}
+	case cards.HiddenKeywordCantAttackUnlessTwoOthers:
+		return HiddenKeywordFlags{AttackCompanion: CompanionTwoOthers}
+	case cards.HiddenKeywordCantBlockUnlessTwoOthers:
+		return HiddenKeywordFlags{BlockCompanion: CompanionTwoOthers}
+	case cards.HiddenKeywordCantAttackUnlessBlackOrGreen:
+		return HiddenKeywordFlags{AttackCompanion: CompanionBlackOrGreen}
 	case cards.HiddenKeywordMustBeBlockedByTwo:
 		return HiddenKeywordFlags{MustBeBlockedByTwo: true}
 	}
@@ -110,12 +154,33 @@ func DerivedHiddenFlags(b Board, id state.ObjID) HiddenKeywordFlags {
 		g := ParseHiddenKeyword(k)
 		f.CantAttack = f.CantAttack || g.CantAttack
 		f.CantBlock = f.CantBlock || g.CantBlock
+		if g.MustBlock {
+			// An unfiltered requirement is obeyed by any blocker, so it wins
+			// over a filtered one; two filtered lines keep the first filter.
+			if !f.MustBlock || g.MustBlockSpec == "" {
+				f.MustBlockSpec = g.MustBlockSpec
+			}
+		}
 		f.MustBlock = f.MustBlock || g.MustBlock
 		f.UntapNextStep = f.UntapNextStep || g.UntapNextStep
 		f.CantAttackAlone = f.CantAttackAlone || g.CantAttackAlone
 		f.CantBlockAlone = f.CantBlockAlone || g.CantBlockAlone
+		if g.AllMustBlock {
+			// An unfiltered lure binds every blocker, so it wins over a
+			// filtered one; two filtered lines keep the first filter.
+			if !f.AllMustBlock || g.AllMustBlockSpec == "" {
+				f.AllMustBlockSpec = g.AllMustBlockSpec
+			}
+		}
 		f.AllMustBlock = f.AllMustBlock || g.AllMustBlock
 		f.MustBeBlockedByTwo = f.MustBeBlockedByTwo || g.MustBeBlockedByTwo
+		f.MustBeBlockedByOne = f.MustBeBlockedByOne || g.MustBeBlockedByOne
+		if f.AttackCompanion == CompanionNone {
+			f.AttackCompanion = g.AttackCompanion
+		}
+		if f.BlockCompanion == CompanionNone {
+			f.BlockCompanion = g.BlockCompanion
+		}
 	}
 	return f
 }
@@ -451,7 +516,50 @@ func MinMaxBlockerBounds(b Board, attacker state.ObjID) (min, max int, minOK, ma
 			}
 		}
 	}
+	if DerivedHiddenFlags(b, attacker).MustBeBlockedByOne {
+		// CR 509.1c "must be blocked by exactly one creature if able": the
+		// only obeying declaration puts one blocker on the attacker, so the
+		// requirement pins the per-attacker count to [1,1] (an unblocked
+		// declaration stays the "if able" fallback the offer decides).
+		if !minOK || min < 1 {
+			min, minOK = 1, true
+		}
+		if !maxOK || max > 1 {
+			max, maxOK = 1, true
+		}
+	}
 	return min, max, minOK, maxOK, all
+}
+
+// keywordParam is the first parameter of a keyword line ("Head:<param>:text"),
+// empty when the line carries none.
+func keywordParam(k string) string {
+	start := -1
+	for i := 0; i < len(k); i++ {
+		if k[i] != ':' {
+			continue
+		}
+		if start < 0 {
+			start = i + 1
+			continue
+		}
+		return trimASCIISpace(k[start:i])
+	}
+	if start < 0 {
+		return ""
+	}
+	return trimASCIISpace(k[start:])
+}
+
+// trimASCIISpace trims leading and trailing ASCII blanks.
+func trimASCIISpace(s string) string {
+	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
+		s = s[1:]
+	}
+	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // literalBlockCount parses a Min$/Max$ bound: a non-negative integer, the
@@ -675,3 +783,7 @@ var restrictionPlaneswalkerTargetMatchesCodes = state.NewStrCodes(
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "rememberedplayerctrl", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 	state.StrEntry[restrictionPlaneswalkerTargetMatchesCode]{Key: "controlledby remembered", Val: restrictionPlaneswalkerTargetMatchesRememberedPlayerCtrl},
 )
+
+// unfilteredBlockerSpec is the "MustBeBlockedBy Creature" spelling of the
+// unfiltered requirement: every blocker is a creature.
+const unfilteredBlockerSpec = "Creature"

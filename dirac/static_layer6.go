@@ -45,6 +45,17 @@ const (
 	fxNeedPromo uint8 = 1 << 4 // a static removal: until-end-of-turn grants keep timestamps (fxKwGrant)
 )
 
+// kwRuleBits are the keyword bits whose grant is a game-rule effect on the
+// creature, not an ability it gains (CR 613.11): "can't block this turn"
+// (KwCantBlock: Hostile Realm's pump, gorge's hidden rule-effect keyword) and
+// "can't be blocked this turn" (KwUnblockable: Rogue's Passage, the
+// suppressEOT keep). A lose-all-abilities effect removes the creature's
+// abilities, never the rule, so gorge keeps the grant through one (the walk's
+// restrictions buffer, chars/derive.go applyKeywordGrant: a granted rule line
+// is restored after a removal; a PRINTED one is an ability and goes with the
+// rest) and l6Walk's lose step keeps only these granted bits.
+const kwRuleBits = kop.KwUnblockable | kop.KwCantBlock
+
 // l6e is one layer-6 effect of the walk.
 type l6e struct {
 	add, rem kop.KwMask
@@ -75,6 +86,10 @@ type l6walk struct {
 	// of a matched Continuous static), dropped after the walk (gorge
 	// chars.derive's final filter, CR 613.1f)
 	cant kop.KwMask
+	// rule: the kwRuleBits grants applied so far (gorge's restrictions
+	// buffer): the bits a lose step leaves standing, whatever printed or
+	// earlier-granted keywords it wipes.
+	rule kop.KwMask
 }
 
 // l6add merges e into timestamp order (a removal before an addition on
@@ -144,6 +159,21 @@ func (s *State) matchKwAssume(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src 
 		}
 	}
 	return false
+}
+
+// l6CtrKeep is the keywords p's keyword counters keep through e's loss or
+// removal. CR 613.7 (gorge appendNewerCounterKeywords): a keyword counter put
+// on after the effect is a newer grant, and it keeps its keyword through a
+// loss or a removal naming it.
+func (s *State) l6CtrKeep(p *perm, e *l6e) kop.KwMask {
+	if !e.lose && e.rem == 0 {
+		return 0
+	}
+	keep := ctrKwNewer(s, p, e.ts)
+	if !e.lose {
+		keep &= e.rem
+	}
+	return keep
 }
 
 // l6Walk runs the layer-6 walk on sl: its keywords, whether it lost all
@@ -259,11 +289,25 @@ func (s *State) l6Walk(k *prep, sl Slot, w *l6walk) (kw kop.KwMask, lts uint16, 
 			continue
 		}
 		w.applied |= 1 << j
+		kw = l6after(e, kw)
 		if e.lose {
 			lost = true
 			lts = max(lts, e.ts)
+			// CR 613.11: a lose-all-abilities effect removes the
+			// creature's abilities, not the game rule, so the rule-effect
+			// grants applied so far stand (gorge applyKeywordGrant's kw =
+			// restrictions, minus the named removals, plus any add the
+			// same effect carries); a grant made after this step re-adds
+			// on top.
+			kw = w.rule&^e.rem | e.add
 		}
-		kw = l6after(e, kw)
+		// CR 613.7: keyword counters put on after the effect keep
+		// their keyword through a loss or a named removal; applied after the
+		// lose step's override so it stands on top of it
+		kw |= s.l6CtrKeep(p, e)
+		// the named removal ends the rule-effect grants it named (gorge
+		// applyKeywordGrant's keptRes); the grant records its own bits
+		w.rule = w.rule&^e.rem | e.add&kwRuleBits
 	}
 	if !lost && s.nkwx != 0 {
 		kw |= s.supKw(sl) // grants an ended loss had suppressed
@@ -483,12 +527,12 @@ func (s *State) promoKw(k *prep, sl Slot, m kop.KwMask) {
 // kwGrantFx records an until-end-of-turn grant of m to sl at a new
 // timestamp; an older record's same keywords give way (only the newest
 // grant of a keyword decides whether a removal took it). "Can't be
-// blocked" is an effect, not an ability (suppressEOT keeps it): never
-// recorded, so it applies last.
+// blocked" and "can't block" are effects, not abilities (suppressEOT keeps
+// them): never recorded, so they apply last.
 //
 //go:noinline
 func (s *State) kwGrantFx(sl Slot, m kop.KwMask) {
-	m &^= kop.KwUnblockable
+	m &^= kop.KwUnblockable | kop.KwCantBlock
 	if m == 0 {
 		return
 	}

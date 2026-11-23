@@ -11,9 +11,11 @@ import (
 )
 
 // TestCommanderSearchBotPodCompletes: a bot-only MBC Commander draft whose four
-// seats play the closed-list max^n search (az-closed-maxn, at a test budget of
-// simulations) drafts, builds and plays its pod game to COMPLETE, and the
-// game ends on a chain head, not a crash.
+// seats play the closed-list max^n search (az-closed-maxn, at one simulation a
+// decision: the test checks the wiring, not the search's strength) drafts,
+// builds and plays its pod game to COMPLETE, and the game ends on a chain
+// head, not a crash. At 4 simulations the pod game ran past 50 s on loaded CI
+// runners twice (merge batches #3629 and #3682, both still in ROUND1).
 func TestCommanderSearchBotPodCompletes(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	_, decks, _, err := testutil.CommanderAcceptanceDecks(reg)
@@ -24,7 +26,7 @@ func TestCommanderSearchBotPodCompletes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := azredeal.EnableClosedMaxN(b, 4); err != nil {
+	if err := azredeal.EnableClosedMaxN(b, 1); err != nil {
 		t.Fatal(err)
 	}
 	p := startGamePair(t, "", nil)

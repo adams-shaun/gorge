@@ -88,6 +88,14 @@ type ForkPool struct {
 	// actScriptPays declines there. Pooled, not a State field: a fixed field
 	// fails TestNoNewFixedStateFields.
 	inFilt int
+	// fmemo: filtScript's failed verdicts of the transition running (mana_filtmemo.go).
+	fmemo filtMemo
+	// paySeen: filtPay's visited table, kept so a payment probe allocates
+	// nothing; payBusy while a search holds it.
+	paySeen []filtKey
+	payBusy bool
+	// payCalls counts filtPay's searches over the pool's life (tests read it).
+	payCalls uint32
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.
@@ -155,10 +163,13 @@ type coldArrays struct {
 	ms []slotMask
 	// object-width mechanic masks (arena.go)
 	mo []objBits
-	// exiled-with links (zone_exiledwith.go)
-	exw []exwRec
+	// object-set records, one store for the per-source sets and the
+	// exiled-with links (zone_objsets.go)
+	objSets []osRec
 	// attacker groups; stackEntry.grp - 1 indexes it (trig_attackers.go)
 	atkGrp []objBits
+	// convoked sets; stackEntry.cvok - 1 indexes it (kw_convokelist.go)
+	convoked []objBits
 	// until-end-of-turn can't-be-blocked-except records (static_cantblockexcept.go)
 	exH []exhRec
 	// this turn's zone entries, in add order (value_enteredledger.go)

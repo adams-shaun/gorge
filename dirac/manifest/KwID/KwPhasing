@@ -4,4 +4,4 @@ value: 69
 forge: Phasing
 census: kw Phasing all=13 std=0 mbc=0 sole=6
 state: slotbit 16 (phasing)
-status: reserved
+status: active

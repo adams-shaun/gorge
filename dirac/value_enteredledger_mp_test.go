@@ -21,7 +21,7 @@ func TestEnteredLedgerHoldsNinetySix(t *testing.T) {
 	s.g.enteredOn, s.turn = true, 1
 	zones := [...]kop.Zone{kop.ZoneGraveyard, kop.ZoneExile, kop.ZoneHand, kop.ZoneLibrary, kop.ZoneCommand}
 	for i := 0; i < maxEntered; i++ {
-		s.noteEnter(Obj(300+i), zones[i%len(zones)], zones[(i+1)%len(zones)], i%2 == 0)
+		s.noteEnter(Obj(300+i), zones[i%len(zones)], zones[(i+1)%len(zones)], i%2 == 0, false)
 	}
 	if s.Stalled() || s.g.enteredFull || int(s.g.enteredN) != maxEntered {
 		t.Fatalf("after %d entries: stalled %v, full %v, n %d", maxEntered, s.Stalled(), s.g.enteredFull, s.g.enteredN)
@@ -32,7 +32,7 @@ func TestEnteredLedgerHoldsNinetySix(t *testing.T) {
 			t.Fatalf("entry %d reads o %d to %d from %d flags %d", i, e.o, e.to(), e.from(), e.flags)
 		}
 	}
-	s.noteEnter(Obj(7), kop.ZoneGraveyard, kop.ZoneBattlefield, false)
+	s.noteEnter(Obj(7), kop.ZoneGraveyard, kop.ZoneBattlefield, false, false)
 	if !s.g.enteredFull || s.StallReason() != StallEntered {
 		t.Fatalf("entry %d: full %v, stall %s; want StallEntered", maxEntered+1, s.g.enteredFull, StallName(s.StallReason()))
 	}

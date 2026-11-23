@@ -9,7 +9,9 @@ import "testing"
 // of tail-08 pair 4, before the tail pools were re-bucketed; the recording
 // replays on the table built from its own decks).
 func TestMBCTail08ReprosLockstep(t *testing.T) {
-	t.Parallel()
+	if landGrantReplay(t) {
+		return
+	}
 	stdReproNamed(t, "bolster_elects_an_earthbent_land")
 	dryadIlysianGroveRefused(t)
 }

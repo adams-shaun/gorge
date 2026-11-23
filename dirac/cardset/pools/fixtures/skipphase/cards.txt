@@ -1,4 +1,4 @@
-# DB$ SkipPhase, all combat phases of the next turn, with an extra combat it also skips (dirac/oracle/skipphase_test.go)
+# DB$ SkipPhase: all combat phases of the next turn, with an extra combat it also skips (dirac/oracle/skipphase_test.go); the next untap step, the next draw step and the next combat phase (this turn or the next one), for the caster, a target, a triggered player and each opponent (dirac/oracle/skipphase_lockstep_test.go)
 False Peace
 Empty City Ruse
 Aurelia, the Warleader
@@ -10,3 +10,19 @@ Lightning Bolt
 Mountain
 Plains
 Forest
+Island
+Swamp
+Avizoa
+Blinding Angel
+Brine Elemental
+Dovin, Architect of Law
+Elfhame Sanctuary
+Fatigue
+Ivory Gargoyle
+Molten Firebird
+Moment of Silence
+Revenant Patriarch
+Shisato, Whispering Hunter
+Stonehorn Dignitary
+Air Elemental
+Typhoid Rats

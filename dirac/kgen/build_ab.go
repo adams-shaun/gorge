@@ -3,7 +3,6 @@ package kgen
 import (
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -58,7 +57,7 @@ func (cb *cardBuilder) abilities() error {
 	}
 	for i, s := range c.GrantedStatics {
 		cb.node = fmt.Sprintf("granted static[%d] %s", i, s.Kind)
-		ka, _, err := cb.static(s)
+		ka, _, err := cb.staticIn(s)
 		if err != nil {
 			return bfail(cb.node, "%v", err)
 		}
@@ -82,6 +81,13 @@ func (cb *cardBuilder) abilities() error {
 		ke.WhileHost = e.WhileHost
 		ke.CaptureLapse = e.CaptureLapse
 		ke.CaptureRem, ke.Source, ke.NumAmount, ke.Once, ke.NotHere = e.CaptureRem, e.Source, e.NumAmount, e.Once, e.NotHere
+		if e.Forget != nil {
+			f, ferr := cb.filter(e.Forget, kop.ZoneStack)
+			if ferr != nil {
+				return bfail(cb.node, "%v", ferr)
+			}
+			ke.Forget = f
+		}
 		if e.CaptureSet {
 			r, err := cb.ref(e.Capture)
 			if err != nil {
@@ -738,7 +744,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Cost, err = cb.cost(abCost); err != nil {
 			return ka, err
 		}
-		if a.Kind == akMana && ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave|kop.CostReturn) != 0 {
+		if a.Kind == akMana && exileGraveManaCostRefused(ka.Cost) {
 			// gorge pays these through the mana-activation walk
 			// (AskManaForage); the kernel's mana abilities have no cost picks
 			return ka, fmt.Errorf("mana ability with a forage / exile-from-graveyard cost")
@@ -1300,6 +1306,16 @@ func counterTriggerN(t *lTrigger) (int16, bool, error) {
 	return int16(k), true, nil
 }
 
+// batchEventAllowed reports the trigger events a "one or more" (Tf2Batch)
+// line may name: the zone/entry batches and the effect-action batches.
+func batchEventAllowed(ev string) bool {
+	switch ev {
+	case "ETB", "Dies", "Leaves", "ToGraveyard", "DamageDone", "Sacrificed", "TokenCreated", "Taps":
+		return true
+	}
+	return false
+}
+
 func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	var kt kop.Trigger
 	ev, ok := eventMap[t.Event]
@@ -1645,7 +1661,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2TargetsFilter2
 	}
 	if t.Batch {
-		if t.Event != "ETB" && t.Event != "Dies" && t.Event != "Leaves" && t.Event != "DamageDone" && t.Event != "Sacrificed" && t.Event != "TokenCreated" && t.Event != "Taps" {
+		if !batchEventAllowed(t.Event) {
 			return kt, fmt.Errorf("batch flag on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Batch
@@ -1916,7 +1932,25 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "RetraceGrant" {
 		return cb.offKwGrantAbility(s)
 	}
-	return cb.static(s)
+	if s.Kind == "NumLoyaltyAct" {
+		return cb.numLoyaltyActStatic(s) // static_loyalty.go
+	}
+	if s.Kind == "IgnoreLandWalk" {
+		return cb.ignoreLandWalkAbility(s) // static_ignorelandwalk.go
+	}
+	if s.Kind == "MustBlock" {
+		return cb.mustBlockAbility(s) // static_mustblock.go
+	}
+	if s.Kind == "UnspentMana" {
+		return cb.unspentManaAbility(s) // static_unspentmana.go
+	}
+	if s.Kind == "CanBlockIfShadow" {
+		return cb.canBlockIfShadowAbility(s) // static_canblockifshadow.go
+	}
+	if s.Kind == "IgnoreLegendRule" {
+		return cb.ignoreLegendRuleAbility(s) // static_ignorelegendrule.go
+	}
+	return cb.staticIn(s)
 }
 
 // combatAmountFilter builds the two combat-assignment statics (CR 510.1):
@@ -2287,8 +2321,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// Ground Seal's class (lower_canttarget.go): every card in every
 		// graveyard untargetable (kw_canttgtgrave.go). No operands.
 		st.Kind = kop.StatCantTgtGrave
-	case "CantTarget":
-		st.Kind = kop.StatCantTarget // lower_canttarget.go
+	case "CantTarget", "MustTarget":
+		st.Kind = targetStaticKind(s.Kind) // lower_canttarget.go, static_musttarget.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -2413,6 +2447,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
 	case "AssignNoCombatDamage":
 		return ka, nil, cb.combatAmountFilter(st, kop.StatNoCombatDamage, s.F)
+	case "AssignCombatDamageAsUnblocked":
+		// the as-unblocked election's static (CR 510.1c): the filter reads its
+		// creature on the battlefield, and the kernel asks the creature's
+		// controller the election in the combat damage step (combat_asgngrant.go)
+		return ka, nil, cb.combatAmountFilter(st, kop.StatAssignCombatDamageAsUnblocked, s.F)
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2489,6 +2528,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "ExtraBlock":
 		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
+		st.A = int16(s.BlockAmount)  // kop.ExtraBlocksAny: combat_blockany.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
@@ -2651,59 +2691,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 		}
 	case "StackKw":
-		// AffectedZone$ Stack keyword grant (lower_stackkw.go): the filter
-		// matches the spell being cast (a card in hand or on the stack)
-		st.Kind = kop.StatStackKw
-		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
+		// AffectedZone$ Stack keyword grant (lower_stackkw.go)
+		if err := cb.stackKwStatic(st, s); err != nil {
 			return ka, nil, err
-		}
-		if len(s.Kw) != 1 {
-			return ka, nil, fmt.Errorf("stack keyword grant with %d keywords", len(s.Kw))
-		}
-		head, param, _ := strings.Cut(s.Kw[0], ":")
-		switch head {
-		case "Cascade", "Improvise", "Convoke":
-			if param != "" {
-				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
-			}
-			st.A = kop.StackKwCascade
-			switch head {
-			case "Improvise":
-				st.A = kop.StackKwImprovise
-			case "Convoke":
-				st.A = kop.StackKwConvoke
-			}
-		case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
-			if param != "" {
-				return ka, nil, fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
-			}
-			st.A = kop.StackKwLifelink
-			switch head {
-			case "Demonstrate":
-				st.A = kop.StackKwDemonstrate
-			case "Conspire":
-				st.A = kop.StackKwConspire
-			case "Storm":
-				st.A = kop.StackKwStorm
-			case "Split second":
-				st.A = kop.StackKwSplitSecond
-			case "Delve":
-				st.A = kop.StackKwDelve
-			}
-		case "Casualty":
-			n, err := strconv.Atoi(param)
-			if err != nil || n < 1 || n > 127 {
-				return ka, nil, fmt.Errorf("stack keyword grant %q", s.Kw[0])
-			}
-			st.A, st.B = kop.StackKwCasualty, int16(n)
-		default:
-			return ka, nil, fmt.Errorf("stack keyword grant %q", s.Kw[0])
-		}
-		for _, fl := range s.Flags {
-			if fl != "CastHand" {
-				return ka, nil, fmt.Errorf("stack keyword grant flag %q", fl)
-			}
-			st.Zone = kop.ZoneHand // wasCastFromYourHand
 		}
 	case "Override":
 		st.Kind = kop.StatOverride
@@ -2715,6 +2705,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Override = uint16(i + 1)
+		// the chosen land-type setter's read (Convincing Mirage's AddType$
+		// ChosenType): the static reads its source's perm.chosen
+		// (act_choosetype.go chosenGrant); any other static kind's AddChosen
+		// lowering is the Continuous case's
+		st.AddChosen = s.AddChosen
 	default:
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
@@ -2746,25 +2741,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	}
 	switch r.Kind {
 	case "EntersWith":
-		switch {
-		case len(r.Prog) == 1 && r.Prog[0].Op == "EnterTapped" && r.Cond.Kind == cNone:
-			rp.Kind = kop.ReplEntersTapped
-		case len(r.Prog) == 1 && r.Prog[0].Op == "EnterWithCounters" && r.Prog[0].A.isConst() && r.Cond.Kind == cNone:
-			rp.Kind = kop.ReplEntersWithCounters
-			rp.A = int16(r.Prog[0].A.N)
-			k, err := counterKind(r.Prog[0].CS)
-			if err != nil {
-				return ka, err
-			}
-			rp.C = int16(k)
-		default:
-			rp.Kind = kop.ReplEntersProgram
-			if r.S == "Updated" {
-				rp.C = kop.ReplAfterEnter
-			}
-			if ka.Prog, err = cb.prog(r.Prog); err != nil {
-				return ka, err
-			}
+		if err := cb.replEntersWith(r, &ka); err != nil {
+			return ka, err
 		}
 	case "OthersEnterWith":
 		rp.Kind = kop.ReplOthersEnterProgram
@@ -2954,10 +2932,81 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("life plus %v", r.N)
 		}
 		rp.A = int16(r.N.N)
+	case "BeginPhaseSkip", "LifeFloor", "DamageMinus", "DamageSet":
+		if err := cb.replRewrite(r, rp); err != nil {
+			return ka, err
+		}
 	default:
 		return ka, fmt.Errorf("replacement %s", r.Kind)
 	}
 	return ka, nil
+}
+
+// replEntersWith builds the EntersWith replacement: the two bare shapes
+// (enters tapped, enters with counters) or the general program.
+func (cb *cardBuilder) replEntersWith(r lRepl, ka *kop.Ability) (err error) {
+	rp := &ka.Repl
+	switch {
+	case len(r.Prog) == 1 && r.Prog[0].Op == "EnterTapped" && r.Cond.Kind == cNone:
+		rp.Kind = kop.ReplEntersTapped
+	case len(r.Prog) == 1 && r.Prog[0].Op == "EnterWithCounters" && r.Prog[0].A.isConst() && r.Cond.Kind == cNone:
+		rp.Kind = kop.ReplEntersWithCounters
+		rp.A = int16(r.Prog[0].A.N)
+		k, err := counterKind(r.Prog[0].CS)
+		if err != nil {
+			return err
+		}
+		rp.C = int16(k)
+	default:
+		rp.Kind = kop.ReplEntersProgram
+		if r.S == "Updated" {
+			rp.C = kop.ReplAfterEnter
+		}
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// replRewrite builds the T17c replacement modes' abilities: the phase skip
+// (lower_beginphase.go), the life floor (lower_liferepl.go) and the damage
+// minus and set rewrites (lower_replmult.go).
+func (cb *cardBuilder) replRewrite(r lRepl, rp *kop.Repl) (err error) {
+	switch r.Kind {
+	case "BeginPhaseSkip":
+		rp.Kind = kop.ReplBeginPhase               // lower_beginphase.go
+		rp.A, rp.C = int16(r.Phase), int16(r.Bits) // kop.ReplPhYou: the controller's own turns only
+	case "LifeFloor":
+		rp.Kind = kop.ReplLifeReduced // lower_liferepl.go
+		if !r.N.isConst() || r.N.N < 1 {
+			return fmt.Errorf("life floor %v", r.N)
+		}
+		rp.A = int16(r.N.N)
+	case "DamageMinus":
+		rp.Kind = kop.ReplDamageMinus // lower_replmult.go
+		if !r.N.isConst() || r.N.N < 1 {
+			return fmt.Errorf("damage minus %v", r.N)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+		if r.F != nil {
+			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
+	case "DamageSet":
+		rp.Kind = kop.ReplDamageSet // lower_replmult.go
+		if !r.N.isConst() || r.N.N < 0 || kop.ReplDmgSetGateOf(int16(r.Bits)) == 0 || r.Bits&^kop.ReplDmgSetGE(15) == 0 {
+			return fmt.Errorf("damage set %v to %#x", r.N, r.Bits)
+		}
+		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+		if r.F2 != nil {
+			if rp.Filter2, err = cb.filter(r.F2, kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // prog builds an op program (one kop instruction per LIR instruction, so
@@ -3191,6 +3240,7 @@ func anyKeptObjectClause(c lClause) bool {
 // (Chimil, the Inner Sun, Sphinx of the Final Word).
 func cantCounterRepl(ka kop.Ability, r lRepl, cb *cardBuilder) (kop.Ability, error) {
 	ka.Repl.Kind = kop.ReplSpellsCantBeCountered
+	ka.Repl.C = int16(r.Bits) // kop.ReplUncAnyCtrl: the line names no controller scope
 	f, err := cb.filter(r.F, kop.ZoneStack)
 	if err != nil {
 		return ka, err
@@ -3255,6 +3305,10 @@ func trigWhoseScope(whose kop.Whose, a *lAbility) error {
 	if whose == kop.WhoseEnchanted && (a.Latent || a.Trigger.Event != "Phase" && a.Trigger.Event != "DamageDone" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 		// the kernel reads it only for a printed battlefield Phase or DamageDone listener (defEnchanted)
 		return fmt.Errorf("Player.EnchantedBy outside a printed battlefield Phase or DamageDone trigger")
+	}
+	if whose == kop.WhoseMonarch && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
+		// the kernel reads it only for a printed battlefield Phase listener (monarchTurnIs)
+		return fmt.Errorf("Player.isMonarch outside a printed battlefield Phase trigger")
 	}
 	if whose == kop.WhoseEnchCtrl && (a.Latent || a.Trigger.Event != "Phase" || a.Trigger.Zone != zNone && a.Trigger.Zone != zBattlefield) {
 		// the kernel reads it only for a printed battlefield Phase listener

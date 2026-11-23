@@ -39,7 +39,9 @@ Borrowed Time
 Boundless Realms
 Bring Low
 Brotherhood Outcast
+Burr Grafter
 Butterbur, Bree Innkeeper
+Cabal Coffers
 Call the Cavalry
 Canoptek Spyder
 Canyon Wildcat
@@ -74,6 +76,7 @@ Courier Hawk
 Court of Garenbrig
 Covert Operative
 Crack the Earth
+Crevasse
 Criminal Enterprise
 Cruel Bargain
 Crypt Ghast
@@ -107,6 +110,7 @@ ED-E, Lonesome Eyebot
 Eccentric Pestfinder
 Eerie Interlude
 Elanor Gardner
+Elrond, Lord of Rivendell
 Empyreal Voyager
 Emrakul's Influence
 Energy Flux
@@ -331,6 +335,7 @@ Secret Passage
 Secrets of the Golden City
 Seedguide Ash
 Selesnya Eulogist
+Selesnya Guildmage
 Senate Guildmage
 Sengir Vampire
 Sensor Splicer
@@ -346,6 +351,7 @@ Shred Memory
 Shrieking Mogg
 Sigil of Myrkul
 Signal Pest
+Silumgar Spell-Eater
 Silver-Inlaid Dagger
 Silversmote Ghoul
 Skittering Monstrosity
@@ -434,6 +440,7 @@ Warfire Javelineer
 Warlord's Elite
 Warped Physique
 Warren Soultrader
+Warrior's Oath
 Weaponize the Monsters
 Weirding Shaman
 Where Ancients Tread
@@ -444,4 +451,5 @@ Woodland Sleuth
 Wretched Confluence
 Xander's Lounge
 Xathrid Slyblade
+Yes Man, Personal Securitron
 Zhao, the Seething Flame

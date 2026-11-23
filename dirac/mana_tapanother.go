@@ -61,6 +61,18 @@ var DebugNoTapMana bool
 // the Bolg's Company mutation test proves the pool's plays need them).
 var DebugNoSacXMana bool
 
+// DebugNoRestrTapX hides only the spend-restricted tap-another source
+// (kop.RestrictedTapXOneShape, Grand Architect; the restricted tapX lockstep
+// mutation test proves the pool's plays need it).
+var DebugNoRestrTapX bool
+
+// DebugRestrTapXMutate selects a restricted tap-another lockstep mutation
+// (mutation testing only: the lockstep must catch each): 1 = its mana floats
+// unrestricted (the restriction half off), 2 = the census refuses every
+// activated-ability payment (the ManaRestrictAb half), 3 = the census refuses
+// every spell payment (the ManaRestrict half).
+var DebugRestrTapXMutate uint8
+
 // sacXOf: card c's tap-another gap is the sacrifice-another all-at-once shape
 // (kop.SacXEachManaAb: Bolg's Company).
 func (k *prep) sacXOf(c CardID) bool {
@@ -119,7 +131,7 @@ func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 			continue // a Convoke/Waterbend pick is tapped for that cast, not for mana
 		}
 		a := k.tapXAbOf(s.cardAt(sl))
-		if a == nil || DebugNoSacXMana && kop.SacXMana(a) {
+		if a == nil || DebugNoSacXMana && kop.SacXMana(a) || DebugNoRestrTapX && kop.RestrictedTapXOneShape(a) {
 			continue
 		}
 		pm := &s.perms[sl]
@@ -186,6 +198,34 @@ func (s *State) tapXSacAnyLive(k *prep, p uint8) bool {
 	return false
 }
 
+// sacRepeatLive: a live kop.SacAnyManaAb source whose cost sacrifices dedicated
+// tokens -- the cost's filter requires a token (Jungle Patrol's "Sacrifice a
+// token named Wood: Add {R}") -- so gorge's paymentPlanRelaxedAlternatives once
+// is false on a closed bound too: the census is unrelaxable and runs no bounded
+// proof, so gorge searches every census-incomplete insufficient play, as beside
+// a live Baylen (tail-14-c000 pair 1: two Wood sacrifices and the untapped
+// land's {B} pay Bone Sabres' Equip {3}).
+//
+// A sacrifice of a permanent TYPE (Krark-Clan Ironworks' artifact, Ashnod's
+// Altar's or Phyrexian Altar's creature) is NOT this shape, though it too is
+// kop.SacAnyManaAb: its fodder may be a mana source or the source itself, so
+// the potential bound already prices the activations it can make and the KCI
+// recordings pin the closed-bound narrowing (sacDrops). A {T} sacrifice-another
+// one (Bolg's Company) is no shape either: its {T} makes once true, the relaxed
+// proof holds, and the closed-bound candidates stay the gaps walk's.
+func (s *State) sacRepeatLive(k *prep, p uint8) bool {
+	if !k.tapMana {
+		return false
+	}
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.SacAnyManaAb(ab) && k.t.Filters[ab.Cost.Filter].Flags&kop.FToken != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // availSacAny adds each live sacrifice-any source's fixed production once to
 // av, the potential census for payment d: gorge's PotentialMana bound admits
 // the ability a single time. When the census already counted it -- the printed
@@ -197,7 +237,8 @@ func (s *State) availSacAny(k *prep, p uint8, av *avail, d *payDesc) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
 		if ab := k.tapXAbOf(s.cardAt(sl)); kop.BoundedOnceManaAb(ab) &&
-			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) {
+			!s.potentialAdmits(k, p, sl, int(k.tapXAb[s.cardAt(sl)]), ab, d) &&
+			(!kop.RestrictedTapXOneShape(ab) || s.restrTapXAdmits(k, p, sl, ab, d)) {
 			addTapXUnits(av, ab)
 		}
 	}
@@ -325,6 +366,9 @@ func (s *State) tapXActivatable(k *prep, p uint8, sl Slot) bool {
 // permanents its sacrifice can take (sacXCands).
 func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	ab := k.tapXAbOf(s.cardAt(sl))
+	if ab.Cost.Flags&kop.CostExileGrave != 0 {
+		return s.exileGCands(k, p, sl, ab, out) // graveyard indices (mana_exilegrave.go)
+	}
 	if ab.Cost.Flags&kop.CostSac != 0 {
 		return s.sacXCands(k, p, sl, ab, out)
 	}
@@ -332,19 +376,34 @@ func (s *State) tapXCands(k *prep, p uint8, sl Slot, out *[MaxPerm]Slot) int {
 	var m slotMask
 	// A creature the cast being paid for announced for convoke is tapped when
 	// that payment settles, so it is not untapped to tap again here (CR 601.2g-h;
-	// gorge pay.ManaTapCandidates, CastCommitted).
+	// gorge pay.ManaTapCandidates, CastCommitted). The activation being paid
+	// for likewise keeps the source its own {T} cost taps (buildSelfTap).
 	var spoken slotMask
+	selfTap := NoSlot
 	if s.buildLive() {
 		spoken = s.convokeHidden()
+		selfTap = s.buildSelfTap(k)
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || !s.matchPerm(k, f, x, p, sl) {
+		if x == sl && ab.Cost.Flags&kop.CostTap != 0 || s.perms[x].flags&pfTapped != 0 || spoken.has(x) || x == selfTap || !s.matchPerm(k, f, x, p, sl) {
 			continue
 		}
 		m = m.with(x)
 	}
 	return s.battlefieldOrder(p, m, out[:], 0)
+}
+
+// buildSelfTap is the slot of the activation being paid for when its own cost
+// taps it for {T}: that permanent is committed to the payment and cannot also
+// pay a mana ability's tap or sacrifice part (CR 601.2g-h, the whole cost is
+// paid at once; gorge pay.ManaTapCandidates and pay.ManaSacrificeCandidates,
+// CastCommitted's pc.cost.Tap arm). NoSlot when no such activation is live.
+func (s *State) buildSelfTap(k *prep) Slot {
+	if c := s.buildPickCost(k); c != nil && c.Flags&kop.CostTap != 0 {
+		return s.srcSlot()
+	}
+	return NoSlot
 }
 
 // censusTapXClaim admits sl's tap-another mana ability j in the potential
@@ -386,7 +445,8 @@ func (s *State) censusTapXClaim(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // sacrifice, in gorge's candidate order (pay.ManaSacrificeCandidates: p's
 // battlefield in entry order): those matching the cost's filter, none a
 // CantSacrifice static withholds, none the cast being paid announced for
-// convoke (it is tapped when that payment settles: CastCommitted). Tapped
+// convoke (it is tapped when that payment settles: CastCommitted), and none
+// the activation being paid for taps for its own {T} (buildSelfTap). Tapped
 // ones are candidates. The source itself is one when its own filter matches
 // it: "sacrifice a creature" can sacrifice the creature that is also the
 // source (CR 701.21a, 602.2b; Phyrexian Tower animated into a creature). The
@@ -394,12 +454,14 @@ func (s *State) censusTapXClaim(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 // creature" (matchPerm), not this walk.
 func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxPerm]Slot) int {
 	var spoken, m slotMask
+	selfTap := NoSlot
 	if s.buildLive() {
 		spoken = s.convokeHidden()
+		selfTap = s.buildSelfTap(k)
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		x := b.first()
-		if spoken.has(x) || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
+		if spoken.has(x) || x == selfTap || !s.matchPerm(k, ab.Cost.Filter, x, p, sl) || s.sacBlocked(k, x) {
 			continue
 		}
 		m = m.with(x)
@@ -415,8 +477,30 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 //go:noinline
 func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		addTapXUnits(av, k.tapXAbOf(s.cardAt(b.first())))
+		ab := k.tapXAbOf(s.cardAt(b.first()))
+		if kop.RestrictedTapXOneShape(ab) && !s.restrTapXCounts(k, p, b.first(), ab, av) {
+			continue
+		}
+		addTapXUnits(av, ab)
 	}
+}
+
+// restrTapXCounts: restricted tap-another source sl is a unit of the census av
+// prices: only for a payment its restriction admits (CR 106.6). The payment is
+// the census's own (avail.xd) or else the one being built.
+func (s *State) restrTapXCounts(k *prep, p uint8, sl Slot, ab *kop.Ability, av *avail) bool {
+	d := av.xd
+	if !av.xdOn {
+		d = s.payDescNow(NoObj)
+	}
+	return s.restrTapXAdmits(k, p, sl, ab, &d)
+}
+
+// restrTapXAdmits: restricted tap-another ability ab of the source at sl may
+// pay d, both halves of its restriction (restrSrcAdmits: the spell's
+// ManaRestrict, the activated ability's ManaRestrictAb).
+func (s *State) restrTapXAdmits(k *prep, p uint8, sl Slot, ab *kop.Ability, d *payDesc) bool {
+	return d != nil && s.restrSrcAdmits(k, p, sl, ab, d)
 }
 
 // addTapXUnits adds tap-another ability a's relaxed unit to av: one unit of
@@ -524,6 +608,43 @@ func (s *State) tapXPrefix(k *prep, a Action, p uint8) bool {
 	return true
 }
 
+// handActTapXRoute is priorityHandAct's tap-another gate (cost_handactivate.go):
+// the board the tapX route owns a hand activation's pricing on. It is
+// tapXPrefix's own guard, so the offer and the payment replay stay on one
+// search, read only in the real offer walk: the script walks' candidate lists
+// hold no hand activation (handActCensusPays), so scriptOffers prices none and
+// a search here would run twice.
+func (s *State) handActTapXRoute(k *prep, p uint8) bool {
+	if s.g.availX != 0 || s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) == 0 {
+		return false
+	}
+	tx := s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p))
+	return tx.any() && !s.tapXDeadEndRoute(k, p, tx, s.scriptTapsDefer(k, p)) && s.tapXBoard(k, p)
+}
+
+// handActTapXPays prices a hand activation the printed census cannot pay with
+// the tapX search: gorge's potential walk lists the play when its bound pays
+// it (the fold counts a repeatable tap-another source once per untapped
+// candidate, potential_repeat_fee.go addPotentialTapRepeat) and the census
+// fallback prices it with the one prefix search (potentialCensusFallback ->
+// potentialPrefixScript), so priorityVocabulary lists it beside the offered
+// options. The search is exact, so a play it prices is one the bound admits:
+// every activation it makes taps candidates of the cost's parts, which the
+// bound's own count bounds. The same search is the payment's prefix
+// (mana_resolutionpay.go runPrefixes -> tapXPrefix), and the play it fails is
+// dropped with the search's latched stall declared, as scriptOffers' tx branch
+// declares its own.
+func (s *State) handActTapXPays(k *prep, p uint8, a Action) bool {
+	if !s.handActTapXRoute(k, p) {
+		return false
+	}
+	offered, stall := s.tapXScriptOffered(k, a, p)
+	if !offered {
+		s.capStall(stall)
+	}
+	return offered
+}
+
 // tapXStep is one step of the search's path: an activation (source sl taps
 // candidate cand and makes col), an answer to an ask the activation's trigger
 // posed (act: the target of a Taps listener's trigger, an order, a discard),
@@ -562,6 +683,8 @@ type tapXKey struct {
 	// own enters trigger leaves the stack as deep as the first did
 	bf uint64
 	rb [maxRB]rbatch // restricted mana floating (gorge's key counts every mana unit)
+	// inHand: the searched cast's own card is still in hand (gorge's scriptStateKey)
+	inHand bool
 }
 
 type tapXSearch struct {
@@ -579,6 +702,11 @@ type tapXSearch struct {
 	need    [kop.NumManaKinds]bool // the play's announced colours (scriptNeedColours)
 	stall   uint8                  // the first stall a failed line's fork latched (stallOf), StallNone none
 	nodes   int
+	limited bool // the node budget ran out (gorge scriptSearch.limited)
+	// subsume: this is the subsume run (mana_tapxsubsume.go), whose colour
+	// asks keep only the colours costCol still lacks
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 	nseen   int
 	seen    [potentialScriptNodes]tapXKey
 	n       int
@@ -635,15 +763,47 @@ func tapXPairAt(n, qi int) (int, int) {
 // may still price the play, and the offer walk declares the stall only where
 // it drops it (tapXScriptOffered, scriptOffers, grantCap).
 //
+// The colour ask walks gorge's own announced set (playNeedPrinted: empty for a
+// graveyard cast, whose mode gorge leaves unread), so a tap-any-colour source
+// floats the colour gorge's engine order picks. Only when that walk finds
+// nothing is it run again with the graveyard cast's announced pips
+// (playNeed's hint, CR 601.2b), as grantSearch does.
+//
 //go:noinline
 func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8) {
+	found, stall := s.tapXScriptNeed(k, a, p, apply, false)
+	if found {
+		return true, 0
+	}
+	if printed, _ := s.playNeedPrinted(k, a); printed == s.playNeedHint(k, a) {
+		return false, stall
+	}
+	if found, st2 := s.tapXScriptNeed(k, a, p, apply, true); found || st2 != 0 {
+		return found, st2
+	}
+	return false, stall
+}
+
+//go:noinline
+func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bool, uint8) {
 	var rs tapXSearch
 	rs.a, rs.p, rs.sp0, rs.gaps = a, p, s.sp, s.scriptTapXModelled(k, p).or(s.scriptCtrModelled(k, p)).or(s.tapXEachGaps(k, p)).or(s.tapXAnyRGaps(k, p)).or(s.tapXRiderGaps(k, p))
 	rs.def = s.tapXDeferGaps(k, p, rs.gaps)
 	rs.gaps = rs.gaps.or(rs.def)
 	rs.anyDiff = s.anyDifferentGaps(k, p)
 	rs.gaps = rs.gaps.or(rs.anyDiff)
-	rs.need = s.playNeed(k, a) // the colour ask's order follows the play's pips
+	if gapFilteredPlay(a) && rs.gaps.any() {
+		// gorge's prefix search keeps only the gaps the play's payment can
+		// spend (scriptSpendableGaps, CR 106.6): Master of Dark Rites' mana
+		// pays no Villain, and its sacrifice never reaches a discount
+		d := s.grantPayDesc(k, a)
+		rs.gaps = s.gapSpendableMask(k, rs.gaps, &d)
+	}
+	if hint {
+		rs.need = s.playNeedHint(k, a) // the colour ask's order follows the play's pips
+	} else {
+		rs.need, _ = s.playNeedPrinted(k, a)
+	}
 	rs.own, rs.src = NoSlot, NoObj
 	if a.Kind() == AkActivate {
 		_, rs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
@@ -663,7 +823,7 @@ func (s *State) tapXScript(k *prep, a Action, p uint8, apply bool) (bool, uint8)
 	// granted mana is the grant search's (grantPrefix / grantCap), for a cast as
 	// for an activation: no gap of this search activates a grant, so none prices it
 	t.g.noGrant = true
-	if !rs.settle(k, t, false) || rs.n == 0 {
+	if (!rs.settle(k, t, false) || rs.n == 0) && !s.tapXSubsume(k, a, &rs) {
 		// not found. A line that ran into a rule gap the kernel stalls by name
 		// (gorge asks the order the kernel cannot model; the play would be
 		// offered only its mana pays it) is reported to the caller, never
@@ -932,6 +1092,7 @@ func (rs *tapXSearch) leftOwnZone(t *State) bool {
 
 func (rs *tapXSearch) tick() bool {
 	if rs.nodes >= potentialScriptNodes {
+		rs.limited = true
 		return false
 	}
 	rs.nodes++
@@ -1030,6 +1191,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.sba(k)                           // the script returns to priority after the step: a Wall of Roots out of toughness dies before the next one
 		return
 	}
+	if k.exileGOf(s.cardAt(st.sl)) {
+		s.exileGDo(k, p, st.sl, st.cand, st.col) // cand is a graveyard index (mana_exilegrave.go)
+		return
+	}
 	if k.sacXOf(s.cardAt(st.sl)) {
 		s.sacXDo(k, p, st.sl, st.cand, st.col)
 		return
@@ -1058,7 +1223,11 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		s.manaTapped(k, st.sl)
 	}
 	_, n := tapXUnit(ab)
-	s.poolAdd(p, int(st.col), int(n))
+	if kop.RestrictedTapXOneShape(ab) && DebugRestrTapXMutate != 1 {
+		s.floatRestrAb(k, p, st.sl, ab, int(st.col), n) // spendable only as its restriction admits (CR 106.6)
+	} else {
+		s.poolAdd(p, int(st.col), int(n))
+	}
 	s.tapExtraStall(k, st.sl)
 	s.artTag(k, p, st.sl, int(st.col))
 }
@@ -1068,6 +1237,10 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 // sacrifice (its Sacrificed and dies triggers queue), then every colour of the
 // production. The script returns to priority after the step, so the SBAs and
 // the queued triggers settle before the next node (as ctrGap's step does).
+// A restricted one (kop.SacXRestrManaAb, Master of Dark Rites) floats its
+// fixed production restricted (floatRestrAb): the payment the search prices at
+// the next node spends it as gorge's plan does, what it leaves stays
+// restricted (CR 106.6).
 func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	ab := k.tapXAbOf(s.cardAt(sl))
 	if ab.Cost.Flags&kop.CostTap != 0 { // (Krark-Clan Ironworks has no {T})
@@ -1079,6 +1252,14 @@ func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	cols, n := tapXUnit(ab)
 	if kop.SacXAnyColour(ab) {
 		cols = 1 << colour // the activation asked the colour after the sacrifice
+	}
+	if ab.ManaRestrict != 0 {
+		if !s.floatRestrAb(k, p, sl, ab, int(bits.TrailingZeros8(cols)), n) {
+			s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
+		}
+		s.tapExtraStall(k, sl)
+		s.sba(k)
+		return
 	}
 	for col := 0; col < kop.NumManaKinds; col++ {
 		if cols&(1<<col) != 0 {
@@ -1120,14 +1301,33 @@ func (s *State) tapXPlainDo(k *prep, p uint8, sl Slot, ask uint8) {
 // its ability ask (rules scriptSearch.visit, an activation of a census gap,
 // then scriptAnswers over the ask): the plain first ability first, and the
 // caller then tries the tap-another one when it has a candidate (live). With
-// one payable ability nothing is asked. handled: the search found a path
-// (found) or ran out of nodes (!found); the caller returns found then.
-func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, live bool) (found, handled bool) {
-	if !k.tapXSecond(t.cardAt(sl)) || !t.canTapForMana(k, sl) {
+// one payable ability nothing is asked. An any-colour plain ability asks its
+// colour behind the ability ask, the play's announced ones first, as the
+// counter sibling's does (ctrAbilityAsk): the payment window's answer is a
+// colour the play still owes, not W (Relic of Legends funding a red play).
+// handled: the search found a path (found) or ran out of nodes (!found); the
+// caller returns found then.
+func (rs *tapXSearch) tapXAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8, live bool) (found, handled bool) {
+	c := t.cardAt(sl)
+	if !k.tapXSecond(c) || !t.canTapForMana(k, sl) {
 		return false, false
 	}
 	if live && !rs.tick() { // the ability ask
 		return false, true
+	}
+	if mc := k.cards[c].manaCol; mc&(mc-1) != 0 {
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+		for i := 0; i < 5; i++ {
+			if !rs.subsumeKeeps(t, cols[i]) {
+				continue
+			}
+			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+				return true, true
+			}
+		}
+		return false, false
 	}
 	if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot}) {
 		return true, true
@@ -1154,6 +1354,9 @@ func (rs *tapXSearch) ctrAbilityAsk(k *prep, t *State, sl Slot, cols *[5]uint8) 
 			return false, true
 		}
 		for i := 0; i < 5; i++ {
+			if !rs.subsumeKeeps(t, cols[i]) {
+				continue
+			}
 			if rs.try(k, t, tapXStep{kind: tapXPlain, sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
 				return true, true
 			}
@@ -1219,9 +1422,30 @@ func (rs *tapXSearch) pairAsk(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 			if debugTapXMutate == 1 {
 				c = 0
 			}
+			if !rs.subsumeKeeps(t, c) {
+				continue
+			}
 			if rs.try(k, t, tapXStep{sl: sl, cand: a, cand2: b, col: c}) {
 				return true, true
 			}
+		}
+	}
+	return false, false
+}
+
+// ctrColourAsk is the colour ask of an any-colour counter-cost ability, the
+// announced colours in order (the subsume run keeps only the lacking ones).
+// stop reports the search ended here: found is its answer.
+func (rs *tapXSearch) ctrColourAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (found, stop bool) {
+	if !rs.tick() { // the colour ask
+		return false, true
+	}
+	for i := 0; i < 5; i++ {
+		if !rs.subsumeKeeps(t, cols[i]) {
+			continue
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
+			return true, true
 		}
 	}
 	return false, false
@@ -1257,7 +1481,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 	}
 	pl := &t.pl[SeatIx(p)]
-	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)]}
+	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)], inHand: t.playInHand(p, rs.a)}
 	for b := t.ctrlM[SeatIx(p)].and(t.occ); b.any(); b = b.rest() {
 		if sl := b.first(); t.perms[sl].flags&pfTapped != 0 {
 			key.tapped = key.tapped.with(sl)
@@ -1335,13 +1559,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			if ab := k.ctrAbOf(t.cardAt(sl)); ctrAnyColour(ab) {
 				// an any-colour counter ability (Vivid Grove's second) asks
 				// its colour after the ability: the announced ones first
-				if !rs.tick() { // the colour ask
-					return false
-				}
-				for i := 0; i < 5; i++ {
-					if rs.try(k, t, tapXStep{sl: sl, cand: NoSlot, cand2: NoSlot, col: cols[i]}) {
-						return true
-					}
+				if found, stop := rs.ctrColourAsk(k, t, sl, &cols); stop {
+					return found
 				}
 				continue
 			}
@@ -1350,7 +1569,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 			}
 			continue
 		}
-		if found, handled := rs.tapXAbilityAsk(k, t, sl, live.has(sl)); handled {
+		if found, handled := rs.tapXAbilityAsk(k, t, sl, &cols, live.has(sl)); handled {
 			return found
 		}
 		if rider.has(sl) {
@@ -1364,7 +1583,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		}
 		var cs [MaxPerm]Slot
 		nc := t.tapXCands(k, p, sl, &cs)
-		if k.sacXOf(t.cardAt(sl)) {
+		if k.pickXOf(t.cardAt(sl)) {
 			if found, stop := rs.sacStep(k, t, sl, &cs, nc, &cols); stop {
 				return found
 			}
@@ -1432,6 +1651,9 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 		if debugTapXMutate == 1 {
 			c = 0
 		}
+		if !rs.subsumeKeeps(t, c) {
+			continue
+		}
 		if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
 			return true, true
 		}
@@ -1446,6 +1668,9 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 // none. An answer that takes the play's own source is tried: the next node ends
 // it (leftOwnZone). stop: visit returns found.
 func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc int, cols *[5]uint8) (found, stop bool) {
+	if k.exileGOf(t.cardAt(sl)) {
+		return rs.exileGStep(k, t, sl, cs, nc, cols) // an exile-from-graveyard source (mana_exilegrave.go)
+	}
 	if nc > 1 && !rs.tick() {
 		return false, true
 	}
@@ -1538,6 +1763,9 @@ func (s *State) sacPotPays(k *prep, p uint8, a Action) bool {
 	d := s.grantPayDesc(k, a)
 	s.availPotentialFor(k, p, &pot, &d, false)
 	s.availSacAny(k, p, &pot, &d) // the bound admits each sacrifice-any ability once
+	if s.rbAny(p) {
+		s.restrAvailAdd(p, s.restrFloatAdmits(k, p, &d), &pot) // the floating restricted mana the payment may spend (a restricted tap-another source's leftover)
+	}
 	return pot.affords(&cost, pipMaskOf(&cost), 0)
 }
 
@@ -1548,8 +1776,23 @@ func (s *State) gapsOrBoundPlay(k *prep, p uint8, sacAny bool, gaps *Decision, a
 	return hasOption(gaps, a) || sacAny && s.sacPotPays(k, p, a)
 }
 
+// sacRepeatBoard is scriptOffers' twoLive: the boards gorge's census is
+// unrelaxable on regardless of the PotentialMana bound — a live two-permanent
+// source (Baylen, tapXTwoLive), an open sacrifice-any bound (Krark-Clan
+// Ironworks, tapXSacAnyBound's open arm), or a live sacrifice-any one whose
+// cost sacrifices dedicated tokens (Jungle Patrol, sacRepeatLive). sacRepeat
+// reports the last of these, the one that lifts the closed-bound narrowing
+// (sacDrops).
+func (s *State) sacRepeatBoard(k *prep, p uint8, sacOpen bool) (sacRepeat, twoLive bool) {
+	sacRepeat = s.sacRepeatLive(k, p)
+	return sacRepeat, k.tapMana && s.tapXTwoLive(k, p) || sacOpen || sacRepeat
+}
+
 // sacDrops: on a closed sacrifice-any bound (sacAny) play a is neither the gaps
-// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate.
-func (s *State) sacDrops(k *prep, p uint8, sacAny bool, gaps *Decision, a Action) bool {
-	return sacAny && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
+// walk's nor one gorge's bound pays (gapsOrBoundPlay), so it is no candidate —
+// unless a live repeatable sacrifice-any source makes gorge's census
+// unrelaxable (sacRepeatBoard): gorge searches every census-incomplete play
+// then, the closed bound's plays included.
+func (s *State) sacDrops(k *prep, p uint8, sacAny, sacRepeat bool, gaps *Decision, a Action) bool {
+	return sacAny && !sacRepeat && !s.gapsOrBoundPlay(k, p, sacAny, gaps, a)
 }

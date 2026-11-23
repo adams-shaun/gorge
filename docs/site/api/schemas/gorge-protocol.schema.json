@@ -2432,6 +2432,10 @@
           "format": "int64",
           "type": "integer"
         },
+        "alone_only": {
+          "description": "AloneOnly marks a KAttackers option whose creature can ONLY be declared alone (CR 508.1c, \"can only attack alone\"): no other creature may be declared beside it. CompanionNeed/CompanionFrom are the converse restriction (\"can't attack unless a creature with greater power also attacks\", \"... at least two other creatures attack\", Okk, Orcish Conscripts, Scarred Puma; the block-side sentences ride KBlockers options): choosing this option is legal only together with at least CompanionNeed distinct OTHER creatures, each named by one of the options in CompanionFrom (option Indexes). All three derive from combat.CompanionViolated, and AloneLegal (the one home Decision.Validate, FitAlone and the block solver share) reads them, so a rules-ignorant client builds a legal declaration from the wire alone. omitempty: an unrestricted option emits none of them.",
+          "type": "boolean"
+        },
         "alone_restricted": {
           "description": "AloneRestricted marks a KAttackers or KBlockers option whose creature is restricted from being declared ALONE (CR 506.5): declaring it is legal only when at least one other creature is declared as an attacker (a KAttackers option) or as a blocker (a KBlockers option) in the same declaration. The engine REJECTS a lone declaration (combat.DeclaresAlone, read by both declaration validators), so a rules-ignorant client -- the bot policy included -- needs the fact on the wire to build a legal declaration rather than have one refused. Decision.Validate enforces it and the shared repair (Decision.FitAlone, which botpolicy.Clamp runs) derives its rule from this same field, so the published fact cannot drift from the check. omitempty: an unrestricted option emits no field, so every ordinary option list serialises byte-identically.",
           "type": "boolean"
@@ -2456,6 +2460,17 @@
           "description": "Battle, on an attacker option, names the non-player permanent being attacked -- a CR 310.7 battle or a planeswalker -- 0 meaning a player attack. Obj is the attacking creature and Player is the permanent's seat (the battle's protector, or the planeswalker's controller), so the pair alone cannot tell a permanent attack from a player attack by the same creature; this field is what the engine reads back at declaration time to record Object.AttackingBattle. omitempty: a player attack emits no field, so every existing option list serialises byte-identically.",
           "maximum": 4294967295,
           "minimum": 0,
+          "type": "integer"
+        },
+        "companion_from": {
+          "items": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "companion_need": {
+          "format": "int64",
           "type": "integer"
         },
         "cost": {

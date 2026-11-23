@@ -135,15 +135,34 @@ func stdReproNamedServed(t *testing.T, name string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	stallCheck(t, r, replayServedValue(t, synthReg(t), globSet(t, r.Pool, r), r), false)
+}
+
+// replayServedValue is replayReproValue where the replay must also serve the whole recorded
+// prefix: a drifted recording skips actions or ends early, and fails instead of passing as a
+// different game.
+func replayServedValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
+	t.Helper()
 	pol := &ScriptPolicy{Actions: r.Actions}
-	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, pol)
+	res := replayDecodedScript(t, reg, set, r, pol)
 	if pol.next != len(r.Actions) || pol.Skipped != 0 {
 		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
 	}
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
-	stallCheck(t, r, res, false)
+	return res
+}
+
+// replayRecorded is a globbed recording's replay: replayServedValue for one marked served, else
+// replayReproValue. A glob's check is therefore never looser than the named test it replaced
+// (stdReproNamed or stdReproNamedServed), whichever the recording's pool is replayed by.
+func replayRecorded(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
+	t.Helper()
+	if r.Served {
+		return replayServedValue(t, reg, set, r)
+	}
+	return replayReproValue(t, reg, set, r)
 }
 
 // stallCheck fails a replay whose kernel stall disagrees with the recording:
@@ -191,8 +210,10 @@ func globPools(t *testing.T, strict map[string]bool, pools ...string) {
 		t.Run(reproName(path), func(t *testing.T) {
 			// Each recording is its own game on a table of its own: run them side by
 			// side, or a pool of a few hundred is one serial pole of the package.
-			t.Parallel()
-			stallCheck(t, r, replayReproValue(t, reg, set, r), strict[reproName(path)])
+			if landGrantRecordingReplay(t, reproName(path)) {
+				return
+			}
+			stallCheck(t, r, replayRecorded(t, reg, set, r), strict[reproName(path)])
 		})
 	}
 	for _, p := range pools {

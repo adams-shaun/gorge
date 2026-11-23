@@ -1,6 +1,7 @@
 Aerial Responder
 Annex
 Argothian Opportunist
+Ashling, Flame Dancer
 Baloth Gorger
 Blood Pact
 Bloodfire Expert
@@ -60,6 +61,7 @@ Longshot Squad
 Mad Ratter
 Manor Gate
 Meatsqueak, Hoard Lord
+Misleading Signpost
 Mistmeadow Skulk
 Moment's Peace
 Mountain

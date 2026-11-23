@@ -23,6 +23,7 @@ Arcbound Tracker
 Archon of Falling Stars
 Ardenvale Paladin
 Arm-Mounted Anchor
+Arms Race
 Arrogant Poet
 Ashen Rider
 Aspect of Lamprey
@@ -127,6 +128,7 @@ Eternal Taskmaster
 Excommunicate
 Expedition Raptor
 Eye of Nowhere
+Fabled Path of Searo Point
 Faerie Guidemother
 Falter
 Fang Skulkin
@@ -339,7 +341,6 @@ Primal Whisperer
 Primeval Force
 Prizefight
 Protective Bubble
-Puca's Covenant
 Puppet's Verdict
 Puppeteer
 Qilin's Blessing

@@ -240,7 +240,6 @@ Storm of Souls
 Sudden Edict
 Sudden Spinnerets
 Sunhome Enforcer
-Surtland Frostpyre
 Swamp
 Swamp Mosquito
 Tamiyo's Epiphany
@@ -252,7 +251,6 @@ Thumbscrews
 Thundering Chariot
 Thundermare
 Thunderwolf Cavalry
-Tramway Station
 Tread Upon
 Treebeard, Gracious Host
 Treeshaker Chimera

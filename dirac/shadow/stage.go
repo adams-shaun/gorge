@@ -2,6 +2,7 @@ package shadow
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -14,14 +15,15 @@ import (
 // of these or one of dirac's.
 const (
 	ReasonOver     = "game-over"        // the game has ended
-	ReasonSeats    = "seats"            // not a two-seat view
+	ReasonSeats    = "seats"            // not a view of 2..dirac.MaxSeats players
+	ReasonSeatLeft = "seat-left"        // a seat has left the game while it goes on
 	ReasonStack    = "stack"            // a stack entry that is not a plain token spell or a self-counter ability: a trigger, a target, a mode, an X, a copy
 	ReasonPending  = "pending"          // a trigger waiting to be put on the stack
 	ReasonDecision = "decision"         // the view's decision is not a priority decision
 	ReasonUnknown  = "unknown-card"     // a card name the table does not hold
 	ReasonUnmapped = "unmapped-object"  // an object the caller's index cannot place
 	ReasonHidden   = "hidden"           // the dealt hidden zones disagree with the counts the view shows
-	ReasonExile    = "exile"            // exile or the command zone holds a card
+	ReasonExile    = "exile"            // exile holds a card, or the command zone a card that is not its commander
 	ReasonToken    = dirac.ReasonToken  // a copy, or a token the table has no plain creature token for
 	ReasonCounter  = "counter"          // a counter other than a nonzero +1/+1 count on a battlefield card
 	ReasonAttach   = dirac.ReasonAttach // an attachment dirac cannot rebuild, or one attached to a player
@@ -32,7 +34,7 @@ const (
 
 // Reasons lists every reason WorldFromView returns that dirac does not.
 var Reasons = []string{
-	ReasonOver, ReasonSeats, ReasonStack, ReasonPending, ReasonDecision, ReasonUnknown, ReasonUnmapped,
+	ReasonOver, ReasonSeats, ReasonSeatLeft, ReasonStack, ReasonPending, ReasonDecision, ReasonUnknown, ReasonUnmapped,
 	ReasonHidden, ReasonExile, ReasonCounter, ReasonMark, ReasonPool, ReasonStepName,
 }
 
@@ -48,13 +50,29 @@ type Card struct {
 	Name string
 }
 
+// CeasedToken is a token that has ceased to exist (CR 111.7, 704.5d): it keeps
+// the object index the game gave it and no view shows it. Name is the table
+// token's script name as tokenCard resolves it ("r_1_1_goblin").
+type CeasedToken struct {
+	Obj   dirac.Obj
+	Name  string
+	Owner uint8
+}
+
 // Hidden is the caller's assignment of the zones the view hides. Hand[p] is
 // seat p's hand in order (the viewer's own hand is read from the view
 // instead, and Hand[viewer] is ignored); Library[p] is seat p's library from
-// the top. Sizes must equal the counts the view shows.
+// the top. Sizes must equal the counts the view shows. Ceased lists the tokens
+// that have ceased to exist, which fill the gaps among the token indices.
 type Hidden struct {
 	Hand    [dirac.MaxSeats][]Card
 	Library [dirac.MaxSeats][]Card
+	// Ceased is every token that has ceased to exist, at the index the game gave it.
+	Ceased []CeasedToken
+	// Gone[p] is every card of seat p's deck, in object order, for a player the
+	// view shows as Lost: those cards ceased to exist when the seat left (CR
+	// 800.4a). Read only for a lost player.
+	Gone [dirac.MaxSeats][]Card
 }
 
 // Input is everything WorldFromView reads.
@@ -104,6 +122,12 @@ func WorldFromView(in *Input) (dirac.World, error) {
 			return w, err
 		}
 	}
+	if err := b.ceased(); err != nil {
+		return w, err
+	}
+	if err := b.commanderDamage(&w); err != nil {
+		return w, err
+	}
 	if err := b.stack(&w); err != nil {
 		return w, err
 	}
@@ -114,12 +138,15 @@ func WorldFromView(in *Input) (dirac.World, error) {
 		return w, err
 	}
 	w.Tbl, w.Cfg, w.Seed = in.Tbl, in.Cfg, in.Seed
-	w.NSeat = 2
+	w.NSeat = uint8(len(v.Players))
 	w.Turn = uint16(v.Turn)
 	w.Step = step
 	w.Active = uint8(v.Active)
 	w.Prio = uint8(v.Priority)
 	w.Pose = pose
+	if pose == dirac.PoseBlockers {
+		w.BlkDef = uint8(v.Decision.Player) // the defender asked (read only at more than two seats)
+	}
 	return w, nil
 }
 
@@ -133,7 +160,7 @@ func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 	if v.Over {
 		return 0, 0, bad(ReasonOver, "")
 	}
-	if len(v.Players) != 2 || int(v.Viewer) >= 2 {
+	if len(v.Players) < 2 || len(v.Players) > dirac.MaxSeats || int(v.Viewer) >= len(v.Players) {
 		return 0, 0, bad(ReasonSeats, "%d players", len(v.Players))
 	}
 	if len(v.Pending) != 0 {
@@ -154,7 +181,9 @@ func checkScope(in *Input) (kop.Step, dirac.Pose, error) {
 // that makes it, so an observer sees none at a combat step and cannot tell a
 // pose from the priority round after a declaration that made no pick: that is
 // ReasonDecision unless the combat marks settle it (attackers on the board at
-// the declare attackers step, blocks at the declare blockers step).
+// the declare attackers step, blocks at the declare blockers step; at more
+// than two seats blocks settle nothing, as another defender may still be to
+// declare).
 func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
 	if d := v.Decision; d != nil {
 		switch {
@@ -172,7 +201,7 @@ func poseOf(v *view.View, step kop.Step) (dirac.Pose, error) {
 	}
 	for _, p := range v.Players {
 		for i := range p.Battlefield {
-			if c := &p.Battlefield[i]; step == kop.StepAttackers && c.Attacking || step == kop.StepBlockers && c.Blocked {
+			if c := &p.Battlefield[i]; step == kop.StepAttackers && c.Attacking || step == kop.StepBlockers && len(v.Players) == 2 && c.Blocked {
 				return dirac.PosePriority, nil
 			}
 		}
@@ -215,7 +244,7 @@ func (b *builder) add(obj dirac.Obj, name string, owner, pos int, z kop.Zone, cv
 			return err
 		}
 		if z == kop.ZoneBattlefield {
-			if err := markAttack(&o, cv, name); err != nil {
+			if err := b.markAttack(&o, cv, name); err != nil {
 				return err
 			}
 			o.Tapped, o.Sick = cv.Tapped, cv.SummonSick
@@ -299,11 +328,11 @@ func (b *builder) dealt(cards []Card, s int, z kop.Zone, shown int, what string)
 // seat adds one player's zones and sets the player's life and land drop.
 func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	s := int(p.ID)
-	if s >= 2 {
+	if s >= len(b.in.View.Players) {
 		return bad(ReasonSeats, "seat %d", s)
 	}
-	if len(p.Exile) != 0 || len(p.Command) != 0 {
-		return bad(ReasonExile, "seat %d", s)
+	if err := b.commander(w, p); err != nil {
+		return err
 	}
 	for _, n := range p.Pool {
 		if n != 0 {
@@ -311,7 +340,7 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 		}
 	}
 	if p.Lost {
-		return bad(ReasonOver, "seat %d lost", s)
+		return b.departed(w, p, s)
 	}
 	w.Life[s] = p.Life
 	if p.LandDropSpent {
@@ -321,6 +350,9 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 		return err
 	}
 	if err := b.shown(p.Graveyard, s, kop.ZoneGraveyard, true); err != nil {
+		return err
+	}
+	if err := b.shown(p.Command, s, kop.ZoneCommand, true); err != nil {
 		return err
 	}
 	var err error
@@ -341,11 +373,97 @@ func (b *builder) seat(w *dirac.World, p *view.PlayerView, viewer bool) error {
 	return nil
 }
 
+// departed adds a seat that has left the game: the view shows it with nothing
+// in any zone, and the caller's Gone cards are its ceased objects.
+func (b *builder) departed(w *dirac.World, p *view.PlayerView, s int) error {
+	if len(p.Hand) != 0 || len(p.Library) != 0 || len(p.Battlefield) != 0 || len(p.Graveyard) != 0 ||
+		p.HandSize != 0 || p.LibrarySize != 0 || p.GraveyardSize != 0 {
+		return bad(ReasonSeatLeft, "a departed seat shows cards (seat %d)", s)
+	}
+	if len(p.Commanders) != 0 || len(p.Command) != 0 {
+		return bad(dirac.ReasonCommander, "a departed seat keeps a commander (seat %d)", s)
+	}
+	w.Lost[s] = true
+	w.Life[s] = p.Life
+	for _, c := range b.in.Hidden.Gone[s] {
+		if err := b.add(c.Obj, c.Name, s, 0, kop.ZoneNone, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// commander refuses an exile or command zone seat p's position cannot stage
+// (exile holds nothing; the command zone, its commander only) and reads the
+// commander: one a seat, its cast count, and each player's damage from it
+// (the damage is read once every seat's commander is known: commanderDamage).
+func (b *builder) commander(w *dirac.World, p *view.PlayerView) error {
+	s := int(p.ID)
+	if len(p.Exile) != 0 {
+		return bad(ReasonExile, "seat %d", s)
+	}
+	for i := range p.Command {
+		if !slices.ContainsFunc(p.Commanders, func(c view.CardView) bool { return c.ID == p.Command[i].ID }) {
+			return bad(ReasonExile, "seat %d command zone holds %s, not a commander", s, p.Command[i].Name)
+		}
+	}
+	if len(p.Commanders) > 1 {
+		return bad(dirac.ReasonCommander, "seat %d has %d commanders", s, len(p.Commanders))
+	}
+	if len(p.Commanders) == 0 {
+		w.Cmd[s] = dirac.NoObj
+		return nil
+	}
+	o, ok := b.in.ObjOf(int(p.Commanders[0].ID))
+	if !ok {
+		return bad(ReasonUnmapped, "seat %d commander %s (%d)", s, p.Commanders[0].Name, p.Commanders[0].ID)
+	}
+	w.Commander, w.Cmd[s] = true, o
+	if len(p.CommanderCasts) != 1 || p.CommanderCasts[0] < 0 || p.CommanderCasts[0] > 255 {
+		return bad(dirac.ReasonCommander, "seat %d commander casts %v", s, p.CommanderCasts)
+	}
+	w.CmdCasts[s] = uint8(p.CommanderCasts[0])
+	return nil
+}
+
+// commanderDamage reads each player's commander damage (CR 903.10a) into w:
+// for player q and seat p, what q took from p's commander. The map is read by
+// key, never ranged; a tally past a byte or on a card that is no seat's
+// commander is refused.
+func (b *builder) commanderDamage(w *dirac.World) error {
+	if !w.Commander {
+		return nil
+	}
+	v := &b.in.View
+	for q := range v.Players {
+		pq := &v.Players[q]
+		known := 0
+		for p := range v.Players {
+			if len(v.Players[p].Commanders) == 0 {
+				continue
+			}
+			id := v.Players[p].Commanders[0].ID
+			d, ok := pq.CmdDamage[id]
+			if ok {
+				known++
+			}
+			if d < 0 || d > 255 {
+				return bad(dirac.ReasonCommander, "seat %d commander damage %d", q, d)
+			}
+			w.CmdDamage[int(pq.ID)][int(v.Players[p].ID)] = uint8(d)
+		}
+		if known != len(pq.CmdDamage) {
+			return bad(dirac.ReasonCommander, "seat %d took damage from a card that is no seat's commander", q)
+		}
+	}
+	return nil
+}
+
 // assemble orders the gathered objects by index. The cards of the decks take
-// 0..m-1, as dirac.World lays them out, and the tokens the view shows follow;
-// a gap before a token is a token the view no longer shows. (A token that left
-// after the last shown one leaves no gap: the staged game just holds fewer
-// objects than the one that made it.)
+// 0..m-1, as dirac.World lays them out, and the tokens follow, the ceased ones
+// (Hidden.Ceased) among them; a gap before a token that no ceased token fills
+// is refused. (A token that ceased after the last one is named leaves no gap:
+// the staged game just holds fewer objects than the one that made it.)
 func (b *builder) assemble(w *dirac.World) error {
 	all := b.all
 	sort.SliceStable(all, func(a, c int) bool { return all[a].obj < all[c].obj })
@@ -353,7 +471,7 @@ func (b *builder) assemble(w *dirac.World) error {
 	for i, p := range all {
 		if int(p.obj) != i {
 			if p.wo.Token {
-				return bad(ReasonToken, "a token left the view: object index %d at %d", p.obj, i)
+				return bad(ReasonToken, "a token left the view and is not ceased: object index %d at %d", p.obj, i)
 			}
 			return bad(ReasonUnmapped, "object indices are not 0..%d (index %d at %d)", len(all)-1, p.obj, i)
 		}

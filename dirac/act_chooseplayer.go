@@ -11,6 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // fails closed and excludes nobody). The engine rng picks ONE of them (gorge
 // randomChoices: rng.IntN(len(pool)) over the pool in that order) and the
 // pick is the resolution's chosen player (res.chPl, seat + 1, 0 none; RefResChosenPlayer).
+// C&ChPlPlain (Choices$ Player.Opponent / Opponent) leaves the Aura exclusion out: the
+// pool is every living opponent from the chooser in seat order.
 // An empty pool draws nothing (gorge randomChoices clamps the pick count to
 // the pool) and records no choice: a following ChosenPlayer read — Maddening
 // Hex's Attach — resolves to none, and gorge's effAttach EnchantSelf walk
@@ -29,7 +31,7 @@ func (s *State) choosePlayerOp(k *prep, in *kop.Instr) {
 	}
 	src := s.objRef(k, kop.RefSelf)
 	ench := uint8(0)
-	if src != NoSlot && s.objs[s.perms[src].obj].zone == kop.ZoneBattlefield {
+	if in.C&kop.ChPlPlain == 0 && src != NoSlot && s.objs[s.perms[src].obj].zone == kop.ZoneBattlefield {
 		ench = s.atchSeat(k, src)
 	}
 	var pool [MaxSeats]uint8

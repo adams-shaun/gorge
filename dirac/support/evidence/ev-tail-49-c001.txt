@@ -28,6 +28,7 @@ Batroc the Leaper
 Batterbone
 Battle Mammoth
 Battlefly Swarm
+Belltoll Dragon
 Benthic Behemoth
 Berserk Murlodont
 Biomathematician
@@ -50,6 +51,7 @@ Butcher's Cleaver
 Cacophony Unleashed
 Call the Cavalry
 Call the Scions
+Callow Jushi
 Captain America, Steve Rogers
 Carrion Wurm
 Casting of Bones
@@ -98,6 +100,7 @@ Dimir Signet
 Disciple of Perdition
 Disentomb
 Dismember
+Domesticated Watercourse
 Domri, City Smasher
 Doran, the Siege Tower
 Double Trouble
@@ -216,7 +219,6 @@ Kor Cartographer
 Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
-Krosan Druid
 Kuldotha Rebirth
 Lantern Spirit
 Lantern of Revealing
@@ -415,7 +417,6 @@ The Rack
 Thorncaster Sliver
 Thought Collapse
 Thundercloud Shaman
-Thunderscape Master
 Tide Skimmer
 Tidings
 Torment
@@ -440,6 +441,7 @@ Vihaan, Goldwaker
 Viridian Harvest
 Virtue's Ruin
 Vitu-Ghazi Guildmage
+Vizier of Many Faces
 Voracious Fell Beast
 Vorrac Battlehorns
 Voyager Drake

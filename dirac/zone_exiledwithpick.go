@@ -14,7 +14,7 @@ func (s *State) exwPickCands(k *prep, in *kop.Instr, d *Decision) {
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for _, o := range pl.exile[:pl.exileN] {
-			if s.picksHas(o) {
+			if s.picksHas(o) || s.pickOtherBarred(k, in.F, o) {
 				continue
 			}
 			if s.matchCardGen(k, in.F, s.objs[o].card, pp, s.res.e.ctrl, o) {
@@ -36,7 +36,7 @@ func (s *State) randomExilePick(k *prep) {
 	for pp := uint8(0); pp < MaxSeats; pp++ {
 		pl := &s.pl[pp]
 		for _, o := range pl.exile[:pl.exileN] {
-			if s.matchCardGen(k, in.F, s.objs[o].card, pp, s.res.e.ctrl, o) {
+			if !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, pp, s.res.e.ctrl, o) {
 				rest[m] = o
 				m++
 			}

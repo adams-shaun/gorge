@@ -67,7 +67,6 @@ Electrify	77f3c02651805a94	37	0/0		2/2
 Elite Javelineer	d786df8370f927db	4	1/1		0/1	ix:resp
 False Demise	cf715abaf80af88e	6	1/1		1/2	ix:resp
 Fearless Liberator	3b23a6783254b695	33	1/1		1/1	
-Feedback	d98cfa21f06b2e6b	5	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	10	0/0		1/2	ix:resp
 Flay	e42d995f61acce9a	8	0/0		1/2	ix:resp
 Flourishing Strike	6ca6b646d38f16db	25	0/0		2/2	
@@ -95,7 +94,6 @@ Ilysian Caryatid	b668c21dc0c9f1d7	14	1/1		0/1	ix:resp
 Improbable Alliance	ff1267220b636ebc	7	2/2		1/1	
 Inspiring Cleric	60103fcb12a0387b	4	1/1		0/1	ix:resp
 Invasion of Theros	d2727feb4f73a8b4	5	2/2		0/1	ix:resp
-Iron Fist, Hero for Hire	ceca251c078548ff	7	2/2		0/1	ix:resp
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	6	1/1		0/1	ix:resp
 Joiner Adept	cd942cd03dc15865	59	0/0		0/0	
 Juju Bubble	e4697f30d319d5a4	5	4/4		1/1	
@@ -103,7 +101,6 @@ Jukai Trainee	7ebb26d3795b8588	11	2/2		0/1	ix:resp
 Kaervek's Torch	8d29af72dc5ca193	4	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Kjeldoran Frostbeast	1fddbe0556eecbd0	3	1/1		0/1	ix:resp
 Kolaghan Warmonger	66e1ab631c7a0699	11	1/1		0/1	ix:resp
-Kor Haven	ac73174c8be39f81	210	2/2		0/1	ix:resp
 Kumano, Master Yamabushi	28f3ed382864337c	17	1/1		1/1	
 Last Breath	9765cec350508ba5	4	0/0		1/2	ix:resp
 Lat-Nam Adept	521b24cae5c89268	8	1/1		0/1	ix:resp
@@ -129,7 +126,6 @@ Nature's Wrath	9ebc4138951e157a	4	3/3		0/1	ix:resp
 Nightstalker Engine	3eec31aaa202b4ba	6	0/0		0/0	
 Nishoba Brawler	bbcae9725d7bfcce	8	0/0		0/0	
 Nomads en-Kor	119e01ee3ef49197	8	1/1		1/1	
-O'aka, Traveling Merchant	d58780b759c317e2	8	1/1		0/1	ix:resp
 Okiba-Gang Shinobi	8ca54897872da686	7	2/2		0/1	ix:resp
 Orim's Thunder	db00461199bddbea	9	0/0		2/4	cast/alt:kicked,ix:resp
 Otherworld Atlas	48983a7456a6b82e	3	2/2		0/1	ix:resp
@@ -140,7 +136,6 @@ Polar Kraken	d7ef7ba3a3361c6f	3	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	3	0/0		0/0	
 Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
 Propagator Drone	c24127f420fd493c	9	1/1		0/1	ix:resp
-Puca's Covenant	f81c5bd347965915	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Quakefoot Cyclops	d6267ef8b50bd064	3	3/3		1/1	
 Quickbeam, Upstart Ent	a93582754ff1f1ac	6	1/1		1/1	
 Quietus Spike	7b739e57d0c81c44	20	2/2		1/1	
@@ -158,9 +153,11 @@ Rustwing Falcon	c3e1ca2297a1b401	4	0/0		0/0
 Ruthless Deathfang	cbf39e455abe9c4c	6	1/1		1/1	
 Screeching Bat	0f94336f8859d316	4	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y,ix:resp
 Scroll of Fate	5e4b50a04a101645	4	1/1		1/1	
+Scroll of Isildur	6a03793e30e18f60	4	0/0		0/0	
 Secluded Steppe	98c0ef11e369122c	66	2/2		0/1	ix:resp
 Selfless Cathar	b54f6149c5dd4db3	8	1/1		0/1	ix:resp
 Selfless Savior	dbb20cbf0c387942	12	1/1		0/1	ix:resp
+Serra Inquisitors	b974b417cec37dd1	24	2/2		0/1	ix:resp
 Serra's Boon	deaf36301a869299	6	0/0		1/2	ix:resp
 Shared Triumph	e5e1d84553f03113	9	0/0		0/0	
 Shrine of the Forsaken Gods	91a054b4cd2a6e59	184	2/2		0/1	ix:resp
@@ -207,6 +204,5 @@ Warped Tusker	785707a4e74b3195	4	3/3		1/1
 Weakness	35117485d8f34884	26	0/0		2/2	
 Willow Elf	3cf41f0798dd8ca6	6	0/0		0/0	
 Winds of Rath	b0d4a2890f25aec0	12	0/0		1/2	ix:resp
-Wormhole Serpent	06bf056fa91ab379	6	1/1		0/1	ix:resp
 Yavimaya Enchantress	1cfc978b6e7e811b	4	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	25	1/1		0/1	ix:resp

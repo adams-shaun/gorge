@@ -2,18 +2,25 @@ A-Briar Hydra
 A-Galvanic Discharge
 A-Urza's Command
 Adaptive Omnitool
+Aerial Volley
 Agoraphobia
+Ambition's Cost
+Ancient Copper Dragon
 Angler Drake
 April O'Neil, Human Element
+Arrow Storm
+Audacity
 Aven Cloudchaser
 Aven Eternal
 Awaken the Bear
+Azorius Signet
 Balduvian Barbarians
 Banishing Stroke
 Battle Mastery
 Beastmaster Ascension
 Befoul
 Bellowing Elk
+Beregond of the Guard
 Bessie, the Doctor's Roadster
 Blacklance Paragon
 Bladebrand
@@ -22,14 +29,27 @@ Bloodfire Dwarf
 Bloodrage Brawler
 Body of Knowledge
 Bond of Passion
+Boompile
+Borrowing 100,000 Arrows
+Branchloft Pathway
+Breath of Darigaaz
 Bronze Walrus
 Bronzeplate Boar
+Burning Sun's Avatar
+Cacophony Unleashed
+Capital Guard
 Carnage Interpreter
 Cast into the Fire
+Challenger Troll
+Charcoal Diamond
 Claim the Firstborn
+Cloakwood Hermit
 Cloudseeder
+Colossal Might
 Compleated Huntmaster
 Conjurer's Mantle
+Consecrated by Blood
+Contaminated Aquifer
 Contentious Plan
 Court Hussar
 Crimson Caravaneer
@@ -37,41 +57,56 @@ Crossover Collaboration
 Crosswinds
 Cryptbreaker
 Cunning Advisor
+Cut of the Profits
 Dagger Caster
 Daring Piracy
 Dark Favor
 Dawn of Hope
 Deranged Hermit
+Deserter's Quarters
+Diabolic Tutor
 Dictate of Karametra
 Didgeridoo
 Die Young
+Dissipate
 Domineer
 Dragon Engine
+Dragon Mask
+Draugr Necromancer
 Draugr's Helm
 Drowner Initiate
 Drumbellower
+Dune Beetle
 Déjà Vu
 Emerald Medallion
 Emrakul's Hatcher
+Enthralling Victor
 Escaped Experiment
+Extinguish the Light
 Ezuri, Claw of Progress
+Falcon Abomination
 Fallaji Archaeologist
 Fallow Earth
+Feral Invocation
 Fervent Denial
 Filigree Familiar
 Firebreathing
 Flame Discharge
+Flame Sweep
 Flameblade Adept
 Flare
 Fodder Cannon
 Force of Vigor
 Forest
 Foul Play
+Frostling
 Galerider Sliver
 General Leo Cristophe
 Giant Scorpion
 Glade Watcher
 Gleeful Arsonist
+Gobhobbler Rats
+Goblin Burrows
 Goblin Warchief
 Gore Swine
 Grafted Wargear
@@ -80,23 +115,34 @@ Grove of the Guardian
 Hammerhand
 Hammerhead Shark
 Hangarback Walker
+Highland Lake
+Hinterland Drake
+Hoodwink
 Howling Giant
 Howling Moon
 Imperial Lancer
+Imperial Oath
+Increasing Ambition
 Inferno Project
 Infinity Formula
 Innocent Traveler
 Island
 Jace's Sentinel
+Jushi Apprentice
 Karmic Guide
+Kazandu Refuge
 Kird Chieftain
 Kitesail Skirmisher
 Knight of Dusk's Shadow
+Lance
+Lava Flow
+Lava Hounds
 Lavaborn Muse
 Lightning Runner
 Loam Larva
 Lookout's Dispersal
 Lorthos, the Tidemaker
+Lotleth Giant
 Magnify
 Magus of the Moon
 Malevolent Whispers
@@ -114,43 +160,59 @@ Mox Jet
 Multani's Decree
 Necrotic Wound
 Nightfire Giant
+Nim Lasher
 Nulldrifter
 Numbing Dose
 Ogre Arsonist
 Oracle of Tragedy
 Ornithopter
+Owlbear Shepherd
+Pain
 Patron of the Arts
 Patron of the Vein
 Peace of Mind
 Penance Stare
 Penumbra Spider
+Pillar of War
 Pistus Strike
+Pith Driller
 Plains
 Plated Onslaught
+Pox
 Profane Memento
 Prologue to Phyresis
 Psychotic Haze
+Pteron Ghost
 Pyretic Charge
 Pyroceratops
+Quandrix Campus
 Quilled Sliver
 Raging Minotaur
+Rakdos Signet
 Raphael, the Muscle
 Raptor Companion
+Ravenous Vampire
 Reef Shaman
 Refurbished Familiar
+Relentless Assault
+Renegade Tactics
 Resolute Archangel
 Resupply
 Rime Transfusion
 Roiling Regrowth
+Run Ashore
 Rush of Inspiration
 Rusted Sentinel
+Ruthless Sniper
 Sacred Guide
 Said
 Sanguine Guard
 Savage Offensive
 Sawblade Slinger
+Scent of Jasmine
 Sea Sprite
 Seal of Strength
+Seismic Stomp
 Seller of Songbirds
 Sentinel
 Sergeant-at-Arms
@@ -158,15 +220,20 @@ Serpentine Kavu
 Serrated Scorpion
 Shadowfeed
 Shriekdiver
+Shrink
+Sigardian Savior
 Silverbeak Griffin
 Simian Grunts
 Sinister Gnarlbark
 Skarrgan Pit-Skulk
 Skirk Prospector
+Skyline Cascade
+Skyline Scout
 Slith Strider
 Slumbering Dragon
 Solidarity
 Soratami Cloudskater
+Soul Rend
 Soul's Might
 Soulstealer Axe
 Spawn-Gang Commander
@@ -179,31 +246,43 @@ Split-Tail Miko
 Sprouting Goblin
 Squee, Goblin Nabob
 Stampede
+Steel Leaf Champion
 Stingscourger
 Stronghold Overseer
 Summon Undead
 Sundering Eruption
-Sunscape Master
 Svyelunite Priest
 Swamp
+Swarmborn Giant
+Sword of Forge and Frontier
+Tajuru Blightblade
+Tattered Apparition
 Taunting Elf
+Taunting Sliver
 Tavern Brawler
 Telethopter
 Tempered Veteran
 Tezzeret, Artifice Master
 Thalakos Dreamsower
+The Fair Basilica
+The Frightful Four
 The Juzam Master
 Then, Dreadmaws Ate Everyone
 Thirst
+Thopter Arrest
 Thor, Asgard's Avenger
 Thorn Mammoth
 Thoughtrender Lamia
 Threads of Disloyalty
+Thunder Spirit
 Tin Street Hooligan
+Tolarian Sentinel
 Treasury Thrull
+Triceraton Regenta
 Tuktuk Scrapper
 Tyrant's Machine
 Unchained Berserker
+Undertow
 Unlicensed Hearse
 Vandalize
 Vault Skyward
@@ -214,7 +293,9 @@ Virtus the Veiled
 Volley of Boulders
 Voltaic Construct
 Wall of Denial
+Wall of Hope
 Warlord's Fury
+Warped Landscape
 Watcher in the Mist
 Whirlwind
 White Dragon
@@ -226,4 +307,5 @@ Winged Portent
 Witty Roastmaster
 Xathrid Necromancer
 Zamriel, Seraph of Steel
+Zenith Seeker
 Zulaport Enforcer

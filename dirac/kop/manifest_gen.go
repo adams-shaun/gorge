@@ -1138,6 +1138,9 @@ const ExSrcRemCounters ExprKind = 165
 // ExStaticExileKw (F, N): exiled cards matching F (every player's exile, F.Owner narrows) that print the keyword N names, read off the printed card (CR 400.7, gorge effects.PrintedChars). N below 32 is a KwMask bit index; N 32 and up is the protection colour (N-32, in kop.ExileKwProtN order) in the card's printed ProtColors. It is the per-keyword gate of a SharedKeywordsZone$ Exile static (Rayami, First of the Fallen). dirac/value_exilekw.go.
 const ExStaticExileKw ExprKind = 166
 
+// ExprKind (dirac/manifest/ExprKind/ExVoteTally)
+const ExVoteTally ExprKind = 167
+
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
 
@@ -1534,24 +1537,31 @@ const ExtEncore ExtOp = 99
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
+//
+// Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
+const ExtMonarchJail ExtOp = 102
+
+func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
+
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
-// ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, which the kernel stalls on, StallMyriadPW) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 102
+// ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
+const ExtMyriad ExtOp = 103
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 103
+const ExtRememberPlayer ExtOp = 104
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 104
+const ExtRepeatOptional ExtOp = 105
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
@@ -1560,40 +1570,90 @@ func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 // FwAttacking: the battlefield permanent is attacking (FAttacking). An object off the battlefield fails closed.
 const FwAttacking FilterWord = 1
 
+// FilterWord (dirac/manifest/FilterWord/FwBasePowerCmp)
+//
+// FwBasePowerCmp: the candidate's base power (layer 7b, CR 613.4; gorge numericPred's basePower field, engine/effects/filter.go:1747 and filter_value.go:292) compares Op against V; a permanent reads basePTGen, a card off the battlefield its printed (CDA-folded) power; the P/T-less non-creature reads nothing (gorge lacksPT).
+const FwBasePowerCmp FilterWord = 2
+
+// FilterWord (dirac/manifest/FilterWord/FwBaseToughnessCmp)
+//
+// FwBaseToughnessCmp: the candidate's base toughness (layer 7b, CR 613.4; gorge numericPred's baseToughness field, engine/effects/filter.go:1747 and filter_value.go:292) compares Op against V; a permanent reads basePTGen, a card off the battlefield its printed (CDA-folded) toughness; the P/T-less non-creature reads nothing (gorge lacksPT).
+const FwBaseToughnessCmp FilterWord = 3
+
 // FilterWord (dirac/manifest/FilterWord/FwCMCCmp)
 //
 // FwCMCCmp: the object's mana value compares to V by Op (PredCMCLE/PredCMCGE/PredCMCEQ): a face-down object has none (CR 708.2), a spell on the stack counts its X (CR 202.3e).
-const FwCMCCmp FilterWord = 2
+const FwCMCCmp FilterWord = 4
+
+// FilterWord (dirac/manifest/FilterWord/FwChosenCtrl)
+//
+// FwChosenCtrl: the object is controlled by the player the reading source permanent chose as it entered (gorge chosenCtrlMatches, effects/filter_type.go); no source or no chosen player fails closed.
+const FwChosenCtrl FilterWord = 5
 
 // FilterWord (dirac/manifest/FilterWord/FwCountersCmp)
 //
 // FwCountersCmp: the battlefield permanent's counters of kind Arg (a kop.CounterKind below 256) compare to V by Op (PredCountersGE, PredHasCounter). An object off the battlefield fails closed.
-const FwCountersCmp FilterWord = 3
+const FwCountersCmp FilterWord = 6
+
+// FilterWord (dirac/manifest/FilterWord/FwDoubleFaced)
+//
+// FwDoubleFaced: the candidate's card is a two-faced card of either transforming kind (gorge wordDoubleFaced, engine/effects/filter_word.go:949: o.Card.BackFaceIsBattlefieldOnly, engine/cards/layout.go:17; the kernel reads CardDef.Faces==2 with FaceMode FaceTransform or FaceModal); a printed read, a face-down or transformed face changes nothing.
+const FwDoubleFaced FilterWord = 7
+
+// FilterWord (dirac/manifest/FilterWord/FwEnchantedControllerCtrl)
+//
+// FwEnchantedControllerCtrl: the object is controlled by the controller of the permanent the reading source is attached to (gorge wordEnchantedControllerCtrl, effects/filter_word.go); an unattached source fails closed.
+const FwEnchantedControllerCtrl FilterWord = 8
 
 // FilterWord (dirac/manifest/FilterWord/FwKeyword)
 //
 // FwKeyword: the object has keyword bit Arg of its current KwMask (PredHasKeyword).
-const FwKeyword FilterWord = 4
+const FwKeyword FilterWord = 9
 
 // FilterWord (dirac/manifest/FilterWord/FwPowerCmp)
 //
 // FwPowerCmp: the object's current power compares to V by Op (CmpGE, CmpLE, CmpEQ, CmpGT, CmpLT, CmpNE; gorge powerGE/powerLE/powerEQ...). The same read as PredPowerLE/PredPowerGE: the layered power on the battlefield, the printed or CDA one elsewhere, a face-down object 2. Not in a layer-walk view (no re-entry).
-const FwPowerCmp FilterWord = 5
+const FwPowerCmp FilterWord = 10
+
+// FilterWord (dirac/manifest/FilterWord/FwSameName)
+//
+// FwSameName: the object shares a printed name with the object the sameName context base names (gorge sameNameContextReferent over Remembered./Targeted./Triggered. bases, engine/effects/filter_value.go): RefRemembered, the entry's first remembered object; RefTargets0123, the entry's object targets, every slot, first live one; RefTriggerObj, the entry's triggering object. The name identity is FwSharesName's: a battlefield permanent reads its layer-3 name, anything else its card, and a face-down candidate has no name (CR 708.2). An unbound referent matches nothing, fail closed.
+const FwSameName FilterWord = 11
+
+// FilterWord (dirac/manifest/FilterWord/FwSharesCr)
+//
+// FwSharesCr: the object shares a creature type with an object the referent R names (gorge sharesCreatureTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefSelf, the reading source; RefRemembered, the entry's remembered object (the first card entry); RefRememberedSet, the entry's whole remembered set (gorge's Remembered and RememberedLKI spellings); RefImprinted, the reading source's first imprinted card; RefConvoked, the creatures that convoked the resolving spell's cast (CR 702.66, the cast's stack entry set, kw_convokelist.go). Each side reads its creature types where it now is; an unbound referent matches nothing, fail closed.
+const FwSharesCr FilterWord = 12
+
+// FilterWord (dirac/manifest/FilterWord/FwSharesName)
+//
+// FwSharesName: the object shares a printed name with an object the referent R names (gorge sharesNameWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefRemembered, the entry's remembered object (the first card entry); RefTriggerObj, the entry's triggering object. With a nested filter in F (the general sharesNameWith Valid <filter> form, gorge sharesNameValidMatches) instead: some permanent on the battlefield matching F, in the evaluating context, shares the candidate's name; the candidate itself is not its own match, and a phased-out permanent is off the sweep (CR 702.26b). A face-down candidate has no name (CR 708.2); an unbound referent matches nothing, fail closed.
+const FwSharesName FilterWord = 13
 
 // FilterWord (dirac/manifest/FilterWord/FwSubtype)
 //
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
-const FwSubtype FilterWord = 6
+const FwSubtype FilterWord = 14
 
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 7
+const FwTapped FilterWord = 15
+
+// FilterWord (dirac/manifest/FilterWord/FwTopLibrary)
+//
+// FwTopLibrary: the candidate is the top card of its owner's library (gorge wordTopLibrary, engine/effects/filter_word.go:887: index 0 of the owner's library slice); a card deeper in the library, or one not in a library, reads false.
+const FwTopLibrary FilterWord = 16
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 8
+const FwToughnessCmp FilterWord = 17
+
+// FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
+//
+// FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
+const FwWithKeyword FilterWord = 18
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -1874,33 +1934,98 @@ const KwDivideDamageAmongDefenders KwID = 123
 // kw Your starting hand size is five. (dirac/manifest/KwID/KwStartingHandFive)
 const KwStartingHandFive KwID = 124
 
+// Cascade (dirac/manifest/KwID/KwCascade)
+const KwCascade KwID = 125
+
+// Convoke (dirac/manifest/KwID/KwConvoke)
+const KwConvoke KwID = 126
+
+// Cycling (dirac/manifest/KwID/KwCycling)
+const KwCycling KwID = 127
+
+// Doctor's companion (dirac/manifest/KwID/KwDoctorsCompanion)
+const KwDoctorsCompanion KwID = 128
+
+// Enchant (dirac/manifest/KwID/KwEnchant)
+const KwEnchant KwID = 129
+
+// Foretell (dirac/manifest/KwID/KwForetell)
+const KwForetell KwID = 130
+
+// Horsemanship (dirac/manifest/KwID/KwHorsemanship)
+const KwHorsemanship KwID = 131
+
+// Madness (dirac/manifest/KwID/KwMadness)
+const KwMadness KwID = 132
+
+// Megamorph (dirac/manifest/KwID/KwMegamorph)
+const KwMegamorph KwID = 133
+
+// Morph (dirac/manifest/KwID/KwMorph)
+const KwMorph KwID = 134
+
+// Multikicker (dirac/manifest/KwID/KwMultikicker)
+const KwMultikicker KwID = 135
+
+// Persist (dirac/manifest/KwID/KwPersist)
+const KwPersist KwID = 136
+
+// Ward (dirac/manifest/KwID/KwPrintedWard)
+const KwPrintedWard KwID = 137
+
+// Suspend (dirac/manifest/KwID/KwSuspend)
+const KwSuspend KwID = 138
+
+// Toxic (dirac/manifest/KwID/KwToxic)
+const KwToxic KwID = 139
+
+// Unearth (dirac/manifest/KwID/KwUnearth)
+const KwUnearth KwID = 140
+
+// Op (dirac/manifest/Op/OpGrantEmbalmOwnCost)
+//
+// object Obj (a creature card in its owner's graveyard) gains embalm, with a cost equal to its mana cost, until end of turn (Cursecloth Wrappings; CR 702.128a); C = the index of the granting card's latent embalm body (dirac/kw_embalmgrant.go)
+const OpGrantEmbalmOwnCost Op = 158
+
+func init() { opNames[OpGrantEmbalmOwnCost] = "GrantEmbalmOwnCost" }
+
 // Pred (dirac/manifest/Pred/PredNamedCard)
 //
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).
 const PredNamedCard Pred = 35
 
+// IsGoaded (dirac/manifest/Pred/PredGoaded)
+//
+// PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
+const PredGoaded Pred = 36
+
+// ControlledBy Player.isMonarch (dirac/manifest/Pred/PredMonarchCtrl)
+//
+// PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.
+const PredMonarchCtrl Pred = 37
+
 // Pred (dirac/manifest/Pred/PredProg)
 //
-// PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers no PredProg yet.
-const PredProg Pred = 36
+// PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
+const PredProg Pred = 38
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 37
+const PredRingBearer Pred = 39
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 38
+const PredSameNameSelf Pred = 40
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 39
+const PredSharesCrCmdr Pred = 41
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 40
+const PredStatBox Pred = 42
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
@@ -1976,6 +2101,15 @@ const ReplPreventDamageN ReplKind = 65
 
 // DamageDone (dirac/manifest/ReplKind/ReplDamageRedirect)
 const ReplDamageRedirect ReplKind = 66
+
+// repl DamageMinus (dirac/manifest/ReplKind/ReplDamageMinus)
+const ReplDamageMinus ReplKind = 67
+
+// repl DamageSet (dirac/manifest/ReplKind/ReplDamageSet)
+const ReplDamageSet ReplKind = 68
+
+// repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
+const ReplLifeReduced ReplKind = 69
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
@@ -2120,7 +2254,7 @@ const StatWitherDamage StaticKind = 68
 
 // StaticKind (dirac/manifest/StaticKind/StatExtraBlock)
 //
-// StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model.
+// StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model. Static.A = kop.ExtraBlocksAny is CanBlockAny$ True (Entangler's enchanted creature): any number of attackers (combat_blockany.go).
 const StatExtraBlock StaticKind = 69
 
 // ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)

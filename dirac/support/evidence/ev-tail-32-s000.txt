@@ -6,22 +6,29 @@ Amulet of Kroog
 Arcbound Hybrid
 Archfiend of Sorrows
 Ashling the Pilgrim
+Asylum Visitor
 Attrition
 Blade Splicer
 Bloodcrusher of Khorne
+Bloodghast
+Bloodthirsty Aerialist
 Blunt the Assault
 Boggart Arsonists
 Border Guard
 Boreal Elemental
+Bottle Golems
 Brawl-Bash Ogre
 Bull Hippo
+Captivating Vampire
 Castaway's Despair
 Celestial Purge
 Channel the Suns
 Chaotic Goo
 Chatter of the Squirrel
 Cho-Arrim Bruiser
+Cloak of Feathers
 Cloud Elemental
+Cloudchaser Kestrel
 Cognivore
 Court Homunculus
 Curious Altisaur
@@ -58,6 +65,7 @@ Forest
 Frogtosser Banneret
 Frontline Devastator
 Garrison Griffin
+Gastal Raider
 Genasi Enforcers
 General Kreat, the Boltbringer
 Ghitu Journeymage
@@ -81,11 +89,14 @@ Knight of Old Benalia
 Krosan Restorer
 Kruin Striker
 Kukemssa Pirates
+Lancer Sliver
 Lavakin Brawler
 Leyline Dowser
 Light the Way
+Lightless Evangel
 Luminarch Ascension
 Lydia Frye
+Lys Alana Bowmaster
 Magus of the Candelabra
 Manaweft Sliver
 Mandibular Kite
@@ -108,12 +119,14 @@ Night Scythe
 Nimbus of the Isles
 Oni Possession
 Ovalchase Daredevil
+Pattern of Rebirth
 Peer Through Depths
 Penance Stare
 Phantasmal Sphere
 Pious Evangel
 Plains
 Precognition Field
+Prized Statue
 Pygmy Pyrosaur
 Raging Spirit
 Rakka Mar
@@ -140,6 +153,7 @@ Stampeding Horncrest
 Steady Progress
 Storm Crow
 Strandwalker
+Streaking Oilgorger
 Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
@@ -148,6 +162,7 @@ Tezzeret's Touch
 The Unspeakable
 Thran Lens
 Thunder Wall
+Toph, Earthbending Master
 True Conviction
 Turnabout
 Umbral Juke
@@ -159,6 +174,7 @@ Vexing Sphinx
 Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
+Vivisection
 Voda Sea Scavenger
 Wave-Wing Elemental
 Wheel and Deal

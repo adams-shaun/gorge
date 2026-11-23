@@ -33,6 +33,7 @@ Caldera Pyremaw
 Caravan Escort
 Case the Joint
 Castle
+Clackbridge Troll
 Claim the Firstborn
 Cling to Dust
 Clutch of Undeath
@@ -90,6 +91,7 @@ Garenbrig Squire
 Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
+Goblin Racketeer
 Gray Merchant of Asphodel
 Grim Monolith
 Hanna, Ship's Navigator
@@ -100,6 +102,7 @@ Heroes' Podium
 Honed Khopesh
 Horizon Chimera
 Hound of the Farbogs
+Implement of Ferocity
 Independent Troops
 Infernal Pet
 Infested Fleshcutter
@@ -127,6 +130,7 @@ Manaforce Mace
 Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
+Might Weaver
 Mirror of Galadriel
 Mise
 Mogis's Warhound
@@ -217,9 +221,11 @@ Trueheart Duelist
 Undercity Scavenger
 Unholy Hunger
 Unwilling Ingredient
+Vampire Lacerator
 Viashino Fangtail
 Vine Trellis
 Voice of the Provinces
+Voldaren Stinger
 Warped Devotion
 Way of the Thief
 Well-Laid Plans

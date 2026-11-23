@@ -89,7 +89,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	}
 	s.res.active = true
 	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
-		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc = 0, 0, 0, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
+		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc, s.res.e.etbX = 0, 0, 0, 0, [2]uint8{} // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
 	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
@@ -138,6 +138,11 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	}
 	src := s.objs[t].slot
 	c := s.cardAt(src)
+	// Embalm$ provenance (gorge cloneEmbalmProvenance): a token whose own
+	// copiable values already carry the no-mana-cost exception, read before
+	// the template's exceptions join the slot
+	embalmedToken := in.B.K == kop.VConst && in.B.N&kop.BecomeCopyEmbalm != 0 &&
+		s.objs[p.obj].of&ofToken != 0 && s.cpxNoCost(k, sl)
 	s.touchSl(sl)
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 	p.ovr.flags |= ovCopy
@@ -147,7 +152,11 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		s.subscribe(sl, &k.cards[c], true)
 	}
 	// the template's copy exceptions, then the op's own (CR 707.9b)
-	s.copyExcAdd(k, sl, src, uint8(in.C>>1))
+	exc := uint8(in.C >> 1)
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyEmbalm != 0 && !embalmedToken {
+		exc = 0 // Embalm$: the op's riders are the embalm token's only (a hard-cast carrier is a plain copy)
+	}
+	s.copyExcAdd(k, sl, src, exc)
 	s.copyGrantsAdd(k, sl, src)
 	if in.A.K == kop.VConst && in.A.N > 0 {
 		// AddAbilities$ (Mercurial Pretender): a copiable value (CR 707.9b),
@@ -156,7 +165,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		s.copyGrantPut(k, sl, cgrantRef{uint8(in.A.N), p.card}) // not twice: the template may carry it (a Pretender copying a Pretender copy)
 	}
 	if k.gen.anyCloneCopy {
-		s.clonePermNote(sl, t, c, uint8(in.C>>1), s.tick()) // the marker a later cleanup settle re-bases from
+		s.clonePermNote(sl, t, c, exc, s.tick()) // the marker a later cleanup settle re-bases from
 		if in.A.K == kop.VConst {
 			s.clonePermGrant(sl, uint8(in.A.N))
 		}
@@ -196,6 +205,24 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 			}
 		}
 	}
+}
+
+// embalmMint reports whether copy token t, minted by in, is the embalm token
+// of a clone card whose as-enters copy is Embalm$-gated: the mint's copy
+// exception removes the mana cost (gorge's predicate is the same mark on the
+// token's copiable face, cloneEmbalmProvenance). Such a token enters with its
+// mint exceptions on its slot, ahead of the as-enters copy (becomeCopyEnter),
+// where the gate reads them; any other token that elects a copy replaces its
+// own exceptions with the template's (copyTokenEnterFrom).
+//
+//go:noinline
+func (s *State) embalmMint(k *prep, in *kop.Instr, t Obj) bool {
+	x := copyExcOf(in)
+	if x <= 0 || !k.t.Overrides[x-1].NoCost {
+		return false
+	}
+	op := s.cloneOp(k, s.objs[t].card)
+	return op != nil && op.B.K == kop.VConst && op.B.N&kop.BecomeCopyEmbalm != 0
 }
 
 // recordSpent records the mana spent to cast the spell o in its stack

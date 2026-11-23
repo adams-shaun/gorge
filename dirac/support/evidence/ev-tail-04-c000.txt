@@ -4,6 +4,7 @@ A-Speakeasy Server
 A-Stitched Assistant
 A-Sunbathing Rootwalla
 Advanced Stitchwing
+Aetherflame Wall
 Ajani, Inspiring Leader
 Akiri, Line-Slinger
 Alchemist's Retrieval
@@ -89,11 +90,13 @@ Clinging Mists
 Collective Unconscious
 Compelling Deterrence
 Concord with the Kami
+Cooperation
 Cracked Earth Technique
 Crawl from the Cellar
 Crovax the Cursed
 Crown of Skemfar
 Cutthroat il-Dal
+Dark Apostle
 Darkwater Catacombs
 Deadly Wanderings
 Death-Greeter's Champion
@@ -199,6 +202,7 @@ Icefall Regent
 Icy Manipulator
 Iizuka the Ruthless
 Imperial Ceratops
+In the Darkness Bind Them
 Indomitable Ancients
 Inferno of the Star Mounts
 Inner-Flame Igniter
@@ -329,7 +333,6 @@ Rathi Dragon
 Ravenous Daggertooth
 Ravenous Gigamole
 Ravenous Vampire
-Ray of Revelation
 Razorclaw Bear
 Razorfin Hunter
 Redcap Heelslasher
@@ -425,6 +428,7 @@ Steward of Valeron
 Storm Front
 Storm Seeker
 Stormcaller's Boon
+Subversive Acolyte
 Sudden Impact
 Sun Sentinel
 Sun-Crowned Hunters
@@ -432,6 +436,7 @@ Sunbeam Spellbomb
 Swaggering Corsair
 Swamp
 Tamiyo's Safekeeping
+Tattoo Ward
 Teferi's Tutelage
 Teferi's Wavecaster
 Temporary Insanity
@@ -447,6 +452,7 @@ Think Tank
 Third Path Iconoclast
 Thran Foundry
 Thundercloud Elemental
+Thunderheads
 Ticking Gnomes
 Tidal Wave
 Tishana's Wayfinder

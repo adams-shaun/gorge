@@ -482,7 +482,8 @@ func digUntilReturnRest(h Host, c *Ctx, p state.PlayerID, revealed, found []stat
 	// RevealRandomOrder$ the rest returns to the bottom in random order
 	// even at the absent/"0" position. The kernel's stay rule agrees
 	// (dirac interp execDigUntil: stay = library rest with no
-	// DuRestBottom and not entering).
+	// DuRestBottom, not entering, and no RevealRandomOrder$ on an
+	// entering dig).
 	restBottom := restPos == "-1" ||
 		(revealRandomOrder && foundDest == state.ZBattlefield && !foundWithRevealed &&
 			(restPos == "" || restPos == "0"))

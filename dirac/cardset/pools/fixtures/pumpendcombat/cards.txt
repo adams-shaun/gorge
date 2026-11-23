@@ -1,0 +1,13 @@
+# the Pump Duration$ UntilEndOfCombat pool: Murk Dwellers (+2/+0 when it
+# attacks and isn't blocked), Flummoxed Cyclops and Forgestoker Dragon (a
+# creature that can't block this combat), Battering Ram (KW$ Banding granted
+# UntilEndOfCombat) beside creatures to attack and block with
+# (dirac/oracle/pump_endcombat_lockstep_test.go)
+Battering Ram
+Flummoxed Cyclops
+Forgestoker Dragon
+Grizzly Bears
+Hill Giant
+Mountain
+Murk Dwellers
+Swamp

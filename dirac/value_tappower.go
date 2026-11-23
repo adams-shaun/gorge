@@ -248,7 +248,7 @@ func (s *State) graveExileCands(k *prep, in *kop.Instr, d *Decision) {
 				list = pl.exile[:pl.exileN]
 			}
 			for _, o := range list {
-				if s.picksHas(o) {
+				if s.picksHas(o) || s.pickOtherBarred(k, in.F, o) {
 					continue
 				}
 				if !s.tokenLeftBattlefield(o) && s.matchCardGen(k, in.F, s.objs[o].card, s.objs[o].owner(), ctrl, o) { // a token off the battlefield is no card (CR 111.8)

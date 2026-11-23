@@ -82,10 +82,10 @@ func TestGraveyardCastNeedPricesGrantedFlashbackAtManaCost(t *testing.T) {
 			if _, _, ok := sc.s.playBaseCost(sc.k, a); ok {
 				t.Fatal("precondition: playBaseCost prices the mode-2 cast, so the test does not reach the hint")
 			}
-			got := sc.s.playNeed(sc.k, a)
+			got := sc.s.playNeedHint(sc.k, a)
 			want := grantNeedColours(cd.Cost)
 			if got != want {
-				t.Fatalf("playNeed of the granted flashback cast = %v, want the mana cost's %v (the alternative cost's %v must not steer it)",
+				t.Fatalf("playNeedHint of the granted flashback cast = %v, want the mana cost's %v (the alternative cost's %v must not steer it)",
 					got, want, grantNeedColours(cd.AltCost))
 			}
 		})

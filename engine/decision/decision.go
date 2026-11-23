@@ -353,6 +353,22 @@ type Option struct {
 	// omitempty: an unrestricted option emits no field, so every ordinary
 	// option list serialises byte-identically.
 	AloneRestricted bool `json:"alone_restricted,omitempty"`
+	// AloneOnly marks a KAttackers option whose creature can ONLY be declared
+	// alone (CR 508.1c, "can only attack alone"): no other creature may be
+	// declared beside it. CompanionNeed/CompanionFrom are the converse
+	// restriction ("can't attack unless a creature with greater power also
+	// attacks", "... at least two other creatures attack", Okk, Orcish
+	// Conscripts, Scarred Puma; the block-side sentences ride KBlockers
+	// options): choosing this option is legal only together with at least
+	// CompanionNeed distinct OTHER creatures, each named by one of the
+	// options in CompanionFrom (option Indexes). All three derive from
+	// combat.CompanionViolated, and AloneLegal (the one home Decision.Validate,
+	// FitAlone and the block solver share) reads them, so a rules-ignorant
+	// client builds a legal declaration from the wire alone. omitempty: an
+	// unrestricted option emits none of them.
+	AloneOnly     bool  `json:"alone_only,omitempty"`
+	CompanionNeed int   `json:"companion_need,omitempty"`
+	CompanionFrom []int `json:"companion_from,omitempty"`
 	// Mode distinguishes a "cast" option's payment kind: "" the card's own
 	// cost, "kicked", "surged", "flashback", "miracle" -- what the engine
 	// reads in beginCast's switch. A client renders a kicked/surged/
@@ -531,6 +547,17 @@ type Option struct {
 	// client never sees it, and every option the ordinary (manual) policy is
 	// offered leaves it false, so the manual arithmetic is byte-identical.
 	PlanBacked bool `json:"-"`
+	// CensusOffer is server-side only (json:"-") and marks an "ability"
+	// option the census-gap autopay arm (engine/rules' autoPayOffer's census arm) offered
+	// although the plain planner cannot price it: the offer's existence is
+	// the census's prefix script, which the seat plays before the ability and
+	// pays through the ordinary manual window. The payment-prefix search's
+	// "does the plain walk list this play" probe (sr.offered) skips it, as
+	// the kernel's own listing probe excludes the arm's listings
+	// (actScriptPays' availNoActScript) -- a script the arm's offer would
+	// otherwise be taken for at the search's root. A human client never
+	// sees it.
+	CensusOffer bool `json:"-"`
 	// Value is the option's price under a decision carrying a cumulative
 	// budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values
 	// of the picked cards, so each offered card names its own mana value here

@@ -2,7 +2,7 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// The per-source Remembered of a CardDef.SrcMem card (zone_srcmem.go's smRem
+// The per-source Remembered of a CardDef.SrcMem card (zone_objsets.go's osRem
 // records; gorge's Object.Remembered, which the writers in effects call
 // eventRemember on and effCleanup clears).
 //
@@ -30,7 +30,7 @@ func (s *State) srcMemRemember(o Obj) {
 	if ob := &s.objs[e.obj]; ob.zone != kop.ZoneBattlefield || ob.ver != e.srcVer {
 		return
 	}
-	s.smAdd(o, e.obj, smRem)
+	s.osAdd(osRem, e.obj, o)
 }
 
 // srcMemClear empties the resolving source's records its resolution can read.
@@ -38,7 +38,7 @@ func (s *State) srcMemClear() {
 	k := s.k()
 	e := &s.res.e
 	if s.srcMemCard(k, e.card) && e.obj != NoObj {
-		s.smClear(e.obj, smRem, e)
+		s.osClear(e.obj, osMRem, e)
 	}
 }
 
@@ -47,19 +47,20 @@ func (s *State) srcMemSeed(k *prep, e *stackEntry) {
 	if e.kind != seTrigger || !s.srcMemCard(k, e.card) || e.ab >= 32 || k.t.Cards[e.card].SmSeed>>e.ab&1 == 0 {
 		return
 	}
-	r := coldSrcMem.of(s)
+	r := s.cold.objSets
 	for i := range r {
-		if r[i].fl == 0 {
+		if r[i].kind == 0 {
 			break
 		}
-		if r[i].src != e.obj || r[i].fl&smRem == 0 || !s.smLiveFor(&r[i], e) || s.inSet(&s.g.rem, s.g.nrem, r[i].o) {
+		rec := &r[i]
+		if rec.src != e.obj || !rec.inKinds(osMRem) || !s.osLiveFor(rec, e) || s.inSet(&s.g.rem, s.g.nrem, rec.o) {
 			continue
 		}
 		if s.g.nrem >= maxRem {
 			s.capFull(StallRemember)
 			return
 		}
-		s.g.rem[s.g.nrem] = r[i].o
+		s.g.rem[s.g.nrem] = rec.o
 		s.g.nrem++
 	}
 	if st := DebugSrcMemStats; st != nil {
@@ -69,12 +70,13 @@ func (s *State) srcMemSeed(k *prep, e *stackEntry) {
 
 // srcMemStoreHas reports whether src's live records hold o.
 func (s *State) srcMemStoreHas(src, o Obj) bool {
-	r := coldSrcMem.of(s)
+	r := s.cold.objSets
 	for i := range r {
-		if r[i].fl == 0 {
+		if r[i].kind == 0 {
 			break
 		}
-		if r[i].src == src && r[i].o == o && r[i].fl&smRem != 0 && s.smLiveNow(&r[i]) {
+		rec := &r[i]
+		if rec.src == src && rec.o == o && rec.inKinds(osMRem) && s.osLiveNow(rec) {
 			return true
 		}
 	}

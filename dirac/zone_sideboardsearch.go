@@ -67,7 +67,7 @@ next:
 				}
 			}
 		}
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if !s.pickOtherBarred(k, in.F, o) && s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	}
@@ -97,7 +97,7 @@ func (s *State) sideClamp(k *prep, in *kop.Instr) {
 				}
 			}
 		}
-		if dup || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
+		if dup || s.pickOtherBarred(k, in.F, o) || !s.matchCardGen(k, in.F, c, p, s.res.e.ctrl, o) {
 			continue
 		}
 		seen[have] = c

@@ -299,8 +299,15 @@ func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) bool {
 }
 
 // tapReflectLandFilters are the ValidCard$ filters of a reflected TapsForMana
-// body that reach lands only.
-var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,Forest,Plains")
+// body that the kernel prices: lands, and (Kinnan, Bonder Prodigy) any nonland
+// permanent. A nonland filter reaches the same one-plain-tap sources a land
+// filter does -- a mana rock's tap makes its types exactly as a land's does
+// (Roxanne's Artifact.token precedent) -- so the extra reads the tapped
+// permanent's produced types exactly as gorge folds it per production
+// (pay.PaymentPlanProductions, PaymentPlanReflectedMana): one mana of the
+// produced type for a one-type source, one more of the pick for a choice
+// source, a stall wherever the source is not one plain tap.
+var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,Forest,Plains", "Permanent.nonLand")
 
 // tapExtraReflected lowers a reflected TapsForMana body (gorge
 // pay.PaymentPlanReflectedTapMana) to a StTapReflect StatTapExtra: one mana

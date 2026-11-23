@@ -1,18 +1,25 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Abaddon the Despoiler	b83a3462c8ee8c3f	73	0/0		0/0	
 Arcane Adaptation	83cf5364bcd9ba43	47	0/0		0/0	
 Arcbond	93270215701109f9	32	0/0		2/2	
 Calamity of Cinders	01425dbbb10b23f7	4	0/0		1/2	ix:resp
 Contested War Zone	479c681ffd379b5f	33	3/3		1/1	
 Elderfang Venom	78089da10c3f5f05	12	1/1		0/1	ix:resp
+Fangorn, Tree Shepherd	d0e1fa689b77bedf	16	1/1		0/1	ix:resp
 Golden Urn	e19d639b42fc8b3f	35	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Golgari Grave-Troll	7a48bf83164dc3a2	60	1/1		1/1	
 Indestructible Aura	ce95f0482e21f95c	26	0/0		1/2	ix:resp
 Kroxa, Titan of Death's Hunger	005736222fb3eccd	11	3/3		2/3	cast/alt:escaped
 Midnight Pathlighter	c942618d35c2c165	12	1/1		1/1	
 Precipitous Drop	43ced0ce620a0fbc	17	1/1		1/2	ix:resp
+Red Ward	03e62a9cecdca71c	20	0/0		1/2	ix:resp
 Rime Dryad	861bfa87d5f54517	4	0/0		0/0	
+Rohirrim Lancer	2fba628f2bcc88a1	34	1/1		1/1	
+Shefet Monitor	dc3066906c5af478	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shisato, Whispering Hunter	5efcfbc16770c407	8	2/2		0/1	ix:resp
 Skirk Marauder	35808854348d4f41	18	1/1		2/3	ix:resp
 Skred	cd2215a4865b1dca	4	0/0		1/2	ix:resp
 Star Compass	722a512358315c63	82	1/1		1/1	
 Tattermunge Duo	0b0f83a416418ca9	49	2/2		1/1	
+Tel-Jilad Wolf	f1480a47aa8d4721	146	1/1		1/1	
 Tidal Barracuda	074b365fd45223d7	33	0/0		0/0	

@@ -15,7 +15,7 @@ import (
 // the census answer prices the {1} and the restricted colours an Elemental
 // play's coloured pips.
 func TestDeferredCensusGapStillOffersGenericPlay(t *testing.T) {
-	sc, id := synthScen(t, "tail-70", "Primal Beyond", "Orcish Captain", "Price of Glory")
+	sc, id := deferredWatcherScen(t, "Primal Beyond", "Orcish Captain", "Price of Glory")
 	sc.s.cfg |= cfgGorgeAutopay // the lockstep's autopay surface
 	oc := sc.perm(id["Orcish Captain"], 0)
 	pb := sc.perm(id["Primal Beyond"], 0)

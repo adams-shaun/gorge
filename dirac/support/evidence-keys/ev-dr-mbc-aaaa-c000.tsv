@@ -1,40 +1,76 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Aether Vial	200b053621535039	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Angelic Gift	246e1162b0c6fc6f	3	1/1		2/2	
 Angelic Protector	53483fd94fa54bf8	4	1/1		0/1	ix:resp
 Anger	97dd76a318a08e28	22	0/0		0/0	
+Arbor Elf	3804651cb503f964	4	1/1		0/1	ix:resp
+Argothian Elder	5d8232d03d1f594d	4	1/1		0/1	ix:resp
 Basalt Monolith	f0d78ab1a238f342	4	2/2		0/1	ix:resp
+Battle-Rage Blessing	1ccb187e0bb52319	4	0/0		1/2	ix:resp
 Beast Attack	26212472d9149b66	8	0/0		3/4	ix:resp
+Black Cat	33151028b333f337	8	1/1		1/1	
 Blade Sliver	642905c54f6a7e13	8	0/0		0/0	
 Blade of Selves	7eca0abe62e4c14d	8	1/1		1/1	
 Blastfire Bolt	f568d46737c866ac	6	0/0		2/2	
 Boots of Speed	46953059160d7515	4	1/1		0/1	ix:resp
 Brute Force	a999985e0f84ce51	12	0/0		1/2	ix:resp
+Call the Bloodline	397d5ba9c5bf4cb4	6	1/1		0/1	ix:resp
 Charge Through	f92ec657d89e5164	8	0/0		1/2	ix:resp
 Court of Garenbrig	39ff21b421e59255	6	2/2		0/1	ix:resp
+Davriel, Rogue Shadowmage	2ce826d36a179094	45	2/2		1/1	
 Dawn Charm	10fd54436d52004b	4	0/0		1/2	ix:resp
+Deadly Dispute	791118c29f567139	9	0/0		2/2	
+Death Pulse	8af31d7ebedbbe8a	3	2/2		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ember Weaver	6ee649c58002b30f	4	0/0		0/0	
+Endless Scream	05d69fadf8d8aaaf	3	0/0		2/4	f0/s/x0,ix:resp
 Faerie Seer	3326a32d959662dd	8	1/1		0/1	ix:resp
+Faithless Salvaging	aa8da7bbfbf8c2b5	3	0/0		1/2	ix:resp
+Field of Souls	c3c32d611cbf786a	7	1/1		0/1	ix:resp
 Fire-Belly Changeling	de82d0e91b71c310	4	1/1		0/1	ix:resp
 Flaring Pain	68f8a18fff016f4b	20	0/0		4/4	
+Flickerwisp	74de759320130965	8	1/1		0/1	ix:resp
 Forest	6d0466c30f825dba	49	1/1		0/1	ix:resp
+Fumble	af731dfb244707f5	4	0/0		1/2	ix:resp
 Fury Sliver	2dbca9fead00a917	4	0/0		0/0	
 Ghitu Slinger	dde45058a81cc81e	4	2/2		0/1	ix:resp
+Glarewielder	49a553498054e50c	8	1/1		1/3	cast/alt:none,ix:resp
 Grapeshot	f690522f9ed3d805	8	1/1		2/2	
+Hematite Golem	58773cbed433a084	6	1/1		0/1	ix:resp
 Hydra's Growth	7adbc279e6314c44	4	2/2		1/2	ix:resp
+Immolating Souleater	2bf0accdb2a492de	7	1/1		1/1	
 Impostor of the Sixth Pride	eefe09772d092fa1	10	0/0		0/0	
 Island	763c67ef7a27eaf5	50	1/1		0/1	ix:resp
+Massacre Girl, Known Killer	ea7182cf7669f926	4	1/1		0/1	ix:resp
+Midnight Guard	d5303ccfc00f732a	6	1/1		1/1	
+Mogis's Favor	7400229b433671d7	8	0/0		3/4	cast/alt:escaped
 Mountain	9e71388353e907ed	171	1/1		0/1	ix:resp
+One with Nature	28e19e5d1cff476b	4	1/1		1/2	ix:resp
+Overgrowth	8ca9a8ecb6ca9bcc	3	1/1		1/2	ix:resp
 Owl Familiar	b983288c46f5bfa0	7	1/1		0/1	ix:resp
 Pillaging Horde	9a01385247c452ec	4	1/1		0/1	ix:resp
 Plains	82d63a695487e567	74	1/1		0/1	ix:resp
+Plate Armor	d40c8b970e3ca724	4	1/1		0/1	ix:resp
 Release the Dogs	933db8ff04c4cc81	4	0/0		1/2	ix:resp
+Reprobation	d3f94da783650cbb	6	0/0		2/2	
 Rise of the Ants	48f3d386ccd9cdcd	4	0/0		3/4	ix:resp
 Rush of Knowledge	9a34939b502d608f	6	0/0		1/2	ix:resp
 Sanctum Gargoyle	72ae7cd391f7a937	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sarulf's Packmate	dc66a9c112c2768c	4	1/1		1/3	cast/alt:foretold,ix:resp
+Scurry Oak	245852f3d48fed81	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Seize the Spoils	f6cd0ba09be1b81c	4	0/0		1/2	ix:resp
 Serum Powder	6350a95ec21b9c76	9	1/1		1/1	
+Slurrk, All-Ingesting	ac01b02e1c455933	7	1/1		1/1	
+Snarling Gorehound	336a60769e87626a	7	1/1		1/1	
 Stormkeld Vanguard	2679d4203249f5b7	6	0/0		1/2	ix:resp
 Sunlance	896d6f43ffe83206	6	0/0		2/2	
 Swamp	342b413902f441c3	14	1/1		0/1	ix:resp
 Take Vengeance	eb859f407c2db226	6	0/0		1/2	ix:resp
 Tenacity	c35b82b8c4c6c665	8	0/0		1/2	ix:resp
+Teyo, the Shieldmage	6179d4a4040272a0	4	1/1		0/1	ix:resp
+Twin-Silk Spider	4c34c76a9e4ee5c4	4	1/1		0/1	ix:resp
+Vendetta	f72b27e88fbf063e	6	0/0		1/2	ix:resp
+Village Rites	2d131fdc4a4fb925	6	0/0		2/2	
+Warbriar Blessing	3f0ad15433d4aa12	4	1/1		1/2	ix:resp
 Whipcorder	8d69fdc7e598d90e	6	1/1		1/3	cast/alt:morphed,ix:resp
 Witching Well	4ab75475116f8b92	8	2/2		0/1	ix:resp
+Youthful Valkyrie	1ac6fdd84f9aec9b	4	1/1		0/1	ix:resp

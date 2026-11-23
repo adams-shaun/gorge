@@ -75,16 +75,29 @@ machine and a `main` checkout, so most of these hurt someone else.
   test starts with `//go:build fuzz` and runs via `make fuzz`. Regression tests
   pinning a fixed fuzz finding stay untagged.
 - **Don't add a row to `wall_exceptions.txt` / `rss_exceptions.txt`** (`testkit/testutil/testdata/`): they only shrink. Split the over-budget test instead.
-- **Don't write or run a test outside the budget** (4 GB RSS, 4 vCPU, 1 min wall;
-  [invariants.md](invariants.md#workflow)). No `cards.LoadRegistry` in a test (use
-  `testkit/testutil.CorpusRegistry`), no `-count=1`, no `go test ./...` or
-  uncapped whole package, no known-heavy test run whole "for a baseline". Split a
-  heavy test into chunk tests sharing fixtures; never delete assertions or shrink
-  a census to make it fit.
-- **Don't grow `AGENTS.md` with detail.** It is loaded on every agent turn; link
-  to `docs/agents/` or `docs/design/`.
-- **Don't quote an unmeasured number as fact.** Name the command or report, or
-  label it a hypothesis.
+- **Don't write or run a test outside the budget** (4 GB RSS, 4 vCPU, 1 min
+  wall; [invariants.md](invariants.md#workflow)). Don't call `cards.LoadRegistry` in a test (use
+  `testkit/testutil.CorpusRegistry`), don't pass `-count=1`, don't run
+  `go test ./...` or a whole package uncapped, and don't
+  run a known-heavy test whole "for a baseline": measure one chunk under the
+  4 GB cap. Split a heavy test into chunk tests sharing fixtures; never
+  delete assertions or shrink a census to make it fit.
+- **Don't write a Go test function per recording.** A recording is a JSON file
+  plus a manifest row, never a Go test function; `-run` selection goes through
+  the manifest subtest.
+- **Don't delete a test because it never failed.** Deletion is allowed only
+  under the [deletion rule](invariants.md#workflow): a duplicate by
+  construction, a wrapper that became data, or a subject that is gone. A slow
+  test is split, sharded or moved to the nightly tier with a named owner.
+- **Don't run raw `go test` instead of the make targets.** Use `make test-one`,
+  `make test-targeted` or `make test-smart`; the shim refuses a raw invocation.
+- **Don't add a new test over 60 s at 4 cores.** It is over the one-minute
+  wall: split it into chunk tests that share fixtures, or move it to the
+  nightly tier with a named owner; never trim coverage.
+- **Don't grow `AGENTS.md` with detail.** It is loaded on every agent turn.
+  Put the detail in `docs/agents/` or `docs/design/` and link to it.
+- **Don't quote an unmeasured number as fact.** Name the command or report,
+  or label it a hypothesis.
 - **Don't pin a synthetic pair by index alone.** A pair in `dirac/oracle` is two
   decks dealt from the lowered card list, so lowering one more card moves what
   every pair holds: a pair pinned by index goes silently empty, or red on a game
@@ -131,3 +144,8 @@ machine and a `main` checkout, so most of these hurt someone else.
   is not a `seat.PaymentPlanConsumer` answering true silently plays its
   fallback's manual mana taps. Bots default to true; an opt-out needs a stated reason in
   `bots/all`'s `paymentOptOut`.
+- **Don't add a Go test for a recording.** Add the JSON under
+  `dirac/oracle/testdata/repro` with `"named": true` (and `"served": true` to
+  require the whole recorded prefix be served); its shard of `TestReproManifest0..7`
+  replays it as a subtest (`-run 'TestReproManifest/<recording>'` finds it).
+  A recording whose pool a glob test replays needs no mark.

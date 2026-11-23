@@ -179,13 +179,14 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 
 // grantBesideTapXGaps reports whether gorge's one search beside the grants
 // prices play a on a board whose tap-another script (scriptOffers) found
-// nothing: a tap-another second ability, a two-permanent tap-another source or
-// a counter-cost gap among the
+// nothing: a tap-another source (a second ability, a one- or two-permanent
+// cost: Seton, Krosan Protector's "Tap an untapped Druid" beside a Food granted
+// "{T}, Sacrifice: Add one mana of any color") or a counter-cost gap among the
 // grants (mana_granttapx.go, ctrBesideGrant), the grant search listing both.
 // The second return is the failed search's latched stall (grantActScript's),
 // StallNone none: the caller keeps it only when no route priced the play.
 func (s *State) grantBesideTapXGaps(k *prep, a Action, p uint8) (bool, uint8) {
-	if !(s.tapXSecondLive(k, p) || s.tapXPairLive(k, p) || s.ctrBesideGrant(k, p)) || !s.liveGrantGap(k, p) {
+	if !(s.grantTapXGaps(k, p).any() || s.ctrBesideGrant(k, p)) || !s.liveGrantGap(k, p) {
 		return false, 0
 	}
 	return s.grantActScript(k, a, p)
@@ -210,6 +211,9 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 				}
 			}
 			continue
+		}
+		if s.g.availX&availNoStore != 0 && unlessUnpriced(a) {
+			continue // an unless cost's window prices no battery nor any-colour counter source (mana_unlessnostore.go)
 		}
 		if kop.StoreManaAb(a) {
 			n := s.perms[sl].ctrN(s, int(a.Cost.Ctr))
@@ -303,6 +307,21 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 		return false // (a counter-scaled sacrifice source is no window pick: mana_sacctr.go)
 	}
 	return !decided || uint8(a.ManaColors)&want != 0
+}
+
+// unlessStoreUnpriced: slot o is a storage battery (Mercadian Bazaar's "{T},
+// Remove any number of storage counters: Add {R} for each") and the walk is an
+// unless window's census. Its announced X is no fixed amount, so gorge's
+// unlessWindowUnits lists no unit for it and the unless offer cannot count its
+// counters: with a Swamp beside a Bazaar holding counters, "sacrifice unless
+// you pay {2}" posed decline only in gorge, while the walk here reached {2}
+// through the battery and offered pay too. A ward's window keeps the offer.
+func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
+	if s.g.turnF&turnUnlessWin == 0 {
+		return false
+	}
+	a := k.ctrAbOf(s.cardAt(o))
+	return a != nil && unlessUnpriced(a) // a == nil: a non-ctr gap mixed into censusPayGaps' otherGaps mask (Remote Farm, Vivid Grove)
 }
 
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
@@ -778,6 +797,13 @@ var DebugNoDeadCtr bool
 // 118.3; gorge's non-interactive ManaCostSubCounterStage takes X at the bound
 // (all the counters).
 func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
+	s.storeGapX(k, p, sl, a, 255)
+}
+
+// storeGapX is storeGap announcing X = x counters at most (the counters it
+// holds when fewer): the prefix search's X ask offers every X from the bound
+// down to 0, and X = 0 pays the {T} alone (CR 107.3, 602.2b).
+func (s *State) storeGapX(k *prep, p uint8, sl Slot, a *kop.Ability, x int) {
 	pm := &s.perms[sl]
 	n := pm.ctrN(s, int(a.Cost.Ctr))
 	if n <= 0 {
@@ -787,6 +813,13 @@ func (s *State) storeGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
 	if n > 255 {
 		s.capFull(StallDynMana)
 		n = 255
+	}
+	if x < n {
+		n = x
+	}
+	if n <= 0 {
+		s.storeIdleTap(k, sl, a)
+		return
 	}
 	taps := a.Cost.Flags&kop.CostTap != 0
 	if taps {

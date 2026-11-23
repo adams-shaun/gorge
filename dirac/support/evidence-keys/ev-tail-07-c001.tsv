@@ -1,15 +1,22 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Abdel Adrian, Gorion's Ward	1b7b79688e1f2407	25	1/1		1/1	
 Ajani Steadfast	e9418b032bc1b358	78	3/3		1/1	
 Bazaar of Baghdad	21323b065843212e	246	1/1		1/1	
+Burrowing	89fbe41dd15ba131	8	0/0		2/2	
 Clambassadors	0e2080b49295bd85	47	1/1		1/1	
+Compleat Devotion	916c8e17177cf2be	123	0/0		2/2	
 Den of the Bugbear	9f740ee10f8f9ba2	403	2/2		1/1	
+Dredge the Mire	a05d2a8b5b6c0cdb	4	0/0		1/2	ix:resp
 Hallowed Burial	d2496ed561b16c77	26	0/0		2/2	
 Llanowar Reborn	dee5ae56fa5385c0	316	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Patron of the Wild	f9afcd6365a15bd7	3	1/1		1/3	cast/alt:none,ix:resp
 Quiet Speculation	5e48f2d2c8299182	67	0/0		2/2	
 Settlement Blacksmith	760446a30a10f7f8	82	1/1		1/1	
 Siphon Insight	1e2b220ea660c873	3	0/0		4/4	
 Slipstream Eel	41c2d540b44f4a3d	3	1/1		1/1	
 Soulcipher Board	de7de5a775f7deab	37	3/3		1/1	
+Steadfast Sentinel	dd19dd1b2fcb8b5c	38	1/1		1/1	
+The Vision and Scarlet Witch	8490853e7cf8c4b9	4	1/1		0/1	ix:resp
 Water Whip	15a955de27ee0386	3	0/0		2/2	
 Woolly Mammoths	74afb16803347b5d	19	0/0		0/0	
 Zoetic Cavern	957f7e71c68968ac	352	1/1		0/3	cast/alt:morphed,cast/alt:none,ix:resp

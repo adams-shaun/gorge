@@ -123,41 +123,29 @@ func TestHiddenDefinedPlayerLowers(t *testing.T) {
 	}
 
 	// the graveyard pick's Chooser$ You over another player's yard. A
-	// per-opponent fetch (The Weaver King) folds into one ask of You over
-	// the opponent-owned cards (two seats: the one opponent), which enters
-	// under You, so the pick carries no ChooserYou and the clauses name the
-	// opponent. A fetched player who is not a loop (TriggeredPlayer) keeps
-	// the flags: ChooserYou beside UnderYourControl, OwnZone scoping the
-	// pool to that player's yard. Over its own yard You is the default
-	// fetch player and chooser, and no flag is emitted.
+	// per-opponent fetch (The Weaver King) walks the opponents in the
+	// each-opponent loop, the pick over the loop player's own yard
+	// (OwnZone) asked of You (ChooserYou) and entering under You, at any seat
+	// count, so it is no two-seat card. A fetched player who is not a loop
+	// (TriggeredPlayer) keeps the same flags. Over its own yard You is the
+	// default fetch player and chooser, and no flag is emitted.
 	sc := lowerScriptCard(t, "Defined Steal Probe", dpScript(dpStealProbe, "Opponent", "You"))
 	for _, rf := range sc.Refusals {
 		t.Errorf("steal probe (DefinedPlayer$ Opponent) refused: %s", rf.Reason)
 	}
-	var mv *lInstr
 	ops = nil
 	for _, a := range sc.Abilities {
 		for i := range a.Prog {
 			ops = append(ops, a.Prog[i].Op+"("+a.Prog[i].Obj.String()+","+a.Prog[i].CS+")")
-			if a.Prog[i].Op == "ChooseMove" {
-				mv = &a.Prog[i]
-			}
 		}
 	}
 	joined := strings.Join(ops, ";")
-	if mv == nil || !strings.Contains(joined, "ChooseMove(You,") || !strings.Contains(joined, "UnderYourControl") ||
-		strings.Contains(joined, "ChooserYou") || strings.Contains(joined, "RepeatEach") {
-		t.Errorf("steal probe (DefinedPlayer$ Opponent) ops %q, want the one folded ask of You entering under them", ops)
+	if !strings.Contains(joined, "RepeatEach(") || !strings.Contains(joined, "UnderYourControl") ||
+		!strings.Contains(joined, "ChooserYou") || !strings.Contains(joined, "OwnZone") {
+		t.Errorf("steal probe (DefinedPlayer$ Opponent) ops %q, want the each-opponent loop over a ChooserYou OwnZone pick entering under You", ops)
 	}
-	if mv != nil && len(mv.F.Clauses) > 0 {
-		for _, cl := range mv.F.Clauses {
-			if cl.Owner != whoOpp {
-				t.Errorf("steal probe (DefinedPlayer$ Opponent) clause owner %d, want the opponent's cards", cl.Owner)
-			}
-		}
-	}
-	if !sc.TwoSeat {
-		t.Errorf("steal probe (DefinedPlayer$ Opponent) TwoSeat false, want the per-opponent fold marked two-seat")
+	if sc.TwoSeat {
+		t.Errorf("steal probe (DefinedPlayer$ Opponent) TwoSeat true: %v", sc.TwoSeatWhy)
 	}
 	ops = dpOps(t, "Defined Steal Trigger Probe", dpScript(dpStealTrigProbe, "TriggeredPlayer", "You"))
 	joined = strings.Join(ops, ";")

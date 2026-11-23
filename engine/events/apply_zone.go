@@ -91,12 +91,21 @@ func foldMoveZone(g *state.Game, e *Event) {
 		}
 	}
 	// The departure's "was a creature" bit, read off the pre-move object
-	// before Move resets it (see DepartureCreatureFlip).
-	departed, wasCreature := false, false
+	// before Move resets it (see DepartureCreatureFlip), and with it the
+	// counters the same pre-move object carries: Move is about to clear them
+	// (CR 400.7) and detach the attachments, and the entry keeps the card as
+	// it last existed on the battlefield (Forge's per-add LKI, the counters
+	// only; see state.ZoneEntry.LeftCounters).
+	departed, wasCreature, leftCounters := false, false, ([]state.Counter)(nil)
 	if e.Kind == MoveZone && wasBattlefield && e.To != state.ZBattlefield {
 		if o := g.Obj(e.Obj); o != nil {
 			departed = true
 			wasCreature = DepartureDefaultCreature(o) != (e.Step == DepartureCreatureFlip)
+			// A copy, not the header: a countersRemain departure leaves
+			// o.Counters live on the object, and a later counter clamp (a
+			// removal to zero rewrites N in place) must not rewrite the
+			// history the entry keeps.
+			leftCounters = append([]state.Counter(nil), o.Counters...)
 		}
 	}
 	sacrificed := IsSacrifice(*e)
@@ -116,11 +125,16 @@ func foldMoveZone(g *state.Game, e *Event) {
 			o.DrawnTurn = drawnBefore
 		}
 	}
-	if departed && wasCreature {
+	if departed {
 		for i := len(g.Entered) - 1; i >= 0; i-- {
 			if g.Entered[i].Obj == e.Obj {
 				if g.Entered[i].From == state.ZBattlefield {
-					g.Entered[i].WasCreature = true
+					if wasCreature {
+						g.Entered[i].WasCreature = true
+					}
+					if leftCounters != nil {
+						g.Entered[i].LeftCounters = leftCounters
+					}
 				}
 				break
 			}
@@ -1235,6 +1249,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.DealtCombatDamageToAnyGame = false
 		// CR 400.7: a permanent that returns this turn has activated nothing.
 		o.ActivatedThisTurn = 0
+		o.RegeneratedThisTurn = 0
 		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
 			o.Counters = nil
 		}
@@ -1327,6 +1342,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Conspired = false
 			o.TeamworkPaid = false
 			o.Convoked = nil
+			o.EmergedToughness = 0
 			o.ManaSpentSources = nil
 			o.ManaAddsCounterGrants = nil
 			o.ManaAddsKeywordGrants = nil
@@ -1402,6 +1418,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Conspired = false
 			o.TeamworkPaid = false
 			o.Convoked = nil
+			o.EmergedToughness = 0
 			o.ManaSpentSources = nil
 			o.ManaAddsCounterGrants = nil
 			o.ManaAddsKeywordGrants = nil

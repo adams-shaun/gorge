@@ -1,4 +1,5 @@
 A-Elderleaf Mentor
+A-Goldspan Dragon
 Abstruse Interference
 Advocate of the Beast
 Aeolipile
@@ -23,10 +24,12 @@ Asylum Visitor
 Atarka Beastbreaker
 Attrition
 Attune with Aether
+Aven Liberator
 Avenger of Zendikar
 Axgard Armory
 Banish from Edoras
 Barbed Batterfist
+Barrier Breach
 Bazaar Trademage
 Blade Banish
 Blade Splicer
@@ -35,6 +38,7 @@ Blood Age General
 Blood Rites
 Bloodcrusher of Khorne
 Bloodfire Colossus
+Bloodthirsty Aerialist
 Blue Sun's Zenith
 Blunt the Assault
 Boggart Arsonists
@@ -46,12 +50,14 @@ Brand
 Brawl-Bash Ogre
 Brood Birthing
 Bull Hippo
+Bushi Tenderfoot
 Cartouche of Zeal
 Cast Down
 Castaway's Despair
 Cateran Enforcer
 Cavalry Pegasus
 Celestial Purge
+Champion of Wits
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
@@ -76,13 +82,17 @@ Cut
 Dakmor Plague
 Damning Verdict
 Dark Betrayal
+Dark Ritual
 Darksteel Angel
 Death's Presence
 Death-Hood Cobra
 Definitely Not a Turtle
 Dementia Bat
+Demon of Loathing
 Demonic Tutor
 Demystify
+Deploy the Gatewatch
+Devoted Druid
 Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
@@ -93,6 +103,7 @@ Duskhunter Bat
 Dwarven Warriors
 Dwell on the Past
 Eastfarthing Farmer
+Echo Storm
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
@@ -101,11 +112,13 @@ Elspeth Tirel
 Elvish Eulogist
 Encroach
 Endurance Bobblehead
+Entangler
 Enthusiastic Mechanaut
 Ertai Resurrected
 Essence Flare
 Eternal Skylord
 Evaporate
+Eviscerator's Insight
 Expedition Diviner
 Explosive Impact
 Eye of Nowhere
@@ -136,6 +149,8 @@ Geier Reach Sanitarium
 Genasi Enforcers
 General Kreat, the Boltbringer
 Ghastly Demise
+Ghitu Journeymage
+Ghost-Lit Stalker
 Ghost-Spider, Gwen Stacy
 Ghostly Visit
 Gisa's Bidding
@@ -182,6 +197,7 @@ Knight of Old Benalia
 Koilos Roc
 Krenko's Enforcer
 Krosan Restorer
+Krosan Tusker
 Kruin Striker
 Kukemssa Pirates
 Lace with Moonglove
@@ -198,7 +214,9 @@ Lilting Refrain
 Loam Lion
 Loathsome Catoblepas
 Luminarch Ascension
+Lure
 Luxury Suite
+Lydia Frye
 Lys Alana Bowmaster
 Madame Hydra, Reanimated
 Magma Phoenix
@@ -230,6 +248,7 @@ Mountain
 Mukotai Soulripper
 Multiversal Recruitment
 Mystic Restraints
+Nadier, Agent of the Duskenel
 Nephalia Smuggler
 Night Scythe
 Nimbus of the Isles
@@ -248,6 +267,7 @@ Penance Stare
 Pest Infestation
 Pestermite
 Phantasmal Sphere
+Phoenix Chick
 Pillar of Light
 Pious Evangel
 Pious Wayfarer
@@ -257,17 +277,21 @@ Pollenbright Wings
 Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Proven Combatant
 Provoke
 Psychic Spear
 Purifying Dragon
 Pygmy Pyrosaur
+Quickchange
 Quicksilver Dagger
 Radiant Fountain
 Raging Spirit
 Raiding Nightstalker
 Rakka Mar
 Rakshasa's Secret
+Rampaging Monument
 Ranger Class
+Ravenloft Adventurer
 Ravenous Harpy
 Raving Oni-Slave
 Razorjaw Oni
@@ -284,6 +308,7 @@ Righteousness
 Riot Gear
 Rofellos, Llanowar Emissary
 Root Greevil
+Rotted Hulk
 Rotting Mastodon
 Ruin Ghost
 Rust Monster
@@ -326,13 +351,17 @@ Strandwalker
 Strength of Arms
 Strike It Rich
 Sunblade Angel
+Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
 Tail Slash
 Telim'Tor's Edict
 Territorial Aetherkite
 Tervigon
+Tevesh Szat, Doom of Fools
+Tezzeret's Touch
 The Prydwen, Steel Flagship
+The Unspeakable
 Thorn Lieutenant
 Thraben Gargoyle
 Thran Lens
@@ -345,8 +374,10 @@ Tomb Fortress
 Toph, Earthbending Master
 Toph, Greatest Earthbender
 Traumatic Revelation
+Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion
@@ -369,12 +400,14 @@ Viashivan Dragon
 Vindictive Flamestoker
 Viridian Zealot
 Vivid Revival
+Vivisection
 Voda Sea Scavenger
 Vraska's Contempt
 Wake of Destruction
 Walking Archive
 Wander in Death
 Warleader's Helix
+Wave-Wing Elemental
 Wheel and Deal
 Wild Crocodile
 Wilderness Elemental

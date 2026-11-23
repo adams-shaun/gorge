@@ -1,33 +1,74 @@
 A-Exhibition Magician
+Abyssal Specter
 Acolyte of Xathrid
+Acridian
+Aether Barrier
+Akki Raider
 Alchemist's Vial
+Alert Shu Infantry
+Ambitious Aetherborn
+Anara, Wolvid Familiar
+Anthroplasm
+Apothecary Initiate
+Arc Blade
 Arc Lightning
+Argothian Opportunist
 Arisen Gorgon
+Arwen Undómiel
 Ashes to Ashes
+Asmira, Holy Avenger
+Assault Formation
 Atzocan Archer
+Axebane Beast
+Ayumi, the Last Visitor
+Bag End Banquet
 Balduvian Horde
 Barrier Breach
 Basic Conjuration
 Battering Craghorn
+Bearscape
 Belbe's Armor
+Blade of the Sixth Pride
 Blessed Light
+Blighted Gorge
+Blightstep Pathway
+Blood Pet
+Bonders' Enclave
 Bonesplitter Sliver
+Boundless Realms
 Brazen Freebooter
 Brine Seer
+Call of the Death-Dweller
 Callous Dismissal
+Captain of the Watch
 Carnage Altar
+Celestial Gatekeeper
+Chainflinger
 Chameleon Spirit
+Clairvoyance
 Clock of Omens
+Coalhauler Swine
+Colossus Hammer
 Constricting Sliver
 Copper Longlegs
+Coppercoat Vanguard
 Corrupted Harvester
+Court Archers
+Crag Saurian
+Crossroads Consecrator
+Culling Mark
+Curse of the Nightly Hunt
 Dakkon, Shadow Slayer
+Dark Inquiry
 Dark Tutelage
 Darkslick Shores
+Dauntless Escort
+Dauthi Jackal
 Defiler of Souls
 Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
+Distract
 Domri's Nodorog
 Dragonshift
 Dreamscape Artist
@@ -38,109 +79,250 @@ Drown in Shapelessness
 Dungeon Geists
 Duskmantle, House of Shadow
 Dwarven Grunt
+Ecstatic Awakener
 Elspeth, Undaunted Hero
 Elven Palisade
+Ephemeron
+Ethereal Elk
 Eviscerator
 Exorcist
+Ezuri, Renegade Leader
 Farhaven Elf
+Fearless Halberdier
 Feign Death
 Fendeep Summoner
+Fiery Conclusion
 Finale of Devastation
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flare of Faith
 Fledgling Dragon
+Fly
 Forest
+Forest Bear
 Foundry Helix
 Freewind Falcon
 Garbage Elemental
+Garna, the Bloodflame
 Garruk Wildspeaker
+General's Kabuto
+Ghitu War Cry
 Ghostly Sentinel
+Gideon's Phalanx
+Glade Watcher
 Gleam of Authority
+Goblin Fireleaper
+Goblin Hero
+Golgari Signet
 Great Hart
+Grinning Demon
 Guardian Augmenter
+Haazda Officer
 Hag of Death's Legion
+Havengul Skaab
+Haze of Pollen
+Hazel's Brewmaster
 Heart Sliver
+Heartbeat of Spring
 Hellfire Mongrel
 Herald of Kozilek
 Herald of Secret Streams
 Hero's Demise
+Heronblade Elite
 Hill Giant Herdgorger
+Homarid Warrior
 Honored Hydra
+Hua Tuo, Honored Physician
+Hunter's Insight
+Icatian Town
+Ikiral Outrider
+Illusory Gains
 Improbable Alliance
+Inquisition of Kozilek
+Ironclad Slayer
 Island
 Jalum Tome
+Jawbone Skulkin
+Jolrael, Empress of Beasts
 Joust
 Jund Panorama
+Kami of Industry
+Kavu Mauler
+Keening Banshee
+Keldon Arsonist
+Keldon Vandals
+Kiku, Night's Flower
+King Harald's Revenge
 Kraul Raider
+Lantern Kami
 Laser Screwdriver
+Leatherback Baloth
+Lightning Reaver
+Lonely Sandbar
+Looming Hoverguard
+Lowland Giant
+Loxodon Sergeant
+MagicConsecrated Sphinx
 Magister Sphinx
+Magus of the Order
+Many Partings
 March of the Drowned
+Marrow Bats
 Martyr for the Cause
+Mercurial Pretender
 Meteor Storm
-Molten Ravager
+Moaning Spirit
+Mole Module
+Monk Idealist
 Mountain
 Mudhole
+Murasa Pyromancer
+Naga Vitalist
+Nath's Elite
+Nebelgast Herald
 Necrogen Censer
+Nest Invader
 Nightmare's Thirst
+Nimblewright Schematic
+Niveous Wisps
 Nyx-Fleece Ram
 Nyxathid
+Obelisk of Bant
+Ogre Jailbreaker
 Ogre Warrior
+Omen of the Sea
 Omenspeaker
+One with the Kami
 Onulet
 Patron Wizard
+Personal Sanctuary
+Pilfering Imp
 Plains
+Pollenbright Druid
+Pyreheart Wolf
 Quicksilver, Pietro Maximoff
+Quirion Ranger
+Rancid Rats
+Rath's Edge
+Rathi Intimidator
+Razorclaw Bear
+Razorfield Rhino
 Reckless Fireweaver
+Reclaim the Wastes
 Redcap Heelslasher
 Redwood Treefolk
 Regenerate
+Regress
+Remote Isle
+Renata, Called to the Hunt
+Repeal
 Repentant Blacksmith
+Respite
+Revenant Patriarch
 Reverent Hunter
+Righteous Confluence
+River Boa
+River Darter
+Roaring Slagwurm
 Rootbreaker Wurm
 Runaway Carriage
 Safehold Sentry
+Sandstone Needle
+Saproling Burst
 Saproling Migration
+Saw It Coming
 Scalebane's Elite
 Scattershot
 Seasoned Pyromancer
+Seekers' Squire
+Sensory Deprivation
+Shaman of the Great Hunt
 Shambling Remains
+Shield of Duty and Reason
+Shivan Devastator
+Shivan Raptor
+Signpost Scarecrow
 Silverglade Pathfinder
+Simic Cluestone
 Sire of Stagnation
 Skarrgan Skybreaker
 Smothering Abomination
+Sol Grail
+Somberwald Stag
 Soul of Shandalar
 Soulmender
 Sovereign's Bite
+Spare Supplies
 Sparksmith
+Spectator Seating
+Spider-Man, Miles Morales
+Spire Winder
+Splinterfright
 Spoils of Evil
+Sporesower Thallid
+Springing Tiger
 Stasis Cell
+Steel-Plume Marshal
 Stew the Coneys
+Stitch Together
+Stoic Builder
 Storm of Steel
+Stormchaser Chimera
+Stormwatch Eagle
+Stromgald Crusader
 Stronghold Overseer
+Succumb to Temptation
+Sultai Flayer
 Sunbathing Rootwalla
+Surgehacker Mech
 Swamp
 Swift Warden
 Sylvan Scrying
+Syr Konrad, the Grim
 Tajic, Blade of the Legion
 Telekinetic Sliver
 Tempestra, Dame of Games
+Territorial Roc
+Thalisse, Reverent Medium
+Thallid Soothsayer
 The Antiquities War
 The Immortal Weapons
 Thoughtflare
 Thrashing Wumpus
+Thrun, the Last Troll
+Thud
+Timbermare
+Toucan-Puffin
+Toxic Abomination
+Undercity's Embrace
+Untamed Kavu
 Utility Knife
 Vampire Bats
 Vampire of the Dire Moon
+Vedalken Mesmerist
 Vengeful Reaper
+Verdant Catacombs
+Volatile Arsonist
 Voracious Vacuum
 Wake of Vultures
+Warhost's Frenzy
+Weakstone
 Webweaver Changeling
+Weird Harvest
 Welding Sparks
+Whimwader
 Willow Elf
+Windstorm
 Winged Hive Tyrant
+Wingmantle Chaplain
+Wings of Velis Vel
+Wipe Away
 Withstand Death
+Wizard's Staff
 Wrecking Ogre
 Wriggling Grub
 Wu Elite Cavalry
+Yahenni, Undying Partisan
 Yargle and Multani
+Zombie Mob

@@ -201,10 +201,12 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 	// CR 702.150c: a Reconfigure card attached to a creature is not a
 	// creature, in the same every-filter-read sense (the target ask's
 	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
-	// eligibility scans). Equipment and Artifact stay true -- they are the
-	// printed face's own types and the attached form keeps them.
+	// eligibility scans). Creature subtypes go with the lost Creature card
+	// type (CR 205.1a), as the layer walk's chars/types.go
+	// reconfigureTypeSwitch strips them. Equipment and Artifact stay true --
+	// they are the printed face's own types and the attached form keeps them.
 	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
-		if strings.EqualFold(t, "Creature") {
+		if strings.EqualFold(t, "Creature") || changelingType(t) {
 			return typeNo, f
 		}
 	}
@@ -324,6 +326,18 @@ func hasTypeCtxPtr(o *state.Object, t string, sc *SpecContext) bool {
 // hasTypeCtxPtrID is hasTypeCtxPtr with t's precompiled type-word ordinal
 // (0 = none), which only the printed-face fallback reads.
 func hasTypeCtxPtrID(o *state.Object, t string, id cards.TypeWordID, sc *SpecContext) bool {
+	// The AsFaceDown entry override (CR 614.12, 708.2, 701.58a) is the same
+	// class of DERIVED-CHARACTERISTICS override as ExtraTypes: the context
+	// says the object ENTERS face down, and a face-down permanent's types are
+	// exactly its face-down set -- Creature, no subtypes, no abilities (so no
+	// Changeling tail; the id ordinal is unused, the entry words are matched
+	// by fold). It comes first because the entry's characteristics replace
+	// the printed face entirely: the face-down marker is not folded onto the
+	// object until the intercepted move applies, so every read below would
+	// answer the origin-zone card.
+	if sc.AsFaceDown {
+		return faceDownEntryTypeHas(o, t)
+	}
 	// ExtraTypes is the layer walk's accumulating type list for the ONE
 	// object being matched: a plain value slice, deliberately not a callable
 	// resolver. Any call made through a SpecContext field makes escape
@@ -374,7 +388,32 @@ func hasTypeCtxPtrID(o *state.Object, t string, id cards.TypeWordID, sc *SpecCon
 
 // hasTypeCtxSub is hasTypeCtx with changelingType(t) precomputed as sub: the
 // same reads in the same order, the intrinsic-CDA tails taking sub.
+
+// faceDownEntryTypeHas answers one type word against the face-down
+// characteristics an AsFaceDown entry presents (CR 708.4, 708.5; 614.12,
+// 701.58a): the face-down set the entry will fold (state.Object
+// .FaceDownEntryTypeWords -- {Creature}, or the FaceDownSetType$ set), matched
+// by fold like the live face-down gate in hasTypePrinted. Every other type
+// word, subtype included, answers no: the printed face does not exist while
+// the object is face down.
+func faceDownEntryTypeHas(o *state.Object, t string) bool {
+	if o == nil {
+		return false
+	}
+	for _, w := range o.FaceDownEntryTypeWords() {
+		if strings.EqualFold(w, t) {
+			return true
+		}
+	}
+	return false
+}
 func hasTypeCtxSub(o *state.Object, t string, id cards.TypeWordID, sub bool, sc *SpecContext) bool {
+	// The AsFaceDown entry override, as hasTypeCtxPtrID: the sub flag is
+	// ignored because a face-down permanent has no abilities, so its printed
+	// Changeling cannot grant a subtype (CR 708.2).
+	if sc.AsFaceDown {
+		return faceDownEntryTypeHas(o, t)
+	}
 	if sc.ExtraTypes != nil && o.ID == sc.ExtraTypesOwner {
 		for _, x := range sc.ExtraTypes {
 			if strings.EqualFold(x, t) {

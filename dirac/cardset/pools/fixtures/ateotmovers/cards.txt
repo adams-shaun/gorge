@@ -16,3 +16,17 @@ Apprentice Necromancer
 Kami of Industry
 Chimeric Coils
 Dawn of the Dead
+# T14c: Animate AtEOT$ on Defined$ Remembered after a one-card pick
+# (dirac/kgen/lower_ateot.go oneObjectSubject's ChooseMove/Dig arm; the
+# oracle's constructed lockstep, dirac/oracle/ateotmovers_chosen_test.go).
+# Meek Attack's ChangeType$ totalPT_LE5 reads a hand card's P/T (Squawkroaster's
+# */4 is the characteristic-defining case the pick must agree on).
+Meek Attack
+Squawkroaster
+Arms Race
+Impromptu Raid
+Incandescent Soulstoke
+Killer Instinct
+Sneak Attack
+Akoum Hellhound
+Forest

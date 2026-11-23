@@ -1,0 +1,12 @@
+# The granted-horsemanship pool (dirac/oracle/horsemanship_grant_lockstep_test.go):
+# Riding Red Hare's until-end-of-turn Pump KW$ Horsemanship and Riding the Dilu
+# Horse's Duration$ Permanent one beside a printed
+# horsemanship creature (Wu Scout) and creatures without it, so a granted attacker
+# faces blockers that have the keyword and blockers that do not.
+Forest
+Glory Seeker
+Grizzly Bears
+Plains
+Riding Red Hare
+Riding the Dilu Horse
+Wu Scout

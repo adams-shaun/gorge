@@ -136,7 +136,7 @@ func (s *State) copyCastTargetAbort(k *prep, t *kop.TargetSpec) bool {
 	if s.copyCensusOpen(k, e) {
 		return false // a census gap keeps the candidate on the menu (affordableTargetCandidates)
 	}
-	return s.copyCastUnpayable(k, e.card, e.ctrl, e.obj, restrOriginOfEntry(e), 0)
+	return s.copyCastUnpayable(k, e.card, e.ctrl, e.obj, s.restrOriginOfEntry(e), 0)
 }
 
 // copyCastPaid reports whether spell entry e is a Play's copy cast paying its

@@ -52,6 +52,7 @@ Deadeye Harpooner	d8f84b97dec25b36	20	1/1		0/1	ix:resp
 Deceiver Exarch	2b21a5f4f8601e6e	6	1/1		0/1	ix:resp
 Defiant Falcon	3132a0c41212b3d2	13	1/1		0/1	ix:resp
 Demonic Consultation	256385ce1854e9e7	6	0/0		2/2	
+Desiccated Naga	2294d3a90b17876b	421	1/1		1/1	
 Desmond Miles	d24c39a274f30a83	4	1/1		0/1	ix:resp
 Destined	1d1df12525d93af1	7	0/0		3/5	f1/s,ix:resp
 Devour Flesh	8d6c86d4d2ce1865	8	0/0		1/2	ix:resp
@@ -63,6 +64,7 @@ Dragonstalker	fa25ed0720104547	5	0/0		0/0
 Dream's Grip	52d8fbc7663286ea	4	0/0		1/2	ix:resp
 Druidic Satchel	c0259ffc82de8b66	11	1/1		0/1	ix:resp
 Dwarven Hammer	1b9e0c33cd9890e8	4	2/2		0/1	ix:resp
+Elephant Graveyard	0ef77dfca0542f12	47	2/2		0/1	ix:resp
 Elven Rite	870aae0e3bd7182a	4	0/0		1/2	ix:resp
 Emry, Lurker of the Loch	7a5bec259b40fb38	13	2/2		0/1	ix:resp
 Ensouled Scimitar	c58b56193d701f7a	4	2/2		1/1	
@@ -71,6 +73,7 @@ Faerie Noble	ead6e65b1717d1f0	7	1/1		0/1	ix:resp
 Feast of Worms	00f1747eaab461df	6	0/0		1/2	ix:resp
 Feral Roar	78dee115783e7d55	4	0/0		1/2	ix:resp
 Feral Shadow	b5ce18e0c66a9ce5	5	0/0		0/0	
+Fiery Islet	cb65282833aae1bd	24	2/2		0/1	ix:resp
 Firebolt	b754bcc4c4da15ed	6	0/0		3/4	ix:resp
 Flametongue Kavu	817878800f01967e	4	1/1		0/1	ix:resp
 Fleshtaker	f040f7ad9eaeccfa	4	2/2		1/1	
@@ -118,6 +121,12 @@ Leaden Myr	07f1dcc33bc590e0	18	1/1		0/1	ix:resp
 Leonin Den-Guard	54397908fc7a1067	12	0/0		0/0	
 Leyline Invocation	c4cba705f1adfa77	3	0/0		1/2	ix:resp
 Life Burst	e86e3b24a941a9f8	14	0/0		1/2	ix:resp
+Liliana Vess	aac1bcaf53956763	169	3/3		1/1	
+Liliana, Death Wielder	3a54cb73cb99ba29	81	3/3		0/1	ix:resp
+Liliana, Death's Majesty	70ecd3cc3845499f	180	3/3		1/1	
+Liliana, Waker of the Dead	1dcf9bba40853747	216	3/3		1/1	
+Liliana, the Last Hope	7aee2cc59720fc00	273	3/3		1/1	
+Liliana, the Necromancer	f62bcb85aa301277	180	3/3		1/1	
 Llanowar Loamspeaker	2b271d96f6673ffe	4	2/2		0/1	ix:resp
 Loam Lion	85abd74de3a4c7bf	10	0/0		0/0	
 Lose Hope	0a4ebe6021c58ed9	4	0/0		1/2	ix:resp
@@ -130,6 +139,7 @@ Mana Geyser	4ea3ebca92ee52b9	12	0/0		1/2	ix:resp
 Mer Man	6625e8c16f436089	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Metathran Transport	7a81115911d3dfbc	9	1/1		1/1	
 Midsummer Revel	da37268538bf8218	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Minas Tirith	a6936d2e305931b6	36	2/2		0/1	ix:resp
 Mind Knives	b7589479bcdc0d3a	13	0/0		1/2	ix:resp
 Mindless Conscription	f5e609ce6cc8d94d	6	2/2		0/1	ix:resp
 Monstrous Growth	ef2d90c8a1fc9096	4	0/0		1/2	ix:resp

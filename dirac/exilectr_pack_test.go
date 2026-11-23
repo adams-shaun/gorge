@@ -6,12 +6,12 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestExileCtrPackRoundTrips: the one-byte record returns every kind and
+// TestExileCtrPackRoundTrips: the two-byte record returns every kind and
 // count it was written with, an empty record reads as no counter, and the
-// whole region stays one byte per object (the State bar, poolbytes_test.go).
+// whole region stays two bytes per object (the State bar, poolbytes_test.go).
 func TestExileCtrPackRoundTrips(t *testing.T) {
-	if n := len(exileCtrKinds); n > 4 {
-		t.Fatalf("%d kinds do not fit the record's two kind bits", n)
+	if n := len(exileCtrKinds); n > 255 {
+		t.Fatalf("%d kinds do not fit the record's kind byte", n)
 	}
 	for _, kind := range exileCtrKinds {
 		code := exileCtrCodeOf(kind)
@@ -30,7 +30,7 @@ func TestExileCtrPackRoundTrips(t *testing.T) {
 	if e := exileCtr(0); e.kind() != kop.CounterKind(0) || e.n() != 0 {
 		t.Fatalf("the zero record reads (%v,%d)", e.kind(), e.n())
 	}
-	if got := len(exileCtrKinds); got != 4 {
-		t.Fatalf("the code table has %d kinds; the record's kind bits hold 4", got)
+	if got := len(exileCtrKinds); got != 5 {
+		t.Fatalf("the code table has %d kinds, want 5 (Void, Ice, Blood, Hit, Croak)", got)
 	}
 }

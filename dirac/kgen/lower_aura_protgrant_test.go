@@ -39,8 +39,9 @@ func auraProtRefusals(t *testing.T, static string) string {
 // TestAuraProtectionGrant: an Aura's Continuous AddKeyword$ Protection:
 // <spec> on the enchanted creature lowers like an Equipment's (Spirit Mantle,
 // Unquestioned Authority). The host's chosen colour lowers with its two
-// exception forms (Pentarch Ward, Benevolent Blessing); any other exception
-// field stays refused.
+// exception forms (Pentarch Ward, Benevolent Blessing), a Ward Aura's own
+// host exception lowers for any quality, and any other exception field stays
+// refused.
 func TestAuraProtectionGrant(t *testing.T) {
 	for _, c := range []struct{ name, static, want string }{
 		{"protection from creatures lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddPower$ 1 | AddToughness$ 1 | AddKeyword$ Protection:Creature | Description$ x", ""},
@@ -49,7 +50,7 @@ func TestAuraProtectionGrant(t *testing.T) {
 		{"Benevolent Blessing's attachment exception lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor:Aura.ControlledBy Player.PlayerUID_HostCardControllerUID,Equipment.ControlledBy Player.PlayerUID_HostCardControllerUID:SBA | Description$ x", ""},
 		{"an exception beside another term refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Creature & Protection:Card.ChosenColor:chosenColor:Card.CardUID_HostCardUID | Description$ x", "exception beside"},
 		{"an unreadable exception refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Card.ChosenColor:chosenColor:Creature.Red | Description$ x", "protection exception"},
-		{"an exception field refuses", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Creature:creatures:Card.CardUID_HostCardUID | Description$ x", "exception field"},
+		{"a Ward Aura's host exception lowers", "S:Mode$ Continuous | AffectedDefined$ Enchanted | Affected$ Creature | AddKeyword$ Protection:Creature:creatures:Card.CardUID_HostCardUID | Description$ x", ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got := auraProtRefusals(t, c.static)

@@ -44,6 +44,13 @@ type Session struct {
 	// of every planned cost for the paid relaxed abilities it admits.
 	PaymentPlanRelaxedFee int32 `clone:"reset"`
 
+	// PaymentPlanRelaxedCut is the one alternative of the single paid gap the
+	// relaxed proof is pricing (paymentPlanRelaxProof): the gap's production
+	// REDUCES the planned cost instead of joining the sources as a free unit,
+	// because its own output cannot pay its own fee (CR 601.2g-h, 605.3b).
+	// Empty everywhere else. Pure per-query scratch: Clone copies none of it.
+	PaymentPlanRelaxedCut []Alt `clone:"reset"`
+
 	// PlanAltsWant > 1 asks the planner for alternative plans
 	// (EnsurePaymentPlanAlternatives): a plain-cost plan then also writes,
 	// in PlanAlts, up to PlanAltsWant-1 plans whose residuals differ from

@@ -52,6 +52,7 @@ Forest
 Gaea's Gift
 Geist of the Moors
 Genasi Enforcers
+Gigadrowse
 Gilanra, Caller of Wirewood
 God-Eternal Oketra
 Goldnight Commander
@@ -82,6 +83,7 @@ Night's Whisper
 Nissa's Judgment
 O-Kagachi, Vengeful Kami
 Oathsworn Giant
+Odric, Lunarch Marshal
 Ogre Arsonist
 Orthion, Hero of Lavabrink
 Orzhov Enforcer

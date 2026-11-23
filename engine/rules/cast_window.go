@@ -29,7 +29,8 @@ type proposalFlipper interface {
 }
 
 // flipTransformedCast flips a defeat_cast (CR 310.11, exiled battle) or
-// disturb (CR 702.146a-b, graveyard) cast proposal to its back face. It
+// disturb (CR 702.146a-b, graveyard) or converted (CR 702.162a, More Than Meets
+// the Eye) cast proposal to its back face. It
 // reports false when mode is one of those and o is not where that cast reads
 // it; any other mode is a no-op that reports true.
 func flipTransformedCast(e proposalFlipper, o *state.Object, mode string, faceBefore **uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) bool {
@@ -40,6 +41,10 @@ func flipTransformedCast(e proposalFlipper, o *state.Object, mode string, faceBe
 		}
 	case castModeDisturb:
 		if _, _, ok := disturbCast(o); !ok {
+			return false
+		}
+	case castModeConverted:
+		if _, _, ok := mtmteCast(o); !ok {
 			return false
 		}
 	default:
@@ -201,7 +206,7 @@ func (e *Engine) castWindowReflectedUnits(pc *pendingCast, units []windowManaUni
 			if _, seen := expanded[a.Ma]; seen || a.Ma == nil || a.Amt <= 0 || !pay.PaymentPlanReflectedShape(a.Ma) {
 				continue
 			}
-			alt, ok := paymentPlanReflectedAlt(e, pc.player, u.ID, a.Ma, a.Amt)
+			alt, ok := paymentPlanReflectedAlt(e, pc.player, u.ID, a.Ma, a.Amt, false)
 			if !ok {
 				expanded[a.Ma] = nil
 				continue
@@ -377,7 +382,13 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 				selfSac = pay.CastWindowSelfSacCost(asPayer(e), p, id, cost)
 				post = selfSac && !cost.Tap
 			}
-			amt, ok := e.castWindowAmount(p, id, o, ma)
+			// A Condition-split root whose own gate fails makes its sub's mana
+			// instead (Gemstone Caverns with a luck counter: any colour, not
+			// {C}); windowManaUnits withholds that choice-shaped production,
+			// so it is priced here from the sub.
+			prod := castWindowCondSplitProduction(e, p, id, ma)
+			mp = effects.ManaOf(prod)
+			amt, ok := e.castWindowAmount(p, id, o, prod)
 			if !ok {
 				continue
 			}
@@ -393,6 +404,21 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					continue
 				}
 				counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+			}
+			// A reflected body's printed parse is the executor's blank
+			// one-colourless default: it names no production, and the shared
+			// census prices the ability only when its amount is a literal. The
+			// probe prices the dynamic amount above, so read the reflection's
+			// own colours -- the same fold the planner's census resolves --
+			// and one alternative per colour carries the amount (CR 605.1a).
+			// A reflection naming no colour right now produces none (CR
+			// 106.5), so it adds no unit.
+			if ma.APIKind() == cards.APIManaReflected {
+				alt, ok := paymentPlanReflectedAlt(e, p, id, ma, amt, true)
+				if !ok {
+					continue
+				}
+				counts, any = alt.Counts, true
 			}
 			// A commander-identity production (Arcane Signet, Command Tower)
 			// makes one mana of a colour in its controller's commanders' colour
@@ -425,6 +451,27 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			}
 			for _, feeMask := range feeMasks {
 				if any {
+					// A Combo production allocates its Amount$ units one at a
+					// time, so a two-mana "add two mana in any combination of
+					// colors" source (Sage of the Maze) can pay
+					// {W}{G}: the split, not two units of one colour. The
+					// window's reach prices every bounded allocation; past the
+					// bound the single-colour alternatives stand, never fewer
+					// than the pre-split window. A plain "Any" is one colour by
+					// definition and keeps them too.
+					if effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen && !mp.AnyDifferent {
+						if combos := windowAnyCombinations(counts, amt); combos != nil {
+							for _, combo := range combos {
+								alt := windowManaAlt{Ma: ma, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
+								if post {
+									postAlts = append(postAlts, alt)
+								} else {
+									windowUnits = appendCastWindowAlt(windowUnits, id, alt)
+								}
+							}
+							continue
+						}
+					}
 					for colour, n := range counts {
 						if n == 0 {
 							continue
@@ -453,6 +500,61 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 		}
 	}
 	return windowUnits
+}
+
+// castWindowCondSplitProduction is the mana ability whose production the cast
+// window prices for ma: its Condition-split sub when the root's own gate
+// provably fails and the sub's gate holds (mana_condsplit.go), else ma. A sub
+// that needs a recorded colour choice stays with the root.
+func castWindowCondSplitProduction(h condSplitHost, p state.PlayerID, id state.ObjID, ma *cards.SA) *cards.SA {
+	sub := condSplitLiveSub(h, p, id, ma)
+	if condSplitRootSuperseded(h, p, id, ma, sub) && !effects.ManaOf(sub).NeedsChosen {
+		return sub
+	}
+	return ma
+}
+
+// maxWindowAnyCombination bounds the concrete allocations windowAnyCombinations
+// expands a Combo production into: C(n+4,4) alternatives (15 at n=2, 70 at
+// n=4). Past it the single-colour alternatives stand, because the expansion is
+// a reach-walk cost, not a correctness fence.
+const maxWindowAnyCombination = 4
+
+// windowAnyCombinations returns every multiset of n mana over the colours
+// avail names, as concrete Counts vectors (Amt 1): a Combo production with
+// Amount$ n makes n mana in any combination of those colours (the card's own
+// text), not n mana of one colour. nil when n is outside the bounded range, or when fewer
+// than two colours are available (one colour's only split is the existing
+// single-colour alternative).
+func windowAnyCombinations(avail [6]int32, n int32) [][6]int32 {
+	if n < 2 || n > maxWindowAnyCombination {
+		return nil
+	}
+	var colours []int
+	for i, c := range avail {
+		if c > 0 {
+			colours = append(colours, i)
+		}
+	}
+	if len(colours) < 2 {
+		return nil
+	}
+	var out [][6]int32
+	var cur [6]int32
+	var walk func(i int, left int32)
+	walk = func(i int, left int32) {
+		if i == len(colours)-1 {
+			cur[colours[i]] = left
+			out = append(out, cur)
+			return
+		}
+		for k := int32(0); k <= left; k++ {
+			cur[colours[i]] = k
+			walk(i+1, left-k)
+		}
+	}
+	walk(0, n)
+	return out
 }
 
 // castWindowRestrictedSpendable reports whether a RestrictValid$ mana ability
@@ -662,6 +764,145 @@ func (e *Engine) castWindowCensusComplete(pc *pendingCast, units []windowManaUni
 		}
 	}
 	return true
+}
+
+// castWindowProbeCeiling is the most mana an excluded window ability ma of
+// source id could add: an upper bound on what a source the census left
+// unpriced can still contribute to a payment. ok is false when the amount
+// cannot be resolved, so the caller cannot reason from the bound (fail open).
+func castWindowProbeCeiling(w castPlanPipsWindow, p state.PlayerID, id state.ObjID, ma *cards.SA) (int32, bool) {
+	mp := effects.ManaOf(ma)
+	counts, any := mp.Counts, mp.CountsAny
+	if mp.NeedsChosen {
+		chosen := pay.ChosenProducedColour(w.Game(), id)
+		if chosen == "" {
+			return 0, true // no recorded as-enters colour: the ability makes nothing
+		}
+		counts, any = cards.ProducedCounts(pay.SubstituteChosenProduced(mp.Produced, chosen))
+	}
+	if pay.IsColourIdentityProduced(mp.Produced) {
+		counts, any = w.castWindowIdentityCounts(p), true
+	}
+	total := int32(0)
+	for _, n := range counts {
+		total += n
+	}
+	if total <= 0 {
+		return 0, true
+	}
+	amt, ok := w.castWindowAmount(p, id, w.Game().Obj(id), ma)
+	if !ok {
+		return 0, false
+	}
+	if amt <= 0 {
+		return 0, true
+	}
+	if any {
+		return amt, true // one colour per activation: amt units
+	}
+	return amt * total, true
+}
+
+// castWindowUnpricedReach is castWindowCensusComplete's ceiling read: the
+// most mana the sources the census left unpriced could still add. bounded is
+// false when the incompleteness is not confined to those sources (a hand or
+// graveyard source, tap interference, an altered production) or an unpriced
+// ability's amount cannot be resolved; the caller must then keep the
+// historical fail-open. A source the plan already activated is not priced
+// again -- its main production is already in the plan's sum -- so only its
+// surviving no-tap self-sacrifice second activation is added. Each unpriced
+// source sums every (surviving) probe ability, an over-estimate (one
+// permanent's tap uses one ability), which keeps the bound an upper one.
+func castWindowUnpricedReach(w castPlanPipsWindow, pc *pendingCast, units []windowManaUnit,
+	used, sacrificed map[state.ObjID]bool) (reach int32, bounded bool) {
+	p := pc.player
+	for _, z := range []state.Zone{state.ZHand, state.ZGraveyard} {
+		for _, id := range w.Game().Zone(z, p) {
+			if w.untappedManaSource(p, id) {
+				return 0, false
+			}
+		}
+	}
+	if w.paymentPlanManaInterference() {
+		return 0, false
+	}
+	for _, u := range units {
+		for _, a := range u.Alts {
+			if w.manaProductionAltered(u.ID, a.Ma) {
+				return 0, false
+			}
+		}
+	}
+	priced := make(map[state.ObjID]bool, len(units))
+	for _, u := range units {
+		priced[u.ID] = true
+	}
+	desc := paymentForCast(pc, pc.resolvedMana())
+	for _, id := range pay.BattlefieldManaSourceIDs(w.Game(), p) {
+		if w.convokeCommitted(pc, id) {
+			continue
+		}
+		if priced[id] {
+			if w.castWindowRestrictedAdmits(p, id, desc, units) {
+				return 0, false
+			}
+			continue
+		}
+		probe := w.castWindowProbeAbilities(p, id)
+		if len(probe) == 0 || !w.castWindowSourceExcluded(p, id, desc) {
+			continue
+		}
+		if used[id] {
+			if sacrificed[id] {
+				continue
+			}
+			for _, ma := range probe {
+				if !castWindowNoTapSelfSac(w, p, id, ma) {
+					continue
+				}
+				if w.manaProductionAltered(id, ma) {
+					return 0, false
+				}
+				n, ok := castWindowProbeCeiling(w, p, id, ma)
+				if !ok {
+					return 0, false
+				}
+				reach += n
+			}
+			continue
+		}
+		for _, ma := range probe {
+			if w.manaProductionAltered(id, ma) {
+				return 0, false
+			}
+			n, ok := castWindowProbeCeiling(w, p, id, ma)
+			if !ok {
+				return 0, false
+			}
+			reach += n
+		}
+	}
+	return reach, true
+}
+
+// castWindowNoTapSelfSac reports whether probe ability ma of id is the
+// no-tap self-sacrifice shape castWindowProbeUnits records as an Extras
+// second activation: paidCostShape's deterministic self-sacrifice arm with no
+// tap in the cost (a tap+self-sacrifice is the one-shot activation itself,
+// and the fee shape is an ordinary alternative, never an Extra). The check is
+// shape-only, so it can admit a sacrifice a static blocks; that over-estimate
+// keeps the ceiling an upper bound.
+func castWindowNoTapSelfSac(w castPlanPipsWindow, p state.PlayerID, id state.ObjID, ma *cards.SA) bool {
+	o := w.Game().Obj(id)
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	cost := w.manaAbilityCC(p, id, ma).Cost
+	if cost.Tap || castWindowPayLifeCost(cost) {
+		return false
+	}
+	_, ok := w.paidCostShape(p, id, cost, w.Game().Players[p].Life)
+	return ok
 }
 
 // castWindowRestrictedAdmits reports whether a source priced by its plain mana

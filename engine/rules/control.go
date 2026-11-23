@@ -105,7 +105,7 @@ func (e *Engine) grantEnded(g controlGrant, m controlMoment) bool {
 	}
 	// CR 800.4a: effects that give a player who left the game control end.
 	for _, p := range []state.PlayerID{g.Controller, g.You} {
-		if int(p) >= len(e.G.Players) || e.G.Players[p].Lost {
+		if int(p) >= len(e.G.Players) || e.G.Players[p].Lost && !e.sbaLossHeld {
 			return true
 		}
 	}

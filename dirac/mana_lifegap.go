@@ -144,6 +144,31 @@ func (s *State) lifeGapDo(k *prep, p uint8, sl Slot, ans int) {
 	s.artTag(k, p, sl, col)
 }
 
+// lifePainDo plays sl's sole life-only mana ability (lifeOnlyPain, Treasonous
+// Ogre's "Pay 3 life: Add {R}", prepSoleLifeMana): a life pass step of the
+// filter search, gorge's payment's last-resort alternative the witness replay
+// activates (potentialWitnessReaches). Its cost taps nothing (lifeOnlyPain),
+// so only the life is paid and the mana floats; the untapped unit stays in the
+// census for the play's own gate to count again (mana_sacsource.go), which is
+// why one activation can fund a pipped pip and a spare unit alike. Unlike
+// lifeGapDo's gap step, the ability is the planner view's (a census unit has
+// no gapOther index) and the branch may take it again later on the path (its
+// activation is not once-per-path, fs.lifeUsed).
+func (s *State) lifePainDo(k *prep, p uint8, sl Slot, ans int) {
+	pc := s.manaPCAt(k, sl)
+	if pc.manaAb < 0 || int(pc.manaAb) >= len(k.t.Cards[s.cardAt(sl)].Abilities) {
+		return // the admission (canLifeOnlyMana) priced the printed ability; never a silent no-op either way
+	}
+	a := &k.t.Cards[s.cardAt(sl)].Abilities[pc.manaAb]
+	s.payLifeCost(k, p, &a.Cost, 0)
+	col := bits.TrailingZeros8(uint8(a.ManaColors))
+	if a.ManaColors == kop.ColAny {
+		col = ans
+	}
+	s.pl[SeatIx(p)].pool[col] += max(a.ManaN, 1)
+	s.artTag(k, p, sl, col)
+}
+
 // lifeGap branches life gap sl at a priority node of the filter search: its
 // colour ask when it makes one of any colour (gorge's scriptOrderAnswers puts
 // the play's announced colours first), its one answer otherwise. The life

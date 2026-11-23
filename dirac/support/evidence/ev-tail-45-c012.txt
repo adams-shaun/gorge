@@ -25,7 +25,6 @@ Hua Tuo, Honored Physician
 Island
 Laser Screwdriver
 Lightning Reaver
-Molten Ravager
 Monk Idealist
 Mountain
 Murasa Rootgrazer
@@ -44,6 +43,7 @@ Shambling Remains
 Silverglade Pathfinder
 Sister Hospitaller
 Skarrgan Skybreaker
+Smiting Helix
 Smothering Abomination
 Spawning Bed
 Spoils of Evil

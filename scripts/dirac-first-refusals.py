@@ -401,8 +401,11 @@ def no_unrefused_drops(top, lists, pools, refused):
 
     The dirac gate refuses a landing in which a card leaves dirac/support/evidence without an entry in
     dirac/support/refused. A pool that played clean but did not reach a card already evidenced (the
-    card fell under the floor) must fail the round loudly, naming it, rather than commit the drop."""
-    drops = {pool: sorted(set(existing_list(top, pool)) - set(lists.get(pool, [])) - refused)
+    card fell under the floor) must fail the round loudly, naming it, rather than commit the drop.
+    An evidence row carries its card name before the first tab (a pod row's seats column), so the
+    comparison is by name: a refused pod row leaving is not an unrefused drop."""
+    drops = {pool: sorted({row_name(r) for r in existing_list(top, pool)} -
+                          {row_name(r) for r in lists.get(pool, [])} - refused)
              for pool in pools}
     drops = {pool: cards for pool, cards in drops.items() if cards}
     if drops:
@@ -410,9 +413,17 @@ def no_unrefused_drops(top, lists, pools, refused):
                          for pool, cards in sorted(drops.items())))
 
 
+def game_row(pool, games, pods):
+    """One evidence-games row: a pod run's carries its clean pod games as a third column."""
+    if pods:
+        return f"{pool}\t{games}\t{pods}"
+    return f"{pool}\t{games}"
+
+
 def tsv_rows(top, rows):
     """The evidence-games lines with rows rewritten: a named pool's old row replaced in place, a new
-    one inserted where the file stays sorted, every other line byte for byte as it was."""
+    one inserted where the file stays sorted, every other line byte for byte as it was. A value is
+    the run's (games, pods)."""
     lines = []
     if os.path.exists(os.path.join(top, EVIDENCE_GAMES)):
         with open(os.path.join(top, EVIDENCE_GAMES)) as f:
@@ -423,13 +434,13 @@ def tsv_rows(top, rows):
         pool = line.split("\t", 1)[0]
         if pool in rows:
             if pool not in written:
-                out.append(f"{pool}\t{rows[pool]}")
+                out.append(game_row(pool, *rows[pool]))
                 written.add(pool)
         else:
             out.append(line)
     for pool in sorted(set(rows) - written):
         i = next((i for i, l in enumerate(out) if l.split("\t", 1)[0] > pool), len(out))
-        out.insert(i, f"{pool}\t{rows[pool]}")
+        out.insert(i, game_row(pool, *rows[pool]))
     return out
 
 
@@ -503,12 +514,35 @@ def sidecars(top, lists, before, covs):
     return files
 
 
+def row_name(row):
+    """An evidence row's card name: its part before the first tab (a pod row's seats column)."""
+    return row.split("\t", 1)[0]
+
+
+def merge_rows(existing, run):
+    """One row per card name, with a pod row (one carrying trailing columns) winning over a plain
+    one. Unrefusing a card restores it plain; without this its plain row would shadow the pod run
+    that re-evidences it (readSupport takes the first row of a name, and sorted order puts the plain
+    row first), so the card would never read as pod-evidenced again."""
+    rows = {}
+    for row in sorted(existing):
+        name = row_name(row)
+        if name not in rows or "\t" in row:
+            rows[name] = row
+    for row in sorted(run):
+        name = row_name(row)
+        if name not in rows or "\t" in row:
+            rows[name] = row
+    return list(rows.values())
+
+
 def write_legacy(top):
-    """LEGACY.txt: the evidenced names no sidecar has a row for, sorted."""
+    """LEGACY.txt: the evidenced names no sidecar has a row for, sorted. An evidence row may carry
+    trailing columns (a pod run's seats field); the name is the part before the first tab."""
     names, keyed = set(), set()
     for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt")):
         with open(path) as f:
-            names |= {n for n in f.read().splitlines() if n}
+            names |= {row_name(n) for n in f.read().splitlines() if n}
     for path in glob.glob(os.path.join(top, KEYS_DIR, "*.tsv")):
         keyed |= set(sidecar_rows(top, os.path.basename(path)[:-len(".tsv")]))
     os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
@@ -517,14 +551,33 @@ def write_legacy(top):
     print(f"evidence: {len(names - keyed)} legacy names")
 
 
+def evidence_rows(out, pool):
+    """The rows a pod run wrote for pool (Name, or Name<TAB><seats>), unioned over its forms: a pod
+    run writes no coverage, so these .evidence rows are the card list it lands."""
+    rows = set()
+    for path in run_files(out, "evidence"):
+        if run_parts(path)[0] != pool:
+            continue
+        with open(path) as f:
+            rows |= {line.rstrip("\n") for line in f if line.strip()}
+    return rows
+
+
+def without_refused(rows, refused):
+    """The rows whose name no refusal names; an evidence row's trailing columns stay with it."""
+    return [r for r in rows if row_name(r) not in refused]
+
+
 def write_evidence(top, out, pools=None):
     """A list per pool, of the cards it played that meet the floor over the whole corpus's clean games.
 
     With pools, only those pools' lists and evidence-games rows are written, each list the union of
     the one in the tree and the cards meeting the floor over that pool's own clean games, and every
     expected run of every named pool must have passed first; a synthetic pool's run may instead have
-    finished with bad games only, and then no card those games hold is credited. A card is never removed: only a
-    refusal does that. Everything else is left byte for byte as it was.
+    finished with bad games only, and then no card those games hold is credited. A pod pool (name
+    pod-*) writes no coverage files: its run's .evidence rows are the list's source, seats column and
+    all. A card is never removed: only a refusal does that. Everything else is left byte for byte as
+    it was.
 
     Either way the write refuses, changing nothing, when a pool that passed would lose a card no
     refusal names: the dirac gate refuses that landing, so the round must fail here, loudly."""
@@ -541,24 +594,39 @@ def write_evidence(top, out, pools=None):
                 for pool in ps:
                     lists[pool].append(card)
         covs = {pool: cov for pool in lists}
-        no_unrefused_drops(top, lists, ran_pools(out) & passed_pools(out), refused)
-        remove = glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))
-        rows = games_per_run(out)
-        lines = [f"{pool}\t{games}" for pool, games in sorted(rows.items())]
+        passed = ran_pools(out) & passed_pools(out)
+        # A pod run has no coverage, so the coverage loop above never sees its pool: land it from
+        # its .evidence rows when its runs passed, and leave a landed pod list alone when they are
+        # not in this out dir (the pod writer owns it; settle must not delete it).
+        for pool in sorted(passed):
+            if pool.startswith("pod-"):
+                rows = merge_rows(existing_list(top, pool), evidence_rows(out, pool))
+                lists[pool] = sorted(without_refused(rows, refused))
+                covs[pool] = {}
+        no_unrefused_drops(top, lists, passed, refused)
+        remove = [path for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))
+                  if not path_pool(path).startswith("pod-")]
+        rows, pods = games_per_run(out)
+        lines = [game_row(pool, games, pods.get(pool, 0)) for pool, games in sorted(rows.items())]
     else:
         pools = list(pools)
         before = {pool: set(existing_list(top, pool)) for pool in pools}
         require_pool_runs(out, pools)
-        games = games_per_run(out)
+        games, pods = games_per_run(out)
         for pool in pools:
             if pool not in games:
                 refuse(f"{pool} has no verdict")
             covs[pool] = merged_coverage(out, {pool})
             gained = [card for card, (plays, unused, *_) in sorted(covs[pool].items())
                       if plays >= EVIDENCE_MIN_PLAYS and not unused and card not in refused]
-            lists[pool] = sorted((set(existing_list(top, pool)) | set(gained)) - refused)
+            rows = set(existing_list(top, pool)) | set(gained)
+            if pool.startswith("pod-"):
+                rows = merge_rows(rows, evidence_rows(out, pool))
+                if not rows:
+                    refuse(f"{pool} has no evidence rows")
+            lists[pool] = sorted(without_refused(rows, refused))
         no_unrefused_drops(top, lists, pools, refused)
-        lines = tsv_rows(top, {p: games[p] for p in pools})
+        lines = tsv_rows(top, {p: (games[p], pods.get(p, 0)) for p in pools})
     side = sidecars(top, lists, before, covs)
     os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
     for path in remove:
@@ -566,6 +634,10 @@ def write_evidence(top, out, pools=None):
     for pool, names in lists.items():
         with open(os.path.join(top, EVIDENCE_DIR, pool + ".txt"), "w") as f:
             f.writelines(n + "\n" for n in names)
+        if pool.startswith("pod-"):
+            # A pod-evidenced card is supported already, so a two-seat list gave it its sidecar;
+            # a pod list needs none of its own.
+            continue
         with open(os.path.join(top, KEYS_DIR, pool + ".tsv"), "w") as f:
             f.writelines(l + "\n" for l in side[pool])
     print(f"evidence: {len(set(n for v in lists.values() for n in v))} cards in {len(lists)} lists")
@@ -591,28 +663,47 @@ def prune_legacy(top, keyed):
         print(f"evidence: {len(names) - len(kept)} names left LEGACY.txt")
 
 
+def run_kernel(pool):
+    """The name a run's verdict line carries. A pod run is dealt as -kernel <pool without pod->
+    (scripts/dirac-evidence.sh's pod case), so its out file names the set (cmd5), not the run
+    (pod-cmd5); every other run names its own pool."""
+    return pool[len("pod-"):] if pool.startswith("pod-") else pool
+
+
 def games_per_run(out):
-    """pool -> the games one of its runs started. Each form of a pool turns away the same pairs."""
-    games = {}
+    """pool -> (games, pods): the games one of its runs started, and, when the run is a pod
+    run (its name begins pod-, which scripts/dirac-evidence.sh's pod case deals), the clean
+    pod games among them: every clean game of a pod run is one. Each form of a pool turns
+    away the same pairs. A run file contributes only its own verdict: the file's stem names
+    the pool, and the verdict inside it must name that pool's kernel."""
+    games, pods = {}, {}
     for path in run_files(out, "out"):
         pool = run_parts(path)[0]
+        kernel = run_kernel(pool)
+        verdict = None
         with open(path) as f:
             for line in f:
                 v = VERDICT.match(line)
-                if v and v.group(1) == pool:
-                    games[pool] = int(v.group(2))
+                if v and v.group(1) == kernel:
+                    verdict = v
                     break
-    return games
+        if verdict is None:
+            continue
+        games[pool] = int(verdict.group(2))
+        if pool.startswith("pod-"):
+            pods[pool] = int(verdict.group(6))
+    return games, pods
 
 
 def report(top, out):
     totals = collections.defaultdict(collections.Counter)
     for path in run_files(out, "out"):
         pool, surface, m = run_parts(path)
+        kernel = run_kernel(pool)
         with open(path) as f:
             for line in f:
                 v = VERDICT.match(line)
-                if v and v.group(1) == pool:
+                if v and v.group(1) == kernel:
                     keys = ("games", "refused_card", "refused_pair", "error", "clean", "divergent", "unmodelled", "capacity", "hang")
                     for k, x in zip(keys, v.groups()[1:]):
                         totals[f"{surface} m{m}"][k] += int(x)

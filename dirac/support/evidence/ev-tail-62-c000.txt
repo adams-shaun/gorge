@@ -46,6 +46,7 @@ Beacon Bolt
 Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
+Bite of the Black Rose
 Black Dragon
 Black Panther, Most Dangerous
 Blades of Velis Vel
@@ -78,6 +79,7 @@ Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
+Coercive Portal
 Consulate Crackdown
 Copper Gnomes
 Coronation of Chaos
@@ -139,7 +141,6 @@ Farbog Revenant
 Festerhide Boar
 Fettergeist
 Final Parting
-Fire Dragon
 Fire-Belly Changeling
 Flame-Blessed Bolt
 Flare of Duplication
@@ -184,6 +185,7 @@ Hierophant's Chalice
 Hobgoblin Bandit Lord
 Howl of the Night Pack
 Huatli's Snubhorn
+Hungry Lynx
 Ian the Reckless
 Ichneumon Druid
 Illusionary Wall
@@ -238,6 +240,7 @@ Mardu Runemark
 Martyr's Soul
 Mass Manipulation
 Massive Raid
+Master of Dark Rites
 Matoc, Lavamancer
 Medusa, Inhuman Queen
 Memory Lapse
@@ -276,6 +279,7 @@ Oakenform
 Oakheart Dryads
 Oboro Envoy
 Obsessive Collector
+Obsidian Acolyte
 Ondu Giant
 Onslaught
 Oracle of Mul Daya
@@ -292,6 +296,7 @@ Plated Crusher
 Port of Karfell
 Prickleboar
 Primal Order
+Prism Array
 Prismatic Boon
 Protect
 Prowess of the Fair
@@ -351,6 +356,7 @@ Sever the Bloodline
 Shadow Guildmage
 Shalai's Acolyte
 Sharktocrab
+Shattering Spree
 She-Hulk, Attorney-at-Law
 Sheltered Aerie
 Sheoldred's Headcleaver
@@ -367,7 +373,6 @@ Silver Drake
 Silverclaw Griffin
 Silverquill Silencer
 Simic Ragworm
-Skarrg, the Rage Pits
 Skinrender
 Skophos Reaver
 Sky Scourer

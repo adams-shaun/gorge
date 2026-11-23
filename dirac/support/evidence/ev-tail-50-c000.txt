@@ -58,6 +58,7 @@ Botanical Plaza
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Break Ties
 Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
@@ -99,6 +100,7 @@ Condemn
 Conifer Wurm
 Converter Beast
 Corpse Connoisseur
+Council Guardian
 Crackling Club
 Crafty Pathmage
 Craven Giant
@@ -340,6 +342,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Riding the Dilu Horse
 Righteous War
 Riptide
 Riverglide Pathway
@@ -355,6 +358,7 @@ Runed Servitor
 Rushwood Elemental
 Sabertooth Alley Cat
 Sagu Archer
+Saheeli, Filigree Master
 Sandstone Bridge
 Savage Twister
 Scale Blessing
@@ -448,9 +452,11 @@ Tremble
 Uchuulon
 Ulrich's Kindred
 Ultimate Nullification
+Ultramarines Honour Guard
 Undead Warchief
 Unfriendly Fire
 Urn of Godfire
+Uruk-hai Berserker
 Vampire Opportunist
 Vampire's Kiss
 Vat Emergence

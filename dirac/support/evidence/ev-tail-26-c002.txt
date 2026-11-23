@@ -40,6 +40,7 @@ Castle Raptors
 Celebrity Fencer
 Chakram Slinger
 Chandra's Magmutt
+Changing Loyalty
 Chaosphere
 Chasm Drake
 Chastise
@@ -100,6 +101,7 @@ Graceful Cat
 Grappling Sundew
 Grave Betrayal
 Gravity Well
+Great Wall
 Greenseeker
 Grizzly Ghoul
 Gruul Guildmage
@@ -189,6 +191,7 @@ Rundvelt Hordemaster
 Sacred Cat
 Saiba Trespassers
 Saltfield Recluse
+Satyr Firedancer
 Satyr Grovedancer
 Savage Swipe
 Scarwood Treefolk
@@ -221,7 +224,6 @@ Steadfast Unicorn
 Stitched Drake
 Stony Strength
 Storm of Memories
-Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp
@@ -262,3 +264,4 @@ Wretched Throng
 Yahenni's Expertise
 You See a Guard Approach
 Zodiac Snake
+Zombie Ogre

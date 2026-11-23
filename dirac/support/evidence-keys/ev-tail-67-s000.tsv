@@ -6,9 +6,11 @@ A-Rockslide Sorcerer	80c1dd5898a0e48f	12	1/1		1/1
 A-Umara Mystic	cecfcf975ea10856	6	1/1		0/1	ix:resp
 Accelerated Evolution	6d1c1078a0453060	8	1/1		1/2	ix:resp
 Aerial Assault	9a59761c89086451	8	0/0		2/2	
+Alela, Cunning Conqueror	14711425a257b3a8	17	2/2		0/1	ix:resp
 Angelic Field Marshal	1f960b81be1ae51b	4	0/0		0/0	
 Animate Land	ca96eda71bd0e7e8	20	0/0		2/2	
 Appa, the Vigilant	d194add9ee323952	8	1/1		1/1	
+Archon of Absolution	00883525e009a507	4	0/0		0/0	
 Armor Thrull	743550c0ba174684	19	1/1		0/1	ix:resp
 Asphodel Wanderer	dddb88ef0a12584b	18	1/1		0/1	ix:resp
 Auron, Venerated Guardian	10e2b2b347c10f1f	12	1/1		1/1	
@@ -19,9 +21,12 @@ Basilica Stalker	137d79d2299f6810	65	1/1		2/3	cast/alt:disguised
 Bastion Inventor	af56413740c59913	10	0/0		0/0	
 Beast Attack	26212472d9149b66	30	0/0		4/4	
 Biting Rain	6c2c845cd955b3c5	9	0/0		2/2	
+Blessed Reincarnation	c03f465fb4190923	39	0/0		2/2	
 Blight Sickle	bf230f6d4d8c3624	7	1/1		0/1	ix:resp
+Blossom Dryad	8af86815052638c7	6	1/1		0/1	ix:resp
 Boldwyr Intimidator	04cde492aad58e36	5	2/2		1/1	
 Bolrac-Clan Basher	ed3daad830dbc9c6	41	0/0		1/2	cast/alt:disguised
+Branch of Vitu-Ghazi	e1ae654806d5a689	235	2/2		1/3	cast/alt:none,ix:resp
 Bubble Smuggler	a1de6f90724a9920	383	0/0		1/2	cast/alt:disguised
 Buccaneer's Bravado	36ef1c20561b371d	10	0/0		2/2	
 Burning Palm Efreet	a124a3e95d87454b	6	1/1		0/1	ix:resp
@@ -33,6 +38,7 @@ Case the Joint	fe67e10ff42b98c6	16	0/0		2/2
 Castle	bdd747c6541de8c3	6	0/0		0/0	
 Chain Lightning	4c8da300574f4c4d	12	0/0		2/2	
 Champion's Helm	c055e38b89f07e79	6	1/1		1/1	
+Chillerpillar	828009632bf93c7f	239	1/1		1/1	
 Clackbridge Troll	212b01c55c3d7779	5	2/2		0/1	ix:resp
 Claim the Firstborn	1d12a6c3b8573e83	8	0/0		1/2	ix:resp
 Cling to Dust	eff2a23663600334	21	0/0		2/4	cast/alt:escaped,ix:resp
@@ -49,6 +55,7 @@ Corsairs of Umbar	7f1ba796f6278fd3	21	2/2		1/1
 Crackling Triton	efe82492bd59cd4c	11	1/1		1/1	
 Crypt Incursion	26651cf26a7e40c3	11	0/0		2/2	
 Crystalline Armor	57dd8440bab4ce49	10	0/0		1/2	ix:resp
+Curator Beastie	a9b403261ae2d033	3	2/2		0/1	ix:resp
 Custodi Soulbinders	4515064808315608	4	1/1		1/1	
 Daily Bugle Newspaper	257150d1bbbbb46a	16	1/1		1/1	
 Deadshot	47663dcc6ce6fd85	8	0/0		1/2	ix:resp
@@ -61,6 +68,7 @@ Drifting Meadow	47677ea212159e6a	38	2/2		1/1
 Dwarven Vigilantes	794af72b66324574	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eidolon of Rhetoric	3afd9a2a76a4eccb	4	0/0		0/0	
 Ekthi, Contaminator Priest	a2324447f76b35fc	18	0/0		0/0	
+Elspeth, Undaunted Hero	8b9ca6ad3bfddcd5	3	3/3		0/1	ix:resp
 Emerge Unscathed	7bbf4f768539fe25	11	0/0		1/2	ix:resp
 Essence Feed	ae27113ec5bc8d48	10	0/0		1/2	ix:resp
 Etched Oracle	b4c4dd1f21dfe834	6	1/1		1/1	
@@ -78,6 +86,7 @@ Fountain of Cho	37d6fd9b8184315b	123	2/2		1/1
 Furnace Celebration	fd079f33d5d17e62	15	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Furnace Hellkite	78974a283bc2ed85	15	1/1		1/1	
 Galvanic Iteration	ada8cf8d366b9ccb	27	0/0		3/4	ix:resp
+Garenbrig Squire	afed862835858fb6	23	1/1		1/1	
 Gilt-Leaf Palace	9a2a3bf87ee5c8d5	115	1/1		0/1	ix:resp
 Gnome-Made Engine	e17a2e3ef946bd26	12	1/1		0/1	ix:resp
 Goblin Glider	d3adead6b92a74c8	11	0/0		0/0	
@@ -87,7 +96,9 @@ Golgari Raiders	fdc1b59d3edb5305	8	0/0		0/0
 Gray Merchant of Asphodel	6acf3c57d9c1a96c	9	1/1		0/1	ix:resp
 Guardian Kirin	ea4c832a663e816a	12	1/1		0/1	ix:resp
 Hall	04d403d7384f2137	117	2/2		1/1	
+Hana Kami	6b59d73e37336d59	15	1/1		1/1	
 Helitrooper	7df52cfb92bded47	14	1/1		0/1	ix:resp
+Heroes of the Revel	18783c91623faa6b	8	2/2		0/1	ix:resp
 Heroes' Podium	1eba0b74102dcf0e	10	1/1		0/1	ix:resp
 Hidden Blade	03b0c3cdc8d61e4b	40	2/2		1/1	
 Idol of Oblivion	028a282dc5e0ebfa	16	2/2		0/1	ix:resp
@@ -99,11 +110,16 @@ Infested Fleshcutter	f04b5704bad4ea4a	5	2/2		0/1	ix:resp
 Irencrag Pyromancer	e2e06bfc26890104	21	1/1		1/1	
 Iron Bully	59feb7b778c48bf3	11	1/1		1/1	
 Island	763c67ef7a27eaf5	1640	1/1		0/1	ix:resp
+Ixidor, Reality Sculptor	bef3cce26dfc90df	290	1/1		1/1	
+Kaito Shizuki	6969150227007790	19	4/4		0/1	ix:resp
 Keen-Eyed Raven	1aacb1686452b8ee	5	1/1		0/1	ix:resp
+Keeneye Aven	619a54269965f6eb	3	1/1		0/1	ix:resp
+Keeper of Kookus	da74f8eeb7ebe556	26	1/1		1/1	
 Knight of the Keep	1f491da90b7a6d1d	4	0/0		0/0	
 Kor Castigator	465c9bb276e94804	6	0/0		0/0	
 Lightning Hounds	264e30de4233ab00	10	0/0		0/0	
 Liliana's Steward	22240af609010c06	16	1/1		0/1	ix:resp
+Living End	b1e5b1060d65c81b	6	0/0		3/4	cast/alt:none
 Lowland Oaf	446d5a11e23f35d9	11	1/1		1/1	
 Lucas, the Sharpshooter	a721a5a1ac39c102	18	1/1		0/1	ix:resp
 Lyla, Holographic Assistant	26184d855c63ee37	26	1/1		1/1	
@@ -120,6 +136,7 @@ Mother of Runes	980010c5a3abbb75	8	1/1		1/1
 Mothrider Patrol	70db17fe2772c544	6	1/1		1/1	
 Mountain	9e71388353e907ed	434	1/1		0/1	ix:resp
 Mourning	6af883be95647e15	8	1/1		1/2	ix:resp
+Mummy Paramount	a9ebcc205aed95f4	4	1/1		0/1	ix:resp
 Novice Dissector	256c9c0c86285e4a	13	1/1		0/1	ix:resp
 Obscura Initiate	90678c7f08ff45b3	16	1/1		1/1	
 Onulet	b6100ee94aeacc84	29	1/1		0/1	ix:resp
@@ -153,12 +170,14 @@ Savage Conception	1d6f8391475f69fb	13	0/0		2/2
 Scepter of Celebration	b9fd15a3f2b8dd7d	20	2/2		1/1	
 Scion of Oona	11b97b36b823bc68	24	0/0		0/0	
 Scuttling Butler	0e27484fbb4b4881	21	1/1		0/1	ix:resp
+Seal from Existence	5fcd9f50007d11ee	4	2/2		0/1	ix:resp
 Searing Blood	3acd79f52afeb298	10	0/0		2/2	
 Secure the Scene	18387e00adabd9c6	6	0/0		1/2	ix:resp
 Selective Memory	75cd0507b773e2b3	28	0/0		2/2	
 Settle the Score	be02feab1c11d4e3	5	0/0		1/2	ix:resp
 Shadowspear	69a2db86f43c128a	22	2/2		1/1	
 Shake the Foundations	9dc49ca887c86798	14	0/0		2/2	
+Shang-Chi and the Ten Rings	733a491826349214	12	2/2		1/1	
 Sheoldred	e2f7955e83dc042d	3	2/2		0/1	ix:resp
 Shore Keeper	29c31f28707b7105	17	1/1		0/1	ix:resp
 Simic Keyrune	5bc53667b2daacf7	16	2/2		1/1	
@@ -194,6 +213,7 @@ Tidal Bore	e1941b586b593dd3	30	0/0		2/2
 Titan Hunter	7c8ac31bf43be3b7	7	2/2		0/1	ix:resp
 Topan Freeblade	daf29a4a64f76fe6	27	1/1		1/1	
 Tor Giant	8bf8f2590f386ea5	15	0/0		0/0	
+Touch the Spirit Realm	bc412c04b2f5a1e8	4	2/2		0/1	ix:resp
 Tranquil Frillback	771a4b82caf0eba5	28	1/1		1/1	
 Transcendent Master	bc2e8409a1409c12	4	1/1		1/1	
 Transcendent Message	46dce27769d53dba	14	0/0		0/4	f0/s,f0/s/x+,f0/s/x0,ix:resp
@@ -213,3 +233,4 @@ Windgrace Acolyte	58988c529a1349bf	4	1/1		0/1	ix:resp
 Wirecat	63a6fd4f7ed891a7	25	0/0		0/0	
 Writhing Necromass	ef632a4adcd1f489	6	0/0		0/0	
 Young Blue Dragon	94b8d84fa4903e19	18	0/0		2/2	
+Zulaport Chainmage	02cceafba63d1571	16	1/1		1/1	

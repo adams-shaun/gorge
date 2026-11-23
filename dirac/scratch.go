@@ -52,6 +52,15 @@ type armRes struct {
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 	plc       libTally      // kop.ExtLibPlace's tally of the cards put into libraries (act_libplace.go); live from its arm op to its ask op, zeroed by scrResEnter
 	jf        int16         // the resolution's join-forces total (ExtJoinForces / ExJoinForces); zeroed by scrResEnter
+	// voteCounts/voteCur/voteAll/voteAllN: a StoreVoteNum fixed-list vote's
+	// per-option tallies and the option branch being resolved (act_vote.go).
+	// The tallies are written once after the last voter; voteAll is live from
+	// then through the last option branch, and voteCur is set by each flagged
+	// branch before its body (ExVoteTally reads it).
+	voteCounts [voteCMask + 1]uint8
+	voteCur    uint8
+	voteAll    bool
+	voteAllN   uint8
 	// dmgBRecs: a DamageAll sweep's latched DamageDealtOnce lines
 	// (trig_dmgbatch.go): the sweep's per-recipient damage events are one
 	// simultaneous batch (gorge effDamageAll's BeginDamageBatch, CR 510.4), so
@@ -207,7 +216,9 @@ func (s *State) scrResEnter() {
 	s.g.dmgSeqOn, s.g.dmgSeqN, s.g.dmgSeqI, s.g.dmgSeqPl = false, 0, 0, 0
 	s.g.plusBatchAsked = false // a new resolution cannot inherit a parked batch
 	s.resArm().plc = libTally{}
-	s.resArm().jf = 0                // the join-forces total is per resolution
+	s.resArm().jf = 0          // the join-forces total is per resolution
+	s.resArm().voteAll = false // a vote's all-options mode never outlives its resolution
+	s.resArm().voteCur = 0
 	s.g.dmgBOn, s.g.dmgBn = false, 0 // a new resolution's sweep batch is closed (trig_dmgbatch.go)
 }
 

@@ -24,6 +24,7 @@ Battlefield Raptor
 Bishop of Rebirth
 Blessed Orator
 Blisterpod
+Blood-Chin Fanatic
 Bloodfire Mentor
 Boneclad Necromancer
 Bottle of Suleiman
@@ -42,6 +43,7 @@ Council of Advisors
 Countless Gears Renegade
 Crab Umbra
 Crackdown
+Crackling Spellslinger
 Crypt Ripper
 Curse of Obsession
 Dakmor Plague
@@ -91,6 +93,7 @@ Glimmer Lens
 Gnoll War Band
 Go Blank
 Goblin Recruiter
+Goblin Wizard
 Graaz, Unstoppable Juggernaut
 Granulate
 Grasp of Phantoms
@@ -113,14 +116,17 @@ In Bolas's Clutches
 Indrik Umbra
 Ingenuity Engine
 Insatiable Souleater
+Interceptor, Shadow's Hound
 Invisible Force Field
 Iroas's Champion
 Iron Lance
 Island
 Island Fish Jasconius
+Isperia the Inscrutable
 Javelin of Lightning
 Jeweled Torque
 Jump
+Kami of the Waning Moon
 Kithkin Zealot
 Knight of Dusk's Shadow
 Knight of the Tusk
@@ -173,10 +179,12 @@ Redeem the Lost
 Regent's Authority
 Replication Technique
 Restore the Peace
+Return to the Ranks
 Ring of Kalonia
 Ritual Guardian
 Root Out
 Rotting Fensnake
+Rust Goliath
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
@@ -208,6 +216,8 @@ Sylvan Anthem
 Tavern Swindler
 Tempest Drake
 Temple Bell
+Thief of Hope
+Thing in the Ice
 Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
@@ -215,6 +225,7 @@ Throne of Geth
 Titania's Boon
 Topplegeist
 Traitorous Blood
+Travel Through Caradhras
 Treasure Hunt
 Triangle of War
 Triskelion
@@ -228,6 +239,7 @@ Vogar, Necropolis Tyrant
 Voracious Typhon
 Vraska's Contempt
 Wall of Blossoms
+War-Wing Siren
 Warm Welcome
 Waterfront District
 Wayfaring Temple
@@ -238,4 +250,5 @@ Wolfir Avenger
 Wrath of the Skies
 You Meet in a Tavern
 Zagoth Triome
+Zhalfirin Lancer
 Zodiac Ox

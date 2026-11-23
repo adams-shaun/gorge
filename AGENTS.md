@@ -109,10 +109,11 @@ key, so the make targets keep them fixed.
 `make precheck` is an alias for `test-smart`. The full suite runs in CI, never
 locally. A pull request's own checks are `fast` (`scripts/ci-fast.sh`) and `lint`;
 the Mergify merge queue then batches up to 10 PRs and runs the six test shards,
-`examples`, `wire-matrix` and `dirac-slices` once per batch
+`examples`, `wire-matrix`, `dirac-slices` and `oracle-sentinels` once per batch
 ([`.mergify.yml`](.mergify.yml), [`ci.yml`](.github/workflows/ci.yml)). The whole
-`dirac/oracle` runs on `main` about every 6 hours
-([`oracle.yml`](.github/workflows/oracle.yml)).
+`dirac/oracle` runs on `main` about every 2 hours
+([`oracle.yml`](.github/workflows/oracle.yml); a red run bisects itself into a draft revert PR), and every batch
+runs the `oracle-sentinels` set (`dirac/oracle/testdata/sentinels.txt`).
 Rules and rationale: [invariants.md](docs/agents/invariants.md#workflow).
 
 Acceptance (each prints its verdict line):

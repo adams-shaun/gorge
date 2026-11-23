@@ -22,8 +22,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugIgnoreGoad bool
 
 // prepGoad sets anyGoad: some program goads, or a static goads
-// (kop.StatGoad, anyStatGoad). A granted static goad holds a pod's table to
-// two seats (tableGrantsStatGoad).
+// (kop.StatGoad, anyStatGoad). A Goad$ True static an Animate staticAbilities$
+// grant switches on is goaded by the seat that made the grant
+// (grantGoader, goadedGranted).
 func prepGoad(t *kop.Table, g *genPrep) {
 	g.anyStatGoad = tableHasStatic(t, kop.StatGoad)
 	g.anyGoad = g.anyStatGoad
@@ -34,26 +35,74 @@ func prepGoad(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
-	if MaxSeats > 2 && tableGrantsStatGoad(t) {
-		// a Goad$ True static an Animate staticAbilities$ grant switches on
-		// (static_ovgate.go grantedStaticFlag) has no seat the kernel reads
-		// as its goader: the CR 701.15b defender gate in attackOffersN
-		// cannot name it, so a larger game refuses such a table at its
-		// start (StallTwoSeat). A printed static's goader is its
-		// controller (goadedBy).
-		g.twoSeatOnly = true
-	}
 }
 
-// tableGrantsStatGoad reports whether a card of t carries a StatGoad static
-// that a grant switches on (kop.StatGoadGranted).
-func tableGrantsStatGoad(t *kop.Table) bool {
-	for i := range t.Cards {
-		if kop.StatGoadGranted(&t.Cards[i]) {
-			return true
+// goadGrantBits is the OvGate bits of card c's granted StatGoad statics.
+func goadGrantBits(c *kop.CardDef) (bits uint8) {
+	for i := range c.Abilities {
+		if a := &c.Abilities[i]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad {
+			bits |= a.Static.OvGate
 		}
 	}
-	return false
+	return bits
+}
+
+// grantGoader is the value an override record stores in its (otherwise unused)
+// t for a grant of a StatGoad static: the granting controller + 1, since
+// gorge registers the granted static with the Animate's own controller
+// (registerAnimateStaticAbilities: ce.Controller = c.Controller) and CR 701.15
+// names the goader as the one the goad effect is controlled by. 0 for any
+// other grant, so it still merges as before.
+func grantGoader(k *prep, src CardID, o *kop.Override, ctrl uint8) int16 {
+	if int(src) < len(k.t.Cards) && goadGrantBits(&k.t.Cards[src])&o.GrantStatics != 0 {
+		return int16(ctrl) + 1
+	}
+	return 0
+}
+
+// goadedGranted reports whether seat p made a live override grant on sl of a
+// Goad$ True static that applies to sl (gorge staticGoaders over the
+// Animate's registered continuous effect, its controller the goader). The
+// static's filter and condition resolve against the holder, as
+// grantedStaticFlag's do.
+func (s *State) goadedGranted(k *prep, sl Slot, p uint8) bool {
+	if !s.fxM.has(sl) {
+		return false
+	}
+	hit := false
+	pm := &s.perms[sl]
+	lts, lost := uint16(0), false
+	known := false
+	s.eachOvRec(sl, func(r ovRec) {
+		if hit || r.idx == 0 || r.t != int16(p)+1 {
+			return
+		}
+		o := &k.t.Overrides[r.idx-1]
+		if o.GrantStatics == 0 {
+			return
+		}
+		if !known {
+			lts, lost = s.lossAt(k, sl)
+			known = true
+		}
+		if lost && r.ts < lts {
+			return
+		}
+		cd := &k.t.Cards[r.src]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			st := &a.Static
+			if a.Kind != kop.AbStatic || st.Kind != kop.StatGoad || st.OvGate == 0 || o.GrantStatics&st.OvGate == 0 {
+				continue
+			}
+			ctx := evalCtx{src: pm.obj, srcSl: sl, ctrl: pm.ctrl}
+			if (st.Cond2 == 0 || s.condEval(k, st.Cond2, ctx)) && s.matchPermGen(k, st.Filter, sl, pm.ctrl, sl, layerFull) {
+				hit = true
+				return
+			}
+		}
+	})
+	return hit
 }
 
 // goadedBy reports whether seat p goads the permanent at sl (gorge
@@ -67,10 +116,13 @@ func (s *State) goadedBy(k *prep, sl Slot, p uint8) bool {
 	if !k.gen.anyStatGoad || DebugStatGoadNoGoader {
 		return false
 	}
+	if s.goadedGranted(k, sl, p) {
+		return true
+	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
-		if st.ctrl == p && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && s.statCond(k, st) &&
+		if st.ctrl == p && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatGoad && a.Static.OvGate == 0 && s.statCond(k, st) &&
 			(st.emb == 0 || s.embCaptureOK(k, st.emb, sl)) &&
 			s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
 			hit = true

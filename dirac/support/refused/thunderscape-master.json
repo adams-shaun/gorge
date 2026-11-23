@@ -1,0 +1,22 @@
+{
+  "card": "Thunderscape Master",
+  "class": "options-options",
+  "why": "its cast ({2}{R}{R}) over two Mountains, a Domesticated Watercourse, five Islands under Scald and Overflowing Basin's {1},{T} filter exhausts gorge's 160-node potential prefix search (plain, phased and subsume runs; census_incomplete), so the autopay surface withholds it, while the kernel's mirror of the search prices the payment (the Basin fee chain or a Scald'd Island's tap with its trigger resolved) and offers it; tail-49 seed 496348 pair 60 decision 608",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 13303344120413421709,
+    "pair": 60,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "thunderscape_master_gap_search_budget_exhausted"
+  },
+  "evidence": [
+    "ev-tail-08-c000",
+    "ev-tail-08-c007",
+    "ev-tail-08-c044",
+    "ev-tail-49-c000",
+    "ev-tail-49-c001",
+    "ev-tail-49-c002"
+  ]
+}

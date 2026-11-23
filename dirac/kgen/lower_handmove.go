@@ -16,6 +16,25 @@ func lineReadsX(v string) bool {
 	return false
 }
 
+// handMoveCount vets a hand move's ChangeNum$: a constant or "any number",
+// plus a StoreVoteNum$ option tally, which the kernel resolves when the move
+// starts (s.value) so a zero tally takes nothing. counted marks the "any
+// number" form.
+func (lc *lowerCtx) handMoveCount(n lValue) (counted bool, err error) {
+	counted = n.Kind == vCountHand
+	if !counted && n.Kind != vVoteTally && (!n.isConst() || n.N < 1) {
+		return false, refuse("hand move ChangeNum$ %v", n)
+	}
+	return counted, nil
+}
+
+// handMoveAuraCountOK reports whether a hand move whose filter may admit an
+// Aura is the one-card shape (or a vote tally, whose cards the kernel parks
+// one at a time).
+func handMoveAuraCountOK(n lValue, counted, each bool) bool {
+	return n.Kind == vVoteTally || !(counted || !n.isConst() || n.N != 1 || each)
+}
+
 // handMove lowers a hidden-origin ChangeZone Origin$ Hand -> Battlefield,
 // Exile or Library: gorge effChangeZoneHand / effChangeZoneHandOwners (both
 // handMoveOwnersWalk): the hand's owner is the controller, or the player a
@@ -45,9 +64,9 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 			return refuse("hand move AlreadyRevealed$ %q", v)
 		}
 	}
-	counted := n.Kind == vCountHand // "any number" over a Count$ValidHand SVar (gorge handMoveCountOf: resolved once, at resolution)
-	if !counted && (!n.isConst() || n.N < 1) {
-		return refuse("hand move ChangeNum$ %v", n)
+	counted, err := lc.handMoveCount(n)
+	if err != nil {
+		return err
 	}
 	for _, fl := range flags {
 		if (fl == "Bottom" || fl == "PosAsk") && dest != zLibrary {
@@ -81,8 +100,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 				// CR 303.4f/g: an Aura put onto the battlefield enchants what its
 				// controller chooses as it enters, or stays in the hand when
 				// nothing is legal (gorge auraEntryGate); the kernel's parked
-				// move is one card
-				if counted || !n.isConst() || n.N != 1 || f.Each {
+				// move is one card. A StoreVoteNum$ tally is exempt: the
+				// kernel walks the chosen cards one at a time and parks each
+				// Aura at raGenEnchant (handAuraArmed), so the dynamic count
+				// is the same entry gate.
+				if !handMoveAuraCountOK(n, counted, f.Each) {
 					return refuse("hand move filter %s may admit an Aura", f)
 				}
 				flags = append(flags, "AuraEntry")

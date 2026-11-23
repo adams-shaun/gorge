@@ -155,12 +155,6 @@ type GorgeSide struct {
 	// plan fell back to carries no ManaPayment, so the owed colour of an
 	// any-colour mana ability's colour ask is this demand less the pool.
 	payPips [6]uint8
-	// selfTarget records that a lowered play's unmodelled target ask was
-	// answered at the deciding seat's own face (the positional clamp).
-	// safeTargets reruns such a lowering aiming at an opposing face, for a
-	// line the positional answer ended by killing the payer.
-	selfTarget  bool
-	safeTargets bool
 }
 
 // frame is the canonical view of one posed gorge decision.
@@ -272,10 +266,6 @@ type prioEntry struct {
 	play    payexec.Play
 	plan    decision.PaymentPlan
 	script  []rules.ScriptStep
-	// safeTargets marks a prLower whose positional lowering ended by the
-	// payer's own damage trigger, so the real play must aim that pick at an
-	// opposing face (lowerCompletes' retry, selected on its clone).
-	safeTargets bool
 }
 
 // NewGorgeSide starts gorge on m with seed, exactly as gorge self-play does
@@ -708,6 +698,79 @@ func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Re
 	return Pack(ActSpecial, ref(pa.Obj), RefNone, c|sub<<4), true
 }
 
+// impendedCastAction is the canonical action of obj's impending cast
+// (CR 702.176a, cost {2}{W}{W} against the plain {5}{W}{W}), and forgets the
+// plain hand price cached for obj: both casts announce their convoke picks
+// against the same card, so the plain price over-prices the impending
+// announcement (it offers generic picks the impending cost no longer
+// absorbs). With no cached price the frame is gorge's own Submit gate
+// (convokeFrameFor), which prices the pending cast itself.
+func (g *GorgeSide) impendedCastAction(obj state.ObjID, ref func(state.ObjID) Ref) Canon {
+	delete(g.castCost, obj)
+	delete(g.castX, obj)
+	return Pack(ActCastImpended, ref(obj), RefNone, 0)
+}
+
+// plannedCastAction is paymentCastAction, with the impended route's cache
+// forgotten (impendedCastAction).
+func (g *GorgeSide) plannedCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (Canon, bool, string) {
+	a, skip, unknown := paymentCastAction(pa, ref)
+	if pa.Cast.CastMode() == "impended" {
+		a = g.impendedCastAction(pa.Cast.Object, ref)
+	}
+	return a, skip, unknown
+}
+
+// paymentCastAction is the canonical action of a planner-paid cast.
+// casualty, impended and conspired have their own action kinds; the full
+// cast-mode table's modes the table cannot hold use CastModeOther. A hand
+// alternate-spell-face route the planner prices (adventure_alt/omen_alt) is
+// not a distinct action: the legal walk already offers it as the ActCastFace
+// option when the payer can afford it, and that offer is the surface the
+// kernel mirrors, so skip is true and the witness is not an option (nor an
+// unknown kind: dr-mbc-bbbb pair 98). unknown names an unlisted cast mode.
+func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a Canon, skip bool, unknown string) {
+	mode := pa.Cast.CastMode()
+	switch mode {
+	case "casualty":
+		return Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "impended":
+		return Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "conspired":
+		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
+	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
+		// CR 702.166: the full cast-mode table's castModeOther code, the
+		// same canonical form the offered option uses
+		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther), false, ""
+	}
+	if _, ok := faceCastCode(mode); ok {
+		return 0, true, ""
+	}
+	mc, ok := castModeCode(mode)
+	if !ok {
+		return 0, false, "payment/" + pa.Cast.Origin
+	}
+	return Pack(ActCast, ref(pa.Cast.Object), RefNone, mc), false, ""
+}
+
+// censusOfferKind is the vocabulary kind of an "ability" option the census-gap
+// arm offered (decision.Option.CensusOffer, engine/rules autoPayCensus): it
+// lowers nothing in the offered-options pass.
+const censusOfferKind = "census_offer"
+
+// priorityOptionKind is o.Kind, except that the census-gap arm's "ability"
+// offer reads as censusOfferKind. That offer is the canonical pricing's own
+// play: PotentialPaymentPlans lowers it as the script route (play the funding
+// source, then the ability), the shape the kernel's actScriptPays mirrors. The
+// bare option's route is a manual payment window, and add()'s dedupe would let
+// it displace the script.
+func priorityOptionKind(o *decision.Option) string {
+	if o.CensusOffer && o.Kind == "ability" {
+		return censusOfferKind
+	}
+	return o.Kind
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -733,7 +796,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	// Offered options first: an offered play needs no lowering.
 	for i := range d.Options {
 		o := &d.Options[i]
-		switch o.Kind {
+		switch priorityOptionKind(o) {
 		case "pass":
 			add(prioEntry{a: Pack(ActPass, RefNone, RefNone, 0), opt: o.Index})
 		case "play_land":
@@ -943,12 +1006,10 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "multikicked" {
-				// CR 702.43: the kernel's multikicked cast is its kicked cast
-				// (AkCast mode bit 0) plus the count ask that follows, so the
-				// priority option canonicalises as "kicked"
+			if repeatedCastMode(o.Mode) {
+				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				if o.AltCostIndex > 15 {
-					note("cast/multikicked")
+					note("cast/" + o.Mode)
 					continue
 				}
 				mc, _ := castModeCode("kicked")
@@ -1001,19 +1062,25 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// A saddle ability a static grants (Jandor, Fortuned Traveler's
 				// "has saddle 2"): the kernel's latent-ability activation,
 				// told apart by the granting permanent (kgen
-				// lower_saddlegrant.go). Only saddle is modelled: the other
-				// granted-keyword abilities keep the anchored note below.
+				// lower_saddlegrant.go). Only saddle and the embalm below are
+				// modelled: the other granted-keyword abilities keep the
+				// anchored note below.
 				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
 					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
 					continue
 				}
+			}
+			if o.Keyword == grantedEmbalmLine && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 {
+				// Cursecloth Wrappings' granted embalm (kgen lower_embalmgrant.go)
+				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
+				continue
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
 			}
 			add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability)), opt: o.Index})
-		case "activate", "concede":
+		case "activate", "concede", censusOfferKind:
 		default:
 			if c, ok := specialCode(o.Kind); ok {
 				sub := turnUpModeCode(o.Mode)
@@ -1032,24 +1099,16 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		if len(pa.Plans) == 0 {
 			continue
 		}
-		var a Canon
-		if pa.Cast.CastMode() == "casualty" {
-			a = Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0)
-		} else if pa.Cast.CastMode() == "impended" {
-			a = Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0)
-		} else if pa.Cast.CastMode() == "conspired" {
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4)
-		} else if pa.Cast.CastMode() == "suspend" || pa.Cast.CastMode() == "bargained" || pa.Cast.CastMode() == "teamworked" || pa.Cast.CastMode() == "harmonize" || pa.Cast.CastMode() == "mayhem" || pa.Cast.CastMode() == "buyback" || pa.Cast.CastMode() == "entwined" || pa.Cast.CastMode() == "optionalcost" || pa.Cast.CastMode() == "web-slinging" || pa.Cast.CastMode() == "overloaded" || pa.Cast.CastMode() == "cleaved" {
-			// CR 702.166: the full cast-mode table's castModeOther code, the
-			// same canonical form the offered option uses
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther)
-		} else {
-			mc, ok := castModeCode(pa.Cast.CastMode())
-			if !ok {
-				note("payment/" + pa.Cast.Origin)
-				continue
-			}
-			a = Pack(ActCast, ref(pa.Cast.Object), RefNone, mc)
+		a, skip, unknown := g.plannedCastAction(pa, ref)
+		if skip {
+			continue
+		}
+		if unknown != "" {
+			note(unknown)
+			continue
+		}
+		if pa.Cast.Origin == decision.OriginLibrary && libraryMayPlayLowersFirst(g, pa, a) {
+			continue
 		}
 		replaced := false
 		for k := range fr.prio {
@@ -1068,6 +1127,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 	for _, pp := range e.PotentialPaymentPlans(d.Player) {
 		pa := pp.Action
 		var a Canon
+		kw := "" // the keyword line a keyword-granted ability play carries
 		switch pa.Kind {
 		case "cast":
 			// The planner prices the face routes the kernel offers from its
@@ -1079,10 +1139,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if fc, ok := faceCastCode(pa.Mode); ok && followedFaceRoute(fc) {
 				a = Pack(ActCastFace, ref(pa.Obj), RefNone, fc)
 			} else if pa.Mode == "impended" {
-				a = Pack(ActCastImpended, ref(pa.Obj), RefNone, 0) // kw_impending.go
-			} else if pa.Mode == "multikicked" {
-				// CR 702.43: the kernel's multikicked cast is its kicked cast
-				// plus the count ask that follows, canonical "kicked"
+				a = g.impendedCastAction(pa.Obj, ref) // kw_impending.go
+			} else if repeatedCastMode(pa.Mode) {
+				// CR 702.43/702.56a/702.157a: the kernel's repeated-payment cast is its kicked cast plus the count ask, canonical "kicked"
 				mc, _ := castModeCode("kicked")
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
@@ -1106,6 +1165,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
 			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
 				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
+			} else if pa.Ability < 0 && g.grantedEmbalm(pa.Obj) {
+				a = grantedEmbalmAction(ref(pa.Obj)) // as the offer above
+				kw = grantedEmbalmLine
 			}
 		case "turn_face_up":
 			var ok bool
@@ -1167,7 +1229,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			g.Stats.note(&g.Stats.UnpricedPlays, "no plan: "+pa.Label)
 			continue
 		}
-		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode},
+		pe := prioEntry{a: a, kind: prLower, play: payexec.Play{Kind: pa.Kind, Obj: pa.Obj, Ability: pa.Ability, Mode: pa.Mode, Keyword: kw},
 			plan: decision.ClonePaymentPlan(*pp.Plan)}
 		if (pa.Kind == "ability" || a.Kind() == ActCastFace) && !g.lowerCompletes(&pe) {
 			// the witness funds only the mana half of a Phyrexian
@@ -1182,6 +1244,19 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		add(pe)
 	}
 	sort.Slice(fr.prio, func(i, j int) bool { return fr.prio[i].a < fr.prio[j].a })
+}
+
+// libraryMayPlayLowersFirst reports that a planned may-play library cast the
+// planner prices lowers by floating the witness first (prLower, the route the
+// kernel's own payment mirrors: its floats precede the cast's target ask).
+// Only a cast the planner withholds -- a witness whose payment consumes the
+// permanent granting the may-play permission (CR 601.6 keeps the proposal
+// legal, so the planned payment proposes first) -- lowers as a planned payment.
+func libraryMayPlayLowersFirst(g *GorgeSide, pa decision.PaymentAction, a Canon) bool {
+	pe := prioEntry{a: a, kind: prLower,
+		play: payexec.Play{Kind: "cast", Obj: pa.Cast.Object, Mode: pa.Cast.CastMode()},
+		plan: decision.ClonePaymentPlan(pa.Plans[0])}
+	return g.lowerCompletes(&pe)
 }
 
 // reposeSingle poses a priority frame: every entry once.
@@ -1833,9 +1908,7 @@ func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 		}
 	case prLower:
 		g.Stats.Lowered++
-		g.safeTargets = pe.safeTargets
 		g.lower(pe)
-		g.safeTargets = false
 	case prScript:
 		g.Stats.Scripted++
 		g.runScript(pe)
@@ -1868,27 +1941,26 @@ func (g *GorgeSide) scriptCompletes(pe prioEntry) bool {
 // whether it made the play: no abort, no failure, and not a lowering that
 // only passed until the game ended.
 func (g *GorgeSide) lowerCompletes(pe *prioEntry) bool {
-	c, ok := g.lowerProbe(*pe, false)
-	if ok || !c.selfTarget {
-		return ok
+	c, ok := g.lowerProbe(*pe)
+	if ok {
+		return true
 	}
-	// The positional answer aimed the plan's own trigger at the payer and
-	// the line ended with them losing before the play. Retry off their face:
-	// the play is legal (the payer would choose another target), so the
-	// offer must not be dropped just because the repair's lowest index was
-	// self-damage.
-	if _, ok = g.lowerProbe(*pe, true); !ok {
-		return false
-	}
-	pe.safeTargets = true
-	return true
+	// A positional line that ends the game completes the offer: the kernel's
+	// own play of the cast answers the same plan-foreign target asks with
+	// the same lowest index (a self-damaging payment trigger, Spiteful
+	// Prankster beside a Treasonous Ogre life payment, resolves at the
+	// payer's face), so its line ends the game the same way and the cast is
+	// one neither engine makes. Aiming the pick at an opposing face instead
+	// (the former safe-target retry) kept the payer alive but split the two
+	// engines' pings: the kernel's payment still resolved them at the payer
+	// and died while the lowered line cast on (dr-mbc-bbbb, decision 466).
+	return c.E.G.Over
 }
 
-// lowerProbe runs pe's lowering on a clone, in the positional answer or the
-// opposing-face retry, and reports the clone's side (selfTarget records the
-// shape) and whether the play was made.
-func (g *GorgeSide) lowerProbe(pe prioEntry, safe bool) (*GorgeSide, bool) {
-	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp, safeTargets: safe}
+// lowerProbe runs pe's lowering on a clone in the positional answer and
+// reports the clone's side and whether the play was made.
+func (g *GorgeSide) lowerProbe(pe prioEntry) (*GorgeSide, bool) {
+	c := &GorgeSide{E: g.E.Clone(), M: g.M, Cfg: g.Cfg, hyp: g.hyp}
 	c.id = identity{inst: append([]Ref(nil), g.id.inst...), obj: append([]state.ObjID(nil), g.id.obj...), scanned: g.id.scanned, lay: g.id.lay, ncard: g.id.ncard, gen: g.id.gen}
 	ok := func() (ok bool) {
 		defer func() {
@@ -2018,53 +2090,13 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 // the plan's own activations stacked, an optional trigger) while lowering
 // that play, with the positional repair clamp that answers lowest-index
 // options and concedes benignly. A target ask's lowest index is often the
-// deciding seat's own face, which the plan's own sacrifice trigger can then
-// damage; selfTarget records that shape so lowerCompletes can retry a
-// lowering that ended with the payer losing (Spiteful Prankster beside a
-// Treasonous Ogre life payment). The retry aims such a pick at an opposing
-// face, keeping every other answer positional: a recording whose positional
-// line does complete keeps the target it recorded.
+// deciding seat's own face; the kernel's own play of the cast answers the
+// same ask the same way, so the two engines' lines stay together even where
+// the pick is self-damage (lowerCompletes accepts the game that line ends).
 func (g *GorgeSide) yieldAnswer(d *decision.Decision) decision.Intent {
 	in := botpolicy.Clamp(d, decision.Intent{Seq: d.Seq, Player: d.Player})
-	if d.Kind == decision.KTarget {
-		if ownFaceOption(d, in.Choices) >= 0 {
-			g.selfTarget = true
-			if g.safeTargets && d.Min == 1 && d.Max == 1 && len(in.Choices) == 1 {
-				if opp, ok := opposingFaceOption(d); ok {
-					in.Choices[0] = opp
-				}
-			}
-		}
-	}
 	in.Seq, in.Player = d.Seq, d.Player
 	return in
-}
-
-// ownFaceOption reports the first pick that names the deciding seat's own
-// face, or -1. Only a player option counts: a permanent you control that
-// the trigger damages is no self-kill by the seat's own face.
-func ownFaceOption(d *decision.Decision, picks []int) int {
-	for _, c := range picks {
-		if c >= 0 && c < len(d.Options) {
-			o := &d.Options[c]
-			if o.Kind == "player" && o.Player == d.Player {
-				return c
-			}
-		}
-	}
-	return -1
-}
-
-// opposingFaceOption is the first option naming another seat's face: the
-// benign target for a damage trigger whose positional answer was the payer.
-func opposingFaceOption(d *decision.Decision) (int, bool) {
-	for i := range d.Options {
-		o := &d.Options[i]
-		if o.Kind == "player" && o.Player != d.Player {
-			return o.Index, true
-		}
-	}
-	return 0, false
 }
 
 // lower pays a potential play by its witness (payexec): activate each plan
@@ -2331,6 +2363,20 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 	return o.Face().Abilities[i].IsCopyGranted()
 }
 
+// grantedEmbalmLine is the keyword line Cursecloth Wrappings' pump grants.
+const grantedEmbalmLine = "Embalm:CardManaCost"
+
+// grantedEmbalmAction is the kernel's granted embalm of the card src
+// (dirac kw_embalmgrant.go): the granted-ability activation with the card as
+// its source and no grantor, the target code 0 its canonical form reads as ref
+// 0 whatever granted it.
+func grantedEmbalmAction(src Ref) Canon { return Pack(ActActivate, src, Ref(0), 255) }
+
+// grantedEmbalm reports whether id holds the embalm of grantedEmbalmLine.
+func (g *GorgeSide) grantedEmbalm(id state.ObjID) bool {
+	return slices.Contains(g.E.Derived(id).Keywords, grantedEmbalmLine)
+}
+
 // selfKeywordGrant reports whether a continuous effect on object id itself
 // grants it the derived keyword line line and leaves its abilities alone
 // (Domesticated Watercourse's Animate registers Source: id, Affects:
@@ -2339,6 +2385,13 @@ func copyGrantedAbilityOf(o *state.Object, i int) bool {
 // that source, so neither matches.
 func (g *GorgeSide) selfKeywordGrant(id state.ObjID, line string) bool {
 	line = strings.TrimSpace(line)
+	if line == grantedEmbalmLine {
+		// Cursecloth Wrappings' Pump registers its embalm grant the same
+		// way (Source: the target, Affects: Card.Self), but the kernel
+		// reads it as the granted embalm with no grantor
+		// (grantedEmbalmAction), not as the permanent's own grant.
+		return false
+	}
 	for _, ce := range g.E.RegisteredContinuous() {
 		if ce.Source != id || ce.Layer != state.LAbilities || ce.RemoveAbilities || ce.GrantedStatic || !strings.EqualFold(strings.TrimSpace(ce.Affects), "Card.Self") {
 			continue
@@ -2381,4 +2434,11 @@ func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref
 		return Pack(ActActivate, ref(o.Obj), ref(o.GainedSource), uint8(o.GainedIdx)), false, true
 	}
 	return 0, false, false
+}
+
+// repeatedCastMode reports the three repeated-additional-cost cast modes:
+// gorge's multikicked/replicated/squadded options all canonicalise to the
+// kernel's one kicked cast plus the count ask.
+func repeatedCastMode(mode string) bool {
+	return mode == "multikicked" || mode == "replicated" || mode == "squadded"
 }

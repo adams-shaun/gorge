@@ -9,6 +9,7 @@ Angelic Chorus
 Angrath's Rampage
 Animate Land
 Armored Galleon
+Arwen, Weaver of Hope
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
@@ -23,6 +24,7 @@ Beast Mode
 Bessie, the Doctor's Roadster
 Black Dragon Gate
 Bladeback Sliver
+Blanket of Night
 Blazing Sunsteel
 Blinding Drone
 Blitz Leech
@@ -67,6 +69,7 @@ Demonic Bargain
 Demotion
 Desecration Plague
 Dictate of Karametra
+Dire Wolves
 Disperse
 Divine Light
 Doom's Servo-Guards
@@ -311,6 +314,7 @@ Wall of Tears
 Warchanter Skald
 Waterlogged Teachings
 Windbrisk Heights
+Winterthorn Blessing
 Wormfang Behemoth
 You Come to a River
 Yuki-Onna

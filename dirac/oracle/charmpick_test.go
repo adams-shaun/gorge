@@ -32,9 +32,9 @@ var charmpickDecks = [2][]cardset.Entry{
 	{ // B
 		{Name: "The Vision", Count: 1}, {Name: "Breeches, Eager Pillager", Count: 1}, {Name: "Lita, Little Orphan Amphibian", Count: 1},
 		{Name: "Monument to Endurance", Count: 2}, {Name: "Tormenting Voice", Count: 3},
-		{Name: "Swab Goblin", Count: 3}, {Name: "Goblin Trailblazer", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Opt", Count: 4},
+		{Name: "Swab Goblin", Count: 3}, {Name: "Goblin Trailblazer", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Opt", Count: 3}, {Name: "Three Bowls of Porridge", Count: 3},
 		{Name: "Defiant Strike", Count: 2}, {Name: "Cloudshift", Count: 3}, {Name: "Lightning Bolt", Count: 1},
-		{Name: "Mountain", Count: 7}, {Name: "Plains", Count: 6},
+		{Name: "Mountain", Count: 6}, {Name: "Plains", Count: 5},
 	},
 }
 
@@ -205,6 +205,7 @@ func TestCharmpickLockstep(t *testing.T) {
 		{st.excluded, 40, "restricted asks with a mode excluded"},
 		{st.repeat, 10, "second triggers in a turn"},
 		{st.flickered, 3, "flickered sources"},
+		{st.bowlsLate, 2, "Three Bowls asks after a turn change, still excluding"},
 	} {
 		if c.n < c.min {
 			t.Errorf("%s: %d, want at least %d", c.s, c.n, c.min)

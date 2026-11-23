@@ -4,4 +4,4 @@ value: 44
 forge: ExchangeLife
 census: api ExchangeLife all=8 std=1 mbc=0 sole=5
 state: code 0
-status: reserved
+status: active

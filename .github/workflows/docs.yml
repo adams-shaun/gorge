@@ -16,6 +16,8 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_cert.py
+      - scripts/docs_cert_test.py
       - scripts/docs_slices_test.py
       - scripts/dirac_slices_summary.py
       - scripts/docs_web_test.py
@@ -36,6 +38,8 @@ on:
       - mkdocs.yml
       - scripts/docs_sets.py
       - scripts/docs_sets_test.py
+      - scripts/docs_cert.py
+      - scripts/docs_cert_test.py
       - scripts/docs_slices_test.py
       - scripts/dirac_slices_summary.py
       - scripts/docs_web_test.py
@@ -158,6 +162,26 @@ jobs:
             echo "no gorge-compliance docs-data branch; the gorge columns render as not available"
           fi
           python3 scripts/docs_sets.py "${args[@]}"
+
+      # The set-certification pages (support/certification.md and one page per
+      # set under support/cert/): gorge's certloop publishes counts, card
+      # names, levels, reasons and ticket ids to gorge-compliance's orphan
+      # cert-data branch. Without the branch the overview page renders as
+      # "not measured" and the build still passes.
+      - name: Render the certification pages
+        run: |
+          python3 -m unittest discover -s scripts -p 'docs_cert_test.py'
+          args=()
+          if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git cert-data 2>/dev/null; then
+            c=$(mktemp -d)
+            for f in cert-sets.jsonl cert-cards.jsonl cert-meta.json; do
+              git show "FETCH_HEAD:$f" > "$c/$f" 2>/dev/null || true
+            done
+            args+=(--cert-data "$c")
+          else
+            echo "no gorge-compliance cert-data branch; the certification pages render as not measured"
+          fi
+          python3 scripts/docs_cert.py "${args[@]}"
 
       - name: Build the site
         run: mkdocs build --strict

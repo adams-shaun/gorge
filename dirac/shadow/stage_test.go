@@ -76,6 +76,11 @@ type stageEnv struct {
 	// combat also stages at the declare attackers and declare blockers
 	// decisions, the viewer the seat that decides them.
 	combat bool
+	// seats is the pod size: 0 plays the two-seat game (its exact random draws).
+	seats int
+	// matchup, when set, edits the matchup before either side is built (a
+	// Commander pod seats its commanders here).
+	matchup func(m *oracle.Matchup)
 }
 
 func vanillaEnv() *stageEnv {
@@ -111,7 +116,19 @@ type stageStats struct {
 	firstDetail   map[string]string // the first error text of each reason, for a log
 	spells        int               // staged positions with a spell on the stack
 	abilities     int               // staged positions with an ability on the stack
-	deadTok       int               // positions skipped: a token had left the view after the last one shown
+	ceased        int               // staged positions holding a ceased token
+	targeted      int               // staged positions with a stack entry holding a target
+	marked        int               // staged positions with damage or a +1/+1 counter
+	stacked       int               // staged positions with a stack entry
+	farAttack     int               // staged positions with an attacker on a seat other than the active seat's next
+	farBlock      int               // staged declare blockers poses of a defender other than the active seat's next
+	departed      int               // staged positions with a seat that has left the game
+	departed2     int               // staged positions with two or more such seats
+	cmdZone       int               // staged Commander positions with a commander in a command zone
+	cmdBF         int               // ... with a commander on the battlefield
+	cmdCast1      int               // ... with a commander cast from the command zone at least once
+	cmdCast2      int               // ... with a commander cast at least twice (taxed)
+	cmdDmg        int               // ... with commander damage taken
 }
 
 var errDone = &oracle.Divergence{What: "stage-done"}
@@ -120,10 +137,36 @@ var errDone = &oracle.Divergence{What: "stage-done"}
 // first stageable one from there on. It returns a failure text or "".
 func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, mut func(*dirac.World)) string {
 	r := rand.New(rand.NewPCG(seed, 0x5748))
-	decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
-	m, err := oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
+	seats := max(env.seats, 2)
+	var m *oracle.Matchup
+	var err error
+	var gone func(p int) []shadow.Card // the cards of seat p's deck, as the matchup numbers them
+	if env.seats == 0 {
+		decks := [2][]kop.CardID{env.deck(r), env.deck(r)}
+		m, err = oracle.KernelMatchup(reg, env.tbl, [2]string{"a", "b"}, decks, nil, 0)
+	} else {
+		decks := make([][]kop.CardID, seats)
+		for i := range decks {
+			decks[i] = env.deck(r)
+		}
+		m, err = oracle.KernelMatchupN(reg, env.tbl, []string{"a", "b", "c", "d"}[:seats], decks, nil, 0)
+		gone = func(p int) []shadow.Card {
+			base := 0
+			for _, d := range decks[:p] {
+				base += len(d)
+			}
+			var cs []shadow.Card
+			for i, id := range decks[p] {
+				cs = append(cs, shadow.Card{Obj: dirac.Obj(base + i), Name: env.tbl.Cards[id].Name})
+			}
+			return cs
+		}
+	}
 	if err != nil {
 		return err.Error()
+	}
+	if env.matchup != nil {
+		env.matchup(m)
 	}
 	k, err := env.kernel(m, seed)
 	if err != nil {
@@ -142,7 +185,7 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		if d == nil || d.Kind != "priority" && !(env.combat && (d.Kind == decision.KAttackers || d.Kind == decision.KBlockers)) {
 			return nil
 		}
-		viewer := state.PlayerID(r.IntN(2))
+		viewer := state.PlayerID(r.IntN(seats))
 		if d.Kind != "priority" {
 			viewer = d.Player
 		}
@@ -150,12 +193,17 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 		v := view.ProjectFor(g, ref.E, viewer, view.Seat, d)
 		// the hidden zones as the harness knows them: the one place gorge's own state is read
 		hidden := shadow.Hidden{}
-		for p := state.PlayerID(0); p < 2; p++ {
+		for p := state.PlayerID(0); int(p) < seats; p++ {
 			for _, id := range g.Zone(state.ZHand, p) {
 				hidden.Hand[p] = append(hidden.Hand[p], card(ref, g, id))
 			}
 			for _, id := range g.Zone(state.ZLibrary, p) {
 				hidden.Library[p] = append(hidden.Library[p], card(ref, g, id))
+			}
+		}
+		for p := range v.Players {
+			if gone != nil && v.Players[p].Lost {
+				hidden.Gone[p] = gone(p)
 			}
 		}
 		if !env.want(seed, &v, d) {
@@ -166,14 +214,18 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 			View: v, Hidden: hidden, Tbl: env.tbl, Cfg: stageCfg(), Seed: seed,
 			ObjOf: func(id int) (dirac.Obj, bool) { return dirac.Obj(ref.InstRef(state.ObjID(id))), true },
 		}
-		w, err := shadow.WorldFromView(in)
 		var staged *dirac.State
+		var w dirac.World
+		var kp dirac.Projection
+		kstate.Project(&kp)
+		var err error
+		if in.Hidden.Ceased, err = ceasedTokens(kstate, env.tbl, int(kp.NObj)); err == nil {
+			w, err = shadow.WorldFromView(in)
+		}
 		if err == nil {
-			var kp dirac.Projection
-			kstate.Project(&kp)
 			if len(w.Objs) != int(kp.NObj) {
-				st.deadTok++ // a token left the view after the last shown one: the replayed game holds one more object
-				return nil
+				fail = fmt.Sprintf("seed %d, decision %d: staged %d objects, the replay holds %d", seed, n, len(w.Objs), kp.NObj)
+				return errDone
 			}
 			if mut != nil {
 				mut(&w)
@@ -213,8 +265,9 @@ func stageGame(reg *cards.Registry, env *stageEnv, seed uint64, st *stageStats, 
 
 // count tallies the features a staged world holds, once per position.
 func (st *stageStats) count(w *dirac.World) {
-	var dmg, ctr, att, tok, spell, abil bool
+	var dmg, ctr, att, tok, spell, abil, far, ceased, tgt bool
 	for i := range w.Stack {
+		tgt = tgt || w.Stack[i].NT != 0
 		if w.Stack[i].Ability {
 			abil = true
 		} else {
@@ -224,11 +277,38 @@ func (st *stageStats) count(w *dirac.World) {
 	for i := range w.Objs {
 		o := &w.Objs[i]
 		dmg, ctr, att, tok = dmg || o.Damage != 0, ctr || o.P1P1 != 0, att || o.Attached, tok || o.Token
+		ceased = ceased || o.Token && o.Zone == kop.ZoneNone
+		far = far || o.Attacking && o.AtkSeat != (w.Active+1)%w.NSeat
+	}
+	if dmg || ctr {
+		st.marked++
+	}
+	if len(w.Stack) != 0 {
+		st.stacked++
+	}
+	if far {
+		st.farAttack++
+	}
+	gone := 0
+	for _, l := range w.Lost[:w.NSeat] {
+		if l {
+			gone++
+		}
+	}
+	if gone > 0 {
+		st.departed++
+	}
+	if gone > 1 {
+		st.departed2++
+	}
+	st.countCommanders(w)
+	if w.Pose == dirac.PoseBlockers && w.NSeat > 2 && w.BlkDef != (w.Active+1)%w.NSeat {
+		st.farBlock++
 	}
 	for _, f := range []struct {
 		on bool
 		n  *int
-	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {spell, &st.spells}, {abil, &st.abilities}} {
+	}{{dmg, &st.damaged}, {ctr, &st.countered}, {att, &st.attached}, {tok, &st.tokens}, {ceased, &st.ceased}, {spell, &st.spells}, {abil, &st.abilities}, {tgt, &st.targeted}} {
 		if f.on {
 			*f.n++
 		}
@@ -245,6 +325,28 @@ func hasMarks(v *view.View) bool {
 		}
 	}
 	return false
+}
+
+// ceasedTokens is every token the replayed kernel ks holds in no zone below its
+// nobj objects, as the caller of a shadow deals them: the table token's script
+// name and the owner, read from the replay and never from the view. A token in
+// a zone the view does not show (anything but the battlefield and none) is an
+// ErrUnstageable of reason token, as the shadow's would be.
+func ceasedTokens(ks *dirac.State, tbl *kop.Table, nobj int) ([]shadow.CeasedToken, error) {
+	var out []shadow.CeasedToken
+	for o := dirac.Obj(0); int(o) < nobj; o++ {
+		if !ks.ObjToken(o) {
+			continue
+		}
+		switch z := ks.ObjZone(o); z {
+		case kop.ZoneBattlefield:
+		case kop.ZoneNone:
+			out = append(out, shadow.CeasedToken{Obj: o, Name: tbl.Cards[ks.ObjCard(o)].Name, Owner: ks.ObjOwner(o)})
+		default:
+			return nil, dirac.ErrUnstageable{Reason: dirac.ReasonToken, Detail: fmt.Sprintf("the replay holds token %d in zone %d", o, z)}
+		}
+	}
+	return out, nil
 }
 
 func card(ref *oracle.GorgeSide, g *state.Game, id state.ObjID) shadow.Card {

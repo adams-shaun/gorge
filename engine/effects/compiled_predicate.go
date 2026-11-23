@@ -368,10 +368,13 @@ func (ps *PredicatePrograms) evaluateCS(cs *compiledSpec, spec string, g *state.
 			// A colour-bearing term on a face-down battlefield permanent
 			// (CR 708.5: its printed characteristics do not exist) is left to
 			// the textual oracle: the textual path reads ColorsOf, which
-			// reports it colourless (CR 708.2a). Maybe keeps that answer
-			// textual.
+			// reports it colourless (CR 708.2a). The AsFaceDown entry
+			// override is the same shape: the object entering face down is
+			// colourless, and the entry's marker is not folded yet, so the
+			// printed read would answer the origin-zone card. Maybe keeps
+			// that answer textual.
 			if (term.kind == predicateTermColor || term.kind == predicateTermColorless) &&
-				o.FaceDownHidden() {
+				(o.FaceDownHidden() || sc.AsFaceDown) {
 				altMaybe = true
 				continue
 			}

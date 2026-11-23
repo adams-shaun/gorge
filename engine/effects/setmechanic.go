@@ -1,7 +1,7 @@
 // The set-mechanic / keyword-action trigger modes.
 //
-// Crewed, Saddled, BecomesSaddled, BecomesPlotted and SacrificedOnce are
-// implemented rules-side (engine/rules/trigmatch/*.go), so their coverage keys are
+// Crewed, Saddled, BecomesSaddled, BecomesCrewed, BecomesPlotted and
+// SacrificedOnce are implemented rules-side (engine/rules/trigmatch/*.go), so their coverage keys are
 // declared here from the effects side -- the gift.go / evolved.go /
 // elemental-bend precedent. Without this, cards.Registry.Coverage would keep
 // reporting each `trig:<Mode>` as an unimplemented primitive and the
@@ -12,6 +12,7 @@ package effects
 func init() {
 	RegisterNonAPI(
 		"trig:Crewed", "trig:Saddled", "trig:BecomesSaddled", "trig:BecomesPlotted", "trig:SacrificedOnce",
+		"trig:BecomesCrewed",
 		"trig:Forage", "trig:ManifestDread", "trig:CollectEvidence",
 	)
 }

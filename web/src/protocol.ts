@@ -1174,6 +1174,24 @@ export interface Option {
    */
   alone_restricted?: boolean;
   /**
+   * AloneOnly marks a KAttackers option whose creature can ONLY be declared
+   * alone (CR 508.1c, "can only attack alone"): no other creature may be
+   * declared beside it. CompanionNeed/CompanionFrom are the converse
+   * restriction ("can't attack unless a creature with greater power also
+   * attacks", "... at least two other creatures attack", Okk, Orcish
+   * Conscripts, Scarred Puma; the block-side sentences ride KBlockers
+   * options): choosing this option is legal only together with at least
+   * CompanionNeed distinct OTHER creatures, each named by one of the
+   * options in CompanionFrom (option Indexes). All three derive from
+   * combat.CompanionViolated, and AloneLegal (the one home Decision.Validate,
+   * FitAlone and the block solver share) reads them, so a rules-ignorant
+   * client builds a legal declaration from the wire alone. omitempty: an
+   * unrestricted option emits none of them.
+   */
+  alone_only?: boolean;
+  companion_need?: number;
+  companion_from?: number[];
+  /**
    * Mode distinguishes a "cast" option's payment kind: "" the card's own
    * cost, "kicked", "surged", "flashback", "miracle" -- what the engine
    * reads in beginCast's switch. A client renders a kicked/surged/
@@ -1287,8 +1305,9 @@ export interface WindowReason {
    * PlannedCast is the exact cast identity a payment action authorizes.
    *
    * Origin is the zone the cast begins from: "hand", "command_zone" (the plain
-   * taxed commander cast), or "exile" / "graveyard" (the plain cast an untyped
-   * may-play permission grants a card there) -- or "flashback" (OriginFlashback),
+   * taxed commander cast), "exile" / "graveyard" / "library" (the plain cast an
+   * untyped may-play permission grants a card there; the library origin is the
+   * top card only) -- or "flashback" (OriginFlashback),
    * the CR 702.34a flashback cast of a graveyard card for its primary flashback
    * cost, the one alternative-cost cast a V1 witness pays.
    *

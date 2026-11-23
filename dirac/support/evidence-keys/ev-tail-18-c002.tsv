@@ -4,6 +4,7 @@ Ancient Copper Dragon	519b7db72ed3b6be	3	1/1		0/1	ix:resp
 Angler Drake	f714ab2cad3ef5a2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 April O'Neil, Human Element	8189d7537ea63861	6	1/1		0/1	ix:resp
 Ardent Soldier	879fc58679ee9c09	8	0/0		2/2	
+Arrow Storm	ab1475f7fc10d534	7	0/0		1/2	ix:resp
 Asha's Favor	dff219c383671a98	8	0/0		2/2	
 Audacity	78feefbf756584b2	4	1/1		1/2	ix:resp
 Aven Eternal	12ab2ee83d6e1c3a	6	1/1		1/1	
@@ -14,26 +15,31 @@ Bane's Invoker	928fb9ca6cb9408c	3	1/1		0/1	ix:resp
 Baneslayer Angel	9140fba5c203e173	4	0/0		0/0	
 Beastmaster Ascension	174c4d3e405f6d7b	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Beregond of the Guard	f8248994abdef50e	5	1/1		0/1	ix:resp
+Biomass Mutation	8492f4a35c69ded5	7	0/0		3/4	f0/s/x0
 Bladebrand	0b87f0c8602f5390	4	0/0		1/2	ix:resp
 Bloodfire Dwarf	9280b7315d2724bd	6	1/1		0/1	ix:resp
 Bloodrage Brawler	7565b1b58835d452	8	1/1		0/1	ix:resp
 Blossoming Calm	d0b37cb5159006d0	6	0/0		2/2	
 Blue Elemental Blast	03cbd3b2a523e2da	6	0/0		2/2	
+Blur	8edd24bd2057e3a6	12	0/0		2/2	
 Boing!	005248d6325a6407	7	0/0		1/2	ix:resp
 Bold Defense	4488929f981a95c1	8	0/0		2/4	cast/alt:kicked,ix:resp
 Boom	3d36448ffcfeccd8	6	0/0		1/3	f1/s,ix:resp
 Boompile	7cb31793138270d4	4	1/1		0/1	ix:resp
+Borrowing 100,000 Arrows	d87312826d12feb7	4	0/0		1/2	ix:resp
 Branching Bolt	09171cdb9df1e072	4	0/0		1/2	ix:resp
 Branchloft Pathway	e8abd96cc7cc2f11	17	2/2		0/1	ix:resp
 Breath of Darigaaz	f60da5d605260e75	6	0/0		3/4	ix:resp
 Burning Sun's Avatar	6f5b1b6e9e67f2a3	5	1/1		0/1	ix:resp
 Capital Guard	f4eea768da433c25	18	0/0		0/0	
 Carnage Interpreter	a039ce90fa994af0	5	1/1		0/1	ix:resp
+Champion Lancer	c0c93cc2e04862b3	4	0/0		0/0	
 Charcoal Diamond	e6917015ded11f43	4	1/1		1/1	
 Cloakwood Hermit	f4506a68ba3c1991	4	0/0		0/0	
 Cloudseeder	660154555bdf3d47	10	1/1		1/1	
 Colossal Might	a9ab7139c3448435	4	0/0		1/2	ix:resp
 Compleated Huntmaster	6925d04cb81af311	8	1/1		1/1	
+Consecrated by Blood	18a3ebdadb4dd349	4	0/0		1/2	ix:resp
 Contaminated Aquifer	001454300b86a4a5	10	2/2		0/1	ix:resp
 Contentious Plan	e6f9218a53d104b5	6	0/0		1/2	ix:resp
 Crimson Caravaneer	1b49120797a18a1c	15	1/1		1/1	
@@ -46,6 +52,7 @@ Dauntless Onslaught	282a150162c4e5a1	3	0/0		1/2	ix:resp
 Deranged Hermit	d1a0e66f7a30cb6e	4	2/2		0/1	ix:resp
 Deserter's Quarters	49e81d77cc3445ab	3	1/1		0/1	ix:resp
 Devastation Tide	c5d88a0f8b66414d	4	0/0		4/4	
+Diabolic Tutor	62ecf84336d43c4b	8	0/0		1/2	ix:resp
 Dictate of Karametra	4a0a5881d2b511a6	4	1/1		0/1	ix:resp
 Dissipate	3ea66d31f397873f	5	0/0		2/2	
 Dragon Mask	56e5032a4c9ec6c3	10	1/1		0/1	ix:resp
@@ -63,6 +70,7 @@ Escaped Experiment	99d0ffdf408938b8	7	1/1		0/1	ix:resp
 Executioner's Capsule	f9f475c2f410b08d	6	1/1		0/1	ix:resp
 Extinguish the Light	3a09211233aef9c4	3	0/0		1/2	ix:resp
 Falcon Abomination	a0a8215405d18b34	4	1/1		0/1	ix:resp
+Feral Invocation	e4c6a6499b9bccfa	6	0/0		1/2	ix:resp
 Filigree Familiar	0b3c1d3609964d82	6	2/2		0/1	ix:resp
 Firebreathing	36b053329fce4978	4	1/1		1/2	ix:resp
 Flame Discharge	96e8b8d76e641442	3	0/0		2/4	f0/s/x0,ix:resp
@@ -108,6 +116,7 @@ Lava Hounds	759462ec87f0be37	3	1/1		0/1	ix:resp
 Leonin Abunas	883f4e679db9fc4f	4	0/0		0/0	
 Llanowar Augur	9cee9214211a4335	4	1/1		0/1	ix:resp
 Loam Larva	96cf16bf7135c959	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Lookout's Dispersal	021a0a218469b0c9	10	0/0		1/2	ix:resp
 Lotleth Giant	b790a0a2f11ee794	3	1/1		0/1	ix:resp
 Mage-Ring Bully	c85193db2ed07606	6	1/1		0/1	ix:resp
 Magnify	a8cbd1dc854a6ce9	4	0/0		1/2	ix:resp
@@ -140,19 +149,26 @@ Recoil	7bda8176c585bb48	4	0/0		2/2
 Refurbished Familiar	716fb4b90726799a	4	1/1		0/1	ix:resp
 Relentless Assault	2881c0c978eae2f4	3	0/0		1/2	ix:resp
 Remand	7735f807b35a2f16	4	0/0		1/2	ix:resp
+Renegade Tactics	92b38fbe5f18182b	8	0/0		1/2	ix:resp
 Rime Transfusion	ccd3d33e262bee77	31	0/0		2/2	
 Rite of the Raging Storm	30e5b2929bda02dc	6	1/1		1/1	
+Roiling Regrowth	148fa66fc9df3500	61	0/0		2/2	
+Run Ashore	438194e6379d6096	3	0/0		2/2	
 Rusted Sentinel	1992385d193639b5	6	0/0		0/0	
+Sabertooth Wyvern	a1a297b7a63c01e4	4	0/0		0/0	
+Sage-Eye Avengers	8fa47cb11798e0b9	8	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Savage Offensive	702c14d445b1b7bd	4	0/0		2/4	cast/alt:kicked,ix:resp
 Sawblade Slinger	99bad7f743bb65e5	3	1/1		0/1	ix:resp
 Scent of Jasmine	c897bd07c3c6e89b	6	0/0		1/2	ix:resp
 Screaming Seahawk	f7a119b29bf98d99	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Seal of Strength	33612ce75bbcf53f	8	1/1		0/1	ix:resp
 Searing Light	19cc951a2d37004b	4	0/0		1/2	ix:resp
+Seasoned Marshal	53c73b002c1df044	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Seismic Stomp	6cd757585612d6d0	8	0/0		1/2	ix:resp
 Separatist Voidmage	469d5abf178ded86	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Serra's Blessing	473f126eb38a0488	7	0/0		0/0	
 Shinewend	601e55e8b918bbc1	4	1/1		0/1	ix:resp
+Shriekdiver	4b3b88ce5c9903d2	4	1/1		1/1	
 Shrink	5300cd352f015ba1	3	0/0		1/2	ix:resp
 Sinister Gnarlbark	92243cd0120e0c21	6	1/1		0/1	ix:resp
 Skirk Prospector	f2ecbb7208cc8a2e	7	1/1		1/1	
@@ -167,6 +183,7 @@ Spined Karok	c462eff2616435b6	4	0/0		0/0
 Steel Leaf Champion	8ecf3f8f387a67e4	3	0/0		0/0	
 Stingscourger	453ea7ee822682b9	6	2/2		1/1	
 Stronghold Overseer	5bf5ae6bc53f4001	3	1/1		1/1	
+Swarmborn Giant	521cc44983b7bf7c	9	2/2		0/1	ix:resp
 Sword of Forge and Frontier	b00971917d808bfa	63	2/2		1/1	
 Syr Faren, the Hengehammer	cbc2ac5365d8906c	4	1/1		1/1	
 Tajuru Blightblade	cfe85cef2e99fcb1	7	0/0		0/0	
@@ -180,6 +197,7 @@ Thalakos Dreamsower	30921808effe6b8d	39	1/1		0/1	ix:resp
 The Fair Basilica	078441d84e4a9505	6	2/2		0/1	ix:resp
 The Juzam Master	0c4591ee1db6cd2a	4	0/0		0/0	
 The Reaver Cleaver	0c8c26da9d5a97c7	5	1/1		0/1	ix:resp
+Thopter Arrest	2fc91228a07ef750	4	1/1		0/1	ix:resp
 Thor, Asgard's Avenger	b0f4475267c717e8	9	0/0		0/0	
 Thorn Mammoth	43ab05a999a23613	4	1/1		0/1	ix:resp
 Thunder Spirit	ba4a791bb128b7ec	10	0/0		0/0	
@@ -188,7 +206,10 @@ Tolarian Sentinel	982c32fe1ce4d5c8	4	1/1		0/1	ix:resp
 Topiary Stomper	c3468adf154c9e18	7	1/1		1/1	
 Torch Courier	a13e869ada9ce72b	6	1/1		0/1	ix:resp
 Triceraton Regenta	f60213e14074a2da	4	1/1		0/1	ix:resp
+Undertow	4668ecf54683d7f8	3	0/0		0/0	
+Underworld Charger	d3890ccbb1f1559d	10	0/0		1/2	cast/alt:escaped
 Unlicensed Hearse	6126e71a1fa4f56b	4	2/2		1/1	
+Vedalken Dismisser	79d16a1f7192b687	7	1/1		1/1	
 Vesper Ghoul	442f1e92344321ee	5	1/1		0/1	ix:resp
 Virtus the Veiled	6609656b40ab6d6e	7	2/2		0/1	ix:resp
 Wall of Hope	62843a03622fb463	12	1/1		0/1	ix:resp

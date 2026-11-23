@@ -38,8 +38,10 @@ Coiling Woodworm	da6f0438e82d510f	10	0/0		0/0
 Collar the Culprit	ebc03b21fa908de6	15	0/0		2/2	
 Contagion Engine	7063abd6cf34e8f0	18	2/2		0/1	ix:resp
 Conversion Chamber	a08b6249cc317c6e	70	2/2		1/1	
+Cry of the Carnarium	38fbe6cea03c87b3	9	0/0		1/2	ix:resp
 Cudgel Troll	b08c000ad4ab58cc	13	1/1		1/1	
 Darkwater Egg	b5a1f0f22a95cf0d	7	1/1		1/1	
+Dauthi Horror	0bf9082e5cfaa26e	31	0/0		0/0	
 Dawnstrider	2216d253d7c526dc	12	1/1		1/1	
 Death Wish	9c1879a3c131a103	32	0/0		1/2	ix:resp
 Defiant Ogre	9fddfeba1c3a6a77	4	1/1		0/1	ix:resp
@@ -91,6 +93,7 @@ Headless Specter	3311cf6498c5d6a2	29	1/1		1/1
 Heavy Ballista	6c551715a9293cc1	8	1/1		0/1	ix:resp
 Hero of the Games	10dc8b755c3fad28	14	1/1		0/1	ix:resp
 Hoard-Smelter Dragon	30bcf4acb9e52935	5	1/1		0/1	ix:resp
+Hollowborn Barghest	9595fa9fccfa3ad2	20	2/2		0/1	ix:resp
 Hornswoggle	7e8e27c5b64b2ce2	6	0/0		1/2	ix:resp
 Hulk, Bruce Banner	479530df5e32b289	3	0/0		0/0	
 Ichthyomorphosis	e336d5ad9f2f1cba	9	0/0		1/2	ix:resp
@@ -106,6 +109,7 @@ Ire of Kaminari	737eed8f78b60aa4	15	0/0		1/2	ix:resp
 Ith, High Arcanist	a617668dd29cc7c7	30	1/1		3/3	
 Jasmine Boreal	a06332051935f0e7	4	0/0		0/0	
 Jetmir's Garden	6d6edeaa3068d8cc	69	4/4		0/1	ix:resp
+Kami of Empty Graves	b9164c85080d7617	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kefnet's Monument	8196d09279231e1e	73	1/1		1/1	
 Kessig Prowler	33ef871771ffb03b	8	1/1		0/1	ix:resp
 Killian, Decisive Mentor	d6f009bd34e559d6	45	2/2		1/1	
@@ -128,6 +132,7 @@ Mavren Fein, Dusk Apostle	9e98edc1c3efef41	13	1/1		0/1	ix:resp
 Maze Behemoth	2c26c38e24bf18e7	10	0/0		0/0	
 Meneldor, Swift Savior	a677d4d97af535f9	63	1/1		1/1	
 Merfolk Seer	998d7b5b21b70ac9	6	1/1		0/1	ix:resp
+Metallurgic Summonings	31a0567e3e6f48c6	34	2/2		0/1	ix:resp
 Minion of Tevesh Szat	3114ef4749f2bae4	10	2/2		1/1	
 Mire Kavu	3055cd686039178e	18	0/0		0/0	
 Monstrous Vortex	64e7e9606b773cdc	37	1/1		0/1	ix:resp
@@ -138,12 +143,14 @@ Open the Graves	24cb6083f1cdb960	37	1/1		1/1
 Ossuary Rats	9ce7860457b2b7e7	13	1/1		1/1	
 Overwhelming Victory	0b700a199f5702df	47	0/0		2/2	
 Peer into the Abyss	d09c6fd792f4314e	33	0/0		2/2	
+Pillory of the Sleepless	cbb5d04dc473f2a6	17	0/0		2/2	
 Polygoyf	1557797623c34ec1	6	1/1		0/1	ix:resp
 Pondering Mage	d4dbbeae4356f37f	5	1/1		0/1	ix:resp
 Primaris Eliminator	43775bde7cf26fd4	30	1/1		1/1	
 Psychic Spiral	e2a4c6d239b2a931	8	0/0		2/2	
 Pull Under	6bdaec5e966474a3	24	0/0		2/2	
 Pyrite Spellbomb	e78035cf01a93a7c	40	2/2		0/1	ix:resp
+Quintorius, Field Historian	1760428f6a09135f	19	1/1		0/1	ix:resp
 Raka Sanctuary	df07c62143c838e1	10	1/1		0/1	ix:resp
 Rally	2d58e1d7a978bb11	88	0/0		2/2	
 Rathi Trapper	bcbfe78b64a1c2c1	52	1/1		1/1	
@@ -151,6 +158,7 @@ Ravnica at War	49de350e7478d060	82	0/0		1/2	ix:resp
 Recycla-bird	207026f62ab95f04	32	1/1		1/1	
 Reef Shaman	404aca3d427d8f44	20	1/1		1/1	
 Restless Dreams	6a15410e911e0f87	21	0/0		2/2	
+Rishadan Port	d53e638d151d99fc	73	2/2		1/1	
 River Hoopoe	e5231fa080a81cce	14	1/1		0/1	ix:resp
 Robobrain War Mind	2fad414141dff190	10	2/2		1/1	
 Roil's Retribution	93bc47af05eae790	7	0/0		1/2	ix:resp
@@ -160,6 +168,7 @@ Rumbling Crescendo	9880a23fdd09fd1c	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Rummaging Wizard	ccabd188006b5176	18	1/1		0/1	ix:resp
 Rune Snag	fb953d391ae07949	7	0/0		1/2	ix:resp
 Scar	4302e10e818fdc16	3	0/0		2/2	
+Scarecrone	57d753effa3ec9cf	48	2/2		1/1	
 Scourge of Skola Vale	e1381dd682516b6c	10	1/1		1/1	
 Seafloor Oracle	adfd29796959d68c	15	1/1		1/1	
 Seal of Doom	39f9d82105be2bec	7	1/1		0/1	ix:resp
@@ -210,6 +219,7 @@ Tizerus Charger	6621347f156abc5b	63	0/0		1/2	cast/alt:escaped
 Toshiro Umezawa	9775d4f5c375ad13	10	3/3		0/1	ix:resp
 Trailblazer's Boots	df26d304bee53251	47	1/1		1/1	
 Trained Caracal	945612173367b5ea	4	0/0		0/0	
+Turntimber Sower	f146647ee33366b2	28	2/2		1/1	
 Tyrranax Atrocity	8e617753c310fa7a	14	0/0		0/0	
 Unforgiving One	bdccda61456f36df	53	1/1		1/1	
 Urban Evolution	46827b241e8c50c3	3	0/0		2/2	
@@ -233,5 +243,6 @@ Wing Puncture	9df6a6de6f5c9d2e	24	0/0		1/2	ix:resp
 Wing Snare	cc24a3626293e7f0	8	0/0		2/2	
 Woodland Changeling	91d97ba155ce29de	38	0/0		0/0	
 Wrenn and Seven	912f141ef8067320	11	4/4		1/1	
+Yoked Plowbeast	92a2426b3eedcb24	6	1/1		0/1	ix:resp
 Zealots en-Dal	bd377f1a988bb467	79	1/1		1/1	
 Zenith Festival	9081cd616855d53f	16	0/0		4/6	cast/alt:harmonize,f0/s/x0

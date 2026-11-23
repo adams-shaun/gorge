@@ -1,0 +1,11 @@
+# Vivid Grove and Vivid Marsh (counter-cost any-colour gaps) beside Izzet Signet
+# ({1},{T}: Add {U}{R}, a fee gap), over plain Islands and Swamps, with the two
+# black {B}{B} casts the board funds only through the fee-order run: A-The
+# Meathook Massacre and Phyrexian Defiler (dirac/mana_ctrfeeorder_test.go).
+Vivid Grove
+Vivid Marsh
+Izzet Signet
+A-The Meathook Massacre
+Phyrexian Defiler
+Island
+Swamp

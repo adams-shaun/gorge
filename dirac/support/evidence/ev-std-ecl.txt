@@ -61,6 +61,7 @@ Dream Harvest
 Dream Seizer
 Dundoolin Weaver
 Eclipsed Boggart
+Eclipsed Elf
 Eclipsed Flamekin
 Eclipsed Kithkin
 Eclipsed Merrow
@@ -108,6 +109,8 @@ Hallowed Fountain
 Harmonized Crescendo
 Heirloom Auntie
 Hexing Squelcher
+High Perfect Morcant
+Hovel Hurler
 Illusion Spinners
 Impolite Entrance
 Iron-Shield Elf
@@ -124,11 +127,13 @@ Kulrath Zealot
 Lasting Tarfire
 Lavaleaper
 Liminal Hold
+Lluwen, Imperfect Naturalist
 Loch Mare
 Lofty Dreams
 Luminollusk
 Lys Alana Informant
 Meanders Guide
+Meek Attack
 Midnight Tilling
 Mirrormind Crown
 Mischievous Sneakling
@@ -136,7 +141,9 @@ Mistmeadow Council
 Moon-Vigil Adherents
 Moonglove Extractor
 Moonlit Lamenter
+Moonshadow
 Morcant's Eyes
+Morcant's Loyalist
 Mornsong Aria
 Mountain
 Mudbutton Cursetosser
@@ -195,6 +202,7 @@ Squawkroaster
 Stalactite Dagger
 Steam Vents
 Sting-Slinger
+Stoic Grove-Guide
 Stratosoarer
 Summit Sentinel
 Sun-Dappled Celebrant
@@ -215,6 +223,7 @@ Thoughtweft Imbuer
 Thoughtweft Lieutenant
 Timid Shieldbearer
 Tributary Vaulter
+Trystan's Command
 Trystan, Callous Cultivator
 Tweeze
 Twinflame Travelers

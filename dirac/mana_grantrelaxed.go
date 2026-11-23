@@ -13,9 +13,20 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Sentinel). A Lotus Blossom's petals beside a Gift of Paradise's two mana
 // pay Path to the World Tree's {2}{W}{U}{B}{R}{G} (tail-74 pair 49, decision
 // 610). m is the walk's avail mode. A cast, or an activation with its own
-// {T} source, keeps the walk's answer.
+// {T} source, keeps the walk's answer. So does a live filter the proof
+// cannot relax (a hybrid fee's, Cascade Bluffs' {U/R},{T}; a repeatable
+// one): gorge's census is unrelaxable there (paymentPlanRelaxedAlternatives
+// ok=false) and its planner never runs the relaxed proof — an unrelaxable
+// census falls through to the prefix search, whose script prices the play
+// (potentialCensusFallback) — so the drop would be the search's to make.
 func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc, m uint16) bool {
 	if a.Kind() != AkActivate || ex != NoSlot {
+		return true
+	}
+	if k.gen.anyComboAny && s.reflAmtUnbounded(k, s.caGaps(k, p)) {
+		// a live reflected Amount$ source (Incubation Druid) leaves gorge's census
+		// unrelaxable too (mana_reflamt.go), so the proof never runs: the prefix
+		// search prices the activation
 		return true
 	}
 	var av avail
@@ -30,15 +41,17 @@ func (s *State) grantRelaxedAffords(k *prep, p uint8, a Action, cost *kop.ManaCo
 	var filts [relaxedPaidLimit]Slot
 	nf := 0
 	if k.gen.anyFilt {
-		if f := s.scriptFilt(k, p); s.filtRelaxable(k, f) {
-			// the relaxed proof also appends each subset of the census's paid
-			// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
-			// Grotto's {1},{T} makes the {U} a Forest board lacks, as
-			// relaxRestrRefuses reads it
-			for ; f.any(); f = f.rest() {
-				filts[nf] = f.first()
-				nf++
-			}
+		f := s.scriptFilt(k, p)
+		if f.any() && !s.filtRelaxable(k, f) {
+			return true
+		}
+		// the relaxed proof also appends each subset of the census's paid
+		// alternatives, charging their fees (paymentPlanRelaxProof): Hidden
+		// Grotto's {1},{T} makes the {U} a Forest board lacks, as
+		// relaxRestrRefuses reads it
+		for ; f.any(); f = f.rest() {
+			filts[nf] = f.first()
+			nf++
 		}
 	}
 	// the floating restricted mana the activation may spend is in the pool
