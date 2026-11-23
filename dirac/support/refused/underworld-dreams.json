@@ -1,0 +1,28 @@
+{
+  "card": "Underworld Dreams",
+  "class": "lockstep",
+  "why": "gorge's prefix search spends its 160-node budget branching the taps beneath Corrupted Roots' lethal Taps trigger (the sorcery-speed cast waits for the stack to clear, CR 602.5d, 603.3) and is census_incomplete; the kernel's filtSearch.settle resolves the trigger where it was stacked and offers the cast",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "prefix_search_lethal_tap_trigger_budget"
+  },
+  "evidence": [
+    "ev-tail-24-c000",
+    "ev-tail-24-c001",
+    "ev-tail-24-c002",
+    "ev-tail-24-c005",
+    "ev-tail-24-c008",
+    "ev-tail-24-c012",
+    "ev-tail-24-c013",
+    "ev-tail-24-c015",
+    "ev-tail-24-c100",
+    "ev-tail-39-c000",
+    "ev-tail-39-c001",
+    "ev-tail-39-c002"
+  ]
+}
