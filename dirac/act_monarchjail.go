@@ -175,6 +175,11 @@ func (s *State) monarchJailCrowned(k *prep, p uint8) {
 			st.Returns++
 		}
 		from := s.detach(l.obj)
-		s.enterLinkRet(k, l.obj, x.owner(), from)
+		// enterLinkRetRun, not enterLinkRet: at a no-run crowning (a loss
+		// site's handoff, gorge's losePlayer runs it outside a resolution)
+		// the returned card's as-enters asks default like the sweep's exile
+		// return (coldEntryNoRun); inside a resolution the queue serves them
+		// as before (enterLinkRetRun marks only a !res.active return).
+		s.enterLinkRetRun(k, l.obj, x.owner(), from)
 	}
 }
