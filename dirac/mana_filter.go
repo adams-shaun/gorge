@@ -1974,6 +1974,13 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 			}
 			continue
 		}
+		if s.npend != 0 && !(s.ctl == ctlResolve && s.res.ask == raNone) {
+			// the previous step's Taps triggers are stacked before this step, as
+			// the search settled them (settle) and gorge answers each activation
+			// as its own decision (CR 603.3b): two Manabarbs stack per tap, the
+			// active player's first, not in one batch after the last tap
+			s.tapXNext(p, &d)
+		}
 		s.filtDo(k, p, st)
 	}
 	s.Decisions = n
