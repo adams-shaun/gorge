@@ -1,0 +1,333 @@
+package gorgebe
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cardc/ir"
+)
+
+func init() { registerAbility(ir.AbTriggered, printTriggered) }
+
+// isSelfFilter reports whether f is exactly "this object".
+func isSelfFilter(f *ir.Filter) bool {
+	return f != nil && f.Op == ir.FPred && f.Pred == ir.PIs && len(f.Args) == 0 && f.Ref != nil && f.Ref.Kind == ir.RefSelf && f.Word == ""
+}
+
+// triggerSelf reports whether t's event is about the source itself: the
+// subject is the source, or for a cast the spell is.
+func triggerSelf(t *ir.Trigger) bool {
+	if t.Event == ir.EvCast {
+		return isSelfFilter(t.Object)
+	}
+	return isSelfFilter(t.Subject)
+}
+
+// params is an ordered parameter list with replace-or-append set.
+type params []kv
+
+func (ps *params) set(k, v string) {
+	for i := range *ps {
+		if (*ps)[i].K == k {
+			(*ps)[i].V = v
+			return
+		}
+	}
+	*ps = append(*ps, kv{k, v})
+}
+
+func (ps *params) has(k string) bool {
+	for _, x := range *ps {
+		if x.K == k {
+			return true
+		}
+	}
+	return false
+}
+
+func printTriggered(p *pr, a *ir.Ability) error {
+	tr := a.Trigger
+	if tr == nil {
+		return unprintable("event:none", a.Src)
+	}
+	alts := []*ir.Trigger{tr}
+	if tr.Event == ir.EvOr {
+		alts = tr.Args
+		if len(alts) == 0 {
+			return unprintable("event:or", tr.Src)
+		}
+		for _, x := range alts {
+			if x == nil || x.Event == ir.EvOr {
+				return unprintable("event:or", tr.Src)
+			}
+		}
+		for _, x := range alts[1:] {
+			if triggerSelf(x) != triggerSelf(alts[0]) {
+				return unprintable("event:or-mixed", tr.Src)
+			}
+		}
+	}
+	defer func() { p.ev, p.evSelf = ir.EvNone, false }()
+	p.ev, p.evSelf = alts[0].Event, triggerSelf(alts[0])
+	head, err := p.program(a.Body)
+	if err != nil {
+		return err
+	}
+	name := p.sub("Trig"+head.API, head)
+	for i, x := range alts {
+		p.ev, p.evSelf = x.Event, triggerSelf(x)
+		ps, err := p.triggerParams(a, tr, x)
+		if err != nil {
+			return err
+		}
+		if i > 0 {
+			ps.set("Secondary", "True")
+		}
+		ps.set("Execute", name)
+		var b strings.Builder
+		b.WriteString("T:")
+		for j, kvp := range ps {
+			if j > 0 {
+				b.WriteString(" | ")
+			}
+			b.WriteString(kvp.K + "$ " + kvp.V)
+		}
+		p.lines = append(p.lines, b.String())
+	}
+	return nil
+}
+
+// triggerParams is one trigger line's parameters for alternative x of outer.
+func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) {
+	bad := func(what string) error { return unprintable("event:"+what, x.Src) }
+	self := p.evSelf
+	var ps params
+	zones := func() { ps.set("TriggerZones", "Battlefield") }
+	subj := func() (string, error) { return p.valid(x.Subject) }
+	cmpUsed := false
+	switch x.Event {
+	case ir.EvEnters:
+		ps = params{{"Mode", "ChangesZone"}}
+		if self {
+			ps.set("Origin", "Any")
+			ps.set("Destination", "Battlefield")
+			ps.set("ValidCard", "Card.Self")
+		} else {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			ps.set("Destination", "Battlefield")
+			ps.set("ValidCard", v)
+			zones()
+		}
+	case ir.EvDies, ir.EvPutIntoGraveyard, ir.EvLeaves:
+		dest := "Graveyard"
+		if x.Event == ir.EvLeaves {
+			dest = "Any"
+		}
+		ps = params{{"Mode", "ChangesZone"}, {"Origin", "Battlefield"}, {"Destination", dest}}
+		switch {
+		case self:
+			ps.set("ValidCard", "Card.Self")
+		case x.Event == ir.EvDies:
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			ps.set("ValidCard", v)
+			zones()
+		default:
+			return nil, bad(x.Event.String())
+		}
+	case ir.EvAttacks:
+		ps = params{{"Mode", "Attacks"}}
+		if self {
+			ps.set("ValidCard", "Card.Self")
+		} else {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			ps.set("ValidCard", v)
+			zones()
+		}
+	case ir.EvUpkeep, ir.EvEndStep, ir.EvBeginCombat:
+		phase := map[ir.EventKind]string{ir.EvUpkeep: "Upkeep", ir.EvEndStep: "End of Turn", ir.EvBeginCombat: "BeginCombat"}[x.Event]
+		ps = params{{"Mode", "Phase"}, {"Phase", phase}}
+		if x.Subject != nil {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			if v != "Player" {
+				ps.set("ValidPlayer", v)
+			}
+		}
+		zones()
+	case ir.EvDraws:
+		v, err := subj()
+		if err != nil {
+			return nil, err
+		}
+		ps = params{{"Mode", "Drawn"}}
+		switch v {
+		case "You":
+			ps.set("ValidCard", "Card.YouCtrl")
+		case "Opponent":
+			ps.set("ValidCard", "Card.OppCtrl")
+		default:
+			return nil, bad("draws")
+		}
+		zones()
+		if x.Cmp != nil {
+			cmpUsed = true
+			if x.Cmp.Op != ir.CmpEQ || !isConst(x.Cmp.V) {
+				return nil, bad("cmp")
+			}
+			ps.set("Number", strconv.Itoa(int(x.Cmp.V.N)))
+		}
+	case ir.EvGainsLife, ir.EvLosesLife:
+		v, err := subj()
+		if err != nil {
+			return nil, err
+		}
+		mode := "LifeGained"
+		if x.Event == ir.EvLosesLife {
+			mode = "LifeLost"
+		}
+		ps = params{{"Mode", mode}, {"ValidPlayer", v}}
+		zones()
+		if x.Cmp != nil {
+			cmpUsed = true
+			if x.Cmp.Op != ir.CmpEQ || !isConst(x.Cmp.V) || x.Cmp.V.N != 1 {
+				return nil, bad("cmp")
+			}
+			ps.set("FirstTime", "True")
+		}
+	case ir.EvCast:
+		ps = params{{"Mode", "SpellCast"}}
+		if self {
+			ps.set("ValidCard", "Card.Self")
+		} else {
+			o, err := p.valid(x.Object)
+			if err != nil {
+				return nil, err
+			}
+			s, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			ps.set("ValidCard", o)
+			ps.set("ValidActivatingPlayer", s)
+			zones()
+		}
+	case ir.EvDealsCombatDamageToPlayer, ir.EvDealsNoncombatDamageToPlayer:
+		src := "Card.Self"
+		if !self {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			src = v
+		}
+		tgt := "Player"
+		if x.Object != nil {
+			v, err := p.valid(x.Object)
+			if err != nil {
+				return nil, err
+			}
+			tgt = v
+		}
+		combat := "True"
+		if x.Event == ir.EvDealsNoncombatDamageToPlayer {
+			combat = "False"
+		}
+		ps = params{{"Mode", "DamageDone"}, {"ValidSource", src}, {"ValidTarget", tgt}, {"CombatDamage", combat}}
+		if !self {
+			zones()
+		}
+	case ir.EvBecomesTarget:
+		tgt := "Card.Self"
+		if !self {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			tgt = v
+		}
+		o, err := p.valid(x.Object)
+		if err != nil {
+			return nil, err
+		}
+		terms := strings.Split(o, ",")
+		for i, t := range terms {
+			switch {
+			case t == "Card":
+				terms[i] = "Spell"
+			case strings.HasPrefix(t, "Card."):
+				terms[i] = "Spell" + t[len("Card"):]
+			default:
+				return nil, bad("becomes-target")
+			}
+		}
+		ps = params{{"Mode", "BecomesTarget"}, {"ValidTarget", tgt}, {"ValidSource", strings.Join(terms, ",")}}
+		zones()
+	case ir.EvCountersPut:
+		if x.Word == "" {
+			return nil, bad("counters-put")
+		}
+		o, err := p.valid(x.Object)
+		if err != nil {
+			return nil, err
+		}
+		s, err := subj()
+		if err != nil {
+			return nil, err
+		}
+		ps = params{{"Mode", "CounterAddedOnce"}, {"CounterType", x.Word}, {"ValidCard", o}, {"ValidSource", s}}
+		zones()
+	default:
+		return nil, bad(x.Event.String())
+	}
+	if x.Cmp != nil && !cmpUsed {
+		return nil, bad("cmp")
+	}
+	if x.Word != "" && x.Event != ir.EvCountersPut {
+		return nil, bad("word")
+	}
+	if a.Zones != 0 && a.Zones != ir.MakeZoneSet(ir.ZoneBattlefield) {
+		ps.set("TriggerZones", zoneList(a.Zones))
+	}
+	if x.OncePerTurn || outer.OncePerTurn {
+		ps.set("ActivationLimit", "1")
+	}
+	conds := []*ir.Cond{a.Cond, x.Cond, outer.Cond}
+	if outer == x {
+		conds = conds[:2]
+	}
+	var cond *ir.Cond
+	for _, c := range conds {
+		if c == nil {
+			continue
+		}
+		if cond != nil {
+			return nil, bad("two-conds")
+		}
+		cond = c
+	}
+	if cond != nil {
+		f, err := p.cond(cond)
+		if err != nil {
+			return nil, err
+		}
+		cs, err := f.onTrigger()
+		if err != nil {
+			return nil, err
+		}
+		for _, c := range cs {
+			ps.set(c.K, c.V)
+		}
+	}
+	return ps, nil
+}

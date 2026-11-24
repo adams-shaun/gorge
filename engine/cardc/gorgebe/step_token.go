@@ -14,6 +14,10 @@ func printCreateToken(p *pr, steps []*ir.Step) (*node, int, error) {
 	if st.Token == nil {
 		return nil, 0, unprintable("verb:create-token", st.Src)
 	}
+	if len(steps) > 1 && steps[1].Verb == ir.VerbCreateToken {
+		// Forge chains one Token node with a TokenScript list for a run of tokens.
+		return nil, 0, unprintable("shape:consecutive-tokens", st.Src)
+	}
 	if e := st.Enter; e != nil && (e.UnderOwner || e.Controller != nil || e.Counter != "" || e.N != nil || len(e.Effects) > 0) {
 		return nil, 0, unprintable("token:enter", st.Src)
 	}

@@ -81,6 +81,17 @@ func TestPrintSkeleton(t *testing.T) {
 		t.Errorf("zero cost / negative star: %s", got)
 	}
 
+	ab := normalCard()
+	ab.Faces[0].Abilities = []*ir.Ability{
+		{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Ward", Cost: abGenericCost(1)}},
+		{Kind: ir.AbTriggered, Trigger: abTrig(ir.EvEnters, abSelf(), nil), Body: abDraw()},
+	}
+	got, err = Print(ab, []string{""})
+	if err != nil || !strings.Contains(string(got), "K:Ward:1\n") || !strings.Contains(string(got), "T:Mode$ ChangesZone") ||
+		!strings.Contains(string(got), "SVar:TrigDraw:DB$ Draw") {
+		t.Errorf("ward and trigger: %v\n%s", err, got)
+	}
+
 	un := func(name string, c *ir.Card, oracle []string, what string) {
 		t.Helper()
 		_, err := Print(c, oracle)
@@ -93,11 +104,11 @@ func TestPrintSkeleton(t *testing.T) {
 	split.Layout = ir.LayoutSplit
 	un("split", split, []string{""}, "layout:split")
 	trig := normalCard()
-	trig.Faces[0].Abilities = []*ir.Ability{{Kind: ir.AbTriggered}}
-	un("trigger", trig, []string{""}, "ability:triggered")
+	trig.Faces[0].Abilities = []*ir.Ability{{Kind: ir.AbTriggered, Trigger: &ir.Trigger{Event: ir.EvUntaps}, Body: abDraw()}}
+	un("trigger", trig, []string{""}, "event:untaps")
 	ward := normalCard()
 	ward.Faces[0].Abilities = []*ir.Ability{{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Ward", Cost: &ir.Cost{}}}}
-	un("ward", ward, []string{""}, "keyword:Ward")
+	un("ward", ward, []string{""}, "cost:empty")
 	ref := normalCard()
 	ref.Faces[0].Refusals = []ir.Refusal{{Key: "Action.Foo", Path: "p"}}
 	un("refusal", ref, []string{""}, "refusal:Action.Foo")
@@ -362,7 +373,7 @@ func faceShape(f *cards.Face) []string {
 }
 
 // servedFloor is the number of cards of the fdn and legacy slices cardc serves.
-const servedFloor = 45
+const servedFloor = 137
 
 func TestServedCardsMatchForge(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)
