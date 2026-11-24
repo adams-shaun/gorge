@@ -391,8 +391,9 @@ func (e *Engine) potentialTapExtra(p state.PlayerID, id state.ObjID, ma *cards.S
 	}
 	for _, produced := range productions {
 		x := e.paymentPlanTapExtraMana(id, produced)
+		o := e.paymentPlanTapOpenExtra(id, produced)
 		for i := range most {
-			most[i] = max(most[i], x[i])
+			most[i] = max(most[i], saturatingPotentialMana(x[i], o[i]))
 		}
 	}
 	return most

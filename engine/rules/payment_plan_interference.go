@@ -136,7 +136,7 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	cost := e.abilityCompiledCost(ma).Cost
 	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
 		if cost.Tap {
-			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false)
+			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false, nil)
 			if !ok {
 				return deferredBy(by)
 			}
@@ -172,8 +172,24 @@ func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.
 	if src == nil {
 		return state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true)
+	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, nil)
 	return extra
+}
+
+// paymentPlanTapOpenExtra is the most the static TapsForMana triggers whose
+// mana the player colours at the tap (pay.PaymentPlanOpenTapMana: Dawn's
+// Reflection, Fertile Ground) can add when id taps for `produced`, as the
+// potential bound reads it: those triggers are not folded into the plan (the
+// source stays deferred), yet the mana is real (CR 605.3b), so a bound that
+// ignored it would hide a cast the manual payment can pay.
+func (e *Engine) paymentPlanTapOpenExtra(id state.ObjID, produced string) state.Mana {
+	src := e.G.Obj(id)
+	if src == nil {
+		return state.Mana{}
+	}
+	var open state.Mana
+	e.paymentPlanTapObservers(id, src.Controller, produced, true, &open)
+	return open
 }
 
 // manaProductionAltered reports whether a tap trigger or a replacement would change
@@ -199,7 +215,9 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // real matcher. It returns the source's own City-of-Brass damage, or ok=false
 // with the object whose trigger would otherwise act on the tap or the mana.
 // whole keeps walking past such an object (by and ok still name the first),
-// so extra sums every folded trigger whatever else watches the tap.
+// so extra sums every folded trigger whatever else watches the tap. A non-nil
+// open also accumulates the bound of each open-colour trigger's mana
+// (pay.PaymentPlanOpenTapMana), which extra never carries.
 //
 // The printed walk visits every carrier object (paymentPlanInterferenceCarriers)
 // of an alive player that the engine's own trigger walk would consider --
@@ -207,7 +225,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 // checkFaceTriggers walks them -- and leaves the zone question to the real
 // zoneGate. Granted-trigger statics that observe a Tap are walked over the
 // battlefield recipients their Affected$ admits.
-func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
+func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerID, produced string, whole bool, open *state.Mana) (damage uint32, extra state.Mana, by state.ObjID, ok bool) {
 	// The synchronous context emitManaTap/emitTap establish around the Tap
 	// event, restored before return: this is matcher scratch, not game state.
 	// The mana facts mirror what resolveManaEffectColor establishes around a
@@ -286,6 +304,11 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 					// single type this production names
 					if tm, folds = pay.PaymentPlanReflectedTapMana(fc.face, t); folds {
 						tm.Mana, folds = pay.PaymentPlanReflectedMana(produced)
+					}
+				}
+				if !folds && open != nil {
+					if body, toTapped, isOpen := pay.PaymentPlanOpenTapMana(fc.face, t); isOpen && (toTapped || o.Controller == activator) {
+						addPotentialOpenTapMana(open, body)
 					}
 				}
 				if folds && (tm.ToTapped || o.Controller == activator) {
@@ -583,4 +606,20 @@ func (e *Engine) paymentPlanSunburstGrantOut() bool {
 		}
 	}
 	return false
+}
+
+// addPotentialOpenTapMana folds into m the bound of an any-colour static
+// TapsForMana body: a literal Amount$ of "Any" or "Combo Any" is that many
+// mana of each of the five colours (never colourless). Any other open body
+// (Utopia Sprawl's chosen colour, a counted amount) adds nothing: the bound
+// keeps its pre-existing reading of those taps.
+func addPotentialOpenTapMana(m *state.Mana, body *cards.SA) {
+	mp := effects.ManaOf(body)
+	amt, indeterminate := potentialAmount(mp)
+	if indeterminate || (mp.Produced != "Any" && mp.Produced != "Combo Any") {
+		return
+	}
+	for i := 0; i < 5; i++ {
+		m[i] = saturatingPotentialMana(m[i], amt)
+	}
 }
