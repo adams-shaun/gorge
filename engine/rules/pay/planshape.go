@@ -619,32 +619,48 @@ type PlanTapMana struct {
 	ToTapped bool
 }
 
-// PaymentPlanFoldableTapMana classifies a `Mode$ TapsForMana | Static$ True`
-// trigger of face f as a fixed additional-mana body the planner can fold into
-// a source's production: closed-world over the trigger's parameters and a
-// single `DB$ Mana` body naming one literal symbol and a literal amount, with
-// no SubAbility$, cost or other parameter. Anything else is not foldable and
-// the caller keeps deferring.
-func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bool) {
-	body := paymentPlanStaticTapManaBody(f, t, "Mana")
+// paymentPlanClosedTapManaBody is the single `DB$ Mana` body of a
+// `Mode$ TapsForMana | Static$ True` trigger of face f whose parameters are
+// all in the closed world paymentPlanTapManaTriggerCodes names and whose
+// Defined$ recipient the planner can credit: absent or You means the trigger's
+// controller, TriggeredCardController the tapped permanent's controller
+// (toTapped). Anything else is not a closed-world body and the caller keeps
+// deferring. One home for the classification both the foldable and the
+// open-colour arm read.
+func paymentPlanClosedTapManaBody(f *cards.Face, t cards.Trigger) (body *cards.SA, toTapped, ok bool) {
+	body = paymentPlanStaticTapManaBody(f, t, "Mana")
 	if body == nil {
-		return PlanTapMana{}, false
+		return nil, false, false
 	}
 	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
 		switch k {
 		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
 		default:
-			return PlanTapMana{}, false
+			return nil, false, false
 		}
 	}
-	var out PlanTapMana
 	switch ref := params.DefinedRefOf(body); {
 	case ref.Kind == params.RefAbsent || ref.Kind == params.RefYou:
 	case ref.Text == "TriggeredCardController":
-		out.ToTapped = true
+		toTapped = true
 	default:
+		return nil, false, false
+	}
+	return body, toTapped, true
+}
+
+// PaymentPlanFoldableTapMana classifies a `Mode$ TapsForMana | Static$ True`
+// trigger of face f as a fixed additional-mana body the planner can fold into
+// a source's production: a closed-world body (paymentPlanClosedTapManaBody)
+// whose single `DB$ Mana` names one literal symbol and a literal amount, with
+// no SubAbility$, cost or other parameter. Anything else is not foldable and
+// the caller keeps deferring.
+func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bool) {
+	body, toTapped, ok := paymentPlanClosedTapManaBody(f, t)
+	if !ok {
 		return PlanTapMana{}, false
 	}
+	out := PlanTapMana{ToTapped: toTapped}
 	mp := params.ManaOf(body)
 	raw := mp.Produced
 	if len(raw) != 1 || !strings.Contains("WUBRGC", raw) {
