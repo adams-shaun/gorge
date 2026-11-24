@@ -457,7 +457,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if a.Cost.Mana.Snow != 0 {
+			if a.Cost.Mana.X == 0 && a.Cost.XMin != 0 && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -469,6 +469,13 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 					m = s.waterbendCredit(k, p, sl, a, m) // gorge mana.go: Waterbend<X>'s offer credit at the floor (act_waterbend.go)
 				}
 				if !s.poolPaysAct(k, p, &m, payDesc{class: pdAct, card: cid, src: sl}) {
+					// gorge plans an {X} activation at its least X
+					// (planAbilityPayment), but an XMin without an {X}
+					// symbol still declines (PlanCostDetail cost:x, Ruthless
+					// Technomancer's XMin1 {2}{B}, Sac<X/Artifact>): it is
+					// offered only when the floating pool alone pays it
+					// (Config.GorgeUnpriced).
+					//
 					// A {S} activation (CR 107.4h; PlanCostDetail cost:snow,
 					// Boreal Centaur's {S}: Regenerate) is gated on every
 					// surface: gorge never plans it, so it is
