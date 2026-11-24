@@ -83,6 +83,22 @@ func (s *State) unspentEmptyPool(p uint8, prot uint8) {
 func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
 	sx := coldSnow.of(s)
 	ax := coldArtN.of(s)
+	if prot == [MaxSeats]uint8{} && restr == [MaxSeats]uint8{} {
+		// the common boundary, no keep: every seat's tallies empty (the
+		// loop below, unrolled to clears)
+		n := int(s.nSeats()) * kop.NumManaKinds
+		if sx != nil {
+			clear(sx[:n])
+		}
+		if ax != nil {
+			clear(ax[:n])
+		}
+		for p := uint8(0); p < s.nSeats(); p++ {
+			s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
+			s.g.poolArt[p] = 0
+		}
+		return
+	}
 	for p := uint8(0); p < s.nSeats(); p++ {
 		m := prot[p]
 		i := SeatIx(p)
