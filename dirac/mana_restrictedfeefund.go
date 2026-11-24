@@ -55,11 +55,11 @@ func (s *State) restrFeeFund(k *prep, p uint8) (fund, wiped int) {
 		}
 		for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.perms[sl].flags&pfTapped != 0 {
-				continue // a tapped source's abilities are none of the census's (CR 602.2b)
-			}
 			c := s.cardAt(sl)
-			if k.gen == nil || k.gen.flags[c]&gfRestrSrc == 0 {
+			if k.gen == nil || k.gen.flags[c]&gfRestrSrc == 0 || !s.restrUsable(k, sl) {
+				// a tapped source's abilities are none of the census's (CR
+				// 602.2b), nor a summoning-sick creature's {T} ones (CR
+				// 302.6: a Hydro-Channeler cast this turn books no paid entry)
 				continue
 			}
 			for i := range k.gen.rs.recs {
@@ -68,6 +68,9 @@ func (s *State) restrFeeFund(k *prep, p uint8) (fund, wiped int) {
 					continue
 				}
 				v := &k.gen.rs.views[rec.view]
+				if v.restrPair != 0 {
+					v = &k.gen.rs.views[v.restrPair-1] // a free view's fee alternative is a gap of its own (mana_restrictedfeepair.go)
+				}
 				if restrFeeEmpty(v) {
 					continue
 				}
