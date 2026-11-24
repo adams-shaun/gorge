@@ -58,6 +58,20 @@ func chooseBasicLandOptions(d *Decision) {
 	}
 }
 
+// chooseBasicLandOptionsExcept is chooseBasicLandOptions minus the types whose
+// bit is set in mask (bit i = basicLandChoice[i]): an as-enters ask narrowed by
+// InvalidTypes$ (the instruction's A; gorge effects.TypeChoiceLabels keeps the
+// vocabulary order too).
+//
+//go:noinline
+func chooseBasicLandOptionsExcept(d *Decision, mask uint8) {
+	for i, h := range basicLandLabelH {
+		if mask&(1<<i) == 0 {
+			d.add(MakeAction(AkChoose, 0, TCode(h>>8), uint8(h)))
+		}
+	}
+}
+
 // basicLandAnswer is the matchup subtype index an answer names, 255 when the
 // label is no basic land type or the type is not in the matchup.
 //
