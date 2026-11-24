@@ -272,6 +272,18 @@ func (s *State) objPT(k *prep, o Obj, sl Slot) (int, int) {
 	return int(pc.power), int(pc.tough)
 }
 
+// countPermCond is a CondPresent's count. Only a PresentDefined$ Self clause
+// (Zone ZoneBattlefield, kgen triggerIsPresent) reads a departed source's last
+// known tapped status and counters (gorge presentClauseHolds' SourceLKIValid
+// branch); a plain IsPresent$ Card.Self+... counts the live battlefield, so it
+// fails once the source has left (Sun Droplet destroyed in response, CR 603.4).
+func (s *State) countPermCond(k *prep, c *kop.Cond, ctx evalCtx) int {
+	if c.Zone != kop.ZoneBattlefield {
+		return s.countPermLive(k, c.F, ctx)
+	}
+	return s.countPerm(k, c.F, ctx)
+}
+
 func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 	if ctx.srcSl == NoSlot && ctx.e != nil {
 		if n, ok := s.selfDepartTappedCount(k, f, ctx); ok {
@@ -281,6 +293,11 @@ func (s *State) countPerm(k *prep, f kop.FilterID, ctx evalCtx) int {
 			return n
 		}
 	}
+	return s.countPermLive(k, f, ctx)
+}
+
+// countPermLive counts the battlefield permanents matching f.
+func (s *State) countPermLive(k *prep, f kop.FilterID, ctx evalCtx) int {
 	n := 0
 	for m := s.occ; m.any(); m = m.rest() {
 		if s.matchPermGen(k, f, m.first(), ctx.ctrl, ctx.srcSl, layerFull) {
@@ -793,7 +810,7 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 	case kop.CondAlways:
 		r = true
 	case kop.CondPresent:
-		r = cmp(c.Op, s.countPerm(k, c.F, ctx), s.evalV(k, c.A, ctx))
+		r = cmp(c.Op, s.countPermCond(k, c, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondValue:
 		r = cmp(c.Op, s.evalV(k, c.A, ctx), s.evalV(k, c.B, ctx))
 	case kop.CondKicked:

@@ -250,7 +250,7 @@ type Cond struct {
 	A, B ValueRef
 	Neg  bool
 	Sub  [2]CondID // CondAnd's operands (zero for every other kind)
-	Zone Zone      // CondSourceZone: the zone the source must be in
+	Zone Zone      // CondSourceZone: the zone the source must be in; CondPresent: ZoneBattlefield marks a PresentDefined$ Self clause, read from a departed source's last known information
 }
 
 // ExOppExtreme reads a figure over the controller's living opponents, walked
