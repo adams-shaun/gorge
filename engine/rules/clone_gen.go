@@ -1076,6 +1076,7 @@ func cloneFieldsEngineParked(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.numTimes.unit = cloneCost(e.triggerCost.numTimes.unit)
 		p0.counterPicks = append([]string(nil), e.triggerCost.counterPicks...)
 		p0.counterObjs = append([]state.ObjID(nil), e.triggerCost.counterObjs...)
+		p0.forageExile = append([]state.ObjID(nil), e.triggerCost.forageExile...)
 		p0.beholds = append([]state.ObjID(nil), e.triggerCost.beholds...)
 		c.triggerCost = &p0
 	}
@@ -1335,6 +1336,7 @@ func cloneFieldsPaySession(c, e *Engine, sp *Spare, remap *cloneRemap) {
 		p0.Exiles = append([]state.ObjID(nil), e.ManaCost.Exiles...)
 		p0.Taps = append([]state.ObjID(nil), e.ManaCost.Taps...)
 		p0.SubCounterPays = append([]pay.SubCounterPay(nil), e.ManaCost.SubCounterPays...)
+		p0.ForageExile = append([]state.ObjID(nil), e.ManaCost.ForageExile...)
 		p0.Untaps = append([]state.ObjID(nil), e.ManaCost.Untaps...)
 		p0.Evidence = append([]state.ObjID(nil), e.ManaCost.Evidence...)
 		c.ManaCost = &p0
