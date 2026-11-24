@@ -104,10 +104,11 @@ func init() {
 
 // fwKeywordWords are the printed-keyword words lowered to FwWithKeyword, by
 // gorge's compact keyword name (spaces removed): only keywords the word's
-// kernel read answers as gorge does. Flanking, Disturb, Mutate and Phasing
-// lower onto the word's fail-closed default: their K: line refuses the whole
-// face, so no lowered card can print them, and printedKeyword's default
-// false is exact over every lowered card.
+// kernel read answers as gorge does. Disturb, Mutate and Phasing lower onto
+// the word's fail-closed default: their K: line refuses the whole face, so no
+// lowered card can print them, and printedKeyword's default false is exact
+// over every lowered card. Flanking reads CardDef.Flanking, set by the
+// printed bare K:Flanking's lowering.
 var fwKeywordWords = map[string]kop.KwID{
 	"Toxic": kop.KwToxic, "Horsemanship": kop.KwHorsemanship, "Morph": kop.KwMorph, "Megamorph": kop.KwMegamorph,
 	"Suspend": kop.KwSuspend, "Cascade": kop.KwCascade, "Convoke": kop.KwConvoke, "Foretell": kop.KwForetell,
@@ -118,7 +119,8 @@ var fwKeywordWords = map[string]kop.KwID{
 	"Cycling": kop.KwCycling, "Ward": kop.KwPrintedWard, "Enchant": kop.KwEnchant,
 	"Unearth": kop.KwUnearth, "Decayed": kop.KwDecayed, "Persist": kop.KwPersist,
 	"Doctor'scompanion": kop.KwDoctorsCompanion,
-	// and the four whose printed face no lowered card can carry
+	// Flanking (CardDef.Flanking) and the three whose printed face no lowered
+	// card can carry
 	"Flanking": kop.KwFlanking, "Disturb": kop.KwDisturb, "Mutate": kop.KwMutate, "Phasing": kop.KwPhasing,
 }
 

@@ -281,6 +281,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		v = lValue{Kind: vTriggerAmount}
 	case "TriggerRemembered":
 		v, err = lc.triggerRemembered(rest) // lower_trigremembered.go
+	case "Exiled":
+		v, err = lc.scavengeExiled(rest) // lower_scavenge.go
 	case "TriggerCount":
 		switch rest {
 		case "DamageAmount", "LifeAmount", "Amount":

@@ -1,0 +1,19 @@
+# K:Scavenge (CR 702.97a): a sorcery-speed graveyard ability exiling the card
+# to put +1/+1 counters equal to its power on a creature, lowered from gorge's
+# kwScavenge expansion, for dirac/oracle/scavenge_test.go. Doom Blade and
+# plain creatures fill the graveyards.
+Deadbridge Goliath
+Drudge Beetle
+Dreg Mangler
+Sewer Shambler
+Slitherhead
+Terrus Wurm
+Thrashing Mossdog
+Zanikev Locust
+Sluiceway Scorpion
+Korozda Monitor
+Doom Blade
+Grizzly Bears
+Scathe Zombies
+Swamp
+Forest

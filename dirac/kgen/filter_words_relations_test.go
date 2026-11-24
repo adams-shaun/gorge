@@ -50,7 +50,8 @@ func TestFilterWordsRelations(t *testing.T) {
 		// the printed records kgen keeps for the keywords with no KwMask bit
 		// (T13b-2): the face's own marker, set at the keyword's lowering arm
 		{"Card.withFlanking", kop.FwWithKeyword, int16(kop.KwFlanking), false, 0, ""},
-		{"Card.withoutFlanking", kop.FwWithKeyword, int16(kop.KwFlanking), true, 0, ""},
+		// withoutFlanking lowers to PredWord7 / W7WithoutFlanking instead, the
+		// same printed-record read (flanking_lower_test.go TestWithoutFlankingWord)
 		{"Card.withCycling", kop.FwWithKeyword, int16(kop.KwCycling), false, 0, ""},
 		{"Card.withoutCycling", kop.FwWithKeyword, int16(kop.KwCycling), true, 0, ""},
 		{"Card.withDisturb", kop.FwWithKeyword, int16(kop.KwDisturb), false, 0, ""},

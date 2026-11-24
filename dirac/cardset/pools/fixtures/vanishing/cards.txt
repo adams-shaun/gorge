@@ -1,0 +1,18 @@
+# K:Vanishing (CR 702.63a): the enters-with-N-time-counters replacement, the
+# upkeep removal and the last-counter sacrifice, lowered from gorge's
+# kwVanishing expansion, for dirac/oracle/vanishing_test.go
+Keldon Marauders
+Lavacore Elemental
+Deep Forest Hermit
+Calciderm
+Soultether Golem
+Aven Riftwatcher
+Waning Wurm
+Deadly Grub
+Elite Vanguard
+Grizzly Bears
+Scathe Zombies
+Plains
+Forest
+Swamp
+Mountain

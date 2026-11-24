@@ -22,7 +22,7 @@ func TestBattlefieldPickUntilLeavesLowers(t *testing.T) {
 		{card: "Abdel Adrian, Gorion's Ward", form: "token per exiled permanent", lir: "CreateToken obj=You A=RememberedCount(ctx) CS=w_1_1_soldier"},
 		{card: "Yannik, Scavenging Sentinel", form: "mandatory exactly-one pick", lir: "ChooseMove obj=You A=1 C=5 CS=from=Battlefield|UntilLeaves|Remember|Mandatory"},
 		{card: "Lumbering Battlement", form: "ExiledWith reader keeps its own blocker", refused: "ExiledWith reader with a ChooseMove exile"},
-		{card: "Idris, Soul of the TARDIS", form: "Vanishing keeps its own blocker", refused: "keyword \"Vanishing\""},
+		{card: "Idris, Soul of the TARDIS", form: "its own aggregate value keeps it refused (K:Vanishing lowers)", refused: "Count$ValidExile Card.ExiledWithSource$CardManaCost"},
 	})
 
 	lw := lowerNamedPool(t, []string{"Glorious Protector", "Abdel Adrian, Gorion's Ward", "Yannik, Scavenging Sentinel"})
