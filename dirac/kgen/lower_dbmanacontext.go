@@ -8,14 +8,32 @@ import (
 
 // A resolving DB$ Mana in an activated ability that is NOT a CR 605.1a mana
 // ability: a loyalty ability, one that targets anywhere in its
-// chain, or one whose cost or effect moves a library card. gorge's
-// cards.IsManaAbilitySA classifies by the HEAD word (Mana/ManaReflected, or the
-// ChooseColor chain), so every other AB with a DB$ Mana sub resolves on the
-// stack and effMana adds the mana to the controller (ManaRecipients).
+// chain, or one whose cost or effect moves a library card. Those lower as an
+// ordinary resolving chain and effMana adds the mana to the controller
+// (ManaRecipients).
 //
-// Sacellum Godspeaker (AB$ Reveal | Cost$ T, no target, no library move) is a
-// CR 605.1a mana ability by the rules, but gorge puts it on the stack
-// (cards/ability_class.go L48): the kernel keeps refusing it by name.
+// Gorge's classification of the remaining AB heads whose chain reaches a
+// DB$ Mana, measured with cards.IsManaAbilitySA on the 2026-11-23 corpus:
+// gorge's classifier (engine/cards/ability_class.go) takes
+// ANY activated AB whose SubAbility$ chain reaches a DB$ Mana
+// (ManaChainProduction), minus the exclusions (a Planeswalker$ loyalty ability,
+// a target anywhere in the chain, a cost or effect that moves a library card).
+// So the ChooseColor chains (Nyx Lotus, Rhystic Cave, Nykthos, Shrine to Nyx's
+// second ability, Foraging Wickermaw), the Reveal chains (Sacellum Godspeaker,
+// Metalworker), Jack-in-the-Mox (RollDice) and Mana Screw (FlipCoin) are all
+// CR 605.1a mana abilities gorge resolves OFF the stack
+// (engine/rules/mana_activation.go answerNestedChooseColor), not on it: the
+// message below predates that classifier's chain arm. An AB$ Mana head
+// declaring ValidTgts$ (Radiant Lotus) is no mana ability and lowers through
+// dbManaActivatedOK.
+//
+// The kernel still refuses every one of those mana abilities because it has no
+// arm for one whose colour is asked at activation: gorge's census fails closed
+// on an unrecorded Chosen production (pay.PaymentPlanChoiceColours returns nil)
+// and the activation records the answer on the source
+// (events.Choose "color") before the production reads it
+// (Produced$ Chosen, Amount$ Count$Devotion.Chosen). Until that arm lands the
+// card stays unsupported (ticket t18e3-dbmana-choosecol-base).
 
 const refuseDbManaMA = "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"
 
