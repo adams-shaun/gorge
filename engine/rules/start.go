@@ -1,7 +1,11 @@
 package rules
 
 import (
+	"errors"
+	"fmt"
 	"slices"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -169,7 +173,16 @@ func (b startBuilder) planStartSeat(p state.PlayerID, s *StartSeat, ids []state.
 		return out
 	}
 	pl.hands = claim(s.Hand)
-	pl.field = claim(s.Battlefield)
+	var permanents []int
+	for _, idx := range s.Battlefield {
+		if id := startObj(ids, idx); id != 0 {
+			if o := h.G.Obj(id); o != nil && !startEntersAsPermanent(o.Card, slices.Contains(s.BackFace, idx)) {
+				continue // CR 304.4, 307.4: never a permanent (Validate refuses it)
+			}
+		}
+		permanents = append(permanents, idx)
+	}
+	pl.field = claim(permanents)
 	pl.grave = claim(s.Graveyard)
 	pl.exile = claim(s.Exile)
 	pl.top = claim(s.Library)
@@ -259,6 +272,9 @@ func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.
 		events.MarkNamedAttachEntry(&move, []state.ObjID{bearer})
 	}
 	h.Emit(move)
+	if o := h.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		return // refused on entry (an Aura with no bearer, CR 303.4g): it stays in the library
+	}
 	if slices.Contains(pl.spec.Tapped, idx) {
 		// Tapped is how the card is placed, not an action.
 		h.Emit(events.Event{Kind: events.Tap, Obj: id})
@@ -272,16 +288,22 @@ func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.
 }
 
 // finishStartSeat emits the seat's complete library order and its life.
+// Whether a card is still in the library is read from where it landed, not
+// from the plan: a placement refused on entry leaves it there.
 func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 	h := b.h
 	order := append([]state.ObjID(nil), pl.top...)
+	inLibrary := func(id state.ObjID) bool {
+		o := h.G.Obj(id)
+		return o != nil && o.Zone == state.ZLibrary && !slices.Contains(pl.top, id)
+	}
 	for _, id := range pl.rest {
-		if !pl.placed[id] {
+		if inLibrary(id) {
 			order = append(order, id)
 		}
 	}
 	for _, id := range pl.hand {
-		if !pl.placed[id] {
+		if inLibrary(id) {
 			order = append(order, id)
 		}
 	}
@@ -291,4 +313,43 @@ func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 			h.Emit(events.Event{Kind: events.LifeChange, Player: pl.seat, Amount: d})
 		}
 	}
+}
+
+// ErrStartNotPermanent is Validate's refusal of a battlefield card whose
+// entering face is an instant or sorcery (CR 304.4, 307.4).
+var ErrStartNotPermanent = errors.New("not a permanent")
+
+// Validate refuses a start no legal game state can hold: a Battlefield card
+// whose entering face (the back face when BackFace names it) is not a
+// permanent. decks is Config.Decks. applyStart degrades the same spec by
+// leaving such a card unplaced (in the library), as it skips a bad index.
+func (s *StartSpec) Validate(decks [][]*cards.Card) error {
+	for p := range s.Seats {
+		if p >= len(decks) {
+			break
+		}
+		seat := &s.Seats[p]
+		for _, idx := range seat.Battlefield {
+			if idx < 0 || idx >= len(decks[p]) {
+				continue
+			}
+			if c := decks[p][idx]; !startEntersAsPermanent(c, slices.Contains(seat.BackFace, idx)) {
+				return fmt.Errorf("start: seat %d battlefield card %d (%s): %w", p, idx, c.Faces[0].Name, ErrStartNotPermanent)
+			}
+		}
+	}
+	return nil
+}
+
+// startEntersAsPermanent reports whether c, entering on its back face when
+// back is set, is a permanent. A card with no faces is not refused.
+func startEntersAsPermanent(c *cards.Card, back bool) bool {
+	if c == nil || len(c.Faces) == 0 {
+		return true
+	}
+	f := c.Faces[0]
+	if back && len(c.Faces) > 1 {
+		f = c.Faces[1]
+	}
+	return f == nil || f.IsPermanent()
 }
