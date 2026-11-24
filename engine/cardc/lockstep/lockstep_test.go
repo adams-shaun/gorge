@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cardc/mtgish"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
@@ -160,5 +161,34 @@ func TestFDNSliceLoads(t *testing.T) {
 	}
 	if len(tail) != 10 || tail[0].ID != "fdn/1490" {
 		t.Errorf("tail %d games", len(tail))
+	}
+}
+
+// A display or naming field alone may differ; anything else is a divergence.
+func TestNamingOnly(t *testing.T) {
+	ev := func(k events.Kind, counter, text string, amount int32) events.Event {
+		return events.Event{Kind: k, Obj: 7, Player: 1, Counter: counter, Text: text, Amount: amount}
+	}
+	cases := []struct {
+		name      string
+		want, got events.Event
+		ok        bool
+	}{
+		{"mode text", ev(events.ModeChosen, "", "Deal 3 damage", 0), ev(events.ModeChosen, "", "DBDmg", 0), true},
+		{"mode text and amount", ev(events.ModeChosen, "", "a", 0), ev(events.ModeChosen, "", "b", 1), false},
+		{"mode counter", ev(events.ModeChosen, "", "a", 0), ev(events.ModeChosen, events.DilemmaReversed, "b", 0), false},
+		{"grant name", ev(events.GrantTriggerPush, "TrigChangeZone2", "granted trigger", 6), ev(events.GrantTriggerPush, "TrigChangeZone", "granted trigger", 6), true},
+		{"grant grantor", ev(events.GrantTriggerPush, "A", "granted trigger", 6), ev(events.GrantTriggerPush, "B", "granted trigger", 5), false},
+		{"gained name", ev(events.GainedTriggerPush, "A", "gained trigger", 0), ev(events.GainedTriggerPush, "B", "gained trigger", 0), true},
+		{"register name", ev(events.DelayedRegister, "TrigToken", "SpellCast:CastTrig|DU=permanent|EF", 0), ev(events.DelayedRegister, "TrigToken", "SpellCast:EmblemTrig|DU=permanent|EF", 0), true},
+		{"register mode", ev(events.DelayedRegister, "T", "SpellCast:A|DU=permanent", 0), ev(events.DelayedRegister, "T", "Attacks:B|DU=permanent", 0), false},
+		{"register duration", ev(events.DelayedRegister, "T", "SpellCast:A|DU=permanent", 0), ev(events.DelayedRegister, "T", "SpellCast:B|DU=turn", 0), false},
+		{"other kind text", ev(events.Note, "", "a", 0), ev(events.Note, "", "b", 0), false},
+		{"different kinds", ev(events.ModeChosen, "", "a", 0), ev(events.Note, "", "a", 0), false},
+	}
+	for _, tc := range cases {
+		if _, ok := namingOnly(tc.want, tc.got); ok != tc.ok {
+			t.Errorf("%s: ok = %v, want %v", tc.name, ok, tc.ok)
+		}
 	}
 }

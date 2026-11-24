@@ -1,5 +1,0 @@
-# Inspiration from Beyond
-source	key	sig	class	issue	note
-lockstep	fdn/84/forward	-	cardc-gap	0	ChangeType lacks YouOwn for graveyard source (IR has no owner fact)
-lockstep	fdn/84/reverse	-	cardc-gap	0	ChangeType lacks YouOwn for graveyard source (IR has no owner fact)
-static	0/A:SP:Mill>ChangeZone#0/[1]ChangeType	353b9900	cardc-gap	0	untriaged

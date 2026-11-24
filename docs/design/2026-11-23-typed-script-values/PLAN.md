@@ -201,6 +201,7 @@ compliance ledger's canonicalisations:
 | `mtgish-bug` | mtgish's tree is wrong | fork commit plus upstream issue (section 5) |
 | `cardc-gap` | cardc loses a correct tree | fix cardc; must be 0 at the bar |
 | `forge-bug` | the Forge script is wrong | record it; a normal main ticket fixes gorge's Forge path |
+| `gorge-suspect` | cardc matches the Oracle text and gorge's rules path differs | file a gorge defect; never bend cardc |
 | `equivalent` | same meaning, different event order | backend canonicalises; 0 at the bar |
 
 **Pass bar (FDN stage):**

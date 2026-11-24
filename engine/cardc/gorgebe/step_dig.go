@@ -78,7 +78,7 @@ func printSearch(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	n.set("ChangeType", v)
 	n.set("ChangeNum", k)
-	if !st.Optional {
+	if !st.Optional && !ch.Obj.UpTo {
 		n.set("Mandatory", "True")
 	}
 	if tapped {

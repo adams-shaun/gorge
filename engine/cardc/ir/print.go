@@ -208,6 +208,7 @@ func prRef(p *printer, n *Ref) {
 	posOpt(p, n.Of, prRef)
 	knode(p, "filter", n.Filter, prFilter)
 	knode(p, "n", n.N, prValue)
+	p.kflag("up-to", n.UpTo)
 	p.kenum("receipt", n.Receipt != 0, n.Receipt.String())
 	knodes(p, "union", n.Union, prRef)
 	p.end()

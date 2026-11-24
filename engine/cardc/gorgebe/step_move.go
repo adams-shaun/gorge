@@ -296,6 +296,11 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 			return nil, err
 		}
 		n = &node{API: "ChangeZone", Params: []kv{{"Origin", zoneWord(z)}, {"Destination", dest}, {"ChangeType", v}, {"ChangeNum", k}, {"Mandatory", "True"}}}
+		if z != ir.ZoneLibrary && z != ir.ZoneHand {
+			// Forge resolves a move from a public zone with no Defined$ on the source itself unless told
+			// the origin is hidden, whose resolver asks the chooser for ChangeNum$ cards.
+			n.set("Hidden", "True")
+		}
 		if who != nil {
 			if err := p.operand(n, "Defined", who); err != nil {
 				return nil, err

@@ -105,6 +105,12 @@ func mayStep(c *Ctx, x any) (*ir.Step, error) {
 	return st, nil
 }
 
+// ownedByYou is f and the owner fact "you own it".
+func ownedByYou(f *ir.Filter) *ir.Filter {
+	own := &ir.Filter{Subject: f.Subject, Zones: f.Zones, Op: ir.FPred, Pred: ir.POwnedBy, Ref: &ir.Ref{Kind: ir.RefYou}}
+	return &ir.Filter{Subject: f.Subject, Zones: f.Zones, Op: ir.FAll, Args: []*ir.Filter{f, own}}
+}
+
 func foundRef() *ir.Ref { return &ir.Ref{Kind: ir.RefReceipt, Receipt: ir.RcFound} }
 
 func topRef(of *ir.Ref, n *ir.Value) *ir.Ref { return &ir.Ref{Kind: ir.RefTopOfLibrary, Of: of, N: n} }
@@ -237,7 +243,15 @@ func init() {
 	})
 
 	// Moves.
-	moveOne("Action.PutACardFromGraveyardIntoHand", ir.ZoneHand, -1)
+	// "A card from your graveyard": the graveyard is its owner's, so the filter carries the owner fact.
+	register("Action.PutACardFromGraveyardIntoHand", func(c *Ctx, n node) (any, error) {
+		r, err := chooseOf(c, n, 0, refConst1())
+		if err != nil {
+			return nil, err
+		}
+		r.Filter = ownedByYou(r.Filter)
+		return &ir.Step{Verb: ir.VerbMove, Obj: r, To: ir.ZoneHand}, nil
+	})
 	moveOne("Action.PutACardFromHandOnBattlefield", ir.ZoneBattlefield, 1)
 	register("Action.PutEachCardFromEachPlayersGraveyardOntoTheBattlefield", func(c *Ctx, n node) (any, error) {
 		cs, err := c.Filter(argN(n, 0))
@@ -551,17 +565,27 @@ func registerMZSatellites() {
 			return &ir.Step{Verb: ir.VerbChoose, Obj: r}, nil
 		})
 	}
-	findOne("FindACardOfType", func(c *Ctx, n node) (*ir.Ref, error) { return chooseOf(c, n, 0, refConst1()) })
+	// A search of a hidden zone for cards with a stated quality never obliges the
+	// searcher to find them (CR 701.23b), so each of these is "up to".
+	upTo := func(r *ir.Ref, err error) (*ir.Ref, error) {
+		if r != nil {
+			r.UpTo = true
+		}
+		return r, err
+	}
+	findOne("FindACardOfType", func(c *Ctx, n node) (*ir.Ref, error) { return upTo(chooseOf(c, n, 0, refConst1())) })
 	findOne("FindAGenericCard", func(c *Ctx, n node) (*ir.Ref, error) {
 		return &ir.Ref{Kind: ir.RefChoose, Filter: anyCardIn(ir.ZoneLibrary), N: refConst1()}, nil
 	})
-	findOne("FindNumberCardsOfType", func(c *Ctx, n node) (*ir.Ref, error) {
+	findN := func(c *Ctx, n node) (*ir.Ref, error) {
 		v, err := c.Value(argN(n, 0))
 		if err != nil {
 			return nil, err
 		}
-		return chooseOf(c, n, 1, v)
-	})
+		return upTo(chooseOf(c, n, 1, v))
+	}
+	findOne("FindNumberCardsOfType", findN)
+	findOne("FindUptoNumberCardsOfType", findN)
 	foundMove := func(key string, to ir.Zone, word string, flags bool) {
 		register("SearchLibraryAction."+key, func(c *Ctx, n node) (any, error) {
 			st := &ir.Step{Verb: ir.VerbMove, Obj: foundRef(), To: to, Word: word}

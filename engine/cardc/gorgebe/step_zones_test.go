@@ -89,7 +89,7 @@ func TestMoveNodes(t *testing.T) {
 		{"Origin", "Graveyard"}, {"Destination", "Library"}, {"LibraryPosition", "-1"}})
 	// choose, all
 	ztWant(t, []*ir.Step{ztMv(ztChoose(ztZoneFilter(ir.ZoneGraveyard, "Creature"), 2), ir.ZoneHand)}, nil, "ChangeZone", []kv{
-		{"Origin", "Graveyard"}, {"Destination", "Hand"}, {"ChangeType", "Creature"}, {"ChangeNum", "2"}, {"Mandatory", "True"}})
+		{"Origin", "Graveyard"}, {"Destination", "Hand"}, {"ChangeType", "Creature"}, {"ChangeNum", "2"}, {"Mandatory", "True"}, {"Hidden", "True"}})
 	ztWant(t, []*ir.Step{ztMv(ztAll(ztZoneFilter(ir.ZoneGraveyard, "Creature")), ir.ZoneExile)}, nil, "ChangeZoneAll", []kv{
 		{"ChangeType", "Creature"}, {"Origin", "Graveyard"}, {"Destination", "Exile"}})
 	// mill-exile
@@ -135,6 +135,16 @@ func ztSearch(to ir.Zone) *ir.Step {
 		&ir.Step{Verb: ir.VerbChoose, Obj: ztChoose(ztZoneFilter(ir.ZoneLibrary, "Land"), 1)},
 		&ir.Step{Verb: ir.VerbMove, Obj: &ir.Ref{Kind: ir.RefReceipt, Receipt: ir.RcFound}, To: to},
 		&ir.Step{Verb: ir.VerbShuffle})}
+}
+
+// A search whose chooser may find fewer prints without Mandatory$, as Forge spells "up to".
+func TestSearchUpToOmitsMandatory(t *testing.T) {
+	s := ztSearch(ir.ZoneBattlefield)
+	s.Then.Steps[0].Obj.UpTo = true
+	s.Then.Steps[0].Obj.N = vc(2)
+	s.Then.Steps[1].Enter = &ir.Enter{Tapped: true}
+	ztWant(t, []*ir.Step{s}, nil, "ChangeZone", []kv{
+		{"Origin", "Library"}, {"Destination", "Battlefield"}, {"ChangeType", "Land"}, {"ChangeNum", "2"}, {"Tapped", "True"}})
 }
 
 func TestDigNodes(t *testing.T) {

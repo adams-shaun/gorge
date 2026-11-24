@@ -130,6 +130,7 @@ func eqRef(a, b *Ref) bool {
 		eqPtr(a.Of, b.Of, eqRef) &&
 		eqPtr(a.Filter, b.Filter, eqFilter) &&
 		eqPtr(a.N, b.N, eqValue) &&
+		a.UpTo == b.UpTo &&
 		a.Receipt == b.Receipt &&
 		eqPtrSlice(a.Union, b.Union, eqRef)
 }

@@ -536,3 +536,23 @@ func TestTargetsLiveOnPrograms(t *testing.T) {
 		t.Error("ir.Program must have a Targets field")
 	}
 }
+
+// TestRefUpTo: UpTo is part of a Ref's meaning, so Equal, the printer and the codec all see it.
+func TestRefUpTo(t *testing.T) {
+	a := &Ref{Kind: RefChoose, N: &Value{Kind: VConst, N: 2}}
+	b := &Ref{Kind: RefChoose, N: &Value{Kind: VConst, N: 2}, UpTo: true}
+	if Equal(a, b) || a.String() == b.String() {
+		t.Errorf("UpTo ignored: Equal=%v\n%s\n%s", Equal(a, b), a, b)
+	}
+	if got := b.String(); !strings.Contains(got, ":up-to") {
+		t.Errorf("print %s", got)
+	}
+	j, err := json.Marshal(b)
+	if err != nil || !strings.Contains(string(j), `"upTo":true`) {
+		t.Errorf("json %s %v", j, err)
+	}
+	var back Ref
+	if err := json.Unmarshal(j, &back); err != nil || !back.UpTo {
+		t.Errorf("round trip %+v %v", back, err)
+	}
+}

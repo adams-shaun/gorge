@@ -15,7 +15,7 @@ import (
 )
 
 // Classes lists the ledger's divergence classes in count-file order.
-var Classes = []string{"mtgish-bug", "cardc-gap", "forge-bug", "equivalent"}
+var Classes = []string{"mtgish-bug", "cardc-gap", "forge-bug", "gorge-suspect", "equivalent"}
 
 // Sources of a ledger row.
 const (

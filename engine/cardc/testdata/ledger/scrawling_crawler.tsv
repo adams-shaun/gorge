@@ -1,3 +1,3 @@
 # Scrawling Crawler
 source	key	sig	class	issue	note
-static	0/T:Drawn:LoseLife#0/ValidCard	6ac0a13d	cardc-gap	0	untriaged
+static	0/T:Drawn:LoseLife#0/ValidCard	6ac0a13d	equivalent	0	OppCtrl vs OppOwn: the card drawn is in that player's hand

@@ -1,3 +1,3 @@
 # Bulk Up
 source	key	sig	class	issue	note
-static	0/A:SP:Pump#0/[0]NumAtt	302e5616	cardc-gap	0	untriaged
+static	0/A:SP:Pump#0/[0]NumAtt	302e5616	equivalent	0	NumAtt +X (target's power) vs Double: Oracle doubles the power

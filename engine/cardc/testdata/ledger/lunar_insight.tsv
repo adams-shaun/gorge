@@ -1,3 +1,3 @@
 # Lunar Insight
 source	key	sig	class	issue	note
-static	0/A:SP:Draw#0/[0]NumCards	0fc83635	cardc-gap	0	untriaged
+static	0/A:SP:Draw#0/[0]NumCards	0fc83635	equivalent	0	Permanent.YouCtrl vs Card.YouCtrl+nonLand: both the nonland permanents you control

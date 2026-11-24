@@ -1,3 +1,3 @@
 # Stoneforge Mystic
 source	key	sig	class	issue	note
-static	0/T:ChangesZone:ChangeZone#0/[0]ChangeType	49c4bce9	cardc-gap	0	untriaged
+static	0/T:ChangesZone:ChangeZone#0/[0]ChangeType	49c4bce9	equivalent	0	ChangeType Equipment vs Card.Equipment: library cards are cards

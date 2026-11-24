@@ -115,7 +115,9 @@ func (k *ReceiptKind) UnmarshalJSON(b []byte) error {
 //   - RefTarget uses Slot.
 //   - RefControllerOf, RefOwnerOf, RefAttachedTo and RefPlayerOrControllerOf use Of.
 //   - RefAll is every object or player matching Filter.
-//   - RefChoose is N objects matching Filter, chosen by Of.
+//   - RefChoose is N objects matching Filter, chosen by Of. With UpTo the
+//     chooser may pick fewer than N, down to none (a hidden-zone search, CR
+//     701.23b; "up to N"); without it exactly N, or all there are when fewer.
 //   - RefTopOfLibrary is the top N cards of Of's library.
 //   - For both, a nil Of means the acting player: the enclosing Step's Who,
 //     else you.
@@ -130,7 +132,9 @@ type Ref struct {
 	Of     *Ref    `json:"of,omitempty"`
 	Filter *Filter `json:"filter,omitempty"`
 	// N is the count, for RefChoose and RefTopOfLibrary.
-	N       *Value      `json:"n,omitempty"`
+	N *Value `json:"n,omitempty"`
+	// UpTo lets a RefChoose chooser pick fewer than N.
+	UpTo    bool        `json:"upTo,omitempty"`
 	Receipt ReceiptKind `json:"receipt,omitempty"`
 	Union   []*Ref      `json:"union,omitempty"`
 	Src     string      `json:"src,omitempty"`

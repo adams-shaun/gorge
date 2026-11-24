@@ -84,7 +84,9 @@ func TestActionLoweringMZ(t *testing.T) {
 			step(ir.Step{Verb: ir.VerbDo, Who: you, Then: &ir.Program{Steps: []*ir.Step{draw}}})},
 		{"PlayerMayAction", A("PlayerMayAction", pl, drawA()), step(ir.Step{Verb: ir.VerbDraw, N: one, Optional: true, Who: you})},
 		{"PlayerMayCost", A("PlayerMayCost", pl, tCost), step(ir.Step{Verb: ir.VerbPayCost, Optional: true, Who: you, Cost: &ir.Cost{HasMana: true}})},
-		{"PutACardFromGraveyardIntoHand", A("PutACardFromGraveyardIntoHand", filt), mv(chooseF, ir.ZoneHand, "", nil)},
+		{"PutACardFromGraveyardIntoHand", A("PutACardFromGraveyardIntoHand", filt),
+			mv(&ir.Ref{Kind: ir.RefChoose, Filter: &ir.Filter{Subject: allF.Subject, Zones: allF.Zones, Op: ir.FAll, Args: []*ir.Filter{allF,
+				{Subject: allF.Subject, Zones: allF.Zones, Op: ir.FPred, Pred: ir.POwnedBy, Ref: you}}}, N: one}, ir.ZoneHand, "", nil)},
 		{"PutACardFromHandOnBattlefield", A("PutACardFromHandOnBattlefield", filt, tapped), mv(chooseF, ir.ZoneBattlefield, "", enTapped)},
 		{"PutEachCardFromEachPlayersGraveyard", A("PutEachCardFromEachPlayersGraveyardOntoTheBattlefield", filt, tn("Players", "Stub"), tapped),
 			mv(&ir.Ref{Kind: ir.RefAll, Filter: &ir.Filter{Op: ir.FAll, Args: []*ir.Filter{
@@ -151,7 +153,7 @@ func TestActionLoweringMZ(t *testing.T) {
 			tn("SearchLibraryAction", "PutSetAsideCardsOnTopOfLibrary")}),
 			step(ir.Step{Verb: ir.VerbSearch, Then: &ir.Program{Steps: []*ir.Step{
 				{Verb: ir.VerbChoose, Obj: &ir.Ref{Kind: ir.RefChoose, Filter: anyCardIn(ir.ZoneLibrary), N: one}},
-				{Verb: ir.VerbChoose, Obj: &ir.Ref{Kind: ir.RefChoose, Filter: allF, N: two}},
+				{Verb: ir.VerbChoose, Obj: &ir.Ref{Kind: ir.RefChoose, Filter: allF, N: two, UpTo: true}},
 				{Verb: ir.VerbMove, Obj: found, To: ir.ZoneBattlefield, Enter: enTapped},
 				{Verb: ir.VerbReveal, Obj: found},
 				{Verb: ir.VerbDo},
@@ -304,5 +306,28 @@ func TestSearchReceipts(t *testing.T) {
 	if s.Verb != ir.VerbSearch || len(s.Then.Steps) != 3 || s.Then.Steps[0].Verb != ir.VerbChoose ||
 		s.Then.Steps[1].Obj.Kind != ir.RefReceipt || s.Then.Steps[1].Obj.Receipt != ir.RcFound {
 		t.Errorf("got %s", p)
+	}
+}
+
+// A search of the library for stated cards may find fewer, or none (CR 701.23b); a generic search may not.
+func TestSearchFindsAreUpTo(t *testing.T) {
+	mzStubs(t)
+	for _, tc := range []struct {
+		name string
+		find node
+		want bool
+	}{
+		{"FindACardOfType", tn("SearchLibraryAction", "FindACardOfType", tFilt), true},
+		{"FindNumberCardsOfType", tn("SearchLibraryAction", "FindNumberCardsOfType", tN2, tFilt), true},
+		{"FindUptoNumberCardsOfType", tn("SearchLibraryAction", "FindUptoNumberCardsOfType", tN2, tFilt), true},
+		{"FindAGenericCard", tn("SearchLibraryAction", "FindAGenericCard"), false},
+	} {
+		p, err := (&Ctx{}).Program(tn("Actions", "ActionList", []any{tn("Action", "SearchLibrary", []any{tc.find})}))
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if got := p.Steps[0].Then.Steps[0].Obj.UpTo; got != tc.want {
+			t.Errorf("%s: UpTo = %v, want %v", tc.name, got, tc.want)
+		}
 	}
 }

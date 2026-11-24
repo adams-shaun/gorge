@@ -1,3 +1,3 @@
 # World Breaker
 source	key	sig	class	issue	note
-static	0/T:SpellCast:ChangeZone#0/TriggerZones	f0385dc3	cardc-gap	0	untriaged
+static	0/T:SpellCast:ChangeZone#0/TriggerZones	f0385dc3	equivalent	0	cardc names TriggerZones Stack for the cast trigger; Oracle same
