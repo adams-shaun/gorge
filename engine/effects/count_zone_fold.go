@@ -53,7 +53,15 @@ func devotionCount(g *state.Game, controller state.PlayerID, mask uint8) int32 {
 		if f == nil {
 			continue
 		}
-		n += cards.ManaCostChroma(f.ManaCost, mask)
+		// CR 718.3b: a prototyped permanent has only its prototype
+		// characteristics, its mana cost included, so devotion reads the
+		// inset cost. A copy exception that removed the mana cost (CR 707.9b)
+		// leaves none to count.
+		cost := f.ManaCost
+		if c, _, _, ok := o.PrototypeCharacteristics(); ok && !f.CopyNoManaCost() {
+			cost = c
+		}
+		n += cards.ManaCostChroma(cost, mask)
 	}
 	// Altar of the Pantheon: "Your devotion to each color and each
 	// combination of colors is increased by one" -- one more symbol per
