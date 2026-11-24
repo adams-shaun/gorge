@@ -33,6 +33,7 @@ Aya of Alexandria
 Bala Ged Recovery
 Balthor the Stout
 Bar the Door
+Barret, Avalanche Leader
 Bast, Panther Goddess
 Bat Whisperer
 Battle Angels of Tyr
@@ -260,6 +261,7 @@ Mana Seism
 Manabarbs
 Mantle of the Wolf
 Marchesa's Infiltrator
+Marhault Elsdragon
 Marsh Lurker
 Master of the Pearl Trident
 Maze Sentinel
@@ -384,6 +386,7 @@ Sokka's Charge
 Soltari Trooper
 Songs of the Damned
 Soul's Might
+Soultether Golem
 Sound the Call
 Sphere of Grace
 Spidersilk Armor

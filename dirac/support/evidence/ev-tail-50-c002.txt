@@ -193,6 +193,7 @@ Nature's Ruin
 Needle Drop
 Neurok Replica
 Nightwind Glider
+Nissa, Nature's Artisan
 Noble Hierarch
 Noose Constrictor
 Novablast Wurm
@@ -236,11 +237,13 @@ Renegade Map
 Revenge of Ravens
 Reverent Hoplite
 Revive the Shire
+Riding the Dilu Horse
 Riptide
 Riverglide Pathway
 Robe of Mirrors
 Roc of Kher Ridges
 Ronin Houndmaster
+Rootwater Depths
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
@@ -319,6 +322,7 @@ Village Bell-Ringer
 Vindictive Mob
 Vivid Flying Fish
 Volcanic Rush
+Volcanic Spite
 Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
@@ -326,6 +330,7 @@ Wake Thrasher
 Wall of Glare
 Wall of Ice
 Wandering Goblins
+Warden of the Woods
 Warlock Class
 Warpath
 Wary Okapi

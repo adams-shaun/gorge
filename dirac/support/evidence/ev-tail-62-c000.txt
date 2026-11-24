@@ -41,6 +41,7 @@ Azorius Knight-Arbiter
 Bad Deal
 Bad Moon
 Balloon Peddler
+Baron Vladimir Harkonnen
 Battle Hurda
 Beacon Bolt
 Beastmaster's Magemark
@@ -380,6 +381,7 @@ Sky Scourer
 Skycat Sovereign
 Skyclave Sentinel
 Slaughter Drone
+Sluiceway Scorpion
 Snarling Undorak
 Soldevi Golem
 Soldevi Sage

@@ -11,6 +11,7 @@ Archdruid's Charm	324da5282a0bdc0e	10	0/0		2/2
 Assassin's Trophy	94fc08b077ff4f51	11	0/0		1/2	ix:resp
 Assemble the Players	4f00b3a5d1cc10ee	24	0/0		0/0	
 Audience with Trostani	64e648d533c07115	4	0/0		1/2	ix:resp
+Aurelia, the Law Above	bb318a34c7c9d5c6	17	2/2		0/1	ix:resp
 Auspicious Arrival	504dc6ae4776eecb	12	0/0		1/2	ix:resp
 Axebane Ferox	3cecd15ec3dc031e	15	1/1		0/1	ix:resp
 Barbed Servitor	08e3d79b4425ef64	12	3/3		1/1	
@@ -23,6 +24,7 @@ Bolrac-Clan Basher	ed3daad830dbc9c6	11	0/0		2/2
 Branch of Vitu-Ghazi	e1ae654806d5a689	47	2/2		0/3	cast/alt:disguised,cast/alt:none,ix:resp
 Bubble Smuggler	a1de6f90724a9920	10	0/0		1/2	cast/alt:disguised
 Burden of Proof	cc75398f0281356e	38	0/0		2/2	
+Buried in the Garden	6a50816f79528ed7	38	2/2		2/2	
 Call a Surprise Witness	f2418f4995b391e5	11	0/0		2/2	
 Candlestick	5a5e8e1f2e5b2860	16	2/2		1/1	
 Case of the Crimson Pulse	59b1a07522d58345	16	3/3		0/1	ix:resp
@@ -45,6 +47,7 @@ Convenient Target	3d134803eedac5a2	33	2/2		1/2	ix:resp
 Cornered Crook	102c4edf08496e1d	21	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crime Novelist	af186885e251db3a	19	1/1		1/1	
 Crimestopper Sprite	16ccd00aa7d15a66	19	1/1		1/1	
+Crowd-Control Warden	8d4369529a4d836d	5	0/0		1/2	cast/alt:disguised
 Cryptic Coat	2432e78f5dc44c68	46	2/2		1/1	
 Curious Cadaver	03b051290abe5717	5	1/1		0/1	ix:resp
 Curious Inquiry	ce15c5de34d09571	21	0/0		1/2	ix:resp
@@ -127,6 +130,7 @@ Make Your Move	429dbfd63d7373c3	18	0/0		2/2
 Makeshift Binding	f91e1845e433e21e	14	1/1		0/1	ix:resp
 Marketwatch Phantom	fcb2078d94635f89	14	1/1		0/1	ix:resp
 Massacre Girl, Known Killer	ea7182cf7669f926	11	1/1		1/1	
+Meddling Youths	f39172ce43c3d395	5	1/1		0/1	ix:resp
 Melek, Reforged Researcher	e879eb7cc141ab56	8	0/0		0/0	
 Meticulous Archive	5f367871da61292c	19	3/3		0/1	ix:resp
 Mountain	9e71388353e907ed	310	1/1		0/1	ix:resp
@@ -185,6 +189,7 @@ Soul Enervation	48d73b4147aebffe	6	2/2		1/1
 Soul Search	7d1645fff2b76a43	33	0/0		1/2	ix:resp
 Steamcore Scholar	fa8c8238fd333df8	15	1/1		1/1	
 Sudden Setback	e1198a8e0fc36896	24	0/0		1/2	ix:resp
+Sumala Sentry	9c3f8b4c917dbad0	18	1/1		0/1	ix:resp
 Surveillance Monitor	5baab8f7c3efea69	24	2/2		1/1	
 Suspicious Detonation	109263c883224feb	15	0/0		2/2	
 Swamp	342b413902f441c3	223	1/1		0/1	ix:resp
@@ -199,6 +204,7 @@ Topiary Panther	153edc9587acac04	3	1/1		0/1	ix:resp
 Torch the Witness	ad5a78c09f37c738	9	0/0		3/4	f0/s/x0
 Toxin Analysis	7bcaf4ab9b4d0e88	6	0/0		1/2	ix:resp
 Treacherous Greed	f72fdce0ff2f02d5	19	0/0		2/2	
+Trostani, Three Whispers	f76dcd06e2201776	5	3/3		1/1	
 Tunnel Tipster	b948286cec7ee0fa	101	2/2		0/1	ix:resp
 Unauthorized Exit	b1f34ab7679d10d2	34	0/0		1/2	ix:resp
 Undercity Eliminator	6cff1dda1b75c314	10	1/1		0/1	ix:resp

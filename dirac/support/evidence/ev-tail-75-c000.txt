@@ -245,6 +245,7 @@ Kodama's Reach
 Krark-Clan Grunt
 Launch
 Lava Axe
+Lavacore Elemental
 Leapfrog
 Leyline of Punishment
 Lightwielder Paladin

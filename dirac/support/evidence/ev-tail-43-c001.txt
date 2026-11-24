@@ -15,6 +15,7 @@ Arlinn's Wolf
 Armory Guard
 Audacious Infiltrator
 Aven Augur
+Aven Shrine
 Bail Out
 Barbed Lightning
 Bastion Enforcer
@@ -350,6 +351,7 @@ Titania, Nature's Force
 Tooth Collector
 Torrential Gearhulk
 Tower Above
+Traveler's Cloak
 Triton Shorestalker
 Tsabo's Decree
 Tuktuk Grunts

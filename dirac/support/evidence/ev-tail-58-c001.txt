@@ -47,6 +47,7 @@ Briarhorn
 Bright Reprisal
 Bronze Cudgels
 Brood Weaver
+Cadaverous Knight
 Calamity's Wake
 Canal Dredger
 Candelabra of Tawnos
@@ -74,6 +75,7 @@ Dapper Shieldmate
 Daru Warchief
 Dauthi Horror
 Daxiver, Izzet Electromancer
+Deadly Grub
 Death Ward
 Deathbonnet Sprout
 Debtor's Pulpit

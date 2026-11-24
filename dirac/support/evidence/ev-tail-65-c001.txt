@@ -276,6 +276,7 @@ Undercity Informer
 Underworld Hermit
 Underworld Sentinel
 Verdant Automaton
+Verdant Haven
 Vile Requiem
 Vorrac Battlehorns
 Vorstclaw

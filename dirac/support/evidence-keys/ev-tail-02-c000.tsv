@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Avatar of Hope	9b6e279898701783	4	0/0		0/0	
 Beseech the Queen	cc9fbf244ba5bea1	6	0/0		1/2	ix:resp
+Breezekeeper	1e9699acf217c6c1	19	0/0		0/0	
 Burnout	39b5aeca5fd95f9c	7	0/0		1/2	ix:resp
 Cauldron's Gift	c910d2486d428f89	7	0/0		1/2	ix:resp
 Decree of Justice	e55fa52487e504e7	3	2/2		3/6	f0/s/x0,f0/t0/opt:n,f0/t0/opt:y
@@ -14,6 +15,8 @@ Mystic Gate	9182765e39f1ff09	20	2/2		0/1	ix:resp
 Pinecrest Ridge	eaa63c07bd38ab1a	10	2/2		0/1	ix:resp
 Planar Void	12b050cecfaf6180	8	1/1		1/1	
 Puppet Master, String Puller	c5d90126573a8df7	47	2/2		1/1	
+Sandbar Crocodile	2c47f4bcdec356ae	20	0/0		0/0	
+Shadow Rider	b7b53ac27f67da9f	22	1/1		0/1	ix:resp
 Spell Snip	fbb50bffa2af2717	6	1/1		2/2	
 Symbol of Unsummoning	6c129f9ff64ed8cc	44	0/0		2/2	
 Tangle	bd3b4537a19ffc4e	49	0/0		2/2	
