@@ -11,11 +11,14 @@ import (
 
 // damageDoubler lowers a filtered DamageDone doubler (Gratuitous Violence,
 // Neriv, Trance Kuja): DB$ ReplaceEffect | VarName$ DamageAmount with a
-// VarValue$ (an SVar or inline) of ReplaceCount$DamageAmount/Twice, a
+// VarValue$ (an SVar or inline) of ReplaceCount$DamageAmount/Twice or /Thrice
+// (City on Fire, Fiery Emancipation; the Thrice lowers to Repl.A 3), a
 // ValidSource$ every alternative of which is a non-self object you control
-// (Fire Servant: Instant.YouCtrl,Sorcery.YouCtrl) or Card.Self alone
-// (Charging Tuskodon), the ValidTarget$ words as kop.ReplDmg* bits (absent:
-// any player or permanent), IsCombat$ False as ReplDmgNonCombat and True as
+// (Fire Servant: Instant.YouCtrl,Sorcery.YouCtrl), names no controller
+// (Dictate of the Twin Gods, Furnace of Rath: Card,Emblem, any source's) or
+// Card.Self alone (Charging Tuskodon), the ValidTarget$ words as kop.ReplDmg*
+// bits (absent: any player or permanent; You and Card.Self: Goldnight
+// Castigator), IsCombat$ False as ReplDmgNonCombat and True as
 // ReplDmgCombat, and inZoneBattlefield as ReplDmgSrcInPlay (gorge
 // replacement_damage.go damageReplacementMatches). The kernel reads it as a
 // ReplDoubleDamageToOpps with Filter/C set (dirac/repl_multipliers.go).
@@ -97,7 +100,12 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 	if sv, ok := lc.face.SVars[vv]; ok {
 		vv = strings.TrimSpace(sv)
 	}
-	if vv != "ReplaceCount$DamageAmount/Twice" {
+	mult := 2
+	switch vv {
+	case "ReplaceCount$DamageAmount/Twice":
+	case "ReplaceCount$DamageAmount/Thrice":
+		mult = 3 // City on Fire, Fiery Emancipation
+	default:
 		return refuse("repl-hard: DamageDone replacement shape")
 	}
 	vs, ok := rp.get("ValidSource")
@@ -119,8 +127,11 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 	// battlefield (ReplDmgSrcInPlay; the kernel's FSelf reads the host slot)
 	self := len(rl.F.Clauses) == 1 && rl.F.Clauses[0] == (lClause{Flags: fSelf})
 	for _, c := range rl.F.Clauses {
-		// the kernel walks the source controller's doublers only (YouCtrl)
-		if !self && (c.Flags&fSelf != 0 || c.Ctrl != whoYou) {
+		// the kernel walks the source controller's doublers, both seats' when
+		// an alternative names no controller (Card,Emblem: Dictate of the Twin
+		// Gods, Furnace of Rath); any other controller word (an opponent's
+		// source) is not modelled
+		if !self && (c.Flags&fSelf != 0 || c.Ctrl != whoYou && c.Ctrl != whoAny) {
 			return refuse("repl-hard: DamageDone doubler ValidSource %q", vs)
 		}
 	}
@@ -139,6 +150,14 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 			bits |= kop.ReplDmgPlayer
 		case "Permanent":
 			bits |= kop.ReplDmgPerm
+		case "You":
+			// the replacement's controller (Goldnight Castigator's "damage to
+			// you": any source's, so any player's damage to its controller)
+			bits |= kop.ReplDmgYou
+		case "Card.Self":
+			// the replacement's host itself (Goldnight Castigator's second
+			// line: any source's damage to CARDNAME)
+			bits |= kop.ReplDmgSelf
 		default:
 			return refuse("repl-hard: DamageDone doubler ValidTarget %q", targets)
 		}
@@ -157,6 +176,9 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 		bits |= kop.ReplDmgSrcInPlay
 	}
 	rl.Kind, rl.Bits = "DoubleDamageToOpps", bits
+	if mult != 2 {
+		rl.N = cst(mult)
+	}
 	return nil
 }
 

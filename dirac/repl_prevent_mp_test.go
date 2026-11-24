@@ -120,7 +120,7 @@ func TestReplDamageFourSeat(t *testing.T) {
 	if sc2.k.gen.anyRepl&(rbPlusDmg|rbPrevNC|rbShield|rbSelfDmg|rbPrevCol|rbPrevDmgTo) != 0 {
 		t.Fatal("the replmult scenario also carries other damage replacements: the doubling reading is not pinned")
 	}
-	if n := sc2.s.dblDmgN(sc2.k, 2, sc2.slot(src), id2["Elite Vanguard"], 0, sc2.slot(rcp), false); n != 1 {
+	if n := sc2.s.dblDmgN(sc2.k, 2, sc2.slot(src), id2["Elite Vanguard"], 0, sc2.slot(rcp), false, nil); n != 1 {
 		t.Fatalf("dblDmgN for seat 2's source = %d, want 1 (seat 2's Violence)", n)
 	}
 	if n := sc2.s.replDamage(sc2.k, 2, sc2.slot(src), id2["Elite Vanguard"], TCode(rcp), false, 1); n != 2 {
@@ -131,7 +131,7 @@ func TestReplDamageFourSeat(t *testing.T) {
 		t.Fatalf("seat 2's Shock dealt %d, want 2 (no creature source: no doubling)", n)
 	}
 	// A controller beyond the game still matches no doubler.
-	if n := sc2.s.dblDmgN(sc2.k, MaxSeats, NoSlot, id2["Elite Vanguard"], 0, NoSlot, false); n != 0 {
+	if n := sc2.s.dblDmgN(sc2.k, MaxSeats, NoSlot, id2["Elite Vanguard"], 0, NoSlot, false, nil); n != 0 {
 		t.Fatalf("dblDmgN with no controller = %d, want 0", n)
 	}
 }

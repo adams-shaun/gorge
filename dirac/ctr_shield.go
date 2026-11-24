@@ -158,7 +158,7 @@ func (s *State) shieldOther(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 func (s *State) shieldOtherBase(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, sl Slot, combat bool, n int) bool {
 	g := k.gen
 	rcp := s.perms[sl].ctrl
-	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
+	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, nil) > 0 {
 		return true
 	}
 	if g.anyRepl&rbPlusDmg != 0 && s.replPlus(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) != n {
@@ -189,7 +189,7 @@ func (s *State) shieldOtherBase(k *prep, srcCtrl uint8, srcSl Slot, srcCard Card
 func (s *State) shieldOrderable(k *prep, src, dst Slot) bool {
 	g := k.gen
 	sc, rcp := s.perms[src].ctrl, s.perms[dst].ctrl
-	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, sc, src, s.cardAt(src), rcp, dst, true) > 0 {
+	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, sc, src, s.cardAt(src), rcp, dst, true, nil) > 0 {
 		return true
 	}
 	return s.prevCombatTo(k, dst) || s.spShieldOther(k, sc, src, s.cardAt(src), dst, true, 1)

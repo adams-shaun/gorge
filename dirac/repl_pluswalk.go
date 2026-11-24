@@ -82,9 +82,7 @@ func (s *State) ncPlusPickNC(i int) {
 		return
 	}
 	if ro.plus&(plRaise(1<<i)|1<<i) == 0 {
-		if ro.an < 1<<12 {
-			ro.an *= 2 // a doubling
-		}
+		ro.an = dblPickAn(ro.an, s.dblCandMult(s.k(), i)) // a doubling
 		return
 	}
 	sl := s.objs[ro.cand[i]].slot
