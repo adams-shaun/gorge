@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // This file is api:Effect's parameter compiler, on ChangeZone's pattern
@@ -105,7 +106,7 @@ var effectKnownKeys = [...]string{
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
-	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Pawprint", "Phase",
+	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Origin", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -226,6 +227,12 @@ type effectTriggerLine struct {
 	// ValidSource is ValidSource$, trimmed: who a damage-mode body names as
 	// the dealer.
 	ValidSource string
+	// SourceLeave is a ChangesZone trigger watching the Effect's own source
+	// leave the battlefield (`Origin$ Battlefield`, `ValidCard$
+	// Card.EffectSource`): the one-shot delayed promise CR 603.7b describes,
+	// whose trigger event is the departure that would also end a
+	// source-bounded Duration$ Permanent registration.
+	SourceLeave bool
 }
 
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
@@ -247,7 +254,22 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
 		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
+		SourceLeave:     WatchesEffectSourceLeave(tr),
 	}
+}
+
+// WatchesEffectSourceLeave reports whether the trigger watches its own
+// Effect source leave the battlefield: Forge's
+// `Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$
+// Card.EffectSource`. An api:Effect Triggers$ body of this shape is the
+// CR 603.7 delayed "when EFFECTSOURCE leaves" promise, which triggers once on
+// that departure (Mysterio, Master of Illusion; Stangg).
+func WatchesEffectSourceLeave(t *cards.Trigger) bool {
+	if t == nil || t.ModeKind() != cards.TriggerChangesZone {
+		return false
+	}
+	z, ok := ParseZoneWord(t.ParamStr(cards.PKOrigin))
+	return ok && z == state.ZBattlefield && strings.Contains(t.ParamStr(cards.PKValidCard), "Card.EffectSource")
 }
 
 // EffectKnownKeys is a copy of effectKnownKeys, for the census check.
