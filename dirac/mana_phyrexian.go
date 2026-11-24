@@ -239,6 +239,11 @@ func (s *State) phyWindowReach(k *prep, p uint8, cost *kop.ManaCost) bool {
 	// (mana_deferred.go)
 	s.addDeferredUnits(k, p, &av)
 	s.addPipTapsDefer(k, &s.bld().e, &av) // a Taps-deferred source too (mana_pipstapsdefer.go)
+	// a Combo Any source (Axebane Guardian) is no planner unit, but the window
+	// taps it for its amount of any colour (windowComboTap, mana_comboany.go)
+	if k.gen != nil && k.gen.anyComboAny && s.g.availX&3 == 0 {
+		s.availCA(k, p, &av)
+	}
 	if av.affords(cost, pipMaskOf(cost), 0) {
 		return true
 	}
