@@ -852,7 +852,7 @@ func chainPaysDeferredShuffle(c *Ctx, sa *cards.SA, owner state.PlayerID) bool {
 		return false
 	}
 	for n := sa.Sub; n != nil; n = n.Sub {
-		if n.API != "Shuffle" {
+		if n.APIKind() != cards.APIShuffle {
 			continue
 		}
 		ref := DefinedRefOf(n)

@@ -1,9 +1,8 @@
 package kgen
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // fetchShuffleOwed reports whether a Defined$ library fetch (gorge
@@ -72,11 +71,12 @@ func (lc *lowerCtx) chainShufflesController() bool {
 		return false
 	}
 	for n := lc.curNode.Sub; n != nil; n = n.Sub {
-		if n.API != "Shuffle" {
+		if n.APIKind() != cards.APIShuffle {
 			continue
 		}
-		d := strings.TrimSpace(n.ParamStr(cards.PKDefined))
-		if d == "" || strings.EqualFold(d, "You") {
+		// the same Defined$ reader gorge's chainPaysDeferredShuffle uses
+		ref := effects.DefinedRefOf(n)
+		if !ref.Set() || ref.Kind == effects.RefYou {
 			return true
 		}
 	}
