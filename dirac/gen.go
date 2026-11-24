@@ -36,6 +36,7 @@ type genPrep struct {
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
 	anySrcMem bool // some card keeps its Imprinted or Remembered on the source (CardDef.ImpPersist/SrcMem; zone_srcmem.go)
 	anySnow   bool // some card's printed or ability cost asks {S} or reads the snow spent (kop.ManaCost.Snow, CardDef.SpentSnow): the cold region holds the snow tally (mana_snow.go)
+	anyExwTgt bool // some card target filter reads ExiledWithSource (kop.FExiledWith): matchCardTgt threads the source (zone_exiledwithtgt.go)
 	// mana abilities a card only grants (Imprisoned in the Moon's "{T}: Add
 	// {C}"): grantPC[i] is the mana source the permanent it is granted to
 	// becomes for the autopay planner (manaPCGen)

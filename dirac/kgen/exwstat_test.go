@@ -80,6 +80,9 @@ func TestExwStaticsLowering(t *testing.T) {
 		{"mover without an ability", lowerCtx{exwOK: true}, false},
 		{"mover", lowerCtx{exwOK: true, ab: &lAbility{}}, true},
 		{"mover granted", lowerCtx{exwOK: true, ab: &lAbility{}, granted: 1}, false},
+		{"target read", lowerCtx{exwTgtOK: true, ab: &lAbility{}}, true},
+		{"target read without an ability", lowerCtx{exwTgtOK: true}, false},
+		{"target read granted", lowerCtx{exwTgtOK: true, ab: &lAbility{}, granted: 1}, false},
 	} {
 		lc := c.lc
 		lc.face, lc.known, lc.out = card, known, &lCard{}

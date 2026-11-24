@@ -580,6 +580,9 @@ func prepWord9(t *kop.Table, g *genPrep) {
 			reads := chainWord7(t, a.Trig.Filter, kop.W7CrewedBySrc) || chainWord7(t, a.Trig.Filter2, kop.W7CrewedBySrc)
 			for _, ts := range a.Targets {
 				reads = reads || chainWord7(t, ts.Filter, kop.W7CrewedBySrc)
+				if chainFlag(t, ts.Filter, kop.FExiledWith) {
+					g.anyExwTgt = true
+				}
 			}
 			for _, in := range a.Prog {
 				reads = reads || chainWord7(t, kop.InstrFilter(&in), kop.W7CrewedBySrc)
