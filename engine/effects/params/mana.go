@@ -57,13 +57,14 @@ type ManaParams struct {
 	Each ParamText
 
 	// PlainTap is Cost$ exactly "{T}": the plain tap a Combo AnyDifferent
-	// production resolves with (Firemind Vessel). A counter or mana cost is
-	// another shape and keeps its prior approximation.
+	// production resolves with (Firemind Vessel). A counter cost is another
+	// shape and keeps its prior approximation.
 	PlainTap bool
 
-	// AnyDifferent is a plain-tap Produced$ Combo AnyDifferent (compared as
-	// written, the one reading effMana's resolution and rules' potential
-	// bound share).
+	// AnyDifferent is a Produced$ Combo AnyDifferent (compared as written,
+	// the one reading effMana's resolution and rules' potential bound share)
+	// behind a plain tap or a literal generic fee plus the tap (Interplanar
+	// Beacon's "{1}, {T}"). A counter cost (Component Pouch) stays out.
 	AnyDifferent bool
 
 	// EachLit/EachIsLit are Each$'s strconv literal (EachIsLit false for a
@@ -166,14 +167,32 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 	p.HasDefined = dp.Defined.Set()
 	p.Chooser = strings.TrimSpace(sa.ParamStr(cards.PKChooser))
 
-	p.PlainTap = strings.TrimSpace(sa.ParamStr(cards.PKCost)) == "T"
-	p.AnyDifferent = p.PlainTap && p.Produced == "Combo AnyDifferent"
+	costRaw := strings.TrimSpace(sa.ParamStr(cards.PKCost))
+	p.PlainTap = costRaw == "T"
+	p.AnyDifferent = (p.PlainTap || genericFeeTapCost(costRaw)) && p.Produced == "Combo AnyDifferent"
 	p.PlainSym, p.PlainAmt = plainManaParams(sa, p)
 	if sa.API == "Mana" {
 		p.Unread = unreadKeys(sa, manaKnownKeys[:])
 	}
 	return p
 }
+
+// genericFeeTapCost reports whether a Cost$ is exactly a positive literal
+// generic fee and {T} ("1 T"), in either order.
+func genericFeeTapCost(cost string) bool {
+	f := strings.Fields(cost)
+	if len(f) != 2 {
+		return false
+	}
+	if !isTapToken(f[1]) {
+		f[0], f[1] = f[1], f[0]
+	}
+	n, err := strconv.Atoi(f[0])
+	return isTapToken(f[1]) && err == nil && n > 0
+}
+
+// isTapToken reports a Cost$ field that is the bare {T} symbol.
+func isTapToken(s string) bool { return len(s) == 1 && s[0] == 'T' }
 
 // ProducedNeedsChosen reports whether a Produced$ grammar token needs the
 // source's recorded as-enters colour before it can be priced.
