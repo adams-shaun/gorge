@@ -621,7 +621,7 @@ const (
 	// Tf3OrTargets: SpellCast, ValidSA$ "Spell.X,Spell.IsTargeting Valid Y":
 	// the cast spell matches Filter OR some target of it matches Filter2
 	// (gorge validSATargetingList, cast.go:731-789; spellIsTargetingMatchesPtr
-	// tries every target). Danitha, Sword of Hope.
+	// tries every battlefield target (the `Valid ` form is battlefield-only)). Danitha, Sword of Hope.
 	Tf3OrTargets TrigFlags3 = 1 << 3
 )
 
