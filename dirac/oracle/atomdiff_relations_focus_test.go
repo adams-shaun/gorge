@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -63,6 +64,30 @@ func relationsFocus(t *testing.T, reg *cards.Registry, set cardset.Set) []FocusC
 	return focus
 }
 
+// relationsSeedPools are the tail pools tried first: they held carriers of every keyword when the seed was cut.
+// A tail pool is the names that hash to it, so a newly lowered card can move a carrier's whole bucket balance;
+// 11-24 no listed pool dealt a Convoke carrier any more and main went red. relationsPools therefore falls back to
+// every other tail pool in name order, and the test stops as soon as each atom is read both ways.
+var relationsSeedPools = []string{"tail-34", "tail-10", "tail-28", "tail-21", "tail-01", "tail-53"}
+
+// relationsPools is relationsSeedPools, then the corpus's other tail pools in name order.
+func relationsPools(t *testing.T) []string {
+	t.Helper()
+	out := append([]string(nil), relationsSeedPools...)
+	seen := map[string]bool{}
+	for _, n := range out {
+		seen[n] = true
+	}
+	var rest []string
+	for _, n := range cardsettest.SynthNames(t) {
+		if strings.HasPrefix(n, "tail-") && !seen[n] {
+			rest = append(rest, n)
+		}
+	}
+	sort.Strings(rest)
+	return append(out, rest...)
+}
+
 // relationsProven reports whether every atom has been read both ways.
 func relationsProven(st *AtomStats, atoms []FilterAtom) bool {
 	for _, a := range atoms {
@@ -81,7 +106,7 @@ func TestAtomDiffRelationsFocus(t *testing.T) {
 	total := NewAtomStats()
 	games := 0
 pools:
-	for _, name := range []string{"tail-34", "tail-10", "tail-28", "tail-21", "tail-01", "tail-53"} {
+	for _, name := range relationsPools(t) {
 		reg := synthReg(t)
 		set := cardsettest.Synth(t, name)
 		focus := relationsFocus(t, reg, set)
