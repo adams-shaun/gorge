@@ -5,8 +5,9 @@ package rules
 // printed K:Mentor into an ordinary Attacks trigger whose body is a targeted
 // PutCounter carrying the Mentor$ marker, and engine/rules/mentor.go's mentorAdmits
 // enforces the strict lesser-power restriction at both the target offer and
-// the CR 608.2b recheck. checkGrantedMentorTriggers synthesizes the same body
-// for a layer-6 AddKeyword$ Mentor grant (the Dethrone/Training precedent).
+// the CR 608.2b recheck. scriptfacts.GrantedKeywordTrigger synthesizes the
+// same body for each layer-6 AddKeyword$ Mentor grant (CR 702.134b: one
+// trigger per instance, the generic granted-keyword precedent).
 //
 // The closest existing fixture is engine/rules/training_keyword_test.go, which
 // reuses trainingDeck/battlefieldID/passUntilStackEmpty/replayCheck here.
@@ -192,7 +193,7 @@ func TestMentorCounterOnLesserPowerAttacker(t *testing.T) {
 
 // mentorGrantSelfSrc is a creature whose ONLY source of Mentor is a layer-6
 // AddKeyword$ grant on itself (no printed K:Mentor), so a counter can only
-// come from checkGrantedMentorTriggers.
+// come from the granted-keyword synthesis.
 const mentorGrantSelfSrc = "Name:Mentor Adept\nManaCost:1 R\nTypes:Creature Human Soldier\nPT:2/2\n" +
 	"S:Mode$ Continuous | Affected$ Card.Self | AddKeyword$ Mentor | Description$ NICKNAME has mentor.\nOracle:x\n"
 
@@ -202,13 +203,12 @@ const mentorPrintAndGrantSrc = "Name:Mentor Veteran\nManaCost:1 R\nTypes:Creatur
 	"K:Mentor\n" +
 	"S:Mode$ Continuous | Affected$ Card.Self | AddKeyword$ Mentor | Description$ NICKNAME has mentor.\nOracle:x\n"
 
-// TestGrantedMentorFiresAndDoesNotStackWithAPrintedKeyword covers the two
-// corpus AddKeyword$ Mentor carriers' route (Aegis of the Legion, Nyxborn
-// Unicorn): a creature granted Mentor but printing none still mentors. It
-// also pins the Dethrone/Training dedup -- a creature that PRINTS Mentor and
-// is granted it again fires exactly once, so the granted synthesis must skip
-// a face that already carries the printed keyword.
-func TestGrantedMentorFiresAndDoesNotStackWithAPrintedKeyword(t *testing.T) {
+// TestGrantedMentorFiresAndStacksWithAPrintedKeyword covers the two corpus
+// AddKeyword$ Mentor carriers' route (Aegis of the Legion, Nyxborn Unicorn): a
+// creature granted Mentor but printing none still mentors. It also pins
+// CR 702.134b -- a creature that PRINTS Mentor and is granted it again has
+// two instances, so both trigger.
+func TestGrantedMentorFiresAndStacksWithAPrintedKeyword(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	memnite := mustCorpusCard(t, reg, "Memnite") // 1/1, strictly lesser
 	if d := memnite.Link(); len(d) != 0 {
@@ -247,23 +247,21 @@ func TestGrantedMentorFiresAndDoesNotStackWithAPrintedKeyword(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 
-	// Dedup: printed PLUS granted fires once, not twice. A second fire would
-	// pose a second KTarget (which passUntilStackEmpty rejects) or a second
-	// counter; either way this fails loudly.
+	// CR 702.134b: printed PLUS granted is two instances, so two triggers
+	// queue. Counting the queue (rather than resolving) keeps this half about
+	// the instance count; the triggered body itself is the first half's.
 	e2, cfg2 := trainingDeck(t, 303, printAndGrant, memnite)
 	vetID := battlefieldID(t, e2, "Mentor Veteran")
 	mem2ID := battlefieldID(t, e2, "Memnite")
 	e2.emit(events.Event{Kind: events.MoveZone, Obj: vetID, From: state.ZHand, To: state.ZBattlefield})
 	e2.emit(events.Event{Kind: events.MoveZone, Obj: mem2ID, From: state.ZHand, To: state.ZBattlefield})
 	if !e2.HasKeyword(vetID, "Mentor") {
-		t.Fatal("the dedup fixture lost Mentor")
+		t.Fatal("the stacking fixture lost Mentor")
 	}
+	e2.pendingTriggers = nil
 	e2.emit(events.Event{Kind: events.DeclareAttackers, Player: 1, IDs: []state.ObjID{vetID, mem2ID}})
-	e2.priorityRound()
-	mentorAnswerTarget(t, e2, mem2ID, 20)
-	passUntilStackEmpty(t, e2, 20)
-	if got := e2.G.Obj(mem2ID).Counter("P1P1"); got != 1 {
-		t.Fatalf("printed + granted Mentor stacked: %d counters, want 1", got)
+	if got := mentorPendingCount(e2, vetID); got != 2 {
+		t.Fatalf("printed + granted Mentor queued %d triggers, want 2", got)
 	}
 	replayCheck(t, e2, cfg2)
 }

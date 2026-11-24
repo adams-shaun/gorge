@@ -20,7 +20,6 @@ var (
 	kwRefGift        = cards.NewKeywordRef("Gift")
 	kwRefHarmonize   = cards.NewKeywordRef("Harmonize")
 	kwRefMegamorph   = cards.NewKeywordRef("Megamorph")
-	kwRefMentor      = cards.NewKeywordRef("Mentor")
 	kwRefMorph       = cards.NewKeywordRef("Morph")
 	kwRefOffspring   = cards.NewKeywordRef("Offspring")
 	kwRefParadigm    = cards.NewKeywordRef("Paradigm")

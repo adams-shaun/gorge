@@ -284,14 +284,15 @@ type pendingTrigger struct {
 	// Mentor is a GRANTED mentor keyword (CR 702.134 via a layer-6
 	// AddKeyword$ Mentor -- Aegis of the Legion's "Equipped creature has
 	// mentor", Nyxborn Unicorn's Bestow aura): the Ward/Afflict/Flanking
-	// shape. A creature granted mentor has no printed K:Mentor trigger to
-	// carry the targeted counter body, so checkGrantedMentorTriggers
-	// synthesizes the ordinary Attacks trigger and the drain pushes a
-	// KeywordTriggerPush whose __kwMentorGranted: payload events.Apply
-	// rebuilds into the same DB$ PutCounter | ValidTgts$ Creature.attacking |
-	// Mentor$ True body the printed expansion carries, then poses that body's
-	// ordinary target ask (unlike Ward/Afflict the body is targeted). Idx and
-	// SA are unset for it.
+	// shape, one instance per granting static (CR 702.134b). A creature
+	// granted mentor has no printed K:Mentor trigger to carry the targeted
+	// counter body, so the generic granted-keyword walk synthesizes the
+	// ordinary Attacks trigger and the drain pushes a KeywordTriggerPush
+	// whose __kwMentorGranted payload events.Apply rebuilds into the same
+	// DB$ PutCounter | ValidTgts$ Creature.attacking | Mentor$ True body the
+	// printed expansion carries, then poses that body's ordinary target ask
+	// (unlike Ward/Afflict the body is targeted). Idx is unset for it; SA
+	// carries the synthesized targeted body the ask is posed from.
 	Mentor bool
 	// Firebending is a GRANTED firebending keyword (CR 702.189 via a layer-6
 	// AddKeyword$ Firebending:<N> -- Sozin's Comet's "Each creature you
@@ -1469,7 +1470,6 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 					e.checkGrantedDethroneTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
-					e.checkGrantedMentorTriggers(observer, id, o, f, *ev, objLKI)
 					e.checkGrantedAttackKeywordTriggers(observer, id, o, f, *ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, *ev)
@@ -2070,13 +2070,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, *ev, objLKI)
 		e.checkGrantedAttackPumpTriggers(observer, id, o, f, *ev, objLKI)
-		// A granted Mentor must fire even when the object's own printed
-		// triggers are live for this event -- the same both-paths rule
-		// Afflict, Conspire, Exploit, Offspring and Training follow.
-		e.checkGrantedMentorTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted Firebending must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
-		// Afflict, Conspire, Exploit, Offspring, Training and Mentor follow.
+		// Afflict, Conspire, Exploit, Offspring and Training follow. A granted
+		// Mentor reaches the same path through the generic keyword walk.
 		e.checkGrantedAttackKeywordTriggers(observer, id, o, f, *ev, objLKI)
 		// A granted cumulative upkeep must fire at the beginning of the
 		// controller's upkeep even when the object's own printed triggers are
@@ -3340,9 +3337,9 @@ func init() {
 		"kw:Melee",
 		// CR 702.134 Mentor: an Attacks trigger (engine/cards/kw_mentor.go) whose
 		// targeted PutCounter body carries the Mentor$ marker, enforced by
-		// mentorAdmits at both the target offer and the recheck, with a
-		// granted-keyword synthesis (checkGrantedMentorTriggers) for the
-		// layer-6 grant.
+		// mentorAdmits at both the target offer and the recheck, with the
+		// granted-keyword synthesis (grantedKeywordTrigger) covering the
+		// layer-6 grant once per granting static (CR 702.134b).
 		"kw:Mentor",
 		// CR 702.189 Firebending: an Attacks trigger (engine/cards/kw_firebending.go)
 		// whose body adds N red with the until-end-of-combat exception
