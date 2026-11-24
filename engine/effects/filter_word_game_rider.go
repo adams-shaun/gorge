@@ -14,6 +14,8 @@ import (
 //     the shared wordPredicateWordCodes table -- the ONE home of the
 //     spellings, exactly like every other bare word there): the candidate
 //     has dealt damage (combat damage) to anything this game.
+//   - Forge's dealtDamageToOppThisTurn (same table): the candidate dealt
+//     damage this turn to an opponent of its controller.
 //   - Forge's Card.attacking <PlayerSpec> rider: the candidate is attacking
 //     the seat <PlayerSpec> names. The argument is validated against
 //     playerSpecBaseCodes, the table that already owns the player-spec base
@@ -32,6 +34,8 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 		return wordDealtDamageToAny, "", true
 	case wordPredicateWordDealtCombatDamageToAny:
 		return wordDealtCombatDamageToAny, "", true
+	case wordPredicateWordDealtDamageToOppThisTurn:
+		return wordDealtDamageToOppThisTurn, "", true
 	}
 	if kind, key, ok := countersReceivedWordKind(p); ok {
 		return kind, key, true
@@ -76,4 +80,19 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 func attackingPlayerMatches(g *state.Game, key string, o *state.Object, sc SpecContext) bool {
 	return o.IsAttacking && o.AttackingBattle == 0 && int(o.Attacking) < len(g.Players) &&
 		MatchesPlayerSpecCtx(g, key, o.Attacking, sc.You, PlayerSpecCtx{Source: sc.Source, Layers: sc.Layers})
+}
+
+// dealtDamageToOppThisTurn evaluates wordDealtDamageToOppThisTurn, Forge's
+// Card.hasDealtDamageToOpponentThisTurn: some player this object dealt damage
+// to this turn is an opponent of the object's controller (every other seat;
+// CR 102.2 two-player and free-for-all). It reads
+// state.Object.DealtDamageToPlayersThisTurnHere, the per-seat bits the
+// DamageProvenance fold sets and TurnChange and leaving the battlefield
+// clear, so damage the controller dealt itself never counts.
+func dealtDamageToOppThisTurn(o *state.Object) bool {
+	self := uint32(0)
+	if o.Controller < 32 {
+		self = 1 << o.Controller
+	}
+	return o.DealtDamageToPlayersThisTurnHere&^self != 0
 }

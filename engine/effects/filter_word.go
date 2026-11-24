@@ -332,6 +332,11 @@ const (
 	wordBlockedBySourceLKI
 	// countersReceivedThisTurn_<cmp><N>_Any_You: filter_word_counters_received.go.
 	wordCountersReceived
+	// wordDealtDamageToOppThisTurn is Forge's dealtDamageToOppThisTurn: the
+	// candidate dealt damage this turn to a player who is an opponent of its
+	// controller (filter_word_game_rider.go). Corpus carrier: Dunerider
+	// Outlaw's IsPresent$ end-step gate.
+	wordDealtDamageToOppThisTurn
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1020,7 +1025,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
 		return !sharesName(o, key, sc)
-	case wordDealtDamageThisTurn, wordSourceDealtDamageThisTurn, wordDealtDamageToAny, wordDealtCombatDamageToAny:
+	case wordDealtDamageThisTurn, wordSourceDealtDamageThisTurn, wordDealtDamageToAny, wordDealtCombatDamageToAny, wordDealtDamageToOppThisTurn:
 		// Forge's wasDealtDamageThisTurn: the object was dealt damage this
 		// turn. The flag is the per-object provenance events.Apply's Damage
 		// case sets (the same field the playercount HasProperty heads read)
@@ -1319,6 +1324,8 @@ func damageRecordPredicate(kind wordKind, o *state.Object) bool {
 		return o.DealtDamageToAnyGame
 	case wordDealtCombatDamageToAny:
 		return o.DealtCombatDamageToAnyGame
+	case wordDealtDamageToOppThisTurn:
+		return dealtDamageToOppThisTurn(o)
 	}
 	return o.WasDealtDamageThisTurn
 }
@@ -1548,6 +1555,7 @@ const (
 	wordPredicateWordDealtCombatDamageToAny
 	wordPredicateWordBottomLibrary
 	wordPredicateWordFaceUp
+	wordPredicateWordDealtDamageToOppThisTurn
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1620,6 +1628,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamagetoAny", Val: wordPredicateWordDealtDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtCombatDamagetoAny", Val: wordPredicateWordDealtCombatDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "faceUp", Val: wordPredicateWordFaceUp},
+	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamageToOppThisTurn", Val: wordPredicateWordDealtDamageToOppThisTurn},
 )
 
 type wordPredicateSharesCode uint16
