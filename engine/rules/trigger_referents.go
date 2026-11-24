@@ -304,22 +304,9 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
 		}
 	case cards.TriggerAttached:
-		// ev.Obj is the attaching Aura/Equipment, ev.IDs[0] the bearer it
-		// became attached to (trigmatch.attachedMatches guarantees a bearer-bearing
-		// Attach event reached this mode). The TriggerTarget role serves the
-		// TriggeredTarget/TriggeredTargetController spellings (Bramble
-		// Elemental's token owner); TriggerBearer -- a field ONLY this case
-		// sets -- is what TriggeredTargetLKICopy (Enormous Energy Blade's
-		// "tap that creature") resolves, so the bearer never masquerades as
-		// another mode's TriggerTarget provenance (a BecomesTarget trigger's
-		// TriggerTarget is the TARGETED permanent, becomesTargetReferent;
-		// reading it as a bearer would make Horobi destroy himself on every
-		// targeting).
-		c.TriggerCard = ev.Obj
-		if len(ev.IDs) > 0 {
-			c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
-			c.TriggerBearer = ev.IDs[0]
-		}
+		attachedReferents(&c, ev)
+	case cards.TriggerLosesGame:
+		losesGameReferents(&c, e.G, ev)
 	case cards.TriggerPhase:
 		c.TriggerPlayer = player(e.G.Active)
 	case cards.TriggerBecomeMonarch:
@@ -887,4 +874,33 @@ func destroyedReferents(c *effects.TriggerContext, b trigmatch.Board, ev events.
 	if causer, ok := trigmatch.DestroyCauser(b); ok {
 		c.TriggerPlayer = player(causer)
 	}
+}
+
+// attachedReferents is the Mode$ Attached capture (it moved here from
+// triggerReferents unchanged, to keep that function under its ceiling):
+// ev.Obj is the attaching Aura/Equipment, ev.IDs[0] the bearer it
+// became attached to (trigmatch.attachedMatches guarantees a bearer-bearing
+// Attach event reached this mode). The TriggerTarget role serves the
+// TriggeredTarget/TriggeredTargetController spellings (Bramble
+// Elemental's token owner); TriggerBearer -- a field ONLY this case
+// sets -- is what TriggeredTargetLKICopy (Enormous Energy Blade's
+// "tap that creature") resolves, so the bearer never masquerades as
+// another mode's TriggerTarget provenance (a BecomesTarget trigger's
+// TriggerTarget is the TARGETED permanent, becomesTargetReferent;
+// reading it as a bearer would make Horobi destroy himself on every
+// targeting).
+func attachedReferents(c *effects.TriggerContext, ev events.Event) {
+	c.TriggerCard = ev.Obj
+	if len(ev.IDs) > 0 {
+		c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
+		c.TriggerBearer = ev.IDs[0]
+	}
+}
+
+// losesGameReferents is the Mode$ LosesGame capture: the loser is the event's
+// Player, and their battlefield is read NOW, at the PlayerLost emit, before the
+// CR 800.4a sweep moves it (TriggerLostBoard).
+func losesGameReferents(c *effects.TriggerContext, g *state.Game, ev events.Event) {
+	c.TriggerPlayer = state.Target{Player: ev.Player, IsPlayer: true}
+	c.TriggerLostBoard = append([]state.ObjID(nil), g.Zone(state.ZBattlefield, ev.Player)...)
 }
