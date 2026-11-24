@@ -33,6 +33,7 @@ var matcherCases = func() []MatcherCase {
 		{Name: "exileFromTopCost", Grammar: exileFromTopCost, Match: wrapMatcher(matchExileFromTopCost)},
 		{Name: "addCounterCost", Grammar: addCounterCost, Match: wrapMatcher(matchAddCounterCost)},
 		{Name: "addSelfCounterCost", Grammar: addSelfCounterCost, Match: wrapMatcher(matchAddSelfCounterCost)},
+		{Name: "addChooserCounterCost", Grammar: addChooserCounterCost, Match: wrapMatcher(matchAddChooserCounterCost)},
 		{Name: "exertCost", Grammar: exertCost, Match: wrapMatcher(matchExertCost)},
 		{Name: "lifeCost", Grammar: lifeCost, Match: wrapMatcher(matchLifeCost)},
 		{Name: "choiceCost", Grammar: choiceCost, Match: wrapMatcher(matchChoiceCost)},
