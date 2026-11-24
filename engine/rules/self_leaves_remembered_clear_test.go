@@ -9,17 +9,19 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// A Panharmonicon-doubled leaves trigger of Unidentified Hovership: the first
-// instance manifests dread from the remembered exile and its Cleanup
-// ClearRemembered$ empties the source's list; the second instance's
-// DefinedPlayer$ RememberedOwner must then resolve to NOBODY (the owner read
-// is the source's list at resolution) and manifest nothing. The
-// pending-referent snapshot (CR 400.7) must not stand in the way: the firing
-// departure is not a forgetting, so the live list is what the resolution
-// reads. Measured from the std-dsk lockstep pair 58 (Unidentified
-// Hovership#133, a The Jolly Balloon Man copy sacrificed at end of turn
-// beside a live Fractured Realm).
-func TestUnidentifiedHovershipDoubledLeaveSeesRememberedClear(t *testing.T) {
+// A Panharmonicon-doubled leaves trigger of Unidentified Hovership. Since
+// Forge ff076d4432 the leave trigger names its player as
+// `DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1` (the
+// exiled card's owner, read off the exiled-with link) with no remembered list
+// and no Cleanup, so nothing the first instance does clears the second's
+// referent: the bear stays exiled with the Hovership, and each instance
+// resolves on its own (CR 603.2c), so its owner manifests dread TWICE. The
+// link must survive the source's own departure (CR 607.2a: the leave trigger
+// reads the object that just left). The scenario was measured from the
+// std-dsk lockstep pair 58 (Unidentified Hovership#133, a The Jolly Balloon
+// Man copy sacrificed at end of turn beside a live Fractured Realm), when the
+// old remembered-owner script made the second instance manifest nothing.
+func TestUnidentifiedHovershipDoubledLeaveManifestsTwice(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
 	plains := searchCorpusCard(t, reg, "Plains")
@@ -71,8 +73,8 @@ func TestUnidentifiedHovershipDoubledLeaveSeesRememberedClear(t *testing.T) {
 		t.Fatalf("while Delney entered: %+v", d)
 	}
 
-	// Cast the Hovership; its ETB exiles the bear (RememberChanged$ True
-	// writes it into the source's remembered list).
+	// Cast the Hovership; its ETB exiles the bear (the exile stamps the
+	// exiled-with link to the Hovership).
 	hov := searchMoveByName(t, e, "Unidentified Hovership", state.ZHand)
 	addMana(t, e, 0, "WWW")
 	castByID(t, e, hov)
@@ -115,9 +117,8 @@ func TestUnidentifiedHovershipDoubledLeaveSeesRememberedClear(t *testing.T) {
 		t.Fatalf("while crew resolved: %+v", d)
 	}
 
-	// Shatter the Hovership: its leave trigger fires twice (Delney), the
-	// first instance manifests dread from seat 1's library and its cleanup
-	// empties the source's remembered list, the second must find it empty.
+	// Shatter the Hovership: its leave trigger fires twice (Delney), and
+	// both instances find the bear still exiled with it.
 	// The drive runs to the turn boundary: the crew bookkeeping is an
 	// event-folded per-turn fact and the replay check compares whole games,
 	// so both sides must reach the same TurnChange fold (which resets it)
@@ -199,8 +200,8 @@ func TestUnidentifiedHovershipDoubledLeaveSeesRememberedClear(t *testing.T) {
 			dreads++
 		}
 	}
-	if dreads != 1 {
-		t.Errorf("%d ManifestDread resolutions, want 1: the second instance must see the Cleanup's cleared remembered list", dreads)
+	if dreads != 2 {
+		t.Errorf("%d ManifestDread resolutions, want 2: the bear stays exiled with the Hovership, so each doubled instance manifests dread for its owner", dreads)
 	}
 	replayCheck(t, e, cfg)
 }

@@ -14,8 +14,8 @@ import (
 // source (not only a Defined$ Remembered one).
 func TestLowerCopypermanentNonTargetedController(t *testing.T) {
 	src := "Name:Copier\nManaCost:B\nTypes:Sorcery\n" +
-		"A:SP$ ChangeZone | ValidTgts$ Permanent.nonLand | Origin$ Battlefield | Destination$ Exile | SubAbility$ DBClone\n" +
-		"SVar:DBClone:DB$ CopyPermanent | Defined$ Targeted | Controller$ NonTargetedController\n"
+		"A:SP$ ChangeZone | ValidTgts$ Permanent.nonLand | Origin$ Battlefield | Destination$ Exile | SubAbility$ PrbCopy\n" +
+		"SVar:PrbCopy:DB$ CopyPermanent | Controller$ NonTargetedController | Defined$ Targeted\n"
 	card := cnCard(t, src)
 	p := &pool{names: []string{"Copier"}, byName: map[string]*cards.Card{"Copier": card}, nDecks: map[string]int{}, reg: cards.NewRegistry()}
 	lc := lowerCard(p, "Copier", card, false)
