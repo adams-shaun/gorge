@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomExert
+value: next
+status: active
+doc: CostAtomExert: exert the source (CR 701.39a): the one-shot no-untap mark. Dirac: pfSkipUntap.

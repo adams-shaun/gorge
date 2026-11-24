@@ -4216,6 +4216,10 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	a := &k.t.Cards[e.card].Abilities[e.ab]
 	sl := s.srcSlot()
+	if a.CostProg != 0 {
+		s.payCostProg(k, e, sl, a) // the cost program pays in gorge's order (cost_prog.go)
+		return
+	}
 	f := a.Cost.Flags
 	if f&kop.CostBlight != 0 && f&kop.CostSacSelf == 0 {
 		s.payBlightPicks(k) // gorge emits the blight counters before the tap
@@ -4224,14 +4228,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.touchSl(sl)
 	}
 	if f&kop.CostTap != 0 {
-		was := s.perms[sl].flags & pfTapped
-		s.perms[sl].flags |= pfTapped
-		if was == 0 {
-			if k.gen != nil && s.subs[kop.TrigTaps].any() {
-				s.fireTaps(k, sl)
-			}
-			s.markTapped(k, sl) // only a tap that happens marks
-		}
+		s.tapSelfCost(k, sl)
 	}
 	if f&kop.CostUntapSelf != 0 && sl != NoSlot {
 		s.untapCost(k, sl)
@@ -4249,8 +4246,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		// Exert<1/NICKNAME> as an activation cost (CR 702.100a): the
 		// one-shot no-untap mark, consumed at the controller's next untap
 		// step (turn.go's pfSkipUntap)
-		s.touchSl(sl)
-		s.perms[sl].flags |= pfSkipUntap
+		s.exertCost(sl)
 	}
 	if f&kop.CostOncePerGame != 0 {
 		s.onceUse(k, sl, a)
@@ -4260,21 +4256,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N)) // trig_counterremoved.go
 	}
 	if f&kop.CostAddCtr != 0 {
-		// a counter put as a cost is no effect (CR 609.1; Doubling Season's
-		// rulings): an EffectOnly$ doubler never doubles it, whatever the
-		// stack holds (gorge; Forge CostPutCounter effect=false,
-		// XMage PayLoyaltyCost); every other AddCounter replacement does,
-		// the payer putting it (replCostCtr, repl_addcounter.go)
-		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), e.ctrl, ctrPutCost)
-		if n > 0 && k.anyCtrAdded {
-			s.ctrNoteBy(k, sl, int(a.Cost.Ctr), e.ctrl) // a cost: gorge pay_engine publishes the payer
-		}
-		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-			// "whenever you put one or more counters on" fires for the cost's
-			// placement too: the [+1] of a loyalty ability (CR 606.4, 122.6)
-			s.g.lastCK = kop.CounterKind(a.Cost.Ctr)
-			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
-		}
+		s.addCounterCost(k, sl, int(a.Cost.Ctr), int(a.Cost.N), e.ctrl)
 	}
 	if f&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, &a.Cost, uint8(e.x))
@@ -4334,16 +4316,7 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 		s.payBlightPicks(k) // before the source is sacrificed
 	}
 	if f&kop.CostSacSelf != 0 && sl != NoSlot {
-		if k.gen != nil {
-			s.bld().e.li = s.snapLKI(s.perms[sl].obj) // last known information (RefSacrificed)
-			if s.deferSacGen(k, sl) {
-				return // paySacsGen, after the mana
-			}
-		}
-		s.fireSac(k, sl)
-		if !s.parkCost(k, s.perms[sl].obj, parkLeave, 0) {
-			s.leave(k, sl, kop.ZoneGraveyard, false)
-		}
+		s.sacSelfCost(k, sl)
 	}
 }
 

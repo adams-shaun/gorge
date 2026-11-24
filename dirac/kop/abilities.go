@@ -228,6 +228,11 @@ type Ability struct {
 	// fires it as before, exactly as gorge's live walk does. A table byte,
 	// not State.
 	FromAnyGrave bool
+	// CostProg: Table.CostProgs[CostProg] is the ability's cost program (a
+	// CostAtom list the walker pays in gorge's order, dirac/cost_prog.go); 0 =
+	// none, the cost is Cost alone. kop.Cost has no spare field. A table byte
+	// pair, not State.
+	CostProg uint16
 }
 
 // Timing is when a card may be cast.
