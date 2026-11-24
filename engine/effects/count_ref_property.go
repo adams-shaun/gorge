@@ -338,7 +338,7 @@ func evalRefProperty(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			if strings.EqualFold(strings.TrimPrefix(prop, "CardCounters."), "ALL") {
 				n += sumCounters(o.Counters)
 			} else {
-				n += o.Counter(strings.TrimPrefix(prop, "CardCounters."))
+				n += o.Counter(state.CanonicalCounterKind(strings.TrimPrefix(prop, "CardCounters.")))
 			}
 		case prop == "Colors":
 			colorsSeen |= ColorMaskFromLetters(LiveColors(h, o))
