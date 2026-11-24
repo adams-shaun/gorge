@@ -10,6 +10,9 @@ import (
 type ChooseCardParams struct {
 	paramBinding
 	ImprintChosen bool
+	// EachDifferentPower is EachDifferentPower$ True: one mandatory pick per
+	// distinct power among the Choices$ matches (Celestial Judgment).
+	EachDifferentPower bool
 }
 
 var chooseCardFront [1 << 10]atomic.Pointer[ChooseCardParams]
@@ -25,6 +28,7 @@ func ChooseCardOf(sa *cards.SA) *ChooseCardParams {
 	}
 	p := &ChooseCardParams{paramBinding: bindParams(sa)}
 	p.ImprintChosen = isTrue(sa.ParamStr(cards.PKImprintChosen))
+	p.EachDifferentPower = isTrue(sa.ParamStr(cards.PKEachDifferentPower))
 	if sa.Params != nil {
 		slot.Store(p)
 	}

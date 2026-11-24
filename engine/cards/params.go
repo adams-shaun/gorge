@@ -989,6 +989,11 @@ const (
 	// Negotiations' YouChoose keeps it for TheyChoose). Read by effects'
 	// twoPilesKeepsRemembered. Appended: earlier ordinals stay stable.
 	PKKeepRemembered
+	// EachDifferentPower$ on a ChooseCard resolution: one mandatory pick per
+	// distinct power among the Choices$ matches, ascending (Celestial
+	// Judgment; CR 608.2c). Read by effects' ChooseCardOf. Appended: earlier
+	// ordinals stay stable.
+	PKEachDifferentPower
 	paramKeyCount
 )
 
@@ -1837,6 +1842,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKPaid:                             "Paid",
 	PKSacEachValid:                     "SacEachValid",
 	PKKeepRemembered:                   "KeepRemembered",
+	PKEachDifferentPower:               "EachDifferentPower",
 }
 
 // String is the key's Forge text.
