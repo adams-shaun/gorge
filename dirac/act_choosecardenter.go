@@ -11,7 +11,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // perm.chosen stays one byte, so the same value 0..8 also reads as a creature
 // subtype index when a reader does not know the source's kind. The kind is a
-// per-card prep flag (genPrep.cardKind): the readers below take it from the
+// per-card prep flag (prep.cardKind): the readers below take it from the
 // source permanent's card, and a flagged source never reads its byte as a
 // subtype. A source with no answer (255) matches nothing (gorge's
 // s.ChosenType != "" gate).
@@ -29,7 +29,7 @@ func isCardKindChoose(in *kop.Instr) bool {
 
 // prepCardKinds sets the per-card flag: the card's enters program asks for a
 // card type. anyTypeValid also gates typeOptions, which builds this ask's options.
-func prepCardKinds(t *kop.Table, g *genPrep) {
+func prepCardKinds(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
@@ -40,10 +40,10 @@ func prepCardKinds(t *kop.Table, g *genPrep) {
 				if !isCardKindChoose(&a.Prog[x]) {
 					continue
 				}
-				if g.cardKind == nil {
-					g.cardKind = make([]bool, len(t.Cards))
+				if p.cardKind == nil {
+					p.cardKind = make([]bool, len(t.Cards))
 				}
-				g.cardKind[i] = true
+				p.cardKind[i] = true
 				g.anyTypeValid = true
 			}
 		}
@@ -81,13 +81,13 @@ func cardKindValue(v int) uint8 {
 
 // cardKindOf reports whether card c's chosen byte is a card type.
 func cardKindOf(k *prep, c CardID) bool {
-	return k.gen != nil && int(c) < len(k.gen.cardKind) && k.gen.cardKind[c]
+	return int(c) < len(k.cardKind) && k.cardKind[c]
 }
 
 // srcCardKind reports whether the permanent at src holds a card-type answer (its
 // card asks for one as it enters), and the answered type's bit (0: no answer).
 func (s *State) srcCardKind(k *prep, src Slot) (kop.TypeMask, bool) {
-	if src == NoSlot || k.gen == nil || k.gen.cardKind == nil || !cardKindOf(k, s.cardAt(src)) {
+	if src == NoSlot || k.cardKind == nil || !cardKindOf(k, s.cardAt(src)) {
 		return 0, false
 	}
 	return cardKindBit(s.perms[src].chosen), true

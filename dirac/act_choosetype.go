@@ -133,7 +133,6 @@ func (s *State) midTypeOptions(k *prep, in *kop.Instr, d *Decision) bool {
 
 // prepChooseType sets the prep gates of this file.
 func prepChooseType(t *kop.Table, g *genPrep) {
-	prepCardKinds(t, g) // act_choosecardenter.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		if len(c.TypeValid) != 0 {
