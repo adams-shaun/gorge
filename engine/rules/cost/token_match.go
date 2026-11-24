@@ -344,19 +344,25 @@ func matchAddChooserCounterCost(t costTok) (groups, bool) {
 	if !t.angle || t.id != hAddCounter {
 		return groups{}, false
 	}
-	n, rest, found := strings.Cut(t.inner, "/")
-	if !found || !isDigits(n) {
+	// Sliced by hand, not strings.Cut: this file is inside the no-strings
+	// ratchet's engine/rules scope and is not allowlisted.
+	const tail = "/M1M1/Creature.YouCtrl"
+	in := t.inner
+	i := 0
+	for i < len(in) && in[i] >= '0' && in[i] <= '9' {
+		i++
+	}
+	if i == 0 || len(in)-i < len(tail) || in[i:i+len(tail)] != tail {
 		return groups{}, false
 	}
-	kind, rest, found := strings.Cut(rest, "/")
-	if kind != "M1M1" || !found {
-		return groups{}, false
+	desc := in[i+len(tail):]
+	if desc != "" {
+		if desc[0] != '/' {
+			return groups{}, false
+		}
+		desc = desc[1:]
 	}
-	filter, desc, _ := strings.Cut(rest, "/")
-	if filter != "Creature.YouCtrl" {
-		return groups{}, false
-	}
-	return groups{t.sym, n, desc}, true
+	return groups{t.sym, in[:i], desc}, true
 }
 
 // matchExertCost is ^Exert<1/(?:CARDNAME|NICKNAME)(?:/([^>]*))?>$: groups
