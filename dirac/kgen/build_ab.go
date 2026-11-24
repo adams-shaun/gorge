@@ -752,6 +752,7 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if a.Sorcery && !a.Loyalty {
 			ka.Cost.Flags |= kop.CostSorcery
 		}
+		ka.CmdOnly = a.CmdOnly
 		if a.Loyalty {
 			// CostLoyalty implies sorcery speed (dirac/vanilla's Ember Walker).
 			ka.Cost.Flags |= kop.CostLoyalty

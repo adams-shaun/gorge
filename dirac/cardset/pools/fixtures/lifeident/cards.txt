@@ -1,0 +1,19 @@
+# the commander colour identity life cost pool (CR 903.4, 119.4): War Room ("Pay life equal to the number of colors in your commanders' color identity", Commander games only) beside commanders of zero, one, two and three colours, two of them partner pairs, one pair sharing both its colours
+War Room
+Karn, Silver Golem
+Isamaru, Hound of Konda
+Tymna the Weaver
+Ravos, Soultender
+Rograkh, Son of Rohgahh
+Lightning Bolt
+Shock
+Doom Blade
+Savannah Lions
+Raging Goblin
+Walking Corpse
+Llanowar Elves
+Grizzly Bears
+Plains
+Swamp
+Mountain
+Forest
