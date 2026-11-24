@@ -32,7 +32,10 @@ type Host struct {
 	// run 10 to 35 KB each with the extension, so only tests that read them
 	// turn it on.
 	KeepDecisions bool
-	n             int
+	// Format names the game the reset declares; empty means pauper-bo1, so
+	// every gorge engine and test keeps today's bytes.
+	Format string
+	n      int
 }
 
 type Result struct {
@@ -60,8 +63,12 @@ func (h *Host) PlayDecks(i uint64, decks [2]catalog.Deck, names []string, mullig
 	gameID := secrets.GameID(h.RunSecret, i)
 	domain := wire.DomainID(names)
 	seat0 := "p0"
+	format := h.Format
+	if format == "" {
+		format = "pauper-bo1"
+	}
 	reset := map[string]any{"request_type": "reset", "protocol": protocol.Name, "request_id": h.id(), "game_id": gameID,
-		"format": "pauper-bo1",
+		"format": format,
 		"seats": []any{map[string]any{"seat": "p0", "deck": map[string]any{"deck_id": decks[0].DeckID(), "catalog_id": decks[0].CatalogID}},
 			map[string]any{"seat": "p1", "deck": map[string]any{"deck_id": decks[1].DeckID(), "catalog_id": decks[1].CatalogID}}},
 		"rules": map[string]any{"opponent_decklist": "visible", "mulligan": mulligan, "starting_player": "host_assigned",
