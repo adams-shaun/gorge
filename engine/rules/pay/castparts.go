@@ -306,7 +306,7 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			}
 			avail = append(avail, oid)
 		}
-		if len(avail) < int(part.N) {
+		if !reserveTapPart(e, part, avail, reserved) {
 			return false
 		}
 		// The literal form with a group predicate (none in the corpus today,
@@ -315,9 +315,6 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 		// A shortfall withholds the cost.
 		if part.MinPower > 0 && TapTopPowerSum(e, avail, int(part.N), tapKind) < part.MinPower {
 			return false
-		}
-		for i := 0; i < int(part.N); i++ {
-			reserved[avail[i]] = true
 		}
 	}
 	if !EvidencePayable(e.Game(), p, cost) {
