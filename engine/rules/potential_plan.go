@@ -548,7 +548,7 @@ func spellExtrasAreFixedTaps(f *cards.Face) bool {
 		return false
 	}
 	for _, part := range extras.TapPermanent {
-		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 {
+		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 || part.ShareCreatureType {
 			return false
 		}
 	}
