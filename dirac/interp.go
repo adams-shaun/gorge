@@ -541,6 +541,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			return false // the clone election or the CR 616.1 entry-order ask, the card still in its zone (copy_cloneenter.go, repl_entryorder.go)
 		}
 		s.execReturnSimple(k, in, o)
+		s.followSelfReturn(in, o) // zone_returnselfver.go
 	case kop.OpRepeat:
 		n := s.value(k, in.A)
 		body := uint8(in.B.N)
