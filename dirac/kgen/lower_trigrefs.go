@@ -28,7 +28,7 @@ type trigRefRow struct {
 var (
 	blockerSpellings = []string{"TriggeredBlocker", "TriggeredBlockerLKICopy"}
 	targetSpellings  = []string{"TriggeredTarget", "TriggeredTargetLKICopy"}
-	srcCtrlSpelling  = []string{"TriggeredSourceController"}
+	srcCtrlSpelling  = []string{"TriggeredSourceController", "TriggeredSourceSAController"}
 )
 
 var triggeredObjectTable = []trigRefRow{
@@ -88,7 +88,7 @@ func triggeredObjectRefused(v string, tr *lTrigger) error {
 	switch v {
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		return refuse("Defined$ %q outside a whenever-this-blocks trigger (%s)", v, mode)
-	case "TriggeredSourceController":
+	case "TriggeredSourceController", "TriggeredSourceSAController":
 		return refuse("Defined$ %q outside an opponent-source BecomesTarget watcher (%s)", v, mode)
 	}
 	return refuse("Defined$ %q outside a damage trigger the kernel's trigger object or player names (%s)", v, mode)
