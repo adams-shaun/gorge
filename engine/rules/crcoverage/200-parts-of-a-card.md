@@ -54,10 +54,10 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 205.3 | definition | - | - | heading |
 | 205.3a-205.3c | follows | `engine/rules/chars/types.go#Types` | - | - |
 | 205.3d | not-impl | `engine/rules/chars/types.go#appendLandTypes` | - | SILENT; scripts usually filter by card type |
-| 205.3e | partial | `engine/effects/creature_types.go#creatureSubtypeWords` | - | "Time Lord" split into Time + Lord |
+| 205.3e | partial | `engine/effects/creature_types.go#creatureSubtypeWords` | - | a parsed face carries "Time Lord" as one subtype; the sorted choice list still offers Time + Lord |
 | 205.3f | follows | `engine/cards/printed_facts.go#typeNames` | - | Oracle subtypes from corpus |
 | 205.3g-205.3k | follows | `engine/cards/printed_facts.go#typeNames` | - | vocabulary from corpus |
-| 205.3m | partial | `engine/effects/creature_types.go#creatureSubtypeWords` `engine/effects/count_zone_fold.go#zoneCountFold.visit` `engine/rules/setprops.go#creatureTypeTokens` | `TestValiantChangelingReadsCurrentCreatureTypes` `TestTargetSetCreatureTypeIgnoresLandTypes` | extra/split tokens vs CR list; a count of creature types reads each object's current types, every one for a Changeling |
+| 205.3m | partial | `engine/effects/creature_types.go#creatureSubtypeWords` `engine/effects/count_zone_fold.go#zoneCountFold.visit` `engine/rules/setprops.go#creatureTypeTokens` | `TestValiantChangelingReadsCurrentCreatureTypes` `TestTargetSetCreatureTypeIgnoresLandTypes` | extra tokens vs CR list; a count of creature types reads each object's current types, every one for a Changeling |
 | 205.3n-205.3r | n/a | - | - | planes/dungeon/battle subtype lists |
 | 205.4 | definition | - | - | heading |
 | 205.4a | follows | `engine/rules/chars/types.go#SupertypeWords` | - |  |

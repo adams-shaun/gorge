@@ -77,7 +77,7 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 		case "ManaCost":
 			cur.ManaCost = val
 		case "Types":
-			cur.Types = strings.Fields(val)
+			cur.Types = coalesceMultiWordTypes(strings.Fields(val))
 		case "PT":
 			cur.PT = val
 		case "Loyalty":
@@ -547,4 +547,35 @@ func ParseTrigSASpec(spec string) TrigSASpec {
 		}
 	}
 	return s
+}
+
+// multiWordTypes are the CR 205.3m multi-word subtypes as their word
+// sequences: "One creature type is two words long: Time Lord. All other
+// creature types are one word long". Forge's Types: line spells them as
+// space-separated words; the face carries the one subtype.
+var multiWordTypes = [][2]string{{"Time", "Lord"}}
+
+// coalesceMultiWordTypes joins each adjacent multiWordTypes word pair of a
+// parsed Types: line into its one subtype ("Time" "Lord" -> "Time Lord"),
+// in place. A lone Time or Lord, or the pair out of order, stays as written.
+func coalesceMultiWordTypes(words []string) []string {
+	out := words[:0]
+	for i := 0; i < len(words); i++ {
+		if i+1 < len(words) {
+			joined := false
+			for _, mw := range multiWordTypes {
+				if words[i] == mw[0] && words[i+1] == mw[1] {
+					out = append(out, mw[0]+" "+mw[1])
+					i++
+					joined = true
+					break
+				}
+			}
+			if joined {
+				continue
+			}
+		}
+		out = append(out, words[i])
+	}
+	return out
 }
