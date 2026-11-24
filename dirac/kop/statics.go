@@ -55,9 +55,15 @@ type Static struct {
 	Grant   uint8       // the source card's ability Grant-1 is granted to the affected objects (0 = none)
 	// GrantSt: the source card's CardDef.Granted[GrantSt-1], a static, is
 	// granted to the affected objects (0 = none). Each recipient is its source.
-	GrantSt  uint8
-	Zone     Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
-	Override uint16 // StatOverride: Table.Overrides[Override-1]
+	GrantSt uint8
+	// GrantBody: the source card's ability GrantBody-1 is the granted-keyword
+	// activation body the offer runs with the affected card as its source
+	// (0 = none; StatUnearthGrant, kw_unearthgrant.go). Not a Grant: the body
+	// is never granted to the affected objects, so no grant ledger or grant
+	// prep reads it.
+	GrantBody uint8
+	Zone      Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
+	Override  uint16 // StatOverride: Table.Overrides[Override-1]
 	// Ward: a StatContinuous grant's ward {Ward} (Kw holds KwWard; CR
 	// 702.21a): each such static is its own ward instance
 	Ward uint8

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // A Continuous static whose AffectedZone$ is off the battlefield. Gorge
@@ -21,9 +22,10 @@ import (
 //     featViewTypesOff);
 //   - a simple keyword with a KwMask bit rides the same static (Static.Kw),
 //     projected through FeatGrantedOffRep;
-//   - Retrace in a graveyard rides kop.StatRetraceGrant. A hand Miracle
-//     grant keeps the generic refusal: gorge offers the granted miracle
-//     trigger and cast, which the kernel does not (a lockstep decision
+//   - Retrace in a graveyard rides kop.StatRetraceGrant, and Unearth in a
+//     graveyard rides kop.StatUnearthGrant (offZoneUnearth, kw_unearthgrant.go);
+//   - a hand Miracle grant keeps the generic refusal: gorge offers the granted
+//     miracle trigger and cast, which the kernel does not (a lockstep decision
 //     divergence on Aminatou, Veil Piercer).
 //
 // None of them is a kop.StatContinuous: the kernel's battlefield readers
@@ -33,9 +35,9 @@ import (
 // A card-type change, a colour change, a P/T change or an ability grant in
 // those zones is a layer the kernel projects only on the battlefield; those
 // shapes keep the generic refusal (the first slice's boundary). The keyword
-// grants whose cast or activation offer is not modelled (Unearth, Encore,
-// Scavenge, Foretell, Cycling, Plot, ...) also keep it, Graveyard with its
-// named reason.
+// grants whose cast or activation offer is not modelled (Encore, Scavenge,
+// Embalm, Dredge, Mayhem, Sneak, Foretell, Cycling, Plot, ...) also keep it,
+// Graveyard with its named reason.
 
 // offZone maps an AffectedZone$ value to the kernel zone the static applies
 // in. ZoneAny is All.
@@ -131,9 +133,19 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 	if kw == "" {
 		return refuse("AffectedZone %q without MayPlay", az)
 	}
+	head, _, _ := strings.Cut(kw, ":")
 	for k := range sp.m {
 		switch k {
 		case "Mode", "Affected", "AffectedZone", "AddKeyword", "Description", "Condition", "Secondary":
+		case "EffectZone":
+			// the static's source zone. Only the Unearth grant reads one:
+			// the battlefield source every battlefield static walk sees
+			// (Sedris, the Traitor King). Anything else keeps the refusal it
+			// holds today (Grixis's command-zone source; every other
+			// keyword's carrier).
+			if head != "Unearth" || strings.TrimSpace(sp.str("EffectZone")) != "Battlefield" {
+				return lc.refuseOffZoneKeyword(sp, az, z)
+			}
 		default:
 			return lc.refuseOffZoneKeyword(sp, az, z)
 		}
@@ -173,6 +185,8 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 		st.Zone = int(z)
 		st.Kw = []string{"Retrace"} // the LIR dump's name for it; the build reads the kind
 		st.Cost = c
+	case head == "Unearth" && z == kop.ZoneGraveyard:
+		return lc.offZoneUnearth(sp, st, aff, az, z, param)
 	default:
 		return lc.refuseOffZoneKeyword(sp, az, z)
 	}
@@ -188,6 +202,70 @@ func (lc *lowerCtx) refuseOffZoneKeyword(sp *params, az string, z kop.Zone) erro
 		return refuseGraveKwGrant(sp, az)
 	}
 	return refuse("AffectedZone %q without MayPlay", az)
+}
+
+// offZoneUnearth lowers an AffectedZone$ Graveyard Unearth grant (CR
+// 702.84a). gorge's derived-keyword walk mints the printed kwUnearth
+// expander's one AB$ ChangeZone (Origin$ Graveyard, Destination$ Battlefield,
+// Unearth$ True) on the affected card through cards.GrantedKeywordAbility
+// (legal_granted.go's granted-keyword block) and offers it from the
+// graveyard, so the grant lowers as one kop.StatUnearthGrant static naming
+// the same body as the granting card's latent ability (grantedKeywordLatent):
+// the kernel's graveyard offer (dirac kw_unearthgrant.go) runs it with the
+// affected card as its source, and the OpUnearth the body carries applies the
+// haste and the exile-at-end-step riders the printed activation applies.
+//
+// The cost is the grant's own. An explicit mana cost ("Unearth:2 B") is baked
+// into the body, so the offer reads it off the body; a CardManaCost grant
+// (Grixis prices each card's own mana cost) bakes the placeholder zero and is
+// priced by the affected card's printed mana cost -- a zero body cost is the
+// CardManaCost mark (a plain explicit zero refuses: no corpus carrier prices
+// unearth at nothing, and it would be indistinguishable). A grant whose cost
+// is not plain mana (an {X}, a hybrid pip, an XAlternative$ like Graywater's
+// Fixer's encore) or whose body the expander cannot mint refuses by name.
+func (lc *lowerCtx) offZoneUnearth(sp *params, st *lStatic, aff, az string, z kop.Zone, param string) error {
+	// one grant per card: the reader matches the first static, so a second
+	// Unearth static (a different cost on the same card) would price wrong.
+	// No corpus card carries two.
+	n := 0
+	for _, fs := range lc.face.Statics {
+		if fs.Params["AffectedZone"] == "Graveyard" && strings.HasPrefix(strings.TrimSpace(fs.Params["AddKeyword"]), "Unearth") {
+			n++
+		}
+	}
+	if n > 1 {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	param = strings.TrimSpace(param)
+	if param == "" || param == "0" {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	line := "Unearth:" + param
+	if param == "CardManaCost" {
+		// the affected card's own mana cost: the body bakes the placeholder
+		// zero, the offer and the charge read the card's printed cost
+		line = "Unearth:0"
+	} else {
+		c, err := lc.cost(param)
+		if err != nil || c.DiscardF != nil || c.DiscardN != 0 || c.DiscardHand || c.DiscardSelf ||
+			c.Mana.X || c.Mana.XX || c.Mana.XXX || c.Mana.None || c.Mana.XColor != 0 || c.Mana.Snow != 0 ||
+			len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 {
+			return lc.refuseOffZoneKeyword(sp, az, z)
+		}
+	}
+	sa := cards.GrantedKeywordAbility(line)
+	if sa == nil || sa.Kind != "AB" {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	idx, err := lc.grantedKeywordLatent(sa)
+	if err != nil {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	st.Kind = "UnearthGrant"
+	st.Zone = int(z)
+	st.GrantBody = idx
+	sp.consume("AddKeyword", "AffectedZone", "EffectZone")
+	return lc.offZoneFilter(sp, st, aff)
 }
 
 // offZoneFilter parses the Affected$ filter of an off-zone keyword grant.

@@ -46,8 +46,10 @@ func (s *State) offKwStatic(k *prep, p, owner uint8, c CardID, z kop.Zone, o Obj
 	return got
 }
 
-// FeatOffKwNames is the off-zone keywords a StatRetraceGrant static grants
-// object o now, in static-walk order: a graveyard card's retrace. The adapter's view projection lists them beside the
+// FeatOffKwNames is the off-zone keywords the off-zone grant statics give
+// object o now, in static-walk order: a graveyard card's retrace
+// (StatRetraceGrant) and its granted unearth (StatUnearthGrant,
+// kw_unearthgrant.go). The adapter's view projection lists them beside the
 // printed and KwMask-granted keywords.
 func (s *State) FeatOffKwNames(o Obj) []string {
 	ob := &s.objs[o]
@@ -58,16 +60,18 @@ func (s *State) FeatOffKwNames(o Obj) []string {
 	var out []string
 	s.eachStaticC(k, sclsOffKwG, func(st statSrc) bool {
 		a := st.a
-		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatRetraceGrant {
-			return true
-		}
-		if a.Static.Zone != kop.ZoneAny && a.Static.Zone != ob.zone {
+		if a.Kind != kop.AbStatic || a.Static.Zone != kop.ZoneAny && a.Static.Zone != ob.zone {
 			return true
 		}
 		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
 			return true
 		}
-		out = append(out, "Retrace")
+		switch a.Static.Kind {
+		case kop.StatRetraceGrant:
+			out = append(out, "Retrace")
+		case kop.StatUnearthGrant:
+			out = append(out, "Unearth")
+		}
 		return true
 	})
 	return out
