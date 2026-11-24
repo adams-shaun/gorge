@@ -332,6 +332,11 @@ const (
 	wordBlockedBySourceLKI
 	// countersReceivedThisTurn_<cmp><N>_Any_You: filter_word_counters_received.go.
 	wordCountersReceived
+	// wordDealtDamageToOppThisTurn is Forge's dealtDamageToOppThisTurn: the
+	// candidate dealt damage this turn to a player who is an opponent of its
+	// controller (filter_word_game_rider.go). Corpus carrier: Dunerider
+	// Outlaw's IsPresent$ end-step gate.
+	wordDealtDamageToOppThisTurn
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1030,6 +1035,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return damageRecordPredicate(kind, o)
 	case wordAttackingPlayer:
 		return attackingPlayerMatches(g, key, o, sc)
+	case wordDealtDamageToOppThisTurn:
+		return dealtDamageToOppThisTurn(o)
 	case wordDealtExcessDamageThisTurn:
 		return o.WasDealtExcessDamageThisTurn
 	case wordDealtDamageByThisGame:
@@ -1548,6 +1555,7 @@ const (
 	wordPredicateWordDealtCombatDamageToAny
 	wordPredicateWordBottomLibrary
 	wordPredicateWordFaceUp
+	wordPredicateWordDealtDamageToOppThisTurn
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1620,6 +1628,7 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamagetoAny", Val: wordPredicateWordDealtDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtCombatDamagetoAny", Val: wordPredicateWordDealtCombatDamageToAny},
 	state.StrEntry[wordPredicateWordCode]{Key: "faceUp", Val: wordPredicateWordFaceUp},
+	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamageToOppThisTurn", Val: wordPredicateWordDealtDamageToOppThisTurn},
 )
 
 type wordPredicateSharesCode uint16
