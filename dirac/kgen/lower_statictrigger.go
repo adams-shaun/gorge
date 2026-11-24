@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules/scriptfacts"
 )
 
 // staticTriggerCand reports whether a printed trigger line is an off-stack
@@ -138,12 +139,12 @@ func (lc *lowerCtx) untapRepl(r cards.Repl, rp *params, rl *lRepl) error {
 
 // triggerIsPresentConds appends a trigger's IsPresent$ intervening-if to
 // conds. A clause that only mirrors the trigger's own optional SubCounter
-// cost (Sun Droplet; cards.Trigger.PresentIsOwnCostPrecheck, gorge
+// cost (Sun Droplet; scriptfacts.PresentIsOwnCostPrecheck, gorge
 // isPresentGateHolds) is no gate: the ability triggers (CR 603.2) and the
 // unpayable cost does nothing as it resolves.
 func (lc *lowerCtx) triggerIsPresentConds(t cards.Trigger, tp *params, tr *lTrigger, conds []lCond) ([]lCond, error) {
 	ip, ok := tp.get("IsPresent")
-	if !ok || t.PresentIsOwnCostPrecheck() {
+	if !ok || scriptfacts.PresentIsOwnCostPrecheck(t) {
 		return conds, nil
 	}
 	c, err := lc.triggerIsPresent(tp, tr, ip)

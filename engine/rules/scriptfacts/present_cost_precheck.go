@@ -1,10 +1,16 @@
-package cards
+package scriptfacts
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+)
 
 // PresentIsOwnCostPrecheck reports whether a trigger's IsPresent$ clause is
 // only Forge's payability precheck for the trigger's own optional counter
-// cost rather than an intervening-if (CR 603.4).
+// cost rather than an intervening-if (CR 603.4). It is the one read gorge's
+// isPresentGateHolds (trigger_condition.go) and kgen's triggerIsPresentConds
+// share, so the two engines cannot disagree.
 //
 // Sun Droplet and Living Artifact read "At the beginning of ... upkeep, you
 // may remove a charge counter from CARDNAME. If you do, ...": the trigger
@@ -17,30 +23,39 @@ import "strings"
 // script shape), so a TriggerDescription$ with ", if " keeps the gate. Any
 // present rider (compare, defined set, zone, player, a second clause) keeps it
 // too.
-func (t Trigger) PresentIsOwnCostPrecheck() bool {
+func PresentIsOwnCostPrecheck(t cards.Trigger) bool {
 	if t.Effect == nil {
 		return false
 	}
-	for _, k := range []ParamKey{PKPresentCompare, PKPresentDefined, PKPresentZone, PKIsPresent2} {
-		if _, ok := t.Param(k); ok {
+	if _, ok := t.Param(cards.PKIsPresent2); ok {
+		return false
+	}
+	for k := range t.Params {
+		// PresentCompare$, PresentDefined$, PresentZone$, PresentPlayer$:
+		// a rider makes the clause more than the cost's own mirror
+		if strings.HasPrefix(k, "Present") {
 			return false
 		}
 	}
-	if _, ok := t.Params["PresentPlayer"]; ok {
-		return false
-	}
-	cost := strings.TrimSpace(t.Effect.ParamStr(PKCost))
-	body, ok := strings.CutPrefix(cost, "SubCounter<")
+	rest, ok := strings.CutPrefix(t.ParamStr(cards.PKIsPresent), "Card.Self+counters_GE")
 	if !ok {
 		return false
 	}
-	body, ok = strings.CutSuffix(body, ">")
-	parts := strings.Split(body, "/")
-	if !ok || len(parts) != 2 || parts[0] == "" || strings.Trim(parts[0], "0123456789") != "" || parts[1] == "" {
+	n, kind, ok := strings.Cut(rest, "_")
+	if !ok || !allDigits(n) || kind == "" {
 		return false
 	}
-	if strings.TrimSpace(t.ParamStr(PKIsPresent)) != "Card.Self+counters_GE"+parts[0]+"_"+parts[1] {
+	if t.Effect.ParamStr(cards.PKCost) != "SubCounter<"+n+"/"+kind+">" {
 		return false
 	}
-	return !strings.Contains(strings.ToLower(t.ParamStr(PKTriggerDescription)), ", if ")
+	return !strings.Contains(t.ParamStr(cards.PKTriggerDescription), ", if ")
+}
+
+func allDigits(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
