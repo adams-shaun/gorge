@@ -267,6 +267,9 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	if ev.Kind == events.LifeChange && ev.Amount > 0 {
 		name = "LifeGained"
 	}
+	if lifeFloorsIdentical(cands, func(m replMatch) (string, bool) { return e.replaceCountOp(m.id, m.repl, name) }) {
+		return true
+	}
 	kind := ""
 	for _, m := range cands {
 		op, ok := e.replaceCountOp(m.id, m.repl, name)
@@ -293,6 +296,34 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		kind = k
 	}
 	return true
+}
+
+// lifeFloorsIdentical reports whether every candidate is the same
+// Result$-gated LifeReduced floor (two Worships: same ValidPlayer$ gate, same
+// Result$ rewrite, same ReplaceCount body). The first one applied clamps the
+// loss to the floor, so the rest no longer see a loss below it (CR 616.1e):
+// every order yields the same event and the affected player has no choice
+// worth asking.
+func lifeFloorsIdentical(cands []replMatch, countOp func(replMatch) (string, bool)) bool {
+	var res, who, op string
+	for i, m := range cands {
+		r := m.repl
+		if r.EventKind() != cards.ReplLifeReduced || r.ParamStr(cards.PKResult) == "" {
+			return false
+		}
+		o, ok := countOp(m)
+		if !ok {
+			return false
+		}
+		if i == 0 {
+			res, who, op = r.ParamStr(cards.PKResult), r.ParamStr(cards.PKValidPlayer), o
+			continue
+		}
+		if r.ParamStr(cards.PKResult) != res || r.ParamStr(cards.PKValidPlayer) != who || o != op {
+			return false
+		}
+	}
+	return len(cands) > 0
 }
 
 // isLifeFloor reports a damage floor's gate and body: Result$ LT<n> over a
