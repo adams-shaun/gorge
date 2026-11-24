@@ -29,7 +29,9 @@ func (lc *lowerCtx) objOrTargetOpt(ps *params, dflt string, zone int, allowParen
 			}
 		}
 		thanActive, vt, isThan := oathPlayerTarget(vt) // lower_thanactive.go
+		lc.exwTgtOK = ps.is("Origin", "Exile")         // a card exiled with this source, read at target time
 		f, err := lc.filter(vt)
+		lc.exwTgtOK = false
 		if err != nil {
 			return lRef{}, err
 		}
