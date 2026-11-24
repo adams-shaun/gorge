@@ -1,0 +1,44 @@
+# Install as .github/workflows/regenerate.yml on the gorge branch of github.com/adams-shaun/mtgish.
+# It is kept here, outside .github/, so gorge's own CI never runs it.
+#
+# What it proves: data/mtgish.lines.json, as committed, is reproducible from the grammar at that
+# commit. Each fork patch commit carries its own regenerated data, and this run checks it.
+name: regenerate
+
+on:
+  push:
+    branches: [gorge]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go_mtg_parser/go.mod
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: extractions/setup-just@v2
+      - name: jq
+        run: command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
+      - name: Generate the parser output
+        run: just parser_generate_mtgish
+      - name: Build the ronl to bincode converter
+        run: just rust_build_ronl_to_bincode
+      - name: Build the bincode to json converter
+        run: just rust_build_bincode_to_jsonl
+      - name: Convert to json
+        run: just convert_to_json
+      - name: Keep the regenerated file for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mtgish.lines.json
+          path: data/mtgish.lines.json
+          retention-days: 7
+      - name: Committed data matches the regenerated data
+        run: git diff --exit-code --stat -- data/mtgish.lines.json
