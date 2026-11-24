@@ -431,15 +431,15 @@ func TestChosenPairTrialKeepsTheHandReserveLockstep(t *testing.T) {
 }
 
 // Collector's Cage's {1}, {T} counter ability while the only creature its controller has
-// carries Lotus Ring's granted "Sacrifice this creature: Add three mana": the sacrifice
+// carries Basal Sliver's granted "Sacrifice this permanent: Add {B}{B}": the sacrifice
 // floats the mana but leaves the ability no target, so gorge's prefix search goes on
-// through a pass, and the dies trigger's token copy is the target. The search stopped at
-// the priced node, and the autopay surface dropped a play the kernel offers (CR 601.2c,
-// 602.2b).
+// through a pass, and the Pest token Blight Mound makes when the creature dies is the
+// target. The search stopped at the priced node, and the autopay surface dropped a play
+// the kernel offers (CR 601.2c, 602.2b). Rebuilt on the fixture pool sacgrant1 after
+// Forge 9db1009ef8 gave Lotus Ring's granted ability {T}, which it no longer exercises.
 func TestPrefixSearchContinuesPastALostTargetLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "std-big", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "sacgrant1", Config{GorgeAutopaySurface: true})
 }
 
 // A Command Tower with no commander makes nothing (CR 903.4f), so gorge's census is
