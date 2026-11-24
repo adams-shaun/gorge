@@ -112,6 +112,7 @@ Fateful Handoff
 Fatigue
 Favorable Winds
 Festival Crasher
+Fire at Will
 Fists of Ironwood
 Flame Rift
 Flameborn Viron
@@ -144,6 +145,7 @@ Grotag Night-Runner
 Ground Rift
 Guardian of Pilgrims
 Guma
+Hajar, Loyal Bodyguard
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
@@ -382,6 +384,7 @@ Whipcorder
 Wild Wanderer
 Wildfire Awakener
 Wishcoin Crab
+Wistful Selkie
 Witness of Tomorrows
 Woebringer Demon
 Wolfbriar Elemental
