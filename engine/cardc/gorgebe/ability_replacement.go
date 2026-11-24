@@ -15,6 +15,9 @@ func printReplacement(p *pr, a *ir.Ability) error {
 	}
 	defer func() { p.ev, p.evSelf = ir.EvNone, false }()
 	p.ev, p.evSelf = tr.Event, tr.Ref != nil && tr.Ref.Kind == ir.RefSelf
+	if tr.Event == ir.EvWouldCreateTokens {
+		return printTokenReplacement(p, a)
+	}
 	if tr.Event != ir.EvWouldEnter && tr.Event != ir.EvWouldDealDamage {
 		return unprintable("repl:"+tr.Event.String(), a.Src)
 	}

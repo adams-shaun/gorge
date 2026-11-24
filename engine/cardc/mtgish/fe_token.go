@@ -153,3 +153,11 @@ func init() {
 		return &ir.Effect{Kind: ir.EffAddSubtype, Words: strList(rawArgs(n))}, nil
 	})
 }
+
+func init() {
+	// ThoseTokens is the tokens the replaced effect would create: a create-token
+	// step with no token of its own, whose object is the event's.
+	register("CreatableToken.ThoseTokens", func(*Ctx, node) (any, error) {
+		return &ir.Step{Verb: ir.VerbCreateToken, Obj: refEvent()}, nil
+	})
+}

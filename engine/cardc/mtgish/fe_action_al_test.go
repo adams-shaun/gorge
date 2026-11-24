@@ -51,7 +51,6 @@ func TestProgramSliceVariantsRegistered(t *testing.T) {
 		map[string]string{
 			"Actions.TargetedDistributed":                                    "dividing damage",
 			"ManaProduce.ManaOfTheChosenColor":                               "chosen-color mana",
-			"CreatableToken.ThoseTokens":                                     "tokens from an earlier step",
 			"LookAtTopOfLibraryAction.APlayerChoosesAPileTopPutIntoHand":     "piles",
 			"LookAtTopOfLibraryAction.SeparateIntoFaceUpFileAndFaceDownPile": "piles",
 			"Expiration.UntilAPlayerBecomesTheMonarch":                       "monarch",
