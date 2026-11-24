@@ -48,5 +48,5 @@ func (lc *lowerCtx) spendPhaseConds(tp *params, mode string, conds *[]lCond) err
 		}
 		*conds = append(*conds, c)
 	}
-	return nil
+	return werewolfConds(tp, mode, conds) // value_spellslastturn.go
 }

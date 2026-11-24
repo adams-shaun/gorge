@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExSpellsCastLastTurn
+value: next
+forge: WerewolfTransformCondition | WerewolfUntransformCondition
+state: code 0
+status: active
+ticket: gap-werewolf-transform

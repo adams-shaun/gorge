@@ -191,6 +191,10 @@ type prep struct {
 	// kw_daynight.go): guards the turn, untap, SBA and
 	// entry hooks
 	anyDayNight bool
+	// anyLastSpells: some value reads ExSpellsCastLastTurn (the werewolf
+	// transform conditions; value_spellslastturn.go): beginTurn keeps the
+	// outgoing turn's spell tallies
+	anyLastSpells bool
 	// phasing: some program is ExtPhases (kw_phasing.go):
 	// guards the slot allocator, the untap and cleanup steps and a host's departure
 	phasing bool
