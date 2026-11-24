@@ -83,6 +83,7 @@ func (s *State) forgetOtherMove(k *prep, in *kop.Instr) bool {
 func (s *State) markRemLKI(o Obj) {
 	if i := s.g.tli & tliIdx; i != 0 && s.lk(i).obj == o {
 		s.g.tli |= tliRemLKI
+		s.remCtlNote(o, s.lk(i).ctrl) // act_repeatremembered.go
 	}
 }
 

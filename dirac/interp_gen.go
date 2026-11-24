@@ -1385,6 +1385,7 @@ func (s *State) remember(o Obj) {
 			return
 		}
 		s.g.rem[s.g.nrem] = o
+		s.remCtlClear(int(s.g.nrem)) // act_repeatremembered.go
 		s.g.nrem++
 	}
 	s.srcMemRemember(o) // a SrcMem source keeps it for its other abilities (zone_srcmemrem.go)

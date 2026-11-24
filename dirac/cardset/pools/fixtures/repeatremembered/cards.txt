@@ -1,0 +1,19 @@
+# The remembered-set RepeatEach pool (dirac/oracle/repeateach_remembered_test.go):
+# Rampage of the Clans (DestroyAll RememberDestroyed$, a token per destroyed
+# permanent for its owner) and Curse of the Swine (X targets exiled under
+# RememberLKI$, a Boar per exiled creature for its last controller), beside
+# artifacts, enchantments, an artifact token (Prosperous Innkeeper's Treasure)
+# and a Control Magic that gives a creature a controller who is not its owner.
+Rampage of the Clans
+Curse of the Swine
+Control Magic
+Prosperous Innkeeper
+Bonesplitter
+Spirit Link
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Forest
+Island
+Plains
+Mountain
