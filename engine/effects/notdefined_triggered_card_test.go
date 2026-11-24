@@ -117,7 +117,7 @@ var notDefinedTokenRe = regexp.MustCompile(`NotDefined[A-Za-z]+`)
 func TestNotDefinedPredicateCensus(t *testing.T) {
 	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	seen := map[string]bool{}
-	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(corpusWalkRoot(t, root), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return err
 		}

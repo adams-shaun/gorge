@@ -206,9 +206,10 @@ func TestNumericPredicateCorpusCensus(t *testing.T) {
 	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	tokens := map[string]bool{}
 	// pr worktrees symlink .cards (scripts/pr-cards.sh) and SharedCorpusDir
-	// prefers it (dbc74bca1c); WalkDir does not follow a symlinked root, so
-	// resolve it first or the walk finds nothing.
-	root, err := filepath.EvalSymlinks(filepath.Dir(dir))
+	// prefers it (dbc74bca1c); an overlay worktree instead holds a real .cards
+	// whose cardsfolder is the symlink. WalkDir does not follow a symlinked
+	// root, so resolve the cardsfolder itself or the walk finds nothing.
+	root, err := filepath.EvalSymlinks(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

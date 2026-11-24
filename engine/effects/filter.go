@@ -1331,6 +1331,10 @@ func spellIsTargetingMatches(g *state.Game, spec string, o *state.Object, sc Spe
 	return spellIsTargetingMatchesPtr(g, spec, o, &sc)
 }
 
+// isTargetingZoneAgnosticSpec is the one IsTargeting spec Forge resolves
+// without the battlefield-only candidate pool.
+const isTargetingZoneAgnosticSpec = "Card.Self"
+
 func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc *SpecContext) bool {
 	if o == nil || sc == nil {
 		return false
@@ -1343,7 +1347,22 @@ func spellIsTargetingMatchesPtr(g *state.Game, spec string, o *state.Object, sc 
 				}
 				continue
 			}
-			if tgt.Obj != 0 && MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
+			if tgt.Obj == 0 {
+				continue
+			}
+			// Forge reads `IsTargeting Valid <spec>` through
+			// AbilityUtils.getDefinedObjects, whose `Valid ` form draws its
+			// candidates from the battlefield alone: a target that is a card in
+			// a graveyard (Restore with Empathy under Danitha, Sword of Hope's
+			// "targets a creature you control") is not "a creature you control"
+			// (CR 109.4: only permanents have a controller; CR 603.2). The bare
+			// `Self` form (Card.Self) is zone-agnostic there, so it stays.
+			if spec != isTargetingZoneAgnosticSpec {
+				if t := g.Obj(tgt.Obj); t == nil || t.Zone != state.ZBattlefield {
+					continue
+				}
+			}
+			if MatchesSpecCtx(g, spec, tgt.Obj, *sc) {
 				return true
 			}
 		}
