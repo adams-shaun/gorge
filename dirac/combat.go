@@ -1346,9 +1346,10 @@ func (s *State) combatAmount(k *prep, sl Slot) int {
 
 // replOrderPossible: some damage replacement of the table can pose gorge's
 // CR 616.1 order ask on a combat pass (a doubler, a shield, a scoped
-// prevention, plus-N additions, a static prevention, a Phantom's line).
+// prevention, plus-N additions, two minus lines, a static prevention, a
+// Phantom's line).
 func replOrderPossible(g *genPrep) bool {
-	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g)
+	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || g.anyRepl2&rb2DmgMinus != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g)
 }
 
 // combatAmountLive is combatAmount read from the permanent as it stands.
