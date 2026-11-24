@@ -25,14 +25,6 @@ fi
 heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
-# The gate for the repro-replay step below: any non-test, non-doc change under engine/ or dirac/ can move a recorded
-# game, so a refused card's repro may stop diverging (TestRefusedEntriesStillDiverge, the *Repros*Lockstep stale
-# checks). Only the queue batch's dirac-repros job replayed them: batch #4212 (11-24) went red on 8 refused cards one
-# of its PRs had fixed, and #2551 reddened #4184 and #4200 the same way. awk reads all its input, so pipefail never
-# sees a SIGPIPE (see the TestDiracFileNames step).
-repros_gate() {
-  awk '/^(engine|dirac)\// && !/(_test\.go|\.md)$/ {f = 1} END {exit !f}'
-}
 changed=$(git diff --name-only "$base"...HEAD)
 if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$|^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
@@ -104,23 +96,9 @@ if heads_gate <<<"$changed"; then
     fail "golden heads: $(grep -o -E -- '--- FAIL: Test[A-Za-z0-9_/]+' "$log" | head -3 | sed 's/--- FAIL: //' | paste -sd' ') — $why"
   fi
 fi
-# The same set ci.yml's dirac-repros job replays (both parts): every repro test and TestRefusedEntriesStillDiverge.
-if repros_gate <<<"$changed"; then
-  names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>/dev/null | grep -E '^Test' | paste -sd'|')
-  [ -n "$names" ] || fail "repro replay: go test -list found no repro tests in ./dirac/oracle"
-  # One replay at a time on this machine: it is ~20 min of ./dirac/oracle at 400%, and the daemon runs one
-  # pr-precheck per PR side by side (11-24: three replays at once took the operator box to load 64). The lock
-  # lives under ~/.cache, which every seat sandbox binds read-write, like test-targets' heavy lane.
-  lk=${XDG_CACHE_HOME:-$HOME/.cache}/gorge/pr-precheck-repros.lock
-  mkdir -p "${lk%/*}" 2>/dev/null
-  lane=(); { : >>"$lk"; } 2>/dev/null && command -v flock >/dev/null && lane=(flock "$lk")
-  if ! "${lane[@]}" "${cap[@]}" go test -timeout 20m -run "^($names)\$" ./dirac/oracle >"$log" 2>&1; then
-    cat "$log"
-    why="a refused card's recorded game no longer diverges: if the PR fixed it, add a row to dirac/support/unrefused.tsv and run go run ./dirac/cmd/kgen -unrefuse <card>; if the game moved, re-record it (see checkRefusedRepro)"
-    grep -q 'stale' "$log" || why="a recorded game now diverges: fix the change, or refuse the card by name (kgen -refuse)"
-    fail "repro replay: $(grep -o -E -- '--- FAIL: [A-Za-z0-9_/,.'"'"'-]+' "$log" | head -4 | sed 's/--- FAIL: //' | paste -sd' ') — $why"
-  fi
-fi
+# No repro replay here (operator 11-24, "whatever bullshit gate we added remove it"): ~20 min of ./dirac/oracle per
+# engine/dirac PR behind one machine-wide lock queued 21 tickets in landing. The merge queue's dirac-repros job replays
+# the same set once per batch.
 for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); do
   rx=$(grep "^$pkg/[^/]*_test\.go$" <<<"$changed" | while read -r f; do [ -f "$f" ] && sed -n 's/^func \(Test[A-Za-z0-9_]*\)(t \*testing\.T).*/\1/p' "$f"; done | sort -u | paste -sd'|')
   [ -n "$rx" ] || continue
