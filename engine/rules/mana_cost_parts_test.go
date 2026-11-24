@@ -98,8 +98,13 @@ func TestManaCostPartsParsePrecisely(t *testing.T) {
 	if len(exert.Exert) != 1 || exert.Generic != 0 || len(exert.Unknown) != 0 || !exert.Tap {
 		t.Fatalf("R T Exert<1/CARDNAME> = %+v, want an Exert part, no phantom generic", exert)
 	}
-	// A chooser-anchored AddCounter is a different payment and stays reported.
-	other := ParseCost("B AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>")
+	// A chooser-anchored M1M1 AddCounter is a blight payment (no generic, no
+	// Unknown); any other chooser-anchored AddCounter stays reported.
+	blight := ParseCost("B AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>")
+	if len(blight.Blight) != 1 || blight.Generic != 0 || len(blight.Unknown) != 0 {
+		t.Fatalf("chooser-anchored M1M1 AddCounter = %+v, want one Blight part and no fallback", blight)
+	}
+	other := ParseCost("B AddCounter<1/P1P1/Creature.OppCtrl/x>")
 	if len(other.AddCounter) != 0 || len(other.Unknown) == 0 {
 		t.Fatalf("chooser-anchored AddCounter = %+v, want the reported fallback", other)
 	}

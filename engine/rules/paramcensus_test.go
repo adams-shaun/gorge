@@ -4558,9 +4558,11 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		{"Sac</Creature>", []string{"Sac"}},
 		{"2 U U Sac<1/Creature>", nil},
 		// A source-anchored AddCounter<N/KIND> is modelled (Wall of Roots);
-		// a chooser-anchored one is still the reported fallback.
+		// a chooser-anchored M1M1/Creature.YouCtrl one is a blight payment
+		// (Lethal Sting); any other chooser-anchored one is still reported.
 		{"AddCounter<1/M1M1>", nil},
-		{"AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>", []string{"AddCounter"}},
+		{"AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>", nil},
+		{"AddCounter<1/P1P1/Creature.OppCtrl/x>", []string{"AddCounter"}},
 		// The ExiledMoveToGrave family (the Eldrazi processor costs and
 		// Shelob, Dread Weaver's {2}{B} ability) is now MODELLED -- cards
 		// matching Spec move from exile to their owner's graveyard, with no
