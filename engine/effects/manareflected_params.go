@@ -216,7 +216,7 @@ var manaReflectedKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberObjects",
 	"RememberTargets",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

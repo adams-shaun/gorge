@@ -189,7 +189,7 @@ var removeCounterKnownKeys = [...]string{
 	"RememberObjects",
 	"RememberRemoved",
 	"RememberTargets",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

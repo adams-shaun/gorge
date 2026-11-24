@@ -225,7 +225,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"RememberLKI",
 	"RememberObjects",
 	"RememberTargets",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",
