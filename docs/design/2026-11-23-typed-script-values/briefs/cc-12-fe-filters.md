@@ -29,8 +29,8 @@ every variant the proof slice uses except the deferred list.
 
   Every node of one enum's tree carries the same Subject and Zones.
 - `c.Target(x)` declares the target with `c.DeclareTarget(<stem>)` before it returns, with the stem from the target
-  table below, so the data's `Ref_<stem>` variants resolve (CC-02). The ability lowering (CC-16) appends targets to
-  `Ability.Targets` in lowering order, which makes the slot equal the index.
+  table below, so the data's `Ref_<stem>` variants resolve (CC-02). SUPERSEDED (operator 11-24, CC-15a): targets go to the
+  declaring `Program.Targets` in lowering order, so the slot equals the index there; there is no `Ability.Targets`.
 - `CheckHasable.<V>` lowers to the keyword's rules-name string. Register exactly these 13 no-argument variants, the
   ones that are both a CC-10 keyword and a `CheckHasable` variant at `1553384`: `Flying`, `Deathtouch`, `Defender`,
   `Flash`, `Haste`, `Indestructible`, `Lifelink`, `Menace`, `Reach`, `Trample`, `Vigilance`, and

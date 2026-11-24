@@ -107,7 +107,9 @@ that produced it, for example `Rule.TriggerA/Trigger.WhenAPermanentEntersTheBatt
   - `Distinct bool`
   - `Src string`
 
-  The Ability's `Targets` index is the RefTarget Slot.
+  ~~The Ability's `Targets` index is the RefTarget Slot.~~ SUPERSEDED (operator 11-24, CC-15a): targets live on
+  the `ir.Program` that declares them (`Program.Targets`, as mtgish's `Actions.Targeted` scopes them); `RefTarget.Slot`
+  indexes the nearest enclosing Program with targets. Do not reintroduce `Ability.Targets`.
 
 `filter.go` (filters; CC-12 appends)
 - `type Subject uint8`: `SubjNone, SubjObject, SubjPermanent, SubjPlayer, SubjSpell, SubjCard`.

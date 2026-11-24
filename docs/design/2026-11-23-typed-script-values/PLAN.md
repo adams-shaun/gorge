@@ -388,3 +388,10 @@ Basis:
   ticket.
 - **Fork CI.** GitHub Actions in the fork must reproduce upstream data byte for byte. If it cannot, regeneration
   falls back to a user-local `rustup` under `$HOME`, which needs the operator's OK.
+
+## Decisions log
+
+- 11-24, operator: targets are scoped per `ir.Program` (`Program.Targets`, set by `Actions.Targeted`), mirroring
+  mtgish's `Actions.Targeted(targets, actions)`. `Ability.Targets` (CC-01/CC-12) is removed in CC-15a and must not
+  return; `TestTargetsLiveOnPrograms` guards it. Nested abilities save and restore the target frame (CC-15a/CC-16a).
+- 11-24, operator: CC-15a owns every wave-2 IR edit; CC-15b, CC-16a and CC-16b only register lowerings after it.

@@ -383,6 +383,10 @@ In `engine/cardc/mtgish`:
 
 ## Done means
 
+- [ ] `TestTargetsLiveOnPrograms` in `engine/cardc/ir` (reflect): `ir.Ability` has no `Targets` field and `ir.Program`
+  has one. It guards the operator's 11-24 decision (targets scoped per program, as in mtgish); a later ticket that
+  needs ability-wide targets stops and reports instead of editing this test.
+
 - [ ] `make test-one PKG=./engine/cardc/ir` passes.
 - [ ] `make test-one PKG=./engine/cardc/mtgish` passes (not ENV): every test in the package, wave 1's included.
 - [ ] `make test-one PKG=./internal/archtest RUN='^(TestDependencyOrderHolds|TestNothingImportsCardc|TestPublicBoundary)$'` passes.
