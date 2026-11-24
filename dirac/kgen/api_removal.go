@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"maps"
 	"strconv"
 	"strings"
 
@@ -18,6 +19,22 @@ func init() {
 }
 
 func (lc *lowerCtx) apiDestroy(sa *cards.SA, ps *params) error {
+	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) == "ChosenCard" && lc.multiChosenPick() {
+		// a destruction of a counted ChooseCard's whole answer (The Horus
+		// Heresy): the one-object Destroy reads only RefChosen, so spell
+		// it as the sweep over Card.ChosenCard
+		cp := &params{m: maps.Clone(ps.m), used: map[string]bool{}}
+		delete(cp.m, "Defined")
+		cp.m["ValidCards"] = "Card.ChosenCard"
+		if err := lc.apiDestroyAll(sa, cp); err != nil {
+			return err
+		}
+		n := len(lc.ab.Prog) - 1
+		if n >= 0 && lc.ab.Prog[n].Op == "DestroyAll" {
+			lc.ab.Prog[n].C |= kop.DestroyAllChosenOrder
+		}
+		return nil
+	}
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err

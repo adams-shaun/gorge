@@ -977,6 +977,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			return false, true
 		}
 	case kop.OpChooseCard:
+		if in.C == kop.ChooseCardEach {
+			if s.chooseCardEachPose(k, in, true) {
+				return false, true
+			}
+			break
+		}
 		s.g.nchosen = 0
 		p := s.playerRef(k, in.Obj)
 		if p == 255 {
@@ -991,26 +997,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// controller's lands). Every chooser but the chosen-player one is the
 		// resolving controller, so the base differs only there (chooseCardBase).
 		base := p
-		if in.Obj == kop.RefEachOpponent {
+		if in.Obj == kop.RefEachOpponent || in.C == kop.ChooseCardActivatorBase {
 			base = e.ctrl
 		}
-		if c := in.C; c == chooseAttachPick || c == chooseAttachPickOpt {
-			return s.attachPick(k, in, p) // tgt_attachpick.go
-		}
-		if in.C == chooseAttachDest {
-			return s.attachDest(k, p) // tgt_attachdest.go
-		}
-		if in.C == choosePutCounterPick {
-			return s.putCounterPick(k, in, p) // ctr_putparams.go
-		}
-		if in.C == choosePopulatePick {
-			return s.populatePick(k, in, p) // copy_picked.go
-		}
-		if s.cardCandsBase(k, in.F, p, base, nil) == 0 {
-			break
-		}
-		s.res.ask, s.res.askP = raGenChooseCard, p
-		return false, true
+		return s.chooseCardAsk(k, in, p, base) // act_choosecardmodes.go
 	case kop.OpChoosePlayer:
 		s.choosePlayerOp(k, in) // act_chooseplayer.go
 	case kop.OpAttach:
@@ -1922,6 +1912,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	}
 	src := s.objRef(k, kop.RefSelf)
 	if (fl.Zone == kop.ZoneNone || fl.Zone == kop.ZoneBattlefield) && mv&kop.MvGraveExile == 0 {
+		if in.Op == kop.OpChangeZoneAll && in.C&kop.CzChosenOrder != 0 {
+			s.czallChosenOrder(k, in, z) // the chosen set in pick order (Split the Party)
+			return true
+		}
 		s.czallBattleHalf(k, in, only, src, z, mv) // zone_changezoneall.go
 		return true
 	}

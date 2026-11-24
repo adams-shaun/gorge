@@ -87,6 +87,11 @@ ChPlRandom	int16	1
 ChangeTextColour	int16	1
 ChangeTextLand	int16	2
 CharmRepeat	untyped int	256
+ChooseCardActivatorBase	untyped int	16
+ChooseCardAmount	untyped int	11
+ChooseCardAmountOpt	untyped int	12
+ChooseCardAtRandom	untyped int	13
+ChooseCardEach	untyped int	14
 ChooseOpp	untyped int	2
 ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1
@@ -291,6 +296,7 @@ CtrlTgtOwner	untyped int	128
 CtrlYou	CtrlSel	1
 CumulativeScaled	untyped int	2
 CzBattleGrave	untyped int	8
+CzChosenOrder	untyped int	8
 CzGraveLibrary	untyped int	128
 CzHandGrave	untyped int	32
 CzLibrarySideboard	untyped int	16
@@ -306,6 +312,7 @@ DelaySpellUncounter	untyped int	8
 DelayUpkeep	untyped int	1
 DelayYourEndStep	untyped int	7
 DelayYourUpkeep	untyped int	2
+DestroyAllChosenOrder	untyped int	16
 DigExilerOther	untyped int	4096
 DigFaceDown	untyped int	2048
 DigOptional	untyped int	8
@@ -1349,6 +1356,7 @@ SrChooserYou	untyped int	64
 SrConfirm	untyped int	16
 SrDestAltGrave	untyped int	32
 SrDifferentNames	untyped int	8192
+SrEachMin	untyped int	256
 SrExactly	untyped int	4
 SrForgetChanged	untyped int	2
 SrForgetOther	untyped int	1024
