@@ -63,6 +63,10 @@ type oracleScenario struct {
 	SetupAnswers []oracleAnswer `json:"setup_answers,omitempty"`
 	Steps        []oracleStep   `json:"steps"`
 	Expect       []oracleExpect `json:"expect"`
+	// CoinFlips are the live game's coin-flip results a lowered scenario
+	// replays (oracleCoinFlip), in flip order: the runner forces each random
+	// flip to the next one instead of flipping from its own seed.
+	CoinFlips []oracleCoinFlip `json:"coin_flips,omitempty"`
 	// xmageFixture marks a generated compliance scenario
 	// (RunOracleScenarioJSON). Setup permanents are present before turn 1 in
 	// both engines (build drops the triggers their placement queued); the
@@ -763,6 +767,7 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	built.Spare = r.spare
 	e := NewStartingPlayerChoice(built)
 	r.e = e
+	e.CoinFlipHook = r.forcedFlips(sc.CoinFlips)
 	if e.G.StartingPlayer != 0 {
 		return harnessf("seat 0 does not start (seed %d)", cfg.Seed)
 	}
