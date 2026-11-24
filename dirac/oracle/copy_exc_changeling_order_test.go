@@ -17,11 +17,11 @@ import (
 // Counterpart then copies it "except it's a Frog". CR 707.9d: a copy effect
 // that provides a specific set of subtypes does not copy the CDA that defines
 // that characteristic, so the Frog exception ends the inherited changeling.
-// The kernel's ordered reader (chars_gen.go's seed sites) implements that;
-// gorge's basis fold keeps the copied Changeling keyword, so the recorded
-// game ends at that divergence (Cards[81].Chars.AllTypes ref=true
-// kernel=false). This test pins the recording and the class; a clean replay
-// would mean gorge was fixed in the same change.
+// The kernel's ordered reader (chars_gen.go's seed sites) implements that.
+// Gorge's basis fold once kept the copied Changeling keyword, so the recorded
+// game ended at that divergence (Cards[81].Chars.AllTypes ref=true
+// kernel=false; the file's "divergence" field is that historical record).
+// gorge now drops the copied CDA (foldCopyExcept), so the replay is clean.
 func TestCopyExcChangelingOrderDiverges(t *testing.T) {
 	t.Parallel()
 	r, err := ReadRepro(filepath.Join("testdata", "repro", "copy_exc_changeling_order.repro.json"))
@@ -63,17 +63,13 @@ func TestCopyExcChangelingOrderDiverges(t *testing.T) {
 	if pol.Skipped != 0 {
 		t.Fatalf("replay skipped %d of %d recorded actions: the game path drifted", pol.Skipped, len(r.Actions))
 	}
-	if res.Div == nil {
-		t.Fatalf("the recorded divergence is gone: the two engines now agree")
+	if res.Div != nil {
+		t.Fatalf("replay diverged at %d/%s: %s", res.Div.At, res.Div.What, strings.Join(res.Div.Diff, "\n"))
 	}
-	if res.Div.At != r.Divergence.At || res.Div.What != r.Divergence.What {
-		t.Fatalf("replay diverged at %d/%s, recording at %d/%s", res.Div.At, res.Div.What, r.Divergence.At, r.Divergence.What)
+	if res.StallUnmodelled || strings.HasPrefix(res.Stall, KernelStallPrefix) {
+		t.Fatalf("replay stopped on the kernel side (%q, unmodelled %v)", res.Stall, res.StallUnmodelled)
 	}
-	diff := strings.Join(res.Div.Diff, "\n")
-	if !strings.Contains(diff, ".Chars.AllTypes: ref=true kernel=false") {
-		t.Fatalf("the divergence is not the inherited changeling: %s", diff)
-	}
-	if !strings.Contains(diff, ".Chars.Subtypes[0]: ref=") {
-		t.Fatalf("the later Frog exception did not replace the subtypes: %s", diff)
+	if len(res.Actions) < len(r.Actions) {
+		t.Fatalf("replay served %d of %d recorded actions", len(res.Actions), len(r.Actions))
 	}
 }
