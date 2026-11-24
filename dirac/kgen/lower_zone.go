@@ -963,9 +963,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	} else {
 		lc.emit(in)
 	}
-	if fd {
-		lc.emit(lInstr{Op: "ExileFaceDown", Note: "the moved card is exiled face down"})
-	}
+	lc.faceDownAfter(fd) // lower_exilefacedownmove.go
 	if override != nil {
 		if in.Op != "Return" || in.C != zBattlefield {
 			return refuse("StaticEffect on a %s", in.Op)
@@ -1316,9 +1314,7 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 		return err
 	}
 	lc.emit(in)
-	if fd {
-		lc.emit(lInstr{Op: "ExileFaceDown", Note: "the moved cards are exiled face down"})
-	}
+	lc.faceDownAfter(fd) // lower_exilefacedownmove.go
 	return nil
 }
 
