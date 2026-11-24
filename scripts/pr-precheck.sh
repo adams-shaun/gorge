@@ -25,6 +25,14 @@ fi
 heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
+# The gate for the repro-replay step below: any non-test, non-doc change under engine/ or dirac/ can move a recorded
+# game, so a refused card's repro may stop diverging (TestRefusedEntriesStillDiverge, the *Repros*Lockstep stale
+# checks). Only the queue batch's dirac-repros job replayed them: batch #4212 (11-24) went red on 8 refused cards one
+# of its PRs had fixed, and #2551 reddened #4184 and #4200 the same way. awk reads all its input, so pipefail never
+# sees a SIGPIPE (see the TestDiracFileNames step).
+repros_gate() {
+  awk '/^(engine|dirac)\// && !/(_test\.go|\.md)$/ {f = 1} END {exit !f}'
+}
 changed=$(git diff --name-only "$base"...HEAD)
 if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$|^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
@@ -94,6 +102,17 @@ if heads_gate <<<"$changed"; then
       why="regenerate the params tables: go test ./engine/rules -run 'KnownKeysMatchTheCensus' -update, then run it again without -update to verify (the rewrite lands for the NEXT run: the package var was loaded before it) — and $why"
     fi
     fail "golden heads: $(grep -o -E -- '--- FAIL: Test[A-Za-z0-9_/]+' "$log" | head -3 | sed 's/--- FAIL: //' | paste -sd' ') — $why"
+  fi
+fi
+# The same set ci.yml's dirac-repros job replays (both parts): every repro test and TestRefusedEntriesStillDiverge.
+if repros_gate <<<"$changed"; then
+  names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>/dev/null | grep -E '^Test' | paste -sd'|')
+  [ -n "$names" ] || fail "repro replay: go test -list found no repro tests in ./dirac/oracle"
+  if ! "${cap[@]}" go test -timeout 20m -run "^($names)\$" ./dirac/oracle >"$log" 2>&1; then
+    cat "$log"
+    why="a refused card's recorded game no longer diverges: if the PR fixed it, add a row to dirac/support/unrefused.tsv and run go run ./dirac/cmd/kgen -unrefuse <card>; if the game moved, re-record it (see checkRefusedRepro)"
+    grep -q 'stale' "$log" || why="a recorded game now diverges: fix the change, or refuse the card by name (kgen -refuse)"
+    fail "repro replay: $(grep -o -E -- '--- FAIL: [A-Za-z0-9_/,.'"'"'-]+' "$log" | head -4 | sed 's/--- FAIL: //' | paste -sd' ') — $why"
   fi
 fi
 for pkg in $(grep '_test\.go$' <<<"$changed" | xargs -r -n1 dirname | sort -u); do
