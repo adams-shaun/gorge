@@ -11,6 +11,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/resolve"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -79,8 +80,12 @@ func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
 	return e.tape.Answer(asResolve(e), d)
 }
 
-// TapeUnwinding implements effects' tapeUnwinding seam.
-func (e *Engine) TapeUnwinding() bool { return e.tape.Unwinding() }
+// TapeRun implements effects' tapeRunSeam: whether the tape is unwinding, and
+// the harness's forced coin-flip results (CoinFlipHook, nil in every live
+// game).
+func (e *Engine) TapeRun() effects.TapeRun {
+	return effects.TapeRun{Unwinding: e.tape.Unwinding(), ForcedCoinFlip: e.CoinFlipHook}
+}
 
 // SetTapeAnswerer installs (nil removes) e's synchronous answerer: an engine
 // whose every seat is a policy answers a converted mid-resolution ask inline,
@@ -278,6 +283,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	if staticHook == nil {
 		staticHook = e.tapeHeldStaticHook // already parked
 	}
+	// The forced coin-flip hook is not an observer: the re-executed prefix
+	// must replay the same forced results (forcedFlips rewinds its cursor
+	// by the log), so it stays attached instead of being parked or dropped.
+	coinHook := e.CoinFlipHook
 	evs, ints := l.Events, l.Intents
 	l.Events, l.Intents = nil, nil
 	// The decision arena stays out of the release: Release clears its
@@ -344,6 +353,7 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	e.arenaHeapAsks = heapAsks
 	e.tapeHeldHook, e.tapeHeldStats = hook, stats
 	e.tapeHeldStaticHook = staticHook
+	e.CoinFlipHook = coinHook
 	tapeRebindOwner(e, sc, arenaOn)
 }
 
