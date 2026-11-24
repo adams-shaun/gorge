@@ -710,17 +710,20 @@ func (s *State) scriptStep(d *Decision) { s.stepRaw(d) }
 // once) is left pending for the ordinary priority path.
 func (s *State) flushPrefixTriggers(k *prep) {
 	for s.npend != 0 {
+		// the elided mirror's head group (mana_elided.go), else the whole
+		// queue: gorge drains its trigger queue per activation
+		lim := s.elideHeadLim()
 		p := s.active
-		n := s.pendCount(p)
+		n := s.pendCountTo(p, lim)
 		for i := uint8(1); n == 0 && i < s.aliveCount(); i++ {
 			p = s.nextAlive(p) // APNAP: the next player in turn order with a trigger
-			n = s.pendCount(p)
+			n = s.pendCountTo(p, lim)
 		}
 		if n != 1 {
 			return // two or more: gorge asks for an order first
 		}
 		i := -1
-		for j := 0; j < int(s.npend); j++ {
+		for j := 0; j < lim; j++ {
 			if s.pend[j].ctrl == p {
 				i = j
 				break
@@ -747,6 +750,9 @@ func (s *State) flushPrefixTriggers(k *prep) {
 				s.scriptStep(&d)
 				if d.N == 0 || s.ctl != ctlBuild {
 					break
+				}
+				if d.Kind == DkTarget && s.elideArmed() {
+					s.gorgeTargetOrder(&d) // gorge's order: the empty answer of an up-to-one ask first (mana_tapanother.go)
 				}
 				s.Apply(d.Options[0])
 			}
@@ -889,7 +895,7 @@ func (s *State) resolvePrefixStack(k *prep, sp0 uint8, resolve bool) {
 	for !s.over {
 		switch s.ctl {
 		case ctlPriority:
-			if s.npend > 0 {
+			if s.elidePrefixPend() > 0 {
 				s.ctl = ctlPlaceTriggers // the queued triggers are placed first (CR 117.5)
 				continue
 			}

@@ -248,13 +248,22 @@ func (s *State) trigWindowCharge(k *prep, p uint8, c *kop.ManaCost) bool {
 // (payPrefixRest). A prefix that ran without tapping priced the play by
 // planning; gorge pays that at payment, after the push, as manaStep does.
 func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
+	if s.elideArmed() {
+		// the plan is applied out of band (mana_elided.go): no search funds
+		// the play again; the triggers the mirrored activations queued are
+		// the search's, placed here as gorge's drain placed them
+		if s.npend != 0 {
+			s.flushPrefixMirrored(k)
+		}
+		return false, false
+	}
 	pool0 := s.prefixPoolMana(p)
 	grantFirstRun := false
 	if grantFirst {
 		s.grantPrefix(k, a, p)
 		ran, grantFirstRun = true, true
 		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
+			s.flushPrefixMirrored(k)
 		}
 	}
 	if s.scriptAny(k) && isScriptPlayKind(a.Kind()) {
@@ -269,21 +278,21 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 			tapX = true
 		}
 		if s.npend != 0 {
-			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
+			s.flushPrefixMirrored(k) // its trigger resolves before the play (seed 640)
 		}
 	}
 	if grants && !grantFirst {
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
 		ran = true
 		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
+			s.flushPrefixMirrored(k)
 		}
 	}
 	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
 		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
 		ran = true
 		if s.npend != 0 {
-			s.flushPrefixTriggers(k)
+			s.flushPrefixMirrored(k)
 		}
 	}
 	return ran && s.prefixPoolMana(p) > pool0, tapX
@@ -329,6 +338,13 @@ func (s *State) activatePrefixRest(k *prep, a Action, p uint8, pref, tapX bool) 
 // window arm (sacXWindowPays, equipGapWindowPays, the hybrid arms), and
 // restricted floating mana keeps the shortened cost the planner pays.
 func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
+	if s.elideArmed() {
+		// The plan is applied out of band (mana_elided.go): the sources are
+		// tapped, the floats are in the pool and the plan's sub-costs are
+		// paid. The offer's planned cost can overstate the build's actual
+		// one; funding it here would tap past the plan.
+		return
+	}
 	o, ab := Obj(a.Source()), a.Mode()
 	ob := &s.objs[o]
 	cd := &k.t.Cards[s.cardAt(ob.slot)]
@@ -748,7 +764,7 @@ func plansAnyColour(pl *planner) bool {
 // runPrefixesGated is runPrefixes behind its four gates, tested inline so a table
 // with none of them skips the call.
 func (s *State) runPrefixesGated(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
-	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+	if grants || s.elideArmed() || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
 		return s.runPrefixes(k, a, p, grants, grantFirst)
 	}
 	return false, false

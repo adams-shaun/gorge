@@ -155,6 +155,22 @@ type GorgeSide struct {
 	// plan fell back to carries no ManaPayment, so the owed colour of an
 	// any-colour mana ability's colour ask is this demand less the pool.
 	payPips [6]uint8
+	// elFires are the mana abilities the engine resolved since the last
+	// DrainElided, pre-resolution, for the elided-mana mirror (elided.go);
+	// elScan is the log position the pairing scan has reached.
+	elFires []elFire
+	elScan  int
+	// elPrimSrc is the source of the canonical mana-ability activation the
+	// engine is resolving (elided.go manaActivationPrimary), or 0: the kernel
+	// resolves that activation itself, across every submit its asks span (the
+	// tap-cost choice, the colour ask), so the hook does not record its fires.
+	// It holds until the next priority answer resets it.
+	elPrimSrc state.ObjID
+	// elRes is the stack object the engine is resolving as the scan last left
+	// it (a Resolve event, until the object leaves the stack), or 0.
+	elRes state.ObjID
+	// elArmed is whether the record hook is installed (elided.go ArmElided).
+	elArmed bool
 }
 
 // frame is the canonical view of one posed gorge decision.
@@ -1876,7 +1892,18 @@ func (g *GorgeSide) commit(fr *frame, choices []int) {
 	g.fr = nil
 	g.committed = true
 	g.Stats.Commits++
+	// A chosen option may itself be a canonical mana-ability activation (a
+	// mid-resolution ability ask): the engine resolves that primary, and the
+	// kernel resolves the same action itself, so its fires are not recorded
+	// (elided.go manaActivationPrimary).
+	prim := g.elPrimSrc
+	for _, c := range choices {
+		if c >= 0 && c < len(d.Options) && g.manaActivationPrimary(d, c) {
+			g.elPrimSrc = d.Options[c].Obj
+		}
+	}
 	if err := g.submit(in); err != nil {
+		g.elPrimSrc = prim
 		g.Stats.Refused++
 		rep := botpolicy.Clamp(d, in)
 		rep.Seq, rep.Player = d.Seq, d.Player
@@ -1891,10 +1918,14 @@ func (g *GorgeSide) answer(fr *frame, pe prioEntry) {
 	d := fr.d
 	g.committed = true
 	g.Stats.Commits++
+	g.elPrimSrc = 0 // a priority answer opens a new activation window (elided.go)
 	switch pe.kind {
 	case prOption:
 		if pe.a.Kind() != ActPass {
 			g.Stats.Direct++
+		}
+		if g.manaActivationPrimary(d, pe.opt) {
+			g.elPrimSrc = d.Options[pe.opt].Obj // the primary resolves itself, not recorded (elided.go)
 		}
 		if err := g.submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pe.opt}}); err != nil {
 			g.fail(fmt.Errorf("oracle: %v refused: %w", pe.a, err))

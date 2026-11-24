@@ -345,6 +345,7 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			defer rc.Finish(gorge)
 		}
 	}
+	armElided(lead, follow) // only here is the record drained (elided.go)
 	var inSide Side
 	defer func() {
 		if r := recover(); r != nil {
@@ -365,6 +366,11 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			res.Div = &Divergence{At: res.Decisions, What: sideName(lead), Field: "step", Detail: e.Error()}
 			return res
 		}
+		// The lead gorge side's elided mana activations (its internal
+		// answers) are mirrored into the kernel side before its own Step
+		// (elided.go): both engines then price their menus and answer their
+		// internal windows from the same post-activation position.
+		mirrorElided(lead, follow, true)
 		inSide = follow
 		df := follow.Step()
 		inSide = nil
@@ -506,6 +512,11 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			res.Div = &Divergence{At: res.Decisions - 1, What: sideName(lead), Field: "apply", Detail: e.Error()}
 			return res
 		}
+		// The lead gorge side's elided mana activations for the answer it
+		// just processed (its payment plan's, its costs') are mirrored into
+		// the kernel side before its own Apply re-derives the same payment
+		// (elided.go).
+		mirrorElided(lead, follow, false)
 		inSide = follow
 		follow.Apply(a)
 		inSide = nil

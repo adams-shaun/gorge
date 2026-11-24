@@ -202,6 +202,7 @@ func (r *realSide) stackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 
 func (r *realSide) Step() CDecision {
 	r.s.StepInto(&r.d)
+	r.s.ElideArmSet(false) // the mirrored uses' recognition mark is spent (mana_elided.go)
 	if OccupancyHook != nil {
 		OccupancyHook(&r.s)
 	}
@@ -219,10 +220,23 @@ func (r *realSide) Apply(c Canon) {
 	for i, x := range r.opts {
 		if x == c {
 			r.s.Apply(r.d.Options[i])
+			r.s.ElideArmSet(false) // the recognition mark is spent (mana_elided.go)
 			return
 		}
 	}
 	panic(fmt.Sprintf("realkernel: %v is not one of the kernel's options", c))
+}
+
+// MirrorElided applies the lead gorge side's elided mana activations to the
+// kernel's state out of band (dirac.State.MirrorManaUse), before the kernel's
+// own processing of the same answer (lockstep.go mirrorElided), and marks the
+// recognition mark: the kernel's Apply-time re-derivation of this answer must
+// not fund the play again.
+func (r *realSide) MirrorElided(uses []dirac.ManaUse, arm bool) {
+	for _, u := range uses {
+		r.s.MirrorManaUse(u)
+	}
+	r.s.ElideArmSet(arm)
 }
 
 func (r *realSide) Terminal() (bool, int8) { return r.s.Terminal() }

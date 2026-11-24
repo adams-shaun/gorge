@@ -3549,9 +3549,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	// runPrefixes' four gates, tested inline so a table with none of them skips the call
 	pref, tapX := s.runPrefixesGated(k, a, p, grants, grantFirst)
-	if s.sp > sp0 || s.npend != 0 {
+	if pend := s.elidePrefixPend(); s.sp > sp0 || pend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
-		if s.sp > sp0 && empty || s.npend != 0 {
+		if s.sp > sp0 && empty || pend != 0 {
 			s.resolvePrefixPlay(k, a, p, sp0, empty) // the prefix's triggers placed (and, sorcery-speed, resolved) before the play
 		}
 	}

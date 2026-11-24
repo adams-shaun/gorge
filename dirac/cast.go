@@ -2199,6 +2199,7 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	if s.npend == 0 {
 		// placing triggers keeps the priority holder and the pass count
 		// (gorge grantPriority emits Priority{holder, Passes})
+		s.elideFifoClear()
 		s.ctl = ctlPriority
 		return false
 	}
@@ -2208,14 +2209,15 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 		// re-enters to scan the queue again (trig_mayplaystatic.go)
 		return false
 	}
+	lim := s.elideHeadLim() // the mirror's head group (mana_elided.go), else the whole queue
 	p := s.active
-	n := s.pendCount(p)
+	n := s.pendCountTo(p, lim)
 	if n == 0 {
 		// CR 603.3b: APNAP order, each player in turn order from the
 		// active player (gorge sortPendingTriggers over AliveFrom(Active))
 		for {
 			p = s.nextAlive(p)
-			if n = s.pendCount(p); n != 0 || s.duel() {
+			if n = s.pendCountTo(p, lim); n != 0 || s.duel() {
 				break
 			}
 		}
@@ -2229,14 +2231,14 @@ func (s *State) placeTriggers(k *prep, d *Decision) bool {
 	}
 	if s.orderLeft > 0 {
 		d.Kind, d.Player = DkTriggerOrder, p
-		for i := 0; i < int(s.npend); i++ {
+		for i := 0; i < lim; i++ {
 			if pt := &s.pend[i]; pt.ctrl == p && !s.ordered(uint8(i)) {
 				d.add(MakeAction(AkOrder, TCode(pt.obj), TCode(i), s.orderOccurrence(i, p)))
 			}
 		}
 		return true
 	}
-	for i := 0; i < int(s.npend); i++ {
+	for i := 0; i < lim; i++ {
 		if s.pend[i].ctrl == p {
 			s.takePending(k, i)
 			return false
@@ -2281,6 +2283,7 @@ func (s *State) applyTriggerOrder(k *prep, a Action) {
 
 // takePending removes pending trigger i and starts building it.
 func (s *State) takePending(k *prep, i int) {
+	s.elideTaken(i)
 	pt := s.pend[i]
 	copy(s.pend[i:s.npend-1], s.pend[i+1:s.npend])
 	s.npend--
@@ -2787,9 +2790,12 @@ func (s *State) altAddOptions(k *prep, d *Decision) {
 	}
 }
 
-func (s *State) pendCount(p uint8) int {
+func (s *State) pendCount(p uint8) int { return s.pendCountTo(p, int(s.npend)) }
+
+// pendCountTo is pendCount over the first lim pending triggers.
+func (s *State) pendCountTo(p uint8, lim int) int {
 	n := 0
-	for i := 0; i < int(s.npend); i++ {
+	for i := 0; i < lim; i++ {
 		if s.pend[i].ctrl == p {
 			n++
 		}
