@@ -451,8 +451,9 @@ func wardManaDecision(e *Engine, wm *wardManaPayment) *decision.Decision {
 	payable := wm.cost.Priceable() && pay.CostPayableClassLife(asPayer(e), wm.payer,
 		paymentDescriptor{ID: wm.obj, Class: paymentOther, Cost: &wm.cost}, pipRider{}, wm.cost, false)
 	if !payable {
+		desc := paymentDescriptor{ID: wm.obj, Class: paymentOther, Cost: &wm.cost}
 		for _, id := range e.G.Zone(state.ZBattlefield, wm.payer) {
-			if e.untappedManaSourceFor(wm.payer, id, paymentDescriptor{ID: wm.obj, Class: paymentOther, Cost: &wm.cost}) && e.windowSourceYields(wm.payer, id) {
+			if e.untappedManaSourceFor(wm.payer, id, desc) && e.windowSourceYields(wm.payer, id) && !wardWindowStalls(e, wm, id, desc) {
 				opt := decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
 					Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"}
 				// The beyond-tap cost marker every other "activate" offer
@@ -466,6 +467,20 @@ func wardManaDecision(e *Engine, wm *wardManaPayment) *decision.Decision {
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	return d
+}
+
+// wardWindowStalls reports whether the unless window must leave source id
+// off its list: every mana ability it offers is a repeatable fee-only
+// conversion that cannot fill what the unless cost still owes
+// (windowOnlyStallingConverters, the trigger-cost window's rule). Offered,
+// Bog Initiate's "{1}: Add {B}." against Rhystic Shield's "unless any player
+// pays {2}" was activated forever by a seat that takes the first listed
+// source: each fee ate the mana the last activation made. dirac's unless
+// walk (windowFiltPick under turnUnlessWin) drops it through windowFeeStalls;
+// its ward walk does not, so neither does Ward's window here.
+func wardWindowStalls(e *Engine, wm *wardManaPayment, id state.ObjID, desc paymentDescriptor) bool {
+	return wm.unless && windowOnlyStallingConverters(e, e.availableManaAbilities(wm.payer, id), wm.payer, id, wm.cost,
+		func() state.Mana { return pay.AvailableFor(asPayer(e), wm.payer, desc).Pool })
 }
 
 type beginWardPaymentCode uint16
