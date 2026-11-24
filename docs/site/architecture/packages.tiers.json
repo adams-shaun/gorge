@@ -169,6 +169,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/cardc": {
+      "tier": "cmd",
+      "status": "CORE"
+    },
     "cmd/checkratchet": {
       "tier": "cmd",
       "status": "TOOL"
@@ -249,6 +253,10 @@
       "status": "TOOL"
     },
     "engine/cardc/ir": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/cardc/mtgish": {
       "tier": "engine",
       "status": "CORE"
     },
