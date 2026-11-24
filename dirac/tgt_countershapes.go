@@ -38,8 +38,9 @@ func trigOnlyOK(kind uint8) bool {
 
 // spellTgtingOK is targetOK for a TgtSpellTgting slot: a spell other than the
 // source whose own object targets include a battlefield object matching the
-// slot's Filter for the chooser p (gorge filterTargetValidTargeting, the offer
-// only; an ability on the stack is not a candidate).
+// slot's Filter for the chooser p (gorge filterTargetValidTargeting). It is
+// the offer's judge and, through targetStillLegal, the resolution recheck's
+// too (CR 115.9b); an ability on the stack is not a candidate.
 //
 //go:noinline
 func (s *State) spellTgtingOK(k *prep, t *kop.TargetSpec, p uint8, self Obj, code TCode) bool {
@@ -115,17 +116,6 @@ func (s *State) tgtBattlefieldMatch(k *prep, f kop.FilterID, p uint8, c TCode) b
 	}
 	ob := &s.objs[c]
 	return ob.zone == kop.ZoneBattlefield && s.matchPerm(k, f, ob.slot, p, NoSlot)
-}
-
-// spellTgtingStill is targetStillLegal for a TgtSpellTgting slot: gorge does
-// not reread the targeting clause at resolution, so the target is a plain
-// spell target (still a spell on the stack, never the entry itself).
-func (s *State) spellTgtingStill(e *stackEntry, code TCode) bool {
-	if !isObjTarget(code) || Obj(code) == e.obj || s.objs[code].zone != kop.ZoneStack {
-		return false
-	}
-	i := s.stackIndexOf(Obj(code))
-	return i >= 0 && s.stack[i].kind == seSpell
 }
 
 // counterRiders runs OpCounter's B riders for the spell at stack index i,
