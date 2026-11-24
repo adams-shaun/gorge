@@ -386,6 +386,32 @@ func (s *State) setReplSrc(v uint8) {
 	}
 }
 
+// replAskKind maps a replacement program's ChooseColor / ChooseType / OpExt
+// ask op to the answer kind it queues. ok is false when the op is not an ask
+// and runs through execGen.
+func replAskKind(in *kop.Instr) (kind uint8, ok bool) {
+	switch in.Op {
+	case kop.OpChooseColor:
+		return akColor, true
+	case kop.OpChooseType:
+		return akType, true
+	case kop.OpExt:
+		switch in.Ext() {
+		case kop.ExtChooseNumber, kop.ExtPayLifeX:
+			return akNumber, true // ExtPayLifeX: repl_paylife.go
+		case kop.ExtChooseName:
+			return nameAskKind(in), true
+		case kop.ExtChooseCardEnter:
+			return akCard, true // repl_choosecard.go
+		case kop.ExtEnterCtrPick, kop.ExtPutCounterChoice:
+			return akCtrPick, true // repl_enterctrpick.go, ctr_choice.go
+		case kop.ExtChoosePlayer:
+			return akPlayer, true
+		}
+	}
+	return 0, false
+}
+
 // runReplProgAs runs it with the permanent at src as the source (an
 // "other permanents enter" replacement). A choice stops it: the rest runs
 // once the choice is answered.
@@ -414,26 +440,10 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		case kop.OpBecomeCopy:
 			s.becomeCopyEnter(k, sl, in)
 		case kop.OpChooseColor, kop.OpChooseType, kop.OpExt:
-			kind := akColor
-			switch {
-			case in.Op == kop.OpChooseType:
-				kind = akType
-			case in.Op == kop.OpExt:
-				switch in.Ext() {
-				case kop.ExtChooseNumber, kop.ExtPayLifeX:
-					kind = akNumber // ExtPayLifeX: repl_paylife.go
-				case kop.ExtChooseName:
-					kind = nameAskKind(in)
-				case kop.ExtChooseCardEnter:
-					kind = akCard // repl_choosecard.go
-				case kop.ExtEnterCtrPick, kop.ExtPutCounterChoice:
-					kind = akCtrPick // repl_enterctrpick.go, ctr_choice.go
-				case kop.ExtChoosePlayer:
-					kind = akPlayer
-				default:
-					s.execGen(k, in)
-					continue
-				}
+			kind, ok := replAskKind(in)
+			if !ok {
+				s.execGen(k, in)
+				continue
 			}
 			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
 				continue // nothing nonland was revealed: gorge poses no ask
@@ -1614,6 +1624,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
 		s.siegeModeStore(ask.sl, a.Mode())
+		s.g.branch = uint8(a.Mode()) // the as-enters mode is the branch the rest of the replacement runs (self-clone choices)
 	} else if ask.kind == akProtector {
 		s.protectorStore(ask.sl, a.Mode()) // face_battle.go
 	} else if ask.kind == akCard {

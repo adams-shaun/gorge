@@ -594,6 +594,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vLibrarySizeOf, Ref: ref}
 		case "CardsInHand":
 			v = lValue{Kind: vHandSizeOf, Ref: ref}
+		case "CreaturesInPlay":
+			// the targeted player's battlefield creatures (Split the Party's
+			// Amount$ X): gorge TargetedPlayer$CreaturesInPlay, the
+			// TargetedPlayerCtrl battle count
+			var f *lFilter
+			if f, err = lc.filter("Creature.TargetedPlayerCtrl"); err == nil {
+				v = lValue{Kind: vCount, F: f}
+			}
 		case "Amount":
 			// gorge counts the player targets of the resolution (the
 			// Hollow Marauder family): over an opponents-only slot two-player
