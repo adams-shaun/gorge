@@ -1626,11 +1626,11 @@ func positiveRecognisedWord(p string) bool {
 // recognised shape -- the double negation is not part of this grammar, so it
 // fails closed like any unknown.
 func recognisedPredicate(p string) bool {
-	if positiveRecognised(p) {
+	if positiveRecognised(cardQualifiedSelfTerm(p)) {
 		return true
 	}
 	if x, has := strings.CutPrefix(p, "!"); has && x != "" {
-		return positiveRecognised(x)
+		return positiveRecognised(cardQualifiedSelfTerm(x))
 	}
 	return false
 }
@@ -2799,13 +2799,13 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 		if x == "" {
 			return false, false
 		}
-		r, rek := matchPositive(g, x, o, sc)
+		r, rek := matchPositive(g, cardQualifiedSelfTerm(x), o, sc)
 		if !rek {
 			return false, false
 		}
 		return !r, true
 	}
-	return matchPositive(g, p, o, sc)
+	return matchPositive(g, cardQualifiedSelfTerm(p), o, sc)
 }
 
 func isBlocking(g *state.Game, id state.ObjID) bool {

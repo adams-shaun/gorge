@@ -233,7 +233,27 @@ func compilePredicateBase(base string) (predicateBase, bool) {
 	return predicateBase{}, false
 }
 
+// cardQualifiedSelfTerm unwraps a source-relative conjunct written with an
+// explicit Card base (`Creature.YouOwn+!Card.Self`, "another creature you
+// own"): the alternative's dot split already ran at the FIRST '.', so the
+// dotted term reaches the term grammar whole. `Card.Self` / `Card.Other` as a
+// conjunct is the bare Self / Other term (the source is a card), so this
+// returns that term; any other text is returned unchanged and keeps its
+// fail-closed reading.
+func cardQualifiedSelfTerm(p string) string {
+	x, ok := strings.CutPrefix(p, "Card.")
+	if !ok {
+		return p
+	}
+	switch compilePredicateTermCodes.Code(x) {
+	case compilePredicateTermSelf, compilePredicateTermOther:
+		return x
+	}
+	return p
+}
+
 func compilePredicateTerm(term string) predicateTerm {
+	term = cardQualifiedSelfTerm(term)
 	if rest, ok := strings.CutPrefix(term, "!"); ok {
 		if rest == "" {
 			return predicateTerm{maybe: true}
