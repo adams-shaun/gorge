@@ -1914,6 +1914,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	if !ok {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
 	}
+	// A target-bound text-defined {X} (Reflecting Mirror) prices the cheapest
+	// legal candidate before CR 601.2c, exactly as the offer gate and the
+	// charge do; an unresolvable candidate census withholds, matching
+	// deferredManaXOffer's fail-closed direction.
+	cost, _, _, ok = deferredManaXOffer(asPayer(e), e, p, id, ab, pa.Merged, cost)
+	if !ok {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:target_x"}
+	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 		cost.Generic -= n
 	} else if n > 0 {
