@@ -68,6 +68,9 @@ func (s *State) restrFeeFund(k *prep, p uint8) (fund, wiped int) {
 					continue
 				}
 				v := &k.gen.rs.views[rec.view]
+				if v.restrPair != 0 {
+					v = &k.gen.rs.views[v.restrPair-1] // a free view's fee alternative is a gap of its own (mana_restrictedfeepair.go)
+				}
 				if restrFeeEmpty(v) {
 					continue
 				}

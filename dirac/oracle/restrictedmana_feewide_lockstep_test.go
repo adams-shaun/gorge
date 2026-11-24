@@ -9,7 +9,7 @@ import (
 
 // The wider restricted mana-fee carrier Orb of Dragonkind: "{1}, {T}: Add two
 // mana in any combination of colors. Spend this mana only to cast Dragon
-// spells or activate abilities of Dragons." Four Orb seats: the deck is
+// spells or activate abilities of Dragons." Two Orb seats: the deck is
 // Mountain-light, so gorge's payment reaches for the fee unit (its tier funds
 // a fee source only once the plain lands fall short) and Orb's two restricted
 // mana (the fee paid from a Mountain's mana, CR 605.3b) fund Shivan Dragon's
@@ -21,7 +21,19 @@ func restrictedManaFeeWideDecks() [4][]cardset.Entry {
 		{Name: "Orb of Dragonkind", Count: 16}, {Name: "Shivan Dragon", Count: 8}, {Name: "Furnace Whelp", Count: 6},
 		{Name: "Mountain", Count: 10},
 	}
-	return [4][]cardset.Entry{orb, orb, orb, orb}
+	return [4][]cardset.Entry{orb, hydroChannelerDeck(), orb, hydroChannelerDeck()}
+}
+
+// hydroChannelerDeck: Hydro-Channeler's "{T}: Add {U}" and "{1}, {T}: Add one
+// mana of any color" (both instant and sorcery spells only) beside Islands and
+// a few Mountains, spent on Lightning Bolt and Divination: the free {U} is
+// gorge's census unit, the any-colour fee alternative its cast window's (the
+// fee paid from an Island's mana, CR 605.3b), one tap between them.
+func hydroChannelerDeck() []cardset.Entry {
+	return []cardset.Entry{
+		{Name: "Hydro-Channeler", Count: 12}, {Name: "Island", Count: 12}, {Name: "Mountain", Count: 4},
+		{Name: "Lightning Bolt", Count: 8}, {Name: "Divination", Count: 4},
+	}
 }
 
 // restrictedManaFeeWideSeeds: Orb's restricted mana is spent on three of the
@@ -73,7 +85,9 @@ func TestRestrictedManaFeeWideLockstep(t *testing.T) {
 		t.Logf("seed %d: %d decisions, over %v %s; spent fee %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
 	}
 	t.Logf("restricted fee mana spent over the seeds: %v", sum.byName)
-	if sum.byName["Orb of Dragonkind"] == 0 {
-		t.Fatalf("no restricted fee mana spent over the seeds (%v)", sum.byName)
+	for _, name := range []string{"Orb of Dragonkind", "Hydro-Channeler"} {
+		if sum.byName[name] == 0 {
+			t.Fatalf("no %s restricted mana spent over the seeds (%v)", name, sum.byName)
+		}
 	}
 }

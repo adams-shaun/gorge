@@ -70,6 +70,12 @@ type pcard struct {
 	restrFee    uint8
 	restrFeeCol uint8
 	restrFeeN   uint8
+	// restrPair: the free restricted view's fee alternative, its view index
+	// in genPrep.rs.views plus one (Hydro-Channeler's "{1}, {T}: Add one mana
+	// of any color" beside its free "{T}: Add {U}", one restriction): one tap,
+	// the free one gorge's census unit, the fee one its cast window's
+	// (mana_restrictedfeepair.go). Zero: none.
+	restrPair   uint16
 	restrFloat  bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
 	cdRec       bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
 	food        bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)

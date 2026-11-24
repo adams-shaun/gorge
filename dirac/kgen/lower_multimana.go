@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"slices"
 	"strings"
 
@@ -117,7 +118,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// kop.ChosenSecondManaAb)
 		return
 	}
-	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1])) {
+	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1]) || restrictedFreeFeePair(ms[0], ms[1])) {
 		// a restricted pair whose two abilities are disjoint by payment class:
 		// a spell-only {T} ability of one mana then an activation-only one of
 		// several (Steelswarm Operator: {U} for artifact spells, {U}{U} to
@@ -125,7 +126,8 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// an activation-only larger one (Sunken Citadel: chosen 1, chosen 2
 		// for abilities of land sources). The kernel plans whichever ability
 		// the payment admits (mana_restrictedsource.go prepRestrSrc,
-		// restrViewW); the fixed spell-only pair is Tablet of Discovery.
+		// restrViewW); the fixed spell-only pair is Tablet of Discovery; the
+		// free-and-fee pair is Hydro-Channeler (restrictedFreeFeePair).
 		return
 	}
 	if len(ms) == 2 && chosenTapMana(ms[0]) && feeEachAmongMana(ms[1]) {
@@ -675,6 +677,24 @@ func restrictedFixedPair(first, a *lAbility) bool {
 	}
 	return plainTapMana(first, false) && unrestrictedOne(first) && len(a.Mana.Colors) == 1 &&
 		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
+}
+
+// restrictedFreeFeePair: first is a spell-only restricted {T} ability of one
+// mana of one fixed colour, then a is a restricted mana-fee ability of one
+// mana of any colour under the same restriction (Hydro-Channeler: {T}: Add
+// {U}, and {1}, {T}: Add one mana of any color, instant and sorcery spells
+// only). gorge's census lists the free {U} alone (a paid cost is no TierNormal
+// alternative) and its cast window prices the fee alternative from the
+// floating mana (CR 605.3b); the kernel's restricted fee pair
+// (mana_restrictedsource.go restrFeePairView) plans the one tap as either.
+func restrictedFreeFeePair(first, a *lAbility) bool {
+	if !spellOnlyMana(first) || !spellOnlyMana(a) || !plainTapMana(first, false) || first.Mana.Choice || first.Mana.Each ||
+		first.Mana.Amount.Kind != vConst || first.Mana.Amount.N != 1 ||
+		len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) {
+		return false
+	}
+	return restrictedManaUnit(a.Cost, a.Mana) && a.Mana.Colors == "WUBRG" && !a.Mana.Choice &&
+		a.Cost.Mana.Pips == [5]int{} && reflect.DeepEqual(*first.Mana.Restrict, *a.Mana.Restrict)
 }
 
 // restrictedFirstPair: first is a spell-only restricted {T} ability of one

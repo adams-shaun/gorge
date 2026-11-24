@@ -304,6 +304,9 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			}
 			v.restrFee, v.restrFeeCol, v.restrFeeN = fee, feeCol, feeN
 			v.manaSac = restrSacSelfAb(a)
+			if g.restrFeePairOf(c, id, a, &v) {
+				continue // the free record's fee alternative, no unit of its own
+			}
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -802,6 +805,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				}
 				own := s.manaPCGen(k, sl)
 				v, _, _ := s.restrView(k, p, sl, own, &d)
+				if v != nil && v.restrPair != 0 {
+					v = &k.gen.rs.views[v.restrPair-1] // the pair sorts by its fee alternative's fee (gorge's unitMaxFee)
+				}
 				if v == nil || restrFeeEmpty(v) {
 					continue
 				}
@@ -827,6 +833,10 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				own := s.manaPCGen(k, sl)
 				v, kind, _ := s.restrView(k, p, sl, own, &d)
 				if v == nil {
+					continue
+				}
+				if v.restrPair != 0 {
+					s.restrFeePairAdd(k, p, &d, sl, own, v, &t, &multi, &nm, &lifeUsed, cost, extra, &fund, wiped, &poolLeft)
 					continue
 				}
 				fc := restrFeeCost(v)
@@ -858,8 +868,8 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			}
 			own := s.manaPCGen(k, sl)
 			v, kind, _ := s.restrView(k, p, sl, own, &d)
-			if v == nil || !restrFeeEmpty(v) {
-				continue // a fee unit is pass 1's, after the mana it may charge
+			if v == nil || !restrFeeEmpty(v) || feeUnits && v.restrPair != 0 {
+				continue // a fee unit (or a free one's fee pair) is pass 1's, after the mana it may charge
 			}
 			s.restrSrcAddUnit(k, p, &d, sl, own, v, kind, &t, &multi, &nm, &lifeUsed, nil, 0)
 		}

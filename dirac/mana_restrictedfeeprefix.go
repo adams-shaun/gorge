@@ -64,7 +64,7 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 			}
 			fund--
 		}
-		s.restrFeeActivate(k, p, sl, ab, fee)
+		s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
 		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
 		if hasOption(&d, a) {
 			return
@@ -84,6 +84,12 @@ func (s *State) restrFeeGap(k *prep, p uint8, pd *payDesc) (Slot, *kop.Ability, 
 			continue
 		}
 		v, kind, ab := s.restrView(k, p, sl, s.manaPCGen(k, sl), pd)
+		if v != nil && v.restrPair != 0 {
+			// a free view's fee alternative (mana_restrictedfeepair.go): the
+			// census's free unit is no gap, the fee ability is
+			v = &k.gen.rs.views[v.restrPair-1]
+			ab = &k.t.Cards[c].Abilities[v.manaAb]
+		}
 		if v == nil || kind != rkExt || restrFeeEmpty(v) || v.restrFeeCol != 0 {
 			continue
 		}
@@ -125,8 +131,9 @@ func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
 }
 
 // restrFeeActivate activates fee gap sl: the fee paid from the pool, then its
-// restricted production floating (the window's order, CR 605.3b).
-func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee int) {
+// restricted production of colour col floating (the window's order, CR
+// 605.3b).
+func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee, col int) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
@@ -136,7 +143,6 @@ func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee
 		s.artSync(p)
 	}
 	s.deferSync(p, dc, dn)
-	col := bits.TrailingZeros8(uint8(ab.ManaColors) & 0x3f)
 	if !s.floatRestrAb(k, p, sl, ab, col, s.restrAbN(k, sl, ab)) {
 		s.capFull(StallRestrSrc) // never a silent spill
 	}
