@@ -198,8 +198,8 @@ func (lc *lowerCtx) originLibrarySideboard(ps *params) error {
 // (ChangeZone Origin$ Sideboard / Library,Sideboard): the pool is the library
 // (unless SideOnly) and the sideboard, so the filter matches cards of either
 // zone and the zone becomes ZoneNone. The Side-only flags refuse without Side
-// (a ChooseMove's ChooserOpp is its own flag, a plain pick's chooser, not a
-// sideboard search's).
+// (ChooserOpp without Side is accepted on a ChooseMove, where it is the pick's
+// own flag, and on a plain library Search, where it sets SrChooserOpp).
 func sideSearchFlags(op string, fl map[string]string, sb int, zone kop.Zone) (int, kop.Zone, error) {
 	if _, ok := fl["Side"]; !ok {
 		for _, bad := range []string{"SideOnly", "Exactly"} {
@@ -208,7 +208,10 @@ func sideSearchFlags(op string, fl map[string]string, sb int, zone kop.Zone) (in
 			}
 		}
 		if _, ok := fl["ChooserOpp"]; ok && op != "ChooseMove" {
-			return sb, zone, fmt.Errorf("ChooserOpp without Side")
+			if op != "Search" {
+				return sb, zone, fmt.Errorf("ChooserOpp on a %s", op)
+			}
+			sb |= kop.SrChooserOpp // a library search an opponent answers (OpSearchEx B bit 0)
 		}
 		return sb, zone, nil
 	}

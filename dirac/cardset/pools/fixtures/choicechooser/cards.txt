@@ -1,0 +1,22 @@
+# Chooser$ on library searches and public picks (dirac/oracle/choicechooser_lockstep_test.go
+# TestChoiceChooserLockstep; kgen lower_zone.go libSearchOwner, lower_hiddenpick.go
+# publicPick, lower_sideboardsearch.go sideSearchFlags): another player's library
+# searched by the controller, a triggered player's own pick from the battlefield, an
+# opponent's pick among the found cards.
+Blizzard Specter
+Haunting Echoes
+Head Games
+Jester's Mask
+Mimeofacture
+Thada Adel, Acquisitor
+Rootwater Thief
+Mana Breach
+Overburden
+Misinformation
+Realms Uncharted
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest

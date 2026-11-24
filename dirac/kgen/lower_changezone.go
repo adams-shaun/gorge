@@ -16,6 +16,15 @@ func (lc *lowerCtx) changeZone(ps *params) error {
 	// the printed mana cost, which every cleave ability states), so the
 	// card stays refused there until the cost family lowers.
 	ps.consume("NonBasicSpell")
+	if ps.peek("Chooser") == "You" && ps.peek("ValidTgts") != "" && ps.peek("Origin") == "Graveyard" && ps.peek("Hidden") == "" {
+		// a targeted graveyard move has no pick to answer: gorge reads
+		// Chooser$ in the hidden-origin pick, the library search
+		// (searchChooser, hiddenPickChooser) and the known-origin move's
+		// Optional$ confirmation (changeZoneOptionalConfirm); "You" is the
+		// controller there, the default, so it is inert here (Misinformation;
+		// the Optional$+Chooser$ shape still refuses in changeZoneMove).
+		ps.consume("Chooser")
+	}
 	atEOT, hasAtEOT, err := lc.changeZoneAtEOT(ps) // lower_ateot.go
 	if err != nil {
 		return err
