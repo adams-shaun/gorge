@@ -71,6 +71,13 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 		// gorge applyStaticEffect ahead of the entry event); a held entry's
 		// checks fire after the rider op applies it
 		s.enterAssimilated(k, o, ob.owner(), from)
+	} else if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld != 0 && s.enterWithOverride(k, in) {
+		// inside a held entry frame (a union return's targets enter together,
+		// CR 603.6a) the rider still applies as each object enters: the
+		// held checks run once all are in and must see the animated entrant
+		sl := s.enterMoved(k, o, ob.owner(), false, from)
+		s.enterWithApply(k, sl)
+		s.g.ewDone++
 	} else if z == kop.ZoneBattlefield {
 		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {
