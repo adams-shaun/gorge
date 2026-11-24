@@ -368,17 +368,9 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 	case "TriggeredSource":
 		v, err = lc.triggeredSourceValid(rest) // lower_ninjutsu.go
 	case "PlayerCountRegisteredOpponents":
-		if rest == "HasPropertyLostLifeThisTurn" {
-			v = lValue{Kind: vOppsLostLife}
-		} else if hv, ok := oppsHitByLegendaryValue(rest); ok {
-			v = hv // value_turntallies.go
-		} else if rest == oppsDealtCombatDamageBody {
-			v = lValue{Kind: vOppsLostLife, N: 2}
-		} else if rest == oppsDealtDamageBody {
-			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
-		} else {
-			err = fmt.Errorf("PlayerCountRegisteredOpponents$%s", rest)
-		}
+		v, err = registeredOpponentsValue(rest) // value_lifelostextreme.go
+	case "PlayerCountDefinedRegistered", "PlayerCountDefinedRegistered.Other":
+		v, err = definedRegisteredValue(head, rest) // value_lifelostextreme.go
 	case "TriggeredSpellAbility":
 		tr := lc.ab.Trigger
 		if tr == nil || tr.Event != "SpellCast" || !lc.trigBody || lc.ab.Latent {

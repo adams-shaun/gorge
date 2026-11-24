@@ -1,0 +1,13 @@
+# the Highest|LowestLifeLostThisTurn gates (PlayerCountRegisteredOpponents$ and PlayerCountDefinedRegistered$), beside burn and life-loss spells that make the opponent, or either player, lose life (dirac/oracle/lifelostextreme_test.go)
+Sygg, River Cutthroat
+Bloodchief Ascension
+Knight of the Ebon Legion
+Y'shtola, Night's Blessed
+Lightning Bolt
+Shock
+Sign in Blood
+Grizzly Bears
+Swamp
+Mountain
+Island
+Plains
