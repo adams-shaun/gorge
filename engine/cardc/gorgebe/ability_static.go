@@ -137,12 +137,17 @@ func printStatic(p *pr, a *ir.Ability) error {
 		if err != nil {
 			return err
 		}
-		cs, err := f.onTrigger()
-		if err != nil {
-			return err
-		}
-		for _, c := range cs {
-			ps.set(c.K, c.V)
+		if aff, ok := ps.selfTest(f); ok {
+			// Forge tests the source's own state in the Affected filter.
+			ps = aff
+		} else {
+			cs, err := f.onStatic()
+			if err != nil {
+				return err
+			}
+			for _, c := range cs {
+				ps.set(c.K, c.V)
+			}
 		}
 	}
 	var b strings.Builder
@@ -248,4 +253,35 @@ func (p *pr) staticEffect(a *ir.Ability, st *ir.Step, e *ir.Effect) (params, str
 		}
 	}
 	return nil, "", bad
+}
+
+// selfTest folds a test of the source's own state ("while this is untapped")
+// into the Affected filter, the way Forge spells it: AffectedDefined$ Self and
+// the test's qualifiers on Affected$. It reports false when c is not such a test.
+func (ps params) selfTest(c condForm) (params, bool) {
+	ok := false
+	for _, x := range ps {
+		ok = ok || (x.K == "Affected" && x.V == "Card.Self")
+	}
+	if !ok || c.Present == "" || (c.Defined != "" && c.Defined != "Self") || c.cmp() != "GE1" || strings.Contains(c.Present, ",") {
+		return nil, false
+	}
+	q := c.Present
+	switch {
+	case strings.HasPrefix(q, "Permanent."):
+		q = "Card." + q[len("Permanent."):]
+	case q == "Permanent":
+		q = "Card"
+	default:
+		return nil, false
+	}
+	var out params
+	for _, x := range ps {
+		if x.K == "Affected" {
+			out = append(out, kv{"AffectedDefined", "Self"}, kv{"Affected", q})
+			continue
+		}
+		out = append(out, x)
+	}
+	return out, true
 }

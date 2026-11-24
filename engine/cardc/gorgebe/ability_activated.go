@@ -45,7 +45,7 @@ func printActivated(p *pr, a *ir.Ability) error {
 		if err != nil {
 			return err
 		}
-		ps, err := f.onTrigger()
+		ps, err := f.onActivation()
 		if err != nil {
 			return err
 		}

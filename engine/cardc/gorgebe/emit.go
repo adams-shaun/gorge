@@ -63,6 +63,31 @@ type condForm struct {
 	Defined string // with Present: whose match is counted ("" is Self)
 	Cmp     string // GE1, EQ0, LE10, ...; "" is GE1
 	Turn    string // "You": it is your turn; "Opponent": an opponent's turn
+	Named   string // "Threshold" or "Hellbent": Forge's named form of the count Body compared by Cmp
+	Body    string // with Named: the count body, kept for forms that need the plain comparison
+}
+
+// plain returns c in its count form: a Named condition becomes the SVar of
+// its Body, for the places (a negation, an if-step) with no named spelling.
+func (p *pr) plain(c condForm) condForm {
+	if c.Named == "" {
+		return c
+	}
+	c.SVar, c.Named = p.countVar(c.Body), ""
+	c.Body = ""
+	return c
+}
+
+// svCond is the condition "body <cmp>"; the two counts Forge names
+// (Threshold, Hellbent) carry that name too.
+func (p *pr) svCond(body, cmp string) condForm {
+	switch {
+	case body == "Count$ValidGraveyard Card.YouOwn" && cmp == "GE7":
+		return condForm{Named: "Threshold", Body: body, Cmp: cmp}
+	case body == "Count$CardsInYourHand" && cmp == "EQ0":
+		return condForm{Named: "Hellbent", Body: body, Cmp: cmp}
+	}
+	return condForm{SVar: p.countVar(body), Cmp: cmp}
 }
 
 func (c condForm) cmp() string {
@@ -93,10 +118,10 @@ func (c condForm) onAbility() ([]kv, error) {
 func (c condForm) onTrigger() ([]kv, error) {
 	switch {
 	case c.SVar != "":
-		return []kv{{"CheckSVar", c.SVar}, {"SVarCompare", c.cmp()}}, nil
+		return withCmp([]kv{{"CheckSVar", c.SVar}}, "SVarCompare", c.cmp()), nil
 	case c.Present != "":
 		if c.Defined != "" && c.Defined != "Self" {
-			return []kv{{"IsPresent", c.Present}, {"PresentCompare", c.cmp()}, {"PresentDefined", c.Defined}}, nil
+			return withCmp([]kv{{"IsPresent", c.Present}}, "PresentCompare", c.cmp(), kv{"PresentDefined", c.Defined}), nil
 		}
 		// IsPresent$ counts every match on the battlefield, so a test of the
 		// source itself restricts each term to Self.
@@ -108,7 +133,9 @@ func (c condForm) onTrigger() ([]kv, error) {
 				terms[i] = t + ".Self"
 			}
 		}
-		return []kv{{"IsPresent", strings.Join(terms, ",")}, {"PresentCompare", c.cmp()}}, nil
+		return withCmp([]kv{{"IsPresent", strings.Join(terms, ",")}}, "PresentCompare", c.cmp()), nil
+	case c.Named != "":
+		return []kv{{c.Named, "True"}}, nil
 	case c.Turn == "You":
 		return []kv{{"PlayerTurn", "True"}}, nil
 	case c.Turn == "Opponent":
@@ -117,11 +144,45 @@ func (c condForm) onTrigger() ([]kv, error) {
 	return nil, unprintable("cond:on-trigger", "")
 }
 
+// withCmp appends the comparison parameter unless it is Forge's default, GE1.
+func withCmp(ps []kv, key, cmp string, rest ...kv) []kv {
+	if cmp != "GE1" {
+		ps = append(ps, kv{key, cmp})
+	}
+	return append(ps, rest...)
+}
+
+// onStatic renders c as a static's gate: Forge's Condition$ for the named
+// forms, the trigger gate otherwise.
+func (c condForm) onStatic() ([]kv, error) {
+	switch {
+	case c.Named != "":
+		return []kv{{"Condition", c.Named}}, nil
+	case c.Turn == "You":
+		return []kv{{"Condition", "PlayerTurn"}}, nil
+	case c.Turn == "Opponent":
+		return []kv{{"Condition", "NotPlayerTurn"}}, nil
+	}
+	return c.onTrigger()
+}
+
+// onActivation renders c as an activated ability's gate: Activation$ for the
+// named forms, the trigger gate otherwise.
+func (c condForm) onActivation() ([]kv, error) {
+	if c.Named != "" {
+		return []kv{{"Activation", c.Named}}, nil
+	}
+	return c.onTrigger()
+}
+
 // negCmp is the comparison that holds exactly when op does not.
 var negCmp = map[string]string{"GE": "LT", "LT": "GE", "LE": "GT", "GT": "LE", "EQ": "NE", "NE": "EQ"}
 
 // not returns the negation of c.
 func (c condForm) not() (condForm, error) {
+	if c.Named != "" {
+		return condForm{}, unprintable("cond:not-named", "")
+	}
 	if c.Turn != "" {
 		if c.Turn == "You" {
 			c.Turn = "Opponent"
@@ -135,6 +196,9 @@ func (c condForm) not() (condForm, error) {
 		return condForm{}, unprintable("cond:compare:"+cmp, "")
 	}
 	c.Cmp = negCmp[cmp[:2]] + cmp[2:]
+	if n, err := strconv.Atoi(cmp[2:]); err == nil && cmp[:2] == "LE" {
+		c.Cmp = "GE" + strconv.Itoa(n+1) // Forge's "more than n" is GE(n+1)
+	}
 	return c, nil
 }
 
