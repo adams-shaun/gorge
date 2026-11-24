@@ -1914,6 +1914,12 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	if !ok {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
 	}
+	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
+	// the announcement allows, the activation the offer must prove payable;
+	// a larger announced X re-plans (rearmAutoPay) or keeps the window.
+	if cost.X != 0 {
+		cost = cost.WithX(cost.XMin)
+	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 		cost.Generic -= n
 	} else if n > 0 {
