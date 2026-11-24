@@ -59,6 +59,14 @@ func (s *State) support(k *prep, in *kop.Instr) bool {
 	if in.C&0x200 != 0 {
 		return s.rmctrStart(k, in) // ctr_removechoices.go
 	}
+	if in.C&0x1000 != 0 {
+		// An instant or sorcery's Support targets are announced while
+		// casting (CR 701.41a with 601.2c; kgen lowers a 0..N target slot
+		// and gorge's supportTargetSA asks through the cast target flow).
+		// Apply one counter to each announced target; no resolution pick.
+		s.supportAnnounced(k, in)
+		return true
+	}
 	n := s.value(k, in.A)
 	if n <= 0 {
 		return true
@@ -79,6 +87,27 @@ func (s *State) support(k *prep, in *kop.Instr) bool {
 	// counter loop calls it), so the marker always opens at 0.
 	s.ctrAllBatchOpen()
 	return false
+}
+
+// supportAnnounced applies OpSupport's cast-time-target form (C&0x1000): one
+// counter of C&0xFF on the CURRENT target of Obj's slot. A slot holding
+// several announced targets runs this instruction once per target (the
+// generic each-target loop, interp_gen.go), exactly as the ordinary
+// OpPutCounter does; the loop also brackets the placements as one counter
+// action. objRef returns NoSlot for a target that is no longer a legal
+// battlefield object (CR 608.2b).
+func (s *State) supportAnnounced(k *prep, in *kop.Instr) {
+	n := int(s.value(k, in.A))
+	if n <= 0 {
+		return
+	}
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		return
+	}
+	old := s.ctrAllBatchOpen() // one action across the targets (trig_counteraddedall.go)
+	s.bolsterPut(k, sl, int(in.C&0xFF), 1)
+	s.ctrAllBatchClose(old)
 }
 
 // answerSupport applies one pick (or Done) of the support ask.

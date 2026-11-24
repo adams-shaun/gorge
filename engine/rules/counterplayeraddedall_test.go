@@ -281,11 +281,11 @@ func TestRikkuWindowExpiresAtEndOfTurn(t *testing.T) {
 // half on the real corpus carrier: Lead by Example (an instant, `Support$ 2`,
 // oracle "Put a +1/+1 counter on each of up to two target creatures." -- no
 // "other", because a spell resolving from the stack is not a creature and
-// could never be its own target). The support pick must offer EVERY battlefield
-// creature -- the caster's own and the opponent's -- with Min 0 ("up to"), and
-// the answered pick puts one counter per chosen creature. The permanent half's
-// opposite ("other": a permanent's support cannot target its own source) is
-// pinned by the Generous Patron probe above.
+// could never be its own target). The cast-time target ask must offer EVERY
+// battlefield creature -- the caster's own and the opponent's -- with Min 0
+// ("up to"), and the answered targets put one counter per chosen creature.
+// The permanent half's opposite ("other": a permanent's support cannot
+// target its own source) is pinned by the Generous Patron probe above.
 func TestLeadByExampleSpellSupportOffersEveryCreature(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -322,8 +322,8 @@ func TestLeadByExampleSpellSupportOffersEveryCreature(t *testing.T) {
 		t.Fatalf("no cast option for Lead by Example: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
-	// Priority on the stack: pass until someone is asked a real question (the
-	// support pick, posed when the spell resolves).
+	// The support targets are announced while casting (CR 601.2c): pass
+	// priority until the cast ask poses them (the KTarget below).
 	for i := 0; ; i++ {
 		d = e.Pending()
 		if d == nil {
@@ -347,21 +347,21 @@ func TestLeadByExampleSpellSupportOffersEveryCreature(t *testing.T) {
 		e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}})
 	}
 
-	// The support pick IS the targeting for a Support$ cast (no ValidTgts$, no
-	// KTarget stage): Min 0 ("up to"), Max 2, and every creature offered — the
-	// caster's own first in zone order, then the opponent's.
+	// Support's targets are the cast's targets (CR 601.2c): Min 0 ("up to"),
+	// Max 2, and every creature offered -- the caster's own first in zone
+	// order, then the opponent's.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "counter_pick" {
-		t.Fatalf("after casting: %+v, want the support counter_pick ask", d)
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("after casting: %+v, want the support target ask", d)
 	}
 	if d.Player != 0 || d.Min != 0 || d.Max != 2 {
-		t.Fatalf("support ask player/range = seat %d %d..%d, want seat 0 0..2", d.Player, d.Min, d.Max)
+		t.Fatalf("support target ask player/range = seat %d %d..%d, want seat 0 0..2", d.Player, d.Min, d.Max)
 	}
 	if len(d.Options) != 2 {
-		t.Fatalf("support ask options = %d, want 2 (every creature on the battlefield)", len(d.Options))
+		t.Fatalf("support target ask options = %d, want 2 (every creature on the battlefield)", len(d.Options))
 	}
 	if d.Options[0].Obj != own || d.Options[1].Obj != bear {
-		t.Fatalf("support options = [%d %d], want [%d %d] in zone order", d.Options[0].Obj, d.Options[1].Obj, own, bear)
+		t.Fatalf("support target options = [%d %d], want [%d %d] in zone order", d.Options[0].Obj, d.Options[1].Obj, own, bear)
 	}
 	// Answer with BOTH creatures: one counter each (Support is never a
 	// per-creature count, even with count left over).

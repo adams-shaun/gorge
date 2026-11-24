@@ -1413,6 +1413,16 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 			spec = "Creature"
 		}
 	}
+	// A SPELL's Support was announced at cast (CR 701.41a with 601.2c; the
+	// cast flow's supportTargetSA gives the generic targeting machinery the
+	// declaration). Its recipients are the targets already recorded on the
+	// stack object; asking again here would make a choice the rules have
+	// already made, and Forge/XMage put no counters on the creatures the
+	// caster never chose.
+	if sa.KindCode() == cards.SAKindSpell {
+		putCounterSupportAnnounced(h, c, sa, kind, spec)
+		return
+	}
 	var eligible []state.ObjID
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -1455,6 +1465,37 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 	picks := eligible
 	if int32(len(picks)) > max {
 		picks = picks[:max]
+	}
+	putCounterPickApply(h, c, sa, 1, kind, picks)
+}
+
+// putCounterSupportAnnounced applies one counter of kind to each announced
+// Support target of a spell (CR 701.41a/601.2c). The targets were recorded
+// at cast through the ordinary targeting machinery, so this only re-applies
+// the Support spec (CR 608.2b's "does as much as possible": a target that
+// stopped matching drops out) and reads Support$ N as the cap. The
+// resolution must not open a counter_pick: that is the defect this shape
+// replaces.
+func putCounterSupportAnnounced(h Host, c *Ctx, sa *cards.SA, kind, spec string) {
+	pc := PutCounterOf(sa)
+	maxT := numText(h, c, pc.Support, 1)
+	if maxT <= 0 {
+		return
+	}
+	g := h.Game()
+	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
+	var picks []state.ObjID
+	for _, t := range c.Targets {
+		if t.IsPlayer || int32(len(picks)) >= maxT {
+			continue
+		}
+		if MatchesSpecCtx(g, spec, t.Obj, sc) {
+			picks = append(picks, t.Obj)
+		}
+	}
+	if len(picks) == 0 {
+		return
 	}
 	putCounterPickApply(h, c, sa, 1, kind, picks)
 }
