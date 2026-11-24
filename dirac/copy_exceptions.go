@@ -147,6 +147,12 @@ func (s *State) copyExcSubs(k *prep, sl Slot, base kop.SubMask) kop.SubMask {
 			if o.HasSub {
 				m = m.And(o.KeepSub).Or(o.SetSub)
 			}
+			if o.RemoveCreatureSub && k.gen != nil {
+				// SetCreatureTypes$ (Croaking Counterpart's "except it's a
+				// Frog"): the copied creature types go, the artifact, land and
+				// planeswalker ones stay, then the added types join
+				m = m.AndNot(k.gen.creatSub)
+			}
 			m = m.Or(o.AddSub)
 		}
 	}
@@ -159,12 +165,16 @@ func (s *State) copyExcSubs(k *prep, sl Slot, base kop.SubMask) kop.SubMask {
 //go:noinline
 func (s *State) copyExcSetsSub(k *prep, sl Slot) bool {
 	for i := 0; i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && k.t.Overrides[r.r.idx-1].HasSub {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && ovrCopySetsSub(&k.t.Overrides[r.r.idx-1]) {
 			return true
 		}
 	}
 	return false
 }
+
+// ovrCopySetsSub: the exception replaces the copied subtypes (HasSub) or its
+// creature types (RemoveCreatureSub).
+func ovrCopySetsSub(o *kop.Override) bool { return o.HasSub || o.RemoveCreatureSub }
 
 // DebugCopyChangelingOff is the mutation switch: a copy's changeling
 // exception is ignored, so the token keeps only the copied creature's types.
@@ -265,7 +275,7 @@ func copyExcFlags(t *kop.Table) (pt, sub, col, nocost, ty, rmLeg bool) {
 		}
 		o := &t.Overrides[x-1]
 		pt = pt || o.HasPT
-		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes || o.HasSub
+		sub = sub || o.AddSub != (kop.SubMask{}) || o.AllCreatureTypes || o.HasSub || o.RemoveCreatureSub
 		col = col || o.HasColors || o.AddColors != 0
 		ty = ty || o.AddTypes != 0 || o.HasTypes || o.RemoveLegendary
 		rmLeg = rmLeg || o.RemoveLegendary
