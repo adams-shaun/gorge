@@ -16,13 +16,10 @@ import (
 // answers deterministically; the kernel's deferred tap floats the ask's
 // answer at the tap itself (dirac/mana_tapextra.go addGatedExtra). The cards
 // are played one at a time: a deck mixing two of the Auras exercises a
-// separate tap-deferral interaction, not this lowering. Trace of Abundance is
-// lowered and its census row drops, but its hybrid {R/W} cost needs the
-// announced half in the extra's answer, a separate defect (the follow-up
-// ticket).
+// separate tap-deferral interaction, not this lowering.
 var kanyColCards = []string{
 	"Blighted Burgeoning", "Buried in the Garden", "Dawn's Reflection",
-	"Fertile Ground", "Market Festival", "Verdant Haven",
+	"Fertile Ground", "Market Festival", "Trace of Abundance", "Verdant Haven",
 }
 
 // kanyColDecks is one card's 40-card deck: four copies of the Aura, basics of

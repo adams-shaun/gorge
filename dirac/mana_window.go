@@ -343,8 +343,9 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		}
 		s.windowTapCost(k, sl, sacOnly || noTap)
 		life := s.windowGrantLife(k, sl, pc, col)
-		s.fillTapAnyColCost(k, p, sl, cost)
-		s.poolAdd(p, col, int(s.windowGrantYield(k, sl, pc, col)))
+		yield := int(s.windowGrantYield(k, sl, pc, col))
+		s.fillTapAnyColCost(k, p, sl, cost, col, yield)
+		s.poolAdd(p, col, yield)
 		s.addExtraCol(k, p, sl, pc, col)
 		s.artTag(k, p, sl, col)
 		if life > 0 {
@@ -1093,7 +1094,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 		tapped[nt], flags[nt], used[nt] = sl, s.perms[sl].flags, s.perms[sl].actUsed
 		nt++
 		s.perms[sl].flags |= pfTapped
-		s.fillTapAnyColCost(k, p, sl, cost)
+		s.fillTapAnyColCost(k, p, sl, cost, col, int(pc.manaN))
 		s.poolAdd(p, col, int(pc.manaN))
 		s.addExtraCol(k, p, sl, pc, col)
 	}
