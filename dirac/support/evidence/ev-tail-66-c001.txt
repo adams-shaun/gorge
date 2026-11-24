@@ -114,6 +114,7 @@ Flamewave Invoker
 Flaring Flame-Kin
 Fledgling Mawcor
 Floral Evoker
+Fodder Launch
 Fog Elemental
 Forest
 Frilled Deathspitter
@@ -182,6 +183,7 @@ Karoo Meerkat
 Kavu Monarch
 Ken, Burning Brawler
 Kimoyo Beads
+Knight of the Last Breath
 Knight's Pledge
 Kolaghan's Command
 Kozilek's Unsealing
@@ -281,6 +283,7 @@ Shadowcloak Vampire
 Shatterskull Minotaur
 She-Hulk, Wallbreaker
 Sheoldred, the Apocalypse
+Shipwreck Sifters
 Shivan Wurm
 Shocking Grasp
 Shreds of Sanity
@@ -340,6 +343,7 @@ Three Visits
 Throes of Chaos
 Thrull Champion
 Tidespout Tyrant
+Timeless Witness
 Tireless Missionaries
 Tolarian Scholar
 Torch Courier
@@ -362,6 +366,7 @@ Vault of Whispers
 Veiled Shade
 Vine Trellis
 Volcanic Awakening
+Voracious Hatchling
 Vow of Lightning
 Wakandan Shield Guard
 Wall of Diffusion

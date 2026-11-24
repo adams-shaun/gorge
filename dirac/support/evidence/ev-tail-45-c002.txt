@@ -68,6 +68,7 @@ Crossroads Consecrator
 Culling Mark
 Curator's Ward
 Curse of the Nightly Hunt
+Cursed Wombat
 Dance of the Skywise
 Dark Inquiry
 Dark Tutelage
@@ -161,6 +162,7 @@ Hunter's Insight
 Icatian Town
 Ikiral Outrider
 Illusory Gains
+Imaryll, Elfhame Elite
 Initiate's Companion
 Inquisition of Kozilek
 Iron Lad, Young Avenger

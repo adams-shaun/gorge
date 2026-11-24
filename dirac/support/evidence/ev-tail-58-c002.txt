@@ -1,5 +1,6 @@
 A-Hobbling Zombie
 A-Llanowar Loamspeaker
+A.I.M. Bot
 Abbey Gargoyles
 Abolish
 Abu Ja'far
@@ -17,6 +18,7 @@ Apprentice Sharpshooter
 Archangel
 Argothian Elder
 Augmenting Automaton
+Backfire
 Bane of Progress
 Basri's Solidarity
 Beacon Hawk
@@ -43,6 +45,7 @@ Cleansing Nova
 Cogwork Librarian
 Compulsory Rest
 Concentrate
+Contagious Vorrac
 Council of Advisors
 Coveted Peacock
 Dapper Shieldmate
@@ -95,6 +98,7 @@ Goblin Engineer
 Goblin Lore
 Goblin Soothsayer
 Graf Reaver
+Grave Strength
 Gravecrawler
 Gravedig
 Grim Wanderer
@@ -140,6 +144,7 @@ Llanowar Visionary
 Lucky Offering
 Mandible Justiciar
 Mardu Warshrieker
+Marionette Master
 Mass Diminish
 Maul of the Skyclaves
 Mesmeric Fiend
@@ -147,11 +152,13 @@ Might of Murasa
 Minion's Return
 Mire Triton
 Mishra's Research Desk
+Moldervine Cloak
 Molting Snakeskin
 Mountain
 Murder of Crows
 Mutagenic Growth
 Natural Obsolescence
+Nemesis Trap
 Nether Void
 Nightshade Stinger
 Nissa's Judgment
@@ -183,6 +190,7 @@ Rampaging Classmate
 Ranger's Longbow
 Rank Officer
 Ransack the Lab
+Rat King, Pale Piper
 Rebuke
 Reito Sentinel
 Relic Runner
@@ -235,6 +243,7 @@ Surrak and Goreclaw
 Suspended Sentence
 Swamp
 Tainted Strike
+Tainted Well
 Telepathy
 Tempered Veteran
 Temple Thief
@@ -270,11 +279,13 @@ Vodalian Arcanist
 Voltaic Construct
 Vryn Wingmare
 Wailing Ghoul
+Wall of Kelp
 Welkin Guide
 Whipcorder
 Wildfire Awakener
 Wishcoin Crab
 Witness of Tomorrows
+Woebringer Demon
 Woodland Patrol
 Woolly Spider
 Yellow Scarves Cavalry

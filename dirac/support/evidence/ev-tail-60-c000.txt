@@ -125,6 +125,7 @@ Dragon Tyrant
 Dragonlord Ojutai
 Dread Drone
 Dreadfeast Demon
+Dreg Mangler
 Drift of Phantasms
 Dross Harvester
 Drowner of Hope
@@ -541,4 +542,5 @@ Wort, Boggart Auntie
 Wrath of Sod
 Wreck and Rebuild
 Yellow Scarves Troops
+Zanikev Locust
 Zof Shade

@@ -90,6 +90,7 @@ Darkbore Pathway
 Darkheart Sliver
 Darksteel Juggernaut
 Dawnfluke
+Deadbridge Goliath
 Defiant Khenra
 Deliberate
 Deprive
@@ -362,6 +363,7 @@ Spinebiter
 Spined Basher
 Spinning Wheel
 Stalwart Pathlighter
+Stasis
 Steel Leaf Paladin
 Stirring Address
 Stolen Goods

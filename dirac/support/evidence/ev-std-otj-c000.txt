@@ -1,5 +1,6 @@
 Abraded Bluffs
 Archangel of Tithes
+Arid Archway
 Armored Armadillo
 Assimilation Aegis
 Betrayal at the Vault
@@ -11,6 +12,7 @@ Botanical Sanctum
 Bovine Intervention
 Bridled Bighorn
 Brimstone Roundup
+Bristly Bill, Spine Sower
 Bruse Tarl, Roving Rancher
 Bucolic Ranch
 Calamity, Galloping Inferno
@@ -18,59 +20,93 @@ Canyon Crab
 Caught in the Crossfire
 Claim Jumper
 Concealed Courtyard
+Congregation Gryff
+Consuming Ashes
 Corrupted Conviction
 Creosote Heath
 Cunning Coyote
+Daring Thunder-Thief
+Deadeye Duelist
 Demonic Ruckus
+Desert's Due
+Discerning Peddler
+Djinn of Fool's Fall
+Double Down
 Duelist of the Mind
 Dust Animus
+Emergent Haunting
+Eriette's Lullaby
 Eroded Canyon
 Ertha Jo, Frontier Mentor
 Explosive Derailment
+Ferocification
 Final Showdown
 Fleeting Reflection
 Forest
+Forlorn Flats
 Forsaken Miner
 Fortune, Loyal Steed
+Freestrider Commando
+Freestrider Lookout
 Frontier Seeker
 Geyser Drake
+Gisa, the Hellraiser
 Gold Pan
+Great Train Heist
 Hardbristle Bandit
 Hell to Pay
 Hellspur Posse Boss
 Highway Robbery
 Insatiable Avarice
 Inspiring Vantage
+Intimidation Campaign
+Intrepid Stablemaster
 Inventive Wingsmith
 Irascible Wolverine
 Island
+Jace Reawakened
 Jagged Barrens
 Jem Lightfoote, Sky Explorer
+Jolene, Plundering Pugilist
 Lassoed by the Law
 Lavaspur Boots
+Loan Shark
 Lonely Arroyo
+Longhorn Sharpshooter
 Lush Oasis
 Luxurious Locomotive
 Magebane Lizard
+Map the Frontier
+Metamorphic Blast
 Mirage Mesa
 Mobile Homestead
 Mountain
+Mourner's Surprise
 Mystical Tether
+Neutralize the Guards
+Nezumi Linkbreaker
 Nurturing Pixie
 Oasis Gardener
+Omenport Vigilante
 One Last Job
 Ornery Tumblewagg
+Outcaster Greenblade
 Outlaw Medic
+Outlaw Stitcher
 Outlaws' Fury
+Peerless Ropemaster
 Phantom Interference
 Plains
+Plan the Heist
 Prairie Dog
 Prickly Pair
 Prosperity Tycoon
 Quick Draw
 Rakish Crew
+Rattleback Apothecary
 Raucous Entertainer
 Raven of Fell Omens
+Razzle-Dazzler
 Reach for the Sky
 Reckless Lackey
 Redrock Sentinel
@@ -82,13 +118,20 @@ Rooftop Assassin
 Rustler Rampage
 Ruthless Lawbringer
 Sandstorm Verge
+Satoru, the Infiltrator
 Scalestorm Summoner
+Scorching Shot
 Seize the Secrets
+Shackle Slinger
 Shepherd of the Clouds
 Sheriff of Safe Passage
 Shifting Grift
 Silver Deputy
 Skulduggery
+Slick Sequence
+Slickshot Lockpicker
+Slickshot Show-Off
+Smuggler's Surprise
 Soured Springs
 Spinewoods Paladin
 Spirebluff Canal
@@ -98,15 +141,23 @@ Steer Clear
 Sterling Hound
 Sterling Keykeeper
 Stingerback Terror
+Stoic Sphinx
+Stop Cold
 Swamp
 Take Up the Shield
+Take the Fall
 Terror of the Peaks
 The Key to the Vault
 Thunder Lasso
 Thunder Salvo
 Tomb Trawler
 Trained Arynx
+Trash the Town
 Trick Shot
+Tumbleweed Rising
 Unfortunate Accident
 Unscrupulous Contractor
+Vault Plunderer
 Vengeful Townsfolk
+Voracious Varmint
+Wylie Duke, Atiin Hero

@@ -23,6 +23,7 @@ Fiend Artisan	d7c53ca49e82e168	113	1/1		1/1
 Filth	40fb7b3d9c03de08	7	0/0		0/0	
 Fire-Lit Thicket	f176c25874193f32	4	2/2		0/1	ix:resp
 Flamewave Invoker	574b218ca5b493d9	18	1/1		1/1	
+Fodder Launch	8d863b64790a1f78	6	0/0		1/2	ix:resp
 Ghoul's Feast	a1253552dc6a5081	24	0/0		2/2	
 Gnarlroot Pallbearer	9c5363a4152bf36a	7	1/1		0/1	ix:resp
 Gnawing Vermin	7cdf3ef65b8fb2d3	28	2/2		1/1	
@@ -31,6 +32,7 @@ Grim Strider	684f91fa368b3c03	12	0/0		0/0
 Haazda Shield Mate	228da505df889d3e	5	2/2		1/1	
 Haytham Kenway	1a4e1f5901242e14	4	1/1		1/1	
 Jester's Cap	e171bd8ec2220514	46	1/1		1/1	
+Knight of the Last Breath	eb46ffc1bf307759	11	2/2		1/1	
 Littjara Mirrorlake	1ab65c9531e0b454	11	2/2		0/1	ix:resp
 Maulfist Squad	bf8247e5dcc0d59b	20	1/1		1/1	
 Michelangelo, On the Scene	78e69c979e0ad9be	13	1/1		1/1	
@@ -49,12 +51,15 @@ Scion of Stygia	f26680b867fefd71	45	1/1		1/1
 Serpentine Kavu	8c397c3f359c9161	26	1/1		1/1	
 Serum Snare	7476320009b8632d	31	0/0		2/2	
 Shatterskull Minotaur	9cf0dbf9d3d18937	6	0/0		0/0	
+Shipwreck Sifters	ae45b293bde14ee1	46	2/2		1/1	
 Shocking Grasp	925c2a65a5b24026	25	0/0		2/2	
 Slumbering Waterways	581053204fbac475	16	1/1		0/1	ix:resp
 Staff of Compleation	d0215ecef0db2d08	50	5/5		1/1	
 Taste of Blood	c9605d01f7633a8e	40	0/0		1/2	ix:resp
+Timeless Witness	fab61c13e390fa2c	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Tornado Elemental	2dfd61da4b602a7d	9	1/1		1/1	
 Unbounded Potential	3b35b87faf9d9b30	23	0/0		2/2	
 Unmake the Graves	e9ee3ac3d48ecae4	22	0/0		2/2	
+Voracious Hatchling	c1adb2a5722c6c44	7	2/2		0/1	ix:resp
 Wall of Diffusion	48539acdc2059656	4	0/0		0/0	
 Witherbloom Campus	63335a5536037388	187	2/2		1/1	

@@ -192,6 +192,7 @@ Molten Birth
 Monstrous Growth
 Mountain
 Myrkul's Invoker
+Nadaar, Selfless Paladin
 Namor, Scourge of the Seas
 Natural Reclamation
 Necrogenesis
@@ -292,6 +293,7 @@ Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
+Teferi's Isle
 Teferi's Protege
 Temur Banner
 Tendrils of Corruption

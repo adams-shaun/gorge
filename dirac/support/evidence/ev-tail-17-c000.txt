@@ -392,6 +392,7 @@ Smog Elemental
 Snarespinner
 Sorin, Imperious Bloodlord
 Soul Swallower
+Soulgorger Orgg
 Specter of the Fens
 Sphere of Duty
 Sphinx's Tutelage

@@ -119,6 +119,7 @@ Drake Haven
 Dregs of Sorrow
 Druid's Deliverance
 Dryad Arbor
+Eldest Dragon Highlander
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -340,6 +341,7 @@ Reverent Hoplite
 Rhystic Shield
 Righteous Cause
 Righteous Fury
+Ring of Unity
 Riptide Pilferer
 Rishkar's Expertise
 Roc Charger

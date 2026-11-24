@@ -407,6 +407,7 @@ Swarm Guildmage
 Sylvan Safekeeper
 Tandem Takedown
 Tear Asunder
+Teferi's Drake
 Temporal Mastery
 Tendo Ice Bridge
 Tenza, Godo's Maul

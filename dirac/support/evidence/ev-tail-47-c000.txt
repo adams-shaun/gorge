@@ -279,6 +279,7 @@ Overtaker
 Ozolith, the Shattered Spire
 Painful Lesson
 Paladin en-Vec
+Parallectric Feedback
 Paupers' Cage
 Peggy Carter, Secret Agent
 Phantom Ninja
@@ -433,6 +434,7 @@ Time Bomb
 Time of Ice
 Tin Street Dodger
 Titanic Bulvox
+Trace of Abundance
 Tragic Slip
 Tranquility
 Trinket Mage

@@ -396,6 +396,7 @@ Tegwyll, Duke of Splendor
 Tempestra, Dame of Games
 Tempted by the Oriq
 Territorial Roc
+Terrus Wurm
 Thalisse, Reverent Medium
 Thallid Soothsayer
 The Antiquities War
@@ -423,6 +424,8 @@ Vampire of the Dire Moon
 Vedalken Mesmerist
 Vengeful Reaper
 Verdant Catacombs
+Vial Smasher the Fierce
+Viseling
 Vivien, Arkbow Ranger
 Volatile Arsonist
 Voracious Vacuum

@@ -314,6 +314,7 @@ Sworn Defender
 Sylvan Ranger
 Synchronized Strike
 Talruum Minotaur
+Tecton, Malignant Ruin
 Tephraderm
 The Mana Rig
 Thran Quarry
@@ -342,6 +343,7 @@ Utter Insignificance
 Valor
 Vampiric Feast
 Verdant Automaton
+Verdant Haven
 Vile Requiem
 Viridian Claw
 Vivid Grove
@@ -364,4 +366,5 @@ Woodland Cemetery
 Wu Infantry
 Wurmcalling
 Zalto, Fire Giant Duke
+Zhalfirin Knight
 Zombie Master

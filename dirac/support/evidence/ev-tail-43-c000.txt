@@ -143,6 +143,7 @@ Goblin Chirurgeon
 Goblin Goon
 Goblin War Strike
 Goldlust Triad
+Golgari Decoy
 Great Intelligence's Plan
 Great Sable Stag
 Greataxe
@@ -256,6 +257,7 @@ Paladin of Predation
 Panicked Bystander
 Park Heights Maverick
 Patchwork Automaton
+Pentarch Paladin
 Penumbra Kavu
 Penumbra Wurm
 Peppersmoke
