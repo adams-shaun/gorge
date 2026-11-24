@@ -25,13 +25,30 @@ func printSearch(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	bad := unprintable("verb:search", st.Src)
 	th := zsteps(st.Then)
-	if len(th) != 3 || !zwhoYou(st) {
+	// choose, an optional reveal of the found card, an empty do, then the
+	// move and the shuffle in either order.
+	if len(th) == 0 || th[0].Verb != ir.VerbChoose {
 		return nil, 0, bad
 	}
-	ch, mv, sh := th[0], th[1], th[2]
-	if ch.Verb != ir.VerbChoose || ch.Optional || ch.Obj == nil || !chooseOf(ch.Obj) || !onlyZone(ch.Obj.Filter, ir.ZoneLibrary) ||
-		mv.Verb != ir.VerbMove || mv.Optional || mv.Obj == nil || mv.Obj.Kind != ir.RefReceipt || mv.Obj.Receipt != ir.RcFound || mv.To == ir.ZoneNone ||
-		sh.Verb != ir.VerbShuffle || sh.Optional {
+	ch := th[0]
+	if ch.Optional || ch.Obj == nil || !chooseOf(ch.Obj) || !onlyZone(ch.Obj.Filter, ir.ZoneLibrary) {
+		return nil, 0, bad
+	}
+	var mv *ir.Step
+	shuffles := 0
+	for _, s := range th[1:] {
+		switch {
+		case s.Verb == ir.VerbReveal && !s.Optional && s.Who == nil && s.Obj != nil && s.Obj.Kind == ir.RefReceipt && s.Obj.Receipt == ir.RcFound:
+		case s.Verb == ir.VerbDo && s.Then == nil && !s.Optional && s.Who == nil:
+		case s.Verb == ir.VerbShuffle && !s.Optional && s.Who == nil:
+			shuffles++
+		case s.Verb == ir.VerbMove && mv == nil && !s.Optional && s.Who == nil && s.Obj != nil && s.Obj.Kind == ir.RefReceipt && s.Obj.Receipt == ir.RcFound && s.To != ir.ZoneNone:
+			mv = s
+		default:
+			return nil, 0, bad
+		}
+	}
+	if mv == nil || shuffles != 1 {
 		return nil, 0, bad
 	}
 	tapped, ok := zenter(mv.Enter)
@@ -46,14 +63,36 @@ func printSearch(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	n := &node{API: "ChangeZone", Params: []kv{
-		{"Origin", "Library"}, {"Destination", zoneWord(mv.To)}, {"ChangeType", v}, {"ChangeNum", k}, {"Mandatory", "True"},
-	}}
+	n := &node{API: "ChangeZone", Params: []kv{{"Origin", "Library"}, {"Destination", zoneWord(mv.To)}}}
+	switch mv.Word {
+	case "":
+	case "top":
+		if mv.To != ir.ZoneLibrary {
+			return nil, 0, bad
+		}
+		n.set("LibraryPosition", "0")
+	default:
+		return nil, 0, bad
+	}
+	n.set("ChangeType", v)
+	n.set("ChangeNum", k)
 	if tapped {
 		n.set("Tapped", "True")
 	}
-	if err := zoptional(n, st); err != nil {
+	if st.Who != nil && !isYou(st.Who) {
+		if st.Optional {
+			n.set("Optional", "True")
+		}
+		d, err := p.defined(st.Who)
+		if err != nil {
+			return nil, 0, err
+		}
+		n.set("DefinedPlayer", d)
+	} else if err := zoptional(n, st); err != nil {
 		return nil, 0, err
+	}
+	if mv.To == ir.ZoneLibrary {
+		n.set("ShuffleNonMandatory", "True")
 	}
 	return n, 1, nil
 }
