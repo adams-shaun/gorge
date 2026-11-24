@@ -24,18 +24,19 @@ import (
 // present rider (compare, defined set, zone, player, a second clause) keeps it
 // too.
 func PresentIsOwnCostPrecheck(t cards.Trigger) bool {
-	if t.Effect == nil {
+	sa := t.Effect
+	if sa == nil {
 		return false
 	}
-	if _, ok := t.Param(cards.PKIsPresent2); ok {
-		return false
-	}
-	for k := range t.Params {
-		// PresentCompare$, PresentDefined$, PresentZone$, PresentPlayer$:
-		// a rider makes the clause more than the cost's own mirror
-		if strings.HasPrefix(k, "Present") {
+	// IsPresent2$ or a PresentCompare$/PresentDefined$/PresentZone$/
+	// PresentPlayer$ rider makes the clause more than the cost's own mirror
+	for _, k := range []cards.ParamKey{cards.PKIsPresent2, cards.PKPresentCompare, cards.PKPresentDefined, cards.PKPresentZone} {
+		if _, ok := t.Param(k); ok {
 			return false
 		}
+	}
+	if _, ok := t.Params["PresentPlayer"]; ok {
+		return false
 	}
 	rest, ok := strings.CutPrefix(t.ParamStr(cards.PKIsPresent), "Card.Self+counters_GE")
 	if !ok {
@@ -45,7 +46,7 @@ func PresentIsOwnCostPrecheck(t cards.Trigger) bool {
 	if !ok || !allDigits(n) || kind == "" {
 		return false
 	}
-	if t.Effect.ParamStr(cards.PKCost) != "SubCounter<"+n+"/"+kind+">" {
+	if sa.ParamStr(cards.PKCost) != "SubCounter<"+n+"/"+kind+">" {
 		return false
 	}
 	return !strings.Contains(t.ParamStr(cards.PKTriggerDescription), ", if ")
