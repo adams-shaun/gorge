@@ -18,14 +18,11 @@ import (
 func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 	const prefix = "mana restriction on a source whose cost goes beyond {T}: "
 	cases := []struct{ name, part string }{
-		// Castle Garenbrig lowers now (TestRestrictedManaCostUnit): its fee
-		// alternative is a fixed colour of a const amount, the shape the
-		// kernel's restricted pair unit plans
-		{"Cormela, Glamour Thief", "a mana fee"},
-		{"Great Hall of the Citadel", "a mana fee"},
-		{"Hydro-Channeler", "a mana fee"},
-		{"Interplanar Beacon", "a mana fee"},
-		{"Orb of Dragonkind", "a mana fee"},
+		// Castle Garenbrig lowers (TestRestrictedManaCostUnit), and so do the
+		// wider fee productions (TestRestrictedManaFeeWideShape). What stays
+		// refused names the part that does, never "a mana fee" for a fee the
+		// model carries: Interplanar Beacon's two DISTINCT colours.
+		{"Interplanar Beacon", "an AnyDifferent production"},
 		{"Crucible of the Spirit Dragon", "a counter cost"},
 		{"Cryptic Trilobite", "a counter cost"},
 		{"Throne of Makindi", "a counter cost"},

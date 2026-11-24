@@ -232,10 +232,12 @@ func buildCard(pt *poolTables, c *lCard) built {
 			if r := forageManaRefusal(a); r != "" {
 				why = r // (a forage cost beside a production other than the unrestricted Combo Any one)
 			}
-			if kop.FeeComboAnyManaAb(a) {
+			if kop.FeeComboAnyManaAb(a) && !kop.RestrictedManaCostShape(a) {
 				// the combination search has no fee-funded form: a Combo Any
 				// source beside the filter its fee is stalls the table
-				// (dirac mana_comboany.go, StallComboAnyMix)
+				// (dirac mana_comboany.go, StallComboAnyMix). A spend-restricted
+				// one is the restricted fee unit instead, which carries the
+				// two any-colour units directly (mana_restrictedsource.go).
 				why = "mana ability cost " + kop.ManaCostShape(a) + ": a fee-funded Combo Any production (X mana in any combination of colors); the kernel's combination search (mana_comboany.go) has no fee-funded form and a Combo Any source beside a filter stalls the table (StallComboAnyMix)"
 			}
 			cb.out.refusals = append(cb.out.refusals, refusal{Card: c.Name, Node: "emit mana ability",

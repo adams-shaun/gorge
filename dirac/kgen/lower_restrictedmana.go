@@ -25,7 +25,6 @@ type costPart struct {
 // Each predicate is a small function of its own so the table's reader stays
 // under the codeshape ceiling.
 var restrictedCostParts = [...]costPart{
-	{"a mana fee", func(c lCost) bool { return !manaFeeEmpty(c.Mana) }},
 	{"an announced X cost", func(c lCost) bool { return c.XMin != 0 }},
 	{"a self-sacrifice", func(c lCost) bool { return c.SacSelf }},
 	{"a life payment", func(c lCost) bool { return c.PayLife > 0 || c.LifeX || c.LifeBy != nil }},
@@ -59,11 +58,12 @@ var restrictedCostParts = [...]costPart{
 	{"a tap-power cost", func(c lCost) bool { return c.TapPowN != 0 || c.TapPowCrew || c.TapPowSaddle }},
 }
 
-// restrictedManaCostPart names the part of c's cost beyond a plain {T}: a mana
-// fee, a self-sacrifice, a life payment, a counter cost, a sacrifice of
-// another permanent, a tap of another permanent or another cost part. "" when
-// the cost is a plain {T} (or empty).
-func restrictedManaCostPart(c lCost) string {
+// restrictedManaCostPart names what keeps c, a spend-restricted ability's cost,
+// out of the kernel's restricted units: an unsupported mana fee (a hybrid,
+// two-brid, Phyrexian, snow or {X} part), another cost part, or — when the cost
+// is a plain {T} or a supported fee plus {T} — the production m the model does
+// not carry. "" when nothing does (the ability lowers).
+func restrictedManaCostPart(c lCost, m *lMana) string {
 	if !manaFeeSupported(c.Mana) {
 		return "a mana fee " + c.Mana.String()
 	}
@@ -75,7 +75,28 @@ func restrictedManaCostPart(c lCost) string {
 	if !c.Tap {
 		return "a cost without {T}"
 	}
-	return ""
+	return restrictedProductionPart(m)
+}
+
+// restrictedProductionPart names the production a restricted unit does not
+// model, when the cost is a plain {T} or a supported fee plus {T}.
+func restrictedProductionPart(m *lMana) string {
+	if m == nil {
+		return "a production the kernel does not model"
+	}
+	switch {
+	case m.Colors == "AnyDifferent":
+		return "an AnyDifferent production (two mana of different colours)"
+	case m.Each && len(m.Colors) > 1:
+		return "an all-at-once production"
+	case m.Choice && m.Colors != "WUBRG":
+		return "a colour-choice production"
+	case m.Colors == "WUBRG":
+		return "an any-colour production (one mana of any colour)"
+	case m.Colors == "Chosen":
+		return "a chosen-colour production"
+	}
+	return "a production the kernel's restricted fee unit does not model"
 }
 
 // onePipColour reports whether p's pips name at most one colour (any count of
@@ -126,10 +147,30 @@ func restrictedManaUnit(c lCost, m *lMana) bool {
 	if !plainTapCost(c) {
 		return false
 	}
-	col := len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors)
-	return col && m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedFeeAmount &&
-		!m.Choice && !m.Each && m.Special == "" && !m.NonSpell && !m.Deferred &&
+	return restrictedFeeProduction(m) && m.Special == "" && !m.NonSpell && !m.Deferred &&
 		!m.NoCounter && m.Split == nil && m.HasteValid == nil
+}
+
+// restrictedFeeProduction reports whether a fee unit's production m is a
+// shape the kernel's restricted unit carries: one fixed colour or {C} of a
+// literal amount, or N mana in any combination of colours (Combo Any: Great
+// Hall of the Citadel, Orb of Dragonkind). One mana of a single chosen colour
+// (Hydro-Channeler's Produced$ Any) and one mana of each of a fixed set of
+// colours (Cormela, Glamour Thief's {U}{B}{R}) stay refused, as does Combo
+// AnyDifferent: its units are distinct only together, and the availability
+// model's groups cannot couple two units.
+func restrictedFeeProduction(m *lMana) bool {
+	if !m.Amount.isConst() || m.Amount.N < 1 || m.Amount.N > maxRestrictedFeeAmount {
+		return false
+	}
+	switch {
+	case m.Each:
+		return false
+	case m.Choice:
+		return m.Colors == "WUBRG"
+	default:
+		return len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors)
+	}
 }
 
 // restrictedLifeTap reports whether c is exactly "{T}, Pay N life" (N a

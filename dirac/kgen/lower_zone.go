@@ -4473,7 +4473,7 @@ func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana)
 			// cost goes beyond {T}; the kernel's restricted gap does not yet
 			// prove identical for one (see lower_restrictedmana.go), so the
 			// refusal names the cost part instead of the old two classes
-			return refuse("mana restriction on a source whose cost goes beyond {T}: %s", restrictedManaCostPart(ab.Cost))
+			return refuse("mana restriction on a source whose cost goes beyond {T}: %s", restrictedManaCostPart(ab.Cost, m))
 		}
 		if err := lc.manaRestrict(rv, m); err != nil {
 			return err

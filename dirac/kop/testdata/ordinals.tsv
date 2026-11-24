@@ -1810,5 +1810,6 @@ ZonePhased	Zone	8
 ZonePhasedInd	Zone	9
 ZoneSideboard	Zone	10
 ZoneStack	Zone	6
+maxRestrictedFeeAmount	untyped int	7
 payFLifeBits	untyped int	6
 payFLifeMask	untyped int	63
