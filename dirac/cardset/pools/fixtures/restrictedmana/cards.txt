@@ -57,3 +57,5 @@ Elvish Champion
 Akroma, Angel of Wrath
 Kamahl, Pit Fighter
 Inkwell Leviathan
+Shivan Dragon
+Furnace Whelp

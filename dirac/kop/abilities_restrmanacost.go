@@ -5,21 +5,22 @@ package kop
 // Add six {G}", creature spells and creature abilities only): gorge's
 // cast-window probe prices it like an unrestricted one, the fee paid from the
 // floating mana before the production joins (engine/rules cast_window.go
-// castWindowGenericCostShape, CR 605.3b, 601.2g). One fixed colour or {C} of a
-// literal amount, no {X}, hybrid, two-brid, {C} or snow part in the fee or the
-// production, no choice, each-colour production, rider, program, gate or
-// flag; the spell and the activated-ability restriction are both allowed. The
-// kernel plans it as a restricted pair/sole unit (dirac
-// mana_restrictedsource.go) whose fee is charged from the payment's floating
-// mana.
+// castWindowGenericCostShape, CR 605.3b, 601.2g). The production is one the
+// kernel's restricted unit carries: one fixed colour or {C}, or N mana in any
+// combination of colours (Combo Any); one mana of a single chosen colour and
+// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}) are no
+// unit. No {X}, hybrid, two-brid, {C} or
+// snow part in the fee, no rider, program, gate or evaluated amount; the spell
+// and the activated-ability restriction are both allowed. The kernel plans it
+// as a restricted pair/sole unit (dirac mana_restrictedsource.go) whose fee is
+// charged from the payment's floating mana.
 func RestrictedManaCostShape(a *Ability) bool {
-	if a.Kind != AbMana || a.AFlags&^(AfManaNonSpell|AfManaChosen) != 0 || a.ManaEach ||
+	if a.Kind != AbMana || a.AFlags&^(AfManaNonSpell|AfManaChosen|AfManaChoice) != 0 || a.ManaEach ||
 		a.ManaColors == 0 || a.ManaRider != ManaRiderNone || len(a.Prog) != 0 || a.Gate.Ctr != 0 || a.Trig.Cond != 0 ||
 		a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
 	}
-	c := a.ManaColors
-	if c != 0 && c&(c-1) != 0 {
+	if !restrFeeProduction(a) {
 		return false
 	}
 	m := &a.Cost.Mana
@@ -31,6 +32,40 @@ func RestrictedManaCostShape(a *Ability) bool {
 		m.Snow == 0 && m.Tb == 0 && m.Hyb == [4]ColorMask{} &&
 		restrFeeOneColour(m)
 }
+
+// restrFeeProduction reports whether a's production is a shape the fee unit
+// carries: one fixed colour or {C} of a literal amount, or N mana in any
+// combination of colours (Produced$ Combo Any). Anything else (Produced$ Any,
+// ManaEach, and especially Combo AnyDifferent, whose units are distinct only
+// together) is no unit.
+func restrFeeProduction(a *Ability) bool {
+	n := int(a.ManaN)
+	if n == 0 {
+		n = 1
+	}
+	if n > maxRestrictedFeeAmount {
+		return false
+	}
+	cols := a.ManaColors & (ColAny | ColC)
+	switch {
+	case cols == 0:
+		return false
+	case a.AFlags&AfManaChoice != 0:
+		// Combo Any: each unit is any of the five, the availability model
+		// carries it as an any-colour group
+		return cols == ColAny
+	default:
+		// one fixed colour or {C}; a fee that produces one mana of ANY colour
+		// is the Combo Any/AfManaChoice arm above or not carried
+		return cols != ColAny && cols&(cols-1) == 0
+	}
+}
+
+// maxRestrictedFeeAmount bounds the literal amount of a restricted mana-fee
+// unit: kgen's maxRestrictedFeeAmount (lower_multimana.go), the largest
+// production a fee source priced as a planner unit carries (Castle
+// Garenbrig's six).
+const maxRestrictedFeeAmount = 7
 
 // restrFeeOneColour: the fee's coloured pips name at most one colour (any
 // count of it): the fee a kernel fee unit carries (pcard.manaFeeN) is one pip

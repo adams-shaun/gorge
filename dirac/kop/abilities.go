@@ -815,7 +815,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a):
+	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a), RestrictedManaCostShape(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
