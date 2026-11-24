@@ -296,11 +296,7 @@ func (e *Engine) paymentPlanTapObservers(id state.ObjID, activator state.PlayerI
 						tm.Mana, folds = pay.PaymentPlanReflectedMana(produced)
 					}
 				}
-				if !folds && open != nil {
-					if body, toTapped, isOpen := pay.PaymentPlanOpenTapMana(fc.face, t); isOpen && (toTapped || o.Controller == activator) {
-						addPotentialOpenTapMana(open, body)
-					}
-				}
+				paymentPlanAccumulateOpenTapMana(open, folds, fc.face, t, o.Controller == activator)
 				if folds && (tm.ToTapped || o.Controller == activator) {
 					if rby, replaced := e.paymentPlanExtraReplaced(oid, activator, tm.Mana); replaced {
 						if deferBy(rby) {
@@ -596,6 +592,19 @@ func (e *Engine) paymentPlanSunburstGrantOut() bool {
 		}
 	}
 	return false
+}
+
+// paymentPlanAccumulateOpenTapMana adds to a non-nil open the bound of t when
+// it is an open-colour TapsForMana trigger (pay.PaymentPlanOpenTapMana) that
+// did not fold and whose mana reaches the payer: it names the tapped
+// permanent's controller, or the trigger's controller is the activator.
+func paymentPlanAccumulateOpenTapMana(open *state.Mana, folds bool, f *cards.Face, t cards.Trigger, ownTrigger bool) {
+	if folds || open == nil {
+		return
+	}
+	if body, toTapped, isOpen := pay.PaymentPlanOpenTapMana(f, t); isOpen && (toTapped || ownTrigger) {
+		addPotentialOpenTapMana(open, body)
+	}
 }
 
 // addPotentialOpenTapMana folds into m the bound of an any-colour static
