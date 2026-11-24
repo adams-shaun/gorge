@@ -80,6 +80,29 @@ func (s *State) unleashPreKind(k *prep, c CardID) uint8 {
 	return 0
 }
 
+// unleashTokKind is kind, or akUnleash when kind is 0 and the copy token of
+// card c prints Unleash: gorge mints the copy outside every zone and parks its
+// battlefield move on the counter ask (applyUnleashReplacement), so the kernel
+// parks the minted copy the way an as-enters colour choice does
+// (raGenTokChoice, s.g.pre) and the entry applies the answer
+// (unleashEntryAsk).
+func (s *State) unleashTokKind(k *prep, kind uint8, c CardID) uint8 {
+	if kind != 0 {
+		return kind
+	}
+	return s.unleashPreKind(k, c)
+}
+
+// unleashAskObj is the object the posed counter ask is about: a cast
+// creature's or a parked copy token's election rides s.g.pre (asked before
+// it enters); any other entry's is the queued ask[0].
+func (s *State) unleashAskObj() Obj {
+	if p := &s.g.pre; p.kind == akUnleash && (p.state == 1 || s.res.ask == raGenTokChoice) {
+		return p.obj
+	}
+	return s.perms[s.g.ask[0].sl].obj
+}
+
 // unleashOptions fills the queued as-enters ask: the counter election over
 // the entering permanent, gorge's two options in its order ("counter" is
 // option 0, the deterministic bot's answer).
