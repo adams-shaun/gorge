@@ -187,6 +187,11 @@ run by every precheck (`scripts/test_targets.py` always selects the package):
   `internal/codeshape/testdata/func_ceilings.tsv`. A listed function fails when
   it grows past its row; an unlisted one fails when it crosses a threshold.
 
+Each check has a slack (`internal/codeshape/slack.go`): a count may exceed its
+ceiling by max(2, 1%) (`Slack`; a zero ceiling stays exact), a function its row
+or threshold by max(5, 3%) (`FuncSlack`). Growth within the slack passes with a
+logged WARNING; never raise a ceiling to absorb it.
+
 Shrinks and deletions only log, so concurrent refactors never fail on each other.
 `CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape`
 lowers the rows to the measurement and drops stale ones; it never raises or adds

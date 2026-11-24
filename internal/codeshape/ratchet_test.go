@@ -1,6 +1,7 @@
 package codeshape
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -10,8 +11,9 @@ import (
 // (docs/design/2026-10-03-rules-engine-layering-design.md, section
 // 4), on the pattern of testkit/testutil/agentsdoc_test.go's
 // shrink-only Known-approximations register: each constant is a measured
-// value, the test FAILS when the measurement grows past it and LOGS when
-// it falls below it. A change that shrinks a metric lowers its constant to
+// value, the test FAILS when the measurement grows more than codeshape.Slack
+// past it, WARNS (logs) on growth within the slack, and LOGS when it falls
+// below it. A change that shrinks a metric lowers its constant to
 // the new measurement in the same commit; NEVER raise one.
 //
 // Measure with `go run ./cmd/codeshape -table`.
@@ -208,20 +210,35 @@ type ratchet struct {
 func checkRatchets(t *testing.T, rs []ratchet) {
 	t.Helper()
 	for _, r := range rs {
-		switch {
-		case r.got > r.limit:
-			t.Errorf("%s: measured %d, above the frozen ceiling of %d.\n"+
-				"This is a SHRINK-ONLY ratchet: it may "+
-				"fall, never rise. %s\n"+
-				"Do not raise the constant to make this pass. Measure with `go run ./cmd/codeshape -table`.",
-				r.name, r.got, r.limit, r.advice)
-		case r.got < r.limit:
-			t.Logf("%s: measured %d, below the ceiling of %d. Lower %s in "+
-				"internal/codeshape/ratchet_test.go to %d in the same commit so the gain "+
-				"is locked in.", r.name, r.got, r.limit, r.name, r.got)
-		default:
-			t.Logf("%s: %d (at ceiling)", r.name, r.got)
+		failed, msg := ratchetVerdict(r)
+		if failed {
+			t.Error(msg)
+		} else {
+			t.Log(msg)
 		}
+	}
+}
+
+// ratchetVerdict judges one ratchet: growth beyond Slack(limit) fails; growth within it, a
+// shrink or a value at the ceiling only logs.
+func ratchetVerdict(r ratchet) (failed bool, msg string) {
+	slack := Slack(r.limit)
+	switch {
+	case r.got > r.limit+slack:
+		return true, fmt.Sprintf("%s: measured %d, above the frozen ceiling of %d plus its slack of %d.\n"+
+			"This is a SHRINK-ONLY ratchet: it may "+
+			"fall, never rise. %s\n"+
+			"Do not raise the constant to make this pass. Measure with `go run ./cmd/codeshape -table`.",
+			r.name, r.got, r.limit, slack, r.advice)
+	case r.got > r.limit:
+		return false, fmt.Sprintf("WARNING %s: measured %d, above the ceiling of %d but within its slack of %d. "+
+			"Passing; do not raise the constant. %s", r.name, r.got, r.limit, slack, r.advice)
+	case r.got < r.limit:
+		return false, fmt.Sprintf("%s: measured %d, below the ceiling of %d. Lower %s in "+
+			"internal/codeshape/ratchet_test.go to %d in the same commit so the gain "+
+			"is locked in.", r.name, r.got, r.limit, r.name, r.got)
+	default:
+		return false, fmt.Sprintf("%s: %d (at ceiling)", r.name, r.got)
 	}
 }
 

@@ -35,13 +35,15 @@ func TestRatchetLoweringOnlyPostMerge(t *testing.T) {
 
 	// Acceptance: the growing branch is green against the base's row, and would only be red
 	// if the lowering branch had merged first. The guard keeps that branch out of the batch.
-	shapes := []FuncShape{{Name: "big", File: "p/f.go", Line: 1, Lines: 400, Complexity: 70}}
+	// (A lowering of one line sits inside FuncSlack, so the fixture grows to the base's row plus its
+	// slack: green against the base's row, one line too many against the lowered one.)
+	shapes := []FuncShape{{Name: "big", File: "p/f.go", Line: 1, Lines: 400 + FuncSlack(400), Complexity: 70}}
 	baseRows := mustCeilings(t, baseCeilings)
-	if grew, _ := funcShapeCheck(shapes, baseRows, linesMetric); len(grew) != 0 {
+	if grew, _, _ := funcShapeCheck(shapes, baseRows, linesMetric); len(grew) != 0 {
 		t.Fatalf("growth to the base's row fails without the lowering merged: %q", grew)
 	}
 	lowerRows := mustCeilings(t, lowerCeilings)
-	if grew, _ := funcShapeCheck(shapes, lowerRows, linesMetric); len(grew) != 1 {
+	if grew, _, _ := funcShapeCheck(shapes, lowerRows, linesMetric); len(grew) != 1 {
 		t.Fatalf("growth past the lowered row did not fail, so the fixture proves nothing: %q", grew)
 	}
 
