@@ -252,6 +252,14 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "engine/cardc/diff": {
+      "tier": "engine",
+      "status": "TOOL"
+    },
+    "engine/cardc/slice": {
+      "tier": "engine",
+      "status": "TOOL"
+    },
     "engine/cardc/gorgebe": {
       "tier": "engine",
       "status": "CORE"

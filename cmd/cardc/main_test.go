@@ -80,3 +80,10 @@ func TestLockstepUsage(t *testing.T) {
 		t.Fatalf("exit %d, want 1: %s", code, errb.String())
 	}
 }
+
+func TestDiffUsage(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"diff", "-slice", "nope"}, &out, &errb); code == 0 {
+		t.Fatalf("exit 0: %s", errb.String())
+	}
+}
