@@ -1,0 +1,5 @@
+family: ExprKind
+name: ExDevotionChosen
+value: next
+status: active
+doc: The controller's devotion (CR 700.5) to the colour recorded on the evaluating source (Count$Devotion.Chosen; gorge evalCountBodyDottedDevotion reads Object.ChosenColor): the source permanent's chosen byte, 0..4 = WUBRG, the same slot the as-enters ChooseColor writes. 0 with no colour recorded. dirac/act_chosencolor.go.

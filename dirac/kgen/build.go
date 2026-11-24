@@ -2396,7 +2396,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vThisTurnCast: kop.ExThisTurnCast,
 	vRollResult:   kop.ExRollResult, vCastManaSpent: kop.ExCastManaSpent, vConverge: kop.ExConverge,
 	vCompare: kop.ExCompare, vBranches: kop.ExBranches,
-	vDevotion: kop.ExDevotion, vParty: kop.ExParty, vDrawnThisTurn: kop.ExDrawnThisTurn, vGraveTypes: kop.ExGraveTypes,
+	vDevotion: kop.ExDevotion, vDevotionChosen: kop.ExDevotionChosen, vParty: kop.ExParty, vDrawnThisTurn: kop.ExDrawnThisTurn, vGraveTypes: kop.ExGraveTypes,
 	vValidAgg: kop.ExValidAgg, vGraveAgg: kop.ExGraveAgg, vYourSpeed: kop.ExYourSpeed,
 	vHighestOppPoison: kop.ExHighestOppPoison, vThisTurnEntered: kop.ExThisTurnEntered,
 	vThisTurnCastSpec:   kop.ExThisTurnCastSpec,

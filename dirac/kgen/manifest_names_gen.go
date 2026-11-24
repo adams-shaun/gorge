@@ -815,6 +815,9 @@ func init() { enum[kop.ExprKind]("kop.ExWasCastFromYourLibrary", kop.ExWasCastFr
 // dirac/manifest/ExprKind/ExXColorPaid
 func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 
+// dirac/manifest/ExprKind/ExDevotionChosen
+func init() { enum[kop.ExprKind]("kop.ExDevotionChosen", kop.ExDevotionChosen) }
+
 // dirac/manifest/ExprKind/ExRingTempted
 func init() { enum[kop.ExprKind]("kop.ExRingTempted", kop.ExRingTempted) }
 
