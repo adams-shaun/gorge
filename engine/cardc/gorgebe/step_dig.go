@@ -197,6 +197,9 @@ func digNode(p *pr, st, m1, m2 *ir.Step) (*node, error) {
 
 func printRevealHand(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
+	if th := zsteps(st.Then); len(th) > 0 {
+		return revealHandThen(p, st, th)
+	}
 	n := &node{API: "RevealHand"}
 	if st.Verb == ir.VerbLookAtHand {
 		n.set("Look", "True")
@@ -223,6 +226,50 @@ func printShuffle(p *pr, steps []*ir.Step) (*node, int, error) {
 		if err := p.operand(n, "Defined", st.Who); err != nil {
 			return nil, 0, err
 		}
+	}
+	return n, 1, nil
+}
+
+// revealHandThen prints a hand reveal followed by you choosing a card from it
+// to discard (one Discard, Mode$ RevealYouChoose) or to exile (RevealHand,
+// then a ChangeZone chosen by you).
+func revealHandThen(p *pr, st *ir.Step, th []*ir.Step) (*node, int, error) {
+	bad := unprintable("verb:"+st.Verb.String(), st.Src)
+	if st.Verb != ir.VerbRevealHand || st.Optional || st.Obj != nil || st.Who == nil || len(th) != 1 {
+		return nil, 0, bad
+	}
+	c := th[0]
+	if (c.Verb != ir.VerbDiscard && c.Verb != ir.VerbExile) || c.Optional || c.Who != nil || !chooseOf(c.Obj) || !onlyZone(c.Obj.Filter, ir.ZoneHand) {
+		return nil, 0, bad
+	}
+	v, err := p.valid(c.Obj.Filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	k, err := p.amount(c.Obj.N)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "RevealHand"}
+	if c.Verb == ir.VerbDiscard {
+		n = &node{API: "Discard"}
+	}
+	if err := p.operand(n, "Defined", st.Who); err != nil {
+		return nil, 0, err
+	}
+	if c.Verb == ir.VerbDiscard {
+		n.set("Mode", "RevealYouChoose")
+		n.set("DiscardValid", v)
+		n.set("NumCards", k)
+		return n, 1, nil
+	}
+	d, err := p.defined(st.Who)
+	if err != nil {
+		return nil, 0, err
+	}
+	n.Sub = &node{API: "ChangeZone", Params: []kv{{"Origin", "Hand"}, {"Destination", "Exile"}, {"DefinedPlayer", d}, {"Chooser", "You"}, {"ChangeType", v}}}
+	if k != "1" {
+		n.Sub.set("ChangeNum", k)
 	}
 	return n, 1, nil
 }
