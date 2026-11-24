@@ -136,10 +136,14 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 // "bottom" / "top" over the revealed card (dirac/act_clash.go), Gemstone
 // Caverns' "opening_exile" hand pick, else a number.
 func genOptionRest(d *dirac.Decision, mode uint8, o *optIn) {
-	if d.Sub == dirac.ChBand {
-		// gorge askNextBand's "band" options (CR 702.22c): the decline names
-		// no object, a candidate names itself
+	if d.Sub == dirac.ChBand || d.Sub == dirac.ChEnlist {
+		// gorge askNextBand's "band" options (CR 702.22c) and askNextEnlist's
+		// "enlist" ones (CR 702.154a): the decline names no object, a
+		// candidate names itself
 		o.kind = okBand
+		if d.Sub == dirac.ChEnlist {
+			o.kind = okEnlist
+		}
 		if mode == 0 {
 			o.obj = noObj
 		}

@@ -451,6 +451,15 @@ func (s *State) finishAttacks(k *prep) {
 	if atkTaxOn(k) && s.nAttackers > 0 {
 		s.atkTaxPay(k) // combat_attacktax.go: CR 508.1g-i, before the declaration's taps and triggers
 	}
+	if s.enlistAsk(k) {
+		return // CR 702.154a: the enlist elections come first (kw_enlist.go)
+	}
+	s.declareAttacksDone(k)
+}
+
+// declareAttacksDone is the rest of the declaration once the attack tax is
+// paid and every enlist election answered: the taps, the Attacks triggers.
+func (s *State) declareAttacksDone(k *prep) {
 	fs := false
 	var tapped slotMask
 	fresh := 0 // attackers not declared in an earlier combat this turn

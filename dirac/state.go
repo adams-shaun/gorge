@@ -775,6 +775,10 @@ const (
 	// all-at-once source makes under a reflect carrier (mana_reflectpickask.go;
 	// the mask and the payer ride genState.reflMask / reflP)
 	ctlReflectPick
+	// ctlEnlist: the CR 702.154a enlist election, posed once the attackers
+	// are declared for each attacker with Enlist that has a creature to tap
+	// (kw_enlist.go; s.lastPick is the attacker asked)
+	ctlEnlist
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
