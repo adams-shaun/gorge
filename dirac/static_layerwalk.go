@@ -736,7 +736,11 @@ func (s *State) curChosenOK(k *prep, f2 kop.FilterFlags2, cur *dchars, src Slot)
 		return false
 	}
 	ch := s.perms[src].chosen
-	if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, uint8(ch)) && !(outsideSub(k, uint8(ch)) && s.curOutsideHas(k, cur, src))) {
+	if bit, kind := s.srcCardKind(k, src); kind && f2&kop.F2ChosenType != 0 {
+		if !cardKindHas(bit, cur.types) { // the source's card-type answer (act_choosecardenter.go)
+			return false
+		}
+	} else if f2&kop.F2ChosenType != 0 && (ch == 255 || !hasSubCur(k, cur, uint8(ch)) && !(outsideSub(k, uint8(ch)) && s.curOutsideHas(k, cur, src))) {
 		return false
 	}
 	return f2&kop.F2ChosenColor == 0 || ch <= 4 && cur.cols&(1<<ch) != 0
