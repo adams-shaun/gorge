@@ -39,10 +39,11 @@ func (tc *triggeredEffectCost) foragePayable(e *Engine, rest Cost) bool {
 // cards OR sacrifice a Food), sharing the cast path's option kinds so the
 // bot's existing arms answer it. A single live arm settles without an ask.
 // It reports whether an ask was posed; the answer (forage_exile /
-// forage_food) records the arm and re-enters the pay arm.
+// forage_food) records the arm and re-enters the pay arm. Once the election
+// is settled, the exile arm's three-card pick is the ask (forageExilePickAsk).
 func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 	if tc.forageDone {
-		return false
+		return tc.forageExilePickAsk(e)
 	}
 	tc.forageDone = true
 	graveOK := len(e.G.Zone(state.ZGraveyard, tc.player)) >= 3
@@ -61,8 +62,8 @@ func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 		tc.forageFood = foods[0]
 		return false
 	case arms == 1:
-		// The lone exile arm is deterministic.
-		return false
+		// The lone exile arm: no election, then the three-card pick.
+		return tc.forageExilePickAsk(e)
 	}
 	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to forage", Source: tc.source}
@@ -84,18 +85,35 @@ func (tc *triggeredEffectCost) forageExilePickAsk(e *Engine) bool {
 	if d == nil {
 		return false
 	}
+	tc.forageExileAsked = true
 	windowAsk(e, d, chooseTriggeredCost)
 	return true
 }
 
-// forageExileAnswer records the exile arm's pick; it reports false when the
-// answer cannot pay (the decline, nothing yet moved).
-func (tc *triggeredEffectCost) forageExileAnswer(e *Engine, chosen []decision.Option) bool {
-	if !tc.forageDone || tc.forageFood != 0 {
-		return false
+// forageExilePickAnswer answers the exile arm's three-card pick: it records
+// the pick and re-enters the pay arm, which settles. A pick that cannot pay is
+// the decline (nothing yet moved).
+func (tc *triggeredEffectCost) forageExilePickAnswer(e *Engine, chosen []decision.Option) {
+	tc.forageExileAsked = false
+	if tc.forageExile = pay.ForageExilePicked(asPayer(e), tc.player, chosen); tc.forageExile == nil || tc.forageFood != 0 {
+		e.triggeredCostDecline(tc)
+		return
 	}
-	tc.forageExile = pay.ForageExilePicked(asPayer(e), tc.player, chosen)
-	return tc.forageExile != nil
+	e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+}
+
+// forageFoodAnswer answers the election's Food arm: the named Food must
+// still be a live candidate; it records the pick and re-enters the pay arm,
+// which settles. Anything else is the decline, with nothing yet moved to
+// un-pay.
+func (tc *triggeredEffectCost) forageFoodAnswer(e *Engine, chosen []decision.Option) {
+	foods := pay.CostCandidates(asPayer(e), tc.player, tc.source, state.ZBattlefield, "Food.YouCtrl", false, false)
+	if !tc.forageDone || !slices.Contains(foods, chosen[0].Obj) {
+		e.triggeredCostDecline(tc)
+		return
+	}
+	tc.forageFood = chosen[0].Obj
+	e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
 }
 
 // forageSettle charges the cost: the mana/life half from the pool (any
