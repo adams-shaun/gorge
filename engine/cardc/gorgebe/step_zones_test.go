@@ -323,6 +323,9 @@ func TestCostText(t *testing.T) {
 		{part(ir.CostExile, ztChoose(grave, 1), nil, ""), "ExileFromGrave<1/Creature>"},
 		{part(ir.CostRemoveCounters, self, vc(2), "P1P1"), "SubCounter<2/P1P1>"},
 		{part(ir.CostReturnToHand, self, nil, ""), "Return<1/CARDNAME>"},
+		{part(ir.CostReturnToHand, ztChoose(ztZoneFilter(ir.ZoneBattlefield, "Creature"), 1), nil, ""), "Return<1/Creature>"},
+		{part(ir.CostDiscard, ztAll(ztZoneFilter(ir.ZoneHand)), nil, ""), "Discard<0/Hand>"},
+		{part(ir.CostRemoveCounters, ztAll(ztZoneFilter(ir.ZoneBattlefield, "Creature")), vc(6), ""), "RemoveAnyCounter<6/Any/Creature>"},
 		{part(ir.CostTapUntapped, ztChoose(ztZoneFilter(ir.ZoneBattlefield, "Creature"), 1), nil, ""), "tapXType<1/Creature>"},
 		{part(ir.CostReveal, ztChoose(hand, 1), nil, ""), "Reveal<1/Creature>"},
 		{part(ir.CostMill, nil, vc(2), ""), "Mill<2>"},
@@ -345,7 +348,7 @@ func TestCostText(t *testing.T) {
 		"cost:loyalty":         {Parts: []*ir.CostPart{part(ir.CostLoyalty, nil, &ir.Value{Kind: ir.VX}, "")}},
 		"cost:discard":         {Parts: []*ir.CostPart{part(ir.CostDiscard, ztAll(hand), nil, "")}},
 		"cost:remove-counters": {Parts: []*ir.CostPart{part(ir.CostRemoveCounters, ztChoose(hand, 1), vc(1), "P1P1")}},
-		"cost:return-to-hand":  {Parts: []*ir.CostPart{part(ir.CostReturnToHand, ztChoose(hand, 1), nil, "")}},
+		"cost:return-to-hand":  {Parts: []*ir.CostPart{part(ir.CostReturnToHand, ztAll(hand), nil, "")}},
 		"cost:none":            {Parts: []*ir.CostPart{{}}},
 	}
 	for what, c := range refuse {

@@ -107,6 +107,9 @@ func (p *pr) costPart(c *ir.CostPart) (string, error) {
 		}
 		return chosen("Sac", ir.ZoneNone)
 	case ir.CostDiscard:
+		if c.Obj != nil && c.Obj.Kind == ir.RefAll && c.N == nil && onlyZone(c.Obj.Filter, ir.ZoneHand) && isPred(c.Obj.Filter, ir.PAny) {
+			return "Discard<0/Hand>", nil // your whole hand
+		}
 		if self {
 			return "Discard<1/CARDNAME>", nil
 		}
@@ -126,13 +129,32 @@ func (p *pr) costPart(c *ir.CostPart) (string, error) {
 		}
 		return chosen("ExileFromHand", ir.ZoneHand)
 	case ir.CostRemoveCounters:
-		if !self || c.Word == "" {
-			return "", bad
+		if self && c.Word != "" {
+			return with("SubCounter", c.Word)
 		}
-		return with("SubCounter", c.Word)
+		if c.Obj != nil && c.Obj.Kind == ir.RefAll && c.Word == "" && c.Obj.Filter != nil {
+			// any counters from among the permanents you control
+			v, err := p.valid(withoutYouCtrl(c.Obj.Filter))
+			if err != nil {
+				return "", err
+			}
+			k, err := n()
+			if err != nil {
+				return "", err
+			}
+			return "RemoveAnyCounter<" + k + "/Any/" + v + ">", nil
+		}
+		return "", bad
 	case ir.CostReturnToHand:
 		if !self {
-			return "", bad
+			if !chooseOf(c.Obj) || c.Obj.Filter == nil {
+				return "", bad
+			}
+			v, err := p.valid(withoutYouCtrl(c.Obj.Filter))
+			if err != nil {
+				return "", err
+			}
+			return with("Return", v)
 		}
 		return "Return<1/CARDNAME>", nil
 	case ir.CostTapUntapped:
@@ -155,4 +177,24 @@ func (p *pr) costPart(c *ir.CostPart) (string, error) {
 		return "SubCounter<" + strconv.Itoa(int(-c.N.N)) + "/LOYALTY>", nil
 	}
 	return "", bad
+}
+
+// withoutYouCtrl is f with its "you control" test dropped: RemoveAnyCounter's
+// valid list names the kind of permanent, and the removal is always from your own.
+func withoutYouCtrl(f *ir.Filter) *ir.Filter {
+	if f.Op != ir.FAll {
+		return f
+	}
+	g := *f
+	g.Args = nil
+	for _, a := range f.Args {
+		if a.Op == ir.FPred && a.Pred == ir.PControlledBy && isYou(a.Ref) {
+			continue
+		}
+		g.Args = append(g.Args, a)
+	}
+	if len(g.Args) == 1 {
+		return g.Args[0]
+	}
+	return &g
 }

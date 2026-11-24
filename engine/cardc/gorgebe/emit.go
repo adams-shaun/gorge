@@ -246,11 +246,13 @@ type pr struct {
 	// onPrev is set by a step that must adjust the node printed before it
 	// (a delayed trigger remembers what the previous step moved); program
 	// calls it with the chain tail and clears it.
-	onPrev func(prev *node) error
-	face   *ir.Face               // the face being printed; nil in unit tests
-	excess bool                   // the damage step before this one binds ExcessSVar$ Excess
-	prev   *ir.Step               // the step printed just before the one being printed, in its program
-	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
+	onPrev  func(prev *node) error
+	face    *ir.Face               // the face being printed; nil in unit tests
+	excess  bool                   // the damage step before this one binds ExcessSVar$ Excess
+	prev    *ir.Step               // the step printed just before the one being printed, in its program
+	cdaAt   int                    // 1 + the index in lines of the last power-only characteristic-defining static, 0 for none
+	addCost []string               // additional costs of the spell being printed, in Cost$ spelling
+	tokens  map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
 }
 
 // The family printers. Each is nil until its file installs it from init.

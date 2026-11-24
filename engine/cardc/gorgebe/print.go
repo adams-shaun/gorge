@@ -121,6 +121,11 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool, to
 			}
 			return &Unprintable{What: "ability:" + a.Kind.String(), Path: a.Src}
 		}
+		if len(p.addCost) > 0 {
+			if err := p.spellWithExtraCost(f); err != nil {
+				return err
+			}
+		}
 		for _, k := range ks {
 			b.WriteString(k + "\n")
 		}
@@ -195,4 +200,39 @@ func manaCost(syms []ir.ManaSym) (string, error) {
 		}
 	}
 	return strings.Join(out, " "), nil
+}
+
+// spellWithExtraCost puts the additional costs of the spell into its Cost$:
+// the card's mana cost, then each extra, on the spell ability, which a
+// permanent spell gains for the purpose.
+func (p *pr) spellWithExtraCost(f *ir.Face) error {
+	m := ""
+	if f.HasManaCost {
+		var err error
+		if m, err = manaCost(f.ManaCost); err != nil {
+			return err
+		}
+	}
+	cost := strings.TrimSpace(m + " " + strings.Join(p.addCost, " "))
+	for i, l := range p.lines {
+		if !strings.HasPrefix(l, "A:SP$ ") {
+			continue
+		}
+		api := strings.IndexByte(l[len("A:SP$ "):], ' ')
+		if api < 0 {
+			p.lines[i] = l + " | Cost$ " + cost
+			return nil
+		}
+		at := len("A:SP$ ") + api
+		p.lines[i] = l[:at] + " | Cost$ " + cost + l[at:]
+		return nil
+	}
+	api := "PermanentNoncreature"
+	for _, t := range f.Types {
+		if t == "Creature" {
+			api = "PermanentCreature"
+		}
+	}
+	p.lines = append(p.lines, "A:SP$ "+api+" | Cost$ "+cost)
+	return nil
 }

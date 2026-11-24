@@ -10,9 +10,6 @@ func init() { registerAbility(ir.AbActivated, printActivated) }
 
 // printActivated prints an activated ability as an A:AB$ line.
 func printActivated(p *pr, a *ir.Ability) error {
-	if a.InstantOnly {
-		return unprintable("activated:instant-only", a.Src)
-	}
 	if a.Cost == nil {
 		return unprintable("activated:no-cost", a.Src)
 	}
@@ -25,6 +22,12 @@ func printActivated(p *pr, a *ir.Ability) error {
 		return err
 	}
 	head.Params = append([]kv{{"Cost", cost}}, head.Params...)
+	if a.InstantOnly {
+		if head.API != "Mana" {
+			return unprintable("activated:instant-only", a.Src)
+		}
+		head.set("InstantSpeed", "True")
+	}
 	if a.SorceryOnly {
 		head.set("SorcerySpeed", "True")
 	}
