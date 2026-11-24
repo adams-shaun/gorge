@@ -27,7 +27,7 @@ for f; do
     ;;
   esac
 done
-pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus)$'
+pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus|TestStdMetaPoolBuilds)$'
 pinned=
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 for f; do
