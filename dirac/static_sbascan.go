@@ -12,11 +12,16 @@ type sbaMasks struct {
 // everything that goes to the graveyard, the planeswalkers and Auras among
 // them and the -1/-1 annihilations. busy reports that it read state the
 // clean-scan key (static_sbaskip.go) does not hold.
-func (s *State) sbaScan(k *prep) (r sbaMasks, busy bool) {
+//
+// r is the caller's: the scan resets it in place (the umbra order's pairs are
+// read only up to its n), sparing each pass a zeroing and two copies of the
+// umbra order's 384-byte pair array.
+func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 	var die, gy, pwz, aur, anni slotMask
 	// statics in force but none that can lower a toughness (kprio2)
 	ptQuiet := s.statM.any() && s.sbaPTQuiet(k)
-	var umbra umbraOrder // the pass's umbra-spared hosts (kw_umbraarmor.go)
+	umbra := &r.umbra // the pass's umbra-spared hosts (kw_umbraarmor.go)
+	umbra.n, umbra.victim = 0, slotMask{}
 	m := s.occ
 	for m.any() {
 		sl := m.first()
@@ -57,7 +62,7 @@ func (s *State) sbaScan(k *prep) (r sbaMasks, busy bool) {
 					s.regenerate(sl)
 					continue
 				}
-				if s.sbaSpare(k, sl, &die, &umbra) {
+				if s.sbaSpare(k, sl, &die, umbra) {
 					continue // the shield counter or umbra armor took the destruction (kw_umbraarmor.go)
 				}
 				die = die.with(sl)
@@ -121,5 +126,6 @@ func (s *State) sbaScan(k *prep) (r sbaMasks, busy bool) {
 			pwz = pwz.with(sl)
 		}
 	}
-	return sbaMasks{die: die, gy: gy, pwz: pwz, aur: aur, anni: anni, umbra: umbra}, busy
+	r.die, r.gy, r.pwz, r.aur, r.anni = die, gy, pwz, aur, anni
+	return busy
 }
