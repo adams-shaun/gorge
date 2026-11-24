@@ -64,10 +64,10 @@ func (lc *lowerCtx) selfETBBody() *lTrigger {
 	return tr
 }
 
-// selfETBInterveningManaSpentCond mirrors gorge's selfETBInterveningManaSpent
-// (engine/rules/trigger_condition.go): a printed self-ETB trigger whose own
-// description reads "if {C} was spent to cast it" carries the gate on its
-// Execute body, but CR 603.4 makes it an intervening-if, so it joins the
+// selfETBInterveningManaSpentCond mirrors gorge's
+// effects.SelfETBInterveningManaSpent (engine/effects/condition_manaspent.go):
+// a printed self-ETB trigger whose own description reads "if {C} was spent
+// to cast it" carries the gate on its Execute body, but CR 603.4 makes it an intervening-if, so it joins the
 // trigger header's conditions as a queue-time check (the same vAdamant read
 // trigManaSpendCond lowers a header ManaSpent$, with the departure snapshot,
 // not AdamantLiveRead). The body's live resolution read (manaSpentCondition

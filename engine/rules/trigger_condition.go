@@ -486,47 +486,10 @@ func (e *Engine) manaSpentTriggerGateHolds(t cards.Trigger, source state.ObjID, 
 	if v, ok := t.Param(cards.PKManaSpent); ok && !e.manaColourSpendHolds(source, tc, v, "") {
 		return false
 	}
-	if spent, notSpent, ok := selfETBInterveningManaSpent(t); ok && !e.manaColourSpendHolds(source, tc, spent, notSpent) {
+	if spent, notSpent, ok := effects.SelfETBInterveningManaSpent(t); ok && !e.manaColourSpendHolds(source, tc, spent, notSpent) {
 		return false
 	}
 	return true
-}
-
-// selfETBInterveningManaSpent reports the ConditionManaSpent$ /
-// ConditionManaNotSpent$ gate carried on a self-enters trigger's Execute body
-// when the trigger's own description spells it as an intervening-if ("When
-// CARDNAME enters, if {C} was spent to cast it, ..."): CR 603.4 checks that
-// condition when the event happens, not only as the ability resolves. Forge
-// puts the gate on the Execute SVar for Ogre Savant, Steamcore Weird and
-// Revenant Patriarch, so the trigger line itself carries no ManaSpent$; the
-// resolution-time read stays in effects' conditionMet. Bodies that say
-// "sacrifice it unless {C} was spent" (Azorius Herald, Court Hussar,
-// Plaxmanta, Patagia Viper, Squealing Devil) are not intervening-ifs and are
-// deliberately not matched. The keys are read raw, like effects.
-// ConditionParams does, because they are not in cards' compiled vocabulary.
-func selfETBInterveningManaSpent(t cards.Trigger) (spent, notSpent string, ok bool) {
-	if t.ModeKind() != cards.TriggerChangesZone {
-		return "", "", false
-	}
-	if !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKDestination)), "Battlefield") {
-		return "", "", false
-	}
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(t.ParamStr(cards.PKValidCard))), "card.self") {
-		return "", "", false
-	}
-	desc := strings.ToLower(t.ParamStr(cards.PKTriggerDescription))
-	if !strings.Contains(desc, "if {") || !strings.Contains(desc, "was spent to cast it") {
-		return "", "", false
-	}
-	if t.Effect == nil {
-		return "", "", false
-	}
-	spent = strings.TrimSpace(t.Effect.Params["ConditionManaSpent"])
-	notSpent = strings.TrimSpace(t.Effect.Params["ConditionManaNotSpent"])
-	if spent == "" && notSpent == "" {
-		return "", "", false
-	}
-	return spent, notSpent, true
 }
 
 // manaColourSpendHolds evaluates a trigger's ManaSpent$ / ManaNotSpent$
