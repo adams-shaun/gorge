@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // manaSpentCondition lowers a lone ConditionManaSpent$ / ConditionManaNotSpent$
@@ -61,4 +63,33 @@ func (lc *lowerCtx) selfETBBody() *lTrigger {
 		return nil
 	}
 	return tr
+}
+
+// selfETBInterveningManaSpentCond mirrors gorge's
+// effects.SelfETBInterveningManaSpent (engine/effects/condition_manaspent.go):
+// a printed self-ETB trigger whose own description reads "if {C} was spent
+// to cast it" carries the gate on its Execute body, but CR 603.4 makes it an intervening-if, so it joins the
+// trigger header's conditions as a queue-time check (the same vAdamant read
+// trigManaSpendCond lowers a header ManaSpent$, with the departure snapshot,
+// not AdamantLiveRead). The body's live resolution read (manaSpentCondition
+// above) stays. "sacrifice it unless {C} was spent" bodies have no "if {"
+// description and are deliberately not matched.
+func (lc *lowerCtx) selfETBInterveningManaSpentCond(t cards.Trigger) (lCond, bool, error) {
+	spent, notSpent, ok := effects.SelfETBInterveningManaSpent(t)
+	switch {
+	case !ok:
+		return lCond{}, false, nil
+	case lc.adamantTrigger() == nil:
+		// gorge gates this trigger at queue time; a shape the header read
+		// cannot carry would silently drop the gate, so refuse it.
+		return lCond{}, true, refuse("self-ETB intervening-if mana-spent gate outside the adamant trigger shape")
+	case spent != "" && notSpent != "":
+		return lCond{}, true, refuse("self-ETB intervening-if with both ConditionManaSpent$ and ConditionManaNotSpent$")
+	case spent != "":
+		c, err := lc.trigManaSpendCond(spent, false)
+		return c, true, err
+	default:
+		c, err := lc.trigManaSpendCond(notSpent, true)
+		return c, true, err
+	}
 }
