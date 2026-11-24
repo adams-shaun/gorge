@@ -1,9 +1,12 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abandon Reason	6e5a195187d78416	37	0/0		2/2	
+Academy Journeymage	918ca6dfc0b38236	6	1/1		0/1	ix:resp
 Acquisition Octopus	31f4479dc3926084	4	3/3		0/1	ix:resp
 Ardenvale Tactician	efb59fb9c7292016	14	0/0		2/2	
 Artifact Unknown Shores	f53a294520adef0f	5	2/2		0/1	ix:resp
+Aveline de Grandpré	8a01d0a07d42963c	4	1/1		2/3	cast/alt:disguised
 Battlewise Valor	5baac07cb2356d0c	10	0/0		1/2	ix:resp
+Black Ward	91b6233e991e4082	4	0/0		1/2	ix:resp
 Blessed Defiance	c2e5fcc1266b271d	4	0/0		1/2	ix:resp
 Bolrac-Clan Crusher	bf90e195f0000dc0	14	1/1		1/1	
 Breakneck Berserker	9f71a1cd71b484ec	31	0/0		0/0	
@@ -15,6 +18,7 @@ Crumble	55e213ffccbb74d8	4	0/0		1/2	ix:resp
 Darkslick Drake	0bf1fd6611d52877	4	1/1		0/1	ix:resp
 Darksteel Forge	6c6303d49f026b4e	4	0/0		0/0	
 Darksteel Ingot	401b3bf30da3f255	3	1/1		0/1	ix:resp
+Daughter of the Deep	ea51dd682b923585	6	2/2		1/1	
 Dauthi Trapper	8227dc8fac724de1	3	1/1		0/1	ix:resp
 Decimate	196b51cd4724262a	9	0/0		1/2	ix:resp
 Deepwood Wolverine	cba01fd1e6003aee	3	1/1		0/1	ix:resp
@@ -42,6 +46,7 @@ Giant Ox	a2e8df9f36ec049b	8	0/0		0/0
 Gibbering Kami	2ffa4d7924a1500a	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Gilded Assault Cart	38da1285d39c7c1b	23	2/2		1/1	
 Glint-Sleeve Siphoner	1babff4fe333e3dd	6	3/3		1/1	
+Gnarled Effigy	975667f8e93e85e8	4	1/1		0/1	ix:resp
 Goblin Bangchuckers	ac07d45539a44d87	15	1/1		1/1	
 Goblin Masons	82e1fc683e6aa1c6	38	1/1		1/1	
 Goblin Vandal	0caa8357284ccd8b	9	1/1		1/1	
@@ -53,6 +58,7 @@ Halimar Depths	7493fed802903935	8	2/2		0/1	ix:resp
 Havoc	a236ea4b128ad6f3	4	1/1		0/1	ix:resp
 Headstrong Brute	84ec19ac7a3dfffd	24	0/0		0/0	
 Hibernation Sliver	ce3cda2259bfd1b2	37	0/0		0/0	
+Hunding Gjornersen	4e6d5d9c1a412a7d	5	1/1		0/1	ix:resp
 Inescapable Brute	de9a4776bb278d96	6	0/0		0/0	
 Inhumaniac	75cd27223408d881	5	1/1		1/1	
 Joven and Chandler	2e356d08eb2a0f5d	26	2/2		1/1	
@@ -72,7 +78,10 @@ Might Beyond Reason	d44b795ed5ee589f	4	0/0		1/2	ix:resp
 Militant Inquisitor	40e9e97d2106a2c9	6	0/0		0/0	
 Misshapen Fiend	c01df8db35fc3827	6	0/0		0/0	
 Mole Worms	77511e820a18325d	3	1/1		0/1	ix:resp
+Morphling	4bfc56dc314e8c75	3	5/5		1/1	
+Natural Spring	d44a6b22f0ddf330	4	0/0		2/2	
 Needle Storm	c8363b1f71dfe359	3	0/0		1/2	ix:resp
+Nissa's Judgment	21bbb35d49a3ea44	4	0/0		1/2	ix:resp
 Obsidian Battle-Axe	ff8811efb2a5657a	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Oona's Gatewarden	436cb0d5f1e5a212	5	0/0		0/0	
 Oraxid	fd514f8ab94720ac	4	0/0		0/0	
@@ -93,7 +102,9 @@ Reject	4fc509263c52a966	4	0/0		1/2	ix:resp
 Remote Farm	c5acbb4e186efd6e	14	1/1		0/1	ix:resp
 Requiem Angel	b5c1ca991d1c39ca	3	1/1		1/1	
 Retreat to Valakut	1d8b111ad0603ccb	4	1/1		0/1	ix:resp
+Rhystic Syphon	f107ae31232a2edb	7	0/0		2/2	
 Risona, Asari Commander	d69380400c7ed025	26	2/2		1/1	
+River Merfolk	7f9d888eef9daf2a	4	1/1		1/1	
 Ronin Cavekeeper	891890199c600edf	26	2/2		1/1	
 Rotting Giant	71afeda392103ccf	5	2/2		0/1	ix:resp
 Rubblebelt Boar	351b8fbb186d9932	3	1/1		0/1	ix:resp
@@ -115,12 +126,16 @@ Spare from Evil	9e603e1193d0e74f	4	0/0		1/2	ix:resp
 Specter's Wail	a3141112737e2c4f	4	0/0		1/2	ix:resp
 Spectral Bears	69c06e2d9858bb80	6	1/1		1/1	
 Sphere of Purity	6c8c985a4bdecf5b	10	0/0		0/0	
+Sphinx's Insight	5885532d15e02718	6	0/0		2/2	
+Spreading Algae	1cba2f45d85f605e	18	2/2		1/2	ix:resp
 Spring	01e3a4c8257d89af	3	0/0		3/5	f1/s,ix:resp
 Springsage Ritual	b1d394f2a370061a	4	0/0		1/2	ix:resp
+Steal Artifact	14b6b09828d4e19c	6	0/0		1/2	ix:resp
 Steelform Sliver	a44841d2812c53da	4	0/0		0/0	
 Stew the Coneys	808339bc7c9ac90e	7	0/0		2/2	
 Strength in Numbers	5e65e286a7557e6d	4	0/0		1/2	ix:resp
 Strider Harness	26edbfb8f75ae67b	4	1/1		0/1	ix:resp
+Supernatural Stamina	38c39a560463646b	4	0/0		1/2	ix:resp
 Swirling Sandstorm	1653435a1ee576ab	36	0/0		2/2	
 Tavern Ruffian	26493343e323e465	22	0/0		0/0	
 Territorial Hammerskull	a7a458c1a74b8155	9	1/1		1/1	
@@ -128,6 +143,7 @@ Theoretical Duplication	c8d57cbeefe3228d	5	0/0		1/2	ix:resp
 Thermal Navigator	0a42e9da72b7d7a1	3	1/1		0/1	ix:resp
 Thunderwolf Cavalry	fbab6cd90e1e4397	6	1/1		0/1	ix:resp
 Tivadar's Crusade	2cfab29566fb6fca	3	0/0		1/2	ix:resp
+Touch of Brilliance	a328a0a0ba94b0b2	8	0/0		1/2	ix:resp
 Treasonous Ogre	d860ab7d73a6156e	9	2/2		1/1	
 Treetop Warden	0ac1c19d0e2e2035	6	0/0		0/0	
 Tuktuk Rubblefort	44863d344e663577	27	0/0		0/0	

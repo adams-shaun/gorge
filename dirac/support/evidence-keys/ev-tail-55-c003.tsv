@@ -19,15 +19,18 @@ Arctic Wolves	d6c3717a7e91fc4d	11	2/2		1/1
 Argent Mutation	20f0ab6c59750e4c	8	0/0		1/2	ix:resp
 Assassinate	529fcd6fb4e80f01	27	0/0		2/2	
 Avatar of Slaughter	30302b5208f5707f	12	0/0		0/0	
+Ayula's Influence	ecace131daacfb94	6	1/1		0/1	ix:resp
 Azure Fleet Admiral	a84210d50d7ff0d2	6	1/1		1/1	
 Azusa's Many Journeys	ddc03d3ff44d785d	3	1/1		0/1	ix:resp
 Beast in Show	57c2de08400f78a2	4	0/0		0/0	
 Benevolent Ancestor	7ed85cd621a9c74b	46	1/1		1/1	
 Bile Urchin	8ffb84220784290b	163	1/1		1/1	
 Bone Picker	9f1eb181be916efc	41	0/0		0/0	
+Boon of Boseiju	4b609aed5b9f5910	10	0/0		1/2	ix:resp
 Boros Garrison	26e4839160349401	19	2/2		0/1	ix:resp
 Boros Signet	e6e191db7d57431b	6	1/1		0/1	ix:resp
 Bosh, Iron Golem	ef13c455b55d3ef3	33	1/1		1/1	
+Bosk Banneret	e6e8a7cf52dcf47f	3	0/0		0/0	
 Bump in the Night	328cd87940e6bf27	26	0/0		3/4	ix:resp
 Burning Hands	d7acc26d3eb7895e	26	0/0		2/2	
 Cascade Bluffs	f5a638d61984d90b	17	2/2		0/1	ix:resp
@@ -68,6 +71,7 @@ Fervent Paincaster	7d957643b1c088d1	28	2/2		1/1
 Fire Ants	461dec4ba43b61dc	9	1/1		1/1	
 Fire Nation Soldier	979b65c7be254bcf	14	0/0		0/0	
 Fireborn Knight	df344fa8722160d0	9	1/1		1/1	
+Firewake Sliver	a6d0ed5b03b0db25	4	0/0		0/0	
 Font of Ire	d6db82cddf2a656e	20	1/1		0/1	ix:resp
 Forgotten Harvest	892695ccd06af054	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fracture	cb74554d349bad50	20	0/0		2/2	
@@ -76,6 +80,7 @@ Geomancer's Gambit	65d16f2c38b8f56a	37	0/0		2/2
 Glaciers	abe75c8a1437b8fa	8	1/1		1/1	
 Glory Bearers	06be34959539f0e3	3	1/1		1/1	
 Gnaw to the Bone	a54476a5f59fc4e5	22	0/0		4/4	
+Goblin Boom Keg	c39bd58028e1e225	4	2/2		1/1	
 Goldmeadow Dodger	83df58bcd51a55c0	67	0/0		0/0	
 Granite Grip	e12e3f90e813efc7	5	0/0		2/2	
 Guardian of the Forgotten	eaa0e862d6966013	80	1/1		1/1	
@@ -85,11 +90,14 @@ Hall of Triumph	fa0183ba2ef53c7c	64	0/0		0/0
 Hand of Death	38779f54405f5503	48	0/0		1/2	ix:resp
 Hangar Scrounger	e0988c06e2b566ae	24	2/2		1/1	
 Happy Hogan, Bodyguard	fbe84e00983b8a7f	3	1/1		0/1	ix:resp
+Hardy Veteran	f42e449f751a150b	4	0/0		0/0	
 Hidden Footblade	a6545f57db546af2	6	2/2		1/1	
 Highborn Ghoul	e83d2ffa73d8ee8c	15	0/0		0/0	
 Ifnir Deadlands	521471585b6a0c08	25	3/3		0/1	ix:resp
+Immersturm Skullcairn	fbf51d7e9bfbac26	10	2/2		0/1	ix:resp
 Incubation Druid	b2ce090730ee521e	5	2/2		0/1	ix:resp
 Invasion of Dominaria	370c0e7ecfee35bb	140	1/1		1/1	
+Invigorating Hot Spring	99837654ea4aa10b	4	1/1		1/1	
 Joraga Treespeaker	125f83fe80f9e647	3	1/1		0/1	ix:resp
 Journey to Nowhere	073d11f241c4bd61	107	2/2		1/1	
 Kiku's Shadow	d010745379b0ca1c	42	0/0		2/2	
@@ -112,11 +120,13 @@ Night Market Guard	36396556ad276e1d	9	0/0		0/0
 Nomad Stadium	6f4ff948ed464172	32	2/2		0/1	ix:resp
 Northern Paladin	ea25c68bed424613	6	1/1		0/1	ix:resp
 Nyxborn Colossus	73cba460b8b443b8	10	0/0		0/0	
+Obsidian Giant	a3894a8cad4a195a	12	0/0		0/0	
 Of One Mind	9155c83a45af5ff4	56	0/0		2/2	
 Override	9b8c4ae9fe0b7813	3	0/0		1/2	ix:resp
 Overwhelming Stampede	e18e33bfa27b6f5c	33	0/0		2/2	
 Oxidize	cc45b1d11f2be38b	3	0/0		1/2	ix:resp
 Pathbreaker Ibex	6a109d82c75958e3	8	1/1		1/1	
+Peat Bog	cfd5d7722f3577c0	11	1/1		0/1	ix:resp
 Perilous Voyage	70c6633e83def1b4	5	0/0		1/2	ix:resp
 Phantom Beast	1d168804d910f418	4	1/1		1/1	
 Psychic Symbiont	812a821580689a10	35	1/1		1/1	
@@ -130,12 +140,14 @@ Rough	6231894808b5e8cd	4	0/0		1/3	f1/s,ix:resp
 Sadistic Slash	8454c0657fc6cb66	36	0/0		2/4	cast/alt:mayhem,ix:resp
 Scale of Chiss-Goria	764f77523bddafb0	10	1/1		0/1	ix:resp
 Scion of Calamity	5a0e0e5cdfaf9bac	13	2/2		0/1	ix:resp
+Second Sunrise	0626a0899a23c903	6	0/0		1/2	ix:resp
 Seven-Tail Mentor	cdd175630dbc83ce	69	2/2		0/1	ix:resp
 Sigil of Sleep	ea864aa9ea45d8e3	4	1/1		1/2	ix:resp
 Skycloud Egg	e6f7632398152957	13	1/1		1/1	
 Slith Bloodletter	0b16d8a65ae05110	43	2/2		1/1	
 Snubhorn Sentry	45899205674fd812	4	0/0		0/0	
 Sokka's Sword Training	27d316e5cb962b9d	122	0/0		2/2	
+Sparksmith	3274b4aed9061912	5	1/1		1/1	
 Sparring Construct	f7dd8161e3afa736	4	1/1		0/1	ix:resp
 Spiteful Sliver	aa0ad2ddc0019bee	32	0/0		0/0	
 Stern Scolding	7f8f30e2cbae68c0	5	0/0		1/2	ix:resp
@@ -144,12 +156,15 @@ Sword of Fire and Ice	296032564c2fe87a	7	2/2		0/1	ix:resp
 Taj-Nar Swordsmith	a86ce901a0c760dc	51	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Thalakos Sentry	e74c6f712711d6a4	83	0/0		0/0	
 Thopter Engineer	5364655f35700915	62	1/1		1/1	
+Thought Monitor	903e871f7626b83e	3	1/1		0/1	ix:resp
+Thought Reflection	169d96275f3af56c	4	0/0		0/0	
 Time of Ice	a585cebf49643ed3	4	0/0		0/0	
 Torch Fiend	022c8de9994e41d5	21	1/1		1/1	
 Touch of Invisibility	be52bad390ed2512	42	0/0		1/2	ix:resp
 Ultimate Price	d4b34ea3ed7fd1c6	6	0/0		2/2	
 Urborg Stalker	a53b17316be5fe82	29	1/1		1/1	
 Valkyrie Harbinger	4c549857e8ac27f8	51	1/1		0/1	ix:resp
+Venerable Lammasu	ad00e1814f5e1764	11	0/0		0/0	
 Venerated Rotpriest	e52440d38537a1bc	11	1/1		0/1	ix:resp
 Vengeant Vampire	91595ed5fe454548	17	1/1		0/1	ix:resp
 Verix Bladewing	3f9dcb0a37f68dca	27	1/1		3/3	
@@ -159,8 +174,10 @@ Viridian Corrupter	c1891db7bfeb2246	3	1/1		0/1	ix:resp
 Vodalian Zombie	81bc6db76b4087c5	72	0/0		0/0	
 Vulshok Berserker	de3b86c62fdf9023	23	0/0		0/0	
 Wall of Bone	46a6af3a82e0007d	8	1/1		1/1	
+Web	7feae78372e68861	3	0/0		1/2	ix:resp
 Whip Silk	2e28bb3166ddfa66	51	1/1		2/2	
 Whisper Squad	530ffae764720266	53	1/1		1/1	
+Wind Spirit	ec48b444a042297c	3	0/0		0/0	
 Witch Enchanter	aff602f5cea3f5b7	114	2/2		0/1	ix:resp
 Worship	9325b1f6c0cc31b4	10	0/0		0/0	
 Yawgmoth's Agenda	f116752af47947f0	6	0/0		0/0	

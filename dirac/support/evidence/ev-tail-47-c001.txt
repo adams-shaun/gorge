@@ -335,6 +335,7 @@ Simic Ragworm
 Singing Bell Strike
 Siren Lookout
 Skeletal Grimace
+Skullcage
 Sky Diamond
 Skyknight Vanguard
 Skymark Roc
@@ -361,6 +362,7 @@ Spectral Sliver
 Sphinx of New Prahv
 Sphinx of Uthuun
 Spiketail Hatchling
+Spined Sliver
 Spoils of Victory
 Spring-Leaf Avenger
 Sprout
@@ -379,6 +381,7 @@ Subira, Tulzidi Caravanner
 Sudden Impact
 Suffocating Fumes
 Sulfurous Springs
+Sunder Shaman
 Sunder from Within
 Supply Runners
 Suspended Sentence

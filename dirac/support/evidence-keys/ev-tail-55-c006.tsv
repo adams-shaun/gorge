@@ -1,30 +1,96 @@
 card	lir16	plays	keys	unused	branches	missing_branches
++2 Mace	9326494454e7ee69	4	1/1		0/1	ix:resp
 A-Tanazir Quandrix	7587ec012f87b17a	19	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Acorn Catapult	1acb0832c210c150	3	1/1		1/1	
+Anoint	e4f1737347113b94	4	0/0		2/4	cast/alt:buyback,ix:resp
+Archangel Avacyn	c7dd7c8aeddcaf28	6	3/3		0/1	ix:resp
 Avatar of Slaughter	30302b5208f5707f	21	0/0		0/0	
+Bile Urchin	8ffb84220784290b	4	1/1		0/1	ix:resp
+Bone Picker	9f1eb181be916efc	4	0/0		0/0	
+Boros Garrison	26e4839160349401	12	2/2		0/1	ix:resp
+Boros Signet	e6e191db7d57431b	8	1/1		0/1	ix:resp
 Bubble Snare	f5e6a929a8a80938	43	1/1		4/4	
+Bump in the Night	328cd87940e6bf27	4	0/0		3/4	ix:resp
+Burning Hands	d7acc26d3eb7895e	4	0/0		1/2	ix:resp
+Cavalier of Night	46bba3bcf9898f24	4	2/2		0/1	ix:resp
 Champion of Arashin	a0bcdb7eee58786e	51	0/0		0/0	
+Chariot of Victory	3a27e05eedb47aef	6	1/1		1/1	
+Creeping Corrosion	83e21938aa5d5db5	7	0/0		1/2	ix:resp
+Demonmail Hauberk	979b4ae1f9026d22	6	1/1		0/1	ix:resp
 Desperate Castaways	68a9b5fc3dcfbbe7	29	0/0		0/0	
+Dragonspeaker Shaman	2cf120eb0dc501f7	6	0/0		0/0	
+Drogskol Cavalry	1902d90ffa334d49	4	2/2		0/1	ix:resp
+Enchanted Prairie	74f91857c393b035	14	1/1		0/1	ix:resp
 Epiphany Storm	ac8f459f13ab0897	48	0/0		2/2	
+Esquire of the King	c6dbd7b26cb75526	4	1/1		0/1	ix:resp
+Ethrimik, Imagined Fiend	c4748ecf3d79bc7f	4	1/1		0/1	ix:resp
+Evolutionary Leap	6d6bbcd2cbfde9d3	6	1/1		1/1	
+Exultant Skymarcher	521cb4e7911b1fda	8	0/0		0/0	
 Ezuri, Stalker of Spheres	ca5f279b9b697343	9	2/2		0/1	ix:resp
 Fearsome Awakening	b4b120e394ef71fd	34	0/0		1/2	ix:resp
+Feral Maaka	9044ce4f09b3bbc1	5	0/0		0/0	
 Fire Ants	461dec4ba43b61dc	73	1/1		1/1	
 Fire Nation Soldier	979b65c7be254bcf	49	0/0		0/0	
 Fireborn Knight	df344fa8722160d0	4	1/1		1/1	
 Firemane Avenger	cf94ef65cedb729e	24	1/1		0/1	ix:resp
+Firemane Commando	923d3bb86378f07e	3	2/2		0/1	ix:resp
+Firewake Sliver	a6d0ed5b03b0db25	6	0/0		0/0	
 Font of Ire	d6db82cddf2a656e	29	1/1		1/1	
+Forgotten Harvest	892695ccd06af054	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Fracture	cb74554d349bad50	45	0/0		2/2	
+Galadhrim Guide	d024d005e2827197	6	1/1		0/1	ix:resp
+Gargoyle Flock	25cd399eb2c3fdd5	6	1/1		0/1	ix:resp
+Gnaw to the Bone	a54476a5f59fc4e5	4	0/0		3/4	ix:resp
+Gnottvold Slumbermound	5f851554d5d88cd4	18	2/2		0/1	ix:resp
+Granite Grip	e12e3f90e813efc7	4	0/0		1/2	ix:resp
+Hangar Scrounger	e0988c06e2b566ae	8	2/2		0/1	ix:resp
 Happy Hogan, Bodyguard	fbe84e00983b8a7f	55	1/1		1/1	
+Hidden Footblade	a6545f57db546af2	8	2/2		0/1	ix:resp
+Invasion of Dominaria	370c0e7ecfee35bb	16	1/1		0/1	ix:resp
+Lava Storm	c2acd16b448310ae	10	0/0		1/2	ix:resp
+Looming Shade	afb5d73c6124d21f	4	1/1		0/1	ix:resp
 Mausoleum Harpy	561bc0dff7a3c187	22	1/1		1/1	
+Mindmoil	3474d76976ecf9a1	5	1/1		0/1	ix:resp
+Momentum	9b7b3124b2ec082e	34	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Monk Realist	66713c7d51a12a32	75	1/1		0/1	ix:resp
+Mons's Goblin Raiders	181b78d1cf861b86	8	0/0		0/0	
+Mwonvuli Acid-Moss	9bbd661d2a0a7f97	4	0/0		1/2	ix:resp
+Nomad Stadium	6f4ff948ed464172	10	2/2		0/1	ix:resp
 Northern Paladin	ea25c68bed424613	58	1/1		0/1	ix:resp
+Nyxborn Colossus	73cba460b8b443b8	4	0/0		0/0	
+Obsidian Giant	a3894a8cad4a195a	6	0/0		0/0	
+Override	9b8c4ae9fe0b7813	4	0/0		1/2	ix:resp
+Overwhelming Stampede	e18e33bfa27b6f5c	6	0/0		1/2	ix:resp
+Peat Bog	cfd5d7722f3577c0	5	1/1		0/1	ix:resp
+Perilous Voyage	70c6633e83def1b4	4	0/0		1/2	ix:resp
 Phantom Beast	1d168804d910f418	55	1/1		1/1	
+Raging Gorilla	43932891278d8ef1	8	2/2		0/1	ix:resp
 Reckless Cohort	4eeb68ef4a9c7c28	38	0/0		0/0	
+Restoration Angel	6957094f77796360	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Rough	6231894808b5e8cd	4	0/0		1/3	f1/s,ix:resp
+Scale of Chiss-Goria	764f77523bddafb0	5	1/1		1/1	
 Seven-Tail Mentor	cdd175630dbc83ce	64	2/2		1/1	
+Skyclave Cleric	86a2712bee1f2ea7	10	2/2		0/1	ix:resp
+Smash to Dust	4aef52d119f57b61	8	0/0		2/2	
+Snubhorn Sentry	45899205674fd812	4	0/0		0/0	
+Sokka's Sword Training	27d316e5cb962b9d	3	0/0		2/2	
+Sparring Construct	f7dd8161e3afa736	4	1/1		0/1	ix:resp
+Spiteful Sliver	aa0ad2ddc0019bee	4	0/0		0/0	
+Staff of the Death Magus	75441682c539ee68	4	2/2		0/1	ix:resp
 Sunken Hope	95949950c33d16e8	62	1/1		1/1	
+Telekinetic Sliver	c358dc1b1c61b081	4	0/0		0/0	
 Thalakos Sentry	e74c6f712711d6a4	77	0/0		0/0	
+Thopter Engineer	5364655f35700915	8	1/1		1/1	
+Torch Fiend	022c8de9994e41d5	4	1/1		0/1	ix:resp
+Touch of Invisibility	be52bad390ed2512	4	0/0		1/2	ix:resp
 Urborg Stalker	a53b17316be5fe82	48	1/1		1/1	
 Valkyrie Harbinger	4c549857e8ac27f8	34	1/1		1/1	
 Venarian Gold	12c487eb6f620c6e	29	2/2		3/4	f0/s/x0
 Venerable Lammasu	ad00e1814f5e1764	38	0/0		0/0	
+Veteran's Sidearm	75e2444732985409	4	1/1		0/1	ix:resp
 Vulshok Berserker	de3b86c62fdf9023	36	0/0		0/0	
+Wave Goodbye	98510bb929a02724	4	0/0		1/2	ix:resp
+Web	7feae78372e68861	7	0/0		2/2	
 Wind Spirit	ec48b444a042297c	80	0/0		0/0	
+Worship	9325b1f6c0cc31b4	8	0/0		0/0	
+Zephyr Sprite	73d2f93655223586	6	0/0		0/0	

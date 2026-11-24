@@ -1,35 +1,104 @@
++2 Mace
+Aarakocra Sneak
+Abzan Beastmaster
 All That Glitters
+Ancient Brontodon
+Anointer of Champions
+Archangel Avacyn
+Archnemesis
+Arctic Wolves
 Avatar of Slaughter
+Ayula's Influence
+Boros Garrison
 Bubble Snare
 Champion of Arashin
+Chariot of Victory
+Chilling Trap
+Circle of Dreams Druid
+Circle of Protection: White
 Desperate Castaways
+Eidolon of the Great Revel
+Eiganjo Exemplar
+Enchanted Prairie
+Enlightened Maniac
 Epiphany Storm
+Evolutionary Leap
+Exultant Skymarcher
 Fearsome Awakening
+Feral Maaka
 Fire Ants
 Fire Nation Soldier
 Flowering Field
 Font of Ire
 Forest
 Fracture
+Gargoyle Flock
+Geomancer's Gambit
+Glory Bearers
+Gnaw to the Bone
+Granite Grip
+Guardian of the Forgotten
+Gust of Wind
 Hag Hedge-Mage
+Hand of Death
 Happy Hogan, Bodyguard
+Hardy Veteran
+Hidden Footblade
+Highborn Ghoul
+Ifnir Deadlands
+Incubation Druid
 Island
+Lava Storm
+Lucky Offering
 Mausoleum Harpy
+Military Discipline
 Monk Realist
 Mountain
+Nacatl Savage
+Night Market Guard
+Nomad Stadium
 Northern Paladin
+Obsidian Giant
+Of One Mind
+One Dozen Eyes
+Override
+Overwhelming Stampede
 Pang Tong, "Young Phoenix"
 Parhelion II
+Peat Bog
+Perilous Voyage
 Phantom Beast
 Plains
+Psychic Symbiont
+Razor Hippogriff
 Reckless Cohort
+Sadistic Slash
+Second Sunrise
+Seraph Sanctuary
 Seven-Tail Mentor
+Shell Skulkin
+Skyclave Cleric
+Slingbow Trap
+Snubhorn Sentry
+Sparksmith
+Sparring Construct
+Stern Scolding
 Sunken Hope
 Swamp
 Thalakos Sentry
+Thopter Engineer
+Thought Monitor
+Time of Ice
 Urborg Stalker
 Valkyrie Harbinger
 Venarian Gold
 Venerable Lammasu
+Verix Bladewing
 Vulshok Berserker
+Wall of Bone
+Web
+Whip Silk
 Wind Spirit
+Witch Enchanter
+Your Temple Is Under Attack
+Zephyr Sprite

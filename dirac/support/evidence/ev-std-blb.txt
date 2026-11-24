@@ -165,6 +165,7 @@ Rabbit Response
 Rabid Bite
 Rabid Gnaw
 Raccoon Rallier
+Ral, Crackling Wit
 Ravine Raider
 Repel Calamity
 Reptilian Recruiter

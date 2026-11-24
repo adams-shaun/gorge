@@ -69,6 +69,7 @@ Cho-Arrim Bruiser
 Cloak of Feathers
 Clot Sliver
 Cloud Elemental
+Cloud Key
 Cloudchaser Kestrel
 Cognivore
 Cold Storage
@@ -101,6 +102,7 @@ Dismiss
 Dormant Sliver
 Drana, Liberator of Malakir
 Draugr Thought-Thief
+Dreamborn Muse
 Drown in Ichor
 Dryad Greenseeker
 Duskhunter Bat

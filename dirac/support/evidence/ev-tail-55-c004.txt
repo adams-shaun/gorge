@@ -10,7 +10,9 @@ Adarkar Sentinel
 Agent of Acquisitions
 All That Glitters
 Ancient Brontodon
+Anoint
 Anvilwrought Raptor
+Aragorn and Arwen, Wed
 Arcbound Stinger
 Archangel Avacyn
 Arctic Wolves
@@ -41,6 +43,7 @@ Champion of Arashin
 Chariot of Victory
 Chilling Trap
 Circle of Flame
+Circle of Protection: White
 Coal Stoker
 Coerced Confession
 Creeping Corrosion
@@ -50,6 +53,7 @@ Desperate Castaways
 Devout Lightcaster
 Diplomacy of the Wastes
 Djinni Windseer
+Dragonspeaker Shaman
 Dramatic Rescue
 Duskmantle Operative
 Eidolon of the Great Revel
@@ -60,11 +64,13 @@ Enchanted Prairie
 Endless Ranks of the Dead
 Enlightened Maniac
 Epiphany Storm
+Esquire of the King
 Eternal Thirst
 Ethereal Investigator
 Ethrimik, Imagined Fiend
 Evolutionary Leap
 Extortion
+Exultant Skymarcher
 Faceless Butcher
 Faerie Conclave
 Farid, Enterprising Salvager
@@ -75,6 +81,7 @@ Ferocity
 Fervent Paincaster
 Fire Ants
 Fire Nation Soldier
+Firewake Sliver
 Flame Sweep
 Fleshmad Steed
 Font of Ire
@@ -82,9 +89,11 @@ Forced Landing
 Forest
 Forgotten Harvest
 Fracture
+Galadhrim Guide
 Geomancer's Gambit
 Glory Bearers
 Gnaw to the Bone
+Gnottvold Slumbermound
 Goblin Boom Keg
 Goldmeadow Dodger
 Granite Grip
@@ -95,6 +104,7 @@ Hand of Death
 Hangar Scrounger
 Hapato's Might
 Happy Hogan, Bodyguard
+Hardy Veteran
 Harrowing Journey
 Hidden Footblade
 Highborn Ghoul
@@ -103,6 +113,7 @@ Hunger of the Nim
 Ifnir Deadlands
 Immersturm Skullcairn
 Invasion of Kaldheim
+Invigorating Hot Spring
 Ioreth of the Healing House
 Iroh, Firebending Instructor
 Island
@@ -110,6 +121,8 @@ Jiang Yanggu
 Katilda, Dawnhart Prime
 Kiku's Shadow
 Kill Shot
+King Macar, the Gold-Cursed
+Kirtar's Wrath
 Kitchen
 Kolaghan Monument
 Laboratory Brute
@@ -135,6 +148,7 @@ Natural Selection
 Night Market Guard
 Nightshade Assassin
 Nomad Stadium
+Northern Paladin
 Nyxborn Colossus
 Obsidian Giant
 Octoprophet
@@ -143,6 +157,8 @@ Opaline Unicorn
 Override
 Overwhelming Stampede
 Owlbear
+Oxidize
+Peat Bog
 Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
@@ -150,10 +166,12 @@ Plains
 Psychic Symbiont
 Radioactive Man
 Raging Gorilla
+Rampart Smasher
 Razor Hippogriff
 Reckless Cohort
 Regress
 Reinforcements
+Research Assistant
 Restoration Angel
 Rona's Vortex
 Rough
@@ -165,6 +183,7 @@ Shell Skulkin
 Skirsdag Supplicant
 Sky-Eel School
 Skycloud Egg
+Slingbow Trap
 Slith Bloodletter
 Smash to Dust
 Soul Channeling
@@ -181,6 +200,7 @@ Swamp
 Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talonrend
+Targ Nar, Demon-Fang Gnoll
 Tattered Drake
 Telekinetic Sliver
 Thalakos Sentry
@@ -198,6 +218,7 @@ Urborg Stalker
 Valkyrie Harbinger
 Venerated Rotpriest
 Vengeant Vampire
+Verix Bladewing
 Veteran's Sidearm
 Vineweft
 Viridian Corrupter

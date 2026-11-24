@@ -5,6 +5,7 @@ A-Unholy Heat
 Advanced Hoverguard
 Adventure Awaits
 Aether Channeler
+Aether Theorist
 Air Marshal
 Akki Coalflinger
 Always Watching
@@ -82,6 +83,7 @@ Death's-Head Buzzard
 Decision Paralysis
 Decorated Champion
 Defiling Daemogoth
+Delver's Torch
 Demon of Catastrophes
 Desert Sandstorm
 Despoil
@@ -141,6 +143,7 @@ Ghostly Wings
 Gideon's Defeat
 Glacial Crasher
 Gladecover Scout
+Glintwing Invoker
 Goblin Engineer
 Goblin Fire Fiend
 Goblin Spy
@@ -270,6 +273,7 @@ Phantasmal Forces
 Phantasmal Form
 Pheres-Band Warchief
 Phyrexian Revoker
+Pillar of the Paruns
 Plague Rats
 Plains
 Planar Atlas
@@ -381,6 +385,7 @@ Surge of Brilliance
 Surrakar Banisher
 Survey the Wreckage
 Swamp
+Swordsman's Steel
 Tablet of Epityr
 Taeko, the Patient Avalanche
 Targ Nar, Demon-Fang Gnoll
