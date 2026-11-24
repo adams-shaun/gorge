@@ -71,3 +71,53 @@ func printSacrifice(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	return n, 1, nil
 }
+
+func init() {
+	registerStep(ir.VerbDoubleCounters, printDoubleCounters)
+	registerStep(ir.VerbFight, printFight)
+}
+
+// printDoubleCounters prints MultiplyCounter$: double the named counters on an object.
+func printDoubleCounters(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	if st.Obj == nil || st.Word == "" || st.Who != nil {
+		return nil, 0, unprintable("verb:double-counters", st.Src)
+	}
+	n := &node{API: "MultiplyCounter"}
+	if err := p.operand(n, "Defined", st.Obj); err != nil {
+		return nil, 0, err
+	}
+	n.set("CounterType", st.Word)
+	if err := zoptional(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
+
+// printFight prints Fight$: Defined$ is the first fighter, the target slot
+// declares the second.
+func printFight(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	if st.Obj == nil || st.Obj.Kind != ir.RefTarget || st.Source == nil || st.Who != nil {
+		return nil, 0, unprintable("verb:fight", st.Src)
+	}
+	d, err := p.defined(st.Source)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "Fight", Params: []kv{{"Defined", d}}}
+	ps, err := p.declare(st.Obj.Slot, st.Obj.Src)
+	if err != nil {
+		return nil, 0, err
+	}
+	if ps == nil {
+		return nil, 0, unprintable("verb:fight", st.Src)
+	}
+	for _, x := range ps {
+		n.set(x.K, x.V)
+	}
+	if err := zoptional(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
