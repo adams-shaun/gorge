@@ -12,7 +12,9 @@ import "strings"
 // Lair's `SubCounter<1/Dread>` (the one COST-side minority spelling: its
 // front face places `CounterType$ DREAD`), and Elspeth Resplendent's
 // `WithCounters$ Shield` -- the REAL shield counter (CR 122.1c), never the
-// engine's mixed-case "Shield" regeneration marker.
+// engine's mixed-case "Shield" regeneration marker -- and Rotating
+// Fireplace's / Wilfred Mott's `Count$CardCounters.Time`, read back against
+// the `CounterType$ TIME` their own scripts place.
 //
 // The fold is not a blanket upper-casing: keyword counters (Flying,
 // Deathtouch, ...) are stored and read title-cased, and the engine's own
@@ -31,14 +33,17 @@ var caseVariantCounterKinds = map[string]string{
 	"VERSE":  "VERSE",
 	"DREAD":  "DREAD",
 	"SHIELD": "SHIELD",
+	"TIME":   "TIME",
 }
 
 // CanonicalCounterKind folds a counter kind (or each entry of a comma list)
 // onto its canonical spelling; anything else is returned unchanged. It is the
 // ONE home of the fold: the PutCounter parameter reader (effects), the
 // ChangeZone/token entry-counter helpers (effects), and the SubCounter /
-// RemoveAnyCounter cost parser (engine/rules/cost) all call it, so a kind
-// cannot be placed under one spelling and read back under another.
+// RemoveAnyCounter cost parser (engine/rules/cost), the Count$CardCounters
+// readers (effects) and the departed-source LKI snapshot (engine/rules) all
+// call it, so a kind cannot be placed under one spelling and read back under
+// another.
 func CanonicalCounterKind(kind string) string {
 	if !strings.Contains(kind, ",") {
 		return canonicalCounterKindOne(kind)
