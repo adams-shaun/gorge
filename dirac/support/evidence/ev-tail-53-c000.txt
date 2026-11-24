@@ -387,6 +387,7 @@ The Gaffer
 Threaten
 Tidal Courier
 Timberland Guide
+Timberline Ridge
 Timberwatch Elf
 Titania, Proud Pummeler
 To Arms!
@@ -435,6 +436,7 @@ Wild Wanderer
 Winter Sky
 Witherbloom Apprentice
 Wizard's Lightning
+Wolf Pack
 Wooded Ridgeline
 World-Weary
 Worm Harvest

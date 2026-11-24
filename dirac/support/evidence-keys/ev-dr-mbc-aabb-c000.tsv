@@ -1,10 +1,12 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Accursed Spirit	f2545c6d8940a491	5	0/0		0/0	
+Adanto Vanguard	456af7bcaf461d6b	12	1/1		1/1	
 Aerie Bowmasters	234b7f5e2f5e7cd5	3	0/0		1/2	cast/alt:megamorphed
 Ancestral Mask	478cb7e708ffc9a5	7	0/0		2/2	
 Ancient Stirrings	fa1f3a12626d2987	4	0/0		1/2	ix:resp
 Armed	6d554b3db12b615e	3	0/0		3/5	cast/alt:fused,f1/s
 Arrogant Wurm	3b75c14557e3c967	5	0/0		0/0	
+Athreos, God of Passage	b42bcea5b75547ba	49	1/1		1/1	
 Axgard Cavalry	2ba491a173f8af04	8	1/1		0/1	ix:resp
 Balustrade Spy	2e2385fbb16a071a	3	1/1		0/1	ix:resp
 Barter in Blood	4536a047e0050dd9	6	0/0		1/2	ix:resp
@@ -12,6 +14,7 @@ Behold the Multiverse	d543ee1a4d959790	9	0/0		3/4	cast/alt:foretold
 Blightbeetle	bee0cc057374ce06	5	0/0		0/0	
 Blightsoil Druid	3c6e70bdd3893d1a	5	1/1		0/1	ix:resp
 Blood Knight	ba424c1dd7e9d86d	3	0/0		0/0	
+Blot Out	8ab8257bbd95e4bb	16	0/0		1/2	ix:resp
 Brainstealer Dragon	c209c9e9cd4d0b18	3	2/2		1/1	
 Bushmeat Poacher	04c0b5564a227308	5	1/1		1/1	
 Carrion Feeder	c3aa7fdbf0b52a8f	8	1/1		0/1	ix:resp
@@ -26,6 +29,7 @@ Divination	320ec7e9075f4953	5	0/0		2/2
 Dragon's Smile	dc812ea60125c39a	3	2/2		0/1	ix:resp
 Drift of Phantasms	062138a54af7a9fd	8	1/1		1/1	
 Eel Umbra	4697d310786ff9be	13	0/0		1/2	ix:resp
+Ekthi, Contaminator Priest	a2324447f76b35fc	14	0/0		0/0	
 Elda, Conjurer of Spectacle	f271015277bca4a7	4	0/0		0/0	
 Enclave Cryptologist	abb831ce73c9cec8	11	1/1		0/1	ix:resp
 Escape Tunnel	d52cf5b130679874	25	2/2		0/1	ix:resp
@@ -39,8 +43,10 @@ Fire Servant	aaf6b22d6c68df8a	4	0/0		0/0
 Forest	6d0466c30f825dba	156	1/1		0/1	ix:resp
 Freed from the Real	70ad48128ca40489	9	2/2		2/2	
 Gelatinous Genesis	a27ad28644d90eb8	4	0/0		3/4	f0/s/x0
+Ghost-Lit Stalker	6ad4be817d1f4b90	32	2/2		1/1	
 Harmonize	b83f040bcd1ea814	6	0/0		1/2	ix:resp
 Hickory Woodlot	dc24c0e68a77eb5d	18	1/1		0/1	ix:resp
+Imperial Oath	ed5ff9060d5e23d0	7	0/0		1/2	ix:resp
 Ingot Chewer	8448f93c163f6ac9	5	1/1		3/3	
 Island	763c67ef7a27eaf5	13	1/1		0/1	ix:resp
 Jaheira, Friend of the Forest	13ccd4bc749e19b3	4	0/0		0/0	
@@ -55,9 +61,12 @@ Maular, the Next Evolution	dd4bdd3f6f728f64	9	1/1		0/1	ix:resp
 Meekstone	a5ceff6456cc909f	15	0/0		0/0	
 Mountain	9e71388353e907ed	33	1/1		0/1	ix:resp
 Murmuring Mystic	08bbe40e10c024f3	19	1/1		1/1	
+Nightwind Glider	3e966a7a9cbbbdb9	20	0/0		0/0	
 Ophidian Eye	26f055e96d973e50	8	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
 Outmaneuver	692994ed2f0b92b1	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Overgrown Battlement	c1053f983d57df1f	4	1/1		0/1	ix:resp
+Painful Lesson	eaadf8234a451359	16	0/0		1/2	ix:resp
+Palace Sentinels	4c83e87bb7845ced	21	1/1		1/1	
 Pemmin's Aura	3b8626f99de937ca	7	4/4		2/2	
 Phantom Centaur	9b1afff300c081af	5	0/0		0/0	
 Phyrexian Rager	b1ff1e76ad3fc6b3	6	1/1		0/1	ix:resp
@@ -77,6 +86,7 @@ Saber Ants	de904b61a07c26be	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Season of Growth	66316655539797b2	9	2/2		1/1	
 Sengir Autocrat	2e039fdb09205f62	6	2/2		1/1	
 Sentinel Sliver	d1ce10c0d51e6ae2	3	0/0		0/0	
+Sheltered by Ghosts	dd4ac65e51635908	21	1/1		1/2	ix:resp
 Shroofus Sproutsire	7c0554cd08d2cb06	6	1/1		1/1	
 Silverglade Pathfinder	eac006eef0ebde9c	6	1/1		0/1	ix:resp
 Soltari Trooper	4254796ac7e86ea1	7	1/1		0/1	ix:resp
@@ -87,10 +97,12 @@ Sticky Fingers	034f4c043754a442	4	1/1		1/2	ix:resp
 Storm Sculptor	6556e0afce3e3bd1	15	1/1		0/1	ix:resp
 Struggle for Skemfar	4c8d1011a102b213	4	0/0		2/4	cast/alt:foretold,ix:resp
 Sunscape Familiar	b1fe50a915ae032a	4	0/0		0/0	
+Supernatural Stamina	38c39a560463646b	10	0/0		1/2	ix:resp
 Swamp	342b413902f441c3	84	1/1		0/1	ix:resp
 Tidy Conclusion	2b2d18e5660def8f	4	0/0		1/2	ix:resp
 Unburial Rites	19e5edab5fbf5155	6	0/0		3/4	ix:resp
 Underworld Breach	9b1cb8f5a0613494	4	1/1		0/1	ix:resp
+Vengeful Reaper	9b31c3d443a343ac	11	0/0		1/2	cast/alt:foretold
 Virtue's Ruin	cdbb1a8be0a38f7c	7	0/0		1/2	ix:resp
 Vow of Duty	c448c8e4e2db377f	4	0/0		1/2	ix:resp
 Wasteland Viper	048b56a9a65f6f02	3	1/1		0/1	ix:resp

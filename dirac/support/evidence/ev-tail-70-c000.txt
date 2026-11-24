@@ -166,6 +166,7 @@ Hero's Heirloom
 Holy Strength
 Hoof Skulkin
 Hopping Automaton
+Hourglass of the Lost
 Hoverguard Sweepers
 Hullbreaker Horror
 Hythonia the Cruel
@@ -222,6 +223,7 @@ Mesmeric Trance
 Metropolis Angel
 Mind Slash
 Minotaur Sureshot
+Mogis, God of Slaughter
 Moth Herb Elixir
 Mountain
 Mutilate

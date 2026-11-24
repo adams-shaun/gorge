@@ -327,6 +327,7 @@ Raking Claws
 Rampant Elephant
 Raphael, the Muscle
 Rathi Fiend
+Realms Uncharted
 Reclusive Wight
 Red Scarab
 Reduce
@@ -348,6 +349,7 @@ Sandstone Deadfall
 Sarkhan's Rage
 Sawback Manticore
 Scarland Thrinax
+Scarscale Ritual
 Scorchmark
 Scouting Hawk
 Sea Gate
