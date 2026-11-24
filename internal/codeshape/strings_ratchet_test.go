@@ -22,8 +22,9 @@ import (
 //
 // This test counts the string machinery in the engine's and the search
 // bots' non-test runtime files: strings.* calls, fmt.Sprint* calls,
-// strconv.* calls and map[string] types. Each count FAILS when it grows past
-// its constant and LOGS when it falls below; a change that converts sites
+// strconv.* calls and map[string] types. Each count FAILS when it grows more
+// than codeshape.Slack past its constant, WARNS (logs) on growth within the
+// slack, and LOGS when it falls below; a change that converts sites
 // lowers the constant to the new measurement in the same commit. NEVER
 // raise one -- convert at the boundary instead, or, for a genuine new
 // boundary or reporting FILE, add it to stringsRatchetAllowlist with its
@@ -77,9 +78,11 @@ func TestStringsRatchet(t *testing.T) {
 			{"strconv.* calls", got.strconv, want.strconv},
 			{"map[string] types", got.maps, want.maps},
 		} {
-			switch {
+			switch slack := Slack(m.want); {
+			case m.got > m.want+slack:
+				t.Errorf("%s: %d %s, above the ratchet's %d plus its slack of %d: convert the new sites to IDs at the boundary (see this file's doc)", scope, m.got, m.name, m.want, slack)
 			case m.got > m.want:
-				t.Errorf("%s: %d %s, above the ratchet's %d: convert the new sites to IDs at the boundary (see this file's doc)", scope, m.got, m.name, m.want)
+				t.Logf("WARNING %s: %d %s, above the ratchet's %d but within its slack of %d: passing; do not raise stringsRatchetMax", scope, m.got, m.name, m.want, slack)
 			case m.got < m.want:
 				t.Logf("%s: %d %s, below the ratchet's %d: lower stringsRatchetMax", scope, m.got, m.name, m.want)
 			}

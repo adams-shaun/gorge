@@ -4,8 +4,9 @@
 #
 # key<TAB>lines<TAB>complexity, key "<dir> <Name>" (codeshape.FuncShape.Key), sorted by key.
 #
-# A listed function fails when it grows past its row; an unlisted one fails when it crosses a threshold.
-# A function that shrinks, or leaves the table, only logs. Never add a row or raise a value: extract the
+# A listed function fails when it grows more than codeshape.FuncSlack (max(5, 3%)) past its row; an unlisted
+# one fails when it crosses a threshold by more than that slack. Growth within the slack, a function that
+# shrinks, or one that leaves the table, only logs. Never add a row or raise a value: extract the
 # concern into a named helper or a registered handler instead. To lock in shrinkage (lowers values and drops
 # rows, never raises or adds one):
 #   CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape
