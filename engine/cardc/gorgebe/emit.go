@@ -1,0 +1,412 @@
+package gorgebe
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cardc/ir"
+	"github.com/adams-shaun/gorge/engine/cards"
+)
+
+// This file is the printer core that every wave-3 family prints into
+// (docs/design/2026-11-23-typed-script-values/briefs/cc-21a-gorgebe-refs-filters.md).
+// It knows no family's spellings: ref.go, filter.go and target.go (CC-21a),
+// value.go and cond.go (CC-21b), the step printers (CC-22a/b) and the ability
+// printers (CC-23) install themselves from their own files' init.
+
+// kv is one script parameter, printed "K$ V".
+type kv struct{ K, V string }
+
+// node is one printed ability (SP$, AB$ or DB$): its API, its parameters in
+// print order, and its sub-ability.
+type node struct {
+	API    string
+	Params []kv
+	Sub    *node
+}
+
+// set replaces k's value, or appends k.
+func (n *node) set(k, v string) {
+	for i := range n.Params {
+		if n.Params[i].K == k {
+			n.Params[i].V = v
+			return
+		}
+	}
+	n.Params = append(n.Params, kv{k, v})
+}
+
+// get returns k's value.
+func (n *node) get(k string) (string, bool) {
+	for _, x := range n.Params {
+		if x.K == k {
+			return x.V, true
+		}
+	}
+	return "", false
+}
+
+// last returns the final node of n's sub-ability chain.
+func (n *node) last() *node {
+	for n.Sub != nil {
+		n = n.Sub
+	}
+	return n
+}
+
+// condForm is a condition, renderable on an ability (onAbility) or on a
+// trigger or static (onTrigger). Exactly one of SVar, Present and Turn is set.
+type condForm struct {
+	SVar    string // the SVar holding a count; Cmp compares it
+	Present string // a Valid list; Cmp compares how many objects match it
+	Defined string // with Present: whose match is counted ("" is Self)
+	Cmp     string // GE1, EQ0, LE10, ...; "" is GE1
+	Turn    string // "You": it is your turn; "Opponent": an opponent's turn
+}
+
+func (c condForm) cmp() string {
+	if c.Cmp == "" {
+		return "GE1"
+	}
+	return c.Cmp
+}
+
+// onAbility renders c as an ability's Condition*$ parameters.
+func (c condForm) onAbility() ([]kv, error) {
+	switch {
+	case c.SVar != "":
+		return []kv{{"ConditionCheckSVar", c.SVar}, {"ConditionSVarCompare", c.cmp()}}, nil
+	case c.Present != "":
+		d := c.Defined
+		if d == "" {
+			d = "Self"
+		}
+		return []kv{{"ConditionDefined", d}, {"ConditionPresent", c.Present}, {"ConditionCompare", c.cmp()}}, nil
+	case c.Turn == "You":
+		return []kv{{"ConditionPlayerTurn", "True"}}, nil
+	}
+	return nil, unprintable("cond:on-ability", "")
+}
+
+// onTrigger renders c as a trigger's or static's gate parameters.
+func (c condForm) onTrigger() ([]kv, error) {
+	switch {
+	case c.SVar != "":
+		return []kv{{"CheckSVar", c.SVar}, {"SVarCompare", c.cmp()}}, nil
+	case c.Present != "":
+		if c.Defined != "" && c.Defined != "Self" {
+			return []kv{{"IsPresent", c.Present}, {"PresentCompare", c.cmp()}, {"PresentDefined", c.Defined}}, nil
+		}
+		// IsPresent$ counts every match on the battlefield, so a test of the
+		// source itself restricts each term to Self.
+		terms := strings.Split(c.Present, ",")
+		for i, t := range terms {
+			if strings.Contains(t, ".") {
+				terms[i] = t + "+Self"
+			} else {
+				terms[i] = t + ".Self"
+			}
+		}
+		return []kv{{"IsPresent", strings.Join(terms, ",")}, {"PresentCompare", c.cmp()}}, nil
+	case c.Turn == "You":
+		return []kv{{"PlayerTurn", "True"}}, nil
+	case c.Turn == "Opponent":
+		return []kv{{"OpponentTurn", "True"}}, nil
+	}
+	return nil, unprintable("cond:on-trigger", "")
+}
+
+// negCmp is the comparison that holds exactly when op does not.
+var negCmp = map[string]string{"GE": "LT", "LT": "GE", "LE": "GT", "GT": "LE", "EQ": "NE", "NE": "EQ"}
+
+// not returns the negation of c.
+func (c condForm) not() (condForm, error) {
+	if c.Turn != "" {
+		if c.Turn == "You" {
+			c.Turn = "Opponent"
+		} else {
+			c.Turn = "You"
+		}
+		return c, nil
+	}
+	cmp := c.cmp()
+	if len(cmp) < 3 || negCmp[cmp[:2]] == "" {
+		return condForm{}, unprintable("cond:compare:"+cmp, "")
+	}
+	c.Cmp = negCmp[cmp[:2]] + cmp[2:]
+	return c, nil
+}
+
+// frame is one Program's target declarations.
+type frame struct {
+	targets  []*ir.Target
+	declared []bool
+}
+
+// pr prints one face's abilities.
+type pr struct {
+	lines  []string     // A:, T:, S: and R: lines, in order
+	svars  []kv         // SVar:<K>:<V> lines, in allocation order
+	ev     ir.EventKind // the enclosing trigger's or replacement's event; EvNone elsewhere
+	evSelf bool         // that event's object is the source itself ("when this enters")
+	frames []*frame
+	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
+}
+
+// The family printers. Each is nil until its file installs it from init.
+var (
+	refFn    func(p *pr, r *ir.Ref) (string, error)    // ref.go (CC-21a): a Defined$ spelling
+	validFn  func(p *pr, f *ir.Filter) (string, error) // filter.go (CC-21a): a Valid list
+	targetFn func(p *pr, t *ir.Target) ([]kv, error)   // target.go (CC-21a): ValidTgts$ and friends
+	valueFn  func(p *pr, v *ir.Value) (string, error)  // value.go (CC-21b): a count expression or a literal
+	condFn   func(p *pr, c *ir.Cond) (condForm, error) // cond.go (CC-21b)
+)
+
+func unprintable(what, path string) error { return &Unprintable{What: what, Path: path} }
+
+// defined spells r as a Defined$ value.
+func (p *pr) defined(r *ir.Ref) (string, error) {
+	if r == nil {
+		return "", unprintable("ref:nil", "")
+	}
+	if refFn == nil {
+		return "", unprintable("ref:"+r.Kind.String(), r.Src)
+	}
+	return refFn(p, r)
+}
+
+// valid spells f as a Valid list (ValidTgts$, ValidCards$, ...).
+func (p *pr) valid(f *ir.Filter) (string, error) {
+	if f == nil {
+		return "", unprintable("filter:nil", "")
+	}
+	if validFn == nil {
+		return "", unprintable("filter:"+f.Op.String(), f.Src)
+	}
+	return validFn(p, f)
+}
+
+// target spells one target declaration as parameters.
+func (p *pr) target(t *ir.Target) ([]kv, error) {
+	if t == nil {
+		return nil, unprintable("target:nil", "")
+	}
+	if targetFn == nil {
+		return nil, unprintable("target", t.Src)
+	}
+	return targetFn(p, t)
+}
+
+// amount spells v as an amount parameter: a decimal literal, or the name of
+// an SVar holding v's count expression.
+func (p *pr) amount(v *ir.Value) (string, error) {
+	if v == nil {
+		return "", unprintable("value:nil", "")
+	}
+	if v.Kind == ir.VConst {
+		return strconv.Itoa(int(v.N)), nil
+	}
+	if valueFn == nil {
+		return "", unprintable("value:"+v.Kind.String(), v.Src)
+	}
+	body, err := valueFn(p, v)
+	if err != nil {
+		return "", err
+	}
+	if _, err := strconv.Atoi(body); err == nil {
+		return body, nil
+	}
+	return p.countVar(body), nil
+}
+
+// cond spells c.
+func (p *pr) cond(c *ir.Cond) (condForm, error) {
+	if c == nil {
+		return condForm{}, unprintable("cond:nil", "")
+	}
+	if condFn == nil {
+		return condForm{}, unprintable("cond:"+c.Kind.String(), c.Src)
+	}
+	return condFn(p, c)
+}
+
+// countVar returns the SVar holding body, adding it when new. Count$xPaid is
+// X; any other body is N, N2, N3, ...
+func (p *pr) countVar(body string) string {
+	for _, s := range p.svars {
+		if s.V == body {
+			return s.K
+		}
+	}
+	base := "N"
+	if body == "Count$xPaid" {
+		base = "X"
+	}
+	name := p.fresh(base)
+	p.svars = append(p.svars, kv{name, body})
+	return name
+}
+
+// fresh returns base, or base2, base3, ..., whichever no SVar has yet.
+func (p *pr) fresh(base string) string {
+	name := base
+	for i := 2; p.hasSVar(name); i++ {
+		name = base + strconv.Itoa(i)
+	}
+	return name
+}
+
+func (p *pr) hasSVar(name string) bool {
+	for _, s := range p.svars {
+		if s.K == name {
+			return true
+		}
+	}
+	return false
+}
+
+// render returns n as "<kind>$ <API> | K$ V | ... | SubAbility$ <name>",
+// adding each sub-ability as an SVar DB<API>[k] holding "DB$ ...".
+func (p *pr) render(kind string, n *node) string {
+	var b strings.Builder
+	b.WriteString(kind + "$ " + n.API)
+	for _, x := range n.Params {
+		b.WriteString(" | " + x.K + "$ " + x.V)
+	}
+	if n.Sub != nil {
+		b.WriteString(" | SubAbility$ " + p.sub("DB"+n.Sub.API, n.Sub))
+	}
+	return b.String()
+}
+
+// sub adds n as an SVar named base[k] holding "DB$ ..." and returns the name,
+// for SubAbility$, Execute$ and ReplaceWith$.
+func (p *pr) sub(base string, n *node) string {
+	name := p.fresh(base)
+	i := len(p.svars)
+	p.svars = append(p.svars, kv{name, ""}) // reserve the name before the chain renders
+	p.svars[i].V = p.render("DB", n)
+	return name
+}
+
+// stepFunc prints the steps at the head of steps: the nodes it printed,
+// chained in order, and how many steps it consumed (at least 1). It must
+// handle steps[0].Optional or return an Unprintable.
+type stepFunc func(p *pr, steps []*ir.Step) (*node, int, error)
+
+var stepFns = map[ir.Verb]stepFunc{} // read by key only
+
+// registerStep installs f for v. A second registration of v panics.
+func registerStep(v ir.Verb, f stepFunc) {
+	if stepFns[v] != nil {
+		panic(fmt.Sprintf("gorgebe: verb %s registered twice", v))
+	}
+	stepFns[v] = f
+}
+
+// abilityFunc prints a, appending its lines (and SVars) to p.
+type abilityFunc func(p *pr, a *ir.Ability) error
+
+var abilityFns = map[ir.AbilityKind]abilityFunc{} // read by key only
+
+// registerAbility installs f for k. A second registration of k panics.
+func registerAbility(k ir.AbilityKind, f abilityFunc) {
+	if abilityFns[k] != nil {
+		panic(fmt.Sprintf("gorgebe: ability kind %s registered twice", k))
+	}
+	abilityFns[k] = f
+}
+
+// program prints prog as a chain of nodes in step order. A program with
+// targets opens a frame its steps declare them in.
+func (p *pr) program(prog *ir.Program) (*node, error) {
+	if prog == nil || len(prog.Steps) == 0 {
+		return nil, unprintable("program:empty", "")
+	}
+	if len(prog.Targets) > 0 {
+		p.frames = append(p.frames, &frame{targets: prog.Targets, declared: make([]bool, len(prog.Targets))})
+		defer func() { p.frames = p.frames[:len(p.frames)-1] }()
+	}
+	var head, tail *node
+	for i := 0; i < len(prog.Steps); {
+		st := prog.Steps[i]
+		f := stepFns[st.Verb]
+		if f == nil {
+			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
+		}
+		n, used, err := f(p, prog.Steps[i:])
+		if err != nil {
+			return nil, err
+		}
+		if n == nil || used < 1 {
+			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
+		}
+		if head == nil {
+			head = n
+		} else {
+			tail.Sub = n
+		}
+		tail = n.last()
+		i += used
+	}
+	if len(prog.Targets) > 0 {
+		for i, d := range p.frame().declared {
+			if !d {
+				return nil, unprintable("target:unused", prog.Targets[i].Src)
+			}
+		}
+	}
+	return head, nil
+}
+
+// frame returns the innermost frame, or nil outside any.
+func (p *pr) frame() *frame {
+	if len(p.frames) == 0 {
+		return nil
+	}
+	return p.frames[len(p.frames)-1]
+}
+
+// declare returns slot's target parameters the first time a node names the
+// slot, and nil after. Wave 3 prints one target slot per program.
+func (p *pr) declare(slot uint8, src string) ([]kv, error) {
+	f := p.frame()
+	if f == nil || int(slot) >= len(f.targets) {
+		return nil, unprintable("target:unbound", src)
+	}
+	if len(f.targets) > 1 {
+		return nil, unprintable("target:multi", src)
+	}
+	if f.declared[slot] {
+		return nil, nil
+	}
+	f.declared[slot] = true
+	return p.target(f.targets[slot])
+}
+
+// operand puts r on n: a target slot's declaration the first time the slot
+// is named, else key$ <Defined>.
+func (p *pr) operand(n *node, key string, r *ir.Ref) error {
+	if r == nil {
+		return unprintable("ref:nil", "")
+	}
+	if r.Kind == ir.RefTarget {
+		ps, err := p.declare(r.Slot, r.Src)
+		if err != nil {
+			return err
+		}
+		if ps != nil {
+			for _, x := range ps {
+				n.set(x.K, x.V)
+			}
+			return nil
+		}
+	}
+	d, err := p.defined(r)
+	if err != nil {
+		return err
+	}
+	n.set(key, d)
+	return nil
+}
