@@ -4,6 +4,9 @@ package kgen
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// dirac/manifest/CondKind/CondMonarch
+func init() { enum[kop.CondKind]("kop.CondMonarch", kop.CondMonarch) }
+
 // dirac/manifest/CounterKind/CtrKi
 func init() { enum[kop.CounterKind]("kop.CtrKi", kop.CtrKi) }
 

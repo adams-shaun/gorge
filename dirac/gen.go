@@ -727,6 +727,23 @@ func (g *genPrep) noteKeptSets(c *kop.CardDef) {
 	g.anySrcMem = g.anySrcMem || c.ImpPersist || c.SrcMem
 }
 
+// noteStaticPlayerStats prepares the two player-stat statics:
+// kop.StatPlayerHexproof's REPL bits (rbPlHex, which also gates the A == 2
+// shroud read, and rbPlProt for the A == 1 protection read) and anyHandSize,
+// which also gates the StHandDelta signed hand-size delta
+// (static_playerstats.go). No prep field of its own: TestNoNewFixedStateFields.
+func (g *genPrep) noteStaticPlayerStats(i int, a *kop.Ability) {
+	switch a.Static.Kind {
+	case kop.StatPlayerHexproof:
+		g.replBits[i] |= rbPlHex
+		if a.Static.A == 1 {
+			g.replBits[i] |= rbPlProt
+		}
+	case kop.StatNoMaxHandSize:
+		g.anyHandSize = true
+	}
+}
+
 // prepGrantTrig records a static's AddTrigger$ grant for grantTrigHosts.
 // CounterAddedAll's ordinal is past grantTrigEv's 32 bits, so it rides the
 // grantCtrAllUse table flag and the counter sites' Once gate instead
@@ -1459,13 +1476,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					if a.Static.Kw&kop.KwProwess != 0 {
 						g.anyProwessGrant = true
 					}
-				case kop.StatPlayerHexproof:
-					g.replBits[i] |= rbPlHex
-					if a.Static.A == 1 {
-						g.replBits[i] |= rbPlProt
-					}
-				case kop.StatNoMaxHandSize:
-					g.anyHandSize = true
+				case kop.StatPlayerHexproof, kop.StatNoMaxHandSize:
+					g.noteStaticPlayerStats(i, a)
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)

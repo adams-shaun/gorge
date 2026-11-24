@@ -1743,6 +1743,13 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 		if pp != p && k.gen != nil && (k.gen.anyRepl&rbPlHex != 0 || k.gen.anyEmbPlHex) && s.playerHexproof(k, pp) {
 			return false
 		}
+		// CR 702.18: shroud is symmetric -- a shrouded player is an illegal
+		// target for any spell or ability, their own controller's included
+		// (gorge playerShroudBlocksTarget in the offer's player loop,
+		// target_legal.go; the same read targetStillLegal makes)
+		if s.playerShroud(k, pp) {
+			return false
+		}
 		if s.plProtAll(k, pp) {
 			// CR 702.16b: the protected player cannot be the target of
 			// anything, their own spells included (no hexproof-style

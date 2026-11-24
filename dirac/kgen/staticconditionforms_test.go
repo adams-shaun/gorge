@@ -24,7 +24,7 @@ var staticConditionForms = []formCase{
 	{card: "Carapace Forger", form: "static Condition$ Metalcraft", lir: "cond=Present({types=0x4 ctrl=1},op1,3)"},
 	{card: "Bladeback Sliver", form: "static Condition$ Hellbent", lir: "cond=Value(op3,HandSizeOf(You),0)"},
 	{card: "Stoic Rebuttal", form: "self ReduceCost Condition$ Metalcraft", lir: "static ReduceCost F={types=0x0 Self} F2=nil cond=Present("},
-	{card: "Slithering Shade", form: "Hellbent outside Continuous (gorge gate unverified)", refused: `static Condition "Hellbent"`},
+	{card: "Slithering Shade", form: "CanAttackDefender Condition$ Hellbent (the shared combat gate)", lir: "cond=Value(op3,HandSizeOf(You),0)"},
 	{card: "Wheel of Fortune", form: "discard Mode$ Hand (whole hand, no ask)", lir: "Discard obj=EachPlayer A=127 CS=DiscarderChooses"},
 	{card: "Dread Wight", form: "Phase$ EndCombat lowers (the refusal moves on to its body)", refused: `Effect replacement Duration$`},
 	{card: "Realm Seekers", form: "Count$ValidHand Card (both hands)", lir: "A=Sum(HandSizeOf(n=1,You),HandSizeOf(n=1,EachOpp))"},

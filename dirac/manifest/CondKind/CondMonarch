@@ -1,0 +1,5 @@
+family: CondKind
+name: CondMonarch
+value: next
+status: active
+doc: the controller is the monarch (Condition$ Monarch, CR 719.2; gorge condMonarch, state.Game.IsMonarch). The kernel holds the monarch seat in genState.mon (act_monarch.go) and the condition reads it with the evaluating controller, the same context gorge's continuousConditionHolds reads sv.Controller in.

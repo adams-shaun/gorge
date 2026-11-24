@@ -61,6 +61,16 @@ func (s *State) maxHand(k *prep, p uint8) int {
 		if sf.Cond2 != 0 && !s.condEval(k, sf.Cond2, ctx) {
 			return true
 		}
+		if sf.StFlags&kop.StHandDelta != 0 {
+			// CR 402.2: the additive RaiseMaxHandSize$ statics (Minamo
+			// Scrollkeeper's +1, Jin-Gitaxias's -7) apply on top of the set
+			// maximum, never below zero, and no maximum stays no maximum:
+			// gorge maxHandSizeFor returns before the delta walk when best
+			// is unlimited, then clamps at 0. The delta rides out of the
+			// set-maximum walk (stHandDelta below); gorge sums every
+			// matching static's amount the same way.
+			return true
+		}
 		a := int(sf.A)
 		if DebugIgnoreHandSize && a != 0 {
 			return true
@@ -92,7 +102,43 @@ func (s *State) maxHand(k *prep, p uint8) int {
 		}
 		return true
 	})
-	return max
+	if max >= handUnlimited {
+		return max // no maximum: no delta applies (gorge maxHandSizeFor)
+	}
+	// the delta walk rides maxHand's anyHandSize gate (no prep bit of its own)
+	max += s.handDelta(k, p)
+	return max0(max)
+}
+
+// handDelta is the sum of the signed RaiseMaxHandSize$ deltas (StHandDelta)
+// affecting p: every static whose controller is p and whose condition holds
+// adds its amount (gorge maxHandSizeFor's delta walk, CR 402.2).
+//
+//go:noinline
+func (s *State) handDelta(k *prep, p uint8) int {
+	d := 0
+	s.eachStaticG(k, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatNoMaxHandSize ||
+			a.Static.StFlags&kop.StHandDelta == 0 || st.ctrl != p {
+			return true
+		}
+		if a.Static.Cond2 != 0 && !s.condEval(k, a.Static.Cond2, s.ctxStatic(st)) {
+			return true
+		}
+		d += int(a.Static.A)
+		return true
+	})
+	return d
+}
+
+// max0 is the CR 402.2 clamp of the delta read: the maximum never drops
+// below zero.
+func max0(n int) int {
+	if n < 0 {
+		return 0
+	}
+	return n
 }
 
 // plProtected reports whether the damage a source controlled by srcCtrl
@@ -102,4 +148,33 @@ func (s *State) maxHand(k *prep, p uint8) int {
 // pool, and a damage call here does not say whether its source is live.
 func (s *State) plProtected(k *prep, srcCtrl, rcp uint8, combat bool) bool {
 	return srcCtrl != rcp && s.replN(k, rcp, rbPlProt) > 0 && !s.noPrev(k, combat) // CR 615.12
+}
+
+// playerShroud: player p has shroud (controls a StatPlayerHexproof static
+// with A == 2, the shroud read of the A == 1 protection bit): no spell or
+// ability may target p, p's own controller's included -- shroud is
+// symmetric, unlike hexproof (CR 702.18; gorge playerShroudBlocksTarget,
+// read at the offer, target_legal.go, and the resolution recheck,
+// stack.go). The corpus's grants are unconditional statics, so no Cond2 is
+// consulted; a conditioned grant is refused at the lowering.
+//
+//go:noinline
+func (s *State) playerShroud(k *prep, p uint8) bool {
+	if k.gen == nil || k.gen.anyRepl&rbPlHex == 0 { // every shroud static sets rbPlHex (noteStaticPlayerStats)
+		return false
+	}
+	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+		sl := m.first()
+		if s.genLost(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatPlayerHexproof && a.Static.A == 2 {
+				return true
+			}
+		}
+	}
+	return false
 }

@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -51,10 +52,20 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 			return refuse("ReduceCost MinMana$ with ValidSpell$ Static.Unlock")
 		}
 	} else {
-		// an equip's source is always a battlefield permanent: the equip
-		// arm reads an absent AffectedZone$ as the battlefield
+		// an absent AffectedZone$ is NOT simply the battlefield: gorge's
+		// costStaticGateTail applies no zone gate on an absent key, while the
+		// kernel prices battlefield activations only (cost_reduceability.go
+		// abReduced's ActZone gate), so the lowering accepts the absent zone
+		// only where every activation the ValidCard$ can match is a
+		// battlefield one (reduceAbBattlefieldOnly). The equip arm's source
+		// is always a battlefield permanent, so it needs no proof.
 		if az := sp.str("AffectedZone"); az != "Battlefield" && (arm != 5 || az != "") {
-			return refuse("ReduceCost AffectedZone %q", az)
+			if az != "" {
+				return refuse("ReduceCost AffectedZone %q", az)
+			}
+			if err := reduceAbBattlefieldOnly(sp.str("ValidCard")); err != nil {
+				return err
+			}
 		}
 		if v, ok := sp.get("MinMana"); ok {
 			n, err := strconv.Atoi(v)
@@ -65,8 +76,8 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 		}
 	}
 	st.AbilityRed = uint8(arm)
-	for _, k := range []string{"Color", "ValidTarget", "EffectZone"} {
-		if _, ok := sp.get(k); ok && (arm != 5 || k != "ValidTarget") {
+	for _, k := range []string{"Color", "EffectZone"} {
+		if _, ok := sp.get(k); ok {
 			return refuse("ReduceCost %s$", k)
 		}
 	}
@@ -82,23 +93,62 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 	if st.F, err = readF("ValidCard"); err != nil {
 		return err
 	}
-	if arm == 5 {
-		// "Equip abilities you activate that target <X>" (Cloud, Planet's
-		// Champion; Dwarven Mauler): no ValidCard$ is any permanent's equip,
-		// and ValidTarget$ gates on the equip's target (kop.StTargetsFilter2,
-		// read with the static's source as Self). A Spell head refuses:
-		// an equip targets a creature, never a spell.
-		if st.F == nil {
-			if st.F, err = lc.filter("Card"); err != nil {
-				return err
-			}
+	if vt, ok := sp.get("ValidTarget"); ok {
+		// the reduction applies once the ability's chosen target matches
+		// (Bladegraft Aspirant's "activated abilities of Equipment you
+		// control that target CARDNAME"; gorge costStaticGateTail's
+		// ValidTarget$ arm). kop.StTargetsFilter2, read with the static's
+		// source as Self, the one read the equip arm already locksteps
+		// (abReducedFor's tgts arm). A Spell head refuses: an equip targets
+		// a creature, never a spell, and the same holds for an ability's
+		// targets.
+		if strings.Contains(vt, "Spell") {
+			return refuse("ReduceCost ValidTarget$ %q", vt)
 		}
-		if st.F2, err = readF("ValidTarget"); err != nil {
+		if st.F2, err = lc.filter(vt); err != nil {
+			return err
+		}
+	}
+	if arm == 5 && st.F == nil {
+		// the equip arm, with or without a ValidTarget$ (Cloud, Planet's
+		// Champion; Helitrooper): no ValidCard$ is any permanent's equip
+		if st.F, err = lc.filter("Card"); err != nil {
 			return err
 		}
 	}
 	if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
 		return err
+	}
+	return nil
+}
+
+// reduceAbBattlefieldOnly refuses an absent AffectedZone$ whose ValidCard$
+// can match a non-battlefield activation's source: the kernel prices
+// battlefield activations only (cost_reduceability.go abReduced's ActZone
+// gate), while gorge applies no zone gate on an absent key and prices the
+// graveyard activation the filter matches (Embalmer's Tools' unearth:
+// gorge charges {1} less, the kernel full price). An alternative is
+// provably battlefield-only when it carries inZoneBattlefield, when its
+// candidates are an attachment's host (an Aura's or Equipment's host is
+// always a battlefield permanent: Power Artifact's Artifact.EnchantedBy) or
+// when its base type is Equipment or Aura -- gorge offers a card's ability
+// from outside the battlefield only through the graveyard grants and casts
+// (unearth, embalm, eternalize, scavenge, escape, flashback, retrace), whose
+// sources are creature and spell cards.
+func reduceAbBattlefieldOnly(spec string) error {
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if strings.Contains(alt, "inZoneBattlefield") {
+			continue
+		}
+		if strings.Contains(alt, ".EnchantedBy") || strings.Contains(alt, ".EquippedBy") {
+			continue
+		}
+		base, _, _ := strings.Cut(alt, ".")
+		if base == "Equipment" || base == "Aura" {
+			continue
+		}
+		return refuse("ReduceCost AffectedZone \"\": %q can match a non-battlefield activation", alt)
 	}
 	return nil
 }

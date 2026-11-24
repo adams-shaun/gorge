@@ -119,6 +119,14 @@ const StFreeOnly = StRaiseYou
 // NoMaxHandSize reads no IncreaseCost flag.
 const StHandOpp = StRaiseOpp
 
+// StHandDelta is StRaiseYou read on a StatNoMaxHandSize: A carries a signed
+// additive maximum-hand-size delta (CR 402.2, RaiseMaxHandSize$: Minamo
+// Scrollkeeper's +1, Jin-Gitaxias's -7), applied on top of the set maximum,
+// never below zero (kernel maxHand; gorge maxHandSizeFor). A static without
+// the flag reads A as the maximum plus one. NoMaxHandSize reads no
+// IncreaseCost flag, and StRaiseYou is MayPlayFrom's StFreeOnly alias.
+const StHandDelta = StRaiseYou
+
 // StBanOpp is StRaiseOpp read on a StatCantGainLife / StatCantDraw: the ban
 // binds only the controller's opponents (ValidPlayer$ Opponent, Tibalt, Rakish
 // Instigator's "Your opponents can't gain life"; gorge lifeGainForbidden /
