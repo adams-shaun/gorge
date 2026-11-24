@@ -12,6 +12,15 @@ import (
 
 func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
 
+// ForcedCoinFlip (effects.HostForcedCoinFlip) is CoinFlipHook's result for
+// flipper p; with no hook nothing is forced.
+func (e *Engine) ForcedCoinFlip(p state.PlayerID) (win, forced bool) {
+	if e.CoinFlipHook == nil {
+		return false, false
+	}
+	return e.CoinFlipHook(p)
+}
+
 // ShuffleLibrary is the single library-shuffle path used by rules and effects.
 // State changes only when the caller emits the resulting Shuffle event.
 func (e *Engine) ShuffleLibrary(player state.PlayerID, order []state.ObjID) []state.ObjID {

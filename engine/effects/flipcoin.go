@@ -55,6 +55,11 @@ func FlipCoinWin(h Host, p state.PlayerID) bool {
 // coin: the flip's win, the side every corpus flip rewards. Without the
 // static the draw is the single h.Rand(2) it always was.
 func coinResult(h Host, p state.PlayerID, source state.ObjID) bool {
+	if f, ok := h.(HostForcedCoinFlip); ok {
+		if win, forced := f.ForcedCoinFlip(p); forced {
+			return win
+		}
+	}
 	if youStaticCount(h.Game(), p, ModeFlipCoinDoubler) == 0 {
 		return h.Rand(2) == 0
 	}
@@ -72,6 +77,19 @@ func coinResult(h Host, p state.PlayerID, source state.ObjID) bool {
 		return ans[0].Index == 0
 	}
 	return true
+}
+
+// HostForcedCoinFlip is an optional harness role of a Host: the oracle
+// runner replaying a lowered scenario forces each random flip to the live
+// game's result (CR 705.1: the result is random, so only a forced result
+// makes two runs agree). coinResult, the one point a flip draws from the
+// RNG, asks it first; forced=false (and every host without the role) draws
+// as always. A forced flip replaces the whole draw, the doubler's two coins
+// and their keep choice included: the result is the kept side. A
+// FlipCoinMod (Edgar) flip never reaches coinResult, so it never consumes a
+// forced result.
+type HostForcedCoinFlip interface {
+	ForcedCoinFlip(p state.PlayerID) (win, forced bool)
 }
 
 // FlipCoinForced reports whether player p's next batch of coin flips comes up
