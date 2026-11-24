@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomBehold
+value: next
+status: deferred no kernel payer for this atom yet (T18b)
+doc: CostAtomBehold: behold N objects (gorge paid.Beholds, optionally then exiled). The kernel pays no behold cost on an ability yet.
