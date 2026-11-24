@@ -272,6 +272,7 @@ Meteorite
 Michiko Konda, Truth Seeker
 Might of Oaks
 Military Intelligence
+Mimeofacture
 Mind Carver
 Misguided Rage
 Mishra's Domination
@@ -348,6 +349,7 @@ Rhovanion Rampager
 Rhystic Tutor
 Rib Cage Spider
 Righteous Valkyrie
+River Delta
 Roadside Reliquary
 Roast
 Robot Chicken

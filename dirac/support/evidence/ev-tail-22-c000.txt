@@ -150,6 +150,7 @@ Forge, Neverwinter Charlatan
 Foriysian Brigade
 Fortuitous Find
 Foul Presence
+Frenzied Arynx
 Gate to Seatower
 Ghor-Clan Savage
 Glistener Elf
@@ -233,6 +234,7 @@ Maddening Wind
 Maggot Carrier
 Magus of the Bridge
 Mana Cylix
+March of the Canonized
 Marsh Crocodile
 Marsh Gas
 Martial Coup
@@ -298,6 +300,7 @@ Pin to the Earth
 Plains
 Planar Bridge
 Plumeveil
+Poison the Cup
 Potatoes
 Precognitive Perception
 Predator, Flagship

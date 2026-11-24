@@ -251,6 +251,7 @@ Journey to Eternity
 Jund Battlemage
 Kamahl, Heart of Krosa
 Kami of Whispered Hopes
+Karametra, God of Harvests
 Karfell Kennel-Master
 Kargan Dragonlord
 Karoo
@@ -427,6 +428,7 @@ Silent Specter
 Silver Erne
 Silverstorm Samurai
 Sixth Sense
+Skarrgan Hellkite
 Skeletal Grimace
 Skeletal Wurm
 Skemfar Avenger

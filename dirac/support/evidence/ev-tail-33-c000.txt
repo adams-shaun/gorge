@@ -379,6 +379,7 @@ Sling-Gang Lieutenant
 Smoldering Efreet
 Smuggler's Copter
 Solar Blast
+Solemn Doomguide
 Soltari Trooper
 Soul Kiss
 Spearpoint Oread
@@ -447,6 +448,7 @@ Viridian Zealot
 Voice of Truth
 Voidwielder
 Voyaging Satyr
+Vulshok Factory
 Vulshok War Boar
 Walking Dead
 Wall of Roots
