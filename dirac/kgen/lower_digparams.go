@@ -3,6 +3,8 @@ package kgen
 import (
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // digNoReveal reads Dig's NoReveal$ (gorge dig_params RevealWin = Reveal$
@@ -222,4 +224,16 @@ func pickConstraintFilter(f *lFilter, budget lValue, hasBudget, distinct bool) *
 // one flag without the other all refuse.
 func digFaceDownShape(fd, look, blind bool, dest int) bool {
 	return (fd == look || blind) && (!fd || dest == zExile)
+}
+
+// digRevealPickFlag adds ForceRevealToController when the script dropped it
+// but the Oracle text is the "you may reveal a card from among them" dig. The
+// new corpus dropped ForceRevealToController$ True from those digs; gorge
+// effDig reads the same rule (cards.DigRevealsPick), so the table carries the
+// flag.
+func digRevealPickFlag(ps *params, oracle string, flags []string) []string {
+	if !ps.is("ForceRevealToController", "True") && cards.DigRevealsPick(ps.m, oracle) {
+		return append(flags, "ForceRevealToController")
+	}
+	return flags
 }

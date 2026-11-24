@@ -386,10 +386,11 @@ func evalCov3PlayerHead(h Host, c *Ctx, head, arg string, depth int) (int32, boo
 		// resolution's remembered objects (Deadly Cover-Up's survivor search).
 		players = cov3RememberedOwners(g, c)
 		sharedProps = true
-	case cov3PlayerGroupPlayerCountNonActive:
-		// Every living player but the active one, in seat order (Greener
-		// Pastures' and Rivalry's "each player other than the active player").
-		players = nonActivePlayers(g)
+	case cov3PlayerGroupPlayerCountDefinedNonTriggeredPlayer:
+		// Forge's Defined Non<Ref>: every living player but the trigger's
+		// player, in seat order (Greener Pastures' and Rivalry's "each other
+		// player" beside the upkeep's TriggeredPlayer).
+		players = nonTriggeredPlayers(g, c)
 		sharedProps = true
 	case cov3PlayerGroupPlayerCountRememberedOwner, cov3PlayerGroupPlayerCountRememberedPlayer,
 		cov3PlayerGroupPlayerCountDefinedTriggeredPlay,
@@ -776,7 +777,7 @@ func cov3SharedPlayerProps(h Host, c *Ctx, g *state.Game, players []state.Player
 		return n, true
 	}
 	// The Highest/Lowest extremes over the group (PlayerCountOther$HighestValid
-	// Creature.YouCtrl, PlayerCountNonActive$HighestValid Land.YouCtrl): the same
+	// Creature.YouCtrl, PlayerCountDefinedNonTriggeredPlayer$HighestValid Land.YouCtrl): the same
 	// reduction the opponents' group reads.
 	return playerCountExtreme(h, g, c, players, prop, arg)
 }
@@ -1064,9 +1065,9 @@ const (
 	cov3PlayerGroupPlayerCountRememberedOwner
 	cov3PlayerGroupPlayerCountRememberedPlayer
 	cov3PlayerGroupPlayerCountDefinedTriggeredPlay
-	// The count_history_heads.go groups: every living player but the active
-	// one, and the trigger-defined members PlayerCountDefined<Ref>$ names.
-	cov3PlayerGroupPlayerCountNonActive
+	// The count_history_heads.go groups: every living player but the
+	// trigger's player, and the trigger-defined members PlayerCountDefined<Ref>$ names.
+	cov3PlayerGroupPlayerCountDefinedNonTriggeredPlayer
 	cov3PlayerGroupPlayerCountDefinedTriggeredSourceController
 	cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner
 	cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou
@@ -1085,7 +1086,7 @@ var cov3PlayerGroupCodes = state.NewStrCodes(
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedOwner", Val: cov3PlayerGroupPlayerCountRememberedOwner},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountRememberedPlayer", Val: cov3PlayerGroupPlayerCountRememberedPlayer},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredPlayer", Val: cov3PlayerGroupPlayerCountDefinedTriggeredPlay},
-	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountNonActive", Val: cov3PlayerGroupPlayerCountNonActive},
+	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedNonTriggeredPlayer", Val: cov3PlayerGroupPlayerCountDefinedNonTriggeredPlayer},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredSourceController", Val: cov3PlayerGroupPlayerCountDefinedTriggeredSourceController},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredCardOwner", Val: cov3PlayerGroupPlayerCountDefinedTriggeredCardOwner},
 	state.StrEntry[cov3PlayerGroupCode]{Key: "PlayerCountDefinedTriggeredAttackedTargetAndYou", Val: cov3PlayerGroupPlayerCountDefinedTriggeredAttackedTargetAndYou},

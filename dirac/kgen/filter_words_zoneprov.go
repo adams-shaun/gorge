@@ -82,7 +82,7 @@ func wasCastOriginN(p string) int {
 // library), so by == you.
 func spellOriginN(p string) int {
 	switch p {
-	case "!wasCastFromYourHand", "!wasCastFromTheirHand":
+	case "!wasCastFromYourHand", "!wasCastFromTheirHand", "!wasCastFromHand":
 		return spellHand | spellNot
 	case "wasCastFromYourHandByYou":
 		return spellHandBy
