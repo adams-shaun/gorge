@@ -234,7 +234,17 @@ func (p *pr) staticEffect(a *ir.Ability, st *ir.Step, e *ir.Effect) (params, str
 			if err != nil {
 				return nil, "", err
 			}
-			return params{{"Mode", "AlternativeCost"}, {"ValidSA", "Spell.Self"}, {"EffectZone", "All"}, {"Cost", c}}, "S:", nil
+			ps := params{{"Mode", "AlternativeCost"}, {"ValidSA", "Spell.Self"}, {"EffectZone", "All"}, {"Cost", c}}
+			if e.Cond != nil {
+				gate, err := p.battlefieldCount(e.Cond)
+				if err != nil {
+					return nil, "", err
+				}
+				for _, g := range gate {
+					ps.set(g.K, g.V)
+				}
+			}
+			return ps, "S:", nil
 		}
 	case ir.EffCantLose, ir.EffCantWin:
 		who, ok, err := p.playersOf(o)

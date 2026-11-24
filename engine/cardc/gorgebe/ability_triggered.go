@@ -419,6 +419,17 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		}
 		cond = c
 	}
+	if cond != nil && self {
+		// "if it was kicked" on a self trigger is a qualifier of the source in ValidCard$.
+		if w := castFactWord(cond); w != "" {
+			for i := range ps {
+				if ps[i].K == "ValidCard" && ps[i].V == "Card.Self" {
+					ps[i].V += "+" + w
+					cond = nil
+				}
+			}
+		}
+	}
 	if cond != nil {
 		f, err := p.cond(cond)
 		if err != nil {
@@ -439,4 +450,19 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 // isYouFilter reports whether f is exactly "the player is you".
 func isYouFilter(f *ir.Filter) bool {
 	return f != nil && f.Op == ir.FPred && f.Pred == ir.PPlayerIs && len(f.Args) == 0 && isYou(f.Ref) && f.Word == "" && f.Colors == 0
+}
+
+// castFactWord is Forge's Valid qualifier ("kicked", "surged") for a condition
+// that tests only that the entering source was cast that way, or "".
+func castFactWord(c *ir.Cond) string {
+	if c.Kind != ir.CRefMatches || c.Ref == nil || c.Ref.Kind != ir.RefEventObject || c.Filter == nil {
+		return ""
+	}
+	switch {
+	case isPred(c.Filter, ir.PKicked):
+		return "kicked"
+	case isPred(c.Filter, ir.PSurged):
+		return "surged"
+	}
+	return ""
 }

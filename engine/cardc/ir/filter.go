@@ -105,6 +105,8 @@ const (
 	PCardsInHand
 	PControlsMoreThan
 	PName
+	PKicked
+	PSurged
 	predCount
 )
 
@@ -140,6 +142,8 @@ var predNames = [...]string{
 	PCardsInHand:      "cards-in-hand",
 	PControlsMoreThan: "controls-more-than",
 	PName:             "name",
+	PKicked:           "kicked",
+	PSurged:           "surged",
 }
 
 // String returns the lower-kebab name of k.
