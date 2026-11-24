@@ -1,0 +1,18 @@
+{
+  "card": "Mysterio, Master of Illusion",
+  "class": "lockstep",
+  "why": "gorge's Effect source-leave delayed trigger now exiles the Illusion tokens when Mysterio leaves; kgen still lowers the Effect as an emblem with CaptureRem/NotHere (lt-low-effect-trig-remember), so the kernel keeps the tokens",
+  "repro": {
+    "pool": "std-spm",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 4,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "ev-std-spm-c000",
+    "ev-std-spm-c001",
+    "ev-std-spm"
+  ]
+}
