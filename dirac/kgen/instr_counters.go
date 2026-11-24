@@ -118,7 +118,13 @@ func (ic *instrCtx) opSupport() error {
 		return err
 	}
 	ki.C = int16(k) | int16(in.C)<<8 // C=1: other than the source
-	if in.C&2 != 0 {                 // the remove form (2 remove, 4 exact, 8 remember amount) elects over F
+	if in.Obj.Kind == rTarget {
+		// C&0x1000: the cast announced the targets (an instant or sorcery's
+		// Support, CR 601.2c); the kernel applies one counter to each target
+		// of Obj's slot instead of opening a resolution pick.
+		ki.C |= 0x1000
+	}
+	if in.C&2 != 0 { // the remove form (2 remove, 4 exact, 8 remember amount) elects over F
 		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 			return err
 		}
