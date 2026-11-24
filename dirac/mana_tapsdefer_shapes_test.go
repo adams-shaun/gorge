@@ -163,7 +163,7 @@ func TestScriptAnyRGapFiresItsTapsWatcherOnce(t *testing.T) {
 		t.Fatalf("precondition: %d pending triggers before the tap", sc.s.npend)
 	}
 	var spill [kop.NumManaKinds]uint8
-	sc.s.tapGapChoice(sc.k, 0, sc.slot(birds), slotMask{}, anyR, slotMask{}, 0, &spill)
+	sc.s.tapGapChoice(sc.k, 0, 0, sc.slot(birds), slotMask{}, anyR, slotMask{}, 0, &spill)
 	if got := sc.s.npend; got != 1 {
 		t.Fatalf("%d Taps triggers queued by one scripted anyR tap, want 1", got)
 	}

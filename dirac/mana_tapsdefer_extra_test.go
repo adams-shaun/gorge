@@ -51,7 +51,7 @@ func TestTapsDeferFixedColourGapCarriesTheTapExtra(t *testing.T) {
 		t.Fatalf("scriptGapAvail %d, want %d", gaps.total, want)
 	}
 	before := sc.s.pl[0].pool
-	sc.s.tapDeferFloat(sc.k, 0, sl, 0)
+	sc.s.tapDeferFloat(sc.k, 0, sl, 0, 0)
 	got := 0
 	for c := range before {
 		got += int(sc.s.pl[0].pool[c]) - int(before[c])

@@ -731,6 +731,18 @@ const StTapAnyPlayer = StWithoutManaCost
 // enchanted source.
 const StTapChosen = StFunctionsInGraveyard
 
+// StTapAnyCol (aliases StRemove6Counters, a MayPlayFrom-only bit) on a
+// StatTapExtra static: the extra is mana of a colour chosen at the tap (a
+// Mode$ TapsForMana | Static$ True body with Produced$ Any or Combo Any:
+// Fertile Ground, Market Festival), not of colour A. A is the ask's shape:
+// 0 one colour for all B mana (Produced$ Any), 1 B units each any colour
+// (Produced$ Combo Any). gorge's planner never folds such a body
+// (pay.PaymentPlanFoldableTapMana), so the static is gated like Rikala's: the
+// planner's pricing readers skip it and the extra floats at the tap itself
+// (dirac mana_tapextra.go addGatedExtra); a class-only Taps line defers the
+// tapped source.
+const StTapAnyCol = StRemove6Counters
+
 // StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: only combat damage can't be prevented
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against

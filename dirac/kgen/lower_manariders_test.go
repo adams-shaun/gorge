@@ -35,14 +35,15 @@ var manaRiderCards = []struct {
 	// AddsNoCounter$ !Permanent: a legendary deferred {C} source that pays 2
 	// life (dirac mana_deferred.go, mana_nocounter.go)
 	{"Boseiju, Who Shelters All", ""},
-	// TapsForMana: a colour chosen at tap time (a KChoose the tap-extra
-	// model cannot pose)
-	{"Fertile Ground", "TapsForMana extra of any colour"},
-	{"Regal Behemoth", "TapsForMana extra of any colour"},
-	{"Trace of Abundance", "TapsForMana extra of any colour"},
-	{"Dawn's Reflection", "TapsForMana extra of any colour"},
-	{"Verdant Haven", "TapsForMana extra of any colour"},
-	{"Market Festival", "TapsForMana extra of any colour"},
+	// TapsForMana: a colour chosen at tap time lowers as a StTapAnyCol
+	// static beside a class-only Taps line (dirac/mana_tapextra.go); Regal
+	// Behemoth's monarch gate on the trigger is outside the closed world
+	{"Fertile Ground", ""},
+	{"Regal Behemoth", "CheckDefinedPlayer"},
+	{"Trace of Abundance", ""},
+	{"Dawn's Reflection", ""},
+	{"Verdant Haven", ""},
+	{"Market Festival", ""},
 	// Produced$ Chosen: the source's as-enters colour, gorge defers the
 	// enchanted source (a StTapChosen static beside a class-only Taps line)
 	{"Utopia Sprawl", ""},
