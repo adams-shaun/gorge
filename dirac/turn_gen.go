@@ -531,8 +531,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.res = saved
 			}
 			return
-		case kop.OpSkipUnless:
-			i += s.replSkip(k, in) // repl_entersunless.go
+		case kop.OpSkipUnless, kop.OpBranch:
+			i += s.replSkip(k, sl, in) // repl_entersunless.go; a mode's block (face_siegemode.go)
 		case kop.OpUnlessPaid:
 			// the shock lands' as-enters pay-life election: answered from
 			// preAsk, or queued here mid-resolution (repl_shockland.go)
@@ -1759,7 +1759,7 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		return
 	}
 	if kind == akMode {
-		siegeModeOptions(d) // face_siegemode.go
+		siegeModeOptions(d, s.siegeModeCount(k)) // face_siegemode.go
 		return
 	}
 	if kind == akProtector {

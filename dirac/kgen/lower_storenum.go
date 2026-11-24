@@ -196,11 +196,17 @@ func walkFaceNodes(f *cards.Face, fn func(*cards.SA)) {
 	walk = func(sa *cards.SA) {
 		for ; sa != nil; sa = sa.Sub {
 			fn(sa)
-			for _, v := range sa.Params {
-				v = strings.TrimSpace(v)
-				if _, ok := f.SVars[v]; ok && !seen[v] {
-					seen[v] = true
-					walk(cards.ResolveSVar(f.SVars, v))
+			for k, v := range sa.Params {
+				names := []string{v}
+				if k == "Choices" {
+					names = strings.Split(v, ",") // a GenericChoice's branch SVars (lower_storechoice.go)
+				}
+				for _, n := range names {
+					n = strings.TrimSpace(n)
+					if _, ok := f.SVars[n]; ok && !seen[n] {
+						seen[n] = true
+						walk(cards.ResolveSVar(f.SVars, n))
+					}
 				}
 			}
 		}

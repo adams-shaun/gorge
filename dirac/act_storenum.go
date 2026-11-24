@@ -155,7 +155,11 @@ func (s *State) exSVarNum(k *prep, x *kop.Expr, ctx evalCtx) int {
 //kmanifest:ext ExtStoreNum
 func (s *State) storeNumOp(k *prep, in *kop.Instr) (ok, done bool) {
 	name, del, def := kop.StoreNumUnpack(in.C)
-	s.numStore(s.res.e.obj, name, s.value(k, in.B), del, def)
+	src := s.res.e.obj
+	if s.g.replaced != NoObj {
+		src = s.g.replaced // an as-enters flag branch's write belongs to the entering permanent (face_siegemode.go)
+	}
+	s.numStore(src, name, s.value(k, in.B), del, def)
 	return true, true
 }
 
