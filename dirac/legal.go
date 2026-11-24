@@ -893,12 +893,15 @@ func (s *State) actScriptPaysCost(k *prep, sl Slot, ai int, a *kop.Ability, powe
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	if anyColExtra && !s.relaxedWalkLists(k, pa) {
+	if anyColExtra && s.filtRelaxable(k, f) && s.tapsDeferPlainGaps(k, p) && !s.relaxedWalkLists(k, pa) {
 		// gorge's relaxed proof prices each deferred gap at its own mana,
 		// the unfolded any-colour extra left out (paymentPlanRelaxedAlternatives'
-		// potentialTapExtra): a play that gaps walk cannot list is proven
-		// insufficient and runs no prefix search, filters or none (a {2}
-		// activation beside one Forest under Buried in the Garden)
+		// potentialTapExtra): on a relaxable census a play that gaps walk
+		// cannot list is proven insufficient and runs no prefix search (a
+		// {2} activation beside one Forest under Buried in the Garden). A
+		// filter or a gap the proof cannot enumerate (a chosen colour: Manor
+		// Gate under Fertile Ground) leaves the census unrelaxable, and the
+		// search runs.
 		return false
 	}
 	if (handManaOn(k) || graveManaOn(k)) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
