@@ -95,6 +95,7 @@ func (s *State) sweepRun(k *prep, in *kop.Instr, w *sweepSusp, eb *entBatch, seg
 					return true
 				}
 			}
+			kind = s.unleashTokKind(k, kind, c) // kw_unleash.go: a copy of an Unleash card is asked its counter election
 			if kind != 0 {
 				// an as-enters choice: the copy waits outside every zone
 				// (zone 0) for it, as a permanent spell does on the stack
