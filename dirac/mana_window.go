@@ -305,14 +305,14 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
-		if s.splitWinColArm(k, sl, census, potential) {
+		if s.splitWinColArm(k, sl, census, potential) || s.askColPause(k, sl, census, potential) {
 			return true, held
 		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
-		if s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) {
-			continue // a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go)
+		if s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) || s.askColSilent(k, p, sl, cost, useful, clamp, anyColor, noOwed, potential) {
+			continue // a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go), or a colour-asking source answered silently (mana_askcolour.go)
 		}
 		if payAsk && clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
 			// the clamp kept the source for a filter beside a plain ability: the
@@ -4411,6 +4411,11 @@ func (s *State) castWinTapPause(sl Slot, col uint8) bool {
 // castWinTapOptions builds the pick: the source's candidates in battlefield order.
 func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 	p := s.bld().e.ctrl
+	if s.askColDeferred(k, s.g.winSrc) {
+		d.Kind, d.Player = DkChoose, p
+		askColOptions(d) // a colour-asking source's ask (mana_askcolour.go)
+		return true
+	}
 	if s.splitWinColAsk(k, s.g.winSrc) {
 		// a lucky Condition-split arm: the arm's colour ask (gorge's
 		// mana_color choice, ChGenManaChoice), the arm's colours in the
@@ -4455,6 +4460,10 @@ func (s *State) applyCastWinCol(k *prep, a Action) {
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
+	if s.askColDeferred(k, s.g.winSrc) {
+		s.applyCastWinAsk(k, a)
+		return
+	}
 	if s.splitWinColAsk(k, s.g.winSrc) {
 		s.applyCastWinCol(k, a)
 		return
