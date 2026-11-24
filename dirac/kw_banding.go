@@ -16,9 +16,12 @@ import (
 // Banding (Dire Wolves, Banding Sliver) is the Banding of that static's
 // Override record, read while the static applies (bandingStatic).
 
-// hasBanding reports whether an active override record grants sl banding. A
-// grant older than the permanent's "loses all abilities" effect is removed
-// with the rest of layer 6 (kwGen's override loop).
+// hasBanding reports whether the permanent at sl has banding: a printed
+// K:Banding (CardDef.Banding, no KwMask bit is free) it has not lost with its
+// abilities, a granted one on an active override record, or one a Continuous
+// static's Override record grants it. A grant older than the permanent's
+// "loses all abilities" effect is removed with the rest of layer 6 (kwGen's
+// override loop).
 func (s *State) hasBanding(k *prep, sl Slot) bool {
 	lts, lost := s.lossAt(k, sl)
 	found := false
@@ -27,6 +30,9 @@ func (s *State) hasBanding(k *prep, sl Slot) bool {
 			found = true
 		}
 	})
+	if !found && k.t.Cards[s.cardAt(sl)].Banding && !s.genLost(k, sl) {
+		found = true // printed banding (kw_wither.go's printed read)
+	}
 	return found || s.bandingStatic(k, sl, lost, lts)
 }
 

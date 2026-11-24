@@ -1,0 +1,32 @@
+# Printed K:Banding (CR 702.22), lowered to CardDef.Banding beside the granted
+# kop.Override.Banding records, for dirac/oracle/banding_lockstep_test.go: the
+# CR 702.22c band ask each declared banding attacker with a candidate poses
+# (declined), and the CR 702.22j/k combat-damage-division chooser (an attacker
+# blocked by a banding creature, a blocker blocking a banding attacker).
+# Grizzly Bears give the second attacker of a band ask and the blockers; the
+# basics are the mana. Errand of Duty grants banding until end of turn (an
+# instant), the grant path beside the printed one.
+Benalish Infantry
+Errand of Duty
+Icatian Phalanx
+Kjeldoran Escort
+Kjeldoran Knight
+Kjeldoran Phalanx
+Kjeldoran Skycaptain
+Kjeldoran Skyknight
+Kjeldoran Warrior
+Knights of Thorn
+Nalathni Dragon
+Noble Elephant
+Pikemen
+Shield Bearer
+Teremko Griffin
+Volunteer Reserves
+Wall of Shields
+War Elephant
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
