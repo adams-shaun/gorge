@@ -115,6 +115,9 @@ func printValue(p *pr, v *ir.Value) (string, error) {
 			case ir.RefSelf:
 				return "Count$" + stat, nil
 			case ir.RefTarget:
+				if p.frame().parent(v.Ref.Slot) {
+					return "ParentTargeted$" + stat, nil
+				}
 				return "Targeted$" + stat, nil
 			case ir.RefEventObject:
 				switch p.ev {
