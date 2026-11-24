@@ -894,7 +894,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		if t.Exprs[i].Kind == kop.ExThisTurnCast && t.Exprs[i].N == 0 {
 			g.anyHist = true // Count$ThisTurnCast reads the history bank's spell count
 		}
-		g.anyHist = g.anyHist || exprReadsOppSpellsCast(&t.Exprs[i])
+		g.anyHist = p.noteLastSpells(&t.Exprs[i]) || g.anyHist || exprReadsOppSpellsCast(&t.Exprs[i]) // noteLastSpells first: it sets a flag, so it must always run
 		if t.Exprs[i].Kind == kop.ExThisTurnCastSpec {
 			g.castRingOn, g.anyHist = true, true // the push count is in the history bank
 		}
@@ -2359,7 +2359,7 @@ type genState struct {
 	exN            uint8                   // pending grants (max maxExTurnQ; over it StallExTurn)
 	exBase         uint8                   // the last NORMAL turn's holder: the rotation resumes after it once the queue drains (gorge rotationBase)
 	exRideN        uint8                   // armed riders (max maxExRide; over it StallExTurn)
-	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go; padding)
+	dayNight       uint8                   // CR 731: bits 0-1 the designation (dnDay, dnNight), bits 2-3 the last turn's active player's spells, at most 2 (kw_daynight.go), bit 4 some spell was cast last turn, bits 5-6 the most one player cast last turn, at most 3 (ExSpellsCastLastTurn; value_spellslastturn.go; padding)
 	links          [16]struct {
 		src  Obj
 		sver uint8

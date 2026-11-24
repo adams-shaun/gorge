@@ -824,6 +824,9 @@ func init() { enum[kop.ExprKind]("kop.ExRingTempted", kop.ExRingTempted) }
 // dirac/manifest/ExprKind/ExSVarNum
 func init() { enum[kop.ExprKind]("kop.ExSVarNum", kop.ExSVarNum) }
 
+// dirac/manifest/ExprKind/ExSpellsCastLastTurn
+func init() { enum[kop.ExprKind]("kop.ExSpellsCastLastTurn", kop.ExSpellsCastLastTurn) }
+
 // dirac/manifest/ExprKind/ExSrcRemCounters
 func init() { enum[kop.ExprKind]("kop.ExSrcRemCounters", kop.ExSrcRemCounters) }
 

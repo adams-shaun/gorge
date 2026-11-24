@@ -39,12 +39,12 @@ var DebugNoNight bool
 // dnTurn keeps the outgoing active player's spell count for CR 731.2.
 func (s *State) dnTurn() {
 	n := min(s.g.hist[SeatIx(s.active)][histSpells], 2)
-	s.g.dayNight = s.g.dayNight&3 | n<<2
+	s.g.dayNight = s.g.dayNight&^(3<<2) | n<<2
 }
 
 // dnUntap is CR 731.2's untap-step check.
 func (s *State) dnUntap(k *prep) {
-	n := s.g.dayNight >> 2
+	n := s.g.dayNight >> 2 & 3
 	switch s.g.dayNight & 3 {
 	case dnDay:
 		if n == 0 && !DebugNoNight {
