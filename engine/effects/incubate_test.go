@@ -83,11 +83,24 @@ func TestIncubateZeroAmountStillMintsWithoutACounterEvent(t *testing.T) {
 	}
 }
 
-func TestIncubateNegativeAmountCreatesNothing(t *testing.T) {
+// TestIncubateNegativeAmountMintsAZeroCounterToken: CR 701.53a + 107.1b --
+// a negative incubate amount clamps to zero, so the token is still created,
+// with no counters and no CounterChange (Bloated Processor's "incubate X,
+// where X is its power" when its last-known power is negative).
+func TestIncubateNegativeAmountMintsAZeroCounterToken(t *testing.T) {
 	h, c := incubatorHost(t)
 	Resolve(h, c, sa(t, "DB$ Incubate | Amount$ -1"))
-	if toks := battlefieldTokens(h); len(toks) != 0 {
-		t.Fatalf("Incubate -1 minted %d tokens, want 0", len(toks))
+	toks := battlefieldTokens(h)
+	if len(toks) != 1 {
+		t.Fatalf("Incubate -1 minted %d Incubator tokens, want 1 (CR 701.53a + 107.1b)", len(toks))
+	}
+	if got := toks[0].Counter("P1P1"); got != 0 {
+		t.Fatalf("token carries %d +1/+1 counters, want 0", got)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.CounterChange {
+			t.Fatalf("a negative-amount incubate emitted a CounterChange: %+v", ev)
+		}
 	}
 }
 

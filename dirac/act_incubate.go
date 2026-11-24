@@ -10,7 +10,7 @@ var DebugIncubateNoTransform bool
 // least once) create the Incubator token C under p's control -- token
 // replacements may make several per mint -- and put A +1/+1 counters on
 // each mint through the counter replacements (CounterAddedOnce). A < 0
-// creates nothing; A = 0 still mints, with no counter event. The counters
+// clamps to 0 (CR 107.1b); A = 0 still mints, with no counter event. The counters
 // are part of the entry (CR 701.53a "enters with"; gorge
 // entryWithCounters). A resolution window opened by TokenCreated is not
 // suspended for the remaining mints (amass does not either).
@@ -19,7 +19,7 @@ var DebugIncubateNoTransform bool
 func (s *State) incubate(k *prep, in *kop.Instr) {
 	n := s.value(k, in.A)
 	if n < 0 {
-		return
+		n = 0 // CR 107.1b: the token is still created, with no counters
 	}
 	times := s.value(k, in.B)
 	if times < 1 {
