@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"slices"
 	"strings"
 
@@ -69,7 +70,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		}
 		return true
 	})
-	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) {
+	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) || lc.refuseFeeAnyAlone(ms) {
 		return
 	}
 	if len(ms) < 2 {
@@ -117,7 +118,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// kop.ChosenSecondManaAb)
 		return
 	}
-	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1])) {
+	if len(ms) == 2 && (restrictedFirstPair(ms[0], ms[1]) || restrictedFixedPair(ms[0], ms[1]) || restrictedFreeFeePair(ms[0], ms[1])) {
 		// a restricted pair whose two abilities are disjoint by payment class:
 		// a spell-only {T} ability of one mana then an activation-only one of
 		// several (Steelswarm Operator: {U} for artifact spells, {U}{U} to
@@ -125,7 +126,8 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// an activation-only larger one (Sunken Citadel: chosen 1, chosen 2
 		// for abilities of land sources). The kernel plans whichever ability
 		// the payment admits (mana_restrictedsource.go prepRestrSrc,
-		// restrViewW); the fixed spell-only pair is Tablet of Discovery.
+		// restrViewW); the fixed spell-only pair is Tablet of Discovery; the
+		// free-and-fee pair is Hydro-Channeler (restrictedFreeFeePair).
 		return
 	}
 	if len(ms) == 2 && chosenTapMana(ms[0]) && feeEachAmongMana(ms[1]) {
@@ -677,6 +679,44 @@ func restrictedFixedPair(first, a *lAbility) bool {
 		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
 }
 
+// restrictedFreeFeePair: first is a spell-only restricted {T} ability of one
+// mana of one fixed colour, then a is a restricted mana-fee ability of one
+// mana of any colour under the same restriction (Hydro-Channeler: {T}: Add
+// {U}, and {1}, {T}: Add one mana of any color, instant and sorcery spells
+// only). gorge's census lists the free {U} alone (a paid cost is no TierNormal
+// alternative) and its cast window prices the fee alternative from the
+// floating mana (CR 605.3b); the kernel's restricted fee pair
+// (mana_restrictedfeepair.go restrFeePairOf) plans the one tap as either.
+func restrictedFreeFeePair(first, a *lAbility) bool {
+	if !spellOnlyMana(first) || !spellOnlyMana(a) || !plainTapMana(first, false) || first.Mana.Choice || first.Mana.Each ||
+		first.Mana.Amount.Kind != vConst || first.Mana.Amount.N != 1 ||
+		len(first.Mana.Colors) != 1 || !strings.Contains("WUBRG", first.Mana.Colors) {
+		return false
+	}
+	return restrictedManaUnit(a.Cost, a.Mana) && a.Mana.Colors == "WUBRG" && !a.Mana.Choice &&
+		a.Cost.Mana.Pips == [5]int{} && reflect.DeepEqual(*first.Mana.Restrict, *a.Mana.Restrict)
+}
+
+// refuseFeeAnyAlone refuses a restricted mana-fee ability making one mana of
+// any colour anywhere but as the fee alternative of restrictedFreeFeePair:
+// restrictedFeeProduction admits that production for Hydro-Channeler's pair
+// only, where the kernel joins it to the free record (dirac
+// mana_restrictedfeepair.go restrFeePairOf). Alone, it would be a plain fee
+// unit no corpus card proves.
+func (lc *lowerCtx) refuseFeeAnyAlone(ms []*lAbility) bool {
+	for i, a := range ms {
+		if a.Mana.Restrict == nil || manaFeeEmpty(a.Cost.Mana) || a.Mana.Colors != "WUBRG" || a.Mana.Choice || a.Mana.Each {
+			continue
+		}
+		if len(ms) == 2 && i == 1 && restrictedFreeFeePair(ms[0], a) {
+			continue
+		}
+		lc.refuseNode("card", "mana restriction on a source whose cost goes beyond {T}: an any-colour production (one mana of any colour) with no free restricted alternative")
+		return true
+	}
+	return false
+}
+
 // restrictedFirstPair: first is a spell-only restricted {T} ability of one
 // fixed colour, then a is an activation-only restricted {T} ability of the
 // same colour and two to maxRestrictedAmount mana (Steelswarm Operator's
@@ -724,10 +764,20 @@ const maxRestrictedFeeAmount = 7
 // first ability first is the shape the kernel's restricted pair unit reads: a
 // const amount above the first ability's one, one fixed colour, the first's
 // colour (the alternative serves everything the first does).
+//
+// A Combo Any of maxRestrictedCombo mana beside a plain {T}: Add {C} (Great
+// Hall of the Citadel's "{1}, {T}: Add two mana in any combination of colors")
+// is one too: the kernel's pair holds it as two independent any-colour mana
+// (restrComboWide), while gorge's census ranks the source a {C} one.
 func restrictedFeePair(first, a *lAbility) bool {
-	return plainTapMana(first, false) && unrestrictedOne(first) &&
-		len(first.Mana.Colors) == 1 && a.Mana.Colors == first.Mana.Colors &&
-		a.Mana.Amount.Kind == vConst && a.Mana.Amount.N >= 2 && a.Mana.Amount.N <= maxRestrictedFeeAmount
+	if !plainTapMana(first, false) || !unrestrictedOne(first) || len(first.Mana.Colors) != 1 ||
+		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedFeeAmount {
+		return false
+	}
+	if a.Mana.Choice {
+		return a.Mana.Colors == "WUBRG" && a.Mana.Amount.N == maxRestrictedCombo && first.Mana.Colors == "C" && !first.Mana.Choice
+	}
+	return a.Mana.Colors == first.Mana.Colors
 }
 
 // maxComboMana bounds the literal amount of a combination filter (Baxter

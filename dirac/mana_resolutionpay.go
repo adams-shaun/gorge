@@ -689,6 +689,7 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 			}
 		}
 	}
+	s.setAnyColOwedRun(false) // the replay of the search's second run is done
 }
 
 // DebugRestrictedFloatIgnored (TestRestrictedFloatLoweredActivationMutation):

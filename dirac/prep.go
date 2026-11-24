@@ -60,7 +60,11 @@ type pcard struct {
 	wideN      uint8
 	wideCol    kop.ColorMask
 	wideChosen bool
-	restrLife  uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
+	// a fee widened record with wideCol == ColAny is a Combo Any of wideN
+	// independent any-colour units (Great Hall of the Citadel's two beside
+	// {C}): restrComboWide, derived from restrFee so pcard grows no byte
+	// (genPrep.selfPC is a [32]pcard, a pinned fixed-State field)
+	restrLife uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
 	// restrFee, restrFeeCol, restrFeeN: a restricted mana-fee ability's fee
 	// (Castle Garenbrig's "{2}{G}{G}, {T}: Add six {G}"): the activation pays
 	// restrFeeN pips of restrFeeCol and restrFee generic mana from the
@@ -70,11 +74,17 @@ type pcard struct {
 	restrFee    uint8
 	restrFeeCol uint8
 	restrFeeN   uint8
-	restrFloat  bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
-	cdRec       bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
-	food        bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
-	manaTyped   bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
-	manaSnow    bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
+	// restrPair: the free restricted view's fee alternative, its view index
+	// in genPrep.rs.views plus one (Hydro-Channeler's "{1}, {T}: Add one mana
+	// of any color" beside its free "{T}: Add {U}", one restriction): one tap,
+	// the free one gorge's census unit, the fee one its cast window's
+	// (mana_restrictedfeepair.go). Zero: none.
+	restrPair  uint16
+	restrFloat bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
+	cdRec      bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
+	food       bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
+	manaTyped  bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	manaSnow   bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's

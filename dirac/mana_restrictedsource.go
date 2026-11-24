@@ -249,7 +249,7 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				// (gorge's census lists the source once: one unit) — so no
 				// record
 				if !(n > pc.manaN && a.AFlags&kop.AfManaChoice == 0 &&
-					oneColour(a.ManaColors&colOrC) && a.ManaColors&colOrC == pc.manaCol&colOrC) {
+					oneColour(a.ManaColors&colOrC) && a.ManaColors&colOrC == pc.manaCol&colOrC) && !restrComboFee(a, pc, n) {
 					continue
 				}
 			}
@@ -262,6 +262,11 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 				v.manaCol |= a.ManaColors & 0x3f
 			}
 			switch {
+			case (fee != 0 || feeCol != 0) && restrComboFee(a, pc, n):
+				// a fee Combo Any beside {T}: Add {C} (Great Hall of the
+				// Citadel): n independent any-colour mana
+				v.wideN, v.wideCol = n, kop.ColAny
+				g.rs.wide = true
 			case pc.manaChosen && a.AFlags&kop.AfManaChosen != 0 && n > pc.manaN && a.AFlags&kop.AfManaChoice == 0:
 				// a chosen-colour larger alternative beside the chosen census
 				// ability (Sunken Citadel's {C}{C} beside its {C}): the pair's
@@ -304,6 +309,9 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			}
 			v.restrFee, v.restrFeeCol, v.restrFeeN = fee, feeCol, feeN
 			v.manaSac = restrSacSelfAb(a)
+			if g.restrFeePairOf(c, id, a, &v) {
+				continue // the free record's fee alternative, no unit of its own
+			}
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -320,6 +328,42 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 		g.rs.ext = g.rs.ext || rec.kind != rkWiden || g.rs.views[rec.view].wideN != 0
 		g.rs.nonSpell = g.rs.nonSpell || a.AFlags&kop.AfManaNonSpell != 0 || a.ManaRestrictAb != 0
 	}
+}
+
+// restrComboFee: a, a restricted fee ability of n mana in any combination of
+// colours, sits beside pc's plain one-{C} census ability (Great Hall of the
+// Citadel; kgen restrictedFeePair).
+func restrComboFee(a *kop.Ability, pc *pcard, n uint8) bool {
+	return a.AFlags&kop.AfManaChoice != 0 && a.ManaColors&colOrC == kop.ColAny && n > pc.manaN &&
+		pc.manaCol&colOrC == kop.ColC && !pc.manaChosen
+}
+
+// restrComboWide: v, a fee widened record (restrComboFee), makes wideN
+// independent any-colour units (Great Hall of the Citadel), not wideN mana of
+// one colour: the pair's census {C} is each unit's own, and the taps add each
+// colour freely. A fee widened record's only any-colour shape is that arm
+// (prepRestrSrc rejects every other fee+choice ability), so the shape is read
+// from the fee fields; pcard grows no byte for it (genPrep.selfPC embeds 32).
+func restrComboWide(v *pcard) bool {
+	return v.wideN != 0 && v.wideCol == kop.ColAny && !v.wideChosen &&
+		(v.restrFee != 0 || v.restrFeeCol != 0)
+}
+
+// restrComboGapTake is the part of need, the fee a combo fee unit (v, a Great
+// Hall) owes beyond the floating pool, left for the census's funding: gorge's
+// prefix search activates a census gap's source freely (its gaps-only walk), so
+// another untapped Great Hall's {T}: Add {C} pays the fee without funding
+// (engine/rules potential_script.go scriptSearch.gaps). gapLeft counts the
+// combo units' census {C} not yet spent, this unit's own first: its one tap is
+// either its fee alternative or another unit's fee.
+func restrComboGapTake(v *pcard, gapLeft *int, need int) int {
+	if !restrComboWide(v) || *gapLeft == 0 {
+		return need
+	}
+	*gapLeft-- // its own {C}: the tap is the fee alternative's
+	g := min(need, *gapLeft)
+	*gapLeft -= g
+	return need - g
 }
 
 // restrFeeOf is ability a's mana fee as the pcard fee fields read it: the
@@ -787,6 +831,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			// prices the fee-free units first, a stable order within each
 			// class, pay planshape.go UnlessManaReachable; CR 605.3b), each
 			// fee charged from the mana already counted
+			gapLeft := 0 // the combo fee units' census {C} (restrComboGapTake)
 			var order [8]struct {
 				sl  Slot
 				fee int
@@ -802,10 +847,16 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				}
 				own := s.manaPCGen(k, sl)
 				v, _, _ := s.restrView(k, p, sl, own, &d)
+				if v != nil && v.restrPair != 0 {
+					v = &k.gen.rs.views[v.restrPair-1] // the pair sorts by its fee alternative's fee (gorge's unitMaxFee)
+				}
 				if v == nil || restrFeeEmpty(v) {
 					continue
 				}
 				fv := int(v.restrFee) + int(v.restrFeeN)
+				if restrComboWide(v) {
+					gapLeft++
+				}
 				if n == len(order) {
 					s.capFull(StallRestrSrc)
 					return t, multi, nm
@@ -822,6 +873,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			// (mana_restrictedfeefund.go). A cleared paid list funds nothing.
 			fund, wiped := s.restrFeeFund(k, p)
 			poolLeft := s.restrFeePool(p) // each fee takes its part of the pool, the next sees the rest
+			plain := *av                  // the mana a fee may be paid from: none of the restricted units (restrFeeChargePlain)
 			for i := 0; i < n; i++ {
 				sl := order[i].sl
 				own := s.manaPCGen(k, sl)
@@ -829,18 +881,22 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				if v == nil {
 					continue
 				}
+				if v.restrPair != 0 {
+					s.restrFeePairAdd(k, p, &d, sl, own, v, &t, &plain, &multi, &nm, &lifeUsed, cost, extra, &fund, wiped, &poolLeft)
+					continue
+				}
 				fc := restrFeeCost(v)
 				pool := min(poolLeft, fc.MV())
-				if pool < fc.MV() {
+				if rest := restrComboGapTake(v, &gapLeft, fc.MV()-pool); rest > 0 {
 					// the prefix search taps covered sources for the rest,
 					// at most the census's funding of them
-					if wiped != 0 || fund < fc.MV()-pool {
+					if wiped != 0 || fund < rest {
 						continue // the census stands: no paid entry funds the fee
 					}
-					fund -= fc.MV() - pool
+					fund -= rest
 				}
 				poolLeft -= pool
-				s.restrSrcAddUnit(k, p, &d, sl, own, v, kind, &t, &multi, &nm, &lifeUsed, cost, extra)
+				s.restrFeeUnitAdd(k, p, &d, sl, own, v, kind, &t, &plain, &multi, &nm, &lifeUsed, cost, extra)
 			}
 			break
 		}
@@ -858,8 +914,8 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			}
 			own := s.manaPCGen(k, sl)
 			v, kind, _ := s.restrView(k, p, sl, own, &d)
-			if v == nil || !restrFeeEmpty(v) {
-				continue // a fee unit is pass 1's, after the mana it may charge
+			if v == nil || !restrFeeEmpty(v) || feeUnits && v.restrPair != 0 {
+				continue // a fee unit (or a free one's fee pair) is pass 1's, after the mana it may charge
 			}
 			s.restrSrcAddUnit(k, p, &d, sl, own, v, kind, &t, &multi, &nm, &lifeUsed, nil, 0)
 		}
@@ -881,7 +937,9 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		// widened alternative is priced; a fee is charged from the mana
 		// counted beside it (CR 605.3b), and a fee that cannot be paid leaves
 		// the census alternative standing
-		t.remove(s.srcMaskAt(own, sl), own.manaN)
+		if !t.removeWide(s.srcMaskAt(own, sl), uint16(own.manaN)) && restrComboWide(v) {
+			return // its census {C} already paid an earlier unit's fee: its one tap is spent
+		}
 		if !restrFeeEmpty(v) && !t.restrFeeCharge(restrFeeCost(v), cost, extra) {
 			t.addUnits(s.srcMaskAt(own, sl), own.manaN)
 			return
@@ -892,7 +950,7 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 			// wideN mana of one colour of its choosing
 			mb := s.restrWideMask(v, sl)
 			t.addUnits(mb, v.wideN)
-			if !v.wideChosen && v.wideCol == kop.ColAny {
+			if !v.wideChosen && !restrComboWide(v) && v.wideCol == kop.ColAny {
 				s.addOneColour(t, v.wideN) // a fixed colour is no free choice
 			}
 			return
@@ -903,14 +961,7 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		if !restrFeeEmpty(v) && !t.restrFeeCharge(restrFeeCost(v), cost, extra) {
 			return // the fee is not payable from the mana counted so far
 		}
-		if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
-			return // its life and the plan's painful sources' reach the payer's
-		}
-		t.addUnits(s.srcMaskAt(v, sl), v.manaN)
-		if v.manaOne {
-			s.addOneColourMask(t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
-		}
-		t.addXv(v)
+		s.restrExtAdd(k, p, sl, v, t, lifeUsed)
 	case rkDyn:
 		if v.manaCol&kop.ColAny != kop.ColAny {
 			// a fixed-colour amount (Vhal's {C}) is units of those colours,
@@ -935,6 +986,36 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		(*multi)[*nm] = dynUnit{n: v.manaN, cols: uint8(v.manaCol) & 0x3f}
 		*nm++
 	}
+}
+
+// restrExtAdd adds an rkExt unit's production to t once its fee is paid
+// (restrSrcAddUnit's rkExt arm).
+func (s *State) restrExtAdd(k *prep, p uint8, sl Slot, v *pcard, t *avail, lifeUsed *int) {
+	if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
+		return // its life and the plan's painful sources' reach the payer's
+	}
+	t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+	if v.manaOne {
+		s.addOneColourMask(t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
+	}
+	t.addXv(v)
+}
+
+// restrFeeUnitAdd is restrSrcAddUnit for a fee unit of restrSrcAvailD's fee
+// pass: an rkExt unit's fee is charged from plain, the unrestricted mana
+// counted, never from a restricted unit counted before it (CR 106.6: one
+// Hydro-Channeler's instant-and-sorcery {U} pays no other's {1} fee, nor one
+// Orb of Dragonkind's Dragon mana another Orb's); t loses the same mana.
+func (s *State) restrFeeUnitAdd(k *prep, p uint8, d *payDesc, sl Slot, own, v *pcard, kind uint8, t, plain *avail, multi *[2]dynUnit, nm, lifeUsed *int,
+	cost *kop.ManaCost, extra int) {
+	if kind != rkExt {
+		s.restrSrcAddUnit(k, p, d, sl, own, v, kind, t, multi, nm, lifeUsed, cost, extra)
+		return
+	}
+	if !t.restrFeeChargePlain(plain, restrFeeCost(v), cost, extra) {
+		return // the fee is not payable from the unrestricted mana counted so far
+	}
+	s.restrExtAdd(k, p, sl, v, t, lifeUsed)
 }
 
 // restrActFiltAvail is av for a filter walk of the activation being built: the
@@ -1450,7 +1531,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	own := s.manaPCGen(k, sl)
 	ma, na := s.srcMaskAt(own, sl), own.manaN
 	mb, nb := s.restrWideMask(v, sl), v.wideN
-	if ma&^mb != 0 || own.manaAb < 0 || restricted && DebugRestrictedSource == 4 {
+	if ma&^mb != 0 && !restrComboWide(v) || own.manaAb < 0 || restricted && DebugRestrictedSource == 4 {
 		return false // not the shape kgen lowers: the ordinary widened unit
 	}
 	cr := s.isCreature(k, sl)
@@ -1459,6 +1540,11 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 		// both alternatives make the permanent's chosen colour (and any
 		// printed one), read at this slot: the pair type ranks over it
 		dmk = mb
+	}
+	if restrComboWide(v) {
+		// gorge's census ranks the source by its TierNormal alternatives
+		// only (pay planalts.go Alt.Colours): a {C} source
+		dmk = ma
 	}
 	var xv [kop.NumManaKinds]uint8
 	var xm, xt uint8

@@ -33,12 +33,14 @@ func TestRestrictedManaFeeEachShape(t *testing.T) {
 // TestRestrictedManaFeeWiderKeepsRefusing: the wider fee productions that need
 // a kernel model this change does not add stay refused, and the reason names
 // that production or the source's second ability, never the plain fee the
-// model does carry. Each is a separate follow-up: Great Hall's Combo Any
-// beside a census ability lowers in kgen but diverges from gorge in lockstep
-// (the mana assignment differs), and Hydro-Channeler's fee ability sits beside
-// its restricted {U} one.
+// model does carry. Each is a separate follow-up: Interplanar Beacon's Combo
+// AnyDifferent pair needs a coupled group the availability model has no form
+// for. (Great Hall of the Citadel's Combo Any beside a census ability is
+// modelled by restrComboWide and no longer belongs here; Hydro-Channeler's fee
+// ability beside its restricted {U} one lowers
+// (restrictedmana_feepair_test.go).)
 func TestRestrictedManaFeeWiderKeepsRefusing(t *testing.T) {
-	for _, name := range []string{"Great Hall of the Citadel", "Hydro-Channeler", "Interplanar Beacon"} {
+	for _, name := range []string{"Interplanar Beacon"} {
 		t.Run(name, func(t *testing.T) {
 			lc := lowerCorpusCard(t, name)
 			if len(lc.Refusals) == 0 {

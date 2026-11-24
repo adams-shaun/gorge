@@ -9,23 +9,45 @@ import (
 
 // The wider restricted mana-fee carrier Orb of Dragonkind: "{1}, {T}: Add two
 // mana in any combination of colors. Spend this mana only to cast Dragon
-// spells or activate abilities of Dragons." Four Orb seats: the deck is
+// spells or activate abilities of Dragons." Two Orb seats: the deck is
 // Mountain-light, so gorge's payment reaches for the fee unit (its tier funds
 // a fee source only once the plain lands fall short) and Orb's two restricted
 // mana (the fee paid from a Mountain's mana, CR 605.3b) fund Shivan Dragon's
 // {4}{R}{R} or Furnace Whelp's {2}{R}{R} and {R} pump. Castle Garenbrig is not
 // in the pod: its own fee tests carry it, and a board of only Castles diverges
-// on its own (the fee funded from the other Castles' {T}: Add {G}).
+// on its own (the fee funded from the other Castles' {T}: Add {G}). One seat
+// carries Great Hall of the Citadel's restricted Combo Any fee pair beside its
+// census {T}: Add {C} (restrComboWide), and one Hydro-Channeler's free {U}
+// beside its any-colour fee alternative (restrFeePairOf).
 func restrictedManaFeeWideDecks() [4][]cardset.Entry {
 	orb := []cardset.Entry{
 		{Name: "Orb of Dragonkind", Count: 16}, {Name: "Shivan Dragon", Count: 8}, {Name: "Furnace Whelp", Count: 6},
 		{Name: "Mountain", Count: 10},
 	}
-	return [4][]cardset.Entry{orb, orb, orb, orb}
+	hall := []cardset.Entry{
+		{Name: "Great Hall of the Citadel", Count: 16}, {Name: "Kamahl, Pit Fighter", Count: 8},
+		{Name: "Isamaru, Hound of Konda", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 4},
+	}
+	return [4][]cardset.Entry{orb, hall, orb, hydroChannelerDeck()}
 }
 
-// restrictedManaFeeWideSeeds: Orb's restricted mana is spent on three of the
-// eight (2, 5, 7), games run to 120 turns so a seat reaches a Dragon.
+// hydroChannelerDeck: Hydro-Channeler's "{T}: Add {U}" and "{1}, {T}: Add one
+// mana of any color" (both instant and sorcery spells only) beside Islands and
+// a few Mountains, spent on Lightning Bolt and Divination: the free {U} is
+// gorge's census unit, the any-colour fee alternative its cast window's (the
+// fee paid from an Island's mana, CR 605.3b), one tap between them.
+func hydroChannelerDeck() []cardset.Entry {
+	return []cardset.Entry{
+		{Name: "Hydro-Channeler", Count: 12}, {Name: "Island", Count: 12}, {Name: "Mountain", Count: 4},
+		{Name: "Lightning Bolt", Count: 8}, {Name: "Divination", Count: 4},
+	}
+}
+
+// restrictedManaFeeWideSeeds: seeds that spend both carriers' restricted fee
+// mana (Hydro-Channeler from the first, Orb by seed 7), games run to 120 turns
+// so a seat reaches a Dragon. Seeds 3 and 8 cast a Bolt only if one Hydro's
+// {U} could pay another's {1} fee (it cannot, CR 106.6); seed 5 casts one
+// only if a summoning-sick Hydro books no census entry (CR 302.6).
 var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8}
 
 // newRestrictedManaFeeWidePod builds the four-deck pod.
@@ -73,7 +95,9 @@ func TestRestrictedManaFeeWideLockstep(t *testing.T) {
 		t.Logf("seed %d: %d decisions, over %v %s; spent fee %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
 	}
 	t.Logf("restricted fee mana spent over the seeds: %v", sum.byName)
-	if sum.byName["Orb of Dragonkind"] == 0 {
-		t.Fatalf("no restricted fee mana spent over the seeds (%v)", sum.byName)
+	for _, name := range []string{"Orb of Dragonkind", "Great Hall of the Citadel", "Hydro-Channeler"} {
+		if sum.byName[name] == 0 {
+			t.Fatalf("no %s restricted mana spent over the seeds (%v)", name, sum.byName)
+		}
 	}
 }

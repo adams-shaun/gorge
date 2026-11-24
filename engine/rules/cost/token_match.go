@@ -190,6 +190,10 @@ func isCounterCount(s string) bool {
 	return len(s) >= 3 && s[0] == 'X' && s[len(s)-1] == '+' && isDigits(s[1:len(s)-1])
 }
 
+// isSubCounterCount is (X\d+\+|X|\d+|All): SubCounter's count also takes
+// Forge's whole-pile word All (SubCounterAll).
+func isSubCounterCount(s string) bool { return s == SubCounterAll || isCounterCount(s) }
+
 // isSVarName is [A-Za-z][A-Za-z0-9]*.
 func isSVarName(s string) bool {
 	if s == "" || !isASCIILetter(s[0]) {
@@ -525,17 +529,17 @@ func matchEvidenceCost(t costTok) (groups, bool) {
 	return groups{t.sym, t.inner}, true
 }
 
-// matchCounterRemoval is ^Head<(X\d+\+|X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$
-// for one fixed Head: groups [sym, count, kind, target, desc]. The optional
+// matchCounterRemoval is ^Head<(count)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$
+// for one fixed Head and count predicate: groups [sym, count, kind, target, desc]. The optional
 // third field is taken whenever it is non-empty (the regexp's greedy
 // optional group); an empty one leaves the whole remainder to the
 // description.
-func matchCounterRemoval(t costTok, head costHead) (groups, bool) {
+func matchCounterRemoval(t costTok, head costHead, count func(string) bool) (groups, bool) {
 	if !t.angle || t.id != head {
 		return groups{}, false
 	}
 	n, rest, found := strings.Cut(t.inner, "/")
-	if !found || !isCounterCount(n) {
+	if !found || !count(n) {
 		return groups{}, false
 	}
 	kind, tail, found := strings.Cut(rest, "/")
@@ -552,12 +556,15 @@ func matchCounterRemoval(t costTok, head costHead) (groups, bool) {
 	return groups{t.sym, n, kind, target, desc}, true
 }
 
-// matchSubCounterCost is matchCounterRemoval for SubCounter.
-func matchSubCounterCost(t costTok) (groups, bool) { return matchCounterRemoval(t, hSubCounter) }
+// matchSubCounterCost is matchCounterRemoval for SubCounter, whose count also
+// takes the whole-pile word All (isSubCounterCount).
+func matchSubCounterCost(t costTok) (groups, bool) {
+	return matchCounterRemoval(t, hSubCounter, isSubCounterCount)
+}
 
 // matchRemoveAnyCounterCost is matchCounterRemoval for RemoveAnyCounter.
 func matchRemoveAnyCounterCost(t costTok) (groups, bool) {
-	return matchCounterRemoval(t, hRemoveAnyCounter)
+	return matchCounterRemoval(t, hRemoveAnyCounter, isCounterCount)
 }
 
 // matchDamageYouCost is ^DamageYou<(\d+)(?:/([^>]*))?>$.

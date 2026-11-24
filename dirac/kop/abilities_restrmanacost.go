@@ -36,8 +36,9 @@ func RestrictedManaCostShape(a *Ability) bool {
 // restrFeeProduction reports whether a's production is a shape the fee unit
 // carries: one fixed colour or {C} of a literal amount, or N mana in any
 // combination of colours (Produced$ Combo Any), or one mana of each of a fixed set
-// of colours (ManaEach). Anything else (Produced$ Any, and especially Combo AnyDifferent, whose units are distinct only
-// together) is no unit.
+// of colours (ManaEach), or one mana of any colour (Produced$ Any of amount
+// one). Anything else (Produced$ Any of more, and especially Combo
+// AnyDifferent, whose units are distinct only together) is no unit.
 func restrFeeProduction(a *Ability) bool {
 	n := int(a.ManaN)
 	if n == 0 {
@@ -58,10 +59,13 @@ func restrFeeProduction(a *Ability) bool {
 		// Combo Any: each unit is any of the five, the availability model
 		// carries it as an any-colour group
 		return cols == ColAny
+	case cols == ColAny:
+		// one mana of any colour (Hydro-Channeler's Produced$ Any beside its
+		// free restricted {U}): one any-colour unit, no allocation
+		return n == 1
 	default:
-		// one fixed colour or {C}; a fee that produces one mana of ANY colour
-		// is the Combo Any/AfManaChoice arm above or not carried
-		return cols != ColAny && cols&(cols-1) == 0
+		// one fixed colour or {C}
+		return cols&(cols-1) == 0
 	}
 }
 
