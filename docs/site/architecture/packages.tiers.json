@@ -252,6 +252,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "engine/cardc/gorgebe": {
+      "tier": "engine",
+      "status": "CORE"
+    },
     "engine/cardc/ir": {
       "tier": "engine",
       "status": "CORE"

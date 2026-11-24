@@ -66,3 +66,10 @@ func TestReportOnFixture(t *testing.T) {
 		t.Errorf("exit %d, want 1 for a variant missing from the schema", code)
 	}
 }
+
+func TestCompileUsage(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"compile", "-slice", "nope"}, &out, &errb); code != 1 {
+		t.Fatalf("exit %d, want 1: %s", code, errb.String())
+	}
+}

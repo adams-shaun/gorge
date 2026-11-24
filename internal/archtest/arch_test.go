@@ -344,6 +344,7 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/engine/cardc/ir", module + "/engine/cards"},
 		{module + "/engine/cardc/ir", module + "/engine/state"},
 		{module + "/engine/cardc/mtgish", module + "/engine/cards"},
+		{module + "/engine/cardc/gorgebe", module + "/engine/cardc/mtgish"},
 	}
 	for path, p := range pkgs {
 		if strings.HasPrefix(path, module+"/bots") {
