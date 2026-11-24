@@ -78,6 +78,43 @@ func isEnterChoosePlayer(sa *cards.SA) bool {
 	return true
 }
 
+// replChainChoosePlayer is replChain's ChoosePlayer arm: the lone as-enters
+// opponent, or a chain head whose later links read the choice.
+func (lc *lowerCtx) replChainChoosePlayer(ps *params, node, sa *cards.SA, other bool, cond *lCond) error {
+	if node != sa && cond.Kind == cNone && isEnterChoosePlayer(node) &&
+		len(lc.ab.Prog) > 0 && lc.ab.Prog[len(lc.ab.Prog)-1].Op == "ChooseColor" {
+		// Jihad: a second as-enters choice after the colour. gorge poses both
+		// with the spell still on the stack; the kernel's entry walker poses
+		// one pre-entry choice, and its one chosen byte cannot hold the colour
+		// and the opponent.
+		return refuse("ETB replacement api ChoosePlayer after ChooseColor (a second as-enters choice)")
+	}
+	if !other && cond.Kind == cNone && node == sa && (spyglassChain(sa) || lookChooseTypeChain(sa) || lc.chainReadsEnterChosen(sa)) {
+		// the chain head whose later links read the choice: the pod-wide
+		// choice of an opponent, ahead of the look-then-name (or
+		// look-then-type) ask or the counter/GainControl reader
+		return lc.choosePlayerPod(ps)
+	}
+	// the lone as-enters opponent
+	return lc.etbChoosePlayer(ps, node, sa, other, cond)
+}
+
+// replChainCaptiveControl is the ChangeZone body of Captive Audience: the
+// chain head choosePlayerPod set the entering permanent's chosen player, and
+// the body puts it under that player. The object is already entering, so the
+// move is the control change alone (CR 110.2a), the op a GainControl$
+// ChosenPlayer return lowers to.
+func (lc *lowerCtx) replChainCaptiveControl(ps *params, node, sa *cards.SA, other bool, cond *lCond) bool {
+	if other || sa.Sub != node || node.Sub != nil || cond.Kind != cNone ||
+		!ps.is("Origin", "All") || !ps.is("Destination", "Battlefield") ||
+		ps.str("Defined") != "ReplacedCard" || ps.str("GainControl") != "ChosenPlayer" {
+		return false
+	}
+	ps.consume("Origin", "Destination", "Defined", "GainControl", "Hidden", "SpellDescription")
+	lc.emit(lInstr{Op: "GainControl", Obj: lRef{Kind: rReplaced}, C: int(rChosenPlayer) << 8, CS: "dur=Permanent"})
+	return true
+}
+
 // etbChoosePlayer lowers the as-enters opponent choice: the entering
 // permanent's own, unconditional, sole ETB replacement part.
 func (lc *lowerCtx) etbChoosePlayer(ps *params, node, sa *cards.SA, other bool, cond *lCond) error {
@@ -119,6 +156,34 @@ func (lc *lowerCtx) enterChosenRead() bool {
 	}
 	t := lc.ab.Trigger
 	return t != nil && t.Zone == zBattlefield
+}
+
+// chainReadsEnterChosen reports whether a node after the as-enters
+// ChoosePlayer reads the permanent's chosen player: ChosenCtrl in a param, or
+// in the SVar body a param names (Canker Abomination's Count$Valid
+// Creature.ChosenCtrl), or a GainControl$ ChosenPlayer (Captive Audience). The
+// choice then has to be written on the permanent before the chain continues,
+// so the head lowers through choosePlayerPod rather than the lone-node
+// etbChoosePlayer.
+func (lc *lowerCtx) chainReadsEnterChosen(sa *cards.SA) bool {
+	reads := func(v string) bool {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			return false
+		}
+		if strings.Contains(v, "ChosenCtrl") || v == "ChosenPlayer" || v == "Player.Chosen" {
+			return true
+		}
+		return lc.face != nil && strings.Contains(lc.face.SVars[v], "ChosenCtrl")
+	}
+	for n := sa.Sub; n != nil; n = n.Sub {
+		for _, v := range n.Params {
+			if reads(v) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // chosenPlayerEnterDefined maps Defined$ ChosenPlayer / Player.Chosen to

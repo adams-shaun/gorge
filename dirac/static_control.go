@@ -730,6 +730,16 @@ func (s *State) ctrlPlayerRef(r kop.Ref) (uint8, bool) {
 		if DebugChosenNextSeat {
 			return s.nextAlive(e.ctrl), true // seat-ok: a test-only mutation
 		}
+		// An enters program runs while the resolving entry is still the
+		// spell (s.res.e is its stack object), so the choice is the entering
+		// permanent's chosen byte (Captive Audience; repl_chooseplayer.go)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			// the entrant is off occ while its enters program runs, so read
+			// its perm record directly, not through chosenPlayerOf
+			if ch := s.perms[s.objs[o].slot].chosen; ch < objWord(s.nSeats()) {
+				return uint8(ch), true
+			}
+		}
 		if p := s.chosenPlayerSeat(e); p != 255 {
 			return p, true
 		}

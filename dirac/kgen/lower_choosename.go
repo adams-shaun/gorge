@@ -65,6 +65,26 @@ func spyglassChain(sa *cards.SA) bool {
 	return true
 }
 
+// lookChooseTypeChain reports whether sa is the as-enters look-then-type
+// chain (Arachne, Psionic Weaver): ChoosePlayer -> RevealHand (Look$ True over
+// the chosen player) -> ChooseType (Type$ Card) -> Cleanup
+// (ClearChosenPlayer$ True). It is the Spyglass chain's shape with a card-type
+// choice in place of the name.
+func lookChooseTypeChain(sa *cards.SA) bool {
+	if sa == nil || sa.API != "ChoosePlayer" {
+		return false
+	}
+	rh := sa.Sub
+	if rh == nil || rh.API != "RevealHand" || rh.Params["Defined"] != "ChosenPlayer" || !strings.EqualFold(rh.Params["Look"], "True") {
+		return false
+	}
+	ct := rh.Sub
+	if ct == nil || ct.API != "ChooseType" || ct.Params["Type"] != "Card" || ct.Sub == nil || ct.Sub.API != "Cleanup" || ct.Sub.Sub != nil {
+		return false
+	}
+	return strings.EqualFold(ct.Sub.Params["ClearChosenPlayer"], "True")
+}
+
 // handNameChain reports whether sa is exactly Alhammarret, High Arbiter's
 // as-enters chain: RevealHand (Defined$ Player.Opponent, RememberRevealed$
 // True, no Look$) -> NameCard (Defined$ You, ValidCards$ Card.nonLand,
