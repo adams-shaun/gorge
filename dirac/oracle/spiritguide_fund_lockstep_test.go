@@ -168,18 +168,19 @@ func TestSpiritGuideFundTryExemptMutation(t *testing.T) {
 	t.Fatal("no seed diverged with the priced-node exemption limited to gap lines: the pool never prices a node a guide's exile reached")
 }
 
-// TestSpiritGuideUnlessWindowFilterMutation proves the pool pays a Mana Leak
-// through a filter source (Signpost Scarecrow's "{2}: Add one mana of any
-// color"): gorge's unless window carries no pending cast, so no fee-only
-// stall prunes the filter; applied there, some seed diverges.
+// TestSpiritGuideUnlessWindowFilterMutation proves the pool meets a Mana Leak's
+// unless window beside a filter source that cannot help pay it (Signpost
+// Scarecrow's "{2}: Add one mana of any color" against a generic {3}): gorge's
+// unless window leaves the stalling filter off its list (wardWindowStalls), so
+// with the walk listing it again some seed diverges.
 func TestSpiritGuideUnlessWindowFilterMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	dirac.DebugWinFeeStallsAlways = true
-	defer func() { dirac.DebugWinFeeStallsAlways = false }()
+	dirac.DebugWinFeeStallsSkipUnless = true
+	defer func() { dirac.DebugWinFeeStallsSkipUnless = false }()
 	if lockstepDiverges(t, "spiritguide", kspiritGuideDecks, 400) {
 		return
 	}
-	t.Fatal("no seed diverged with the fee-only stall applied to the unless window: the pool never pays through a filter")
+	t.Fatal("no seed diverged with the fee-only stall skipped in the unless window: the pool never meets a stalling filter there")
 }
