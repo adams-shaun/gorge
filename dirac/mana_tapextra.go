@@ -1142,3 +1142,42 @@ func dynPairOne(pc *pcard) bool {
 // DebugDynPairIndependent prices an evaluated pair's wide view as independent
 // any-colour units (the old behaviour); a mutation switch for the lockstep test.
 var DebugDynPairIndependent bool
+
+// tapAnyColDeferExtra reports whether a Taps-deferred gap in m would float an
+// any-colour StatTapExtra when the search activates it: the extra an
+// unfoldable Produced$ Any / Combo Any TapsForMana trigger adds as it resolves
+// at the tap (addGatedExtra), which every priced read leaves out
+// (tapExtraReaches) -- so gorge's census cannot price it (paymentPlanCensusOf:
+// the trigger joins no census unit) and its one prefix search over the census
+// gaps is the activation's proof (potentialCensusFallback). The kernel
+// searches the gap beside the filters (otherGaps) and alone on a filterless
+// board only when this holds, so a decline elsewhere stays the proof gorge's
+// census makes it.
+func (s *State) tapAnyColDeferExtra(k *prep, m slotMask) bool {
+	if k.gen == nil || !k.gen.anyTapExtra || DebugTapAnyColOff || s.pool != nil && s.pool.census {
+		return false
+	}
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		ctl := s.perms[sl].ctrl
+		found := false
+		s.eachStatic(k, func(st statSrc) bool {
+			a := &st.a.Static
+			if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
+				a.StFlags&kop.StTapAnyCol == 0 || a.Cond2 != 0 ||
+				st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 ||
+				a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
+				return true
+			}
+			if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
+				return true
+			}
+			found = true
+			return false // stop at the first extra the gap's tap brings
+		})
+		if found {
+			return true
+		}
+	}
+	return false
+}

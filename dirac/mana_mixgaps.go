@@ -299,8 +299,13 @@ func (s *State) otherGaps(k *prep, p uint8, a Action) slotMask {
 		}
 	}
 	m = m.or(s.chosenPairGaps(k, p)) // (a filter board only: mana_chosenfilter.go)
-	if s.scriptFilt(k, p).any() {
-		m = m.or(s.scriptTapsDefer(k, p)) // gorge's one prefix search activates a Taps-deferred gap beside the filters too (tapsDeferGap)
+	// gorge's one prefix search activates a Taps-deferred gap beside the
+	// filters (tapsDeferGap), and alone on a filterless board when the tap
+	// brings an any-colour StatTapExtra (tapAnyColDeferExtra): the extra the
+	// census prices nowhere (mana_tapextra.go addGatedExtra) is what makes
+	// gorge's census incomplete and its prefix search live for every play.
+	if s.scriptFilt(k, p).any() || s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
+		m = m.or(s.scriptTapsDefer(k, p))
 	}
 	return m.andNot(s.scriptFilt(k, p))
 }
