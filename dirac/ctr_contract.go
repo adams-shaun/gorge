@@ -56,6 +56,9 @@ func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
 	n := s.value(k, in.B)
 	for i := uint8(0); i < q.n; i++ {
 		s.addContract(k, q.s[i], n)
+		if s.contracts(q.s[i]) != 0 {
+			s.setContractOwed(q.s[i], s.res.e.ctrl) // the Effect's loss copy (ctr_contract_losscopy.go)
+		}
 	}
 	return true, true
 }
