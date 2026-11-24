@@ -903,8 +903,12 @@ type utype struct {
 	// coloured alternatives share avail; the {C} type is the primary, alt
 	// marks the painful one)
 	pain uint8
-	pair uint8
-	alt  bool
+	// painSafe: a damage rider the payer survives (painSurvives, repl_lifefloor.go):
+	// its pain leaves consider's whole-plan guard alone, the way the offer
+	// census left its colours in (painAvailMask)
+	painSafe bool
+	pair     uint8
+	alt      bool
 	// intr: the alternative of the pair is a granted basic land type's intrinsic
 	// ability, which gorge's key 8 orders before the printed one (altPairUnit)
 	intr bool
@@ -1890,7 +1894,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if k.painMana && pc.painCol != 0 && phase > 0 {
 					want := painCensusPass(choice, pc)
-					if s.painUnit(k, sl, pc, pass, pk, i, want) {
+					if s.painUnit(k, sl, pc, pass, pk, p, i, want) {
 						continue
 					}
 				}
@@ -2485,11 +2489,15 @@ func (pk *planner) consider() {
 	var key [7]int
 	size, prod, flex, pain := 0, 0, 0, 0
 	var used [5]int
+	var painUn int
 	for t := 0; t < pk.nt; t++ {
 		ty := &pk.types[t]
 		k := int(ty.k)
 		key[0] += k * int(ty.irr)
 		pain += k * int(ty.pain)
+		if !ty.painSafe { // a survived damage rider's pain is the census's bare {T} alone (painUnit)
+			painUn += k * int(ty.pain)
+		}
 		if ty.creat {
 			key[1] += k
 		}

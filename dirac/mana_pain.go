@@ -1,7 +1,9 @@
 package dirac
 
 import (
+	"fmt"
 	"math/bits"
+	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -379,7 +381,12 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	}
 	s.noteDmgTaken(p, n)       // kw_bloodthirst.go
 	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
-	s.loseLife(k, p, n)
+	// the damage life floors apply (loseLifeDmg, IsDamage$ True): a ReplLifeReduced
+	// line (Fortune Thief, Ali from Cairo, Worship) clamps the rider's loss like any
+	// damage's — gorge's foldDamage folds it into the mana ability's damage too, so
+	// a payer at the floor survives its own painland tap. The paid-life arm above
+	// stays an unfloored life cost (CR 119.4).
+	s.loseLifeDmg(k, p, n)
 	s.plDmgMark(p, n) // the rider is damage: wasDealtDamageThisTurn's seat arm (gen.go)
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, sl, false) // filter_permmarks.go
@@ -419,11 +426,18 @@ func painFlexAll(pc *pcard, xc, xp [kop.NumManaKinds]uint8) uint8 {
 }
 
 // painAvailMask is a pain source's production mask for the offer gate
-// (availFor): a painland makes its normal ability's mana and, while one
-// point of its damage would not be lethal, its colours; a pain-only source
-// only the latter. The summed guard over several painful units is the
-// planner's (the option walk counts each unit alone).
-func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
+// (availFor): a painland makes its normal ability's mana and its colours — a
+// damage rider's counted while the payer survives it (gorge's census prices a
+// painful activation as its bare-{T} cost alone once the rider cannot cost
+// the payer the game: a ReplLifeReduced damage floor, Fortune Thief at 1
+// life, clamps the loss, so Nantuko Monastery's threshold {G} is counted
+// there; without one the rider is lethal and gorge's census keeps the
+// colours out); a paid-life unit keeps the guard "painN < life" (gorge's
+// planner prunes a life payment that would take the payer to 0, CR 119.6's
+// SBA, pay classify.go's lethal guard); a pain-only source counts only its
+// paid colours, under its own guard. The summed guard over several painful
+// units is the planner's (the option walk counts each unit alone).
+func (s *State) painAvailMask(k *prep, pc *pcard, p uint8) uint8 {
 	prim := uint8(pc.manaCol)
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
@@ -447,7 +461,17 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 	if !pc.painOnly {
 		m = prim
 	}
-	if s.g.availX&availWinCol != 0 && !pc.painLife || int(pc.painN) < int(s.pl[p].life) {
+	// A damage rider's colours count while the payer survives the rider
+	// (painSurvives: the floored loss leaves the life); a paid-life unit's
+	// colours stay withheld while the payment would take the payer to 0 or
+	// below (a life cost is never floored). The same split holds in the
+	// manual window (availWinCol), whose answer taps a surviving damage
+	// painland and keeps a paid-life source's guard.
+	if pc.painLife {
+		if int(pc.painN) < int(s.pl[p].life) {
+			m |= uint8(pc.painCol) & 0x3f
+		}
+	} else if s.painSurvives(k, p, int(pc.painN)) {
 		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
@@ -494,7 +518,7 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 	// the unless / ward window counts a painland's paid-life colour.
 	if s.g.availX&(availWin|availWinCol) == 0 || !pc.painLife ||
 		(s.g.availX&availWin == 0 && !pc.painOnly) {
-		return s.painAvailMask(pc, p)
+		return s.painAvailMask(k, pc, p)
 	}
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
@@ -514,7 +538,7 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 			committed += int(xp.painN)
 		}
 	}
-	m := s.painAvailMask(pc, p)
+	m := s.painAvailMask(k, pc, p)
 	if !paid {
 		if pc.painOnly {
 			return 0
@@ -557,8 +581,18 @@ func painCensusPass(choice bool, pc *pcard) int {
 // It reports whether the caller has nothing left to do for sl.
 //
 //go:noinline
-func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i int, want int) bool {
-	if int(pc.painN) >= pk.life {
+func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, p uint8, i int, want int) bool {
+	// A paid-life unit whose pain alone is lethal (gorge pay classify.go's
+	// per-unit guard) joins no plan: its colours stay withheld. A damage
+	// rider's join the plan the offer census priced (painAvailMask counts
+	// them while the payer survives the rider, painSurvives) — gorge's
+	// payment of a play the potential walk priced runs that plan's script,
+	// the rider's damage taken at the tap (painDamage), not the manual
+	// CR 601.2g window's battlefield order.
+	if dbgAct && int(pc.painN) >= pk.life {
+		fmt.Fprintf(os.Stderr, "PGUARD sl=%d pass=%d want=%d painLife=%v survives=%v\n", sl, pass, want, pc.painLife, s.painSurvives(k, p, int(pc.painN)))
+	}
+	if int(pc.painN) >= pk.life && (pc.painLife || !s.painSurvives(k, p, int(pc.painN))) {
 		return pc.painOnly
 	}
 	if pass != want {
@@ -655,6 +689,13 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	if tp < 0 {
 		return true
 	}
+	// a damage rider the payer survives (painSurvives: the floor clamps its
+	// loss) is the census's bare-{T} unit: its pain leaves the whole-plan
+	// guard alone (consider's sum) the way the offer census left its colours
+	// in (painAvailMask).
+	if !pc.painLife && s.painSurvives(k, p, int(pc.painN)) {
+		pk.types[tp].painSafe = true
+	}
 	ti := tp
 	if tc >= 0 {
 		pk.types[tc].pair, pk.types[tp].pair = uint8(tp)+1, uint8(tc)+1
@@ -748,7 +789,7 @@ func (s *State) contGrantLive(k *prep) bool {
 func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 	life := int(s.pl[p].life)
 	if life <= 1 || s.g.availX&(availAny|availWin|availWinCol) != 0 || s.contGrantLive(k) {
-		return // at 1 life availFor already withheld every painful colour
+		return // at 1 life availFor already withheld every paid-life colour
 	}
 	modal := a.nModal != 0 // a source with a {C}-only extra: its groups split even when the budget does not bind
 	var pa painAvail
@@ -761,7 +802,13 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 			continue
 		}
 		if int(pc.painN) >= life {
-			continue // its pain alone is lethal: painAvailMask already withheld its colours
+			// its pain alone is lethal (the planner refuses its activation,
+			// pay classify.go's per-unit guard): it joins no budgeted group.
+			// A paid-life unit's colours are not in a anyway (painAvailMask
+			// withheld them); a damage rider's stay plain — gorge's census
+			// counts them (potential.go PotentialMana prices the activation's
+			// bare {T} alone), so the census keeps them.
+			continue
 		}
 		if k.gen != nil && k.gen.anyTapExtra {
 			r, _, stall := s.srcExtraPainPick(k, sl, pc)
@@ -779,7 +826,7 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 			prim = 0
 		}
 		var ec uint8
-		if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
+		if modal && s.painAvailMask(k, pc, p)&^(1<<kop.C) != 0 {
 			ec = s.painExtraC(k, sl, pc)
 		}
 		g := uint8(0)
