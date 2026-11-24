@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -53,11 +51,23 @@ func ownEntryMoveExcluded(g *state.Game, r cards.Repl, source state.ObjID, ev ev
 // spec names the source itself (Card.Self, optionally +qualified: Card.Self+
 // kicked, Card.Self+!wasCast).
 func selfScopedSpec(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
-		alt = strings.TrimSpace(alt)
-		if alt != "Card.Self" && !strings.HasPrefix(alt, "Card.Self+") {
+	const self = "Card.Self"
+	start := 0
+	for i := 0; i <= len(spec); i++ {
+		if i < len(spec) && spec[i] != ',' {
+			continue
+		}
+		alt := spec[start:i]
+		for len(alt) > 0 && alt[0] == ' ' {
+			alt = alt[1:]
+		}
+		for len(alt) > 0 && alt[len(alt)-1] == ' ' {
+			alt = alt[:len(alt)-1]
+		}
+		if alt != self && (len(alt) <= len(self) || alt[:len(self)+1] != self+"+") {
 			return false
 		}
+		start = i + 1
 	}
 	return true
 }
