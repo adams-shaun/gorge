@@ -322,8 +322,8 @@ func TestTokenMatch(t *testing.T) {
 			step: mk(&ir.Face{Types: []string{"Artifact"}, Subtypes: []string{"Food"}}, nil), bad: "token:unmatched"},
 		{name: "keyword args", tokens: toks, step: mk(apToken(keyword(&ir.Keyword{Name: "Ward", N: refTestVal(1)})), nil), bad: "token:keyword-args"},
 		{name: "abilities", tokens: toks, step: mk(apToken(func(f *ir.Face) {
-			f.Abilities = []*ir.Ability{{Kind: ir.AbSpell}}
-		}), nil), bad: "token:abilities"},
+			f.Abilities = []*ir.Ability{{Kind: ir.AbSpell, Body: &ir.Program{Steps: []*ir.Step{{Verb: ir.VerbNone}}}}}
+		}), nil), bad: "verb:none"},
 		{name: "no registry", step: mk(apToken(nil), nil), bad: "token:no-registry"},
 		{name: "enter counters", tokens: toks, step: mk(apToken(nil), func(s *ir.Step) { s.Enter = &ir.Enter{Counter: "P1P1", N: refTestVal(1)} }),
 			bad: "token:enter"},
