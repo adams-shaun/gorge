@@ -1106,6 +1106,9 @@ PredWithPowerLEX	Pred	10
 PredWord7	Pred	241
 PrevNextAll	untyped int	2
 PrevNextChosen	untyped int	128
+PrevNextChosenAny	untyped int	512
+PrevNextChosenTo	untyped int	256
+PrevNextChosenTurn	untyped int	1024
 PrevNextCombat	untyped int	1
 PrevNextDivided	untyped int	2048
 PrevNextEndCombat	untyped int	32
@@ -1436,6 +1439,7 @@ StackExileGrant	untyped int	4
 StackExileOwn	untyped int	8
 StackExilePlot	untyped int	1
 StackExileResolved	untyped int	16
+StackExileTarget	untyped int	32
 StackKwCascade	int16	3
 StackKwCasualty	int16	2
 StackKwConspire	int16	8
