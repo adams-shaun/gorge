@@ -43,6 +43,13 @@ type EffectParams struct {
 	StaticAbilities    string
 	Triggers           string
 	ReplacementEffects string
+	// TriggerNames is Triggers$ split into its SVar names: Forge writes the
+	// list comma-separated (Tawnos's Coffin's `LeavesPlay,Untap`), some
+	// scripts space-separated.
+	TriggerNames []string
+	// NoteCounterDefined$ (Tawnos's Coffin's `Targeted`), trimmed: the
+	// objects whose counters the Effect notes for a later WithNotedCounters$.
+	NoteCounterDefined string
 	// Name$, trimmed.
 	Name string
 	// NotStackable is Stackable$ False.
@@ -105,7 +112,7 @@ var effectKnownKeys = [...]string{
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
-	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Pawprint", "Phase",
+	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "NoteCounterDefined", "OneOff", "OpponentTurn", "OptionalDecider", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -163,7 +170,11 @@ func compileEffect(sa *cards.SA) *EffectParams {
 	p.Duration = sa.ParamStr(cards.PKDuration)
 	p.StaticAbilities = sa.ParamStr(cards.PKStaticAbilities)
 	p.Triggers = sa.ParamStr(cards.PKTriggers)
+	p.TriggerNames = strings.FieldsFunc(p.Triggers, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
 	p.ReplacementEffects = sa.ParamStr(cards.PKReplacementEffects)
+	p.NoteCounterDefined = strings.TrimSpace(sa.ParamStr(cards.PKNoteCounterDefined))
 	p.Name = strings.TrimSpace(sa.ParamStr(cards.PKName))
 	if stackable, present := sa.Param(cards.PKStackable); present && strings.EqualFold(strings.TrimSpace(stackable), "False") {
 		p.NotStackable = true
