@@ -9,11 +9,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // to this leg, and the search happened, so the library is shuffled once
 // whatever it found (CR 701.24a). Nissa's Pilgrimage finding one Forest is
 // the carrier: the battlefield leg takes it and DBHand's Remembered is empty.
-// The searched library is the resolving controller's (every lowered carrier
-// searches "your library"). A fetch with a remembered object that is no
-// longer in a library still shuffles nothing, as in gorge.
+// The W marker (kop.RefController; kgen lower_zone.go fetchShuffleOwed) says no
+// later explicit DB$ Shuffle closes this chain, so the deferral is paid here;
+// Celestial Reunion and the other explicit-tail chains have no marker and pay
+// at their own Shuffle, not twice. The searched library is the resolving
+// controller's (every lowered carrier searches "your library"). A fetch with
+// a remembered object that is no longer in a library still shuffles nothing,
+// as in gorge.
 func (s *State) emptyFetchShuffle(in *kop.Instr) {
-	if in.Obj != kop.RefRemembered || s.g.nrem != 0 {
+	if in.Obj != kop.RefRemembered || s.g.nrem != 0 || in.W != kop.RefController {
 		return
 	}
 	owed := false
