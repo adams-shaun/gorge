@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -24,11 +25,13 @@ import (
 // Calculate or CountSVar whose Expression$ is a literal, an SVar or an SVar
 // with a /Op suffix, onto a card whose SVar has a printed body. The kernel
 // mirrors gorge: the number belongs to the object and only a departure from
-// the battlefield clears it. Refused by name: Type$ Triggered, Targeted and the
-// rest, a spell's write (gorge keeps the number on the card in every zone it
-// visits until it next leaves the battlefield, and a spell carrier would need
-// a reset on every path), a mana or latent ability's, and a table's 16th
-// distinct SVar name.
+// the battlefield clears it. A spell's write lowers only when its chain resets
+// the name on every path (spellStoreResets: gorge keeps the number on the card
+// in every zone it visits until it next leaves the battlefield); Tempt with
+// Bunnies and Tempt with Vengeance count the accepted offers this way.
+// Refused by name: Type$ Triggered, Targeted and the rest, a spell's write
+// without that reset, a mana or latent ability's, and a table's 16th distinct
+// SVar name.
 
 // refuseStoredNested is the refusal of a stored name read through a nested
 // SVar head or a modifier operand.
@@ -130,7 +133,11 @@ func (lc *lowerCtx) storeNum(ps *params, name, typ, expr string) error {
 	switch lc.ab.Kind {
 	case akActivated, akTriggered:
 	case akSpell:
-		return refuse("api StoreSVar in a spell: gorge keeps the number on the card past the resolution")
+		// gorge keeps the number on the card past the resolution: the spell
+		// must reset it on every path (spellStoreResets, after its chain)
+		if lc.mode >= 0 {
+			return refuse("api StoreSVar in a spell's charm mode")
+		}
 	default:
 		return refuse("api StoreSVar in a %s ability", abilityKindNames[lc.ab.Kind])
 	}
@@ -162,6 +169,47 @@ func (lc *lowerCtx) storeNum(ps *params, name, typ, expr string) error {
 	}
 	ps.consume("SVar", "Type", "Expression")
 	lc.emit(lInstr{Op: "ExtStoreNum", B: v, C: c, CS: name})
+	return nil
+}
+
+// spellStoreResets holds a spell's number writes to gorge's reading of them:
+// the number stays on the card after the resolution (Object.RuntimeSVars is
+// cleared only when the object leaves the battlefield, CR 400.7), so a spell
+// that writes a name must hand it back to its printed value on every path, or
+// the next cast of that card (or a copy of it in another zone) would read the
+// leftover. The tempting-offer sorceries do: the chain's last write of the
+// name is an unconditional Number write of the printed default (a literal),
+// outside any loop or condition, so the record is gone when the resolution
+// ends. Any other spell write refuses by name. Called once the spell's chain
+// is lowered.
+func (lc *lowerCtx) spellStoreResets() error {
+	ab := lc.ab
+	if ab == nil || ab.Kind != akSpell {
+		return nil
+	}
+	last := map[string]int{}
+	var names []string
+	for i := range ab.Prog {
+		if in := &ab.Prog[i]; in.Op == "ExtStoreNum" {
+			if _, ok := last[in.CS]; !ok {
+				names = append(names, in.CS)
+			}
+			last[in.CS] = i
+		}
+	}
+	sort.Strings(names)
+	for _, n := range names {
+		i := last[n]
+		in := &ab.Prog[i]
+		if !in.B.isConst() || in.C&1 == 0 || in.B.N != in.C>>1 {
+			return refuse("api StoreSVar in a spell: %s is not reset to its printed default by the chain's last write (gorge keeps the number on the card past the resolution)", n)
+		}
+		for j := 0; j < i; j++ {
+			if p := &ab.Prog[j]; p.Skip > 0 && j+p.Skip >= i {
+				return refuse("api StoreSVar in a spell: the reset of %s is inside a loop or condition, not on every path", n)
+			}
+		}
+	}
 	return nil
 }
 
@@ -251,4 +299,19 @@ func (ic *instrCtx) opExtStoreNum() error {
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtStoreNum))
 	ki.C = kop.StoreNumC(int(idx), in.C&1 != 0, in.C>>1)
 	return nil
+}
+
+// chainTail lowers an ability's chain and then its end-of-chain checks: the
+// spell's StoreSVar resets, the remembered-opponent clear (lower_remembered.go)
+// and the any-activator window, read once the chain has declared its targets
+// (lower_anyactivator.go).
+func (lc *lowerCtx) chainTail(sa *cards.SA, ps *params, ab *lAbility) error {
+	if err := lc.chain(sa, ps); err != nil {
+		return err
+	}
+	if err := lc.spellStoreResets(); err != nil {
+		return err
+	}
+	lc.clearRemOpp()
+	return anyActivatorWindow(ab)
 }

@@ -584,6 +584,10 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	if i := int(c.Kind() - canon.ActChoose); i < len(canon.ChooseKinds) {
 		o.Kind = canon.ChooseKinds[i]
 	}
+	if n, ok := canon.OptInSeatName(o.Kind); ok {
+		o.Kind = n // gorge's repeat_each_optional options, 1:1 (the subject seat is the decision's Player)
+		o.Label = strings.ToUpper(n[:1]) + n[1:]
+	}
 	if o.Obj == 0 && c.Tgt() >= canon.RefPlayer && c.Tgt() != canon.RefNone {
 		o.Player = state.PlayerID(c.Tgt() - canon.RefPlayer)
 	}
@@ -776,7 +780,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	src, mode := x.Source(), x.Mode()
 	switch g.d.Sub {
 	case dirac.ChOptional, dirac.ChWardPay, dirac.ChOptDiscMay, dirac.ChGenMayShuffle, dirac.ChGenPay, dirac.ChGenPayMode,
-		dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
+		dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless, dirac.ChGenOptInSeat:
 		return 1 - uint32(mode&1) // yes, pay, top and unless come first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(dirac.TCode(src)))

@@ -1,0 +1,7 @@
+# the tempting-offer sorceries: each opponent is offered its own yes / no
+# (RepeatOptionalForEachPlayer$, dirac ChGenOptInSeat) and the controller
+# takes the accumulator StoreSVar counted (dirac/oracle/tempt_optin_lockstep_test.go)
+Mountain
+Plains
+Tempt with Bunnies
+Tempt with Vengeance
