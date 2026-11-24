@@ -305,7 +305,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
-		if s.windowPauseArm(k, sl, census, potential) {
+		if s.windowPauseArm(k, p, sl, census, potential) {
 			return true, held
 		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
@@ -4426,22 +4426,8 @@ func (s *State) castWinTapOptions(k *prep, d *Decision) bool {
 		// a lucky Condition-split arm: the arm's colour ask (gorge's
 		// mana_color choice, ChGenManaChoice), the arm's colours in the
 		// askManaColour order (a printed order, else W U B R G).
-		d.Kind, d.Sub, d.Player = DkChoose, ChGenManaChoice, p
-		a := &k.t.Cards[s.cardAt(s.g.winSrc)].Abilities[k.gen.splitAb(s.cardAt(s.g.winSrc))]
-		var ord [kop.NumManaKinds]uint8
-		n, printed := colourAskOrder(a, uint8(a.SplitCols), &ord)
-		cols := ord[:n]
-		if !printed {
-			cols = cols[:0]
-			for c := uint8(0); c < 5; c++ {
-				if a.SplitCols&(1<<c) != 0 {
-					cols = append(cols, c)
-				}
-			}
-		}
-		for _, c := range cols {
-			d.add(MakeAction(AkChoose, 0, 0, c))
-		}
+		d.Kind, d.Player = DkChoose, p
+		s.splitWinColOptions(k, s.g.winSrc, d)
 		return true
 	}
 	d.Kind, d.Sub, d.Player = DkChoose, ChWindowTap, p

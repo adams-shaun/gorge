@@ -1358,8 +1358,8 @@ func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (pa
 			held[c] += s.g.winHeld[c] // what an earlier stretch of the walk kept out of the pool
 		}
 		s.g.winHeld = held
-		if s.res.ask == raGenWinTap {
-			return true, false // a tap-another source's pick: the answer runs the walk on (mana_windowtapx.go)
+		if s.winAskPending() {
+			return true, false // a tap-another source's pick or a lucky source's colour: the answer runs the walk on (mana_windowtapx.go)
 		}
 		s.g.winHeld = [kop.NumManaKinds]uint8{}
 	}

@@ -47,6 +47,11 @@ const raGenPileOpp uint8 = 157
 // ask (dirac/manifest/ask/raGenRepeatOptional)
 const raGenRepeatOptional uint8 = 158
 
+// ask (dirac/manifest/ask/raGenWinCol)
+//
+// the lucky Condition-split source's colour choice in a resolution's mana window (CR 605.3b; mana_reswincol.go resWinColArm): the tapped source's arm colours in the askManaColour order, gorge's "mana_color" choice, ChGenManaChoice.
+const raGenWinCol uint8 = 158
+
 // ask (dirac/manifest/ask/raPodClashOpp)
 const raPodClashOpp uint8 = 159
 
