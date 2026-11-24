@@ -78,6 +78,19 @@ func restrictedManaCostPart(c lCost) string {
 	return ""
 }
 
+// onePipColour reports whether p's pips name at most one colour (any count of
+// it): the fee a kernel fee unit carries (pcard.manaFeeN) is one pip mask and
+// one count.
+func onePipColour(p [5]int) bool {
+	n := 0
+	for _, v := range p {
+		if v != 0 {
+			n++
+		}
+	}
+	return n <= 1
+}
+
 // manaFeeEmpty reports whether m has no mana part at all.
 func manaFeeEmpty(m manaCost) bool {
 	return m.None || m.Generic == 0 && m.Pips == [5]int{} && m.C == 0 && len(m.Hybrid) == 0 &&
@@ -92,6 +105,31 @@ func manaFeeSupported(m manaCost) bool {
 	}
 	return !m.X && !m.XX && !m.XXX && len(m.Hybrid) == 0 && len(m.Twobrid) == 0 &&
 		len(m.Phyrexian) == 0 && m.Snow == 0 && m.XColor == 0
+}
+
+// restrictedManaUnit reports whether a restricted mana ability whose cost is
+// literal mana plus {T} (Castle Garenbrig's "{2}{G}{G}, {T}: Add six {G}") is one
+// the kernel plans as a restricted unit of its own: gorge's cast-window probe
+// prices the fee like an unrestricted one, paid from the floating mana before
+// the production joins (engine/rules cast_window.go
+// castWindowGenericCostShape, CR 605.3b), so the kernel charges the fee from
+// the mana the payment already holds (dirac mana_restrictedsource.go). One
+// fixed colour or {C}, a const amount of one to seven, no choice, each-colour
+// production or rider flag; the spell and the activated-ability restriction
+// are both allowed (kop.RestrictedManaCostShape).
+func restrictedManaUnit(c lCost, m *lMana) bool {
+	if !c.Tap || c.XMin != 0 || manaFeeEmpty(c.Mana) || !manaFeeSupported(c.Mana) || c.Mana.C != 0 || c.Mana.Snow != 0 ||
+		!onePipColour(c.Mana.Pips) {
+		return false
+	}
+	c.Mana = manaCost{}
+	if !plainTapCost(c) {
+		return false
+	}
+	col := len(m.Colors) == 1 && strings.Contains("WUBRGC", m.Colors)
+	return col && m.Amount.isConst() && m.Amount.N >= 1 && m.Amount.N <= maxRestrictedFeeAmount &&
+		!m.Choice && !m.Each && m.Special == "" && !m.NonSpell && !m.Deferred &&
+		!m.NoCounter && m.Split == nil && m.HasteValid == nil
 }
 
 // restrictedLifeTap reports whether c is exactly "{T}, Pay N life" (N a

@@ -83,7 +83,7 @@ func (s *State) affordsReservingAv(k *prep, p uint8, cost *kop.ManaCost, ex Slot
 // (spellPartDisjoint's restricted arm): the tapX part's candidates keep
 // their units -- census or restricted (rd) -- out of the mana it prices.
 func (s *State) restrSrcReserves(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, c *kop.Cost, src Slot, b *avail, pm uint8) bool {
-	t, _, _ := s.restrSrcAvail(k, p, d, b, ex)
+	t, _, _ := s.restrSrcAvail(k, p, d, b, ex, nil, 0)
 	t.ungr = b.ungr
 	return s.costPartDisjointD(k, p, src, c, cost, &t, pm, &d)
 }
@@ -153,7 +153,7 @@ func (s *State) spellPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.C
 		d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		// an evaluated-amount source (rkDyn, Helga) is no unit of t, as it is
 		// none of av: the restricted units t does hold stay reserved
-		t, _, _ := s.restrSrcAvail(k, p, d, &av, NoSlot)
+		t, _, _ := s.restrSrcAvail(k, p, d, &av, NoSlot, nil, 0)
 		return s.costPartDisjointD(k, p, NoSlot, part, cost, &t, pipMaskOf(cost), &d)
 	}
 	return s.costPartDisjoint(k, p, NoSlot, part, cost, &av, pipMaskOf(cost))

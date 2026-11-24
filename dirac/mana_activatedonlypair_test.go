@@ -44,7 +44,7 @@ func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operatorID, m
 	if _, kd, ab := sc.s.restrView(sc.k, 0, csl, sc.s.manaPCGen(sc.k, csl), &dAct); kd != rkWiden || ab == nil {
 		t.Fatalf("a land ability does not admit Citadel's restricted ability (kind %d): the test reads nothing", kd)
 	}
-	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dAct, &base, NoSlot)
+	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dAct, &base, NoSlot, nil, 0)
 	if got.total != 2 || got.mask[got.n-1]&(1<<3) == 0 {
 		t.Errorf("Citadel for a land ability: %d mana %v, want its one replaced by two {R}", got.total, got.mask[:got.n])
 	}
@@ -52,7 +52,7 @@ func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operatorID, m
 	if _, kd, _ := sc.s.restrView(sc.k, 0, csl, sc.s.manaPCGen(sc.k, csl), &dSpell); kd != 0 {
 		t.Errorf("a spell payment admits Citadel's activation-only ability (kind %d)", kd)
 	}
-	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dSpell, &base, NoSlot)
+	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dSpell, &base, NoSlot, nil, 0)
 	if got.total != 1 {
 		t.Errorf("Citadel for a spell: %d mana, want its census one only", got.total)
 	}
@@ -78,7 +78,7 @@ func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operatorID, m
 	if v, _, _ := sc.s.restrView(sc.k, 0, osl, sc.s.manaPCGen(sc.k, osl), &dSpell); v != nil {
 		t.Errorf("a nonartifact spell is admitted by the Operator's artifact-only {U}")
 	}
-	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dArtSpell, &base, NoSlot)
+	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dArtSpell, &base, NoSlot, nil, 0)
 	if got.total != base.total+1 || !availHasMask(got, 1<<1) {
 		t.Errorf("Operator for an artifact spell: %d mana %v, want one {U} over the base %d", got.total, got.mask[:got.n], base.total)
 	}
@@ -86,7 +86,7 @@ func CheckActivatedOnlyPair(t *testing.T, tbl *kop.Table, citadel, operatorID, m
 	if _, kd, ab := sc.s.restrView(sc.k, 0, osl, sc.s.manaPCGen(sc.k, osl), &dArt); kd != rkExt || ab == nil || ab.ManaN != 2 {
 		t.Fatalf("an artifact activation does not admit the Operator's {U}{U} (kind %d ab %+v)", kd, ab)
 	}
-	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dArt, &base, NoSlot)
+	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, dArt, &base, NoSlot, nil, 0)
 	if got.total != base.total+2 || !availHasMask(got, 1<<1) {
 		t.Errorf("Operator for an artifact activation: %d mana %v, want two {U} over the base %d", got.total, got.mask[:got.n], base.total)
 	}

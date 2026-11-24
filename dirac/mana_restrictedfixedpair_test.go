@@ -58,7 +58,7 @@ func TestRestrictedFixedColourPairView(t *testing.T) {
 	if base.total != 1 {
 		t.Fatalf("Tablet alone plans %d mana, want its census {R}", base.total)
 	}
-	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, d, &base, NoSlot)
+	got, _, _ = sc.s.restrSrcAvail(sc.k, 0, d, &base, NoSlot, nil, 0)
 	if got.total != 2 || got.nOne != 0 {
 		t.Errorf("restrSrcAvail: %d mana and %d one-colour groups, want 2 and none", got.total, got.nOne)
 	}

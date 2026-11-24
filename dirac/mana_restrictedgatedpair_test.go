@@ -65,7 +65,7 @@ func TestRestrictedGatedColourlessPairView(t *testing.T) {
 	if base.total != 7 {
 		t.Fatalf("the seven lands plan %d mana without the restricted alternative, want 7", base.total)
 	}
-	if got, _, _ := sc.s.restrSrcAvail(sc.k, 0, colourless, &base, NoSlot); got.total != 8 {
+	if got, _, _ := sc.s.restrSrcAvail(sc.k, 0, colourless, &base, NoSlot, nil, 0); got.total != 8 {
 		t.Errorf("restrSrcAvail for a colorless spell: %d mana, want 8 (the Shrine's {C}{C} and six Forests)", got.total)
 	}
 }

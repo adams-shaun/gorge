@@ -427,6 +427,14 @@ func manaGapModelled(first, a *lAbility) bool {
 		// {W/B}, {T}: Add {W}{W}, {W}{B} or {B}{B} beside {T}: Add {C} (Fetid
 		// Heath): the kernel's hybrid-fee filter gap (lower_hybridfilter.go)
 		return true
+	case restrictedManaUnit(a.Cost, a.Mana) && restrictedFeePair(first, a):
+		// a restricted mana-fee alternative of a larger const amount beside a
+		// plain fixed first ability (Castle Garenbrig's "{2}{G}{G}, {T}: Add six
+		// {G}", creature spells and abilities only, beside {T}: Add {G}): the
+		// kernel's restricted pair unit plans it (mana_restrictedsource.go),
+		// the fee paid from the floating mana before the production joins
+		// (gorge's cast window, castWindowGenericCostShape)
+		return true
 	case tapXGapMana(a):
 		// {T}, tap an untapped creature you control: one mana of any
 		// colour, unrestricted, beside a plain {T} first ability (Scene of
@@ -706,6 +714,21 @@ const maxRestrictedCombo = 2
 // ability the kernel's pair unit plans (its planner's unit counts are bytes
 // of small width, and a larger Produced$ Any amount has no card).
 const maxRestrictedAmount = 4
+
+// maxRestrictedFeeAmount bounds the literal amount of a restricted mana-fee
+// alternative (restrictedFeePair): a unit of one colour the plan holds as one
+// restricted batch (kop.RestrictedManaCostShape).
+const maxRestrictedFeeAmount = 7
+
+// restrictedFeePair: a restricted mana-fee ability a beside the plain fixed
+// first ability first is the shape the kernel's restricted pair unit reads: a
+// const amount above the first ability's one, one fixed colour, the first's
+// colour (the alternative serves everything the first does).
+func restrictedFeePair(first, a *lAbility) bool {
+	return plainTapMana(first, false) && unrestrictedOne(first) &&
+		len(first.Mana.Colors) == 1 && a.Mana.Colors == first.Mana.Colors &&
+		a.Mana.Amount.Kind == vConst && a.Mana.Amount.N >= 2 && a.Mana.Amount.N <= maxRestrictedFeeAmount
+}
 
 // maxComboMana bounds the literal amount of a combination filter (Baxter
 // Building's four mana in any combination). gorge's scriptAnswers enumerates

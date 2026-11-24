@@ -83,7 +83,7 @@ func (s *State) relaxKeptPays(k *prep, p uint8, cost *kop.ManaCost, pm uint8, d 
 		// to it) are units of gorge's census per payment (pay/plancost.go
 		// RestrictValidMatches): they stay in the kept read, so a refused grant
 		// that only duplicates one of them leaves the play relaxed-payable
-		u, multi, nm := s.restrSrcAvailD(k, p, d, kept, NoSlot, false)
+		u, multi, nm := s.restrSrcAvailD(k, p, d, kept, NoSlot, false, nil, 0)
 		return u.affordsMulti(cost, 0, multi[:nm])
 	}
 	return kept.affords(cost, pm, 0)

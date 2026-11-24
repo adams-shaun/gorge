@@ -4490,7 +4490,7 @@ func restrictAbZones(act []string, f *lFilter) (zones []kop.Zone, ok bool) {
 func (lc *lowerCtx) finishMana(sa *cards.SA, ps *params, ab *lAbility, m *lMana) error {
 	amt := m.Amount
 	if rv, ok := ps.get("RestrictValid"); ok {
-		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) && (!(restrictedLifeUnit(ab.Cost, m) || restrictedSacSelfUnit(ab.Cost, m) || restrictedSacXUnit(ab.Cost, m) || restrictedTapXUnit(ab.Cost, m)) || lc.restrictedLifeBackFace()) {
+		if !ab.Loyalty && !plainTapCost(ab.Cost) && !noCost(ab.Cost) && (!(restrictedLifeUnit(ab.Cost, m) || restrictedSacSelfUnit(ab.Cost, m) || restrictedSacXUnit(ab.Cost, m) || restrictedTapXUnit(ab.Cost, m) || restrictedManaUnit(ab.Cost, m)) || lc.restrictedLifeBackFace()) {
 			// gorge's cast-window probe prices a restricted source whose
 			// cost goes beyond {T}; the kernel's restricted gap does not yet
 			// prove identical for one (see lower_restrictedmana.go), so the

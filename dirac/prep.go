@@ -61,11 +61,20 @@ type pcard struct {
 	wideCol    kop.ColorMask
 	wideChosen bool
 	restrLife  uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
-	restrFloat bool  // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
-	cdRec      bool  // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
-	food       bool  // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
-	manaTyped  bool  // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
-	manaSnow   bool  // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
+	// restrFee, restrFeeCol, restrFeeN: a restricted mana-fee ability's fee
+	// (Castle Garenbrig's "{2}{G}{G}, {T}: Add six {G}"): the activation pays
+	// restrFeeN pips of restrFeeCol and restrFee generic mana from the
+	// payment's floating mana before the production joins (gorge's cast
+	// window, engine/rules cast_window.go castWindowGenericCostShape, CR
+	// 605.3b; mana_restrictedsource.go). Zero: no fee.
+	restrFee    uint8
+	restrFeeCol uint8
+	restrFeeN   uint8
+	restrFloat  bool // a restricted ability whose unit floats restricted when a plan leaves part of it unspent (rkExt; Steelswarm Operator's activation {U}{U}, Vodalian Arcanist's {C})
+	cdRec       bool // the card reads CtrlHitBySrc against itself: its combat hits on players are recorded (value_turntallies.go)
+	food        bool // the card's printed subtypes include Food (the sacFood tally; value_turntallies.go)
+	manaTyped   bool // gorge tallies the mana it adds as typed (an artifact, a Desert or a Cave: mana_artifact.go)
+	manaSnow    bool // gorge tallies the mana it adds as snow (the printed Snow supertype and no typed word: CR 106.3, effects.ManaProducerTag; mana_snow.go)
 	// painCol, painN: the source's painful mana alternative, its colours and
 	// its damage to the controller (a painland's second ability; for
 	// painOnly, a pain-only source's sole one, manaAb itself), gorge's
