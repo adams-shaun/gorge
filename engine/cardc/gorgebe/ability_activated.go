@@ -45,6 +45,7 @@ func printActivated(p *pr, a *ir.Ability) error {
 		if err != nil {
 			return err
 		}
+		f = p.settle(f)
 		ps, err := f.onActivation()
 		if err != nil {
 			return err

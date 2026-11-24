@@ -279,6 +279,17 @@ func predPart(p *pr, f *ir.Filter, neg bool) ([]part, error) {
 		}
 		return []part{{false, w + suffix}}, nil
 	case ir.PIs:
+		if f.Ref != nil && f.Ref.Kind == ir.RefAttachedTo && f.Ref.Of != nil && f.Ref.Of.Kind == ir.RefSelf && p.attachWord() != "" {
+			// the creature (permanent) this equipment or aura is attached to
+			w := map[string]string{"Equipped": "EquippedBy", "Enchanted": "EnchantedBy"}[p.attachWord()]
+			if neg {
+				return []part{{false, "!" + w}}, nil
+			}
+			if w == "EquippedBy" {
+				return []part{{true, "Creature"}, {false, w}}, nil
+			}
+			return []part{{false, w}}, nil
+		}
 		if f.Ref != nil && (f.Ref.Kind == ir.RefSelf || (f.Ref.Kind == ir.RefEventObject && p.evSelf)) {
 			return pick("Self", "Other")
 		}
