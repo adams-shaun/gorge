@@ -616,3 +616,39 @@ func TestProofSliceRefsFilters(t *testing.T) {
 		t.Errorf("printed %d of %d declarations, want at least 23", printed, len(targets))
 	}
 }
+
+// TestMultiTargetProgram prints a spell of two target slots: the slot its
+// first step does not operate on is declared by a TargetOnly node, and the
+// later node names it ParentTarget.
+func TestMultiTargetProgram(t *testing.T) {
+	P := ir.SubjPermanent
+	mine := refTestAll(P, refTestWord(P, ir.PCardType, "Creature"), refTestRefPred(P, ir.PControlledBy, refTestRef(ir.RefYou)))
+	theirs := refTestAll(P, refTestWord(P, ir.PCardType, "Creature"), refTestRefPred(P, ir.PControlledBy, &ir.Ref{Kind: ir.RefAll, Filter: &ir.Filter{
+		Op: ir.FNot, Subject: ir.SubjPlayer, Args: []*ir.Filter{{Subject: ir.SubjPlayer, Op: ir.FPred, Pred: ir.PPlayerIs, Ref: refTestRef(ir.RefYou)}}}}))
+	tgt := func(slot uint8) *ir.Ref { return &ir.Ref{Kind: ir.RefTarget, Slot: slot} }
+	prog := &ir.Program{
+		Targets: []*ir.Target{{Min: 1, Max: 1, Filter: mine}, {Min: 1, Max: 1, Filter: theirs}},
+		Steps: []*ir.Step{{Verb: ir.VerbDealDamage, Obj: tgt(1), Source: tgt(0), N: &ir.Value{Kind: ir.VPower, Ref: tgt(0)}}},
+	}
+	p := &pr{}
+	n, err := p.program(prog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := p.render("SP", n)
+	if !strings.Contains(got, "SP$ TargetOnly | ValidTgts$ Creature.YouCtrl | SubAbility$ ") {
+		t.Errorf("first node: %s", got)
+	}
+	var dmg string
+	for _, s := range p.svars {
+		if strings.HasPrefix(s.V, "DB$ DealDamage") {
+			dmg = s.V
+		}
+	}
+	if !strings.Contains(dmg, "DamageSource$ ParentTarget") || !strings.Contains(dmg, "ValidTgts$ Creature.YouDontCtrl") {
+		t.Errorf("damage node: %s", dmg)
+	}
+	if len(p.svars) < 1 || p.svars[0].V != "ParentTargeted$CardPower" {
+		t.Errorf("svars: %v", p.svars)
+	}
+}

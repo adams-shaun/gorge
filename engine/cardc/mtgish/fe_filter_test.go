@@ -368,3 +368,23 @@ func TestFilterSliceVariantsRegistered(t *testing.T) {
 	checkFamilyCoverage(t, []string{"Permanents", "Players", "Spells", "Cards", "CardsInGraveyards", "CardsInExile",
 		"CardsInLibrary", "CardsInHand", "Target", "CheckHasable", "Color", "NameFilter"}, deferred)
 }
+
+func TestFilterCastFacts(t *testing.T) {
+	for _, tc := range []struct {
+		variant string
+		pred    ir.Pred
+	}{
+		{"WasKicked", ir.PKicked},
+		{"SurgeCostWasPaid", ir.PSurged},
+		{"OnTheBattlefield", ir.PAny},
+	} {
+		got, err := (&Ctx{}).Filter(tn("Permanents", tc.variant))
+		if err != nil {
+			t.Errorf("Permanents.%s: %v", tc.variant, err)
+			continue
+		}
+		if got.Op != ir.FPred || got.Pred != tc.pred || got.Subject != ir.SubjPermanent {
+			t.Errorf("Permanents.%s: got %+v", tc.variant, got)
+		}
+	}
+}

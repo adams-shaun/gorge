@@ -131,7 +131,7 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	// Amount merge: one verb, one differing amount, a count to choose it by.
 	if (c.SVar != "" || c.Body != "") && st.Then != nil && len(st.Then.Steps) == 1 && len(st.Else.Steps) == 1 &&
 		st.Then.Steps[0].Verb == st.Else.Steps[0].Verb {
-		if diff, ok := sameParams(then, els); ok && p.mergeParams(c, then, els, diff) {
+		if p.mergeBranches(c, then, els) {
 			setDeclared(p, afterThen)
 			return then, 1, nil
 		}
