@@ -1160,24 +1160,25 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					TriggerContext: observer.triggerReferents(*t, id, ev, objLKI),
 				}),
 			}
-			mentor := cards.KeywordHeadIDOf(cards.KeywordHead(line)) == cards.KeywordHeadIDOf("Mentor")
-			if t.ParamStr(cards.PKEvolve) != "" || mentor {
-				// A granted evolve (CR 702.100a) or Mentor (CR 702.134) carries
-				// its trigger line and body: pushTrigger records the line only
-				// when SA is set, and Mentor's targeted body must be the one the
-				// drain poses the target ask from.
-				pt.SA, pt.Trigger = t.Effect, *t
-			}
-			if mentor {
-				// The body's Mentor$ marker rides the pendingTrigger so the
-				// drain pushes the KeywordTriggerPush payload (the
-				// GrantTriggerPush replay shape) instead of a printed
-				// TriggerPush.
-				pt.Mentor = true
-			}
+			markGrantedKeywordTrigger(&pt, t, line)
 			e.queueTrigger(observer, pt, ev, nil)
 		}
 	}
+}
+
+// markGrantedKeywordTrigger fills the keyword-specific fields of a granted
+// keyword trigger. A granted evolve (CR 702.100a) or Mentor (CR 702.134)
+// carries its trigger line and body: pushTrigger records the line only when SA
+// is set, and Mentor's targeted body must be the one the drain poses the target
+// ask from. Mentor's Mentor$ marker rides the pendingTrigger so the drain
+// pushes the KeywordTriggerPush payload (the GrantTriggerPush replay shape)
+// instead of a printed TriggerPush.
+func markGrantedKeywordTrigger(pt *pendingTrigger, t *cards.Trigger, line string) {
+	mentor := cards.KeywordHeadIDOf(cards.KeywordHead(line)) == kwhMentor.ID
+	if t.ParamStr(cards.PKEvolve) != "" || mentor {
+		pt.SA, pt.Trigger = t.Effect, *t
+	}
+	pt.Mentor = mentor
 }
 
 // grantedDamageBatchAdmits gives a granted line the damage batch gate a printed
