@@ -1483,12 +1483,14 @@ func putCounterSupportAnnounced(h Host, c *Ctx, sa *cards.SA, kind, spec string)
 		return
 	}
 	g := h.Game()
+	sc := c.SpecContext(c.Controller)
+	bindSpecLayerTables(h, &sc.Layers, spec, false)
 	var picks []state.ObjID
 	for _, t := range c.Targets {
 		if t.IsPlayer || int32(len(picks)) >= maxT {
 			continue
 		}
-		if MatchesSpecCtx(g, spec, t.Obj, c.SpecContext(c.Controller)) {
+		if MatchesSpecCtx(g, spec, t.Obj, sc) {
 			picks = append(picks, t.Obj)
 		}
 	}
