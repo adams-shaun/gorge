@@ -212,7 +212,7 @@ func TestBuildOrigins(t *testing.T) {
 		if len(es) != 2 || es[0].Origin != OriginCardc || es[0].Reason != "" || es[0].Card == gb || es[0].Forge != gb {
 			t.Fatalf("bears entry %+v", es[0])
 		}
-		if es[1].Origin != OriginForge || es[1].Reason != "unprintable:ability:triggered" || es[1].Card != le {
+		if es[1].Origin != OriginForge || es[1].Reason != "unprintable:event:none" || es[1].Card != le {
 			t.Errorf("elves entry %+v", es[1])
 		}
 		if r.Served() != 1 {
