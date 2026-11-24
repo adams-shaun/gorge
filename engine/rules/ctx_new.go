@@ -120,3 +120,11 @@ func (e *Engine) cdaEvalCtx(o *state.Object, f *cards.Face) *effects.Ctx {
 func (e *Engine) manaAmountCtx(p state.PlayerID, source state.ObjID) *effects.Ctx {
 	return &effects.Ctx{Source: source, Controller: p, Layers: e.boardLayers()}
 }
+
+// playerDamageTriggerContext is the TriggerContext of a synthesized "whenever
+// this deals combat damage to a player" trigger (granted poisonous, CR
+// 702.70a): from is the damage source, player the recipient Defined$
+// TriggeredTarget names.
+func playerDamageTriggerContext(from state.ObjID, player state.PlayerID) effects.TriggerContext {
+	return effects.TriggerContext{TriggerSource: from, TriggerTarget: state.Target{Player: player, IsPlayer: true}}
+}

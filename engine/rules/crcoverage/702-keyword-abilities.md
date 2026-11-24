@@ -116,7 +116,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.67a-c | follows | `engine/cards/kw_fortify.go#kwFortify` `engine/cards/kw_equip.go#kwAttachCost` | `TestCAMPFortifyAttachesToLand` |  |
 | 702.68a,b | follows | `engine/rules/trigger_blocks.go#Engine.checkAttackerUnblockedTriggers` | - | ordinary attack-unblocked triggers |
 | 702.69a,b | follows | `engine/cards/kw_gravestorm.go#kwGravestorm` | `TestOminousHarvestGravestormCopiesPerDeath` |  |
-| 702.70a,b | not-impl | - | - | SILENT: granted keyword does nothing |
+| 702.70a,b | follows | `engine/rules/trigger_granted.go#grantedPoisonousTriggers` | `TestVirulentSliverGrantsPoisonous` | granted only: the corpus prints no K:Poisonous |
 | 702.71a | not-impl | - | - | LOUD (1) |
 | 702.72a-c | not-impl | - | - | LOUD (12) |
 | 702.73a | follows | `engine/effects/filter_type.go#IntrinsicAllCreatureTypes` `engine/effects/filter_type.go#changelingType` `engine/rules/setprops.go#Engine.setPropTokens` | `TestCloneChangelingCDAAfterEarlierStrip` `TestChangelingSharesACreatureTypeInEveryZone` |  |

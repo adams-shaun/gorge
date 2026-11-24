@@ -93,6 +93,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",
 	"Flanking":          "queueGrantedFlanking",
 	"Mentor":            "checkGrantedStaticTriggersUsing",
+	"Poisonous":         "grantedPoisonousTriggers",
 	"Ward":              "checkGrantedWardTriggers",
 }
 

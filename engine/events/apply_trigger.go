@@ -207,6 +207,16 @@ func foldKeywordTriggerPush(g *state.Game, e *Event) {
 				Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 					"TriggerDescription": "Afflict"}}
 		}
+		// A granted poisonous (rules.pushTrigger's __kwPoisonous: payload,
+		// CR 702.70a) has no SVar either: rebuilt structurally into
+		// DB$ Poison | Defined$ TriggeredTarget | Num$ <N> -- "that player
+		// gets N poison counters", the damaged player riding the captured
+		// TriggerContext's TriggerTarget.
+		if rest, ok := strings.CutPrefix(e.Counter, "__kwPoisonous:"); ok {
+			sa = &cards.SA{Kind: "DB", API: "Poison",
+				Params: map[string]string{"Defined": "TriggeredTarget", "Num": rest,
+					"TriggerDescription": "Poisonous"}}
+		}
 		// A granted Conspire (rules.pushTrigger's __kwConspire: payload)
 		// has no SVar either: rebuilt structurally into the same
 		// DB$ CopySpellAbility body the printed K:Conspire expansion
