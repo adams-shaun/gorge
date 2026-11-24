@@ -58,6 +58,10 @@ type ScriptStep struct {
 const (
 	potentialScriptPlays = 16
 	potentialScriptNodes = 164
+	// potentialMayPlayNodes is the budget of the may-play fallback run
+	// (potentialPrefixScript): a plain run, after the three above found none
+	// and the first spent its budget.
+	potentialMayPlayNodes = 1024
 )
 
 // potentialCastKind is the potential play kind a plain cast's prefix search
@@ -90,8 +94,8 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
 	desc, descOK := scriptPlayDesc(o, func() Cost { return e.castOfferBase(p, o.Obj) })
-	build := func(phased bool) *scriptSearch {
-		sr := e.newScriptSearch(p, a, o.AltCostIndex, potentialScriptNodes)
+	build := func(phased bool, budget int) *scriptSearch {
+		sr := e.newScriptSearch(p, a, o.AltCostIndex, budget)
 		if sr == nil {
 			return nil
 		}
@@ -157,7 +161,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// and for any other play the node-for-node mirror does not model the
 	// phased order, so a recorded game's other offers keep the pre-existing
 	// scope.
-	plain := build(false)
+	plain := build(false, potentialScriptNodes)
 	if plain == nil {
 		return nil, false
 	}
@@ -166,7 +170,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	if found && len(script) > 0 {
 		return script, true
 	}
-	sr := build(true)
+	sr := build(true, potentialScriptNodes)
 	if sr == nil {
 		return nil, false
 	}
@@ -182,10 +186,26 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	// pip, or a fee, is payable with any colour, so a covered colour is not
 	// dominated while one is outstanding; census.fees counts the latter).
 	if plain.limited && funding == 0 {
-		ss := build(false)
+		ss := build(false, potentialScriptNodes)
 		if ss != nil {
 			ss.subsume = true
 			script, found = ss.run(e)
+		}
+	}
+	if found && len(script) > 0 {
+		return script, true
+	}
+	// The may-play fallback: a cast through a granted permission whose every
+	// run above spent its budget (CR 601.2g lets it be announced, CR 605.3a
+	// makes the granted mana ability available) gets one plain run with
+	// potentialMayPlayNodes: tail-08 pair 54's Age of Ultron cast is payable
+	// only through the fifth land's granted ability, the 657th node of the
+	// plain order.
+	if o.Kind == optCast && castModeCodes.Code(o.Mode) == castModeMayplay && plain.limited {
+		big := build(false, potentialMayPlayNodes)
+		if big != nil {
+			big.feeStall = true
+			script, found = big.run(e)
 		}
 	}
 	return script, found && len(script) > 0
