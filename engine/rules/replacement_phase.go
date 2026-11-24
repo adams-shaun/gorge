@@ -127,7 +127,8 @@ func (e *Engine) continuePhaseReplacements(ev events.Event, candidates []replMat
 	if len(applicable) == 0 {
 		return ev, false
 	}
-	if len(applicable) > 1 && int(e.G.Active) < len(e.G.Players) && !e.G.Players[e.G.Active].Lost {
+	if len(applicable) > 1 && !interchangeablePhaseSkips(candidates, applicable) &&
+		int(e.G.Active) < len(e.G.Players) && !e.G.Players[e.G.Active].Lost {
 		e.posePhaseOrderChoice(ev, candidates, used, applicable)
 		return ev, true
 	}
@@ -138,6 +139,20 @@ func (e *Engine) continuePhaseReplacements(ev events.Event, candidates []replMat
 		return ev, true
 	}
 	return e.applyBeginPhaseReplacement(ev, candidates[i])
+}
+
+// interchangeablePhaseSkips reports whether every applicable candidate is a
+// mandatory skip with no ReplaceWith$ body (two Null Profusions). Applying any
+// of them skips the step whole and leaves the others nothing to replace, so
+// CR 616.1's order choice cannot change the outcome and is not posed.
+func interchangeablePhaseSkips(candidates []replMatch, applicable []int) bool {
+	for _, i := range applicable {
+		r := candidates[i].repl
+		if r.With != nil || r.ParamStr(cards.PKOptional) == "True" {
+			return false
+		}
+	}
+	return true
 }
 
 func (e *Engine) applicablePhaseReplacements(ev events.Event, candidates []replMatch, used []bool) []int {
@@ -201,7 +216,8 @@ func (e *Engine) resumeParkedPhase(rc replChoice) {
 		e.finishParkedPhase(rc, -1)
 		return
 	}
-	if len(applicable) > 1 && int(e.G.Active) < len(e.G.Players) && !e.G.Players[e.G.Active].Lost {
+	if len(applicable) > 1 && !interchangeablePhaseSkips(rc.cands, applicable) &&
+		int(e.G.Active) < len(e.G.Players) && !e.G.Players[e.G.Active].Lost {
 		rc.kind = replChoicePhaseOrder
 		rc.applicable = append(rc.applicable[:0], applicable...)
 		e.replChoices = append([]replChoice{rc}, e.replChoices...)
