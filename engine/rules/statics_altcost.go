@@ -306,7 +306,7 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	// value at the boundary, so the emptiness test needs no trimming here;
 	// costConditionHolds reads the key itself, IDs at that boundary.
 	if params["Condition"] != "" &&
-		!e.costConditionHolds(staticView{Params: params}, caster, id) {
+		!e.costConditionHolds(staticView{Controller: caster, Params: params}, caster, id) {
 		return false
 	}
 	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
