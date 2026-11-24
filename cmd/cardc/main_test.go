@@ -87,3 +87,10 @@ func TestDiffUsage(t *testing.T) {
 		t.Fatalf("exit 0: %s", errb.String())
 	}
 }
+
+func TestLedgerUsage(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"ledger", "-nope"}, &out, &errb); code == 0 {
+		t.Fatalf("exit 0: %s", errb.String())
+	}
+}

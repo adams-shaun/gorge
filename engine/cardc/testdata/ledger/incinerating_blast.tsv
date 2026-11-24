@@ -1,0 +1,3 @@
+# Incinerating Blast
+source	key	sig	class	issue	note
+static	0/A:SP:DealDamage>Draw#0/[1]NumCards	e79e418e	equivalent	0	explicit draw count of one is the default count

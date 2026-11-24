@@ -1,0 +1,6 @@
+# Reassembling Skeleton
+source	key	sig	class	issue	note
+lockstep	fdn/74/forward	-	cardc-gap	0	untriaged
+lockstep	fdn/74/reverse	-	cardc-gap	0	untriaged
+static	0/A:AB:ChangeZone#0/[0]Defined	c9a5e3a2	cardc-gap	0	untriaged
+static	0/A:AB:ChangeZone#0/[0]Origin	02c853df	cardc-gap	0	untriaged

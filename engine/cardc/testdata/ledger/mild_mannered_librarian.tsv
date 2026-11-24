@@ -1,0 +1,7 @@
+# Mild-Mannered Librarian
+source	key	sig	class	issue	note
+lockstep	fdn/42/forward	-	cardc-gap	0	untriaged
+lockstep	fdn/42/reverse	-	cardc-gap	0	untriaged
+static	0/A:AB:Animate>PutCounter>Draw#0/[0]ActivationLimit	e79e418e	cardc-gap	0	untriaged
+static	0/A:AB:Animate>PutCounter>Draw#0/[0]Defined	c9a5e3a2	cardc-gap	0	untriaged
+static	0/A:AB:Animate>PutCounter>Draw#0/[2]NumCards	e79e418e	equivalent	0	explicit draw count of one is the default count

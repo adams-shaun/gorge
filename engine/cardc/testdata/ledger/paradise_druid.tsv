@@ -1,0 +1,5 @@
+# Paradise Druid
+source	key	sig	class	issue	note
+static	0/S:Continuous#0/Affected	f897efc2	cardc-gap	0	untriaged
+static	0/S:Continuous#0/IsPresent	11c3d9c1	cardc-gap	0	untriaged
+static	0/S:Continuous#0/PresentCompare	c1dfed77	cardc-gap	0	untriaged

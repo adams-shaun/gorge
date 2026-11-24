@@ -1,0 +1,5 @@
+# Ashroot Animist
+source	key	sig	class	issue	note
+static	0/T:Attacks:Pump#0/TriggerZones	88b1522a	cardc-gap	0	untriaged
+static	0/T:Attacks:Pump#0/[0]NumAtt	00b32d9d	cardc-gap	0	untriaged
+static	0/T:Attacks:Pump#0/[0]NumDef	00b32d9d	cardc-gap	0	untriaged
