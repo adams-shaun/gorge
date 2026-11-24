@@ -770,6 +770,15 @@ func (s *State) tgtRedPrice(k *prep, e *stackEntry, c TCode, av *avail) bool {
 	if e.flags&sfKicked != 0 {
 		cost = s.addKickerPayments(cd, e, cost)
 	}
+	// the announced faces (CR 601.2b, before the target) are the pips the
+	// payment charges: a reduced price a face the pool cannot pay stays
+	// unpayable (gorge prices pc.resolvedMana, Favor of the Overbeing's {G}
+	// under Strong Back beside a floating {U})
+	if cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
+		for i := 0; i < int(s.bld().pipN) && cost.Hyb[0] != 0; i++ {
+			cost = cost.Resolve(s.bld().pipCol(uint8(i)))
+		}
+	}
 	// the announced X is part of the price the payment charges (affordableTargets)
 	cost = cost.AtX(int(e.x))
 	if av.affords(&cost, pipMaskOf(&cost), 0) {
