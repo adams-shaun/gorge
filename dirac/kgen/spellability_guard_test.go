@@ -45,15 +45,15 @@ func TestValidSAGuardClasses(t *testing.T) {
 		{
 			what: "a static's unread ValidSA$",
 			src: strings.Join([]string{
-				"Name:Probe Shackle",
-				"ManaCost:1 W",
-				"Types:Enchantment Aura",
-				"K:Enchant:Permanent",
-				"S:Mode$ CantAttack | ValidCard$ Card.EnchantedBy | ValidSA$ Activated.!ManaAbility | Description$ Probe.",
+				"Name:Probe Phoenix",
+				"ManaCost:2 R",
+				"Types:Creature Phoenix",
+				"PT:2/2",
+				"S:Mode$ Continuous | Affected$ Card.Self | MayPlay$ True | ValidSA$ Spell.Blitz | AffectedZone$ Graveyard | EffectZone$ Graveyard | Description$ Probe.",
 				"Oracle:Probe.",
 			}, "\n"),
-			reason: "static spell-ability filter ValidSA [ValidSA]",
-			class:  "other:static spell-ability filter ValidSA [ValidSA]",
+			reason: `static spell-ability filter ValidSA Continuous "Spell.Blitz"`,
+			class:  `other:static spell-ability filter ValidSA Continuous "_"`,
 		},
 	} {
 		c := lowerScriptCard(t, "Probe", tc.src)
@@ -73,7 +73,7 @@ func TestValidSAGuardClasses(t *testing.T) {
 		{"other:filter word FwPowerCmp in perm", "M5"},
 		{"other:filter word FwCountersCmp in card", "M5"},
 		{`other:spell-ability filter ValidSA "_"`, "M5"},
-		{"other:static spell-ability filter ValidSA [ValidSA]", "M5"},
+		{`other:static spell-ability filter ValidSA Continuous "_"`, "M5"},
 		{`other:AbilityCast spell-ability filter ValidSA$ "_"`, "M5"},
 	} {
 		if got := classTier(tc.class); got != tc.tier {

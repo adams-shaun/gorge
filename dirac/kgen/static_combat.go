@@ -29,6 +29,7 @@ func (sc *staticCtx) modeCantBlock() ([]lStatic, bool, error) {
 	if sc.st.F, err = readF("ValidCard"); err != nil {
 		return nil, true, err
 	}
+	sc.sp.readInertValidSA()
 	return nil, false, nil
 }
 
@@ -75,6 +76,7 @@ func (sc *staticCtx) modeCantAttack() ([]lStatic, bool, error) {
 	if err := lc.cantAttack(sp, &sc.st); err != nil {
 		return nil, true, err
 	}
+	sp.readInertValidSA()
 	return nil, false, nil
 }
 
