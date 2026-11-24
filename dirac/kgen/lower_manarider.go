@@ -51,7 +51,17 @@ const (
 	riderDeplete
 	riderOppGainLife
 	riderStayTapped
+	riderSelfGainLife
 )
+
+// tapOnlyRiderMana reports whether ab, ignoring its rider program, is a bare
+// {T} mana ability of fixed production: the only cost shape gorge's planner
+// defers as "source:rider" (a banana token's {T}, Sacrifice cost is not).
+func tapOnlyRiderMana(ab *lAbility) bool {
+	c := *ab
+	c.Prog = nil
+	return plainTapMana(&c, false) && c.Mana != nil && !c.Mana.Each && !c.Mana.Choice
+}
 
 // riderMana reads a mana ability's lowered rider program: the bounded shapes
 // the kernel runs at activation (CR 605.3b).
@@ -60,7 +70,8 @@ const (
 //   - each opponent gains N life (Grove of the Burnwillows);
 //   - the source doesn't untap during its controller's next untap step
 //     (Cinder Marsh's second ability: the DBStayTapped Effect, lowered by
-//     skipUntapManaRider as [SkipUntap Self]).
+//     skipUntapManaRider as [SkipUntap Self]);
+//   - the controller gains N life (Pristine Talisman, The Great Henge).
 //
 // The counter-on-self rider stays ctrRiderMana's (Twitching Doll); a
 // conditional life rider (Avid Reclaimer's Nissa clause) is not this shape.
@@ -78,6 +89,9 @@ func riderMana(ab *lAbility) (kind int, ctr string, n int, ok bool) {
 			in.C == 0 && in.CS == "" && in.F == nil && in.F2 == nil && in.Obj2.Kind == rNone && in.W.Kind == rNone &&
 			in.Cond.Kind == cNone && in.Skip == 0 && len(in.Hyb) == 0 && !in.Follows:
 			return riderStayTapped, "", 0, true
+		case in.Op == "GainLife" && in.Obj.Kind == rYou && in.A.isConst() && in.A.N >= 1 && in.A.N <= 255 &&
+			in.B.Kind == vNone && in.F == nil && in.Cond.Kind == cNone && in.Skip == 0 && tapOnlyRiderMana(ab):
+			return riderSelfGainLife, "", in.A.N, true
 		}
 	case 2:
 		skip, sac := &ab.Prog[0], &ab.Prog[1]

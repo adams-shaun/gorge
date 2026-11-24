@@ -189,13 +189,15 @@ type Ability struct {
 	ManaHasteValid FilterID
 	// ManaRider is the rider a mana ability runs with its mana (CR 605.3b):
 	// a self-sacrifice once its last counter is gone (Peat Bog), or each
-	// opponent gaining life (Grove of the Burnwillows). ManaRiderNone = no rider. A table field, not State;
+	// opponent gaining life (Grove of the Burnwillows), or its controller
+	// gaining life (Pristine Talisman). ManaRiderNone = no rider. A table field, not State;
 	// dirac mana_rider.go runs it at activation.
 	ManaRider uint8
 	// ManaRiderCtr is the source's own counter kind a deplete rider reads
 	// (ManaRiderDeplete): the ability is sacrificed once that count is 0.
 	ManaRiderCtr CounterKind
-	// ManaRiderN is the count a life rider uses (ManaRiderOppGainLife). A
+	// ManaRiderN is the count a life rider uses (ManaRiderOppGainLife,
+	// ManaRiderSelfGainLife). A
 	// table byte.
 	ManaRiderN uint8
 	// RepMax: a charm that may choose a mode more than once (CanRepeatModes$)
@@ -247,10 +249,11 @@ const (
 // ManaRider values (Ability.ManaRider): the rider a mana ability runs with
 // its mana (CR 605.3b).
 const (
-	ManaRiderNone        uint8 = iota
-	ManaRiderDeplete           // sacrifice the source once its ManaRiderCtr count is 0
-	ManaRiderOppGainLife       // each opponent gains ManaRiderN life
-	ManaRiderStayTapped        // the source doesn't untap during its controller's next untap step
+	ManaRiderNone         uint8 = iota
+	ManaRiderDeplete            // sacrifice the source once its ManaRiderCtr count is 0
+	ManaRiderOppGainLife        // each opponent gains ManaRiderN life
+	ManaRiderStayTapped         // the source doesn't untap during its controller's next untap step
+	ManaRiderSelfGainLife       // the controller gains ManaRiderN life
 )
 
 // ManaRiderAb reports whether a mana ability carries a rider the kernel runs

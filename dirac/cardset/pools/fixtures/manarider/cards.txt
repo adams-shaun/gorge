@@ -1,6 +1,7 @@
 # A mana ability whose rider puts a counter on its own source: Twitching
 # Doll's any-colour {T} ability, a source gorge's payment planner defers
-# (its rider), beside the Forests that pay ordinarily.
+# (its rider), beside the Forests that pay ordinarily; Pristine Talisman's
+# "you gain 1 life" rider is the same kind of deferred source.
 # dirac/mana_rider_test.go plays it.
 Twitching Doll
 Forest
@@ -8,6 +9,7 @@ Gemstone Mine
 Grove of the Burnwillows
 Hickory Woodlot
 Peat Bog
+Pristine Talisman
 Remote Farm
 Sandstone Needle
 Saprazzan Skerry
