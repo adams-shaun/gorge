@@ -1719,7 +1719,11 @@ func (s *State) execReturn(k *prep, in *kop.Instr, host Slot) bool {
 	if s.returnDefenderAsk(k, in, host) { // the CR 508.4 defender ask, before the move (zone_returndefender.go)
 		return true
 	}
-	ask := s.execReturnObj(k, in, host, s.returningObj(in))
+	o := s.returningObj(in)
+	if o == NoObj {
+		s.emptyFetchShuffle(in) // zone_emptyfetchshuffle.go
+	}
+	ask := s.execReturnObj(k, in, host, o)
 	if !ask {
 		s.g.tokDefSet = false // a parked card (clone election) keeps the answer for its re-run (rerunReturn)
 	}

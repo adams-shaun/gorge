@@ -681,7 +681,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		// empty object fetch (an empty Remembered/ChosenCard list or an empty
 		// library's TopOfLibrary) is still a direct fetch and must not degrade
 		// to a fresh whole-library search.
-		return !playerList
+		return emptyDefinedFetch(h, c, cz, playerList)
 	}
 
 	optional := cz.OptionalTrue
@@ -794,6 +794,33 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		}
 	}
 	scheduleAtEOT(h, c, sa, ateotMoved)
+	return true
+}
+
+// deferSearchShuffle records whether this search suppressed its own shuffle
+// (Shuffle$ False / NoShuffle$ True) and so owes the chain's "Then shuffle" at
+// the next Defined$ placement leg, and whose library that shuffle randomizes.
+func deferSearchShuffle(c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) {
+	c.Search.DeferredShuffle = !cz.ShuffleTrue && (cz.ShuffleFalse || cz.NoShuffle)
+	c.Search.DeferredShuffleOwner = owner
+}
+
+// emptyDefinedFetch ends a Defined$ library fetch whose list holds no object
+// and reports whether the fetch is consumed (a player-only list is not: it
+// names whose library to search). A consumed empty fetch moves nothing, but a
+// search earlier in the chain that deferred its shuffle to this leg still
+// owes it: the search happened, so "Then shuffle" is paid once whatever it
+// found (CR 701.24a). Nissa's Pilgrimage finding one Forest is the carrier:
+// the battlefield leg takes it, DBHand's Defined$ Remembered is empty, and
+// XMage still shuffles (SearchLibraryPutOntoBattlefieldTappedRestInHandEffect).
+func emptyDefinedFetch(h Host, c *Ctx, cz *ChangeZoneParams, playerList bool) bool {
+	if playerList {
+		return false
+	}
+	if c != nil && c.Search.DeferredShuffle {
+		c.Search.DeferredShuffle = false
+		shuffleLibrary(h, cz, c.Search.DeferredShuffleOwner)
+	}
 	return true
 }
 
@@ -1606,7 +1633,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// library shuffle tail.
 	scheduleAtEOT(h, c, sa, moved)
 	if searchedLib {
-		c.Search.DeferredShuffle = !cz.ShuffleTrue && (cz.ShuffleFalse || cz.NoShuffle)
+		deferSearchShuffle(c, cz, owner)
 		searchShuffleTail(h, c, cz, owner, moved, to)
 	}
 }
