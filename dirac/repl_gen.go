@@ -369,7 +369,11 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue
 		}
 		if n == 0 && ev.dst != NoSlot {
-			r.prevent(ev.dst) // protection from everything: all of its damage
+			// A zero is this event's alone: protection from everything and a
+			// prevent-all line zero each event to the recipient on their own,
+			// and a minus rewrite (Lashknife Barrier: 1 becomes 0) leaves the
+			// recipient's other events (CR 614.1, 510.2).
+			s.preventCombatEv(k, r, ev)
 			continue
 		}
 		d := n - int(ev.n)
