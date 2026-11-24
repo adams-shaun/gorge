@@ -1312,55 +1312,10 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 			if twinCut && tw.skip(s, order, i) {
 				continue // gorge's scriptTwin (potential_script.go activations): an indistinguishable earlier gap already walked this subtree
 			}
-			na := int(s.deferGapAnswers(k, order[i]))
-			if add := deferAskNodes(na); add != 0 {
-				// the activation's colour ask is a clone of gorge's search of its
-				// own, beside the one per answer (scriptSearch.visit)
-				if w.nodes += add; w.nodes > potentialScriptNodes {
-					w.budgetExit(s)
-					return false
-				}
-			}
-			// the tap's any-colour triggers ask a colour each, which the search
-			// branches on too (tapAnyColAsks), the play's needed colours first
-			// (scriptOrderAnswers)
-			nx := s.tapAnyColAsks(k, order[i])
-			xo := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
-			nxc := 1 // the answer combinations: five per ask
-			if nx > 0 {
-				needFirst(xo[:], s.playNeed(k, a))
-				for u := 0; u < nx; u++ {
-					nxc *= len(xo)
-				}
-			}
-			for ai := 0; ai < na; ai++ {
-				if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, &nodePool) {
-					continue // the subsume run's ask keeps only the colours the pool lacks
-				}
-				if nx > 0 {
-					// the ask visits: the first ask, then one under each answer of the earlier
-					if w.nodes += (nxc - 1) / (len(xo) - 1); w.nodes > potentialScriptNodes {
-						w.budgetExit(s)
-						return false
-					}
-				}
-				for xi := 0; xi < nxc; xi++ {
-					enc := uint16(ai)
-					if nx > 0 {
-						var cols [anyColAskCap]uint8
-						for u, r := nx-1, xi; u >= 0; u, r = u-1, r/len(xo) {
-							cols[u] = xo[r%len(xo)]
-						}
-						enc = tapAnyColAnswerBits(ai, cols[:nx])
-					}
-					w.used[w.nu], w.answers[w.nu] = int8(i), enc
-					w.nu++
-					ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
-					w.nu--
-					if ok {
-						return true
-					}
-				}
+			if found, exit := deferAnswerBranches(s, k, a, p, order, i, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, &nodePool); found {
+				return true
+			} else if exit {
+				return false
 			}
 			if w.cut[i] {
 				w.removed[i] = true // gorge's search goes on without i (scriptDFS cutAll)
@@ -1375,6 +1330,64 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 		}
 		return false
 	}
+}
+
+// deferAnswerBranches walks the answers of gap order[i]'s activation under the
+// node deferGapWalk is at: its colour ask's answers, and under each the colour
+// asks of the tap's any-colour triggers (tapAnyColAsks). found: a line offered
+// the play; exit: the walk ran past gorge's node budget.
+func deferAnswerBranches(s *State, k *prep, a Action, p uint8, order []Slot, i int, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint16, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, nodePool *[kop.NumManaKinds]uint8) (found, exit bool) {
+	na := int(s.deferGapAnswers(k, order[i]))
+	if add := deferAskNodes(na); add != 0 {
+		// the activation's colour ask is a clone of gorge's search of its
+		// own, beside the one per answer (scriptSearch.visit)
+		if w.nodes += add; w.nodes > potentialScriptNodes {
+			w.budgetExit(s)
+			return false, true
+		}
+	}
+	// the tap's any-colour triggers ask a colour each, which the search
+	// branches on too (tapAnyColAsks), the play's needed colours first
+	// (scriptOrderAnswers)
+	nx := s.tapAnyColAsks(k, order[i])
+	xo := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
+	nxc := 1 // the answer combinations: five per ask
+	if nx > 0 {
+		needFirst(xo[:], s.playNeed(k, a))
+		for u := 0; u < nx; u++ {
+			nxc *= len(xo)
+		}
+	}
+	for ai := 0; ai < na; ai++ {
+		if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, nodePool) {
+			continue // the subsume run's ask keeps only the colours the pool lacks
+		}
+		if nx > 0 {
+			// the ask visits: the first ask, then one under each answer of the earlier
+			if w.nodes += (nxc - 1) / (len(xo) - 1); w.nodes > potentialScriptNodes {
+				w.budgetExit(s)
+				return false, true
+			}
+		}
+		for xi := 0; xi < nxc; xi++ {
+			enc := uint16(ai)
+			if nx > 0 {
+				var cols [anyColAskCap]uint8
+				for u, r := nx-1, xi; u >= 0; u, r = u-1, r/len(xo) {
+					cols[u] = xo[r%len(xo)]
+				}
+				enc = tapAnyColAnswerBits(ai, cols[:nx])
+			}
+			w.used[w.nu], w.answers[w.nu] = int8(i), enc
+			w.nu++
+			ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
+			w.nu--
+			if ok {
+				return true, false
+			}
+		}
+	}
+	return false, false
 }
 
 // planTiered is plan with gorge's tiers: the sources a Taps watcher
