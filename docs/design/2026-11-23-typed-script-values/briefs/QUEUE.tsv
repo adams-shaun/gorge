@@ -23,3 +23,9 @@ cc-30-static-diff	3	medium	cc-22a-gorgebe-actions-player,cc-22b-gorgebe-actions-
 cc-33a-fork-register	3	low	cc-00-branch
 cc-32-ledger	3	medium	cc-30-static-diff,cc-31-lockstep
 cc-33b-fallback	3	low	cc-32-ledger,cc-33a-fork-register
+cc-34-conds-values-filters	3	medium	cc-33b-fallback
+cc-36-modes-copies-choices	3	medium	cc-33b-fallback
+cc-35-statics-costs-keywords	3	medium	cc-34-conds-values-filters,cc-36-modes-copies-choices
+cc-37-library-zones	3	medium	cc-34-conds-values-filters,cc-36-modes-copies-choices
+cc-38-oneshot-effects	3	medium	cc-35-statics-costs-keywords
+cc-39-forge-spellings-ledger	3	medium	cc-34-conds-values-filters,cc-35-statics-costs-keywords,cc-36-modes-copies-choices,cc-37-library-zones,cc-38-oneshot-effects
