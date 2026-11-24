@@ -922,9 +922,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// the library, no state change, as on the search path
 			return refuse("library fetch NoLooking$ %q", v)
 		}
-		if lc.fetchShuffleOwed(ps) {
-			in.CS += "|ShuffleOwed"
-		}
+		lc.markFetchShuffleOwed(&in, ps)
 	}
 	if counterKind != "" {
 		if err := withCountersList(counterKind, in.Op, in.C); err != nil { // lower_counterlist.go

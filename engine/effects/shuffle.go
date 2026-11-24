@@ -46,5 +46,11 @@ func effShuffle(h Host, c *Ctx, sa *cards.SA) {
 		}
 		order := h.ShuffleLibrary(p, g.Zone(state.ZLibrary, p))
 		h.Emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
+		// An explicit DB$ Shuffle discharges a search's deferred "Then
+		// shuffle" (gorge zone_search.go emptyDefinedFetch skips its own
+		// payment when this tail exists).
+		if c != nil && c.Search.DeferredShuffleOwner == p {
+			c.Search.DeferredShuffle = false
+		}
 	}
 }
