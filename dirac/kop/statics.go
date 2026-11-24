@@ -749,6 +749,16 @@ const StTapChosen = StFunctionsInGraveyard
 // tapped source.
 const StTapAnyCol = StRemove6Counters
 
+// StTapDynamic (aliases StReduceColor, a ReduceCost-only bit) on a
+// StatTapExtra static: the extra's amount is the value in Static.VA (a
+// Count$Valid Elf: Elvish Guidance's "{G} for each Elf on the battlefield"),
+// not the literal B. A is the colour (W U B R G C). gorge's planner never
+// folds a dynamic amount, so the static is gated like Rikala's: the planner's
+// pricing readers skip it and the extra floats at the tap itself (dirac
+// mana_tapextra.go addGatedExtra); a class-only Taps line defers the
+// enchanted source.
+const StTapDynamic = StReduceColor
+
 // StNoPrevCombat (aliases StOncePerTurn, a MayPlayFrom-only bit) on a
 // StatCantPreventDamage static: only combat damage can't be prevented
 // (IsCombat$ True: Frenzied Baloth; gorge cantPreventDamage reads it against
