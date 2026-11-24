@@ -107,7 +107,9 @@ func (s *State) windowHybFiltFallback(k *prep, p uint8, sl Slot, useful *kop.Man
 // DebugWindowColourPlanner keeps pickUnitColour's Produces preference for the
 // plans a payment gorge takes through its manual mana window (mutation
 // testing only: TestWindowColourGenericOnlyMutation must see the divergence
-// the window's answer prevents).
+// the window's answer prevents). It also skips blgSubsumedFirst, which names
+// the same colour for a Combo land under a granted basic type and so covers
+// the repro without the window's answer.
 var DebugWindowColourPlanner bool
 
 // planWindowCol is the colour a plan unit at sl makes when the payment is one
