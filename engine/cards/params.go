@@ -2242,6 +2242,7 @@ func (f *Face) deriveParamSets() {
 		t.ps = newParamSet(t.Params)
 		t.mode, t.modeBound = TriggerModeOf(t.Mode), true
 		t.bindOffBattlefieldTarget()
+		t.bindTrailingIf()
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
