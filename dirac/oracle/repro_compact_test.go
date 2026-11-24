@@ -62,9 +62,10 @@ func TestReproCompactRoundTrip(t *testing.T) {
 				t.Fatal(err)
 			}
 			// the sweep is raw JSON: a file's format name is what it was
-			// recorded as, never rewritten
-			if format != reproFormat && format != reproFormat1 {
-				t.Fatalf("format %q, want %q or %q", format, reproFormat, reproFormat1)
+			// recorded as, never rewritten. A format-3 file carries an
+			// inline scripted start (repro_wire.go), so it stays -3 here.
+			if format != reproFormat && format != reproFormat1 && format != reproFormat3 {
+				t.Fatalf("format %q, want %q, %q or %q", format, reproFormat, reproFormat1, reproFormat3)
 			}
 			if _, ok := file["readable"]; ok {
 				t.Fatal("file still carries the derived readable field")
@@ -128,8 +129,12 @@ func TestReproCompactRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if old.Format != reproFormat {
-				t.Fatalf("decoded format %q, want %q", old.Format, reproFormat)
+			wantFormat := format
+			if wantFormat == reproFormat1 {
+				wantFormat = reproFormat // ReadRepro maps a format-1 file's actions
+			}
+			if old.Format != wantFormat {
+				t.Fatalf("decoded format %q, want %q", old.Format, wantFormat)
 			}
 			b, err := json.Marshal(old)
 			if err != nil {
