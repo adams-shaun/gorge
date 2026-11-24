@@ -277,7 +277,7 @@ func (s *State) flags2Perm(k *prep, f kop.FilterFlags2, sl Slot, src Slot, layer
 			if !s.chosenCardTypeHas(s.typesAt(k, sl)) {
 				return false
 			}
-		} else if f&kop.F2ChosenType != 0 && (!ok || !s.hasSubGen(k, sl, ch) && !(outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))) {
+		} else if f&kop.F2ChosenType != 0 && !s.permChosenType(k, sl, src, ch, ok) {
 			return false
 		}
 		if f&kop.F2ChosenColor != 0 {

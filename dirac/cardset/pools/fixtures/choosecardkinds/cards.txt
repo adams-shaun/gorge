@@ -1,0 +1,17 @@
+# The as-enters card-type choice pool: Archon of Valor's Reach (CantBeCast over
+# Card.ChosenType), Cloud Key and Stenn (ReduceCost over Card.ChosenType),
+# beside cheap spells of several card types
+# (dirac/choosetype_cardkinds_test.go, dirac/oracle/choosetype_cardkinds_lockstep_test.go)
+Archon of Valor's Reach
+Cloud Key
+Stenn, Paranoid Partisan
+Searing Spear
+Divination
+Goblin Piker
+Grizzly Bears
+Short Sword
+Glorious Anthem
+Mountain
+Island
+Forest
+Plains

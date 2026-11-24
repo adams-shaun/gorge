@@ -87,6 +87,9 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		return false
 	}
 	cd := &k.t.Cards[c]
+	if cardKindOf(k, c) && cardKindOptions(cd, d) {
+		return true // an as-enters card type (act_choosecardenter.go)
+	}
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
@@ -211,6 +214,9 @@ func (s *State) chosenGrantMask(k *prep, a *kop.Ability, src Slot, add kop.SubMa
 // typeVocabSub mapping stays as the exhausted-table fallback.
 func (s *State) typeVocabCode(k *prep, v int) uint8 {
 	if v >= 0x8000 {
+		if i := cardKindValue(v); i != 255 {
+			return i // an as-enters card type's label (act_choosecardenter.go)
+		}
 		return basicLandValue(k, uint16(v)) // an as-enters basic land type's label (act_choosebasicland.go)
 	}
 	if v < 0 || v >= len(k.t.TypeVocab) {
