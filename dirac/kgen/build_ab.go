@@ -1412,8 +1412,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 				return kt, err
 			}
 		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && dmgPlayerAltClause(t.F2.Clauses[0]):
-			// ValidTarget$ Player,Planeswalker (and Player,Battle,
-			// Creature,Player): TfToPlayer beside a Filter2 reads "a player,
+			// ValidTarget$ Player,Planeswalker (and Player,Battle):
+			// TfToPlayer beside a Filter2 reads "a player,
 			// or a permanent matching Filter2" (dirac/trig_damagedonce.go
 			// ddoRecipient)
 			kt.Flags |= kop.TfToPlayer
@@ -3421,7 +3421,9 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 }
 
 // dmgPlayerAltClause: the one-type permanent alternative a DamageDone
-// ValidTarget$ lists beside Player (Planeswalker, Battle or Creature).
+// ValidTarget$ lists beside Player (Planeswalker or Battle: a permanent
+// combat damage can be assigned to as an attack's recipient). A creature
+// alternative stays refused (TestDamageTargetPlayerOrPlaneswalkerBuilds).
 func dmgPlayerAltClause(c lClause) bool {
-	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle}) || c == (lClause{Types: tCreature})
+	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle})
 }

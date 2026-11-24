@@ -32,7 +32,7 @@ func TestPumpAllEachChoiceRefusals(t *testing.T) {
 }
 
 // TestDamageTargetPlayerOrPlaneswalkerBuilds: the damage trigger's "player
-// or planeswalker" recipient builds TfToPlayer beside a planeswalker
+// or planeswalker" (or battle) recipient builds TfToPlayer beside a
 // Filter2, and no other player-plus-type second filter builds.
 func TestDamageTargetPlayerOrPlaneswalkerBuilds(t *testing.T) {
 	cb := &cardBuilder{pt: &poolTables{filterKey: map[string]kop.FilterID{}, exprKey: map[string]int16{}}}
@@ -47,6 +47,9 @@ func TestDamageTargetPlayerOrPlaneswalkerBuilds(t *testing.T) {
 	}
 	if kt.Flags&kop.TfToPlayer == 0 || kt.Filter2 == 0 {
 		t.Errorf("player-or-planeswalker: Flags %v Filter2 %d, want TfToPlayer and a Filter2", kt.Flags, kt.Filter2)
+	}
+	if kt, err := cb.trigger(tr(&lFilter{Players: plBoth, Clauses: []lClause{{Types: tBattle}}})); err != nil || kt.Flags&kop.TfToPlayer == 0 || kt.Filter2 == 0 {
+		t.Errorf("player-or-battle: %v, want TfToPlayer and a Filter2", err)
 	}
 	if _, err := cb.trigger(tr(&lFilter{Players: plBoth, Clauses: []lClause{{Types: tCreature}}})); err == nil {
 		t.Error("player-or-creature built")

@@ -10,15 +10,15 @@ import (
 // filterHeadsSlice1Carriers lower through the bare sharesCreatureTypeWith
 // word (gorge reads the source: Kinship's PeekAndReveal, Plane-Merge Elf's
 // Kinfall) and the one-type permanent alternative of a DamageDone
-// ValidTarget$ beside Player (Player,Battle; Creature,Player).
+// ValidTarget$ beside Player (Player,Battle).
 var filterHeadsSlice1Carriers = []string{
 	// bare sharesCreatureTypeWith
 	"Ink Dissolver", "Kithkin Zephyrnaut", "Mudbutton Clanger", "Nightshade Schemers", "Plane-Merge Elf",
 	"Pyroclast Consul", "Sensation Gorger", "Squeaking Pie Grubfellows", "Wandering Graybeard",
 	"Waterspout Weavers", "Winnower Patrol", "Wolf-Skull Shaman",
-	// DamageDone ValidTarget$ Player,Battle / Creature,Player
+	// DamageDone ValidTarget$ Player,Battle
 	"Archpriest of Shadows", "Beamtown Beatstick", "Deeproot Wayfinder", "Doomskar Warrior",
-	"Furnace Reins", "Thorin, Company's Leader", "Crovax",
+	"Furnace Reins", "Thorin, Company's Leader",
 }
 
 // filterHeadsSlice1Refused stay refused, each with a fragment of its reason:
