@@ -63,7 +63,7 @@ func printTriggered(p *pr, a *ir.Ability) error {
 		}
 		for _, x := range alts[1:] {
 			if triggerSelf(x) != triggerSelf(alts[0]) {
-				return unprintable("event:or-mixed", tr.Src)
+				return p.printMixedOr(a, tr, alts)
 			}
 		}
 	}
@@ -84,16 +84,64 @@ func printTriggered(p *pr, a *ir.Ability) error {
 			ps.set("Secondary", "True")
 		}
 		ps.set("Execute", name)
-		var b strings.Builder
-		b.WriteString("T:")
-		for j, kvp := range ps {
-			if j > 0 {
-				b.WriteString(" | ")
-			}
-			b.WriteString(kvp.K + "$ " + kvp.V)
-		}
-		p.lines = append(p.lines, b.String())
+		p.lines = append(p.lines, triggerLine(ps))
 	}
+	return nil
+}
+
+// triggerLine renders ps as a T: line.
+func triggerLine(ps params) string {
+	var b strings.Builder
+	b.WriteString("T:")
+	for j, kvp := range ps {
+		if j > 0 {
+			b.WriteString(" | ")
+		}
+		b.WriteString(kvp.K + "$ " + kvp.V)
+	}
+	return b.String()
+}
+
+// printMixedOr prints "this or another X enters/dies" as the one trigger
+// Forge writes: the alternatives' Valid lists joined in ValidCard$. Enter
+// triggers keep the source alternative's parameters (no TriggerZones$), death
+// triggers the other's (TriggerZones$ Battlefield).
+func (p *pr) printMixedOr(a *ir.Ability, outer *ir.Trigger, alts []*ir.Trigger) error {
+	ev := alts[0].Event
+	for _, x := range alts {
+		if x.Event != ev || (ev != ir.EvEnters && ev != ir.EvDies) || x.Cmp != nil || x.Word != "" || x.OncePerTurn || x.Cond != nil {
+			return unprintable("event:or-mixed", outer.Src)
+		}
+	}
+	defer func() { p.ev, p.evSelf = ir.EvNone, false }()
+	p.ev, p.evSelf = ev, false
+	head, err := p.program(a.Body)
+	if err != nil {
+		return err
+	}
+	name := p.sub("Trig"+head.API, head)
+	var valid []string
+	var base params
+	for _, x := range alts {
+		p.ev, p.evSelf = x.Event, triggerSelf(x)
+		ps, err := p.triggerParams(a, outer, x)
+		if err != nil {
+			return err
+		}
+		v := ""
+		for _, kvp := range ps {
+			if kvp.K == "ValidCard" {
+				v = kvp.V
+			}
+		}
+		valid = append(valid, v)
+		if triggerSelf(x) == (ev == ir.EvEnters) {
+			base = ps
+		}
+	}
+	base.set("ValidCard", strings.Join(valid, ","))
+	base.set("Execute", name)
+	p.lines = append(p.lines, triggerLine(base))
 	return nil
 }
 
@@ -247,6 +295,58 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		if !self {
 			zones()
 		}
+	case ir.EvDealsCombatDamage:
+		src := "Card.Self"
+		if !self {
+			v, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			src = v
+		}
+		if x.Object != nil {
+			return nil, bad("deals-combat-damage")
+		}
+		ps = params{{"Mode", "DamageDealtOnce"}, {"CombatDamage", "True"}, {"ValidSource", src}}
+		if !self {
+			zones()
+		}
+	case ir.EvPlayerAttacks:
+		who, err := subj()
+		if err != nil {
+			return nil, err
+		}
+		if who != "You" && who != "Opponent" {
+			return nil, bad("player-attacks")
+		}
+		ps = params{{"Mode", "AttackersDeclared"}}
+		if x.Object != nil {
+			v, err := p.valid(x.Object)
+			if err != nil {
+				return nil, err
+			}
+			ps.set("ValidAttackers", v)
+		}
+		if x.Cmp != nil {
+			cmpUsed = true
+			if x.Object == nil || x.Cmp.Op == ir.CmpNone || !isConst(x.Cmp.V) {
+				return nil, bad("cmp")
+			}
+			ps.set("ValidAttackersAmount", cmpWord(x.Cmp.Op)+strconv.Itoa(int(x.Cmp.V.N)))
+		}
+		ps.set("AttackingPlayer", who)
+		zones()
+	case ir.EvPlaysLand:
+		if x.Subject == nil || x.Object == nil || !isYouFilter(x.Subject) {
+			return nil, bad("plays-land")
+		}
+		own := &ir.Filter{Subject: ir.SubjPermanent, Op: ir.FPred, Pred: ir.PControlledBy, Ref: &ir.Ref{Kind: ir.RefYou}}
+		v, err := p.valid(&ir.Filter{Op: ir.FAll, Args: []*ir.Filter{x.Object, own}, Src: x.Src})
+		if err != nil {
+			return nil, err
+		}
+		ps = params{{"Mode", "LandPlayed"}, {"ValidCard", v}}
+		zones()
 	case ir.EvBecomesTarget:
 		tgt := "Card.Self"
 		if !self {
@@ -321,6 +421,7 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		if err != nil {
 			return nil, err
 		}
+		f = p.settle(f)
 		cs, err := f.onTrigger()
 		if err != nil {
 			return nil, err
@@ -330,4 +431,9 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		}
 	}
 	return ps, nil
+}
+
+// isYouFilter reports whether f is exactly "the player is you".
+func isYouFilter(f *ir.Filter) bool {
+	return f != nil && f.Op == ir.FPred && f.Pred == ir.PPlayerIs && len(f.Args) == 0 && isYou(f.Ref) && f.Word == "" && f.Colors == 0
 }

@@ -53,8 +53,8 @@ func condTestCases() []condTestCase {
 	cmpX := &ir.Cond{Kind: ir.CCompare, L: vX, Cmp: ir.CmpGE, R: vc(3)}
 	return []condTestCase{
 		{name: "raid", c: raid, want: condForm{SVar: "N", Cmp: "GE1"}, svars: []kv{{"N", "Count$AttackersDeclared"}}},
-		{name: "threshold", c: thresh, want: condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Cmp: "GE7"}},
-		{name: "hellbent", c: hell, want: condForm{Named: "Hellbent", Body: "Count$CardsInYourHand", Cmp: "EQ0"}},
+		{name: "threshold", c: thresh, want: condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Choose: "Count$Threshold", Cmp: "GE7"}},
+		{name: "hellbent", c: hell, want: condForm{Named: "Hellbent", Body: "Count$CardsInYourHand", Choose: "Count$Hellbent", Cmp: "EQ0"}},
 		{name: "life", c: life, want: condForm{SVar: "N", Cmp: "LE5"}, svars: []kv{{"N", "Count$YourLifeTotal"}}},
 		{name: "target life", c: tlife, frame: true, want: condForm{SVar: "N", Cmp: "EQ10"}, svars: []kv{{"N", "TargetedPlayer$LifeTotal"}}},
 		{name: "target life without frame", c: tlife, what: "cond:ref-matches"},
@@ -128,7 +128,7 @@ func TestCondRenderings(t *testing.T) {
 		{"present targeted", condForm{Present: "Card.Untapped", Defined: "Targeted"},
 			pair{abil: []kv{{"ConditionDefined", "Targeted"}, {"ConditionPresent", "Card.Untapped"}, {"ConditionCompare", "GE1"}},
 				trig: []kv{{"IsPresent", "Card.Untapped"}, {"PresentDefined", "Targeted"}}}},
-		{"threshold", condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Cmp: "GE7"},
+		{"threshold", condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Choose: "Count$Threshold", Cmp: "GE7"},
 			pair{trig: []kv{{"Threshold", "True"}}, abilErr: true}},
 		{"your turn", condForm{Turn: "You"},
 			pair{abil: []kv{{"ConditionPlayerTurn", "True"}}, trig: []kv{{"PlayerTurn", "True"}}}},

@@ -110,14 +110,13 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	c = p.plain(c)
 	saved := declaredCopy(p)
 	then, err := p.program(st.Then)
 	if err != nil {
 		return nil, 0, err
 	}
 	if st.Else == nil {
-		if err := gate(then, c); err != nil {
+		if err := gate(then, p.plain(c)); err != nil {
 			return nil, 0, err
 		}
 		return then, 1, nil
@@ -130,16 +129,11 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 		return nil, 0, err
 	}
 	// Amount merge: one verb, one differing amount, a count to choose it by.
-	if c.SVar != "" && st.Then != nil && len(st.Then.Steps) == 1 && len(st.Else.Steps) == 1 &&
+	if (c.SVar != "" || c.Body != "") && st.Then != nil && len(st.Then.Steps) == 1 && len(st.Else.Steps) == 1 &&
 		st.Then.Steps[0].Verb == st.Else.Steps[0].Verb {
-		if diff, ok := sameParams(then, els); ok && len(diff) == 1 {
-			a, _ := then.get(diff[0])
-			b, _ := els.get(diff[0])
-			if isLiteral(a) && isLiteral(b) {
-				then.set(diff[0], p.countVar("Count$Compare "+c.SVar+" "+c.cmp()+"."+a+"."+b))
-				setDeclared(p, afterThen)
-				return then, 1, nil
-			}
+		if diff, ok := sameParams(then, els); ok && p.mergeParams(c, then, els, diff) {
+			setDeclared(p, afterThen)
+			return then, 1, nil
 		}
 	}
 	// Two conditioned chains. Print the else branch again from the declared
@@ -161,6 +155,7 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 		afterElse[i] = afterElse[i] || afterThenState[i]
 	}
 	setDeclared(p, afterElse)
+	c = p.plain(c)
 	if err := gate(then, c); err != nil {
 		return nil, 0, err
 	}

@@ -137,6 +137,7 @@ func printStatic(p *pr, a *ir.Ability) error {
 		if err != nil {
 			return err
 		}
+		f = p.settle(f)
 		if aff, ok := ps.selfTest(f); ok {
 			// Forge tests the source's own state in the Affected filter.
 			ps = aff

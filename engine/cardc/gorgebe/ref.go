@@ -124,6 +124,13 @@ func printRef(p *pr, r *ir.Ref) (string, error) {
 			}
 		}
 		return bad()
+	case ir.RefAttachedTo:
+		if r.Of != nil && r.Of.Kind == ir.RefSelf {
+			if w := p.attachWord(); w != "" {
+				return w, nil
+			}
+		}
+		return bad()
 	case ir.RefOwnerOf:
 		if r.Of != nil && r.Of.Kind == ir.RefTarget {
 			return "TargetedOwner", nil

@@ -61,21 +61,31 @@ type condForm struct {
 	SVar    string // the SVar holding a count; Cmp compares it
 	Present string // a Valid list; Cmp compares how many objects match it
 	Defined string // with Present: whose match is counted ("" is Self)
+	Field   bool   // with Present: the count is of the whole battlefield, not the source
 	Cmp     string // GE1, EQ0, LE10, ...; "" is GE1
 	Turn    string // "You": it is your turn; "Opponent": an opponent's turn
 	Named   string // "Threshold" or "Hellbent": Forge's named form of the count Body compared by Cmp
-	Body    string // with Named: the count body, kept for forms that need the plain comparison
+	Body    string // the count body not yet bound to an SVar (with Named or Choose); see plain
+	Choose  string // a count head ("Count$Morbid") that Forge also spells as an if/else's amount choice
 }
 
 // plain returns c in its count form: a Named condition becomes the SVar of
 // its Body, for the places (a negation, an if-step) with no named spelling.
 func (p *pr) plain(c condForm) condForm {
-	if c.Named == "" {
+	if c.Body == "" {
 		return c
 	}
-	c.SVar, c.Named = p.countVar(c.Body), ""
+	c.SVar, c.Named, c.Choose = p.countVar(c.Body), "", ""
 	c.Body = ""
 	return c
+}
+
+// settle is plain, except that a Named condition keeps its name.
+func (p *pr) settle(c condForm) condForm {
+	if c.Named != "" {
+		return c
+	}
+	return p.plain(c)
 }
 
 // svCond is the condition "body <cmp>"; the two counts Forge names
@@ -83,9 +93,14 @@ func (p *pr) plain(c condForm) condForm {
 func (p *pr) svCond(body, cmp string) condForm {
 	switch {
 	case body == "Count$ValidGraveyard Card.YouOwn" && cmp == "GE7":
-		return condForm{Named: "Threshold", Body: body, Cmp: cmp}
+		return condForm{Named: "Threshold", Body: body, Choose: "Count$Threshold", Cmp: cmp}
 	case body == "Count$CardsInYourHand" && cmp == "EQ0":
-		return condForm{Named: "Hellbent", Body: body, Cmp: cmp}
+		return condForm{Named: "Hellbent", Body: body, Choose: "Count$Hellbent", Cmp: cmp}
+	}
+	for _, h := range []string{"Count$Morbid", "Count$Revolt"} {
+		if body == h+".1.0" && cmp == "GE1" {
+			return condForm{Choose: h, Body: body, Cmp: cmp}
+		}
 	}
 	return condForm{SVar: p.countVar(body), Cmp: cmp}
 }
@@ -103,6 +118,9 @@ func (c condForm) onAbility() ([]kv, error) {
 	case c.SVar != "":
 		return []kv{{"ConditionCheckSVar", c.SVar}, {"ConditionSVarCompare", c.cmp()}}, nil
 	case c.Present != "":
+		if c.Field {
+			return []kv{{"ConditionPresent", c.Present}, {"ConditionCompare", c.cmp()}}, nil
+		}
 		d := c.Defined
 		if d == "" {
 			d = "Self"
@@ -120,6 +138,9 @@ func (c condForm) onTrigger() ([]kv, error) {
 	case c.SVar != "":
 		return withCmp([]kv{{"CheckSVar", c.SVar}}, "SVarCompare", c.cmp()), nil
 	case c.Present != "":
+		if c.Field {
+			return withCmp([]kv{{"IsPresent", c.Present}}, "PresentCompare", c.cmp()), nil
+		}
 		if c.Defined != "" && c.Defined != "Self" {
 			return withCmp([]kv{{"IsPresent", c.Present}}, "PresentCompare", c.cmp(), kv{"PresentDefined", c.Defined}), nil
 		}
@@ -215,6 +236,8 @@ type pr struct {
 	ev     ir.EventKind // the enclosing trigger's or replacement's event; EvNone elsewhere
 	evSelf bool         // that event's object is the source itself ("when this enters")
 	frames []*frame
+	face   *ir.Face // the face being printed; nil in unit tests
+	prev   *ir.Step // the step printed just before the one being printed, in its program
 	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
 }
 
@@ -298,14 +321,19 @@ func (p *pr) cond(c *ir.Cond) (condForm, error) {
 // countVar returns the SVar holding body, adding it when new. Count$xPaid is
 // X; any other body is N, N2, N3, ...
 func (p *pr) countVar(body string) string {
+	base := "N"
+	if body == "Count$xPaid" {
+		base = "X"
+	}
+	return p.countVarAs(base, body)
+}
+
+// countVarAs is countVar with a chosen name stem for a new SVar.
+func (p *pr) countVarAs(base, body string) string {
 	for _, s := range p.svars {
 		if s.V == body {
 			return s.K
 		}
-	}
-	base := "N"
-	if body == "Count$xPaid" {
-		base = "X"
 	}
 	name := p.fresh(base)
 	p.svars = append(p.svars, kv{name, body})
@@ -392,6 +420,9 @@ func (p *pr) program(prog *ir.Program) (*node, error) {
 		p.frames = append(p.frames, &frame{targets: prog.Targets, declared: make([]bool, len(prog.Targets))})
 		defer func() { p.frames = p.frames[:len(p.frames)-1] }()
 	}
+	savedPrev := p.prev
+	p.prev = nil
+	defer func() { p.prev = savedPrev }()
 	var head, tail *node
 	for i := 0; i < len(prog.Steps); {
 		st := prog.Steps[i]
@@ -406,6 +437,7 @@ func (p *pr) program(prog *ir.Program) (*node, error) {
 		if n == nil || used < 1 {
 			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
 		}
+		p.prev = prog.Steps[i+used-1]
 		if head == nil {
 			head = n
 		} else {
@@ -473,4 +505,21 @@ func (p *pr) operand(n *node, key string, r *ir.Ref) error {
 	}
 	n.set(key, d)
 	return nil
+}
+
+// attachWord is Forge's word for what the source is attached to: "Equipped"
+// for equipment, "Enchanted" for an aura, "" when the face is neither.
+func (p *pr) attachWord() string {
+	if p.face == nil {
+		return ""
+	}
+	for _, t := range p.face.Subtypes {
+		switch t {
+		case "Equipment":
+			return "Equipped"
+		case "Aura":
+			return "Enchanted"
+		}
+	}
+	return ""
 }

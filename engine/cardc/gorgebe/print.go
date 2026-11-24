@@ -100,7 +100,7 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool, to
 		b.WriteString("Colors:" + strings.Join(cs, ",") + "\n")
 	}
 	if abilities {
-		p := &pr{tokens: tokens}
+		p := &pr{tokens: tokens, face: f}
 		var ks []string
 		for _, a := range f.Abilities {
 			if a.Kind == ir.AbKeyword && a.Keyword == nil {

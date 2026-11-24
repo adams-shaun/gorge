@@ -1,6 +1,7 @@
 package gorgebe
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -101,8 +102,26 @@ func printCond(p *pr, c *ir.Cond) (condForm, error) {
 			return condForm{}, err
 		}
 		return sv(b, cmp)
+	case ir.CDiedThisTurn:
+		// Morbid: a creature died this turn.
+		if f := c.Filter; f == nil || f.Op != ir.FPred || f.Pred != ir.PCardType || f.Word != "Creature" {
+			return no()
+		}
+		return sv("Count$Morbid.1.0", "GE1")
+	case ir.CLeftBattlefieldThisTurn:
+		// Revolt: a permanent you controlled left the battlefield this turn.
+		f := c.Filter
+		if f == nil || f.Op != ir.FPred || f.Pred != ir.PControlledBy || !isYou(f.Ref) {
+			return no()
+		}
+		return sv("Count$Revolt.1.0", "GE1")
+	case ir.CReceiptNonEmpty:
+		return printReceiptNonEmpty(p, c)
 	case ir.CExistsPlayer:
 		f := c.Filter
+		if f != nil && f.Op == ir.FAll && len(f.Args) == 2 && isOpponentOfYou(f.Args[0]) && isPred(f.Args[1], ir.PLostLifeThisTurn) {
+			return sv("Count$LifeOppsLostThisTurn", "GE1")
+		}
 		if f == nil || f.Op != ir.FAll || len(f.Args) != 2 || !isOpponentOfYou(f.Args[0]) || !isCmpPred(f.Args[1], ir.PLifeTotal) {
 			return no()
 		}
@@ -131,6 +150,22 @@ func printRefMatches(p *pr, c *ir.Cond) (condForm, error) {
 	f := c.Filter
 	if c.Ref == nil || f == nil {
 		return no()
+	}
+	if isYou(c.Ref) && f.Op == ir.FPred && f.Pred == ir.PControls && len(f.Args) == 1 && f.Ref == nil && f.Word == "" {
+		// "you control a ...": Forge counts the battlefield matches of
+		// the filter with YouCtrl added.
+		own := &ir.Filter{Subject: ir.SubjPermanent, Op: ir.FPred, Pred: ir.PControlledBy, Ref: &ir.Ref{Kind: ir.RefYou}}
+		present, err := p.valid(&ir.Filter{Op: ir.FAll, Args: []*ir.Filter{own, f.Args[0]}, Src: f.Src})
+		if err != nil {
+			return condForm{}, err
+		}
+		cmp := "GE1"
+		if f.Cmp != ir.CmpNone {
+			if cmp, err = p.cmpAgainst(f.Cmp, f.Value, c.Src); err != nil {
+				return condForm{}, err
+			}
+		}
+		return condForm{Present: present, Field: true, Cmp: cmp}, nil
 	}
 	if isYou(c.Ref) {
 		if isPred(f, ir.PAttackedThisTurn) {
@@ -177,4 +212,65 @@ func printRefMatches(p *pr, c *ir.Cond) (condForm, error) {
 		}
 	}
 	return condForm{Present: present, Defined: def, Cmp: "GE1"}, nil
+}
+
+// printReceiptNonEmpty prints "the card you exiled was a ...": the test of the
+// targeted object the previous step exiled.
+func printReceiptNonEmpty(p *pr, c *ir.Cond) (condForm, error) {
+	no := func() (condForm, error) { return condForm{}, unprintable("cond:receipt-non-empty", c.Src) }
+	prev := p.prev
+	if c.Filter == nil || prev == nil || c.Receipt != ir.RcExiled || prev.Verb != ir.VerbExile || prev.Obj == nil || prev.Obj.Kind != ir.RefTarget {
+		return no()
+	}
+	present, err := p.valid(c.Filter)
+	if err != nil {
+		return condForm{}, err
+	}
+	return condForm{Present: present, Defined: "Targeted", Cmp: "EQ1"}, nil
+}
+
+// mergeParams folds an if/else whose branches differ in literal amounts into
+// one node: each differing parameter becomes a count that picks between the
+// two literals by c. Forge's own count heads (Morbid, Revolt) pick directly;
+// others compare through Count$Compare. Parameters that differ must agree on
+// the pair of magnitudes and keep one sign each ("-X" for a negative pair).
+func (p *pr) mergeParams(c condForm, then, els *node, diff []string) bool {
+	if len(diff) == 0 {
+		return false
+	}
+	type pair struct{ a, b int }
+	var want pair
+	neg := make([]bool, len(diff))
+	for i, k := range diff {
+		av, _ := then.get(k)
+		bv, _ := els.get(k)
+		a, aerr := strconv.Atoi(av)
+		b, berr := strconv.Atoi(bv)
+		if aerr != nil || berr != nil || (a < 0) != (b < 0) {
+			return false
+		}
+		if a < 0 {
+			neg[i], a, b = true, -a, -b
+		}
+		if i == 0 {
+			want = pair{a, b}
+		} else if want != (pair{a, b}) {
+			return false
+		}
+	}
+	var v string
+	if c.Choose != "" {
+		v = p.countVarAs("X", c.Choose + "." + strconv.Itoa(want.a) + "." + strconv.Itoa(want.b))
+	} else {
+		c = p.plain(c)
+		v = p.countVarAs("X", "Count$Compare " + c.SVar + " " + c.cmp() + "." + strconv.Itoa(want.a) + "." + strconv.Itoa(want.b))
+	}
+	for i, k := range diff {
+		if neg[i] {
+			then.set(k, "-"+v)
+		} else {
+			then.set(k, v)
+		}
+	}
+	return true
 }
