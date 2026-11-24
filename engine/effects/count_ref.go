@@ -68,7 +68,7 @@ func countMostCardName(h Host, c *Ctx, spec string) (int32, bool) {
 // captured at fire time -- Mr. House's BranchConditionSVar$ reads it after
 // the RollDice resolution that produced it has finished). The /Op suffix is
 // applied exactly as applyCountOp does for Count$ and Sacrificed$. An
-// unmodelled head (ScryNum) degrades to zero. max selects the
+// unrecognised head degrades to zero. max selects the
 // TriggerCountMax$ prefix's reading: the same heads, but Result answers the
 // highest result in the roll batch (Ctx.TriggerResultMax -- Farideh's "if any
 // of those results was 10 or higher") rather than the batch's reported result.
@@ -77,8 +77,8 @@ func countMostCardName(h Host, c *Ctx, spec string) (int32, bool) {
 // count the player actually chose to put on the bottom (rules captures it
 // into TriggerAmount, the same fire-time binding every other head reads).
 // The Temporal Anchor's `TriggerCount$ScryBottom` sizes its bottom
-// exile through it. ScryNum -- the number LOOKED at -- remains unmodelled:
-// this build raises no scry marker carrying that number.
+// exile through it. ScryNum is the number LOOKED at, the same marker's
+// Pairs[0][0] (effects.ScryRecord), captured into TriggerScryNum.
 //
 // Result is an EVALUATED head (verdict true) on every trigger, not only a
 // roll trigger: before RolledDie was registered it reported (0, false), so a
@@ -97,6 +97,11 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 		n = c.TriggerAmount
 	case evalTriggerCountOKStormCount:
 		n = c.TriggerStormCount
+	case evalTriggerCountOKScryNum:
+		// ScryNum is the number of cards LOOKED at, which the completed
+		// events.Scry marker carries beside its bottom count
+		// (effects.ScryRecord); rules captures it into TriggerScryNum.
+		n = c.TriggerScryNum
 	case evalTriggerCountOKResult:
 		if max {
 			n = c.TriggerResultMax
@@ -104,10 +109,8 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 			n = c.TriggerResult
 		}
 	default:
-		// ScryNum (the number LOOKED at) is a head whose triggering number
-		// this build does not carry, so it stays zero -- the same
-		// conservative no-op as before the prefix was recognised. NOT
-		// evaluated: a gate over it fails open.
+		// An unrecognised head stays zero, NOT evaluated: a gate over it
+		// fails open.
 		return 0, false
 	}
 	if hasOp {
@@ -924,6 +927,7 @@ const (
 	evalTriggerCountOKAmount evalTriggerCountOKCode = iota + 1
 	evalTriggerCountOKResult
 	evalTriggerCountOKStormCount
+	evalTriggerCountOKScryNum
 )
 
 var evalTriggerCountOKCodes = state.NewStrCodes(
@@ -933,6 +937,7 @@ var evalTriggerCountOKCodes = state.NewStrCodes(
 	state.StrEntry[evalTriggerCountOKCode]{Key: "ScryBottom", Val: evalTriggerCountOKAmount},
 	state.StrEntry[evalTriggerCountOKCode]{Key: "Result", Val: evalTriggerCountOKResult},
 	state.StrEntry[evalTriggerCountOKCode]{Key: "CurrentStormCount", Val: evalTriggerCountOKStormCount},
+	state.StrEntry[evalTriggerCountOKCode]{Key: "ScryNum", Val: evalTriggerCountOKScryNum},
 )
 
 type evalSacrificedOKCode uint16
