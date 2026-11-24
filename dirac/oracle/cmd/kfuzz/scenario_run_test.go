@@ -10,6 +10,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
+	"github.com/adams-shaun/gorge/dirac/oracle"
 )
 
 // scenarioRunFixture is a scripted start on the FDN table: Llanowar Elves is
@@ -55,6 +56,7 @@ func TestScenarioRun(t *testing.T) {
 		t.Skip(err)
 	}
 	oldCov, oldEv, oldBr := coveragePath, evidencePath, branchesPath
+	t.Cleanup(func() { runKernel = "" })
 	t.Cleanup(func() { coveragePath, evidencePath, branchesPath = oldCov, oldEv, oldBr })
 	scen := t.TempDir()
 	if err := os.WriteFile(filepath.Join(scen, "llanowar-elves.1.json"), []byte(scenarioRunFixture), 0o644); err != nil {
@@ -111,6 +113,10 @@ func TestScenarioRun(t *testing.T) {
 		if ev, _ := os.ReadFile(filepath.Join(dir, name+".evidence")); len(ev) != 0 {
 			t.Errorf("a scripted game credited plays: %q", ev)
 		}
+		// a repro of a bad game of this run names the side it played against
+		if r := stampRepro(&oracle.Repro{}); r.Kernel != "set fdn" {
+			t.Errorf("a scenario run's repro has kernel %q, want %q", r.Kernel, "set fdn")
+		}
 	})
 
 	t.Run("a game that ends at decision 0 credits nothing", func(t *testing.T) {
@@ -149,7 +155,8 @@ func TestScenarioRun(t *testing.T) {
 	})
 
 	t.Run("usage", func(t *testing.T) {
-		for _, a := range [][]string{{"-scenario", scen, "-seats", "3"}, {"-scenario", scen, "-repro", "x"}, {"-scenario", scen, "-synth-with", "tail-52"}} {
+		for _, a := range [][]string{{"-scenario", scen, "-seats", "3"}, {"-scenario", scen, "-repro", "x"}, {"-scenario", scen, "-synth-with", "tail-52"},
+			{"-scenario", scen, "-set", "fdn", "-lead", "kernel"}} {
 			if code, _, _ := runKFuzz(t, a...); code != 2 {
 				t.Errorf("%v: exit %d, want 2", a, code)
 			}

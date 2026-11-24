@@ -25,8 +25,7 @@ import (
 // scenario's opponent.
 //
 // Outputs. -out is the directory a run's files go to: <out>/sc-<name>.verdict
-// (the run's printed report, its verdict line first among them) and
-// <out>/sc-<name>/ for the repros of its bad games. -coverage, -branches and
+// (the run's printed report) and <out>/sc-<name>/ for the repros of its bad games. -coverage, -branches and
 // -evidence each name a directory here, not a file: sc-<name>.coverage,
 // .branches and .evidence land in it.
 //
@@ -113,6 +112,11 @@ func runScenarios(path string) int {
 		fmt.Fprintf(os.Stderr, "kfuzz: -lead %q: want gorge or kernel\n", lead)
 		return 2
 	}
+	if lead == "kernel" {
+		// the explore and heuristic opponents and FocusPolicy's pass-through clock read gorge's state
+		fmt.Fprintln(os.Stderr, "kfuzz: -scenario plays with gorge leading: -lead kernel is not supported")
+		return 2
+	}
 	pol, err := policyFor(scFlag[string]("policy"), lead)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
@@ -135,6 +139,7 @@ func runScenarios(path string) int {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 2
 	}
+	runKernel = kernelLabel(synth, "fdn", scFlag[string]("set")) // what a bad game's repro records
 	decks := scFlag[string]("decks")
 	if decks == "" {
 		decks = oracle.PoolDecks("fdn")
@@ -301,9 +306,11 @@ func captureStdout(f func() int) (int, string) {
 	defer os.Remove(tmp.Name())
 	old := os.Stdout
 	os.Stdout = tmp
-	code := f()
-	os.Stdout = old
-	tmp.Close()
+	var code int
+	func() {
+		defer func() { os.Stdout = old; tmp.Close() }()
+		code = f()
+	}()
 	b, _ := os.ReadFile(tmp.Name())
 	os.Stdout.Write(b)
 	return code, string(b)
