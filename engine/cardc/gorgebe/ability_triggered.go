@@ -84,6 +84,7 @@ func printTriggered(p *pr, a *ir.Ability) error {
 			break
 		}
 	}
+	payCostAbility(head)
 	name := p.sub("Trig"+head.API, head)
 	for i, x := range alts {
 		p.ev, p.evSelf = x.Event, triggerSelf(x)
@@ -499,4 +500,21 @@ func damageSource(v string) string {
 		return v + ",Emblem.YouCtrl"
 	}
 	return v
+}
+
+// payCostAbility turns "you may pay C; if you do" on the head of a trigger
+// body into Forge's form: an ability of its own, AB$ with Cost$ C.
+func payCostAbility(head *node) {
+	cost, ok := head.get("UnlessCost")
+	if sw, _ := head.get("UnlessSwitched"); !ok || sw != "True" || head.Ability {
+		return
+	}
+	if payer, _ := head.get("UnlessPayer"); payer != "You" {
+		return
+	}
+	for _, k := range []string{"UnlessCost", "UnlessPayer", "UnlessSwitched"} {
+		head.Params = removeParam(head.Params, k)
+	}
+	head.Params = append([]kv{{"Cost", cost}}, head.Params...)
+	head.Ability = true
 }

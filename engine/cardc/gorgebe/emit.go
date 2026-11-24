@@ -101,7 +101,7 @@ func (p *pr) svCond(body, cmp string) condForm {
 	case body == "Count$CardsInYourHand" && cmp == "EQ0":
 		return condForm{Named: "Hellbent", Body: body, Choose: "Count$Hellbent", Cmp: cmp}
 	}
-	for _, h := range []string{"Count$Morbid", "Count$Revolt", "Count$Kicked"} {
+	for _, h := range []string{"Count$Morbid", "Count$Revolt"} {
 		if body == h+".1.0" && cmp == "GE1" {
 			return condForm{Choose: h, Body: body, Cmp: cmp}
 		}

@@ -269,8 +269,18 @@ func (p *pr) mergeParams(c condForm, then, els *node, diff []string) bool {
 		v = p.countVarAs("X", c.Choose+"."+strconv.Itoa(want.a)+"."+strconv.Itoa(want.b))
 	} else {
 		c = p.plain(c)
+		for _, s := range p.svars {
+			if s.K == c.SVar && s.V == "Count$Kicked.1.0" && c.cmp() == "GE1" {
+				// Forge's own head picks between the two literals.
+				v = p.countVarAs("X", "Count$Kicked."+strconv.Itoa(want.a)+"."+strconv.Itoa(want.b))
+			}
+		}
+		if v != "" {
+			goto done
+		}
 		v = p.countVarAs("X", "Count$Compare "+c.SVar+" "+c.cmp()+"."+strconv.Itoa(want.a)+"."+strconv.Itoa(want.b))
 	}
+done:
 	for i, k := range diff {
 		if neg[i] {
 			then.set(k, "-"+v)
