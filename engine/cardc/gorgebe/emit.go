@@ -2,6 +2,7 @@ package gorgebe
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -97,7 +98,7 @@ func (p *pr) svCond(body, cmp string) condForm {
 	case body == "Count$CardsInYourHand" && cmp == "EQ0":
 		return condForm{Named: "Hellbent", Body: body, Choose: "Count$Hellbent", Cmp: cmp}
 	}
-	for _, h := range []string{"Count$Morbid", "Count$Revolt"} {
+	for _, h := range []string{"Count$Morbid", "Count$Revolt", "Count$Kicked"} {
 		if body == h+".1.0" && cmp == "GE1" {
 			return condForm{Choose: h, Body: body, Cmp: cmp}
 		}
@@ -372,11 +373,30 @@ func (p *pr) cond(c *ir.Cond) (condForm, error) {
 // countVar returns the SVar holding body, adding it when new. Count$xPaid is
 // X; any other body is N, N2, N3, ...
 func (p *pr) countVar(body string) string {
-	base := "N"
 	if body == "Count$xPaid" {
-		base = "X"
+		return p.countVarAs("X", body)
 	}
-	return p.countVarAs(base, body)
+	for _, s := range p.svars {
+		if s.V == body {
+			return s.K
+		}
+	}
+	// Forge names its count SVars X, then Y, then Z.
+	// A face that uses xPaid keeps X for it. (A printer with no face is a unit
+	// test's, which names every count N.)
+	for _, name := range []string{"X", "Y", "Z"} {
+		if p.face == nil {
+			break
+		}
+		if name == "X" && usesX(reflect.ValueOf(p.face)) {
+			continue
+		}
+		if !p.hasSVar(name) {
+			p.svars = append(p.svars, kv{name, body})
+			return name
+		}
+	}
+	return p.countVarAs("N", body)
 }
 
 // countVarAs is countVar with a chosen name stem for a new SVar.
@@ -653,4 +673,33 @@ func slotRef(r *ir.Ref) *ir.Ref {
 		return f.Ref
 	}
 	return r
+}
+
+var valueType = reflect.TypeOf(ir.Value{})
+
+// usesX reports whether an ir.Value of kind VX is reachable from v.
+func usesX(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if v.IsNil() {
+			return false
+		}
+		if v.Type().Elem() == valueType && v.Interface().(*ir.Value).Kind == ir.VX {
+			return true
+		}
+		return usesX(v.Elem())
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if v.Type().Field(i).IsExported() && usesX(v.Field(i)) {
+				return true
+			}
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			if usesX(v.Index(i)) {
+				return true
+			}
+		}
+	}
+	return false
 }

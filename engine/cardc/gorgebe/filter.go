@@ -52,6 +52,12 @@ func isAnyTarget(terms []string) bool {
 	return seen["Creature"] && seen["Planeswalker"] && seen["Battle"] && seen["Player"]
 }
 
+// coreTypes are the words a Valid list takes as its base ahead of a subtype.
+var coreTypes = map[string]bool{
+	"Creature": true, "Artifact": true, "Enchantment": true, "Land": true, "Planeswalker": true,
+	"Battle": true, "Instant": true, "Sorcery": true, "Permanent": true, "Card": true,
+}
+
 func renderTerm(t term, src string) (string, error) {
 	base := ""
 	var quals []string
@@ -63,10 +69,17 @@ func renderTerm(t term, src string) (string, error) {
 		}
 		quals = append(quals, q)
 	}
+	// Forge's order: the card type is the base, subtypes follow as qualifiers
+	// (Creature.Elf), whichever the filter listed first.
+	for _, x := range t.parts {
+		if x.typ && coreTypes[x.s] && base == "" {
+			base = x.s
+		}
+	}
 	for _, x := range t.parts {
 		if x.typ && base == "" {
 			base = x.s
-		} else {
+		} else if !(x.typ && x.s == base) {
 			add(x.s)
 		}
 	}

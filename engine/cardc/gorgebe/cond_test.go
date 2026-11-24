@@ -67,7 +67,7 @@ func condTestCases() []condTestCase {
 		{name: "not kicked", c: ctNot(kicked), want: condForm{SVar: "N", Cmp: "LT1"}, svars: []kv{{"N", "Count$Kicked.1.0"}}},
 		{name: "not you turn", c: ctNot(you), want: condForm{Turn: "Opponent"}},
 		{name: "not opponent turn", c: ctNot(opp), want: condForm{Turn: "You"}},
-		{name: "kicked", c: kicked, want: condForm{SVar: "N", Cmp: "GE1"}, svars: []kv{{"N", "Count$Kicked.1.0"}}},
+		{name: "kicked", c: kicked, want: condForm{Choose: "Count$Kicked", Body: "Count$Kicked.1.0", Cmp: "GE1"}},
 		{name: "your turn", c: you, want: condForm{Turn: "You"}},
 		{name: "opponent turn", c: opp, want: condForm{Turn: "Opponent"}},
 		{name: "compare", c: cmpX, want: condForm{SVar: "X", Cmp: "GE3"}, svars: []kv{{"X", "Count$xPaid"}}},
