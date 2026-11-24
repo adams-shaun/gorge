@@ -81,6 +81,14 @@ type Engine struct {
 	rng     *rng               `clone:"deep"`
 	pending *decision.Decision `clone:"deep"`
 
+	// dieRollOverride, when non-nil, supplies a die's natural result (0-based,
+	// as Rand returns it) instead of the seeded generator. Only the oracle
+	// runner sets it, while replaying a scenario that carries the taped
+	// game's die_rolls (CR 706.2); every live game, replay and clone leaves
+	// it nil, so no ordinary roll changes. A clone drops it (a harness
+	// observer), and a nil override leaves Rand byte-identical.
+	dieRollOverride func(sides int) (int, bool) `clone:"hook"`
+
 	// deferGameOver is true only while New processes the opening deal. A
 	// library-empty draw still emits PlayerLost and runs every other SBA, but
 	// checkGameOver waits until New has recorded the CR 103.1 toss. That keeps
