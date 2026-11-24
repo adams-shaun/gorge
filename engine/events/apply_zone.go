@@ -1390,6 +1390,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// A re-entering creature is a new object: it has not attacked this
 			// combat (CR 400.7).
 			o.AttackedTurn, o.AttackedCombat = 0, 0
+			o.AttackedPlayersThisTurn = 0
 			// CR 400.7 / 702.122: crew status is the old permanent's, not the
 			// new object's -- a re-entering creature carries no crew stamp.
 			if len(o.CrewedVehicles) != 0 {
