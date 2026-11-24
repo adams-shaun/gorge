@@ -20,7 +20,7 @@ func TestStandardDebuffCarriers(t *testing.T) {
 	}
 	want := []string{"adarkar_windform", "barbed_foliage", "burn_from_within", "burning_palm_efreet", "canopy_dragon", "cephalid_snitch", "downdraft", "elder_land_wurm", "emerald_charm", "fear_of_falling", "gargoyle_sentinel", "glittering_lion", "glittering_lynx", "goblin_skycutter", "gravity_well", "grozoth", "hammerheim", "jaded_analyst", "kinscaer_harpoonist", "leering_gargoyle", "loyal_gyrfalcon", "manor_gargoyle", "mist_dragon", "mu_yanling_sky_dancer", "phyrexian_splicer", "radjan_spirit", "rebel_salvo", "ribbon_snake", "scarwood_hag", "sentry_oak", "shelkin_brownie", "shoal_serpent", "smite_the_deathless", "soul_sear", "swooping_talon", "talruum_champion", "tidewater_minion", "tolaria", "torpid_moloch", "urborg", "vertigo", "vintara_elephant", "wishful_merfolk", "xathrid_slyblade", "zerapa_minotaur"}
 	var got []string
-	err := filepath.WalkDir(cards.CorpusDir(testutil.CorpusDirOrSkip(t)), func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(corpusWalkRoot(t, cards.CorpusDir(testutil.CorpusDirOrSkip(t))), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return err
 		}

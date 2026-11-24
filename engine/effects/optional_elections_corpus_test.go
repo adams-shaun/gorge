@@ -19,7 +19,7 @@ import (
 // itself must carry both the API and its key.
 func TestOptionalElectionCorpusCarriers(t *testing.T) {
 	testutil.CorpusRegistry(t) // absent .cards must skip rather than pass vacuously
-	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	root := corpusWalkRoot(t, cards.CorpusDir(testutil.CorpusDirOrSkip(t)))
 	checks := []struct {
 		name string
 		api  string

@@ -35,7 +35,7 @@ func TestConditionCorpusCensus(t *testing.T) {
 	keys := map[string]int{}
 	defined := map[string]int{}
 	bare := map[string]int{}
-	walkErr := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(corpusWalkRoot(t, dir), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return err
 		}

@@ -25,7 +25,12 @@ import (
 func TestAnimateAllPlayerKindValidTgtsCensus(t *testing.T) {
 	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	got := map[string]bool{}
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	// WalkDir does not follow symlinks; a worktree's cardsfolder may be one.
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return nil
 		}
