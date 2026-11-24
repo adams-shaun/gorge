@@ -1,0 +1,4 @@
+{"format":"gorge-start-1","focus":"Llanowar Elves","players":2,"opponent":"explore","active":0,
+ "setup":{"p0":{"hand":["Giant Growth"],"battlefield":["Llanowar Elves","Forest","Forest"],
+                "graveyard":["Giant Growth"],"exile":["Forest"]},
+          "p1":{"battlefield":["Savannah Lions","Plains"],"hand":["Plains"]}}}
