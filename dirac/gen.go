@@ -862,7 +862,7 @@ func prepRedNCOpen(p *prep, g *genPrep) {
 
 func prepareGen(t *kop.Table, p *prep) *genPrep {
 	p.phasing = tablePhasing(t) // kw_phasing.go: whatever else the table reads
-	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
+	if t.Exprs == nil && t.TypeVocab == nil && t.Conds == nil && len(t.Overrides) == 0 && !tableHasStatic(t, kop.StatCantPhaseIn) && !tableHasPrevent(t) && !tableHasEnteredFrom(t) && !tableHasMultikicker(t) && !tableHasAscend(t) && !tableHasStatic(t, kop.StatAttackTax) && !tableHasStatic(t, kop.StatBlockTax) && !tableHasReconfigure(t) && !tableHasStatic(t, kop.StatCanAttackIfHaste) && !genNeeded(t) {
 		return nil
 	}
 	enteredNeed := tableHasEnteredFrom(t)

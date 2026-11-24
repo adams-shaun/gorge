@@ -127,7 +127,19 @@ func riderCensusFree(a *kop.Ability) bool {
 // riderWindowable is riderActivatable as windowPick takes the source: a
 // census window (a ward or unless window) also needs riderCensusFree.
 func (s *State) riderWindowable(k *prep, p uint8, sl Slot, a *kop.Ability, census bool) bool {
+	if a.ManaRider == kop.ManaRiderChosenAnimate && !s.riderFeePaid(k, p, sl, a) {
+		// gorge's window lists a source only when the pool pays its fee
+		return false
+	}
 	return s.riderActivatable(k, p, sl, a) && (!census || riderCensusFree(a))
+}
+
+// riderFeePaid reports whether p's pool (with the restricted batches the
+// activation may spend) covers a rider's generic fee (Foraging Wickermaw's
+// {1}).
+func (s *State) riderFeePaid(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	fee := int(a.Cost.Mana.MV())
+	return fee <= 0 || poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= fee
 }
 
 // windowTapsDefer is scriptTapsDefer as windowPick takes it: a census window
@@ -239,11 +251,25 @@ func (s *State) riderActivatable(k *prep, p uint8, sl Slot, a *kop.Ability) bool
 	if s.unlessSkipsRider(a) {
 		return false // a depletion land whose rider the unless census cannot price (mana_window.go)
 	}
-	if !s.occ.has(sl) || s.genLost(k, sl) || s.activationSick(k, sl) ||
+	if !s.occ.has(sl) || s.genLost(k, sl) ||
 		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return false
 	}
 	pm := &s.perms[sl]
+	if a.ManaRider == kop.ManaRiderChosenAnimate {
+		// Foraging Wickermaw's {1}: no {T}, so CR 302.6's summoning sickness
+		// does not bind it; the once-each-turn record is perm.actUsed, gorge's
+		// ManaActivate activation-limit marker.
+		if a.Cost.Flags&kop.CostOncePerTurn != 0 {
+			if ra := k.riderAbOf(s.cardAt(sl)); ra >= 0 && pm.actUsed&(1<<uint(ra)) != 0 {
+				return false
+			}
+		}
+		return true
+	}
+	if s.activationSick(k, sl) {
+		return false
+	}
 	if a.Cost.Flags&kop.CostTap != 0 && pm.flags&pfTapped != 0 {
 		return false
 	}
@@ -262,6 +288,24 @@ func (s *State) riderGap(k *prep, p uint8, sl Slot, answer int) bool {
 		return false
 	}
 	pm := &s.perms[sl]
+	if a.ManaRider == kop.ManaRiderChosenAnimate {
+		// Foraging Wickermaw: the {1} fee is paid from the pool, the use is
+		// spent, the chosen colour is recorded for the Animate rider, and the
+		// record is cleared after it (DB$ Cleanup | ClearChosenColor$ True).
+		if answer < 0 || answer > 4 || s.filtFeeSpend(k, p, sl, int(a.Cost.Mana.MV())) != 0 {
+			return false
+		}
+		if a.Cost.Flags&kop.CostOncePerTurn != 0 {
+			if ra := k.riderAbOf(s.cardAt(sl)); ra >= 0 {
+				pm.actUsed |= 1 << uint(ra)
+			}
+		}
+		s.recordChosenColor(sl, uint8(answer))
+		s.manaRiderFloat(k, p, sl, a, answer)
+		s.manaRiderEffect(k, sl, a)
+		s.clearChosenColor(sl)
+		return true
+	}
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
 		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
@@ -446,7 +490,34 @@ func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 			n = 1
 		}
 		s.gainLife(k, s.perms[sl].ctrl, n)
+	case kop.ManaRiderChosenAnimate:
+		s.riderChosenAnimate(k, sl, a)
 	}
+}
+
+// riderChosenAnimate runs the chosen-colour Animate rider's program (the
+// five WUBRG override records and one OpOverride with OvChosenColor) with
+// the activation's recorded colour as the resolution's answer. The source's
+// recorded colour is 0..4, the op's res.chosen 1..5 (the same encoding an
+// ExtChooseColorRes answer uses).
+func (s *State) riderChosenAnimate(k *prep, sl Slot, a *kop.Ability) {
+	if k.gen == nil || len(a.Prog) == 0 {
+		return
+	}
+	o := s.perms[sl].obj
+	ra := k.riderAbOf(s.cardAt(sl))
+	if o == NoObj || ra < 0 {
+		return
+	}
+	save := s.res
+	s.res = resCtx{active: true, lastTok: NoObj, eachObj: NoObj,
+		e: stackEntry{kind: seAbility, obj: o, srcVer: s.objs[o].ver, card: s.cardAt(sl),
+			ab: uint8(ra), ctrl: s.perms[sl].ctrl}}
+	s.res.chosen = s.perms[sl].chosen + 1
+	for i := range a.Prog {
+		s.exec(k, &a.Prog[i])
+	}
+	s.res = save
 }
 
 // markRiderDone marks the bounded rider ability of the source at sl as already
