@@ -50,6 +50,10 @@ type CostPart struct {
 	// X) and "Any" (tapXType<Any/Spec> -- a free count that binds nothing;
 	// paying the cost taps at least one matching permanent, so a spec no
 	// candidate satisfies leaves the cost unpayable). N is unused for both.
+	//
+	// On a SubCounter part Dyn is SubCounterAll for Forge's
+	// SubCounter<All/Kind> ("remove all eyeball counters"): N is unset by the
+	// parse and pay.FixLifeXCost fixes it to the counters of Kind on the source.
 	Dyn string
 	// LibraryPos is the library slot a PutToLib cost part places the moved
 	// card(s) at, read from Forge's <N/Pos/Spec> middle field: -1 is the
@@ -969,6 +973,9 @@ func (c *Cost) PoolUnitsFloor() int64 {
 	}
 	return n
 }
+
+// SubCounterAll is the Dyn of a whole-pile SubCounter<All/Kind> part.
+const SubCounterAll = "All"
 
 // SubCounterTargetsSource reports whether a SubCounter part's removal-target
 // field names the paying source itself: the empty field (the original
