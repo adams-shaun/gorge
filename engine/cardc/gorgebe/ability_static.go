@@ -81,6 +81,11 @@ func printStatic(p *pr, a *ir.Ability) error {
 	}
 	switch {
 	case continuous:
+		for _, x := range st.Effects {
+			if x.Cond != nil {
+				return unprintable("static:effect-cond", x.Src)
+			}
+		}
 		var aff string
 		switch {
 		case isSelfRef(o):
@@ -91,10 +96,15 @@ func printStatic(p *pr, a *ir.Ability) error {
 				return err
 			}
 			aff = v
+		case o != nil && o.Kind == ir.RefAttachedTo && isSelfRef(o.Of) && p.attachWord() != "":
+			aff = p.attachWord()
 		default:
 			return bad(e)
 		}
 		ps = params{{"Mode", "Continuous"}, {"Affected", aff}}
+		if aff == "Equipped" || aff == "Enchanted" {
+			ps = params{{"Mode", "Continuous"}, {"AffectedDefined", aff}, {"Affected", "Creature"}}
+		}
 		pw, err := ptSum(p, st.Effects, func(e *ir.Effect) *ir.Value { return e.P })
 		if err != nil {
 			return err
@@ -114,7 +124,7 @@ func printStatic(p *pr, a *ir.Ability) error {
 			if x.Kind != ir.EffAddAbility {
 				continue
 			}
-			k, ok := bareKeywords(x)
+			k, ok := grantedKeywords(x)
 			if !ok {
 				return bad(x)
 			}
@@ -133,22 +143,9 @@ func printStatic(p *pr, a *ir.Ability) error {
 		}
 	}
 	if a.Cond != nil {
-		f, err := p.cond(a.Cond)
-		if err != nil {
+		var err error
+		if ps, err = p.withStaticCond(ps, a.Cond); err != nil {
 			return err
-		}
-		f = p.settle(f)
-		if aff, ok := ps.selfTest(f); ok {
-			// Forge tests the source's own state in the Affected filter.
-			ps = aff
-		} else {
-			cs, err := f.onStatic()
-			if err != nil {
-				return err
-			}
-			for _, c := range cs {
-				ps.set(c.K, c.V)
-			}
 		}
 	}
 	var b strings.Builder
@@ -163,10 +160,34 @@ func printStatic(p *pr, a *ir.Ability) error {
 	return nil
 }
 
+// withStaticCond adds the gate c to a static's parameters.
+func (p *pr) withStaticCond(ps params, c *ir.Cond) (params, error) {
+	f, err := p.cond(c)
+	if err != nil {
+		return nil, err
+	}
+	f = p.settle(f)
+	if aff, ok := ps.selfTest(f); ok {
+		// Forge tests the source's own state in the Affected filter.
+		return aff, nil
+	}
+	cs, err := f.onStatic()
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range cs {
+		ps.set(c.K, c.V)
+	}
+	return ps, nil
+}
+
 // staticEffect prints the single non-continuous effect e of st.
 func (p *pr) staticEffect(a *ir.Ability, st *ir.Step, e *ir.Effect) (params, string, error) {
 	o := st.Obj
 	bad := unprintable("static:"+e.Kind.String(), e.Src)
+	if e.Cond != nil && e.Kind != ir.EffAlternativeCost && e.Kind != ir.EffSelfCostLess {
+		return nil, "", bad // a printer that does not print the condition must not drop it
+	}
 	anySpell := func() (bool, string, error) {
 		if e.Filter == nil {
 			return true, "", nil
@@ -206,14 +227,50 @@ func (p *pr) staticEffect(a *ir.Ability, st *ir.Step, e *ir.Effect) (params, str
 					{"MayPlayWithoutManaCost", "True"}, {"AffectedZone", "Hand"}}, "S:", nil
 			}
 		}
-	case ir.EffSpellsCostMore, ir.EffSpellsCostLess:
-		n, ok := genericCost(e.Cost)
-		if !ok || o == nil || o.Kind != ir.RefAll || o.Filter == nil || o.Filter.Subject != ir.SubjPlayer {
+	case ir.EffSelfCostLess:
+		if !isSelfRef(o) || e.N == nil {
 			return nil, "", bad
 		}
-		who, err := p.valid(o.Filter)
+		n, err := p.amount(e.N)
 		if err != nil {
 			return nil, "", err
+		}
+		ps := params{{"Mode", "ReduceCost"}, {"ValidCard", "Card.Self"}, {"Type", "Spell"}, {"Amount", n}, {"EffectZone", "All"}}
+		if e.Filter != nil {
+			v, err := p.valid(e.Filter)
+			if err != nil {
+				return nil, "", err
+			}
+			ps.set("ValidTarget", v)
+		}
+		if e.Cond != nil {
+			if ps, err = p.withStaticCond(ps, e.Cond); err != nil {
+				return nil, "", err
+			}
+		}
+		return ps, "S:", nil
+	case ir.EffSpellsCostMore, ir.EffSpellsCostLess:
+		var n int32
+		var ok bool
+		if e.N != nil && e.N.Kind == ir.VConst {
+			n, ok = e.N.N, true
+		} else {
+			n, ok = genericCost(e.Cost)
+		}
+		who := ""
+		switch {
+		case o != nil && o.Kind == ir.RefYou:
+			who = "You"
+		case o != nil && o.Kind == ir.RefAll && o.Filter != nil && o.Filter.Subject == ir.SubjPlayer:
+			var err error
+			if who, err = p.valid(o.Filter); err != nil {
+				return nil, "", err
+			}
+		default:
+			ok = false
+		}
+		if !ok {
+			return nil, "", bad
 		}
 		mode := "RaiseCost"
 		if e.Kind == ir.EffSpellsCostLess {

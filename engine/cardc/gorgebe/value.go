@@ -102,6 +102,15 @@ func printValue(p *pr, v *ir.Value) (string, error) {
 			}
 		}
 		return "Count$Valid" + strings.Join(zs, ",") + " " + f, nil
+	case ir.VTotalPower:
+		if v.Filter == nil {
+			return no()
+		}
+		c, err := printValue(p, &ir.Value{Kind: ir.VCount, Filter: v.Filter, Src: v.Src})
+		if err != nil {
+			return "", err
+		}
+		return c + "$CardPower", nil
 	case ir.VCountersAmong:
 		f := v.Filter
 		if f != nil && f.Op == ir.FPred && f.Pred == ir.PIs && f.Ref != nil && f.Ref.Kind == ir.RefSelf && v.Word != "" {
@@ -228,6 +237,9 @@ func printArith(p *pr, v *ir.Value) (string, error) {
 	}
 	if strings.Contains(body, "/") || isLiteral(body) {
 		return "", unprintable("value:"+v.Kind.String()+"-nested", v.Src)
+	}
+	if (v.Kind == ir.VMul && k == 1) || (v.Kind != ir.VMul && k == 0) {
+		return body, nil // "for each" is a count times one; Forge writes the count
 	}
 	op := map[ir.ValueKind]string{ir.VAdd: "/Plus.", ir.VSub: "/Minus.", ir.VMul: "/Times."}[v.Kind]
 	return body + op + strconv.Itoa(int(k)), nil

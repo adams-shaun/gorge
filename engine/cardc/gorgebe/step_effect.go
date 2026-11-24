@@ -35,6 +35,45 @@ func bareKeywords(e *ir.Effect) (kws []string, ok bool) {
 	return kws, true
 }
 
+// grantedKeywords is bareKeywords, plus protection from colors, spelled the
+// way a static's AddKeyword$ writes it.
+func grantedKeywords(e *ir.Effect) (kws []string, ok bool) {
+	if len(e.Abilities) == 0 {
+		return nil, false
+	}
+	for _, a := range e.Abilities {
+		k := a.Keyword
+		if a.Kind != ir.AbKeyword || k == nil || k.Name == "" || k.N != nil || k.Cost != nil {
+			return nil, false
+		}
+		if k.Filter == nil {
+			kws = append(kws, k.Name)
+			continue
+		}
+		w, ok := protectionWords(k)
+		if !ok {
+			return nil, false
+		}
+		kws = append(kws, w...)
+	}
+	return kws, true
+}
+
+// protectionWords spells "protection from <colors>" as one keyword per color.
+func protectionWords(k *ir.Keyword) ([]string, bool) {
+	f := k.Filter
+	if k.Name != "Protection" || f == nil || f.Op != ir.FPred || f.Pred != ir.PColor || f.Colors == 0 {
+		return nil, false
+	}
+	var out []string
+	for _, c := range colourNames {
+		if f.Colors&c.c != 0 {
+			out = append(out, "Protection from "+lower(c.name))
+		}
+	}
+	return out, true
+}
+
 func printApplyEffect(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	o := st.Obj
