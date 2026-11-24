@@ -272,3 +272,14 @@ func effectStaticSuffix(tl effectTriggerLine) string {
 	}
 	return ""
 }
+
+// effectPhaseFlags is a Phase Triggers$ body's bare flags: "|1C" for
+// FirstCombat$ True, then effectStaticSuffix's "|ST". The decode strips |ST
+// before |1C, so the order is fixed.
+func effectPhaseFlags(tl effectTriggerLine) string {
+	flags := ""
+	if tl.FirstCombat {
+		flags = "|1C"
+	}
+	return flags + effectStaticSuffix(tl)
+}

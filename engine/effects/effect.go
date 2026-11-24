@@ -615,10 +615,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if tl.CheckSVar != "" {
 				text += "|CS=" + tl.CheckSVar + "|SC=" + tl.SVarCompare
 			}
-			if tl.FirstCombat {
-				text += "|1C"
-			}
-			text += effectStaticSuffix(tl)
+			text += effectPhaseFlags(tl)
 			// A prevention rider's delayed counter body (Sacred Boon) reads the
 			// amount this application prevented as Count$TriggerRememberAmount;
 			// "|RN=" rides last so the decode strips it first.
