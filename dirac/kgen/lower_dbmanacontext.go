@@ -27,13 +27,14 @@ import (
 // declaring ValidTgts$ (Radiant Lotus) is no mana ability and lowers through
 // dbManaActivatedOK.
 //
-// The kernel still refuses every one of those mana abilities because it has no
-// arm for one whose colour is asked at activation: gorge's census fails closed
-// on an unrecorded Chosen production (pay.PaymentPlanChoiceColours returns nil)
-// and the activation records the answer on the source
-// (events.Choose "color") before the production reads it
-// (Produced$ Chosen, Amount$ Count$Devotion.Chosen). Until that arm lands the
-// card stays unsupported (ticket t18e3-dbmana-choosecol-base).
+// The kernel's chosen-colour arm lowers Foraging Wickermaw's shape: a
+// generic-only fee, no {T}, ActivationLimit$ 1 and (optionally) a
+// chosen-colour Animate rider (lower_choosecolmana.go). It rides the
+// planner-deferred mana-rider route, as gorge's planner defers a source with a
+// SubAbility$ chain (pay.PaymentPlanAbilityTier source:last_resort), so its
+// census never prices it. The {T} + Chosen devotion forms (Nyx Lotus, Nykthos,
+// Rhystic Cave) are still refused here until the base arm lands (ticket
+// t18e3-dbmana-choosecol-base).
 
 const refuseDbManaMA = "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"
 
