@@ -350,6 +350,7 @@ type genPrep struct {
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
+	anyRemEach      bool           // some OpRepeatEach is over the remembered set (kop.RepeatRemembered): each remembered object's last controller has a cold slot (act_repeatremembered.go)
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix              [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
 	anyInit         bool           // some program is OpTakeInitiative (act_initiative.go)
@@ -1222,11 +1223,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			g.prepAddManaRestr(a) // mana_resolverestriction.go
-			for _, in := range a.Prog {
-				if in.Op == kop.OpCreateEmblem {
-					g.prepEmbGrant(t, CardID(i), &t.Emblems[in.C])
-				}
-			}
+			g.prepProgOps(t, CardID(i), a)
 			for ti := 0; ti < int(a.NTargets); ti++ {
 				if k := a.Targets[ti].Kind; k == kop.TgtStackObj || k == kop.TgtStackAb || k == kop.TgtStackObjTrig || k == kop.TgtStackTgting {
 					g.anyStackTgt = true // tgt_stackability.go
