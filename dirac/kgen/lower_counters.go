@@ -245,10 +245,12 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 
 // support lowers PutCounter Support$ N (CR 701.41a; gorge
 // putCounterSupport): one counter (CounterType$, default P1P1) on each of
-// up to N creatures the resolving controller picks, other than the source
-// unless the card is an instant or sorcery (gorge's Creature.+Other /
-// Creature split by the source's face). A Defined$/ValidTgts$/Choices$/
-// CounterNum$ beside it refuses.
+// up to N creatures. A permanent's ability is a resolution pick other than
+// the source (gorge's Creature.+Other); an instant or sorcery announces its
+// "up to N target creatures" while casting (CR 601.2c, gorge's cast-time
+// supportTargetSA), so the carrier gets a 0..N target slot and the kernel
+// applies one counter to each announced target instead of asking again. A
+// Defined$/ValidTgts$/Choices$/CounterNum$ beside it refuses.
 func (lc *lowerCtx) support(ps *params) error {
 	for _, k := range []string{"Defined", "ValidTgts", "Choices", "CounterNum", "Adapt", "RememberCards", "RememberPut"} {
 		if _, ok := ps.m[k]; ok {
@@ -264,10 +266,23 @@ func (lc *lowerCtx) support(ps *params) error {
 		ct = c
 	}
 	other := 1
-	if lc.face.IsInstant() || lc.face.IsSorcery() {
+	in := lInstr{Op: "Support", A: n, CS: ct}
+	// Only a spell's OWN root ability announces Support's targets at cast
+	// (gorge supportTargetSA wraps just the cast-stage SA). A SubAbility$ or
+	// a mode body keeps gorge's resolution pick, so it stays an ask here.
+	if (lc.face.IsInstant() || lc.face.IsSorcery()) && lc.ab.Kind == akSpell && lc.head && lc.mode < 0 && lc.depth == 1 {
 		other = 0
+		if !n.isConst() || n.N > 0 {
+			f, err := lc.filter("Creature")
+			if err != nil {
+				return err
+			}
+			tr := lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(0), Max: n})}
+			in.Obj = tr
+		}
 	}
-	lc.emit(lInstr{Op: "Support", A: n, C: other, CS: ct})
+	in.C = other
+	lc.emit(in)
 	return nil
 }
 
