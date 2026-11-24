@@ -27,6 +27,9 @@ func zoneOf(ps *params, key string, dflt int) (int, error) {
 // changeZone lowers api:ChangeZone: targeted moves, defined moves, and the
 // hidden-zone searches (library, or a graveyard choice without targeting).
 func (lc *lowerCtx) changeZoneMove(ps *params) error {
+	if done, err := lc.changeZoneChosenSet(ps); done || err != nil {
+		return err
+	}
 	if done, err := lc.changeZoneDefinedSet(ps); done || err != nil {
 		return err
 	}
@@ -376,13 +379,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			// DefinedPlayer$: whose library is searched (lower_eachsearch.go)
 			var obj lRef
-			if f.Each && ps.peek("Chooser") == "Opponent" {
-				// gorge's structured EACH pick under Mandatory$ lets the chooser
-				// stop after ChangeNum$ cards (zone_search.go: Min = the per-type
-				// count, not the group count); the kernel's Mandatory takes every
-				// group, so the opponent's EACH pick (Guided Passage) diverges.
-				return refuse("EACH library search with Chooser$ Opponent")
-			}
+			flags = eachMinFlag(ps, f, flags)
 			if obj, flags, err = lc.libSearchOwner(ps, arm != nil, tgtLib, flags); err != nil {
 				return err
 			}
@@ -1807,87 +1804,261 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	if err != nil {
 		return err
 	}
+	// gorge choiceBounds: max = Amount$ (default 1), min = max for a
+	// Mandatory$ True pick and 0 otherwise; MinAmount$ overrides the floor.
+	maxV, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	minV := maxV
+	if optional {
+		minV = cst(0)
+	}
+	if v, ok := ps.get("MinAmount"); ok {
+		if minV, err = lc.value(v); err != nil {
+			return err
+		}
+	}
+	if ps.is("Optional", "True") || ps.is("Mandatory", "False") {
+		minV = cst(0)
+	}
+	minZero := minV.isConst() && minV.N == 0
 	fromDefined := false
+	each := false
+	atRandom := false
+	mode := ""
 	if !optional {
-		// A mandatory ChooseCard's chooser is the resolving controller —
-		// gorge choiceChoosers' default — and its pick count is one
-		// (choiceBounds max default 1). Defined$ ChosenPlayer / Player.Chosen
-		// is the one exception: the resolution's chosen player, this
-		// ability's one-opponent ChoosePlayer's pick (gorge choiceChoosers'
-		// ChosenPlayer spelling; Plargg and Nassari's "an opponent choses",
-		// Demonic Hordes, Wake to Slaughter, Wormfang Crab). ChoiceTitle$ is
-		// display-only (the decision's Prompt), so any value reads; Amount$ 1
-		// and Defined$ You are exactly the defaults, and anything else stays
-		// refused by name.
-		ps.consume("ChoiceTitle")
-		if v := ps.str("Amount"); v != "" && v != "1" {
-			return refuse("ChooseCard Amount$ %q", v)
+		// The mandatory path (chooseCardMandatory): the chooser is the resolving
+		// controller unless Defined$ names another.
+		chooser, each, fromDefined, atRandom, mode, err = lc.chooseCardMandatory(ps, chooser, oppChooser)
+		if err != nil {
+			return err
 		}
-		if v := ps.str("Defined"); v != "" && v != "You" {
-			// gorge choiceChoosers: Defined$ ChosenPlayer / Player.Chosen is
-			// the resolution's chosen player — this ability's one-opponent
-			// ChoosePlayer's pick, which the kernel poses as the opponent's
-			// ask (Plargg and Nassari's OppPickOne, Demonic Hordes, Wake to
-			// Slaughter, Wormfang Crab). Without the armed choice it is
-			// unresolved and refuses.
-			if !(oppChooser && v == "Opponent") && (lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab ||
-				(v != "ChosenPlayer" && v != "Player.Chosen")) {
-				return refuse("ChooseCard Defined$ %q", v)
-			}
-			chooser = lRef{Kind: rEachOpp}
-			fromDefined = true
+	} else {
+		// the optional battlefield path (chooseCardOptional)
+		chooser, fromDefined, atRandom, err = lc.chooseCardOptional(ps, chooser)
+		if err != nil {
+			return err
 		}
-		ps.consume("Defined")
 	}
 	if optional && zone == zLibrary {
-		return lc.chooseLibraryUpTo(ps, f)
+		return lc.chooseLibraryUpTo(ps, f, maxV)
 	}
-	if optional {
-		// the optional battlefield path: ChoiceTitle$ is display only (as
-		// the mandatory path's), Defined$ You is the default chooser, and
-		// MinAmount$ 0 is what no Mandatory$ already means (gorge
-		// choiceBounds: up to one); any other value refuses
-		ps.consume("ChoiceTitle")
-		if v := ps.str("Defined"); v != "" && v != "You" {
-			if v != "TargetedOrController" {
-				return refuse("optional ChooseCard Defined$ %q", v)
-			}
-			// gorge definedAliases spells TargetedOrController as
-			// TargetedController: a player target is that player, an object
-			// target its controller (lower_effect.go's rTargetController).
-			// The referent is the chain's target, not this pick's.
-			t := lc.lastTarget()
-			if t < 0 {
-				return refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
-			}
-			chooser = lRef{Kind: rTargetController, N: t}
-			fromDefined = true
-		}
-		if v := ps.str("MinAmount"); v != "" && v != "0" {
-			return refuse("optional ChooseCard MinAmount$ %q", v)
-		}
-		ps.consume("Defined", "MinAmount")
+	if !optional && minZero && zone == zLibrary {
+		// Mandatory$ True with MinAmount$ 0 is the same "up to Amount$"
+		// library pick (Hew the Entwood).
+		return lc.chooseLibraryUpTo(ps, f, maxV)
 	}
+	mode = chooseCardMode(optional, each, atRandom, minZero, maxV, mode)
 	if optional && (!optionalPickZone(zone) || ps.str("Amount") != "" && ps.str("Amount") != "1") {
 		return refuse("optional ChooseCard")
 	}
 	if !targeted && !fromDefined {
 		chooser = lRef{Kind: rYou}
 	}
-	in := lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zone}
 	if optional && ps.is("ForgetOtherRemembered", "True") {
 		return refuse("optional ChooseCard with ForgetOtherRemembered")
 	}
-	if optional {
-		// gorge choiceBounds: no Mandatory$ True is "up to one" (Min 0),
-		// a Done beside the cards (Gix's Command)
-		in.CS = "Optional"
+	if each && !(maxV.isConst() && maxV.N == 1) {
+		return refuse("each-player ChooseCard Amount$ %v", maxV)
+	}
+	in := lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zone}
+	switch mode {
+	case "Amount", "AmountOpt", "AtRandom":
+		in.A = maxV
 	}
 	if ps.is("ForgetOtherRemembered", "True") {
-		in.CS = "ForgetOthers"
+		if mode != "" && mode != "Optional" {
+			return refuse("ChooseCard ForgetOtherRemembered$ with %s", mode)
+		}
+		mode = "ForgetOthers"
 	}
+	in.CS = mode
 	lc.emit(in)
 	return nil
+}
+
+// chooseCardMandatory resolves the mandatory pick's chooser. The chooser is the
+// resolving controller — gorge choiceChoosers' default — unless Defined$ names
+// another: ChosenPlayer / Player.Chosen is the resolution's chosen player
+// (Plargg and Nassari, Demonic Hordes, Wake to Slaughter, Wormfang Crab); Player
+// is every player (each one picks); TriggeredPlayer / TriggeredDefendingPlayer
+// are the trigger's own reads (Mist of Stagnation, Drana). StartingWith$
+// rotates the each-player walk (Sadistic Shell Game, The Horus Heresy).
+// AtRandom$ poses no ask. It returns the mode word the kernel op carries.
+func (lc *lowerCtx) chooseCardMandatory(ps *params, in lRef, oppChooser bool) (out lRef, each, fromDefined, atRandom bool, mode string, err error) {
+	out = in
+	ps.consume("ChoiceTitle")
+	switch v := ps.str("Defined"); v {
+	case "", "You":
+	case "ChosenPlayer", "Player.Chosen":
+		if lc.chosenOppAb == nil || lc.chosenOppAb != lc.ab {
+			return out, false, false, false, "", refuse("ChooseCard Defined$ %q", v)
+		}
+		out = lRef{Kind: rEachOpp}
+		fromDefined = true
+	case "Opponent":
+		if !oppChooser {
+			return out, false, false, false, "", refuse("ChooseCard Defined$ %q", v)
+		}
+		out = lRef{Kind: rEachOpp}
+		fromDefined = true
+	case "Player":
+		out = lRef{Kind: rEachPlayer}
+		each, fromDefined = true, true
+	case "TriggeredPlayer", "TriggeredDefendingPlayer":
+		if out, err = lc.defined(v); err != nil {
+			return out, false, false, false, "", err
+		}
+		fromDefined = true
+		if v == "TriggeredDefendingPlayer" {
+			mode = "ActivatorBase"
+		}
+	default:
+		return out, false, false, false, "", refuse("ChooseCard Defined$ %q", v)
+	}
+	ps.consume("Defined")
+	if v, ok := ps.get("AtRandom"); ok {
+		if strings.TrimSpace(v) != "True" {
+			return out, false, false, false, "", refuse("ChooseCard AtRandom$ %q", v)
+		}
+		atRandom = true
+	}
+	if v, ok := ps.get("StartingWith"); ok {
+		if !each {
+			return out, false, false, false, "", refuse("ChooseCard StartingWith$ %q outside an each-player pick", v)
+		}
+		switch strings.TrimSpace(v) {
+		case "You", "Opponent":
+			// gorge chooseCardChoosers rotates only for You, which is
+			// AliveFrom(controller) already; Opponent also keeps that
+			// order in the measured games (Sadistic Shell Game)
+		default:
+			return out, false, false, false, "", refuse("ChooseCard StartingWith$ %q", v)
+		}
+	}
+	if each && mode == "" {
+		mode = "EachPlayer"
+	}
+	// display-only / public-information / bot-hint parameters: neither
+	// changes which cards are offered (gorge never reads ControlAndNot$;
+	// Reveal$/Secretly$/RevealTitle$ are visibility, AILogic$ a hint)
+	for _, k := range []string{"Secretly", "Reveal", "ControlAndNot"} {
+		if v, ok := ps.get(k); ok && !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return out, false, false, false, "", refuse("ChooseCard %s$ %q", k, v)
+		}
+	}
+	ps.consume("RevealTitle", "AILogic")
+	return out, each, fromDefined, atRandom, mode, nil
+}
+
+// chooseCardOptional resolves the optional battlefield pick: ChoiceTitle$ is
+// display only (as the mandatory path's), Defined$ You is the default chooser,
+// and MinAmount$ 0 is what no Mandatory$ already means (gorge choiceBounds: up
+// to one); any other value refuses.
+func (lc *lowerCtx) chooseCardOptional(ps *params, in lRef) (out lRef, fromDefined, atRandom bool, err error) {
+	out = in
+	ps.consume("ChoiceTitle")
+	if v, ok := ps.get("AtRandom"); ok {
+		// AtRandom$ ignores the Min 0: the engine still takes Amount$
+		// cards (gorge randomChoices over the whole pool)
+		if strings.TrimSpace(v) != "True" {
+			return out, false, false, refuse("ChooseCard AtRandom$ %q", v)
+		}
+		atRandom = true
+	}
+	ps.consume("AILogic")
+	if v := ps.str("Defined"); v != "" && v != "You" {
+		if v != "TargetedOrController" {
+			return out, false, atRandom, refuse("optional ChooseCard Defined$ %q", v)
+		}
+		// gorge definedAliases spells TargetedOrController as
+		// TargetedController: a player target is that player, an object
+		// target its controller (lower_effect.go's rTargetController).
+		// The referent is the chain's target, not this pick's.
+		t := lc.lastTarget()
+		if t < 0 {
+			return out, false, atRandom, refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
+		}
+		out = lRef{Kind: rTargetController, N: t}
+		fromDefined = true
+	}
+	if v := ps.str("MinAmount"); v != "" && v != "0" {
+		return out, false, atRandom, refuse("optional ChooseCard MinAmount$ %q", v)
+	}
+	ps.consume("Defined", "MinAmount")
+	return out, fromDefined, atRandom, nil
+}
+
+// chooseCardMode is the kernel mode word for a ChooseCard whose chooser and
+// bounds are already read; the counted and at-random forms carry their count
+// in A.
+func chooseCardMode(optional, each, atRandom, minZero bool, maxV lValue, mode string) string {
+	if !optional && !each && !atRandom && !minZero && !(maxV.isConst() && maxV.N == 1) {
+		mode = "Amount"
+	}
+	if !optional && !each && !atRandom && minZero && !(maxV.isConst() && maxV.N == 1) {
+		mode = "AmountOpt"
+	}
+	if atRandom {
+		mode = "AtRandom"
+	}
+	if optional && !atRandom {
+		// gorge choiceBounds: no Mandatory$ True is "up to one" (Min 0),
+		// a Done beside the cards (Gix's Command)
+		mode = "Optional"
+	}
+	return mode
+}
+
+// changeZoneChosenSet spells a counted ChooseCard's whole answer as the sweep
+// over Card.ChosenCard (Split the Party): the one-object ChangeZone reads only
+// RefChosen. The helper keeps changeZoneMove under its code-shape ceiling.
+func (lc *lowerCtx) changeZoneChosenSet(ps *params) (bool, error) {
+	if strings.TrimSpace(ps.str("Defined")) != "ChosenCard" || !lc.multiChosenPick() {
+		return false, nil
+	}
+	ps.consume("Defined", "Origin", "Destination")
+	cp := &params{m: maps.Clone(ps.m), used: map[string]bool{}}
+	delete(cp.m, "Defined")
+	cp.m["ChangeType"] = "Card.ChosenCard"
+	if err := lc.changeZoneAll(cp); err != nil {
+		return true, err
+	}
+	n := len(lc.ab.Prog) - 1
+	if n >= 0 && lc.ab.Prog[n].Op == "ChangeZoneAll" {
+		lc.ab.Prog[n].CS = strings.TrimPrefix(lc.ab.Prog[n].CS+"|chosenOrder", "|")
+	}
+	return true, nil
+}
+
+// eachMinFlag adds the EachMin search flag for a Mandatory$ EACH pick: gorge
+// sets Min to the per-type ChangeNum$ (one pick), not the group count
+// (zone_search.go), so the chooser may stop after the first pick (Guided
+// Passage); the kernel's Mandatory alone takes every group.
+func eachMinFlag(ps *params, f *lFilter, flags []string) []string {
+	if f.Each && ps.is("Mandatory", "True") {
+		return append(flags, "EachMin")
+	}
+	return flags
+}
+
+// multiChosenPick reports a ChooseCard immediately before the current node
+// that answers with a set (a counted, random or each-player pick).
+func (lc *lowerCtx) multiChosenPick() bool {
+	n := len(lc.ab.Prog)
+	if n == 0 {
+		return false
+	}
+	in := lc.ab.Prog[n-1]
+	if in.Op != "ChooseCard" {
+		return false
+	}
+	switch in.CS {
+	case "Amount", "AmountOpt", "AtRandom", "EachPlayer":
+		return true
+	}
+	return false
 }
 
 // optionalPickZone reports the zones an optional (up to one) ChooseCard
@@ -1932,19 +2103,11 @@ func chooseCardChooserPool(lc *lowerCtx, ps *params, v string, targeted bool) (p
 // B = Amount$), so the shape is read only straight after a Remember-only Peek
 // of the chooser's own library and an IsRemembered choice filter; anything
 // else refuses.
-func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter) error {
-	max := 1
-	if v := ps.str("Amount"); v != "" {
-		n, err := strconv.Atoi(v)
-		if err != nil || n < 1 || n > 2 {
-			return refuse("optional ChooseCard Amount$ %q from the library", v)
-		}
-		max = n
-	}
+func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter, maxV lValue) error {
 	if d := ps.str("Defined"); d != "" && d != "You" {
 		return refuse("optional ChooseCard Defined$ %q from the library", d)
 	}
-	for _, k := range []string{"ForgetOtherRemembered", "AtRandom", "MinAmount", "WithTotalPower", "DefinedCards", "ChooseEach", "ControlledByPlayer"} {
+	for _, k := range []string{"ForgetOtherRemembered", "AtRandom", "WithTotalPower", "DefinedCards", "ChooseEach", "ControlledByPlayer"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("optional ChooseCard from the library with %s$", k)
 		}
@@ -1954,7 +2117,7 @@ func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter) error {
 		return refuse("optional ChooseCard from the library without a preceding Peek")
 	}
 	pk := lc.ab.Prog[n-1]
-	if pk.Op != "Peek" || pk.CS != "Remember" || pk.Obj.Kind != rYou || !pk.A.isConst() {
+	if pk.Op != "Peek" || !strings.Contains(pk.CS, "Remember") || pk.Obj.Kind != rYou {
 		return refuse("optional ChooseCard from the library not straight after a Remember-only Peek of your library")
 	}
 	g := &lFilter{Players: f.Players, Clauses: append([]lClause(nil), f.Clauses...)}
@@ -1963,10 +2126,13 @@ func (lc *lowerCtx) chooseLibraryUpTo(ps *params, f *lFilter) error {
 		if c.Flags&fRemembered == 0 || c.Ctrl != 0 || c.Owner != 0 {
 			return refuse("optional ChooseCard from the library without an IsRemembered filter")
 		}
-		c.Flags &^= fRemembered
+		// keep the IsRemembered flag: the kernel's window is the Peek's
+		// top A, re-read at this op, and the remembered set is exactly the
+		// cards the Peek revealed (a sacrificed-lands set may sit beside
+		// it, so the window can over-count: Hew the Entwood)
 	}
 	ps.consume("ChoiceTitle")
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: g, C: zLibrary, A: pk.A, B: cst(max), CS: "LibraryUpTo", Note: "up to B of the Peek's top A cards"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: g, C: zLibrary, A: pk.A, B: maxV, CS: "LibraryUpTo", Note: "up to B of the Peek's top A cards"})
 	return nil
 }
 
@@ -4110,11 +4276,19 @@ func (lc *lowerCtx) genericChoice(ps *params) error {
 	if ps.str("TempRemember") != "Chooser" {
 		return refuse("GenericChoice without TempRemember Chooser")
 	}
+	// DamageMap$ True is Forge's batching hint for the branches' damage; the
+	// per-player walk deals each player's damage as that branch resolves.
+	ps.consume("DamageMap")
 	choices := strings.Split(ps.str("Choices"), ",")
 	at := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who})
 	lc.emit(lInstr{Op: "GenericChoice", Obj: lRef{Kind: rEach}, A: cst(len(choices))})
-	branches := append(choices, ps.str("FallbackAbility"))
+	branches := choices
+	if fb := strings.TrimSpace(ps.str("FallbackAbility")); fb != "" {
+		// the fallback branch is index len(choices); a pick with none
+		// appends nothing (Osseous Sticktwister's unless-cost choices)
+		branches = append(branches, fb)
+	}
 	for i, name := range branches {
 		sa := cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(name))
 		if sa == nil {

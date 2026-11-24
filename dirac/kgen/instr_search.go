@@ -49,6 +49,9 @@ func (ic *instrCtx) opSearch() error {
 	// SrForgetChanged rides in B too; SrAttacking / SrDifferentNames ride in B (C>>3 is full); B.N bit 0
 	// is the UntilLeaves hand-exile link
 	sb := 0
+	if _, ok := fl["EachMin"]; ok {
+		sb |= kop.SrEachMin
+	}
 	if _, ok := fl["Attacking"]; ok {
 		sb |= kop.SrAttacking
 	}

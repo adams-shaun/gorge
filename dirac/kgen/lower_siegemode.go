@@ -69,6 +69,16 @@ func (lc *lowerCtx) siegeChoiceNames(sa *cards.SA) ([]string, error) {
 	return names, nil
 }
 
+// etbGenericChoice lowers an as-enters GenericChoice replacement body: a
+// SetChosenMode$ True or flag choice is the Sieges' mode ask, anything else
+// the self-Clone choice.
+func (lc *lowerCtx) etbGenericChoice(node, sa *cards.SA, other bool, cond *lCond) error {
+	if strings.TrimSpace(node.Params["SetChosenMode"]) == "True" || lc.isFlagChoice(node) {
+		return lc.etbSetChosenMode(node, sa, other, cond)
+	}
+	return lc.etbSelfCloneChoice(node, sa, other, cond)
+}
+
 // etbSetChosenMode lowers the whole body of an ETB replacement that is a
 // SetChosenMode GenericChoice: the as-enters ask, answered into the
 // permanent's chosen byte (GenericChoice C 2).
@@ -83,6 +93,66 @@ func (lc *lowerCtx) etbSetChosenMode(node, sa *cards.SA, other bool, cond *lCond
 		return err
 	}
 	lc.emit(lInstr{Op: "GenericChoice", Obj: lRef{Kind: rYou}, A: cst(2), C: 2})
+	return nil
+}
+
+// etbSelfCloneChoice lowers the as-enters GenericChoice whose choices are
+// bare DB$ Clone | Defined$ Self bodies (Corrupted Shapeshifter, Primal
+// Clay, Primal Plasma): the mode ask (GenericChoice C 2, the same queued
+// as-enters election the Sieges use) and, after the answer, the chosen
+// mode's characteristic-setting override on the entering permanent itself
+// (RefReplaced, Owner duration). The answer is also the runtime branch
+// (turn_gen.go akMode), so each mode is one OpBranch + one OpOverride.
+func (lc *lowerCtx) etbSelfCloneChoice(node, sa *cards.SA, other bool, cond *lCond) error {
+	if other || node != sa || sa.Sub != nil || cond.Kind != cNone || len(lc.ab.Prog) != 0 {
+		return refuse("GenericChoice without SetChosenMode$ True")
+	}
+	ps := newParams(node.Params)
+	if strings.TrimSpace(ps.str("Defined")) != "You" {
+		return refuse("GenericChoice without SetChosenMode$ True")
+	}
+	ps.consume("Defined")
+	var names []string
+	for _, n := range strings.Split(ps.str("Choices"), ",") {
+		names = append(names, strings.TrimSpace(n))
+	}
+	if len(names) < 2 {
+		return refuse("self-Clone GenericChoice with %d choices", len(names))
+	}
+	var excs []*lOverride
+	for _, n := range names {
+		c := cards.ResolveSVar(lc.face.SVars, n)
+		if c == nil || c.API != "Clone" || c.Sub != nil {
+			return refuse("self-Clone GenericChoice choice %q", n)
+		}
+		cp := newParams(c.Params)
+		if strings.TrimSpace(cp.str("Defined")) != "Self" {
+			return refuse("self-Clone GenericChoice choice %q Defined$ %q", n, cp.str("Defined"))
+		}
+		cp.consume("Defined", "SpellDescription")
+		for _, k := range cp.unread() {
+			switch k {
+			case "SetPower", "SetToughness", "AddKeywords", "AddTypes":
+			default:
+				return refuse("self-Clone GenericChoice choice %q with %s$", n, k)
+			}
+		}
+		exc, has, err := lc.copyExceptions(cp)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return refuse("self-Clone GenericChoice choice %q sets nothing", n)
+		}
+		excs = append(excs, exc)
+	}
+	lc.emit(lInstr{Op: "GenericChoice", Obj: lRef{Kind: rYou}, A: cst(len(excs)), C: 2, Note: "as-enters Clone mode"})
+	for i, exc := range excs {
+		idx := len(lc.out.overrides)
+		lc.out.overrides = append(lc.out.overrides, exc)
+		lc.emit(lInstr{Op: "Branch", C: i, Skip: 1})
+		lc.emit(lInstr{Op: "Override", Obj: lRef{Kind: rReplaced}, C: idx, CS: "Permanent", Note: "the chosen self-Clone mode"})
+	}
 	return nil
 }
 

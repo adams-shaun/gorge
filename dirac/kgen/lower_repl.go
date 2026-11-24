@@ -73,6 +73,7 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
+		replCopyLayer(r, rp)
 		if err := replLayerControl(rp); err != nil {
 			return err
 		}
@@ -286,6 +287,7 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	if err := lc.replCondKeys(rp, &rl, rl.Kind); err != nil { // lower_condkeys.go
 		return err
 	}
+	replCopyLayer(r, rp)
 	if left := rp.unread(); len(left) > 0 {
 		return refuse("replacement unread params %v", left)
 	}
@@ -304,6 +306,15 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 	}
 	lc.out.Repls = append(lc.out.Repls, rl)
 	return nil
+}
+
+// replCopyLayer reads the copy-layer tag of an as-enters characteristic-setting
+// replacement (the self-Clone choices and the Sieges' mode); gorge reads no
+// other Layer$ value here.
+func replCopyLayer(r cards.Repl, rp *params) {
+	if r.With != nil && r.With.API == "GenericChoice" && strings.TrimSpace(rp.str("Layer")) == "Copy" {
+		rp.consume("Layer")
+	}
 }
 
 // withIs: the replacement body is exactly DB$ api with the given params
@@ -974,7 +985,7 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 			lc.emit(lInstr{Op: "ChooseColor", Obj: lRef{Kind: rYou}, C: ex})
 		case "GenericChoice":
-			if err := lc.etbSetChosenMode(node, sa, other, cond); err != nil { // lower_siegemode.go
+			if err := lc.etbGenericChoice(node, sa, other, cond); err != nil { // lower_siegemode.go
 				return err
 			}
 			ps.consume("Choices", "Defined", "SetChosenMode", "ShowChoice", "AILogic", "SpellDescription")
@@ -1092,8 +1103,12 @@ func faceHasEnterBodyAPI(f *cards.Face, api string) bool {
 
 // replLayerControl reads a Moved replacement's Layer$: only Captive
 // Audience's control-change replacement (Layer$ Control), whose body is the
-// ChoosePlayer head then the GainControl it hands the entry to.
+// ChoosePlayer head then the GainControl it hands the entry to. The copies'
+// Layer$ Copy is replCopyLayer's to read.
 func replLayerControl(rp *params) error {
+	if rp.used["Layer"] {
+		return nil
+	}
 	v, ok := rp.get("Layer")
 	if !ok {
 		return nil
