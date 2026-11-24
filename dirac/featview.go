@@ -1614,11 +1614,11 @@ func (s *State) FeatManaActivatable(o Obj) bool {
 // creature cards player p owns first, by name (a changeling's printed ones,
 // not every type it has), then the rest in vocabulary order.
 func (s *State) FeatTypeKey(p uint8, v int) uint32 {
+	if i, ok := landKey(v); ok {
+		return i // gorge's land type order (act_chooseland.go)
+	}
 	k := s.k()
 	t := k.t
-	if i, ok := basicLandKey(v); ok {
-		return i // gorge's basic land type order (act_choosebasicland.go)
-	}
 	if v >= len(t.TypeVocab) {
 		return 1<<16 | uint32(v)
 	}

@@ -28,10 +28,10 @@ func withLureGrant(st cards.Static, kws []string) []string {
 }
 
 // setStaticKeywordGrant fills a layer-6 keyword effect from a Continuous
-// static: its granted keywords (protection resolved against the source o) and
+// static: its granted keywords (protection and a chosen-type landwalk resolved against the source o) and
 // the QuotedAbilityGrant mark a lure grant carries, so a later loss ends it
 // (CR 613.1f) where a spell's unquoted lure requirement survives.
 func setStaticKeywordGrant(kw *state.ContinuousEffect, st cards.Static, o *state.Object) {
-	kw.AddKeywords = effects.ResolveGrantedProtection(withLureGrant(st, statKeywords(st)), o)
+	kw.AddKeywords = effects.ResolveGrantedLandwalk(effects.ResolveGrantedProtection(withLureGrant(st, statKeywords(st)), o), o)
 	kw.QuotedAbilityGrant = statGrantsLure(st)
 }

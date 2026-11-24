@@ -25,12 +25,7 @@ var basicLandChoice = [5]string{"Forest", "Island", "Mountain", "Plains", "Swamp
 // basicLandLabelH is each basicLandChoice label's canonical option value.
 var basicLandLabelH = func() (h [len(basicLandChoice)]uint16) {
 	for i, c := range basicLandChoice {
-		v := uint32(2166136261)
-		for j := 0; j < len(c); j++ {
-			v ^= uint32(c[j])
-			v *= 16777619
-		}
-		h[i] = 0x8000 | uint16(v&0x7fff)
+		h[i] = labelHash(c)
 	}
 	return
 }()
@@ -94,17 +89,6 @@ func basicLandValue(k *prep, v uint16) uint8 {
 		}
 	}
 	return 255
-}
-
-// basicLandKey is a basic land type option's place in gorge's option order,
-// false for any other option value.
-func basicLandKey(v int) (uint32, bool) {
-	for i, h := range basicLandLabelH {
-		if int(h) == v {
-			return uint32(i), true
-		}
-	}
-	return 0, false
 }
 
 // ovChosenType is OpOverride's chosen-land-type arm (interp_gen.go): of the

@@ -850,18 +850,31 @@ func remapFilterProgs(progs []kop.FilterProg, subMap map[uint8]uint8) []kop.Filt
 var basicLandTypeNames = map[string]bool{"Forest": true, "Island": true, "Mountain": true, "Plains": true, "Swamp": true}
 
 // markBasicLandChoice marks the five basic land subtypes when in is a ChooseType
-// Basic Land: its answer is a table subtype whichever land the matchup prints
+// Basic Land (every land subtype for a ChooseType Land): its answer is a table subtype whichever land the matchup prints
 // (Realmwright's AddChosen grant reads it; gorge's answer may be any of the
 // five).
 func markBasicLandChoice(dd *PoolData, in *kop.Instr, mark func(uint8)) {
-	if in.C != 0 || in.B.N != kop.ChooseTypeBasicLand {
+	if in.C != 0 || in.B.N != kop.ChooseTypeBasicLand && in.B.N != kop.ChooseTypeLand {
 		return
 	}
+	names := basicLandTypeNames
+	if in.B.N == kop.ChooseTypeLand {
+		names = landTypeNames
+	}
 	for s, n := range dd.Subtypes {
-		if basicLandTypeNames[n] {
+		if names[n] {
 			mark(uint8(s))
 		}
 	}
+}
+
+// landTypeNames are gorge's Type$ Land option labels
+// (effects.TypeChoiceLabels("Land")): the basic and the nonbasic land types.
+var landTypeNames = map[string]bool{
+	"Cave": true, "Desert": true, "Forest": true, "Gate": true, "Island": true, "Lair": true,
+	"Locus": true, "Mine": true, "Mountain": true, "Omenpath": true, "Planet": true,
+	"Plains": true, "Power-Plant": true, "Sphere": true, "Swamp": true, "Tower": true,
+	"Town": true, "Urza's": true,
 }
 
 // keepPrintedBasicLandTypes adds to subSet the basic land types some pool
