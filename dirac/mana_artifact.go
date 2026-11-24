@@ -252,6 +252,7 @@ func (s *State) artNClearAll() {
 // not their count (mutation testing only: the lockstep must catch it).
 var DebugArtKeyBit bool
 
-// DebugWinFeeStallsAlways applies the fee-only stall to a window with no
-// pending cast too (mutation testing only: the lockstep must catch it).
-var DebugWinFeeStallsAlways bool
+// DebugWinFeeStallsSkipUnless lists a stalling fee-only filter in an unless
+// cost's window again, as the walk did before gorge's unless window dropped it
+// (mutation testing only: the lockstep must catch it).
+var DebugWinFeeStallsSkipUnless bool
