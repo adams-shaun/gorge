@@ -183,7 +183,7 @@ var tokenKnownKeys = [...]string{
 	"RememberSource",
 	"RememberTargets",
 	"RememberTokens",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

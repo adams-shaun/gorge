@@ -182,7 +182,7 @@ var attachKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberObjects",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

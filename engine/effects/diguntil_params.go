@@ -218,7 +218,7 @@ var digUntilKnownKeys = [...]string{
 	"RememberObjects",
 	"RememberRevealed",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

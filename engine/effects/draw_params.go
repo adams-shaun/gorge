@@ -193,7 +193,7 @@ var drawKnownKeys = [...]string{
 	"RememberDrawn",
 	"RememberObjects",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

@@ -260,7 +260,7 @@ var copyPermanentKnownKeys = [...]string{
 	"RemoveCreatureTypes",
 	"RemoveKeywords",
 	"RemoveSubTypes",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",
