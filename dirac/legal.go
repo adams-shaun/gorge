@@ -878,7 +878,14 @@ func (s *State) actScriptPaysCost(k *prep, sl Slot, ai int, a *kop.Ability, powe
 	}
 	p := s.perms[sl].ctrl
 	f := s.scriptFilt(k, p)
-	if !f.any() {
+	// A Taps-deferred gap stands alone on a filterless board too, when the tap
+	// brings an any-colour StatTapExtra (Fertile Ground on another player's
+	// land): the extra is mana gorge's census prices nowhere -- the trigger
+	// joins no census unit -- so its one prefix search gap-activates the
+	// source, and the floating answer funds a pip no census unit makes
+	// (tapAnyColDeferExtra, CR 106.12a, 605.4a). Without that extra the census
+	// is complete and its decline is a proof: the bail stays.
+	if !f.any() && !s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
 		return s.reflAmtActPays(k, sl, a, p) // mana_reflamt.go
 	}
 	if s.filtNetNegative(k, f) != 0 || !s.reflAmtBoundAct(k, sl, a) {
