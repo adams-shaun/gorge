@@ -2492,6 +2492,12 @@ var handRoots = struct {
 		// applied after the move folds). Its reads are gated on
 		// Event$ Moved, so the bucket stays repl:Moved.
 		"Engine.entryBodyCounterGrants",
+		// ETBChoiceAsks is the static as-enters-choice refusal probe (a
+		// scenario loader's, outside the pipeline): the same direct-scan shape
+		// entryBodyCounterGrants has. It reads the ETBReplacement bodies'
+		// Keyword$ and PayLife cost off the compiled card alone; both keys are
+		// already in the repl:Moved set.
+		"ETBChoiceAsks",
 		// R:Event$ CopySpell (Twinning Staff) is read at copy time through the
 		// effects host seam Engine.CopySpellExtra, outside the pipeline.
 		"copySpellExtra"},
