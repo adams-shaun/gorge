@@ -115,6 +115,7 @@ Dismantling Blow
 Domri, Anarch of Bolas
 Dragon's Approach
 Dramatic Reversal
+Dreamwinder
 Drifting Meadow
 Dwarven Vigilantes
 Dynavolt Tower
@@ -215,6 +216,7 @@ Island
 Ixidor, Reality Sculptor
 Jackalope Herd
 Kaito Shizuki
+Kavu Recluse
 Keen-Eyed Raven
 Keeneye Aven
 Keeper of Kookus
@@ -296,6 +298,7 @@ Plaxmanta
 Pol Jamaar, Illusionist
 Pollywog Prodigy
 Preeminent Captain
+Preston, the Vanisher
 Primeval Force
 Prizefighter Construct
 Progenitor Mimic

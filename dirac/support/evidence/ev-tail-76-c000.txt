@@ -85,6 +85,7 @@ Feral Prowler
 Fiery Impulse
 First Volley
 Flamekin Herald
+Flock of Rabid Sheep
 Floral Spuzzem
 Folk of the Pines
 Footbottom Feast
@@ -208,6 +209,7 @@ Seacoast Drake
 Searing Wind
 Seat of the Synod
 Shadow Sliver
+Shimmering Citadel
 Shimmerscale Drake
 Sierra, Nuka's Biggest Fan
 Sky Cycle
@@ -253,6 +255,7 @@ Tourach's Canticle
 Transpose
 Treetop Village
 Tuinvale Treefolk
+Tundra Kavu
 Unbreakable Bond
 Undercity Shade
 Unhinge

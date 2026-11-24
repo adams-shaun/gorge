@@ -241,6 +241,7 @@ Miming Slime
 Mind Rot
 Mirran Crusader
 Mirri, Cat Warrior
+Mjölnir, Storm Hammer
 Molting Skin
 Moment of Heroism
 Monk of the Open Hand
@@ -391,6 +392,7 @@ Waterlogged Teachings
 Well of Ideas
 Windbrisk Heights
 Winterthorn Blessing
+Wolfbitten Captive
 Woodland Druid
 Wormfang Behemoth
 Yellow Scarves General

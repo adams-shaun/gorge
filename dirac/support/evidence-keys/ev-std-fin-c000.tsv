@@ -1,18 +1,25 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A Realm Reborn	15a3c6e912644d13	7	0/0		0/0	
 Absolute Virtue	02b4559946bfe3dc	4	0/0		0/0	
 Adelbert Steiner	039de38c35bf2500	4	0/0		0/0	
 Adventurer's Inn	a768808f725a15a9	7	2/2		0/1	ix:resp
 Aettir and Priwen	f762d69680e3681a	4	1/1		0/1	ix:resp
 Ahriman	ea987011bcf4811b	4	1/1		0/1	ix:resp
+Al Bhed Salvagers	010fcccae5ae89f9	4	1/1		0/1	ix:resp
+Ardyn, the Usurper	0678d3cf9d1c8f60	23	1/1		0/1	ix:resp
 Ashe, Princess of Dalmasca	afc6767198366011	4	1/1		0/1	ix:resp
 Auron's Inspiration	96417a15a0e0f5e9	14	0/0		3/4	ix:resp
 Balamb Garden, SeeD Academy	5248952c7e7c235e	4	4/4		0/1	ix:resp
+Bard's Bow	3bf41ab18a9bde08	4	2/2		0/1	ix:resp
 Baron, Airship Kingdom	c93fae483649b37f	17	1/1		0/1	ix:resp
 Barret Wallace	56025b00411a5b72	7	1/1		0/1	ix:resp
 Battle Menu	6ce228ae387c03c6	5	0/0		1/2	ix:resp
 Black Mage's Rod	8cb86c0755e32afa	4	2/2		0/1	ix:resp
+Black Waltz No. 3	a99dc4ff4b6f9b15	4	1/1		0/1	ix:resp
 Blazing Bomb	eb6ec645bdabc024	5	2/2		0/1	ix:resp
 Blitzball	7bdef38c29e62d8e	11	2/2		0/1	ix:resp
+Buster Sword	f82c80e173689e63	6	2/2		1/1	
+Cactuar	0590c25a77cbdf8c	17	1/1		0/1	ix:resp
 Cargo Ship	32401af28f4e8b20	4	2/2		0/1	ix:resp
 Chocobo Kick	0b750b3cabcee955	4	0/0		3/4	ix:resp
 Circle of Power	191919e292e3826b	3	0/0		1/2	ix:resp
@@ -41,37 +48,47 @@ Evil Reawakened	0d444944abff1e52	6	0/0		1/2	ix:resp
 Excalibur II	5878306e0698dba8	4	2/2		0/1	ix:resp
 Fang, Fearless l'Cie	1f7c3a09b089b186	3	1/1		0/1	ix:resp
 Fight On!	4c575aa2acaf4f29	5	0/0		2/2	
+Fire Magic	018c70d2d0a8c7ab	3	0/0		1/2	ix:resp
 Forest	6d0466c30f825dba	39	1/1		0/1	ix:resp
 Freya Crescent	3238e8241841e087	46	1/1		1/1	
 Gaelicat	e2cc5aaa6c8c8bbc	13	0/0		0/0	
+Gaius van Baelsar	24c4f33bfa5fcad1	7	1/1		0/1	ix:resp
+Galuf's Final Act	bda9d40193eee3e4	13	0/0		1/2	ix:resp
 Garland, Knight of Cornelia	5f4f7625ad5ef613	3	3/3		0/1	ix:resp
 Genji Glove	d9e0df147abf929d	3	2/2		1/1	
 Gigantoad	465268ed82b5db0c	5	0/0		0/0	
 Gohn, Town of Ruin	b44496c202ec233b	8	1/1		0/1	ix:resp
 Gongaga, Reactor Town	7911ffd5d863ee5c	5	1/1		0/1	ix:resp
+Goobbue Gardener	ab14c9c41697f2d8	3	1/1		0/1	ix:resp
 Guadosalam, Farplane Gateway	38216258382136b2	4	1/1		0/1	ix:resp
 Gysahl Greens	de4b7ead390efa15	9	0/0		4/4	
 Haste Magic	dc2b20b7cdac8c28	9	0/0		2/2	
 Hecteyes	0d96ceaf31356bf3	4	1/1		0/1	ix:resp
 Hope Estheim	c976e605da339684	6	1/1		0/1	ix:resp
 Ice Magic	27e9c1c6a45bd382	3	0/0		2/2	
+Il Mheg Pixie	5e1f75d86bad34cd	4	1/1		0/1	ix:resp
 Insomnia, Crown City	a4c17b6ed4fa4689	3	1/1		0/1	ix:resp
 Instant Ramen	4109e4a3176a0dd6	3	2/2		1/1	
+Iron Giant	72f38a4eab65ef5e	5	0/0		0/0	
 Ishgard, the Holy See	f65f64c6437b4e03	4	1/1		0/2	f1/s,ix:resp
 Island	763c67ef7a27eaf5	90	1/1		0/1	ix:resp
 Item Shopkeep	2221217ea3b81d55	6	1/1		1/1	
 Jecht, Reluctant Guardian	854c1f46c3e041f2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Jenova, Ancient Calamity	e00c3798c0d85820	3	2/2		0/1	ix:resp
 Jidoor, Aristocratic Capital	ea2e78c3749a5600	4	1/1		0/2	f1/s,ix:resp
 Jill, Shiva's Dominant	9b8a1054cd037a44	4	2/2		0/1	ix:resp
 Joshua, Phoenix's Dominant	517f5a52f03ce918	4	2/2		0/1	ix:resp
+Kain, Traitorous Dragoon	ca4bf5e36e74fa60	4	1/1		0/1	ix:resp
 Laughing Mad	fb573be1149239bd	6	0/0		4/4	
 Light of Judgment	a8134c7a23c51bf5	9	0/0		2/2	
 Lightning, Security Sergeant	8fe8bca0e6b5ec24	4	1/1		0/1	ix:resp
 Lindblum, Industrial Regency	122362f9aa5a86d9	17	1/1		2/2	
+Locke Cole	162b4408dac0e759	5	1/1		0/1	ix:resp
 Loporrit Scout	d2efbbf1e3bf66cb	4	1/1		0/1	ix:resp
 Louisoix's Sacrifice	42a7be328c16cd43	5	0/0		1/2	ix:resp
 Lunatic Pandora	5406d0c00a6d3d5d	5	2/2		1/1	
 Machinist's Arsenal	1348c73ccef26f79	4	2/2		0/1	ix:resp
+Magic Damper	9637e77233484ac1	8	0/0		2/2	
 Magic Pot	5411f884348704aa	4	2/2		0/1	ix:resp
 Magitek Infantry	7cb646c82f84e902	5	1/1		1/1	
 Magitek Scythe	29a46a68a1129e22	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -88,24 +105,32 @@ Paladin's Arms	bd6d0c0e7b401d49	4	2/2		0/1	ix:resp
 Plains	82d63a695487e567	35	1/1		0/1	ix:resp
 Poison the Waters	b33609a8d8fcfbc6	6	0/0		1/2	ix:resp
 Prishe's Wanderings	b0f812c5d8216ab2	4	0/0		1/2	ix:resp
+PuPu UFO	caffdd1b334131f7	5	2/2		1/1	
 Qiqirn Merchant	7b37a95fff15e0da	10	2/2		0/1	ix:resp
 Queen Brahne	022ff6516b6f0a0e	3	2/2		0/1	ix:resp
 Qutrub Forayer	e4df537de0f1f88d	7	1/1		0/1	ix:resp
 Rabanastre, Royal City	65b78f8f555a92f3	10	1/1		0/1	ix:resp
 Raubahn, Bull of Ala Mhigo	8462db95137f629a	4	2/2		0/1	ix:resp
+Reach the Horizon	40a561592ebcf585	6	0/0		1/2	ix:resp
 Red Mage's Rapier	2b1e78bed79df8ac	4	2/2		0/1	ix:resp
 Relm's Sketching	3d1a086f5e7ae150	10	0/0		2/2	
 Reno and Rude	5d2ce12ca799f04a	4	1/1		0/1	ix:resp
 Resentful Revelation	e96ceb9d8261e50e	8	0/0		4/4	
 Retrieve the Esper	ef5231b502ae7acc	6	0/0		4/4	
 Ride the Shoopuf	4a5a53962434698c	4	2/2		0/1	ix:resp
+Ring of the Lucii	cbdd4677d5063360	4	2/2		1/1	
 Rook Turret	905695e67c0542e2	5	1/1		0/1	ix:resp
+Rydia's Return	9583740bf49077af	7	0/0		1/2	ix:resp
 Sabotender	5347dabfcd3f12d2	6	1/1		0/1	ix:resp
 Sage's Nouliths	31c20985e5684ea9	8	2/2		0/1	ix:resp
 Sahagin	fc524a7641ce8261	6	1/1		1/1	
+Samurai's Katana	f7f8f813b8954768	6	2/2		1/1	
 Sandworm	30ec1619976b49e0	5	1/1		0/1	ix:resp
+Sazh's Chocobo	b5688480afe4b730	8	1/1		0/1	ix:resp
+Seifer Almasy	b54b268f82d16432	4	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Sephiroth's Intervention	f4bdc487981be23d	4	0/0		1/2	ix:resp
 Sephiroth, Planet's Heir	d8e7d5223bb03206	4	2/2		0/1	ix:resp
+Shambling Cie'th	bfdd4500789b3a95	11	1/1		0/1	ix:resp
 Shantotto, Tactician Magician	2b6310f9ab62c956	3	1/1		0/1	ix:resp
 Sharlayan, Nation of Scholars	dedc474f3d053312	4	1/1		0/1	ix:resp
 Shinra Reinforcements	3f3171f73d27dd54	4	1/1		0/1	ix:resp
@@ -114,12 +139,14 @@ Sidequest: Catch a Fish	54d9ffefb7bcdffd	4	3/3		0/1	ix:resp
 Slash of Light	48ba4250db56e190	8	0/0		2/2	
 Sleep Magic	ec8535e9197f5802	6	2/2		1/2	ix:resp
 Snow Villiers	b946b29cd2aa6f5b	3	0/0		0/0	
+Starting Town	6fb4e62a514b4dce	10	2/2		0/1	ix:resp
 Stiltzkin, Moogle Merchant	1971bfeddb2b03df	6	1/1		0/1	ix:resp
 Stuck in Summoner's Sanctum	2f9d1cf33a145069	9	1/1		2/2	
 Summon: Bahamut	20f6ad1b3ce2f4ff	3	0/0		0/0	
 Summon: Choco/Mog	a90d6a9170702f1a	4	0/0		0/0	
 Summon: Fat Chocobo	ad19fdb6cda4d562	4	0/0		0/0	
 Summon: G.F. Cerberus	5dfd532a99e60e45	3	0/0		0/0	
+Summon: G.F. Ifrit	3c3da79a38a163c2	5	0/0		0/0	
 Summon: Knights of Round	13f872531d39e752	3	0/0		0/0	
 Suplex	fda2775d1a4cb092	3	0/0		2/2	
 Swallowed by Leviathan	ca35b05d17f5aafd	6	0/0		1/2	ix:resp

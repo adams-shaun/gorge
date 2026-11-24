@@ -434,6 +434,7 @@ Tukatongue Thallid
 Tyranid Harridan
 Tyranid Prime
 Uktabi Wildcats
+Ulrich of the Krallenhorde
 Umara Wizard
 Unbreakable Formation
 Uncontrollable Anger
@@ -454,6 +455,7 @@ Vengeful Vampire
 Vexilus Praetor
 Victory's Herald
 Victual Sliver
+Villagers of Estwald
 Vrock
 Vulpine Goliath
 Wall of Opposition

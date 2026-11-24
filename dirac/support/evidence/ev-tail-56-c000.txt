@@ -186,6 +186,7 @@ Hellkite Punisher
 Herald of the Dreadhorde
 Hex
 Hexplate Golem
+Hinterland Logger
 Honden of Cleansing Fire
 Honor of the Pure
 Hope-Ender Coatl
@@ -390,6 +391,7 @@ Spellrune Painter
 Spidersilk Net
 Spike Jester
 Squall Drifter
+Stampede Surfer
 Stampeding Wildebeests
 Startling Development
 Statute of Denial
