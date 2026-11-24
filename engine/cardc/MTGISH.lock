@@ -1,7 +1,5 @@
 # Pin of the mtgish data cardc reads (docs/design/2026-11-23-typed-script-values/PLAN.md).
-# The fork github.com/adams-shaun/mtgish (branch gorge) replaces the upstream
-# repo below once the operator creates it; then this one line changes.
-repo https://github.com/i5jb/mtgish
+repo https://github.com/adams-shaun/mtgish
 upstream https://github.com/i5jb/mtgish
 base 1553384c9a970a02514b337db9c86697313530e8
 ref 1553384c9a970a02514b337db9c86697313530e8

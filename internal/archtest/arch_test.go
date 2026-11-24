@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -199,26 +200,24 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	}
 }
 
-// cardcImportViolations returns one message per package outside
-// engine/cardc/... and cmd/cardc that imports a package under engine/cardc.
-func cardcImportViolations(imports map[string][]string) []string {
-	var out []string
+// cardcImportViolations returns, sorted, one "importer -> imported" line per
+// package outside engine/cardc/... and cmd/cardc that imports a package under
+// engine/cardc. imports maps an importer to its imports.
+func cardcImportViolations(module string, imports map[string][]string) []string {
 	root := module + "/engine/cardc"
-	paths := make([]string, 0, len(imports))
-	for p := range imports {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-	for _, p := range paths {
-		if p == root || strings.HasPrefix(p, root+"/") || p == module+"/cmd/cardc" || strings.HasPrefix(p, module+"/cmd/cardc/") {
+	cmd := module + "/cmd/cardc"
+	var out []string
+	for p, imps := range imports {
+		if p == root || strings.HasPrefix(p, root+"/") || p == cmd || strings.HasPrefix(p, cmd+"/") {
 			continue
 		}
-		for _, imp := range imports[p] {
+		for _, imp := range imps {
 			if imp == root || strings.HasPrefix(imp, root+"/") {
-				out = append(out, p+" imports "+imp+"; only engine/cardc/... and cmd/cardc may")
+				out = append(out, p+" -> "+imp)
 			}
 		}
 	}
+	sort.Strings(out)
 	return out
 }
 
@@ -230,9 +229,9 @@ func TestNothingImportsCardc(t *testing.T) {
 		module + "/cmd/cardc":           {module + "/engine/cardc"},
 		module + "/engine/rules":        {module + "/engine/cardc/ir"},
 	}
-	got := cardcImportViolations(synthetic)
-	if len(got) != 1 || !strings.HasPrefix(got[0], module+"/engine/rules imports") {
-		t.Fatalf("synthetic map: want exactly the engine/rules violation, got %q", got)
+	want := []string{module + "/engine/rules -> " + module + "/engine/cardc/ir"}
+	if got := cardcImportViolations(module, synthetic); !slices.Equal(got, want) {
+		t.Fatalf("synthetic map: want %q, got %q", want, got)
 	}
 
 	pkgs := packages(t)
@@ -245,8 +244,8 @@ func TestNothingImportsCardc(t *testing.T) {
 			live[path] = append(live[path], imp)
 		}
 	}
-	for _, msg := range cardcImportViolations(live) {
-		t.Error(msg)
+	for _, msg := range cardcImportViolations(module, live) {
+		t.Errorf("%s; only engine/cardc/... and cmd/cardc may import the card compiler", msg)
 	}
 }
 

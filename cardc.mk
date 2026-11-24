@@ -8,4 +8,4 @@ mtgish-fetch:
 	@MTGISH_REF=$(MTGISH_REF) bash scripts/cardc-mtgish-fetch.sh
 
 cardc-check:
-	@$(MAKE) test-one PKG=./engine/cardc/...
+	@$(MAKE) test-targeted BASE=origin/main
