@@ -1194,6 +1194,7 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
+RepeatEachDmgBatch	untyped int	8
 RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
 RepeatMultikicker	uint8	1
@@ -1628,6 +1629,7 @@ TokAtEOTDestroy	untyped int	1
 TokAtEOTSacCombat	untyped int	2
 TokAttach	untyped int	32
 TokAttackAsk	untyped int	128
+TokAttackPlayer	untyped int	8192
 TokAttacking	untyped int	64
 TokExileAtEnd	untyped int	16
 TokImprintObj	untyped int	16384

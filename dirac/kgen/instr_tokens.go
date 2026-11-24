@@ -162,6 +162,12 @@ func (ic *instrCtx) opCreateToken() error {
 	if in.C&128 != 0 {
 		tf |= kop.TokAttackAsk
 	}
+	if in.C&tokAtkPlayerBit != 0 {
+		if in.C&(8|16|32|512|1024) != 0 {
+			return fmt.Errorf("a player-only TokenAttacking$ rider beside an AtEOT$ or attach rider")
+		}
+		tf |= kop.TokAttackPlayer
+	}
 	if in.C&32 != 0 {
 		r, err := cb.ref(in.Obj2)
 		if err != nil {

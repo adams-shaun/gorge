@@ -290,7 +290,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.repRest(q, 1)
 		s.g.repPC = s.res.pc + 1
 		s.g.repEnd = s.res.pc + 1 + uint8(in.A.N)
-		s.zoneLoopOpen(in) // zone_repeatbatch.go: ChangeZoneTable$'s one zone batch
+		s.repeatLoopOpen(in) // act_repeatdmgbatch.go: ChangeZoneTable$'s zone batch, DamageMap$'s damage batch
 	case kop.OpUnlessPaid, kop.OpIfPaid, kop.OpUnlessSwitched:
 		return s.execPay(k, in), true
 	case kop.OpDealDamageEx:
@@ -1352,8 +1352,11 @@ func (s *State) loopBackGen(k *prep) {
 	if s.repPending() && s.res.pc == s.g.repEnd && s.g.repEnd != 0 {
 		s.g.eachPl = s.repPop()
 		s.res.pc = s.g.repPC
-	} else if s.res.pc == s.g.repEnd && s.g.repEnd != 0 && s.zoneLoopHeld() {
-		s.zoneLoopClose(k) // zone_repeatbatch.go: the last player is done
+	} else if s.res.pc == s.g.repEnd && s.g.repEnd != 0 {
+		if s.zoneLoopHeld() {
+			s.zoneLoopClose(k) // zone_repeatbatch.go: the last player is done
+		}
+		s.repeatDmgBatchClose(k)
 	}
 }
 
