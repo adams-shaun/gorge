@@ -326,6 +326,11 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
 		var ok bool
+		// gorge asks each source's abilities afresh below the sacrifice: a grant
+		// the sacrificed land's loss ended (The World Tree's six lands under Rain
+		// of Filth's "Sacrifice this land") is no answer of any ask under it
+		// (mana_grantlive.go)
+		sv := g.refreshGrants(u)
 		switch {
 		case u.over:
 			g.stallOf(u) // (a core's stall ends the game at the capFull)
@@ -335,6 +340,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
@@ -576,6 +582,11 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
 		var ok bool
+		// gorge asks each source's abilities afresh below the sacrifice: a grant
+		// the sacrificed land's loss ended (The World Tree's six lands under Rain
+		// of Filth's "Sacrifice this land") is no answer of any ask under it
+		// (mana_grantlive.go)
+		sv := g.refreshGrants(u)
 		switch {
 		case u.over:
 			g.stallOf(u) // (a core's stall ends the game at the capFull)
@@ -585,6 +596,7 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
