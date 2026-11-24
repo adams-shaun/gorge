@@ -49,6 +49,10 @@ func tableUnion(t *kop.Table) bool {
 //go:noinline
 func (s *State) execUnion(k *prep, in *kop.Instr) {
 	e := &s.res.e
+	if in.Op == kop.OpOverride && in.B.N == kop.OvEnterWith && s.g.ewDone {
+		s.g.ewDone = false
+		return // applied as the union's return entered (unionEnterWith)
+	}
 	m := unionMask(in.Obj)
 	var slot, ver [kop.MaxTargets + maxXTgt]uint8
 	var code [kop.MaxTargets + maxXTgt]TCode
@@ -85,7 +89,11 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
+	ew := s.unionEnterWith(k, in)
 	hr := s.holdOpen(k)
+	if ew {
+		hr = s.holdEntries()
+	}
 	defer s.holdClose(k, hr)
 	s.g.inLoop = true
 	one := *in
@@ -100,4 +108,23 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 		s.exec(k, &one)
 	}
 	e.tgt, e.tver, s.res.bad, s.g.inLoop = saveT, saveV, saveBad, saveLoop
+	if ew {
+		// the override that follows applies to every entrant before the held
+		// enters checks fire (holdClose): a creature-in-addition entrant
+		// (Relive the Past) is a creature to a "whenever a creature enters"
+		// watcher, as gorge applies the StaticEffect ahead of the entry move
+		s.res.pc++ // the override reads the return before it, as when it runs on its own
+		s.execUnion(k, &s.prog(k)[s.res.pc])
+		s.res.pc--
+		s.g.ewDone = true // the override op that follows is spent
+	}
+}
+
+// unionEnterWith: in is a return over a union whose next instruction is the
+// OvEnterWith override of the same union (zone_assimilate.go).
+func (s *State) unionEnterWith(k *prep, in *kop.Instr) bool {
+	if in.Op != kop.OpReturn && in.Op != kop.OpReturnEx || s.g.batchLatch&batchHeld != 0 || !s.enterWithOverride(k, in) {
+		return false
+	}
+	return s.prog(k)[s.res.pc+1].Obj == in.Obj
 }
