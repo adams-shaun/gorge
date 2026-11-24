@@ -1,0 +1,19 @@
+# the chooser counter-cost pool: the 4 Standard carriers of
+# AddCounter<N/M1M1/Creature.YouCtrl> costs (lowered to Blight by kgen),
+# beside vanilla creatures and basics (dirac/countercost_pick_test.go,
+# dirac/oracle/countercosts_lockstep_test.go)
+Hatchet Bully
+Wandering Mage
+Lethal Sting
+Scarscale Ritual
+Grizzly Bears
+Ornithopter
+Llanowar Elves
+Raging Goblin
+Shock
+Opt
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -2329,6 +2329,51 @@ func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
 	return nil
 }
 
+// addCounterTarget handles AddCounter's target field (costHand's AddCounter
+// arm, past the two-field form, so parts has it and it is this cost's only
+// AddCounter part): gorge's chooser counter cost AddCounter<N/M1M1/
+// Creature.YouCtrl[/text]> (cost/token_match.go) folds into its Blight
+// cost — a -1/-1 counter on a creature you control, chosen as the cost.
+// An UnlessCost$ spells the recipient: CARDNAME/NICKNAME is the source
+// again, Card.targetedBy the parent's single target. Anything else refuses.
+func (lc *lowerCtx) addCounterTarget(c *lCost, kind string, parts []string, n int, t string) error {
+	if len(parts) == 2 {
+		// no target field: the source itself
+		c.AddCtr, c.AddCtrKnd = n, kind
+		return nil
+	}
+	if !lc.unlessParse {
+		if kind == "M1M1" && parts[2] == "Creature.YouCtrl" {
+			// the chooser counter cost: the same Blight payment, the
+			// source included (build.go's CostBlight). n < 1 refuses,
+			// mirroring Blight<0>.
+			if n < 1 {
+				return refuse("counter cost %q", t)
+			}
+			c.BlightN += n
+			return nil
+		}
+		return refuse("counter cost %q outside an unless cost", t)
+	}
+	switch {
+	case strings.EqualFold(parts[2], "CARDNAME"), strings.EqualFold(parts[2], "NICKNAME"):
+		c.AddCtrRef = lRef{Kind: rSelf}
+	case strings.EqualFold(parts[2], "Card.targetedBy"):
+		if len(lc.parentChain()) != 1 {
+			return refuse("counter cost %q: targetedBy without one parent target", t)
+		}
+		slot := lc.parentLastTarget()
+		if slot < 0 || slot > 2 {
+			return refuse("counter cost %q: targetedBy target slot %d", t, slot)
+		}
+		c.AddCtrRef = lRef{Kind: rTarget, N: slot}
+	default:
+		return refuse("counter cost %q: AddCounter target %q", t, parts[2])
+	}
+	c.AddCtr, c.AddCtrKnd = n, kind
+	return nil
+}
+
 // costHand is cost, also reading Discard<1/CARDNAME> (DiscardSelf).
 func (lc *lowerCtx) costHand(s string) (lCost, error) {
 	var c lCost
@@ -2744,29 +2789,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				if c.AddCtr != 0 || len(parts) < 2 || len(parts) > 4 {
 					return c, refuse("counter cost %q", t)
 				}
-				if len(parts) == 2 {
-					c.AddCtr, c.AddCtrKnd = n, kind
-					continue
+				if err := lc.addCounterTarget(&c, kind, parts, n, t); err != nil {
+					return c, err
 				}
-				if !lc.unlessParse {
-					return c, refuse("counter cost %q outside an unless cost", t)
-				}
-				switch {
-				case strings.EqualFold(parts[2], "CARDNAME"), strings.EqualFold(parts[2], "NICKNAME"):
-					c.AddCtrRef = lRef{Kind: rSelf}
-				case strings.EqualFold(parts[2], "Card.targetedBy"):
-					if len(lc.parentChain()) != 1 {
-						return c, refuse("counter cost %q: targetedBy without one parent target", t)
-					}
-					slot := lc.parentLastTarget()
-					if slot < 0 || slot > 2 {
-						return c, refuse("counter cost %q: targetedBy target slot %d", t, slot)
-					}
-					c.AddCtrRef = lRef{Kind: rTarget, N: slot}
-				default:
-					return c, refuse("counter cost %q: AddCounter target %q", t, parts[2])
-				}
-				c.AddCtr, c.AddCtrKnd = n, kind
 				continue
 			}
 			if c.SubCtr != 0 || c.SubAmongN != 0 {
