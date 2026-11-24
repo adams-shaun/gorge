@@ -26,6 +26,7 @@ Ardent Militia
 Arm-Mounted Anchor
 Arrogant Bloodlord
 Aura Mutation
+Aurelia, Exemplar of Justice
 Aven Initiate
 Aven Trailblazer
 Avenging Arrow
@@ -475,6 +476,7 @@ Whisper of the Dross
 Whitesun's Passage
 Wild Elephant
 Wild Ox
+Wildsear, Scouring Maw
 Winds of Qal Sisma
 Witness the End
 Xenk, Paladin Unbroken

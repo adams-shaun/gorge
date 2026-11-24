@@ -205,6 +205,7 @@ Krosan Archer
 Leech Gauntlet
 Legacy Weapon
 Leshrac's Rite
+Liesa, Forgotten Archangel
 Liliana's Scorn
 Lingering Phantom
 Llawan, Cephalid Empress
@@ -361,6 +362,7 @@ Steely Resolve
 Steppe Lynx
 Stitched Mangler
 Stolen Grain
+Stone Idol Trap
 Stonehorn Dignitary
 Stonewood Invocation
 Stormscape Master

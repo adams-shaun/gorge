@@ -63,6 +63,7 @@ Caller of the Claw
 Carrion Wall
 Cast Down
 Celestial Flare
+Celestial Sword
 Centaur Rootcaster
 Cephalid Inkshrouder
 Cephalid Shrine
@@ -392,6 +393,7 @@ Temporal Fissure
 Terrain Elemental
 Thalakos Mistfolk
 That Which Was Taken
+Thorn Elemental
 Thunderhawk Gunship
 Tidal Courier
 Tin Street Dodger

@@ -175,6 +175,7 @@ Gimli's Reckless Might
 Glacial Grasp
 Go-Shintai of Ancient Wars
 Goatnapper
+Goblin Banneret
 Goblin Outlander
 Goblin Piledriver
 Goblin Ruinblaster
@@ -460,6 +461,7 @@ Winged Portent
 Witch Hunter
 Witching Well
 Witness the Future
+Wojek Bodyguard
 Worm Harvest
 Yavimaya Ants
 You Are Already Dead

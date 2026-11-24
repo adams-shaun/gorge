@@ -125,6 +125,7 @@ Fleecemane Lion
 Fleshmad Steed
 Flycatcher Giraffid
 Font of Fertility
+Force of Rage
 Forest
 Forgestoker Dragon
 Fortified Rampart
@@ -239,8 +240,10 @@ Maze Sentinel
 Merciless Executioner
 Meteor Shower
 Mindstab Thrull
+Minion of the Wastes
 Miss Highwater
 Mistcutter Hydra
+Mogg Cannon
 Momo's Heist
 Moonbow Illusionist
 Moonglove Winnower

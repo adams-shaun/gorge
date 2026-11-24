@@ -46,6 +46,7 @@ Chimeric Egg
 Chronic Flooding
 Clarion Cathars
 Cloud Crusader
+Coiling Oracle
 Commune with Dinosaurs
 Copper Longlegs
 Copper-Leaf Angel
@@ -95,6 +96,7 @@ First Sliver's Chosen
 Flame-Blessed Bolt
 Flaming Fist Officer
 Fleecemane Lion
+Flycatcher Giraffid
 Font of Fertility
 Forest
 Fortified Rampart
@@ -190,6 +192,7 @@ Massive Might
 Merciless Executioner
 Mindstab Thrull
 Miss Highwater
+Mogg Cannon
 Momo's Heist
 Moonbow Illusionist
 Moonglove Winnower
@@ -224,6 +227,7 @@ Peregrine Mask
 Phantom Tiger
 Phyrexia's Core
 Phyrexian Digester
+Pirated Copy
 Pitchstone Wall
 Pitiless Horde
 Plague Stinger

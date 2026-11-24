@@ -92,6 +92,7 @@ Demonic Bargain
 Demonic Lore
 Demotion
 Desecration Plague
+Dire Wolves
 Disperse
 Divine Light
 Doom's Servo-Guards
@@ -252,6 +253,7 @@ Myr Galvanizer
 Mystic Crusader
 Naban, Dean of Iteration
 Naga Eternal
+Nameless Race
 Nantuko Shaman
 Natural Selection
 Nature's Spiral
