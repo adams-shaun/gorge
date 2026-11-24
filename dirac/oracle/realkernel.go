@@ -3,12 +3,14 @@ package oracle
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -129,9 +131,49 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 			}
 			r.kcfg.SideN[s] = uint8(copy(r.kcfg.Side[s][:], sides[s]))
 		}
-		r.s.InitN(tbl, decks, uint8(n), seed, r.kcfg)
+		st, err := kernelStart(m.Start)
+		if err != nil {
+			return nil, err
+		}
+		r.s.InitNStart(tbl, decks, uint8(n), seed, r.kcfg, st)
 		return r, nil
 	}
+}
+
+// kernelStart is the kernel's scripted start for the matchup's gorge start
+// (Matchup.Start): the same deck indices, so card i of seat p is the same
+// instance on both sides (Matchup.InstanceCard). A nil spec is a nil start,
+// the ordinary genesis. gorge lists an attached Aura in Battlefield as well
+// as in Attach; the kernel enters it only through Attach, after every plain
+// permanent, so it is dropped from the kernel's Battlefield. A counter kind
+// the kernel does not keep is refused, naming it.
+func kernelStart(sp *rules.StartSpec) (*dirac.Start, error) {
+	if sp == nil {
+		return nil, nil
+	}
+	st := &dirac.Start{Seats: make([]dirac.StartSeat, len(sp.Seats))}
+	for p := range sp.Seats {
+		g := &sp.Seats[p]
+		k := &st.Seats[p]
+		k.Hand, k.Graveyard, k.Exile, k.Library = g.Hand, g.Graveyard, g.Exile, g.Library
+		k.Tapped, k.BackFace, k.Life = g.Tapped, g.BackFace, g.Life
+		for _, i := range g.Battlefield {
+			if !slices.ContainsFunc(g.Attach, func(a rules.StartAttach) bool { return a.Card == i }) {
+				k.Battlefield = append(k.Battlefield, i)
+			}
+		}
+		for _, c := range g.Counters {
+			kind, ok := kernelCounterKind(c.Kind)
+			if !ok {
+				return nil, fmt.Errorf("realkernel: start p%d: counter kind %q is not one the kernel keeps", p, c.Kind)
+			}
+			k.Counters = append(k.Counters, dirac.StartCounter{Card: c.Card, Kind: kind, N: c.N})
+		}
+		for _, a := range g.Attach {
+			k.Attach = append(k.Attach, dirac.StartAttach{Card: a.Card, HostSeat: a.ToSeat, HostCard: a.To})
+		}
+	}
+	return st, nil
 }
 
 // surface is the kernel surface cfg's GorgeAutopaySurface selects.
