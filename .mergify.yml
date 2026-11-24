@@ -25,18 +25,24 @@ queue_rules:
 merge_queue:
   max_parallel_checks: 2
 
-# A fix for a red main jumps the queue: push it on a hotfix/* branch (or label it `hotfix`) and it is batched first,
-# interrupting a running batch. A hotfix/* branch's own checks also run on every box runner, not only the 4 gorge-pr ones
-# (ci.yml): a label is not in the opened event's payload, so the branch name routes them.
+# A fix for a red main jumps the queue: push it on a hotfix/* branch and it is batched first. Only the `hotfix` label
+# also interrupts a running batch (11-24: with every hotfix/* branch interrupting, auto-revert drafts and script fixes
+# included, 17 batches were cancelled against 10 merged in four hours; retro-oracle-1124). Label a PR `hotfix` only when
+# main is red and the running batch cannot pass. A hotfix/* branch's own checks also run on every box runner, not only the
+# 4 gorge-pr ones (ci.yml): a label is not in the opened event's payload, so the branch name routes them.
 # (https://docs.mergify.com/merge-queue/priority/).
 priority_rules:
-  - name: hotfix first
+  - name: hotfix interrupts
     conditions:
-      - or:
-          - label=hotfix
-          - head~=^hotfix/
+      - label=hotfix
     priority: high
     allow_checks_interruption: true
+  - name: hotfix branch first
+    conditions:
+      - head~=^hotfix/
+      - -label=hotfix
+    priority: high
+    allow_checks_interruption: false
   # Evidence-loop PRs (evl/*) go into the next batch ahead of ordinary PRs (operator 11-18: evidence is P0), but never
   # cancel a running batch: on 11-18 eight evl PRs waited behind red batches, were dequeued or conflicted, and none merged.
   # Medium is 2000 (the default), high 3000; 2500 sits between them.
