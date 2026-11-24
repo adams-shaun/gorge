@@ -2,6 +2,19 @@ package effects
 
 import "github.com/adams-shaun/gorge/engine/state"
 
+// wordMatchesBeforeSwitch answers the word kinds wordMatches dispatches
+// before its switch: the colour-count words and the TopGraveyard* words.
+// ok is false for every other kind.
+func wordMatchesBeforeSwitch(kind wordKind, g *state.Game, o *state.Object, sc SpecContext) (match, ok bool) {
+	switch kind {
+	case wordMultiColor, wordMonoColor, wordColorless:
+		return wordColorCountMatches(kind, o, sc), true
+	case wordTopGraveyard, wordTopGraveyard2, wordTopGraveyardCreature:
+		return topGraveyardWordMatches(kind, g, o, &sc), true
+	}
+	return false, false
+}
+
 // topGraveyardWordMatches is the reader of Forge's TopGraveyard,
 // TopGraveyard2 and TopGraveyardCreature words. CR 404.1 puts a card on top
 // of its owner's graveyard and CR 404.2 keeps the graveyard a single ordered

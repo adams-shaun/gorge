@@ -515,12 +515,6 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case wordPredicateWordBottomLibrary:
 		return wordBottomLibrary, ""
-	case wordPredicateWordTopGraveyard:
-		return wordTopGraveyard, ""
-	case wordPredicateWordTopGraveyard2:
-		return wordTopGraveyard2, ""
-	case wordPredicateWordTopGraveyardCreature:
-		return wordTopGraveyardCreature, ""
 	case wordPredicateWordFaceDown:
 		return wordFaceDown, ""
 	case wordPredicateWordFaceUp:
@@ -764,8 +758,8 @@ func targetedPredicateWord(p string) (wordKind, bool) {
 }
 
 func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc SpecContext) bool {
-	if kind == wordMultiColor || kind == wordMonoColor || kind == wordColorless {
-		return wordColorCountMatches(kind, o, sc)
+	if m, ok := wordMatchesBeforeSwitch(kind, g, o, sc); ok {
+		return m
 	}
 	source := sc.Source
 	switch kind {
@@ -920,8 +914,6 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		}
 		ids := g.Zone(state.ZLibrary, o.Owner)
 		return len(ids) > 0 && ids[len(ids)-1] == o.ID
-	case wordTopGraveyard, wordTopGraveyard2, wordTopGraveyardCreature:
-		return topGraveyardWordMatches(kind, g, o, &sc)
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
 		// kind on it. Test the COUNT, not the slice length -- state's
