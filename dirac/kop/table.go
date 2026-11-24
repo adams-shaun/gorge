@@ -457,6 +457,11 @@ type CardDef struct {
 	// with its controller's choice of a +1/+1 counter or haste (the
 	// as-enters ask, dirac/kw_riot.go).
 	Riot bool
+	// Enlist is printed Enlist (CR 702.154; kop.KwEnlist): as it attacks,
+	// its controller may tap a nonattacking creature they control without
+	// summoning sickness, and it gets that creature's power until end of
+	// turn (the declare-attackers election, dirac/kw_enlist.go).
+	Enlist bool
 	// Flanking is a printed bare K:Flanking (CR 702.25a; gorge's expansion
 	// trigger lowers beside it): the withoutFlanking filter word reads it
 	// (kop.W7WithoutFlanking, dirac/filter_flanking.go).

@@ -531,8 +531,8 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	h = hmix(h, uint64(s.npend)|uint64(s.orderLeft)<<8|uint64(s.orderN)<<16|uint64(s.orderPlace)<<24|
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)
 	h = hmixSlots(h, s.legDie)
-	if s.ctl == ctlBand {
-		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go)
+	if s.ctl == ctlBand || s.ctl == ctlEnlist {
+		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go), the enlisting attacker (kw_enlist.go)
 	}
 	if s.ctl == ctlReflectPick {
 		h = hmix(h, uint64(s.g.reflMask)|uint64(s.g.reflP)<<8) // the colours asked and the payer (mana_reflectpickask.go)

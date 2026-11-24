@@ -177,6 +177,7 @@ var ChooseKinds = []string{
 	"paylife",          // gorge's "as it enters, pay any amount of life" ask (cast_etbchoice.go etbPayLifeOptions): over the entering permanent, the amount paid is the mode (dirac ChGenPayLife; repl_paylife.go)
 	// gorge repeatEachElectionDecision's yes / no (ResumeKind repeat_each_optional): the repeated player's own offer, asked of that seat (dirac ChGenOptInSeat), never the generic yes / no
 	"yes_seat", "no_seat",
+	"enlist", // CR 702.154a: gorge askNextEnlist's election (option 0 declines; a creature to enlist names its Obj; kw_enlist.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

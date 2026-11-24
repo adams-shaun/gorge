@@ -1257,18 +1257,24 @@ func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
 	return 0, false
 }
 
-// chooseGen is generatedChoose plus the band declaration (CR 702.22c): gorge
-// askNextBand's KChoose of kind "band", whose decline (mode 0) names no object
-// and whose candidate names itself.
+// chooseGen is generatedChoose plus the band declaration (CR 702.22c) and the
+// enlist election (CR 702.154a): gorge askNextBand's KChoose of kind "band"
+// and askNextEnlist's of kind "enlist", whose decline (mode 0) names no
+// object and whose candidate names itself.
 func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
-	if r.D.Sub != dirac.ChBand {
+	kind := "band"
+	switch r.D.Sub {
+	case dirac.ChBand:
+	case dirac.ChEnlist:
+		kind = "enlist"
+	default:
 		return r.generatedChoose(a)
 	}
 	src := Ref(a.Source())
 	if a.Mode() == 0 {
 		src = RefNone
 	}
-	code, _ := ChooseCode("band")
+	code, _ := ChooseCode(kind)
 	return Pack(ActChoose+CanonKind(code), src, RefNone, 0), true
 }
 

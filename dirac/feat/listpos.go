@@ -213,7 +213,7 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			return 1 - uint32(mode&1) // yes, then no
 		case dirac.ChGenDivide, dirac.ChCastDivide:
 			return uint32(e.st0.FeatDivideIndex(dirac.TCode(src))) // gorge lists the targets in target order
-		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand:
+		case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist:
 			return uint32(mode) // ChAltAdd: the payable parts first, as gorge lists them
 		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 			return 1 - uint32(mode&1) // pay / top / yes first

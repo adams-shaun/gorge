@@ -153,6 +153,7 @@ const (
 	ChDrawUpto                  // source = a top library card counted toward the cards drawn; AkDone ends the count (gorge's "draw_upto" KChoose, act_drawupto.go)
 	ChBand                      // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
 	ChAsUnblocked               // source = the attacking creature; mode 1 = assign its combat damage as though not blocked / 0 = assign normally (gorge askNextCombatAsk's "asunblocked" KChoose; combat_asgngrant.go)
+	ChEnlist                    // mode 0 = decline (no source); mode 1+i, source = the i-th creature the asked attacker may enlist (gorge's CR 702.154a "enlist" KChoose; kw_enlist.go)
 )
 
 // ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",
