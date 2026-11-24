@@ -14,7 +14,9 @@ Commander Eesha	01564814b0cbbf9b	59	0/0		0/0
 Contemplation	7d7e6b43827e5c7a	38	1/1		1/1	
 Daring Escape	f3c7436f56ec6a20	28	0/0		2/2	
 Disciple of the Sun	edf7978e02d89e80	24	1/1		1/1	
+Dreadful as the Storm	cf818907e4514067	4	0/0		1/2	ix:resp
 Drivnod, Carnage Dominus	13af746f76e2a721	25	1/1		1/1	
+Duskmantle, House of Shadow	2fe188e99a89263e	18	2/2		0/1	ix:resp
 Ensoul Artifact	a7c3608e23898081	48	0/0		2/2	
 Ferropede	2834aa0648c6c40c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Flowstone Thopter	e93b086f33c5dcdc	35	1/1		1/1	
@@ -41,6 +43,7 @@ Mystic Familiar	4a1d505ecc9b4a20	45	0/0		0/0
 Noble Templar	4cc70fc4b0523fc9	3	1/1		0/1	ix:resp
 Ominous Sphinx	1215ee72e702ece6	20	1/1		0/1	ix:resp
 Omnath, Locus of Rage	03d35f14f7085f46	25	2/2		0/1	ix:resp
+Oran-Rief, the Vastwood	6e00461ea2d050f9	24	2/2		1/1	
 Order of the Golden Cricket	d13e06eddb1e606a	28	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Order of the White Shield	ccbe80041e9200f4	53	2/2		1/1	
 Origin of Iron Man	f5d6076b51ff611c	8	0/0		0/0	
@@ -62,8 +65,11 @@ Spectral Flight	8079bc521804a8a3	3	0/0		1/2	ix:resp
 Starstorm	1a58b16940bc98c6	4	1/1		3/4	f0/s/x0
 Stature, Young Avenger	b3a6ad2b49327e7d	27	1/1		1/1	
 Stromkirk Patrol	e4b052fde3588968	29	1/1		1/1	
+Tainted Field	cd02e275846300df	14	2/2		0/1	ix:resp
 Tenacious Dead	f210fe79f1bd0116	61	1/1		0/1	ix:resp
+The Dross Pits	f84a5215fa4c4d1c	13	2/2		0/1	ix:resp
 Toolcraft Exemplar	807396643a41de5c	59	1/1		1/1	
+Toothy, Imaginary Friend	45bae41c2254fb93	6	3/3		0/1	ix:resp
 Traitorous Greed	ed4ba833342e09dd	21	0/0		1/2	ix:resp
 Typhoid Rats	63a29ae645939b9c	27	0/0		0/0	
 Valiant Changeling	5fa7036bc38c9f75	49	0/0		0/0	

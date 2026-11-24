@@ -204,6 +204,17 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 	return out
 }
 
+// lifeReplIsDamageOnly reports a replacement that reads IsDamage$ True: it
+// modifies damage dealt to the player, not a bare life change.
+func lifeReplIsDamageOnly(r *cards.Repl) bool {
+	return strings.EqualFold(r.ParamStr(cards.PKIsDamage), "True")
+}
+
+// lifeReplPrevents reports a replacement that reads Prevent$ True.
+func lifeReplPrevents(r *cards.Repl) bool {
+	return strings.EqualFold(r.ParamStr(cards.PKPrevent), "True")
+}
+
 func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
 		if candidate.key != "" || m.key != "" {
@@ -224,7 +235,7 @@ func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 // a candidate, so it never occupies an order choice.
 func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *cards.Repl, p state.PlayerID, loss int32) bool {
 	if r.Event == "GainLife" {
-		if strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") {
+		if lifeReplPrevents(r) {
 			return true
 		}
 		if !e.replacementCondition(source, r) || r.ParamStr(cards.PKValidSource) != "" {
@@ -235,7 +246,7 @@ func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *
 		}
 		return r.With != nil && (r.With.API == "LoseLife" || r.With.API == "Draw")
 	}
-	if strings.EqualFold(r.ParamStr(cards.PKIsDamage), "True") && ev.Kind != events.Damage {
+	if lifeReplIsDamageOnly(r) && ev.Kind != events.Damage {
 		return false
 	}
 	if strings.EqualFold(r.ParamStr(cards.PKPlayerTurn), "True") && e.G.Active != e.controllerOf(source) {
@@ -267,10 +278,14 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	if ev.Kind == events.LifeChange && ev.Amount > 0 {
 		name = "LifeGained"
 	}
+	if lifeFloorsIdentical(cands, func(m replMatch) (string, bool) { return e.replaceCountOp(m.id, m.repl, name) }) {
+		return true
+	}
 	kind := ""
 	for _, m := range cands {
 		op, ok := e.replaceCountOp(m.id, m.repl, name)
-		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op)
+		code, _ := cards.SplitCountOp(op)
+		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op) && lifeReplIsDamageOnly(m.repl)
 		if m.repl.ParamStr(cards.PKResult) != "" && !floor {
 			return false
 		}
@@ -278,11 +293,11 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		switch {
 		case floor:
 			k = "floor"
-		case m.repl.Event == "GainLife" && strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True"):
+		case m.repl.Event == "GainLife" && lifeReplPrevents(m.repl):
 			k = "prevent"
-		case ok && op == "/Twice":
+		case ok && code == cards.CountOpTwice:
 			k = "twice"
-		case ok && strings.HasPrefix(op, "/Plus."):
+		case ok && code == cards.CountOpPlus:
 			k = "plus"
 		default:
 			return false
@@ -293,6 +308,34 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		kind = k
 	}
 	return true
+}
+
+// lifeFloorsIdentical reports whether every candidate is the same
+// Result$-gated LifeReduced floor (two Worships: same ValidPlayer$ gate, same
+// Result$ rewrite, same ReplaceCount body). The first one applied clamps the
+// loss to the floor, so the rest no longer see a loss below it (CR 616.1e):
+// every order yields the same event and the affected player has no choice
+// worth asking.
+func lifeFloorsIdentical(cands []replMatch, countOp func(replMatch) (string, bool)) bool {
+	var res, who, op string
+	for i, m := range cands {
+		r := m.repl
+		if r.EventKind() != cards.ReplLifeReduced || r.ParamStr(cards.PKResult) == "" {
+			return false
+		}
+		o, ok := countOp(m)
+		if !ok {
+			return false
+		}
+		if i == 0 {
+			res, who, op = r.ParamStr(cards.PKResult), r.ParamStr(cards.PKValidPlayer), o
+			continue
+		}
+		if r.ParamStr(cards.PKResult) != res || r.ParamStr(cards.PKValidPlayer) != who || o != op {
+			return false
+		}
+	}
+	return len(cands) > 0
 }
 
 // isLifeFloor reports a damage floor's gate and body: Result$ LT<n> over a
@@ -309,7 +352,7 @@ func isLifeFloor(result, op string) bool {
 func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	r := m.repl
 	if r.Event == "GainLife" {
-		if strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") {
+		if lifeReplPrevents(r) {
 			e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"})
 			return ev, true
 		}

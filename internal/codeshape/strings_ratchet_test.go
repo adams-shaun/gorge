@@ -46,6 +46,7 @@ var stringsRatchetAllowlist = map[string]string{
 	"engine/rules/cost/parse.go":   "the cost-text parser: the boundary every compiled cost is built at",
 	"engine/rules/cost/format.go":  "FormatCost: the cost rendering labels and the wire carry",
 	"engine/cards/parse.go":        "the card-script parser (load-time boundary)",
+	"engine/cards/digreveal.go":    "reads a card's Oracle text and Dig params (card-text boundary); once per Dig resolution or kgen lowering, never per walk",
 	"engine/cards/cache_codec.go":  "the IR cache's byte format",
 	"engine/cards/image_build.go":  "the compiled catalog image's string table",
 	"engine/cards/registry.go":     "corpus loading: card files, names and the cache",

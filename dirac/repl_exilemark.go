@@ -470,6 +470,14 @@ func (s *State) exileOrderAsk(k *prep, die, gy, pwz, aur *slotMask, askAfter *bo
 	if h := &s.cold.parked[0]; !pre.any() && !(h.kind == parkSBA && h.fl&parkChain != 0) {
 		s.sbaChainEnd(k)
 		s.ceaseTokensGen()
+	} else if s.ceaseTokensAllowed(k) {
+		// gorge's ceaseDeadTokens runs in every pass, the pass that keeps the
+		// chain included: it skips only the chain's casualties (the mask
+		// ceaseTokensGen reads), so a token that left the battlefield outside
+		// the chain -- a Map sacrificed to its own ability, exiled by Rest in
+		// Peace before a creature's death poses the next order ask -- ceases
+		// in this pass, before the ask (CR 704.3, 704.5d)
+		s.ceaseTokensGen()
 	}
 	s.ctl = ctlExileOrder
 	return true

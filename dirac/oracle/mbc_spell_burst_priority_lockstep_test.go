@@ -42,4 +42,8 @@ func TestMBCSpellBurstReprosLockstep(t *testing.T) {
 	// Decision 716 of tail-26-c000 (seed 934284, pair 168): gorge offers
 	// cast(Spell Burst,-,0) next to the buyback cast; the kernel only the latter.
 	stdReproNamed(t, "spell_burst_plain_cast_missing")
+	// Decision 794 of tail-26-c000 (seed 759452, pair 58): Jewel-Eyed Cobra
+	// (mana value 3) is the only spell on the stack; gorge offers cast(Spell
+	// Burst,-,0) and the kernel only pass.
+	stdReproNamed(t, "spell_burst_x_target_offer")
 }

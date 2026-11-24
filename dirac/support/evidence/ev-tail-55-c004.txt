@@ -1,129 +1,221 @@
 A-Hagra Constrictor
 A-Young Red Dragon
+Aarakocra Sneak
 Abnormal Endurance
 Abrupt Decay
+Abzan Beastmaster
+Abzan Kin-Guard
+Acorn Catapult
+Adarkar Sentinel
+Agent of Acquisitions
 All That Glitters
 Ancient Brontodon
+Anvilwrought Raptor
+Arcbound Stinger
 Archangel Avacyn
+Arctic Wolves
+Argent Mutation
 Assassinate
+Aurora Griffin
 Avatar of Slaughter
+Azure Fleet Admiral
 Behemoth Sledge
 Benevolent Ancestor
+Bile Urchin
 Bloodpyre Elemental
 Bone Picker
+Boon of Boseiju
+Boros Garrison
+Boros Signet
 Bosh, Iron Golem
+Bosk Banneret
 Braids, Cabal Minion
 Brainbite
 Bump in the Night
 Burning Hands
+Capsize
+Cascade Bluffs
 Cavalier of Night
 Cavern Crawler
+Champion of Arashin
+Chariot of Victory
+Chilling Trap
+Circle of Flame
 Coal Stoker
 Coerced Confession
+Creeping Corrosion
 Defiant Salvager
+Demonmail Hauberk
 Desperate Castaways
 Devout Lightcaster
 Diplomacy of the Wastes
 Djinni Windseer
 Dramatic Rescue
+Duskmantle Operative
 Eidolon of the Great Revel
 Eiganjo Exemplar
 Eldritch Immunity
 Ellyn Harbreeze, Busybody
+Enchanted Prairie
 Endless Ranks of the Dead
+Enlightened Maniac
 Epiphany Storm
 Eternal Thirst
+Ethereal Investigator
+Ethrimik, Imagined Fiend
 Evolutionary Leap
 Extortion
 Faceless Butcher
 Faerie Conclave
+Farid, Enterprising Salvager
 Fearsome Awakening
+Feed the Clan
+Feral Maaka
+Ferocity
+Fervent Paincaster
 Fire Ants
 Fire Nation Soldier
 Flame Sweep
 Fleshmad Steed
+Font of Ire
 Forced Landing
 Forest
+Forgotten Harvest
 Fracture
 Geomancer's Gambit
+Glory Bearers
+Gnaw to the Bone
+Goblin Boom Keg
 Goldmeadow Dodger
+Granite Grip
 Gust of Wind
 Hag Hedge-Mage
 Hall of Triumph
 Hand of Death
 Hangar Scrounger
 Hapato's Might
+Happy Hogan, Bodyguard
 Harrowing Journey
+Hidden Footblade
 Highborn Ghoul
+Humble Naturalist
 Hunger of the Nim
+Ifnir Deadlands
+Immersturm Skullcairn
 Invasion of Kaldheim
+Ioreth of the Healing House
 Iroh, Firebending Instructor
 Island
+Jiang Yanggu
 Katilda, Dawnhart Prime
 Kiku's Shadow
 Kill Shot
 Kitchen
 Kolaghan Monument
+Laboratory Brute
 Lava Storm
 Living Terrain
 Looming Shade
 Lucky Offering
+Mage-Ring Network
 Make a Wish
 Mausoleum Harpy
 Merfolk Trickster
 Metallic Mimic
 Mindmoil
 Mizzium Mortars
+Momentum
+Monk Realist
 Mons's Goblin Raiders
 Mountain
 Multani's Harmony
+Mwonvuli Acid-Moss
+Nacatl Savage
+Natural Selection
+Night Market Guard
 Nightshade Assassin
+Nomad Stadium
 Nyxborn Colossus
+Obsidian Giant
 Octoprophet
 Of One Mind
 Opaline Unicorn
+Override
+Overwhelming Stampede
 Owlbear
+Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
 Plains
+Psychic Symbiont
 Radioactive Man
+Raging Gorilla
 Razor Hippogriff
 Reckless Cohort
 Regress
+Reinforcements
 Restoration Angel
 Rona's Vortex
+Rough
 Sadistic Slash
+Scale of Chiss-Goria
 Scion of Calamity
 Seven-Tail Mentor
+Shell Skulkin
 Skirsdag Supplicant
 Sky-Eel School
+Skycloud Egg
 Slith Bloodletter
+Smash to Dust
 Soul Channeling
 Soul Kiss
+Sparksmith
+Sparring Construct
 Spiteful Sliver
+Staff of the Death Magus
 Staunch Throneguard
+Stern Scolding
 Subtle Strike
+Sunken Hope
 Swamp
+Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talonrend
+Tattered Drake
+Telekinetic Sliver
 Thalakos Sentry
 The Surgical Bay
 Thopter Engineer
+Thought Monitor
+Thought Reflection
+Time of Ice
 Torch Fiend
 Touch of Invisibility
 Trapmaker's Snare
 Tyrant's Scorn
+Ultimate Price
 Urborg Stalker
 Valkyrie Harbinger
 Venerated Rotpriest
 Vengeant Vampire
 Veteran's Sidearm
+Vineweft
+Viridian Corrupter
 Vizier of the Scorpion
 Vodalian Merchant
+Vodalian Zombie
 Vulshok Berserker
+Wall of Bone
+Wave Goodbye
 Whip Silk
 Whisper Squad
 Whitewater Naiads
+Wild Might
 Wind Spirit
 Windscouter
+Worship
+Yawgmoth's Agenda
+Your Temple Is Under Attack
+Zephyr Sentinel
+Zephyr Sprite
 Zombie Cannibal

@@ -12,7 +12,63 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) enterWithOverride(k *prep, in *kop.Instr) bool {
 	prog := s.prog(k)
 	pc := s.res.pc + 1
-	return int(pc) < len(prog) && &prog[s.res.pc] == in && prog[pc].Op == kop.OpOverride && prog[pc].B.N == kop.OvEnterWith
+	if int(pc) >= len(prog) || prog[pc].Op != kop.OpOverride || prog[pc].B.N != kop.OvEnterWith {
+		return false
+	}
+	return &prog[s.res.pc] == in || s.unionCopy(k, in)
+}
+
+// unionCopy: in is execUnion's copy of the current instruction, its subject
+// swapped for one target of the union (Relive the Past's three target slots).
+func (s *State) unionCopy(k *prep, in *kop.Instr) bool {
+	prog := s.prog(k)
+	if int(s.res.pc) >= len(prog) || &prog[s.res.pc] == in {
+		return false
+	}
+	cur := prog[s.res.pc]
+	cur.Obj = in.Obj
+	return cur == *in
+}
+
+// enterAssimilatedHeld is enterAssimilated inside an open entry frame (a union
+// return's, execUnion): the override still applies as the object enters, and
+// the enters checks wait for the rest of the batch (CR 603.6a; holdClose).
+func (s *State) enterAssimilatedHeld(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
+	s.g.ewPend = true
+	sl := s.enterMoved(k, o, ctrl, false, from)
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl)
+	}
+	s.g.ewDone++ // the override op that follows is spent
+	return sl
+}
+
+// enterWithArm arms in's OvEnterWith override for the entrant the move below
+// is about to make, when no enters-check-first path (enterAssimilated) took
+// it: a return over a target union (Relive the Past) holds every entrant's
+// enters checks until the last is back, and the override's own op runs after
+// that, so a watcher's power limit (Marketwatch Phantom) read the printed
+// 2/1 of a creature that enters as a 5/5 Elemental (CR 614.12).
+func (s *State) enterWithArm(k *prep, in *kop.Instr) bool {
+	if s.enterWithOverride(k, in) {
+		s.g.ewPend = true
+		return true
+	}
+	return false
+}
+
+// enterWithSettle applies an armed override enterGen left pending and marks the
+// override op that follows spent (once per entrant).
+func (s *State) enterWithSettle(k *prep, sl Slot, armed bool) {
+	if !armed {
+		return
+	}
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl)
+	}
+	s.g.ewDone++
 }
 
 // enterAssimilated enters o under ctrl with the override, then runs its enters check.
@@ -31,7 +87,7 @@ func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o)
 	}
-	s.g.ewDone = true // the override op that follows is spent
+	s.g.ewDone++ // the override op that follows is spent
 	s.fireEntries(k, &eb)
 	return sl
 }

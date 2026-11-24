@@ -5,8 +5,11 @@ Angelic Gift
 Antagonize
 Armor Sliver
 Ashcoat Bear
+Attended Socialite
 Barbed Field
 Blessed Sanctuary
+Blood Mist
+Bloodforged Battle-Axe
 Bring Low
 Brotherhood Outcast
 Butterbur, Bree Innkeeper
@@ -15,10 +18,18 @@ Cephalid Retainer
 Ceta Sanctuary
 Chandra's Pyreling
 Charging Monstrosaur
+Coercion
+Collateral Damage
 Crack the Earth
 Dauntless Cathar
 Dawn Gryff
 Daybreak Chaplain
+Death Frenzy
+Depala, Pilot Exemplar
+Dread Drone
+Dryad Sophisticate
+Energy Flux
+Eternal Warrior
 Evolutionary Escalation
 Faceless Devourer
 Faerie Invaders
@@ -32,7 +43,9 @@ Ghirapur Guide
 Ghost Tactician
 Goblin General
 Goblin War Party
+Grounded
 Heirs of Stromkirk
+Horned Sliver
 Indomitable Archangel
 Isamaru, Hound of Konda
 Island
@@ -41,6 +54,7 @@ Kitesail Scout
 Kris Mage
 Loxodon Lifechanter
 Mammoth Growth
+Mana Flare
 Marble Diamond
 Marked by Honor
 Massive Raid
@@ -48,28 +62,42 @@ Matsu-Tribe Sniper
 Merfolk Sovereign
 Meria's Outrider
 Mesa Lynx
+Metropolis Sprite
 Minion of the Mighty
 Minister of Pain
+Mogg Fanatic
 Mountain
 Mountain Bandit
+Mudbutton Torchrunner
+Multiversal Recruitment
+Necrobite
 Night
 Niveous Wisps
 Nurturing Licid
 Nylea, God of the Hunt
 Orzhov Basilica
+Pact of the Titan
 Panic Spellbomb
+Photon, Mighty Marvel
 Plains
+Power of Persuasion
+Radjan Spirit
 Rampaging Ferocidon
 Reinforced Ronin
 Reito Lantern
+Rosethorn Halberd
 Rottenheart Ghoul
+Sagittars' Volley
+Salvage Slasher
 Samite Pilgrim
+Scent of Ivy
 Scepter of Celebration
 Seal of Doom
 Searchlight Companion
 Senate Guildmage
 Separatist Voidmage
 Shamanic Revelation
+Shard of Broken Glass
 Sheltering Light
 Silver-Inlaid Dagger
 Silversmote Ghoul
@@ -79,7 +107,10 @@ Skywing Aven
 Slaughter Pact
 Smoke Bomb
 Staunch Defenders
+Staunch-Hearted Warrior
+Steam Frigate
 Stone Retrieval Unit
+Storm Fleet Swashbuckler
 Strength of Night
 Striking Sliver
 Sturmgeist
@@ -90,11 +121,19 @@ Tel-Jilad Archers
 Thornling
 Thunder Strike
 Timberwatch Elf
+Torch Slinger
 Tormod's Crypt
 Tracker's Instincts
 Trustworthy Scout
 Twincast
+Twinscroll Shaman
+Tymaret, Chosen from Death
+Uncle Istvan
 Unexpected Fangs
 Untamed Might
 Warfire Javelineer
+Warren Soultrader
+Weaponize the Monsters
+Wild Colos
+Wild Onslaught
 Zhao, the Seething Flame

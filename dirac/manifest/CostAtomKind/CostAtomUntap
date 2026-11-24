@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomUntap
+value: next
+status: active
+doc: CostAtomUntap: {Q}: untap the source, or remove a stun counter instead (CR 122.1d). Dirac: untapCost (cost_untap.go).

@@ -1,12 +1,17 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Abyssal Nocturnus	6cbc69550b1a92db	126	1/1		1/1	
 Aether Rift	c14bd303c61d0675	9	1/1		0/1	ix:resp
+Armored Galleon	15e39ea3405550f1	4	0/0		0/0	
+Arwen, Weaver of Hope	f89c46bd0c32d3c3	4	0/0		0/0	
 Assault	1a8f4d4b1841016d	8	0/0		1/3	f1/s,ix:resp
+Azusa, Lost but Seeking	3a59834fd2aebde1	4	0/0		0/0	
 Badlands	b58806a2e68ea63e	46	2/2		0/1	ix:resp
 Bartolomé del Presidio	e8926fab9272cc2c	170	1/1		1/1	
 Basilica Screecher	08a5006072d9b418	7	1/1		0/1	ix:resp
+Beast Walkers	2c748dc621e02a29	6	1/1		0/1	ix:resp
 Bessie, the Doctor's Roadster	d17f93af99a0d3aa	162	2/2		1/1	
 Black Dragon Gate	2a86cd89929ed05f	60	1/1		0/1	ix:resp
+Bladeback Sliver	c3651c1c9ab4b786	8	0/0		0/0	
 Blazing Sunsteel	03058141017e7e30	10	2/2		0/1	ix:resp
 Blitz Leech	ed9f801d220c73c6	120	1/1		1/1	
 Boon-Bringer Valkyrie	d97303014da2fd7d	11	1/1		0/1	ix:resp
@@ -16,12 +21,14 @@ Burst of Energy	0f4dfc1e262134bd	4	0/0		2/2
 Cackling Counterpart	0f5b99cd6f55b10c	6	0/0		3/4	ix:resp
 Chitinous Cloak	9345fe3ccf59acf7	15	1/1		0/1	ix:resp
 Circle of Affliction	6c8ae75c5762cc51	138	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Citanul Stalwart	68569c14e1789f45	4	1/1		1/1	
 Clavileño, First of the Blessed	aba3afbaf8bdef5e	90	1/1		1/1	
 Cliff Threader	81599da77fab5d84	4	0/0		0/0	
 Collective Voyage	5f3c134fb3d935e5	4	0/0		1/2	ix:resp
 Consul's Shieldguard	a799ff2a81dffb75	4	2/2		0/1	ix:resp
 Corrupt Eunuchs	d92552f263f0396a	5	1/1		0/1	ix:resp
 Cyclical Evolution	053693864e88840b	4	0/0		3/4	ix:resp
+Daring Piracy	6f980b0595670bf3	3	1/1		0/1	ix:resp
 Dark Revenant	2bf447023dcbdac6	196	1/1		1/1	
 Deadly Rollick	25336c38c1bd3558	10	0/0		2/2	
 Demotion	a1a8fda2aa330d81	12	0/0		1/2	ix:resp
@@ -30,6 +37,7 @@ Divine Light	5c9f4b7bd2f35500	8	0/0		1/2	ix:resp
 Draining Whelk	b2967a6be0f91b96	6	1/1		0/1	ix:resp
 Dueling Rapier	10cc89f0aeb51c98	6	2/2		1/1	
 Dusk Imp	20577b864b52f049	5	0/0		0/0	
+Dwarven Miner	c992a50881d3ba4b	5	1/1		0/1	ix:resp
 Earth-Cult Elemental	0f3af086779ecd81	8	1/1		0/1	ix:resp
 Emancipation Angel	d725e87ed6a560c2	138	1/1		1/1	
 Excommunicate	42a82175c459ec4b	18	0/0		2/2	
@@ -39,6 +47,7 @@ Falcon, Joaquin Torres	dccb0a89acb1ebe6	10	1/1		1/1
 Final Revels	e9ce253dcfdc0c84	68	0/0		2/2	
 Firescreamer	3ceb19201abaa706	120	1/1		1/1	
 Flowstone Surge	b68d7076a3a7689f	12	0/0		0/0	
+Flowstone Wall	10f21f69742e7f14	7	1/1		1/1	
 Flusterstorm	2fc3966fda40e65e	4	1/1		2/2	
 Fodder Tosser	77ff1d014531d1b0	102	1/1		1/1	
 Fry	64cb8bdb3c573767	6	0/0		1/2	ix:resp
@@ -46,10 +55,12 @@ Fuming Effigy	79d6c74d3ba857df	9	1/1		0/1	ix:resp
 Gateway Plaza	f0246163c137388d	53	2/2		0/1	ix:resp
 Ghost-Lit Redeemer	2f993973f271a866	38	2/2		1/1	
 Ghoulish Procession	3b7fcfb0c12b967c	122	1/1		1/1	
+Gideon's Sacrifice	79986ec702009674	4	0/0		1/2	ix:resp
 Goblin Piledriver	188fe97d2977021e	7	1/1		0/1	ix:resp
 Gorehorn Minotaurs	854de0e053100c07	7	0/0		0/0	
 Greatsword	98e74091cf46789e	7	1/1		0/1	ix:resp
 Grizzly Fate	fbe8f559ba50a68e	4	0/0		3/4	ix:resp
+Gruesome Scourger	1487e46a446dcb45	3	1/1		0/1	ix:resp
 Hagra Sharpshooter	d157f20e89b39898	4	1/1		0/1	ix:resp
 Heavenly Qilin	ed54dd72dd1c4f20	120	1/1		1/1	
 Hellkite Charger	724bc762604c46c4	4	1/1		1/1	
@@ -61,6 +72,7 @@ Insidious Bookworms	4a0eca11e24c4fb4	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Inspiring Roar	1eb007b1780b4a6c	10	0/0		1/2	ix:resp
 Iron Tusk Elephant	2820f5c50851d3e2	96	0/0		0/0	
 Jaddi Offshoot	0113592b33caf13e	5	1/1		1/1	
+Jin-Gitaxias, Progress Tyrant	04497c3c73f3342c	4	2/2		0/1	ix:resp
 Juzám Djinn	a212f7844465db40	104	1/1		1/1	
 Knight-Errant of Eos	d3a251779c6468aa	18	1/1		1/1	
 Kor Hookmaster	837f77534ebb11f0	4	1/1		0/1	ix:resp
@@ -87,9 +99,11 @@ Order of the Ebon Hand	cdb1fb0e649388ed	96	2/2		1/1
 Order of the Stars	dda65877f46e9d41	180	0/0		0/0	
 Patron of the Arts	4866ed90df953817	3	2/2		0/1	ix:resp
 Pile On	af82bbcc9562a078	40	0/0		2/2	
+Pride Sovereign	825b079c166caf70	4	1/1		0/1	ix:resp
 Pseudodragon Familiar	94118e9e49f587bf	6	1/1		0/1	ix:resp
 Ravenous Lindwurm	99c0e7ddbbdb20af	4	1/1		0/1	ix:resp
 Reckless Racer	09023828a5a13e41	5	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Reconnaissance	3d2066d409ca8c44	4	1/1		0/1	ix:resp
 Resolute Watchdog	13641a9592f96ea9	148	1/1		1/1	
 Resurgent Belief	230df2e1470dca3d	52	0/0		3/4	cast/alt:none
 Robaran Mercenaries	3dd581350053321c	68	0/0		0/0	
@@ -98,6 +112,7 @@ Roterothopter	027cbaf51a1cded5	3	1/1		1/1
 Rubble Reading	472a8740f46ed285	7	0/0		1/2	ix:resp
 Ruin Crab	338de945d221695e	8	1/1		0/1	ix:resp
 Runed Stalactite	0af851c13cd6b10f	4	1/1		0/1	ix:resp
+Ryusei, the Falling Star	8fb13e8533c52dc8	4	1/1		0/1	ix:resp
 Scavenged Weaponry	8cace01660905037	3	1/1		2/2	
 Scepter of Fugue	06b1fe6ab26f9689	140	1/1		1/1	
 Scissors Lizard	8bf165592d37e2bd	7	0/0		0/0	
@@ -115,10 +130,12 @@ Stone Haven Pilgrim	406266b9e85d81ae	9	1/1		1/1
 Sun Clasp	1931aa6c65cae8fa	6	1/1		2/2	
 Theft of Dreams	66c26f94739a352d	6	0/0		1/2	ix:resp
 Thoughtseize	e6d275098cb5c79a	162	0/0		2/2	
+Tiger Claws	92e150155c161346	4	0/0		1/2	ix:resp
 Treefolk Healer	afde5d002c183a84	7	1/1		0/1	ix:resp
 Veinwitch Coven	d21efe8f0cca3af5	140	1/1		1/1	
 Vexing Devil	102e80c608dacb62	89	1/1		1/1	
 Virulent Swipe	2c0081256a0143a1	4	0/0		2/2	
+Vodalian Wave-Knight	b3e052c84dab152b	4	1/1		0/1	ix:resp
 Windbrisk Heights	3b3604079b0aebc7	42	3/3		1/1	
 You Come to a River	6dc040967ca6c673	4	0/0		1/2	ix:resp
 Zodiac Rat	b7b5618daf7dcefe	4	0/0		0/0	

@@ -32,6 +32,7 @@ Bonesplitter
 Borne Upon a Wind
 Borrowed Time
 Brotherhood Outcast
+Burr Grafter
 Canoptek Spyder
 Canyon Wildcat
 Cast Out
@@ -71,9 +72,11 @@ Drag Down
 Dread Drone
 Dross Scorpion
 Dryad Sophisticate
+Dungeon Map
 ED-E, Lonesome Eyebot
 Eerie Interlude
 Elanor Gardner
+Elrond, Lord of Rivendell
 Empyreal Voyager
 Energy Flux
 Eternal Warrior
@@ -190,9 +193,11 @@ Raksha Golden Cub
 Rakshasa Deathdealer
 Rampaging Ferocidon
 Rank and File
+Realmwright
 Reap the Seagraf
 Reckless Abandon
 Reito Lantern
+Renowned Weaponsmith
 Rescind
 Retributive Wand
 Returned Centaur
@@ -309,4 +314,5 @@ Wild Colos
 Wild Onslaught
 Wretched Confluence
 Xander's Lounge
+Yes Man, Personal Securitron
 Zhao, the Seething Flame

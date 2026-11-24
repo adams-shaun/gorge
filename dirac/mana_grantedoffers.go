@@ -1090,6 +1090,11 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 // the clone).
 const phasedScriptNodes = potentialScriptNodes + potentialScriptNodes/4
 
+// mayPlayScriptNodes is gorge's potentialMayPlayNodes: the node bound of the
+// may-play fallback run (grantSearch's last), a plain run after the others
+// found none and the first spent its budget (CR 601.2g, 605.3a).
+const mayPlayScriptNodes = 1024
+
 // grantSrch is one prefix search (gorge scriptSearch under gapsOnly): the
 // granted sources of p in battlefield order, the play's mana cost, the
 // node budget and the visited payer states, and the found prefix.
@@ -1181,8 +1186,13 @@ type grantSrch struct {
 	nodes   int
 	nseen   int
 	seen    [potentialScriptNodes]grantKey
-	np      int
-	path    [2 * MaxPerm]grantStep
+	// bigSeen holds the nodes past seen's table on the may-play fallback run
+	// (big), whose bound is mayPlayScriptNodes; wantBig asks the next run
+	// for it
+	bigSeen      []grantKey
+	big, wantBig bool
+	np           int
+	path         [2 * MaxPerm]grantStep
 	// use is the play's printed mana cost, read by the fee-only repeatable
 	// filter's doomed-colour prune (filtFeeColStalls) at a colour ask.
 	use   kop.ManaCost
@@ -1571,6 +1581,9 @@ func (g *grantSrch) node() bool {
 		return true
 	}
 	limit := potentialScriptNodes
+	if g.big {
+		limit = mayPlayScriptNodes
+	}
 	if g.phased && g.feeOnly && !(g.d.hasPlay && g.d.play.Mode()&3 != 0) {
 		// A moded cast (a flashback, kicker, escape or mayhem one) is priced
 		// by gorge's single chain on the engine's colour order: its printed
@@ -2058,7 +2071,7 @@ func (g *grantSrch) stateKey(t *State) grantKey {
 func (g *grantSrch) seenHoisted(t *State) bool {
 	fk := g.stateKey(t).folded()
 	for i := 0; i < g.nseen; i++ {
-		if g.seen[i].folded() == fk {
+		if g.seenAt(i).folded() == fk {
 			cost := g.cost
 			if g.dyn {
 				cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
@@ -2140,7 +2153,7 @@ func (g *grantSrch) visit(t *State) bool {
 	// (scriptSearch.visit: offered, then seen, then priced).
 	fk := key.folded()
 	for i := 0; i < g.nseen; i++ {
-		if g.seen[i].folded() == fk {
+		if g.seenAt(i).folded() == fk {
 			return g.seenPays(t, &cost, cheap)
 		}
 	}
@@ -2259,7 +2272,7 @@ func (g *grantSrch) seenDuplicate(t *State) bool {
 	fk := key.folded()
 	dup := false
 	for i := 0; i < g.nseen && !dup; i++ {
-		dup = g.seen[i].folded() == fk
+		dup = g.seenAt(i).folded() == fk
 	}
 	if !dup {
 		return false
@@ -2374,7 +2387,19 @@ func (g *grantSrch) remember(key grantKey) {
 	if g.nseen < len(g.seen) {
 		g.seen[g.nseen] = key
 		g.nseen++
+	} else if g.big && g.nseen < len(g.seen)+cap(g.bigSeen) {
+		g.bigSeen = append(g.bigSeen, key)
+		g.nseen++
 	}
+}
+
+// seenAt is the i'th remembered node: the table's, then the may-play
+// fallback run's overflow.
+func (g *grantSrch) seenAt(i int) *grantKey {
+	if i < len(g.seen) {
+		return &g.seen[i]
+	}
+	return &g.bigSeen[i-len(g.seen)]
 }
 
 // playSourceGone: the searched activation's source left the battlefield on
@@ -2944,6 +2969,7 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 	if s.grantSearchRun(k, p, cost, ex, d, need, g, nil, false) {
 		return true
 	}
+	plainLimited := g.limited
 	// gorge's fallback runs: the phased order for a play whose own cost
 	// sacrifices or returns a permanent or whose gaps include a hybrid fee
 	// (phasedScope), or for a plain run the budget cut short on a repeatable
@@ -2964,10 +2990,18 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 		return false
 	}
 	hint := s.playNeedHint(k, d.play)
-	if hint == need {
-		return false
+	if hint != need && (s.grantSearchRun(k, p, cost, ex, d, hint, g, nil, false) || s.grantSubsume(k, p, cost, ex, d, hint, g)) {
+		return true
 	}
-	return s.grantSearchRun(k, p, cost, ex, d, hint, g, nil, false) || s.grantSubsume(k, p, cost, ex, d, hint, g)
+	// gorge's may-play fallback (potentialPrefixScript): a plain cast through a
+	// granted permission whose plain run spent its budget gets one more plain
+	// run at mayPlayScriptNodes (tail-08 pair 54's Age of Ultron cast).
+	if plainLimited && d.play.Kind() == AkCast && d.play.Mode()&(3|castFace|castWarp|castFree) == 0 && d.play.Mode()&castMayPlay != 0 {
+		g.wantBig = true
+		defer func() { g.wantBig = false }()
+		return s.grantSearchRun(k, p, cost, ex, d, need, g, nil, false)
+	}
+	return false
 }
 
 // grantSearchRun is one run of grantSearch: the plain one (sub nil) or the
@@ -2977,8 +3011,11 @@ func (s *State) grantSearch(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d pay
 //
 //go:noinline
 func (s *State) grantSearchRun(k *prep, p uint8, cost *kop.ManaCost, ex Slot, d payDesc, need [kop.NumManaKinds]bool, g *grantSrch, sub *[kop.NumManaKinds]uint8, phased bool) bool {
-	wantFeeOrder := g.wantFeeOrder
+	wantFeeOrder, wantBig := g.wantFeeOrder, g.wantBig
 	*g = grantSrch{k: k, p: p, cost: *cost, ex: ex, d: d, sp0: s.sp, tapsLive: k.gen.manaTaps, need: need}
+	if wantBig {
+		g.big, g.bigSeen = true, make([]grantKey, 0, mayPlayScriptNodes-potentialScriptNodes)
+	}
 	if d.hasPlay {
 		g.use, g.useOK = s.filtUsefulCost(k, d.play)
 	}

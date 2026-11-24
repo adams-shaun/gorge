@@ -213,8 +213,14 @@ func (s *State) featCardMatch1(k *prep, id kop.FilterID, ob *object, ctrl uint8,
 		if f2&kop.F2ChosenColor != 0 && (ch > 4 || cd.Colors&(kop.ColW<<ch) == 0) {
 			return false
 		}
-		if f2&kop.F2ChosenType != 0 && (int(ch) >= len(k.t.Subtypes) || !cd.Subtypes.Has(int(ch))) {
-			return false
+		if f2&kop.F2ChosenType != 0 {
+			if bit, kind := s.srcCardKind(k, srcSl); kind {
+				if !cardKindHas(bit, cd.Types) {
+					return false
+				}
+			} else if int(ch) >= len(k.t.Subtypes) || !cd.Subtypes.Has(int(ch)) {
+				return false
+			}
 		}
 		f2 &^= kop.F2ChosenColor | kop.F2ChosenType
 	}

@@ -225,6 +225,10 @@ type prep struct {
 	// the initiative's Undercity (genPrep.dungeon). Prep data like cards,
 	// never a pinned genPrep field (TestNoNewFixedStateFields).
 	dungeons []CardID
+	// cardKind: per card, its enters program asks for a card type, so its
+	// chosen byte is a cardTypeChoice index (act_choosecardenter.go); nil when
+	// no card does. Prep data, never a pinned genPrep field.
+	cardKind []bool
 	// anyAbilTgtPT: some activated ability reads its target's power or
 	// toughness: the target's last known P/T is snapshot as it resolves
 	// (value_abiltgtpt.go). A prep field, never a pinned genPrep one.

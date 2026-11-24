@@ -65,12 +65,21 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 	if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in) {
+	if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld != 0 && s.enterWithOverride(k, in) && s.unionCopy(k, in) {
+		s.enterAssimilatedHeld(k, o, ob.owner(), from) // a union return in its held frame: the override lands before the batch's enters checks fire (zone_assimilate.go)
+	} else if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld == 0 && s.enterWithOverride(k, in) {
 		// a StaticEffect$ rider (the Enduring cycle's "it's an enchantment")
 		// applies before the entry's triggers match the permanent (CR 603.6a,
 		// gorge applyStaticEffect ahead of the entry event); a held entry's
 		// checks fire after the rider op applies it
 		s.enterAssimilated(k, o, ob.owner(), from)
+	} else if z == kop.ZoneBattlefield && k.gen != nil && s.g.batchLatch&batchHeld != 0 && s.enterWithOverride(k, in) {
+		// inside a held entry frame (a union return's targets enter together,
+		// CR 603.6a) the rider still applies as each object enters: the
+		// held checks run once all are in and must see the animated entrant
+		sl := s.enterMoved(k, o, ob.owner(), false, from)
+		s.enterWithApply(k, sl)
+		s.g.ewDone++
 	} else if z == kop.ZoneBattlefield {
 		s.enterMoved(k, o, ob.owner(), false, from) // under its owner's control (Kykar's blink of a stolen creature)
 	} else {

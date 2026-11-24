@@ -19,8 +19,10 @@ Damage Control Crew
 Doc Ock's Henchmen
 Doc Ock's Tentacles
 Doc Ock, Sinister Scientist
+Doctor Octopus, Master Planner
 Eerie Gravestone
 Electro's Bolt
+Electro, Assaulting Battery
 Ezekiel Sims, Spider-Totem
 Flash Thompson, Spider-Fan
 Flying Octobot
@@ -56,7 +58,9 @@ Masked Meower
 Maximum Carnage
 Mechanical Mobster
 Merciless Enforcers
+Mob Lookout
 Molten Man, Inferno Incarnate
+Morbius the Living Vampire
 Morlun, Devourer of Spiders
 Mountain
 Mysterio's Phantasm
@@ -72,6 +76,7 @@ Pictures of Spider-Man
 Plains
 Prison Break
 Professional Wrestler
+Prowler, Clawed Thief
 Radioactive Spider
 Raging Goblinoids
 Rent Is Due
@@ -81,6 +86,7 @@ Risky Research
 Robotics Mastery
 Rocket-Powered Goblin Glider
 Romantic Rendezvous
+SP//dr, Piloted by Peni
 Sandman's Quicksand
 Sandman, Shifting Scoundrel
 Savage Mansion
@@ -97,6 +103,7 @@ Shriek, Treblemaker
 Silk, Web Weaver
 Silver Sable, Mercenary Leader
 Sinister Hideout
+Skyward Spider
 Spectacular Spider-Man
 Spectacular Tactics
 Spider Manifestation
@@ -130,9 +137,11 @@ Sun-Spider, Nimble Webber
 Supportive Parents
 Swamp
 Swarm, Being of Bees
+Symbiote Spider-Man
 Taxi Driver
 Terrific Team-Up
 The Spot's Portal
+The Spot, Living Portal
 Thwip!
 Tombstone, Career Criminal
 Ultimate Green Goblin
@@ -143,6 +152,7 @@ Venom, Evil Unleashed
 Venomized Cat
 Vibrant Cityscape
 Villainous Wrath
+Vulture, Scheming Scavenger
 Wall Crawl
 Web Up
 Web-Shooters

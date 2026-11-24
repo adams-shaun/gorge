@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomReveal
+value: next
+status: active
+doc: CostAtomReveal: reveal the source (Reveal<1/CARDNAME>, CR 201.5): nothing moves and the offer prices the source's zone. Dirac: the RevealSelf guard.

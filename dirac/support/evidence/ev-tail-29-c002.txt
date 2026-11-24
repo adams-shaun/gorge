@@ -1,3 +1,5 @@
+A-Bruenor Battlehammer
+A-Cosmos Elixir
 A-Elven Bow
 A-Forge Boss
 Accorder's Shield
@@ -8,9 +10,11 @@ Alexi's Cloak
 Amber Prison
 Amoeboid Changeling
 Angelheart Protector
+Angelic Cub
 Arbor Colossus
 Avacyn's Memorial
 Barbtooth Wurm
+Base Camp
 Bastion Mastodon
 Battlegrace Angel
 Bellowing Tanglewurm
@@ -31,6 +35,7 @@ Cast into the Fire
 Cavern Thoctar
 Chakra Meditation
 Chandra, Hope's Beacon
+Checkpoint Officer
 Children of Korlis
 Chorus of the Tides
 Chub Toad
@@ -43,6 +48,7 @@ Cradle of Safety
 Dawnhart Disciple
 Dawnhart Rejuvenator
 Deal Gone Bad
+Deathgazer
 Debtors' Transport
 Decisive Denial
 Deep Spawn
@@ -59,11 +65,13 @@ Dreadhorde Butcher
 Drelnoch
 Durable Handicraft
 Eldrazi Monument
+Electrostatic Pummeler
 Emberwilde Augur
 Empty the Laboratory
 Epic Confrontation
 Exert Influence
 Expel
+Extract Power
 Ezio, Blade of Vengeance
 Fairgrounds Patrol
 False Cure
@@ -83,10 +91,12 @@ Gatekeeper Gargoyle
 Ghoulcaller Gisa
 Gloomhunter
 Goblin Replica
+Grafted Wargear
 Green Goblin, Back for More
 Grimgrin, Corpse-Born
 Gruul Scrapper
 Gruul Signet
+Guardian of Tazeem
 Hammerheim Deadeye
 Havengul Runebinder
 Hawkeye, Trick Shot
@@ -101,6 +111,7 @@ Ideas Unbound
 Ingenious Infiltrator
 Intrusive Packbeast
 Island
+Jadar, Ghoulcaller of Nephalia
 Jalira, Master Polymorphist
 Jhoira, Weatherlight Captain
 Jousting Lance
@@ -108,6 +119,7 @@ Knight Paladin
 Kodama of the North Tree
 Krovikan Elementalist
 Leonardo, Worldly Warrior
+Leonin Bladetrap
 Leyline Phantom
 Liliana's Spoils
 Littjara Glade-Warden
@@ -189,9 +201,11 @@ Strider, Ranger of the North
 Sturmgeist
 Swamp
 Swarm of Rats
+Sylvok Replica
 Talisman of Resilience
 Tar Pit Warrior
 Thalakos Drifters
+Thancred Waters
 Thornscape Familiar
 Thundering Raiju
 Tibalt's Rager

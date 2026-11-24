@@ -140,6 +140,9 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 		}
 		moved = true
 	}
+	if k.gen != nil && k.gen.anyContract {
+		s.contractLossCopy(k, p) // Miss Highwater's Effect, before p's permanents leave
+	}
 	for i := 0; i < int(s.nobj); i++ {
 		o := Obj(i)
 		ob := &s.objs[o]

@@ -10,11 +10,13 @@ Auntie Blyte, Bad Influence	3d1678c13cdfbd2f	12	2/2		0/1	ix:resp
 Ballynock Trapper	811f5bd97555e6bc	6	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Benalish Missionary	4a07bdde6a9ef807	4	1/1		0/1	ix:resp
 Benevolent Bodyguard	5522cf237f2ee779	6	1/1		0/1	ix:resp
+Bess, Soul Nourisher	4ef627a4e6cc5cfd	76	2/2		1/1	
 Blessing of Belzenlok	9d7e43ac994b86b4	8	0/0		1/2	ix:resp
 Blinding Spray	f51434d92221d4d6	4	0/0		1/2	ix:resp
 Brighthearth Banneret	b256ca494a69b7a8	6	1/1		0/1	ix:resp
 Brood Sliver	0258576895adc22b	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Call to the Feast	3cb64443c76c9434	6	0/0		1/2	ix:resp
+Carmen, Cruel Skymarcher	6168049bc6be61ad	3	2/2		0/1	ix:resp
 Celestial Enforcer	06929a1453ba3279	12	1/1		0/1	ix:resp
 Centaur Archer	39ef958207ddb09d	5	1/1		1/1	
 Cephalid Sage	25c1531e4f6aa52d	7	0/0		0/0	
@@ -22,6 +24,7 @@ Chained Brute	37d290aaf746f2d9	8	1/1		0/1	ix:resp
 Chandra's Magmutt	7757f41a5802a709	4	1/1		0/1	ix:resp
 Chaos Warp	0b9de0035d6cff8f	4	0/0		2/2	
 Circle of Protection: Artifacts	3ce428490b8c62c0	10	1/1		1/1	
+Cloudshift	64e7a727ad1e298a	6	0/0		2/2	
 Consume Strength	b02c57fe3b69d0c2	4	0/0		2/2	
 Cryoclasm	9a9993515c722447	4	0/0		1/2	ix:resp
 Cunning Survivor	13338735196bcb92	3	1/1		1/1	
@@ -29,9 +32,11 @@ Cursebreak	37225a435e154287	14	0/0		1/2	ix:resp
 Darkmoss Bridge	68c961d4d2461616	46	1/1		0/1	ix:resp
 Dauthi Mercenary	f59d2b332b143bb0	3	1/1		0/1	ix:resp
 Dead Reveler	93db6ae16d5fc22c	4	0/0		0/0	
+Death Grasp	634f8f4c99fca289	5	0/0		2/4	f0/s/x0,ix:resp
 Death Pits of Rath	1f2743bbd826eada	11	1/1		1/1	
 Deekah, Fractal Theorist	c00eef8634398ce1	4	2/2		1/1	
 Deeproot Historian	31a560d0ef9197c6	3	0/0		0/0	
+Dramatic Finale	e67b4a96a2dc82f2	4	1/1		0/1	ix:resp
 Dwarven Thaumaturgist	8ed59c212d4dec6f	26	1/1		1/1	
 Dyfed, the Guiding Hand	7bc7b88bc36d8a46	4	3/3		0/1	ix:resp
 Ebonblade Reaper	eaac43afe6f42456	4	2/2		1/3	cast/alt:morphed,ix:resp
@@ -47,9 +52,11 @@ Frost Breath	c6a6cc36c0c98783	31	0/0		2/2
 Fugitive Druid	80e405532f0d9e4c	44	1/1		0/1	ix:resp
 Gargadon	5c307bca97e08f46	3	0/0		1/2	cast/alt:none
 Ghost-Lit Warder	c8f493662c337744	18	2/2		1/1	
+Gilanra, Caller of Wirewood	dfbd92fe995f0c29	4	1/1		1/1	
 Gingerbehemoth	ffbc856174d32133	4	1/1		0/1	ix:resp
 Goatnapper	dacd07bc1b5e7811	4	1/1		1/1	
 Godtracker of Jund	05cf32535a3b44c3	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Golgari Findbroker	712ea59675d1f4e1	12	1/1		1/1	
 Granger Guildmage	d774ba15b32c4d65	7	2/2		0/1	ix:resp
 Gravel Slinger	7d1e5153c1c1c91d	6	1/1		1/3	cast/alt:morphed,ix:resp
 Griselbrand	057aa5f268b980e8	3	1/1		0/1	ix:resp
@@ -81,6 +88,7 @@ Lullmage's Familiar	611ddc03b940268f	154	2/2		1/1
 Lulu, Loyal Hollyphant	b4e278f3946b40dd	6	1/1		0/1	ix:resp
 Manticore of the Gauntlet	624c28796f330bc7	3	1/1		0/1	ix:resp
 Marshal's Anthem	30b70be8b3184f1c	3	1/1		1/3	cast/alt:multikicked,ix:resp
+Mass Polymorph	4ec827d68a38bd2b	6	0/0		2/2	
 Meatsqueak, Hoard Lord	500c39ad9311b7a2	26	1/1		0/1	ix:resp
 Meltdown	d09d757d689f06c1	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
 Merfolk Thaumaturgist	5da2937c73d82140	7	1/1		1/1	
@@ -91,6 +99,7 @@ Morality Shift	15f8aeca9585997a	6	0/0		1/2	ix:resp
 Nantuko Shrine	c9e058944ba0d92c	126	1/1		1/1	
 Neheb, the Worthy	90db1502443d8419	4	1/1		0/1	ix:resp
 Night Market Aeronaut	3cb30788cde2d13d	6	0/0		0/0	
+Nip Gwyllion	e48779202541d2e9	10	0/0		0/0	
 No-Dachi	ea1094f206fb3be5	8	1/1		1/1	
 Noble Benefactor	34037ab7a3d9b6be	4	1/1		0/1	ix:resp
 Oath of Ajani	41f32997284f9f19	3	1/1		0/1	ix:resp

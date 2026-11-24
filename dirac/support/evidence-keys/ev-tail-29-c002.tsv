@@ -1,4 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Bruenor Battlehammer	363e4ca35f9e6923	4	1/1		0/1	ix:resp
+A-Cosmos Elixir	d28e5f3accb8d910	4	1/1		0/1	ix:resp
 A-Elven Bow	0f947781e39737eb	34	2/2		0/1	ix:resp
 A-Forge Boss	b137bad57961d3bf	24	1/1		1/1	
 Accorder's Shield	2b6f5664769c2816	81	1/1		0/1	ix:resp
@@ -8,9 +10,11 @@ Alexi's Cloak	62b4107cf857737b	8	0/0		1/2	ix:resp
 Amber Prison	01d30eba56832cda	5	1/1		0/1	ix:resp
 Amoeboid Changeling	d5ea262dde8aa102	14	2/2		1/1	
 Angelheart Protector	818e41f3ee65d23d	4	1/1		0/1	ix:resp
+Angelic Cub	a3e4a18f8f3b87a6	3	1/1		0/1	ix:resp
 Arbor Colossus	85b2dc9ebe24db9a	23	2/2		1/1	
 Avacyn's Memorial	eff100239abb159d	14	0/0		0/0	
 Barbtooth Wurm	7edfce8b68c0ed58	35	0/0		0/0	
+Base Camp	e6758dec7d6033d2	14	2/2		0/1	ix:resp
 Battlegrace Angel	54964fcdf41a3118	7	2/2		0/1	ix:resp
 Bellowing Tanglewurm	43304e0cdfa71fa0	16	0/0		0/0	
 Bird Maiden	0d1b90121105c3ea	10	0/0		0/0	
@@ -28,6 +32,7 @@ Casey Jones, Asphalt Hooligan	706e40d551bf5e64	29	1/1		1/1
 Cast into the Fire	275c39df0574af08	17	0/0		2/2	
 Cavern Thoctar	bfb18c260991a4ad	4	1/1		0/1	ix:resp
 Chandra, Hope's Beacon	c06f0439cfd1a3e7	14	4/4		1/1	
+Checkpoint Officer	011fe913af87c964	3	1/1		0/1	ix:resp
 Children of Korlis	c718492bcb42bcd9	18	1/1		1/1	
 Chub Toad	e281f4d80e231a42	45	2/2		1/1	
 Cliffhaven Sell-Sword	e037be0343c34ff3	10	0/0		0/0	
@@ -39,6 +44,7 @@ Cradle of Safety	2c130177029dabc8	6	1/1		1/2	ix:resp
 Dawnhart Disciple	df8ad3b250f7b2f5	42	1/1		0/1	ix:resp
 Dawnhart Rejuvenator	7a9dee0575e13cb5	12	2/2		0/1	ix:resp
 Deal Gone Bad	e5f4a922e6a8788e	6	0/0		1/2	ix:resp
+Deathgazer	8b77c3680416a6ef	6	2/2		0/1	ix:resp
 Debtors' Transport	331c91dea9a1fa84	19	1/1		0/1	ix:resp
 Decisive Denial	d06d03116fec4e05	4	0/0		2/2	
 Deep Spawn	f037bcdff2014a81	22	2/2		1/1	
@@ -49,7 +55,9 @@ Dread Cacodemon	2149b6baf23f25ed	4	1/1		0/1	ix:resp
 Dread of Night	3845cfa479c42fb8	40	0/0		0/0	
 Drelnoch	cc13be85bc272e54	17	1/1		1/1	
 Eldrazi Monument	4cbdaf3262050618	3	1/1		0/1	ix:resp
+Electrostatic Pummeler	6a6924ebede529a6	4	2/2		0/1	ix:resp
 Expel	e87191647094af1a	10	0/0		1/2	ix:resp
+Extract Power	2048af25c319a7a8	4	0/0		1/2	ix:resp
 False Cure	0360245b7b476b01	51	0/0		1/2	ix:resp
 Firefist Adept	97215597fa74f7f6	13	1/1		1/1	
 Foggy Nelson, On Retainer	2660e0602ae39f94	6	1/1		0/1	ix:resp
@@ -60,9 +68,11 @@ Garruk's Lost Wolf	6c90b99d05fa3b14	109	1/1		2/2
 Gatekeeper Gargoyle	efa39d125d711a3f	3	0/0		0/0	
 Ghoulcaller Gisa	2ea71929427d4278	36	1/1		1/1	
 Goblin Replica	2041dce2449c4abb	41	1/1		1/1	
+Grafted Wargear	68e213bebe484dbb	4	2/2		0/1	ix:resp
 Green Goblin, Back for More	e4fafd2c1dfc0a5a	21	1/1		1/3	cast/alt:mayhem,ix:resp
 Gruul Scrapper	49d59fc30aa37bf7	46	1/1		1/1	
 Gruul Signet	b1dcf1d646ccc8de	4	1/1		0/1	ix:resp
+Guardian of Tazeem	b1a46bfe5fe9ccfc	4	1/1		0/1	ix:resp
 Hammerheim Deadeye	224911f2f05ceed0	25	2/2		1/1	
 Havengul Runebinder	e55aae12775585e5	4	1/1		0/1	ix:resp
 Heated Debate	0315ed5c0f060ccc	4	0/0		2/2	
@@ -71,11 +81,13 @@ Hindering Touch	592e05b7611c65a1	4	1/1		0/2	f0/s,ix:resp
 Howling Banshee	958fe23e62033882	32	1/1		0/1	ix:resp
 Icatian Scout	0fd81c82eef70e86	4	1/1		0/1	ix:resp
 Intrusive Packbeast	a397e63370f6a24e	3	1/1		1/1	
+Jadar, Ghoulcaller of Nephalia	03b25dc1e02249ab	30	1/1		0/1	ix:resp
 Jalira, Master Polymorphist	04dc3149273ff586	61	1/1		0/1	ix:resp
 Jousting Lance	6a869198143eadbf	31	1/1		0/1	ix:resp
 Kodama of the North Tree	525a12605f290454	4	0/0		0/0	
 Krovikan Elementalist	217bf7e7442ce4aa	51	2/2		1/1	
 Leonardo, Worldly Warrior	ae91b7fd26db6bf7	4	0/0		0/0	
+Leonin Bladetrap	3ecfbd5f52f8c95a	4	1/1		0/1	ix:resp
 Littjara Glade-Warden	a9dda80f103d169e	41	1/1		1/1	
 Living Wall	7feb02d5750241c4	9	1/1		1/1	
 Lost Leonin	d820c41355826eaa	49	0/0		0/0	
@@ -133,9 +145,11 @@ Stampede	66a5a5924a139857	26	0/0		2/2
 Steelshaper Apprentice	1f07be3cc3f57fe9	21	1/1		1/1	
 Stormcloud Djinn	aee1831c832ba499	50	1/1		1/1	
 Strategic Planning	416d82c088afe0de	48	0/0		2/2	
+Sylvok Replica	2cb38882e4c272c1	4	1/1		0/1	ix:resp
 Talisman of Resilience	c350055f341b9158	12	2/2		0/1	ix:resp
 Tar Pit Warrior	da15fd6d84f3d5ab	11	1/1		0/1	ix:resp
 Thalakos Drifters	4a6a8a5fdd2e069c	38	1/1		1/1	
+Thancred Waters	625d60c89e18e95f	6	2/2		1/1	
 Thornscape Familiar	127786c3553eb5b2	4	0/0		0/0	
 Tibalt's Rager	3f4a5ddea626862f	25	2/2		1/1	
 Titan Forge	148c834e147de8f0	3	2/2		0/1	ix:resp

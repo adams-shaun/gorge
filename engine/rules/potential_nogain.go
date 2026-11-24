@@ -123,13 +123,45 @@ func gapOnceNetSupply(mp *effects.ManaParams, extra state.Mana, feeTotal, best i
 // production nets its production minus the fee each activation spends, and the
 // {T} is exclusive, so only what exceeds the source's own covered production
 // best extends the count bound, CR 106.1; Fire-Lit Thicket's "{R/G}, {T}: Add
-// {R}{R}"). A once-only gap without {T} shares no tap with the covered ability
-// and is not bounded here. False means the caller records a gain.
-func gapBoundedSupply(pp potentialPricer, py pay.Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, mp *effects.ManaParams, extra state.Mana, fee, best int32, once, taps bool) (int32, bool) {
+// {R}{R}"), else the repeatable tap-another bound (gapTapRepeatSupply). A
+// once-only gap without {T} shares no tap with the covered ability and is not
+// bounded here. False means the caller records a gain.
+func gapBoundedSupply(pp potentialPricer, py pay.Engine, p state.PlayerID, id state.ObjID, ma *cards.SA, c costvocab.Cost, mp *effects.ManaParams, extra state.Mana, fee, best, repeats int32, once, relaxedOK bool) (int32, bool) {
 	if n, ok := gapSubCounterSupply(pp, py, p, id, ma, extra); ok {
 		return n, true
 	}
-	return gapOnceNetSupply(mp, extra, fee, best, once, taps)
+	if n, ok := gapTapRepeatSupply(c, mp, extra, repeats, relaxedOK); ok {
+		return n, true
+	}
+	return gapOnceNetSupply(mp, extra, fee, best, once, c.Tap)
+}
+
+// gapTapRepeatSupply is the census's count bound for a census-missed REPEATABLE
+// tap-another gap (Birchlore Rangers' "Tap two untapped Elves you control: Add
+// one mana of any color", tapOnlyManaCost): every activation taps N distinct
+// untapped permanents of each part and a mana-payment prefix never untaps them,
+// so repeats activations (tapRepeatBound, paymentPlanRelaxedAlternatives's K)
+// bound the supply, each making its fixed production (CR 106.1, 605.3b). The
+// tapped permanents' own production is already counted beside it, so the figure
+// only over-counts. False when the cost is not that shape, the relaxation found
+// no bound (relaxedOK false), the amount is dynamic, or a tap trigger adds mana
+// beside the ability (extra, CR 605.4a).
+func gapTapRepeatSupply(c costvocab.Cost, mp *effects.ManaParams, extra state.Mana, repeats int32, relaxedOK bool) (int32, bool) {
+	if !relaxedOK || !tapOnlyManaCost(c) || extra.Total() != 0 {
+		return 0, false
+	}
+	amt := availableAmountOf(mp)
+	if amt <= 0 {
+		return 0, false
+	}
+	made := amt
+	if !mp.CountsAny {
+		made = 0
+		for _, n := range mp.Counts {
+			made += n * amt
+		}
+	}
+	return made * repeats, true
 }
 
 // gapSubCounterSupply reports the most mana a census-missed ability ma of

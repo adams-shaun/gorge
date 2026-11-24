@@ -2,30 +2,45 @@ card	lir16	plays	keys	unused	branches	missing_branches
 Aether Sting	6c4d613081fd8b5d	4	1/1		0/1	ix:resp
 Bishop of the Bloodstained	f7df9fe477f78721	4	1/1		0/1	ix:resp
 Blessed Wine	967a0ef497d21c98	4	0/0		1/2	ix:resp
+Bosco, Just a Bear	37a2d8a7a38470fa	4	2/2		1/1	
 Brightwood Tracker	b37620d281287283	8	1/1		1/1	
+Calamity Bearer	1e1d2c6bbafb35b9	4	0/0		0/0	
+Cephalid Broker	2ed8ab687aa26752	5	1/1		0/1	ix:resp
 Charging Rhino	5bdb8927e76ee21e	4	0/0		0/0	
+Charisma	e409b1da52f68219	4	1/1		1/2	ix:resp
+Chronomaton	0396c387cc10433a	4	1/1		1/1	
+Circle of Protection: Black	79371e584b5f0e17	6	1/1		1/1	
 Contaminated Bond	1b44dc9fd323acda	6	2/2		2/2	
 Demonic Bargain	2f63e4cc444bbcf5	12	0/0		2/2	
+Disciple of the Ring	dfdae99485bc5b05	8	1/1		1/1	
 Divine Retribution	584b81bdce679e2b	4	0/0		1/2	ix:resp
 Dockside Extortionist	71d219fab89bc92d	8	1/1		1/1	
 Elfhame Wurm	30429ac27990550f	4	0/0		0/0	
+Elite Instructor	566e1413df5925ca	4	1/1		0/1	ix:resp
 Energy Chamber	ccdd7d33c14326a8	4	1/1		0/1	ix:resp
 Flame-Kin War Scout	d15c757c8be609a9	4	1/1		0/1	ix:resp
 Flare of Cultivation	0190e5e032d2a808	8	0/0		1/2	ix:resp
+Flight of Fancy	e5ffb0ee948016a9	3	1/1		1/2	ix:resp
+Flowstone Blade	a66338310d2939f7	4	1/1		2/2	
 Geist-Honored Monk	0c5e99832ee7a060	4	1/1		0/1	ix:resp
 Gird for Battle	c190b5ff6e77e12f	4	0/0		2/2	
 Goblin Caves	3bf0909db87c9cec	4	0/0		1/2	ix:resp
 Grave Birthing	85e9a7f12096eae5	8	0/0		2/2	
 Grave Bramble	3f4eddf05e78c984	4	0/0		0/0	
 Griffin Guide	464a1a5c31b0623d	4	1/1		1/2	ix:resp
+Gruul War Chant	ed1a475ba5b84098	3	0/0		0/0	
 HYDRA Disintegrator	31bfb4887ab2a252	3	2/2		0/1	ix:resp
+Haughty Djinn	c61687c07068e972	5	0/0		0/0	
 Heartwood Giant	86bfe0a022dcc92e	4	1/1		0/1	ix:resp
 Hengegate Pathway	575e896737fa1dfb	19	2/2		0/1	ix:resp
 Humble the Brute	2a668148930402a6	4	0/0		1/2	ix:resp
+Hunted Wumpus	1be1de7094a08ff5	4	1/1		0/1	ix:resp
 Intelligence Bobblehead	196992bdfa00528a	4	2/2		0/1	ix:resp
+Krang, the All-Powerful	6450876b5cd0de99	4	1/1		1/1	
 Lost in the Woods	a695e4d4fd3619e3	6	1/1		1/1	
 Loyal Pegasus	e14a59a772b9dbba	8	0/0		0/0	
 Make Obsolete	eb095358a9f99381	8	0/0		1/2	ix:resp
+Mirrormere Guardian	db368ad4e4c8da55	6	1/1		0/1	ix:resp
 Obelisk Spider	44e32217da4f9e4a	4	2/2		0/1	ix:resp
 Pennon Blade	4b537d7ea0264118	4	1/1		0/1	ix:resp
 Phobian Phantasm	68ae725735744d01	4	1/1		0/1	ix:resp
@@ -34,9 +49,13 @@ Prodigious Growth	13f01cfbbae8613e	4	0/0		1/2	ix:resp
 Raiding Nightstalker	fbd1dd4af80bde9c	10	0/0		0/0	
 Righteous Avengers	62c95c5747bf1d29	4	0/0		0/0	
 Rule of Law	cb78a6a8585beb65	6	0/0		0/0	
+Russet Wolves	bf52e3b48c89817d	4	0/0		0/0	
+Samwise the Stouthearted	da560cef935de441	4	1/1		0/1	ix:resp
 Sanctum of Shattered Heights	c75e14a9d4356cb2	4	1/1		0/1	ix:resp
 Slayer of the Wicked	046cdec59e3ae699	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Taborax, Hope's Demise	15d1cd4f31f8fb91	45	1/1		0/1	ix:resp
 Tel-Jilad Exile	22c9441e7cbd1069	6	1/1		0/1	ix:resp
+Thelonite Druid	d3db2fb7cb6c18de	6	1/1		1/1	
 Thran Temporal Gateway	6d2ac7315f60fa3b	4	1/1		0/1	ix:resp
 Wildwood Rebirth	1bd3ab68b4bc2500	3	0/0		1/2	ix:resp
+Windreaper Falcon	9c17fd89da7ac2cb	4	0/0		0/0	

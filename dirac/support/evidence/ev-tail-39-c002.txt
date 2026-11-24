@@ -116,6 +116,7 @@ Forked Bolt
 Fowl Play
 Freedom Fighter Recruit
 Frontline Rebel
+Frostwind Invoker
 Fungal Sprouting
 Gallows Warden
 Game-Trail Changeling
@@ -141,6 +142,7 @@ Grisly Salvage
 Grumgully, the Generous
 Gurmag Drowner
 HYDRA Disintegrator
+Hada Spy Patrol
 Hag of Inner Weakness
 Halimar Excavator
 Hall of Tagsin
@@ -238,6 +240,7 @@ Renewed Faith
 Resistance Reunited
 Rhystic Shield
 Ridgetop Raptor
+Riftwing Cloudskate
 Riot Piker
 Rip-Clan Crasher
 Riverwheel Aerialists
@@ -267,6 +270,7 @@ Sigil of Distinction
 Signal Pest
 Silburlind Snapper
 Sink into Takenuma
+Siren Reaver
 Sky Crier
 Skyshroud Elite
 Sleeper's Guile
@@ -299,6 +303,7 @@ Taoist Hermit
 Tar Snare
 Teeterpeak Ambusher
 Tempered Sliver
+The Black Breath
 The Fabulous Frog-Man
 The Falcon, Airship Restored
 Time of Heroes
@@ -339,6 +344,7 @@ Wrecking Ball
 Wrenn's Resolve
 Yargle and Multani
 Yawgmoth's Agenda
+Youthful Scholar
 Yuan Shao, the Indecisive
 Zar Ojanen, Scion of Efrava
 Zuko, Firebending Master

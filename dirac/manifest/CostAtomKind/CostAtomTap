@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomTap
+value: next
+status: active
+doc: CostAtomTap: {T}: tap the source (gorge cast_commit.go: emitTap, after the life and before the discards). Dirac: tapSelfCost.

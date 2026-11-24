@@ -37,6 +37,7 @@ Belbe's Armor
 Beskir Shieldmate
 Big Game Hunter
 Big Score
+Birthday Escape
 Black Panther, Claws of Bast
 Blessed Respite
 Blood-Chin Fanatic
@@ -93,6 +94,7 @@ Dispersal Technician
 Doomed Artisan
 Doomed Traveler
 Dragonlair Spider
+Dread Slag
 Drogskol Shieldmate
 Drossforge Bridge
 Drowned
@@ -338,6 +340,7 @@ Shambleshark
 Shard of the Void Dragon
 Shatter
 Shimmering Barrier
+Shyft
 Sigarda, Font of Blessings
 Sigiled Behemoth
 Siren Lookout

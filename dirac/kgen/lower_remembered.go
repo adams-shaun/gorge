@@ -717,6 +717,28 @@ func destroyRememberLKI(ps *params, in *lInstr) error {
 	return nil
 }
 
+// markDestroyedTargetLKI: a ConditionDefined$ Targeted gate after the
+// chain's own Destroy of that target reads the target's last known
+// information (CR 608.2h), as gorge reads the destroyed card's controller.
+// Gleeful Demolition's "if you controlled that artifact" spelled it with
+// RememberLKI$ before Forge ff076d4432 and ConditionDefined$ Targeted since:
+// the Destroy takes the same capture mark (markRemLKI) either way. Only an
+// EARLIER node's Destroy counts (before lc.condNodeAt): a gate on the Destroy
+// node itself (Fatal Push, Pyroblast) reads the target before it moves. The
+// mark carries the last controller, so only a controller gate (YouCtrl,
+// Kellan, Inquisitive Prodigy's draw too) takes it.
+func (lc *lowerCtx) markDestroyedTargetLKI(ref lRef, present string) {
+	if ref.Kind != rTarget || lc.ab == nil || !strings.Contains(present, "Ctrl") {
+		return
+	}
+	for i := min(lc.condNodeAt, len(lc.ab.Prog)) - 1; i >= 0; i-- {
+		if in := &lc.ab.Prog[i]; in.Op == "Destroy" && in.Obj == ref {
+			in.C |= 4
+			return
+		}
+	}
+}
+
 // rememberedLKIRef resolves ConditionDefined$ RememberedLKI to the target
 // of the chain's remember-LKI Destroy (the only remembered object; gorge's
 // LKI copy is matched as the kernel matches a moved target, its card in

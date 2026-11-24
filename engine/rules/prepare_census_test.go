@@ -15,7 +15,7 @@ package rules
 // The census below is the class-wide ledger for that shape. It pins the exact
 // set of Prepare cards in the corpus, in both directions, and it pins the
 // class-wide refusal a hand-walk gate would otherwise have to reproduce:
-// every one of the 69 backs must be refused by modalSpellBack (CR 722.3), so
+// every one of the 71 backs must be refused by modalSpellBack (CR 722.3), so
 // none of them is castable from hand.
 //
 // At 95f04e8, 33 of the 54 cards named a real Instant/Sorcery face inline in their
@@ -42,7 +42,8 @@ import (
 // "Front // Back". Sorted. Measured 2026-09-28 at FORGE_REF
 // 95f04e8a04c8925fa97cb226fc3341cabcc90a53 (54 cards) and re-measured
 // 2026-10-02 at fb4d8091126051b0c579db5f3bfdcb7e03aae63d (69: fifteen new
-// pairs, every one passing the helper checks below); every back is a resolved
+// pairs, every one passing the helper checks below) and at ff076d4432844aaab45693a971ce84bfb95841fd
+// (71: Rootha // Next Iteration and Zimone // Simple Subtraction); every back is a resolved
 // named face.
 var prepareCensus = []string{
 	"Abigale, Poet Laureate // Heroic Stanza",
@@ -93,6 +94,7 @@ var prepareCensus = []string{
 	"Prudent Fateseer // Peer Review",
 	"Pyre Rhymer // Molten Tide",
 	"Quill-Blade Laureate // Twofold Intent",
+	"Rootha, Ardent Artisan // Next Iteration",
 	"Sanar, Unfinished Genius // Wild Idea",
 	"Scathing Shadelock // Venomous Words",
 	"Scheming Silvertongue // Sign in Blood",
@@ -114,6 +116,7 @@ var prepareCensus = []string{
 	"Whiplash Wordsmith // Vicious Verse",
 	"Woodwork Prodigy // Soul Tether",
 	"Yavimaya Bloomsage // Channel",
+	"Zimone the Calculating // Simple Subtraction",
 }
 
 // prepareLabel renders a Prepare card as the census compares it: the front
@@ -148,8 +151,8 @@ func TestPrepareCensusMatchesCorpus(t *testing.T) {
 	want := append([]string(nil), prepareCensus...)
 	sort.Strings(want)
 
-	if len(measured) != 69 {
-		t.Errorf("prepare census: %d AlternateMode:Prepare cards in the corpus, want 69", len(measured))
+	if len(measured) != 71 {
+		t.Errorf("prepare census: %d AlternateMode:Prepare cards in the corpus, want 71", len(measured))
 	}
 
 	inWant := map[string]bool{}
@@ -174,7 +177,7 @@ func TestPrepareCensusMatchesCorpus(t *testing.T) {
 
 // TestPrepareBackFaceHelperCensus pins modalSpellBack's classification over
 // every Prepare card: CR 722.3 makes the inset prepare spell uncasteable from
-// hand, so the helper must return nil for all 69 backs. It also pins the
+// hand, so the helper must return nil for all 71 backs. It also pins the
 // parser resolution of the 21 `CopyFaceFrom` stub backs: after resolution every back is a real,
 // named Instant/Sorcery face, never a nameless stub. This is the class-wide
 // assertion behind
@@ -208,7 +211,7 @@ func TestPrepareBackFaceHelperCensus(t *testing.T) {
 				c.Faces[0].Name, back)
 		}
 	}
-	if named != 69 {
-		t.Errorf("prepare helper census: %d resolved named backs, want 69", named)
+	if named != 71 {
+		t.Errorf("prepare helper census: %d resolved named backs, want 71", named)
 	}
 }

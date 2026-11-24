@@ -170,6 +170,13 @@ type TriggerContext struct {
 	// Defined$ Triggered* mover skips it. Not serialized into events.Event,
 	// like its neighbour: replay re-derives the queue-time capture.
 	TriggerRememberedMoved []state.ObjID
+	// TriggerSourceMoved reports that the ability's source was off the
+	// battlefield when it went on the stack and has changed zones since,
+	// computed with TriggerRememberedMoved at the start of resolution
+	// (rules.sourceMovedSinceFire): the source is a new object the ability
+	// cannot find (CR 400.7), so an Attach of the source itself does nothing.
+	// Not serialized into events.Event; replay re-derives it.
+	TriggerSourceMoved bool
 	// SourceRemembered is the fire-time snapshot of the source's persistent
 	// event-backed Remembered list, with SourceIncarnation its Incarnation
 	// stamp at the same instant. A pending trigger belongs to the object that
@@ -350,6 +357,16 @@ type TriggerContext struct {
 	// role through the marker rather than through this field. Zero outside
 	// an Attached trigger.
 	TriggerBearer state.ObjID
+	// TriggerLostBoard is the battlefield the departing player controlled
+	// when a Mode$ LosesGame trigger fired, in battlefield-zone order (CR
+	// 800.4a, 608.2h): the loss's own state-based sweep removes those
+	// permanents before the trigger resolves, so Defined$
+	// TriggeredLastStateBattlefieldLKICopy (Miss Highwater) reads the ids
+	// captured here, never the live battlefield. Captured by rules/
+	// triggerReferents from the PlayerLost event, immutable once built, and
+	// not serialized into events.Event: replay re-derives it at the same
+	// point. Empty outside a LosesGame capture.
+	TriggerLostBoard []state.ObjID
 	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
 	// SpellAbilityCast trigger fired on. An AbilityPush event's Obj
 	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper

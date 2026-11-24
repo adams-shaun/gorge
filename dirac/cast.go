@@ -1296,7 +1296,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 // when none does, as gorge offers. It reports whether it asked.
 func (s *State) pipOptions(k *prep, d *Decision) bool {
 	e := &s.bld().e
+	// the faces are announced before the targets (CR 601.2b, 601.2c): gorge's
+	// pending cast prices them with the modifiers composed for no target, so a
+	// ValidTarget$ reduction (Strong Back's {3} off an Aura aimed at its
+	// creature) waits for the answer rather than taking the cheapest target
+	was := s.g.noTgtRed
+	s.g.noTgtRed = was || e.nt == 0 && !s.targetsAnswered()
 	cost := s.buildCost(k)
+	s.g.noTgtRed = was
 	if s.buildingPowerUp(k) {
 		cost = s.buildCostCharge(k) // the faces are priced against the CR 702.193b charge, as gorge's pip ask reads the reduced cost
 	}
@@ -2518,64 +2525,70 @@ func (s *State) payPicks(k *prep) {
 		if f == pkTapX && k.costObj && !s.escBfEntry(k) {
 			s.payExilePicks() // after the discards (gorge payCast)
 		}
-		// the cost's tap parts are one tapping action (gorge paidcost.go's
-		// BatchTap bracket; trig_tapall.go)
-		tb := f == pkTapX && s.tapBatchOpen(k)
-		for i := 0; i < int(s.bld().pickN); i++ {
-			if s.bld().pickKs[i] != f {
-				continue
-			}
-			o := s.bld().picks[i]
-			ob := &s.objs[o]
-			switch f {
-			case pkDiscard:
-				if ob.zone == kop.ZoneHand {
-					if s.bld().e.kind == seSpell && k.gen != nil && k.gen.anyDiscRef {
-						s.bld().e.trigObj = o // RefDiscarded (value_discardedref.go)
-					}
-					if !s.parkCost(k, o, parkDiscard, 0) {
-						s.discardObj(k, o)
-					}
-				}
-			case pkTapX:
-				if ob.zone == kop.ZoneBattlefield {
-					was := s.perms[ob.slot].flags & pfTapped
-					s.perms[ob.slot].flags |= pfTapped
-					s.touch(o)
-					if was == 0 {
-						if k.gen != nil && s.subs[kop.TrigTaps].any() {
-							if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
-								s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
-							} else {
-								s.fireTaps(k, ob.slot)
-							}
-						}
-						s.markTapped(k, ob.slot) // only a tap that happens marks
-					}
-					if k.gen != nil && k.gen.crewBy != nil {
-						s.noteCrewPick(k, ob.slot) // CrewedThisTurn marks (filter_combatwords.go)
-					}
-				}
-			case pkSac:
-				// gorge taps the planned sources before any cost is paid
-				// (CR 601.2g-h), so every sacrifice pick waits for the
-				// mana (paySacsGen): a sacrificed Elf still counts for
-				// Elvish Archdruid's mana (pair 9100)
-				if ob.zone == kop.ZoneBattlefield && k.gen == nil {
-					if s.pickExiles(k) {
-						s.leave(k, ob.slot, kop.ZoneExile, false) // Exile<N/Spec>: no sacrifice (cost_exilebf.go)
-						continue
-					}
-					s.fireSac(k, ob.slot)
-					s.leave(k, ob.slot, kop.ZoneGraveyard, false)
-				}
-			}
-		}
-		s.tapBatchClose(tb)
+		s.payPickKind(k, f)
 	}
 	if k.gen == nil && s.escBfEntry(k) {
 		s.payExilePicks() // the escape cast's graveyard exiles follow its permanent's (paySacsGen otherwise)
 	}
+}
+
+// payPickKind pays the picks of kind f the build collected (payPicks' per-kind
+// pass; the cost-program walker pays one atom's kind at a time).
+func (s *State) payPickKind(k *prep, f pickKind) {
+	// the cost's tap parts are one tapping action (gorge paidcost.go's
+	// BatchTap bracket; trig_tapall.go)
+	tb := f == pkTapX && s.tapBatchOpen(k)
+	for i := 0; i < int(s.bld().pickN); i++ {
+		if s.bld().pickKs[i] != f {
+			continue
+		}
+		o := s.bld().picks[i]
+		ob := &s.objs[o]
+		switch f {
+		case pkDiscard:
+			if ob.zone == kop.ZoneHand {
+				if s.bld().e.kind == seSpell && k.gen != nil && k.gen.anyDiscRef {
+					s.bld().e.trigObj = o // RefDiscarded (value_discardedref.go)
+				}
+				if !s.parkCost(k, o, parkDiscard, 0) {
+					s.discardObj(k, o)
+				}
+			}
+		case pkTapX:
+			if ob.zone == kop.ZoneBattlefield {
+				was := s.perms[ob.slot].flags & pfTapped
+				s.perms[ob.slot].flags |= pfTapped
+				s.touch(o)
+				if was == 0 {
+					if k.gen != nil && s.subs[kop.TrigTaps].any() {
+						if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
+							s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
+						} else {
+							s.fireTaps(k, ob.slot)
+						}
+					}
+					s.markTapped(k, ob.slot) // only a tap that happens marks
+				}
+				if k.gen != nil && k.gen.crewBy != nil {
+					s.noteCrewPick(k, ob.slot) // CrewedThisTurn marks (filter_combatwords.go)
+				}
+			}
+		case pkSac:
+			// gorge taps the planned sources before any cost is paid
+			// (CR 601.2g-h), so every sacrifice pick waits for the
+			// mana (paySacsGen): a sacrificed Elf still counts for
+			// Elvish Archdruid's mana (pair 9100)
+			if ob.zone == kop.ZoneBattlefield && k.gen == nil {
+				if s.pickExiles(k) {
+					s.leave(k, ob.slot, kop.ZoneExile, false) // Exile<N/Spec>: no sacrifice (cost_exilebf.go)
+					continue
+				}
+				s.fireSac(k, ob.slot)
+				s.leave(k, ob.slot, kop.ZoneGraveyard, false)
+			}
+		}
+	}
+	s.tapBatchClose(tb)
 }
 
 // occurrence is pending trigger i's index among the pending triggers with

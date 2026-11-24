@@ -1,0 +1,3 @@
+{"format":"gorge-start-1","focus":"Blanchwood Armor","players":2,"opponent":"explore","active":0,
+ "setup":{"p0":{"battlefield":["Llanowar Elves","Forest","Forest"],"attached":[{"card":"Blanchwood Armor","to":"Llanowar Elves"}],"hand":["Forest"]},
+          "p1":{"battlefield":["Savannah Lions","Plains"],"attached":[{"card":"Blanchwood Armor","to":"p0:Llanowar Elves"}]}}}

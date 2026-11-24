@@ -77,17 +77,36 @@ func TestParanormalAnalystLowers(t *testing.T) {
 	}
 }
 
-// TestUnidentifiedHovershipLowers: the real DSK card lowers with the
-// remembered-persist pair — the ETB exile remembers, the leave trigger
-// manifests dread for the remembered card's owner (RefRememberedOwner) and
-// clears the set.
+// rememberedOwnerDreadProbe is the remembered-owner shape Unidentified
+// Hovership printed until upstream Forge moved it to the exiled-with read
+// (TestUnidentifiedHovershipExiledWithOwnerLowers): the ETB exile remembers,
+// the leave trigger manifests dread for the remembered card's owner and
+// clears the set. A synthetic probe keeps the shape covered.
+const rememberedOwnerDreadProbe = `Name:Remembered Owner Dread Probe
+ManaCost:1 W W
+Types:Artifact Vehicle
+PT:2/2
+T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self | Execute$ PrbAway | TriggerDescription$ probe enters
+SVar:PrbAway:DB$ ChangeZone | ValidTgts$ Creature | TargetMin$ 0 | TargetMax$ 1 | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | TgtPrompt$ probe target
+T:Mode$ ChangesZone | Destination$ Any | Origin$ Battlefield | ValidCard$ Card.Self | Execute$ PrbDread | TriggerDescription$ probe leaves
+SVar:PrbDread:DB$ ManifestDread | DefinedPlayer$ RememberedOwner | SubAbility$ PrbClear
+SVar:PrbClear:DB$ Cleanup | ClearRemembered$ True
+`
+
+// TestUnidentifiedHovershipLowers: the remembered-owner dread shape lowers
+// with the remembered-persist pair — the ETB exile remembers, the leave
+// trigger manifests dread for the remembered card's owner
+// (RefRememberedOwner) and clears the set.
 func TestUnidentifiedHovershipLowers(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	card, ok := reg.Lookup("Unidentified Hovership")
-	if !ok || card == nil {
-		t.Fatal("Unidentified Hovership not in the corpus")
+	card, diags := cards.ParseBytes("probe.txt", []byte(rememberedOwnerDreadProbe))
+	if card == nil || len(diags) != 0 {
+		t.Fatalf("parse: %v", diags)
 	}
-	p := &pool{byName: map[string]*cards.Card{card.Faces[0].Name: card}, nDecks: map[string]int{}, reg: reg}
+	if d := card.Link(); len(d) != 0 {
+		t.Fatalf("link: %v", d)
+	}
+	p := &pool{names: []string{card.Faces[0].Name}, byName: map[string]*cards.Card{card.Faces[0].Name: card}, nDecks: map[string]int{}, reg: reg}
 	lc := lowerCard(p, card.Faces[0].Name, card, false)
 	for _, rf := range lc.Refusals {
 		t.Errorf("refused: %s", rf.Reason)

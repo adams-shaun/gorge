@@ -1,20 +1,95 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Splitting the Powerstone	82154b809b445735	4	0/0		1/2	ix:resp
+Anointed Deacon	e774edb4f1a7b292	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Assault Suit	8461c940d1982b40	12	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Auriok Champion	933930db5430cc66	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Avacynian Priest	b8914b98c83315eb	4	1/1		0/1	ix:resp
+Blade of the Bloodchief	30a1468619591c47	12	2/2		1/1	
+Blight Mamba	986a35acb45eb6e4	4	1/1		1/1	
+Bloodcrazed Socialite	39e2148e82f2c2e2	3	2/2		0/1	ix:resp
+Bone Saw	16abc82f220d3f02	5	1/1		0/1	ix:resp
 Cement Shoes	1728ea31434208fa	8	1/1		0/1	ix:resp
+Centaur Glade	bff3bcb64fa6b064	4	1/1		0/1	ix:resp
+Chatterstorm and Awaken the Woods	588aa809592f5f3f	6	1/1		2/2	
+Chong and Lily, Nomads	9ec8a1cf809a8faf	3	1/1		0/1	ix:resp
+Conjurer's Bauble	8d5ca24f4365732f	4	1/1		0/1	ix:resp
 Coral Commando	f1c9908c5c40fbb3	6	0/0		0/0	
+Curse of Opulence	f9aca12a5d89b153	7	1/1		1/2	ix:resp
+Death Watch	033de3808fe34142	4	1/1		1/2	ix:resp
+Dimir Keyrune	3f25cbc0f478bd1f	3	2/2		0/1	ix:resp
+Dreadhorde Twins	3d43c1c9d5b4ab11	6	1/1		0/1	ix:resp
+Dripping-Tongue Zubera	0cd714577262342a	4	1/1		0/1	ix:resp
+Enfeeblement	3c1069e7a4c3fcdf	4	0/0		1/2	ix:resp
+Enslaved Scout	3cc4a3a638ab4ab5	6	1/1		1/1	
 Eunuchs' Intrigues	1a0ee0bfc3e4e39a	4	0/0		1/2	ix:resp
+Fearless Pup	17403312db6c441b	7	1/1		0/1	ix:resp
+Feast or Famine	f7f1b3ac0e1a1d85	4	0/0		1/2	ix:resp
+Fire Diamond	b1adf5652c505289	4	1/1		0/1	ix:resp
 Force Away	2a38d62aeec9cebc	31	0/0		2/2	
 Frost Bite	9976a02ac05abee8	28	0/0		1/2	ix:resp
+Fungal Bloom	8e7a5433069e53cd	6	1/1		1/1	
 Gaea's Bounty	06b757b3006656a2	4	0/0		1/2	ix:resp
+Glistening Deluge	b96abb646c13df76	4	0/0		1/2	ix:resp
+Goblin Traprunner	343e69594b44fc3d	7	1/1		0/1	ix:resp
+Golgari Rotwurm	c70b212d492d8efa	4	1/1		0/1	ix:resp
 Groffskithur	b4add00e9aa2b207	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Groundshaker Sliver	8a54a19a98240dfd	3	0/0		0/0	
 Harabaz Druid	953aa825c06de13b	5	1/1		1/1	
+Heartfire	b9c7dea331e6c501	8	0/0		2/2	
+Helm of the Gods	721d8984a0518fb0	10	1/1		0/1	ix:resp
+Hexmark Destroyer	456cf8c6c4127d3f	9	1/1		1/1	
+Hobbling Zombie	da1e0a1167c9ec29	4	1/1		0/1	ix:resp
+Homing Lightning	9ccfd5fc56ba6aed	7	0/0		1/2	ix:resp
+Jungle Patrol	dce94add5207085a	5	2/2		0/1	ix:resp
+Karsus Depthguard	6bbd884b152422a3	6	0/0		0/0	
+Kavu Scout	b178a2fe2b0401f1	8	0/0		0/0	
+Lightning Diadem	6e75570991558c93	7	1/1		1/2	ix:resp
+Lone Wolf	5b16deb1dbdce9e6	10	0/0		0/0	
+Lothlórien Lookout	71af044a2c19263a	4	1/1		1/1	
+Manglehorn	061c97e1707d5907	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mind Whip	074b466eedb8665f	4	1/1		1/2	ix:resp
 Mindsplice Apparatus	2664d06232a26b46	4	1/1		1/1	
+Mishra's Juggernaut	834cac824e88c95c	5	1/1		0/1	ix:resp
+Mishra's Workshop	f658e322a67849aa	21	1/1		0/1	ix:resp
+Mockingbird, Bobbi Morse	4502deb8808f77fe	3	1/1		1/1	
+Myr Landshaper	482d19aec8002615	3	1/1		0/1	ix:resp
+Narnam Cobra	331d43b0e5ba1e48	8	1/1		0/1	ix:resp
+Nightscape Apprentice	fa9770e0a8b28088	6	2/2		1/1	
+Nourish	ee0a8ce55827ee78	5	0/0		1/2	ix:resp
+Odious Trow	98475126fa56cbae	5	1/1		0/1	ix:resp
+Origin of the Hulk	75c4d2e64c8e757f	4	0/0		0/0	
+Patron of the Vein	aba9cd271ca3ea8b	3	2/2		0/1	ix:resp
+Pit Spawn	af1d4035eac9ca85	4	2/2		1/1	
+Plague Myr	5b58ac68aabd9ea8	4	1/1		0/1	ix:resp
+Quicksand	6eee4927c569896f	15	2/2		0/1	ix:resp
+Regal Sliver	8d9b86ce3a633398	3	0/0		0/0	
+Revel of the Fallen God	3972a1d1365f9b5b	8	0/0		2/2	
+Rite of Passage	33b2a821fc029212	3	1/1		1/1	
+Rock Lobster	d196f2abc65b42d8	3	0/0		0/0	
+Ruination Rioter	aae23700efbb2a93	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Saprazzan Skerry	9ee494a4b9ab659a	31	1/1		0/1	ix:resp
+Seal Away	9fa11b83fdd58d09	4	1/1		0/1	ix:resp
 Shipwreck Looter	45df259c62d05d8d	3	1/1		0/1	ix:resp
 Shore Snapper	8812e72735512253	7	1/1		0/1	ix:resp
+Sink into Takenuma	31683d0874e09a10	3	0/0		1/2	ix:resp
 Skrelv, Defector Mite	2c1631742a90225c	4	1/1		0/1	ix:resp
+Spawning Bed	32866bef16ba6c29	20	2/2		0/1	ix:resp
+Spitting Spider	74d8c7611c505594	5	1/1		1/1	
+Stone Kavu	018343026cf53a45	3	2/2		1/1	
+Swift Demise	2aaeb6dc83ee23ca	8	0/0		1/2	ix:resp
+Taiga	55ebee1ff87d853b	20	2/2		0/1	ix:resp
+Tatterkite	6985960d3b173e48	11	0/0		0/0	
+Toe-Breaking Helmet	a151631cca5257a1	3	2/2		0/1	ix:resp
+Trumpeting Armodon	9b2054e3e11d8fa6	8	1/1		1/1	
+Turbulent Steppe	70c1a5da1269a643	37	2/2		0/1	ix:resp
+Twice Upon a Time	f86ad703b7e51a02	9	0/0		1/3	f1/s,ix:resp
+Undercellar Myconid	8d7ccfd5f465ade1	10	3/3		0/1	ix:resp
+Vandalblast	f7b3fc60322f033e	5	0/0		3/4	ix:resp
+Wall of Stone	13304e35604850c6	11	0/0		0/0	
+Warehouse Thief	b9418a33e0afa7c6	8	1/1		0/1	ix:resp
 Water Elemental	3c7abc5e8303a18d	4	0/0		0/0	
 Wild Cantor	752ebb431c77d41b	4	1/1		0/1	ix:resp
 Wild Celebrants	029a2a193ed582b9	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Willow Dryad	c977f1aeb60b1587	3	0/0		0/0	
+Wily Bandar	bcf9e9b8d5367bce	4	1/1		1/1	
 Yanling's Harbinger	539763ac6dfe38cf	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

@@ -41,6 +41,7 @@ Beacon Bolt
 Beastmaster's Magemark
 Beregond of the Guard
 Bishop of Rebirth
+Bite of the Black Rose
 Black Dragon
 Black Panther, Most Dangerous
 Blade-Blizzard Kitsune
@@ -174,6 +175,7 @@ Hierophant's Chalice
 Hobgoblin Bandit Lord
 Howl of the Night Pack
 Huatli's Snubhorn
+Hungry Lynx
 Ian the Reckless
 Illusionary Wall
 Illusory Ambusher
@@ -261,6 +263,7 @@ Oakenform
 Oakheart Dryads
 Oboro Envoy
 Obsessive Collector
+Obsidian Acolyte
 Ondu Giant
 Onslaught
 Oracle of Mul Daya
@@ -334,6 +337,7 @@ Sever the Bloodline
 Shadow Guildmage
 Shalai's Acolyte
 Sharktocrab
+Shattering Spree
 She-Hulk, Attorney-at-Law
 Sheltered Aerie
 Sheoldred's Headcleaver

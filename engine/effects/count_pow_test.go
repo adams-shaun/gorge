@@ -49,7 +49,7 @@ func TestNumberPow(t *testing.T) {
 func TestNumberPowCorpusCarriers(t *testing.T) {
 	testutil.CorpusRegistry(t) // an absent corpus must SKIP, not pass vacuously
 	var carriers []string
-	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	root := corpusWalkRoot(t, cards.CorpusDir(testutil.CorpusDirOrSkip(t)))
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err

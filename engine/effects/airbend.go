@@ -41,6 +41,21 @@ const AirbendExileCounter = "airbend"
 // AirbendExileCounter marker on top is this primitive's only addition.
 func effAirbend(h Host, c *Ctx, sa *cards.SA) {
 	bent := false
+	// "Airbend all other creatures" exiles the whole set at once (CR 701.65a
+	// airbends each object in the one instruction; CR 603.10a: a
+	// leaves-the-battlefield trigger looks back at the board before ANY of
+	// them left). The departures are parked as one batch so Suki, Courageous
+	// Rescuer, airbent with the others, still sees them leave.
+	var bender []state.ObjID
+	for _, t := range Defined(h, c, sa) {
+		if o := h.Game().Obj(t.Obj); !t.IsPlayer && o != nil && o.Zone == state.ZBattlefield {
+			bender = append(bender, o.ID)
+		}
+	}
+	if len(bender) > 0 {
+		h.BatchDepartures(bender)
+		defer h.EndBatchDepartures()
+	}
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue

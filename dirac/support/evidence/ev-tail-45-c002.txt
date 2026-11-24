@@ -42,6 +42,7 @@ Bonesplitter Sliver
 Boundless Realms
 Brazen Freebooter
 Brine Seer
+Brine Shaman
 Call of the Death-Dweller
 Caller of the Claw
 Callous Dismissal
@@ -55,6 +56,7 @@ Chosen of Markov
 Chronomaton
 Citizen's Crowbar
 Cityscape Leveler
+Clairvoyance
 Clearwater Goblet
 Colossus Hammer
 Constricting Sliver
@@ -64,6 +66,7 @@ Corrupted Harvester
 Court Archers
 Crossroads Consecrator
 Culling Mark
+Curator's Ward
 Curse of the Nightly Hunt
 Dance of the Skywise
 Dark Inquiry
@@ -79,6 +82,7 @@ Detained by Legionnaires
 Devoted Paladin
 Dinosaur Stampede
 Distract
+Djinn of the Lamp
 Domri's Nodorog
 Dreamscape Artist
 Dregscape Zombie
@@ -95,6 +99,7 @@ Elite Javelineer
 Elspeth, Undaunted Hero
 Elven Palisade
 Elvish Dreadlord
+Eris, Roar of the Storm
 Ethereal Elk
 Eviscerator
 Ezuri, Renegade Leader
@@ -110,9 +115,11 @@ Fire Snake
 Fires of Undeath
 Flailing Soldier
 Flame Slash
+Flamestick Courier
 Flare of Faith
 Flash Flood
 Fledgling Dragon
+Fly
 Forest
 Forest Bear
 Foundry Helix
@@ -147,11 +154,13 @@ Herald of War
 Hero's Demise
 Heronblade Elite
 Hidden Guerrillas
+Homarid Warrior
 Hua Tuo, Honored Physician
 Hungry Spriggan
 Hunter's Insight
 Icatian Town
 Ikiral Outrider
+Illusory Gains
 Initiate's Companion
 Inquisition of Kozilek
 Iron Lad, Young Avenger
@@ -180,9 +189,11 @@ Lonely Sandbar
 Looming Hoverguard
 Lowland Giant
 Loxodon Sergeant
+MagicConsecrated Sphinx
 Magus of the Order
 Many Partings
 March of the Drowned
+Markov Warlord
 Marrow Bats
 Martyr for the Cause
 Mercurial Pretender
@@ -212,6 +223,7 @@ Nyxathid
 Obelisk of Bant
 Ogre Jailbreaker
 Ogre Warrior
+Omen of the Sea
 Omenspeaker
 One with the Kami
 Onulet
@@ -257,6 +269,7 @@ Sanctum of Tranquil Light
 Sandstone Needle
 Saproling Burst
 Saproling Migration
+Saw It Coming
 Scalebane's Elite
 Scattershot
 Scoria Cat
@@ -264,6 +277,8 @@ Seasoned Pyromancer
 Second Breakfast
 Seekers' Squire
 Sensory Deprivation
+Serum-Core Chimera
+Shaman of the Great Hunt
 Shambling Remains
 Shatterskull Charger
 Shield of Duty and Reason
@@ -298,6 +313,7 @@ Stitch Together
 Stoic Builder
 Storm of Steel
 Stormchaser Chimera
+Stormwatch Eagle
 Stromgald Crusader
 Stronghold Overseer
 Succumb to Temptation
@@ -342,12 +358,14 @@ Watcher of the Spheres
 Weakstone
 Weird Harvest
 Welding Sparks
+Whimwader
 Whispers of Emrakul
 Willow Elf
 Windstorm
 Winged Hive Tyrant
 Wingmantle Chaplain
 Wings of Velis Vel
+Wipe Away
 Withstand Death
 Wizard's Staff
 Wriggling Grub

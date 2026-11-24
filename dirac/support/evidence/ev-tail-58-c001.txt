@@ -21,6 +21,7 @@ Angel of Renewal
 Animist's Awakening
 Anoint with Affliction
 Ant-Man's Air Force
+Apocalypse Hydra
 Argothian Elder
 Assassin's Strike
 Augmenting Automaton
@@ -39,13 +40,17 @@ Bogardan Firefiend
 Boggart Forager
 Bonded Construct
 Bonds of Quicksilver
+Born to Drive
 Bramblesnap
 Break of Day
 Briarhorn
+Bright Reprisal
 Bronze Cudgels
 Brood Weaver
 Calamity's Wake
+Canal Dredger
 Candelabra of Tawnos
+Capashen Unicorn
 Casting of Bones
 Cat Warriors
 Ceremonious Rejection
@@ -55,6 +60,7 @@ Charging Bandits
 Chimeric Mass
 Chrome Mox
 Cinder Pyromancer
+Clan Guildmage
 Cleansing Nova
 Cogwork Librarian
 Compulsory Rest
@@ -73,6 +79,8 @@ Deathbonnet Sprout
 Debtor's Pulpit
 Deluge
 Desperate Plea
+Devoted Caretaker
+Disciple of Freyalise
 Disciple of Grace
 Disempower
 Distant Melody
@@ -91,6 +99,7 @@ Early Frost
 Eccentric Farmer
 Elder Owyn Lyons
 Elgaud Inquisitor
+Elite Arrester
 Elite Headhunter
 Emissary of the Sleepless
 Enraged Giant
@@ -100,9 +109,12 @@ Eternal Flame
 Fantastic Elasticity
 Farsight Mask
 Fateful Handoff
+Fatigue
 Favorable Winds
 Festival Crasher
+Fire at Will
 Fists of Ironwood
+Flame Rift
 Flameborn Viron
 Flood of Tears
 Forest
@@ -117,6 +129,7 @@ Gate of the Black Dragon
 General's Enforcer
 Ghirapur Aether Grid
 Giant Dustwasp
+Glint-Horn Buccaneer
 Glint-Nest Crane
 Goblin Engineer
 Goblin Lore
@@ -128,8 +141,11 @@ Grave Strength
 Gravecrawler
 Gravedig
 Grismold, the Dreadsower
+Grotag Night-Runner
+Ground Rift
 Guardian of Pilgrims
 Guma
+Hajar, Loyal Bodyguard
 Hamato Ninpō
 Harbor Bandit
 Haunted Crossroads
@@ -152,6 +168,7 @@ Inspired Sphinx
 Involuntary Cooldown
 Iron Myr
 Iron Will
+Ironfist Crusher
 Island
 Ivory Tower
 Jarl of the Forsaken
@@ -200,6 +217,7 @@ Mortal Obstinacy
 Mountain
 Mox Diamond
 Murder of Crows
+Mutagenic Growth
 Mystic Compass
 Mystic Meditation
 Natural Obsolescence
@@ -234,6 +252,7 @@ Prognostic Sphinx
 Prophet of Distortion
 Prophet of the Peak
 Pyrostatic Pillar
+Quandrix Cultivator
 Quarrel's End
 Quasiduplicate
 Rainbow Crow
@@ -290,12 +309,14 @@ Slith Ascendant
 Snow-Covered Island
 Soul Rend
 Soul of Innistrad
+Sparkcaster
 Sparkmage's Gambit
 Spider-Man 2099, Miguel O'Hara
 Spidery Grasp
 Spike Tiller
 Spine of Ish Sah
 Spirit Loop
+Spoils of Adventure
 Sprouting Phytohydra
 Staff of Titania
 Stag Beetle
@@ -355,12 +376,15 @@ Vraska's Stoneglare
 Vryn Wingmare
 Wailing Ghoul
 Wall of Kelp
+Warchief Giant
 Weatherseed Faeries
 Welkin Guide
 Wheel of Fortune
 Whipcorder
 Wild Wanderer
+Wildfire Awakener
 Wishcoin Crab
+Wistful Selkie
 Witness of Tomorrows
 Woebringer Demon
 Wolfbriar Elemental

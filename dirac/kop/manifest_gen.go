@@ -2,6 +2,91 @@
 
 package kop
 
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomAddCounter)
+//
+// CostAtomAddCounter: put N counters of kind Ctr on the source as a cost (CR 606.3, ctrPutCost). Dirac: placeCounters.
+const CostAtomAddCounter CostAtomKind = 1
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomBehold)
+//
+// CostAtomBehold: behold N objects (gorge paid.Beholds, optionally then exiled). The kernel pays no behold cost on an ability yet.
+const CostAtomBehold CostAtomKind = 2
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomDiscard)
+//
+// CostAtomDiscard: discard N cards matching F: the cards the pick stage chose (pkDiscard).
+const CostAtomDiscard CostAtomKind = 3
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomDraw)
+//
+// CostAtomDraw: draw N cards as a cost (gorge payDrawCostParts; no dredge ask). Dirac: payDraw (cost_resolutionpays.go).
+const CostAtomDraw CostAtomKind = 4
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomExert)
+//
+// CostAtomExert: exert the source (CR 701.39a): the one-shot no-untap mark. Dirac: pfSkipUntap.
+const CostAtomExert CostAtomKind = 5
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomExileFromZone)
+//
+// CostAtomExileFromZone: exile from a zone: Z battlefield with F == 0 the source (exileSelfCost), Z graveyard or hand N cards the pick stage chose (pkExile, payExilePicks).
+const CostAtomExileFromZone CostAtomKind = 6
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomExiledMoveToGrave)
+//
+// CostAtomExiledMoveToGrave: each chosen exiled card moves to its owner's graveyard (gorge's moveGraves, paid after the exile parts). No kernel payer yet.
+const CostAtomExiledMoveToGrave CostAtomKind = 7
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomMana)
+//
+// CostAtomMana: the mana part of the cost: a position marker. The mana itself is paid by the build's mana stage (gorge payManaDescriptor, the first part of payCast's ability arm), so the walker pays nothing here; canActivate prices it.
+const CostAtomMana CostAtomKind = 8
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomMill)
+//
+// CostAtomMill: mill N from your library as a cost (gorge payMillCostParts). Dirac: millCostPay (cost_millcost.go).
+const CostAtomMill CostAtomKind = 9
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomPayLife)
+//
+// CostAtomPayLife: pay N life (gorge's paylife proposal). Dirac: loseLife.
+const CostAtomPayLife CostAtomKind = 10
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomReturn)
+//
+// CostAtomReturn: return the source to its owner's hand as a cost. Dirac: leave to ZoneHand (CostReturnSelf).
+const CostAtomReturn CostAtomKind = 11
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomReveal)
+//
+// CostAtomReveal: reveal the source (Reveal<1/CARDNAME>, CR 201.5): nothing moves and the offer prices the source's zone. Dirac: the RevealSelf guard.
+const CostAtomReveal CostAtomKind = 12
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomSac)
+//
+// CostAtomSac: sacrifice: F == 0 the source, else N permanents matching F the build's pick stage chose (pkSac). Dirac: fireSac+leave, or the sacrifice picks.
+const CostAtomSac CostAtomKind = 13
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomSubCounter)
+//
+// CostAtomSubCounter: remove N counters of kind Ctr from the source. Dirac: subCtrFire (trig_counterremoved.go).
+const CostAtomSubCounter CostAtomKind = 14
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomTap)
+//
+// CostAtomTap: {T}: tap the source (gorge cast_commit.go: emitTap, after the life and before the discards). Dirac: tapSelfCost.
+const CostAtomTap CostAtomKind = 15
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomTapType)
+//
+// CostAtomTapType: tap N untapped permanents matching F you control (gorge TapPermanent, paid at its ask): the pick stage's pkTapX.
+const CostAtomTapType CostAtomKind = 16
+
+// CostAtomKind (dirac/manifest/CostAtomKind/CostAtomUntap)
+//
+// CostAtomUntap: {Q}: untap the source, or remove a stun counter instead (CR 122.1d). Dirac: untapCost (cost_untap.go).
+const CostAtomUntap CostAtomKind = 17
+
 // ctr KI (dirac/manifest/CounterKind/CtrKi)
 const CtrKi CounterKind = 81
 
@@ -1635,25 +1720,30 @@ const FwSharesName FilterWord = 13
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
 const FwSubtype FilterWord = 14
 
+// FilterWord (dirac/manifest/FilterWord/FwSuspended)
+//
+// FwSuspended: the candidate is a suspended card -- in exile with a positive time counter, a Suspend card (gorge's compiled `suspended` read, predicates["suspended"] at engine/effects/filter.go:637, which the matcher consults before wordSuspended; the kernel reads the card's DurSuspend record, kw_suspend.go suspendTime); a card whose last counter went, or that is anywhere but exile, reads false.
+const FwSuspended FilterWord = 15
+
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 15
+const FwTapped FilterWord = 16
 
 // FilterWord (dirac/manifest/FilterWord/FwTopLibrary)
 //
 // FwTopLibrary: the candidate is the top card of its owner's library (gorge wordTopLibrary, engine/effects/filter_word.go:887: index 0 of the owner's library slice); a card deeper in the library, or one not in a library, reads false.
-const FwTopLibrary FilterWord = 16
+const FwTopLibrary FilterWord = 17
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 17
+const FwToughnessCmp FilterWord = 18
 
 // FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
 //
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
-const FwWithKeyword FilterWord = 18
+const FwWithKeyword FilterWord = 19
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

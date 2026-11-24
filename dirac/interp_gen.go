@@ -762,8 +762,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainControl:
 		s.opGainControl(k, in)
 	case kop.OpOverride:
-		if in.B.N == kop.OvEnterWith && s.g.ewDone {
-			s.g.ewDone = false
+		if in.B.N == kop.OvEnterWith && s.g.ewDone != 0 {
+			s.g.ewDone--
 			break // applied as the return entered (enterAssimilated)
 		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
@@ -948,8 +948,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C != 0 {
 			card = resChosenCard // a card-type category (kw_madness.go)
 		}
-		if o := s.g.replaced; in.C == 0 && o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
-			s.queueAsk(s.objs[o].slot, 2)
+		if o := s.g.replaced; o != NoObj && s.objs[o].zone == kop.ZoneBattlefield {
+			s.queueAsk(s.objs[o].slot, 2) // an as-enters card type (C != 0) rides the same ask (act_choosecardenter.go)
 		} else if _, sl := s.resolutionTypeSource(); DebugChooseTypeReuse && sl != NoSlot && s.perms[sl].chosen != 255 {
 			s.res.chosen = s.perms[sl].chosen // act_choosebasicland.go's mutation
 			s.res.bad |= resChosenType | card
@@ -1843,8 +1843,10 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
 	default:
+		armed := s.enterWithArm(k, in) // zone_assimilate.go
 		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
+		s.enterWithSettle(k, sl, armed)
 	}
 	s.g.enterCtr.n, s.g.enterCtr.kind2 = 0, 0
 	s.g.retMiss = false

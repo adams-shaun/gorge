@@ -228,12 +228,7 @@ func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl u
 		fl.Flags2 &^= kop.F2ChosenColor
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
-		ch, ok := s.chosenTypeSub(src)
-		cd := &k.t.Cards[c]
-		has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-		if ok && outsideSub(k, ch) {
-			has = cd.AllCreatureTypes
-		}
+		has := s.srcChosenHasCard(k, src, &k.t.Cards[c]) // act_choosecardenter.go
 		fl.Flags2 &^= kop.F2ChosenType
 		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
@@ -769,6 +764,15 @@ func (s *State) tgtRedPrice(k *prep, e *stackEntry, c TCode, av *avail) bool {
 	}
 	if e.flags&sfKicked != 0 {
 		cost = s.addKickerPayments(cd, e, cost)
+	}
+	// the announced faces (CR 601.2b, before the target) are the pips the
+	// payment charges: a reduced price a face the pool cannot pay stays
+	// unpayable (gorge prices pc.resolvedMana, Favor of the Overbeing's {G}
+	// under Strong Back beside a floating {U})
+	if cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
+		for i := 0; i < int(s.bld().pipN) && cost.Hyb[0] != 0; i++ {
+			cost = cost.Resolve(s.bld().pipCol(uint8(i)))
+		}
 	}
 	// the announced X is part of the price the payment charges (affordableTargets)
 	cost = cost.AtX(int(e.x))

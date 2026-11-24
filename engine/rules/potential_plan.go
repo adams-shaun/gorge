@@ -795,6 +795,9 @@ func (e *Engine) potentialModeCastPlan(p state.PlayerID, o decision.Option) (out
 	prevPrototype := e.planPrototype
 	e.planPrototype = castModeCodes.Code(o.Mode) == castModePrototype
 	defer func() { e.planPrototype = prevPrototype }()
+	prevBestowed := e.planBestowed
+	e.planBestowed = o.Mode == altMode(altBestow)
+	defer func() { e.planBestowed = prevBestowed }()
 	id := o.Obj
 	obj := e.G.Obj(id)
 	if obj == nil || obj.Face() == nil {
@@ -2040,6 +2043,7 @@ func (e *Engine) planComposedCostFor(p state.PlayerID, id state.ObjID, cast deci
 	}
 	desc.FaceIdx = e.planFaceIdx(id)             // an alternate-face route's restriction reads the cast face
 	desc.Prototype = !ability && e.planPrototype // a prototyped route reads the K:Prototype inset (CR 718.3a)
+	desc.Bestowed = !ability && e.planBestowed   // a bestowed route is an Aura spell (CR 702.103b)
 	return e.planReserving(p, id, composed, ability, selfSource, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 		out := pay.PlanPaymentCostWithout(asPayer(e), p, cast, manaOnly, &desc, append(slices.Clone(tapped), tapR...), nil, append(slices.Clone(kept), keptR...))
 		if out.Plan != nil && out.Reason == "search_limit" {
@@ -2554,7 +2558,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			if !(manaFeeNetsNoMana(gcost, gmp, gextra) || manaTapAbilityNetsNoMore(gcost, gmp, gextra, best)) {
 				// A once-only fee-bearing gap nets only what exceeds the source's
 				// own covered production (gapBoundedSupply).
-				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gmp, gextra, fee, best, once, gcost.Tap); bounded {
+				if n, bounded := gapBoundedSupply(e, asPayer(e), p, id, ma, gcost, gmp, gextra, fee, best, repeats, once, ok); bounded {
 					out.gapSupply += n
 				} else {
 					out.gapGains = true

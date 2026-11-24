@@ -37,6 +37,7 @@ Blood Aspirant
 Bloodcrazed Socialite
 Blustersquall
 Body Launderer
+Bolg, Erebor's Reckoning
 Bone Sabres
 Bone Saw
 Boon of Erebos
@@ -70,6 +71,7 @@ Conjurer's Bauble
 Coral Commando
 Core Prowler
 Corpse Blockade
+Cowed by Wisdom
 Cradle of Vitality
 Cradle to Grave
 Crested Sunmare
@@ -224,6 +226,7 @@ Living Lightning
 Living Tsunami
 Llanowar Elite
 Llanowar Scout
+Lone Wolf
 Loran's Escape
 Lorescale Coatl
 Lothlórien Lookout

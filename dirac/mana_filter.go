@@ -169,7 +169,7 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	// planner never priced). The pool-pays read (filtPaid) is the cheap arm;
 	// the bound's is filtBoundPays (below).
 	for b := m; b.any(); b = b.rest() {
-		if sl := b.first(); !s.filtPaid(k, p, sl) && !s.filtBoundPays(k, p, sl) {
+		if sl := b.first(); !s.filtPaid(k, p, sl) && !s.filtBoundPays(k, p, sl) && !s.tapsDeferred(k, p, sl) {
 			m = m.without(sl) // the fee is out of gorge's census (potential_plan.go)
 		}
 	}
@@ -1675,6 +1675,8 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	switch {
 	case a.Kind() == AkActivate && a.Mode()&0xC0 == 0:
 		return s.lifePainActAffords(k, a, p, o)
+	case a.Kind() == AkCast && a.Mode() == 2 && s.objs[o].zone == kop.ZoneGraveyard && k.cards[s.objs[o].card].kw&kop.KwFlashback != 0:
+		return s.lifePainFlashbackAffords(k, p, o)
 	case a.Kind() != AkCast || a.Mode() != 0 || s.objs[o].zone != kop.ZoneHand:
 		return false
 	}
@@ -1686,6 +1688,22 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	if s.g.mayPlayAny {
 		cost = anyType(cost)
 	}
+	var pb avail
+	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lifePainFlashbackAffords is lifePainPlanAffords's arm for a printed flashback cast (CR
+// 702.34a): its PotentialMana bound affords the flashback cost, so the search's life pass
+// may feed a filter's fee from the sole life-only pain unit (Eviscerator's Insight's
+// {4}{B} through Prismite's {2}: one mana of any colour, beside Treasonous Ogre).
+func (s *State) lifePainFlashbackAffords(k *prep, p uint8, o Obj) bool {
+	if !s.lifePainLive(k, p) {
+		return false
+	}
+	c := s.objs[o].card
+	cost := s.featCost(k, p, c, o, k.t.Cards[c].AltCost)
 	var pb avail
 	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
 	s.availPotentialFor(k, p, &pb, &sp, false)
@@ -1723,7 +1741,21 @@ func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 	var pb avail
 	sp := s.grantPayDescOf(k, a)
 	s.availPotentialFor(k, p, &pb, &sp, false)
-	return pb.affords(&cost, pipMaskOf(&cost), 0)
+	if !pb.affords(&cost, pipMaskOf(&cost), 0) {
+		return false
+	}
+	// The full surface prices the activation by gorge's planner: its relaxed
+	// proof (paymentPlanRelaxProof) counts the unit once, and a play it proves
+	// insufficient runs no prefix search (potentialCensusFallback), so the
+	// potential bound alone (which counts a filter's ability and its fee-making
+	// one both) lets no life pass fund it past the relaxed census's walk
+	// (Unholy Officiant's {4}{W} beside Artifact Unknown Shores, Mountain, a
+	// Grove and the Ogre). The autopay surface's plan walks the unit's repeats.
+	// An unrelaxable census (a repeatable filter: Prismite's {1}, beside Wand of
+	// Orcus's equip {3}) runs gorge's prefix search on every insufficient play,
+	// and a board with no filter has no double count to drop.
+	filt := s.scriptFilt(k, p)
+	return s.cfg&cfgGorgeAutopay != 0 || !filt.any() || !s.scriptRelax(k, p, filt, false) || s.relaxedWalkLists(k, a)
 }
 
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
@@ -1816,6 +1848,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 				found = true
 				break
 			}
+		}
+	}
+	if !found && s.cfg&cfgGorgeAutopay != 0 && nodes >= potentialScriptNodes && a.Kind() == AkActivate {
+		if fb, ok := fs.printedOnlyRetry(s, k, t); ok {
+			fs, found = fb, true // the printed sources pay it: gorge's planner offers it (mana_filtprintedretry.go)
 		}
 	}
 	s.pool.inFilt--

@@ -624,8 +624,14 @@ func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.
 		for n := int(in.B.N); n <= int(in.C); n++ {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
 		}
+	case akType:
+		if isCardKindChoose(in) {
+			chooseCardTypeOptions(&d, kop.TypeMask(in.C)) // the op's own offer (act_choosecardenter.go)
+		} else {
+			s.askOptions(k, &d, kind)
+		}
 	default:
-		s.askOptions(k, &d, kind) // the name and type builders read no queue
+		s.askOptions(k, &d, kind) // the name builders read no queue
 	}
 	// The list is never empty here (Decision.Options is a fixed array; the
 	// count rides d.N): the akCard arm runs only with a candidate

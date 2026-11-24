@@ -1,4 +1,6 @@
+A-Excavation Explosion
 Abzan Battle Priest
+Aether Web
 Agent of Shauku
 Amazing Spider-Girl
 Ampryn Tactician
@@ -21,15 +23,27 @@ Breya's Apprentice
 Cackling Imp
 Chandra's Spitfire
 Changeling Sentinel
+Chaotic Backlash
 Charging Cinderhorn
+Clash of Realities
 Cloudheath Drake
 Coercion
+Combat Professor
+Corridor Monitor
+Crumbling Vestige
 Crypt Champion
 Death-Priest of Myrkul
+Dedicated Martyr
 Depart the Realm
+Desert of the Mindful
+Desperate Lunge
+Dominating Vampire
 Dovin's Acuity
+Dread Tiller
 Dreadfeast Demon
 Dream's Grip
+Dross Golem
+Elda, Conjurer of Spectacle
 Elite Cat Warrior
 Embercleave
 Escape from Orthanc
@@ -37,6 +51,7 @@ Eternal of Harsh Truths
 Everett K. Ross, Hapless Attaché
 Falkenrath Reaver
 Fetid Horror
+Flood Plain
 Followed Footsteps
 Forest
 Foul Familiar
@@ -47,11 +62,14 @@ Giltgrove Stalker
 Gimli's Fury
 Gimli, Mournful Avenger
 Glistener Seer
+Glorious Enforcer
 Go Forth
 Goblin Fireslinger
 Goblin War Strike
 Graveyard Marshal
+Guardians of Meletis
 Guided Strike
+Hall of Heliod's Generosity
 Hapless Researcher
 Hard Cover
 Herald of Serra
@@ -61,33 +79,49 @@ Hildibrand Manderville
 Howlpack Wolf
 Ichor Shade
 Illusionist's Stratagem
+Immaculate Magistrate
 Indrik Stomphowler
+Infernal Scarring
 Inkfathom Divers
 Insatiable Harpy
+Instill Energy
+Intruder Alarm
 Invade the City
 Island
+Join Shields
+Kabira Takedown
 Keen-Eyed Archers
 Knight Exemplar
 Kozilek's Sentinel
 Kruin Striker
 Last Breath
+Lizard Blades
 Loxodon Line Breaker
 Marble Titan
 Marching Duodrone
 Mastery of the Unseen
 Masticore
+Meadowboon
 Memory Lapse
 Merciless Resolve
+Merfolk Mesmerist
 Michelangelo, the Heart
+Midvast Protector
 Mina and Denn, Wildborn
+Mind Carver
+Miracle Worker
 Mizzium Tank
 Molten Gatekeeper
 Monstrous Vortex
 Morbid Curiosity
 Mountain
+Murmuration
 Myriad Landscape
 Nahiri's Stoneblades
+Nessian Boar
+Oakenform
 Oakhame Ranger
+Oboro, Palace in the Clouds
 Oreskos Sun Guide
 Orim's Cure
 Orzhov Enforcer
@@ -95,6 +129,7 @@ Owlin Shieldmage
 Paladin's Shield
 Paper Tiger
 Parasitic Impetus
+Pegasus Stampede
 Phyrexian Totem
 Plague Belcher
 Plains
@@ -102,21 +137,32 @@ Planar Birth
 Plate Armor
 Possessed Barbarian
 Pressure Point
+Priest of the Wakening Sun
 Private Research
 Prized Griffin
 Prophecy
 Prowling Felidar
+Raiders' Karve
 Razorfield Rhino
 Reckless Cohort
 Reflexes
 Regal Sliver
+Release the Gremlins
 Reyhan, Last of the Abzan
 Rookie Mistake
 Salt Flats
 Satsuki, the Living Lore
 Screeching Harpy
+Sea Gate Banneret
+Search for Tomorrow
+Seer's Sundial
+Selesnya Sanctuary
 Sengir Nosferatu
+Sentinel Totem
 Sentinel of the Eternal Watch
+Setessan Training
+Silverbeak Griffin
+Skyshroud Troopers
 Skywise Teachings
 Sorceress Queen
 Spirit Cairn
@@ -130,7 +176,9 @@ Territorial Hammerskull
 Thalisse, Reverent Medium
 Thermokarst
 Thriving Grove
+Time Spiral
 Toxic Iguanar
+Tranquil Domain
 Treetop Village
 Trinket Mage
 Triumphant Surge
@@ -138,10 +186,16 @@ Unspeakable Symbol
 Unyielding Krumar
 Urborg Elf
 Venomous Changeling
+Verdant Succession
+Vigilance
 Vine Dryad
+Void Snare
 Volcanic Hammer
 Voodoo Doll
 Vryn Wingmare
 Walker of the Grove
 Wall of Resistance
+Warriors of Wakanda
+Yannik, Scavenging Sentinel
+Yavimaya Hollow
 Zhalfirin Decoy

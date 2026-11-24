@@ -154,6 +154,7 @@ Goblin Swine-Rider
 Golden Egg
 Goremand
 Goring Warplow
+Grand Coliseum
 Grave Exchange
 Groundbreaker
 Growth Spasm
@@ -225,6 +226,7 @@ Mindleech Ghoul
 Mindshrieker
 Mirkwood Spider
 Mirror Entity
+Mirror Gallery
 Molten Tributary
 Mosscoat Goriak
 Mountain

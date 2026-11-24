@@ -32,12 +32,7 @@ func (e *Engine) etbPayLifeBound(o *state.Object, with *cards.SA) (int, bool) {
 	if with == nil || o.Face() == nil {
 		return 0, false
 	}
-	body, present := o.Face().SVars["X"]
-	if !present || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
-		return 0, false
-	}
-	c := ParseCost(with.ParamStr(cards.PKCost))
-	if len(c.LifeX) == 0 {
+	if !etbPayLifeShape(o.Face(), with) {
 		return 0, false
 	}
 	bound := int(e.G.Players[o.Controller].Life)
@@ -661,3 +656,68 @@ var etbOptionsCodes = state.NewStrCodes(
 	state.StrEntry[etbOptionsCode]{Key: "type", Val: etbOptionsType},
 	state.StrEntry[etbOptionsCode]{Key: "evenodd", Val: etbOptionsEvenodd},
 )
+
+// The Keyword$ value of an as-enters replacement and the etbChoiceKind word of
+// a Clone body, named once for the static probe below.
+const (
+	etbReplacementKeyword = "ETBReplacement"
+	etbKindCopy           = "copy"
+)
+
+// ETBChoiceAsks reports whether a battlefield entry of c can pose an
+// as-enters choice -- the shape landEntryParked holds an entry in while its
+// answer is outstanding. It is the static half of faceETBChoice, read off the
+// compiled card alone (no engine, no event): the printed keywords riot,
+// unleash and read-ahead, a Battle (a Siege asks its protector, CR 310.10)
+// and the ETBReplacement bodies faceETBChoice turns into options. It is a
+// refusal predicate, so it errs wide: a face that could ask, asks.
+func ETBChoiceAsks(c *cards.Card) bool {
+	if c == nil {
+		return false
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		if f.HasKeywordRef(kwRefRiot) || f.HasKeywordRef(kwRefUnleash) || f.HasKeywordRef(kwRefReadAhead) || f.IsBattle() {
+			return true
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.With == nil {
+				continue
+			}
+			if r.ParamStr(cards.PKKeyword) != etbReplacementKeyword {
+				// The non-keyword pay-life shape faceETBChoice offers.
+				if etbPayLifeShape(f, r.With) {
+					return true
+				}
+				continue
+			}
+			if effects.ChooseTypeAtRandom(r.With) {
+				continue
+			}
+			if kind := etbChoiceKind(r.With.API); kind != "" {
+				if kind != etbKindCopy || effects.CloneETBOffered(r.With, f.SVars) {
+					return true
+				}
+				continue
+			}
+		}
+	}
+	return false
+}
+
+// etbPayLifeShape is the static half of etbPayLifeBound, which calls it so
+// the two cannot drift: the "as CARDNAME enters, pay any amount of life"
+// shape -- a body with a PayLife<X> cost whose face SVar X is Count$xPaid.
+func etbPayLifeShape(f *cards.Face, with *cards.SA) bool {
+	if f == nil || with == nil {
+		return false
+	}
+	body, ok := f.SVars["X"]
+	if !ok || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		return false
+	}
+	return len(ParseCost(with.ParamStr(cards.PKCost)).LifeX) > 0
+}
