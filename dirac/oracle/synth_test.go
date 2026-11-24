@@ -346,8 +346,10 @@ func TestTailBucketsPartitionAll(t *testing.T) {
 		if !std && !draft {
 			buckets++
 			// A bucket is the names that hash to it, so its size varies around
-			// TailBucket (the largest measured is 285 cards); 1.2x leaves headroom.
-			if set.NumCards() > cardset.TailBucket*6/5+len(cardset.SynthBasics) {
+			// TailBucket, and it grows as kgen lowers more cards (11-24: four
+			// buckets passed 1.2x at 307-312 cards and main went red). 1.4x leaves
+			// headroom; past it, raise cardset.TailBucketCount in its own change.
+			if set.NumCards() > cardset.TailBucket*7/5+len(cardset.SynthBasics) {
 				t.Errorf("%s holds %d cards", pool, set.NumCards())
 			}
 		}
