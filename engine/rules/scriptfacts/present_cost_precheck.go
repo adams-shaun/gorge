@@ -28,15 +28,13 @@ func PresentIsOwnCostPrecheck(t cards.Trigger) bool {
 	if sa == nil {
 		return false
 	}
-	// IsPresent2$ or a PresentCompare$/PresentDefined$/PresentZone$/
-	// PresentPlayer$ rider makes the clause more than the cost's own mirror
+	// IsPresent2$ or a PresentCompare$/PresentDefined$/PresentZone$ rider
+	// makes the clause more than the cost's own mirror (PresentPlayer$ has no
+	// meaning beside a Card.Self spec, and no corpus line pairs them)
 	for _, k := range []cards.ParamKey{cards.PKIsPresent2, cards.PKPresentCompare, cards.PKPresentDefined, cards.PKPresentZone} {
 		if _, ok := t.Param(k); ok {
 			return false
 		}
-	}
-	if _, ok := t.Params["PresentPlayer"]; ok {
-		return false
 	}
 	rest, ok := strings.CutPrefix(t.ParamStr(cards.PKIsPresent), "Card.Self+counters_GE")
 	if !ok {

@@ -22,7 +22,7 @@ func TestPresentIsOwnCostPrecheck(t *testing.T) {
 			"SVar:TrigGain:AB$ GainLife | Cost$ SubCounter<1/CHARGE> | LifeAmount$ 1 | Defined$ You\n", false},
 		{"other counter kind", mirror, "SVar:TrigGain:AB$ GainLife | Cost$ SubCounter<1/KI> | LifeAmount$ 1 | Defined$ You\n", false},
 		{"other amount", mirror, "SVar:TrigGain:AB$ GainLife | Cost$ SubCounter<2/CHARGE> | LifeAmount$ 1 | Defined$ You\n", false},
-		{"present rider", "T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ Player | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentPlayer$ Opponent | Execute$ TrigGain | TriggerZones$ Battlefield | TriggerDescription$ At the beginning of each upkeep, you may remove a charge counter from CARDNAME. If you do, you gain 1 life.\n",
+		{"present rider", "T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ Player | IsPresent$ Card.Self+counters_GE1_CHARGE | PresentCompare$ EQ1 | Execute$ TrigGain | TriggerZones$ Battlefield | TriggerDescription$ At the beginning of each upkeep, you may remove a charge counter from CARDNAME. If you do, you gain 1 life.\n",
 			"SVar:TrigGain:AB$ GainLife | Cost$ SubCounter<1/CHARGE> | LifeAmount$ 1 | Defined$ You\n", false},
 		{"no cost", mirror, "SVar:TrigGain:DB$ GainLife | LifeAmount$ 1 | Defined$ You\n", false},
 	} {
