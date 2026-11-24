@@ -1262,7 +1262,6 @@ Fire Dragon
 Fire Lord Azula
 Fire Nation Salvagers
 Fire Nation Turret
-Fire at Will
 Fire-Field Ogre
 Fire-Rim Form
 Fireblade Charger
@@ -3781,7 +3780,6 @@ The Seriema
 The Serpent Society
 The Shattered States Era
 The Sibsig Ceremony
-The Spot, Living Portal
 The Squadron Sinister
 The Sword of Kahless
 The Thanos-Copter
@@ -4069,7 +4067,6 @@ Vic Fontaine, One Night Only
 Vicious Rivalry
 Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
-Victor, Valgavoth's Seneschal
 Victual Sliver
 Vigilant Baloth
 Vigorbloom Annex
