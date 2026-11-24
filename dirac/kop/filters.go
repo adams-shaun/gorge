@@ -659,6 +659,16 @@ const W7HasProtColor int16 = 44
 // same derived protection colours as W7HasProtColor, all five required.
 const W7HasProtEachColor int16 = 45
 
+// W7WithoutFlanking (PredWord7 sub-kind 46): the object lacks flanking, gorge's
+// withoutFlanking (the negation of the exact keyword word objectHasKeyword
+// reads over the derived keywords; CR 702.25a's blocker without flanking).
+// kgen lowers only a printed bare K:Flanking (CardDef.Flanking; a granted
+// flanking refuses), so a battlefield permanent has it when its card prints it,
+// unless it is face down or lost all abilities; off the battlefield the
+// printed card counts in any zone. The positive word is not read. Flanking's
+// Creature.withoutFlanking blocker filter (Benalish Cavalry, Knight of Valor).
+const W7WithoutFlanking int16 = 46
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

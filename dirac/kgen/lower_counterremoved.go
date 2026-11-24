@@ -54,6 +54,9 @@ func (lc *lowerCtx) ctrRemovedTrigger(tp *params, tr *lTrigger, t cards.Trigger,
 		return refuse("%s from exile CounterType$ %s: only the suspend time counter is removed there", t.Mode, ct)
 	case tr.Zone != 0 && tr.Zone != zBattlefield:
 		return refuse("%s TriggerZones %d", t.Mode, tr.Zone)
+	case ct == "TIME" && t.Params["Keyword"] == "Vanishing":
+		// K:Vanishing's last-counter sacrifice (lower_vanishing.go): the only
+		// battlefield time-counter removal line that lowers
 	case ct == "TIME":
 		return refuse("%s CounterType$ TIME on the battlefield", t.Mode)
 	}

@@ -468,6 +468,9 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	case kop.W7HasProtEachColor:
 		return s.hasProtEachColor(k, sl) // filter_sharedkw.go
 	}
+	if n == kop.W7WithoutFlanking {
+		return s.lacksFlankingPerm(k, sl) // filter_flanking.go
+	}
 	if n == kop.W7WithDevoid {
 		// gorge withDevoid on a battlefield object: the printed keyword, none
 		// while face down or after a lose-all-abilities effect
@@ -507,6 +510,8 @@ func (s *State) wordCard3(k *prep, fl *kop.Filter, c CardID, fd bool) bool {
 		ans = c != kop.NoCard && k.t.Cards[c].Devoid
 	case kop.W7WithSkulk:
 		ans = c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0
+	case kop.W7WithoutFlanking:
+		ans = lacksFlankingCard(k, c) // filter_flanking.go
 	case kop.W7Snow:
 		ans = (c != kop.NoCard && k.t.Cards[c].Snow && !fd) != DebugSnowWordFlip
 	case kop.W7NonSnow:
