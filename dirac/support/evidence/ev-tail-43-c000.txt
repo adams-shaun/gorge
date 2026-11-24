@@ -383,6 +383,7 @@ Tooth Collector
 Topple
 Torrential Gearhulk
 Tower Above
+Traveler's Cloak
 Triton Shorestalker
 Troll Ascetic
 Tuknir Deathlock
