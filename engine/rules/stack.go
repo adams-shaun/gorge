@@ -631,8 +631,8 @@ func (e *Engine) resolveTop() {
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
 	// hoisted so the resolution ctx can carry the TargetsOffered marker and
-	// the pre-ask's OfferedSA skip.
-	targetSA := modalTargetSA(f, sa, o.ChosenModes)
+	// the pre-ask's OfferedSA skip (supportTargetSA: a spell's Support, CR 701.41a).
+	targetSA := supportTargetSA(modalTargetSA(f, sa, o.ChosenModes), f)
 	// An overloaded spell affects the matching set as it resolves, never as
 	// targets chosen during announcement. This fresh non-target census means
 	// protection/hexproof do not apply and objects entering or changing
