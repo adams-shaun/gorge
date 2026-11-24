@@ -5,7 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,6 +63,13 @@ type Lock struct {
 	FetchedPaths []string `json:"fetched_paths"`
 	Files        int      `json:"files"`
 	Digest       string   `json:"digest"`
+	// TokenFiles and Listing describe the whole corpus the lock sits in, so a
+	// reader can check the lock against its directory without reading a
+	// script: TokenFiles counts tokenscripts' .txt files, and Listing is
+	// ListingOf (the hash of both trees' sorted file names). A lock written
+	// before they existed leaves both zero and is checked by Files alone.
+	TokenFiles int    `json:"token_files,omitempty"`
+	Listing    string `json:"listing,omitempty"`
 }
 
 // CorpusDir is where Fetch places the scripts inside dir.
@@ -147,6 +156,16 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 		commit = head
 	}
 
+	// The old lock goes first. Until the new one is written the directory
+	// holds no lock, which every reader treats as "no corpus here"; leaving
+	// the old one in place made an interrupted fetch (or the window between
+	// the RemoveAll and the rename below) a lock naming one ref over another
+	// ref's scripts. Remove, not truncate: in a cards-overlay.sh tree
+	// cards.lock is a symlink into the shared corpus, and writing through it
+	// rewrote the shared lock while only this tree's cardsfolder changed.
+	if err := os.Remove(lockPath(dir)); err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
 	var fetchedPaths []string
 	for _, sub := range forgeSubpaths {
 		dest := destFor(dir, sub)
@@ -167,12 +186,17 @@ func fetchRepo(repo, dir, ref string) (*Lock, error) {
 	if err != nil {
 		return nil, err
 	}
+	listing, _, _, err := ListingOf(dir)
+	if err != nil {
+		return nil, err
+	}
 
 	l := &Lock{
 		Repo: repo, Ref: ref, Commit: commit, License: forgeLicense,
 		FetchedPath:  forgeSubpaths[0],
 		FetchedPaths: fetchedPaths,
 		Files:        files, Digest: digest,
+		TokenFiles: tokenFiles, Listing: listing,
 	}
 	if err := WriteLock(dir, l); err != nil {
 		return nil, err
@@ -222,6 +246,10 @@ func DigestDir(dir string) (string, int, error) {
 	return hex.EncodeToString(h.Sum(nil)), len(paths), nil
 }
 
+// WriteLock writes dir's cards.lock by rename, so a reader sees the old lock
+// or the new one whole, and so a cards.lock that is a symlink (a
+// cards-overlay.sh tree) is replaced by a real file instead of being written
+// through into the corpus it points at.
 func WriteLock(dir string, l *Lock) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -230,7 +258,89 @@ func WriteLock(dir string, l *Lock) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(lockPath(dir), append(b, '\n'), 0o644)
+	tmp, err := os.CreateTemp(dir, ".cards.lock.*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(append(b, '\n')); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o644); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), lockPath(dir))
+}
+
+// ListingOf hashes the sorted names of dir's cardsfolder and tokenscripts
+// scripts (no contents: a directory walk, cheap enough for every test run) and
+// counts each tree. The hash is sha256 over one line per script,
+// "cardsfolder/<rel>\n" or "tokenscripts/<rel>\n", in byte order, so
+// `find -L cardsfolder tokenscripts -type f -name '*.txt' | LC_ALL=C sort |
+// sha256sum` computes it in a shell on a box with no Go.
+func ListingOf(dir string) (hash string, cardFiles, tokenFiles int, err error) {
+	var lines []string
+	for _, t := range []struct {
+		name string
+		root string
+		n    *int
+	}{{"cardsfolder", CorpusDir(dir), &cardFiles}, {"tokenscripts", TokensDir(dir), &tokenFiles}} {
+		werr := WalkScripts(t.root, func(p string) error {
+			rel, err := filepath.Rel(t.root, p)
+			if err != nil {
+				return err
+			}
+			lines = append(lines, t.name+"/"+filepath.ToSlash(rel)+"\n")
+			*t.n++
+			return nil
+		})
+		if werr != nil && !(t.name == "tokenscripts" && errors.Is(werr, fs.ErrNotExist)) {
+			return "", 0, 0, werr
+		}
+	}
+	sort.Strings(lines)
+	h := sha256.New()
+	for _, l := range lines {
+		h.Write([]byte(l))
+	}
+	return hex.EncodeToString(h.Sum(nil)), cardFiles, tokenFiles, nil
+}
+
+// VerifyLock returns an error when dir's cards.lock does not describe the
+// scripts beside it: the count of cardsfolder scripts differs from Files, or
+// (a lock that records them) the token count or the listing hash differs.
+// No cards.lock is not an error (nothing claims a ref); a lock with no Files
+// and no Listing, the tests' stub, is not checked. Names only, never contents:
+// Digest, which reads every script, is for a full check.
+func VerifyLock(dir string) error {
+	l, err := ReadLock(dir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if l.Files == 0 && l.Listing == "" {
+		return nil
+	}
+	hash, cf, tf, err := ListingOf(dir)
+	if err != nil {
+		return fmt.Errorf("cards: %s: cards.lock names ref %s but its scripts cannot be listed: %w", dir, l.Ref, err)
+	}
+	switch {
+	case l.Files != 0 && cf != l.Files:
+		return fmt.Errorf("cards: %s: cards.lock (ref %s) records %d card scripts, cardsfolder holds %d: a fetch or copy left the lock and the scripts from different refs", dir, l.Ref, l.Files, cf)
+	case l.Listing != "" && tf != l.TokenFiles:
+		return fmt.Errorf("cards: %s: cards.lock (ref %s) records %d token scripts, tokenscripts holds %d", dir, l.Ref, l.TokenFiles, tf)
+	case l.Listing != "" && hash != l.Listing:
+		return fmt.Errorf("cards: %s: cards.lock (ref %s) lists different scripts than the directory holds (same counts, other names, or stale files beside it)", dir, l.Ref)
+	}
+	return nil
 }
 
 func ReadLock(dir string) (*Lock, error) {

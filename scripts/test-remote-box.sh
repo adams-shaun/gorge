@@ -3,7 +3,7 @@
 # runs ON THE GATE BOX. test-remote.sh feeds it to `bash -s` over ssh, so the box needs no copy of it.
 #
 #   probe    <repo>              janitor (scratch worktrees and refs older than a day), then one line:
-#                                probe idle=<cores> free=<free run slots> slots=<run slots> lock=<corpus lock hash>
+#                                probe idle=<cores> free=<free run slots> slots=<run slots> lock=<corpus key: cards.lock hash + script listing hash>
 #   run      <repo> <run> <mode> the run slot's worktree at refs/tt/<run>/head (+ <repo>/../tt-wt/<run>.patch),
 #                                the same scripts/test-targets.sh <mode> in a systemd scope whose CPUWeight is below
 #                                the landing gate's (rgate.scope runs at 100). It streams the output, writes
@@ -25,6 +25,18 @@ cmd=${1:-}
 repo=${2:-}
 run=${3:-}
 mode=${4:-}
+# corpus_key DIR: the corpus's identity, "<cards.lock sha256 prefix><script listing sha256 prefix>" (32 hex), or
+# nothing when DIR has no cards.lock. The lock alone is not enough: an extract or rsync without --delete left a box
+# 366 scripts richer than its lock said, and a fetch inside a symlinked overlay left a lock over another ref's scripts
+# (engine/cards ListingOf is the same listing hash; test-remote-box.sh carries a copy of this function, one script
+# being fed to the box over ssh, and TestTestTargetsRemoteCorpusKeyAgrees keeps the two equal).
+corpus_key() {
+	local l s
+	l=$(sha256sum "$1/cards.lock" 2>/dev/null | cut -c1-16)
+	[ -n "$l" ] || return 1
+	s=$(cd "$1" && find -L cardsfolder tokenscripts -type f -name '*.txt' 2>/dev/null | LC_ALL=C sort | sha256sum | cut -c1-16)
+	echo "$l$s"
+}
 parent=$(dirname "$repo")
 work=$parent/tt-wt
 wd=$work/$run # the run's results; the run itself works in its slot's worktree (slot_wt)
@@ -67,7 +79,7 @@ probe)
 		if flock -n 8; then free=$((free + 1)); fi
 		exec 8>&-
 	done
-	lock=$(sha256sum "${TT_CARDS:-/nonexistent}/cards.lock" 2>/dev/null | cut -c1-16)
+	lock=$(corpus_key "${TT_CARDS:-/nonexistent}")
 	echo "probe idle=$idle free=$free slots=$slots lock=$lock"
 	;;
 cleanup)
