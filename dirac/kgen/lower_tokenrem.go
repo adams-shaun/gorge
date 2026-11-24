@@ -6,6 +6,10 @@ import "strings"
 // creating source (RememberSource$ True; kop.TokRememberSrc).
 const tokRemSrcBit = 8192
 
+// tokSacYourUpkeepBit is a Token lInstr's C bit for AtEOT$ YourSacrificeUpkeep
+// (kop.TokAtEOTSacYourUpkeep in B.N's high byte).
+const tokSacYourUpkeepBit = 32768 // 16384 is origin/main's tokAtkPlayerBit
+
 // srcRemValue lowers the SVar body `Remembered$CardCounters.<KIND>` in a token's
 // characteristic-defining static (Saproling Burst's token: "power and toughness
 // are each equal to the number of fade counters on CARDNAME"). gorge reads the

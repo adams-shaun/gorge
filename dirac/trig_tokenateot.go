@@ -152,9 +152,24 @@ func (s *State) tokenAtEOTExt(in *kop.Instr, t Obj) {
 	if in.B.N>>8 == kop.TokAtEOTSacCombat && s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyEndCombat) {
 		return // a later token of one resolution joins the first one's sacrifice
 	}
+	if in.B.N>>8&0xff == kop.TokAtEOTSacYourUpkeep {
+		if s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyYourUpkeep) {
+			return
+		}
+		if s.ndly >= MaxDelayed {
+			s.capFull(StallDelayed)
+			return
+		}
+		s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: s.res.e.ctrl, obj: t, ver: objWord(s.objs[t].ver), when: dlyYourUpkeep, creator: s.res.e.obj}
+		s.ndly++
+		return
+	}
 	d := delayed{act: uint8(kop.OpDestroy), ctrl: s.res.e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: s.res.e.obj}
-	if in.B.N>>8 == kop.TokAtEOTSacCombat {
+	switch in.B.N >> 8 {
+	case kop.TokAtEOTSacCombat:
 		d.act, d.when = uint8(kop.OpSacrifice), dlyEndCombat
+	case kop.TokAtEOTExileCombat:
+		d.act, d.when = uint8(kop.OpExile), dlyEndCombat // tracked: fireDlyEndCombat enqueues it as the exile
 	}
 	if s.ndly >= MaxDelayed {
 		s.capFull(StallDelayed)
@@ -231,8 +246,12 @@ func prepTokAtEOT(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if (in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && in.B.N>>8 == kop.TokAtEOTSacCombat) ||
+				if (in.Op == kop.OpCreateTokenEx && in.B.N&(kop.TokSacAtEnd|kop.TokExileAtEnd) == kop.TokSacAtEnd|kop.TokExileAtEnd && (in.B.N>>8&0xff == kop.TokAtEOTSacCombat || in.B.N>>8&0xff == kop.TokAtEOTExileCombat)) ||
+					(in.Op == kop.OpCopyAsTokenEx && int16(in.B.N)&kop.CpExileAtCombat == kop.CpExileAtCombat) ||
 					(in.Op == kop.OpExt && in.Ext() == kop.ExtMyriad) {
+					g.anyTokEndCombat = true
+				}
+				if in.Op == kop.OpAtEOT && in.C >= kop.AtEOTSacCombat {
 					g.anyTokEndCombat = true
 				}
 			}

@@ -1113,7 +1113,7 @@ func (s *State) fireDelayed(k *prep) {
 	}
 	for i := 0; i < int(n); i++ {
 		d := s.dly[i]
-		if d.when == dlyGrpFollow || d.when == dlyUpkeep {
+		if d.when == dlyGrpFollow || d.when == dlyUpkeep || d.when == dlyYourUpkeep {
 			fol[nf] = d // carried by its head's trigger (trig_tokenateot.go), or due at the next upkeep (trig_upkeepsac.go)
 			nf++
 			continue

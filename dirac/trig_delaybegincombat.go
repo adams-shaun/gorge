@@ -25,6 +25,9 @@ var DebugDelayBeginCombatOff bool
 
 // dpExt is an OpDelayedProgram's dprog.ext.
 func dpExt(in *kop.Instr) uint8 {
+	if in.A.N == kop.DelayDiesThisTurn && in.B.N == kop.DpDiesYou {
+		return dpExtDiesYou // trig_delayeddies.go
+	}
 	if in.A.N == kop.DelayBeginCombat {
 		return dpExtBeginCombat
 	}

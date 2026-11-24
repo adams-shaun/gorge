@@ -185,7 +185,7 @@ func (s *State) execCold4(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
 	case kop.OpAtEOT:
 		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			s.atEOTRider(s.perms[sl].obj, in.C == 1)
+			s.atEOTAct(s.perms[sl].obj, in.C) // trig_ateotacts.go
 		} else if _, isTgt := tgtSlot(in.Obj); in.C == 0 && in.Obj != kop.RefSelf && !isTgt {
 			// A Pump/Animate subject (Self or a target) that has left the
 			// battlefield is skipped by gorge before it schedules anything

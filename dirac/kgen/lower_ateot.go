@@ -23,7 +23,7 @@ func (lc *lowerCtx) animateAtEOT(ps *params, obj lRef) (func(), error) {
 	if !ok {
 		return nil, nil
 	}
-	act, err := atEOTAct(v)
+	act, err := lc.atEOTActHere(v)
 	if err != nil {
 		return nil, err
 	}
@@ -60,8 +60,8 @@ func (lc *lowerCtx) oneObjectSubject(obj lRef) bool {
 				if f == "Remember" || f == "RememberChanged" {
 					n++
 					switch {
-					case (in.Op == "ChooseMove" || in.Op == "Dig") && in.A.isConst() && in.A.N == 1:
-						one = true // the pick count is 1: at most one remembered card
+					case (in.Op == "ChooseMove" || in.Op == "Dig" || in.Op == "Search") && in.A.isConst() && in.A.N == 1:
+						one = true // the pick count is 1: at most one remembered card (Nahiri's search)
 					default:
 						one = in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N)
 					}
@@ -95,6 +95,9 @@ func (lc *lowerCtx) changeZoneAllAtEOT(ps *params, in *lInstr, origin, dest int,
 	if err != nil {
 		return err
 	}
+	if act > 1 {
+		return refuse("ChangeZoneAll AtEOT %q", v)
+	}
 	if dest != zBattlefield {
 		return refuse("ChangeZoneAll AtEOT onto %s", zoneLabel[dest])
 	}
@@ -118,18 +121,43 @@ func entryAtEOTBits(act int) int16 {
 	return int16(hi)
 }
 
-// atEOTAct maps an AtEOT$ value to OpAtEOT's C: Sacrifice 0, Exile 1
-// (gorge atEOTRiders' next-end-step bodies); other values refuse. gorge
-// ateot.go:26-31 reads YourExile/YourSacrifice as the plain values (the
-// carriers resolve on their controller's own turn).
+// atEOTAct maps an AtEOT$ value to OpAtEOT's C: Sacrifice 0, Exile 1,
+// Destroy, Hand and the end-of-combat pair (gorge atEOTRiders' bodies; the
+// kernel's trig_ateotacts.go); other values refuse. gorge ateot.go:26-31
+// reads YourExile/YourSacrifice as the plain values (the carriers resolve on
+// their controller's own turn). SacrificeCtrl is the same untracked sacrifice
+// (it only stays out of the group registration, which a one-object OpAtEOT
+// never joins).
 func atEOTAct(v string) (int, error) {
 	switch v {
-	case "Sacrifice", "YourSacrifice":
+	case "Sacrifice", "YourSacrifice", "SacrificeCtrl":
 		return 0, nil
 	case "Exile", "YourExile":
 		return 1, nil
+	case "Destroy":
+		return kop.AtEOTDestroy, nil
+	case "Hand":
+		return kop.AtEOTHand, nil
+	case "SacrificeCombat":
+		return kop.AtEOTSacCombat, nil
+	case "ExileCombat":
+		return kop.AtEOTExileCombat, nil
 	}
 	return 0, refuse("AtEOT %q", v)
+}
+
+// atEOTActHere is atEOTAct for a one-object rider: the end-of-combat acts
+// need an Attacks trigger (its resolution is always before this turn's end of
+// combat, so gorge's thisTurn expiry cannot bite).
+func (lc *lowerCtx) atEOTActHere(v string) (int, error) {
+	act, err := atEOTAct(v)
+	if err != nil {
+		return 0, err
+	}
+	if act >= kop.AtEOTSacCombat && (lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks") {
+		return 0, refuse("AtEOT %q outside an Attacks trigger", v)
+	}
+	return act, nil
 }
 
 // changeZoneAtEOT reads a ChangeZone's AtEOT$ and takes it off the params, so
@@ -142,36 +170,49 @@ func (lc *lowerCtx) changeZoneAtEOT(ps *params) (act int, ok bool, err error) {
 	if !ok {
 		return 0, false, nil
 	}
-	if act, err = atEOTAct(v); err != nil {
+	if act, err = lc.atEOTActHere(v); err != nil {
 		return 0, false, err
 	}
-	if ps.str("Defined") != "Remembered" || ps.str("Destination") != "Battlefield" {
+	if ps.str("Destination") != "Battlefield" {
 		return 0, false, refuse("ChangeZone AtEOT beside Defined$ %q Destination$ %q", ps.str("Defined"), ps.str("Destination"))
 	}
 	ps.consume("AtEOT")
 	return act, true, nil
 }
 
-// emitChangeZoneAtEOT schedules the AtEOT promise on the one object a
-// Defined$ Remembered return moved. The kernel's OpAtEOT takes one object, so
-// the remembered set must be the one object the same ability remembered —
-// the one targeted object, or a one-card pick (oneObjectSubject); the move
-// must be a single Return, which the ability's condition then skips along
-// with the promise.
+// emitChangeZoneAtEOT schedules the AtEOT promise on the one object the
+// ChangeZone moved. The kernel's OpAtEOT takes one object, so the move must
+// be a single instruction naming exactly one: a Defined$ Remembered return of
+// the one object the same ability remembered (oneObjectSubject), a Return of
+// one single-object target slot (Footsteps of the Goryo, Thunderkin
+// Awakener), or a one-card ChooseMove pick (Ilharg, Purphoros), which then
+// remembers the card it moved so the promise names it. A move that finds
+// nothing (a declined or empty pick, a fizzled target) schedules nothing, as
+// gorge schedules per object the move actually moved; the ability's condition
+// skips the promise along with the move.
 func (lc *lowerCtx) emitChangeZoneAtEOT(start, act int) error {
-	moves := 0
-	for _, in := range lc.ab.Prog[start:] {
-		if in.Op != "Return" || in.Obj.Kind != rRemembered {
-			return refuse("ChangeZone AtEOT beside a %s", in.Op)
+	if n := len(lc.ab.Prog) - start; n != 1 {
+		if n > 1 {
+			return refuse("ChangeZone AtEOT over %d moves", n)
 		}
-		moves++
+		return refuse("ChangeZone AtEOT beside no move")
 	}
-	if moves != 1 {
-		return refuse("ChangeZone AtEOT over %d moves", moves)
+	in := &lc.ab.Prog[start]
+	obj := lRef{Kind: rRemembered}
+	switch {
+	case in.Op == "Return" && in.Obj.Kind == rRemembered:
+	case in.Op == "Return" && in.Obj.Kind == rTarget && lc.singleObjectSlot(in.Obj.N):
+		obj = in.Obj
+	case in.Op == "ChooseMove" && in.A.isConst() && in.A.N == 1:
+		if _, has := flagsOf(in.CS)["Remember"]; !has {
+			in.CS += "|Remember" // the one moved card is the promise's object
+		}
+	default:
+		return refuse("ChangeZone AtEOT beside a %s", in.Op)
 	}
-	if !lc.oneObjectSubject(lRef{Kind: rRemembered}) {
+	if obj.Kind == rRemembered && !lc.oneObjectSubject(obj) {
 		return refuse("ChangeZone AtEOT on a set of remembered objects")
 	}
-	lc.emit(lInstr{Op: "AtEOT", Obj: lRef{Kind: rRemembered}, C: act})
+	lc.emit(lInstr{Op: "AtEOT", Obj: obj, C: act})
 	return nil
 }

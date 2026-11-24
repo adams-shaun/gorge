@@ -14,11 +14,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // dlyUpkeep is delayed.when for a record fired at the next upkeep step.
 const dlyUpkeep = 5
 
+// dlyYourUpkeep is delayed.when for a record fired at the next upkeep of its
+// controller only (AtEOT$ YourSacrificeUpkeep, gorge's VP=You gate: another
+// player's upkeep leaves the record pending).
+const dlyYourUpkeep = 7
+
 // sacAtUpkeepOf reports whether copy flags fl are the SacrificeUpkeep rider:
 // both end-step rider bits at once (kop.CpSacAtUpkeep), which neither rider
 // emits alone.
 func sacAtUpkeepOf(fl int16) bool {
 	return fl&kop.CpSacAtUpkeep == kop.CpSacAtUpkeep
+}
+
+// exileAtCombatOf reports whether copy flags fl are the ExileCombat rider:
+// CpSacAtEnd and CpExileAtEnd at once (kop.CpExileAtCombat).
+func exileAtCombatOf(fl int16) bool {
+	return fl&kop.CpExileAtCombat == kop.CpExileAtCombat
 }
 
 // sacAtUpkeepUntracked registers token t's untracked next-upkeep sacrifice
@@ -60,7 +71,7 @@ func (s *State) fireDlyUpkeep(k *prep) {
 	var keep uint8
 	for i := uint8(0); i < n; i++ {
 		d := s.dly[i]
-		if d.when != dlyUpkeep {
+		if d.when != dlyUpkeep && d.when != dlyYourUpkeep || d.when == dlyYourUpkeep && s.active != d.ctrl {
 			s.dly[keep] = d
 			keep++
 			continue
