@@ -53,8 +53,8 @@ func condTestCases() []condTestCase {
 	cmpX := &ir.Cond{Kind: ir.CCompare, L: vX, Cmp: ir.CmpGE, R: vc(3)}
 	return []condTestCase{
 		{name: "raid", c: raid, want: condForm{SVar: "N", Cmp: "GE1"}, svars: []kv{{"N", "Count$AttackersDeclared"}}},
-		{name: "threshold", c: thresh, want: condForm{SVar: "N", Cmp: "GE7"}, svars: []kv{{"N", "Count$ValidGraveyard Card.YouOwn"}}},
-		{name: "hellbent", c: hell, want: condForm{SVar: "N", Cmp: "EQ0"}, svars: []kv{{"N", "Count$CardsInYourHand"}}},
+		{name: "threshold", c: thresh, want: condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Cmp: "GE7"}},
+		{name: "hellbent", c: hell, want: condForm{Named: "Hellbent", Body: "Count$CardsInYourHand", Cmp: "EQ0"}},
 		{name: "life", c: life, want: condForm{SVar: "N", Cmp: "LE5"}, svars: []kv{{"N", "Count$YourLifeTotal"}}},
 		{name: "target life", c: tlife, frame: true, want: condForm{SVar: "N", Cmp: "EQ10"}, svars: []kv{{"N", "TargetedPlayer$LifeTotal"}}},
 		{name: "target life without frame", c: tlife, what: "cond:ref-matches"},
@@ -63,7 +63,7 @@ func condTestCases() []condTestCase {
 		{name: "not raid", c: ctNot(raid), want: condForm{SVar: "N", Cmp: "LT1"}, svars: []kv{{"N", "Count$AttackersDeclared"}}},
 		{name: "not threshold", c: ctNot(thresh), want: condForm{SVar: "N", Cmp: "LT7"}, svars: []kv{{"N", "Count$ValidGraveyard Card.YouOwn"}}},
 		{name: "not hellbent", c: ctNot(hell), want: condForm{SVar: "N", Cmp: "NE0"}, svars: []kv{{"N", "Count$CardsInYourHand"}}},
-		{name: "not life", c: ctNot(life), want: condForm{SVar: "N", Cmp: "GT5"}, svars: []kv{{"N", "Count$YourLifeTotal"}}},
+		{name: "not life", c: ctNot(life), want: condForm{SVar: "N", Cmp: "GE6"}, svars: []kv{{"N", "Count$YourLifeTotal"}}},
 		{name: "not kicked", c: ctNot(kicked), want: condForm{SVar: "N", Cmp: "LT1"}, svars: []kv{{"N", "Count$Kicked.1.0"}}},
 		{name: "not you turn", c: ctNot(you), want: condForm{Turn: "Opponent"}},
 		{name: "not opponent turn", c: ctNot(opp), want: condForm{Turn: "You"}},
@@ -121,19 +121,27 @@ func TestCondRenderings(t *testing.T) {
 		{"svar", condForm{SVar: "N", Cmp: "GE7"},
 			pair{abil: []kv{{"ConditionCheckSVar", "N"}, {"ConditionSVarCompare", "GE7"}}, trig: []kv{{"CheckSVar", "N"}, {"SVarCompare", "GE7"}}}},
 		{"svar default cmp", condForm{SVar: "N"},
-			pair{abil: []kv{{"ConditionCheckSVar", "N"}, {"ConditionSVarCompare", "GE1"}}, trig: []kv{{"CheckSVar", "N"}, {"SVarCompare", "GE1"}}}},
+			pair{abil: []kv{{"ConditionCheckSVar", "N"}, {"ConditionSVarCompare", "GE1"}}, trig: []kv{{"CheckSVar", "N"}}}},
 		{"present self", condForm{Present: "Card.Untapped"},
 			pair{abil: []kv{{"ConditionDefined", "Self"}, {"ConditionPresent", "Card.Untapped"}, {"ConditionCompare", "GE1"}},
-				trig: []kv{{"IsPresent", "Card.Untapped+Self"}, {"PresentCompare", "GE1"}}}},
+				trig: []kv{{"IsPresent", "Card.Untapped+Self"}}}},
 		{"present targeted", condForm{Present: "Card.Untapped", Defined: "Targeted"},
 			pair{abil: []kv{{"ConditionDefined", "Targeted"}, {"ConditionPresent", "Card.Untapped"}, {"ConditionCompare", "GE1"}},
-				trig: []kv{{"IsPresent", "Card.Untapped"}, {"PresentCompare", "GE1"}, {"PresentDefined", "Targeted"}}}},
+				trig: []kv{{"IsPresent", "Card.Untapped"}, {"PresentDefined", "Targeted"}}}},
+		{"threshold", condForm{Named: "Threshold", Body: "Count$ValidGraveyard Card.YouOwn", Cmp: "GE7"},
+			pair{trig: []kv{{"Threshold", "True"}}, abilErr: true}},
 		{"your turn", condForm{Turn: "You"},
 			pair{abil: []kv{{"ConditionPlayerTurn", "True"}}, trig: []kv{{"PlayerTurn", "True"}}}},
 		{"opponent turn", condForm{Turn: "Opponent"},
 			pair{trig: []kv{{"OpponentTurn", "True"}}, abilErr: true}},
 	}
 	for _, c := range cases {
+		if got, err := c.f.onStatic(); c.name == "threshold" && (err != nil || !reflect.DeepEqual(got, []kv{{"Condition", "Threshold"}})) {
+			t.Errorf("threshold: onStatic %v, %v", got, err)
+		}
+		if got, err := c.f.onActivation(); c.name == "threshold" && (err != nil || !reflect.DeepEqual(got, []kv{{"Activation", "Threshold"}})) {
+			t.Errorf("threshold: onActivation %v, %v", got, err)
+		}
 		a, aerr := c.f.onAbility()
 		if c.want.abilErr {
 			var u *Unprintable

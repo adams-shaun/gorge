@@ -51,7 +51,7 @@ var playerRefs = map[ir.RefKind]bool{
 
 func printCond(p *pr, c *ir.Cond) (condForm, error) {
 	no := func() (condForm, error) { return condForm{}, unprintable("cond:"+c.Kind.String(), c.Src) }
-	sv := func(body, cmp string) (condForm, error) { return condForm{SVar: p.countVar(body), Cmp: cmp}, nil }
+	sv := func(body, cmp string) (condForm, error) { return p.svCond(body, cmp), nil }
 	switch c.Kind {
 	case ir.CNot:
 		if len(c.Args) != 1 {
@@ -61,7 +61,7 @@ func printCond(p *pr, c *ir.Cond) (condForm, error) {
 		if err != nil {
 			return condForm{}, err
 		}
-		return f.not()
+		return p.plain(f).not()
 	case ir.CKicked:
 		return sv("Count$Kicked.1.0", "GE1")
 	case ir.CIsTurnOf:
@@ -151,7 +151,7 @@ func printRefMatches(p *pr, c *ir.Cond) (condForm, error) {
 		if err != nil {
 			return condForm{}, err
 		}
-		return condForm{SVar: p.countVar(body), Cmp: cmp}, nil
+		return p.svCond(body, cmp), nil
 	}
 	if p.isPlayerTarget(c.Ref) {
 		if !isCmpPred(f, ir.PLifeTotal) {

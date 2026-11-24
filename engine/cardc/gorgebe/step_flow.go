@@ -110,6 +110,7 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	c = p.plain(c)
 	saved := declaredCopy(p)
 	then, err := p.program(st.Then)
 	if err != nil {
