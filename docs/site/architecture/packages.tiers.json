@@ -248,6 +248,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "engine/cardc/ir": {
+      "tier": "engine",
+      "status": "CORE"
+    },
     "engine/cards": {
       "tier": "engine",
       "status": "CORE"
