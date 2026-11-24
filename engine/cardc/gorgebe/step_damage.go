@@ -8,6 +8,8 @@ func init() {
 	registerStep(ir.VerbCounter, printCounter)
 	registerStep(ir.VerbPutCounters, printPutCounters)
 	registerStep(ir.VerbRegenerate, printRegenerate)
+	registerStep(ir.VerbDoubleCounters, printDoubleCounters)
+	registerStep(ir.VerbRemoveCounters, printRemoveCounters)
 }
 
 func printDealDamage(p *pr, steps []*ir.Step) (*node, int, error) {
@@ -111,6 +113,56 @@ func printRegenerate(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	n := &node{API: "Regenerate"}
 	if st.Obj == nil || st.Obj.Kind != ir.RefSelf {
+		if err := p.operand(n, "Defined", st.Obj); err != nil {
+			return nil, 0, err
+		}
+	}
+	if err := optionalDecider(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
+
+// printDoubleCounters doubles every kind of counter on the object.
+func printDoubleCounters(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	if st.Word != "" {
+		return nil, 0, unprintable("verb:double-counters", st.Src)
+	}
+	n := &node{API: "MultiplyCounter"}
+	if err := p.operand(n, "Defined", st.Obj); err != nil {
+		return nil, 0, err
+	}
+	if err := optionalDecider(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
+
+// printRemoveCounters removes counters of one kind: every one from each object
+// a filter selects (RemoveCounterAll), or a number from one object.
+func printRemoveCounters(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	bad := unprintable("verb:remove-counters", st.Src)
+	if st.Word == "" || st.Who != nil {
+		return nil, 0, bad
+	}
+	var n *node
+	if o := slotRef(st.Obj); o != nil && o.Kind == ir.RefAll && o.Filter != nil && o.Filter.Subject != ir.SubjPlayer && st.N == nil {
+		v, err := p.valid(o.Filter)
+		if err != nil {
+			return nil, 0, err
+		}
+		n = &node{API: "RemoveCounterAll", Params: []kv{{"ValidCards", v}, {"CounterType", st.Word}, {"AllCounters", "True"}}}
+	} else {
+		if st.N == nil {
+			return nil, 0, bad
+		}
+		amt, err := p.amount(st.N)
+		if err != nil {
+			return nil, 0, err
+		}
+		n = &node{API: "RemoveCounter", Params: []kv{{"CounterType", st.Word}, {"CounterNum", amt}}}
 		if err := p.operand(n, "Defined", st.Obj); err != nil {
 			return nil, 0, err
 		}
