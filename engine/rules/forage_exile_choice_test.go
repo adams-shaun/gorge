@@ -6,7 +6,9 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // CR 701.61a: forage is "exile three cards from your graveyard or sacrifice a
@@ -85,6 +87,62 @@ func TestBushyBodyguardForagePicksThree(t *testing.T) {
 	}
 	if left := e.G.Zone(state.ZGraveyard, 0); len(left) != 2 || !slices.Equal(left, grave[:2]) {
 		t.Fatalf("graveyard after forage = %v, want the unpicked %v", left, grave[:2])
+	}
+	replayCheck(t, e, cfg)
+}
+
+func TestThornvaultForagerManaForagePicksThree(t *testing.T) {
+	moves := map[string]state.Zone{"Thornvault Forager": state.ZBattlefield}
+	for _, name := range []string{"Grizzly Bears", "Llanowar Elves", "Shock", "Hill Giant", "Craw Wurm"} {
+		moves[name] = state.ZGraveyard
+	}
+	e, cfg, ids := edrBoard(t, testutil.CorpusRegistry(t), 7805, moves)
+	tf := ids["Thornvault Forager"]
+	e.G.Obj(tf).SummonSick = false
+	grave := slices.Clone(e.G.Zone(state.ZGraveyard, 0))
+	if len(grave) != 5 {
+		t.Fatalf("fixture: graveyard = %v, want five cards", grave)
+	}
+	if foods := pay.CostCandidates(asPayer(e), 0, tf, state.ZBattlefield, "Food.YouCtrl", false, false); len(foods) != 0 {
+		t.Fatalf("fixture: %d Foods, want none (the exile arm alone)", len(foods))
+	}
+	if !hasActivateOption(e, tf) {
+		t.Fatalf("Thornvault Forager not offered: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, activateOption(t, e, tf))
+	pick := e.Pending()
+	pickAbility := -1
+	for _, o := range pick.Options {
+		if o.Kind == "mana" && o.Ability == 1 {
+			pickAbility = o.Index
+		}
+	}
+	if pickAbility < 0 {
+		t.Fatalf("no Forage ability option: %+v", pick.Options)
+	}
+	start := len(e.L.Events)
+	submitChoices(t, e, pickAbility)
+	if got := forageExiledSince(e, start); len(got) != 0 {
+		t.Fatalf("activation exiled %v before any pick was posed, want a 3-card pick first", got)
+	}
+	picked := forageExilePick(t, e, e.Pending(), grave)
+	// Resolve the colour allocation with the first option(s).
+	for i := 0; i < 8 && e.Pending() != nil && e.Pending().Kind == decision.KChoose; i++ {
+		d := e.Pending()
+		var cs []int
+		for j := 0; j < max(d.Min, 1) && j < len(d.Options); j++ {
+			cs = append(cs, d.Options[j].Index)
+		}
+		submitChoices(t, e, cs...)
+	}
+	exiled := forageExiledSince(e, start)
+	slices.Sort(exiled)
+	slices.Sort(picked)
+	if !slices.Equal(exiled, picked) || forageActionCount(e.L.Events, start) != 1 {
+		t.Fatalf("exiled %v (%d ForageAction), want the picked %v and 1", exiled, forageActionCount(e.L.Events, start), picked)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 2 {
+		t.Fatalf("after forage: pool total = %d, want 2", got)
 	}
 	replayCheck(t, e, cfg)
 }
