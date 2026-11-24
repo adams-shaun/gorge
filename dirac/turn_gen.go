@@ -416,8 +416,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				kind = akType
 			case in.Op == kop.OpExt:
 				switch in.Ext() {
-				case kop.ExtChooseNumber:
-					kind = akNumber
+				case kop.ExtChooseNumber, kop.ExtPayLifeX:
+					kind = akNumber // ExtPayLifeX: repl_paylife.go
 				case kop.ExtChooseName:
 					kind = nameAskKind(in)
 				case kop.ExtChooseCardEnter:
@@ -466,6 +466,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			if kind != akCard && kind != akCtrPick && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
 				s.perms[sl].chosen = s.g.pre.val // asked on the stack
 				s.touchSl(sl)
+				if isPayLifeOp(in) {
+					s.payLifeApply(k, sl, in, int(s.g.pre.val)) // repl_paylife.go: the answer pays now the entry happens
+				}
 				s.g.pre.state = 0
 				continue
 			}
@@ -490,6 +493,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				}
 				s.perms[sl].chosen = objWord(fb)
 				continue
+			}
+			if isPayLifeOp(in) && s.entryAskOutstanding() {
+				continue // gorge's one-at-a-time entry path: unasked, the body pays X = 0 (repl_paylife.go)
 			}
 			ra := &k.t.Cards[c].Abilities[ab]
 			if s.entryNoRun() && kind != akCtrPick && kind != akCtrPick2 &&
@@ -622,6 +628,10 @@ func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.
 	case akNumber:
 		// the op's own bounds, not numberBounds's queued-ask lookup:
 		// gorge's ChooseNumber fallback is the list's floor (opts[0])
+		if isPayLifeOp(in) {
+			d.add(MakeAction(AkChoose, 0, 0, 0)) // pays nothing (repl_paylife.go)
+			break
+		}
 		for n := int(in.B.N); n <= int(in.C); n++ {
 			d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
 		}
@@ -1600,6 +1610,9 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	} else {
 		v := int(a.Target())<<8 | int(a.Mode())
 		p.chosen = objWord(s.typeVocabCode(k, v))
+	}
+	if ask.kind == akNumber {
+		s.payLifeAnswer(k, ask, a) // repl_paylife.go: a no-op unless ExtPayLifeX posed it
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced

@@ -282,6 +282,10 @@ type lowerCtx struct {
 	// numNames: the SVar names a StoreSVar of the face writes through the
 	// number store (lower_storenum.go), computed on first use
 	numNames map[string]bool
+	// replUpdated: the enters replacement being lowered is a plain R: line
+	// (ReplacementResult$ Updated), whose body runs once the permanent is on
+	// the battlefield (lower_paylife.go)
+	replUpdated bool
 	// repeatCheckSVar is the SVar an enclosing gated Repeat's
 	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
 	// its ability, so a StoreSVar$ after the loop (the reset) still matches

@@ -3439,7 +3439,7 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram || len(a.Prog) == 0 {
 			continue
 		}
-		if a.Repl.C == kop.ReplAfterEnter {
+		if a.Repl.C == kop.ReplAfterEnter && !isPayLifeOp(&a.Prog[0]) {
 			// an R: line (ReplacementResult$ Updated) poses its choice once
 			// the permanent is on the battlefield, not while it is still a
 			// spell on the stack: the queued as-enters ask (runReplProgAs)
@@ -3453,8 +3453,8 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 			return akType
 		case kop.OpExt:
 			switch a.Prog[0].Ext() {
-			case kop.ExtChooseNumber:
-				return akNumber
+			case kop.ExtChooseNumber, kop.ExtPayLifeX:
+				return akNumber // ExtPayLifeX: gorge's entry walker asks it with the spell on the stack too (repl_paylife.go)
 			case kop.ExtChooseName:
 				return nameAskKind(&a.Prog[0])
 			}

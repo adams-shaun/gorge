@@ -608,7 +608,7 @@ func (a *SBT) gorgeDecision(s *dirac.State, d *dirac.Decision) (*decision.Decisi
 				o.Player = state.PlayerID(c.Tgt() - RefPlayer)
 			}
 			switch o.Kind {
-			case "x", "number":
+			case "x", "number", "paylife":
 				o.Amount = int(c.Mode())
 			case "mana", "color":
 				if int(c.Mode()) < 6 {

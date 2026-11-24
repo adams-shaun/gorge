@@ -1,0 +1,7 @@
+package kgen
+
+func init() {
+	opsEntries = append(opsEntries,
+		opsDoc{"ext:PayLifeX", "OpExt ExtPayLifeX (B the cap value, C name | delete flag | printed default)", "\"As CARDNAME enters, pay any amount of life\" (CR 614.12; Phyrexian Processor, Minion of the Wastes, Nameless Race): the only instruction of an enters program lowered from a plain R:Event$ Moved ReplacementResult$ Updated line whose ReplaceWith$ body is `StoreSVar | Cost$ Mandatory PayLife<X> | Type$ Calculate | Expression$ X` over SVar X = Count$xPaid. The entering permanent's controller is asked as gorge asks it at the entry boundary (a KChoose of Kind \"paylife\", options 0..min(life, XMax$), the amount on Amount; the kernel's ChGenPayLife decision, canon kind \"paylife\" appended to the choose kinds): with the spell on the stack through the pre-entry ask, else queued. B is the XMax$ cap value (the constant 32767 without one, read with the entering object as the source), C the stored name as ExtStoreNum's. The answer loses that life (loseLife) and stores it as the entering permanent's number (the object-set store, act_storenum.go), which ExSVarNum reads back (a token's TokenPower$/TokenToughness$, a CDA's SetPower$/SetToughness$) until the permanent leaves the battlefield (CR 400.7: the token of an ability that outlives its source is 0/0). A range past 254 stalls (StallPayLife); an entry no ask serves pays and stores nothing. dirac/repl_paylife.go, lockstep in dirac/oracle/paylife_lockstep_test.go."},
+	)
+}
