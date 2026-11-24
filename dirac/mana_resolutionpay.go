@@ -432,12 +432,43 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	if held {
 		s.perms[sl].flags |= pfTapped
 	}
-	s.tapFor(k, p, &cost, 0, NoObj)
+	s.tapDeferredPrefix(k, p, a, &cost)
 	if held {
 		s.perms[sl].flags &^= pfTapped
 	}
 	if s.npend != 0 {
 		s.flushPrefixTriggers(k) // the tapped source's trigger below the play, not above it
+	}
+}
+
+// tapDeferredPrefix is payPrefixRest's Taps-deferred prefix for play a: the
+// plan's sources one activation at a time, stopping at the first node where
+// the pool pays cost or the plain census prices the rest, as gorge's prefix
+// search stops at the first node its planner prices. Each activation floats
+// the tap's gated and any-colour extras (addGatedExtra; their trigger
+// resolves at the tap, CR 605.4a), which no plan prices: the whole plan
+// over-taps, and a Plains under Buried in the Garden makes {W}{W}, paying a
+// {2} activation alone.
+func (s *State) tapDeferredPrefix(k *prep, p uint8, a Action, cost *kop.ManaCost) {
+	for range maxUnits {
+		sl := s.tapForN(k, p, cost, 0, NoObj, true)
+		if sl == NoSlot {
+			return
+		}
+		s.fillTapAnyCol(k, p, sl, a)
+		s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
+		if s.poolPays(p, cost) {
+			return
+		}
+		chk := planner{dry: true}
+		s.tapNeed(&chk, p, cost, 0, false)
+		if chk.needT == 0 {
+			return
+		}
+		chk.try = true
+		if s.plan(k, p, &chk, NoObj); chk.found {
+			return // the plain census prices the rest: gorge's planner pays it post-push
+		}
 	}
 }
 
