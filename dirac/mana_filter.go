@@ -1660,6 +1660,7 @@ func (fs *filtSearch) lifePainOnPath() bool {
 // sole life-only pain unit as the plan's last resort (lifePass's pain arm).
 // The read is scoped to the plain hand cast the witness arm prices -- gorge's
 // planner plans the composed cost of a PlannedCast (planComposedCostFor) -- and
+// to a may-play permission's plain cast from another zone (Junk's exile), and
 // runs only when the board holds an activatable life-only pain unit, the one
 // shape whose census unit a gap activation can fund (potential_plan.go).
 //
@@ -1677,8 +1678,8 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 		return s.lifePainActAffords(k, a, p, o)
 	case a.Kind() == AkCast && a.Mode() == 2 && s.objs[o].zone == kop.ZoneGraveyard && k.cards[s.objs[o].card].kw&kop.KwFlashback != 0:
 		return s.lifePainFlashbackAffords(k, p, o)
-	case a.Kind() != AkCast || a.Mode() != 0 || s.objs[o].zone != kop.ZoneHand:
-		return false
+	case a.Kind() != AkCast || !(a.Mode() == 0 && s.objs[o].zone == kop.ZoneHand || a.Mode() == castMayPlay && s.objs[o].zone != kop.ZoneHand):
+		return false // a hand cast, or a may-play permission's plain cast of the printed cost from another zone (Junk's exile)
 	}
 	if !s.lifePainLive(k, p) {
 		return false
@@ -2686,6 +2687,25 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 	return hasOption(&d, fs.a) && !t.grantRefusedPrices(k, fs.p, fs.a) && !fs.witnessEats(k, t)
 }
 
+// offersOnPath is offers at a node of the search's path. A may-play cast from
+// another zone (Junk's exiled card, castMayPlay) that the path funds with a
+// sole life-only pain unit is listed by gorge's search only once the floating
+// pool pays the whole cost: its planner leaves the last resort to the prefix
+// (the "rider witness not offered" verdict), so the unit's census mana and the
+// untapped printed sources do not make the node an offer, and the prefix
+// activates the unit and then the printed sources (Ogre, Ogre, Mountain for
+// Flames of the Firebrand's {2}{R}, CR 605.3b). The node is read with the
+// payer's sources held out.
+func (fs *filtSearch) offersOnPath(k *prep, t *State) bool {
+	if !fs.lifePainBound || fs.a.Kind() != AkCast || fs.a.Mode() != castMayPlay || !fs.lifePainOnPath() {
+		return fs.offers(k, t)
+	}
+	held := t.ctrlM[fs.p]
+	t.ctrlM[fs.p] = slotMask{}
+	defer func() { t.ctrlM[fs.p] = held }()
+	return fs.offers(k, t)
+}
+
 // visit is one priority node of the search.
 // terminal reports whether the search reached its goal at t: a payment's
 // pool pays fs.pay, or a play's offer lists fs.a. The play's comment is the
@@ -2697,7 +2717,7 @@ func (fs *filtSearch) terminal(k *prep, t *State, gapUsed bool) bool {
 	if fs.pay != nil {
 		return t.poolPays(fs.p, fs.pay)
 	}
-	if !(gapUsed || fs.hands > 0 || fs.lifePainOnPath()) || !fs.offers(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
+	if !(gapUsed || fs.hands > 0 || fs.lifePainOnPath()) || !fs.offersOnPath(k, t) { // (a guide's mana makes the raw priority list the play with no gap used)
 		return false
 	}
 	// A filter gap whose own tap queues a Taps trigger is the window's
