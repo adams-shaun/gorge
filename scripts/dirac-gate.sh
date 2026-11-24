@@ -52,9 +52,13 @@ PERF_MAX=${PERF_MAX:-1.06}
 # 2026-11-18 when dirac became one four-seat build (operator 11-18; main measured FDN 55386, BLB 65407),
 # and 2026-11-19 when the capacity limits were raised for four-seat Commander pods (operator: land
 # unless more than 10% slower; MaxPerm 192's three-word slot masks cost FDN +3.8% and BLB +3.9%
-# instructions per op against the merge base, 57488 and 67945 scaled by those ratios).
-INSTR_PB_FDN=59647
-INSTR_PB_BLB=70566
+# instructions per op against the merge base, 57488 and 67945 scaled by those ratios), and re-based
+# 2026-11-24 to main measured on the gorge-box runner, the host the instruction check runs on (ci
+# run 45328061750, dirac-slices "Measure instructions against the program base", tree c3a60d726d
+# whose dirac/ sources are main 16df80777e's; run 45329551691 reproduced 64063/92287; the values
+# before this were seat-host numbers, which read 2-4% below the runner).
+INSTR_PB_FDN=64068
+INSTR_PB_BLB=92285
 
 top=$(git rev-parse --show-toplevel) || exit 2
 cd "$top" || exit 2
