@@ -21,10 +21,10 @@ const (
 	// startTokenDoubler doubles the tokens and counters an effect makes: the
 	// replacements a scripted placement must not go through.
 	startTokenDoubler = "Name:Token Doubler\nManaCost:4 G\nTypes:Enchantment\n" +
-		"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidToken$ Card.YouCtrl | ReplaceWith$ DoubleToken | EffectOnly$ True | Description$ x\n" +
-		"SVar:DoubleToken:DB$ ReplaceToken | Type$ Amount\n" +
-		"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Permanent.YouCtrl+inZoneBattlefield | EffectOnly$ True | ReplaceWith$ DoubleCounters | Description$ x\n" +
-		"SVar:DoubleCounters:DB$ ReplaceCounter | Amount$ Y\nSVar:Y:ReplaceCount$CounterNum/Twice\nOracle:x\n"
+		"R:Event$ CreateToken | ActiveZones$ Battlefield | ValidToken$ Card.YouCtrl | ReplaceWith$ StartTwiceTok | EffectOnly$ True | Description$ x\n" +
+		"SVar:StartTwiceTok:DB$ ReplaceToken | Type$ Amount\n" +
+		"R:Event$ AddCounter | ActiveZones$ Battlefield | ValidCard$ Permanent.YouCtrl+inZoneBattlefield | EffectOnly$ True | ReplaceWith$ StartTwiceCtr | Description$ x\n" +
+		"SVar:StartTwiceCtr:DB$ ReplaceCounter | Amount$ StartTwiceN\nSVar:StartTwiceN:ReplaceCount$CounterNum/Twice\nOracle:x\n"
 )
 
 func startTokenConfig(t *testing.T, start *StartSpec) Config {
