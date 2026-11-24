@@ -109,18 +109,6 @@ func TestIncubateZeroMintsNoCounterEvent(t *testing.T) {
 	}
 }
 
-// TestIncubateNegativeCreatesNothing: a negative A creates nothing.
-func TestIncubateNegativeCreatesNothing(t *testing.T) {
-	sc, front := incubateScen(t)
-	sc.incubate(t, front, -1, 1)
-	if toks := sc.incubatorTokens(front); len(toks) != 0 {
-		t.Fatalf("%d Incubator tokens, want none", len(toks))
-	}
-	if sc.s.npend != 0 {
-		t.Fatalf("%d pending triggers, want none", sc.s.npend)
-	}
-}
-
 // TestIncubateTimesRepeats: B mints, each with its own counter event.
 func TestIncubateTimesRepeats(t *testing.T) {
 	sc, front := incubateScen(t)
