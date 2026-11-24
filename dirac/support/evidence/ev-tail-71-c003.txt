@@ -154,6 +154,7 @@ Island
 Jawbone Duelist
 Jeska, Warrior Adept
 Jhessian Balmgiver
+Join the Dance
 Journey for the Elixir
 Junk Jet
 Keepsake Gorgon
@@ -222,6 +223,7 @@ Psychic Overload
 Pyrogoyf
 Radiant Epicure
 Rampaging Monument
+Ranger's Firebrand
 Raving Oni-Slave
 Reckless Reveler
 Recruit the Worthy
@@ -251,6 +253,7 @@ Serene Heart
 Serum Sovereign
 Shield Mate
 Shocker
+Shortcut to Mushrooms
 Shu Farmer
 Sibsig Icebreakers
 Sighted-Caste Sorcerer

@@ -22,6 +22,7 @@ Benalish Trapper
 Berg Strider
 Blaze
 Blessed Respite
+Bonecrusher Giant
 Boros Keyrune
 Brainstone
 Cabal Torturer
@@ -36,6 +37,8 @@ Coastal Bulwark
 Codex Shredder
 Cogwork Librarian
 Commander Sofia Daguerre
+Cone of Flame
+Corpse Harvester
 Cruel Finality
 Crush
 Crystal Rod
@@ -115,6 +118,7 @@ Kalastria Healer
 Kapsho Kitefins
 Karma
 Keeper of the Cadence
+Kenrith's Transformation
 Khenra Spellspear
 Knight of the Reliquary
 Kobold Overlord
@@ -126,6 +130,7 @@ Leery Fogbeast
 Lethal Exploit
 Lightning Stormkin
 Llanowar Vanguard
+Longhorn Firebeast
 Lord of the Void
 Loxodon Partisan
 Luminous Bonds
@@ -206,6 +211,7 @@ Scion of the Wild
 Scourge of Valkas
 Sea God's Revenge
 Select for Inspection
+Selesnya Sentry
 Serpent Skin
 Serpent Warrior
 Shambling Suit

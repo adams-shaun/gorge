@@ -8,6 +8,7 @@ Blood Mist	b3d680bfaa92d8f2	4	1/1		0/1	ix:resp
 Bloodforged Battle-Axe	e2d5036ece3e89f7	12	2/2		0/1	ix:resp
 Bloody Betrayal	bb490616508f8caa	3	0/0		1/2	ix:resp
 Borne Upon a Wind	51ecfffee7f03912	27	0/0		2/2	
+Burr Grafter	47c2207f8ffbe1b1	5	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Chill of the Grave	ded5d73997d39c04	15	0/0		2/2	
 Coercion	3a9682d132b1fc04	7	0/0		1/2	ix:resp
 Collateral Damage	bc85d2809e39c57e	5	0/0		1/2	ix:resp
@@ -24,6 +25,8 @@ Deadeye Tracker	22bfede22f2ce3f9	12	1/1		1/1
 Dimensional Infiltrator	5710480f1671fc1b	28	1/1		1/1	
 Dive Bomber	d5bfb002b120a5e6	9	1/1		0/1	ix:resp
 Dread Drone	c0c47f741d87b0a0	7	1/1		0/1	ix:resp
+Dungeon Map	554231ef1326f302	6	2/2		0/1	ix:resp
+Elrond, Lord of Rivendell	436a08b0ff8106a4	11	1/1		1/1	
 Energy Flux	a4c11cf3ffcc5202	6	0/0		0/0	
 Exsanguinator Cavalry	a591282d94146b3a	19	1/1		0/1	ix:resp
 Fantastic Bounce	7a89fd4fd92397fd	5	0/0		1/2	ix:resp
@@ -70,7 +73,9 @@ Power of Persuasion	bf61c54408695c51	13	0/0		1/2	ix:resp
 Pradesh Gypsies	ebc8b746c18824b5	4	1/1		1/1	
 Prying Eyes	9b544a0cdf52718d	8	0/0		1/2	ix:resp
 Pteramander	0a09cd8e81a817eb	18	1/1		1/1	
+Realmwright	cd3dede5e84268db	11	0/0		0/0	
 Reap the Seagraf	1e16cb910bcd05c0	12	0/0		3/4	ix:resp
+Renowned Weaponsmith	007412648aa941d8	25	2/2		1/1	
 Rescind	2a0123f94e30750d	3	1/1		1/2	ix:resp
 Retributive Wand	b638ea6c7e926499	13	2/2		1/1	
 Returned Centaur	096c49ea7032f9d9	12	1/1		0/1	ix:resp
@@ -119,3 +124,4 @@ Where Ancients Tread	bcd9449c5db5ebdf	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Whispering Shade	8377000dde624060	9	1/1		1/1	
 Wretched Confluence	1f7fe48055d63f40	3	0/0		1/2	ix:resp
 Xander's Lounge	8dd391b76bd72c1f	22	4/4		0/1	ix:resp
+Yes Man, Personal Securitron	272423298b6a174a	6	2/2		1/1	

@@ -3,6 +3,7 @@ Absolving Lammasu
 Aftermath Analyst
 Agency Coroner
 Agency Outfitter
+Agrus Kos, Spirit of Justice
 Airtight Alibi
 Analyze the Pollen
 Archdruid's Charm
@@ -16,6 +17,7 @@ Basilica Stalker
 Behind the Mask
 Benthic Criminologists
 Bite Down on Crime
+Blood Spatter Analysis
 Bolrac-Clan Basher
 Branch of Vitu-Ghazi
 Bubble Smuggler
@@ -45,6 +47,7 @@ Crimestopper Sprite
 Cryptic Coat
 Curious Cadaver
 Curious Inquiry
+Deadly Complication
 Deduce
 Defenestrated Phantom
 Delney, Streetwise Lookout
@@ -100,6 +103,7 @@ Island
 It Doesn't Add Up
 Izoni, Center of the Web
 Jaded Analyst
+Judith, Carnage Connoisseur
 Karlov Watchdog
 Kaya, Spirits' Justice
 Kellan, Inquisitive Prodigy
@@ -110,6 +114,7 @@ Krovod Haunch
 Lamplight Phoenix
 Lead Pipe
 Leering Onlooker
+Lightning Helix
 Long Goodbye
 Loxodon Eavesdropper
 Lumbering Laundry
@@ -148,6 +153,7 @@ Private Eye
 Proft's Eidetic Memory
 Projektor Inspector
 Public Thoroughfare
+Rakdos, Patron of Chaos
 Rakish Scoundrel
 Raucous Theater
 Reckless Detective
@@ -159,6 +165,7 @@ Rope
 Rot Farm Mortipede
 Rubblebelt Braggart
 Rubblebelt Maverick
+Rune-Brand Juggler
 Sample Collector
 Sanctuary Wall
 Sanguine Savior
@@ -166,6 +173,7 @@ Sanitation Automaton
 Scene of the Crime
 Seasoned Consultant
 Shadowy Backstreet
+Shady Informant
 Sharp-Eyed Rookie
 Shock
 Slice from the Shadows
@@ -202,6 +210,7 @@ Urgent Necropsy
 Vannifar, Evolved Enigma
 Vein Ripper
 Vengeful Tracker
+Warleader's Call
 Wispdrinker Vampire
 Wojek Investigator
 Wrench

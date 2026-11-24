@@ -1,0 +1,53 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Adamant Will	f5f8b32aba3239ec	6	0/0		2/2	
+Ancient Grudge	90fbe88f3f1fc560	10	0/0		4/4	
+Biogenic Upgrade	0a8f8ab77b17c7fe	4	0/0		1/2	ix:resp
+Blazing Volley	bf3d795b3e0e94fc	5	0/0		1/2	ix:resp
+Bloodlust Inciter	177ec9bf37c3a69f	6	1/1		0/1	ix:resp
+Boarding Party	35d8cf4563926d4b	4	0/0		0/0	
+Breath of Darigaaz	f60da5d605260e75	4	0/0		3/4	ix:resp
+Briar Patch	e525ddcb03ec3394	3	1/1		1/1	
+Broodhatch Nantuko	6a6fe46a23599605	4	1/1		1/5	cast/alt:morphed,f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Cabal Pit	34bfba562cbbc2e4	31	2/2		0/1	ix:resp
+Contagion	2a3c5fdb451f4bc2	8	0/0		2/2	
+Corrupted Conviction	6419616efcc1e3b4	4	0/0		2/2	
+Dauntless Cathar	d1f139f1ee4f478c	9	1/1		0/1	ix:resp
+Diamond Pick-Axe	60d1a4aaf5e0a7a6	6	1/1		1/1	
+Emerge Unscathed	7bbf4f768539fe25	12	0/0		1/2	ix:resp
+Faithbearer Paladin	476e5d94f50e852b	4	0/0		0/0	
+Fiery Impulse	64cd4faa2adc7378	8	0/0		1/2	ix:resp
+Flame Slash	795949e4ed008946	5	0/0		2/2	
+Footbottom Feast	74c0fa3327591229	10	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	36	1/1		0/1	ix:resp
+Geist of the Moors	0aed5be33427d852	4	0/0		0/0	
+Gigadrowse	f351beb77ce513d5	4	1/1		4/4	
+Grafted Exoskeleton	6cdc8e12681bc58f	4	2/2		0/1	ix:resp
+Hard Evidence	995dc58c3c9f9f9b	6	0/0		1/2	ix:resp
+Island	763c67ef7a27eaf5	48	1/1		0/1	ix:resp
+Joven and Chandler	2e356d08eb2a0f5d	5	2/2		0/1	ix:resp
+Kessig Flamebreather	85008e9d7d799a42	3	1/1		0/1	ix:resp
+Knight of Cliffhaven	fc4a61c24d1ebf9f	6	1/1		1/1	
+Mistveil Plains	24c291918b439673	24	2/2		0/1	ix:resp
+Morbid Opportunist	24722ae9947e36da	3	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	49	1/1		0/1	ix:resp
+Mutagenic Growth	a031ee2441ff5bb3	4	0/0		2/2	
+Nemesis Mask	1532618cbeb2a1df	9	1/1		1/1	
+Night's Whisper	57c30c3a272643c4	7	0/0		1/2	ix:resp
+Odric, Lunarch Marshal	6ce612a09bf363c2	32	1/1		1/1	
+Orzhov Enforcer	755e39f604d0ab31	9	1/1		0/1	ix:resp
+Overwhelming Encounter	74aedc99a2b43de8	4	0/0		1/2	ix:resp
+Pawn of Ulamog	c9a354b447b85941	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Plains	82d63a695487e567	222	1/1		0/1	ix:resp
+Rebuff the Wicked	40f98cc6945cde36	3	0/0		1/2	ix:resp
+Reckless Charge	c250361357bd70c4	3	0/0		3/4	ix:resp
+Requisition Raid	ba9edd69537ffbd8	4	0/0		1/2	ix:resp
+Rograkh, Son of Rohgahh	d0e9e97bf4de816f	4	0/0		0/0	
+Settle Beyond Reality	cdbe9fadfa494357	3	0/0		1/2	ix:resp
+Sorcerous Sight	4d2c43f82d54fd39	4	0/0		1/2	ix:resp
+Swamp	342b413902f441c3	46	1/1		0/1	ix:resp
+Temur Battle Rage	f255d265a3d2c2f5	4	0/0		2/2	
+The Birth of Meletis	e50ebbb76265a813	10	0/0		0/0	
+Thraben Watcher	c0f4122f6ab187bb	9	0/0		0/0	
+Unbounded Potential	3b35b87faf9d9b30	12	0/0		1/2	ix:resp
+Wickerbough Elder	249f908914c2d428	6	1/1		0/1	ix:resp
+Wildheart Invoker	fbdd534688dca1a0	4	1/1		0/1	ix:resp

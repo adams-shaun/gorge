@@ -1,6 +1,10 @@
+Abolish
 Abu Ja'far
+Accelerate
 Age of Ultron
+Alesha's Vanguard
 Altar of Bhaal
+Amok
 Anoint with Affliction
 Arrogant Vampire
 Asphodel Wanderer
@@ -9,46 +13,69 @@ Bane of Progress
 Basilica Bell-Haunt
 Beacon Hawk
 Bogardan Firefiend
+Boggart Forager
+Bonded Construct
 Break of Day
 Briarhorn
 Bronze Cudgels
 Cadira, Caller of the Small
 Calamity's Wake
+Candelabra of Tawnos
+Cat Warriors
 Chimeric Mass
 Chrome Mox
 Compulsory Rest
 Concentrate
+Contagious Vorrac
 Council of Advisors
 Dauthi Horror
+Death Ward
 Disempower
 Distress
 Dramatic Finale
 Dreadmobile
 Dungrove Elder
+Elder Owyn Lyons
+Elite Arrester
 Fists of Ironwood
+Flame Rift
 Fleetfoot Panther
 Forest
 Fragmentize
 Funeral Pyre
 Funeral Rites
 Gaea's Avenger
+Gate Hound
 Goblin Soothsayer
 Grismold, the Dreadsower
+Grotag Night-Runner
+Guma
+Hajar, Loyal Bodyguard
 Haunted Crossroads
+Heavy Arbalest
 Inevitable End
 Infectious Bloodlust
+Inquisitor Exarch
 Island
 Kamber, the Plunderer
+Kinjalli's Caller
 Krovikan Plague
+Lazotep Plating
 Lethal Exploit
 Llanowar Visionary
+Marionette Master
 Mesmeric Orb
+Minion's Return
 Mire Triton
 Mountain
+Nether Void
 Netherborn Altar
+Nightshade Stinger
 Nissa's Judgment
 Novice Dissector
 Omen of the Hunt
+Opportunistic Dragon
+Oracle's Insight
 Plague Beetle
 Plains
 Priest of Fell Rites
@@ -56,28 +83,45 @@ Prophet of Distortion
 Quirion Ranger
 Raffine's Silencer
 Rainbow Crow
+Rampaging Classmate
 Ranger's Longbow
 Ransack the Lab
+Riddlesmith
 Ring of Renewal
 Rootwater Diver
 Runed Stalactite
+Rush of Battle
 Sanctuary Cat
 Sawblade Slinger
+Scornful Aether-Lich
 Shadowborn Demon
+Shrieking Grotesque
 Silverwing Squadron
 Simian Brawler
 Soul of Innistrad
 Sparkmage's Gambit
+Spidery Grasp
+Spoils of Adventure
+Stag Beetle
+Stand Together
 Storm Shaman
 Sudden Strength
+Sunder
 Swamp
 Tainted Strike
+Thoughts of Ruin
 Thrull Parasite
+Ticked Off
 Torens, Fist of the Angels
 Tuinvale Treefolk
+Umbral Mantle
 Urborg Emissary
 Utter End
 Vebulid
 Vigilance
 Vivify
+Vryn Wingmare
+Whipcorder
 Witness of Tomorrows
+Woodland Patrol
+Zealous Conscripts

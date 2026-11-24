@@ -156,15 +156,7 @@ func blockHistoryRememberedNames(g *state.Game, history []state.ObjID, sc *SpecC
 // persistent half so the Effect's own captured scope cannot widen when the
 // source card remembers something for a different ability.
 func anyRemembered(g *state.Game, sc *SpecContext, fn func(state.ObjID) bool) bool {
-	var persistent []state.Target
-	if !sc.SourceRememberedStrict {
-		src := g.Obj(sc.Source)
-		persistent = effectiveSourceRemembered(g, sc.TriggerContext, src)
-	}
-	resolution := sc.Remembered
-	if len(sc.Captured) > 0 {
-		resolution = selectRemembered(sc.Remembered, sc.Captured, sc.DelayedRemembered, persistent, sc.RememberWriterAbove)
-	}
+	resolution, persistent := filterRemembered(g, sc)
 	for _, t := range resolution {
 		if !t.IsPlayer && fn(t.Obj) {
 			return true
@@ -176,6 +168,24 @@ func anyRemembered(g *state.Game, sc *SpecContext, fn func(state.ObjID) bool) bo
 		}
 	}
 	return false
+}
+
+// filterRemembered is the two halves of what a filter word's "Remembered"
+// names: the resolution's set with the trigger's fire-time event capture
+// filtered out (selectRemembered, the Defined$ Remembered rule), and the
+// persistent half (see anyRemembered). Forge's Remembered is the host's own
+// list, never the object a trigger fired on, so a word that reads the
+// remembered cards (sharesCreatureTypeWith Remembered) goes through here too.
+func filterRemembered(g *state.Game, sc *SpecContext) (resolution, persistent []state.Target) {
+	if !sc.SourceRememberedStrict {
+		src := g.Obj(sc.Source)
+		persistent = effectiveSourceRemembered(g, sc.TriggerContext, src)
+	}
+	resolution = sc.Remembered
+	if len(sc.Captured) > 0 {
+		resolution = selectRemembered(sc.Remembered, sc.Captured, sc.DelayedRemembered, persistent, sc.RememberWriterAbove)
+	}
+	return resolution, persistent
 }
 
 // blockHistoryMatches evaluates the block-relation words for candidate o.

@@ -2,7 +2,9 @@ Akroma's Memorial
 Alpha Kavu
 Angelic Gift
 Ashcoat Bear
+Avalanche
 Bloodcrazed Neonate
+Bloodforged Battle-Axe
 Brotherhood Outcast
 Butterbur, Bree Innkeeper
 Canoptek Spyder
@@ -19,10 +21,12 @@ Crack the Earth
 Cruel Bargain
 Dalakos, Crafter of Wonders
 Dauntless Cathar
+Daybreak Chaplain
 Death's Presence
 Dihada's Ploy
 Dross Scorpion
 Dungeon Shade
+Energy Flux
 Evolutionary Escalation
 Faerie Invaders
 Flowstone Overseer
@@ -39,6 +43,7 @@ Hand of Silumgar
 Heirs of Stromkirk
 Hexmark Destroyer
 Infest
+Intangible Virtue
 Iron Tusk Elephant
 Isamaru, Hound of Konda
 Island
@@ -46,37 +51,52 @@ Joyous Respite
 Jungle Delver
 Jungle Shrine
 Kardur, Doomscourge
+Knight Paladin
 Kris Mage
 Kruphix's Insight
+Leather Armor
 Magma Rift
+Mana Flare
 Manakin and Millikin
 Marble Diamond
 Massive Raid
 Mesa Lynx
+Metropolis Sprite
 Minister of Pain
 Misfortune's Gain
 Mountain
+Mudbutton Torchrunner
 Multani's Acolyte
+Multiversal Recruitment
+Murderous Compulsion
 Necroplasm
 Night
 Nurturing Licid
 Nylea, God of the Hunt
 Overcome
 Overwhelming Encounter
+Pact of the Titan
 Panic Spellbomb
 Pegasus Charger
+Photon, Mighty Marvel
 Plains
+Power of Persuasion
 Rage Forger
 Ral, Izzet Viceroy
 Rampaging Ferocidon
 Reckless Abandon
+Returned Centaur
+Rograkh, Son of Rohgahh
 Rottenheart Ghoul
 Scent of Ivy
 Seal of Doom
 Searchlight Companion
 Seascape Aerialist
 Senate Guildmage
+Shabraz, the Skyshark
 Shadow Prophecy
+Sigil of Myrkul
+Signal Pest
 Silver-Inlaid Dagger
 Skittering Monstrosity
 Skulltap
@@ -84,7 +104,9 @@ Skywing Aven
 Slaughter Pact
 Smoke Bomb
 Spire Barrage
+Steam Frigate
 Stone Retrieval Unit
+Storm Fleet Swashbuckler
 Strength of Night
 Striking Sliver
 Sturmgeist
@@ -96,13 +118,18 @@ Thirsting Bloodlord
 Thrummingbird
 Thunderscape Familiar
 Timberwatch Elf
+Torch Slinger
 Tormod's Crypt
 Underworld Charger
 Unexpected Fangs
 Unleash Shell
 Untamed Might
 Valiant Knight
+Verdant Rebirth
 Warfire Javelineer
 Warren Soultrader
+Weaponize the Monsters
+Wild Colos
+Wild Onslaught
 Xathrid Slyblade
 Zhao, the Seething Flame

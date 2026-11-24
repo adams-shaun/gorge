@@ -15,6 +15,7 @@ Battlewing Mystic	fca989b2ad911b7b	3	1/1		3/3
 Bay Falcon	9104e2d88a908ec0	9	0/0		0/0	
 Berg Strider	2b59f618ea8a8b95	3	1/1		1/1	
 Blaze	ddf0feb339c57dc7	9	0/0		2/4	f0/s/x0,ix:resp
+Bonecrusher Giant	89e0aa57fdc5d9ce	17	1/1		2/2	
 Boros Keyrune	1c5bb18e73152b0d	28	2/2		1/1	
 Cabal Torturer	e96b3a15339a99b2	7	2/2		1/1	
 Capashen Knight	000f54a92d597508	11	1/1		1/1	
@@ -27,6 +28,8 @@ Coastal Bulwark	8a64fca4d63ff669	9	1/1		0/1	ix:resp
 Codex Shredder	f1aaea952aae88a4	19	2/2		1/1	
 Cogwork Librarian	836f11bcf525b9fe	31	0/0		0/0	
 Commander Sofia Daguerre	d28843a833053d5c	4	1/1		0/1	ix:resp
+Cone of Flame	4026360280ae9854	3	0/0		1/2	ix:resp
+Corpse Harvester	691476a7882e392e	6	1/1		0/1	ix:resp
 Cruel Finality	26c6e175e00cb7d8	11	0/0		2/2	
 Crush	959e96922fe5e0b9	9	0/0		2/2	
 Crystal Rod	ecf6f162f55bbb80	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -88,6 +91,7 @@ Kalastria Healer	f4dbc7f6da858a02	4	1/1		0/1	ix:resp
 Kapsho Kitefins	d9793e9e97e2d1fe	17	1/1		1/1	
 Karma	1258b3bc80185803	3	1/1		1/1	
 Keeper of the Cadence	ebae1b1091270ec8	4	1/1		1/1	
+Kenrith's Transformation	ce5d204ed9f1641b	3	1/1		1/2	ix:resp
 Khenra Spellspear	1d7041c684364383	6	5/5		1/1	
 Knight of the Reliquary	8a9fef39f6849df0	4	1/1		0/1	ix:resp
 Kobold Overlord	b25c0fb4b4ce687d	13	0/0		0/0	
@@ -96,6 +100,7 @@ Lantern Scout	2acbc05b555cae5e	3	1/1		1/1
 Lead Golem	088cf7c7bc70275f	13	1/1		1/1	
 Lethal Exploit	ff9641894ca2f611	10	0/0		1/2	ix:resp
 Lightning Stormkin	da4e297ea5315d71	12	0/0		0/0	
+Longhorn Firebeast	c4c78209c8acdd4f	7	1/1		1/1	
 Lord of the Void	99f968e0cbde28c7	8	1/1		0/1	ix:resp
 Loxodon Partisan	299f4ab1e1ba9402	10	1/1		0/1	ix:resp
 Luminous Bonds	1f4cfec8b23f6f52	6	0/0		1/2	ix:resp
@@ -161,6 +166,7 @@ Sandsteppe Outcast	a0153cc653cc47cb	6	1/1		0/1	ix:resp
 Saprazzan Breaker	5dab018aaffe0803	11	1/1		1/1	
 Sea God's Revenge	781dbf06ad3d838b	20	0/0		2/2	
 Select for Inspection	898a9a6b4730ac7a	12	0/0		2/2	
+Selesnya Sentry	64485cad92b91a22	5	1/1		0/1	ix:resp
 Serpent Skin	fa084b0026a0cb35	4	1/1		2/2	
 Serpent Warrior	89bff50b47228dff	12	1/1		1/1	
 Shatterstorm	0ad6e4e54b87e5ee	4	0/0		2/2	

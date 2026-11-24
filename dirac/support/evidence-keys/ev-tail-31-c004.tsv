@@ -1,23 +1,74 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Deal Gone Bad	dfb1586753bbc8ab	6	0/0		1/2	ix:resp
+A-Precipitous Drop	65f09e3a9bbaf228	6	1/1		1/2	ix:resp
+Abrupt Decay	98750720f5e9fd14	6	0/0		1/2	ix:resp
 Accelerated Mutation	d616ff869a5bccba	65	0/0		2/2	
+Aggressive Crag	99219f05bbbc340b	13	2/2		0/1	ix:resp
+Arachnoid Adaptation	acc2efa381f41010	4	0/0		2/2	
+Atomize	ceb594d12a6c24b3	4	0/0		1/2	ix:resp
+Boot Nipper	e6cc8b398ab802d4	6	0/0		0/0	
+Brood Birthing	29231f05921d2eda	7	0/0		1/2	ix:resp
+Caller of the Claw	34612d5466944010	4	1/1		0/1	ix:resp
 Celestial Flare	a9b6e312b2252127	49	0/0		2/2	
 Centaur Rootcaster	81027c97f0bb0114	54	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Coalition Relic	d92b612e3ab1bbca	4	3/3		0/1	ix:resp
 Conjurer's Closet	e21be0861a65f813	28	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Crypt Rats	1da88e0ac05de886	4	1/1		1/1	
+Darkbore Pathway	ead1d1f7023476bf	26	2/2		0/1	ix:resp
 Darkheart Sliver	2fa23c8a77e89e78	22	0/0		0/0	
 Detainment Spell	7a3dd90e26462c3b	43	1/1		2/2	
+Divine Transformation	49ced11697c9e80a	5	0/0		1/2	ix:resp
+Dreadmobile	6d50fad8e53e591b	4	2/2		1/1	
+Dross Scorpion	4e8353bba6d49188	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Eternal Scourge	595815e4e3bb4f43	6	1/1		0/1	ix:resp
+Famished Ghoul	f6874bf3ff33ae2f	4	1/1		0/1	ix:resp
 Festival of the Guildpact	67156921279fde0f	27	0/0		2/4	f0/s/x0,ix:resp
+Fleeting Memories	0b92726ed638612d	4	2/2		0/1	ix:resp
 Fork in the Road	a56eb70c29d8022d	78	0/0		2/2	
 Frenzied Tilling	fa69c08cfab5e5df	24	0/0		1/2	ix:resp
+Goblin Guide	5f2c865dda128cb9	4	1/1		0/1	ix:resp
+Grim Servant	157cd8db2e1a815d	4	1/1		0/1	ix:resp
 Herald of Ilharg	3af0bfa01d0a5670	40	1/1		1/1	
 Hopeful Eidolon	3170a6a6e2486cd7	62	0/0		2/2	
+Icon of Ancestry	2f1fa9172dd05880	4	1/1		0/1	ix:resp
+Intrepid Adversary	d91131474e4c6e75	4	1/1		0/1	ix:resp
+Kite Shield	d255d49ecfb475c6	4	1/1		0/1	ix:resp
+Languish	59772c3e5d587b86	4	0/0		1/2	ix:resp
+Legions of Lim-Dûl	a5db5eca2868701a	4	0/0		0/0	
+Loxodon Line Breaker	b48efb2727b54b03	4	0/0		0/0	
 Miraculous Recovery	a4ff1a3bedc27d2a	40	0/0		1/2	ix:resp
+Moorland Haunt	152b1c56bd1cbb00	11	2/2		0/1	ix:resp
+Mox Jet	fb71adcc008751d9	4	1/1		0/1	ix:resp
+Neurok Familiar	5c1da7ab34c55d8e	4	1/1		0/1	ix:resp
 Nighthaze	480a823605e8961f	58	0/0		2/2	
+Nightpack Ambusher	915cead867385f98	4	1/1		0/1	ix:resp
+Nyx Infusion	e19e186a41c80145	8	0/0		1/2	ix:resp
+Pharika's Disciple	d281c606d89b75dc	4	1/1		0/1	ix:resp
 Prismatic Ward	725b67bb2fad4a55	27	0/0		1/2	ix:resp
 Purify the Grave	968eba22c671079d	103	0/0		4/4	
 Putrid Leech	c27afb2a791f6983	14	1/1		0/1	ix:resp
+Retrofitted Transmogrant	98b9397c2a3da70b	4	1/1		0/1	ix:resp
+Rile	0e700b48e88e6e9c	5	0/0		1/2	ix:resp
+Ring of Xathrid	9297cef6cf8ad6e9	4	3/3		1/1	
 Rubblebelt Runner	d04996419c442246	25	0/0		0/0	
+Sengir Vampire	88d8bd888f1d0d54	4	1/1		1/1	
+Silent Dart	4a17315e32ad5f71	4	1/1		0/1	ix:resp
+Silverskin Armor	df8e1c185b130913	48	1/1		1/1	
+Simic Growth Chamber	6c73b0dccbb4f536	26	2/2		0/1	ix:resp
+Solemn Offering	6496aa551ea9e91f	8	0/0		1/2	ix:resp
 Steel Leaf Paladin	389d4e1ab4f79170	35	1/1		1/1	
+Structural Collapse	cbfdfb2ee74e2cc4	3	0/0		1/2	ix:resp
+Teetering Peaks	9b85f329ce66e1f6	6	2/2		0/1	ix:resp
+Teferi's Sentinel	ef30422435b04c2e	4	0/0		0/0	
+Tin Street Dodger	a12e8099e671343b	4	1/1		1/1	
+Undead Augur	3c5680819951c546	4	1/1		0/1	ix:resp
+Vanquisher's Axe	b9d260d9e6e4b555	41	1/1		0/1	ix:resp
+Vashta Nerada	a0a783abcaf05341	4	1/1		0/1	ix:resp
+Volt Charge	327fd124ce520c35	4	0/0		2/2	
 Vulshok Morningstar	8186cdc977078129	61	1/1		1/1	
 Wary Okapi	75c85c12885f04d5	53	0/0		0/0	
+Woodland Stream	39974ef14cfc99f2	12	1/1		0/1	ix:resp
 Wreath of Geists	4cce6fcf78a711f0	37	0/0		1/2	ix:resp
+Wrenn and One	257a9f7de2764464	15	3/3		0/1	ix:resp
+Wretched Throng	f2b8d1554b393edd	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Zendikar Incarnate	1bd8765137dd6b37	22	0/0		0/0	

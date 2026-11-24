@@ -1,53 +1,89 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Demon's Due	da206a2d881f0784	12	0/0		2/2	
+Aethersphere Harvester	5a1f36af205ef8e4	130	3/3		1/1	
+And They Shall Know No Fear	6a0af16d755dd758	120	0/0		2/2	
+Apprentice Wizard	5caa6fb04a3a746f	56	1/1		1/1	
+Archetype of Courage	0dba5fcba31e6bcb	75	0/0		0/0	
+Armor Sliver	2c971379035e24db	116	0/0		0/0	
 Ashnod's Harvester	1315980e0145744f	12	2/2		0/1	ix:resp
 Atarka Beastbreaker	021ccfa245707d78	4	1/1		0/1	ix:resp
+Balshan Griffin	d899cff4dac4fa20	145	1/1		1/1	
+Blinkmoth Infusion	8224e480bb7c3b30	10	0/0		2/2	
 Blossom Prancer	cac251b48d5d242e	6	1/1		0/1	ix:resp
 Bomber Corps	b3f2ee6d71d35517	4	1/1		0/1	ix:resp
 Bone Harvest	724b5f2487c1bd5d	12	0/0		2/2	
 Boon Reflection	be1a1d1c7fb49446	4	0/0		0/0	
 Bumi's Feast Lecture	1e00211212d92441	5	0/0		1/2	ix:resp
 Celestial Regulator	da0353ab7913e235	8	1/1		1/1	
+Chakra Meditation	2472aca3a2a91082	114	2/2		1/1	
+Chameleon Spirit	1af039d9d96f1e79	98	0/0		0/0	
+Chant of the Skifsang	e2ee6558216c0ee2	103	0/0		2/2	
 Composer of Spring	d00983964b04970c	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Crypt Ghast	3dfc65e8f58db2c0	14	2/2		0/1	ix:resp
 Delighted Killbot	525be0ec7029f9a5	6	0/0		0/0	
 Deviant Skytech	b090ba0197f69c30	6	1/1		1/1	
+Dimir Informant	9b7e9c872f928cd1	134	1/1		1/1	
 Elephant-Mandrill	934c89ce79c70b0d	13	2/2		0/1	ix:resp
 Elvish Reclaimer	340bf6aefabb5fa5	14	1/1		1/1	
+Etherium Astrolabe	fdf1198108b5bf10	122	1/1		1/1	
+Exploding Barrel	ccd0e0f0ab6d984b	96	2/2		1/1	
 Frog-Squirrels	af39557dda0dfe8a	16	0/0		0/0	
+General Leo Cristophe	5296635a43371a8f	45	1/1		1/1	
 Ghoul's Feast	a1253552dc6a5081	13	0/0		1/2	ix:resp
 Glissa's Scorn	cf3c2a3a663d1d51	6	0/0		2/2	
+Golem's Heart	d939b0104cc8320f	89	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Greater Good	6da83068de059259	6	1/1		0/1	ix:resp
+Gruul Keyrune	0765e8d61541277b	96	2/2		1/1	
 Guise of Fire	dd7378f5ed758fd0	20	0/0		1/2	ix:resp
+Haazda Shield Mate	228da505df889d3e	102	2/2		1/1	
 Haunted Angel	f3a5ce1afa375301	13	1/1		0/1	ix:resp
 Heaven Sent	a2857e8ee8a38b0d	15	0/0		0/0	
+Honor Guard	9dfabf279e83dcb3	111	1/1		1/1	
 Horn of the Mark	098d4198cb2a95b6	12	1/1		1/1	
 Hyrax Tower Scout	5fa706e3c2703495	17	1/1		1/1	
+Icy Manipulator	e9ea9102a0b9701d	93	1/1		1/1	
 Igneous Cur	e73177be5e7659cb	23	1/1		1/1	
 Illuminated Wings	c9bba853948330b4	12	1/1		2/2	
+Immobilizing Ink	53b66dfac391e59b	101	0/0		2/2	
 Insist	2b2d93558382bc94	4	0/0		1/2	ix:resp
+Jester's Cap	e171bd8ec2220514	86	1/1		1/1	
 Karoo Meerkat	3eed411ae4db05de	7	0/0		0/0	
 Manhole Cover	0b16de8a3b8fd899	14	2/2		1/1	
+Mantis Engine	e04f3de84914bd90	80	2/2		1/1	
 Mark of Mutiny	c0c4a8f538e6dedf	10	0/0		1/2	ix:resp
 Mask of Immolation	c2eb7649dc73e25b	6	2/2		1/1	
 Minister of Inquiries	5a8f59743cb62b20	12	2/2		1/1	
 Mirror Golem	f26d19bcf5a06f19	110	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Mirrorworks	5f903e3abf3f00ad	7	1/1		1/1	
+Mist Dancer	d03e8ae884a78d1d	80	1/1		1/1	
+Mithril Coat	4ba8ee27b87a27fb	129	2/2		1/1	
+Narrow Escape	fce30e2eabec8ba4	125	0/0		2/2	
 Oggyar Battle-Seer	8f1cf89d4ccf92ed	6	1/1		1/1	
 Ominous Parcel	05e8eb6b3c414c75	20	2/2		0/1	ix:resp
 Pariah's Shield	491940ac1f5c88a1	7	1/1		0/1	ix:resp
 Primordial Ooze	62497444edbfcdf8	10	1/1		0/1	ix:resp
 Regathan Firecat	dd0fbbbca3d77f33	8	0/0		0/0	
 Reign of Terror	436652e412ee444c	5	0/0		1/2	ix:resp
+Resounding Wave	97134bfce9251ffd	126	2/2		2/2	
 Rowan Treefolk	87db64b61c3e82c4	8	0/0		0/0	
 Scouring Sands	ff43af32d1ed5561	4	0/0		1/2	ix:resp
 Serpentine Kavu	8c397c3f359c9161	12	1/1		1/1	
+Serum Snare	7476320009b8632d	120	0/0		2/2	
 Shivan Wurm	d6b69a2dc7dc5d07	4	1/1		0/1	ix:resp
 Shocking Grasp	925c2a65a5b24026	22	0/0		1/2	ix:resp
 Slime Molding	0d6cdc8d0932182e	3	0/0		2/4	f0/s/x0,ix:resp
+Sol Talisman	0ee439e5a4ef53b0	54	1/1		2/3	cast/alt:none
 Staff of Compleation	d0215ecef0db2d08	6	5/5		0/1	ix:resp
+Staggering Insight	11e5937dcc929bad	92	0/0		2/2	
+Standing Troops	c25048db243ed49d	96	0/0		0/0	
 Stimulus Package	5d55807cfadedf14	4	2/2		0/1	ix:resp
+Subjugator Angel	24809d64a0dbe873	48	1/1		1/1	
 Three Visits	ddfa8f3b037c91e9	14	0/0		2/2	
 Tidespout Tyrant	0e38797e441c269d	6	1/1		0/1	ix:resp
+Tireless Missionaries	94af7395c52c0a15	59	1/1		1/1	
+Twilight Drover	b79a157dbc4ec083	101	2/2		1/1	
+Tymora's Invoker	cd2248058fb0fb29	137	1/1		1/1	
 Tyvar, Jubilant Brawler	d90f4e208b0ce033	5	2/2		0/1	ix:resp
+Unbounded Potential	3b35b87faf9d9b30	111	0/0		2/2	
+Vault of Whispers	ac9f561bf644b29c	217	1/1		0/1	ix:resp
 Wakandan Shield Guard	6c1062df42018553	6	1/1		0/1	ix:resp

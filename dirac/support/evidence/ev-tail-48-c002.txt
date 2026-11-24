@@ -4,17 +4,22 @@ Aether Rift
 Aid the Fallen
 Animate Land
 Appa, Aang's Companion
+Armored Galleon
+Arwen, Weaver of Hope
 Aspiring Aeronaut
 Assault
 Aveline de Grandpré
+Azusa, Lost but Seeking
 Badlands
 Balance of Power
 Baleful Force
 Bartolomé del Presidio
 Basilica Screecher
 Beanstalk Giant
+Beast Walkers
 Bessie, the Doctor's Roadster
 Black Dragon Gate
+Bladeback Sliver
 Blazing Sunsteel
 Blinding Drone
 Blitz Leech
@@ -31,6 +36,7 @@ Cadaver Imp
 Chitinous Cloak
 Cinderhaze Wretch
 Circle of Affliction
+Citanul Stalwart
 Clavileño, First of the Blessed
 Cliff Threader
 Collective Voyage
@@ -41,6 +47,7 @@ Crater Hellion
 Cryptic Serpent
 Crystal Chimes
 Cyclical Evolution
+Daring Piracy
 Dark Revenant
 Day of Destiny
 Dazzling Lights
@@ -62,6 +69,7 @@ Drake-Skull Cameo
 Dreadbore
 Dueling Rapier
 Dusk Imp
+Dwarven Miner
 Earth-Cult Elemental
 Eliminate
 Emancipation Angel
@@ -77,6 +85,7 @@ Final Revels
 Fire Nation Salvagers
 Firescreamer
 Flowstone Surge
+Flowstone Wall
 Flusterstorm
 Fodder Tosser
 Forest
@@ -86,6 +95,7 @@ Fuming Effigy
 Gateway Plaza
 Ghost-Lit Redeemer
 Ghoulish Procession
+Gideon's Sacrifice
 Gimli's Fury
 Glamorous Grapplers
 Gnoll Hunter
@@ -97,6 +107,7 @@ Gravedig
 Greatsword
 Green Sun's Zenith
 Grizzly Fate
+Gruesome Scourger
 Hagra Sharpshooter
 Hall Monitor
 Heavenly Qilin
@@ -117,6 +128,7 @@ Iron Tusk Elephant
 Island
 Jaddi Offshoot
 Jarad's Orders
+Jin-Gitaxias, Progress Tyrant
 Juzám Djinn
 Kessig Wolf
 Knight of Obligation
@@ -171,6 +183,7 @@ Pile On
 Plains
 Plated Wurm
 Polluted Dead
+Pride Sovereign
 Primeval Herald
 Pseudodragon Familiar
 Pyromancer's Gauntlet
@@ -180,6 +193,7 @@ Ravenous Lindwurm
 Recall
 Reckless Brute
 Reckless Racer
+Reconnaissance
 Renegade Wheelsmith
 Resolute Watchdog
 Resurgent Belief
@@ -191,6 +205,7 @@ Rubble Reading
 Ruin Crab
 Runed Stalactite
 Rushwood Legate
+Ryusei, the Falling Star
 Saber Ants
 Saddle of the Cavalier
 Scarwood Bandits
@@ -229,6 +244,7 @@ Szarekh, the Silent King
 The Mightstone and Weakstone
 Theft of Dreams
 Thoughtseize
+Tiger Claws
 Topan Ascetic
 Treefolk Harbinger
 Treefolk Healer
@@ -242,6 +258,7 @@ Veinwitch Coven
 Vexing Devil
 Virulent Swipe
 Virulent Wound
+Vodalian Wave-Knight
 Warchanter Skald
 Weaselback Redcap
 Windbrisk Heights

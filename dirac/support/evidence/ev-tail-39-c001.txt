@@ -141,6 +141,7 @@ Flame Javelin
 Flooded Strand
 Florian, Voldaren Scion
 Flowering of the White Tree
+Fluxcharger
 Forest
 Forked Bolt
 Fowl Play
@@ -421,6 +422,7 @@ Warped Devotion
 Warped Landscape
 Warriors of Wakanda
 Wash Away
+Watchdog
 Welcoming Vampire
 Whetwheel
 Wild Slash

@@ -1,28 +1,43 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Llanowar Loamspeaker	7a50d41414adaa0e	8	2/2		0/1	ix:resp
 Abolish	0ef68ef586d04323	3	0/0		1/2	ix:resp
+Apocalypse Hydra	541e729ce6218ca3	4	1/1		1/1	
 Backfire	ee2b786df27436cc	4	1/1		2/2	
 Basri's Solidarity	81cbaef74afd2017	8	0/0		1/2	ix:resp
 Benthic Biomancer	3d60123640d033db	4	2/2		0/1	ix:resp
 Bonded Construct	c9212a8c02945452	6	0/0		0/0	
+Born to Drive	55388faad8b9d2c2	3	1/1		2/2	
 Bramblesnap	831ff70d9a7790c0	8	1/1		1/1	
+Bright Reprisal	f7501dddca843bd8	3	0/0		1/2	ix:resp
+Canal Dredger	c5be75f034e1ee98	19	1/1		1/1	
 Candelabra of Tawnos	4171bf7581fb192c	8	1/1		1/1	
+Capashen Unicorn	bc69ebffbc1b7e92	4	1/1		0/1	ix:resp
 Chardalyn Dragon	55345e509ed885e8	6	0/0		0/0	
+Clan Guildmage	a5af905b488dfde3	10	2/2		0/1	ix:resp
 Coveted Peacock	b0c7b86ce89366ca	6	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Daru Warchief	bc067955c523f698	4	0/0		0/0	
 Death Ward	91520594f5516eae	6	0/0		2/2	
+Devoted Caretaker	3ac8cbfa5c3eee55	6	1/1		0/1	ix:resp
+Disciple of Freyalise	4a594b2af7759df0	8	2/2		0/1	ix:resp
 Dwarfhold Champion	2e0be35bd88bea73	8	0/0		0/0	
 Elgaud Inquisitor	f17a9456c24bff88	8	1/1		1/1	
+Elite Arrester	814ce9288a990344	8	1/1		0/1	ix:resp
 Enraged Killbot	16fa301db8b4e838	6	0/0		0/0	
+Fatigue	bfd00f6c14808b18	4	0/0		1/2	ix:resp
+Flame Rift	b298af8036e660ed	6	0/0		1/2	ix:resp
 Flood of Tears	dd81d9765ae2361b	4	0/0		1/2	ix:resp
 Gate Hound	df6f2b118a25e9cb	3	0/0		0/0	
 Gate of the Black Dragon	9f017409059fee97	36	2/2		0/1	ix:resp
 Ghirapur Aether Grid	c18a3a0ab0fac84c	3	1/1		1/1	
+Glint-Horn Buccaneer	6c2a2c2bab4d3d97	3	2/2		1/1	
+Grotag Night-Runner	54c21ca680721457	4	1/1		0/1	ix:resp
+Ground Rift	419fe9f37808217c	4	1/1		2/2	
 Guardian of Pilgrims	f19d1c0836dad42d	7	1/1		0/1	ix:resp
 Heavy Arbalest	325d83b0ed2d0078	7	1/1		0/1	ix:resp
 Incite	7ed16befb24f3c9e	4	0/0		2/2	
 Inquisitor Exarch	63dc0fe0a4a9547a	4	1/1		1/1	
 Iron Will	1a24e2bd2674fc98	7	1/1		2/2	
+Ironfist Crusher	c8d325e3f2bf2563	3	0/0		1/2	cast/alt:morphed
 Journey to Oblivion	59552c58ce34e99f	4	1/1		1/1	
 Kitesail Apprentice	3ed4fbc880512bbc	6	0/0		0/0	
 Lazotep Plating	9ee952db7188311d	8	0/0		1/2	ix:resp
@@ -35,12 +50,14 @@ Meletis Astronomer	0ac87256b8eb7475	4	1/1		0/1	ix:resp
 Mishra's Research Desk	0ab94ba060244533	4	2/2		1/1	
 Molderhulk	2319719fa4bce09f	3	1/1		1/1	
 Moldervine Cloak	3cd8ababd95030fe	32	0/0		2/2	
+Mutagenic Growth	a031ee2441ff5bb3	12	0/0		2/2	
 Mystic Meditation	12a77c49d19242a2	6	0/0		2/2	
 Nissa's Encouragement	88a70af03238c666	3	0/0		1/2	ix:resp
 Pegasus Courser	ec8dced2562f2a83	4	1/1		0/1	ix:resp
 Pelt Collector	beaae49fdab3a544	14	2/2		0/1	ix:resp
 Power Plant Worker	f8839a8143596f63	4	1/1		0/1	ix:resp
 Prophet of the Peak	7b5fb79e5e89afe8	5	1/1		0/1	ix:resp
+Quandrix Cultivator	f13734a9c49b6bb0	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Quasiduplicate	be64c6d0a319156e	4	0/0		2/4	cast/alt:jumpstart,ix:resp
 Rebuke	a41bfcd1171fd541	3	0/0		1/2	ix:resp
 Reito Sentinel	6b43c2b303373cd8	3	2/2		1/1	
@@ -56,8 +73,10 @@ Shrieking Grotesque	eb2d828517cb0459	4	1/1		0/1	ix:resp
 Sinew Sliver	aa199601e801dd4b	4	0/0		0/0	
 Six	877b0f4c485a326c	4	1/1		0/1	ix:resp
 Slith Ascendant	a50ee722008e7cef	6	1/1		0/1	ix:resp
+Sparkcaster	4ec1bd59237f5e32	5	2/2		0/1	ix:resp
 Spike Tiller	b11319efb4e2e60c	4	2/2		0/1	ix:resp
 Spirit Loop	3f8a3db4ab6e6479	6	2/2		1/2	ix:resp
+Spoils of Adventure	3d31f4debdb1229a	12	0/0		1/2	ix:resp
 Stand Together	38eb655d7f939356	11	0/0		1/2	ix:resp
 Status	3b0034b01943fee9	5	0/0		2/3	f1/s
 Sunder	a6809c035b676358	4	0/0		1/2	ix:resp
@@ -70,6 +89,8 @@ Vengeful Warchief	396f7301cf7c285e	6	1/1		0/1	ix:resp
 Visions of Brutality	fd366ab07fe653d6	57	1/1		2/2	
 Voltaic Construct	29a2dbe24f40e340	3	1/1		1/1	
 Wall of Kelp	c55bd5f4244ad426	4	1/1		1/1	
+Warchief Giant	8ca4673e681bc8e1	3	1/1		0/1	ix:resp
 Weatherseed Faeries	94b428b6252cc4c8	6	0/0		0/0	
 Welkin Guide	0e24a57ea0f97a59	4	1/1		0/1	ix:resp
 Wild Wanderer	129b13cf1973672b	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Wildfire Awakener	359cf26caa0867b5	4	1/1		0/1	ix:resp

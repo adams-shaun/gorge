@@ -5,6 +5,7 @@ A-Urza's Command
 Adaptive Omnitool
 Aerial Volley
 Agoraphobia
+Ali from Cairo
 Ambition's Cost
 Ancient Copper Dragon
 Angler Drake
@@ -384,6 +385,7 @@ Telethopter
 Tempered Veteran
 Tenured Oilcaster
 Thalakos Dreamsower
+The Cabbage Merchant
 The Fair Basilica
 The Frightful Four
 The Juzam Master
@@ -402,6 +404,7 @@ Topiary Stomper
 Torch Courier
 Treva's Ruins
 Triceraton Regenta
+Truth or Consequences
 Tuktuk Scrapper
 Tyrant's Machine
 Ulvenwald Observer

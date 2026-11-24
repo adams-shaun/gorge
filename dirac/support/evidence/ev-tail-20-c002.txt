@@ -1,4 +1,8 @@
 A-Bretagard Stronghold
+Aesthir Glider
+Aggressive Instinct
+Akoum Stonewaker
+Ambitious Assault
 Anafenza, Kin-Tree Spirit
 Annex
 Annihilate
@@ -18,61 +22,108 @@ Blisterpod
 Blood Hound
 Blood Petal Celebrant
 Bloodstained Mire
+Break of Day
 Breya's Apprentice
+Briarbridge Tracker
+Brilliant Wings
+Broadside Bombardiers
 Bruse Tarl, Boorish Herder
+Burrowing Razormaw
 Captain America, Unbowed
 Capture Sphere
+Carapace
 Careful Consideration
+Carnivorous Plant
+Catacomb Slug
 Catalyst Elemental
 Celestial Gatekeeper
+Celestine, the Living Saint
 Chalice of the Void
 Chance-Met Elves
 Chandler
 Chatter of the Squirrel
+Chieftain en-Dal
 Childhood Horror
 Cleansing Wildfire
 Cloak of Feathers
+Coffin Purge
+Combat Courier
 Conclave Naturalists
 Consuming Corruption
+Cosmos Elixir
 Counsel of the Soratami
 Cranial Plating
 Crossbow Ambush
 Crowd of Cinders
 Curse of Inertia
 Daily Bugle Newspaper
+Damocles Base, Sword of Kang
+Dance of Many
 Danitha Capashen, Paragon
+Daring Saboteur
+Dawnstrike Paladin
+Daysquad Marshal
+Deem Inferior
 Deluge
 Dematerialize
 Demonic Gifts
 Devout Witness
 Diregraf Scavenger
 Doomsday
+Dragon Egg
 Drifting Djinn
+Drownyard Lurker
 Dusk
 Eidolon of the Great Revel
+Eiganjo Free-Riders
+Elder Gargaroth
 Elder of Laurels
+Eldritch Evolution
+Embereth Skyblazer
+Excava, the Risen Past
 Excavation Technique
+Expansion
+Extraction Specialist
+Falkenrath Perforator
 Fallowsage
+False Memories
+False Prophet
+Fang of Shigeki
+Fanning the Flames
+Field of Reality
 Flay
 Folk Medicine
 Forest
+Frogmyr Enforcer
 Fulminator Mage
 Gallant Cavalry
 Galvanic Bombardment
+Gate to Phyrexia
 Geistcatcher's Rig
 Ghosts of the Damned
+Ghoultree
 Giant Strength
 Gisa's Bidding
+Glimmerbell
 Goblin Cohort
 Goblin Piker
+Gorilla Chieftain
+Grand Architect
 Grasslands
+Gravitational Shift
+Grumgully, the Generous
 Guardian of Pilgrims
 Guardian of the Ages
 Guardian's Magemark
 Gudul Lurker
 Hapatra's Mark
 Healer of the Pride
+Herald of Dromoka
+Hero of the Nyxborn
+Hero's Blade
+Hero's Demise
 Hit-Monkey
+Honed Khopesh
 Hornet Cannon
 Huatli, the Sun's Heart
 Hulking Goblin
@@ -80,15 +131,20 @@ Hunted Horror
 Hypnotic Grifter
 Ichorspit Basilisk
 Infected Defector
+Invasion of Shandalar
 Irenicus's Vile Duplication
 Island
 Isperia, Supreme Judge
+Jeska's Will
 Jet Medallion
 Jokulhaups
 Jolrael's Favor
 Kitesail
+Kitesail Freebooter
 Kithkin Zealot
+Knight-Captain of Eos
 Kor Firewalker
+Kor Line-Slinger
 Kragma Warcaller
 Lathnu Sailback
 Ledev Guardian
@@ -97,54 +153,96 @@ Lightning Talons
 Liliana's Mastery
 Livewire Lash
 Loyal Fire Sage
+Lurking Predators
 Majestic Heliopterus
+Manic Vandal
+Mark of Asylum
+Markov Crusader
+Matsu-Tribe Decoy
 Maw of the Obzedat
 Merrow Wavebreakers
 Mindclaw Shaman
 Mindcrank
 Mine Bearer
+Mirri's Guile
+Mise
+Mizzium Meddler
 Mogis's Favor
 Mons's Goblin Raiders
 Moonglove Extract
 Mountain
 Mourning Thrull
 Myojin of Seeing Winds
+Nardole, Resourceful Cyborg
+Nature's Claim
 Nether Void
+Nightmares and Daydreams
 Nissa's Encouragement
+Nissa's Zendikon
+Null Rod
 Oath of Gideon
 Oculus
 Off Balance
+Ogre Battledriver
+Ogre Warrior
 Onyx Goblet
 Oran-Rief Hydra
 Orcish Oriflamme
 Original Skullclamp
+Orzhov Locket
+Panharmonicon
+Pardic Swordsmith
 Patagia Golem
+Peach Garden Oath
+Peregrination
 Phyrexian Espionage
 Pilfered Plans
+Pious Kitsune
 Plains
+Planequake
+Popular Entertainer
+Precision Bolt
 Predator's Rapport
 Preeminent Captain
+Prohibit
+Prowling Caracal
 Rathi Dragon
+Recollect
+Rend Spirit
+Resplendent Marshal
+Return to Nature
 Revered Dead
 Rhox Charger
+Riddlemaster Sphinx
 Rishadan Port
+Ritual of Hope
 River Boa
+Riverwheel Aerialists
 Rootless Yew
 Rummaging Wizard
 Runed Crown
+Rushwood Dryad
 Sacred Knight
+Sakura-Tribe Springcaller
 Sanitarium Skeleton
 Scavenger Grounds
 Scour the Laboratory
 Scourgemark
+Scroll of Griselbrand
+Searing Meditation
 Seasoned Marshal
+Second Harvest
 Selhoff Occultist
 Sentry Bot
 Serene Heart
+Servo Schematic
+Shadow Alley Denizen
 Shield of the Ages
 Shinechaser
 Shower of Arrows
 Shriekhorn
+Shu Cavalry
+Sick and Tired
 Sigil Blessing
 Silhana Ledgewalker
 Silverbluff Bridge
@@ -153,39 +251,65 @@ Slaughter-Priest of Mogis
 Sleeper Dart
 Solphim, Mayhem Dominus
 Soothsayer Adept
+Spatial Contortion
+Spikeshot Elder
+Spite of Mogis
 Spitting Sliver
+Spoils of Blood
 Squad Captain
 Staff of the Death Magus
 Staunch-Hearted Warrior
+Steady Aim
 Stone Spirit
+Stonehands
+Stonehorn Chanter
 Structural Assault
+Sundial of the Infinite
 Sungrass Egg
 Swamp
+Swiftgear Drake
 Sylvan Might
 Syndicate Enforcer
 Tel-Jilad Lifebreather
 Tezzeret's Touch
+Thassa's Bounty
+Thorough Investigation
 Time of Need
+Titania's Chosen
 Transmogrifying Licid
 Traproot Kami
 Triumph of the Hordes
 True Love's Kiss
+Trumpet Blast
 Turtle-Seals
 Underworld Breach
+Unlikely Aid
+Urza's Incubator
 Utrom Monitor
+Vastwood Surge
+Veil of Assimilation
 Vigorspore Wurm
+Vivien, Champion of the Wilds
+Volatile Claws
 Voldaren Ambusher
+Votary of the Conclave
 Vulturous Aven
 Wall of Lost Thoughts
 Wall of Spears
 Warren Weirding
 Waste Not
+Wei Scout
 Weirding Wood
+Wellgabber Apothecary
+Whetstone
 Whimwader
 Whiteout
+Whitesun's Passage
 Wild Instincts
 Wildwood Patrol
+Wings of Hope
 Wintermoon Mesa
 Wretched Anurid
 Yavimaya Barbarian
 Zealous Inquisitor
+Zodiac Goat

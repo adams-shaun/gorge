@@ -1,40 +1,91 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Bruenor Battlehammer	363e4ca35f9e6923	3	1/1		0/1	ix:resp
+A-Elven Bow	0f947781e39737eb	4	2/2		0/1	ix:resp
 A-Forge Boss	b137bad57961d3bf	24	1/1		1/1	
 Akoum Battlesinger	ce9c2632997c0365	27	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Amoeboid Changeling	d5ea262dde8aa102	62	2/2		1/1	
 Arbor Colossus	85b2dc9ebe24db9a	14	2/2		0/1	ix:resp
+Base Camp	e6758dec7d6033d2	13	2/2		0/1	ix:resp
+Bellowing Tanglewurm	43304e0cdfa71fa0	3	0/0		0/0	
 Binding the Old Gods	3d62ab61b5bbf076	9	0/0		0/0	
+Bird Maiden	0d1b90121105c3ea	4	0/0		0/0	
 Blood Cultist	e733f22ac05fce1c	11	2/2		1/1	
 Bone Pit Brute	34140a0790db17f6	10	1/1		0/1	ix:resp
 Brain Maggot	c33f82b8aaf624f7	55	1/1		1/1	
+Carnivorous Canopy	61610b99acaca508	4	0/0		1/2	ix:resp
+Casey Jones, Asphalt Hooligan	706e40d551bf5e64	3	1/1		0/1	ix:resp
+Cast into the Fire	275c39df0574af08	4	0/0		1/2	ix:resp
 Cavern Thoctar	bfb18c260991a4ad	23	1/1		0/1	ix:resp
+Checkpoint Officer	011fe913af87c964	4	1/1		1/1	
+Children of Korlis	c718492bcb42bcd9	4	1/1		0/1	ix:resp
+Cliffhaven Sell-Sword	e037be0343c34ff3	11	0/0		0/0	
 Coast Watcher	92229a6d29beda7a	77	0/0		0/0	
 Communal Brewing	c27580abde404f28	4	2/2		0/1	ix:resp
+Court Hussar	9f8065644804e234	4	2/2		1/1	
 Crystal Seer	efbec41381b56efe	4	2/2		0/1	ix:resp
+Dega Sanctuary	96eb4bf5d54d4b41	4	1/1		1/1	
+Doomfall	9e2ace29dd2818ea	4	0/0		1/2	ix:resp
 Dreadhorde Butcher	7da88c735b19f370	16	2/2		1/1	
+Drogskol Shieldmate	da5ce0071bb3773f	6	1/1		0/1	ix:resp
+Eldrazi Monument	4cbdaf3262050618	4	1/1		0/1	ix:resp
+Expel	e87191647094af1a	4	0/0		1/2	ix:resp
+Fairgrounds Patrol	9bee4124087edd53	5	1/1		0/1	ix:resp
+Favored of Iroas	a9614ca4d16e2069	6	1/1		0/1	ix:resp
+Foggy Nelson, On Retainer	2660e0602ae39f94	5	1/1		0/1	ix:resp
 Frost Lynx	256dcc279a9f14fd	6	1/1		0/1	ix:resp
 Grimgrin, Corpse-Born	503ecae150133244	42	2/2		1/1	
+Gruul Signet	b1dcf1d646ccc8de	8	1/1		0/1	ix:resp
+Hammerheim Deadeye	224911f2f05ceed0	3	2/2		1/1	
 Havengul Runebinder	e55aae12775585e5	40	1/1		1/1	
 Hieromancer's Cage	49d4554feddd5d84	7	1/1		0/1	ix:resp
+Horses of the Bruinen	6f25e466cb3413fd	5	0/0		1/2	ix:resp
+Icatian Scout	0fd81c82eef70e86	4	1/1		0/1	ix:resp
 Ingenious Infiltrator	8006efb492928834	17	2/2		0/1	ix:resp
+Lagonna-Band Storyteller	660f51b52bb897c9	3	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Leonardo, Worldly Warrior	ae91b7fd26db6bf7	4	0/0		0/0	
+Leonin Bladetrap	3ecfbd5f52f8c95a	8	1/1		0/1	ix:resp
 Liliana's Spoils	d0574a77be2c9d53	63	0/0		2/2	
 Merrow Grimeblotter	6d76427e8170d39e	16	1/1		1/1	
 Mind Games	ba103d3fc0359106	64	0/0		4/4	
 Mudhole	6d948ea543bb0a68	4	0/0		2/2	
 Odric's Outrider	82767553d46a2bc6	4	1/1		0/1	ix:resp
+Oppressive Will	7b0ca40865a83f79	6	0/0		1/2	ix:resp
 Order of Sacred Dusk	be8d137b7d20e21c	3	1/1		0/1	ix:resp
+Pendrell Mists	64c5668d3cabd950	5	0/0		0/0	
 Plow Through Reito	c9ec71bfdca733d2	30	0/0		2/2	
 Prickly Marmoset	5c385a6a3bf2cef4	23	1/1		0/1	ix:resp
+Priest of Titania	801249adc6b6762c	4	1/1		0/1	ix:resp
 Princess Lucrezia	9f27039bbb326d32	24	1/1		1/1	
+Ramosian Lieutenant	a44f108689fa878b	3	1/1		0/1	ix:resp
+Return of the Mole Man	6f845e1bfe8d1d8d	7	2/2		0/1	ix:resp
 Road	6adae8f03d5a3853	14	0/0		3/5	f1/s,ix:resp
+Sai of the Shinobi	1bc04f28dc9db7dc	70	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Scavenging Scarab	5bb217ce21f1db43	3	0/0		0/0	
+Sea Sprite	0b6fc52c34a2e2be	4	0/0		0/0	
 Seshiro the Anointed	63a8ba8aceb07415	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shiny Impetus	ee14c71a590023a1	7	1/1		1/2	ix:resp
+Sinister Strength	f2fa2324947c1ada	4	0/0		1/2	ix:resp
 Slaughter-Priest of Mogis	8bc29cc8305e9828	12	2/2		1/1	
+Spectral Lynx	c1d2aa6b206b037e	3	1/1		0/1	ix:resp
+Spiderwig Boggart	efa0f44a1b4aa0c5	6	1/1		0/1	ix:resp
 Stampede	66a5a5924a139857	27	0/0		2/2	
+Stealer of Secrets	be605ab2e7579bcc	3	1/1		0/1	ix:resp
+Stormchaser Drake	8cff0fcada7b655d	7	1/1		0/1	ix:resp
+Strategic Planning	416d82c088afe0de	5	0/0		1/2	ix:resp
 Sturmgeist	bef9528450b6ed35	49	1/1		1/1	
 Talisman of Resilience	c350055f341b9158	118	2/2		1/1	
 Thalakos Drifters	4a6a8a5fdd2e069c	25	1/1		1/1	
+Thornwind Faeries	e177a21a7516649a	4	1/1		0/1	ix:resp
 Tibalt's Rager	3f4a5ddea626862f	26	2/2		1/1	
+Totally Lost	e92a6e40b9f79382	5	0/0		1/2	ix:resp
+Treason of Isengard	6a80a28c9292f64d	8	0/0		1/2	ix:resp
 Triumph of Cruelty	a4472e58b78e7528	84	1/1		1/1	
 Vat of Rebirth	daf7047c46351e43	122	2/2		1/1	
+Vengeful Firebrand	11fe5d40cdb615ec	4	1/1		1/1	
+Vine Mare	7157d20075228088	4	0/0		0/0	
 Voldaren Epicure	db340798cb04ef37	32	1/1		1/1	
 Wall of Earth	06ac1df98877341e	33	0/0		0/0	
+Whispersilk Cloak	dd3fb4bd30a013da	3	1/1		0/1	ix:resp
+Wild Aesthir	933529e23c4f9d43	4	1/1		0/1	ix:resp
+Woodland Guidance	fd277173ad691141	4	0/0		1/2	ix:resp
+Yellow Scarves Cavalry	9a802174946fe620	11	0/0		0/0	

@@ -112,6 +112,7 @@ Dragonscale Boon
 Dreadhorde Arcanist
 Dress Down
 Dromosaur
+Drossforge Bridge
 Drudge Sentinel
 Drudge Skeletons
 Duty-Bound Dead
@@ -174,7 +175,9 @@ Heir of the Wilds
 Helionaut
 Helium Squirter
 Herald of Secret Streams
+Hexgold Slash
 Hoarding Ogre
+Hollow Trees
 Holy Day
 Honor's Reward
 Horribly Awry
@@ -249,6 +252,7 @@ Mystifying Maze
 N'Yami-Class Mother Ship
 Natural State
 Nearheath Stalker
+New Benalia
 Nihil Spellbomb
 Nurturing Presence
 One with Death
@@ -278,6 +282,7 @@ Rank Officer
 Ravenous Bloodseeker
 Reave Soul
 Reckless Spite
+Remembrance
 Renegade Troops
 Renounce the Guilds
 Repentant Blacksmith
@@ -424,6 +429,7 @@ Wellwisher
 Whipcorder
 Whirler Virtuoso
 White Tiger, Amulet Keeper
+Wickerwing Effigy
 Windrider Eel
 Winds of Rebuke
 Wing It

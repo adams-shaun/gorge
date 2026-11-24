@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Elderleaf Mentor	9dedcdf1565aada2	6	1/1		0/1	ix:resp
+A-Goldspan Dragon	709e74b3e12ae92d	8	1/1		0/1	ix:resp
 Abstruse Interference	8e3a9496a8e7136b	4	0/0		1/2	ix:resp
 Advocate of the Beast	7ae5e7d97b2c2997	6	1/1		1/1	
 Aether Shockwave	75b10252b6ac44d2	4	0/0		2/2	
@@ -113,6 +114,7 @@ Highway Robber	4cc39da9a221e5ec	4	1/1		0/1	ix:resp
 Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	3	0/0		1/2	ix:resp
 Idle Thoughts	69de54507b1835c1	4	1/1		1/1	
+Infernal Sovereign	e092ac3a02853f04	4	2/2		1/1	
 Inferno	afc7d8d6b7bad2a9	8	0/0		2/2	
 Into Thin Air	7b4a90205f1f1a80	4	0/0		1/2	ix:resp
 Invasion of Segovia	d28a230e9692bac2	4	2/2		1/1	
@@ -218,6 +220,7 @@ Titanic Brawl	0c104d2b6ec7008a	7	0/0		2/2
 Toph, Earthbending Master	2ad409b3c7cd55a4	4	2/2		0/1	ix:resp
 Triumphant Adventurer	2e29e90ce08f62cd	4	1/1		0/1	ix:resp
 True Conviction	ba3973b3d50957e5	5	0/0		0/0	
+Try-My-Deck Elemental	3840eb4b4177eb05	3	0/0		0/0	
 Turnabout	39f0619628aba853	4	0/0		1/2	ix:resp
 Unnatural Speed	01959e87b61f6f48	6	0/0		1/2	ix:resp
 Unwavering Initiate	29b674f3413a81df	3	1/1		0/1	ix:resp

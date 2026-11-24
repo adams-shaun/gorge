@@ -29,6 +29,7 @@ Baloth Cage Trap
 Bane Alley Blackguard
 Batterbone
 Battering Sliver
+Battle Cry
 Bearded Axe
 Billiard Room
 Bitterbow Sharpshooters
@@ -332,6 +333,7 @@ The Gaffer
 The One Ring
 The Restoration of Eiganjo
 The Royal Scions
+Thran Power Suit
 Thriving Rats
 Throne of the God-Pharaoh
 Throttle

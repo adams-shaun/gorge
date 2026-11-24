@@ -17,6 +17,7 @@ Aid from the Cowl
 Aim High
 Ajani's Sunstriker
 Alharu, Solemn Ritualist
+Allay
 Anaba Bodyguard
 Ancestral Knowledge
 Animal Boneyard
@@ -36,6 +37,7 @@ Bag End Porter
 Battlefront Krushok
 Blast Zone
 Blighted Agent
+Blinkmoth Nexus
 Blistering Dieflyn
 Blood Divination
 Blood Speaker
@@ -121,6 +123,7 @@ Feroz's Ban
 Fill with Fright
 Final Flourish
 Fire Nation Occupation
+Fishliver Oil
 Flame Elemental
 Flawless Maneuver
 Flip the Switch
@@ -155,6 +158,7 @@ Hazoret's Monument
 Healer's Headdress
 Honor's Reward
 Horrific Assault
+Hyena Umbra
 Hysterical Blindness
 Illustrious Historian
 Indulgent Tormentor
@@ -193,6 +197,7 @@ Llanowar Dead
 Lone Revenant
 Long-Forgotten Gohei
 Looming Altisaur
+Lotus Petal
 Lumengrid Sentinel
 Lunk Errant
 Mace of the Valiant

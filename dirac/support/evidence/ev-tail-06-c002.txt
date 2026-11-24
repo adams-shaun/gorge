@@ -7,6 +7,7 @@ Aether Tunnel
 Aethershield Artificer
 Akki Ronin
 Akoum Hellkite
+An-Zerrin Ruins
 Anaba Spirit Crafter
 Ancestral Mask
 Ancestral Vengeance
@@ -45,6 +46,7 @@ Breaching Hippocamp
 Brood Weaver
 Brotherhood Patriarch
 Brought Back
+Budoka Gardener
 Burning-Yard Trainer
 Cacophodon
 Caldera Lake
@@ -134,6 +136,7 @@ Gold-Forged Thopteryx
 Golem's Heart
 Golgari Keyrune
 Golgari Raiders
+Gollum, Patient Plotter
 Graviton, Fundamental Force
 Great Defender
 Halo Scarab
@@ -189,6 +192,7 @@ Looming Spires
 Lost Soul
 Loxodon Warhammer
 Luminesce
+MacCready, Lamplight Mayor
 Magnetic Mine
 Magus of the Bridge
 Mammoth Spider
@@ -210,11 +214,14 @@ Mortivore
 Mothdust Changeling
 Mountain
 Mystic Melting
+Nev, the Practical Dean
 Nezahal, Primal Tide
+Nissa, Vital Force
 Niv-Mizzet, Dracogenius
 Nomad Mythmaker
 Noosegraf Mob
 Nuka-Cola Vending Machine
+Null Profusion
 Nylea's Disciple
 Oath of Druids
 Obstinate Gargoyle
@@ -272,7 +279,9 @@ Sanctum of Shattered Heights
 Saprazzan Bailiff
 Sarkhan's Triumph
 Scale the Heights
+Scaled Behemoth
 Scurrilous Sentry
+Scuttling Death
 Second Thoughts
 Selhoff Entomber
 Servant of Volrath
@@ -291,6 +300,7 @@ Smoldering Werewolf
 Snake Umbra
 Snapping Thragg
 Soot Imp
+Soothing of Sméagol
 Soratami Mirror-Guard
 Soul Link
 Soul's Grace
@@ -311,6 +321,7 @@ Sword of Feast and Famine
 Sylvan Bounty
 Take to the Streets
 Talara's Battalion
+Tamiyo's Journal
 Tatyova, Steward of Tides
 Teferi's Ageless Insight
 Teleportation Circle
@@ -354,6 +365,7 @@ Whispersilk Cloak
 Wild Defiance
 Wildwood Rebirth
 Winged Sliver
+Winnow
 Wirewood Pride
 Witch's Familiar
 Witch's Oven

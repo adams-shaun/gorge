@@ -26,6 +26,7 @@ Aurochs
 Aurora Griffin
 Avatar of Slaughter
 Ayula's Influence
+Azure Fleet Admiral
 Azusa's Many Journeys
 Basal Thrull
 Beast in Show
@@ -54,6 +55,7 @@ Cavern Crawler
 Centaur Rootcaster
 Champion of Arashin
 Chandra's Revolution
+Chariot of Victory
 Chilling Trap
 Circle of Flame
 Circle of Protection: White
@@ -196,6 +198,7 @@ Loathsome Curator
 Looming Shade
 Lotus Petal
 Lucky Offering
+Mage-Ring Network
 Make a Wish
 Mark of Sakiko
 Match the Odds
@@ -293,6 +296,7 @@ Smash to Dust
 Snubhorn Sentry
 Soaring Seacliff
 Sokka's Sword Training
+Sol'Kanar the Tainted
 Soliton
 Soul Channeling
 Soul Kiss
@@ -300,6 +304,7 @@ Sparksmith
 Sparring Construct
 Spiked Corridor
 Spiteful Sliver
+Staff of the Death Magus
 Stampeding Serow
 Staunch Throneguard
 Stensia Innkeeper
