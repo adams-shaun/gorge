@@ -64,7 +64,7 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 	// gorge's trigger-cost window answers with the first listed source, a planner-deferred
 	// one (a depletion land, Twitching Doll) in its battlefield place (payexec.WindowAnswer)
 	s.windowTapWalk(k, p, cost, cost, false, false, true, true, true, false, false)
-	if s.res.ask == raGenWinTap {
+	if s.winAskPending() {
 		return true
 	}
 	s.g.winMode = winNone
@@ -209,6 +209,10 @@ func (s *State) winTapCost(k *prep) kop.ManaCost {
 // askOptionsWinTap builds the pick's options: the source's candidates in
 // battlefield order; false: not this ask.
 func (s *State) askOptionsWinTap(k *prep, d *Decision) bool {
+	if s.res.ask == raGenWinCol {
+		s.splitWinColOptions(k, s.g.winSrc, d) // a lucky Condition-split source's colour (mana_reswincol.go)
+		return true
+	}
 	if s.res.ask != raGenWinTap {
 		return false
 	}
@@ -226,6 +230,10 @@ func (s *State) askOptionsWinTap(k *prep, d *Decision) bool {
 // applyAskWinTap taps the permanent picked and the source, floats the colour,
 // and runs the window on; false: not this ask.
 func (s *State) applyAskWinTap(k *prep, a Action) bool {
+	if s.res.ask == raGenWinCol {
+		s.applyAskWinCol(k, a) // mana_reswincol.go
+		return true
+	}
 	if s.res.ask != raGenWinTap {
 		return false
 	}
@@ -240,17 +248,25 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	sl := s.g.winSrc
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
+	s.winAskResume(k, p, &cost)
+	return true
+}
+
+// winAskResume runs the paused window on after its pick's answer floated the
+// source's mana, and finishes the payment it serves (the tap-another pick's
+// and the lucky Condition-split colour's answer alike).
+func (s *State) winAskResume(k *prep, p uint8, cost *kop.ManaCost) {
 	if s.g.winMode == winTrig {
 		// the trigger's window taps on and charges what it floated, as payReplanned's does
-		if s.trigWindowTap(k, p, &cost) {
-			return true
+		if s.trigWindowTap(k, p, cost) {
+			return
 		}
-		s.payDone(k, s.trigWindowCharge(k, p, &cost))
-		return true
+		s.payDone(k, s.trigWindowCharge(k, p, cost))
+		return
 	}
-	paused, short := s.payWindow(k, p, &cost, s.g.winMode == winPay && s.g.pickF&pfWard == 0)
+	paused, short := s.payWindow(k, p, cost, s.g.winMode == winPay && s.g.pickF&pfWard == 0)
 	if paused {
-		return true
+		return
 	}
 	mode := s.g.winMode
 	s.g.winMode = winNone
@@ -262,7 +278,6 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	} else {
 		s.payDone(k, !short)
 	}
-	return true
 }
 
 // windowTapXSecondUseful: source o is a second-ability tap-another source
