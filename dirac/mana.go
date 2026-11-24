@@ -2137,6 +2137,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			pk.rtapN++
 		}
 		s.pl[p].pool[col] += ty.n
+		s.planTapsInExtra(k, p, pk, sl) // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
 		if ty.rb && DebugRestrictedSource != 5 {
 			// a restricted source's larger alternative (or its sole ability of
 			// more than one mana): its mana floats restricted (restrPairUnit,
