@@ -27,8 +27,23 @@ var (
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Grizzly Bears", Count: 4},
 		{Name: "Giant Growth", Count: 4}, {Name: "Divination", Count: 2}, {Name: "Pristine Talisman", Count: 2},
 	}
-	manaRiderMatchups = []fixtureDecks{{manaRiderDeckA, manaRiderDeckB}, {manaRiderDeckB, manaRiderDeckA}}
-	manaRiderWatch    = map[string]bool{
+	// The fixed-colour and Combo forms of the same counter rider (T18e2):
+	// Vulshok Factory's "{T}: Add {R}. Put a charge counter on CARDNAME" and
+	// Land Cap's "{T}: Add {W} or {U}. Put a depletion counter on CARDNAME",
+	// each defunded by the basics beside it.
+	manaRiderDeckC = []cardset.Entry{
+		{Name: "Vulshok Factory", Count: 6}, {Name: "Mountain", Count: 8}, {Name: "Swamp", Count: 6},
+		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Doom Blade", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Giant Growth", Count: 4},
+	}
+	manaRiderDeckD = []cardset.Entry{
+		{Name: "Land Cap", Count: 6}, {Name: "Plains", Count: 7}, {Name: "Island", Count: 7},
+		{Name: "Pacifism", Count: 4}, {Name: "Raise the Alarm", Count: 4}, {Name: "Unsummon", Count: 4},
+		{Name: "Divination", Count: 4}, {Name: "Grizzly Bears", Count: 4},
+	}
+	manaRiderMatchups = []fixtureDecks{{manaRiderDeckA, manaRiderDeckB}, {manaRiderDeckB, manaRiderDeckA},
+		{manaRiderDeckC, manaRiderDeckD}, {manaRiderDeckD, manaRiderDeckC}}
+	manaRiderWatch = map[string]bool{
 		"Doom Blade": true, "Duress": true, "Black Knight": true, "Raise the Alarm": true,
 		"Pacifism": true, "Lightning Bolt": true, "Shock": true, "Grizzly Bears": true,
 		"Giant Growth": true, "Divination": true, "Unsummon": true, "Pristine Talisman": true,
@@ -73,7 +88,10 @@ func TestManaRiderActivationLockstepMutation(t *testing.T) {
 			a.ManaRider = kop.ManaRiderNone
 		})
 	}
-	run := runFixtureLockstep(t, "manarider", manaRiderMatchups, manaRiderWatch, 120, false, mutate)
+	// The mutation reads Peat Bog's rider, so it plays the two matchups whose
+	// decks carry Peat Bog (the extended pool's Vulshok Factory / Land Cap
+	// decks do not).
+	run := runFixtureLockstep(t, "manarider", manaRiderMatchups[:2], manaRiderWatch, 120, false, mutate)
 	if !sawRider {
 		t.Fatal("Peat Bog's mana ability carries no deplete rider: the mutation is a no-op")
 	}

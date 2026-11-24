@@ -4,6 +4,12 @@
 # "you gain 1 life" rider is the same kind of deferred source.
 # dirac/mana_rider_test.go plays it.
 Twitching Doll
+# The fixed-colour and Combo forms of the same rider (T18e2): Vulshok
+# Factory's "{T}: Add {R}. Put a charge counter on CARDNAME" and Land Cap's
+# "{T}: Add {W} or {U}. Put a depletion counter on CARDNAME"
+# (dirac/oracle/manarider_lockstep_test.go plays the Land Cap deck).
+Vulshok Factory
+Land Cap
 Forest
 Gemstone Mine
 Grove of the Burnwillows
