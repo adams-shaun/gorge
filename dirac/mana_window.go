@@ -2192,6 +2192,12 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		return c
 	}
+	if tapsDef.has(sl) && s.askColDeferred(k, sl) {
+		// gorge's mid-chain ChooseColor ask (answerNestedChooseColor): Kind
+		// "color" options with no ManaSymbol, so scriptOrderAnswers keeps
+		// W U B R G and c is the colour itself (askColDeferFloat)
+		return c
+	}
 	var mask uint8
 	var chosenPC *pcard
 	multi := false

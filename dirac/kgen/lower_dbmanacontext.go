@@ -45,6 +45,13 @@ func (lc *lowerCtx) dbManaActivatedOK() bool {
 	if root == nil || root.Kind != "AB" || root.API == "ChooseColor" {
 		return false
 	}
+	return dbManaExcluded(root)
+}
+
+// dbManaExcluded reports whether the activated chain rooted at root has one of
+// the reasons gorge's classifier takes it for no mana ability: a loyalty
+// marker, a target anywhere in the chain, or a library-moving cost or effect.
+func dbManaExcluded(root *cards.SA) bool {
 	if loyaltyMarked(root.Params["Planeswalker"]) {
 		return true
 	}
