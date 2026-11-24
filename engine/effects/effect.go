@@ -382,21 +382,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
 		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
 			effectDurationPermanent(rawDur)
-		// CR 603.7b: an Effect trigger watching its own source leave the
-		// battlefield is the delayed triggered ability the Effect creates.
-		// The departure is its trigger event, so it triggers once and must
-		// NOT carry the |SB source-battlefield lifetime appended below: that
-		// lifetime would retire the registration at the very departure that
-		// must trigger it. A plain one-shot delayed registration (no |EF) is
-		// consumed by its own DelayedPush; rules' fire path gives it the
-		// Effect's capture. The registration is keyed to the shape this fix
-		// was measured on -- a Duration$ Permanent Effect with ForgetOnMoved$
-		// Battlefield (Mysterio, Master of Illusion; Stangg) -- so a Merieke
-		// Ri Berit one-shot (ExileOnMoved$) still ends with its source and
-		// Phantasmal Mount's absent Duration$ stays a this-turn trigger. The
-		// comeback idiom above has its own lifetime and is left untouched.
-		sourceLeave := tl.SourceLeave && !permanentComeback &&
-			effectDurationPermanent(rawDur) && strings.EqualFold(strings.TrimSpace(forgetOn), "Battlefield")
+		sourceLeave := !permanentComeback && effectSourceLeaveOneShot(tl, rawDur, forgetOn)
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
@@ -1919,6 +1905,26 @@ func untilUntapsBind(h Host, c *Ctx, rawDur string, ce *state.ContinuousEffect) 
 // Permanent duration.
 func effectDurationPermanent(rawDur string) bool {
 	return strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+}
+
+// effectSourceLeaveOneShot reports whether an Effect trigger line is the
+// CR 603.7b delayed promise: an Effect trigger watching its own source leave
+// the battlefield is the delayed triggered ability the Effect creates.
+// The departure is its trigger event, so it triggers once and must
+// NOT carry the |SB source-battlefield lifetime effEffect appends: that
+// lifetime would retire the registration at the very departure that
+// must trigger it. A plain one-shot delayed registration (no |EF) is
+// consumed by its own DelayedPush; rules' fire path gives it the
+// Effect's capture. The registration is keyed to the shape this fix
+// was measured on -- a Duration$ Permanent Effect with ForgetOnMoved$
+// Battlefield (Mysterio, Master of Illusion; Stangg) -- so a Merieke
+// Ri Berit one-shot (ExileOnMoved$) still ends with its source and
+// Phantasmal Mount's absent Duration$ stays a this-turn trigger. The
+// comeback idiom (permanentComeback) has its own lifetime and is left
+// untouched.
+func effectSourceLeaveOneShot(tl effectTriggerLine, rawDur, forgetOn string) bool {
+	return tl.SourceLeave && effectDurationPermanent(rawDur) &&
+		strings.EqualFold(strings.TrimSpace(forgetOn), "Battlefield")
 }
 
 // effectCopyChosenName copies the name chosen by THIS resolution onto the
