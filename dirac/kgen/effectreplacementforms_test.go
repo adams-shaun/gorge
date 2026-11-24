@@ -15,6 +15,8 @@ var effectReplacementForms = []formCase{
 	{card: "Godtoucher", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
 	{card: "Indestructible Aura", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
 	{card: "Shielded Passage", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
+	{card: "Gideon, Ally of Zendikar", form: "prevent all damage to the Effect's source, Duration$ UntilHostLeavesPlayOrEOT", lir: "PreventNext obj=Self C=2"},
+	{card: "Gideon, the Oathsworn", form: "prevent all damage to the Effect's source, Duration$ UntilHostLeavesPlayOrEOT", lir: "PreventNext obj=Self C=2"},
 	{card: "Djeru's Resolve", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
 	{card: "Take the Bait", form: "scoped prevention with no ActiveZones$ (the spell's own OpponentTurn$/ActivationPhases$ cast window still refuses)", refused: "unread params [ActivationPhases OpponentTurn]"},
 	{card: "Ajani Steadfast", form: "Permanent emblem: prevent all but 1 to you and your planeswalkers", lir: "PreventDamageN"},
