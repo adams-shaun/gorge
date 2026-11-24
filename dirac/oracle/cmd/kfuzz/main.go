@@ -242,6 +242,7 @@ func run() int {
 		synthWith  = flag.String("synth-with", "", "-synth with -focus: pools (comma-separated) to take enablers from when the focus file names one the -synth pool lacks, dealt beside their focus card only, never as filler; evloop's scripted decks need snow basics, Gates, Cartouches that sit in other tail pools. The first pool holding the card wins; a pair whose cards need more subtypes than one table holds is refused")
 		reachPath  = flag.String("reach", "", "-synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games")
 		v2RandFull = flag.Bool("v2-rand-full", false, "-v2 transcript: no-op (a rand game is always compared whole; the flag keeps the old spelling working)")
+		scenario   = flag.String("scenario", "", scenarioUsage)
 		cpuProf    = flag.String("cpuprofile", "", "write a CPU profile here")
 		memProf    = flag.String("memprofile", "", "write an allocation profile here and print the run's allocation totals")
 	)
@@ -283,6 +284,9 @@ func run() int {
 			fmt.Println(s)
 		}
 		return 0
+	}
+	if *scenario != "" {
+		return runScenarios(*scenario)
 	}
 	var err error
 	if *seats < 2 || *seats > oracle.MaxSeats {
@@ -488,28 +492,9 @@ func run() int {
 		return 0
 	}
 	rc := oracle.RunConfig{Config: oracle.Config{PassElision: *elide, GorgeAutopaySurface: surfaceName == "autopay"}, MaxDecisions: *maxDec, MaxTurns: int32(*maxTurns)}
-	var pol func(uint64) oracle.Policy
-	switch *policy {
-	case "random":
-		pol = func(seed uint64) oracle.Policy {
-			return oracle.AffordableTargetPolicy(oracle.RandomPolicy(seed))
-		}
-	case "heuristic":
-		if *lead == "kernel" {
-			fmt.Fprintln(os.Stderr, "kfuzz: -policy heuristic needs -lead gorge (the heuristic bot drives gorge's pending decision)")
-			return 2
-		}
-		pol = oracle.HeuristicPolicy
-	case "explore":
-		if *lead == "kernel" {
-			fmt.Fprintln(os.Stderr, "kfuzz: -policy explore needs -lead gorge (the explore bot drives gorge's pending decision)")
-			return 2
-		}
-		pol = oracle.ExplorePolicy
-	case "first":
-		pol = func(uint64) oracle.Policy { return oracle.FirstPolicy() }
-	default:
-		fmt.Fprintf(os.Stderr, "kfuzz: -policy %q: want random, heuristic, explore or first\n", *policy)
+	pol, err := policyFor(*policy, *lead)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 2
 	}
 	pol = synthFaceDownPolicy(*synth, c.Reg, set, pol)
@@ -697,6 +682,29 @@ func run() int {
 	return 0
 }
 
+// policyFor is the game seed's policy -policy names. lead is -lead: the
+// heuristic and explore bots drive gorge's pending decision, so a kernel lead
+// has none.
+func policyFor(name, lead string) (func(uint64) oracle.Policy, error) {
+	switch name {
+	case "random":
+		return func(seed uint64) oracle.Policy {
+			return oracle.AffordableTargetPolicy(oracle.RandomPolicy(seed))
+		}, nil
+	case "heuristic", "explore":
+		if lead == "kernel" {
+			return nil, fmt.Errorf("-policy %s needs -lead gorge (the %s bot drives gorge's pending decision)", name, name)
+		}
+		if name == "explore" {
+			return oracle.ExplorePolicy, nil
+		}
+		return oracle.HeuristicPolicy, nil
+	case "first":
+		return func(uint64) oracle.Policy { return oracle.FirstPolicy() }, nil
+	}
+	return nil, fmt.Errorf("-policy %q: want random, heuristic, explore or first", name)
+}
+
 // failSegment ends a failed generic segment: exit 1, after handing the pairs a
 // hang left unplayed to a continuation (hangTail).
 func failSegment(sum oracle.FuzzSummary, ps []oracle.Pairing) int {
@@ -882,12 +890,12 @@ func printBadGame(c *oracle.Corpus, p oracle.Pairing, outcome, class string, imp
 	if !implicatesAll {
 		return
 	}
-	m, err := c.MatchupN(p.Decks(), 0)
+	table, err := badGameTable(c, p)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return
 	}
-	fmt.Printf("bad-game\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", p.Index, p.Seed, outcome, class, strings.Join(implicated, "|"), strings.Join(recent, "|"), strings.Join(m.Table, "|"))
+	fmt.Printf("bad-game\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", p.Index, p.Seed, outcome, class, strings.Join(implicated, "|"), strings.Join(recent, "|"), strings.Join(table, "|"))
 }
 
 // readNames reads a name list, one a line, blank lines and "#" comments skipped.
