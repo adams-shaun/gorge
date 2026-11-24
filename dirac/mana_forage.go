@@ -142,19 +142,66 @@ func (s *State) availForageCA(k *prep, p uint8, a *avail) {
 }
 
 // forageActivate activates the forage source at sl in gorge's cost order: the
-// {T}, the forage elected as opt (forageExileOpt: the first three graveyard
-// cards, else the Food at slot opt), then the mana of colour answer ans.
-func (s *State) forageActivate(k *prep, p uint8, sl, opt Slot, ans int) {
+// {T}, the forage elected as opt (forageExileOpt: the three graveyard cards of
+// pick answer ci, forageComboOf; the first three when the pick is forced, else
+// the Food at slot opt), then the mana of colour answer ans.
+func (s *State) forageActivate(k *prep, p uint8, sl, opt Slot, ci uint8, ans int) {
 	n := s.caAmount(k, sl)
 	s.caTap(k, sl)
 	if opt == forageExileOpt {
-		s.forageExile3(p)
+		s.forageExileCombo(p, ci)
 	} else {
 		s.forageSacFood(k, opt)
 	}
 	s.fireKwAct(k, kop.TrigForage, p, 0)
 	s.caAdd(k, p, sl, ans, n)
 	s.sba(k) // a sacrificed Food token ceases to exist at once (CR 704.5d): it is no graveyard card for the next forage
+}
+
+// forageMaxPicks caps the exile pick's answers (gorge scriptSubsets' 64).
+const forageMaxPicks = 64
+
+// forageExilePicks is the number of answers gorge's search branches the exile
+// arm's pick over with g graveyard cards (scriptAnswers: every 3-combination of
+// the graveyard, at most 64), 0 when the pick is forced (three cards: no ask;
+// pay manacostwalk.go manaCostForageExileStage).
+func forageExilePicks(g int) int {
+	if g <= 3 {
+		return 0
+	}
+	return min(g*(g-1)*(g-2)/6, forageMaxPicks)
+}
+
+// forageComboOf is pick answer ci's three graveyard positions: the ci-th
+// 3-combination of g positions in lexicographic order (scriptSubsets).
+func forageComboOf(g int, ci uint8) [3]int {
+	c := [3]int{0, 1, 2}
+	for ; ci > 0; ci-- {
+		i := 2
+		for i >= 0 && c[i] >= g-3+i {
+			i--
+		}
+		if i < 0 {
+			break
+		}
+		c[i]++
+		for j := i + 1; j < 3; j++ {
+			c[j] = c[j-1] + 1
+		}
+	}
+	return c
+}
+
+// forageExileCombo exiles pick answer ci's three graveyard cards (the first
+// three when the pick is forced).
+func (s *State) forageExileCombo(p uint8, ci uint8) {
+	pl := &s.pl[p]
+	if int(pl.graveN) <= 3 {
+		s.forageExile3(p)
+		return
+	}
+	c := forageComboOf(int(pl.graveN), ci)
+	s.forageExilePicked(p, []Obj{pl.grave[c[0]], pl.grave[c[1]], pl.grave[c[2]]})
 }
 
 // forageSibActivate activates the forage source's plain ability sib: the {T} and
@@ -217,10 +264,10 @@ func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
 	var opts [MaxPerm + 1]Slot
 	n := t.forageOpts(k, cs.p, sl, &opts)
 	units := t.caAmount(k, sl)
-	return forageAsks(sib, j, n, units, &cs.need, cs.tick,
-		func(o, ans int) bool {
+	return forageAsks(sib, j, n, units, forageExilePicks(int(t.pl[cs.p].graveN)), func(o int) bool { return opts[o] == forageExileOpt }, &cs.need, cs.tick,
+		func(o, ci, ans int) bool {
 			opt := opts[o]
-			return cs.branch(k, t, d, caStep{sl: sl, ans: uint8(ans), fo: uint8(o)}, func(f *State) { f.forageActivate(k, cs.p, sl, opt, ans) })
+			return cs.branch(k, t, d, caStep{sl: sl, ans: uint8(ans), fo: uint8(o), pick: uint8(ci)}, func(f *State) { f.forageActivate(k, cs.p, sl, opt, uint8(ci), ans) })
 		},
 		func() bool {
 			return cs.branch(k, t, d, caStep{sl: sl, sib: true}, func(f *State) { f.forageSibActivate(k, cs.p, sl, sib) })
@@ -230,12 +277,14 @@ func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
 // forageAsks walks the forage source's asks in gorge's ask order, the one home of
 // that order for both searches (forageSource, forageOther): sib is the plain
 // sibling's ability index (-1 for none), j the forage ability's, n the forage
-// options (forageOpts), units the colour answers' size. tick spends one node per
-// ask; forage branches one (option o, colour answer ans); plain branches the
-// sibling's activation. The sibling comes first when its ability prints first.
-func forageAsks(sib, j, n, units int, need *[kop.NumManaKinds]bool, tick func() bool, forage func(o, ans int) bool, plain func() bool) bool {
+// options (forageOpts), units the colour answers' size, picks the exile arm's
+// pick answers (forageExilePicks: 0 when the pick is forced) and exile whether
+// option o is the exile arm. tick spends one node per ask; forage branches one
+// (option o, pick answer ci, colour answer ans); plain branches the sibling's
+// activation. The sibling comes first when its ability prints first.
+func forageAsks(sib, j, n, units, picks int, exile func(o int) bool, need *[kop.NumManaKinds]bool, tick func() bool, forage func(o, ci, ans int) bool, plain func() bool) bool {
 	viaForage := func() bool {
-		if sib >= 0 && !tick() { // the forage ask (two or more options), else the colour ask
+		if sib >= 0 && !tick() { // the forage ask (two or more options), else the exile pick or the colour ask
 			return false
 		}
 		for oi := 0; oi < n; oi++ {
@@ -243,12 +292,22 @@ func forageAsks(sib, j, n, units int, need *[kop.NumManaKinds]bool, tick func() 
 			if DebugForagePickLast {
 				o = n - 1 - oi
 			}
-			if n >= 2 && !tick() { // the colour ask after the forage answer
+			if n >= 2 && !tick() { // the ask after the forage answer: the exile pick or the colour ask
 				return false
 			}
-			for r, na := 0, caAnswerCount(units); r < na; r++ {
-				if forage(o, caRank(units, need, r)) {
-					return true
+			pick := picks > 0 && exile(o)
+			np := 1
+			if pick {
+				np = picks
+			}
+			for ci := 0; ci < np; ci++ {
+				if pick && !tick() { // the colour ask after the pick answer
+					return false
+				}
+				for r, na := 0, caAnswerCount(units); r < na; r++ {
+					if forage(o, ci, caRank(units, need, r)) {
+						return true
+					}
 				}
 			}
 		}
@@ -275,9 +334,9 @@ func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep
 	var opts [MaxPerm + 1]Slot
 	n := t.forageOpts(k, fs.p, sl, &opts)
 	units := t.caAmount(k, sl)
-	return forageAsks(sib, j, n, units, &fs.need, fs.tick,
-		func(o, ans int) bool {
-			return try(otherStep{kind: otherComboAny, ans: uint8(ans), fo: uint8(o)})
+	return forageAsks(sib, j, n, units, forageExilePicks(int(t.pl[fs.p].graveN)), func(o int) bool { return opts[o] == forageExileOpt }, &fs.need, fs.tick,
+		func(o, ci, ans int) bool {
+			return try(otherStep{kind: otherComboAny, ans: uint8(ans), fo: uint8(o), pick: uint8(ci)})
 		},
 		func() bool { return try(otherStep{kind: otherComboAny, plain: true}) })
 }
@@ -291,7 +350,7 @@ func (s *State) forageReplay(k *prep, p uint8, st caStep) {
 	}
 	var opts [MaxPerm + 1]Slot
 	s.forageOpts(k, p, st.sl, &opts)
-	s.forageActivate(k, p, st.sl, opts[st.fo], int(st.ans))
+	s.forageActivate(k, p, st.sl, opts[st.fo], st.pick, int(st.ans))
 }
 
 // ownTapObj is the object whose {T} the activation a costs, NoObj for any other

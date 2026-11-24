@@ -61,6 +61,8 @@ type otherStep struct {
 	// fo: a forage source's election (otherComboAny, forageOther): the option
 	// index forageOpts lists; plain answers its ability ask with the plain {T}
 	fo uint8
+	// pick: a forage source's exile pick answer (forageComboOf)
+	pick uint8
 }
 
 // mixBoard: p's census gaps mix filters, restricted any-colour sources,
@@ -867,7 +869,7 @@ func (s *State) otherDo(k *prep, p uint8, st filtStep) {
 			break
 		}
 		if k.forageCA(s.cardAt(st.sl)) {
-			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, sib: o.plain}) // (mana_forage.go)
+			s.forageReplay(k, p, caStep{sl: st.sl, ans: o.ans, fo: o.fo, pick: o.pick, sib: o.plain}) // (mana_forage.go)
 			break
 		}
 		s.caActivate(k, p, st.sl, int(o.ans))
