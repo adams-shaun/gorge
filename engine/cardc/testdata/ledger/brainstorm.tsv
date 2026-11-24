@@ -1,6 +1,0 @@
-# Brainstorm
-source	key	sig	class	issue	note
-lockstep	legacy/6/forward	-	mtgish-bug	1	divergence follows the wrong put-back count
-lockstep	legacy/6/reverse	-	mtgish-bug	1	divergence follows the wrong put-back count
-static	0/A:SP:Draw>ChangeZone#0/[1]ChangeNum	92ef039a	mtgish-bug	1	tree repeats the draw count as the put-back count; same symptom as compliance ledger
-static	0/A:SP:Draw>ChangeZone#0/[1]ChangeType	fff45e96	equivalent	0	absent card type filter defaults to any card

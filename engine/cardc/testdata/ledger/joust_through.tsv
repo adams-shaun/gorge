@@ -1,3 +1,0 @@
-# Joust Through
-source	key	sig	class	issue	note
-static	0/A:SP:DealDamage>GainLife#0/[1]LifeAmount	72ed4be7	mtgish-bug	1	tree repeats the damage amount as the life gained; same symptom as compliance ledger

@@ -373,7 +373,7 @@ func faceShape(f *cards.Face) []string {
 }
 
 // servedFloor is the number of cards of the fdn and legacy slices cardc serves.
-const servedFloor = 222
+const servedFloor = 220
 
 func TestServedCardsMatchForge(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)

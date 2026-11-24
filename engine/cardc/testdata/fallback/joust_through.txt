@@ -1,0 +1,3 @@
+name Joust Through
+class mtgish-bug
+issue 1

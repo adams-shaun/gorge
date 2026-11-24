@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cardc/gorgebe"
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -102,7 +103,12 @@ func compile(args []string, stdout, stderr io.Writer) int {
 		}
 		fmt.Fprintf(stdout, "%s\t%s\t%s\n", e.Name, origin, e.Reason)
 	}
-	n := len(reg.Entries())
-	fmt.Fprintf(stdout, "total\tslice=%s\tcards=%d\tcardc=%d\tforge=%d\n", *slice, n, reg.Served(), n-reg.Served())
+	n, fallback := len(reg.Entries()), 0
+	for _, e := range reg.Entries() {
+		if strings.HasPrefix(e.Reason, "fallback:") {
+			fallback++
+		}
+	}
+	fmt.Fprintf(stdout, "total\tslice=%s\tcards=%d\tcardc=%d\tforge=%d\tfallback=%d\n", *slice, n, reg.Served(), n-reg.Served(), fallback)
 	return 0
 }

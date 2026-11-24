@@ -10,7 +10,7 @@ import (
 )
 
 // servedFloor is CC-24's count of proof-slice cards cardc serves.
-const servedFloor = 222
+const servedFloor = 220
 
 func TestBuildProofSlice(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)
