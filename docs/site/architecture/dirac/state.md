@@ -3,7 +3,8 @@
 A dirac game is one Go value, `dirac.State`, plus one small buffer it owns. This page shows what is inside
 it, what a cheap clone costs and what it rules out.
 
-Byte sizes change as features land, so none are written here. `TestStateSize` (`dirac/kernel_test.go`) logs the live
+Byte sizes change as features land, so none are written here except the dated bar log under
+[Pool bar (OD-1)](#pool-bar-od-1). `TestStateSize` (`dirac/kernel_test.go`) logs the live
 `unsafe.Sizeof(State{})`; the arrays below are sized by the constants they name (`dirac/state.go`, `dirac/seats.go`).
 
 ## Three parts
@@ -121,6 +122,48 @@ Every byte of the core is copied on every clone, so its size is a decision.
 - **Per-slot bytes are expensive.** One byte on `perm` costs `MaxPerm` bytes of `State`, one on an object `MaxObj`.
   Rare state goes in a pool sized for the worst case seen in play, or in a cold array.
 - **A mechanic that's off costs one branch.** Each block is gated by a flag computed once per table.
+
+## Pool bar (OD-1)
+
+Measured 2026-11-24 at `21c14fbba3`, on the gate metal boxes (`metal2-9950x`, Ryzen 9 9950X, 32 threads;
+the padding probe below on `cherry-9950x-192g`, the same CPU), pinned to core 30 with `GOMAXPROCS=1`, five
+runs. `instructions:u` is `perf stat` differenced `(N500k-N100k)/400000` under `GOGC=off`, as
+[`scripts/dirac-gate.sh`](https://github.com/adams-shaun/gorge/blob/main/scripts/dirac-gate.sh) step 5 does
+(`(N50k-N10k)/40000` for `BenchmarkTransitionEDH4`, `(N5k-N1k)/4000` for `BenchmarkSearch`, since those benches
+cost far more per op). `edh` State+cold is the `TestEveryPoolFitsTheStateBar` measure: `unsafe.Sizeof(State{})`
+plus eight bytes per cold word.
+
+| date | SHA | after | `edh` State+cold | bench | ns/op median (min-max) | allocs/op | instructions/op |
+|---|---|---|---:|---|---:|---:|---:|
+| 2026-11-24 | `21c14fbba3` | D7/T17a-c, D8/T18 | 50,552 B | `BenchmarkCloneEDH4` | 289 (288-289) | 0 | 702 |
+| | | | | `BenchmarkTransitionEDH4` | 93,808 (88,281-101,780) | 0 | 1,933,752 |
+| | | | | `BenchmarkCloneFDN` | 209 (208-211) | 0 | 259 |
+| | | | | `BenchmarkTransitionFDN` | 3,895 (3,881-3,910) | 0 | 60,901 |
+| | | | | `BenchmarkTransitionBLB` | 4,334 (4,308-4,406) | 0 | 71,914 |
+| | | | | `BenchmarkSearch` | 1,160,099 (1,139,230-1,182,839) | 0 | 21,663,228 |
+
+`edh` is 50,552 B: 42,576 B of `State` and 7,976 B of cold arrays. It fits the 64 KiB `maxStateBytes`
+(`TestStateSize`, `dirac/kernel_test.go`). The T03-era baseline was not re-measured: the bar and the four-seat
+capacity limits moved after T03, so those numbers would describe a different `State`. This row is the baseline
+for growth from here.
+
+**OD-1's split did not land.** There is no `maxPoolBytes` in the tree: the 44 KiB `maxStateBytes` / 46 KiB
+pool split was superseded on 2026-11-23, when the operator raised `maxStateBytes` to 64 KiB for #2456. So the
+old trigger (stop if `edh` State+cold exceeds 46 KiB) was met and is historical; `edh` is over it at 50,552 B,
+and the live bar is the 64 KiB one. Do not reintroduce the split or change either bar here.
+
+The operator's performance condition still applies to future Commander cold growth. Against the row above,
+a **>3% regression in `BenchmarkCloneEDH4` or `BenchmarkTransitionEDH4`** is the stop signal: report the
+numbers and the offending phase. `BenchmarkCloneEDH4` is the tighter measure (one-nanosecond spread over five
+runs); `BenchmarkTransitionEDH4`'s spread is 13.5%, so a 3% move there needs more than five runs or the
+instruction column. Append a row when a Commander cold-growth phase lands. D5/T15 (effect containers) had not
+landed at this SHA; D7/T17a-c and D8/T18 landed before this measurement, so they share this baseline row.
+
+The design's INFERRED +15-20 ns for the planned +450-650 B of cold was checked directly on `edh`: appending
+512 B to the clone's cold buffer took `BenchmarkCloneEDH4` from 296 to 314 ns (+18 ns, +6.1% of the clone), and
+appending 1024 B took 316 ns (+20 ns). The absolute cost is small, but on the clone it is over the 3% trigger
+for the planned growth. That probe ran on a shared box with a ±10% control spread, so treat the two deltas as
+the same cost, not as a curve.
 
 ## The Projection
 
