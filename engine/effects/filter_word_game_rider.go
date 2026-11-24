@@ -36,6 +36,12 @@ func wordPredicateNewWords(p string) (kind wordKind, key string, ok bool) {
 		return wordDealtCombatDamageToAny, "", true
 	case wordPredicateWordDealtDamageToOppThisTurn:
 		return wordDealtDamageToOppThisTurn, "", true
+	case wordPredicateWordTopGraveyard:
+		return wordTopGraveyard, "", true
+	case wordPredicateWordTopGraveyard2:
+		return wordTopGraveyard2, "", true
+	case wordPredicateWordTopGraveyardCreature:
+		return wordTopGraveyardCreature, "", true
 	}
 	if kind, key, ok := countersReceivedWordKind(p); ok {
 		return kind, key, true
