@@ -39,10 +39,11 @@ func (tc *triggeredEffectCost) foragePayable(e *Engine, rest Cost) bool {
 // cards OR sacrifice a Food), sharing the cast path's option kinds so the
 // bot's existing arms answer it. A single live arm settles without an ask.
 // It reports whether an ask was posed; the answer (forage_exile /
-// forage_food) records the arm and re-enters the pay arm.
+// forage_food) records the arm and re-enters the pay arm. Once the election
+// is settled, the exile arm's three-card pick is the ask (forageExilePickAsk).
 func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 	if tc.forageDone {
-		return false
+		return tc.forageExilePickAsk(e)
 	}
 	tc.forageDone = true
 	graveOK := len(e.G.Zone(state.ZGraveyard, tc.player)) >= 3
@@ -61,8 +62,8 @@ func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 		tc.forageFood = foods[0]
 		return false
 	case arms == 1:
-		// The lone exile arm is deterministic.
-		return false
+		// The lone exile arm: no election, then the three-card pick.
+		return tc.forageExilePickAsk(e)
 	}
 	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Choose how to forage", Source: tc.source}
@@ -71,10 +72,54 @@ func (tc *triggeredEffectCost) forageElectionAsk(e *Engine) bool {
 	return true
 }
 
+// forageExilePickAsk poses the elected exile arm's pick of exactly three
+// graveyard cards (CR 701.61a: which three is the payer's choice; the mana
+// path's manaCostForageExileStage asks the same) when the graveyard holds
+// more than three. It reports whether an ask was posed; the Food arm, an
+// answered pick and a forced pick (exactly three cards) settle unasked.
+func (tc *triggeredEffectCost) forageExilePickAsk(e *Engine) bool {
+	if !tc.forageDone || tc.forageFood != 0 || len(tc.forageExile) > 0 {
+		return false
+	}
+	d := pay.ForageExilePickAsk(asPayer(e), tc.player, tc.source)
+	if d == nil {
+		return false
+	}
+	tc.forageExileAsked = true
+	windowAsk(e, d, chooseTriggeredCost)
+	return true
+}
+
+// forageExilePickAnswer answers the exile arm's three-card pick: it records
+// the pick and re-enters the pay arm, which settles. A pick that cannot pay is
+// the decline (nothing yet moved).
+func (tc *triggeredEffectCost) forageExilePickAnswer(e *Engine, chosen []decision.Option) {
+	tc.forageExileAsked = false
+	if tc.forageExile = pay.ForageExilePicked(asPayer(e), tc.player, chosen); tc.forageExile == nil || tc.forageFood != 0 {
+		e.triggeredCostDecline(tc)
+		return
+	}
+	e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+}
+
+// forageFoodAnswer answers the election's Food arm: the named Food must
+// still be a live candidate; it records the pick and re-enters the pay arm,
+// which settles. Anything else is the decline, with nothing yet moved to
+// un-pay.
+func (tc *triggeredEffectCost) forageFoodAnswer(e *Engine, chosen []decision.Option) {
+	foods := pay.CostCandidates(asPayer(e), tc.player, tc.source, state.ZBattlefield, "Food.YouCtrl", false, false)
+	if !tc.forageDone || !slices.Contains(foods, chosen[0].Obj) {
+		e.triggeredCostDecline(tc)
+		return
+	}
+	tc.forageFood = chosen[0].Obj
+	e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+}
+
 // forageSettle charges the cost: the mana/life half from the pool (any
 // energy beside it), then the elected arm -- one Sacrifice for the Food, or
-// the top three graveyard cards exiled (the payer's graveyard order is
-// deterministic, the mana path's SettleManaForage read) -- and the
+// the three picked graveyard cards exiled (forageExile; the graveyard's
+// three when the pick was forced, the mana path's SettleManaForage read) -- and the
 // ForageAction marker the forage triggers key on. It re-proves payability
 // first on the energy-stripped cost (the gate's own read: the energy half is
 // charged by ChargeEnergyCost below, never re-priced here), so a paid answer
@@ -90,6 +135,8 @@ func (tc *triggeredEffectCost) forageSettle(e *Engine, announced Cost) bool {
 		}
 	} else if len(e.G.Zone(state.ZGraveyard, tc.player)) < 3 {
 		return false
+	} else if len(tc.forageExile) > 0 && pay.ForageExilePicked(asPayer(e), tc.player, forageExileOptions(tc.forageExile)) == nil {
+		return false
 	}
 	lower := announced.WithoutEnergy()
 	lower.Forage = false
@@ -98,6 +145,16 @@ func (tc *triggeredEffectCost) forageSettle(e *Engine, announced Cost) bool {
 	}
 	pay.ChargeEnergyCost(asPayer(e), tc.player, tc.amount, tc.xPaid)
 	pay.SettleManaForage(asPayer(e), &pay.ManaCostActivation{
-		Player: tc.player, ForagePay: true, ForageFood: tc.forageFood})
+		Player: tc.player, ForagePay: true, ForageFood: tc.forageFood, ForageExile: tc.forageExile})
 	return true
+}
+
+// forageExileOptions re-states a recorded pick as its answer options, for
+// the settle's re-proof through pay.ForageExilePicked.
+func forageExileOptions(ids []state.ObjID) []decision.Option {
+	out := make([]decision.Option, len(ids))
+	for i, id := range ids {
+		out[i] = decision.Option{Index: i, Kind: "exilecost", Obj: id}
+	}
+	return out
 }

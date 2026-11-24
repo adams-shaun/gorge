@@ -43,13 +43,20 @@ func RecordManaCostAnswer(e Engine, md *ManaCostActivation, flow AskFlow, chosen
 		md.TapPart++
 	case AskManaForage:
 		md.ForageDone = true
-		if len(chosen) > 0 && chosen[0].Kind == "forage_food" {
+		if md.ForagePay {
+			// The exile arm is already elected, so this is its three-card
+			// pick (manaCostForageExileStage). The
+			// decision's Validate holds the answer to three offered graveyard
+			// cards; an answer that still fails the re-read leaves the pick
+			// unrecorded and the stage poses it again.
+			md.ForageExile = ForageExilePicked(e, md.Player, chosen)
+		} else if len(chosen) > 0 && chosen[0].Kind == "forage_food" {
 			md.ForagePay = true
 			md.ForageFood = chosen[0].Obj
 		} else {
 			// Exile three: only legal when the graveyard holds three cards (the
-			// offer gate read it), so the arm is recorded and the settle takes the
-			// top three.
+			// offer gate read it), so the arm is recorded; the forage stage then
+			// poses the three-card pick when more than three are there.
 			md.ForagePay = true
 		}
 	case AskManaEvidence:

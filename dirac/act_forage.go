@@ -1,6 +1,7 @@
 package dirac
 
 import (
+	"slices"
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -357,9 +358,13 @@ func (s *State) graveActOK(k *prep, a *kop.Ability, p uint8, o Obj) bool {
 // payer has three graveyard cards or controls a Food (foragePayable; else
 // decline only, execPay's pfNoPay). On pay, forageElectionAsk poses the
 // either-or (pay.ForageOptions: forage_exile first, then one forage_food per
-// Food) only when two or more arms are live; a lone Food is sacrificed and a
-// lone exile arm settles unasked. forageSettle exiles the first three cards
-// of the graveyard in zone order (SettleManaForage) or sacrifices the Food.
+// Food) only when two or more arms are live; a lone Food is sacrificed. The
+// exile arm then poses forageExilePickAsk's pick of exactly three graveyard
+// cards (CR 701.61a: one KChoose 3..3 there, one ChCostExile pick per card
+// here, res.left the picks still owed and res.arr the cards picked) when the
+// graveyard holds more than three; with exactly three it settles unasked.
+// forageSettle exiles the picked cards in graveyard order (SettleManaForage)
+// or sacrifices the Food.
 // A paid forage fires TrigForage after its moves (trig_modes.go;
 // gorge's ForageAction marker).
 
@@ -382,9 +387,7 @@ func (s *State) forageRes(k *prep) {
 	case foods == 0 && !grave:
 		s.payDone(k, false) // the gate's read no longer holds: decline, nothing moved
 	case foods == 0:
-		s.forageExile3(p)
-		s.fireKwAct(k, kop.TrigForage, s.g.pickP, 0)
-		s.payDone(k, true)
+		s.forageExileArm(k, p)
 	case foods == 1 && !grave:
 		for m := s.ctrlM[p]; m.any(); m = m.rest() {
 			if sl := m.first(); s.sacMatchGen(k, f, sl, p, NoSlot) {
@@ -395,8 +398,21 @@ func (s *State) forageRes(k *prep) {
 		s.fireKwAct(k, kop.TrigForage, s.g.pickP, 0)
 		s.payDone(k, true)
 	default:
-		s.res.ask = raGenForage
+		s.res.ask, s.res.left = raGenForage, 0
 	}
+}
+
+// forageExileArm pays the elected exile arm: three graveyard cards and the
+// pay is settled unasked, more poses the three-card pick (gorge
+// forageExilePickAsk).
+func (s *State) forageExileArm(k *prep, p uint8) {
+	if s.pl[p].graveN > 3 {
+		s.res.ask, s.res.left = raGenForage, 3
+		return
+	}
+	s.forageExile3(p)
+	s.fireKwAct(k, kop.TrigForage, p, 0)
+	s.payDone(k, true)
 }
 
 // forageResOptions poses the either-or: mode 0 = exile three graveyard
@@ -405,6 +421,18 @@ func (s *State) forageRes(k *prep) {
 //go:noinline
 func (s *State) forageResOptions(k *prep, d *Decision) {
 	p := s.g.pickP
+	if s.res.left > 0 {
+		// The exile arm's pick: the graveyard cards not yet picked, in
+		// graveyard order (gorge's exilecost options, reposed per pick).
+		d.Sub = ChCostExile
+		picked := s.res.arr[:3-s.res.left]
+		for _, o := range s.pl[p].grave[:s.pl[p].graveN] {
+			if !slices.Contains(picked, o) {
+				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+			}
+		}
+		return
+	}
 	d.Sub = ChCostForage
 	if s.pl[p].graveN >= 3 {
 		d.add(MakeAction(AkChoose, 0, 0, 0))
@@ -419,24 +447,47 @@ func (s *State) forageResOptions(k *prep, d *Decision) {
 
 //go:noinline
 func (s *State) answerForageRes(k *prep, a Action) {
+	p := s.g.pickP
+	if s.res.left > 0 {
+		s.res.arr[3-s.res.left] = Obj(a.Source())
+		if s.res.left--; s.res.left > 0 {
+			return // the next pick (forageResOptions)
+		}
+		s.forageExilePicked(p, s.res.arr[:3])
+		s.fireKwAct(k, kop.TrigForage, p, 0)
+		s.payDone(k, true)
+		return
+	}
 	if a.Mode() == 1 {
 		s.forageSacFood(k, s.objs[Obj(a.Source())].slot)
 	} else {
-		s.forageExile3(s.g.pickP)
+		s.forageExileArm(k, p)
+		return
 	}
-	s.fireKwAct(k, kop.TrigForage, s.g.pickP, 0)
+	s.fireKwAct(k, kop.TrigForage, p, 0)
 	s.payDone(k, true)
 }
 
 // forageExile3 exiles the first three cards of p's graveyard (gorge
-// SettleManaForage walks Zone(ZGraveyard) in order).
+// SettleManaForage walks Zone(ZGraveyard) in order: the forced pick).
 func (s *State) forageExile3(p uint8) {
-	var os [3]Obj
 	pl := &s.pl[p]
-	for i := 0; i < 3; i++ {
-		os[i] = pl.grave[i]
+	s.forageExilePicked(p, pl.grave[:3])
+}
+
+// forageExilePicked exiles the picked graveyard cards in graveyard order
+// (gorge SettleManaForage walks Zone(ZGraveyard), exiling the picked ones).
+func (s *State) forageExilePicked(p uint8, picked []Obj) {
+	var os [3]Obj
+	n := 0
+	pl := &s.pl[p]
+	for _, o := range pl.grave[:pl.graveN] {
+		if n < 3 && slices.Contains(picked, o) {
+			os[n] = o
+			n++
+		}
 	}
-	for _, o := range os {
+	for _, o := range os[:n] {
 		from := s.detach(o)
 		s.placeFrom(o, kop.ZoneExile, false, from, false, false)
 	}

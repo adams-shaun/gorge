@@ -291,13 +291,27 @@ func TestForageResolutionCost(t *testing.T) {
 		t.Fatalf("the chosen Food was not sacrificed alone, or no draw: %v %v grave %d hand %d/%d", sc.onBF(foods[1]), sc.onBF(foods[0]), sc.s.pl[0].graveN, sc.s.pl[0].handN, hand)
 	}
 
-	// lone exile arm: no election, the first three graveyard cards exiled
+	// lone exile arm: no election; four graveyard cards pose the three-card
+	// pick (CR 701.61a; gorge forageExilePickAsk), one ChCostExile pick per
+	// card over the cards not yet picked, and the picked three are exiled
 	sc, _, _, d = forageResScen(t, 4, 0)
-	first := sc.s.pl[0].grave[0]
+	grave := sc.s.pl[0].grave
 	hand = sc.s.pl[0].handN
 	sc.s.Apply(MakeAction(AkChoose, 0, 0, 1))
-	if sc.s.pl[0].graveN != 1 || sc.s.objs[first].zone != kop.ZoneExile || sc.s.pl[0].handN != hand+1 {
-		t.Fatalf("lone exile arm: grave %d, first in zone %d", sc.s.pl[0].graveN, sc.s.objs[first].zone)
+	for i := 1; i <= 3; i++ {
+		d = sc.s.Step()
+		if d.Kind != DkChoose || d.Sub != ChCostExile || int(d.N) != 5-i {
+			t.Fatalf("exile pick %d: kind %d sub %d n %d, want a ChCostExile pick over %d cards", i, d.Kind, d.Sub, d.N, 5-i)
+		}
+		sc.s.Apply(MakeAction(AkChoose, TCode(grave[i]), 0, 0))
+	}
+	if sc.s.pl[0].graveN != 1 || sc.s.pl[0].grave[0] != grave[0] || sc.s.pl[0].handN != hand+1 {
+		t.Fatalf("exile pick: grave %d (first %d, want the unpicked %d), hand %d/%d", sc.s.pl[0].graveN, sc.s.pl[0].grave[0], grave[0], sc.s.pl[0].handN, hand)
+	}
+	for _, o := range grave[1:4] {
+		if sc.s.objs[o].zone != kop.ZoneExile {
+			t.Fatalf("picked card %d in zone %d, want exile", o, sc.s.objs[o].zone)
+		}
 	}
 
 	// lone Food: sacrificed unasked
