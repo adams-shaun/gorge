@@ -479,7 +479,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	optional := sa.ParamStr(cards.PKOptional) == "True"
-	strict := optional && sa.ParamStr(cards.PKStrictAmount) == "True"
+	// StrictAmount$ True is "exactly Amount$, or none" whether or not the
+	// sacrifice is optional (Scorched Ruins, Lotus Vale, Infernal Denizen are
+	// mandatory carriers); strict keeps the optional yes/no shape below.
+	strictAmount := sa.ParamStr(cards.PKStrictAmount) == "True"
+	strict := optional && strictAmount
 	// The strict optional yes/no ask names the same noun in place of
 	// permanent(s); the pre-SacMessage wording is unchanged.
 	sacAskNoun := "permanent(s)"
@@ -646,6 +650,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 						maxv = int32(len(eligible))
 					}
 				}
+			} else if strictAmount && int32(len(eligible)) < n {
+				// Mandatory strict batch with too few eligible: it cannot be
+				// paid partially, so nothing is sacrificed (CR 614.6: the
+				// replaced "sacrifice two" never happens).
+				n = 0
 			} else if int32(len(eligible)) > n {
 				// Mandatory with a choice: exactly the batch count of the
 				// eligible — Amount$, or the Annihilator$ marker's count when
