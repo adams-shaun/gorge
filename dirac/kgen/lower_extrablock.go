@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"fmt"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
@@ -47,9 +49,59 @@ func (lc *lowerCtx) extraBlockStatic(s cards.Static) (bool, error) {
 	}
 	ps.consume("Affected", "AffectedDefined", key)
 	if len(ps.unread()) > 0 {
-		return false, nil
+		// a gated self extra block (Entourage of Trest's "can block an
+		// additional creature each combat as long as you're the monarch"):
+		// the card marker carries no condition, so the static lowers as a
+		// StatExtraBlock over its own creature with the gate in Static.Cond2,
+		// which the kernel's blockCap walk consults through statCond (gorge
+		// BlockCapacity reads the static's gate the same way). Only the
+		// shared gate keys may ride beside it; anything else keeps the
+		// refusal.
+		return lc.gatedSelfExtraBlock(ps, amount)
 	}
 	lc.out.ExtraBlocks = amount
+	return true, nil
+}
+
+// gatedSelfExtraBlock lowers the gated self CanBlockAmount$ / CanBlockAny$
+// static: the gate lowers through the static body's condition read (the
+// shared condGateModes vocabulary covers CanBlockAmount), and the effect is
+// one extra block over the static's own creature. Only a gate-only static
+// lowers; any effect part beside the gate keeps the refusal.
+func (lc *lowerCtx) gatedSelfExtraBlock(ps *params, amount int) (bool, error) {
+	for _, k := range ps.unread() {
+		switch k {
+		case "Condition", "IsPresent", "PresentZone", "PresentCompare", "CheckSVar", "SVarCompare",
+			"Secondary", "ClassBand", "Affected2", "IsPresent2":
+		default:
+			return false, nil
+		}
+	}
+	s2 := cards.Static{Mode: "Continuous", Params: make(map[string]string, len(ps.m))}
+	for k, v := range ps.m {
+		if k == "CanBlockAmount" || k == "CanBlockAny" || k == "AffectedDefined" || k == "Mode" {
+			continue // the effect itself is the ExtraBlock static; the gate lowers alone
+		}
+		s2.Params[k] = v
+	}
+	s2.Params["Affected"] = "Card.Self"
+	sts, err := lc.staticBody(s2)
+	if err != nil {
+		return true, err
+	}
+	if len(sts) != 1 {
+		return true, fmt.Errorf("gated self extra block: %d statics", len(sts))
+	}
+	st := sts[0]
+	if st.Power.Kind != vNone || st.Tough.Kind != vNone || len(st.Kw) != 0 || len(st.AddSub) != 0 ||
+		st.Override != nil || st.Amount.Kind != vNone || st.AddChosen || len(st.Grant) != 0 {
+		return true, fmt.Errorf("gated self extra block beside an effect part")
+	}
+	f, err := lc.filter("Card.Self")
+	if err != nil {
+		return true, err
+	}
+	lc.out.Statics = append(lc.out.Statics, lStatic{Kind: "ExtraBlock", F: f, BlockAmount: amount, Cond: st.Cond})
 	return true, nil
 }
 

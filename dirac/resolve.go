@@ -17,6 +17,12 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		if s.g.on && pp != e.ctrl && s.playerHexproof(s.k(), pp) {
 			return false
 		}
+		// CR 702.18: a target that gained shroud between placement and
+		// resolution is dropped here, their controller's targeting included
+		// (gorge stack.go's player arm; the same judge the offer applies)
+		if s.g.on && s.playerShroud(s.k(), pp) {
+			return false
+		}
 		if s.g.on && s.plProtAll(s.k(), pp) {
 			// CR 702.16b: a target that gained protection from everything
 			// between placement and resolution is dropped here, the own

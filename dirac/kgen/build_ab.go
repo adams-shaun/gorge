@@ -2122,8 +2122,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			rb, rf := reduceAbBits(s)
 			st.B, st.StFlags = st.B|rb, st.StFlags|rf
-			if s.AbilityRed == 5 {
-				if err := targets2(); err != nil { // the equip's target (Cloud's Card.Self)
+			if s.F2 != nil {
+				if err := targets2(); err != nil { // a target-gated reduction (the equip's Card.Self; Bladegraft's ability target)
 					return ka, nil, err
 				}
 			}
@@ -2591,25 +2591,39 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "NoMaxHandSize":
 		st.Kind = kop.StatNoMaxHandSize
-		switch {
-		case s.Amount.Kind == vNone: // Unlimited: A 0
-		case s.Amount.isConst() && s.Amount.N >= 0 && s.Amount.N <= 255:
-			st.A = int16(s.Amount.N + 1) // a numeric maximum: A = N+1
-		case len(s.Flags) == 1 && s.Flags[0] == "HandOpp":
-			// the opponents' maximum from an SVar (Winter): VA, read per
-			// cleanup under Cond2 (kernel maxHand)
-			st.StFlags |= kop.StDynamic
-			if st.VA, err = cb.value(s.Amount); err != nil {
-				return ka, nil, err
+		if slices.Contains(s.Flags, "HandDelta") {
+			// CR 402.2: the additive RaiseMaxHandSize$ statics apply on top of
+			// the set maximum, never below zero (gorge maxHandSizeFor): A is
+			// the signed delta, read after the set-maximum walk (kernel
+			// maxHand, static_playerstats.go)
+			if !s.Amount.isConst() || s.Amount.N < -255 || s.Amount.N > 255 {
+				return ka, nil, fmt.Errorf("NoMaxHandSize delta %v", s.Amount)
 			}
-		default:
-			return ka, nil, fmt.Errorf("NoMaxHandSize amount %v", s.Amount)
+			st.StFlags |= kop.StHandDelta
+			st.A = int16(s.Amount.N)
+		} else {
+			switch {
+			case s.Amount.Kind == vNone: // Unlimited: A 0
+			case s.Amount.isConst() && s.Amount.N >= 0 && s.Amount.N <= 255:
+				st.A = int16(s.Amount.N + 1) // a numeric maximum: A = N+1
+			case len(s.Flags) == 1 && s.Flags[0] == "HandOpp":
+				// the opponents' maximum from an SVar (Winter): VA, read per
+				// cleanup under Cond2 (kernel maxHand)
+				st.StFlags |= kop.StDynamic
+				if st.VA, err = cb.value(s.Amount); err != nil {
+					return ka, nil, err
+				}
+			default:
+				return ka, nil, fmt.Errorf("NoMaxHandSize amount %v", s.Amount)
+			}
 		}
 		for _, fl := range s.Flags {
-			if fl != "HandOpp" {
+			if fl != "HandOpp" && fl != "HandDelta" {
 				return ka, nil, fmt.Errorf("NoMaxHandSize flag %q", fl)
 			}
-			st.StFlags |= kop.StHandOpp
+			if fl == "HandOpp" {
+				st.StFlags |= kop.StHandOpp
+			}
 		}
 	case "ExtraLandPlay":
 		st.Kind = kop.StatExtraLandPlay
@@ -2625,6 +2639,18 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		default:
 			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
 		}
+	case "PlayerShroud":
+		// "You have shroud" (Ivory Mask, True Believer, Solitary
+		// Confinement): A == 2 is the shroud read, the symmetric one of the
+		// A == 1 protection bit (kernel static_playerstats.go playerShroud;
+		// gorge playerShroudBlocksTarget). The static is unconditional: a
+		// conditioned grant is refused at the lowering (the kernel's reader
+		// consults no Cond2).
+		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
+			return ka, nil, fmt.Errorf("PlayerShroud beside %s", s.Cond)
+		}
+		st.Kind = kop.StatPlayerHexproof
+		st.A = 2
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":

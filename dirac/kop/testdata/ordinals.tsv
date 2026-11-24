@@ -1383,6 +1383,7 @@ StFlashAnyCaster	StaticFlags	1
 StFreeOnly	StaticFlags	128
 StFunctionsInExile	StaticFlags	1024
 StFunctionsInGraveyard	StaticFlags	16
+StHandDelta	StaticFlags	128
 StHandOpp	StaticFlags	256
 StHasteOppDef	StaticFlags	1
 StMayPayLife	StaticFlags	8192
