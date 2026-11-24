@@ -1058,13 +1058,15 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
 			}
-			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && cards.KeywordHead(o.Keyword) == "Saddle" {
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && (cards.KeywordHead(o.Keyword) == "Saddle" || cards.KeywordHead(o.Keyword) == "Unearth") {
 				// A saddle ability a static grants (Jandor, Fortuned Traveler's
-				// "has saddle 2"): the kernel's latent-ability activation,
-				// told apart by the granting permanent (kgen
-				// lower_saddlegrant.go). Only saddle and the embalm below are
-				// modelled: the other granted-keyword abilities keep the
-				// anchored note below.
+				// "has saddle 2") or a granted unearth (Sedris, the Traitor
+				// King's; kgen lower_offzone.go offZoneUnearth): the kernel's
+				// latent-ability activation, told apart by the granting
+				// permanent (kgen lower_saddlegrant.go, kw_unearthgrant.go).
+				// Only saddle, the unearth and the embalm below are modelled:
+				// the other granted-keyword abilities keep the anchored note
+				// below.
 				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
 					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
 					continue
@@ -1162,13 +1164,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if pa.Ability > 0x7F {
 				continue
 			}
-			a = Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability))
-			if g.copyGrantedAbility(pa.Obj, pa.Ability) {
-				a = Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255) // as the offer above
-			} else if pa.Ability < 0 && g.grantedEmbalm(pa.Obj) {
-				a = grantedEmbalmAction(ref(pa.Obj)) // as the offer above
-				kw = grantedEmbalmLine
-			}
+			a, kw = g.potentialAbilityAction(pa, ref)
 		case "turn_face_up":
 			var ok bool
 			if a, ok = turnUpPotentialAction(pa, ref); !ok {
@@ -2441,4 +2437,39 @@ func grantedOrGainedActivation(o *decision.Option, before []decision.Option, ref
 // kernel's one kicked cast plus the count ask.
 func repeatedCastMode(mode string) bool {
 	return mode == "multikicked" || mode == "replicated" || mode == "squadded"
+}
+
+// grantedUnearth is the derived Unearth line a static granted id (Sedris, the
+// Traitor King's) and the granting permanent, 0 when id holds none. A potential
+// play carries no keyword line, so the line is read from the object's derived
+// keywords, as grantedEmbalm reads the pump's.
+func (g *GorgeSide) grantedUnearth(id state.ObjID) (state.ObjID, string) {
+	for _, k := range g.E.Derived(id).Keywords {
+		if cards.KeywordHead(k) != "Unearth" {
+			continue
+		}
+		if src := g.E.KeywordGrantSource(id, k); src != 0 {
+			return src, k
+		}
+	}
+	return 0, ""
+}
+
+// potentialAbilityAction is the canonical action of an "ability" potential
+// play, with the keyword line a keyword-granted one carries: the latent-ability
+// forms the offered options above take (an as-enters copy's grant, the pump's
+// granted embalm, a static's granted unearth), else the ability's own index.
+func (g *GorgeSide) potentialAbilityAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, string) {
+	if g.copyGrantedAbility(pa.Obj, pa.Ability) {
+		return Pack(ActActivate, ref(pa.Obj), ref(pa.Obj), 255), ""
+	}
+	if pa.Ability < 0 {
+		if g.grantedEmbalm(pa.Obj) {
+			return grantedEmbalmAction(ref(pa.Obj)), grantedEmbalmLine
+		}
+		if src, line := g.grantedUnearth(pa.Obj); src != 0 {
+			return Pack(ActActivate, ref(pa.Obj), ref(src), 255), line
+		}
+	}
+	return Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability)), ""
 }

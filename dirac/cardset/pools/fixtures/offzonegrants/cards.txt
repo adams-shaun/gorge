@@ -1,12 +1,16 @@
 # the off-battlefield Continuous statics pool (dirac/kgen/lower_offzone.go):
 # Six (AffectedZone$ Graveyard AddKeyword$ Retrace, the granted graveyard cast
 # kw_offkwgrant.go and kw_retrace.go), Leyline of Transformation
-# (AffectedZone$ All AddType$ ChosenType) and Ashes of the Fallen
-# (AffectedZone$ Graveyard AddType$ ChosenType) beside the rituals, vanilla
-# creatures and basic lands the lockstep decks play (dirac/oracle/affectedzone_lockstep_test.go).
+# (AffectedZone$ All AddType$ ChosenType), Ashes of the Fallen
+# (AffectedZone$ Graveyard AddType$ ChosenType) and Sedris, the Traitor King
+# (AffectedZone$ Graveyard AddKeyword$ Unearth, the granted activation
+# kw_unearthgrant.go) beside the rituals, vanilla creatures and basic lands
+# the lockstep decks play (dirac/oracle/affectedzone_lockstep_test.go,
+# offzone_unearth_lockstep_test.go).
 Six
 Leyline of Transformation
 Ashes of the Fallen
+Sedris, the Traitor King
 Raging Goblin
 Ornithopter
 Hill Giant
@@ -16,3 +20,4 @@ Seething Song
 Forest
 Mountain
 Island
+Swamp

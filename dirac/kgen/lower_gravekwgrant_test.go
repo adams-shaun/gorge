@@ -12,7 +12,8 @@ import (
 // the class of battlefield permanents that grant an activated keyword to cards
 // in a graveyard: Varolz, the Scar-Striped and every other corpus card whose
 // AffectedZone$ Graveyard static grants Scavenge, Encore, Unearth or Embalm.
-// dirac has no lowering for those activations, so each card must keep being
+// dirac has no lowering for those activations (the battlefield-read Unearth
+// grants lower: lower_offzone_unearth_test.go), so each card must keep being
 // refused by name at its keyword instead of the generic AffectedZone reason.
 func TestGraveyardActivatedKeywordGrantsRefuseShaped(t *testing.T) {
 	cases := []struct {
@@ -25,11 +26,7 @@ func TestGraveyardActivatedKeywordGrantsRefuseShaped(t *testing.T) {
 		{"Wire Surgeons", "Encore"},
 		{"Graywater's Fixer", "Encore"},
 		{"Sliver Gravemother", "Encore"},
-		{"Mishra, Tamer of Mak Fawa", "Unearth"},
-		{"Dregscape Sliver", "Unearth"},
 		{"Grixis", "Unearth"},
-		{"Solemn Doomguide", "Unearth"},
-		{"Sedris, the Traitor King", "Unearth"},
 		{"Naktamun", "Embalm"},
 	}
 	reg := testutil.CorpusRegistry(t)

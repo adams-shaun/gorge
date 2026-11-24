@@ -106,7 +106,8 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
-	s.priorityEmbalmGrant(k, d, p, sorc, &av) // kw_embalmgrant.go
+	s.priorityEmbalmGrant(k, d, p, sorc, &av)  // kw_embalmgrant.go
+	s.priorityUnearthGrant(k, d, p, sorc, &av) // kw_unearthgrant.go: a StatUnearthGrant static's granted unearths
 	if k.gen.anyExileGrant {
 		s.priorityExileGrant(k, d, p) // cast_exilegrant.go
 	}
@@ -628,7 +629,23 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if a.Mode() == EmbalmGrantMode && k.anyEmbalmGrant && ob.zone == kop.ZoneGraveyard {
+	if a.Mode() == unearthGrantMode && k.anyOffKwGrant && ob.zone == kop.ZoneGraveyard {
+		// a granted unearth (kw_unearthgrant.go): the granting permanent's
+		// latent body run with the affected card as its source. The mode byte
+		// is a reserved granted index no ledger grant holds; the target byte
+		// names the granting permanent.
+		host := Obj(a.Target())
+		hc := s.objs[host].card
+		if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.cardAt(s.objs[host].slot)
+		}
+		ab := offKwGrantBody(k, hc)
+		if ab < 0 {
+			return false
+		}
+		UnearthGrantStats.Activations.Add(1) // a StatUnearthGrant activation (kw_unearthgrant.go)
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: uint8(ab), ctrl: s.prio, trigObj: NoObj}}
+	} else if a.Mode() == EmbalmGrantMode && k.anyEmbalmGrant && ob.zone == kop.ZoneGraveyard {
 		// a granted embalm (kw_embalmgrant.go): the granting card's latent
 		// body run with the embalmed card as its source
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: k.embalmCard, ab: k.embalmAb, ctrl: s.prio, trigObj: NoObj}}
@@ -1198,7 +1215,8 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 	return s.g.nmay != 0 || g.anyMayPlay || g.anyGraveAct || g.anyHandAct || g.blgOn || len(g.varPC) != 0 ||
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
-		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf)
+		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf) ||
+		g.uses.has(useOffKwGrant)
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry
