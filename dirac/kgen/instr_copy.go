@@ -116,6 +116,9 @@ func (ic *instrCtx) opCopyAsToken() error {
 	if _, ok := fl["ExileAtEndStep"]; ok {
 		cf |= kop.CpExileAtEnd
 	}
+	if _, ok := fl["ExileAtCombat"]; ok {
+		cf |= kop.CpExileAtCombat
+	}
 	if _, ok := fl["SacAtEndDly"]; ok {
 		cf |= kop.CpSacAtEndDly
 	}

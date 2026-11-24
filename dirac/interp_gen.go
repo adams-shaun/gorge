@@ -2554,7 +2554,15 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
 	}
 	upk := sacAtUpkeepOf(int16(fl))
-	if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
+	if exileAtCombatOf(int16(fl)) {
+		// AtEOT$ ExileCombat: gorge's tracked __kwWarpExile at this turn's end of combat
+		if s.ndly < MaxDelayed {
+			s.dly[s.ndly] = delayed{act: uint8(kop.OpExile), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), when: dlyEndCombat, creator: e.obj}
+			s.ndly++
+		} else {
+			s.capFull(StallDelayed)
+		}
+	} else if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
 		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator

@@ -39,6 +39,10 @@ AggPermTypes	untyped int	12
 AggSumCounters	untyped int	11
 AggSumMV	untyped int	5
 AggSumToughness	untyped int	4
+AtEOTDestroy	untyped int	2
+AtEOTExileCombat	untyped int	5
+AtEOTHand	untyped int	3
+AtEOTSacCombat	untyped int	4
 AtkPWHit	untyped int	1
 AttToCreature	untyped int	1
 AttToLand	untyped int	2
@@ -172,6 +176,7 @@ CostTapX	CostFlags	256
 CostUntap	CostFlags	2
 CostUntapSelf	CostFlags	2097152
 CostWaterbend	CostFlags	67108864
+CpExileAtCombat	untyped int	18
 CpExileAtEnd	untyped int	16
 CpFlying	untyped int	32
 CpHaste	untyped int	1
@@ -338,6 +343,7 @@ DmgRedirectNext	untyped int	1
 DmgRedirectScope	untyped int	2
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
+DpDiesYou	untyped int	4
 DpGroup	untyped int	1
 DpMany	untyped int	3
 DpTrack	untyped int	2
@@ -1626,7 +1632,9 @@ TimingInstant	Timing	1
 TimingLand	Timing	2
 TimingSorcery	Timing	0
 TokAtEOTDestroy	untyped int	1
+TokAtEOTExileCombat	untyped int	3
 TokAtEOTSacCombat	untyped int	2
+TokAtEOTSacYourUpkeep	untyped int	4
 TokAttach	untyped int	32
 TokAttackAsk	untyped int	128
 TokAttackPlayer	untyped int	8192

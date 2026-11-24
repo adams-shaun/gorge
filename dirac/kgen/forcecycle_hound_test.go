@@ -33,10 +33,10 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		"Force of Negation": "",
 		"Force of Vigor":    "",
 		"Force of Despair":  "",
-		// the cost and its condition lower; these two are refused by
-		// their own spell bodies or the card the kernel offers no cast
-		// for, not by the alternative
-		"Force of Rage":   `SP$ Token: Token AtEOT "YourSacrificeUpkeep"`,
+		// the cost and its condition lower; Rage's spell body (a Token with
+		// AtEOT YourSacrificeUpkeep) lowers too, while Virtue is refused by
+		// the card the kernel offers no cast for, not by the alternative
+		"Force of Rage":   "",
 		"Misdirection":    "",
 		"Force of Virtue": "alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for",
 		"Mine Collapse":   "",

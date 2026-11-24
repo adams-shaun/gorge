@@ -227,18 +227,28 @@ const kernelOpLeaveReturn = 230
 // Battlefield, Destination$ Graveyard, ThisTurn$ True, and a plain
 // graveyard-to-battlefield return of the triggered card.
 func (lc *lowerCtx) delayedLeaveReturn(ps *params) error {
-	if ps.str("ValidCard") != "Card.IsTriggerRemembered" || ps.str("Origin") != "Battlefield" ||
+	vc := ps.str("ValidCard")
+	youCtrl := vc == "Card.IsTriggerRemembered+YouCtrl" // dies under the registering player's control
+	if (vc != "Card.IsTriggerRemembered" && !youCtrl) || ps.str("Origin") != "Battlefield" ||
 		ps.str("Destination") != "Graveyard" || !ps.is("ThisTurn", "True") {
 		return refuse("delayed trigger ChangesZone shape")
 	}
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
 	if exec != nil && exec.API != "ChangeZone" {
-		return lc.delayedDies(ps, exec)
+		return lc.delayedDies(ps, exec, youCtrl)
+	}
+	if youCtrl {
+		return refuse("delayed trigger ChangesZone shape: a return beside YouCtrl")
 	}
 	if exec == nil || exec.Sub != nil {
 		return refuse("delayed trigger ChangesZone Execute %q", ps.str("Execute"))
 	}
 	bp := newParams(exec.Params)
+	// Defined$ DelayTriggerRemembered (Graceful Reprieve, Adarkar Valkyrie's
+	// GainControl$ True) stays refused: gorge's dropDelayedRememberedMoved
+	// finds only the remembered object itself (CR 400.7), so a creature that
+	// died is a new object and the return moves nothing, which the printed
+	// cards do not mean (reported, not modelled)
 	if bp.str("Origin") != "Graveyard" || bp.str("Destination") != "Battlefield" || bp.str("Defined") != "TriggeredCard" {
 		return refuse("delayed trigger ChangesZone return shape")
 	}
@@ -271,7 +281,7 @@ func (lc *lowerCtx) delayedLeaveReturn(ps *params) error {
 // one-object slot (Grim Javelineer, Turn Inside Out, Scarblade's Malice,
 // Felonious Rage); the body is a latent program fired when that object goes
 // from the battlefield to a graveyard this turn (kop.DelayDiesThisTurn).
-func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA) error {
+func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA, youCtrl bool) error {
 	if ps.str("RememberObjects") != "Targeted" {
 		return refuse("delayed trigger ChangesZone RememberObjects %q", ps.str("RememberObjects"))
 	}
@@ -302,7 +312,11 @@ func (lc *lowerCtx) delayedDies(ps *params, exec *cards.SA) error {
 		return err
 	}
 	ps.consume("StackDescription")
-	lc.emit(lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "DiesThisTurn"})
+	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "DiesThisTurn"}
+	if youCtrl {
+		in.B = cst(4) // kop.DpDiesYou
+	}
+	lc.emit(in)
 	return nil
 }
 
