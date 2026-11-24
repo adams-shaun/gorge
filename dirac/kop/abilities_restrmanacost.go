@@ -9,14 +9,16 @@ package kop
 // kernel's restricted unit carries: one fixed colour or {C}, or N mana in any
 // combination of colours (Combo Any); one mana of each of a fixed set of
 // colours (Cormela's {U}{B}{R}) is the unit's first colour beside a fixed rest
-// (prepEachMana); one mana of a single chosen colour is no unit. No {X}, hybrid, two-brid, {C} or
+// (prepEachMana); two mana of different colours (Interplanar Beacon's Combo AnyDifferent,
+// RestrDistinctPair) is two any-colour units the availability model couples
+// (dirac avail.nDist); one mana of a single chosen colour is no unit. No {X}, hybrid, two-brid, {C} or
 // snow part in the fee, no rider, program, gate or evaluated amount; the spell
 // and the activated-ability restriction are both allowed. The kernel plans it
 // as a restricted pair/sole unit (dirac mana_restrictedsource.go) whose fee is
 // charged from the payment's floating mana.
 func RestrictedManaCostShape(a *Ability) bool {
 	if a.Kind != AbMana || a.AFlags&^(AfManaNonSpell|AfManaChosen|AfManaChoice) != 0 ||
-		a.ManaColors == 0 || a.ManaRider != ManaRiderNone || len(a.Prog) != 0 || a.Gate.Ctr != 0 || a.Trig.Cond != 0 ||
+		a.ManaColors == 0 && !restrDistinctPair(a) || a.ManaRider != ManaRiderNone || len(a.Prog) != 0 || a.Gate.Ctr != 0 || a.Trig.Cond != 0 ||
 		a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
 	}
@@ -26,6 +28,9 @@ func RestrictedManaCostShape(a *Ability) bool {
 	m := &a.Cost.Mana
 	if m.Pips[5] != 0 {
 		return false // a {C} pip in the fee has no kernel model
+	}
+	if restrDistinctPair(a) && m.Pips != [6]uint8{} {
+		return false // a distinct pair's fee is generic mana only (the kernel pays it from the pool or another pair source's {C})
 	}
 	return (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) &&
 		a.Cost.Flags == CostTap && m.MV() != 0 && m.X == 0 && m.XRed == 0 && m.XPip == 0 &&
@@ -37,8 +42,8 @@ func RestrictedManaCostShape(a *Ability) bool {
 // carries: one fixed colour or {C} of a literal amount, or N mana in any
 // combination of colours (Produced$ Combo Any), or one mana of each of a fixed set
 // of colours (ManaEach), or one mana of any colour (Produced$ Any of amount
-// one). Anything else (Produced$ Any of more, and especially Combo
-// AnyDifferent, whose units are distinct only together) is no unit.
+// one), or two mana of different colours (RestrDistinctPair). Anything else
+// (Produced$ Any of more, a Combo AnyDifferent of another amount) is no unit.
 func restrFeeProduction(a *Ability) bool {
 	n := int(a.ManaN)
 	if n == 0 {
@@ -49,6 +54,8 @@ func restrFeeProduction(a *Ability) bool {
 	}
 	cols := a.ManaColors & (ColAny | ColC)
 	switch {
+	case restrDistinctPair(a):
+		return true
 	case a.ManaEach:
 		// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}):
 		// the unit's first colour beside a fixed rest (prepEachMana)
@@ -86,4 +93,16 @@ func restrFeeOneColour(m *ManaCost) bool {
 		}
 	}
 	return n <= 1
+}
+
+// RestrDistinctPair reports whether a's production is two mana of different
+// colours (Produced$ Combo AnyDifferent, Amount$ 2: Interplanar Beacon): the
+// Combo$ parse sets AfManaChoice and names no colour, so ManaColors is empty.
+// The kernel carries it as two any-colour units the availability model couples
+// (dirac avail.nDist).
+func RestrDistinctPair(a *Ability) bool { return restrDistinctPair(a) }
+
+func restrDistinctPair(a *Ability) bool {
+	return a.Kind == AbMana && a.ManaColors == 0 && a.ManaN == 2 && a.AFlags&(AfManaChoice|AfManaEachColor|AfManaChosen|AfManaReflect|AfManaDynamic|AfLatent) == AfManaChoice &&
+		!a.ManaEach
 }
