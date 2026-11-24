@@ -11,8 +11,8 @@ import (
 // The Scarab God's SetCreatureTypes copy exception ("except it's a 4/4 black
 // Zombie", CR 707.9b; kop.Override.RemoveCreatureSub): the token's printed
 // creature types go, its other subtypes stay, the named type joins, and a
-// copied printed changeling loses its every creature type with them
-// (chars_gen.go hasSubGen's copyExcSetsSub seed). Croaking Counterpart is the
+// copied printed changeling keeps every creature type: its CDA runs in layer
+// 4, after the copy exception (CR 613.3, 702.73a; gorge keeps it). Croaking Counterpart is the
 // same form with SetPT; its pool's setlist carries no carrier, so the
 // scenario uses The Scarab God, the card the gap's slice lowered with it.
 
@@ -109,21 +109,21 @@ func TestScarabGodSetCreatureTypesTokenChangeling(t *testing.T) {
 	if !s.hasSubGen(sc.k, sl, subIdx(t, sc, "Zombie")) {
 		t.Error("the token lost the exception's Zombie")
 	}
-	// CR 707.9b: the copied printed changeling's every creature type (its
-	// baked creature subtypes and its all-creature-types mark) goes too
-	if s.hasSubGen(sc.k, sl, subOutside) {
-		t.Error("the copied changeling's token still has every creature type")
+	// CR 613.3, 702.73a: the copied changeling's CDA runs after the copy
+	// exception, so the token still has every creature type
+	if !s.hasSubGen(sc.k, sl, subOutside) {
+		t.Error("the copied changeling's token lost every creature type")
 	}
-	if s.hasSubGen(sc.k, sl, subIdx(t, sc, "Shapeshifter")) {
-		t.Error("the copied changeling's token kept its Shapeshifter subtype")
+	if !s.hasSubGen(sc.k, sl, subIdx(t, sc, "Shapeshifter")) {
+		t.Error("the copied changeling's token lost its Shapeshifter subtype")
 	}
 	// some other creature type of the vocabulary
 	other := ""
 	for i, w := range sc.k.t.Subtypes {
 		if i < int(kop.MaxSubtypes) && w != "Zombie" && w != "Shapeshifter" && sc.k.gen.creatSub.Has(i) {
 			other = w
-			if s.hasSubGen(sc.k, sl, uint8(i)) {
-				t.Errorf("the copied changeling's token kept %s", w)
+			if !s.hasSubGen(sc.k, sl, uint8(i)) {
+				t.Errorf("the copied changeling's token lost %s", w)
 			}
 			break
 		}

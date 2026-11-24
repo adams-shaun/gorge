@@ -457,7 +457,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		// sets AllCreatureTypes), until a subtype-setting effect
 		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes
 		if s.fxM.has(sl) && k.gen.cpxSub {
-			all = all && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
+			all = all || s.copyExcAll(k, sl) // a copy exception that sets the subtypes keeps a copied changeling (CDA, layer 4)
 		}
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub || ovrCreatSub(o) {
@@ -479,7 +479,11 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	all := false
 	if s.fxM.has(sl) && k.gen.cpxSub {
 		m = s.copyExcSubs(k, sl, m)
-		all = s.copyExcAll(k, sl) // a copy's changeling: every creature type, until a later set
+		// a copied printed changeling keeps every creature type though the
+		// exception removed the baked ones (its CDA runs after layer 1, CR
+		// 613.3, 707.9b), as does a copy exception's own changeling; until a
+		// later set
+		all = k.t.Cards[s.cardAt(sl)].AllCreatureTypes || s.copyExcAll(k, sl)
 	}
 	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 		if o.HasSub {
@@ -555,7 +559,7 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 			// a copy's added subtype is a copiable value (layer 1): a later
 			// subtype-setting effect replaces it
 			m = s.copyExcSubs(k, sl, m)
-			allOut = allOut && !s.copyExcSetsSub(k, sl) || copyAll
+			mAll = mAll || cd.AllCreatureTypes // the baked creature subtypes the exception removed come back with the CDA
 		}
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub {

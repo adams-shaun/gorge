@@ -160,7 +160,7 @@ func (s *State) copyExcSubs(k *prep, sl Slot, base kop.SubMask) kop.SubMask {
 }
 
 // copyExcSetsSub reports whether slot sl's copy exceptions replace its
-// subtypes (HasSub): a printed changeling's every creature type goes too.
+// subtypes (HasSub); a printed changeling keeps its every creature type (CDA).
 //
 //go:noinline
 func (s *State) copyExcSetsSub(k *prep, sl Slot) bool {
