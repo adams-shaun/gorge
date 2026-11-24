@@ -268,6 +268,10 @@ type lowerCtx struct {
 	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
 	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
 	repeatCard int
+	// repeatRem: that body repeats over the resolution's remembered cards
+	// (kop.RepeatRemembered, lower_repeatremembered.go): its Defined$ /
+	// TokenOwner$ ImprintedController is the repeated card's controller
+	repeatRem bool
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
 	// repeatAllPl: that body repeats over every player (RepeatPlayers$ Player)

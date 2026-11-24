@@ -741,6 +741,9 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 	case kop.RefOpponent, kop.RefEachOpponent, kop.RefDefendingPlayer:
 		return s.oneOppOf(k, r, ctx.e, ctx.ctrl, ctx.src) // a single-player read (resolve.go oneOpp)
 	case kop.RefEach:
+		if o := s.res.eachObj; o != NoObj {
+			return s.eachCtrl(o) // an OpRepeatEach card loop: the bound card's controller (act_repeatremembered.go)
+		}
 		return s.g.eachPl // the player of the OpRepeatEachPlayer in progress
 	}
 	e := ctx.e
