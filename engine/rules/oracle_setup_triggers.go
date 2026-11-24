@@ -25,6 +25,13 @@ import (
 //     no Destination$ at all) and TriggerChangesZoneAll are the entry shapes
 //     ("when this enters, ..."; "whenever one or more creatures enter").
 //     Both are XMage-addCard-silent and are dropped.
+//   - TriggerAlways (Mode$ Always) is a state trigger (CR 603.8): it matches
+//     while the game state holds its condition, not because of the placement
+//     event. Placement is not a sequence of real game states, so one that
+//     matched while only part of the listed battlefield was in place (Marjhan
+//     before its Islands) is dropped. A state trigger whose condition still
+//     holds at the first check after setup is queued again there, so this drops
+//     only a match from a mid-placement state (CR 603.8).
 //   - A Saga's synthesized chapter ability (pendingTrigger.Chapter) is dropped
 //     only for a back-face placement whose ENTERING face is not itself a Saga
 //     (backFaceChapter, computed by setupBackFaceDropsChapter): XMage's
@@ -44,11 +51,14 @@ import (
 //     CounterAdded / CounterAddedOnce / CounterAddedAll trigger on a permanent
 //     already on the battlefield (Inspired Tethermage watching Ajani Goldmane
 //     enter) is queued in the same window and MUST fire; the counted
-//     compliance test TestGeneratedSetupKeepsCounterAddedTrigger pins it.
+//     compliance test TestGeneratedSetupKeepsCounterAddedTrigger pins it. Those
+//     are their own TriggerModes, so the TriggerAlways arm above never touches
+//     them.
 //
 // A trigger whose line cannot be resolved is kept: the discard only ever
-// removes a trigger it can positively classify as an entry shape, so an
-// unrecognised synthetic trigger degrades toward firing rather than vanishing.
+// removes a trigger it can positively classify (an entry shape, or a state
+// trigger), so an unrecognised synthetic trigger degrades toward firing rather
+// than vanishing.
 //
 // dropAttached is set only by a placement that enters ATTACHED (setup's
 // "attached", placeSetupCard's bearer): it also drops TriggerAttached, since
@@ -73,8 +83,40 @@ func setupPlacementDropsTrigger(t cards.Trigger, backFaceChapter, dropAttached b
 		return !ok || effects.Destination(d).Admits(state.ZBattlefield)
 	case cards.TriggerChangesZoneAll:
 		return true
+	case cards.TriggerAlways:
+		// A state trigger matched a mid-placement board (see above); the next
+		// trigger walk queues it again if its condition still holds.
+		return true
 	}
 	return false
+}
+
+// dropSetupStateTriggers discards every pending Mode$ Always (state) trigger a
+// fixture battlefield placement queued, including the ones its tail emits after
+// the MoveZone window setupPlacementDropsTrigger filters -- the tapped, setup
+// counter and SetupSettled events. Placement is not a sequence of real game
+// states, so a state trigger that matched a partial battlefield (Marjhan before
+// its Islands) must not resolve. One whose condition still holds at the first
+// check after setup is queued again there (CR 603.8); a CounterAdded-family
+// trigger is a different mode and stays.
+func (e *Engine) dropSetupStateTriggers() {
+	kept := e.pendingTriggers[:0]
+	ordered := 0
+	for i, pt := range e.pendingTriggers {
+		t, _ := e.triggerOf(pt)
+		if t.ModeKind() == cards.TriggerAlways {
+			continue
+		}
+		if i < e.orderedTriggers {
+			ordered++
+		}
+		kept = append(kept, pt)
+	}
+	if len(kept) < len(e.pendingTriggers) {
+		e.noteTrigShrink()
+	}
+	e.pendingTriggers = kept
+	e.orderedTriggers = ordered
 }
 
 // setupBackFaceDropsChapter reports whether the chapter trigger a back-face
