@@ -53,6 +53,7 @@ Jewel Thief
 Kappa Tech-Wrecker
 Karlach, Fury of Avernus
 Kaya's Ghostform
+Looter il-Kor
 Make a Stand
 Marionette Apprentice
 Massacre
@@ -80,6 +81,7 @@ Reckless Impulse
 Reckless Wurm
 Resolute Reinforcements
 Restoration Specialist
+Ringwarden Owl
 Rot Hulk
 Saber Ants
 Season of Growth
@@ -87,6 +89,7 @@ Sengir Autocrat
 Sentinel Sliver
 Sheltered by Ghosts
 Shroofus Sproutsire
+Sigiled Starfish
 Silverglade Pathfinder
 Soltari Trooper
 Specimen Collector
@@ -98,6 +101,7 @@ Struggle for Skemfar
 Sunscape Familiar
 Supernatural Stamina
 Swamp
+The Scarab God
 Tidy Conclusion
 Unburial Rites
 Underworld Breach

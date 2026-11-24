@@ -108,6 +108,7 @@ Eagle of the Watch
 Elixir of Vitality
 Emergency Weld
 Empyrial Storm
+Endless Foot Assault
 Enduring Scalelord
 Enforcer Griffin
 Enlightened Tutor
@@ -133,6 +134,7 @@ Frightshroud Courier
 Funeral Longboat
 Garrison Griffin
 Garruk's Warsteed
+Gatstaf Arsonists
 General Tazri
 Genesis
 Geralf's Masterpiece
@@ -147,6 +149,7 @@ Gnarled Mass
 Go for the Throat
 Goblin Marshal
 Goblin Tutor
+God-Pharaoh's Gift
 Golden-Scale Aeronaut
 Goldmane Griffin
 Golem Artisan

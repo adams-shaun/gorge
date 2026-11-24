@@ -102,7 +102,6 @@ Alley Strangler
 Allied Teamwork
 Almost Perfect
 Alms Beast
-Aloe Alchemist
 Along the Crooked Way
 Alpha Authority
 Alpha Deathclaw
@@ -286,7 +285,6 @@ Baloth Cage Trap
 Baloth Prime
 Balthier and Fran
 Bandage
-Bandit's Haul
 Banners Raised
 Banquet Guests
 Bant Charm
@@ -324,7 +322,6 @@ Beamsaw Prospector
 Bear's Companion
 Bearer of Glory
 Beast, Erudite Aerialist
-Beastbond Outcaster
 Beasts of Bogardan
 Bebop & Rocksteady
 Bebop, Warthog Warrior
@@ -380,7 +377,6 @@ Bitterbloom Bearer
 Bituminous Blast
 Black Carriage
 Black Sun's Twilight
-Black Waltz No. 3
 Black Widow, Daring Operative
 Black Widow, Deadly Hunter
 Blacksmith's Skill
@@ -408,7 +404,6 @@ Blinding Light
 Blinding Mage
 Blinkmoth Well
 Blood Crypt
-Blood Hustler
 Blood Ogre
 Blood Price
 Blood Tithe
@@ -465,7 +460,6 @@ Boughside Wanderers
 Boulderborn Dragon
 Boulderbranch Golem
 Bound in Silence
-Bounding Felidar
 Brallin, Skyshark Rider
 Brambleguard Captain
 Brambleweft Behemoth
@@ -496,7 +490,6 @@ Brimstone Mage
 Brimstone Volley
 Brinebarrow Intruder
 Bringer of the Green Dawn
-Bristlepack Sentry
 Broadside Barrage
 Brokers Ascendancy
 Brokers Charm
@@ -565,7 +558,6 @@ Catapult Fodder
 Cateran Slaver
 Caught in the Brights
 Cauldron of Essence
-Caustic Bronco
 Caustic Crawler
 Caustic Exhale
 Caustic Rain
@@ -873,7 +865,6 @@ Desolate Lighthouse
 Desolation Prowler
 Desolation of Smaug
 Despark
-Desperate Bloodseeker
 Desperate Futurescribe
 Desperate Plea
 Destructive Flow
@@ -1178,7 +1169,6 @@ Fade from Memory
 Faeburrow Elder
 Faerie Miscreant
 Faerie Tauntings
-Failed Fording
 Faith of the Devoted
 Faithful Mending
 Falkenrath Forebear
@@ -1482,11 +1472,9 @@ God-Pharaoh's Faithful
 Godless Shrine
 Gods' Eye, Gate to the Reikai
 Gogo, Master of Mimicry
-Gold Rush
 Golden Bear
 Golden Demise
 Golden Wish
-Goldvein Hydra
 Golgari Death Swarm
 Goliath Paladin
 Gollum the Abandoned
@@ -1585,7 +1573,6 @@ Harmonious Grovestrider
 Harmonized Crescendo
 Harness Infinity
 Harnesser of Storms
-Harrier Strix
 Harvest Wurm
 Harvestrite Host
 Hatchery Spider
@@ -1640,7 +1627,6 @@ Hexhaven Battalion
 Hexhaven Dueling Arena
 Hexhaven Invigorator
 Hexplate Golem
-High Noon
 High Priest of Penance
 High-Flying Ace
 Highland Game
@@ -1659,7 +1645,6 @@ Hollowhenge Scavenger
 Hollowmurk Siege
 Holo-Engineer
 Hologram Stalker
-Holy Cow
 Holy Light
 Homarid Shaman
 Homarid Spawning Bed
@@ -1828,7 +1813,6 @@ Jedit Ojanen of Efrava
 Jefferies Tube
 Jenara, Asura of War
 Jennika, Bad Apple Big Sister
-Jenova, Ancient Calamity
 Jeskai Ascendancy
 Jeskai Brushmaster
 Jeskai Charm
@@ -2558,7 +2542,6 @@ Orysa, Tide Choreographer
 Osseous Exhale
 Osteomancer Adept
 Ouroboroid
-Outcaster Trailblazer
 Ovalchase Dragster
 Overcharged Amalgam
 Overgrown Estate
@@ -2649,7 +2632,6 @@ Pippin's Bravery
 Piru, the Volatile
 Pit Scorpion
 Pitfall Trap
-Pitiless Carnage
 Pitiless Vizier
 Pizza Face, Gastromancer
 Plague Stinger
@@ -2970,7 +2952,6 @@ Runescale Stormbrood
 Runic Repetition
 Ruric Thar, Biomagus
 Ruric Thar, Magecrusher
-Rush of Dread
 Rushwood Legate
 Rust Elemental
 Rust Harvester
@@ -3126,7 +3107,6 @@ Serpent's Gift
 Serra Redeemer
 Serrated Arrows
 Servant of Volrath
-Servant of the Stinger
 Servo Exhibition
 Setessan Petitioner
 Seton's Desire
@@ -3173,7 +3153,6 @@ Shivan Zombie
 Shoal Kraken
 Shock Brigade
 Shocking Sharpshooter
-Shoot the Sheriff
 Shopkeeper's Bane
 Shoreline Raider
 Shorikai, Genesis Engine
@@ -3440,7 +3419,6 @@ Steampath Charger
 Steelclad Serpent
 Steelshaper's Gift
 Stench of Decay
-Sterling Supplier
 Stern Dismissal
 Steward of Solidarity
 Steward of Valeron
@@ -3731,7 +3709,6 @@ Theorix Metamage
 They Came from the Pipes
 Thicket Basilisk
 Thirsting Shade
-This Town Ain't Big Enough
 Thistledown Players
 Thopter Spy Network
 Thorin's Last Stand
@@ -3754,7 +3731,6 @@ Three Steps Ahead
 Thrive
 Throttle
 Through the Forest Gate
-Throw from the Saddle
 Thrumming Hivepool
 Thundercloud Elemental
 Thundering Broodwagon
@@ -3768,7 +3744,6 @@ Tiger Shark, Abyssal Hunter
 Tilonalli's Knight
 Timberwatch Elf
 Time Bomb
-Tinybones Joins Up
 Tinybones, Pocket Nuisance
 Tireless Hauler
 Tireless Tracker

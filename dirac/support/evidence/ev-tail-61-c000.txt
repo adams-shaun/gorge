@@ -76,6 +76,7 @@ Crested Herdcaller
 Crimson Hellkite
 Crush of Wurms
 Curious Killbot
+Cyclopean Titan
 Daggerdrome Imp
 Daredevil, Fearless Fighter
 Daring Apprentice
@@ -96,6 +97,7 @@ Doomskar
 Dreadmalkin
 Dromoka Monument
 Drumhunter
+Duskwatch Recruiter
 Duskworker
 Earthlink
 Elemental Summoning

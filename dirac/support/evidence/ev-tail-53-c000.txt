@@ -212,6 +212,7 @@ Kitchen Imp
 Knight of Meadowgrain
 Knollspine Invocation
 Krosan Reclamation
+Kruin Outlaw
 Kuldotha Forgemaster
 Lava Dart
 Leaf Dancer
@@ -307,6 +308,7 @@ Rage Reflection
 Raggadragga, Goreguts Boss
 Rally for the Throne
 Ranger's Path
+Realmbreaker's Grasp
 Rebuild
 Recalibrate
 Reflecting Pool
@@ -412,6 +414,7 @@ Venom Sliver
 Veteran Dungeoneer
 Viashino Branchrider
 Vigilant Drake
+Village Messenger
 Viral Drake
 Viscera Seer
 Vitalizing Cascade

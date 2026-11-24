@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aether Theorist	0d40875f93da2215	61	2/2		1/1	
 Astral Wingspan	42cd10383a8e59cc	8	1/1		2/2	
+Bogardan Lancer	913d6f1b6102fb64	12	1/1		1/1	
 Chandra's Embercat	56551682c634e4e1	60	1/1		1/1	
 Char-Dog	a3687c2875ef5fbc	65	2/2		1/1	
 Cloudhoof Kirin	a831445f33b2f89a	26	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -9,6 +10,7 @@ Delver's Torch	219f9e4741309734	6	2/2		0/1	ix:resp
 Drake Umbra	8ffbc51fad4144ae	4	0/0		1/2	ix:resp
 Dreamstealer	9b06ac05bf6567f5	11	2/2		1/1	
 Dromar's Cavern	75a14405ffd5659e	10	2/2		0/1	ix:resp
+Elder Pine of Jukai	5591aa3f06f105b2	12	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Flowstone Armor	76b9bf03106a3f21	5	1/1		1/1	
 Gelectrode	bc04cd154327f282	17	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Haunted Mire	cfa8bc7ca38dc73d	8	2/2		0/1	ix:resp
@@ -30,5 +32,6 @@ Soul Diviner	7c5c6ae4a1e14908	6	1/1		1/1
 Stalking Stones	2c66579775a3792f	392	2/2		1/1	
 Tablet of Epityr	8a25499f90218900	70	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 White Orchid Phantom	344f4d625880ebfb	15	1/1		1/1	
+Willbender	898e317c61bb2fb3	23	1/1		1/3	cast/alt:morphed,ix:resp
 Woodland Chasm	9bf7730a9b2180ac	16	2/2		0/1	ix:resp
 Zaffai, Thunder Conductor	a5bbba73b41730dc	13	1/1		1/1	

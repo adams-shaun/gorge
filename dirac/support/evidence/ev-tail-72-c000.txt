@@ -101,6 +101,7 @@ Courser of Kruphix
 Coursers' Accord
 Court of Ire
 Cradle of Vitality
+Croaking Counterpart
 Cult Guildmage
 Cultbrand Cinder
 Curio Vendor
@@ -324,6 +325,7 @@ Nettle Sentinel
 Nettle Swine
 Neurok Replica
 Night Out in Vegas
+Nightcreep
 Nimbus Champion
 Nissa's Expedition
 Norwood Priestess
@@ -514,6 +516,7 @@ The Wasp, Janet Van Dyne
 They Came from the Pipes
 Thieves' Tools
 Thragtusk
+Tide Shaper
 Timber Protector
 Topple
 Toxic Nim

@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Bogardan Lancer	913d6f1b6102fb64	31	1/1		1/1	
+Croaking Counterpart	5e7d9953b86648a9	23	0/0		3/4	ix:resp
 Delver's Torch	219f9e4741309734	12	2/2		0/1	ix:resp
 Drake Umbra	8ffbc51fad4144ae	12	0/0		2/2	
 Dreamstealer	9b06ac05bf6567f5	19	2/2		1/1	
@@ -9,6 +10,7 @@ Gatherer of Graces	8a608765dc04cb2e	84	1/1		1/1
 Hand of Honor	1cdbee270e88f07f	5	2/2		0/1	ix:resp
 Ichneumon Druid	481d8cca636ad47e	33	1/1		1/1	
 Lady Evangela	e0815eee345c7120	14	1/1		0/1	ix:resp
+Nightcreep	8c13d5d01b71e352	20	0/0		2/2	
 Now for Wrath, Now for Ruin!	f1c352e13ce438f0	16	0/0		2/2	
 Palace Guard	a71a0e1e55ead80f	116	0/0		0/0	
 Paralyze	441fcb5c997d3198	26	2/2		2/2	
@@ -22,6 +24,7 @@ Serendib Djinn	e7dcfa413ec489ac	19	2/2		1/1
 Shadow-Rite Priest	364d24de091d8866	12	1/1		0/1	ix:resp
 Shield of the Righteous	b796f1cefd5c9fb2	35	2/2		1/1	
 The Magic Mirror	20f745339f8ee700	5	1/1		1/1	
+Tide Shaper	3c8f5b01a1be9a71	50	1/1		3/3	
 Utopia Mycon	599f3b688261aaf5	49	3/3		1/1	
 White Orchid Phantom	344f4d625880ebfb	77	1/1		1/1	
 Willbender	898e317c61bb2fb3	78	1/1		3/3	
