@@ -104,7 +104,7 @@ func (s *State) imprintColours(k *prep, sl Slot) kop.ColorMask {
 			break
 		}
 		rec := &r[i]
-		if rec.src == src && rec.kind&exwRev != 0 && rec.sver == ver && s.objs[rec.o].zone == kop.ZoneExile {
+		if rec.src == src && rec.osKind() == osExw && rec.kind&exwRev != 0 && rec.sver == ver && s.objs[rec.o].zone == kop.ZoneExile {
 			m |= k.t.Cards[s.objs[rec.o].card].Colors
 		}
 	}

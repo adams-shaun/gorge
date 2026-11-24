@@ -36,6 +36,7 @@ type poolTables struct {
 	named     map[string][]int // printed name -> pool indexes (cards, tokens, faces; a named-other clause)
 	missing   map[string]bool  // subtypes a build looked up that the table lacks
 	paradigm  map[string]int   // Paradigm card name -> the table's Paradigm-name index
+	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -2550,9 +2551,14 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			return e, err
 		}
 	}
+	if v.Kind == vSVarNum {
+		if e.N, err = cb.svarIndex(v.S); err != nil {
+			return e, err
+		}
+	}
 	if v.Kind == vCountersOn && v.S == "ALL" {
 		e.Ctr = kop.CtrAll // Count$CardCounters.ALL: every kind summed (kernel refCounters)
-	} else if v.S != "" && v.Kind != vRememberedCount { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
+	} else if v.S != "" && v.Kind != vRememberedCount && v.Kind != vSVarNum { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
 		if e.Ctr, err = counterKind(v.S); err != nil {
 			return e, err
 		}
