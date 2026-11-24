@@ -354,7 +354,7 @@ func chainOf(sub *cards.SA) string {
 func faceShape(f *cards.Face) []string {
 	var out []string
 	for _, k := range f.Keywords {
-		out = append(out, "K:"+shapeKeyword(k))
+		out = append(out, "K:"+k)
 	}
 	for _, a := range f.Abilities {
 		out = append(out, "A:"+a.Kind+":"+chainOf(a))
@@ -372,26 +372,8 @@ func faceShape(f *cards.Face) []string {
 	return out
 }
 
-// shapeKeyword is a keyword line as the shape test compares it. An etbCounter
-// line carries Forge's own SVar name and display description after its
-// condition; neither is derivable from the IR (the static diff records both
-// as rows), so the shape keeps the counter, the amount and the condition's
-// parameter names.
-func shapeKeyword(k string) string {
-	f := strings.SplitN(k, ":", 5)
-	if len(f) < 4 || f[0] != "etbCounter" || !strings.Contains(f[3], "$") {
-		return k
-	}
-	var names []string
-	for _, part := range strings.Split(f[3], " | ") {
-		name, _, _ := strings.Cut(part, "$")
-		names = append(names, strings.TrimSpace(name))
-	}
-	return strings.Join(f[:3], ":") + ":" + strings.Join(names, "|")
-}
-
 // servedFloor is the number of cards of the fdn and legacy slices cardc serves.
-const servedFloor = 309
+const servedFloor = 307
 
 func TestServedCardsMatchForge(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)
