@@ -160,6 +160,24 @@ func recordParentLink(c *Ctx, sa *cards.SA, fromPreAsk []state.Target, preAsked 
 	notePlayerLink(c, c.parentLinks[len(c.parentLinks)-1])
 }
 
+// bindOwnLinkAsParent makes a targeting link's own answer the nearest parent
+// for the bodies it resolves INSIDE its dispatch -- GenericChoice/Charm's
+// chosen choice. recordParentLink runs only after the body returns, so
+// without this binding the chosen choice's `Defined$ ParentTarget` fell back
+// to Ctx.Targets, the root's list. Palantir of Orthanc's depth-2 DBChoice
+// targets the opponent and its CombustDamage mode's LoseLife names that
+// player (CR 608.2c). The returned func restores the record; call it when
+// the body returns, before the walk records the link itself.
+func bindOwnLinkAsParent(c *Ctx, sa *cards.SA) func() {
+	if c == nil || c.PickedTargets == nil || !TargetsOf(sa).Has(TgtValidPresent) {
+		return func() {}
+	}
+	n, player := len(c.parentLinks), c.playerLink
+	c.parentLinks = append(c.parentLinks, copyTargets(c.PickedTargets))
+	notePlayerLink(c, c.parentLinks[n])
+	return func() { c.parentLinks, c.playerLink = c.parentLinks[:n], player }
+}
+
 // notePlayerLink keeps a link's answer as the one "target player" reads when it
 // names a player.
 func notePlayerLink(c *Ctx, ts []state.Target) {
