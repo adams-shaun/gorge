@@ -344,7 +344,8 @@ default	field	genState.tgtMVCd	10466	10
 default	field	genState.tgtMV	10476	5
 default	field	genState.trigMVCd	10482	2
 default	field	genState.trigMV	10484	1
-default	field	genState.rsv	10485	47
+default	field	genState.fbp	10488	36
+default	field	genState.rsv	10524	8
 default	field	genState.embX	10532	0
 default	field	genState.atkDef	10532	1
 default	field	genState.mon	10533	1
