@@ -741,6 +741,24 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			fireStaticDelayed(e, &e.staticFiringDT, f)
 			continue
 		}
+		// CR 603.2c/510.2: an event-matched registration of a damage batch
+		// mode is one triggering condition for the whole damage batch,
+		// exactly as the printed and granted walks latch it (trigger_match.go
+		// damageBatchLatchMode / trigger_granted.go grantedDamageBatchAdmits).
+		// The gate runs here, in queue order, not in the scan above:
+		// latchDamageBatch records the pending-queue index the closing batch
+		// patches, and only this pass appends. The registration's own key
+		// keeps it apart from the printed and granted walks; a done-once arm
+		// latches per damaged referent. A static registration resolves
+		// inline with no queue entry, so it keeps its per-event fire.
+		if damageBatchLatchMode(f.trigger.ModeKind()) {
+			amount := damageTriggerAmount(e.excessDamageBaseline, f.trigger.ModeKind(), ev,
+				damageSourceHasDeathtouch(e, e.damageSourceLKI, ev))
+			if amount <= 0 || !e.latchDamageBatch(f.trigger, &f.trigger, f.trigger.ModeKind(),
+				triggerKey{Source: dt.Source, Idx: -1 - int(dt.ID)}, grantedLine{}, dt.Source, ev, amount) {
+				continue
+			}
+		}
 		// CR 603.7d, as at the phase walk: earthbend's return records its creator.
 		pushSource := dt.Source
 		if dt.Creator != 0 {
