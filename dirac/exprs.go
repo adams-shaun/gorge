@@ -824,6 +824,11 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = s.active == ctx.ctrl
 	case kop.CondBlessing:
 		r = s.condBlessing(ctx.ctrl) // kw_ascend.go
+	case kop.CondMonarch:
+		// the controller is the monarch (CR 719.2; gorge condMonarch's
+		// state.Game.IsMonarch(sv.Controller)). The monarch seat is nobody
+		// until a BecomeMonarch effect makes one (act_monarch.go).
+		r = !DebugCondMonarchNone && s.Monarch() >= 0 && int8(ctx.ctrl) == s.Monarch()
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:
@@ -1045,3 +1050,8 @@ func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx eva
 // DebugRefChosenResOnly is the mutation switch: a ref's card reads only the
 // resolution's own ChooseType answer (the games must diverge).
 var DebugRefChosenResOnly bool
+
+// DebugCondMonarchNone is the lockstep's mutation switch (TestStaticZones
+// Mutation): the monarch condition never holds. It must make the lockstep
+// diverge. Read in condEval only.
+var DebugCondMonarchNone bool

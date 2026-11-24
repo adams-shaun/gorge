@@ -115,7 +115,13 @@ func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
 	}
 	for k := range s.Params {
 		switch k {
-		case "Mode", "ValidCard", "ValidSA", "Caster", "EffectZone", "IsPresent", "PresentZone", "PresentCompare", "Description":
+		case "Mode", "ValidCard", "ValidSA", "Caster", "EffectZone", "IsPresent", "PresentZone", "PresentCompare", "Description", "Condition":
+			// Condition$ Ferocious rides the gate: readCond lowers it to the
+			// present count over the caster's powerGE4 creatures, which the
+			// kernel's selfFlash read consults under Cond2 with the caster as
+			// the controller (cast_selfflash.go), the same context gorge's
+			// staticTimingGate condFerocious arm reads. Any other value is
+			// refused at readCond (the gate's own default arm).
 		default:
 			return refuse("CastWithFlash self grant with %s$ (the gate is read with no source on the battlefield)", k)
 		}
@@ -146,108 +152,7 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 		}
 		return lc.filter(v)
 	}
-	readCond := func() error {
-		if c, ok := sp.get("Condition"); ok {
-			switch c {
-			case "Threshold":
-				st.Cond = lCond{Kind: cThreshold}
-			case "PlayerTurn":
-				st.Cond = lCond{Kind: cYourTurn}
-			default:
-				// gorge continuousConditionHolds (Continuous) and
-				// costConditionHolds (a self cost static: the payer is
-				// the controller) read these against the controller. The
-				// self-carried AlternativeCost (gorge
-				// alternativeCostScopeOK's costConditionHolds read, the
-				// Force cycle: the caster is the static's controller, the
-				// printed you) and the combat restriction statics (gorge
-				// combatBoard.StaticGateHolds' continuousGateHolds,
-				// Monstrous Hound) read theirs against the static's
-				// controller, which statCond's and offerAltFreeHand's
-				// Cond2 contexts name too.
-				selfCost := (s.Mode == "ReduceCost" || s.Mode == "RaiseCost") && s.Params["ValidCard"] == "Card.Self"
-				turnGate := s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params) ||
-					s.Mode == "AlternativeCost" || s.Mode == "CantBlock" || s.Mode == "CantAttack"
-				switch {
-				case c == "NotPlayerTurn" && turnGate:
-					st.Cond = lCond{Kind: cYourTurn, Neg: true}
-				case c == "Metalcraft" && (s.Mode == "Continuous" || selfCost):
-					f, err := lc.filter("Artifact.YouCtrl")
-					if err != nil {
-						return err
-					}
-					st.Cond = lCond{Kind: cPresent, F: f, Op: opGE, A: cst(3)}
-				case c == "Delirium" && (s.Mode == "Continuous" || selfCost):
-					st.Cond = deliriumCond() // gorge graveyardCardTypeCount >= 4
-				case c == "Hellbent" && s.Mode == "Continuous":
-					st.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
-				case c == "Blessing" && (s.Mode == "Continuous" || s.Mode == "CantBlockBy"):
-					// gorge condBlessing: the controller's latch (CR 702.131).
-					// A CantBlockBy static's condition rides Static.Cond2,
-					// which the kernel's blockForbiddenGen consults through
-					// statCond with the static's controller, the same
-					// context gorge's BlockRestricted' StaticGateHolds walk
-					// reads the condition against.
-					st.Cond = lCond{Kind: cBlessing}
-				default:
-					return refuse("static Condition %q", c)
-				}
-			}
-		}
-		if cs, ok := sp.get("CheckSVar"); ok {
-			v, err := lc.value(cs)
-			if err != nil {
-				return err
-			}
-			c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
-			if cmp, ok := sp.get("SVarCompare"); ok {
-				op, b, err := lc.cmpSpec(cmp)
-				if err != nil {
-					return err
-				}
-				c.Op, c.B = op, b
-			}
-			st.Cond = andCond(st.Cond, c)
-		}
-		if s.Mode == "AlternativeCost" {
-			if err := altCostSecondSVar(lc, sp, &st); err != nil {
-				return err // lower_altcostsecondsvar.go
-			}
-		}
-		if ip, ok := sp.get("IsPresent"); ok {
-			if band := levelBandFilters(ip); len(band) > 1 && sp.m["PresentCompare"] == "" && sp.m["PresentZone"] == "" {
-				// a level band's two counter compares (lower_levelband.go)
-				for _, bf := range band {
-					f, err := lc.filter(bf)
-					if err != nil {
-						return err
-					}
-					st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
-				}
-				return nil
-			}
-			f, err := lc.filter(ip)
-			if err != nil {
-				return err
-			}
-			c := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
-			if pc, ok := sp.get("PresentCompare"); ok {
-				op, v, err := lc.cmpSpec(pc)
-				if err != nil {
-					return err
-				}
-				c.Op, c.A = op, v
-			}
-			if pz, ok := sp.get("PresentZone"); ok {
-				if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
-					return err
-				}
-			}
-			st.Cond = andCond(st.Cond, c)
-		}
-		return nil
-	}
-	if err := readCond(); err != nil {
+	if err := lc.staticCond(s, sp, &st); err != nil {
 		return nil, err
 	}
 	if b, ok := sp.get("ClassBand"); ok {
@@ -287,6 +192,173 @@ func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	return []lStatic{st}, nil
 }
 
+// staticCond lowers a static's Condition$ (and its CheckSVar$/IsPresent$
+// riders) onto st.Cond: the shared gate grammar of the Continuous and
+// combat-restriction statics (gorge continuousConditionHolds /
+// combatBoard.StaticGateHolds) and the cost statics' costConditionHolds.
+// A condition no gate's vocabulary covers is refused, never lowered to
+// nothing: gorge's gates FAIL CLOSED on those, so the whole static is
+// inert there -- against its printed text (reported: the FatefulHour,
+// ExtraTurn and Night gaps in continuousConditionHolds and
+// costConditionHolds).
+func (lc *lowerCtx) staticCond(s cards.Static, sp *params, st *lStatic) error {
+	if c, ok := sp.get("Condition"); ok {
+		switch c {
+		case "Threshold":
+			st.Cond = lCond{Kind: cThreshold}
+		case "PlayerTurn":
+			st.Cond = lCond{Kind: cYourTurn}
+		default:
+			if err := lc.staticGateCond(s, st, c); err != nil {
+				return err
+			}
+		}
+	}
+	if cs, ok := sp.get("CheckSVar"); ok {
+		v, err := lc.value(cs)
+		if err != nil {
+			return err
+		}
+		c := lCond{Kind: cValue, A: v, Op: opGE, B: cst(1)}
+		if cmp, ok := sp.get("SVarCompare"); ok {
+			op, b, err := lc.cmpSpec(cmp)
+			if err != nil {
+				return err
+			}
+			c.Op, c.B = op, b
+		}
+		st.Cond = andCond(st.Cond, c)
+	}
+	if s.Mode == "AlternativeCost" {
+		if err := altCostSecondSVar(lc, sp, st); err != nil {
+			return err // lower_altcostsecondsvar.go
+		}
+	}
+	if ip, ok := sp.get("IsPresent"); ok {
+		if band := levelBandFilters(ip); len(band) > 1 && sp.m["PresentCompare"] == "" && sp.m["PresentZone"] == "" {
+			// a level band's two counter compares (lower_levelband.go)
+			for _, bf := range band {
+				f, err := lc.filter(bf)
+				if err != nil {
+					return err
+				}
+				st.Cond = andCond(st.Cond, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+			}
+			return nil
+		}
+		f, err := lc.filter(ip)
+		if err != nil {
+			return err
+		}
+		c := lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
+		if pc, ok := sp.get("PresentCompare"); ok {
+			op, v, err := lc.cmpSpec(pc)
+			if err != nil {
+				return err
+			}
+			c.Op, c.A = op, v
+		}
+		if pz, ok := sp.get("PresentZone"); ok {
+			if c, err = presentZoneCond(c, pz, ip, lc); err != nil {
+				return err
+			}
+		}
+		st.Cond = andCond(st.Cond, c)
+	}
+	return nil
+}
+
+// staticGateCond is a Condition$ the shared gate grammar does not name
+// outright: the gates (gorge continuousConditionHolds for a Continuous or a
+// combat-restriction static, costConditionHolds for a self cost static) read
+// their conditions against the static's controller, so the kernel carries
+// the condition on Static.Cond2 for the modes whose gate covers it and
+// refuses the ones no gate's vocabulary has (the FatefulHour, ExtraTurn and
+// Night gaps, reported).
+func (lc *lowerCtx) staticGateCond(s cards.Static, st *lStatic, c string) error {
+	// gorge continuousConditionHolds (Continuous) and costConditionHolds (a
+	// self cost static: the payer is the controller) read these against the
+	// controller. The self-carried AlternativeCost (gorge
+	// alternativeCostScopeOK's costConditionHolds read, the Force cycle: the
+	// caster is the static's controller, the printed you) and the combat
+	// restriction statics (gorge combatBoard.StaticGateHolds'
+	// continuousGateHolds, Monstrous Hound) read theirs against the static's
+	// controller, which statCond's and offerAltFreeHand's Cond2 contexts
+	// name too.
+	selfCost := (s.Mode == "ReduceCost" || s.Mode == "RaiseCost") && s.Params["ValidCard"] == "Card.Self"
+	turnGate := s.Mode == "Continuous" || selfCost || reduceActivatorYou(s.Mode, s.Params) ||
+		s.Mode == "AlternativeCost" || s.Mode == "CantBlock" || s.Mode == "CantAttack"
+	// The combat-restriction statics (CantAttack, CanAttackDefender,
+	// MustAttack, CantBlock*, CanBlockAmount) and the Continuous statics
+	// share ONE gate grammar in gorge (combat/restrictions.go's
+	// Board.StaticGateHolds and layers_static.go's continuousGateHolds both
+	// end in continuousConditionHolds), so a condition the shared vocabulary
+	// covers rides Static.Cond2 on every mode in condGateModes: the kernel's
+	// combat walks and statics walk consult Cond2 through statCond with the
+	// static's controller, the same read.
+	condGateModes := s.Mode == "Continuous" || s.Mode == "CantAttack" ||
+		s.Mode == "CanAttackDefender" || s.Mode == "MustAttack" ||
+		s.Mode == "CantBlock" || s.Mode == "CantBlockBy" || s.Mode == "CanBlockAmount"
+	// A condition the reading gate's vocabulary does not cover FAILS CLOSED
+	// in gorge -- the gate never holds, so the whole static is inert (every
+	// reader of these modes ends in the shared gate): continuousConditionHolds
+	// has no FatefulHour or ExtraTurn arm and costConditionHolds (the cost
+	// gates) no Night one. Copying the defect would land the card accepted
+	// while both engines play it against the printed text (Gavony Ironwright
+	// never gives +1/+4, Medomai the Ageless attacks in extra turns,
+	// Moonrager's Slash never gets cheaper at night), so the condition is
+	// REFUSED until gorge models it (the three gaps are reported). The mode
+	// checks are what gorge's gates switch on, so a condition on a mode
+	// outside this list keeps the named refusal.
+	switch {
+	case c == "FatefulHour" || c == "ExtraTurn" || c == "Night":
+		return refuse("static Condition %q (gorge fails closed: the static is inert there)", c)
+	case c == "NotPlayerTurn" && turnGate:
+		st.Cond = lCond{Kind: cYourTurn, Neg: true}
+	case c == "Metalcraft" && (s.Mode == "Continuous" || selfCost || condGateModes):
+		f, err := lc.filter("Artifact.YouCtrl")
+		if err != nil {
+			return err
+		}
+		st.Cond = lCond{Kind: cPresent, F: f, Op: opGE, A: cst(3)}
+	case c == "Delirium" && (s.Mode == "Continuous" || selfCost || condGateModes):
+		st.Cond = deliriumCond() // gorge graveyardCardTypeCount >= 4
+	case c == "Hellbent" && (s.Mode == "Continuous" || condGateModes):
+		st.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+	case c == "Monarch" && condGateModes:
+		// gorge condMonarch: the controller is the monarch (CR 719.2,
+		// state.Game.IsMonarch). The condGateModes gates --
+		// continuousConditionHolds and combatBoard.StaticGateHolds --
+		// both cover Monarch; the kernel's Cond2 read is statCond with
+		// the static's controller, the same context.
+		st.Cond = lCond{Kind: cMonarch}
+	case c == "Ferocious" && s.Mode == "CastWithFlash":
+		// gorge staticTimingGate's condFerocious arm (the only reader
+		// of a CastWithFlash static's Condition$): you control a
+		// creature with derived power 4 or greater. The kernel's
+		// selfFlash read consults Static.Cond2 with the caster as the
+		// controller (cast_selfflash.go), the same context, so the
+		// gate lowers to the present count over the caster's powerGE4
+		// creatures.
+		f, err := lc.filter("Creature.powerGE4+YouCtrl")
+		if err != nil {
+			return err
+		}
+		st.Cond = lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
+	case c == "Blessing" && (s.Mode == "Continuous" || s.Mode == "CantBlockBy"):
+		// gorge condBlessing: the controller's latch (CR 702.131).
+		// A CantBlockBy static's condition rides Static.Cond2,
+		// which the kernel's blockForbiddenGen consults through
+		// statCond with the static's controller, the same
+		// context gorge's BlockRestricted' StaticGateHolds walk
+		// reads the condition against.
+		st.Cond = lCond{Kind: cBlessing}
+	default:
+		return refuse("static Condition %q", c)
+	}
+	return nil
+}
+
 // mayPlayStatic lowers "you may play/cast cards matching Affected from
 // AffectedZone" (Muldrotha, Tinybones, Quilled Greatwurm, Omniscience).
 func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
@@ -313,6 +385,12 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	st.F = f
 	zRaw := sp.str("AffectedZone")
 	z := zRaw
+	if z == "" {
+		// no AffectedZone$: the hand, exactly as with the key absent in
+		// gorge (mayplay.go's mayPlayGrant: an absent AffectedZone$ is the
+		// hand, the card's own cast-from-hand permission)
+		z = "Hand"
+	}
 	if z == "All" {
 		// Weftwalking's first-spell free cast: the exact shape only
 		if !sp.is("MayPlayDontGrantZonePermissions", "True") ||

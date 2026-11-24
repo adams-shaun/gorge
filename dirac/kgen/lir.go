@@ -478,6 +478,7 @@ const (
 	cEchoOwed               // the source came under its controller's control since the beginning of their most recent upkeep (echo's gate)
 	cSourceZone             // the source object is in Zone (source-identity IsPresent$ PresentZone$)
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
+	cMonarch                // the controller is the monarch (Condition$ Monarch, CR 719.2)
 	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
 	cCount_
 )
@@ -497,6 +498,7 @@ var condNames = [...]string{
 	cEchoOwed:      "EchoOwed",
 	cSourceZone:    "SourceZone",
 	cBlessing:      "Blessing",
+	cMonarch:       "Monarch",
 	cRemMark:       "RemMark",
 }
 
