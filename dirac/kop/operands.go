@@ -521,6 +521,12 @@ const (
 // Firion, Wild Rose Warrior).
 const CpSacAtUpkeep = CpSacAtEndDly | CpExileAtEnd
 
+// CpExileAtCombat: both CpSacAtEnd and CpExileAtEnd, which no other rider
+// sets together: exile the token at this turn's end of combat (AtEOT$
+// ExileCombat, gorge's tracked __kwWarpExile at StepEndCombat; Flamerush
+// Rider, Mirror Mockery).
+const CpExileAtCombat = CpSacAtEnd | CpExileAtEnd
+
 // CopyPumpShift: OpCopyAsTokenEx B.N >> 8 (as uint16) names the keyword of
 // PumpKeywords$: the log2 of its KwMask bit, plus one; 0 =
 // none. Each created token gains it as a permanent keyword override record
@@ -575,6 +581,22 @@ func TokAttachN(r Ref) int16 { return int16(r) << 8 }
 const (
 	TokAtEOTDestroy   = 1
 	TokAtEOTSacCombat = 2
+	// TokAtEOTExileCombat: at this turn's end of combat, exile the token
+	// (AtEOT$ ExileCombat; tracked like the end-step exile).
+	TokAtEOTExileCombat = 3
+	// TokAtEOTSacYourUpkeep: at the beginning of its controller's next
+	// upkeep, sacrifice the token (AtEOT$ YourSacrificeUpkeep; untracked).
+	TokAtEOTSacYourUpkeep = 4
+)
+
+// OpAtEOT's C beyond 0 (sacrifice) and 1 (exile): AtEOT$ Destroy, Hand,
+// SacrificeCombat and ExileCombat (the last two fire at this turn's end of
+// combat).
+const (
+	AtEOTDestroy     = 2
+	AtEOTHand        = 3
+	AtEOTSacCombat   = 4
+	AtEOTExileCombat = 5
 )
 
 // LibTopShuffle is OpToLibrary's C for gorge's object-path Shuffle$ True:
@@ -666,6 +688,14 @@ const DpTrack = 2
 // the many-object return (BncDelayedMany). Random Encounter's milled
 // creatures (ChangeZoneAll ForgetOtherRemembered$).
 const DpMany = 3
+
+// DpDiesYou is OpDelayedProgram B's value (A = DelayDiesThisTurn only; bit 2,
+// clear of DpGroup and DpTrack) for "when it dies under your control this
+// turn" (ValidCard$ Card.IsTriggerRemembered+YouCtrl): the registration fires
+// only when the remembered object's last controller is the registering
+// player, and otherwise stays pending until the turn changes (Desperate
+// Measures).
+const DpDiesYou = 4
 
 // TrigEvent / Step values the generator uses that the core's enums do not name
 // separately: ETB-of-self and dies-of-self use TrigETB / TrigDies with

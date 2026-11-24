@@ -20,6 +20,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // step (fireDelayedWhen).
 const dpDies uint8 = 1 << 3
 
+// dpExtDiesYou is dprog.ext of a dies registration that only fires when the
+// object dies under its registering player's control (kop.DpDiesYou).
+const dpExtDiesYou uint8 = 4
+
 // DebugDelayDiesKeep is TestDelaydiesMutation's switch: a registration
 // survives the turn change. Never set in production.
 var DebugDelayDiesKeep bool
@@ -53,7 +57,7 @@ func (s *State) fireDiesProgs(o Obj, pl uint8) {
 	keep := 0
 	for i := 0; i < n; i++ {
 		d := s.g.dp[i]
-		if d.n&dpDies != 0 && d.objs[0] == o {
+		if d.n&dpDies != 0 && d.objs[0] == o && !(d.ext == dpExtDiesYou && pl != d.ctrl) {
 			m := s.npend
 			s.enqueue(d.src, d.sv, d.card, d.ab, d.ctrl, o, pl, 0)
 			if s.npend > m {

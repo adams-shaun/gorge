@@ -152,7 +152,9 @@ func (ic *instrCtx) opDelayedTrigger() error {
 			return fmt.Errorf("delayed trigger %q", in.CS)
 		}
 	}
-	if in.Op == "DelayedTrigger" && in.B.Kind == vConst && in.B.N == 1 {
+	if in.Op == "DelayedTrigger" && in.CS == "DiesThisTurn" && in.B.Kind == vConst && in.B.N == 4 {
+		ki.B = kop.Const(kop.DpDiesYou) // dies under the registering player's control (dirac/trig_delayeddies.go)
+	} else if in.Op == "DelayedTrigger" && in.B.Kind == vConst && in.B.N == 1 {
 		ki.B = kop.Const(kop.DpGroup) // Mobilize's group program (dirac/kw_mobilize.go)
 	}
 	if in.Op == "DelayedTrigger" && in.B.Kind == vConst && in.B.N == 3 {

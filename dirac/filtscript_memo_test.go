@@ -204,7 +204,8 @@ func TestFiltScriptMemoEquivalence(t *testing.T) {
 }
 
 // TestFiltPayAllocatesNothing replays a std-tdm transition that runs filtPay
-// (random play rarely reaches it): once the pool holds its visited table, a
+// (random play rarely reaches it; the seed bound follows the decks the
+// supported set draws, so it needs room when the set grows): once the pool holds its visited table, a
 // payment probe allocates nothing.
 func TestFiltPayAllocatesNothing(t *testing.T) {
 	games := memoGames(t, "std-tdm")
@@ -215,7 +216,7 @@ func TestFiltPayAllocatesNothing(t *testing.T) {
 		a     Action
 	}
 	var found *op
-	for g := 0; g < 600 && found == nil; g++ {
+	for g := 0; g < 2400 && found == nil; g++ {
 		gm := games[g%len(games)]
 		s.InitN(gm.tbl, gm.decks, 2, uint64(g)+1, Config{Mulligans: 2})
 		pol := NewRandomPolicy(uint64(g) + 1)
@@ -249,7 +250,7 @@ func TestFiltPayAllocatesNothing(t *testing.T) {
 		}()
 	}
 	if found == nil {
-		t.Fatal("no std-tdm transition on seeds 1..600 reaches filtPay")
+		t.Fatal("no std-tdm transition on seeds 1..2400 reaches filtPay")
 	}
 	run := func() {
 		work.CopyFrom(&snap)

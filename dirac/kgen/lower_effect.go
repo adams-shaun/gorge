@@ -2468,7 +2468,7 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 	if v, ok := ps.get("AtEOT"); ok {
 		// gorge pump.go -> scheduleAtEOT over the pumped battlefield objects,
 		// after the pump
-		act, err := atEOTAct(v)
+		act, err := lc.atEOTActHere(v)
 		if err != nil {
 			return err
 		}
@@ -3317,40 +3317,8 @@ func (lc *lowerCtx) token(ps *params) error {
 		in.C |= 2 | 4 // kop.TokRemember | kop.TokRememberObj
 	}
 	if v, ok := ps.get("AtEOT"); ok {
-		// gorge token.go -> scheduleAtEOT: one next-end-step promise per
-		// minted token (the copy-token rider's dly entries)
-		switch v {
-		case "Sacrifice", "YourSacrifice":
-			// gorge effects/ateot.go:26-31 deliberately reads the Your-prefixed
-			// end-step values as their plain equivalents (atEOTRiders:
-			// YourSacrifice = __kwEncoreSacrifice at StepEnd, as Sacrifice)
-			in.C |= 8
-		case "Exile":
-			in.C |= 16
-		case "Destroy", "SacrificeCombat":
-			// the extended riders: both AtEOT bits (8|16) plus 512 (Destroy at
-			// the end step, tracked, through destroy) or 1024 (sacrifice at
-			// this turn's end of combat, untracked). The kind rides in
-			// B.N's high byte (kop.TokAtEOTDestroy / TokAtEOTSacCombat).
-			if in.C&32 != 0 {
-				return refuse("Token AtEOT %q beside AttachedTo$", v)
-			}
-			if v == "Destroy" {
-				in.C |= 8 | 16 | 512
-				break
-			}
-			// gorge schedules SacrificeCombat as a thisTurn rider (|TT=turn)
-			// at StepEndCombat. Inside an Attacks trigger the resolution is
-			// always in this turn's combat, before its end-of-combat step
-			// (CR 508.8, 511.1: attackers are declared, then the trigger
-			// resolves in the declare-attackers step), so the thisTurn expiry
-			// can never bite; elsewhere it could (a main-phase mint).
-			if lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks" {
-				return refuse("Token AtEOT SacrificeCombat outside an Attacks trigger")
-			}
-			in.C |= 8 | 16 | 1024
-		default:
-			return refuse("Token AtEOT %q", v)
+		if err := lc.tokenAtEOTBits(&in, v); err != nil {
+			return err
 		}
 	}
 	if ps.is("RememberTokens", "True") {
@@ -4743,4 +4711,54 @@ func (lc *lowerCtx) triggeredBlockerController(v string) (lRef, error) {
 		return lRef{Kind: rTriggeredTgtCtrl}, nil
 	}
 	return lRef{}, refuse("Defined$ %q outside a Blocks trigger over the attached creature", v)
+}
+
+// tokenAtEOTBits sets the C bits of a Token's AtEOT$ rider v on in (gorge
+// token.go -> scheduleAtEOT: one next-end-step promise per minted token, the
+// copy-token rider's dly entries).
+func (lc *lowerCtx) tokenAtEOTBits(in *lInstr, v string) error {
+	switch v {
+	case "Sacrifice", "YourSacrifice":
+		// gorge effects/ateot.go:26-31 deliberately reads the Your-prefixed
+		// end-step values as their plain equivalents (atEOTRiders:
+		// YourSacrifice = __kwEncoreSacrifice at StepEnd, as Sacrifice)
+		in.C |= 8
+	case "Exile", "YourExile":
+		in.C |= 16 // YourExile reads as Exile (gorge ateot.go)
+	case "YourSacrificeUpkeep":
+		// gorge atEOTRiders: the untracked sacrifice at the controller's own
+		// next upkeep (VP=You); the kernel's dlyYourUpkeep records
+		if in.C&32 != 0 {
+			return refuse("Token AtEOT %q beside AttachedTo$", v)
+		}
+		in.C |= 8 | 16 | tokSacYourUpkeepBit
+	case "Destroy", "SacrificeCombat", "ExileCombat":
+		// the extended riders: both AtEOT bits (8|16) plus 512 (Destroy at
+		// the end step, tracked, through destroy) or 1024 (sacrifice at
+		// this turn's end of combat, untracked). The kind rides in
+		// B.N's high byte (kop.TokAtEOTDestroy / TokAtEOTSacCombat).
+		if in.C&32 != 0 {
+			return refuse("Token AtEOT %q beside AttachedTo$", v)
+		}
+		if v == "Destroy" {
+			in.C |= 8 | 16 | 512
+			break
+		}
+		// gorge schedules SacrificeCombat as a thisTurn rider (|TT=turn)
+		// at StepEndCombat. Inside an Attacks trigger the resolution is
+		// always in this turn's combat, before its end-of-combat step
+		// (CR 508.8, 511.1: attackers are declared, then the trigger
+		// resolves in the declare-attackers step), so the thisTurn expiry
+		// can never bite; elsewhere it could (a main-phase mint).
+		if lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks" {
+			return refuse("Token AtEOT %s outside an Attacks trigger", v)
+		}
+		in.C |= 8 | 16 | 1024
+		if v == "ExileCombat" {
+			in.C |= 512 // kind 3: TokAtEOTExileCombat, the tracked exile at end of combat
+		}
+	default:
+		return refuse("Token AtEOT %q", v)
+	}
+	return nil
 }

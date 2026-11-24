@@ -154,7 +154,10 @@ func (ic *instrCtx) opCreateToken() error {
 		tf |= int(kop.TokAtEOTDestroy) << 8
 	}
 	if in.C&1024 != 0 {
-		tf |= int(kop.TokAtEOTSacCombat) << 8
+		tf |= int(kop.TokAtEOTSacCombat) << 8 // both bits: TokAtEOTExileCombat (lower_effect.go)
+	}
+	if in.C&tokSacYourUpkeepBit != 0 {
+		tf |= int(kop.TokAtEOTSacYourUpkeep) << 8 // lower_effect.go
 	}
 	if in.C&64 != 0 {
 		tf |= kop.TokAttacking

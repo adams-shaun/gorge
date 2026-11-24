@@ -3680,28 +3680,11 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		flags = append(flags, "SacAtEndStep")
 	}
 	if a, ok := ps.get("AtEOT"); ok {
-		// gorge scheduleAtEOT: a one-shot delayed registration per copy,
-		// exiled at the beginning of the next end step (Stormsplitter), or
-		// sacrificed (__kwEncoreSacrifice: Reflection of Kiki-Jiki), the
-		// kernel's one-shot dly entry either way
-		switch a {
-		case "Exile":
-			flags = append(flags, "ExileAtEndStep")
-		case "Sacrifice":
-			if _, ok := ps.m["AtEOTTrig"]; ok {
-				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
-			}
-			flags = append(flags, "SacAtEndDly")
-		case "SacrificeUpkeep":
-			// gorge atEOTRiders: the same untracked sacrifice body at the next
-			// upkeep of any player (kop.CpSacAtUpkeep; Firion)
-			if _, ok := ps.m["AtEOTTrig"]; ok {
-				return refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
-			}
-			flags = append(flags, "SacAtUpkeep")
-		default:
-			return refuse("CopyPermanent AtEOT %q", a)
+		f, err := lc.copyAtEOTFlag(ps, a)
+		if err != nil {
+			return err
 		}
+		flags = append(flags, f)
 	}
 	if k, ok := ps.get("PumpKeywords"); ok {
 		// not copiable (gorge :287, :308-327): a keyword grant on each token
@@ -3927,7 +3910,9 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	if ps.str("Mode") == "ChangesZone" {
 		return lc.delayedLeaveReturn(ps) // lower_delayed.go
 	}
-	if ps.str("Mode") != "Phase" || ps.str("Phase") != "End of Turn" {
+	if ps.str("Mode") != "Phase" || !strings.EqualFold(ps.str("Phase"), "End of Turn") {
+		// gorge's state.ParsePhases reads the phase name case-insensitively: the
+		// scripts spell it "End Of Turn" as often as "End of Turn"
 		return refuse("delayed trigger %s/%s", ps.str("Mode"), ps.str("Phase"))
 	}
 	when := "NextEndStep"
@@ -5493,4 +5478,45 @@ func fromAnyOrigin(ps *params, obj lRef, dest int, in *lInstr) {
 	if o := strings.TrimSpace(ps.m["Origin"]); (o == "All" || o == "Any") && obj.Kind == rRemembered && dest == zBattlefield {
 		in.CS = strings.TrimPrefix(in.CS+"|FromAny", "|")
 	}
+}
+
+// copyAtEOTFlag reads a CopyPermanent's AtEOT$ into its copy-flag name.
+// gorge scheduleAtEOT: a one-shot delayed registration per copy, exiled at the
+// beginning of the next end step (Stormsplitter), or sacrificed
+// (__kwEncoreSacrifice: Reflection of Kiki-Jiki), the kernel's one-shot dly
+// entry either way.
+func (lc *lowerCtx) copyAtEOTFlag(ps *params, a string) (string, error) {
+	switch a {
+	case "Exile":
+		return "ExileAtEndStep", nil
+	case "ExileCombat":
+		// gorge atEOTRiders: the tracked exile at this turn's end of
+		// combat (thisTurn), kop.CpExileAtCombat. An Attacks trigger
+		// resolves before the step, so the thisTurn expiry cannot bite.
+		if _, ok := ps.m["AtEOTTrig"]; ok || lc.ab.Trigger == nil || lc.ab.Trigger.Event != "Attacks" {
+			return "", refuse("CopyPermanent AtEOT %q outside an Attacks trigger, or beside AtEOTTrig$", a)
+		}
+		if ps.str("Defined") == "TriggeredAttackerLKICopy" {
+			// gorge copies nothing when the attacker has left the battlefield
+			// by resolution (two Mirror Mockeries on a legend: the first copy
+			// takes the original off the battlefield through the legend rule);
+			// the kernel copies the card, which CR 707.2's LKI would
+			// allow. Reported, not modelled (lockstep: Mirror Mockery).
+			return "", refuse("CopyPermanent AtEOT ExileCombat of Defined$ TriggeredAttackerLKICopy")
+		}
+		return "ExileAtCombat", nil
+	case "Sacrifice":
+		if _, ok := ps.m["AtEOTTrig"]; ok {
+			return "", refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
+		}
+		return "SacAtEndDly", nil
+	case "SacrificeUpkeep":
+		// gorge atEOTRiders: the same untracked sacrifice body at the next
+		// upkeep of any player (kop.CpSacAtUpkeep; Firion)
+		if _, ok := ps.m["AtEOTTrig"]; ok {
+			return "", refuse("CopyPermanent AtEOT %q beside AtEOTTrig$", a)
+		}
+		return "SacAtUpkeep", nil
+	}
+	return "", refuse("CopyPermanent AtEOT %q", a)
 }
