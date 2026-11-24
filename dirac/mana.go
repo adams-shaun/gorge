@@ -1290,7 +1290,7 @@ func (s *State) hybFirstTierMask(k *prep, p uint8, cost *kop.ManaCost, x int, ex
 	for m := 0; m < 1<<n; m++ {
 		r := f.resolve(*cost, n, hybWitnessMask(m, n))
 		tp := *pk
-		tp.found, tp.try, tp.noGrant, tp.plain = false, true, true, true
+		tp.found, tp.try, tp.noGrant, tp.plain, tp.dry = false, true, true, true, true // dry: the trial taps nothing
 		s.tapPlanNeed(k, p, &r, x, exclude, first, anyColor, &tp)
 		if tp.needT == 0 || tp.found {
 			return m
