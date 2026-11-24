@@ -97,6 +97,10 @@ func (ic *instrCtx) opChooseType() error {
 			return err
 		}
 	}
+	// B = kop.ChooseTypeLand interns nothing: the answer is a pool subtype index
+	// (dirac landValue) over the land types the pool table already holds, and
+	// one it lacks answers 255, which a ChosenType read matches to no land on
+	// either surface (no card of the pool has the type).
 	if in.B.N == kop.ChooseTypeRandomDeck {
 		// the no-ask fallback records "Human" when the resolving controller
 		// controls no creature (gorge creatureTypeFallback): the word must be

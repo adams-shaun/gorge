@@ -99,6 +99,9 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 			if in := &a.Prog[j]; isBasicLandChoose(in) {
 				chooseBasicLandOptionsExcept(d, uint8(in.A.N)) // an as-enters basic land type (Realmwright; act_choosebasicland.go), A = InvalidTypes$ mask
 				return true
+			} else if isLandChoose(in) {
+				chooseLandOptions(d) // an as-enters land type (Traveler's Cloak; act_chooseland.go)
+				return true
 			} else if in.Op == kop.OpChooseType && in.B.N != 0 && len(cd.TypeValid) != 0 {
 				for _, v := range cd.TypeValid {
 					d.add(MakeAction(AkChoose, 0, TCode(v>>8), uint8(v)))
@@ -142,8 +145,8 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 			a := &c.Abilities[j]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplEntersProgram {
 				for x := range a.Prog {
-					if isBasicLandChoose(&a.Prog[x]) {
-						g.anyTypeValid = true // typeOptions' gate also covers the as-enters basic land ask
+					if isBasicLandChoose(&a.Prog[x]) || isLandChoose(&a.Prog[x]) {
+						g.anyTypeValid = true // typeOptions' gate also covers the as-enters (basic) land ask
 					}
 				}
 			}
@@ -217,7 +220,7 @@ func (s *State) typeVocabCode(k *prep, v int) uint8 {
 		if i := cardKindValue(v); i != 255 {
 			return i // an as-enters card type's label (act_choosecardenter.go)
 		}
-		return basicLandValue(k, uint16(v)) // an as-enters basic land type's label (act_choosebasicland.go)
+		return landValue(k, uint16(v)) // an as-enters (basic) land type's label (act_chooseland.go)
 	}
 	if v < 0 || v >= len(k.t.TypeVocab) {
 		return 255

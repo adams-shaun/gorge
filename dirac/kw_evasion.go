@@ -12,7 +12,7 @@ import (
 //
 //go:noinline
 func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
-	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a) {
+	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a, a) {
 		return true
 	}
 	if s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a) {
@@ -37,7 +37,7 @@ func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
 	lts, lost := s.lossAt(k, a)
 	hit := false
 	s.eachOvRec(a, func(r ovRec) {
-		if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && !hit && (!lost || r.ts >= lts) && s.landwalkHit(k, f, b, a) {
+		if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && !hit && (!lost || r.ts >= lts) && s.landwalkHit(k, f, b, a, a) {
 			hit = true
 		}
 	})
@@ -45,15 +45,18 @@ func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
 }
 
 // landwalkHit: the defending player (blocker b's controller) controls a land
-// matching the landwalk filter f of attacker a.
-func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a Slot) bool {
+// matching the landwalk filter f of attacker a. src is the filter's source
+// permanent: the attacker for a printed or pumped landwalk, the granting
+// static's host for a Continuous grant, so a ChosenType land spec (Traveler's
+// Cloak's "landwalk of the chosen type") reads the Aura's choice.
+func (s *State) landwalkHit(k *prep, f kop.FilterID, b, a, src Slot) bool {
 	if k.gen != nil && k.gen.uses.has(useIgnoreLandWalk) {
-		return s.landwalkHitLinks(k, f, b, a) // static_ignorelandwalk.go
+		return s.landwalkHitLinks(k, f, b, a, src) // static_ignorelandwalk.go
 	}
 	def := s.perms[b].ctrl
 	for m := s.ctrlM[def]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPerm(k, f, sl, s.perms[a].ctrl, a) {
+		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPerm(k, f, sl, s.perms[a].ctrl, src) {
 			return true
 		}
 	}
@@ -77,8 +80,12 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 		if lost && s.grantTs(st) < lts {
 			return true
 		}
+		src := st.sl // the host's choice; a graveyard grant (no slot) reads the attacker
+		if src == NoSlot {
+			src = a
+		}
 		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, a, st.ctrl, st.sl, layerKw) &&
-			s.landwalkHit(k, ab.Static.Landwalk, b, a) {
+			s.landwalkHit(k, ab.Static.Landwalk, b, a, src) {
 			hit = true
 			if DebugLandwalkStats != nil && k.t.Filters[ab.Static.Filter].Flags&kop.FAttachedBySrc != 0 {
 				DebugLandwalkStats.AttachedEvades++ // an Aura's or an Equipment's grant

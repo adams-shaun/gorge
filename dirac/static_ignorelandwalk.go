@@ -59,15 +59,15 @@ var DebugIgnoreLandWalkOff bool
 // landwalkHitLinks is landwalkHit over a table holding an IgnoreLandWalk
 // static: the defending player (blocker b's controller) controls a land
 // matching a link of f that no static ignores for b.
-func (s *State) landwalkHitLinks(k *prep, f kop.FilterID, b, a Slot) bool {
+func (s *State) landwalkHitLinks(k *prep, f kop.FilterID, b, a, src Slot) bool {
 	for ; f != 0; f = k.t.Filters[f].Or {
 		if s.landwalkIgnored(k, f, b) {
-			if DebugLandwalkStats != nil && s.landwalkLinkHit(k, f, b, a) {
+			if DebugLandwalkStats != nil && s.landwalkLinkHit(k, f, b, a, src) {
 				DebugLandwalkStats.IgnoredBlocks++
 			}
 			continue
 		}
-		if s.landwalkLinkHit(k, f, b, a) {
+		if s.landwalkLinkHit(k, f, b, a, src) {
 			return true
 		}
 	}
@@ -76,10 +76,10 @@ func (s *State) landwalkHitLinks(k *prep, f kop.FilterID, b, a Slot) bool {
 
 // landwalkLinkHit: the defending player (blocker b's controller) controls a
 // land matching the one landwalk line link of attacker a.
-func (s *State) landwalkLinkHit(k *prep, link kop.FilterID, b, a Slot) bool {
+func (s *State) landwalkLinkHit(k *prep, link kop.FilterID, b, a, src Slot) bool {
 	for m := s.ctrlM[s.perms[b].ctrl]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPermOne(k, &k.t.Filters[link], sl, s.perms[a].ctrl, a, layerFull) {
+		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPermOne(k, &k.t.Filters[link], sl, s.perms[a].ctrl, src, layerFull) {
 			return true
 		}
 	}

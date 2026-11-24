@@ -3,11 +3,14 @@
 # Phantasmal Terrain enchant lands of other types, Multiversal Passage is the
 # entering land itself, Realmwright grants the type in addition (the
 # Continuous AddChosen static), beside vanilla creatures of the old and new
-# colours (dirac/oracle/choosetypesetter_lockstep_test.go)
+# colours (dirac/oracle/choosetypesetter_lockstep_test.go). Traveler's Cloak's
+# as-enters Type$ Land ask feeds its static landwalk grant
+# (dirac/oracle/choosetype_land_lockstep_test.go).
 Convincing Mirage
 Phantasmal Terrain
 Realmwright
 Multiversal Passage
+Traveler's Cloak
 Raging Goblin
 Coral Merfolk
 Typhoid Rats
