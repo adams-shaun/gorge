@@ -34,12 +34,12 @@ func prepManaAsk(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 		return
 	}
 	g.smallFor(id).askAb = int8(j)
-	g.anyAskCol, g.anyTapsDefer = true, true
+	g.anyCondSplit, g.anyTapsDefer = true, true // the deferred route's gates (deferLive, kw_madness)
 }
 
 // askColDeferred: sl is a colour-asking mana source the planner defers.
 func (s *State) askColDeferred(k *prep, sl Slot) bool {
-	if k.gen == nil || !k.gen.anyAskCol {
+	if k.gen == nil || !k.gen.anyCondSplit {
 		return false
 	}
 	r := k.gen.small(s.cardAt(sl))

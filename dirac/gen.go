@@ -439,10 +439,9 @@ type genPrep struct {
 	anyTapsDefer, anyTapsPain bool
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
-	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go); it sets anyTapsDefer too
+	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go) or a colour-asking one (mana_askcolour.go,
+	// which rides the same deferred route; layout.tsv pins this struct, so it gets no flag of its own); it sets anyTapsDefer too
 	anyCondSplit bool
-	// anyAskCol: some card has a colour-asking mana source (mana_askcolour.go); it sets anyTapsDefer too
-	anyAskCol bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
 	// lowers one on a card with a printed mana ability only as the vetted
 	// "deals N damage to you" line (TapPlanPain, City of Brass: priced, never a
