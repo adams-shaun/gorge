@@ -33,6 +33,9 @@ var (
 	reCtxUnread   = regexp.MustCompile(`^(trigger|static|Tap|SVar) unread params \[(.*)\]`)
 	reQuoted      = regexp.MustCompile(`"[^"]*"`)
 	reDigits      = regexp.MustCompile(`\d+`)
+	// reWhyTag is the reason tag validSAWhy appends: it names why a head is
+	// refused and is no part of its class.
+	reWhyTag = regexp.MustCompile(` \[(?:mana-provenance|gorge-unmodelled)\]$`)
 )
 
 // refusalClasses returns the classes a refusal reason carries (usually one;
@@ -88,6 +91,7 @@ func refusalClasses(reason string) []string {
 		}
 		return out
 	}
+	r = reWhyTag.ReplaceAllString(r, "")
 	r = reDigits.ReplaceAllString(reQuoted.ReplaceAllString(r, `"_"`), "N")
 	if rs := []rune(r); len(rs) > 60 {
 		r = string(rs[:60])

@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwKeyword
-value: next
+value: 9
 contexts: perm,card,spell
 status: active
 doc: FwKeyword: the object has keyword bit Arg of its current KwMask (PredHasKeyword).

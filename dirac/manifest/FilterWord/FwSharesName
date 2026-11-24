@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwSharesName
-value: next
+value: 13
 contexts: perm,card,spell
 status: active
 doc: FwSharesName: the object shares a printed name with an object the referent R names (gorge sharesNameWith over sharesTypeReferents, engine/effects/filter_attachment.go): RefTargets0123, the reading context entry's object targets, every slot; RefRemembered, the entry's remembered object (the first card entry); RefTriggerObj, the entry's triggering object. With a nested filter in F (the general sharesNameWith Valid <filter> form, gorge sharesNameValidMatches) instead: some permanent on the battlefield matching F, in the evaluating context, shares the candidate's name; the candidate itself is not its own match, and a phased-out permanent is off the sweep (CR 702.26b). A face-down candidate has no name (CR 708.2); an unbound referent matches nothing, fail closed.

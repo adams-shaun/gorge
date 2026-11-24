@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwSubtype
-value: next
+value: 14
 contexts: perm,card,spell,cur
 status: active
 doc: FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).

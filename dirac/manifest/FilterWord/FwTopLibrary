@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwTopLibrary
-value: next
+value: 17
 contexts: card
 status: active
 doc: FwTopLibrary: the candidate is the top card of its owner's library (gorge wordTopLibrary, engine/effects/filter_word.go:887: index 0 of the owner's library slice); a card deeper in the library, or one not in a library, reads false.
