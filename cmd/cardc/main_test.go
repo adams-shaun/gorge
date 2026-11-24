@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/cardc/mtgish"
 )
 
 // The fixture holds only synthetic names and invented variants.
@@ -35,11 +38,22 @@ func TestReportOnFixture(t *testing.T) {
 	if code := run([]string{"report", "-slice", "all", "-data", data, "-schema", schema}, &out, &errb); code != 0 {
 		t.Fatalf("exit %d: %s", code, errb.String())
 	}
+	// OracleCard.Card is a real key that front-end tickets register; the
+	// invented ones never are. Read the column from the registry.
+	reg, nreg := func(k string) string {
+		if mtgish.Registered(k) {
+			return "yes"
+		}
+		return "no"
+	}, 0
+	if mtgish.Registered("OracleCard.Card") {
+		nreg = 1
+	}
 	want := "Action.Beta\t2\tno\tyes\n" +
 		"Action.Gamma\t1\tno\tyes\n" +
-		"OracleCard.Card\t3\tno\tyes\n" +
+		"OracleCard.Card\t3\t" + reg("OracleCard.Card") + "\tyes\n" +
 		"Rule.Alpha\t3\tno\tyes\n" +
-		"total\tslice=all\tcards=3\tvariants=4\tregistered=0\tnot-in-schema=0\n"
+		fmt.Sprintf("total\tslice=all\tcards=3\tvariants=4\tregistered=%d\tnot-in-schema=0\n", nreg)
 	if out.String() != want {
 		t.Errorf("got\n%s\nwant\n%s", out.String(), want)
 	}
