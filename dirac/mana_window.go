@@ -2184,7 +2184,11 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.restrCensusDeferGap(k, p, a, sl, c)
 		return true
 	}
-	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+	forced := 0
+	if tapsDef.has(sl) {
+		c, forced = tapAnyColAnswerSplit(c) // the search's answers to the tap's any-colour triggers ride above the gap's own
+	}
+	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
 	return true
 }
 
@@ -2279,6 +2283,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 		return
 	}
 	if tapsDef.has(sl) {
+		c, forced := tapAnyColAnswerSplit(c)
 		if _, ok := s.riderAbilityOf(k, sl); ok {
 			s.riderGap(k, p, sl, c)
 			return
@@ -2293,7 +2298,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 			// (manaRider's riderDeferred gate; CR 605.3b)
 			s.manaRider(k, sl)
 		}
-		s.tapDeferFloat(k, p, sl, c, a)
+		s.tapDeferFloatAsks(k, p, sl, c, forced, a)
 		return
 	}
 	s.perms[sl].flags |= pfTapped
@@ -2674,7 +2679,7 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 	if tapsDef.any() && !gaps.andNot(tapsDef).any() {
 		// only Taps-deferred gaps: the subsets search (mana_tapsdefer.go
 		// deferGapSearch), not the ordered prefixes
-		var ans [MaxPerm]uint8
+		var ans [MaxPerm]uint16
 		var pick [MaxPerm]int8
 		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, nil, &ans, &pick, &dead) {
 			return true
@@ -2707,7 +2712,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		// deferGapSearch) -- a later gap's unit, or an earlier gap whose
 		// prefix's triggers end the payer beside it, is the sibling gorge's
 		// search reaches next
-		var ans [MaxPerm]uint8
+		var ans [MaxPerm]uint16
 		var pick [MaxPerm]int8
 		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, nil, &ans, &pick, &dead) {
 			return
