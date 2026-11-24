@@ -155,8 +155,8 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 			n *= 2
 		}
 	}
-	s.dmgRewriteClash(minusHits, setHits, dblHits)                 // repl_dmgminus.go
-	s.dmgRewritePrevClash(k, minusHits+setHits, srcSl, sl, combat) // repl_dmgminus.go
+	s.dmgRewriteClashAt(k, minusHits, setHits, dblHits, combat, rcp, srcCtrl) // repl_dmgminus.go
+	s.dmgRewritePrevClash(k, minusHits+setHits, srcSl, sl, combat)            // repl_dmgminus.go
 	if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {
 		for m := s.statM.and(s.ctrlM[rcp]); m.any(); m = m.rest() {
 			b := m.first()
@@ -369,7 +369,10 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 			continue
 		}
 		if n == 0 && ev.dst != NoSlot {
-			r.prevent(ev.dst) // protection from everything: all of its damage
+			// this event only: protection from everything zeroes every event to
+			// the recipient on its own, and a minus line (Lashknife Barrier)
+			// zeroes just the small hit beside a larger one
+			s.preventCombatEv(k, r, ev)
 			continue
 		}
 		d := n - int(ev.n)
@@ -590,9 +593,41 @@ func (s *State) replOrderCandsSeat(k *prep, fe *fzEv, p, sc, rcp uint8, n int) i
 				ro.plus |= 1 << n
 				n++
 			}
+		} else if g.anyRepl2&rb2DmgMinus != 0 && s.dmgMinusCand(k, b, fe.src, rcp, fe.dst) {
+			// a minus line beside another minus line commutes (their sum,
+			// floored) and replCombatGen already applied it: the walk poses
+			// gorge's no-op ask, as for two plus-N additions (the plus bit
+			// marks a candidate whose amount is already in ro.an)
+			if n == len(ro.cand) {
+				s.capFull(StallReplCands) // loud: never truncate the candidates
+				return -1
+			}
+			ro.cand[n] = s.perms[b].obj
+			ro.plus |= 1 << n
+			n++
 		}
 	}
 	return n
+}
+
+// minusBesidePlus reports whether the n collected candidates carry a minus line
+// and a plus-N addition: the two do not commute on a small amount (n=1: +1 then
+// -2 is 0, -2 then +1 is 1), and the kernel applies the addition first
+// (replPlus), so the pair stalls rather than guess gorge's order.
+func (s *State) minusBesidePlus(k *prep, n int) bool {
+	ro := &s.g.ro
+	plus, minus := false, false
+	for i := 0; i < n; i++ {
+		if ro.plus&(1<<i) == 0 {
+			continue
+		}
+		if k.gen.replBits[s.cardAt(s.objs[ro.cand[i]].slot)]&rbPlusDmg != 0 {
+			plus = true
+		} else {
+			minus = true
+		}
+	}
+	return plus && minus
 }
 
 // replOrderCandsFz fills s.g.ro's candidates for the frozen combat event fe
@@ -632,6 +667,10 @@ func (s *State) replOrderCandsFz(k *prep, fe *fzEv) int {
 			if n = s.replOrderCandsSeat(k, fe, p, sc, rcp, n); n < 0 {
 				return 0
 			}
+		}
+		if g.anyRepl2&rb2DmgMinus != 0 && s.minusBesidePlus(k, n) {
+			s.capFull(StallReplPlus) // a minus line and a plus-N addition do not commute
+			return 0
 		}
 	}
 	printed := false
@@ -942,7 +981,12 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		// doublings), so the host re-matches with its own controller: the
 		// same match roPlusAdd applies the pick with (repl_pluswalk.go), the
 		// source read as the frozen event's (an LKI a pause removed)
-		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 || s.genLost(k, sl) {
+		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 {
+			// a minus line (the walk marks it with the plus bit too): it is
+			// live while it still matches the event (replOrderCandsSeat)
+			return k.gen.anyRepl2&rb2DmgMinus != 0 && s.dmgMinusCand(k, sl, ro.askS, ro.p, ro.askD)
+		}
+		if s.genLost(k, sl) {
 			return false
 		}
 		card := s.cardAt(ro.askS)
