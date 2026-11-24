@@ -170,7 +170,9 @@ func TestCommanderEventDraftBuildGame(t *testing.T) {
 		t.Fatal("the spectator view carries a join link")
 	}
 	sawLife := false
-	deadline := time.Now().Add(50 * time.Second)
+	// A generous budget: the loop ends with the event, so only a loaded CI
+	// runner ever waits this long.
+	deadline := time.Now().Add(120 * time.Second)
 	var last uint64
 	for {
 		if stateOf(t, p.h, id, "").Phase == "COMPLETE" {

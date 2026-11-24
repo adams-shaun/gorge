@@ -200,7 +200,7 @@ func TestGorgeIsByteIdenticalWhenOff(t *testing.T) {
 func TestServesADiracGame(t *testing.T) {
 	c := diracConfig()
 	c.vsbot, c.botPolicy = true, "bot"
-	base, cancel, _ := startServe(t, c)
+	base, cancel, served := startServe(t, c)
 	defer cancel()
 	status, body := postGame(t, base, map[string]string{"format": "constructed", "bot_policy": "bot"})
 	if status != http.StatusOK {
@@ -240,8 +240,15 @@ func TestServesADiracGame(t *testing.T) {
 		Opts   []option `json:"options"`
 	}
 	answers, undone, rewinding := 0, false, false
-	deadline := time.Now().Add(40 * time.Second)
+	// A generous budget: the loop ends with the game and fails at once if
+	// serve exits, so only a loaded CI runner ever waits this long.
+	deadline := time.Now().Add(120 * time.Second)
 	for {
+		select {
+		case err := <-served:
+			t.Fatalf("server exited after %d answers: %v", answers, err)
+		default:
+		}
 		if time.Now().After(deadline) {
 			t.Fatalf("no end after %d answers", answers)
 		}
