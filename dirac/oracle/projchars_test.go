@@ -22,6 +22,9 @@ func TestGorgeKwMapping(t *testing.T) {
 		// Wurm) and Fabricate (Marionette Apprentice) are printed keywords in
 		// gorge's derived list with no kernel bit
 		{"Transmute:1 U U", 0}, {"Madness:2 G", 0}, {"Madness:2 R", 0}, {"Fabricate:1", 0},
+		// Flanking is gorge kwFlanking's expansion (a become-blocked trigger;
+		// kgen lower_flanking.go), listed in gorgeKwElsewhere with no kernel bit
+		{"Flanking:1", 0}, {"Flanking", 0},
 	} {
 		got, ok := gorgeKw(c.kw)
 		if !ok || got != c.want {
@@ -30,7 +33,7 @@ func TestGorgeKwMapping(t *testing.T) {
 	}
 	// a gorge keyword with no kernel bit is a projection error, never a
 	// silent drop
-	for _, kw := range []string{"Flanking:1", "Flanking"} {
+	for _, kw := range []string{"NotAKeyword:1", "NotAKeyword"} {
 		if _, ok := gorgeKw(kw); ok {
 			t.Errorf("gorgeKw(%q) mapped; want an error", kw)
 		}

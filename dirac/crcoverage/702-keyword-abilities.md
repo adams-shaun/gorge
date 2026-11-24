@@ -44,9 +44,9 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.23a-c | n/a | - | - | LOUD printed (15); SILENT granted (Rapid Fire) |
 | 702.24a | n/a | - | - | age counter at resolution; cost scaled per counter, hybrid chosen per counter |
 | 702.24b | n/a | - | - | per-instance trigger; no two-instance test |
-| 702.25a | n/a | - | - | one trigger per non-flanking blocker |
-| 702.25b | n/a | - | - | kw_flanking.go:16-18 comment wrongly calls this out of scope |
-| 702.26a | partial | `dirac/kw_phasing.go#State.phaseUntap` `dirac/kgen/lower_phasing.go#lowerCtx.phases` | `TestSpectralLockstep` | the effect (api Phases, no toggle) and the untap-step phase-in follow; K:Phasing and the toggle form stay refused |
+| 702.25a | follows | `dirac/kgen/lower_flanking.go#lowerCtx.lowerFlankingKw` `dirac/filter_flanking.go#State.lacksFlankingPerm` | `TestFlankingLockstep` | a printed bare K:Flanking lowers from gorge's expansion: one become-blocked trigger per (attacker, blocker) pair, the blocker filter withoutFlanking (kop.W7WithoutFlanking over CardDef.Flanking); a granted flanking and the withFlanking word stay refused |
+| 702.25b | n/a | - | - | each instance triggers separately: only a single printed line lowers (a second K:Flanking refuses, gorge counts derived instances in trigger_blocks.go); kw_flanking.go:16-18 comment wrongly calls this out of scope |
+| 702.26a | partial | `dirac/kw_phasing.go#State.phaseUntap` `dirac/kw_phasing.go#State.phasingCarrier` `dirac/kgen/lower_phasingkw.go#lowerCtx.lowerPhasingKw` `dirac/kgen/lower_phasing.go#lowerCtx.phases` | `TestSpectralLockstep` `TestPhasingLockstep` | the effect (api Phases) and the untap-step toggle: a printed bare K:Phasing lowers (CardDef.Phasing), the carrier phasing out as its untap step begins and in at the next; a granted Phasing and the phase-in / phase-out trigger modes stay refused |
 | 702.26b | follows | `dirac/kw_phasing.go#State.phaseOut` | `TestSpectralLockstep` | off every slot mask, so no walk sees it; leaves combat |
 | 702.26c | follows | `dirac/kw_phasing.go#State.phaseOut` | `TestSpectralLockstep` | phasing is no zone change: no enters or leaves trigger |
 | 702.26d | follows | `dirac/kw_phasing.go#State.phaseOut` | `TestSpectralLockstep` | the object keeps its version |
@@ -111,7 +111,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.60a,b | n/a | - | - | LOUD printed (5); SILENT granted (Thrumming Stone) |
 | 702.61a-c | partial | `dirac/kw_splitsecond.go#State.splitSecondHolds` `dirac/kw_splitsecond.go#State.filterSplitSecond` | `TestSplitSecondGrantPlaysInLockstep` `TestSplitSecondGrantMutation` `TestSplitSecondStackGrant` `TestPrintedSplitSecondBarsResponses` | a printed split second (CardDef.SplitSecond, a copy of the spell included) or a StatStackKw split second grant to a controller's instants and sorceries (Samut, Tyrant of Naktamun), read live off each spell on the stack; while one holds it the priority offer drops every cast and non-mana ability, keeping land plays, the Station and face-up special actions and mana abilities (gorge filterSplitSecondActions) |
 | 702.62a-d | partial | `dirac/kw_suspend.go#State.suspendAction` `dirac/kw_suspend.go#State.suspendTick` `dirac/kw_suspend.go#State.suspendAsk` `dirac/kw_suspend.go#State.suspendEnter` | `TestSuspendLockstep` | inherits gorge: the special action from the hand under the card's cast timing, the upkeep counter removal without the stack, the may-cast ask of the last counter (a legal target and no CantBeCast static) and a creature's haste until its caster loses control (it resumes if control returns, as gorge's Card.Self+YouCtrl grant does); a spell that exiles itself with time counters is suspended (702.62b); an X time, a suspended-card filter and counter-removed triggers from exile stay refused |
-| 702.63a-c | n/a | - | - | works; kw:Vanishing unregistered gates 21 printed |
+| 702.63a-c | follows | `dirac/kgen/lower_vanishing.go#lowerCtx.lowerVanishingKw` `dirac/kgen/lower_counterremoved.go#lowerCtx.ctrRemovedTrigger` | `TestVanishingLockstep` | K:Vanishing lowers from gorge's expansion: the enters-with-time-counters replacement, the upkeep removal and the last-counter sacrifice (CounterRemoved TIME, NewCounterAmount 0, admitted on the battlefield only with the Vanishing tag; the kernel fires removal only for a counter that left, as gorge's positive-to-zero LKI test) |
 | 702.64a-c | n/a | - | - | SILENT (granted-only in corpus) |
 | 702.65a,b | n/a | - | - | LOUD (1) |
 | 702.66a-c | n/a | - | - |  |
@@ -147,7 +147,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.95a-d | n/a | - | - |  |
 | 702.95e | n/a | - | - | unpair conditions not located |
 | 702.96 | n/a | - | - | Alt cost; overloaded flag swaps target for each at resolution. dirac: no carriers |
-| 702.97 | n/a | - | - | LOUD: kw:Scavenge unregistered, 0/14 carriers playable. dirac: no carriers |
+| 702.97 | partial | `dirac/kgen/lower_scavenge.go#lowerCtx.lowerScavengeKw` `dirac/kgen/lower_scavenge.go#lowerCtx.scavengeExiled` | `TestScavengeLockstep` | K:Scavenge lowers from gorge's expansion (a sorcery-speed graveyard AB$ PutCounter exiling the card) with the exiled card's power read as its printed number; a star power (Boneyard Mycodrax, Dodgy Jalopy) stays refused |
 | 702.98 | n/a | - | - | Entry +1/+1 election; countered creature can't block. dirac: no carriers |
 | 702.99 | n/a | - | - | Encode on resolution; combat-damage copy cast. dirac: no carriers |
 | 702.100a | partial | `dirac/trig_objgate.go#State.objTrigGate` | `TestUnreadLockstep` | the K:Evolve keyword is not lowered; the ability word written as an ETB trigger's Condition$ Evolve (Sharp-Eyed Rookie, Evolving Adaptive; Tf2Evolve) is read as the trigger fires only, not rechecked on resolution, as gorge's evolveConditionHolds (inherits gorge, D5) |
