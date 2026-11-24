@@ -350,6 +350,16 @@ type TriggerContext struct {
 	// role through the marker rather than through this field. Zero outside
 	// an Attached trigger.
 	TriggerBearer state.ObjID
+	// TriggerLostBoard is the battlefield the departing player controlled
+	// when a Mode$ LosesGame trigger fired, in battlefield-zone order (CR
+	// 800.4a, 608.2h): the loss's own state-based sweep removes those
+	// permanents before the trigger resolves, so Defined$
+	// TriggeredLastStateBattlefieldLKICopy (Miss Highwater) reads the ids
+	// captured here, never the live battlefield. Captured by rules/
+	// triggerReferents from the PlayerLost event, immutable once built, and
+	// not serialized into events.Event: replay re-derives it at the same
+	// point. Empty outside a LosesGame capture.
+	TriggerLostBoard []state.ObjID
 	// TriggerAbility is the minted ability STACK OBJECT an AbilityCast /
 	// SpellAbilityCast trigger fired on. An AbilityPush event's Obj
 	// is the source PERMANENT -- events.Apply mints the ability's stack wrapper

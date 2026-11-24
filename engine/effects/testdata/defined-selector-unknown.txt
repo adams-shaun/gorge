@@ -14,7 +14,6 @@ Defined$ TargetedSource	1
 Defined$ ThisTargetedPlayer	2
 Defined$ TriggeredBlockers	2
 Defined$ TriggeredCauseController	1
-Defined$ TriggeredLastStateBattlefieldLKICopy.Creature+ControlledBy TriggeredPlayer,Artifact+ControlledBy TriggeredPlayer	1
 Defined$ ValidAll Card.IsCommander+YouOwn	1
 Defined$ ValidAll Card.TopLibrary+TargetedPlayerCtrl	1
 Defined$ ValidAll Card.YouOwn+!IsRemembered+IsCommander	1

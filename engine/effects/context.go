@@ -762,6 +762,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	if ts, ok := triggeredCardQualified(h, c, spec); ok {
 		return ts, true
 	}
+	// Miss Highwater's `TriggeredLastStateBattlefieldLKICopy.<filter>...`: the
+	// triggered player's battlefield as it stood when they lost.
+	if ts, ok := lostBoardDefined(h, c, spec); ok {
+		return ts, true
+	}
 	// The `Spawner>` chain (Forge's adjustTriggerContext): an immediate
 	// trigger's body re-anchors the rest of the selector on the SPAWNING
 	// trigger, so `Defined$ Spawner>TriggeredTarget` (Biting-Palm Ninja's

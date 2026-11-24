@@ -320,6 +320,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerTarget = state.Target{Obj: ev.IDs[0]}
 			c.TriggerBearer = ev.IDs[0]
 		}
+	case cards.TriggerLosesGame:
+		// The loser is the event's Player. Their battlefield is read NOW, at the
+		// PlayerLost emit, before the CR 800.4a sweep moves it.
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerLostBoard = append([]state.ObjID(nil), e.G.Zone(state.ZBattlefield, ev.Player)...)
 	case cards.TriggerPhase:
 		c.TriggerPlayer = player(e.G.Active)
 	case cards.TriggerBecomeMonarch:
