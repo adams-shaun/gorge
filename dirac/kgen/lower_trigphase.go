@@ -1,11 +1,15 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/engine/state"
+import (
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
+)
 
 // spendPhaseConds appends a trigger's ManaNotSpent$ / ManaSpent$ cast-spend
-// gates and its Phase$ step gate to conds, the header gates lowerTriggered
-// conjoins into tr.Cond. mode is the trigger's Mode$.
-func (lc *lowerCtx) spendPhaseConds(tp *params, mode string, conds *[]lCond) error {
+// gates, the self-ETB body's ConditionManaSpent$ intervening-if, and its
+// Phase$ step gate to conds, the header gates lowerTriggered conjoins into
+// tr.Cond. mode is the trigger's Mode$.
+func (lc *lowerCtx) spendPhaseConds(t cards.Trigger, tp *params, mode string, conds *[]lCond) error {
 	if v, ok := tp.get("ManaNotSpent"); ok {
 		// "sacrifice it unless {W} was spent to cast it" (CR 601.2h): the
 		// trigger fires only while the gate reads unspent, gorge
@@ -22,6 +26,11 @@ func (lc *lowerCtx) spendPhaseConds(tp *params, mode string, conds *[]lCond) err
 		if err != nil {
 			return err
 		}
+		*conds = append(*conds, c)
+	}
+	if c, ok, err := lc.selfETBInterveningManaSpentCond(t); err != nil { // lower_manaspentcond.go
+		return err
+	} else if ok {
 		*conds = append(*conds, c)
 	}
 	if v, ok := tp.get("Phase"); ok && mode != "Phase" {
