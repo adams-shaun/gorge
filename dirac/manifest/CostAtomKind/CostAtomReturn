@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomReturn
+value: next
+status: active
+doc: CostAtomReturn: return the source to its owner's hand as a cost. Dirac: leave to ZoneHand (CostReturnSelf).

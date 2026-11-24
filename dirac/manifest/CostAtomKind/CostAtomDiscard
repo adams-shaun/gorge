@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomDiscard
+value: next
+status: active
+doc: CostAtomDiscard: discard N cards matching F: the cards the pick stage chose (pkDiscard).

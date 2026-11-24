@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomMill
+value: next
+status: active
+doc: CostAtomMill: mill N from your library as a cost (gorge payMillCostParts). Dirac: millCostPay (cost_millcost.go).
