@@ -259,14 +259,22 @@ func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relax
 			}
 		}
 	}
-	if s.storeCensusGap(k, p) {
-		complete, relaxable, gains = false, false, true // a storage battery's SubCounter<X> cost is unpriced
+	if s.storeCensusLoadedGap(k, p) {
+		complete, relaxable, gains = false, false, true // a loaded storage battery's SubCounter<X> cost is unpriced
 	}
 	if s.tapXCensusGap(k, p).and(s.occ).any() {
 		complete, relaxable, gains = false, false, true // its tapXType cost is unpriced
 	}
-	if s.scriptCtr(k, p).any() || s.scriptFilt(k, p).any() {
-		complete, relaxable, gains = false, false, true // a counter-cost or paid-filter activation is repeatable
+	if s.scriptCtr(k, p).any() {
+		complete, relaxable, gains = false, false, true // a counter-cost activation is repeatable
+	}
+	if f := s.scriptFilt(k, p); f.any() {
+		// a paid filter is a census gap; one that nets no supply beside its
+		// source's free {T} gains nothing (gorge's gapOnceNetSupply)
+		complete, relaxable = false, false
+		if s.filtNetsSupply(k, f) {
+			gains = true
+		}
 	}
 	if s.sacOtherManaLive(k, p) {
 		complete, relaxable, gains = false, false, true // the sacrificed permanent is no census source

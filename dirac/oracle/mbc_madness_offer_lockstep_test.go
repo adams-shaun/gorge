@@ -8,4 +8,9 @@ import "testing"
 func TestMBCTwinsOfMaurerEstateReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "madness_cast_offer_affordability")
+	// CR 601.2g, 702.35a: the same card discarded with Sand Silos holding no
+	// storage counter beside Sunken Ruins and a Mountain: the {B} cannot be
+	// made, so the ask offers only "no" (decision 813 of tail-23-c000 pair 38;
+	// gorge offered no, the kernel yes and no).
+	stdReproNamed(t, "madness_cast_empty_storage_land_unpayable")
 }
