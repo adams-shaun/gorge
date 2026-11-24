@@ -800,7 +800,12 @@ func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
 
 // moveRef moves the object a Ref names to zone z (its owner's).
 func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
-	o := s.objRefObj(r)
+	s.moveRefObj(k, r, s.objRefObj(r), z, bottom)
+}
+
+// moveRefObj is moveRef for the object o the ref r resolved to (one member of
+// a remembered set, when r names the whole set).
+func (s *State) moveRefObj(k *prep, r kop.Ref, o Obj, z kop.Zone, bottom bool) {
 	if o == NoObj || s.freeQueued(o) || s.freeBegun(o) {
 		// gorge begins a Play's free cast at the answer, so an "if you don't
 		// cast it, move it" tail finds a spell, not a card in its zone
