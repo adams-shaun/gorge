@@ -50,7 +50,6 @@ func TestProgramSliceVariantsRegistered(t *testing.T) {
 		"TokenFlag", "TokenCopyEffects", "TokenCopyEffect", "ExileFlag", "LookAtTopOfLibraryAction"},
 		map[string]string{
 			"Actions.TargetedDistributed":                                    "dividing damage",
-			"ManaProduce.EachManaColorAmongPermanents":                       "per-color mana",
 			"ManaProduce.ManaOfTheChosenColor":                               "chosen-color mana",
 			"CreatableToken.ThoseTokens":                                     "tokens from an earlier step",
 			"LookAtTopOfLibraryAction.APlayerChoosesAPileTopPutIntoHand":     "piles",
@@ -62,6 +61,7 @@ func TestProgramSliceVariantsRegistered(t *testing.T) {
 func TestActionLoweringAL(t *testing.T) {
 	alStubs(t, map[string]lowerFunc{
 		"Player.Stub":        func(*Ctx, node) (any, error) { return &ir.Ref{Kind: ir.RefYou}, nil },
+		"Permanents.Stub":    func(*Ctx, node) (any, error) { return alFilter(), nil },
 		"SettableColor.Stub": func(*Ctx, node) (any, error) { return ir.ColorR, nil },
 		"PermanentRule.Stub": func(*Ctx, node) (any, error) { return &ir.Effect{Kind: ir.EffCantBlock}, nil },
 		"PlayerEffect.Stub":  func(*Ctx, node) (any, error) { return &ir.Effect{Kind: ir.EffNoMaxHandSize}, nil },
@@ -104,6 +104,8 @@ func TestActionLoweringAL(t *testing.T) {
 			step(ir.Step{Verb: ir.VerbAddMana, Mana: wuC(ir.ColorU | ir.ColorB)})},
 		{"AddMana any", tn("Action", "AddMana", mp("AnyManaColor")),
 			step(ir.Step{Verb: ir.VerbAddMana, Mana: wuC(allFive)})},
+		{"AddMana each colour", tn("Action", "AddMana", tn("ManaProduce", "EachManaColorAmongPermanents", tn("Permanents", "Stub"))),
+			step(ir.Step{Verb: ir.VerbAddMana, Word: "each-color-among", Filter: alFilter()})},
 		{"AddManaRepeated", tn("Action", "AddManaRepeated", mp("ManaProduceR"), tN2),
 			step(ir.Step{Verb: ir.VerbAddMana, Mana: wuC(ir.ColorR), N: two})},
 		{"Attach", tn("Action", "AttachPermanentToPermanent", ref, ref), step(ir.Step{Verb: ir.VerbAttach, Obj: self, Other: self})},

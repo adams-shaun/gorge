@@ -49,6 +49,13 @@ func printAddMana(p *pr, steps []*ir.Step) (*node, int, error) {
 	if st.Optional || st.Who != nil {
 		return nil, 0, bad
 	}
+	if st.Word == "each-color-among" && st.Filter != nil && len(st.Mana) == 0 && st.N == nil {
+		v, err := p.valid(st.Filter)
+		if err != nil {
+			return nil, 0, err
+		}
+		return &node{API: "Mana", Params: []kv{{"Produced", "Special EachColorAmong_Valid " + v}}}, 1, nil
+	}
 	if len(st.Mana) == 0 || (st.N != nil && len(st.Mana) != 1) {
 		return nil, 0, bad
 	}

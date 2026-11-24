@@ -16,7 +16,12 @@ const allFive = ir.ColorW | ir.ColorU | ir.ColorB | ir.ColorR | ir.ColorG
 func constV(n int32) *ir.Value { return &ir.Value{Kind: ir.VConst, N: n} }
 
 // manaList is what ManaProduce lowers to.
-type manaList struct{ syms []ir.ManaSym }
+type manaList struct {
+	syms []ir.ManaSym
+	// eachColorAmong is set instead of syms for "one mana of each color
+	// among" those objects.
+	eachColorAmong *ir.Filter
+}
 
 // mana lowers a ManaProduce to its symbols.
 func mana(c *Ctx, x any) ([]ir.ManaSym, error) {
@@ -27,6 +32,9 @@ func mana(c *Ctx, x any) ([]ir.ManaSym, error) {
 	m, ok := v.(*manaList)
 	if !ok {
 		return nil, fmt.Errorf("%s lowers to %T, want mana", qualified(x), v)
+	}
+	if m.eachColorAmong != nil {
+		return nil, &RefusalError{Key: "ManaProduce.EachManaColorAmongPermanents:combined", Path: c.Src()}
 	}
 	return m.syms, nil
 }
@@ -120,11 +128,18 @@ func effectList(c *Ctx, x any) ([]*ir.Effect, error) { return c.Effects(list(x))
 
 func init() {
 	register("Action.AddMana", func(c *Ctx, n node) (any, error) {
-		m, err := mana(c, rawArgs(n))
+		v, err := c.lower(rawArgs(n))
 		if err != nil {
 			return nil, err
 		}
-		return &ir.Step{Verb: ir.VerbAddMana, Mana: m}, nil
+		ml, ok := v.(*manaList)
+		if !ok {
+			return nil, fmt.Errorf("%s lowers to %T, want mana", qualified(rawArgs(n)), v)
+		}
+		if ml.eachColorAmong != nil {
+			return &ir.Step{Verb: ir.VerbAddMana, Word: "each-color-among", Filter: ml.eachColorAmong}, nil
+		}
+		return &ir.Step{Verb: ir.VerbAddMana, Mana: ml.syms}, nil
 	})
 	register("Action.AddManaRepeated", func(c *Ctx, n node) (any, error) {
 		m, err := mana(c, argN(n, 0))
@@ -428,13 +443,20 @@ func init() {
 	// ManaProduce.
 	for v, cs := range map[string]ir.ColorSet{"W": ir.ColorW, "U": ir.ColorU, "B": ir.ColorB, "R": ir.ColorR, "G": ir.ColorG} {
 		sym := ir.ManaSym{Kind: ir.ManaColored, Colors: cs}
-		register("ManaProduce.ManaProduce"+v, func(*Ctx, node) (any, error) { return &manaList{[]ir.ManaSym{sym}}, nil })
+		register("ManaProduce.ManaProduce"+v, func(*Ctx, node) (any, error) { return &manaList{syms: []ir.ManaSym{sym}}, nil })
 	}
 	register("ManaProduce.ManaProduceC", func(*Ctx, node) (any, error) {
-		return &manaList{[]ir.ManaSym{{Kind: ir.ManaColorless}}}, nil
+		return &manaList{syms: []ir.ManaSym{{Kind: ir.ManaColorless}}}, nil
 	})
 	register("ManaProduce.AnyManaColor", func(*Ctx, node) (any, error) {
-		return &manaList{[]ir.ManaSym{{Kind: ir.ManaColored, Colors: allFive}}}, nil
+		return &manaList{syms: []ir.ManaSym{{Kind: ir.ManaColored, Colors: allFive}}}, nil
+	})
+	register("ManaProduce.EachManaColorAmongPermanents", func(c *Ctx, n node) (any, error) {
+		f, err := c.Filter(rawArgs(n))
+		if err != nil {
+			return nil, err
+		}
+		return &manaList{eachColorAmong: f}, nil
 	})
 	register("ManaProduce.And", func(c *Ctx, n node) (any, error) {
 		out := &manaList{}
@@ -459,7 +481,7 @@ func init() {
 			}
 			cs |= m[0].Colors
 		}
-		return &manaList{[]ir.ManaSym{{Kind: ir.ManaColored, Colors: cs}}}, nil
+		return &manaList{syms: []ir.ManaSym{{Kind: ir.ManaColored, Colors: cs}}}, nil
 	})
 
 	register("ChoosableColor.AnyColor", func(*Ctx, node) (any, error) { return allFive, nil })
