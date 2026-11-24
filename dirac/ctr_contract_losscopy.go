@@ -7,7 +7,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // create a token that's a copy of it", the Effect its damage trigger makes for
 // the player it contracts. The Effect is per seat here: owed[p] is the seat
 // whose Effect owes p's loss copy (that seat plus one, 0 for none), set when
-// the trigger's put gives p a contract counter (putContract) and read by
+// the trigger's put gives p a contract counter with the ext op's C set
+// (putContract; kgen leaves C zero until it lowers the Effect) and read by
 // leaveGame as p leaves the game while the game goes on (a pod; two seats end
 // the game on the loss, so no copy is made there).
 //

@@ -112,3 +112,43 @@ func TestContractLossCopiesLoserBoard(t *testing.T) {
 		t.Fatalf("a second sweep changed the copies: %v", again)
 	}
 }
+
+// TestContractPutRecordsTheLossCopyOnlyWhenArmed: the ext put makes the owed
+// record only with the op's C set (the Effect's put); with C zero, the form
+// kgen emits today, it gives the counter and records nothing.
+func TestContractPutRecordsTheLossCopyOnlyWhenArmed(t *testing.T) {
+	set := cardsettest.Set(t, "mbc")
+	entries := []cardset.Entry{{Name: "Miss Highwater", Count: 4}, {Name: "Island", Count: 20}}
+	decks := make([][]cardset.Entry, MaxSeats)
+	for p := range decks {
+		decks[p] = entries
+	}
+	tbl, da, err := set.MatchupN(decks)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cds [MaxSeats][]CardID
+	for p := range cds {
+		cds[p] = da[p]
+	}
+	s := new(State)
+	s.InitN(tbl, cds, MaxSeats, 1, Config{NoElide: true})
+	k := s.k()
+	put := func(c int16) {
+		in := kop.ExtInstr(kop.ExtPutContract)
+		in.Obj, in.B, in.C = kop.RefEachOpponent, kop.Const(1), c
+		s.res.e.ctrl = 0
+		s.putContract(k, &in)
+	}
+	put(0)
+	if s.contracts(1) != 1 {
+		t.Fatalf("contracts(1) = %d after the put, want 1", s.contracts(1))
+	}
+	if _, ok := s.contractOwedBy(1); ok {
+		t.Fatal("an unarmed put recorded the loss copy")
+	}
+	put(1)
+	if c, ok := s.contractOwedBy(1); !ok || c != 0 {
+		t.Fatalf("an armed put's record: seat %d ok %v, want seat 0", c, ok)
+	}
+}
