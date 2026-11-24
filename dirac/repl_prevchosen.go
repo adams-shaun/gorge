@@ -20,7 +20,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //	     source that changed colour since the choice is not prevented); 0 is spent
 //	sc   prevNextSc | the pcTo/pcAny/pcTurn bits
 //	prevX  pxFrom|pxPlayers with the controller's seat in the rider's player
-//	     bits; no rider kind, which no other record carries
+//	     bits; no rider kind or pxRidGain (pnxChosenForm)
 //	prevRidRec  t the recipient's code and n its version (pcTo)
 //
 // The source is matched by object, as gorge's ChosenCardStrict is by ObjID: a
@@ -83,6 +83,9 @@ func (s *State) prevChosenAdd(k *prep, in *kop.Instr) {
 			}
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, prevChosenLive|kop.ColorMask(mask), sc, TCode(s.g.chosen[0])
 			s.g.prevX[i] = pxFrom | pxPlayers | s.res.e.ctrl<<pxSeatShift
+			if in.C&kop.PrevNextGain != 0 {
+				s.g.prevX[i] |= pxRidGain // prevNextTake gains the prevented damage for the seat
+			}
 			if rr != nil {
 				rr.t, rr.n, rr.gate = rt, ver, false
 			}
@@ -117,8 +120,12 @@ func (s *State) pnxChosenTurn(i int) bool {
 	return pnxChosenForm(s.g.prevX[i]) && s.g.prevCol[i].sc&pcTurn != 0
 }
 
-// pnxChosenForm reports whether rider byte x is a chosen-source record's.
-func pnxChosenForm(x uint8) bool { return x&(pxFrom|pxPlayers|pxRider) == pxFrom|pxPlayers }
+// pnxChosenForm reports whether rider byte x is a chosen-source record's: no
+// rider, or the gain rider (kop.PrevNextGain: Reverse Damage's "you gain life
+// equal to the damage prevented this way").
+func pnxChosenForm(x uint8) bool {
+	return x&(pxFrom|pxPlayers) == pxFrom|pxPlayers && (x&pxRider == 0 || x&pxRider == pxRidGain)
+}
 
 // pnxChosenMatches reports whether chosen-source record i matches damage to
 // the recipient code from the permanent at srcSl (NoSlot: the resolving spell

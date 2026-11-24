@@ -93,7 +93,8 @@ func (lc *lowerCtx) chooseSource(ps *params) error {
 
 // chosenSrcEffect is the Effect half: the chosen-source DamageDone
 // replacement, either the shield whose body is the Effect's self-exile (spent
-// on the first event it prevents: PreventionEffect$ True) or the bodyless
+// on the first event it prevents: PreventionEffect$ True), the same with a
+// gain-the-prevented-life body first (kop.PrevNextGain: Reverse Damage), or the bodyless
 // Prevent$ True line that prevents every event from the source this turn
 // (kop.PrevNextChosenTurn: Pay No Heed). The recipient is You, any (no
 // ValidTarget$: Pilgrim of Justice, kop.PrevNextChosenAny), or the Effect's
@@ -136,6 +137,10 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 	case strings.TrimSpace(rm["Prevent"]) == "True" && !hasW && !hasPE:
 		c |= kop.PrevNextChosenTurn
 	case strings.TrimSpace(rm["PreventionEffect"]) == "True" && rm["Prevent"] == "" && lc.bodyIsSelfExile(strings.TrimSpace(rm["ReplaceWith"])):
+	case strings.TrimSpace(rm["PreventionEffect"]) == "True" && rm["Prevent"] == "" && lc.riderBodyIsGainSub(strings.TrimSpace(rm["ReplaceWith"])):
+		// Reverse Damage: the controller gains the prevented damage, then the
+		// Effect exiles itself (lower_preventrider.go)
+		c |= kop.PrevNextGain
 	default:
 		return refuse("ChooseSource Effect replacement shape")
 	}

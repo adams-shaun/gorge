@@ -24,7 +24,8 @@ var chooseSourceForms = []formCase{
 	{card: "Kithkin Armor", form: "ImprintCards$ AttachedBy Sacrificed", refused: "replacement shape"},
 	{card: "Beacon of Destiny", form: "damage dealt to the Effect's source instead", refused: "replacement param DamageTarget"},
 	{card: "Deflecting Palm", form: "damage dealt to the source's controller instead", refused: "replacement shape"},
-	{card: "Cho-Arrim Alchemist", form: "gain life instead", refused: "replacement shape"},
+	{card: "Cho-Arrim Alchemist", form: "gain the prevented life, then the self-exile", lir: "PreventNext A=0 C=142"},
+	{card: "Shadowbane", form: "a gain body behind a ConditionCheckSVar$", refused: "replacement shape"},
 }
 
 // TestChooseSourceShapeForms pins the lowered and refused ChooseSource shapes.
