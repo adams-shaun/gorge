@@ -1,0 +1,21 @@
+# The blind face-down exile (CR 406.3): a Dig of your own library and a
+# remembering ChangeZone / ChangeZoneAll with ExileFaceDown$, read as gorge
+# applyMoveFaceDown's exiled_with_face_down marker, for
+# dirac/oracle/exilefacedown_test.go. Disenchant, Shock and Doom Blade take
+# the sources off the battlefield.
+Bomat Courier
+Connecting the Dots
+Triumph of Saint Katherine
+Induced Amnesia
+Raging Goblin
+Savannah Lions
+Shock
+Disenchant
+Doom Blade
+Scathe Zombies
+Wind Drake
+Unsummon
+Mountain
+Plains
+Island
+Swamp
