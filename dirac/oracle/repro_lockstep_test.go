@@ -25,6 +25,16 @@ func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	}
 }
 
+// reproPoolSet is the card set a recording replays on: a synthetic evidence pool, or a
+// fixture pool (dirac/cardset/pools/fixtures) with every lowered card playable.
+func reproPoolSet(t *testing.T, pool string) cardset.Set {
+	t.Helper()
+	if cardset.IsSynthName(pool) {
+		return cardsettest.Synth(t, pool)
+	}
+	return cardsettest.Set(t, pool)
+}
+
 // synthReproRun is synthReproLockstep's replay: the result and the count of
 // scripted actions that were not offered.
 func synthReproRun(t *testing.T, file, pool string, cfg Config) (Result, int) {
@@ -34,7 +44,7 @@ func synthReproRun(t *testing.T, file, pool string, cfg Config) (Result, int) {
 		t.Fatal(err)
 	}
 	reg := synthReg(t)
-	set := cardsettest.Synth(t, pool)
+	set := reproPoolSet(t, pool)
 	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
@@ -378,16 +388,17 @@ func TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep(t *testing.T) {
 	synthReproLockstep(t, "attack_trigger_pump_misses_returned_attacker", "std-msh", Config{})
 }
 
-// Tarnation Vista beside a Lotus Ring on a creature token: both are census gaps of
-// gorge's (the Vista's each-colour ability, the Ring's granted sacrifice-only mana),
-// and its one prefix search activates the gaps in battlefield order, so the Vista,
-// entered first, taps for its chosen colour before the Ring's bearer is sacrificed,
-// though the Ring alone pays the Equip. The kernel's grant search lists the Vista as
-// a candidate too (CR 601.2g, 605.3a).
+// Bloom Tender ("{T}: For each color among permanents you control, add one mana of that
+// color", Tarnation Vista's census gap without the fee) beside a Basal Sliver whose granted
+// "Sacrifice this permanent: Add {B}{B}" alone pays a Walking Corpse: both are census gaps
+// of gorge's, and its one prefix search activates the gaps in battlefield order, so the
+// Tender, entered first, taps for its colours before the Sliver is sacrificed. The
+// kernel's grant search lists the each-colour gap as a candidate too (CR 601.2g, 605.3a).
+// Rebuilt on the fixture pool sacgrant1 after Forge 9db1009ef8 gave Lotus Ring's granted
+// ability {T}, which it no longer exercises.
 func TestEachColourGapBeforeAGrantedSacrificeSourceLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "std-big", Config{})
+	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "sacgrant1", Config{})
 }
 
 // Nexus of Becoming paid by a plan holding a Treasure beside Tarnation Vista, with Rest
@@ -399,14 +410,15 @@ func TestPlanTapsItsSacrificingSourcesLastLockstep(t *testing.T) {
 	synthReproLockstep(t, "plan_taps_sacrifice_last", "std-big", Config{})
 }
 
-// Lotus Ring's granted "Sacrifice this creature: Add three mana" on a tapped Ancient
-// Cornucopia: the sacrifice needs no {T}, so gorge's census still counts the bearer
-// and offers both Rings' Equip {3}. The kernel's availability skipped a tapped source
-// unless its own view was the sacrifice-only grant (CR 602.2, 605.1a).
+// A tapped source's granted sacrifice-only mana (Basal Sliver's "Sacrifice this permanent:
+// Add {B}{B}", Rain of Filth's "Sacrifice this land: Add {B}"): the sacrifice needs no {T},
+// so gorge's census still counts the tapped bearer and offers the play it funds. The
+// kernel's availability skipped a tapped source unless its own view was the
+// sacrifice-only grant (CR 602.2, 605.1a). Rebuilt on the fixture pool sacgrant1 after
+// Forge 9db1009ef8 gave Lotus Ring's granted ability {T}, which it no longer exercises.
 func TestGrantedSacrificeOnATappedBearerLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "std-big", Config{})
+	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "sacgrant1", Config{})
 }
 
 // Restless Reef's {2}{U}{B} paid beside Sunken Citadel, whose two-mana land-only
@@ -420,15 +432,15 @@ func TestChosenPairTrialKeepsTheHandReserveLockstep(t *testing.T) {
 }
 
 // Collector's Cage's {1}, {T} counter ability while the only creature its controller has
-// carries Lotus Ring's granted "Sacrifice this creature: Add three mana": the sacrifice
+// carries Basal Sliver's granted "Sacrifice this permanent: Add {B}{B}": the sacrifice
 // floats the mana but leaves the ability no target, so gorge's prefix search goes on
-// through a pass, and the dies trigger's token copy is the target. The search stopped at
-// the priced node, and the autopay surface dropped a play the kernel offers (CR 601.2c,
-// 602.2b).
+// through a pass, and the Pest token Blight Mound makes when the creature dies is the
+// target. The search stopped at the priced node, and the autopay surface dropped a play
+// the kernel offers (CR 601.2c, 602.2b). Rebuilt on the fixture pool sacgrant1 after
+// Forge 9db1009ef8 gave Lotus Ring's granted ability {T}, which it no longer exercises.
 func TestPrefixSearchContinuesPastALostTargetLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "std-big", Config{GorgeAutopaySurface: true})
+	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "sacgrant1", Config{GorgeAutopaySurface: true})
 }
 
 // A Command Tower with no commander makes nothing (CR 903.4f), so gorge's census is
