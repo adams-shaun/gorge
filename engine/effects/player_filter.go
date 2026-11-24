@@ -1046,10 +1046,7 @@ func matchesPlayerSpecSVars(g *state.Game, h Host, eval CountEval, c *Ctx, spec 
 		for i, clause := range clauses {
 			neg := strings.HasPrefix(clause, "!")
 			plain := strings.TrimPrefix(clause, "!")
-			base, qualifier, hasDot := strings.Cut(plain, ".")
-			if !hasDot {
-				base, qualifier = "Player", plain
-			}
+			base, qualifier := playerClauseBase(plain)
 			if base != "Player" && base != "Opponent" && base != "Other" && base != "You" {
 				continue
 			}

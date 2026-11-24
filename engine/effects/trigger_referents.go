@@ -713,7 +713,10 @@ func controlReferentPlayerAltKnown(a *playerAlt) bool {
 		return playerBase && playerHasMostCodes.Code(kind) != 0
 	}
 	if rem, is := strings.CutPrefix(a.qualifier, "controls"); is {
-		return playerBase && rem != ""
+		// The evaluator reads the generic controls<ValidCards> property on
+		// every known base (Player/Any/You/Opponent/Other), so the
+		// classifier must not restrict it to Player/Any.
+		return rem != ""
 	}
 	if a.qualCode != 0 {
 		return true
