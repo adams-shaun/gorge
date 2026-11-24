@@ -33,10 +33,10 @@ func (e *Engine) fireTimeRememberedStamps(remembered []state.Target) []state.Tar
 // trigger's referents cannot find (CR 400.7). It is computed once as the
 // trigger starts to resolve, so moves the resolution itself makes (CR
 // 400.7j: "exile it, then return it") are never listed. nil when none.
-func (e *Engine) rememberedMovedSinceFire(stamps []state.TargetStamp) []state.ObjID {
+func rememberedMovedSinceFire(g *state.Game, stamps []state.TargetStamp) []state.ObjID {
 	var out []state.ObjID
 	for _, s := range stamps {
-		if o := e.G.Obj(s.Obj); o != nil && o.ZoneGen != s.ZoneGen {
+		if o := g.Obj(s.Obj); o != nil && o.ZoneGen != s.ZoneGen {
 			out = append(out, s.Obj)
 		}
 	}
@@ -60,8 +60,10 @@ func sourceMovedSinceFire(g *state.Game, stack *state.Object) bool {
 
 // bindMovedSinceFire sets the two resolution-start CR 400.7 reads on tc: the
 // stamped remembered objects that changed zones since the trigger fired, and
-// whether its own source did. stack is the ability's stack object.
-func bindMovedSinceFire(e *Engine, tc *effects.TriggerContext, stack *state.Object) {
-	tc.TriggerRememberedMoved = e.rememberedMovedSinceFire(tc.TriggerRememberedStamps)
-	tc.TriggerSourceMoved = sourceMovedSinceFire(e.G, stack)
+// whether its own source did. stack is the ability's stack object. A delayed
+// trigger's stack Source is its creator, not the affected object the body
+// names (tc.DelayedSelf), so its source-moved read stays false.
+func bindMovedSinceFire(g *state.Game, tc *effects.TriggerContext, stack *state.Object) {
+	tc.TriggerRememberedMoved = rememberedMovedSinceFire(g, tc.TriggerRememberedStamps)
+	tc.TriggerSourceMoved = tc.DelayedSelf == 0 && sourceMovedSinceFire(g, stack)
 }
