@@ -287,7 +287,7 @@ func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID, sc *Spec
 }
 
 // hasTypePredicateCtx matches a type word, or a space-separated multi-word
-// subtype (Time Lord) as every one of its words. strings.Cut rather than
+// subtype (Time Lord) as itself or as every one of its words. strings.Cut rather than
 // strings.Fields: this is the filter hot path and must not allocate
 // (TestSimpleFilterMatchingDoesNotAllocate).
 func hasTypePredicateCtx(o *state.Object, t string, sc SpecContext) bool {
@@ -299,6 +299,13 @@ func hasTypePredicateCtx(o *state.Object, t string, sc SpecContext) bool {
 func hasTypePredicateCtxPtr(o *state.Object, t string, sc *SpecContext) bool {
 	if t == "" {
 		return false
+	}
+	// CR 205.3m: a parsed face carries Time Lord as the one subtype "Time
+	// Lord" (cards.coalesceMultiWordTypes), so the whole term is tried
+	// first; the word-by-word walk below still answers a list that holds
+	// the words separately (a materialised all-creature-types grant).
+	if strings.IndexByte(t, ' ') >= 0 && hasTypeCtxPtr(o, t, sc) {
+		return true
 	}
 	for {
 		word, rest, more := strings.Cut(t, " ")
