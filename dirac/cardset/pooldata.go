@@ -549,6 +549,13 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 			choosesType = true // sharing a creature type with the attacker or a commander reads every printed one
 		}
 	}
+	for i := range dd.FilterProgs {
+		for _, l := range dd.FilterProgs[i].Lits {
+			if l.W == kop.FwSharesCr {
+				choosesType = true // sharing a creature type with a referent reads every printed one (a Dig's ChangeValid sharesCreatureTypeWith Self)
+			}
+		}
+	}
 	if choosesType {
 		all := subSet
 		for _, i := range pool {
