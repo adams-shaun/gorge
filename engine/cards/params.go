@@ -994,6 +994,10 @@ const (
 	// Judgment; CR 608.2c). Read by effects' ChooseCardOf. Appended: earlier
 	// ordinals stay stable.
 	PKEachDifferentPower
+	// RememberMovedToZone$ on a Dig: the destination zones (1 = the primary
+	// arm, 2 = DestinationZone2$) whose moved cards join Remembered. Read by
+	// effects' compileDig. Appended: earlier ordinals stay stable.
+	PKRememberMovedToZone
 	paramKeyCount
 )
 
@@ -1206,6 +1210,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberChanged:                  "RememberChanged",
 	PKRememberDamaged:                  "RememberDamaged",
 	PKRememberLKI:                      "RememberLKI",
+	PKRememberMovedToZone:              "RememberMovedToZone",
 	PKRememberObjects:                  "RememberObjects",
 	PKRememberOwnLoss:                  "RememberOwnLoss",
 	PKRememberPumped:                   "RememberPumped",

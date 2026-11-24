@@ -608,7 +608,16 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 						emitChangeZoneCounters(h, id, dp.ExileWithCounters, 1)
 					}
 				}
-				digRemember(h, c, dp, id)
+				// RememberChanged$ True is Forge's remZone1: it remembers the
+				// primary arm's cards only. The rest arm's cards join
+				// Remembered solely under RememberMovedToZone$ 2 (remZone2),
+				// so a bare RememberChanged$ must not leak the card put into
+				// the graveyard into a condition on the card put into the hand
+				// (Chrome Courier: "If you put an artifact card into your hand
+				// this way"; CR 608.2c).
+				if dp.RememberZone2 {
+					rememberMilled(h, c, id)
+				}
 			}
 		}
 		// takeAnswered applies an answered take for this target: move exactly
@@ -967,14 +976,17 @@ func defaultDigChangeNum(dp *DigParams, digNum int32) int32 {
 	return digNum
 }
 
-// digRemember honours a Dig's RememberChanged$ True: each card the dig moved
-// joins the resolution's Remembered, where a chained SubAbility$ reads it --
-// Atsushi's DBEffect RememberObjects$ RememberedCard seeds the registered
-// may-play grant's Remembered from exactly this list. Absent the parameter
-// (the corpus default) the walk adds nothing, so every pre-existing game
-// replays byte-identically. Both halves are written (rememberMilled): the ctx
-// list for the chained SubAbility and the source's event-backed list a
-// Count$RememberedSize read (Expand the Sphere's Number$2/Minus.Y) sees.
+// digRemember honours a Dig's RememberChanged$ True on the primary arm: each
+// card that arm moved joins the resolution's Remembered, where a chained
+// SubAbility$ reads it -- Atsushi's DBEffect RememberObjects$ RememberedCard
+// seeds the registered may-play grant's Remembered from exactly this list.
+// Absent the parameter (the corpus default) the walk adds nothing, so every
+// pre-existing game replays byte-identically. Both halves are written
+// (rememberMilled): the ctx list for the chained SubAbility and the source's
+// event-backed list a Count$RememberedSize read (Expand the Sphere's
+// Number$2/Minus.Y) sees. The rest arm does not come here: it remembers only
+// under RememberMovedToZone$ 2 (dp.RememberZone2, Forge's remZone2), so
+// RememberChanged$ stays the primary arm's remZone1.
 func digRemember(h Host, c *Ctx, dp *DigParams, id state.ObjID) {
 	if dp.RememberChanged {
 		rememberMilled(h, c, id)
