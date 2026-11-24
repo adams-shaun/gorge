@@ -168,6 +168,14 @@ func (p *pr) zenterOn(n *node, e *ir.Enter) bool {
 
 func printMove(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
+	if o := st.Obj; o != nil && o.Kind == ir.RefTopOfLibrary && (st.Verb == ir.VerbExile || st.To == ir.ZoneExile) &&
+		len(steps) > 1 && exileKept(steps[1]) {
+		n, err := printExileKept(p, st)
+		if err != nil {
+			return nil, 0, err
+		}
+		return n, 1, nil
+	}
 	n, err := moveNode(p, st)
 	if err != nil {
 		return nil, 0, err

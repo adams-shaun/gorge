@@ -80,3 +80,103 @@ func TestKickedTargetCount(t *testing.T) {
 		t.Fatalf("svars %v", got)
 	}
 }
+
+func TestControlAttachRiders(t *testing.T) {
+	tr := &ir.Ref{Kind: ir.RefTarget}
+	tgt := []*ir.Target{ztObjTarget(ir.ZoneBattlefield)}
+	// gain control with the untap and the haste folded in
+	gc := []*ir.Step{
+		{Verb: ir.VerbGainControl, Obj: tr, Dur: ir.DurEndOfTurn},
+		{Verb: ir.VerbUntap, Obj: tr},
+		{Verb: ir.VerbApplyEffect, Obj: tr, Dur: ir.DurEndOfTurn, Effects: []*ir.Effect{{Kind: ir.EffAddAbility, Abilities: ztKW("Haste")}}},
+	}
+	ztWant(t, gc, tgt, "GainControl", []kv{{"ValidTgts", "Creature"}, {"Untap", "True"}, {"AddKWs", "Haste"}, {"LoseControl", "EOT"}})
+	ztWant(t, gc[:1], tgt, "GainControl", []kv{{"ValidTgts", "Creature"}, {"LoseControl", "EOT"}})
+	ztRefuse(t, []*ir.Step{{Verb: ir.VerbGainControl, Obj: tr, Dur: ir.DurEndOfCombat}}, tgt, "gain-control:dur-end-of-combat")
+	// attach the source to a target
+	p := &pr{ev: ir.EvEnters, evSelf: true}
+	n, err := p.program(&ir.Program{Targets: tgt, Steps: []*ir.Step{{Verb: ir.VerbAttach, Obj: ztRef(ir.RefEventObject), Other: tr}}})
+	if err != nil || n.API != "Attach" || n.Params[0] != (kv{"ValidTgts", "Creature"}) {
+		t.Fatalf("attach: %v %v", n, err)
+	}
+	ztRefuse(t, []*ir.Step{{Verb: ir.VerbAttach, Obj: tr, Other: tr}}, tgt, "verb:attach")
+	// flying and the combat-damage prevention ride one Pump
+	repl := &ir.Step{Verb: ir.VerbCreateReplacement, Dur: ir.DurEndOfTurn, Abilities: []*ir.Ability{{Kind: ir.AbReplacement,
+		Trigger: &ir.Trigger{Event: ir.EvWouldDealDamage, Ref: tr, Word: "combat"}, Body: ztProg(&ir.Step{Verb: ir.VerbPrevent})}}}
+	fly := ztFx(ir.DurEndOfTurn, tr, &ir.Effect{Kind: ir.EffAddAbility, Abilities: ztKW("Flying")})
+	nn, err := ztPrint(append(fly, repl), tgt...)
+	if err != nil || nn.API != "Pump" || nn.Sub != nil {
+		t.Fatalf("rider: %v %v", nn, err)
+	}
+	if kw, _ := nn.get("KW"); kw != "Flying & "+preventCombatKW {
+		t.Fatalf("KW %q", kw)
+	}
+}
+
+func TestMayPlayEffects(t *testing.T) {
+	you := ztRef(ir.RefYou)
+	exiled := &ir.Ref{Kind: ir.RefReceipt, Receipt: ir.RcExiled}
+	play := &ir.Step{Verb: ir.VerbApplyEffect, Obj: you, Dur: ir.DurEndOfTurn, Effects: []*ir.Effect{{Kind: ir.EffMayPlay, Ref: exiled}}}
+	exile := &ir.Step{Verb: ir.VerbExile, Obj: ztTop(1)}
+	n, err := ztPrint([]*ir.Step{exile, play})
+	if err != nil || n.API != "Dig" || n.Sub == nil || n.Sub.API != "Effect" || n.Sub.Sub == nil || n.Sub.Sub.API != "Cleanup" {
+		t.Fatalf("exile then play: %v %v", n, err)
+	}
+	if v, _ := n.get("RememberChanged"); v != "True" {
+		t.Fatalf("dig %v", n.Params)
+	}
+	// without a following use, the exile stays a Mill
+	n, err = ztPrint([]*ir.Step{exile})
+	if err != nil || n.API != "Mill" {
+		t.Fatalf("lone exile: %v %v", n, err)
+	}
+	// a choice among the exiled cards, then play the chosen one until your next turn ends
+	pick := &ir.Step{Verb: ir.VerbChoose, Obj: &ir.Ref{Kind: ir.RefChoose, N: vc(1), Filter: &ir.Filter{Subject: ir.SubjCard,
+		Zones: ir.MakeZoneSet(ir.ZoneExile), Op: ir.FPred, Pred: ir.PIs, Ref: exiled}}}
+	chosen := &ir.Step{Verb: ir.VerbApplyEffect, Obj: you, Dur: ir.DurUntilEndOfYourNextTurn,
+		Effects: []*ir.Effect{{Kind: ir.EffMayPlay, Ref: &ir.Ref{Kind: ir.RefReceipt, Receipt: ir.RcChosen}}}}
+	n, err = ztPrint([]*ir.Step{exile, pick, chosen})
+	if err != nil || n.Sub == nil || n.Sub.API != "ChooseCard" || n.Sub.Sub == nil {
+		t.Fatalf("choose: %v %v", n, err)
+	}
+	if v, _ := n.Sub.Sub.get("Duration"); v != "UntilTheEndOfYourNextTurn" {
+		t.Fatalf("duration %q", v)
+	}
+	// a choice with nothing exiled before it is refused
+	ztRefuse(t, []*ir.Step{pick}, nil, "verb:choose")
+}
+
+func TestPayCostChain(t *testing.T) {
+	sac := &ir.Cost{Parts: []*ir.CostPart{{Kind: ir.CostSacrifice, Obj: &ir.Ref{Kind: ir.RefSelf}}}}
+	body := ztProg(&ir.Step{Verb: ir.VerbDraw, N: vc(1)}, &ir.Step{Verb: ir.VerbApplyEffect, Obj: ztRef(ir.RefSelf), Dur: ir.DurEndOfTurn,
+		Effects: []*ir.Effect{{Kind: ir.EffCantBeBlocked}}})
+	steps := []*ir.Step{{Verb: ir.VerbPayCost, Optional: true, Cost: sac}, {Verb: ir.VerbIf, Cond: &ir.Cond{Kind: ir.CCostPaid}, Then: body}}
+	p := &pr{}
+	n, err := p.program(ztProg(steps...))
+	if err != nil || !n.Ability || n.Params[0].K != "Cost" || n.Sub == nil {
+		t.Fatalf("chain: %v %v", n, err)
+	}
+	if got := p.render("A", n); !strings.HasPrefix(got, "AB$ Draw | Cost$ ") {
+		t.Fatalf("render %q", got)
+	}
+}
+
+func TestTriggerGrant(t *testing.T) {
+	dies := &ir.Ability{Kind: ir.AbTriggered, Trigger: &ir.Trigger{Event: ir.EvDies, Subject: &ir.Filter{Subject: ir.SubjPermanent,
+		Zones: ir.MakeZoneSet(ir.ZoneBattlefield), Op: ir.FPred, Pred: ir.PIs, Ref: ztRef(ir.RefSelf)}},
+		Body: ztProg(&ir.Step{Verb: ir.VerbDraw, N: vc(1)})}
+	tr := &ir.Ref{Kind: ir.RefTarget}
+	tgt := []*ir.Target{ztObjTarget(ir.ZoneBattlefield)}
+	p := &pr{}
+	n, err := p.program(&ir.Program{Targets: tgt, Steps: ztFx(ir.DurEndOfTurn, tr,
+		&ir.Effect{Kind: ir.EffAdjustPT, P: vc(2), T: vc(0)}, &ir.Effect{Kind: ir.EffAddAbility, Abilities: []*ir.Ability{dies}})})
+	if err != nil || n.API != "Pump" || n.Sub == nil || n.Sub.API != "Animate" {
+		t.Fatalf("grant: %v %v", n, err)
+	}
+	if d, _ := n.Sub.get("Defined"); d != "ParentTarget" {
+		t.Fatalf("Defined %q", d)
+	}
+	if tg, _ := n.Sub.get("Triggers"); tg == "" || !p.hasSVar(tg) {
+		t.Fatalf("Triggers %q in %v", tg, p.svars)
+	}
+}

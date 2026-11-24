@@ -26,12 +26,19 @@ func printPayCost(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	if t.Sub != nil {
-		return nil, 0, unprintable("verb:pay-cost-chain", pay.Src)
-	}
 	cost, err := p.costText(pay.Cost)
 	if err != nil {
 		return nil, 0, err
+	}
+	if t.Sub != nil {
+		// A cost on the head of a chain gates the whole chain, which
+		// UnlessCost$ on the head alone would not.
+		if !switched || pay.Who != nil || t.Ability {
+			return nil, 0, unprintable("verb:pay-cost-chain", pay.Src)
+		}
+		t.Params = append([]kv{{"Cost", cost}}, t.Params...)
+		t.Ability = true
+		return t, 2, nil
 	}
 	payer := "You"
 	if pay.Who != nil {
