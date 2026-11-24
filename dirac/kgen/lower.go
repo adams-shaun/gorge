@@ -279,6 +279,9 @@ type lowerCtx struct {
 	joinForcesName  string
 	joinForcesReset bool
 	joinForcesNames map[string]bool
+	// numNames: the SVar names a StoreSVar of the face writes through the
+	// number store (lower_storenum.go), computed on first use
+	numNames map[string]bool
 	// repeatCheckSVar is the SVar an enclosing gated Repeat's
 	// RepeatCheckSVar$ names, while that body is lowered; repeatCheckAb is
 	// its ability, so a StoreSVar$ after the loop (the reset) still matches

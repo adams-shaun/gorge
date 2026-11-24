@@ -1,0 +1,5 @@
+family: ExprKind
+name: ExSVarNum
+value: next
+status: active
+doc: A stored SVar's number (gorge runtimeSVar before the printed SVar, effects/count.go): the evaluating source's ExtStoreNum record for the name N (Table.SVarNames index), else the printed SVar body Sub[0]. dirac/act_storenum.go.

@@ -1213,18 +1213,23 @@ const ExXColorPaid ExprKind = 163
 // count RingTemptedYou (dirac/manifest/ExprKind/ExRingTempted)
 const ExRingTempted ExprKind = 164
 
+// ExprKind (dirac/manifest/ExprKind/ExSVarNum)
+//
+// A stored SVar's number (gorge runtimeSVar before the printed SVar, effects/count.go): the evaluating source's ExtStoreNum record for the name N (Table.SVarNames index), else the printed SVar body Sub[0]. dirac/act_storenum.go.
+const ExSVarNum ExprKind = 165
+
 // Remembered$CardCounters (dirac/manifest/ExprKind/ExSrcRemCounters)
 //
 // ExSrcRemCounters (Ctr): the counters of kind Ctr on the object the evaluating source remembers, read live on the battlefield (0 when it is elsewhere): the first live smRem record keyed by the source, which a token minted under TokRememberSrc (RememberSource$ True) keeps for its creator. It is `Remembered$CardCounters.<KIND>` in a token's characteristic-defining P/T (Saproling Burst's token reads the fade counters on the Burst). dirac/zone_tokrem.go.
-const ExSrcRemCounters ExprKind = 165
+const ExSrcRemCounters ExprKind = 166
 
 // SharedKeywordsZone$ Exile (dirac/manifest/ExprKind/ExStaticExileKw)
 //
 // ExStaticExileKw (F, N): exiled cards matching F (every player's exile, F.Owner narrows) that print the keyword N names, read off the printed card (CR 400.7, gorge effects.PrintedChars). N below 32 is a KwMask bit index; N 32 and up is the protection colour (N-32, in kop.ExileKwProtN order) in the card's printed ProtColors. It is the per-keyword gate of a SharedKeywordsZone$ Exile static (Rayami, First of the Fallen). dirac/value_exilekw.go.
-const ExStaticExileKw ExprKind = 166
+const ExStaticExileKw ExprKind = 167
 
 // ExprKind (dirac/manifest/ExprKind/ExVoteTally)
-const ExVoteTally ExprKind = 167
+const ExVoteTally ExprKind = 168
 
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
@@ -1649,6 +1654,13 @@ func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 const ExtRepeatOptional ExtOp = 105
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
+
+// ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
+//
+// StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
+const ExtStoreNum ExtOp = 106
+
+func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // FilterWord (dirac/manifest/FilterWord/FwAttacking)
 //

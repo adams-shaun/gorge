@@ -121,7 +121,7 @@ func (s *State) exwExile(k *prep, o Obj) {
 		if r[i].kind == 0 {
 			break
 		}
-		if rec := &r[i]; rec.o == o && rec.kind&exwRev != 0 {
+		if rec := &r[i]; rec.o == o && rec.osKind() == osExw && rec.kind&exwRev != 0 {
 			rec.kind &^= exwRev
 			if DebugExwStats != nil {
 				DebugExwStats.RevCleared++
@@ -204,7 +204,7 @@ func (s *State) exwLeaveExile(o Obj) {
 		if r[i].kind == 0 {
 			break
 		}
-		if rec := &r[i]; rec.o == o && rec.kind&(exwRev|exwFwd|exwFace) != 0 {
+		if rec := &r[i]; rec.o == o && rec.osKind() == osExw && rec.kind&(exwRev|exwFwd|exwFace) != 0 {
 			if rec.kind&exwRev != 0 && DebugExwStats != nil {
 				DebugExwStats.RevCleared++
 			}
@@ -228,7 +228,7 @@ func (s *State) exwEnter(o Obj, from kop.Zone) {
 			break
 		}
 		rec := &r[i]
-		if rec.src == o && rec.kind&exwFwd != 0 {
+		if rec.src == o && rec.osKind() == osExw && rec.kind&exwFwd != 0 {
 			rec.kind &^= exwFwd
 			if DebugExwStats != nil {
 				DebugExwStats.FwdCleared++
@@ -253,7 +253,7 @@ func (s *State) exwHas(o, src Obj, trig bool, fire uint8) bool {
 			break
 		}
 		rec := &r[i]
-		if rec.o != o || rec.src != src {
+		if rec.o != o || rec.src != src || rec.osKind() != osExw {
 			continue
 		}
 		if rec.kind&exwFwd != 0 {
