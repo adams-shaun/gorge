@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwBasePowerCmp
-value: next
+value: 2
 contexts: perm,cur,card
 status: active
 doc: FwBasePowerCmp: the candidate's base power (layer 7b, CR 613.4; gorge numericPred's basePower field, engine/effects/filter.go:1747 and filter_value.go:292) compares Op against V; a permanent reads basePTGen, a card off the battlefield its printed (CDA-folded) power; the P/T-less non-creature reads nothing (gorge lacksPT).

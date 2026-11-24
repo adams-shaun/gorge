@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwSuspended
-value: next
+value: 15
 contexts: card
 status: active
 doc: FwSuspended: the candidate is a suspended card -- in exile with a positive time counter, a Suspend card (gorge's compiled `suspended` read, predicates["suspended"] at engine/effects/filter.go:637, which the matcher consults before wordSuspended; the kernel reads the card's DurSuspend record, kw_suspend.go suspendTime); a card whose last counter went, or that is anywhere but exile, reads false.

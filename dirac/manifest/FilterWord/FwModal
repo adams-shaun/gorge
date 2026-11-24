@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwModal
+value: next
+contexts: spell
+status: active
+doc: FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.

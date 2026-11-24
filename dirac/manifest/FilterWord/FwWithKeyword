@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwWithKeyword
-value: next
+value: 19
 contexts: perm,card,spell
 status: active
 doc: FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.

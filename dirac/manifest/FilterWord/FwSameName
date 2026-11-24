@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwSameName
-value: next
+value: 11
 contexts: perm,card,spell
 status: active
 doc: FwSameName: the object shares a printed name with the object the sameName context base names (gorge sameNameContextReferent over Remembered./Targeted./Triggered. bases, engine/effects/filter_value.go): RefRemembered, the entry's first remembered object; RefTargets0123, the entry's object targets, every slot, first live one; RefTriggerObj, the entry's triggering object. The name identity is FwSharesName's: a battlefield permanent reads its layer-3 name, anything else its card, and a face-down candidate has no name (CR 708.2). An unbound referent matches nothing, fail closed.

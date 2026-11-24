@@ -18,15 +18,15 @@ func TestValidSAGuardClasses(t *testing.T) {
 		{
 			what: "a SpellCast trigger's ValidSA$",
 			src: strings.Join([]string{
-				"Name:Probe Modal",
+				"Name:Probe Spent",
 				"ManaCost:1 U",
 				"Types:Creature",
 				"PT:1/1",
-				"T:Mode$ SpellCast | ValidSA$ Spell.Modal | TriggerZones$ Battlefield | Execute$ ProbeDraw | TriggerDescription$ Probe.",
+				"T:Mode$ SpellCast | ValidSA$ Spell.ManaSpent GTX | TriggerZones$ Battlefield | Execute$ ProbeDraw | TriggerDescription$ Probe.",
 				"SVar:ProbeDraw:DB$ Draw | NumCards$ 2",
 				"Oracle:Probe.",
 			}, "\n"),
-			reason: `spell-ability filter ValidSA "Spell.Modal"`,
+			reason: `spell-ability filter ValidSA "Spell.ManaSpent GTX"`,
 			class:  `other:spell-ability filter ValidSA "_"`,
 		},
 		{

@@ -4,7 +4,9 @@ import "strings"
 
 // validSAHead lowers the SpellCast ValidSA$ heads gorge's ValidSAMatches
 // (trigmatch/cast.go:731) answers through the cast spell itself
-// Spell.ManaFromTreasure (the cast spent Treasure mana)
+// Spell.ManaFromTreasure (the cast spent Treasure mana), the three kernel
+// words Spell.Modal, Spell.singleTarget (alone or as the Instant/Sorcery
+// pair) and Spell.Teamwork (spellWordHead, filter_words_spellability.go)
 // and the comma list "Spell.X,...,Spell.IsTargeting Valid Y" (the spell
 // matches X, or some target of it matches Y). It reports whether it took
 // the head; (false, nil) leaves v to the older arms and their refusal.
@@ -15,6 +17,9 @@ func (lc *lowerCtx) validSAHead(v, mode string, tr *lTrigger) (bool, error) {
 	if v == "Spell.ManaFromTreasure" {
 		tr.ManaFromTreasure = true
 		return true, nil
+	}
+	if _, ok := spellWordClauses[v]; ok {
+		return true, lc.spellWordHead(v, tr)
 	}
 	if !strings.Contains(v, ",") || !strings.Contains(v, ".IsTargeting ") {
 		return false, nil
