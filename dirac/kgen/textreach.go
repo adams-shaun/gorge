@@ -89,7 +89,10 @@ func textWordsOf(c *cards.Card) uint16 {
 }
 
 // changeText lowers one DB$ ChangeText branch of a GenericChoice (Mind
-// Bend) to OpExt ExtChangeText over the choice's one battlefield target.
+// Bend) to OpExt ExtChangeText over the choice's one battlefield target, or
+// a direct SP$/DB$ ChangeText over its own "target spell or permanent"
+// (Magical Hack, Sleight of Mind, a Spectral Shift mode:
+// changeTextOwnTarget).
 // Duration$ Permanent or absent both lower: the change is only ever a no-op
 // here, so its length is never read. Any other parameter (ForbiddenNewTypes$,
 // a literal word, ChooseCreatureType) refuses.
@@ -109,21 +112,57 @@ func (lc *lowerCtx) changeText(ps *params) error {
 	if lc.ab.Kind != akSpell {
 		return refuse("ChangeText in a %d ability", lc.ab.Kind)
 	}
-	if ps.str("Defined") != "ParentTarget" {
-		return refuse("ChangeText Defined$ %q", ps.str("Defined"))
-	}
-	obj, err := lc.defined("ParentTarget")
-	if err != nil {
-		return err
-	}
-	if obj.Kind != rTarget {
-		return refuse("ChangeText of %s", obj)
-	}
-	t := lc.ab.Targets[obj.N]
-	if t.Zone != zBattlefield || !t.Max.isConst() || t.Max.N != 1 || t.F == nil || t.F.Players != 0 {
-		return refuse("ChangeText of a target slot other than one battlefield object")
+	var obj lRef
+	if _, own := ps.get("ValidTgts"); own {
+		var err error
+		if obj, err = lc.changeTextOwnTarget(ps); err != nil {
+			return err
+		}
+	} else {
+		if ps.str("Defined") != "ParentTarget" {
+			return refuse("ChangeText Defined$ %q", ps.str("Defined"))
+		}
+		var err error
+		if obj, err = lc.defined("ParentTarget"); err != nil {
+			return err
+		}
+		if obj.Kind != rTarget {
+			return refuse("ChangeText of %s", obj)
+		}
+		t := lc.ab.Targets[obj.N]
+		if t.Zone != zBattlefield || !t.Max.isConst() || t.Max.N != 1 || t.F == nil || t.F.Players != 0 {
+			return refuse("ChangeText of a target slot other than one battlefield object")
+		}
 	}
 	lc.out.HasChangeText = true
 	lc.emit(lInstr{Op: "ChangeText", Obj: obj, C: int(kind)})
 	return nil
+}
+
+// changeTextOwnTarget is the direct spelling's own target: exactly
+// ValidTgts$ Card with TgtZone$ Stack,Battlefield and no Defined$, i.e. one
+// permanent or one spell other than this one (kop.TgtPermOrSpell; gorge
+// effChangeText applies the change to the one chosen target, CR 612). Any
+// other target shape (a filter, a count, a single zone) refuses.
+func (lc *lowerCtx) changeTextOwnTarget(ps *params) (lRef, error) {
+	if vt := ps.str("ValidTgts"); vt != "Card" {
+		return lRef{}, refuse("ChangeText ValidTgts$ %q", vt)
+	}
+	if tz := ps.str("TgtZone"); tz != "Stack,Battlefield" {
+		return lRef{}, refuse("ChangeText TgtZone$ %q", tz)
+	}
+	for _, k := range []string{"Defined", "TargetMin", "TargetMax", "TargetUnique", "TargetType"} {
+		if _, ok := ps.get(k); ok {
+			return lRef{}, refuse("ChangeText with ValidTgts$ and %s$", k)
+		}
+	}
+	ps.consume("TgtPrompt")
+	f, err := lc.filter("Card")
+	if err != nil {
+		return lRef{}, err
+	}
+	if f.Players != 0 {
+		return lRef{}, refuse("ChangeText ValidTgts$ Card names players")
+	}
+	return lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, PermOrSpell: true})}, nil
 }

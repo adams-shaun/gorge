@@ -65,10 +65,17 @@ func (p *changeTextFromPolicy) Pick(c *PickCtx) Canon {
 
 // mbcChangeTextPlay plays seeds lo..hi of the pool and calls each with the
 // game's result.
-func mbcChangeTextPlay(t *testing.T, allow func(uint8) bool, lo, hi uint64, each func(seed uint64, res *Result)) {
+func mbcChangeTextPlay(t *testing.T, decks [2][]cardset.Entry, allow func(uint8) bool, lo, hi uint64, each func(seed uint64, res *Result)) {
 	t.Helper()
-	reg, set, gd := lockstepPool(t, mbcChangeTextPool, mbcChangeTextDecks)
-	tbl, _, _, err := set.Matchup(mbcChangeTextDecks[0], mbcChangeTextDecks[1])
+	mbcChangeTextPlayWith(t, decks, allow, func(_ uint64, p Policy) Policy { return p }, lo, hi, each)
+}
+
+// mbcChangeTextPlayWith is mbcChangeTextPlay with wrap applied to each
+// seed's policy.
+func mbcChangeTextPlayWith(t *testing.T, decks [2][]cardset.Entry, allow func(uint8) bool, wrap func(seed uint64, p Policy) Policy, lo, hi uint64, each func(seed uint64, res *Result)) {
+	t.Helper()
+	reg, set, gd := lockstepPool(t, mbcChangeTextPool, decks)
+	tbl, _, _, err := set.Matchup(decks[0], decks[1])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +89,7 @@ func mbcChangeTextPlay(t *testing.T, allow func(uint8) bool, lo, hi uint64, each
 		if err != nil {
 			t.Fatal(err)
 		}
-		pol := &changeTextFromPolicy{base: castFirstPolicy(seed), allow: allow}
+		pol := &changeTextFromPolicy{base: wrap(seed, castFirstPolicy(seed)), allow: allow}
 		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		CloseSide(k)
 		each(seed, &res)
@@ -103,7 +110,7 @@ func TestMBCChangeTextLowers(t *testing.T) {
 	seeds, clean := uint64(160), 0
 	seedChunks(t, 1, seeds, lockstepChunk, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
 		n := 0
-		mbcChangeTextPlay(t, allow, lo, hi, func(seed uint64, res *Result) {
+		mbcChangeTextPlay(t, mbcChangeTextDecks, allow, lo, hi, func(seed uint64, res *Result) {
 			if err := unmodelledStallError(t.Name(), res); err != nil {
 				t.Errorf("seed %d: %v", seed, err)
 			}
@@ -136,7 +143,7 @@ func TestMBCChangeTextReadsStall(t *testing.T) {
 	stalls := 0
 	seedChunks(t, 1, 160, lockstepChunk, func(t *testing.T, lo, hi uint64, _ *sync.Mutex) {
 		n := 0
-		mbcChangeTextPlay(t, allow, lo, hi, func(seed uint64, res *Result) {
+		mbcChangeTextPlay(t, mbcChangeTextDecks, allow, lo, hi, func(seed uint64, res *Result) {
 			if d := res.Div; d != nil {
 				t.Errorf("seed %d: diverged at decision %d: %s %s %v", seed, d.At, d.What, d.Field, d.Diff)
 				return
