@@ -121,7 +121,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 701.35a | n/a | - | - | Detain unregistered |
 | 701.36a | n/a | - | - | never asks; first token in zone order |
 | 701.36b | n/a | - | - |  |
-| 701.37a,c | follows | `dirac/act_monstrosity.go#State.monstrosity` `dirac/act_monstrosity.go#State.monstrousAt` `dirac/act_monstrosity.go#State.fireBecomeMonstrous` `dirac/kgen/lower_effect.go#lowerCtx.monstrosity` | `TestMonstrosityLockstep` `TestMonstrosityTriggerAmount` `TestMonstrosityOnce` `TestMonstrosityMutation` | inherits gorge (effPutCounter's MonstrositySet arm): only a not-yet-monstrous permanent, n > 0 puts n +1/+1 counters through the counter path (replacements and CounterAddedOnce), sets the monstrous designation and fires BecomeMonstrous with the original n; the mask clears on leaving the battlefield; TriggerCount$Amount lowers as VTriggerAmount |
+| 701.37a,c | follows | `dirac/act_monstrosity.go#State.monstrosity` `dirac/act_monstrosity.go#State.monstrousAt` `dirac/act_monstrosity.go#State.fireBecomeMonstrous` `dirac/kgen/lower_effect_counters.go#lowerCtx.monstrosity` | `TestMonstrosityLockstep` `TestMonstrosityTriggerAmount` `TestMonstrosityOnce` `TestMonstrosityMutation` | inherits gorge (effPutCounter's MonstrositySet arm): only a not-yet-monstrous permanent, n > 0 puts n +1/+1 counters through the counter path (replacements and CounterAddedOnce), sets the monstrous designation and fires BecomeMonstrous with the original n; the mask clears on leaving the battlefield; TriggerCount$Amount lowers as VTriggerAmount |
 | 701.37b | follows | `dirac/act_monstrosity.go#State.monstrosity` `dirac/act_monstrosity.go#State.monstrousAt` `dirac/filter_typesall.go#State.predPermCold` | `TestMonstrosityTriggerAmount` `TestMonstrosityOnce` `TestMonstrousClearedOnLeave` | IsMonstrous reads the designation; off the battlefield nothing matches; n <= 0 never marks; removePerm clears the bit, so a blink returns non-monstrous and a reused slot does not inherit it |
 | 701.38a-c | n/a | - | - |  |
 | 701.38d | n/a | - | - | Brago's Representative inert |
@@ -138,7 +138,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 701.44b-c | follows | `dirac/act_explore.go#State.explore` | `TestExplore` | empty library / departed explorer: nothing, no trigger |
 | 701.44d | n/a | - | - | Defined order, not APNAP |
 | 701.45a | n/a | - | - | - |
-| 701.46a | follows | `dirac/kgen/lower_effect.go#lowerCtx.adapt` | `TestFilterPredicateAndTriggerParamForms` | kgen: the source only; a resolution-time "no +1/+1 counter" guard, and on an AB$ root the offer gate (gorge adaptGateOK) |
+| 701.46a | follows | `dirac/kgen/lower_effect_counters.go#lowerCtx.adapt` | `TestFilterPredicateAndTriggerParamForms` | kgen: the source only; a resolution-time "no +1/+1 counter" guard, and on an AB$ root the offer gate (gorge adaptGateOK) |
 | 701.47a | partial | `dirac/act_amass.go#State.amass` `dirac/kgen/lower_keywordaction.go#lowerCtx.amass` | `TestAmass` `TestRemxabLockstep` | inherits gorge: no Army choice (the first Army creature in battlefield order by its current characteristics: a changeling and a granted Army type count, gorge "Creature.Army"); counters and the permanent "also a <Type>" override on every doubled mint; RememberAmass$ (Goblin Plate Mail) remembers the Army so the equipment attaches to it |
 | 701.47b | follows | `dirac/act_amass.go#State.amass` | `TestAmass` | amass 0 creates no token |
 | 701.47c-d | n/a | - | - |  |
