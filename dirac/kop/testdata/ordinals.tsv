@@ -707,6 +707,7 @@ LibTopRememberGrave	untyped int	15
 LibTopShuffle	untyped int	4
 LibTopShuffleGrave	untyped int	8
 LibTopShuffleSelf	untyped int	5
+ManaRiderChosenAnimate	uint8	5
 ManaRiderDeplete	uint8	1
 ManaRiderNone	uint8	0
 ManaRiderOppGainLife	uint8	2

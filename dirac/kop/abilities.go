@@ -265,6 +265,12 @@ const (
 	ManaRiderOppGainLife        // each opponent gains ManaRiderN life
 	ManaRiderStayTapped         // the source doesn't untap during its controller's next untap step
 	ManaRiderSelfGainLife       // the controller gains ManaRiderN life
+	// ManaRiderChosenAnimate runs the ability's Prog as the chosen-colour
+	// Animate rider (Foraging Wickermaw): the activation records its colour
+	// answer on the source, the OpOverride with OvChosenColor applies the
+	// matching WUBRG record, and the record is cleared after (gorge's DB$
+	// Cleanup | ClearChosenColor$ True).
+	ManaRiderChosenAnimate
 )
 
 // ManaRiderAb reports whether a mana ability carries a rider the kernel runs
@@ -691,6 +697,10 @@ func riderManaCostOK(a *Ability) bool {
 		return a.Cost.Mana.MV() == 0
 	case f == CostTap|CostRemoveCtr:
 		return a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0
+	case f == CostOncePerTurn && a.ManaRider == ManaRiderChosenAnimate:
+		// Foraging Wickermaw: a {N} fee once each turn, no {T}
+		return a.Cost.Mana.MV() >= 1 && a.Cost.Mana.X == 0 &&
+			a.Cost.Mana.Pips == ([NumManaKinds]uint8{}) && a.Cost.Mana.Hyb == ([4]ColorMask{})
 	}
 	return false
 }
