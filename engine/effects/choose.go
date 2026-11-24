@@ -547,6 +547,7 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 			ev.Player = chooser
 		}
 		h.Emit(ev)
+		rebindChosenTypeLKI(c, text)
 	}
 	labels, known := chooseTypeLabels(h, c, sa, chooser, cat)
 	if !known {
@@ -562,6 +563,7 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 			pick = labels[h.Rand(len(labels))]
 		}
 		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "type", Text: pick})
+		rebindChosenTypeLKI(c, pick)
 		return
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
@@ -589,6 +591,16 @@ func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 		fallback = creatureTypeFallback(g, c.Controller)
 	}
 	emitType(fallback)
+}
+
+// rebindChosenTypeLKI is rebindChosenColorLKI's twin for a creature-type
+// answer: Riptide Shapeshifter, sacrificed as its cost, chooses a type while
+// it sits in the graveyard and its DigUntil Valid$ Creature.ChosenType must
+// read that answer, not the snapshot's empty type (CR 608.2c, 608.2h).
+func rebindChosenTypeLKI(c *Ctx, text string) {
+	if c.TriggerContext.SourceLKIValid && text != "" {
+		c.TriggerContext.SourceChosenType = text
+	}
 }
 
 // resolvesAbility reports whether c is an activated or triggered ability's
