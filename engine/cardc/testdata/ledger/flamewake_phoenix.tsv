@@ -1,0 +1,6 @@
+# Flamewake Phoenix
+source	key	sig	class	issue	note
+lockstep	fdn/3/forward	-	cardc-gap	0	untriaged
+lockstep	fdn/3/reverse	-	cardc-gap	0	untriaged
+static	0/T:Phase:ChangeZone#0/[0]Cost	20d84792	cardc-gap	0	untriaged
+static	0/T:Phase:ChangeZone#0/[0]Origin	02c853df	cardc-gap	0	untriaged
