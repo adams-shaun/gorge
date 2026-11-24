@@ -387,11 +387,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// The departure is its trigger event, so it triggers once and must
 		// NOT carry the |SB source-battlefield lifetime appended below: that
 		// lifetime would retire the registration at the very departure that
-		// must trigger it (Mysterio, Master of Illusion; Stangg). A plain
-		// one-shot delayed registration (no |EF) is consumed by its own
-		// DelayedPush; rules' fire path gives it the Effect's capture. The
+		// must trigger it. A plain one-shot delayed registration (no |EF) is
+		// consumed by its own DelayedPush; rules' fire path gives it the
+		// Effect's capture. The registration is keyed to the shape this fix
+		// was measured on -- a Duration$ Permanent Effect with ForgetOnMoved$
+		// Battlefield (Mysterio, Master of Illusion; Stangg) -- so a Merieke
+		// Ri Berit one-shot (ExileOnMoved$) still ends with its source and
+		// Phantasmal Mount's absent Duration$ stays a this-turn trigger. The
 		// comeback idiom above has its own lifetime and is left untouched.
-		sourceLeave := tl.SourceLeave && !permanentComeback
+		sourceLeave := tl.SourceLeave && !permanentComeback &&
+			effectDurationPermanent(rawDur) && strings.EqualFold(strings.TrimSpace(forgetOn), "Battlefield")
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"

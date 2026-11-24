@@ -641,11 +641,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			// names the exiled card, so the registration's capture IS the
 			// referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if !dt.EffectRepeat && t.WatchesEffectSourceLeave() {
+		} else if !dt.EffectRepeat && strings.EqualFold(dt.EffectDuration, "permanent") &&
+			strings.EqualFold(dt.ForgetOnMoved, "Battlefield") && t.WatchesEffectSourceLeave() {
 			// An Effect-owned source-leave trigger is a plain one-shot
 			// CR 603.7 delayed ability (the departure is its trigger event),
 			// consumed by its own DelayedPush. Its `Defined$ Remembered`
-			// names the Effect's capture, not the departing source.
+			// names the Effect's capture, not the departing source. The
+			// lifetime and ForgetOnMoved$ fields are the registration's own
+			// Effect origin (only api:Effect writes |DU=/$|FM=): a plain
+			// DelayedTrigger with the same trigger shape never takes this
+			// arm, and the Mysterio/Stangg shape is the only source-leave
+			// Effect it was measured on.
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerDamageDealtOnce) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
