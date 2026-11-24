@@ -1,5 +1,7 @@
 A-Buy Your Silence
+A-Radha's Firebrand
 A-Sepulcher Ghoul
+Aerial Maneuver
 Afflict
 Alexi's Cloak
 Ampryn Tactician
@@ -17,6 +19,7 @@ Blessed Spirits
 Blinding Radiance
 Bloodflow Connoisseur
 Bloodied Ghost
+Boon of Emrakul
 Brightclimb Pathway
 Buoyancy
 Burden of Guilt
@@ -33,14 +36,17 @@ Courier Griffin
 Crimson Roc
 Cursed Totem
 Cyclone Summoner
+Dauthi Voidwalker
 Dawnfeather Eagle
 Deb Thomas
 Declare Dominance
 Delightful Discovery
 Deluge of Doom
+Deny Entry
 Desecration Elemental
 Despoiler of Souls
 Dingus Staff
+Dire Fleet Hoarder
 Drossclaw
 Dusk
 Dúnedain Blade
@@ -48,15 +54,19 @@ Ebon Drake
 Eerie Interlude
 Efreet Flamepainter
 Elemental Bond
+Elspeth Tirel
 Engineered Plague
 Enthrall
 Ephara's Warden
 Erebos's Emissary
 Eternal Skylord
+Everflame Eidolon
 Evil Eye of Urborg
 Executioner's Hood
 Ezuri, Renegade Leader
+Fae of Wishes
 Faithful Pikemaster
+Falkenrath Marauders
 Fanatical Fever
 Fanged Flames
 Fell Specter
@@ -77,6 +87,9 @@ Grey Knight Paragon
 Grim Feast
 Grim Guardian
 Grip of Desolation
+Growth-Chamber Guardian
+Gustha Ebbasdotter
+Gutter Skulk
 Haazda Snare Squad
 Headlong Rush
 Healing Leaves
@@ -85,6 +98,7 @@ Hope Against Hope
 Human Frailty
 Ill-Tempered Cyclops
 Inner Calm, Outer Strength
+Innocuous Researcher
 Inviolability
 Island
 Jackal Familiar
@@ -92,6 +106,7 @@ Kalonian Hydra
 Kederekt Parasite
 Kenrith's Transformation
 Knight Watch
+Knight of New Benalia
 Kor Duelist
 Kraken Hatchling
 Leinore, Autumn Sovereign
@@ -109,6 +124,7 @@ Maro
 Marshmist Titan
 Mending Hands
 Michiko's Reign of Truth
+Midnight Covenant
 Mind Knives
 Mindwarper
 Minion of Tevesh Szat
@@ -121,10 +137,14 @@ Nessian Game Warden
 Nightscape Familiar
 Nightshade Assassin
 Nimble Pilferer
+Nyxborn Marauder
 Obelisk of Esper
+Ochre Jelly
 Okiba Salvage
 Otherworld Atlas
+Ozox, the Clattering King
 Parasitic Grasp
+Path of Peril
 Pawn of Ulamog
 Pendrell Mists
 Pheres-Band Brawler
@@ -135,14 +155,18 @@ Portcullis Vine
 Psychic Impetus
 Quagmire Lamprey
 Ragged Veins
+Raise the Draugr
 Ransom Note
 Raven Familiar
 Reckless Amplimancer
 Release to Memory
 Rhox Bodyguard
 Rolling Hamsphere
+Roving Harper
+Saddleback Lagac
 Sanguine Glorifier
 Seal of Fire
+Seraph of New Capenna
 Shared Trauma
 Sibsig Host
 Sigardian Priest
@@ -150,10 +174,12 @@ Sign in Blood
 Sip of Hemlock
 Skeletal Kathari
 Skullslither Worm
+Slum Reaper
 Soratami Seer
 Sorcerer's Wand
 Spiraling Embers
 Spiteful Bully
+Splinter, the Mentor
 Spoils of Blood
 Stand United
 Steal Strength
@@ -165,6 +191,7 @@ Summon: Kujata
 Sunder from Within
 Swamp
 TVA Bureaucrat
+Tel-Jilad Defiance
 Teyo's Lightshield
 Teysa Karlov
 Thought Scour
@@ -174,6 +201,7 @@ Tormentor's Trident
 Treasure Hunter
 Trokin High Guard
 Turret Ogre
+Two-Headed Giant of Foriys
 Two-Headed Sliver
 Uktabi Orangutan
 Ulvenwald Mysteries
@@ -186,8 +214,10 @@ Wanderlust
 Warhorn Blast
 Whipflare
 Whirlermaker
+Wild Hunger
 Wintermoor Commander
 Woeleecher
+Wound Reflection
 Yawgmoth, Thran Physician
 Zodiac Rat
 Zuran Orb

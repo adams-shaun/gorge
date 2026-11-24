@@ -34,6 +34,7 @@ Blood Age General
 Blood Divination
 Blood Glutton
 Blood Seeker
+Bloodstained Mire
 Blur Sliver
 Boggart Trawler
 Bolt of Keranos
@@ -47,6 +48,7 @@ Call to Glory
 Call to the Netherworld
 Calming Verse
 Captain America, Liberator
+Captain Vargus Wrath
 Certain Death
 Chakram Retriever
 Chase Stein, Runaway
@@ -169,6 +171,7 @@ Last Breath
 Last Kiss
 Lat-Nam Adept
 Lesser Werewolf
+Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
@@ -183,8 +186,10 @@ Mardu Hateblade
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
+Mask of the Mimic
 Mass Appeal
 Mass Diminish
+Memorial to Unity
 Midnight Ritual
 Military Discipline
 Militia Bugler
@@ -233,6 +238,7 @@ Rat Colony
 Ratcatcher
 Red XIII, Proud Warrior
 Relentless Rats
+Relic Bind
 Reverent Mantra
 Riddle Gate Gargoyle
 Righteous Charge
@@ -300,6 +306,7 @@ Teval's Judgment
 Teysa, Envoy of Ghosts
 Thalia's Lieutenant
 That Which Was Taken
+The Forgotten Place
 Thraben Valiant
 Thran War Machine
 Tor Giant

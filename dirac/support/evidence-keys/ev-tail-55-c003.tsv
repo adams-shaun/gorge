@@ -1,40 +1,68 @@
 card	lir16	plays	keys	unused	branches	missing_branches
++2 Mace	9326494454e7ee69	3	1/1		0/1	ix:resp
 A-Hagra Constrictor	48c3a9816ce469c8	54	0/0		0/0	
 A-Young Red Dragon	d8ecf8392a132629	52	0/0		2/2	
 Abnormal Endurance	4031c589da05b69a	43	0/0		2/2	
 Abzan Beastmaster	ee8bc15a89eee193	32	1/1		1/1	
+Abzan Kin-Guard	fdbd9d4acf1683ab	9	0/0		0/0	
+Acorn Catapult	1acb0832c210c150	5	1/1		1/1	
+Adarkar Sentinel	c3db73e2a3ac64cd	7	1/1		1/1	
+Agent of Acquisitions	e4b1df06b83e0c13	10	0/0		0/0	
 Ancient Brontodon	66642f8c5c0be5a9	9	0/0		0/0	
 Anoint	e4f1737347113b94	160	0/0		4/4	
 Anointer of Champions	676627e733ebeaf1	143	1/1		1/1	
+Anvilwrought Raptor	009b0afd18ba6994	9	0/0		0/0	
 Arcbound Stinger	c287d1cc0a3e4c4a	148	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Archangel Avacyn	c7dd7c8aeddcaf28	51	3/3		1/1	
 Archnemesis	cbce22dd0d786ab4	75	2/2		2/4	f0/t1/opt:n,f0/t1/opt:y
 Arctic Wolves	d6c3717a7e91fc4d	11	2/2		1/1	
+Argent Mutation	20f0ab6c59750e4c	8	0/0		1/2	ix:resp
 Assassinate	529fcd6fb4e80f01	27	0/0		2/2	
 Avatar of Slaughter	30302b5208f5707f	12	0/0		0/0	
+Azure Fleet Admiral	a84210d50d7ff0d2	6	1/1		1/1	
+Azusa's Many Journeys	ddc03d3ff44d785d	3	1/1		0/1	ix:resp
+Beast in Show	57c2de08400f78a2	4	0/0		0/0	
 Benevolent Ancestor	7ed85cd621a9c74b	46	1/1		1/1	
 Bile Urchin	8ffb84220784290b	163	1/1		1/1	
 Bone Picker	9f1eb181be916efc	41	0/0		0/0	
+Boros Garrison	26e4839160349401	19	2/2		0/1	ix:resp
+Boros Signet	e6e191db7d57431b	6	1/1		0/1	ix:resp
 Bosh, Iron Golem	ef13c455b55d3ef3	33	1/1		1/1	
 Bump in the Night	328cd87940e6bf27	26	0/0		3/4	ix:resp
 Burning Hands	d7acc26d3eb7895e	26	0/0		2/2	
+Cascade Bluffs	f5a638d61984d90b	17	2/2		0/1	ix:resp
 Cavalier of Night	46bba3bcf9898f24	28	2/2		1/1	
 Champion of Arashin	a0bcdb7eee58786e	110	0/0		0/0	
+Chariot of Victory	3a27e05eedb47aef	8	1/1		0/1	ix:resp
+Chilling Trap	783065baa8e92d4c	10	0/0		2/2	
+Circle of Dreams Druid	d8fb1a33345a1f25	3	1/1		0/1	ix:resp
+Circle of Flame	4dffc5bc47354426	3	1/1		0/1	ix:resp
 Coal Stoker	5998459f113231de	31	1/1		1/1	
+Cybermen Squadron	d0611b32eccb68ec	3	0/0		0/0	
+Cytospawn Shambler	7290d76f6a614974	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Defiant Salvager	8a3e8e624f612528	43	1/1		1/1	
+Demonmail Hauberk	979b4ae1f9026d22	3	1/1		0/1	ix:resp
 Desperate Castaways	68a9b5fc3dcfbbe7	4	0/0		0/0	
 Devout Lightcaster	be9af2dbc76afdd6	66	1/1		0/1	ix:resp
 Drogskol Cavalry	1902d90ffa334d49	72	2/2		1/1	
+Duskmantle Operative	ded191e96c4c3fc2	8	0/0		0/0	
 Eidolon of the Great Revel	bb1672b8fa7cdb87	48	1/1		1/1	
 Eiganjo Exemplar	14ea3f30519f66ac	52	1/1		1/1	
 Eldritch Immunity	e5740fc81b3a9c3f	33	0/0		4/4	
 Ellyn Harbreeze, Busybody	0e91273f51f3cbf9	63	1/1		1/1	
+Elven Fortress	0674e08c57a9ae26	3	1/1		0/1	ix:resp
+Enchanted Prairie	74f91857c393b035	32	1/1		0/1	ix:resp
 Endless Ranks of the Dead	7465278c224f17a6	40	1/1		1/1	
+Enlightened Maniac	4f610069dbcf3617	7	1/1		0/1	ix:resp
+Epiphany Storm	ac8f459f13ab0897	4	0/0		1/2	ix:resp
 Esquire of the King	c6dbd7b26cb75526	109	1/1		1/1	
+Ethereal Investigator	babc0a1eb75fe326	3	2/2		0/1	ix:resp
 Evolutionary Leap	6d6bbcd2cbfde9d3	47	1/1		1/1	
 Extortion	d026c3dcebe64961	24	0/0		2/2	
 Exultant Skymarcher	521cb4e7911b1fda	110	0/0		0/0	
+Ezuri, Stalker of Spheres	ca5f279b9b697343	3	2/2		0/1	ix:resp
 Faceless Butcher	133c122c4040e06e	69	2/2		1/1	
+Farid, Enterprising Salvager	4ebfc035288576ff	6	2/2		1/1	
 Feral Maaka	9044ce4f09b3bbc1	30	0/0		0/0	
 Fervent Paincaster	7d957643b1c088d1	28	2/2		1/1	
 Fire Ants	461dec4ba43b61dc	9	1/1		1/1	
@@ -43,32 +71,53 @@ Fireborn Knight	df344fa8722160d0	9	1/1		1/1
 Font of Ire	d6db82cddf2a656e	20	1/1		0/1	ix:resp
 Forgotten Harvest	892695ccd06af054	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fracture	cb74554d349bad50	20	0/0		2/2	
+Galadhrim Guide	d024d005e2827197	4	1/1		0/1	ix:resp
 Geomancer's Gambit	65d16f2c38b8f56a	37	0/0		2/2	
 Glaciers	abe75c8a1437b8fa	8	1/1		1/1	
+Glory Bearers	06be34959539f0e3	3	1/1		1/1	
+Gnaw to the Bone	a54476a5f59fc4e5	22	0/0		4/4	
 Goldmeadow Dodger	83df58bcd51a55c0	67	0/0		0/0	
+Granite Grip	e12e3f90e813efc7	5	0/0		2/2	
 Guardian of the Forgotten	eaa0e862d6966013	80	1/1		1/1	
 Gust of Wind	f009681c2e9e8ba2	44	0/0		2/2	
+Hag Hedge-Mage	a8a19907c4b9fb20	3	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Hall of Triumph	fa0183ba2ef53c7c	64	0/0		0/0	
 Hand of Death	38779f54405f5503	48	0/0		1/2	ix:resp
 Hangar Scrounger	e0988c06e2b566ae	24	2/2		1/1	
 Happy Hogan, Bodyguard	fbe84e00983b8a7f	3	1/1		0/1	ix:resp
+Hidden Footblade	a6545f57db546af2	6	2/2		1/1	
 Highborn Ghoul	e83d2ffa73d8ee8c	15	0/0		0/0	
+Ifnir Deadlands	521471585b6a0c08	25	3/3		0/1	ix:resp
+Incubation Druid	b2ce090730ee521e	5	2/2		0/1	ix:resp
 Invasion of Dominaria	370c0e7ecfee35bb	140	1/1		1/1	
+Joraga Treespeaker	125f83fe80f9e647	3	1/1		0/1	ix:resp
 Journey to Nowhere	073d11f241c4bd61	107	2/2		1/1	
 Kiku's Shadow	d010745379b0ca1c	42	0/0		2/2	
 King Macar, the Gold-Cursed	c3ea249d3311c20c	87	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Kinsbaile Borderguard	7079744006f8b9fd	101	1/1		1/1	
 Kirtar's Wrath	074d94411c591cca	74	0/0		1/2	ix:resp
+Laboratory Brute	095eb6d49f23007d	4	1/1		0/1	ix:resp
 Lava Storm	c2acd16b448310ae	27	0/0		2/2	
 Looming Shade	afb5d73c6124d21f	51	1/1		1/1	
 Lucky Offering	cc829b54f24d7bfe	41	0/0		2/2	
+Mage-Ring Network	543f7c35a530aa3d	28	3/3		1/1	
 Mindmoil	3474d76976ecf9a1	27	1/1		1/1	
+Momentum	9b7b3124b2ec082e	3	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Monk Realist	66713c7d51a12a32	116	1/1		1/1	
 Mons's Goblin Raiders	181b78d1cf861b86	49	0/0		0/0	
+Mwonvuli Acid-Moss	9bbd661d2a0a7f97	5	0/0		1/2	ix:resp
+Nacatl Savage	55ae4da346802121	7	0/0		0/0	
+Natural Selection	8df1d1671dd75341	5	0/0		2/2	
+Night Market Guard	36396556ad276e1d	9	0/0		0/0	
+Nomad Stadium	6f4ff948ed464172	32	2/2		0/1	ix:resp
+Northern Paladin	ea25c68bed424613	6	1/1		0/1	ix:resp
 Nyxborn Colossus	73cba460b8b443b8	10	0/0		0/0	
 Of One Mind	9155c83a45af5ff4	56	0/0		2/2	
+Override	9b8c4ae9fe0b7813	3	0/0		1/2	ix:resp
 Overwhelming Stampede	e18e33bfa27b6f5c	33	0/0		2/2	
+Oxidize	cc45b1d11f2be38b	3	0/0		1/2	ix:resp
 Pathbreaker Ibex	6a109d82c75958e3	8	1/1		1/1	
+Perilous Voyage	70c6633e83def1b4	5	0/0		1/2	ix:resp
 Phantom Beast	1d168804d910f418	4	1/1		1/1	
 Psychic Symbiont	812a821580689a10	35	1/1		1/1	
 Radioactive Man	69772035177e6982	44	1/1		1/1	
@@ -77,18 +126,28 @@ Reckless Cohort	4eeb68ef4a9c7c28	6	0/0		0/0
 Reinforcements	3dfb5c976c14021d	88	0/0		2/2	
 Research Assistant	d012bcfd7082604e	102	1/1		1/1	
 Restoration Angel	6957094f77796360	166	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Rough	6231894808b5e8cd	4	0/0		1/3	f1/s,ix:resp
 Sadistic Slash	8454c0657fc6cb66	36	0/0		2/4	cast/alt:mayhem,ix:resp
+Scale of Chiss-Goria	764f77523bddafb0	10	1/1		0/1	ix:resp
 Scion of Calamity	5a0e0e5cdfaf9bac	13	2/2		0/1	ix:resp
 Seven-Tail Mentor	cdd175630dbc83ce	69	2/2		0/1	ix:resp
+Sigil of Sleep	ea864aa9ea45d8e3	4	1/1		1/2	ix:resp
+Skycloud Egg	e6f7632398152957	13	1/1		1/1	
 Slith Bloodletter	0b16d8a65ae05110	43	2/2		1/1	
+Snubhorn Sentry	45899205674fd812	4	0/0		0/0	
 Sokka's Sword Training	27d316e5cb962b9d	122	0/0		2/2	
+Sparring Construct	f7dd8161e3afa736	4	1/1		0/1	ix:resp
 Spiteful Sliver	aa0ad2ddc0019bee	32	0/0		0/0	
+Stern Scolding	7f8f30e2cbae68c0	5	0/0		1/2	ix:resp
 Subtle Strike	d1961b0c9af40aff	40	0/0		2/2	
+Sword of Fire and Ice	296032564c2fe87a	7	2/2		0/1	ix:resp
 Taj-Nar Swordsmith	a86ce901a0c760dc	51	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Thalakos Sentry	e74c6f712711d6a4	83	0/0		0/0	
 Thopter Engineer	5364655f35700915	62	1/1		1/1	
+Time of Ice	a585cebf49643ed3	4	0/0		0/0	
 Torch Fiend	022c8de9994e41d5	21	1/1		1/1	
 Touch of Invisibility	be52bad390ed2512	42	0/0		1/2	ix:resp
+Ultimate Price	d4b34ea3ed7fd1c6	6	0/0		2/2	
 Urborg Stalker	a53b17316be5fe82	29	1/1		1/1	
 Valkyrie Harbinger	4c549857e8ac27f8	51	1/1		0/1	ix:resp
 Venerated Rotpriest	e52440d38537a1bc	11	1/1		0/1	ix:resp
@@ -96,8 +155,15 @@ Vengeant Vampire	91595ed5fe454548	17	1/1		0/1	ix:resp
 Verix Bladewing	3f9dcb0a37f68dca	27	1/1		3/3	
 Veteran's Sidearm	75e2444732985409	43	1/1		1/1	
 Vineweft	7a31762cee3ea1d0	95	1/1		2/2	
+Viridian Corrupter	c1891db7bfeb2246	3	1/1		0/1	ix:resp
 Vodalian Zombie	81bc6db76b4087c5	72	0/0		0/0	
 Vulshok Berserker	de3b86c62fdf9023	23	0/0		0/0	
+Wall of Bone	46a6af3a82e0007d	8	1/1		1/1	
 Whip Silk	2e28bb3166ddfa66	51	1/1		2/2	
 Whisper Squad	530ffae764720266	53	1/1		1/1	
 Witch Enchanter	aff602f5cea3f5b7	114	2/2		0/1	ix:resp
+Worship	9325b1f6c0cc31b4	10	0/0		0/0	
+Yawgmoth's Agenda	f116752af47947f0	6	0/0		0/0	
+Your Temple Is Under Attack	50704e24320dea05	4	0/0		1/2	ix:resp
+Zephyr Sentinel	38f2fbc59b9578f2	9	1/1		1/1	
+Zephyr Sprite	73d2f93655223586	5	0/0		0/0	

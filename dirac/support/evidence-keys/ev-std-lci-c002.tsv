@@ -1,0 +1,71 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Acrobatic Leap	b51aafc1b62044c3	8	0/0		1/2	ix:resp
+Ancestors' Aid	549a178ed3462a8e	8	0/0		1/2	ix:resp
+Basking Capybara	cd46654ed20180a0	4	0/0		0/0	
+Bonehoard Dracosaur	e14c22d96b182c96	4	1/1		1/1	
+Brazen Blademaster	2aedb56bdac3f139	13	1/1		0/1	ix:resp
+Caparocti Sunborn	1c1a78bb8529a012	4	1/1		1/1	
+Captain Storm, Cosmium Raider	d6c66e7bde9e1ce0	3	1/1		1/1	
+Captivating Cave	11b24e94ee6ee8c1	9	3/3		0/1	ix:resp
+Cartographer's Companion	b1d129fc10fd9df7	8	1/1		0/1	ix:resp
+Compass Gnome	c4280999bc73f470	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Confounding Riddle	c812e31cc6f34408	6	0/0		1/2	ix:resp
+Dead Weight	a31fd28eec9f46a2	3	0/0		1/2	ix:resp
+Deconstruction Hammer	0e263f467e55cfc4	4	1/1		0/1	ix:resp
+Deep Goblin Skulltaker	fe702ca867b65c17	7	1/1		0/1	ix:resp
+Deep-Cavern Bat	b929d679a9f4ccf5	6	1/1		0/1	ix:resp
+Diamond Pick-Axe	60d1a4aaf5e0a7a6	4	1/1		0/1	ix:resp
+Didact Echo	3ece33928c876cc7	5	1/1		1/1	
+Digsite Conservator	1361c4835630d002	5	2/2		1/1	
+Dinotomaton	2b1508210f1a0489	4	1/1		0/1	ix:resp
+Dreadmaw's Ire	6e2702eba3d661e0	5	0/0		1/2	ix:resp
+Enterprising Scallywag	ee01b57d202e7a62	10	1/1		1/1	
+Envoy of Okinec Ahau	51e0d7f1bcffff1b	3	1/1		1/1	
+Etali's Favor	f3c346d258132887	5	1/1		1/2	ix:resp
+Family Reunion	940ea36e880b0385	3	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	40	1/1		0/1	ix:resp
+Frilled Cave-Wurm	cf101d66643fb9d8	3	0/0		0/0	
+Fungal Fortitude	f18a43abb3587f14	7	1/1		2/2	
+Geological Appraiser	e6af421c051a2d4c	6	1/1		0/1	ix:resp
+Get Lost	e85f8668957b3ecd	4	0/0		1/2	ix:resp
+Goldfury Strider	9e0075afd5b10672	4	1/1		0/1	ix:resp
+Grasping Shadows	5c1dbd78f8435d87	6	3/3		0/1	ix:resp
+Greedy Freebooter	94517a146c18d749	4	1/1		0/1	ix:resp
+Hidden Cataract	d57b5de70152dcbd	10	2/2		0/1	ix:resp
+Hidden Courtyard	b211f1c070dce3aa	11	2/2		0/1	ix:resp
+Hidden Volcano	4ecc17ab5cc625a5	12	2/2		0/1	ix:resp
+Hotfoot Gnome	cf86d9537abb20f5	4	1/1		0/1	ix:resp
+Huatli's Final Strike	c7f6027bc93d797e	4	0/0		1/2	ix:resp
+Hunter's Blowgun	fae6b939e9e8c718	4	1/1		0/1	ix:resp
+Inverted Iceberg	768c9a27aa04925d	4	3/3		1/1	
+Island	763c67ef7a27eaf5	43	1/1		0/1	ix:resp
+Kutzil's Flanker	78d4c48296e086de	3	1/1		0/1	ix:resp
+Malicious Eclipse	562e538cd4194005	3	0/0		1/2	ix:resp
+Molten Collapse	64eb746d3ae000aa	4	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	162	1/1		0/1	ix:resp
+Orazca Puzzle-Door	a2e6b3d4b174bc45	3	1/1		0/1	ix:resp
+Plains	82d63a695487e567	51	1/1		0/1	ix:resp
+Plundering Pirate	d2f6426ef31f5eb1	5	1/1		0/1	ix:resp
+Poetic Ingenuity	edb5c070752af636	6	2/2		0/1	ix:resp
+Poison Dart Frog	f9f83ab643d8a02d	4	2/2		0/1	ix:resp
+Promising Vein	d699f327b0b032f3	6	2/2		0/1	ix:resp
+Pugnacious Hammerskull	5cf84cbaa88eab0f	4	1/1		0/1	ix:resp
+Queen's Bay Paladin	c01b3d05b3b89d84	3	2/2		0/1	ix:resp
+Rampaging Ceratops	3e3fb1b4acbb3cdd	3	0/0		0/0	
+River Herald Guide	e076fc6c3f258c9e	4	1/1		1/1	
+Rumbling Rockslide	19e5174a758cb88d	12	0/0		2/2	
+Saheeli, the Sun's Brilliance	1399df3e0e4deae4	6	1/1		1/1	
+Scampering Surveyor	3a0992d240720a58	5	1/1		1/1	
+Self-Reflection	7e3a43b253e8cbd6	6	0/0		3/4	ix:resp
+Sentinel of the Nameless City	79b82d53b5a0caa2	4	2/2		0/1	ix:resp
+Skullcap Snail	71c2f2bb38715b70	3	1/1		0/1	ix:resp
+Soulcoil Viper	2d6cb614ab1d904b	4	1/1		1/1	
+Spyglass Siren	3fdc785249d60842	4	1/1		0/1	ix:resp
+Subterranean Schooner	73072a921f22175e	8	2/2		1/1	
+Sunfire Torch	dd10c659e8f343a0	61	1/1		1/1	
+Sunshot Militia	e90e3e46afd67952	4	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	47	1/1		0/1	ix:resp
+Tarrian's Soulcleaver	267f952c89dd0f80	49	2/2		1/1	
+Triumphant Chomp	d51054c9ce6e6e80	8	0/0		2/2	
+Visage of Dread	b07d739f224108f5	4	4/4		0/1	ix:resp
+Volatile Fault	1170d51a6dd4f695	8	2/2		0/1	ix:resp

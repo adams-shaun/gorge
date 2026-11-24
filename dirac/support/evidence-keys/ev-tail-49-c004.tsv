@@ -15,6 +15,7 @@ Bad Moon	db0b883675f487c9	25	0/0		0/0
 Balan, Wandering Knight	c7f8061e03231a50	9	1/1		1/1	
 Barbarian Outcast	da16308a1489a674	22	1/1		1/1	
 Batroc the Leaper	33033905f8fefbf8	43	1/1		3/3	
+Batterbone	4702075731be8dd5	22	2/2		0/1	ix:resp
 Battle Mammoth	440d543dd22aa0d9	31	1/1		2/5	cast/alt:foretold,f0/t0/opt:n,f0/t0/opt:y
 Blistering Barrier	c55e15225b70a029	24	0/0		0/0	
 Bloodthrone Vampire	e9c9dc6cd94dcf03	35	1/1		1/1	
@@ -22,8 +23,11 @@ Brand	a292eb5c72edf40a	39	1/1		2/2
 Briarhorn	f5c680fa451f2443	37	1/1		3/3	
 Call the Cavalry	701bfe8135887be0	6	0/0		1/2	ix:resp
 Call the Scions	c2a90de5aeb066b9	42	0/0		1/2	ix:resp
+Callow Jushi	d3ce2769187f9bdf	18	3/3		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Captain America, Steve Rogers	c5428ebfb3a03e6c	12	1/1		0/1	ix:resp
 Chandra's Outburst	2dd9a5bc74c899e0	24	0/0		2/2	
+Changeling Outcast	fb65f690e367c9f8	11	0/0		0/0	
+Citanul Centaurs	848afe8f55a6cccc	14	1/1		1/1	
 Citanul Flute	b43160582a64ccd4	33	1/1		1/1	
 Cobblebrute	a6bb31d31511c19f	23	0/0		0/0	
 Connive	6a0702364c65c074	14	0/0		1/3	f1/s,ix:resp
@@ -32,11 +36,13 @@ Cultist of the Absolute	c1082b0860b4875d	38	0/0		0/0
 Damping Matrix	5354a03d680f9537	39	0/0		0/0	
 Daredevil's Billy Club	14db44765b6ecd5d	27	2/2		1/1	
 Darksteel Myr	d3ac69d0d5b79203	12	0/0		0/0	
+Death Cloud	4efbdd12b6a9338f	4	0/0		2/4	f0/s/x0,ix:resp
 Denying Wind	ec2609c22e33dc7c	7	0/0		2/2	
 Disciple of Perdition	545018a18bf3b67d	21	1/1		0/1	ix:resp
 Dismember	0ec0345033f87c4b	32	0/0		1/2	ix:resp
 Double Trouble	191df6ef7cce9212	18	0/0		1/2	ix:resp
 Dregs of Sorrow	4e2b9ab505ae4f92	6	0/0		2/4	f0/s/x0,ix:resp
+Druid's Deliverance	e48adaa0ef84f3e1	11	0/0		2/2	
 Elemental Uprising	0e97d5400fa9d944	15	0/0		1/2	ix:resp
 Elvish Piper	8b1d61bd4087900c	35	1/1		1/1	
 Elvish Promenade	ee7a6aa8069406ac	33	0/0		2/2	
@@ -44,6 +50,7 @@ Elvish Scrapper	18447dc2698f682b	44	1/1		1/1
 Enlightened Ascetic	2d3db5f007a7a347	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Escape Velocity	915cf8c53df30df7	31	0/0		3/4	cast/alt:escaped
 Eternity Vessel	4ddab51b51d9bcf8	24	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Eye Spy	d87f70db788af587	21	0/0		2/2	
 Fallen Shinobi	e3b431e605569b03	28	2/2		1/1	
 Fallowsage	e8ee4a5deac6c231	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Fencing Ace	27cf254e45689a37	10	0/0		0/0	
@@ -52,8 +59,11 @@ Ferocious Pup	3846da2b5f11074e	37	1/1		0/1	ix:resp
 Fiery Mantle	fced8eb1a4cf8a68	33	2/2		2/2	
 Fireball	38e57e53e1b89980	12	0/0		2/4	f0/s/x0,ix:resp
 Fissure Wizard	ed3a23b15b100962	27	1/1		1/1	
+Fistful of Force	e819891001879cca	17	0/0		2/2	
 Flamecore Elemental	5bd25b543faa0d78	23	1/1		1/1	
+Flesh-Eater Imp	5252612c3c9a98dc	9	1/1		0/1	ix:resp
 Fungal Rebirth	2bc997dc2734fdc1	38	0/0		2/2	
+Gainsay	8afacf32ebc5c930	8	0/0		2/2	
 Generous Stray	2fab5b99d7cc4324	18	1/1		0/1	ix:resp
 Goldmeadow Lookout	d1caab94516c6fb5	12	1/1		0/1	ix:resp
 Great Desert Prospector	caac215f8258d70d	8	1/1		0/1	ix:resp
@@ -64,15 +74,18 @@ Hewed Stone Retainers	16cafb239bc4eeb9	21	0/0		0/0
 Inferno Fist	e8861bf424d3a1dd	18	1/1		2/2	
 Invigorating Boon	435cd032b9c4cc66	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Jadecraft Artisan	139644955077e22b	30	1/1		0/1	ix:resp
+Jetting Glasskite	c28b4ce3df8c9183	9	1/1		0/1	ix:resp
+Junktroller	5c0d7a2a7207f624	10	1/1		1/1	
 Kayla's Command	cef43151416d9e71	24	0/0		1/2	ix:resp
+Kazandu Blademaster	da1fa2e4a6b49b88	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kessig Wolfrider	db499b5e773d1d41	15	1/1		1/1	
 Kiss of Death	a87775e07ae415c5	10	0/0		1/2	ix:resp
 Kor Cartographer	1d0b9a025e607225	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kor Entanglers	4fe122c99a176ae1	7	1/1		0/1	ix:resp
 Kor Outfitter	0eb49755f1ff53e7	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kor Scythemaster	c6c366c17a22645a	6	0/0		0/0	
-Krosan Druid	fbc0c21a7c58dccc	29	1/1		2/3	ix:resp
 Lantern of Revealing	c3be36ab6ed24f25	38	2/2		1/1	
+Lantern of the Lost	2b1e16932dc06ce9	28	2/2		0/1	ix:resp
 Lapis Lazuli Talisman	b67bab2b0dab0bac	62	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lawmage's Binding	de146e2f55bc4c3d	22	0/0		2/2	
 Long-Finned Skywhale	a7b30faf8a8c7b7d	34	0/0		0/0	
@@ -86,6 +99,7 @@ Mass Hysteria	c38119b50e70135f	34	0/0		0/0
 Maze Skullbomb	aa77207396473cad	36	2/2		1/1	
 Merfolk Observer	c26fc65fce6573e2	31	1/1		1/1	
 Metamorphic Wurm	685044cf70e47a57	34	0/0		0/0	
+Misery Charm	0f4ab389255130ef	16	0/0		2/2	
 Misery's Shadow	84cf96e5e708e090	27	1/1		1/1	
 Moldgraf Scavenger	ca89884c3bacdbaf	31	0/0		0/0	
 Motivated Pony	6f2e92aa4f7e40d0	21	1/1		1/1	
@@ -100,6 +114,7 @@ Outland Colossus	dcd4061dec040dbc	14	1/1		0/1	ix:resp
 Pallid Mycoderm	b50a4c7124c23600	9	3/3		1/1	
 Passionate Archaeologist	0ed2dbcb834e2f15	84	0/0		0/0	
 Patch Up	e901dd0fe66a973f	15	0/0		1/2	ix:resp
+Peace Strider	47989bd15b09a511	11	1/1		0/1	ix:resp
 Pip-Boy 3000	207e7f3c0d8ffdb1	53	2/2		1/1	
 Pooling Venom	fef6fb764b36659e	30	2/2		2/2	
 Prodigy's Prototype	9b92f6ff22628662	7	2/2		1/1	
@@ -113,6 +128,7 @@ Ray of Dissolution	c913fb60744bca2b	16	0/0		2/2
 Razorgrass Ambush	b8d3194ba7413c15	20	1/1		1/2	ix:resp
 Razortide Bridge	69eb353533e4d95d	159	1/1		0/1	ix:resp
 Reaver Titan	9572ba18dadd75d5	21	2/2		1/1	
+Relic of Legends	f07b913667c18078	22	2/2		1/1	
 Resplendent Mentor	f7971f174b7de266	12	0/0		0/0	
 Rhystic Shield	2a361580956a5058	18	0/0		2/2	
 Righteous Cause	7641535a453816f5	11	1/1		1/1	
@@ -129,7 +145,9 @@ Sage of Epityr	1720633f5730a611	50	1/1		0/1	ix:resp
 Salt Road Quartermasters	4ada7f915aa69e55	52	1/1		1/1	
 Sanctum of Stone Fangs	669c8aaa924a5d76	24	1/1		1/1	
 Sandstorm Eidolon	32e562479f99c77a	45	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Sauroform Hybrid	46c2ba99d71669a2	16	1/1		0/1	ix:resp
 Savai Crystal	bf6bdf0a5c4b69d0	9	2/2		1/1	
+Scald	44a3d454a9bb1327	14	1/1		1/1	
 Scale Blessing	10fbdfe92e68de4d	17	0/0		1/2	ix:resp
 Scapeshift	d1f478720ca0b873	21	0/0		1/2	ix:resp
 Sedge Scorpion	4671c8bf9b2edd82	43	0/0		0/0	
@@ -172,6 +190,8 @@ Viridian Harvest	90e5d4fa693d913d	26	1/1		2/2
 Vitu-Ghazi Guildmage	c0e8a7de4964deb9	5	2/2		0/1	ix:resp
 Wall of Corpses	7bcaf2a2e862e36f	18	1/1		0/1	ix:resp
 Warteye Witch	34a44d41da6b5bae	9	1/1		0/1	ix:resp
+Whirlwind Technique	ab4365829d1f6c64	17	0/0		2/2	
+Windborn Muse	fb1982910d830291	4	0/0		0/0	
 Woodland Wanderer	c696168c963c1f62	8	0/0		0/0	
 Xathrid Slyblade	6de3c6dc3c0d9e78	21	1/1		1/1	
 Yeva, Nature's Herald	fa48ce966c143c99	37	0/0		0/0	

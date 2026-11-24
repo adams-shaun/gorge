@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ali from Cairo	45803eaa73b5ebe8	3	0/0		0/0	
 Arcbound Javelineer	04b06dcc80ddd5f3	26	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Arrow Storm	ab1475f7fc10d534	11	0/0		2/2	
 Biomass Mutation	8492f4a35c69ded5	6	0/0		2/4	f0/s/x0,ix:resp
@@ -33,6 +34,8 @@ Soulquake	1fb0db99d73404d6	3	0/0		1/2	ix:resp
 Stir the Sands	ec2f48c956864ac2	3	2/2		2/2	
 Sword of Forge and Frontier	b00971917d808bfa	65	2/2		1/1	
 Thalakos Dreamsower	30921808effe6b8d	25	1/1		0/1	ix:resp
+The Cabbage Merchant	331105448513be6b	8	3/3		0/1	ix:resp
 Tin Street Hooligan	439cf211d39c0a01	4	1/1		0/1	ix:resp
+Truth or Consequences	cbe22d3f229f3499	3	0/0		1/2	ix:resp
 Vernal Sovereign	97a2968426af634b	8	2/2		0/1	ix:resp
 Vizkopa Guildmage	ac30af0a9d8e1bf0	8	2/2		1/1	

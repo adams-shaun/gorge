@@ -1,57 +1,85 @@
++2 Mace
 A-Hagra Constrictor
 A-Young Red Dragon
 Abnormal Endurance
 Abzan Beastmaster
+Abzan Kin-Guard
+Acorn Catapult
+Adarkar Sentinel
+Agent of Acquisitions
 All That Glitters
 Anarchist
 Ancient Brontodon
 Anoint
 Anointer of Champions
+Anvilwrought Raptor
 Arachnoid Adaptation
 Arcade Gannon
 Arcbound Stinger
 Archangel Avacyn
 Archnemesis
 Arctic Wolves
+Argent Mutation
 Assassinate
 Avatar of Slaughter
+Azure Fleet Admiral
+Azusa's Many Journeys
+Beast in Show
 Benevolent Ancestor
 Bile Urchin
 Blood Tithe
 Bone Picker
+Boros Garrison
+Boros Signet
 Bosh, Iron Golem
 Brokers Veteran
 Bump in the Night
 Burning Hands
 Caldera Kavu
+Cascade Bluffs
 Cavalier of Night
 Centaur Rootcaster
 Champion of Arashin
 Chandra's Revolution
+Chariot of Victory
+Chilling Trap
+Circle of Dreams Druid
+Circle of Flame
 Coal Stoker
 Cogworker's Puzzleknot
 Crimson Mage
 Crocodile of the Crossing
 Crystal Slipper
+Cybermen Squadron
+Cytospawn Shambler
 Defiant Salvager
+Demonmail Hauberk
 Desperate Castaways
 Devout Lightcaster
 Dreadwurm
 Drogskol Cavalry
+Duskmantle Operative
 Eidolon of the Great Revel
 Eiganjo Exemplar
 Eldritch Immunity
 Electrolyze
 Ellyn Harbreeze, Busybody
+Elven Fortress
+Enchanted Prairie
 Endless Ranks of the Dead
+Enlightened Maniac
+Epiphany Storm
 Esquire of the King
+Ethereal Investigator
 Evolutionary Leap
 Extortion
 Exultant Skymarcher
+Ezuri, Stalker of Spheres
 Faceless Butcher
 Faerie Conclave
 Failed Inspection
 Falcon, Joaquin Torres
+Farid, Enterprising Salvager
 Feral Maaka
 Fervent Paincaster
 Fire Ants
@@ -67,51 +95,69 @@ Font of Ire
 Forest
 Forgotten Harvest
 Fracture
+Galadhrim Guide
 Garruk's Gorehorn
 Geomancer's Gambit
 Ghost-Lit Redeemer
 Ghostfire Blade
 Glaciers
+Glory Bearers
+Gnaw to the Bone
 Goldmeadow Dodger
+Granite Grip
 Grizzled Leotau
 Grizzly Bears
 Guardian Gladewalker
 Guardian of the Forgotten
 Gust of Wind
+Hag Hedge-Mage
 Hall of Triumph
 Hand of Death
 Hangar Scrounger
 Happy Hogan, Bodyguard
 Heal
 Heroic Teamwork
+Hidden Footblade
 Highborn Ghoul
+Ifnir Deadlands
 Ignite the Future
+Incubation Druid
 Invasion of Dominaria
 Invasion of Kaldheim
 Iroh, Firebending Instructor
 Island
+Joraga Treespeaker
 Journey to Nowhere
 Kiku's Shadow
 King Macar, the Gold-Cursed
 Kinsbaile Borderguard
 Kirtar's Wrath
 Kitchen
+Laboratory Brute
 Lava Storm
 Legion Lieutenant
 Living Terrain
 Loathsome Curator
 Looming Shade
 Lucky Offering
+Mage-Ring Network
 Match the Odds
 Metallic Mimic
 Mindmoil
 Mishra's Helix
 Mizzium Mortars
+Momentum
 Monk Realist
 Mons's Goblin Raiders
 Mountain
 Multani's Harmony
+Mwonvuli Acid-Moss
+Nacatl Savage
+Natural Selection
+Night Market Guard
 Noble's Purse
+Nomad Stadium
+Northern Paladin
 Nyxborn Colossus
 Oakheart Dryads
 Obelisk of Undoing
@@ -120,8 +166,11 @@ Of One Mind
 Opaline Unicorn
 Oran-Rief Invoker
 Orthodoxy Enforcer
+Override
 Overwhelming Stampede
+Oxidize
 Pathbreaker Ibex
+Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
 Plains
@@ -139,19 +188,27 @@ Restoration Angel
 Ring of Thune
 Rona's Vortex
 Rootbound Crag
+Rough
 Sadistic Slash
+Scale of Chiss-Goria
 Scion of Calamity
 Serra's Blessing
 Seven-Tail Mentor
 Shinka Gatekeeper
 Siege Veteran
+Sigil of Sleep
+Skycloud Egg
 Slith Bloodletter
+Snubhorn Sentry
 Sokka's Sword Training
+Sparring Construct
 Spiked Corridor
 Spiteful Sliver
 Staunch Throneguard
+Stern Scolding
 Subtle Strike
 Swamp
+Sword of Fire and Ice
 Taj-Nar Swordsmith
 Talonrend
 Tenacious Hunter
@@ -160,12 +217,14 @@ Thalakos Sentry
 Thopter Engineer
 Thorncaster Sliver
 Thoughts of Ruin
+Time of Ice
 Toggo, Goblin Weaponsmith
 Torch Fiend
 Touch of Invisibility
 Trapmaker's Snare
 Twigwalker
 Tyrant's Scorn
+Ultimate Price
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
@@ -175,12 +234,19 @@ Verix Bladewing
 Veteran Cavalier
 Veteran's Sidearm
 Vineweft
+Viridian Corrupter
 Vodalian Merchant
 Vodalian Zombie
 Vulshok Berserker
 Vulshok Heartstoker
+Wall of Bone
 Whip Silk
 Whiptongue Hydra
 Whisper Squad
 Whitewater Naiads
 Witch Enchanter
+Worship
+Yawgmoth's Agenda
+Your Temple Is Under Attack
+Zephyr Sentinel
+Zephyr Sprite

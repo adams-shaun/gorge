@@ -11,6 +11,7 @@ Asphodel Wanderer	dddb88ef0a12584b	62	1/1		1/1
 Azorius Ploy	9c7b7b4c208b0cac	43	0/0		2/2	
 Beast Attack	26212472d9149b66	13	0/0		4/4	
 Biting Rain	6c2c845cd955b3c5	8	0/0		1/2	ix:resp
+Blessed Reincarnation	c03f465fb4190923	8	0/0		2/2	
 Blight Sickle	bf230f6d4d8c3624	22	1/1		0/1	ix:resp
 Blossom Dryad	8af86815052638c7	19	1/1		1/1	
 Caldera Pyremaw	dcc4cc669da4ed08	36	1/1		1/1	
@@ -21,6 +22,7 @@ Champion's Helm	c055e38b89f07e79	8	1/1		1/1
 Clackbridge Troll	212b01c55c3d7779	6	2/2		1/1	
 Cling to Dust	eff2a23663600334	6	0/0		3/4	cast/alt:escaped
 Clutch of Undeath	892157b3eb04fe49	14	0/0		1/2	ix:resp
+Collective Resistance	f422d39c357d5a80	3	0/0		2/2	
 Company Commander	a13a9f47cb7aae86	4	2/2		0/1	ix:resp
 Confront the Unknown	9e6bc09c325c062b	5	0/0		1/2	ix:resp
 Consuming Vapors	c83f01583ff9e220	6	0/0		1/2	ix:resp
@@ -39,6 +41,7 @@ Death's-Head Buzzard	396fcc5df2bc166d	7	1/1		1/1
 Despise	d969a14ad0ccd980	4	0/0		1/2	ix:resp
 Diligent Excavator	f62959d44623c18d	4	1/1		0/1	ix:resp
 Dismantling Blow	ad70ec28a7086ec2	16	0/0		4/4	
+Drifting Meadow	47677ea212159e6a	10	2/2		1/1	
 Dwarven Vigilantes	794af72b66324574	18	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eidolon of Rhetoric	3afd9a2a76a4eccb	10	0/0		0/0	
 Elspeth, Undaunted Hero	8b9ca6ad3bfddcd5	15	3/3		1/1	
@@ -51,13 +54,16 @@ Femeref Healer	8b1f484912cdb668	6	1/1		1/1
 Final-Sting Faerie	a1ba605360ed1362	11	1/1		1/1	
 Foe-liage	a7a12c473a81af79	9	1/1		0/1	ix:resp
 Fog of Gnats	9c8ec3441dddab2b	8	1/1		1/1	
+Fountain of Cho	37d6fd9b8184315b	39	2/2		1/1	
 Furnace Hellkite	78974a283bc2ed85	24	1/1		1/1	
 Galvanic Iteration	ada8cf8d366b9ccb	8	0/0		3/4	ix:resp
+Gilt-Leaf Palace	9a2a3bf87ee5c8d5	29	1/1		0/1	ix:resp
 Gnome-Made Engine	e17a2e3ef946bd26	47	1/1		1/1	
 Goblin Glider	d3adead6b92a74c8	36	0/0		0/0	
 Golden Egg	3133801e9c022bb6	18	3/3		1/1	
 Gray Merchant of Asphodel	6acf3c57d9c1a96c	25	1/1		0/1	ix:resp
 Guardian Kirin	ea4c832a663e816a	4	1/1		1/1	
+Hall	04d403d7384f2137	30	2/2		1/1	
 Helitrooper	7df52cfb92bded47	10	1/1		1/1	
 Heroes' Podium	1eba0b74102dcf0e	8	1/1		1/1	
 Hidden Blade	03b0c3cdc8d61e4b	6	2/2		0/1	ix:resp
@@ -66,6 +72,7 @@ Implement of Ferocity	8864bda92317400c	25	2/2		1/1
 Improvised Armor	8311c939f94bb693	4	1/1		2/2	
 Indigo Faerie	5a93545a79599469	31	1/1		1/1	
 Infested Fleshcutter	f04b5704bad4ea4a	4	2/2		0/1	ix:resp
+Iron Bully	59feb7b778c48bf3	4	1/1		0/1	ix:resp
 Kaito Shizuki	6969150227007790	39	4/4		1/1	
 Knight of the Keep	1f491da90b7a6d1d	4	0/0		0/0	
 Knights of the Black Rose	8e631b548698c415	5	2/2		0/1	ix:resp
@@ -76,6 +83,7 @@ Lucas, the Sharpshooter	a721a5a1ac39c102	4	1/1		0/1	ix:resp
 Lyla, Holographic Assistant	26184d855c63ee37	4	1/1		0/1	ix:resp
 Mana Matrix	fef226569f8c91ea	4	0/0		0/0	
 Might Weaver	84cf9afe434c065e	25	1/1		1/1	
+Miren, the Moaning Well	ec4ba0bea2d3b3a5	20	2/2		1/1	
 Moonblade Shinobi	6616d6398e792634	22	2/2		1/1	
 Morkrut Necropod	ec955e86e9b55b75	14	2/2		1/1	
 Mortal's Ardor	1945c394c93c5fa4	4	0/0		1/2	ix:resp
@@ -145,6 +153,7 @@ Unwilling Ingredient	f5972371134e7e6d	52	1/1		1/1
 Vampire Lacerator	de252312e424672b	28	1/1		1/1	
 Venomcrawler	9337f283dc8c0715	11	1/1		1/1	
 Voldaren Stinger	01731e8150e7e76d	13	1/1		1/1	
+Walker of Secret Ways	88b956a4dbdd3a78	11	3/3		1/1	
 Well-Laid Plans	ec50d8aae541990f	6	0/0		0/0	
 Whack	320835820407e3b6	3	0/0		1/2	ix:resp
 Windgrace Acolyte	58988c529a1349bf	6	1/1		0/1	ix:resp

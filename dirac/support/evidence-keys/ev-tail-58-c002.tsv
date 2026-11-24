@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Hobbling Zombie	4800edc2ffd4f813	36	1/1		1/1	
 Abbey Gargoyles	ff9a1c9be5a7c99c	22	0/0		0/0	
+Accelerate	7bc701ebe48e3957	10	0/0		2/2	
 Aerie Ouphes	3d1dfb0fb4443d14	22	2/2		1/1	
 Ajani, the Greathearted	241bcd195449ded9	4	2/2		0/1	ix:resp
 Alesha's Vanguard	808839e52b283074	35	0/0		2/2	
@@ -20,14 +21,17 @@ Death Ward	91520594f5516eae	40	0/0		2/2
 Deluge	1e07b69bd08ce5e7	6	0/0		1/2	ix:resp
 Disciple of Law	fd44bdb5386cf755	8	1/1		0/1	ix:resp
 Disempower	218a042c0f009c48	21	0/0		1/2	ix:resp
+Dreadwing	7ee324d342af5a93	6	1/1		1/1	
 Druid of the Anima	3879f816e9944144	29	1/1		1/1	
 Dusk Feaster	0d7d3e2ebbe8b45c	25	0/0		0/0	
 Dwarfhold Champion	2e0be35bd88bea73	28	0/0		0/0	
+Elder Owyn Lyons	857ea030a26a53ca	4	2/2		0/1	ix:resp
 Elgaud Inquisitor	f17a9456c24bff88	21	1/1		1/1	
 Elite Arrester	814ce9288a990344	46	1/1		1/1	
 Enraged Giant	8716004ad1d41452	4	0/0		0/0	
 Essence Flare	97cc177c79fa9c53	6	1/1		1/2	ix:resp
 Fateful Handoff	6c7a7d3c42f71146	33	0/0		2/2	
+Fatigue	bfd00f6c14808b18	4	0/0		1/2	ix:resp
 Flame Rift	b298af8036e660ed	4	0/0		2/2	
 Gate of the Black Dragon	9f017409059fee97	13	2/2		0/1	ix:resp
 General's Enforcer	24747bbd3bfa5da3	4	1/1		0/1	ix:resp
@@ -37,6 +41,7 @@ Glint-Nest Crane	42f103136a1a7d6c	44	1/1		1/1
 Graf Reaver	b887544b7b028813	53	3/3		1/1	
 Gravecrawler	edfd0e9268aa2149	8	0/0		0/0	
 Gravedig	b1f7a4129c7aae24	51	0/0		2/2	
+Grotag Night-Runner	54c21ca680721457	4	1/1		0/1	ix:resp
 Ground Rift	419fe9f37808217c	3	1/1		2/2	
 Guardian of Pilgrims	f19d1c0836dad42d	41	1/1		0/1	ix:resp
 Guma	b7f781fb9e822256	35	0/0		0/0	
@@ -53,11 +58,13 @@ Ivory Tower	0304b36f08d98d3d	3	1/1		1/1
 Journey to Oblivion	59552c58ce34e99f	33	1/1		1/1	
 Kinjalli's Caller	b39b2302ce6f031a	39	0/0		0/0	
 Kitesail Apprentice	3ed4fbc880512bbc	49	0/0		0/0	
+Lambholt Harrier	1f0c6e73c8d5b93e	3	1/1		1/1	
 Lawless Broker	189082852415efa1	4	1/1		0/1	ix:resp
 Leopard-Spotted Jiao	dbb7f273d91e0be2	45	0/0		0/0	
 Mandible Justiciar	7dd1b93769f36ada	52	1/1		1/1	
 Maul of the Skyclaves	66af3f9eb5e99934	38	2/2		1/1	
 Mesmeric Fiend	cebad4ce12fe0867	8	2/2		0/1	ix:resp
+Minion's Return	6e8e27c5210519b0	4	1/1		2/2	
 Mishra's Research Desk	0ab94ba060244533	66	2/2		1/1	
 Molting Snakeskin	83a04ad26c17786a	50	0/0		2/2	
 Nether Void	a96005569483347a	25	1/1		1/1	
@@ -76,18 +83,23 @@ Rosecot Knight	d820dc3721d49d5a	29	1/1		1/1
 Ruinous Intrusion	08701e9aa2efdad4	34	0/0		2/2	
 Rush of Battle	17bc8d405594062a	33	0/0		2/2	
 Sanguinary Priest	2ea29f9ce7530dde	4	1/1		1/1	
+Seize the Day	906bf5d323f11ee5	6	0/0		3/4	ix:resp
 Serpent of the Endless Sea	f759a34e2ea8b73f	23	0/0		0/0	
 Setessan Oathsworn	98b329835bf887d2	29	1/1		0/1	ix:resp
 Shambling Vent	ac857dc809b887bc	26	2/2		1/1	
 Shard Volley	f4b5a938d184fe66	4	0/0		1/2	ix:resp
+Shield of the Realm	78b33eb8dc86280d	61	1/1		1/1	
 Shrieking Grotesque	eb2d828517cb0459	23	1/1		0/1	ix:resp
 Sinew Sliver	aa199601e801dd4b	37	0/0		0/0	
+Six	877b0f4c485a326c	4	1/1		0/1	ix:resp
 Skittering Horror	9603df48ccb3e328	4	1/1		1/1	
 Slith Ascendant	a50ee722008e7cef	24	1/1		1/1	
 Spike Tiller	b11319efb4e2e60c	17	2/2		1/1	
 Spirit Loop	3f8a3db4ab6e6479	76	2/2		2/2	
+Spoils of Adventure	3d31f4debdb1229a	4	0/0		1/2	ix:resp
 Staff of Titania	c434a4b6d5e9c9bc	12	2/2		1/1	
 Stag Beetle	89bef8a940c9fc2c	4	0/0		0/0	
+Stand Together	38eb655d7f939356	4	0/0		1/2	ix:resp
 Summit Prowler	3094f3fc40efc3e6	4	0/0		0/0	
 Telepathy	01d057f40c681eee	4	0/0		0/0	
 Temple Thief	00a2ee1800d8bb99	58	0/0		0/0	
@@ -101,11 +113,13 @@ Toymaker	ba41ca21bf9900db	68	1/1		1/1
 Traverse the Outlands	2071ad7f4df59e8c	13	0/0		1/2	ix:resp
 Treacherous Blessing	2bb916eec4c6d634	10	3/3		0/1	ix:resp
 Turbulent Springs	461afaf0e568d37a	30	2/2		0/1	ix:resp
+Umbral Mantle	9ba7e9fd42c05458	4	1/1		0/1	ix:resp
 Unbender Tine	c6e8e4e41381f597	6	1/1		1/1	
 Visions of Brutality	fd366ab07fe653d6	4	1/1		2/2	
 Voltaic Construct	29a2dbe24f40e340	73	1/1		1/1	
 Vryn Wingmare	7b186fefb412d6ee	33	0/0		0/0	
 Welkin Guide	0e24a57ea0f97a59	36	1/1		1/1	
 Whipcorder	8d69fdc7e598d90e	9	1/1		2/3	cast/alt:morphed
+Wildfire Awakener	359cf26caa0867b5	6	1/1		0/1	ix:resp
 Woodland Patrol	26f254a930e3f592	38	0/0		0/0	
 Yisan, the Wanderer Bard	ad4f604767102326	52	1/1		1/1	

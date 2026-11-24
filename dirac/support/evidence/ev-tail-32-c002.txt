@@ -1,4 +1,5 @@
 A-Elderleaf Mentor
+A-Goldspan Dragon
 Abstruse Interference
 Advocate of the Beast
 Aeolipile
@@ -179,6 +180,7 @@ Hysterical Blindness
 Idle Thoughts
 Ifnir Deadlands
 Ignition Team
+Infernal Sovereign
 Inferno
 Into Thin Air
 Into the Maw of Hell
@@ -371,6 +373,7 @@ Traumatic Revelation
 Triumphant Adventurer
 Tromell, Seymour's Butler
 True Conviction
+Try-My-Deck Elemental
 Turnabout
 Turntimber Ranger
 Tyranid Invasion

@@ -11,6 +11,7 @@ Angel of the God-Pharaoh	303661cd724b9067	6	1/1		1/1
 Anointed Chorister	a1a4a8e30cc6fdf0	12	1/1		1/1	
 Anurid Murkdiver	e860ed1a2064e238	5	0/0		0/0	
 Aphotic Wisps	1f06ea183bac8ff5	54	0/0		2/2	
+Archway of Innovation	d91bd2e72cc834f9	18	2/2		1/1	
 Armillary Sphere	79c6a2f1557a02fd	16	1/1		1/1	
 Augury Owl	a78cac748609381b	41	1/1		1/1	
 Azor's Elocutors	649188eda23d6eea	15	2/2		1/1	
@@ -30,6 +31,7 @@ By Force	cc9582497b51a685	34	0/0		4/4
 Cabal Archon	783a908b73078cdc	66	1/1		1/1	
 Carrion Howler	e5f23cbe5bc2f93a	41	1/1		1/1	
 Cartouche of Strength	23025413eab0fb8b	48	1/1		2/4	f0/t0/opt:n,f0/t0/opt:y
+Chaos Channeler	7f95bd97d2379e02	4	1/1		0/1	ix:resp
 Char	87e447d24c46247d	8	0/0		2/2	
 Chemister's Insight	04dbfa9dfab4dde4	8	0/0		3/4	cast/alt:jumpstart
 Chime of Night	5b83acc81d4ad4f4	56	1/1		2/2	
@@ -42,6 +44,7 @@ Cosmic Epiphany	c950e9151f22189e	7	0/0		2/2
 Crawling Infestation	13231593accb4931	11	2/2		0/1	ix:resp
 Crucible of Worlds	8d2ea0313646d32d	84	0/0		0/0	
 Cryptolith Rite	dd93f79887a0dcd9	29	0/0		0/0	
+Dark Triumph	dce7f6bd608aae11	4	0/0		1/2	ix:resp
 Dauthi Voidwalker	f39d62532698f41b	4	1/1		1/1	
 Deb Thomas	9092562d0ac0831c	4	3/3		1/1	
 Deep-Sea Serpent	9a1f9e5ccdf0f34b	7	0/0		0/0	
@@ -92,6 +95,7 @@ Gutter Skulk	fc9df1811f72e49c	14	0/0		0/0
 Healing Leaves	3d726bdc9d9a218c	37	0/0		2/2	
 Ill-Tempered Cyclops	17f4a8b43c9a4b09	6	1/1		1/1	
 Imoti, Celebrant of Bounty	3b12e2db79d392a7	7	0/0		0/0	
+Improvised Club	7564eb45b1c48e48	5	0/0		1/2	ix:resp
 Infuse	8c09f73838ef0b18	6	0/0		1/2	ix:resp
 Innocuous Researcher	09f85199a80cc55a	40	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Inside Out	096d7df4f6366849	21	0/0		2/2	
@@ -100,6 +104,7 @@ Into the North	896ac07cf125c5b6	49	0/0		2/2
 Into the Time Vortex	76c61f7caf6cc378	4	0/0		2/2	
 Inviolability	12b773b06004b6ae	15	0/0		1/2	ix:resp
 Jace's Erasure	6594167cb3eb0284	32	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Jungle Basin	e23e9ec9ed219c70	18	2/2		0/1	ix:resp
 Kappa Tech-Wrecker	ad554dd291449691	29	2/2		1/1	
 Kathari Screecher	26f530fe193c5391	15	1/1		0/1	ix:resp
 King Cheetah	ab770006fdaefd98	22	0/0		0/0	
@@ -111,11 +116,13 @@ Learn from the Past	5c2e6fab150c86ea	4	0/0		1/2	ix:resp
 Leeching Bite	303a713e3881094e	45	0/0		2/2	
 Leonin Battlemage	7de74dd9532ef6c7	27	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lifespring Druid	3fd3a453897c96aa	35	1/1		0/1	ix:resp
+Lithoform Engine	c845b188dc1262ee	4	3/3		0/1	ix:resp
 Locus Cobra	8dea819d39ea7c92	51	1/1		1/1	
 Lose Calm	c288de9dc1c920ce	8	0/0		1/2	ix:resp
 Lumengrid Warden	64cb01284365b8c1	36	0/0		0/0	
 Lychguard	6291625f68b9a10f	7	1/1		1/1	
 Madame Hydra, Reanimated	72691cee36415763	19	2/2		1/1	
+Mage Hunters' Onslaught	0839743285e38413	4	0/0		1/2	ix:resp
 Magic Missile	21c55cd784c607f7	32	0/0		2/2	
 Mana Short	e27ea6e50cbd4aae	12	0/0		1/2	ix:resp
 Manriki-Gusari	7ffd80d40df8fa90	4	1/1		0/1	ix:resp
@@ -125,6 +132,7 @@ Mary Read and Anne Bonny	abef3ea4180dd477	27	2/2		1/1
 Mask of the Jadecrafter	3647839288e508f1	104	2/2		1/1	
 Mending Hands	73cceaa8dddf6c9f	3	0/0		1/2	ix:resp
 Messenger Drake	b0dd11a6e40f57eb	6	1/1		1/1	
+Meticulous Excavation	e775991db99748fb	12	1/1		1/1	
 Metrognome	91c948c9b45b79b3	4	2/2		1/1	
 Midnight Covenant	84ef9cea3a9075ba	56	0/0		1/2	ix:resp
 Mindwarper	17459aef9f8c5f7c	8	1/1		0/1	ix:resp
@@ -194,6 +202,7 @@ Skyclave Pick-Axe	57192d0b964643df	4	3/3		0/1	ix:resp
 Skyfisher Spider	1cb931195e09aaf1	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
 Skyshroud Ranger	1dee78610bfa14b6	35	1/1		1/1	
 Slagwurm Armor	ef2993bb142112b8	8	1/1		0/1	ix:resp
+Slippery Karst	863431b242d21b23	4	2/2		0/1	ix:resp
 Sludge Monster	e44b71b9981afd1a	27	2/2		1/1	
 Slum Reaper	3aa570dd8fc34304	35	1/1		1/1	
 Smitten Swordmaster	ebb42a373252c22e	3	0/0		1/2	ix:resp
@@ -225,6 +234,7 @@ Tui and La, Moon and Ocean	3015133d045fac62	8	2/2		1/1
 Two-Headed Giant of Foriys	97fe9df449f4a528	16	0/0		0/0	
 Two-Headed Zombie	334a74a5250e0791	8	0/0		0/0	
 Undercity Uprising	bf4ed4515a2ca49a	3	0/0		1/2	ix:resp
+Unstable Obelisk	dc88379332747e97	3	2/2		0/1	ix:resp
 Urza's Rage	ce7960b72f854a29	91	0/0		3/4	cast/alt:kicked
 Valeron Outlander	d9d5231f2346cbaa	11	0/0		0/0	
 Valley Dasher	6ba9aba7bd8ce257	38	0/0		0/0	
@@ -235,6 +245,7 @@ Whisperer of the Wilds	0a131e268283daac	13	2/2		0/1	ix:resp
 Wild Hunger	1325a305941d9b30	47	0/0		4/4	
 Wind Sail	2f5fe82ae6989fd1	23	0/0		2/2	
 Wintermoor Commander	c0b24dd5df6eec28	22	1/1		0/1	ix:resp
+Wooded Bastion	cd20e597c66ef4e7	5	2/2		0/1	ix:resp
 Wound Reflection	9702a6df00cea4e6	4	1/1		1/1	
 Xun Yu, Wei Advisor	43c404145b3092c7	4	1/1		0/1	ix:resp
 Yawgmoth, Thran Physician	0fc0fc220ca08fc7	6	2/2		0/1	ix:resp

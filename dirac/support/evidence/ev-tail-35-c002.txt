@@ -1,10 +1,14 @@
 A-Elderleaf Mentor
 A-You Come to a River
+Abomination, World Ravager
 Absolute Law
 Aeolipile
+Aerial Boost
 Akki Rockspeaker
 Alchemist's Refuge
+Alibou, Ancient Witness
 Amass the Components
+Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
 Ballynock Trapper
@@ -27,35 +31,53 @@ Branching Bolt
 Brazen Borrower
 Bright Reprisal
 Brute Force
+Celestial Enforcer
 Cephalid Sage
 Chained Brute
+Chandra's Magmutt
+Chaos Warp
 Choose Your Weapon
 Circle of Protection: Artifacts
 Claws of Valakut
+Cloaked Siren
+Consume Strength
 Convolute
+Cryoclasm
 Cunning Survivor
 Cursebreak
 Darkmoss Bridge
+Dauthi Mercenary
 Dawn Charm
 Daxos, Blessed by the Sun
+Dead Reveler
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
+Deeproot Historian
 Defabricate
+Divination
 Divine Light
 Drake Familiar
+Dwarven Thaumaturgist
 Dyfed, the Guiding Hand
+Ebonblade Reaper
 Elder Druid
 Elder Gargaroth
 Elite Vanguard
+Encrust
 Esper Battlemage
 Esper Panorama
+Expedition Diviner
 Faerie Impostor
+Fiend Hunter
 Flatline
 Forest
 Foundry Assembler
+Foxfire
 Frantic Confrontation
 Frenetic Raptor
+Frost Breath
+Fugitive Druid
 Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
@@ -65,9 +87,12 @@ Gingerbehemoth
 Glint-Nest Crane
 Goatnapper
 Goblin Lore
+Golgari Findbroker
 Graaz, Unstoppable Juggernaut
+Granger Guildmage
 Gravel Slinger
 Grayscaled Gharial
+Grixis Slavedriver
 Ground Assault
 Gruul Cluestone
 Guardian of Solitude
@@ -98,10 +123,15 @@ Lady Spider, Maybelle Reilly
 Leonin Armorguard
 Leyline of the Meek
 Living Lightning
+Lulu, Loyal Hollyphant
 Lush Growth
 Magus of the Bazaar
 Manticore of the Gauntlet
 Marshal's Anthem
+Mass Polymorph
+Meatsqueak, Hoard Lord
+Merfolk Thaumaturgist
+Merry, Esquire of Rohan
 Mindlash Sliver
 Mishra's Groundbreaker
 Monoskelion
@@ -110,6 +140,7 @@ Mountain
 Mountain Valley
 Myojin of Cleansing Fire
 Myr Galvanizer
+Nantuko Shrine
 Necrogenesis
 Nezumi Cutthroat
 Night Market Aeronaut
@@ -124,11 +155,14 @@ Ori, Plate Stacker
 Otherworldly Outburst
 Pain Distributor
 Pain Seer
+Perplex
 Pest Rescuer
 Phalanx Leader
 Plains
 Planar Birth
+Presence of Gond
 Prey's Vengeance
+Primal Order
 Primeval Titan
 Prohibit
 Raugrin Crystal
@@ -138,6 +172,7 @@ Reject Imperfection
 Repulsor Rays
 Research Thief
 Reservoir Walker
+Rise from the Tides
 Sacred Rites
 Samite Healer
 Saprazzan Raider
@@ -145,28 +180,34 @@ Scouting Hawk
 Sea Monster
 Seasoned Hallowblade
 Secretkeeper
+Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
 Shaleskin Bruiser
+Shanodin Dryads
 Shivan Emissary
 Silhana Starfletcher
 Skyshroud Forest
 Sleeper Dart
+Sleeper's Robe
 Spellkeeper Weird
 Spikeshot Goblin
 Spiketail Drake
 Spirit of Malevolence
+Spirit of the Night
 Spitting Hydra
 Stave Off
 Stensia Uprising
 Stone Haven Pilgrim
 Storm Caller
 Stratadon
+Street Savvy
 Striped Bears
 Sumala Woodshaper
 Swamp
 Swarmyard Massacre
 Synapse Sliver
+Syphon Essence
 Syphon Mind
 Tablet of Epityr
 Tectonic Fiend
@@ -177,9 +218,13 @@ The Biblioplex
 The Blue Spirit
 The Falcon, Sam Wilson
 Thriving Grubs
+Thriving Rhino
 Tidal Kraken
 Tiller of Flesh
+Titan of Eternal Fire
+Transmogrify
 Tree Monkey
+Treefolk Umbra
 Tribal Flames
 Turtleshell Changeling
 Twenty-Toed Toad
@@ -204,3 +249,4 @@ Wreck and Rebuild
 Wrecking Ball
 Writhing Chrysalis
 Yarok's Fenlurker
+Zealous Persecution

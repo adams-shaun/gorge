@@ -80,6 +80,7 @@ Disciple of Perdition
 Disentomb
 Dismember
 Domri, City Smasher
+Doran, the Siege Tower
 Double Trouble
 Dragon Whelp
 Drake Haven
@@ -102,7 +103,9 @@ Eternity Vessel
 Ever After
 Exhaustion
 Extinguish the Light
+Eye Spy
 Faerie Duelist
+Fallen Shinobi
 Fallowsage
 Farid, Enterprising Salvager
 Fate Foretold
@@ -117,6 +120,7 @@ Fissure Wizard
 Fistful of Force
 Flamecore Elemental
 Flames of the Firebrand
+Flesh-Eater Imp
 Forest
 Fortified Rampart
 Fountain of Youth
@@ -158,10 +162,13 @@ Island
 Island of Wak-Wak
 Jadecraft Artisan
 Jaya, Venerated Firemage
+Jetting Glasskite
+Junktroller
 Kayla's Command
 Kazandu Blademaster
 Kessig Wolfrider
 Kiln Walker
+Kiri-Onna
 Kiss of Death
 Kor Cartographer
 Kor Entanglers
@@ -207,6 +214,7 @@ Nico Minoru, Runaway
 Night Incarnate
 Nightshade Seer
 Nim Grotesque
+Numot, the Devastator
 Nylea's Forerunner
 Oath of Nissa
 Oblivion Strike
@@ -250,6 +258,7 @@ Reaver Titan
 Red Death, Shipwrecker
 Refocus
 Relentless Rats
+Relic of Legends
 Renari, Merchant of Marvels
 Resplendent Mentor
 Response
@@ -278,6 +287,7 @@ Saruman the White
 Sauroform Hybrid
 Savai Crystal
 Saw It Coming
+Scald
 Scale Blessing
 Scapeshift
 Scout the Borders
@@ -309,6 +319,7 @@ Soratami Savant
 Soulshriek
 Spawn-Gang Commander
 Spire Garden
+Sprouting Thrinax
 Squadron Hawk
 Squallmonger
 Squirrel Sanctuary
@@ -386,6 +397,7 @@ Whirlwind Technique
 Wildwood Geist
 Willow Faerie
 Willow-Wind
+Windborn Muse
 Wing Puncture
 Wirewood Hivemaster
 Woodland Wanderer

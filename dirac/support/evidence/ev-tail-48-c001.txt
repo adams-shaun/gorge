@@ -42,6 +42,7 @@ Bygone Bishop
 Cackling Counterpart
 Carnifex Demon
 Cathars' Crusade
+Cathodion
 Chitinous Cloak
 Circle of Affliction
 Citanul Stalwart
@@ -123,6 +124,7 @@ Gnoll Hunter
 Goblin Piledriver
 Golgari Thug
 Gorehorn Minotaurs
+Grand Melee
 Greatsword
 Green Sun's Zenith
 Grizzly Fate
@@ -215,6 +217,7 @@ Order of Leitbur
 Order of the Ebon Hand
 Order of the Stars
 Oswald Fiddlebender
+Palace Jailer
 Patron of the Arts
 Pile On
 Plains
@@ -293,6 +296,7 @@ Thoughtseize
 Tiger Claws
 Tilonalli's Crown
 Topan Ascetic
+Torii Watchward
 Treefolk Healer
 Trestle Troll
 Tunneling Geopede

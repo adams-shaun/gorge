@@ -96,6 +96,7 @@ Graveblade Marauder
 Gravity Sphere
 Great Oak Guardian
 Grizzled Leotau
+Guardian of the Gateless
 Guardians of Oboro
 Halberdier
 Hammerhead Shark
@@ -121,6 +122,7 @@ Kraken Hatchling
 Kraum, Ludevic's Opus
 Krovikan Fetish
 Kuldotha Ringleader
+Lae'zel's Acrobatics
 Last Kiss
 Lava Zombie
 Lead by Example
@@ -161,6 +163,7 @@ Pick Up the Pace
 Pincer Spider
 Pinnacle of Rage
 Plains
+Porcelain Zealot
 Predator's Rapport
 Pyrrhic Revival
 Quicksilver Amulet
@@ -253,6 +256,7 @@ Woodlot Crawler
 Yavimaya Sapherd
 You Hear Something on Watch
 You're Ambushed on the Road
+Zelyon Sword
 Zephyr Net
 Zhao Zilong, Tiger General
 Zhuge Jin, Wu Strategist

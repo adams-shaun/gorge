@@ -1,34 +1,49 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ancient Ziggurat	0eafdb4e43dd7f9f	10	1/1		0/1	ix:resp
 Angelic Shield	8b39d421a58f0345	7	1/1		1/1	
 Aura Gnarlid	a6e9050f3a6a5b0f	9	0/0		0/0	
 Aven Cloudchaser	238e8541da83f19c	6	1/1		0/1	ix:resp
 Brago, King Eternal	25ef1191f6956b20	14	1/1		0/1	ix:resp
 Broken Fall	f8af0675654a0b1a	23	1/1		0/1	ix:resp
 Charging Slateback	a2a62db63d8beb5b	12	0/0		1/2	cast/alt:morphed
+Chrome Steed	0c0435f8a103fc6d	4	0/0		0/0	
+Cinder Glade	6e55cc1d8e98074d	14	2/2		0/1	ix:resp
 Defender en-Vec	5d5fa3ce50408901	9	2/2		1/1	
 Disrupting Scepter	2d0a66e4cbf7d281	9	1/1		0/1	ix:resp
+Exhibition Magician	c071050e69a71932	4	1/1		0/1	ix:resp
+Fan Bearer	23e190980ef86e3d	4	1/1		0/1	ix:resp
 Flying Carpet	783ff830460f6dcc	13	1/1		1/1	
 Forcemage Advocate	5847848702302eec	10	1/1		0/1	ix:resp
 Gitaxian Raptor	156228a14dfdd79c	19	1/1		1/1	
 Glaring Aegis	1741b3c6a0d999a8	10	1/1		2/2	
 Hawkeye, Clint Barton	d501ca72eb7df248	5	0/0		0/0	
 Hedron Scrabbler	3b0272fe8d1691b0	28	1/1		1/1	
+Integrity	9bf7e707ad3f0f50	4	0/0		1/3	f1/s,ix:resp
+Invasion of Mercadia	2cb0fedddc796493	14	2/2		0/1	ix:resp
 Journeyer's Kite	826ac8ff8733ba3d	12	1/1		1/1	
+Kami of Celebration	c3e130e030e1c34e	4	2/2		0/1	ix:resp
 Loyal Gyrfalcon	c7f65e6665275407	12	1/1		0/1	ix:resp
 Master Transmuter	4e505e2e23387e88	6	1/1		0/1	ix:resp
 Mausoleum Guard	c50cd5e153987f85	8	1/1		0/1	ix:resp
 Molly Hayes, Runaway	15160ba95fb56309	12	1/1		1/1	
+Mossfire Valley	46eb715f76d1f494	5	1/1		0/1	ix:resp
 Narcolepsy	05d12f2f94002f73	14	1/1		2/2	
 Nimbleclaw Adept	9bbe73dae440cf93	8	1/1		0/1	ix:resp
+Obscura Storefront	be768201c8604d26	10	1/1		0/1	ix:resp
 Ossification	45c09844ca763c44	12	1/1		2/2	
 Paraselene	2f49d2f2f75f5f3f	6	0/0		1/2	ix:resp
 Patchwork Automaton	293f5a7d6e2f5242	10	2/2		0/1	ix:resp
 Prismatic Lens	82ae84199d318d94	19	2/2		0/1	ix:resp
+Riveteers Overlook	49dbb45dc5220084	21	1/1		0/1	ix:resp
+Rock Badger	c1a5403af64c4032	4	0/0		0/0	
 Rush of Inspiration	9def29f36ab05ae0	8	1/1		1/2	ix:resp
+Sand Silos	8f01eba14c7a92ab	11	2/2		1/1	
 Serra's Guardian	fa501eefc46ed70f	4	0/0		0/0	
 Siege Mastodon	db3d1760cddcfde2	12	0/0		0/0	
+Sliver Construct	3c3eadb251780d4c	8	0/0		0/0	
 Smokestack	0d068042403b4437	10	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Spellstutter Sprite	78c30cf11081fc79	21	1/1		0/1	ix:resp
+Stone Quarry	fdffc0ba84b5e940	14	1/1		0/1	ix:resp
 Suit Up	0f270d84e07f5346	10	0/0		1/2	ix:resp
 Tezzeret's Betrayal	83eb6314206e267b	4	0/0		1/2	ix:resp
 Toils of Night and Day	b4b894b8c122529f	20	0/0		2/2	

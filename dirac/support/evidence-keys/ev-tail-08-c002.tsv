@@ -15,11 +15,11 @@ Banewhip Punisher	84b302f6b9c41595	22	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bankrupt in Blood	91ca4491618b56c0	3	0/0		2/2	
 Benalish Marshal	2b64de3935f51e7d	18	0/0		0/0	
 Bequeathal	f6625072f167edc1	28	1/1		2/2	
-Bestial Menace	a5c1b9a2dc5358aa	19	0/0		1/2	ix:resp
 Black Market Tycoon	fcd4caa4897dd69b	19	2/2		1/1	
 Blizzard Strix	c29d3360abd2e8ee	62	1/1		1/1	
 Blood Age General	40bf822a0abae631	23	1/1		1/1	
 Blood Seeker	488e1bccb1e47e11	11	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Bloodstained Mire	10a2478926e4171b	15	1/1		0/1	ix:resp
 Blur Sliver	52faf45be9cc0f3f	11	0/0		0/0	
 Boggart Trawler	7cabd884e77d491e	9	2/2		0/1	ix:resp
 Bounty Agent	8a0f559f8511de4d	13	1/1		0/1	ix:resp
@@ -29,6 +29,7 @@ Brush with Death	d5a4c8cdaf408f03	9	0/0		3/4	cast/alt:buyback
 Call to Glory	538ced5c6096c727	9	0/0		1/2	ix:resp
 Call to the Netherworld	b52b868aaf8fba78	4	0/0		1/2	ix:resp
 Calming Verse	20f956aaf878f52b	17	0/0		2/2	
+Captain Vargus Wrath	3fbd64dc67424629	4	1/1		0/1	ix:resp
 Certain Death	545289d30bbfd585	5	0/0		1/2	ix:resp
 Chakram Retriever	3df15a928a26f2ca	17	2/2		1/1	
 Chill to the Bone	42fce76aa14cc97f	8	0/0		1/2	ix:resp
@@ -59,7 +60,6 @@ Engulf the Shore	454b898bf485ef85	4	0/0		1/2	ix:resp
 False Demise	cf715abaf80af88e	8	1/1		2/2	
 Fearless Liberator	3b23a6783254b695	24	1/1		1/1	
 Feast of the Unicorn	b7d7909b92925769	4	0/0		1/2	ix:resp
-Feedback	d98cfa21f06b2e6b	35	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	6	0/0		1/2	ix:resp
 Flay	e42d995f61acce9a	14	0/0		1/2	ix:resp
 Flourishing Strike	6ca6b646d38f16db	4	0/0		1/2	ix:resp
@@ -92,12 +92,15 @@ Kjeldoran Frostbeast	1fddbe0556eecbd0	10	1/1		0/1	ix:resp
 Last Breath	9765cec350508ba5	6	0/0		2/2	
 Lat-Nam Adept	521b24cae5c89268	4	1/1		0/1	ix:resp
 Lesser Werewolf	e7d3dce047207e25	6	1/1		1/1	
+Library	9486f9fe820b0d4b	4	2/2		0/1	ix:resp
 Living Totem	93104de022799def	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Loxodon Mystic	7a3b19a5c8eb29b7	4	1/1		0/1	ix:resp
 Lynx	dafb34074ff927a5	27	0/0		0/0	
 Marionette Apprentice	d3532fd979c470a6	3	2/2		1/1	
 Mascot Exhibition	d10d162b60c58ca7	4	0/0		1/2	ix:resp
+Mask of the Mimic	f48fdd920a94211d	26	0/0		2/2	
 Mass Diminish	51d404a449d80d02	4	0/0		3/4	ix:resp
+Memorial to Unity	90345d4cadfbce7c	12	2/2		0/1	ix:resp
 Midnight Ritual	566b5ebce30f18b4	10	0/0		2/4	f0/s/x0,ix:resp
 Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
 Mind Slash	eb204d68b0d40d0f	7	1/1		0/1	ix:resp
@@ -115,13 +118,13 @@ Polar Kraken	d7ef7ba3a3361c6f	3	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	5	0/0		0/0	
 Primal Adversary	c1f7908b4a2fe6f6	4	1/1		0/1	ix:resp
 Propagator Drone	c24127f420fd493c	4	1/1		0/1	ix:resp
-Puca's Covenant	f81c5bd347965915	45	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Quickbeam, Upstart Ent	a93582754ff1f1ac	16	1/1		0/1	ix:resp
 Quietus Spike	7b739e57d0c81c44	17	2/2		1/1	
 Rain of Filth	aa43a8d4f09ec311	53	0/0		2/2	
 Rat Colony	c5ebae585bd2408c	12	0/0		0/0	
 Red XIII, Proud Warrior	5305cbd1cc28fc75	5	1/1		0/1	ix:resp
 Relentless Rats	520193e0175f24ec	5	0/0		0/0	
+Relic Bind	8dc60ea51a80ce85	4	1/1		2/2	
 Righteous Charge	0ccd123a379c89b6	5	0/0		1/2	ix:resp
 Rilsa Rael, Kingpin	9104eca065711ea3	14	2/2		1/1	
 Rob the Archives	0fb535cdc2e61b15	17	0/0		1/2	ix:resp
@@ -150,6 +153,7 @@ Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	4	0/0		1/2	ix:resp
 Territorial Maro	a90fb76aef261162	4	0/0		0/0	
 Teysa, Envoy of Ghosts	0367f70d82e872c3	5	1/1		0/1	ix:resp
+The Forgotten Place	c4068a64e2b52cf2	14	2/2		0/1	ix:resp
 Treasure Trove	57ef0500c7cb6ccd	13	1/1		1/1	
 True Polymorph	94a50941e4752451	17	0/0		1/2	ix:resp
 True-Faith Censer	a375430a5d4d0d11	76	1/1		1/1	
@@ -162,11 +166,9 @@ Vampiric Sliver	29bd51205bc0bf68	21	0/0		0/0
 Vectis Silencers	e8c51798a55a3018	34	1/1		1/1	
 Victory's Herald	b971eeb6bd83a389	6	1/1		1/1	
 Vrock	aa8a27b47e014106	10	1/1		0/1	ix:resp
-Wardscale Crocodile	a9861a16724e47dc	35	0/0		0/0	
 Warlord's Elite	d1353e9b1bb7a28a	4	0/0		1/2	ix:resp
 Warped Tusker	785707a4e74b3195	3	3/3		1/1	
 Willow Elf	3cf41f0798dd8ca6	22	0/0		0/0	
-Wormhole Serpent	06bf056fa91ab379	15	1/1		1/1	
 Wu Scout	253801312b17bc92	56	1/1		1/1	
 Yavimaya Enchantress	1cfc978b6e7e811b	8	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	12	1/1		0/1	ix:resp

@@ -3,6 +3,7 @@ Antagonize	9b45aee7cb760c68	6	0/0		1/2	ix:resp
 Archangel	3270fc0e626cab27	32	0/0		0/0	
 Barbed Lightning	26f11003a79ad2b3	10	0/0		1/2	ix:resp
 Blessings of Nature	370e307e250b6912	28	0/0		4/4	
+Blue Ward	da0c35a9c38240ec	8	0/0		2/2	
 Bonescythe Sliver	f61819732487d668	53	0/0		0/0	
 Bower Passage	a7704db84f613d1c	71	0/0		0/0	
 Burlfist Oak	11ae282d18d14f89	42	1/1		1/1	
@@ -19,8 +20,10 @@ Daru Spiritualist	3d06a82037bed886	58	1/1		1/1
 Drownyard Amalgam	a99f1886626d34e7	12	2/2		1/1	
 Echoing Calm	41e9754dccd3e9a8	25	0/0		2/2	
 Emmara Tandris	259bc8e3585ad1a2	11	0/0		0/0	
+Eviscerate	d9412020592d7e57	4	0/0		1/2	ix:resp
 Explore the Underdark	559f3832d9a4f408	14	0/0		1/2	ix:resp
 Farhaven Elf	1e52cd4e153b987e	31	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Fighting Drake	4848b35255c161da	4	0/0		0/0	
 Firemind Vessel	43ebfaf7fac11b2f	47	1/1		1/1	
 Flametongue Yearling	6915f8128e63e3c3	12	1/1		2/3	ix:resp
 Foundation Breaker	4e90d593b8e1cc7d	51	1/1		3/5	f0/t0/opt:n,f0/t0/opt:y
@@ -30,7 +33,9 @@ Gavony Township	3287420b5c4450ee	109	2/2		1/1
 Geistpack Alpha	1368cf02c921ca59	52	1/1		1/1	
 Gloomwidow	046071bcf5beda5b	72	0/0		0/0	
 Iona, Shield of Emeria	f8c683c9ffe7e576	19	0/0		0/0	
+Krark-Clan Ironworks	ecc76d8b539480eb	6	1/1		0/1	ix:resp
 Krosan Drover	62cf51a188f92b7b	29	0/0		0/0	
+Lash of the Whip	6c07005c6e26567a	4	0/0		1/2	ix:resp
 Lay of the Land	c9c57e92683c0a85	41	0/0		2/2	
 Liberated Dwarf	d7176e4b3ca11064	10	1/1		0/1	ix:resp
 Loki's Scepter	a107e76bc044027f	11	2/2		0/1	ix:resp
@@ -42,6 +47,7 @@ Park Heights Maverick	053d0be9c8e0e9f1	72	3/3		1/1
 Penumbra Kavu	e1c9d57a0b0d8b4a	17	1/1		0/1	ix:resp
 Pheres-Band Thunderhoof	dd1c28d9f69be1b8	44	1/1		1/1	
 Primal Forcemage	ac2480f27dc6face	44	1/1		1/1	
+Pulverize	eeb7b92cd466f451	7	0/0		2/2	
 Quarry Hauler	b1a118e6255f64f1	35	1/1		1/1	
 Ramunap Ruins	8ce543a86ee8b8ce	82	3/3		1/1	
 Regal Force	3b4beef43dccf79b	13	1/1		0/1	ix:resp
@@ -52,6 +58,7 @@ Sakura-Tribe Scout	518b620b5d27c18f	33	1/1		1/1
 Selvala, Explorer Returned	3b5f614b878eb691	28	1/1		0/1	ix:resp
 Skyscythe Engulfer	b3f1669b7be936af	35	0/0		0/0	
 Solar Tide	ea2f41492b94b2c5	27	0/0		2/2	
+Spearpoint Oread	a054ed7308347cf7	4	0/0		1/2	cast/alt:bestowed
 Spireside Infiltrator	737f082c4542c402	12	1/1		0/1	ix:resp
 Spore Burst	6bcd8d59fba4b555	35	0/0		2/2	
 Spore Swarm	9d2ba5ec07fc9658	51	0/0		2/2	
@@ -61,6 +68,7 @@ Storm World	b082693bdf118e58	8	1/1		1/1
 Swarming of Moria	f446f812010b7c4c	10	0/0		1/2	ix:resp
 Sylvan Basilisk	ed898e610805d8cb	46	1/1		1/1	
 Talas Explorer	1998d97bc621154d	9	1/1		0/1	ix:resp
+Tethmos High Priest	7444b76100fb688a	6	1/1		0/1	ix:resp
 The Hunger Tide Rises	90264f948a738c19	27	0/0		0/0	
 The Restoration of Eiganjo	74dbcc9aa59f053e	71	2/2		0/1	ix:resp
 Thundermaw Hellkite	0a278d219c7dd658	8	1/1		0/1	ix:resp

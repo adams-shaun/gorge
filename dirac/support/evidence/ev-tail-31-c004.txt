@@ -1,60 +1,92 @@
+A-Deal Gone Bad
+A-Precipitous Drop
+Abrupt Decay
 Accelerated Mutation
 Adanto Vanguard
+Aggressive Crag
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
+Arachnoid Adaptation
 Arctic Nishoba
 Arms Dealer
 Aron, Benalia's Ruin
+Atomize
 Aven Skirmisher
 Baloth Pup
+Boot Nipper
+Brood Birthing
+Caller of the Claw
 Celestial Flare
 Centaur Rootcaster
 Charge Through
 Claim of Erebos
 Clinging Darkness
+Coalition Relic
 Conjurer's Closet
 Consuming Sinkhole
+Crypt Rats
 Crystacean
 Daily Regimen
 Dancing Scimitar
+Darkbore Pathway
 Darkheart Sliver
 Darksteel Myr
 Detainment Spell
 Dictate of Heliod
+Divine Transformation
+Dreadmobile
+Dross Scorpion
 Era of Enlightenment
+Eternal Scourge
 Ezuri's Brigade
+Famished Ghoul
 Festival of the Guildpact
 Fists of Flame
 Fit of Rage
+Fleeting Memories
 Flickering Ward
 Forest
 Fork in the Road
 Frenzied Tilling
 Ghoulish Procession
 Giant's Skewer
+Goblin Guide
+Grim Servant
 Gustrider Exuberant
 Herald of Ilharg
 Herald of the Fair
 Homestead Courage
 Hopeful Eidolon
 Hornet Sting
+Icon of Ancestry
 Inquisitor's Ox
+Intrepid Adversary
 Island
 Keeper of Keys
+Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
+Languish
+Legions of Lim-Dûl
 Living Lightning, Charged Up
+Loxodon Line Breaker
 Miraculous Recovery
+Moorland Haunt
 Mountain
+Mox Jet
 Nacre Talisman
 Nettlecyst
+Neurok Familiar
 Nighthaze
 Nightmare Lash
+Nightpack Ambusher
 Noble Quarry
+Nyx Infusion
 Oakgnarl Warrior
 Obsidian Battle-Axe
 Ondu Inversion
+Pharika's Disciple
 Plains
 Prismatic Ward
 Purify the Grave
@@ -62,27 +94,46 @@ Putrid Leech
 Rancor
 Reckless Rage
 Recurring Insight
+Retrofitted Transmogrant
+Rile
+Ring of Xathrid
 Rite of Consumption
 Ronom Unicorn
 Rubblebelt Runner
 Scale Up
+Sengir Vampire
 Shadow Glider
+Silent Dart
+Silverskin Armor
+Simic Growth Chamber
+Solemn Offering
 Solid Ground
 Spectral Reserves
 Steel Leaf Paladin
 Stirring Address
 Strix Serenade
+Structural Collapse
 Swamp
 Swelter
 Talruum Minotaur
+Teetering Peaks
+Teferi's Sentinel
 Temporal Fissure
+Tin Street Dodger
 Trained Cheetah
+Undead Augur
+Vanquisher's Axe
+Vashta Nerada
 Vindictive Vampire
 Voice of Truth
+Volt Charge
 Vulshok Morningstar
 Wall of Vines
 Wary Okapi
 White Scarab
 Wildwood Tracker
+Woodland Stream
 Wreath of Geists
+Wrenn and One
+Wretched Throng
 Zendikar Incarnate

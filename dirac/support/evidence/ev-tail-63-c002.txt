@@ -13,6 +13,7 @@ Ainok Artillerist
 Airlift Chaplain
 Ajani's Welcome
 Akki Avalanchers
+Alchemist's Apprentice
 Ambassador Oak
 Ambush Paratrooper
 Amrou Kithkin
@@ -104,6 +105,7 @@ Epistolary Librarian
 Erratic Mutation
 Escape Velocity
 Esika's Chariot
+Esperzoa
 Ether Well
 Ethereal Champion
 Ethereal Usher
@@ -205,6 +207,7 @@ Maggot Carrier
 Mardu Scout
 Master's Guidance
 Maze Abomination
+Memorial to Glory
 Merfolk Skydiver
 Merry, Warden of Isengard
 Mesa Cavalier
@@ -277,6 +280,7 @@ Realmwalker
 Red Elemental Blast
 Renewal
 Replication Technique
+Riddleform
 Ring of Renewal
 Riot Devils
 Rishadan Brigand
@@ -307,6 +311,7 @@ Sky-Blessed Samurai
 Skyshooter
 Smoldering Werewolf
 Snarling Undorak
+Snow-Covered Forest
 Somberwald Vigilante
 Sowing Mycospawn
 Sparring Mummy
@@ -349,6 +354,7 @@ Terravore
 Thalakos Deceiver
 Thallid
 Thaumatic Compass
+The Autonomous Furnace
 Thicket Basilisk
 Thriving Bluff
 Throes of Chaos
@@ -388,6 +394,7 @@ Windbrisk Raptor
 Windrider Wizard
 Windseeker Centaur
 Wojek Halberdiers
+Wu Warship
 Yavimaya Gnats
 Yavimaya Sojourner
 Yoked Ox
