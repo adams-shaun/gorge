@@ -81,7 +81,7 @@ func printStatic(p *pr, a *ir.Ability) error {
 	bad := func(e *ir.Effect) error { return unprintable("static:"+e.Kind.String(), e.Src) }
 	continuous := true
 	for _, x := range st.Effects {
-		continuous = continuous && (x.Kind == ir.EffAdjustPT || x.Kind == ir.EffAddAbility || x.Kind == ir.EffAddSubtype || x.Kind == ir.EffAddCardType)
+		continuous = continuous && layerEffect[x.Kind]
 	}
 	switch {
 	case continuous:
@@ -107,46 +107,13 @@ func printStatic(p *pr, a *ir.Ability) error {
 		}
 		ps = params{{"Mode", "Continuous"}, {"Affected", aff}}
 		if aff == "Equipped" || aff == "Enchanted" {
-			ps = params{{"Mode", "Continuous"}, {"AffectedDefined", aff}, {"Affected", "Creature"}}
+			ps = params{{"Mode", "Continuous"}, {"AffectedDefined", aff}}
+			if w := p.attachedKind(); w != "" {
+				ps = append(ps, kv{"Affected", w})
+			}
 		}
-		pw, err := ptSum(p, st.Effects, func(e *ir.Effect) *ir.Value { return e.P })
-		if err != nil {
+		if err := p.layerParams(&ps, st.Effects, bad); err != nil {
 			return err
-		}
-		if pw != "" {
-			ps.set("AddPower", pw)
-		}
-		tg, err := ptSum(p, st.Effects, func(e *ir.Effect) *ir.Value { return e.T })
-		if err != nil {
-			return err
-		}
-		if tg != "" {
-			ps.set("AddToughness", tg)
-		}
-		var kws []string
-		for _, x := range st.Effects {
-			if x.Kind != ir.EffAddAbility {
-				continue
-			}
-			k, ok := grantedKeywords(x)
-			if !ok {
-				return bad(x)
-			}
-			kws = append(kws, k...)
-		}
-		if len(kws) > 0 {
-			ps.set("AddKeyword", strings.Join(kws, " & "))
-		}
-		var types []string
-		for _, x := range st.Effects {
-			if x.Kind == ir.EffAddSubtype || x.Kind == ir.EffAddCardType {
-				for _, w := range x.Words {
-					types = append(types, Respell(w))
-				}
-			}
-		}
-		if len(types) > 0 {
-			ps.set("AddType", strings.Join(types, " & "))
 		}
 		line = "S:"
 	case len(st.Effects) != 1:
@@ -175,6 +142,149 @@ func printStatic(p *pr, a *ir.Ability) error {
 	}
 	p.lines = append(p.lines, b.String())
 	return nil
+}
+
+// layerEffect are the effects a Mode$ Continuous static carries.
+var layerEffect = map[ir.EffectKind]bool{
+	ir.EffAdjustPT: true, ir.EffAddAbility: true, ir.EffAddSubtype: true, ir.EffAddCardType: true, ir.EffSetPT: true,
+	ir.EffSetColor: true, ir.EffLoseAllAbilities: true, ir.EffSetCardType: true, ir.EffSetSubtype: true, ir.EffSetName: true,
+}
+
+// attachedKind is the kind of permanent the source may be attached to when
+// Forge names it on the static: creatures, for an equipment, or an aura that
+// enchants a creature. "" when the aura enchants anything else.
+func (p *pr) attachedKind() string {
+	if p.attachWord() == "Equipped" {
+		return "Creature"
+	}
+	if p.face != nil {
+		for _, a := range p.face.Abilities {
+			if a.Kind == ir.AbKeyword && a.Keyword != nil && a.Keyword.Name == "Enchant" && isCreatureType(a.Keyword.Filter) {
+				return "Creature"
+			}
+		}
+	}
+	return ""
+}
+
+// layerParams adds the parameters of a continuous static's effects to ps.
+func (p *pr) layerParams(psp *params, effs []*ir.Effect, bad func(*ir.Effect) error) error {
+	ps := *psp
+	pw, err := ptSum(p, effs, func(e *ir.Effect) *ir.Value { return e.P })
+	if err != nil {
+		return err
+	}
+	if pw != "" {
+		ps.set("AddPower", pw)
+	}
+	tg, err := ptSum(p, effs, func(e *ir.Effect) *ir.Value { return e.T })
+	if err != nil {
+		return err
+	}
+	if tg != "" {
+		ps.set("AddToughness", tg)
+	}
+	var kws, cardTypes, subtypes, abils []string
+	for _, x := range effs {
+		switch x.Kind {
+		case ir.EffAddAbility:
+			if k, ok := grantedKeywords(x); ok {
+				kws = append(kws, k...)
+				continue
+			}
+			for _, g := range x.Abilities {
+				if g.Kind != ir.AbActivated {
+					return bad(x)
+				}
+				name, err := p.grantedActivated(g)
+				if err != nil {
+					return err
+				}
+				abils = append(abils, name)
+			}
+		case ir.EffSetPT:
+			for _, f := range []struct {
+				key string
+				v   *ir.Value
+			}{{"SetPower", x.P}, {"SetToughness", x.T}} {
+				n, err := p.amount(f.v)
+				if err != nil {
+					return err
+				}
+				ps.set(f.key, n)
+			}
+		case ir.EffSetColor:
+			var cs []string
+			for _, c := range colourNames {
+				if x.Colors&c.c != 0 {
+					cs = append(cs, c.name)
+				}
+			}
+			if len(cs) == 0 {
+				cs = []string{"Colorless"}
+			}
+			ps.set("SetColor", strings.Join(cs, " & "))
+		case ir.EffLoseAllAbilities:
+			ps.set("RemoveAllAbilities", "True")
+		case ir.EffSetName:
+			if len(x.Words) != 1 {
+				return bad(x)
+			}
+			ps.set("SetName", x.Words[0])
+		case ir.EffSetCardType:
+			for _, w := range x.Words {
+				cardTypes = append(cardTypes, Respell(w))
+			}
+			ps.set("RemoveCardTypes", "True")
+		case ir.EffAddCardType:
+			for _, w := range x.Words {
+				cardTypes = append(cardTypes, Respell(w))
+			}
+		case ir.EffSetSubtype:
+			for _, w := range x.Words {
+				subtypes = append(subtypes, Respell(w))
+			}
+			ps.set("RemoveCreatureTypes", "True")
+		case ir.EffAddSubtype:
+			for _, w := range x.Words {
+				subtypes = append(subtypes, Respell(w))
+			}
+		}
+	}
+	if len(kws) > 0 {
+		ps.set("AddKeyword", strings.Join(kws, " & "))
+	}
+	if types := append(cardTypes, subtypes...); len(types) > 0 {
+		ps.set("AddType", strings.Join(types, " & "))
+	}
+	if len(abils) > 0 {
+		ps.set("AddAbility", strings.Join(abils, " & "))
+	}
+	*psp = ps
+	return nil
+}
+
+// grantedActivated prints an activated ability a static grants as an AB$
+// SVar and returns the SVar's name.
+func (p *pr) grantedActivated(a *ir.Ability) (string, error) {
+	if a.Cost == nil || a.Body == nil || a.Cond != nil || a.SorceryOnly || a.InstantOnly || a.Once || a.Zones != 0 {
+		return "", unprintable("static:granted-ability", a.Src)
+	}
+	head, err := p.program(a.Body)
+	if err != nil {
+		return "", err
+	}
+	if head.API != "Mana" || head.Sub != nil {
+		return "", unprintable("static:granted-ability", a.Src)
+	}
+	cost, err := p.costText(a.Cost)
+	if err != nil {
+		return "", err
+	}
+	head.Params = append([]kv{{"Cost", cost}}, head.Params...)
+	name := p.fresh("AB" + head.API)
+	p.svars = append(p.svars, kv{name, p.render("AB", head)})
+	return name, nil
 }
 
 // withStaticCond adds the gate c to a static's parameters.

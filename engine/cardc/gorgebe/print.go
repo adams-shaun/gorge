@@ -106,7 +106,7 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool, to
 			if a.Kind == ir.AbKeyword && a.Keyword == nil {
 				return &Unprintable{What: "ability:keyword", Path: a.Src}
 			}
-			if a.Kind == ir.AbKeyword && a.Keyword.N == nil && a.Keyword.Cost == nil && a.Keyword.Filter == nil {
+			if a.Kind == ir.AbKeyword && a.Keyword.N == nil && a.Keyword.Cost == nil && a.Keyword.Filter == nil && !lineKeywords[a.Keyword.Name] {
 				ks = append(ks, "K:"+a.Keyword.Name)
 				continue
 			}

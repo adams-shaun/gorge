@@ -239,3 +239,38 @@ func init() {
 			Ref: &ir.Ref{Kind: ir.RefAll, Filter: f}}, nil
 	})
 }
+
+func init() {
+	// "If this card is in your opening hand, you may begin the game with it on
+	// the battlefield": a keyword, the leyline ability. Any other opening-hand
+	// action stays refused.
+	register("Rule.IfCardIsInOpeningHand", func(c *Ctx, n node) (any, error) {
+		key := "Rule.IfCardIsInOpeningHand"
+		acts := list(rawArgs(n))
+		if len(acts) != 1 || variantOf(acts[0]) != "MayAction" {
+			return nil, &RefusalError{Key: key, Path: c.Src()}
+		}
+		inner := rawArgs(acts[0])
+		flags := list(argN(inner, 1))
+		if variantOf(inner) != "BeginGameWithCardOnBattlefield" || variantOf(argN(inner, 0)) != "ThisPregameCard" ||
+			len(flags) != 1 || variantOf(flags[0]) != "EntersNormally" {
+			return nil, &RefusalError{Key: key, Path: c.Src()}
+		}
+		src := c.Src()
+		return &ir.Ability{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "MayEffectFromOpeningHand", Src: src}, Src: src}, nil
+	})
+}
+
+func init() {
+	// "A deck can have any number of cards named ...": a keyword of that name.
+	register("Rule.DeckConstruction", func(c *Ctx, n node) (any, error) {
+		if variantOf(rawArgs(n)) != "CanHaveAnyNumberOfThisCard" {
+			return nil, &RefusalError{Key: "Rule.DeckConstruction", Path: c.Src()}
+		}
+		src := c.Src()
+		return &ir.Ability{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: anyNumberKeyword, Src: src}, Src: src}, nil
+	})
+}
+
+// anyNumberKeyword is the keyword of a card a deck may hold any number of.
+const anyNumberKeyword = "A deck can have any number of cards named CARDNAME."

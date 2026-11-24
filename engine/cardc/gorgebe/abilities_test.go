@@ -307,6 +307,28 @@ func TestStatics(t *testing.T) {
 		{"permanent duration", &ir.Ability{Kind: ir.AbStatic, Body: abBody(&ir.Step{Verb: ir.VerbApplyEffect, Obj: self, Dur: ir.DurPermanent, Effects: []*ir.Effect{pt(1, 1)}})}, "", nil, "static:body"},
 		{"two steps", &ir.Ability{Kind: ir.AbStatic, Body: abBody(&ir.Step{Verb: ir.VerbDraw}, &ir.Step{Verb: ir.VerbDraw})}, "", nil, "static:body"},
 		{"mixed effects", abStatic(self, pt(1, 1), kind(ir.EffCantBlock)), "", nil, "static:body"},
+		{"self cost less by a count", abStatic(self, &ir.Effect{Kind: ir.EffSelfCostLess, N: &ir.Value{Kind: ir.VCount, Filter: abCreatureYouCtrl()}}), "S:",
+			[]string{"Mode$ ReduceCost", "ValidCard$ Card.Self", "Type$ Spell", "Amount$ N", "EffectZone$ All"}, ""},
+		{"self cost less if targeting", abStatic(self, &ir.Effect{Kind: ir.EffSelfCostLess, N: vc(3), Filter: abTyped(ir.SubjPermanent, "Creature")}), "S:",
+			[]string{"Mode$ ReduceCost", "ValidCard$ Card.Self", "Type$ Spell", "Amount$ 3", "EffectZone$ All", "ValidTarget$ Creature"}, ""},
+		{"your spells cost less", abStatic(you, &ir.Effect{Kind: ir.EffSpellsCostLess, N: vc(1), Filter: abTyped(ir.SubjSpell, "Instant")}), "S:",
+			[]string{"Mode$ ReduceCost", "Activator$ You", "Type$ Spell", "Amount$ 1", "ValidCard$ Instant"}, ""},
+		{"equipped pump and protection", abStatic(&ir.Ref{Kind: ir.RefAttachedTo, Of: self}, pt(2, 2), &ir.Effect{Kind: ir.EffAddAbility, Abilities: []*ir.Ability{
+			{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Protection", Filter: &ir.Filter{Op: ir.FPred, Pred: ir.PColor, Colors: ir.ColorR | ir.ColorU}}}}}), "",
+			nil, "static:adjust-pt"}, // no attach word without a face: the printer needs an Equipment or Aura subtype
+		{"must attack", abStatic(self, kind(ir.EffMustAttack)), "S:", []string{"Mode$ MustAttack", "ValidCreature$ Card.Self"}, ""},
+		{"cant be blocked by", abStatic(self, &ir.Effect{Kind: ir.EffCantBeBlockedBy, Filter: abTyped(ir.SubjPermanent, "Creature")}), "S:",
+			[]string{"Mode$ CantBlockBy", "ValidAttacker$ Creature.Self", "ValidBlocker$ Creature"}, ""},
+		{"extra land", abStatic(you, &ir.Effect{Kind: ir.EffExtraLand, N: vc(1)}), "S:", []string{"Mode$ Continuous", "Affected$ You", "AdjustLandPlays$ 1"}, ""},
+		{"player hexproof", abStatic(you, kind(ir.EffHexproof)), "S:", []string{"Mode$ Continuous", "Affected$ You", "AddKeyword$ Hexproof"}, ""},
+		{"no untap", abStatic(self, kind(ir.EffNoUntap)), "R:", []string{"Event$ Untap", "ValidCard$ Card.Self", "ValidStepTurnToController$ You", "Layer$ CantHappen"}, ""},
+		{"characteristic-defining power", abStatic(self, &ir.Effect{Kind: ir.EffCDAPower, P: &ir.Value{Kind: ir.VCount, Filter: abCreatureYouCtrl()}}), "S:",
+			[]string{"Mode$ Continuous", "CharacteristicDefining$ True", "SetPower$ N"}, ""},
+		{"set base values", abStatic(self, &ir.Effect{Kind: ir.EffSetPT, P: vc(1), T: vc(1)}, &ir.Effect{Kind: ir.EffLoseAllAbilities},
+			&ir.Effect{Kind: ir.EffSetColor, Colors: ir.ColorG}, &ir.Effect{Kind: ir.EffSetName, Words: []string{"Nobody"}}), "S:",
+			[]string{"Mode$ Continuous", "Affected$ Card.Self", "SetPower$ 1", "SetToughness$ 1", "RemoveAllAbilities$ True", "SetColor$ Green", "SetName$ Nobody"}, ""},
+		{"effect condition is never dropped", abStatic(self, &ir.Effect{Kind: ir.EffCantBlock, Cond: threshold}), "", nil, "static:cant-block"},
+		{"effect condition on a layer effect", abStatic(self, &ir.Effect{Kind: ir.EffAdjustPT, P: vc(1), T: vc(1), Cond: threshold}), "", nil, "static:effect-cond"},
 		{"granted keyword with a cost", abStatic(self, &ir.Effect{Kind: ir.EffAddAbility, Abilities: []*ir.Ability{{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Ward", Cost: abGenericCost(1)}}}}), "", nil, "static:add-ability"},
 	}
 	for _, c := range cases {
@@ -379,6 +401,28 @@ func TestReplacements(t *testing.T) {
 		t.Errorf("etb counter X line: %q", p.lines)
 	}
 
+	// another object's entering is replaced by tapping the object replaced
+	oppCreatures := &ir.Ability{Kind: ir.AbReplacement, Trigger: &ir.Trigger{Event: ir.EvWouldEnter, Subject: abCreatureYouCtrl()}, Body: enter(&ir.Enter{Tapped: true})}
+	if p, err := abRun(oppCreatures); err != nil || len(p.lines) != 1 || !strings.HasPrefix(p.lines[0], "R:Event$ Moved | ValidCard$ Creature.YouCtrl | Destination$ Battlefield | ReplaceWith$ DBTap") ||
+		!strings.Contains(strings.Join(abSVars(p), "\n"), "Defined$ ReplacedCard") {
+		t.Errorf("other objects enter tapped: %v %q %q", err, p.lines, p.svars)
+	}
+	// as it enters, choose: Forge's keyword form
+	chooseNum := repl(ir.EvWouldEnter, abBody(&ir.Step{Verb: ir.VerbChooseNumber, N: vc(0)}))
+	if p, err := abRun(chooseNum); err != nil || !reflect.DeepEqual(p.lines, []string{"K:ETBReplacement:Other:ChooseNumber"}) {
+		t.Errorf("choose a number: %v %q", err, p.lines)
+	}
+	// damage prevented, noncombat only, to other creatures
+	prevent := &ir.Ability{Kind: ir.AbReplacement, Trigger: &ir.Trigger{Event: ir.EvWouldDealDamage, Object: abCreatureYouCtrl(), Word: "noncombat"}, Body: abBody(&ir.Step{Verb: ir.VerbPrevent})}
+	if p, err := abRun(prevent); err != nil || !reflect.DeepEqual(p.lines, []string{"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidTarget$ Creature.YouCtrl | Prevent$ True | IsCombat$ False"}) {
+		t.Errorf("prevent noncombat damage: %v %q", err, p.lines)
+	}
+	// counters doubled
+	double := &ir.Ability{Kind: ir.AbReplacement, Trigger: &ir.Trigger{Event: ir.EvWouldPutCounters, Object: abCreatureYouCtrl()},
+		Body: abBody(&ir.Step{Verb: ir.VerbSetAmount, N: &ir.Value{Kind: ir.VMul, Args: []*ir.Value{vc(2), {Kind: ir.VReceiptAmount, Word: "counters"}}}})}
+	if p, err := abRun(double); err != nil || len(p.lines) != 1 || !strings.Contains(p.lines[0], "Event$ AddCounter") || !strings.Contains(strings.Join(abSVars(p), "\n"), "Y:ReplaceCount$CounterNum/Twice") {
+		t.Errorf("double counters: %v %q %q", err, p.lines, p.svars)
+	}
 	raid := repl(ir.EvWouldEnter, abBody(&ir.Step{Verb: ir.VerbIf, Cond: ctRef(ctYou(), ctPred(ir.PAttackedThisTurn)), Then: enter(&ir.Enter{Counter: "P1P1", N: vc(1)})}))
 	p, err := abRun(raid)
 	if err != nil || len(p.lines) != 1 || p.lines[0] != "K:etbCounter:P1P1:1:CheckSVar$ N" {
@@ -430,6 +474,15 @@ func TestKeywordArgs(t *testing.T) {
 		{"ward mana", k("Ward", func(x *ir.Keyword) { x.Cost = abGenericCost(2) }), "K:Ward:2", ""},
 		{"ward life", k("Ward", func(x *ir.Keyword) { x.Cost = life }), "K:Ward:PayLife<3>", ""},
 		{"protection", k("Protection", func(x *ir.Keyword) { x.Filter = colour(ir.ColorR) }), "K:Protection from red", ""},
+		{"surge", k("Surge", func(x *ir.Keyword) { x.Cost = cost }), "K:Surge:1 R", ""},
+		{"equip", k("Equip", func(x *ir.Keyword) { x.Cost = abGenericCost(3); x.Filter = abTyped(ir.SubjPermanent, "Creature") }), "K:Equip:3", ""},
+		{"equip to another kind", k("Equip", func(x *ir.Keyword) { x.Cost = abGenericCost(3); x.Filter = abTyped(ir.SubjPermanent, "Land") }), "", "keyword:Equip"},
+		{"enchant a creature", k("Enchant", func(x *ir.Keyword) { x.Filter = abTyped(ir.SubjPermanent, "Creature") }), "K:Enchant:Creature", ""},
+		{"enchant one of three", k("Enchant", func(x *ir.Keyword) {
+			x.Filter = &ir.Filter{Op: ir.FAny, Args: []*ir.Filter{abTyped(ir.SubjPermanent, "Creature"), abTyped(ir.SubjPermanent, "Land"), abTyped(ir.SubjPermanent, "Planeswalker")}}
+		}), "K:Enchant:Creature,Land,Planeswalker:creature, land, or planeswalker", ""},
+		{"hexproof from a type", k("Hexproof", func(x *ir.Keyword) { x.Filter = abTyped(ir.SubjCard, "Instant") }), "K:Hexproof:Instant", ""},
+		{"affinity", k("Affinity", func(x *ir.Keyword) { x.Filter = &ir.Filter{Op: ir.FPred, Pred: ir.PSubtype, Word: "Cat"} }), "K:Affinity:Cat", ""},
 		{"protection two colours", k("Protection", func(x *ir.Keyword) { x.Filter = colour(ir.ColorR | ir.ColorG) }), "", "keyword:Protection"},
 		{"ward without a cost", k("Ward", func(x *ir.Keyword) { x.N = vc(1) }), "", "keyword:Ward"},
 		{"other", k("Annihilator", func(x *ir.Keyword) { x.N = vc(2) }), "", "keyword:Annihilator"},
@@ -518,4 +571,13 @@ func TestModesAttested(t *testing.T) {
 			}
 		}
 	}
+}
+
+// abSVars is p's SVars as "NAME:BODY" lines.
+func abSVars(p *pr) []string {
+	var out []string
+	for _, v := range p.svars {
+		out = append(out, v.K+":"+v.V)
+	}
+	return out
 }
