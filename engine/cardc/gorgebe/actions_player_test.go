@@ -522,7 +522,7 @@ func TestPrintersCompose(t *testing.T) {
 		if !reflect.DeepEqual(abil, kvs("ConditionDefined", "Self", "ConditionPresent", "Permanent.untapped", "ConditionCompare", "GE1")) {
 			t.Errorf("ability %v", abil)
 		}
-		if !reflect.DeepEqual(trig, kvs("IsPresent", "Permanent.untapped+Self", "PresentCompare", "GE1")) {
+		if !reflect.DeepEqual(trig, kvs("IsPresent", "Permanent.untapped+Self")) {
 			t.Errorf("trigger %v", trig)
 		}
 	})

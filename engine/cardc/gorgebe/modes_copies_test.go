@@ -50,8 +50,11 @@ func TestDoubleCountersAndFight(t *testing.T) {
 		t.Fatal(err)
 	}
 	apWant(t, n, "MultiplyCounter", kvs("Defined", "Self", "CounterType", "P1P1"))
-	_, _, err = apRun(nil, nil, apStep(ir.VerbDoubleCounters, func(s *ir.Step) { s.Obj = apSelf }))
-	refTestUnprintable(t, err, "verb:double-counters")
+	n, _, err = apRun(nil, nil, apStep(ir.VerbDoubleCounters, func(s *ir.Step) { s.Obj = apSelf }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	apWant(t, n, "MultiplyCounter", kvs("Defined", "Self"))
 
 	tg := []*ir.Target{refTestObjTarget()}
 	fight := apStep(ir.VerbFight, func(s *ir.Step) { s.Obj = apTgt0; s.Source = apSelf; s.Optional = true })
