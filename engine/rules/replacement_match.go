@@ -277,11 +277,9 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 				return false
 			}
 		}
-		if d, ok := r.ParamCode(cards.PKDestination); ok && !effects.Destination(d).Admits(ev.To) {
+		// CR 614.12: a general line on the entrant skips its own entry (ownEntryMoveExcluded).
+		if d, ok := r.ParamCode(cards.PKDestination); (ok && !effects.Destination(d).Admits(ev.To)) || ownEntryMoveExcluded(e.G, source, ev, r.ParamStr(cards.PKValidCard)) {
 			return false
-		}
-		if ownEntryMoveExcluded(e.G, source, ev, r.ParamStr(cards.PKValidCard)) {
-			return false // CR 614.12: a general line on the entrant skips its own entry
 		}
 		// Fizzle$ (Feather's "instead of putting it into your graveyard as it
 		// resolves"): the line applies only to the spell's resolution move
