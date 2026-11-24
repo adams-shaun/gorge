@@ -309,10 +309,13 @@ lowering registers itself from its own file, so no shared switch is edited twice
 | CC-21a/b | gorgebe printers: Ref, Filter / Value, Cond | CC-20, CC-11..14 | 2 × 0.6 |
 | CC-22a/b | gorgebe actions to API + params | CC-15, CC-21 | 2 × 0.6 |
 | CC-23 | gorgebe triggers, statics, replacements, costs | CC-16, CC-21 | 0.75 |
-| CC-30 | static diff | CC-22, CC-23 | 0.5 |
+| CC-24 | front end: bare-string enum words (a wave-2 defect) | CC-23 | 0.1 |
+| CC-30 | static diff | CC-22, CC-23, CC-24 | 0.5 |
 | CC-31 | lockstep harness | CC-20 | 0.6 |
-| CC-32 | divergence ledger + ratchet | CC-30, CC-31 | 0.4 |
-| CC-33 | fork commits, fork CI, register, fallback | CC-32 | 0.6 |
+| CC-32 | divergence ledger, blame + ratchet | CC-30, CC-31 | 0.4 |
+| CC-33a | fork register, lock check, fork regeneration workflow | CC-00 | 0.3 |
+| CC-33b | fallback rows for uncarried mtgish bugs | CC-32, CC-33a | 0.2 |
+| CC-33c | fork patch commits (grammar fix + regenerated data) | CC-33a, fork CI installed | 0.4 |
 | CC-34..39 | burn-down, one class family each | CC-33 | 6 × 0.5 |
 | CC-40 | reading-agreement export | CC-34..39 | 0.3 |
 | cardc-follow | rolling: merge main into `cardc` | CC-00 | ~0.05/day |

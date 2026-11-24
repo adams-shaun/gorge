@@ -18,3 +18,8 @@ cc-21b-gorgebe-values-conds	3	medium	cc-20-gorgebe-skeleton,cc-13-fe-values,cc-1
 cc-22a-gorgebe-actions-player	3	medium	cc-15a-fe-actions-al,cc-15b-fe-actions-mz,cc-21a-gorgebe-refs-filters,cc-21b-gorgebe-values-conds
 cc-22b-gorgebe-actions-zones	3	medium	cc-15a-fe-actions-al,cc-15b-fe-actions-mz,cc-21a-gorgebe-refs-filters,cc-21b-gorgebe-values-conds
 cc-23-gorgebe-abilities	3	medium	cc-16a-fe-rules-triggers,cc-16b-fe-statics-costs,cc-22a-gorgebe-actions-player,cc-22b-gorgebe-actions-zones
+cc-24-fe-bare-words	2	low	cc-23-gorgebe-abilities
+cc-30-static-diff	3	medium	cc-22a-gorgebe-actions-player,cc-22b-gorgebe-actions-zones,cc-23-gorgebe-abilities,cc-24-fe-bare-words
+cc-33a-fork-register	3	low	cc-00-branch
+cc-32-ledger	3	medium	cc-30-static-diff,cc-31-lockstep
+cc-33b-fallback	3	low	cc-32-ledger,cc-33a-fork-register
