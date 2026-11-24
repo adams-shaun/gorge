@@ -44,17 +44,17 @@ func (s *State) restrFeeGapAny(k *prep) bool {
 func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 	var d Decision
 	s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
+	pd := s.grantPayDesc(k, a)
 	if hasOption(&d, a) {
 		return
 	}
-	pd := s.grantPayDesc(k, a)
 	fund, wiped := s.restrFeeFund(k, p)
 	if wiped != 0 {
 		return
 	}
 	for i := 0; i < maxFeePrefix; i++ {
-		sl, ab, fee := s.restrFeeGap(k, p, &pd)
-		if sl == NoSlot {
+		sl, ab, fee, ok := s.restrFeeStep(k, p, a, &pd)
+		if !ok {
 			return
 		}
 		pl := &s.pl[SeatIx(p)]
@@ -64,7 +64,7 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 			}
 			fund--
 		}
-		s.restrFeeActivate(k, p, sl, ab, fee)
+		s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
 		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
 		if hasOption(&d, a) {
 			return
@@ -72,24 +72,75 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 	}
 }
 
-// restrFeeGap is p's first untapped fee gap play pd may spend, in battlefield
-// order: its slot, ability and generic fee. NoSlot when none; a fee with a
-// coloured pip is not scripted.
-func (s *State) restrFeeGap(k *prep, p uint8, pd *payDesc) (Slot, *kop.Ability, int) {
+// restrFeeGapView is the eligible gap of the source at sl for play pd: its
+// record's view and ability (a pair's free view, its restrPair naming the fee
+// alternative), or false when the source is no gap pd may spend. A coloured
+// fee is not scripted.
+func (s *State) restrFeeGapView(k *prep, p uint8, sl Slot, pd *payDesc) (v *pcard, ab *kop.Ability, ok bool) {
+	c := s.cardAt(sl)
+	if k.gen.flags[c]&gfRestrSrc == 0 || !s.restrUsable(k, sl) {
+		return nil, nil, false
+	}
+	v, kind, ab := s.restrView(k, p, sl, s.manaPCGen(k, sl), pd)
+	if v == nil || kind != rkExt || v.restrFeeCol != 0 {
+		return nil, nil, false
+	}
+	if v.restrPair == 0 && restrFeeEmpty(v) {
+		return nil, nil, false // a fee-only gap needs a fee; a pair's free view has none
+	}
+	return v, ab, true
+}
+
+// restrFeeStep is restrFeePrefix's next gap activation: the first untapped gap
+// source play pd may spend, in battlefield order. A pair's free alternative
+// comes first -- gorge's plain search taps a gap's zero-cost ability before any
+// fee -- and only a pair with no later gap to continue the script pays its fee,
+// when the free step alone does not list the play (restrPairFreeLists). A
+// fee-only gap pays its fee.
+func (s *State) restrFeeStep(k *prep, p uint8, a Action, pd *payDesc) (sl Slot, ab *kop.Ability, fee int, ok bool) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], order[:], 0)
-	for _, sl := range order[:n] {
-		c := s.cardAt(sl)
-		if k.gen.flags[c]&gfRestrSrc == 0 || !s.restrUsable(k, sl) {
+	for i, sl := range order[:n] {
+		v, ab, ok := s.restrFeeGapView(k, p, sl, pd)
+		if !ok {
 			continue
 		}
-		v, kind, ab := s.restrView(k, p, sl, s.manaPCGen(k, sl), pd)
-		if v == nil || kind != rkExt || restrFeeEmpty(v) || v.restrFeeCol != 0 {
-			continue
+		if v.restrPair == 0 {
+			return sl, ab, int(v.restrFee), true
 		}
-		return sl, ab, int(v.restrFee)
+		if s.restrGapAfter(k, p, order[i+1:n], pd) || s.restrPairFreeLists(k, p, a, sl, ab) {
+			return sl, ab, 0, true
+		}
+		// the free step cannot list the play and no later gap can: the script
+		// backtracks to this source's fee (mana_restrictedfeepair.go)
+		fv := &k.gen.rs.views[v.restrPair-1]
+		return sl, &k.t.Cards[s.cardAt(sl)].Abilities[fv.manaAb], int(fv.restrFee), true
 	}
-	return NoSlot, nil, 0
+	return NoSlot, nil, 0, false
+}
+
+// restrGapAfter reports whether a later gap source can continue the script of
+// a pair whose free alternative was just taken.
+func (s *State) restrGapAfter(k *prep, p uint8, rest []Slot, pd *payDesc) bool {
+	for _, sl := range rest {
+		if _, _, ok := s.restrFeeGapView(k, p, sl, pd); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// restrPairFreeLists reports whether sl's free alternative alone lists play a:
+// the last pair's script step is its fee only when the free step leaves the
+// play unlisted. It runs on a fork, like restrFeeGapColour's colour probes.
+func (s *State) restrPairFreeLists(k *prep, p uint8, a Action, sl Slot, ab *kop.Ability) bool {
+	t := s.fork()
+	t.restrFeeActivate(k, p, sl, ab, 0, bits.TrailingZeros8(uint8(ab.ManaColors)&0x3f))
+	var d Decision
+	t.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
+	listed := hasOption(&d, a)
+	s.unfork()
+	return listed
 }
 
 // restrFeeFundTap taps the first covered source of p, in battlefield order,
@@ -125,8 +176,9 @@ func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
 }
 
 // restrFeeActivate activates fee gap sl: the fee paid from the pool, then its
-// restricted production floating (the window's order, CR 605.3b).
-func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee int) {
+// restricted production of colour col floating (the window's order, CR
+// 605.3b).
+func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee, col int) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
@@ -136,7 +188,6 @@ func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee
 		s.artSync(p)
 	}
 	s.deferSync(p, dc, dn)
-	col := bits.TrailingZeros8(uint8(ab.ManaColors) & 0x3f)
 	if !s.floatRestrAb(k, p, sl, ab, col, s.restrAbN(k, sl, ab)) {
 		s.capFull(StallRestrSrc) // never a silent spill
 	}
