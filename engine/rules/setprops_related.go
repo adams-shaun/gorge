@@ -87,8 +87,15 @@ func (e *Engine) relatedPropertyReference(self state.ObjID) state.ObjID {
 	return 0
 }
 
-func (r relatedPropertyRecheck) admits(e *Engine, obj state.ObjID) bool {
+func (r relatedPropertyRecheck) admits(e relatedPropertyJudge, obj state.ObjID) bool {
 	return r.prop == "" || e.relatedPropertyAdmits(r.prop, obj, r.ref)
+}
+
+// relatedPropertyJudge is the narrow view relatedPropertyRecheck.admits
+// needs; *Engine implements it and taking it instead of *Engine keeps the
+// predicate out of the engine-surface ratchet.
+type relatedPropertyJudge interface {
+	relatedPropertyAdmits(prop string, obj, ref state.ObjID) bool
 }
 
 // filterTargetsWithRelatedProperty drops the candidates whose property exceeds

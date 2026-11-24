@@ -1219,15 +1219,38 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 		if o == nil {
 			continue
 		}
-		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
-			if t.IsPlayer && effects.MatchesPlayerSpec(e.G, spec, t.Player, sc.You) ||
-				!t.IsPlayer && t.Obj != 0 && e.matchesSpec(spec, t.Obj, sc) {
-				out = append(out, cand)
-				break
-			}
+		if targetValidTargetingMatches(e, o, spec, sc) {
+			out = append(out, cand)
 		}
 	}
 	return out
+}
+
+// targetSpecRecheck is the narrow engine view a target-spec recheck needs:
+// the game, the live-object matcher and the related-property judge. It keeps
+// the shared predicates below free functions instead of new *Engine methods
+// (codeshape's engine-surface ratchet).
+type targetSpecRecheck interface {
+	relatedPropertyJudge
+	Game() *state.Game
+	matchesSpec(spec string, id state.ObjID, sc effects.SpecContext) bool
+}
+
+// targetValidTargetingMatches judges one stack object against
+// TargetValidTargeting$ from its CURRENT targets: CR 115.9b ignores a target
+// no longer in the zone it is expected to be in and never reads last known
+// information. The offer (filterTargetValidTargeting) and the resolution
+// recheck (legalTargets, CR 608.2b) both call this one predicate, so they
+// cannot disagree about whether the object still targets a matching object or
+// player.
+func targetValidTargetingMatches(e targetSpecRecheck, o *state.Object, spec string, sc effects.SpecContext) bool {
+	for _, t := range slices.Concat(o.Targets, o.SubTargets) {
+		if t.IsPlayer && effects.MatchesPlayerSpec(e.Game(), spec, t.Player, sc.You) ||
+			!t.IsPlayer && t.Obj != 0 && e.matchesSpec(spec, t.Obj, sc) {
+			return true
+		}
+	}
+	return false
 }
 
 // filterTargetsWithDefinedController implements the common target restriction

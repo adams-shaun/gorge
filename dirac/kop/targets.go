@@ -46,9 +46,9 @@ type TargetSpec struct {
 	MinV, MaxV ValueRef
 	// SpellF is a TgtSpellTgting slot's spell-side filter (the counter's
 	// ValidTgts$, e.g. Avoid Fate's Instant,Aura): a stack-zone filter on the
-	// candidate spell; 0 = any spell. VYou replaces the slot's battlefield
-	// Filter with "a target of the spell is the chooser" (TargetValidTargeting$
-	// You, Dawn Charm).
+	// candidate spell, read again at resolution; 0 = any spell. VYou replaces
+	// the slot's battlefield Filter with "a target of the spell is the
+	// chooser" (TargetValidTargeting$ You, Dawn Charm).
 	SpellF FilterID
 	VYou   bool
 }
@@ -102,9 +102,9 @@ const TgtCopyTrig TargetKind = 237
 const TgtStackObjTrig TargetKind = 238 // a spell matching Filter or a TRIGGERED ability on the stack (TargetType$ Instant,Sorcery,Triggered)
 
 // TgtSpellTgting: a spell whose own object targets include a battlefield
-// object matching Filter for the chooser (TargetValidTargeting$; the offer
-// only, the resolution rechecks a plain spell target).
-const TgtSpellTgting TargetKind = 239 // a spell whose own object targets include a battlefield object matching Filter for the chooser (TargetValidTargeting$; offer only)
+// object matching Filter for the chooser (TargetValidTargeting$). The clause
+// is read again at resolution against the spell's CURRENT targets (CR 115.9b).
+const TgtSpellTgting TargetKind = 239 // a spell whose own object targets include a battlefield object matching Filter for the chooser (TargetValidTargeting$, rechecked at resolution)
 
 // TgtPermOrSpell: a permanent matching Filter, or any
 // spell on the stack other than the source (gorge ValidTgts$
@@ -127,9 +127,9 @@ const TgtGraveExileCard TargetKind = 241
 // stack (named StackTarget0 + its stack index, as TgtStackObj) whose own
 // targets include a battlefield object matching Filter for the chooser
 // (TargetValidTargeting$ beside TargetType$ Spell,Activated,Triggered:
-// Diplomatic Escort). The offer only: the resolution rechecks a plain spell
-// target, or that the ability is still on the stack.
-const TgtStackTgting TargetKind = 242 // a spell or an activated/triggered ability whose own targets include a battlefield object matching Filter for the chooser (TargetValidTargeting$; offer only)
+// Diplomatic Escort). Both arms are rechecked at resolution against the
+// entry's CURRENT targets (CR 115.9b), the ability by stack identity.
+const TgtStackTgting TargetKind = 242 // a spell or an activated/triggered ability whose own targets include a battlefield object matching Filter for the chooser (TargetValidTargeting$, rechecked at resolution)
 
 // TgfSingleTgt (TargetSpec.TFlags): a TgtStackObj, TgtStackAb or TgtSpell slot admits only a spell or
 // an ability whose targets are exactly one distinct target (gorge

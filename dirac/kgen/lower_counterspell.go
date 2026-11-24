@@ -107,7 +107,8 @@ func counterTypeList(tt string) (spell string, trigOnly bool, err error) {
 }
 
 // counterValidTargeting reads TargetValidTargeting$ (gorge
-// filterTargetValidTargeting, the offer only): every comma term must carry an
+// filterTargetValidTargeting, the offer and the CR 115.9b resolution
+// recheck): every comma term must carry an
 // inRealZoneBattlefield zone term, which is stripped (the kernel matches
 // battlefield objects) and the rest built as a battlefield filter.
 //
