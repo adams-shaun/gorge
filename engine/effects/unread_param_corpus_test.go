@@ -17,7 +17,7 @@ import (
 // rather than a record prefix covers both A: abilities and SVar subabilities.
 func TestUnreadEffectParamCorpusCarriers(t *testing.T) {
 	testutil.CorpusRegistry(t) // absent .cards must skip rather than pass vacuously
-	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	root := corpusWalkRoot(t, cards.CorpusDir(testutil.CorpusDirOrSkip(t)))
 	checks := []struct {
 		name string
 		api  string

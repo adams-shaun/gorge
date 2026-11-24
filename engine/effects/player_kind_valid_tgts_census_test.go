@@ -21,7 +21,7 @@ func TestPlayerKindValidTgtsAPICensus(t *testing.T) {
 	for _, api := range []string{"ChangeZoneAll", "PumpAll", "PutCounterAll", "TapAll", "DestroyAll", "TapOrUntapAll", "UntapAll", "AnimateAll", "DamageAll"} {
 		got[api] = map[string]bool{}
 	}
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(corpusWalkRoot(t, dir), func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return nil
 		}
