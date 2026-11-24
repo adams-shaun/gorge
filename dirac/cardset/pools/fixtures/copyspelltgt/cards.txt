@@ -1,0 +1,19 @@
+# the untyped copy-target-spell lockstep (CR 707.10, 707.10c): Sigil
+# Tracer, Uyo, Rootha, Echo Mage's level abilities and Dual Casting's granted
+# ability copy a target instant or sorcery spell with no TargetType$
+# (dirac/oracle/copyspell_untyped_test.go)
+Sigil Tracer
+Uyo, Silent Prophet
+Rootha, Mercurial Artist
+Echo Mage
+Dual Casting
+Prodigal Sorcerer
+Fire Imp
+Wind Drake
+Hill Giant
+Shock
+Lightning Bolt
+Opt
+Divination
+Island
+Mountain
