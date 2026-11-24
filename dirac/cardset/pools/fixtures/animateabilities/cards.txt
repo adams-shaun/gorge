@@ -1,0 +1,19 @@
+# Animate Abilities$ granted to a permanent other than the source: the grant
+# names the making card's ability and the activation carries the maker's object
+# (dirac/oracle/animateabilities_lockstep_test.go TestAnimateAbilitiesLowers;
+# kgen lower_zone.go animateSelfAbilities)
+Banishing Knack
+Retraction Helix
+Run Wild
+Evolution Vat
+Touch of Vitae
+Greater Stone Spirit
+Defiling Tears
+Genju of the Fens
+Glorious Sunrise
+Grizzly Bears
+Raging Goblin
+Island
+Forest
+Mountain
+Swamp

@@ -122,7 +122,9 @@ func (s *State) sickTapTurnBound(k *prep, sl Slot, a Action) bool {
 			return true
 		}
 		ab &^= 0x80
-		if c = s.objs[host].card; s.objs[host].zone == kop.ZoneBattlefield {
+		if mc, ok := s.grantMakerCard(k, p.obj, host, ab); ok {
+			c = mc // the maker of a record's grant (act_ovmaker.go)
+		} else if c = s.objs[host].card; s.objs[host].zone == kop.ZoneBattlefield {
 			c = s.grantCardAt(k, s.objs[host].slot, ab)
 		}
 	}

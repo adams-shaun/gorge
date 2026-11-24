@@ -164,6 +164,13 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 				hobj := embObj
 				if hobj == NoObj {
 					hobj = s.perms[host].obj
+					if host == sl {
+						// a record's grant is hosted by the object that made it (act_ovmaker.go)
+						lts, lost := s.lossAt(k, sl)
+						if mk := s.grantMakerObj(k, sl, c, ab, lost, lts); mk != NoObj {
+							hobj = mk
+						}
+					}
 				}
 				act := MakeAction(AkActivate, TCode(s.perms[sl].obj), TCode(hobj), 0x80|ab)
 				for i := first; i < int(d.N); i++ {
@@ -667,7 +674,12 @@ func (s *State) activateGen(k *prep, a Action) bool {
 		host := Obj(a.Target())
 		ab := a.Mode() &^ 0x80
 		hc := s.objs[host].card
-		if body := s.exileGrantCardFor(host); body != 0 && exileGrantHasAb(k, body, ab) {
+		trig := host
+		if mc, ok := s.grantMakerCard(k, o, host, ab); ok {
+			// a record's grant hosted by the object that made it (act_ovmaker.go):
+			// the maker's body, run with the holder as its host
+			hc, trig = mc, o
+		} else if body := s.exileGrantCardFor(host); body != 0 && exileGrantHasAb(k, body, ab) {
 			// An exile grant records the body it granted at resolution. Read it
 			// on either side of the battlefield: the host may be a copy whose
 			// printed card has no such ability, or a card that has left the
@@ -695,7 +707,7 @@ func (s *State) activateGen(k *prep, a Action) bool {
 				}
 			}
 		}
-		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: ab, ctrl: s.prio, trigObj: host}}
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: ab, ctrl: s.prio, trigObj: trig}}
 	} else if ob.zone != kop.ZoneBattlefield {
 		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: ob.card, ab: a.Mode(), ctrl: s.prio, trigObj: NoObj}}
 	} else {

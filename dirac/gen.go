@@ -3036,10 +3036,17 @@ func (s *State) clearFx(sl Slot) {
 // of the records is the order of what they grant (gorge lists its grants by
 // timestamp). False when the pool is full.
 func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
+	return s.addOvRecMk(sl, r, merge, grants, NoObj)
+}
+
+// addOvRecMk is addOvRec for a record that grants an ability made by object
+// mk (NoObj: none kept): a record merges only with one made by the same
+// object, and a new one is entered in the maker ledger (act_ovmaker.go).
+func (s *State) addOvRecMk(sl Slot, r ovRec, merge, grants bool, mk Obj) bool {
 	s.touchSl(sl)
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx); i++ {
-			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps {
+			if p := &s.g.fx[i]; p.sl == sl && p.kind == fxOverride && p.r.idx == r.idx && p.r.src == r.src && p.r.p == r.p && p.r.t == r.t && p.r.fl&^ovReps == r.fl&^ovReps && (mk == NoObj || s.ovMkMatch(p.r.ts, mk)) {
 				if p.r.fl&ovReps == ovReps || grants && (s.newerLayer6Fx(sl, i) || s.statM.any() && s.newerLayer6Static(p.r.ts) || s.newerKwCounterLoss(sl, r.idx, p.r.ts)) {
 					continue // a further identical record carries the rest
 				}
@@ -3057,7 +3064,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 				s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxOverride, r: r}
 				s.g.nfx++
 				s.fxM.set(sl)
-				return true
+				return mk == NoObj || s.noteOvMk(r.ts, mk)
 			}
 		}
 	}
@@ -3070,7 +3077,7 @@ func (s *State) addOvRec(sl Slot, r ovRec, merge, grants bool) bool {
 	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxOverride, r: r}
 	s.g.nfx++
 	s.fxM.set(sl)
-	return true
+	return mk == NoObj || s.noteOvMk(r.ts, mk)
 }
 
 // newerKwCounterLoss reports that a repeat of loss/removal override idx on sl
