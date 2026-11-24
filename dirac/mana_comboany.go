@@ -344,10 +344,11 @@ func (s *State) caAdd(k *prep, p uint8, sl Slot, ans, n int) {
 }
 
 type caStep struct {
-	sl  Slot
-	ans uint8 // the odometer answer (below maxCAAnswers)
-	fo  uint8 // a forage source (mana_forage.go): the forage option answered
-	sib bool  // a forage source's plain ability, not its forage one
+	sl   Slot
+	ans  uint8 // the odometer answer (below maxCAAnswers)
+	fo   uint8 // a forage source (mana_forage.go): the forage option answered
+	pick uint8 // a forage source's exile pick answer (forageComboOf)
+	sib  bool  // a forage source's plain ability, not its forage one
 }
 
 // caSearch is gorge's prefix search over p's Combo Any sources

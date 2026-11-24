@@ -182,6 +182,11 @@ type triggeredEffectCost struct {
 	// settled by forageSettle.
 	forageDone bool
 	forageFood state.ObjID
+	// forageExile is the exile arm's pick of three graveyard cards
+	// (forageExilePickAsk), nil while unasked or when the pick is forced;
+	// forageExileAsked marks that pick posed and awaiting its answer.
+	forageExile      []state.ObjID
+	forageExileAsked bool
 	// beholds accumulates the settled Behold picks and beholdIdx is the next
 	// unsettled Behold part (trigger_cost_behold.go): recorded by beholdAsk /
 	// beholdAnswer, announced by beholdSettle.
@@ -1869,6 +1874,11 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		e.triggeredCostDecline(tc)
 		return
 	}
+	if tc.forageExileAsked {
+		// The forage exile arm's three-card pick (trigger_cost_forage.go).
+		tc.forageExilePickAnswer(e, chosen)
+		return
+	}
 	switch triggeredCostAnswerCodes.Code(string(chosen[0].Kind)) {
 	case triggeredCostAnswerActivate:
 		e.activatePaymentMana(tc.player, chosen[0].Obj)
@@ -1942,21 +1952,12 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		return
 	case triggeredCostAnswerForageExile:
 		// The forage election's exile arm: record it (forageFood stays zero)
-		// and re-enter the pay arm, which settles.
+		// and re-enter the pay arm, which asks the three-card pick or settles.
 		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
 		return
 	case triggeredCostAnswerForageFood:
-		// The forage election's Food arm: the named Food must still be a
-		// live candidate; record the pick and re-enter the pay arm, which
-		// settles. Anything else is the decline, with nothing yet moved to
-		// un-pay.
-		foods := pay.CostCandidates(asPayer(e), tc.player, tc.source, state.ZBattlefield, "Food.YouCtrl", false, false)
-		if !tc.forageDone || !slices.Contains(foods, chosen[0].Obj) {
-			e.triggeredCostDecline(tc)
-			return
-		}
-		tc.forageFood = chosen[0].Obj
-		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+		// The forage election's Food arm (trigger_cost_forage.go).
+		tc.forageFoodAnswer(e, chosen)
 		return
 	case triggeredCostAnswerBeholdcost:
 		// The behold pick (trigger_cost_behold.go): record it and re-enter

@@ -252,8 +252,11 @@ func ManaCostChoiceStages(e Engine, md *ManaCostActivation) ManaCostStep {
 // existing arms answer it. A non-interactive caller takes the deterministic
 // graveyard arm when it is payable, else the first Food.
 func manaCostForageStage(e Engine, md *ManaCostActivation) ManaCostStep {
-	if !md.Cost.Forage || md.ForageDone {
+	if !md.Cost.Forage {
 		return ManaCostNext
+	}
+	if md.ForageDone {
+		return manaCostForageExileStage(e, md)
 	}
 	md.ForageDone = true
 	graveOK := len(e.Game().Zone(state.ZGraveyard, md.Player)) >= 3
@@ -281,7 +284,24 @@ func manaCostForageStage(e Engine, md *ManaCostActivation) ManaCostStep {
 		md.ForagePay = true
 		if opt.Kind == "forage_food" {
 			md.ForageFood = opt.Obj
+			return ManaCostNext
 		}
+		return manaCostForageExileStage(e, md)
+	}
+	e.Ask(AskManaForage, d)
+	return ManaCostAsked
+}
+
+// manaCostForageExileStage poses the elected exile arm's pick of exactly three
+// graveyard cards (CR 701.61a: which three is the payer's choice) when the
+// graveyard holds more than three; a forced pick, the Food arm, an answered
+// pick or a non-interactive caller settles without an ask.
+func manaCostForageExileStage(e Engine, md *ManaCostActivation) ManaCostStep {
+	if !md.ForagePay || md.ForageFood != 0 || len(md.ForageExile) > 0 || !md.Interactive {
+		return ManaCostNext
+	}
+	d := ForageExilePickAsk(e, md.Player, md.Source)
+	if d == nil {
 		return ManaCostNext
 	}
 	e.Ask(AskManaForage, d)
