@@ -62,8 +62,8 @@ func (lc *lowerCtx) exiledWithFilter() (*lFilter, error) {
 // ExiledWithSource (exileProvenanceNeeded) or for a Hideaway. The hidden
 // ChooseMove pick (Wormfang Newt/Turtle: `Hidden$ True`, no ExiledWithSource
 // in the text) therefore records nothing in gorge and the leaves trigger
-// returns nothing, which is the gorge finding in the report; a
-// duration exile is unproven against the link. A Dig is the
+// returns nothing, which is the gorge finding in the report; a Foretell
+// face-down exile is unproven against the link. A Dig is the
 // reverse-only association (the kernel's exwForwardOp lacks OpDig): it is
 // proven only for a reader whose own text names ExiledWithSource
 // (lc.out.ExwWord: Maralen, Fae Ascendant), where gorge sets the reverse
@@ -123,7 +123,23 @@ func (lc *lowerCtx) exwCheck() {
 				if lc.out.ExwWord {
 					continue
 				}
-			case "Foretell", "ExileUntilLeaves":
+			case "Foretell":
+				// a face-down Foretell exile records nothing in gorge
+			case "ExileUntilLeaves":
+				// a duration exile records the link in gorge
+				// (exiledWithAssociation and recordExileReturnFor,
+				// effects/zone_change.go). The lockstep
+				// (TestExwTargetGraveLockstep) pins the write side only: it
+				// never activates the reader, because an {X} activation needs
+				// floating mana and the kernel diverges at the X ask (see the
+				// activated-X ticket). So only the shape that has a kernel
+				// test of its read stays lifted: an activated ability's
+				// target-time ExiledWithSource filter, with no other reader
+				// of the link. A resolution-time reader (Mysterious
+				// Limousine's ChangeZoneAll) stays refused.
+				if lc.exwTargetTimeOnly() {
+					continue
+				}
 			default:
 				continue
 			}
@@ -131,6 +147,42 @@ func (lc *lowerCtx) exwCheck() {
 			return
 		}
 	}
+}
+
+// exwTargetTimeOnly reports whether every read of the exiled-with link is an
+// activated ability's target filter: some activated ability targets by
+// ExiledWithSource, and no program line or triggered ability's filter reads it.
+func (lc *lowerCtx) exwTargetTimeOnly() bool {
+	tgt := false
+	for _, a := range lc.out.Abilities {
+		for _, t := range a.Targets {
+			if filterReadsExw(t.F) {
+				if a.Kind != akActivated {
+					return false
+				}
+				tgt = true
+			}
+		}
+		for _, in := range a.Prog {
+			if filterReadsExw(in.F) {
+				return false
+			}
+		}
+	}
+	return tgt
+}
+
+// filterReadsExw reports an ExiledWithSource clause anywhere in f.
+func filterReadsExw(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.CmpStat == cmpExiledWith || c.Flags&fExiledWith != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // svarsReadExiledWith is gorge's svarsReadExiledWith over the face's SVar

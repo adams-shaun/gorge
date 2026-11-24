@@ -105,6 +105,10 @@ func (lc *lowerCtx) srcMemChain(sa *cards.SA) (c smChain, ok bool) {
 				c.r = true
 			case n.API == "Cleanup" && k == "ClearRemembered" && v == "True" && len(n.Params) == 1:
 				c.clr = true
+			case k == "ValidTgts" && n == sa && sa.Kind == "AB" && srcMemTgtValue(v):
+				// an activated ability's own target filter reads the remembered
+				// set without a seed: the target-time source is threaded in
+				// (srcMemTgtReader); a trigger's or a sub-ability's stays refused
 			case lc.srcMemNamesRemember(k, v, n.Params["SubAbility"]):
 				return c, false
 			}
@@ -154,10 +158,32 @@ func (lc *lowerCtx) srcMemScript() (kind []uint8, ok bool) {
 		return nil, false
 	}
 	kind, tw, reader, ok := lc.srcMemTriggers()
-	if !ok || !(writer || tw) || !reader {
+	if !ok || !(writer || tw) || !reader && !lc.srcMemTgtReader() {
 		return nil, false
 	}
 	return kind, true
+}
+
+// srcMemTgtReader reports a direct ValidTgts$ that reads the remembered set
+// next to ExiledWithSource. That target's source is threaded in
+// (matchCardTgt -> matchCardExwTgt, zone_exiledwithtgt.go), so the kernel
+// reads the source's live records; a target filter without ExiledWithSource
+// gets no source there and stays refused.
+func (lc *lowerCtx) srcMemTgtReader() bool {
+	for _, a := range lc.face.Abilities {
+		if srcMemTgtValue(a.Params["ValidTgts"]) {
+			return true
+		}
+	}
+	return false
+}
+
+// srcMemTgtValue is a target filter that reads the remembered set next to
+// ExiledWithSource: the two words together are the shape whose source is
+// threaded into the matcher.
+func srcMemTgtValue(v string) bool {
+	v = strings.TrimSpace(v)
+	return strings.Contains(v, "IsRemembered") && strings.Contains(v, "ExiledWithSource")
 }
 
 // srcMemWriterOK reports whether the card is the SrcMem shape by its script,
@@ -273,8 +299,10 @@ func (lc *lowerCtx) srcMemSeed(kind []uint8) (seed uint32, ok bool) {
 			head = append(head, fmt.Sprint(a.Trigger.F2), fmt.Sprint(a.Trigger.Cond))
 		}
 		head = append(head, fmt.Sprint(a.ActCond))
+		tgtReads := false
 		for _, t := range a.Targets {
 			head = append(head, fmt.Sprint(t.F))
+			tgtReads = tgtReads || kremReads(fmt.Sprint(t.F))
 		}
 		writes, progReads, headReads := false, false, false
 		for _, in := range a.Prog {
@@ -288,7 +316,17 @@ func (lc *lowerCtx) srcMemSeed(kind []uint8) (seed uint32, ok bool) {
 		if !headReads && !progReads && !filterReads {
 			continue
 		}
-		if writes || headReads || a.Latent || a.Trigger == nil || !a.OriginOK || a.Origin&0x80 == 0 {
+		if a.Trigger == nil {
+			// an activated target filter's remembered read: the source's
+			// live records are read at target time (srcMemTgtReader), so it
+			// needs no seed; a read in the activation condition, the program
+			// or a latent copy is another shape
+			if writes || progReads || !tgtReads || kremReads(fmt.Sprint(a.ActCond)) || a.Latent || a.Kind != akActivated {
+				return 0, false
+			}
+			continue
+		}
+		if writes || headReads || a.Latent || !a.OriginOK || a.Origin&0x80 == 0 {
 			return 0, false
 		}
 		i := a.Origin & 0x7f
