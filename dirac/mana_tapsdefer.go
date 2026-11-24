@@ -1232,7 +1232,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				if cp != nil {
 					// the planned cast's payment: the node's floats price it,
 					// gorge's sr.priced node check (potential_script.go)
-					found = t.castRestPriced(k, p, cp.o, &cp.cost) && !foreign
+					found = cp.priced(t, k, p) && !foreign
 				} else {
 					var d Decision
 					t.restrOptions(k, &d, p)

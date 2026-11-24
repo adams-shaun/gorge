@@ -441,33 +441,45 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	}
 }
 
-// tapDeferredPrefix is payPrefixRest's Taps-deferred prefix for play a: the
-// plan's sources one activation at a time, stopping at the first node where
-// the pool pays cost or the plain census prices the rest, as gorge's prefix
-// search stops at the first node its planner prices. Each activation floats
-// the tap's gated and any-colour extras (addGatedExtra; their trigger
-// resolves at the tap, CR 605.4a), which no plan prices: the whole plan
-// over-taps, and a Plains under Buried in the Garden makes {W}{W}, paying a
-// {2} activation alone.
+// tapDeferredPrefix is payPrefixRest's Taps-deferred prefix for activation
+// a: gorge's prefix search activates the deferred gaps alone, each tap's
+// gated or any-colour extra floating as its trigger resolves (CR 605.4a), and
+// stops at the first node whose floats the planner prices (sr.priced). The
+// search is payCastPrefixRest's with an activation's stop (castRestPay.act):
+// a Plains under Buried in the Garden floats {W}{W} and pays a {2}
+// activation alone, where the whole plan, which prices no unfolded extra,
+// also tapped a Forest. A line the search does not find keeps the plan.
 func (s *State) tapDeferredPrefix(k *prep, p uint8, a Action, cost *kop.ManaCost) {
-	for range maxUnits {
-		sl := s.tapForN(k, p, cost, 0, NoObj, true)
-		if sl == NoSlot {
-			return
+	tapsDef := s.scriptTapsDefer(k, p)
+	var order [MaxPerm]Slot
+	n := s.scriptGapOrder(k, a, p, tapsDef, order[:])
+	var ans [MaxPerm]uint8
+	var pick [MaxPerm]int8
+	var dead bool
+	cp := castRestPay{o: NoObj, cost: *cost, act: true}
+	if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &cp, &ans, &pick, &dead) {
+		s.tapFor(k, p, cost, 0, NoObj)
+		return
+	}
+	s.replayDeferGaps(k, p, a, order[:n], tapsDef, &ans, &pick)
+}
+
+// replayDeferGaps plays the gap taps deferGapSearch found (pick[j] < 0: the
+// line went on without order[j]), answering each with ans[j].
+func (s *State) replayDeferGaps(k *prep, p uint8, a Action, order []Slot, tapsDef slotMask, ans *[MaxPerm]uint8, pick *[MaxPerm]int8) {
+	for j := 0; j < len(order) && !s.over; j++ {
+		if pick[j] < 0 {
+			continue // the found script went on without this gap
 		}
-		s.fillTapAnyCol(k, p, sl, a)
-		s.addGatedExtra(k, p, sl, s.perms[sl].ctrl)
-		if s.poolPays(p, cost) {
-			return
-		}
-		chk := planner{dry: true}
-		s.tapNeed(&chk, p, cost, 0, false)
-		if chk.needT == 0 {
-			return
-		}
-		chk.try = true
-		if s.plan(k, p, &chk, NoObj); chk.found {
-			return // the plain census prices the rest: gorge's planner pays it post-push
+		var spill [kop.NumManaKinds]uint8
+		s.scriptGapTap(k, p, a, order[j], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(ans[j]), &spill)
+		if s.npend != 0 {
+			// gorge answers each gap's activation as its own decision, so
+			// the trigger queue is drained before the next tap (CR 603.3b)
+			s.flushPrefixTriggers(k)
+			if s.npend != 0 {
+				s.resolvePrefixStack(k, s.sp, false)
+			}
 		}
 	}
 }
@@ -521,11 +533,28 @@ func (s *State) payNeededColours(k *prep, p uint8, cost *kop.ManaCost, target in
 
 // castRestPay prices the Taps-deferred gaps' payment search's stop: the
 // planned cast o whose cost part the gap taps' floats must cover
-// (payCastPrefixRest). nil in the offer search (scriptPrefixAny,
-// scriptDeadEndAny).
+// (payCastPrefixRest), or with act an activation's cost (payPrefixRest's
+// tapDeferredPrefix: no card leaves the hand reserve, no cast-only skip).
+// nil in the offer search (scriptPrefixAny, scriptDeadEndAny).
 type castRestPay struct {
 	o    Obj
 	cost kop.ManaCost
+	act  bool
+}
+
+// priced is the search node's stop over s: castRestPriced for a cast, the
+// plain census over the floats for an activation.
+func (cp *castRestPay) priced(s *State, k *prep, p uint8) bool {
+	if !cp.act {
+		return s.castRestPriced(k, p, cp.o, &cp.cost)
+	}
+	pk := planner{dry: true, try: true}
+	s.tapNeed(&pk, p, &cp.cost, 0, false)
+	if pk.needT == 0 {
+		return true
+	}
+	s.plan(k, p, &pk, NoObj)
+	return pk.found
 }
 
 // castRestPriced reports whether the planner prices the planned cast's
@@ -698,21 +727,7 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	if !s.deferGapSearch(k, a, p, order[:n], tapsDef, &cp, &ans, &pick, &dead) {
 		return // the search prices no line of gap taps: manaStep's arm keeps the post-push payment
 	}
-	for j := 0; j < n && !s.over; j++ {
-		if pick[j] < 0 {
-			continue // the found script went on without this gap
-		}
-		var spill [kop.NumManaKinds]uint8
-		s.scriptGapTap(k, p, a, order[j], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(ans[j]), &spill)
-		if s.npend != 0 {
-			// gorge answers each gap's activation as its own decision, so
-			// the trigger queue is drained before the next tap (CR 603.3b)
-			s.flushPrefixTriggers(k)
-			if s.npend != 0 {
-				s.resolvePrefixStack(k, s.sp, false)
-			}
-		}
-	}
+	s.replayDeferGaps(k, p, a, order[:n], tapsDef, &ans, &pick)
 }
 
 // DebugRestrictedFloatIgnored (TestRestrictedFloatLoweredActivationMutation):
