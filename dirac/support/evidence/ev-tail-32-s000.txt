@@ -37,6 +37,7 @@ Captivating Vampire
 Cartouche of Zeal
 Castaway's Despair
 Celestial Purge
+Champion of Wits
 Channel the Suns
 Chaotic Goo
 Charging Monstrosaur
@@ -46,6 +47,7 @@ Cloak of Feathers
 Cloud Elemental
 Cloudchaser Kestrel
 Cognivore
+Colossus of Akros
 Combust
 Conclave Mentor
 Conduit Pylons
@@ -56,6 +58,7 @@ Creosote Heath
 Curious Altisaur
 Cut
 Damning Verdict
+Dark Ritual
 Darksteel Angel
 Death's Presence
 Death-Hood Cobra
@@ -70,6 +73,7 @@ Dryad Greenseeker
 Duskhunter Bat
 Dwarven Warriors
 Eastfarthing Farmer
+Echo Storm
 Eidolon of Countless Battles
 Elas il-Kor, Sadistic Pilgrim
 Electric Revelation
@@ -95,6 +99,7 @@ Flywheel Racer
 Forest
 Frogtosser Banneret
 Frontline Devastator
+Frostweb Spider
 Gaea's Embrace
 Garrison Griffin
 Gastal Raider
@@ -117,10 +122,13 @@ Highway Robber
 Hold the Line
 Honor the Past
 Idle Thoughts
+Infernal Sovereign
 Inferno
+Into Thin Air
 Invasion of Segovia
 Island
 Kami of the Hunt
+Karplusan Giant
 Knight of Old Benalia
 Krosan Restorer
 Kruin Striker
@@ -154,6 +162,7 @@ Mortician Beetle
 Mountain
 Mukotai Soulripper
 Mystic Restraints
+Nadier, Agent of the Duskenel
 Night Scythe
 Nimbus of the Isles
 Oni Possession
@@ -170,12 +179,16 @@ Plains
 Prakhata Pillar-Bug
 Precognition Field
 Prized Statue
+Proven Combatant
 Provoke
 Pygmy Pyrosaur
+Quickchange
+Quicksilver Dagger
 Raging Spirit
 Rakka Mar
 Rakshasa's Secret
 Ranger Class
+Ravenloft Adventurer
 Ravenous Harpy
 Reckless Imp
 Recross the Paths
@@ -186,6 +199,8 @@ Rhox Meditant
 Rofellos, Llanowar Emissary
 Root Greevil
 Rotted Hulk
+Rotting Mastodon
+Sarcomancy
 Savage Thallid
 Scragnoth
 Sewerdreg
@@ -194,6 +209,8 @@ Shieldmate's Blessing
 Sizzle
 Skyclave Shade
 Skyshroud Troll
+Snow-Covered Forest
+Snow-Covered Mountain
 Sokka, Swordmaster
 Sonic Screwdriver
 Soul Bleed
@@ -209,6 +226,7 @@ Sure-Footed Infiltrator
 Surreal Memoir
 Swamp
 Territorial Aetherkite
+Tevesh Szat, Doom of Fools
 Tezzeret's Touch
 The Unspeakable
 Thran Lens
@@ -239,4 +257,5 @@ Wilderness Elemental
 Witch's Mist
 Witness of Tomorrows
 Wose Pathfinder
+Xanthic Statue
 Yuma, Proud Protector
