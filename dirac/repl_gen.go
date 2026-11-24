@@ -981,7 +981,12 @@ func (s *State) replCandLive(k *prep, i int) bool {
 		// doublings), so the host re-matches with its own controller: the
 		// same match roPlusAdd applies the pick with (repl_pluswalk.go), the
 		// source read as the frozen event's (an LKI a pause removed)
-		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 || s.genLost(k, sl) {
+		if k.gen.replBits[s.cardAt(sl)]&rbPlusDmg == 0 {
+			// a minus line (the walk marks it with the plus bit too): it is
+			// live while it still matches the event (replOrderCandsSeat)
+			return k.gen.anyRepl2&rb2DmgMinus != 0 && s.dmgMinusCand(k, sl, ro.askS, ro.p, ro.askD)
+		}
+		if s.genLost(k, sl) {
 			return false
 		}
 		card := s.cardAt(ro.askS)
