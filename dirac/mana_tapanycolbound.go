@@ -44,5 +44,8 @@ func (s *State) potentialTapAnyColExtra(k *prep, sl Slot, fold func(Slot, uint8,
 // relaxed Forest under Fertile Ground over-produces {G} plus one of each
 // colour and the prefix search runs for a {3}{G} play.
 func (s *State) tapsDeferAnyColUnits(k *prep, sl Slot, av *avail) {
+	if av.pipWin {
+		return // a pip ask's window census (announceFeasible) never folds the open trigger: only the relaxed alternative does
+	}
 	s.potentialTapAnyColExtra(k, sl, func(_ Slot, m, n uint8) { av.addUnits(m, n) })
 }
