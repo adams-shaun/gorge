@@ -1412,10 +1412,8 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 				return kt, err
 			}
 		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && dmgPlayerAltClause(t.F2.Clauses[0]):
-			// ValidTarget$ Player,Planeswalker (and Player,Battle):
-			// TfToPlayer beside a Filter2 reads "a player,
-			// or a permanent matching Filter2" (dirac/trig_damagedonce.go
-			// ddoRecipient)
+			// ValidTarget$ Player,Planeswalker or Player,Battle: TfToPlayer beside a
+			// Filter2, "a player or a matching permanent" (trig_damagedonce.go ddoRecipient)
 			kt.Flags |= kop.TfToPlayer
 			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
 				return kt, err
