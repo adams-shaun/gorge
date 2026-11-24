@@ -1,7 +1,5 @@
 # Dreadwing Scavenger
 source	key	sig	class	issue	note
-static	0/S:Continuous#0/CheckSVar	27d21147	cardc-gap	0	untriaged
-static	0/S:Continuous#0/SVarCompare	2d6ed422	cardc-gap	0	untriaged
 static	0/T:Attacks:Draw>Discard#0/[0]NumCards	e79e418e	equivalent	0	explicit draw count of one is the default count
 static	0/T:Attacks:Draw>Discard#0/[1]Defined	f37820cf	equivalent	0	absent player selector means the controller, same as You
 static	0/T:ChangesZone:Draw>Discard#0/[0]NumCards	e79e418e	equivalent	0	explicit draw count of one is the default count

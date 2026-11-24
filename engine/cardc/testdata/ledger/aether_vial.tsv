@@ -3,4 +3,4 @@ source	key	sig	class	issue	note
 lockstep	legacy/2/forward	-	cardc-gap	0	untriaged
 lockstep	legacy/2/reverse	-	cardc-gap	0	untriaged
 static	0/A:AB:ChangeZone#0/[0]ChangeNum	e79e418e	equivalent	0	explicit move count of one is the default count
-static	0/A:AB:ChangeZone#0/[0]ChangeType	9a1c5521	cardc-gap	0	untriaged
+static	0/A:AB:ChangeZone#0/[0]ChangeType	595373f2	cardc-gap	0	untriaged

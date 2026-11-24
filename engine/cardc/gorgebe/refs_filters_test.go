@@ -628,7 +628,7 @@ func TestMultiTargetProgram(t *testing.T) {
 	tgt := func(slot uint8) *ir.Ref { return &ir.Ref{Kind: ir.RefTarget, Slot: slot} }
 	prog := &ir.Program{
 		Targets: []*ir.Target{{Min: 1, Max: 1, Filter: mine}, {Min: 1, Max: 1, Filter: theirs}},
-		Steps: []*ir.Step{{Verb: ir.VerbDealDamage, Obj: tgt(1), Source: tgt(0), N: &ir.Value{Kind: ir.VPower, Ref: tgt(0)}}},
+		Steps:   []*ir.Step{{Verb: ir.VerbDealDamage, Obj: tgt(1), Source: tgt(0), N: &ir.Value{Kind: ir.VPower, Ref: tgt(0)}}},
 	}
 	p := &pr{}
 	n, err := p.program(prog)

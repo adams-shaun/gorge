@@ -263,10 +263,10 @@ func (p *pr) mergeParams(c condForm, then, els *node, diff []string) bool {
 	}
 	var v string
 	if c.Choose != "" {
-		v = p.countVarAs("X", c.Choose + "." + strconv.Itoa(want.a) + "." + strconv.Itoa(want.b))
+		v = p.countVarAs("X", c.Choose+"."+strconv.Itoa(want.a)+"."+strconv.Itoa(want.b))
 	} else {
 		c = p.plain(c)
-		v = p.countVarAs("X", "Count$Compare " + c.SVar + " " + c.cmp() + "." + strconv.Itoa(want.a) + "." + strconv.Itoa(want.b))
+		v = p.countVarAs("X", "Count$Compare "+c.SVar+" "+c.cmp()+"."+strconv.Itoa(want.a)+"."+strconv.Itoa(want.b))
 	}
 	for i, k := range diff {
 		if neg[i] {
