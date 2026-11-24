@@ -249,7 +249,7 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 	// read and the $<Ref>$CardCounters readers (evalRefProperty, the bare
 	// source head) cannot disagree.
 	if kind, ok := strings.CutPrefix(f.prop, "CardCounters."); ok {
-		f.n += o.Counter(kind)
+		f.n += o.Counter(state.CanonicalCounterKind(kind))
 		return
 	}
 	switch zoneFoldPropCodes.Code(string(f.prop)) {
