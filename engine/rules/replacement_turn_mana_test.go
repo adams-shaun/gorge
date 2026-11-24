@@ -270,7 +270,7 @@ func TestSephirothTransformRunsTheDestinationFaceReplacement(t *testing.T) {
 	// that context -- the tally a fourth real resolution would have folded
 	// (events.Apply's Resolve case) -- rather than zero, which the gate now
 	// correctly reads as "not yet" and skips the flip.
-	e.G.ResolvedThisTurn = map[string]int32{events.ResolvedAbilityKey(seph, sa): 4}
+	e.G.ResolvedThisTurn = map[string]int32{events.ResolvedAbilityKey(e.G, seph, sa): 4}
 	e.resolveAbility(seph, 0, nil, sa, o.Face().SVars)
 
 	if e.G.Obj(seph).FaceIdx != 1 {

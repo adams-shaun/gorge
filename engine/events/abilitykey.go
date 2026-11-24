@@ -25,10 +25,27 @@ import (
 // static. The walk is a fixed pre-order with sorted parameter names, so it
 // never depends on map iteration order.
 //
+// The source's ZoneGen is part of the key (CR 400.7): a permanent that left
+// and returned is a new object whose ability has not resolved this turn, as
+// XMage's AbilityResolvedWatcher (zone-change-counter key) and Forge both
+// read it (farm window BLB-s111 xe:RAND:4:1:w11, Harvestrite Host blinked).
+// ZoneGen is folded only by events.Apply, so a log-only replay rebuilds it and
+// no new Kind or field is needed.
+//
 // source is part of the key because two permanents can carry the same body
 // (two Sephiroths, or a Sephiroth and a copied one) and each has its own tally.
-func ResolvedAbilityKey(source state.ObjID, sa *cards.SA) string {
-	return strconv.FormatUint(uint64(source), 10) + "|" + saKeyContent(sa)
+func ResolvedAbilityKey(g *state.Game, source state.ObjID, sa *cards.SA) string {
+	return strconv.FormatUint(uint64(source), 10) + "." + strconv.FormatUint(uint64(sourceZoneGen(g, source)), 10) +
+		"|" + saKeyContent(sa)
+}
+
+// sourceZoneGen is the source object's current CR 400.7 identity stamp (0 for
+// an object the game no longer holds).
+func sourceZoneGen(g *state.Game, source state.ObjID) uint32 {
+	if o := g.Obj(source); o != nil {
+		return o.ZoneGen
+	}
+	return 0
 }
 
 func writeSAKey(b *strings.Builder, sa *cards.SA, depth int) {
