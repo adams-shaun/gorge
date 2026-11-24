@@ -123,6 +123,12 @@ func setSrc(v any, src string) {
 		p = &x.Src
 	case *ir.PT:
 		p = &x.Src
+	case *ir.Effect:
+		p = &x.Src
+	case *ir.Enter:
+		p = &x.Src
+	case *ir.Face:
+		p = &x.Src
 	}
 	if p != nil && *p == "" {
 		*p = src
@@ -173,7 +179,7 @@ func (c *Ctx) DeclareTarget(stem string) uint8 {
 }
 
 // ResetTargets empties the declarations; the driver calls it before each
-// rule, so slots are per ability.
+// rule; slots are per Program (see withTargetFrame).
 func (c *Ctx) ResetTargets() { c.targets = c.targets[:0] }
 
 // TargetSlot resolves a Ref_ variant ("Ref_TargetPermanent2") to a declared

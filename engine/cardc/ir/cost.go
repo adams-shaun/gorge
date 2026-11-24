@@ -18,6 +18,7 @@ const (
 	CostTapUntapped
 	CostReveal
 	CostMill
+	CostLoyalty
 	costKindCount
 )
 
@@ -34,6 +35,7 @@ var costKindNames = [...]string{
 	CostTapUntapped:    "tap-untapped",
 	CostReveal:         "reveal",
 	CostMill:           "mill",
+	CostLoyalty:        "loyalty",
 }
 
 // String returns the lower-kebab name of k.

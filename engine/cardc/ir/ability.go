@@ -47,11 +47,69 @@ type EventKind uint16
 
 const (
 	EvNone EventKind = iota
+	EvEndStep
+	EvUpkeep
+	EvBeginCombat
+	EvOr
+	EvAttacks
+	EvDealsCombatDamage
+	EvDealsCombatDamageToPlayer
+	EvDealsNoncombatDamageToPlayer
+	EvBecomesTarget
+	EvUntaps
+	EvDies
+	EvEnters
+	EvPutIntoGraveyard
+	EvLeaves
+	EvPlayerAttacks
+	EvCast
+	EvDiscards
+	EvDraws
+	EvGainsLife
+	EvLosesLife
+	EvPlaysLand
+	EvCountersPut
+	EvNextEndStep
+	EvReflexive
+	EvWouldEnter
+	EvWouldPutCounters
+	EvWouldDealDamage
+	EvWouldCreateTokens
+	EvWouldDie
 	eventKindCount
 )
 
 var eventKindNames = [...]string{
-	EvNone: "none",
+	EvNone:                         "none",
+	EvEndStep:                      "end-step",
+	EvUpkeep:                       "upkeep",
+	EvBeginCombat:                  "begin-combat",
+	EvOr:                           "or",
+	EvAttacks:                      "attacks",
+	EvDealsCombatDamage:            "deals-combat-damage",
+	EvDealsCombatDamageToPlayer:    "deals-combat-damage-to-player",
+	EvDealsNoncombatDamageToPlayer: "deals-noncombat-damage-to-player",
+	EvBecomesTarget:                "becomes-target",
+	EvUntaps:                       "untaps",
+	EvDies:                         "dies",
+	EvEnters:                       "enters",
+	EvPutIntoGraveyard:             "put-into-graveyard",
+	EvLeaves:                       "leaves",
+	EvPlayerAttacks:                "player-attacks",
+	EvCast:                         "cast",
+	EvDiscards:                     "discards",
+	EvDraws:                        "draws",
+	EvGainsLife:                    "gains-life",
+	EvLosesLife:                    "loses-life",
+	EvPlaysLand:                    "plays-land",
+	EvCountersPut:                  "counters-put",
+	EvNextEndStep:                  "next-end-step",
+	EvReflexive:                    "reflexive",
+	EvWouldEnter:                   "would-enter",
+	EvWouldPutCounters:             "would-put-counters",
+	EvWouldDealDamage:              "would-deal-damage",
+	EvWouldCreateTokens:            "would-create-tokens",
+	EvWouldDie:                     "would-die",
 }
 
 // String returns the lower-kebab name of k.
@@ -73,13 +131,18 @@ type Ability struct {
 	Kind AbilityKind `json:"kind,omitempty"`
 	Cost *Cost       `json:"cost,omitempty"`
 	// Trigger is the trigger, or the replaced event for AbReplacement.
-	Trigger *Trigger  `json:"trigger,omitempty"`
-	Cond    *Cond     `json:"cond,omitempty"`
-	Targets []*Target `json:"targets,omitempty"`
-	Body    *Program  `json:"body,omitempty"`
-	Keyword *Keyword  `json:"keyword,omitempty"`
-	Zones   ZoneSet   `json:"zones,omitempty"`
-	Src     string    `json:"src,omitempty"`
+	Trigger *Trigger `json:"trigger,omitempty"`
+	Cond    *Cond    `json:"cond,omitempty"`
+	Body    *Program `json:"body,omitempty"`
+	Keyword *Keyword `json:"keyword,omitempty"`
+	Zones   ZoneSet  `json:"zones,omitempty"`
+	// SorceryOnly: activate only as a sorcery.
+	SorceryOnly bool `json:"sorceryOnly,omitempty"`
+	// InstantOnly: activate only as an instant (Lion's Eye Diamond).
+	InstantOnly bool `json:"instantOnly,omitempty"`
+	// Once: activate only once.
+	Once bool   `json:"once,omitempty"`
+	Src  string `json:"src,omitempty"`
 }
 
 // Keyword is a keyword ability. Name is the keyword's rules name (Flying,
@@ -99,5 +162,16 @@ type Trigger struct {
 	Ref         *Ref      `json:"ref,omitempty"`
 	Zones       ZoneSet   `json:"zones,omitempty"`
 	OncePerTurn bool      `json:"oncePerTurn,omitempty"`
-	Src         string    `json:"src,omitempty"`
+	// Object is the event's other party: the recipient, the spell, the
+	// permanent counters go on.
+	Object *Filter `json:"object,omitempty"`
+	// Cmp is the nth such event this turn, or an attacker count.
+	Cmp *Compare `json:"cmp,omitempty"`
+	// Word is a counter word, or combat/noncombat.
+	Word string `json:"word,omitempty"`
+	// Cond is a condition on the trigger event itself, not an intervening if.
+	Cond *Cond `json:"cond,omitempty"`
+	// Args are EvOr's alternatives.
+	Args []*Trigger `json:"args,omitempty"`
+	Src  string     `json:"src,omitempty"`
 }

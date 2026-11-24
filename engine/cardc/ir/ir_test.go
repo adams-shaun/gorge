@@ -33,6 +33,7 @@ var enums = []enumInfo{
 	{reflect.TypeFor[Verb](), int(verbCount), verbNames[:]},
 	{reflect.TypeFor[Duration](), int(durationCount), durationNames[:]},
 	{reflect.TypeFor[CostKind](), int(costKindCount), costKindNames[:]},
+	{reflect.TypeFor[EffectKind](), int(effectKindCount), effectKindNames[:]},
 }
 
 var structTypes = []reflect.Type{
@@ -42,6 +43,7 @@ var structTypes = []reflect.Type{
 	reflect.TypeFor[Value](), reflect.TypeFor[Cond](), reflect.TypeFor[Ability](),
 	reflect.TypeFor[Keyword](), reflect.TypeFor[Trigger](), reflect.TypeFor[Program](),
 	reflect.TypeFor[Step](), reflect.TypeFor[Cost](), reflect.TypeFor[CostPart](),
+	reflect.TypeFor[Effect](), reflect.TypeFor[Enter](),
 }
 
 func enumFor(t reflect.Type) (enumInfo, bool) {
@@ -109,6 +111,7 @@ var parseFuncs = map[reflect.Type]any{
 	reflect.TypeFor[Verb]():        ParseVerb,
 	reflect.TypeFor[Duration]():    ParseDuration,
 	reflect.TypeFor[CostKind]():    ParseCostKind,
+	reflect.TypeFor[EffectKind]():  ParseEffectKind,
 }
 
 func TestBitsetsCanonical(t *testing.T) {
@@ -479,6 +482,7 @@ func TestPrintMatchesEqual(t *testing.T) {
 	}}, `(filter all (filter pred card-type "Creature") (filter not (filter pred token)))`)
 	str(&Value{Kind: VAdd, Args: []*Value{two, {Kind: VX}}}, `(value add (value const 2) (value x))`)
 	str(&Value{Kind: VConst}, `(value const 0)`)
+	str(&Step{Verb: VerbDraw, N: two}, "(step draw :n (value const 2))")
 
 	// Layouts that must not collide.
 	distinct := []stringer{
@@ -518,5 +522,17 @@ func TestEqualGeneric(t *testing.T) {
 	}
 	if !Equal(&ManaSym{Kind: ManaX}, &ManaSym{Kind: ManaX}) || Equal(&Refusal{Key: "a"}, &Refusal{Key: "b"}) {
 		t.Error("value structs")
+	}
+}
+
+// TestTargetsLiveOnPrograms guards the 11-24 decision: targets are scoped per
+// Program (as in mtgish's Actions.Targeted), never per Ability. A ticket that
+// needs ability-wide targets stops and reports instead of editing this test.
+func TestTargetsLiveOnPrograms(t *testing.T) {
+	if _, ok := reflect.TypeFor[Ability]().FieldByName("Targets"); ok {
+		t.Error("ir.Ability must not have a Targets field; targets live on ir.Program")
+	}
+	if _, ok := reflect.TypeFor[Program]().FieldByName("Targets"); !ok {
+		t.Error("ir.Program must have a Targets field")
 	}
 }
