@@ -9,8 +9,8 @@ import (
 
 // The rider mana sources gorge defers (dirac/mana_rider.go): the depletion
 // lands and Gemstone Mine remove their last counter and sacrifice
-// themselves, Grove of the Burnwillows gives each opponent life. Lockstep
-// pins that the kernel offers no priority activation for them (gorge's
+// themselves, Grove of the Burnwillows gives each opponent life and Pristine
+// Talisman gives its controller life. Lockstep pins that the kernel offers no priority activation for them (gorge's
 // priority vocabulary lists only "activate"), while autopay and the prefix
 // search still tap them for the spells in the decks.
 var (
@@ -25,13 +25,13 @@ var (
 		{Name: "Sandstone Needle", Count: 4}, {Name: "Saprazzan Skerry", Count: 4},
 		{Name: "Mountain", Count: 2}, {Name: "Forest", Count: 2},
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Grizzly Bears", Count: 4},
-		{Name: "Giant Growth", Count: 4}, {Name: "Divination", Count: 2}, {Name: "Unsummon", Count: 2},
+		{Name: "Giant Growth", Count: 4}, {Name: "Divination", Count: 2}, {Name: "Pristine Talisman", Count: 2},
 	}
 	manaRiderMatchups = []fixtureDecks{{manaRiderDeckA, manaRiderDeckB}, {manaRiderDeckB, manaRiderDeckA}}
 	manaRiderWatch    = map[string]bool{
 		"Doom Blade": true, "Duress": true, "Black Knight": true, "Raise the Alarm": true,
 		"Pacifism": true, "Lightning Bolt": true, "Shock": true, "Grizzly Bears": true,
-		"Giant Growth": true, "Divination": true, "Unsummon": true,
+		"Giant Growth": true, "Divination": true, "Unsummon": true, "Pristine Talisman": true,
 	}
 )
 
