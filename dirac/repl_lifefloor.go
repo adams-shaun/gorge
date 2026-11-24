@@ -11,12 +11,13 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Only the damage sites call lifeFloorTake (IsDamage$ True): a life cost is
 // paid, never floored (CR 119.4). The floored amount is what loseLife
 // commits, so a ReplLifeLossDouble doubler in the same table doubles the
-// clamped loss -- gorge orders two LifeReduced replacements on the CR 616.1
-// ask (it parks the competition); the kernel takes the floors in its scan
-// order instead, which the corpus's floor pairs (a larger floor subsumes a
-// smaller one in either order) and every floor-beside-doubler pod the
-// focus pools avoid never ask. IsPresent$ is the generic
-// gate (Worship), read as Repl.Cond.
+// clamped loss -- gorge orders a floor beside a doubler on the CR 616.1 ask
+// (it parks the competition; the kernel takes them in its scan order, and
+// every floor-beside-doubler pod the focus pools avoid never ask). Floors
+// beside floors commute (the tighter cap wins in either order, a met cap
+// leaves the other inapplicable), so gorge never asks for them either
+// (lifeReplacementsCommute). IsPresent$ is the generic gate (Worship), read
+// as Repl.Cond.
 
 // DebugLifeFloorOff skips the floor (the mutation: the kernel takes the loss
 // gorge clamps).
