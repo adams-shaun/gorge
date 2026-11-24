@@ -1,0 +1,39 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Arcane Subtraction
+1	card	Cram Session
+2	card	Enthusiastic Study
+3	card	Environmental Sciences
+4	card	Expanded Anatomy
+5	card	Eyetwitch
+6	card	Field Trip
+7	card	First Day of Class
+8	card	Forest
+9	card	Gnarled Professor
+10	card	Grizzly Bears
+11	card	Guiding Voice
+12	card	Hunt for Specimens
+13	card	Igneous Inspiration
+14	card	Inkling Summoning
+15	card	Introduction to Annihilation
+16	card	Introduction to Prophecy
+17	card	Island
+18	card	Mascot Exhibition
+19	card	Mountain
+20	card	Necrotic Fumes
+21	card	Overgrown Arch
+22	card	Pest Summoning
+23	card	Plains
+24	card	Poet's Quill
+25	card	Pop Quiz
+26	card	Professor of Symbology
+27	card	Reduce to Memory
+28	card	Rise of Extus
+29	card	Sparring Regimen
+30	card	Spirit Summoning
+31	card	Study Break
+32	card	Swamp
+33	card	Thrilling Discovery
+34	token	bg_1_1_pest_lifegain
+35	token	rw_3_2_spirit
+36	token	ur_4_4_elemental
+37	token	wb_2_1_inkling_flying

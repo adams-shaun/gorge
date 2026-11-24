@@ -47,23 +47,33 @@ const raGenPileOpp uint8 = 157
 // ask (dirac/manifest/ask/raGenRepeatOptional)
 const raGenRepeatOptional uint8 = 158
 
+// ask (dirac/manifest/ask/raLearn)
+//
+// the learn election (CR 701.48a; act_learn.go): gorge effLearn's "learn" KChoose, nothing first, then each sideboard Lesson, then the rummage.
+const raLearn uint8 = 159
+
+// ask (dirac/manifest/ask/raLearnDiscard)
+//
+// the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
+const raLearnDiscard uint8 = 160
+
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 159
+const raPodClashOpp uint8 = 161
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 160
+const raRingBearer uint8 = 162
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 161
+const raRingLoot uint8 = 163
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 162
+const raTrigDemoOpp uint8 = 164
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -824,6 +834,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.encoreExt(k, in) // kw_encore.go
 	case kop.ExtExchangeLife:
 		return s.exchangeLifeExt(k, in) // act_exchangelife.go
+	case kop.ExtLearn:
+		return s.learnExt(k, in) // act_learn.go
 	case kop.ExtMeld:
 		return s.meldExt(k, in) // face_meld.go
 	case kop.ExtMonarchJail:
@@ -910,6 +922,12 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raGenRepeatOptional:
 		s.repeatOptionalOptions(k, d) // act_repeatoptional.go
 		return true
+	case raLearn:
+		s.learnOptions(k, d) // act_learn.go
+		return true
+	case raLearnDiscard:
+		s.learnDiscardOptions(k, d) // act_learn.go
+		return true
 	case raRingBearer:
 		s.ringAskOptions(k, d) // act_ring.go
 		return true
@@ -955,6 +973,12 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raGenRepeatOptional:
 		s.repeatOptionalAnswer(k, a) // act_repeatoptional.go
+		return true
+	case raLearn:
+		s.learnAnswer(k, a) // act_learn.go
+		return true
+	case raLearnDiscard:
+		s.learnDiscardAnswer(k, a) // act_learn.go
 		return true
 	case raRingBearer:
 		s.ringAskAnswer(k, a) // act_ring.go
