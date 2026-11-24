@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -17,6 +19,17 @@ import (
 // the exiles, then the sacrifices). Every path is guarded by prep.costObj.
 
 const costObjFlags = kop.CostForage | kop.CostExileGrave | kop.CostReturn | kop.CostBlight
+
+// CostBlightStats, when set (dirac/oracle/countercosts_lockstep_test.go),
+// counts the blight-cost payments: Spells for a spell's, Abilities for an
+// activated ability's.
+type CostBlightStats struct {
+	Spells    atomic.Int64
+	Abilities atomic.Int64
+}
+
+// DebugCostBlightStats, when set, counts the payments.
+var DebugCostBlightStats *CostBlightStats
 
 // pickForage is build.pickK while the forage either-or is posed (it has
 // pkExile's bit, so the answer routes to answerCostObj).
@@ -279,6 +292,13 @@ func (s *State) payBlightPicks(k *prep) {
 	pc := s.buildPickCost(k)
 	if pc == nil || pc.Flags&kop.CostBlight == 0 {
 		return
+	}
+	if DebugCostBlightStats != nil {
+		if s.bld().e.kind == seSpell {
+			DebugCostBlightStats.Spells.Add(1)
+		} else {
+			DebugCostBlightStats.Abilities.Add(1)
+		}
 	}
 	n := int(pc.N)
 	for i := 0; i < int(s.bld().pickN); i++ {
