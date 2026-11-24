@@ -704,6 +704,9 @@ func (s *State) queueAskRet(o Obj) {
 // or settles it without one: the card left exile (dropped), nothing it can
 // enchant (it stays in exile, CR 303.4g) or one host (it enters attached).
 func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
+	if a.kind == akRiot {
+		return s.retRiotAsk(d, a) // kw_riotret.go
+	}
 	o := Obj(a.ab)
 	x := &s.objs[o]
 	var buf [MaxOptions]TCode
@@ -881,6 +884,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 					s.linkRetStall(k, srcCtrl, o, l.obj)
 				}
 				continue
+			}
+			if s.queueRiotRet(k, srcCtrl, o, l.obj) {
+				continue // behind a queued Aura host ask (kw_riotret.go)
 			}
 			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.parkReturnCost(k, srcCtrl, o, l.obj, kind) {
 				continue // a cost's sacrifice outside a resolution: asked before priority (zone_untilleavescost.go)
@@ -1568,6 +1574,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		return
 	}
 	s.popAsk()
+	if ask.sl == NoSlot && ask.kind == akRiot {
+		s.enterRetRiot(k, Obj(ask.ab), a.Mode()) // kw_riotret.go
+		return
+	}
 	if ask.sl == NoSlot {
 		// the host answered (retAuraAsk); every returning Aura has its own
 		// queued ask, so the answer enters that Aura attached to the chosen
