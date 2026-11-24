@@ -967,6 +967,7 @@ func (s *State) newTurnGen() {
 	}
 	clear(s.g.prevCol[:])
 	clear(s.g.prevX[:])
+	clear(coldPrevRid.of(s))
 	clear(s.g.redir[:])
 	if s.g.ctrAdd.pl|s.g.ctrAdd.n != 0 {
 		s.ctrAddedReset() // ctr_addedthisturn.go

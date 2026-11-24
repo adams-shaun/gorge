@@ -7,26 +7,54 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // PreventionEffect$ True replacement with a body, damageReplacementPreventsWithRider).
 // Layout of the byte:
 //
-//	bits 0-1  pxRider: the rider kind (pxRidGain, pxRidTok); 0 is a bare prevention
-//	bit  2    pxEOC:     the record ends with the combat (Duration$
+//	bits 0-2  pxRider: the rider kind (pxRidGain, pxRidTok, pxRidCtr,
+//	             pxRidDelayCtr, pxRidDmg); 0 is a bare prevention
+//	bit  3    pxEOC:     the record ends with the combat (Duration$
 //	             UntilEndOfCombat: Suppressor Skyguard); repl_prevscope.go's
 //	             prevEndCombat drops it on the way out of the end-of-combat step
-//	bit  3    pxFrom:    reserved for a later rider
-//	bit  4    pxPlayers: reserved for a later rider
-//	bits 5-7  the rider's player (pxSeatShift)
+//	bit  4    pxFrom:    the shield is keyed on the damage source
+//	bit  5    pxPlayers: the shield matches a player recipient only
+//	bits 6-7  the rider's player (pxSeatShift)
 const (
-	pxRider   = 3
-	pxRidGain = 1 // the player gains life equal to the damage prevented
-	pxRidTok  = 2 // reserved: a token rider
-	pxEOC     = 1 << 2
-	pxFrom    = 1 << 3
-	pxPlayers = 1 << 4
+	pxRider       = 7
+	pxRidGain     = 1 // the player gains life equal to the damage prevented
+	pxRidTok      = 2 // a token rider: the record's body mints tokens
+	pxRidCtr      = 3 // the prevented amount as +1/+1 counters on the rider's target
+	pxRidDelayCtr = 4 // the prevented amount accumulated for the end step's P0P1 counters
+	pxRidDmg      = 5 // the prevented amount dealt as damage to the rider's target
+	pxEOC         = 1 << 3
+	pxFrom        = 1 << 4
+	pxPlayers     = 1 << 5
 
-	pxSeatShift = 5
+	pxSeatShift = 6
 )
 
-// the rider's player lives in three bits
+// the rider's player lives in two bits
 const _ = uint(8 - MaxSeats)
+
+// prevRidRec is the per-prevCol-record rider state the hot struct has no
+// room for: the rider's stored target code (a ParentTarget shield's
+// retribution target) and the delayed-counter accumulation, plus the delayed
+// rider's IsPresent$ Creature.IsRemembered gate (Scars of the Veteran). The
+// gate is a flag of its own so the target code keeps naming the real target,
+// or NoTarget for the shield's own recipient. A cold region keyed by the
+// record index; clear at the turn change with the records.
+type prevRidRec struct {
+	t    TCode
+	n    uint8
+	gate bool
+}
+
+var coldPrevRid = newCold[prevRidRec]("prevrid", func(g *genPrep) int { return prevColN })
+
+// prevRidAt is record i's rider state, nil when the table has no region.
+func (s *State) prevRidAt(i int) *prevRidRec {
+	r := coldPrevRid.of(s)
+	if i < 0 || i >= len(r) {
+		return nil
+	}
+	return &r[i]
+}
 
 // StallPrevRider is a rider prevention (gain the prevented life) on an event
 // beside anything the kernel does not model: damage that can't be prevented
@@ -85,7 +113,7 @@ func (s *State) prevRiderMatch(k *prep, sl Slot, c CardID, t prevTgt, combat boo
 			}
 			continue
 		}
-		if s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
+		if s.g.prevCol[i].sc&prevNextSc == 0 && s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
 			return true
 		}
 	}
@@ -175,5 +203,32 @@ func (s *State) prevRiderApply(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardI
 	}
 	if x := s.g.prevX[at]; x&pxRider == pxRidGain {
 		s.gainLife(k, x>>pxSeatShift, n)
+	}
+}
+
+// prevEndStepCounters fires the delayed-counter rider of the Sacred Boon and
+// Scars of the Veteran shields at the beginning of the next end step: the
+// amount accumulated across the shield's applications goes on its target as
+// P0P1 counters (gorge's Effect rider, cards.PreventionRiderDelayedCounterEffect).
+// A target no longer on the battlefield takes none.
+func (s *State) prevEndStepCounters(k *prep) {
+	for i := range s.g.prevCol {
+		if s.g.prevX[i]&pxRider != pxRidDelayCtr {
+			continue
+		}
+		r := s.prevRidAt(i)
+		if r == nil || r.n == 0 {
+			continue
+		}
+		n := int(r.n)
+		r.n = 0
+		if r.gate {
+			if sl, ok := s.prevRiderSlot(i); !ok || !s.isCreature(k, sl) {
+				continue
+			}
+		}
+		if sl, ok := s.prevRiderSlot(i); ok {
+			s.putDividedShare(k, sl, kop.CtrP0P1, n)
+		}
 	}
 }
