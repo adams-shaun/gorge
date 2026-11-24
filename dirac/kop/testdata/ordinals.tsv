@@ -1205,6 +1205,7 @@ RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
 RepeatMultikicker	uint8	1
 RepeatPlain	untyped int	1
+RepeatRemembered	untyped int	2
 RepeatReplicate	uint8	3
 RepeatSquad	uint8	2
 ReplAddCountersOn	ReplKind	21

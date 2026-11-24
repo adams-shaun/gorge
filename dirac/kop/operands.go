@@ -715,6 +715,16 @@ const (
 // with zoneTable false): the loop opens no zone batch and no entry hold.
 const RepeatPlain = 1
 
+// RepeatRemembered is OpRepeatEach's C bit for the remembered-set subject
+// (RepeatEach DefinedCards$ DirectRemembered, UseImprinted$ True: Rampage of
+// the Clans, Curse of the Swine, Will, Scholar of Frost's ultimate): the
+// subjects are the resolution's remembered objects, in remembered order, not
+// the battlefield's. RefEach, as a player ref in the body, is the bound
+// card's controller (its RememberLKI$ capture once it left the battlefield;
+// gorge's ImprintedController), so the body's Token mints for it. Never with
+// RepeatPlain (the plain frame walks the battlefield).
+const RepeatRemembered = 2
+
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
