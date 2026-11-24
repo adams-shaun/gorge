@@ -55,6 +55,7 @@ type cardSmall struct {
 	cdaAb    int16
 	manaVar  int16 // the varPC index of the card's dynamic-amount view, -1 none
 	splitAb  int8  // its Condition-split mana ability (mana_condsplit.go), -1 none
+	askAb    int8  // its colour-asking mana ability (mana_askcolour.go), -1 none
 }
 
 // has reports whether the card carries flag f.
@@ -92,7 +93,7 @@ func (g *genPrep) smallFor(c CardID) *cardSmall {
 		panic("kernel: genPrep small values set out of card order")
 	}
 	g.smallRecs = append(g.smallRecs, cardSmall{
-		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, gapOther: -1, cdaAb: -1, manaVar: -1, splitAb: -1,
+		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, gapOther: -1, cdaAb: -1, manaVar: -1, splitAb: -1, askAb: -1,
 	})
 	return &g.smallRecs[len(g.smallRecs)-1]
 }

@@ -431,6 +431,12 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 		if !s.planDeferred(k, p, sl) {
 			continue
 		}
+		if s.askColDeferred(k, sl) {
+			if s.askColUsable(k, sl) {
+				m = m.with(sl) // a colour-asking source (mana_askcolour.go): the prefix search poses its ask
+			}
+			continue
+		}
 		if s.splitDeferred(k, sl) {
 			if s.splitUsable(k, sl) {
 				m = m.with(sl) // a Condition-split source (mana_condsplit.go): its relaxed unit and answers are the live gate's
@@ -652,6 +658,10 @@ func (s *State) restrCensusTapsGap(k *prep, p uint8, sl Slot) bool {
 // is (the play pays it from the floating batches). A source the extra cannot
 // be priced on stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
+	if s.askColDeferred(k, sl) {
+		s.askColUnits(k, sl, av) // mana_askcolour.go
+		return
+	}
 	if s.restrCensusTapsGapShape(k, sl) {
 		// One tap is one alternative of either ability (CR 605.1a): the
 		// census unit beside the restricted colours, gorge's one relaxed
@@ -754,6 +764,9 @@ func (s *State) tapsDeferGapOwn(k *prep, sl Slot) bool {
 // the plain first ability as answer 0 when the rider is a later ability
 // (Grove of the Burnwillows; riderPlainFirst).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
+	if s.askColDeferred(k, sl) {
+		return s.askColDeferAnswers(k, sl) // mana_askcolour.go
+	}
 	if s.restrCensusTapsGapShape(k, sl) {
 		// the census float first (answer 0, the plain first ability's place,
 		// riderPlainFirst), then one answer per colour of the restricted
@@ -861,6 +874,10 @@ func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) 
 // watcher's trigger for flushPrefixTriggers to place before the play).
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int, play Action) {
 	s.fillTapAnyCol(k, p, sl, play)
+	if s.askColDeferred(k, sl) {
+		s.askColDeferFloat(k, p, sl, c) // mana_askcolour.go
+		return
+	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		s.manaRiderFloat(k, p, sl, a, c)
 		return

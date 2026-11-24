@@ -73,7 +73,7 @@ func (s *State) riderDeferred(k *prep, sl Slot) bool {
 // rider, a Condition-split source (mana_condsplit.go), or a live Defer-class
 // Taps watcher (tapsDeferred).
 func (s *State) planDeferred(k *prep, p uint8, sl Slot) bool {
-	return s.riderDeferred(k, sl) || s.splitDeferred(k, sl) || s.tapsDeferred(k, p, sl)
+	return s.riderDeferred(k, sl) || s.splitDeferred(k, sl) || s.askColDeferred(k, sl) || s.tapsDeferred(k, p, sl)
 }
 
 // deferLive reports whether some source may be planner-deferred now: the
