@@ -938,6 +938,11 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	}
 	ob := &s.objs[o]
 	c := ob.card
+	sl := NoSlot
+	if ob.zone == kop.ZoneBattlefield {
+		sl = ob.slot
+		c = s.cardAt(sl) // a copy's abilities are the copied card's (CR 707.2), not the printed card's
+	}
 	ai := int(a.Mode())
 	if int(c) >= len(k.t.Cards) || ai >= len(k.t.Cards[c].Abilities) {
 		return true
@@ -945,10 +950,6 @@ func (s *State) plainListedPays(k *prep, a Action, p uint8, d *Decision) bool {
 	ab := &k.t.Cards[c].Abilities[ai]
 	if !plainPricedCost(ab) {
 		return true
-	}
-	sl := NoSlot
-	if ob.zone == kop.ZoneBattlefield {
-		sl = ob.slot
 	}
 	cost := s.abPlannedCost(k, ab, sl, p)
 	var pk planner
