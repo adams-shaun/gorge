@@ -162,6 +162,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// fires from the cast spell itself
 			v = "Card.Self"
 		}
+		v, scopeErr := scopeBareCastFromYourHand(t.Mode, k, tp, v)
 		if k == "ValidCard" && (t.Mode == "ChangesZone" || t.Mode == "SpellCast") && !strings.Contains(v, ",") {
 			// "if you cast it from your hand" / "a spell from your hand"
 			// (Soulhunter Rakshasa, Jodah): read on the cast's stack entry
@@ -188,7 +189,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				v, tr.CastHand = strings.Join(alts, ","), true
 			}
 		}
-		return lc.filter(v)
+		return lc.filterUnless(scopeErr, v)
 	}
 	giftSelf := false
 	switch t.Mode {
@@ -1974,4 +1975,34 @@ func (lc *lowerCtx) trigOncePerTurn(tp *params, tr *lTrigger) error {
 		tr.OncePer = true
 	}
 	return nil
+}
+
+// scopeBareCastFromYourHand reads a SpellCast ValidCard$'s bare
+// wasCastFromYourHand with no ValidActivatingPlayer$ as "your hand" of the
+// trigger's controller (CR 109.5; gorge castFromHandAnyAdmitsWindow, Forge
+// CardProperty), not any caster's: Baron Helmut Zemo. A positive word becomes
+// the ByYou read; a negated one has no carrier and refuses by name.
+func scopeBareCastFromYourHand(mode, k string, tp *params, v string) (string, error) {
+	if k != "ValidCard" || mode != "SpellCast" || !strings.Contains(v, "wasCastFromYourHand") {
+		return v, nil
+	}
+	if _, scoped := tp.get("ValidActivatingPlayer"); scoped {
+		return v, nil
+	}
+	if strings.Contains(v, "!wasCastFromYourHand") {
+		return v, refuse("SpellCast !wasCastFromYourHand without ValidActivatingPlayer$")
+	}
+	if !strings.Contains(v, "wasCastFromYourHandByYou") {
+		v = strings.ReplaceAll(v, "wasCastFromYourHand", "wasCastFromYourHandByYou")
+	}
+	return v, nil
+}
+
+// filterUnless is lc.filter(v), or err when an earlier read of the same
+// parameter already refused (scopeBareCastFromYourHand).
+func (lc *lowerCtx) filterUnless(err error, v string) (*lFilter, error) {
+	if err != nil {
+		return nil, err
+	}
+	return lc.filter(v)
 }
