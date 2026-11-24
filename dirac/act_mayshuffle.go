@@ -118,7 +118,9 @@ func (s *State) applyAskOblige(k *prep, a Action) bool {
 // controller; RefNone when A.N=0) may (A.N=1, gorge objectPathMayShuffle) or
 // must (A.N=0) put the legal chosen cards of target slot C on top of their
 // owners' libraries in pick order, then shuffle each distinct owner's
-// library once. A slot with no chosen card does nothing and asks nothing.
+// library once. With no chosen card a mandatory move shuffles the library W
+// names independently of the cards (CR 701.24d; gorge objectPathShuffleOwners
+// parent link / "your library"), and the may election does nothing.
 func (s *State) mayShuffleMove(k *prep, in *kop.Instr) bool {
 	e := &s.res.e
 	slot := uint8(in.C)
@@ -126,6 +128,11 @@ func (s *State) mayShuffleMove(k *prep, in *kop.Instr) bool {
 	var legal [maxXTgt + 1]bool
 	n := s.shuffleRefs(k, e, slot, &refs, &legal)
 	if n == 0 {
+		if s.value(k, in.A) == 0 && in.W != kop.RefNone {
+			if p := s.playerRef(k, in.W); p != 255 {
+				s.shuffleLib(p)
+			}
+		}
 		return true
 	}
 	if s.value(k, in.A) != 0 {

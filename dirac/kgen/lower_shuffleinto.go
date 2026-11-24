@@ -2,6 +2,8 @@ package kgen
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // shuffleInto lowers a ChangeZone of one known object into its owner's
@@ -18,7 +20,9 @@ import (
 // may decline (then nothing moves). The slot may name any graveyard card
 // (ValidTgts$ Card: each chosen card goes to its own owner's library) or
 // restrict the candidates to one owner with TargetsWithDefinedController$
-// ParentTarget or a filter whose every clause is YouOwn/YouCtrl.
+// ParentTarget or a filter whose every clause is YouOwn/YouCtrl. The emitted
+// instruction's W names that independently named library, so an empty set
+// still shuffles it (CR 701.24d); the owner-defined Card filter has no W.
 func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	if origin == zStack {
 		return lc.spellToLibrary(ps)
@@ -51,8 +55,10 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	if err != nil {
 		return err
 	}
+	named := lRef{}
 	if obj.Kind == rTarget {
 		t := &lc.ab.Targets[obj.N]
+		named = shuffleNamedLibrary(t)
 		if !(t.Min.isConst() && t.Min.N == 1 && t.Max.isConst() && t.Max.N == 1) {
 			if bottom {
 				return refuse("shuffled move of several targets with LibraryPosition$")
@@ -87,7 +93,7 @@ func (lc *lowerCtx) shuffleInto(ps *params, origin int) error {
 	case bottom:
 		cs = "BottomShuffle"
 	}
-	lc.emit(lInstr{Op: "ToLibrary", Obj: obj, CS: cs + "|from=" + zoneLabel[origin]})
+	lc.emit(lInstr{Op: "ToLibrary", Obj: obj, W: named, CS: cs + "|from=" + zoneLabel[origin]})
 	return nil
 }
 
@@ -113,12 +119,52 @@ func (lc *lowerCtx) shuffleIntoMulti(ps *params, origin int, obj lRef, t *lTarge
 	// The may election is the effect controller's (gorge asks c.Controller),
 	// not the parent player target's; Obj carries that asker. A mandatory
 	// shuffle asks nobody, so it carries no player operand.
-	var asker lRef
+	// W is the mandatory form's named library (CR 701.24d); the may election
+	// does nothing for an empty set, so it carries none and its LIR is unchanged.
+	var asker, named lRef
 	if may != 0 {
 		asker = lRef{Kind: rYou}
+	} else {
+		named = shuffleNamedLibrary(t)
 	}
-	lc.emit(lInstr{Op: "MayShuffleMove", Obj: asker, C: obj.N, A: cst(may)})
+	lc.emit(lInstr{Op: "MayShuffleMove", Obj: asker, W: named, C: obj.N, A: cst(may)})
 	return nil
+}
+
+// shuffleNamedLibrary names the library a shuffled ChangeZone names
+// independently of the chosen cards (CR 701.24d: it is shuffled even when
+// the set is empty). TargetsWithDefinedController$ ParentTarget names the
+// parent player's library; a filter whose every alternative is YouCtrl or
+// YouOwn names the controller's. An owner-defined filter (Turn the Earth's
+// Card) names no library when it chose no cards, so its Ref is none.
+func shuffleNamedLibrary(t *lTarget) lRef {
+	switch {
+	case t == nil:
+		return lRef{}
+	case t.ParentPlus1 == int(kop.ParentTrigPl):
+		return lRef{Kind: rTriggeredPlayer}
+	case t.ParentPlus1 != 0:
+		return lRef{Kind: rTarget, N: t.ParentPlus1 - 1}
+	case namesYourLibrary(t.F):
+		return lRef{Kind: rYou}
+	}
+	return lRef{}
+}
+
+// namesYourLibrary reports whether every alternative of f scopes its objects
+// to the resolving controller through a YouCtrl or YouOwn qualifier. Any
+// unscoped alternative answers false, so the owner-defined "those cards"
+// filters never gain a controller library.
+func namesYourLibrary(f *lFilter) bool {
+	if f == nil || len(f.Clauses) == 0 || f.Players != 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl != whoYou && c.Owner != whoYou {
+			return false
+		}
+	}
+	return true
 }
 
 // spellToLibrary lowers the resolving spell's own shuffle into its owner's
