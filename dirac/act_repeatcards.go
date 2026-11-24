@@ -37,7 +37,7 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	r := &s.res
 	pc := int(r.pc)
 	if n > 0 && body > 0 {
-		if _, tgt := tgtSlot(in.Obj); in.C&kop.RepeatPlain != 0 && !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
+		if _, tgt := tgtSlot(in.Obj); in.C&kop.RepeatPlain != 0 && in.C&kop.RepeatRemembered == 0 && !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
 			s.repeatEachCardsFrame(k, in, &list, n, pc, body) // the caller's step moves pc onto the body
 			return
 		}
@@ -117,6 +117,18 @@ func (s *State) eachCardAdvance() bool {
 func (s *State) eachCardList(k *prep, in *kop.Instr, list *[MaxPerm]Obj) int {
 	e := &s.res.e
 	n := 0
+	if in.C&kop.RepeatRemembered != 0 {
+		// the remembered set, in remembered order (gorge repeatedCards over
+		// hostRemembered): a card that has left the battlefield is a subject
+		// too, the loop binds it as RefEach (act_repeatremembered.go)
+		for _, o := range s.g.rem[:s.g.nrem] {
+			if o != NoObj && n < len(list) {
+				list[n] = o
+				n++
+			}
+		}
+		return n
+	}
 	if sl, ok := tgtSlot(in.Obj); ok {
 		var codes [maxXTgt + 1]TCode
 		m := s.divTargets(k, e, uint8(sl), &codes)
