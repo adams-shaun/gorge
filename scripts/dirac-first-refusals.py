@@ -32,6 +32,7 @@ card, which keeps a hand-written reason.
 import argparse
 import collections
 import glob
+import hashlib
 import json
 import os
 import re
@@ -41,6 +42,9 @@ import tempfile
 
 BASICS = {"Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"}
 EVIDENCE_MIN_PLAYS = 3  # oracle.EvidenceMinPlays
+EVIDENCE_SCRIPTED_MIN_GAMES = 3  # oracle.EvidenceScriptedMinGames
+SCRIPTED_MIN_SEEDS = 2  # design section 5: over at least two distinct seeds
+SCRIPTED_PREFIX = "sc-"  # a scripted run's name: sc-<pool>-<seed>
 DECK_POOLS = ("fdn", "blb", "pauper")
 DECK_CLEARED_PLAYS = 50
 REFUSED_DIR = "dirac/support/refused"
@@ -48,6 +52,10 @@ EVIDENCE_DIR = "dirac/support/evidence"
 EVIDENCE_GAMES = "dirac/support/evidence-games.tsv"
 KEYS_DIR = "dirac/support/evidence-keys"  # one <pool>.tsv sidecar per evidence list, and LEGACY.txt
 KEYS_HEADER = "card\tlir16\tplays\tkeys\tunused\tbranches\tmissing_branches"
+# A scripted list's sidecar adds its scenario's sha and the organic plays that met
+# the plays floor (design section 5). The other columns describe the scripted
+# runs' keys; `plays` stays 0, since a scripted game never credits one (D10).
+KEYS_SCRIPTED_HEADER = KEYS_HEADER + "\tscenario\torganic_plays"
 EVIDENCE_FORMS = ("autopay.m0", "autopay.m1", "full.m0", "full.m1")  # the four runs a pool owes
 VERDICT = re.compile(
     r"^(\S+): (\d+) games \((\d+) refused-card, (\d+) refused-pair, (\d+) error\), (\d+) clean, "
@@ -64,18 +72,55 @@ def path_pool(path):
 
 
 def run_files(out, suffix):
-    return sorted(glob.glob(os.path.join(out, f"*.m[01].{suffix}")))
+    files = glob.glob(os.path.join(out, f"*.m[01].{suffix}"))
+    # A scripted run (kfuzz -scenario) writes one sc-<name>.<kind> file, with no
+    # surface or mulligans column in its name: the run is one scenario.
+    if suffix in ("coverage", "branches", "evidence", "verdict", "rc", "out"):
+        files += glob.glob(os.path.join(out, f"{SCRIPTED_PREFIX}*.{suffix}"))
+    return sorted(set(files))
+
+
+SCRIPTED_FORM = re.compile(r"\.(?:autopay|full)\.m[01]$")
+SCRIPTED_RUN = re.compile(r"^(.*?)[.-](\d+)$")
 
 
 def run_parts(path):
-    pool, surface, m = os.path.basename(path).split(".")[:3]
+    base = os.path.basename(path)
+    stem = base.rsplit(".", 1)[0]
+    if stem.startswith(SCRIPTED_PREFIX) and not SCRIPTED_FORM.search(stem):
+        return stem, "scripted", 0
+    pool, surface, m = base.split(".")[:3]
     return pool, surface, int(m[1:])
+
+
+def is_scripted(pool):
+    return pool.startswith(SCRIPTED_PREFIX)
+
+
+def scripted_group_seed(run):
+    """A scripted run's pool and seed: `sc-<pool>-<NNN>` (also accepts the
+    `<card-slug>.<n>` spelling kfuzz derives from a scenario file). A name with
+    no trailing number is its own group, at seed 0."""
+    m = SCRIPTED_RUN.match(run)
+    if not m:
+        return run, 0
+    return m.group(1), int(m.group(2))
+
+
+def report_files(out):
+    """One report per run: its .out when a pool run wrote one, else its .verdict
+    (a scripted run's report, kfuzz -scenario)."""
+    paths = {}
+    for suffix in ("out", "verdict"):
+        for path in run_files(out, suffix):
+            paths.setdefault(run_parts(path), path)
+    return [paths[k] for k in sorted(paths)]
 
 
 def bad_games(out):
     """Every bad game of the runs in out, as dicts."""
     games = []
-    for path in run_files(out, "out"):
+    for path in report_files(out):
         pool, surface, m = run_parts(path)
         with open(path) as f:
             for line in f:
@@ -271,10 +316,13 @@ def run_finished(out, pool, form):
 
 
 def run_rcs(out):
-    """pool -> form -> the run's rc, as a string."""
+    """pool -> form -> the run's rc, as a string. A scripted run's verdict is its
+    report, not a pool run's rc: it is judged by the scripted rule instead."""
     rcs = collections.defaultdict(dict)
     for path in run_files(out, "rc"):
         pool, surface, m = run_parts(path)
+        if is_scripted(pool):
+            continue
         with open(path) as f:
             rcs[pool][f"{surface}.m{m}"] = f.read().strip()
     return rcs
@@ -310,7 +358,7 @@ def merged_coverage(out, only=None):
     cards = {}
     for path in run_files(out, "coverage"):
         pool = run_parts(path)[0]
-        if pool in dirty or (only is not None and pool not in only):
+        if is_scripted(pool) or pool in dirty or (only is not None and pool not in only):
             continue
         with open(path) as f:
             next(f)
@@ -568,6 +616,209 @@ def without_refused(rows, refused):
     return [r for r in rows if row_name(r) not in refused]
 
 
+def scripted_groups(out):
+    """The scripted pools out has a coverage file of, in name order."""
+    return sorted({scripted_group_seed(run_parts(p)[0])[0]
+                   for p in run_files(out, "coverage") if is_scripted(run_parts(p)[0])})
+
+
+def scripted_coverage(out):
+    """group -> card -> the group's scripted runs, merged for the evidence rule:
+    the card's keys_total, the keys no run used (intersection), per run its unused
+    keys and key total, its seed, and the branches the runs took.
+
+    A scripted coverage file holds clean games only (`Coverage.MergeClean`), and
+    its `plays` are 0 by construction (D10): this rule reads keys, never plays."""
+    groups = {}
+    for path in run_files(out, "coverage"):
+        run = run_parts(path)[0]
+        if not is_scripted(run):
+            continue
+        group, seed = scripted_group_seed(run)
+        with open(path) as f:
+            next(f)
+            for line in f:
+                card, _, _, _, total, unused = line.rstrip("\n").split("\t")
+                c = groups.setdefault(group, {}).setdefault(card, {
+                    "total": 0, "unused": None, "runs": {}, "run_unused": {}, "run_total": {},
+                    "uses": collections.Counter(), "owed": collections.Counter()})
+                c["total"] = max(c["total"], int(total))
+                u = set(filter(None, unused.split(",")))
+                c["runs"][run] = seed
+                c["run_unused"][run] = u
+                c["run_total"][run] = int(total)
+                c["unused"] = u if c["unused"] is None else c["unused"] & u
+        branches = path[:-len("coverage")] + "branches"
+        if not os.path.exists(branches):
+            continue
+        with open(branches) as f:
+            next(f)
+            for line in f:
+                card, key, uses, owed = line.rstrip("\n").split("\t")
+                c = groups.get(group, {}).get(card)
+                if c:
+                    c["uses"][key] += int(uses)
+                    c["owed"][key] += int(owed)
+    return groups
+
+
+def scripted_held(out):
+    """The cards a scripted run's bad game implicates (design section 5(c)).
+
+    A bad-game line's last field is the game's whole deck table, which the
+    organic hold rule uses to answer a failed run; here the column is the
+    divergence's implicated cards, or, when it names none (an unmodelled
+    stall), the sources of its latest actions — the same fallback blame uses."""
+    held = set()
+    for g in bad_games(out):
+        if is_scripted(g["pool"]):
+            held |= set(g["impl"] or g["recent"])
+    return held
+
+
+def frac_total(s):
+    _, _, d = s.partition("/")
+    try:
+        return int(d)
+    except ValueError:
+        return 0
+
+
+def organic_sidecars(top):
+    """card -> (plays, unused keys, keys_total) from its existing evidence-keys row.
+
+    The design's rule (a) reads an existing row's organic plays; (b) reads the
+    keys the row records as never used. There is one row per card (the first
+    sidecar in name order wins, as dirac/kgen/coverage_ratchet.go reads them)."""
+    plays, unused, total = {}, {}, {}
+    for path in sorted(glob.glob(os.path.join(top, KEYS_DIR, "*.tsv"))):
+        pool = os.path.basename(path)[:-len(".tsv")]
+        if is_scripted(pool):
+            continue
+        for card, line in sidecar_rows(top, pool).items():
+            if card in plays:
+                continue
+            col = line.split("\t")
+            if len(col) < 6:
+                continue
+            try:
+                plays[card] = int(col[2])
+            except ValueError:
+                plays[card] = 0
+            unused[card] = {k for k in col[4].split(",") if k}
+            total[card] = frac_total(col[3])
+    return plays, unused, total
+
+
+def scripted_key_enough(c, key, total):
+    """The key was used in EVIDENCE_SCRIPTED_MIN_GAMES clean scripted games over
+    at least SCRIPTED_MIN_SEEDS distinct seeds. A run is one game: the design
+    names them sc-<pool>-<NNN>."""
+    games, seeds = 0, set()
+    for run, seed in c["runs"].items():
+        if key not in c["run_unused"][run] and c["run_total"][run] >= total:
+            games += 1
+            seeds.add(seed)
+    return games >= EVIDENCE_SCRIPTED_MIN_GAMES and len(seeds) >= SCRIPTED_MIN_SEEDS
+
+
+def scripted_scenario_sha(out, group, cards):
+    """The scenario file's sha1, when it sits beside the runs (or in scenarios/)."""
+    runs = sorted({run for c in cards.values() for run in c["runs"]})
+    stems = []
+    for run in runs:
+        stems.append(run)
+        if run.startswith(SCRIPTED_PREFIX):
+            stems.append(run[len(SCRIPTED_PREFIX):])
+    stems.append(group)
+    if group.startswith(SCRIPTED_PREFIX):
+        stems.append(group[len(SCRIPTED_PREFIX):])
+    for stem in stems:
+        for path in (os.path.join(out, stem + ".json"), os.path.join(out, "scenarios", stem + ".json")):
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    return hashlib.sha1(f.read()).hexdigest()
+    return ""
+
+
+def scripted_evidence(top, out, groups, refused):
+    """The scripted lists and sidecar data for groups: lists, covs, meta.
+
+    A card is credited when (a) its organic plays (an existing evidence-keys row
+    or this cycle's organic runs) reach EVIDENCE_MIN_PLAYS; (b) every key those
+    organic games never used was used in EVIDENCE_SCRIPTED_MIN_GAMES clean
+    scripted games over at least two seeds; and (c) no bad game in any of its
+    scenarios implicates it. A card is never removed: only a refusal removes it."""
+    organic_plays, organic_unused, organic_total = organic_sidecars(top)
+    cycle = merged_coverage(out)  # organic only: merged_coverage skips sc- runs
+    coverage = scripted_coverage(out)
+    held = scripted_held(out)
+    reported = {run_parts(p)[0] for p in report_files(out)}
+    lists, covs, meta = {}, {}, {}
+    for group in sorted(groups):
+        cards = coverage.get(group)
+        if not cards:
+            refuse(f"{group} has no scripted coverage")
+        if not any(run in reported for c in cards.values() for run in c["runs"]):
+            refuse(f"{group} has no verdict")
+        credited = []
+        plays_of = {}
+        for card, c in sorted(cards.items()):
+            if card in refused or card in held:
+                continue
+            plays = organic_plays.get(card, 0)
+            unused = set(organic_unused.get(card, ()))
+            total = max(c["total"], organic_total.get(card, 0))
+            if card in cycle:
+                cyc_plays, cyc_unused, _, cyc_total, *_ = cycle[card]
+                plays = max(plays, cyc_plays)
+                total = max(total, cyc_total)
+                # A key this cycle's organic games used is no longer missing. With
+                # no sidecar row, the cycle's own unused set is the missing set.
+                unused = unused & cyc_unused if card in organic_unused else set(cyc_unused)
+            plays_of[card] = plays
+            if plays < EVIDENCE_MIN_PLAYS:
+                continue
+            if any(not scripted_key_enough(c, key, total) for key in unused):
+                continue
+            credited.append(card)
+        names = sorted((set(existing_list(top, group)) | set(credited)) - refused)
+        lists[group] = names
+        covs[group] = {card: cards[card] for card in names if card in cards}
+        meta[group] = (scripted_scenario_sha(out, group, cards),
+                       {card: plays_of.get(card, organic_plays.get(card, 0)) for card in names})
+    return lists, covs, meta
+
+
+def scripted_sidecars(top, lists, before, covs, meta):
+    """The sidecar files of the scripted lists: the seven organic columns over the
+    scripted runs' keys (plays 0, D10), then the scenario sha and organic plays."""
+    files = {}
+    for pool, names in lists.items():
+        if not is_scripted(pool):
+            continue
+        sha, plays = meta.get(pool, ("", {}))
+        have = covs.get(pool, {})
+        lir = lir_keys(top, {c for c in names if c in have})
+        old = sidecar_rows(top, pool)
+        rows = {}
+        for card in names:
+            c = have.get(card)
+            if card in old and card in before.get(pool, ()):
+                row = old[card]
+                if len(row.split("\t")) == 7:
+                    row = "\t".join([row, sha, str(plays.get(card, 0))])
+                rows[card] = row
+                continue
+            if c is None:
+                cov = (0, set(), None, 0, collections.Counter(), collections.Counter())
+            else:
+                cov = (0, c["unused"] or set(), None, c["total"], c["uses"], c["owed"])
+            rows[card] = "\t".join([sidecar_row(card, lir.get(card, ""), cov), sha, str(plays.get(card, 0))])
+        files[pool] = [KEYS_SCRIPTED_HEADER] + [rows[c] for c in sorted(rows)]
+    return files
+
+
 def write_evidence(top, out, pools=None):
     """A list per pool, of the cards it played that meet the floor over the whole corpus's clean games.
 
@@ -576,14 +827,17 @@ def write_evidence(top, out, pools=None):
     expected run of every named pool must have passed first; a synthetic pool's run may instead have
     finished with bad games only, and then no card those games hold is credited. A pod pool (name
     pod-*) writes no coverage files: its run's .evidence rows are the list's source, seats column and
-    all. A card is never removed: only a refusal does that. Everything else is left byte for byte as
-    it was.
+    all. A scripted pool (name sc-*, one per scenario) credits key uses only, under the section-5
+    rule: its list and sidecar are written from scripted_evidence, which keeps a card the tree
+    already lists and takes one out only when a refusal names it. A card is never removed: only a
+    refusal does that. Everything else is left byte for byte as it was.
 
     Either way the write refuses, changing nothing, when a pool that passed would lose a card no
     refusal names: the dirac gate refuses that landing, so the round must fail here, loudly."""
     refused = refused_names(top)
     lists = collections.defaultdict(list)
     covs = {}
+    meta = {}
     remove = []
     if pools is None:
         cov = merged_coverage(out)
@@ -603,17 +857,28 @@ def write_evidence(top, out, pools=None):
                 rows = merge_rows(existing_list(top, pool), evidence_rows(out, pool))
                 lists[pool] = sorted(without_refused(rows, refused))
                 covs[pool] = {}
-        no_unrefused_drops(top, lists, passed, refused)
+        # A scripted run writes no evidence rows (D10), so its list comes from the key rule. A
+        # settle out dir has no sc- files: leave the landed scripted lists alone then.
+        sc_groups = scripted_groups(out)
+        sc_lists, sc_covs, sc_meta = scripted_evidence(top, out, sc_groups, refused)
+        lists.update(sc_lists)
+        covs.update(sc_covs)
+        meta.update(sc_meta)
+        no_unrefused_drops(top, lists, passed | set(sc_groups), refused)
         remove = [path for path in glob.glob(os.path.join(top, EVIDENCE_DIR, "*.txt"))
-                  if not path_pool(path).startswith("pod-")]
+                  if not path_pool(path).startswith("pod-") and not is_scripted(path_pool(path))]
         rows, pods = games_per_run(out)
-        lines = [game_row(pool, games, pods.get(pool, 0)) for pool, games in sorted(rows.items())]
+        # Rewrite the runs' own rows in place and keep the rest: a settle out dir
+        # holds no scripted (or pod) runs, and their rows are not its to drop.
+        lines = tsv_rows(top, {pool: (games, pods.get(pool, 0)) for pool, games in rows.items()})
     else:
         pools = list(pools)
+        organic = [pool for pool in pools if not is_scripted(pool)]
+        scripted = [pool for pool in pools if is_scripted(pool)]
         before = {pool: set(existing_list(top, pool)) for pool in pools}
-        require_pool_runs(out, pools)
+        require_pool_runs(out, organic)
         games, pods = games_per_run(out)
-        for pool in pools:
+        for pool in organic:
             if pool not in games:
                 refuse(f"{pool} has no verdict")
             covs[pool] = merged_coverage(out, {pool})
@@ -625,9 +890,15 @@ def write_evidence(top, out, pools=None):
                 if not rows:
                     refuse(f"{pool} has no evidence rows")
             lists[pool] = sorted(without_refused(rows, refused))
+        sc_lists, sc_covs, sc_meta = scripted_evidence(top, out, scripted, refused)
+        lists.update(sc_lists)
+        covs.update(sc_covs)
+        meta.update(sc_meta)
         no_unrefused_drops(top, lists, pools, refused)
-        lines = tsv_rows(top, {p: (games[p], pods.get(p, 0)) for p in pools})
-    side = sidecars(top, lists, before, covs)
+        lines = tsv_rows(top, {p: (games.get(p, 0), pods.get(p, 0)) for p in pools})
+    side = sidecars(top, {p: v for p, v in lists.items() if not is_scripted(p)},
+                    before, {p: v for p, v in covs.items() if not is_scripted(p)})
+    side.update(scripted_sidecars(top, lists, before, covs, meta))
     os.makedirs(os.path.join(top, KEYS_DIR), exist_ok=True)
     for path in remove:
         os.remove(path)
@@ -674,12 +945,13 @@ def games_per_run(out):
     """pool -> (games, pods): the games one of its runs started, and, when the run is a pod
     run (its name begins pod-, which scripts/dirac-evidence.sh's pod case deals), the clean
     pod games among them: every clean game of a pod run is one. Each form of a pool turns
-    away the same pairs. A run file contributes only its own verdict: the file's stem names
-    the pool, and the verdict inside it must name that pool's kernel."""
+    away the same pairs. A scripted run is one scenario at one seed (sc-<pool>-<NNN>): its
+    games add up under that pool. A run file contributes only its own verdict: the file's
+    stem names the pool, and the verdict inside it must name that pool's kernel."""
     games, pods = {}, {}
-    for path in run_files(out, "out"):
-        pool = run_parts(path)[0]
-        kernel = run_kernel(pool)
+    for path in report_files(out):
+        run = run_parts(path)[0]
+        kernel = run_kernel(run)
         verdict = None
         with open(path) as f:
             for line in f:
@@ -689,17 +961,24 @@ def games_per_run(out):
                     break
         if verdict is None:
             continue
-        games[pool] = int(verdict.group(2))
-        if pool.startswith("pod-"):
-            pods[pool] = int(verdict.group(6))
+        if is_scripted(run):
+            pool, _ = scripted_group_seed(run)
+            games[pool] = games.get(pool, 0) + int(verdict.group(2))
+            continue
+        games[run] = int(verdict.group(2))
+        if run.startswith("pod-"):
+            pods[run] = int(verdict.group(6))
     return games, pods
 
 
 def report(top, out):
     totals = collections.defaultdict(collections.Counter)
-    for path in run_files(out, "out"):
+    for path in report_files(out):
         pool, surface, m = run_parts(path)
         kernel = run_kernel(pool)
+        if is_scripted(pool):
+            pool, _ = scripted_group_seed(pool)
+            surface, m = "scripted", 0
         with open(path) as f:
             for line in f:
                 v = VERDICT.match(line)

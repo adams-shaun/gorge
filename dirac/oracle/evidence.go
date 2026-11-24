@@ -12,6 +12,12 @@ const (
 	// EvidenceAllKeys requires every own ability key (coverageInventory) to have
 	// been used: a card with an ability no game reaches is not verified.
 	EvidenceAllKeys = true
+	// EvidenceScriptedMinGames is how many clean scripted games, over at least two
+	// distinct seeds, must use a key organic games never used before a scripted
+	// run credits the card (design section 5, D10). A scripted game credits key
+	// uses only: the plays floor stays organic. scripts/dirac-first-refusals.py
+	// holds the writer's copy, EVIDENCE_SCRIPTED_MIN_GAMES.
+	EvidenceScriptedMinGames = 3
 	// EvidenceSeed is the seed the evidence corpus is dealt and paired from. Decks
 	// and pairs are pure functions of it.
 	EvidenceSeed = 1
