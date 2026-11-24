@@ -43,20 +43,22 @@ func (lc *lowerCtx) lowerFlankingKw(node, param string) {
 }
 
 // dumpLIRKwFlags writes the printed-keyword flags dumpLIR shares one line for:
-// unleash, riot, flanking, then phasing.
+// unleash, riot, enlist, flanking, then phasing.
 func dumpLIRKwFlags(w io.Writer, c *lCard) {
 	dumpLIRYes(w, c.Unleash, " unleash")
 	dumpLIRYes(w, c.Riot, " riot")
+	dumpLIRYes(w, c.Enlist, " enlist")
 	dumpLIRYes(w, c.Flanking, " flanking")
 	dumpLIRYes(w, c.Phasing, " phasing")
 }
 
 // opsAddKwFlags is opsUsage's add of the printed-keyword card fields Unleash,
-// Riot, Flanking and Phasing (opsdoc_flanking.go documents the last two,
-// opsdoc_riot.go the first of those).
+// Riot, Enlist, Flanking and Phasing (opsdoc_flanking.go documents the last two,
+// opsdoc_riot.go and opsdoc_enlist.go the first two of those).
 func opsAddKwFlags(add func(label, card string), d *kop.CardDef, name string) {
 	opsAddYes(add, d.Unleash, "card:Unleash", name)
 	opsAddYes(add, d.Riot, "card:Riot", name)
+	opsAddYes(add, d.Enlist, "card:Enlist", name)
 	opsAddYes(add, d.Flanking, "card:Flanking", name)
 	opsAddYes(add, d.Phasing, "card:Phasing", name)
 }

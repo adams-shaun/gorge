@@ -1,0 +1,19 @@
+# K:Enlist (CR 702.154a): the declare-attackers election, lowered from the
+# printed keyword (CardDef.Enlist), for dirac/oracle/enlist_test.go. Argivian
+# Cavalier's token and Grizzly Bears give the attackers creatures to tap;
+# Balduvian Berserker's dies trigger reads the pumped power. No card grants
+# enlist (the kernel reads the printed field only), loses abilities, animates
+# or copies.
+Argivian Cavalier
+Balduvian Berserker
+Barkweave Crusher
+Benalish Faithbonder
+Coalition Skyknight
+Coalition Warbrute
+Hexbane Tortoise
+Linebreaker Baloth
+Yavimaya Steelcrusher
+Grizzly Bears
+Mountain
+Plains
+Forest

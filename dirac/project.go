@@ -257,10 +257,7 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		if pm.flags&pfTapped != 0 {
 			po.Flags |= ProjTapped
 		}
-		if pm.flags&pfAttacking != 0 {
-			po.Flags |= ProjAttacking
-			po.Attacks = pm.atk
-		}
+		s.projAttacker(pm, po)
 		if pm.flags&pfBlocking != 0 {
 			po.Flags |= ProjBlocking
 			if a := s.blockProjected(sl); a != NoSlot {
@@ -313,6 +310,17 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 		}
 	}
 
+}
+
+// projAttacker sets po's attacking flag and defender. gorge's enlist ask
+// precedes the declaration's fold, so a carrier is not yet attacking while
+// ctlEnlist asks (kw_enlist.go); projObj's complexity ceiling keeps this out
+// of the main body.
+func (s *State) projAttacker(pm *perm, po *ProjObj) {
+	if pm.flags&pfAttacking != 0 && s.ctl != ctlEnlist {
+		po.Flags |= ProjAttacking
+		po.Attacks = pm.atk
+	}
 }
 
 // roLandCtrl is ctrl, or the parked entry-order ask's player when i is a land
