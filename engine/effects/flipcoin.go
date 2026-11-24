@@ -53,8 +53,15 @@ func FlipCoinWin(h Host, p state.PlayerID) bool {
 // flipper chooses which to keep (a Thumb's replacement applies once per flip,
 // so several statics change nothing). The unserved stand-in keeps the heads
 // coin: the flip's win, the side every corpus flip rewards. Without the
-// static the draw is the single h.Rand(2) it always was.
+// static the draw is the single h.Rand(2) it always was. A run replaying
+// recorded flips (TapeRun.ForcedCoinFlip) takes the recorded result
+// instead of every draw, the doubler's two coins and keep choice included:
+// it is the kept side. A FlipCoinMod (Edgar) flip never reaches here, so it
+// never consumes a recorded result.
 func coinResult(h Host, p state.PlayerID, source state.ObjID) bool {
+	if win, forced := forcedCoinFlip(h, p); forced {
+		return win
+	}
 	if youStaticCount(h.Game(), p, ModeFlipCoinDoubler) == 0 {
 		return h.Rand(2) == 0
 	}
