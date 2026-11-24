@@ -22,7 +22,54 @@ func ownEntryCounterExcluded(settling, source, recv state.ObjID, recipient strin
 		return false
 	}
 	// Card.Self is the corpus's only self-scoped AddCounter recipient (Mowu).
-	return recipient != "Card.Self"
+	return !selfScopedSpec(recipient)
+}
+
+// ownEntryMoveExcluded is the same CR 614.12 rule for a printed Moved
+// replacement on a battlefield entry: a line whose source is the entering
+// object itself (not yet on the battlefield) applies to that entry only when
+// its ValidCard$ is self-scoped. Orb of Dreams' "Permanents enter tapped"
+// (ValidCard$ Permanent) and Kira Nerys, Firebrand's "a creature you control"
+// are general subsets, so neither touches its own entry; False Floor's
+// "CARDNAME enters tapped" (Card.Self) still applies. A line with no
+// ValidCard$ (Soulless Jailer's ValidLKI$ Permanent) is not self-scoped. Only
+// printed R: lines reach it (replacementMatchesRemembered): an Effect-created
+// line whose source is the entrant (Storied Veteran's finality rider,
+// Worldheart Phoenix's counters, ValidCard$ Card.IsRemembered or
+// Card.EffectSource) comes from that Effect, not from the permanent.
+func ownEntryMoveExcluded(g *state.Game, r cards.Repl, source state.ObjID, ev events.Event) bool {
+	if r.EventKind() != cards.ReplMoved || ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || source != ev.Obj {
+		return false
+	}
+	if o := g.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		return false
+	}
+	return !selfScopedSpec(r.ParamStr(cards.PKValidCard))
+}
+
+// selfScopedSpec reports whether every comma alternative of a ValidCard$
+// spec names the source itself (Card.Self, optionally +qualified: Card.Self+
+// kicked, Card.Self+!wasCast).
+func selfScopedSpec(spec string) bool {
+	const self = "Card.Self"
+	start := 0
+	for i := 0; i <= len(spec); i++ {
+		if i < len(spec) && spec[i] != ',' {
+			continue
+		}
+		alt := spec[start:i]
+		for len(alt) > 0 && alt[0] == ' ' {
+			alt = alt[1:]
+		}
+		for len(alt) > 0 && alt[len(alt)-1] == ' ' {
+			alt = alt[:len(alt)-1]
+		}
+		if alt != self && (len(alt) <= len(self) || alt[:len(self)+1] != self+"+") {
+			return false
+		}
+		start = i + 1
+	}
+	return true
 }
 
 // runEntryBody runs an Updated Moved replacement body that the entry fold did
