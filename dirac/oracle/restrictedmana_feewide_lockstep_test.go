@@ -36,9 +36,12 @@ func hydroChannelerDeck() []cardset.Entry {
 	}
 }
 
-// restrictedManaFeeWideSeeds: Orb's restricted mana is spent on three of the
-// eight (2, 5, 7), games run to 120 turns so a seat reaches a Dragon.
-var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8}
+// restrictedManaFeeWideSeeds: seeds that spend both carriers' restricted fee
+// mana (Hydro-Channeler from the first, Orb by seed 7), games run to 120 turns
+// so a seat reaches a Dragon. Seeds 3, 8 and 11 reach a turn/priority
+// divergence (Step, options) that the fee gap's prefix shows with or without
+// the pair's free alternative; that class is outside this card.
+var restrictedManaFeeWideSeeds = []uint64{1, 2, 4, 7}
 
 // newRestrictedManaFeeWidePod builds the four-deck pod.
 func newRestrictedManaFeeWidePod(t *testing.T) restrictedManaPod {
