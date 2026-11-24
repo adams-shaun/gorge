@@ -25,21 +25,28 @@ const (
 // stdin and reports whether the ratchet step is selected.
 func headsGate(t *testing.T) func(diff string) bool {
 	t.Helper()
+	return scriptGate(t, "heads_gate")
+}
+
+// scriptGate extracts the named gate function from pr-precheck.sh and returns a runner that feeds it a fake diff
+// list on stdin and reports whether its step is selected.
+func scriptGate(t *testing.T, name string) func(diff string) bool {
+	t.Helper()
 	script, err := os.ReadFile(filepath.Join("..", "..", "scripts", "pr-precheck.sh"))
 	if err != nil {
 		t.Fatalf("read scripts/pr-precheck.sh: %v", err)
 	}
-	m := regexp.MustCompile(`(?ms)^heads_gate\(\) \{\n(.*?)^\}\n`).FindSubmatch(script)
+	m := regexp.MustCompile(`(?ms)^` + name + `\(\) \{\n(.*?)^\}\n`).FindSubmatch(script)
 	if m == nil {
-		t.Fatal("scripts/pr-precheck.sh has no heads_gate() function (or it does not end in a bare })")
+		t.Fatalf("scripts/pr-precheck.sh has no %s() function (or it does not end in a bare })", name)
 	}
-	sh := "heads_gate() {\n" + string(m[1]) + "\n}\nif heads_gate; then echo " + selectLine + "; else echo " + skipLine + "; fi\n"
+	sh := "set -o pipefail\n" + name + "() {\n" + string(m[1]) + "\n}\nif " + name + "; then echo " + selectLine + "; else echo " + skipLine + "; fi\n"
 	return func(diff string) bool {
 		cmd := exec.Command("bash", "-c", sh)
 		cmd.Stdin = strings.NewReader(diff)
 		out, err := cmd.Output()
 		if err != nil {
-			t.Fatalf("run heads_gate on %q: %v", diff, err)
+			t.Fatalf("run %s on %q: %v", name, diff, err)
 		}
 		switch line := strings.TrimSpace(string(out)); line {
 		case selectLine:
@@ -47,7 +54,7 @@ func headsGate(t *testing.T) func(diff string) bool {
 		case skipLine:
 			return false
 		default:
-			t.Fatalf("heads_gate printed %q, want exactly %s or %s", line, selectLine, skipLine)
+			t.Fatalf("%s printed %q, want exactly %s or %s", name, line, selectLine, skipLine)
 			return false
 		}
 	}
@@ -94,5 +101,39 @@ func TestHeadsGateSelectsWhenMixedWithUnrelatedPaths(t *testing.T) {
 	}
 	if gate("engine/events.go\n") {
 		t.Error("heads_gate selected engine/events.go (a file outside engine/events/), want skip")
+	}
+}
+
+// repros_gate selects the repro replay for any behaviour change under engine/ or dirac/: batch #4212 (11-24) went red
+// on refused cards one of its PRs had fixed, which only the batch's dirac-repros job replayed.
+func TestReprosGateSelectsBehaviourChanges(t *testing.T) {
+	gate := scriptGate(t, "repros_gate")
+	for _, diff := range []string{
+		"dirac/combat.go\n",
+		"dirac/kgen/lower_effect.go\n",
+		"engine/rules/cast_begin.go\n",
+		"dirac/oracle/testdata/repros/x.json\n",
+		"dirac/support/refused.tsv\n",
+		// One behaviour file among many tests and docs still selects, wherever it sits in the list.
+		"dirac/a_test.go\ndocs/x.md\ndirac/combat.go\ndirac/b_test.go\n",
+	} {
+		if !gate(diff) {
+			t.Errorf("repros_gate skipped %q, want select", diff)
+		}
+	}
+}
+
+func TestReprosGateSkipsTestsDocsAndOtherTrees(t *testing.T) {
+	gate := scriptGate(t, "repros_gate")
+	for _, diff := range []string{
+		"",
+		"dirac/oracle/foo_test.go\n",
+		"engine/rules/x_test.go\ndirac/README.md\n",
+		"docs/x.md\nscripts/pr-precheck.sh\ninternal/codeshape/shape.go\n",
+		"server/host/host.go\n",
+	} {
+		if gate(diff) {
+			t.Errorf("repros_gate selected %q, want skip", diff)
+		}
 	}
 }
