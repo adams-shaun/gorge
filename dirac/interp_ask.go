@@ -93,12 +93,16 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 	case payKindSacHost:
 		return s.sacHostSlot(p) != NoSlot // the granting host, still the payer's (cost_sachost.go)
 	case kop.PayDraw:
-		// gorge's UnlessCostResolved folds an unless Draw<X> (and DamageYou<X>,
-		// Discard<Y>) only when the SVar resolves above zero (engine/effects/
-		// unless.go): a zero or unbound X stays raw and hard-declines, so the
-		// unless and effect-election shapes price a 0 as unpayable. The
-		// trigger's own Draw cost window is the exception payAnswerGate opens:
-		// gorge's triggeredCostDrawCounts asks only that the count resolve.
+		// gorge UnlessCostResolved's xAmountToken (effects/unless.go): an
+		// UnlessCost$ Draw<X/Spec> folds only for a POSITIVE X -- "a zero is
+		// not a payment anyone could choose" -- so a zero count keeps the raw
+		// token and the strict parser hard-declines (decline only). A
+		// trigger's own Draw cost is priced by the window instead
+		// (payAnswerGate): gorge triggeredCostDrawCounts (cumulative.go) pays
+		// a resolved count, zero included (Bebop, Skull & Crossbones'
+		// Draw<Count$CardCounters.ALL/You>, "you may draw 0 cards; if you do,
+		// lose 0 life"). An unresolvable X never reaches here: kgen refuses a
+		// DrawBy SVar it cannot lower (lower_costtokenforms.go resTokenInstr).
 		return amt > 0
 	case payKindMill:
 		return s.unlessMillPayable(p, amt) // CR 701.17b: the library holds the count (gorge pay.MillCostPayable)
@@ -239,8 +243,17 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	var stall uint8
 	if !stackSelfGone {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
-		if !ok && kind == kop.PayDraw && amt == 0 && in.Op == kop.OpIfPaid && s.res.e.kind == seTrigger {
-			ok = true // a trigger's own Draw<X> resolving to 0 (a rebound cast spent no mana) is a resolved count: gorge triggeredCostDrawCounts offers pay (CR 118.3: drawing no cards is payable)
+		if !ok && kind == kop.PayDraw && skip&pfModes == 0 {
+			// A trigger's own Draw cost is the window's pay/decline ask
+			// (pfModes unset), not an unless's: gorge's window prices the
+			// count itself (cumulative.go triggeredCostDrawCounts) and offers
+			// pay for a RESOLVED count, zero included -- "you may draw 0
+			// cards; if you do, lose 0 life" (Bebop, Skull & Crossbones'
+			// Draw<Count$CardCounters.ALL/You>). An unresolvable X is a kgen
+			// refusal (lower_costtokenforms.go resTokenInstr), so an amt here
+			// is always resolved; an UnlessCost$ Draw<X> stays raw at zero
+			// (gorge effects.UnlessCostResolved xAmountToken) and hard-declines.
+			ok = true
 		}
 		if !ok {
 			ok, stall = s.windowPays(k, p, kind, skip, amt, pips)
