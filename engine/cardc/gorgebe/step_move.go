@@ -218,9 +218,19 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 			return nil, err
 		}
 	case ir.RefSelf:
-		n = &node{API: "ChangeZone", Params: []kv{{"Defined", "Self"}}}
-		if st.From != ir.ZoneNone {
-			n.set("Origin", zoneWord(st.From))
+		from := st.From
+		if from == ir.ZoneNone {
+			from = p.abilityZone()
+		}
+		switch {
+		case from != ir.ZoneNone && p.ev == ir.EvNone:
+			// Forge's form of a source moving out of the zone its activated
+			// ability works from: the zone as Origin$ and no Defined$.
+			n = &node{API: "ChangeZone", Params: []kv{{"Origin", zoneWord(from)}}}
+		case from != ir.ZoneNone:
+			n = &node{API: "ChangeZone", Params: []kv{{"Defined", "Self"}, {"Origin", zoneWord(from)}}}
+		default:
+			n = &node{API: "ChangeZone", Params: []kv{{"Defined", "Self"}}}
 		}
 		n.set("Destination", dest)
 	case ir.RefEventObject:

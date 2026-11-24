@@ -111,6 +111,7 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool, to
 				continue
 			}
 			if fn := abilityFns[a.Kind]; fn != nil {
+				p.zones = a.Zones
 				if err := fn(p, a); err != nil {
 					return err
 				}
