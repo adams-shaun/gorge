@@ -62,9 +62,11 @@ func printCreateToken(p *pr, steps []*ir.Step) (*node, int, error) {
 func (p *pr) tokenKey(f *ir.Face, src string) (string, error) {
 	kws := map[string]bool{} // membership only, never ranged
 	nkw := 0
+	var extra []*ir.Ability // everything but plain keywords
 	for _, a := range f.Abilities {
 		if a.Kind != ir.AbKeyword || a.Keyword == nil {
-			return "", unprintable("token:abilities", src)
+			extra = append(extra, a)
+			continue
 		}
 		k := a.Keyword
 		if k.N != nil || k.Cost != nil || k.Filter != nil {
@@ -74,6 +76,38 @@ func (p *pr) tokenKey(f *ir.Face, src string) (string, error) {
 			nkw++
 		}
 		kws[k.Name] = true
+	}
+	// A token with other abilities matches a Forge token whose abilities
+	// have the same kinds and APIs, in print order.
+	var wantSA []string
+	var wantT, wantS, wantR int
+	if len(extra) > 0 {
+		scratch := &pr{tokens: p.tokens}
+		for _, a := range extra {
+			fn := abilityFns[a.Kind]
+			if fn == nil {
+				return "", unprintable("token:abilities", src)
+			}
+			if err := fn(scratch, a); err != nil {
+				return "", err
+			}
+		}
+		for _, l := range scratch.lines {
+			switch {
+			case strings.HasPrefix(l, "A:"):
+				w := strings.Fields(strings.TrimPrefix(l, "A:"))
+				if len(w) < 2 || !strings.HasSuffix(w[0], "$") {
+					return "", unprintable("token:abilities", src)
+				}
+				wantSA = append(wantSA, strings.TrimSuffix(w[0], "$")+":"+w[1])
+			case strings.HasPrefix(l, "T:"):
+				wantT++
+			case strings.HasPrefix(l, "S:"):
+				wantS++
+			case strings.HasPrefix(l, "R:"):
+				wantR++
+			}
+		}
 	}
 	if p.tokens == nil {
 		return "", unprintable("token:no-registry", src)
@@ -113,7 +147,14 @@ func (p *pr) tokenKey(f *ir.Face, src string) (string, error) {
 		if f.Name != "" && g.Name != name && g.Name != name+" Token" {
 			continue
 		}
-		if f.Name == "" && (g.Name != name+" Token" || len(g.Abilities) > 0 || len(g.Triggers) > 0 || len(g.Statics) > 0) {
+		if f.Name == "" && (g.Name != name+" Token" || (len(extra) == 0 && (len(g.Abilities) > 0 || len(g.Triggers) > 0 || len(g.Statics) > 0))) {
+			continue
+		}
+		var haveSA []string
+		for _, a := range g.Abilities {
+			haveSA = append(haveSA, a.Kind+":"+a.API)
+		}
+		if len(extra) > 0 && (!sameStrings(haveSA, wantSA) || len(g.Triggers) != wantT || len(g.Statics) != wantS || len(g.Repls) != wantR) {
 			continue
 		}
 		if !sameStrings(tokenColours(g.Colors), colours) || !sameStrings(g.Types, want) {
