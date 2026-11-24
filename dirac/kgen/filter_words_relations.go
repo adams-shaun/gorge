@@ -202,7 +202,8 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
-		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" {
+		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
+		p == "Modal" || p == "singleTarget" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}

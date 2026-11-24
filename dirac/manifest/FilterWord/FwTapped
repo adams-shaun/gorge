@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwTapped
-value: next
+value: 16
 contexts: perm,cur
 status: active
 doc: FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.

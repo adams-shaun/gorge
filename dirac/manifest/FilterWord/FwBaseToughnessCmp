@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwBaseToughnessCmp
-value: next
+value: 3
 contexts: perm,cur,card
 status: active
 doc: FwBaseToughnessCmp: the candidate's base toughness (layer 7b, CR 613.4; gorge numericPred's baseToughness field, engine/effects/filter.go:1747 and filter_value.go:292) compares Op against V; a permanent reads basePTGen, a card off the battlefield its printed (CDA-folded) toughness; the P/T-less non-creature reads nothing (gorge lacksPT).

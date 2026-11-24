@@ -694,7 +694,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else if v == "Spell.MayPlaySource" && t.Mode == "SpellCast" {
 				tr.MayPlaySrc = true
 			} else if v != "Spell.ManaFromCard.StrictlySelf" || t.Mode != "SpellCast" {
-				return refuse("spell-ability filter ValidSA %q", v) // the T12 spell-ability filter guard (T13c's words)
+				return refuse("spell-ability filter ValidSA %q%s", v, validSAWhy(v)) // the T12 spell-ability filter guard (T13c's words)
 			} else {
 				tr.ManaFromSelf = true
 			}

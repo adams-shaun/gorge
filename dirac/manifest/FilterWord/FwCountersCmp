@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwCountersCmp
-value: next
+value: 6
 contexts: perm
 status: active
 doc: FwCountersCmp: the battlefield permanent's counters of kind Arg (a kop.CounterKind below 256) compare to V by Op (PredCountersGE, PredHasCounter). An object off the battlefield fails closed.

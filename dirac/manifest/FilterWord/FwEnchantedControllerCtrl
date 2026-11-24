@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwEnchantedControllerCtrl
-value: next
+value: 8
 contexts: perm
 status: active
 doc: FwEnchantedControllerCtrl: the object is controlled by the controller of the permanent the reading source is attached to (gorge wordEnchantedControllerCtrl, effects/filter_word.go); an unattached source fails closed.

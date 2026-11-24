@@ -1,6 +1,6 @@
 family: FilterWord
 name: FwChosenCtrl
-value: next
+value: 5
 contexts: perm
 status: active
 doc: FwChosenCtrl: the object is controlled by the player the reading source permanent chose as it entered (gorge chosenCtrlMatches, effects/filter_type.go); no source or no chosen player fails closed.
