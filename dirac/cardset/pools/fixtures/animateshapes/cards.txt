@@ -1,0 +1,25 @@
+# The Animate shapes the gap-animate-shapes slice lowers
+# (dirac/oracle/animate_shapes_test.go): "target land becomes a <basic land
+# type>" (RemoveLandTypes$ True beside a literal Types$: the CR 305.7 land-type
+# setter record) in every duration, beside off-colour spells only a set land
+# can pay for.
+Floodchaser
+Kavu Recluse
+Cyclopean Giant
+Tide Shaper
+Deepwood Elder
+Tidal Warrior
+Zombie Trailblazer
+Slimy Kavu
+Tundra Kavu
+Graceful Antelope
+Thelonite Monk
+Dreamwinder
+Streambed Aquitects
+Savannah Lions
+Grizzly Bears
+Forest
+Island
+Mountain
+Plains
+Swamp
