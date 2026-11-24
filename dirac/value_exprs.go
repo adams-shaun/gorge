@@ -21,6 +21,8 @@ var DebugNoExtraTurnBegun bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExSpellsCastLastTurn:
+		return s.spellsCastLastTurn(x.N) // value_spellslastturn.go
 	case kop.ExVoteTally:
 		// the StoreVoteNum option branch being resolved (act_vote.go): the
 		// per-option tally the vote wrote after the last voter. Only a

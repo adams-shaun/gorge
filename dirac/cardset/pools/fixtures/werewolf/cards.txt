@@ -1,0 +1,23 @@
+# Innistrad werewolves (WerewolfTransformCondition$ / WerewolfUntransformCondition$:
+# "at the beginning of each upkeep, if no spells were cast last turn, transform" and
+# "if a player cast two or more spells last turn, transform"), lowered to a CondValue
+# over kop.ExSpellsCastLastTurn, for dirac/oracle/werewolf_test.go. Shock and Grizzly
+# Bears give the turns that cast spells; lands and slow hands give the turns that cast none.
+Reckless Waif
+Village Ironsmith
+Hanweir Watchkeep
+Kruin Outlaw
+Hinterland Hermit
+Instigator Gang
+Call of the Full Moon
+Gatstaf Shepherd
+Villagers of Estwald
+Mayor of Avabruck
+Daybreak Ranger
+Scorned Villager
+Solitary Hunter
+Huntmaster of the Fells
+Shock
+Grizzly Bears
+Mountain
+Forest
