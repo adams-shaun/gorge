@@ -1273,10 +1273,8 @@ func spellIsTargetingAlt(base, rest string) (arg string, neg, ok bool) {
 // idiom, rewritten to the filter grammar's own `+Other` conjunction so the
 // exclusion is the matcher's source-relative reading (predicates["Other"]).
 func spellIsTargetingInner(arg string) (spec string, ok bool) {
-	pinned := false
 	if inner, has := strings.CutPrefix(arg, "Valid "); has {
 		spec = strings.TrimSpace(inner)
-		pinned = true
 	} else if strings.HasPrefix(arg, "Valid") {
 		// A malformed `ValidX` is not a shape this evaluator reads.
 		return "", false
@@ -1299,35 +1297,6 @@ func spellIsTargetingInner(arg string) (spec string, ok bool) {
 	}
 	if inner, has := strings.CutSuffix(spec, "~Other"); has {
 		spec = strings.TrimSpace(inner) + "+Other"
-	}
-	if pinned {
-		// Forge resolves `IsTargeting Valid <spec>` through
-		// AbilityUtils.getDefinedObjects, whose `Valid ` form draws its
-		// candidates from the BATTLEFIELD only (`ValidAll ` is the any-zone
-		// form). "A creature you control" is a permanent (CR 109.2, 110.1), so
-		// a creature card in a graveyard never satisfies it: every
-		// card comma-alternative is pinned to the battlefield; a player-base
-		// alternative is left as is. The bare forms stay zone-free.
-		alts := strings.Split(spec, ",")
-		for i, a := range alts {
-			a = strings.TrimSpace(a)
-			// A player-base alternative (`Valid Player`, `Opponent`, ...)
-			// names a player target, not a card; the battlefield pin is a
-			// card-zone fact, so it stays unpinned and keeps matching players.
-			if base, _, _ := strings.Cut(a, "."); playerSpecBaseCodes.Code(base) != 0 {
-				alts[i] = a
-				continue
-			}
-			// The filter grammar is `Base.pred+pred`: a '+' directly after
-			// a bare base reads as part of the base name and matches
-			// nothing, so the first predicate needs the '.' separator.
-			if strings.Contains(a, ".") {
-				alts[i] = a + "+inZoneBattlefield"
-			} else {
-				alts[i] = a + ".inZoneBattlefield"
-			}
-		}
-		spec = strings.Join(alts, ",")
 	}
 	return spec, true
 }
