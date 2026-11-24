@@ -38,6 +38,7 @@ Captivating Vampire	64973b52a80625e7	369	1/1		1/1
 Cartouche of Zeal	e6e0191f2f3d783b	18	1/1		2/2	
 Castaway's Despair	2a16c4f02fe18444	4	1/1		2/2	
 Celestial Purge	fc7614349e489e95	8	0/0		1/2	ix:resp
+Champion of Wits	e56fd3fab5a9a1ee	16	2/2		0/1	ix:resp
 Channel the Suns	6e9449f2faaba16f	4	0/0		1/2	ix:resp
 Chaotic Goo	5543eafb58cebe80	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Charging Monstrosaur	9bfd313317e938bd	14	0/0		0/0	
@@ -47,6 +48,7 @@ Cloak of Feathers	13ff21a010b55211	12	0/0		1/2	ix:resp
 Cloud Elemental	dc4854121b224215	10	0/0		0/0	
 Cloudchaser Kestrel	1b4d06b603f67e1d	4	2/2		1/1	
 Cognivore	067dffb8c72cd043	4	0/0		0/0	
+Colossus of Akros	f965b58ddd1e5fe2	14	1/1		1/1	
 Combust	201f5d6ee6aec5b7	34	0/0		2/2	
 Conclave Mentor	1734751da5fc61e0	19	1/1		1/1	
 Conduit Pylons	d0eea63772527174	257	3/3		1/1	
@@ -57,6 +59,7 @@ Creosote Heath	93b408c87cceebe9	206	2/2		0/1	ix:resp
 Curious Altisaur	4fd65777f2356619	5	1/1		0/1	ix:resp
 Cut	7b1b4871806241d5	10	0/0		3/7	f1/s,f1/s/x+,f1/s/x0,ix:resp
 Damning Verdict	1dccb20420d30c22	4	0/0		1/2	ix:resp
+Dark Ritual	4016e227d34cd7ba	16	0/0		2/2	
 Darksteel Angel	390c64cd170b7e78	3	0/0		0/0	
 Death's Presence	fb2c2b24647bb67f	4	1/1		0/1	ix:resp
 Death-Hood Cobra	d778d66aca808390	8	2/2		0/1	ix:resp
@@ -71,6 +74,7 @@ Dryad Greenseeker	10da06049d9715a6	8	1/1		0/1	ix:resp
 Duskhunter Bat	4f0b1730f213e3a8	10	0/0		0/0	
 Dwarven Warriors	4f547993319d89ea	4	1/1		0/1	ix:resp
 Eastfarthing Farmer	9239456232cabf37	27	1/1		1/1	
+Echo Storm	8ae44a28bdc227ec	4	1/1		2/2	
 Eidolon of Countless Battles	bc5b37372736de1d	24	0/0		2/2	
 Elas il-Kor, Sadistic Pilgrim	4cceb7c3633ef5a2	13	2/2		1/1	
 Electric Revelation	25a8c22df611b5d4	8	0/0		3/4	ix:resp
@@ -96,6 +100,7 @@ Flywheel Racer	d35861af7b172ee9	8	2/2		1/1
 Forest	6d0466c30f825dba	265	1/1		0/1	ix:resp
 Frogtosser Banneret	755c354027fd2824	14	0/0		0/0	
 Frontline Devastator	277bee8fe4fac8a5	5	2/2		1/1	
+Frostweb Spider	b2db8676c700f7e1	8	1/1		1/1	
 Gaea's Embrace	ee212e4d653d8d21	19	1/1		2/2	
 Garrison Griffin	4c8c27bbdfe89372	20	1/1		0/1	ix:resp
 Gastal Raider	d443de50a3c39db4	405	1/1		1/1	
@@ -118,10 +123,13 @@ Highway Robber	4cc39da9a221e5ec	4	1/1		0/1	ix:resp
 Hold the Line	52dba1ebbf5ed907	4	0/0		1/2	ix:resp
 Honor the Past	ae5a9461d21425d8	14	0/0		2/2	
 Idle Thoughts	69de54507b1835c1	6	1/1		1/1	
+Infernal Sovereign	e092ac3a02853f04	8	2/2		0/1	ix:resp
 Inferno	afc7d8d6b7bad2a9	16	0/0		2/2	
+Into Thin Air	7b4a90205f1f1a80	14	0/0		2/2	
 Invasion of Segovia	d28a230e9692bac2	12	2/2		0/1	ix:resp
 Island	763c67ef7a27eaf5	386	1/1		0/1	ix:resp
 Kami of the Hunt	4724dbc55c515a08	11	1/1		1/1	
+Karplusan Giant	13011a75006add0e	227	1/1		1/1	
 Knight of Old Benalia	c2e4f7038eb3f6ec	8	1/1		2/3	cast/alt:none
 Krosan Restorer	d92fd6b84181b468	10	2/2		0/1	ix:resp
 Kruin Striker	dbb51f5c9bae5ba2	7	1/1		0/1	ix:resp
@@ -155,6 +163,7 @@ Mortician Beetle	d7f2cc00ffcf62d4	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Mountain	9e71388353e907ed	288	1/1		0/1	ix:resp
 Mukotai Soulripper	67c0d8776cf746a4	12	2/2		0/1	ix:resp
 Mystic Restraints	b496d88f717cd75b	12	1/1		2/2	
+Nadier, Agent of the Duskenel	9528eda2438c244d	8	2/2		1/1	
 Night Scythe	8eaa9c81ea0207bf	7	2/2		1/1	
 Nimbus of the Isles	c82b01f10e81e394	16	0/0		0/0	
 Oni Possession	e0f135010e3f4566	6	1/1		1/2	ix:resp
@@ -171,12 +180,16 @@ Plains	82d63a695487e567	1439	1/1		0/1	ix:resp
 Prakhata Pillar-Bug	4856157e9f2f3f44	25	1/1		1/1	
 Precognition Field	ba9459db912443dc	4	1/1		0/1	ix:resp
 Prized Statue	3fc6347c4a4dd774	4	2/2		1/1	
+Proven Combatant	119011b6cdeb5d6e	16	1/1		0/1	ix:resp
 Provoke	1927cf5f31f1c64e	21	0/0		2/2	
 Pygmy Pyrosaur	03c0b2cbfb21db7e	14	1/1		1/1	
+Quickchange	2f616499b41a8ad0	8	0/0		1/2	ix:resp
+Quicksilver Dagger	7fc70a11bcf46bc9	8	0/0		2/2	
 Raging Spirit	f9ad9a26c24fae84	6	1/1		1/1	
 Rakka Mar	c7acdf82078f50bc	12	1/1		1/1	
 Rakshasa's Secret	c17edfcfb9c791fb	10	0/0		1/2	ix:resp
 Ranger Class	47c93d9c14873a29	6	4/4		0/1	ix:resp
+Ravenloft Adventurer	7da8e38e439a210d	12	2/2		0/1	ix:resp
 Ravenous Harpy	0104258b9627be58	6	1/1		0/1	ix:resp
 Reckless Imp	3a4c602681840bb2	16	0/0		2/2	
 Recross the Paths	0f2572fcd43e9193	37	0/0		1/2	ix:resp
@@ -187,6 +200,8 @@ Rhox Meditant	82f31e157ebac6ad	22	1/1		0/1	ix:resp
 Rofellos, Llanowar Emissary	24abf4b73e08de73	14	1/1		0/1	ix:resp
 Root Greevil	def19c81f79ab70e	4	1/1		0/1	ix:resp
 Rotted Hulk	ae6b6407731b5db7	8	0/0		0/0	
+Rotting Mastodon	dbcc44e934c30e54	6	0/0		0/0	
+Sarcomancy	456e196305565d59	12	2/2		1/1	
 Savage Thallid	3e541ab1599bc217	10	3/3		1/1	
 Scragnoth	c16a2b2dcc6bc954	8	0/0		0/0	
 Sewerdreg	dab87112e73f01b2	4	1/1		0/1	ix:resp
@@ -195,6 +210,8 @@ Shieldmate's Blessing	91f0ec1ede912277	6	0/0		1/2	ix:resp
 Sizzle	068432165589f605	35	0/0		2/2	
 Skyclave Shade	ecdcd108240338a1	18	1/1		3/3	
 Skyshroud Troll	cb852c49e3bca104	5	1/1		1/1	
+Snow-Covered Forest	a1a5f67cd8b33a1c	267	1/1		0/1	ix:resp
+Snow-Covered Mountain	3200469019de4aca	1015	1/1		0/1	ix:resp
 Sokka, Swordmaster	57eafca79c98ec24	4	1/1		0/1	ix:resp
 Sonic Screwdriver	168f84b6aa170072	18	4/4		0/1	ix:resp
 Soul Bleed	4c4338ec96c1e1fb	4	1/1		1/2	ix:resp
@@ -210,6 +227,7 @@ Sure-Footed Infiltrator	c70d5094b324b84f	6	2/2		0/1	ix:resp
 Surreal Memoir	fb97a45aded28399	6	0/0		2/2	
 Swamp	342b413902f441c3	360	1/1		0/1	ix:resp
 Territorial Aetherkite	e68a92eabadf7237	8	1/1		0/1	ix:resp
+Tevesh Szat, Doom of Fools	5872e69f8020c239	22	3/3		0/1	ix:resp
 Tezzeret's Touch	498134adc120c39a	4	1/1		1/2	ix:resp
 The Unspeakable	ca366311c699b77c	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Thran Lens	7eae2099f3b2d778	12	0/0		0/0	
@@ -240,4 +258,5 @@ Wilderness Elemental	b1ffff6bdc456ae2	43	0/0		0/0
 Witch's Mist	2e13e9b24d660c8c	6	1/1		0/1	ix:resp
 Witness of Tomorrows	f11687a9be46948c	11	1/1		0/1	ix:resp
 Wose Pathfinder	343f212c7c4d134f	23	2/2		1/1	
+Xanthic Statue	9250703625a44a5a	5	1/1		0/1	ix:resp
 Yuma, Proud Protector	97001bce02e29730	108	3/3		1/1	

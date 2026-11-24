@@ -41,7 +41,7 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 	for i := range f.Repls {
 		r := &f.Repls[i]
 		if !replacementEventNameMatches(r.Event, "Moved") || r.With == nil ||
-			!(r.IsCopyLayer() || inheritedEntryModeChoice(r)) {
+			!(r.IsCopyLayer() || inheritedEntryModeChoice(r) || inheritedEntryCounterChoice(r)) {
 			continue
 		}
 		m := replMatch{id: ev.Obj, face: f, repl: r}
@@ -68,6 +68,20 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 // as it enters; it has no earlier application on the copy basis to re-base.
 func inheritedEntryModeChoice(r *cards.Repl) bool {
 	return r.IsETBReplacementKeyword() && effects.IsGenericChoiceAPI(r.With)
+}
+
+// inheritedEntryCounterChoice reports whether r is a printed "enters with your
+// choice of a <kind> counter or a <kind> counter" line (K:ETBReplacement:Other
+// over a PutCounter|ETB$ True body naming several CounterType$ kinds, Flycatcher
+// Giraffid). The entry fold cannot absorb a several-kind body
+// (entryBodyAbsorbableFor), so a copy of the card meets the choice here, after
+// the copy applies (CR 614.12, 707.2).
+func inheritedEntryCounterChoice(r *cards.Repl) bool {
+	if !r.IsETBReplacementKeyword() || !effects.IsPutCounter(r.With) {
+		return false
+	}
+	p := effects.PutCounterOf(r.With)
+	return p.ETB && len(p.Kinds) > 1
 }
 
 // inheritedEntryEngine is the narrow set of engine operations the inherited
