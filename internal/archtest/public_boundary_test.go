@@ -491,8 +491,13 @@ func TestNoVerbatimForgeLines(t *testing.T) {
 		}
 		t.Skip(msg)
 	}
+	// WalkDir does not follow a symlinked root; a worktree's cardsfolder may be one.
+	folder, err := filepath.EvalSymlinks(folder)
+	if err != nil {
+		t.Fatalf("resolve the corpus: %v", err)
+	}
 	index := newForgeLines()
-	err := filepath.WalkDir(folder, func(p string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(folder, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || !d.Type().IsRegular() {
 			return err
 		}

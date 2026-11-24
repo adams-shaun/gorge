@@ -18,7 +18,7 @@ import (
 // grew and needs review, not a silent allow-list edit.
 func TestSelectionRiderCorpusCarriers(t *testing.T) {
 	testutil.CorpusRegistry(t) // absent .cards must skip rather than pass vacuously
-	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	root := corpusWalkRoot(t, cards.CorpusDir(testutil.CorpusDirOrSkip(t)))
 	checks := []struct {
 		name string
 		api  string
