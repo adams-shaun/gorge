@@ -31,8 +31,8 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // false) outside a trigger that carries one, so that clause fails closed.
 // Layers is the SAME derived-characteristic table set SpecContext carries (see their doc comments there, including the
 // escape-analysis rationale for plain immutable slices): the
-// Player.controlsCreature / Player.controlsPermanent family evaluates its
-// object spec through a nested SpecContext, so without them a creature a
+// Player.controls<ValidCards> family evaluates its object spec through a
+// nested SpecContext, so without them a creature a
 // layer-4 static made a Goblin is not counted by a lord question even though
 // every ordinary filter site now sees it. All fields are plain data so the
 // rule-engine call sites (a trigger match, a static actor match and a layer
