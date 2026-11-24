@@ -60,7 +60,7 @@ func printDelayedTrigger(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	n.set("Execute", p.sub("TrigDo"+body.API, body))
+	n.set("Execute", p.sub("Trig"+body.API, body))
 	// "Create two tokens. When you do": the trigger fires once per full set
 	// of tokens remembered.
 	p.onPrev = func(prev *node) error {

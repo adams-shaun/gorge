@@ -86,7 +86,7 @@ func TestActivated(t *testing.T) {
 		{"sacrifice damage", &ir.Ability{Kind: ir.AbActivated, Cost: sac, Body: dmg},
 			[]string{"Cost$ Sac<1/CARDNAME>", "NumDmg$ 2", "ValidTgts$ Creature"}, ""},
 		{"sorcery once", &ir.Ability{Kind: ir.AbActivated, Cost: abGenericCost(2), Body: abDraw(), SorceryOnly: true, Once: true},
-			[]string{"Cost$ 2", "NumCards$ 1", "SorcerySpeed$ True", "ActivationLimit$ 1"}, ""},
+			[]string{"Cost$ 2", "NumCards$ 1", "SorcerySpeed$ True", "GameActivationLimit$ 1"}, ""},
 		{"graveyard", &ir.Ability{Kind: ir.AbActivated, Cost: abGenericCost(1), Body: abDraw(), Zones: ir.MakeZoneSet(ir.ZoneGraveyard, ir.ZoneHand)},
 			[]string{"Cost$ 1", "NumCards$ 1", "ActivationZone$ Hand,Graveyard"}, ""},
 		{"battlefield only", &ir.Ability{Kind: ir.AbActivated, Cost: abGenericCost(1), Body: abDraw(), Zones: bfZones},

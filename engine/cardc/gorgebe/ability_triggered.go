@@ -73,6 +73,17 @@ func printTriggered(p *pr, a *ir.Ability) error {
 	if err != nil {
 		return err
 	}
+	// A "may" step at the head of the body is the trigger's own optionality:
+	// Forge asks it as the trigger goes on the stack, with OptionalDecider$ on
+	// the T: line (the engine reads it there, not on the body's node).
+	optional := ""
+	for i, kvp := range head.Params {
+		if kvp.K == "OptionalDecider" && kvp.V == "You" {
+			optional = kvp.V
+			head.Params = append(head.Params[:i], head.Params[i+1:]...)
+			break
+		}
+	}
 	name := p.sub("Trig"+head.API, head)
 	for i, x := range alts {
 		p.ev, p.evSelf = x.Event, triggerSelf(x)
@@ -82,6 +93,9 @@ func printTriggered(p *pr, a *ir.Ability) error {
 		}
 		if i > 0 {
 			ps.set("Secondary", "True")
+		}
+		if optional != "" {
+			ps.set("OptionalDecider", optional)
 		}
 		ps.set("Execute", name)
 		p.lines = append(p.lines, triggerLine(ps))
@@ -459,6 +473,13 @@ func isYouFilter(f *ir.Filter) bool {
 // castFactWord is Forge's Valid qualifier ("kicked", "surged") for a condition
 // that tests only that the entering source was cast that way, or "".
 func castFactWord(c *ir.Cond) string {
+	if c.Kind == ir.CRefMatches && c.Ref != nil && (c.Ref.Kind == ir.RefSelf || c.Ref.Kind == ir.RefEventObject) && c.Filter != nil &&
+		c.Filter.Op == ir.FNot && len(c.Filter.Args) == 1 && c.Filter.Args[0] != nil &&
+		c.Filter.Args[0].Op == ir.FPred && (c.Filter.Args[0].Pred == ir.PSubtype || c.Filter.Args[0].Pred == ir.PCardType) {
+		// "if it wasn't a Demon" is known as the trigger fires, from the source's
+		// last known information: a qualifier of the source in ValidCard$.
+		return "non" + Respell(c.Filter.Args[0].Word)
+	}
 	if c.Kind != ir.CRefMatches || c.Ref == nil || c.Ref.Kind != ir.RefEventObject || c.Filter == nil {
 		return ""
 	}

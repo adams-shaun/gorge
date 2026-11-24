@@ -1,4 +1,3 @@
 # Exemplar of Light
 source	key	sig	class	issue	note
 static	0/T:CounterAddedOnce:Draw#0/ValidCard	ab25653d	cardc-gap	0	untriaged
-static	0/T:CounterAddedOnce:Draw#0/[0]NumCards	e79e418e	equivalent	0	explicit draw count of one is the default count
