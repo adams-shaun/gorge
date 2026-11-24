@@ -982,6 +982,10 @@ type Table struct {
 	// (costatom.go); CostProgs[0] is unused. A table with none takes none of
 	// the cost-program path (dirac/cost_prog.go).
 	CostProgs [][]CostAtom
+	// SVarNames are the SVar names the table's cards write with StoreSVar
+	// (ExtStoreNum C's name index, ExSVarNum N), in first-use order, at most
+	// 15. Appended last: a table without a StoreSVar writer has none.
+	SVarNames []string
 }
 
 // Filter returns the filter with id f.

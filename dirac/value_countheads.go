@@ -358,7 +358,7 @@ func (s *State) exwSourceLeft(o Obj) {
 			break
 		}
 		rec := &r[i]
-		if rec.src == o && rec.kind&exwRev != 0 && rec.sver == ver-1 {
+		if rec.src == o && rec.osKind() == osExw && rec.kind&exwRev != 0 && rec.sver == ver-1 {
 			rec.sver = ver
 		}
 	}

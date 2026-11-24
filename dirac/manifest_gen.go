@@ -843,6 +843,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtStoreNum:
+		return s.storeNumOp(k, in) // act_storenum.go
 	case kop.ExtUnattach:
 		return s.unattachExt(k, in) // act_unattach.go
 	case kop.ExtVenture:

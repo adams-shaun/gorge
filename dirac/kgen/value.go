@@ -48,6 +48,15 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// ChosenNumber, ahead of any SVar (lower_choosenumber.go)
 		return lValue{Kind: vChosenNumber}, nil
 	}
+	if lc.storesNum(raw) {
+		// a name StoreSVar writes on this card: the stored number, else the printed body
+		v, err := lc.storedNumValue(raw)
+		if err != nil {
+			return lValue{}, err
+		}
+		v.Neg = neg
+		return v, nil
+	}
 	if lc.joinForcesNames[raw] {
 		// the join-forces total (lower_storesvar.go): the kernel keeps it for
 		// one resolution, so only the chain that wrote it reads it, before
@@ -155,6 +164,9 @@ func (lc *lowerCtx) triggeredAttackerValue(rest string) (lValue, error) {
 func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
 	if rest == voteTallyName {
 		return lc.voteTallyValue()
+	}
+	if lc.storesNum(rest) {
+		return lValue{}, refuseStoredNested(rest)
 	}
 	body, ok := lc.face.SVars[rest]
 	if fv, fok := lc.flipSideValue(rest); !ok && fok {
@@ -998,7 +1010,7 @@ func (lc *lowerCtx) applyModifier(v lValue, m string, depth int) (lValue, error)
 			}
 			return lValue{Kind: vPow, Sub: []lValue{v, cst(n)}}, nil
 		}
-		body, ok := lc.face.SVars[arg]
+		body, ok := lc.operandBody(arg)
 		if !ok {
 			return lValue{}, fmt.Errorf("value modifier %q: %s is neither a number nor an SVar", m, arg)
 		}
@@ -1016,7 +1028,7 @@ func (lc *lowerCtx) applyModifier(v lValue, m string, depth int) (lValue, error)
 	}
 	n, aerr := strconv.Atoi(arg)
 	if aerr != nil {
-		body, ok := lc.face.SVars[arg]
+		body, ok := lc.operandBody(arg)
 		if !ok && name == "Minus" && kvfInlineOperand(arg) {
 			// gorge countOperandValue: an operand naming no SVar but
 			// carrying a '$' is an inline count expression

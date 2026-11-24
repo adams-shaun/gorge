@@ -73,6 +73,7 @@ const (
 	osPaired                      // (T10) a soulbond pair
 	osHaunted                     // (T10) a HauntedBy set
 	osChampioned                  // (T10) a ChampionedBy set
+	osNum                         // a StoreSVar number (act_storenum.go): o the value as an int16, kind's high nibble the SVar name
 )
 
 // The kind and flag nibbles of osRec.kind.
@@ -95,7 +96,7 @@ const (
 	osMRem uint16 = 1 << osRem
 	osMImp uint16 = 1<<osImp | 1<<osImpAny
 	osMExw uint16 = 1 << osExw
-	osMAll uint16 = (1 << (osChampioned + 1)) - 2 // every kind (T10's readers)
+	osMAll uint16 = (1 << (osChampioned + 1)) - 2 // every kind (T10's readers); osNum is no set kind and is never in a mask
 )
 
 // The store's capacity depends on what the table keeps. A table whose cards
@@ -114,6 +115,8 @@ const (
 func objSetsCap(g *genPrep) int {
 	link := g.anyExW || g.anyFaceExile
 	switch {
+	case g.uses.has(useStoreNum):
+		return maxObjSets // the number store's records beside whatever sets the table keeps (act_storenum.go)
 	case g.anySrcMem && link:
 		return maxObjSets
 	case g.anySrcMem || link:
@@ -317,6 +320,9 @@ func (s *State) osGC() {
 	n := s.osDrop(func(r *osRec) bool {
 		if r.osKind() == osExw {
 			return r.osFlags() == 0
+		}
+		if r.osKind() == osNum {
+			return false // a number lives until its object leaves the battlefield (numClear), never by a reader's reach
 		}
 		if s.osLiveNow(r) {
 			return false

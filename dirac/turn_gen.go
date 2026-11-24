@@ -740,6 +740,9 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 	if k.gen.anyFaces {
 		s.faceReset(k, o) // face_multiface.go
 	}
+	if len(k.t.SVarNames) != 0 {
+		s.numClear(o) // act_storenum.go: the departed permanent's StoreSVar numbers (CR 400.7)
+	}
 	s.clearFx(sl)
 	if s.g.batchLatch&batchHeld != 0 {
 		s.holdReturns(sl, o)

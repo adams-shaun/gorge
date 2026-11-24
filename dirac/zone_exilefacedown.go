@@ -72,7 +72,7 @@ func (s *State) faceDownExiled(o Obj) bool {
 		if r[i].kind == 0 {
 			break
 		}
-		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
+		if rec := &r[i]; rec.o == o && rec.osKind() == osExw && rec.kind&exwFace != 0 {
 			return true
 		}
 	}
@@ -87,7 +87,7 @@ func (s *State) FaceDownLooker(o Obj) uint8 {
 		if r[i].kind == 0 {
 			break
 		}
-		if rec := &r[i]; rec.o == o && rec.kind&exwFace != 0 {
+		if rec := &r[i]; rec.o == o && rec.osKind() == osExw && rec.kind&exwFace != 0 {
 			return rec.kind >> 7 & 1
 		}
 	}
