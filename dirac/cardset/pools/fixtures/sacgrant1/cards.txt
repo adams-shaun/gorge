@@ -1,0 +1,17 @@
+# sacrifice-only granted mana beside the census gaps it parted from gorge on
+# (dirac/oracle/repro_lockstep_test.go: the three Lotus Ring grant recordings,
+# rebuilt on Basal Sliver's "All Slivers have 'Sacrifice this permanent: Add
+# {B}{B}'" and Rain of Filth's "lands you control gain 'Sacrifice this land:
+# Add {B}'", since Lotus Ring's grant now costs {T}): Bloom Tender's free
+# each-colour ability (the census gap Tarnation Vista's is), Collector's Cage's
+# creature-targeting ability, and Blight Mound's token when a creature dies
+Basal Sliver
+Rain of Filth
+Bloom Tender
+Collector's Cage
+Blight Mound
+Walking Corpse
+Grizzly Bears
+Swamp
+Plains
+Forest
