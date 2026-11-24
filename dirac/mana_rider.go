@@ -415,8 +415,8 @@ func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer
 }
 
 // manaRiderEffect runs a's rider after its mana (CR 605.3b): the
-// source's sacrifice once its last counter is gone, or each opponent gaining
-// life.
+// source's sacrifice once its last counter is gone, each opponent gaining
+// life, or the source staying tapped through its controller's next untap step.
 func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 	switch a.ManaRider {
 	case kop.ManaRiderDeplete:
@@ -433,6 +433,12 @@ func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 		for i := uint8(0); i < q.n; i++ {
 			s.gainLife(k, q.s[i], n)
 		}
+	case kop.ManaRiderStayTapped:
+		// The DBStayTapped Effect's OpSkipUntap on the source (Cinder Marsh).
+		// ExileOnMoved$ Battlefield is free: the mark rides the battlefield
+		// permanent's slot, and a permanent that leaves and returns is a new
+		// object with no mark.
+		s.skipUntapSelf(sl, s.perms[sl].ctrl)
 	}
 }
 
