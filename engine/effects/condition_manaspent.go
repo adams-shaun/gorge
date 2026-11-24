@@ -3,6 +3,7 @@ package effects
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -56,4 +57,42 @@ func ManaColourSpendGate(spent state.Mana, spentKey, notSpentKey string) (met, o
 		}
 	}
 	return met, true
+}
+
+// SelfETBInterveningManaSpent reports the ConditionManaSpent$ /
+// ConditionManaNotSpent$ gate carried on a self-enters trigger's Execute body
+// when the trigger's own description spells it as an intervening-if ("When
+// CARDNAME enters, if {C} was spent to cast it, ..."): CR 603.4 checks that
+// condition when the event happens, not only as the ability resolves. Forge
+// puts the gate on the Execute SVar for Ogre Savant, Steamcore Weird and
+// Revenant Patriarch, so the trigger line itself carries no ManaSpent$; the
+// resolution-time read stays in conditionMet. Bodies that say
+// "sacrifice it unless {C} was spent" (Azorius Herald, Court Hussar,
+// Plaxmanta, Patagia Viper, Squealing Devil) are not intervening-ifs and are
+// deliberately not matched. The keys come from the compiled
+// ConditionParams (ActivationOf), the record the resolution read uses.
+func SelfETBInterveningManaSpent(t cards.Trigger) (spent, notSpent string, ok bool) {
+	if t.ModeKind() != cards.TriggerChangesZone {
+		return "", "", false
+	}
+	d, ok := t.ParamCode(cards.PKDestination)
+	if z, sole := Destination(d).SoleZone(); !ok || !sole || z != state.ZBattlefield {
+		return "", "", false
+	}
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(t.ParamStr(cards.PKValidCard))), "card.self") {
+		return "", "", false
+	}
+	desc := strings.ToLower(t.ParamStr(cards.PKTriggerDescription))
+	if !strings.Contains(desc, "if {") || !strings.Contains(desc, "was spent to cast it") {
+		return "", "", false
+	}
+	if t.Effect == nil {
+		return "", "", false
+	}
+	cond := &ActivationOf(t.Effect).Cond
+	spent, notSpent = cond.ManaSpent, cond.ManaNotSpent
+	if spent == "" && notSpent == "" {
+		return "", "", false
+	}
+	return spent, notSpent, true
 }
