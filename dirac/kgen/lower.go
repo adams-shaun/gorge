@@ -156,7 +156,7 @@ type lowerCtx struct {
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
-	station        string    // K:Station's parameter (lower_station.go)
+	station        bool      // the face prints K:Station (lower_station.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
 	exwSynth       bool      // the ExiledWithSource filter is synthesised for a Defined$ ExiledWith (the card's text does not name the word)
@@ -564,8 +564,8 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 
 // lowerTail runs the card-level passes after the lines are lowered.
 func (lc *lowerCtx) lowerTail() {
-	if lc.station != "" {
-		lc.guard("K:Station:"+lc.station, func() error { return lc.lowerStation(lc.station) })
+	if lc.station {
+		lc.guard("K:Station", lc.lowerStation)
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
@@ -1414,8 +1414,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
-			// face's own abilities (lowerFace, lower_station.go)
-			lc.station = param
+			// face's own abilities (lowerFace, lower_station.go). The older
+			// K:Station:<N> threshold rides the STATION N+ static; unread
+			lc.station = true
 		case head == "Melee":
 			// CR 702.121a: gorge kwMelee expands it into an Attacks Self
 			// trigger (Keyword$ Melee) pumping Self by cards.MeleePumpCount,

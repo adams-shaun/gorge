@@ -229,7 +229,11 @@ func (e *Engine) appendEffectCostStatics(out *costStaticViews) {
 		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
 			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber, chosenNumberBound: true,
 			chosenName: ce.ChosenName, chosenNameFrozen: ce.ChosenNameFrozen,
-			Remembered: ce.Remembered, effectStamp: ce.Timestamp})
+			Remembered: ce.Remembered, effectStamp: ce.Timestamp,
+			// An Effect-delivered cost static that remembers players reads
+			// Activator$/Caster$ Player.IsRemembered through the same
+			// effect-delivered actor path the restriction views take.
+			rememberedPlayers: ce.RememberedPlayers, effectDelivered: len(ce.RememberedPlayers) > 0})
 	}
 }
 
