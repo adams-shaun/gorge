@@ -1975,6 +1975,10 @@ var foreignAbilityReaders = map[string]bool{
 // than through effects.Register. Their Params reads remain live through that
 // separate registry even though the call-graph scan cannot see the map edge.
 var handEffectsRoots = []string{
+	// engine/effects/condition_manaspent.go: rules' trigger-time condition
+	// check (trigger_condition.go) and kgen call it directly on a self-enters
+	// trigger to read its intervening-if mana-spent gate (CR 603.4).
+	"SelfETBInterveningManaSpent",
 	// predicates in engine/effects/filter.go registers this predicate as a function
 	// value; its Cost$ reads inspect a candidate card's printed spell cost.
 	"noAbilitiesPermanent",
