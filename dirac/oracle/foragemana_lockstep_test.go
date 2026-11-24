@@ -188,7 +188,7 @@ func forageManaFail(t *testing.T, seed uint64, res Result) {
 var (
 	forageManaSeeds     = []uint64{3, 10, 20, 33, 45}
 	forageFoodSeeds     = []uint64{6, 15, 22}
-	forageMutationSeeds = []uint64{6, 15}
+	forageMutationSeeds = []uint64{11, 15} // measured after the exile pick (CR 701.61a) moved seed 6's game: its mutation no longer diverges
 )
 
 // forageManaLockstep plays seeds of the pod's decks; each, when set, requires every seed to have

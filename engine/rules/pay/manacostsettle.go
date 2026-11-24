@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/events"
@@ -126,8 +127,9 @@ func PartAnnouncedAmount(part costvocab.CostPart, x int32) int32 {
 }
 
 // SettleManaForage pays an answered/deterministic Forage: sacrifice the
-// elected Food, else exile the top three graveyard cards (the payer's
-// graveyard order is deterministic).
+// elected Food, else exile the three graveyard cards the payer picked
+// (md.ForageExile, CR 701.61a) in graveyard order, or the first three when the pick was
+// forced (exactly three cards) or the caller could not ask.
 func SettleManaForage(e Engine, md *ManaCostActivation) {
 	if !md.ForagePay {
 		return
@@ -137,10 +139,15 @@ func SettleManaForage(e Engine, md *ManaCostActivation) {
 		e.Emit(events.Event{Kind: events.ForageAction, Player: md.Player})
 		return
 	}
+	// The graveyard's zone order, whatever order the pick named its cards
+	// in: the exile zone's order is the same for any answer of one pick.
 	n := 0
-	for _, id := range e.Game().Zone(state.ZGraveyard, md.Player) {
+	for _, id := range slices.Clone(e.Game().Zone(state.ZGraveyard, md.Player)) {
 		if n >= 3 {
 			break
+		}
+		if len(md.ForageExile) > 0 && !slices.Contains(md.ForageExile, id) {
+			continue
 		}
 		if o := e.Game().Obj(id); o != nil {
 			e.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile,

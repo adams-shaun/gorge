@@ -136,7 +136,7 @@ func forageWindow(t *testing.T, e *Engine) *triggeredEffectCost {
 func TestTriggeredForageCanBePaid(t *testing.T) {
 	t.Run("ExileArmExilesThreeAndBodyReturns", func(t *testing.T) {
 		// Both arms live: the pay arm poses the either-or election, the
-		// exile arm exiles the top three graveyard cards, and Curious
+		// exile arm exiles the three picked graveyard cards, and Curious
 		// Forager's body then returns the remaining permanent card.
 		e, cfg, bears, food := forageFixture(t, 4, true)
 		if len(bears) != 4 {
@@ -164,7 +164,11 @@ func TestTriggeredForageCanBePaid(t *testing.T) {
 			t.Fatalf("forage_food names %d, want the Food %d", foodOpt.Obj, food)
 		}
 		start := len(e.L.Events)
+		grave0 := slices.Clone(e.G.Zone(state.ZGraveyard, 0))
 		submitChoices(t, e, exile.Index)
+		// Four graveyard cards: the exile arm poses the three-card pick
+		// (CR 701.61a); forageExilePick answers the last three.
+		forageExilePick(t, e, e.Pending(), grave0)
 		var exiled []state.ObjID
 		for _, ev := range e.L.Events[start:] {
 			if ev.Kind == events.MoveZone && ev.To == state.ZExile && ev.Text == "exiled as a forage cost" {
