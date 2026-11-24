@@ -69,6 +69,7 @@ func (s *State) placeEntryCounters(k *prep, sl Slot, kind, n int, ctrl uint8) in
 func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if face == 0 {
 		s.payETBStray(k, o)         // repl_paybeforeetb.go
+		s.riotEntryAsk(k, sl, o)    // kw_riot.go: the CR 702.156a election, gorge's parked move (a face-down entry poses nothing, CR 708.5)
 		s.unleashEntryAsk(k, sl, o) // kw_unleash.go: the CR 702.86a counter ask, gorge's parked move (a face-down entry poses nothing, CR 708.5)
 	}
 	s.touch(o)
@@ -1584,6 +1585,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if !s.ctrPickAnswer(k, ask, a) { // repl_enterctrpick.go
 			return // the second pick is asked
 		}
+	} else if ask.kind == akRiot {
+		s.riotAnswer(k, ask, a) // kw_riot.go
 	} else if ask.kind == akUnleash {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
@@ -1791,6 +1794,16 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akCtrPick || kind == akCtrPick2 {
 		s.ctrPickOptions(k, d, kind) // repl_enterctrpick.go
+		return
+	}
+	if kind == akRiot {
+		// kw_riot.go: a cast creature's election rides s.g.pre (asked
+		// with the spell on the stack); any other entry's is ask[0]
+		if s.g.pre.state == 1 && s.g.pre.kind == akRiot {
+			s.riotOptions(d, s.g.pre.obj)
+			return
+		}
+		s.riotOptions(d, s.perms[s.g.ask[0].sl].obj)
 		return
 	}
 	if kind == akUnleash {

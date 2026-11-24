@@ -185,6 +185,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Start your engines":     "CardDef.Engines (CR 702.179a; compared through the speed projection)",
 	"Ascend":                 "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",
 	"Unleash":                "CardDef.Unleash (CR 702.86; the as-enters counter ask, posed before a cast creature enters, and the can't-block gate while it holds a +1/+1 counter; compared through the choose options, the counter and the block options; kw_unleash.go)",
+	"Riot":                   "CardDef.Riot (CR 702.136; the as-enters counter-or-haste election, posed before a cast creature enters and on any other face-up entry, beside Unleash's; compared through the choose options and the entry counters; kw_riot.go)",
 	"Bargain":                "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
 	"Infect":                 "CardDef.Infect, a Continuous static's Static.Infect grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the counters and poison)",
 	"Toxic":                  "CardDef.Toxic (compared through poison)",

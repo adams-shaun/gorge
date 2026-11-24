@@ -3404,6 +3404,9 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 		kind = s.cloneAskKind(k, c) // only a cast spell is asked (gorge FlagManaSpent)
 	}
 	if kind == 0 && !land {
+		kind = s.riotPreKind(k, c) // kw_riot.go
+	}
+	if kind == 0 && !land {
 		kind = s.unleashPreKind(k, c) // kw_unleash.go
 	}
 	if kind == 0 && !land {

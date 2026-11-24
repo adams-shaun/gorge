@@ -9,6 +9,13 @@ package kgen
 // keyword and at least one +1/+1 counter. A GRANTED Unleash (a static's
 // AddKeyword$ Unleash, Tesak, Judith's Hellhound) stays refused: kwMask has
 // no bit for it and the kernel reads only the printed field.
-func (lc *lowerCtx) lowerUnleash() {
+func (lc *lowerCtx) lowerUnleash(node string) {
+	if lc.out.Riot {
+		// a face that also prints Riot (lower_riot.go): gorge asks both
+		// as-enters elections and the kernel's pre-entry ask carries one
+		// kind
+		lc.refuseNode(node, "a face that also prints Riot")
+		return
+	}
 	lc.out.Unleash = true
 }

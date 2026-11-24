@@ -4,4 +4,4 @@ value: 70
 forge: Riot
 census: kw Riot all=13 std=1 mbc=0 sole=10
 state: code 0
-status: reserved
+status: active
