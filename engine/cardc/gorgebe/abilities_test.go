@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
-	"github.com/adams-shaun/gorge/engine/cardc/mtgish"
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -444,13 +444,9 @@ func TestKeywordArgs(t *testing.T) {
 func corpusLineParams(t *testing.T) (trig, stat, repl, phase map[string]bool) {
 	t.Helper()
 	testutil.CorpusRegistry(t)
-	root, err := mtgish.ModuleRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
 	trig, stat, repl, phase = map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
-	dir := filepath.Join(root, ".cards", "cardsfolder")
-	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return err
 		}
