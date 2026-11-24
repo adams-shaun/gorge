@@ -1843,8 +1843,10 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 		}
 		s.g.held |= 1 << (s.perms[sl].ts & 7)
 	default:
+		armed := s.enterWithArm(k, in) // zone_assimilate.go
 		s.enterOnto(host)
 		sl = s.enterMoved(k, o, ctrl, fl&kop.MvTapped != 0, from)
+		s.enterWithSettle(k, sl, armed)
 	}
 	s.g.enterCtr.n, s.g.enterCtr.kind2 = 0, 0
 	s.g.retMiss = false
