@@ -3205,8 +3205,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	ab := &lAbility{Index: len(lc.out.Abilities)}
 	lc.ab = ab
-	lc.chainT = nil
-	lc.xPaidAb = nil
+	lc.chainT, lc.xPaidAb = nil, nil
 	// a chosen-colour chain never crosses an ability boundary (the kernel's
 	// res.chosen lives for one resolution): a chain that ends without the
 	// ClearChosenColor$ Cleanup (Puca's Eye's ETB)
@@ -3327,7 +3326,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	case "AB":
 		ab.Kind = akActivated
 		if lc.manaAbilityHead(sa) {
-			ab.Kind = akMana // ManaReflected: lower_reflectedmana.go; the colour-asking chain: lower_askcolourmana.go
+			ab.Kind = akMana // ManaReflected: lower_reflectedmana.go; the colour-asking chain: lower_askcolourmana.go; chosen-colour: lower_choosecolmana.go
 		}
 		if ab.Kind == akMana && (strings.TrimSpace(sa.Params["ValidTgts"]) != "" || strings.TrimSpace(sa.Params["TargetType"]) != "") {
 			return refuse("AB$ Mana with a target: gorge resolves it on the stack and adds the mana to the target (not a CR 605.1a mana ability), and an artifact source's mana is typed (pay.PlanPoolOK)")

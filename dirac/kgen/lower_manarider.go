@@ -75,6 +75,11 @@ const (
 	riderOppGainLife
 	riderStayTapped
 	riderSelfGainLife
+	// riderChosenAnimate is the chosen-colour Animate rider: the ability's
+	// Prog (five WUBRG override records, kop.OvChosenColor) runs after the
+	// mana, with the activation's colour answer recorded (Foraging Wickermaw;
+	// kop.ManaRiderChosenAnimate).
+	riderChosenAnimate
 )
 
 // tapOnlyRiderMana reports whether ab, ignoring its rider program, is a bare

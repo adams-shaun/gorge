@@ -86,9 +86,10 @@ func (lc *lowerCtx) askColourManaHead(sa *cards.SA) bool {
 }
 
 // manaAbilityHead reports whether the AB sa lowers as a mana ability: an AB$
-// Mana, an AB$ ManaReflected or the colour-asking chain.
+// Mana, an AB$ ManaReflected, the colour-asking chain or the chosen-colour
+// mana ability (chosenColorManaShape).
 func (lc *lowerCtx) manaAbilityHead(sa *cards.SA) bool {
-	return sa.API == "Mana" || sa.API == "ManaReflected" || lc.askColourManaHead(sa)
+	return sa.API == "Mana" || sa.API == "ManaReflected" || lc.askColourManaHead(sa) || chosenColorManaShape(sa)
 }
 
 // otherManaHead reports whether ab (kind akMana) has a head lowerManaHead
@@ -116,6 +117,9 @@ func (m *lMana) dynamicFlag() kop.AbilityFlags {
 func (lc *lowerCtx) lowerManaHead(sa *cards.SA, ps *params, ab *lAbility) error {
 	if sa.API == "ManaReflected" {
 		return lc.lowerManaReflected(sa, ps, ab)
+	}
+	if chosenColorManaShape(sa) {
+		return lc.lowerChooseColorMana(sa, ps, ab) // lower_choosecolmana.go
 	}
 	return lc.lowerAskColourMana(sa, ps, ab)
 }
