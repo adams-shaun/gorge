@@ -154,6 +154,9 @@ func (s *State) exSVarNum(k *prep, x *kop.Expr, ctx evalCtx) int {
 //
 //kmanifest:ext ExtStoreNum
 func (s *State) storeNumOp(k *prep, in *kop.Instr) (ok, done bool) {
+	if DebugOptInNoAccum && s.g.repEnd != 0 && s.res.pc >= s.g.repPC && s.res.pc < s.g.repEnd {
+		return true, true // the mutation: an opt-in loop's accumulator never moves (act_optinseat.go)
+	}
 	name, del, def := kop.StoreNumUnpack(in.C)
 	src := s.res.e.obj
 	if s.g.replaced != NoObj {

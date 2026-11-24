@@ -139,6 +139,7 @@ const (
 	ChGenMyriad                               // source = the Myriad creature; mode 1 = create the copy attacking the asked-about opponent / 0 = don't (gorge effMyriad's "yes" / "no", both over the source; kw_myriad.go)
 	ChGenRiot                                 // source = the entering permanent; mode 0 = enter with the +1/+1 counter, 1 = gain haste (gorge's "riot" KChoose, option 0 = the counter, CR 702.136; kw_riot.go)
 	ChGenPayLife                              // source = the entering permanent; mode = the life paid as it enters, 0..min(life, XMax$) (gorge's R:Event$ Moved pay-any-amount-of-life "paylife" KChoose, the amount on Amount; ExtPayLifeX, repl_paylife.go)
+	ChGenOptInSeat                            // mode 1 = yes / 0 = no, asked of the repeated player (the loop's seat, not the controller): RepeatOptionalForEachPlayer$ True's offer (gorge's repeat_each_optional "yes" / "no"; canonical kinds yes_seat / no_seat; act_optinseat.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);

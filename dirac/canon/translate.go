@@ -931,6 +931,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
 	case dirac.ChGenUnleash, dirac.ChGenRiot:
 		return asEntersCanon(r.D.Sub == dirac.ChGenRiot, src, mode), true
+	case dirac.ChGenOptInSeat:
+		return OptInSeatCanon(mode == 1), true
 	case dirac.ChGenAddOrRemove:
 		return r.aorChoice(Ref(src), mode)
 	case dirac.ChGenKczZone:
@@ -987,8 +989,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("yes"), Ref(src), RefNone, 0), true
 		}
 		return Pack(kind("no"), RefNone, RefNone, 0), true
-	case dirac.ChGenConfirm:
-		// gorge's hand_move_confirm: a KChoose of yes / no
+	case dirac.ChGenConfirm, dirac.ChGenMayShuffle:
+		// gorge's hand_move_confirm (and a may-shuffle ask): a KChoose of yes / no
 		return confirmChoice(mode)
 	case dirac.ChDungeon:
 		// gorge's venture "dungeon" KChoose: the option index in the
@@ -1055,11 +1057,6 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("unless"), RefNone, RefNone, 0), true
 		}
 		return Pack(kind("ordinary"), RefNone, RefNone, 0), true
-	case dirac.ChGenMayShuffle:
-		if mode == 1 {
-			return Pack(kind("yes"), RefNone, RefNone, 0), true
-		}
-		return Pack(kind("no"), RefNone, RefNone, 0), true
 	case dirac.ChRemCtrKind:
 		// gorge's counter_kind pick (removeCounterAny), compared by the
 		// counter kind (mode), not gorge's carrier-order position
