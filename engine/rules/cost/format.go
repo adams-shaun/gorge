@@ -246,11 +246,14 @@ func CostPhrase(c Cost) string {
 		}
 	}
 	for _, part := range c.SubCounter {
-		n := countPhrase(part.N)
+		n, plural := countPhrase(part.N), pluralSuffix(part.N)
 		if part.Announced {
 			n = "X"
 		}
-		clause := "remove " + n + " " + strings.ToUpper(part.Spec) + " counter" + pluralSuffix(part.N)
+		if part.Dyn == SubCounterAll {
+			n, plural = "all", "s"
+		}
+		clause := "remove " + n + " " + strings.ToUpper(part.Spec) + " counter" + plural
 		if part.Target != "" && !SubCounterTargetsSource(part.Target) && part.Desc != "" {
 			clause += " from " + part.Desc
 		}
