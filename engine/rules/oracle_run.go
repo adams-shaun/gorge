@@ -1088,7 +1088,8 @@ func (r *oracleRun) submit(d *decision.Decision, choices []int, why string) erro
 			}
 		}
 		if len(d.Options) == 1 && d.Options[0].Kind == "trigger_cost_decline" && r.e.triggerCost != nil {
-			od.CostPosed = xmageAlwaysAsksCost(r.e.triggerCost.announcedCost())
+			tc := r.e.triggerCost
+			od.CostPosed = xmagePosesTriggerCost(r.e, tc.player, tc.source, tc.announcedCost())
 		}
 		if len(d.Options) > 0 {
 			od.First = d.Options[0].Label
