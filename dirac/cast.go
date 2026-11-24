@@ -736,7 +736,12 @@ func (s *State) srcSlot() Slot {
 		return NoSlot
 	}
 	ob := &s.objs[e.obj]
-	if ob.zone == kop.ZoneBattlefield && ob.ver == e.srcVer {
+	if ob.zone == kop.ZoneBattlefield && (ob.ver == e.srcVer || e.kind == seTrigger) {
+		// A trigger being put on the stack binds its source as it is now
+		// (gorge stamps PushSourceIncarnation at the push), so a source that
+		// left and returned since it triggered is still "this", not "another",
+		// while its targets are chosen (Sterling Supplier blinked twice by
+		// Another Round: two triggers, neither may target it).
 		return ob.slot
 	}
 	return NoSlot
