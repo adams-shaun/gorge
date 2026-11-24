@@ -108,7 +108,7 @@ var effectKnownKeys = [...]string{
 	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost",
-	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
+	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
 	"ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",
 	"SelectPrompt", "SetChosenMode", "SetChosenNumber", "SetColor", "ShowCards",

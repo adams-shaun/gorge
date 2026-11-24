@@ -262,7 +262,7 @@ var manaKnownKeys = [...]string{
 	"PersistentUntilEndOfCombat", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp",
 	"PrecostDesc", "PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "Produced",
 	"RandomNumTargets", "ReduceAmount", "ReduceCost", "RememberAnimated", "RememberCostMana", "RememberObjects",
-	"RememberTargets", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
+	"RememberTargets", "RepeatSubAbility", "ReplaceColor", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
 	"ReplaceOnly", "ReplaceType", "RestrictValid", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
 	"SetChosenMode", "SetColor", "ShowCards", "SorcerySpeed", "SpellDescription",
 	"StackDescription", "SubAbility", "TargetMax", "TargetMin", "TargetType",

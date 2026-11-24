@@ -256,7 +256,7 @@ var digKnownKeys = [...]string{
 	"RememberObjects",
 	"RememberRevealed",
 	"RememberTargets",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

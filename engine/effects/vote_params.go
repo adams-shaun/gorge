@@ -157,7 +157,7 @@ var voteKnownKeys = [...]string{
 	"RememberObjects",
 	"RememberTargets",
 	"RememberVotedObjects",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

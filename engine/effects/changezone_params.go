@@ -381,7 +381,7 @@ var changeZoneKnownKeys = [...]string{
 	"RememberSearcher",
 	"RememberTargets",
 	"Reorder",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

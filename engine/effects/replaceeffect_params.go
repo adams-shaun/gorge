@@ -183,7 +183,7 @@ var replaceEffectKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberObjects",
 	"RememberTargets",
-	"ReplaceColor",
+	"RepeatSubAbility", "ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",
