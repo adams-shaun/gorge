@@ -155,6 +155,9 @@ func kernelStart(sp *rules.StartSpec) (*dirac.Start, error) {
 	for p := range sp.Seats {
 		g := &sp.Seats[p]
 		k := &st.Seats[p]
+		if len(g.Tokens) > 0 {
+			return nil, fmt.Errorf("realkernel: start p%d: tokens are not modelled by the kernel", p)
+		}
 		k.Hand, k.Graveyard, k.Exile, k.Library = g.Hand, g.Graveyard, g.Exile, g.Library
 		k.Tapped, k.BackFace, k.Life = g.Tapped, g.BackFace, g.Life
 		for _, i := range g.Battlefield {
