@@ -68,7 +68,11 @@ func TestProvenanceGate(t *testing.T) {
 		if g.may != want {
 			t.Errorf("%q: may=%v, want %v", spec, g.may, want)
 		}
-		if g.origin != (spec == "Spell.wasCastFromExile") {
+		// The origin family strips wasCastFromExile and, since the generic
+		// wasCastFromHand spelling joined castOriginTokens, the bare hand word.
+		wantOrigin := spec == "Spell.wasCastFromExile" ||
+			spec == "Card.Colorless+YouCtrl+YouOwn+wasCastFromHand+cmcGE7"
+		if g.origin != wantOrigin {
 			t.Errorf("%q: origin=%v", spec, g.origin)
 		}
 		if again := specProvenanceGate(spec); again != g {

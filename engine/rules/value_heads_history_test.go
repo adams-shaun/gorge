@@ -136,17 +136,24 @@ func TestPlayerCountOtherHighestValidFourSeats(t *testing.T) {
 	if n, ok := effects.EvalCountOK(e, ctx, other); !ok || n != 3 {
 		t.Fatalf("seat 1: %s = %d (ok %v), want 3", other, n, ok)
 	}
-	// Rivalry/Greener Pastures: every player but the ACTIVE one, from the
-	// resolving seat's perspective.
-	if e.G.Active != 0 {
-		t.Fatalf("precondition: active seat %d, want 0", e.G.Active)
-	}
+	// Rivalry/Greener Pastures: every player but the upkeep trigger's player
+	// (TriggeredPlayer), from the resolving seat's perspective.
 	for i := 0; i < 4; i++ {
 		onBoard(t, e, 1, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n")
 	}
-	nonActive := "PlayerCountNonActive$HighestValid Land.YouCtrl"
-	if got := historyEval(t, e, src, nil, nonActive); got != 4 {
-		t.Fatalf("%s = %d, want 4", nonActive, got)
+	for i := 0; i < 2; i++ {
+		onBoard(t, e, 2, "Name:Plains\nTypes:Basic Land Plains\nOracle:x\n")
+	}
+	nonTriggered := "PlayerCountDefinedNonTriggeredPlayer$HighestValid Land.YouCtrl"
+	for _, tc := range []struct {
+		trig state.PlayerID
+		want int32
+	}{{0, 4}, {3, 4}, {1, 2}} {
+		ctx := &effects.Ctx{Source: src, Controller: 0}
+		ctx.TriggerPlayer = state.Target{IsPlayer: true, Player: tc.trig}
+		if n, ok := effects.EvalCountOK(e, ctx, nonTriggered); !ok || n != tc.want {
+			t.Fatalf("triggered seat %d: %s = %d (ok %v), want %d", tc.trig, nonTriggered, n, ok, tc.want)
+		}
 	}
 }
 

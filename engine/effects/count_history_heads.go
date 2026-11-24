@@ -441,14 +441,16 @@ func devouredCount(g *state.Game, c *Ctx, spec string) int32 {
 	return n
 }
 
-// nonActivePlayers is the PlayerCountNonActive$ group: every living player but
-// the active one, in seat order.
-func nonActivePlayers(g *state.Game) []state.PlayerID {
+// nonTriggeredPlayers is the PlayerCountDefinedNonTriggeredPlayer$ group:
+// every living player but the trigger's player, in seat order. With no
+// trigger player bound, no seat is excluded.
+func nonTriggeredPlayers(g *state.Game, c *Ctx) []state.PlayerID {
 	var out []state.PlayerID
 	for _, p := range g.AliveFrom(0) {
-		if p != g.Active {
-			out = append(out, p)
+		if c.TriggerPlayer.IsPlayer && p == c.TriggerPlayer.Player {
+			continue
 		}
+		out = append(out, p)
 	}
 	return out
 }
