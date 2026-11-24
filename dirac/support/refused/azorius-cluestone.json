@@ -1,0 +1,42 @@
+{
+  "card": "Azorius Cluestone",
+  "class": "lockstep",
+  "why": "gorge's prefix search prices the {W}{U} draw only through Diamond Kaleidoscope's Prism-token sacrifice for {U}; its first answer (W) walks the dies trigger of Vigil for the Lost, whose {X} payment answers and manual-source windows spend the 160-node budget before U is answered, so gorge offers no draw; the kernel's tapX search walks that trigger as one two-answer ask and finds U in 37 nodes",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "azorius_cluestone_draw_offer"
+  },
+  "evidence": [
+    "ev-tail-12-c000",
+    "ev-tail-12-c001",
+    "ev-tail-12-c002",
+    "ev-tail-12-s000",
+    "ev-tail-28-c000",
+    "ev-tail-28-c001",
+    "ev-tail-28-c002",
+    "ev-tail-28-c006",
+    "ev-tail-28-c008",
+    "ev-tail-28-c009",
+    "ev-tail-28-c010",
+    "ev-tail-28-c012",
+    "ev-tail-28-c013",
+    "ev-tail-28-c014",
+    "ev-tail-28-c015",
+    "ev-tail-28-c018",
+    "ev-tail-28-c019",
+    "ev-tail-28-c021",
+    "ev-tail-28-c022",
+    "ev-tail-28-c023",
+    "ev-tail-28-c027",
+    "ev-tail-28-c032",
+    "ev-tail-28-c036",
+    "ev-tail-28-c039",
+    "ev-tail-28-c040",
+    "ev-tail-28-c045"
+  ]
+}
