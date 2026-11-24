@@ -24,7 +24,9 @@ func TestManaRiderSelfGainLifeLockstepMutation(t *testing.T) {
 			a.ManaRider = kop.ManaRiderNone
 		})
 	}
-	run := runFixtureLockstep(t, "manarider", manaRiderMatchups, manaRiderWatch, 120, false, mutate)
+	// The mutation reads Pristine Talisman, so it plays the two matchups whose
+	// decks carry it (the Vulshok Factory / Land Cap decks do not).
+	run := runFixtureLockstep(t, "manarider", manaRiderMatchups[:2], manaRiderWatch, 120, false, mutate)
 	if !sawRider {
 		t.Fatal("Pristine Talisman's mana ability carries no self-life rider: the mutation is a no-op")
 	}
