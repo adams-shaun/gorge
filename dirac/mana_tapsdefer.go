@@ -898,7 +898,22 @@ func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) 
 // and the prefix player tap it first, so manaTapped has queued the
 // watcher's trigger for flushPrefixTriggers to place before the play).
 func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int, play Action) {
+	s.tapDeferFloatAsks(k, p, sl, c, 0, play)
+}
+
+// tapDeferFloatAsks is tapDeferFloat with the search's packed answers to the
+// tap's any-colour triggers' colour asks (tapAnyColAnswerBits; 0: the
+// deterministic fill).
+func (s *State) tapDeferFloatAsks(k *prep, p uint8, sl Slot, c, forced int, play Action) {
+	s.tapDeferFloatBody(k, p, sl, c, forced, play)
+	s.g.rsv[anyColForcedAt] = 0 // the search's answers end with the tap
+}
+
+func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play Action) {
 	s.fillTapAnyCol(k, p, sl, play)
+	if forced > 0 {
+		s.forceAnyColAnswers(forced) // the search's answers to the triggers' colour asks (tapAnyColAsks)
+	}
 	if s.askColDeferred(k, sl) {
 		s.askColDeferFloat(k, p, sl, c) // mana_askcolour.go
 		return
@@ -1022,7 +1037,7 @@ func deferAskNodes(n int) int {
 // deferReplay taps the path's gaps on the node fork t, in tap order, with the
 // answer each was chosen at. It reports whether every tap was payable: a
 // life-only gap the path's earlier activation made unpayable ends the replay.
-func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8, answers []uint8, tapsDef slotMask, spill *[kop.NumManaKinds]uint8) bool {
+func deferReplay(t *State, k *prep, p uint8, a Action, order []Slot, used []int8, answers []uint16, tapsDef slotMask, spill *[kop.NumManaKinds]uint8) bool {
 	for u := range used {
 		if !t.scriptGapTap(k, p, a, order[used[u]], slotMask{}, slotMask{}, slotMask{}, tapsDef, slotMask{}, int(answers[u]), spill) {
 			return false
@@ -1093,11 +1108,11 @@ var TapsDeferGapStats struct {
 // stores it, so the arrays stay on the stack and the search allocates nothing
 // (the sweep's map and slices were four heap objects a decision).
 type deferGapScratch struct {
-	cut     [MaxPerm]bool // gap i: every answer so far ended the line at another player's ask
-	removed [MaxPerm]bool // the gaps gorge's search goes on without (scriptDFS cutAll)
-	seen    deferSeen     // gorge's visited set (scriptStateKey)
-	used    [MaxPerm]int8 // the tapped gaps, in tap order (nu their count)
-	answers [MaxPerm]uint8
+	cut     [MaxPerm]bool   // gap i: every answer so far ended the line at another player's ask
+	removed [MaxPerm]bool   // the gaps gorge's search goes on without (scriptDFS cutAll)
+	seen    deferSeen       // gorge's visited set (scriptStateKey)
+	used    [MaxPerm]int8   // the tapped gaps, in tap order (nu their count)
+	answers [MaxPerm]uint16 // a gap's answer, then its any-colour triggers' (tapAnyColAnswerBits)
 	nu      int
 	nodes   int
 	stall   uint8
@@ -1111,7 +1126,7 @@ type deferGapScratch struct {
 	costCol [kop.NumManaKinds]uint8
 }
 
-func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool) bool {
+func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint16, pick *[MaxPerm]int8, dead *bool) bool {
 	if len(order) == 0 {
 		return false
 	}
@@ -1138,7 +1153,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 // beside a dual land under Manabarbs (seven gaps, one {U} Aura) spends the
 // plain search's 164 nodes on the dual land's two off-colour answers at every
 // depth; the subsume run drops them and finds the Islands' line.
-func (s *State) deferSubsume(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool) bool {
+func (s *State) deferSubsume(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint16, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool) bool {
 	cnt, ok := s.playCostCounts(k, a)
 	if !ok {
 		return false
@@ -1188,7 +1203,7 @@ func (w *deferGapScratch) budgetExit(s *State) {
 // The context is explicit parameters, not a struct: s and k flow into probes
 // that leak them, so a context struct holding them would be heap-allocated,
 // and with it every array the caller passes beside it.
-func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint8, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
+func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint16, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool, w *deferGapScratch, post bool) bool {
 	n := len(order)
 	{
 		var nodePool [kop.NumManaKinds]uint8 // the pool this node's children's asks read (the subsume run)
@@ -1306,16 +1321,45 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					return false
 				}
 			}
+			// the tap's any-colour triggers ask a colour each, which the search
+			// branches on too (tapAnyColAsks), the play's needed colours first
+			// (scriptOrderAnswers)
+			nx := s.tapAnyColAsks(k, order[i])
+			xo := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
+			nxc := 1 // the answer combinations: five per ask
+			if nx > 0 {
+				needFirst(xo[:], s.playNeed(k, a))
+				for u := 0; u < nx; u++ {
+					nxc *= len(xo)
+				}
+			}
 			for ai := 0; ai < na; ai++ {
 				if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, &nodePool) {
 					continue // the subsume run's ask keeps only the colours the pool lacks
 				}
-				w.used[w.nu], w.answers[w.nu] = int8(i), uint8(ai)
-				w.nu++
-				ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
-				w.nu--
-				if ok {
-					return true
+				if nx > 0 {
+					// the ask visits: the first ask, then one under each answer of the earlier
+					if w.nodes += (nxc - 1) / (len(xo) - 1); w.nodes > potentialScriptNodes {
+						w.budgetExit(s)
+						return false
+					}
+				}
+				for xi := 0; xi < nxc; xi++ {
+					enc := uint16(ai)
+					if nx > 0 {
+						var cols [anyColAskCap]uint8
+						for u, r := nx-1, xi; u >= 0; u, r = u-1, r/len(xo) {
+							cols[u] = xo[r%len(xo)]
+						}
+						enc = tapAnyColAnswerBits(ai, cols[:nx])
+					}
+					w.used[w.nu], w.answers[w.nu] = int8(i), enc
+					w.nu++
+					ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
+					w.nu--
+					if ok {
+						return true
+					}
 				}
 			}
 			if w.cut[i] {
