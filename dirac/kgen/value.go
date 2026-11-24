@@ -1449,8 +1449,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if rest == "Party" {
 		return lValue{Kind: vParty}, nil // gorge partySize
 	}
-	if strings.HasPrefix(rest, "Devotion.") {
-		return devotionValue(strings.TrimPrefix(rest, "Devotion."))
+	if v, ok, err := devotionHead(rest); ok {
+		return v, err // value_devotion.go
 	}
 	if strings.HasPrefix(rest, "CardCounters.") {
 		ref := lRef{Kind: rSelf}

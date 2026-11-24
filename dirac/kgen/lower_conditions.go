@@ -77,6 +77,14 @@ func (lc *lowerCtx) bareCondition(ps *params, c string) (lCond, error) {
 		return lCond{Kind: cBlessing}, nil
 	case "Delirium":
 		return deliriumCond(), nil
+	case "Revolt":
+		// CR 702.38: a permanent the resolving controller controlled left
+		// the battlefield this turn (gorge conditionBareMet over
+		// Host.RevoltHolds, the read the Revolt$ trigger gate and the
+		// Count$Revolt head share). Decommission.
+		return lCond{Kind: cValue, A: lValue{Kind: vRevolt}, Op: opGE, B: cst(1)}, nil
+	case "Foretold":
+		return lc.foretoldCond()
 	case "Metalcraft":
 		// gorge metalcraftHolds: three or more artifacts the resolving
 		// controller controls (CR 207.2c)
