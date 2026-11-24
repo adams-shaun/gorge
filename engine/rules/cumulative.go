@@ -182,6 +182,9 @@ type triggeredEffectCost struct {
 	// settled by forageSettle.
 	forageDone bool
 	forageFood state.ObjID
+	// forageExile is the exile arm's pick of three graveyard cards
+	// (forageExilePickAsk), nil while unasked or when the pick is forced.
+	forageExile []state.ObjID
 	// beholds accumulates the settled Behold picks and beholdIdx is the next
 	// unsettled Behold part (trigger_cost_behold.go): recorded by beholdAsk /
 	// beholdAnswer, announced by beholdSettle.
@@ -1945,6 +1948,15 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		// and re-enter the pay arm, which settles.
 		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
 		return
+	case triggeredCostAnswerForageExileCards:
+		// The exile arm's three-card pick: record it and re-enter the pay
+		// arm, which settles; an answer that cannot pay is the decline.
+		if !tc.forageExileAnswer(e, chosen) {
+			e.triggeredCostDecline(tc)
+			return
+		}
+		e.triggeredCostAnswer([]decision.Option{{Kind: "trigger_cost_pay", Obj: tc.source}})
+		return
 	case triggeredCostAnswerForageFood:
 		// The forage election's Food arm: the named Food must still be a
 		// live candidate; record the pick and re-enter the pay arm, which
@@ -2004,7 +2016,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// single-arm cases deterministic), then settle. The gate offered
 			// "pay" only when the election was payable, and the window is
 			// synchronous, so the settle's re-proof never fails mid-payment.
-			if tc.forageElectionAsk(e) {
+			if tc.forageElectionAsk(e) || tc.forageExilePickAsk(e) {
 				return
 			}
 			paid = tc.forageSettle(e, announced)
@@ -2831,6 +2843,7 @@ const (
 	triggeredCostAnswerForageExile
 	triggeredCostAnswerForageFood
 	triggeredCostAnswerBeholdcost
+	triggeredCostAnswerForageExileCards
 )
 
 var triggeredCostAnswerCodes = state.NewStrCodes(
@@ -2844,6 +2857,7 @@ var triggeredCostAnswerCodes = state.NewStrCodes(
 	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_exile", Val: triggeredCostAnswerForageExile},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "forage_food", Val: triggeredCostAnswerForageFood},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "beholdcost", Val: triggeredCostAnswerBeholdcost},
+	state.StrEntry[triggeredCostAnswerCode]{Key: "exilecost", Val: triggeredCostAnswerForageExileCards},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_W", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_U", Val: triggeredCostAnswerPayPip},
 	state.StrEntry[triggeredCostAnswerCode]{Key: "pay_B", Val: triggeredCostAnswerPayPip},

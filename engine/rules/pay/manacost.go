@@ -41,6 +41,12 @@ type ManaCostActivation struct {
 	ForageDone bool
 	ForageFood state.ObjID
 	ForagePay  bool
+	// ForageExile is the payer's pick of the three graveyard cards the
+	// exile arm exiles (CR 701.61a), posed when the graveyard holds more
+	// than three; nil when the pick is forced (exactly three) or the
+	// caller is non-interactive, and the settle then exiles the three in
+	// zone order.
+	ForageExile []state.ObjID
 	// UntapPart walks the untapYType<N/Spec> parts and untaps the elected
 	// permanents (the source's own {Q} untap is cost.Untap and stays
 	// separate).
