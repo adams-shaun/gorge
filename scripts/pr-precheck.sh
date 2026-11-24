@@ -34,7 +34,7 @@ fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
 if ! "${cap[@]}" go test -timeout 3m -run '^TestPublicBoundary$|^TestNoVerbatimForgeLines$' ./internal/archtest >"$log" 2>&1; then
-  cat "$log"; fail "public boundary: $(grep -m1 -E 'holds a line of|private|verbatim|script lines' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"
+  cat "$log"; fail "public boundary: $(grep -m1 -E 'holds a line of|private|verbatim|script lines|not this tree.s pin' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"
 fi
 # The wall-clock ratchet in ./testkit/testutil scans every _test.go file, and no affected-package rule selects it.
 # On 11-18, #1705 added a 5 ms poll sleep in server/gorged and failed its batch's test (2) on

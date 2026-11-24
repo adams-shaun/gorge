@@ -368,10 +368,12 @@ func foldAlterAttribute(g *state.Game, e *Event) {
 			// `{5}: Monstrosity 5`): Amount is
 			// the monstrosity COUNT the resolving ability carried (the
 			// BecomeMonstrous triggers' `SVar:MonstrosityX:TriggerCount$Amount`
-			// reads it back), and Amount >= 1 sets the mark. CR 701.31 gives
-			// the designation no controller-change end -- the only clear is
-			// the Move fold's leaving-battlefield block below.
-			o.Monstrous = e.Amount >= 1
+			// reads it back). The event always sets the mark, Amount 0
+			// included: CR 701.37a's Monstrosity 0 still makes the creature
+			// monstrous (the only emitter, effPutCounter, never removes it).
+			// CR 701.31 gives the designation no controller-change end -- the
+			// only clear is the Move fold's leaving-battlefield block below.
+			o.Monstrous = true
 		case "Solved":
 			// CR 719.3b: a solved Case stays solved, so only the grant
 			// moves the flag; the Move fold's leaving-battlefield block is

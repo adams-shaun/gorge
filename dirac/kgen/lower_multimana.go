@@ -764,10 +764,20 @@ const maxRestrictedFeeAmount = 7
 // first ability first is the shape the kernel's restricted pair unit reads: a
 // const amount above the first ability's one, one fixed colour, the first's
 // colour (the alternative serves everything the first does).
+//
+// A Combo Any of maxRestrictedCombo mana beside a plain {T}: Add {C} (Great
+// Hall of the Citadel's "{1}, {T}: Add two mana in any combination of colors")
+// is one too: the kernel's pair holds it as two independent any-colour mana
+// (restrComboWide), while gorge's census ranks the source a {C} one.
 func restrictedFeePair(first, a *lAbility) bool {
-	return plainTapMana(first, false) && unrestrictedOne(first) &&
-		len(first.Mana.Colors) == 1 && a.Mana.Colors == first.Mana.Colors &&
-		a.Mana.Amount.Kind == vConst && a.Mana.Amount.N >= 2 && a.Mana.Amount.N <= maxRestrictedFeeAmount
+	if !plainTapMana(first, false) || !unrestrictedOne(first) || len(first.Mana.Colors) != 1 ||
+		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedFeeAmount {
+		return false
+	}
+	if a.Mana.Choice {
+		return a.Mana.Colors == "WUBRG" && a.Mana.Amount.N == maxRestrictedCombo && first.Mana.Colors == "C" && !first.Mana.Choice
+	}
+	return a.Mana.Colors == first.Mana.Colors
 }
 
 // maxComboMana bounds the literal amount of a combination filter (Baxter

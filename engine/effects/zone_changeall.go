@@ -128,12 +128,36 @@ func changeZoneAllMatcher(g *state.Game, c *Ctx, spec string, triggeredSet map[s
 		case *preMatched != nil:
 			return (*preMatched)(zone, id)
 		}
-		s := spec
+		s, sc, ok := changeZoneAllTargetedSpec(spec, c.SpecContext(c.Controller))
+		if !ok {
+			return false
+		}
 		if zone != state.ZBattlefield {
 			s = permanentCardSpec(s)
 		}
-		return MatchesSpecCtx(g, s, id, c.SpecContext(c.Controller))
+		return MatchesSpecCtx(g, s, id, sc)
 	}
+}
+
+// changeZoneAllTargetedSpec reads a ChangeType$ beginning "Targeted." the way
+// Forge's AbilityUtils.filterListByType does: the first object target becomes
+// the relative source of EVERY comma-split entry, and the "Targeted" base is
+// an ordinary Card base. So Tawnos's Coffin's "Targeted.Self,Aura.AttachedTo
+// Card.Self" is the target and every Aura attached to it, and Detention
+// Sphere's "Targeted.Self,Targeted.sameName" the target and every card named
+// like it. With no object target the sweep matches nothing (ok false). Any
+// other spec is returned unchanged.
+func changeZoneAllTargetedSpec(spec string, sc SpecContext) (string, SpecContext, bool) {
+	rest, ok := strings.CutPrefix(spec, "Targeted.")
+	if !ok {
+		return spec, sc, true
+	}
+	anchor, bound := targetedCardSelfReferent(sc)
+	if !bound {
+		return "", sc, false
+	}
+	sc.Source = anchor
+	return "Card." + strings.ReplaceAll(rest, ",Targeted.", ",Card."), sc, true
 }
 
 // changeZoneAllPreMatch freezes the set a sweep matches against on its one
