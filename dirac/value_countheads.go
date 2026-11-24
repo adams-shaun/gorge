@@ -79,8 +79,8 @@ func sacrificedTypeFilter(fl *kop.Filter) bool {
 var DebugGowronPostSac bool
 
 // castRingCountHeadsMatch is thisTurnCastSpec's cold arm for the
-// bits. It matches the pushed object where it now
-// lives (castRingMatch), then:
+// bits. It matches the push (castRingMatchPush: the pushed object where it
+// now lives, an Adventure or Omen half as cast), then:
 //
 //   - CastSpecCtrlTrig (gorge rules/host_cast_ledger.go L69-180: the
 //     specCtx's TriggerContext, +ControlledBy TriggeredActivator) requires
@@ -90,11 +90,12 @@ var DebugGowronPostSac bool
 //     apply_zone.go);
 //   - CastSpecTypes (gorge aggregateCastSourceProperty, count_agg.go) folds
 //     the object's current card types into *tm instead of counting it.
-func (s *State) castRingCountHeadsMatch(k *prep, x *kop.Expr, o Obj, ctx evalCtx, tm *kop.TypeMask) bool {
+func (s *State) castRingCountHeadsMatch(k *prep, x *kop.Expr, r castPush, ctx evalCtx, tm *kop.TypeMask) bool {
 	if DebugCountHeads10Off {
 		return false
 	}
-	if !s.castRingMatch(k, x.F, o, ctx) {
+	o := r.obj - 1
+	if !s.castRingMatchPush(k, x.F, r, ctx) {
 		return false
 	}
 	if x.N&kop.CastSpecCtrlTrig != 0 && !s.castRingCtrlIs(o, ctx) {
