@@ -76,6 +76,9 @@ type PoolData struct {
 	// kgen adds every pool creature type to its CardSubs; nil for any other
 	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
 	CardPrinted [][]uint8
+	// SVarNames are the SVar names the pool's cards write with StoreSVar
+	// (kop.Table.SVarNames); a matchup's table keeps them whole.
+	SVarNames []string
 }
 
 // UnmodeledSupertype reports whether w is a supertype the kernel's type mask
@@ -617,7 +620,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		break
 	}
 	subMap := map[uint8]uint8{}
-	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds}
+	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds, SVarNames: dd.SVarNames}
 	for s := 0; s < len(dd.Subtypes); s++ {
 		if subSet.Has(int(s)) {
 			subMap[uint8(s)] = uint8(len(t.Subtypes))

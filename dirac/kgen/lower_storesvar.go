@@ -26,7 +26,7 @@ func (lc *lowerCtx) storeSVar(ps *params) error {
 		return err
 	}
 	if lc.repeatCheckSVar == "" || name != lc.repeatCheckSVar || lc.ab != lc.repeatCheckAb || typ != "Number" {
-		return refuse("api StoreSVar")
+		return lc.storeNum(ps, name, typ, expr) // lower_storenum.go; refuses what it does not lower
 	}
 	switch {
 	case expr == "1" && cond == "X" && cmp == "EQ0" && strings.TrimSpace(lc.face.SVars["X"]) == "Count$ValidLibrary Card.YouOwn":
