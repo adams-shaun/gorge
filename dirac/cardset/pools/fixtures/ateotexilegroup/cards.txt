@@ -1,0 +1,7 @@
+# the AtEOT$ Exile group pool: Feral Lightning's three exiled Elementals are
+# one delayed trigger (CR 603.7a/b), against vanilla blockers, for the
+# oracle's constructed lockstep (dirac/oracle/ateot_exile_group_lockstep_test.go)
+Feral Lightning
+Forest
+Grizzly Bears
+Mountain

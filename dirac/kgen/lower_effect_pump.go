@@ -395,6 +395,9 @@ func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) err
 		if err != nil {
 			return err
 		}
+		if atEOTGroupedAct(act) && lc.atEOTMaySpanSet(obj) {
+			return refuse("Pump AtEOT %q over a set is one grouped trigger", v)
+		}
 		defer lc.emit(lInstr{Op: "AtEOT", Obj: obj, C: act})
 	}
 	if done, err := lc.skipNextUntap(ps, obj, zone); done || err != nil {

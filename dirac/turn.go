@@ -1196,6 +1196,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		}
 		return
 	}
+	if kop.Op(e.trigAmt) == kop.OpExile {
+		s.resolveExileAtEnd(k, e) // the head and its group (trig_ateotexilegroup.go)
+		return
+	}
 	ref := dlyRef(e.obj, e.trigObj) // the affected object, not a creator source
 	ob := &s.objs[ref]
 	if ob.ver != e.srcVer || ob.zone != kop.ZoneBattlefield {
