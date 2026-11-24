@@ -1112,6 +1112,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	}
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
+	ka.ManaAskColour = m.AskColour
 	ka.ManaNoCounter = m.NoCounter
 	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)
@@ -1166,7 +1167,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 		if err != nil {
 			return err
 		}
-		ka.AFlags |= kop.AfManaDynamic
+		ka.AFlags |= m.dynamicFlag() // lower_askcolourmana.go
 		ka.ManaV = v
 		ka.ManaN = 1
 	}

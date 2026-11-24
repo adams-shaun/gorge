@@ -81,6 +81,50 @@ func (s *State) askColUnits(k *prep, sl Slot, av *avail) {
 	}
 }
 
+// askColBoundUnit is the source's unit in the prefix search's relaxed gate
+// (addTapsDeferUnits). gorge's PotentialMana reads the AB$ ChooseColor head's
+// own Mana params (params.ManaOf: no Produced$, no Amount$), one {C}, so a
+// play only the source's devotion mana pays is never searched. Another
+// source opens the bound in its colours (an Amount$ X source, a Produced$ Any
+// one: potentialUnbounded), and gorge's search then reaches the answers of
+// those colours at their real amount (askColValue).
+func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
+	open := s.askColOpenMask(k, sl)
+	mask, best := uint8(0), 0
+	for col := uint8(0); col < 5; col++ {
+		if open&(1<<col) == 0 {
+			continue
+		}
+		if n := s.askColValue(k, sl, col); n > 0 {
+			mask |= 1 << col
+			best = max(best, n)
+		}
+	}
+	if mask == 0 {
+		av.addUnits(uint8(kop.ColC), 1)
+		return
+	}
+	av.addUnits(mask, uint8(min(best, maxDynMana)))
+}
+
+// askColOpenMask is the colours another usable source of sl's controller
+// prices unbounded in gorge's PotentialMana: a dynamic amount (pcard.manaDyn)
+// in its colours, an any-colour production in all five.
+func (s *State) askColOpenMask(k *prep, sl Slot) uint8 {
+	open := uint8(0)
+	for m := s.ctrlM[SeatIx(s.perms[sl].ctrl)].and(s.occ); m.any(); m = m.rest() {
+		o := m.first()
+		if o == sl || !s.canTapForMana(k, o) {
+			continue
+		}
+		pc := s.manaPCGen(k, o)
+		if mask := s.srcMaskAt(pc, o); pc.manaDyn || mask&uint8(kop.ColAny) == uint8(kop.ColAny) {
+			open |= mask
+		}
+	}
+	return open & uint8(kop.ColAny)
+}
+
 // askColDo is the answer: record col on the source, float ManaV mana of it in
 // one unit, clear the record (gorge's DB$ Cleanup | ClearChosenColor$ True).
 func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) {
@@ -149,29 +193,13 @@ func (s *State) applyCastWinAsk(k *prep, a Action) {
 	s.askColDo(k, b.e.ctrl, s.g.winSrc, int(a.Mode()))
 }
 
-// askColDeferAnswers is how many colour answers the prefix search poses: one
-// per colour the source makes mana of (askColUnits).
-func (s *State) askColDeferAnswers(k *prep, sl Slot) uint8 {
-	n := uint8(0)
-	for col := uint8(0); col < 5; col++ {
-		if s.askColValue(k, sl, col) > 0 {
-			n++
-		}
-	}
-	return max(n, 1)
-}
+// askColDeferAnswers is how many colour answers the prefix search poses:
+// gorge's ask offers W U B R G whatever the devotion (an answer of a colour
+// with no devotion taps the source for nothing).
+func (s *State) askColDeferAnswers(k *prep, sl Slot) uint8 { return 5 }
 
-// askColDeferFloat answers the prefix search's c'th colour (the colours
-// askColUnits prices, in W U B R G order).
+// askColDeferFloat answers the prefix search's c'th answer: colour c of
+// W U B R G (scriptEngineAnswer keeps gorge's ask order).
 func (s *State) askColDeferFloat(k *prep, p uint8, sl Slot, c int) {
-	for col := uint8(0); col < 5; col++ {
-		if s.askColValue(k, sl, col) > 0 {
-			if c == 0 {
-				s.askColDo(k, p, sl, int(col))
-				return
-			}
-			c--
-		}
-	}
-	// unreachable: askColDeferAnswers bounds c
+	s.askColDo(k, p, sl, min(c, 4))
 }

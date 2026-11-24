@@ -3322,8 +3322,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		}
 	case "AB":
 		ab.Kind = akActivated
-		if sa.API == "Mana" || sa.API == "ManaReflected" {
-			ab.Kind = akMana // ManaReflected: lower_reflectedmana.go
+		if lc.manaAbilityHead(sa) {
+			ab.Kind = akMana // ManaReflected: lower_reflectedmana.go; the colour-asking chain: lower_askcolourmana.go
 		}
 		if ab.Kind == akMana && (strings.TrimSpace(sa.Params["ValidTgts"]) != "" || strings.TrimSpace(sa.Params["TargetType"]) != "") {
 			return refuse("AB$ Mana with a target: gorge resolves it on the stack and adds the mana to the target (not a CR 605.1a mana ability), and an artifact source's mana is typed (pay.PlanPoolOK)")
@@ -3717,8 +3717,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 	if sa.API == "Mana" && ab.Kind != akSpell {
 		return lc.lowerMana(sa, ps, ab)
 	}
-	if sa.API == "ManaReflected" && ab.Kind == akMana {
-		return lc.lowerManaReflected(sa, ps, ab)
+	if lc.otherManaHead(sa, ab) {
+		return lc.lowerManaHead(sa, ps, ab) // lower_askcolourmana.go
 	}
 	if ab.Kind == akSpell && lc.out.Gift {
 		// CR 702.174b / gorge rules stack.go: a promised gift on an instant
