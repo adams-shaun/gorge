@@ -15,9 +15,11 @@ package kop
 //     still on the stack (and, with StackExileOwn, owned by the resolving
 //     controller), is marked; every graveyard exit of its entry (resolved,
 //     fizzled, countered) goes to exile instead.
-//   - the grant form (StackExileGrant): each remembered card in exile gets the
-//     mark on its may-play permission record, so the spell cast through that
-//     permission is marked as it is cast.
+//   - the grant form (StackExileGrant): each remembered card in exile (or,
+//     with StackExileTarget, the Instr.Obj card wherever it is: Sins of the
+//     Past's graveyard target) gets the mark on its may-play permission
+//     record, so the spell cast through that permission is marked as it is
+//     cast.
 //
 // dirac/repl_stackexile.go.
 const ExtStackExileMark ExtOp = 315
@@ -31,4 +33,5 @@ const (
 	StackExileGrant                // the grant form: marks remembered cards' permission records
 	StackExileOwn                  // the mark needs the spell's owner to be the controller (ValidCard$ ...+YouOwn)
 	StackExileResolved             // the replacement is Fizzle$ False: only the spell's resolution move is exiled, not a fizzle or a counter
+	StackExileTarget               // with StackExileGrant: the marked card is Instr.Obj (RememberObjects$ Targeted, a graveyard card: Sins of the Past), not the remembered exiled cards
 )
