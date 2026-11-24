@@ -144,16 +144,15 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 		n, setHits = s.dmgSetN(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) // repl_dmgminus.go
 	}
 	if g.anyRepl&rbDblDmg != 0 && (rcp != srcCtrl || g.anyFiltRepl || g.anyDmgMark) {
-		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat)
+		dblMult := 1
+		c := s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, &dblMult)
 		if g.anyDmgMark {
 			if m := s.dmgMarkEv(rcp, srcCtrl); m > 0 && s.dmgMarkDirect(k, m, c-m, rcp, sl, combat) {
 				return 0 // the mark beside another replacement: gorge asks (repl_dmgmark.go)
 			}
 		}
 		dblHits = c
-		for ; c > 0 && n < 1<<12; c-- {
-			n *= 2
-		}
+		n = dblProduct(n, c, dblMult)
 	}
 	s.dmgRewriteClash(minusHits, setHits, dblHits)                 // repl_dmgminus.go
 	s.dmgRewritePrevClash(k, minusHits+setHits, srcSl, sl, combat) // repl_dmgminus.go
@@ -577,7 +576,7 @@ func (s *State) replOrderCandsSeat(k *prep, fe *fzEv, p, sc, rcp uint8, n int) i
 	ro := &s.g.ro
 	var bf [MaxPerm]Slot
 	for _, b := range bf[:s.battlefieldOrder(p, s.statM.and(s.ctrlM[p]), bf[:], 0)] {
-		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true) {
+		if g.replBits[s.cardAt(b)]&rbDblDmg != 0 && !s.genLost(k, b) && s.dblDmgMatch(k, b, sc, fe.src, fe.card, NoObj, rcp, fe.dst, true, nil) {
 			if n == len(ro.cand) {
 				s.capFull(StallReplCands) // loud: never truncate the candidates
 				return -1
@@ -965,7 +964,38 @@ func (s *State) replCandLive(k *prep, i int) bool {
 	// a doubler re-matches too (dblDmgMatch reads its controller and filter,
 	// CR 616.1): a candidate of another seat the widened scan collected that
 	// no longer matches is not live either
-	return k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) && s.dblDmgLive(k, sl)
+	return k.gen.replBits[s.cardAt(sl)]&rbDblDmg != 0 && !s.genLost(k, sl) && s.dblDmgLive(k, sl, nil)
+}
+
+// dblProduct is n after c matching doublers whose multipliers multiply to
+// mult: the matches' product (each match rewrites the amount once: Twice or
+// the line's own Thrice; multiplication commutes, gorge
+// replacement_damage.go), bounded where the old per-hit loop was (n under
+// 1<<12 doubles to under 1<<13).
+func dblProduct(n, c, mult int) int {
+	if c <= 0 || n >= 1<<12 {
+		return n
+	}
+	return min(n*mult, 1<<13-2)
+}
+
+// dblCandMult is the multiplier the doubler candidate i applies as it is
+// picked (dealAsked): 2, or its own line's Thrice (City on Fire beside
+// Twinflame Tyrant). It reads the candidate's card, not a live re-match: gorge
+// applies a picked candidate a pause's state-based actions removed.
+func (s *State) dblCandMult(k *prep, i int) int {
+	ob := &s.objs[s.g.ro.cand[i]]
+	card := ob.card
+	if ob.zone == kop.ZoneBattlefield {
+		card = s.cardAt(ob.slot)
+	}
+	cd := &k.t.Cards[card]
+	for j := range cd.Abilities {
+		if a := &cd.Abilities[j]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDoubleDamageToOpps {
+			return dblLineMult(&a.Repl)
+		}
+	}
+	return 2
 }
 
 // dealAsked deals the answered combat event as it was asked: to a
@@ -1029,7 +1059,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 			if ro.plus&(1<<i) != 0 {
 				n += s.roPlusAdd(k, i, n) // the last remaining addition
 			} else if n < 1<<12 {
-				n *= 2
+				n *= s.dblCandMult(k, i) // the candidate's own word (Twice, or its Thrice)
 			}
 			continue
 		}
@@ -1042,7 +1072,7 @@ func (s *State) dealAsked(k *prep, r *dmgRec) int {
 		if ro.prev&(1<<i) != 0 {
 			n = 0
 		} else if n < 1<<12 {
-			n *= 2
+			n *= s.dblCandMult(k, i) // the candidate's own word (Twice, or its Thrice)
 		}
 	}
 	if pend {
@@ -1208,8 +1238,8 @@ func (s *State) replOrderPick(a Action) bool {
 			if s.roPlusPend() && ro.prev&(1<<i) == 0 {
 				if ro.plus&(1<<i) != 0 {
 					ro.an = s.sat16(int(ro.an) + s.roPlusAdd(s.k(), int(i), int(ro.an)))
-				} else if ro.an < 1<<12 {
-					ro.an *= 2
+				} else {
+					ro.an = dblPickAn(ro.an, s.dblCandMult(s.k(), int(i)))
 				}
 			}
 		} else if s.g.nc.n == ncPend && ro.prev&(1<<i) == 0 {
@@ -1486,7 +1516,7 @@ func (s *State) parkNC(k *prep, ctrl uint8, srcSl Slot, srcCard CardID, code TCo
 			if s.genLost(k, b) {
 				continue
 			}
-			if rb&rbDblDmg != 0 && p == ctrl && (rcp != ctrl && !g.anyFiltRepl || g.anyFiltRepl && s.dblDmgMatch(k, b, ctrl, srcSl, srcCard, NoObj, rcp, sl, false)) {
+			if rb&rbDblDmg != 0 && (p == ctrl || g.anyDblAnySrc) && (rcp != ctrl && !g.anyFiltRepl || g.anyFiltRepl && s.dblDmgMatch(k, b, ctrl, srcSl, srcCard, NoObj, rcp, sl, false, nil)) {
 				if c == len(cand) {
 					s.capFull(StallReplCands) // loud: never truncate the candidates
 					return false

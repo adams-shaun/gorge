@@ -15,6 +15,8 @@ const (
 	ReplDmgPowHost               // ReplDamagePlus: the amount added is the host's power at application time (Repl.A unused; Hawkeye, Young Avenger)
 	ReplDmgCombat                // ReplDoubleDamageToOpps: combat damage only (IsCombat$ True; Charging Tuskodon)
 	ReplDmgSrcSpell              // ReplDamageMinus: the source is the resolving spell (ValidSource$ Spell; Benevolent Unicorn), no battlefield source
+	ReplDmgYou                   // ReplDoubleDamageToOpps: the recipient is the replacement's controller (ValidTarget$ You; Goldnight Castigator)
+	ReplDmgSelf                  // ReplDoubleDamageToOpps: the recipient is the replacement's host itself (ValidTarget$ Card.Self; Goldnight Castigator)
 )
 
 // Repl.C of ReplBeginPhase (the printed phase-skip, R:Event$ BeginPhase |

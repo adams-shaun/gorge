@@ -1233,9 +1233,11 @@ ReplDmgPerm	untyped int	8
 ReplDmgPlayer	untyped int	4
 ReplDmgPowHost	untyped int	256
 ReplDmgRaise	untyped int	32
+ReplDmgSelf	untyped int	4096
 ReplDmgSetShift	untyped int	11
 ReplDmgSrcInPlay	untyped int	64
 ReplDmgSrcSpell	untyped int	1024
+ReplDmgYou	untyped int	2048
 ReplDoesntUntap	ReplKind	4
 ReplDoubleCounters	ReplKind	13
 ReplDoubleCountersOn	ReplKind	20

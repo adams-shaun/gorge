@@ -223,6 +223,7 @@ type genPrep struct {
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)
 	anyRedir        bool           // some program is ExtDmgRedirect: every damage site reads genState.redir (repl_dmgredirect.go)
 	anyFiltRepl     bool           // a filtered damage doubler or token multiplier, or an x3 one (repl_multipliers.go)
+	anyDblAnySrc    bool           // some doubler's filter admits a source of any controller (ValidSource$ Card,Emblem): the doubler scans read both seats' battlefields (repl_multipliers.go)
 	untapRepl       bool           // a ReplOthersDoesntUntap or ReplAnyUntap card: the untap step runs untapStepGen (act_energy.go)
 	anyUntapBlock   bool           // some card has ReplAnyUntap: every untap site consults State.untapBlocked (static_cantuntap.go)
 	anyCtrBlock     bool           // some card has StatCantPutCounter: every counter placement consults State.putCounterBlocked (ctr_cantput.go)
