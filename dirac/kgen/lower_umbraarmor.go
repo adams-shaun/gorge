@@ -20,6 +20,12 @@ func (lc *lowerCtx) lowerBareKeyword(head string) bool {
 		lc.lowerDecayed()
 	case "Umbra armor":
 		lc.out.UmbraArmor = true
+	case "Banding":
+		// CR 702.22: no KwMask bit is free, so the printed head is
+		// CardDef.Banding; the kernel's hasBanding (dirac/kw_banding.go) reads
+		// it for the band ask and the damage-division chooser, beside the
+		// granted kop.Override.Banding records (lower_banding.go)
+		lc.out.Banding = true
 	default:
 		return false
 	}

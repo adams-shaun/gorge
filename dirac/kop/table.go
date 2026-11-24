@@ -420,6 +420,12 @@ type CardDef struct {
 	// Wither is printed wither (CR 702.80): its damage to a creature is
 	// dealt as -1/-1 counters (infect's creature half).
 	Wither bool
+	// Banding is printed banding (CR 702.22): no KwMask bit is free, so it
+	// rides CardDef.Banding beside the granted kop.Override.Banding records.
+	// Read by dirac's hasBanding for the CR 702.22c band ask and the
+	// CR 702.22j/k damage-division chooser; not when it has lost its
+	// abilities (dirac/kw_banding.go).
+	Banding bool
 	// AloneAtk is printed "CARDNAME can't attack alone." (CR 506.5): it is
 	// declared as an attacker only beside another attacker; not when it has
 	// lost its abilities (dirac/combat_alone.go).

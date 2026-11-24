@@ -1195,7 +1195,7 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Kw = append(lc.out.Kw, head)
 		case head == "Flash" && param == "":
 			lc.out.Flash = true
-		case param == "" && lc.lowerBareKeyword(head): // Decayed (lower_decayed.go), Umbra armor (lower_umbraarmor.go)
+		case param == "" && lc.lowerBareKeyword(head): // Decayed (lower_decayed.go), Umbra armor, Banding (lower_umbraarmor.go)
 		case head == "CantAttackOrBlock" && param == "":
 			lc.lowerCantAttackOrBlock() // lower_cantattackorblock.go
 		case head == "Infect" && param == "":
