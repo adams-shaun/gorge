@@ -723,21 +723,13 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 	for _, k := range f.Keywords {
 		printed[strings.ToLower(k)] = true
 	}
-	var amounts []int
+	var granted []string
 	for _, k := range e.Derived(id).Keywords {
-		if !strings.EqualFold(cards.KeywordHead(k), "Afflict") || printed[strings.ToLower(k)] {
-			continue
+		if !printed[strings.ToLower(k)] {
+			granted = append(granted, k)
 		}
-		param := ""
-		if j := strings.IndexByte(k, ':'); j >= 0 {
-			param = strings.TrimSpace(k[j+1:])
-		}
-		amount, err := strconv.Atoi(param)
-		if err != nil || amount <= 0 {
-			continue // a malformed or non-positive grant delivers no trigger.
-		}
-		amounts = append(amounts, amount)
 	}
+	amounts := positiveKeywordAmounts(granted, kwhAfflict)
 	if len(amounts) == 0 {
 		return
 	}
@@ -776,7 +768,7 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 				// payload for events.Apply to rebuild structurally -- a raw
 				// SA cannot cross the log, and the TriggerPush -1 index
 				// sentinel is Dethrone's own.
-				Afflict: strconv.Itoa(amount),
+				Afflict: amount,
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 					Remembered: []state.Target{{Obj: aid}},
 					Captured:   []state.Target{{Obj: aid}},
@@ -809,29 +801,36 @@ func grantedPoisonousTriggers(g *state.Game, from state.ObjID, keywords []string
 		return nil
 	}
 	var out []pendingTrigger
+	for _, amount := range positiveKeywordAmounts(keywords, kwhPoisonous) {
+		out = append(out, pendingTrigger{
+			Source:     from,
+			Controller: o.Controller,
+			Poisonous:  amount,
+			Ctx: effects.NewCtx(from, o.Controller, effects.CtxInit{
+				TriggerContext: playerDamageTriggerContext(from, player),
+			}),
+		})
+	}
+	return out
+}
+
+// positiveKeywordAmounts returns, in list order, the trimmed N of every
+// "<head>:<N>" entry of keywords whose N is a positive integer -- the amount
+// of an Afflict or Poisonous instance. A malformed or non-positive amount is
+// dropped: that instance delivers no trigger.
+func positiveKeywordAmounts(keywords []string, head kwHead) []string {
+	var out []string
 	for _, k := range keywords {
-		if !strings.EqualFold(cards.KeywordHead(k), "Poisonous") {
+		if cards.KeywordHeadIDOf(cards.KeywordHead(k)) != head.ID {
 			continue
 		}
 		param := ""
 		if j := strings.IndexByte(k, ':'); j >= 0 {
 			param = strings.TrimSpace(k[j+1:])
 		}
-		amount, err := strconv.Atoi(param)
-		if err != nil || amount <= 0 {
-			continue
+		if n, err := strconv.Atoi(param); err == nil && n > 0 {
+			out = append(out, param)
 		}
-		out = append(out, pendingTrigger{
-			Source:     from,
-			Controller: o.Controller,
-			Poisonous:  strconv.Itoa(amount),
-			Ctx: effects.NewCtx(from, o.Controller, effects.CtxInit{
-				TriggerContext: effects.TriggerContext{
-					TriggerSource: from,
-					TriggerTarget: state.Target{Player: player, IsPlayer: true},
-				},
-			}),
-		})
 	}
 	return out
 }

@@ -63,6 +63,7 @@ var (
 	kwhModular          = newKWHead("Modular")
 	kwhOffspring        = newKWHead("Offspring")
 	kwhPhasing          = newKWHead("Phasing")
+	kwhPoisonous        = newKWHead("Poisonous")
 	kwhProwess          = newKWHead("Prowess")
 	kwhReach            = newKWHead("Reach")
 	kwhRetrace          = newKWHead("Retrace")
