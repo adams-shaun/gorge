@@ -386,6 +386,7 @@ func TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep(t *testing.T) {
 // a candidate too (CR 601.2g, 605.3a).
 func TestEachColourGapBeforeAGrantedSacrificeSourceLockstep(t *testing.T) {
 	t.Parallel()
+	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
 	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "std-big", Config{})
 }
 
@@ -404,6 +405,7 @@ func TestPlanTapsItsSacrificingSourcesLastLockstep(t *testing.T) {
 // unless its own view was the sacrifice-only grant (CR 602.2, 605.1a).
 func TestGrantedSacrificeOnATappedBearerLockstep(t *testing.T) {
 	t.Parallel()
+	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
 	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "std-big", Config{})
 }
 
@@ -425,6 +427,7 @@ func TestChosenPairTrialKeepsTheHandReserveLockstep(t *testing.T) {
 // 602.2b).
 func TestPrefixSearchContinuesPastALostTargetLockstep(t *testing.T) {
 	t.Parallel()
+	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
 	synthReproLockstep(t, "prefix_continues_past_a_lost_target", "std-big", Config{GorgeAutopaySurface: true})
 }
 
