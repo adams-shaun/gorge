@@ -1138,10 +1138,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 				h.BeginZoneBatch()
 			}
 		}
-		markChangeZoneAttach(h, c, sa, cz, &ev)
-		if cz.WithNotedCounters {
-			appendNotedCounters(h.Game(), &ev, o.ID, to)
-		}
+		markChangeZoneEntry(h, c, sa, cz, &ev, o.ID, to)
 		entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
 		applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
 		emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
@@ -2183,10 +2180,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 	if to == state.ZBattlefield {
 		applyTransformed(h, c, cz.Riders.Transformed, id)
 	}
-	markChangeZoneAttach(h, c, sa, cz, &ev)
-	if cz.WithNotedCounters {
-		appendNotedCounters(h.Game(), &ev, id, to)
-	}
+	markChangeZoneEntry(h, c, sa, cz, &ev, id, to)
 	entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
 	applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 	// The hand-origin Tapped$ rider sets the entry state after the MoveZone,

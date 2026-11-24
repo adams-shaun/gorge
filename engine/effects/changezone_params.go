@@ -704,7 +704,7 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.ForgetOtherTargets = isTrue(sa.ParamStr(cards.PKForgetOtherTargets))
 	p.Haunt = isTrue(sa.ParamStr(cards.PKHaunt))
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
-	p.WithNotedCounters = isTrue(sa.Params["WithNotedCounters"])
+	p.WithNotedCounters = isTrue(sa.ParamStr(cards.PKWithNotedCounters))
 	p.AtRandom = isTrue(sa.ParamStr(cards.PKAtRandom))
 	p.NoLooking = isTrue(sa.ParamStr(cards.PKNoLooking))
 	p.Reveal = isTrue(sa.ParamStr(cards.PKReveal))

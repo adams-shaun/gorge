@@ -174,7 +174,7 @@ func compileEffect(sa *cards.SA) *EffectParams {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	})
 	p.ReplacementEffects = sa.ParamStr(cards.PKReplacementEffects)
-	p.NoteCounterDefined = strings.TrimSpace(sa.Params["NoteCounterDefined"])
+	p.NoteCounterDefined = strings.TrimSpace(sa.ParamStr(cards.PKNoteCounterDefined))
 	p.Name = strings.TrimSpace(sa.ParamStr(cards.PKName))
 	if stackable, present := sa.Param(cards.PKStackable); present && strings.EqualFold(strings.TrimSpace(stackable), "False") {
 		p.NotStackable = true

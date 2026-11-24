@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -70,5 +71,15 @@ func appendNotedCounters(g *state.Game, ev *events.Event, id state.ObjID, to sta
 			ev.Pairs = append(ev.Pairs, events.EntryCounterPairs(events.EntryCounterGrant{Kind: kind, Amount: int32(amount)})...)
 		}
 		return
+	}
+}
+
+// markChangeZoneEntry is markChangeZoneAttach plus the WithNotedCounters$
+// entry fold, the two MoveZone riders ChangeZone's object loop and its shared
+// settle path apply before the move is emitted.
+func markChangeZoneEntry(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, ev *events.Event, id state.ObjID, to state.Zone) {
+	markChangeZoneAttach(h, c, sa, cz, ev)
+	if cz.WithNotedCounters {
+		appendNotedCounters(h.Game(), ev, id, to)
 	}
 }
