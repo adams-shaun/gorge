@@ -15,7 +15,9 @@ set -euo pipefail
 
 env_check=${ORACLE_ENV_CHECK:-test -s .cards/cards.lock}
 step_build=${ORACLE_STEP_BUILD:-make dirac-tables}
-step_test=${ORACLE_STEP_TEST:-go test -timeout 15m -run "^($RX)\$" ./dirac/oracle}
+# Single-quoted: $RX is set only inside --step and expanded by `bash -c` there (set -u: an unquoted
+# default expanded it at startup and killed every bisect, oracle run 45297496438).
+step_test=${ORACLE_STEP_TEST:-'go test -timeout 15m -run "^($RX)\$" ./dirac/oracle'}
 
 names() { grep -E '^Test[A-Za-z0-9_]*$' "$1" | sort -u; }
 
