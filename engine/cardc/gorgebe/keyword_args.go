@@ -1,6 +1,10 @@
 package gorgebe
 
-import "github.com/adams-shaun/gorge/engine/cardc/ir"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cardc/ir"
+)
 
 func init() { registerAbility(ir.AbKeyword, printKeywordArgs) }
 
@@ -11,7 +15,7 @@ func (p *pr) keywordLine(k *ir.Keyword, src string) (string, error) {
 	}
 	bad := unprintable("keyword:"+k.Name, src)
 	switch k.Name {
-	case "Kicker", "Flashback", "Miracle", "Ward":
+	case "Kicker", "Flashback", "Miracle", "Ward", "Surge":
 		if k.Cost == nil || k.N != nil || k.Filter != nil {
 			return "", bad
 		}
@@ -20,6 +24,38 @@ func (p *pr) keywordLine(k *ir.Keyword, src string) (string, error) {
 			return "", err
 		}
 		return "K:" + k.Name + ":" + c, nil
+	case "Equip":
+		// Forge's default: equip to a creature you control.
+		if k.Cost == nil || k.N != nil || !isCreatureType(k.Filter) {
+			return "", bad
+		}
+		c, err := p.costText(k.Cost)
+		if err != nil {
+			return "", err
+		}
+		return "K:Equip:" + c, nil
+	case "Enchant":
+		if k.Cost != nil || k.N != nil || k.Filter == nil {
+			return "", bad
+		}
+		v, err := p.valid(k.Filter)
+		if err != nil {
+			return "", err
+		}
+		d, ok := typeUnionText(k.Filter)
+		if !ok {
+			return "K:Enchant:" + v, nil
+		}
+		return "K:Enchant:" + v + ":" + d, nil
+	case "Hexproof", "Affinity":
+		if k.Cost != nil || k.N != nil || k.Filter == nil {
+			return "", bad
+		}
+		v, err := p.valid(k.Filter)
+		if err != nil {
+			return "", err
+		}
+		return "K:" + k.Name + ":" + v, nil
 	case "Protection":
 		f := k.Filter
 		if f == nil || k.Cost != nil || k.N != nil || f.Op != ir.FPred || f.Pred != ir.PColor {
@@ -51,4 +87,28 @@ func printKeywordArgs(p *pr, a *ir.Ability) error {
 	}
 	p.lines = append(p.lines, l)
 	return nil
+}
+
+// typeUnionText is the lower-case list "creature, land, or planeswalker" of an
+// any-filter over card types, the description Forge appends to such an Enchant
+// line; false when f is not a union of two or more card types.
+func typeUnionText(f *ir.Filter) (string, bool) {
+	if f.Op != ir.FAny || len(f.Args) < 2 {
+		return "", false
+	}
+	var ws []string
+	for _, a := range f.Args {
+		if !isPred(a, ir.PCardType) {
+			return "", false
+		}
+		ws = append(ws, lower(a.Word))
+	}
+	if len(ws) == 2 {
+		return ws[0] + " or " + ws[1], true
+	}
+	return strings.Join(ws[:len(ws)-1], ", ") + ", or " + ws[len(ws)-1], true
+}
+
+func isCreatureType(f *ir.Filter) bool {
+	return f != nil && f.Op == ir.FPred && f.Pred == ir.PCardType && f.Word == "Creature" && len(f.Args) == 0 && f.Ref == nil
 }
