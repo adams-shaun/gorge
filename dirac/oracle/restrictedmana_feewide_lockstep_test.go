@@ -15,13 +15,20 @@ import (
 // mana (the fee paid from a Mountain's mana, CR 605.3b) fund Shivan Dragon's
 // {4}{R}{R} or Furnace Whelp's {2}{R}{R} and {R} pump. Castle Garenbrig is not
 // in the pod: its own fee tests carry it, and a board of only Castles diverges
-// on its own (the fee funded from the other Castles' {T}: Add {G}).
+// on its own (the fee funded from the other Castles' {T}: Add {G}). One seat
+// carries Great Hall of the Citadel's restricted Combo Any fee pair beside its
+// census {T}: Add {C} (restrComboWide), and one Hydro-Channeler's free {U}
+// beside its any-colour fee alternative (restrFeePairOf).
 func restrictedManaFeeWideDecks() [4][]cardset.Entry {
 	orb := []cardset.Entry{
 		{Name: "Orb of Dragonkind", Count: 16}, {Name: "Shivan Dragon", Count: 8}, {Name: "Furnace Whelp", Count: 6},
 		{Name: "Mountain", Count: 10},
 	}
-	return [4][]cardset.Entry{orb, hydroChannelerDeck(), orb, hydroChannelerDeck()}
+	hall := []cardset.Entry{
+		{Name: "Great Hall of the Citadel", Count: 16}, {Name: "Kamahl, Pit Fighter", Count: 8},
+		{Name: "Isamaru, Hound of Konda", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 4},
+	}
+	return [4][]cardset.Entry{orb, hall, orb, hydroChannelerDeck()}
 }
 
 // hydroChannelerDeck: Hydro-Channeler's "{T}: Add {U}" and "{1}, {T}: Add one
@@ -88,7 +95,7 @@ func TestRestrictedManaFeeWideLockstep(t *testing.T) {
 		t.Logf("seed %d: %d decisions, over %v %s; spent fee %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
 	}
 	t.Logf("restricted fee mana spent over the seeds: %v", sum.byName)
-	for _, name := range []string{"Orb of Dragonkind", "Hydro-Channeler"} {
+	for _, name := range []string{"Orb of Dragonkind", "Great Hall of the Citadel", "Hydro-Channeler"} {
 		if sum.byName[name] == 0 {
 			t.Fatalf("no %s restricted mana spent over the seeds (%v)", name, sum.byName)
 		}
