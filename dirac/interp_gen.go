@@ -2443,6 +2443,7 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 		if kind == 0 && k.gen.anyBecomeCopy {
 			kind = s.cloneTokenAsk(k, in, c) // ctr_entryperkind.go: a copy of a clone card is asked the clone election
 		}
+		kind = s.unleashTokKind(k, kind, c) // kw_unleash.go: a copy of an Unleash card is asked its counter election
 		if kind != 0 {
 			// an as-enters choice (Heraldic Banner's colour): gorge's
 			// minted token waits outside every zone (zone 0) for it, as a
