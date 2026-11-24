@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomExiledMoveToGrave
+value: next
+status: deferred no kernel payer for this atom yet (T18b)
+doc: CostAtomExiledMoveToGrave: each chosen exiled card moves to its owner's graveyard (gorge's moveGraves, paid after the exile parts). No kernel payer yet.

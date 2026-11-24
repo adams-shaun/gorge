@@ -970,6 +970,10 @@ type Table struct {
 	// included, ascending: the options of an ExtChooseName with B >= 1 (a
 	// NameCard with no ValidCards$, Sorcerous Spyglass).
 	NameCardsAny []CardID
+	// CostProgs are the cost programs an Ability.CostProg indexes
+	// (costatom.go); CostProgs[0] is unused. A table with none takes none of
+	// the cost-program path (dirac/cost_prog.go).
+	CostProgs [][]CostAtom
 }
 
 // Filter returns the filter with id f.

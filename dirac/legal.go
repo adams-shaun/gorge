@@ -676,6 +676,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {
 		return false
 	}
+	if a.CostProg != 0 && !s.canPayCostProg(k, p.ctrl, sl, a) {
+		return false // the cost program's atoms (cost_prog.go)
+	}
 	mana := a.Cost.Mana
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 		mana = s.ownReducedBF(k, a, sl, p.ctrl)

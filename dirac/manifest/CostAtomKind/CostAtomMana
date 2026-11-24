@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomMana
+value: next
+status: active
+doc: CostAtomMana: the mana part of the cost: a position marker. The mana itself is paid by the build's mana stage (gorge payManaDescriptor, the first part of payCast's ability arm), so the walker pays nothing here; canActivate prices it.

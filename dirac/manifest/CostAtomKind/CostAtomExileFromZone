@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomExileFromZone
+value: next
+status: active
+doc: CostAtomExileFromZone: exile from a zone: Z battlefield with F == 0 the source (exileSelfCost), Z graveyard or hand N cards the pick stage chose (pkExile, payExilePicks).
