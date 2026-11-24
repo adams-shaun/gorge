@@ -1916,8 +1916,10 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
 	// the announcement allows, the activation the offer must prove payable;
-	// a larger announced X re-plans (rearmAutoPay) or keeps the window.
-	if cost.X != 0 {
+	// a larger announced X re-plans (rearmAutoPay) or keeps the window. Only
+	// a permanent's ability: an {X} hand activation (Webstrike Elite's X
+	// cycling) still declines, its dirac mirror pays other sources.
+	if cost.X != 0 && o.Zone == state.ZBattlefield {
 		cost = cost.WithX(cost.XMin)
 	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
