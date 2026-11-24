@@ -934,13 +934,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			return nil
 		}
 		return c.setCmp(cmpWasCast, 0, n, "", "")
-	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromYourHandByYou", "wasCastFromExile", "!wasCastFromExile", "wasCastFromYourLibrary":
+	case "wasCastFromYourHand", "!wasCastFromYourHand", "wasCastFromTheirHand", "!wasCastFromTheirHand", "wasCastFromHand", "!wasCastFromHand", "wasCastFromYourHandByYou", "wasCastFromExile", "!wasCastFromExile", "wasCastFromYourLibrary":
 		// gorge's cast-provenance words (rules castProvenanceAdmits), read on
 		// a spell on the stack: lc.spellProvOK says the filter is a SpellCast
 		// ValidCard$ or a spell's own ConditionPresent$; spellOriginN names
 		// each spelling's read
 		n := spellOriginN(p)
-		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand"
+		c.TheirHand = c.TheirHand || p == "wasCastFromTheirHand" || p == "!wasCastFromTheirHand" || p == "wasCastFromHand" || p == "!wasCastFromHand"
 		if c.CmpStat == cmpWasCast && c.CmpN == wasCastAny {
 			c.CmpStat, c.CmpN = cmpNone, 0 // wasCast+<word>: the word implies the cast
 			if n == spellHand|spellNot {

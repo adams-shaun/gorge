@@ -1,39 +1,43 @@
 package kgen
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
-// TestFiendHunterRemPersist: Fiend Hunter's leaves trigger returns the
-// enters trigger's exiled card through Defined$ DirectRemembered (gorge's
-// alias of RememberedLKI); it lowers as the remembered-persist pair, as
-// Journey to Nowhere's Defined$ Remembered does.
+// TestFiendHunterRemPersist: a leaves trigger that returns the enters
+// trigger's exiled card through Defined$ DirectRemembered (gorge's alias of
+// RememberedLKI) lowers as the remembered-persist pair, as a Defined$
+// Remembered return does. Fiend Hunter carried this shape until upstream
+// Forge rewrote it to Defined$ ExiledWith, so a synthetic probe keeps the
+// shape covered; Fiend Hunter itself now lowers through the exiled-with set.
 func TestFiendHunterRemPersist(t *testing.T) {
-	cardsDir := ratchetCards(t)
-	list := filepath.Join(t.TempDir(), "cards.txt")
-	if err := os.WriteFile(list, []byte("Fiend Hunter\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	p, err := loadCardList(list, cardsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	lw := lowerPool(p)
-	if len(lw.cards) != 1 || lw.cards[0].Name != "Fiend Hunter" {
-		t.Fatalf("lowered %d cards, want Fiend Hunter", len(lw.cards))
-	}
-	c := lw.cards[0]
+	const probe = `Name:Remembered Return Probe
+ManaCost:1 W W
+Types:Creature Human Cleric
+PT:1/3
+T:Mode$ ChangesZone | Destination$ Battlefield | Origin$ Any | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ PrbAway | TriggerDescription$ probe enters
+SVar:PrbAway:DB$ ChangeZone | ValidTgts$ Creature.Other | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | ForgetOtherRemembered$ True | TgtPrompt$ probe target
+T:Mode$ ChangesZone | Destination$ Any | Origin$ Battlefield | ValidCard$ Card.Self | Execute$ PrbBack | TriggerDescription$ probe leaves
+SVar:PrbBack:DB$ ChangeZone | Destination$ Battlefield | Origin$ Exile | Defined$ DirectRemembered
+`
+	c := lowerScriptCard(t, "Remembered Return Probe", probe)
 	var reasons []string
 	for _, r := range c.Refusals {
 		reasons = append(reasons, r.Node+": "+r.Reason)
 	}
 	if len(reasons) != 0 {
-		t.Fatalf("Fiend Hunter refused: %s", strings.Join(reasons, "; "))
+		t.Fatalf("probe refused: %s", strings.Join(reasons, "; "))
 	}
 	if !c.RemPersist {
-		t.Fatal("Fiend Hunter lowered without CardDef.RemPersist: the leaves trigger would read an empty set")
+		t.Fatal("probe lowered without CardDef.RemPersist: the leaves trigger would read an empty set")
+	}
+
+	fh := lowerCorpusCard(t, "Fiend Hunter")
+	for _, r := range fh.Refusals {
+		t.Errorf("Fiend Hunter refused: %s: %s", r.Node, r.Reason)
+	}
+	if !fh.ExiledWith {
+		t.Error("Fiend Hunter lowered without the exiled-with set its Defined$ ExiledWith return reads")
 	}
 }

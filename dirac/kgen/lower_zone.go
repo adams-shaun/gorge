@@ -1411,6 +1411,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 			flags = append(flags, k)
 		}
 	}
+	flags = digRevealPickFlag(ps, lc.face.Oracle, flags) // lower_digparams.go
 	if ps.is("PromptToSkipOptionalAbility", "True") || ps.str("OptionalAbilityPrompt") != "" {
 		// gorge effDig's promptToSkipOptional: either spelling names the same
 		// optional take as Optional$ True (the take is a 0..N election, and

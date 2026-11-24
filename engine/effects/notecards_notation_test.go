@@ -302,14 +302,14 @@ func TestMasterOfCeremoniesThreeWayNotation(t *testing.T) {
 		}
 	}
 
-	body := map[string]string{"DBMoneyPump": "DB$ LoseLife | Defined$ Remembered | LifeAmount$ 1"}
+	body := map[string]string{"DBMoneyNote": "DB$ LoseLife | Defined$ Remembered | LifeAmount$ 1"}
 	for k, v := range svars {
 		if _, isBody := body[k]; !isBody {
 			body[k] = v
 		}
 	}
 	// Re-point every loop body at the observable arm.
-	for _, k := range []string{"DBMoneyPump", "DBFriendsPump", "DBSecretsPump"} {
+	for _, k := range []string{"DBMoneyNote", "DBFriendsNote", "DBSecretsNote"} {
 		body[k] = "DB$ LoseLife | Defined$ Remembered | LifeAmount$ 1"
 	}
 

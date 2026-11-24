@@ -252,6 +252,14 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// hides on the blind shape and leave a bare NoLooking$ inert.
 	blind := noLooking && (dp.ExileFaceDown || dp.RandomChange)
 	forceReveal := dp.ForceReveal
+	if !forceReveal {
+		// The new corpus no longer spells ForceRevealToController$ True on a
+		// "you may reveal a card from among them" dig; cards.DigRevealsPick
+		// reads the rule (Forge's DigEffect reveals the moved cards).
+		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+			forceReveal = cards.DigRevealsPick(sa.Params, o.Face().Oracle)
+		}
+	}
 	// ForceRevealToController$ over a face-down exile (Vulcan Mind-Meld: "You
 	// look at the top two cards of their library, then exile them face
 	// down") is the chooser's private look, not a reveal: a card exiled face
