@@ -667,7 +667,7 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	// branch (mana_window.go), each tap's trigger flushed below the spell
 	var order [MaxPerm]Slot
 	n := s.scriptGapOrder(k, a, p, tapsDef, order[:])
-	var ans [MaxPerm]uint8
+	var ans [MaxPerm]uint16
 	var pick [MaxPerm]int8
 	var dead bool
 	cp := castRestPay{o: o, cost: cost}
