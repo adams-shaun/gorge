@@ -36,6 +36,7 @@ Ben-Ben, Akki Hermit
 Benalish Marshal
 Benalish Missionary
 Bequeathal
+Bestial Menace
 Bird Admirer
 Black Market Tycoon
 Black Panther, Most Dangerous
@@ -144,6 +145,7 @@ False Demise
 Fearless Liberator
 Feast of the Unicorn
 Feast or Famine
+Feedback
 Fetid Gargantua
 Final Death
 Final Payment
@@ -207,6 +209,7 @@ Innocuous Researcher
 Insatiable Souleater
 Inspiring Cleric
 Invasion of Theros
+Iron Fist, Hero for Hire
 Iron Verdict
 Ishai, Ojutai Dragonspeaker
 Island
@@ -225,6 +228,7 @@ Keeper of the Cadence
 Kefnet the Mindful
 Kjeldoran Frostbeast
 Kolaghan Warmonger
+Kor Haven
 Krazy Kow
 Kronch Wrangler
 Krovikan Mist
@@ -279,6 +283,7 @@ Night Terrors
 Nightstalker Engine
 Nishoba Brawler
 Nomads en-Kor
+O'aka, Traveling Merchant
 Ob Nixilis, the Ascended
 Okiba-Gang Shinobi
 Orim's Thunder
@@ -454,6 +459,7 @@ Vulpine Goliath
 Wall of Opposition
 War Falcon
 Warcry Phoenix
+Wardscale Crocodile
 Warlord's Elite
 Warped Tusker
 Water Elemental
@@ -463,6 +469,7 @@ White Widow, Yelena Belova
 Willow Elf
 Winds of Rath
 Wingmate Roc
+Wormhole Serpent
 Wu Scout
 Wydwen, the Biting Gale
 Wyluli Wolf
