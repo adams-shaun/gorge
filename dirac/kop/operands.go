@@ -551,6 +551,16 @@ const (
 	TokAttackAsk               // with TokAttacking: TokenAttacking$ True (the defender is asked among two or more candidates)
 )
 
+// TokAttackPlayer rides TokAttacking (without TokAttackAsk): TokenAttacking$
+// Remembered / RememberedPlayer inside a RepeatEach over the opponents, the
+// plain selector without Adeline's "or a planeswalker they control" arm
+// (gorge tokenAttackingRider: no CR 508.4 ask, the token attacks the repeated
+// player whatever that player controls). Bit 13: clear of the flag byte, of
+// TokImprintObj (14) and TokRememberSrc (15), and inside the destination
+// Ref / AtEOT high byte, which kgen refuses the rider beside
+// (TestTokenFlagBitsDisjoint).
+const TokAttackPlayer = 1 << 13
+
 // TokAttachDest is TokAttach's destination Ref in B.N (the high byte).
 func TokAttachDest(n int16) Ref { return Ref(uint8(n >> 8)) }
 
@@ -814,3 +824,9 @@ const (
 // the loop's end (gorge effRepeatEach's zone bracket around the whole loop;
 // Adeline's tokens; dirac zone_repeatbatch.go).
 const RepeatEachZoneBatch = 4
+
+// RepeatEachDmgBatch is OpRepeatEachPlayer's C bit 3 (DamageMap$ True): the
+// loop's damage is one damage batch for the DamageDealtOnce latch (gorge
+// effRepeatEach's damage bracket around the whole loop; Acidic Soil, Typhoon;
+// dirac act_repeatdmgbatch.go).
+const RepeatEachDmgBatch = 8

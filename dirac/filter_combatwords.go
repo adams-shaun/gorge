@@ -426,7 +426,7 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 	if in.B.N&kop.TokAttackAsk == 0 {
 		atk = s.riderSeat(p)
 	}
-	if in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet && s.riderSeatHasWalker(k, p) {
+	if in.B.N&kop.TokAttackAsk == 0 && in.B.N&kop.TokAttackPlayer == 0 && !s.g.tokDefSet && s.riderSeatHasWalker(k, p) {
 		// Adeline's "that player or a planeswalker they control": gorge asks
 		// (CR 508.4, tokenAttackingRider); tokenDefenderAsk poses the pick
 		// before the mint, so only a mint path without it (a batch) lands here.
@@ -527,7 +527,7 @@ func (s *State) tokenCombatWindow(p uint8) bool {
 //
 //go:noinline
 func (s *State) tokenDefenderAsk(k *prep, in *kop.Instr, p uint8) bool {
-	if in.B.N&kop.TokAttacking != 0 && in.B.N&kop.TokAttackAsk == 0 && !s.g.tokDefSet {
+	if in.B.N&kop.TokAttacking != 0 && in.B.N&kop.TokAttackAsk == 0 && in.B.N&kop.TokAttackPlayer == 0 && !s.g.tokDefSet {
 		return s.riderDefenderAsk(k, p)
 	}
 	if in.B.N&(kop.TokAttacking|kop.TokAttackAsk) != kop.TokAttacking|kop.TokAttackAsk || s.g.tokDefSet || !s.tokenCombatWindow(p) {

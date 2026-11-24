@@ -3916,8 +3916,10 @@ func (lc *lowerCtx) repeat(ps *params) error {
 		return refuse("Repeat without MaxRepeat$")
 	}
 	if !gated {
-		// RepeatPresent$/RepeatCompare$ are read only beside RepeatDefined$
-		return refuse("Repeat without RepeatCheckSVar$ or RepeatDefined$")
+		// gorge effRepeat's ungated loop: the body MaxRepeat$ times, no gate
+		// (RepeatPresent$/RepeatCompare$ are read only beside RepeatDefined$,
+		// so they stay unread and refuse the card by name)
+		return lc.repeatFixed(ps, mx) // lower_repeatfixed.go
 	}
 	svarCmp := strings.TrimSpace(ps.str("RepeatSVarCompare"))
 	var conds []lCond

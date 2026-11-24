@@ -42,6 +42,9 @@ func (lc *lowerCtx) triggeredDefenderOrPW(v string) (lRef, error) {
 // opponent, or asks (CR 508.4) which of that player's planeswalkers it
 // attacks when there are any; the kernel attacks the player and stalls
 // (StallDefenderPW) when the opponent controls a planeswalker.
+// tokAtkPlayerBit is CreateToken's C bit for kop.TokAttackPlayer (with 64).
+const tokAtkPlayerBit = 16384
+
 const tokenAttackingRemembered = "RememberedPlayer & Valid Planeswalker.ControlledBy Remembered"
 
 // tokenAttacking lowers TokenAttacking$ (gorge effects/token.go
@@ -75,6 +78,13 @@ func (lc *lowerCtx) tokenAttacking(v string) (int, error) {
 			return 0, refuse("TokenAttacking$ %q outside a RepeatEach over the opponents", v)
 		}
 		return 64, nil
+	case v == "Remembered" || v == "RememberedPlayer":
+		// the plain Remembered family (effects.plainRememberedSelector): the
+		// repeated opponent alone, no planeswalker arm and no ask
+		if lc.repeatPl == 0 || !lc.repeatOpp {
+			return 0, refuse("TokenAttacking$ %q outside a RepeatEach over the opponents", v)
+		}
+		return 64 | tokAtkPlayerBit, nil
 	}
 	return 0, refuse("TokenAttacking$ %q", v)
 }
