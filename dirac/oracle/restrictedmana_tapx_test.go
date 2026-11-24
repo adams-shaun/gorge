@@ -17,7 +17,7 @@ func TestRestrictedManaTapXMutationHidden(t *testing.T) {
 	p := newRestrictedManaPod(t, 2)
 	dirac.DebugNoRestrTapX = true
 	defer func() { dirac.DebugNoRestrTapX = false }()
-	for _, seed := range restrictedManaSeeds {
+	for _, seed := range restrictedManaTapXSeeds {
 		if res, _ := p.play(t, seed, 40); res.Div != nil {
 			t.Logf("mutation diverged at seed %d decision %d: %s %s", seed, res.Div.At, res.Div.What, res.Div.Field)
 			return

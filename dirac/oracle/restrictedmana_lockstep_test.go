@@ -212,10 +212,13 @@ func restrictedManaFail(t *testing.T, seed uint64, res Result) {
 		res.Div.RefOptions, res.Div.KerOptions, res.Div.Detail, res.Div.LastSourced, actionStrings(res.Actions[lo:res.Div.At]))
 }
 
-// restrictedManaSeeds are the pods' seeds, 1..150: the blue-artifact deck's
-// Walking Ballista paid by Grand Architect through the announced-X window first
-// shows at seed 127 of the two-seat pod.
-var restrictedManaSeeds = func() []uint64 {
+// restrictedManaSeeds are the fee pod's seeds.
+var restrictedManaSeeds = []uint64{1, 2, 3, 4, 5, 6}
+
+// restrictedManaTapXSeeds are the sources pods' seeds, 1..150: the
+// blue-artifact deck's Walking Ballista paid by Grand Architect through the
+// announced-X window first shows at seed 127 of the two-seat pod.
+var restrictedManaTapXSeeds = func() []uint64 {
 	out := make([]uint64, 150)
 	for i := range out {
 		out[i] = uint64(i + 1)
@@ -226,7 +229,7 @@ var restrictedManaSeeds = func() []uint64 {
 func restrictedManaLockstep(t *testing.T, seats int) {
 	p := newRestrictedManaPod(t, seats)
 	sum := restrictedManaCounts{byName: map[string]int{}}
-	for _, seed := range restrictedManaSeeds {
+	for _, seed := range restrictedManaTapXSeeds {
 		res, c := p.play(t, seed, 40)
 		if res.Div != nil {
 			restrictedManaFail(t, seed, res)
@@ -268,7 +271,7 @@ func TestRestrictedManaLastResortMutation(t *testing.T) {
 	p := newRestrictedManaPod(t, 4)
 	dirac.DebugRestrictedLifeFirst = true
 	defer func() { dirac.DebugRestrictedLifeFirst = false }()
-	for _, seed := range restrictedManaSeeds {
+	for _, seed := range restrictedManaTapXSeeds {
 		if res, _ := p.play(t, seed, 40); res.Div != nil {
 			t.Logf("mutation diverged at %d: %s %s", res.Div.At, res.Div.What, res.Div.Field)
 			return
