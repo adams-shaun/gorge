@@ -734,6 +734,23 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		return
 	}
 	av.addUnits(mask, s.srcYieldAt(k, sl, pc))
+	if pc.manaChosen {
+		// gorge's plain PotentialMana over-bound prices every Produced$
+		// Chosen unbounded in every colour (potential.go producedOpen; only
+		// the payment bound's addPotentialChosenColour prices the exact
+		// chosen colour), and its offer gate prices an activation against
+		// that bound (legal_walk_autopay.go autoPayOffer's PotentialMana
+		// probe). The census unit above prices the chosen production at the
+		// colour it chose, so a play only the bound's open fold pays -- a
+		// coloured pip no untapped source makes (Citadel Gate's {T}: Add {W}
+		// or one mana of the chosen color beside a watcher-deferred tap,
+		// the {R} pump of the Aura on an opponent's creature) -- fell out of
+		// the candidates. The bound's units list it; the route search prices
+		// the play for real (scriptRouteDrop's tapsDef arm), as gorge's
+		// census-gap arm prices the activation its probe promised
+		// (potentialCensusFallback).
+		av.addUnits(uint8(colOrC), potentialOpenUnits)
+	}
 	if k.gen.anyTapExtra {
 		xv := s.srcExtra(k, sl, pc)
 		for c := range xv {
