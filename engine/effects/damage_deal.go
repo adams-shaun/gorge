@@ -325,17 +325,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// ReplaceDyingDefined$) the flush could not honour.
 	inherits := (len(c.PendingDamage) > 0 || c.DamageMapOpen) && !remember && dp.ReplaceDyingDefined == ""
 	if (dp.DamageMap || inherits) && !divided && len(multiSources) < 2 {
-		for _, t := range definedDelayRememberedTargets(h, c, sa) {
-			if t.IsPlayer {
-				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
-					target: state.Target{Player: t.Player, IsPlayer: true}})
-				continue
-			}
-			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
-					target: state.Target{Obj: t.Obj}})
-			}
-		}
+		dying = markDamageMap(h, c, sa, rider, dying)
 		return
 	}
 	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
@@ -517,4 +507,25 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 		h.SetDamageSource(prev)
 	}
 	return emittedAny
+}
+
+// markDamageMap marks one DamageMap$ call's recipients on c.PendingDamage and
+// returns dying extended by every marked permanent. The damage is marked, not
+// dealt, so the deferred registerReplaceDying must still see each permanent
+// this resolution targeted, or the exile-instead replacement never exists when
+// DB$ DamageResolve flushes the mark and the target dies (CR 614.1a, 614.4).
+func markDamageMap(h Host, c *Ctx, sa *cards.SA, rider damageRider, dying []state.Target) []state.Target {
+	for _, t := range definedDelayRememberedTargets(h, c, sa) {
+		if t.IsPlayer {
+			c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
+				target: state.Target{Player: t.Player, IsPlayer: true}})
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+			c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
+				target: state.Target{Obj: t.Obj}})
+			dying = append(dying, state.Target{Obj: t.Obj})
+		}
+	}
+	return dying
 }
