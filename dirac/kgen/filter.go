@@ -204,8 +204,9 @@ const (
 	spellMayhem    = 6 // CastSa Spell.Mayhem: cast for its mayhem cost (gorge FlagMayhem; a copy reads false)
 	spellYourGrave = 7 // wasCastFromYourGraveyard: cast from a graveyard by the reading player (a mana restriction only)
 	spellNot       = 16
-	spellGrave     = 8 // wasCastFromGraveyard: cast from a graveyard, any caster (gorge ObjectWasCastFromGraveyard: the zone, a keyword cast included)
-	spellLibrary   = 9 // wasCastFromYourLibrary: cast from a library by the caster (gorge castOriginTokens; a library cast is always from the caster's own library)
+	spellGrave     = 8  // wasCastFromGraveyard: cast from a graveyard, any caster (gorge ObjectWasCastFromGraveyard: the zone, a keyword cast included)
+	spellForetold  = 10 // Condition$ Foretold: cast for its foretell cost (gorge FlagForetold; a copy reads false)
+	spellLibrary   = 9  // wasCastFromYourLibrary: cast from a library by the caster (gorge castOriginTokens; a library cast is always from the caster's own library)
 )
 
 // cmpWasCast's CmpN (kernel PredWasCastEnter's PredN): the origin the entering

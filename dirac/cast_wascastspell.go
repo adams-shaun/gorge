@@ -64,9 +64,9 @@ func (s *State) spellEntryOf(o Obj) *stackEntry {
 // wasCastSpell is PredWasCastSpell for object o, read by player you.
 func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 	n := fl.PredN
-	cast, from, by, may, resolving, mayhem := false, kop.ZoneNone, uint8(0), false, false, false
+	cast, from, by, may, resolving, mayhem, foretold := false, kop.ZoneNone, uint8(0), false, false, false, false
 	if e := s.spellEntryOf(o); e != nil && (s.objs[o].of&ofCopy == 0 || e.prov&7 != 0) { // a copy that was cast (prepared, CR 707.12) records its origin zone
-		cast, from, by, may, resolving, mayhem = true, kop.Zone(e.prov&7), e.ctrl, s.mayPlaySpell(e), e == &s.res.e, e.trigPl == trigPlMayhem
+		cast, from, by, may, resolving, mayhem, foretold = true, kop.Zone(e.prov&7), e.ctrl, s.mayPlaySpell(e), e == &s.res.e, e.trigPl == trigPlMayhem, e.trigPl == trigPlForetold
 		if DebugWasCastFromHandIgnored {
 			from, by = kop.ZoneHand, you
 		}
@@ -112,6 +112,10 @@ func (s *State) wasCastSpell(fl *kop.Filter, o Obj, you uint8) bool {
 		// reading player (gorge castOriginTokens: byYou; a library cast is
 		// always from the caster's own library)
 		r = cast && from == kop.ZoneLibrary && by == you
+	case 10:
+		// Condition$ Foretold (gorge FlagForetold): the cast paid the foretell
+		// cost, the entry mark kw_foretell.go's cast sets; a copy never carries it
+		r = cast && foretold
 	case 5:
 		r = cast && may // CastSa Spell.MayPlaySource: through a play permission (trig_mayplaystatic.go)
 	case 6:

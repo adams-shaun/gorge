@@ -30,3 +30,21 @@ func devotionValue(cols string) (lValue, error) {
 	}
 	return lValue{Kind: vDevotion, N: mask}, nil
 }
+
+// devotionHead lowers the Devotion.<colour>[.<colour>] head and its
+// two-colour spelling DevotionDual.<colour>.<colour> (gorge
+// evalCountBodyDottedDevotionDual: one scan over the union mask, the
+// Devotion head's read). ok is false for any other head.
+func devotionHead(rest string) (v lValue, ok bool, err error) {
+	for _, pre := range [...]string{"Devotion.", "DevotionDual."} {
+		if cols, found := strings.CutPrefix(rest, pre); found {
+			if pre == "DevotionDual." && len(strings.Split(cols, ".")) != 2 {
+				// gorge fails a Dual head without exactly two colours closed
+				return lValue{}, true, fmt.Errorf("Count$%s%s", pre, cols)
+			}
+			v, err = devotionValue(cols)
+			return v, true, err
+		}
+	}
+	return lValue{}, false, nil
+}
