@@ -291,14 +291,14 @@ func (e *Engine) targetAsk() bool {
 		return false
 	}
 	f := o.Face()
-	sa := e.castStageSA(pc, o, f)
+	sa := supportTargetSA(e.castStageSA(pc, o, f), f)
 	// A Fuse half that declares no targets (Alive // Well's Well) is skipped:
 	// advance to the next stage while one remains, so a half with a target
 	// requirement is still asked. When no stage declares targets the flow
 	// proceeds directly to payment, exactly as a single targetless cast does.
 	for sa != nil && !effects.TargetsOf(sa).Targeted() && e.castHasNextTargetStage(pc, o) {
 		pc.targetStage++
-		sa = e.castStageSA(pc, o, f)
+		sa = supportTargetSA(e.castStageSA(pc, o, f), f)
 	}
 	if sa == nil || !effects.TargetsOf(sa).Targeted() {
 		return false
