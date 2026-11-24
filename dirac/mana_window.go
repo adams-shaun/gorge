@@ -2688,13 +2688,8 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 // scriptPrefixAny is scriptPrefix with a Courtyard, a Taps-deferred source
 // or a counter-cost gap among the gaps: the search's script, played.
 func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) {
-	// The listing read is the plain walk's, without the activation's own
-	// script census (availNoActScript, as scriptPrefix's other arms read it):
-	// actScriptPays lists an activation only this search funds (Fertile Ground
-	// on a deferred Manor Gate paying a Blood token's {1}), so reading it here
-	// would skip the taps gorge's prefix search makes before the play.
 	var d Decision
-	s.plainOptions(k, &d, availNoActScript)
+	s.plainOptions(k, &d, 0)
 	if hasOption(&d, a) || s.lifePlannedPlay(k, p, a) {
 		return
 	}

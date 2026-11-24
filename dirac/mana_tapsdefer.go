@@ -723,14 +723,6 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		}
 	}
 	mask := s.srcMaskAt(pc, sl)
-	if pc.manaChosen && s.g.availX&availGaps != 0 {
-		// gorge's relaxed alternative of a Chosen production is all five
-		// colours: its ProducedCounts reads no source, so not the recorded
-		// choice (potential_plan.go relaxedAddProduction). A Manor Gate that
-		// chose black under Fertile Ground relaxes to any colour, and the
-		// search then funds Ashling's {R}{R} with the extra's {R}.
-		mask |= 0x1f
-	}
 	if col, ok := tapsDeferPainCol(k, pc, mask); ok {
 		mask |= 1 << col // the paid-life ability is one more relaxed alternative of the source
 	}
