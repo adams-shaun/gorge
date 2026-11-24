@@ -824,6 +824,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.encoreExt(k, in) // kw_encore.go
 	case kop.ExtExchangeLife:
 		return s.exchangeLifeExt(k, in) // act_exchangelife.go
+	case kop.ExtExileFaceDown:
+		return s.exileFaceDownExt(k, in) // zone_exilefacedownmove.go
 	case kop.ExtMeld:
 		return s.meldExt(k, in) // face_meld.go
 	case kop.ExtMonarchJail:
