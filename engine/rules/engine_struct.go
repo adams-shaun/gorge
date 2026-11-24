@@ -59,7 +59,7 @@ type Engine struct {
 	StaticTriggerHook func(p state.PlayerID, source state.ObjID, sa *cards.SA) `clone:"hook"`
 
 	// CoinFlipHook, when non-nil, supplies a random coin flip's result
-	// (effects.HostForcedCoinFlip via ForcedCoinFlip): forced=false draws
+	// (effects.TapeRun.ForcedCoinFlip, via Engine.TapeRun): forced=false draws
 	// from the seeded RNG as always. Only the oracle runner sets it, to
 	// replay a lowered scenario's recorded flips (coin_flips). It emits
 	// nothing, is not copied by Clone, and a nil hook -- every host, replay
