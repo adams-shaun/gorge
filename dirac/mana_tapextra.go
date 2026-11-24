@@ -881,7 +881,7 @@ func (s *State) filterOwnTakes(k *prep, a *avail, sl Slot, pc *pcard) bool {
 // case addPainAvail holds out or counts in nModal is left as it stands.
 func (s *State) removePainAvail(k *prep, a *avail, sl Slot, pc *pcard) {
 	p := s.perms[sl].ctrl
-	m := s.painAvailMask(k, pc, p)
+	m := s.painAvailMask(pc, p)
 	n := uint8(1)
 	if pc.painOnly {
 		n = max(pc.manaN, 1)

@@ -59,19 +59,6 @@ func (s *State) lifeFloorTake(k *prep, p uint8, n int) int {
 	return n
 }
 
-// painSurvives is a pain unit's census gate: whether p survives a rider's
-// damage loss of n. The ReplLifeReduced damage floors clamp the loss
-// (IsDamage$ True: lifeFloorTake), so a floored rider costs the payer no game
-// and gorge's census prices the activation's bare {T} alone beneath it; a
-// paid life is never floored (CR 119.4), so its callers keep the plain
-// "painN < life" guard instead.
-func (s *State) painSurvives(k *prep, p uint8, n int) bool {
-	if k.gen != nil && k.gen.anyRepl2&rb2LifeFloor != 0 {
-		n = s.lifeFloorTake(k, p, n)
-	}
-	return int(s.pl[p].life) > n
-}
-
 // loseLifeDmg is loseLife for a damage-caused loss: the damage floors apply
 // first (IsDamage$ True), the commit and its triggers the ordinary loseLife
 // (the floor's rewrite is the damage event's own, gorge foldDamage's

@@ -426,14 +426,9 @@ func painFlexAll(pc *pcard, xc, xp [kop.NumManaKinds]uint8) uint8 {
 // painAvailMask is a pain source's production mask for the offer gate
 // (availFor): a painland makes its normal ability's mana and, while one
 // point of its damage would not be lethal, its colours; a pain-only source
-// only the latter. A damage rider the payer survives through a damage floor
-// (painSurvives: Fortune Thief at 1 life) counts too, but only while no mana
-// floats (measured, tail-15 pair 40): gorge offers Nantuko Monastery's
-// threshold {G} on that census, then its prefix script taps the filter's {C}
-// and the painland itself, the raw walk listing the play once the painland's
-// mana floats. The summed guard over several painful units is the
+// only the latter. The summed guard over several painful units is the
 // planner's (the option walk counts each unit alone).
-func (s *State) painAvailMask(k *prep, pc *pcard, p uint8) uint8 {
+func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 	prim := uint8(pc.manaCol)
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
@@ -457,8 +452,7 @@ func (s *State) painAvailMask(k *prep, pc *pcard, p uint8) uint8 {
 	if !pc.painOnly {
 		m = prim
 	}
-	if s.g.availX&availWinCol != 0 && !pc.painLife || int(pc.painN) < int(s.pl[p].life) ||
-		!pc.painLife && poolTotal(&s.pl[p]) == 0 && s.painSurvives(k, p, int(pc.painN)) {
+	if s.g.availX&availWinCol != 0 && !pc.painLife || int(pc.painN) < int(s.pl[p].life) {
 		m |= uint8(pc.painCol) & 0x3f
 	}
 	return m
@@ -505,7 +499,7 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 	// the unless / ward window counts a painland's paid-life colour.
 	if s.g.availX&(availWin|availWinCol) == 0 || !pc.painLife ||
 		(s.g.availX&availWin == 0 && !pc.painOnly) {
-		return s.painAvailMask(k, pc, p)
+		return s.painAvailMask(pc, p)
 	}
 	var ord [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], ord[:], 0)
@@ -525,7 +519,7 @@ func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
 			committed += int(xp.painN)
 		}
 	}
-	m := s.painAvailMask(k, pc, p)
+	m := s.painAvailMask(pc, p)
 	if !paid {
 		if pc.painOnly {
 			return 0
@@ -790,7 +784,7 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 			prim = 0
 		}
 		var ec uint8
-		if modal && s.painAvailMask(k, pc, p)&^(1<<kop.C) != 0 {
+		if modal && s.painAvailMask(pc, p)&^(1<<kop.C) != 0 {
 			ec = s.painExtraC(k, sl, pc)
 		}
 		g := uint8(0)

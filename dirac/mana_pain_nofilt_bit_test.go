@@ -21,16 +21,16 @@ func TestPainAvailMaskBareGapsIsNotTheWindow(t *testing.T) {
 
 	sc.s.pl[0].life = 20
 	sc.s.g.availX = availPlain | availGaps | availNoFilt
-	if got, want := sc.s.painAvailMask(sc.k, painland, 0), uint8(painland.manaCol)|uint8(painland.painCol)&0x3f; got != want {
+	if got, want := sc.s.painAvailMask(painland, 0), uint8(painland.manaCol)|uint8(painland.painCol)&0x3f; got != want {
 		t.Errorf("painland mask %#x, want %#x (its {C} and its colours)", got, want)
 	}
 	sc.s.pl[0].life = 1
-	if got := sc.s.painAvailMask(sc.k, confluence, 0); got != 0 {
+	if got := sc.s.painAvailMask(confluence, 0); got != 0 {
 		t.Errorf("lethal pain-only mask %#x, want 0 (the planner's guard)", got)
 	}
 	// the window itself still takes its own branch
 	sc.s.g.availX = availWin
-	if got := sc.s.painAvailMask(sc.k, confluence, 0); got == 0 {
+	if got := sc.s.painAvailMask(confluence, 0); got == 0 {
 		t.Errorf("window pain-only mask is 0, want its colours with no guard")
 	}
 	sc.s.g.availX = 0
