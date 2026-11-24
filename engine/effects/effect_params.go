@@ -202,7 +202,7 @@ type effectTriggerLine struct {
 	Execute         string
 	OptionalDecider string
 	ThisTurn        string
-	// OneOff is OneOff$ True; Static is a non-empty Static$.
+	// OneOff is OneOff$ True; Static is Static$ True.
 	OneOff bool
 	Static bool
 	// Phase is Phase$ as written; ValidPlayer$ trimmed.
@@ -237,7 +237,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		OptionalDecider: strings.TrimSpace(tr.ParamStr(cards.PKOptionalDecider)),
 		ThisTurn:        strings.TrimSpace(tr.ParamStr(cards.PKThisTurn)),
 		OneOff:          isTrue(tr.ParamStr(cards.PKOneOff)),
-		Static:          strings.TrimSpace(tr.ParamStr(cards.PKStatic)) != "",
+		Static:          isTrue(tr.ParamStr(cards.PKStatic)),
 		Phase:           tr.ParamStr(cards.PKPhase),
 		ValidPlayer:     strings.TrimSpace(tr.ParamStr(cards.PKValidPlayer)),
 		FirstCombat:     isTrue(tr.ParamStr(cards.PKFirstCombat)),
@@ -258,4 +258,28 @@ func EffectKnownKeys() []string { return slices.Clone(effectKnownKeys[:]) }
 // `Name$ Emblem — <name>` (115 raw lines, all Duration$ Permanent).
 func isEmblemEffectName(name string) bool {
 	return strings.HasPrefix(name, "Emblem")
+}
+
+// effectStaticSuffix is the bare "|ST" flag a Static$ True Effect Triggers$
+// body carries on its DelayedRegister text, so events.Apply sets
+// DelayedTrigger.Static and rules resolves it inline (CR 611.2a duration
+// bookkeeping, never a stack object). Every arm places it before
+// |BN=/|EF/|RN= and before |CN=/|CC=: the decode strips those first, and a
+// |ST after them would be swallowed by their LastIndex.
+func effectStaticSuffix(tl effectTriggerLine) string {
+	if tl.Static {
+		return "|ST"
+	}
+	return ""
+}
+
+// effectPhaseFlags is a Phase Triggers$ body's bare flags: "|1C" for
+// FirstCombat$ True, then effectStaticSuffix's "|ST". The decode strips |ST
+// before |1C, so the order is fixed.
+func effectPhaseFlags(tl effectTriggerLine) string {
+	flags := ""
+	if tl.FirstCombat {
+		flags = "|1C"
+	}
+	return flags + effectStaticSuffix(tl)
 }
