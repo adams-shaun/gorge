@@ -447,6 +447,10 @@ type CardDef struct {
 	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
 	// and can't block while it has a +1/+1 counter on it.
 	Unleash bool
+	// Riot is printed Riot (CR 702.136; kop.KwRiot): the permanent enters
+	// with its controller's choice of a +1/+1 counter or haste (the
+	// as-enters ask, dirac/kw_riot.go).
+	Riot bool
 	// Flanking is a printed bare K:Flanking (CR 702.25a; gorge's expansion
 	// trigger lowers beside it): the withoutFlanking filter word reads it
 	// (kop.W7WithoutFlanking, dirac/filter_flanking.go).

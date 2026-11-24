@@ -929,8 +929,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(kind("trigger_cost_pay"), top, RefNone, 0), true
 		}
 		return Pack(kind("trigger_cost_decline"), top, RefNone, 0), true
-	case dirac.ChGenUnleash:
-		return unleashCanon(src, mode), true
+	case dirac.ChGenUnleash, dirac.ChGenRiot:
+		return asEntersCanon(r.D.Sub == dirac.ChGenRiot, src, mode), true
 	case dirac.ChGenAddOrRemove:
 		return r.aorChoice(Ref(src), mode)
 	case dirac.ChGenKczZone:

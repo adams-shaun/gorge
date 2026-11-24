@@ -1267,7 +1267,7 @@ func (lc *lowerCtx) lowerKeywords() {
 		case head == "Ascend" && param == "": // CR 702.131: the blessing scans and grant (dirac/kw_ascend.go)
 			lc.out.Ascend = true
 		case head == "Unleash" && param == "": // CR 702.86: the as-enters ask and the block gate (lower_unleash.go)
-			lc.lowerUnleash()
+			lc.lowerUnleash(node)
 		case lc.lowerParamKeyword(node, head, param): // Bloodthirst, Dredge (lower_dredge.go)
 		case head == "Wither" && param == "":
 			lc.out.Wither = true // CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
