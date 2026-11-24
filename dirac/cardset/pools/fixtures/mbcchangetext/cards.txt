@@ -2,9 +2,17 @@
 # of turn), a GenericChoice whose two bodies are
 # DB$ ChangeText (a colour word, a basic land type), beside creatures and the
 # basic lands to cast it and to be its targets
-# (dirac/oracle/mbc_changetext_test.go)
+# (dirac/oracle/mbc_changetext_test.go); the direct SP$ ChangeText spellings
+# over "target spell or permanent" (Alter Reality, Glamerdye, Magical Hack,
+# Sleight of Mind, Spectral Shift's Charm modes:
+# dirac/oracle/mbc_changetext_direct_test.go)
 Mind Bend
 Whim of Volrath
+Alter Reality
+Glamerdye
+Magical Hack
+Sleight of Mind
+Spectral Shift
 Grizzly Bears
 Hill Giant
 Savannah Lions

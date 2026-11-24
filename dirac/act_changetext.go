@@ -20,7 +20,11 @@ import (
 // StallTextChange (unmodelled) rather than answering from the unchanged
 // face. from == to is a no-op in gorge too.
 //
-// The target slot is parked in res.peek[0] and the first pick in res.chosen
+// A direct ChangeText (Magical Hack, Sleight of Mind) may target a spell
+// (kop.TgtPermOrSpell): the same rule reads the spell's card, whose face a
+// later resolution reads (CR 400.7a carries the change onto the permanent).
+//
+// The target object is parked in res.peek[0] and the first pick in res.chosen
 // (pick mode + 1, 0 = none yet).
 
 // raChangeText is the ask of the two word picks.
@@ -32,8 +36,8 @@ const StallTextChange = 190
 
 // ChangeTextStats counts the mechanism for the lockstep tests: Asked is each
 // ChangeText resolved, Reads those whose target's face read the "from" word
-// (stalled).
-var ChangeTextStats struct{ Asked, Reads atomic.Int64 }
+// (stalled), Spells those whose target was a spell on the stack.
+var ChangeTextStats struct{ Asked, Reads, Spells atomic.Int64 }
 
 func init() {
 	stallNames[StallTextChange] = "textchange"
@@ -47,11 +51,23 @@ const changeTextTo = 16
 //
 //go:noinline
 func (s *State) changeTextStart(k *prep, in *kop.Instr) bool {
-	sl := s.objRef(k, in.Obj)
-	if sl == NoSlot {
+	o := s.objRefObj(in.Obj)
+	if o == NoObj {
 		return true
 	}
-	s.res.peek[0] = Obj(sl) // code-ok: the slot the picks apply to
+	switch s.objs[o].zone {
+	case kop.ZoneBattlefield:
+		if s.objRef(k, in.Obj) == NoSlot {
+			return true
+		}
+	case kop.ZoneStack: // a direct ChangeText's spell target (kop.TgtPermOrSpell)
+		if i := s.stackIndexOf(o); i < 0 || s.stack[i].kind != seSpell {
+			return true
+		}
+	default:
+		return true
+	}
+	s.res.peek[0] = o // the object the picks apply to
 	s.res.chosen = 0
 	s.res.ask, s.res.askP = raChangeText, s.res.e.ctrl
 	return false
@@ -108,13 +124,24 @@ func (s *State) applyAskChangeText(k *prep, a Action) bool {
 		from = first
 	}
 	from %= changeTextTo
-	sl := Slot(s.res.peek[0]) // code-ok: the slot changeTextStart parked
 	ChangeTextStats.Asked.Add(1)
-	if from < 10 && k.t.Cards[s.cardAt(sl)].TextWords&(1<<uint(from)) != 0 {
+	if s.objs[s.res.peek[0]].zone == kop.ZoneStack {
+		ChangeTextStats.Spells.Add(1)
+	}
+	if from < 10 && k.t.Cards[s.changeTextCard(s.res.peek[0])].TextWords&(1<<uint(from)) != 0 {
 		ChangeTextStats.Reads.Add(1)
 		s.capFull(StallTextChange)
 		return true
 	}
 	s.continueRes(k, 0)
 	return true
+}
+
+// changeTextCard is the card whose face the change rewrites: a permanent's
+// (copy-aware, cardAt) or a spell's on the stack.
+func (s *State) changeTextCard(o Obj) CardID {
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+		return s.cardAt(ob.slot)
+	}
+	return s.objs[o].card
 }
