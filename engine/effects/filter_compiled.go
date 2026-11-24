@@ -193,6 +193,7 @@ func compilePred(raw string) compiledPred {
 		}
 		c.pos, c.neg = x, true
 	}
+	c.pos = cardQualifiedSelfTerm(c.pos)
 	p := c.pos
 	if specialPositiveToken(p) {
 		c.stage = csSpecial
