@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -40,4 +41,27 @@ func (e *Engine) rememberedMovedSinceFire(stamps []state.TargetStamp) []state.Ob
 		}
 	}
 	return out
+}
+
+// sourceMovedSinceFire reports that the ability on the stack was put there
+// while its source was off the battlefield and the source has changed zones
+// since (CR 400.7): Sword of the Meek's graveyard trigger resolving after an
+// earlier copy of it already returned the Sword finds no card to attach. Like
+// rememberedMovedSinceFire it is read as the ability starts to resolve, so a
+// move the resolution itself makes ("return it, then attach it") is not
+// counted.
+func (e *Engine) sourceMovedSinceFire(stack *state.Object) bool {
+	if stack == nil || !stack.PushSourceStamped || stack.PushSourceOnBattlefield {
+		return false
+	}
+	src := e.G.Obj(stack.Source)
+	return src != nil && src.ZoneGen != stack.PushSourceZoneGen
+}
+
+// bindMovedSinceFire sets the two resolution-start CR 400.7 reads on tc: the
+// stamped remembered objects that changed zones since the trigger fired, and
+// whether its own source did. stack is the ability's stack object.
+func (e *Engine) bindMovedSinceFire(tc *effects.TriggerContext, stack *state.Object) {
+	tc.TriggerRememberedMoved = e.rememberedMovedSinceFire(tc.TriggerRememberedStamps)
+	tc.TriggerSourceMoved = e.sourceMovedSinceFire(stack)
 }
