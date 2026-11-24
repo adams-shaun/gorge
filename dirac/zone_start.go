@@ -111,6 +111,24 @@ func startObjs(decks [MaxSeats][]CardID, ns int, st *Start) (off [MaxSeats]int) 
 	return off
 }
 
+// startRefuseNonPermanents panics on a Battlefield card whose entering face
+// (the back face when BackFace names it) is an instant or sorcery: never a
+// permanent (CR 304.4, 307.4), as gorge's StartSpec.Validate refuses it.
+func startRefuseNonPermanents(t *kop.Table, decks [MaxSeats][]CardID, st *Start) {
+	for p := range st.Seats {
+		sd := &st.Seats[p]
+		for _, i := range sd.Battlefield {
+			c := decks[p][i]
+			if f := t.Cards[c].Faces; startHas(sd.BackFace, i) && len(f) > 1 {
+				c = f[1]
+			}
+			if t.Cards[c].Types&(kop.TInstant|kop.TSorcery) != 0 {
+				panic("kernel: start battlefield card is not a permanent")
+			}
+		}
+	}
+}
+
 func startHas(l []int, i int) bool {
 	for _, x := range l {
 		if x == i {
@@ -148,6 +166,7 @@ func (s *State) applyStart(decks [MaxSeats][]CardID, st *Start) {
 	ns := int(s.nSeats())
 	off := startObjs(decks, ns, st)
 	k := s.k()
+	startRefuseNonPermanents(k.t, decks, st)
 	for p := range st.Seats {
 		s.startToLibrary(uint8(p))
 	}

@@ -514,6 +514,9 @@ func (c *Corpus) ScenarioMatchup(sc *Scenario, mulligans int) (*Matchup, error) 
 	for p := range plans {
 		decks[p] = plans[p].deck
 	}
+	if err := spec.Validate(decks); err != nil {
+		return nil, fmt.Errorf("scenario %s: %w", sc.Focus, err)
+	}
 	var m *Matchup
 	var err error
 	if sc.Players == 2 {
