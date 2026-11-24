@@ -224,20 +224,28 @@ func (s *State) btSpellTarget(k *prep, o Obj, e *stackEntry) {
 	})
 }
 
-// btSpellSrcOK is the source gate of a ValidSource$ Spell form. Gorge's bare
-// Spell base (effects matchesBaseSpell) is any object on the stack, so an
-// ability or a triggered ability targeting the permanent matches it too;
+// btSpellSrcOK is the source gate of a ValidSource$ Spell form. A spell is a
+// card on the stack (CR 112.1), while an activated or triggered ability is not
+// a spell (CR 113.3b/c), so every Spell spelling requires a spell stack entry.
 // Spell.YouCtrl compares the stack object's controller with the listener's,
 // and a type word (Spell.Aura, Instant,Sorcery) reads the object's card face,
 // which only a spell has.
 func (s *State) btSpellSrcOK(k *prep, l trigListener, a *kop.Ability, e *stackEntry) bool {
+	// A spell is a card on the stack (CR 112.1); an activated or triggered
+	// ability is not a spell (CR 113.3b/c). Every TrigNSrcSpell spelling --
+	// the bare Spell base, Spell.YouCtrl/.OppCtrl (Whose), and the typed
+	// forms (Filter2) -- therefore requires a spell stack entry. Gorge's
+	// effects.matchesBaseSpell draws the same line.
+	if e.kind != seSpell {
+		return false
+	}
 	if a.Trig.Whose == kop.WhoseYou && e.ctrl != l.ctrl {
 		return false
 	}
 	if a.Trig.Filter2 == 0 {
 		return true
 	}
-	return e.kind == seSpell && s.matchCardAt(k, a.Trig.Filter2, e.card, e.ctrl, l.ctrl, e.obj)
+	return s.matchCardAt(k, a.Trig.Filter2, e.card, e.ctrl, l.ctrl, e.obj)
 }
 
 // DebugSrcCtrlListener is the lockstep mutation of kop.TrigNSrcCtrl: the
