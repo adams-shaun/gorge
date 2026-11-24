@@ -1840,11 +1840,9 @@ func (s *State) finishBuild(k *prep) {
 		// (cast_commit.go), leaving the taps and floating mana; the spell
 		// build rechecks the same at bsCosts. The PayLife<X> form (owed 0) is
 		// bounded by the X ask.
-		if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 {
-			if owed := lifeCostOwed(pc); owed > 0 && int(s.pl[SeatIx(e.ctrl)].life) < owed {
-				s.reverseCast(k)
-				return
-			}
+		if s.buildLifeShort(k, e.ctrl) { // a LifeIdent part too (cost_lifeident.go)
+			s.reverseCast(k)
+			return
 		}
 		s.payAbilityCosts(k, &e)
 		if k.phyMana {

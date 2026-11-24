@@ -2922,6 +2922,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 						c.LifeBy = &v
 						continue
 					}
+					if lc.lifeIdentCost(&c, x) {
+						continue // the payer's commanders' colour count (lower_lifeident.go)
+					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
 				if !lc.lifeXSpell && !lc.actCost {
@@ -2934,7 +2937,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			n, err := strconv.Atoi(arg)
-			if err != nil || c.LifeX {
+			if err != nil || c.LifeX || c.LifeIdent {
 				return c, refuse("life cost %q", t)
 			}
 			c.PayLife = n
@@ -3475,6 +3478,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.Zone == 0 {
 				return refuse("activation zone %q", z)
 			}
+		}
+		if err := lifeIdentGate(ab, ps, cost); err != nil {
+			return err
 		}
 		if err := putLibSelfGate(ab, cost); err != nil {
 			return err

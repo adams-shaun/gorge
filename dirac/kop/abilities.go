@@ -128,6 +128,11 @@ type Ability struct {
 	// SpellCopyAllowed): an ExtCopyAbility naming its stack entry copies
 	// nothing. A table byte, not State (AbilityFlags has no free bit).
 	CantCopy bool
+	// CmdOnly: the activated ability exists only in a game of Commander
+	// (ActivationGameTypes$ naming Commander: War Room's "Activate only in
+	// a game of Commander ..."; gorge activationGameTypesOK). It is never
+	// offered in any other game. A table byte (AbilityFlags has no free bit).
+	CmdOnly bool
 	// Evidence: CollectEvidence<N> in the activation cost (CR 701.59a; gorge
 	// cast_targets.go evidenceAsk); 0 = none. A table byte: CostFlags has no
 	// free bit.
