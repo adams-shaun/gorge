@@ -1203,6 +1203,12 @@ type lStatic struct {
 	// the source has (kop.Static.GainsOf; lower_gainsof.go)
 	GainsOf *lFilter
 	Grant   []int // latent abilities the affected objects gain
+	// GrantBody: the latent ability the affected objects' granted-keyword
+	// activation runs, a 0-based index into the card's Abilities like Grant
+	// (always set when the static's kind is UnearthGrant; kop.Static.GrantBody
+	// is 1-based and 0 means none, the offer never grants it;
+	// lower_offzone.go offZoneUnearth)
+	GrantBody int
 	// GrantSt: 1 + the index in lCard.GrantedStatics of the static the
 	// affected objects gain (0 = none; lower_grantedstatic.go)
 	GrantSt int

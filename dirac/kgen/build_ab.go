@@ -1932,6 +1932,19 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "RetraceGrant" {
 		return cb.offKwGrantAbility(s)
 	}
+	if s.Kind == "UnearthGrant" {
+		ka, _, err := cb.offKwGrantAbility(s)
+		if err != nil {
+			return ka, nil, err
+		}
+		ka.Static.Kind = kop.StatUnearthGrant
+		j, ok := cb.abMap[s.GrantBody] // 0-based LIR index, like s.Grant above
+		if !ok {
+			return ka, nil, fmt.Errorf("granted unearth body %d not emitted", s.GrantBody)
+		}
+		ka.Static.GrantBody = uint8(j + 1)
+		return ka, nil, nil
+	}
 	if s.Kind == "NumLoyaltyAct" {
 		return cb.numLoyaltyActStatic(s) // static_loyalty.go
 	}

@@ -23,7 +23,7 @@ const (
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
-	sclsOffKwG                     // StatOffZoneGrant or StatRetraceGrant, an off-zone grant (kw_offkwgrant.go)
+	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant or StatUnearthGrant, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
 )
 
@@ -91,7 +91,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				m |= sclsWarpG
 			case kop.StatEscapeGrant:
 				m |= sclsEscapeG
-			case kop.StatOffZoneGrant, kop.StatRetraceGrant:
+			case kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatUnearthGrant:
 				m |= sclsOffKwG
 			}
 		}

@@ -252,6 +252,15 @@ type prep struct {
 	embalmCard     CardID
 	embalmAb       uint8
 	anyEmbalmGrant bool
+	// anyOffKwGrant: the table has a StatUnearthGrant static (prepOffKwGrant;
+	// kw_unearthgrant.go), the granted unearth offer it arms. offKwCC holds
+	// the CardManaCost-priced bodies (the affected card's own mana cost;
+	// the body bakes zero) buildCostPreRaw charges through offKwCostOr.
+	anyOffKwGrant bool
+	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
+	anyOffKwCC bool
+	offKwCC    [4]offKwBody
+	offKwCCN   uint8
 	// costObj: some card's cost forages or exiles cards from a graveyard
 	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
 	// payability and pick paths

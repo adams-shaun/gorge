@@ -1906,6 +1906,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepGrantAct(t, p)     // act_grantledger.go
 	prepSkipPhaseOne(t, p) // act_skipphase.go
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
+	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	return g
 }
 
