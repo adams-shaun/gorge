@@ -2534,14 +2534,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			alts = pay.PaymentPlanQueryAlternatives(asPayer(e), units[i])
 		}
 		for _, ma := range abs {
-			covered := false
-			for _, a := range alts {
-				if pay.SameManaAbility(a.Ma, ma) {
-					covered = true
-					break
-				}
-			}
-			if covered || manaTapGapDominated(e, p, id, ma, alts) {
+			if manaAbilityCovered(e, p, id, ma, alts) {
 				continue
 			}
 			out.complete = false
@@ -2666,6 +2659,18 @@ func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *card
 	}
 	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
 		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
+}
+
+// manaAbilityCovered reports whether the payment planner's alternatives for
+// source id already cover mana ability ma: one of them is ma itself, or ma is
+// a gap a covered alternative dominates (manaTapGapDominated).
+func manaAbilityCovered(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA, alts []pay.Alt) bool {
+	for _, a := range alts {
+		if pay.SameManaAbility(a.Ma, ma) {
+			return true
+		}
+	}
+	return manaTapGapDominated(e, p, id, ma, alts)
 }
 
 // manaTapGapDominated reports whether mana ability ma of source id is a lone
