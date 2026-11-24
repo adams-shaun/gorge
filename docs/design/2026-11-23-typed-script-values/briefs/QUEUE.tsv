@@ -7,3 +7,9 @@ cc-11-fe-refs	2	medium	cc-02-mtgish-reader
 cc-12-fe-filters	2	medium	cc-02-mtgish-reader
 cc-13-fe-values	2	medium	cc-02-mtgish-reader
 cc-14-fe-conds	2	medium	cc-02-mtgish-reader
+cc-15a-fe-actions-al	2	high	cc-10-fe-chars,cc-11-fe-refs,cc-12-fe-filters,cc-13-fe-values,cc-14-fe-conds
+cc-15b-fe-actions-mz	3	medium	cc-15a-fe-actions-al
+cc-16a-fe-rules-triggers	3	medium	cc-15a-fe-actions-al
+cc-16b-fe-statics-costs	3	high	cc-15a-fe-actions-al
+cc-20-gorgebe-skeleton	2	high	cc-10-fe-chars
+cc-31-lockstep	3	medium	cc-20-gorgebe-skeleton
