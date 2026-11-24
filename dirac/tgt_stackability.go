@@ -177,6 +177,19 @@ func (s *State) stackTgtStillLegal(e *stackEntry, i int) bool {
 	return s.stackTgtIdx(e.tgt[i], e.tver[i]) >= 0
 }
 
+// stackTgtingStill is targetStillLegal for a TgtStackTgting slot naming an
+// activated or triggered ability: the entry is still on the stack and its
+// CURRENT targets still satisfy the targeting clause (CR 115.9b), the same
+// judge the offer used. The entry is found by stack identity, since a counter
+// below it may have left the stack since placement.
+func (s *State) stackTgtingStill(k *prep, e *stackEntry, i int, t *kop.TargetSpec) bool {
+	j := s.stackTgtIdx(e.tgt[i], e.tver[i])
+	if j < 0 {
+		return false
+	}
+	return DebugCtrAbTgtOff || s.entryTgtClause(k, t, e.ctrl, &s.stack[j])
+}
+
 // counterStackTgt is OpCounter of a stack-ability target: the entry leaves
 // the stack (CR 701.5a: an ability is removed, its source untouched), its
 // controller kept for the chain's "its controller" (RefTargetController).

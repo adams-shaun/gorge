@@ -32,6 +32,9 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return !s.pl[pp].lost
 	}
 	if isStackTarget(code) {
+		if t := tspecE(k, e, i); t != nil && t.Kind == kop.TgtStackTgting {
+			return s.stackTgtingStill(k, e, i, t) // tgt_stackability.go
+		}
 		return s.stackTgtStillLegal(e, i) // tgt_stackability.go
 	}
 	if s.objs[code].ver != e.tver[i] {
@@ -42,7 +45,10 @@ func (s *State) targetStillLegal(k *prep, e *stackEntry, i int) bool {
 		return false
 	}
 	if t.Kind == kop.TgtSpellTgting || t.Kind == kop.TgtStackTgting {
-		return s.spellTgtingStill(e, code) // tgt_countershapes.go
+		// CR 115.9b: the targeting clause reads the named spell's CURRENT
+		// targets, exactly as the offer did (gorge filterTargetValidTargeting
+		// is now also legalTargets' resolution predicate).
+		return s.spellTgtingOK(k, t, e.ctrl, e.obj, code) // tgt_countershapes.go
 	}
 	src := NoSlot
 	if e.kind != seSpell {
