@@ -26,6 +26,10 @@ var DebugSiegeModeFlip bool
 // pool asks the choice; written only when a Siege's mode is answered).
 var SiegeModeAnswered atomic.Uint64
 
+// SiegeModeByIndex counts the answers by mode index (Rick's three flag
+// branches; written beside SiegeModeAnswered).
+var SiegeModeByIndex [8]atomic.Uint64
+
 // siegeModeStore records mode answer v on the permanent at sl.
 func (s *State) siegeModeStore(sl Slot, v uint8) {
 	if DebugSiegeModeFlip {
@@ -34,6 +38,7 @@ func (s *State) siegeModeStore(sl Slot, v uint8) {
 	s.perms[sl].chosen = objWord(v)
 	s.touchSl(sl)
 	SiegeModeAnswered.Add(1)
+	SiegeModeByIndex[v&7].Add(1)
 }
 
 // siegeModeRepl is runReplProgAs' OpChooseBranch C 2: the ask is queued and
@@ -45,10 +50,36 @@ func (s *State) siegeModeRepl(sl Slot, c CardID, ab uint8, pc int) {
 }
 
 // siegeModeOptions poses the mode: one choice per mode, index = mode.
-func siegeModeOptions(d *Decision) {
+func siegeModeOptions(d *Decision, n int) {
 	d.Sub = ChGenBranch
-	d.add(MakeAction(AkChoose, 0, 0, 0))
-	d.add(MakeAction(AkChoose, 0, 0, 1))
+	for m := 0; m < n; m++ {
+		d.add(MakeAction(AkChoose, 0, 0, uint8(m)))
+	}
+}
+
+// siegeModeCount is the number of modes the queued ask offers: the A of the
+// OpChooseBranch that posed it (the op before the ask's resume point; two for
+// a Siege). Rick's three flag branches are the same ask with A 3.
+func (s *State) siegeModeCount(k *prep) int {
+	a := &s.g.ask[0]
+	if a.card == NoCard || a.pc == 0 {
+		return 2
+	}
+	prog := k.t.Cards[a.card].Abilities[a.ab].Prog
+	if int(a.pc) > len(prog) || prog[a.pc-1].Op != kop.OpChooseBranch {
+		return 2
+	}
+	return int(prog[a.pc-1].A.N)
+}
+
+// replBranchSkip is OpBranch inside an as-enters program: the block runs only
+// when it is the mode the entering permanent's answer chose (the chosen byte);
+// otherwise it returns the block's length to skip.
+func (s *State) replBranchSkip(sl Slot, in *kop.Instr) int {
+	if uint8(s.perms[sl].chosen) == uint8(in.C) {
+		return 0
+	}
+	return int(in.A.N)
 }
 
 // chosenModeOf is ExChosenMode: the source permanent's mode, 255 off the
