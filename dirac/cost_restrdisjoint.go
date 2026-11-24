@@ -27,7 +27,7 @@ func (s *State) actRestrDisjoint(k *prep, sl Slot, a *kop.Ability, cost *kop.Man
 		s.restrAvailAdd(p, m, &t)
 	}
 	if k.restrSrc && k.gen != nil {
-		t, _, _ = s.restrSrcAvail(k, p, d, &t, skip)
+		t, _, _ = s.restrSrcAvail(k, p, d, &t, skip, nil, 0)
 	}
 	t.ungr = av.ungr
 	return s.costPartDisjointD(k, p, sl, &a.Cost, cost, &t, pm, &d)

@@ -935,6 +935,14 @@ type utype struct {
 	// pick: an all-at-once source's reflected pick (srcEachPick): the unit
 	// is one mana of one of mask, beside the fixed production xv
 	pick bool
+	// fee, feeCol, feeN: a restricted mana-fee alternative's activation fee
+	// (Castle Garenbrig's "{2}{G}{G}, {T}", kop.RestrictedManaCostShape): the
+	// activation pays feeN pips of feeCol and fee generic mana from the
+	// floating mana before the production joins (CR 605.3b;
+	// mana_restrictedcost.go). Zero: no fee.
+	fee    uint8
+	feeCol uint8
+	feeN   uint8
 }
 
 type planner struct {
@@ -988,6 +996,15 @@ type planner struct {
 	// life: the payer's life, the lethal guard on summed pain
 	pairs bool
 	life  int
+	// anyFee: some type is a restricted mana-fee alternative (utype.fee);
+	// fpool is the pool the fee is charged against, maxFee the largest fee's
+	// mana value (mana.go feeOwed)
+	anyFee bool
+	fpool  [kop.NumManaKinds]int
+	maxFee int
+	// cpips: the cost's pips (tapNeed), the mana a fee's generic leaves to
+	// the cost while it can (feeClaim, takeFeeGeneric)
+	cpips [kop.NumManaKinds]uint8
 	// tapsIn: the plan also taps the sources a Taps watcher defers (the
 	// second pass of plan, mana_tapsdefer.go)
 	tapsIn bool
@@ -1170,11 +1187,13 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 	pl := &s.pl[p]
 	mv := cost.MV() + cost.XAmount(x)
 	pk.anyColor = anyColor
+	pk.cpips = cost.Pips
 	pk.need = [kop.NumManaKinds]int{}
 	pk.needAny = 0
 	poolTot := 0
 	for c := 0; c < kop.NumManaKinds; c++ {
 		poolTot += int(pl.pool[c])
+		pk.fpool[c] = int(pl.pool[c])
 	}
 	if anyColor {
 		// coloured pips are one fungible category; {C} stays strict
@@ -1942,12 +1961,18 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					fl = painFlexAll(pc, xc, xp) // the withheld painful alternative's colours still count
 				}
 				rb := pc.restrFloat
+				fee, feeCol, feeN := pc.restrFee, pc.restrFeeCol, pc.restrFeeN
 				irr, life := restrLifeIrr(pc, unitIrr(sac, cr, noUntap))
+				if fee != 0 || feeCol != 0 {
+					// the fee is an irreversible cost (key 1): the census
+					// alternative ranks over the fee one when both pay
+					irr = uint8(min(int(irr)+int(fee)+int(feeN)+1, 255))
+				}
 				lr := sac || noUntap || life != 0
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.sameRider(rb, irr) {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.fee == fee && ty.feeCol == feeCol && ty.feeN == feeN && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -1958,7 +1983,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr, fee: fee, feeCol: feeCol, feeN: feeN}
+					if fee != 0 || feeCol != 0 {
+						pk.anyFee, pk.maxFee = true, max(pk.maxFee, int(fee)+int(feeN))
+					}
 					pk.maxXt = pk.maxXt || xt != 0
 					if int(tn)+int(xt) > pk.maxN {
 						pk.maxN = int(tn) + int(xt)
@@ -2035,6 +2063,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	rem = pk.need
 	remAny := pk.needAny
 	pk.fixedOffSeq(&rem, &remAny, &pk.bestTy, pk.bestN)
+	pk.feeRem(&rem, &remAny) // the units' colours also cover the fee pips (valid)
+	claim := pk.feeClaim()
 	// Each unit's colour is chosen in unit order; the sources are then
 	// activated with the sacrificing ones last, as gorge orders its witness
 	// (pay/plancost.go SacrificesLast): a Treasure's sacrifice that waits on a
@@ -2050,16 +2080,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			rem[col] = max(rem[col]-int(ty.n), 0)
 		}
 	}
-	nr := 0
-	for pass := 0; pass < 2; pass++ {
-		for i := 0; i < bn; i++ {
-			ty := &pk.types[pk.bestTy[i]]
-			if (ty.sac || ty.sacOnly) == (pass == 1) {
-				run[nr] = uint8(i)
-				nr++
-			}
-		}
-	}
+	pk.runOrder(bn, &run)
 	for r := 0; r < bn; r++ {
 		i := int(run[r])
 		u := best[i]
@@ -2067,6 +2088,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
+		s.planPayFee(k, p, ty, &claim, pk.anyColor)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.planNoteTap(k, sl, col)
 		}
@@ -2339,7 +2361,8 @@ func (pk *planner) assignable(r [kop.NumManaKinds]int, tys *[maxUnits]uint8, fro
 
 func (pk *planner) dfs(t int, prod int, creat int) {
 	if t == pk.nt {
-		if prod < pk.needT || !pk.valid() {
+		_, _, mv := pk.feeOwed()
+		if prod < pk.needT+mv || !pk.feeOK() || !pk.valid() {
 			return
 		}
 		pk.consider()
@@ -2355,7 +2378,7 @@ func (pk *planner) dfs(t int, prod int, creat int) {
 	}
 	for c := 0; c <= lim; c++ {
 		p := prod + c*(int(ty.n)+int(ty.xt))
-		if c > 0 && p >= pk.needT+pk.maxN && !pk.unitNeeded(ty, c) {
+		if c > 0 && p >= pk.needT+pk.maxFee+pk.maxN && !pk.unitNeeded(ty, c) {
 			break
 		}
 		ty.k = uint8(c)
@@ -2402,9 +2425,124 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 	return owed > c-1
 }
 
+// runOrder fills run with the plan's chosen units in the order they run: the
+// plain ones, then the sacrificing ones, then the fee units last (a fee is
+// paid from the pool the earlier units have filled, feeOK, CR 605.3b).
+func (pk *planner) runOrder(bn int, run *[maxUnits]uint8) {
+	nr := 0
+	for pass := 0; pass < 3; pass++ {
+		for i := 0; i < bn; i++ {
+			ty := &pk.types[pk.bestTy[i]]
+			feeTy := ty.fee != 0 || ty.feeCol != 0
+			if feeTy != (pass == 2) || pass < 2 && (ty.sac || ty.sacOnly) != (pass == 1) {
+				continue
+			}
+			run[nr] = uint8(i)
+			nr++
+		}
+	}
+}
+
+// planPayFee pays a running plan unit's mana fee from the floating pool before
+// its production joins it (CR 605.3b, 601.2h; feeOK priced it from the pool
+// and the plan's earlier units).
+func (s *State) planPayFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) {
+	if (ty.fee != 0 || ty.feeCol != 0) && !s.payPlanFee(k, p, ty, claim, anyCol) {
+		s.capFull(StallRestrSrc)
+	}
+}
+
+// feeColIdx is a WUBRG pip mask bit's kind index.
+func feeColIdx(col uint8) int {
+	for i := 0; i < 5; i++ {
+		if col&(1<<uint(i)) != 0 {
+			return i
+		}
+	}
+	return -1
+}
+
+// feeOwed is the fee the plan's chosen fee alternatives pay (utype.fee):
+// pips per kind (the pip colour only), the generic total and the fee's mana
+// value (mana_restrictedcost.go).
+func (pk *planner) feeOwed() (pips [kop.NumManaKinds]int, gen int, mv int) {
+	if !pk.anyFee {
+		return
+	}
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		k := int(ty.k)
+		if k == 0 || ty.fee == 0 && ty.feeCol == 0 {
+			continue
+		}
+		if ty.feeCol != 0 {
+			pips[feeColIdx(ty.feeCol)] += k * int(ty.feeN)
+		}
+		gen += k * int(ty.fee)
+		mv += k * (int(ty.fee) + int(ty.feeN))
+	}
+	return
+}
+
+// feeOK: the plan's chosen fee alternatives' fee is payable from the pool and
+// the non-fee units — the fee unit's own production does not pay its own fee
+// (CR 605.3b: the activation cost is paid before the ability resolves). One
+// pip colour and the generic are a two-constraint flow: the colour's pips
+// against that colour's supply, the whole fee against the total.
+func (pk *planner) feeOK() bool {
+	if !pk.anyFee {
+		return true
+	}
+	pips, _, mv := pk.feeOwed()
+	if mv == 0 {
+		return true
+	}
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pips[c] == 0 {
+			continue
+		}
+		have := pk.fpool[c]
+		for t := 0; t < pk.nt; t++ {
+			ty := &pk.types[t]
+			if ty.fee != 0 || ty.feeCol != 0 {
+				continue
+			}
+			if ty.mask&(1<<uint(c)) != 0 {
+				have += int(ty.k) * int(ty.n)
+			}
+			have += int(ty.k) * int(ty.xv[c])
+		}
+		if pips[c] > have {
+			return false
+		}
+	}
+	tot := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		tot += pk.fpool[c]
+	}
+	for t := 0; t < pk.nt; t++ {
+		ty := &pk.types[t]
+		if ty.fee != 0 || ty.feeCol != 0 {
+			continue
+		}
+		tot += int(ty.k) * (int(ty.n) + int(ty.xt))
+	}
+	return mv <= tot
+}
+
 // valid: the chosen units can cover the pips (Hall over colour subsets).
 func (pk *planner) valid() bool {
 	nd, ndAny := pk.need, pk.needAny
+	if pk.anyFee {
+		// the fee alternative's pips are the units' to cover beside the
+		// cost's; its generic takes the mana the cost's pips leave
+		// (takeFeeGeneric), so it adds no colour need (mana_restrictedcost.go)
+		pips, _, _ := pk.feeOwed()
+		for c := 0; c < kop.NumManaKinds; c++ {
+			nd[c] += pips[c]
+			ndAny += pips[c]
+		}
+	}
 	if pk.maxXt {
 		pk.fixedOff(&nd, &ndAny)
 	}

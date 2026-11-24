@@ -483,7 +483,7 @@ func (s *State) faceReachSet(k *prep, p uint8, r *kop.ManaCost, extra int, t ava
 		// total understate what the widened sources still make, which
 		// restrSrcNone's shortcut would read as no help.
 		if d := s.payDescNow(NoObj); d.class != pdAct {
-			u, multi, nm := s.restrSrcAvail(k, p, d, &t, NoSlot)
+			u, multi, nm := s.restrSrcAvail(k, p, d, &t, NoSlot, nil, 0)
 			if u.affordsMulti(r, extra, multi[:nm]) {
 				return true
 			}
@@ -643,7 +643,7 @@ func (s *State) filtMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail, anyCol
 		if d.class == pdAct {
 			skip = d.src
 		}
-		t, _, _ := s.restrSrcAvail(k, p, d, av, skip)
+		t, _, _ := s.restrSrcAvail(k, p, d, av, skip, nil, 0)
 		av = &t
 	}
 	best := -1

@@ -212,6 +212,6 @@ func (s *State) warpDeferredRestr(k *prep, p uint8, c CardID, o Obj, wc *kop.Man
 		return false
 	}
 	d := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o), instant: k.cards[c].instant || s.castFlash(k, p, c)}
-	t, multi, nm := s.restrSrcAvailD(k, p, d, av, NoSlot, true)
+	t, multi, nm := s.restrSrcAvailD(k, p, d, av, NoSlot, true, nil, 0)
 	return t.affordsMulti(wc, 0, multi[:nm])
 }

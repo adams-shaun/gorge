@@ -87,3 +87,216 @@ func (s *State) restrLifeCharge(k *prep, p uint8, t *avail, n int, used *int) bo
 	}
 	return true
 }
+
+// restrFeeCost is fee unit v's activation fee as a cost: restrFee generic
+// beside restrFeeN pips of restrFeeCol (kop.RestrictedManaCostShape's one
+// colour), zero mana when the unit carries no fee.
+func restrFeeCost(v *pcard) kop.ManaCost {
+	var m kop.ManaCost
+	m.Generic = v.restrFee
+	if v.restrFeeCol != 0 {
+		for c := 0; c < 5; c++ {
+			if v.restrFeeCol&(1<<uint(c)) != 0 {
+				m.Pips[c] = v.restrFeeN
+			}
+		}
+	}
+	return m
+}
+
+// restrFeeEmpty reports whether fee unit v's view carries no fee.
+func restrFeeEmpty(v *pcard) bool { return v.restrFee == 0 && v.restrFeeCol == 0 }
+
+// restrFeeCharge charges the fee unit's fee (restrFeeCost's) from a, the
+// mana counted beside the unit (gorge's cast window pays the fee from the
+// mana the window has already accumulated before the production joins,
+// engine/rules cast_window.go castWindowReachableAfter, CR 605.3b), and
+// reports whether it was: a fee the mana cannot pay leaves the unit out of
+// the bound. The payment the fee is charged against is priced after the
+// walk, by its own afford check over the mana the unit's production joins --
+// the charge only takes the fee's mana out (the pips first, they are
+// colour-locked; the generic from the groups the cost's pips do not need,
+// then the rest, CR 601.2h). The search over the generic's assignment is
+// bounded by a node budget and fails closed (gorge's own reach search is
+// node-bounded the same way).
+func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	if fee.MV() == 0 {
+		return true
+	}
+	if !a.affords(&fee, pipMaskOf(&fee), 0) {
+		return false // the fee is not payable from the mana counted at all
+	}
+	b := *a
+	var pipCol, pipN int
+	for c := 0; c < 5; c++ {
+		if fee.Pips[c] != 0 {
+			pipCol, pipN = c, int(fee.Pips[c])
+		}
+	}
+	if pipN > 0 && !b.removeWide(uint8(1)<<uint(pipCol), uint16(pipN)) {
+		// the pip's mana may sit in a wider group (an any-colour unit, a
+		// one-colour entry inside a multi-bit one): take the pips from the
+		// first group that holds them
+		ok := false
+		for i := 0; i < b.n; i++ {
+			if b.mask[i]&(uint8(1)<<uint(pipCol)) != 0 && b.cnt[i] >= uint16(pipN) &&
+				b.removeWide(b.mask[i], uint16(pipN)) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	if fee.Generic == 0 {
+		*a = b
+		return true
+	}
+	nodes := 0
+	if b.restrFeeSplit(int(fee.Generic), 0, cost, &nodes) {
+		*a = b
+		return true
+	}
+	return false
+}
+
+// payPlanFee pays a plan unit's activation fee (utype.fee) from the pool: the
+// pips from their colour, then the generic from the mana the payment's own
+// pips do not claim (takeFeeGeneric, CR 601.2h). claim is the plan's claimed
+// mana (feeClaim); the fee's own pips leave it as they are paid. The generic
+// takes any kind, so the fee is payable exactly when the pool holds that much
+// mana after the pips; a fee the pool cannot pay leaves the pool untouched.
+func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) bool {
+	pl := &s.pl[p]
+	tot := 0
+	for c := 0; c < kop.NumManaKinds; c++ {
+		tot += int(pl.pool[c])
+	}
+	c := -1
+	if ty.feeCol != 0 {
+		c = feeColIdx(ty.feeCol)
+		if c < 0 || int(pl.pool[c]) < int(ty.feeN) {
+			return false
+		}
+		tot -= int(ty.feeN)
+	}
+	g := int(ty.fee)
+	if g > tot {
+		return false
+	}
+	if c >= 0 {
+		pl.pool[c] -= ty.feeN
+		claim[c] = max(claim[c]-int(ty.feeN), 0)
+	}
+	takeFeeGeneric(&pl.pool, claim, anyCol, g)
+	return true
+}
+
+// feeClaim is the mana the plan's payments claim by colour: the cost's pips
+// and the pips of every chosen fee alternative. A fee's generic leaves it to
+// them while the pool holds other mana (takeFeeGeneric).
+func (pk *planner) feeClaim() (claim [kop.NumManaKinds]int) {
+	if !pk.anyFee {
+		return
+	}
+	pips, _, _ := pk.feeOwed()
+	for c := range claim {
+		claim[c] = int(pk.cpips[c]) + pips[c]
+	}
+	return
+}
+
+// feeRem adds the chosen fee alternatives' pips to the colours the units are
+// to make (valid covers them beside the cost's).
+func (pk *planner) feeRem(rem *[kop.NumManaKinds]int, remAny *int) {
+	if !pk.anyFee {
+		return
+	}
+	pips, _, _ := pk.feeOwed()
+	for c, n := range pips {
+		rem[c] += n
+		*remAny += n
+	}
+}
+
+// takeFeeGeneric takes g generic mana of an activation fee from pool (CR
+// 601.2h): first the mana the claim does not hold back, then the rest, each in
+// kind index order. The offer's restrFeeSplit prices the same rule (the
+// groups the cost's pips do not use first); taking in kind order alone spent
+// the colour the spell's own pips needed (the {U}{U} of a {7}{U}{U} creature
+// paid a Castle's generic). anyCol: the coloured claim is one fungible
+// category (spend as any colour), held from the first coloured kinds the pool
+// has.
+func takeFeeGeneric(pool *[kop.NumManaKinds]uint8, claim *[kop.NumManaKinds]int, anyCol bool, g int) {
+	hold := *claim
+	if anyCol {
+		n := 0
+		for c := 0; c < 5; c++ {
+			n += hold[c]
+			hold[c] = 0
+		}
+		for c := 0; c < 5 && n > 0; c++ {
+			hold[c] = min(n, int(pool[c]))
+			n -= hold[c]
+		}
+	}
+	for pass := 0; pass < 2 && g > 0; pass++ {
+		for c := 0; c < kop.NumManaKinds && g > 0; c++ {
+			have := int(pool[c])
+			if pass == 0 {
+				have = max(have-hold[c], 0)
+			}
+			d := min(g, have)
+			pool[c] -= uint8(d)
+			g -= d
+		}
+	}
+}
+
+// restrFeeSplit takes g generic mana for the fee from a's groups (the
+// payer's colour assignment, CR 601.2h) and reports whether some assignment
+// takes all of g. cost, when given, orders the groups: the ones its pips do
+// not draw from are tried first, so the fee's generic does not take mana the
+// payment's colour-locked pips need when another group can fund it. nodes
+// bounds the search.
+func (a *avail) restrFeeSplit(g, i int, cost *kop.ManaCost, nodes *int) bool {
+	if *nodes > 512 {
+		return false
+	}
+	*nodes++
+	if g == 0 {
+		return true
+	}
+	var pm uint8
+	if cost != nil {
+		pm = pipMaskOf(cost)
+	}
+	var ord [32]int
+	on := 0
+	for pass := 0; pass < 2 && on < len(ord); pass++ {
+		for j := 0; j < a.n && on < len(ord); j++ {
+			if j < i || a.mask[j]&0x3f == 0 || a.cnt[j] == 0 {
+				continue // no mana of a pay kind in the group
+			}
+			if (a.mask[j]&pm != 0) == (pass == 0) {
+				continue
+			}
+			ord[on] = j
+			on++
+		}
+	}
+	for x := 0; x < on; x++ {
+		j := ord[x]
+		// Try in place and restore: a copy whose address the recursive call
+		// takes would move to the heap (TestNoKernelLocalEscapes).
+		saved := *a
+		for k := min(g, int(a.cnt[j])); k > 0; k-- {
+			if a.removeWide(saved.mask[j], uint16(k)) && a.restrFeeSplit(g-k, j+1, cost, nodes) {
+				return true
+			}
+			*a = saved
+		}
+	}
+	return false
+}

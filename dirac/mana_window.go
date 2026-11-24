@@ -3188,7 +3188,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		// same restricted-inclusive total
 		if k.restrSrc {
 			d := s.payDescNow(excl)
-			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot)
+			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot, nil, 0)
 			// L is pool mana gorge's census total counts, as the
 			// (censusTotal+L) bound above; withheld is the sources' own
 			t.total = t.censusTotal()

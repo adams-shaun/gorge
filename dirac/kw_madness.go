@@ -295,7 +295,7 @@ func (s *State) madnessRelaxProven(k *prep, p uint8, o Obj, cost *kop.ManaCost) 
 	s.availForCapped(k, p, &av)
 	if k.restrSrc {
 		d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
-		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, true); nm == 0 {
+		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, true, nil, 0); nm == 0 {
 			av = t
 		}
 	}
@@ -315,7 +315,7 @@ func (s *State) madnessCountProven(k *prep, p uint8, o Obj, cost *kop.ManaCost) 
 	s.availFor(k, p, &av)
 	if k.restrSrc {
 		d := payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}
-		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, false); nm == 0 {
+		if t, _, nm := s.restrSrcAvailD(k, p, d, &av, NoSlot, false, nil, 0); nm == 0 {
 			av = t
 		}
 	}
