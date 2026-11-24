@@ -385,10 +385,26 @@ func (s *State) lose(p uint8) {
 	if s.pl[p].lost || s.cantLose(k, p) {
 		return
 	}
-	s.pl[p].lost = true
-	s.initLeft(k, p)    // CR 726.4 (act_initiative.go)
-	s.monarchLeft(k, p) // CR 725.4 (act_monarch.go)
+	s.markLost(k, p)
 	s.checkOver()
+}
+
+// markLost marks seat p lost and runs what gorge's PlayerLost emit does, at
+// every loss site (lose, the SBA life-total loss, poison, commander damage):
+// Miss Highwater's loss copy fires with the loser's battlefield read as its
+// referents (ctr_losscopy.go), then the initiative and the monarchy hand off
+// (CR 726.4, CR 725.4; act_initiative.go, act_monarch.go). Only a loss fires
+// the copy -- the sweep's later passes re-run leaveGame for a seat long gone,
+// and a record set after the loss (the contract trigger resolving once the
+// loser already left) is gorge's live registration that no later loss ever
+// fires.
+func (s *State) markLost(k *prep, p uint8) {
+	s.pl[p].lost = true
+	if k.gen != nil && k.gen.anyContract {
+		s.contractLossFire(k, p)
+	}
+	s.initLeft(k, p)
+	s.monarchLeft(k, p)
 }
 
 func (s *State) checkOver() {
@@ -673,6 +689,9 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	}
 	if s.res.active && k.gen != nil {
 		s.snapResTarget(s.perms[sl].obj) // CR 608.2h: a moved target's LKI (zone_lki.go)
+	}
+	if k.gen != nil && k.gen.anyContract {
+		s.contractSourceLeft(s.perms[sl].obj) // the |SB bound of a loss-copy Effect (ctr_losscopy.go)
 	}
 	if s.g.nchPick != 0 || coldCharmPick.count(s.cold.layout) != 0 {
 		s.charmPickLeft(sl, s.perms[sl].obj) // modal_charmpick.go: leaving empties the source's pick log (CR 400.7)

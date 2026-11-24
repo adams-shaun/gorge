@@ -39,8 +39,9 @@ func lossCopyTokens(s *State, p uint8) map[CardID]int {
 
 // TestContractLossCopiesLoserBoard: seat 1 holds a contract counter that
 // seat 0's Miss Highwater Effect put there and loses the game while the pod
-// goes on; seat 0 gets one token copy of each artifact and creature seat 1
-// controlled, none of its land, and the record is spent.
+// goes on; the fired loss copy (an abDelayed entry named on the Effect's
+// source) puts one token copy of each artifact and creature seat 1 controlled
+// under seat 0, none of its land, and the record is spent.
 func TestContractLossCopiesLoserBoard(t *testing.T) {
 	set := cardsettest.Set(t, "mbc")
 	entries := []cardset.Entry{{Name: "Miss Highwater", Count: 4}, {Name: "Birds of Paradise", Count: 10},
@@ -63,6 +64,7 @@ func TestContractLossCopiesLoserBoard(t *testing.T) {
 	if s.contractCold() == nil {
 		t.Fatal("the table keeps no contract record")
 	}
+	mhw := lossCopyEnter(t, s, k, 0, "Miss Highwater")
 	bear1 := lossCopyEnter(t, s, k, 1, "Birds of Paradise")
 	rock := lossCopyEnter(t, s, k, 1, "Sol Ring")
 	bear2 := lossCopyEnter(t, s, k, 1, "Birds of Paradise")
@@ -82,8 +84,11 @@ func TestContractLossCopiesLoserBoard(t *testing.T) {
 	if nonLand != 3 || other != 1 {
 		t.Fatalf("seat 1 holds %d artifact-or-creature permanents and %d others, want 3 and 1", nonLand, other)
 	}
+	if z := s.objs[mhw].zone; z != kop.ZoneBattlefield {
+		t.Fatalf("the Effect's source is in zone %v, want the battlefield (the |SB bound)", z)
+	}
 	s.addContract(k, 1, 1)
-	s.setContractOwed(1, 0)
+	s.setContractOwed(1, 0, mhw)
 	if c, ok := s.contractOwedBy(1); !ok || c != 0 || s.contracts(1) == 0 {
 		t.Fatalf("owed record before the loss: seat %d ok %v, contracts %d", c, ok, s.contracts(1))
 	}
@@ -92,8 +97,16 @@ func TestContractLossCopiesLoserBoard(t *testing.T) {
 	}
 
 	pre := s.outMask()
-	s.pl[1].lost = true
+	s.lose(1) // the loss fires the copy (as gorge's PlayerLost emit queues it)
 	s.sweepDeparted(k, pre)
+	// the fired copy is a trigger: it resolves after the sweep, as gorge's
+	// fired ability does (its referents were read at the PlayerLost emit)
+	for i := 0; i < 40 && (s.npend > 0 || s.sp > 0) && !s.Stalled(); i++ {
+		d := s.Step()
+		if d.Kind == DkPriority {
+			s.Apply(MakeAction(AkPass, 0, 0, 0))
+		}
+	}
 
 	got := lossCopyTokens(s, 0)
 	bears, mana := s.objs[bear1].card, s.objs[rock].card
@@ -108,6 +121,12 @@ func TestContractLossCopiesLoserBoard(t *testing.T) {
 	}
 	// a second sweep owes nothing more
 	s.sweepDeparted(k, s.outMask())
+	for i := 0; i < 40 && (s.npend > 0 || s.sp > 0) && !s.Stalled(); i++ {
+		d := s.Step()
+		if d.Kind == DkPriority {
+			s.Apply(MakeAction(AkPass, 0, 0, 0))
+		}
+	}
 	if again := lossCopyTokens(s, 0); again[bears] != 2 || again[mana] != 1 {
 		t.Fatalf("a second sweep changed the copies: %v", again)
 	}

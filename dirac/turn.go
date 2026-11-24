@@ -600,9 +600,7 @@ func (s *State) sba(k *prep) bool {
 		// marked (CR 726.4, act_initiative.go, before CR 725.4, act_monarch.go)
 		for p := uint8(0); p < s.nSeats(); p++ {
 			if s.pl[p].life <= 0 && !s.pl[p].lost && !s.cantLoseLife(k, p) {
-				s.pl[p].lost = true
-				s.initLeft(k, p) // CR 726.4 (act_initiative.go)
-				s.monarchLeft(k, p)
+				s.markLost(k, p)
 			}
 		}
 		for p := uint8(0); p < s.nSeats(); p++ {
@@ -1166,6 +1164,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	if radTrig(e) {
 		s.resolveRadTrig(k, e) // the rad drain (act_radiation.go)
+		return
+	}
+	if e.trigAmt == contractLossAmt {
+		s.resolveContractLoss(k, e) // Miss Highwater's loss copy (ctr_losscopy.go)
 		return
 	}
 	if ringTrig(e) {

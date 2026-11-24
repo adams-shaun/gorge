@@ -41,16 +41,14 @@ func selfCombatDamageDone(tp *params, tr *lTrigger, t cards.Trigger) bool {
 // Permanent Effect remembering the damaged player whose Triggers$ are one
 // LosesGame line on that player (ValidPlayer$ Player.IsRemembered) and,
 // optionally, the Effect's Static$ Always self-exile once the player has no
-// contract counter. The Effect lowers to nothing at every seat count, because
-// gorge, the reference, arms nothing for it: effects.effEffect
-// splits Triggers$ on whitespace only, so the comma list
-// "LoseGameTrigger,ExileEffect" is one unparseable name (a Note, no delayed
-// trigger), and in a pod, where a loss does not end the game, no copy of the
-// loser's artifacts and creatures is ever made. The kernel matches that; when
-// gorge arms the LosesGame line, the four-seat pod lockstep
-// (TestFourSeatMissHighwaterPodsLockstep) diverges at the first contracted
-// loss and this lowering owes the trigger. done is false for any other
-// Triggers$ list, which the emblem lowering reads (and refuses) as before.
+// contract counter. The kernel arms the Effect through the record marker on
+// the put this chain just emitted (kop.Instr.C of the ExtPutContract ext op,
+// dirac/ctr_losscopy.go): gorge arms the same Effect as a delayed LosesGame
+// registration (effects.effEffect now splits the comma list
+// "LoseGameTrigger,ExileEffect"), whose fire copies the loser's artifacts and
+// creatures when they lose while the game goes on. done is false for any
+// other Triggers$ list, which the emblem lowering reads (and refuses) as
+// before.
 func (lc *lowerCtx) contractLossEffect(ps *params, list string) (done bool, err error) {
 	names := strings.FieldsFunc(list, func(r rune) bool { return r == ',' || r == ' ' })
 	if len(names) == 0 || len(names) > 2 {
@@ -74,7 +72,21 @@ func (lc *lowerCtx) contractLossEffect(ps *params, list string) (done bool, err 
 		return false, nil
 	}
 	ps.consume("Triggers", "Duration", "RememberObjects")
-	return true, nil
+	// The Effect is armed: its chain parent, the contract put this same
+	// resolution just emitted, carries the record marker (kop.Instr.C of the
+	// ext op, read by dirac's putContract): the resolving controller then owes
+	// the remembered player's loss copy. Without the marker the put records
+	// nothing (TestContractPutRecordsTheLossCopyOnlyWhenArmed). The parent is
+	// the last contract put this chain lowered; the sub chain's own program
+	// follows it in the same ability.
+	for i := len(lc.ab.Prog) - 1; i >= 0; i-- {
+		in := &lc.ab.Prog[i]
+		if in.Op == "PutCounter" && in.CS == contractCounter {
+			in.C = 1
+			return true, nil
+		}
+	}
+	return false, refuse("contract loss Effect without its contract put")
 }
 
 // contractSelfExile reports whether t, an Effect's Mode$ Always line, exiles

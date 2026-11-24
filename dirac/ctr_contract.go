@@ -61,7 +61,9 @@ func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
 	for i := uint8(0); i < q.n; i++ {
 		s.addContract(k, q.s[i], n)
 		if in.C != 0 && s.contracts(q.s[i]) != 0 {
-			s.setContractOwed(q.s[i], s.res.e.ctrl) // the Effect's loss copy (ctr_losscopy.go)
+			// the Effect's loss copy (ctr_losscopy.go); the record's source is
+			// the trigger's own source, the |SB bound of gorge's registration
+			s.setContractOwed(q.s[i], s.res.e.ctrl, s.res.e.obj)
 		}
 	}
 	return true, true

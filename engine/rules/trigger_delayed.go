@@ -582,13 +582,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			}
 		} else if dt.EffectRepeat {
 			// The Effect object is represented by its registration, not by a
-			// battlefield face. Dispatch through the ordinary mode matcher but
-			// skip the printed-face zone gate (the creating spell may already
-			// be in the graveyard). The event mask prevents a mismatched event
-			// from reaching a matcher that assumes its own event shape.
-			fn := trigmatch.LookupMode(t.ModeKind())
-			if fn == nil || !triggerLineEvents(&t).allows(ev.Kind) ||
-				!fn(boardOf(e), t, dt.Source, ev, lki) {
+			// battlefield face (delayedEffectRepeatMatches).
+			if !delayedEffectRepeatMatches(boardOf(e), e.G, e, t, dt, ev, lki) {
 				continue
 			}
 		} else {
@@ -918,6 +913,49 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 	}
 }
 
+// delayedRepeatHost is what an Effect-owned EVENT registration's dispatch
+// reads off the engine: the delayed ValidPlayer$ player and its spec context,
+// narrowed so the dispatch stays a free function.
+type delayedRepeatHost interface {
+	delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state.Object) (state.PlayerID, bool)
+	playerSpecCtx(source state.ObjID) effects.PlayerSpecCtx
+}
+
+// delayedEffectRepeatMatches dispatches an Effect-owned EVENT registration
+// (dt.EffectRepeat) through the ordinary mode matcher. The Effect object is
+// represented by its registration, not by a battlefield face, so the
+// printed-face zone gate is skipped (the creating spell may already be in the
+// graveyard), and the event mask keeps a mismatched event from reaching a
+// matcher that assumes its own event shape. ValidPlayer$ Player.IsRemembered
+// names the EFFECT's own memory (dt.Remembered, CR 611.2a -- the same read the
+// Phase arm makes at its occurrence), never the source card's own event-backed
+// list, so the plain matchers' source-anchored read cannot see it; Miss
+// Highwater's contract Effect is the corpus carrier ("for as long as they have
+// a contract counter, when they lose the game": the remembered player's
+// PlayerLost fires the LosesGame trigger). The gate is read only after the
+// mode and event gates passed, so a failing event never strips a pending
+// registration's clause; a matching gate binds the capture and strips the
+// clause from t so the plain matcher never re-reads the source's list against
+// the registration, and a failing gate leaves the registration pending.
+func delayedEffectRepeatMatches(b *trigBoard, g *state.Game, h delayedRepeatHost,
+	t cards.Trigger, dt *state.DelayedTrigger, ev events.Event, lki *state.Object) bool {
+	fn := trigmatch.LookupMode(t.ModeKind())
+	if fn == nil || !triggerLineEvents(&t).allows(ev.Kind) {
+		return false
+	}
+	if v := strings.TrimSpace(t.ParamStr(cards.PKValidPlayer)); strings.Contains(v, "IsRemembered") {
+		p, ok := h.delayedEventPlayer(t, ev, lki)
+		pc := h.playerSpecCtx(dt.Source)
+		pc.DelayedRemembered = dt.Remembered
+		pc.Remembered, pc.RememberedBound = dt.Remembered, true
+		if !ok || !effects.MatchesPlayerSpecCtx(g, v, p, dt.Controller, pc) {
+			return false
+		}
+		delete(t.Params, cards.PKValidPlayer.String())
+	}
+	return fn(b, t, dt.Source, ev, lki)
+}
+
 // delayedEventPlayer supplies the player named by a delayed ValidPlayer$ gate.
 // Event modes use the event's natural actor/recipient, while a zone or control
 // change uses the pre-event controller captured in LKI.
@@ -931,6 +969,8 @@ func (e *Engine) delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state
 			return o.Controller, true
 		}
 	case cards.TriggerSpellCast, cards.TriggerAbilityCast, cards.TriggerSpellAbilityCast:
+		return ev.Player, int(ev.Player) < len(e.G.Players)
+	case cards.TriggerLosesGame:
 		return ev.Player, int(ev.Player) < len(e.G.Players)
 	case cards.TriggerDamageDone:
 		if ev.Obj == 0 {

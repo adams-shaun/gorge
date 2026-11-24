@@ -81,12 +81,14 @@ func (ic *instrCtx) opPutCounter() error {
 	}
 	if in.Op == "PutCounter" && in.CS == contractCounter {
 		// a player's counter (lower_contract.go): OpExt ExtPutContract on
-		// Obj (the players), B the amount (dirac/ctr_contract.go)
+		// Obj (the players), B the amount (dirac/ctr_contract.go). C rides the
+		// lInstr's own marker (contractLossEffect): a nonzero C is the armed
+		// Effect's put, which records the loss copy (dirac/ctr_losscopy.go).
 		v, err := ic.cb.value(in.A)
 		if err != nil {
 			return err
 		}
-		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPutContract)), v, 0
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPutContract)), v, int16(in.C)
 		return nil
 	}
 	k, err := counterKind(in.CS)

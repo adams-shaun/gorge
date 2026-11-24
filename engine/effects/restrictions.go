@@ -1452,7 +1452,7 @@ func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 // "Card" for a body that names none. Empty when no entry has the shape, so a
 // Triggers$-only Effect keeps its existing registrations untouched.
 func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
-	for name := range strings.FieldsSeq(names) {
+	for _, name := range effectTriggerNames(names) {
 		raw := effectTriggerBody(h, c, name)
 		if raw == "" {
 			continue

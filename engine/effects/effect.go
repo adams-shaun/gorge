@@ -92,6 +92,17 @@ func effectChosenCardSuffix(h Host, c *Ctx, body string) string {
 	return "|CC=" + strings.Join(ids, ",")
 }
 
+// effectTriggerNames splits an Effect's Triggers$ list into the SVar names it
+// lists. Forge writes the list space- or comma-separated ("Triggers$
+// LoseGameTrigger,ExileEffect" on Miss Highwater, a space list on Beck), so
+// both separators split; every Triggers$ reader goes through this one helper,
+// never its own split.
+func effectTriggerNames(list string) []string {
+	return strings.FieldsFunc(list, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+}
+
 // effEffect creates a lasting effect object holding StaticAbilities$ for
 // Duration$. This is the part that turns a Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
@@ -321,7 +332,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     rides the registration ("|OD=<spec>") and rules' resolveTop poses
 	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
-	for name := range strings.FieldsSeq(ep.Triggers) {
+	for _, name := range effectTriggerNames(ep.Triggers) {
 		raw := effectTriggerBody(h, c, name)
 		tr, ok := cards.ParseTriggerLine(raw)
 		if !ok {
@@ -1835,7 +1846,7 @@ func effectNamesBecomeMonarchTrigger(h Host, c *Ctx, sa *cards.SA) bool {
 	if !isEffectSA(sa) {
 		return false
 	}
-	for name := range strings.FieldsSeq(EffectOf(sa).Triggers) {
+	for _, name := range effectTriggerNames(EffectOf(sa).Triggers) {
 		if tr, ok := cards.ParseTriggerLine(effectTriggerBody(h, c, name)); ok && tr.Mode == "BecomeMonarch" {
 			return true
 		}
