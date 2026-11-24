@@ -1675,6 +1675,8 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	switch {
 	case a.Kind() == AkActivate && a.Mode()&0xC0 == 0:
 		return s.lifePainActAffords(k, a, p, o)
+	case a.Kind() == AkCast && a.Mode() == 2 && s.objs[o].zone == kop.ZoneGraveyard && k.cards[s.objs[o].card].kw&kop.KwFlashback != 0:
+		return s.lifePainFlashbackAffords(k, p, o)
 	case a.Kind() != AkCast || a.Mode() != 0 || s.objs[o].zone != kop.ZoneHand:
 		return false
 	}
@@ -1686,6 +1688,22 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 	if s.g.mayPlayAny {
 		cost = anyType(cost)
 	}
+	var pb avail
+	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lifePainFlashbackAffords is lifePainPlanAffords's arm for a printed flashback cast (CR
+// 702.34a): its PotentialMana bound affords the flashback cost, so the search's life pass
+// may feed a filter's fee from the sole life-only pain unit (Eviscerator's Insight's
+// {4}{B} through Prismite's {2}: one mana of any colour, beside Treasonous Ogre).
+func (s *State) lifePainFlashbackAffords(k *prep, p uint8, o Obj) bool {
+	if !s.lifePainLive(k, p) {
+		return false
+	}
+	c := s.objs[o].card
+	cost := s.featCost(k, p, c, o, k.t.Cards[c].AltCost)
 	var pb avail
 	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
 	s.availPotentialFor(k, p, &pb, &sp, false)
