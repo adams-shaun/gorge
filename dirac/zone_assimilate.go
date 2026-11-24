@@ -44,6 +44,33 @@ func (s *State) enterAssimilatedHeld(k *prep, o Obj, ctrl uint8, from kop.Zone) 
 	return sl
 }
 
+// enterWithArm arms in's OvEnterWith override for the entrant the move below
+// is about to make, when no enters-check-first path (enterAssimilated) took
+// it: a return over a target union (Relive the Past) holds every entrant's
+// enters checks until the last is back, and the override's own op runs after
+// that, so a watcher's power limit (Marketwatch Phantom) read the printed
+// 2/1 of a creature that enters as a 5/5 Elemental (CR 614.12).
+func (s *State) enterWithArm(k *prep, in *kop.Instr) bool {
+	if s.enterWithOverride(k, in) {
+		s.g.ewPend = true
+		return true
+	}
+	return false
+}
+
+// enterWithSettle applies an armed override enterGen left pending and marks the
+// override op that follows spent (once per entrant).
+func (s *State) enterWithSettle(k *prep, sl Slot, armed bool) {
+	if !armed {
+		return
+	}
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl)
+	}
+	s.g.ewDone++
+}
+
 // enterAssimilated enters o under ctrl with the override, then runs its enters check.
 func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
 	var eb entBatch
