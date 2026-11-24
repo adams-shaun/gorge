@@ -27,6 +27,17 @@ func ownEntryCounterExcluded(settling, source, recv state.ObjID, recipient strin
 	return !selfScopedSpec(recipient)
 }
 
+// entryDestinationAdmits is the Destination$ gate for a Moved replacement.
+// It folds in the CR 614.12 own-entry exclusion so an entering Orb of Dreams'
+// general "Permanents enter tapped" (ValidCard$ Permanent) does not replace
+// its own entry, while a self-scoped line (Card.Self) still does.
+func entryDestinationAdmits(g *state.Game, r cards.Repl, source state.ObjID, ev events.Event) bool {
+	if d, ok := r.ParamCode(cards.PKDestination); ok && !effects.Destination(d).Admits(ev.To) {
+		return false
+	}
+	return !ownEntryMoveExcluded(g, source, ev, r.ParamStr(cards.PKValidCard))
+}
+
 // ownEntryMoveExcluded is the same CR 614.12 rule for a Moved replacement
 // on a battlefield entry: a line whose source is the entering object itself
 // (not yet on the battlefield) applies to that entry only when its ValidCard$
