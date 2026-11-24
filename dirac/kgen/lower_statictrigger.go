@@ -140,7 +140,7 @@ func (lc *lowerCtx) untapRepl(r cards.Repl, rp *params, rl *lRepl) error {
 // triggerIsPresentConds appends a trigger's IsPresent$ intervening-if to
 // conds. A clause that only mirrors the trigger's own optional SubCounter
 // cost (Sun Droplet; scriptfacts.PresentIsOwnCostPrecheck, gorge
-// isPresentGateHolds) is no gate: the ability triggers (CR 603.2) and the
+// presentGateApplies) is no gate: the ability triggers (CR 603.2) and the
 // unpayable cost does nothing as it resolves.
 func (lc *lowerCtx) triggerIsPresentConds(t cards.Trigger, tp *params, tr *lTrigger, conds []lCond) ([]lCond, error) {
 	ip, ok := tp.get("IsPresent")

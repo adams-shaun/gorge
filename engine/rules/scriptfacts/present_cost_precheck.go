@@ -9,7 +9,7 @@ import (
 // PresentIsOwnCostPrecheck reports whether a trigger's IsPresent$ clause is
 // only Forge's payability precheck for the trigger's own optional counter
 // cost rather than an intervening-if (CR 603.4). It is the one read gorge's
-// isPresentGateHolds (trigger_condition.go) and kgen's triggerIsPresentConds
+// presentGateApplies (trigger_condition.go) and kgen's triggerIsPresentConds
 // share, so the two engines cannot disagree.
 //
 // Sun Droplet and Living Artifact read "At the beginning of ... upkeep, you

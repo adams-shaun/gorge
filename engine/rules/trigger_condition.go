@@ -281,7 +281,8 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 	// creature alone, stacking one Permanent Animate effect per resolution
 	// (500+ continuous effects, every Derived
 	// walking all of them -- the "hang").
-	if !e.isPresentGateHolds(t, source, you, tc) {
+	if presentGateApplies(t) &&
+		!e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		return false
 	}
 	if _, ok := t.Param(cards.PKIsPresent2); ok &&
@@ -594,15 +595,13 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 	return compareLife(e.G.Players[who].Life, amount)
 }
 
-// isPresentGateHolds is the IsPresent$ intervening-if: absent, or only the
-// precheck for the trigger's own optional counter cost (Sun Droplet, CR 603.2;
-// scriptfacts.PresentIsOwnCostPrecheck), it does not gate; otherwise the
-// clause must hold.
-func (e *Engine) isPresentGateHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
-	if _, ok := t.Param(cards.PKIsPresent); !ok || presentIsOwnCostPrecheck(t) {
-		return true
-	}
-	return e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer")
+// presentGateApplies reports whether the trigger's IsPresent$ clause is an
+// intervening-if to evaluate: present, and not merely the precheck for the
+// trigger's own optional counter cost (Sun Droplet, CR 603.2;
+// scriptfacts.PresentIsOwnCostPrecheck).
+func presentGateApplies(t cards.Trigger) bool {
+	_, ok := t.Param(cards.PKIsPresent)
+	return ok && !presentIsOwnCostPrecheck(t)
 }
 
 // presentClauseHolds evaluates one present clause -- IsPresent$ or

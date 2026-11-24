@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestPresentIsOwnCostPrecheck pins the rule isPresentGateHolds (package rules)
+// TestPresentIsOwnCostPrecheck pins the rule presentGateApplies (package rules)
 // and kgen triggerIsPresentConds share: an IsPresent$ that only mirrors the
 // trigger's own SubCounter cost, with no printed intervening-if, is not a gate
 // (Sun Droplet, CR 603.2); the same shape printed "..., if CARDNAME has ..."

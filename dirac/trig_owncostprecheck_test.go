@@ -9,7 +9,7 @@ import (
 // TestOwnCostPrecheckTriggersWithoutCounter: Sun Droplet's "At the beginning
 // of each upkeep, you may remove a charge counter from Sun Droplet. If you do,
 // you gain 1 life" has no intervening-if, so with no charge counter the
-// trigger still goes on the stack (CR 603.2; gorge isPresentGateHolds,
+// trigger still goes on the stack (CR 603.2; gorge presentGateApplies,
 // TestFarmSunDroplet) and resolves without gaining life: the script's
 // IsPresent$ only mirrors the SubCounter cost (kgen triggerIsPresentConds).
 func TestOwnCostPrecheckTriggersWithoutCounter(t *testing.T) {
