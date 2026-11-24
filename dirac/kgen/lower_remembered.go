@@ -732,11 +732,37 @@ func (lc *lowerCtx) markDestroyedTargetLKI(ref lRef, present string) {
 		return
 	}
 	for i := min(lc.condNodeAt, len(lc.ab.Prog)) - 1; i >= 0; i-- {
-		if in := &lc.ab.Prog[i]; in.Op == "Destroy" && in.Obj == ref {
+		in := &lc.ab.Prog[i]
+		if in.Obj != ref {
+			continue
+		}
+		switch in.Op {
+		case "Destroy":
 			in.C |= 4
+			return
+		case "Bounce", "Exile":
+			// The same Forge ff076d4432 respelling on a ChangeZone: Boomerang
+			// Basics, Hotshot Investigators and Unyielding Gatekeeper dropped
+			// RememberLKI$ for ConditionDefined$ Targeted. The move takes the
+			// MvLKI capture a RememberLKI$ move took (lower_zone.go), so "if you
+			// controlled that permanent" reads a donated permanent's last
+			// controller, not its owner in the new zone.
+			if !hasMoveFlag(in.CS, "LKI") {
+				in.CS = strings.TrimPrefix(in.CS+"|LKI", "|")
+			}
 			return
 		}
 	}
+}
+
+// hasMoveFlag reports whether the |-separated move-flag list cs names f.
+func hasMoveFlag(cs, f string) bool {
+	for _, x := range strings.Split(cs, "|") {
+		if x == f {
+			return true
+		}
+	}
+	return false
 }
 
 // rememberedLKIRef resolves ConditionDefined$ RememberedLKI to the target

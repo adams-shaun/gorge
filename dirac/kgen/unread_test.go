@@ -16,6 +16,7 @@ var unreadForms = []formCase{
 	{card: "Floodpits Drowner", form: "ThisDefinedAndTgts$ Self on a shuffled move: the target, then this, one shuffle per owner", lir: "ToLibraryPair obj=Target0"},
 	{card: "Deep-Cavern Bat", form: "RevealHand Look$ ack, then a hand exile from the targeted player's hand until this leaves", lir: "ChooseMove obj=Target0 A=1 C=5 CS=from=Hand|ChooserYou|UntilLeaves"},
 	{card: "Gleeful Demolition", form: "RememberLKI$ + AlwaysRemember$ read by ConditionDefined$ RememberedLKI: the destroy's target", lir: "SkipIf if=RefMatches({types=0x0 ctrl=1},Target0,op1,1) skip=1"},
+	{card: "Boomerang Basics", form: "ConditionDefined$ Targeted after the bounce of that target (Forge ff076d4432 dropped RememberLKI$): the bounce takes the MvLKI capture, so a donated permanent reads its last controller", lir: "Bounce obj=Target0 CS=from=Battlefield|LKI"},
 	{card: "Thirst for Discovery", form: "Discard UnlessType$ Land.Basic: OpDiscardUnless (gorge discard_unless)", lir: "DiscardUnless obj=You A=2"},
 	{card: "Snap", form: "Untap UntapType$ Land Amount$ 2 UntapUpTo$: OpUntapChoose (gorge's untap KChoose, Min 0)", lir: "UntapChoose A=2 C=1 F={types=0x1}"},
 	{card: "Thraben Charm", form: "TargetMin$ 0 over target players: none targeted moves nothing (gorge cr-changezoneall-zero-targets)", lir: "target[2] mode=2 zone=0 min=0 max=OppExtreme+1 F={players=3}"},
