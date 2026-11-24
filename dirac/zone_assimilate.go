@@ -15,13 +15,33 @@ func (s *State) enterWithOverride(k *prep, in *kop.Instr) bool {
 	if int(pc) >= len(prog) || prog[pc].Op != kop.OpOverride || prog[pc].B.N != kop.OvEnterWith {
 		return false
 	}
-	// a union return (RefTargets012, execUnion) runs a copy of the instruction
-	// with only its subject rewritten, once per target
-	cur := prog[s.res.pc]
-	if unionMask(cur.Obj) != 0 {
-		cur.Obj = in.Obj
+	return &prog[s.res.pc] == in || s.unionCopy(k, in)
+}
+
+// unionCopy: in is execUnion's copy of the current instruction, its subject
+// swapped for one target of the union (Relive the Past's three target slots).
+func (s *State) unionCopy(k *prep, in *kop.Instr) bool {
+	prog := s.prog(k)
+	if int(s.res.pc) >= len(prog) || &prog[s.res.pc] == in {
+		return false
 	}
-	return &prog[s.res.pc] == in || cur == *in
+	cur := prog[s.res.pc]
+	cur.Obj = in.Obj
+	return cur == *in
+}
+
+// enterAssimilatedHeld is enterAssimilated inside an open entry frame (a union
+// return's, execUnion): the override still applies as the object enters, and
+// the enters checks wait for the rest of the batch (CR 603.6a; holdClose).
+func (s *State) enterAssimilatedHeld(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
+	s.g.ewPend = true
+	sl := s.enterMoved(k, o, ctrl, false, from)
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl)
+	}
+	s.g.ewDone++ // the override op that follows is spent
+	return sl
 }
 
 // enterAssimilated enters o under ctrl with the override, then runs its enters check.
@@ -40,7 +60,7 @@ func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o)
 	}
-	s.g.ewDone++ // the override op that follows is spent (once per entrant)
+	s.g.ewDone++ // the override op that follows is spent
 	s.fireEntries(k, &eb)
 	return sl
 }

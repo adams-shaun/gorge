@@ -762,7 +762,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainControl:
 		s.opGainControl(k, in)
 	case kop.OpOverride:
-		if in.B.N == kop.OvEnterWith && s.g.ewDone > 0 {
+		if in.B.N == kop.OvEnterWith && s.g.ewDone != 0 {
 			s.g.ewDone--
 			break // applied as the return entered (enterAssimilated)
 		}
