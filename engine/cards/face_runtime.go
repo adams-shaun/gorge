@@ -73,3 +73,36 @@ func (f *Face) SetCopyNoManaCost() { f.copyNoManaCost = true }
 // CopyNoManaCost reports whether a copy exception removed the face's mana
 // cost.
 func (f *Face) CopyNoManaCost() bool { return f.copyNoManaCost }
+
+// changelingKeywordHead is Changeling's interned keyword head, resolved once
+// so the copy-basis CDA drop compares ordinals instead of strings.
+var changelingKeywordHead = KeywordHeadIDOf("Changeling")
+
+// DropCopyAllCreatureTypesCDA removes a copy basis face's own
+// every-creature-types characteristic-defining ability -- Changeling's
+// keyword and the self-scoped AddAllCreatureTypes$ True CDA static -- and
+// clears the derived flag. CR 707.9d: a copy effect that provides a specific
+// set of creature types does not copy a CDA of the copied object that defines
+// creature types. The basis value-copies a source face (possibly another
+// copy's), so the Keywords and Statics containers are rebuilt, never edited
+// in place (CR 707.2b).
+func (f *Face) DropCopyAllCreatureTypesCDA() {
+	if !f.allCreatureTypesCDA && !f.HasKeyword("Changeling") {
+		return
+	}
+	kw := make([]string, 0, len(f.Keywords))
+	for _, k := range f.Keywords {
+		if KeywordHeadIDOf(KeywordHead(k)) != changelingKeywordHead {
+			kw = append(kw, k)
+		}
+	}
+	f.Keywords = kw
+	sts := make([]Static, 0, len(f.Statics))
+	for _, s := range f.Statics {
+		if !cdaAllCreatureTypesStatic(s) {
+			sts = append(sts, s)
+		}
+	}
+	f.Statics = sts
+	f.allCreatureTypesCDA = false
+}

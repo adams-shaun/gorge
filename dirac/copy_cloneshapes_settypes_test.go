@@ -11,7 +11,8 @@ import (
 // The Scarab God's SetCreatureTypes copy exception ("except it's a 4/4 black
 // Zombie", CR 707.9b; kop.Override.RemoveCreatureSub): the token's printed
 // creature types go, its other subtypes stay, the named type joins, and a
-// copied printed changeling loses its every creature type with them
+// copied printed changeling loses its every creature type with them because
+// CR 707.9d does not copy a CDA defining a characteristic the exception sets
 // (chars_gen.go hasSubGen's copyExcSetsSub seed). Croaking Counterpart is the
 // same form with SetPT; its pool's setlist carries no carrier, so the
 // scenario uses The Scarab God, the card the gap's slice lowered with it.
@@ -109,7 +110,7 @@ func TestScarabGodSetCreatureTypesTokenChangeling(t *testing.T) {
 	if !s.hasSubGen(sc.k, sl, subIdx(t, sc, "Zombie")) {
 		t.Error("the token lost the exception's Zombie")
 	}
-	// CR 707.9b: the copied printed changeling's every creature type (its
+	// CR 707.9d: the copied printed changeling's every creature type (its
 	// baked creature subtypes and its all-creature-types mark) goes too
 	if s.hasSubGen(sc.k, sl, subOutside) {
 		t.Error("the copied changeling's token still has every creature type")
