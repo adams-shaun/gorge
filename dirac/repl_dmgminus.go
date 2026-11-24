@@ -195,6 +195,14 @@ func (s *State) dmgRewriteClash(minus, set, doublers int, ordered bool) {
 	}
 }
 
+// dmgRewriteClashAt is dmgRewriteClash for a damage event dealt by a source
+// controlled by srcCtrl to a recipient controlled by rcp: a combat event the
+// order walk collects (replOrderCandsSeat) is one to an opponent's recipient,
+// or any recipient once a filtered replacement is in play.
+func (s *State) dmgRewriteClashAt(k *prep, minus, set, doublers int, combat bool, rcp, srcCtrl uint8) {
+	s.dmgRewriteClash(minus, set, doublers, combat && (rcp != srcCtrl || k.gen.anyFiltRepl))
+}
+
 // dmgRewritePrevClash caps loudly when a minus/set rewrite matched a combat
 // event that a prevention also matches (the source's granted prevention, an
 // Effect in gorge: Benalish Missionary; the recipient's printed or granted
