@@ -226,6 +226,12 @@ type effectTriggerLine struct {
 	// ValidSource is ValidSource$, trimmed: who a damage-mode body names as
 	// the dealer.
 	ValidSource string
+	// SourceLeave is a ChangesZone trigger watching the Effect's own source
+	// leave the battlefield (`Origin$ Battlefield`, `ValidCard$
+	// Card.EffectSource`): the one-shot delayed promise CR 603.7b describes,
+	// whose trigger event is the departure that would also end a
+	// source-bounded Duration$ Permanent registration.
+	SourceLeave bool
 }
 
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
@@ -247,6 +253,9 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
 		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
+		SourceLeave: tr.ModeKind() == cards.TriggerChangesZone &&
+			strings.EqualFold(strings.TrimSpace(tr.ParamStr(cards.PKOrigin)), "Battlefield") &&
+			strings.Contains(tr.ParamStr(cards.PKValidCard), "Card.EffectSource"),
 	}
 }
 

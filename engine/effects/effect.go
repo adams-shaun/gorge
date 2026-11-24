@@ -374,10 +374,32 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// 603.2: an emblem's or "each combat this turn" trigger fires at
 		// every occurrence until its Effect ends), a OneOff$ True one is
 		// consumed by its first firing.
+		// The "until CARDNAME leaves the battlefield" comeback idiom (CR
+		// 702.25): a Duration$ Permanent Effect owns a ChangesZone trigger
+		// that fires when the imprinted host leaves. It carries no turn
+		// ceiling -- |TT= is deliberately omitted so the registration survives
+		// every TurnChange -- and its retirement is the Effect's own
+		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
+		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
+			effectDurationPermanent(rawDur)
+		// CR 603.7b: an Effect trigger watching its own source leave the
+		// battlefield is the delayed triggered ability the Effect creates.
+		// The departure is its trigger event, so it fires once and must NOT
+		// carry the |SB source-battlefield lifetime appended below: that
+		// lifetime would retire the registration at the very departure that
+		// must trigger it (Mysterio, Master of Illusion; Stangg). The
+		// comeback idiom above has its own lifetime and is left untouched.
+		sourceLeave := tl.SourceLeave && !permanentComeback
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
-		if oneOff {
+		if sourceLeave {
+			// |BN=1 makes the recurring registration one-shot: the
+			// DelayedPush consume branch removes a FiresLeft==1 entry
+			// (CR 603.7b), while |EF keeps the Effect-owned capture
+			// (dt.Remembered) as the body's `Defined$ Remembered`.
+			efMarker = "|BN=1|EF"
+		} else if oneOff {
 			efMarker = ""
 		}
 		// A one-time boon ends with its trigger's firing (Forge's
@@ -448,14 +470,6 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
-		// The "until CARDNAME leaves the battlefield" comeback idiom (CR
-		// 702.25): a Duration$ Permanent Effect owns a ChangesZone trigger
-		// that fires when the imprinted host leaves. It carries no turn
-		// ceiling -- |TT= is deliberately omitted so the registration survives
-		// every TurnChange -- and its retirement is the Effect's own
-		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
-		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
-			effectDurationPermanent(rawDur)
 		// Only lifetimes the delayed registry can retire may arm a trigger.
 		// ForgetOnPhasedIn's comeback idiom retains its independent one-shot
 		// lifetime: the host's departure, not the source's departure, fires it.
@@ -520,7 +534,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// the battlefield: Kaito, Cunning Infiltrator's [-9] emblem keeps
 		// making Ninjas after Kaito dies to its own loyalty cost. Every
 		// corpus emblem spells its Effect `Name$ Emblem — <name>`.
-		if dur == "permanent" && !permanentComeback && !isEmblemEffectName(effectName) && !ep.Boon &&
+		if dur == "permanent" && !permanentComeback && !sourceLeave && !isEmblemEffectName(effectName) && !ep.Boon &&
 			h.Game().Obj(c.Source) != nil && h.Game().Obj(c.Source).Zone == state.ZBattlefield {
 			expiry += "|SB"
 		}
