@@ -277,7 +277,6 @@ var knownUnknownFilterPredicates = []string{
 	"countersReceivedThisTurn_GE1_P1P1_You",
 	"dealtCombatDamageThisCombat",
 	"dealtCombatDamageThisTurn Player",
-	"dealtDamageToOppThisTurn",
 	"dealtDamageToYouThisTurn",
 	"doesNotShareNameWith Remembered",
 	"equipping",

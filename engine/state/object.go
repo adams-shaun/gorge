@@ -938,6 +938,12 @@ type Object struct {
 	// a new object (CR 400.7). Set by the DamageProvenance fold, cleared at
 	// TurnChange and on leaving the battlefield.
 	DealtDamageThisTurnHere bool
+	// DealtDamageToPlayersThisTurnHere is the player half of the same
+	// record, one bit per seat (1<<PlayerID): the players this object dealt
+	// damage to this turn. It answers Forge's dealtDamageToOppThisTurn
+	// (Dunerider Outlaw). Set by the DamageProvenance fold, cleared at
+	// TurnChange and on leaving the battlefield, like DealtDamageThisTurnHere.
+	DealtDamageToPlayersThisTurnHere uint32
 	// The control-acquisition tuple (AcqTurn, AcqStep) records WHEN this
 	// object last came under its current controller's control on the
 	// battlefield: stamped by events.Apply on every battlefield ENTRY (Move,
