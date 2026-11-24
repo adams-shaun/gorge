@@ -688,7 +688,11 @@ func TestParseCostLoyaltyTokens(t *testing.T) {
 		t.Fatalf("AddCounter<1/M1M1> must be a source counter part, got %+v", self)
 	}
 	other := ParseCost("AddCounter<1/M1M1/Creature.YouCtrl/a creature you control>")
-	if len(other.AddCounter) != 0 || other.Generic != 1 {
-		t.Fatalf("chooser-anchored AddCounter must keep the fallback, got %+v", other)
+	if len(other.AddCounter) != 0 || other.Generic != 0 || len(other.Blight) != 1 || other.Blight[0].Spec != "Creature.YouCtrl" {
+		t.Fatalf("chooser-anchored M1M1 AddCounter must be a blight part, got %+v", other)
+	}
+	odd := ParseCost("AddCounter<1/P1P1/Creature.OppCtrl/x>")
+	if len(odd.AddCounter) != 0 || odd.Generic != 1 {
+		t.Fatalf("other chooser-anchored AddCounter must keep the fallback, got %+v", odd)
 	}
 }
