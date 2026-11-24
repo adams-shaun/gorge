@@ -100,3 +100,14 @@ func printDiscard(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	return n, 1, nil
 }
+
+func init() { registerStep(ir.VerbChooseNumber, printChooseNumber) }
+
+// printChooseNumber prints ChooseNumber$ for an unbounded "choose a number".
+func printChooseNumber(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	if st.Optional || st.Who != nil || (st.N != nil && !(st.N.Kind == ir.VConst && st.N.N == 0)) {
+		return nil, 0, unprintable("verb:choose-number", st.Src)
+	}
+	return &node{API: "ChooseNumber", Params: []kv{{"Defined", "You"}}}, 1, nil
+}

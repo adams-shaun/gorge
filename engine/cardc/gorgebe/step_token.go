@@ -14,10 +14,6 @@ func printCreateToken(p *pr, steps []*ir.Step) (*node, int, error) {
 	if st.Token == nil {
 		return nil, 0, unprintable("verb:create-token", st.Src)
 	}
-	if len(steps) > 1 && steps[1].Verb == ir.VerbCreateToken {
-		// Forge chains one Token node with a TokenScript list for a run of tokens.
-		return nil, 0, unprintable("shape:consecutive-tokens", st.Src)
-	}
 	if e := st.Enter; e != nil && (e.UnderOwner || e.Controller != nil || e.Counter != "" || e.N != nil || len(e.Effects) > 0) {
 		return nil, 0, unprintable("token:enter", st.Src)
 	}
@@ -28,6 +24,22 @@ func printCreateToken(p *pr, steps []*ir.Step) (*node, int, error) {
 	key, err := p.tokenKey(st.Token, st.Src)
 	if err != nil {
 		return nil, 0, err
+	}
+	// Forge chains one Token node with a TokenScript list for a run of tokens
+	// that differ only in what they are.
+	used := 1
+	for ; used < len(steps) && steps[used].Verb == ir.VerbCreateToken; used++ {
+		nx := steps[used]
+		if nx.Token == nil || nx.Optional != st.Optional || !ir.Equal(nx.Who, st.Who) || !ir.Equal(nx.N, st.N) ||
+			(nx.Enter != nil) != (st.Enter != nil) || (nx.Enter != nil && nx.Enter.Tapped != st.Enter.Tapped) ||
+			(nx.Enter != nil && (nx.Enter.UnderOwner || nx.Enter.Controller != nil || nx.Enter.Counter != "" || nx.Enter.N != nil || len(nx.Enter.Effects) > 0)) {
+			return nil, 0, unprintable("shape:consecutive-tokens", st.Src)
+		}
+		k, err := p.tokenKey(nx.Token, nx.Src)
+		if err != nil {
+			return nil, 0, err
+		}
+		key += "," + k
 	}
 	owner := "You"
 	if st.Who != nil {
@@ -42,7 +54,7 @@ func printCreateToken(p *pr, steps []*ir.Step) (*node, int, error) {
 	if st.Optional {
 		n.set("OptionalDecider", "You")
 	}
-	return n, 1, nil
+	return n, used, nil
 }
 
 // tokenKey returns the first key, in sorted order, of a Forge token script
