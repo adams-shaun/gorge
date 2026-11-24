@@ -1148,7 +1148,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 				e.mentorAdmits(sa, source, t.Obj) &&
 				(controllerProp == "" || e.targetControllerPropertyAdmits(controllerProp, t.Obj)) &&
 				(!hasSharedRef || e.sharedCardTypeAdmits(t.Obj, sharedRef, sharedWhitelist)) &&
-				e.targetAdmitsAtResolution(tp, o, t.Obj, related, sc) &&
+				targetAdmitsAtResolution(e, tp, o, t.Obj, related, sc) &&
 				(tpState == tpNone || e.tpControlsAdmits(o, you, tpChooser, tpState)) &&
 				// ValidSA$ classifies the targeting spell/ability from its
 				// STACK object (self, the resolving spell or ability
@@ -1205,11 +1205,11 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 // targets something matching the clause's CURRENT state; an object that left
 // its zone is ignored and its last known information is never read. The
 // predicate itself is the offer's filterTargetValidTargeting judge.
-func (e *Engine) targetAdmitsAtResolution(tp *effects.TargetParams, o *state.Object, obj state.ObjID, related relatedPropertyRecheck, sc effects.SpecContext) bool {
+func targetAdmitsAtResolution(e targetSpecRecheck, tp *effects.TargetParams, o *state.Object, obj state.ObjID, related relatedPropertyRecheck, sc effects.SpecContext) bool {
 	if !related.admits(e, obj) {
 		return false
 	}
-	return tp.ValidTargeting == "" || e.targetValidTargetingMatches(o, tp.ValidTargeting, sc)
+	return tp.ValidTargeting == "" || targetValidTargetingMatches(e, o, tp.ValidTargeting, sc)
 }
 
 // targetSpecForZone preserves Forge's distinction between a battlefield
