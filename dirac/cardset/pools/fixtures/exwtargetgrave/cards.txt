@@ -1,0 +1,15 @@
+# the exile->graveyard target pool: Bronzebeak Foragers and Gelatinous Cube
+# exile a permanent until they leave (the OpExileUntilLeaves link) and their
+# activated abilities put a card exiled with them into its owner's graveyard
+# (Origin$ Exile | Destination$ Graveyard, read against the link at target
+# time). Ornithopter and Memnite give the exile zero-mana targets; Savannah
+# Lions and Walking Corpse give one- and two-mana ones; basics cast.
+# (dirac/oracle/exw_targetgrave_test.go).
+Bronzebeak Foragers
+Gelatinous Cube
+Ornithopter
+Memnite
+Savannah Lions
+Walking Corpse
+Plains
+Swamp
