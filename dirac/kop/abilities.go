@@ -292,7 +292,7 @@ const (
 	AfOptionalCost                            // the ability's cost is offered on resolution ("you may pay")
 	AfCheckOnTrigger                          // the intervening-if is checked only when the event happens
 	AfEquip                                   // the Equip ability
-	AfCharmTrigger                            // reserved
+	AfCharmTrigger                            // a triggered api:GenericChoice: modeFeasible drops a mode whose UnlessCost$ the controller cannot pay (gorge effects.GenericChoiceAvailable)
 	AfManaEachColor                           // adds one mana of each colour among the controller's permanents matching ManaAmong (Bloom Tender); not an autopay source
 	AfManaChoice                              // the mana ability's colour is a choice among ManaColors (Produced$ Combo ...), not simultaneous production
 	AfGift                                    // a permanent's gift trigger (CR 702.174c): the gift is given (TrigGiveGift) as it is put on the stack
