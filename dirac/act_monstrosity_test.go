@@ -10,7 +10,8 @@ import (
 
 // TestMonstrosityTriggerAmount: OpMonstrosity reads TriggerCount$Amount
 // (VTriggerAmount) for the counter count and the BecomeMonstrous event,
-// marks only once, and no-ops for a non-positive amount. No build-supported
+// marks only once, and with a zero amount places no counters but still
+// marks the permanent and fires BecomeMonstrous with amount 0 (CR 701.37a). No build-supported
 // monstrosity card binds it (Vitality Hunter is refused at emit for its
 // dynamic target count; Hydra Broodmaster for its token/TriggerCount body),
 // so this is a hand-built table in the pattern of TestAttackPlayerOnce. The
@@ -73,8 +74,13 @@ func TestMonstrosityTriggerAmount(t *testing.T) {
 	if n := s.perms[sc.slot(q)].ctrLow(int(kop.CtrP1P1)); n != 0 {
 		t.Fatalf("a zero amount placed %d counters, want 0", n)
 	}
-	if s.monstrousAt(sc.slot(q)) {
-		t.Fatal("a zero amount marked the permanent monstrous")
+	if !s.monstrousAt(sc.slot(q)) {
+		t.Fatal("a zero amount did not mark the permanent monstrous")
+	}
+	// Both Test Monstrosity permanents carry an unfiltered BecomeMonstrous
+	// trigger, so each fires, both with amount 0.
+	if s.npend != 2 || s.pend[0].trigAmt != 0 || s.pend[1].trigAmt != 0 {
+		t.Fatalf("%d pending, amounts %d/%d, want two BecomeMonstrous triggers with amount 0", s.npend, s.pend[0].trigAmt, s.pend[1].trigAmt)
 	}
 	if s.pl[0].life != life {
 		t.Fatalf("life changed from %d to %d without resolving the trigger", life, s.pl[0].life)
