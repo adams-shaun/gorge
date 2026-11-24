@@ -2184,7 +2184,11 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 		s.restrCensusDeferGap(k, p, a, sl, c)
 		return true
 	}
-	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c), spill)
+	forced := 0
+	if tapsDef.has(sl) {
+		c, forced = tapAnyColAnswerSplit(c) // the search's answers to the tap's any-colour triggers ride above the gap's own
+	}
+	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
 	return true
 }
 
