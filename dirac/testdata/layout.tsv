@@ -393,6 +393,7 @@ default	field	genPrep.leyline	112	1
 default	field	genPrep.anyUmbra	113	1
 default	field	genPrep.anySrcMem	114	1
 default	field	genPrep.anySnow	115	1
+default	field	genPrep.anyExwTgt	116	1
 default	field	genPrep.grantPC	120	24
 default	field	genPrep.grantOf	144	24
 default	field	genPrep.grantRestr	168	24
