@@ -67,11 +67,31 @@ type oracleScenario struct {
 	// replays (oracleCoinFlip), in flip order: the runner forces each random
 	// flip to the next one instead of flipping from its own seed.
 	CoinFlips []oracleCoinFlip `json:"coin_flips,omitempty"`
+	// DieRolls are the random die results the taped game actually rolled, in
+	// log order. The compliance lowering records every canonical roll here
+	// (a RollDice action's per-die results, CR 706.2); the runner consumes
+	// them in step order instead of drawing from its own Seed: 42 generator,
+	// so a self-check reproduces the board the live game reached. A scenario
+	// with no die_rolls plays exactly as before.
+	DieRolls []oracleDieRoll `json:"die_rolls,omitempty"`
 	// xmageFixture marks a generated compliance scenario
 	// (RunOracleScenarioJSON). Setup permanents are present before turn 1 in
 	// both engines (build drops the triggers their placement queued); the
 	// driver clears XMage's seeded entry history. Never decoded from JSON.
 	xmageFixture bool
+}
+
+// oracleDieRoll is one recorded die result: the scenario step whose window
+// the roll fell in (-1 is the setup drive), the roller's seat, the die's
+// sides, the unmodified natural result and the modified result (natural plus
+// the roll's Modifier$). Replay forces Natural; Result is the taped value the
+// live game observed and is kept for the tape's own reader.
+type oracleDieRoll struct {
+	Step    int `json:"step"`
+	Seat    int `json:"seat"`
+	Sides   int `json:"sides"`
+	Natural int `json:"natural"`
+	Result  int `json:"result"`
 }
 
 type oracleSeat struct {
@@ -393,6 +413,10 @@ type oracleRun struct {
 	// probe and the scenario's game (RunOracleScenarioJSON's pool).
 	spare *Spare
 	step  int // the scenario step being played; -1 during setup
+	// dieRolls is the taped die-roll queue for the step being played. A
+	// mismatched draw or a leftover roll is a harness failure: the tape and
+	// this replay disagree about the game.
+	dieRolls oracleDieRollTape
 	// preChecked marks, per step index, the Expect indices already evaluated
 	// PRE-submit (the attack op's attack_required / can_attack offered-options
 	// reads, against the still-pending declare-attackers decision):
@@ -415,6 +439,77 @@ type oracleRun struct {
 
 func (r *oracleRun) logf(format string, a ...any) {
 	r.log = append(r.log, fmt.Sprintf(format, a...))
+}
+
+// oracleDieRollTape is one oracle run's queue of taped die results. It holds
+// no Engine: the roller seat is read through a pointer to the live engine's
+// resolutionCtx field, so this runner bookkeeping stays off the Engine-surface
+// ratchet.
+type oracleDieRollTape struct {
+	queue []oracleDieRoll
+	step  int
+	fails []string
+	// ctx points at the live engine's resolutionCtx field, so draw can name
+	// the roller without the tape holding the Engine itself.
+	ctx **effects.Ctx
+}
+
+// begin queues the taped die results whose window is step, in tape order.
+// Rolls for a later step stay in the scenario's slice and are queued when
+// that step begins.
+func (t *oracleDieRollTape) begin(rolls []oracleDieRoll, step int) {
+	t.step = step
+	t.queue = t.queue[:0]
+	for _, dr := range rolls {
+		if dr.Step == step {
+			t.queue = append(t.queue, dr)
+		}
+	}
+}
+
+// draw is Engine.dieRollOverride: it consumes the next queued result for the
+// die being rolled and returns its natural value in Rand's 0-based form. A
+// queued roll whose sides or roller does not match means the tape and this
+// replay disagree; the draw falls through to the seeded generator and the
+// mismatch is reported as a harness failure, as is a roll the step never
+// consumes (check).
+func (t *oracleDieRollTape) draw(sides int) (int, bool) {
+	if len(t.queue) == 0 {
+		return 0, false
+	}
+	next := t.queue[0]
+	if next.Sides != sides {
+		t.fail("queued d%d, engine rolled d%d", next.Sides, sides)
+		return 0, false
+	}
+	if t.ctx != nil {
+		if c := *t.ctx; c != nil && next.Seat != int(c.Controller) {
+			t.fail("queued for p%d, engine rolled for p%d", next.Seat, c.Controller)
+			return 0, false
+		}
+	}
+	if next.Natural < 1 || next.Natural > next.Sides {
+		t.fail("natural %d outside 1..%d", next.Natural, next.Sides)
+		return 0, false
+	}
+	t.queue = t.queue[1:]
+	return next.Natural - 1, true
+}
+
+// check reports a recorded roll the step never consumed. It runs at the end
+// of every step (and after the setup drive), so a tape whose roll belongs to
+// another window fails loudly instead of silently replaying with the seeded
+// generator.
+func (t *oracleDieRollTape) check() {
+	if len(t.queue) == 0 {
+		return
+	}
+	t.fail("%d recorded roll(s) left unconsumed", len(t.queue))
+	t.queue = t.queue[:0]
+}
+
+func (t *oracleDieRollTape) fail(format string, a ...any) {
+	t.fails = append(t.fails, harnessf("die_rolls step %d: %s", t.step, fmt.Sprintf(format, a...)).Error())
 }
 
 // recordFlips scans the log's new events for canonical coin-flip result
@@ -695,6 +790,30 @@ func collectSetupDecks(sc oracleScenario, seats, turn int, isCommander bool, loo
 	return out, nil
 }
 
+// validateOracleDieRolls rejects a tape whose recorded roll cannot belong to
+// this scenario: an unknown step window, a seat the game does not have, a
+// non-positive die or a natural result outside the die. Keeping the checks
+// here (not in build) leaves build's complexity budget to the game setup.
+func validateOracleDieRolls(sc oracleScenario) error {
+	seats, err := oracleSeatCount(sc.Players)
+	if err != nil {
+		return err
+	}
+	for i, dr := range sc.DieRolls {
+		switch {
+		case dr.Step < -1 || dr.Step >= len(sc.Steps):
+			return harnessf("die_rolls[%d]: step %d out of range -1..%d", i, dr.Step, len(sc.Steps)-1)
+		case dr.Seat < 0 || dr.Seat >= seats:
+			return harnessf("die_rolls[%d]: seat %d out of range 0..%d", i, dr.Seat, seats-1)
+		case dr.Sides <= 0:
+			return harnessf("die_rolls[%d]: sides %d must be positive", i, dr.Sides)
+		case dr.Natural < 1 || dr.Natural > dr.Sides:
+			return harnessf("die_rolls[%d]: natural %d outside 1..%d", i, dr.Natural, dr.Sides)
+		}
+	}
+	return nil
+}
+
 // build constructs the game: named cards seeded into each seat's deck (so
 // genesis mints them as real cards), commanders in the command zone, then --
 // BEFORE turn 1 begins -- every opening hand returned to the library and each
@@ -767,6 +886,11 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	built.Spare = r.spare
 	e := NewStartingPlayerChoice(built)
 	r.e = e
+	// The setup drive can roll a die too (a setup permanent's trigger); its
+	// rolls are queued for step -1 by the caller. The override stays active
+	// for the whole run, and nil queues leave the seeded generator alone.
+	r.dieRolls.ctx = &e.resolutionCtx
+	e.dieRollOverride = r.dieRolls.draw
 	e.CoinFlipHook = r.forcedFlips(sc.CoinFlips)
 	if e.G.StartingPlayer != 0 {
 		return harnessf("seat 0 does not start (seed %d)", cfg.Seed)
@@ -2737,14 +2861,29 @@ func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot b
 			transcript = r.log
 		}
 	}()
+	if err := validateOracleDieRolls(sc); err != nil {
+		return []string{err.Error()}, nil, r
+	}
+	r.dieRolls.begin(sc.DieRolls, -1)
 	if err := r.build(sc); err != nil {
 		return []string{err.Error()}, r.log, r
+	}
+	r.dieRolls.check()
+	r.extraFails = append(r.extraFails, r.dieRolls.fails...)
+	r.dieRolls.fails = nil
+	if len(r.extraFails) > 0 {
+		for _, msg := range r.extraFails {
+			fails = append(fails, "setup: "+msg)
+		}
+		r.extraFails = nil
+		return fails, r.log, r
 	}
 	if !r.noSnapshot {
 		r.snaps = append(r.snaps, r.snapshot("setup"))
 	}
 	for i, st := range sc.Steps {
 		r.step = i
+		r.dieRolls.begin(sc.DieRolls, i)
 		top := r.passResolves(st)
 		if err := r.do(st); err != nil {
 			return append(fails, fmt.Sprintf("step %d (%s): %v", i, st.Op, err)), r.log, r
@@ -2755,6 +2894,7 @@ func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot b
 		if err := r.settleTriggerAsks(sc.Steps, i); err != nil {
 			return append(fails, fmt.Sprintf("step %d (%s): %v", i, st.Op, err)), r.log, r
 		}
+		r.dieRolls.check()
 		r.recordFlips(i)
 		if r.pendingTriggerAsk() {
 			r.askedAtCheckpoint++
@@ -2773,6 +2913,8 @@ func runOracleScenarioSpare(reg *cards.Registry, sc oracleScenario, noSnapshot b
 		if len(r.targets) > 0 {
 			fails = append(fails, oracleUnusedTargetFail(i, st.Op, r.targets))
 		}
+		r.extraFails = append(r.extraFails, r.dieRolls.fails...)
+		r.dieRolls.fails = nil
 		for _, msg := range r.extraFails {
 			fails = append(fails, fmt.Sprintf("after step %d (%s): %s", i, st.Op, msg))
 		}
