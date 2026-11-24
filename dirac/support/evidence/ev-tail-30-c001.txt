@@ -8,6 +8,7 @@ Akki Underling
 Alaborn Musketeer
 Alesha, Who Smiles at Death
 Ambuscade Shaman
+An Unearthly Child
 Ancestral Memories
 Ancient Stone Idol
 Angelfire Crusader
@@ -168,6 +169,7 @@ Hard Evidence
 Harmonic Prodigy
 Hate Mirage
 Haunted Mire
+Havoc Jester
 Healer of the Glade
 Healer of the Pride
 Hecatomb

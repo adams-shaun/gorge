@@ -1,52 +1,118 @@
++2 Mace
 A-Tanazir Quandrix
+Acorn Catapult
+Anoint
 Arachnoid Adaptation
+Archangel Avacyn
 Avatar of Slaughter
+Bile Urchin
 Blood Tithe
+Bone Picker
+Boros Garrison
+Boros Signet
 Bubble Snare
+Bump in the Night
+Burning Hands
 Cabal Conditioning
+Cavalier of Night
 Cavern Crawler
 Champion of Arashin
+Chariot of Victory
+Creeping Corrosion
 Crimson Mage
 Crocodile of the Crossing
+Demonmail Hauberk
 Desperate Castaways
+Dragonspeaker Shaman
+Drogskol Cavalry
+Enchanted Prairie
 Epiphany Storm
+Esquire of the King
 Eternal Thirst
+Ethrimik, Imagined Fiend
+Evolutionary Leap
+Exultant Skymarcher
 Ezuri, Stalker of Spheres
 Fearsome Awakening
+Feral Maaka
 Fire Ants
 Fire Nation Soldier
 Fireborn Knight
 Firemane Avenger
+Firemane Commando
 Fireslinger
+Firewake Sliver
 Flowering Field
 Font of Ire
 Forest
+Forgotten Harvest
 Fracture
+Galadhrim Guide
+Gargoyle Flock
+Gnaw to the Bone
+Gnottvold Slumbermound
+Granite Grip
+Hangar Scrounger
 Hapato's Might
 Happy Hogan, Bodyguard
 Havoc Sower
+Hidden Footblade
+Invasion of Dominaria
 Island
+Lava Storm
+Looming Shade
 Mausoleum Harpy
+Mindmoil
 Mishra's Helix
+Momentum
 Monk Realist
+Mons's Goblin Raiders
 Mountain
+Mwonvuli Acid-Moss
 Noble's Purse
+Nomad Stadium
 Northern Paladin
+Nyxborn Colossus
+Obsidian Giant
 Octoprophet
+Override
+Overwhelming Stampede
 Owlbear
+Peat Bog
+Perilous Voyage
 Phantom Beast
 Plains
+Raging Gorilla
 Reckless Cohort
+Restoration Angel
+Rough
+Scale of Chiss-Goria
 Seven-Tail Mentor
+Skyclave Cleric
+Smash to Dust
+Snubhorn Sentry
+Sokka's Sword Training
+Sparring Construct
+Spiteful Sliver
+Staff of the Death Magus
 Sunken Hope
 Swamp
+Telekinetic Sliver
 Thalakos Sentry
+Thopter Engineer
+Torch Fiend
+Touch of Invisibility
 Tyrant's Scorn
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
 Venarian Gold
 Venerable Lammasu
+Veteran's Sidearm
 Vulshok Berserker
+Wave Goodbye
+Web
 Wind Spirit
+Worship
+Zephyr Sprite
 Zombie Cannibal

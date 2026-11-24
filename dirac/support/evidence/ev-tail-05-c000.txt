@@ -50,6 +50,7 @@ Brain Freeze
 Breaker of Armies
 Breathstealer
 Breya's Apprentice
+Bring to Light
 Bushmaster, Coiled Henchman
 Cabal Inquisitor
 Cackling Imp
@@ -326,6 +327,7 @@ Shivan Wumpus
 Shrouded Serpent
 Siege Modification
 Silverbeak Griffin
+Skinthinner
 Skymarcher Aspirant
 Skyshroud Troopers
 Skywise Teachings

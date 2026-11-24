@@ -162,7 +162,6 @@ April O'Neil, Kunoichi Trainee
 Aqueous Form
 Aquitect's Defenses
 Aquus Steed
-Aragorn and Arwen, Wed
 Aragorn, King of Gondor
 Aragorn, the Uniter
 Arashin Sunshield
@@ -272,7 +271,6 @@ Awaken the Woods
 Awakening
 Awakening Zone
 Axgard Artisan
-Ayula's Influence
 Aziza, Mage Tower Captain
 Azorius First-Wing
 Azorius Knight-Arbiter
@@ -498,7 +496,6 @@ Brimaz, Blight of Oreskos
 Brimstone Mage
 Brimstone Volley
 Brinebarrow Intruder
-Bring to Light
 Bringer of the Green Dawn
 Bristlepack Sentry
 Bristly Bill, Spine Sower
@@ -821,7 +818,6 @@ Data, Exploring Humanity
 Data, Professor of Humanities
 Dathon and Picard at El-Adrel
 Dathon, His Heart Open
-Daughter of the Deep
 Dauntless Scrapbot
 Dauthi Cutthroat
 Davvol, Evincar of Rath
@@ -1477,7 +1473,6 @@ Glory to the Empire!
 Gloryscale Viashino
 Gluttonous Zombie
 Gnarlbark Elm
-Gnarled Effigy
 Gnarled Mass
 Gnarling Targ
 Gnashing of Teeth
@@ -1605,7 +1600,6 @@ Hapless Researcher
 Harbor Serpent
 Hardened Tactician
 Hardlight Containment
-Hardy Veteran
 Harmonious Grovestrider
 Harmonized Crescendo
 Harness Infinity
@@ -2290,7 +2284,6 @@ Mercurial Transformation
 Mercy Killing
 Merfolk Skydiver
 Merfolk of the Depths
-Merrow Skyswimmer
 Merry, Warden of Isengard
 Mesmeric Orb
 Messenger Falcons
@@ -2438,7 +2431,6 @@ Narset, Jeskai Waymaster
 Nasty Little Rabbit
 Natural Affinity
 Natural End
-Natural Spring
 Nature's Lore
 Nature's Revolt
 Nature's Rhythm
@@ -2561,7 +2553,6 @@ Omnath, Locus of Creation
 Omnath, Locus of the Roil
 Omnipresence
 On the Shoulders of Giants
-One Dozen Eyes
 One Thousand Lashes
 One With the Wind
 One, Borg Evolved
@@ -2834,7 +2825,6 @@ Rakdos, Lord of Riots
 Rakdos, the Muscle
 Rakeclaw Gargantuan
 Ral, Caller of Storms
-Ral, Crackling Wit
 Ral, Storm Conduit
 Rambling Possum
 Ramirez DePietro
@@ -2843,7 +2833,6 @@ Ramosian Greatsword
 Ramosian Revivalist
 Rampaging Spiketail
 Rampart Hunter
-Rampart Smasher
 Rancid Earth
 Rank Rat
 Ransack the Lab
@@ -2937,7 +2926,6 @@ Rhonas the Indomitable
 Rhox Bodyguard
 Rhox War Monk
 Rhystic Scrying
-Rhystic Syphon
 Rictus Robber
 Riddle of Lightning
 Riddlekeeper
@@ -3334,7 +3322,6 @@ Slickshot Lockpicker
 Slickshot Show-Off
 Slickshot Vault-Buster
 Slimefoot and Squee
-Slingbow Trap
 Slinn Voda, the Rising Deep
 Slithering Cryptid
 Sliver Hivelord
@@ -3434,7 +3421,6 @@ Spike Feeder
 Spiketail Hatchling
 Spinal Centipede
 Spinal Parasite
-Spined Sliver
 Spined Wurm
 Spinehorn Minotaur
 Spiraling Embers
@@ -3573,7 +3559,6 @@ Sun-Crowned Hunters
 Sunbeam Spellbomb
 Sunbillow Verge
 Sunblade Elf
-Sunder Shaman
 Sunder from Within
 Sunderflock
 Sundering Archaic
@@ -3587,7 +3572,6 @@ Sunstar Lightsmith
 Suntail Hawk
 Suntouched Myr
 Super Shredder
-Supernatural Stamina
 Supplementation Node
 Supply
 Supreme Verdict
@@ -3613,7 +3597,6 @@ Swarm Culler
 Sweatworks Brawler
 Swell of Growth
 Swiftwing Assailant
-Swordsman's Steel
 Sydri, Galvanic Genius
 Sylvan Bounty
 Sylvan Caryatid
@@ -3867,7 +3850,6 @@ Tori D'Avenant, Fury Rider
 Torment
 Torpor Dust
 Torrent of Fire
-Touch of Brilliance
 Tower Winder
 Tower Worker
 Tower of Murmurs

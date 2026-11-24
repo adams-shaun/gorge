@@ -1,5 +1,6 @@
 A-Celestial Regulator
 Abandon Reason
+Academy Journeymage
 Acquisition Octopus
 Alena, Kessig Trapper
 Arctic Merfolk
@@ -10,9 +11,11 @@ Armada Wurm
 Artifact Unknown Shores
 Aspect of Manticore
 Autumn Willow, Harmony
+Aveline de Grandpré
 Aven Reedstalker
 Battlefly Swarm
 Battlewise Valor
+Black Ward
 Bladewing, Deathless Tyrant
 Blessed Defiance
 Blinding Souleater
@@ -43,6 +46,7 @@ Dark Privilege
 Darkslick Drake
 Darksteel Forge
 Darksteel Ingot
+Daughter of the Deep
 Dauthi Trapper
 Decimate
 Deepwood Wolverine
@@ -85,6 +89,7 @@ Gibbering Kami
 Gift of Growth
 Gilded Assault Cart
 Glint-Sleeve Siphoner
+Gnarled Effigy
 Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
@@ -105,6 +110,7 @@ Hellraiser Goblin
 Hibernation Sliver
 Highspire Mantis
 Hulking Ogre
+Hunding Gjornersen
 Impetuous Protege
 Industrial Advancement
 Inescapable Brute
@@ -139,9 +145,12 @@ Militant Inquisitor
 Mire in Misery
 Misshapen Fiend
 Mole Worms
+Morphling
 Mountain
+Natural Spring
 Needle Storm
 Nighthawk, Dark Defender
+Nissa's Judgment
 Noble Steeds
 Obsidian Battle-Axe
 Olivia, Mobilized for War
@@ -180,9 +189,11 @@ Requiem Angel
 Resolute Blademaster
 Retreat to Valakut
 Reveka, Wizard Savant
+Rhystic Syphon
 Riddle Gate Gargoyle
 Rigging Runner
 Risona, Asari Commander
+River Merfolk
 Robber Fly
 Ronin Cavekeeper
 Rorix Bladewing
@@ -214,13 +225,16 @@ Spare from Evil
 Specter's Wail
 Spectral Bears
 Sphere of Purity
+Sphinx's Insight
 Spidersilk Net
 Spire Golem
 Spitemare
+Spreading Algae
 Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steal Artifact
 Steelform Sliver
 Stew the Coneys
 Stir the Pride
@@ -228,6 +242,7 @@ Strength in Numbers
 Strider Harness
 Stronghold Assassin
 Sun Droplet
+Supernatural Stamina
 Swamp
 Swirling Sandstorm
 Talas Warrior
@@ -239,6 +254,7 @@ Thermal Navigator
 Thunderous Wrath
 Thunderwolf Cavalry
 Tivadar's Crusade
+Touch of Brilliance
 Treasonous Ogre
 Treetop Warden
 Tresserhorn Sinks

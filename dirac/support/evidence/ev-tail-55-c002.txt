@@ -57,6 +57,7 @@ Champion of Arashin
 Chandra's Revolution
 Chariot of Victory
 Chilling Trap
+Circle of Dreams Druid
 Circle of Flame
 Circle of Protection: White
 Coal Stoker
@@ -143,6 +144,7 @@ Gimli's Axe
 Glaciers
 Glory Bearers
 Gnaw to the Bone
+Gnottvold Slumbermound
 Goblin Bomb
 Goblin Boom Keg
 Goldmeadow Dodger

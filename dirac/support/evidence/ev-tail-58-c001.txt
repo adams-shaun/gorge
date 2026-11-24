@@ -123,6 +123,7 @@ From Beyond
 Frost Marsh
 Funeral Pyre
 Funeral Rites
+Galadriel of Lothlórien
 Garenbrig Carver
 Gate Hound
 Gate of the Black Dragon
@@ -192,6 +193,7 @@ Lethal Exploit
 Lifeblood Hydra
 Lightning Dragon
 Lightning Talons
+Liliana, the Necromancer
 Llanowar Visionary
 Looming Spires
 Lucky Offering
@@ -270,17 +272,20 @@ Reshape the Earth
 Resolute Blademaster
 Riddlesmith
 Ring of Renewal
+Rise of the Ants
 Rishadan Airship
 Rith's Grove
 Riveteers Initiate
 Rooftop Bypass
 Rootwater Diver
+Rosecot Knight
 Ruinous Intrusion
 Rumbleweed
 Runechanter's Pike
 Runed Stalactite
 Rush of Battle
 Sanctuary Cat
+Sand Scout
 Sandstone Deadfall
 Sanguinary Priest
 Saprazzan Bailiff
@@ -291,6 +296,7 @@ Sengir Bats
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
+Shade's Form
 Shadowborn Demon
 Shambling Vent
 Shard Volley
@@ -340,6 +346,7 @@ Tendershoot Dryad
 Terminal Moraine
 The Magic Mirror
 Theater of Horrors
+Thopter Architect
 Thoughts of Ruin
 Thraben Sentry
 Thrull Parasite
