@@ -7,6 +7,23 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
+// farmStackAt returns the checkpoint's stack as "kind:source" labels, top
+// first.
+func farmStackAt(t *testing.T, res OracleResult, checkpoint string) []string {
+	t.Helper()
+	for i := range res.Snapshots {
+		if res.Snapshots[i].Checkpoint == checkpoint {
+			var got []string
+			for _, s := range res.Snapshots[i].Stack {
+				got = append(got, s.Kind+":"+s.Source)
+			}
+			return got
+		}
+	}
+	t.Fatalf("no %q snapshot", checkpoint)
+	return nil
+}
+
 // TestFarmAquaticAlchemist pins the WOE farm window (WOE-s334, FX|G, field
 // stack) where gorge triggered Aquatic Alchemist ("Whenever you cast your
 // first instant or sorcery spell each turn") on the turn's SECOND instant or
@@ -32,27 +49,13 @@ func TestFarmAquaticAlchemist(t *testing.T) {
 	if len(res.Fails) != 0 {
 		t.Fatalf("scenario failed: %v", res.Fails)
 	}
-	stackAt := func(checkpoint string) []string {
-		t.Helper()
-		for i := range res.Snapshots {
-			if res.Snapshots[i].Checkpoint == checkpoint {
-				var got []string
-				for _, s := range res.Snapshots[i].Stack {
-					got = append(got, s.Kind+":"+s.Source)
-				}
-				return got
-			}
-		}
-		t.Fatalf("no %q snapshot", checkpoint)
-		return nil
-	}
 	// Precondition: the Adventure cast itself is an instant-or-sorcery cast
 	// the Alchemist sees, so the second cast's count has a first to see.
-	first := stackAt("step 0 (cast)")
+	first := farmStackAt(t, res, "step 0 (cast)")
 	if len(first) != 2 || first[0] != "ability:p0:Aquatic Alchemist" {
 		t.Fatalf("precondition: stack after the Bubble Up cast = %v, want the Alchemist trigger above the spell (top first)", first)
 	}
-	if got, want := stackAt("step 2 (cast)"), []string{"spell:p0:Shock"}; fmt.Sprint(got) != fmt.Sprint(want) {
+	if got, want := farmStackAt(t, res, "step 2 (cast)"), []string{"spell:p0:Shock"}; fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("stack after Shock = %v, want %v (Forge and XMage: Bubble Up was the first instant or sorcery)", got, want)
 	}
 }
@@ -77,24 +80,10 @@ func TestFarmAquaticAlchemistOmen(t *testing.T) {
 	if len(res.Fails) != 0 {
 		t.Fatalf("scenario failed: %v", res.Fails)
 	}
-	stackAt := func(checkpoint string) []string {
-		t.Helper()
-		for i := range res.Snapshots {
-			if res.Snapshots[i].Checkpoint == checkpoint {
-				var got []string
-				for _, s := range res.Snapshots[i].Stack {
-					got = append(got, s.Kind+":"+s.Source)
-				}
-				return got
-			}
-		}
-		t.Fatalf("no %q snapshot", checkpoint)
-		return nil
-	}
-	if first := stackAt("step 0 (cast)"); len(first) != 2 || first[0] != "ability:p0:Aquatic Alchemist" {
+	if first := farmStackAt(t, res, "step 0 (cast)"); len(first) != 2 || first[0] != "ability:p0:Aquatic Alchemist" {
 		t.Fatalf("precondition: stack after the Claim Territory cast = %v, want the Alchemist trigger above the spell (top first)", first)
 	}
-	if got, want := stackAt("step 2 (cast)"), []string{"spell:p0:Shock"}; fmt.Sprint(got) != fmt.Sprint(want) {
+	if got, want := farmStackAt(t, res, "step 2 (cast)"), []string{"spell:p0:Shock"}; fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("stack after Shock = %v, want %v (Claim Territory was the first sorcery)", got, want)
 	}
 }
