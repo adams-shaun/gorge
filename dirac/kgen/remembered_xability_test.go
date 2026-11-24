@@ -13,8 +13,17 @@ var rememberedCardMayPlayCarriers = []string{
 	"Heartless Conscription", "Klaw, Master of Sound", "Shadow of the Enemy",
 }
 
+// damagedCreatureDelayCarriers register "destroy that creature at end of
+// combat" with a DelayedTrigger RememberObjects$ TriggeredTargetLKICopy on a
+// per-referent DamageDone line: the delayed program's remembered object is
+// the trigger object, the damaged creature (lower_delayed.go
+// delayedStepRemember, lower_trigrefs.go readDamageTarget).
+var damagedCreatureDelayCarriers = []string{
+	"Lowland Basilisk", "Ohran Viper", "Serpentine Basilisk", "Simic Basilisk", "Stone-Tongue Basilisk",
+}
+
 func TestRememberedCrossAbility(t *testing.T) {
-	for _, name := range rememberedCardMayPlayCarriers {
+	for _, name := range append(append([]string(nil), rememberedCardMayPlayCarriers...), damagedCreatureDelayCarriers...) {
 		if c := lowerNamedCard(t, name); len(c.Refusals) != 0 {
 			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
 		}
