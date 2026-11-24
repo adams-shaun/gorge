@@ -32,7 +32,9 @@ c/chandras_regulator.txt
 c/chefs_kiss.txt
 c/choreographed_sparks.txt
 c/cloven_casting.txt
+c/cmdr_troi_outgoing_empath.txt
 c/codie_ravenous_codex.txt
+c/combadge.txt
 c/complete_the_circuit.txt
 c/cosmic_crucible.txt
 c/curse_of_echoes.txt
@@ -196,6 +198,7 @@ s/social_snub.txt
 s/spider_verse.txt
 s/spinerock_tyrant.txt
 s/split_decision.txt
+s/starfleet_communicator.txt
 s/stella_lee_wild_card.txt
 s/storm_kings_thunder.txt
 s/storm_of_forms.txt
@@ -229,9 +232,7 @@ t/tzaangor_shaman.txt
 u/ulalek_fused_atrocity.txt
 u/unbound_flourishing.txt
 u/uyo_silent_prophet.txt
-upcoming/cmdr_troi_outgoing_empath.txt
-upcoming/combadge.txt
-upcoming/starfleet_communicator.txt
+upcoming/salinae_the_ocean_mother.txt
 v/venser_fervent_forger.txt
 v/verazol_the_split_current.txt
 v/verrak_warped_sengir.txt

@@ -104,6 +104,7 @@ func TestUnreadEffectParamCorpusCarriers(t *testing.T) {
 			"i/illusion_reality.txt",
 			"k/kavu_chameleon.txt",
 			"m/mondo_gecko.txt",
+			"o/opulent_clomper.txt",
 			"p/prismatic_dragon.txt",
 			"p/prismatic_lace.txt",
 			"p/prismwake_merrow.txt",
