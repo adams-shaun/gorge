@@ -57,7 +57,11 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool) er
 		b.WriteString("Name:" + f.Name + "\n")
 	}
 	if f.HasManaCost {
-		b.WriteString("ManaCost:" + manaCost(f.ManaCost) + "\n")
+		cost, err := manaCost(f.ManaCost)
+		if err != nil {
+			return err
+		}
+		b.WriteString("ManaCost:" + cost + "\n")
 	} else {
 		b.WriteString("ManaCost:no cost\n")
 	}
@@ -137,9 +141,9 @@ func pair(c ir.ColorSet) string {
 	return s
 }
 
-func manaCost(syms []ir.ManaSym) string {
+func manaCost(syms []ir.ManaSym) (string, error) {
 	if len(syms) == 0 {
-		return "0"
+		return "0", nil
 	}
 	out := make([]string, len(syms))
 	for i, s := range syms {
@@ -163,8 +167,8 @@ func manaCost(syms []ir.ManaSym) string {
 		case ir.ManaSnow:
 			out[i] = "S"
 		default:
-			out[i] = "?"
+			return "", &Unprintable{What: "mana:" + s.Kind.String()}
 		}
 	}
-	return strings.Join(out, " ")
+	return strings.Join(out, " "), nil
 }
