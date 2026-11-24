@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -407,4 +408,41 @@ func TestDigTappedAndSkipReorder(t *testing.T) {
 		t.Fatalf("library[0] = %v, want the spared card %v on top", libAfter[0], spared)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestDigOracleRevealRevealsTheTakenCard is the ff076d4 corpus's shape: the
+// script no longer carries ForceRevealToController$ True, and the card's own
+// words ("you may reveal a colorless card from among them") say the pick is
+// revealed (CR 701.20a; Forge's DigEffect reveals the moved cards of a
+// ChangeValid$ pick). The taken card is revealed publicly; a twin whose text
+// never reveals (Impulse's wording) and a NoReveal$ twin reveal nothing.
+func TestDigOracleRevealRevealsTheTakenCard(t *testing.T) {
+	t.Parallel()
+	const base = "Name:Digo\nManaCost:U\nTypes:Instant\n" +
+		"A:SP$ Dig | Defined$ You | DigNum$ 5 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Card.Colorless | DestinationZone$ Hand%s\n"
+	for _, tc := range []struct {
+		name, extra, oracle string
+		want                bool
+	}{
+		{"reveal text", "", "Oracle:Look at the top five cards of your library. You may reveal a colorless card from among them and put it into your hand.\n", true},
+		{"no reveal text", "", "Oracle:Look at the top five cards of your library. Put a colorless card from among them into your hand.\n", false},
+		{"NoReveal", " | NoReveal$ True", "Oracle:Look at the top five cards of your library. You may reveal a colorless card from among them and put it into your hand.\n", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := strings.Replace(base, "%s", tc.extra, 1) + tc.oracle
+			e, cfg, id := newFixtureDeck(t, 4113, src)
+			digReorder(t, e, "Mountain")
+			d := digCast(t, e, id, "U", true)
+			if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "dig" {
+				t.Fatalf("expected the dig KChoose, got %+v", d)
+			}
+			picked := d.Options[0].Obj
+			submitChoices(t, e, d.Options[0].Index)
+			passUntilStackEmpty(t, e, 20)
+			if got := digPublicRevealNote(e, picked) != nil; got != tc.want {
+				t.Fatalf("taken card revealed = %v, want %v", got, tc.want)
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
 }

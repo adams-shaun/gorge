@@ -55,6 +55,12 @@ func TestAtEOTCorpusCensus(t *testing.T) {
 			if m := apiRe.FindStringSubmatch(line); m != nil {
 				api = m[1]
 			}
+			// EndOfTurn is a delayed-action spelling that cards canonicalises to
+			// Pump (parseSA); the runtime schedules the rider through Pump's
+			// resolver, which TestAtEOTEndOfTurnSpellingSchedulesTheRider pins.
+			if api == "EndOfTurn" {
+				api = "Pump"
+			}
 			seen[api+" "+v[1]]++
 		}
 		return nil
