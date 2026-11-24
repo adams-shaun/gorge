@@ -134,6 +134,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Entwine":                  "CardDef.Entwine (an optional additional cost; the kicked cast announces every feasible mode, dirac/kw_entwine.go)",
 	"Storm":                    "CardDef.Storm (the printed keyword's native cast trigger, dirac/kw_storm.go; a StatStackKw grant, static_stackkeyword.go)",
 	"Extort":                   "an ability (the printed or granted SpellCast trigger; kgen lowers DB$ Extort as OpExt ExtExtort, act_extort.go)",
+	"Mentor":                   "gorge kwMentor's Attacks self-trigger, a targeted PutCounter whose target filter reads power < the source's (kgen lower_mentor.go mentorPutCounter; CR 702.134), no battlefield characteristic",
 	"Mobilize":                 "gorge kwMobilize's Attacks trigger: a remembering Token plus a group DelayedTrigger (kgen lowers the expansion's nodes; OpDelayedProgram DpGroup, ExtSacDelayed)",
 	"Devoid":                   "a colourless face in every zone (kgen lower.go faceHasKeyword Devoid; CharsProj.Colors)",
 	"Equip":                    "CardDef.EquipCost (an activated ability)",
