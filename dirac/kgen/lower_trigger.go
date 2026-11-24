@@ -1681,6 +1681,11 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if err := lc.spendPhaseConds(tp, t.Mode, &conds); err != nil { // lower_trigphase.go
 		return err
 	}
+	if c, ok, err := lc.selfETBInterveningManaSpentCond(t); err != nil { // lower_manaspentcond.go
+		return err
+	} else if ok {
+		conds = append(conds, c)
+	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err
 	}

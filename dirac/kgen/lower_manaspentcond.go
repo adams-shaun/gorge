@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // manaSpentCondition lowers a lone ConditionManaSpent$ / ConditionManaNotSpent$
@@ -61,4 +62,37 @@ func (lc *lowerCtx) selfETBBody() *lTrigger {
 		return nil
 	}
 	return tr
+}
+
+// selfETBInterveningManaSpentCond mirrors gorge's selfETBInterveningManaSpent
+// (engine/rules/trigger_condition.go): a printed self-ETB trigger whose own
+// description reads "if {C} was spent to cast it" carries the gate on its
+// Execute body, but CR 603.4 makes it an intervening-if, so it joins the
+// trigger header's conditions as a queue-time check (the same vAdamant read
+// trigManaSpendCond lowers a header ManaSpent$, with the departure snapshot,
+// not AdamantLiveRead). The body's live resolution read (manaSpentCondition
+// above) stays. "sacrifice it unless {C} was spent" bodies have no "if {"
+// description and are deliberately not matched.
+func (lc *lowerCtx) selfETBInterveningManaSpentCond(t cards.Trigger) (lCond, bool, error) {
+	if lc.adamantTrigger() == nil || t.Effect == nil {
+		return lCond{}, false, nil
+	}
+	desc := strings.ToLower(t.ParamStr(cards.PKTriggerDescription))
+	if !strings.Contains(desc, "if {") || !strings.Contains(desc, "was spent to cast it") {
+		return lCond{}, false, nil
+	}
+	spent := strings.TrimSpace(t.Effect.Params["ConditionManaSpent"])
+	notSpent := strings.TrimSpace(t.Effect.Params["ConditionManaNotSpent"])
+	switch {
+	case spent == "" && notSpent == "":
+		return lCond{}, false, nil
+	case spent != "" && notSpent != "":
+		return lCond{}, true, refuse("self-ETB intervening-if with both ConditionManaSpent$ and ConditionManaNotSpent$")
+	case spent != "":
+		c, err := lc.trigManaSpendCond(spent, false)
+		return c, true, err
+	default:
+		c, err := lc.trigManaSpendCond(notSpent, true)
+		return c, true, err
+	}
 }
