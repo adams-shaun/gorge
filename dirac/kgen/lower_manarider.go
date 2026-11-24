@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // A mana ability whose rider puts counters on its own source (Twitching
 // Doll: "{T}: Add one mana of any color. Put a nest counter on this").
 // CR 605.3b: the rider resolves with the mana, at activation. gorge's
@@ -13,8 +15,15 @@ package kgen
 // wherever it taps the source for mana (dirac/mana_rider.go).
 
 // ctrRiderMana reports whether a is that shape: a plain unrestricted {T}
-// ability adding one mana of any colour, its program exactly "put N >= 1
-// counters of one kind on this permanent", with no condition.
+// ability adding one mana of a fixed colour, of any colour, or one mana of a
+// finite Combo of colours (the Vivid-route lands and the Ice Age storage
+// lands), its program exactly "put N >= 1 counters of one kind on this
+// permanent", with no condition. The kernel arm (mana_rider.go manaCtrRider,
+// manaRiderFloat) reads the colour mask off the ability and is agnostic of
+// it, and gorge's planner defers the source off the SubAbility$ chain alone
+// (pay.PaymentPlanAbilityTier), so the production's colour shape is free
+// where it stays a choice among colours (a Chosen or a dynamic amount is
+// not: plainTapMana, unrestrictedOne).
 func ctrRiderMana(a *lAbility) bool {
 	if a.Kind != akMana || len(a.Prog) != 1 || a.Mana == nil {
 		return false
@@ -26,7 +35,21 @@ func ctrRiderMana(a *lAbility) bool {
 	}
 	c := *a
 	c.Prog = nil
-	return plainTapMana(&c, false) && unrestrictedOne(&c) && c.Mana.Colors == "WUBRG" && !c.Mana.Each
+	if !plainTapMana(&c, false) || !unrestrictedOne(&c) || c.Mana.Each {
+		return false
+	}
+	switch {
+	case c.Mana.Colors == "WUBRG":
+		return true // one mana of any colour (Twitching Doll), asked or unasked
+	case c.Mana.Choice:
+		// a finite Combo (Land Cap): colours only, asked one at a time
+		return len(c.Mana.Colors) > 1 && strings.Trim(c.Mana.Colors, "WUBRG") == "" && colorsInWUBRGOrder(c.Mana.Colors)
+	case len(c.Mana.Colors) == 1:
+		// one fixed colour (Vulshok Factory's {R}); a TriggersWhenSpent$
+		// source stays the spend-trigger route's, not this rider's
+		return !c.Mana.Deferred && strings.Contains("WUBRGC", c.Mana.Colors)
+	}
+	return false
 }
 
 // refuseCtrRiderBeside refuses a counter-rider mana ability beside another

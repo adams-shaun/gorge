@@ -11,7 +11,8 @@ import (
 // filter ability per colour and models a fixed-colour or choice fee (it
 // records one filter ability per card and needs ColAny), and the refusal
 // names that reason; the other shapes of the nine T18e cards keep their
-// refusal, naming their actual reason.
+// refusal, naming their actual reason (Glittering Stockpile's is the
+// counter-rider-beside-another-mana-ability reason).
 func TestMultiManaFilterSet(t *testing.T) {
 	refuse := map[string]string{
 		"Koskun Keep":           "the kernel's filter walk records one filter ability per card",
@@ -21,7 +22,7 @@ func TestMultiManaFilterSet(t *testing.T) {
 		"Wizards' School":       "the kernel's filter walk records one filter ability per card",
 		"Murmuring Bosk":        "a pain rider beside a coloured plain {T} ability",
 		"Cadaverous Bloom":      "gorge's census is unrelaxable, so no prefix search runs",
-		"Glittering Stockpile":  "mana ability with a conditional or unbounded rider program",
+		"Glittering Stockpile":  "mana ability with a counter rider beside another mana ability",
 		"The Eternity Elevator": "granted mana ability with a dynamic amount",
 	}
 	var names []string
