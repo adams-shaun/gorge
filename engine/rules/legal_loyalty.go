@@ -290,10 +290,20 @@ func (e *Engine) loyaltyActivationsFrom(o *state.Object, from int, onBattlefield
 // for the `Card.IsRemembered` spelling, exactly as combat.staticGoadLines binds it
 // for Goad. Both routes share one accumulator so neither can drift from the
 // other's Twice/Additional combination rule.
+//
+// A printed line is live only while its "as long as" gate holds: the same
+// IsPresent$/Condition$/CheckSVar$ recheck continuousGateHolds gives every
+// continuous static. Quintorius, Fate Splitter's "as long as NICKNAME entered
+// this turn" is a CheckSVar$ over Count$ThisTurnEntered_Battlefield_Card.Self,
+// and after the turn it entered the printed Twice$ must stop raising the
+// limit.
 func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	twice := false
 	additional := 0
 	for _, sv := range e.activeStatics("NumLoyaltyAct") {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
 		e.numLoyaltyActFold(id, sv.Params, sv.Source, sv.Controller, nil, &twice, &additional)
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
