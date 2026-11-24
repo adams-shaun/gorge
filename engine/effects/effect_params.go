@@ -253,9 +253,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
 		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
-		SourceLeave: tr.ModeKind() == cards.TriggerChangesZone &&
-			strings.EqualFold(strings.TrimSpace(tr.ParamStr(cards.PKOrigin)), "Battlefield") &&
-			strings.Contains(tr.ParamStr(cards.PKValidCard), "Card.EffectSource"),
+		SourceLeave:     tr.WatchesEffectSourceLeave(),
 	}
 }
 

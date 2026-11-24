@@ -384,22 +384,18 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			effectDurationPermanent(rawDur)
 		// CR 603.7b: an Effect trigger watching its own source leave the
 		// battlefield is the delayed triggered ability the Effect creates.
-		// The departure is its trigger event, so it fires once and must NOT
-		// carry the |SB source-battlefield lifetime appended below: that
+		// The departure is its trigger event, so it triggers once and must
+		// NOT carry the |SB source-battlefield lifetime appended below: that
 		// lifetime would retire the registration at the very departure that
-		// must trigger it (Mysterio, Master of Illusion; Stangg). The
+		// must trigger it (Mysterio, Master of Illusion; Stangg). A plain
+		// one-shot delayed registration (no |EF) is consumed by its own
+		// DelayedPush; rules' fire path gives it the Effect's capture. The
 		// comeback idiom above has its own lifetime and is left untouched.
 		sourceLeave := tl.SourceLeave && !permanentComeback
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
-		if sourceLeave {
-			// |BN=1 makes the recurring registration one-shot: the
-			// DelayedPush consume branch removes a FiresLeft==1 entry
-			// (CR 603.7b), while |EF keeps the Effect-owned capture
-			// (dt.Remembered) as the body's `Defined$ Remembered`.
-			efMarker = "|BN=1|EF"
-		} else if oneOff {
+		if sourceLeave || oneOff {
 			efMarker = ""
 		}
 		// A one-time boon ends with its trigger's firing (Forge's
