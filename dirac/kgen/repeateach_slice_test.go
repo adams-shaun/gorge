@@ -17,10 +17,12 @@ var repeatEachSliceCards = map[string][]string{
 	"token attacking the repeated player": {
 		"Ainok Strike Leader", "Endless Foot Assault", "Stampede Surfer", "Veteran Soldier",
 	},
-	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat)
+	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat). Trade
+	// Secrets reads MaxRepeat$ from a ChooseNumber answer (Count$ChosenNumber).
 	"fixed Repeat": {
 		"Another Round", "Exponential Growth", "Full Flowering",
 		"Torment of Hailfire", "Oath of Lim-Dûl", "Varchild's War-Riders",
+		"Trade Secrets",
 	},
 }
 
