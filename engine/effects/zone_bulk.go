@@ -402,6 +402,19 @@ func sacrificeObjectVictims(h Host, c *Ctx, implicitSelf bool, g *state.Game, wh
 	return victims
 }
 
+// mandatorySacrificeBatch is a mandatory player sacrifice's batch over
+// eligible permanents for a batch count n (Amount$, or the Annihilator$
+// marker's count): ask reports a genuine identity choice of exactly n.
+// StrictAmount$ True with fewer than n eligible cannot be paid partially, so
+// it sacrifices none (CR 614.6: the replaced "sacrifice two" never happens;
+// Scorched Ruins, Lotus Vale, Infernal Denizen).
+func mandatorySacrificeBatch(eligible, n int32, strictAmount bool) (int32, bool) {
+	if strictAmount && eligible < n {
+		return 0, false
+	}
+	return n, eligible > n
+}
+
 // effSacrifice moves permanents to the graveyard. Sacrifice ignores
 // Indestructible: sacrificing is not destruction (CR 701.16), so no
 // HasKeyword/Indestructible gate and no ReplaceDestruction/regeneration
@@ -479,7 +492,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	optional := sa.ParamStr(cards.PKOptional) == "True"
-	strict := optional && sa.ParamStr(cards.PKStrictAmount) == "True"
+	// StrictAmount$ True is "exactly Amount$, or none" whether or not the
+	// sacrifice is optional (Scorched Ruins, Lotus Vale, Infernal Denizen are
+	// mandatory carriers); strict keeps the optional yes/no shape below.
+	strictAmount := sa.ParamStr(cards.PKStrictAmount) == "True"
+	strict := optional && strictAmount
 	// The strict optional yes/no ask names the same noun in place of
 	// permanent(s); the pre-SacMessage wording is unchanged.
 	sacAskNoun := "permanent(s)"
@@ -646,11 +663,8 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 						maxv = int32(len(eligible))
 					}
 				}
-			} else if int32(len(eligible)) > n {
-				// Mandatory with a choice: exactly the batch count of the
-				// eligible — Amount$, or the Annihilator$ marker's count when
-				// the generated expansion carries one.
-				ask = true
+			} else {
+				n, ask = mandatorySacrificeBatch(int32(len(eligible)), n, strictAmount)
 				minv, maxv = n, n
 			}
 			// (the remaining mandatory shape — eligible <= amount — sacrifices
