@@ -2,4 +2,4 @@
 source	key	sig	class	issue	note
 static	0/S:Continuous#0/Affected	918709e0	cardc-gap	0	untriaged
 static	0/T:Attacks:GainLife#0/[0]Defined	f37820cf	equivalent	0	absent player selector means the controller, same as You
-static	0/T:Attacks:GainLife#0/[0]LifeAmount	cd51a053	cardc-gap	0	untriaged
+static	0/T:Attacks:GainLife#0/[0]LifeAmount	654fe287	cardc-gap	0	untriaged

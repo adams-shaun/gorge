@@ -391,7 +391,7 @@ func shapeKeyword(k string) string {
 }
 
 // servedFloor is the number of cards of the fdn and legacy slices cardc serves.
-const servedFloor = 273
+const servedFloor = 309
 
 func TestServedCardsMatchForge(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)
