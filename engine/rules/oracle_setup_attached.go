@@ -200,7 +200,7 @@ func (r *oracleRun) placeSetupEntry(sc oracleScenario, p int, id state.ObjID, na
 			// (Marjhan before its Islands). Drop it with the placement's own
 			// state trigger; setup's first check re-queues it if the
 			// condition still holds (CR 603.8).
-			e.dropSetupStateTriggers()
+			r.dropSetupStateTriggers()
 		}
 	}
 }

@@ -99,7 +99,8 @@ func setupPlacementDropsTrigger(t cards.Trigger, backFaceChapter, dropAttached b
 // its Islands) must not resolve. One whose condition still holds at the first
 // check after setup is queued again there (CR 603.8); a CounterAdded-family
 // trigger is a different mode and stays.
-func (e *Engine) dropSetupStateTriggers() {
+func (r *oracleRun) dropSetupStateTriggers() {
+	e := r.e
 	kept := e.pendingTriggers[:0]
 	ordered := 0
 	for i, pt := range e.pendingTriggers {
