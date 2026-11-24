@@ -48,6 +48,9 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 	if hasOption(&d, a) {
 		return
 	}
+	if s.restrComboPrefix(k, p, a, &pd) {
+		return
+	}
 	fund, wiped := s.restrFeeFund(k, p)
 	if wiped != 0 {
 		return
@@ -75,14 +78,16 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 // restrFeeGapView is the eligible gap of the source at sl for play pd: its
 // record's view and ability (a pair's free view, its restrPair naming the fee
 // alternative), or false when the source is no gap pd may spend. A coloured
-// fee is not scripted.
+// fee is not scripted. A Great Hall's combo pair (rkWiden, restrComboWide) is
+// a gap too: its census {C} covers none of the fee ability (gorge's census
+// reads TierNormal alternatives only).
 func (s *State) restrFeeGapView(k *prep, p uint8, sl Slot, pd *payDesc) (v *pcard, ab *kop.Ability, ok bool) {
 	c := s.cardAt(sl)
 	if k.gen.flags[c]&gfRestrSrc == 0 || !s.restrUsable(k, sl) {
 		return nil, nil, false
 	}
 	v, kind, ab := s.restrView(k, p, sl, s.manaPCGen(k, sl), pd)
-	if v == nil || kind != rkExt || v.restrFeeCol != 0 {
+	if v == nil || (kind != rkExt && !(kind == rkWiden && restrComboWide(v))) || v.restrFeeCol != 0 {
 		return nil, nil, false
 	}
 	if v.restrPair == 0 && restrFeeEmpty(v) {
@@ -163,16 +168,93 @@ func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
 		if m == 0 || m&(m-1) != 0 || pc.manaMulti || pc.manaDyn || pc.painCol != 0 || pc.manaRefl {
 			return false
 		}
-		col := bits.TrailingZeros8(m)
-		s.perms[sl].flags |= pfTapped
-		s.touchSl(sl)
-		s.manaTapped(k, sl)
-		s.poolAdd(p, col, int(max(pc.manaN, 1)))
-		s.addExtra(k, p, sl, pc)
-		s.artTag(k, p, sl, col)
+		s.restrFeeTapCensus(k, p, sl, pc, bits.TrailingZeros8(m))
 		return true
 	}
 	return false
+}
+
+// restrFeeTapCensus taps sl's census ability (view pc, colour col) into p's
+// pool, as gorge's search activates it.
+func (s *State) restrFeeTapCensus(k *prep, p uint8, sl Slot, pc *pcard, col int) {
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	s.poolAdd(p, col, int(max(pc.manaN, 1)))
+	s.addExtra(k, p, sl, pc)
+	s.artTag(k, p, sl, col)
+}
+
+// restrComboPrefix plays gorge's search over two or more Great Halls (combo
+// fee pairs, restrComboWide), p's only fee gaps: the search tries a gap's {T}: Add
+// {C} before its fee ability, depth first in battlefield order, so its first
+// success taps every Hall but the last for {C} and activates the last one's
+// fee from that pool, with the first combination answer (the play's colours
+// first: wideEngineAnswer) the plain walk then lists the play on (engine/rules
+// potential_script.go scriptSearch.visit; no funding is spent: every tap is
+// a gap's). It reports whether it handled the play; a board it does not model
+// (another fee gap kind, one Hall) takes restrFeePrefix's funded walk. When
+// no answer lists the play the first stays floating (gorge's deeper branches,
+// two fees, are not modelled).
+func (s *State) restrComboPrefix(k *prep, p uint8, a Action, pd *payDesc) bool {
+	var gaps [MaxPerm]Slot
+	var order [MaxPerm]Slot
+	n, ng := s.battlefieldOrder(p, s.ctrlM[p], order[:], 0), 0
+	fee := 0
+	for _, sl := range order[:n] {
+		if k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 || !s.restrUsable(k, sl) {
+			continue
+		}
+		own := s.manaPCGen(k, sl)
+		v, kind, _ := s.restrView(k, p, sl, own, pd)
+		if v == nil || restrFeeEmpty(v) {
+			continue
+		}
+		if kind != rkWiden || !restrComboWide(v) || v.restrFeeCol != 0 || !s.canTapForManaPC(k, sl, own) {
+			return false // another fee gap kind: the funded walk's
+		}
+		gaps[ng], fee = sl, int(v.restrFee)
+		ng++
+	}
+	pl := &s.pl[SeatIx(p)]
+	if ng < 2 || poolTotal(pl)+ng-1 < fee {
+		return false
+	}
+	for _, sl := range gaps[:ng-1] {
+		s.restrFeeTapCensus(k, p, sl, s.manaPCGen(k, sl), bits.TrailingZeros8(uint8(kop.ColC)))
+	}
+	last := gaps[ng-1]
+	_, _, ab := s.restrView(k, p, last, s.manaPCGen(k, last), pd)
+	s.perms[last].flags |= pfTapped
+	s.touchSl(last)
+	s.manaTapped(k, last)
+	dc, dn := s.deferSnap(p)
+	s.filtFeeSpend(k, p, last, fee)
+	if k.artMana {
+		s.artSync(p)
+	}
+	s.deferSync(p, dc, dn)
+	need := s.playNeed(k, a)
+	rb, pool := s.rb[SeatIx(p)], pl.pool
+	var d Decision
+	for c := 0; c < wideAnswers; c++ {
+		x, y := wideAnswer(wideEngineAnswer(need, c))
+		s.rb[SeatIx(p)], pl.pool = rb, pool
+		if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
+			s.capFull(StallRestrSrc) // never a silent spill
+			return true
+		}
+		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
+		if hasOption(&d, a) {
+			return true
+		}
+	}
+	s.rb[SeatIx(p)], pl.pool = rb, pool
+	x, y := wideAnswer(wideEngineAnswer(need, 0))
+	if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
+		s.capFull(StallRestrSrc)
+	}
+	return true
 }
 
 // restrFeeActivate activates fee gap sl: the fee paid from the pool, then its
