@@ -19,7 +19,10 @@ import (
 //     damaged player instead of once for the batch.
 //   - an ungated Repeat (MaxRepeat$ passes of the body; kop.OpRepeat): Another
 //     Round, Exponential Growth, Full Flowering, Oath of Lim-Dul, Torment of
-//     Hailfire, Varchild's War-Riders. The mutation runs each loop once.
+//     Hailfire, Varchild's War-Riders, and Trade Secrets (whose MaxRepeat$ is
+//     the opponent's ChooseNumber answer, Count$ChosenNumber). Each pass's
+//     "draw up to four cards" is its own choice. The mutation runs each loop
+//     once.
 //   - a RepeatEach over the opponents whose body mints a token tapped and
 //     attacking with the plain TokenAttacking$ Remembered / RememberedPlayer
 //     (Ainok Strike Leader, Endless Foot Assault, Stampede Surfer; Veteran
@@ -35,7 +38,7 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 	t.Run("lockstep", func(t *testing.T) {
 		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, true, nil)
 		t.Logf("%d games, %d divergences, %d stalls, casts %v", run.games, run.divs, run.stalls, run.casts)
-		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 10, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20} {
+		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 10, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10} {
 			if run.casts[name] < min {
 				t.Errorf("only %d %s casts (want %d)", run.casts[name], name, min)
 			}
@@ -116,7 +119,7 @@ var repeatEachSliceWatch = map[string]bool{
 	"Ainok Strike Leader": true, "Endless Foot Assault": true, "Stampede Surfer": true,
 	"Jace Beleren": true, "Ajani Goldmane": true,
 	"Another Round": true, "Exponential Growth": true, "Full Flowering": true,
-	"Torment of Hailfire": true, "Oath of Lim-Dûl": true, "Varchild's War-Riders": true,
+	"Torment of Hailfire": true, "Oath of Lim-Dûl": true, "Varchild's War-Riders": true, "Trade Secrets": true,
 }
 
 var repeatEachSliceDecks = []fixtureDecks{
@@ -152,6 +155,16 @@ var repeatEachSliceDecks = []fixtureDecks{
 		{
 			{Name: "Jace Beleren", Count: 8}, {Name: "Ajani Goldmane", Count: 8}, {Name: "Grizzly Bears", Count: 6},
 			{Name: "Island", Count: 9}, {Name: "Plains", Count: 9},
+		},
+	},
+	{
+		// Trade Secrets' chosen-number pass count: the opponent chooses how
+		// many times the draw pair repeats
+		{
+			{Name: "Trade Secrets", Count: 4}, {Name: "Swamp", Count: 18}, {Name: "Island", Count: 18},
+		},
+		{
+			{Name: "Hill Giant", Count: 8}, {Name: "Grizzly Bears", Count: 6}, {Name: "Forest", Count: 12}, {Name: "Mountain", Count: 10}, {Name: "Llanowar Elves", Count: 4},
 		},
 	},
 	{

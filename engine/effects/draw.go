@@ -235,6 +235,13 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 			c.Draw.UptoIdx = int32(idx + 1)
 			c.Draw.UptoCount, c.Draw.UptoAnswered = 0, false
 		}
+		// The effect finished every target: rewind its cursor so the NEXT
+		// invocation asks afresh. The fields live on the resolution's Ctx and
+		// survive it, and a repeated body is a fresh instruction (Trade
+		// Secrets' "you draw up to four cards", repeated: each pass is its own
+		// "up to" choice, CR 608.2c/d); leaving UptoIdx at len(targets) would
+		// skip the ask -- and the draws -- on every pass after the first.
+		c.Draw.UptoIdx = 0
 		return
 	}
 	for c.Draw.Done < total {

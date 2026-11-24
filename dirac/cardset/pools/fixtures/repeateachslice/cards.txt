@@ -1,4 +1,4 @@
-# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link) and creatures
+# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link), creatures and the ungated Repeat forms (Trade Secrets' MaxRepeat$ is a chosen number)
 Acidic Soil
 Heartless Hidetsugu
 Stormbreath Dragon
@@ -23,6 +23,7 @@ Exponential Growth
 Full Flowering
 Torment of Hailfire
 Oath of Lim-Dûl
+Trade Secrets
 Varchild's War-Riders
 Raise the Alarm
 Swamp

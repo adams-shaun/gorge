@@ -13,12 +13,6 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // pass in gorge's one resolution context, which the kernel does not model, so
 // it refuses.
 func (lc *lowerCtx) repeatFixed(ps *params, n lValue) error {
-	if n.Kind == vChosenNumber {
-		// Trade Secrets' "repeat as many times as they choose": a ChooseNumber
-		// answer read as the pass count diverges from gorge in lockstep
-		// (the loop's count after the opponent's number ask)
-		return refuse("Repeat MaxRepeat$ %q reads a chosen number", ps.str("MaxRepeat"))
-	}
 	if ps.is("Mandatory", "True") {
 		ps.consume("Mandatory") // gorge effRepeat never reads it: a trigger's no-option rider (Oath of Lim-Dul)
 	}
