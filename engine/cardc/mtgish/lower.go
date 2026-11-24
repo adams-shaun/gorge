@@ -83,7 +83,50 @@ func (c *Ctx) lower(x any) (any, error) {
 	if !ok {
 		return nil, &RefusalError{Key: key, Path: c.Src()}
 	}
-	return f(c, n)
+	v, err := f(c, n)
+	if err == nil {
+		setSrc(v, c.Src())
+	}
+	return v, err
+}
+
+// setSrc stamps the lowering path on a node a lowering returned, unless the
+// lowering set one itself. Every lowering gets Src without writing it.
+func setSrc(v any, src string) {
+	var p *string
+	switch x := v.(type) {
+	case *ir.Ref:
+		p = &x.Src
+	case *ir.Filter:
+		p = &x.Src
+	case *ir.Value:
+		p = &x.Src
+	case *ir.Cond:
+		p = &x.Src
+	case *ir.Compare:
+		p = &x.Src
+	case *ir.Target:
+		p = &x.Src
+	case *ir.Ability:
+		p = &x.Src
+	case *ir.Keyword:
+		p = &x.Src
+	case *ir.Trigger:
+		p = &x.Src
+	case *ir.Program:
+		p = &x.Src
+	case *ir.Step:
+		p = &x.Src
+	case *ir.Cost:
+		p = &x.Src
+	case *ir.CostPart:
+		p = &x.Src
+	case *ir.PT:
+		p = &x.Src
+	}
+	if p != nil && *p == "" {
+		*p = src
+	}
 }
 
 func lowerAs[T any](c *Ctx, x any) (*T, error) {

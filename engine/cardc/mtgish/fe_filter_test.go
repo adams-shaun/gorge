@@ -1,7 +1,6 @@
 package mtgish
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -177,7 +176,7 @@ func TestFilterLowering(t *testing.T) {
 				t.Errorf("%s.%s: %v", e.name, tc.variant, err)
 				continue
 			}
-			if want := tc.want(e); !reflect.DeepEqual(got, want) {
+			if want := tc.want(e); !ir.Equal(got, want) {
 				t.Errorf("%s.%s:\n got %+v\nwant %+v", e.name, tc.variant, got, want)
 			}
 		}
@@ -235,7 +234,7 @@ func TestFilterLowering(t *testing.T) {
 	f, err := c.Filter(tn("Permanents", "Ref_TargetPermanents"))
 	want := &ir.Filter{Subject: ir.SubjPermanent, Zones: zoneBit(ir.ZoneBattlefield), Op: ir.FPred, Pred: ir.PIs,
 		Ref: &ir.Ref{Kind: ir.RefTarget, Slot: 0}}
-	if err != nil || !reflect.DeepEqual(f, want) {
+	if err != nil || !ir.Equal(f, want) {
 		t.Errorf("Ref_TargetPermanents: %+v, %v", f, err)
 	}
 	c = &Ctx{}
@@ -333,7 +332,7 @@ func TestPlayerFilterLowering(t *testing.T) {
 			t.Errorf("Players.%s: %v", tc.variant, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, tc.want) {
+		if !ir.Equal(got, tc.want) {
 			t.Errorf("Players.%s:\n got %+v\nwant %+v", tc.variant, got, tc.want)
 		}
 	}

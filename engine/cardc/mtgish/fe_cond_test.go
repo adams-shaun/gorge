@@ -1,7 +1,6 @@
 package mtgish
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -73,7 +72,7 @@ func TestCondLowering(t *testing.T) {
 			t.Errorf("%s: %v", variantOf(tc.in), err)
 			continue
 		}
-		if !reflect.DeepEqual(got, tc.want) {
+		if !ir.Equal(got, tc.want) {
 			t.Errorf("%s: got %+v, want %+v", variantOf(tc.in), got, tc.want)
 		}
 	}

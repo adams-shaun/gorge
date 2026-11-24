@@ -1,7 +1,6 @@
 package mtgish
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -47,7 +46,7 @@ func TestTargetLowering(t *testing.T) {
 			t.Errorf("Target.%s: %v", tc.variant, err)
 			continue
 		}
-		if !reflect.DeepEqual(*got, tc.want) {
+		if !ir.Equal(got, &tc.want) {
 			t.Errorf("Target.%s:\n got %+v\nwant %+v", tc.variant, *got, tc.want)
 		}
 		if slot, ok := c.TargetSlot("Ref_" + tc.stem); !ok || slot != 0 {
