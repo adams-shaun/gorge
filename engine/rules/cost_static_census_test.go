@@ -564,8 +564,15 @@ func TestCostStaticCensus(t *testing.T) {
 		}
 		// Condition$
 		if cond, ok := p["Condition"]; ok {
+			// PlayerTurn / NotPlayerTurn read the static's controller (CR
+			// 109.5), so probe both controllers as well as both casters.
 			holds := false
-			if pn := probe(func() { holds = e.costConditionHolds(sv, 0, 0) || e.costConditionHolds(sv, 1, 0) }); pn != "" || !holds {
+			svOpp := sv
+			svOpp.Controller = 1
+			if pn := probe(func() {
+				holds = e.costConditionHolds(sv, 0, 0) || e.costConditionHolds(sv, 1, 0) ||
+					e.costConditionHolds(svOpp, 0, 0) || e.costConditionHolds(svOpp, 1, 0)
+			}); pn != "" || !holds {
 				add(ccBroken, "Condition$ "+strings.TrimSpace(cond)+" unsupported", L.loc("engine/rules/statics.go", "func (e *Engine) costConditionHolds("))
 			}
 		}
