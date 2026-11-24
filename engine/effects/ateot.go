@@ -50,21 +50,21 @@ func scheduleAtEOT(h Host, c *Ctx, sa *cards.SA, affected []state.ObjID) {
 			Text: "AtEOT$ " + value + " is not implemented; the affected object stays on the battlefield (one Note per call)"})
 		return
 	}
-	if scheduleAtEOTGroup(h, c, value, rider, affected) {
+	if scheduleAtEOTGroup(h, c, rider, affected) {
 		return
 	}
 	scheduleAtEOTRider(h, c.Controller, c.Source, rider, affected)
 }
 
 // scheduleAtEOTGroup is scheduleAtEOT's registration for one resolution that
-// affects several objects with a sacrifice rider ("sacrifice them at the
-// beginning of the next end step"): one delayed triggered ability naming all of
-// them (CR 603.7), as Forge's registerDelayedTrigger creates it, so the end
-// step puts one trigger on the stack, not one per object. It reports whether it
-// registered. Any other rider, or fewer than two live objects, is the
-// per-object registration.
-func scheduleAtEOTGroup(h Host, c *Ctx, value string, rider atEOTRider, affected []state.ObjID) bool {
-	if c.Source == 0 || !groupedSacrifice(value, rider) {
+// affects several objects with a rider acting on the objects themselves
+// ("sacrifice/exile them at the beginning of the next end step"): one delayed
+// triggered ability naming all of them (CR 603.7a/b), as Forge's
+// registerDelayedTrigger creates it, so the end step puts one trigger on the
+// stack, not one per object. It reports whether it registered. SacrificeCtrl,
+// or fewer than two live objects, is the per-object registration.
+func scheduleAtEOTGroup(h Host, c *Ctx, rider atEOTRider, affected []state.ObjID) bool {
+	if c.Source == 0 || !groupedRider(rider) {
 		return false
 	}
 	var live []state.ObjID
@@ -87,8 +87,14 @@ func groupedSacrifice(value string, r atEOTRider) bool {
 	return r.body == "__kwEncoreSacrifice" && value != "SacrificeCtrl"
 }
 
-// groupRegistration is the DelayedRegister event of a group sacrifice over ids
-// (empty ids: the delayed trigger that does nothing, scheduleAtEOTNone).
+// groupedRider reports whether one resolution's rider over several objects is
+// one delayed trigger naming them all: every rider with a group body
+// (SacrificeCtrl has none: each object's controller sacrifices it).
+func groupedRider(r atEOTRider) bool { return r.group != "" }
+
+// groupRegistration is the DelayedRegister event of the rider's group body
+// over ids (empty ids: the delayed trigger that does nothing,
+// scheduleAtEOTNone, which keeps the sacrifice group's body).
 func groupRegistration(h Host, controller state.PlayerID, creator state.ObjID, r atEOTRider, ids []state.ObjID) events.Event {
 	text := ""
 	if r.thisTurn {
@@ -97,8 +103,12 @@ func groupRegistration(h Host, controller state.PlayerID, creator state.ObjID, r
 	if r.yours {
 		text += "|VP=You"
 	}
+	body := "__kwEncoreSacrificeGroup"
+	if r.group != "" && len(ids) > 0 {
+		body = r.group
+	}
 	return events.Event{Kind: events.DelayedRegister, Obj: creator,
-		Player: controller, Step: r.step, Counter: "__kwEncoreSacrificeGroup",
+		Player: controller, Step: r.step, Counter: body,
 		Text: text, IDs: ids}
 }
 
@@ -148,11 +158,13 @@ func scheduleAtEOTNone(h Host, controller state.PlayerID, creator state.ObjID, r
 }
 
 // atEOTRider is the registration one AtEOT$ value schedules: the builtin
-// SVar body, the step it fires at, whether the step is gated to the
+// SVar body, its group sibling over DelayTriggerRememberedLKI for several
+// objects of one resolution (empty: always per object), the step it fires at, whether the step is gated to the
 // registering player's own turn (ValidPlayer$ You), and whether the promise
 // expires at the end of the turn it was made in.
 type atEOTRider struct {
 	body     string
+	group    string
 	step     state.Step
 	yours    bool
 	thisTurn bool
@@ -187,18 +199,18 @@ func atEOTInclude(h Host, c *Ctx, sa *cards.SA, id state.ObjID) bool {
 // battlefield and the exile/return bodies carry an Origin$ Battlefield guard.
 // cards.atEOTValues must list exactly these keys.
 var atEOTRiders = state.NewStrTable[atEOTRider](
-	state.StrEntry[atEOTRider]{Key: "Exile", Val: atEOTRider{body: "__kwWarpExile", step: state.StepEnd}},
-	state.StrEntry[atEOTRider]{Key: "YourExile", Val: atEOTRider{body: "__kwWarpExile", step: state.StepEnd}},
-	state.StrEntry[atEOTRider]{Key: "Sacrifice", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepEnd}},
-	state.StrEntry[atEOTRider]{Key: "YourSacrifice", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "Exile", Val: atEOTRider{body: "__kwWarpExile", group: "__kwGroupExile", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "YourExile", Val: atEOTRider{body: "__kwWarpExile", group: "__kwGroupExile", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "Sacrifice", Val: atEOTRider{body: "__kwEncoreSacrifice", group: "__kwEncoreSacrificeGroup", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "YourSacrifice", Val: atEOTRider{body: "__kwEncoreSacrifice", group: "__kwEncoreSacrificeGroup", step: state.StepEnd}},
 	state.StrEntry[atEOTRider]{Key: "SacrificeCtrl", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepEnd}},
-	state.StrEntry[atEOTRider]{Key: "Hand", Val: atEOTRider{body: "__kwDashReturn", step: state.StepEnd}},
-	state.StrEntry[atEOTRider]{Key: "Destroy", Val: atEOTRider{body: "__kwAtEOTDestroy", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "Hand", Val: atEOTRider{body: "__kwDashReturn", group: "__kwGroupHand", step: state.StepEnd}},
+	state.StrEntry[atEOTRider]{Key: "Destroy", Val: atEOTRider{body: "__kwAtEOTDestroy", group: "__kwGroupDestroy", step: state.StepEnd}},
 	// End of combat (CR 511.2 step; Geist of Saint Traft's Angel token).
-	state.StrEntry[atEOTRider]{Key: "ExileCombat", Val: atEOTRider{body: "__kwWarpExile", step: state.StepEndCombat, thisTurn: true}},
-	state.StrEntry[atEOTRider]{Key: "SacrificeCombat", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepEndCombat, thisTurn: true}},
+	state.StrEntry[atEOTRider]{Key: "ExileCombat", Val: atEOTRider{body: "__kwWarpExile", group: "__kwGroupExile", step: state.StepEndCombat, thisTurn: true}},
+	state.StrEntry[atEOTRider]{Key: "SacrificeCombat", Val: atEOTRider{body: "__kwEncoreSacrifice", group: "__kwEncoreSacrificeGroup", step: state.StepEndCombat, thisTurn: true}},
 	// Next upkeep ("your" next upkeep for the Your-prefixed values).
-	state.StrEntry[atEOTRider]{Key: "SacrificeUpkeep", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepUpkeep}},
-	state.StrEntry[atEOTRider]{Key: "YourSacrificeUpkeep", Val: atEOTRider{body: "__kwEncoreSacrifice", step: state.StepUpkeep, yours: true}},
-	state.StrEntry[atEOTRider]{Key: "YourExileUpkeep", Val: atEOTRider{body: "__kwWarpExile", step: state.StepUpkeep, yours: true}},
+	state.StrEntry[atEOTRider]{Key: "SacrificeUpkeep", Val: atEOTRider{body: "__kwEncoreSacrifice", group: "__kwEncoreSacrificeGroup", step: state.StepUpkeep}},
+	state.StrEntry[atEOTRider]{Key: "YourSacrificeUpkeep", Val: atEOTRider{body: "__kwEncoreSacrifice", group: "__kwEncoreSacrificeGroup", step: state.StepUpkeep, yours: true}},
+	state.StrEntry[atEOTRider]{Key: "YourExileUpkeep", Val: atEOTRider{body: "__kwWarpExile", group: "__kwGroupExile", step: state.StepUpkeep, yours: true}},
 )

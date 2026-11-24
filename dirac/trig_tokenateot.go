@@ -18,6 +18,9 @@ func (s *State) tokenAtEOT(in *kop.Instr, t Obj) {
 	if in.B.N&kop.TokExileAtEnd == 0 && s.g.tokMade > 1 && s.sacAtEndJoin(t, dlyUntracked) {
 		return // a later token of one resolution joins the first one's trigger
 	}
+	if in.B.N&kop.TokExileAtEnd != 0 && s.g.tokMade > 1 && s.exileAtEndJoin(t) {
+		return // a later token of one resolution joins the first one's exile (trig_ateotexilegroup.go)
+	}
 	s.atEOTRider(t, in.B.N&kop.TokExileAtEnd != 0)
 }
 
@@ -41,6 +44,8 @@ func (s *State) sacAtEndJoin(t Obj, when uint8) bool {
 	prev := &s.dly[s.ndly-1]
 	head := prev.obj
 	switch {
+	case prev.act != uint8(kop.OpSacrifice):
+		return false // an exile group's follower (trig_ateotexilegroup.go)
 	case prev.when == dlyGrpFollow:
 		head = prev.creator
 	case prev.when != when || prev.creator != s.res.e.obj || prev.obj == t:
