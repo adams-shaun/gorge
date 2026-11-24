@@ -228,6 +228,15 @@ func kvfThirdUp(v lValue, m string, hasArg bool) (lValue, error) {
 // value, then applyCountOp's Times arm): the product of the two values.
 // Lunar Convocation's LifeLostThisTurn/Times.X.
 func (lc *lowerCtx) kvfTimesSVar(v lValue, m, arg string, depth int) (lValue, error) {
+	if lc.storesNum(arg) {
+		// a name a StoreSVar writes: gorge's countOperandValue reads the
+		// stored number before the printed body (Tempt with Vengeance's Z=X/Times.Y)
+		sv, err := lc.storedNumValue(arg)
+		if err != nil {
+			return lValue{}, err
+		}
+		return lValue{Kind: vProduct, Sub: []lValue{v, sv}}, nil
+	}
 	body, ok := lc.face.SVars[arg]
 	if !ok {
 		return lValue{}, fmt.Errorf("value modifier %q: %s is neither a number nor an SVar", m, arg)

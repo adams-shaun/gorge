@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtOptInSeat
+value: next
+status: active
+doc: ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
