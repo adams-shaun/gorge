@@ -281,6 +281,11 @@ func (s *State) availXWindow(k *prep, p uint8, a *avail) {
 					continue
 				}
 				if !s.planDeferred(k, p, b.first()) {
+					// a plain-first source (Thalakos Lowlands) is counted at its plain
+					// tap; the window can tap its rider for the colours instead
+					if alt, ok := s.riderFaceAlt(k, p, b.first(), ra); ok {
+						a.addRiderFace(uint8(s.srcMaskAt(s.manaPCGen(k, b.first()), b.first())), alt)
+					}
 					continue
 				}
 				s.addTapsDeferUnits(k, b.first(), a) // its own production, an all-at-once pair included (mana_rider.go)
