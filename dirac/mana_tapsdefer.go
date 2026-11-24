@@ -734,7 +734,13 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		return
 	}
 	av.addUnits(mask, s.srcYieldAt(k, sl, pc))
-	if pc.manaChosen {
+	if pc.manaChosen && !av.pipWin {
+		// The offer census only: a pip ask's window (addPipTapsDefer,
+		// pipWin) is gorge's announceFeasible, whose payment bound prices
+		// the exact chosen colour (mana_available.go
+		// SubstituteChosenProduced), so the open unit would make every
+		// hybrid face reachable there. (phyWindowReach's availFor runs at
+		// availX == 0, so it never reaches availScript's call either.)
 		// gorge's plain PotentialMana over-bound prices every Produced$
 		// Chosen unbounded in every colour (potential.go producedOpen; only
 		// the payment bound's addPotentialChosenColour prices the exact
