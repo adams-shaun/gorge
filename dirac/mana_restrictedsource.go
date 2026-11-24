@@ -304,6 +304,9 @@ func (g *genPrep) prepRestrSrc(c *kop.CardDef, id CardID, pc *pcard) {
 			}
 			v.restrFee, v.restrFeeCol, v.restrFeeN = fee, feeCol, feeN
 			v.manaSac = restrSacSelfAb(a)
+			if g.restrFeePairOf(c, id, a, &v) {
+				continue // the free record's fee alternative, no unit of its own
+			}
 			if n > 1 {
 				// a restricted ability of more than one mana with no census
 				// alternative (Steelswarm Operator's activation {U}{U}, Mishra's
@@ -802,6 +805,9 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				}
 				own := s.manaPCGen(k, sl)
 				v, _, _ := s.restrView(k, p, sl, own, &d)
+				if v != nil && v.restrPair != 0 {
+					v = &k.gen.rs.views[v.restrPair-1] // the pair sorts by its fee alternative's fee (gorge's unitMaxFee)
+				}
 				if v == nil || restrFeeEmpty(v) {
 					continue
 				}
@@ -822,11 +828,16 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			// (mana_restrictedfeefund.go). A cleared paid list funds nothing.
 			fund, wiped := s.restrFeeFund(k, p)
 			poolLeft := s.restrFeePool(p) // each fee takes its part of the pool, the next sees the rest
+			plain := *av                  // the mana a fee may be paid from: none of the restricted units (restrFeeChargePlain)
 			for i := 0; i < n; i++ {
 				sl := order[i].sl
 				own := s.manaPCGen(k, sl)
 				v, kind, _ := s.restrView(k, p, sl, own, &d)
 				if v == nil {
+					continue
+				}
+				if v.restrPair != 0 {
+					s.restrFeePairAdd(k, p, &d, sl, own, v, &t, &plain, &multi, &nm, &lifeUsed, cost, extra, &fund, wiped, &poolLeft)
 					continue
 				}
 				fc := restrFeeCost(v)
@@ -840,7 +851,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 					fund -= fc.MV() - pool
 				}
 				poolLeft -= pool
-				s.restrSrcAddUnit(k, p, &d, sl, own, v, kind, &t, &multi, &nm, &lifeUsed, cost, extra)
+				s.restrFeeUnitAdd(k, p, &d, sl, own, v, kind, &t, &plain, &multi, &nm, &lifeUsed, cost, extra)
 			}
 			break
 		}
@@ -858,8 +869,8 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			}
 			own := s.manaPCGen(k, sl)
 			v, kind, _ := s.restrView(k, p, sl, own, &d)
-			if v == nil || !restrFeeEmpty(v) {
-				continue // a fee unit is pass 1's, after the mana it may charge
+			if v == nil || !restrFeeEmpty(v) || feeUnits && v.restrPair != 0 {
+				continue // a fee unit (or a free one's fee pair) is pass 1's, after the mana it may charge
 			}
 			s.restrSrcAddUnit(k, p, &d, sl, own, v, kind, &t, &multi, &nm, &lifeUsed, nil, 0)
 		}
@@ -903,14 +914,7 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		if !restrFeeEmpty(v) && !t.restrFeeCharge(restrFeeCost(v), cost, extra) {
 			return // the fee is not payable from the mana counted so far
 		}
-		if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
-			return // its life and the plan's painful sources' reach the payer's
-		}
-		t.addUnits(s.srcMaskAt(v, sl), v.manaN)
-		if v.manaOne {
-			s.addOneColourMask(t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
-		}
-		t.addXv(v)
+		s.restrExtAdd(k, p, sl, v, t, lifeUsed)
 	case rkDyn:
 		if v.manaCol&kop.ColAny != kop.ColAny {
 			// a fixed-colour amount (Vhal's {C}) is units of those colours,
@@ -935,6 +939,36 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		(*multi)[*nm] = dynUnit{n: v.manaN, cols: uint8(v.manaCol) & 0x3f}
 		*nm++
 	}
+}
+
+// restrExtAdd adds an rkExt unit's production to t once its fee is paid
+// (restrSrcAddUnit's rkExt arm).
+func (s *State) restrExtAdd(k *prep, p uint8, sl Slot, v *pcard, t *avail, lifeUsed *int) {
+	if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
+		return // its life and the plan's painful sources' reach the payer's
+	}
+	t.addUnits(s.srcMaskAt(v, sl), v.manaN)
+	if v.manaOne {
+		s.addOneColourMask(t, s.srcMaskAt(v, sl), v.manaN) // all of it is one colour (Shang-Chi)
+	}
+	t.addXv(v)
+}
+
+// restrFeeUnitAdd is restrSrcAddUnit for a fee unit of restrSrcAvailD's fee
+// pass: an rkExt unit's fee is charged from plain, the unrestricted mana
+// counted, never from a restricted unit counted before it (CR 106.6: one
+// Hydro-Channeler's instant-and-sorcery {U} pays no other's {1} fee, nor one
+// Orb of Dragonkind's Dragon mana another Orb's); t loses the same mana.
+func (s *State) restrFeeUnitAdd(k *prep, p uint8, d *payDesc, sl Slot, own, v *pcard, kind uint8, t, plain *avail, multi *[2]dynUnit, nm, lifeUsed *int,
+	cost *kop.ManaCost, extra int) {
+	if kind != rkExt {
+		s.restrSrcAddUnit(k, p, d, sl, own, v, kind, t, multi, nm, lifeUsed, cost, extra)
+		return
+	}
+	if !t.restrFeeChargePlain(plain, restrFeeCost(v), cost, extra) {
+		return // the fee is not payable from the unrestricted mana counted so far
+	}
+	s.restrExtAdd(k, p, sl, v, t, lifeUsed)
 }
 
 // restrActFiltAvail is av for a filter walk of the activation being built: the
