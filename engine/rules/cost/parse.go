@@ -425,8 +425,24 @@ const payLifeXCost = `^PayLife<X>$`
 // every kind); the optional third field is the target filter, matched against
 // the payer's battlefield like a Sac part's spec, and the optional fourth is
 // the display description. The old subCounterXCost head (X form only, target
-// dropped) is subsumed by this one.
-const subCounterCost = `^SubCounter<(X\d+\+|X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`
+// dropped) is subsumed by this one. The count word All (SubCounterAll, Jar of
+// Eyeballs' "remove all eyeball counters") removes the whole pile of Kind from
+// the source: the count is read at payment (pay.FixLifeXCost), zero included.
+const subCounterCost = `^SubCounter<(X\d+\+|X|\d+|All)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`
+
+// appendSubCounterAll records a whole-pile SubCounter<All/Kind> part: a
+// non-mana cost (CR 118.3) whose count pay.FixLifeXCost reads off the source
+// at payment, so it adds no mana (CR 601.2f). Only the source-anchored form is
+// modelled; a filtered target (Hankyu's OriginalHost) keeps the reported
+// malformed-token fallback.
+func appendSubCounterAll(c *Cost, sym string, part CostPart) {
+	if !SubCounterTargetsSource(part.Target) {
+		c.Generic = AddClampedGeneric(c.Generic, 1)
+		c.reportUnknown(sym)
+		return
+	}
+	c.SubCounter = append(c.SubCounter, part)
+}
 
 // removeAnyCounterCost is Forge's named spelling for a counter-removal cost.
 // Despite the name, the second field is the counter kind (often Any), while
@@ -726,6 +742,10 @@ func ParseCost(s string) Cost {
 					target, desc = t, m[4]
 				}
 				target = strings.ReplaceAll(target, ";", ",")
+				if m[1] == SubCounterAll {
+					appendSubCounterAll(&c, sym, CostPart{Spec: kind, Target: target, Dyn: SubCounterAll, Desc: desc})
+					continue
+				}
 				if strings.HasPrefix(m[1], "X") {
 					if m[1] != "X" {
 						if n, err := strconv.ParseInt(m[1][1:len(m[1])-1], 10, 32); err == nil && int32(n) > c.XMin {
