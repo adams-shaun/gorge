@@ -397,12 +397,9 @@ func TestIfAndForEach(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		apWant(t, nd, "Mana", kvs("Produced", "B", "Amount", "N2"))
-		if got := apSVar(p, "N"); got != "Count$ValidGraveyard Card.YouOwn" {
-			t.Errorf("N is %q", got)
-		}
-		if got := apSVar(p, "N2"); got != "Count$Compare N GE7.5.3" {
-			t.Errorf("N2 is %q", got)
+		apWant(t, nd, "Mana", kvs("Produced", "B", "Amount", "X"))
+		if got := apSVar(p, "X"); got != "Count$Threshold.5.3" {
+			t.Errorf("X is %q", got)
 		}
 	})
 	t.Run("amount merge, damage keeps the target", func(t *testing.T) {
@@ -410,9 +407,9 @@ func TestIfAndForEach(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		apWant(t, nd, "DealDamage", kvs("NumDmg", "N2", "ValidTgts", "Any"))
-		if got := apSVar(p, "N2"); got != "Count$Compare N GE7.4.2" {
-			t.Errorf("N2 is %q", got)
+		apWant(t, nd, "DealDamage", kvs("NumDmg", "X", "ValidTgts", "Any"))
+		if got := apSVar(p, "X"); got != "Count$Threshold.4.2" {
+			t.Errorf("X is %q", got)
 		}
 	})
 	t.Run("no else conditions every node", func(t *testing.T) {
