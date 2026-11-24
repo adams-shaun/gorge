@@ -12,9 +12,9 @@ import (
 // supported and refused counts (refused = 500 - supported: every card is one
 // or the other). KGEN_REPIN=1 re-pins a rise in place (repinFile in
 // ratchet_test.go); a fall is a lowering regression and is refused unless
-// KGEN_REPIN_FALL=<reason> says why it is acceptable. Both lowerings that lift
-// a standard-meta card edit this line, so two landings stack on it: the
-// mechanical re-pin is what lets the lander's re-pin step move it.
+// KGEN_REPIN_FALL=<reason> says why it is acceptable. Outside
+// DIRAC_PIN_STRICT=1 a rise passes, so a ticket need not edit this line; the
+// regen PR (scripts/regen-main.sh) carries the rise to main.
 const (
 	stdMetaSupportedPin, stdMetaRefusedPin = 456, 44
 )
@@ -64,8 +64,11 @@ func TestStdMetaPoolBuilds(t *testing.T) {
 		t.Log(msg)
 		return
 	}
-	if got != pin {
-		t.Errorf("%d cards supported, want %d (%d refused): a fall is a lowering regression; a rise is re-pinned in dirac/kgen/stdmeta_test.go in the same commit",
-			cv.cardsOK, stdMetaSupportedPin, stdMetaRefusedPin)
+	// judgePin, as the acceptance pins: a fall fails, a rise passes unless
+	// DIRAC_PIN_STRICT=1 (the nightly), and scripts/regen-main.sh re-pins main.
+	// An exact pin turned every ticket that lowers one more card red (#4317,
+	// 11-24) without the change being wrong.
+	if err := judgePin("standard-meta", pin, got, pinStrict()); err != nil {
+		t.Error(err)
 	}
 }
