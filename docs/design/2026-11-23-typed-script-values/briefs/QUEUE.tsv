@@ -1,0 +1,9 @@
+id	priority	complexity	depends
+cc-00-branch	1	medium
+cc-01-ir-schema	1	high	cc-00-branch
+cc-02-mtgish-reader	1	medium	cc-01-ir-schema
+cc-10-fe-chars	2	medium	cc-02-mtgish-reader
+cc-11-fe-refs	2	medium	cc-02-mtgish-reader
+cc-12-fe-filters	2	medium	cc-02-mtgish-reader
+cc-13-fe-values	2	medium	cc-02-mtgish-reader
+cc-14-fe-conds	2	medium	cc-02-mtgish-reader

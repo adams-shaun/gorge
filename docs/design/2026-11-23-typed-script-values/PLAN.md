@@ -1,369 +1,374 @@
 # cardc: mtgish as the card compiler front end, proven end to end on a side branch
 
-Status: plan, for the operator. Not committed.
-Bases: gorge origin/main `86b960f2c5`; gorge-compliance origin/main `285a7038`; mtgish data measured at the
-current compliance pin `153451e44d` (`.mtgish/153451e44d…/mtgish.lines.json`). A claim marked INFERRED was not read
-from code or data.
+Status: plan on branch `cardc`, for the operator. Wave-1 seat briefs are in `briefs/` beside this file.
 
-Operator decision (11-23): "mtgish as the basis for our new card compiler front end and unified input to engines …
-on a side-branch for now proving out the functionality e2e." This plan implements that. The Forge-script compiler
-(`engine/cards`) stays on main unchanged.
+Bases:
+- gorge origin/main `86b960f2c5`;
+- gorge-compliance origin/main `285a7038`;
+- mtgish upstream `1553384` (i5jb/mtgish head on 11-23).
+
+Corpus figures marked "at `153451e`" were measured on compliance's current data pin. Anything marked INFERRED was not
+read from code or data.
+
+Operator decisions (11-23):
+- mtgish is the basis of a new card compiler front end and the unified input to both engines, proven end to end on a
+  side branch.
+- The Forge-script compiler (`engine/cards`) stays on main unchanged.
+- We keep our own mtgish fork for fixes, and send upstream issues only, never pull requests (section 5).
 
 ## 1. Pipeline
 
-```
-i5jb/mtgish (MIT)            cardc (new, committed code + schema)                       engines
-mtgish.lines.json  --fe-->  typed card IR (engine/cardc/ir)  --be:gorge-->  *cards.Card  --> gorge rules
-(.cards/mtgish/<ref>/,       Ref / Filter / Value / Cond core,                  (today's ABI)  --> kgen -> dirac
- gitignored)                 Program, Cost, Duration, Keyword
-                                  ^
-                                  +-- later: Forge-script front end into the same IR (cross-check, section 7)
+```mermaid
+flowchart LR
+  M["mtgish.lines.json<br/>(.cards/mtgish, gitignored)"] --> FE["cardc front end<br/>engine/cardc/mtgish"]
+  FE --> IR["typed IR<br/>engine/cardc/ir"]
+  IR --> BE["gorgebe"]
+  BE --> C["*cards.Card"]
+  C --> R["gorge rules"]
+  C --> K["kgen"] --> D["dirac"]
+  F["Forge-script front end"] -. later .-> IR
 ```
 
-1. **Source.** mtgish's typed tree, `mtgish.lines.json` at `MTGISH_REF`. It is one JSON object per card, every Rust
-   enum a tagged union (`{"_Action":"SpellDealsDamage","args":[…]}`). At `153451e` it holds 33,529 lines, 32,850
-   distinct names, 7,180 distinct `Enum.Variant`s over 310 enums (measured, `scratchpad/typedir/mvar.py`). gorge
-   gets its own pin, `MTGISH_REF`, which may name a commit of **our fork** `github.com/adams-shaun/mtgish` (section
-   5): upstream `1553384` plus our fix commits. Compliance keeps its own upstream pin (PR #373).
-2. **IR.** A typed card IR in `engine/cardc/ir`, stdlib only. Its core is four leaf families. Their shapes are taken
-   from oracle-grammar's schema 192 (MIT; shapes only, no code), so a later oracle-grammar front end maps onto the
-   same nodes:
+1. **Source.** mtgish's typed tree, `data/mtgish.lines.json`, at `MTGISH_REF`.
+   - The file is one JSON object per card. Every Rust enum is a tagged union:
+     `{"_Action":"SpellDealsDamage","args":[…]}`.
+   - At `1553384` it holds 33,673 lines and uses 7,407 distinct `Enum.Variant`s. mtgish's own schema declares 7,455
+     (section 2a).
+   - `MTGISH_REF` may name a commit of our fork, `github.com/adams-shaun/mtgish` (section 5). Compliance keeps its
+     own upstream pin (gorge-compliance PR #373).
+2. **IR.** `engine/cardc/ir`, stdlib only. Its core is four leaf families, shaped after oracle-grammar's schema 192
+   (MIT; shapes only, no code), so an oracle-grammar front end can map onto the same nodes later.
 
-   | family | cardc node | mtgish enums it is read from | oracle-grammar shape it follows |
+   | family | node | mtgish enums | oracle-grammar |
    |---|---|---|---|
-   | references | `ir.Ref{Kind RefKind; Slot uint8; Of *Ref; Proj Proj; LKI bool}` (object and player refs: Self, Target(slot), EventSubject, AttachedTo(ref), ControllerOf/OwnerOf(ref), ExiledWith(src), Chosen, Remembered-as-receipt, Union) | `Permanent`, `Player`, `Spell`, `Card`, `Target`, `DamageRecipient`, `Ref_*` args | `ObjectRef` (59 variants), `PlayerRef` (51) |
-   | filters | `ir.Filter{All/Any/Not []Filter; Type, Subtype, Color, Controller *Ref, Owner *Ref, Zone, Counters, Cmp *Value, Word FilterWord}` | `Permanents` (354 corpus variants), `Players`, `Spells`, `Cards`, `CardsIn*`, `Exilable` | `ObjectFilter` (137) |
-   | values | `ir.Value{Kind ValueKind; N int32; Of *Filter; Ref *Ref; Prop Prop; Args [2]*Value; Op ArithOp}` (Constant, X, Count(filter), Property(ref, prop), Add/Sub/Mul, Half-round) | `GameNumber` (425), `CounterType` amounts | `Expr` (145) |
-   | conditions | `ir.Cond{Kind CondKind; All/Any/Not []Cond; L, R *Value; Cmp CmpOp; Filter *Filter; Ref *Ref}` (Compare, Exists(filter), PlayerIs, WasCastFrom, Turn, …) | `Condition` (235), `CheckHasable` | `Condition` (121) |
+   | references | `ir.Ref` | `Permanent`, `Player`, `Spell`, `Card`, `Exilable` … | `ObjectRef`, `PlayerRef` |
+   | filters | `ir.Filter`, `ir.Target` | `Permanents`, `Players`, `Spells`, `CardsIn*`, `Target` | `ObjectFilter` |
+   | values | `ir.Value`, `ir.Compare` | `GameNumber`, `Comparison`, `CounterType` | `Expr` |
+   | conditions | `ir.Cond` | `Condition` | `Condition` |
 
-   Abilities (`Spell`, `Activated`, `Triggered`, `Static`, `Replacement`, `Keyword`), `Program` (ordered `Action`
-   list with `If/Else` and receipts), `Cost`, `Duration` and `ManaProduce` sit around them. Each node keeps the mtgish
-   variant path it came from (`Src string`, for refusal messages and the ledger), never Oracle text. The sketch above
-   is the shape; the CC-01 brief fixes the exact fields and supersedes it.
-3. **Gorge binding.** The backend `engine/cardc/gorgebe` lowers IR to `*cards.Card`, the struct gorge's rules and
-   kgen already read (`engine/cards/ir.go:11` `SA{Kind, API, Params, Sub}`). It emits script lines in gorge's own
-   vocabulary (API names, `ParamKey` names, `engine/cards/params.go:28`) and runs them through the existing load path
-   (`cards.ParseBytes`, `engine/cards/parse.go:21`, then linking and `ParamSet` binding, `engine/cards/link.go:243`).
-   So the proof changes no engine code: both card sources meet at one ABI, and a divergence is a card-definition
-   difference by construction. Native IR reading by the engines comes after the proof (section 7).
-4. **What is committed.** Only cardc code, the IR schema, per-variant lowering code, tests that compile from
-   `.cards/mtgish/` at test time, and registers that hold card names and class tokens (as compliance's `known/*.tsv`
-   do). Never committed: mtgish data, any per-card IR dump or golden, any generated script text. All of that is
-   derived from Oracle text and lives under gitignored `.cards/`: `.cards/mtgish/<ref>/` and `.cards/cardc/`. The data
-   sits under `.cards` because agentctl links `.cards` into every seat worktree (the `[worktree] link` list in gorge's
-   agentctl config). A top-level `.mtgish/` would be absent in every seat, and every cardc test would be `ENV`. cardc never copies Forge script text: the
-   per-card fallback (section 5) loads the Forge IR from `.cards` at run time, by reference.
+   The core shapes (the CC-01 brief gives every field):
 
-## 2. What to lift from gorge-compliance `oracle/mtgish`
+   ```go
+   type Ref struct {
+       Kind RefKind; Slot uint8; Of *Ref; Filter *Filter; N *Value
+       Receipt ReceiptKind; Union []*Ref; Src string
+   }
+   type Filter struct {
+       Subject Subject; Zones ZoneSet; Op FilterOp; Args []*Filter; Pred Pred
+       Word string; Colors ColorSet; Ref *Ref; Cmp CmpOp; Value *Value; Src string
+   }
+   type Value struct {
+       Kind ValueKind; N int32; Args []*Value; Filter *Filter; Ref *Ref
+       Word string; Colors ColorSet; Receipt ReceiptKind; Src string
+   }
+   type Cond struct {
+       Kind CondKind; Args []*Cond; L, R *Value; Cmp CmpOp; Filter *Filter
+       Ref *Ref; Word string; Receipt ReceiptKind; Src string
+   }
+   ```
 
-Read at `285a7038`. 15,292 lines; built 10-20/10-21 (217 of its commits are on those two days).
+   - Around the core sit `Card`, `Face`, `Ability`, `Keyword`, `Trigger`, `Target`, `Program`, `Step` and `Cost`.
+   - `Src` is the mtgish variant path a node came from, never Oracle text.
+3. **Gorge binding.** `engine/cardc/gorgebe` lowers IR to `*cards.Card`, the struct gorge's rules and kgen already
+   read (`engine/cards/ir.go:11`).
+   - It emits script lines in gorge's own vocabulary, the `ParamKey` names of `engine/cards/params.go:28`.
+   - It loads them through the existing path, `cards.ParseBytes` (`engine/cards/parse.go:21`).
+   - So the proof changes no engine code, and any divergence is a card-definition difference.
+4. **Committed vs not.**
+   - Committed: cardc code, the IR schema, lowering code, and registers holding card names and class tokens only.
+   - Gitignored, under `.cards/`: mtgish data and anything derived from Oracle text (per-card IR, generated script
+     text).
+   - The data sits under `.cards` because agentctl links `.cards` into every seat worktree; a top-level `.mtgish/`
+     would be missing in seats.
+   - cardc never copies Forge script text. The per-card fallback (section 5) loads Forge's IR at run time.
 
-| piece | lines | lift | why |
-|---|---:|---|---|
-| `node.go` (tagged-union reader: `tagged`, `variantOf`, `argsOf`, `argN`, `field`) | 162 | **as code**, into `engine/cardc/mtgish/node.go` | stdlib only (`sort`, `strconv`, `strings`); the generic reader cardc needs |
-| `load.go` (`Card`, `decodeCard`, the face list, the name index) | 135 | **as code** | stdlib only; face order and the shared-field fallback are already right |
-| `vocab.go` (type words, mana symbols) | 167 | **as code** | stdlib only |
-| `exclude.go` + `known/excluded.tsv` (digital, Un-, non-game faces) | 137 | **as code + data** | the same population rules apply |
-| `typeindex.go` | n/a | **no**: it imports `engine/cards` for gorge's type index; cardc's backend has that directly | |
-| `MTGISH.lock`, the Makefile `mtgish-fetch` recipe, the boundary guard | n/a | **as recipe**, in `cardc.mk` | same pin, same sha256 check, same gitignore |
-| `map_*.go` (21 normaliser files), `effects_mtgish.go`, `from_mtgish.go` | ~11,000 | **as a reference index, not code** | they reduce trees to summary tokens (lossy). What carries over is the variant knowledge: which mtgish variant is which gorge verb (2,612 of 7,180 variant names appear as literals in them), and their tests' tricky shapes. Each fe ticket cites the map file for its enum |
-| `from_gorge.go`, `effects_gorge.go` (gorge `cards.Card` to summary) | 1,642 | **no lift; run in place** | CC-30 can point `cmd/mtgishxc` at a cardc registry for a coarse second diff, from compliance, without copying |
-| ledger `known/T1-T4.tsv` | 1,399 rows | **as data** (names + class only) | PR #373: 329 mtgish-bug rows at `1553384`, T4 agreement 97.4%. These seed the gap register (section 5). The `forge-bug` rows (11 with Doctor Strange) seed the forge-bug class. The `equivalent` notes name the canonicalisations the static diff must apply: "if/else merged vs one sub-ability per branch" (17), "two conditional SAs vs one IfElse" (16), "one action over several targets vs one sub-ability each" (16) |
+## 2. What to reuse
 
-Scale for the proof slice. The table counts distinct `Enum.Variant`s at `153451e`; "named" means the variant name
-appears as a literal in compliance's non-test mtgish code.
+### 2a. mtgish's own tooling (repo at `1553384`)
 
-| slice | cards | missing in mtgish | variants | named in compliance |
-|---|---:|---:|---:|---:|
-| FDN pool (`dirac/cardset/pools/fdn/cards.txt`) | 286 | 0 | 530 | 233 |
-| BLB pool | 276 | 0 | 616 | 269 |
-| 12 Legacy acceptance decks (`testkit/testutil/decks.go:65`) | 136 | 1 (Delver of Secrets: DFC name join) | 394 | 205 |
-| **FDN + Legacy 12** | 421 | 1 | **680** | n/a |
-| all 34 repo decks | 1,362 | 21 (all `A // B` or DFC names) | 1,445 | 615 |
+What exists:
+- **Parser:** Go, in `go_mtg_parser/` (`main.go`, `prefix_tree.go`). It is template-driven:
+  - `grammars/english_grammar*.json5` maps English phrases to mtgish templates (58,338 lines in the main file);
+  - `grammars/mtgish_grammar*.json5` constrains the templates (7,987 lines);
+  - `just parser_generate_mtgish` writes `data/mtgish.lines.ron`.
+- **Schema of record:** `rust_syntax/src/mtg_types.rs` (12,836 lines; serde, bincode and ts-rs derives).
+  `rust_syntax/src/main.rs` converts RON to bincode to `mtgish.lines.json` (`just convert_to_json`), and RON to
+  `mtgish.pretty.ron`.
+- **TypeScript bindings:** `typescript_types/oracle_cards.d.ts`, generated by ts-rs. It is one union line per variant
+  (`| { "_Permanent": "TheChosenPermanentForPlayer", "args": Player }`): 403 types and 7,455 variants. It covers all
+  7,407 variants the data uses (measured).
+- **Viewer:** `web_src/card_parser.js` and `card-display.html`, a browser view of parsed cards.
 
-The largest enums in FDN + Legacy 12 are `Action` 106, `Rule` 62, `Permanents` 45, `GameNumber` 28, `Trigger` 28,
-`Cost` 17, `Condition` 15, `Target` 15 and `PlayerEffect` 15. The front end is about 680 variant lowerings for the
-proof, against 7,180 for the corpus.
+What cardc does with it:
+- **Use the TS schema as a variant catalogue (wave 1).** CC-00 fetches `oracle_cards.d.ts` beside the data. CC-02
+  parses it to:
+  - check that every data variant is declared;
+  - derive the face keys (it finds `Vengeance`, the `Avenger` layout, which compliance's list lacks);
+  - fail any registered lowering whose key the schema lacks, which catches renames at each pin bump.
+- **Not a cardc-specific output template.** mtgish's templates map English to its own AST, and the AST's shape is
+  fixed by `mtg_types.rs`. A gorge-shaped output would mean a second target on every grammar production, which
+  amounts to forking the grammar wholesale. Lowering in Go is far cheaper.
+- **Not gorgebe either.** mtgish has no renderer to Forge script or any engine format; gorgebe stays ours.
+- **Typed Go decoding generated from the TS schema:** possible later, if the generic tagged-union reader proves
+  error-prone. Not needed for the proof.
+- **Effect on the fork (section 5):** regenerating data needs Go (the parser) and Rust (the RON-to-JSON step).
+
+### 2b. gorge-compliance `oracle/mtgish` (at `285a7038`, 15,292 lines)
+
+| piece | lift | why |
+|---|---|---|
+| `node.go` (tagged-union helpers) | as code (CC-02) | stdlib only; the generic reader |
+| `load.go` (`Card`, faces, `Read`) | as code (CC-02) | stdlib only; face order already right |
+| `mtgish-fetch.sh`, `MTGISH.lock` | as a recipe (CC-00) | same sha256 check |
+| `map_*.go`, `effects_mtgish.go` | reference only | lossy summary tokens; use for variant meanings |
+| `from_gorge.go`, `effects_gorge.go` | no; run in place | coarse second diff from compliance (CC-30) |
+| ledger `known/T1-T4.tsv` | as data, names + class | seeds the gap register (section 5) |
+
+About the ledger:
+- PR #373 (`1553384`) records 329 `mtgish-bug` rows and 97.4% T4 agreement.
+- Its `equivalent` notes name canonicalisations the static diff must apply, for example "if/else merged" (17 rows).
+
+**Proof-slice scale** at `153451e` (distinct `Enum.Variant`s per slice):
+
+| slice | cards | variants |
+|---|---:|---:|
+| FDN pool (`dirac/cardset/pools/fdn/cards.txt`) | 286 | 530 |
+| BLB pool | 276 | 616 |
+| 12 Legacy decks (`testkit/testutil/decks.go:65`) | 136 | 394 |
+| **FDN + Legacy 12 (the proof slice)** | 421 | **691** |
+
+The largest enums in the proof slice are `Action` 110, `Rule` 62, `Permanents` 45, `Trigger` 30 and `GameNumber` 28.
 
 ## 3. The side branch
 
-- **Branch:** `cardc` in gorge, cut from origin/main. Tickets use `agentctl issue add --target-branch cardc`
-  (`agentctl/cli.py:721`).
-  - PRs to `cardc` are outside the Mergify queue (`.mergify.yml:8` and `:54` match `base=main`) and outside
-    `ci.yml`'s `pull_request` branches (`:43`, main and develop).
-  - The cardc gate is each seat's precheck plus `make cardc-check` (CC-00), merged into `origin/cardc` by the lander.
-    INFERRED: agentctl's lander merges a `target_branch` ticket without a main-queue PR. CC-00 verifies this before
-    any other ticket is queued.
-- **Layout:**
+- **Branch:** `cardc` in gorge. Tickets use `agentctl issue add --target-branch cardc`, which bases, gates, merges and
+  pushes to `cardc`, never main.
+- **Main is untouched by construction.** CC-00's `TestNothingImportsCardc` allows only `engine/cardc/...` and
+  `cmd/cardc` to import cardc. So:
+  - golden heads, set heads, wire goldens and `scripts/dirac-gate.sh` do not move;
+  - `engine/cards` is not edited, so `cacheVersion` 8 (`engine/cards/registry.go:338`) and `CompilerFingerprint`
+    (`engine/cards/fingerprint.go:20`) are unchanged.
+- **Edits outside new directories, all in CC-00:**
+  - one `include cardc.mk` line in the Makefile;
+  - `.gitignore`;
+  - a `mtgish-data` rule in `TestPublicBoundary` (`internal/archtest/public_boundary_test.go:339`);
+  - three forbidden edges in `TestDependencyOrderHolds` (`internal/archtest/arch_test.go:204`);
+  - the new `TestNothingImportsCardc`.
+- **Staying current:** a rolling `cardc-follow` ticket merges origin/main into `cardc` every 6 hours and re-runs
+  `make cardc-check`. It merges rather than rebases, because many seats branch from `cardc`.
 
-  ```
-  engine/cardc/ir/       node schema, printer, equality, JSON codec   (no imports outside stdlib)
-  engine/cardc/mtgish/   front end: reader (lifted) + fe_<enum>.go    (imports ir)
-  engine/cardc/canon/    IR canonicalisation, the one alias home      (imports ir)
-  engine/cardc/gorgebe/  backend to *cards.Card + registry builder    (imports ir, engine/cards)
-  engine/cardc/lockstep/ record/replay harness, divergence ledger     (imports rules, replay; test + cmd use only)
-  cmd/cardc/             compile | report | diff | lockstep
-  cardc.mk               mtgish-fetch, cardc-check, cardc-lockstep    (one `include` line in Makefile)
-  ```
+Layout:
 
-- **Main's behaviour is untouched by construction:** no package on main imports `engine/cardc`. CC-00 adds
-  `TestNothingImportsCardc` in `internal/archtest`: only `engine/cardc/**` and `cmd/cardc` may import it. So
-  - golden heads (`engine/rules/testdata/heads`), set heads, wire goldens and `scripts/dirac-gate.sh` stay unmoved;
-  - the IR cache key does not move: `cacheVersion` stays 8 (`engine/cards/registry.go:338`), and `engine/cards`
-    source is not edited, so `CompilerFingerprint` (`engine/cards/fingerprint.go:20`) is unchanged.
-  - cardc's own compiled output gets its own cache, `.cards/cardc/ir-<sha(cardc sources, MTGISH_REF)>`, beside
-    gorge's.
-- **Edits outside the new directories** are confined to CC-00:
-  - the Makefile `include`;
-  - `.gitignore` (`.mtgish/`, as a guard against stray copies; `.cards/` is already ignored);
-  - `TestPublicBoundary` (`internal/archtest/public_boundary_test.go:339`): it fails on a tracked `.mtgish` file, a
-    tracked `.cards/cardc` file, or a committed `*.lines.json`;
-  - `TestDependencyOrderHolds` (`internal/archtest/arch_test.go:204`, order list `:361`): registers the cardc
-    packages.
-
-  These are new forbidden edges and new packages, not raised ratchets. `internal/codeshape`'s strings ratchet does
-  not cover `engine/cardc` (its scopes are `internal/codeshape/strings_ratchet_test.go:31`), and the branch does not
-  add it.
-- **Staying current:** one rolling ticket, `cardc-follow` (the `kfollow` pattern), merges origin/main into `cardc`
-  every 6 hours and re-runs `make cardc-check`. It is a merge, not a rebase, because many seats branch from
-  `cardc`. A red follow is P0 for the cardc lane only. The only expected conflicts are in the four CC-00 hook files.
+```
+engine/cardc/ir/        schema, printer, Equal, JSON codec       stdlib only
+engine/cardc/mtgish/    reader, schema catalogue, fe_*.go        imports ir
+engine/cardc/canon/     meaning-preserving IR canonicalisation   imports ir
+engine/cardc/gorgebe/   IR -> *cards.Card, registry, fallback    imports ir, engine/cards
+engine/cardc/lockstep/  record/replay harness, ledger            imports rules, replay
+cmd/cardc/              report | compile | diff | lockstep | agree
+cardc.mk                mtgish-fetch, cardc-check, cardc-lockstep
+```
 
 ## 4. The end-to-end proof
 
-**Slice:** the FDN pool and the 12 Legacy acceptance decks.
-- FDN games are the committed dirac slice: `dirac/oracle/testdata/slices/fdn/pairs.tsv`, 1,500 pairs over the
-  2,841 decks in `decks.tar.gz`.
-- Legacy games are the acceptance games at 2, 4, 6 and 8 seats (`engine/rules/acceptance_game.go:49`
-  `AcceptanceConfig`, `:97` `PlayAcceptance`).
-- Commander: `cmd4`, the four-seat Foundations Commander pod. It is **stage 2** of the proof, because its 100-card
-  decks reach beyond the FDN pool (pods are four seats, never two).
-- BLB is the second slice, after FDN passes.
+**Slice:**
+- FDN: the 1,500 game pairs of `dirac/oracle/testdata/slices/fdn/pairs.tsv`.
+- Legacy: the 12 Legacy decks in the acceptance games at 2/4/6/8 seats (`engine/rules/acceptance_game.go:49`).
+- Stage 2: `cmd4`, the four-seat Commander pod.
+- Then BLB.
 
-**Harness (CC-31).** It uses gorge's replay contract (`engine/replay/replay.go:62` `Replay`, `:288`
-`FirstDivergence`): a replay re-runs the engine on the recorded intents with the Config's decks.
-1. **Forward:** play a game on the Forge registry (`botpolicy.GameBot`, the acceptance bot) and record its log.
-   Rebuild the same decks from the cardc registry, card for card in the same order, and `Replay`. A refused intent
-   or a `*Divergence` is a divergence, named at its first event.
-2. **Reverse:** play on the cardc registry and replay on Forge. This catches lines the Forge game never took.
-3. Swapping card definitions under a recorded log is outside `Replay`'s documented contract, which expects "the same
-   *cards.Card pointers". CC-31's first test plays one deck through both registries with identical definitions, to
-   show the swap itself diverges nowhere. INFERRED until that test passes.
+**Static diff (CC-30).** `cardc diff` compares each card's cardc `*cards.Card` with its Forge one, after the
+compliance ledger's canonicalisations:
+- the ability multiset by kind and API;
+- targets;
+- amounts;
+- trigger modes.
 
-Each test chunk is ≤ 100 games, to fit the one-minute test budget (the precedent is
-`TestCompiledFilterMatchesTextualOracleChunk00-07`, `engine/effects/filter_compiled_oracle_test.go:311`). The whole
-slice runs as `make cardc-lockstep SLICE=fdn`.
+**Lockstep (CC-31).** It uses gorge's replay contract (`engine/replay/replay.go:62` `Replay`, `:288`
+`FirstDivergence`).
+- Forward: play on the Forge registry, then replay the recorded intents with decks rebuilt from cardc.
+- Reverse: play on cardc, then replay on Forge.
+- `Replay` expects "the same *cards.Card pointers", so swapping definitions is outside its documented contract.
+  CC-31's first test swaps identical definitions to prove the swap is neutral. INFERRED until it passes.
+- Tests run in chunks of 100 games or fewer, to fit the one-minute budget; `make cardc-lockstep SLICE=fdn` runs them
+  all.
 
-**Static diff first (CC-30).** `cardc diff` compares each card's cardc `*cards.Card` with its Forge one:
-- ability multiset by kind and API;
-- target specs, amounts and trigger modes, after the canonicalisations the compliance ledger already lists.
-
-It is cheap and runs before any game, so most gaps surface without a game.
-
-**Classes.** Every divergence gets a ledger row: `engine/cardc/testdata/ledger/<card>.tsv`, one file per card, no
-text, held both ways like `TestMtgishLedger`.
+**Divergence classes.** One ledger file per card, `engine/cardc/testdata/ledger/<card>.tsv`, held both ways.
 
 | class | meaning | action |
 |---|---|---|
-| `mtgish-bug` | mtgish's tree is wrong against Oracle text | fix in our mtgish fork and file an upstream issue; Forge fallback only until the fork commit lands (section 5) |
-| `cardc-gap` | mtgish is right; cardc's front end, canon or backend loses it | fix cardc. **Must be 0 at the bar** |
-| `forge-bug` | the Forge script is wrong against Oracle text, and cardc is right | record it; fix gorge's Forge path on main or the fork (`gorge` branch) in a normal main ticket |
-| `equivalent` | same game meaning, different event order (for example, ability order in a prompt) | canonicalise in the backend until the streams match; the class may hold rows only while the fix is queued |
+| `mtgish-bug` | mtgish's tree is wrong | fork commit plus upstream issue (section 5) |
+| `cardc-gap` | cardc loses a correct tree | fix cardc; must be 0 at the bar |
+| `forge-bug` | the Forge script is wrong | record it; a normal main ticket fixes gorge's Forge path |
+| `equivalent` | same meaning, different event order | backend canonicalises; 0 at the bar |
 
 **Pass bar (FDN stage):**
-1. **Compile:** at least 95% of the 421 slice cards compile from mtgish with no refusal and no fallback. The rest sit
-   on the fallback register, each with a class. Nothing is unclassified.
-2. **Lockstep:** 0 divergences without a ledger row over the 1,500 FDN pairs at 2 seats (forward and reverse), plus
-   the Legacy acceptance games at 2/4/6/8 seats.
-3. **Ledger:** `cardc-gap` 0 and `equivalent` 0.
-4. **Coverage:** every cardc-compiled card in the slice plays in at least `EvidenceMinPlays` = 3 divergence-free games
-   (`dirac/oracle/evidence.go:11`, the same bar dirac uses).
-5. **Stage 2:** `cmd4` at 4 seats replays divergence-free with cardc as the source of every card it covers.
+1. At least 95% of the 421 proof-slice cards compile with no refusal and no fallback. The rest each have a fallback
+   row with a class.
+2. No unledgered divergence over the 1,500 FDN pairs (forward and reverse) and the Legacy games.
+3. `cardc-gap` and `equivalent` are both 0.
+4. Every cardc-compiled card plays in at least 3 clean games (`EvidenceMinPlays`, `dirac/oracle/evidence.go:11`).
+5. Stage 2: `cmd4` replays clean at 4 seats.
 
-**Forge as the independent cross-check.** Once a card passes, it has two independent readings that agree in lockstep:
-Oracle text through mtgish, and Forge's script. Today xproof's Forge-as-oracle shares gorge's script, so a script bug
-agrees with itself. A disagreement between the two readings is exactly the forge-bug or mtgish-bug signal xproof
-lacks. CC-40 adds a `reading-agreement` column per card to the proof page input.
+**The Forge path becomes an independent cross-check.** A passing card has two readings that agree in lockstep: Oracle
+text through mtgish, and the Forge script. A disagreement is the forge-bug or mtgish-bug signal that xproof lacks
+today. CC-40 exports a per-card `reading-agreement` column for the proof page.
 
-## 5. Gaps and how cardc handles them
+## 5. Gaps: the mtgish fork
 
-Operator decision (11-23): we keep **our own fork of mtgish**, `github.com/adams-shaun/mtgish` (created in CC-00). When
-cardc hits a known mtgish bug or roadblock, we fix it in the fork, so we are unblocked at once, and the upstream issue
-stays open. This replaces any cardc-side patch layer: cardc never rewrites mtgish trees by card name.
-`engine/cardc/canon` holds only meaning-preserving IR canonicalisation (aliases, if/else shape), never bug fixes.
+We fix mtgish bugs in our fork, `github.com/adams-shaun/mtgish` (created in CC-00). That unblocks cardc at once, and
+the upstream issue stays open. cardc has no patch layer of its own; `engine/cardc/canon` only canonicalises meaning,
+and never fixes bugs.
 
-**The fork.**
-- `MTGISH_REF` (gorge `cardc.mk`, `engine/cardc/MTGISH.lock`) may name a fork commit. The lock records the fork URL,
-  the ref and the sha256 of `data/mtgish.lines.json` and `LICENSE`, as compliance's lock does today.
-- The fork's `gorge` branch is upstream's commit plus our patches. **One patch is one commit.** Its subject names the
-  upstream issue (`fix: up-to targets read as exact (i5jb/mtgish#3)`). Each commit carries both the grammar or code
-  fix and the `data/mtgish.lines.json` it regenerates. The data stays in the fork, as upstream keeps it; gorge fetches
-  it into gitignored storage and never commits it.
-- **The patch register** is `engine/cardc/testdata/mtgish-fork.tsv`, one row per fork commit:
-  - `sha`;
-  - `upstream_issue`, the i5jb/mtgish issue number (required: a fork commit without an upstream issue is refused);
-  - `class`, the section 5 class;
-  - `status`, one of `carried`, `fixed-upstream` (to drop at the next bump) or `dropped`;
-  - `cards`, how many slice cards it fixes.
+**Fork rules:**
+- Branch `gorge` is the upstream ref plus our patches. **One patch is one commit**, whose subject names the upstream
+  issue (`fix: up-to targets read as exact (i5jb/mtgish#3)`).
+- Each commit carries the grammar or code fix plus the `data/mtgish.lines.json` it regenerates. The data stays in the
+  fork; gorge fetches it into `.cards/mtgish/` and never commits it.
+- `engine/cardc/MTGISH.lock` records the fork URL, the upstream base, the ref, the file sums, and one
+  `patch <sha> <issue>` line per fork commit.
+- **Patch register:** `engine/cardc/testdata/mtgish-fork.tsv`, with columns `sha`, `upstream_issue` (required),
+  `class`, `status` (`carried`, `fixed-upstream` or `dropped`) and `cards`. `TestMtgishForkRegister` holds its
+  `carried` rows equal to the lock's `patch` lines, offline.
+- **Pin bump**, one cardc ticket each time:
+  1. rebase `gorge` onto the new upstream ref;
+  2. drop commits whose issue is closed;
+  3. regenerate each remaining commit's data (never hand-merge it);
+  4. pin;
+  5. re-run report, diff and ledger.
+- **Upstream etiquette:** the mtgish author accepts only hand-written pull requests.
+  - No script, seat or agent ever opens a PR to i5jb/mtgish.
+  - Upstream gets issues only, as with our #1 to #4.
+  - Any PR is the operator's, by hand.
+- **Toolchain:** regeneration needs Go (the parser) and Rust (the JSON step). Neither `cargo` nor `rustc` is on this
+  box (checked 11-23). CC-00 pins the unpatched upstream ref, which needs neither. CC-33 sets up regeneration as a
+  GitHub Actions workflow in the fork, so no box change is needed. Its first run must reproduce upstream's committed
+  data byte for byte before any patch is trusted.
 
-  `engine/cardc/MTGISH.lock` also lists the pinned upstream base and one `patch <sha> <issue>` line per fork commit,
-  written at each pin from the fork's `git log <upstream>..<ref>`. `TestMtgishForkRegister` holds the register's
-  `carried` rows equal to the lock's `patch` lines, both ways, and needs no network.
-- **Pin bump** (a cardc ticket each time):
-  1. rebase the fork's `gorge` branch onto the new upstream ref;
-  2. drop every commit whose upstream issue is closed (its row becomes `dropped`);
-  3. regenerate the data in each remaining commit; never hand-merge `mtgish.lines.json`;
-  4. pin the new tip;
-  5. re-run `cardc report`, `diff` and the ledger.
-- **Upstream etiquette.** The mtgish author asked for **no pull requests unless written by hand**. No script, seat or
-  agent opens a PR to i5jb/mtgish, ever. Upstream contribution is **issues only** (as with our #1 to #4). A PR, if
-  any, is written by hand by the operator. Fork commits are never pushed anywhere but our fork.
+**Known classes.** Row counts are from the compliance ledger at `153451e`:
 
-**Known classes and their handling.** The rows come from the compliance ledger at `153451e`; PR #373 gives the totals
-at `1553384`.
+| class | rows | handling |
+|---|---:|---|
+| "up to N" read as exactly N (mtgish#3) | 68 | fork commit |
+| morph line duplicated, face-up trigger lost (mtgish#1) | 52 | fork commit |
+| Class level costs | 32 | fork commit; Forge fallback until then (no Class card in FDN) |
+| haste dropped (mtgish#2) | 13 | fork commit |
+| MDFC back-face cost | 9 | file the issue, then a fork commit |
 
-| class | rows at 153451e | where it bites | handling |
-|---|---:|---|---|
-| "up to N" read as exactly N (i5jb/mtgish#3) | 68 | a min-0 target becomes mandatory | **fork commit** for the grammar's up-to production |
-| morph: first line duplicated, face-up trigger lost (mtgish#1) | 34 + 18 | morph and megamorph cards | **fork commit** |
-| Class level costs (the ClassAbility capture) | 32 | Class enchantments | **fork commit**; Forge fallback until it lands (no Class in FDN; BLB has some) |
-| haste dropped (mtgish#2) | 13 | granted haste | **fork commit** |
-| MDFC back-face cost | 9 | MDFCs | **fork commit**; file the upstream issue first |
-| no-refusal policy | n/a | mtgish never refuses; a wrong tree is silent | the static diff and lockstep are the detectors. cardc's front end **refuses** any variant it has no lowering for (`refuse("Action.X")`), so the gap is always named |
-| rules meaning carried in AI fields | n/a | `AILogic$ Random` on charms (`engine/effects/charm_params.go:79`); `FriendOrFoe` on AssignGroup (`engine/effects/assigngroup_params.go:19`) | the backend emits these from IR facts (random mode choice), never from AI data |
+Two hazards have no ledger row:
+- **mtgish never refuses.** A wrong tree is silent, so the static diff and lockstep are the only detectors. cardc's
+  front end refuses every variant it has no lowering for, by name.
+- **Rules meaning in AI fields:** `AILogic$ Random` on charms (`engine/effects/charm_params.go:79`) and `FriendOrFoe`
+  (`engine/effects/assigngroup_params.go:19`). gorgebe emits them from IR facts.
 
-**Policy, in order:**
-1. **Fork fix + upstream issue.** Every `mtgish-bug` row is fixed by a fork commit with an open upstream issue. Its
-   ledger row names the commit.
-2. **Per-card Forge fallback, only while the fork cannot fix it yet.** `engine/cardc/testdata/fallback/<card>.txt`
-   names the class and the upstream issue. The registry builder serves that card's Forge `*cards.Card` from `.cards`,
-   by reference, never copying script text.
-   - Fallback cards do not count toward the 95% compile bar.
-   - The register only shrinks after the proof.
-   - Tokens fall back to Forge's `tokenscripts` by name during the proof, and are counted.
+**Fallback:**
+- A card the fork cannot fix yet gets `engine/cardc/testdata/fallback/<card>.txt`, naming its class and upstream
+  issue.
+- The registry builder then serves Forge's `*cards.Card` for that card, by reference.
+- Fallback cards do not count toward the 95% bar.
+- The register only shrinks after the proof.
+- Tokens use Forge's `tokenscripts` during the proof, and are counted.
 
 ## 6. Tickets
 
-Every ticket targets `cardc`. "Done means" always ends with `make test-targeted`, and `make test-smart` before DONE.
-A missing `.cards/mtgish` is `ENV`, never green. Sonnet implements every ticket. Opus reviews the four schema-defining
-tickets (CC-01, CC-11, CC-12, CC-20), per the 11-19 model rule.
+Every ticket targets `cardc`, ends with `make test-targeted BASE=origin/cardc`, and runs `make test-smart` before
+DONE. A missing `.cards/mtgish` is `ENV`, never green.
 
-Each enum family owns its files:
-- front end: `fe_<enum>.go` and `ir/<family>.go`;
-- backend: `be_<group>.go`.
+Sonnet implements every ticket. Opus reviews CC-01, CC-11, CC-12 and CC-20, the tickets that fix shared shapes. Each
+lowering registers itself from its own file, so no shared switch is edited twice.
 
-Lowerings register themselves from their own files (the atomdiff precedent in the operand-algebras design §6.2
-K1), so no shared switch is edited twice. Ledger and fallback registers are one file per card, so
-no two seats append to one file.
+| id | scope | depends | seat-days |
+|---|---|---|---:|
+| CC-00 | fork + pin, fetch, hooks, archtest guards | none | 0.3 |
+| CC-01 | IR schema, printer, Equal, codec (**high**) | CC-00 | 0.75 |
+| CC-02 | reader, name index, registry, schema catalogue, `cardc report` | CC-01 | 0.5 |
+| CC-10 | compile driver, characteristics, keyword-only rules | CC-02 | 0.4 |
+| CC-11 | references | CC-02 | 0.5 |
+| CC-12 | filters and target declarations | CC-02 | 0.6 |
+| CC-13 | values, comparisons, counter kinds | CC-02 | 0.4 |
+| CC-14 | conditions | CC-02 | 0.4 |
+| CC-15a/b | actions, A-L / M-Z | CC-10..14 | 2 × 0.6 |
+| CC-16a/b | rules, triggers, statics, replacements, costs | CC-15a | 2 × 0.6 |
+| CC-20 | gorgebe card skeleton, registry, fallback | CC-10 | 0.75 |
+| CC-21a/b | gorgebe printers: Ref, Filter / Value, Cond | CC-20, CC-11..14 | 2 × 0.6 |
+| CC-22a/b | gorgebe actions to API + params | CC-15, CC-21 | 2 × 0.6 |
+| CC-23 | gorgebe triggers, statics, replacements, costs | CC-16, CC-21 | 0.75 |
+| CC-30 | static diff | CC-22, CC-23 | 0.5 |
+| CC-31 | lockstep harness | CC-20 | 0.6 |
+| CC-32 | divergence ledger + ratchet | CC-30, CC-31 | 0.4 |
+| CC-33 | fork commits, fork CI, register, fallback | CC-32 | 0.6 |
+| CC-34..39 | burn-down, one class family each | CC-33 | 6 × 0.5 |
+| CC-40 | reading-agreement export | CC-34..39 | 0.3 |
+| cardc-follow | rolling: merge main into `cardc` | CC-00 | ~0.05/day |
 
-| id | title | files | depends | est. seat-days | Done means |
-|---|---|---|---|---:|---|
-| CC-00 | branch, hooks, gate, mtgish fork | create the fork `github.com/adams-shaun/mtgish` (branch `gorge` at upstream `1553384`; never a PR to upstream) and pin it; `cardc.mk`, Makefile (`include`), `.gitignore`, `internal/archtest/{public_boundary,arch}_test.go`, `oracle`-style `MTGISH.lock` at `engine/cardc/MTGISH.lock`; verify agentctl lands to `cardc` | none | 0.3 | `make mtgish-fetch` verifies sha256; `make test-one PKG=./internal/archtest RUN='^(TestPublicBoundary\|TestNothingImportsCardc\|TestDependencyOrderHolds)$'` PASS; one no-op ticket lands on `cardc` |
-| CC-01 | IR schema | `engine/cardc/ir/*.go` (card, ability, program, ref, filter, value, cond, cost, duration; printer, `Equal`, JSON codec) | CC-00 | 0.75 | `make test-one PKG=./engine/cardc/ir RUN=.` PASS: print/parse round trip and Equal over hand-built nodes, with no card data |
-| CC-02 | mtgish reader + report | `engine/cardc/mtgish/{node,load,vocab,exclude}.go` (lifted), `refuse.go`, `cmd/cardc` `report` | CC-01 | 0.4 | `cardc report -slice fdn` lists every variant and its refusal count; DFC and split names join (Delver and the 21 deck misses resolve); `make test-one PKG=./engine/cardc/mtgish RUN=.` PASS |
-| CC-10 | fe: characteristics and keywords | `fe_typeline.go`, `fe_manacost.go`, `fe_pt.go`, `fe_keyword.go` | CC-02 | 0.4 | slice: characteristics equal the Forge card's for 100% of non-refused faces (test) |
-| CC-11 | fe: references | `ir/ref.go`, `fe_permanent.go`, `fe_player.go`, `fe_spell.go`, `fe_target.go` | CC-02 | 0.5 | every slice `Permanent/Player/Spell/Card/Target/DamageRecipient` variant lowers or refuses by name |
-| CC-12 | fe: filters | `ir/filter.go`, `fe_permanents.go`, `fe_players.go`, `fe_cards.go` | CC-11 | 0.6 | as CC-11 for `Permanents/Players/Spells/Cards/CardsIn*/Exilable` |
-| CC-13 | fe: values | `ir/value.go`, `fe_gamenumber.go`, `fe_countertype.go` | CC-12 | 0.4 | as CC-11 for `GameNumber/CounterType` |
-| CC-14 | fe: conditions | `ir/cond.go`, `fe_condition.go` | CC-13 | 0.4 | as CC-11 for `Condition/CheckHasable` |
-| CC-15a/b | fe: actions (A-L / M-Z, the compliance c1/c2 split) | `ir/action.go` (15a), `fe_action_a.go`, `fe_action_b.go` | CC-11..14 | 2 × 0.6 | all 106 slice `Action` variants lower or refuse by name |
-| CC-16a/b | fe: abilities (spell/activated/triggered + `Trigger`; statics, `LayerEffect`, replacements, `Cost`) | `fe_rule_a.go`, `fe_trigger.go`, `fe_rule_b.go`, `fe_cost.go` | CC-15a | 2 × 0.6 | all 62 slice `Rule` and 28 `Trigger` variants lower or refuse; `cardc report` refusals ≤ 5% of slice cards |
-| CC-20 | be: card skeleton + registry | `engine/cardc/gorgebe/{card,registry,fallback}.go` | CC-10, CC-01 | 0.75 | `cardc compile -slice fdn` builds a `*cards.Registry` (tokens via Forge); `cards.ParseBytes` diags 0 on every emitted card |
-| CC-21a/b | be: family printers (Ref → `Defined$`/target spellings; Filter → `Valid*`; Value → `Count$`/SVar; Cond → `Condition*`) | `be_ref.go`, `be_filter.go` (21a); `be_value.go`, `be_cond.go` (21b) | CC-20, CC-11..14 | 2 × 0.6 | every printed spelling is one gorge reads: `knownDefinedTargets` known (the `TestDefinedSelectorCensus` reader, `engine/effects/defined_selector_census_test.go`), `cards.ValueHead` in `modelledValueHeads` (`engine/effects/value_heads.go:20`), and filters with no `csUnknown` predicate (`engine/effects/filter_compiled.go:117`) |
-| CC-22a/b | be: actions to API + params | `be_action_a.go`, `be_action_b.go` | CC-15a/b, CC-21a/b | 2 × 0.6 | every lowered slice action emits a registered API (`effects.Supported()`, `engine/effects/registry.go:692`) |
-| CC-23 | be: triggers, statics, replacements, costs | `be_trigger.go`, `be_static.go`, `be_repl.go`, `be_cost.go` | CC-16a/b, CC-21a/b | 0.75 | every lowered slice ability emits a supported `trig:/stat:/repl:` mode |
-| CC-30 | static diff | `cmd/cardc` `diff`, `engine/cardc/lockstep/static.go` | CC-22a/b, CC-23 | 0.5 | `cardc diff -slice fdn` classifies every card as equal, differs or refused; differing cards get ledger rows |
-| CC-31 | lockstep harness | `engine/cardc/lockstep/{record,replay,chunk_test}.go`, `cardc.mk` target | CC-20 | 0.6 | identity-swap test (section 4) PASS; `make cardc-lockstep SLICE=fdn` prints `pass/diverged/refused` per pair |
-| CC-32 | divergence ledger + ratchet | `engine/cardc/testdata/ledger/`, `ledger_test.go` | CC-30, CC-31 | 0.4 | `make test-one PKG=./engine/cardc/lockstep RUN='^TestCardcLedger$'` fails both ways |
-| CC-33 | gap register: fork commits + fallback | `engine/cardc/testdata/mtgish-fork.tsv`, `testdata/fallback/`, fork commits in `adams-shaun/mtgish` (seeded from compliance's mtgish-bug rows; upstream issues filed by hand-written issue text only, never PRs) | CC-32 | 0.6 | each section 5 class has a fork commit with an upstream issue, or a fallback row; `TestMtgishForkRegister` and `TestFallbackOnlyShrinks` pass |
-| CC-34..39 | burn-down waves, one class family each | per class | CC-33 | 6 × 0.5 | pass bar 1-4 met on FDN |
-| CC-40 | reading-agreement output | `cmd/cardc` `agree` (a TSV for the proof page) | CC-34..39 | 0.3 | TSV lists every slice card with `agree/disagree/fallback` |
-| cardc-follow | rolling: merge main into `cardc` | none outside the merge | CC-00 | ~0.05/day | `make cardc-check` green after each merge |
+What each backend ticket checks:
+- **CC-21:** every printed spelling is one gorge reads:
+  - a known `Defined$` (`engine/effects/defined_selector_census_test.go`);
+  - a modelled count head (`engine/effects/value_heads.go:20`);
+  - no unknown filter predicate (`engine/effects/filter_compiled.go:117`).
+- **CC-22:** every emitted API is in `effects.Supported()` (`engine/effects/registry.go:692`).
 
 **Collisions:**
-- The hubs are CC-01 (schema) and CC-20 (registry). Every later ticket depends on one of them.
-- After CC-01, each family ticket extends only its own `ir/<family>.go`.
-- CC-15a creates `ir/action.go`, and 15b only appends variants in `fe_action_b.go`.
-- Front-end tickets (CC-10..16) and backend tickets (CC-21..23) touch disjoint directories, so waves 1 and 2 overlap
-  once CC-20 lands.
-- The only files shared with main are CC-00's four hook files, and only `cardc-follow` touches them afterwards.
-- Burn-down tickets each own one class's files. Ledger rows are one file per card, so two waves never edit one file.
-- Peak useful parallelism is about 8 seats in wave 1 (CC-10..14, 15a/b, 16a), 6 in wave 2 and 6 in burn-down. 10-15
-  seats is more than enough.
+- CC-01 and CC-20 are the hubs.
+- CC-10..14 run in parallel after CC-02. Each owns its `fe_*.go` files and tests stub the other families (CC-02's
+  `withStubs`).
+- After CC-01, a family appends enum values only in its own `ir/<family>.go`.
+- Front end (`engine/cardc/mtgish`) and backend (`engine/cardc/gorgebe`) are disjoint, so their waves overlap.
+- Ledger and fallback rows are one file per card.
+- Peak parallelism is about 8 seats.
 
-**Estimate: about 15 seat-days of tickets, about 21 with rework. About 7-9 calendar days at 10-15 seats.** The
-critical path is CC-00 → 01 → 02 → 11 → 12 → 13 → 14 → 15a → 22a → 30 → 32 → 33 → burn-down, about 13 tickets.
+**Estimate: about 15 seat-days of tickets, about 21 with rework; 7-9 calendar days at 10-15 seats.** The critical
+path is CC-00 → 01 → 02 → 12 → 15a → 16a → 23 → 30 → 32 → 33 → burn-down.
 
-The basis:
-- **The compliance mtgish cross-check** (`oracle/mtgish`, 15,292 lines) mapped 2,612 variant names corpus-wide to
-  summary grain and reached a ledgered whole-corpus diff in 2 days. 217 commits are dated 10-20/10-21 (git log,
-  gorge-compliance). cardc needs 680 variants at engine grain for the proof: fewer variants, a finer target.
-- **W4 on 10-03** converted every string-code family in effects and rules to named enums: 46 commits, 1,172 file
-  changes, +36,587 / −20,584 lines, in one day (git log `--grep='^W4'`). It shows the pipeline's rate on mechanical
-  sweeps.
-- **The dsd tickets** (operand-algebras design) are this pipeline's latest comparable seat work. Medium tickets took
-  2.3-10.5 h from dispatch to merge, median about 3.5 h: T04 2.6, T11 2.3, T12 3.1, T13b 4.0, T13c 9.2, T17b 3.1,
-  T17c 5.4, T21 10.5 (agentctl ledger events). 8 of the 25 were superseded. Most of those were high-complexity
-  representation tickets: T06 and T07 died after 11 local rounds. Hence the +35% rework allowance, and Opus review on
-  the schema tickets.
-- This is weeks, not months. The proof is one slice. The unbounded part is the burn-down, and it is bounded by the
-  pass bar, not by the corpus.
+Basis:
+- **The compliance mtgish cross-check** mapped 2,612 variant names corpus-wide, at summary grain, in 2 days: 217
+  commits dated 10-20/10-21 in gorge-compliance's git log. The proof needs 691 variants at engine grain.
+- **W4 on 10-03:** every string-code family in effects and rules converted to named enums in one day. That was 46
+  commits, 1,172 file changes, +36,587 / −20,584 lines (`git log --grep='^W4'`).
+- **The operand-algebras (dsd) tickets:**
+  - Medium tickets took 2.3-10.5 h from dispatch to merge, median about 3.5 h. The eight measured: T04 2.6, T11 2.3,
+    T12 3.1, T13b 4.0, T13c 9.2, T17b 3.1, T17c 5.4, T21 10.5 (agentctl ledger events).
+  - 8 of 25 were superseded, mostly high-complexity representation tickets (T07 after 11 rounds). Hence the +35%
+    rework allowance and the Opus reviews.
 
 ## 7. After the proof
 
-1. **BLB, then the Standard sets the setheads cover** (`engine/rules/testdata/setheads/games.txt`). Each set is one
-   slice ticket plus burn-down. A set passes on the same bar as FDN.
-2. **kgen consumes cardc, two steps.**
-   1. **No kgen change:** `kgen` already reads `*cards.Card` (361 kgen files import `engine/cards`). Point it at the
-      cardc registry with a `-cardc` flag. Then:
-      - diff `kgen -lir` per card against the Forge registry's (`dirac/kgen/main.go:36`);
-      - run the dirac lockstep (kfuzz) on the FDN slice with both engines reading cardc.
-
-      A card dirac supports must still play identically to gorge (invariant 13): here both engines read one source.
-   2. **Native:** kgen lowers IR families directly. `ir.Ref` lowers to SetExpr, which revives the operand-algebras
-      ports that stalled on parsing text: `dsd-t07-defined-grammar`, superseded after 11 local rounds on PR #2795,
-      and T08 and T10 behind it. `ir.Filter` lowers to `PredProg` and FilterWords (T11 and T13 are merged), and
-      `ir.Value`/`ir.Cond` to `kop.Expr` (`dsd-t16-expr-conditions`, human_needed today). Each is a refiled dsd ticket
-      against IR nodes instead of strings.
-      - Evidence keys stay put for every card whose LIR block is byte-identical (`dirac/kgen/lirkey.go:16`; OD-5's
-        additive rule).
-      - A card whose LIR moves carries its re-evidence in the same PR.
-3. **The Forge front end into the same IR.** The Forge-script parsers move into `engine/cardc/forgefe`. They are
-   gorge's existing ones, read at `86b960f2c5`:
+1. **More slices:** BLB, then the setheads sets (`engine/rules/testdata/setheads/games.txt`). Each is one slice
+   ticket plus burn-down, on the same bar.
+2. **kgen consumes cardc, step 1 (no kgen change).** Point kgen at the cardc registry, then:
+   - diff `kgen -lir` per card (`dirac/kgen/main.go:36`);
+   - run dirac lockstep on FDN with both engines reading cardc.
+3. **kgen consumes cardc, step 2 (native).**
+   - kgen lowers IR families directly: `ir.Ref` to SetExpr, `ir.Filter` to `PredProg`, and `ir.Value`/`ir.Cond` to
+     `kop.Expr`.
+   - This refiles the operand-algebras ports that stalled on text parsing: `dsd-t07-defined-grammar` (PR #2795, 11
+     rounds), T08, T10 and `dsd-t16-expr-conditions`.
+   - A card whose LIR block is unchanged keeps its evidence key (`dirac/kgen/lirkey.go:16`).
+4. **A Forge front end into the same IR**, built from gorge's existing parsers:
    - `cards.ValueHead`, `engine/cards/value_heads.go:36`;
-   - `definedSpec`, `engine/effects/context.go:684`, and `definedSpecCodes`, `:3258`;
+   - `definedSpec`, `engine/effects/context.go:684`;
    - `compileSpec`, `engine/effects/filter_compiled.go:285`;
    - the condition readers, `engine/effects/conditions.go:296` and `engine/rules/trigger_condition.go:258`.
 
-   The cross-check then compares IR to IR, which is exact and static, before any game. That ends the "4 places per
-   count head" duplication on the engine side once the engines read IR natively.
-4. **Promotion to main:** one PR from `cardc`, after the operator signs off. All must hold:
-   - **(a)** FDN, BLB and `cmd4` pass the bar.
-   - **(b)** With cardc as the source of every card it covers, `TestHeads`, `TestSetHeads` and
-     `TestRepoDeckGamesReplayExactly` are green **without** re-pinning: golden heads, set heads and wire goldens are
-     byte-identical.
-   - **(c)** `scripts/dirac-gate.sh` is unedited and green.
-   - **(d)** `cardc-gap` rows are 0, and the fallback register and the fork register's `carried` rows are recorded
-     as shrink-only ratchets.
-   - **(e)** On main, source selection is per card: a card is served by cardc only when it is on the
-     lockstep-clean list, else by Forge. Adding that selector to `cards.Card` changes the IR cache schema, so that PR
-     bumps `cacheVersion` 8 → 9 (`engine/cards/registry.go:338`) and documents it beside the version 2-8 notes there.
-   - **(f)** The licensing boundary still holds: `TestPublicBoundary` refuses `.mtgish` and cardc output.
-   - **(g)** The operator signs off on the archtest additions.
-
-   Default-on for a format follows when that format's clean list reaches the Forge path's coverage.
+   The cross-check then compares IR to IR, statically.
+5. **Promotion to main.** One PR from `cardc`, signed off by the operator, when all of these hold:
+   - FDN, BLB and `cmd4` pass the bar.
+   - With cardc serving every card it covers, `TestHeads`, `TestSetHeads` and `TestRepoDeckGamesReplayExactly` pass
+     **without** re-pinning.
+   - `scripts/dirac-gate.sh` is unedited and green.
+   - The fallback register and the fork register's `carried` rows are shrink-only ratchets.
+   - Sources are selected per card (cardc only for lockstep-clean cards). That selector changes the IR cache schema,
+     so `cacheVersion` goes 8 → 9 (`engine/cards/registry.go:338`).
+   - `TestPublicBoundary` still refuses mtgish data and cardc output.
 
 ## 8. Risks
 
-- **mtgish emits wrong trees instead of refusing.** The 11-23 oracle-grammar evaluation
-  (`scratchpad/oracle-grammar-eval.md`) found oracle-grammar refuses where mtgish guesses. The static diff and
-  lockstep are cardc's only detectors, so a card is never promoted on compile success alone. The IR keeps
-  oracle-grammar's shapes so a second front end can be added without a schema change.
-- **Event-order equivalences may be common** (prompt order, ability order). If `equivalent` rows exceed about 10% of
-  the slice after CC-30, the backend emits Forge's ability order. The bar does not relax.
-- **Upstream pace:** i5jb/mtgish fixed 127 rows between `153451e` and `1553384` (PR #373). Each pin bump is a cardc
-  ticket: rebase the fork, drop fixed commits, regenerate, then re-run report, diff and ledger.
-- **The fork needs mtgish's toolchain** (Rust, cargo) to regenerate data. Measured 11-23: neither `cargo` nor `rustc`
-  is on this box. CC-00 creates and pins the fork at upstream `1553384` with no patch, which needs no Rust. Before
-  CC-33's first fork commit, the operator approves a user-local toolchain (rustup under `$HOME`, no system change) or a
-  box that has one. That toolchain then builds the unpatched upstream ref, whose output must byte-equal upstream's
-  committed data before any patch is trusted. It is the same work compliance does today.
+- **mtgish guesses where oracle-grammar refuses** (the 11-23 oracle-grammar evaluation; session notes, not
+  committed). So no card is promoted on compile success alone. The IR keeps oracle-grammar's shapes, so a second
+  front end needs no schema change.
+- **Event-order equivalences.** If `equivalent` rows exceed about 10% of the slice after CC-30, gorgebe emits Forge's
+  ability order. The bar does not relax.
+- **Upstream pace.** Between `153451e` and `1553384`, upstream fixed 127 ledger rows (PR #373). Every bump is a cardc
+  ticket.
+- **Fork CI.** GitHub Actions in the fork must reproduce upstream data byte for byte. If it cannot, regeneration
+  falls back to a user-local `rustup` under `$HOME`, which needs the operator's OK.
