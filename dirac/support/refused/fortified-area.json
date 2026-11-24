@@ -1,0 +1,18 @@
+{
+  "card": "Fortified Area",
+  "class": "lockstep",
+  "why": "Fortified Area gives Walls banding; gorge forms the band an accepted CR 702.22c declaration names but the kernel poses the ask and mirrors the decline without modelling band formation (CR 702.22d-k), so an accepted candidate stalls it at StallBand (dirac/combat_band.go), tail-13 focus pair 11 (Valiant Changeling leads, a Wall by changeling)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 17398184257862493298,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "fortified_area_band_formation"
+  },
+  "evidence": [
+    "ev-tail-13-c000",
+    "ev-tail-13-c001"
+  ]
+}
