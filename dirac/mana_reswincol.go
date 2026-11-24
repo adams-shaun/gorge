@@ -13,9 +13,6 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the ask (raGenWinCol, ChGenManaChoice); the answer floats the arm's mana in
 // the picked colour and runs the window on (winAskResume), CR 605.3b.
 
-// raGenWinCol is the resolution ask of that colour (ChGenManaChoice).
-const raGenWinCol = raGenManifestDread + 86
-
 // resWinColArm is windowTapWalk's arm for a resolution's window: sl is a lucky
 // Condition-split source, so the source taps and the walk waits on the colour.
 func (s *State) resWinColArm(k *prep, p uint8, sl Slot, census bool) bool {
