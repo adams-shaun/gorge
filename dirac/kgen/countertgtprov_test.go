@@ -25,6 +25,8 @@ func TestCounterTargetCastProvenance(t *testing.T) {
 		want int // CmpN of the lowered clause
 	}{
 		{"Card.!wasCastFromTheirHand", spellHand | spellNot},
+		{"Card.!wasCastFromHand", spellHand | spellNot},
+		{"Card.wasCastFromHand", spellHand},
 		{"Card.wasCastFromTheirHand", spellHand},
 		{"Card.!wasCastFromYourHand", spellHand | spellNot},
 		{"Card.wasCastFromExile", spellExile},
