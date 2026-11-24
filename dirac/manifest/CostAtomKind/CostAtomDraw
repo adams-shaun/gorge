@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomDraw
+value: next
+status: active
+doc: CostAtomDraw: draw N cards as a cost (gorge payDrawCostParts; no dredge ask). Dirac: payDraw (cost_resolutionpays.go).

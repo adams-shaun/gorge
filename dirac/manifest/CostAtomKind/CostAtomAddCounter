@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomAddCounter
+value: next
+status: active
+doc: CostAtomAddCounter: put N counters of kind Ctr on the source as a cost (CR 606.3, ctrPutCost). Dirac: placeCounters.

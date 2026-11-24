@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomPayLife
+value: next
+status: active
+doc: CostAtomPayLife: pay N life (gorge's paylife proposal). Dirac: loseLife.

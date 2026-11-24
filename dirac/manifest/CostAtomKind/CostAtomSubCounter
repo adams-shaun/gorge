@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomSubCounter
+value: next
+status: active
+doc: CostAtomSubCounter: remove N counters of kind Ctr from the source. Dirac: subCtrFire (trig_counterremoved.go).
