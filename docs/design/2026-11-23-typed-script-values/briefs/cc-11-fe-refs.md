@@ -36,12 +36,13 @@ Decided. "Event object" is `RefEventObject` and "target" is `{RefTarget, Slot: c
 | Player | `ControllerOfTargetPermanent` | `{RefControllerOf, Of: target("Ref_TargetPermanent")}` |
 | Player | `ControllerOfTargetSpell` | `{RefControllerOf, Of: target("Ref_TargetSpell")}` |
 | Player | `OwnerOfPermanent(p)` | `{RefOwnerOf, Of}` |
-| Player | `PlayerOrControllerOfPermanent(p)` | `{RefPlayerOrControllerOf, Of}` |
+| Player | `PlayerOrControllerOfPermanent(pp)` | `{RefPlayerOrControllerOf, Of: c.Ref(pp)}`; pp is a `PlayerOrPermanent` |
 | Player | `Ref_TargetPlayer` | target |
 | Player | `TheActivePlayer` | `{RefActivePlayer}` |
 | Player | `Trigger_DefendingPlayer` | `{RefDefendingPlayer}` |
 | Player | `Trigger_ThatPlayer` | `{RefEventPlayer}` |
-| Player | `ActionPlayer` | `{RefIterPlayer}` |
+| Player | `ActionPlayer` | `{RefIterPlayer}` (the player of an enclosing `EachPlayerAction`) |
+| PlayerOrPermanent | `Ref_AnyTarget`, `Ref_TargetPlayerOrPermanent` | target |
 | Spell | `ThisSpell` | `{RefSelf}` |
 | Spell | `Ref_TargetSpell` | target |
 | Spell | `Trigger_ThatSpell` | event object |
@@ -55,19 +56,31 @@ Decided. "Event object" is `RefEventObject` and "target" is `{RefTarget, Slot: c
 | DamageRecipient | `EachPlayer(ps)` | `{RefAll, Filter: c.Filter(ps)}` |
 | DamageRecipient | `Permanent(p)`, `Player(p)` | `c.Ref(arg)` |
 | DamageRecipient | `Ref_AnyTarget`, `Ref_AnyTargets`, `Ref_TargetPlayerOrPermanent` | target |
+| SingleDamageRecipient | `Permanent(p)` | `c.Ref(arg)` |
 | Exilable | `Permanent(p)`, `Spell(s)`, `CardInGraveyards(g)` | `c.Ref(arg)` |
 | Exilable | `EachPermanent(ps)`, `EachCardInGraveyards(f)` | `{RefAll, Filter: c.Filter(arg)}` |
-| Exilable | `ACardFromHand`, `ACardInGraveyards` | `{RefChoose, Filter, N: {VConst, N: 1}}` (see below) |
-| Exilable | `TheTopCardOfLibrary(pl)` | `{RefTopOfLibrary, Of: c.Ref(pl), N: const 1}` |
-| Exilable | `TheTopNumberCardsOfLibrary(n, pl)` | `{RefTopOfLibrary, Of, N: c.Value(n)}` |
+| Exilable | `ACardFromHand` (no args) | `{RefChoose, Filter: {SubjCard, Zones: Hand, FPred, PAny}, N: const 1}` |
+| Exilable | `ACardInGraveyards(gs)` | `{RefChoose, Filter: c.Filter(gs), N: const 1}` |
+| Exilable | `TheTopCardOfLibrary` (no args) | `{RefTopOfLibrary, N: const 1}` |
+| Exilable | `TheTopNumberCardsOfLibrary(n)` | `{RefTopOfLibrary, N: c.Value(n)}` |
 | Exilable | `TheTopCardOfEachPlayersLibraries(ps)` | `{RefTopOfLibrary, Of: {RefAll, Filter}, N: const 1}` |
 | Exilable | `AllCardsFromPlayersLibrary(pl)` | `{RefAll, Filter}` (see below) |
 
-The two Filters the table leaves out:
-- `ACardFromHand` and `ACardInGraveyards`: the Filter is the argument's filter conjoined with
-  `{SubjCard, Zones: Hand}` or `{Zones: Graveyard}`, as `FAll`. With no argument it is that zone filter with `PAny`.
+Notes on the table:
+- `const 1` is `{VConst, N: 1}`.
+- The no-argument `Exilable` rows leave `Of` nil: the acting player (CC-01's `Ref` meanings). In the data,
+  `ACardFromHand` inside `PlayerAction(Ref_TargetPlayer, …)` is that player's hand; at top level it is yours.
 - `AllCardsFromPlayersLibrary(pl)`: the Filter is
   `{SubjCard, Zones: Library, Op: FPred, Pred: POwnedBy, Ref: c.Ref(pl)}`.
+- `Ref_AnyTargets` resolves only when a target with stem `AnyTargets` was declared. Its declarer,
+  `Target.UptoNumberAnyTargetsExcept`, is deferred in CC-12, so it returns the `:unbound` refusal for now.
+
+Meanings checked against the data at `1553384`, by example card:
+- `HostPermanent` is the equipped or enchanted permanent (Adventuring Gear, Blanchwood Armor).
+- `ActionPlayer` is the iterated player inside `EachPlayerAction` (Liliana, Dreadhorde General).
+- `TheCardExiledThisWay` is the card an earlier `Exile` step in the same action list exiled (Flickerwisp).
+- `TheExiledCardChosenThisWay` and `TheChosenExiledCard` follow a `ChooseAnExiledCard` step (Chandra, Flameshaper;
+  Strongbox Raider).
 
 Deferred (not registered; the coverage test lists them):
 - `Permanent.ThisGuest`, one card in the slice: its meaning needs the Guest mechanic.
@@ -85,20 +98,22 @@ In `engine/cardc/mtgish`:
   variants that CC-12/13 own. The test overlays stub lowerings for them with CC-02's `withStubs`, so this ticket needs
   no other family ticket.
 - `TestRefUnboundTarget`: `Ref_TargetPermanent` with no declaration returns the `:unbound` refusal.
-- `TestRefSliceVariantsRegistered`: `checkFamilyCoverage` over enums `Permanent`, `Player`, `Spell`, `Card`,
-  `CardInGraveyards`, `CardInExile`, `DamageRecipient` and `Exilable`, with deferred `{"Permanent.ThisGuest": "Guest
-  mechanic"}`.
+- `TestRefSliceVariantsRegistered`: `checkFamilyCoverage` over enums `Permanent`, `Player`, `PlayerOrPermanent`,
+  `Spell`, `Card`, `CardInGraveyards`, `CardInExile`, `DamageRecipient`, `SingleDamageRecipient` and `Exilable`.
+  Deferred: `{"Permanent.ThisGuest": "Guest mechanic"}`.
 
 ## Done means
 
 - [ ] `make test-one PKG=./engine/cardc/mtgish RUN='^(TestRefLowering|TestRefUnboundTarget|TestRefSliceVariantsRegistered)$'` passes (not ENV).
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
 - Target declarations (`Target.*`, CC-12).
 - Filters and values themselves (CC-12, CC-13).
 - Any edit to `engine/cardc/ir`: every RefKind and ReceiptKind needed is already in CC-01.
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 

@@ -29,9 +29,9 @@ Decided.
 | `PlayerPassesFilter(pl, ps)`, `PermanentPassesFilter(p, ps)` | `{CRefMatches, Ref: arg 1, Filter: arg 2}` |
 | `EnteringPermanentPassesFilter(ps)` | `{CRefMatches, Ref: {RefEventObject}, Filter}` |
 | `DeadPermanentPassesFilter(ps)` | `{CRefMatches, Ref: {RefEventObject}, Filter}` |
-| `APlayerPassesFilter(ps1, ps2)` | `{CExistsPlayer, Filter: {FAll, Args: [ps1, ps2]}}` |
-| `NumPermanentsPassFilter(cmp, ps1, ps2)` | `{CCountCompare, Filter: {FAll, Args: [ps1, ps2]}, Cmp, R}` |
-| `CostWasPaid` | `{CCostPaid}` (the ability's own optional cost; CC-16 binds which one) |
+| `APlayerPassesFilter(ps1, ps2)` | `{CExistsPlayer, Filter: {FAll, Args: [ps1, ps2]}}` (Stromkirk Bloodthief: an opponent that lost life) |
+| `NumPermanentsPassFilter(cmp, ps1, ps2)` | `{CCountCompare, Filter: {FAll, Args: [ps1, ps2]}, Cmp, R}` (Blasphemous Edict) |
+| `CostWasPaid` | `{CCostPaid}` (see below) |
 | `IsPlayersTurn(pl)` | `{CIsTurnOf, Ref}` |
 | `IsAPlayersTurn(ps)` | `{CIsTurnOf, Filter}` |
 | `IsPlayersNthTurn(pl, cmp)` | `{CNthTurn, Ref, Cmp, R}` |
@@ -41,8 +41,12 @@ Decided.
 | `APermanentLeftTheBattlefieldThisTurn(ps)` | `{CLeftBattlefieldThisTurn, Filter}` |
 
 - `Cmp` and `R` come from `c.Compare(cmp)`.
-- The schema's boolean combinators of `Condition` (`And`, `Or` and `Not`, when present under those names) lower to
-  `CAll`, `CAny` and `CNot`.
+- `And(list)` → `{CAll, Args}` and `Or(list)` → `{CAny, Args}`. The schema has no `Condition.Not`; `CNot` is for
+  CC-15's `Unless` action.
+- `CostWasPaid` asks whether the nearest earlier cost step in the same action list (`MayCost`, `PlayerMayCost` or
+  `MustCost`) was paid. The payer need not be you: Daze asks the target spell's controller, Chain Lightning the
+  target's controller. Frenzied Goblin and Flamewake Phoenix are the plain "you may pay" case. CC-15 binds the step;
+  CC-14 emits the bare node.
 - A condition that splits a filter in two arguments (the `FAll` rows) keeps both, in order.
 
 Deferred:
@@ -56,7 +60,7 @@ Deferred:
 ## Tests
 
 In `engine/cardc/mtgish`:
-- `TestCondLowering`: one synthetic JSON row per table row and per combinator. It uses `withStubs` for nested
+- `TestCondLowering`: one synthetic JSON row per table row and for `And` and `Or`. It uses `withStubs` for nested
   reference, filter and comparison variants.
 - `TestCondSliceVariantsRegistered`: `checkFamilyCoverage` over `Condition`, with deferred
   `{"Condition.NumGroupCardsWereMilledThisWay": "needs GroupFilter"}`.
@@ -65,11 +69,13 @@ In `engine/cardc/mtgish`:
 
 - [ ] `make test-one PKG=./engine/cardc/mtgish RUN='^(TestCondLowering|TestCondSliceVariantsRegistered)$'` passes (not ENV).
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
 - Intervening-if placement and the `Rule.If` wrapper (CC-16).
 - Any CondKind beyond CC-01's list.
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 

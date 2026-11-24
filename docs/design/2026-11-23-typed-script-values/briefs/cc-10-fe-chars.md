@@ -48,9 +48,10 @@ Decided.
    |---|---|
    | `ManaCostGeneric` (args n) | `ManaGeneric` N=n |
    | `ManaCostW`, `U`, `B`, `R`, `G` | `ManaColored` with that colour |
-   | the ten two-colour pairs (`WB` … `GU`) | `ManaHybrid` with both colours |
+   | `ManaCostWU`, `UB`, `BR`, `RG`, `GW`, `WB`, `UR`, `BG`, `RW`, `GU` | `ManaHybrid` with both colours |
    | `ManaCostWP`, `UP`, `BP`, `RP`, `GP` | `ManaPhyrexian` |
-   | `ManaCostRWP`, `RGP`, `GWP`, `GUP` and other two-colour `P` forms | `ManaHybridPhyrexian` |
+   | `ManaCostRWP`, `RGP`, `GWP`, `GUP` (the schema's only four) | `ManaHybridPhyrexian` with both colours |
+   | `ManaCost2W`, `2U`, `2B`, `2R`, `2G` | `ManaTwoHybrid` with that colour, N=2 |
    | `ManaCostC` | `ManaColorless` |
    | `ManaCostX` | `ManaX` |
    | `ManaCostS` | `ManaSnow` |
@@ -74,7 +75,7 @@ Decided.
    reported as the refusal `Rule.<V>`.
 7. **Driver:**
    - for each face, a fresh `Ctx{Card, Face}`;
-   - each element of `Rules` goes through `c.Ability(rule)`;
+   - each element of `Rules` goes through `c.ResetTargets()` then `c.Ability(rule)`;
    - a `*RefusalError` is appended to `Face.Refusals` and the rule is skipped;
    - any other error is also recorded as a refusal, with Key `error:<Enum.Variant>`;
    - `Src` on each node is `c.Src()`.
@@ -100,8 +101,10 @@ In `engine/cardc/mtgish`:
   - a refused mana symbol.
 - `TestKeywordRulesLowering`: each of the 21 keyword rules lowers to its Name, and a keyword rule with args is
   refused.
-- `TestCharsSliceVariantsRegistered`: `checkFamilyCoverage` over enums `ManaSymbol` and `OracleCard`, plus the 21
-  keyword `Rule` keys, with deferred `{}` (the proof slice uses none of the refused ones).
+- `TestCharsSliceVariantsRegistered`: `checkFamilyCoverage` over enums `ManaSymbol`, `OracleCard` and
+  `LoyaltyNumber`, with deferred `{}`. At `1553384` the proof slice uses only the `Card` and `Transforming` layouts and
+  `LoyaltyNumber.Integer`. The 21 keyword `Rule` keys are not a whole enum, so the test also asserts `Registered`
+  for each of them.
 - `TestCompileProofSliceNoPanic` (corpus, ENV when absent): compiles every proof-slice card. Every face has a name,
   and every non-refused face has types.
 
@@ -109,6 +112,7 @@ In `engine/cardc/mtgish`:
 
 - [ ] `make test-one PKG=./engine/cardc/mtgish RUN='^(TestCompileCharsLowering|TestKeywordRulesLowering|TestCharsSliceVariantsRegistered|TestCompileProofSliceNoPanic)$'` passes (not ENV).
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
@@ -116,6 +120,7 @@ In `engine/cardc/mtgish`:
 - Keywords with costs or arguments: Ward, Equip, Kicker, Flashback, Protection, HexproofFrom, Affinity, Miracle,
   Surge (CC-16).
 - Mapping type words to gorge's spelling (CC-20).
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 

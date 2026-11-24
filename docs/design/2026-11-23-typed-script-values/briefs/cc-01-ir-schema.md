@@ -21,7 +21,8 @@ ObjectRef/PlayerRef, ObjectFilter, Expr and Condition shapes (taken as shapes on
 
 ## Behaviour
 
-- `ir.Equal(a, b)` compares two nodes of the same type structurally, ignoring every `Src` field.
+- `ir.Equal(a, b any) bool` compares two node pointers (`*Card`, `*Ref`, `*Filter`, …) structurally, ignoring every
+  `Src` field. Different dynamic types are unequal; two nils of the same type are equal.
 - `(*Card).String()` and each node's `String()` print a canonical, single-line S-expression. Two nodes print the same
   text iff `Equal` holds.
 - `ir.EncodeCard(*Card) []byte` and `ir.DecodeCard([]byte) (*Card, error)` round-trip every node, `Src` included.
@@ -93,8 +94,10 @@ that produced it, for example `Rule.TriggerA/Trigger.WhenAPermanentEntersTheBatt
   - RefTarget uses Slot.
   - RefControllerOf, RefOwnerOf, RefAttachedTo and RefPlayerOrControllerOf use Of.
   - RefAll is every object or player matching Filter.
-  - RefChoose is N objects matching Filter, chosen by Of (nil means you).
+  - RefChoose is N objects matching Filter, chosen by Of.
   - RefTopOfLibrary is the top N cards of Of's library.
+  - For both, a nil Of means the acting player: the enclosing Step's `Who`, else you. mtgish leaves this player
+    implicit (`Exilable.ACardFromHand` inside a `PlayerAction` is that player's hand).
   - RefReceipt is the objects an earlier step of the same program produced, of kind Receipt.
   - RefIterPlayer and RefIterObject are the current element of the enclosing for-each.
 - `type Target struct`, with fields:
@@ -246,6 +249,7 @@ No test reads card data.
 - [ ] `make test-one PKG=./engine/cardc/ir RUN='^(TestEnumNamesComplete|TestIRHoldsNoMaps|TestCodecRoundTrip|TestCodecDeterministic|TestPrintMatchesEqual|TestCodecUsesNames)$'` passes.
 - [ ] `make test-one PKG=./internal/archtest RUN='^(TestDependencyOrderHolds|TestNothingImportsCardc)$'` passes.
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
@@ -253,6 +257,7 @@ No test reads card data.
 - Any lowering (CC-10..16).
 - Any gorge backend (CC-20).
 - Verb, EventKind and further Pred/RefKind/ValueKind/CondKind consts beyond those listed: later tickets append them.
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 

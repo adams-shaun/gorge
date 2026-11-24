@@ -36,18 +36,19 @@ Decided.
 | `Minus(a, b)` | `{VSub, Args: [a, b]}` |
 | `Twice(a)` | `{VMul, Args: [{VConst, N: 2}, a]}` |
 | `TheNumberOfPermanentsOnTheBattlefield(ps)`, `TheNumberOfGraveyardCards(gs)` | `{VCount, Filter: c.Filter(arg)}` |
-| `PowerOfPermanent(p)`, `PowerOfDeadPermanent(p)` | `{VPower, Ref: c.Ref(p)}` |
+| `PowerOfPermanent(p)` | `{VPower, Ref: c.Ref(p)}` |
+| `PowerOfDeadPermanent` (no args) | `{VPower, Ref: {RefEventObject}}` (the dying permanent, last known) |
 | `ToughnessOfPermanent(p)` | `{VToughness, Ref}` |
 | `ManaValueOfPermanent(p)` | `{VManaValue, Ref}` |
 | `ManaValueOfTheCardRevealedThisWay` | `{VManaValue, Ref: {RefReceipt, RcRevealed}}` |
 | `LifeTotalOfPlayer(pl)` | `{VLife, Ref}` |
 | `StartingLifeTotalOfPlayer(pl)` | `{VStartingLife, Ref}` |
 | `LifeGainedByPlayerThisTurn(pl)` | `{VLifeGainedThisTurn, Ref}` |
-| `PlayerDevotionTo(pl, colours)` | `{VDevotion, Ref, Colors}` |
+| `PlayerDevotionTo(pl, colour)` | `{VDevotion, Ref, Colors}` |
 | `TheTotalNumberOfCountersOfTypeAmongPermanents(ct, ps)` | `{VCountersAmong, Word: counter word, Filter}` |
 | `TotalPowerOfPermanents(ps)` | `{VTotalPower, Filter}` |
 | `NumDifferentManaValuesAmongPermanents(ps)` | `{VDistinctManaValues, Filter}` |
-| `NumSpellsCastByPlayerBeforeSpellThisTurn(pl)` | `{VSpellsCastBeforeThisTurn, Ref}` |
+| `NumSpellsCastByPlayerBeforeSpellThisTurn(ss, pl, sp)` | `{VSpellsCastBeforeThisTurn, Filter: c.Filter(ss), Ref: c.Ref(pl)}` |
 | `TheChosenNumber` | `{VChosenNumber}` |
 | `Trigger_AmountOfDamageDealt`, `Trigger_AmountOfLifeLost` | `{VEventAmount}` |
 | `Trigger_ThatMuch`, `WouldDealDamage_ThatMuchDamage` | `{VEventAmount}` |
@@ -55,8 +56,12 @@ Decided.
 | `ThatManyCounters` | `{VReceiptAmount, Word: "counters"}` |
 | `AmountOfExcessDamageDealtThisWay` | `{VExcessDamage}` |
 
-For `PlayerDevotionTo`, colours is a list of `Color` lowered through CC-12's `Color.*`, OR-ed into one ColorSet.
-Before CC-12 lands, test it with `withStubs`.
+- `PlayerDevotionTo`'s second argument is one `Color` (schema `[Player, Color]`), lowered through CC-12's `Color.*`
+  to a ColorSet. Before CC-12 lands, test it with `withStubs`.
+- `NumSpellsCastByPlayerBeforeSpellThisTurn` means "spells matching `Filter` that `Ref` cast this turn before the
+  event spell". Its third argument must be `Spell.Trigger_ThatSpell`, the only one in the whole corpus at
+  `1553384` (Thousand-Year Storm). Any other third argument is refused as
+  `GameNumber.NumSpellsCastByPlayerBeforeSpellThisTurn:spell`.
 
 **Comparison** → `*ir.Compare{Op, V: c.Value(arg)}`:
 
@@ -100,11 +105,13 @@ In `engine/cardc/mtgish`:
 
 - [ ] `make test-one PKG=./engine/cardc/mtgish RUN='^(TestValueLowering|TestCompareLowering|TestCounterWords|TestValueSliceVariantsRegistered)$'` passes (not ENV).
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
 - Any ValueKind beyond CC-01's list. A GameNumber variant outside the slice stays unregistered.
 - Evaluating values (the gorge backend).
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 

@@ -8,7 +8,7 @@ Design of record: `docs/design/2026-11-23-typed-script-values/PLAN.md` on `cardc
 ## Goal
 
 Make the `cardc` side branch ready for the card compiler. Afterwards:
-- the mtgish data sits in our own fork, `github.com/adams-shaun/mtgish`, pinned by commit;
+- the mtgish data is fetched from our own fork, `github.com/adams-shaun/mtgish`, pinned by commit;
 - `make mtgish-fetch` fetches the pinned data into gitignored `.cards/mtgish/<ref>/`, checked by sha256;
 - the public-boundary test refuses any committed mtgish data;
 - a new archtest proves nothing outside `engine/cardc/**` and `cmd/cardc` imports cardc, so main's behaviour cannot
@@ -22,7 +22,8 @@ Make the `cardc` side branch ready for the card compiler. Afterwards:
   - A file already present with the locked sha256 is not fetched again.
   - A mismatch exits 1.
   - A ref that differs from the lock exits 2.
-- `make cardc-check` runs `make test-one PKG=./engine/cardc/...`.
+- `make cardc-check` runs `$(MAKE) test-targeted BASE=origin/main`: every package the `cardc` branch changes against
+  main, plus their test reverse deps. (`test-one` refuses `./...`.)
 - `TestPublicBoundary` fails on a tracked file that:
   - has a path component `.mtgish`;
   - has a base name starting `mtgish.lines.`;
@@ -35,8 +36,9 @@ Make the `cardc` side branch ready for the card compiler. Afterwards:
 
 Decided; the seat makes no design calls.
 
-1. **The fork.** Create it as a GitHub fork of `i5jb/mtgish` under `adams-shaun`, named `mtgish`. Create branch `gorge`
-   at upstream `1553384c9a970a02514b337db9c86697313530e8`, the current upstream head (same commit, no patches yet).
+1. **The fork exists before this ticket starts.** The operator creates `adams-shaun/mtgish` and its branch `gorge` at
+   upstream `1553384c9a970a02514b337db9c86697313530e8` (PLAN.md section 5, "Prerequisite"). The seat creates nothing
+   on GitHub; it only checks the branch with `git ls-remote`.
    - **Never open a pull request to i5jb/mtgish, and never run `gh pr create` in or against it.** The upstream author
      accepts only hand-written PRs. Upstream contribution is issues only, and the operator files those.
 2. **Data location: `$(CARDS_DIR)/mtgish/<ref>/`, not a top-level `.mtgish/`.** agentctl links `.cards` into every seat
@@ -74,8 +76,11 @@ Decided; the seat makes no design calls.
    `TestPublicBoundaryDetection` (`internal/archtest/public_boundary_test.go:608`).
 8. **Import guards.**
    - Add `TestNothingImportsCardc` to `internal/archtest/arch_test.go`. It uses `packages(t)`
-     (`internal/archtest/arch_test.go:42`) and checks every package's imports. It fails vacuously-safe: it also
+     (`internal/archtest/arch_test.go:42`) and checks every package's imports. So it cannot pass vacuously, it also
      requires `module + "/engine/cardc"` to exist in the package set.
+   - Put the check in a pure function, `cardcImportViolations(module string, imports map[string][]string) []string`
+     (importer → its imports; returns one `importer -> imported` line per violation, sorted). The test calls it on
+     the real package set and on a synthetic map.
    - Add rows to the `forbidden` list of `TestDependencyOrderHolds` (`internal/archtest/arch_test.go:204`):
      - `engine/cardc/ir` → `engine/cards`;
      - `engine/cardc/ir` → `engine/state`;
@@ -86,9 +91,10 @@ Decided; the seat makes no design calls.
 
 ## Implementation steps
 
-1. Create the fork: `gh repo fork i5jb/mtgish --clone=false`. Then make the `gorge` branch:
-   `gh api repos/adams-shaun/mtgish/git/refs -f ref=refs/heads/gorge -f sha=1553384c9a970a02514b337db9c86697313530e8`.
-   - If `gh` has no credentials in the seat, stop and report BLOCKED naming the two commands. Do not work around it.
+1. Check the fork: `git ls-remote https://github.com/adams-shaun/mtgish refs/heads/gorge` must print
+   `1553384c9a970a02514b337db9c86697313530e8`.
+   - If it prints nothing or another sha, stop and report BLOCKED: "fork prerequisite missing (PLAN.md section 5)".
+     Do not create the fork, do not run `gh`, and do not fetch from upstream instead.
 2. Write `engine/cardc/MTGISH.lock`, `scripts/cardc-mtgish-fetch.sh` (executable), `cardc.mk`, the Makefile `include`
    line and the `.gitignore` line.
 3. Run `make mtgish-fetch`. Confirm all three files land under `.cards/mtgish/<ref>/` with the locked sums.
@@ -108,6 +114,7 @@ Decided; the seat makes no design calls.
 - [ ] `make mtgish-fetch` exits 0 and prints all three files as `ok` or `fetched`.
 - [ ] `make test-one PKG=./internal/archtest RUN='^(TestPublicBoundary|TestPublicBoundaryDetection|TestNothingImportsCardc|TestDependencyOrderHolds)$'` passes.
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
@@ -115,7 +122,7 @@ Decided; the seat makes no design calls.
 - Any Go code under `engine/cardc/` beyond `doc.go`.
 - `cmd/cardc`.
 - A Rust toolchain. Neither `cargo` nor `rustc` is on the box, and CC-00 needs neither.
-- Opening any pull request upstream.
+- Creating the fork or any GitHub object, and opening any pull request or issue upstream.
 
 ## Collisions
 

@@ -28,11 +28,14 @@ every variant the proof slice uses except the deferred list.
   | `CardsInHand` | `SubjCard` | Hand |
 
   Every node of one enum's tree carries the same Subject and Zones.
-- `c.Target(x)` declares the target with `c.DeclareTarget(<variant>)` before it returns, so `Ref_<variant>` resolves
-  (CC-02). The ability lowering (CC-16) appends targets to `Ability.Targets` in lowering order, which makes the slot
-  equal the index.
-- `CheckHasable.<V>` lowers to the keyword's rules-name string (`Flying`), with the same names as CC-10's keyword
-  table.
+- `c.Target(x)` declares the target with `c.DeclareTarget(<stem>)` before it returns, with the stem from the target
+  table below, so the data's `Ref_<stem>` variants resolve (CC-02). The ability lowering (CC-16) appends targets to
+  `Ability.Targets` in lowering order, which makes the slot equal the index.
+- `CheckHasable.<V>` lowers to the keyword's rules-name string. Register exactly these 13 no-argument variants, the
+  ones that are both a CC-10 keyword and a `CheckHasable` variant at `1553384`: `Flying`, `Deathtouch`, `Defender`,
+  `Flash`, `Haste`, `Indestructible`, `Lifelink`, `Menace`, `Reach`, `Trample`, `Vigilance`, and
+  `DoubleStrike` → "Double Strike", `FirstStrike` → "First Strike". The proof slice uses only `Flying`. The other
+  `CheckHasable` variants (`AnyKicker`, `ThisAbility`, …) stay unregistered.
 - Argument order and arity come from each variant's schema line in `oracle_cards.d.ts`.
 
 ## Design
@@ -59,7 +62,8 @@ Decided. These rows apply to **each** enum above that has the variant:
 - `SinglePermanent`, `SingleSpell` and `SinglePlayer(ref)` → `PIs` (for players, `PPlayerIs`).
 - `Ref_TargetPermanents` and `Ref_TargetGraveyardCards` → `PIs Ref={RefTarget, Slot: c.TargetSlot(v)}`.
 - `AnyPermanent`, `AnySpell`, `AnyCard`, `AnyCardInAnyGraveyard` and `AnyPlayer` → `PAny`.
-- `IsNamed(name)` → `PName Word=name`.
+- `IsNamed(nf)` → `PName Word=c.lower(nf)`. Its argument is a `NameFilter`, not a string. CC-12 registers
+  `NameFilter.NamedCard(s)`, which returns the string `s`; `NameFilter.TheChosenName` is deferred.
 - Counters (the counter word from `c.lower(ct)`, CC-13's `CounterType` string):
   - `HasACounterOfType(ct)` → `PCounters Word, Cmp: CmpGE, Value: const 1`;
   - `HasNoCountersOfType(ct)` → `FNot` of that;
@@ -79,15 +83,25 @@ Players only:
 
 `Target.<V>` → `*ir.Target`, where `filter(...)` is the argument's `c.Filter`:
 
-| variant | Min | Max | Filter |
-|---|---:|---:|---|
-| `TargetPermanent`, `TargetPlayer`, `TargetSpell`, `TargetGraveyardCard` | 1 | 1 | filter(arg) |
-| `UptoOneTargetPermanent(ps)`, `UptoOneTargetGraveyardCard(gs)` | 0 | 1 | filter(arg) |
-| `NumberTargetPermanents(n, ps)` | n | n | filter(ps) |
-| `UptoNumberTargetPermanents(n, ps)`, `UptoNumberTargetGraveyardCards(n, gs)` | 0 | n | filter(arg) |
-| `AnyNumberOfTargetPermanents(ps)` | 0 | -1 (no limit) | filter(ps) |
-| `AnyTarget` | 1 | 1 | any-target |
-| `TargetPlayerOrPermanent(ps)` | 1 | 1 | `FAny(filter(ps), {SubjPlayer, PAny})` |
+| variant | stem | Min | Max | Filter |
+|---|---|---:|---:|---|
+| `TargetPermanent(ps)` | `TargetPermanent` | 1 | 1 | filter(ps) |
+| `UptoOneTargetPermanent(ps)` | `TargetPermanent` | 0 | 1 | filter(ps) |
+| `TargetPlayer(ps)` | `TargetPlayer` | 1 | 1 | filter(ps) |
+| `TargetSpell(ss)` | `TargetSpell` | 1 | 1 | filter(ss) |
+| `TargetGraveyardCard(gs)` | `TargetGraveyardCard` | 1 | 1 | filter(gs) |
+| `UptoOneTargetGraveyardCard(gs)` | `TargetGraveyardCard` | 0 | 1 | filter(gs) |
+| `NumberTargetPermanents(n, ps)` | `TargetPermanents` | n | n | filter(ps) |
+| `UptoNumberTargetPermanents(n, ps)` | `TargetPermanents` | 0 | n | filter(ps) |
+| `AnyNumberOfTargetPermanents(ps)` | `TargetPermanents` | 0 | -1 (no limit) | filter(ps) |
+| `UptoNumberTargetGraveyardCards(n, gs)` | `TargetGraveyardCards` | 0 | n | filter(gs) |
+| `AnyTarget` | `AnyTarget` | 1 | 1 | any-target |
+| `TargetPlayerOrPermanent(pls, ps)` | `TargetPlayerOrPermanent` | 1 | 1 | `FAny(filter(pls), filter(ps))` |
+
+The stems come from the data at `1553384`: Fiery Annihilation declares `TargetPermanent` then
+`UptoOneTargetPermanent` and refers to them as `Ref_TargetPermanent1` and `Ref_TargetPermanent2`; Felidar Savior
+declares `UptoNumberTargetPermanents` and refers to `Ref_TargetPermanents`. Check a stem against the data before
+changing it.
 
 - When `n` lowers to a `VConst`, Min and Max take its N. Otherwise `MaxV` is set and Min/Max are 0/0.
 - Any-target is `FAny` of four filters: `{SubjPermanent, Battlefield, PCardType "Creature"}`, the same for
@@ -102,6 +116,7 @@ Deferred, with their reasons in the coverage test:
 - `CardsInExile.IsFaceUp`, `WasExiledWithPermanent`;
 - `CardsInLibrary.SharesANameWithTheCardRevealedThisWay`;
 - `Color.TheChosenColor`;
+- `NameFilter.TheChosenName` (Cabal Therapy, Pithing Needle: a name chosen at resolution);
 - `Target.NumberTargetGroupPermanents`, `UptoNumberTargetGroupGraveyardCards`, `UptoNumberAnyTargetsExcept`.
 
 ## Implementation steps
@@ -117,16 +132,17 @@ In `engine/cardc/mtgish`:
 - `TestFilterLowering`: synthetic JSON per shared row, on at least `Permanents` and `CardsInGraveyards`. It checks
   Subject and Zones too, and uses `withStubs` for `Comparison`, `CounterType` and the reference variants.
 - `TestPlayerFilterLowering`: every Players row.
-- `TestTargetLowering`: every Target row, including the declaration side effect (`c.TargetSlot` finds it) and the
-  any-target filter.
+- `TestTargetLowering`: every Target row, including the declaration side effect (`c.TargetSlot("Ref_<stem>")` finds
+  it) and the any-target filter.
 - `TestFilterSliceVariantsRegistered`: `checkFamilyCoverage` over `Permanents`, `Players`, `Spells`, `Cards`,
-  `CardsInGraveyards`, `CardsInExile`, `CardsInLibrary`, `CardsInHand`, `Target`, `CheckHasable` and `Color`, with
-  the deferred list above.
+  `CardsInGraveyards`, `CardsInExile`, `CardsInLibrary`, `CardsInHand`, `Target`, `CheckHasable`, `Color` and
+  `NameFilter`, with the deferred list above.
 
 ## Done means
 
 - [ ] `make test-one PKG=./engine/cardc/mtgish RUN='^(TestFilterLowering|TestPlayerFilterLowering|TestTargetLowering|TestFilterSliceVariantsRegistered)$'` passes (not ENV).
 - [ ] `make test-targeted BASE=origin/cardc` passes.
+- [ ] `make test-smart BASE=origin/cardc` passes.
 
 ## Out of scope
 
@@ -134,6 +150,7 @@ In `engine/cardc/mtgish`:
 - References (CC-11).
 - Adding Pred values to `engine/cardc/ir`: every Pred used above is already in CC-01. A deferred variant needing a
   new Pred stays deferred.
+- Anything on GitHub outside gorge. Never open a pull request to i5jb/mtgish.
 
 ## Collisions
 
