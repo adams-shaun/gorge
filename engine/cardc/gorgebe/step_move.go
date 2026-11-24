@@ -50,7 +50,7 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 	if st.Verb == ir.VerbExile {
 		to = ir.ZoneExile
 	}
-	obj := st.Obj
+	obj := slotRef(st.Obj)
 	if to == ir.ZoneNone || obj == nil || !zwhoYou(st) {
 		return nil, bad
 	}
@@ -80,6 +80,15 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 		z, ok := singleZone(obj.Filter)
 		if !ok || (obj.Kind == ir.RefChoose && obj.Of != nil) {
 			return nil, bad
+		}
+		if slot, ok := ownedByTargetPlayer(obj.Filter); ok && obj.Kind == ir.RefAll {
+			// "target player's graveyard": the player is the target, every card moves
+			n = &node{API: "ChangeZoneAll"}
+			if err := p.operand(n, "Defined", &ir.Ref{Kind: ir.RefTarget, Slot: slot, Src: obj.Src}); err != nil {
+				return nil, err
+			}
+			n.Params = append(n.Params, kv{"Origin", zoneWord(z)}, kv{"Destination", dest}, kv{"ChangeType", "Card"})
+			break
 		}
 		v, err := p.valid(obj.Filter)
 		if err != nil {
@@ -137,4 +146,17 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 		return nil, err
 	}
 	return n, nil
+}
+
+// ownedByTargetPlayer reports whether f is exactly "owned by the player target
+// slot k chose", and k.
+func ownedByTargetPlayer(f *ir.Filter) (uint8, bool) {
+	if f == nil || f.Op != ir.FPred || f.Pred != ir.POwnedBy || f.Ref == nil || f.Ref.Kind != ir.RefAll || f.Ref.Filter == nil {
+		return 0, false
+	}
+	g := f.Ref.Filter
+	if g.Op != ir.FPred || g.Pred != ir.PPlayerIs || g.Ref == nil || g.Ref.Kind != ir.RefTarget {
+		return 0, false
+	}
+	return g.Ref.Slot, true
 }

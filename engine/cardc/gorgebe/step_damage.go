@@ -20,8 +20,24 @@ func printDealDamage(p *pr, steps []*ir.Step) (*node, int, error) {
 		return nil, 0, err
 	}
 	n := &node{API: "DealDamage", Params: []kv{{"NumDmg", amt}}}
-	if err := p.operand(n, "Defined", st.Obj); err != nil {
+	if o := slotRef(st.Obj); o != nil && o.Kind == ir.RefAll && o.Filter != nil && o.Filter.Subject != ir.SubjPlayer {
+		v, err := p.valid(o.Filter)
+		if err != nil {
+			return nil, 0, err
+		}
+		n.API = "DamageAll"
+		n.set("ValidCards", v)
+	} else if err := p.operand(n, "Defined", st.Obj); err != nil {
 		return nil, 0, err
+	}
+	for _, later := range steps[1:] {
+		if later.N != nil && later.N.Kind == ir.VExcessDamage && st.Obj != nil && st.Obj.Kind == ir.RefTarget {
+			// "the excess damage dealt this way": Forge names it and the damage to count
+			n.set("ExcessSVar", "Excess")
+			n.set("ExcessSVarCondition", "Card.targetedBy")
+			p.excess = true
+			break
+		}
 	}
 	if st.Source != nil && st.Source.Kind != ir.RefSelf {
 		d, err := p.defined(st.Source)
@@ -39,11 +55,11 @@ func printDealDamage(p *pr, steps []*ir.Step) (*node, int, error) {
 func printDestroy(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	var n *node
-	if st.Obj != nil && st.Obj.Kind == ir.RefAll {
-		if st.Obj.Filter == nil || st.Obj.Filter.Subject == ir.SubjPlayer {
+	if o := slotRef(st.Obj); o != nil && o.Kind == ir.RefAll {
+		if o.Filter == nil || o.Filter.Subject == ir.SubjPlayer {
 			return nil, 0, unprintable("verb:destroy", st.Src)
 		}
-		v, err := p.valid(st.Obj.Filter)
+		v, err := p.valid(o.Filter)
 		if err != nil {
 			return nil, 0, err
 		}
