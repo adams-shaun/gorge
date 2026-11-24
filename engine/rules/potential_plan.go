@@ -2460,25 +2460,6 @@ func (c paymentPlanCensus) boundedProof() paymentPlanCensus {
 	return c
 }
 
-// oweOnceFee records, on a census that is no longer relaxable, the fee of a
-// once-only paid gap: the prefix search still funds it from other sources
-// (fees), so the unit leaving the relaxed proof must not drop its fee.
-func (c *paymentPlanCensus) oweOnceFee(ok, once bool, fee int32) {
-	if ok && once && fee > 0 {
-		c.fund += int(fee)
-	}
-}
-
-// dropRelaxed turns the census unrelaxable, keeping every fee the dropped
-// paid units owe and the current gap's own when it is a once-only one.
-func (c *paymentPlanCensus) dropRelaxed(ok, once bool, fee int32) {
-	for _, pd := range c.paid {
-		c.fund += int(pd.fee)
-	}
-	c.oweOnceFee(ok, once, fee)
-	c.relaxable, c.relaxed, c.paid = false, nil, nil
-}
-
 // fees is the mana the missed paid abilities' fees total (how many other
 // sources a prefix may activate to fund them).
 func (c paymentPlanCensus) fees() int {
@@ -2610,12 +2591,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 					// the relaxed proof below trusts only a once-only unit,
 					// and promoting one would move relaxed_census verdicts
 					// and dirac's mirrored slot accounting.
-					//
-					// The relaxed units' fees stay owed: the prefix search
-					// funds them from other sources (fees), so dropping the
-					// unit must not drop its fee (a Signet beside a storage
-					// land holding counters, CR 605.3b).
-					out.dropRelaxed(ok, once, fee)
+					out.relaxable, out.relaxed, out.paid = false, nil, nil
 				} else if fee > 0 {
 					out.paid = append(out.paid, relaxedPaid{alts: relaxed, fee: fee,
 						plain: relaxedCutPlain(relaxed, gmp, gextra, condSplitLiveSub(e, p, id, ma) != nil)})
@@ -2631,8 +2607,6 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 					}
 					out.relaxed = append(out.relaxed, relaxed)
 				}
-			} else {
-				out.oweOnceFee(ok, once, fee)
 			}
 			if bounded {
 				if !ok || (fee > 0 && len(out.boundPaid)+int(repeats) > relaxedPaidLimit) {
