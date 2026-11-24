@@ -12,7 +12,16 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) enterWithOverride(k *prep, in *kop.Instr) bool {
 	prog := s.prog(k)
 	pc := s.res.pc + 1
-	return int(pc) < len(prog) && &prog[s.res.pc] == in && prog[pc].Op == kop.OpOverride && prog[pc].B.N == kop.OvEnterWith
+	if int(pc) >= len(prog) || prog[pc].Op != kop.OpOverride || prog[pc].B.N != kop.OvEnterWith {
+		return false
+	}
+	// a union return (RefTargets012, execUnion) runs a copy of the instruction
+	// with only its subject rewritten, once per target
+	cur := prog[s.res.pc]
+	if unionMask(cur.Obj) != 0 {
+		cur.Obj = in.Obj
+	}
+	return &prog[s.res.pc] == in || cur == *in
 }
 
 // enterAssimilated enters o under ctrl with the override, then runs its enters check.
@@ -31,7 +40,7 @@ func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o)
 	}
-	s.g.ewDone = true // the override op that follows is spent
+	s.g.ewDone++ // the override op that follows is spent (once per entrant)
 	s.fireEntries(k, &eb)
 	return sl
 }
