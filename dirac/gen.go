@@ -439,7 +439,8 @@ type genPrep struct {
 	anyTapsDefer, anyTapsPain bool
 	// anyManaRider: some card has a counter-rider mana ability (mana_rider.go); it sets anyTapsDefer too
 	anyManaRider bool
-	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go); it sets anyTapsDefer too
+	// anyCondSplit: some card has a Condition-split mana source (mana_condsplit.go) or a colour-asking one (mana_askcolour.go,
+	// which rides the same deferred route; layout.tsv pins this struct, so it gets no flag of its own); it sets anyTapsDefer too
 	anyCondSplit bool
 	// anySelfTaps: some card has a lowered self Taps watcher (TfSelf). kgen
 	// lowers one on a card with a printed mana ability only as the vetted
@@ -1639,6 +1640,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		prepManaGate(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		prepManaSplit(g, c, CardID(i), pc)
+		prepManaAsk(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0

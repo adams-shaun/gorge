@@ -182,6 +182,17 @@ type Ability struct {
 	SplitGate uint8
 	SplitCtr  CounterKind
 	SplitCols ColorMask
+	// ManaAskColour: the mana ability asks one colour of WUBRG at activation
+	// and records it on its source (the as-resolves ChooseColor of the chain
+	// gorge runs off the stack, engine/rules mana_activation.go), makes ManaV
+	// mana of that colour in one unit (ManaV reads the record: Count$
+	// Devotion.Chosen, ExDevotionChosen), then clears the record so the next
+	// activation asks again. gorge's planner defers the source (the
+	// unrecorded Chosen fails closed, pay.PaymentPlanChoiceColours), so the
+	// census never prices it and autopay never taps it; only a potential play's
+	// prefix search or the manual window does (kernel mana_askcolour.go). A
+	// table byte: AbilityFlags has no free bit.
+	ManaAskColour bool
 	// ManaHasteValid: a mana ability's rider granting haste until end of
 	// turn to a matching spell (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains
