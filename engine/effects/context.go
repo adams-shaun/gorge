@@ -762,11 +762,6 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	if ts, ok := triggeredCardQualified(h, c, spec); ok {
 		return ts, true
 	}
-	// Miss Highwater's `TriggeredLastStateBattlefieldLKICopy.<filter>...`: the
-	// triggered player's battlefield as it stood when they lost.
-	if ts, ok := lostBoardDefined(h, c, spec); ok {
-		return ts, true
-	}
 	// The `Spawner>` chain (Forge's adjustTriggerContext): an immediate
 	// trigger's body re-anchors the rest of the selector on the SPAWNING
 	// trigger, so `Defined$ Spawner>TriggeredTarget` (Biting-Palm Ninja's
@@ -3448,6 +3443,12 @@ var exiledWithSourceKeyCodes = state.NewStrCodes(
 // (definedSpecExiled): the base's objects filtered by definedCardQualifierMatches. A compound (" & ") value is not
 // this shape and is left to the callers that split it.
 func triggeredCardQualified(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	// Miss Highwater's `TriggeredLastStateBattlefieldLKICopy.<filter>...` is
+	// this dotted shape over the triggered player's battlefield as it stood
+	// when they lost, not over a Triggered-card referent.
+	if ts, ok := lostBoardDefined(h, c, spec); ok {
+		return ts, true
+	}
 	base, qual, dotted := strings.Cut(spec, ".")
 	code := definedSpecCodes.Code(base)
 	if !dotted || strings.Contains(spec, " & ") || (code != definedSpecTriggeredCard && code != definedSpecTriggeredAttacker && code != definedSpecSelf &&
