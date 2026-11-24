@@ -158,6 +158,9 @@ func (lc *lowerCtx) token(ps *params) error {
 		if err := lc.tokenAtEOTBits(&in, v); err != nil {
 			return err
 		}
+		if err := tokenAtEOTGroupRefusal(v, n, owner, andYou); err != nil {
+			return err
+		}
 	}
 	if ps.is("RememberTokens", "True") {
 		// gorge token.go: each mint is appended to Ctx.Remembered. The
@@ -286,6 +289,26 @@ func tokenIsAura(p *pool, script string) bool {
 		}
 	}
 	return aura && enchant
+}
+
+// tokenAtEOTGroupRefusal refuses an AtEOT$ Destroy or ExileCombat rider over
+// a mint that can make several tokens (an amount other than the constant 1,
+// an AndYou second mint, a player-set owner): gorge registers one delayed
+// trigger naming them all (scheduleAtEOTGroup, CR 603.7a/b), while the kernel
+// joins only the sacrifice (sacAtEndJoin) and end-step exile
+// (exileAtEndJoin, Feral Lightning) riders.
+func tokenAtEOTGroupRefusal(v string, n lValue, owner lRef, andYou bool) error {
+	switch v {
+	case "Destroy", "ExileCombat":
+	default:
+		return nil
+	}
+	switch {
+	case andYou, !n.isConst() || n.N != 1,
+		owner.Kind == rEachOpp, owner.Kind == rEachPlayer, owner.Kind == rTriggerOpps, owner.Kind == rTargetUnion:
+		return refuse("Token AtEOT %q over several tokens is one grouped trigger", v)
+	}
+	return nil
 }
 
 // tokenAtEOTBits sets the C bits of a Token's AtEOT$ rider v on in (gorge

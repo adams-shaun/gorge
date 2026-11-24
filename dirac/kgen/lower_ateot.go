@@ -98,6 +98,12 @@ func (lc *lowerCtx) changeZoneAllAtEOT(ps *params, in *lInstr, origin, dest int,
 	if act > 1 {
 		return refuse("ChangeZoneAll AtEOT %q", v)
 	}
+	if atEOTGroupedAct(act) {
+		// gorge groups the sweep's exile promises into one delayed trigger
+		// (scheduleAtEOTGroup, CR 603.7a/b); the kernel's entrants each
+		// register their own
+		return refuse("ChangeZoneAll AtEOT %q over a sweep is one grouped trigger", v)
+	}
 	if dest != zBattlefield {
 		return refuse("ChangeZoneAll AtEOT onto %s", zoneLabel[dest])
 	}
@@ -144,6 +150,28 @@ func atEOTAct(v string) (int, error) {
 		return kop.AtEOTExileCombat, nil
 	}
 	return 0, refuse("AtEOT %q", v)
+}
+
+// atEOTGroupedAct reports whether act is a rider gorge groups into one
+// delayed trigger over several objects of one resolution whose kernel image is
+// still one record per object (gorge scheduleAtEOTGroup, CR 603.7a/b): exile,
+// destroy, return to hand. The kernel joins only the sacrifice riders
+// (sacAtEndJoin), so a carrier that can affect several objects with one of
+// these refuses.
+func atEOTGroupedAct(act int) bool {
+	return act == 1 || act == kop.AtEOTDestroy || act == kop.AtEOTHand || act == kop.AtEOTExileCombat
+}
+
+// atEOTMaySpanSet reports whether ref can name several objects at resolution
+// (a multi-target slot, a target union, a remembered or chosen set).
+func (lc *lowerCtx) atEOTMaySpanSet(ref lRef) bool {
+	switch ref.Kind {
+	case rTarget, rRemembered:
+		return !lc.oneObjectSubject(ref)
+	case rTargetUnion, rTriggerAttackers, rDelayedRemembered, rChosen, rImprinted, rLastCreated:
+		return true
+	}
+	return false
 }
 
 // atEOTActHere is atEOTAct for a one-object rider: the end-of-combat acts
