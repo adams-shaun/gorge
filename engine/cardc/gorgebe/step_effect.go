@@ -85,6 +85,9 @@ func printApplyEffect(p *pr, steps []*ir.Step) (*node, int, error) {
 	if o == nil {
 		return nil, 0, unprintable("effect:obj", st.Src)
 	}
+	if e := mayPlayOf(st); e != nil {
+		return printMayPlay(p, st, e)
+	}
 	if o.Kind == ir.RefAll && o.Filter != nil && o.Filter.Subject != ir.SubjPlayer {
 		return printApplyEffectAll(p, st)
 	}
@@ -100,8 +103,14 @@ func printApplyEffect(p *pr, steps []*ir.Step) (*node, int, error) {
 	if len(st.Effects) == 1 && st.Effects[0].Kind == ir.EffCantBeBlocked {
 		return printUnblockable(p, st, dur)
 	}
+	if len(st.Effects) == 1 && st.Effects[0].Kind == ir.EffCantBeTargeted {
+		return printHexproofFrom(p, st, dur, st.Effects[0])
+	}
 	if len(st.Effects) == 0 {
 		return nil, 0, unprintable("effect:none", st.Src)
+	}
+	if grantsTrigger(st) {
+		return printTriggerGrant(p, st, dur)
 	}
 	pump, anim, mixed := true, true, false
 	for _, e := range st.Effects {
@@ -146,6 +155,14 @@ func printApplyEffect(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	if err := zoptional(n, st); err != nil {
 		return nil, 0, err
+	}
+	if n.API == "Pump" && len(steps) > 1 && preventCombatRider(steps[1], st.Obj) {
+		kw, _ := n.get("KW")
+		if kw != "" {
+			kw += " & "
+		}
+		n.set("KW", kw+preventCombatKW)
+		return n, 2, nil
 	}
 	return n, 1, nil
 }
@@ -238,7 +255,7 @@ func pumpNode(p *pr, st *ir.Step) (*node, error) {
 
 func animateNode(p *pr, st *ir.Step) (*node, error) {
 	n := &node{API: "Animate"}
-	var ctypes, subs, kws []string
+	var ctypes, subs, kws, trigs []string
 	var colors ir.ColorSet
 	setPT, removeTypes, allTypes, setColor := false, false, false, false
 	for _, e := range st.Effects {
@@ -273,7 +290,12 @@ func animateNode(p *pr, st *ir.Step) (*node, error) {
 		case ir.EffAddAbility:
 			k, ok := bareKeywords(e)
 			if !ok {
-				return nil, unprintable("effect:add-ability", e.Src)
+				names, err := p.grantTriggers(e)
+				if err != nil {
+					return nil, err
+				}
+				trigs = append(trigs, names...)
+				continue
 			}
 			kws = append(kws, k...)
 		case ir.EffAllCreatureTypes:
@@ -301,6 +323,9 @@ func animateNode(p *pr, st *ir.Step) (*node, error) {
 	}
 	if allTypes {
 		n.set("AddAllCreatureTypes", "True")
+	}
+	if len(trigs) > 0 {
+		n.set("Triggers", strings.Join(trigs, ","))
 	}
 	return n, nil
 }
@@ -456,4 +481,212 @@ func printUnblockable(p *pr, st *ir.Step, dur []kv) (*node, int, error) {
 		return nil, 0, err
 	}
 	return n, 1, nil
+}
+
+// grantsTrigger reports whether st gives its object a triggered ability.
+func grantsTrigger(st *ir.Step) bool {
+	for _, e := range st.Effects {
+		if e.Kind != ir.EffAddAbility {
+			continue
+		}
+		for _, a := range e.Abilities {
+			if a.Kind == ir.AbTriggered {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// grantTriggers prints the triggered abilities an add-ability effect grants,
+// each as an SVar holding its trigger line, and returns the SVar names.
+func (p *pr) grantTriggers(e *ir.Effect) ([]string, error) {
+	var names []string
+	for _, a := range e.Abilities {
+		if a.Kind != ir.AbTriggered {
+			return nil, unprintable("effect:add-ability", e.Src)
+		}
+		sub := &pr{tokens: p.tokens, face: p.face, svars: p.svars}
+		err := abilityFns[ir.AbTriggered](sub, a)
+		if err != nil {
+			return nil, err
+		}
+		p.svars = sub.svars
+		if len(sub.lines) != 1 || !strings.HasPrefix(sub.lines[0], "T:") {
+			return nil, unprintable("effect:add-ability", a.Src)
+		}
+		names = append(names, p.addSVar("Trig", strings.TrimPrefix(sub.lines[0], "T:")))
+	}
+	return names, nil
+}
+
+// printTriggerGrant prints an effect that gives its object a triggered
+// ability. Forge writes the power and toughness change as its own Pump$ and
+// the grant, with the type and color changes, as an Animate$ after it.
+func printTriggerGrant(p *pr, st *ir.Step, dur []kv) (*node, int, error) {
+	var pt, rest []*ir.Effect
+	for _, e := range st.Effects {
+		if e.Kind == ir.EffAdjustPT {
+			pt = append(pt, e)
+		} else {
+			rest = append(rest, e)
+		}
+	}
+	for _, e := range rest {
+		if !isAnimateEffect(e.Kind) {
+			return nil, 0, unprintable("effect:"+e.Kind.String(), e.Src)
+		}
+	}
+	var head, tail *node
+	if len(pt) > 0 {
+		cp := *st
+		cp.Effects = pt
+		n, err := pumpNode(p, &cp)
+		if err != nil {
+			return nil, 0, err
+		}
+		if err := p.operand(n, "Defined", st.Obj); err != nil {
+			return nil, 0, err
+		}
+		head, tail = n, n
+	}
+	cp := *st
+	cp.Effects = rest
+	n, err := animateNode(p, &cp)
+	if err != nil {
+		return nil, 0, err
+	}
+	if err := p.operand(n, "Defined", st.Obj); err != nil {
+		return nil, 0, err
+	}
+	if d, _ := n.get("Defined"); head != nil && d == "Targeted" {
+		n.set("Defined", "ParentTarget")
+	}
+	for _, x := range dur {
+		n.set(x.K, x.V)
+	}
+	if err := zoptional(n, st); err != nil {
+		return nil, 0, err
+	}
+	if head == nil {
+		return n, 1, nil
+	}
+	tail.Sub = n
+	return head, 1, nil
+}
+
+// printHexproofFrom prints "can't be the target of spells or abilities
+// controlled by those players this turn" as Effect$: a CantTarget static of
+// the remembered object.
+func printHexproofFrom(p *pr, st *ir.Step, dur []kv, e *ir.Effect) (*node, int, error) {
+	f := e.Filter
+	if len(dur) > 0 || f == nil || f.Op != ir.FPred || f.Pred != ir.PControlledBy || f.Ref == nil {
+		return nil, 0, unprintable("effect:cant-be-targeted", e.Src)
+	}
+	who, err := p.defined(f.Ref)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "Effect"}
+	if err := p.rememberOperand(n, st.Obj); err != nil {
+		return nil, 0, err
+	}
+	n.set("ExileOnMoved", "Battlefield")
+	p.effectStatic(n, "CantTarget", "Mode$ CantTarget | ValidTarget$ Card.IsRemembered | Activator$ "+who)
+	if err := zoptional(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
+
+// kickedBonus folds "if kicked: <chain> and it gets +k/+k, else: <chain>"
+// into one chain the way Forge writes it: a Pump$ first, whose amounts are k
+// when kicked and 0 when not, then the chain on the same target. then is the
+// printed kicked branch; before is how many SVars existed before the
+// condition printed. ok is false, with p's state as it was, when the
+// branches have another shape.
+func (p *pr) kickedBonus(st *ir.Step, c condForm, then *node, before int, saved []bool) (*node, bool, error) {
+	if c.SVar == "" || st.Then == nil || st.Else == nil || len(st.Then.Targets) != 1 || len(st.Else.Targets) != 1 ||
+		len(st.Then.Steps) != len(st.Else.Steps)+1 {
+		return nil, false, nil
+	}
+	idx, body := -1, ""
+	for i, s := range p.svars {
+		if s.K == c.SVar {
+			idx, body = i, s.V
+		}
+	}
+	if body != "Count$Kicked.1.0" || idx < before {
+		return nil, false, nil
+	}
+	var chain []*node
+	for n := then; n != nil; n = n.Sub {
+		chain = append(chain, n)
+	}
+	last := chain[len(chain)-1]
+	if len(chain) < 2 || last.API != "Pump" || len(last.Params) != 3 {
+		return nil, false, nil
+	}
+	att, _ := last.get("NumAtt")
+	def, _ := last.get("NumDef")
+	if d, _ := last.get("Defined"); d != "Targeted" {
+		return nil, false, nil
+	}
+	if att == "" || att != def || att[0] != '+' || att == "+X" {
+		return nil, false, nil
+	}
+	savedSv := append([]kv(nil), p.svars...)
+	afterThen := declaredCopy(p)
+	restore := func() {
+		p.svars = savedSv
+		setDeclared(p, afterThen)
+	}
+	p.svars = p.svars[:before]
+	setDeclared(p, saved)
+	els, err := p.program(st.Else)
+	if err != nil {
+		restore()
+		return nil, false, nil
+	}
+	var echain []*node
+	for n := els; n != nil; n = n.Sub {
+		echain = append(echain, n)
+	}
+	if len(echain) != len(chain)-1 {
+		restore()
+		return nil, false, nil
+	}
+	for i, n := range echain {
+		a, b := *chain[i], *n
+		a.Sub, b.Sub = nil, nil
+		if a.API != b.API || len(a.Params) != len(b.Params) {
+			restore()
+			return nil, false, nil
+		}
+		for j := range a.Params {
+			if a.Params[j] != b.Params[j] {
+				restore()
+				return nil, false, nil
+			}
+		}
+	}
+	pump := &node{API: "Pump"}
+	var keep []kv
+	for _, x := range els.Params {
+		switch x.K {
+		case "ValidTgts", "TgtZone", "TargetMin", "TargetMax", "TargetUnique", "TargetType":
+			pump.Params = append(pump.Params, x)
+		default:
+			keep = append(keep, x)
+		}
+	}
+	if _, ok := pump.get("ValidTgts"); !ok {
+		restore()
+		return nil, false, nil
+	}
+	x := p.countVarAs("X", "Count$Kicked."+att[1:]+".0")
+	pump.Params = append([]kv{{"NumAtt", "+" + x}, {"NumDef", "+" + x}}, pump.Params...)
+	els.Params = append(keep, kv{"Defined", "Targeted"})
+	pump.Sub = els
+	return pump, true, nil
 }

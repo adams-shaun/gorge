@@ -129,6 +129,11 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	if n, ok, err := p.kickedBonus(st, c, then, before, saved); err != nil {
+		return nil, 0, err
+	} else if ok {
+		return n, 1, nil
+	}
 	if p.mergeTargetCount(c, then, els, before) {
 		setDeclared(p, afterThen)
 		return then, 1, nil

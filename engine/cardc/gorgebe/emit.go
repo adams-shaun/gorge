@@ -24,6 +24,9 @@ type node struct {
 	API    string
 	Params []kv
 	Sub    *node
+	// Ability is set on a node that is an AB$ rather than a DB$: its Cost$
+	// is paid before it and everything under it resolves.
+	Ability bool
 }
 
 // set replaces k's value, or appends k.
@@ -396,6 +399,9 @@ func (p *pr) hasSVar(name string) bool {
 // adding each sub-ability as an SVar DB<API>[k] holding "DB$ ...".
 func (p *pr) render(kind string, n *node) string {
 	var b strings.Builder
+	if n.Ability {
+		kind = "AB"
+	}
 	b.WriteString(kind + "$ " + n.API)
 	for _, x := range n.Params {
 		b.WriteString(" | " + x.K + "$ " + x.V)

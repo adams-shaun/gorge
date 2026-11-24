@@ -13,9 +13,6 @@ func init() {
 	registerStep(ir.VerbReveal, printDig)
 	registerStep(ir.VerbLookAtHand, printRevealHand)
 	registerStep(ir.VerbRevealHand, printRevealHand)
-	registerStep(ir.VerbChoose, func(_ *pr, steps []*ir.Step) (*node, int, error) {
-		return nil, 0, unprintable("verb:choose", steps[0].Src)
-	})
 	registerStep(ir.VerbShuffle, printShuffle)
 }
 
