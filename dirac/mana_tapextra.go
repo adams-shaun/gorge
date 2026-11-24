@@ -450,49 +450,133 @@ func (s *State) addAnyColExtra(p uint8, a *kop.Static, ord int) {
 }
 
 // fillTapAnyCol sets the pending any-colour tap extra's answer for a tap of sl
-// against the play a: gorge's WindowChoices answer for the same ask -- each
-// unit the first pip the cost still owes in W U B R G order, else the lowest
-// colour. A Combo unit comes off the owed count as it is answered.
-func (s *State) fillTapAnyCol(k *prep, p uint8, sl Slot, a Action) {
+// against the play a. The answer is the first one gorge's prefix search tries
+// (anyColFirst); deferGapSearch's second run, where that line prices nothing,
+// answers by what the play still owes (anyColOwed).
+func (s *State) fillTapAnyCol(k *prep, p uint8, sl Slot, a Action, ownCol, ownN int) {
 	if k == nil || k.gen == nil || !k.gen.anyTapExtra || a == 0 {
 		return
 	}
-	// The ask's demand is the play's cost, not the pool less it: gorge's
-	// WindowChoices answer at the tap still names a rolled-back pip the tap's
-	// own mana now covers (a Forest's {G} beside a {G} play adds {G} again).
-	var owed [kop.NumManaKinds]uint8
-	if cnt, ok := s.playCostCounts(k, a); ok {
-		owed = cnt // exact per-colour pips, e.g. a Combo Any amount of one colour
-	} else {
-		// a hybrid, twobrid or otherwise reduced cost: the play's need is the
-		// colour list gorge's ask order reads (grantNeedColours), so the
-		// first named pip is the ask's first owed colour. A hybrid pip the
-		// build has already announced reads the announced face instead of
-		// both faces: gorge's ManaPayment.Owed holds the resolved pip.
-		need := s.playNeed(k, a)
-		if s.buildLive() {
-			if m, _, ok := s.playBaseCost(k, a); ok && m.Hyb[0] != 0 {
-				for i, h := range m.Hyb {
-					if h == 0 {
-						break
-					}
-					first, second := hybColours(m, i)
-					need[first], need[second] = false, false
-					if int(s.bld().pipN) > i {
-						need[s.bld().pipCol(uint8(i))] = true
-					} else {
-						need[first], need[second] = true, true
-					}
+	if s.anyColOwedRun() {
+		s.anyColOwed(k, p, sl, a, ownCol, ownN)
+		return
+	}
+	need := s.anyColNeed(k, a)
+	s.eachAnyColStatic(k, sl, func(units int) [3]uint8 { return anyColFirst(&need, units) })
+}
+
+// anyColNeed is the colours play a's printed base cost names (gorge's
+// scriptNeedColours, playNeed). A hybrid pip the build has already announced
+// reads the announced face instead of both faces: gorge's ManaPayment.Owed
+// holds the resolved pip.
+func (s *State) anyColNeed(k *prep, a Action) [kop.NumManaKinds]bool {
+	need := s.playNeed(k, a)
+	if s.buildLive() {
+		if m, _, ok := s.playBaseCost(k, a); ok && m.Hyb[0] != 0 {
+			for i, h := range m.Hyb {
+				if h == 0 {
+					break
+				}
+				first, second := hybColours(m, i)
+				need[first], need[second] = false, false
+				if int(s.bld().pipN) > i {
+					need[s.bld().pipCol(uint8(i))] = true
+				} else {
+					need[first], need[second] = true, true
 				}
 			}
 		}
-		for c, on := range need {
+	}
+	return need
+}
+
+// anyColFirst is the first answer of an any-colour extra's ask in gorge's
+// prefix search: the ask's answers are the colour combinations in option
+// order, and scriptOrderAnswers moves the ones naming a colour the play's
+// printed cost asks for ahead of the rest, so the first is the lowest
+// combination holding a needed colour: W in every unit but the last, which
+// takes the lowest needed colour (W when it is needed, or when none is). A
+// {B}{B} cast's Swamp under Dawn's Reflection floats {B} and answers {W}{B},
+// as a {R} ability's Mountain answers {W}{R}, whatever the pool holds (pool
+// dr-mbc-abbb pair 77, decision 287; tapsdefer_anycol_extra_activation).
+func anyColFirst(need *[kop.NumManaKinds]bool, units int) (cols [3]uint8) {
+	if units < 1 || units > len(cols) {
+		units = len(cols)
+	}
+	if need[0] {
+		return cols
+	}
+	for c := 1; c < 5; c++ {
+		if need[c] {
+			cols[units-1] = uint8(c)
+			break
+		}
+	}
+	return cols
+}
+
+// anyColOwed is the second answer: each unit the first pip play a still owes
+// in W U B R G order, else the lowest colour, the owed pips being the play's
+// cost less the pool the tap's own mana has already reached (the tap's mana
+// reaches the pool before the triggered ability resolves). A Combo unit comes
+// off the owed count as it is answered. A kicked cast owes the kicker
+// payment's pips too (tapAnyColPips).
+func (s *State) anyColOwed(k *prep, p uint8, sl Slot, a Action, ownCol, ownN int) {
+	var owed [kop.NumManaKinds]uint8
+	if cnt, ok := s.tapAnyColPips(k, a); ok {
+		owed = cnt // exact per-colour pips, e.g. a Combo Any amount of one colour
+	} else {
+		// a hybrid, twobrid or otherwise reduced cost: the play's need is the
+		// colour list gorge's ask order reads, so the first named pip is the
+		// ask's first owed colour
+		for c, on := range s.anyColNeed(k, a) {
 			if on {
 				owed[c] = 1
 			}
 		}
 	}
+	for c := range owed {
+		n := int(owed[c]) - int(s.pl[p].pool[c])
+		if c == ownCol {
+			n -= ownN
+		}
+		if n < 0 {
+			n = 0
+		}
+		owed[c] = uint8(n)
+	}
 	s.fillTapAnyColOwed(k, p, sl, &owed)
+}
+
+// tapAnyColPips is the any-colour tap extra's owed pips: playCostCounts
+// except that a generic part does not hide the coloured pips. gorge's
+// standalone colour ask reads the announced pips (windowOwed), and a generic
+// pip takes any colour, so Dawn's Reflection's answer to a {2}{B}{B} cast is
+// still driven by the two black pips. A flexible pip (X, snow, hybrid,
+// Phyrexian, twobrid) keeps the playNeed fallback: its announced face is not
+// the printed pips.
+func (s *State) tapAnyColPips(k *prep, a Action) (cnt [kop.NumManaKinds]uint8, ok bool) {
+	m, f, base := s.playBaseCost(k, a)
+	if !base && s.anyColOwedRun() && s.kickedArmOffer(k, a) {
+		// A kicked cast announces the printed pips and the kicker payment's,
+		// the total CR 601.2f composes. Bloodchief's Thirst kicked owes
+		// {B}{B}, so a Swamp under Dawn's Reflection answers {B}{W}, where
+		// the first answer (a kicked cast reads no pips, gorge's
+		// scriptPlayBaseCost) is {W}{W}: gorge's search goes on to the
+		// answer that pays the kicked offer (pool dr-mbc-abbb pair 77,
+		// decision 290).
+		cd := &k.t.Cards[s.objs[Obj(a.Source())].card]
+		m, base = addCost(cd.Cost, kickerPayment(cd)), true
+	}
+	if !base || m.X != 0 || m.Snow != 0 || m.Hyb[0] != 0 || m.Tb != 0 || f&kop.CostForage != 0 {
+		return cnt, false
+	}
+	for c, n := range m.Pips {
+		if n > 0 {
+			cnt[c], ok = n, true
+		}
+	}
+	return cnt, ok
 }
 
 // fillTapAnyColCost is fillTapAnyCol for a payment window's explicit cost. col
@@ -545,6 +629,19 @@ func (s *State) announcedPipsOwed(k *prep, p uint8, col, n int) (owed [kop.NumMa
 // fillTapAnyColOwed is fillTapAnyCol's shared answer: every any-colour
 // StatTapExtra static reaching sl gets its units filled (normally one).
 func (s *State) fillTapAnyColOwed(k *prep, p uint8, sl Slot, owed *[kop.NumManaKinds]uint8) {
+	s.eachAnyColStatic(k, sl, func(units int) (cols [3]uint8) {
+		for u := 0; u < units && u < len(cols); u++ {
+			cols[u] = uint8(anyColOwedColour(owed))
+		}
+		return cols
+	})
+}
+
+// eachAnyColStatic stores the answer pick names for the first any-colour
+// StatTapExtra reaching sl: the colours of its units (one for a Produced$ Any
+// amount, whatever the amount; B for a Combo Any), the carrier the add arm
+// reads (addAnyColExtra).
+func (s *State) eachAnyColStatic(k *prep, sl Slot, pick func(units int) [3]uint8) {
 	ctl := s.perms[sl].ctrl
 	s.g.rsv[anyColForcedAt] = 0 // the deterministic fill: no search answers (forceAnyColAnswers)
 	s.eachStatic(k, func(st statSrc) bool {
@@ -558,11 +655,7 @@ func (s *State) fillTapAnyColOwed(k *prep, p uint8, sl Slot, owed *[kop.NumManaK
 		if a.A == 1 {
 			units = int(a.B)
 		}
-		var cols [3]uint8
-		for u := 0; u < units && u < len(cols); u++ {
-			c := anyColOwedColour(owed)
-			cols[u] = uint8(c)
-		}
+		cols := pick(units)
 		s.g.winCol = cols[0]
 		for u := 1; u < len(cols); u++ {
 			s.g.rsv[u] = cols[u]
@@ -1214,4 +1307,16 @@ func (s *State) prefixAnyProbe(k *prep, p uint8) uint16 {
 		return availNoActScript
 	}
 	return 0
+}
+
+// anyColOwedRun reports the any-colour extra's second answer is live
+// (genState.rsv[3], set around deferGapSearch's second run and the replay of
+// the line it finds).
+func (s *State) anyColOwedRun() bool { return s.g.rsv[3] != 0 }
+
+func (s *State) setAnyColOwedRun(on bool) {
+	s.g.rsv[3] = 0
+	if on {
+		s.g.rsv[3] = 1
+	}
 }
