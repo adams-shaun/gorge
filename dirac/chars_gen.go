@@ -457,7 +457,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		// sets AllCreatureTypes), until a subtype-setting effect
 		all := k.t.Cards[s.cardAt(sl)].AllCreatureTypes
 		if s.fxM.has(sl) && k.gen.cpxSub {
-			all = all && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
+			all = s.copyExcAll(k, sl, all)
 		}
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub || ovrCreatSub(o) {
@@ -479,7 +479,7 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 	all := false
 	if s.fxM.has(sl) && k.gen.cpxSub {
 		m = s.copyExcSubs(k, sl, m)
-		all = s.copyExcAll(k, sl) // a copy's changeling: every creature type, until a later set
+		all = s.copyExcAll(k, sl, false) // a copy's changeling: every creature type, until a later set
 	}
 	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 		if o.HasSub {
@@ -548,15 +548,18 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 	} else {
 		cd := &k.t.Cards[s.cardAt(sl)]
 		m := cd.Subtypes
-		copyAll := s.fxM.has(sl) && k.gen.cpxSub && s.copyExcAll(k, sl)
-		mAll := copyAll                          // the matchup subtypes' changeling: a copy's (a printed one is outside-only)
-		allOut := cd.AllCreatureTypes || copyAll // subOutside's: printed or copy changeling
+		copyAll := false
+		allOut := cd.AllCreatureTypes // subOutside's: printed or a copy's changeling
 		if s.fxM.has(sl) && k.gen.cpxSub {
 			// a copy's added subtype is a copiable value (layer 1): a later
-			// subtype-setting effect replaces it
+			// subtype-setting effect replaces it. The records are applied in
+			// order, so a later all-creature-types exception outranks an
+			// earlier setter and a later setter ends an inherited changeling.
 			m = s.copyExcSubs(k, sl, m)
-			allOut = allOut && !s.copyExcSetsSub(k, sl) || copyAll
+			copyAll = s.copyExcAll(k, sl, false)
+			allOut = s.copyExcAll(k, sl, cd.AllCreatureTypes)
 		}
+		mAll := copyAll // the matchup subtypes' changeling: a copy's (a printed one is outside-only)
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
 			if o.HasSub {
 				m = m.And(o.KeepSub).Or(o.SetSub)

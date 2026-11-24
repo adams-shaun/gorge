@@ -180,22 +180,30 @@ func ovrCopySetsSub(o *kop.Override) bool { return o.HasSub || o.RemoveCreatureS
 // exception is ignored, so the token keeps only the copied creature's types.
 var DebugCopyChangelingOff bool
 
-// copyExcAll reports whether slot sl's copy exceptions give it changeling
-// (Dominion Infiltration's "except it has changeling", CR 707.9b): every
-// creature type, a copiable value read where a printed changeling's
+// copyExcAll reports whether slot sl's copy exceptions leave it with every
+// creature type (Dominion Infiltration's "except it has changeling", CR
+// 707.9b): base (the printed changeling mark, or false) through the records
+// in pool order (CR 707.9b applies them in order). A subtype-line
+// replacement (HasSub) or a SetCreatureTypes exception ends the mark, and a
+// later all-creature-types exception restores it, so a later setter outranks
+// an inherited changeling. A copiable value read where a printed changeling's
 // kop.CardDef.AllCreatureTypes is (the layer-4 CDA seed, CR 613.3).
 //
 //go:noinline
-func (s *State) copyExcAll(k *prep, sl Slot) bool {
-	if DebugCopyChangelingOff {
-		return false
-	}
+func (s *State) copyExcAll(k *prep, sl Slot, base bool) bool {
+	all := base
 	for i := 0; i < int(s.g.nfx); i++ {
-		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc && k.t.Overrides[r.r.idx-1].AllCreatureTypes {
-			return true
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+			o := &k.t.Overrides[r.r.idx-1]
+			if ovrCopySetsSub(o) {
+				all = false
+			}
+			if o.AllCreatureTypes && !DebugCopyChangelingOff {
+				all = true
+			}
 		}
 	}
-	return false
+	return all
 }
 
 // copyExcCol is base (the card's colours) through slot sl's colour copy
