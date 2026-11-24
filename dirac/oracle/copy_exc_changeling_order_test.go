@@ -28,14 +28,14 @@ func TestCopyExcChangelingOrderDiverges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Pool != "custom" || r.Start == nil {
-		t.Fatalf("precondition: pool %q start %v, want the custom table and its scripted start", r.Pool, r.Start != nil)
+	if r.Pool != "copyexc-changeling" || r.Start == nil {
+		t.Fatalf("precondition: pool %q start %v, want the recording's own table and its scripted start", r.Pool, r.Start != nil)
 	}
 	if r.Divergence == nil {
 		t.Fatal("precondition: the recording carries no divergence")
 	}
 	reg := synthReg(t)
-	set := globSet(t, r.Pool, r)
+	set := printedDelveSet(t, r.Cards)
 	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
