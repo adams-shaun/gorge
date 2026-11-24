@@ -7,25 +7,20 @@ import (
 )
 
 // grantTapSacScen: p0 controls Lotus Ring attached to a creature (tapped or
-// summoning-sick as asked) and nothing else. The table's granted ability's
-// cost is changed to the upstream "{T}, Sacrifice this creature" shape: the
-// corpus card still carries the sacrifice-only script until the fetch lands,
-// so the surgery stands in for it and the granted {T}, Sacrifice path
+// summoning-sick as asked) and nothing else. Its granted ability is upstream's
+// "{T}, Sacrifice this creature" shape, so the granted {T}, Sacrifice path
 // (mana_grantcost.go tapSacBranch) runs on a real table.
 func grantTapSacScen(t *testing.T, tapped, sick bool) (sc *scen, ring, crt Slot, crtObj Obj) {
 	t.Helper()
 	tbl, id := grantRingTable(t)
 	cd := &tbl.Cards[id["Lotus Ring"]]
-	fixed := false
+	found := false
 	for j := range cd.Abilities {
 		a := &cd.Abilities[j]
-		if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 && a.Cost.Flags == kop.CostSacSelf {
-			a.Cost.Flags = kop.CostTap | kop.CostSacSelf
-			fixed = true
-		}
+		found = found || a.Kind == kop.AbMana && a.AFlags&kop.AfLatent != 0 && a.Cost.Flags == kop.CostTap|kop.CostSacSelf
 	}
-	if !fixed {
-		t.Fatal("the table's Lotus Ring carries no granted sacrifice-only mana ability")
+	if !found {
+		t.Fatal("the table's Lotus Ring carries no granted {T}, Sacrifice mana ability")
 	}
 	sc = newScenTableLib(t, tbl, id["Swamp"], Config{NoElide: true})
 	ring = sc.slot(sc.perm(id["Lotus Ring"], 0))
