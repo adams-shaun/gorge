@@ -447,7 +447,16 @@ func cumulativeKindAlias(kind string) string {
 // effMustBlockChoicePool, ResumeKind "mustblock", Kind "object"), the
 // defending player's creature pick the kernel poses as its ChooseCard
 // (dirac/kgen/lower_mustblock.go).
+//
+// RepeatOptionalForEachPlayer$'s offer to the repeated player (gorge
+// repeatEachElectionDecision, ResumeKind "repeat_each_optional"; Player is the
+// subject, Obj 0) maps 1:1 onto the explicit named-seat kinds yes_seat /
+// no_seat (dirac's ChGenOptInSeat): the fall-through packs them over
+// RefNone/RefNone/0, which is canon.OptInSeatCanon.
 func chooseKindAlias(d *decision.Decision, o *decision.Option) string {
+	if d.ResumeKind == "repeat_each_optional" && (o.Kind == "yes" || o.Kind == "no") {
+		return o.Kind + "_seat"
+	}
 	if d.ResumeKind == "mustblock" && o.Kind == "object" {
 		return "card"
 	}
