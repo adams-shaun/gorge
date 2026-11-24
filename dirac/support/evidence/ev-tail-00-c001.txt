@@ -51,6 +51,7 @@ Charisma
 Chief of the Scale
 Chimney Goyf
 Chronomaton
+Cinder Marsh
 Circle of Protection: Black
 Coal Stoker
 Coastline Marauders
@@ -294,6 +295,7 @@ Requiem Angel
 Restoration Gearsmith
 Retreat to Emeria
 Ridge Rannet
+Riftmarked Knight
 Righteous Avengers
 Rishadan Footpad
 Rot Farm Skeleton
@@ -316,6 +318,7 @@ Scrapbasket
 Scryb Ranger
 Sea God's Scorn
 Search for Tomorrow
+Searing Spear Askari
 Seismic Spike
 Serpent Assassin
 Serpent Generator

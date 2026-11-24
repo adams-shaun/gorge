@@ -357,6 +357,7 @@ Sheoldred
 Shepherd of the Lost
 Shinen of Fear's Chill
 Shore Keeper
+Sidar Jabari
 Simic Keyrune
 Simplify
 Skitter of Lizards
@@ -449,6 +450,7 @@ Way of the Thief
 Weight of the Underworld
 Welder Automaton
 Well-Laid Plans
+Werewolf Pack Leader
 Whack
 Whispering Wizard
 Wildfire

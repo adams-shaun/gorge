@@ -74,6 +74,7 @@ Clone Legion
 Cloud Spirit
 Cloudshredder Sliver
 Cloudskate
+Coercive Portal
 Consulate Crackdown
 Copper Gnomes
 Count Nefaria
@@ -228,6 +229,7 @@ Mardu Runemark
 Martyr's Soul
 Mass Manipulation
 Massive Raid
+Master of Dark Rites
 Matoc, Lavamancer
 Medusa, Inhuman Queen
 Memory Lapse

@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Saheeli, Filigree Master	cc0c1d4dd3687ae3	13	3/3		0/1	ix:resp
 Archon of Valor's Reach	406955a07df47e55	10	0/0		0/0	
+Barret, Avalanche Leader	49af98f47d25e75a	8	2/2		0/1	ix:resp
 Contaminated Ground	813d1cdca2882484	22	1/1		2/2	
 Conversion	a42a844cb2bb5fe2	83	1/1		1/1	
 Cryptoplasm	d14063be6296c677	29	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
@@ -9,9 +10,11 @@ Intrepid Outlander	d52569a23afcf20e	50	1/1		1/1
 Jungle Weaver	52dc71143d0a0c43	3	1/1		1/1	
 Lurking Arynx	ed64482f5f63363f	8	1/1		1/1	
 Manabarbs	e80beafdf392e990	7	1/1		1/1	
+Marhault Elsdragon	08b328d2ba02b9f0	6	1/1		1/1	
 Nissa's Chosen	9b3b58514151f257	10	0/0		0/0	
 Ringskipper	ffd3b94828592736	30	1/1		1/1	
 Shrine of Boundless Growth	822d053a7557c6f3	6	3/3		0/1	ix:resp
 Skeleton Ship	063d8c5380d7865b	13	2/2		1/1	
 Songs of the Damned	353fc655e2c6ab05	20	0/0		2/2	
+Soultether Golem	cf4b1c47b25fae3c	39	3/3		1/1	
 Spring Cleaning	218606804d21f2eb	11	0/0		2/2	

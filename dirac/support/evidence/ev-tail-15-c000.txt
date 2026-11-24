@@ -26,6 +26,7 @@ Aven Eternal
 Axgard Artisan
 Azor's Elocutors
 Bamboo Grove Archer
+Bannerhide Krushok
 Basri's Aegis
 Battle Frenzy
 Bayou Dragonfly
@@ -315,6 +316,7 @@ Pledge of Unity
 Portcullis Vine
 Poxwalkers
 Primal Bellow
+Primo, the Unbounded
 Psychic Impetus
 Pulsating Illusion
 Putrid Cyclops

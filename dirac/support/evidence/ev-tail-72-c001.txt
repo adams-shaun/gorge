@@ -104,6 +104,7 @@ Djeru's Renunciation
 Dragonspark Reactor
 Drake Familiar
 Drake Umbra
+Dreamstealer
 Dromar's Cavern
 Drown in Shapelessness
 Drowned
@@ -275,6 +276,7 @@ Ore Gorger
 Overwhelming Instinct
 Overwhelming Victory
 Pact of Negation
+Palace Guard
 Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
@@ -473,3 +475,4 @@ Woodwraith Corrupter
 Yasova Dragonclaw
 Yotian Tactician
 Young Blue Dragon
+Zaffai, Thunder Conductor

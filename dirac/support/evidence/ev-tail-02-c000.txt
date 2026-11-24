@@ -40,6 +40,7 @@ Bomber Corps
 Borderland Behemoth
 Borderland Marauder
 Brainsurge
+Breezekeeper
 Bringer of the White Dawn
 Bristling Boar
 Burning Palm Efreet
@@ -308,6 +309,7 @@ Roterothopter
 Rumbling Sentry
 Sabertooth Mauler
 Sabretooth Tiger
+Sandbar Crocodile
 Saprazzan Legate
 Sarkhan Vol
 Savannah Sage
@@ -319,6 +321,7 @@ Scout the Borders
 Screeching Phoenix
 Security Blockade
 Selesnya Keyrune
+Shadow Rider
 Shatter Assumptions
 Shatter the Source
 Showstopper

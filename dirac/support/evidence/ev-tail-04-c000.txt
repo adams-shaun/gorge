@@ -3,6 +3,7 @@ A-Orcish Bowmasters
 A-Speakeasy Server
 A-Stitched Assistant
 A-Sunbathing Rootwalla
+Absorb Identity
 Advanced Stitchwing
 Aetherflame Wall
 Ajani, Inspiring Leader
@@ -21,6 +22,7 @@ Arbor Armament
 Arena Rector
 Arni Slays the Troll
 Ashiok's Adept
+Asymmetry Sage
 Atlantean Skirmisher
 Attended Socialite
 Atzocan Seer
@@ -380,6 +382,7 @@ Sentinel's Eyes
 Seraph of Dawn
 Servo Exhibition
 Settlement Blacksmith
+Sewer Shambler
 Shadow Prophecy
 Shadow, Mysterious Assassin
 Shell Shield
@@ -451,6 +454,7 @@ Thieving Amalgam
 Think Tank
 Third Path Iconoclast
 Thran Foundry
+Thrashing Mossdog
 Thundercloud Elemental
 Thunderheads
 Ticking Gnomes

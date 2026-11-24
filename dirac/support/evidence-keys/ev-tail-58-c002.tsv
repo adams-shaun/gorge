@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Hobbling Zombie	4800edc2ffd4f813	36	1/1		1/1	
+A.I.M. Bot	98685fd9935a3fff	6	0/0		0/0	
 Abbey Gargoyles	ff9a1c9be5a7c99c	22	0/0		0/0	
 Abolish	0ef68ef586d04323	10	0/0		1/2	ix:resp
 Accelerate	7bc701ebe48e3957	10	0/0		2/2	
@@ -8,6 +9,7 @@ Ajani, the Greathearted	241bcd195449ded9	4	2/2		0/1	ix:resp
 Alesha's Vanguard	808839e52b283074	35	0/0		2/2	
 Amok	151d4554d87c6cd7	63	1/1		1/1	
 Apocalypse Hydra	541e729ce6218ca3	7	1/1		1/1	
+Backfire	ee2b786df27436cc	4	1/1		1/2	ix:resp
 Basri's Solidarity	81cbaef74afd2017	24	0/0		2/2	
 Bonded Construct	c9212a8c02945452	4	0/0		0/0	
 Bonds of Quicksilver	9206a2dd79f2faeb	4	0/0		1/2	ix:resp
@@ -18,6 +20,7 @@ Capashen Unicorn	bc69ebffbc1b7e92	21	1/1		0/1	ix:resp
 Casting of Bones	b836e692a1328e3a	22	1/1		2/2	
 Cat Warriors	52849bf45a5dedae	4	0/0		0/0	
 Charging Bandits	544dc9ff0b53af5f	4	1/1		0/1	ix:resp
+Contagious Vorrac	e3d1cb65dd03bff9	4	1/1		0/1	ix:resp
 Dapper Shieldmate	1459b968c07bef9b	35	0/0		0/0	
 Daru Warchief	bc067955c523f698	29	0/0		0/0	
 Death Ward	91520594f5516eae	40	0/0		2/2	
@@ -43,6 +46,7 @@ Ghirapur Aether Grid	c18a3a0ab0fac84c	42	1/1		1/1
 Giant Dustwasp	1e08862415a3a7a5	14	0/0		2/2	
 Glint-Nest Crane	42f103136a1a7d6c	44	1/1		1/1	
 Graf Reaver	b887544b7b028813	53	3/3		1/1	
+Grave Strength	acddab0cad9ad5ab	6	0/0		1/2	ix:resp
 Gravecrawler	edfd0e9268aa2149	8	0/0		0/0	
 Gravedig	b1f7a4129c7aae24	51	0/0		2/2	
 Grotag Night-Runner	54c21ca680721457	4	1/1		0/1	ix:resp
@@ -67,12 +71,15 @@ Lawless Broker	189082852415efa1	4	1/1		0/1	ix:resp
 Lazotep Plating	9ee952db7188311d	8	0/0		1/2	ix:resp
 Leopard-Spotted Jiao	dbb7f273d91e0be2	45	0/0		0/0	
 Mandible Justiciar	7dd1b93769f36ada	52	1/1		1/1	
+Marionette Master	749dc4439a0decaa	4	2/2		1/1	
 Maul of the Skyclaves	66af3f9eb5e99934	38	2/2		1/1	
 Mesmeric Fiend	cebad4ce12fe0867	8	2/2		0/1	ix:resp
 Minion's Return	6e8e27c5210519b0	4	1/1		2/2	
 Mishra's Research Desk	0ab94ba060244533	66	2/2		1/1	
+Moldervine Cloak	3cd8ababd95030fe	4	0/0		1/2	ix:resp
 Molting Snakeskin	83a04ad26c17786a	50	0/0		2/2	
 Mutagenic Growth	a031ee2441ff5bb3	4	0/0		1/2	ix:resp
+Nemesis Trap	b75f0b1f962d2d77	18	0/0		2/2	
 Nether Void	a96005569483347a	25	1/1		1/1	
 Nightshade Stinger	830a957a5f960de1	4	0/0		0/0	
 No Mercy	60dd6a3ea25afef0	46	1/1		1/1	
@@ -83,6 +90,7 @@ Pelt Collector	beaae49fdab3a544	18	2/2		1/1
 Prognostic Sphinx	cf53ec6be242e8c8	8	2/2		1/1	
 Rampaging Classmate	1b0ef6b3f263feb0	42	1/1		0/1	ix:resp
 Rank Officer	41cf0bdfa6e2937b	20	2/2		1/1	
+Rat King, Pale Piper	74b8c713c68f31a6	6	2/2		1/1	
 Rebuke	a41bfcd1171fd541	30	0/0		1/2	ix:resp
 Reito Sentinel	6b43c2b303373cd8	65	2/2		1/1	
 Rise of the Ants	48f3d386ccd9cdcd	4	0/0		3/4	ix:resp
@@ -109,6 +117,7 @@ Stag Beetle	89bef8a940c9fc2c	4	0/0		0/0
 Stand Together	38eb655d7f939356	4	0/0		1/2	ix:resp
 Summit Prowler	3094f3fc40efc3e6	4	0/0		0/0	
 Suspended Sentence	426bf9803f194510	4	0/0		2/4	cast/alt:none,ix:resp
+Tainted Well	4d71858052b11625	10	1/1		1/2	ix:resp
 Telepathy	01d057f40c681eee	4	0/0		0/0	
 Temple Thief	00a2ee1800d8bb99	58	0/0		0/0	
 Terminal Moraine	a321b470d0c50524	32	2/2		1/1	
@@ -127,8 +136,10 @@ Urza's Armor	d01df7b7bb827a16	6	0/0		0/0
 Visions of Brutality	fd366ab07fe653d6	4	1/1		2/2	
 Voltaic Construct	29a2dbe24f40e340	73	1/1		1/1	
 Vryn Wingmare	7b186fefb412d6ee	33	0/0		0/0	
+Wall of Kelp	c55bd5f4244ad426	4	1/1		0/1	ix:resp
 Welkin Guide	0e24a57ea0f97a59	36	1/1		1/1	
 Whipcorder	8d69fdc7e598d90e	9	1/1		2/3	cast/alt:morphed
 Wildfire Awakener	359cf26caa0867b5	6	1/1		0/1	ix:resp
+Woebringer Demon	13cd7930d6279274	6	1/1		0/1	ix:resp
 Woodland Patrol	26f254a930e3f592	38	0/0		0/0	
 Yisan, the Wanderer Bard	ad4f604767102326	52	1/1		1/1	

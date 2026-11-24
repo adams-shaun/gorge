@@ -1,4 +1,5 @@
 A-Baleful Beholder
+A-Civil Servant
 A-Cloister Gargoyle
 A-Pseudodragon Familiar
 A-Pyre-Sledge Arsonist
@@ -26,6 +27,7 @@ Ashiok's Forerunner
 Attrition
 Auriok Glaivemaster
 Aysen Bureaucrats
+Baeloth Barrityl, Entertainer
 Balefire Dragon
 Bandage
 Battlegrace Angel
@@ -331,6 +333,7 @@ Shorecomber Crab
 Shortcut Seeker
 Showdown of the Skalds
 Shroofus Sproutsire
+Sidar Kondo of Jamuraa
 Siegehorn Ceratops
 Sightless Ghoul
 Silk Net
@@ -423,6 +426,7 @@ Vodalian Serpent
 Volley of Boulders
 Voyage's End
 Wall of Tears
+Waning Wurm
 Warmth
 Waterfall Aerialist
 Whirler Rogue
