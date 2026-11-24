@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -74,27 +76,90 @@ func objectPathMayShuffle(h Host, c *Ctx, sa *cards.SA, targets []state.Target) 
 	return false
 }
 
-// objectPathShuffleOwners shuffles the library of every distinct owner among
-// an object-target ChangeZone's object referents (its targets / Defined$
-// objects), each once, in referent order (deterministic; never a map range).
+// objectPathShuffleOwners shuffles every library an object-target
+// ChangeZone's explicit Shuffle$ True names, each once, in deterministic
+// referent order (never a map range). Three sources name one: the owners of
+// the object referents (its targets / Defined$ objects), any player
+// referents, and the library the effect names independently of the chosen
+// objects -- the parent link's players for a
+// TargetsWithDefinedController$ ParentTarget, or the controller when every
+// ValidTgts$ alternative is scoped to them ("your library").
+//
 // It runs whether or not the object actually moved: CR 701.24c shuffles the
 // library "even if none of those objects are in the zone they're expected to
-// be in". A player referent and an object that has left the game are
-// skipped; with no object referent at all nothing is shuffled.
-func objectPathShuffleOwners(h Host, targets []state.Target) {
+// be in", and CR 701.24d "even if there are no objects in that set". A
+// player referent is shuffled; an object that has left the game is skipped.
+// The "your library" fallback applies only when the targets named no library
+// of their own: a YouCtrl filter can choose a permanent another player owns
+// (a stolen creature), and moving it shuffles the owner's library, not the
+// controller's too. With no object referent and no independently named
+// library nothing is shuffled: the owner-defined "shuffle those cards into
+// their owners' libraries" family (Turn the Earth, Those Old Scientists)
+// names no library when it chose no cards.
+func objectPathShuffleOwners(h Host, c *Ctx, sa *cards.SA, targets []state.Target) {
 	g := h.Game()
-	seen := make(map[state.PlayerID]bool, len(targets))
+	seen := make(map[state.PlayerID]bool, len(targets)+1)
+	shuffle := func(p state.PlayerID) {
+		if seen[p] {
+			return
+		}
+		seen[p] = true
+		shuffleLibraryOrder(h, p)
+	}
+	named := false
 	for _, t := range targets {
 		if t.IsPlayer {
+			shuffle(t.Player)
+			named = true
 			continue
 		}
-		o := g.Obj(t.Obj)
-		if o == nil || seen[o.Owner] {
-			continue
+		if o := g.Obj(t.Obj); o != nil {
+			shuffle(o.Owner)
+			named = true
 		}
-		seen[o.Owner] = true
-		shuffleLibraryOrder(h, o.Owner)
 	}
+	if sa == nil {
+		return
+	}
+	tp := TargetsOf(sa)
+	if DefinedControllerParentReferent(tp.DefinedController) {
+		for _, t := range controllersOf(g, parentLinkTargets(c)) {
+			shuffle(t.Player)
+		}
+		return
+	}
+	if !named && namesYourLibrary(tp.ValidTgts) {
+		shuffle(c.Controller)
+	}
+}
+
+// namesYourLibrary reports whether every alternative of a compiled ValidTgts$
+// filter scopes its objects to the resolving controller through a YouCtrl or
+// YouOwn qualifier. An unscoped or otherwise scoped alternative answers
+// false, so the owner-defined "those cards" filters (Turn the Earth's Card)
+// never gain a controller shuffle.
+func namesYourLibrary(spec string) bool {
+	if spec == "" {
+		return false
+	}
+	found := false
+	for alt := range filterAlternatives(spec) {
+		_, props, ok := strings.Cut(strings.TrimSpace(alt), ".")
+		if !ok {
+			return false
+		}
+		mine := false
+		for prop := range strings.SplitSeq(props, "+") {
+			if prop == "YouCtrl" || prop == "YouOwn" {
+				mine = true
+			}
+		}
+		if !mine {
+			return false
+		}
+		found = true
+	}
+	return found
 }
 
 // searchShuffleTail is a hidden-library search's shuffle-and-place tail. The
