@@ -65,6 +65,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Devour":         "TestGorgerWurmDevourAsksAndCountsTheSacrificed",
 		"kw:Gravestorm":     "TestOminousHarvestGravestormCopiesPerDeath",
 		"kw:Toxic":          "TestToxicIxhelAddsPoisonOnCombatDamage",
+		"kw:Poisonous":      "TestVirulentSliverGrantsPoisonous",
 		"kw:Infect":         "TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage",
 		"kw:Wither":         "TestWitherVillagePillagersETBDamageAllDealsCounters",
 		"kw:Battle cry":     "TestBattleCryPumpsOtherAttackingCreatures",
