@@ -3,18 +3,36 @@ package dirac
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+// castLedgerPool is the test's pool table: the named kernel pool (a set or a
+// scenario pool such as adventurecard or omen) with the Instant,Sorcery
+// filter these tests match and an ExThisTurnCastSpec expression that turns
+// the cast ring on. Both are test fixtures; the pool itself is the table
+// kgen built.
+func castLedgerPool(t *testing.T, pool string) (cardset.Set, *kop.Table, kop.FilterID) {
+	t.Helper()
+	set := cardsettest.Set(t, pool)
+	tbl, err := set.Pool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tbl.Exprs = append(append([]kop.Expr(nil), tbl.Exprs...), kop.Expr{Kind: kop.ExThisTurnCastSpec})
+	tbl.Filters = append(append([]kop.Filter(nil), tbl.Filters...), kop.Filter{Types: kop.TInstant | kop.TSorcery})
+	return set, tbl, kop.FilterID(len(tbl.Filters) - 1)
+}
 
 // TestCastLedgerReadsTheCastFace: a push of an Adventure (CR 715.3b) or Omen
 // (CR 720.3) half is counted as that half by the type-filtered ledger readers
 // after the card has left the stack and shows its normal face again (CR
 // 715.4, 720.4): gorge castsThisTurnMatching (ledgerCastFace), Forge's
-// cast-time ThisTurnCast copies, XMage's SpellsCastWatcher. Aquatic
-// Alchemist's ActivatorThisTurnCast$ EQ1 over Instant,Sorcery
-// (castPushesMatching) must see Bubble Up, resolved into exile, as the
-// turn's first sorcery; so must a Count$ThisTurnCast_<spec> head.
+// cast-time ThisTurnCast copies, XMage's SpellsCastWatcher. The
+// ActivatorThisTurnCast$ EQ1 over Instant,Sorcery reader (castPushesMatching)
+// must see the resolved half as the turn's first instant or sorcery; so must
+// a Count$ThisTurnCast_<spec> head.
 func TestCastLedgerReadsTheCastFace(t *testing.T) {
 	for _, tc := range []struct {
 		pool, front string
@@ -22,17 +40,11 @@ func TestCastLedgerReadsTheCastFace(t *testing.T) {
 		bit         uint8
 		rest        kop.Zone
 	}{
-		{"std-woe", "Aquatic Alchemist", kop.FaceAdventure, castAdventurePush, kop.ZoneExile},
-		{"std-tdm", "Bloomvine Regent", kop.FaceOmen, castOmenPush, kop.ZoneLibrary},
+		{"adventurecard", "Bramble Familiar", kop.FaceAdventure, castAdventurePush, kop.ZoneExile},
+		{"omen", "Marang River Regent", kop.FaceOmen, castOmenPush, kop.ZoneLibrary},
 	} {
 		t.Run(tc.front, func(t *testing.T) {
-			set := cardsettest.Synth(t, tc.pool)
-			tbl, err := set.Pool()
-			if err != nil {
-				t.Fatal(err)
-			}
-			tbl.Filters = append(append([]kop.Filter(nil), tbl.Filters...), kop.Filter{Types: kop.TInstant | kop.TSorcery})
-			instOrSorc := kop.FilterID(len(tbl.Filters) - 1)
+			set, tbl, instOrSorc := castLedgerPool(t, tc.pool)
 			i, ok := set.Lookup(tc.front)
 			if !ok {
 				t.Fatalf("%s not in %s", tc.front, tc.pool)
@@ -78,21 +90,15 @@ func TestCastLedgerReadsTheCastFace(t *testing.T) {
 // ledgerCastFace reads it by the face the object shows, not by its zone; the
 // creature recast reads as the front (CR 715.4) and does not count.
 func TestCastLedgerReadsTheCastFaceOnRecast(t *testing.T) {
-	set := cardsettest.Synth(t, "std-woe")
-	tbl, err := set.Pool()
-	if err != nil {
-		t.Fatal(err)
-	}
-	tbl.Filters = append(append([]kop.Filter(nil), tbl.Filters...), kop.Filter{Types: kop.TInstant | kop.TSorcery})
-	instOrSorc := kop.FilterID(len(tbl.Filters) - 1)
-	i, ok := set.Lookup("Aquatic Alchemist")
+	set, tbl, instOrSorc := castLedgerPool(t, "adventurecard")
+	i, ok := set.Lookup("Bramble Familiar")
 	if !ok {
-		t.Fatal("Aquatic Alchemist not in std-woe")
+		t.Fatal("Bramble Familiar not in adventurecard")
 	}
 	front := CardID(set.PoolID(i))
 	sc := newScenTable(t, tbl, Config{})
 	if !sc.k.gen.castRingOn {
-		t.Fatal("the std-woe table does not turn the cast ring on")
+		t.Fatal("the adventurecard table does not turn the cast ring on")
 	}
 	face := sc.k.t.Cards[front].Faces[1]
 	o := sc.hand(face, 0)
