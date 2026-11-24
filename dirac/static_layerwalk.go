@@ -1098,9 +1098,9 @@ func (s *State) ovStaticOn(k *prep, sl Slot) bool {
 }
 
 // walkAllSeed is the layer-4 changeling seed (CR 613.3): a printed changeling
-// (printed, not face down) even through a copy exception that replaced the
-// subtypes (the CDA runs after layer 1), or a copy exception's own changeling (exc: the exceptions apply).
+// (printed, not face down) unless a copy exception replaced the subtypes, or a
+// copy exception's own changeling (exc: the exceptions apply).
 func (s *State) walkAllSeed(k *prep, sl Slot, printed, exc bool) bool {
 	cpx := s.fxM.has(sl) && k.gen.cpxSub
-	return printed || exc && cpx && s.copyExcAll(k, sl)
+	return printed && !(cpx && s.copyExcSetsSub(k, sl)) || exc && cpx && s.copyExcAll(k, sl)
 }

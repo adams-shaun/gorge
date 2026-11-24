@@ -217,7 +217,7 @@ func (s *State) lkiSubs(k *prep, sl Slot) kop.SubMask {
 		// mark, not a printed CDA (Dominion Infiltration's token); the view
 		// line is unchanged, so FeatViewTypes does not report it.
 		subs = s.copyExcSubs(k, sl, subs)
-		all = all || s.copyExcAll(k, sl)
+		all = all && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
 	}
 	if all && k.gen != nil {
 		subs = subs.Or(k.gen.creatSub)

@@ -115,6 +115,7 @@ func copyExceptionsOf(f *cards.Face, colours ColorMask, s copyExceptSpec) events
 		}
 	}
 	x.NoManaCost = s.noManaCost
+	x.CreatureTypesSet = s.removeCreatureTypes
 	x.Keywords = append([]string(nil), s.keywords...)
 	x.SVars = append([][2]string(nil), s.svars...)
 	x.Triggers = append([]string(nil), s.triggers...)

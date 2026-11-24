@@ -64,7 +64,7 @@ func (s *State) ProjectChars(p *Projection) {
 			c.Types = s.phasedTypes(k, sl, c.Types)
 			if s.fxM.has(sl) {
 				c.Subs = s.copyExcSubs(k, sl, c.Subs)
-				c.AllSub = c.AllSub || s.copyExcAll(k, sl)
+				c.AllSub = c.AllSub && !s.copyExcSetsSub(k, sl) || s.copyExcAll(k, sl)
 				c.Colors = s.copyExcCol(k, sl, c.Colors) &^ kop.ColC
 				c.Kw |= s.copyExcKw(k, sl)
 			}

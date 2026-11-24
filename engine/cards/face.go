@@ -530,17 +530,20 @@ func (f *Face) deriveColourIdentity() uint8 {
 // must not set the intrinsic flag).
 func cdaAllCreatureTypes(sts []Static) bool {
 	for _, s := range sts {
-		if s.Mode != "Continuous" || !paramTrue(s, PKCharacteristicDefining) {
-			continue
-		}
-		if !paramTrue(s, PKAddAllCreatureTypes) {
-			continue
-		}
-		if affSelf(s) {
+		if cdaAllCreatureTypesStatic(s) {
 			return true
 		}
 	}
 	return false
+}
+
+// cdaAllCreatureTypesStatic reports whether ONE static is the face's own
+// characteristic-defining AddAllCreatureTypes$ True ability (the single-static
+// half of cdaAllCreatureTypes, also used to drop it from a copy basis under
+// CR 707.9d).
+func cdaAllCreatureTypesStatic(s Static) bool {
+	return s.Mode == "Continuous" && paramTrue(s, PKCharacteristicDefining) &&
+		paramTrue(s, PKAddAllCreatureTypes) && affSelf(s)
 }
 
 // paramTrue reads key k as the True flag the printed-CDAs gates share

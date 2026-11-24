@@ -20,6 +20,12 @@ type CopyExceptions struct {
 	// Types, when TypesSet, is the copy's whole type line.
 	Types    []string `json:"types,omitempty"`
 	TypesSet bool     `json:"types_set,omitempty"`
+	// CreatureTypesSet marks an exception that provides the copy's creature
+	// types (SetCreatureTypes$ or RemoveCreatureTypes$ True). CR 707.9d: the
+	// copied object's characteristic-defining ability that defines creature
+	// types is then not copied. The "in addition to its other types" form
+	// never sets this: AddTypes$ does not remove creature types.
+	CreatureTypesSet bool `json:"creature_types_set,omitempty"`
 	// Colors, when ColorsSet, is the copy's colour set (cards.Colour* bits;
 	// 0 is colourless).
 	Colors    uint8 `json:"colors,omitempty"`
@@ -52,7 +58,7 @@ type CopyExceptions struct {
 
 // Empty reports whether x carries no exception.
 func (x CopyExceptions) Empty() bool {
-	return !x.TypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost &&
+	return !x.TypesSet && !x.CreatureTypesSet && !x.ColorsSet && !x.PTSet && !x.NoManaCost &&
 		len(x.Keywords) == 0 && len(x.SVars) == 0 && len(x.Triggers) == 0 &&
 		len(x.Abilities) == 0
 }
@@ -143,6 +149,13 @@ func foldCopyExcept(g *state.Game, e *Event) {
 	f.ForgetCompiled()
 	if x.TypesSet {
 		f.Types = append([]string(nil), x.Types...)
+	}
+	if x.CreatureTypesSet {
+		// CR 707.9d: an exception that provides the copy's creature types does
+		// not copy a characteristic-defining ability of the copied object that
+		// defines them (God-Pharaoh's Gift copying a changeling is only a
+		// Zombie). A later AddKeywords$ grant still adds a keyword of its own.
+		f.DropCopyAllCreatureTypesCDA()
 	}
 	if x.ColorsSet {
 		f.SetCopyColours(x.Colors)
