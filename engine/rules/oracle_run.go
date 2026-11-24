@@ -63,6 +63,10 @@ type oracleScenario struct {
 	SetupAnswers []oracleAnswer `json:"setup_answers,omitempty"`
 	Steps        []oracleStep   `json:"steps"`
 	Expect       []oracleExpect `json:"expect"`
+	// CoinFlips are the live game's coin-flip results a lowered scenario
+	// replays (oracleCoinFlip), in flip order: the runner forces each random
+	// flip to the next one instead of flipping from its own seed.
+	CoinFlips []oracleCoinFlip `json:"coin_flips,omitempty"`
 	// xmageFixture marks a generated compliance scenario
 	// (RunOracleScenarioJSON). Setup permanents are present before turn 1 in
 	// both engines (build drops the triggers their placement queued); the
@@ -763,6 +767,7 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	built.Spare = r.spare
 	e := NewStartingPlayerChoice(built)
 	r.e = e
+	e.CoinFlipHook = r.forcedFlips(sc.CoinFlips)
 	if e.G.StartingPlayer != 0 {
 		return harnessf("seat 0 does not start (seed %d)", cfg.Seed)
 	}
@@ -1911,6 +1916,9 @@ func oraclePickActivateByIndex(r *oracleRun, st oracleStep, seat state.PlayerID,
 	// Ability anchor is the zero value, aliasing index 0 -- is excluded from
 	// the non-mana accept below.
 	manaLabel := r.e.manaActivateLabel(o.Face().Name)
+	if i, ok := oracleGrantedActivateByLabel(st, id, d); ok {
+		return i, nil
+	}
 	pa, ok := o.PileAbilityAt(k)
 	if !ok || pa.SA == nil {
 		return -1, notOffered
@@ -1939,6 +1947,31 @@ func oraclePickActivateByIndex(r *oracleRun, st oracleStep, seat state.PlayerID,
 		return opt.Index, nil
 	}
 	return -1, notOffered
+}
+
+// oracleGrantedActivateByLabel selects a granted, gained or keyword-derived
+// activated ability (CR 613.1f, 602.1) by the step's offered label. Such an
+// option leaves decision.Option.Ability at the zero value, so the lowering
+// writes ability_index 0 beside the label; resolving that index against the
+// printed pile would miss a bare bearer or alias its printed ability 0. A
+// step without a label, or one matching no non-printed option, falls back
+// to the index path unchanged.
+func oracleGrantedActivateByLabel(st oracleStep, id state.ObjID, d *decision.Decision) (int, bool) {
+	if st.Ability == "" {
+		return -1, false
+	}
+	for _, opt := range d.Options {
+		if opt.Obj != id || !oracleActivateKind(opt.Kind) {
+			continue
+		}
+		if opt.SVar == "" && opt.GrantSource == 0 && opt.GainedSource == 0 && opt.Keyword == "" {
+			continue
+		}
+		if oracleLabelMatches(opt.Label, st.Ability) {
+			return opt.Index, true
+		}
+	}
+	return -1, false
 }
 
 // oracleAnswerManaStage answers the second-stage KChoose (or verifies the

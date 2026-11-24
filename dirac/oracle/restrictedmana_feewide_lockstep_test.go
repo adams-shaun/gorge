@@ -45,10 +45,10 @@ func hydroChannelerDeck() []cardset.Entry {
 
 // restrictedManaFeeWideSeeds: seeds that spend both carriers' restricted fee
 // mana (Hydro-Channeler from the first, Orb by seed 7), games run to 120 turns
-// so a seat reaches a Dragon. Seeds 3 and 8 cast a Bolt only if one Hydro's
+// so a seat reaches a Dragon. Seeds 3, 8 and 11 cast a Bolt only if one Hydro's
 // {U} could pay another's {1} fee (it cannot, CR 106.6); seed 5 casts one
 // only if a summoning-sick Hydro books no census entry (CR 302.6).
-var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8}
+var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8, 11}
 
 // newRestrictedManaFeeWidePod builds the four-deck pod.
 func newRestrictedManaFeeWidePod(t *testing.T) restrictedManaPod {
