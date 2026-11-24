@@ -1,0 +1,18 @@
+{
+  "card": "Radiant Solar",
+  "class": "lockstep",
+  "why": "gorge's prefix search (potentialPrefixScript) finds no script within its 164-node budget for the {W}, Discard activation when Henge of Ramos's {2},{T} any-colour fee line (two Mountains pay the fee, CR 605.3a, 602.2b) sits beside a Mercadian Bazaar holding one storage counter, whose SubCounter<X/STORAGE> mana ability adds a counter-count branch to every node, so the ability is census_incomplete and never offered (a Bazaar with none or three counters is priced); the kernel prices it and offers it (tail-26-c001 pair 45, decision 179); matching the search's node accounting over that X branch is over 200 lines",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 0,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "radiant_solar_henge_fee_offer"
+  },
+  "evidence": [
+    "ev-tail-26-c000",
+    "ev-tail-26-c001"
+  ]
+}
