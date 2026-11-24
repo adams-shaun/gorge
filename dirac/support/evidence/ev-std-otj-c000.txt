@@ -1,25 +1,35 @@
 Abraded Bluffs
+Aloe Alchemist
+Another Round
 Archangel of Tithes
 Arid Archway
 Armored Armadillo
 Assimilation Aegis
+Bandit's Haul
+Beastbond Outcaster
 Betrayal at the Vault
 Binding Negotiation
 Blacksnag Buzzard
+Blood Hustler
 Blooming Marsh
 Boom Box
 Botanical Sanctum
+Bounding Felidar
 Bovine Intervention
 Bridled Bighorn
 Brimstone Roundup
+Bristlepack Sentry
+Bristling Backwoods
 Bristly Bill, Spine Sower
 Bruse Tarl, Roving Rancher
 Bucolic Ranch
 Calamity, Galloping Inferno
 Canyon Crab
 Caught in the Crossfire
+Caustic Bronco
 Claim Jumper
 Concealed Courtyard
+Conduit Pylons
 Congregation Gryff
 Consuming Ashes
 Corrupted Conviction
@@ -29,6 +39,7 @@ Daring Thunder-Thief
 Deadeye Duelist
 Demonic Ruckus
 Desert's Due
+Desperate Bloodseeker
 Discerning Peddler
 Djinn of Fool's Fall
 Double Down
@@ -39,11 +50,15 @@ Eriette's Lullaby
 Eroded Canyon
 Ertha Jo, Frontier Mentor
 Explosive Derailment
+Failed Fording
+Fake Your Own Death
 Ferocification
+Festering Gulch
 Final Showdown
 Fleeting Reflection
 Forest
 Forlorn Flats
+Form a Posse
 Forsaken Miner
 Fortune, Loyal Steed
 Freestrider Commando
@@ -52,11 +67,17 @@ Frontier Seeker
 Geyser Drake
 Gisa, the Hellraiser
 Gold Pan
+Gold Rush
+Goldvein Hydra
 Great Train Heist
 Hardbristle Bandit
+Harrier Strix
 Hell to Pay
 Hellspur Posse Boss
+High Noon
 Highway Robbery
+Hollow Marauder
+Holy Cow
 Insatiable Avarice
 Inspiring Vantage
 Intimidation Campaign
@@ -70,6 +91,7 @@ Jem Lightfoote, Sky Explorer
 Jolene, Plundering Pugilist
 Lassoed by the Law
 Lavaspur Boots
+Lively Dirge
 Loan Shark
 Lonely Arroyo
 Longhorn Sharpshooter
@@ -91,11 +113,13 @@ Omenport Vigilante
 One Last Job
 Ornery Tumblewagg
 Outcaster Greenblade
+Outcaster Trailblazer
 Outlaw Medic
 Outlaw Stitcher
 Outlaws' Fury
 Peerless Ropemaster
 Phantom Interference
+Pitiless Carnage
 Plains
 Plan the Heist
 Prairie Dog
@@ -115,6 +139,7 @@ Resilient Roadrunner
 Rise of the Varmints
 Rodeo Pyromancers
 Rooftop Assassin
+Rush of Dread
 Rustler Rampage
 Ruthless Lawbringer
 Sandstorm Verge
@@ -122,16 +147,19 @@ Satoru, the Infiltrator
 Scalestorm Summoner
 Scorching Shot
 Seize the Secrets
+Servant of the Stinger
 Shackle Slinger
 Shepherd of the Clouds
 Sheriff of Safe Passage
 Shifting Grift
+Shoot the Sheriff
 Silver Deputy
 Skulduggery
 Slick Sequence
 Slickshot Lockpicker
 Slickshot Show-Off
 Smuggler's Surprise
+Snakeskin Veil
 Soured Springs
 Spinewoods Paladin
 Spirebluff Canal
@@ -140,6 +168,7 @@ Stagecoach Security
 Steer Clear
 Sterling Hound
 Sterling Keykeeper
+Sterling Supplier
 Stingerback Terror
 Stoic Sphinx
 Stop Cold
@@ -148,11 +177,15 @@ Take Up the Shield
 Take the Fall
 Terror of the Peaks
 The Key to the Vault
+This Town Ain't Big Enough
+Throw from the Saddle
 Thunder Lasso
 Thunder Salvo
+Tinybones Joins Up
 Tomb Trawler
 Trained Arynx
 Trash the Town
+Treasure Dredger
 Trick Shot
 Tumbleweed Rising
 Unfortunate Accident

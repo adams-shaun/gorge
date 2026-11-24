@@ -176,6 +176,7 @@ Goro-Goro, Disciple of Ryusei
 Grasp of the Hieromancer
 Green Goblin, Nemesis
 Grindclock
+Grizzled Outcasts
 Groundskeeper
 Guardian Lions
 Gulping Scraptrap
@@ -467,6 +468,7 @@ Warmonger
 Weathered Wayfarer
 Welkin Tern
 Westgate Regent
+Whiplash Trap
 Whisper of the Dross
 Wight of Precinct Six
 Wind-Kin Raiders

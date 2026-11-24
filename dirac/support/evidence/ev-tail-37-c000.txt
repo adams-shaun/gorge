@@ -167,6 +167,7 @@ Halo Hopper
 Halvar, God of Battle
 Hand of Silumgar
 Harmonic Prodigy
+Hashaton, Scarab's Fist
 Heartbeat of Spring
 Herald of Slaanesh
 Hero of the Games
@@ -387,6 +388,7 @@ Tithebearer Giant
 Towashi Guide-Bot
 Tradewind Rider
 Travel Preparations
+Treacherous Terrain
 Trollbred Guardian
 Twilight Prophet
 Undead Butler

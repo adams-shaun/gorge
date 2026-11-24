@@ -221,6 +221,7 @@ Kraken Hatchling
 Kraum, Ludevic's Opus
 Krenko's Command
 Krovikan Fetish
+Kukemssa Serpent
 Kuldotha Ringleader
 Lae'zel's Acrobatics
 Last Kiss
@@ -379,6 +380,7 @@ The Destined Black Mage
 The Keeper of the Yellow Hat
 The Mary Janes
 Theater of Horrors
+Thelonite Monk
 Theros Charm
 Thornwatch Scarecrow
 Timber Gorge

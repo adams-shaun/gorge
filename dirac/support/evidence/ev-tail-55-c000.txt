@@ -272,6 +272,7 @@ Knight Errant
 Kolaghan Monument
 Kor Hookmaster
 Laboratory Brute
+Lambholt Elder
 Last Rites
 Lava Storm
 Legion Lieutenant
@@ -478,6 +479,7 @@ Verdigris
 Verix Bladewing
 Veteran Cavalier
 Veteran's Sidearm
+Village Ironsmith
 Vineweft
 Viridian Corrupter
 Vithian Stinger

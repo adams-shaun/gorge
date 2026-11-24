@@ -1,17 +1,24 @@
+A Realm Reborn
 Absolute Virtue
 Adelbert Steiner
 Adventurer's Inn
 Aettir and Priwen
 Ahriman
+Al Bhed Salvagers
+Ardyn, the Usurper
 Ashe, Princess of Dalmasca
 Auron's Inspiration
 Balamb Garden, SeeD Academy
+Bard's Bow
 Baron, Airship Kingdom
 Barret Wallace
 Battle Menu
 Black Mage's Rod
+Black Waltz No. 3
 Blazing Bomb
 Blitzball
+Buster Sword
+Cactuar
 Cargo Ship
 Chocobo Kick
 Circle of Power
@@ -40,37 +47,47 @@ Evil Reawakened
 Excalibur II
 Fang, Fearless l'Cie
 Fight On!
+Fire Magic
 Forest
 Freya Crescent
 Gaelicat
+Gaius van Baelsar
+Galuf's Final Act
 Garland, Knight of Cornelia
 Genji Glove
 Gigantoad
 Gohn, Town of Ruin
 Gongaga, Reactor Town
+Goobbue Gardener
 Guadosalam, Farplane Gateway
 Gysahl Greens
 Haste Magic
 Hecteyes
 Hope Estheim
 Ice Magic
+Il Mheg Pixie
 Insomnia, Crown City
 Instant Ramen
+Iron Giant
 Ishgard, the Holy See
 Island
 Item Shopkeep
 Jecht, Reluctant Guardian
+Jenova, Ancient Calamity
 Jidoor, Aristocratic Capital
 Jill, Shiva's Dominant
 Joshua, Phoenix's Dominant
+Kain, Traitorous Dragoon
 Laughing Mad
 Light of Judgment
 Lightning, Security Sergeant
 Lindblum, Industrial Regency
+Locke Cole
 Loporrit Scout
 Louisoix's Sacrifice
 Lunatic Pandora
 Machinist's Arsenal
+Magic Damper
 Magic Pot
 Magitek Infantry
 Magitek Scythe
@@ -87,24 +104,32 @@ Paladin's Arms
 Plains
 Poison the Waters
 Prishe's Wanderings
+PuPu UFO
 Qiqirn Merchant
 Queen Brahne
 Qutrub Forayer
 Rabanastre, Royal City
 Raubahn, Bull of Ala Mhigo
+Reach the Horizon
 Red Mage's Rapier
 Relm's Sketching
 Reno and Rude
 Resentful Revelation
 Retrieve the Esper
 Ride the Shoopuf
+Ring of the Lucii
 Rook Turret
+Rydia's Return
 Sabotender
 Sage's Nouliths
 Sahagin
+Samurai's Katana
 Sandworm
+Sazh's Chocobo
+Seifer Almasy
 Sephiroth's Intervention
 Sephiroth, Planet's Heir
+Shambling Cie'th
 Shantotto, Tactician Magician
 Sharlayan, Nation of Scholars
 Shinra Reinforcements
@@ -113,12 +138,14 @@ Sidequest: Catch a Fish
 Slash of Light
 Sleep Magic
 Snow Villiers
+Starting Town
 Stiltzkin, Moogle Merchant
 Stuck in Summoner's Sanctum
 Summon: Bahamut
 Summon: Choco/Mog
 Summon: Fat Chocobo
 Summon: G.F. Cerberus
+Summon: G.F. Ifrit
 Summon: Knights of Round
 Suplex
 Swallowed by Leviathan

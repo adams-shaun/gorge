@@ -294,6 +294,7 @@ Nim Grotesque
 Nim Mongoose
 Nim Replica
 Noble's Purse
+Oath of Lim-Dûl
 Oathkeeper, Takeno's Daisho
 Ob Nixilis, the Fallen
 Omen of Fire

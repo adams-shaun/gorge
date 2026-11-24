@@ -209,6 +209,7 @@ Kalemne's Captain
 Karoo Meerkat
 Kavu Monarch
 Ken, Burning Brawler
+Kessig Forgemaster
 Kessig Wolf Run
 Kimoyo Beads
 King Cheetah
@@ -310,6 +311,7 @@ Savai Triome
 Scaled Wurm
 Scavenging Harpy
 Scion of Stygia
+Scorned Villager
 Scourge of Kher Ridges
 Scouring Sands
 Scrapyard Salvo
@@ -445,3 +447,4 @@ Zacama, Primal Calamity
 Zealous Inquisitor
 Zendikar Resurgent
 Zenith Festival
+Zombie Trailblazer

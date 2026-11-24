@@ -140,6 +140,7 @@ Flamekin Harbinger
 Flamespeaker's Will
 Fleeting Aven
 Floating-Dream Zubera
+Floodchaser
 Flying Dolphin-Fish
 Flywheel Racer
 Footfall Crater
@@ -356,6 +357,7 @@ Steady Progress
 Steel Golem
 Steeple Roc
 Storm Crow
+Stormbreath Dragon
 Strandwalker
 Strength of Arms
 Strike It Rich

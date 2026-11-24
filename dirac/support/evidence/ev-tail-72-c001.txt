@@ -35,6 +35,7 @@ Blastoderm
 Blazing Specter
 Blazing Volley
 Blood Pet
+Bogardan Lancer
 Bola Warrior
 Bond Beetle
 Bontu the Glorified
@@ -109,6 +110,7 @@ Dromar's Cavern
 Drown in Shapelessness
 Drowned
 Dying Wail
+Elder Pine of Jukai
 Elite Vanguard
 Elusive Spellfist
 Epic Experiment
@@ -468,6 +470,7 @@ White Orchid Phantom
 Wild Wurm
 Wildsize
 Will of the All-Hunter
+Willbender
 Willow Geist
 Wirewood Channeler
 Woodland Chasm

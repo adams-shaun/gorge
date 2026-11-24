@@ -207,6 +207,7 @@ Horribly Awry
 Howl of the Horde
 Hungry Spriggan
 Hunting Grounds
+Huntmaster of the Fells
 Ice Tunnel
 Illusions of Grandeur
 Immolation
@@ -377,6 +378,7 @@ Skittering Cicada
 Sky Skiff
 Skyclave Geopede
 Skywinder Drake
+Slimy Kavu
 Slith Predator
 Sluggishness
 Smolder Initiate
