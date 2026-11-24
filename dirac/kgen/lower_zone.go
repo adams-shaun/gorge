@@ -2096,14 +2096,31 @@ func andFilterExpr(a, b string) (string, error) {
 }
 
 // playRememberedClause reads the P1 Valid$ shapes:
-// Card.IsRemembered[+nonLand][+YouOwn][+cmcLE<letter>]. IsRemembered is the population and
-// nonLand is the kernel's land skip, so only the cmc bound reaches the filter.
+// Card.IsRemembered[+nonLand][+YouOwn][+cmcLE<letter>], a comma list of
+// alternatives of that shape (Lieutenant Nyota Uhura's
+// Instant.IsRemembered,Sorcery.IsRemembered), and an alternative whose
+// IsRemembered part names a card head (Herald of Amity's Aura.IsRemembered).
+// IsRemembered is the population, nonLand is the kernel's land skip, so only
+// the head and the cmc bound reach the filter.
 func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
-	if strings.Contains(valid, ",") {
-		return "", refuse("Play Valid$ %q", valid)
+	var alts []string
+	for _, alt := range strings.Split(valid, ",") {
+		clause, err := lc.playRememberedAlt(strings.TrimSpace(alt), valid)
+		if err != nil {
+			return "", err
+		}
+		if clause == "" {
+			return "", nil // an unrestricted alternative makes the whole union unrestricted
+		}
+		alts = append(alts, clause)
 	}
+	return strings.Join(alts, ","), nil
+}
+
+// playRememberedAlt is playRememberedClause for one alternative.
+func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 	var cmc string
-	for _, part := range strings.Split(valid, "+") {
+	for _, part := range strings.Split(alt, "+") {
 		switch {
 		case part == "Card.IsRemembered", part == "IsRemembered", part == "nonLand", part == "Card.nonLand":
 		case part == "YouOwn":
@@ -2116,6 +2133,14 @@ func (lc *lowerCtx) playRememberedClause(valid string) (string, error) {
 			if _, err := strconv.Atoi(part[5:]); err != nil {
 				return "", refuse("Play Valid$ %q", valid)
 			}
+			cmc = andClause(cmc, part)
+		case strings.HasSuffix(part, ".IsRemembered"):
+			// the head narrows the population (Herald of Amity's auras,
+			// Lieutenant Nyota Uhura's instants and sorceries): a filter
+			// clause the card matcher reads where the card lies
+			cmc = andClause(cmc, strings.TrimSuffix(part, ".IsRemembered"))
+		case part == "ExiledWithSource":
+			// exiled with the source (Flawless Forgery's forged copies)
 			cmc = andClause(cmc, part)
 		default:
 			return "", refuse("Play Valid$ %q", valid)
@@ -2165,7 +2190,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		if playRememberedEmptyKey(ps, k) {
 			continue // nodeCondition's SkipIf guard (Brazen Bluff's nothing-was-exiled gate)
 		}
-		if strings.HasPrefix(k, "Condition") && !(k == "ConditionPresent" && playLoneCondition(ps)) {
+		if playRefusedConditionKey(ps, k) {
 			ps.consume(k)
 			return refuse("Play %s", k)
 		}
@@ -2301,7 +2326,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	emit := func(obj lRef, zone int, expr string) error {
 		var f *lFilter
 		if expr != "" {
-			if f, err = lc.filter(expr); err != nil {
+			if f, err = lc.playPopFilter(expr); err != nil {
 				return err
 			}
 		}
@@ -4687,6 +4712,25 @@ func playRememberedEmptyKey(ps *params, k string) bool {
 	return ps.peek("ConditionDefined") == "Remembered" && ps.peek("ConditionPresent") == "Card" && ps.peek("ConditionCompare") == "EQ0"
 }
 
+// playRefusedConditionKey reports whether k is a Condition key a Play node
+// cannot carry: neither a lone ConditionPresent$ nor one of playGateKeys.
+func playRefusedConditionKey(ps *params, k string) bool {
+	if !strings.HasPrefix(k, "Condition") {
+		return false
+	}
+	return !(k == "ConditionPresent" && playLoneCondition(ps)) && !playGateKeys(ps, k)
+}
+
+// playPopFilter lowers a Play population filter. It reads the resolving
+// source (gorge matchesInOwnZone over the zone walk): ExiledWithSource is the
+// resolution's link (Flawless Forgery's forged copies).
+func (lc *lowerCtx) playPopFilter(expr string) (*lFilter, error) {
+	saved := lc.exwOK
+	lc.exwOK = true
+	defer func() { lc.exwOK = saved }()
+	return lc.filter(expr)
+}
+
 func playLoneCondition(ps *params) bool {
 	for k := range ps.m {
 		if strings.HasPrefix(k, "Condition") && k != "ConditionPresent" {
@@ -4694,6 +4738,29 @@ func playLoneCondition(ps *params) bool {
 		}
 	}
 	return true
+}
+
+// playGateKeys reports whether a Play node's condition key is one the generic
+// node wrapper lowers into the resolution's SkipIf: the presence group
+// (nodeCondition's ConditionPresent$ path, narrowed by nodeConditionZone's
+// ConditionZone$/ConditionCompare$ read) or the bare SVar gate
+// (ConditionCheckSVar$/ConditionSVarCompare$). nodeCondition is fail-closed —
+// an unsupported shape or an unread key refuses the node — so the zone and
+// compare keys are admitted only beside the spec or check that reads them:
+// a bare ConditionCompare$ with no group is gorge's unresolved gate, which
+// the resolution walk runs unconditionally, and stays refused here.
+func playGateKeys(ps *params, k string) bool {
+	switch k {
+	case "ConditionPresent", "ConditionCheckSVar":
+		return true
+	case "ConditionZone":
+		return ps.m["ConditionPresent"] != ""
+	case "ConditionCompare":
+		return ps.m["ConditionPresent"] != "" || ps.m["ConditionCheckSVar"] != ""
+	case "ConditionSVarCompare":
+		return ps.m["ConditionCheckSVar"] != ""
+	}
+	return false
 }
 
 // twoPilesSac is the battlefield TwoPiles shape whose chosen pile is

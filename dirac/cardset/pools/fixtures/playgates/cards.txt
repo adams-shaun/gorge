@@ -1,0 +1,53 @@
+# the gap-play-shapes gated-Play slice: DB$ Play / AB$ Play nodes whose
+# Condition*$ gate is the node's own SkipIf (nodeCondition's present-group and
+# SVar reads; lower_zone.go play's gate keys)
+# Cemetery Tampering, Rabble Rousing, Wiretapping (Defined$ ExiledWith behind
+# a present-zone count), Howltooth Hollow (same, both hands empty),
+# Coveted Prize (Count$Party EQ4 over a hand play), Hidetsugu and Kairi
+# (Remembered$Valid Instant,Sorcery EQ1 over a remembered play), and the
+# clause carriers the same round lowered (Flawless Forgery's
+# IsRemembered+ExiledWithSource, Herald of Amity's Aura.IsRemembered,
+# Lieutenant Nyota Uhura's Instant,Sorcery.IsRemembered), plus Dance with
+# Calamity, Eleven the Mage, Portent of Calamity and West Coast Expansion,
+# whose gate keys are the same but which keep another blocker each
+# (dirac/oracle/playgates_lockstep_test.go)
+Cemetery Tampering
+Coveted Prize
+Dance with Calamity
+Eleven, the Mage
+Flawless Forgery
+Herald of Amity
+Hidetsugu and Kairi
+Howltooth Hollow
+Lieutenant Nyota Uhura
+Portent of Calamity
+Rabble Rousing
+West Coast Expansion
+Wiretapping
+# clause carriers need: auras for Herald of Amity, instants and
+# sorceries for Lieutenant Nyota Uhura and Flawless Forgery
+Unholy Strength
+# support: self-mill (Cemetery Tampering's twenty owned cards in graveyards),
+# party members (Coveted Prize's Count$Party), go-wide tokens (Rabble
+# Rousing), draw (Wiretapping's nine cards in hand, Eleven's eleven),
+# instants and sorceries (Hidetsugu and Kairi's remembered one), bodies and
+# basics
+Armored Skaab
+Accorder Paladin
+Cleric of Life's Bond
+Crimson Acolyte
+Divination
+Grizzly Bears
+Hedron Crab
+Lightning Bolt
+Llanowar Elves
+Memnite
+Ornithopter
+Raise the Alarm
+Tome Scour
+Windfall
+Forest
+Island
+Mountain
+Plains
+Swamp
