@@ -39,20 +39,24 @@ func TestDevotionChosenLowers(t *testing.T) {
 }
 
 // TestDevotionChosenCorpusRefusals pins the four corpus Count$Devotion.Chosen
-// users: none is refused for the devotion value, and Nyx Lotus / Nykthos stay
-// refused for their ChooseColor mana chain. Every one is refused before the
-// lowering reaches X, so each card's own X body is also lowered through
-// devotionHead and must give vDevotionChosen.
+// users: none is refused for the devotion value. Nyx Lotus now lowers
+// completely (its ChooseColor mana chain landed); Nykthos still carries that
+// ChooseColor mana-ability refusal, and Nyx / Hotel of Fears are refused for
+// their ChaosEnsues trigger (Nyx also its EffectZone static), all outside the
+// devotion value. Each card's own X body is also lowered through devotionHead
+// and must give vDevotionChosen, so the test is not vacuous when the card
+// lowers.
 func TestDevotionChosenCorpusRefusals(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, tc := range []struct {
 		name       string
+		lowers     bool
 		chooseMana bool
 	}{
-		{"Nyx Lotus", true},
-		{"Nykthos, Shrine to Nyx", true},
-		{"Nyx", false},
-		{"Hotel of Fears", false},
+		{"Nyx Lotus", true, false},
+		{"Nykthos, Shrine to Nyx", false, true},
+		{"Nyx", false, false},
+		{"Hotel of Fears", false, false},
 	} {
 		card, ok := reg.Lookup(tc.name)
 		if !ok || card == nil {
@@ -66,6 +70,12 @@ func TestDevotionChosenCorpusRefusals(t *testing.T) {
 			t.Errorf("%s: X lowers to %v (head %v, err %v), want vDevotionChosen", tc.name, v, ok, err)
 		}
 		c := lowerCorpusCard(t, tc.name)
+		if tc.lowers {
+			if len(c.Refusals) != 0 {
+				t.Fatalf("%s: refusals %v, want none", tc.name, c.Refusals)
+			}
+			continue
+		}
 		if len(c.Refusals) == 0 {
 			t.Fatalf("%s: no refusals, want the pinned refusal list", tc.name)
 		}
