@@ -333,23 +333,31 @@ func (ic *instrCtx) opPreventNext() error {
 	cb := ic.cb
 	// OpExt ExtPreventNext on Obj, B the amount, C the kop.PrevNext* flag
 	// bits: 1 combat damage only, 2 all damage until the recipient leaves, 4
-	// keyed on the damage source, 8 the gain rider (dirac/repl_prevnext.go).
-	// With 16 (the token rider) B is the named token's pool index instead,
-	// mapped from the lInstr's CS key: the amount is unread for the unbounded
-	// shield, and the kernel's rider mints CardID(B) of it.
+	// keyed on the damage source, 8 the gain rider, 16 the token rider. The
+	// upper bits name the multi-recipient and rider kinds (kop/ext_prevnext.go);
+	// W is the rider's target or the divided target slot. With 16 (the token
+	// rider) B is the named token's pool index instead, mapped from the
+	// lInstr's CS key: the amount is unread for the unbounded shield, and the
+	// kernel's rider mints CardID(B) of it.
 	if in.C&kop.PrevNextTokens != 0 {
 		idx, ok := cb.pt.tokenIdx[in.CS]
 		if !ok {
 			return fmt.Errorf("token %q", in.CS)
 		}
-		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), kop.Const(idx), int16(in.C&255)
+		ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), kop.Const(idx), int16(in.C)
 		return nil
+	}
+	if in.F != nil {
+		// the multi-recipient shape loops the battlefield with this filter
+		if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+			return err
+		}
 	}
 	v, err := cb.value(in.A)
 	if err != nil {
 		return err
 	}
-	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C&255)
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtPreventNext)), v, int16(in.C)
 	return nil
 }
 

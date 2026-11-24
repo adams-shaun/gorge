@@ -288,6 +288,7 @@ func (s *State) beginStep(k *prep) {
 		s.firePhase(k, kop.StepEnd)
 		s.fireDelayedAt(k, m)
 		if k.gen != nil {
+			s.prevEndStepCounters(k) // the delayed-counter prevention rider (repl_prevx.go)
 			s.fireDelayedGen(k)
 			if k.gen.anyMonarch {
 				s.monarchEndStep() // CR 725.2 (act_monarch.go)

@@ -43,6 +43,37 @@ const (
 	// and PrevNextFrom and carries no rider.
 	PrevNextChosen = 128
 
+	// The remaining instruction bits are the multi-recipient and rider kinds
+	// (the record keeps a rider kind in genState.prevX, repl_prevx.go):
+	//
+	// PrevNextMultiObj: install a shield on every battlefield permanent
+	// matching the instruction's filter F, amount B (Kitsune Palliator's
+	// Defined$ Valid Creature, Samite Censer-Bearer's Creature.YouCtrl).
+	PrevNextMultiObj = 1 << 8
+	// PrevNextMultiPlayer: install a shield on every living player, amount B
+	// (Kitsune Palliator's "each player" half).
+	PrevNextMultiPlayer = 1 << 9
+	// PrevNextRadiance: install a shield on the target in Obj and on each
+	// other creature on the battlefield sharing a colour with it, amount B
+	// (Wojek Apothecary's Radiance).
+	PrevNextRadiance = 1 << 10
+	// PrevNextDivided: the target slot in W was announced divided
+	// (DividedAsYouChoose$); install one shield per still-legal chosen target
+	// with its announced share (Angel of Salvation, Embolden, Pollen Remedy,
+	// Remedy, Serra's Hymn).
+	PrevNextDivided = 1 << 11
+	// PrevNextRiderCounter: at each application put the prevented amount as
+	// +1/+1 counters on the rider's target (Test of Faith, Temper).
+	PrevNextRiderCounter = 1 << 12
+	// PrevNextRiderDelayedCounter: accumulate the prevented amount and put it
+	// as P0P1 counters on the rider's target at the beginning of the next end
+	// step (Sacred Boon, Scars of the Veteran).
+	PrevNextRiderDelayedCounter = 1 << 13
+	// PrevNextRiderDamage: at each application deal the prevented amount as
+	// damage from the shield's source to the rider's target (Acolyte's
+	// Reward, Vengeful Archon).
+	PrevNextRiderDamage = 1 << 14
+
 	// ChosenSrc* are the type bits of a ChooseSource pool mask and of the
 	// shield's damage-time re-check, beside the colour bits (kop.ColW ... ColG,
 	// bits 0-4): a source qualifies when it has any named colour or type, and
