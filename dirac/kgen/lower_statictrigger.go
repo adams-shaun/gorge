@@ -138,7 +138,20 @@ func (lc *lowerCtx) untapRepl(r cards.Repl, rp *params, rl *lRepl) error {
 
 // triggerIsPresent lowers a trigger's IsPresent$ intervening-if (and its
 // PresentDefined$ / PresentCompare$ / PresentZone$ riders) into a condition.
+// A PresentDefined$ Self clause carries Zone zBattlefield: gorge
+// presentClauseHolds answers it from the departed source's last known
+// information (CR 608.2h: Graft, House Cartographer's Survival), while a plain
+// IsPresent$ Card.Self+... counts the live battlefield, so a source destroyed
+// in response fails it (Sun Droplet; kernel countPermCond).
 func (lc *lowerCtx) triggerIsPresent(tp *params, tr *lTrigger, ip string) (lCond, error) {
+	c, err := lc.triggerIsPresentCond(tp, tr, ip)
+	if _, pd := tp.get("PresentDefined"); err == nil && pd && c.Kind == cPresent {
+		c.Zone = zBattlefield
+	}
+	return c, err
+}
+
+func (lc *lowerCtx) triggerIsPresentCond(tp *params, tr *lTrigger, ip string) (lCond, error) {
 	if pd, ok := tp.get("PresentDefined"); ok {
 		// gorge presentClauseHolds: PresentDefined$ Self counts the
 		// source alone, 1 when it is on the battlefield and matches

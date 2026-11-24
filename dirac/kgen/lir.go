@@ -508,7 +508,7 @@ type lCond struct {
 	A, B lValue
 	Sub  []lCond
 	Neg  bool
-	Zone uint8 // cSourceZone: the source's zone
+	Zone uint8 // cSourceZone: the source's zone; cPresent: zBattlefield marks a PresentDefined$ Self clause (the departed source's LKI; not printed, so evidence LIR keys stay)
 }
 
 func (c lCond) String() string {
