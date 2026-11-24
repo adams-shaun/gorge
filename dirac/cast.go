@@ -306,6 +306,8 @@ func (s *State) pushBuild(k *prep) {
 			if s.bld().castN != 0 {
 				if cd := &k.t.Cards[ob.card]; cd.FaceMode == kop.FaceAdventure && cd.Face == 1 {
 					s.castPushes(e.ctrl)[s.bld().castN-1].prov |= castAdventurePush
+				} else if cd.FaceMode == kop.FaceOmen && cd.Face == 1 {
+					s.castPushes(e.ctrl)[s.bld().castN-1].prov |= castOmenPush
 				}
 			}
 		} else if k.gen != nil && k.gen.anyParadigm {
