@@ -63,6 +63,10 @@ const (
 
 	// castReversedPush: the cast was reversed (CR 733.1), and no count reads it.
 	castReversedPush uint8 = 32
+
+	// castOmenPush: the push was an Omen card's Omen half (CR 720.3), read as
+	// that half by castRingMatchPush once the card shows its normal face again.
+	castOmenPush uint8 = 64
 )
 
 // castPushes is player p's pushes this turn. A table with no reader has no ring.
@@ -188,18 +192,20 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 				continue
 			}
 			if x.N&(kop.CastSpecCtrlTrig|kop.CastSpecTypes) != 0 {
-				if s.castRingCountHeadsMatch(k, x, o, ctx, &tm) && x.N&kop.CastSpecTypes == 0 {
+				if s.castRingCountHeadsMatch(k, x, r, ctx, &tm) && x.N&kop.CastSpecTypes == 0 {
 					n++
 				}
 				continue
 			}
-			if x.N&kop.CastSpecAsCast != 0 && r.prov&castAdventurePush != 0 {
-				if s.castRingMatchAdventure(k, x.F, o, ctx) {
+			if x.N&kop.CastSpecAsCast != 0 {
+				// gorge onlyFirstSpellUsed reads FlagAdventure, never
+				// FlagOmen; the same face rule serves both arms.
+				if s.castRingMatchPushFlags(k, x.F, r, castAdventurePush, ctx) {
 					n++
 				}
 				continue
 			}
-			if s.castRingMatch(k, x.F, o, ctx) {
+			if s.castRingMatchPush(k, x.F, r, ctx) {
 				n++
 			}
 		}
@@ -216,7 +222,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 func (s *State) castPushesMatching(k *prep, f kop.FilterID, caster uint8, l trigListener) int {
 	n := 0
 	for _, r := range s.castPushes(caster) {
-		if r.prov&castReversedPush == 0 && s.castRingMatch(k, f, r.obj-1, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+		if r.prov&castReversedPush == 0 && s.castRingMatchPush(k, f, r, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 			n++
 		}
 	}
@@ -252,16 +258,72 @@ func (s *State) castRingMatch(k *prep, f kop.FilterID, o Obj, ctx evalCtx) bool 
 	return s.matchCardEntered(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.src)
 }
 
-// castRingMatchAdventure is castRingMatch for a push of an Adventure half:
-// the card's Adventure face, the characteristics it was cast with (gorge
-// MatchesSpecAsFace; Forge's thisTurnCast holds the cast-time LKI copy).
+// castRingMatchPush is the ledger's per-push match (gorge castsThisTurnMatching):
+// a push of an Adventure or Omen half is read as that half, the
+// characteristics it was cast with (CR 715.3b, 720.3; gorge ledgerCastFace +
+// MatchesSpecAsFace), whenever the object it names shows its normal face
+// again (CR 715.4, 720.4), wherever it lives; every other push is
+// castRingMatch. The test is the shown face, not the zone: a card recast as
+// the creature from exile is back on the stack as its front, and the earlier
+// half push is still the half it was cast with.
+func (s *State) castRingMatchPush(k *prep, f kop.FilterID, r castPush, ctx evalCtx) bool {
+	return s.castRingMatchPushFlags(k, f, r, castAdventurePush|castOmenPush, ctx)
+}
+
+// castRingMatchPushFlags is castRingMatchPush with the half-face bits the
+// reader accepts: the generic ledger reads both halves, the OnlyFirstSpell$
+// arm only an Adventure (gorge onlyFirstSpellUsed reads FlagAdventure, never
+// FlagOmen).
+func (s *State) castRingMatchPushFlags(k *prep, f kop.FilterID, r castPush, bits uint8, ctx evalCtx) bool {
+	o := r.obj - 1
+	ob := &s.objs[o]
+	if r.prov&bits != 0 && !s.ceasedCopy(ob) && s.castRingShowsFront(k, o) {
+		return s.castRingMatchAdventure(k, f, o, ctx)
+	}
+	return s.castRingMatch(k, f, o, ctx)
+}
+
+// castRingShowsFront reports whether o shows the card's normal (front) face:
+// the stack entry's card for a spell on the stack (the card castRingMatch
+// reads there), otherwise the object's card. A spell cast as an Adventure or
+// Omen half shows the half while it is on the stack and the normal face again
+// once it leaves (CR 715.3b/715.4, 720.3/720.4; gorge ledgerCastFace's
+// o.FaceIdx == 0 test), including on a later recast caught on the stack.
+func (s *State) castRingShowsFront(k *prep, o Obj) bool {
+	ob := &s.objs[o]
+	if ob.zone == kop.ZoneStack {
+		for i := int(s.sp) - 1; i >= 0; i-- {
+			if st := &s.stack[i]; st.kind == seSpell && st.obj == o {
+				return k.t.Cards[st.card].Face == 0
+			}
+		}
+		return false
+	}
+	return k.t.Cards[ob.card].Face == 0
+}
+
+// castRingMatchAdventure is castRingMatch for a push of an Adventure or Omen
+// half: the card's spell face, the characteristics it was cast with (gorge
+// MatchesSpecAsFace; Forge's thisTurnCast holds the cast-time LKI copy). A
+// spell still on the stack keeps the stack entry's controller (as
+// castRingMatch reads it); the card is off the battlefield and stack
+// otherwise and reads its owner (gorge apply_zone.go).
 func (s *State) castRingMatchAdventure(k *prep, f kop.FilterID, o Obj, ctx evalCtx) bool {
 	ob := &s.objs[o]
 	c := ob.card
 	if fs := k.t.Cards[c].Faces; len(fs) == 2 {
 		c = fs[1]
 	}
-	return s.matchCardEntered(k, f, c, ob.owner(), ctx.ctrl, o, ctx.src)
+	ctrl := ob.owner()
+	if ob.zone == kop.ZoneStack {
+		for i := int(s.sp) - 1; i >= 0; i-- {
+			if st := &s.stack[i]; st.kind == seSpell && st.obj == o {
+				ctrl = st.ctrl
+				break
+			}
+		}
+	}
+	return s.matchCardEntered(k, f, c, ctrl, ctx.ctrl, o, ctx.src)
 }
 
 // DebugCastRingLive is the mutation test's switch: thisTurnCastSpec reads

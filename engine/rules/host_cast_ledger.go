@@ -239,7 +239,12 @@ func (e *Engine) castsThisTurnMatching(you state.PlayerID, spec string, exclude 
 		// cast list holds cast-time copies and filters them with no phasing
 		// check): a spell whose permanent has since phased out still counts.
 		sc.WithPhasedOut = true
-		matched := e.matchesSpec(matchSpec, ev.Obj, sc)
+		var matched bool
+		if face, ok := ledgerCastFace(e.L.Events, i, e.G.Obj(ev.Obj)); ok {
+			matched = effects.MatchesSpecAsFace(e.G, matchSpec, e.G.Obj(ev.Obj), face, &sc)
+		} else {
+			matched = e.matchesSpec(matchSpec, ev.Obj, sc)
+		}
 		e.ledgerCast = ledgerCastView{}
 		if matched {
 			out = append(out, ev.Obj)
