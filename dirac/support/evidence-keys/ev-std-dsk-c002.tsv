@@ -1,0 +1,64 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Attack-in-the-Box	0bba887a37e04471	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bear Trap	84c11baf5d45f604	4	1/1		0/1	ix:resp
+Bedhead Beastie	dd4e8769cb2c74be	3	1/1		1/1	
+Betrayer's Bargain	d676d58f3fe93619	3	0/0		2/2	
+Chainsaw	9fe04f9fc377814c	11	3/3		1/1	
+Clammy Prowler	2a106b8a2ddbc49a	4	1/1		0/1	ix:resp
+Clockwork Percussionist	54d3e6bbb72048b0	4	1/1		0/1	ix:resp
+Commune with Evil	4392f02203304a58	8	0/0		1/2	ix:resp
+Cursed Recording	9ad02f6e62247dae	4	2/2		0/1	ix:resp
+Cynical Loner	2cdf64edf1ac0f35	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Dazzling Theater	6eb5ee9df4f4cdc4	5	0/0		0/0	
+Demonic Counsel	7ec3cebb6395913d	4	0/0		1/2	ix:resp
+Diversion Specialist	d69333498cc9578f	5	1/1		0/1	ix:resp
+Enduring Courage	e968f9659848a30e	12	2/2		0/1	ix:resp
+Enduring Curiosity	442d7f321bb0091f	6	2/2		0/1	ix:resp
+Enduring Tenacity	f60b0dc51d75db08	3	2/2		0/1	ix:resp
+Etched Cornfield	6d81bd2da4e0c413	6	1/1		0/1	ix:resp
+Exorcise	877a3a380a6761e8	10	0/0		1/2	ix:resp
+Fanatic of the Harrowing	55ff899a13aacfd0	4	1/1		0/1	ix:resp
+Fear of Being Hunted	bbdf79e50162faaf	6	0/0		0/0	
+Fear of Burning Alive	d8570b55baddb459	9	2/2		1/1	
+Flesh Burrower	e419a60a4b413485	4	1/1		0/1	ix:resp
+Forest	6d0466c30f825dba	22	1/1		0/1	ix:resp
+Get Out	27f299a127715960	4	0/0		1/2	ix:resp
+Glassworks	e889f086c24f8420	6	2/2		0/1	ix:resp
+Glimmer Seeker	663e0fcead1dff28	4	1/1		0/1	ix:resp
+Glimmerburst	e1cdc4faa2eca006	6	0/0		1/2	ix:resp
+Hand That Feeds	aa6cf6bcc53ceb66	4	1/1		0/1	ix:resp
+Horrid Vigor	0484f0f668b72d06	4	0/0		1/2	ix:resp
+Impossible Inferno	8fba96a3ca8b4939	6	0/0		1/2	ix:resp
+Irreverent Gremlin	3179d317ddb861b8	4	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	72	1/1		0/1	ix:resp
+Killer's Mask	fab8c77fa054e4b6	18	2/2		0/1	ix:resp
+Most Valuable Slayer	9e038097f002eb95	5	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	108	1/1		0/1	ix:resp
+Murky Sewer	5bf439d4052dc0e0	6	1/1		0/1	ix:resp
+Overlord of the Boilerbilges	8ef1c2a03d1c7503	6	2/2		2/3	ix:resp
+Peculiar Lighthouse	8ef3cfa1a24408b3	9	1/1		0/1	ix:resp
+Piggy Bank	18db8ef80ae56f27	6	1/1		0/1	ix:resp
+Piranha Fly	991b8f051a53f3af	8	0/0		0/0	
+Plains	82d63a695487e567	64	1/1		0/1	ix:resp
+Pyroclasm	2a83a3795de80e5f	3	0/0		1/2	ix:resp
+Rampaging Soulrager	017e76c0d50be8ac	3	0/0		0/0	
+Raucous Carnival	aca729fd959c4e61	10	1/1		0/1	ix:resp
+Razorkin Hordecaller	d61f74d592c99622	4	1/1		0/1	ix:resp
+Rite of the Moth	ca656f9e41fe8d18	4	0/0		3/4	ix:resp
+Scorching Dragonfire	adc834b32cb69f21	8	0/0		1/2	ix:resp
+Strangled Cemetery	022ac16aeae341c9	19	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	99	1/1		0/1	ix:resp
+Ticket Booth	2b8bb4a32ccdb0d7	4	2/2		0/1	ix:resp
+Tunnel Surveyor	813afd70141fc821	4	1/1		0/1	ix:resp
+Turn Inside Out	733324a44405ebe8	4	0/0		1/2	ix:resp
+Twist Reality	9fcad707611080d5	4	0/0		1/2	ix:resp
+Undead Sprinter	66c6ff777de6637f	3	0/0		0/0	
+Unstoppable Slasher	b332e86f3ad8f83c	4	2/2		0/1	ix:resp
+Untimely Malfunction	9e98f272a3df51e0	10	0/0		1/2	ix:resp
+Valgavoth's Faithful	c7737b7aadbf22ec	6	1/1		0/1	ix:resp
+Vengeful Possession	1cde54610e118afd	4	0/0		1/2	ix:resp
+Vicious Clown	c4e1a5cdba956bd3	8	1/1		0/1	ix:resp
+Vile Mutilator	c30745bdcf422ae5	6	1/1		2/2	
+Violent Urge	eacb1ef5bb8fd0c4	4	0/0		1/2	ix:resp
+Waltz of Rage	15d31221e32b924c	5	0/0		2/2	
+Wary Watchdog	030c0d8a0e3ef1aa	4	2/2		0/1	ix:resp

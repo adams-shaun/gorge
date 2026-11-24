@@ -32,6 +32,7 @@ Blood Age General
 Blood Divination
 Blood Glutton
 Blood Seeker
+Bloodstained Mire
 Blur Sliver
 Boggart Trawler
 Bolt of Keranos
@@ -44,9 +45,11 @@ Call to Glory
 Call to the Netherworld
 Calming Verse
 Captain America, Liberator
+Captain Vargus Wrath
 Certain Death
 Chakram Retriever
 Chill to the Bone
+Circle of Protection: Red
 Clockwork Fox
 Coercive Impetus
 Commence the Endgame
@@ -66,6 +69,7 @@ Death's Duet
 Deathbringer Liege
 Devouring Deep
 Diamond Knight
+Displacer Beast
 Disposal Mummy
 Divest
 Domestication
@@ -154,6 +158,7 @@ Last Breath
 Last Kiss
 Lat-Nam Adept
 Lesser Werewolf
+Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
@@ -167,6 +172,8 @@ Marsh Casualties
 Mascot Exhibition
 Mass Appeal
 Mass Diminish
+Memorial to Unity
+Meria, Scholar of Antiquity
 Midnight Ritual
 Military Discipline
 Militia Bugler
@@ -227,6 +234,7 @@ Ruthless Deathfang
 Scourge of the Nobilis
 Screeching Bat
 Screeching Drake
+Scroll of Isildur
 Secluded Steppe
 Selesnya Charm
 Selfless Cathar
@@ -277,6 +285,7 @@ Territorial Maro
 Teval's Judgment
 Thalia's Lieutenant
 That Which Was Taken
+The Forgotten Place
 Thopter Mechanic
 Thraben Valiant
 Thran War Machine

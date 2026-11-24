@@ -13,6 +13,7 @@ Alpine Guide
 Anaba Ancestor
 Anaba Spirit Crafter
 Anointed Chorister
+Aquamoeba
 Aquatic Incursion
 Argivian Avenger
 Army of Allah
@@ -21,14 +22,18 @@ Ashen-Skin Zubera
 Augur of Skulls
 Autonomous Assembler
 Aven Fisher
+Beacon of Unrest
 Bitterblossom
 Bladed Battle-Fan
 Blaze Commando
 Blood Petal Celebrant
+Blood Vassal
 Blur Sliver
 Boss Uramon, Shadow's Reach
+Brass Man
 Brutal Nightstalker
 Brute Force
+Bulwark
 Burning Anger
 Call of the Death-Dweller
 Call to the Netherworld
@@ -39,7 +44,10 @@ Capture of Jingzhou
 Cat Burglar
 Cathartic Operation
 Celebrate the Harvest
+Chamber Sentry
+Chimeric Staff
 Choking Tethers
+Clawing Torment
 Cloistered Youth
 Collector Ouphe
 Commune with the Gods
@@ -62,13 +70,16 @@ Deepfathom Skulker
 Deeproot Champion
 Defiant Falcon
 Demonic Rising
+Descent into Avernus
 Desperate Farmer
 Destructor Dragon
 Deviant Glee
+Diamond Valley
 Distortion Strike
 Divine Sacrament
 Doubtless One
 Dream Fracture
+Dromoka Monument
 Dromoka's Gift
 Dunland Crebain
 Ebony Owl Netsuke
@@ -87,6 +98,7 @@ Fallen Cleric
 Fang Dragon
 Fangren Hunter
 Festive Funeral
+Fiery Inscription
 Fire-Omen Crane
 Fireslinger
 Forest
@@ -101,10 +113,13 @@ Future Flight
 Galestrike
 Generous Patron
 Ghost Ship
+Giant Harbinger
 Gilt-Leaf Seer
+Glassblower's Puzzleknot
 Gloom Pangolin
 Goblin Striker
 Gods' Hall Guardian
+Golgari Cluestone
 Gone Missing
 Griffin Sentinel
 Guardian Kirin
@@ -118,8 +133,10 @@ Howling Gale
 Hulk, Strongest There Is
 Humble Defector
 Hungry for More
+Hypnotic Sprite
 Ichor Synthesizer
 Illusions of Grandeur
+Insidious Dreams
 Inversion Behemoth
 Iron League Steed
 Island
@@ -128,15 +145,18 @@ Jeska, Warrior Adept
 Joraga Bard
 Jori En, Ruin Diver
 Journey for the Elixir
+Jungle Shrine
 Junk Golem
 Junk Jet
 Kamber, the Plunderer
+Kederekt Parasite
 Keiga, the Tide Star
 Kjeldoran Gargoyle
 Kudo, King Among Bears
 Labyrinth of Skophos
 Lapis Lazuli Talisman
 Leeching Sliver
+Llanowar Mentor
 Lulu, Stern Guardian
 Lurking Green Dragon
 Magnus the Red
@@ -145,9 +165,11 @@ Malefic Scythe
 Marble Gargoyle
 Marsh Flitter
 Mass of Ghouls
+Master Trinketeer
 Mawcor
 Mayhem Devil
 Memory Erosion
+Merfolk Pupil
 Might Sliver
 Miner's Bane
 Minister of Impediments
@@ -172,12 +194,14 @@ Ostiary Thrull
 Overgrowth
 Overgrowth Elemental
 Oxidda Finisher
+Paradise Plume
 Patrol Signaler
 Pearl Medallion
 Persist
 Phantasmagorian
 Phantom Nomad
 Phoenix of Ash
+Plague Wight
 Plains
 Planar Incision
 Polluted Dead
@@ -202,6 +226,7 @@ Resolute Rider
 Response
 Return Upon the Tide
 Revered Unicorn
+Ridged Kusite
 Ripjaw Raptor
 Rot Shambler
 Rotting Mastodon
@@ -213,19 +238,23 @@ Satyr's Cunning
 Savage Surge
 Scorn Effigy
 Screeching Skaab
+Sea Gate Restoration
 Seedcradle Witch
 Seismic Shudder
 Shimmer Dragon
 Shrapnel Blast
+Sickleslicer
 Siege Smash
 Siege-Gang Commander
 Silverglade Elemental
 Sire of Insanity
 Skillful Lunge
+Skinbrand Goblin
 Skophos Warleader
 Skyclave Shadowcat
 Snapping Drake
 Snapping Sailback
+Snow Day
 Song-Mad Treachery
 Soot Imp
 Soratami Rainshaper
@@ -253,6 +282,7 @@ Talas Scout
 Tall as a Beanstalk
 Tasseled Dromedary
 Teferi, Time Raveler
+Tendrils of Despair
 Teyo's Lightshield
 The Spear of Leonidas
 The Underworld Cookbook
@@ -261,10 +291,12 @@ Thirsting Shade
 Thorin, King of Durin's Folk
 Thrummingbird
 Thrun, Breaker of Silence
+Thundering Rebuke
 Tibor and Lumia
 Tide Drifter
 Titan of Industry
 Treacherous Vampire
+Turn to Dust
 Twin-Silk Spider
 Undercity Necrolisk
 Undersea Invader
@@ -275,8 +307,10 @@ Ur-Golem's Eye
 Ursapine
 Vapor Snare
 Venomous Hierophant
+Verdigris
 Vessel of Paramnesia
 Viashino Sandscout
+Viconia, Drow Apostate
 Vigilant Drake
 Voda Sea Scavenger
 Voice of the Blessed
@@ -295,6 +329,7 @@ Wild Onslaught
 Will of the Mardu
 Windgrace's Judgment
 Witch's Cottage
+Worldslayer
 Wrong Turn
 Wurmcalling
 You Happen On a Glade

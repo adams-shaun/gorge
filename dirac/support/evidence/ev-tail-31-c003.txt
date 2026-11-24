@@ -1,47 +1,65 @@
 A-Cobbled Lancer
 A-Warm Welcome
+Abandon the Post
 Adanto Vanguard
 Agent of Horizons
+Aggressive Crag
+Agonizing Memories
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
+Animal Boneyard
 Arctic Nishoba
 Aron, Benalia's Ruin
 Arterial Flow
+Auntie's Hovel
 Aura Extraction
 Aven Skirmisher
 Avenging Huntbonder
 Baloth Pup
 Barrage of Expendables
 Basim Ibn Ishaq
+Beloved Chaplain
 Blighted Bat
 Blitz Hellion
 Bloodcurdling Scream
+Bloodmist Infiltrator
+Brood Birthing
 Burlfist Oak
+Caller of the Claw
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
 Clinging Darkness
 Consuming Sinkhole
+Costly Plunder
 Crack Open
 Crucible of Worlds
 Crystacean
 Daily Regimen
 Dancing Scimitar
+Darkbore Pathway
+Darksteel Juggernaut
+Dawnfluke
 Dictate of Heliod
 Dogged Pursuit
+Dromad Purebred
 Dust Stalker
 Ebony Rhino
 Embodiment of Insight
 Empyreal Voyager
 Epic Proportions
 Era of Enlightenment
+Eternal Scourge
 Ettercap
 Exploding Borders
 Eyes of Gitaxias
+Faerie Bladecrafter
+Festival of the Guildpact
 Flickering Ward
 Flood
 Forest
+Forfend
 Fortress Crab
 Frenzy Sliver
 Galadhrim Bow
@@ -57,6 +75,7 @@ Gustrider Exuberant
 Heartless Pillage
 Herald of the Fair
 Homestead Courage
+Hopeful Eidolon
 Hornet Sting
 Hot Springs
 Impede Momentum
@@ -64,6 +83,7 @@ Improvised Weaponry
 Inquisitor's Ox
 Into the Time Vortex
 Island
+Jund Panorama
 Kaysa
 Keen Glidemaster
 Keeper of Keys
@@ -73,46 +93,61 @@ Lantern of Revealing
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
 Living Twister
+Long-Range Sensor
 Moon Heron
+Mortiphobia
 Mountain
 Murderous Rider
 Nacre Talisman
 Nettlecyst
 Nightmare Lash
 Noble Quarry
+Not Forgotten
 Nyx Herald
 Oakgnarl Warrior
 Obsidian Battle-Axe
 Ondu Inversion
+Open the Gates
 Orzhov Guildmage
 Parcel Myr
 Patriot, Young Avenger
 Phyrexian Vivisector
 Plains
+Pre-War Formalwear
 Purify the Grave
 Rancor
 Reckless Rage
 Recurring Insight
 Restless Dead
 Revive
+Rile
+Ring of Xathrid
 Rite of Consumption
 Rite of Harmony
 Ronom Unicorn
+Ruinous Minotaur
+Rummaging Goblin
+Saltblast
 Saprazzan Raider
 Savage Stomp
 Scale Up
+Scorching Spear
 Scurrid Colony
 Scuttletide
 Seedborn Muse
 Shadow Glider
 Shriek Raptor
+Silent Dart
 Silver Shroud Costume
+Simic Growth Chamber
 Skitter Eel
 Soldevi Steam Beast
+Solemn Offering
 Solid Ground
 Soul Link
 Spectral Reserves
 Spined Basher
+Stalwart Pathlighter
 Stirring Address
 Strix Serenade
 Stromkirk Patrol
@@ -120,6 +155,8 @@ Sunflare Shaman
 Swamp
 Swelter
 Talruum Minotaur
+Teetering Peaks
+Teferi's Sentinel
 Temporal Fissure
 Terrain Elemental
 Tidal Courier
@@ -127,11 +164,19 @@ Tower Geist
 Trained Cheetah
 Trigon of Infestation
 Trudge Garden
+Tunneling Geopede
+Updraft
+Vanquisher's Axe
+Vial of Poison
 Vicious Hunger
 Viridian Emissary
 Viridian Scout
+Vodalian Mage
 Voice of Truth
 Wall of Vines
+Weather the Storm
 White Scarab
 Wild Growth
+Woodland Stream
+Wrenn and One
 Wu Light Cavalry

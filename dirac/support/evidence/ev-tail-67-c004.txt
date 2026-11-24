@@ -1,5 +1,7 @@
 A-Briar Hydra
 A-Dokuchi Silencer
+A-Eyes of the Beholder
+A-Most Wanted
 A-Rockslide Sorcerer
 A-Umara Mystic
 Aerial Assault
@@ -24,6 +26,7 @@ Biting Rain
 Blacksmith's Skill
 Blade Splicer
 Blazing Hellhound
+Blessed Reincarnation
 Blight Sickle
 Blossom Dryad
 Buccaneer's Bravado
@@ -38,9 +41,11 @@ Claim the Firstborn
 Cling to Dust
 Clutch of Undeath
 Cogwork Assembler
+Collective Resistance
 Commissar Severina Raine
 Confront the Unknown
 Conservator
+Consuming Vapors
 Contagion
 Corpse Knight
 Corrupted Zendikon
@@ -49,6 +54,8 @@ Corsairs of Umbar
 Courier's Capsule
 Crackling Triton
 Crop Rotation
+Crypt Incursion
+Crystalline Armor
 Culling Mark
 Custodi Soulbinders
 Cyclops Superconductor
@@ -67,8 +74,10 @@ Diligent Excavator
 Dismantling Blow
 Drag Down
 Dragon's Approach
+Drifting Meadow
 Dyfed, the Guiding Hand
 Eidolon of Rhetoric
+Emerge Unscathed
 Erratic Visionary
 Essence Feed
 Essence Warden
@@ -79,21 +88,26 @@ Expansion
 Eyes of Gitaxias
 Fain, the Broker
 Farbog Boneflinger
+Femeref Healer
 Final-Sting Faerie
 Firebird, Blazing Ranger
 Floodhound
+Foe-liage
 Fog of Gnats
 Forest
+Fountain of Cho
 Fungal Sprouting
 Furnace Celebration
 Galvanic Iteration
 Garenbrig Squire
+Gilt-Leaf Palace
 Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
 Goblin Racketeer
 Gray Merchant of Asphodel
 Grim Monolith
+Hall
 Hanna, Ship's Navigator
 Helitrooper
 Hemlock Vial
@@ -131,6 +145,7 @@ Mardu Strike Leader
 Mausoleum Secrets
 Metropolis Reformer
 Might Weaver
+Miren, the Moaning Well
 Mirror of Galadriel
 Mise
 Mogis's Warhound
@@ -144,6 +159,7 @@ Necrobite
 Nemesis of Reason
 Neurok Familiar
 Norn's Disassembly
+Novice Dissector
 Oblation
 Obscura Initiate
 Orcish Bowmasters
@@ -151,6 +167,7 @@ Orim's Touch
 Path of Anger's Flame
 Pentarch Ward
 Phantasmal Dragon
+Phyrexian Etchings
 Phyrexian Obliterator
 Pilfering Imp
 Plains
@@ -158,6 +175,7 @@ Pollywog Prodigy
 Preeminent Captain
 Primeval Force
 Prizefighter Construct
+Prosper, Tome-Bound
 Prosperous Innkeeper
 Protector of Gondor
 Prowling Pangolin
@@ -166,6 +184,7 @@ Python
 Quest for Pure Flame
 Rage Weaver
 Rally to Battle
+Ranger en-Vec
 Ravos, Soultender
 Ray of Erasure
 Reality Ripple
@@ -183,8 +202,10 @@ Searing Blood
 Secure the Scene
 Selective Memory
 Settle the Score
+Shadowspear
 Shake the Foundations
 Shepherd of the Lost
+Simic Keyrune
 Skitter of Lizards
 Skullscorch
 Sky Weaver
@@ -203,6 +224,7 @@ Talons of Wildwood
 Task Force
 Tawnos's Wand
 Temmet, Vizier of Naktamun
+Tenza, Godo's Maul
 The Bears of Littjara
 The Whizzer, Classic Speedster
 Thorn Thallid
@@ -214,6 +236,7 @@ Thwart the Grave
 Tibor and Lumia
 Tidal Bore
 Titan Hunter
+Tor Giant
 Tormod's Cryptkeeper
 Transcendent Master
 Trigon of Rage

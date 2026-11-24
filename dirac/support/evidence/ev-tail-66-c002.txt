@@ -102,6 +102,7 @@ Flamewave Invoker
 Flaring Flame-Kin
 Fledgling Mawcor
 Fledgling Osprey
+Floral Evoker
 Fog Elemental
 Forced Fruition
 Forest
@@ -111,6 +112,7 @@ Funeral Rites
 Gathering Throng
 General Leo Cristophe
 Ghitu Fire-Eater
+Ghoul's Feast
 Gixian Puppeteer
 Glissa's Scorn
 Gnarlid Pack
@@ -239,6 +241,7 @@ Scavenging Harpy
 Scourge of Kher Ridges
 Scouring Sands
 Scrapyard Salvo
+Screeching Harpy
 Seeker of Skybreak
 Sentinel Sliver
 Serum Snare

@@ -1,0 +1,74 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Ant-Man's Air Force	c492eb12ebecd9a3	7	1/1		0/1	ix:resp
+Arcbound Condor	6d3bf10437f48483	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Arcbound Ravager	48501fa942b6bcca	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Awakened Amalgam	54383545f7cc2cd3	4	0/0		0/0	
+Belle of the Brawl	7ff688b8114dcd4d	4	1/1		0/1	ix:resp
+Butcher Ghoul	805b696c82ec2024	4	1/1		0/1	ix:resp
+Cackling Fiend	b1fa0decd167be20	4	1/1		0/1	ix:resp
+Caregiver	7587dcd2e3488157	4	1/1		0/1	ix:resp
+Chainbreaker	1b99152ec5a0ce71	3	1/1		1/1	
+Citadel Gate	9ff7879809d04e3a	8	1/1		0/1	ix:resp
+Civilized Scholar	82bbef674e3ee373	4	2/2		0/1	ix:resp
+Convulsing Licid	ff3f240c7b56e20b	6	1/1		0/1	ix:resp
+Cruel Revival	a069256e2eef2ec8	4	0/0		1/2	ix:resp
+Cyclops of Eternal Fury	e4b3a8b04c632e4e	3	0/0		0/0	
+Epistolary Librarian	fe3873d80d8f00ea	4	1/1		1/1	
+Ether Well	cec46f936b091be1	8	0/0		1/2	ix:resp
+Fearless Fledgling	49905a013681878e	6	1/1		0/1	ix:resp
+Furious Bellow	47d88131617eda87	4	0/0		1/2	ix:resp
+Furyborn Hellkite	8ea67e1423e8aad0	4	0/0		0/0	
+Glowing Anemone	33a0d92fef04b6a7	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Go-Shintai of Ancient Wars	e4aee387713d7886	4	1/1		0/1	ix:resp
+Gobland	33aee63b45eed6d8	8	1/1		0/1	ix:resp
+Goblin Assailant	6105720cdab040b3	4	0/0		0/0	
+Goblin Pyromancer	41eefb78137175a8	4	2/2		0/1	ix:resp
+Greenwheel Liberator	6ad8a27c8ac3c8b5	4	0/0		0/0	
+Hag of Syphoned Breath	ac7927baea9a41b3	4	1/1		0/1	ix:resp
+Heir of the Ancient Fang	9bbae5d9b5042697	4	0/0		0/0	
+Hulking Ogre	46bd3c6943eba469	4	0/0		0/0	
+Invigorated Rampage	21b0f4745d02c191	4	0/0		2/2	
+Jabs, Mistress of Mockery	e249bf943167db92	4	0/0		0/0	
+Kinetic Augur	e4a302e488d0c83a	8	1/1		0/1	ix:resp
+Knight of the Skyward Eye	99802d9c3c111e23	3	1/1		0/1	ix:resp
+Lathnu Hellion	f2f4c9667c6eb69d	7	2/2		0/1	ix:resp
+Mardu Scout	56f87f8926e4feed	10	0/0		1/2	cast/alt:none
+Memorial to Glory	e1852dd90dbfeafd	7	2/2		0/1	ix:resp
+Merfolk Looter	5f6e3fcaf691a114	10	1/1		0/1	ix:resp
+Merfolk Trickster	7491352ea62842ed	4	1/1		0/1	ix:resp
+Mistvault Bridge	7d6d24faefef8cac	14	1/1		0/1	ix:resp
+Order of Midnight	343ab1eea84097db	8	0/0		2/2	
+Orzhov Enforcer	755e39f604d0ab31	8	1/1		0/1	ix:resp
+Primal Visitation	81878c41232b4d1c	3	0/0		2/2	
+Pristine Angel	4a98910026b3aaa5	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Psionic Gift	8c3ae3cc7bf04c52	4	0/0		1/2	ix:resp
+Razorlash Transmogrant	3b121b51af32fbdf	6	1/1		0/1	ix:resp
+Realmwalker	54dab9fb9a0fd5a5	6	0/0		0/0	
+Ring of Renewal	d7220937d4fdad4a	3	1/1		1/1	
+Rottenheart Ghoul	1d5164c2a086fa33	5	1/1		0/1	ix:resp
+Scalding Cauldron	05ca9953e30f17d7	5	1/1		0/1	ix:resp
+Scout the Wilderness	7b1c0cb0b554a541	4	0/0		2/4	cast/alt:kicked,ix:resp
+Selesnya Charm	dba82bded541000b	4	0/0		2/2	
+Shizo, Death's Storehouse	c386cea31994e5cf	12	2/2		0/1	ix:resp
+Short Circuit	b9122ac90da5416a	4	0/0		2/2	
+Singe	333b3c1c77967be7	5	0/0		1/2	ix:resp
+Snow-Covered Forest	a1a5f67cd8b33a1c	12	1/1		0/1	ix:resp
+Spellgorger Barbarian	99760ea06ce10f16	6	2/2		0/1	ix:resp
+Stitcher's Graft	e57dcf959c492130	69	3/3		1/1	
+Stone Haven Medic	287cda4d8479e28f	4	1/1		1/1	
+Stormblood Berserker	c6014266d543b730	4	0/0		0/0	
+Strands of Night	81a498df6049aedd	4	1/1		0/1	ix:resp
+Stupor	13e82146871af7f6	4	0/0		1/2	ix:resp
+Swooping Protector	eec05445f3f247be	8	0/0		0/0	
+Tabaxi Toucaneers	bd83d09250cdd012	4	1/1		0/1	ix:resp
+The Autonomous Furnace	8e3bf3180c613bca	12	2/2		0/1	ix:resp
+Tranquil Thicket	7f6cbe3d8c4d4b74	7	2/2		0/1	ix:resp
+Unholy Grotto	1bc87d0b6bc8e960	8	2/2		0/1	ix:resp
+Viashino Spearhunter	8ca9a4bf1d4754a7	4	0/0		0/0	
+Viper's Kiss	a243475ac0dd7e63	4	0/0		1/2	ix:resp
+Weapon Surge	f779d43cdaa6ee92	4	0/0		2/4	cast/alt:none,ix:resp
+Whispergear Sneak	4614ebcfd67cd858	10	0/0		0/0	
+Wu Warship	8b9ecf19b0e4fac2	9	0/0		0/0	
+Yavimaya Gnats	e450329b3cbd4602	8	1/1		1/1	
+Young Wolf	c83665296a954082	6	1/1		0/1	ix:resp
+Éowyn, Lady of Rohan	594531f98441a1cd	10	1/1		1/1	

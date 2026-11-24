@@ -117,6 +117,7 @@ Erstwhile Trooper
 Ethereal Investigator
 Falkenrath Marauders
 Familiar's Ruse
+Fanatic of Rhonas
 Farewell
 Fateful Showdown
 Feral Instinct
@@ -277,6 +278,7 @@ Shimmer of Possibility
 Show of Valor
 Shrine Keeper
 Sibsig Muckdraggers
+Siege Behemoth
 Sigil of Valor
 Silent Extraction
 Simian Brawler
@@ -304,6 +306,7 @@ Surge Engine
 Swamp
 Swarm Surge
 Swarm of Rats
+Swirling Spriggan
 Sword of the Animist
 Sygg, River Guide
 Tamiyo's Immobilizer
@@ -353,6 +356,7 @@ Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Woolly Razorback
 Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction

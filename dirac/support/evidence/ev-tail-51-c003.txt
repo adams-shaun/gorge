@@ -3,13 +3,16 @@ Abandon Reason
 Acquisition Octopus
 Alena, Kessig Trapper
 Arctic Merfolk
+Ardenvale Tactician
 Argent Mutation
 Arid Mesa
 Armada Wurm
+Artifact Unknown Shores
 Aspect of Manticore
 Autumn Willow, Harmony
 Aven Reedstalker
 Battlefly Swarm
+Battlewise Valor
 Bladewing, Deathless Tyrant
 Blessed Defiance
 Blinding Souleater
@@ -20,6 +23,7 @@ Brinebarrow Intruder
 Bring Low
 Brion Stoutarm
 Burning Wish
+Cabal Conditioning
 Cache Raiders
 Cackling Fiend
 Campfire
@@ -37,11 +41,14 @@ Cursed Minotaur
 Daring Escape
 Dark Privilege
 Darkslick Drake
+Darksteel Forge
 Darksteel Ingot
 Dauthi Trapper
 Decimate
 Deepwood Wolverine
+Defend the Campus
 Delayed Blast Fireball
+Demon's Due
 Dense Canopy
 Devoted Paladin
 Devour in Flames
@@ -60,8 +67,10 @@ Epic Proportions
 Equestrian Skill
 Erhnam Djinn
 Errand-Rider of Gondor
+Essence Extraction
 Eternal Isolation
 Evasive Action
+Eviscerator's Insight
 Excoriate
 Fanatic of Mogis
 Fell Stinger
@@ -70,18 +79,25 @@ Firefly
 Flames of the Firebrand
 Forest
 Freewind Equenaut
+Gallant Cavalry
+Giant Ox
+Gibbering Kami
 Gift of Growth
 Gilded Assault Cart
+Glint-Sleeve Siphoner
 Goblin Bangchuckers
 Goblin Battle Jester
 Goblin Brigand
 Goblin Masons
+Goblin Vandal
 Grazing Whiptail
+Grim Hireling
 Grim Poppet
 Guide of Souls
 Guul Draz Overseer
 Gyre Sage
 Halimar Depths
+Havoc
 Headstrong Brute
 Heedless One
 Heiko Yamazaki, the General
@@ -103,19 +119,25 @@ Junktown
 Kaya's Ghostform
 Keldon Warlord
 Kessig Dire Swine
+Killing Glare
 Kitsune Bonesetter
+Knight Exemplar
 Kolaghan Aspirant
 Leveler
 Life Chisel
+Light of Hope
 Living Wish
 Loathsome Curator
 Long-Lost Lances
 Loxodon Mystic
 Machine Over Matter
 Mass Appeal
+Master Splicer
 Merfolk Windrobber
 Might Beyond Reason
+Militant Inquisitor
 Mire in Misery
+Misshapen Fiend
 Mole Worms
 Mountain
 Needle Storm
@@ -126,21 +148,26 @@ Olivia, Mobilized for War
 One-Clown Band
 Oona's Gatewarden
 Oraxid
+Ostracize
 Ox Drover
 Parapet Watchers
 Patron Wizard
+Pestilence Rats
 Phylath, World Sculptor
+Phyrexian Monitor
 Piru, the Volatile
 Plague Beetle
 Plains
 Plunder
 Possessed Skaab
 Presence of the Wise
+Prismite
 Professor of Zoomancy
 Psionic Snoop
 Purraj of Urborg
 Quick-Draw Dagger
 Rabid Wolverines
+Radiant Grove
 Rage Thrower
 Rain of Embers
 Raven Wings
@@ -159,6 +186,7 @@ Risona, Asari Commander
 Robber Fly
 Ronin Cavekeeper
 Rorix Bladewing
+Rotting Giant
 Royal Falcon
 Rubblebelt Boar
 Sadistic Obsession
@@ -166,18 +194,24 @@ Sarkhan's Catharsis
 Satyr's Cunning
 Screams of the Damned
 Serendib Efreet
+Shade of Trokair
 Shambling Remains
 Sheoldred, Whispering One
 Shielded Passage
 Shocker
+Shrine of Burning Rage
 Sigiled Skink
 Silent Clearing
+Skulking Fugitive
 Skyblinder Staff
 Skysnare Spider
 Smashing Spree
 Sootwalkers
+Sorcerer of the Fang
 Soul Barrier
 Soul-Strike Technique
+Spare from Evil
+Specter's Wail
 Spectral Bears
 Sphere of Purity
 Spidersilk Net
@@ -187,6 +221,7 @@ Spring
 Springsage Ritual
 Stabbing Pain
 Start from Scratch
+Steelform Sliver
 Stew the Coneys
 Stir the Pride
 Strength in Numbers
@@ -198,9 +233,13 @@ Swirling Sandstorm
 Talas Warrior
 Tavern Ruffian
 Tegan Jovanka
+Territorial Hammerskull
 Theoretical Duplication
+Thermal Navigator
 Thunderous Wrath
+Thunderwolf Cavalry
 Tivadar's Crusade
+Treasonous Ogre
 Treetop Warden
 Tresserhorn Sinks
 Tuktuk Rubblefort
@@ -215,6 +254,7 @@ Vedalken Anatomist
 Veiled Apparition
 Wall of Blood
 Wall of Mist
+Wand of Orcus
 Warbeast of Gorgoroth
 Warbriar Blessing
 Wayward Soul

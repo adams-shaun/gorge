@@ -96,6 +96,7 @@ Fog on the Barrow-Downs
 Force of Despair
 Forest
 Forever Young
+Frightshroud Courier
 Funeral Longboat
 Garrison Griffin
 General Tazri
@@ -170,6 +171,7 @@ Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
 Magus of the Coffers
+Malicious Malfunction
 Mana Confluence
 Manaplasm
 Mantle of Leadership

@@ -1,36 +1,63 @@
+A-Bruenor Battlehammer
+A-Elven Bow
 A-Forge Boss
 Aether Chaser
 Akoum Battlesinger
 Aku Djinn
 Amoeboid Changeling
 Arbor Colossus
+Base Camp
+Bellowing Tanglewurm
 Binding the Old Gods
+Bird Maiden
 Blood Cultist
 Bone Pit Brute
 Brain Maggot
+Carnivorous Canopy
+Casey Jones, Asphalt Hooligan
+Cast into the Fire
 Cavern Thoctar
+Checkpoint Officer
+Children of Korlis
 Chorus of the Tides
+Cliffhaven Sell-Sword
 Coast Watcher
 Communal Brewing
+Court Hussar
 Crystal Seer
+Dega Sanctuary
 Devastation
 Dispersal Shield
+Doomfall
 Drake Hatchling
 Dreadhorde Butcher
+Drogskol Shieldmate
+Eldrazi Monument
 Empty the Laboratory
 Epic Confrontation
+Expel
+Fairgrounds Patrol
+Favored of Iroas
 Filter Out
+Foggy Nelson, On Retainer
 Forest
 Frost Lynx
 Gloomhunter
 Grimgrin, Corpse-Born
+Gruul Signet
+Hammerheim Deadeye
 Havengul Runebinder
 Hieromancer's Cage
 High Ground
+Horses of the Bruinen
+Icatian Scout
 Ideas Unbound
 Ingenious Infiltrator
 Innovative Metatect
 Island
+Lagonna-Band Storyteller
+Leonardo, Worldly Warrior
+Leonin Bladetrap
 Leyline Phantom
 Liliana's Spoils
 Ludevic's Test Subject
@@ -40,25 +67,49 @@ Mountain
 Mudhole
 Odric's Outrider
 Omnispell Adept
+Oppressive Will
 Order of Sacred Dusk
+Pendrell Mists
 Phantom Wings
 Plains
 Plow Through Reito
 Polyraptor
 Prickly Marmoset
+Priest of Titania
 Princess Lucrezia
+Ramosian Lieutenant
+Return of the Mole Man
 Road
+Sai of the Shinobi
+Scavenging Scarab
+Sea Sprite
 Seshiro the Anointed
+Shiny Impetus
+Sinister Strength
 Slaughter-Priest of Mogis
+Spectral Lynx
+Spiderwig Boggart
 Spirit en-Kor
 Stampede
+Stealer of Secrets
+Stormchaser Drake
+Strategic Planning
 Sturmgeist
 Swamp
 Talisman of Resilience
 Thalakos Drifters
+Thornwind Faeries
 Thundering Raiju
 Tibalt's Rager
+Totally Lost
+Treason of Isengard
 Triumph of Cruelty
 Vat of Rebirth
+Vengeful Firebrand
+Vine Mare
 Voldaren Epicure
 Wall of Earth
+Whispersilk Cloak
+Wild Aesthir
+Woodland Guidance
+Yellow Scarves Cavalry

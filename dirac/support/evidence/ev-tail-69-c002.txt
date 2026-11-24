@@ -11,6 +11,7 @@ Amy Rose
 Ancient Amphitheater
 Angelic Blessing
 Anje's Ravager
+Aphelia, Viper Whisperer
 Arctic Aven
 Arctic Flats
 Atrocious Experiment
@@ -305,6 +306,7 @@ Tel-Jilad Exile
 Tempest Drake
 Temple Bell
 Thirst for Meaning
+Thorn of the Black Rose
 Thriving Ibex
 Throne of Geth
 Thunderfoot Baloth
@@ -352,4 +354,5 @@ Wreak Havoc
 You Meet in a Tavern
 Youthful Scholar
 Zagoth Triome
+Zhalfirin Lancer
 Zodiac Ox

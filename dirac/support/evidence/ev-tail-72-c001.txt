@@ -275,6 +275,7 @@ Ore Gorger
 Overwhelming Instinct
 Overwhelming Victory
 Pact of Negation
+Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
 Patron of the Valiant
@@ -299,6 +300,7 @@ Potatoes
 Prepare
 Primal Growth
 Prismatic Geoscope
+Prismatic Lace
 Prosperous Innkeeper
 Protective Bubble
 Prowling Nightstalker
@@ -365,6 +367,7 @@ Servant of Volrath
 Setessan Petitioner
 Shadow-Rite Priest
 Shield Sphere
+Shield of the Righteous
 Shizo, Death's Storehouse
 Shrewd Negotiation
 Shriek Raptor

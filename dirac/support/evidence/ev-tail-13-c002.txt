@@ -93,11 +93,13 @@ Dive Bomber
 Diversionary Tactics
 Diviner's Lockbox
 Doomskar Oracle
+Dreadful as the Storm
 Dreadhorde Invasion
 Drivnod, Carnage Dominus
 Drove of Elves
 Drown in Dreams
 Drunau Corpse Trawler
+Duskmantle, House of Shadow
 Dutiful Return
 Earth Tremor
 Ecologist's Terrarium
@@ -237,6 +239,7 @@ Old Stickfingers
 Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
+Oran-Rief, the Vastwood
 Order of the Golden Cricket
 Order of the Mirror
 Order of the White Shield
@@ -331,8 +334,10 @@ Stromkirk Patrol
 Surrakar Marauder
 Swamp
 Sword of the Paruns
+Tainted Field
 Tenacious Dead
 Tervigon
+The Dross Pits
 The Scorpion God
 Thopter Assembly
 Thopter Spy Network
@@ -345,6 +350,7 @@ Titanium Man
 Tocatli Honor Guard
 Tome Shredder
 Toolcraft Exemplar
+Toothy, Imaginary Friend
 Trained Jackal
 Traitorous Greed
 Tribute to Urborg

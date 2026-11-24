@@ -37,6 +37,7 @@ Barbarian Lunatic
 Bastion Inventor
 Beast Attack
 Biting Rain
+Blessed Reincarnation
 Blight Grenade
 Blight Sickle
 Blisterspit Gremlin
@@ -82,6 +83,7 @@ Crop Rotation
 Crypt Incursion
 Crystalline Armor
 Culling Mark
+Curator Beastie
 Custodi Soulbinders
 Daily Bugle Newspaper
 Daring Fiendbonder
@@ -129,6 +131,7 @@ Firebird, Blazing Ranger
 Flametongue Kavu
 Flashfires
 Fleetfeather Sandals
+Flensing Raptor
 Fleshpulper Giant
 Floodhound
 Flow of Ideas

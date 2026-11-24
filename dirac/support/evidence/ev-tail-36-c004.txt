@@ -1,99 +1,281 @@
+A-Esika's Chariot
 Aberrant Return
+Abuna Acolyte
 Accomplished Automaton
+Adanto Vanguard
 Aether Spike
+Aggressive Sabotage
 Akki Drillmaster
+Alaborn Cavalier
 Alela, Artful Provocateur
+Alert Heedbonder
+Aligned Hedron Network
+Alloy Animist
+Apostle of Invasion
+Appetite for Brains
+Arrow Volley Trap
+Atzocan Archer
 Auriok Steelshaper
 Avacyn's Pilgrim
+Aviation Pioneer
 Azra Oddsmaker
+Baleful Ammit
+Bar the Gate
+Barishi
+Battlewise Aven
+Belltower Sphinx
+Black Oak of Odunos
+Blessed Reversal
+Blightspeaker
+Bond of Agony
+Braidwood Cup
+Bramble Creeper
+Bramblewood Paragon
+Branded Brawlers
 Break Down
 Brush with Death
 Campaign of Vengeance
+Candlegrove Witch
 Capashen Templar
 Captain Lannery Storm
 Castle Ardenvale
+Cephalid Scout
+Chain of Vapor
+Champion of Lambholt
+Chaos Harlequin
+Charge of the Mites
 Collar the Culprit
+Collision
+Corrupted Conscience
+Cower in Fear
 Crackling Drake
+Craterize
 Craven Knight
 Cryptic Serpent
+Dawn Elemental
+Defile
 Dispersal Shield
+Downpour
 Dowsing Shaman
+Drumbellower
+Dwarven Berserker
+Dwarven Priest
 Earth Surge
+Elesh Norn, Grand Cenobite
+Elspeth, Knight-Errant
+Elvish Bard
 Emeria's Call
+Epitaph Golem
+Erdwal Ripper
 Etherium-Horn Sorcerer
+Exotic Disease
+Faithful Watchdog
+False Defeat
+Fire Servant
+Firefiend Elemental
 Font of Mythos
 Forest
 Forge Armor
+Frantic Confrontation
 Fyndhorn Bow
 Galazeth Prismari
+Gallowbraid
 General's Kabuto
 Ghitu Amplifier
 Ghitu War Cry
 Gift of Tusks
 Gift of the Viper
+Gilt-Leaf Seer
+Glare of Heresy
 Goldnight Commander
+Goliath Sphinx
 Goliath Truck
+Graceful Adept
 Great Desert Prospector
+Great Whale
+Grixis Illusionist
+Harvesttide Infiltrator
+Haunted Cloak
 Heart Warden
+Heat Ray
+Heaven
+Hecatomb
 Hero of the Winds
+Hidden Path
+Hoarding Ogre
+Honden of Infinite Rage
+Horrid Shadowspinner
+Hurricane
+Illuminator Virtuoso
 Impending Disaster
+Insolent Neonate
+Inspired Fire
+Iron Apprentice
 Island
+It's Clobberin' Time!
+Jace's Ruse
+Jace's Triumph
 Jokulmorder
+Jugan, the Rising Star
+Juniper Order Druid
 Jwari Shapeshifter
+Kami of the Crescent Moon
+Kargan Warleader
 Kathari Remnant
+Kaya's Onslaught
 Keensight Mentor
 Kirtar's Desire
 Kolvori, God of Kinship
+Kor Sanctifiers
 Kraul Warrior
+Krosan Warchief
+Lae'zel, Vlaakith's Champion
 Leaden Myr
+Leonin Snarecaster
+Lingering Death
+Lion Umbra
+Liturgy of Blood
 Loch Korrigan
 Locthwain Gargoyle
 Lodestone Golem
+Lone Missionary
+Longtusk Cub
+Loxodon Mender
+Lurking Deadeye
+Luxa River Shrine
+MJ, Rising Star
 Magmaw
+Malefic Scythe
 Mardu Hordechief
 Masked Vandal
+Megaton's Fate
 Mesmerizing Dose
+Mikaeus, the Lunarch
+Mike, the Dungeon Master
+Mindstab
+Minotaur Abomination
 Mite Overseer
+Mobilization
+Molten Firebird
+Mona Lisa, Ever Adaptable
 Mountain
+Myr Scrapling
+Necrogen Mists
 Necrosquito
 Nephalia Moondrakes
+Network Terminal
+Neurok Hoversail
+Nightmare Incursion
+Nightwind Glider
+Nimble Innovator
 Ocelot Pride
 Olivia, Mobilized for War
+Oneirophage
+Orcish Siegemaster
 Parasitic Bond
+Phyrexian Vivisector
+Pious Warrior
 Pitiless Plunderer
 Plains
+Plaxcaster Frogling
+Pride of Conquerors
+Primordial Wurm
 Psychic Membrane
 Pulsemage Advocate
+Pursuit of Flight
 Quest for Pure Flame
+Rally the Forces
+Ravenous Rats
+Reach of Shadows
+Reckless Fireweaver
 Reef Pirates
+Rekindling Phoenix
+Rescuer Chwinga
+Resilient Khenra
+Rhox Faithmender
 Righteous Cause
 Rogue Kavu
+Rookie Mistake
+Rootwater Alligator
 Rootwater Mystic
+Rot-Tide Gargantua
 Rousing Read
+Rumor Gatherer
 Ruthless Cullblade
+Sacred Wolf
+Sadistic Sacrament
+Sanctum Seeker
 Sanitarium Skeleton
+Scepter of Dominance
+Scorched Rusalka
+Scour from Existence
+Seer's Lantern
 Segovian Angel
+Seize the Storm
 Serum Visions
+Settle Beyond Reality
 Shaleskin Bruiser
+Shambling Ghast
+Shellshock
 Shriekgeist
+Silvergill Douser
+Skarrg Guildmage
+Skitter Eel
 Skulking Fugitive
+Skull Collector
+Slimefoot's Survey
 Smitten Swordmaster
+Snow-Covered Wastes
+Somberwald Spider
 Soul Partition
+Specter's Shroud
+Spike Worker
 Spined Tyrranax
+Spreading Seas
+Springleaf Parade
+Staff of Domination
+Staff of the Mind Magus
+Stomping Slabs
+Stream of Unconsciousness
 Sultai Banner
+Sunbaked Canyon
+Sundering Vitae
 Supply Runners
+Surge Node
 Svyelun of Sea and Sky
 Swamp
+Sword of Kaldra
 Take Down
+Tall as a Beanstalk
+Telethopter
+Tendershoot Dryad
 Tezzeret the Schemer
+Tezzeret's Gatebreaker
 The Third Doctor
+Thicket Crasher
+Thought Scour
 Thran Spider
 Three Visits
+Thrill of the Hunt
+Throwing Knife
+Thunderwave
 Transcendent Envoy
+Triplicate Spirits
+Triumphant Reckoning
+Urza's Chalice
+Veteran of the Depths
+Vitalizing Wind
 Volrath's Gardens
 Wanda's Vision
+War Mammoth
+Well of Ideas
 Wheel and Deal
+Wild Beastmaster
+Wildfire Emissary
 Witches' Eye
 Woodland Patrol
+Woodwraith Strangler
+Worldsoul Colossus
+Wrap in Flames
 Xenograft
 Youthful Knight

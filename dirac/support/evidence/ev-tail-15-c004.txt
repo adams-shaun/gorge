@@ -3,8 +3,10 @@ A-Radha's Firebrand
 Aerial Maneuver
 Alexi's Cloak
 Angelheart Protector
+Aphotic Wisps
 Arrows of Justice
 Artful Maneuver
+Augury Owl
 Avatar of Will
 Aven Brigadier
 Aven Eternal
@@ -14,6 +16,7 @@ Blinding Radiance
 Boon of Emrakul
 Brightclimb Pathway
 Brimstone Mage
+Brood Butcher
 Buoyancy
 Burden of Guilt
 Chatterstorm and Awaken the Woods
@@ -22,14 +25,18 @@ Chrome Cat
 Colossus Hammer
 Conclave's Blessing
 Copperhoof Vorrac
+Corrupted Resolve
 Courier Griffin
 Crimson Roc
 Cyclone Summoner
+Dark Triumph
 Dawnfeather Eagle
 Declare Dominance
 Delightful Discovery
 Deluge of Doom
 Dingus Staff
+Diplomacy of the Wastes
+Dire Fleet Hoarder
 Dreadhorde Arcanist
 Drossclaw
 Dúnedain Blade
@@ -48,6 +55,7 @@ Femeref Scouts
 Festival of the Guildpact
 Flameshot
 Flowstone Strike
+Foreboding Statue
 Forest
 Furious Assault
 Gixian Skullflayer
@@ -59,6 +67,7 @@ Great Hall of Starnheim
 Greenseeker
 Grenzo's Cutthroat
 Grey Knight Paragon
+Grim Guardian
 Grip of Desolation
 Headlong Rush
 Healing Leaves
@@ -73,6 +82,7 @@ Island
 Jackal Familiar
 Kami of Whispered Hopes
 Kenrith's Transformation
+Knight of New Benalia
 Kraken Hatchling
 Krark-Clan Engineers
 Learn from the Past
@@ -80,6 +90,7 @@ Leonin Battlemage
 Leyline of Punishment
 Lightning Blast
 Lose Calm
+Lychguard
 Mana Flare
 Maralen of the Mornsong
 Maro
@@ -97,15 +108,19 @@ Obelisk of Esper
 Ogre Gatecrasher
 Otherworld Atlas
 Oxidize
+Palladium Myr
+Path of Peril
 Pheres-Band Brawler
 Phthisis
 Plains
 Pledge of Unity
 Portcullis Vine
+Primal Bellow
 Psychic Impetus
 Pyre Hound
 Quagmire Lamprey
 Ragged Veins
+Raise the Draugr
 Ransom Note
 Reaver Drone
 Reckless Amplimancer
@@ -118,9 +133,11 @@ Seal of Fire
 Shared Trauma
 Shrieking Drake
 Shrouded Serpent
+Sign in Blood
 Sindbad
 Sip of Hemlock
 Skyclave Pick-Axe
+Skyfisher Spider
 Smitten Swordmaster
 Soratami Seer
 Sorcerer's Wand
@@ -153,6 +170,7 @@ Two-Headed Sliver
 Uktabi Orangutan
 Ulamog's Crusher
 Umbral Mantle
+Unstable Obelisk
 Urza's Science Fair Project
 Viridian Acolyte
 Volcanic Spray
@@ -163,6 +181,7 @@ Warhorn Blast
 Waterknot
 Whipflare
 Whirlermaker
+Wild Hunger
 Wrack with Madness
 Zodiac Rat
 Zuran Orb

@@ -1,39 +1,86 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Alaborn Musketeer	81899456889e9d86	4	0/0		0/0	
+An Unearthly Child	bcb023a791a4194b	4	0/0		0/0	
+Angelic Aberration	035c91d25c73fd89	5	1/1		0/1	ix:resp
 Angelic Skirmisher	4c1fc8601af5520d	30	1/1		1/1	
+Assassin Gauntlet	81ff59d73ce68f84	3	2/2		0/1	ix:resp
 Atlas, Sizable Stooge	ff3ca70379552d94	22	2/2		1/1	
+Ballista Charger	eb0bb1f84ef5a2e9	4	2/2		0/1	ix:resp
+Battle-Scarred Goblin	f758c2889bf85ea1	7	1/1		0/1	ix:resp
+Benevolent Hydra	706cc0b0886284ed	3	1/1		0/1	ix:resp
 Black Scarab	af7ad7369be7c942	47	0/0		2/2	
+Blood Host	8e808bb1b27cf5cd	4	1/1		0/1	ix:resp
+Bravado	5ce911ab969228a7	8	0/0		2/2	
+Bull-Rush Bruiser	2d84b36e6fa55eff	5	1/1		0/1	ix:resp
 Burdened Aerialist	0a054945ea18909e	31	2/2		0/1	ix:resp
+Callous Bloodmage	fbfad71500993404	4	1/1		0/1	ix:resp
+Chain Stasis	98873f8550fa421f	4	0/0		2/2	
+Champion of the Parish	2cc611dc04213565	3	1/1		0/1	ix:resp
+Chief Magistrate of Mercadia	0a49e92741bc1f69	5	2/2		0/1	ix:resp
 Chorus of Woe	ad0bb79bab6acbdf	25	0/0		2/2	
+Cleansing Nova	c3012f2891ddb1eb	3	0/0		1/2	ix:resp
 Commander Greven il-Vec	5277cc5f97f51afa	24	1/1		0/1	ix:resp
 Consumptive Goo	70cb75037a4bc62d	32	1/1		1/1	
 Corpse Knight	1aa8ae27f85bb59e	28	1/1		1/1	
+Cruel Deceiver	e84e6859a8d16801	4	2/2		1/1	
+Curse of the Forsaken	654c0c42dca53ed5	5	1/1		2/2	
+Darksteel Sentinel	60fdfbb96344dcb6	4	0/0		0/0	
 Deadly Derision	d71091d129671ef8	40	0/0		2/2	
 Discordant Piper	d18f05fe3952291e	36	1/1		0/1	ix:resp
 Doomwake Giant	952501f3c8919b0f	22	1/1		1/1	
+Echoing Truth	b284e60ab7363595	4	0/0		2/2	
 Elvish Champion	588dc9248b0f57a4	50	0/0		0/0	
+Expanded Anatomy	ccfa29d5cd457531	4	0/0		2/2	
+Faerie Invaders	cd26dfb3df086f67	7	0/0		0/0	
 Floodgate	f3544ec848eee252	38	2/2		1/1	
 Ghitu Chronicler	4076735e60cef949	21	1/1		2/3	ix:resp
 Gift of Orzhova	0d77154522ed541f	21	0/0		2/2	
+Glimpse of Freedom	d2463ae5c2e17122	8	0/0		3/4	cast/alt:escaped
 Gloomshrieker	42bae160b557e4c8	31	1/1		1/1	
 Glyph Elemental	9456889e63c2db83	4	1/1		3/3	
+Harmonic Prodigy	2f98a9ba3fe8d33f	8	1/1		0/1	ix:resp
 Hoard Robber	70cab966e84122dd	27	1/1		1/1	
+Hunted Witness	ee65f38b037771bd	4	1/1		0/1	ix:resp
 Hypnotic Specter	1daca8d5e0a3c7a7	41	1/1		1/1	
+Ironshell Beetle	976e05217dd06a19	4	1/1		0/1	ix:resp
+Jinx	1fd8d6d33d835344	6	0/0		1/2	ix:resp
+Juntu Stakes	b253a865a2b21905	6	0/0		0/0	
 Kor Aeronaut	ad11ea41aab56917	67	1/1		2/3	ix:resp
 Legolas, Master Archer	ac589036e182aef3	45	2/2		1/1	
 Levitation	146aea6d5042069a	4	0/0		0/0	
 Martyr for the Cause	bc5d9e48ea7e8718	4	1/1		0/1	ix:resp
 Mourning Thrull	7ea319f66043d8dd	24	1/1		0/1	ix:resp
+Murderer's Axe	b194d3f10b1da262	5	1/1		0/1	ix:resp
+Mystic Visionary	d875bd62e950179e	5	0/0		0/0	
 Nimbus Naiad	4f75aa63b198f860	4	0/0		1/2	cast/alt:bestowed
 Phyrexian Battleflies	fb0e94fe97cc65bc	28	1/1		1/1	
+Polymorphist's Jest	059c59e7487b58a8	6	0/0		1/2	ix:resp
+Razormane Masticore	b07ae2ac0cd7a774	3	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Reclusive Artificer	0dd291b25b45feb4	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ronin Warclub	adc6782810b3ea92	51	2/2		1/1	
 Sandcrafter Mage	03ffb3aef3a4b4c3	4	1/1		1/1	
+Scribe of the Mindful	a43fd6a835499f8c	6	1/1		0/1	ix:resp
 Shadowcloak Vampire	17592ce474f16ee2	40	1/1		1/1	
+Sibling Rivalry	f556ba91cf130ebb	5	0/0		2/2	
+Silhana Wayfinder	70d27b8b74a8d112	8	1/1		0/1	ix:resp
+Silvercoat Lion	130dd1c83c53da1c	3	0/0		0/0	
 Sinuous Vermin	d44f14df56a98802	72	1/1		0/1	ix:resp
+Skyclave Squid	a204f5235aca8fa1	4	1/1		0/1	ix:resp
 Solid Footing	178dcfc42b7944c1	4	0/0		1/2	ix:resp
 Soothsayer Adept	a902a29823373d6a	4	1/1		0/1	ix:resp
+Soratami Cloudskater	028c7b78874dee55	3	1/1		0/1	ix:resp
+Starnheim Courser	a8279bf90972fb1e	6	0/0		0/0	
+Steal Enchantment	9899cf4db06def43	3	0/0		1/2	ix:resp
+Sylvan Might	9be55761c21af09d	8	0/0		4/4	
+Thought Courier	3eba88a01c77ba43	7	1/1		1/1	
 Treasury Thrull	245ebbbaa915c502	3	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Uktabi Faerie	f12c217ba914436a	6	1/1		0/1	ix:resp
 Ultimate Alliance	c26c736aca2776c5	64	0/0		2/2	
 Undead Leotau	7240dee04bff4bba	33	2/2		1/1	
+Viper, Cruel Conspirator	26af32aefcb01b3f	6	2/2		1/1	
 Vision, Synthezoid Avenger	e1a5e6b5efc90e86	44	1/1		1/1	
 Vraska's Finisher	03d328f86d9108d4	66	1/1		1/1	
+Waterlogged Grove	f0e6ee8159adced8	23	2/2		0/1	ix:resp
+White Sun's Zenith	f5d71d3590f1ed04	6	0/0		2/4	f0/s/x0,ix:resp
 White Widow, Yelena Belova	029f1376f3107252	32	1/1		1/1	
+Wu Admiral	508157690536d896	5	0/0		0/0	

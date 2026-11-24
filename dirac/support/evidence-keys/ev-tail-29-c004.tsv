@@ -1,23 +1,80 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Cosmos Elixir	d28e5f3accb8d910	5	1/1		0/1	ix:resp
+Accorder's Shield	2b6f5664769c2816	8	1/1		0/1	ix:resp
 Akoum Battlesinger	ce9c2632997c0365	42	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Amoeboid Changeling	d5ea262dde8aa102	74	2/2		1/1	
 Arbor Colossus	85b2dc9ebe24db9a	26	2/2		1/1	
+Base Camp	e6758dec7d6033d2	17	2/2		0/1	ix:resp
+Bastion Mastodon	43e3e7dfc31ee740	9	1/1		0/1	ix:resp
+Brain Maggot	c33f82b8aaf624f7	10	1/1		1/1	
+Cateran Enforcer	0a2a7d979ae61aee	6	1/1		0/1	ix:resp
 Cavern Thoctar	bfb18c260991a4ad	20	1/1		1/1	
+Coast Watcher	92229a6d29beda7a	6	0/0		0/0	
 Communal Brewing	c27580abde404f28	5	2/2		0/1	ix:resp
+Debtors' Transport	331c91dea9a1fa84	3	1/1		0/1	ix:resp
 Devastation	61a36a2edcff067e	19	0/0		2/2	
+Dirty Wererat	3cf36210c480042e	4	1/1		1/1	
+Dispersal Shield	4c66fc70fb703546	5	0/0		1/2	ix:resp
+Doomfall	9e2ace29dd2818ea	14	0/0		2/2	
+Dread of Night	3845cfa479c42fb8	26	0/0		0/0	
+Eerie Soultender	eb152916979f0d13	4	2/2		0/1	ix:resp
+Electrostatic Pummeler	6a6924ebede529a6	6	2/2		0/1	ix:resp
+Exert Influence	ebe2a8dc8f1a7785	3	0/0		1/2	ix:resp
+False Cure	0360245b7b476b01	4	0/0		2/2	
 Frost Lynx	256dcc279a9f14fd	5	1/1		0/1	ix:resp
+Gloomhunter	a2e432cd2ad36830	11	0/0		0/0	
+Grafted Wargear	68e213bebe484dbb	3	2/2		0/1	ix:resp
+Gruul Signet	b1dcf1d646ccc8de	8	1/1		1/1	
+Guardian of Tazeem	b1a46bfe5fe9ccfc	4	1/1		1/1	
 Hammerheim Deadeye	224911f2f05ceed0	4	2/2		0/1	ix:resp
 Havengul Runebinder	e55aae12775585e5	74	1/1		1/1	
 Heated Debate	0315ed5c0f060ccc	4	0/0		1/2	ix:resp
 High Ground	972629f63bd9977e	6	0/0		0/0	
+Hindering Touch	592e05b7611c65a1	7	1/1		2/2	
+Howling Banshee	958fe23e62033882	7	1/1		0/1	ix:resp
 Ideas Unbound	bc9bb4d23c7863ec	49	0/0		1/2	ix:resp
+Jadar, Ghoulcaller of Nephalia	03b25dc1e02249ab	7	1/1		0/1	ix:resp
+Jousting Lance	6a869198143eadbf	7	1/1		0/1	ix:resp
+Kira, Great Glass-Spinner	079d44d4e2e56c28	10	0/0		0/0	
+Leonin Bladetrap	3ecfbd5f52f8c95a	4	1/1		0/1	ix:resp
+Leyline Phantom	2b8bf783cf96b413	10	1/1		0/1	ix:resp
+Living Wall	7feb02d5750241c4	6	1/1		1/1	
 Ludevic's Test Subject	1690b7045b162341	3	1/1		0/1	ix:resp
+Merrow Grimeblotter	6d76427e8170d39e	3	1/1		0/1	ix:resp
 Mind Games	ba103d3fc0359106	88	0/0		4/4	
+Myr Battlesphere	e9d40446864ef9e5	3	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Mystic of the Hidden Way	cd90d80acef5fcad	5	0/0		1/2	cast/alt:morphed
+Noxious Groodion	e1aeaff69c98b821	10	0/0		0/0	
+Oppressive Will	7b0ca40865a83f79	6	0/0		2/2	
+Pendrell Mists	64c5668d3cabd950	6	0/0		0/0	
+Phantom Wings	2189c06209fad732	6	1/1		1/2	ix:resp
+Plague Sliver	de3aeace9ef75ded	5	0/0		0/0	
 Plow Through Reito	c9ec71bfdca733d2	86	0/0		2/2	
 Prickly Marmoset	5c385a6a3bf2cef4	35	1/1		0/1	ix:resp
+Princess Lucrezia	9f27039bbb326d32	10	1/1		0/1	ix:resp
+Revoke Demise	16bffd30ec203616	3	0/0		2/2	
+Sai of the Shinobi	1bc04f28dc9db7dc	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Saltwater Stalwart	d21e76171df0c382	7	1/1		0/1	ix:resp
+Scavenging Scarab	5bb217ce21f1db43	3	0/0		0/0	
+Sea Sprite	0b6fc52c34a2e2be	6	0/0		0/0	
+Skullmead Cauldron	e186efe3ae3785ab	6	2/2		1/1	
+Soul of the Rapids	6bd9d5ae34c8ce4a	8	0/0		0/0	
+Spiderwig Boggart	efa0f44a1b4aa0c5	7	1/1		0/1	ix:resp
 Spirit en-Kor	cbfe6bfaabb95ac0	38	1/1		1/1	
+Stabbing Pain	85f589dcc0176ef5	15	0/0		2/2	
 Stampede	66a5a5924a139857	28	0/0		2/2	
+Stealer of Secrets	be605ab2e7579bcc	6	1/1		0/1	ix:resp
+Strategic Planning	416d82c088afe0de	17	0/0		2/2	
 Tibalt's Rager	3f4a5ddea626862f	48	2/2		1/1	
+Titan Forge	148c834e147de8f0	4	2/2		1/1	
+Totally Lost	e92a6e40b9f79382	6	0/0		1/2	ix:resp
+Treason of Isengard	6a80a28c9292f64d	4	0/0		1/2	ix:resp
+Triumph of Cruelty	a4472e58b78e7528	5	1/1		1/1	
+Turtle-Seals	ef54fbd6bd3641ea	10	0/0		0/0	
+Vat of Rebirth	daf7047c46351e43	10	2/2		0/1	ix:resp
 Wall of Earth	06ac1df98877341e	40	0/0		0/0	
+Warping Wail	bac5e863b80be3c8	3	0/0		1/2	ix:resp
 Whip Vine	4fccb81b34abd67e	33	1/1		1/1	
+Wilhelt, the Rotcleaver	381bd9dbc53acfb3	61	2/2		1/1	
 Woodland Guidance	fd277173ad691141	32	0/0		2/2	
+Zodiac Pig	b41ea03bdc6092ba	4	0/0		0/0	

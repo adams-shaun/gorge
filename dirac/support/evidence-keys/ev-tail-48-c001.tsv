@@ -25,6 +25,7 @@ Burst of Energy	0f4dfc1e262134bd	155	0/0		2/2
 Cackling Counterpart	0f5b99cd6f55b10c	12	0/0		3/4	ix:resp
 Carnifex Demon	c5089479557b93bc	81	1/1		1/1	
 Cathars' Crusade	97a1fe94b68ac1f9	92	1/1		1/1	
+Cathodion	5bf58f720ee3ec44	6	1/1		0/1	ix:resp
 Chitinous Cloak	9345fe3ccf59acf7	100	1/1		1/1	
 Circle of Affliction	6c8ae75c5762cc51	105	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Citanul Stalwart	68569c14e1789f45	6	1/1		0/1	ix:resp
@@ -78,6 +79,7 @@ Gift of Strength	00148415f6c6c668	32	0/0		1/2	ix:resp
 Goblin Piledriver	188fe97d2977021e	6	1/1		0/1	ix:resp
 Golgari Thug	094f77996fd312a7	6	1/1		0/1	ix:resp
 Gorehorn Minotaurs	854de0e053100c07	4	0/0		0/0	
+Grand Melee	e2f2051d075e58c2	4	0/0		0/0	
 Greatsword	98e74091cf46789e	4	1/1		0/1	ix:resp
 Grizzly Fate	fbe8f559ba50a68e	8	0/0		3/4	ix:resp
 Gruesome Scourger	1487e46a446dcb45	91	1/1		1/1	
@@ -127,6 +129,7 @@ Oblivion Crown	42bb29d0fb03acee	166	0/0		2/2
 Olivia's Dragoon	b2dd957df18be833	6	1/1		1/1	
 Order of the Ebon Hand	cdb1fb0e649388ed	4	2/2		1/1	
 Order of the Stars	dda65877f46e9d41	137	0/0		0/0	
+Palace Jailer	3f28977ec676c2cc	4	2/2		1/1	
 Patron of the Arts	4866ed90df953817	4	2/2		0/1	ix:resp
 Pile On	af82bbcc9562a078	94	0/0		2/2	
 Pride Sovereign	825b079c166caf70	5	1/1		0/1	ix:resp
@@ -170,6 +173,7 @@ Sunken Field	6802bc6e9215bb8d	5	0/0		2/2
 Thalakos Deceiver	a5460304ee0ad825	49	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Theft of Dreams	66c26f94739a352d	11	0/0		2/2	
 Thoughtseize	e6d275098cb5c79a	17	0/0		2/2	
+Torii Watchward	317f69160d362ab5	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Treefolk Healer	afde5d002c183a84	6	1/1		1/1	
 Ulvenwald Oddity	6de739170b0cc168	6	1/1		0/1	ix:resp
 Unchained Berserker	8320b4e3f504b660	6	0/0		0/0	

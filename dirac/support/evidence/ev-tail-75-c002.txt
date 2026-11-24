@@ -74,6 +74,7 @@ Dawning Angel
 Death's Shadow
 Delraich
 Demon's Disciple
+Demonic Torment
 Dense Foliage
 Deputized Protester
 Deranged Assistant
@@ -342,6 +343,7 @@ Wingsteed Rider
 Wizard Replica
 Wolfwillow Haven
 Woodland Stream
+Woolly Razorback
 Yoshimaru, Ever Faithful
 Zap
 Zealot's Conviction
