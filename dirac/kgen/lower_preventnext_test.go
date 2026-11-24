@@ -38,13 +38,13 @@ func TestPreventNextLowers(t *testing.T) {
 }
 
 // TestPreventNextRefusals: each shape the shield cannot model refuses with its
-// own reason, in the api:PreventDamage class.
+// own reason, in the api:PreventDamage class. The rider, Radiance and
+// Defined$ Valid set forms lower (TestPreventDamageFormsLower); a rider SVar
+// that resolves to no ability still refuses.
 func TestPreventNextRefusals(t *testing.T) {
 	for _, tc := range []struct{ line, want string }{
-		{"A:SP$ PreventDamage | ValidTgts$ Any | Amount$ 3 | PreventionSubAbility$ Rider | ShieldEffectTarget$ ParentTarget | SpellDescription$ Probe.", "PreventionSubAbility: a rider"},
-		{"A:SP$ PreventDamage | ValidTgts$ Creature | Amount$ 1 | Radiance$ True | SpellDescription$ Probe.", "Radiance"},
+		{"A:SP$ PreventDamage | ValidTgts$ Any | Amount$ 3 | PreventionSubAbility$ Rider | ShieldEffectTarget$ ParentTarget | SpellDescription$ Probe.", "PreventionSubAbility$ \"Rider\" resolves to no ability"},
 		{"A:SP$ PreventDamage | Defined$ You | Amount$ 1 | CombatDamage$ False | SpellDescription$ Probe.", "CombatDamage$ \"False\""},
-		{"A:SP$ PreventDamage | Defined$ Valid Creature & Player | Amount$ 1 | SpellDescription$ Probe.", "a set of recipients"},
 	} {
 		src := "Name:Probe Salve\nManaCost:W\nTypes:Instant\n" + tc.line + "\nOracle:Probe.\n"
 		c := lowerScriptCard(t, "Probe Salve", src)

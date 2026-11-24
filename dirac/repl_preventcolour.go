@@ -77,7 +77,7 @@ func (s *State) prevColHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) b
 // riderless (pnxBare).
 func (s *State) prevColRiderHit(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
 	for i := range s.g.prevCol {
-		if s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
+		if s.g.prevCol[i].sc&prevNextSc == 0 && s.g.prevX[i]&pxRider != 0 && s.prevRecHit(k, i, sl, c, t, combat) {
 			return true
 		}
 	}

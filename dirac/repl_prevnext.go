@@ -122,7 +122,39 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 			return // a shield that prevents nothing is no decision (gorge: total <= 0)
 		}
 	}
-	code := s.refCode(k, in.Obj)
+	rider := uint8(0)
+	switch {
+	case in.C&kop.PrevNextRiderCounter != 0:
+		rider = pxRidCtr
+	case in.C&kop.PrevNextRiderDelayedCounter != 0:
+		rider = pxRidDelayCtr
+	case in.C&kop.PrevNextRiderDamage != 0:
+		rider = pxRidDmg
+	}
+	var rt TCode = NoTarget
+	gate := rider == pxRidDelayCtr && in.W == kop.RefSelf
+	if rider != 0 && in.W != 0 && !gate {
+		rt = s.refCode(k, in.W)
+	}
+	switch {
+	case in.C&kop.PrevNextDivided != 0:
+		s.prevNextDivided(k, in, rider, rt, gate)
+	case in.C&kop.PrevNextMultiObj != 0:
+		s.prevNextEachObj(k, in, n, all, from, rider, rt, gate)
+	case in.C&kop.PrevNextMultiPlayer != 0:
+		s.prevNextEachPlayer(k, in, n, all, from, rider, rt, gate)
+	case in.C&kop.PrevNextRadiance != 0:
+		s.prevNextRadiance(k, in, n, all, from, rider, rt, gate)
+	default:
+		s.prevNextInstall(k, in, s.refCode(k, in.Obj), n, all, from, rider, rt, gate)
+	}
+}
+
+// prevNextInstall stores one shield record for recipient code, or stalls
+// StallPrevCol when the three records are taken. A player no longer in the
+// game and an object no longer on the battlefield take no shield (gorge's
+// recipient walk).
+func (s *State) prevNextInstall(k *prep, in *kop.Instr, code TCode, n int, all, from bool, rider uint8, rt TCode, gate bool) {
 	if code == NoTarget {
 		return
 	}
@@ -140,7 +172,10 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, kop.ColorMask(n), prevNextSc, code
-			s.g.prevX[i] = 0
+			s.g.prevX[i] = rider
+			if rr := s.prevRidAt(i); rr != nil {
+				rr.t, rr.n, rr.gate = rt, 0, gate
+			}
 			if in.C&kop.PrevNextCombat != 0 { // seat-ok: an instruction flag bit
 				r.sc |= prevNextCmb
 			}
@@ -158,11 +193,136 @@ func (s *State) prevNextAdd(k *prep, in *kop.Instr) {
 				if in.C&kop.PrevNextPlayers != 0 {
 					s.g.prevX[i] |= pxPlayers // the shield matches a player recipient only
 				}
+			} else if rider == pxRidDmg {
+				// the retribution damage's source is the shield's source, still
+				// controlled by the resolving controller at damage time
+				s.g.prevX[i] |= s.res.e.ctrl << pxSeatShift
 			}
 			return
 		}
 	}
 	s.capFull(StallPrevCol) // loud: never drop an effect
+}
+
+// prevNextEachObj installs a shield on every battlefield permanent matching
+// the instruction's filter F (Defined$ Valid Creature..., Kitsune Palliator's
+// creature half, Samite Censer-Bearer).
+func (s *State) prevNextEachObj(k *prep, in *kop.Instr, n int, all, from bool, rider uint8, rt TCode, gate bool) {
+	var ord [MaxPerm]Slot
+	cnt := s.sweepHits(k, in.F, &ord) // gorge's seat-0-first battlefield order
+	for _, sl := range ord[:cnt] {
+		s.prevNextInstall(k, in, TCode(s.perms[sl].obj), n, all, from, rider, rt, gate)
+		if s.g.stalled != 0 {
+			return
+		}
+	}
+}
+
+// prevNextEachPlayer installs a shield on every living player (Kitsune
+// Palliator's player half): gorge's "each player" set from the controller.
+func (s *State) prevNextEachPlayer(k *prep, in *kop.Instr, n int, all, from bool, rider uint8, rt TCode, gate bool) {
+	q := s.aliveFrom(s.res.e.ctrl)
+	for i := 0; i < int(q.n); i++ {
+		s.prevNextInstall(k, in, PlayerCode(q.s[i]), n, all, from, rider, rt, gate)
+		if s.g.stalled != 0 {
+			return
+		}
+	}
+}
+
+// prevNextRadiance installs a shield on the target creature and on each other
+// creature on the battlefield sharing a colour with it (Radiance, CR 702.6).
+func (s *State) prevNextRadiance(k *prep, in *kop.Instr, n int, all, from bool, rider uint8, rt TCode, gate bool) {
+	code := s.refCode(k, in.Obj)
+	if code == NoTarget || isPlayerOrNone(code) || int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
+		return
+	}
+	sl := s.objs[code].slot
+	col := s.colorsGen(k, sl)
+	s.prevNextInstall(k, in, code, n, all, from, rider, rt, gate)
+	if s.g.stalled != 0 {
+		return
+	}
+	var hit slotMask
+	for m := s.occ; m.any(); m = m.rest() {
+		b := m.first()
+		if b != sl && s.isCreature(k, b) && s.colorsGen(k, b)&col != 0 {
+			hit = hit.with(b)
+		}
+	}
+	var ord [MaxPerm]Slot
+	m := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		m = s.battlefieldOrder(p, hit.and(s.ctrlM[p]), ord[:], m)
+	}
+	for _, b := range ord[:m] {
+		s.prevNextInstall(k, in, TCode(s.perms[b].obj), n, all, from, rider, rt, gate)
+		if s.g.stalled != 0 {
+			return
+		}
+	}
+}
+
+// prevNextDivided installs one shield per still-legal target of the divided
+// slot W, with the share announced for it (DividedAsYouChoose$), or all of
+// the total on one target. A division the kernel has to ask at resolution
+// stalls StallPrevNext.
+func (s *State) prevNextDivided(k *prep, in *kop.Instr, rider uint8, rt TCode, gate bool) {
+	e := &s.res.e
+	slot := tgtSlotOf(in.W)
+	if slot < 0 {
+		s.capFull(StallLowering)
+		return
+	}
+	var codes [maxXTgt + 1]TCode
+	var amts [maxXTgt + 1]int
+	m := 0
+	x := s.xtOf(e)
+	if e.xi != 0 && x.div[0] != 0 {
+		// the announced division: each still-legal target takes its share
+		// (CR 608.2b), an illegal one's is lost
+		i := 0
+		if e.tgt[slot] != NoTarget {
+			if c := s.tgtCode(slot); c != NoTarget {
+				codes[m], amts[m] = c, int(x.div[0])
+				m++
+			}
+			i = 1
+		}
+		for j := 0; j < int(x.n); j++ {
+			if x.slot[j] != uint8(slot) {
+				continue
+			}
+			if s.xtLegal(k, e, j) {
+				codes[m], amts[m] = x.code[j], int(x.div[i])
+				m++
+			}
+			i++
+		}
+	} else {
+		m = s.divTargets(k, e, uint8(slot), &codes)
+		switch m {
+		case 0:
+			return
+		case 1:
+			amts[0] = s.divTotal(k, e, uint8(slot))
+		default:
+			s.capFull(StallPrevNext) // gorge divides at resolution and asks; the kernel has no ask here
+			return
+		}
+	}
+	for i := 0; i < m; i++ {
+		if amts[i] <= 0 {
+			continue
+		}
+		s.prevNextInstall(k, in, codes[i], amts[i], false, false, rider, rt, gate)
+		if s.g.stalled != 0 {
+			return
+		}
+	}
 }
 
 // pnxBare reports whether record i is an unbounded shield with no rider and no
@@ -239,11 +399,13 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 			if s.pnxBare(i) {
 				bare++
 			}
-			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
-				rider = true // a gain rider: gorge runs the body (repl_prevx.go)
-			}
-			if s.g.prevX[i]&pxRidTok != 0 {
+			switch s.g.prevX[i] & pxRider {
+			case pxRidGain:
+				rider = s.g.prevX[i]&pxFrom != 0 // a gain rider: gorge runs the body (repl_prevx.go)
+			case pxRidTok:
 				rider, tokRider = true, true // a token rider: the record's body mints tokens
+			case pxRidCtr, pxRidDelayCtr, pxRidDmg:
+				rider = true // a counter, delayed-counter or retribution body
 			}
 		}
 	}
@@ -307,7 +469,85 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	}
 	m := min(n, int(r.col))
 	r.col -= kop.ColorMask(m)
+	s.prevNextRiderApply(k, at, m)
 	return n - m, true
+}
+
+// prevNextRiderApply runs the rider of the recipient-keyed shield record i
+// on the amount m this application prevented (a source-keyed record's gain
+// and token riders run in prevNextTake's own arm): +1/+1 counters, the
+// delayed-counter accumulation, or the retribution damage. The record's
+// target is the parent ability's target when the instruction named one
+// (ShieldEffectTarget$ ParentTarget), else the shield's recipient.
+func (s *State) prevNextRiderApply(k *prep, i, m int) {
+	if m <= 0 || DebugNoPrevRider {
+		return
+	}
+	switch s.g.prevX[i] & pxRider {
+	case pxRidCtr:
+		if sl, ok := s.prevRiderSlot(i); ok {
+			s.putDividedShare(k, sl, kop.CtrP1P1, m)
+		}
+	case pxRidDelayCtr:
+		if r := s.prevRidAt(i); r != nil {
+			n := int(r.n) + m
+			if n > 255 {
+				n = 255
+			}
+			r.n = uint8(n)
+		}
+	case pxRidDmg:
+		s.prevRiderDamage(k, i, m)
+	}
+}
+
+// prevRiderSlot is the battlefield permanent the record's rider acts on:
+// the stored parent target when there is one, else the shield's recipient.
+func (s *State) prevRiderSlot(i int) (Slot, bool) {
+	code := s.g.prevCol[i].ctl
+	if r := s.prevRidAt(i); r != nil && r.t != NoTarget {
+		code = r.t
+	}
+	if code == NoTarget {
+		code = s.g.prevCol[i].ctl
+	}
+	if isPlayerOrNone(code) || int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
+		return NoSlot, false
+	}
+	return s.objs[code].slot, true
+}
+
+// prevRiderDamage deals the prevented amount as the shield's source to the
+// rider's target (Acolyte's Reward, Vengeful Archon): the source is the
+// effect's source, its controller the seat stored at installation. A nested
+// damage replacement that has to ask stalls StallPrevRider rather than
+// answering inside the outer event.
+func (s *State) prevRiderDamage(k *prep, i, m int) {
+	tgt := s.g.prevCol[i].ctl
+	if r := s.prevRidAt(i); r != nil && r.t != NoTarget {
+		tgt = r.t
+	}
+	if tgt == NoTarget {
+		return
+	}
+	src := s.g.prevCol[i].obj
+	saved := s.res.e
+	if src != NoObj && int(src) < MaxObj {
+		s.res.e.obj = src
+		s.res.e.card = s.objs[src].card
+		s.res.e.ctrl = s.g.prevX[i] >> pxSeatShift
+		if s.objs[src].zone == kop.ZoneBattlefield {
+			s.res.e.kind = seAbility
+		} else {
+			s.res.e.kind = seSpell
+		}
+	}
+	nc := s.g.nc.n
+	s.damageTo(k, tgt, m)
+	s.res.e = saved
+	if s.g.nc.n != nc {
+		s.capFull(StallPrevRider)
+	}
 }
 
 // prevTokInstr is the ExtPreventNext instruction with kop.PrevNextTokens in
@@ -425,7 +665,7 @@ func (s *State) prevNextCands(k *prep, code TCode, srcSl Slot, combat bool, cand
 			cand[c] = Obj(i)
 			*pm |= 1 << c
 			c++
-			if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain || s.g.prevX[i]&pxRidTok != 0 {
+			if s.g.prevX[i]&pxRider != 0 {
 				rider = true // a rider: the order's walk cannot run the body
 			}
 		}

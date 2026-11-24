@@ -23,6 +23,9 @@ func (s *State) divTotal(k *prep, e *stackEntry, slot uint8) int {
 	if t.Divide == kop.DivMaxV {
 		return s.divMaxVTotal(k, t, e) // ctr_divided.go
 	}
+	if t.Divide == kop.DivValue {
+		return s.divValueTotal(k, t, e) // tgt_variablemax.go
+	}
 	if DebugDivNOneEach {
 		var codes [maxXTgt + 1]TCode
 		return s.divTargets(k, e, slot, &codes)
