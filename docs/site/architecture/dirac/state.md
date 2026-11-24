@@ -126,8 +126,8 @@ Every byte of the core is copied on every clone, so its size is a decision.
 ## Pool bar (OD-1)
 
 Measured 2026-11-24 at `21c14fbba3`, on the gate metal boxes (`metal2-9950x`, Ryzen 9 9950X, 32 threads;
-the padding probe below on `cherry-9950x-192g`, the same CPU), pinned to core 30 with `GOMAXPROCS=1`, five
-runs. `instructions:u` is `perf stat` differenced `(N500k-N100k)/400000` under `GOGC=off`, as
+the padding probe below on `cherry-9950x-192g`, the same CPU), five runs with `GOMAXPROCS=1`; the `perf stat`
+runs are pinned to core 30. `instructions:u` is `perf stat` differenced `(N500k-N100k)/400000` under `GOGC=off`, as
 [`scripts/dirac-gate.sh`](https://github.com/adams-shaun/gorge/blob/main/scripts/dirac-gate.sh) step 5 does
 (`(N50k-N10k)/40000` for `BenchmarkTransitionEDH4`, `(N5k-N1k)/4000` for `BenchmarkSearch`, since those benches
 cost far more per op). `edh` State+cold is the `TestEveryPoolFitsTheStateBar` measure: `unsafe.Sizeof(State{})`
