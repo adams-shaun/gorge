@@ -863,6 +863,8 @@ func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
 	case kop.OpGrantEmbalmOwnCost:
 		return s.execGrantEmbalm(k, in) // kw_embalmgrant.go
+	case kop.OpMarkNoRegen:
+		return s.execNoRegenMark(k, in) // act_noregenmark.go
 	}
 	return true, false
 }

@@ -17,6 +17,12 @@ func init() {
 	instrOp("SacrificeDelayed", (*instrCtx).opSacrificeDelayed)
 	instrOp("Sacrifice", (*instrCtx).opSacrifice)
 	instrOp("SacrificeAll", (*instrCtx).opSacrificeAll)
+	instrOp("NoRegenMark", (*instrCtx).opNoRegenMark)
+}
+
+func (ic *instrCtx) opNoRegenMark() error {
+	ic.ki.Op = kop.OpMarkNoRegen
+	return nil
 }
 
 func (ic *instrCtx) opDestroy() error {
