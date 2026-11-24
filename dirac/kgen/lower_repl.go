@@ -155,9 +155,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return refuse("ETB copy replacement shape")
 		}
 		savedRE := lc.replEnter
-		lc.replEnter = true
+		lc.replEnter, lc.replUpdated = true, rl.S == "Updated"
 		err = lc.withAbility(ab, func() error { return lc.replChain(r.With, other, &rl.Cond) })
-		lc.replEnter = savedRE
+		lc.replEnter, lc.replUpdated = savedRE, false
 		if err != nil {
 			return err
 		}
@@ -995,6 +995,10 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 		case "ChooseNumber":
 			if err := lc.etbChooseNumber(ps, node, sa, other, cond); err != nil { // lower_choosenumber.go
+				return err
+			}
+		case "StoreSVar":
+			if err := lc.etbPayLife(ps, node, sa, other, cond); err != nil { // lower_paylife.go
 				return err
 			}
 		case "ChoosePlayer":

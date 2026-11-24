@@ -271,7 +271,7 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			// 15-bit FNV-1a, in (target, mode).
 			h := labelValue(o.Label)
 			return Pack(k, src, Ref(h>>8), uint8(h)), true
-		case "x", "number":
+		case "x", "number", "paylife":
 			mode = o.Amount
 		case "mana", "color":
 			if manaChoiceResolving(d) {

@@ -98,6 +98,7 @@ var stallCapacityReasons = [...]uint8{
 	StallExTurn,      // more than maxExTurnQ extra-turn grants pending one turn's cleanup (act_extraturn.go)
 	StallMeld,        // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
 	StallConvokedSet, // a seventeenth convoked set held at once, or a seventeenth convoked creature on one cast (kw_convokelist.go)
+	StallPayLife,     // an as-enters pay-any-amount-of-life range past the action's mode byte (repl_paylife.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{

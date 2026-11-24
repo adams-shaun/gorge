@@ -1649,24 +1649,31 @@ const ExtMyriad ExtOp = 103
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
+//
+// The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
+const ExtPayLifeX ExtOp = 104
+
+func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 104
+const ExtRememberPlayer ExtOp = 105
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 105
+const ExtRepeatOptional ExtOp = 106
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 106
+const ExtStoreNum ExtOp = 107
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 

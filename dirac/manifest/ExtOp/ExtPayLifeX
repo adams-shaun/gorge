@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtPayLifeX
+value: next
+status: active
+doc: The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.

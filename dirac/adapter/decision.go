@@ -597,6 +597,9 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "number":
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
+	case "paylife":
+		o.Amount = int(c.Mode()) // gorge etbPayLifeOptions: "N life", the amount on Amount
+		o.Label = strconv.Itoa(o.Amount) + " life"
 	case "altaddcost":
 		o.Amount = int(x.Target()) // the part; the canonical mode is its position, payable parts first
 		o.Label = g.altAddLabel(o.Amount)

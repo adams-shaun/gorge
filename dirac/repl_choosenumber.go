@@ -16,6 +16,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) numberOptions(k *prep, d *Decision) {
+	if pa := s.payLifeAskOp(k); pa.in != nil {
+		s.payLifeOptions(k, d, pa) // repl_paylife.go: the as-enters pay-any-amount-of-life ask
+		return
+	}
 	d.Sub = ChGenNumber
 	lo, hi := s.numberBounds(k)
 	for n := lo; n <= hi; n++ {
