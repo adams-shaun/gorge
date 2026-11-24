@@ -44,18 +44,10 @@ func printReplacement(p *pr, a *ir.Ability) error {
 			}
 			line := "K:etbCounter:" + enter.Counter + ":" + n
 			if cond != nil {
-				f, err := p.cond(cond)
-				if err != nil {
-					return err
-				}
-				f = p.plain(f)
-				if f.SVar == "" {
-					return unprintable("repl:etb-counter-cond", a.Src)
-				}
-				line += ":CheckSVar$ " + f.SVar
-				if f.cmp() != "GE1" {
-					line += " | SVarCompare$ " + f.cmp()
-				}
+				// Forge's line carries a description after the condition that no IR
+				// fact holds, so the static diff cannot key it without Forge's text
+				// in the ledger. Refused until the diff canonicalises it (CC-39).
+				return unprintable("repl:etb-counter-cond", a.Src)
 			}
 			p.lines = append(p.lines, line)
 			return nil
