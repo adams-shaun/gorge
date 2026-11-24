@@ -106,6 +106,7 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	if st.Optional {
 		return nil, 0, unprintable("verb:if", st.Src)
 	}
+	before := len(p.svars)
 	c, err := p.cond(st.Cond)
 	if err != nil {
 		return nil, 0, err
@@ -127,6 +128,10 @@ func printIf(p *pr, steps []*ir.Step) (*node, int, error) {
 	els, err := p.program(st.Else)
 	if err != nil {
 		return nil, 0, err
+	}
+	if p.mergeTargetCount(c, then, els, before) {
+		setDeclared(p, afterThen)
+		return then, 1, nil
 	}
 	// Amount merge: one verb, one differing amount, a count to choose it by.
 	if (c.SVar != "" || c.Body != "") && st.Then != nil && len(st.Then.Steps) == 1 && len(st.Else.Steps) == 1 &&
