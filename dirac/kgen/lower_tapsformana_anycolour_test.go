@@ -13,10 +13,10 @@ import (
 // Heartbeat of Spring, Keeper of Progenitus), not for the controller's own
 // (Nikya of the Old Ways, Roxanne, Starfall Savant's artifact-token body,
 // Kinnan's nonland body, the
-// lt-low-tapsformana-choice lowering). Out-of-shape variants still refuse by
-// name: a reflected body
-// with a rider (Winter's Night), and an any-colour extra (Buried in the
-// Garden, lt-low-tapsformana-choice's).
+// lt-low-tapsformana-choice lowering). An any-colour extra lowers to a
+// StTapAnyCol static (Buried in the Garden, Market Festival), and an
+// out-of-shape reflected body with a rider still refuses by name (Winter's
+// Night).
 func TestLowerTapsformanaAnycolour(t *testing.T) {
 	const anyPlayer, own = "any", "own"
 	want := map[string]string{
@@ -28,7 +28,7 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 		"Kinnan, Bonder Prodigy":   own,
 		"Roxanne, Starfall Savant": own,
 		"Winter's Night":           "trigger mode TapsForMana",
-		"Buried in the Garden":     "extra of any colour",
+		"Buried in the Garden":     "anycol",
 	}
 	var names []string
 	for n := range want {
@@ -42,6 +42,25 @@ func TestLowerTapsformanaAnycolour(t *testing.T) {
 			continue
 		}
 		seen++
+		if reason == "anycol" {
+			if len(c.Refusals) != 0 {
+				t.Errorf("%s refused: %v", c.Name, c.Refusals)
+			}
+			n := 0
+			for _, st := range c.Statics {
+				if st.Kind != "TapExtra" {
+					continue
+				}
+				n++
+				if !slices.Contains(st.Flags, "TapAnyCol") || !slices.Contains(st.Flags, "TapAnyPlayer") {
+					t.Errorf("%s: TapExtra flags %v, want TapAnyCol and TapAnyPlayer", c.Name, st.Flags)
+				}
+			}
+			if n != 1 {
+				t.Errorf("%s: %d TapExtra statics, want 1", c.Name, n)
+			}
+			continue
+		}
 		if reason != anyPlayer && reason != own {
 			refused := false
 			for _, r := range c.Refusals {
