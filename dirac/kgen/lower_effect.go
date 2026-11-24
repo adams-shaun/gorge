@@ -802,6 +802,7 @@ func (lc *lowerCtx) nodeCondition(ps *params) (lCond, error) {
 				if err != nil {
 					return lCond{}, err
 				}
+				lc.markDestroyedTargetLKI(ref, cp) // lower_remembered.go
 			}
 			c.Kind, c.Ref = cRefMatches, ref
 		}
@@ -1009,7 +1010,9 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	// own target slot (Hidetsugu's Second Rite reads the targeted player's
 	// life); its SkipIf goes in front of the node's instructions. Target
 	// slots are declarative, so the guard never changes target selection.
+	lc.condNodeAt = effAt
 	cond, err := lc.nodeCondition(ps)
+	lc.condNodeAt = 0
 	if err != nil {
 		return err
 	}

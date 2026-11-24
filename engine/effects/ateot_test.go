@@ -87,3 +87,19 @@ func TestAtEOTStalePromiseOnABattlefieldObject(t *testing.T) {
 		t.Fatalf("registration = %+v, want Source %d / StepEnd / __kwWarpExile / controller 0", dt, c.Source)
 	}
 }
+
+// TestAtEOTEndOfTurnSpellingSchedulesTheRider: upstream's DB$ EndOfTurn
+// (Brackwater Elemental, Momo's Heist) parses to Pump, and that pump's AtEOT$
+// Sacrifice registers one delayed sacrifice of the object it names.
+func TestAtEOTEndOfTurnSpellingSchedulesTheRider(t *testing.T) {
+	h := newHost(t, 2)
+	id := putCreature(t, h, 0, "Probe Beast", "2/2", "")
+	s := sa(t, "DB$ EndOfTurn | Defined$ Self | AtEOT$ Sacrifice")
+	if s.API != "Pump" {
+		t.Fatalf("EndOfTurn parsed to %s, want Pump", s.API)
+	}
+	Resolve(h, &Ctx{Controller: 0, Source: id}, s)
+	if len(h.g.Delayed) != 1 {
+		t.Fatalf("EndOfTurn AtEOT$ Sacrifice registered %d delayed triggers, want 1", len(h.g.Delayed))
+	}
+}

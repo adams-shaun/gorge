@@ -79,3 +79,37 @@ func stationProbe(grant string) []string {
 		"SVar:ProbeCount:Count$Valid Creature.YouCtrl",
 	}
 }
+
+// TestStationLowersWithOrWithoutItsNumber: upstream Forge dropped the number
+// from K:Station:<N> (the threshold lives on the face's STATION N+ static),
+// and gorge offers Station either way, so the kernel lowers the Station
+// ability for both spellings. 11-20: the bare K:Station lowered no ability,
+// and std-trk diverged in 1009 of 1500 games ("options vs options").
+func TestStationLowersWithOrWithoutItsNumber(t *testing.T) {
+	for _, kw := range []string{"K:Station", "K:Station:8"} {
+		src := strings.Join([]string{"Name:Probe", "ManaCost:1 R", "Types:Artifact Spacecraft", "PT:3/3", kw,
+			"S:Mode$ Continuous | AffectedDefined$ Self | Affected$ Card.counters_GE8_CHARGE | AddType$ Creature | AddKeyword$ Flying"}, "\n")
+		card, diags := cards.ParseBytes("Probe.txt", []byte(src))
+		if card == nil || len(diags) != 0 {
+			t.Fatalf("%s: parse: %v", kw, diags)
+		}
+		if d := card.Link(); len(d) != 0 {
+			t.Fatalf("%s: link: %v", kw, d)
+		}
+		p := &pool{names: []string{"Probe"}, byName: map[string]*cards.Card{"Probe": card},
+			nDecks: map[string]int{}, reg: &cards.Registry{}}
+		lc := lowerPool(p).cards[0]
+		if len(lc.Refusals) != 0 {
+			t.Fatalf("%s: refused: %v", kw, lc.Refusals)
+		}
+		n := 0
+		for _, a := range lc.Abilities {
+			if a.Station {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Errorf("%s: %d Station abilities, want 1", kw, n)
+		}
+	}
+}

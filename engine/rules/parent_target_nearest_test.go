@@ -144,6 +144,7 @@ var parentTargetLinkCarriers = []string{
 	"Glyph of Delusion",
 	"Homesickness",
 	"Intruder's Inquisition",
+	"Jon Irenicus, Shattered One",
 	"Mind Spiral",
 	"Mindblaze",
 	"Mire's Malice",
