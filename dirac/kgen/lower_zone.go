@@ -872,7 +872,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			in.CS = strings.TrimPrefix(in.CS+"|AttachTo", "|")
 		}
 	case zGraveyard:
-		return refuse("ChangeZone to graveyard")
+		if !lc.exileGraveTargetOK(ps, exileGraveShape{origin, obj, override, counterKind, self, underOpp, transformed, lki}) {
+			return refuse("ChangeZone to graveyard")
+		}
+		in.Op = "Return"
+		in.C = zGraveyard
 	default:
 		return refuse("destination %s", zoneLabel[dest])
 	}
@@ -5724,4 +5728,31 @@ func (lc *lowerCtx) copyAtEOTFlag(ps *params, a string) (string, error) {
 		return "SacAtUpkeep", nil
 	}
 	return "", refuse("CopyPermanent AtEOT %q", a)
+}
+
+// exileGraveShape is changeZoneMove's view of a move exileGraveTargetOK checks.
+type exileGraveShape struct {
+	origin      int
+	obj         lRef
+	override    *lOverride
+	counterKind string
+	self        bool
+	underOpp    bool
+	transformed bool
+	lki         bool
+}
+
+// exileGraveTargetOK reports whether a targeted exile->graveyard move is the
+// one shape kgen lowers (Bronzebeak Foragers, Gelatinous Cube): a plain move
+// of one target out of exile, with no counters, StaticEffect, AlsoSelf,
+// UnderOpponent, Transformed or RememberLKI modifier. The plain OpReturn
+// carries the origin mask (from=Exile in B.N) and the graveyard destination in
+// C, so a target that left exile before the move is skipped and the move fires
+// the graveyard-entering events (dies / ToGraveyard triggers). Only the activated ability whose target
+// filter reads ExiledWithSource is covered (TestExileToGraveyardTargetMove): a
+// spell that targets any exiled card (Pull from Eternity's Card.faceUp, which
+// must also refuse a face-down exiled card) stays refused.
+func (lc *lowerCtx) exileGraveTargetOK(ps *params, m exileGraveShape) bool {
+	plain := !m.self && !m.underOpp && !m.transformed && !m.lki && m.counterKind == "" && m.override == nil
+	return plain && m.origin == zExile && m.obj.Kind == rTarget && lc.ab != nil && lc.ab.Kind == akActivated && strings.Contains(ps.peek("ValidTgts"), "ExiledWithSource")
 }
