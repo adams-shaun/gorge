@@ -1256,7 +1256,11 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 		return kop.ManaCost{}, false // twobrid is announced before the payment (a pip ask)
 	}
 	n, f := hybFacesOf(cost)
-	for m := 0; m < 1<<n; m++ {
+	lo, hi := 0, 1<<n
+	if m := s.hybFirstTierMask(k, p, cost, x, exclude, first, anyColor, pk, n, f); m >= 0 {
+		lo, hi = m, m+1
+	}
+	for m := lo; m < hi; m++ {
 		r := f.resolve(*cost, n, hybWitnessMask(m, n))
 		tp := *pk
 		tp.found, tp.try, tp.noGrant = false, true, true
@@ -1269,6 +1273,30 @@ func (s *State) hybResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, 
 		return r, true
 	}
 	return kop.ManaCost{}, false
+}
+
+// hybFirstTierMask is the first resolution mask (in hybResolveTappable's order)
+// that the planner's first tier funds, -1 when none does or no source is
+// Taps-deferred. gorge's planHybridCost walks the resolutions over a planner
+// that never lists a Taps-deferred source (the any-colour extra's enchanted
+// land among them): a resolution only such a source pays is skipped for a later
+// one the plain sources pay. The deferred second tier (planTiered0) is the
+// whole cost's last resort, not each resolution's, so it must not decide the
+// face while a later resolution has a first-tier plan.
+func (s *State) hybFirstTierMask(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner, n int, f hybFaces) int {
+	if k.gen == nil || !k.gen.anyTapsDefer || DebugNoTapsDefer || pk.tapsIn || pk.plain || !s.deferLive(k) {
+		return -1
+	}
+	for m := 0; m < 1<<n; m++ {
+		r := f.resolve(*cost, n, hybWitnessMask(m, n))
+		tp := *pk
+		tp.found, tp.try, tp.noGrant, tp.plain, tp.dry = false, true, true, true, true // dry: the trial taps nothing
+		s.tapPlanNeed(k, p, &r, x, exclude, first, anyColor, &tp)
+		if tp.needT == 0 || tp.found {
+			return m
+		}
+	}
+	return -1
 }
 
 // tbResolveTappable resolves cost's twobrid pips to the first face assignment
