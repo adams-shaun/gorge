@@ -1,9 +1,6 @@
 package dirac
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -376,9 +373,6 @@ func (s *State) Apply(a Action) {
 	k := s.k()
 	s.filtMemoReset()
 	s.Decisions++
-	if dbgAct {
-		fmt.Fprintf(os.Stderr, "KAPPLYALL ctl=%d kind=%d\n", s.ctl, a.Kind())
-	}
 	switch s.ctl {
 	case ctlMullDeclare:
 		s.applyMulligan(a)

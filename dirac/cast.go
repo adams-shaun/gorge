@@ -1,11 +1,8 @@
 package dirac
 
 import (
-	"fmt"
-	"math/bits"
-	"os"
-
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"math/bits"
 )
 
 // Putting a spell or ability on the stack (CR 601.2 / 602.2, gorge
@@ -516,9 +513,6 @@ func (s *State) nextStage(k *prep) {
 
 func (s *State) beginActivate(k *prep, o Obj, ab uint8) {
 	ob := &s.objs[o]
-	if dbgAct && k.t.Cards[s.cardAt(ob.slot)].Name == "Llanowar Wastes" {
-		fmt.Fprintf(os.Stderr, "ACT begin ab=%d life=%d pool=%v tapped=%v\\n", ab, s.pl[s.prio].life, s.pl[s.prio].pool, s.perms[ob.slot].flags&pfTapped != 0)
-	}
 	*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: s.cardAt(ob.slot), ab: ab, ctrl: s.prio, trigObj: NoObj}}
 	s.bld().e.tgt = noTargets
 	s.bld().stage = stageFirst[seAbility]

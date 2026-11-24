@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1788,12 +1786,6 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 		_, fs.own, _ = s.activationMana(k, Obj(a.Source()), a.Mode())
 	}
 	fs.fees = s.filtFunding(k, p, fs.gaps)
-	if dbgAct {
-		fmt.Fprintf(os.Stderr, "FILT gaps=%v need=%v useful=%v other=%v\n", fs.gaps, fs.need, fs.useful, fs.other)
-		for m := fs.gaps; m.any(); m = m.rest() {
-			fmt.Fprintf(os.Stderr, "  gap sl=%d %s\n", m.first(), k.t.Cards[s.cardAt(m.first())].Name)
-		}
-	}
 	fs.fundN = s.filtFunders(k, p, fs.gaps.or(fs.other))
 	hadOther := fs.other.any() // a dropped gap still asks for the dead-end check
 	if gapFilteredPlay(a) && (fs.gaps.any() || fs.other.any()) {

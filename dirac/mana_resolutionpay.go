@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -253,9 +251,6 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 	pool0 := s.prefixPoolMana(p)
 	grantFirstRun := false
 	if grantFirst {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "PREF grantPrefix\n")
-		}
 		s.grantPrefix(k, a, p)
 		ran, grantFirstRun = true, true
 		if s.npend != 0 {
@@ -268,9 +263,6 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 		// activation's printed share is floated here, before the target ask,
 		// not by the post-push planner.
 		tapXBefore := !grantFirstRun && (k.tapMana || k.ctrMana) && s.scriptTapXModelled(k, p).any()
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "PREF scriptPrefix tapXBefore=%v\n", tapXBefore)
-		}
 		s.scriptPrefix(k, a, p) // a play only a scripted activation pays (script_gen.go)
 		ran = true
 		if tapXBefore && !s.scriptTapXModelled(k, p).any() {
@@ -281,9 +273,6 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 		}
 	}
 	if grants && !grantFirst {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "PREF grantPrefix2\n")
-		}
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
 		ran = true
 		if s.npend != 0 {
@@ -291,9 +280,6 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 		}
 	}
 	if a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "PREF chosenPair\n")
-		}
 		s.chosenPairPrefix(k, a, p) // a play only a chosen-colour pair pays (mana_chosenprefix.go)
 		ran = true
 		if s.npend != 0 {

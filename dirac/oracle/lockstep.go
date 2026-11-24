@@ -387,9 +387,6 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 		if !leadIsRef {
 			dr, dk = df, dl
 		}
-		if os.Getenv("LOCKDUMP") != "" && res.Decisions >= 830 && res.Decisions <= 916 {
-			fmt.Fprintf(os.Stderr, "DEC d=%d t=%d/%d ref=%v p%d %v | ker=%v p%d %v\n", res.Decisions, lead.Turn(), follow.Turn(), dr.Kind, dr.Player, actionStrings(dr.Options), dk.Kind, dk.Player, actionStrings(dk.Options))
-		}
 		// gorge keeps asking while the kernel's game is already over (a
 		// player lost, gorge removing the loser's objects before it ends
 		// the game): the boards are not compared; the extra ask is gorge's.
@@ -432,24 +429,6 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			pr.Priority, pk.Priority = 0, 0
 			if pr.Over && pk.Over && pr.Winner == pk.Winner && pr.Life == pk.Life {
 				pr = pk // local patch: a finished game compares by result only
-			}
-			if os.Getenv("LOCKDUMP") != "" && res.Decisions >= 828 && res.Decisions <= 916 {
-				dumper := func(tag string, p *Projection) {
-					fmt.Fprintf(os.Stderr, "DUMP %s d=%d life=%v pool=%v\n", tag, res.Decisions, p.Life, p.Pool)
-					for i := 0; i < int(p.NInst); i++ {
-						c := p.Cards[i]
-						if c.Card == NoCardIndex {
-							continue
-						}
-						nm := m.Table[c.Card]
-						_ = nm
-						if c.Zone == 0 || c.Zone == 2 {
-							fmt.Fprintf(os.Stderr, "  %s i=%d %-24s zone=%d pos=%d ctl=%d flags=%x\n", tag, i, nm, c.Zone, c.Pos, c.Controller, c.Flags)
-						}
-					}
-				}
-				dumper("REF", &pr)
-				dumper("KER", &pk)
 			}
 			if !pr.equal(&pk) {
 				diff := DiffProjection(&pr, &pk)
@@ -533,13 +512,6 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 		if e := follow.Err(); e != nil {
 			res.Div = &Divergence{At: res.Decisions - 1, What: sideName(follow), Field: "apply", Detail: e.Error()}
 			return res
-		}
-		if os.Getenv("LOCKDUMP") != "" && res.Decisions >= 830 && res.Decisions <= 916 {
-			var pr2 Projection
-			inSide = follow
-			follow.Project(&pr2)
-			inSide = nil
-			fmt.Fprintf(os.Stderr, "APPLY d=%d %s ker: life=%v pool=%v\n", res.Decisions, actionStrings([]Canon{a}), pr2.Life, pr2.Pool)
 		}
 		needCmp = false
 	}

@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -4018,25 +4016,6 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 	return false
 }
 
-func (s *State) dbgPay(k *prep, e *stackEntry, tag string) {
-	if !dbgAct {
-		return
-	}
-	cn := k.t.Cards[e.card].Name
-	if cn != "Nantuko Monastery" {
-		return
-	}
-	fmt.Fprintf(os.Stderr, "PAY %-12s ab=%d life=%d pool=%v cost=%+v\n", tag, e.ab, s.pl[e.ctrl].life, s.pl[e.ctrl].pool, s.buildCost(k))
-	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
-		x := m.first()
-		pc := s.manaPCAt(k, x)
-		if s.perms[x].flags&pfTapped != 0 || pc.painCol != 0 || pc.manaCol != 0 {
-			fmt.Fprintf(os.Stderr, "  src sl=%d name=%s manaCol=%d painCol=%d painN=%d painLife=%v painOnly=%v tapped=%v\n",
-				x, k.t.Cards[s.cardAt(x)].Name, pc.manaCol, pc.painCol, pc.painN, pc.painLife, pc.painOnly, s.perms[x].flags&pfTapped != 0)
-		}
-	}
-}
-
 // abilityPlainMana is manaStep's plain-activation arm: the planner first, so an
 // ordinary cost keeps its witness, then the manual CR 601.2g window when the
 // census has none. The X ask can price an activation through that window
@@ -4045,18 +4024,12 @@ func (s *State) dbgPay(k *prep, e *stackEntry, tag string) {
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	s.dbgPay(k, e, "plain-enter")
 	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
-		s.dbgPay(k, e, "plan-no")
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
-			s.dbgPay(k, e, "window-rev")
 			return true
 		}
-	} else {
-		s.dbgPay(k, e, "plan-ok")
 	}
-	s.dbgPay(k, e, "plain-end")
 	s.bld().bfl &^= bflManaStep
 	if hostSl != NoSlot {
 		s.perms[hostSl].flags &^= pfTapped

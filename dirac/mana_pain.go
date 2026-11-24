@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -589,9 +587,6 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, p u
 	// payment of a play the potential walk priced runs that plan's script,
 	// the rider's damage taken at the tap (painDamage), not the manual
 	// CR 601.2g window's battlefield order.
-	if dbgAct && int(pc.painN) >= pk.life {
-		fmt.Fprintf(os.Stderr, "PGUARD sl=%d pass=%d want=%d painLife=%v survives=%v\n", sl, pass, want, pc.painLife, s.painSurvives(k, p, int(pc.painN)))
-	}
 	if int(pc.painN) >= pk.life && (pc.painLife || !s.painSurvives(k, p, int(pc.painN))) {
 		return pc.painOnly
 	}

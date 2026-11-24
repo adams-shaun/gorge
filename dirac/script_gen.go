@@ -1,9 +1,7 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -1019,9 +1017,6 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	// (CR 601.2g-h); this guard keeps the mix board's filter route off such
 	// an activation too.
 	if k.gen.anyDiscHand && s.dhBoard(k, p) {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=dh\n")
-		}
 		var d Decision
 		s.plainOptions(k, &d, availNoActScript)
 		if !hasOption(&d, a) {
@@ -1030,16 +1025,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if k.gen.anyComboAny && s.caBoard(k, p) {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=ca\n")
-		}
 		s.caPrefix(k, a, p) // a Combo Any source among the gaps (mana_comboany.go)
 		return
 	}
 	act := a.Kind() == AkActivate && s.liveGrantGap(k, p)
-	if dbgAct {
-		fmt.Fprintf(os.Stderr, "SPREF act=%v mix=%v\n", act, s.mixBoard(k, p))
-	}
 	if s.mixBoard(k, p) {
 		if !act {
 			var d Decision
@@ -1075,9 +1064,6 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	// DFS search's replay (scriptPrefixAny) taps both gaps in battlefield
 	// order, and the tapX search's gaps (rs.gaps) hold no Taps-deferred one.
 	if (k.tapMana || k.ctrMana) && (s.scriptTapXModelled(k, p).any() || !s.scriptTapsDefer(k, p).any()) && s.tapXPrefix(k, a, p) {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=tapX\n")
-		}
 		return // a tap-another-permanent board (mana_tapanother.go)
 	}
 	gaps, restr, anyR := s.scriptGaps(k, p), s.scriptRestr(k, p), s.scriptAnyR(k, p)
@@ -1120,9 +1106,6 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if k.gen.anyRefl && s.reflBoard(k, p, restr, anyR) {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=refl\n")
-		}
 		var d Decision
 		s.plainOptions(k, &d, availNoActScript)
 		if !hasOption(&d, a) {
@@ -1131,16 +1114,10 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 		return
 	}
 	if anyR.any() || tapsDef.any() || anyDiff.any() || life.any() {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=any armAnyR=%v tapsDef=%v anyDiff=%v life=%v\n", anyR, tapsDef, anyDiff, life)
-		}
 		s.scriptPrefixAny(k, a, p, restr, anyR, tapsDef, ctr, anyDiff)
 		return
 	}
 	if !restr.any() && !ctr.any() && s.eachFeeBoard(k, p) {
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "SPREF arm=each\n")
-		}
 		s.eachScript(k, a, p, true) // a fee-paid each-colour gap (Tarnation Vista): gorge's search, mana_eachfee.go
 		return
 	}
@@ -1148,13 +1125,6 @@ func (s *State) scriptPrefix(k *prep, a Action, p uint8) {
 	s.plainOptions(k, &d, availNoActScript)
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, gaps.or(restr).or(ctr).or(anyDiff), order[:], 0) // gorge's option order (two Tenders)
-	if dbgAct {
-		fmt.Fprintf(os.Stderr, "SPREF gaps=%v restr=%v anyR=%v tapsDef=%v ctr=%v anyDiff=%v life=%v n=%d\n",
-			gaps, restr, anyR, tapsDef, ctr, anyDiff, life, n)
-		for j := 0; j < int(n); j++ {
-			fmt.Fprintf(os.Stderr, "  ord sl=%d %s\n", order[j], k.t.Cards[s.cardAt(order[j])].Name)
-		}
-	}
 	if hasOption(&d, a) {
 		return
 	}

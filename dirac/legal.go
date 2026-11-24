@@ -1,33 +1,10 @@
 package dirac
 
 import (
-	"fmt"
 	"math/bits"
-	"os"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
-
-var dbgAct = os.Getenv("GORGE_DBG_ACT") != ""
-
-func (s *State) dbgActPrint(k *prep, sl Slot, ab int, tag string) {
-	if !dbgAct {
-		return
-	}
-	cn := k.t.Cards[s.cardAt(sl)].Name
-	if cn != "Nantuko Monastery" || ab != 1 {
-		return
-	}
-	p := &s.perms[sl]
-	pl := &s.pl[p.ctrl]
-	fmt.Fprintf(os.Stderr, "DBG %-9s sl=%d life=%d grave=%d pool=%v tapped=%v\n", tag, sl, pl.life, s.graveCards(p.ctrl), pl.pool, p.flags&pfTapped != 0)
-	for m := s.ctrlM[p.ctrl]; m.any(); m = m.rest() {
-		x := m.first()
-		pc := s.manaPCAt(k, x)
-		fmt.Fprintf(os.Stderr, "  src sl=%d name=%s manaCol=%d painCol=%d painN=%d painLife=%v painOnly=%v tap=%v mask=%d\n",
-			x, k.t.Cards[s.cardAt(x)].Name, pc.manaCol, pc.painCol, pc.painN, pc.painLife, pc.painOnly, s.canTapForManaPC(k, x, pc), s.painAvailMask(k, pc, p.ctrl))
-	}
-}
 
 // Priority options, in this order: the hand in hand order (land plays,
 // then casts; a kicker variant follows its plain cast), flashback casts
@@ -631,7 +608,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Cost.Flags&kop.CostSacSelf != 0 && s.sacBlocked(k, sl) {
 		return false // a self-sacrifice its source can't pay (static_cantsacrifice.go)
 	}
-	s.dbgActPrint(k, sl, ab, "enter")
 	if s.castHeldOut(p.obj) {
 		// gorge holds a card's activation out after its second no-progress
 		// abort in a row (cast_commit.go abortCast, CR 733.2), on every
@@ -642,7 +618,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	}
 	f := a.Cost.Flags
 	if f&kop.CostSorcery != 0 && !sorc {
-		s.dbgActPrint(k, sl, ab, "sorcery")
 		return false
 	}
 	if a.Cost.Host != 0 && ab != 255 {
@@ -656,11 +631,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	}
 	if f&kop.CostTap != 0 {
 		if p.flags&pfTapped != 0 {
-			s.dbgActPrint(k, sl, ab, "tapped")
 			return false
 		}
 		if s.activationSick(k, sl) {
-			s.dbgActPrint(k, sl, ab, "sick")
 			return false
 		}
 	}
@@ -695,7 +668,6 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return false
 	}
 	if a.Kind == kop.AbActivated && a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
-		s.dbgActPrint(k, sl, ab, "cond")
 		return false
 	}
 	if f&kop.CostLoyalty != 0 && (!sorc || s.loyaltyUsedAtLimit(k, sl)) {
@@ -762,10 +734,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		}
 	}
 	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
-		s.dbgActPrint(k, sl, ab, "afford-F")
 		return false
 	}
-	s.dbgActPrint(k, sl, ab, "afford-ok")
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
@@ -3578,17 +3548,6 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
 	sp0 := s.sp
-	if dbgAct && (a.Kind() == AkActivate || a.Kind() == AkCast) {
-		o := Obj(a.Source())
-		cn := "?"
-		if int(o) < len(s.objs) && int(s.objs[o].slot) < len(s.perms) {
-			cid := s.cardAt(s.objs[o].slot)
-			if int(cid) < len(k.t.Cards) {
-				cn = k.t.Cards[cid].Name
-			}
-		}
-		fmt.Fprintf(os.Stderr, "KAPPLY kind=%d card=%s mode=%d tgt=%d pool=%v\n", a.Kind(), cn, a.Mode(), a.Target(), s.pl[p].pool)
-	}
 	// A filter beside a grant is one search in gorge (scriptSearch.visit:
 	// every census gap in battlefield order), and the grant search is that
 	// search (mana_grantedoffers.go candidates). An activation's filter
@@ -3612,9 +3571,6 @@ func (s *State) applyPriority(k *prep, a Action) {
 	grantFirst = grantFirst || grants && s.grantFirstGaps(k, p)
 	// runPrefixes' four gates, tested inline so a table with none of them skips the call
 	pref, tapX := s.runPrefixesGated(k, a, p, grants, grantFirst)
-	if dbgAct && (a.Kind() == AkActivate || a.Kind() == AkCast) {
-		fmt.Fprintf(os.Stderr, "KPRE after prefixes ran=%v tapX=%v pool=%v\n", pref, tapX, s.pl[p].pool)
-	}
 	if s.sp > sp0 || s.npend != 0 {
 		empty := s.playNeedsEmptyStack(k, a)
 		if s.sp > sp0 && empty || s.npend != 0 {
@@ -3695,9 +3651,6 @@ func (s *State) applyPriority(k *prep, a Action) {
 			break
 		}
 		s.activatePrefixRest(k, a, p, pref, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
-		if dbgAct {
-			fmt.Fprintf(os.Stderr, "KPOST after prefixRest pool=%v\n", s.pl[p].pool)
-		}
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
