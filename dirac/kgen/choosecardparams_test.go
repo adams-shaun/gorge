@@ -9,7 +9,9 @@ import (
 // params lower. ChoiceTitle$ is display-only (gorge reads it only as the
 // decision's Prompt), Amount$ 1 is choiceBounds' max default and Defined$ You
 // is the resolving controller, exactly what the kernel's OpChooseCard already
-// does. Anything else stays refused by name.
+// does. A counted Amount$ and the each-player / trigger-player Defined$
+// spellings lower too (the chooser slice's remainder); an opponent or
+// target-controller chooser still needs its own shape and refuses by name.
 func TestChooseCardDefaultParams(t *testing.T) {
 	carriers := []string{
 		"Summoner's Grimoire", // ChoiceTitle, hand, Creature.YouOwn
@@ -53,13 +55,16 @@ func TestChooseCardDefaultParams(t *testing.T) {
 	}
 
 	// A synthetic mandatory ChooseCard with every accepted default reads.
-	const base = "Name:ChooseCard Probe\nManaCost:1 U\nTypes:Sorcery\nA:SP$ ChooseCard | Mandatory$ True | Choices$ Creature"
+	// Amount$ 2/X now lower as a counted pick (the chooser slice's remainder);
+	// an opponent chooser and a target-controller chooser still need their
+	// own shapes.
+	const base = "Name:ChooseCard Probe\nManaCost:1 U\nTypes:Sorcery\nSVar:X:Count$Valid Creature\nA:SP$ ChooseCard | Mandatory$ True | Choices$ Creature"
 	cases := []struct {
 		name, extra, want string
 	}{
 		{"all defaults", " | Amount$ 1 | Defined$ You | ChoiceTitle$ Choose a creature", ""},
-		{"amount 2", " | Amount$ 2", `ChooseCard Amount$ "2"`},
-		{"amount X", " | Amount$ X", `ChooseCard Amount$ "X"`},
+		{"amount 2", " | Amount$ 2", ""},
+		{"amount X", " | Amount$ X", ""},
 		{"defined opponent", " | Defined$ Opponent", `ChooseCard Defined$ "Opponent"`},
 		{"defined targeted controller", " | Defined$ TargetedController", `ChooseCard Defined$ "TargetedController"`},
 	}

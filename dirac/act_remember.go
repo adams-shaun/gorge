@@ -12,6 +12,25 @@ var DebugRememberUmbraAura bool
 // Invocation): gorge effDestroyAll remembers each victim, in its
 // battlefield walk order, that actually reached the graveyard. It is also
 // the C&2 form (NoRegen$ True: no regeneration replacement).
+// destroyAllChosen destroys the chosen set in its stored (pick) order, one
+// object at a time: gorge's Destroy Defined$ ChosenCard (The Horus Heresy).
+// A chosen card that has already left the battlefield is skipped; the filter
+// is still matched so a card an override moved does not move again.
+func (s *State) destroyAllChosen(k *prep, in *kop.Instr) {
+	e := &s.res.e
+	src := s.objRef(k, kop.RefSelf)
+	for i := 0; i < int(s.g.nchosen); i++ {
+		o := s.g.chosen[i]
+		if s.objs[o].zone != kop.ZoneBattlefield {
+			continue
+		}
+		sl := s.objs[o].slot
+		if s.matchPerm(k, in.F, sl, e.ctrl, src) {
+			s.destroy(k, sl)
+		}
+	}
+}
+
 func (s *State) destroyAllRemember(k *prep, in *kop.Instr) {
 	e := &s.res.e
 	src := s.objRef(k, kop.RefSelf)

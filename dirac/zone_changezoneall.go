@@ -30,6 +30,24 @@ func (s *State) czallBattleHalf(k *prep, in *kop.Instr, only uint8, src Slot, z 
 	s.leaveAll(k, hit, z)
 }
 
+// czallChosenOrder moves the chosen set to z in pick order, one object at a
+// time (gorge's ChangeZone Defined$ ChosenCard): a card that has already left
+// the battlefield is skipped, and the filter is still matched so a chosen card
+// an override moved does not move again.
+func (s *State) czallChosenOrder(k *prep, in *kop.Instr, z kop.Zone) {
+	src := s.objRef(k, kop.RefSelf)
+	for i := 0; i < int(s.g.nchosen); i++ {
+		o := s.g.chosen[i]
+		if s.objs[o].zone != kop.ZoneBattlefield {
+			continue
+		}
+		sl := s.objs[o].slot
+		if s.matchPermGen(k, in.F, sl, s.res.e.ctrl, src, layerFull) {
+			s.leave(k, sl, z, false)
+		}
+	}
+}
+
 // czall3 runs the two OpChangeZoneAllEx forms execChangeZoneAll hands off
 // behind its one guard (cold):
 //   - MvForgetOther (ForgetOtherRemembered$, gorge effChangeZoneAll): the

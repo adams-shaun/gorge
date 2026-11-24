@@ -173,6 +173,16 @@ func (ic *instrCtx) opChooseCard() error {
 		ki.C = 8 // chooseCopyPick: the CopyPermanent Choices$ pick (gorge's copypermanent_choice)
 	case "PopulatePick":
 		ki.C = 9 // choosePopulatePick: the Populate$ token pick, a lone candidate taken unasked
+	case "Amount":
+		ki.C = kop.ChooseCardAmount // A = the pick count, every pick taken
+	case "AmountOpt":
+		ki.C = kop.ChooseCardAmountOpt // A = the most picks, Done ends it early
+	case "AtRandom":
+		ki.C = kop.ChooseCardAtRandom // A = the pick count, the engine rng picks
+	case "EachPlayer":
+		ki.C = kop.ChooseCardEach // every player picks one, AliveFrom(controller)
+	case "ActivatorBase":
+		ki.C = kop.ChooseCardActivatorBase // match the pool from the activator
 	}
 	return nil
 }

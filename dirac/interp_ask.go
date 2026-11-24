@@ -638,7 +638,8 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			d.Sub = ChGenSearch // an OriginAlternative$ search is effSearchLibrary whichever zones were elected
 		}
 		s.searchCands(k, d)
-		if s.g.pickF&kop.SrMandatory == 0 && s.exactlyMayStop(&s.prog(k)[r.pc]) || d.N == 0 {
+		eachMin := s.g.pickF&kop.SrEachMin != 0 && s.g.nlook > 0
+		if s.g.pickF&kop.SrMandatory == 0 && s.exactlyMayStop(&s.prog(k)[r.pc]) || eachMin || d.N == 0 {
 			d.add(MakeAction(AkDone, 0, 0, 0))
 		}
 	case raGenDig:
@@ -702,28 +703,7 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		}
 		s.castFreeDoneOption(k, d)
 	case raGenChooseCard:
-		d.Sub = ChGenChooseCard
-		if c := s.prog(k)[r.pc].C; c == chooseAttachPick || c == chooseAttachPickOpt {
-			s.attachPickOptions(k, d, r.pc, r.askP) // tgt_attachpick.go
-			break
-		}
-		if s.prog(k)[r.pc].C == chooseAttachDest {
-			s.attachDestScan(k, r.pc, r.askP, d) // tgt_attachdest.go
-			break
-		}
-		if s.prog(k)[r.pc].C == choosePutCounterPick {
-			d.Sub = ChGenBolster // gorge's counter_pick
-		}
-		if s.prog(k)[r.pc].C == chooseFaceDownPick {
-			d.Sub = ChGenFaceDownPick // gorge's face_down_choice pick (CR 701.58a)
-		}
-		if c := s.prog(k)[r.pc].C; c == chooseCopyPick || c == choosePopulatePick {
-			d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
-		}
-		s.cardCandsBase(k, s.prog(k)[r.pc].F, r.askP, s.chooseCardBase(s.prog(k)[r.pc].Obj, r.askP), d)
-		if c := s.prog(k)[r.pc].C; c == 1 || c == chooseLibUpTo {
-			d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
-		}
+		s.chooseCardOptions(k, r.pc, r.askP, d)
 	case raGenTokChoice, raGenRetChoice:
 		if s.g.pre.kind == akEntryOrder {
 			d.Sub = ChGenReplOrder // a returning clone's order ask (copy_returnorder.go)
@@ -1353,20 +1333,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		s.continueRes(k, 0)
 	case raGenChooseCard:
-		if s.prog(k)[s.res.pc].C == chooseLibUpTo {
-			s.chooseLibAnswer(k, a) // zone_optionalmoves.go: asks again or continues
-			return
-		}
-		if a.Kind() == AkDone {
-			s.g.nchosen = 0 // chose none (an up-to-one ask)
-		} else {
-			s.g.chosen[0] = Obj(a.Source())
-			s.g.nchosen = 1
-			if s.prog(k)[s.res.pc].C == 2 {
-				s.remember(Obj(a.Source())) // RememberChosen$
-			}
-		}
-		s.continueRes(k, 0)
+		s.applyChooseCard(k, a)
 	case raGenEnterAsk:
 		if s.g.ask[0].kind == akNameLook {
 			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
@@ -1833,7 +1800,11 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	s.g.pickP = p
 	s.g.pickLeft = uint8(s.value(k, in.A))
 	s.g.pickZ = uint8(in.C & 7)
-	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&(kop.SrAttacking|kop.SrDifferentNames|kop.SrNoShuffle|kop.SrRandom|kop.SrGameGrave)
+	mask := uint16(kop.SrAttacking | kop.SrDifferentNames | kop.SrNoShuffle | kop.SrRandom | kop.SrGameGrave)
+	if in.Op == kop.OpSearchEx {
+		mask |= kop.SrEachMin // bit 8 is SrImprint on a ChooseMove, never a library search
+	}
+	s.g.pickF = uint16(in.C>>3) | uint16(in.B.N)&mask
 	s.g.nlook = 0
 	if altOp(in) {
 		s.altBegin(in) // OriginAlternative$ (zone_originalternative.go)
@@ -2799,12 +2770,57 @@ func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
 	return askP
 }
 
+// chooseCardOptions builds a ChooseCard ask's options: the counted and
+// each-player forms match the pool from the activator (gorge cardChoicesIn),
+// a counted pick never offers an earlier answer twice, and an up-to pick ends
+// with Done.
+func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
+	in := &s.prog(k)[pc]
+	d.Sub = ChGenChooseCard
+	c := in.C
+	if c == chooseAttachPick || c == chooseAttachPickOpt {
+		s.attachPickOptions(k, d, pc, askP) // tgt_attachpick.go
+		return
+	}
+	if c == chooseAttachDest {
+		s.attachDestScan(k, pc, askP, d) // tgt_attachdest.go
+		return
+	}
+	if c == choosePutCounterPick {
+		d.Sub = ChGenBolster // gorge's counter_pick
+	}
+	if c == chooseFaceDownPick {
+		d.Sub = ChGenFaceDownPick // gorge's face_down_choice pick (CR 701.58a)
+	}
+	if c == chooseCopyPick || c == choosePopulatePick {
+		d.Sub = ChGenCopyPick // gorge's copypermanent_choice pick (copy_picked.go)
+	}
+	base := s.chooseCardBase(in.Obj, askP)
+	if c == kop.ChooseCardEach || c == kop.ChooseCardActivatorBase ||
+		c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt {
+		base = s.res.e.ctrl
+	}
+	s.cardCandsBaseEx(k, in.F, askP, base, d, c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt)
+	if c == 1 || c == chooseLibUpTo || c == kop.ChooseCardAmountOpt {
+		d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
+	}
+}
+
 // cardCandsBase is cardCands with the ctrl base the filter's You reads are
 // matched against (chooseCardBase's rule).
 func (s *State) cardCandsBase(k *prep, f kop.FilterID, p, ctrl uint8, d *Decision) int {
+	return s.cardCandsBaseEx(k, f, p, ctrl, d, false)
+}
+
+// cardCandsBaseEx is cardCandsBase with excl dropping this pick's earlier
+// answers (a counted ChooseCard never offers a card twice).
+func (s *State) cardCandsBaseEx(k *prep, f kop.FilterID, p, ctrl uint8, d *Decision, excl bool) int {
 	n := 0
 	z := k.t.Filters[f].Zone
 	add := func(o Obj) {
+		if excl && s.inSet(&s.g.chosen, s.g.nchosen, o) {
+			return
+		}
 		n++
 		if d != nil {
 			d.add(MakeAction(AkChoose, TCode(o), 0, 0))

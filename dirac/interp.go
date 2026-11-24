@@ -442,6 +442,10 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		s.dmgBatchClose()
 	case kop.OpDestroyAll:
+		if in.C&kop.DestroyAllChosenOrder != 0 {
+			s.destroyAllChosen(k, in) // the chosen set in pick order (The Horus Heresy)
+			break
+		}
 		if in.C != 0 {
 			s.destroyAllRemember(k, in)
 			break

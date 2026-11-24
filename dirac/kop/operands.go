@@ -242,6 +242,18 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// CzChosenOrder is OpChangeZoneAll's C bit 3 (the non-Ex form's C is only
+// the destination zone): move the chosen set in its stored (pick) order, one
+// object at a time, as gorge's ChangeZone Defined$ ChosenCard does (Split the
+// Party). OpChangeZoneAllEx's C>>3 move flags never carry it.
+const CzChosenOrder = 1 << 3
+
+// DestroyAllChosenOrder is OpDestroyAll's C bit 4: destroy the chosen set in
+// its stored (pick) order, one object at a time, as gorge's
+// Destroy Defined$ ChosenCard does (The Horus Heresy). Bits 0..1 are
+// RememberDestroyed$/NoRegen$.
+const DestroyAllChosenOrder = 1 << 4
+
 // AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
 // unattach half (CR 702.151a), "unattach from a creature": the source stops
 // being attached, to nothing if it was not attached.
@@ -273,6 +285,18 @@ const (
 	SrUnderYourControl             // OpChooseMove (GainControl$): the picked cards enter under the fetching controller, else (SrGraveExile) under their owner; a plain Graveyard pick with it is game-wide
 )
 
+// OpChooseCard C codes beyond the first ten (0 plain, 1 up to one, 2
+// RememberChosen$, 3 the Peek window, 4/5/6/7/8/9/10 the object-side picks).
+// A counted pick takes A cards (Amount$ / the SVar read); an each-player pick
+// makes every player choose one, in the StartingWith$ order.
+const (
+	ChooseCardAmount        = 11 // A = the pick count, every pick taken (no Done)
+	ChooseCardAmountOpt     = 12 // A = the most picks, Done ends it early (MinAmount$ 0)
+	ChooseCardAtRandom      = 13 // A = the pick count, the engine rng picks (no ask)
+	ChooseCardEach          = 14 // every player picks one, AliveFrom(controller)
+	ChooseCardActivatorBase = 16 // match the pool from the activator (Drana's TriggeredDefendingPlayer)
+)
+
 // Search flags carried in Instr.B (a VConst) of OpSearchEx / OpChooseMove,
 // not in C: C>>3 has no room left (bit 11 is the last positive bit of the
 // int16). startSearch ORs them into the pick's flags (genState.pickF).
@@ -295,6 +319,7 @@ const (
 	SrShareLandType = 1 << 9  // OpSearchEx only: ShareLandType$ True -- every found card shares a land type with the others, so a later pick is offered only the cards sharing a printed subtype with every earlier one (gorge rules.validateSearch through effects.SharedLandTypes; kgen lowers it only over a basic-land filter). Read from the instruction's B, never ORed into pickF
 	SrBattleLink    = 1 << 9  // OpChooseMove from the battlefield to exile (Hidden$ True, Duration$ UntilHostLeavesPlay: Glorious Protector, Abdel Adrian, Yannik): nothing is picked once the resolving source has left the battlefield, and each picked non-token permanent is linked to the source (genState.links) so the picked set returns to the battlefield, as one entering batch under its owners' control, when the source leaves (tableLinkRet, pickLink). Read from the instruction's B through battleLinkPick, never ORed into pickF; bit 9 is OpSearchEx's SrShareLandType, which a pick never carries, and also lies in the entry counter kind's bits 4..11 of a graveyard or Hand,Graveyard pick (kind+1 >= 32: FINALITY, TIME, PAGE), so the bit counts only on a zoneless-filter pick without SrHandGrave
 	SrAltOrigin     = 1 << 4  // OpSearchEx only (bits 4..11 are OpChooseMove's entry counter kind, unread on a library search): OriginAlternative$ -- the searcher first elects which of the library and the alternative zone to search (gorge originAlternativeZones), the pool is the elected zones' cards (library first), the shuffle is owed only when the library was elected. B bits 5..7 (SrAltZoneShift) hold the alternative zone (Graveyard or Hand); SrAltGraveHand there names the Graveyard,Hand pair, so the election offers three zones; read from the instruction, never ORed into pickF
+	SrEachMin       = 1 << 8  // OpSearchEx: a Mandatory$ EACH pick's Min is the per-type ChangeNum$ (one pick), Max every listed group (gorge zone_search.go), so Done is offered after the first pick. Bit 8 is SrImprint on an OpChooseMove (never a library search)
 )
 
 // SrAltAll (OpSearchEx with SrAltOrigin only): the zone election is settled

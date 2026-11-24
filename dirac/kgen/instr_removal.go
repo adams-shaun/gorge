@@ -42,7 +42,7 @@ func (ic *instrCtx) opDestroyAll() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op = kop.OpDestroyAll
-	ki.C = int16(in.C & 3)
+	ki.C = int16(in.C & (3 | kop.DestroyAllChosenOrder))
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
 	}

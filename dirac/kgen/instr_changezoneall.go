@@ -46,6 +46,9 @@ func (ic *instrCtx) opChangeZoneAll() error {
 		return err
 	}
 	ki.Op, ki.C = kop.OpChangeZoneAll, int16(zoneMap[in.C])
+	if _, ok := fl["chosenOrder"]; ok {
+		ki.C |= kop.CzChosenOrder
+	}
 	_, untilLeaves := fl["UntilLeaves"]
 	if m := ic.moveFlags(); m != 0 || in.Obj.Kind != rNone || untilLeaves {
 		ki.Op = kop.OpChangeZoneAllEx
