@@ -831,6 +831,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.myriadExt(k, in) // kw_myriad.go
 	case kop.ExtNameCard:
 		return s.nameCardExt(k, in) // repl_namecard.go
+	case kop.ExtPayLifeX:
+		return s.payLifeExt(k, in) // repl_paylife.go
 	case kop.ExtPutContract:
 		return s.putContract(k, in) // ctr_contract.go
 	case kop.ExtPutCounterChoice:

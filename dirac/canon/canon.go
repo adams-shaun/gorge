@@ -174,6 +174,7 @@ var ChooseKinds = []string{
 	"random_deck",      // gorge effChooseType's AtRandom$ CreatureInTargetedDeck pick (Aswan Jaguar): the engine draws over the target opponent's deck's creature subtypes, nobody is asked (dirac act_randomdecktype.go)
 	"asunblocked",      // gorge askNextCombatAsk's as-unblocked election (CR 510.1c): both options name the attacker, mode 0 assigns normally, 1 as though not blocked (combat_asgngrant.go)
 	"riot",             // CR 702.136a: gorge's as-enters counter-or-haste election (kw_riot.go; the repeat's ordinal is the mode: 0 the counter, 1 the haste)
+	"paylife",          // gorge's "as it enters, pay any amount of life" ask (cast_etbchoice.go etbPayLifeOptions): over the entering permanent, the amount paid is the mode (dirac ChGenPayLife; repl_paylife.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

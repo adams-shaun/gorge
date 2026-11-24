@@ -521,7 +521,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		case dirac.ChGenManifestDread:
 			return ch("manifest_dread", src, 0)
 		}
-		return ch("number", RefNone, mode)
+		return r.numberChoose(src, mode) // translate_paylife.go
 	}
 	return Pack(CanonKind(0xFF), src, tgt, mode)
 }

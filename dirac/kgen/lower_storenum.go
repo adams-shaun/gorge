@@ -211,6 +211,9 @@ func walkFaceNodes(f *cards.Face, fn func(*cards.SA)) {
 	for i := range f.Triggers {
 		walk(f.Triggers[i].Effect)
 	}
+	for i := range f.Repls {
+		walk(f.Repls[i].With) // an as-enters body that stores (lower_paylife.go)
+	}
 }
 
 // svarIndex is name's index in the table's SVarNames, assigned at first use.
