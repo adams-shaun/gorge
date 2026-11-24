@@ -1583,16 +1583,18 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 	return !(k.tapMana && (s.tapXTwoLive(k, p) || s.tapXSacAnyLive(k, p))) && !s.storeGapLive(k, p) && !s.reflAmtLive(k, p)
 }
 
-// storeGapLive reports whether p controls an activatable lone storage
-// battery: a store counter-cost gap holding counters to remove (scriptCtr)
-// whose card has no plain first mana ability (ctrSecond). A later battery
-// (Mage-Ring Network's {T}: Add {C} beside its counter-X ability) is priced by
-// that first unit, so it leaves the census relaxable and the filter's fee
-// fundable, as storeCensusGap reads the same ctrSecond test.
+// storeGapLive reports whether p controls an activatable storage battery
+// holding counters (scriptCtr): its SubCounter<X> mana ability is a census
+// gap with no relaxed alternative, so gorge's potential census is unrelaxable
+// and a filter's fee is no funding there. A later battery (Mage-Ring
+// Network's {T}: Add {C} beside its counter-X ability) is no exception: the
+// planner prices its plain first unit, but the counter-X ability it also
+// makes payable stays uncovered (paymentPlanCensusOf; the window census
+// storeCensusGap reads is a different one).
 func (s *State) storeGapLive(k *prep, p uint8) bool {
 	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
 		c := s.cardAt(b.first())
-		if kop.StoreManaAb(k.ctrAbOf(c)) && !k.ctrSecond(c) {
+		if kop.StoreManaAb(k.ctrAbOf(c)) {
 			return true
 		}
 	}
