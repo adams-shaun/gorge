@@ -57,10 +57,10 @@ func peacekeeperUnlessFixture(t *testing.T, plains int) (*Engine, state.ObjID, s
 // TestUnlessManaWindowClosesOncePayable pins the engine half of a cardfuzz
 // livelock: the mid-resolution unless-cost window offers
 // sources only while the pool cannot pay the charge (the predicate that
-// opened it, and the one the cast and cumulative windows close on), and each
-// offered source carries the beyond-tap cost marker every other "activate"
-// offer carries, so an answerer can tell the Priest's non-tapping "{1}" from
-// a Plains' tap.
+// opened it, and the one the cast and cumulative windows close on), a Plains'
+// tap offer carries no beyond-tap cost marker, and a fee-only converter that
+// cannot fill what is still owed (the Priest's "{1}: Add {W}" with the {W} pip
+// already floating) is not offered at all (wardWindowStalls).
 func TestUnlessManaWindowClosesOncePayable(t *testing.T) {
 	t.Parallel()
 	e, pk, priest := peacekeeperUnlessFixture(t, 3)
@@ -79,23 +79,20 @@ func TestUnlessManaWindowClosesOncePayable(t *testing.T) {
 		t.Fatalf("no untapped Plains offered: %+v", d.Options)
 	}
 	tapPlains()
-	// One {W} does not pay {1}{W}: the window stays open, and now that the
-	// pool holds mana the Priest's "{1}" is activatable too.
+	// One {W} does not pay {1}{W}: the window stays open. The pool now funds
+	// the Priest's "{1}", but turning the floating {W} into {W} leaves the
+	// generic {1} owed, so the Priest stays off the list.
 	d := e.Pending()
 	if d == nil || d.ResumeKind != "unless_mana" {
 		t.Fatalf("one {W} does not pay {1}{W}; the window must stay open: %+v", d)
 	}
-	sawPriest := false
+	if e.G.Players[0].Pool[state.MW] != 1 || !e.untappedManaSource(0, priest) {
+		t.Fatalf("precondition: {W} floats and the Priest's {1} is activatable (pool %v)", e.G.Players[0].Pool)
+	}
 	for _, o := range d.Options {
 		if o.Kind == "activate" && o.Obj == priest {
-			sawPriest = true
-			if o.Cost != "1" {
-				t.Fatalf("Farrelite Priest's window option carries cost marker %q, want \"1\"", o.Cost)
-			}
+			t.Fatalf("the unless_mana window offered Farrelite Priest, whose {1}: Add {W} cannot pay the {1} still owed: %+v", d.Options)
 		}
-	}
-	if !sawPriest {
-		t.Fatalf("the unless_mana window omitted Farrelite Priest with {W} floating: %+v", d.Options)
 	}
 	tapPlains()
 	d = e.Pending()
