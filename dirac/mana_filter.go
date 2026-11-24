@@ -1723,7 +1723,17 @@ func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 	var pb avail
 	sp := s.grantPayDescOf(k, a)
 	s.availPotentialFor(k, p, &pb, &sp, false)
-	return pb.affords(&cost, pipMaskOf(&cost), 0)
+	if !pb.affords(&cost, pipMaskOf(&cost), 0) {
+		return false
+	}
+	// The full surface prices the activation by gorge's planner: its relaxed
+	// proof (paymentPlanRelaxProof) counts the unit once, and a play it proves
+	// insufficient runs no prefix search (potentialCensusFallback), so the
+	// potential bound alone (which counts a filter's ability and its fee-making
+	// one both) lets no life pass fund it past the relaxed census's walk
+	// (Unholy Officiant's {4}{W} beside Artifact Unknown Shores, Mountain, a
+	// Grove and the Ogre). The autopay surface's plan walks the unit's repeats.
+	return s.cfg&cfgGorgeAutopay != 0 || s.relaxedWalkLists(k, a)
 }
 
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
