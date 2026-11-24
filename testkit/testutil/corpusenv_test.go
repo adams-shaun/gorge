@@ -171,3 +171,33 @@ func TestGorgeCardsDirWins(t *testing.T) {
 		t.Fatalf("got %q %v", got, ok)
 	}
 }
+
+// A lock that names the right ref but not the scripts beside it fails the
+// corpus check once, with the fix: the drift the pin check cannot see.
+func TestVerifyCorpusContentRejectsDrift(t *testing.T) {
+	root := t.TempDir()
+	good := filepath.Join(root, "good", ".cards")
+	writeCorpus(t, filepath.Join(root, "good"), `{"ref":"abc123","files":2}`)
+	for _, n := range []string{"a.txt", "b.txt"} {
+		if err := os.WriteFile(filepath.Join(good, "cardsfolder", n), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := verifyCorpusContent(good); err != nil {
+		t.Fatalf("matching corpus: %v", err)
+	}
+	extra := filepath.Join(root, "extra", ".cards")
+	writeCorpus(t, filepath.Join(root, "extra"), `{"ref":"abc123","files":2}`)
+	for _, n := range []string{"a.txt", "b.txt", "stale.txt"} {
+		if err := os.WriteFile(filepath.Join(extra, "cardsfolder", n), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	err := verifyCorpusContent(extra)
+	if err == nil || !strings.Contains(err.Error(), "forgec verify") || !strings.Contains(err.Error(), "--delete") {
+		t.Fatalf("stale file under a matching lock: got %v, want an error with the fix", err)
+	}
+	if err := verifyCorpusContent(filepath.Join(root, "absent", ".cards")); err != nil {
+		t.Fatalf("no corpus: %v", err)
+	}
+}

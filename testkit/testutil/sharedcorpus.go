@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -47,7 +48,34 @@ func SharedCorpusDir(dir string) (corpus string, ok bool) {
 		// is a FAIL (not a skip, which the make targets would class ENV).
 		panic(err.Error())
 	}
+	if err := verifyCorpusContent(corpus); err != nil {
+		// A stale corpus must never be tested silently: a test that gets here
+		// is a FAIL (not a skip, which the make targets would class ENV).
+		panic(err.Error())
+	}
 	return corpus, true
+}
+
+var corpusContent sync.Map // corpus dir -> error (nil when it matches its lock)
+
+// verifyCorpusContent fails when corpus's cards.lock does not describe the
+// scripts beside it (cards.VerifyLock: counts and the sorted listing, never
+// contents), once per corpus per process. The pin check above reads only the
+// lock, so a corpus with the right ref over another ref's scripts, a partial
+// fetch, or stale files an rsync or tar left behind passed it and then moved a
+// census by one (TestBecomesTargetNonSelfCarriersCensus, 11-24).
+func verifyCorpusContent(corpus string) error {
+	if v, ok := corpusContent.Load(corpus); ok {
+		err, _ := v.(error)
+		return err
+	}
+	var err error
+	if e := cards.VerifyLock(corpus); e != nil {
+		err = fmt.Errorf("testutil: corpus %s does not match its cards.lock: %w. Re-fetch it (`make link-cards`, or `forgec fetch`), or mirror a good corpus with `rsync -a --delete`; "+
+			"`forgec verify -dir %s` rechecks", corpus, e, corpus)
+	}
+	corpusContent.Store(corpus, err)
+	return err
 }
 
 // pickCorpus chooses the corpus directory of the checkout whose git common dir
