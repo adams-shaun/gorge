@@ -282,6 +282,11 @@ type livelockWatcher struct {
 	// one's signature folds in its ordinal, so a batch of identical mints is
 	// never read as a stuck period (see mintingKinds).
 	mints uint64
+	// pushRun counts the consecutive TriggerPush events just observed (reset
+	// by any other event). Its ordinal is folded into a TriggerPush's
+	// signature, so an uninterrupted batch of pushes is never read as a
+	// stuck period (see observeFrom).
+	pushRun uint64
 	// The candidate index: every position in the window is chained to the
 	// previous one whose 4-GRAM (its signature and its three predecessors')
 	// shares its slot (gramSlot, livelockCandSlots), so detect walks exactly
@@ -489,6 +494,21 @@ func (w *livelockWatcher) observeFrom(ev *events.Event, damageSource state.ObjID
 	// one that keeps registering fresh ids falls to the runaway backstop.
 	if ev.Kind == events.DelayedRemove {
 		sig = sigMix(sigMix(sig, livelockDelayedTag), uint64(uint32(ev.Amount)))
+	}
+	// A TriggerPush names its source and the causing event's referents, not
+	// which instance of the trigger it queues: a singular "whenever a
+	// creature attacks" line (CR 508.3a/603.2c) pushes one instance per
+	// matching attacker, so Winota, Joiner of Forces over a few hundred
+	// attacking Soldier tokens logs hundreds of byte-identical pushes in a
+	// row. That batch is finite progress, one instance per attacker. Folding
+	// the ordinal within the uninterrupted run keeps it from reading as a
+	// period, while a real loop -- a push, then the resolution or any other
+	// event that resets the run, every period -- still repeats exactly.
+	if ev.Kind == events.TriggerPush {
+		w.pushRun++
+		sig = sigMix(sigMix(sig, livelockPushTag), w.pushRun)
+	} else {
+		w.pushRun = 0
 	}
 	if mintingKinds.has(ev.Kind) {
 		w.mints++
@@ -868,6 +888,9 @@ const (
 	// livelockDelayedTag marks the registration id folded into a
 	// DelayedRemove's signature (see observeFrom).
 	livelockDelayedTag = 0x64656C79
+	// livelockPushTag marks the run ordinal folded into a TriggerPush's
+	// signature (see observeFrom).
+	livelockPushTag = 0x70757368
 )
 
 // sigMix folds one 64-bit word into the running signature: xor, an odd
