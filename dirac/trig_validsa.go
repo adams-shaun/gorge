@@ -13,8 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // Tf3OrTargets ("Spell.X,Spell.IsTargeting Valid Y", Danitha): the spell
 // matches Filter OR some target of it matches Filter2 (gorge
-// spellIsTargetingMatchesPtr tries every target; a player target never
-// matches a creature spec).
+// spellIsTargetingMatchesPtr tries every target, battlefield targets only for
+// the `Valid ` form; a player target never matches a creature spec).
 
 // castTreasureOK is the Tf3ManaFromTreasure gate: the cast still being built
 // spent Treasure mana (a stack copy or a later read never matches).
@@ -31,9 +31,11 @@ func (s *State) castTreasureOK(e *stackEntry) bool {
 }
 
 // castTargetsAny is the Tf3OrTargets target arm: some object target of spell
-// e matches f, read with the trigger's source and controller. A battlefield
-// target is matched as a permanent; a target in any other zone as a card
-// controlled by its owner (gorge's Controller off the battlefield).
+// e matches f, read with the trigger's source and controller. Only a
+// battlefield target is matched (as a permanent): gorge pins `IsTargeting
+// Valid <spec>` to the battlefield (Forge's getDefinedObjects `Valid ` form;
+// CR 109.2, 110.1), so a creature card in a graveyard is not "a creature you
+// control".
 //
 //go:noinline
 func (s *State) castTargetsAny(k *prep, f kop.FilterID, e *stackEntry, l trigListener) bool {
@@ -48,11 +50,7 @@ func (s *State) castTargetsAny(k *prep, f kop.FilterID, e *stackEntry, l trigLis
 			continue
 		}
 		ob := &s.objs[t]
-		if ob.zone == kop.ZoneBattlefield {
-			if s.matchPermGen(k, f, ob.slot, l.ctrl, l.sl, layerFull) {
-				return true
-			}
-		} else if s.matchCardTgt(k, f, ob.card, s.ctrlOfObj(Obj(t)), l.ctrl, Obj(t), l.sl, l.obj) {
+		if ob.zone == kop.ZoneBattlefield && s.matchPermGen(k, f, ob.slot, l.ctrl, l.sl, layerFull) {
 			return true
 		}
 	}

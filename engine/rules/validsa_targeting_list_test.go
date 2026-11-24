@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -55,4 +56,40 @@ func danithaFires(t *testing.T, scenario string) bool {
 		}
 	}
 	return false
+}
+
+// CR 109.2 / 110.1: "a creature" is a permanent, so a creature CARD in a
+// graveyard is not one. Forge reads `IsTargeting Valid <spec>` through
+// AbilityUtils.getDefinedObjects, whose `Valid ` form draws its candidates
+// from the battlefield only (cross-engine farm, FRA-s102 xe:RAND:0:5:w8 step
+// 17). Head of the Class's `ValidSpell$ Spell.IsTargeting Valid Creature`
+// W/B discount is the carrier whose bare base the old filter matched in any
+// zone: a spell announcing a creature card in a graveyard earns no discount,
+// while the same spell announcing a creature on the battlefield does.
+func TestValidSAIsTargetingValidIsBattlefieldOnly(t *testing.T) {
+	spellSrc := "Name:Wounded Spell\nManaCost:W B\nTypes:Sorcery\n" +
+		"A:SP$ Pump | ValidTgts$ Creature | NumAtt$ +1 | NumDef$ +1\nOracle:x\n"
+	e := handEngine(t, card(t, spellSrc))
+	head := e.G.AddObject(corpusAlternativeCard(t, "Head of the Class"), 0)
+	head.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{head.ID})
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	live := battlePerm(t, e, 0, "Name:A Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	dead := e.G.AddObject(card(t, "Name:A Dead Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	dead.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{dead.ID})
+	if e.G.Obj(dead.ID).Zone != state.ZGraveyard || !e.G.Obj(dead.ID).Face().IsCreature() ||
+		e.G.Obj(live).Zone != state.ZBattlefield || e.G.Active != 0 {
+		t.Fatal("precondition: a creature card in the graveyard, a creature on the battlefield, seat 0 active")
+	}
+	price := func(tg state.ObjID) int32 {
+		m := e.costModifiersForTargets(0, spell, spellScope(""), []state.Target{{Obj: tg}})
+		return m.Apply(e.parseCost("W B")).CMC()
+	}
+	if got := price(live); got != 0 {
+		t.Fatalf("precondition: a battlefield creature target priced %d, want the discount to apply (0)", got)
+	}
+	if got := price(dead.ID); got != 2 {
+		t.Fatalf("a creature card in a graveyard earned Head of the Class's discount: priced %d, want full 2", got)
+	}
 }
