@@ -67,6 +67,47 @@ var cardTypeChoice = map[string]kop.TypeMask{
 	"Sorcery": kop.TSorcery,
 }
 
+// offeredCardTypes is the kop.TypeMask of a card-type ask's offered labels. A
+// label outside gorge's card-type vocabulary, or fewer than two types (gorge's
+// no-ask fallback), refuses.
+func offeredCardTypes(labels []string) (kop.TypeMask, error) {
+	var m kop.TypeMask
+	for _, v := range labels {
+		b, ok := cardTypeChoice[v]
+		if !ok {
+			return 0, refuse("ChooseType Card ValidTypes %q", v)
+		}
+		m |= b
+	}
+	if bits.OnesCount16(uint16(m)) < 2 {
+		return 0, refuse("ChooseType Card with fewer than two types (gorge's no-ask fallback)")
+	}
+	return m, nil
+}
+
+// chooseCardEnter lowers an as-enters ChooseType | Type$ Card (Archon of
+// Valor's Reach, Cloud Key, Stenn, Paranoid Partisan) to the enters program's
+// OpChooseType with C = the offered types' kop.TypeMask. gorge effChooseType
+// asks over TypeChoiceLabels("Card", ValidTypes$, InvalidTypes$) -- ValidTypes$
+// narrows, InvalidTypes$ removes, Nonland expands -- so the mask comes from the
+// same list. The answer is stored on the permanent as its cardTypeChoice index;
+// a Card.ChosenType filter whose source is such a card reads it as "has that
+// card type" (dirac act_choosecardenter.go). A random pick or a secret answer
+// refuses.
+func (lc *lowerCtx) chooseCardEnter(ps *params) error {
+	for _, k := range []string{"AtRandom", "Secretly"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("ChooseType Card %s$", k)
+		}
+	}
+	m, err := offeredCardTypes(effects.TypeChoiceLabels("Card", ps.str("ValidTypes"), ps.str("InvalidTypes")))
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, C: int(m), Note: "as-enters choice among card types"})
+	return nil
+}
+
 // chooseCardType lowers a mid-resolution ChooseType | Type$ Card |
 // ValidTypes$ <card types> (Winding Way; gorge effChooseType over
 // TypeChoiceLabels("Card", ...): one KChoose option per listed card type,
@@ -77,16 +118,13 @@ func (lc *lowerCtx) chooseCardType(ps *params) error {
 	if d, ok := ps.get("Defined"); ok && d != "You" {
 		return refuse("ChooseType Card Defined %q", d)
 	}
-	var m kop.TypeMask
+	var labels []string
 	for _, v := range strings.Split(ps.str("ValidTypes"), ",") {
-		b, ok := cardTypeChoice[strings.TrimSpace(v)]
-		if !ok {
-			return refuse("ChooseType Card ValidTypes %q", v)
-		}
-		m |= b
+		labels = append(labels, strings.TrimSpace(v))
 	}
-	if bits.OnesCount16(uint16(m)) < 2 {
-		return refuse("ChooseType Card with fewer than two types (gorge's no-ask fallback)")
+	m, err := offeredCardTypes(labels)
+	if err != nil {
+		return err
 	}
 	if _, ok := ps.get("AtRandom"); ok {
 		return refuse("ChooseType AtRandom")
@@ -341,8 +379,8 @@ func (lc *lowerCtx) chooseCreatureTypeMid(ps *params) error {
 	return nil
 }
 
-// etbChooseType lowers an as-enters ChooseType by its Type$: creature types and
-// the basic land types lower, any other pool refuses.
+// etbChooseType lowers an as-enters ChooseType by its Type$: creature types,
+// the basic land types and card types lower, any other pool refuses.
 func (lc *lowerCtx) etbChooseType(ps *params) error {
 	// gorge effChooseType: an absent Defined$ is the controller
 	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
@@ -358,6 +396,8 @@ func (lc *lowerCtx) etbChooseType(ps *params) error {
 		return nil
 	case "Basic Land":
 		return lc.chooseBasicLandEnter(ps)
+	case "Card":
+		return lc.chooseCardEnter(ps)
 	}
 	return refuse("ChooseType shape")
 }

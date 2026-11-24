@@ -228,12 +228,7 @@ func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl u
 		fl.Flags2 &^= kop.F2ChosenColor
 	}
 	if src != NoSlot && fl.Flags2&kop.F2ChosenType != 0 {
-		ch, ok := s.chosenTypeSub(src)
-		cd := &k.t.Cards[c]
-		has := ok && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-		if ok && outsideSub(k, ch) {
-			has = cd.AllCreatureTypes
-		}
+		has := s.srcChosenHasCard(k, src, &k.t.Cards[c]) // act_choosecardenter.go
 		fl.Flags2 &^= kop.F2ChosenType
 		return has && s.matchCardOneAt(k, &fl, c, owner, ctrl, o, ctx, true)
 	}
