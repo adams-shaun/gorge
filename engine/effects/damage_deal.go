@@ -334,6 +334,12 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 				c.PendingDamage = append(c.PendingDamage, PendingDamage{rider: rider,
 					target: state.Target{Obj: t.Obj}})
+				// The damage is marked, not dealt, so c.PendingDamage now holds
+				// the recipient tree: the deferred registerReplaceDying must
+				// still see every permanent this resolution targeted, or the
+				// exile-instead replacement never exists when DB$ DamageResolve
+				// flushes the mark and the target dies (CR 614.1a, 614.4).
+				dying = append(dying, state.Target{Obj: t.Obj})
 			}
 		}
 		return

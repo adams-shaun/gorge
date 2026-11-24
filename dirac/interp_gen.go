@@ -1476,6 +1476,17 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 	}
 	n := s.value(k, in.A)
 	if in.C&kop.DmgMapped != 0 {
+		// The damage is marked, not dealt: damageBatch later re-enters with
+		// only the map entry and knows nothing of this instruction's flag,
+		// so the exile-instead replacement must exist now, before DB$
+		// DamageResolve's flush can kill the recipient (CR 614.1a, 614.4).
+		// Remembered (DmgExileIfDealt) is the other shape: kgen permits it
+		// with RememberDamaged$ and registers it on the DamageResolve SA
+		// after the flush, so it is not marked here.
+		if isObjTarget(code) && s.objs[code].zone == kop.ZoneBattlefield &&
+			in.C&kop.DmgExileIfDiesThisTurn != 0 && in.C&kop.DmgExileIfDealt == 0 {
+			s.markExileEx(k, s.objs[code].slot)
+		}
 		if s.g.ndmg < maxDmgMap && n > 0 {
 			s.g.dmg[s.g.ndmg] = struct {
 				code TCode
