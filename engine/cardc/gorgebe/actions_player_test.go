@@ -234,9 +234,8 @@ func TestAddMana(t *testing.T) {
 			apWant(t, nd, "Mana", c.want)
 		})
 	}
-	// Brief defect: the brief merges "R R" and "R per card" into one node, but
-	// Forge's own script chains two Mana nodes, so the unmerged form is the
-	// one whose shape matches. Consecutive add-mana steps stay separate nodes.
+	// Consecutive add-mana steps stay separate nodes: a single merged node
+	// would not have the two-node shape of the same ritual in Forge.
 	t.Run("consecutive steps chain", func(t *testing.T) {
 		two := mana(nil, col(r), col(r))
 		per := mana(func(s *ir.Step) {
