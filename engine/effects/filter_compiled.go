@@ -406,7 +406,14 @@ func compiledBaseMatch(g *state.Game, a *compiledAlt, o *state.Object, sc *SpecC
 	case cbPermanentCard:
 		m = o.Face() != nil && o.Face().IsPermanent()
 	case cbSpell:
-		m = o.Zone == state.ZStack || (a.base == "Spell" && sc.AsStack)
+		// cbSpell serves BOTH spellings: Spell is a card on the stack (and a
+		// derived AsStack cast announcement); SpellAbility is any stack
+		// object, so it must keep admitting abilities (CR 112.1, 113.3).
+		if a.base == "Spell" {
+			m = (o.Zone == state.ZStack || sc.AsStack) && spellStackObject(o)
+		} else {
+			m = o.Zone == state.ZStack
+		}
 	case cbBatchWord:
 		base := a.base
 		for {
