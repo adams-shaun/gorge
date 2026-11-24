@@ -719,7 +719,18 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// sources read below is skipped when poolOK held.
 		poolOK = s.poolPaysAct(k, p.ctrl, &mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl})
 		if !poolOK && !s.powerUpWitnessAffords(k, sl, a, p.ctrl, av) && !powerUpGrantSearchLists(s, k) {
-			return false
+			// gorge's prefix script search (potentialPrefixScript) floats a
+			// filter land's output ahead of the activation and offers it
+			// when that pool pays the reduced charge (Molly Hayes,
+			// Runaway's {3} from Mountain -> Mossfire Valley and Island),
+			// but only while the bounded relaxation (every filter free)
+			// still reaches the PRINTED charge the planner prices: short of
+			// that gorge skips the search and offers nothing (She-Hulk,
+			// Jade Defender's {4}{G}{G} beside a filter and three sources).
+			if !s.actScriptPaysCost(k, sl, ab, a, true) || !s.powerUpBoundReaches(k, sl, a, p.ctrl, av) {
+				return false
+			}
+			poolOK = true
 		}
 	}
 	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
@@ -851,10 +862,18 @@ const availNoHandFund uint16 = 4096
 // the asks the build poses first, so the offer filtScript priced (a target-0
 // action) is not the plan the play's mana step needs (the Mana Rig's {X}{X}{X}).
 func (s *State) actScriptPays(k *prep, sl Slot, ai int, a *kop.Ability) bool {
+	return s.actScriptPaysCost(k, sl, ai, a, false)
+}
+
+// actScriptPaysCost is actScriptPays; powerUp also prices an otherwise plain
+// Power-up ability, canActivate's pool-branch fallback alone: gorge's prefix
+// script search offers it when the floated filter output pays the CR 702.193b
+// reduced charge (Molly Hayes, Runaway).
+func (s *State) actScriptPaysCost(k *prep, sl Slot, ai int, a *kop.Ability, powerUp bool) bool {
 	// A table without a generated extension has k.gen == nil (prep.go), so
 	// scriptFilt would dereference nil. A granted/gained ability's index (255)
 	// names no printed ability, so its MakeAction could never list.
-	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !(plainPricedCost(a) || sacPricedCost(a) || sacSelfPricedCost(a)) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
+	if k.gen == nil || ai >= 255 || a.Kind == kop.AbMana || !(plainPricedCost(a) || powerUp && scriptPricedCost(a) || sacPricedCost(a) || sacSelfPricedCost(a)) || s.g.availX&availNoActScript != 0 || s.pool != nil && s.pool.inFilt != 0 {
 		return false
 	}
 	p := s.perms[sl].ctrl
@@ -3771,6 +3790,18 @@ func (s *State) adjustCost(k *prep, p uint8, c CardID, priced Obj, base kop.Mana
 	}
 	base.Generic = uint8(g)
 	return base
+}
+
+// scriptPricedCost is plainPricedCost for the filter script's offer: a
+// Power-up ability otherwise plain is priced too, because gorge's prefix
+// script search reads the walk's reduced cost for it.
+func scriptPricedCost(ab *kop.Ability) bool {
+	if ab.Cost.Flags&kop.CostPowerUp == 0 {
+		return plainPricedCost(ab)
+	}
+	c := *ab
+	c.Cost.Flags &^= kop.CostPowerUp
+	return plainPricedCost(&c)
 }
 
 // censusRestrDynAny: ab is a restricted evaluated-amount any-colour mana ability
