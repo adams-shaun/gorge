@@ -14,7 +14,7 @@ import (
 var repeatEachCardsLoopForms = []formCase{
 	{card: "Balan, Wandering Knight", form: "RepeatCards$ Equipment.YouCtrl, Attach Object$ Remembered Defined$ Self", lir: "RepeatEachCard C=1 F={types=0x0 sub=Equipment ctrl=1} skip=1\n     1 AttachObj obj=Self obj2=Each"},
 	{card: "Mercadia's Downfall", form: "RepeatCards$ Creature.attacking, Pump Defined$ Remembered (its X filter is the gap)", refused: `unknown property "DefenderCtrlForRemembered"`},
-	{card: "Cleansing", form: "RepeatCards$ Land, Destroy UnlessCost$ (a body that asks: two instructions)", refused: "RepeatEach cards loop body emitted 2 instructions"},
+	{card: "Cleansing", form: "RepeatCards$ Land, Destroy UnlessCost$ (a body that asks: the unless ask, then the Destroy)", lir: "RepeatEachCard C=1 F={types=0x1} skip=2\n     1 UnlessPaid obj=EachPlayer A=1 CS=PayLife skip=1\n     2 Destroy obj=Each"},
 	{card: "Asinine Antics", form: "ChangeZoneTable$ True Role Token keeps its batched loop (C=0)", lir: "RepeatEachCard F="},
 }
 
