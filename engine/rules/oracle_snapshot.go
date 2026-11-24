@@ -220,10 +220,11 @@ type OracleDecision struct {
 	// CostPosed marks a triggered optional cost's decline-only ask (option
 	// kind "trigger_cost_decline" alone: gorge could not pay) whose cost XMage
 	// still asks about. XMage's DoIfCostPaid skips its chooseUse only when the
-	// cost's canPay is false, and a mana cost ("it's true all the time") or a
-	// discard-your-hand cost always passes, so its AI answers yes and pays
-	// what gorge declined. A decline-only ask over any other cost stays
-	// unmarked: XMage's canPay is false there too and it poses nothing.
+	// cost's canPay is false; mana ("it's true all the time") and
+	// discard-your-hand always pass, and pay-life, exile and collect-evidence
+	// parts pass while payable now (xmagePosesTriggerCost), so its AI answers
+	// yes and pays what gorge declined. A decline-only ask over any other cost
+	// stays unmarked: XMage's canPay is false there too and it poses nothing.
 	CostPosed bool `json:"cost_posed,omitempty"`
 }
 
