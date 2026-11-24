@@ -1,9 +1,14 @@
 package gorgebe
 
-import "github.com/adams-shaun/gorge/engine/cardc/ir"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cardc/ir"
+)
 
 func init() {
 	registerStep(ir.VerbSearch, printSearch)
+	registerStep(ir.VerbRevealUntil, printRevealUntil)
 	registerStep(ir.VerbLook, printDig)
 	registerStep(ir.VerbReveal, printDig)
 	registerStep(ir.VerbLookAtHand, printRevealHand)
@@ -101,11 +106,19 @@ func printDig(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	bad := unprintable("verb:"+st.Verb.String(), st.Src)
 	top := st.Obj
+	if st.Verb == ir.VerbLook && top != nil && top.Kind == ir.RefTopOfLibrary && top.Of != nil && !isYou(top.Of) && len(steps) > 1 {
+		return printLookThey(p, steps)
+	}
+	if st.Verb == ir.VerbReveal && st.Who != nil && !isYou(st.Who) && len(steps) > 1 && !st.Optional {
+		return printRevealTopOf(p, steps)
+	}
 	if top == nil || top.Kind != ir.RefTopOfLibrary || st.Optional || !zwhoYou(st) || (top.Of != nil && !isYou(top.Of)) {
 		return nil, 0, bad
 	}
 	th := zsteps(st.Then)
 	switch {
+	case len(th) == 0 && st.Verb == ir.VerbLook && len(steps) >= 3 && steps[1].Verb == ir.VerbPayCost:
+		return printPeekReveal(p, steps)
 	case len(th) == 2 && th[0].Verb == ir.VerbMove && th[1].Verb == ir.VerbMove:
 		n, err := digNode(p, st, th[0], th[1])
 		if err != nil {
@@ -278,4 +291,133 @@ func revealHandThen(p *pr, st *ir.Step, th []*ir.Step) (*node, int, error) {
 		n.Sub.set("ChangeNum", k)
 	}
 	return n, 1, nil
+}
+
+// printPeekReveal prints "look at the top card, you may reveal it, if it is a
+// <filter> card transform this" as PeekAndReveal, SetState and Cleanup.
+func printPeekReveal(p *pr, steps []*ir.Step) (*node, int, error) {
+	bad := unprintable("verb:look", steps[0].Src)
+	look, pay, outer := steps[0], steps[1], steps[2]
+	if look.Obj.N == nil || look.Obj.N.Kind != ir.VConst || !pay.Optional || pay.Who != nil || pay.Cost == nil || len(pay.Cost.Parts) != 1 || pay.Cost.HasMana ||
+		pay.Cost.Parts[0].Kind != ir.CostReveal || pay.Cost.Parts[0].Obj == nil || pay.Cost.Parts[0].Obj.Kind != ir.RefTopOfLibrary ||
+		outer.Verb != ir.VerbIf || outer.Cond == nil || outer.Cond.Kind != ir.CCostPaid || outer.Optional {
+		return nil, 0, bad
+	}
+	o := zsteps(outer.Then)
+	if len(o) != 1 || o[0].Verb != ir.VerbIf || o[0].Cond == nil || o[0].Cond.Kind != ir.CReceiptNonEmpty || o[0].Cond.Receipt != ir.RcRevealed || o[0].Cond.Filter == nil {
+		return nil, 0, bad
+	}
+	tr := zsteps(o[0].Then)
+	if len(tr) != 1 || tr[0].Verb != ir.VerbTransform || tr[0].Obj == nil || tr[0].Obj.Kind != ir.RefSelf || tr[0].Optional || tr[0].Who != nil {
+		return nil, 0, bad
+	}
+	v, err := p.valid(o[0].Cond.Filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	terms := strings.Split(v, ",")
+	for i, t := range terms {
+		if !strings.HasPrefix(t, "Card.") {
+			terms[i] = "Card." + t
+		}
+	}
+	k, err := p.amount(look.Obj.N)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "PeekAndReveal", Params: []kv{{"PeekAmount", k}, {"RevealOptional", "True"}, {"RememberRevealed", "True"}}}
+	n.Sub = &node{API: "SetState", Params: []kv{
+		{"Defined", "Self"}, {"Mode", "Transform"}, {"ConditionDefined", "Remembered"},
+		{"ConditionPresent", strings.Join(terms, ",")}, {"ConditionCompare", "EQ1"},
+	}}
+	n.Sub.Sub = &node{API: "Cleanup", Params: []kv{{"ClearRemembered", "True"}}}
+	return n, 3, nil
+}
+
+// printRevealTopOf prints "a player reveals the top card of their library; if
+// it is a <filter> card they put it into their hand" as one Dig.
+func printRevealTopOf(p *pr, steps []*ir.Step) (*node, int, error) {
+	st, ifs := steps[0], steps[1]
+	bad := unprintable("verb:reveal", st.Src)
+	top := st.Obj
+	if top == nil || top.Kind != ir.RefTopOfLibrary || top.Of != nil || ifs.Verb != ir.VerbIf || ifs.Optional || ifs.Cond == nil ||
+		ifs.Cond.Kind != ir.CReceiptNonEmpty || ifs.Cond.Receipt != ir.RcRevealed || ifs.Cond.Filter == nil {
+		return nil, 0, bad
+	}
+	th := zsteps(ifs.Then)
+	if len(th) != 1 || th[0].Verb != ir.VerbMove || th[0].Optional || th[0].Enter != nil || th[0].Word != "" || th[0].To != ir.ZoneHand ||
+		!ir.Equal(th[0].Who, st.Who) || !ir.Equal(th[0].Obj, top) {
+		return nil, 0, bad
+	}
+	v, err := p.valid(ifs.Cond.Filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	k, err := p.amount(top.N)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "Dig"}
+	if st.Who.Kind == ir.RefDefendingPlayer && p.ev == ir.EvAttacks {
+		n.set("Defined", "TriggeredDefendingPlayer")
+	} else if err := p.operand(n, "Defined", st.Who); err != nil {
+		return nil, 0, err
+	}
+	n.Params = append(n.Params, kv{"DigNum", k}, kv{"Reveal", "True"}, kv{"ChangeNum", "All"}, kv{"ChangeValid", v}, kv{"LibraryPosition2", "0"})
+	return n, 2, nil
+}
+
+// printRevealUntil prints "reveal cards from the top until a <filter> card;
+// put it into your hand and the rest on the bottom at random" as DigUntil.
+func printRevealUntil(p *pr, steps []*ir.Step) (*node, int, error) {
+	st := steps[0]
+	bad := unprintable("verb:reveal-until", st.Src)
+	th := zsteps(st.Then)
+	if st.Obj != nil || !zwhoYou(st) || len(th) != 2 || st.Filter == nil {
+		return nil, 0, bad
+	}
+	f, r := th[0], th[1]
+	if f.Verb != ir.VerbMove || f.Optional || f.Who != nil || f.Enter != nil || f.Word != "" || f.To == ir.ZoneNone || f.Obj == nil || f.Obj.Kind != ir.RefReceipt || f.Obj.Receipt != ir.RcFound ||
+		r.Verb != ir.VerbMove || r.Optional || r.Who != nil || r.Enter != nil || r.Obj != nil || r.To != ir.ZoneLibrary {
+		return nil, 0, bad
+	}
+	v, err := p.valid(st.Filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "DigUntil", Params: []kv{{"Valid", v}, {"FoundDestination", zoneWord(f.To)}, {"RevealedDestination", "Library"}}}
+	switch r.Word {
+	case "bottom":
+		n.set("RevealedLibraryPosition", "-1")
+	case "bottom-random":
+		n.set("RevealedLibraryPosition", "-1")
+		n.set("RevealRandomOrder", "True")
+	default:
+		return nil, 0, bad
+	}
+	if err := zoptional(n, st); err != nil {
+		return nil, 0, err
+	}
+	return n, 1, nil
+}
+
+// printLookThey prints "look at the top card of a player's library; you may put
+// it on the bottom" as one Dig that may move any of the one card.
+func printLookThey(p *pr, steps []*ir.Step) (*node, int, error) {
+	st, mv := steps[0], steps[1]
+	bad := unprintable("verb:look", st.Src)
+	if st.Optional || !zwhoYou(st) || len(zsteps(st.Then)) > 0 || mv.Verb != ir.VerbMove || !mv.Optional || mv.Who != nil || mv.Enter != nil ||
+		mv.Word != "bottom" || mv.To != ir.ZoneLibrary || !ir.Equal(mv.Obj, st.Obj) {
+		return nil, 0, bad
+	}
+	k, err := p.amount(st.Obj.N)
+	if err != nil {
+		return nil, 0, err
+	}
+	n := &node{API: "Dig"}
+	if err := p.operand(n, "Defined", st.Obj.Of); err != nil {
+		return nil, 0, err
+	}
+	n.Params = append(n.Params, kv{"DigNum", k}, kv{"ChangeNum", "Any"}, kv{"DestinationZone", "Library"}, kv{"LibraryPosition2", "0"})
+	return n, 2, nil
 }

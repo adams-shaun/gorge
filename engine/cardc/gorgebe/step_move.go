@@ -47,6 +47,52 @@ func filterZone(f *ir.Filter) (ir.Zone, bool) {
 	return found, ok
 }
 
+// ownedByPlayer returns the player whose cards f selects when f is just
+// "owned by that player" (a target slot, or a player filter naming one).
+func ownedByPlayer(f *ir.Filter) *ir.Ref {
+	if f == nil || f.Op != ir.FPred || f.Pred != ir.POwnedBy || f.Ref == nil {
+		return nil
+	}
+	r := f.Ref
+	if r.Kind == ir.RefAll && r.Filter != nil && r.Filter.Op == ir.FPred && r.Filter.Pred == ir.PPlayerIs && r.Filter.Ref != nil {
+		r = r.Filter.Ref
+	}
+	if r.Kind != ir.RefTarget {
+		return nil
+	}
+	return r
+}
+
+// dropAnyOwner returns f without its "owned by any player" terms, which
+// restrict nothing; f itself when it has none.
+func dropAnyOwner(f *ir.Filter) *ir.Filter {
+	if f == nil || f.Op != ir.FAll {
+		return f
+	}
+	var args []*ir.Filter
+	changed := false
+	for _, a := range f.Args {
+		if a != nil && a.Op == ir.FPred && a.Pred == ir.POwnedBy && a.Ref != nil && a.Ref.Kind == ir.RefAll &&
+			a.Ref.Filter != nil && a.Ref.Filter.Op == ir.FPred && a.Ref.Filter.Pred == ir.PAny {
+			changed = true
+			continue
+		}
+		if d := dropAnyOwner(a); d != a {
+			a, changed = d, true
+		}
+		args = append(args, a)
+	}
+	if !changed {
+		return f
+	}
+	if len(args) == 1 {
+		return args[0]
+	}
+	c := *f
+	c.Args = args
+	return &c
+}
+
 // zwhoYou reports whether st acts as you: no Who, or you.
 func zwhoYou(st *ir.Step) bool { return st.Who == nil || isYou(st.Who) }
 
@@ -144,7 +190,7 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 	who := st.Who
 	if zwhoYou(st) {
 		who = nil
-	} else if !(obj.Kind == ir.RefChoose && obj.Of == nil) && st.Word != "top-or-bottom" {
+	} else if !(obj.Kind == ir.RefChoose && obj.Of == nil) && st.Word != "top-or-bottom" && !(obj.Kind == ir.RefAll && st.Word == "shuffle") {
 		return nil, bad
 	}
 	dest := zoneWord(to)
@@ -200,12 +246,31 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 			n.Params = append(n.Params, kv{"Origin", zoneWord(z)}, kv{"Destination", dest}, kv{"ChangeType", "Card"})
 			break
 		}
-		v, err := p.valid(obj.Filter)
+		owner := ownedByPlayer(obj.Filter)
+		v, err := "Card", error(nil)
+		if owner == nil {
+			v, err = p.valid(dropAnyOwner(obj.Filter))
+		}
 		if err != nil {
 			return nil, err
 		}
+		if obj.Kind == ir.RefAll && owner != nil {
+			// Forge names the player alone: every card of theirs in that zone.
+			n = &node{API: "ChangeZoneAll", Params: []kv{{"Origin", zoneWord(z)}, {"Destination", dest}}}
+			if err := p.operand(n, "Defined", owner); err != nil {
+				return nil, err
+			}
+			break
+		}
 		if obj.Kind == ir.RefAll {
 			n = &node{API: "ChangeZoneAll", Params: []kv{{"ChangeType", v}, {"Origin", zoneWord(z)}, {"Destination", dest}}}
+			if who != nil {
+				d, err := p.defined(who)
+				if err != nil {
+					return nil, err
+				}
+				n.set("Defined", d)
+			}
 			break
 		}
 		k, err := p.amount(obj.N)
@@ -253,8 +318,15 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 	case "bottom", "bottom-any-order":
 		n.set("LibraryPosition", "-1")
 	case "top-any-order":
-		n.set("LibraryPosition", "0")
+		if obj.Kind == ir.RefChoose {
+			n.set("LibraryPosition", "0")
+		}
 		n.set("Reorder", "True")
+	case "shuffle":
+		if obj.Kind != ir.RefAll || to != ir.ZoneLibrary {
+			return nil, bad
+		}
+		n.set("Shuffle", "True")
 	case "top-or-bottom":
 		if who == nil || to != ir.ZoneLibrary {
 			return nil, bad
