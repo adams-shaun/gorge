@@ -1,0 +1,11 @@
+# the exiled-with hand pick pool: Roads Go Ever, Ever On searches basic
+# Plains into exile and returns one per chapter II and III to its owner's
+# hand (a hidden pick over Card.ExiledWithSource), beside another exiler,
+# a flicker, vanilla creatures and basics (dirac/oracle/exw_hand_test.go)
+Roads Go Ever, Ever On
+Journey to Nowhere
+Cloudshift
+Savannah Lions
+Suntail Hawk
+Serra Angel
+Plains

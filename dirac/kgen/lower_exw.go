@@ -72,6 +72,15 @@ func (lc *lowerCtx) exwCheck() {
 	if !lc.out.ExiledWith {
 		return
 	}
+	if lc.out.Delve {
+		// Ethereal Forager's "a card exiled with this": the cards its Delve
+		// exiled (CR 702.66a). gorge's delve MoveZone carries no source
+		// (cast_commit.go), so its reader finds nothing; the kernel's cost
+		// exile records none either, and a pick that agrees on an empty set
+		// proves nothing
+		lc.refuseNode("card", "ExiledWith reader of a Delve exile: gorge links no delved card to its spell")
+		return
+	}
 	for _, a := range lc.out.Abilities {
 		for _, in := range a.Prog {
 			switch in.Op {
@@ -178,4 +187,18 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 	}
 	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: dest, CS: strings.Join(cs, "|")})
 	return nil
+}
+
+// exwHandPick: a hidden pick out of exile into a hand is a resolution-time
+// mover, so ExiledWithSource reads the resolving source (Roads Go Ever, Ever
+// On's "a card exiled with this Saga into its owner's hand"): the game-wide
+// exile walk publicPick poses, the card entering its owner's hand.
+func exwHandPick(ps *params, origin, dest int) bool {
+	return origin == zExile && dest == zHand && ps.is("Hidden", "True")
+}
+
+// exilePublicPick: a hidden pick out of exile into a graveyard or a hand is
+// the game-wide public walk (publicPick).
+func exilePublicPick(ps *params, origin, dest int) bool {
+	return origin == zExile && (dest == zGraveyard || dest == zHand) && ps.is("Hidden", "True")
 }

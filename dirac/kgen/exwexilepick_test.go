@@ -7,9 +7,10 @@ import (
 
 // TestExwExilePick: a hidden ChangeZone pick out of
 // exile reads Card.ExiledWithSource (Omenpath Journey, Northampton Farm) and
-// lowers to a ChooseMove from=Exile; the hidden pick into exile (Wormfang
-// Newt/Turtle) stays refused by exwCheck, and so do the shapes the mover
-// does not read.
+// lowers to a ChooseMove from=Exile; a hidden ChangeZone pick out of exile
+// into a hand is a resolution-time mover too (Roads Go Ever, Ever On), so it
+// lowers the same way. The hidden pick into exile (Wormfang Newt/Turtle)
+// stays refused by exwCheck, and so do the shapes the mover does not read.
 func TestExwExilePick(t *testing.T) {
 	want := map[string]string{
 		"Omenpath Journey": "from=Exile|Tapped|Random",
@@ -64,7 +65,6 @@ func TestExwExilePick(t *testing.T) {
 		{"ValidTgts", "SP$ ChangeZone | Cost$ B | Hidden$ True | Origin$ Exile | Destination$ Battlefield | ChangeType$ Creature | DefinedPlayer$ You", "exile pick with DefinedPlayer$"},
 		{"ChangeNum", "SP$ ChangeZone | Cost$ B | Hidden$ True | Origin$ Exile | Destination$ Battlefield | ChangeType$ Creature | ChangeNum$ 2", "exile pick ChangeNum$"},
 		{"Remember", "SP$ ChangeZone | Cost$ B | Hidden$ True | Origin$ Exile | Destination$ Battlefield | ChangeType$ Creature | RememberChanged$ True", "exile pick with RememberChanged$"},
-		{"to hand", "SP$ ChangeZone | Cost$ B | Hidden$ True | Origin$ Exile | Destination$ Hand | ChangeType$ Creature", "ChangeType$ move Exile->Hand"},
 		{"link outside a mover", "SP$ ChangeZone | Cost$ B | Origin$ Exile | Destination$ Battlefield | ChangeType$ Card.ExiledWithSource", "ExiledWithSource outside a resolution-time mover"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
