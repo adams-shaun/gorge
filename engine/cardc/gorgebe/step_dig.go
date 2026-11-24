@@ -189,6 +189,12 @@ func digNode(p *pr, st, m1, m2 *ir.Step) (*node, error) {
 			return nil, unprintable("verb:dig-word", st.Src)
 		}
 		n.set("LibraryPosition2", "-1")
+	case "bottom-random":
+		if m2.To != ir.ZoneLibrary {
+			return nil, unprintable("verb:dig-word", st.Src)
+		}
+		n.set("LibraryPosition2", "-1")
+		n.set("RestRandomOrder", "True")
 	default:
 		return nil, unprintable("verb:dig-word", st.Src)
 	}

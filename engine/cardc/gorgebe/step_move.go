@@ -1,6 +1,10 @@
 package gorgebe
 
-import "github.com/adams-shaun/gorge/engine/cardc/ir"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cardc/ir"
+)
 
 func init() {
 	registerStep(ir.VerbMove, printMove)
@@ -20,6 +24,29 @@ func zoptional(n *node, st *ir.Step) error {
 	return nil
 }
 
+// filterZone is the one zone f selects from: its own, or the one its
+// combinator arguments agree on.
+func filterZone(f *ir.Filter) (ir.Zone, bool) {
+	if f == nil {
+		return ir.ZoneNone, false
+	}
+	if z, ok := singleZone(f); ok {
+		return z, true
+	}
+	found, ok := ir.ZoneNone, false
+	for _, a := range f.Args {
+		z, k := filterZone(a)
+		if !k {
+			continue
+		}
+		if ok && z != found {
+			return ir.ZoneNone, false
+		}
+		found, ok = z, true
+	}
+	return found, ok
+}
+
 // zwhoYou reports whether st acts as you: no Who, or you.
 func zwhoYou(st *ir.Step) bool { return st.Who == nil || isYou(st.Who) }
 
@@ -33,6 +60,64 @@ func zenter(e *ir.Enter) (tapped, ok bool) {
 		return false, false
 	}
 	return e.Tapped, true
+}
+
+// zenterOn applies a move's Enter to n: tapped, entering under your control
+// (GainControl$ True, ChangeZoneAll only) and entering with counters.
+func (p *pr) zenterOn(n *node, e *ir.Enter) bool {
+	if e == nil {
+		return true
+	}
+	if (e.Counter == "") != (e.N == nil) {
+		return false
+	}
+	var types, kws []string
+	for _, x := range e.Effects {
+		switch x.Kind {
+		case ir.EffAddSubtype, ir.EffAddCardType:
+			for _, w := range x.Words {
+				types = append(types, Respell(w))
+			}
+		case ir.EffAddAbility:
+			k, ok := bareKeywords(x)
+			if !ok {
+				return false
+			}
+			kws = append(kws, k...)
+		default:
+			return false
+		}
+	}
+	if e.Controller != nil {
+		if !isYou(e.Controller) || n.API != "ChangeZoneAll" {
+			return false
+		}
+		n.set("GainControl", "True")
+	}
+	if e.Tapped {
+		n.set("Tapped", "True")
+	}
+	if e.Counter != "" {
+		k, err := p.amount(e.N)
+		if err != nil {
+			return false
+		}
+		n.set("WithCountersType", e.Counter)
+		n.set("WithCountersAmount", k)
+	}
+	if len(types)+len(kws) > 0 {
+		body := "Mode$ Continuous | Affected$ Card.IsRemembered"
+		if len(types) > 0 {
+			body += " | AddType$ " + strings.Join(types, " & ")
+		}
+		if len(kws) > 0 {
+			body += " | AddKeyword$ " + strings.Join(kws, " & ")
+		}
+		name := p.fresh("Animate")
+		p.svars = append(p.svars, kv{name, body})
+		n.set("StaticEffect", name)
+	}
+	return true
 }
 
 func printMove(p *pr, steps []*ir.Step) (*node, int, error) {
@@ -51,7 +136,15 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 		to = ir.ZoneExile
 	}
 	obj := slotRef(st.Obj)
-	if to == ir.ZoneNone || obj == nil || !zwhoYou(st) {
+	if to == ir.ZoneNone || obj == nil {
+		return nil, bad
+	}
+	// Someone else acts only where the move names them: a choice of theirs
+	// (DefinedPlayer$), or the top-or-bottom pick of a library's owner.
+	who := st.Who
+	if zwhoYou(st) {
+		who = nil
+	} else if !(obj.Kind == ir.RefChoose && obj.Of == nil) && st.Word != "top-or-bottom" {
 		return nil, bad
 	}
 	dest := zoneWord(to)
@@ -76,8 +169,25 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 			n.set("Origin", zoneWord(st.From))
 		}
 		n.set("Destination", dest)
+	case ir.RefEventObject:
+		origin := st.From
+		if origin == ir.ZoneNone {
+			switch p.ev {
+			case ir.EvDies, ir.EvPutIntoGraveyard:
+				origin = ir.ZoneGraveyard
+			default:
+				return nil, bad
+			}
+		}
+		n = &node{API: "ChangeZone", Params: []kv{{"Origin", zoneWord(origin)}, {"Destination", dest}}}
+		if p.evSelf && p.ev == ir.EvDies {
+			// A card that dies is a new object in the graveyard; Self names the old one.
+			n.set("Defined", "TriggeredNewCardLKICopy")
+		} else if err := p.operand(n, "Defined", obj); err != nil {
+			return nil, err
+		}
 	case ir.RefChoose, ir.RefAll:
-		z, ok := singleZone(obj.Filter)
+		z, ok := filterZone(obj.Filter)
 		if !ok || (obj.Kind == ir.RefChoose && obj.Of != nil) {
 			return nil, bad
 		}
@@ -103,6 +213,18 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 			return nil, err
 		}
 		n = &node{API: "ChangeZone", Params: []kv{{"Origin", zoneWord(z)}, {"Destination", dest}, {"ChangeType", v}, {"ChangeNum", k}, {"Mandatory", "True"}}}
+		if who != nil {
+			if err := p.operand(n, "Defined", who); err != nil {
+				return nil, err
+			}
+			d, err := p.defined(who)
+			if err != nil {
+				return nil, err
+			}
+			n.set("DefinedPlayer", d)
+			n.set("Chooser", d)
+			who = nil
+		}
 	case ir.RefTopOfLibrary:
 		if to != ir.ZoneExile {
 			return nil, bad
@@ -131,16 +253,24 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 	case "bottom", "bottom-any-order":
 		n.set("LibraryPosition", "-1")
 	case "top-any-order":
+		n.set("LibraryPosition", "0")
 		n.set("Reorder", "True")
+	case "top-or-bottom":
+		if who == nil || to != ir.ZoneLibrary {
+			return nil, bad
+		}
+		d, err := p.defined(who)
+		if err != nil {
+			return nil, err
+		}
+		n.set("AlternativeDecider", d)
+		n.set("DestinationAlternative", dest)
+		n.set("LibraryPositionAlternative", "-1")
 	default:
 		return nil, unprintable("verb:move-word", st.Src)
 	}
-	tapped, ok := zenter(st.Enter)
-	if !ok {
+	if !p.zenterOn(n, st.Enter) {
 		return nil, unprintable("verb:move-enter", st.Src)
-	}
-	if tapped {
-		n.set("Tapped", "True")
 	}
 	if err := zoptional(n, st); err != nil {
 		return nil, err
