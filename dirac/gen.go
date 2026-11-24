@@ -563,6 +563,11 @@ type genPrep struct {
 	// uses: the registered per-table flags (newGenUse; genneed.go), where a
 	// feature's fact goes instead of a new bool here
 	uses useSet
+
+	// cardKind: per card, its enters program asks for a card type, so its
+	// chosen byte is a cardTypeChoice index (act_choosecardenter.go); nil when
+	// no card does
+	cardKind []bool
 }
 
 // Per-card bits of genPrep.exileAnyC.
