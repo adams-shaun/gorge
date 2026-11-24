@@ -102,8 +102,11 @@ func TestWeightOfConscienceTapCostSharesTypeAmongTapped(t *testing.T) {
 		elf1 := paidCostMoveTo(t, e, 0, "Llanowar Elves", state.ZBattlefield)
 		elf2 := weightMovedToBoard(t, e, "Llanowar Elves", elf1)
 		goblin := paidCostMoveTo(t, e, 0, "Goblin Piker", state.ZBattlefield)
-		if o := e.G.Obj(elf1); o == nil || o.Tapped {
-			t.Fatalf("precondition: first Elf = %+v, want untapped", o)
+		if o := e.G.Obj(elf1); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+			t.Fatalf("precondition: first Elf = %+v, want an untapped battlefield permanent", o)
+		}
+		if o := e.G.Obj(goblin); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+			t.Fatalf("precondition: Goblin = %+v, want an untapped battlefield permanent", o)
 		}
 		if !slices.Contains(e.Derived(elf1).Types, "Elf") || !slices.Contains(e.Derived(elf2).Types, "Elf") {
 			t.Fatalf("precondition: Elf types = %v / %v, want Elf", e.Derived(elf1).Types, e.Derived(elf2).Types)
@@ -179,6 +182,12 @@ func TestWeightOfConscienceTapCostSharesTypeAmongTapped(t *testing.T) {
 		e, _, aura, _ := weightBoard(t)
 		elf := paidCostMoveTo(t, e, 0, "Llanowar Elves", state.ZBattlefield)
 		goblin := paidCostMoveTo(t, e, 0, "Goblin Piker", state.ZBattlefield)
+		if o := e.G.Obj(elf); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+			t.Fatalf("precondition: Elf = %+v, want an untapped battlefield permanent", o)
+		}
+		if o := e.G.Obj(goblin); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+			t.Fatalf("precondition: Goblin = %+v, want an untapped battlefield permanent", o)
+		}
 		if !slices.Contains(e.Derived(elf).Types, "Elf") || !slices.Contains(e.Derived(goblin).Types, "Goblin") {
 			t.Fatalf("precondition: types = %v / %v, want Elf / Goblin", e.Derived(elf).Types, e.Derived(goblin).Types)
 		}
@@ -198,6 +207,11 @@ func TestWeightOfConscienceTapCostSharesTypeAmongTapped(t *testing.T) {
 		// A Goblin keeps the ask posed (two candidates would auto-settle), so
 		// the changeling relation is exercised at the Validate/SetProps stage.
 		goblin := paidCostMoveTo(t, e, 0, "Goblin Piker", state.ZBattlefield)
+		for _, id := range []state.ObjID{elf, auto, goblin} {
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Tapped {
+				t.Fatalf("precondition: creature %d = %+v, want an untapped battlefield permanent", id, o)
+			}
+		}
 		if !slices.Contains(e.Derived(elf).Types, "Elf") {
 			t.Fatalf("precondition: Elf types = %v, want Elf", e.Derived(elf).Types)
 		}
