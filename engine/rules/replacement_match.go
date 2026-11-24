@@ -277,8 +277,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 				return false
 			}
 		}
-		// CR 614.12: a general line on the entrant skips its own entry (ownEntryMoveExcluded).
-		if d, ok := r.ParamCode(cards.PKDestination); (ok && !effects.Destination(d).Admits(ev.To)) || ownEntryMoveExcluded(e.G, source, ev, r.ParamStr(cards.PKValidCard)) {
+		if !entryDestinationAdmits(e.G, r, source, ev) {
 			return false
 		}
 		// Fizzle$ (Feather's "instead of putting it into your graveyard as it
