@@ -77,17 +77,20 @@ func init() {
 	registerStep(ir.VerbFight, printFight)
 }
 
-// printDoubleCounters prints MultiplyCounter$: double the named counters on an object.
+// printDoubleCounters prints MultiplyCounter$: double the named counters on an
+// object, or every kind of counter on it when the step names none.
 func printDoubleCounters(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
-	if st.Obj == nil || st.Word == "" || st.Who != nil {
+	if st.Obj == nil || st.Who != nil {
 		return nil, 0, unprintable("verb:double-counters", st.Src)
 	}
 	n := &node{API: "MultiplyCounter"}
 	if err := p.operand(n, "Defined", st.Obj); err != nil {
 		return nil, 0, err
 	}
-	n.set("CounterType", st.Word)
+	if st.Word != "" {
+		n.set("CounterType", st.Word)
+	}
 	if err := zoptional(n, st); err != nil {
 		return nil, 0, err
 	}

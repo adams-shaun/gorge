@@ -8,7 +8,6 @@ func init() {
 	registerStep(ir.VerbCounter, printCounter)
 	registerStep(ir.VerbPutCounters, printPutCounters)
 	registerStep(ir.VerbRegenerate, printRegenerate)
-	registerStep(ir.VerbDoubleCounters, printDoubleCounters)
 	registerStep(ir.VerbRemoveCounters, printRemoveCounters)
 }
 
@@ -116,22 +115,6 @@ func printRegenerate(p *pr, steps []*ir.Step) (*node, int, error) {
 		if err := p.operand(n, "Defined", st.Obj); err != nil {
 			return nil, 0, err
 		}
-	}
-	if err := optionalDecider(n, st); err != nil {
-		return nil, 0, err
-	}
-	return n, 1, nil
-}
-
-// printDoubleCounters doubles every kind of counter on the object.
-func printDoubleCounters(p *pr, steps []*ir.Step) (*node, int, error) {
-	st := steps[0]
-	if st.Word != "" {
-		return nil, 0, unprintable("verb:double-counters", st.Src)
-	}
-	n := &node{API: "MultiplyCounter"}
-	if err := p.operand(n, "Defined", st.Obj); err != nil {
-		return nil, 0, err
 	}
 	if err := optionalDecider(n, st); err != nil {
 		return nil, 0, err
