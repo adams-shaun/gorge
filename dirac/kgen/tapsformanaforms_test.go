@@ -9,7 +9,7 @@ import "testing"
 func TestTapsForManaForms(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Manabarbs", form: "ordinary TapsForMana trigger, body damages the tapper", lir: "trigger Taps"},
-		{card: "Buried in the Garden", form: "static any-colour extra", refused: "TapsForMana extra of any colour"},
-		{card: "Dawn's Reflection", form: "static Combo Any extra", refused: "TapsForMana extra of any colour"},
+		{card: "Buried in the Garden", form: "static any-colour extra", lir: "TapExtra"},
+		{card: "Dawn's Reflection", form: "static Combo Any extra", lir: "TapExtra"},
 	})
 }

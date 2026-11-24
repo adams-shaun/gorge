@@ -47,7 +47,7 @@ func TestTapsDeferMultiManaFixedColourIsAScriptGap(t *testing.T) {
 			t.Fatalf("census total %d, want 1 (the Birds alone)", n)
 		}
 		before := sc.s.pl[0].pool
-		sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0)
+		sc.s.tapDeferFloat(sc.k, 0, sc.slot(core), 0, 0)
 		want := before
 		want[kop.G] += 3
 		if sc.s.pl[0].pool != want {

@@ -14,10 +14,10 @@ import (
 // the land, since the tapped permanent's controller is the payer. A non-aura
 // literal body (Vernal Bloom's Forest, Gauntlet of Might's Mountain) lowers
 // the same way. A body whose colour is not literal keeps refusing with its
-// own reason: an any-colour body asks a colour choice at tap time (Fertile
+// own reason: an any-colour body lowers as a StTapAnyCol static (Fertile
 // Ground, Verdant Haven, Market Festival, Dawn's Reflection, Buried in the
-// Garden, Blighted Burgeoning, Trace of Abundance, Glittering Frost), and a
-// chosen-colour body is a source gorge's planner defers, lowered gated (Utopia Sprawl:
+// Garden, Blighted Burgeoning, Trace of Abundance; Glittering Frost's
+// AddType Snow refuses on its own), and a chosen-colour body is a source gorge's planner defers, lowered gated (Utopia Sprawl:
 // a StTapChosen static beside a class-only Taps line; TestLowerManaRiders).
 // Gauntlet of Power's chosen-colour tap gate is a different shape and still
 // refuses generically.
@@ -33,16 +33,11 @@ func TestLowerTapsformanaAttached(t *testing.T) {
 		"Vernal Bloom":      {1, false},
 		"Gauntlet of Might": {1, false},
 	}
+	anyCol := []string{"Fertile Ground", "Verdant Haven", "Market Festival", "Dawn's Reflection",
+		"Buried in the Garden", "Blighted Burgeoning", "Trace of Abundance"}
 	refused := map[string]string{
-		"Fertile Ground":       "extra of any colour",
-		"Verdant Haven":        "extra of any colour",
-		"Market Festival":      "extra of any colour",
-		"Dawn's Reflection":    "extra of any colour",
-		"Buried in the Garden": "extra of any colour",
-		"Blighted Burgeoning":  "extra of any colour",
-		"Trace of Abundance":   "extra of any colour",
-		"Glittering Frost":     "extra of any colour",
-		"Gauntlet of Power":    "trigger mode TapsForMana",
+		"Glittering Frost":  `AddType "Snow"`,
+		"Gauntlet of Power": "trigger mode TapsForMana",
 	}
 	var names []string
 	for n := range lowered {
@@ -51,6 +46,7 @@ func TestLowerTapsformanaAttached(t *testing.T) {
 	for n := range refused {
 		names = append(names, n)
 	}
+	names = append(names, anyCol...)
 	cards := map[string]*lCard{}
 	for _, c := range lowerNamed(t, names) {
 		cards[c.Name] = c
@@ -85,6 +81,25 @@ func TestLowerTapsformanaAttached(t *testing.T) {
 		}
 		if n != 1 {
 			t.Errorf("%s: %d TapExtra statics, want 1", name, n)
+		}
+	}
+	for _, name := range anyCol {
+		c := cards[name]
+		if c == nil {
+			t.Errorf("%s: not lowered", name)
+			continue
+		}
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refused: %v", name, c.Refusals)
+		}
+		n := 0
+		for _, st := range c.Statics {
+			if st.Kind == "TapExtra" && slices.Contains(st.Flags, "TapAnyCol") {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Errorf("%s: %d TapAnyCol TapExtra statics, want 1", name, n)
 		}
 	}
 	for name, reason := range refused {

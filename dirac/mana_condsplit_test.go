@@ -95,7 +95,7 @@ func TestCondSplitLiveGate(t *testing.T) {
 				t.Errorf("gate on: %d answers, want %d", got, c.wantAnswers)
 			}
 			// answer 0 floats the first colour of the activation mask, plain pool mana
-			sc.s.tapDeferFloat(sc.k, 0, sl, 0)
+			sc.s.tapDeferFloat(sc.k, 0, sl, 0, 0)
 			if sc.s.pl[0].pool[c.firstOnColor] != 1 {
 				t.Errorf("answer 0 floated pool %v, want one mana of colour %d", sc.s.pl[0].pool, c.firstOnColor)
 			}
