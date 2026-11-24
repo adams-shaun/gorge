@@ -2866,20 +2866,36 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 		// depends on.
 		return o.Face() != nil && o.Face().IsPermanent()
 	case matchesBaseSpell:
-		return o.Zone == state.ZStack || sc.AsStack
+		return (o.Zone == state.ZStack || sc.AsStack) && spellStackObject(o)
 	case matchesBaseSpellAbility:
 		// Forge's SpellAbility base (ValidSource$ SpellAbility.OppCtrl on the
 		// "becomes the target of a spell or ability" family -- Thunderbreak
 		// Regent and 51 more files): any spell or ability object on the stack.
-		// The shared filter draws the Spell/SpellAbility line by zone alone;
-		// the card-spell-only distinction TargetType$ Spell draws
-		// (engine/rules/stack.go's stack kind tokens) is that machinery's own, not
-		// this one's.
+		// Spell (above) requires a spell stack entry and rejects an ability
+		// (CR 112.1, 113.3b); SpellAbility is the union base and keeps the
+		// zone-only reading. The card-spell-only distinction TargetType$ Spell
+		// draws (engine/rules/stack.go's stack kind tokens) is that
+		// machinery's own, not this one's.
 		return o.Zone == state.ZStack
 	case matchesBaseOutlaw, matchesBaseHistoric:
 		return batchWordBase(matchesBaseCodes.Code(string(base)), o, sc)
 	}
 	return hasTypeCtx(o, base, sc)
+}
+
+// spellStackObject reports whether o is a spell on the stack, as opposed to
+// an ability object. CR 112.1: "A spell is a card on the stack"; an activated
+// or triggered ability is not a card (CR 113.3b, 113.3c). The stamped stack
+// kind is authoritative when an event minted the object; a legacy or manually
+// constructed object falls back to its printed face, which only a card has.
+func spellStackObject(o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	if o.StackKindKnown {
+		return o.StackKind == state.StackKindSpell
+	}
+	return o.Face() != nil
 }
 
 // batchWordBase dispatches batch-word bases through their shared evaluators.

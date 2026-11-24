@@ -110,7 +110,8 @@ func (lc *lowerCtx) btTargetList(tr *lTrigger, alts []string) (*lFilter, error) 
 
 // lowerBTSpellSource lowers a BecomesTarget line whose ValidSource$ is a
 // stack form (gorge becomesTargetSourceMatches reads the targeting stack
-// object as an ordinary filter whose Spell base is any stack object) over
+// object as an ordinary filter whose Spell base is a card on the stack,
+// CR 112.1) over
 // ValidTarget$ Card.Self, one filter or a comma list of filters: the watcher
 // arms with a spell gate, the controller in Whose and the type in the card
 // filter (kernel btSpellSrcOK). An Ability source sets SrcAbility instead
