@@ -212,14 +212,15 @@ func TestSpellIsTargetingBaseQualifiedOnly(t *testing.T) {
 	}
 }
 
-// TestSpellIsTargetingAbilityOnStack pins the SpellAbility half of the form
-// against a real ability-classified stack object: positive and negative
+// TestSpellIsTargetingAbilityOnStack pins the Spell/SpellAbility split of the
+// form against a real ability-classified stack object: positive and negative
 // cases through the SHARED matcher (not the condition gate), so the
 // SpellAbility spelling the previous round left untested is now exercised.
 //
-// The intended distinction from Spell is a base check, not a different
-// answer: matchesBase draws the shared Spell/SpellAbility line by ZONE alone
-// (both require a stack object), while the condition gate (conditions.go's
+// The distinction is the RULE, not a different answer: CR 112.1 makes a spell
+// a card on the stack, while an activated ability is not a spell (CR 113.3b).
+// SpellAbility is Forge's union base and admits the ability; Spell requires a
+// spell stack entry and rejects it. The condition gate (conditions.go's
 // isSpellTargetingPresent) deliberately BYPASSES the base because a
 // triggering spell may already have left the stack. The shared matcher keeps
 // the base, so an off-stack object with the same targets fails closed.
@@ -251,10 +252,10 @@ func TestSpellIsTargetingAbilityOnStack(t *testing.T) {
 	if !MatchesSpecCtx(g, "SpellAbility.IsTargeting Valid Creature", ability.ID, sc) {
 		t.Fatal("an ability targeting a creature must match the target spec")
 	}
-	// The Spell spelling answers the same on the same stack object -- the
-	// shared base line is zone-only, documented above.
-	if !MatchesSpecCtx(g, "Spell.IsTargeting Valid Creature", ability.ID, sc) {
-		t.Fatal("the Spell spelling must answer a stack object the same way")
+	// CR 112.1/113.3b: the Spell spelling requires a spell stack entry, so an
+	// ability must NOT match it; SpellAbility, Forge's union base, still does.
+	if MatchesSpecCtx(g, "Spell.IsTargeting Valid Creature", ability.ID, sc) {
+		t.Fatal("the Spell spelling must reject an ability stack object (CR 112.1, 113.3b)")
 	}
 	// A non-matching target fails.
 	ability.Targets = []state.Target{{Obj: id["myLand"]}}

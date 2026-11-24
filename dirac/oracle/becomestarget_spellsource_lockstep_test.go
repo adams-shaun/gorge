@@ -16,9 +16,9 @@ import (
 // Sliver (Spell.OppCtrl: an opponent's spell) beside targeted spells and
 // Prodigal Sorcerer's activated ping on both sides. Gorge's
 // becomesTargetSourceMatches reads the ValidSource$ against the targeting
-// stack object; gorge's bare Spell base is any object on the stack
-// (effects matchesBaseSpell), so Prodigal Sorcerer's ping fires Labyrinth
-// Guardian too, while Spell.YouCtrl / Spell.OppCtrl gate on the controller.
+// stack object; the bare Spell base is a card on the stack (CR 112.1), so
+// Prodigal Sorcerer's ping (an ability, CR 113.3b) does NOT fire Labyrinth
+// Guardian, while Spell.YouCtrl / Spell.OppCtrl add the controller gate.
 // The expected answer at every decision is gorge's.
 var kbtssDeck = []cardset.Entry{
 	{Name: "Labyrinth Guardian", Count: 3}, {Name: "Stormchaser Drake", Count: 3},
@@ -212,12 +212,12 @@ func TestBecomesTargetSpellSourceLockstep(t *testing.T) {
 	// the gates themselves, read off gorge's pushes: Spell.YouCtrl never
 	// fires for an opponent's targeting, Spell.OppCtrl never for the
 	// controller's own, and each fires for the side it names
-	for _, k := range []string{"Stormchaser Drake|spell|opp", "Stormchaser Drake|ability|opp", "Opaline Sliver|spell|own"} {
+	for _, k := range []string{"Labyrinth Guardian|ability|opp", "Stormchaser Drake|spell|opp", "Stormchaser Drake|ability|opp", "Opaline Sliver|spell|own"} {
 		if st.push[k] != 0 {
 			t.Errorf("%q pushed %d triggers, want 0", k, st.push[k])
 		}
 	}
-	for _, k := range []string{"Labyrinth Guardian|spell|opp", "Labyrinth Guardian|ability|opp", "Stormchaser Drake|spell|own", "Opaline Sliver|spell|opp"} {
+	for _, k := range []string{"Labyrinth Guardian|spell|opp", "Stormchaser Drake|spell|own", "Opaline Sliver|spell|opp"} {
 		if st.push[k] == 0 {
 			t.Errorf("%q pushed no trigger", k)
 		}
