@@ -112,3 +112,18 @@ func TestOracleBisectAllStepsSkippedFindsNoCulprit(t *testing.T) {
 		t.Fatalf("want exit 3 and no culprit, got %d\n%s", code, out)
 	}
 }
+
+// TestOracleBisectDefaultTestCommandStartsUnderSetU: with no ORACLE_STEP_TEST the script's default test
+// command must not expand $RX at startup (set -u): it did, and every CI bisect died "RX: unbound variable"
+// before its first step (oracle run 45297496438). An empty hook value selects the default.
+func TestOracleBisectDefaultTestCommandStartsUnderSetU(t *testing.T) {
+	t.Parallel()
+	repo, good, bad, tests := bisectRepo(t)
+	env := []string{"ORACLE_STEP_TEST=", "ORACLE_ENV_CHECK=false", "ORACLE_STEP_BUILD=true"}
+	if out, code := runBisect(t, repo, env, "--step", tests); code != 125 {
+		t.Fatalf("--step without corpus: want 125, got %d\n%s", code, out)
+	}
+	if out, code := runBisect(t, repo, env, good, bad, tests); code != 3 || strings.Contains(out, "unbound") {
+		t.Fatalf("all steps skipped: want exit 3, got %d\n%s", code, out)
+	}
+}
