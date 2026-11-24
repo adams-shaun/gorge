@@ -1,0 +1,20 @@
+{
+  "card": "Voodoo Doll",
+  "class": "lockstep",
+  "why": "gorge folds Voodoo Doll's text-defined {X}{X} (X is the number of pin counters on it, CR 107.3c) into that much generic mana per symbol and announces nothing, while the kernel's cost still carries the {X}{X} and asks for it: the recorded game asks X where gorge asks nothing, so the engines diverge from the activation on. Lowering the fixed form in the kernel means a new own-cost raise and re-evidencing the card's IR; the refusal is the landing this change takes",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "destroyed_source_reads_last_known_counters"
+  },
+  "evidence": [
+    "ev-tail-05-c000",
+    "ev-tail-05-c001",
+    "ev-tail-05-c002",
+    "ev-tail-71-c000"
+  ]
+}
