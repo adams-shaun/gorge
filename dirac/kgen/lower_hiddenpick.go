@@ -125,6 +125,10 @@ func (lc *lowerCtx) publicPick(ps *params, f *lFilter, n lValue, flags []string,
 			// chooserPlayer, the first of the alive opponents); the kernel
 			// reads SrChooserOpp off the ChooseMove's B
 			cs = append(cs, "ChooserOpp")
+		case isTriggeredPlayerSpelling(ch) && ps.str("ValidTgts") == "":
+			if owner, err = lc.triggeredPickChooser(ps, ch, origin, owner); err != nil {
+				return err
+			}
 		default:
 			return refuse("public pick Chooser$ %q", ch)
 		}
@@ -342,4 +346,35 @@ func everyRemembered(ct string) bool {
 		}
 	}
 	return strings.TrimSpace(ct) != ""
+}
+
+// triggeredPickChooser lowers Chooser$ Triggered<Player> on a public pick
+// (gorge chooserPlayer through the shared Defined grammar): the event's player
+// answers. With the same DefinedPlayer$ spelling it is the zone's own player,
+// already the asker (Mana Breach, Overburden); on a game-wide battlefield pool
+// (no DefinedPlayer$) it names the asker, whose ControlledBy filter scopes the
+// pool (Blizzard Specter). It returns the pick's owner Ref.
+func (lc *lowerCtx) triggeredPickChooser(ps *params, ch string, origin int, owner lRef) (lRef, error) {
+	dp := strings.TrimSpace(ps.str("DefinedPlayer"))
+	switch {
+	case dp == strings.TrimSpace(ch):
+		return owner, nil
+	case dp == "" && origin == zBattlefield:
+		r, err := lc.definedPlayer(strings.TrimSpace(ch))
+		if err != nil {
+			return owner, refuse("public pick Chooser$ %q: %v", ch, err)
+		}
+		return r, nil
+	}
+	return owner, refuse("public pick Chooser$ %q beside DefinedPlayer$ %q", ch, dp)
+}
+
+// isTriggeredPlayerSpelling reports a Chooser$ spelling that names the
+// trigger event's player (lc.definedPlayer's Triggered* cases).
+func isTriggeredPlayerSpelling(v string) bool {
+	switch strings.TrimSpace(v) {
+	case "TriggeredCardController", "TriggeredActivator", "TriggeredPlayer", "TriggeredTarget", "TriggeredSourceController", "TriggeredAttackingPlayer":
+		return true
+	}
+	return false
 }

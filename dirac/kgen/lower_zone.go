@@ -376,6 +376,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			}
 			// DefinedPlayer$: whose library is searched (lower_eachsearch.go)
 			var obj lRef
+			if f.Each && ps.peek("Chooser") == "Opponent" {
+				// gorge's structured EACH pick under Mandatory$ lets the chooser
+				// stop after ChangeNum$ cards (zone_search.go: Min = the per-type
+				// count, not the group count); the kernel's Mandatory takes every
+				// group, so the opponent's EACH pick (Guided Passage) diverges.
+				return refuse("EACH library search with Chooser$ Opponent")
+			}
 			if obj, flags, err = lc.libSearchOwner(ps, arm != nil, tgtLib, flags); err != nil {
 				return err
 			}
@@ -5407,10 +5414,30 @@ func (lc *lowerCtx) targetPlayerSearch(ps *params, origin, dest int) (claimed bo
 // 0, targetLibrarySearch) is that target's, with you choosing.
 func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []string) (lRef, []string, error) {
 	obj, err := lc.searchOwner(ps, arm)
-	if err != nil || tgtLib < 0 {
+	if err != nil {
 		return obj, flags, err
 	}
-	return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
+	if tgtLib >= 0 {
+		return lRef{Kind: rTarget, N: tgtLib}, append(flags, "ChooserYou"), nil
+	}
+	// Chooser$ beside a DefinedPlayer$ library (gorge searchChooser's
+	// chooserPlayer: a known spelling wins over the fetcher). You is the
+	// resolving controller answering the search of that player's library; on
+	// the controller's own library it is the default asker. Opponent is the
+	// first living opponent answering the pick from the controller's own
+	// library (the kernel's chooserOf reads SrChooserOpp off the search's B).
+	switch ch := strings.TrimSpace(ps.peek("Chooser")); {
+	case ch == "You" && obj.Kind != rEach:
+		ps.consume("Chooser")
+		if obj.Kind != rYou {
+			flags = append(flags, "ChooserYou")
+		}
+	case ch == "Opponent" && obj.Kind == rYou:
+		lc.twoSeat("Chooser$ Opponent on a library search")
+		ps.consume("Chooser")
+		flags = append(flags, "ChooserOpp")
+	}
+	return obj, flags, nil
 }
 
 // emblemBlocksEarlyRefuse refuses an end-of-turn Blocks emblem that names a
