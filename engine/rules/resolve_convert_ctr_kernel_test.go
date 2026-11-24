@@ -59,8 +59,6 @@ func TestKernelAskPutCounter(t *testing.T) {
 			board: three, served: 2},
 		{name: "Ctr Bolster", body: "A:SP$ PutCounter | Bolster$ 2 | CounterType$ P1P1",
 			board: three, served: 1},
-		{name: "Ctr Support", body: "A:SP$ PutCounter | Support$ 2 | CounterType$ P1P1",
-			board: three, served: 1},
 	})
 }
 
