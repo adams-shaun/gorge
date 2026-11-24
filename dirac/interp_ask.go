@@ -3012,7 +3012,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 	prog := s.prog(k)
 	if prog[s.res.pc].C == 1 {
-		return true // the controller's KModes: gorge offers every choice (kgen genericChoiceYou)
+		return true // VillainousChoice's every-choice KModes (kgen lower_villainous.go)
 	}
 	for i := int(s.res.pc) + 1; i < len(prog); i++ {
 		in := &prog[i]
@@ -3026,7 +3026,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n), s.value(k, n.A), n.B.N, n.F)
+		return s.unlessInstrPayable(k, n, p)
 	}
 	return true
 }

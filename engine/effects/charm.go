@@ -677,7 +677,7 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 		if tempRemember {
 			c.Remembered = []state.Target{chooser}
 		}
-		available := charmRandomOffer(h, c, sa, chooser.Player, genericChoiceAvailable(h, c, chooser.Player, choices))
+		available := charmRandomOffer(h, c, sa, chooser.Player, GenericChoiceAvailable(h, c, chooser.Player, choices))
 		c.Remembered = append([]state.Target(nil), baselineRemembered...)
 		if len(available) == 0 {
 			// No choice is payable. Forge runs FallbackAbility$ instead of
@@ -758,17 +758,19 @@ func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool
 	return true
 }
 
-// genericChoiceAvailable filters a GenericChoice's Choices$ to the names the
+// GenericChoiceAvailable filters a GenericChoice's Choices$ to the names the
 // chooser can actually select, per Forge ChooseGenericEffect: a choice whose
 // UnlessCost$ the chooser cannot presently pay is not offered (the same
 // reachability gate the unless ask itself uses, so the option list and the pay
-// decision cannot disagree). A choice with no UnlessCost$ is always available;
-// a host that cannot price costs (an effects-only embedder) keeps the historic
-// full list, so the no-host path still degrades deterministically rather than silently
-// dropping choices. FORGE ALSO drops a choice failing getRestrictions(); the
+// decision cannot disagree). rules' trigger placement ask uses it too, so the
+// announced mode list and the resolution ask filter identically. A choice
+// with no UnlessCost$ is always available; a host that cannot price costs
+// (an effects-only embedder) keeps the historic full list, so the no-host
+// path still degrades deterministically rather than silently dropping
+// choices. FORGE ALSO drops a choice failing getRestrictions(); the
 // engine's cards.SA carries no such field, and no corpus GenericChoice choice
 // uses Restrictions$ today.
-func genericChoiceAvailable(h Host, c *Ctx, payer state.PlayerID, choices []string) []string {
+func GenericChoiceAvailable(h Host, c *Ctx, payer state.PlayerID, choices []string) []string {
 	checker, priced := h.(interface {
 		UnlessCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
 	})
@@ -788,6 +790,36 @@ func genericChoiceAvailable(h Host, c *Ctx, payer state.PlayerID, choices []stri
 		}
 	}
 	return out
+}
+
+// charmGenericChoiceModes applies Forge ChooseGenericEffect's payability
+// filter to a CONTROLLER GenericChoice's resolution-time ask (the
+// per-Defined$-player half is charmGenericPlayers). A choice whose
+// UnlessCost$ the controller cannot pay is dropped; when none is left the
+// FallbackAbility$ resolves (or nothing happens) and handled is true, so the
+// caller poses no mode ask. It returns the filtered names and their bodies in
+// Choices$ order.
+func charmGenericChoiceModes(h Host, c *Ctx, sa *cards.SA, choices []string, subs []*cards.SA) ([]string, []*cards.SA, bool) {
+	payable := GenericChoiceAvailable(h, c, c.Controller, choices)
+	if len(payable) == 0 {
+		if fallback := CharmOf(sa).FallbackAbility; fallback != "" {
+			if sub := cards.ResolveSVar(c.SVars, fallback); sub != nil {
+				runCharmBody(h, c, sub)
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "GenericChoice no payable choice and no FallbackAbility"})
+		}
+		return nil, nil, true
+	}
+	if len(payable) == len(choices) {
+		return choices, subs, false
+	}
+	filtered := make([]*cards.SA, len(payable))
+	for i, name := range payable {
+		filtered[i] = cards.ResolveSVar(c.SVars, name)
+	}
+	return payable, filtered, false
 }
 
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
@@ -837,6 +869,13 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	subs := make([]*cards.SA, len(choices))
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
+	}
+	if sa.API == "GenericChoice" {
+		var handled bool
+		choices, subs, handled = charmGenericChoiceModes(h, c, sa, choices, subs)
+		if handled {
+			return
+		}
 	}
 	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
 	// game"): drop the modes the source already chose under the same scope
