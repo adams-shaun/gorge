@@ -112,6 +112,16 @@ var builtinSVars = map[string]string{
 	// Each token registers its own delayed trigger, so Self is that token.
 	"__kwEncoreSacrifice":      "DB$ Sacrifice | Defined$ Self",
 	"__kwEncoreSacrificeGroup": "DB$ Sacrifice | Defined$ DelayTriggerRememberedLKI",
+	// The other AtEOT$ riders over several objects of one resolution ("exile
+	// them at the beginning of the next end step"): one delayed triggered
+	// ability acting on every object it remembers (CR 603.7a/b), the group
+	// siblings of __kwWarpExile, __kwDashReturn and __kwAtEOTDestroy. The
+	// names carry none of the incarnation-tracked prefixes: the registration's
+	// object is the creating spell, and the remembered stamps already skip an
+	// object that changed zones (CR 400.7).
+	"__kwGroupExile":   "DB$ ChangeZone | Defined$ DelayTriggerRememberedLKI | Origin$ Battlefield | Destination$ Exile",
+	"__kwGroupHand":    "DB$ ChangeZone | Defined$ DelayTriggerRememberedLKI | Origin$ Battlefield | Destination$ Hand",
+	"__kwGroupDestroy": "DB$ Destroy | Defined$ DelayTriggerRememberedLKI",
 	// CopyPermanent AtEOTTrig$ (Chandra, Flameshaper; Electroduplicate; Heat
 	// Shimmer): the copy token's own "At the beginning of the end step,
 	// sacrifice/exile this token" triggered ability, part of its copiable
