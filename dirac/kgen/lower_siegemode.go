@@ -73,6 +73,9 @@ func (lc *lowerCtx) siegeChoiceNames(sa *cards.SA) ([]string, error) {
 // SetChosenMode GenericChoice: the as-enters ask, answered into the
 // permanent's chosen byte (GenericChoice C 2).
 func (lc *lowerCtx) etbSetChosenMode(node, sa *cards.SA, other bool, cond *lCond) error {
+	if node.Params["SetChosenMode"] == "" && lc.isFlagChoice(node) {
+		return lc.etbStoreChoice(node, sa, other, cond) // lower_storechoice.go
+	}
 	if other || node != sa || sa.Sub != nil || cond.Kind != cNone || len(lc.ab.Prog) != 0 {
 		return refuse("SetChosenMode GenericChoice beside another ETB replacement part")
 	}
