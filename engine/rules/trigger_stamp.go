@@ -50,18 +50,18 @@ func (e *Engine) rememberedMovedSinceFire(stamps []state.TargetStamp) []state.Ob
 // rememberedMovedSinceFire it is read as the ability starts to resolve, so a
 // move the resolution itself makes ("return it, then attach it") is not
 // counted.
-func (e *Engine) sourceMovedSinceFire(stack *state.Object) bool {
+func sourceMovedSinceFire(g *state.Game, stack *state.Object) bool {
 	if stack == nil || !stack.PushSourceStamped || stack.PushSourceOnBattlefield {
 		return false
 	}
-	src := e.G.Obj(stack.Source)
+	src := g.Obj(stack.Source)
 	return src != nil && src.ZoneGen != stack.PushSourceZoneGen
 }
 
 // bindMovedSinceFire sets the two resolution-start CR 400.7 reads on tc: the
 // stamped remembered objects that changed zones since the trigger fired, and
 // whether its own source did. stack is the ability's stack object.
-func (e *Engine) bindMovedSinceFire(tc *effects.TriggerContext, stack *state.Object) {
+func bindMovedSinceFire(e *Engine, tc *effects.TriggerContext, stack *state.Object) {
 	tc.TriggerRememberedMoved = e.rememberedMovedSinceFire(tc.TriggerRememberedStamps)
-	tc.TriggerSourceMoved = e.sourceMovedSinceFire(stack)
+	tc.TriggerSourceMoved = sourceMovedSinceFire(e.G, stack)
 }

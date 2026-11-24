@@ -386,7 +386,7 @@ func (e *Engine) resolveTop() {
 		// the trigger firing and the start of resolution is a new object the
 		// trigger's referents cannot find. Computed once here, so moves the
 		// resolution itself makes are never listed (CR 400.7j).
-		e.bindMovedSinceFire(&ctx.TriggerContext, o)
+		bindMovedSinceFire(e, &ctx.TriggerContext, o)
 		// CR 608.2h: a source that left the battlefield (sacrificed as the
 		// cost) answers "the chosen type" from its last-known choices.
 		e.bindSourceLKI(&ctx.TriggerContext, id, o.Source)
