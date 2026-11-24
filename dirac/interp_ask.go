@@ -1485,21 +1485,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.objs[t].of &^= ofPending
 		was := r.e.ctrl
 		r.e.ctrl = s.copyCtrl(in)
-		var parked bool
-		if s.g.sweep.on { // copy_allpark.go: a copy-all sweep's parked copy
-			parked = s.sweepAnswer(k, in, t, s.g.sweep.host) // the enters program reads the choice
-		} else {
-			s.copyResumedEnter(k, in, t, NoSlot) // the enters program reads the choice
-			s.g.pre = preAsk{}
-			r.ask = raNone
-			parked = s.copyTokens(k, in, s.objs[t].card, int(s.g.pickLeft))
-			if !parked {
-				parked = s.eachResume(k, in) // copy_eachtarget.go: the targets after it
-			}
-			if !parked {
-				parked = s.nonRemResume(k, in, was, r.e.ctrl) // copy_nonremctrl.go: the owners after it
-			}
-		}
+		parked := s.tokChoiceResume(k, in, t, was)
 		r.e.ctrl = was
 		if parked {
 			return

@@ -65,8 +65,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		s.tokenPT(k, in) // act_tokenpt.go
 		return true, true
 	case kop.ExtCopyTokenCtr:
-		s.copyTokenCtr(k, in) // copy_counters.go
-		return true, true
+		return !s.copyTokenCtr(k, in), true // copy_counters.go
 	case kop.ExtEndure:
 		return s.endureStart(k, in), true // act_endure.go
 	case kop.ExtDividedCounters:
