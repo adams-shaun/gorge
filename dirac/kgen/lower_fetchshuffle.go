@@ -47,6 +47,21 @@ func (lc *lowerCtx) fetchShuffleOwed(ps *params) (afterMove, afterEmpty bool) {
 	return true, true
 }
 
+// markFetchShuffleOwed records fetchShuffleOwed's answer on the fetch
+// instruction: ShuffleOwed for the shuffle a non-empty fetch owes, and the
+// empty-shuffle marker when the empty leg pays the deferred search shuffle
+// itself; the kernel reads that marker (zone_emptyfetchshuffle.go). A later
+// explicit DB$ Shuffle pays instead, so the marker is absent.
+func (lc *lowerCtx) markFetchShuffleOwed(in *lInstr, ps *params) {
+	afterMove, afterEmpty := lc.fetchShuffleOwed(ps)
+	if afterMove {
+		in.CS += "|ShuffleOwed"
+	}
+	if afterEmpty {
+		in.W = lRef{Kind: rYou}
+	}
+}
+
 // chainShufflesController reports whether lc.curNode's SubAbility$ chain
 // reaches an explicit DB$ Shuffle that randomizes the resolving controller's
 // library (gorge chainPaysDeferredShuffle; the corpus tail is Defined$ You or
