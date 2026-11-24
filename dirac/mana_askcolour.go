@@ -106,6 +106,20 @@ func (s *State) askColPause(k *prep, sl Slot, census, potential bool) bool {
 	return true
 }
 
+// windowPauseArm is windowTapWalk's pausing arm: a Condition-split source's colour
+// ask (splitWinColArm) or a colour-asking source's (askColPause). One call, so the
+// walk's own complexity stays under its ceiling.
+func (s *State) windowPauseArm(k *prep, sl Slot, census, potential bool) bool {
+	return s.splitWinColArm(k, sl, census, potential) || s.askColPause(k, sl, census, potential)
+}
+
+// windowFiltAskArm is windowTapWalk's silent arm: a hybrid-fee filter's lowest Combo
+// answer (windowHybFiltArm) or a colour-asking source answered silently (askColSilent).
+func (s *State) windowFiltAskArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) bool {
+	return s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) ||
+		s.askColSilent(k, p, sl, cost, useful, clamp, anyColor, noOwed, potential)
+}
+
 // askColSilent is windowTapWalk's silent arm (a census walk, a potential walk,
 // a fork): the source taps and the walk's own colour answer runs the
 // activation; true when it did.

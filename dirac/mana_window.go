@@ -305,13 +305,13 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 			continue
 		}
-		if s.splitWinColArm(k, sl, census, potential) || s.askColPause(k, sl, census, potential) {
+		if s.windowPauseArm(k, sl, census, potential) {
 			return true, held
 		}
 		if clamp && !anyColor && k.gen != nil && k.gen.anyRestrSrc && s.windowRestrOwedTap(k, p, sl, useful, noOwed) {
 			continue
 		}
-		if s.windowHybFiltArm(k, p, sl, useful, noOwed, clamp, anyColor, potential) || s.askColSilent(k, p, sl, cost, useful, clamp, anyColor, noOwed, potential) {
+		if s.windowFiltAskArm(k, p, sl, cost, useful, clamp, anyColor, noOwed, potential) {
 			continue // a hybrid-fee filter's lowest Combo answer (mana_paywinanswer.go), or a colour-asking source answered silently (mana_askcolour.go)
 		}
 		if payAsk && clamp && !anyColor && s.windowFiltOwedPick(k, p, sl, useful) {
