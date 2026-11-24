@@ -63,6 +63,33 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 		t.Fatalf("ability %+v is not the honoured sacrifice-another source", sa)
 	}
 
+	// A spell restriction makes the same {1},{T}: Add {W}{U} a restricted fee
+	// unit (Cormela's shape): the kernel's restricted unit carries the
+	// all-at-once production, so it lowers instead of the cost-beyond-{T}
+	// refusal.
+	rdef, rrs := kwardpowBuild(t, "Expanse Probe", land+"A:AB$ Mana | Cost$ 1 T | Produced$ W U | RestrictValid$ Spell.Creature | SpellDescription$ Filter.\n")
+	if len(rrs) != 0 {
+		t.Fatalf("{1},{T}: Add {W}{U}, creature spells only refused: %v", rrs)
+	}
+	rj := -1
+	for i := range rdef.Abilities {
+		if rdef.Abilities[i].Kind == kop.AbMana {
+			rj = i
+			break
+		}
+	}
+	if rj < 0 {
+		t.Fatal("no restricted mana-fee ability lowered")
+	}
+	ra := &rdef.Abilities[rj]
+	if !ra.ManaEach || ra.ManaColors != kop.ColW|kop.ColU || ra.Cost.Flags != kop.CostTap ||
+		ra.Cost.Mana.Generic != 1 || ra.ManaRestrict == 0 {
+		t.Fatalf("ability %+v: want restricted ManaEach W|U, {1},{T}", ra)
+	}
+	if !kop.RestrictedManaCostShape(ra) {
+		t.Fatalf("ability %+v is not the restricted fee unit", ra)
+	}
+
 	const brush = "Name:Brush Probe\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\n"
 	for _, c := range []struct{ name, src, want string }{
 		{"sacrifice two others", goblin + "A:AB$ Mana | Cost$ T Sac<2/Goblin.Other/other Goblins> | Produced$ B R | SpellDescription$ Probe sac pair.\n",
@@ -74,7 +101,6 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 		{"coloured fee", land + "A:AB$ Mana | Cost$ W T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"two of each", land + "A:AB$ Mana | Cost$ 1 T | Produced$ W U W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"fee and sacrifice self", land + "A:AB$ Mana | Cost$ 1 T Sac<1/CARDNAME> | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
-		{"restricted", land + "A:AB$ Mana | Cost$ 1 T | Produced$ W U | RestrictValid$ Spell.Creature | SpellDescription$ Filter.\n", "mana restriction on a source whose cost goes beyond {T}"},
 		{"beside another", land + "A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ C.\nA:AB$ Mana | Cost$ 1 T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once beside another mana ability"},
 	} {
 		name := "Expanse Probe"
