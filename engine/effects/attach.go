@@ -175,6 +175,12 @@ func attachObjectGone(h Host, c *Ctx, id state.ObjID) bool {
 	if o.PhasedOut {
 		return true
 	}
+	// CR 400.7: an ability that fired from the graveyard and resolves after its
+	// source moved on (an earlier Sword of the Meek trigger returned it) can't
+	// find the card, so the source it would attach is gone.
+	if id == c.Source && c.TriggerSourceMoved {
+		return true
+	}
 	return sourceLeftSincePush(h, c, o)
 }
 

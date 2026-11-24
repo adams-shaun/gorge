@@ -159,7 +159,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// window both resume before any of the body ran, so this is the
 			// resolution-start list resolveTop computes (Emiel the Blessed's
 			// paid counter trigger for a creature blinked in response).
-			ctx.TriggerRememberedMoved = e.rememberedMovedSinceFire(ctx.TriggerRememberedStamps)
+			bindMovedSinceFire(e.G, &ctx.TriggerContext, o)
 		}
 		lki, lkiHeld := e.triggerLKI[rp.obj]
 		bindTriggerObjectLKI(ctx, lki, lkiHeld)
