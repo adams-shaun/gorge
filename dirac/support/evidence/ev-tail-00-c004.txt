@@ -1,53 +1,90 @@
 A-Midnight Assassin
 Adarkar Sentinel
+Advent of the Wurm
+Aether Sting
 Alchemist's Vial
 Alive
 Angelic Reward
 Arboreal Grazer
 Arid Mesa
 Armed Response
+Artificer's Assistant
 Avengers Quinjet
 Banisher Priest
 Belligerent Sliver
 Bloodthirsty Blade
 Blossom Prancer
 Brightwood Tracker
+Calamity Bearer
 Castle Locthwain
+Chain to Memory
 Chainwhip Cyclops
+Charging Rhino
+Chronomaton
+Circle of Protection: Black
 Coal Stoker
 Collector Ouphe
 Conviction
 Corrupted Harvester
 Crackling Club
+Crashing Centaur
 Dawn Gryff
+Deathgorge Scavenger
 Descend upon the Sinful
+Disciple of the Ring
+Downsize
 Drannith Ruins
+Dross Harvester
 Duchess, Wayward Tavernkeep
+Earthlore
 Egon, God of Death
 Electrickery
+Elite Instructor
 Ember-Fist Zubera
+Erratic Explosion
+Essence Flux
 Fallen Ideal
+Flare of Cultivation
 Flash Flood
 Flowstone Sculpture
 Fodder Cannon
 Foresee
 Forest
+Form of the Dragon
 Foundry of the Consuls
 Fully Grown
 Geth's Grimoire
+Gigapede
+Gilded Sentinel
 Glacial Wall
+Goblin Caves
+Goblin Freerunner
+Goblin Raider
 Goblin Sky Raider
+Grave Birthing
+Grave Bramble
 Griffin Guide
+Guardians of Oboro
 Gutless Ghoul
+Hengegate Pathway
+Heralds of Tzeentch
+Hermetic Study
 Hungry Flames
+Imperial Seal
 Island
 Kalonian Tusker
+King Crab
 Kor Spiritdancer
+Korozda Guildmage
 Krang, the All-Powerful
 Let the Galaxy Burn
 Light 'Em Up
 Light of Hope
+Lost in the Woods
+Magebane Armor
 Martial Coup
+Mirror Universe
+Mirrormere Guardian
 Morgue Thrull
 Mountain
 Nature's Chosen
@@ -58,10 +95,13 @@ Nimbus Wings
 Order of Whiteclay
 Order of the Stars
 Path of Peril
+Phobian Phantasm
 Piranha Marsh
 Plains
 Priest of Forgotten Gods
 Priest of Titania
+Prismatic Omen
+Prodigious Growth
 Quarry Beetle
 Raging Poltergeist
 Rally of Wings
@@ -74,6 +114,7 @@ Sage Owl
 Sandsower
 Sautekh Immortal
 Scorn Effigy
+Scourge Wolf
 Scrapbasket
 Scryb Ranger
 Search for Tomorrow
@@ -82,22 +123,31 @@ Shackles of Treachery
 Shattered Perception
 Shinen of Fury's Fire
 Sickle Ripper
+Siege of Towers
 Silence
 Skyclave Apparition
+Snakeform
 Song-Mad Treachery
 Sorcerer of the Fang
+Spellseeker
+Sphinx of Enlightenment
 Stitchwing Skaab
 Stronghold Discipline
 Supply Caravan
 Swamp
 Talons of Falkenrath
+Taste of Death
+Tattered Haunter
 Thermal Glider
+Thran Temporal Gateway
 Thriving Grove
 Time of Heroes
 Titania's Chosen
 Treespring Lorian
 Tumble Magnet
 Tura Kennerüd, Skyknight
+Void Squall
+Vulshok Sorcerer
 Wall of Frost
 Wandering Ones
 War Report
@@ -105,5 +155,7 @@ Warlord's Axe
 Waves of Aggression
 Wicked Pact
 Wicked Reward
+Windreaper Falcon
+Wolfrider's Saddle
 Wu Warship
 Zhang Liao, Hero of Hefei

@@ -1,0 +1,75 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Agent Venom	4b4e8bd0b623dd65	4	1/1		0/1	ix:resp
+Alien Symbiosis	4dd2202227122d88	4	0/0		1/2	ix:resp
+Amazing Acrobatics	0755adb507da16c4	4	0/0		1/2	ix:resp
+Aunt May	f04b857772f3ae3c	4	1/1		0/1	ix:resp
+Bagel and Schmear	ab5e2cdddac64d0b	8	2/2		0/1	ix:resp
+City Pigeon	6f6ee5cd04edcf7b	8	1/1		0/1	ix:resp
+Costume Closet	e28b249fe2beca88	7	2/2		1/1	
+Daily Bugle Building	685bde3d251097f8	18	3/3		0/1	ix:resp
+Daily Bugle Reporters	898d988840da5ccb	4	1/1		0/1	ix:resp
+Doc Ock, Sinister Scientist	a974f9a5f7ebe339	3	0/0		0/0	
+Eerie Gravestone	4499f9a6bdc7e73f	6	2/2		0/1	ix:resp
+Electro's Bolt	10bb65c6dff7944f	12	0/0		3/4	cast/alt:mayhem
+Electro, Assaulting Battery	ae8733d0919cab6e	7	2/2		0/1	ix:resp
+Flying Octobot	234d248dbc54b65d	4	1/1		0/1	ix:resp
+Forest	6d0466c30f825dba	50	1/1		0/1	ix:resp
+Green Goblin, Revenant	74bbbbec392fb6ab	5	1/1		1/1	
+Heroes' Hangout	d6684875d6fd92c4	5	0/0		1/2	ix:resp
+Hide on the Ceiling	d4d1a344795eeb32	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Hobgoblin, Mantled Marauder	77d95a1d5acb91e3	8	1/1		0/1	ix:resp
+Iron Spider, Stark Upgrade	a05e99f1c3fec349	7	2/2		1/1	
+Island	763c67ef7a27eaf5	68	1/1		0/1	ix:resp
+J. Jonah Jameson	536eb87e28c45c24	5	2/2		1/1	
+Lurking Lizards	ed35b24b4f70cd5a	10	1/1		0/1	ix:resp
+Masked Meower	df66d6ba43e6800a	17	1/1		1/1	
+Mechanical Mobster	1d083667b7c430a0	4	1/1		0/1	ix:resp
+Merciless Enforcers	eba327264e75a9d8	3	1/1		0/1	ix:resp
+Molten Man, Inferno Incarnate	c4a012f26be9a226	10	2/2		0/1	ix:resp
+Mountain	9e71388353e907ed	154	1/1		0/1	ix:resp
+Mysterio, Master of Illusion	732be9dc74807023	3	1/1		0/1	ix:resp
+News Helicopter	4ac1a0722f1dad1b	3	1/1		0/1	ix:resp
+Ominous Asylum	6303f22c926b4f47	25	2/2		1/1	
+Passenger Ferry	7d93b76ecf268158	4	2/2		0/1	ix:resp
+Peter Parker's Camera	38a8867b3c70b3a5	6	1/1		0/1	ix:resp
+Plains	82d63a695487e567	91	1/1		0/1	ix:resp
+Radioactive Spider	5812e9b0a542824a	4	1/1		0/1	ix:resp
+Raging Goblinoids	79dbef2d33e55b65	3	0/0		1/2	cast/alt:mayhem
+Robotics Mastery	5783d2e9d3cc2cc1	7	1/1		2/2	
+Romantic Rendezvous	41d7dd6445d9f1f2	4	0/0		1/2	ix:resp
+Savage Mansion	465013ea1479b416	17	2/2		0/1	ix:resp
+Scarlet Spider, Kaine	ed9152964ba25269	3	1/1		1/3	cast/alt:mayhem,ix:resp
+School Daze	632f33eb2ca804a6	3	0/0		2/2	
+Scorpion's Sting	74f610b753e779d6	7	0/0		2/2	
+Scorpion, Seething Striker	6a4f0cb025ea91fb	5	1/1		0/1	ix:resp
+Scout the City	d2f7897e01e2f58a	4	0/0		1/2	ix:resp
+Secret Identity	dc0a8bfecf23b09a	8	0/0		2/2	
+Selfless Police Captain	eb52e174841c62f7	4	1/1		0/1	ix:resp
+Shock	251ddefdf52e1ce7	9	0/0		2/2	
+Silver Sable, Mercenary Leader	effed9cf896bc63e	8	2/2		0/1	ix:resp
+Sinister Hideout	a70f1200dd734fb0	18	2/2		1/1	
+Spectacular Spider-Man	60b9a824ccc58618	4	2/2		0/1	ix:resp
+Spectacular Tactics	37a59a712b389207	4	0/0		2/2	
+Spider-Bot	10a77553cccb6bda	3	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Spider-Byte, Web Warden	39784c63c19e5823	3	1/1		0/1	ix:resp
+Spider-Gwen, Free Spirit	22e0a34f4b9e2cdd	9	1/1		1/1	
+Spider-Islanders	4571208c415f3c56	6	0/0		1/2	cast/alt:mayhem
+Spider-Man No More	ae650a43a9a42b08	4	0/0		1/2	ix:resp
+Spider-Man, Web-Slinger	9ae43753cfca0af3	6	0/0		1/2	cast/alt:webslinged
+Spider-Sense	f6e9101d70aad771	8	0/0		3/4	cast/alt:webslinged
+Spider-Suit	08dd313eb2811b8e	78	1/1		1/1	
+Strength of Will	6220ab56c1ae1d86	7	0/0		1/2	ix:resp
+Suburban Sanctuary	9d2123023bcead75	19	2/2		0/1	ix:resp
+Subway Train	8064806c13999701	7	2/2		0/1	ix:resp
+Swamp	342b413902f441c3	75	1/1		0/1	ix:resp
+Swarm, Being of Bees	09c399c3daf815a3	7	0/0		1/2	cast/alt:mayhem
+Taxi Driver	877b506334493856	11	1/1		1/1	
+The Spot's Portal	5ecc0a8725481bc9	4	0/0		1/2	ix:resp
+Thwip!	cad8ecfc08d88395	5	0/0		2/2	
+Tombstone, Career Criminal	40586e2a121f297d	8	1/1		0/1	ix:resp
+University Campus	a6f88f0efe508a48	22	2/2		1/1	
+Venomized Cat	65e07bd77cf7c10b	8	1/1		0/1	ix:resp
+Vibrant Cityscape	74568031ddaf5f04	32	1/1		0/1	ix:resp
+Web-Shooters	53199a42725e789c	5	1/1		0/1	ix:resp
+Whoosh!	4cf75ac67e803c1e	6	0/0		3/4	ix:resp
+Wisecrack	aa11918ebcf1207e	18	0/0		2/2	

@@ -14,10 +14,15 @@ Ambush Paratrooper
 Ancient Hydra
 Angel of the Dawn
 Angelic Field Marshal
+Ant-Man's Air Force
 Arborea Pegasus
+Arcbound Condor
+Arcbound Ravager
 Aurochs Herd
+Awakened Amalgam
 Azorius Charm
 Bala Ged Recovery
+Belle of the Brawl
 Blade-Blizzard Kitsune
 Blanchwood Treefolk
 Bloodmist Infiltrator
@@ -26,21 +31,30 @@ Breath of Darigaaz
 Brightwood Tracker
 Brokers Initiate
 Brute Strength
+Butcher Ghoul
+Cackling Fiend
 Cage of Hands
+Caregiver
 Centaur Chieftain
+Chainbreaker
 Chandra's Outrage
+Citadel Gate
+Civilized Scholar
 Clash of Wills
 Coiled Tinviper
 Compelled Duel
 Consulate Crackdown
+Convulsing Licid
 Coronation of Chaos
 Corridor Monitor
 Crow Storm
 Cruel Grimnarch
+Cruel Revival
 Crystal Dragon
 Curfew
 Curse Artifact
 Custody Battle
+Cyclops of Eternal Fury
 Darkthicket Wolf
 Deploy to the Front
 Detainment Spell
@@ -51,12 +65,15 @@ Dread Fugue
 Drider
 Enlarge
 Ensnare
+Epistolary Librarian
 Erratic Mutation
 Escape Velocity
 Esika's Chariot
+Ether Well
 Evie Frye
 Expedition Skulker
 Eye Gouge
+Fearless Fledgling
 Feast of Dreams
 Flash Counter
 Floodhound
@@ -65,47 +82,68 @@ Forest
 Forgehammer Centurion
 Freejam Regent
 Freewind Equenaut
+Furious Bellow
+Furyborn Hellkite
 Gale Swooper
 Giant Solifuge
 Gisa and Geralf
 Glass of the Guildpact
 Glint Hawk Idol
+Glowing Anemone
+Go-Shintai of Ancient Wars
+Gobland
+Goblin Assailant
+Goblin Pyromancer
 Goblin War Wagon
 Goma Fada Vanguard
 Graceful Adept
+Greenwheel Liberator
 Griffin Sentinel
 Grim Reaper's Scythe
 Growth-Chamber Guardian
 Gustha Ebbasdotter
+Hag of Syphoned Breath
 Hamlet Vanguard
 Headless Skaab
 Hedron Rover
+Heir of the Ancient Fang
 Hero of Goma Fada
 Heroes of the Revel
 Heron of Hope
+Hulking Ogre
 Hush
 Ichor Drinker
 Imperial Subduer
+Invigorated Rampage
 Island
+Jabs, Mistress of Mockery
 Jace's Sanctum
+Kinetic Augur
+Knight of the Skyward Eye
 Kuldotha Rebirth
 Kumena's Awakening
 Kyren Negotiations
 Lamplighter of Selhoff
 Lash of the Whip
+Lathnu Hellion
 Lavastep Raider
 Learn from the Past
 Lily Bowen, Raging Grandma
 Luxurious Libation
 Maggot Carrier
+Mardu Scout
 Maze Abomination
+Memorial to Glory
+Merfolk Looter
 Merfolk Skydiver
+Merfolk Trickster
 Merry, Warden of Isengard
 Mesa Cavalier
 Metamorphic Wurm
 Midnight Charm
 Mindless Null
 Minion Reflector
+Mistvault Bridge
 Mountain
 Mourning
 Myr Kinsmith
@@ -113,8 +151,10 @@ Mysterious Tome
 Mystical Tutor
 Nikya of the Old Ways
 Noble Vestige
+Order of Midnight
 Ornery Kudu
 Orochi Merge-Keeper
+Orzhov Enforcer
 Pardic Lancer
 Phobian Phantasm
 Phyresis
@@ -122,6 +162,9 @@ Phyrexian Driver
 Plains
 Predatory Nightstalker
 Prescient Chimera
+Primal Visitation
+Pristine Angel
+Psionic Gift
 Purphoros, God of the Forge
 Pyknite
 Pyromantic Pilgrim
@@ -130,56 +173,86 @@ Rakalite
 Ral's Reinforcements
 Ravenous Sailback
 Ray Fillet, Wave Warrior
+Razorlash Transmogrant
+Realmwalker
 Red Dragon
 Red Elemental Blast
 Regenerate
 Replication Technique
 Rimrock Knight
+Ring of Renewal
 Riot Devils
 Rishadan Brigand
 Rishkar, Peema Renegade
 Rodolf Duskbringer
 Rofellos's Gift
+Rottenheart Ghoul
 Rushwood Dryad
 Sanctuary Raptor
 Savage Thallid
+Scalding Cauldron
+Scout the Wilderness
 Scryb Sprites
 Scurry of Gremlins
+Selesnya Charm
 Servant of Tymaret
 Shelob's Ambush
+Shizo, Death's Storehouse
+Short Circuit
 Silvar, Devourer of the Free
+Singe
 Skillful Lunge
 Smoldering Werewolf
 Snarling Undorak
+Snow-Covered Forest
 Spell Crumple
+Spellgorger Barbarian
 Spring
 Sprite Noble
 Staff of the Wild Magus
 Stalking Bloodsucker
 Steel-Plume Marshal
+Stitcher's Graft
+Stone Haven Medic
 Stonybrook Banneret
+Stormblood Berserker
+Strands of Night
 Stratus Walk
 Student of Ojutai
+Stupor
 Stymied Hopes
 Subterranean Spirit
 Suit Up
 Surge Engine
 Swamp
+Swooping Protector
+Tabaxi Toucaneers
 Tajuru Archer
 Talas Merchant
 Taste of Blood
 Terravore
 Thalakos Deceiver
 Thaumatic Compass
+The Autonomous Furnace
 Thriving Bluff
 Toil
 Tomakul Honor Guard
+Tranquil Thicket
 Traverse Eternity
 Trawler Drake
+Unholy Grotto
 Urborg Justice
 Urgoros, the Empty One
 Vampiric Tutor
+Viashino Spearhunter
+Viper's Kiss
+Weapon Surge
 Weatherseed Faeries
+Whispergear Sneak
 Windrider Wizard
+Wu Warship
+Yavimaya Gnats
+Young Wolf
 Zendikar Incarnate
 Zhuge Jin, Wu Strategist
+Éowyn, Lady of Rohan

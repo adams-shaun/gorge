@@ -8,6 +8,7 @@ Agrus Kos, Spirit of Justice	0e161174f4e693a5	20	2/2		0/1	ix:resp
 Airtight Alibi	1a72d6e5bcc02a43	12	1/1		1/2	ix:resp
 Analyze the Pollen	2d6da5b77c53f7d4	8	0/0		1/2	ix:resp
 Archdruid's Charm	324da5282a0bdc0e	11	0/0		2/2	
+Assassin's Trophy	94fc08b077ff4f51	15	0/0		1/2	ix:resp
 Assemble the Players	4f00b3a5d1cc10ee	81	0/0		0/0	
 Audience with Trostani	64e648d533c07115	5	0/0		1/2	ix:resp
 Aurelia, the Law Above	bb318a34c7c9d5c6	14	2/2		0/1	ix:resp
@@ -48,12 +49,14 @@ Deduce	81ee33ec953790b8	43	0/0		2/2
 Defenestrated Phantom	e807ad91b05c7ca8	60	0/0		1/2	cast/alt:disguised
 Delney, Streetwise Lookout	968ed229619ffc1f	77	0/0		0/0	
 Demand Answers	f16552fd099d7110	8	0/0		1/2	ix:resp
+Detective's Satchel	6b94304cb19e0cf5	4	2/2		0/1	ix:resp
 Doorkeeper Thrull	0820800c4e173b9b	91	0/0		0/0	
 Dramatic Accusation	30bc68b773aa7af7	22	2/2		2/2	
 Due Diligence	3d7ac1cc51627674	89	1/1		2/2	
 Elegant Parlor	325445d71ca7b819	168	3/3		1/1	
 Eliminate the Impossible	816d546ae52465d9	18	0/0		1/2	ix:resp
 Escape Tunnel	d52cf5b130679874	137	2/2		0/1	ix:resp
+Evidence Examiner	c7f2c0486daa2ba8	4	2/2		0/1	ix:resp
 Expedited Inheritance	2213a43330514cbe	11	1/1		1/1	
 Expose the Culprit	960774eb6355a8f7	21	0/0		1/2	ix:resp
 Extract a Confession	b4d49555aec54a1c	39	0/0		2/2	
@@ -91,7 +94,9 @@ It Doesn't Add Up	dd96ee1cd4dbdd42	68	0/0		2/2
 Jaded Analyst	871e0de342d95ea2	28	1/1		1/1	
 Karlov Watchdog	7b8a52fd9b0678ff	63	1/1		1/1	
 Kaya, Spirits' Justice	20a07ee78dc10501	79	4/4		1/1	
+Kellan, Inquisitive Prodigy	f0d0c51d29472cd4	5	1/1		1/2	ix:resp
 Knife	0ce4115315712bde	91	2/2		1/1	
+Kraul Whipcracker	0780b3cb412919dd	15	1/1		0/1	ix:resp
 Krenko, Baron of Tin Street	b212e033980bd097	30	2/2		1/1	
 Krovod Haunch	2b45d11c0cbda6f9	82	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lamplight Phoenix	cd00e6a0c1bfcf65	23	1/1		1/1	
@@ -183,6 +188,7 @@ Underground Mortuary	f8a3eadbe0d28ac0	143	3/3		0/1	ix:resp
 Undergrowth Recon	83337588e138ec6b	15	1/1		0/1	ix:resp
 Unscrupulous Agent	2958fe2a1604d090	113	1/1		1/1	
 Unyielding Gatekeeper	75eaecbe865d9f66	6	1/1		2/3	cast/alt:none
+Urgent Necropsy	40e10e8a4125d827	16	0/0		1/2	ix:resp
 Vein Ripper	1ae92b1d42bf02f0	61	2/2		1/1	
 Vengeful Tracker	36779e7f09ef0c5b	24	1/1		0/1	ix:resp
 Warleader's Call	13793cab15ebbd8c	22	1/1		1/1	

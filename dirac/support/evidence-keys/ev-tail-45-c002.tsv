@@ -23,27 +23,34 @@ Blightstep Pathway	9a19ddabb488c33f	12	2/2		0/1	ix:resp
 Bonders' Enclave	61b39b95ea1ff9c6	12	2/2		0/1	ix:resp
 Boundless Realms	abf8fede2ae2630d	6	0/0		1/2	ix:resp
 Brine Seer	f9796d97893b525c	5	1/1		1/1	
+Brine Shaman	d522cf4000b13f13	4	2/2		0/1	ix:resp
 Call of the Death-Dweller	4fcffe687191e348	6	0/0		1/2	ix:resp
 Celestial Gatekeeper	43648c1d0c80e971	6	1/1		0/1	ix:resp
 Chainflinger	858fd94b525c9d21	5	2/2		0/1	ix:resp
 Cityscape Leveler	2e890cedbb674d8d	6	3/3		1/1	
+Clairvoyance	45abad37609386c8	9	0/0		1/2	ix:resp
 Clearwater Goblet	281fe26c63cae0db	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Colossus Hammer	b92699ede9a3c686	6	1/1		0/1	ix:resp
 Coppercoat Vanguard	d338afb161fb31c9	8	0/0		0/0	
 Court Archers	5e396f7e2ec4f9f5	5	1/1		0/1	ix:resp
 Crossroads Consecrator	a534ba214ad9818a	10	1/1		0/1	ix:resp
 Culling Mark	1a4b952db118ee68	4	0/0		1/2	ix:resp
+Curator's Ward	59bbedde8f3ba02b	13	1/1		1/2	ix:resp
 Dark Inquiry	082bd3dd7acbe1f6	3	0/0		1/2	ix:resp
 Dauntless Escort	e0330c141fe25b71	7	1/1		0/1	ix:resp
 Dauthi Jackal	bdafbac982b8a498	8	1/1		0/1	ix:resp
 Distract	1a860691a0b16b10	4	0/0		1/2	ix:resp
+Djinn of the Lamp	993179de8507d47b	4	0/0		0/0	
 Dreamscape Artist	7cb8d02102553e65	7	1/1		0/1	ix:resp
+Eris, Roar of the Storm	666e8cb93c992cbd	3	2/2		1/1	
 Ethereal Elk	cbd82331f3febade	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Ezuri, Renegade Leader	288350c629162e90	7	2/2		0/1	ix:resp
 Fearless Halberdier	e1c7646886b75c2d	3	0/0		0/0	
 Fiery Conclusion	de6ca95e7cce106a	12	0/0		1/2	ix:resp
 Fight to the Death	1925aa8285a0a809	3	0/0		1/2	ix:resp
+Flamestick Courier	a2042a6bbed36d02	5	1/1		1/1	
 Flare of Faith	06af245a6378cad1	3	0/0		2/2	
+Fly	1543829a1832b8cc	8	0/0		1/2	ix:resp
 Forest Bear	c3a7b73c4e073bc8	5	0/0		0/0	
 Fíli and Kíli, Joyous	9e719efba8e3b54f	5	1/1		0/1	ix:resp
 Garna, the Bloodflame	a65f6cf94629133f	4	1/1		1/1	
@@ -62,16 +69,17 @@ Heartbeat of Spring	10318a075c1e5fad	4	1/1		0/1	ix:resp
 Herald of Kozilek	130007d0c5cda93d	4	0/0		0/0	
 Heronblade Elite	2d919a7cb4bcad0f	8	2/2		1/1	
 Hidden Guerrillas	182187b2b77f8e03	4	1/1		0/1	ix:resp
+Homarid Warrior	29ced8e8dc5aff48	4	1/1		1/1	
 Hunter's Insight	7c1cd23c278f1a93	10	0/0		1/2	ix:resp
 Icatian Town	71c2e47190caa971	4	0/0		1/2	ix:resp
 Ikiral Outrider	2a3b736d6cd5c92b	5	1/1		0/1	ix:resp
+Illusory Gains	ffd325515c2b75c4	11	1/1		1/2	ix:resp
 Inquisition of Kozilek	f7669fcd3239cc27	5	0/0		1/2	ix:resp
 Ironclad Slayer	c3e1de013266a21d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Izzet Charm	28427037db57a112	8	0/0		2/2	
 Jawbone Skulkin	4efa3099e24419e6	15	1/1		1/1	
 Jolrael, Empress of Beasts	e6de852b0a4393a2	8	1/1		0/1	ix:resp
 Karok Wrangler	c233c0345adccdd0	6	1/1		0/1	ix:resp
-Kavu Aggressor	0c2f0abcfd12ec1c	5	0/0		2/2	
 Kavu Mauler	234bd05d4690a6e5	5	1/1		0/1	ix:resp
 Keldon Arsonist	ed412c79291bd7f9	11	1/1		1/1	
 Keldon Vandals	89594328c934279a	3	2/2		0/1	ix:resp
@@ -84,8 +92,10 @@ Lonely Sandbar	fa75b5f330ab2845	4	2/2		0/1	ix:resp
 Looming Hoverguard	9bb7ebf34a81191f	3	1/1		1/1	
 Lowland Giant	cefb7362a99f1031	3	0/0		0/0	
 Loxodon Sergeant	c1ac6b2a2b8fa894	4	1/1		1/1	
+MagicConsecrated Sphinx	63a144220e6d1bd0	13	1/1		1/1	
 Magus of the Order	d760f7c273691884	3	1/1		1/1	
 Many Partings	53a9ae19b2b45ad9	8	0/0		1/2	ix:resp
+Markov Warlord	71a240d986fc54b9	6	1/1		0/1	ix:resp
 Marrow Bats	80db1e0cea8c29ff	7	1/1		1/1	
 Moaning Spirit	b8a43c1f22ee08d8	11	0/0		0/0	
 Mole Module	88bdc37f74f3fff4	4	2/2		0/1	ix:resp
@@ -98,6 +108,7 @@ Nimblewright Schematic	0acdb0a5b12a3356	9	2/2		0/1	ix:resp
 Niveous Wisps	332bc6eccb0a9ae7	5	0/0		2/2	
 Nyx-Fleece Ram	e8a4b762592fa811	4	1/1		1/1	
 Obelisk of Bant	4dc8c0454c81aae7	4	1/1		0/1	ix:resp
+Omen of the Sea	cc1b600f0570de2a	6	2/2		1/1	
 One with the Kami	c623a1e229fc4bc6	11	1/1		2/2	
 Outland Liberator	7edd245775e21a02	15	3/3		1/1	
 Pale Recluse	d0a706683a987952	3	2/2		1/1	
@@ -125,8 +136,11 @@ Roaring Slagwurm	db6f46d0436759b9	4	1/1		1/1
 Safehold Duo	ef7594f406e02c28	4	2/2		1/1	
 Sandstone Needle	2183ac3101a4fd4b	14	1/1		0/1	ix:resp
 Saproling Burst	9b84733614b086a1	4	3/3		0/1	ix:resp
+Saw It Coming	e05d0fca49496da8	3	0/0		2/4	cast/alt:foretold,ix:resp
 Seekers' Squire	aae0df8425f93bfc	4	1/1		0/1	ix:resp
 Sensory Deprivation	1d1c2e0e76f5c7b5	3	0/0		1/2	ix:resp
+Serum-Core Chimera	6e717d3cf52152e9	4	2/2		0/1	ix:resp
+Shaman of the Great Hunt	d3e24b65ec097c65	14	2/2		0/1	ix:resp
 Shield of Duty and Reason	a10a8861f1833778	39	0/0		2/2	
 Shivan Raptor	813da832346a2790	5	1/1		0/1	ix:resp
 Signpost Scarecrow	d3ed6396e6e65381	9	1/1		1/1	
@@ -144,6 +158,7 @@ Steel-Plume Marshal	35e068d8ccd7c8f1	5	1/1		1/1
 Stitch Together	42df3e6afc3d556c	4	0/0		1/2	ix:resp
 Stoic Builder	2a32c31452a5ecb2	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Stormchaser Chimera	d6bc2623db711009	3	1/1		1/1	
+Stormwatch Eagle	ee22f9e3a251de40	20	1/1		1/1	
 Stromgald Crusader	d997c13e23aa7c1a	4	2/2		1/1	
 Succumb to Temptation	705a2739560b6a0d	3	0/0		1/2	ix:resp
 Sultai Flayer	90021c33f2db8a51	6	1/1		0/1	ix:resp
@@ -167,9 +182,11 @@ Warhost's Frenzy	49eda2015139d902	13	0/0		3/4	ix:resp
 Watcher of the Spheres	2e8f6bdf2ddceaa3	4	1/1		0/1	ix:resp
 Weakstone	c05ebc4c59973e4e	3	0/0		0/0	
 Weird Harvest	a44e8e533c6ee562	3	0/0		2/4	f0/s/x0,ix:resp
+Whimwader	c91b57db62d921f3	3	0/0		0/0	
 Windstorm	9611f84bd228222f	4	0/0		2/4	f0/s/x0,ix:resp
 Wingmantle Chaplain	3af64df35f69e3d4	11	2/2		0/1	ix:resp
 Wings of Velis Vel	9e2fc8fa27b7260c	4	0/0		1/2	ix:resp
+Wipe Away	7e7391cabe5694ff	12	0/0		1/2	ix:resp
 Wizard's Staff	e2c6e80b97cc3321	6	2/2		1/1	
 Yahenni, Undying Partisan	93e0bf0e57650bf3	6	2/2		0/1	ix:resp
 Zombie Mob	38ab3303a05c021e	3	1/1		0/1	ix:resp

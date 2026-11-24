@@ -377,6 +377,7 @@ Smother
 Soulblade Djinn
 Spell Contortion
 Spellbook
+Spellbreaker Behemoth
 Spider Spawning
 Spiderwig Boggart
 Spike Drone

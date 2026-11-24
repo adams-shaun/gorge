@@ -1,9 +1,11 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Acrobatic Maneuver	247e280b17403cc2	8	0/0		2/2	
 Aether Chaser	56f00dc43d71e9c9	10	2/2		0/1	ix:resp
+Allay	5ba59f3c68bb7498	8	0/0		4/4	
 Archweaver	4880060c8109dca4	12	0/0		0/0	
 Baboon Spirit	e69f45dd7aa6eefd	17	2/2		1/1	
 Blast Zone	8c1d4fe9faa50dde	16	3/3		0/1	ix:resp
+Blinkmoth Nexus	3db2669b8478cc58	14	3/3		1/1	
 Blurred Mongoose	eced1bc83bdf022a	6	0/0		0/0	
 Chittering Witch	fbe21de03cff1b38	21	2/2		1/1	
 Curse of Inertia	9feb0da0b6a06b95	51	1/1		2/2	
@@ -14,6 +16,7 @@ Dripping Dead	fbd8b37305197225	4	1/1		1/1
 Dross Prowler	09448dc30b0beb52	19	0/0		0/0	
 Dross Skullbomb	ca22a6b204328c59	52	2/2		1/1	
 Dáin's Company	0b78edbf31cf8c50	6	1/1		1/1	
+Fishliver Oil	ada06154040f52e3	4	0/0		1/2	ix:resp
 Flawless Maneuver	2efc11003abe2966	8	0/0		1/2	ix:resp
 Flourishing Hunter	c64875da0e4e5f77	24	1/1		1/1	
 Flumph	24f1edad24a9ab26	14	1/1		0/1	ix:resp
@@ -26,6 +29,7 @@ Godo, Bandit Warlord	d7c8bbbe0d44632d	5	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Grimoire of the Dead	06f3c33478141729	4	2/2		1/1	
 Healer's Headdress	774d476fbee050f4	13	2/2		1/1	
 Horrific Assault	5b204425318b47a4	18	0/0		2/2	
+Hyena Umbra	d1bbc1a5f0abbd3f	4	0/0		2/2	
 Illustrious Historian	dd4f222db777b10a	18	1/1		1/1	
 Infected Defector	07beb7a5bd1ee1f5	59	1/1		1/1	
 Inspiring Veteran	b15ca78f3ea865f2	29	0/0		0/0	
@@ -33,6 +37,7 @@ Insurrection	393fd5fb48491151	7	0/0		1/2	ix:resp
 Kinscaer Harpoonist	3d1d7e483f8c0e13	14	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Kjeldoran Javelineer	d523656ecd8fc455	104	2/2		1/1	
 Llanowar Dead	5de75a1e8aafbe33	35	1/1		1/1	
+Lotus Petal	cb1ea04b3373f2d0	8	1/1		1/1	
 Maximize Altitude	1d90e4e57075b29f	23	0/0		3/4	cast/alt:jumpstart
 Mimic	e1b2af1bf78b357b	4	2/2		0/1	ix:resp
 Mjölnir's Might	dded82fb35bd5d26	4	0/0		1/2	ix:resp

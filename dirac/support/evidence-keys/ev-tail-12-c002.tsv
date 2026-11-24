@@ -1,32 +1,52 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Ahn-Crop Invader	ef67243255bbfd3e	3	1/1		0/1	ix:resp
 Angel of Invention	acabb255aea1110b	3	1/1		0/1	ix:resp
 Armament Master	df50a946fa862af6	9	0/0		0/0	
+Barter in Blood	4536a047e0050dd9	11	0/0		1/2	ix:resp
 Benalish Veteran	9a6991cc6280ca8f	9	1/1		0/1	ix:resp
 Blessed Wind	8867c4b69d458def	3	0/0		1/2	ix:resp
 Broodstar	50e1f95b424390a8	9	0/0		0/0	
+Cathartic Pyre	939472b0b110fa34	6	0/0		1/2	ix:resp
 Chimeric Mass	2578015ae024391d	4	1/1		1/1	
 Cinder Seer	b87c2ffb477387f8	6	1/1		0/1	ix:resp
+Coalition Flag	3925e754a5072675	16	0/0		1/2	ix:resp
+Double Cleave	dbfadca9c2d7aa09	4	0/0		1/2	ix:resp
+Frightshroud Courier	e5f0ada7b9591ebb	9	1/1		0/1	ix:resp
 Gorgon Flail	01b00a008cbed629	7	1/1		1/1	
 Gourmand's Talent	64da5a18726eda3b	6	4/4		1/1	
 Hostile Desert	f94e8a10bd2c2c15	29	2/2		0/1	ix:resp
 Last Caress	e369a4b2e0c2ec3f	5	0/0		1/2	ix:resp
+Loch Dragon	c6ae1ee73ba5b42b	4	2/2		0/1	ix:resp
+Magus of the Coffers	6ee2d2afd28a4d5a	9	1/1		0/1	ix:resp
 Mana Confluence	ba6c83ca6af27359	18	1/1		0/1	ix:resp
 Mind's Eye	244d8c1b85dcbfb3	6	1/1		1/1	
+Mine Collapse	6e19f0ff9c76e8bf	15	0/0		2/2	
+Minotaur Tactician	7e9a722db64d6a99	11	0/0		0/0	
+Mushroom Watchdogs	b0ab03ccee9fa2c0	8	1/1		0/1	ix:resp
 Patagia Viper	fad68d94629ef033	10	2/2		0/1	ix:resp
 Phyrexian Juggernaut	31378a3e2ed56fcc	4	0/0		0/0	
 Phyrexian War Beast	af6b9716cf05a974	10	1/1		0/1	ix:resp
+Plea for Power	c57fa7f25baf6103	10	0/0		1/2	ix:resp
+Primordial Sage	d8f1d6b7a08a3a1c	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Prying Blade	1bea73ffc56883cb	8	2/2		0/1	ix:resp
 Ramosian Sergeant	3c013452eea14673	7	1/1		0/1	ix:resp
 Ranger-Captain of Eos	f7ff8bd5963ca809	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Reprocess	6d37058e04ac07a3	5	0/0		1/2	ix:resp
 Restless Bones	35dec83928602d2c	4	2/2		0/1	ix:resp
+Ria Ivor, Bane of Bladehold	bf8ebfa3193ece11	9	2/2		0/1	ix:resp
 Rishadan Pawnshop	3204e967b2578c47	4	1/1		0/1	ix:resp
 Rix Maadi, Dungeon Palace	f4ef1fac2d367f2c	22	2/2		0/1	ix:resp
 Sanctifier of Souls	6cfb6facc99f2ee2	12	2/2		1/1	
+Sand Squid	1c41d7b81c2700ba	8	1/1		0/1	ix:resp
 Serum Powder	6350a95ec21b9c76	10	1/1		0/1	ix:resp
+Sevinne's Reclamation	bcbc538f9698f278	7	0/0		4/4	
+Slumbering Dragon	0a80e623126b8937	3	1/1		0/1	ix:resp
+Sphinx Summoner	612b9c5c43213856	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Sphinx of Magosi	20f576d6100e204d	9	1/1		0/1	ix:resp
 Thaumatic Compass	9b42198505a016c7	17	4/4		0/1	ix:resp
 Thumbscrews	4b01464ba279608c	15	1/1		0/1	ix:resp
 Treebeard, Gracious Host	5587953e0352c3dd	4	3/3		0/1	ix:resp
+Ugin's Mastery	6d4d5baacaf0a785	14	2/2		0/1	ix:resp
 Urza's Factory	62ec083e03fcb65f	33	2/2		0/1	ix:resp
 Viridescent Bog	c08379fabb24fc6e	11	1/1		0/1	ix:resp
 Vivid Creek	c6e7d57964bc1886	34	2/2		0/1	ix:resp

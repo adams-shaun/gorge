@@ -66,6 +66,7 @@ Brandywine Farmer
 Bronze Guardian
 Bugenhagen, Wise Elder
 Burning Fields
+Burning Vengeance
 Cabal Patriarch
 Cabaretti Courtyard
 Call of the Herd
@@ -316,6 +317,7 @@ Ogre Taskmaster
 Ondu Knotmaster
 One-Eyed Scarecrow
 Order of the Sacred Torch
+Overgrown Pest
 Painwracker Oni
 Panic Attack
 Paradigm Shift

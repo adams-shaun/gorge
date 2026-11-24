@@ -1,15 +1,21 @@
+A-Deal Gone Bad
 A-Warm Welcome
 Abrupt Decay
 Accelerated Mutation
+Acquire
 Adanto Vanguard
 Agent of Horizons
+Aggressive Crag
 Alora, Merry Thief
 Amrou Kithkin
 Angelic Shield
+Arachnoid Adaptation
 Arctic Nishoba
 Arms Dealer
 Aron, Benalia's Ruin
 Arterial Flow
+Atomize
+Auntie's Hovel
 Aura Extraction
 Aven Skirmisher
 Avenging Huntbonder
@@ -17,13 +23,19 @@ Baloth Pup
 Barrage of Expendables
 Basim Ibn Ishaq
 Battered Golem
+Blazing Volley
 Blighted Bat
 Blitz Hellion
 Bloodcurdling Scream
+Bloodmist Infiltrator
+Blot Out
+Boot Nipper
 Boromir, Gondor's Hope
 Brightmare
+Brood Birthing
 Burlfist Oak
 Cabal Surgeon
+Carrion Wall
 Charge Through
 Circle of Dreams Druid
 Claim of Erebos
@@ -33,20 +45,29 @@ Conclave Phalanx
 Consuming Sinkhole
 Crack Open
 Crucible of Worlds
+Crypt Rats
 Crystacean
 Daily Regimen
 Dancing Scimitar
+Darkbore Pathway
 Deliberate
+Detainment Spell
 Dictate of Heliod
 Distorting Wake
+Divine Transformation
+Dreadmobile
+Dross Scorpion
 Dust Stalker
 Ebony Rhino
 Epic Proportions
 Era of Enlightenment
 Eternal Scourge
 Ettercap
+Experimental Aviator
 Eyes of Gitaxias
+Faerie Bladecrafter
 Festival of the Guildpact
+Final Fortune
 Fists of Flame
 Flame Rift
 Fleeting Memories
@@ -59,6 +80,7 @@ Fork in the Road
 Fortress Crab
 Frenzied Tilling
 Frenzy Sliver
+Fury Sliver
 Galadhrim Bow
 Ghoulish Procession
 Giant's Skewer
@@ -68,35 +90,48 @@ Glistening Extractor
 Gluttonous Slug
 Goblin Cannon
 Goblin Piker
+Grim Captain's Call
+Grim Servant
 Grizzly Ghoul
 Gruul Guildmage
 Gustcloak Sentinel
 Gustrider Exuberant
 Heartless Pillage
+Heavy Mattock
 Herald of the Fair
 Homestead Courage
 Hornet Sting
 Hot Springs
+Icon of Ancestry
 Improvised Weaponry
+Inner-Flame Acolyte
 Inquisitor's Ox
 Integrity
 Inventor's Axe
 Island
 Jiang Yanggu
+Jund Panorama
 Jungle Creeper
 Justice Strike
 Kaysa
 Keen Glidemaster
 Keeper of Keys
 Keldon Overseer
+Kite Shield
 Kithkin Harbinger
 Kitsune Loreweaver
+Languish
 Lantern of Revealing
+Legions of Lim-Dûl
 Lim-Dûl's High Guard
 Living Lightning, Charged Up
 Living Twister
+Metathran Elite
+Metathran Soldier
 Moon Heron
+Moorland Haunt
 Mountain
+Mountain Yeti
 Murderous Rider
 Nacre Talisman
 Natural Order
@@ -105,9 +140,11 @@ Nightbird's Clutches
 Nightmare Lash
 Noble Quarry
 Nyx Herald
+Nyx Infusion
 Oakgnarl Warrior
 Obsidian Battle-Axe
 Ondu Inversion
+Open the Gates
 Orzhov Guildmage
 Parcel Myr
 Patriot, Young Avenger
@@ -115,9 +152,14 @@ Phyrexian Vivisector
 Plains
 Purify the Grave
 Putrid Leech
+Pyrophobia
+Qumulox
+Rage of Purphoros
 Rancor
 Reckless Rage
+Retrofitted Transmogrant
 Revive
+Rile
 Rite of Consumption
 Rite of Harmony
 Ronom Unicorn
@@ -131,13 +173,17 @@ Scurrid Colony
 Scuttlegator
 Scuttletide
 Seedborn Muse
+Serum Tank
 Shadow Glider
 Shapers of Nature
 Shivan Fire
 Shriek Raptor
+Silent Dart
 Silver Shroud Costume
+Simic Growth Chamber
 Skitter Eel
 Soldevi Steam Beast
+Solemn Offering
 Solid Ground
 Soul Link
 Spectral Reserves
@@ -151,8 +197,10 @@ Sunflare Shaman
 Swamp
 Swelter
 Talruum Minotaur
+Teetering Peaks
 Temporal Fissure
 Terrain Elemental
+Thalakos Mistfolk
 That Which Was Taken
 Tidal Courier
 Tobias, Doomed Conqueror
@@ -161,6 +209,7 @@ Trained Cheetah
 Training Grounds
 Trudge Garden
 Twiddle
+Undead Augur
 Valeria Richards, Precocious
 Vedalken Outlander
 Vicious Hunger
@@ -168,11 +217,14 @@ Vindictive Vampire
 Viridian Emissary
 Viridian Scout
 Voice of Truth
+Volt Charge
 Vulshok Morningstar
 Wall of Vines
 Wary Okapi
 White Scarab
 Wild Growth
+Woodland Stream
+Wretched Throng
 Wu Light Cavalry
 Zendikar Incarnate
 Zephyr Net

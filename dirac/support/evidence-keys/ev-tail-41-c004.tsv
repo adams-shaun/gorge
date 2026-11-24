@@ -1,16 +1,55 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Alabaster Host Sanctifier	03b9c8ab123adf50	51	0/0		0/0	
+Attended Socialite	6c4dc8d6471cf428	4	1/1		0/1	ix:resp
 Blessed Sanctuary	01590574d7a0c460	21	1/1		0/1	ix:resp
+Blood Mist	b3d680bfaa92d8f2	10	1/1		1/1	
+Bloodforged Battle-Axe	e2d5036ece3e89f7	4	2/2		0/1	ix:resp
 Brotherhood Outcast	2991514f6a609088	7	1/1		1/1	
+Coercion	3a9682d132b1fc04	5	0/0		1/2	ix:resp
+Collateral Damage	bc85d2809e39c57e	8	0/0		1/2	ix:resp
 Daybreak Chaplain	867d1df10dc5b913	49	0/0		0/0	
+Death Frenzy	7b300e5fa686bba1	4	0/0		1/2	ix:resp
+Depala, Pilot Exemplar	26191fb7baf84f83	4	1/1		0/1	ix:resp
+Dread Drone	c0c47f741d87b0a0	4	1/1		0/1	ix:resp
+Dryad Sophisticate	171adb184a1a9b6e	4	0/0		0/0	
+Energy Flux	a4c11cf3ffcc5202	3	0/0		0/0	
+Eternal Warrior	b0df60b9ed4021ea	5	0/0		1/2	ix:resp
 Flaxen Intruder	1cf7ccef8118c297	58	1/1		1/2	ix:resp
 Gaea's Revenge	1101cd7cb0a4e0d7	20	0/0		0/0	
+Grounded	e602ecee50489d23	6	0/0		2/2	
+Horned Sliver	477f8f73641bfe48	9	0/0		0/0	
 Indomitable Archangel	c1f14ee9b8391b1d	37	0/0		0/0	
 Loxodon Lifechanter	6999c96783125cf7	12	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mana Flare	0fb77b26ab6e7d9e	4	1/1		0/1	ix:resp
 Marked by Honor	5f4ac04f15bed75a	40	0/0		2/2	
 Matsu-Tribe Sniper	38b7fa8465482bf0	40	2/2		0/1	ix:resp
+Metropolis Sprite	10f1b398d5df3bf0	4	1/1		0/1	ix:resp
+Mogg Fanatic	814bc88db3edfa9b	5	1/1		0/1	ix:resp
+Mudbutton Torchrunner	dcf76a7cce07b41c	6	1/1		0/1	ix:resp
+Multiversal Recruitment	5a22b97179bcb8a0	4	0/0		2/4	cast/alt:flashback,ix:resp
+Necrobite	3911f3931cf4420d	7	0/0		1/2	ix:resp
+Pact of the Titan	8eb075f2f89aa86c	6	0/0		2/2	
+Photon, Mighty Marvel	b40419576551ad33	4	1/1		0/1	ix:resp
+Power of Persuasion	bf61c54408695c51	5	0/0		1/2	ix:resp
+Radjan Spirit	f4a7f39ff2cd388d	6	1/1		0/1	ix:resp
+Rosethorn Halberd	b742a3ffa37484c7	35	2/2		0/1	ix:resp
+Sagittars' Volley	2addbb76b0b49c85	3	0/0		1/2	ix:resp
+Salvage Slasher	66cefc2c82f179f6	6	0/0		0/0	
+Scent of Ivy	1098959bf8e855f1	6	0/0		1/2	ix:resp
+Shard of Broken Glass	b4d276a86a5172ca	80	2/2		1/1	
 Sheltering Light	c68cf0cbe86ee8e9	46	0/0		2/2	
 Silversmote Ghoul	42084e1f7625275b	57	2/2		1/1	
 Staunch Defenders	afcc9ad8315c9828	4	1/1		0/1	ix:resp
+Staunch-Hearted Warrior	d5bac110c79877bf	5	1/1		0/1	ix:resp
+Steam Frigate	b676c2ec3f0dbf88	6	0/0		0/0	
+Storm Fleet Swashbuckler	00b5734eb75f00fe	3	0/0		0/0	
 Tel-Jilad Archers	514fc8e610ab51c1	19	0/0		0/0	
+Torch Slinger	a50d68ba0a515025	6	1/1		2/3	ix:resp
 Trustworthy Scout	fb8ace2233041c72	54	1/1		1/1	
+Twinscroll Shaman	e1dae87debf3fb87	9	0/0		0/0	
+Tymaret, Chosen from Death	68527e6954957c05	8	1/1		1/1	
+Uncle Istvan	15741c725d1e2c9e	4	0/0		0/0	
+Warren Soultrader	a65f7a039dfc0b88	3	1/1		0/1	ix:resp
+Weaponize the Monsters	f0db8d4de76a57be	6	1/1		1/1	
+Wild Colos	461c4d08d470029a	5	0/0		0/0	
+Wild Onslaught	8cf238ca4b3463d2	9	0/0		4/4	

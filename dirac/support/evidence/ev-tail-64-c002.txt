@@ -23,8 +23,10 @@ Ashen Firebeast
 Ashmouth Hound
 Atog
 Azorius Charm
+Baleful Beholder
 Bane's Invoker
 Bitterbow Sharpshooters
+Blasting Station
 Bleed Dry
 Blinking Spirit
 Bloodmad Vampire
@@ -73,6 +75,7 @@ Detainment Spell
 Devil Dinosaur
 Dig Up the Body
 Dispeller's Capsule
+Doctor Doom, Unrivaled
 Drannith Magistrate
 Dread Return
 Dreadwurm
@@ -82,6 +85,7 @@ Duskrider Peregrine
 Dwarven Armorer
 Eastern Paladin
 Eladamri, Lord of Leaves
+Eldrazi Skyspawner
 Elvish Soultiller
 Empty City Ruse
 Empyrial Plate
@@ -117,6 +121,7 @@ Forsaken Drifters
 Foundry Champion
 Freewind Equenaut
 Frog Tongue
+Gate to Tumbledown
 Genju of the Falls
 Genju of the Spires
 Gerrard's Irregulars
@@ -206,6 +211,7 @@ Midnight Charm
 Midnight Haunting
 Mindleech Ghoul
 Miscast
+Mishra's Factory
 Mishra's Onslaught
 Mogg Maniac
 Molder Slug
@@ -267,9 +273,11 @@ Root-Kin Ally
 Rootborn Defenses
 Rouse
 Run for Your Life
+Rustvale Bridge
 Sanguine Spy
 Sarkhan's Dragonfire
 Savage Thallid
+Scourge Servant
 Searing Meditation
 Seeker of the Way
 Segmented Krotiq
@@ -306,6 +314,8 @@ Swarm of Bloodflies
 Swift Justice
 Syndicate Enforcer
 T-45 Power Armor
+Tainted Pact
+Tainted Peak
 Temperamental Oozewagg
 Tenacity
 Terravore

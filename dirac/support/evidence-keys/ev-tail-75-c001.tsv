@@ -72,6 +72,7 @@ Emperor Crocodile	5a8629a1e375ce45	36	1/1		1/1
 Enrage	a1bf4a862082a501	4	0/0		4/4	
 Erstwhile Trooper	4de71381fff33796	6	1/1		0/1	ix:resp
 Familiar's Ruse	9599ea816a2b3b1e	10	0/0		2/2	
+Fanatic of Rhonas	1f2f3fbc450f8da1	4	3/3		0/1	ix:resp
 Farewell	60cbd609044c3546	4	0/0		1/2	ix:resp
 Fateful Showdown	16712446c3ddc5d1	6	0/0		1/2	ix:resp
 Feral Instinct	02ccc1ae5fb769a2	3	0/0		1/2	ix:resp
@@ -159,6 +160,7 @@ Shield of the Oversoul	f4fc36cf05ef7866	3	0/0		1/2	ix:resp
 Shimmer of Possibility	279f339085382206	4	0/0		1/2	ix:resp
 Show of Valor	10ccdfccdcd3f3f7	6	0/0		2/2	
 Shrine Keeper	f4babd7d591c7662	8	0/0		0/0	
+Siege Behemoth	c5f9bf77f3583f62	4	0/0		0/0	
 Sigil of Valor	77ef8191582ea2b0	4	2/2		1/1	
 Silent Extraction	ba90d82bb5842ae3	4	0/0		1/2	ix:resp
 Simian Brawler	618504ef98d989a4	3	1/1		0/1	ix:resp
@@ -174,6 +176,7 @@ Spiteful Squad	9f673f527e4ce775	4	1/1		0/1	ix:resp
 Sultai Emissary	6bc1390b0e128231	6	1/1		0/1	ix:resp
 Surge Engine	69682ba7a799aa16	3	3/3		0/1	ix:resp
 Swarm Surge	d7fa16679eca28fa	4	0/0		1/2	ix:resp
+Swirling Spriggan	ce83a657150f24fe	3	1/1		1/1	
 Sword of the Animist	7f2ad10e57426a0e	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Sygg, River Guide	4268288383d6cfc9	8	1/1		1/1	
 Tamiyo's Immobilizer	514bf77414e6d8bb	4	1/1		0/1	ix:resp
@@ -205,6 +208,7 @@ Whiptail Wurm	abd9cc724c731b0d	21	0/0		0/0
 Winding Canyons	a84f2042f7d681ba	27	2/2		1/1	
 Wingsteed Rider	e6db7dd507207bea	62	1/1		1/1	
 Wolfwillow Haven	a509f4b6ecdab8a3	37	2/2		2/2	
+Woolly Razorback	42c4cbc632537074	4	1/1		0/1	ix:resp
 Yoshimaru, Ever Faithful	14668ac55e175b70	83	1/1		1/1	
 Zealot's Conviction	c407e402be3771ac	4	0/0		1/2	ix:resp
 Zhulodok, Void Gorger	0c8da53082280b89	5	0/0		0/0	

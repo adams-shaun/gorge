@@ -152,6 +152,7 @@ Femeref Enchantress
 Firebrand Ranger
 Flameborn Hellion
 Flash Counter
+Flaying Tendrils
 Fleshtaker
 Floodhound
 Fog Elemental

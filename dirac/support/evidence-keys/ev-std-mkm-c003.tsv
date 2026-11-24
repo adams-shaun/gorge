@@ -1,0 +1,60 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Agrus Kos, Spirit of Justice	0e161174f4e693a5	8	2/2		0/1	ix:resp
+Behind the Mask	bcf3241377d5c91e	3	0/0		2/2	
+Benthic Criminologists	35b598a78d7a16ea	3	2/2		0/1	ix:resp
+Bolrac-Clan Basher	ed3daad830dbc9c6	3	0/0		1/2	cast/alt:disguised
+Bubble Smuggler	a1de6f90724a9920	6	0/0		1/2	cast/alt:disguised
+Burden of Proof	cc75398f0281356e	6	0/0		1/2	ix:resp
+Caught Red-Handed	3dc55bf33a324bfe	7	0/0		1/2	ix:resp
+Cerebral Confiscation	2a47ca273ae14532	3	0/0		1/2	ix:resp
+Cold Case Cracker	f462a0c1687bcf65	10	1/1		0/1	ix:resp
+Crime Novelist	af186885e251db3a	11	1/1		0/1	ix:resp
+Cryptic Coat	2432e78f5dc44c68	12	2/2		1/1	
+Curious Inquiry	ce15c5de34d09571	4	0/0		1/2	ix:resp
+Deduce	81ee33ec953790b8	4	0/0		1/2	ix:resp
+Demand Answers	f16552fd099d7110	4	0/0		1/2	ix:resp
+Expedited Inheritance	2213a43330514cbe	4	1/1		1/1	
+Expose the Culprit	960774eb6355a8f7	6	0/0		1/2	ix:resp
+Felonious Rage	d4b86216ae4046d2	9	0/0		1/2	ix:resp
+Festerleech	b23585853610199e	4	2/2		0/1	ix:resp
+Forensic Gadgeteer	1b9998a48faa4f07	4	1/1		0/1	ix:resp
+Forest	6d0466c30f825dba	36	1/1		0/1	ix:resp
+Galvanize	4b3f0d3f8fdb42b8	8	0/0		1/2	ix:resp
+Gearbane Orangutan	7c06c0446b57b7cb	9	1/1		0/1	ix:resp
+Goblin Maskmaker	dcaac1a4fc2f9b3a	6	1/1		0/1	ix:resp
+Harried Dronesmith	5d88fdd1e7840aa6	4	1/1		0/1	ix:resp
+Hotshot Investigators	89f2ae40d5d9908b	4	1/1		0/1	ix:resp
+Hunted Bonebrute	299b10b854be975b	4	2/2		1/3	cast/alt:disguised,ix:resp
+Innocent Bystander	2b54e5f8f59cb2b2	5	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	68	1/1		0/1	ix:resp
+Kellan, Inquisitive Prodigy	f0d0c51d29472cd4	5	1/1		1/2	ix:resp
+Krenko, Baron of Tin Street	b212e033980bd097	5	2/2		1/1	
+Lamplight Phoenix	cd00e6a0c1bfcf65	4	1/1		0/1	ix:resp
+Lightning Helix	4a3357c036559169	8	0/0		1/2	ix:resp
+Long Goodbye	d3f94d7de0f178a3	4	0/0		1/2	ix:resp
+Macabre Reconstruction	2be7d8a4aaee895c	3	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	107	1/1		0/1	ix:resp
+Nightdrinker Moroii	522503dd7b5911d1	4	1/1		1/3	cast/alt:disguised,ix:resp
+Person of Interest	e38db65fb277037f	3	1/1		1/1	
+Persuasive Interrogators	81bf372b9c054dde	3	2/2		0/1	ix:resp
+Plains	82d63a695487e567	161	1/1		0/1	ix:resp
+Presumed Dead	1659a2ecc298f4fa	3	0/0		1/2	ix:resp
+Private Eye	127ce0622d48681c	8	1/1		0/1	ix:resp
+Proft's Eidetic Memory	e9b06ffc60505e52	5	2/2		0/1	ix:resp
+Rakdos, Patron of Chaos	8b94d422ae81684e	4	1/1		0/1	ix:resp
+Reckless Detective	874a6552942f13cf	6	1/1		0/1	ix:resp
+Red Herring	e2f181faa258aac2	7	1/1		1/1	
+Repeat Offender	66fa82d98cebfced	4	1/1		0/1	ix:resp
+Repulsive Mutation	d760228505c6c748	3	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Rubblebelt Braggart	f1dce5353a67ba87	8	1/1		1/1	
+Shock	251ddefdf52e1ce7	4	0/0		1/2	ix:resp
+Sudden Setback	e1198a8e0fc36896	3	0/0		1/2	ix:resp
+Suspicious Detonation	109263c883224feb	8	0/0		2/2	
+Swamp	342b413902f441c3	46	1/1		0/1	ix:resp
+The Chase Is On	57391296cb35dc30	5	0/0		2/2	
+Torch the Witness	ad5a78c09f37c738	4	0/0		2/4	f0/s/x0,ix:resp
+Undercover Crocodelf	4237ee84dc2c8eb2	3	1/1		1/3	cast/alt:disguised,ix:resp
+Unscrupulous Agent	2958fe2a1604d090	4	1/1		0/1	ix:resp
+Vein Ripper	1ae92b1d42bf02f0	4	2/2		1/1	
+Vengeful Tracker	36779e7f09ef0c5b	10	1/1		1/1	
+Warleader's Call	13793cab15ebbd8c	6	1/1		1/1	

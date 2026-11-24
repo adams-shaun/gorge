@@ -1,12 +1,39 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Avalanche	0de1350c2e0de465	3	0/0		2/4	f0/s/x+,f0/s/x0
+Bloodforged Battle-Axe	e2d5036ece3e89f7	12	2/2		0/1	ix:resp
 Brotherhood Outcast	2991514f6a609088	6	1/1		1/1	
 Cindervines	35500c5fd2c0890b	4	2/2		0/1	ix:resp
+Daybreak Chaplain	867d1df10dc5b913	9	0/0		0/0	
+Energy Flux	a4c11cf3ffcc5202	4	0/0		0/0	
 Godtoucher	6e22a9f53a72e1df	29	1/1		0/1	ix:resp
+Intangible Virtue	1b6b1833d16a530c	4	0/0		0/0	
+Knight Paladin	7b0e0777480a28e4	8	2/2		1/1	
+Leather Armor	6461c97f470d0f45	64	1/1		1/1	
+Mana Flare	0fb77b26ab6e7d9e	3	1/1		0/1	ix:resp
 Manakin and Millikin	37595c936961865a	28	1/1		1/1	
+Metropolis Sprite	10f1b398d5df3bf0	4	1/1		0/1	ix:resp
 Misfortune's Gain	149518f8d3508a24	4	0/0		1/2	ix:resp
+Mudbutton Torchrunner	dcf76a7cce07b41c	8	1/1		0/1	ix:resp
+Multiversal Recruitment	5a22b97179bcb8a0	6	0/0		3/4	ix:resp
+Murderous Compulsion	d28a5c663122b1fd	4	0/0		1/2	ix:resp
 Necroplasm	21f5c2802eecefa2	84	2/2		1/1	
+Pact of the Titan	8eb075f2f89aa86c	7	0/0		2/2	
+Photon, Mighty Marvel	b40419576551ad33	3	1/1		0/1	ix:resp
+Power of Persuasion	bf61c54408695c51	6	0/0		1/2	ix:resp
 Ral, Izzet Viceroy	01240eb88e58bbf1	36	3/3		1/1	
+Returned Centaur	096c49ea7032f9d9	3	1/1		1/1	
+Rograkh, Son of Rohgahh	d0e9e97bf4de816f	17	0/0		0/0	
 Scent of Ivy	1098959bf8e855f1	4	0/0		1/2	ix:resp
+Shabraz, the Skyshark	0597878d59a77fe0	4	3/3		1/1	
+Sigil of Myrkul	7ec4d2648d06eb5e	4	1/1		0/1	ix:resp
+Signal Pest	0be60c7ac07ebb92	4	1/1		0/1	ix:resp
+Steam Frigate	b676c2ec3f0dbf88	3	0/0		0/0	
+Storm Fleet Swashbuckler	00b5734eb75f00fe	3	0/0		0/0	
 The Art of Tea	2b1f87ed46ca55ea	10	0/0		1/2	ix:resp
+Torch Slinger	a50d68ba0a515025	8	1/1		3/3	
 Unleash Shell	d95e064d3cbc38af	3	0/0		2/2	
 Valiant Knight	d5a1646a3bd3c350	4	1/1		0/1	ix:resp
+Verdant Rebirth	0b93f3865e707d94	6	0/0		1/2	ix:resp
+Weaponize the Monsters	f0db8d4de76a57be	4	1/1		0/1	ix:resp
+Wild Colos	461c4d08d470029a	3	0/0		0/0	
+Wild Onslaught	8cf238ca4b3463d2	4	0/0		2/4	cast/alt:kicked,ix:resp

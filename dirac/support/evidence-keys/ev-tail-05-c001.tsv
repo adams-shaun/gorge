@@ -3,6 +3,7 @@ A-Excavation Explosion	c5963ebb796cf3f5	4	0/0		1/2	ix:resp
 A-Goma Fada Vanguard	96dd94dd73ab9cb9	8	1/1		0/1	ix:resp
 Abzan Falconer	a0f199954fd3e226	8	1/1		0/1	ix:resp
 Aerie Bowmasters	234b7f5e2f5e7cd5	4	0/0		1/2	cast/alt:megamorphed
+Aether Web	dbd7b0c3172ca275	8	0/0		1/2	ix:resp
 Agent of Shauku	d3718fa889bc5e22	3	1/1		0/1	ix:resp
 Alchemax Slayer-Bots	d827af28804e1fe4	4	1/1		0/1	ix:resp
 Archetype of Finality	605a028a9191e1a1	5	0/0		0/0	
@@ -25,6 +26,7 @@ Brain Freeze	bef0b57812d4cb10	4	1/1		2/2
 Breathstealer	73e9ce1a9757649a	10	1/1		1/1	
 Breya's Apprentice	6dc170bc8e54ccc5	4	2/2		0/1	ix:resp
 Call for Blood	e115baa18750a68e	14	0/0		2/2	
+Carnivorous Moss-Beast	b3c14b794bfccef8	3	1/1		0/1	ix:resp
 Chaotic Backlash	e10cc29357eaea99	4	0/0		1/2	ix:resp
 Charging Cinderhorn	0042b8398b255635	4	1/1		0/1	ix:resp
 Chlorophant	6dbbf6b80bde5809	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -51,6 +53,7 @@ Dross Golem	aa2864928562dd53	6	0/0		0/0
 Elvish Doomsayer	6400bc9230d930fd	5	1/1		0/1	ix:resp
 Embercleave	0a6988afb7272d41	7	2/2		0/1	ix:resp
 Embraal Bruiser	32ac4a2a74ada06c	10	0/0		0/0	
+Falkenrath Reaver	f9e6fc118aa7c5ed	4	0/0		0/0	
 Farsight Adept	73f147e94773f0c3	4	1/1		0/1	ix:resp
 Festering Thicket	55a428f82d42f3be	8	3/3		0/1	ix:resp
 Fever Charm	1d3b63ea2d79fd23	4	0/0		1/2	ix:resp
@@ -75,6 +78,7 @@ Howlpack Wolf	304c450192bef580	7	0/0		0/0
 Hunter of Eyeblights	fb4a9089c89d34d2	4	2/2		0/1	ix:resp
 Immaculate Magistrate	7b35619da69bd083	4	1/1		1/1	
 Infernal Scarring	e05355c3102fb737	16	0/0		1/2	ix:resp
+Inquisition	1d4a04046065c3cb	8	0/0		1/2	ix:resp
 Insatiable Harpy	21d383044de1b7e9	5	0/0		0/0	
 Instill Energy	0559ba0e3f853fae	4	1/1		2/2	
 Intruder Alarm	4b943e0e88365dea	9	1/1		1/1	
@@ -93,6 +97,7 @@ Murmuration	c09ec06dfd072032	6	1/1		0/1	ix:resp
 Myr Enforcer	22be88a73499db8b	7	0/0		0/0	
 Mystic Subdual	6caff732b1189b29	9	0/0		1/2	ix:resp
 Nahiri's Stoneblades	881fa453ae426509	4	0/0		1/2	ix:resp
+Nessian Boar	0519bc624a9cdb66	3	1/1		0/1	ix:resp
 Oakenform	724ce481231d9988	7	0/0		1/2	ix:resp
 Oath of Mages	909cb9378dfb42be	16	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Oboro, Palace in the Clouds	22984886050374cc	60	2/2		1/1	
@@ -123,6 +128,7 @@ Search for Tomorrow	d1235a00d012722c	4	0/0		4/4
 Seer's Sundial	7cfa245f7e868b02	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Selesnya Sanctuary	0354b31ebd3afb36	23	2/2		0/1	ix:resp
 Sentinel Totem	c547583c8218f306	13	2/2		1/1	
+Serra's Liturgy	801dad024f92040b	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Setessan Training	f9fa84c116668adb	5	1/1		2/2	
 Shivan Wumpus	6126a86608ac7cfe	20	1/1		0/1	ix:resp
 Siege Modification	51e769347a9543a8	4	0/0		1/2	ix:resp

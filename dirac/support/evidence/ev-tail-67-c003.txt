@@ -30,6 +30,7 @@ Beast Attack
 Biting Rain
 Black Market
 Blade Splicer
+Blessed Reincarnation
 Blight Sickle
 Blossom Dryad
 Boldwyr Intimidator
@@ -50,6 +51,7 @@ Claim the Firstborn
 Cling to Dust
 Clutch of Undeath
 Cogwork Assembler
+Collective Resistance
 Commissar Severina Raine
 Common Iguana
 Company Commander
@@ -86,6 +88,7 @@ Despise
 Diligent Excavator
 Dismantling Blow
 Dragon's Approach
+Drifting Meadow
 Dwarven Vigilantes
 Dyfed, the Guiding Hand
 Earthen Goo
@@ -114,10 +117,12 @@ Flux Channeler
 Foe-liage
 Fog of Gnats
 Forest
+Fountain of Cho
 Fungal Sprouting
 Furnace Celebration
 Furnace Hellkite
 Galvanic Iteration
+Gilt-Leaf Palace
 Gluttonous Zombie
 Gnome-Made Engine
 Goblin Glider
@@ -126,6 +131,7 @@ Golden Egg
 Gray Merchant of Asphodel
 Grim Monolith
 Guardian Kirin
+Hall
 Hanna, Ship's Navigator
 Helitrooper
 Hemlock Vial
@@ -149,6 +155,7 @@ Inspiring Refrain
 Intrepid Ace
 Irencrag Pyromancer
 Iroas's Champion
+Iron Bully
 Iron Suitcase
 Ironclad Krovod
 Island
@@ -177,6 +184,7 @@ Manticore Eternal
 Mausoleum Secrets
 Metropolis Reformer
 Might Weaver
+Miren, the Moaning Well
 Mirror of Galadriel
 Mise
 Mogg Sentry
@@ -318,6 +326,7 @@ Venomcrawler
 Viashino Fangtail
 Vine Trellis
 Voldaren Stinger
+Walker of Secret Ways
 Warped Devotion
 Way of the Thief
 Weight of the Underworld

@@ -25,6 +25,7 @@ Beacon of Unrest
 Bedevil
 Benalish Missionary
 Benevolent Bodyguard
+Bess, Soul Nourisher
 Biogenic Ooze
 Black Widow, Natasha Romanoff
 Blade of Selves
@@ -46,6 +47,7 @@ Brighthearth Banneret
 Brood Sliver
 Brute Force
 Call to the Feast
+Carmen, Cruel Skymarcher
 Cathar's Shield
 Cathedral Acolyte
 Celestial Enforcer
@@ -73,6 +75,7 @@ Dauthi Mercenary
 Dawn Charm
 Daxos, Blessed by the Sun
 Dead Reveler
+Death Grasp
 Death Pits of Rath
 Decimator Web
 Deekah, Fractal Theorist
@@ -85,6 +88,7 @@ Disrupting Scepter
 Divination
 Divine Light
 Drake Familiar
+Dramatic Finale
 Dreamshackle Geist
 Dwarven Thaumaturgist
 Dyfed, the Guiding Hand
@@ -119,12 +123,14 @@ Gerrard's Battle Cry
 Ghost-Lit Warder
 Ghostly Changeling
 Giant Ankheg
+Gilanra, Caller of Wirewood
 Gimli, Counter of Kills
 Gingerbehemoth
 Glint-Nest Crane
 Goatnapper
 Goblin Lore
 Godtracker of Jund
+Golgari Findbroker
 Graaz, Unstoppable Juggernaut
 Granger Guildmage
 Gravel Slinger
@@ -185,6 +191,7 @@ Mace of the Valiant
 Magus of the Bazaar
 Manticore of the Gauntlet
 Marshal's Anthem
+Mass Polymorph
 Meatsqueak, Hoard Lord
 Megantic Sliver
 Meltdown
@@ -209,6 +216,7 @@ Neheb, the Worthy
 Nezumi Cutthroat
 Night Market Aeronaut
 Nine-Tail White Fox
+Nip Gwyllion
 No-Dachi
 Noble Benefactor
 Oath of Ajani

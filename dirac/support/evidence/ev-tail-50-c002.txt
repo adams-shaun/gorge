@@ -12,9 +12,11 @@ Ancient Den
 Angel of Retribution
 Arcane Investigator
 Argent Mutation
+Army of Allah
 Army of the Damned
 Arrogant Wurm
 Ashen Powder
+Ashenmoor Cohort
 Augur of Bolas
 Auriok Glaivemaster
 Awakening of Vitu-Ghazi
@@ -34,6 +36,7 @@ Boneshard Slasher
 Boomerang
 Bramblewood Paragon
 Branching Evolution
+Brazen Wolves
 Briber's Purse
 Brinebarrow Intruder
 Broodhunter Wurm
@@ -73,6 +76,7 @@ Desert of the Fervent
 Deviant Glee
 Dina, Essence Brewer
 Doom Whisperer
+Double Vision
 Dovin's Veto
 Draconic Disciple
 Dragon Mantle
@@ -88,12 +92,14 @@ Elvish Lyrist
 Elvish Visionary
 Emmessi Tome
 Empyrial Armor
+Ephemeral Shields
 Evolution Charm
 Excavation Mole
 Explosive Impact
 Extra Arms
 Falkenrath Pit Fighter
 Fang Dragon
+Feral Ghoul
 Fervent Strike
 Festering Mummy
 Final Parting
@@ -129,10 +135,12 @@ Haunted Fengraf
 Headless Rider
 Heartfire
 Hero of the Pride
+Hired Blade
 Hive Stirrings
 Hookhand Mariner
 Howling Giant
 Hurly-Burly
+Hydrosurge
 Hymn of Rebirth
 Ichor Synthesizer
 Impostor of the Sixth Pride
@@ -171,14 +179,17 @@ Marble Gargoyle
 Mardu Warshrieker
 Mesa Cavalier
 Metallic Mimic
+Mind Drain
 Mindblaze
 Moldering Karok
 Monastery Swiftspear
+Moorland Inquisitor
 Morningtide
 Mother of Runes
 Mountain
 Mox Sapphire
 Natural Affinity
+Nature's Ruin
 Needle Drop
 Neurok Replica
 Nightwind Glider
@@ -204,6 +215,7 @@ Plaguemaw Beast
 Plains
 Plunder
 Polluted Mire
+Power Word Kill
 Prava of the Steel Legion
 Prime Speaker Vannifar
 Prodigy's Prototype
@@ -216,6 +228,7 @@ Pygmy Pyrosaur
 Pyre Charger
 Rampaging Cyclops
 Raph's Bravado
+Ravager's Mace
 Reaping the Rewards
 Reckless Barbarian
 Recoil
@@ -296,6 +309,8 @@ Tremble
 Undead Warchief
 Unfriendly Fire
 Urn of Godfire
+Vampire's Kiss
+Vat Emergence
 Vectis Silencers
 Verdant Automaton
 Vessel of Ephemera
@@ -308,6 +323,7 @@ Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
+Wall of Glare
 Wall of Ice
 Wandering Goblins
 Warlock Class

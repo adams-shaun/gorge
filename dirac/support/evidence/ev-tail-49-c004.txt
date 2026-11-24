@@ -19,6 +19,7 @@ Bad Moon
 Balan, Wandering Knight
 Barbarian Outcast
 Batroc the Leaper
+Batterbone
 Battle Mammoth
 Blightbeetle
 Blistering Barrier
@@ -30,6 +31,7 @@ Broodbirth Viper
 Butcher's Cleaver
 Call the Cavalry
 Call the Scions
+Callow Jushi
 Captain America, Steve Rogers
 Catalog
 Celestial Kirin
@@ -37,12 +39,14 @@ Centaur Glade
 Centaur Peacemaker
 Cephalid Broker
 Chandra's Outburst
+Changeling Outcast
 Chapel Geist
 Charge Across the Araba
 Charging Slateback
 Chieftain en-Dal
 Chimeric Coils
 Citadel Gate
+Citanul Centaurs
 Citanul Flute
 Clan Crafter
 Cloakwood Swarmkeeper
@@ -60,6 +64,7 @@ Dark Bargain
 Darksteel Myr
 Dauntless Aven
 Dauntless Unity
+Death Cloud
 Decisive Denial
 Demon's Jester
 Denying Wind
@@ -72,6 +77,7 @@ Dismember
 Double Trouble
 Drake Haven
 Dregs of Sorrow
+Druid's Deliverance
 Electrify
 Elemental Uprising
 Elenda, the Dusk Rose
@@ -88,6 +94,7 @@ Eternity Vessel
 Ever After
 Expedite
 Extinguish the Light
+Eye Spy
 Faerie Duelist
 Fallen Shinobi
 Fallowsage
@@ -101,12 +108,15 @@ Feywild Visitor
 Fiery Mantle
 Fireball
 Fissure Wizard
+Fistful of Force
 Flamecore Elemental
 Flames of the Firebrand
+Flesh-Eater Imp
 Forest
 Fortified Rampart
 Frost Trickster
 Fungal Rebirth
+Gainsay
 Gate to Phyrexia
 Geistblast
 Generous Stray
@@ -136,8 +146,11 @@ Island
 Island of Wak-Wak
 Jadecraft Artisan
 Jaya, Venerated Firemage
+Jetting Glasskite
+Junktroller
 Kaldra Compleat
 Kayla's Command
+Kazandu Blademaster
 Kessig Wolfrider
 Kiln Walker
 Kiss of Death
@@ -146,6 +159,7 @@ Kor Entanglers
 Kor Outfitter
 Kor Scythemaster
 Lantern of Revealing
+Lantern of the Lost
 Lapis Lazuli Talisman
 Last Caress
 Lawmage's Binding
@@ -165,6 +179,7 @@ Maze Skullbomb
 Merfolk Observer
 Metamorphic Wurm
 Mightstone's Animation
+Misery Charm
 Misery's Shadow
 Moldgraf Scavenger
 Monologue Tax
@@ -189,6 +204,7 @@ Part the Veil
 Passionate Archaeologist
 Patagia Golem
 Patch Up
+Peace Strider
 Perilous Forays
 Perilous Research
 Pillaging Horde
@@ -215,6 +231,7 @@ Razorgrass Ambush
 Razortide Bridge
 Reaver Titan
 Red Ghost, Intangible Genius
+Relic of Legends
 Renari, Merchant of Marvels
 Resplendent Mentor
 Reverent Hoplite
@@ -238,8 +255,10 @@ Sanctum of Stone Fangs
 Sandstorm Eidolon
 Sarpadian Simulacrum
 Saruman the White
+Sauroform Hybrid
 Savai Crystal
 Saw It Coming
+Scald
 Scale Blessing
 Scapeshift
 Scout the Borders
@@ -329,8 +348,10 @@ Warteye Witch
 Watcher of the Spheres
 Wave-Wing Elemental
 Whip Silk
+Whirlwind Technique
 Wildwood Geist
 Willow Faerie
+Windborn Muse
 Wing Puncture
 Woodland Wanderer
 Woodwraith Strangler

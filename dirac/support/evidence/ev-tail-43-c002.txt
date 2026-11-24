@@ -21,6 +21,7 @@ Blistering Dieflyn
 Bloodline Necromancer
 Bloodscent
 Bloodthorn Taunter
+Blue Ward
 Bonded Construct
 Bonescythe Sliver
 Boon of Boseiju
@@ -71,10 +72,12 @@ Emmara Tandris
 Endless Scream
 Energizer
 Entrails Feaster
+Eviscerate
 Excogitator Sphinx
 Explore the Underdark
 Farhaven Elf
 Fathom Trawl
+Fighting Drake
 Final Death
 Firehoof Cavalry
 Firemind Vessel
@@ -117,8 +120,10 @@ King of the Pride
 Kitesail Scout
 Kjeldoran Outrider
 Knight of the Reliquary
+Krark-Clan Ironworks
 Kraul Stinger
 Krosan Drover
+Lash of the Whip
 Lay of the Land
 Leaping Lizard
 Liberated Dwarf
@@ -162,6 +167,7 @@ Plains
 Plow Through Reito
 Preemptive Strike
 Primal Forcemage
+Pulverize
 Purify the Grave
 Quag Vampires
 Quarry Hauler
@@ -194,6 +200,7 @@ Soldier On
 Somberwald Beastmaster
 Sorin, Solemn Visitor
 Soulbound Guardians
+Spearpoint Oread
 Spike Rogue
 Spireside Infiltrator
 Spitting Drake
@@ -213,6 +220,7 @@ Swarming of Moria
 Sylvan Basilisk
 Talas Explorer
 Talon Gates of Madara
+Tethmos High Priest
 The Hunger Tide Rises
 The Restoration of Eiganjo
 Thraben Charm

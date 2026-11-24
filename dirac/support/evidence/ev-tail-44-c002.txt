@@ -38,6 +38,7 @@ Bond of Insight
 Boros Locket
 Brain Gorgers
 Burrenton Shield-Bearers
+Cabal Therapy
 Captain N'ghathrod
 Castle Raptors
 Catacomb Crocodile
@@ -170,6 +171,7 @@ Keldon Arsonist
 Kelinore Bat
 Kiku, Night's Flower
 Krav, the Unredeemed
+Larger Than Life
 Lavabelly Sliver
 Leyline Binding
 Lightning Wolf
