@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Unprintable is a construct the backend cannot print yet.
@@ -14,15 +15,21 @@ type Unprintable struct{ What, Path string }
 func (e *Unprintable) Error() string { return "gorgebe: cannot print " + e.What + " at " + e.Path }
 
 // Print prints c as gorge script text. oracle[i] is face i's Oracle text.
-func Print(c *ir.Card, oracle []string) ([]byte, error) { return print(c, oracle, true) }
+func Print(c *ir.Card, oracle []string) ([]byte, error) { return PrintWith(c, oracle, nil) }
+
+// PrintWith is Print with Forge's token scripts (cards.Registry.Tokens), which
+// a create-token step matches its token against. A nil map refuses every token.
+func PrintWith(c *ir.Card, oracle []string, tokens map[string]*cards.Card) ([]byte, error) {
+	return print(c, oracle, true, tokens)
+}
 
 // PrintCharacteristics prints the same text without any K: line. It fails only
 // on the layout or the face count.
 func PrintCharacteristics(c *ir.Card, oracle []string) ([]byte, error) {
-	return print(c, oracle, false)
+	return print(c, oracle, false, nil)
 }
 
-func print(c *ir.Card, oracle []string, abilities bool) ([]byte, error) {
+func print(c *ir.Card, oracle []string, abilities bool, tokens map[string]*cards.Card) ([]byte, error) {
 	var b strings.Builder
 	switch c.Layout {
 	case ir.LayoutNormal:
@@ -41,14 +48,14 @@ func print(c *ir.Card, oracle []string, abilities bool) ([]byte, error) {
 		if i > 0 {
 			b.WriteString("ALTERNATE\n")
 		}
-		if err := printFace(&b, f, oracle[i], abilities); err != nil {
+		if err := printFace(&b, f, oracle[i], abilities, tokens); err != nil {
 			return nil, err
 		}
 	}
 	return []byte(b.String()), nil
 }
 
-func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool) error {
+func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool, tokens map[string]*cards.Card) error {
 	if abilities && len(f.Refusals) > 0 {
 		r := f.Refusals[0]
 		return &Unprintable{What: "refusal:" + r.Key, Path: r.Path}
@@ -93,18 +100,35 @@ func printFace(b *strings.Builder, f *ir.Face, oracle string, abilities bool) er
 		b.WriteString("Colors:" + strings.Join(cs, ",") + "\n")
 	}
 	if abilities {
+		p := &pr{tokens: tokens}
+		var ks []string
 		for _, a := range f.Abilities {
-			if a.Kind != ir.AbKeyword {
-				return &Unprintable{What: "ability:" + a.Kind.String(), Path: a.Src}
-			}
-			k := a.Keyword
-			if k == nil {
+			if a.Kind == ir.AbKeyword && a.Keyword == nil {
 				return &Unprintable{What: "ability:keyword", Path: a.Src}
 			}
-			if k.N != nil || k.Cost != nil || k.Filter != nil {
-				return &Unprintable{What: "keyword:" + k.Name, Path: a.Src}
+			if a.Kind == ir.AbKeyword && a.Keyword.N == nil && a.Keyword.Cost == nil && a.Keyword.Filter == nil {
+				ks = append(ks, "K:"+a.Keyword.Name)
+				continue
 			}
-			b.WriteString("K:" + k.Name + "\n")
+			if fn := abilityFns[a.Kind]; fn != nil {
+				if err := fn(p, a); err != nil {
+					return err
+				}
+				continue
+			}
+			if a.Kind == ir.AbKeyword {
+				return &Unprintable{What: "keyword:" + a.Keyword.Name, Path: a.Src}
+			}
+			return &Unprintable{What: "ability:" + a.Kind.String(), Path: a.Src}
+		}
+		for _, k := range ks {
+			b.WriteString(k + "\n")
+		}
+		for _, l := range p.lines {
+			b.WriteString(l + "\n")
+		}
+		for _, v := range p.svars {
+			b.WriteString("SVar:" + v.K + ":" + v.V + "\n")
 		}
 	}
 	if oracle != "" {
