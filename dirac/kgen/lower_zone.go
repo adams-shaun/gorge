@@ -4799,7 +4799,13 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	}
 	sp := newParams(ss[0].Params)
 	sp.consume("Mode", "Description")
-	if sp.str("ValidAttacker") != "Creature.Self" || sp.str("ValidBlocker") != "" {
+	// ValidAttacker$ Creature.Self (Surge Engine) and Card.Self (Ogre
+	// Marauder's "CARDNAME can't be blocked") are the same shape here: the
+	// granted static sits on the animated object itself, so the one attacker
+	// the record's KwUnblockable covers is the static's own card either way
+	// (a non-creature holder cannot attack, so the grant is inert on it, as
+	// gorge's unmatched Creature.Self is).
+	if va := sp.str("ValidAttacker"); va != "Creature.Self" && va != "Card.Self" || sp.str("ValidBlocker") != "" {
 		return refuse("Animate staticAbilities$ %q shape", name)
 	}
 	if u := sp.unread(); len(u) > 0 {
@@ -5359,21 +5365,39 @@ func (lc *lowerCtx) targetLibrarySearch(ps *params, origin int) (int, error) {
 // (Defined$ Self: Spawning Pool's "{B}: Regenerate this creature", Lavaclaw
 // Reaches' "{X}: +X/+0"): each named ability is a latent the override
 // record grants for the record's duration, the self-granted record the
-// kernel hosts on the animated permanent from its own card (ownGrants). The
-// grant to another object refuses: the kernel hosts a granted activated
-// ability only on its granting card's own permanent. One or two names, as
-// kop.Override.Grant holds; beside RemoveAllAbilities$ the order of the
+// kernel hosts on the animated permanent from its own card (ownGrants). A
+// grant to another permanent (a target, the enchanted permanent) lowers too:
+// the record keeps the object of the card that made it, which the activation
+// names as its host (gorge GrantSource, CR 114.4; dirac/act_ovmaker.go). One
+// or two names, as kop.Override.Grant holds; beside RemoveAllAbilities$ the order of the
 // loss and the grant is not carried, so it refuses.
 func (lc *lowerCtx) animateSelfAbilities(ps *params, o *lOverride, obj lRef) error {
 	ab, ok := ps.get("Abilities")
 	if !ok {
 		return nil
 	}
-	if obj.Kind != rSelf {
-		return refuse("Animate Abilities$ granted to an object other than the source")
-	}
 	if o.LoseAbilities {
 		return refuse("Animate Abilities$ beside RemoveAllAbilities$")
+	}
+	// The grant rides the record's Grant (kop.Override.Grant), which names
+	// the MAKING card's abilities: on any holder the kernel's offer walk
+	// (grantedAbilities over the live records) and its activation reader
+	// (grantCardAt's foreign-record arm) resolve the granting card, so a
+	// grant to another permanent lowers (Banishing Knack's "{T}: return
+	// target nonland permanent", Genju of the Fens' enchanted pump).
+	switch obj.Kind {
+	case rSelf:
+	case rTarget:
+		// the record applies to one ref (the kernel's OpOverride resolves
+		// one object): an "any number" slot (Kitesail Larcenist) is gorge's
+		// one-permanent-each and stays refused
+		t := &lc.ab.Targets[obj.N]
+		if t.Zone != zBattlefield || !t.Max.isConst() || t.Max.N != 1 {
+			return refuse("Animate Abilities$ target slot: not one battlefield permanent")
+		}
+	case rEquipped: // Defined$ Enchanted (Genju of the Fens): the record's RefAttached ref
+	default:
+		return refuse("Animate Abilities$ granted to object %v", obj.Kind)
 	}
 	for _, nm := range strings.Split(ab, ",") {
 		if nm = strings.TrimSpace(nm); nm == "" {

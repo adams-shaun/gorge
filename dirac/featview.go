@@ -1839,11 +1839,14 @@ func (s *State) FeatAbilityPoolPays(p uint8, o Obj, ab uint8, host Obj) bool {
 	} else if ab&0x80 != 0 {
 		// a granted ability: its cost is the granting card's (the action's
 		// target), not the source's
-		if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {
-			return false
-		}
 		ab &^= 0x80
-		c = s.grantCardAt(k, s.objs[host].slot, ab)
+		if mc, ok := s.grantMakerCard(k, o, host, ab); ok {
+			c = mc // the maker of a record's grant (act_ovmaker.go)
+		} else if host == NoObj || s.objs[host].zone != kop.ZoneBattlefield || s.objs[host].slot == NoSlot {
+			return false
+		} else {
+			c = s.grantCardAt(k, s.objs[host].slot, ab)
+		}
 	}
 	abs := k.t.Cards[c].Abilities
 	if int(ab) >= len(abs) {

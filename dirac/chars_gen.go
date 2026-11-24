@@ -1109,7 +1109,12 @@ func (s *State) selfGrantHost(k *prep, sl Slot, c CardID, ab uint8) Slot {
 		return NoSlot
 	}
 	lts, lost := s.lossAt(k, sl)
-	if (s.cardAt(sl) == c || s.perms[sl].card == c) && s.ownGrantAlive(k, sl, c, ab, lost, lts) {
+	// ownGrantAlive already matches the record by its maker (r.r.src == c),
+	// so the grant hosts on the record's holder whatever card the holder
+	// shows: an Animate's Abilities$ grant lands on the animated object
+	// (Banishing Knack's "{T}: return target nonland permanent"), a record
+	// made by the casting card, not the holder's own.
+	if s.ownGrantAlive(k, sl, c, ab, lost, lts) {
 		return sl
 	}
 	if !s.copyGrantAlive(k, sl, ab, lost, lts, c) {
@@ -1346,7 +1351,11 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 	// (CR 613.1f, 613.7), like a granted ability: it merges with the newest record only, or
 	// a repeat of The Fire Nation Drill's removal resolved after Enter the Avatar State would
 	// sit before it and leave the hexproof the Avatar gave.
-	if !s.addOvRec(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.Landwalk != 0) {
+	mk := NoObj
+	if ov.Grant[0] != 0 && s.ovMkOn() {
+		mk = s.res.e.obj // the maker of the granted ability (act_ovmaker.go)
+	}
+	if !s.addOvRecMk(sl, r, merge, ov.Grant[0] != 0 || ov.AddKw != 0 || ov.RemoveKw != 0 || ov.LoseAbilities || ov.Landwalk != 0, mk) {
 		s.stall(StallTables)
 		return
 	}

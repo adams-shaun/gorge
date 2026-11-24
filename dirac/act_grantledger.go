@@ -29,6 +29,7 @@ var coldGrantAct = newCold[Obj]("grantAct", nil)
 // prepGrantAct sizes the ledger for a table with an ExActivations N 1
 // expression (an ActivationLimit$ N offer gate).
 func prepGrantAct(t *kop.Table, p *prep) {
+	prepOvMk(t, p) // act_ovmaker.go: the granting record's maker ledger, sized beside the grant ledger
 	for i := range t.Exprs {
 		if t.Exprs[i].Kind == kop.ExActivations && t.Exprs[i].N == 1 {
 			coldGrantAct.set(&p.cold, grantActN)
