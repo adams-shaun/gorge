@@ -502,6 +502,16 @@ type pendingCast struct {
 	// and the net form is idempotent across a mana-window resume.
 	ownReduce int32 `clone:"deep"`
 
+	// deferredX / deferredXFolded are a target-bound text-defined {X}
+	// (pay.TargetBoundManaX: Reflecting Mirror's "twice the mana value of
+	// that spell") priced before CR 601.2c chose the target. deferredX is the
+	// number of {X} symbols, deferredXFolded the generic amount already added
+	// for the cheapest legal candidate. repriceForTargets evaluates the chosen
+	// target and net-adjusts by the delta, so the fold is idempotent and can
+	// run again on a mana-window resume.
+	deferredX       int32 `clone:"deep"`
+	deferredXFolded int32 `clone:"deep"`
+
 	// modesDone is set once a modal spell's CR 601.2b mode question has been
 	// posed. modeChosen says its answer was recorded during this proposal;
 	// preModes is the object's value immediately before that answer, so

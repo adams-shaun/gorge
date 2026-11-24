@@ -159,6 +159,102 @@ func TestVoodooDollDefinedX(t *testing.T) {
 	}
 }
 
+// TestReflectingMirrorDefinedX pins CR 107.3c/601.2f for Reflecting Mirror's
+// "{X}, {T}" ability: its SVar:X is TargetBound (Targeted$CardManaCost/Twice),
+// so the value is the target spell's mana value twice, fixed when the cost is
+// determined. Nothing is announced, and the offer gate prices the folded
+// cost, so five Mountains cannot activate it and six can.
+func TestReflectingMirrorDefinedX(t *testing.T) {
+	t.Parallel()
+	const probeSrc = "Name:Defined X Probe\nTypes:Sorcery\nManaCost:2 R\nA:SP$ DealDamage | ValidTgts$ Player | NumDmg$ 1\nOracle:x\n"
+	setup := func(t *testing.T, lands int) (*Engine, state.ObjID, state.ObjID) {
+		t.Helper()
+		e, mirror, _ := definedXGame(t, "Reflecting Mirror", lands)
+		spell := e.G.AddObject(card(t, probeSrc), 1)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: spell.ID, From: state.ZLibrary, To: state.ZStack})
+		e.emit(events.Event{Kind: events.TargetsChosen, Obj: spell.ID, Player: 0, Amount: 1})
+		e.pending = nil
+		e.Advance()
+		if got := e.G.Obj(spell.ID).Targets; len(got) != 1 || !got[0].IsPlayer || got[0].Player != 0 {
+			t.Fatalf("setup: stack spell targets = %+v, want player 0", got)
+		}
+		if got := e.G.Obj(spell.ID).Face().ManaValue(); got != 3 {
+			t.Fatalf("setup: probe mana value = %d, want 3", got)
+		}
+		return e, mirror, spell.ID
+	}
+	t.Run("no announcement and the folded cost is paid", func(t *testing.T) {
+		t.Parallel()
+		e, mirror, spell := setup(t, 6)
+		var pc cost.Cost
+		for _, sa := range e.G.Obj(mirror).Face().Abilities {
+			if cc := pay.AbilityCostOf(sa); cc.Cost.X > 0 {
+				pc = cc.Cost
+				break
+			}
+		}
+		if pc.X != 1 {
+			t.Fatalf("setup: printed ability X = %d, want 1 (Cost$ X T)", pc.X)
+		}
+		addMana(t, e, 0, "RRRRRR")
+		if got := e.G.Players[0].Pool.Total(); got != 6 {
+			t.Fatalf("setup: pool = %d, want 6", got)
+		}
+		opt := abilityOption(t, e, mirror, 0)
+		submitChoices(t, e, opt.Index)
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("activating the Mirror posed no decision: no target ask")
+		}
+		for _, o := range d.Options {
+			if o.Kind == "x" {
+				t.Fatalf("activation posed an X announcement (%q, %d options); the text defines X (CR 107.3c)", d.Prompt, len(d.Options))
+			}
+		}
+		pick := -1
+		for _, o := range d.Options {
+			if o.Obj == spell {
+				pick = o.Index
+				break
+			}
+		}
+		if pick < 0 {
+			t.Fatalf("no target option for the stack spell %d: %+v", spell, d.Options)
+		}
+		submitChoices(t, e, pick)
+		for range 8 {
+			d := e.Pending()
+			if d == nil || d.Player != 0 || e.cast == nil {
+				break
+			}
+			if len(d.Options) == 0 {
+				break
+			}
+			submitChoices(t, e, d.Options[0].Index)
+		}
+		if e.cast != nil {
+			t.Fatalf("activation still pending: %+v", e.Pending())
+		}
+		if got := e.G.Players[0].Pool.Total(); got != 0 {
+			t.Fatalf("pool after activation = %v, want empty (the folded 6 was paid)", e.G.Players[0].Pool)
+		}
+		if !e.G.Obj(mirror).Tapped {
+			t.Fatal("Reflecting Mirror untapped after activating: the {T} part was never paid")
+		}
+	})
+	t.Run("offer prices the folded x", func(t *testing.T) {
+		t.Parallel()
+		e5, mirror5, _ := setup(t, 5)
+		if _, ok := findAbilityOption(e5, mirror5, 0); ok {
+			t.Fatal("Mirror offered with five untapped Mountains: X folds to 6 (2 x mana value 3)")
+		}
+		e6, mirror6, _ := setup(t, 6)
+		if _, ok := findAbilityOption(e6, mirror6, 0); !ok {
+			t.Fatal("Mirror not offered with six untapped Mountains: the folded X = 6 is payable")
+		}
+	})
+}
+
 // TestGoblinPolkaBandKeepsAnnouncedX pins the other half of CR 107.3a: a
 // printed {X} whose SVar:X is late-bound (SVar$TgtNum, the ability's own
 // target count) is not defined at activation, so it keeps the announcement
@@ -184,5 +280,45 @@ func TestGoblinPolkaBandKeepsAnnouncedX(t *testing.T) {
 	}
 	if out.X != pc.X || out.XColors != pc.XColors || out.Generic != pc.Generic {
 		t.Fatalf("cost changed: %+v -> %+v; a late-bound {X} keeps its announcement", pc, out)
+	}
+}
+
+// TestDeepwoodElderKeepsAnnouncedX pins the boundary of the target-bound
+// shape: Deepwood Elder's SVar:X is TargetedObjects$Amount (a count of the
+// ability's own targets), not Targeted$..., so it stays announced. Both the
+// activation fold and the deferred offer leave the corpus cost unchanged.
+func TestDeepwoodElderKeepsAnnouncedX(t *testing.T) {
+	t.Parallel()
+	e, elder, _ := definedXGame(t, "Deepwood Elder", 3)
+	var pc cost.Cost
+	var ab *cards.SA
+	for _, sa := range e.G.Obj(elder).Face().Abilities {
+		if cc := pay.AbilityCostOf(sa); cc.Cost.X > 0 {
+			pc, ab = cc.Cost, sa
+			break
+		}
+	}
+	if ab == nil || pc.X == 0 {
+		t.Fatal("setup: Deepwood Elder has no printed-X ability")
+	}
+	if got := e.G.Obj(elder).Face().SVars["X"]; got != "TargetedObjects$Amount" {
+		t.Fatalf("setup: SVar X = %q, want TargetedObjects$Amount", got)
+	}
+	out, ok := pay.FixLifeXCost(asPayer(e), 0, elder, pc)
+	if !ok {
+		t.Fatal("the target-count {X} is withheld: it must keep the announcement it had")
+	}
+	if out.X != pc.X || out.XColors != pc.XColors || out.Generic != pc.Generic {
+		t.Fatalf("FixLifeXCost changed the cost: %+v -> %+v", pc, out)
+	}
+	folded, symbols, foldedN, ok := deferredManaXOffer(asPayer(e), e, 0, elder, ab, 0, pc)
+	if !ok {
+		t.Fatal("deferredManaXOffer withheld the target-count {X}")
+	}
+	if symbols != 0 || foldedN != 0 {
+		t.Fatalf("deferredManaXOffer folded %d symbols / %d generic, want none", symbols, foldedN)
+	}
+	if folded.X != pc.X || folded.XColors != pc.XColors || folded.Generic != pc.Generic {
+		t.Fatalf("deferredManaXOffer changed the cost: %+v -> %+v", pc, folded)
 	}
 }
