@@ -91,7 +91,8 @@ func (v *payEval) SourceInterference(id state.ObjID, ma *cards.SA, produced stri
 		if ma == nil || !e.abilityCompiledCost(ma).Cost.Tap {
 			return pay.TierNormal, pay.Consequence{}, "", state.Mana{}
 		}
-		return pay.TierNormal, pay.Consequence{}, "", e.paymentPlanTapExtraMana(id, produced)
+		extra, _ := e.paymentPlanTapExtraMana(id, produced)
+		return pay.TierNormal, pay.Consequence{}, "", extra
 	}
 	tier, c, detail := e.paymentPlanSourceInterference(id, ma)
 	return tier, c, detail, state.Mana{}

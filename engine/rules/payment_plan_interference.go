@@ -27,6 +27,7 @@ package rules
 // (paymentPlanGlobalManaEffect).
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -162,34 +163,23 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 
 // paymentPlanTapExtraMana is the additional mana the deterministic static
 // TapsForMana triggers (pay.PaymentPlanFoldableTapMana) add when id taps for
-// ma producing `produced`. It is the same walk paymentPlanSourceInterference
-// ran, taken whole: a source that verdict deferred (Gran-Gran's own "becomes
-// tapped" loot beside Great Divide Guide's granted {T}) still gets every
-// folded trigger's mana when it taps (CR 605.4a), so the potential bound and
-// the relaxed proof, which may only over-produce, read it too.
-func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) state.Mana {
+// ma producing `produced`, and the bound of the open-colour triggers
+// (pay.PaymentPlanOpenTapMana: Dawn's Reflection, Fertile Ground) the same walk
+// crosses. The fold is the walk paymentPlanSourceInterference ran, taken
+// whole: a source that verdict deferred (Gran-Gran's own "becomes tapped" loot
+// beside Great Divide Guide's granted {T}) still gets every folded trigger's
+// mana when it taps (CR 605.4a), so the potential bound and the relaxed proof,
+// which may only over-produce, read it too. The open triggers are not folded
+// into the plan (the source stays deferred), yet their mana is real (CR
+// 605.3b), so a bound that ignored it would hide a cast the manual payment can
+// pay; one walk carries both.
+func (e *Engine) paymentPlanTapExtraMana(id state.ObjID, produced string) (extra, open state.Mana) {
 	src := e.G.Obj(id)
 	if src == nil {
-		return state.Mana{}
+		return state.Mana{}, state.Mana{}
 	}
-	_, extra, _, _ := e.paymentPlanTapObservers(id, src.Controller, produced, true, nil)
-	return extra
-}
-
-// paymentPlanTapOpenExtra is the most the static TapsForMana triggers whose
-// mana the player colours at the tap (pay.PaymentPlanOpenTapMana: Dawn's
-// Reflection, Fertile Ground) can add when id taps for `produced`, as the
-// potential bound reads it: those triggers are not folded into the plan (the
-// source stays deferred), yet the mana is real (CR 605.3b), so a bound that
-// ignored it would hide a cast the manual payment can pay.
-func (e *Engine) paymentPlanTapOpenExtra(id state.ObjID, produced string) state.Mana {
-	src := e.G.Obj(id)
-	if src == nil {
-		return state.Mana{}
-	}
-	var open state.Mana
-	e.paymentPlanTapObservers(id, src.Controller, produced, true, &open)
-	return open
+	_, extra, _, _ = e.paymentPlanTapObservers(id, src.Controller, produced, true, &open)
+	return extra, open
 }
 
 // manaProductionAltered reports whether a tap trigger or a replacement would change
@@ -203,7 +193,7 @@ func (e *Engine) manaProductionAltered(id state.ObjID, ma *cards.SA) bool {
 		productions = paymentPlanReflectedProductions(alt)
 	}
 	for _, produced := range productions {
-		if e.paymentPlanTapExtraMana(id, produced) != (state.Mana{}) {
+		if extra, _ := e.paymentPlanTapExtraMana(id, produced); extra != (state.Mana{}) {
 			return true
 		}
 	}
@@ -616,7 +606,7 @@ func (e *Engine) paymentPlanSunburstGrantOut() bool {
 func addPotentialOpenTapMana(m *state.Mana, body *cards.SA) {
 	mp := effects.ManaOf(body)
 	amt, indeterminate := potentialAmount(mp)
-	if indeterminate || (mp.Produced != "Any" && mp.Produced != "Combo Any") {
+	if indeterminate || !slices.Contains(anyColourProduced, mp.Produced) {
 		return
 	}
 	for i := 0; i < 5; i++ {

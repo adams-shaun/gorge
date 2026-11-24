@@ -161,7 +161,7 @@ func (e *Engine) windowTapExtras(units []windowManaUnit) []windowManaUnit {
 			if n > 1 {
 				produced = effects.ManaOf(a.Ma).Produced
 			}
-			extra := e.paymentPlanTapExtraMana(u.ID, produced)
+			extra, _ := e.paymentPlanTapExtraMana(u.ID, produced)
 			if extra == (state.Mana{}) {
 				continue
 			}

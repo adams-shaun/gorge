@@ -1,11 +1,7 @@
 package pay
 
 import (
-	"maps"
-	"slices"
-
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/effects/params"
 )
 
 // PaymentPlanOpenTapMana classifies a `Mode$ TapsForMana | Static$ True`
@@ -20,23 +16,5 @@ func PaymentPlanOpenTapMana(f *cards.Face, t cards.Trigger) (body *cards.SA, toT
 	if _, folds := PaymentPlanFoldableTapMana(f, t); folds {
 		return nil, false, false
 	}
-	body = paymentPlanStaticTapManaBody(f, t, "Mana")
-	if body == nil {
-		return nil, false, false
-	}
-	for _, k := range slices.Sorted(maps.Keys(body.Params)) {
-		switch k {
-		case "API", "Produced", "Amount", "Defined", "SpellDescription", "StackDescription":
-		default:
-			return nil, false, false
-		}
-	}
-	switch ref := params.DefinedRefOf(body); {
-	case ref.Kind == params.RefAbsent || ref.Kind == params.RefYou:
-	case ref.Text == "TriggeredCardController":
-		toTapped = true
-	default:
-		return nil, false, false
-	}
-	return body, toTapped, true
+	return paymentPlanClosedTapManaBody(f, t)
 }
