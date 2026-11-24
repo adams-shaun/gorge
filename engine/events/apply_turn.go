@@ -278,6 +278,7 @@ func foldTurnChange(g *state.Game, e *Event) {
 			g.Objs[i].RegeneratedThisTurn = 0
 			g.Objs[i].AttacksThisTurn = 0
 			g.Objs[i].AttackedTurn, g.Objs[i].AttackedCombat = 0, 0
+			g.Objs[i].AttackedPlayersThisTurn = 0
 			// "Blocked by" is a per-turn fact like "attacked": the history
 			// survives the end-of-combat reset (so an at-end-of-combat
 			// trigger still sees it) but not the turn boundary.

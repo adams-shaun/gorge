@@ -74,7 +74,7 @@ func TestDefinedPlayerStateQualifierControlsGrammar(t *testing.T) {
 // routing's empty-set semantics: definedSpec CLAIMS every Player.<...>
 // spelling (ok=true) but the qualifiers the grammar cannot evaluate -- Curse
 // attachment, the NotedFor* machinery this build lacks, per-turn mana-tap
-// history, combat history per player-vs-source, and an X right-hand side --
+// history, the per-combat attackedBySourceThisCombat history, and an X right-hand side --
 // match NOBODY, so the resolving effect acts on nobody instead of falling
 // back to the spell's (object) targets.
 func TestDefinedPlayerStateQualifierUnmodelledSpellingsActOnNobody(t *testing.T) {
@@ -82,7 +82,6 @@ func TestDefinedPlayerStateQualifierUnmodelledSpellingsActOnNobody(t *testing.T)
 	h := &fakeHost{g: g}
 	c := &Ctx{Controller: 0}
 	for _, spec := range []string{
-		"Player.attackedBySourceThisTurn",
 		"Player.attackedBySourceThisCombat",
 		"Player.EnchantedBy",
 		"Player.NotedForDiscard",

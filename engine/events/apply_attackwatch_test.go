@@ -33,9 +33,18 @@ func TestAttackWatchersFoldAndReset(t *testing.T) {
 	if g.Players[1].AttackedPlaneswalkersThisTurn != 0 || g.Players[0].AttackedPlayersThisTurn != 0 {
 		t.Fatal("a player attack set a planeswalker bit or the defender's own watcher")
 	}
+	if got := g.Obj(bear.ID).AttackedPlayersThisTurn; got != 1 {
+		t.Fatalf("source attack bits = %b, want seat 0", got)
+	}
 	Emit(g, l, Event{Kind: DeclareAttackers, Player: 0, Obj: walker.ID, IDs: []state.ObjID{bear.ID}})
 	if got := g.Players[1].AttackedPlaneswalkersThisTurn; got != 1 {
 		t.Fatalf("planeswalker attack bits = %b, want seat 0", got)
+	}
+	if got := g.Obj(bear.ID).AttackedPlayersThisTurn; got != 1 {
+		t.Fatalf("a planeswalker attack changed the player history to %b", got)
+	}
+	if c := g.Clone(); c.Obj(bear.ID).AttackedPlayersThisTurn != 1 {
+		t.Fatal("clone lost the per-source attack history")
 	}
 	if c := g.Clone(); c.Players[1].AttackedPlayersThisTurn != 1 || c.Players[1].AttackedPlaneswalkersThisTurn != 1 {
 		t.Fatal("clone lost the attack watchers")
@@ -43,5 +52,8 @@ func TestAttackWatchersFoldAndReset(t *testing.T) {
 	Emit(g, l, Event{Kind: TurnChange, Player: 0, Amount: 2})
 	if g.Players[1].AttackedPlayersThisTurn != 0 || g.Players[1].AttackedPlaneswalkersThisTurn != 0 {
 		t.Fatal("TurnChange did not clear the attack watchers")
+	}
+	if got := g.Obj(bear.ID).AttackedPlayersThisTurn; got != 0 {
+		t.Fatalf("TurnChange did not clear the source attack history: %b", got)
 	}
 }

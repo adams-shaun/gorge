@@ -40,6 +40,9 @@ func foldDeclareAttackers(g *state.Game, e *Event) {
 			}
 			o.AttacksThisTurn++
 			o.AttackedTurn, o.AttackedCombat = g.Turn, g.CombatsThisTurn
+			if e.Obj == 0 && e.Player >= 0 && int(e.Player) < 64 {
+				o.AttackedPlayersThisTurn |= uint64(1) << uint(e.Player)
+			}
 			// A fresh declaration starts unconstrained; the HadToAttack event
 			// that follows it marks the attackers that were required.
 			o.HadToAttack = false
