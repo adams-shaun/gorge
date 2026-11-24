@@ -47,6 +47,13 @@ func main() {
 	switch cmd {
 	case "fetch":
 		_, err = cards.FetchFrom(*repo, *dir, *ref)
+	case "verify":
+		err = cards.VerifyLock(*dir)
+		if err == nil {
+			if _, lerr := cards.ReadLock(*dir); lerr != nil {
+				err = fmt.Errorf("%s: no readable cards.lock: %w", *dir, lerr)
+			}
+		}
 	case "compile":
 		err = compile(*dir)
 	case "report":
@@ -65,7 +72,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: forgec fetch|compile|report|coverage|edhcover [-dir .cards] [-repo URL] [-ref master] [-top 25]")
+	fmt.Fprintln(os.Stderr, "usage: forgec fetch|verify|compile|report|coverage|edhcover [-dir .cards] [-repo URL] [-ref master] [-top 25]")
 	fmt.Fprintln(os.Stderr, "       forgec coverage [-out .coverage]")
 	fmt.Fprintln(os.Stderr, "       forgec edhcover [-decklists .edh-decks/edh-decks.jsonl] [-manifest .edh-decks/edh-manifest.tsv] [-out .coverage] [-top 25]")
 	os.Exit(2)

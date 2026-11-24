@@ -156,6 +156,19 @@ remote_try() {
 	return 0
 }
 
+# corpus_key DIR: the corpus's identity, "<cards.lock sha256 prefix><script listing sha256 prefix>" (32 hex), or
+# nothing when DIR has no cards.lock. The lock alone is not enough: an extract or rsync without --delete left a box
+# 366 scripts richer than its lock said, and a fetch inside a symlinked overlay left a lock over another ref's scripts
+# (engine/cards ListingOf is the same listing hash; test-remote-box.sh carries a copy of this function, one script
+# being fed to the box over ssh, and TestTestTargetsRemoteCorpusKeyAgrees keeps the two equal).
+corpus_key() {
+	local l s
+	l=$(sha256sum "$1/cards.lock" 2>/dev/null | cut -c1-16)
+	[ -n "$l" ] || return 1
+	s=$(cd "$1" && find -L cardsfolder tokenscripts -type f -name '*.txt' 2>/dev/null | LC_ALL=C sort | sha256sum | cut -c1-16)
+	echo "$l$s"
+}
+
 # rt_pick LOCAL_LOCK: probe every box at once (one short ssh each) and set rt_host to the one with a free run slot,
 # enough idle cores and this corpus, the most idle cores first (rt_idle: its idle cores); 1 with rt_why when none
 # will take the run. A box that is full makes it "busy:" (worth waiting for); one that fails its probe is skipped.
@@ -183,7 +196,7 @@ rt_pick() {
 		elif [ -z "$idle" ] || [ -z "$free" ]; then r="unreadable probe '$out'"
 		elif [ "$free" -le 0 ]; then r="busy: all ${slots:-$rt_maxruns} remote run slots are taken"
 		elif ! awk -v i="$idle" -v m="$minidle" 'BEGIN { exit !(i >= m) }'; then r="busy: $idle idle cores, need $minidle"
-		elif [ "$lock" != "$1" ]; then r="the box's corpus differs from this one (cards.lock)"
+		elif [ "$lock" != "$1" ]; then r="the box's corpus differs from this one (cards.lock or its scripts)"
 		elif [ -z "$best" ] || awk -v i="$idle" -v b="$bidle" 'BEGIN { exit !(i > b) }'; then best=$h bidle=$idle
 		fi
 		[ -z "$r" ] || why+=("$h: ${r#busy: }")
@@ -210,7 +223,7 @@ rt_try_run() {
 	local base_sha head_sha idle llock ti patch= vf lg le x rrc sf vst contended why
 	head_sha=$(git rev-parse HEAD 2>/dev/null) || { rt_why="no HEAD"; return 1; }
 	base_sha=$(git rev-parse --verify -q "$BASE^{commit}") || { rt_why="BASE does not resolve"; return 1; }
-	llock=$(sha256sum .cards/cards.lock 2>/dev/null | cut -c1-16)
+	llock=$(corpus_key .cards)
 	[ -n "$llock" ] || { rt_why="no local .cards/cards.lock to compare with the box's"; return 1; }
 	rt_pick "$llock" || return 1
 	idle=$rt_idle
