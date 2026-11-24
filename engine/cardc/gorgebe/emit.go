@@ -151,6 +151,10 @@ type pr struct {
 	ev     ir.EventKind // the enclosing trigger's or replacement's event; EvNone elsewhere
 	evSelf bool         // that event's object is the source itself ("when this enters")
 	frames []*frame
+	// onPrev is set by a step that must adjust the node printed before it
+	// (a delayed trigger remembers what the previous step moved); program
+	// calls it with the chain tail and clears it.
+	onPrev func(prev *node) error
 	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
 }
 
@@ -341,6 +345,16 @@ func (p *pr) program(prog *ir.Program) (*node, error) {
 		}
 		if n == nil || used < 1 {
 			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
+		}
+		if p.onPrev != nil {
+			hook := p.onPrev
+			p.onPrev = nil
+			if tail == nil {
+				return nil, unprintable("verb:"+st.Verb.String()+"-first", st.Src)
+			}
+			if err := hook(tail); err != nil {
+				return nil, err
+			}
 		}
 		if head == nil {
 			head = n
