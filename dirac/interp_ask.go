@@ -936,8 +936,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				// a trigger cost gorge offered on its potential bound but the
 				// sources cannot fund: the manual window's taps and floated
 				// mana stay, the charge fails and the flow declines
-				if s.res.ask == raGenWinTap {
-					return // a tap-another source's pick (mana_windowtapx.go)
+				if s.winAskPending() {
+					return // a tap-another source's pick or a lucky source's colour (mana_windowtapx.go)
 				}
 				s.payDone(k, false)
 				return
