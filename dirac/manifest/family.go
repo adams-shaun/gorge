@@ -76,6 +76,13 @@ var Families = []*Family{
 	enum8("CmpOp", "Cmp", "enum"),
 	flags("ColorMask", "", 8, "mask"),
 	enum8("CondKind", "Cond", "enum"),
+	{
+		// CostAtomKind: one atom of a cost program (kop.CostAtom, Table.CostProgs;
+		// dirac/cost_prog.go). Zero is no atom. Only the parts gorge's
+		// pay/classify.go prices are atoms: cost:unknown, cost:withheld and
+		// cost:twobrid have none.
+		Name: "CostAtomKind", Pkg: "kop", Prefix: "CostAtom", Min: 1, Max: 255, Alloc: Band{Lo: 1, Hi: 255},
+	},
 	flags("CostFlags", "Cost", 32, "mask"),
 	{
 		// perm.ck is 16 bits wide, so every uint16 value is a legal counter

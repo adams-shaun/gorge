@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomSac
+value: next
+status: active
+doc: CostAtomSac: sacrifice: F == 0 the source, else N permanents matching F the build's pick stage chose (pkSac). Dirac: fireSac+leave, or the sacrifice picks.

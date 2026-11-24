@@ -1,0 +1,5 @@
+family: CostAtomKind
+name: CostAtomTapType
+value: next
+status: active
+doc: CostAtomTapType: tap N untapped permanents matching F you control (gorge TapPermanent, paid at its ask): the pick stage's pkTapX.
