@@ -47,12 +47,14 @@ var manaRiderCards = []struct {
 	// Produced$ Chosen: the source's as-enters colour, gorge defers the
 	// enchanted source (a StTapChosen static beside a class-only Taps line)
 	{"Utopia Sprawl", ""},
+	// Produced$ G | Amount$ X (Count$Valid Elf): a StTapDynamic static beside
+	// a class-only Taps line, the extra read at the tap
+	{"Elvish Guidance", ""},
 	// TapsForMana triggers beyond a mana extra: a token for an opponent, a
 	// doubled land, a conditional extra
 	{"Forbidden Orchard", "trigger mode TapsForMana"},
 	{"Vorinclex, Voice of Hunger", "trigger mode TapsForMana"},
 	{"Treasure Nabber", "trigger mode TapsForMana"},
-	{"Elvish Guidance", "trigger mode TapsForMana"},
 	{"Gauntlet of Power", "trigger mode TapsForMana"},
 	{"Zhur-Taa Druid", "trigger mode TapsForMana"},
 }
