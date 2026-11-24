@@ -1,0 +1,5 @@
+# Spinner of Souls
+source	key	sig	class	issue	note
+lockstep	fdn/41/forward	-	cardc-gap	0	untriaged
+lockstep	fdn/41/reverse	-	cardc-gap	0	untriaged
+static	0/T:ChangesZone:DigUntil#0/TriggerZones	6067cc9d	cardc-gap	0	untriaged
