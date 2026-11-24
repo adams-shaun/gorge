@@ -401,7 +401,7 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.Imprint = isTrue(sa.ParamStr(cards.PKImprint))
 	p.GainControl = isTrue(sa.ParamStr(cards.PKGainControl))
 	p.RememberChanged = isTrue(sa.ParamStr(cards.PKRememberChanged))
-	p.RememberZone2 = paramZoneListHas(rawParamText(sa, "RememberMovedToZone").Text, "2")
+	p.RememberZone2 = paramZoneListHas(sa.ParamStr(cards.PKRememberMovedToZone), "2")
 	p.PrimaryPos = strings.TrimSpace(sa.ParamStr(cards.PKLibraryPosition))
 	p.Dest2Name = strings.TrimSpace(rawParamText(sa, "DestinationZone2").Text)
 	p.Pos2 = strings.TrimSpace(rawParamText(sa, "LibraryPosition2").Text)
