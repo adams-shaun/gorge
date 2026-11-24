@@ -50,6 +50,11 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 			at := ctx
 			at.ctrl = p
 			v = s.countPerm(k, x.F, at)
+		case kop.OppExtLifeLost:
+			v = int(pl.lifeLost)
+			if DebugOppLifeLostZero {
+				v = 0
+			}
 		case kop.OppExtSpellsCast:
 			v = int(s.g.hist[p][histSpells])
 		}
@@ -65,6 +70,10 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	return best
 }
+
+// DebugOppLifeLostZero is a test-only mutation (TestLifeLostExtremeMutation):
+// the life-lost extremes read no life lost.
+var DebugOppLifeLostZero bool
 
 // DebugOppCountOne is a test-only mutation: the controller's living
 // opponents count at most one, as in a two-player game.

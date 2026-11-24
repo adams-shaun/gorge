@@ -276,7 +276,10 @@ const (
 	OppExtGrave      = 4
 	OppExtValid      = 5
 	OppExtSpellsCast = 7
-	OppExtLowest     = 0x100
+	// OppExtLifeLost: the life the member lost this turn (gorge
+	// playerCountExtreme LifeLostThisTurn: Sygg, Bloodchief Ascension)
+	OppExtLifeLost = 8
+	OppExtLowest   = 0x100
 	// OppExtNonTrigPl: the group is the living players but the trigger
 	// player (Battle Angels of Tyr's "more than each other player")
 	OppExtNonTrigPl = 0x200
