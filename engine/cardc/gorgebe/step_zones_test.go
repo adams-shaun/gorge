@@ -262,7 +262,7 @@ func TestEffectNodes(t *testing.T) {
 	pump := &ir.Effect{Kind: ir.EffAdjustPT, P: vc(1), T: vc(1)}
 	ztRefuse(t, ztFx(ir.DurWhileActive, self, pump), nil, "effect:dur-while-active")
 	ztRefuse(t, ztFx(ir.DurEndOfTurn, ztRef(ir.RefYou), pump), nil, "effect:obj")
-	ztRefuse(t, ztFx(ir.DurEndOfTurn, self, pump, &ir.Effect{Kind: ir.EffCantBlock}), nil, "effect:cant-block")
+	ztRefuse(t, ztFx(ir.DurEndOfTurn, self, pump, &ir.Effect{Kind: ir.EffNoUntap}), nil, "effect:no-untap")
 	ztRefuse(t, ztFx(ir.DurEndOfTurn, self, pump, &ir.Effect{Kind: ir.EffSetPT, P: vc(1), T: vc(1)}), nil, "effect:adjust-pt")
 	ztRefuse(t, ztFx(ir.DurEndOfTurn, self, &ir.Effect{Kind: ir.EffAddAbility, Abilities: []*ir.Ability{{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Ward", N: vc(1)}}}}), nil, "effect:add-ability")
 }
