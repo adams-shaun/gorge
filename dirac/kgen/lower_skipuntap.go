@@ -42,9 +42,13 @@ func (lc *lowerCtx) skipNextUntap(ps *params, obj lRef, zone int) (bool, error) 
 // Player.Activator over ValidCard$ Card.IsRemembered (RememberObjects$
 // Self or Targeted, ExileOnMoved$ Battlefield: OpSkipUntap C=0 of that
 // permanent) or ValidCard$ Land.YouCtrl (no remembered object: C=1).
-// Refused in a mana ability, whose program the kernel never runs.
+// A mana ability keeps only the self-targeted rider shape
+// (skipUntapManaRider); every other one is refused there.
 func (lc *lowerCtx) skipUntapEffect(ps *params) error {
 	if lc.ab.Kind == akMana {
+		if lc.skipUntapManaRider(ps) {
+			return nil
+		}
 		return refuse("Effect Duration$ UntilTheEndOfYourNextUntap in a mana ability")
 	}
 	name := strings.TrimSpace(ps.str("ReplacementEffects"))
@@ -95,4 +99,31 @@ func (lc *lowerCtx) skipUntapEffect(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// skipUntapManaRider recognises the exact DB$ Effect a stay-tapped mana land
+// prints as its ability's SubAbility$ (Cinder Marsh: ReplacementEffects$
+// DontUntap | RememberObjects$ Self | ExileOnMoved$ Battlefield | Duration$
+// UntilTheEndOfYourNextUntap, over an Event$ Untap | Layer$ CantHappen |
+// ValidCard$ Card.IsRemembered | ValidStepTurnToController$
+// Player.Activator line) and lowers it as the ability's [SkipUntap Self]
+// rider program (riderMana). The caller has already refused every other
+// shape in a mana ability.
+func (lc *lowerCtx) skipUntapManaRider(ps *params) bool {
+	name := strings.TrimSpace(ps.str("ReplacementEffects"))
+	if name != "DontUntap" || !ps.is("RememberObjects", "Self") || !ps.is("ExileOnMoved", "Battlefield") {
+		return false
+	}
+	r, ok := cards.ParseReplacementLine(lc.face.SVars[name])
+	if !ok || r.Event != "Untap" {
+		return false
+	}
+	rp := newParams(r.Params)
+	rp.consume("Event")
+	if !rp.is("Layer", "CantHappen") || !rp.is("ValidStepTurnToController", "Player.Activator") ||
+		rp.str("ValidCard") != "Card.IsRemembered" || len(rp.unread()) > 0 {
+		return false
+	}
+	lc.emit(lInstr{Op: "SkipUntap", Obj: lRef{Kind: rSelf}})
+	return true
 }

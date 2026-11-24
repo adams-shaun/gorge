@@ -250,6 +250,7 @@ const (
 	ManaRiderNone        uint8 = iota
 	ManaRiderDeplete           // sacrifice the source once its ManaRiderCtr count is 0
 	ManaRiderOppGainLife       // each opponent gains ManaRiderN life
+	ManaRiderStayTapped        // the source doesn't untap during its controller's next untap step
 )
 
 // ManaRiderAb reports whether a mana ability carries a rider the kernel runs

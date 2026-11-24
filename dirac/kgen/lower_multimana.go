@@ -1009,9 +1009,10 @@ func sacEachMana(a *lAbility) bool {
 
 // riderTapMana: a is a bare {T} mana ability of one fixed colour or a
 // two-colour choice carrying a bounded rider (riderMana): Grove of the
-// Burnwillows' second ability.
+// Burnwillows' second ability, or a stay-tapped mana land's coloured ability
+// (Cinder Marsh's second ability).
 func riderTapMana(a *lAbility) bool {
-	if a.Mana == nil || a.Mana.Rider != riderOppGainLife || a.Latent {
+	if a.Mana == nil || a.Mana.Rider != riderOppGainLife && a.Mana.Rider != riderStayTapped || a.Latent {
 		return false
 	}
 	c := *a
