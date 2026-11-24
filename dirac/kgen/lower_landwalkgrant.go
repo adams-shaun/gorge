@@ -32,7 +32,7 @@ func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, e
 		if strings.Contains(affected, "Equipped") && lc.out.Types&tArtifact == 0 {
 			return "", nil, refuse("keyword %q: a granted landwalk from an attached host", k)
 		}
-		f, err := lc.landwalkFilter(k, param)
+		f, err := lc.landwalkFilter(k, grantLandSpec(param))
 		if err != nil {
 			return "", nil, err
 		}
@@ -43,6 +43,23 @@ func (lc *lowerCtx) splitLandwalkGrant(kw, affected string) (string, *lFilter, e
 		}
 	}
 	return strings.Join(rest, " & "), out, nil
+}
+
+// grantLandSpec rewrites a static grant's bare "ChosenType" land spec
+// (Traveler's Cloak's "Landwalk:ChosenType", landwalk of the type the HOST
+// chose) to the land filter "Land.ChosenType"; the kernel reads it against the
+// static's host (dirac landwalkGranted), gorge resolves it against the host
+// where the keyword is built (effects.ResolveGrantedLandwalk). Any other param
+// passes through. A Pump's KW$ list keeps the bare spec, which stays refused.
+func grantLandSpec(param string) string {
+	spec, rest, more := strings.Cut(param, ":")
+	if strings.TrimSpace(spec) != "ChosenType" {
+		return param
+	}
+	if more {
+		return "Land.ChosenType:" + rest
+	}
+	return "Land.ChosenType"
 }
 
 // landwalkFilter lowers one "Landwalk:<spec>" keyword term's land filter (k is

@@ -200,6 +200,29 @@ func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
 	return nil
 }
 
+// landChoice is gorge's Type$ Land option list (the basic and nonbasic land
+// types, sorted), in its order.
+var landChoice = effects.TypeChoiceLabels("Land", "", "")
+
+// chooseLandEnter lowers an as-enters ChooseType | Type$ Land (Traveler's
+// Cloak: "As CARDNAME enters, choose a land type") to the enters program's
+// OpChooseType with B = kop.ChooseTypeLand. The answer is the chosen type's
+// matchup subtype index in the permanent's chosen (255 when no card of the
+// matchup has the type), the byte a ChosenType land filter reads. Refused
+// exactly as chooseBasicLandEnter's.
+func (lc *lowerCtx) chooseLandEnter(ps *params) error {
+	for _, k := range []string{"AtRandom", "ValidTypes", "InvalidTypes", "Secretly"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("ChooseType Land %s$", k)
+		}
+	}
+	if v, ok := ps.get("ETB"); ok && strings.TrimSpace(v) != "True" {
+		return refuse("ChooseType Land ETB$ %q", v)
+	}
+	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeLand), Note: "as-enters choice among the land types"})
+	return nil
+}
+
 // basicLandInvalidMask reads an as-enters Basic Land ask's InvalidTypes$ into
 // the excluded-type mask the instruction's A carries (bit i = basicLandChoice[i],
 // kop.ChooseTypeBasicLand). gorge's effects.TypeChoiceLabels drops the same
@@ -396,6 +419,8 @@ func (lc *lowerCtx) etbChooseType(ps *params) error {
 		return nil
 	case "Basic Land":
 		return lc.chooseBasicLandEnter(ps)
+	case "Land":
+		return lc.chooseLandEnter(ps)
 	case "Card":
 		return lc.chooseCardEnter(ps)
 	}

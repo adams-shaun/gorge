@@ -330,6 +330,14 @@ const ChooseTypeBasicLand = 2
 // (a kop RefTarget: ValidTgts$ Opponent, the resolution's chosen target).
 const ChooseTypeRandomDeck = 3
 
+// ChooseTypeLand, in an as-enters OpChooseType's B field: the ask offers every
+// land type (gorge effChooseType Type$ Land, TypeChoiceLabels("Land"): the five
+// basic and the 13 nonbasic land types, CR 205.3i) rather than the
+// creature-type vocabulary (Traveler's Cloak). The answer is the chosen type's
+// matchup subtype index in the permanent's chosen, or 255 for a type no card of
+// the matchup has (dirac act_chooseland.go).
+const ChooseTypeLand = 4
+
 // The exiled-with source link, numbered explicitly clear of the
 // iota lists that sibling families append to.
 

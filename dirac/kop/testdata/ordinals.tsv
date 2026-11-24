@@ -90,6 +90,7 @@ ChoosePlayerMidHigh	untyped int	1
 ChooseRandom	untyped int	1
 ChooseSelf	untyped int	0
 ChooseTypeBasicLand	untyped int	2
+ChooseTypeLand	untyped int	4
 ChooseTypeRandomDeck	untyped int	3
 ChosenSrcArtifact	untyped int	32
 ChosenSrcLand	untyped int	64
