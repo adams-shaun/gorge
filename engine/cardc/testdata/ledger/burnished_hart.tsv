@@ -1,4 +1,4 @@
 # Burnished Hart
 source	key	sig	class	issue	note
-lockstep	fdn/134/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/206/forward	-	cardc-gap	0	untriaged
+lockstep	fdn/134/forward	-	cardc-gap	0	search count ask differs (expected 2..2 choices, got 1); not yet traced
+lockstep	fdn/164/forward	-	cardc-gap	0	search count ask differs (expected 2..2 choices, got 1); not yet traced

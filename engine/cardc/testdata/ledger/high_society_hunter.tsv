@@ -1,6 +1,3 @@
 # High-Society Hunter
 source	key	sig	class	issue	note
-lockstep	fdn/196/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/196/reverse	-	cardc-gap	0	untriaged
 static	0/T:Attacks:PutCounter#0/TriggerZones	88b1522a	cardc-gap	0	untriaged
-static	0/T:Attacks:PutCounter#0/[0]Cost	ccdafbbe	cardc-gap	0	untriaged

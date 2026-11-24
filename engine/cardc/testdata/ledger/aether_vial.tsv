@@ -1,5 +1,3 @@
 # Aether Vial
 source	key	sig	class	issue	note
-lockstep	legacy/4/forward	-	cardc-gap	0	untriaged
-lockstep	legacy/4/reverse	-	cardc-gap	0	untriaged
 static	0/A:AB:ChangeZone#0/[0]ChangeType	595373f2	cardc-gap	0	untriaged

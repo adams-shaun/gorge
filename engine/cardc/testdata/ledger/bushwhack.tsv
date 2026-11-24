@@ -1,4 +1,4 @@
 # Bushwhack
 source	key	sig	class	issue	note
-lockstep	fdn/4/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/4/reverse	-	cardc-gap	0	untriaged
+lockstep	fdn/4/forward	-	cardc-gap	0	mode description text missing from script (open decision)
+lockstep	fdn/4/reverse	-	cardc-gap	0	mode description text missing from script (open decision)
