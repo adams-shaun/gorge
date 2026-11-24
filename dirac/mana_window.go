@@ -2689,7 +2689,7 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 // or a counter-cost gap among the gaps: the search's script, played.
 func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) {
 	var d Decision
-	s.plainOptions(k, &d, 0)
+	s.plainOptions(k, &d, s.prefixAnyProbe(k, p))
 	if hasOption(&d, a) || s.lifePlannedPlay(k, p, a) {
 		return
 	}
