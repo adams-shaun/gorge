@@ -633,6 +633,9 @@ func (s *State) sba(k *prep) bool {
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
+		if k.gen != nil && k.gen.pairOn() {
+			s.pairSBA(k) // CR 702.95e: a paired noncreature unpairs (kw_soulbond.go)
+		}
 		s.sbaBoard(k, &sm)
 		die, gy, pwz, aur, anni := sm.die, sm.gy, sm.pwz, sm.aur, sm.anni
 		umbra := &sm.umbra // the pass's umbra-spared hosts (kw_umbraarmor.go)

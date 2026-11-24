@@ -203,7 +203,8 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
-		p == "Modal" || p == "singleTarget" {
+		p == "Modal" || p == "singleTarget" ||
+		p == "Paired" || p == "!Paired" || p == "PairedWith" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}
