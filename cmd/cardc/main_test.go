@@ -73,3 +73,10 @@ func TestCompileUsage(t *testing.T) {
 		t.Fatalf("exit %d, want 1: %s", code, errb.String())
 	}
 }
+
+func TestLockstepUsage(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"lockstep", "-slice", "nope"}, &out, &errb); code != 1 {
+		t.Fatalf("exit %d, want 1: %s", code, errb.String())
+	}
+}

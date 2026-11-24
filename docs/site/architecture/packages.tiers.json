@@ -260,6 +260,10 @@
       "tier": "engine",
       "status": "CORE"
     },
+    "engine/cardc/lockstep": {
+      "tier": "engine",
+      "status": "TOOL"
+    },
     "engine/cardc/mtgish": {
       "tier": "engine",
       "status": "CORE"

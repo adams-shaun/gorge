@@ -9,3 +9,10 @@ mtgish-fetch:
 
 cardc-check:
 	@$(MAKE) test-targeted BASE=origin/main
+
+SLICE ?= fdn
+.PHONY: cardc-lockstep
+# Every FDN pair (or the Legacy acceptance seats) through cardc lockstep, in chunks of 100.
+cardc-lockstep:
+	@if [ "$(SLICE)" = legacy ]; then for s in 2 4 6 8; do go run ./cmd/cardc lockstep -slice legacy -seats $$s || exit 1; done; \
+	else for f in $$(seq 0 100 1400); do go run ./cmd/cardc lockstep -slice fdn -from $$f -n 100 || exit 1; done; fi

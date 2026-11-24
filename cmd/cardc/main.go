@@ -2,6 +2,10 @@
 //
 //	cardc report [-slice fdn|blb|legacy|decks|all] [-data FILE] [-schema FILE]
 //
+//	cardc lockstep [-slice fdn|legacy] [-from N] [-n M] [-seats S] [-dir forward|reverse|both]
+//
+// lockstep plays games on Forge cards and replays them on cardc's, both ways.
+//
 // report prints one TSV line per Enum.Variant a slice uses
 // (key, cards, registered, schema), sorted by key, then a totals line.
 package main
@@ -23,9 +27,13 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "compile" {
 		return compile(args[1:], stdout, stderr)
 	}
+	if len(args) > 0 && args[0] == "lockstep" {
+		return lockstepCmd(args[1:], stdout, stderr)
+	}
 	if len(args) == 0 || args[0] != "report" {
 		fmt.Fprintln(stderr, "usage: cardc report [-slice fdn|blb|legacy|decks|all] [-data FILE] [-schema FILE]")
 		fmt.Fprintln(stderr, "       cardc compile [-slice fdn|blb|legacy|decks] [-data FILE] [-out DIR]")
+		fmt.Fprintln(stderr, "       cardc lockstep [-slice fdn|legacy] [-from N] [-n M] [-seats S] [-dir forward|reverse|both]")
 		return 2
 	}
 	return report(args[1:], stdout, stderr)
