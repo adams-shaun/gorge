@@ -122,6 +122,9 @@ func printValue(p *pr, v *ir.Value) (string, error) {
 		if v.Ref != nil {
 			switch v.Ref.Kind {
 			case ir.RefSelf:
+				if p.sacSelf {
+					return "Sacrificed$" + stat, nil // the cost's own last known information
+				}
 				return "Count$" + stat, nil
 			case ir.RefTarget:
 				if p.frame().parent(v.Ref.Slot) {

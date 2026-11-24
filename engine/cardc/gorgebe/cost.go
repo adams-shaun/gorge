@@ -105,7 +105,11 @@ func (p *pr) costPart(c *ir.CostPart) (string, error) {
 		if self {
 			return "Sac<1/CARDNAME>", nil
 		}
-		return chosen("Sac", ir.ZoneNone)
+		sac, err := chosen("Sac", ir.ZoneNone)
+		if err != nil {
+			return "", err
+		}
+		return sacDescription(sac), nil
 	case ir.CostDiscard:
 		if c.Obj != nil && c.Obj.Kind == ir.RefAll && c.N == nil && onlyZone(c.Obj.Filter, ir.ZoneHand) && isPred(c.Obj.Filter, ir.PAny) {
 			return "Discard<0/Hand>", nil // your whole hand
@@ -158,7 +162,11 @@ func (p *pr) costPart(c *ir.CostPart) (string, error) {
 		}
 		return "Return<1/CARDNAME>", nil
 	case ir.CostTapUntapped:
-		return chosen("tapXType", ir.ZoneNone)
+		tap, err := chosen("tapXType", ir.ZoneNone)
+		if err != nil {
+			return "", err
+		}
+		return tapImplied(tap), nil
 	case ir.CostReveal:
 		return chosen("Reveal", ir.ZoneHand)
 	case ir.CostMill:
@@ -197,4 +205,44 @@ func withoutYouCtrl(f *ir.Filter) *ir.Filter {
 		return g.Args[0]
 	}
 	return &g
+}
+
+// sacDescription adds the description Forge writes after a sacrifice of
+// another permanent of one type: "Sac<1/Creature.Other>" is
+// "Sac<1/Creature.Other/another creature>".
+func sacDescription(sac string) string {
+	for _, t := range []string{"Creature", "Artifact", "Enchantment", "Land"} {
+		if tail := "/" + t + ".Other>"; strings.HasSuffix(sac, tail) {
+			return strings.TrimSuffix(sac, ">") + "/another " + strings.ToLower(t) + ">"
+		}
+	}
+	return sac
+}
+
+// tapImplied drops the "untapped" and "YouCtrl" terms from a tapXType cost's
+// valid list: the cost itself taps only your untapped permanents.
+func tapImplied(tap string) string {
+	i := strings.Index(tap, "/")
+	if i < 0 || !strings.HasSuffix(tap, ">") {
+		return tap
+	}
+	i++
+	body := tap[i : len(tap)-1]
+	var terms []string
+	for _, term := range strings.Split(body, ",") {
+		base, quals, ok := strings.Cut(term, ".")
+		if ok {
+			var keep []string
+			for _, q := range strings.Split(quals, "+") {
+				if q != "untapped" && q != "YouCtrl" {
+					keep = append(keep, q)
+				}
+			}
+			if len(keep) > 0 {
+				base += "." + strings.Join(keep, "+")
+			}
+		}
+		terms = append(terms, base)
+	}
+	return tap[:i] + strings.Join(terms, ",") + ">"
 }
