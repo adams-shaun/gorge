@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
@@ -22,7 +24,48 @@ func ownEntryCounterExcluded(settling, source, recv state.ObjID, recipient strin
 		return false
 	}
 	// Card.Self is the corpus's only self-scoped AddCounter recipient (Mowu).
-	return recipient != "Card.Self"
+	return !selfScopedSpec(recipient)
+}
+
+// entryDestinationAdmits is the Destination$ gate for a Moved replacement.
+// It folds in the CR 614.12 own-entry exclusion so an entering Orb of Dreams'
+// general "Permanents enter tapped" (ValidCard$ Permanent) does not replace
+// its own entry, while a self-scoped line (Card.Self) still does.
+func entryDestinationAdmits(g *state.Game, r cards.Repl, source state.ObjID, ev events.Event) bool {
+	if d, ok := r.ParamCode(cards.PKDestination); ok && !effects.Destination(d).Admits(ev.To) {
+		return false
+	}
+	return !ownEntryMoveExcluded(g, source, ev, r.ParamStr(cards.PKValidCard))
+}
+
+// ownEntryMoveExcluded is the same CR 614.12 rule for a Moved replacement
+// on a battlefield entry: a line whose source is the entering object itself
+// (not yet on the battlefield) applies to that entry only when its ValidCard$
+// is self-scoped. Orb of Dreams' "Permanents enter tapped" (ValidCard$
+// Permanent) is a general subset, so the Orb enters untapped; False Floor's
+// "CARDNAME enters tapped" (Card.Self) still applies. A line with no
+// ValidCard$ (Soulless Jailer's ValidLKI$ Permanent) is not self-scoped.
+func ownEntryMoveExcluded(g *state.Game, source state.ObjID, ev events.Event, validCard string) bool {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || source != ev.Obj {
+		return false
+	}
+	if o := g.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		return false
+	}
+	return !selfScopedSpec(validCard)
+}
+
+// selfScopedSpec reports whether every comma alternative of a ValidCard$
+// spec names the source itself (Card.Self, optionally +qualified: Card.Self+
+// kicked, Card.Self+!wasCast).
+func selfScopedSpec(spec string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt != "Card.Self" && !strings.HasPrefix(alt, "Card.Self+") {
+			return false
+		}
+	}
+	return true
 }
 
 // runEntryBody runs an Updated Moved replacement body that the entry fold did
