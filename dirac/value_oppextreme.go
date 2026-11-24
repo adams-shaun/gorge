@@ -100,6 +100,8 @@ func (s *State) groupCountCmp(k *prep, x *kop.Expr, ctx evalCtx, what int, skip 
 			v = int(s.pl[p].graveN)
 		case kop.OppExtSpellsCast:
 			v = int(s.g.hist[p][histSpells])
+		case kop.OppExtMemberExpr:
+			v = s.memberFigure(k, x, ctx, p) // value_oppmemberexpr.go
 		}
 		var hit bool
 		switch x.Op {
