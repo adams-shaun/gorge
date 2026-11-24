@@ -83,6 +83,12 @@ func printRef(p *pr, r *ir.Ref) (string, error) {
 		return "Targeted", nil
 	case ir.RefEventObject:
 		if p.evSelf {
+			switch p.ev {
+			case ir.EvDealsCombatDamage, ir.EvDealsCombatDamageToPlayer, ir.EvDealsNoncombatDamageToPlayer:
+				return "TriggeredSourceLKICopy", nil
+			case ir.EvBecomesTarget:
+				return "TriggeredSourceSA", nil
+			}
 			return "Self", nil
 		}
 		switch p.ev {
