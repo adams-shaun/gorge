@@ -1,0 +1,23 @@
+# K:Champion (CR 702.72a): an enters trigger exiling another [type] you
+# control until the champion leaves, else sacrificing it, lowered from gorge's
+# kwChampion expansion, for dirac/oracle/champion_test.go. Shock and Doom Blade
+# make champions leave, returning what they exiled.
+Boggart Mob
+Lightning Crafter
+Nova Chaser
+Changeling Berserker
+Raging Goblin
+Goblin Piker
+Doom Blade
+Shock
+Changeling Hero
+Changeling Titan
+Thoughtweft Trio
+Wren's Run Packmaster
+Llanowar Elves
+Grizzly Bears
+Savannah Lions
+Swamp
+Mountain
+Plains
+Forest
