@@ -43,8 +43,9 @@ func RecordManaCostAnswer(e Engine, md *ManaCostActivation, flow AskFlow, chosen
 		md.TapPart++
 	case AskManaForage:
 		md.ForageDone = true
-		if len(chosen) > 0 && chosen[0].Kind == "exilecost" {
-			// The exile arm's three-card pick (manaCostForageExileStage). The
+		if md.ForagePay {
+			// The exile arm is already elected, so this is its three-card
+			// pick (manaCostForageExileStage). The
 			// decision's Validate holds the answer to three offered graveyard
 			// cards; an answer that still fails the re-read leaves the pick
 			// unrecorded and the stage poses it again.

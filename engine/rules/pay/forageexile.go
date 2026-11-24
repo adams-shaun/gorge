@@ -33,8 +33,9 @@ func ForageExilePickAsk(e Engine, p state.PlayerID, source state.ObjID) *decisio
 	return d
 }
 
-// ForageExilePicked validates an answer to ForageExilePickAsk: three distinct
-// cards, each still in p's graveyard. It returns the picked cards, or nil
+// ForageExilePicked validates an answer to ForageExilePickAsk (the asker knows
+// the pick is pending; the kind is not re-read): three distinct cards, each
+// still in p's graveyard. It returns the picked cards, or nil
 // when the answer cannot pay.
 func ForageExilePicked(e Engine, p state.PlayerID, chosen []decision.Option) []state.ObjID {
 	if len(chosen) != ForageExileCount {
@@ -43,7 +44,7 @@ func ForageExilePicked(e Engine, p state.PlayerID, chosen []decision.Option) []s
 	grave := e.Game().Zone(state.ZGraveyard, p)
 	out := make([]state.ObjID, 0, ForageExileCount)
 	for _, opt := range chosen {
-		if opt.Kind != "exilecost" || !slices.Contains(grave, opt.Obj) || slices.Contains(out, opt.Obj) {
+		if !slices.Contains(grave, opt.Obj) || slices.Contains(out, opt.Obj) {
 			return nil
 		}
 		out = append(out, opt.Obj)
