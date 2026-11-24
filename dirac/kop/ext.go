@@ -874,7 +874,9 @@ func init() { extOpNames[ExtForgetImprinted] = "ForgetImprinted" }
 // ordered against another damage replacement (CR 616.1: a colour or scope
 // prevention, a doubler, a SHIELD counter) stalls StallPrevNext: the order
 // changes what is prevented; two or more shields on one recipient are asked in
-// order. dirac/repl_prevnext.go.
+// order. The upper C bits install a shield per matching permanent (F), per
+// living player or per Radiance/divided target, and name the rider the shield
+// runs at each application (kop/ext_prevnext.go). dirac/repl_prevnext.go.
 const ExtPreventNext ExtOp = 305
 
 func init() { extOpNames[ExtPreventNext] = "PreventNext" }

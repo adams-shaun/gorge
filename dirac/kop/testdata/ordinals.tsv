@@ -1099,10 +1099,17 @@ PredWord7	Pred	241
 PrevNextAll	untyped int	2
 PrevNextChosen	untyped int	128
 PrevNextCombat	untyped int	1
+PrevNextDivided	untyped int	2048
 PrevNextEndCombat	untyped int	32
 PrevNextFrom	untyped int	4
 PrevNextGain	untyped int	8
+PrevNextMultiObj	untyped int	256
+PrevNextMultiPlayer	untyped int	512
 PrevNextPlayers	untyped int	64
+PrevNextRadiance	untyped int	1024
+PrevNextRiderCounter	untyped int	4096
+PrevNextRiderDamage	untyped int	16384
+PrevNextRiderDelayedCounter	untyped int	8192
 PrevNextTokens	untyped int	16
 PrevScopeAll	untyped int	8
 PrevScopeAnyPlayer	untyped int	16384
