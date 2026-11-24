@@ -37,6 +37,7 @@ Azure Mage
 Balduvian Atrocity
 Balduvian Horde
 Baleful Eidolon
+Banding Sliver
 Bant Battlemage
 Battle of Frost and Fire
 Battle-Rage Blessing

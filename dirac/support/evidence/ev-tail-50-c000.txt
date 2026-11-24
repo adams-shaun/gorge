@@ -241,6 +241,7 @@ Kor Entanglers
 Koth of the Hammer
 Kraul Foragers
 Krenko, Tin Street Kingpin
+Lantern-Lit Graveyard
 Latulla, Keldon Overseer
 Lead by Example
 Ledger Shredder
@@ -352,6 +353,7 @@ Robe of Mirrors
 Roc of Kher Ridges
 Roil Elemental
 Ronin Houndmaster
+Rootwater Depths
 Rotted Hulk
 Roving Harper
 Rulik Mons, Warren Chief
@@ -406,6 +408,7 @@ Spinning Wheel
 Spitting Earth
 Spitting Slug
 Squadron Hawk
+Standard Bearer
 Static Prison
 Steamclaw
 Stern Proctor
@@ -479,6 +482,7 @@ Voldaren Epicure
 Vulshok War Boar
 Wake Thrasher
 Waker of the Wilds
+Wall of Glare
 Wall of Ice
 Wandering Goblins
 Wanted Scoundrels
