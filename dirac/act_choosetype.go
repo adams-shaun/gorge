@@ -94,7 +94,7 @@ func (s *State) typeOptions(k *prep, d *Decision) bool {
 		}
 		for j := range a.Prog {
 			if in := &a.Prog[j]; isBasicLandChoose(in) {
-				chooseBasicLandOptions(d) // an as-enters basic land type (Realmwright; act_choosebasicland.go)
+				chooseBasicLandOptionsExcept(d, uint8(in.A.N)) // an as-enters basic land type (Realmwright; act_choosebasicland.go), A = InvalidTypes$ mask
 				return true
 			} else if in.Op == kop.OpChooseType && in.B.N != 0 && len(cd.TypeValid) != 0 {
 				for _, v := range cd.TypeValid {
