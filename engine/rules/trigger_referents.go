@@ -149,6 +149,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// bottom. It is captured at fire time and carried to resolution, the
 		// same contract TriggerAmount has for every other mode.
 		c.TriggerAmount = ev.Amount
+		// The marker also carries the number of cards LOOKED at
+		// (CR 701.22a), which `TriggerCount$ScryNum` reads: Celeborn the
+		// Wise's pump, Elrond's and Elvish Mariner's "up to X" targets,
+		// Elminster's cost reduction.
+		c.TriggerScryNum = effects.ScryRecordLooked(ev)
 	case cards.TriggerCounterRemovedOnce:
 		// The removal batch, mirrored: one CounterChange with a negative
 		// Amount carries the whole removal, and the magnitude the causing
