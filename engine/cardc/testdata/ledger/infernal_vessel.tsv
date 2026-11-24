@@ -3,5 +3,4 @@ source	key	sig	class	issue	note
 lockstep	fdn/17/forward	-	cardc-gap	0	untriaged
 lockstep	fdn/17/reverse	-	cardc-gap	0	untriaged
 static	0/T:ChangesZone:ChangeZone#0/IsPresent	e2ec0ff0	cardc-gap	0	untriaged
-static	0/T:ChangesZone:ChangeZone#0/PresentCompare	c1dfed77	cardc-gap	0	untriaged
 static	0/T:ChangesZone:ChangeZone#0/ValidCard	d0fcc99d	cardc-gap	0	untriaged
