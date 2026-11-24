@@ -471,6 +471,60 @@ func (t *Trigger) bindOffBattlefieldTarget() {
 	t.offBF, t.offBFChanged = offBattlefieldTargetSpec(t.offBFFor)
 }
 
+// CheckSVarIsTrailingIf reports a T: line whose CheckSVar$ clause is a
+// trailing "if" rather than a CR 603.4 intervening-if: the trigger text is
+// one sentence, "<At|When|Whenever> <event>, <effect> if <condition>.", so
+// the "if" follows the effect. CR 603.4: the intervening-if rule "only
+// applies to an 'if' that immediately follows a trigger condition"; anywhere
+// else "if" has its normal English meaning, so the ability triggers every
+// time and the condition is checked as it resolves (Laboratory Drudge's
+// 2020-11-10 ruling; XMage's ConditionalOneShotEffect). Forge's scripts put
+// such a condition on the T: line beside true intervening-ifs, so the
+// printed sentence shape is what tells the two apart. gorge reads such a
+// clause only at resolution (engine/rules triggerResolvingCheckHolds); dirac
+// kgen lowers it as a body guard around the trigger's effect (lower_trigger.go),
+// refusing only beside NoResolvingCheck$ or when the body announces targets.
+// Corpus at the time of writing: Laboratory Drudge, Barrowin of Clan Undurr,
+// Park Heights Pegasus.
+func (t Trigger) CheckSVarIsTrailingIf() bool {
+	if t.trailingIfBound {
+		return t.trailingIf
+	}
+	return t.HasParam(PKCheckSVar) && TrailingIfSentence(t.ParamStr(PKTriggerDescription))
+}
+
+// bindTrailingIf resolves CheckSVarIsTrailingIf at load, so the fire-time and
+// resolution-time gates read a bool, not the trigger text.
+func (t *Trigger) bindTrailingIf() {
+	t.trailingIf, t.trailingIfBound = false, false
+	t.trailingIf, t.trailingIfBound = t.CheckSVarIsTrailingIf(), true
+}
+
+// TrailingIfSentence is the sentence-shape half of CheckSVarIsTrailingIf,
+// a pure function of the printed trigger text.
+func TrailingIfSentence(desc string) bool {
+	d := strings.TrimSpace(desc)
+	if i := strings.Index(d, " ("); i >= 0 { // reminder text
+		d = strings.TrimSpace(d[:i])
+	}
+	if i := strings.Index(d, " — "); i >= 0 { // ability word
+		d = strings.TrimSpace(d[i+len(" — "):])
+	}
+	lower := strings.ToLower(d)
+	if !strings.HasPrefix(lower, "at ") && !strings.HasPrefix(lower, "when ") && !strings.HasPrefix(lower, "whenever ") {
+		return false
+	}
+	comma := strings.Index(lower, ", ")
+	if comma < 0 {
+		return false
+	}
+	effect := strings.TrimSuffix(strings.TrimSpace(lower[comma+2:]), ".")
+	if strings.HasPrefix(effect, "if ") || strings.Contains(effect, ".") {
+		return false
+	}
+	return strings.Contains(effect, " if ")
+}
+
 // ValidTargetOffBattlefield is the trigger's ValidTarget$ spec (given) as it
 // applies to a targeted object off the battlefield; "" when no alternative can.
 func (t *Trigger) ValidTargetOffBattlefield(spec string) string {
