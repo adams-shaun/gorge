@@ -680,7 +680,7 @@ func (e *Engine) applyChosenDamageReplacement(ev *events.Event, m replMatch) boo
 		// CR 615.12: the rider ran, the damage still stands.
 		return false
 	}
-	return m.repl.With.API != "ReplaceEffect"
+	return m.repl.With.APIKind() != cards.APIReplaceEffect
 }
 
 // finishChosenDamage lands the parked damage event and returns it (the zero
