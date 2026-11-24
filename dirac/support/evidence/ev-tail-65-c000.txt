@@ -28,6 +28,7 @@ Assault Zeppelid
 Assembly Hall
 Attunement
 Banewasp Affliction
+Barging Sergeant
 Bastion Protector
 Battle Cry Goblin
 Battle-Rage Blessing

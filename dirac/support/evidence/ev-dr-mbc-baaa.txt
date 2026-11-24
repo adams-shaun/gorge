@@ -29,6 +29,7 @@ Dragon Sniper
 Dread Drone
 Electrostatic Field
 Endrek Sahr, Master Breeder
+Entangler
 Fanning the Flames
 Festercreep
 Flame Wave
@@ -36,6 +37,7 @@ Flametongue Kavu
 Forest
 Foulmire Knight
 Gamekeeper
+Ghoulish Impetus
 Gilt-Leaf Winnower
 Gnarlid Pack
 Gorilla Shaman

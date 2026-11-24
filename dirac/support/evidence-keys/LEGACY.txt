@@ -655,7 +655,6 @@ Coastal Peak
 Coastal Piracy
 Codsworth, Handy Helper
 Coerced Confession
-Coiling Oracle
 Coiling Stalker
 Cold-Blooded Crew
 Colfenor's Urn
@@ -1279,7 +1278,6 @@ Flowering Field
 Flowstone Salamander
 Flubs, the Fool
 Flurry of Wings
-Flycatcher Giraffid
 Focus Fire
 Focus the Mind
 Fogwell's Gym

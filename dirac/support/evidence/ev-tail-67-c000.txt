@@ -291,6 +291,7 @@ Pearlspear Courier
 Pentarch Ward
 Phyrexian Etchings
 Phyrexian Obliterator
+Phyrexian Processor
 Pilfering Imp
 Plaguebearer
 Plains
