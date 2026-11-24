@@ -1640,52 +1640,59 @@ const ExtEncore ExtOp = 99
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtExileFaceDown)
+//
+// ChangeZone / ChangeZoneAll ExileFaceDown$ True (no WithMayLook$, no DefinedExiler$) beside RememberChanged$ True, the move first in its program: right after the move, each remembered object now in exile is marked exiled face down by the resolving source (gorge applyMoveFaceDown's blind exiled_with_face_down marker: FaceDown, ExiledWith the source, nobody the looker; apply_zone.go). The mark is the Dig face-down exile's (zone_exilefacedown.go exwFace). dirac/zone_exilefacedownmove.go.
+const ExtExileFaceDown ExtOp = 102
+
+func init() { extOpNames[ExtExileFaceDown] = "ExileFaceDown" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
 //
 // Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
-const ExtMonarchJail ExtOp = 102
+const ExtMonarchJail ExtOp = 103
 
 func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
 
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 103
+const ExtMyriad ExtOp = 104
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtOptInSeat)
 //
 // ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
-const ExtOptInSeat ExtOp = 104
+const ExtOptInSeat ExtOp = 105
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
-const ExtPayLifeX ExtOp = 105
+const ExtPayLifeX ExtOp = 106
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 106
+const ExtRememberPlayer ExtOp = 107
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 107
+const ExtRepeatOptional ExtOp = 108
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 108
+const ExtStoreNum ExtOp = 109
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
