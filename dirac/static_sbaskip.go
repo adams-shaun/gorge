@@ -67,11 +67,12 @@ func (s *State) sbaBoardObjectOnly(k *prep) bool {
 
 // sbaBoard is the pass's board scan, skipped when the last clean scan's key
 // still holds.
-func (s *State) sbaBoard(k *prep) (r sbaMasks) {
+// It fills r in place (sbaScan); a skipped scan leaves r as an empty pass's.
+func (s *State) sbaBoard(k *prep, r *sbaMasks) {
 	if s.anyEmb() {
 		s.sbaOK = 0
-		r, _ = s.sbaScan(k)
-		return r
+		s.sbaScan(k, r)
+		return
 	}
 	t0 := s.touchN
 	hit := s.sbaOK != 0 && (s.sbaT == t0 || sbaMutate == 1) && sbaMutate != 3
@@ -79,12 +80,14 @@ func (s *State) sbaBoard(k *prep) (r sbaMasks) {
 		hit = s.g.sbaFP == s.sbaFingerprint() || sbaMutate == 2
 	}
 	if hit && !sbaVerify {
-		return r
+		r.die, r.gy, r.pwz, r.aur, r.anni = slotMask{}, slotMask{}, slotMask{}, slotMask{}, slotMask{}
+		r.umbra.n, r.umbra.victim = 0, slotMask{}
+		return
 	}
 	if hit {
 		sbaHits++ // verify mode only: a skipping scan returned above
 	}
-	r, busy := s.sbaScan(k)
+	busy := s.sbaScan(k, r)
 	clean := !busy && s.touchN == t0 && !r.die.or(r.gy).or(r.pwz).or(r.aur).or(r.anni).any()
 	if hit && !clean {
 		sbaBad++
@@ -98,7 +101,7 @@ func (s *State) sbaBoard(k *prep) (r sbaMasks) {
 	default:
 		s.sbaOK, s.sbaT, s.g.sbaFP = sbaKeyPrint, t0, s.sbaFingerprint()
 	}
-	return r
+	return
 }
 
 // sbaFingerprint is the 48-bit hash of the non-object half of the key:

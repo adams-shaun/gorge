@@ -573,6 +573,7 @@ func (s *State) sba(k *prep) bool {
 	if s.g.ndp != 0 && k.gen != nil && k.gen.anyDelaySpell {
 		s.dropUncounterGone() // a protected spell that left the stack (repl_uncounterable.go)
 	}
+	var sm sbaMasks // each pass's board scan (sbaBoard fills it in place)
 	for {
 		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
@@ -628,10 +629,10 @@ func (s *State) sba(k *prep) bool {
 		if (s.nAttackers > 0 || s.declared) && (k.gen == nil || k.gen.tyCombat) {
 			s.removeNoncreatureCombatants(k) // CR 506.4 (cold)
 		}
-		sm := s.sbaBoard(k)
+		s.sbaBoard(k, &sm)
 		die, gy, pwz, aur, anni := sm.die, sm.gy, sm.pwz, sm.aur, sm.anni
-		umbra := sm.umbra // the pass's umbra-spared hosts (kw_umbraarmor.go)
-		askAfter := false // exileOrderAsk parked casualties now: the ask follows this pass's batch
+		umbra := &sm.umbra // the pass's umbra-spared hosts (kw_umbraarmor.go)
+		askAfter := false  // exileOrderAsk parked casualties now: the ask follows this pass's batch
 		if k.ctrMana {
 			s.sbaCtrTough(k, kop.CtrM0M1, &die, &gy) // -0/-1 counters (mana_countercost.go)
 		}
@@ -757,7 +758,7 @@ func (s *State) sba(k *prep) bool {
 		// defeated battles (to the graveyard), then unattached Auras; within each, each seat's battlefield
 		// list in seat order. The graveyard and the pending triggers follow it.
 		var order [MaxPerm]Slot
-		n, sagaFrom := s.sbaDepartOrder(k, die, wld, pwz, bat, aur, rolL[:nrol], &umbra, order[:])
+		n, sagaFrom := s.sbaDepartOrder(k, die, wld, pwz, bat, aur, rolL[:nrol], umbra, order[:])
 		var zs [MaxPerm]kop.Zone
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
