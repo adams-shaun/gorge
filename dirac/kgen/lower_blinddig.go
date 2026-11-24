@@ -99,3 +99,26 @@ func (lc *lowerCtx) repeatBlindDig(ps *params) bool {
 	d := ps.str("Defined")
 	return !ex && !rv && (d == "Player.IsRemembered" || d == "Remembered")
 }
+
+// ownBlindDig reads the controller's blind exile of their own cards (Bomat
+// Courier, Connecting the Dots, Triumph of Saint Katherine): Defined$ You, no
+// DefinedExiler$ or ForceReveal$, and no Effect after it to grant a look or a
+// play (a SubAbility$, if any, is some other effect). gorge applyMoveFaceDown
+// stamps the blind exiled_with_face_down marker (FaceDown, ExiledWith the
+// source, nobody the looker); the kernel's face-down mark is the same state
+// (FFaceDown), its looker bit read by no decision.
+func (lc *lowerCtx) ownBlindDig(ps *params) bool {
+	if ps.str("Defined") != "You" {
+		return false
+	}
+	if _, ex := ps.get("DefinedExiler"); ex {
+		return false
+	}
+	if _, rv := ps.get("ForceReveal"); rv {
+		return false
+	}
+	if sub := cards.ResolveSVar(lc.face.SVars, ps.str("SubAbility")); sub != nil && sub.API == "Effect" {
+		return false
+	}
+	return true
+}
