@@ -338,6 +338,27 @@ func matchAddSelfCounterCost(t costTok) (groups, bool) {
 	return groups{t.sym, n, kind}, true
 }
 
+// matchAddChooserCounterCost is
+// ^AddCounter<(\d+)/M1M1/Creature\.YouCtrl(?:/([^>]*))?>$: groups [sym, n, desc].
+func matchAddChooserCounterCost(t costTok) (groups, bool) {
+	if !t.angle || t.id != hAddCounter {
+		return groups{}, false
+	}
+	n, rest, found := strings.Cut(t.inner, "/")
+	if !found || !isDigits(n) {
+		return groups{}, false
+	}
+	kind, rest, found := strings.Cut(rest, "/")
+	if kind != "M1M1" || !found {
+		return groups{}, false
+	}
+	filter, desc, _ := strings.Cut(rest, "/")
+	if filter != "Creature.YouCtrl" {
+		return groups{}, false
+	}
+	return groups{t.sym, n, desc}, true
+}
+
 // matchExertCost is ^Exert<1/(?:CARDNAME|NICKNAME)(?:/([^>]*))?>$: groups
 // [sym, desc].
 func matchExertCost(t costTok) (groups, bool) {
