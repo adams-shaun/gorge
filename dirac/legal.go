@@ -274,7 +274,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if fbi := k.fbIx(); int(fbi) < len(s.cold.mo) {
 		fbLo, fbHi = &s.cold.mo[fbi], &s.cold.mo[fbi+1]
 	}
-	for i := 0; i < int(pl.graveN); i++ {
+	// a card offers here only with printed flashback, a stamped grant (fbLo)
+	// or a live granting static (fbLive)
+	fbWalk := k.anyFbCard || fbLo != nil || k.gen != nil && k.gen.anyFbGrant
+	for i := 0; fbWalk && i < int(pl.graveN); i++ {
 		o := pl.grave[i]
 		c := s.objs[o].card
 		pc := &k.cards[c]
