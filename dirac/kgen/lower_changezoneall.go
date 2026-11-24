@@ -11,8 +11,9 @@ import (
 // changeZoneAllShuffle lowers ChangeZoneAll Shuffle$ True (gorge
 // effChangeZoneAll's changeZoneAllShuffleLibraries: after the placement,
 // each destination library that received a card shuffles, then every
-// library of an EXPLICIT player scope that received nothing; a sweep into
-// any zone but the library ignores the flag). Lowered for a graveyard ->
+// library of an EXPLICIT player scope that received nothing; a sweep from
+// the library to another zone shuffles the libraries the cards left, and
+// refuses here; any other sweep into a non-library zone ignores the flag). Lowered for a graveyard ->
 // library sweep of one owner: the ValidTgts$ Player form (the target's
 // graveyard into the target's library: one Shuffle of the target, even
 // when nothing moved) and the unscoped form whose ChangeType$ names only
@@ -27,8 +28,13 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 	if !ps.is("Shuffle", "True") {
 		return refuse("ChangeZoneAll Shuffle$ %q", ps.str("Shuffle"))
 	}
+	if dest != zLibrary && origin == zLibrary {
+		// gorge changeZoneAllShuffleTail shuffles each library a moved card
+		// left (Intuition's "... into your graveyard. Then shuffle.").
+		return refuse("ChangeZoneAll Shuffle$ from the library to %s", zoneLabel[dest])
+	}
 	if dest != zLibrary {
-		lc.emit(in) // gorge: the flag only acts on library destinations
+		lc.emit(in) // gorge: the flag acts only on a library origin or destination
 		return nil
 	}
 	if _, ok := ps.get("LibraryPosition"); ok {
