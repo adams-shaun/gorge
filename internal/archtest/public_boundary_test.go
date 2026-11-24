@@ -195,6 +195,20 @@ var boundaryRules = []boundaryRule{
 		}
 		return ""
 	}},
+	{"mtgish-data", func(p string, blob []byte) string {
+		for _, dir := range strings.Split(path.Dir(p), "/") {
+			if dir == ".mtgish" {
+				return "mtgish data directory .mtgish"
+			}
+		}
+		if strings.HasPrefix(path.Base(p), "mtgish.lines.") {
+			return "mtgish data file " + path.Base(p)
+		}
+		if bytes.HasPrefix(withoutBOM(blob), []byte(`{"_OracleCard":`)) {
+			return "an mtgish card record"
+		}
+		return ""
+	}},
 	{"unresolvable-reference", func(p string, blob []byte) string {
 		if !inLabelFreeTree(p) || isBinary(blob) || isSetData(p) {
 			return ""
@@ -699,6 +713,12 @@ func TestPublicBoundaryDetection(t *testing.T) {
 		{"draft/x.go", "// 0xE3, 1E3, e1-r1-s03-g1-a2, a brief pause, the spec's pack size\n", ""},
 		{"draft/limited/setdata/sets/X.json", `{"number": "E01-30"}`, ""},
 		{"draft/limited/setdata/x.go", `// number "E01-30"` + "\n", "unresolvable-reference"},
+
+		{".mtgish/x/data.txt", "x\n", "mtgish-data"},
+		{"data/mtgish.lines.json", "[]\n", "mtgish-data"},
+		{"testdata/x.jsonl", `{"_OracleCard":{}}`, "mtgish-data"},
+		{"engine/cardc/mtgish/x.go", "package mtgish\n", ""},
+		{"engine/cardc/x.json", `{"OracleCard":{}}`, ""},
 	}
 	covered := map[string]bool{}
 	for _, c := range cases {
@@ -713,7 +733,7 @@ func TestPublicBoundaryDetection(t *testing.T) {
 	}
 	for _, id := range []string{
 		"generated-table-dir", "kgen-output", "generated-table-file", "kgen-report", "dirac-binary", "forge-script",
-		"private-fragment", "private-detail", "private-name", "unresolvable-reference",
+		"private-fragment", "private-detail", "private-name", "mtgish-data", "unresolvable-reference",
 	} {
 		if !covered[id] {
 			t.Errorf("rule %s has no positive case", id)

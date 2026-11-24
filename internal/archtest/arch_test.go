@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -199,6 +200,55 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	}
 }
 
+// cardcImportViolations returns, sorted, one "importer -> imported" line per
+// package outside engine/cardc/... and cmd/cardc that imports a package under
+// engine/cardc. imports maps an importer to its imports.
+func cardcImportViolations(module string, imports map[string][]string) []string {
+	root := module + "/engine/cardc"
+	cmd := module + "/cmd/cardc"
+	var out []string
+	for p, imps := range imports {
+		if p == root || strings.HasPrefix(p, root+"/") || p == cmd || strings.HasPrefix(p, cmd+"/") {
+			continue
+		}
+		for _, imp := range imps {
+			if imp == root || strings.HasPrefix(imp, root+"/") {
+				out = append(out, p+" -> "+imp)
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// TestNothingImportsCardc proves the card compiler cannot change main's
+// behaviour: no package outside engine/cardc/... and cmd/cardc imports it.
+func TestNothingImportsCardc(t *testing.T) {
+	synthetic := map[string][]string{
+		module + "/engine/cardc/mtgish": {module + "/engine/cardc/ir"},
+		module + "/cmd/cardc":           {module + "/engine/cardc"},
+		module + "/engine/rules":        {module + "/engine/cardc/ir"},
+	}
+	want := []string{module + "/engine/rules -> " + module + "/engine/cardc/ir"}
+	if got := cardcImportViolations(module, synthetic); !slices.Equal(got, want) {
+		t.Fatalf("synthetic map: want %q, got %q", want, got)
+	}
+
+	pkgs := packages(t)
+	if _, ok := pkgs[module+"/engine/cardc"]; !ok {
+		t.Fatalf("%s/engine/cardc is not in the package set; the check would pass vacuously", module)
+	}
+	live := map[string][]string{}
+	for path, p := range pkgs {
+		for imp := range p.imports {
+			live[path] = append(live[path], imp)
+		}
+	}
+	for _, msg := range cardcImportViolations(module, live) {
+		t.Errorf("%s; only engine/cardc/... and cmd/cardc may import the card compiler", msg)
+	}
+}
+
 // TestDependencyOrderHolds pins the arrows that must never appear, direct or
 // transitive.
 func TestDependencyOrderHolds(t *testing.T) {
@@ -289,6 +339,11 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/trigmatch"},
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/combat"},
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/resolve"},
+		// engine/cardc is a side branch's compiler: the IR is a leaf, and the
+		// mtgish front end never reads gorge's card structs.
+		{module + "/engine/cardc/ir", module + "/engine/cards"},
+		{module + "/engine/cardc/ir", module + "/engine/state"},
+		{module + "/engine/cardc/mtgish", module + "/engine/cards"},
 	}
 	for path, p := range pkgs {
 		if strings.HasPrefix(path, module+"/bots") {
