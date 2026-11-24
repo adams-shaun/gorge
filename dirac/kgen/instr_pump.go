@@ -105,6 +105,23 @@ func (ic *instrCtx) opExHaste() error {
 	in := &ic.in
 	// Agility Bobblehead: OpExt ExtExHaste, C the power form (Instr.C is int16)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtExHaste)), int16(in.C)
+	if in.W.Kind != rNone {
+		// the named-blocker form (Duct Crawler): Obj the blocker, W the
+		// attacker (dirac exCNoBlock)
+		ki.C |= 1 << 9
+		r, err := ic.cb.ref(in.W)
+		if err != nil {
+			return err
+		}
+		ki.W = r
+		return nil
+	}
+	if in.F != nil {
+		// the filter form (Tower of Coireall, Doorman): C bit 8, F the
+		// forbidden blockers' battlefield filter (dirac exCFilter)
+		ki.C |= 1 << 8
+		return ic.objFilter(kop.ZoneBattlefield)
+	}
 	return nil
 }
 

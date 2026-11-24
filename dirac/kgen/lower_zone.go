@@ -2662,71 +2662,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 	sp.consume("Mode", "Description")
 	switch s.Mode {
 	case "CantBlockBy":
-		// Creature.IsRemembered names the same attackers as Card.IsRemembered
-		// (an attacker is a creature); Speed, Young Avenger spells it so.
-		if va := sp.str("ValidAttacker"); va != "Card.IsRemembered" && va != "Creature.IsRemembered" {
-			return refuse("Effect CantBlockBy shape")
-		}
-		exile, hasExile := ps.get("ExileOnMoved")
-		exHaste := false
-		exC := 0
-		if vb, ok := sp.get("ValidBlocker"); ok {
-			// Agility Bobblehead: "can't be blocked this turn except by
-			// creatures with haste" (kernel ExtExHaste, the blocker's CURRENT
-			// keywords like gorge's withoutHaste); Cavern Stomper / Cheeky
-			// House-Mouse: Creature.power<op><N> (lower_cantblockpower.go, the
-			// blocker's CURRENT power). The only ValidBlocker$ the kernel
-			// holds besides the chosen-colour form (colorGrantEffect); the
-			// ExileOnMoved$ Battlefield shape, or (Speed, Young Avenger) a
-			// targeted creature with no ExileOnMoved$ and no Duration$: the
-			// grant matches the remembered object id, which a zone change
-			// replaces, so it lapses on departure either way, and it ends at
-			// the turn's end as the exile form does.
-			if !hasExile && !lc.cantBlockTargetedUntilEOT(ps, obj) {
-				return refuse("Effect CantBlockBy ValidBlocker %q", vb)
-			}
-			c, err := lc.cantBlockValidBlocker(vb)
-			if err != nil {
-				return err
-			}
-			exHaste, exC = true, c
-		}
-		switch {
-		case hasExile && strings.TrimSpace(exile) == "Battlefield":
-			// ends for each permanent as it leaves (CR 611.2c), as a record does
-		case !hasExile && exHaste:
-			// the targeted haste or power-compare form checked above
-		case !hasExile && lc.cantBlockAttackingTarget(ps, obj):
-			// (Gossip's Talent) ExileOnMoved$ is
-			// unread here because gorge's CantBlockBy matches the remembered
-			// object id, and a zone change mints a new id -- the grant lapses
-			// on departure with or without the exile sweep. The target is
-			// attacking and the kernel has no extra combat, so "this turn"
-			// reaches only this combat's declare-blockers step.
-		default:
-			return refuse("Effect CantBlockBy shape")
-		}
-		if ro := ps.str("RememberObjects"); ro != "" {
-			switch ro {
-			case "TriggeredAttacker":
-				// gorge's effectRememberedCodes has no "TriggeredAttacker"
-				// entry, so the nested Effect resolves with an empty
-				// Remembered set and its CantBlockBy grants nothing (kc10b
-				// Gravelgill Scoundrel / Tidal Terror); granting to the
-				// trigger source would diverge.
-				return refuse("Effect CantBlockBy RememberObjects %q", ro)
-			case "TriggeredAttackerLKICopy":
-				// gorge DOES remember this one: effectRememberedCodes maps
-				// TriggeredAttackerLKICopy to RememberedLKI
-				// (engine/effects/staticline.go:911 at the pin), so the
-				// restriction grants unblockable. The kernel has no
-				// remembered-LKI grant; do not lower it as a live object.
-				return refuse("Effect CantBlockBy RememberObjects LKICopy")
-			}
-		}
-		if err := lc.cantBlockGrant(ps, obj, exHaste, exC); err != nil {
-			return err
-		}
+		return lc.effectCantBlockBy(ps, sp, obj)
 	case "CanAttackDefender":
 		return lc.targetedCanAttack(ps, s, obj) // lower_effectcaptured.go
 	case "MustAttack":
@@ -2931,6 +2867,10 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		for _, z := range zones {
 			in.C = z
 			lc.emit(in)
+		}
+	case "CantRegenerate":
+		if err := lc.noRegenMark(ps, sp, obj); err != nil { // lower_noregen.go
+			return err
 		}
 	default:
 		return refuse("Effect static mode %s", s.Mode)

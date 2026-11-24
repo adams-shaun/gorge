@@ -1,0 +1,9 @@
+family: Op
+name: OpMarkNoRegen
+value: next
+approval: agent-20261124T072000Z gap-effect-containers brief, implementation step 4 (the mark rides no existing op's C flags: DealDamageEx's DmgNoRegen flags are damage-path only, and ExtOp is full)
+census: other:Effect static mode CantRegenerate all=6 std=0
+state: code 0
+status: active
+ticket: gap-effect-containers
+doc: the battlefield creature of Obj (Furnace Brood's targeted Effect "target creature can't be regenerated this turn", CR 701.19c) takes the mechNoRegen slot mark without a DealDamage carrying it (dirac/repl_noregen.go); the mark ends at the turn's cleanup and when the permanent leaves

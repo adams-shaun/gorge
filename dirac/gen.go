@@ -2619,11 +2619,17 @@ func (s *State) plDmgMark(p uint8, n int) {
 
 // exhRec is one Ext ExHaste record: attacker (obj, ver).
 // kind: 0 empty, 1 "except by creatures with haste", 0x80|cmp<<4|N the
-// power form (static_cantblockexcept.go).
+// power form, exkBlocker the filter form with f its blockers' filter,
+// exkNoBlock the one named blocker b (bver its version)
+// (static_cantblockexcept.go).
 type exhRec struct {
 	obj  Obj
+	f    kop.FilterID
+	b    Obj // exkNoBlock: the one creature that can't block obj
 	ver  uint8
 	kind uint8
+	bver uint8
+	_    uint8 // explicit padding: the cold array is hashed as raw bytes (marks.go hbytes)
 }
 
 // wardAmt is a card's ward trigger amount: {N} as N, "pay N life" as -N.

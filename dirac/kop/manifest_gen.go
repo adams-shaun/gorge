@@ -2121,6 +2121,13 @@ const OpGrantEmbalmOwnCost Op = 158
 
 func init() { opNames[OpGrantEmbalmOwnCost] = "GrantEmbalmOwnCost" }
 
+// other:Effect static mode CantRegenerate (dirac/manifest/Op/OpMarkNoRegen)
+//
+// the battlefield creature of Obj (Furnace Brood's targeted Effect "target creature can't be regenerated this turn", CR 701.19c) takes the mechNoRegen slot mark without a DealDamage carrying it (dirac/repl_noregen.go); the mark ends at the turn's cleanup and when the permanent leaves
+const OpMarkNoRegen Op = 159
+
+func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
+
 // Pred (dirac/manifest/Pred/PredNamedCard)
 //
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).
