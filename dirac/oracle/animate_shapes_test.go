@@ -17,13 +17,13 @@ var animateLandTypeDecks = [2][]cardset.Entry{
 	{
 		{Name: "Floodchaser", Count: 3}, {Name: "Kavu Recluse", Count: 3}, {Name: "Cyclopean Giant", Count: 3},
 		{Name: "Tide Shaper", Count: 3}, {Name: "Deepwood Elder", Count: 3}, {Name: "Tidal Warrior", Count: 2},
-		{Name: "Savannah Lions", Count: 3}, {Name: "Grizzly Bears", Count: 3},
+		{Name: "Savannah Lions", Count: 3}, {Name: "Kukemssa Serpent", Count: 3},
 		{Name: "Island", Count: 5}, {Name: "Swamp", Count: 4}, {Name: "Forest", Count: 5}, {Name: "Plains", Count: 3},
 	},
 	{
 		{Name: "Zombie Trailblazer", Count: 3}, {Name: "Slimy Kavu", Count: 3}, {Name: "Tundra Kavu", Count: 3},
 		{Name: "Graceful Antelope", Count: 3}, {Name: "Thelonite Monk", Count: 3},
-		{Name: "Dreamwinder", Count: 2}, {Name: "Streambed Aquitects", Count: 2}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Dreamwinder", Count: 2}, {Name: "Streambed Aquitects", Count: 2}, {Name: "Grizzly Bears", Count: 2}, {Name: "Kukemssa Serpent", Count: 2},
 		{Name: "Island", Count: 5}, {Name: "Swamp", Count: 4}, {Name: "Forest", Count: 4}, {Name: "Plains", Count: 4},
 	},
 }
