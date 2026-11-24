@@ -17,6 +17,14 @@ var repeatEachSliceCards = map[string][]string{
 	"token attacking the repeated player": {
 		"Ainok Strike Leader", "Endless Foot Assault", "Stampede Surfer", "Veteran Soldier",
 	},
+	// RepeatEach over the remembered cards (kop.RepeatRemembered): a token
+	// minted for each remembered card's controller after a mass destroy or
+	// exile that remembers. Stench of Evil (DamageMap$ with an unless-payment
+	// ask), Wave of Vitriol (an optional search per card) and Reckless Crew
+	// (an optional attach) stay refused.
+	"remembered cards": {
+		"Rampage of the Clans", "Curse of the Swine", "Rowan, Scholar of Sparks", "Will, Scholar of Frost",
+	},
 	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat). Trade
 	// Secrets reads MaxRepeat$ from a ChooseNumber answer (Count$ChosenNumber).
 	"fixed Repeat": {

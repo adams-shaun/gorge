@@ -43,6 +43,9 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 		return refuse("RepeatEach cards Zone$ %q", z)
 	}
 	in := lInstr{Op: "RepeatEachCard", Obj: lRef{Kind: rNone}}
+	if defSpec == "DirectRemembered" {
+		return lc.repeatEachRemembered(ps, in) // lower_repeatremembered.go
+	}
 	if defSpec != "" {
 		if defSpec != "Targeted" {
 			return refuse("RepeatEach DefinedCards$ %q", defSpec)

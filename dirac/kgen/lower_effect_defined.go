@@ -24,6 +24,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 	switch v {
 	case "RememberedController":
 		return lc.rememberedController() // lower_stacktgt.go
+	case "ImprintedController":
+		if lc.repeatRem { // lower_repeatremembered.go
+			return lRef{Kind: rEach}, nil
+		}
 	case "Self", "Parent":
 		// gorge's defined-spec table reads "Parent" as definedSpecSelf
 		// (effects/context.go), the same one alias it gives "Self" and
