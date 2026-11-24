@@ -326,6 +326,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
 		var ok bool
+		sv := g.refreshGrants(u) // (the sacrificed source's grants, or the count a grant's condition reads, are gone below the step: mana_grantlive.go)
 		switch {
 		case u.over:
 			g.stallOf(u) // (a core's stall ends the game at the capFull)
@@ -335,6 +336,7 @@ func (g *grantSrch) sacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, mas
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
@@ -576,6 +578,7 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		g.path[g.np] = grantStep{i: uint8(i), col: c, n: n, gi: gi, sl: sl, sac: true}
 		g.np++
 		var ok bool
+		sv := g.refreshGrants(u) // (the sacrificed source's grants, or the count a grant's condition reads, are gone below the step: mana_grantlive.go)
 		switch {
 		case u.over:
 			g.stallOf(u) // (a core's stall ends the game at the capFull)
@@ -585,6 +588,7 @@ func (g *grantSrch) tapSacBranch(t *State, i int, sl Slot, gi int16, pc *pcard, 
 		default:
 			ok = g.visit(u)
 		}
+		g.restoreGrants(&sv)
 		t.unfork()
 		if ok {
 			return true
