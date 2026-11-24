@@ -297,6 +297,14 @@ const (
 	// OppExtGraveAll: the graveyard's length, a token waiting there
 	// included (gorge's HasCardsInGraveyard_Card zone walk)
 	OppExtGraveAll = 6
+	// OppExtMemberExpr: with OppExtCountCmp, the member's figure is the
+	// expression Sub[1], evaluated from that member's own side (its seat is
+	// the controller, so a YouCtrl clause names it): gorge
+	// playerCountCondition's per-member property, PlayerCountOpponents$
+	// ConditionGE<n> ThisTurnEntered_Battlefield_Creature.YouCtrl (Whiplash
+	// Trap's "an opponent had two or more creatures enter under their
+	// control"). Sub[0] is the bound, read once from the controller's side.
+	OppExtMemberExpr = 9
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits

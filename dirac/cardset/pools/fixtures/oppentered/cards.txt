@@ -1,0 +1,6 @@
+# Whiplash Trap's {U} alternative cost gate (PlayerCountOpponents$ConditionGE2 ThisTurnEntered_Battlefield_Creature.YouCtrl), beside one-drops that enter two to a turn (dirac/oracle/oppentered_test.go)
+Whiplash Trap
+Elite Vanguard
+Savannah Lions
+Island
+Plains
