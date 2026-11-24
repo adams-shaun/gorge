@@ -20,6 +20,9 @@ func playerWord(p *pr, r *ir.Ref) (string, bool) {
 		}
 	case ir.RefAll:
 		f := r.Filter
+		if f != nil && f.Op == ir.FNot && len(f.Args) == 1 && isYouFilter(f.Args[0]) {
+			return "YouDont", true
+		}
 		if f == nil || f.Op != ir.FPred || f.Ref == nil || f.Ref.Kind != ir.RefYou {
 			return "", false
 		}
@@ -67,6 +70,12 @@ func printRef(p *pr, r *ir.Ref) (string, error) {
 	case ir.RefTarget:
 		if !targetBound(p, r.Slot) {
 			return "", unprintable("ref:target-unbound", r.Src)
+		}
+		if p.frame().parent(r.Slot) {
+			if targetIsPlayer(p, r.Slot) {
+				return "", unprintable("ref:parent-player", r.Src)
+			}
+			return "ParentTarget", nil
 		}
 		if targetIsPlayer(p, r.Slot) {
 			return "TargetedPlayer", nil

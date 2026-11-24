@@ -300,7 +300,7 @@ func predPart(p *pr, f *ir.Filter, neg bool) ([]part, error) {
 	case ir.PPlayerIs:
 		w, ok := playerWord(p, f.Ref)
 		// Forge spells neither Opp nor the targeted player as a Player qualifier.
-		if !ok || w == "Opp" || w == "TargetedPlayer" {
+		if !ok || w == "Opp" || w == "TargetedPlayer" || w == "YouDont" {
 			return bad()
 		}
 		if neg {

@@ -227,6 +227,13 @@ func (c condForm) not() (condForm, error) {
 type frame struct {
 	targets  []*ir.Target
 	declared []bool
+	own      int // with several targets: the slot the step being printed is the operand of, or -1
+}
+
+// parent reports whether a reference to slot, in a program of several targets,
+// names a slot another node declared: Forge spells that ParentTarget.
+func (f *frame) parent(slot uint8) bool {
+	return f != nil && len(f.targets) > 1 && f.own >= 0 && int(slot) != f.own
 }
 
 // pr prints one face's abilities.
@@ -437,8 +444,10 @@ func (p *pr) program(prog *ir.Program) (*node, error) {
 	if prog == nil || len(prog.Steps) == 0 {
 		return nil, unprintable("program:empty", "")
 	}
+	var fr *frame
 	if len(prog.Targets) > 0 {
-		p.frames = append(p.frames, &frame{targets: prog.Targets, declared: make([]bool, len(prog.Targets))})
+		fr = &frame{targets: prog.Targets, declared: make([]bool, len(prog.Targets)), own: -1}
+		p.frames = append(p.frames, fr)
 		defer func() { p.frames = p.frames[:len(p.frames)-1] }()
 	}
 	savedPrev := p.prev
@@ -451,12 +460,33 @@ func (p *pr) program(prog *ir.Program) (*node, error) {
 		if f == nil {
 			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
 		}
+		var pre []*node // TargetOnly nodes declaring the slots before this step's own
+		if fr != nil && len(fr.targets) > 1 {
+			fr.own = -1
+			if o := slotRef(st.Obj); o != nil && o.Kind == ir.RefTarget && int(o.Slot) < len(fr.targets) {
+				fr.own = int(o.Slot)
+				for j := 0; j < fr.own; j++ {
+					if fr.declared[j] {
+						continue
+					}
+					ps, err := p.target(fr.targets[j])
+					if err != nil {
+						return nil, err
+					}
+					fr.declared[j] = true
+					pre = append(pre, &node{API: "TargetOnly", Params: ps})
+				}
+			}
+		}
 		n, used, err := f(p, prog.Steps[i:])
 		if err != nil {
 			return nil, err
 		}
 		if n == nil || used < 1 {
 			return nil, unprintable("verb:"+st.Verb.String(), st.Src)
+		}
+		for k := len(pre) - 1; k >= 0; k-- {
+			pre[k].Sub, n = n, pre[k]
 		}
 		p.prev = prog.Steps[i+used-1]
 		if head == nil {
@@ -492,8 +522,10 @@ func (p *pr) declare(slot uint8, src string) ([]kv, error) {
 	if f == nil || int(slot) >= len(f.targets) {
 		return nil, unprintable("target:unbound", src)
 	}
-	if len(f.targets) > 1 {
-		return nil, unprintable("target:multi", src)
+	for j := 0; j < int(slot); j++ {
+		if !f.declared[j] {
+			return nil, unprintable("target:multi", src)
+		}
 	}
 	if f.declared[slot] {
 		return nil, nil
