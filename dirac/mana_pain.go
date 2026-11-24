@@ -379,7 +379,12 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	}
 	s.noteDmgTaken(p, n)       // kw_bloodthirst.go
 	s.notePlDamagedNC(k, code) // value_oppsdamaged.go
-	s.loseLife(k, p, n)
+	// the damage life floors apply (loseLifeDmg, IsDamage$ True): a ReplLifeReduced
+	// line (Fortune Thief, Ali from Cairo, Worship) clamps the rider's loss like any
+	// damage's — gorge's foldDamage folds it into the mana ability's damage too, so
+	// a payer at the floor survives its own painland tap. The paid-life arm above
+	// stays an unfloored life cost (CR 119.4).
+	s.loseLifeDmg(k, p, n)
 	s.plDmgMark(p, n) // the rider is damage: wasDealtDamageThisTurn's seat arm (gen.go)
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, sl, false) // filter_permmarks.go
