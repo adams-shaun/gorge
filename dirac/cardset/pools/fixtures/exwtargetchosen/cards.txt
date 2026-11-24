@@ -1,0 +1,12 @@
+# the exiled-with target pool plus a chosen-type card target (Dawn-Blessed
+# Pennant's "target card of the chosen type"), which sets the prep-wide
+# chosenCardTgt: Nyla's ExiledWithSource target must still read its link at
+# target time there (dirac/oracle/exw_target_test.go)
+Nyla, Shirshu Sleuth
+Dawn-Blessed Pennant
+Cremate
+Doom Blade
+Gravedigger
+Walking Corpse
+Vampire Bats
+Swamp

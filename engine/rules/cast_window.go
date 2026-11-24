@@ -428,6 +428,9 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 			if pay.IsColourIdentityProduced(mp.Produced) {
 				counts, any = e.castWindowIdentityCounts(p), true
 			}
+			if mp.AnyDifferent {
+				counts, any = anyDifferentCounts, true
+			}
 			total := int32(0)
 			for _, n := range counts {
 				total += n
@@ -459,8 +462,8 @@ func (e *Engine) castWindowProbeUnits(pc *pendingCast, windowUnits []windowManaU
 					// bound the single-colour alternatives stand, never fewer
 					// than the pre-split window. A plain "Any" is one colour by
 					// definition and keeps them too.
-					if effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen && !mp.AnyDifferent {
-						if combos := windowAnyCombinations(counts, amt); combos != nil {
+					if mp.AnyDifferent || (effects.IsComboAllocation(mp.Produced) && !mp.NeedsChosen) {
+						if combos := windowComboAlternatives(mp, counts, amt); combos != nil {
 							for _, combo := range combos {
 								alt := windowManaAlt{Ma: ma, Counts: combo, Amt: 1, Life: lifeCost, CostGeneric: genericCost, CostColored: feeMask, FreeTap: freeTap, SelfSac: selfSac}
 								if post {
@@ -519,6 +522,52 @@ func castWindowCondSplitProduction(h condSplitHost, p state.PlayerID, id state.O
 // n=4). Past it the single-colour alternatives stand, because the expansion is
 // a reach-walk cost, not a correctness fence.
 const maxWindowAnyCombination = 4
+
+// anyDifferentCounts is a Combo AnyDifferent production's colour domain: one
+// of each of WUBRG ("two mana of different colors" names no colourless, CR
+// 106.1). Its parse claims no colour for the word itself.
+var anyDifferentCounts = [6]int32{state.MW: 1, state.MU: 1, state.MB: 1, state.MR: 1, state.MG: 1}
+
+// windowComboAlternatives is the concrete Counts vectors (Amt 1) a Combo
+// production prices as: a Combo AnyDifferent makes Amount$ DIFFERENT colours,
+// one mana each (the distinct subsets, ten for two mana; Interplanar Beacon
+// can never pay {W}{W}), every other Combo any multiset over its colours.
+// nil keeps the single-colour alternatives.
+func windowComboAlternatives(mp *effects.ManaParams, avail [6]int32, n int32) [][6]int32 {
+	if !mp.AnyDifferent {
+		return windowAnyCombinations(avail, n)
+	}
+	if n < 2 {
+		return nil
+	}
+	var colours []int
+	for i, c := range avail {
+		if c > 0 {
+			colours = append(colours, i)
+		}
+	}
+	if int(n) > len(colours) {
+		n = int32(len(colours))
+	}
+	var out [][6]int32
+	var cur [6]int32
+	var walk func(i int, left int32)
+	walk = func(i int, left int32) {
+		if left == 0 {
+			out = append(out, cur)
+			return
+		}
+		if len(colours)-i < int(left) {
+			return
+		}
+		cur[colours[i]] = 1
+		walk(i+1, left-1)
+		cur[colours[i]] = 0
+		walk(i+1, left)
+	}
+	walk(0, n)
+	return out
+}
 
 // windowAnyCombinations returns every multiset of n mana over the colours
 // avail names, as concrete Counts vectors (Amt 1): a Combo production with
@@ -661,6 +710,9 @@ func (e *Engine) castWindowSourceExcluded(p state.PlayerID, id state.ObjID, desc
 		if identity {
 			counts = e.castWindowIdentityCounts(p)
 		}
+		if mp.AnyDifferent {
+			counts = anyDifferentCounts
+		}
 		total := int32(0)
 		for _, n := range counts {
 			total += n
@@ -782,6 +834,9 @@ func castWindowProbeCeiling(w castPlanPipsWindow, p state.PlayerID, id state.Obj
 	}
 	if pay.IsColourIdentityProduced(mp.Produced) {
 		counts, any = w.castWindowIdentityCounts(p), true
+	}
+	if mp.AnyDifferent {
+		counts, any = anyDifferentCounts, true
 	}
 	total := int32(0)
 	for _, n := range counts {

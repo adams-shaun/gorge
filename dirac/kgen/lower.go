@@ -172,6 +172,7 @@ type lowerCtx struct {
 	spellProvOK    bool      // the filter being read is a SpellCast ValidCard$, a spell's own ConditionPresent$ or a mana ability's Spell. RestrictValid$: the cast-provenance words may lower
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
+	exwTgtOK       bool      // lowering a ChangeZone Origin$ Exile ValidTgts$: ExiledWithSource reads the ability's own source at target time
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -2922,6 +2923,9 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 						c.LifeBy = &v
 						continue
 					}
+					if lc.lifeIdentCost(&c, x) {
+						continue // the payer's commanders' colour count (lower_lifeident.go)
+					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
 				if !lc.lifeXSpell && !lc.actCost {
@@ -2934,7 +2938,7 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			n, err := strconv.Atoi(arg)
-			if err != nil || c.LifeX {
+			if err != nil || c.LifeX || c.LifeIdent {
 				return c, refuse("life cost %q", t)
 			}
 			c.PayLife = n
@@ -3124,7 +3128,7 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 			// the kernel reads the link against the matcher's source: the
 			// resolving entry's, or a Continuous static's own object. A
 			// target, a cost or a granted ability has none
-			if lc.granted > 0 || !(lc.exwOK && lc.ab != nil || lc.exwStatic) {
+			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK) && lc.ab != nil || lc.exwStatic) {
 				return nil, refuse("filter %q: ExiledWithSource outside a resolution-time mover or a continuous static", expr)
 			}
 			lc.out.ExiledWith = true
@@ -3474,6 +3478,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.Zone == 0 {
 				return refuse("activation zone %q", z)
 			}
+		}
+		if err := lifeIdentGate(ab, ps, cost); err != nil {
+			return err
 		}
 		if err := putLibSelfGate(ab, cost); err != nil {
 			return err

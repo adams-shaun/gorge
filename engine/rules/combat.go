@@ -2691,6 +2691,10 @@ func (e *Engine) runCombatAssignments() {
 						e.emit(events.Event{Kind: events.PlayerCounterChange,
 							Player: ev.Player, Counter: "POISON", Amount: int32(n)})
 					}
+					// CR 702.70a (poisonous): unlike toxic a TRIGGERED ability,
+					// one instance per keyword instance the source has (702.70b).
+					e.pendingTriggers = append(e.pendingTriggers,
+						grantedPoisonousTriggers(e.G, x.from, e.Derived(x.from).Keywords, ev.Player)...)
 				}
 			}
 		}
@@ -3243,6 +3247,11 @@ func init() {
 		// source's derived keywords (ToxicValue). Proof test:
 		// TestToxicIxhelAddsPoisonOnCombatDamage.
 		"kw:Toxic",
+		// kw:Poisonous (CR 702.70a) is the TRIGGERED sibling: the same player
+		// branch queues one trigger per derived Poisonous instance
+		// (grantedPoisonousTriggers; a printed line has no expansion, so the
+		// derived walk owns it too). Proof test: TestVirulentSliverGrantsPoisonous.
+		"kw:Poisonous",
 		// kw:Boast (CR 702.142) has no K: keyword line: Forge marks a Boast
 		// ability with a `Boast$ True` parameter on the activated ability
 		// itself, so Face.Primitives never surfaces it and this explicit

@@ -1274,6 +1274,9 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 	if c.Exert {
 		out.Exert = true
 	}
+	if c.LifeIdent {
+		out.LifeIdent = true // the payer's commanders' colour count (kernel cost_lifeident.go)
+	}
 	if c.AddCtr > 0 {
 		if c.Loyalty != 0 || c.SubCtr != 0 {
 			return out, fmt.Errorf("counter-placing cost beside another counter part")

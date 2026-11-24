@@ -184,6 +184,13 @@ type pendingTrigger struct {
 	// payload events.Apply rebuilds into the same DB$ LoseLife body the
 	// printed K:Afflict expansion carries. Idx and SA are unset for it.
 	Afflict string
+	// Poisonous is a GRANTED poisonous keyword's amount (CR 702.70a via a
+	// layer-6 AddKeyword$ Poisonous:<N>, Virulent Sliver's "All Sliver
+	// creatures have poisonous 1"): the Afflict shape -- combat damage to a
+	// player queues it (grantedPoisonousTriggers) and the drain pushes a
+	// KeywordTriggerPush whose __kwPoisonous: payload events.Apply rebuilds
+	// into a DB$ Poison | Defined$ TriggeredTarget body. Idx and SA are unset.
+	Poisonous string
 	// Conspire is a GRANTED conspire keyword (a layer-6 AddKeyword$
 	// Conspire -- Wort, the Raidmother's "each red or green instant or
 	// sorcery spell you cast has conspire", Raiding Schemes' noncreature

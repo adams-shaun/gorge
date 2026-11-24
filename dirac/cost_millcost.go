@@ -21,9 +21,11 @@ func (s *State) millRevealPayable(k *prep, p uint8, src Obj, c *kop.Cost) bool {
 
 // costTokenPartsPayable is millRevealPayable with the PayLife part's price
 // (legal.go canActivate's gate; the walks check life beside their other
-// parts): the life cost owes lifeCostOwed.
+// parts): the life cost owes lifeCostOwed, and a LifeIdent part the payer's
+// commanders' colour count (cost_lifeident.go).
 func (s *State) costTokenPartsPayable(k *prep, p uint8, src Obj, c *kop.Cost) bool {
 	return !(c.Flags&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c)) &&
+		s.lifeIdentPayable(k, p, c) &&
 		s.millRevealPayable(k, p, src, c)
 }
 

@@ -1,0 +1,12 @@
+# the exiled-with target pool: Nyla, Shirshu Sleuth exiles a creature card
+# from your graveyard on entering, and her end-step trigger targets a card
+# exiled with her (ValidTgts$ Card.ExiledWithSource, read at target time),
+# beside Cremate (another exiler the read must reject), removal, vanilla
+# creatures and basics (dirac/oracle/exw_target_test.go)
+Nyla, Shirshu Sleuth
+Cremate
+Doom Blade
+Gravedigger
+Walking Corpse
+Vampire Bats
+Swamp

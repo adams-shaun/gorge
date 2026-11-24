@@ -242,6 +242,17 @@ type Cost struct {
 	// step" mark (pfSkipUntap). A table byte, not a CostFlags bit (the words
 	// are full).
 	Exert bool
+	// LifeIdent: pay life equal to the number of colours in the payer's
+	// commanders' colour identity (PayLife<X> with SVar X
+	// Count$ColorsColorIdentity: War Room; CR 903.4, 119.4). gorge folds the
+	// count into a fixed life part wherever the cost is priced or paid
+	// (pay.FixLifeXCost over the Host's CommanderIdentityColourCount), so it
+	// is a fixed PayLife<N> whose N is the payer's own and may be 0: neither
+	// CostPayLife nor Cost.N is set, and nothing is announced. A table byte,
+	// not a CostFlags bit (the words are full). Only a printed battlefield
+	// activated ability's own cost carries it, beside no other life part
+	// (kernel cost_lifeident.go).
+	LifeIdent bool
 	// DiscardHand: discard the whole hand as part of an activated ability's
 	// cost (Discard<N/Hand>, CR 118.3, 602.2b; gorge pay.DiscardCandidates'
 	// whole-hand spec discards every card in hand order, asks no choice and

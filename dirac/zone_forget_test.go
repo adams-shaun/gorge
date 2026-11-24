@@ -34,11 +34,13 @@ func forgetChangedBody(t *testing.T) (ret, bnc, srch, kept []Obj) {
 	}
 	ret = got()
 
-	set(b, c)
+	// the unmoved card is no library card, so the bounce leaves it remembered
+	// (every remembered library card moves, not only the first)
+	set(b, unmoved)
 	bn := kop.Instr{Op: kop.OpBounce, Obj: kop.RefRemembered, C: kop.MvForgetChanged | kop.BncFromLibrary}
 	s.execGen(sc.k, &bn)
 	if s.objs[b].zone != kop.ZoneHand {
-		t.Fatalf("bounce: first remembered card in zone %d, want the hand", s.objs[b].zone)
+		t.Fatalf("bounce: remembered library card in zone %d, want the hand", s.objs[b].zone)
 	}
 	bnc = got()
 
@@ -79,7 +81,7 @@ func TestForgetChangedDropsMoved(t *testing.T) {
 	for _, c := range []struct {
 		name      string
 		got, want []Obj
-	}{{"return", ret, kept[:1]}, {"bounce", bnc, kept[1:2]}, {"search", srch, kept[2:]}} {
+	}{{"return", ret, kept[:1]}, {"bounce", bnc, kept[:1]}, {"search", srch, kept[2:]}} {
 		if !sameObjs(c.got, c.want) {
 			t.Errorf("%s: remembered %v, want %v (the moved card forgotten)", c.name, c.got, c.want)
 		}

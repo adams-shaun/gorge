@@ -230,7 +230,7 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // different line entirely.
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness && !pt.Siege &&
-		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
+		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && pt.Poisonous == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0 && !pt.SpeedIncrease &&
 		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal
 }
@@ -552,14 +552,15 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// is the life amount, which events.Apply rebuilds into the same
 	// DB$ LoseLife body the printed K:Afflict expansion carries, and the
 	// captured TriggerContext (the blocked attacker's roles, including the
-	// defender Defined$ TriggeredDefendingPlayer reads) rides along.
-	if pt.Afflict != "" {
+	// defender Defined$ TriggeredDefendingPlayer reads) rides along. A
+	// granted poisonous (CR 702.70a) shares the branch (ctxKeywordPush).
+	if counter, text := pt.ctxKeywordPush(); counter != "" {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwAfflict:" + pt.Afflict, Text: "afflict ability"})
+			Obj: pt.Source, Counter: counter, Text: text})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
