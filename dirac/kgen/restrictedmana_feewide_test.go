@@ -35,10 +35,10 @@ func TestRestrictedManaFeeEachShape(t *testing.T) {
 // that production or the source's second ability, never the plain fee the
 // model does carry. Each is a separate follow-up: Great Hall's Combo Any
 // beside a census ability lowers in kgen but diverges from gorge in lockstep
-// (the mana assignment differs), and Hydro-Channeler's fee ability sits beside
-// its restricted {U} one.
+// (the mana assignment differs). Hydro-Channeler's fee ability beside its
+// restricted {U} one lowers (restrictedmana_feepair_test.go).
 func TestRestrictedManaFeeWiderKeepsRefusing(t *testing.T) {
-	for _, name := range []string{"Great Hall of the Citadel", "Hydro-Channeler", "Interplanar Beacon"} {
+	for _, name := range []string{"Great Hall of the Citadel", "Interplanar Beacon"} {
 		t.Run(name, func(t *testing.T) {
 			lc := lowerCorpusCard(t, name)
 			if len(lc.Refusals) == 0 {
