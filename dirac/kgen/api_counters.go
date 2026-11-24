@@ -25,6 +25,9 @@ func (lc *lowerCtx) apiPutCounter(sa *cards.SA, ps *params) error {
 	if done, err := lc.definedValid(sa, ps); done || err != nil {
 		return err
 	}
+	if ps.is("Mentor", "True") {
+		return lc.mentorPutCounter(ps) // lower_mentor.go
+	}
 	return lc.putCounter(ps)
 }
 

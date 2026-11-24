@@ -1,0 +1,24 @@
+# K:Mentor (CR 702.134): the attack trigger's "target attacking creature with
+# lesser power" counter (PutCounter Mentor$), for dirac/oracle/mentor_test.go
+Aurelia, Exemplar of Justice
+Barging Sergeant
+Blade Instructor
+Boros Challenger
+Goblin Banneret
+Hammer Dropper
+Light of the Legion
+Parhelion Patrol
+Sunhome Stalwart
+Tajic, Legion's Edge
+Truefire Captain
+Wojek Bodyguard
+Felisa, Fang of Silverquill
+Tributary Instructor
+Elite Vanguard
+Grizzly Bears
+Hill Giant
+Scathe Zombies
+Plains
+Forest
+Swamp
+Mountain
