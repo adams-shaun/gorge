@@ -712,13 +712,7 @@ func controlReferentPlayerAltKnown(a *playerAlt) bool {
 	if kind, is := strings.CutPrefix(a.qualifier, "withMost"); is {
 		return playerBase && playerHasMostCodes.Code(kind) != 0
 	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsCard."); is {
-		return playerBase && rem != ""
-	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsCreature."); is {
-		return playerBase && rem != ""
-	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsPermanent."); is {
+	if rem, is := strings.CutPrefix(a.qualifier, "controls"); is {
 		return playerBase && rem != ""
 	}
 	if a.qualCode != 0 {

@@ -284,30 +284,6 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 				}
 				continue
 			}
-			if rem, is := strings.CutPrefix(qualifier, "controlsCard."); is {
-				// This models only the registration-relative card form.
-				if rem == "IsTriggerRemembered" && playerControlsMatches(g, p, you, pc, "Card", rem) {
-					return true
-				}
-				continue
-			}
-			if rem, is := strings.CutPrefix(qualifier, "controlsCreature."); is {
-				// Forge's Player.controlsCreature.<objspec> / controlsPermanent.
-				// <objspec> property (PlayerControlsCreatures/Permanents): the
-				// seat qualifies when its battlefield holds an object matching
-				// <objspec> as an object filter, with an optional trailing
-				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, pc, "Creature", rem) {
-					return true
-				}
-				continue
-			}
-			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, pc, "Permanent", rem) {
-					return true
-				}
-				continue
-			}
 			matchesBase = true
 		case playerSpecBaseYou:
 			matchesBase = p == you
@@ -319,6 +295,20 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 		}
 		if !qualified {
 			return true
+		}
+		if rem, is := strings.CutPrefix(qualifier, "controls"); is {
+			// Forge's PlayerProperty has ONE generic `controls<ValidCards>
+			// [_<cmp><n>]` rule: the text after "controls" is a ValidCards
+			// filter over the seat's battlefield plus an optional trailing
+			// count comparison (default GE1). The dotted spellings
+			// controlsCard.<spec>, controlsCreature.<spec> and
+			// controlsPermanent.<spec> are cases of the same rule -- their
+			// "." is part of the object filter, not a second separator. See
+			// playerControlsMatches.
+			if playerControlsMatches(g, p, you, pc, rem) {
+				return true
+			}
+			continue
 		}
 		if ref, is := strings.CutPrefix(qualifier, "wasDealtDamageThisGameBy "); is {
 			// Forge's Player.wasDealtDamageThisGameBy <ref> qualifier
@@ -732,50 +722,75 @@ func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
 	return false
 }
 
-// splitCountCompare strips a trailing "_"-separated count comparison token
-// ("GE1", "LT3", ...) from an object-spec remainder. It returns the remainder
-// with the token removed, the comparison operator, the threshold, and whether
-// a count token was present at all. A trailing token that is not a count
-// comparison (e.g. the named-arg convention's "namedAether_Burst") stays part
-// of the object spec, and a remainder with no "_" at all is returned whole.
+// splitCountCompare strips a trailing unescaped "_"-separated count
+// comparison token ("GE1", "LT3", ...) from an object-spec remainder. It
+// returns the remainder with the token removed, the comparison operator, the
+// threshold, and whether a count token was present at all. A trailing token
+// that is not a count comparison (e.g. the named-arg convention's
+// "namedAether_Burst") stays part of the object spec, and a remainder with no
+// unescaped "_" at all is returned whole. Forge escapes the underscores that
+// belong to the ValidCards filter ("counters\_GE1\_CONTESTED"), so those
+// are unescaped and never treated as the count separator.
 func splitCountCompare(rem string) (string, string, int32, bool) {
-	i := strings.LastIndex(rem, "_")
+	i := lastUnescapedUnderscore(rem)
 	if i < 0 {
-		return rem, "", 0, false
+		return unescapeSpecUnderscores(rem), "", 0, false
 	}
 	tok := rem[i+1:]
 	if len(tok) < len("GE0") {
-		return rem, "", 0, false
+		return unescapeSpecUnderscores(rem), "", 0, false
 	}
 	op, digits := tok[:2], tok[2:]
 	n, err := strconv.ParseInt(digits, 10, 32)
 	if err != nil {
-		return rem, "", 0, false
+		return unescapeSpecUnderscores(rem), "", 0, false
 	}
 	switch CmpOpOf(op) {
 	case CmpGE, CmpGT, CmpEQ, CmpLE, CmpLT:
-		return rem[:i], op, int32(n), true
+		return unescapeSpecUnderscores(rem[:i]), op, int32(n), true
 	}
-	return rem, "", 0, false
+	return unescapeSpecUnderscores(rem), "", 0, false
 }
 
-// playerControlsMatches evaluates Forge's Player.controlsCreature.<spec> /
-// controlsPermanent.<spec> qualifiers (PlayerProperty's
-// PlayerControlsCreatures/PlayerControlsPermanents family): the seat
-// qualifies when the required number of its battlefield objects match
-// <spec> as an object filter. The count comparison rides a trailing
-// "_GE<n>"-style token and defaults to an existential _GE1; a spec with no
-// count token matches when at least one object does. The object filter is
-// evaluated with the same SpecContext binding MatchesPlayerSpecFrom carries
-// (the perspective seat and the source permanent), so the named<Name>,
-// MultiColor, IsRemembered and EnchantedBy object predicates all resolve
-// unchanged. The controlsCard.IsTriggerRemembered caller additionally binds
-// the delayed registration's capture. A spec that matches nothing -- including
-// one carrying an unmodelled predicate, which fails closed inside the object
-// matcher -- never matches for that seat.
-func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, objBase, rem string) bool {
+// lastUnescapedUnderscore is the index of rem's last "_" not preceded by a
+// backslash, or -1. Forge uses "\_" to keep an underscore inside a
+// ValidCards spec (a counters_<cmp>_<kind> predicate) from reading as the
+// controls count separator.
+func lastUnescapedUnderscore(rem string) int {
+	for i := len(rem) - 1; i >= 0; i-- {
+		if rem[i] == '_' && (i == 0 || rem[i-1] != '\\') {
+			return i
+		}
+	}
+	return -1
+}
+
+// unescapeSpecUnderscores removes the "\_" escapes Forge uses inside a
+// controls<ValidCards> filter.
+func unescapeSpecUnderscores(s string) string {
+	return strings.ReplaceAll(s, "\\_", "_")
+}
+
+// playerControlsMatches evaluates Forge's generic
+// `controls<ValidCards>[_<cmp><n>]` PlayerProperty: the seat qualifies when
+// the required number of its battlefield objects match <ValidCards> as an
+// object filter. The count comparison rides the last unescaped
+// "_<cmp><n>"-style token and defaults to an existential _GE1; a spec with no
+// count token matches when at least one object does. The dotted
+// controlsCard.<spec>, controlsCreature.<spec> and controlsPermanent.<spec>
+// spellings are the same rule with the dotted base inside the ValidCards
+// filter. The object filter is evaluated with the same SpecContext binding
+// MatchesPlayerSpecFrom carries (the perspective seat and the source
+// permanent), so the named<Name>, MultiColor, IsRemembered and EnchantedBy
+// object predicates all resolve unchanged. The controlsCard.IsTriggerRemembered
+// caller additionally binds the delayed registration's capture. A spec that
+// matches nothing -- including one carrying an unmodelled predicate, which
+// fails closed inside the object matcher -- never matches for that seat.
+func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, rem string) bool {
 	spec, op, want, counted := splitCountCompare(rem)
-	spec = objBase + "." + spec
+	if strings.TrimSpace(spec) == "" {
+		return false
+	}
 	sc := NewSpecContext(you, pc.Source)
 	sc.DelayedRemembered = pc.DelayedRemembered
 	if pc.RememberedBound {
@@ -783,8 +798,7 @@ func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, 
 	}
 	// The nested object filter must see the same layer-3/layer-4
 	// derived characteristics every ordinary filter site does; a
-	// controlsCreature/controlsPermanent spec otherwise reads the
-	// printed face alone.
+	// controls<ValidCards> spec otherwise reads the printed face alone.
 	sc.Layers = pc.Layers
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -975,6 +989,53 @@ func MatchesPlayerSpecWithCounts(g *state.Game, eval CountEval, c *Ctx, spec str
 	return matchesPlayerSpecSVars(g, nil, eval, c, spec, p, you)
 }
 
+// resolveControlsCountX rewrites a symbolic `controls<ValidCards>_<cmp>X`
+// count token through the ability's SVar table, the same resolution
+// splitPlayerCompareToken gives `life<cmp>X`. looksLikeX reports that the
+// qualifier IS a controls count token ending in X (so the caller can fail
+// the alternative closed when X does not resolve); ok reports the resolved
+// verdict. A non-controls qualifier, a literal right-hand side or a non-count
+// suffix is returned untouched with looksLikeX false.
+func resolveControlsCountX(g *state.Game, h Host, eval CountEval, c *Ctx, qualifier string) (string, bool, bool) {
+	rest, is := strings.CutPrefix(qualifier, "controls")
+	if !is {
+		return qualifier, false, true
+	}
+	i := lastUnescapedUnderscore(rest)
+	if i < 0 {
+		return qualifier, false, true
+	}
+	tok := rest[i+1:]
+	if len(tok) < 3 || tok[2:] != "X" {
+		return qualifier, false, true
+	}
+	switch CmpOpOf(tok[:2]) {
+	case CmpGE, CmpGT, CmpEQ, CmpLE, CmpLT:
+	default:
+		return qualifier, false, true
+	}
+	body, found := c.SVars["X"]
+	if !found {
+		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+			body, found = o.Face().SVars["X"]
+		}
+	}
+	if !found {
+		return qualifier, true, false
+	}
+	var n int32
+	var ok bool
+	if h != nil {
+		n, ok = EvalCountOK(h, c, body)
+	} else if eval != nil {
+		n, ok = eval(c.Source, c.Controller, c.SVars, body)
+	}
+	if !ok {
+		return qualifier, true, false
+	}
+	return "controls" + rest[:i+1] + tok[:2] + strconv.FormatInt(int64(n), 10), true, true
+}
+
 // matchesPlayerSpecSVars is the shared body: exactly one of h and eval is
 // set. The Host branch keeps a static EvalCountOK call so its *Ctx leaks
 // only its content, as before the split.
@@ -992,38 +1053,43 @@ func matchesPlayerSpecSVars(g *state.Game, h Host, eval CountEval, c *Ctx, spec 
 			if base != "Player" && base != "Opponent" && base != "Other" && base != "You" {
 				continue
 			}
-			op, rhs, ok := splitPlayerCompareToken(qualifier)
-			if !ok {
-				continue
-			}
-			if _, err := strconv.ParseInt(rhs, 10, 32); err == nil {
-				continue
-			}
-			body, found := c.SVars[rhs]
-			if !found {
-				if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-					body, found = o.Face().SVars[rhs]
-				}
-			}
-			if !found {
-				resolved = false
-				break
-			}
-			var threshold int32
-			if h != nil {
-				threshold, ok = EvalCountOK(h, c, body)
-			} else {
-				threshold, ok = eval(c.Source, c.Controller, c.SVars, body)
-			}
-			if !ok {
-				resolved = false
-				break
-			}
 			prefix := ""
 			if neg {
 				prefix = "!"
 			}
-			clauses[i] = prefix + base + ".life" + op + strconv.FormatInt(int64(threshold), 10)
+			if op, rhs, ok := splitPlayerCompareToken(qualifier); ok {
+				if _, err := strconv.ParseInt(rhs, 10, 32); err != nil {
+					body, found := c.SVars[rhs]
+					if !found {
+						if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+							body, found = o.Face().SVars[rhs]
+						}
+					}
+					if !found {
+						resolved = false
+						break
+					}
+					var threshold int32
+					if h != nil {
+						threshold, ok = EvalCountOK(h, c, body)
+					} else {
+						threshold, ok = eval(c.Source, c.Controller, c.SVars, body)
+					}
+					if !ok {
+						resolved = false
+						break
+					}
+					clauses[i] = prefix + base + ".life" + op + strconv.FormatInt(int64(threshold), 10)
+				}
+				continue
+			}
+			if q, looksLikeX, ok := resolveControlsCountX(g, h, eval, c, qualifier); looksLikeX {
+				if !ok {
+					resolved = false
+					break
+				}
+				clauses[i] = prefix + base + "." + q
+			}
 		}
 		if resolved && MatchesPlayerSpecCtx(g, strings.Join(clauses, "+"), p, you, PlayerSpecCtx{
 			Source:     c.Source,
