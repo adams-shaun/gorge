@@ -141,3 +141,10 @@ func (s *State) fbClearAll(k *prep) {
 		s.cold.mo[i+1] = objBits{}
 	}
 }
+
+// fbWalk reports whether priorityOptions' graveyard walk can offer anything: a
+// card there offers only with printed flashback, a stamped grant (stamped) or
+// a live granting static.
+func (k *prep) fbWalk(stamped bool) bool {
+	return k.anyFbCard || stamped || k.gen != nil && k.gen.anyFbGrant
+}

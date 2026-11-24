@@ -368,6 +368,7 @@ func prepare(t *kop.Table) *prep {
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
+	p.anyFbCard = tableHasFlashback(t)
 	p.unleash = tableHasUnleash(t)
 	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
@@ -375,7 +376,6 @@ func prepare(t *kop.Table) *prep {
 		pc := &p.cards[i]
 		pc.types = c.Types
 		pc.kw = c.Keywords
-		p.anyFbCard = p.anyFbCard || c.Keywords&kop.KwFlashback != 0
 		pc.cost = c.Cost
 		pc.sagaN = c.SagaN
 		p.anySaga = p.anySaga || c.SagaN != 0
