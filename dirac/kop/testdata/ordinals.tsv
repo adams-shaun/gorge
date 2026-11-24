@@ -940,6 +940,7 @@ OppExtGrave	untyped int	4
 OppExtGraveAll	untyped int	6
 OppExtHand	untyped int	3
 OppExtLife	untyped int	2
+OppExtLifeLost	untyped int	8
 OppExtLowest	untyped int	256
 OppExtNonTrigPl	untyped int	512
 OppExtSpellsCast	untyped int	7
