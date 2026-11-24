@@ -846,9 +846,9 @@ func tapsDeferPainCol(k *prep, pc *pcard, mask uint8) (int, bool) {
 // one fixed colour into the plain pool, exactly tapDeferFloat's non-rider
 // arm.
 func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot, a Action) {
-	s.fillTapAnyCol(k, p, sl, a)
 	pc := s.manaPCGen(k, sl)
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
+	s.fillTapAnyCol(k, p, sl, a, col, 1)
 	s.pl[p].pool[col]++
 	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	s.artTag(k, p, sl, col)
@@ -910,7 +910,12 @@ func (s *State) tapDeferFloatAsks(k *prep, p uint8, sl Slot, c, forced int, play
 }
 
 func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play Action) {
-	s.fillTapAnyCol(k, p, sl, play)
+	// The ask, rider and restricted arms below float no pick this tap made
+	// (own mana 0); the pain and plain arms answer again with the colour and
+	// amount they float, which only the second answer (anyColOwed) reads —
+	// unless the search forced the carriers' answers, which already name the
+	// colours the tap plus its extras float.
+	s.fillTapAnyCol(k, p, sl, play, 0, 0)
 	if forced > 0 {
 		s.forceAnyColAnswers(forced) // the search's answers to the triggers' colour asks (tapAnyColAsks)
 	}
@@ -935,6 +940,9 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
 	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
 		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
+		if forced == 0 {
+			s.fillTapAnyCol(k, p, sl, play, pcol, 1)
+		}
 		s.pl[p].pool[pcol]++
 		s.addExtraCol(k, p, sl, pc, pcol) // the tap's StatTapExtra mana floats beside it, of the pick this tap made (CR 106.12a)
 		s.artTag(k, p, sl, pcol)
@@ -945,6 +953,9 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 		mask &= mask - 1
 	}
 	col := bits.TrailingZeros8(mask)
+	if forced == 0 {
+		s.fillTapAnyCol(k, p, sl, play, col, int(max(pc.manaN, 1)))
+	}
 	s.pl[p].pool[col] += max(pc.manaN, 1) // a several-mana fixed-colour tap floats all of it (tapsDeferYield)
 	// the tap's StatTapExtra mana floats beside it, the pick-priced reflection
 	// one more of the pick this float names (CR 106.12a; addExtra stalls on it,
@@ -1138,10 +1149,22 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 	if deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w, false) {
 		return true
 	}
-	if !w.limited {
-		return false
+	if w.limited && s.deferSubsume(k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut) {
+		return true
 	}
-	return s.deferSubsume(k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut)
+	if s.tapAnyColDeferExtra(k, tapsDef) {
+		// The extra's first answer (anyColFirst) priced nothing: gorge's search
+		// goes on to the answers that pay what the play owes (anyColOwed). The
+		// flag stays set on a found line: the caller's replay of its taps
+		// floats the same answers, and clears it.
+		s.setAnyColOwedRun(true)
+		var w2 deferGapScratch
+		if deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, &w2, false) {
+			return true
+		}
+		s.setAnyColOwedRun(false)
+	}
+	return false
 }
 
 // deferSubsume is gorge's subsume run (potentialPrefixScript's third search,
