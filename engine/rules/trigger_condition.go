@@ -368,11 +368,11 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
-	if v, ok := t.Param(cards.PKManaNotSpent); ok && !e.manaColourSpendHolds(source, tc, "", v) {
-		return false
-	}
-	if v, ok := t.Param(cards.PKManaSpent); ok && !e.manaColourSpendHolds(source, tc, v, "") {
-		return false
+	gates, n := triggerSpendGates(t)
+	for _, g := range gates[:n] {
+		if !e.manaColourSpendHolds(source, tc, g.spent, g.notSpent) {
+			return false
+		}
 	}
 	if v, ok := t.Param(cards.PKAdamant); ok {
 		// Adamant$ on a trigger is an intervening-if (CR 603.4): reuse
@@ -475,6 +475,31 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		return false
 	}
 	return true
+}
+
+// spendGate is one ManaSpent$ / ManaNotSpent$ pair a trigger's spend gate
+// checks through manaColourSpendHolds.
+type spendGate struct{ spent, notSpent string }
+
+// triggerSpendGates lists a trigger's spend gates: the line's own
+// ManaNotSpent$ and ManaSpent$ clauses, then the self-ETB body's
+// ConditionManaSpent$ intervening-if (CR 603.4,
+// effects.SelfETBInterveningManaSpent). A fixed array, so the trigger
+// check allocates nothing.
+func triggerSpendGates(t cards.Trigger) (gates [3]spendGate, n int) {
+	if v, ok := t.Param(cards.PKManaNotSpent); ok {
+		gates[n] = spendGate{notSpent: v}
+		n++
+	}
+	if v, ok := t.Param(cards.PKManaSpent); ok {
+		gates[n] = spendGate{spent: v}
+		n++
+	}
+	if spent, notSpent, ok := effects.SelfETBInterveningManaSpent(t); ok {
+		gates[n] = spendGate{spent, notSpent}
+		n++
+	}
+	return gates, n
 }
 
 // manaColourSpendHolds evaluates a trigger's ManaSpent$ / ManaNotSpent$
