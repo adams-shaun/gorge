@@ -5,9 +5,9 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// ledgerCastFaceCopy returns a detached copy of o showing the spell face the
-// PutOnStack at log[i] cast, when that face is no longer the one o shows;
-// nil when o shows its cast face (or the cast was an ordinary one).
+// ledgerCastFace reports the spell face the PutOnStack at log[i] cast, when
+// that face is no longer the one o shows; ok is false when o shows its cast
+// face (or the cast was an ordinary one).
 //
 // CR 715.3b: "While on the stack as an Adventure, the spell has only its
 // alternative characteristics"; CR 720.3 gives an Omen cast the same. Once
@@ -19,15 +19,16 @@ import (
 // copies, XMage's SpellsCastWatcher holds the Spell objects). The cast face
 // is read from the cast's own pay-time CastInfo (FlagAdventure, FlagOmen),
 // which sits below the push and before any later zone change of the card.
-// The copy is a read-only hypothetical for the filter match; it never
-// reaches the game state.
-func ledgerCastFaceCopy(log []events.Event, i int, o *state.Object) *state.Object {
+// The caller matches through effects.MatchesSpecAsFace, the read the
+// OnlyFirstSpell$ ledger (statics_altcost.go) takes for an Adventure half.
+// dirac mirrors it with castRingMatchPush (dirac/cast_castledger.go).
+func ledgerCastFace(log []events.Event, i int, o *state.Object) (faceIdx uint8, ok bool) {
 	if o == nil || o.FaceIdx != 0 || o.CopyFace != nil {
-		return nil
+		return 0, false
 	}
 	adventure, omen := adventureSpellFace(o) != nil, omenSpellFace(o) != nil
 	if !adventure && !omen {
-		return nil
+		return 0, false
 	}
 	var flags uint64
 	for j := i + 1; j < len(log); j++ {
@@ -44,9 +45,7 @@ func ledgerCastFaceCopy(log []events.Event, i int, o *state.Object) *state.Objec
 		}
 	}
 	if adventure && flags&state.FlagAdventure == 0 || omen && flags&state.FlagOmen == 0 {
-		return nil
+		return 0, false
 	}
-	cp := *o
-	cp.SetFaceIdx(1)
-	return &cp
+	return 1, true
 }

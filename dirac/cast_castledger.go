@@ -63,6 +63,10 @@ const (
 
 	// castReversedPush: the cast was reversed (CR 733.1), and no count reads it.
 	castReversedPush uint8 = 32
+
+	// castOmenPush: the push was an Omen card's Omen half (CR 720.3), read
+	// as that half by castRingMatchPush once the card has left the stack.
+	castOmenPush uint8 = 64
 )
 
 // castPushes is player p's pushes this turn. A table with no reader has no ring.
@@ -188,7 +192,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 				continue
 			}
 			if x.N&(kop.CastSpecCtrlTrig|kop.CastSpecTypes) != 0 {
-				if s.castRingCountHeadsMatch(k, x, o, ctx, &tm) && x.N&kop.CastSpecTypes == 0 {
+				if s.castRingCountHeadsMatch(k, x, r, ctx, &tm) && x.N&kop.CastSpecTypes == 0 {
 					n++
 				}
 				continue
@@ -199,7 +203,13 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 				}
 				continue
 			}
-			if s.castRingMatch(k, x.F, o, ctx) {
+			if x.N&kop.CastSpecAsCast != 0 {
+				if s.castRingMatch(k, x.F, o, ctx) { // gorge onlyFirstSpellUsed: an Omen push reads its card now
+					n++
+				}
+				continue
+			}
+			if s.castRingMatchPush(k, x.F, r, ctx) {
 				n++
 			}
 		}
@@ -216,7 +226,7 @@ func (s *State) thisTurnCastSpec(k *prep, x *kop.Expr, ctx evalCtx) int {
 func (s *State) castPushesMatching(k *prep, f kop.FilterID, caster uint8, l trigListener) int {
 	n := 0
 	for _, r := range s.castPushes(caster) {
-		if r.prov&castReversedPush == 0 && s.castRingMatch(k, f, r.obj-1, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
+		if r.prov&castReversedPush == 0 && s.castRingMatchPush(k, f, r, evalCtx{src: l.obj, srcSl: l.sl, ctrl: l.ctrl}) {
 			n++
 		}
 	}
@@ -250,6 +260,19 @@ func (s *State) castRingMatch(k *prep, f kop.FilterID, o Obj, ctx evalCtx) bool 
 		return false
 	}
 	return s.matchCardEntered(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.src)
+}
+
+// castRingMatchPush is the ledger's per-push match (gorge castsThisTurnMatching):
+// a push of an Adventure or Omen half whose card has left the stack is read
+// as that half, the characteristics it was cast with (CR 715.3b, 720.3; gorge
+// ledgerCastFace + MatchesSpecAsFace), not the normal face it shows now (CR
+// 715.4, 720.4); every other push is castRingMatch.
+func (s *State) castRingMatchPush(k *prep, f kop.FilterID, r castPush, ctx evalCtx) bool {
+	o := r.obj - 1
+	if ob := &s.objs[o]; r.prov&(castAdventurePush|castOmenPush) != 0 && ob.zone != kop.ZoneStack && !s.ceasedCopy(ob) {
+		return s.castRingMatchAdventure(k, f, o, ctx)
+	}
+	return s.castRingMatch(k, f, o, ctx)
 }
 
 // castRingMatchAdventure is castRingMatch for a push of an Adventure half:
