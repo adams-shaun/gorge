@@ -37,6 +37,14 @@ func (lc *lowerCtx) moveFaceDown(ps *params, dest int) (ok bool, err error) {
 	return true, nil
 }
 
+// faceDownAfter emits the ExileFaceDown instruction after a move moveFaceDown
+// accepted.
+func (lc *lowerCtx) faceDownAfter(fd bool) {
+	if fd {
+		lc.emit(lInstr{Op: "ExileFaceDown", Note: "the moved cards are exiled face down"})
+	}
+}
+
 // opExileFaceDown is the kop form: OpExt ExtExileFaceDown.
 func (ic *instrCtx) opExileFaceDown() error {
 	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtExileFaceDown))
