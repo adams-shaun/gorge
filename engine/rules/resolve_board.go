@@ -11,6 +11,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/resolve"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -79,8 +80,12 @@ func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
 	return e.tape.Answer(asResolve(e), d)
 }
 
-// TapeUnwinding implements effects' tapeUnwinding seam.
-func (e *Engine) TapeUnwinding() bool { return e.tape.Unwinding() }
+// TapeRun implements effects' tapeRunSeam: whether the tape is unwinding, and
+// the harness's forced coin-flip results (CoinFlipHook, nil in every live
+// game).
+func (e *Engine) TapeRun() effects.TapeRun {
+	return effects.TapeRun{Unwinding: e.tape.Unwinding(), ForcedCoinFlip: e.CoinFlipHook}
+}
 
 // SetTapeAnswerer installs (nil removes) e's synchronous answerer: an engine
 // whose every seat is a policy answers a converted mid-resolution ask inline,

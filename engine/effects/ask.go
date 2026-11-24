@@ -2,6 +2,7 @@ package effects
 
 import (
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // OnlyEmptyAnswer reports whether d's ONLY legal answer is the empty one:
@@ -58,11 +59,45 @@ func askCount(h Host) uint64 {
 	return 0
 }
 
+// TapeRun is the state of a run that may replay recorded results rather than
+// draw them live, read through the optional tapeRunSeam.
+//
+// Unwinding reports whether the tape run is unwinding at a posed ask.
+//
+// ForcedCoinFlip, when non-nil, is a random coin flip's recorded result for
+// flipper p (the oracle runner replaying a lowered scenario's coin_flips,
+// CR 705.1: the result is random, so only a forced result makes two runs
+// agree); forced=false draws from the seeded RNG as always.
+type TapeRun struct {
+	Unwinding      bool
+	ForcedCoinFlip func(p state.PlayerID) (win, forced bool)
+}
+
+// tapeRunSeam is the optional host seam exposing TapeRun.
+type tapeRunSeam interface {
+	TapeRun() TapeRun
+}
+
+// tapeRunOf is h's tape-run state, the zero TapeRun for a host without the
+// seam (the test doubles).
+func tapeRunOf(h Host) TapeRun {
+	if u, ok := h.(tapeRunSeam); ok {
+		return u.TapeRun()
+	}
+	return TapeRun{}
+}
+
 // tapeUnwinding reports whether h's tape run is unwinding at a posed ask. A
 // deferred close that would log checks it (resolve.Kernel.Unwinding).
-func tapeUnwinding(h Host) bool {
-	u, ok := h.(interface{ TapeUnwinding() bool })
-	return ok && u.TapeUnwinding()
+func tapeUnwinding(h Host) bool { return tapeRunOf(h).Unwinding }
+
+// forcedCoinFlip is h's recorded result for p's next random flip; forced is
+// false for a host with nothing recorded.
+func forcedCoinFlip(h Host, p state.PlayerID) (win, forced bool) {
+	if f := tapeRunOf(h).ForcedCoinFlip; f != nil {
+		return f(p)
+	}
+	return false, false
 }
 
 // eventMarker is the optional host seam exposing the event log's length and
