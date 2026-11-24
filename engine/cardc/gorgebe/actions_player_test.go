@@ -210,7 +210,7 @@ func TestAddMana(t *testing.T) {
 		}, col(g)), want: kvs("Produced", "G", "Amount", "N")},
 		{name: "any colour", step: mana(nil, col(w|u|b|r|g)), want: kvs("Produced", "Any")},
 		{name: "any colour N", step: mana(func(s *ir.Step) { s.N = refTestVal(2) }, col(w|u|b|r|g)), want: kvs("Produced", "Any", "Amount", "2")},
-		{name: "combo", step: mana(nil, col(r|w)), want: kvs("Produced", "Combo W R")},
+		{name: "combo", step: mana(nil, col(r|w)), want: kvs("Produced", "Combo R W")},
 		{name: "combo of four", step: mana(nil, col(g|u|b|r)), want: kvs("Produced", "Combo U B R G")},
 		{name: "distinct colours", step: mana(nil, col(u), col(b), col(r)), want: kvs("Produced", "U B R")},
 		{name: "distinct with colourless", step: mana(nil, sym(ir.ManaColorless, 0), col(g)), want: kvs("Produced", "C G")},
