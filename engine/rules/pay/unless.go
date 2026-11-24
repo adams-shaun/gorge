@@ -81,12 +81,20 @@ func CostAnnouncesSacX(c costvocab.Cost) bool {
 // Tide's SVar:X:PlayerCountOpponents$Amount -- "exile cards from your
 // graveyard equal to the number of opponents you have"), so the part
 // becomes an ordinary N-card graveyard exile and xAsk poses no X for it.
+//
+// A whole-pile SubCounter<All/Kind> part (Dyn SubCounterAll) is fixed first,
+// to the counters of Kind on the source now (fixSubCounterAll): the removal
+// is a non-mana cost (CR 118.3) and zero counters is a legal payment.
 func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) (costvocab.Cost, bool) {
 	if !CostHasSVarX(c) {
 		return c, true
 	}
 	o := e.Game().Obj(id)
 	if o == nil || o.Face() == nil {
+		return c, true
+	}
+	c = fixSubCounterAll(o, c)
+	if len(c.LifeX) == 0 && !announcesGraveExileX(c) {
 		return c, true
 	}
 	body, present := o.Face().SVars["X"]
@@ -129,11 +137,38 @@ func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) 
 	return out, true
 }
 
-// CostHasSVarX reports whether c carries a part whose count SVar:X may fix
-// (FixLifeXCost's input): a PayLife<X> part or an announced
-// ExileFromGrave<X/Spec> part.
+// CostHasSVarX reports whether c carries a part whose count FixLifeXCost
+// fixes: a PayLife<X> part, an announced ExileFromGrave<X/Spec> part or a
+// whole-pile SubCounter<All/Kind> part.
 func CostHasSVarX(c costvocab.Cost) bool {
-	return len(c.LifeX) != 0 || announcesGraveExileX(c)
+	return len(c.LifeX) != 0 || announcesGraveExileX(c) || hasSubCounterAll(c)
+}
+
+func hasSubCounterAll(c costvocab.Cost) bool {
+	for _, part := range c.SubCounter {
+		if part.Dyn == costvocab.SubCounterAll {
+			return true
+		}
+	}
+	return false
+}
+
+// fixSubCounterAll turns each SubCounter<All/Kind> part into the fixed
+// removal of the counters of Kind the source o holds now (the parse admits
+// only the source-anchored form), clearing Dyn so the fix is idempotent.
+func fixSubCounterAll(o *state.Object, c costvocab.Cost) costvocab.Cost {
+	if !hasSubCounterAll(c) {
+		return c
+	}
+	// A fresh slice: c.SubCounter may alias the compiled (cached) cost.
+	c.SubCounter = append([]costvocab.CostPart(nil), c.SubCounter...)
+	for i := range c.SubCounter {
+		if part := &c.SubCounter[i]; part.Dyn == costvocab.SubCounterAll {
+			part.N = max(o.Counter(part.Spec), 0)
+			part.Dyn = ""
+		}
+	}
+	return c
 }
 
 // isGraveExileX is an announced ExileFromGrave<X/Spec> part (the
