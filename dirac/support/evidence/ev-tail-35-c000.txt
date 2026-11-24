@@ -223,6 +223,7 @@ Mordenkainen's Polymorph
 More of That Strange Oil...
 Mountain
 Mountain Valley
+Mtenda Herder
 Myojin of Cleansing Fire
 Myr Galvanizer
 Mystic Zealot
@@ -260,6 +261,7 @@ Prey's Vengeance
 Primal Cocoon
 Primal Order
 Primeval Titan
+Pristine Talisman
 Profane Tutor
 Prohibit
 Pursue Glory
