@@ -27,7 +27,7 @@ type costPart struct {
 var restrictedCostParts = [...]costPart{
 	{"an announced X cost", func(c lCost) bool { return c.XMin != 0 }},
 	{"a self-sacrifice", func(c lCost) bool { return c.SacSelf }},
-	{"a life payment", func(c lCost) bool { return c.PayLife > 0 || c.LifeX || c.LifeBy != nil }},
+	{"a life payment", func(c lCost) bool { return c.PayLife > 0 || c.LifeX || c.LifeBy != nil || c.LifeIdent }},
 	{"a counter cost", func(c lCost) bool { return c.SubCtr != 0 || c.SubCtrX || c.SubAmongN != 0 }},
 	{"a sacrifice of another permanent", func(c lCost) bool { return c.Sac != nil || c.SacN != 0 || c.SacX }},
 	{"a tap of another permanent", func(c lCost) bool { return c.TapN != 0 || c.TapXVar || c.TapHost }},

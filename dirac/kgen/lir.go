@@ -772,6 +772,7 @@ type lCost struct {
 	PayLife        int
 	LifeX          bool    // PayLife<X>: pay the announced X life, SVar X Count$xPaid (kop.CostPayLife with N 0)
 	LifeBy         *lValue // PayLife<X> of a printed trigger's own cost, X read as the cost is paid (SVar X TriggeredCard$CardPower; payInstr)
+	LifeIdent      bool    // PayLife<X> of an activated ability's cost, SVar X Count$ColorsColorIdentity: the colours of the payer's commanders' identity (kop.Cost.LifeIdent; lower_lifeident.go)
 	TapN           int     // tap N untapped creatures you control matching TapF
 	TapF           *lFilter
 	TapHost        bool // tap the granting host (tapXType<1/OriginalHost>)
@@ -826,7 +827,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
@@ -1071,6 +1072,7 @@ type lAbility struct {
 	Loyalty         bool
 	Exhaust         bool    // Exhaust$ True (CR 702.177a): the AbilityCast class test (kop.Ability.Exhaust)
 	CantCopy        bool    // CantCopy$ True: "this ability can't be copied" (kop.Ability.CantCopy)
+	CmdOnly         bool    // ActivationGameTypes$ naming Commander: offered only in a Commander game (kop.Ability.CmdOnly; lower_lifeident.go)
 	Limit           int     // activations per game (0 = unlimited)
 	Once            int     // the ordinal among the card's activate-only-once abilities (1..3; 0 = none)
 	EvidenceTargets bool    // CollectEvidence<X> with SVar:X AllTargeted$CardManaCost (a spell's mandatory additional cost; kop.EvidenceTargetsMV)

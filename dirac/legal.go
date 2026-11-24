@@ -646,8 +646,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if f&kop.CostSubAmong != 0 && s.subAmongTotal(k, p.ctrl, &a.Cost, sl) < int(a.Cost.N) {
 		return false // kw_training.go
 	}
-	if !s.costTokenPartsPayable(k, p.ctrl, p.obj, &a.Cost) {
-		return false // cost_millcost.go: life, CR 701.17b's library, CR 201.5's self-reveal
+	if !s.actTokenPartsPayable(k, p.ctrl, p.obj, a) {
+		return false // cost_millcost.go: life, CR 701.17b's library, CR 201.5's self-reveal; cost_lifeident.go: the Commander-only gate
 	}
 	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p.ctrl, &a.Cost, NoObj) {
 		return false // cost_discardfiltered.go
