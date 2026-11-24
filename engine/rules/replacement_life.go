@@ -284,6 +284,7 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	kind := ""
 	for _, m := range cands {
 		op, ok := e.replaceCountOp(m.id, m.repl, name)
+		code, _ := cards.SplitCountOp(op)
 		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op) && lifeReplIsDamageOnly(m.repl)
 		if m.repl.ParamStr(cards.PKResult) != "" && !floor {
 			return false
@@ -294,9 +295,9 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 			k = "floor"
 		case m.repl.Event == "GainLife" && lifeReplPrevents(m.repl):
 			k = "prevent"
-		case ok && op == "/Twice":
+		case ok && code == cards.CountOpTwice:
 			k = "twice"
-		case ok && strings.HasPrefix(op, "/Plus."):
+		case ok && code == cards.CountOpPlus:
 			k = "plus"
 		default:
 			return false
