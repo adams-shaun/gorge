@@ -17,22 +17,20 @@ import (
 // W7InZone arm covers both spellings.
 
 func init() {
+	fwName[kop.FwSuspended] = "FwSuspended"
 	fwName[kop.FwTopLibrary] = "FwTopLibrary"
 	fwName[kop.FwDoubleFaced] = "FwDoubleFaced"
 	fwName[kop.FwBasePowerCmp] = "FwBasePowerCmp"
 	fwName[kop.FwBaseToughnessCmp] = "FwBaseToughnessCmp"
 
-	// suspended is NOT lowered: gorge's word read (wordSuspended,
-	// engine/effects/filter_word.go:919) is the per-object
-	// CastFlags&FlagSuspend provenance, which the kernel keeps only as the
-	// DurSuspend mayPlay record -- consumed at the final-counter ask
-	// (kw_suspend.go applySuspendAnswer), shared with the spell-exile path
-	// (suspendExiled, where gorge's word read is false), and fed to its cast
-	// ask only by the upkeep tick, where gorge's queue is fed by every
-	// TIME-counter removal (engine/rules/turn.go:520, emit.go:457). A
-	// faithful read needs a persistent per-object provenance bit and the
-	// removal-fed ask queue (the FwSuspended follow-up ticket); the
-	// suspension lockstep names the divergences the lowered carriers reach.
+	// suspended: gorge's compiled `suspended` read (predicates["suspended"],
+	// engine/effects/filter.go:637, consulted before wordSuspended): in
+	// exile with a positive time counter, a Suspend card. The kernel reads
+	// the card's DurSuspend record (dirac/filter_suspended.go). Its manifest
+	// context is "card": a battlefield or stack matcher refuses it.
+	fwArms["suspended"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSuspended})
+	}
 	// TopLibrary: gorge wordTopLibrary (filter_word.go:887), the top card of
 	// its owner's library. Only the bare spelling lowers: gorge reads no
 	// argument of it, and TopGraveyard*/TopLibrary2 have no reader at all

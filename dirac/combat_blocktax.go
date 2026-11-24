@@ -96,13 +96,15 @@ func blkTaxFloorPart(c *kop.CardDef) bool {
 	return false
 }
 
-// blkTaxFloorStatic: a lure static, or a continuous static granting menace.
+// blkTaxFloorStatic: a lure or must-block static, or a continuous static
+// granting menace.
 func blkTaxFloorStatic(a *kop.Ability) bool {
-	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatLure || a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwMenace != 0)
+	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatLure || a.Static.Kind == kop.StatMustBlock || a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwMenace != 0)
 }
 
 // blkTaxFloorInstr: an instruction granting menace (a keyword grant, a menace
-// counter, a suspect) or a block duty (must-be-blocked, a lure, blocks-if-able).
+// counter, a suspect) or a block duty (must-be-blocked, a lure, blocks-if-able,
+// a creature that blocks the resolving source if able).
 func blkTaxFloorInstr(in *kop.Instr) bool {
 	switch in.Op {
 	case kop.OpGrantKeyword:
@@ -116,7 +118,7 @@ func blkTaxFloorInstr(in *kop.Instr) bool {
 			ks, n := in.PutCtrChoiceKinds()
 			return slices.Contains(ks[:n], uint8(kop.CtrMenace))
 		}
-		return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtSuspect
+		return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtMustBlock || in.Ext() == kop.ExtSuspect
 	}
 	return false
 }

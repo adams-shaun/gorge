@@ -258,7 +258,10 @@ func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *
 
 // lifeReplacementsCommute reports whether every order of cands yields the same
 // event: all prevent the gain, all double, or all add a constant, and none
-// gates its own applicability on the running amount (Result$).
+// gates its own applicability on the running amount (Result$) -- except the
+// damage floors (Worship, Ali from Cairo: Result$ LT<n> with a LimitMax
+// body), whose gates compose to the larger floor in every order, so two of
+// them never need the order ask.
 func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) bool {
 	name := "Amount"
 	if ev.Kind == events.LifeChange && ev.Amount > 0 {
@@ -266,11 +269,15 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	}
 	kind := ""
 	for _, m := range cands {
-		if m.repl.ParamStr(cards.PKResult) != "" {
+		op, ok := e.replaceCountOp(m.id, m.repl, name)
+		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op)
+		if m.repl.ParamStr(cards.PKResult) != "" && !floor {
 			return false
 		}
 		k := ""
-		switch op, ok := e.replaceCountOp(m.id, m.repl, name); {
+		switch {
+		case floor:
+			k = "floor"
 		case m.repl.Event == "GainLife" && strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True"):
 			k = "prevent"
 		case ok && op == "/Twice":
@@ -286,6 +293,14 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		kind = k
 	}
 	return true
+}
+
+// isLifeFloor reports a damage floor's gate and body: Result$ LT<n> over a
+// ReplaceCount$ ...LimitMax. clamp (Worship, Ali from Cairo).
+func isLifeFloor(result, op string) bool {
+	const lt, limit = "LT", "/LimitMax."
+	return len(result) > len(lt) && result[:len(lt)] == lt &&
+		len(op) > len(limit) && op[:len(limit)] == limit
 }
 
 // applyLifeReplacement applies one chosen replacement to ev. It returns the

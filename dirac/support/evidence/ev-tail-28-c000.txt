@@ -2,6 +2,7 @@ A-Asari Captain
 A-Celestial Regulator
 A-Cobbled Lancer
 A-Falcon Abomination
+A-Lier, Disciple of the Drowned
 A-Manticore
 A-Ready to Rumble
 A-Tenured Inkcaster
@@ -257,6 +258,7 @@ Masterwork of Ingenuity
 Maw of the Mire
 Meekstone
 Melancholy
+Melek, Izzet Paragon
 Merchant of Truth
 Merciless Repurposing
 Merrow Reejerey

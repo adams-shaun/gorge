@@ -1635,25 +1635,30 @@ const FwSharesName FilterWord = 13
 // FwSubtype: the object has subtype index Arg (Table.Subtypes; PredSubtype, Filter.Sub). A face-down object has none (CR 708.2).
 const FwSubtype FilterWord = 14
 
+// FilterWord (dirac/manifest/FilterWord/FwSuspended)
+//
+// FwSuspended: the candidate is a suspended card -- in exile with a positive time counter, a Suspend card (gorge's compiled `suspended` read, predicates["suspended"] at engine/effects/filter.go:637, which the matcher consults before wordSuspended; the kernel reads the card's DurSuspend record, kw_suspend.go suspendTime); a card whose last counter went, or that is anywhere but exile, reads false.
+const FwSuspended FilterWord = 15
+
 // FilterWord (dirac/manifest/FilterWord/FwTapped)
 //
 // FwTapped: the battlefield permanent is tapped (FTapped). An object off the battlefield fails closed.
-const FwTapped FilterWord = 15
+const FwTapped FilterWord = 16
 
 // FilterWord (dirac/manifest/FilterWord/FwTopLibrary)
 //
 // FwTopLibrary: the candidate is the top card of its owner's library (gorge wordTopLibrary, engine/effects/filter_word.go:887: index 0 of the owner's library slice); a card deeper in the library, or one not in a library, reads false.
-const FwTopLibrary FilterWord = 16
+const FwTopLibrary FilterWord = 17
 
 // FilterWord (dirac/manifest/FilterWord/FwToughnessCmp)
 //
 // FwToughnessCmp: the object's current toughness compares to V by Op, as FwPowerCmp reads power (PredToughnessLE).
-const FwToughnessCmp FilterWord = 17
+const FwToughnessCmp FilterWord = 18
 
 // FilterWord (dirac/manifest/FilterWord/FwWithKeyword)
 //
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
-const FwWithKeyword FilterWord = 18
+const FwWithKeyword FilterWord = 19
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

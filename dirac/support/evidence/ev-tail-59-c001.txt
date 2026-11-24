@@ -353,6 +353,7 @@ Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
 Practiced Tactics
+Pride of Lions
 Prismari Pianist
 Psychotic Fury
 Pyrohemia
@@ -530,6 +531,7 @@ Withstand
 Witty Roastmaster
 Wizard Replica
 Wizard's Staff
+Wolverine, Claws Out
 Wonder
 Words of Wisdom
 Workshop Elders
