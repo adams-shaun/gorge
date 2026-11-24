@@ -44,42 +44,70 @@ func (s *State) dmgMinusN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rc
 			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageMinus {
 				continue
 			}
-			r := &a.Repl
-			if r.C&kop.ReplDmgSrcSpell != 0 && (srcSl != NoSlot || s.res.e.kind != seSpell) {
-				continue // the source is the resolving spell (ValidSource$ Spell)
-			}
-			if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat {
+			if !s.dmgMinusMatch(k, &a.Repl, h, hc, srcSl, rcp, sl, combat) {
 				continue
-			}
-			if r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
-				continue
-			}
-			switch {
-			case sl == NoSlot:
-				if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
-					continue // the recipient is no player the line names
-				}
-			default:
-				// the recipient is a permanent at sl: any named word or the
-				// filter alternative (gorge's ValidTarget$ alternatives are
-				// one big OR)
-				ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
-				if !ok && r.Filter != 0 {
-					ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
-				}
-				if !ok {
-					continue
-				}
 			}
 			hits++
-			if n > int(r.A) {
-				n -= int(r.A) // CR 614.1: the rewrite replaces the event's amount
+			if n > int(a.Repl.A) {
+				n -= int(a.Repl.A) // CR 614.1: the rewrite replaces the event's amount
 			} else {
 				n = 0
 			}
 		}
 	}
 	return n, hits
+}
+
+// dmgMinusMatch reports whether the minus line r of host h (controlled by hc)
+// matches an event from srcSl (NoSlot: the resolving spell) dealt to the
+// player rcp (sl NoSlot) or the permanent at sl: dmgMinusN's per-line read,
+// shared with the combat order walk's candidate collector (replOrderCandsSeat).
+func (s *State) dmgMinusMatch(k *prep, r *kop.Repl, h Slot, hc uint8, srcSl Slot, rcp uint8, sl Slot, combat bool) bool {
+	if r.C&kop.ReplDmgSrcSpell != 0 && (srcSl != NoSlot || s.res.e.kind != seSpell) {
+		return false // the source is the resolving spell (ValidSource$ Spell)
+	}
+	if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat {
+		return false
+	}
+	if r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
+		return false
+	}
+	switch {
+	case sl == NoSlot:
+		if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
+			return false // the recipient is no player the line names
+		}
+	default:
+		// the recipient is a permanent at sl: any named word or the
+		// filter alternative (gorge's ValidTarget$ alternatives are
+		// one big OR)
+		ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
+		if !ok && r.Filter != 0 {
+			ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// dmgMinusCand reports whether the permanent at h carries a ReplDamageMinus
+// line that matches a combat event from srcSl to player rcp (sl NoSlot) or the
+// permanent at sl: the combat order walk's candidate collector's read of
+// dmgMinusN (replOrderCandsSeat).
+func (s *State) dmgMinusCand(k *prep, h, srcSl Slot, rcp uint8, sl Slot) bool {
+	if k.gen.replBits2[s.cardAt(h)]&rb2DmgMinus == 0 || s.genLost(k, h) || s.faceDown(k, h) {
+		return false
+	}
+	cd := &k.t.Cards[s.cardAt(h)]
+	for i := range cd.Abilities {
+		if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDamageMinus &&
+			s.dmgMinusMatch(k, &a.Repl, h, s.perms[h].ctrl, srcSl, rcp, sl, true) {
+			return true
+		}
+	}
+	return false
 }
 
 // DebugDmgSetOff skips the set rewrite (the mutation: the kernel deals the
@@ -158,9 +186,11 @@ func (s *State) dmgSetN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp 
 // plus-N competition's cap). Two minus lines commute (their sum, floored), but
 // gorge asks their order all the same (applyDamageClassReplacements poses the
 // ask for every two or more matches that are not bare preventions), so the
-// kernel stalls there too rather than deal the damage without the ask.
-func (s *State) dmgRewriteClash(minus, set, doublers int) {
-	if minus >= 2 || set >= 2 || set == 1 && minus+doublers > 0 || minus > 0 && doublers > 0 {
+// kernel stalls there too rather than deal the damage without the ask. A
+// combat event the order walk collects (ordered: replOrderCandsSeat) is the
+// exception: the walk poses the same no-op ask, so only other pairs stall.
+func (s *State) dmgRewriteClash(minus, set, doublers int, ordered bool) {
+	if minus >= 2 && !ordered || set >= 2 || set == 1 && minus+doublers > 0 || minus > 0 && doublers > 0 {
 		s.capFull(StallReplPlus)
 	}
 }
