@@ -259,6 +259,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.speedOf(ctx.ctrl) // kw_speed.go
 	case kop.ExDevotion:
 		return s.devotion(k, kop.ColorMask(x.N), ctx.ctrl)
+	case kop.ExDevotionChosen:
+		return s.exDevotionChosen(k, ctx) // act_chosencolor.go
 	case kop.ExValidAgg:
 		return s.validAgg(k, x, ctx)
 	case kop.ExGraveAgg:

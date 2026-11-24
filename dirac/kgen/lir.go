@@ -249,6 +249,7 @@ const (
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
 	vCmdCastTotal        // the controller's casts of its own commanders from the command zone (kop.ExTotalCommanderCastFromCommandZone; value_cmdcast.go)
+	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vCount_
 )
@@ -368,6 +369,7 @@ var valNames = [...]string{
 	vDmgOppsTaken:        "DmgOppsTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vSVarNum:             "SVarNum",
+	vDevotionChosen:      "DevotionChosen",
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
 	vVoteTally:           "VoteTally",
