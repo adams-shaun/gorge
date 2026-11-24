@@ -117,8 +117,8 @@ func TestRealityFractureGap2ClassCensus(t *testing.T) {
 	if len(bad) > 0 {
 		t.Errorf("class carriers with an unread shape:\n  %s", strings.Join(bad, "\n  "))
 	}
-	if len(props) != 3 || len(negate) != 1 || len(zero) != 1 {
-		t.Errorf("carrier counts moved (re-census the new shapes): noncombat-damage readers %d (want 3) %v, NegatePower %d (want 1) %v, zero-loyalty exemption %d (want 1) %v",
+	if len(props) != 3 || len(negate) != 2 || len(zero) != 1 {
+		t.Errorf("carrier counts moved (re-census the new shapes): noncombat-damage readers %d (want 3) %v, NegatePower %d (want 2) %v, zero-loyalty exemption %d (want 1) %v",
 			len(props), props, len(negate), negate, len(zero), zero)
 	}
 	t.Logf("census: %d noncombat-damage-history readers %v, %d CombatDamageNegatePower %v, %d IgnorePlaneswalkerZeroLoyaltyRule %v; 0 unread class params",
