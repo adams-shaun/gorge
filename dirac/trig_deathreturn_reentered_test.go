@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -17,7 +16,7 @@ import (
 // 148, Kaya's Ghostform returning Bushmeat Poacher).
 func TestDeathReturnIgnoresReenteredCard(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Athreos, God of Passage", Count: 1}, {Name: "Bushmeat Poacher", Count: 1}, {Name: "Swamp", Count: 8}}
-	tbl, da, _, err := cardsettest.Synth(t, "dr-mbc-aabb").Matchup(deck, deck)
+	tbl, da, _, err := synthSet(t, "dr-mbc-aabb").Matchup(deck, deck)
 	if err != nil {
 		t.Fatal(err)
 	}
