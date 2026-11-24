@@ -170,3 +170,13 @@ func (s *State) condBlessing(ctrl uint8) bool {
 	}
 	return r
 }
+
+// tableHasFlashback reports whether some card prints flashback (kop.KwFlashback).
+func tableHasFlashback(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].Keywords&kop.KwFlashback != 0 {
+			return true
+		}
+	}
+	return false
+}

@@ -197,7 +197,41 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 // first-ability mask (mana_filterfirst.go) -- the gap arm this gate sits in is
 // empty there -- while a zero-mana-fee paid ability (a sacrifice, life or
 // tap-another cost) is admitted on the first pass and never drew mana.
+// fbpMemo is filtBoundPays' one-entry memo. scriptFilt runs about six times
+// a transition on a filter table, each pricing the same filters on the same
+// board with a full potential walk; the walk reads the objects (the touch
+// count), p's floating pool, the stack depth, the priority probe and the
+// non-object state sba's clean-scan key hashes (sbaFingerprint: turn, step,
+// lives, tallies), so an answer under the same key is the same answer.
+type fbpMemo struct {
+	ok, v   bool
+	sl      Slot
+	p, sp   uint8
+	mayAny  bool
+	pool    [kop.NumManaKinds]uint8
+	fp      [6]byte
+	tgtSelf Obj
+	pr      probe
+	touch   uint32
+	line    uint32 // the line of play (SetLine), folded
+}
+
 func (s *State) filtBoundPays(k *prep, p uint8, sl Slot) bool {
+	key := fbpMemo{ok: true, sl: sl, p: p, sp: s.sp, pool: s.pl[SeatIx(p)].pool, fp: s.sbaFingerprint(),
+		touch: s.touchN, tgtSelf: s.g.tgtSelf, pr: s.g.probe, mayAny: s.g.mayPlayAny, line: uint32(s.line ^ s.line>>32)}
+	if m := &s.g.fbp; m.ok {
+		key.v = m.v
+		if key == *m {
+			return m.v
+		}
+	}
+	key.v = s.filtBoundPaysWalk(k, p, sl)
+	s.g.fbp = key
+	return key.v
+}
+
+// filtBoundPaysWalk is filtBoundPays' walk.
+func (s *State) filtBoundPaysWalk(k *prep, p uint8, sl Slot) bool {
 	fee := s.filtFee(k, sl)
 	if fee <= 0 {
 		return true

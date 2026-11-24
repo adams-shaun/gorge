@@ -61,6 +61,9 @@ func (s *State) anyDifferentAbilityAt(k *prep, sl Slot) *kop.Ability {
 // anyDifferentAt reports whether the permanent at sl is an untapped, usable
 // source with the plain {T} AnyDifferent mana ability.
 func (s *State) anyDifferentAt(k *prep, sl Slot) bool {
+	if k.gen != nil && !k.gen.uses.has(useAnyDifferent) {
+		return false // no card of the table has the ability
+	}
 	pp := &s.perms[sl]
 	if pp.flags&pfTapped != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
 		return false
@@ -75,8 +78,8 @@ func (s *State) anyDifferentAt(k *prep, sl Slot) bool {
 //go:noinline
 func (s *State) anyDifferentGaps(k *prep, p uint8) slotMask {
 	var m slotMask
-	if k.gen == nil {
-		return m
+	if k.gen == nil || !k.gen.uses.has(useAnyDifferent) {
+		return m // no card of the table has the ability (useAnyDifferent; anyDifferentAbilityAt reads the card's own)
 	}
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
@@ -96,7 +99,7 @@ func (s *State) anyDifferentGaps(k *prep, p uint8) slotMask {
 //
 //go:noinline
 func (s *State) anyDifferentOpen(k *prep, p uint8) bool {
-	if k.gen == nil {
+	if k.gen == nil || !k.gen.uses.has(useAnyDifferent) {
 		return false
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {

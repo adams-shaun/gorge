@@ -2542,7 +2542,9 @@ type genState struct {
 	tgtMV    [kop.MaxTargets]uint8
 	trigMVCd TCode
 	trigMV   uint8
-	rsv      [rsvN]uint8
+	// fbp: filtBoundPays' one-entry memo (mana_filter.go). Taken from rsv.
+	fbp fbpMemo
+	rsv [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2568,7 +2570,8 @@ const (
 	turnFBytes = int(unsafe.Sizeof(turnFT(0))) // genState.turnF, taken from rsv
 	// usedHostBytes: usedRec.host across the pool, taken from rsv
 	usedHostBytes = maxUsed * int(unsafe.Sizeof(Obj(0)))
-	dmgAmtN       = 4 // genState.dmgAmt: reader-card records (value_dmgamount.go)
+	fbpBytes      = int(unsafe.Sizeof(fbpMemo{})) + 3 // genState.fbp (mana_filter.go), plus the three pad bytes that align it after trigMV
+	dmgAmtN       = 4                                 // genState.dmgAmt: reader-card records (value_dmgamount.go)
 	dmgAmtBytes   = dmgAmtN * int(unsafe.Sizeof(dmgAmtRec{}))
 	// tgtMVBytes: genState's countered-spell MV snapshots (tgtMVCd, tgtMV,
 	// trigMVCd, trigMV), taken from rsv. rsvTgtMV grows the block by a whole
@@ -2587,7 +2590,7 @@ const (
 	// rsvExtra grows the block by the four bytes four seats' object-wide
 	// fields (sixteen-bit usedRec.host, turnF, the four-seat mana and emblem
 	// rows) need past that line.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes - fbpBytes
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

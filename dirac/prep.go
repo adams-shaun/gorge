@@ -168,6 +168,9 @@ type prep struct {
 	// (kop.Tf4StateCtr, trig_statectr.go): guards the outstanding gate on
 	// the counter-put path and the re-check at an instance's leave
 	anyStateCtr bool
+	// anyFbCard: some card prints flashback (kop.KwFlashback): with no
+	// grant either, priorityOptions skips its graveyard walk
+	anyFbCard bool
 	// anyRoom: some card is a two-door Room (kop.FaceRoom;
 	// face_rooms.go): guards the Room entry, leave and unlock paths
 	anyRoom bool
@@ -365,6 +368,7 @@ func prepare(t *kop.Table) *prep {
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
+	p.anyFbCard = tableHasFlashback(t)
 	p.unleash = tableHasUnleash(t)
 	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
