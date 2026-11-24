@@ -44,7 +44,7 @@ func TestCompileCharsLowering(t *testing.T) {
 			&ir.Card{Name: "B", Layout: ir.LayoutNormal, Faces: []*ir.Face{{
 				Name: "B", Types: []string{"Creature"}, Subtypes: []string{"Zzz"},
 				Power: &ir.PT{Star: true}, Toughness: &ir.PT{N: 1},
-				Refusals: []ir.Refusal{{Key: "Rule.CDA_Power", Path: "Rule.CDA_Power"}},
+				Refusals: []ir.Refusal{{Key: "GameNumber.Zzz", Path: "Rule.CDA_Power/GameNumber.Zzz"}},
 			}}}},
 		{"refused layout",
 			`{"_OracleCard":"Scheme","Name":"C",` + tl + `,"Rules":[]}`,
