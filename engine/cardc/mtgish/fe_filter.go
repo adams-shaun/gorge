@@ -62,7 +62,8 @@ var filtEnums = []filtEnum{
 			"HasACounterOfType HasAbility HasNoCountersOfType HasNumberCountersOfType IsArtifactType IsAttacking " +
 			"IsBlocking IsCardtype IsColor IsColorless IsCreatureType IsLandType IsNamed IsNonCardtype IsNonColor " +
 			"IsNonCreatureType IsNonEnchantmentType IsNonSupertype IsPermanent IsSupertype IsTapped IsUntapped " +
-			"ManaValueIs Or Other OwnedByAPlayer PowerIs Ref_TargetPermanents SinglePermanent ToughnessIs"},
+			"ManaValueIs Or Other OwnedByAPlayer PowerIs Ref_TargetPermanents SinglePermanent ToughnessIs " +
+			"WasKicked SurgeCostWasPaid OnTheBattlefield"},
 	{"Spells", ir.SubjSpell, zoneBit(ir.ZoneStack),
 		"And Or Other AnySpell DoesntHaveAbility HasAbility IsArtifactType IsCardtype IsColor IsColorless " +
 			"IsCreatureType IsNamed IsNonCardtype IsNonColor IsNonCreatureType IsNonSupertype IsPermanent " +
@@ -326,6 +327,9 @@ var filtRows = func() []filtRow {
 		named("DoesntHaveAbility", filtHasAbility(true)),
 		named("IsToken", filtPlain(ir.PToken, false)),
 		named("IsNonToken", filtPlain(ir.PToken, true)),
+		named("OnTheBattlefield", filtPlain(ir.PAny, false)),
+		named("WasKicked", filtPlain(ir.PKicked, false)),
+		named("SurgeCostWasPaid", filtPlain(ir.PSurged, false)),
 		named("IsTapped", filtPlain(ir.PTapped, false)),
 		named("IsUntapped", filtPlain(ir.PTapped, true)),
 		named("IsAttacking", filtPlain(ir.PAttacking, false)),

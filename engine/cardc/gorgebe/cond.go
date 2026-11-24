@@ -274,3 +274,16 @@ func (p *pr) mergeParams(c condForm, then, els *node, diff []string) bool {
 	}
 	return true
 }
+
+// battlefieldCount renders "there are n or more X on the battlefield" as the
+// IsPresent$/PresentCompare$ pair Forge puts on a static.
+func (p *pr) battlefieldCount(c *ir.Cond) ([]kv, error) {
+	if c.Kind != ir.CCountCompare || c.Filter == nil || c.Cmp == ir.CmpNone || !isConst(c.R) {
+		return nil, unprintable("cond:"+c.Kind.String(), c.Src)
+	}
+	v, err := p.valid(c.Filter)
+	if err != nil {
+		return nil, err
+	}
+	return withCmp([]kv{{"IsPresent", v}}, "PresentCompare", cmpWord(c.Cmp)+itoa(c.R.N)), nil
+}
