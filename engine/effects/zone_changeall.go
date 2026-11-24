@@ -529,13 +529,40 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				Text: "LibraryPosition$ " + position + " is not implemented; the cards sit at the BOTTOM of their owners' libraries (the MoveZone append)"})
 		}
 	}
-	if to == state.ZLibrary && shuffle {
+	if shuffle {
+		changeZoneAllShuffleTail(h, c, spec, from, to, placements, players, scoped, moved)
+	}
+	scheduleAtEOT(h, c, sa, moved)
+}
+
+// changeZoneAllShuffleTail runs a Shuffle$ True sweep's shuffle, after the
+// moves (CR 608.2c, the order written). Into a library it shuffles the
+// receiving libraries (changeZoneAllShuffleLibraries). Out of a library to
+// any other zone (Intuition, Gifts Ungiven: "... into your graveyard. Then
+// shuffle.") it shuffles each library a moved card left -- its owner's, the
+// library it was searched out of (CR 701.24a) -- in move order, the owners
+// Forge's ChangeZoneAllEffect shuffles for the swept cards.
+func changeZoneAllShuffleTail(h Host, c *Ctx, spec string, from []state.Zone, to state.Zone,
+	placements []ownerMoved, players []state.PlayerID, scoped bool, moved []state.ObjID) {
+	if to == state.ZLibrary {
 		if !scoped && sweepsYourOwn(spec) {
 			players, scoped = []state.PlayerID{c.Controller}, true
 		}
 		changeZoneAllShuffleLibraries(h, placements, players, scoped)
+		return
 	}
-	scheduleAtEOT(h, c, sa, moved)
+	if !slices.Contains(from, state.ZLibrary) {
+		return
+	}
+	var owners []state.PlayerID
+	for _, id := range moved {
+		if o := h.Game().Obj(id); o != nil && !slices.Contains(owners, o.Owner) {
+			owners = append(owners, o.Owner)
+		}
+	}
+	for _, p := range owners {
+		shuffleLibraryOrder(h, p)
+	}
 }
 
 // ownerMoved is one destination library's share of a ChangeZoneAll sweep:
