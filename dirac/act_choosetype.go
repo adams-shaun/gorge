@@ -393,6 +393,11 @@ func filterChosenType(t *kop.Table, f kop.FilterID) bool {
 // source permanent is at src (NoSlot once it left; self is its object), or
 // for a spell-cast trigger of the listener at src.
 func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, self Obj) bool {
+	if k.gen.anyExwTgt && chainFlag(k.t, f, kop.FExiledWith) && !filterChosenType(k.t, f) {
+		// Ahead of the chosenCardTgt split: a pool that also holds a chosen-type
+		// card target must still read the link against this ability's source.
+		return s.matchCardExwTgt(k, f, c, owner, ctrl, o, src, self) // zone_exiledwithtgt.go
+	}
 	if !k.gen.chosenCardTgt {
 		if k.gen.anySrcMem && chainWord7(k.t, f, kop.W7Imprinted) {
 			// A target filter that reads a source-persistent Imprinted list:
