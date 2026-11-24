@@ -416,7 +416,8 @@ func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer
 
 // manaRiderEffect runs a's rider after its mana (CR 605.3b): the
 // source's sacrifice once its last counter is gone, each opponent gaining
-// life, or the source staying tapped through its controller's next untap step.
+// life, the source staying tapped through its controller's next untap step, or its
+// controller gaining life.
 func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 	switch a.ManaRider {
 	case kop.ManaRiderDeplete:
@@ -439,6 +440,12 @@ func (s *State) manaRiderEffect(k *prep, sl Slot, a *kop.Ability) {
 		// permanent's slot, and a permanent that leaves and returns is a new
 		// object with no mark.
 		s.skipUntapSelf(sl, s.perms[sl].ctrl)
+	case kop.ManaRiderSelfGainLife:
+		n := int(a.ManaRiderN)
+		if n < 1 {
+			n = 1
+		}
+		s.gainLife(k, s.perms[sl].ctrl, n)
 	}
 }
 
