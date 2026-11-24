@@ -1228,6 +1228,12 @@ func (s *State) tgtSource(k *prep) (spell bool, card CardID, c kop.ColorMask, sr
 		if !spell && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneBattlefield {
 			srcSl = s.objs[e.obj].slot
 			c = s.colorsGen(k, srcSl)
+		} else if !spell && e.obj != NoObj && s.objs[e.obj].card != e.card {
+			// a trigger granted to a host that has left the battlefield (Backup's
+			// dies line on Skyship Stalker): the entry carries the granter's card,
+			// but the source is the host (CR 113.8, 702.16b), so its colours count
+			card = s.objs[e.obj].card
+			c = k.t.Cards[card].Colors
 		}
 		return spell, card, c, srcSl, true
 	}
