@@ -63,7 +63,7 @@ func evalCountBodyObjHeads(h Host, c *Ctx, g *state.Game, head, arg string, dept
 	// literal Counter("ALL") lookup can never answer because no object ever
 	// carries a counter KIND named ALL.
 	if kind, ok := strings.CutPrefix(head, "CardCounters."); ok {
-		return evalCardCounters(h, c, g, kind), true, true
+		return evalCardCounters(h, c, g, state.CanonicalCounterKind(kind)), true, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
 	// A pending cast's announcement ask reads it BEFORE payment stamps the
