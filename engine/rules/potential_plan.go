@@ -2534,14 +2534,7 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 			alts = pay.PaymentPlanQueryAlternatives(asPayer(e), units[i])
 		}
 		for _, ma := range abs {
-			covered := false
-			for _, a := range alts {
-				if pay.SameManaAbility(a.Ma, ma) {
-					covered = true
-					break
-				}
-			}
-			if covered {
+			if manaAbilityCovered(e, p, id, ma, alts) {
 				continue
 			}
 			out.complete = false
@@ -2666,6 +2659,62 @@ func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *card
 	}
 	return manaTapAbilityNetsNoMore(e.manaAbilityCC(p, id, ma).Cost, mp, e.potentialTapExtra(p, id, ma), 1) &&
 		!mp.NeedsChosen && !mp.AnyDifferent && !mp.Each.Present && condSplitLiveSub(e, p, id, ma) == nil
+}
+
+// manaAbilityCovered reports whether the payment planner's alternatives for
+// source id already cover mana ability ma: one of them is ma itself, or ma is
+// a gap a covered alternative dominates (manaTapGapDominated).
+func manaAbilityCovered(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA, alts []pay.Alt) bool {
+	for _, a := range alts {
+		if pay.SameManaAbility(a.Ma, ma) {
+			return true
+		}
+	}
+	return manaTapGapDominated(e, p, id, ma, alts)
+}
+
+// manaTapGapDominated reports whether mana ability ma of source id is a lone
+// {T} making one fixed-colour mana that a covered alternative of the SAME
+// source already makes at least as much of. A source's free {T} abilities are
+// alternatives of one tap (CR 605.3b, 118.3c): a gap whose production a
+// covered alternative dominates cannot add anything the payment planner
+// cannot already produce, so it does not make the census incomplete. A
+// choice-shaped ("Any") gap is not dominated by one fixed alternative (the
+// planner would miss every colour that alternative cannot make), and an
+// alternative that is not itself a lone {T} making one mana may pay a fee or
+// make more, so neither is read as a covering alt.
+func manaTapGapDominated(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA, alts []pay.Alt) bool {
+	if ma == nil || !manaTapSingle(e, p, id, ma) {
+		return false
+	}
+	mp := effects.ManaOf(ma)
+	if mp.CountsAny {
+		return false
+	}
+	gap := state.Mana(mp.Counts)
+	for _, a := range alts {
+		if a.Ma == nil || !manaTapSingle(e, p, id, a.Ma) {
+			continue
+		}
+		// A covering alternative the payment cannot spend (RestrictValid$)
+		// is no cover: its mana may be unusable where the gap's is not. The
+		// same restriction, or none on the covering side, is spendable at
+		// least wherever the gap is (CR 106.6).
+		if amp := effects.ManaOf(a.Ma); amp.RestrictValid != "" && amp.RestrictValid != mp.RestrictValid {
+			continue
+		}
+		dominated := true
+		for i := range gap {
+			if a.Mana[i] < gap[i] {
+				dominated = false
+				break
+			}
+		}
+		if dominated {
+			return true
+		}
+	}
+	return false
 }
 
 // abilityOutrunsSupply reports that the printed activated ability o costs
