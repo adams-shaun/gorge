@@ -1040,6 +1040,15 @@ type Object struct {
 	// (CR 400.7).
 	AttackedTurn   int32
 	AttackedCombat int32
+	// AttackedPlayersThisTurn is the per-SOURCE attacked-player history: bit d
+	// is set when this creature was declared attacking player d itself this
+	// turn (a planeswalker/battle attack sets no player bit). Forge's
+	// attackedBySourceThisTurn (Port Razer's "can't attack a player it has
+	// already attacked this turn") reads it; the per-controller ledger is
+	// Player.AttackedPlayersThisTurn. Not cleared at end of combat -- extra
+	// combats share the turn. Cleared at TurnChange and when the permanent
+	// leaves the battlefield (CR 400.7).
+	AttackedPlayersThisTurn uint64
 
 	// TextChanges are the CR 612 text-changing effects on this object, in
 	// timestamp (event) order, folded by events.TextChange and cleared when
@@ -2105,7 +2114,7 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [60]byte
+	_ [52]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

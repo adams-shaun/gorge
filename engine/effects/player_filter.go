@@ -364,8 +364,9 @@ func matchesPlayerSingleSpec(g *state.Game, alts []playerAlt, p, you state.Playe
 			if (base == "Player" || base == "Any") && pc.Replaced.IsPlayer && p != pc.Replaced.Player {
 				return true
 			}
-		case playerSpecQualifierIsCorrupted, playerSpecQualifierWasDealtDamageThisTurn:
-			if playerStateQualifier(g, p, a.qualCode) {
+		case playerSpecQualifierIsCorrupted, playerSpecQualifierWasDealtDamageThisTurn,
+			playerSpecQualifierAttackedBySourceThisTurn:
+			if playerStateQualifier(g, p, a.qualCode, pc.Source) {
 				return true
 			}
 		case playerSpecQualifierYou:
@@ -692,12 +693,19 @@ func playerQualifierCode(q string) playerSpecQualifierCode {
 // state.Player.WasDealtDamageThisTurn, the flag events.Apply's Damage fold
 // records beside the object recipient's (the same fold the object half of the
 // word reads), so it needs no source object; an out-of-range seat fails closed.
-func playerStateQualifier(g *state.Game, p state.PlayerID, code playerSpecQualifierCode) bool {
+func playerStateQualifier(g *state.Game, p state.PlayerID, code playerSpecQualifierCode, src state.ObjID) bool {
 	switch code {
 	case playerSpecQualifierIsCorrupted:
 		return playerIsCorrupted(g, p)
 	case playerSpecQualifierWasDealtDamageThisTurn:
 		return int(p) < len(g.Players) && g.Players[p].WasDealtDamageThisTurn
+	case playerSpecQualifierAttackedBySourceThisTurn:
+		// Forge PlayerProperty attackedBySourceThisTurn (Port Razer,
+		// Bloodthirster, Angel of Destiny): the SOURCE object was declared
+		// attacking this seat itself this turn, from the per-object ledger
+		// DeclareAttackers folds. A missing source fails closed.
+		o := g.Obj(src)
+		return o != nil && p >= 0 && int(p) < 64 && o.AttackedPlayersThisTurn&(uint64(1)<<uint(p)) != 0
 	}
 	return false
 }
@@ -1166,6 +1174,7 @@ const (
 	playerSpecQualifierMoreLifeThanActive
 	playerSpecQualifierFewerCreaturesInYardThanActive
 	playerSpecQualifierWasDealtDamageThisTurn
+	playerSpecQualifierAttackedBySourceThisTurn
 )
 
 var playerSpecQualifierCodes = state.NewStrCodes(
@@ -1190,6 +1199,7 @@ var playerSpecQualifierCodes = state.NewStrCodes(
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirCurrentTurn", Val: playerSpecQualifierAttackedYouTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouCtrlTheirCurrentTurn_Planeswalker", Val: playerSpecQualifierAttackedYouCtrlPlaneswalkerTheirCurrentTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "IsTriggerRemembered", Val: playerSpecQualifierIsTriggerRemembered},
+	state.StrEntry[playerSpecQualifierCode]{Key: "attackedBySourceThisTurn", Val: playerSpecQualifierAttackedBySourceThisTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "attackedYouTheirLastTurn", Val: playerSpecQualifierAttackedYouTheirLastTurn},
 	state.StrEntry[playerSpecQualifierCode]{Key: "OpponentToActive", Val: playerSpecQualifierOpponentToActive},
 	state.StrEntry[playerSpecQualifierCode]{Key: "withMoreCreaturesThanActive", Val: playerSpecQualifierMoreCreaturesThanActive},
