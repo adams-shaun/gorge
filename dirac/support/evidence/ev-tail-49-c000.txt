@@ -229,6 +229,7 @@ Kessig Wolfrider
 Kiln Walker
 Kiri-Onna
 Kiss of Death
+Klothys, God of Destiny
 Knickknack Ouphe
 Kor Cartographer
 Kor Entanglers
@@ -324,6 +325,7 @@ Raise Dead
 Rakdos Cackler
 Raking Claws
 Rampaging Cyclops
+Rampaging Rendhorn
 Raptor Companion
 Ravenous Demon
 Ray of Dissolution

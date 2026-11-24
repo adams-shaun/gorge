@@ -20,6 +20,7 @@ Ancient Lumberknot
 Angel of Glory's Rise
 Ankh of Mishra
 Arc Mage
+Arcbound Slasher
 Arcbound Worker
 Armor of Faith
 Armory Guard
@@ -437,6 +438,7 @@ Wirewood Herald
 Wolf Cove Villager
 Woodlot Crawler
 Wormfang Behemoth
+Wrecking Beast
 Wrenn and Realmbreaker
 Wyrm's Crossing Patrol
 Yavimaya Gnats

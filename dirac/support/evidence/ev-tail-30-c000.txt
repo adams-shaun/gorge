@@ -54,6 +54,7 @@ Black Scarab
 Blazing Specter
 Blight
 Blightwidow
+Blizzard Specter
 Blood Host
 Bloodline Culling
 Blot Out the Sky
@@ -184,6 +185,7 @@ Hard Evidence
 Harmonic Prodigy
 Hate Mirage
 Haunted Mire
+Haunting Echoes
 Havoc Jester
 Healer of the Glade
 Healer of the Pride

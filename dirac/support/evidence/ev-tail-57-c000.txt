@@ -410,6 +410,7 @@ Terashi's Grasp
 Territory Culler
 Testament of Faith
 Teysa, Orzhov Scion
+Thada Adel, Acquisitor
 Thalakos Seer
 The Spike Cactus
 Thermal Blast

@@ -139,6 +139,7 @@ Gyre Engineer
 Harsh Deceiver
 Harvestguard Alseids
 Hazoret's Undying Fury
+Head Games
 Hedge Troll
 Heir of Falkenrath
 Helvault
@@ -291,6 +292,7 @@ Syphon Life
 Tail Slash
 Tainted Isle
 Tattermunge Maniac
+Teferi's Isle
 Teferi's Protege
 Temur Banner
 Tendrils of Corruption

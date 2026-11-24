@@ -1,9 +1,11 @@
 Accursed Spirit
+Adanto Vanguard
 Aerie Bowmasters
 Ancestral Mask
 Ancient Stirrings
 Armed
 Arrogant Wurm
+Athreos, God of Passage
 Axgard Cavalry
 Balustrade Spy
 Barter in Blood
@@ -11,6 +13,7 @@ Behold the Multiverse
 Blightbeetle
 Blightsoil Druid
 Blood Knight
+Blot Out
 Brainstealer Dragon
 Bushmeat Poacher
 Carrion Feeder
@@ -25,6 +28,7 @@ Divination
 Dragon's Smile
 Drift of Phantasms
 Eel Umbra
+Ekthi, Contaminator Priest
 Elda, Conjurer of Spectacle
 Enclave Cryptologist
 Escape Tunnel
@@ -38,8 +42,10 @@ Fire Servant
 Forest
 Freed from the Real
 Gelatinous Genesis
+Ghost-Lit Stalker
 Harmonize
 Hickory Woodlot
+Imperial Oath
 Ingot Chewer
 Island
 Jaheira, Friend of the Forest
@@ -54,9 +60,12 @@ Maular, the Next Evolution
 Meekstone
 Mountain
 Murmuring Mystic
+Nightwind Glider
 Ophidian Eye
 Outmaneuver
 Overgrown Battlement
+Painful Lesson
+Palace Sentinels
 Pemmin's Aura
 Phantom Centaur
 Phyrexian Rager
@@ -76,6 +85,7 @@ Saber Ants
 Season of Growth
 Sengir Autocrat
 Sentinel Sliver
+Sheltered by Ghosts
 Shroofus Sproutsire
 Silverglade Pathfinder
 Soltari Trooper
@@ -86,10 +96,12 @@ Sticky Fingers
 Storm Sculptor
 Struggle for Skemfar
 Sunscape Familiar
+Supernatural Stamina
 Swamp
 Tidy Conclusion
 Unburial Rites
 Underworld Breach
+Vengeful Reaper
 Virtue's Ruin
 Vow of Duty
 Wasteland Viper

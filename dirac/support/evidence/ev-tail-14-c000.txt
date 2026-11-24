@@ -111,6 +111,7 @@ Double Vision
 Drakestown Forgotten
 Dread Fugue
 Dreadhorde Twins
+Dregscape Sliver
 Dripping-Tongue Zubera
 Duelcraft Trainer
 Dystopia
@@ -158,6 +159,7 @@ Fungal Bloom
 Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
+Ghor-Clan Wrecker
 Glasses of Urza
 Glen Elendra Pranksters
 Glimmer Lens
