@@ -161,6 +161,25 @@ func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) 
 	return false
 }
 
+// restrFeeChargePlain is restrFeeCharge from plain, the unrestricted part of
+// a: a restricted unit's mana pays no mana ability's fee (CR 106.6). The mana
+// plain's charge takes leaves a too, group by group; a fee plain cannot pay
+// leaves both untouched.
+func (a *avail) restrFeeChargePlain(plain *avail, fee kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	b := *plain
+	if !b.restrFeeCharge(fee, cost, extra) {
+		return false
+	}
+	c := *a
+	for i := 0; i < plain.n && i < b.n; i++ {
+		if n := plain.cnt[i] - b.cnt[i]; n != 0 && !c.removeWide(plain.mask[i], n) {
+			return false
+		}
+	}
+	*a, *plain = c, b
+	return true
+}
+
 // payPlanFee pays a plan unit's activation fee (utype.fee) from the pool: the
 // pips from their colour, then the generic from the mana the payment's own
 // pips do not claim (takeFeeGeneric, CR 601.2h). claim is the plan's claimed

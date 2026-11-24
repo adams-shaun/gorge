@@ -70,7 +70,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		}
 		return true
 	})
-	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) {
+	if lc.refuseEachMana(ms) || lc.refuseGatedMana(ms) || lc.refuseReflectedMana(ms) || lc.refuseCtrRiderBeside(ms) || lc.refuseFeeAnyAlone(ms) {
 		return
 	}
 	if len(ms) < 2 {
@@ -686,7 +686,7 @@ func restrictedFixedPair(first, a *lAbility) bool {
 // only). gorge's census lists the free {U} alone (a paid cost is no TierNormal
 // alternative) and its cast window prices the fee alternative from the
 // floating mana (CR 605.3b); the kernel's restricted fee pair
-// (mana_restrictedsource.go restrFeePairView) plans the one tap as either.
+// (mana_restrictedfeepair.go restrFeePairOf) plans the one tap as either.
 func restrictedFreeFeePair(first, a *lAbility) bool {
 	if !spellOnlyMana(first) || !spellOnlyMana(a) || !plainTapMana(first, false) || first.Mana.Choice || first.Mana.Each ||
 		first.Mana.Amount.Kind != vConst || first.Mana.Amount.N != 1 ||
@@ -695,6 +695,26 @@ func restrictedFreeFeePair(first, a *lAbility) bool {
 	}
 	return restrictedManaUnit(a.Cost, a.Mana) && a.Mana.Colors == "WUBRG" && !a.Mana.Choice &&
 		a.Cost.Mana.Pips == [5]int{} && reflect.DeepEqual(*first.Mana.Restrict, *a.Mana.Restrict)
+}
+
+// refuseFeeAnyAlone refuses a restricted mana-fee ability making one mana of
+// any colour anywhere but as the fee alternative of restrictedFreeFeePair:
+// restrictedFeeProduction admits that production for Hydro-Channeler's pair
+// only, where the kernel joins it to the free record (dirac
+// mana_restrictedfeepair.go restrFeePairOf). Alone, it would be a plain fee
+// unit no corpus card proves.
+func (lc *lowerCtx) refuseFeeAnyAlone(ms []*lAbility) bool {
+	for i, a := range ms {
+		if a.Mana.Restrict == nil || manaFeeEmpty(a.Cost.Mana) || a.Mana.Colors != "WUBRG" || a.Mana.Choice || a.Mana.Each {
+			continue
+		}
+		if len(ms) == 2 && i == 1 && restrictedFreeFeePair(ms[0], a) {
+			continue
+		}
+		lc.refuseNode("card", "mana restriction on a source whose cost goes beyond {T}: an any-colour production (one mana of any colour) with no free restricted alternative")
+		return true
+	}
+	return false
 }
 
 // restrictedFirstPair: first is a spell-only restricted {T} ability of one

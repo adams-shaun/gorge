@@ -22,7 +22,7 @@ import (
 // names the fee alternative's (pcard.restrPair): the planner and the census
 // read the free {U}; restrSrcAvailD's fee pass prices the pair
 // (restrFeePairAdd), and the fee gap's prefix activates the fee alternative
-// (restrFeeGap).
+// (restrFeeStep).
 
 // restrFeePairOf records v, the view of card id's restricted fee ability a,
 // as the fee alternative of the card's free restricted record when the two
@@ -55,10 +55,10 @@ func (g *genPrep) restrFeePairOf(c *kop.CardDef, id CardID, a *kop.Ability, v *p
 // restrFeePairAdd adds the pair whose free view is v to t, the payment's
 // bound in restrSrcAvailD's fee pass: the free alternative's {U}, unless it
 // leaves cost plus extra unpaid where the fee alternative -- its fee charged
-// from the mana counted so far and funded as a fee unit's is (fund, wiped,
-// poolLeft) -- pays it. A nil cost (a supply bound's read) takes the free
+// from plain, the unrestricted mana counted so far (restrFeeChargePlain), and
+// funded as a fee unit's is (fund, wiped, poolLeft) -- pays it. A nil cost (a supply bound's read) takes the free
 // alternative, the larger total.
-func (s *State) restrFeePairAdd(k *prep, p uint8, d *payDesc, sl Slot, own, v *pcard, t *avail, multi *[2]dynUnit, nm, lifeUsed *int,
+func (s *State) restrFeePairAdd(k *prep, p uint8, d *payDesc, sl Slot, own, v *pcard, t, plain *avail, multi *[2]dynUnit, nm, lifeUsed *int,
 	cost *kop.ManaCost, extra int, fund *int, wiped int, poolLeft *int) {
 	free := *t
 	s.restrSrcAddUnit(k, p, d, sl, own, v, rkExt, &free, multi, nm, lifeUsed, nil, 0)
@@ -76,13 +76,17 @@ func (s *State) restrFeePairAdd(k *prep, p uint8, d *payDesc, sl Slot, own, v *p
 		}
 		f -= fc.MV() - pool
 	}
-	paid := *t
-	s.restrSrcAddUnit(k, p, d, sl, own, fv, rkExt, &paid, multi, nm, lifeUsed, cost, extra)
+	paid, pl := *t, *plain
+	if !paid.restrFeeChargePlain(&pl, fc, cost, extra) {
+		*t = free // no unrestricted mana pays the fee (CR 106.6): another pair's {U} cannot
+		return
+	}
+	s.restrExtAdd(k, p, sl, fv, &paid, lifeUsed)
 	if !paid.affordsMulti(cost, extra, multi[:*nm]) {
 		*t = free
 		return
 	}
-	*t, *fund, *poolLeft = paid, f, *poolLeft-pool
+	*t, *plain, *fund, *poolLeft = paid, pl, f, *poolLeft-pool
 }
 
 // restrFeeGapColour is the colour fee gap sl's ability ab floats in the prefix

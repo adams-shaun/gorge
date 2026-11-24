@@ -157,7 +157,7 @@ func restrictedManaUnit(c lCost, m *lMana) bool {
 // Hall of the Citadel, Orb of Dragonkind), or one mana of each of a fixed set
 // of colours (Cormela, Glamour Thief's {U}{B}{R}), or one mana of any colour
 // (Hydro-Channeler's Produced$ Any, a fee alternative beside a free restricted
-// one: refuseMultiMana admits it only there). Combo AnyDifferent stays
+// one: refuseMultiMana refuses it anywhere else, refuseFeeAnyAlone). Combo AnyDifferent stays
 // refused: its units are distinct only together, and the availability model's
 // groups cannot couple two units.
 func restrictedFeeProduction(m *lMana) bool {
