@@ -69,6 +69,13 @@ type DigParams struct {
 	Imprint         bool
 	GainControl     bool
 	RememberChanged bool
+	// RememberZone2 is RememberMovedToZone$ naming the second destination
+	// (Forge's remZone2): only then do the rest arm's moved cards join the
+	// Remembered set. RememberChanged$ True is the primary arm's remZone1 and
+	// must not remember the rest-arm card too -- Chrome Courier gains life
+	// only for an artifact put into the HAND (CR 608.2c), and Discerning Taste
+	// remembers exactly the graveyard half.
+	RememberZone2 bool
 	// PrimaryPos is LibraryPosition$.
 	PrimaryPos string
 	// Dest2Name and Pos2 are DestinationZone2$ and LibraryPosition2$ after
@@ -245,6 +252,7 @@ var digKnownKeys = [...]string{
 	"RememberAnimated",
 	"RememberChanged",
 	"RememberChosen", "RememberCostMana",
+	"RememberMovedToZone",
 	"RememberObjects",
 	"RememberRevealed",
 	"RememberTargets",
@@ -393,6 +401,7 @@ func compileDig(sa *cards.SA) *DigParams {
 	p.Imprint = isTrue(sa.ParamStr(cards.PKImprint))
 	p.GainControl = isTrue(sa.ParamStr(cards.PKGainControl))
 	p.RememberChanged = isTrue(sa.ParamStr(cards.PKRememberChanged))
+	p.RememberZone2 = paramZoneListHas(sa.ParamStr(cards.PKRememberMovedToZone), "2")
 	p.PrimaryPos = strings.TrimSpace(sa.ParamStr(cards.PKLibraryPosition))
 	p.Dest2Name = strings.TrimSpace(rawParamText(sa, "DestinationZone2").Text)
 	p.Pos2 = strings.TrimSpace(rawParamText(sa, "LibraryPosition2").Text)
@@ -424,3 +433,17 @@ func compileDig(sa *cards.SA) *DigParams {
 
 // DigKnownKeys is a copy of digKnownKeys, for the census check.
 func DigKnownKeys() []string { return slices.Clone(digKnownKeys[:]) }
+
+// paramZoneListHas reports whether a comma/space separated zone list (Forge's
+// RememberMovedToZone$ spelling) names zone want. Forge numbers the primary
+// destination 1 and DestinationZone2 2.
+func paramZoneListHas(list, want string) bool {
+	for _, f := range strings.FieldsFunc(list, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t'
+	}) {
+		if f == want {
+			return true
+		}
+	}
+	return false
+}
