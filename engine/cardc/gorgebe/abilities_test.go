@@ -178,7 +178,7 @@ func TestTriggerParams(t *testing.T) {
 		{"becomes target", abTrig(ir.EvBecomesTarget, abSelf(), oppSpell), nil,
 			[][]string{{"Mode$ BecomesTarget", "ValidTarget$ Card.Self", "ValidSource$ Spell.OppCtrl", "TriggerZones$ Battlefield", ex}}, ""},
 		{"counters put", with(abTrig(ir.EvCountersPut, abYou(), abSelf()), func(x *ir.Trigger) { x.Word = "P1P1" }), nil,
-			[][]string{{"Mode$ CounterAddedOnce", "CounterType$ P1P1", "ValidCard$ Permanent.Self", "ValidSource$ You", "TriggerZones$ Battlefield", ex}}, ""},
+			[][]string{{"Mode$ CounterAddedOnce", "CounterType$ P1P1", "ValidCard$ Card.Self", "ValidSource$ You", "TriggerZones$ Battlefield", ex}}, ""},
 		{"or", &ir.Trigger{Event: ir.EvOr, Args: []*ir.Trigger{abTrig(ir.EvEnters, abSelf(), nil), abTrig(ir.EvDies, abSelf(), nil)}}, nil,
 			[][]string{
 				{"Mode$ ChangesZone", "Origin$ Any", "Destination$ Battlefield", "ValidCard$ Card.Self", ex},
@@ -389,7 +389,7 @@ func TestReplacements(t *testing.T) {
 	check("etb counter", repl(ir.EvWouldEnter, enter(&ir.Enter{Counter: "P1P1", N: vc(2)})), nil, nil)
 	check("etb counter X", repl(ir.EvWouldEnter, enter(&ir.Enter{Counter: "P1P1", N: vX})), nil, []kv{{"X", "Count$xPaid"}})
 	check("damage doubler", doubler,
-		[]string{"Event$ DamageDone", "ActiveZones$ Battlefield", "ValidSource$ Card.YouCtrl", "ValidTarget$ Opponent", "ReplaceWith$ DBReplaceEffect"},
+		[]string{"Event$ DamageDone", "ActiveZones$ Battlefield", "ValidSource$ Card.YouCtrl,Emblem.YouCtrl", "ValidTarget$ Opponent", "ReplaceWith$ DBReplaceEffect"},
 		[]kv{{"N", "ReplaceCount$DamageAmount/Times.2"}, {"DBReplaceEffect", "DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ N"}})
 
 	p, _ := abRun(repl(ir.EvWouldEnter, enter(&ir.Enter{Counter: "P1P1", N: vc(2)})))

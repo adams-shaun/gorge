@@ -251,6 +251,7 @@ type pr struct {
 	// (a delayed trigger remembers what the previous step moved); program
 	// calls it with the chain tail and clears it.
 	onPrev  func(prev *node) error
+	sacSelf bool                   // the activated ability being printed sacrifices its source as a cost
 	zones   ir.ZoneSet             // the zones the ability being printed works from; 0 is the battlefield
 	face    *ir.Face               // the face being printed; nil in unit tests
 	excess  bool                   // the damage step before this one binds ExcessSVar$ Excess

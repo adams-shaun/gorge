@@ -278,7 +278,7 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 			if err != nil {
 				return nil, err
 			}
-			src = v
+			src = damageSource(v)
 		}
 		tgt := "Player"
 		if x.Object != nil {
@@ -303,7 +303,7 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 			if err != nil {
 				return nil, err
 			}
-			src = v
+			src = damageSource(v)
 		}
 		if x.Object != nil {
 			return nil, bad("deals-combat-damage")
@@ -381,6 +381,9 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		o, err := p.valid(x.Object)
 		if err != nil {
 			return nil, err
+		}
+		if o == "Permanent.Self" {
+			o = "Card.Self" // Forge's spelling of the source
 		}
 		ps = params{{"Mode", "CounterAddedOnce"}, {"CounterType", x.Word}, {"ValidCard", o}}
 		if x.Subject != nil {
@@ -466,4 +469,13 @@ func castFactWord(c *ir.Cond) string {
 		return "surged"
 	}
 	return ""
+}
+
+// damageSource adds the emblems to "a source you control": an emblem is a
+// source of damage too, and Forge lists it.
+func damageSource(v string) string {
+	if v == "Card.YouCtrl" {
+		return v + ",Emblem.YouCtrl"
+	}
+	return v
 }

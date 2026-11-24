@@ -13,7 +13,14 @@ func printActivated(p *pr, a *ir.Ability) error {
 	if a.Cost == nil {
 		return unprintable("activated:no-cost", a.Src)
 	}
+	p.sacSelf = false
+	for _, c := range a.Cost.Parts {
+		if c.Kind == ir.CostSacrifice && c.Obj != nil && c.Obj.Kind == ir.RefSelf {
+			p.sacSelf = true
+		}
+	}
 	head, err := p.program(a.Body)
+	p.sacSelf = false
 	if err != nil {
 		return err
 	}

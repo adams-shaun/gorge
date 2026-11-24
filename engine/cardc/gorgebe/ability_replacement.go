@@ -111,6 +111,7 @@ func printReplacement(p *pr, a *ir.Ability) error {
 		if err != nil {
 			return err
 		}
+		src = damageSource(src)
 		tgt, err := p.valid(tr.Object)
 		if err != nil {
 			return err
