@@ -60,6 +60,12 @@ func Equal(a, b any) bool {
 	case *Step:
 		y, ok := b.(*Step)
 		return ok && eqPtr(x, y, eqStep)
+	case *Effect:
+		y, ok := b.(*Effect)
+		return ok && eqPtr(x, y, eqEffect)
+	case *Enter:
+		y, ok := b.(*Enter)
+		return ok && eqPtr(x, y, eqEnter)
 	case *Cost:
 		y, ok := b.(*Cost)
 		return ok && eqPtr(x, y, eqCost)
@@ -168,10 +174,10 @@ func eqAbility(a, b *Ability) bool {
 		eqPtr(a.Cost, b.Cost, eqCost) &&
 		eqPtr(a.Trigger, b.Trigger, eqTrigger) &&
 		eqPtr(a.Cond, b.Cond, eqCond) &&
-		eqPtrSlice(a.Targets, b.Targets, eqTarget) &&
 		eqPtr(a.Body, b.Body, eqProgram) &&
 		eqPtr(a.Keyword, b.Keyword, eqKeyword) &&
-		a.Zones == b.Zones
+		a.Zones == b.Zones &&
+		a.SorceryOnly == b.SorceryOnly && a.InstantOnly == b.InstantOnly && a.Once == b.Once
 }
 
 func eqKeyword(a, b *Keyword) bool {
@@ -185,10 +191,17 @@ func eqTrigger(a, b *Trigger) bool {
 	return a.Event == b.Event &&
 		eqPtr(a.Subject, b.Subject, eqFilter) &&
 		eqPtr(a.Ref, b.Ref, eqRef) &&
-		a.Zones == b.Zones && a.OncePerTurn == b.OncePerTurn
+		a.Zones == b.Zones && a.OncePerTurn == b.OncePerTurn &&
+		eqPtr(a.Object, b.Object, eqFilter) &&
+		eqPtr(a.Cmp, b.Cmp, eqCompare) &&
+		a.Word == b.Word &&
+		eqPtr(a.Cond, b.Cond, eqCond) &&
+		eqPtrSlice(a.Args, b.Args, eqTrigger)
 }
 
-func eqProgram(a, b *Program) bool { return eqPtrSlice(a.Steps, b.Steps, eqStep) }
+func eqProgram(a, b *Program) bool {
+	return eqPtrSlice(a.Steps, b.Steps, eqStep) && eqPtrSlice(a.Targets, b.Targets, eqTarget)
+}
 
 func eqStep(a, b *Step) bool {
 	return a.Verb == b.Verb && a.Optional == b.Optional &&
@@ -196,7 +209,30 @@ func eqStep(a, b *Step) bool {
 		eqPtr(a.N, b.N, eqValue) && eqPtr(a.Cond, b.Cond, eqCond) &&
 		eqPtr(a.Then, b.Then, eqProgram) && eqPtr(a.Else, b.Else, eqProgram) &&
 		a.Dur == b.Dur && a.From == b.From && a.To == b.To &&
-		a.Word == b.Word && a.Colors == b.Colors
+		a.Word == b.Word && a.Colors == b.Colors &&
+		eqPtr(a.Source, b.Source, eqRef) && eqPtr(a.Other, b.Other, eqRef) &&
+		eqPtr(a.Filter, b.Filter, eqFilter) && eqPtr(a.Cost, b.Cost, eqCost) &&
+		slices.Equal(a.Mana, b.Mana) &&
+		eqPtrSlice(a.Modes, b.Modes, eqProgram) &&
+		eqPtrSlice(a.Effects, b.Effects, eqEffect) &&
+		eqPtrSlice(a.Abilities, b.Abilities, eqAbility) &&
+		eqPtr(a.Token, b.Token, eqFace) && eqPtr(a.Enter, b.Enter, eqEnter)
+}
+
+func eqEffect(a, b *Effect) bool {
+	return a.Kind == b.Kind &&
+		eqPtr(a.P, b.P, eqValue) && eqPtr(a.T, b.T, eqValue) && eqPtr(a.N, b.N, eqValue) &&
+		slices.Equal(a.Words, b.Words) && a.Colors == b.Colors &&
+		eqPtrSlice(a.Abilities, b.Abilities, eqAbility) &&
+		eqPtr(a.Filter, b.Filter, eqFilter) && eqPtr(a.Ref, b.Ref, eqRef) &&
+		eqPtr(a.Cost, b.Cost, eqCost) && eqPtr(a.Cond, b.Cond, eqCond)
+}
+
+func eqEnter(a, b *Enter) bool {
+	return a.Tapped == b.Tapped && a.UnderOwner == b.UnderOwner &&
+		eqPtr(a.Controller, b.Controller, eqRef) &&
+		a.Counter == b.Counter && eqPtr(a.N, b.N, eqValue) &&
+		eqPtrSlice(a.Effects, b.Effects, eqEffect)
 }
 
 func eqCost(a, b *Cost) bool {

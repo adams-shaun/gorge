@@ -76,6 +76,7 @@ const (
 	RcMilled
 	RcDestroyed
 	RcReturned
+	RcFound
 	receiptKindCount
 )
 
@@ -90,6 +91,7 @@ var receiptKindNames = [...]string{
 	RcMilled:     "milled",
 	RcDestroyed:  "destroyed",
 	RcReturned:   "returned",
+	RcFound:      "found",
 }
 
 // String returns the lower-kebab name of k.
@@ -134,7 +136,7 @@ type Ref struct {
 	Src     string      `json:"src,omitempty"`
 }
 
-// Target is one target declaration. The Ability's Targets index is the
+// Target is one target declaration. The enclosing Program's Targets index is the
 // RefTarget Slot.
 type Target struct {
 	Min int32 `json:"min,omitempty"`

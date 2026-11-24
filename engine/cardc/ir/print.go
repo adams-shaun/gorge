@@ -278,10 +278,12 @@ func prAbility(p *printer, n *Ability) {
 	knode(p, "cost", n.Cost, prCost)
 	knode(p, "trigger", n.Trigger, prTrigger)
 	knode(p, "cond", n.Cond, prCond)
-	knodes(p, "targets", n.Targets, prTarget)
 	knode(p, "body", n.Body, prProgram)
 	knode(p, "keyword", n.Keyword, prKeyword)
 	p.kbare("zones", n.Zones.String())
+	p.kflag("sorcery-only", n.SorceryOnly)
+	p.kflag("instant-only", n.InstantOnly)
+	p.kflag("once", n.Once)
 	p.end()
 }
 
@@ -301,12 +303,18 @@ func prTrigger(p *printer, n *Trigger) {
 	knode(p, "ref", n.Ref, prRef)
 	p.kbare("zones", n.Zones.String())
 	p.kflag("once-per-turn", n.OncePerTurn)
+	knode(p, "object", n.Object, prFilter)
+	knode(p, "cmp", n.Cmp, prCompare)
+	p.kstr("word", n.Word)
+	knode(p, "cond", n.Cond, prCond)
+	knodes(p, "args", n.Args, prTrigger)
 	p.end()
 }
 
 func prProgram(p *printer, n *Program) {
 	p.open("program")
 	knodes(p, "steps", n.Steps, prStep)
+	knodes(p, "targets", n.Targets, prTarget)
 	p.end()
 }
 
@@ -325,6 +333,43 @@ func prStep(p *printer, n *Step) {
 	p.kenum("to", n.To != 0, n.To.String())
 	p.kstr("word", n.Word)
 	p.kbare("colors", n.Colors.String())
+	knode(p, "source", n.Source, prRef)
+	knode(p, "other", n.Other, prRef)
+	knode(p, "filter", n.Filter, prFilter)
+	knode(p, "cost", n.Cost, prCost)
+	klist(p, "mana", n.Mana, prMana)
+	knodes(p, "modes", n.Modes, prProgram)
+	knodes(p, "effects", n.Effects, prEffect)
+	knodes(p, "abilities", n.Abilities, prAbility)
+	knode(p, "token", n.Token, prFace)
+	knode(p, "enter", n.Enter, prEnter)
+	p.end()
+}
+
+func prEffect(p *printer, n *Effect) {
+	p.open("effect")
+	p.atom(n.Kind.String())
+	knode(p, "p", n.P, prValue)
+	knode(p, "t", n.T, prValue)
+	knode(p, "n", n.N, prValue)
+	klist(p, "words", n.Words, prQuoted)
+	p.kbare("colors", n.Colors.String())
+	knodes(p, "abilities", n.Abilities, prAbility)
+	knode(p, "filter", n.Filter, prFilter)
+	knode(p, "ref", n.Ref, prRef)
+	knode(p, "cost", n.Cost, prCost)
+	knode(p, "cond", n.Cond, prCond)
+	p.end()
+}
+
+func prEnter(p *printer, n *Enter) {
+	p.open("enter")
+	p.kflag("tapped", n.Tapped)
+	p.kflag("under-owner", n.UnderOwner)
+	knode(p, "controller", n.Controller, prRef)
+	p.kstr("counter", n.Counter)
+	knode(p, "n", n.N, prValue)
+	knodes(p, "effects", n.Effects, prEffect)
 	p.end()
 }
 
@@ -369,6 +414,8 @@ func (n *Keyword) String() string  { return render(n, prKeyword) }
 func (n *Trigger) String() string  { return render(n, prTrigger) }
 func (n *Program) String() string  { return render(n, prProgram) }
 func (n *Step) String() string     { return render(n, prStep) }
+func (n *Effect) String() string   { return render(n, prEffect) }
+func (n *Enter) String() string    { return render(n, prEnter) }
 func (n *Cost) String() string     { return render(n, prCost) }
 func (n *CostPart) String() string { return render(n, prCostPart) }
 

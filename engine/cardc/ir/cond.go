@@ -21,6 +21,7 @@ const (
 	CReceiptCount
 	CDiedThisTurn
 	CLeftBattlefieldThisTurn
+	CKicked
 	condKindCount
 )
 
@@ -40,6 +41,7 @@ var condKindNames = [...]string{
 	CReceiptCount:            "receipt-count",
 	CDiedThisTurn:            "died-this-turn",
 	CLeftBattlefieldThisTurn: "left-battlefield-this-turn",
+	CKicked:                  "kicked",
 }
 
 // String returns the lower-kebab name of k.
