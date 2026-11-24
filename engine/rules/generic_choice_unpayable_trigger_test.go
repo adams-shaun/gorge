@@ -147,6 +147,16 @@ func TestNimbleHobbitUnpayableChoicesAskNothing(t *testing.T) {
 	if d.ResumeKind != "unless_pay" {
 		t.Fatalf("after choosing the Food mode, next KModes = %q, want unless_pay", d.ResumeKind)
 	}
+	// The chosen mode's own body is the Food sacrifice. A filtered mode list
+	// answered against the unfiltered Choices$ would run the {2}{W} body here
+	// and offer decline only; the pay/decline pair is what proves the Food
+	// choice was run.
+	if len(d.Options) != 2 || d.Options[0].Mode != decision.ModeUnlessPay {
+		t.Fatalf("Food mode unless options = %+v, want pay and decline", d.Options)
+	}
+	if label := d.Options[0].Label; !strings.Contains(strings.ToLower(label), "food") {
+		t.Fatalf("Food mode pay option = %q, want the sacrifice-a-Food cost", label)
+	}
 	submitChoices(t, e2, d.Options[len(d.Options)-1].Index)
 	passUntilStackEmpty(t, e2, 80)
 	if o := e2.G.Obj(bear2); o.Tapped {
@@ -212,6 +222,78 @@ func TestGenericChoiceControllerUnpayableRunsFallback(t *testing.T) {
 	}
 	if got := e.G.Players[0].Life; got != life-1 {
 		t.Fatalf("controller life = %d, want %d (FallbackAbility$ ran once)", got, life-1)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGenericChoiceFilteredResolutionRunsTheOfferedBody pins the second half
+// of the same filter: a CONTROLLER GenericChoice asked at resolution (a spell,
+// not a trigger placed on the stack) offers a dense list of only its payable
+// choices, so the answer's index must map back through that filtered list. If
+// it maps through the printed Choices$ instead, the label says the payable
+// body but the engine runs the first, unpayable one.
+func TestGenericChoiceFilteredResolutionRunsTheOfferedBody(t *testing.T) {
+	t.Parallel()
+	const text = "Name:Trial of Modes\nManaCost:0\nTypes:Sorcery\n" +
+		"A:SP$ GenericChoice | Choices$ PayMana,PayFood | SpellDescription$ Choose.\n" +
+		"SVar:PayMana:DB$ Draw | NumCards$ 3 | UnlessCost$ 2 W | UnlessPayer$ You | UnlessSwitched$ True | SpellDescription$ Draw three.\n" +
+		"SVar:PayFood:DB$ GainLife | Defined$ You | LifeAmount$ 5 | UnlessCost$ Sac<1/Food> | UnlessPayer$ You | UnlessSwitched$ True | SpellDescription$ Gain five.\n" +
+		"Oracle:x\n"
+	trial := card(t, text)
+	reg := testutil.CorpusRegistry(t)
+	cfg := seatZeroStart(Config{Seed: 2415, Names: []string{"a", "b"}, Tokens: reg.Tokens,
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{trial}, mountainDeck(t, 39)...),
+			mountainDeck(t, 40),
+		}})
+	e := New(cfg)
+	e.Advance()
+	trialObj := placeInDeck(t, e, 0, trial, state.ZHand)
+	mintToken(t, e, 0, "c_a_food_sac")
+	// PRECONDITIONS: the spell is in hand, exactly one Food is out, and no
+	// mana is floating, so the {2}{W} choice is unpayable and the Food one is.
+	if o := e.G.Obj(trialObj); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("precondition: Trial of Modes zone = %v, want Hand", o)
+	}
+	if got := countTokensNamedOnSeat(t, e, 0, "Food Token"); got != 1 {
+		t.Fatalf("precondition: Food tokens = %d, want 1", got)
+	}
+	for _, c := range e.G.Players[0].Pool {
+		if c != 0 {
+			t.Fatalf("precondition: mana pool = %v, want empty (the {2}{W} mode must be unpayable)", e.G.Players[0].Pool)
+		}
+	}
+	toMain1(t, e)
+	submitChoices(t, e, castCardOption(t, e, trialObj).Index)
+	d := passUntilAskKind(t, e, decision.KModes, 80)
+	if d.ResumeKind != "modes" {
+		t.Fatalf("resolution GenericChoice ask = %q, want modes", d.ResumeKind)
+	}
+	if len(d.Options) != 1 {
+		t.Fatalf("mode options = %d, want the one payable Food choice: %+v", len(d.Options), d.Options)
+	}
+	if label := d.Options[0].Label; !strings.Contains(label, "Gain five") {
+		t.Fatalf("lone offered mode = %q, want the Food choice", label)
+	}
+	life := e.G.Players[0].Life
+	submitChoices(t, e, d.Options[0].Index)
+	d = passUntilAskKind(t, e, decision.KModes, 80)
+	if d.ResumeKind != "unless_pay" {
+		t.Fatalf("after choosing the Food mode, next KModes = %q, want unless_pay", d.ResumeKind)
+	}
+	if len(d.Options) != 2 || d.Options[0].Mode != decision.ModeUnlessPay {
+		t.Fatalf("unless options = %+v, want the Food pay and decline; the {2}{W} body was run", d.Options)
+	}
+	if label := d.Options[0].Label; !strings.Contains(strings.ToLower(label), "food") {
+		t.Fatalf("unless pay option = %q, want the sacrifice-a-Food cost", label)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 80)
+	if got := e.G.Players[0].Life; got != life+5 {
+		t.Fatalf("life = %d, want %d (the Food choice's GainLife ran)", got, life+5)
+	}
+	if got := countTokensNamedOnSeat(t, e, 0, "Food Token"); got != 0 {
+		t.Fatalf("Food tokens = %d after paying, want 0", got)
 	}
 	replayCheck(t, e, cfg)
 }

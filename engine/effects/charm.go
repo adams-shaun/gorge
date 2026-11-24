@@ -870,12 +870,17 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
 	}
+	// filtered marks an offered list that is not cp.Modes: the ask's option
+	// indices are dense over it, so the answer must map back through it, not
+	// through the printed list (d.ResumeModes; see vocab below).
+	filtered := false
 	if sa.API == "GenericChoice" {
 		var handled bool
 		choices, subs, handled = charmGenericChoiceModes(h, c, sa, choices, subs)
 		if handled {
 			return
 		}
+		filtered = len(choices) != len(cp.Modes)
 	}
 	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
 	// game"): drop the modes the source already chose under the same scope
@@ -890,6 +895,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 			filteredSubs[i] = cards.ResolveSVar(c.SVars, name)
 		}
 		choices, subs = eligible, filteredSubs
+		filtered = true
 	}
 	// NumRandomChoices$ (Davriel, Soul Broker): only a random draw of the
 	// eligible modes is offered. The offered list rides the ask as
@@ -956,7 +962,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 			Obj: c.Source, Player: c.Controller})
 	}
 	vocab := cp.Modes
-	if offered {
+	if offered || filtered {
 		d.ResumeModes = append([]string(nil), choices...)
 		vocab = choices
 	}

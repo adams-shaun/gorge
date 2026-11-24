@@ -25,6 +25,18 @@ const payPickBlight = 250
 // --- unless / if-you-do costs ---
 
 func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID) bool {
+	return s.canPayGenMode(k, p, kind, amt, pips, f, false)
+}
+
+// canPayGenCapped is canPayGen with the planner-deferred mana sources counted
+// (availWindowForCapped). A mode's unless-cost gate reads it: the payment
+// window can tap a source whose mana rider the census leaves out, so the
+// offer must see it too.
+func (s *State) canPayGenCapped(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID) bool {
+	return s.canPayGenMode(k, p, kind, amt, pips, f, true)
+}
+
+func (s *State) canPayGenMode(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID, capped bool) bool {
 	switch kind {
 	case kop.PayMana:
 		if l := kop.PayManaLife(f); l != 0 && int(s.pl[p].life) < l {
@@ -35,7 +47,11 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		s.announcedHyb(&c)
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
-		s.availWindowFor(k, p, &av)
+		if capped {
+			s.availWindowForCapped(k, p, &av)
+		} else {
+			s.availWindowFor(k, p, &av)
+		}
 		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
 			// the floating restricted mana this payment admits is pool too
 			// (CR 106.6: gorge's unless, ward and trigger-cost gates price

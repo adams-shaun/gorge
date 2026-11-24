@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // unlessInstrPayable reports whether p can pay the unless / if-you-do cost an
 // OpUnlessPaid / OpIfPaid / OpUnlessSwitched instruction names.
 func (s *State) unlessInstrPayable(k *prep, in *kop.Instr, p uint8) bool {
-	return s.canPayGen(k, p, unlessPayKind(int(in.C&0xF), in), s.value(k, in.A), in.B.N, in.F)
+	return s.canPayGenCapped(k, p, unlessPayKind(int(in.C&0xF), in), s.value(k, in.A), in.B.N, in.F)
 }
 
 // modeUnlessPayable reports whether the controller can pay the UnlessCost$ a
