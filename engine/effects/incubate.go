@@ -36,7 +36,8 @@ const incubatorTokenKey = "incubator_c_0_0_a_phyrexian"
 // `Amount$ TriggeredSpellAbility$CardManaCostLKI` -- the cast spell's mana
 // value) and the X form (Sunfall's "Incubate X") both resolve; a present
 // but unresolvable value degrades to zero per Num's convention. A zero or
-// negative amount still creates the token -- "incubate X" with X = 0 is a
+// negative amount still creates the token (a negative one clamps to zero,
+// CR 107.1b: Bloated Processor dying at negative last-known power) -- "incubate X" with X = 0 is a
 // real Incubator token with no counters (Sunfall exiling zero creatures),
 // and the CounterChange event is simply skipped -- matching Forge's
 // IncubateEffect, which mints the token before applying counters.
@@ -69,7 +70,7 @@ func effIncubate(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "Amount", 1)
 	if n < 0 {
-		return
+		n = 0 // CR 107.1b: a negative count is zero; the token is still created (CR 701.53a)
 	}
 	owner := c.Controller
 	if DefinedRefOf(sa).Set() {
