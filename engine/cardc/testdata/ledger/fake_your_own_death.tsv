@@ -1,4 +1,4 @@
 # Fake Your Own Death
 source	key	sig	class	issue	note
-lockstep	fdn/39/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/39/reverse	-	cardc-gap	0	untriaged
+lockstep	fdn/39/forward	-	cardc-gap	0	granted trigger SVar name differs (Forge TrigChangeZone2); naming only
+lockstep	fdn/39/reverse	-	cardc-gap	0	granted trigger SVar name differs (Forge TrigChangeZone2); naming only

@@ -1,6 +1,4 @@
 # Kaito, Cunning Infiltrator
 source	key	sig	class	issue	note
-lockstep	fdn/457/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/629/forward	-	cardc-gap	0	untriaged
-static	0/A:AB:Effect>Draw>Discard#0/[1]NumCards	e79e418e	cardc-gap	0	untriaged
-static	0/A:AB:Effect>Draw>Discard#0/[2]NumCards	e79e418e	cardc-gap	0	untriaged
+lockstep	fdn/457/forward	-	cardc-gap	0	emblem trigger SVar name differs (Forge CastTrig); naming only
+lockstep	fdn/604/forward	-	cardc-gap	0	emblem trigger SVar name differs (Forge CastTrig); naming only

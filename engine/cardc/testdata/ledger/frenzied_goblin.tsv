@@ -1,6 +1,3 @@
 # Frenzied Goblin
 source	key	sig	class	issue	note
-lockstep	fdn/89/forward	-	cardc-gap	0	untriaged
-lockstep	fdn/89/reverse	-	cardc-gap	0	untriaged
 static	0/T:Attacks:Pump#0/TriggerZones	88b1522a	cardc-gap	0	untriaged
-static	0/T:Attacks:Pump#0/[0]Cost	20d84792	cardc-gap	0	untriaged
