@@ -1025,7 +1025,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
 		return !sharesName(o, key, sc)
-	case wordDealtDamageThisTurn, wordSourceDealtDamageThisTurn, wordDealtDamageToAny, wordDealtCombatDamageToAny:
+	case wordDealtDamageThisTurn, wordSourceDealtDamageThisTurn, wordDealtDamageToAny, wordDealtCombatDamageToAny, wordDealtDamageToOppThisTurn:
 		// Forge's wasDealtDamageThisTurn: the object was dealt damage this
 		// turn. The flag is the per-object provenance events.Apply's Damage
 		// case sets (the same field the playercount HasProperty heads read)
@@ -1035,8 +1035,6 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return damageRecordPredicate(kind, o)
 	case wordAttackingPlayer:
 		return attackingPlayerMatches(g, key, o, sc)
-	case wordDealtDamageToOppThisTurn:
-		return dealtDamageToOppThisTurn(o)
 	case wordDealtExcessDamageThisTurn:
 		return o.WasDealtExcessDamageThisTurn
 	case wordDealtDamageByThisGame:
@@ -1326,6 +1324,8 @@ func damageRecordPredicate(kind wordKind, o *state.Object) bool {
 		return o.DealtDamageToAnyGame
 	case wordDealtCombatDamageToAny:
 		return o.DealtCombatDamageToAnyGame
+	case wordDealtDamageToOppThisTurn:
+		return dealtDamageToOppThisTurn(o)
 	}
 	return o.WasDealtDamageThisTurn
 }
