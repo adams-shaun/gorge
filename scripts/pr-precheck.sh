@@ -108,7 +108,13 @@ fi
 if repros_gate <<<"$changed"; then
   names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle 2>/dev/null | grep -E '^Test' | paste -sd'|')
   [ -n "$names" ] || fail "repro replay: go test -list found no repro tests in ./dirac/oracle"
-  if ! "${cap[@]}" go test -timeout 20m -run "^($names)\$" ./dirac/oracle >"$log" 2>&1; then
+  # One replay at a time on this machine: it is ~20 min of ./dirac/oracle at 400%, and the daemon runs one
+  # pr-precheck per PR side by side (11-24: three replays at once took the operator box to load 64). The lock
+  # lives under ~/.cache, which every seat sandbox binds read-write, like test-targets' heavy lane.
+  lk=${XDG_CACHE_HOME:-$HOME/.cache}/gorge/pr-precheck-repros.lock
+  mkdir -p "${lk%/*}" 2>/dev/null
+  lane=(); { : >>"$lk"; } 2>/dev/null && command -v flock >/dev/null && lane=(flock "$lk")
+  if ! "${lane[@]}" "${cap[@]}" go test -timeout 20m -run "^($names)\$" ./dirac/oracle >"$log" 2>&1; then
     cat "$log"
     why="a refused card's recorded game no longer diverges: if the PR fixed it, add a row to dirac/support/unrefused.tsv and run go run ./dirac/cmd/kgen -unrefuse <card>; if the game moved, re-record it (see checkRefusedRepro)"
     grep -q 'stale' "$log" || why="a recorded game now diverges: fix the change, or refuse the card by name (kgen -refuse)"

@@ -137,3 +137,16 @@ func TestReprosGateSkipsTestsDocsAndOtherTrees(t *testing.T) {
 		}
 	}
 }
+
+// The repro replay holds a machine-wide lock: the daemon runs one pr-precheck per PR side by side, and on 11-24 three
+// ~20 min ./dirac/oracle replays at once took the operator box to load 64.
+func TestReproReplayRunsOneAtATime(t *testing.T) {
+	script, err := os.ReadFile(filepath.Join("..", "..", "scripts", "pr-precheck.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(script), `"${lane[@]}" "${cap[@]}" go test -timeout 20m -run "^($names)\$" ./dirac/oracle`) ||
+		!strings.Contains(string(script), `lane=(flock "$lk")`) {
+		t.Error("pr-precheck.sh: the repro replay must run under its flock lane")
+	}
+}
