@@ -10,8 +10,10 @@ import (
 // subtype tokens. It is deliberately a positive set rather than the
 // complement of card/supertype words: the latter accidentally made a
 // Changeling an Arcane, Alara, or Ajani, even though those are spell, plane,
-// and planeswalker subtypes. Forge stores multiword types as separate tokens,
-// so this is necessarily token-based like the rest of the filter grammar.
+// and planeswalker subtypes. CR 205.3m's one two-word creature type, Time
+// Lord, is a member as the one subtype the parsed face carries (see
+// cards.coalesceMultiWordTypes); its words Time and Lord stay members too,
+// for the sorted choice list below.
 var creatureSubtypeWords = func() map[string]bool {
 	out := make(map[string]bool)
 	for word := range strings.FieldsSeq(`
@@ -55,8 +57,27 @@ Talaxian Tamarian Vau-N'Akat
 `) {
 		out[word] = true
 	}
+	for joined := range multiWordCreatureTypes {
+		out[joined] = true
+	}
 	return out
 }()
+
+// multiWordCreatureTypes maps CR 205.3m's two-word creature type to the
+// words the sorted creatureTypeWordList offers in its place. The list keeps
+// those words (a choice's option order, which the kernel and every recorded
+// game index, is unchanged), so a list built from an object's types expands
+// the joined subtype through CreatureTypeListWords.
+var multiWordCreatureTypes = map[string][]string{"Time Lord": {"Time", "Lord"}}
+
+// CreatureTypeListWords is the creatureTypeWordList entries type t stands
+// for: its words for a multi-word creature type (Time Lord), else t itself.
+func CreatureTypeListWords(t string) []string {
+	if words, ok := multiWordCreatureTypes[t]; ok {
+		return words
+	}
+	return []string{t}
+}
 
 // creatureTypeWordList is the creature-subtype vocabulary as one sorted
 // slice, built once at package init (map range -> sort, so the order is
@@ -67,7 +88,9 @@ Talaxian Tamarian Vau-N'Akat
 var creatureTypeWordList = func() []string {
 	out := make([]string, 0, len(creatureSubtypeWords))
 	for w := range creatureSubtypeWords {
-		out = append(out, w)
+		if _, joined := multiWordCreatureTypes[w]; !joined {
+			out = append(out, w)
+		}
 	}
 	sort.Strings(out)
 	return out
