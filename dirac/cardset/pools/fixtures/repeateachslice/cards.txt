@@ -1,0 +1,28 @@
+# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link) and creatures
+Acidic Soil
+Heartless Hidetsugu
+Stormbreath Dragon
+Sunspine Lynx
+Treacherous Terrain
+Typhoon
+Spirit Link
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Island
+Plains
+Forest
+Mountain
+Ainok Strike Leader
+Endless Foot Assault
+Stampede Surfer
+Jace Beleren
+Ajani Goldmane
+Another Round
+Exponential Growth
+Full Flowering
+Torment of Hailfire
+Oath of Lim-Dûl
+Varchild's War-Riders
+Raise the Alarm
+Swamp

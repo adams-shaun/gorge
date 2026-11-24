@@ -1057,6 +1057,15 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 			return TCode(NoTarget)
 		}
 		return PlayerCode(p)
+	case kop.RefEach:
+		if s.res.eachObj == NoObj {
+			// OpRepeatEachPlayer's body: RefEach is the repeated player
+			// (the loop's source deals damage to it; act_repeatplayer.go)
+			if p := s.playerRef(k, r); p != 255 {
+				return PlayerCode(p)
+			}
+			return TCode(NoTarget)
+		}
 	}
 	o := s.objRefObj(r)
 	if o == NoObj {

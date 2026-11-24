@@ -56,6 +56,16 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		ps.consume("ChangeZoneTable")
 		c |= kop.RepeatEachZoneBatch
 	}
+	if ps.is("DamageMap", "True") {
+		// gorge effRepeatEach's damage bracket spans the loop: the kernel's
+		// loop holds one damage batch (kop.RepeatEachDmgBatch). Only the
+		// lone-DealDamage body is lowered under it (every other body keeps
+		// refusing on the unread DamageMap$).
+		if b := cards.ResolveSVar(lc.face.SVars, ps.peek("RepeatSubAbility")); b != nil && b.API == "DealDamage" && b.Sub == nil {
+			ps.consume("DamageMap")
+			c |= kop.RepeatEachDmgBatch
+		}
+	}
 	if v, ok := ps.get("StartingWith"); ok && strings.TrimSpace(v) != "You" {
 		// The kernel's RepeatEachPlayer walks the controller first (C&1);
 		// only gorge's "starting with you" order is modelled.
@@ -87,7 +97,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
-			if k == "TokenAttacking" && v == tokenAttackingRemembered && who.Kind == rEachOpp {
+			if k == "TokenAttacking" && (v == tokenAttackingRemembered || v == "Remembered" || v == "RememberedPlayer") && who.Kind == rEachOpp {
 				continue // the repeated opponent (lower_tokenattacking.go tokenAttacking)
 			}
 			if strings.Contains(k, "Remember") || strings.Contains(v, "Remember") ||
@@ -145,7 +155,7 @@ func (lc *lowerCtx) repeatEachTargetedSlot() (lRef, error) {
 // (playerRef / players: RefEach is the repeated player).
 var repeatPlayerOps = map[string]bool{
 	"LoseLife": true, "GainLife": true, "Draw": true, "Discard": true, "Mill": true, "Sacrifice": true,
-	"CreateToken": true, "UnlessPaid": true,
+	"CreateToken": true, "UnlessPaid": true, "DealDamage": true,
 	"UnlessSwitched":  true, // the join-forces payer wrapper (lower_storesvar.go)
 	"ChooseMove":      true, // a hand move's owner (DefinedPlayer$ Remembered; startSearch's playerRef)
 	"Dig":             true, // the library dug (Doomsday Excruciator)
