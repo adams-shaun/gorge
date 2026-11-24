@@ -12,8 +12,12 @@ import (
 // opens no zone batch around the loop, so each pass's move, if any, is its
 // own; the kernel's loop then opens neither the batch nor the entry hold.
 // The body is one instruction over the repeated card (Defined$/Object$
-// Remembered) that never asks: the kernel's loop runs the body inline and
-// cannot resume an ask from inside it.
+// Remembered), or that instruction behind one unless-payment ask (Cleansing's
+// "destroy that land unless any player pays 1 life", UnlessCost$ with
+// UnlessPayer$ Player): the plain loop is a resumable frame of the
+// resolution's loop stack (dirac act_repeatcards.go repeatEachCardsFrame), so
+// the ask is posed each pass and its answer carries the loop on. A body that
+// asks anything else stays refused.
 func (lc *lowerCtx) repeatEachCardsLoop(in lInstr, body *cards.SA) error {
 	if body.Sub != nil {
 		return refuse("RepeatEach cards loop body %s with a SubAbility$", body.API)
@@ -30,10 +34,11 @@ func (lc *lowerCtx) repeatEachCardsLoop(in lInstr, body *cards.SA) error {
 	if len(lc.ab.Targets) != nt {
 		return refuse("RepeatEach cards loop body with a target")
 	}
-	if len(lc.ab.Prog) != at+2 {
-		return refuse("RepeatEach cards loop body emitted %d instructions", len(lc.ab.Prog)-at-1)
+	n := len(lc.ab.Prog) - at - 1
+	if n != 1 && !(n == 2 && lc.ab.Prog[at+1].Op == "UnlessPaid" && lc.ab.Prog[at+1].Skip == 1) {
+		return refuse("RepeatEach cards loop body emitted %d instructions", n)
 	}
-	lc.ab.Prog[at].Skip = 1
+	lc.ab.Prog[at].Skip = n
 	return nil
 }
 

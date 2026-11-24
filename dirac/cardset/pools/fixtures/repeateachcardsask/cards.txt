@@ -1,0 +1,6 @@
+# the plain RepeatEach-over-cards loop whose body asks: Cleansing ("for each
+# land, destroy that land unless any player pays 1 life", UnlessCost$ with
+# UnlessPayer$ Player, asked each pass) and basics, for the oracle's lockstep
+# (dirac/oracle/repeateachcards_loop_ask_lockstep_test.go)
+Cleansing
+Plains

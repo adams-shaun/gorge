@@ -51,6 +51,7 @@ type armRes struct {
 	pileOrd   [12]uint8     // OpTwoPiles: the face-down pile's rem indices in pick order
 	dmgSeqOrd [MaxPerm]Slot // a multi-event damage op's recipients, frozen (dmgSeqOn / N / I / Pl, outside scr)
 	plc       libTally      // kop.ExtLibPlace's tally of the cards put into libraries (act_libplace.go); live from its arm op to its ask op, zeroed by scrResEnter
+	eachRem   slotMask      // the plain RepeatEach-over-cards loop's subjects still to come (act_repeatcards.go); live while its loop frame is, written whole when the loop opens
 	jf        int16         // the resolution's join-forces total (ExtJoinForces / ExJoinForces); zeroed by scrResEnter
 	// voteCounts/voteCur/voteAll/voteAllN: a StoreVoteNum fixed-list vote's
 	// per-option tallies and the option branch being resolved (act_vote.go).

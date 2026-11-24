@@ -614,6 +614,15 @@ func (s *State) loopBack(k *prep) {
 			r.loopD--
 			continue
 		}
+		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
+			if s.eachCardAdvance() {
+				r.pc = r.loopS[d]
+				return
+			}
+			r.eachObj, s.g.inLoop = NoObj, false
+			r.loopD--
+			continue
+		}
 		if r.loopN[d] > 1 {
 			r.loopN[d]--
 			r.pc = r.loopS[d]
