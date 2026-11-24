@@ -1733,7 +1733,11 @@ func (s *State) lifePainActAffords(k *prep, a Action, p uint8, o Obj) bool {
 	// one both) lets no life pass fund it past the relaxed census's walk
 	// (Unholy Officiant's {4}{W} beside Artifact Unknown Shores, Mountain, a
 	// Grove and the Ogre). The autopay surface's plan walks the unit's repeats.
-	return s.cfg&cfgGorgeAutopay != 0 || s.relaxedWalkLists(k, a)
+	// An unrelaxable census (a repeatable filter: Prismite's {1}, beside Wand of
+	// Orcus's equip {3}) runs gorge's prefix search on every insufficient play,
+	// and a board with no filter has no double count to drop.
+	filt := s.scriptFilt(k, p)
+	return s.cfg&cfgGorgeAutopay != 0 || !filt.any() || !s.scriptRelax(k, p, filt, false) || s.relaxedWalkLists(k, a)
 }
 
 func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
