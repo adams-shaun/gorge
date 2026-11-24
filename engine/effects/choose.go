@@ -690,11 +690,7 @@ func creatureTypeFallback(g *state.Game, controller state.PlayerID) string {
 // CreatureTypeWords reports whether a Type token is a creature subtype. It
 // shares the positive vocabulary Changeling uses, so a cast-time type choice
 // cannot offer a spell, plane, or planeswalker subtype as a creature type.
-// CR 205.3m's one two-word creature type, Time Lord, is the parsed face's
-// single subtype "Time Lord" (cards.coalesceMultiWordTypes) and is a member
-// here too; it stays out of the sorted word list, whose Time and Lord words
-// the word-by-word predicate walk still matches.
-func CreatureTypeWords(t string) bool { return creatureSubtypeWords[t] || t == "Time Lord" }
+func CreatureTypeWords(t string) bool { return creatureSubtypeWords[t] }
 
 var chooseTypePromptTab = state.NewStrTable[string](
 	state.StrEntry[string]{Key: "", Val: "Choose a creature type"},

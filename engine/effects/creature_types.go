@@ -10,8 +10,9 @@ import (
 // subtype tokens. It is deliberately a positive set rather than the
 // complement of card/supertype words: the latter accidentally made a
 // Changeling an Arcane, Alara, or Ajani, even though those are spell, plane,
-// and planeswalker subtypes. Forge stores multiword types as separate tokens,
-// so this is necessarily token-based like the rest of the filter grammar.
+// and planeswalker subtypes. CR 205.3m's one two-word creature type, Time
+// Lord, is a single member (the parsed face carries it joined, see
+// cards.coalesceMultiWordTypes); Time and Lord alone are not creature types.
 var creatureSubtypeWords = func() map[string]bool {
 	out := make(map[string]bool)
 	for word := range strings.FieldsSeq(`
@@ -32,7 +33,7 @@ Hellion Hero Hippo Hippogriff Homarid Homunculus Horror Horse Horsehead Human
 Hydra Hyena Illusion Imp Incarnation Inhuman Inkling Inquisitor Insect Jackal
 Jellyfish Judge Juggernaut Kangaroo Kavu Kelpien Killbot Kirin Kithkin Klingon Knight
 Kobold Kor Kraken Kree Llama Lamia Lammasu Lanthanite Leech Lemur Leviathan Lhurgoyf
-Licid Lizard Lobster Lord Mammoth Manticore Masticore Mercenary Merfolk
+Licid Lizard Lobster Mammoth Manticore Masticore Mercenary Merfolk
 Metathran Mindless-One Minion Minotaur Mite Mole Monger Mongoose Monk Monkey Moogle Moonfolk
 Mount Mouse Mutant Myr Mystic Nautilus Necron Nephilim Nightmare Nightstalker
 Ninja Noble Noggle Nomad Nymph Octopus Officer Ogre Ooze Orb Orc Orion Orgg Otter
@@ -45,7 +46,7 @@ Shapeshifter Shark Sheep Shi'ar Siren Skeleton Skrull Skunk Slith Sliver Sloth
 Slug Snail Snake Soldier Soltari Sorcerer Specter Spellshaper Sphinx Spider Spike
 Spawn Spirit Splinter Sponge Spy Squid Squirrel Stained Starfish Surrakar Survivor
 Symbiote Synth Talosian Teddy Tellarite Tentacle Tetravite Thalakos Tholian Thopter
-Thrull Tiefling Time Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tosk Turtle Tyranid
+Thrull Tiefling Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tosk Turtle Tyranid
 Unicorn Utrom Vampire Varmint Vedalken Villain Volver Vorta Vulcan Wall Walrus
 Warlock Warrior Weasel Weird Werewolf Whale Wizard Wolf Wolverine Wombat Worm
 Wraith Wurm Xindi Yeti Zombie Zubera
@@ -55,6 +56,7 @@ Talaxian Tamarian Vau-N'Akat
 `) {
 		out[word] = true
 	}
+	out["Time Lord"] = true
 	return out
 }()
 
