@@ -60,7 +60,11 @@ type pcard struct {
 	wideN      uint8
 	wideCol    kop.ColorMask
 	wideChosen bool
-	restrLife  uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
+	// a fee widened record with wideCol == ColAny is a Combo Any of wideN
+	// independent any-colour units (Great Hall of the Citadel's two beside
+	// {C}): restrComboWide, derived from restrFee so pcard grows no byte
+	// (genPrep.selfPC is a [32]pcard, a pinned fixed-State field)
+	restrLife uint8 // a restricted {T}, Pay N life ability's N: a last-resort unit that pays the life as it is used (mana_restrictedcost.go)
 	// restrFee, restrFeeCol, restrFeeN: a restricted mana-fee ability's fee
 	// (Castle Garenbrig's "{2}{G}{G}, {T}: Add six {G}"): the activation pays
 	// restrFeeN pips of restrFeeCol and restrFee generic mana from the
