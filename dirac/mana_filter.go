@@ -169,7 +169,7 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	// planner never priced). The pool-pays read (filtPaid) is the cheap arm;
 	// the bound's is filtBoundPays (below).
 	for b := m; b.any(); b = b.rest() {
-		if sl := b.first(); !s.filtPaid(k, p, sl) && !s.filtBoundPays(k, p, sl) {
+		if sl := b.first(); !s.filtPaid(k, p, sl) && !s.filtBoundPays(k, p, sl) && !s.tapsDeferred(k, p, sl) {
 			m = m.without(sl) // the fee is out of gorge's census (potential_plan.go)
 		}
 	}
