@@ -73,6 +73,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if rp.str("Destination") != "Battlefield" {
 			return refuse("repl-hard: Moved to %s", rp.str("Destination"))
 		}
+		if err := replLayerControl(rp); err != nil {
+			return err
+		}
 		vc := rp.str("ValidCard")
 		other := vc != "Card.Self" && !strings.HasPrefix(vc, "Card.Self+")
 		// a self ETB replacement's condition and body read the
@@ -166,7 +169,7 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := etbRememberedRead(ab.Prog); err != nil {
 			return err
 		}
-		if spyglassChain(r.With) || handNameChain(r.With) {
+		if chainAsksOnUpdated(r.With) {
 			// gorge runs this chain (not a bare NameCard body) once the permanent
 			// is on the battlefield: the queued ask, not the stack pre-ask
 			rl.S = "Updated"
@@ -944,6 +947,9 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			}
 			lc.emit(lInstr{Op: "EnterUntapped", Obj: lRef{Kind: rReplaced}})
 		case "ChangeZone":
+			if lc.replChainCaptiveControl(ps, node, sa, other, cond) { // lower_chooseplayerenter.go
+				break
+			}
 			// "creatures you control enter tapped and attacking" (Kira Nerys, Firebrand):
 			// Origin$ All to the battlefield with Tapped$ True and Attacking$ True,
 			// nothing else (gorge effects.EntryStateBody). Only the unchained other-enter shape.
@@ -1002,31 +1008,25 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 				return err
 			}
 		case "ChoosePlayer":
-			if !other && node == sa && !spyglassChain(sa) {
-				// the as-enters opponent (lower_chooseplayerenter.go)
-				if err := lc.etbChoosePlayer(ps, node, sa, other, cond); err != nil {
-					return err
-				}
-				break
-			}
-			// Sorcerous Spyglass's chain head (lower_choosename.go spyglassChain):
-			// the pod-wide choice of an opponent, ahead of the look-then-name
-			// ask (choosePlayerPod)
-			if other || node != sa || !spyglassChain(sa) {
-				return refuse("ETB replacement api ChoosePlayer")
-			}
-			if err := lc.choosePlayerPod(ps); err != nil {
+			if err := lc.replChainChoosePlayer(ps, node, sa, other, cond); err != nil { // lower_chooseplayerenter.go
 				return err
 			}
 		case "RevealHand":
-			// the chain's look: folded into the name ask's decisions (B = 2)
-			if other || !spyglassChain(sa) && !handNameChain(sa) {
+			// the chain's look: folded into the name/type ask's decisions
+			if other || !chainAsksOnUpdated(sa) {
 				return refuse("ETB replacement api RevealHand")
 			}
 			ps.consume("Defined", "Look", "RememberRevealed", "SpellDescription")
 		case "Cleanup":
-			if other || !spyglassChain(sa) && !handNameChain(sa) {
+			if other || !chainAsksOnUpdated(sa) && sa.API != "Reveal" {
 				return refuse("ETB replacement api Cleanup")
+			}
+			if sa.API == "Reveal" && ps.is("ClearRemembered", "True") {
+				// the reveal's remembered cards are the kernel's per-resolution
+				// set: ClearRemembered$ ends the read
+				ps.consume("ClearRemembered")
+				lc.emit(lInstr{Op: "ClearRemembered"})
+				break
 			}
 			lc.clearChosenPlayer(ps)
 			ps.consume("ClearRemembered") // Alhammarret's chain: the revealed set was never kept
@@ -1042,6 +1042,14 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 			if err := lc.etbChooseType(ps); err != nil { // lower_choosetype.go
 				return err
 			}
+		case "Animate":
+			if err := lc.animate(ps); err != nil { // lower_zone.go
+				return err
+			}
+		case "Reveal":
+			if err := lc.replChainReveal(ps); err != nil { // lower_reveal.go
+				return err
+			}
 		default:
 			return refuse("ETB replacement api %s", node.API)
 		}
@@ -1053,4 +1061,53 @@ func (lc *lowerCtx) replChain(sa *cards.SA, other bool, cond *lCond) error {
 		}
 	}
 	return nil
+}
+
+// replChainReveal is replChain's Reveal arm: the hand reveal, unless the
+// face also has an as-enters colour choice (Temple of the Dragon Queen), whose
+// CR 616.1 order against the reveal-then-tap replacement the kernel does not
+// pose.
+func (lc *lowerCtx) replChainReveal(ps *params) error {
+	if faceHasEnterBodyAPI(lc.face, "ChooseColor") {
+		return refuse("ETB replacement api Reveal beside an as-enters ChooseColor")
+	}
+	return lc.reveal(ps)
+}
+
+// faceHasEnterBodyAPI reports whether some as-enters replacement body of f is
+// api (a second as-enters choice beside the one being lowered).
+func faceHasEnterBodyAPI(f *cards.Face, api string) bool {
+	if f == nil {
+		return false
+	}
+	for i := range f.Repls {
+		for a := f.Repls[i].With; a != nil; a = a.Sub {
+			if a.API == api {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// replLayerControl reads a Moved replacement's Layer$: only Captive
+// Audience's control-change replacement (Layer$ Control), whose body is the
+// ChoosePlayer head then the GainControl it hands the entry to.
+func replLayerControl(rp *params) error {
+	v, ok := rp.get("Layer")
+	if !ok {
+		return nil
+	}
+	if v != "Control" {
+		return refuse("Moved replacement Layer$ %q", v)
+	}
+	rp.consume("Layer")
+	return nil
+}
+
+// chainAsksOnUpdated reports an as-enters look-then-choose chain (Sorcerous
+// Spyglass, the hand-name and look-choose-type chains) whose ask gorge poses
+// with the permanent on the battlefield.
+func chainAsksOnUpdated(sa *cards.SA) bool {
+	return spyglassChain(sa) || handNameChain(sa) || lookChooseTypeChain(sa)
 }

@@ -50,6 +50,13 @@ func electionPC(a *kop.Ability) int {
 			len(a.Prog) > 1 && a.Prog[1].Op == kop.OpUnlessPaid && int(a.Prog[1].C&0xF) == kop.PayLife {
 			return 1
 		}
+	case kop.OpChooseMove:
+		// an as-enters hand reveal (Fortified Beachhead, Temple of the Dragon
+		// Queen): its answer completes the land play, so the count waits
+		// (repl_enterreveal.go)
+		if a.Prog[0].C&7 == 0 && a.Prog[0].C>>3&kop.SrReveal != 0 {
+			return 0
+		}
 	}
 	return -1
 }
@@ -151,7 +158,7 @@ func (s *State) queueElection(sl Slot, kind uint8, c CardID, ab, pc uint8) {
 func (s *State) shockLandCount(k *prep, o Obj, p uint8) {
 	if s.g.nask > 0 {
 		a := &s.g.ask[s.g.nask-1]
-		if a.sl == s.objs[o].slot && (a.kind == akPayLife || a.kind == akReveal || s.shockChainOpener(k, a)) {
+		if a.sl == s.objs[o].slot && (a.kind == akPayLife || a.kind == akReveal || a.kind == akEnterReveal || a.kind == akEnterRevealPick || s.shockChainOpener(k, a)) {
 			a.ts |= askLandPlay
 			return
 		}

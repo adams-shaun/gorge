@@ -37,6 +37,10 @@ const (
 	// with the spell still on the stack (s.g.pre only; repl_etborder.go)
 	akEtbOrder uint8 = 14
 	akPlayer   uint8 = 16 // an as-enters opponent (OpExt ExtChoosePlayer; repl_chooseplayer.go)
+	// akEnterReveal / akEnterRevealPick are an as-enters Reveal's Optional$
+	// yes/no and its hand pick (OpChooseMove SrReveal; repl_enterreveal.go).
+	akEnterReveal     uint8 = 36
+	akEnterRevealPick uint8 = 37
 	// akUnleash is 33, past akCard (17, repl_choosecard.go), akPayETB (30,
 	// repl_paybeforeetb.go) and the EnterCtrPick pair (31, 32,
 	// repl_enterctrpick.go): the ask kinds continue across their files.
@@ -521,12 +525,10 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.res = saved
 			}
 			return
-		case kop.OpChooseBranch:
-			if in.C != 2 {
-				s.execGen(k, in)
+		case kop.OpChooseBranch, kop.OpChooseMove:
+			if !s.replAskOp(k, sl, c, ab, i, in) { // repl_enterreveal.go
 				break
 			}
-			s.siegeModeRepl(sl, c, ab, i) // face_siegemode.go
 			if !saved.active {
 				s.res = saved
 			}
@@ -1605,6 +1607,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		s.protectorStore(ask.sl, a.Mode()) // face_battle.go
 	} else if ask.kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code (repl_choosecard.go)
+	} else if ask.kind == akEnterReveal || ask.kind == akEnterRevealPick {
+		if !s.enterRevealAnswer(k, ask, a) { // repl_enterreveal.go
+			return // the pick is asked again, or the yes/no became the pick
+		}
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = objWord(a.Mode())
 	} else {
@@ -1756,6 +1762,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akReveal || kind == akRevPick {
 		s.revealOptions(k, d, kind) // repl_revealland.go
+		return
+	}
+	if kind == akEnterReveal || kind == akEnterRevealPick {
+		s.enterRevealOptions(k, d, kind) // repl_enterreveal.go
 		return
 	}
 	if kind == akMode {
