@@ -728,36 +728,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 	for i := range fires {
 		f := &fires[i]
 		dt := &f.dt
-		// Forge's STATIC delayed trigger (TriggerHandler's isStatic arm): the
-		// Execute body resolves IMMEDIATELY at fire time — never pushed on
-		// the stack — so the promise it creates (Mistrise Village's
-		// "the next spell you cast this turn can't be countered") is
-		// active before any player can respond to the cast. The static-
-		// marked DelayedPush consumes the one-shot registration without
-		// minting a stack object (events.Apply), then the body resolves
-		// inline; an ask the body poses parks through the ordinary direct
-		// resume machinery.
-		if f.static {
-			fireStaticDelayed(e, &e.staticFiringDT, f)
+		if !e.delayedFireAdmits(f, ev) {
 			continue
-		}
-		// CR 603.2c/510.2: an event-matched registration of a damage batch
-		// mode is one triggering condition for the whole damage batch,
-		// exactly as the printed and granted walks latch it (trigger_match.go
-		// damageBatchLatchMode / trigger_granted.go grantedDamageBatchAdmits).
-		// The gate runs here, in queue order, not in the scan above:
-		// latchDamageBatch records the pending-queue index the closing batch
-		// patches, and only this pass appends. The registration's own key
-		// keeps it apart from the printed and granted walks; a done-once arm
-		// latches per damaged referent. A static registration resolves
-		// inline with no queue entry, so it keeps its per-event fire.
-		if damageBatchLatchMode(f.trigger.ModeKind()) {
-			amount := damageTriggerAmount(e.excessDamageBaseline, f.trigger.ModeKind(), ev,
-				damageSourceHasDeathtouch(e, e.damageSourceLKI, ev))
-			if amount <= 0 || !e.latchDamageBatch(f.trigger, &f.trigger, f.trigger.ModeKind(),
-				triggerKey{Source: dt.Source, Idx: -1 - int(dt.ID)}, grantedLine{}, dt.Source, ev, amount) {
-				continue
-			}
 		}
 		// CR 603.7d, as at the phase walk: earthbend's return records its creator.
 		pushSource := dt.Source
@@ -794,6 +766,39 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			}),
 		})
 	}
+}
+
+// delayedFireAdmits runs the fire-time gates that decide whether an
+// event-matched delayed registration queues. A STATIC registration is Forge's
+// TriggerHandler isStatic arm: the Execute body resolves IMMEDIATELY at fire
+// time — never pushed on the stack — so the promise it creates (Mistrise
+// Village's "the next spell you cast this turn can't be countered") is active
+// before any player can respond to the cast. The static-marked DelayedPush
+// consumes the one-shot registration without minting a stack object
+// (events.Apply), then the body resolves inline; an ask the body poses parks
+// through the ordinary direct resume machinery. It is consumed here, so the
+// caller skips it.
+//
+// Otherwise CR 603.2c/510.2 makes an event-matched registration of a damage
+// batch mode one triggering condition for the whole damage batch, exactly as
+// the printed and granted walks latch it (trigger_match.go
+// damageBatchLatchMode / trigger_granted.go grantedDamageBatchAdmits). The
+// gate runs here, in queue order, not in the scan above: latchDamageBatch
+// records the pending-queue index the closing batch patches, and only this
+// pass appends. The registration's own key keeps it apart from the printed
+// and granted walks; a done-once arm latches per damaged referent.
+func (e *Engine) delayedFireAdmits(f *delayedSpellCastFire, ev events.Event) bool {
+	if f.static {
+		fireStaticDelayed(e, &e.staticFiringDT, f)
+		return false
+	}
+	if !damageBatchLatchMode(f.trigger.ModeKind()) {
+		return true
+	}
+	amount := damageTriggerAmount(e.excessDamageBaseline, f.trigger.ModeKind(), ev,
+		damageSourceHasDeathtouch(e, e.damageSourceLKI, ev))
+	return amount > 0 && e.latchDamageBatch(f.trigger, &f.trigger, f.trigger.ModeKind(),
+		triggerKey{Source: f.dt.Source, Idx: -1 - int(f.dt.ID)}, grantedLine{}, f.dt.Source, ev, amount)
 }
 
 // effectDelayedFrame is the source-scoped Effect frame an Effect-created

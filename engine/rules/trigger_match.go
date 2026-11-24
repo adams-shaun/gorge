@@ -2383,16 +2383,6 @@ func (e *Engine) openDamageBatch() {
 	e.damageBatchDepth++
 }
 
-// closeDamageBatch closes the open damage batch: every entry's queued trigger
-// gets its referent patched to the batch's accumulated total (two blockers
-// hitting one Enrage creature is ONE trigger whose amount is the sum), then
-// the batch bookkeeping is dropped. The Once latch lives entirely inside the
-// open batch -- entries are the latch, and closing clears them -- so nothing
-// persists between batches and no per-turn latch remains. The pendingTriggers
-// index recorded at queue time is re-checked against the trigger it was
-// recorded for before patching; a mismatch (impossible today -- the queue is
-// append-only while a batch is open, and nothing drains mid-batch) falls back
-// to the first event's amount rather than patching a stranger.
 // pendingBatchKeyMatches reports whether pending trigger pt is the queue
 // entry a damage batch key names. A delayed registration's entry has no face
 // trigger index: its key carries -1-DelayedID (trigger_delayed.go
@@ -2409,6 +2399,16 @@ func pendingBatchKeyMatches(pt *pendingTrigger, key triggerKey) bool {
 	return pt.Idx == key.Idx
 }
 
+// closeDamageBatch closes the open damage batch: every entry's queued trigger
+// gets its referent patched to the batch's accumulated total (two blockers
+// hitting one Enrage creature is ONE trigger whose amount is the sum), then
+// the batch bookkeeping is dropped. The Once latch lives entirely inside the
+// open batch -- entries are the latch, and closing clears them -- so nothing
+// persists between batches and no per-turn latch remains. The pendingTriggers
+// index recorded at queue time is re-checked against the trigger it was
+// recorded for before patching; a mismatch (impossible today -- the queue is
+// append-only while a batch is open, and nothing drains mid-batch) falls back
+// to the first event's amount rather than patching a stranger.
 func (e *Engine) closeDamageBatch() {
 	if e.damageBatchDepth == 0 {
 		return
