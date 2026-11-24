@@ -18,15 +18,27 @@ func TestRestrictedManaFeeWideShape(t *testing.T) {
 	}
 }
 
+// TestRestrictedManaFeeEachShape: Cormela, Glamour Thief's "{1}, {T}: Add
+// {U}{B}{R}" (one mana of each of a fixed set of colours, instants and
+// sorceries only) lowers as a restricted fee unit: the kernel carries the
+// all-at-once production as the unit's first colour beside a fixed rest, and
+// the fee is charged from the payment's floating mana (CR 605.3b).
+func TestRestrictedManaFeeEachShape(t *testing.T) {
+	lc := lowerCorpusCard(t, "Cormela, Glamour Thief")
+	for _, rf := range lc.Refusals {
+		t.Errorf("refused: %s", rf.Reason)
+	}
+}
+
 // TestRestrictedManaFeeWiderKeepsRefusing: the wider fee productions that need
 // a kernel model this change does not add stay refused, and the reason names
 // that production or the source's second ability, never the plain fee the
-// model does carry. Each is a separate follow-up: Cormela's all-at-once
-// {U}{B}{R} and Great Hall's Combo Any beside a census ability both lower in
-// kgen but diverge from gorge in lockstep (the mana assignment differs), and
-// Hydro-Channeler's fee ability sits beside its restricted {U} one.
+// model does carry. Each is a separate follow-up: Great Hall's Combo Any
+// beside a census ability lowers in kgen but diverges from gorge in lockstep
+// (the mana assignment differs), and Hydro-Channeler's fee ability sits beside
+// its restricted {U} one.
 func TestRestrictedManaFeeWiderKeepsRefusing(t *testing.T) {
-	for _, name := range []string{"Cormela, Glamour Thief", "Great Hall of the Citadel", "Hydro-Channeler", "Interplanar Beacon"} {
+	for _, name := range []string{"Great Hall of the Citadel", "Hydro-Channeler", "Interplanar Beacon"} {
 		t.Run(name, func(t *testing.T) {
 			lc := lowerCorpusCard(t, name)
 			if len(lc.Refusals) == 0 {

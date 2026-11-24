@@ -7,15 +7,15 @@ package kop
 // floating mana before the production joins (engine/rules cast_window.go
 // castWindowGenericCostShape, CR 605.3b, 601.2g). The production is one the
 // kernel's restricted unit carries: one fixed colour or {C}, or N mana in any
-// combination of colours (Combo Any); one mana of a single chosen colour and
-// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}) are no
-// unit. No {X}, hybrid, two-brid, {C} or
+// combination of colours (Combo Any); one mana of each of a fixed set of
+// colours (Cormela's {U}{B}{R}) is the unit's first colour beside a fixed rest
+// (prepEachMana); one mana of a single chosen colour is no unit. No {X}, hybrid, two-brid, {C} or
 // snow part in the fee, no rider, program, gate or evaluated amount; the spell
 // and the activated-ability restriction are both allowed. The kernel plans it
 // as a restricted pair/sole unit (dirac mana_restrictedsource.go) whose fee is
 // charged from the payment's floating mana.
 func RestrictedManaCostShape(a *Ability) bool {
-	if a.Kind != AbMana || a.AFlags&^(AfManaNonSpell|AfManaChosen|AfManaChoice) != 0 || a.ManaEach ||
+	if a.Kind != AbMana || a.AFlags&^(AfManaNonSpell|AfManaChosen|AfManaChoice) != 0 ||
 		a.ManaColors == 0 || a.ManaRider != ManaRiderNone || len(a.Prog) != 0 || a.Gate.Ctr != 0 || a.Trig.Cond != 0 ||
 		a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
@@ -35,8 +35,8 @@ func RestrictedManaCostShape(a *Ability) bool {
 
 // restrFeeProduction reports whether a's production is a shape the fee unit
 // carries: one fixed colour or {C} of a literal amount, or N mana in any
-// combination of colours (Produced$ Combo Any). Anything else (Produced$ Any,
-// ManaEach, and especially Combo AnyDifferent, whose units are distinct only
+// combination of colours (Produced$ Combo Any), or one mana of each of a fixed set
+// of colours (ManaEach). Anything else (Produced$ Any, and especially Combo AnyDifferent, whose units are distinct only
 // together) is no unit.
 func restrFeeProduction(a *Ability) bool {
 	n := int(a.ManaN)
@@ -48,6 +48,10 @@ func restrFeeProduction(a *Ability) bool {
 	}
 	cols := a.ManaColors & (ColAny | ColC)
 	switch {
+	case a.ManaEach:
+		// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}):
+		// the unit's first colour beside a fixed rest (prepEachMana)
+		return a.AFlags&AfManaChoice == 0 && cols == a.ManaColors&0x3f && cols&ColC == 0 && cols&(cols-1) != 0
 	case cols == 0:
 		return false
 	case a.AFlags&AfManaChoice != 0:

@@ -1061,6 +1061,12 @@ func (lc *lowerCtx) refuseEachMana(ms []*lAbility) bool {
 			// Gutsy Explorer; Tin Street Gossip's Static.isTurnFaceUp clause)
 			// is a restricted planner unit (kernel mana_restrictedsource.go).
 			lc.refuseNode("card", "mana ability adding several colours at once under a spend restriction")
+		case m.Restrict != nil && restrictedManaUnit(a.Cost, m):
+			// a spend-restricted mana-fee unit (Cormela's {1}, {T}: {U}{B}{R},
+			// spells only): the kernel's restricted unit carries the
+			// all-at-once production (kop.RestrictedManaCostShape). A plain
+			// fee with no restriction keeps the cost-beyond-{T} refusal below.
+			continue
 		case !plainTapMana(a, false) && !ctrEachMana(a) && !filtEachMana(a) && !sacEachMana(a):
 			// gorge's planner defers any cost beyond {T} (a filter's fee, a
 			// sacrifice of another permanent, removed counters): a census gap.

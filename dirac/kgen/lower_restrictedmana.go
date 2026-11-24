@@ -154,9 +154,9 @@ func restrictedManaUnit(c lCost, m *lMana) bool {
 // restrictedFeeProduction reports whether a fee unit's production m is a
 // shape the kernel's restricted unit carries: one fixed colour or {C} of a
 // literal amount, or N mana in any combination of colours (Combo Any: Great
-// Hall of the Citadel, Orb of Dragonkind). One mana of a single chosen colour
-// (Hydro-Channeler's Produced$ Any) and one mana of each of a fixed set of
-// colours (Cormela, Glamour Thief's {U}{B}{R}) stay refused, as does Combo
+// Hall of the Citadel, Orb of Dragonkind), or one mana of each of a fixed set
+// of colours (Cormela, Glamour Thief's {U}{B}{R}). One mana of a single chosen
+// colour (Hydro-Channeler's Produced$ Any) stays refused, as does Combo
 // AnyDifferent: its units are distinct only together, and the availability
 // model's groups cannot couple two units.
 func restrictedFeeProduction(m *lMana) bool {
@@ -165,7 +165,9 @@ func restrictedFeeProduction(m *lMana) bool {
 	}
 	switch {
 	case m.Each:
-		return false
+		// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}),
+		// two to five colours, each a literal amount
+		return !m.Choice && len(m.Colors) >= 2 && strings.Trim(m.Colors, "WUBRG") == ""
 	case m.Choice:
 		return m.Colors == "WUBRG"
 	default:
