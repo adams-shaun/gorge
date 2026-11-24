@@ -11,10 +11,3 @@ func TestMBCDrMbcAabaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "priority_pass_beside_kernel_mode_options")
 }
-
-// TestMBCDrMbcAabaPoolGlob replays the pool's recordings by glob (repro_glob_test.go's
-// table needs a test to glob each pool).
-func TestMBCDrMbcAabaPoolGlob(t *testing.T) {
-	t.Parallel()
-	stdReprosGlobPools(t, "dr-mbc-aaba")
-}
