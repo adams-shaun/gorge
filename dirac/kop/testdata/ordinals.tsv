@@ -1403,6 +1403,7 @@ StSeatActive	StaticFlags	16384
 StTapAnyCol	StaticFlags	32
 StTapAnyPlayer	StaticFlags	8
 StTapChosen	StaticFlags	16
+StTapDynamic	StaticFlags	8192
 StTapOnC	StaticFlags	2
 StTapPowerCrew	StaticFlags	2
 StTapPowerSaddle	StaticFlags	4

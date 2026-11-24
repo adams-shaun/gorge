@@ -2271,6 +2271,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= f
 		}
+		if s.Amount.Kind != 0 {
+			if st.VA, err = cb.value(s.Amount); err != nil {
+				return ka, nil, err
+			}
+			st.StFlags |= kop.StTapDynamic
+		}
 	case "CantBeCast":
 		st.Kind = kop.StatCantBeCast
 		if s.F != nil { // nil: the card's own static (Card.Self | EffectZone$ All)
@@ -3378,6 +3384,8 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 		return kop.StTapAnyPlayer, true
 	case "TapChosen":
 		return kop.StTapChosen, true
+	case "TapDynamic":
+		return kop.StTapDynamic, true
 	case "TapAnyCol":
 		return kop.StTapAnyCol, true
 	}
