@@ -135,9 +135,18 @@ func init() {
 		v, err := c.Value(rawArgs(n))
 		return &ir.Effect{Kind: ir.EffCDAToughness, T: v}, err
 	})
-	cda("Rule.CDA_Color", func(c *Ctx, n node) (*ir.Effect, error) {
+	register("Rule.CDA_Color", func(c *Ctx, n node) (any, error) {
+		if variantOf(rawArgs(n)) == "Devoid" {
+			// the characteristic-defining ability of devoid is the keyword
+			src := c.Src()
+			return &ir.Ability{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: "Devoid", Src: src}, Src: src}, nil
+		}
 		cs, err := colorSet(c, rawArgs(n))
-		return &ir.Effect{Kind: ir.EffCDAColor, Colors: cs}, err
+		if err != nil {
+			return nil, err
+		}
+		return &ir.Ability{Kind: ir.AbStatic, Zones: allZones,
+			Body: static(&ir.Ref{Kind: ir.RefSelf}, []*ir.Effect{{Kind: ir.EffCDAColor, Colors: cs}})}, nil
 	})
 
 	// StaticLayerEffect: the LayerEffect shapes where they coincide.

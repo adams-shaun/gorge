@@ -1,6 +1,7 @@
 package mtgish
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -257,4 +258,29 @@ func TestTriggerSliceVariantsRegistered(t *testing.T) {
 		map[string]string{
 			"ProtectableColor.TheChosenColor": "chosen colour, as CC-12's Color.TheChosenColor",
 		})
+}
+
+func TestRuleKeywordLowerings(t *testing.T) {
+	kwAb := func(name string) *ir.Ability {
+		return &ir.Ability{Kind: ir.AbKeyword, Keyword: &ir.Keyword{Name: name}}
+	}
+	leyline := func(pregame string, flag string) node {
+		inner := tn("Action", "BeginGameWithCardOnBattlefield", tn("PregameCard", pregame), []any{tn("EnterFlag", flag)})
+		return tn("Rule", "IfCardIsInOpeningHand", []any{tn("Action", "MayAction", inner)})
+	}
+	runLowerCases(t, []lowerCase{
+		{"devoid", tn("Rule", "CDA_Color", tn("SettableColor", "Devoid")), kwAb("Devoid")},
+		{"opening hand", leyline("ThisPregameCard", "EntersNormally"), kwAb("MayEffectFromOpeningHand")},
+		{"any number of copies", tn("Rule", "DeckConstruction", tn("DeckConstruction", "CanHaveAnyNumberOfThisCard")), kwAb(anyNumberKeyword)},
+	})
+	for name, in := range map[string]node{
+		"another pregame card": leyline("SomePregameCard", "EntersNormally"),
+		"another way to enter": leyline("ThisPregameCard", "EntersTapped"),
+		"another deck rule":    tn("Rule", "DeckConstruction", tn("DeckConstruction", "Other")),
+	} {
+		var r *RefusalError
+		if _, err := (&Ctx{}).lower(in); !errors.As(err, &r) {
+			t.Errorf("%s: %v, want a refusal", name, err)
+		}
+	}
 }

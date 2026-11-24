@@ -24,6 +24,14 @@ func (p *pr) keywordLine(k *ir.Keyword, src string) (string, error) {
 			return "", err
 		}
 		return "K:" + k.Name + ":" + c, nil
+	case "MayEffectFromOpeningHand":
+		// begin the game with this card on the battlefield
+		if k.Cost != nil || k.N != nil || k.Filter != nil {
+			return "", bad
+		}
+		name := p.fresh("FromHand")
+		p.svars = append(p.svars, kv{name, "DB$ ChangeZone | Defined$ Self | Origin$ Hand | Destination$ Battlefield"})
+		return "K:MayEffectFromOpeningHand:" + name, nil
 	case "Equip":
 		// Forge's default: equip to a creature you control.
 		if k.Cost == nil || k.N != nil || !isCreatureType(k.Filter) {
@@ -80,6 +88,9 @@ func lower(s string) string {
 	return string(b)
 }
 
+// lineKeywords are keywords with no arguments that still print more than "K:Name".
+var lineKeywords = map[string]bool{"MayEffectFromOpeningHand": true}
+
 func printKeywordArgs(p *pr, a *ir.Ability) error {
 	l, err := p.keywordLine(a.Keyword, a.Src)
 	if err != nil {
@@ -98,7 +109,7 @@ func typeUnionText(f *ir.Filter) (string, bool) {
 	}
 	var ws []string
 	for _, a := range f.Args {
-		if !isPred(a, ir.PCardType) {
+		if a.Op != ir.FPred || a.Pred != ir.PCardType || a.Word == "" || len(a.Args) != 0 {
 			return "", false
 		}
 		ws = append(ws, lower(a.Word))
