@@ -56,6 +56,9 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
 		return false
 	}
+	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) {
+		return true // gorge's planner keeps declining a Waterbend<X> cost (planAbilityPayment)
+	}
 	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
 	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
 }
