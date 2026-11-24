@@ -10,12 +10,15 @@ import (
 // library is shuffled -- even when the object did not move (CR 701.24c,
 // objectPathShuffleOwners), as long as the object still exists. With bottom
 // (kop.LibBottomShuffle, LibraryPosition$ -1) the object goes on the bottom.
+// When the object is gone, W names the library the effect independently
+// names (the parent player target, or the controller for a YouCtrl/YouOwn
+// filter) and that library is still shuffled (CR 701.24d).
 //
 // Defined$ Enchanted/Equipped is RefAttached. When the source is off the
 // battlefield, gorge's definedSpecEquipped (engine/effects/context.go:
 // 1306-1328) falls back to Object.LastBearer (CR 608.2h): the referent can
 // be a creature that already left, and objectPathShuffleOwners
-// (engine/effects/zone_library.go:83-97) still shuffles its owner's
+// (engine/effects/zone_library.go:79-131) still shuffles its owner's
 // library. Only a referent still on the battlefield is moved (Origin$
 // Battlefield).
 //
@@ -37,7 +40,17 @@ func (s *State) toLibraryShuffle(k *prep, in *kop.Instr, bottom bool) {
 			lastBear = o != NoObj
 		}
 	}
-	if o == NoObj || in.C == kop.LibTopShuffleGrave && s.objs[o].zone != kop.ZoneGraveyard {
+	if o == NoObj {
+		// CR 701.24d: even with no object in the set, the library the
+		// effect names independently of the chosen card is shuffled.
+		if in.W != kop.RefNone {
+			if p := s.playerRef(k, in.W); p != 255 {
+				s.shuffleLib(p)
+			}
+		}
+		return
+	}
+	if in.C == kop.LibTopShuffleGrave && s.objs[o].zone != kop.ZoneGraveyard {
 		return // (Origin$ Graveyard: a card exiled in response is not shuffled in, nor the library)
 	}
 	if bottom && s.objs[o].zone != kop.ZoneBattlefield {
