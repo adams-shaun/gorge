@@ -19,6 +19,8 @@ import (
 // the ordinary walk asks. Every non-mana part of the cost is read for real by
 // the confirming gate, and the witness is planned so those parts stay payable.
 func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base Cost, ab *cards.SA) bool {
+	// A printed {X} the text defines is that much generic mana (CR 107.3c).
+	base = pay.FixDefinedManaX(asPayer(w.e), p, id, base)
 	if w.hyp != nil || !w.e.paidManaCensus || !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0) {
 		return false
 	}

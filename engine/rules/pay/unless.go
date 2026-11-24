@@ -62,18 +62,25 @@ func CostAnnouncesSacX(c costvocab.Cost) bool {
 //     place a RaiseCost's fixed life raise lands, so CR 601.2f's ordering
 //     treats it as an additional cost that no reduction ever touches.
 //
+// A printed mana {X} whose body defines it is folded the same way
+// (definedManaXOnly: no other X-sharing part and no XColor$ restriction):
+// that much generic mana per {X} symbol (CR 107.3a/c), so xAsk announces
+// nothing (Soul Foundry, Voodoo Doll). A body that reads a target, reveal
+// or choice (lateBoundXBody) cannot be fixed at activation: it keeps the
+// announcement it had (Goblin Polka Band).
+//
 // The verdict is three-way, and ok=false is WITHHOLD: the SVar:X body is
 // present, not Count$xPaid, and either unresolvable (War Room's commander
 // colour identity) or negative -- the ability is not offered at all (the
 // fail-closed direction ParseUnlessCost and manaAbilityPayable already take)
 // rather than offered with an arbitrary announcement the payer cannot be
-// held to. A cost pairing the non-xPaid body with a printed {X} or another
-// announced part sharing the X (Sac<X/Spec>, PayEnergy<X>,
-// SubCounter<X/Kind>) is also withheld: the corpus carries no such face, and
-// what the fixed body would mean for a shared announcement is undefined
-// here. The idempotence contract matters: offerCastable converts at the
-// gate, the payment sites convert again, and a converted cost (no LifeX
-// left) early-returns unchanged.
+// held to. A cost pairing the non-xPaid body with another announced part
+// sharing the X (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>, or a printed
+// {X} under an XColor$ restriction) is also withheld: the corpus carries no
+// such face, and what the fixed body would mean for a shared announcement is
+// undefined here. The idempotence contract matters: offerCastable converts
+// at the gate, the payment sites convert again, and a converted cost (no
+// LifeX left) early-returns unchanged.
 //
 // An announced ExileFromGrave<X/Spec> part reads the same SVar:X and is
 // fixed the same way: Count$xPaid keeps the announcement (Harvest Pyre,
@@ -94,25 +101,26 @@ func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) 
 		return c, true
 	}
 	c = fixSubCounterAll(o, c)
-	if len(c.LifeX) == 0 && !announcesGraveExileX(c) {
+	if len(c.LifeX) == 0 && !announcesGraveExileX(c) && c.X == 0 {
+		// A printed {X} is not settled by the SubCounter fix: the
+		// defined-mana fold below still reads the face's SVar:X.
 		return c, true
 	}
 	body, present := o.Face().SVars["X"]
-	if !present || strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+	if !present || isXPaidBody(body) {
 		return c, true
 	}
-	if c.X > 0 || CostAnnouncesSacX(c) {
+	if definedManaXOnly(c) {
+		return foldDefinedManaX(e, p, id, c, body)
+	}
+	if manaXAlone(c) && lateBoundXBody(body) {
+		// A printed {X} whose body reads a target, reveal or choice cannot be
+		// fixed at activation; it keeps the announcement it had (Goblin Polka
+		// Band's {X} is its target count), not the mixed-shape withhold.
+		return c, true
+	}
+	if c.X > 0 || CostAnnouncesSacX(c) || !xAnnouncementPartsAlone(c) {
 		return c, false
-	}
-	for _, part := range c.Energy {
-		if part.Spec == "X" {
-			return c, false
-		}
-	}
-	for _, part := range c.SubCounter {
-		if part.Announced {
-			return c, false
-		}
 	}
 	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: o.Face().SVars})
 	n, resolvable := e.Eval().EvalCount(ctx, body)
@@ -138,10 +146,10 @@ func FixLifeXCost(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) 
 }
 
 // CostHasSVarX reports whether c carries a part whose count FixLifeXCost
-// fixes: a PayLife<X> part, an announced ExileFromGrave<X/Spec> part or a
-// whole-pile SubCounter<All/Kind> part.
+// fixes: a PayLife<X> part, an announced ExileFromGrave<X/Spec> part, a
+// whole-pile SubCounter<All/Kind> part, or a printed mana {X}.
 func CostHasSVarX(c costvocab.Cost) bool {
-	return len(c.LifeX) != 0 || announcesGraveExileX(c) || hasSubCounterAll(c)
+	return len(c.LifeX) != 0 || announcesGraveExileX(c) || hasSubCounterAll(c) || c.X > 0
 }
 
 func hasSubCounterAll(c costvocab.Cost) bool {
@@ -169,6 +177,138 @@ func fixSubCounterAll(o *state.Object, c costvocab.Cost) costvocab.Cost {
 		}
 	}
 	return c
+}
+
+// definedManaXOnly reports whether c's only X-sharing part is a printed mana
+// {X} (one or more symbols) and no XColor$ restriction applies. Only this
+// shape folds a text-defined X into generic mana; a mixed shape keeps
+// FixLifeXCost's withhold verdict.
+func definedManaXOnly(c costvocab.Cost) bool {
+	return c.XColors == 0 && manaXAlone(c)
+}
+
+// manaXAlone reports whether c's only X-sharing part is a printed mana {X}:
+// no PayLife<X>, announced ExileFromGrave<X>, Sac<X>, PayEnergy<X> or
+// SubCounter<X> part shares the announcement. XColor$ is not an X-sharing
+// part; a folded {X} cannot keep its colour restriction, so definedManaXOnly
+// excludes it while a late-bound announcement keeps it.
+func manaXAlone(c costvocab.Cost) bool {
+	if c.X <= 0 || len(c.LifeX) != 0 || announcesGraveExileX(c) || CostAnnouncesSacX(c) {
+		return false
+	}
+	return xAnnouncementPartsAlone(c)
+}
+
+// xAnnouncementPartsAlone reports whether c has no PayEnergy<X> part and no
+// announced SubCounter<X/Kind> part sharing the X announcement.
+func xAnnouncementPartsAlone(c costvocab.Cost) bool {
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return false
+		}
+	}
+	for _, part := range c.SubCounter {
+		if part.Announced {
+			return false
+		}
+	}
+	return true
+}
+
+// isXPaidBody reports whether an SVar:X body is Count$xPaid, the announced X.
+func isXPaidBody(body string) bool {
+	return strings.EqualFold(strings.TrimSpace(body), "Count$xPaid")
+}
+
+// lateBoundXBody reports whether an SVar:X body reads something the
+// activation chooses after the X announcement would be made -- its targets
+// (Targeted$, TargetedObjects$, AllTargeted$: Reflecting Mirror, Deepwood
+// Elder), a card the cost reveals (Revealed$: Caller of the Untamed), an
+// announced choice (ChosenCtrl: Bargaining Table, Spoils of War) or another
+// SVar (Goblin Polka Band's SVar$TgtNum). Such a body cannot be evaluated
+// when the cost is fixed, so the printed {X} keeps its announcement exactly
+// as before; only a body readable at activation (Imprinted$, Remembered$,
+// Count$CardCounters...) is folded.
+func lateBoundXBody(body string) bool {
+	b := strings.TrimSpace(body)
+	for _, pre := range []string{"Targeted", "AllTargeted", "Revealed", "SVar$"} {
+		if strings.HasPrefix(b, pre) {
+			return true
+		}
+	}
+	return strings.Contains(b, "Chosen")
+}
+
+// TextDefinesX reports whether an SVar:X body defines a printed {X}'s value
+// at activation (CR 107.3c): not Count$xPaid (the announced X) and not
+// late-bound (lateBoundXBody).
+func TextDefinesX(body string) bool {
+	return !isXPaidBody(body) && !lateBoundXBody(body)
+}
+
+// definedManaX is the value a text-defined printed {X} takes on id's face
+// (CR 107.3c: "that's the value of X ... The controller ... doesn't get to
+// choose the value"): ok=false when the face is gone, the body is
+// Count$xPaid (the announced X), late-bound (lateBoundXBody), unresolvable
+// or negative. The value is read now, at activation (CR 107.3c; Soul
+// Foundry with nothing exiled is X = 0, CR 202.3).
+func definedManaX(e Engine, p state.PlayerID, id state.ObjID, body string) (int32, bool) {
+	o := e.Game().Obj(id)
+	if o == nil || o.Face() == nil || !TextDefinesX(body) {
+		return 0, false
+	}
+	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: o.Face().SVars})
+	n, resolvable := e.Eval().EvalCount(ctx, body)
+	if !resolvable || n < 0 {
+		return 0, false
+	}
+	return int32(min(n, math.MaxInt32)), true
+}
+
+// FixDefinedManaX is FixLifeXCost restricted to the printed-{X} fold: c with
+// a text-defined mana X (definedManaXOnly, an early-bound SVar:X body) folded
+// into generic mana, every other cost unchanged. The autopay offer's
+// needs-mana probe reads it, so Soul Foundry's fixed {X} is priced against
+// the sources the payment may tap.
+func FixDefinedManaX(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost) costvocab.Cost {
+	if !definedManaXOnly(c) {
+		return c
+	}
+	o := e.Game().Obj(id)
+	if o == nil || o.Face() == nil {
+		return c
+	}
+	body, present := o.Face().SVars["X"]
+	if !present {
+		return c
+	}
+	if out, ok := foldDefinedManaX(e, p, id, c, body); ok {
+		return out
+	}
+	return c
+}
+
+// foldDefinedManaX turns a printed {X} whose value the face's SVar:X defines
+// (CR 107.3a/c: Soul Foundry's "X is the mana value of that card", Voodoo
+// Doll's {X}{X} "X is the number of pin counters") into that many generic
+// mana per {X} symbol, so xAsk poses no announcement and the offer gate
+// prices the real cost. A late-bound body passes the cost through unchanged
+// (the announcement stays); an unresolvable or negative body is withheld.
+func foldDefinedManaX(e Engine, p state.PlayerID, id state.ObjID, c costvocab.Cost, body string) (costvocab.Cost, bool) {
+	if !TextDefinesX(body) {
+		return c, true
+	}
+	n, ok := definedManaX(e, p, id, body)
+	if !ok {
+		return c, false
+	}
+	out := c
+	for range c.X {
+		out.Generic = costvocab.AddClampedGeneric(out.Generic, int64(n))
+	}
+	out.X = 0
+	out.XMin = 0
+	return out, true
 }
 
 // isGraveExileX is an announced ExileFromGrave<X/Spec> part (the
