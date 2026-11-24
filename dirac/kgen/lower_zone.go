@@ -3222,7 +3222,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 
 // emblemTimedMode reports whether an until-end-of-turn or until-your-next-turn
 // Effect's trigger Mode$ is one the kernel's timed emblem listens to. An
-// end-of-turn DamageDoneOnce line is the per-event DamageDone one (Aphelia,
+// end-of-turn DamageDoneOnce line is the per-referent DamageDone one (Aphelia,
 // lower_damagedoneonce.go); a DamageDealtOnce one needs the pair capture.
 func emblemTimedMode(mode string, eot, paired bool) bool {
 	switch mode {
