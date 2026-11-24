@@ -490,6 +490,17 @@ var predicates = map[string]predFn{
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
+	// Kicked and Warp are the SpellAbility spellings of the cast's
+	// provenance (Verazol's and Cantor of the Refrain's SpellCast `ValidSA$
+	// Spell.Kicked` / `Spell.Warp`): the spell was cast with a kicker cost
+	// paid (any part sets FlagKicked) or for its warp cost (modeFlags'
+	// "warped" stamps FlagWarped).
+	"Kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagKicked != 0
+	},
+	"Warp": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagWarped != 0
+	},
 	// Modal is Forge's Spell.Modal (Riku of Many Paths' "whenever you cast a
 	// modal spell"): CR 700.2 -- a spell whose controller chose one or more
 	// of its bulleted modes. The cast records the choice on the stack object
@@ -1574,7 +1585,7 @@ func positiveRecognised(p string) bool {
 	if arg, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		return sharesColorBareReferent(arg)
 	}
-	if hasAbilityToken(p) {
+	if spellAbilityToken(p) {
 		return true
 	}
 	if positiveRecognisedWord(p) {
@@ -2271,8 +2282,8 @@ func matchTriggeredAttacker(o *state.Object, sc SpecContext) (result, ok bool) {
 // referent. The latter remains a recognised grammar shape for the census, but
 // cannot be negated into a match when its resolution context is absent.
 func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
-	if hasAbilityToken(p) {
-		return objectHasAbility(o, strings.TrimPrefix(p, "hasAbility ")), true
+	if r, ok := matchSpellAbilityToken(p, o); ok {
+		return r, true
 	}
 	if r, ok := matchAttachmentPredicate(g, p, o, &sc); ok {
 		return r, true

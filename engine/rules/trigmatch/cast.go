@@ -858,6 +858,10 @@ const validSAManaFromCardSelf = "Spell.ManaFromCard.StrictlySelf"
 // otherwise.
 const validSATeamworkClause = "Spell.Teamwork"
 
+// validSANumTargetsHead is the head of the two-field `Spell.numTargets
+// <CMP><n>` clause (the cast spell's distinct target count).
+const validSANumTargetsHead = "Spell.numTargets"
+
 // validSAMayPlaySourceClause is the SA-level spelling of the card-level
 // "CastSa Spell.MayPlaySource" provenance (Undead Sprinter's and
 // Hundred-Battle Veteran's "if you cast it this way" riders, Thundermane
@@ -914,6 +918,12 @@ func ValidSAMatches(e Board, source state.ObjID, ev events.Event, ctrl state.Pla
 	case 2:
 		if fields[0] == "Spell.ManaSpent" {
 			return CompareIntCount(ManaSpentForCast(e, ev.Player, ev.Obj), fields[1])
+		}
+		if fields[0] == validSANumTargetsHead {
+			// Spell.numTargets <CMP><n> (Voracious Bibliophile): the effects
+			// filter reads the two-token `numTargets <CMP><n>` form over the
+			// cast spell's chosen targets, so the clause is one spec filter.
+			return e.MatchesSpec(fields[0]+" "+fields[1], ev.Obj, source, ctrl, SpecOpts{})
 		}
 		return false
 	}

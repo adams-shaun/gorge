@@ -177,7 +177,7 @@ func specialPositiveToken(p string) bool {
 		strings.HasPrefix(p, "greatestPower") ||
 		strings.HasPrefix(p, "greatestCMC_") ||
 		strings.HasPrefix(p, "lowestCMC") ||
-		hasAbilityToken(p)
+		spellAbilityToken(p)
 }
 
 // typePredicateToken lists typePredicate's switch cases.
