@@ -166,10 +166,11 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 		}
 		return false
 	}
-	if e.pending != nil && (e.pending.Kind == decision.KPriority || choice.kind != "enchant") {
-		// Only the CR 303.4f non-cast Aura choice queues behind another
-		// decision; every other as-enters ask keeps the pre-existing
-		// one-at-a-time path (the entry happens unasked). A priority ask is
+	if e.pending != nil && (e.pending.Kind == decision.KPriority || !queuesBehindAsk(choice.kind)) {
+		// Only the CR 303.4f non-cast Aura choice and the CR 702.136a Riot
+		// election queue behind another decision; every other as-enters ask
+		// keeps the pre-existing one-at-a-time path (the entry happens
+		// unasked). A priority ask is
 		// not a mid-resolution suspension -- a direct move while the active
 		// player holds priority (the fixture path) keeps the entry happening
 		// unasked rather than parking an answer the priority round cannot
@@ -246,6 +247,15 @@ func drainETBQueue(e *Engine) {
 		e.etbQueue[0].ask = nil
 		askETBChoice(e, d, e.etbQueue[0].move.Obj)
 	}
+}
+
+// queuesBehindAsk reports whether an as-enters choice of this kind parks
+// behind an outstanding decision rather than letting the entry happen
+// unasked. Riot (CR 702.136a) applies on every entry: a creature returned
+// in the same batch as an Aura whose enchant choice is outstanding (Abdel
+// Adrian leaving returns both) still makes its counter-or-haste election.
+func queuesBehindAsk(kind string) bool {
+	return kind == "enchant" || kind == "riot"
 }
 
 // applyRiotReplacement is retained as a defensive fallback for an entry that
