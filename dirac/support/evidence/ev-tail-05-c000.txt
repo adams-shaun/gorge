@@ -397,7 +397,6 @@ Void Grafter
 Void Snare
 Volcanic Hammer
 Volcanic Submersion
-Voodoo Doll
 Voracious Null
 Vryn Wingmare
 Walker of the Grove
