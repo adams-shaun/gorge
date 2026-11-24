@@ -17,7 +17,9 @@ mkdir -p "$store"
 # -o: the lock must not stay held by anything the fetch leaves running.
 (
 	flock -o 9
-	if [ ! -s "$corpus/cards.lock" ]; then
+	# A lock that does not describe the scripts beside it (an interrupted fetch, a copy without --delete) is
+	# re-fetched, not trusted: `forgec verify` compares the lock's counts and listing with the directory.
+	if [ ! -s "$corpus/cards.lock" ] || ! go run -trimpath ./cmd/forgec verify -dir "$corpus" 2>/dev/null; then
 		make fetch-cards compile-cards CARDS_DIR="$corpus"
 	fi
 ) 9>"$store/$ref.lock"

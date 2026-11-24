@@ -332,6 +332,13 @@ func TestTestTargetsRemoteInfrastructureFailureFallsBackNotFail(t *testing.T) {
 			write(r.t, filepath.Join(other, "cards.lock"), "lock v1\n", 0o644)
 			r.set("GORGE_REMOTE_CARDS=" + other)
 		},
+		"the box has the same lock over stale extra scripts": func(r *rig) {
+			other := filepath.Join(filepath.Dir(r.repo), "othercards")
+			write(r.t, filepath.Join(other, "cardsfolder", "a.txt"), "x", 0o644)
+			write(r.t, filepath.Join(other, "cardsfolder", "stale.txt"), "x", 0o644)
+			write(r.t, filepath.Join(other, "cards.lock"), "lock v1\n", 0o644)
+			r.set("GORGE_REMOTE_CARDS=" + other)
+		},
 		"the box has no corpus": func(r *rig) {
 			r.set("GORGE_REMOTE_CARDS=" + filepath.Join(filepath.Dir(r.repo), "missing"))
 		},
@@ -454,5 +461,40 @@ func TestTestTargetsRemoteSettingsFromTheEnvFile(t *testing.T) {
 	out, errs, code := r.run("one")
 	if code != 0 || !strings.Contains(out, "== remote: ubuntu@box") {
 		t.Fatalf("exit %d\n%s\n%s", code, out, errs)
+	}
+}
+
+// corpusKey runs the corpus_key function of one script over dir.
+func corpusKey(t *testing.T, script, dir string) string {
+	t.Helper()
+	src := "src=$(sed -n '/^corpus_key() {/,/^}/p' " + script + "); eval \"$src\"; corpus_key " + dir
+	out, err := exec.Command("bash", "-c", src).CombinedOutput()
+	if err != nil {
+		t.Fatalf("%s: %v\n%s", script, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// The client and the box compute the corpus key with two copies of one function; they must agree, and the key must
+// move with the scripts as well as with the lock.
+func TestTestTargetsRemoteCorpusKeyAgrees(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	write(t, filepath.Join(dir, "cardsfolder", "a", "x.txt"), "x", 0o644)
+	write(t, filepath.Join(dir, "tokenscripts", "t.txt"), "t", 0o644)
+	write(t, filepath.Join(dir, "cards.lock"), "lock\n", 0o644)
+	k1 := corpusKey(t, "test-remote.sh", dir)
+	if len(k1) != 32 || k1 != corpusKey(t, "test-remote-box.sh", dir) {
+		t.Fatalf("client and box keys differ or are malformed: %q vs %q", k1, corpusKey(t, "test-remote-box.sh", dir))
+	}
+	write(t, filepath.Join(dir, "cardsfolder", "a", "stale.txt"), "x", 0o644)
+	k2 := corpusKey(t, "test-remote.sh", dir)
+	if k2 == k1 || k2[:16] != k1[:16] {
+		t.Fatalf("a stale script must change the listing half only: %q -> %q", k1, k2)
+	}
+	os.Remove(filepath.Join(dir, "cardsfolder", "a", "stale.txt"))
+	write(t, filepath.Join(dir, "tokenscripts", "extra.txt"), "x", 0o644)
+	if k3 := corpusKey(t, "test-remote.sh", dir); k3 == k1 {
+		t.Fatal("a stale token script did not change the key")
 	}
 }
