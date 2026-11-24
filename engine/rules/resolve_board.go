@@ -283,6 +283,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	if staticHook == nil {
 		staticHook = e.tapeHeldStaticHook // already parked
 	}
+	// The forced coin-flip hook is not an observer: the re-executed prefix
+	// must replay the same forced results (forcedFlips rewinds its cursor
+	// by the log), so it stays attached instead of being parked or dropped.
+	coinHook := e.CoinFlipHook
 	evs, ints := l.Events, l.Intents
 	l.Events, l.Intents = nil, nil
 	// The decision arena stays out of the release: Release clears its
@@ -349,6 +353,7 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	e.arenaHeapAsks = heapAsks
 	e.tapeHeldHook, e.tapeHeldStats = hook, stats
 	e.tapeHeldStaticHook = staticHook
+	e.CoinFlipHook = coinHook
 	tapeRebindOwner(e, sc, arenaOn)
 }
 
