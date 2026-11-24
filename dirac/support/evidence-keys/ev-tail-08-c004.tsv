@@ -1,4 +1,5 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Warm Welcome	e50b027f01b6c92d	4	0/0		1/2	ix:resp
 Abbey Griffin	1eb64f82022f6563	3	0/0		0/0	
 Aberrant Return	d0a3e7a79bd4103a	9	0/0		1/2	ix:resp
 Acceptable Losses	f7d19de8f3cb12da	16	0/0		1/2	ix:resp
@@ -11,11 +12,11 @@ Bankrupt in Blood	91ca4491618b56c0	21	0/0		2/2
 Battle Sliver	16f8d397b8322603	10	0/0		0/0	
 Benalish Marshal	2b64de3935f51e7d	4	0/0		0/0	
 Bequeathal	f6625072f167edc1	16	1/1		1/2	ix:resp
-Bestial Menace	a5c1b9a2dc5358aa	11	0/0		1/2	ix:resp
 Black Market Tycoon	fcd4caa4897dd69b	19	2/2		1/1	
 Blood Age General	40bf822a0abae631	12	1/1		0/1	ix:resp
 Blood Divination	f59909a0b22e65a6	41	0/0		2/2	
 Blood Glutton	5a5d7d53b1c4bacc	3	0/0		0/0	
+Bloodstained Mire	10a2478926e4171b	9	1/1		1/1	
 Blur Sliver	52faf45be9cc0f3f	14	0/0		0/0	
 Bolt of Keranos	1712d4fd7f4bf2e9	13	0/0		2/2	
 Bronze Sword	70fcf76a2a03f600	4	1/1		0/1	ix:resp
@@ -26,6 +27,7 @@ Call to the Netherworld	b52b868aaf8fba78	15	0/0		2/2
 Calming Verse	20f956aaf878f52b	17	0/0		1/2	ix:resp
 Chase Stein, Runaway	c1bae97e6462bb3a	7	1/1		0/1	ix:resp
 Chill to the Bone	42fce76aa14cc97f	5	0/0		1/2	ix:resp
+Circle of Protection: Red	bd90304baa44ebc4	8	1/1		1/1	
 Coercive Impetus	d053e8bc2c387aae	16	1/1		1/2	ix:resp
 Commence the Endgame	084f0d60749c8da4	55	0/0		2/2	
 Corrosive Mentor	442b0bc5ce316b31	7	0/0		0/0	
@@ -44,15 +46,16 @@ Elite Javelineer	d786df8370f927db	6	1/1		0/1	ix:resp
 Engulf the Shore	454b898bf485ef85	5	0/0		1/2	ix:resp
 False Demise	cf715abaf80af88e	13	1/1		1/2	ix:resp
 Feast of the Unicorn	b7d7909b92925769	4	0/0		2/2	
-Feedback	d98cfa21f06b2e6b	40	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	21	0/0		2/2	
 Flare	c582e0cb82afe2fa	14	0/0		2/2	
 Flay	e42d995f61acce9a	8	0/0		1/2	ix:resp
 Flourishing Strike	6ca6b646d38f16db	23	0/0		2/2	
 Foundry Inspector	2e4f1b595fdda667	4	0/0		0/0	
 Fruit of Tizerus	df3e6e47de6b589b	6	0/0		2/4	cast/alt:escaped,ix:resp
+Garruk's Horde	f773a437b74be249	3	0/0		0/0	
 Goblin Heelcutter	0985148ad319b657	3	1/1		1/3	cast/alt:none,ix:resp
 Goblin Soothsayer	8bec39489421dacf	3	1/1		0/1	ix:resp
+Guardian of Faith	5356bd879f7dfd06	6	1/1		0/1	ix:resp
 Hag of Noxious Nightmares	4f7c386db1f80ad2	5	0/0		0/0	
 Halvar, God of Battle	370b62d7de167454	8	3/3		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Hobbit's Sting	555db77207e416d3	17	0/0		2/2	
@@ -62,21 +65,26 @@ Hyperion Blacksmith	c3820513a2907c92	5	1/1		1/1
 Ilysian Caryatid	b668c21dc0c9f1d7	53	1/1		1/1	
 Inspiring Cleric	60103fcb12a0387b	8	1/1		0/1	ix:resp
 Invasion of Theros	d2727feb4f73a8b4	16	2/2		0/1	ix:resp
-Iron Fist, Hero for Hire	ceca251c078548ff	26	2/2		1/1	
 Iron Verdict	51e98a5b1e0040d5	6	0/0		2/4	cast/alt:foretold,ix:resp
+Joiner Adept	cd942cd03dc15865	4	0/0		0/0	
 Juvenile Gloomwidow	22b233b127567bbe	4	0/0		0/0	
 Kjeldoran Frostbeast	1fddbe0556eecbd0	7	1/1		1/1	
 Last Breath	9765cec350508ba5	19	0/0		2/2	
+Library	9486f9fe820b0d4b	20	2/2		1/1	
 Liliana's Triumph	d9e5d4aa6f6272ef	16	0/0		2/2	
 Living Totem	93104de022799def	7	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Loxodon Mystic	7a3b19a5c8eb29b7	3	1/1		0/1	ix:resp
 M.O.D.O.K., Evil Intellect	77b73345412db753	5	1/1		0/1	ix:resp
+Magmaroth	a1ab73672ab46a72	8	2/2		0/1	ix:resp
 Magmatic Force	2e7ef105108b56c8	6	1/1		1/1	
 Marsh Casualties	fcbcce46b55991fa	6	0/0		3/4	ix:resp
 Mascot Exhibition	d10d162b60c58ca7	19	0/0		2/2	
+Memorial to Unity	90345d4cadfbce7c	24	2/2		0/1	ix:resp
 Midnight Ritual	566b5ebce30f18b4	5	0/0		1/4	f0/s/x+,f0/s/x0,ix:resp
+Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
 Mind Slash	eb204d68b0d40d0f	3	1/1		1/1	
 Moldering Karok	0b156a26a6195eb1	12	0/0		0/0	
+Moonsilver Key	9360f48f98bf74a2	3	1/1		0/1	ix:resp
 Nature's Wrath	9ebc4138951e157a	22	3/3		1/1	
 Necropede	13f68649b239334c	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nightstalker Engine	3eec31aaa202b4ba	5	0/0		0/0	
@@ -85,7 +93,9 @@ Okiba-Gang Shinobi	8ca54897872da686	5	2/2		0/1	ix:resp
 Orim's Thunder	db00461199bddbea	10	0/0		3/4	ix:resp
 Paradise Druid	5e15417a7ccc740b	23	1/1		0/1	ix:resp
 Pernicious Deed	e15e31baedf43393	13	1/1		0/1	ix:resp
+Pestilent Wolf	aac997a8b181ffa3	6	1/1		0/1	ix:resp
 Pierce Strider	4d990c43fac08df6	14	1/1		0/1	ix:resp
+Portable Hole	e7d6c6a7fd668204	3	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	14	0/0		0/0	
 Precinct Captain	0ec8582f629e31fb	15	1/1		0/1	ix:resp
 Primal Adversary	c1f7908b4a2fe6f6	8	1/1		1/1	
@@ -99,6 +109,7 @@ Rustspore Ram	d26cb89a1ba142c4	14	1/1		0/1	ix:resp
 Rustwing Falcon	c3e1ca2297a1b401	10	0/0		0/0	
 Scroll of Fate	5e4b50a04a101645	9	1/1		1/1	
 Selfless Cathar	b54f6149c5dd4db3	6	1/1		0/1	ix:resp
+Selfless Savior	dbb20cbf0c387942	3	1/1		0/1	ix:resp
 Serra's Boon	deaf36301a869299	10	0/0		1/2	ix:resp
 Shared Triumph	e5e1d84553f03113	6	0/0		0/0	
 Six-Sided Die	2c51e57d10b3cd0d	3	0/0		1/2	ix:resp
@@ -113,9 +124,13 @@ Talisman of Unity	b7203c0f73ec1ed6	6	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	4	0/0		1/2	ix:resp
 Territorial Maro	a90fb76aef261162	19	0/0		0/0	
 That Which Was Taken	1de9b7aec73e800f	43	1/1		1/1	
+The Forgotten Place	c4068a64e2b52cf2	12	2/2		0/1	ix:resp
 The Terror of Serpent's Pass	9c55563de7067f15	7	0/0		0/0	
 Troubled Healer	a16cb6d543717ec6	7	1/1		1/1	
+True Polymorph	94a50941e4752451	4	0/0		2/2	
+True-Faith Censer	a375430a5d4d0d11	3	1/1		0/1	ix:resp
 Tyranid Harridan	a9ee50e1e1dc038f	15	2/2		0/1	ix:resp
+Uncontrollable Anger	f4f973c7d836c03c	8	0/0		1/2	ix:resp
 Underhanded Designs	f53313c307c4de09	14	2/2		1/1	
 Valorous Steed	c0242b513d6cac83	7	1/1		0/1	ix:resp
 Vampiric Sliver	29bd51205bc0bf68	7	0/0		0/0	

@@ -161,6 +161,7 @@ Hyperion Blacksmith
 Ilysian Caryatid
 Imperial Oath
 Improbable Alliance
+Infernal Tutor
 Ingenious Smith
 Innocuous Researcher
 Insatiable Souleater
@@ -197,6 +198,7 @@ Mana Leak
 Marionette Apprentice
 Marsh Casualties
 Mascot Exhibition
+Mask of the Mimic
 Mass Appeal
 Mass Diminish
 Mawloc
@@ -298,6 +300,7 @@ Skyblade's Boon
 Skyhunter Patrol
 Slimy Piper
 Slingshot Goblin
+Smoldering Stagecoach
 Snap
 Snarespinner
 Sorcerer's Strongbox

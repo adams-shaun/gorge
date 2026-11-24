@@ -1,28 +1,96 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Celebrity Fencer	b97402f3728c3c27	8	1/1		0/1	ix:resp
 A-Geology Enthusiast	1357cc28566cee32	25	2/2		1/1	
+Absolute Grace	425add704f58efbe	4	0/0		0/0	
+Amulet of Vigor	8aebece98dc8dd63	4	1/1		0/1	ix:resp
+Apostle of Purifying Light	5290b0f24bc34679	4	1/1		1/1	
+Appetite for the Unnatural	a9b714daf3371318	4	0/0		1/2	ix:resp
+Arcane Flight	230fdd0ff402cda8	6	0/0		1/2	ix:resp
 Arcbound Whelp	ef674bc43eab24cd	5	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Assembly Hall	63edfa9ba7fe2017	9	1/1		0/1	ix:resp
 Attunement	740e87a2bec937af	23	1/1		0/1	ix:resp
+Banewasp Affliction	80da6897bbafa265	3	1/1		2/2	
+Bastion Protector	8ac2677fd54b8de8	4	0/0		0/0	
 Blisterstick Shaman	e3c7a1db6fcea8f0	25	1/1		0/1	ix:resp
+Bogstomper	93395d85342e65cf	3	0/0		0/0	
+Brawler's Plate	b88a46b844907904	4	1/1		1/1	
+Brightcap Badger	012f52c22a44340a	4	1/1		1/2	ix:resp
 Burning Cloak	3942a6ef8668a509	19	0/0		2/2	
 Burning-Fist Minotaur	2d6c5956d8118384	22	1/1		0/1	ix:resp
 Chaosphere	8f29948cf4918187	21	0/0		0/0	
+Copperhoof Vorrac	4b07cee508c053f6	3	0/0		0/0	
+Corpse Churn	d7c133da5f7aa8ed	4	0/0		2/2	
 Cryptic Pursuit	894fb5f64e20cf0e	10	2/2		1/1	
+Darkblast	e3363a1d5e3fde18	46	0/0		2/2	
+Dawn of Hope	69656e6c9404b4e5	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Death-Rattle Oni	506130979f91fc0d	4	1/1		0/1	ix:resp
 Devout Witness	021ad1b40484461b	14	1/1		1/1	
+Diplomatic Escort	0257ea0fd1b273a6	6	1/1		0/1	ix:resp
+Dispense Justice	4348d857626701b9	4	0/0		1/2	ix:resp
+Distress	d64995c88b27801e	5	0/0		1/2	ix:resp
 Embereth Shieldbreaker	4846beb53688e2c1	19	0/0		1/2	ix:resp
 Enter the God-Eternals	d6eaebd6f4cd91b3	9	0/0		1/2	ix:resp
+Excise the Imperfect	4861d2e274550e2d	4	0/0		1/2	ix:resp
 Fallaji Vanguard	c4fc61c80fd72379	4	1/1		0/1	ix:resp
+Fortifying Draught	a744d71fe470353a	4	0/0		1/2	ix:resp
+Gaea's Cradle	ab7ab13a2e476e57	20	1/1		0/1	ix:resp
+Gilded Pinions	23d3dc7a6c5cdba9	6	2/2		0/1	ix:resp
+Gitaxian Anatomist	0ce1bcf0d7fb6b51	7	1/1		0/1	ix:resp
 Glimmer of Genius	50d7f017d38c9d7c	30	0/0		2/2	
 Grateful Apparition	c1d254f941607c32	6	1/1		0/1	ix:resp
 Grotag Bug-Catcher	a9fd9bbaa6cddd70	18	1/1		0/1	ix:resp
+Guardians of Koilos	ac2576efbe8f377f	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Headsplitter	e72296d1b19dad3e	21	2/2		1/1	
+Hellion Crucible	7c40534791acdfe8	14	3/3		1/1	
+Herald of the Dreadhorde	c182fc3977b9a707	4	1/1		0/1	ix:resp
+Hibernation	0830b3572ab7d983	4	0/0		1/2	ix:resp
 Incursion Specialist	9511fe5f6db9e429	26	1/1		1/1	
+Ishkanah, Grafwidow	4f9e4557677f6c20	3	2/2		0/1	ix:resp
+Joraga Visionary	2c2845d05bf61767	4	1/1		0/1	ix:resp
+Kabuto Moth	23012ae1e20159c7	6	1/1		0/1	ix:resp
+Kangee's Lieutenant	328c8a3c1485bbaf	3	2/2		0/1	ix:resp
+Kazandu Tuskcaller	b1b319c4c408da16	3	1/1		0/1	ix:resp
 Lightning Visionary	192a18bf40504a23	15	1/1		1/1	
 Marchesa's Smuggler	763f62a8a05118f8	6	2/2		0/1	ix:resp
 Mask of Riddles	bff65c1448078adf	20	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Merchant of Secrets	55068c2f55e04345	4	1/1		0/1	ix:resp
 Momentary Blink	07c1227092d137d5	18	0/0		4/4	
+Myr Quadropod	2f1de26117026f1d	8	1/1		1/1	
 Nimble-Blade Khenra	3d05b2bbc36da6f5	26	1/1		0/1	ix:resp
+Ninth Bridge Patrol	579aa3a46b496897	4	1/1		0/1	ix:resp
+Novice Knight	ecef2fe976eef6ca	4	0/0		0/0	
+On Serra's Wings	a5129d3cd219b1fd	6	0/0		1/2	ix:resp
+On Thin Ice	539ed99d2a375fb5	6	1/1		1/2	ix:resp
+Oreskos Swiftclaw	a4b790449413a5ec	3	0/0		0/0	
+Petrified Field	58687acc4d987e17	13	2/2		0/1	ix:resp
+Pick Up the Pace	8bac289cc14a3924	5	1/1		0/1	ix:resp
 Priests of Norn	6fe908d851cc9a47	5	0/0		0/0	
+Profaner of the Dead	1c189afab4a50656	4	2/2		0/1	ix:resp
+Propaganda	c970fd035f00c981	6	0/0		0/0	
+Protocol Knight	cb20fd579240d600	4	1/1		0/1	ix:resp
+Quest for Renewal	644feb49035323bf	8	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Run Out of Town	fc5227cec931ab89	3	0/0		1/2	ix:resp
+Ruthless Cullblade	a46a6e4a6f65e169	6	0/0		0/0	
+Safeguard	1c2ab0bb0d309e02	4	1/1		1/1	
 Sage Aven	92c8345c237760ff	12	1/1		0/1	ix:resp
+Shadows' Verdict	eba7d432282c7512	4	0/0		2/2	
+Shauku, Endbringer	13d66e2f1e82750e	4	2/2		1/1	
+Shimmerdrift Vale	4d652aef1ffc7e04	22	1/1		0/1	ix:resp
+Skitterskin	eebdec2327b25bf5	4	1/1		0/1	ix:resp
+Skybind	7ce974603c544181	4	1/1		0/1	ix:resp
 Spark of Creativity	4c204a61e0bb5522	10	0/0		1/2	ix:resp
+Stern Constable	04df78d95c76b5a1	8	1/1		0/1	ix:resp
+Strength of Lunacy	bb2e2001562c1bf1	5	0/0		1/2	ix:resp
+Sunbathing Rootwalla	5cffb48f178baa92	4	1/1		0/1	ix:resp
 Sworn Defender	07e0dd972c965141	16	1/1		1/1	
+Throne of Bone	cefff70efec06ab2	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Tonic Peddler	d6c9a1a97492f88a	10	1/1		0/1	ix:resp
+Tormented Soul	41d11f9a17a35846	4	0/0		0/0	
+Trip Noose	786b6fe9b6dadee6	3	1/1		1/1	
+Turbulent Fen	7d418ae75cef7501	14	2/2		0/1	ix:resp
+Vulshok Gauntlets	d6b60fad37b473d4	41	1/1		1/1	
+Windswept Heath	d863d44947496532	15	1/1		0/1	ix:resp
+Winged Words	6706aa6db5db3ed7	3	0/0		1/2	ix:resp
+Wish Good Luck	0c592c1dea737d91	4	0/0		1/2	ix:resp
+Woodland Cemetery	9263f650b65ba601	20	1/1		0/1	ix:resp
+Wurmcalling	6666d2874e3a046c	12	0/0		5/6	ix:resp

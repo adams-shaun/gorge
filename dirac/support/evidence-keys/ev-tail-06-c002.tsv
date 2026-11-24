@@ -3,6 +3,7 @@ A-Kargan Warleader	0940b2de7fc34c06	5	1/1		0/1	ix:resp
 A-Syndicate Infiltrator	0d0505017a736f97	7	1/1		0/1	ix:resp
 Aether Tunnel	6da46ff9d61ce1b8	4	0/0		1/2	ix:resp
 Aethershield Artificer	7018f2adf77c8474	14	1/1		0/1	ix:resp
+An-Zerrin Ruins	0c4818ab51730fa9	3	0/0		0/0	
 Ancestral Mask	478cb7e708ffc9a5	3	0/0		1/2	ix:resp
 Ancestral Vengeance	1b9c432425f68abf	4	1/1		2/2	
 Armored Cancrix	bee7694793b21185	9	0/0		0/0	
@@ -18,6 +19,7 @@ Blighted Fen	527fb3db343cd3ce	8	2/2		0/1	ix:resp
 Borderland Ranger	df9f7d2121c58d46	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Breaching Hippocamp	859c390f3b1d2ce5	15	1/1		1/1	
 Brotherhood Patriarch	22211f7692e1bf6e	10	1/1		0/1	ix:resp
+Budoka Gardener	7453a9f3d3de9a60	4	2/2		1/1	
 Canyon Minotaur	bd6444d59ea6f4e4	14	0/0		0/0	
 Cartographer	685c78462a69ae59	10	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Cavalier of Dawn	a0ab2a52b672b357	3	2/2		0/1	ix:resp
@@ -74,6 +76,7 @@ Goblin Digging Team	f842c454e6940bc6	18	1/1		1/1
 Goblin King	d965a7b8ce1cc5b6	21	0/0		0/0	
 Goblin Wizardry	1f48d4c6bf370e40	17	0/0		1/2	ix:resp
 Golgari Keyrune	6148973afa9cfe58	4	2/2		0/1	ix:resp
+Gollum, Patient Plotter	a6e14e01eab204fb	11	2/2		1/1	
 Halt Order	2a179ec7ff935867	3	0/0		1/2	ix:resp
 Heliod's Punishment	99da4ba5ee42e6db	8	0/0		2/2	
 Heliod, God of the Sun	1b9a653696bd2e17	8	1/1		1/1	
@@ -101,6 +104,7 @@ Liliana's Talent	772923268fb1c116	4	1/1		2/2
 Long Road Home	1cade38c0d07384a	9	0/0		1/2	ix:resp
 Looming Spires	30a2a2b92249acdb	12	2/2		0/1	ix:resp
 Luminesce	1cd98c6e217709c2	5	0/0		1/2	ix:resp
+MacCready, Lamplight Mayor	4e3d3332a0ceea01	6	2/2		1/1	
 Magnetic Mine	8c2efdd331780a75	12	1/1		0/1	ix:resp
 Master Healer	27226f822ab5ed26	9	1/1		0/1	ix:resp
 Master's Call	e8176e16a9b0aba8	4	0/0		2/2	
@@ -113,8 +117,11 @@ Mindwhip Sliver	c6a8c28cc53cdf4a	8	0/0		0/0
 Minotaur Sureshot	86cc30139afb9893	12	1/1		1/1	
 Mortivore	60e0f5d0791933c3	5	1/1		0/1	ix:resp
 Mothdust Changeling	b417968044716945	4	1/1		1/1	
+Nev, the Practical Dean	0f81f3945be68a12	16	1/1		0/1	ix:resp
+Nissa, Vital Force	2e32f39f366e8d09	4	3/3		0/1	ix:resp
 Niv-Mizzet, Dracogenius	48eacd6d658b4518	13	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Nomad Mythmaker	4c0cc99de3532940	8	1/1		0/1	ix:resp
+Null Profusion	fcea0ea6866a0b45	5	2/2		0/1	ix:resp
 Oath of Druids	2d208a3cbe6a6051	8	1/1		0/1	ix:resp
 Obstinate Gargoyle	0ccf333e045d3797	9	1/1		0/1	ix:resp
 Onward	3383e5e976b8b339	12	0/0		4/5	f1/s
@@ -143,7 +150,9 @@ Rosemane Centaur	8cc6156c54a86e31	5	0/0		0/0
 Rotten Reunion	0f02de257fcdea00	10	0/0		3/4	ix:resp
 Sarkhan's Triumph	3cedee709975a62b	27	0/0		2/2	
 Scale the Heights	6d2bcf1eccf4bb46	8	0/0		1/2	ix:resp
+Scaled Behemoth	9cedea0f95b8a105	7	0/0		0/0	
 Scurrilous Sentry	b2dc53918be5a171	4	2/2		0/1	ix:resp
+Scuttling Death	9a9e55822a572cd8	11	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Second Thoughts	b3d331bae2dfe458	4	0/0		2/2	
 Selhoff Entomber	d065004c4dcd2872	14	1/1		1/1	
 Shadowheart, Dark Justiciar	652b5c0cf30a285e	4	1/1		0/1	ix:resp
@@ -156,6 +165,7 @@ Smoldering Werewolf	184def3dacc71907	21	3/3		1/1
 Snake Umbra	a28446c942e166d3	4	0/0		1/2	ix:resp
 Snapping Thragg	5a6d43aabe999bbe	18	1/1		2/3	cast/alt:morphed
 Soot Imp	5025099f3ab8878e	11	1/1		0/1	ix:resp
+Soothing of Sméagol	b4be9bd8febc45f7	23	0/0		2/2	
 Soratami Mirror-Guard	6d152a067b2d9d32	6	1/1		0/1	ix:resp
 Soul Link	d127c511383c6dea	18	2/2		1/2	ix:resp
 Spectral Prison	27c76075410db912	10	1/1		1/2	ix:resp
@@ -165,6 +175,7 @@ Supply-Line Cranes	c05ce70d9baa043d	6	1/1		0/1	ix:resp
 Suture Spirit	2ad10ad5ecac747c	6	1/1		1/1	
 Sword of Feast and Famine	c0b2128302fd8b1c	41	2/2		1/1	
 Talara's Battalion	51cc0c415dd3d4c1	4	0/0		0/0	
+Tamiyo's Journal	db8e246c791da6c3	12	2/2		1/1	
 Thassa, Deep-Dwelling	1b8a782579d57514	4	2/2		0/1	ix:resp
 Thassa, God of the Sea	8ab646f4af65b41a	8	2/2		1/1	
 The Brute	b017e930b6adbbfb	6	1/1		1/2	ix:resp
@@ -182,6 +193,7 @@ Vault 75: Middle School	829c372fb2d12d78	8	0/0		0/0
 Viashino Slaughtermaster	9b4c44630bd4ab16	5	1/1		1/1	
 Vizier of Remedies	ec613eed8a5a6f16	8	0/0		0/0	
 Wild Defiance	0d4fea1a805ba685	10	1/1		0/1	ix:resp
+Winnow	5b1efb93065a0574	14	0/0		2/2	
 Witch's Familiar	8bfdae66ceb73a94	6	0/0		0/0	
 Witch's Oven	d0cfc5f12deba55e	4	1/1		0/1	ix:resp
 Yavimaya Coast	3e5973ebc7e03e0a	8	2/2		0/1	ix:resp

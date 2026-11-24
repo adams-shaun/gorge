@@ -2,6 +2,7 @@ A-Hobbling Zombie
 A-Llanowar Loamspeaker
 Abbey Gargoyles
 Abu Ja'far
+Accelerate
 Accumulated Knowledge
 Acolyte of Affliction
 Aerie Ouphes
@@ -50,6 +51,7 @@ Deluge
 Disciple of Law
 Disempower
 Dramatic Finale
+Dreadwing
 Drudge Spell
 Druid of the Anima
 Duchess, Wayward Tavernkeep
@@ -59,12 +61,14 @@ Dwarfhold Champion
 Dwarven Strike Force
 Early Frost
 Eccentric Farmer
+Elder Owyn Lyons
 Elgaud Inquisitor
 Elite Arrester
 Enraged Giant
 Essence Flare
 Fantastic Elasticity
 Fateful Handoff
+Fatigue
 Festival Crasher
 Fire at Will
 Fists of Ironwood
@@ -91,6 +95,7 @@ Gravecrawler
 Gravedig
 Grim Wanderer
 Grismold, the Dreadsower
+Grotag Night-Runner
 Ground Rift
 Guardian of Pilgrims
 Guma
@@ -121,6 +126,7 @@ Krovikan Plague
 Kujar Seedsculptor
 Kurgadon
 Lagonna-Band Trailblazer
+Lambholt Harrier
 Lawless Broker
 Leopard-Spotted Jiao
 Lethal Exploit
@@ -133,6 +139,7 @@ Mass Diminish
 Maul of the Skyclaves
 Mesmeric Fiend
 Might of Murasa
+Minion's Return
 Mire Triton
 Mishra's Research Desk
 Molting Snakeskin
@@ -185,27 +192,32 @@ Rush of Battle
 Sanctuary Cat
 Sanguinary Priest
 Screaming Seahawk
+Seize the Day
 Serpent of the Endless Sea
 Serra's Boon
 Setessan Oathsworn
 Shambling Vent
 Shard Volley
+Shield of the Realm
 Shriekdiver
 Shrieking Grotesque
 Sigiled Behemoth
 Silverwing Squadron
 Simian Brawler
 Sinew Sliver
+Six
 Skittering Horror
 Skyhunter Cub
 Slith Ascendant
 Sparkmage's Gambit
 Spike Tiller
 Spirit Loop
+Spoils of Adventure
 Spring-Leaf Avenger
 Squee's Toy
 Staff of Titania
 Stag Beetle
+Stand Together
 Steadfast Guard
 Stone-Seeder Hierophant
 Storm Shaman
@@ -235,6 +247,7 @@ Treacherous Blessing
 Tuinvale Treefolk
 Tuktuk Grunts
 Turbulent Springs
+Umbral Mantle
 Unbender Tine
 Urbis Protector
 Utter End
@@ -250,6 +263,7 @@ Vryn Wingmare
 Wailing Ghoul
 Welkin Guide
 Whipcorder
+Wildfire Awakener
 Wishcoin Crab
 Witness of Tomorrows
 Woodland Patrol

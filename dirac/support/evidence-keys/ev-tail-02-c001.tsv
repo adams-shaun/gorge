@@ -1,6 +1,9 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+Beseech the Queen	cc9fbf244ba5bea1	14	0/0		2/2	
+Burnout	39b5aeca5fd95f9c	6	0/0		2/2	
 Cauldron's Gift	c910d2486d428f89	6	0/0		2/2	
 Dauthi Mindripper	43630877b079e6a3	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ertai's Trickery	26f25c7c81c14aa2	12	0/0		2/2	
 Expunge	acab15ef5633eda8	7	1/1		2/2	
 General Kudro of Drannith	74d90382aee2ec92	16	2/2		1/1	
 Giant's Skewer	86d8cfb3195ebce5	22	2/2		1/1	
@@ -20,3 +23,4 @@ Tangle	bd3b4537a19ffc4e	6	0/0		1/2	ix:resp
 Trapjaw Kelpie	6de958bd4100ec2d	15	1/1		1/1	
 Vulshok Replica	392bccfb2e6861fd	34	1/1		0/1	ix:resp
 You Are Already Dead	0deff0cb383f15c6	4	0/0		1/2	ix:resp
+Zephyrim	12f702899d1b1d6e	7	1/1		4/4	

@@ -4,6 +4,7 @@ Absolving Lammasu	10fd82590862c7c5	12	2/2		1/1
 Aftermath Analyst	497292469b5a6e84	3	2/2		0/1	ix:resp
 Agency Coroner	1aa259fec77fc3e3	5	1/1		0/1	ix:resp
 Agency Outfitter	caf1d52250792d79	15	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Agrus Kos, Spirit of Justice	0e161174f4e693a5	4	2/2		1/1	
 Airtight Alibi	1a72d6e5bcc02a43	7	1/1		2/2	
 Analyze the Pollen	2d6da5b77c53f7d4	7	0/0		1/2	ix:resp
 Archdruid's Charm	324da5282a0bdc0e	10	0/0		2/2	
@@ -17,6 +18,7 @@ Basilica Stalker	137d79d2299f6810	9	1/1		1/3	cast/alt:disguised,ix:resp
 Behind the Mask	bcf3241377d5c91e	11	0/0		1/2	ix:resp
 Benthic Criminologists	35b598a78d7a16ea	12	2/2		1/1	
 Bite Down on Crime	aff3b20be8149a00	4	0/0		2/2	
+Blood Spatter Analysis	f67f2790733ba0ce	9	2/2		0/1	ix:resp
 Bolrac-Clan Basher	ed3daad830dbc9c6	11	0/0		2/2	
 Branch of Vitu-Ghazi	e1ae654806d5a689	47	2/2		0/3	cast/alt:disguised,cast/alt:none,ix:resp
 Bubble Smuggler	a1de6f90724a9920	10	0/0		1/2	cast/alt:disguised
@@ -46,6 +48,7 @@ Crimestopper Sprite	16ccd00aa7d15a66	19	1/1		1/1
 Cryptic Coat	2432e78f5dc44c68	46	2/2		1/1	
 Curious Cadaver	03b051290abe5717	5	1/1		0/1	ix:resp
 Curious Inquiry	ce15c5de34d09571	21	0/0		1/2	ix:resp
+Deadly Complication	4ed86ae056735746	8	0/0		1/2	ix:resp
 Deduce	81ee33ec953790b8	27	0/0		1/2	ix:resp
 Defenestrated Phantom	e807ad91b05c7ca8	12	0/0		1/2	cast/alt:disguised
 Delney, Streetwise Lookout	968ed229619ffc1f	14	0/0		0/0	
@@ -101,6 +104,7 @@ Island	763c67ef7a27eaf5	861	1/1		0/1	ix:resp
 It Doesn't Add Up	dd96ee1cd4dbdd42	17	0/0		1/2	ix:resp
 Izoni, Center of the Web	ba891bc583b728ce	10	3/3		1/1	
 Jaded Analyst	871e0de342d95ea2	10	1/1		0/1	ix:resp
+Judith, Carnage Connoisseur	6c0a5695bd6e95c9	6	1/1		0/1	ix:resp
 Karlov Watchdog	7b8a52fd9b0678ff	19	1/1		0/1	ix:resp
 Kaya, Spirits' Justice	20a07ee78dc10501	23	4/4		1/1	
 Kellan, Inquisitive Prodigy	8866cc69e268d3c0	22	1/1		2/2	
@@ -111,6 +115,7 @@ Krovod Haunch	2b45d11c0cbda6f9	36	3/3		1/3	f0/t0/opt:n,f0/t0/opt:y
 Lamplight Phoenix	cd00e6a0c1bfcf65	20	1/1		1/1	
 Lead Pipe	311255d21f5e2e33	128	3/3		1/1	
 Leering Onlooker	fba0a4455470b185	6	1/1		0/1	ix:resp
+Lightning Helix	4a3357c036559169	4	0/0		1/2	ix:resp
 Long Goodbye	d3f94d7de0f178a3	11	0/0		2/2	
 Loxodon Eavesdropper	0497acedaf8039f4	11	2/2		0/1	ix:resp
 Lumbering Laundry	53ba9ce8dd003f09	10	1/1		2/3	cast/alt:disguised
@@ -149,6 +154,7 @@ Private Eye	127ce0622d48681c	19	1/1		1/1
 Proft's Eidetic Memory	e9b06ffc60505e52	7	2/2		0/1	ix:resp
 Projektor Inspector	a1a8bece1ee9b89d	63	2/2		1/1	
 Public Thoroughfare	4c8629341c3c5af9	9	2/2		0/1	ix:resp
+Rakdos, Patron of Chaos	8b94d422ae81684e	7	1/1		0/1	ix:resp
 Rakish Scoundrel	0d971953be06a2c9	3	2/2		2/3	cast/alt:none
 Raucous Theater	0b5bf2b32f9ae030	15	3/3		0/1	ix:resp
 Reckless Detective	874a6552942f13cf	5	1/1		0/1	ix:resp
@@ -160,6 +166,7 @@ Rope	e80cae970f69ae4b	36	2/2		0/1	ix:resp
 Rot Farm Mortipede	e4c6e5ee92a5a3e8	13	1/1		0/1	ix:resp
 Rubblebelt Braggart	f1dce5353a67ba87	14	1/1		0/1	ix:resp
 Rubblebelt Maverick	9aa3fbd530dbe1f4	9	2/2		1/1	
+Rune-Brand Juggler	ff30a1d40cdb3a99	4	2/2		0/1	ix:resp
 Sample Collector	869363c4515d787c	6	1/1		0/1	ix:resp
 Sanctuary Wall	46b137c701e17fa7	13	1/1		0/1	ix:resp
 Sanguine Savior	a96b0537bec5465f	3	1/1		1/3	cast/alt:none,ix:resp
@@ -167,6 +174,7 @@ Sanitation Automaton	19b42ae2b6b7778d	10	1/1		0/1	ix:resp
 Scene of the Crime	5d7ffcb1cf81d07b	9	3/3		0/1	ix:resp
 Seasoned Consultant	927a0cca4b8573a0	19	1/1		1/1	
 Shadowy Backstreet	5343136500f42eab	27	3/3		0/1	ix:resp
+Shady Informant	fd8459980864db10	11	1/1		2/3	cast/alt:disguised
 Sharp-Eyed Rookie	8672f1b65fb121f8	35	1/1		0/1	ix:resp
 Shock	251ddefdf52e1ce7	26	0/0		1/2	ix:resp
 Slice from the Shadows	753cea6110cffef0	4	0/0		3/4	f0/s/x0
@@ -203,6 +211,7 @@ Urgent Necropsy	40e10e8a4125d827	5	0/0		1/2	ix:resp
 Vannifar, Evolved Enigma	2ddf2ff3510b850e	8	1/1		0/1	ix:resp
 Vein Ripper	1ae92b1d42bf02f0	10	2/2		0/1	ix:resp
 Vengeful Tracker	36779e7f09ef0c5b	27	1/1		0/1	ix:resp
+Warleader's Call	13793cab15ebbd8c	7	1/1		0/1	ix:resp
 Wispdrinker Vampire	ec9a4e0335c8d298	28	2/2		1/1	
 Wojek Investigator	2f76c7d4e6318c48	12	1/1		0/1	ix:resp
 Wrench	7992f9a3b6e15ff5	24	2/2		1/1	

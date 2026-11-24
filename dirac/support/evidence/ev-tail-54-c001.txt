@@ -39,6 +39,7 @@ Bulwark Giant
 Burst of Strength
 Carnival
 Catapult Squad
+Chaos Imps
 Chaplain's Blessing
 Chill of Foreboding
 Chimeric Egg
@@ -51,6 +52,7 @@ Copper-Leaf Angel
 Copy Artifact
 Crippling Blight
 Crop Rotation
+Cryptborn Horror
 Crystal Rod
 Crystalline Sliver
 Cursed Land
@@ -62,6 +64,7 @@ Deep Dish Pizza
 Deep Reconnaissance
 Demon's Due
 Demystify
+Desert Twister
 Destructive Tampering
 Devout Chaplain
 Dinosaur Stampede
@@ -102,9 +105,11 @@ Game Trail
 Gavony Silversmith
 General Kudro of Drannith
 Generous Gift
+Ghastly Death Tyrant
 Ghoulcaller's Accomplice
 Giant-Man, Gargantuan Genius
 Gideon's Reproach
+Glistening Oil
 Gluntch, the Bestower
 Golden Demise
 Goldmeadow Lookout
@@ -142,6 +147,7 @@ Infested Thrinax
 Inquisitive Puppet
 Insight Engine
 Invigorating Surge
+Iron Golem
 Iron Man, Tony Stark
 Ironhoof Ox
 Ironroot Treefolk
@@ -159,6 +165,7 @@ Keymaster Rogue
 Kheru Dreadmaw
 King Macar, the Gold-Cursed
 Kitchen Imp
+Kithkin Shielddare
 Knight of the Stampede
 Kobold Taskmaster
 Laser Screwdriver
@@ -193,6 +200,7 @@ Mystic Melting
 Nahiri's Machinations
 Natural Affinity
 Natural Connection
+Nature's Way
 Night Terrors
 Nightmare
 Norwood Riders
@@ -213,6 +221,7 @@ Peace and Quiet
 Peak Eruption
 Peema Trailblazer
 Peregrine Mask
+Phantom Tiger
 Phyrexia's Core
 Phyrexian Digester
 Pitchstone Wall
@@ -323,6 +332,7 @@ Tempest Caller
 Temple Bell
 The Alright Henge
 The Duke, Rebel Sentry
+The Eldest Reborn
 Thornado
 Thousand-Year Elixir
 Tideshaper Mystic
@@ -345,6 +355,7 @@ Visions of Beyond
 Volcanic Spray
 Vraan, Executioner Thane
 Wall of Hope
+Wanderbrine Rootcutters
 War Priest of Thune
 Watercourser
 Weaponcraft Enthusiast

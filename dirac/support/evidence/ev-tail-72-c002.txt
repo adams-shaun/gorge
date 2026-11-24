@@ -5,6 +5,7 @@ A-Unholy Heat
 Advanced Hoverguard
 Adventure Awaits
 Aether Channeler
+Air Marshal
 Akki Coalflinger
 Always Watching
 Amethyst Dragon
@@ -92,10 +93,12 @@ Djeru's Renunciation
 Double Trouble
 Dragonspark Reactor
 Drake Familiar
+Dromar's Cavern
 Drowned
 Dwarven Berserker
 Dying Wail
 Elite Vanguard
+Elusive Spellfist
 Embereth Shieldbreaker
 Epic Experiment
 Erratic Portal
@@ -103,6 +106,7 @@ Eternal Taskmaster
 Evanescent Intellect
 Expedition Healer
 Explosive Apparatus
+Facet Reader
 Faerie Guidemother
 Fallen Angel
 Fallen Cleric
@@ -152,6 +156,7 @@ Gyre Sage
 Hail of Arrows
 Happy Hogan, Dauntless Driver
 Hardened-Scale Armor
+Haunted Mire
 Haze of Pollen
 Hazoret's Favor
 Heavenly Qilin
@@ -181,6 +186,7 @@ Irontread Crusher
 Island
 Jaheira's Respite
 Jalira, Master Polymorphist
+Jeskai Elder
 Jhessian Balmgiver
 Jorubai Murk Lurker
 Jungle Barrier
@@ -188,6 +194,7 @@ Jungle Basin
 Juniper Order Advocate
 Jötun Owl Keeper
 Karametra's Blessing
+Kashi-Tribe Reaver
 Kashi-Tribe Warriors
 Kavu Runner
 Kemba's Banner
@@ -253,6 +260,7 @@ Overwhelming Instinct
 Overwhelming Victory
 Oxidda Daredevil
 Pact of Negation
+Paralyze
 Paranoid Parish-Blade
 Pardic Wanderer
 Patron of the Valiant
@@ -305,6 +313,7 @@ Ring of Evos Isle
 Rites of Reaping
 Rites of Refusal
 Ritual Guardian
+Roar of Challenge
 Rob the Archives
 Rocksteady, Mutant Marauder
 Rotted Hystrix
@@ -313,6 +322,7 @@ Sanctum Spirit
 Saradoc, Master of Buckland
 Scalding Salamander
 Scavenged Weaponry
+Scholar of Stars
 Scrapheap
 Scrappy Bruiser
 Screeching Sliver
@@ -320,6 +330,7 @@ Scroll of Origins
 Scythecat Cub
 Seafloor Oracle
 Searing Spear
+Secret Door
 Secure the Wastes
 Seed of Hope
 Seer's Sundial
@@ -346,6 +357,7 @@ Skyboon Evangelist
 Skyline Scout
 Slippery Scoundrel
 Snake Pit
+Soul Diviner
 Southern Elephant
 Spellshock
 Spined Wurm
@@ -354,6 +366,7 @@ Spirit Mirror
 Spirit of the Hunt
 Spiteful Motives
 Spore Frog
+Stalking Stones
 Starlight
 Starlit Mantle
 Steeple Creeper
@@ -364,9 +377,11 @@ Strength of the Coalition
 Stronghold Taskmaster
 Stunted Growth
 Sunmane Pegasus
+Surge of Brilliance
 Surrakar Banisher
 Survey the Wreckage
 Swamp
+Tablet of Epityr
 Taeko, the Patient Avalanche
 Targ Nar, Demon-Fang Gnoll
 Tavern Brawler
@@ -418,6 +433,7 @@ Wild Wurm
 Wildsize
 Willow Geist
 Wirewood Channeler
+Woodland Chasm
 Woodland Weavemaster
 Yotian Tactician
 Young Blue Dragon

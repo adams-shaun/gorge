@@ -3,16 +3,23 @@ A-Radha, Coalition Warlord
 A-Wizard Class
 Abiding Grace
 Academy Wall
+Aethersphere Harvester
 Ancient Craving
+And They Shall Know No Fear
 Angel of Fury
+Apprentice Wizard
+Archetype of Courage
 Argivian Avenger
+Armor Sliver
 Ashnod's Harvester
 Atarka Beastbreaker
 Axebane Guardian
 Ayara, First of Locthwain
+Balshan Griffin
 Balustrade Spy
 Bartered Cow
 Black Poplar Shaman
+Blinkmoth Infusion
 Blossom Prancer
 Bomber Corps
 Bone Harvest
@@ -21,7 +28,10 @@ Boros Swiftblade
 Bumi's Feast Lecture
 Carrion Imp
 Celestial Regulator
+Chakra Meditation
+Chameleon Spirit
 Champion of the Flame
+Chant of the Skifsang
 Cloudkill
 Commissar Severina Raine
 Composer of Spring
@@ -35,10 +45,13 @@ Dagger Caster
 Dawn Elemental
 Delighted Killbot
 Deviant Skytech
+Dimir Informant
 Elephant-Mandrill
 Elspeth, Sun's Nemesis
 Elvish Hexhunter
 Elvish Reclaimer
+Etherium Astrolabe
+Exploding Barrel
 Explosive Welcome
 Feign Death
 Field Marshal
@@ -47,27 +60,34 @@ Forest
 Formless Genesis
 Frog-Squirrels
 Gathering Throng
+General Leo Cristophe
 Ghoul's Feast
 Glissa's Scorn
 Gnarlid Pack
 Goblin Commando
+Golem's Heart
 Granite Gargoyle
 Grave Venerations
 Grazilaxx, Illithid Scholar
 Greater Good
 Grizzly Fate
+Gruul Keyrune
 Guide of Souls
 Guise of Fire
+Haazda Shield Mate
 Haunted Angel
 Haunting Hymn
 Heaven Sent
 Hexgold Halberd
+Honor Guard
 Horn of the Mark
 Hunger of the Howlpack
 Hydra's Growth
 Hyrax Tower Scout
+Icy Manipulator
 Igneous Cur
 Illuminated Wings
+Immobilizing Ink
 Increasing Confusion
 Insight Engine
 Insist
@@ -76,12 +96,14 @@ Iron Suitcase
 Island
 Jackal Pup
 Jeskai Barricade
+Jester's Cap
 Karoo Meerkat
 Keening Banshee
 Ken, Burning Brawler
 Knight's Pledge
 Kyren Sniper
 Manhole Cover
+Mantis Engine
 Marchesa's Infiltrator
 Mark of Mutiny
 Mask of Immolation
@@ -91,7 +113,10 @@ Minister of Inquiries
 Mirror Golem
 Mirrorworks
 Mise
+Mist Dancer
+Mithril Coat
 Mountain
+Narrow Escape
 Oggyar Battle-Seer
 Ominous Parcel
 Overwhelming Remorse
@@ -109,6 +134,7 @@ Regathan Firecat
 Regrowth
 Reign of Terror
 Relic Bane
+Resounding Wave
 Return to Action
 Rhox Veteran
 Rotting Fensnake
@@ -121,6 +147,7 @@ Scouring Sands
 Seeker of Skybreak
 Sentinel Sliver
 Serpentine Kavu
+Serum Snare
 Shadowcloak Vampire
 She-Hulk, Wallbreaker
 Shivan Wurm
@@ -132,6 +159,7 @@ Slime Molding
 Slobad, Goblin Tinkerer
 Snuff Out
 Soaring Drake
+Sol Talisman
 Soltari Crusader
 Somnomancer
 Sootwalkers
@@ -141,10 +169,13 @@ Spike Worker
 Spined Sliver
 Squee's Embrace
 Staff of Compleation
+Staggering Insight
 Stalking Assassin
+Standing Troops
 Steadfast Armasaur
 Stimulus Package
 Stratozeppelid
+Subjugator Angel
 Sunastian Falconer
 Swamp
 Swift Demise
@@ -157,11 +188,16 @@ Thrashing Wumpus
 Three Visits
 Throes of Chaos
 Tidespout Tyrant
+Tireless Missionaries
 Torch Courier
+Twilight Drover
+Tymora's Invoker
 Tyvar, Jubilant Brawler
+Unbounded Potential
 Unyaro Bee Sting
 Urza's Cave
 Valeron Outlander
+Vault of Whispers
 Vedalken Plotter
 Vine Trellis
 Wakandan Shield Guard

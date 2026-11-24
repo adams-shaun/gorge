@@ -4,20 +4,27 @@ Abyssal Nightstalker
 Alley Evasion
 Alphinaud Leveilleur
 Ambush Krotiq
+Anointed Deacon
 Arashin War Beast
 Argivian Archaeologist
 Armor Thrull
 Armored Whirl Turtle
+Assault Suit
+Auriok Champion
 Avacynian Priest
 Avalanche Riders
 Batterhorn
 Battlefield Butcher
 Battleground Geist
+Blade of the Bloodchief
 Bleeding Edge
+Blight Mamba
 Blight Titan
 Bloated Processor
 Blood Aspirant
+Bloodcrazed Socialite
 Bone Sabres
+Bone Saw
 Boon of Erebos
 Briar Shield
 Brinelin, the Moon Kraken
@@ -27,35 +34,46 @@ Call to Serve
 Caravan Hurda
 Cartouche of Knowledge
 Cement Shoes
+Centaur Glade
 Cessation
 Chalice of the Void
 Chandra's Firemaw
+Chatterstorm and Awaken the Woods
 Chicken Egg
 Chief Engineer
+Chong and Lily, Nomads
 Colos Yearling
 Colossal Growth
+Conjurer's Bauble
 Coral Commando
 Core Prowler
 Cradle of Vitality
 Cradle to Grave
 Crossbow Infantry
 Cruel Sadist
+Curse of Opulence
 Dauthi Marauder
 Dauthi Mindripper
+Death Watch
 Deem Worthy
 Deluge of Doom
 Denethor, Stone Seer
+Dimir Keyrune
 Divine Verdict
 Dosan's Oldest Chant
 Drakestown Forgotten
 Dread Fugue
+Dreadhorde Twins
+Dripping-Tongue Zubera
 Dystopia
 Elder Owyn Lyons
 Elemental Bond
 Elvish Herder
 Empty the Catacombs
+Enfeeblement
 Enraged Ceratok
 Enshrined Memories
+Enslaved Scout
 Entrails Feaster
 Entrapment Maneuver
 Erebos, God of the Dead
@@ -66,6 +84,9 @@ Eviscerate
 Experimental Augury
 False Defeat
 Famished Paladin
+Fearless Pup
+Feast or Famine
+Fire Diamond
 Fire-Omen Crane
 Flensermite
 Flight
@@ -78,29 +99,39 @@ Forest
 Forgotten Sentinel
 Foul Presence
 Frost Bite
+Fungal Bloom
 Gaea's Bounty
 Galina's Knight
 Gearsmith Guardian
 Giant Caterpillar
 Glasses of Urza
+Glistening Deluge
 Goblin Glory Chaser
 Goblin Machinist
 Goblin Sledder
+Goblin Traprunner
 Goblin Wardriver
 Gold Myr
+Golgari Rotwurm
 Goretusk Firebeast
 Groffskithur
+Groundshaker Sliver
 Guard Duty
 Guardian Idol
 Gutter Skulk
 Gutwrencher Oni
 Harabaz Druid
 Headsplitter
+Heartfire
 Heartless Summoning
 Heliod, God of the Sun
+Helm of the Gods
+Hexmark Destroyer
 Hissing Iguanar
 Hitchclaw Recluse
+Hobbling Zombie
 Hollowhenge Beast
+Homing Lightning
 Hookblade Veteran
 Hound of Urabrask
 Immersturm Skullcairn
@@ -114,23 +145,34 @@ Joel, Resolute Survivor
 Join the Dance
 Journeyer's Kite
 Joven and Chandler
+Jungle Patrol
+Karsus Depthguard
+Kavu Scout
 Kazuul's Fury
 Kiora's Follower
 Krosan Drover
 Leering Emblem
 Leonin of the Lost Pride
 Lightning Dart
+Lightning Diadem
 Lightwalker
 Living Lightning
 Llanowar Elite
 Llanowar Scout
+Lone Wolf
 Loran's Escape
+Lothlórien Lookout
 Lurking Skirge
 Mandibular Kite
+Manglehorn
 Mardu Outrider
 Mesmeric Sliver
+Mind Whip
 Mindsplice Apparatus
 Mindwrack Demon
+Mishra's Juggernaut
+Mishra's Workshop
+Mockingbird, Bobbi Morse
 Mogg Bombers
 Molten Monstrosity
 Momentum
@@ -139,27 +181,37 @@ Mountain
 Mountain Goat
 Mycologist
 Myojin of Roaring Blades
+Myr Landshaper
 Mystic of the Hidden Way
 Nantuko Calmer
+Narnam Cobra
 Nether Traitor
+Nightscape Apprentice
+Nourish
 Nyxborn Rollicker
 Ocular Halo
+Odious Trow
 Olog-hai Crusher
 Omega Myr
 Onakke Ogre
+Origin of the Hulk
 Paladin Elizabeth Taggerdy
 Palladium Myr
+Patron of the Vein
 Personal Tutor
 Phantasmal Shieldback
 Pia and Kiran Nalaar
+Pit Spawn
 Pitfall Trap
 Pixie Illusionist
+Plague Myr
 Plains
 Power Boost
 Pride of Conquerors
 Priest of Ancient Lore
 Puncture Bolt
 Puncturing Blow
+Quicksand
 Rain of Salt
 Rampaging Classmate
 Rancid Earth
@@ -167,21 +219,28 @@ Ravenous Harpy
 Ready to Rumble
 Reality Heist
 Reality Hemorrhage
+Regal Sliver
 Reminisce
 Rend Flesh
 Renegade's Getaway
 Revel Ruiner
+Revel of the Fallen God
 Revitalizing Repast
 Reviving Melody
 Rhizome Lurcher
 Ring of Kalonia
 Riptide Pilferer
+Rite of Passage
+Rock Lobster
+Ruination Rioter
 Saprazzan Legate
+Saprazzan Skerry
 Saruman's Trickery
 Scaled Herbalist
 Scion of Oona
 Scourge of Numai
 Scrib Nibblers
+Seal Away
 Seek the Wilds
 Seraph of New Capenna
 Serra Aviary
@@ -193,6 +252,7 @@ Shipwreck Looter
 Shore Snapper
 Silent Extraction
 Sinister Possession
+Sink into Takenuma
 Skeletal Crocodile
 Skrelv, Defector Mite
 Slate Street Ruffian
@@ -202,32 +262,44 @@ Snarling Warg
 Snow-Covered Swamp
 Soulscour
 Soulstinger
+Spawning Bed
 Spinal Villain
+Spitting Spider
 Squealing Devil
 Starnheim Aspirant
 Starved Rusalka
 Stensia Banquet
 Stoke the Flames
+Stone Kavu
 Storm Entity
 Storm's Wrath
 Strength of Isolation
 Swamp
+Swift Demise
 Syr Elenora, the Discerning
+Taiga
+Tatterkite
 Tazeem Roilmage
 Temporal Manipulation
 Territorial Aetherkite
 Tethered Skirge
 Thirst for Meaning
 Throttle
+Toe-Breaking Helmet
 Toothy, Imaginary Friend
 Toucan-Puffin
 Tower of Eons
 Transplant Theorist
 True-Faith Censer
+Trumpeting Armodon
 Tundra Wolves
+Turbulent Steppe
+Twice Upon a Time
 Unbreathing Horde
+Undercellar Myconid
 Unified Front
 Vampiric Link
+Vandalblast
 Vanishing Verse
 Vanishment
 Vastwood Hydra
@@ -236,10 +308,13 @@ Vicious Battlerager
 Villainous Ogre
 Void Grafter
 Vraska, Swarm's Eminence
+Wall of Stone
+Warehouse Thief
 Water Elemental
 Wild Cantor
 Wild Celebrants
 Willow Dryad
+Wily Bandar
 Woodcaller Automaton
 Wooden Cane
 Wreath of Geists

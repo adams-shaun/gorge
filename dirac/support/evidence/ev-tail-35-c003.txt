@@ -1,17 +1,22 @@
 A-Elderleaf Mentor
 A-Nael, Avizoa Aeronaut
+A-You Come to a River
 Adeliz, the Cinder Wind
 Aether Spike
 Akki Rockspeaker
 Alchemist's Refuge
+Anax, Hardened in the Forge
 Arcane Denial
 Archmage's Charm
 Arlinn, Voice of the Pack
 Atraxa's Skitterfang
+Ballynock Trapper
 Battlewing Mystic
 Biogenic Ooze
 Blade of Selves
+Blessing of Belzenlok
 Blinding Souleater
+Blinding Spray
 Blitz of the Thunder-Raptor
 Bloodhunter Bat
 Bontu's Last Reckoning
@@ -20,40 +25,59 @@ Brazen Borrower
 Brood Sliver
 Brute Force
 Cathedral Acolyte
+Cephalid Sage
+Chaos Warp
 Chasm Skulker
 Choose Your Weapon
+Circle of Protection: Artifacts
 Claws of Valakut
 Cloaked Siren
 Convolute
 Cunning Survivor
+Cursebreak
 Dawn Charm
+Death Pits of Rath
 Decimator Web
+Deekah, Fractal Theorist
+Deeproot Historian
 Defabricate
 Discontinuity
+Displacement Wave
 Drake Familiar
+Ebonblade Reaper
 Elder Druid
 Elder Gargaroth
 Embargo
 Encrust
 Esper Panorama
+Expedition Diviner
+Flatline
 Forest
 Foundry Assembler
 Frantic Confrontation
+Frenetic Raptor
+Frost Breath
+Fugitive Druid
 Ghost-Lit Warder
 Ghostly Changeling
+Gilanra, Caller of Wirewood
 Gimli, Counter of Kills
+Gingerbehemoth
 Glint-Nest Crane
 Goblin Lore
 Godtracker of Jund
 Granger Guildmage
 Gravel Slinger
 Grayscaled Gharial
+Gruul Cluestone
+Hypnotic Grifter
 Hyrax Tower Scout
 Impaler Shrike
 Infantry Veteran
 Infernal Pet
 Inferno
 Iraxxa, Empress of Mars
+Iridescent Blademaster
 Island
 Jeskai Barricade
 Karlach, Fury of Avernus
@@ -61,29 +85,41 @@ Killmonger, Ruthless Usurper
 Lady Spider, Maybelle Reilly
 Leave in the Dust
 Living Lightning
+Living Twister
 Lu Meng, Wu General
+Lulu, Loyal Hollyphant
 Lush Growth
 Meatsqueak, Hoard Lord
 Monoskelion
+Morality Shift
 Mountain
 Mountain Valley
 Myr Galvanizer
+Nantuko Shrine
 Nezumi Cutthroat
 Night Market Aeronaut
+Nine-Tail White Fox
 Opal Acrolith
 Order of Leitbur
 Orzhov Locket
 Otherworldly Outburst
 Pain Distributor
+Pain Seer
 Plains
+Presence of Gond
+Prey's Vengeance
 Prohibit
 Repulsor Rays
 Research Thief
+Reservoir Walker
 Sacred Rites
 Sea Monster
+Seasoned Hallowblade
+Secretkeeper
 Seer of the Last Tomorrow
 Seething Song
 Selhoff Entomber
+Shanodin Dryads
 Shimmer Dragon
 Silence
 Siren's Ruse
@@ -92,19 +128,31 @@ Skyshroud Forest
 Soaring Hope
 Spellkeeper Weird
 Spikeshot Goblin
+Spiketail Drake
 Spitting Hydra
 Storm Caller
 Swamp
+Syphon Essence
 Syphon Mind
+Tears of Valakut
 Thassa's Oracle
 The Blue Spirit
+Thriving Grubs
+Thriving Rhino
 Tiller of Flesh
 Tocasia, Dig Site Mentor
 Tribal Flames
+Turtleshell Changeling
 Twenty-Toed Toad
 Uncovered Clues
+Undercity Troll
+Utter End
+Viridian Revel
 Void Squall
 Wash Out
 Watcher in the Mist
 Weakstone's Subjugation
+Weathered Wayfarer
+Worldly Counsel
 Wreck and Rebuild
+Wrecking Ball

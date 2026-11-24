@@ -143,6 +143,7 @@ Goreclaw, Terror of Qal Sisma
 Grasp of Darkness
 Greater Auramancy
 Green Scarab
+Grim Roustabout
 Grizzled Angler
 Guardian Scalelord
 Gwenna, Eyes of Gaea
@@ -249,6 +250,7 @@ Planar Ally
 Polluted Mire
 Priests of Norn
 Prismatic Strands
+Prismwake Merrow
 Protective Bubble
 Psychic Impetus
 Rakdos Carnarium

@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aether Membrane	2c04434088e66f9c	37	1/1		1/1	
 Affa Guard Hound	487d829331a5397a	62	1/1		1/1	
+Alchemist's Apprentice	fd68636d7c77aa1a	6	1/1		0/1	ix:resp
 Amrou Kithkin	8a803f8c6559d754	37	0/0		0/0	
 Apocalypse Demon	a53b05fb51c12492	18	1/1		1/1	
 Apothecary Geist	77442e586ae7c53e	37	1/1		0/1	ix:resp
@@ -37,6 +38,7 @@ Durkwood Baloth	a7ca52badda895ef	16	0/0		2/2
 Elder Land Wurm	ef05d44e1b0fcca6	16	1/1		0/1	ix:resp
 Energy Arc	7c8d21d20d1ce4d7	19	0/0		2/2	
 Epistolary Librarian	fe3873d80d8f00ea	13	1/1		0/1	ix:resp
+Esperzoa	8856656379f6f04d	8	1/1		0/1	ix:resp
 Ether Well	cec46f936b091be1	64	0/0		2/2	
 Ethereal Champion	ae19ce31aa7cfb90	15	1/1		1/1	
 Ethereal Usher	8bbd73297ef6b473	17	2/2		0/1	ix:resp
@@ -72,6 +74,7 @@ Lathnu Hellion	f2f4c9667c6eb69d	48	2/2		1/1
 Loxodon Convert	738ffa42a078066c	25	0/0		0/0	
 Lurking Skirge	076dd6a78587c6b0	75	1/1		1/1	
 Mardu Scout	56f87f8926e4feed	109	0/0		2/2	
+Memorial to Glory	e1852dd90dbfeafd	6	2/2		0/1	ix:resp
 Mesa Enchantress	269ece48381f596b	31	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Misthoof Kirin	0b155e19eb539d80	24	0/0		1/2	cast/alt:megamorphed
 Netcaster Spider	cf9eabe6c93eecd2	58	1/1		1/1	
@@ -87,6 +90,7 @@ Psionic Gift	8c3ae3cc7bf04c52	77	0/0		2/2
 Puncturing Light	8e71c0e33b231234	26	0/0		2/2	
 Quagmire Druid	a550737a1f4d0a81	53	1/1		1/1	
 Radiant Destiny	feec0e063c093cb2	35	0/0		0/0	
+Riddleform	a663e11ad5febfc9	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Ring of Renewal	d7220937d4fdad4a	49	1/1		1/1	
 Scout the Wilderness	7b1c0cb0b554a541	36	0/0		3/4	cast/alt:kicked
 Searing Barb	f093754a6c7865fd	58	0/0		1/2	ix:resp
@@ -98,6 +102,7 @@ Shimmerwing Chimera	4ef77b40296b3f4e	43	1/1		1/1
 Shredded Sails	6c5829541728d1a2	21	1/1		1/2	ix:resp
 Singe	333b3c1c77967be7	86	0/0		2/2	
 Sky-Blessed Samurai	ce0f3fb937c63d8b	18	0/0		0/0	
+Snow-Covered Forest	a1a5f67cd8b33a1c	5	1/1		0/1	ix:resp
 Sparring Mummy	bafe30c97a7d0bec	31	1/1		1/1	
 Spire Golem	30746638b54259b1	46	0/0		0/0	
 Startle	08365891d95cf2b3	58	0/0		2/2	
@@ -113,6 +118,7 @@ Stupor	13e82146871af7f6	34	0/0		1/2	ix:resp
 Sunhome Enforcer	954d665c1c4a44d7	21	2/2		1/1	
 Swooping Protector	eec05445f3f247be	24	0/0		0/0	
 Tabaxi Toucaneers	198bd1b066134383	13	1/1		0/1	ix:resp
+The Autonomous Furnace	8e3bf3180c613bca	4	2/2		1/1	
 Throes of Chaos	04047dc8e4baf2e9	61	0/0		2/2	
 Time Elemental	8789076abaeff70d	44	3/3		1/1	
 Tower of Fortunes	198879bcc40f78e3	43	1/1		1/1	
@@ -129,6 +135,7 @@ Warbreak Trumpeter	ab9c25ca37b1a658	12	1/1		1/3	cast/alt:none,ix:resp
 Weapon Surge	f779d43cdaa6ee92	44	0/0		4/4	
 Windseeker Centaur	ce3e0d0595f6bcce	57	0/0		0/0	
 Wojek Halberdiers	34b556e0712a1749	26	1/1		0/1	ix:resp
+Wu Warship	8b9ecf19b0e4fac2	3	0/0		0/0	
 Young Wolf	c83665296a954082	56	1/1		1/1	
 Zirilan of the Claw	7da030b7e7b195d9	43	1/1		1/1	
 Éowyn, Lady of Rohan	594531f98441a1cd	33	1/1		1/1	

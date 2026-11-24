@@ -10,18 +10,21 @@ Aether Figment
 Aether Shockwave
 Akoum Firebird
 Always Watching
+Amphibious Kavu
 Amulet of Vigor
 Apostle of Purifying Light
 Appetite for the Unnatural
 Arcane Flight
 Arcbound Whelp
 Assault Zeppelid
+Assembly Hall
 Attunement
 Banewasp Affliction
 Bastion Protector
 Battle Cry Goblin
 Battle-Rage Blessing
 Beacon of Immortality
+Behind the Scenes
 Blisterstick Shaman
 Blood Burglar
 Bogstomper
@@ -30,9 +33,12 @@ Boss Uramon, Shadow's Reach
 Bounteous Kirin
 Box of Free-Range Goblins
 Brawler's Plate
+Brightcap Badger
 Brink of Madness
+Burning Cloak
 Burning Sun's Fury
 Burning-Fist Minotaur
+Canyon Lurkers
 Catacomb Slug
 Cavalry Pegasus
 Cazur, Ruthless Stalker
@@ -61,6 +67,7 @@ Distress
 Drifting Shade
 Drooling Groodion
 Dry Spell
+Dwarven Armory
 Dwarven Patrol
 Eidolon of Inspiration
 Elvish Branchbender
@@ -72,26 +79,31 @@ Era of Enlightenment
 Etched Champion
 Ettercap
 Excise the Imperfect
+Explosive Growth
 Eyeblight Cullers
 Faith Healer
 Falkenrath Celebrants
 Fallaji Excavation
 Fallaji Vanguard
+Fanged Flames
 Field-Tested Frying Pan
 Fire Nation's Conquest
 Flame-Kin Zealot
+Flensermite
 Flowstone Infusion
 Font of Fortunes
 Forest
 Formless Genesis
 Fortifying Draught
 Furnace Spirit
+Gaea's Cradle
 Ghoulraiser
 Gilded Pinions
 Gitaxian Anatomist
 Glimmer of Genius
 Glitterfang
 Glorious Anthem
+Glorious Protector
 Gold Myr
 Golgari Locket
 Grateful Apparition
@@ -99,7 +111,9 @@ Grotag Bug-Catcher
 Gryffwing Cavalry
 Guardian of Vitu-Ghazi
 Guardians of Koilos
+Headsplitter
 Hedron Detonator
+Hellion Crucible
 Herald of the Dreadhorde
 Hero of Leina Tower
 Hibernation
@@ -159,6 +173,7 @@ On Thin Ice
 Ore-Scale Guardian
 Oreskos Swiftclaw
 Perilous Forays
+Petrified Field
 Phyrexian Scriptures
 Pick Up the Pace
 Pitiless Plunderer
@@ -166,6 +181,7 @@ Plains
 Priests of Norn
 Prison Sentence
 Prodigal Pyromancer
+Profaner of the Dead
 Professor's Warning
 Proper Burial
 Quest for Renewal
@@ -182,6 +198,7 @@ Rhys the Exiled
 Rogue Elephant
 Rotting Rats
 Run Out of Town
+Ruthless Cullblade
 Ruthless Invasion
 Safeguard
 Sage Aven
@@ -197,6 +214,8 @@ Serrated Scorpion
 Shadows' Verdict
 Shang-Chi, Martial Mentor
 Shauku, Endbringer
+Shimmerdrift Vale
+Shinka Gatekeeper
 Siegecraft
 Skitterskin
 Skybind
@@ -223,6 +242,7 @@ Tonic Peddler
 Tormenting Voice
 Trip Noose
 Trophy Mage
+Turbulent Fen
 Uktabi Orangutan
 Umara Mystic
 Undercity Informer
@@ -237,9 +257,11 @@ Wall of Fire
 Whip-Spine Drake
 Wilderness Hypnotist
 Winds of Rebuke
+Windswept Heath
 Winged Words
 Wish Good Luck
 Wishcoin Crab
 Withstand Death
+Woodland Cemetery
 Wurmcalling
 Zombie Master

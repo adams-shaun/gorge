@@ -7,6 +7,7 @@ Akiri, Line-Slinger
 Alchor's Tomb
 Alluring Scent
 Ambush Party
+Ana Sanctuary
 Ancient Crab
 Appa, Aang's Companion
 Appetite for the Unnatural
@@ -43,6 +44,7 @@ Brushfire Elemental
 Celestial Flare
 Child of Thorns
 Cobblebrute
+Commune with Spirits
 Consign to the Pit
 Covert Technician
 Crackling Triton
@@ -51,6 +53,7 @@ Cursed Minotaur
 Dawntreader Elk
 Deadshot
 Deathreap Ritual
+Deepwood Denizen
 Defiler of Souls
 Defiling Daemogoth
 Dhund Operative
@@ -62,6 +65,7 @@ Disruptive Pitmage
 Disturbed Burial
 Dive Bomber
 Diversionary Tactics
+Dreadful as the Storm
 Dreadhorde Invasion
 Drivnod, Carnage Dominus
 Drove of Elves
@@ -159,7 +163,9 @@ Moss Diamond
 Mountain
 Mudbrawler Cohort
 Muse Drake
+Mystic Familiar
 Natural Obsolescence
+Naturalize
 Nessian Courser
 Novice Occultist
 Oketra's Monument
@@ -167,6 +173,7 @@ Old Stickfingers
 Ominous Sphinx
 Omnath, Locus of Rage
 One Dozen Eyes
+Oran-Rief, the Vastwood
 Order of the Mirror
 Origin of Iron Man
 Orim, Samite Healer
@@ -208,7 +215,9 @@ Sea Legs
 Seachrome Coast
 Segovian Leviathan
 Sejiri Steppe
+Sharpened Pitchfork
 Shield of Kaldra
+Shivan Meteor
 Shower of Coals
 Silent Departure
 Silent Skimmer
@@ -241,6 +250,7 @@ Swamp
 Sword of the Paruns
 Tazeem Raptor
 Tenacious Dead
+The Dross Pits
 The Scorpion God
 Thopter Assembly
 Thopter Spy Network
@@ -253,6 +263,7 @@ Titanium Man
 Tocatli Honor Guard
 Toothy, Imaginary Friend
 Trained Jackal
+Traitorous Greed
 Tribute to Urborg
 Tribute to the World Tree
 Tzaangor Shaman
@@ -264,6 +275,7 @@ Vedalken Plotter
 Vengeant Earth
 Vertigo
 Viashino Lashclaw
+Vineshaper Mystic
 Virulent Swipe
 Vitalize
 Vivien's Crocodile
@@ -276,6 +288,7 @@ Whisper of the Dross
 Wind-Kin Raiders
 Woebringer Demon
 Wolfir Avenger
+Woolly Spider
 Words of Wisdom
 Wurmskin Forger
 Wyrm's Crossing Patrol

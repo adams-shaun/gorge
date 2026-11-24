@@ -1,44 +1,74 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Radha's Firebrand	9bb8826a82a6fd15	8	2/2		0/1	ix:resp
 A-Sepulcher Ghoul	d6bf4570b4f377f2	68	1/1		1/1	
+Aerial Maneuver	6d789a24a5db71d1	7	0/0		1/2	ix:resp
 Afflict	3c5dbdec69877f16	4	0/0		1/2	ix:resp
 Ampryn Tactician	78393dfa814ff9b0	57	1/1		1/1	
 Anurid Murkdiver	e860ed1a2064e238	39	0/0		0/0	
 Basri's Aegis	3bbaa84358245213	65	0/0		2/2	
 Beacon of Immortality	7d518a979611950f	78	0/0		2/2	
 Bloodflow Connoisseur	ea91caa4bafa6b7b	67	1/1		1/1	
+Boon of Emrakul	17b803132c09f774	4	0/0		1/2	ix:resp
 Carrion Howler	e5f23cbe5bc2f93a	44	1/1		1/1	
 Chime of Night	5b83acc81d4ad4f4	7	1/1		1/2	ix:resp
 Chrome Cat	019954283153ccf8	4	1/1		1/1	
 Corrupted Resolve	3baf5d16004767bf	32	0/0		2/2	
+Dauthi Voidwalker	f39d62532698f41b	3	1/1		1/1	
 Deb Thomas	9092562d0ac0831c	4	3/3		0/1	ix:resp
+Deny Entry	ff528689f9b739e0	4	0/0		2/2	
 Desecration Elemental	dc05770dbe5d2f7e	4	1/1		0/1	ix:resp
 Despoiler of Souls	7f083e1a4127e375	44	1/1		1/1	
+Dire Fleet Hoarder	f6de78b0aa6d8a93	9	1/1		0/1	ix:resp
 Dusk	a65960e250c7efb8	107	0/0		4/5	f1/s
+Elspeth Tirel	39898d6fd8843a3d	10	3/3		0/1	ix:resp
 Ephara's Warden	2472951f13911000	4	1/1		1/1	
+Everflame Eidolon	afd03ff322e2e637	11	1/1		3/3	
 Executioner's Hood	f2cb0bb5bced647e	8	1/1		0/1	ix:resp
+Fae of Wishes	7b4ecbd9c64e2c03	6	1/1		2/2	
 Faithful Pikemaster	380f2a965954a029	12	1/1		0/1	ix:resp
+Falkenrath Marauders	c24f6cec34c705fa	4	1/1		0/1	ix:resp
 Fell Specter	32563b2a306c8782	7	2/2		0/1	ix:resp
 Free from Flesh	2553d50bb110cfc4	56	0/0		2/2	
 Grim Guardian	40ca779a6aa4b623	10	1/1		0/1	ix:resp
+Growth-Chamber Guardian	e28293990f55ad2a	8	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Gustha Ebbasdotter	43c3ba211bfdeaf2	4	1/1		0/1	ix:resp
+Gutter Skulk	fc9df1811f72e49c	5	0/0		0/0	
 Healing Leaves	3d726bdc9d9a218c	4	0/0		1/2	ix:resp
 Ill-Tempered Cyclops	17f4a8b43c9a4b09	4	1/1		0/1	ix:resp
+Innocuous Researcher	09f85199a80cc55a	15	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Inviolability	12b773b06004b6ae	63	0/0		2/2	
+Knight of New Benalia	f74cbda8c4e699d4	4	0/0		0/0	
 Leonin Battlemage	7de74dd9532ef6c7	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Lychguard	6291625f68b9a10f	4	1/1		0/1	ix:resp
 Mending Hands	73cceaa8dddf6c9f	87	0/0		2/2	
+Midnight Covenant	84ef9cea3a9075ba	6	0/0		1/2	ix:resp
 Mindwarper	17459aef9f8c5f7c	35	1/1		1/1	
 Nightscape Familiar	5c488d18479da3b1	8	1/1		1/1	
 Nightshade Assassin	25e10d5dbf513315	36	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Nimble Pilferer	953b62840166e05e	60	0/0		0/0	
+Nyxborn Marauder	2bc1f3a1990b06be	4	0/0		0/0	
+Ochre Jelly	ebc622363ba712ae	4	1/1		0/1	ix:resp
 Okiba Salvage	4eb798346bff9329	29	0/0		2/2	
+Ozox, the Clattering King	06dfd9ed321a1eb0	3	1/1		0/1	ix:resp
+Path of Peril	3b0f778ff2c30850	8	0/0		1/2	ix:resp
 Pawn of Ulamog	c9a354b447b85941	42	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Raise the Draugr	3a6bce1aceecb102	8	0/0		2/2	
+Roving Harper	0c1aebdec205843b	6	1/1		0/1	ix:resp
+Saddleback Lagac	2ead5a82d123d7f6	7	1/1		0/1	ix:resp
+Seraph of New Capenna	819dbb239b406ea6	4	2/2		0/3	f1/t0/opt:n,f1/t0/opt:y,ix:resp
 Sigardian Priest	fc51c762e637e2ab	101	1/1		1/1	
 Sign in Blood	f57e2b0b7a937a0b	45	0/0		2/2	
 Skeletal Kathari	d08a671510b01ad3	3	1/1		0/1	ix:resp
+Slum Reaper	3aa570dd8fc34304	4	1/1		0/1	ix:resp
+Splinter, the Mentor	50698de4e09b835f	4	1/1		0/1	ix:resp
+Tel-Jilad Defiance	8b82850b89e5fe97	6	0/0		2/2	
 Teyo's Lightshield	8c2093fd7e4e7451	52	1/1		1/1	
 Teysa Karlov	cf7ead8791572676	41	0/0		0/0	
 Titan's Strength	4c4e78ea9527a413	75	0/0		2/2	
 Tormentor's Trident	38735b7a18e1bac3	4	1/1		0/1	ix:resp
 Trokin High Guard	7063ae8de6d1272e	84	0/0		0/0	
+Two-Headed Giant of Foriys	97fe9df449f4a528	3	0/0		0/0	
+Wild Hunger	1325a305941d9b30	12	0/0		4/4	
 Wintermoor Commander	c0b24dd5df6eec28	6	1/1		0/1	ix:resp
+Wound Reflection	9702a6df00cea4e6	5	1/1		0/1	ix:resp
 Yawgmoth, Thran Physician	0fc0fc220ca08fc7	4	2/2		0/1	ix:resp

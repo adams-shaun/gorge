@@ -4,9 +4,12 @@ Abundant Growth
 Aerial Predation
 Aerial Volley
 Akki Underling
+Alaborn Musketeer
 Alesha, Who Smiles at Death
+An Unearthly Child
 Ancestral Memories
 Angelfire Crusader
+Angelic Aberration
 Angelic Skirmisher
 Anoint
 Anurid Brushhopper
@@ -14,39 +17,54 @@ Apprentice Wizard
 Archweaver
 Artificer's Epiphany
 Ascendant Acolyte
+Assassin Gauntlet
 Assassin's Strike
 Atlas, Sizable Stooge
 Auramancer
 Axebane Stag
 Balduvian Barbarians
 Balduvian Hydra
+Ballista Charger
 Barren Moor
 Basri's Acolyte
 Bassara Tower Archer
+Battle-Scarred Goblin
 Belbe's Portal
+Benevolent Hydra
 Betrothed of Fire
 Black Scarab
 Blight
 Blightwidow
+Blood Host
 Bloodline Culling
 Boarded Window
 Bojuka Bog
 Bontu's Monument
+Bravado
 Breach the Multiverse
 Breath of Life
 Bull Aurochs
+Bull-Rush Bruiser
 Bumbling Pangolin
 Burdened Aerialist
+Callous Bloodmage
 Cemetery Reaper
+Chain Stasis
+Champion of the Parish
+Chief Magistrate of Mercadia
 Chorus of Woe
 Chromatic Sphere
 Clay Revenant
+Cleansing Nova
 Cliffrunner Behemoth
 Collective Defiance
 Commander Greven il-Vec
 Consumptive Goo
 Corpse Knight
+Cruel Deceiver
+Curse of the Forsaken
 Cursed Flesh
+Darksteel Sentinel
 Deadly Derision
 Decanter of Endless Water
 Decimate
@@ -62,13 +80,16 @@ Doomwake Giant
 Dragonscale General
 Dungeoneer's Pack
 Echoing Ruin
+Echoing Truth
 Elvish Champion
 Embodiment of Insight
 Empyreal Voyager
 Errand-Rider of Gondor
 Essence of Orthodoxy
+Expanded Anatomy
 Exuberant Firestoker
 Ezuri's Brigade
+Faerie Invaders
 Fatal Push
 Fated Intervention
 Fervent Champion
@@ -87,6 +108,7 @@ Ghor-Clan Rampager
 Gibbering Fiend
 Gideon's Lawkeeper
 Gift of Orzhova
+Glimpse of Freedom
 Gloomshrieker
 Glyph Elemental
 Goblin Trenches
@@ -95,6 +117,7 @@ Gourmand's Talent
 Gryffwing Cavalry
 Hall of Heliod's Generosity
 Hard Evidence
+Harmonic Prodigy
 Haunted Mire
 Hecatomb
 Highborn Ghoul
@@ -103,13 +126,17 @@ Honden of Life's Web
 Hope and Glory
 Howl of the Horde
 Hulk, Brutal Brawler
+Hunted Witness
 Hypnotic Specter
 Indomitable Archangel
 Instill Furor
 Invigorated Rampage
 Ionize
+Ironshell Beetle
 Island
+Jinx
 Jinxed Idol
+Juntu Stakes
 Kaervek, the Spiteful
 Kessig Naturalist
 Kiora Bests the Sea God
@@ -134,6 +161,8 @@ Minotaur Warrior
 Moriok Rigger
 Mountain
 Mourning Thrull
+Murderer's Axe
+Mystic Visionary
 Naturalize
 Neurok Invisimancer
 Nimbus Naiad
@@ -145,6 +174,7 @@ Perilous Voyage
 Pheres-Band Thunderhoof
 Phyrexian Battleflies
 Plains
+Polymorphist's Jest
 Power Sink
 Precognition Field
 Primal Forcemage
@@ -153,7 +183,9 @@ Quandrix Pledgemage
 Raff, Weatherlight Stalwart
 Ramosian Captain
 Ray of Distortion
+Razormane Masticore
 Reaper of Flight Moonsilver
+Reclusive Artificer
 Reservoir Walker
 Revered Unicorn
 Ring of Immortals
@@ -166,6 +198,7 @@ Sandcrafter Mage
 Sanguinary Mage
 Sapseep Forest
 Savage Twister
+Scribe of the Mindful
 Scuttling Butler
 Seahunter
 Sensory Deprivation
@@ -174,19 +207,26 @@ Shadow Lance
 Shadowcloak Vampire
 Sheoldred's Restoration
 Shriekmaw
+Sibling Rivalry
+Silhana Wayfinder
 Silumgar Monument
+Silvercoat Lion
 Silversmote Ghoul
 Simic Slaw
 Sinuous Vermin
+Skyclave Squid
 Skyrider Trainee
 Sleep of the Dead
 Slith Ascendant
 Solid Footing
 Soothsayer Adept
+Soratami Cloudskater
 Soul Sear
 Spellbane Centaur
 Stall for Time
 Stalwart Shield-Bearers
+Starnheim Courser
+Steal Enchantment
 Steel Seraph
 Stinkdrinker Daredevil
 Stoneshock Giant
@@ -199,11 +239,13 @@ Swamp
 Swelter
 Sworn Guardian
 Sylvan Brushstrider
+Sylvan Might
 Tangled Skyline
 Tapping at the Window
 Teferi's Protege
 The First Eruption
 Their Name Is Death
+Thought Courier
 Thriving Grubs
 Thriving Rhino
 Thundering Djinn
@@ -211,6 +253,7 @@ Tolsimir Wolfblood
 Treasury Thrull
 Treetop Recluse
 Tyrant of Kher Ridges
+Uktabi Faerie
 Ultimate Alliance
 Undead Leotau
 Unified Strike
@@ -221,6 +264,7 @@ Urborg Syphon-Mage
 Vashta Nerada
 Venerable Monk
 Veteran Swordsmith
+Viper, Cruel Conspirator
 Vision, Synthezoid Avenger
 Vodalian Hypnotist
 Voice of Law
@@ -228,10 +272,13 @@ Vraska's Finisher
 Wall of Blood
 Wandering Tombshell
 Water Wurm
+Waterlogged Grove
+White Sun's Zenith
 White Widow, Yelena Belova
 Wildwood Tracker
 Winding Way
 Writhing Necromass
+Wu Admiral
 You're Confronted by Robbers
 Young Red Dragon
 Zektar Shrine Expedition
