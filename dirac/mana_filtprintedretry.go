@@ -15,6 +15,8 @@ package dirac
 // spend the budget on branches the planner never sees and drop an activation
 // that Henge of Ramos's "{2},{T}: one mana of any color" and two Islands pay
 // (tail-26 pair 66: Niall Silvain's {G}{G}{G}{G},{T} beside three Forests).
+// The granted sources are dead for the retry (dead: neither a gap nor a
+// funder), so a granted tap does not fund a fee in the funding pass either.
 // A line found without them is a line the planner pays; a search that runs
 // out again proves nothing, and the activation stays unoffered.
 func (fs *filtSearch) printedOnlyRetry(s *State, k *prep, t *State) (filtSearch, bool) {
@@ -39,7 +41,7 @@ func (fs *filtSearch) printedOnlyRetry(s *State, k *prep, t *State) (filtSearch,
 	}
 	for _, c := range caps {
 		fb := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
-			usefulOK: fs.usefulOK, other: fs.other.andNot(granted), feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead,
+			usefulOK: fs.usefulOK, other: fs.other.andNot(granted), feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead.or(granted),
 			fundCap: c, noHand: fs.noHand, lifePainBound: fs.lifePainBound, fundN: fs.fundN, floated: fs.floated}
 		if fb.visit(k, t, 0, false) {
 			return fb, true
