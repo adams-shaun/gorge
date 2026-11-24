@@ -31,12 +31,15 @@ func TestOgreSavantManaSpentInterveningIf(t *testing.T) {
 	if z := e.G.Obj(spell).Zone; z != state.ZBattlefield {
 		t.Fatalf("precondition: Ogre Savant is in %s after resolution, want battlefield", z)
 	}
-	if got := len(e.pendingTriggers); got != 0 {
-		t.Fatalf("red-only Ogre Savant queued %d trigger(s), want 0", got)
-	}
 	e.priorityRound()
 	if d := e.Pending(); d != nil && d.Kind == decision.KTarget {
 		t.Fatalf("red-only Ogre Savant asked for a target: %+v", d)
+	}
+	if got := len(e.pendingTriggers); got != 0 {
+		t.Fatalf("red-only Ogre Savant queued %d trigger(s), want 0", got)
+	}
+	if got := len(e.G.Stack); got != 0 {
+		t.Fatalf("red-only Ogre Savant put %d trigger(s) on the stack, want 0", got)
 	}
 	if z := e.G.Obj(bear.ID).Zone; z != state.ZBattlefield {
 		t.Fatalf("red-only Ogre Savant moved the bear to %s, want it to stay", z)
