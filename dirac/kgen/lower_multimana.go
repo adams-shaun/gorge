@@ -139,6 +139,17 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the planner's plain unit (pc.manaChosen)
 		return
 	}
+	lc.refuseResidualMultiMana(ms)
+}
+
+// refuseResidualMultiMana is refuseMultiMana's last stage, for every shape no
+// earlier stage accepted: the named refusals (a paid filter set, a coloured
+// painland pair, unrelaxable costs), then a plain {T} ability beside one
+// modelled gap, or a refusal.
+func (lc *lowerCtx) refuseResidualMultiMana(ms []*lAbility) {
+	if lc.refusePaidFilterSet(ms) || lc.refuseColouredPain(ms) || lc.refuseUnrelaxableCosts(ms) {
+		return
+	}
 	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
 		lc.refuseNode("card", "%d mana abilities: not a fixed-colour set, nor a plain {T} ability beside one modelled gap", len(ms))
 		return
@@ -149,6 +160,88 @@ func (lc *lowerCtx) refuseMultiMana() {
 			return
 		}
 	}
+}
+
+// refusePaidFilterSet: a plain {T}: Add {C} first ability beside two or more
+// paid filter abilities, one filter ability per colour ({1},{T}: Add <colour>;
+// {2},{T}: Add {B} or {G} -- Koskun Keep, Castle Sengir, An-Havva Township,
+// Aysen Abbey, Wizards' School). gorge's planner census lists the {C} unit
+// alone (a paid cost is no census alternative, engine/rules/pay's
+// TierNormal needs TapOnly) and its prefix search branches the
+// choose-a-mana-ability ask's answers: the {C} first, then each filter,
+// whose fee is paid from the floating pool (CR 601.2b), then a choice
+// filter's colour. The kernel's filter walk records one filter ability per
+// card (genPrep.filt) and models no fixed-colour or two-colour-choice fee
+// (filterTapMana: the production must be ColAny), so its search can
+// activate neither: refused until the walk holds one filter ability per
+// colour. It reports whether it refused.
+func (lc *lowerCtx) refusePaidFilterSet(ms []*lAbility) bool {
+	if len(ms) < 3 || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) || ms[0].Mana.Colors != "C" {
+		return false
+	}
+	for _, a := range ms[1:] {
+		if !paidFilterMana(a) {
+			return false
+		}
+	}
+	lc.refuseNode("card", "%d mana abilities: a plain {T} ability beside %d paid filter abilities: the kernel's filter walk records one filter ability per card and models no fixed-colour or choice fee", len(ms), len(ms)-1)
+	return true
+}
+
+// paidFilterMana: a is a paid filter ability, a generic-only fee of one or
+// more, amount 1, unrestricted, one fixed WUBRG colour or a choice of two
+// (Koskun Keep's {1},{T}: Add {R} and {2},{T}: Add {B} or {G}).
+func paidFilterMana(a *lAbility) bool {
+	if !plainTapMana(a, true) || a.Cost.Mana.Generic < 1 || !unrestrictedOne(a) {
+		return false
+	}
+	if a.Mana.Choice {
+		return len(a.Mana.Colors) == 2 && strings.Trim(a.Mana.Colors, "WUBRG") == ""
+	}
+	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors)
+}
+
+// refuseColouredPain: a coloured plain {T} ability beside a plain {T}
+// two-colour choice with a pain rider, in either printed order (Murmuring
+// Bosk's {W} or {B}. CARDNAME deals 1 damage to you, then its forest {G}).
+// gorge's planner prices the coloured one as a normal alternative and the
+// painful choice as a last resort with Consequence{Damage: N}
+// (pay.PaymentPlanDamageRider); the kernel's pain unit pair carries a
+// colourless normal alternative only (a painland's {C}, mana_pain.go), no
+// coloured one. It reports whether it refused.
+func (lc *lowerCtx) refuseColouredPain(ms []*lAbility) bool {
+	if len(ms) != 2 {
+		return false
+	}
+	for i := 0; i < 2; i++ {
+		p, c := ms[i], ms[1-i]
+		if painTapMana(p) && plainTapMana(c, false) && unrestrictedOne(c) &&
+			len(c.Mana.Colors) == 1 && strings.Contains("WUBRG", c.Mana.Colors) {
+			lc.refuseNode("card", "2 mana abilities: a pain rider beside a coloured plain {T} ability: the kernel's pain unit pair carries a colourless normal alternative only")
+			return true
+		}
+	}
+	return false
+}
+
+// refuseUnrelaxableCosts: two mana abilities, neither costing {T}, each of a
+// repeatable non-tap cost beyond {T} (Cadaverous Bloom's "Exile a card from
+// your hand: Add {B}{B}" and its {G}{G}). gorge's census leaves both gaps
+// with no bounded relaxation (a non-tap repeatable cost has no once-only
+// bound, potential_plan.go paymentPlanRelaxedAlternatives), so the census is
+// unrelaxable: no prefix search runs and the planner prices neither ability.
+// It reports whether it refused.
+func (lc *lowerCtx) refuseUnrelaxableCosts(ms []*lAbility) bool {
+	if len(ms) != 2 {
+		return false
+	}
+	for _, a := range ms {
+		if a.Cost.Tap || plainTapMana(a, false) || plainTapMana(a, true) {
+			return false
+		}
+	}
+	lc.refuseNode("card", "2 mana abilities: no plain {T} ability, each of a repeatable non-tap cost beyond {T}: gorge's census is unrelaxable, so no prefix search runs and the planner prices neither ability")
+	return true
 }
 
 // chosenTapMana: a is a bare "{T}: Add one mana of the chosen color".
