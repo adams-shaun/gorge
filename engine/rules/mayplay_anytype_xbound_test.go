@@ -33,3 +33,34 @@ func TestMayPlayAnyTypeXBoundOfferedThroughRider(t *testing.T) {
 		t.Fatalf("X=0 cast of {X}{U}{U} from two Mountains offered with no rider")
 	}
 }
+
+// A rider changes which mana pays a pip, not how many the cost needs: the only
+// legal announcement of "target creature with mana value X" here is X=3, whose
+// {3}{U}{U} five mana cannot come from three sources, one of them an open
+// "any color" producer (priced as unbounded by the potential bound, one unit by
+// the census count). The rider must not make that announcement offered (CR
+// 601.2h, 609.4b).
+func TestMayPlayAnyTypeXBoundRefusedWhenCountOutrunsSupply(t *testing.T) {
+	const spell = "Name:Xbound Grab\nManaCost:X U U\nTypes:Sorcery\n" +
+		"A:SP$ GainControl | ValidTgts$ Creature.cmcEQX | TgtPrompt$ Select target creature with mana value X\n" +
+		"SVar:X:Count$xPaid\nOracle:x\n"
+	for _, rock := range []string{
+		"A:AB$ Mana | Produced$ Any | Cost$ T\n",
+		"A:AB$ Mana | Produced$ Any | Cost$ T Sac<1/CARDNAME>\n",
+	} {
+		e := mayPlayBase(t)
+		onBoardGrant(t, e, 0, "Name:Rider Grant\nManaCost:1\nTypes:Artifact\n"+
+			"S:Mode$ Continuous | Affected$ Sorcery.YouOwn | MayPlay$ True | MayPlayIgnoreType$ True | "+
+			"EffectZone$ Battlefield | AffectedZone$ Graveyard\nOracle:x\n")
+		onBoard(t, e, 0, apMountain)
+		onBoard(t, e, 0, apMountain)
+		onBoard(t, e, 0, "Name:Any Rock\nTypes:Artifact\n"+rock+"Oracle:x\n")
+		onBoard(t, e, 1, "Name:Three Bear\nManaCost:2 G\nTypes:Creature Bear\nPT:3/3\nOracle:x\n")
+		card := graveyardCard(t, e, spell)
+		e.pending = nil
+		e.askPriority(0)
+		if offered, _ := mayPlayOffered(e, card); offered {
+			t.Errorf("X=3 ({3}{U}{U}) offered from three mana sources under the rider (%.40s)", rock)
+		}
+	}
+}

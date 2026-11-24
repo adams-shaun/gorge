@@ -563,13 +563,14 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 		insufficient := func(composed Cost) bool {
 			// The planner prices the printed pips only; a may-play grant's rider
 			// (Gonti, Lord of Luxury's "mana of any type can be spent", CR 609.4b)
-			// lets other mana pay them, so its verdict proves nothing here.
-			if !ability && asEval(e).MayPlayRider(p, id) != (pipRider{}) {
-				return false
-			}
+			// lets other mana pay them, so its verdict (and the relaxation proof
+			// built on it) proves nothing here. A rider changes which mana pays a
+			// pip, never how many mana the cost needs, so under one only the
+			// count proof below stands (CR 601.2h).
+			rider := !ability && asEval(e).MayPlayRider(p, id) != (pipRider{})
 			// bound is the potential pool the census reads.
 			verdict := func() PaymentPlanOutcome { return e.planComposedCost(p, id, composed, ability, ability) }
-			if verdict().Reason != pay.ReasonInsufficient {
+			if !rider && verdict().Reason != pay.ReasonInsufficient {
 				return false
 			}
 			e.beginDerivedMemo()
@@ -577,13 +578,13 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 			defer pay.PaymentPlanQueryEnd(asPayer(e), pay.PaymentPlanQueryBegin(asPayer(e)))
 			census := e.paymentPlanCensusOf(p, &bound)
 			onceGap, haveCensus = census.onceGap, true
-			if census.complete {
+			if census.complete && !rider {
 				return true
 			}
 			// A lone paid gap's output cannot pay its own fee: price it as a cut
 			// of the announced cost (paymentPlanRelaxProof's cutSelfFee).
 			census.cutSelfFee = true
-			if census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient {
+			if !rider && census.relaxable && e.paymentPlanRelaxProof(census, verdict).Reason == pay.ReasonInsufficient {
 				return true
 			}
 			// A repeatable fee-only gap (Crossroads Candleguide's "{2}: Add one
