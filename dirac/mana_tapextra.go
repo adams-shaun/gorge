@@ -367,6 +367,7 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
+	ord := 0 // the reaching Produced$ Any carriers so far: a search's forced answers are per carrier (forceAnyColAnswers)
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		chosen := a.StFlags&kop.StTapChosen != 0   // Produced$ Chosen: gated like a Cond2 static, in the source's colour
@@ -392,7 +393,8 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		}
 		s.tapExtraEchoStall(k, st)
 		if anyCol {
-			s.addAnyColExtra(p, a)
+			s.addAnyColExtra(p, a, ord)
+			ord++
 			return true
 		}
 		if dynamic {
@@ -431,15 +433,20 @@ func (s *State) anyColExtraColour(u int) uint8 {
 
 // addAnyColExtra adds a's mana to p's pool from the answer fillTapAnyCol
 // stored: one colour for all B mana (Produced$ Any), or B units each their
-// own colour (Produced$ Combo Any).
-func (s *State) addAnyColExtra(p uint8, a *kop.Static) {
+// own colour (Produced$ Combo Any). A search that answered each carrier's ask
+// itself (forceAnyColAnswers) gives the ord-th carrier its own answer.
+func (s *State) addAnyColExtra(p uint8, a *kop.Static, ord int) {
 	if a.A == 1 { // Combo Any: one unit per answer
 		for u := 0; u < int(a.B); u++ {
 			s.pl[p].pool[s.anyColExtraColour(u)%5]++
 		}
 		return
 	}
-	s.pl[p].pool[s.g.winCol%5] += uint8(a.B) // Any: one colour for the whole amount
+	col := s.g.winCol // Any: one colour for the whole amount
+	if s.g.rsv[anyColForcedAt] != 0 {
+		col = s.anyColExtraColour(ord)
+	}
+	s.pl[p].pool[col%5] += uint8(a.B)
 }
 
 // fillTapAnyCol sets the pending any-colour tap extra's answer for a tap of sl
@@ -539,6 +546,7 @@ func (s *State) announcedPipsOwed(k *prep, p uint8, col, n int) (owed [kop.NumMa
 // StatTapExtra static reaching sl gets its units filled (normally one).
 func (s *State) fillTapAnyColOwed(k *prep, p uint8, sl Slot, owed *[kop.NumManaKinds]uint8) {
 	ctl := s.perms[sl].ctrl
+	s.g.rsv[anyColForcedAt] = 0 // the deterministic fill: no search answers (forceAnyColAnswers)
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || a.StFlags&kop.StTapAnyCol == 0 ||
@@ -559,7 +567,7 @@ func (s *State) fillTapAnyColOwed(k *prep, p uint8, sl Slot, owed *[kop.NumManaK
 		for u := 1; u < len(cols); u++ {
 			s.g.rsv[u] = cols[u]
 		}
-		return false // the first reaching static is the carrier the add arm reads
+		return false // the first reaching static is the carrier the add arm reads: gorge answers each carrier's ask against the same owed pips
 	})
 }
 
