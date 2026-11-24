@@ -388,16 +388,17 @@ func TestAttackTriggerPumpMissesAnAttackerThatReturnedLockstep(t *testing.T) {
 	synthReproLockstep(t, "attack_trigger_pump_misses_returned_attacker", "std-msh", Config{})
 }
 
-// Tarnation Vista beside a Lotus Ring on a creature token: both are census gaps of
-// gorge's (the Vista's each-colour ability, the Ring's granted sacrifice-only mana),
-// and its one prefix search activates the gaps in battlefield order, so the Vista,
-// entered first, taps for its chosen colour before the Ring's bearer is sacrificed,
-// though the Ring alone pays the Equip. The kernel's grant search lists the Vista as
-// a candidate too (CR 601.2g, 605.3a).
+// Bloom Tender ("{T}: For each color among permanents you control, add one mana of that
+// color", Tarnation Vista's census gap without the fee) beside a Basal Sliver whose granted
+// "Sacrifice this permanent: Add {B}{B}" alone pays a Walking Corpse: both are census gaps
+// of gorge's, and its one prefix search activates the gaps in battlefield order, so the
+// Tender, entered first, taps for its colours before the Sliver is sacrificed. The
+// kernel's grant search lists the each-colour gap as a candidate too (CR 601.2g, 605.3a).
+// Rebuilt on the fixture pool sacgrant1 after Forge 9db1009ef8 gave Lotus Ring's granted
+// ability {T}, which it no longer exercises.
 func TestEachColourGapBeforeAGrantedSacrificeSourceLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "std-big", Config{})
+	synthReproLockstep(t, "each_colour_gap_before_granted_sac_source", "sacgrant1", Config{})
 }
 
 // Nexus of Becoming paid by a plan holding a Treasure beside Tarnation Vista, with Rest
