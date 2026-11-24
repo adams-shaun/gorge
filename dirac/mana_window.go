@@ -2684,6 +2684,7 @@ func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDe
 		if !s.deferGapSearch(k, a, p, order[:n], tapsDef, nil, &ans, &pick, &dead) {
 			return true
 		}
+		s.setAnyColOwedRun(false) // the dry offer taps nothing: the second answer's flag ends with the search
 		return dead
 	}
 	if _, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead); !ok {
@@ -2735,6 +2736,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 				}
 			}
 		}
+		s.setAnyColOwedRun(false) // the replay of the search's second run is done
 		return
 	}
 	m, ok := s.scriptDFS(k, a, p, order[:n], ctr, restr, anyR, tapsDef, ca, path[:], &dead)
