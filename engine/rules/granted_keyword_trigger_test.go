@@ -92,7 +92,7 @@ var grantedTriggerKeywordWalk = map[string]string{
 	"Afflict":           "checkGrantedAfflictTriggers",
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",
 	"Flanking":          "queueGrantedFlanking",
-	"Mentor":            "checkGrantedMentorTriggers",
+	"Mentor":            "checkGrantedStaticTriggersUsing",
 	"Ward":              "checkGrantedWardTriggers",
 }
 
@@ -207,7 +207,7 @@ func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
 		if v[1] != "covered" {
 			continue
 		}
-		if v[0] == "Prowess" || v[0] == "Myriad" || v[0] == "Evolve" {
+		if v[0] == "Prowess" || v[0] == "Myriad" || v[0] == "Evolve" || v[0] == "Mentor" {
 			if grantedKeywordTrigger(v[0]) == nil {
 				t.Errorf("%s: census calls %s covered but grantedKeywordTrigger returns nil", name, v[0])
 			}

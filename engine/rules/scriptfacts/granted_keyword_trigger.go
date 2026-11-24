@@ -16,14 +16,15 @@ package scriptfacts
 import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
-// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort, Evolve and
-// Living Weapon, whose bodies read nothing the walk does not already capture,
-// and Afterlife, whose only input is the N in its own keyword line. Every other head returns false (fail
-// closed): the expansion of a keyword like Afflict, Dethrone or Firebending
-// mints a trigger whose body reads keyword-specific state (a defending player,
-// an attack's attacker set, an N in the keyword text) through a dedicated walk
-// (checkGrantedAfflictTriggers and kin), and handing back a wrong body would be
-// worse than handing back none. Dispatch is by interned head ID, not a
+// synthesize a TRIGGERED ability for: Prowess, Myriad, Extort, Evolve,
+// Mentor and Living Weapon, whose bodies read nothing the walk does not
+// already capture, and Afterlife, whose only input is the N in its own
+// keyword line. Every other head returns false (fail closed): the expansion
+// of a keyword like Afflict, Dethrone or Firebending mints a trigger whose
+// body reads keyword-specific state (a defending player, an attack's
+// attacker set, an N in the keyword text) through a dedicated walk
+// (checkGrantedAfflictTriggers and kin), and handing back a wrong body would
+// be worse than handing back none. Dispatch is by interned head ID, not a
 // string case: the codeshape stringCaseLiterals ratchet is shrink-only, so a
 // new `case "Literal":` arm is not allowed in engine/rules/ (cards owns one such
 // whitelist; this is the rules-side twin).
@@ -31,7 +32,8 @@ func GrantedTriggerHeads(head string) bool {
 	id := cards.KeywordHeadIDOf(head)
 	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
 		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
-		id == cards.KeywordHeadIDOf("Afterlife") || id == cards.KeywordHeadIDOf("Living Weapon")
+		id == cards.KeywordHeadIDOf("Afterlife") || id == cards.KeywordHeadIDOf("Living Weapon") ||
+		id == cards.KeywordHeadIDOf("Mentor")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -86,6 +88,13 @@ func grantedAfterlifeCount(line string) (string, bool) {
 // token and attach chain).
 const GrantedLivingWeaponPayload = "__kwLivingWeaponGranted"
 
+// GrantedMentorPayload is the GrantTriggerPush body name a granted Mentor
+// rides (events.foldGrantTriggerPush rebuilds it into the printed expansion's
+// targeted P1P1 PutCounter body, Mentor$ marker included). The "Granted"
+// suffix keeps it from aliasing the "__kwMentor" SVar a printed bare
+// K:Mentor line mints (the Exploit/Offspring rule).
+const GrantedMentorPayload = "__kwMentorGranted"
+
 // GrantedKeywordPayload names the GrantTriggerPush body payload the trigger
 // GrantedKeywordTrigger synthesizes for line rides: events.Apply rebuilds the
 // body from that name, so a log-only replay mints the identical ability.
@@ -102,6 +111,8 @@ func GrantedKeywordPayload(line string) string {
 		return GrantedAfterlifePayloadPrefix + n
 	case cards.KeywordHeadIDOf("Living Weapon"):
 		return GrantedLivingWeaponPayload
+	case cards.KeywordHeadIDOf("Mentor"):
+		return GrantedMentorPayload
 	}
 	return "__kwProwessGranted"
 }
@@ -144,6 +155,9 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if cards.KeywordHeadIDOf(head) == cards.KeywordHeadIDOf("Evolve") {
 		return grantedEvolveTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Mentor") {
+		return grantedMentorTrigger(line, head)
 	}
 	if id == cards.KeywordHeadIDOf("Living Weapon") {
 		return grantedLivingWeaponTrigger(line, head)
@@ -249,5 +263,26 @@ func grantedLivingWeaponTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = GrantedLivingWeaponBody()
+	return &t
+}
+
+// grantedMentorTrigger is the trigger a granted Mentor gives its holder (CR
+// 702.134, 702.134b; Aegis of the Legion's "Equipped creature has mentor",
+// Nyxborn Unicorn's Bestow aura): the printed expansion's exact shape
+// (engine/cards/kw_mentor.go), the targeted PutCounter body carrying the
+// Mentor$ marker so rules' mentorAdmits reads the lesser-power restriction at
+// both the target offer and the CR 608.2b recheck. Only the bare line is the
+// keyword; any other spelling fails closed.
+func grantedMentorTrigger(line, head string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Mentor")
+	if !ok {
+		return nil
+	}
+	t.Effect = grantedBodySA("PutCounter", "ValidTgts", "Creature.attacking",
+		"TgtPrompt", "Select target attacking creature with lesser power",
+		"Mentor", "True", "CounterType", "P1P1", "CounterNum", "1")
 	return &t
 }

@@ -2,9 +2,10 @@
 //
 // engine/cards/kw_mentor.go expands printed K:Mentor into an ordinary Mode$ Attacks
 // trigger whose body is a targeted PutCounter carrying the Mentor$ marker,
-// and checkGrantedMentorTriggers synthesizes the same body for a layer-6
-// AddKeyword$ Mentor grant. The restriction -- "target attacking creature
-// with LESSER power" -- is the strict power comparison this file owns.
+// and scriptfacts.GrantedKeywordTrigger synthesizes the same body for each
+// layer-6 AddKeyword$ Mentor grant (CR 702.134b: one trigger per instance).
+// The restriction -- "target attacking creature with LESSER power" -- is the
+// strict power comparison this file owns.
 //
 // It is deliberately NOT written as a powerLTX target spec. A target spec's
 // numeric RHS resolves through targetSpecContext's Resolve, which reads the
