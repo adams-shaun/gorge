@@ -801,6 +801,7 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
 		return
 	}
+	defer bindOwnLinkAsParent(c, sa)()
 	if charmGenericPlayers(h, c, sa) {
 		return
 	}
