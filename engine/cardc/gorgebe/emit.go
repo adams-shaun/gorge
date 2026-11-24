@@ -243,9 +243,9 @@ type pr struct {
 	ev     ir.EventKind // the enclosing trigger's or replacement's event; EvNone elsewhere
 	evSelf bool         // that event's object is the source itself ("when this enters")
 	frames []*frame
-	face   *ir.Face // the face being printed; nil in unit tests
-	excess bool    // the damage step before this one binds ExcessSVar$ Excess
-	prev   *ir.Step // the step printed just before the one being printed, in its program
+	face   *ir.Face               // the face being printed; nil in unit tests
+	excess bool                   // the damage step before this one binds ExcessSVar$ Excess
+	prev   *ir.Step               // the step printed just before the one being printed, in its program
 	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
 }
 
