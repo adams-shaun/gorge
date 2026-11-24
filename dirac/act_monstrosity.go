@@ -40,18 +40,22 @@ func (s *State) monstrousAt(sl Slot) bool {
 // OpPutCounter's path (the counter replacements and CounterAddedOnce), then
 // the monstrous designation, then the BecomeMonstrous event with amount A.
 // An already-monstrous permanent does nothing (gorge's resolve-time skip);
-// A <= 0 places no counters and never marks (gorge's n > 0 gate).
+// A <= 0 places no counters but still marks and fires with amount 0
+// (CR 701.37a has no N > 0 condition).
 func (s *State) monstrosity(k *prep, in *kop.Instr) {
 	sl := s.objRef(k, in.Obj)
 	if sl == NoSlot || s.monstrousAt(sl) {
 		return
 	}
 	amt := s.value(k, in.A)
-	if amt <= 0 {
-		return
+	if amt < 0 {
+		amt = 0
 	}
-	s.g.lastCK = kop.CtrP1P1
-	n := s.placeCounters(k, sl, int(kop.CtrP1P1), amt, s.perms[sl].ctrl, ctrPutEffect)
+	n := 0
+	if amt > 0 {
+		s.g.lastCK = kop.CtrP1P1
+		n = s.placeCounters(k, sl, int(kop.CtrP1P1), amt, s.perms[sl].ctrl, ctrPutEffect)
+	}
 	p := &s.perms[sl]
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, sl, int(kop.CtrP1P1))
