@@ -59,9 +59,6 @@ func ownEntryMoveExcluded(g *state.Game, source state.ObjID, ev events.Event, va
 // spec names the source itself (Card.Self, optionally +qualified: Card.Self+
 // kicked, Card.Self+!wasCast).
 func selfScopedSpec(spec string) bool {
-	if strings.TrimSpace(spec) == "" {
-		return false
-	}
 	for _, alt := range strings.Split(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt != "Card.Self" && !strings.HasPrefix(alt, "Card.Self+") {
