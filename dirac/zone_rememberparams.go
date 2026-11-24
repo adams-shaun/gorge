@@ -155,6 +155,10 @@ func (s *State) bounceRemember(k *prep, in *kop.Instr) {
 		s.bounceMany(k) // trig_delayedmany.go
 		return
 	}
+	if in.Obj == kop.RefRemembered && s.g.nrem > 1 && in.C&kop.BncFromLibrary != 0 && in.C&kop.MvPermOrSpell == 0 {
+		s.bounceRememberedLib(k, in) // zone_bounceremembered.go
+		return
+	}
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
 		return
