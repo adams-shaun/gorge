@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -307,7 +308,7 @@ func evalCountBodyPaid(h Host, c *Ctx, g *state.Game, head, arg string, depth in
 		// on every trigger resolution (Mind Maggots: ctx = the trigger's event
 		// capture + its own RememberDiscarded$ entries).
 		if o := g.Obj(c.Source); o != nil {
-			return int32(len(o.Remembered)), true, true
+			return int32(len(o.Remembered)) + repeatSubjectOnHostList(c, o.Remembered), true, true
 		}
 		return int32(len(c.Remembered)), true, true
 	case evalCountBodyPaidLifeOppsLostThisTurn:
@@ -623,3 +624,20 @@ var evalCountBodyPaidCodes = state.NewStrCodes(
 	state.StrEntry[evalCountBodyPaidCode]{Key: "ManaColorsPaid", Val: evalCountBodyPaidManaColorsPaid},
 	state.StrEntry[evalCountBodyPaidCode]{Key: "xColorPaid", Val: evalCountBodyPaidXColorPaid},
 )
+
+// repeatSubjectOnHostList is 1 when a RepeatEach iteration's subject belongs
+// on the host card's remembered list but the source's event-backed list does
+// not hold it. Forge's RepeatEachEffect adds each subject to the host's
+// remembered list for its iteration (CR 608.2c, the body reads it in order),
+// so Count$RememberedSize counts it beside the RememberDiscarded$ cards (Mind
+// Bomb's Count$RememberedSize/Minus.1 removes exactly that subject). Gorge
+// binds the subject only on the iteration's ctx list: it is there unless the
+// loop imprints instead (UseImprinted$) or a Cleanup cleared it, and in
+// those cases Forge's host list lacks it too.
+func repeatSubjectOnHostList(c *Ctx, host []state.Target) int32 {
+	t := c.RepeatSubject
+	if t == (state.Target{}) || !slices.Contains(c.Remembered, t) || slices.Contains(host, t) {
+		return 0
+	}
+	return 1
+}
