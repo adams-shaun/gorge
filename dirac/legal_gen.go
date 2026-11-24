@@ -147,11 +147,15 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 			if embObj == NoObj && a.Cost.Host != 0 && s.perms[host].ctrl != p {
 				return // only a permanent the payer controls can be sacrificed or exiled (CR 701.21a, 118.3)
 			}
-			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPays(p, &a.Cost.Mana) && !s.copyGrantIs(k, sl, c, ab) {
+			if s.cfg&cfgGorgeUnpriced != 0 && !s.poolPaysAct(k, p, &a.Cost.Mana, payDesc{class: pdAct, card: s.cardAt(sl), src: sl}) && !s.copyGrantIs(k, sl, c, ab) {
 				// gorge's granted-keyword offer prices the real pool only
 				// (rules.offerCastable with no hypothetical bound), the same
 				// gate the Equipment-granted path above follows; a source-paid
-				// price here would offer an activation gorge withholds.
+				// price here would offer an activation gorge withholds. The
+				// pool counts the restricted batches an activation may spend
+				// (CR 106.6: Karn, Legacy Reforged's artifact-only {C} pays
+				// the generic of Ephara's Radiance's {1}{W}), as the
+				// printed-ability offer does (activateOffers: poolPaysAct).
 				return
 			}
 			if s.canActivate(k, sl, 255, a, sorc, &av) {
