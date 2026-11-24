@@ -83,15 +83,34 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // funds by sacrificing a creature, and its sacrifice is a choose the walk must
 // pause on (ChCostSacrifice) rather than answer by tapping the plain grants.
 // A spend-restricted source (kop.RestrictedTapXOneShape, Grand Architect) is
-// not offered either: the window cannot check its restriction against the
-// payment it serves.
+// offered only where its restriction admits the payment (windowTapXListed).
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || kop.RestrictedTapXOneShape(k.tapXAbOf(s.cardAt(o))) || k.tapXSecond(s.cardAt(o)) && !s.tapXSecondOnly(o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || !s.windowTapXListed(k, p, o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
+}
+
+// windowTapXListed: the window lists tap-another source o's tap-another ability.
+// A second one beside a plain first (k.tapXSecond) is listed only once the
+// first is spent (tapXSecondOnly). A spend-restricted source (Grand Architect,
+// kop.RestrictedTapXOneShape) has no plain first ability, so tapXSecond's read
+// does not apply to it: the cast and activation windows (castTapX) serve the
+// payment being built, and gorge lists the source there when its restriction
+// admits that payment (untappedManaSourceFor, CR 106.6: an artifact spell's
+// announced-X window); the unless, ward and trigger-cost windows never list it.
+func (s *State) windowTapXListed(k *prep, p uint8, o Slot) bool {
+	ab := k.tapXAbOf(s.cardAt(o))
+	if !kop.RestrictedTapXOneShape(ab) {
+		return !k.tapXSecond(s.cardAt(o)) || s.tapXSecondOnly(o)
+	}
+	if s.g.winMode != winNone || !s.castTapX(k) {
+		return false
+	}
+	d := s.payDescNow(NoObj)
+	return s.restrTapXAdmits(k, p, o, ab, &d)
 }
 
 // tapXSecondOnly: source o's plain first ability is spent (its {T} was paid, a

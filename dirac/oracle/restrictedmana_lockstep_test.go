@@ -26,6 +26,7 @@ const (
 	rmFee  restrictedManaClass = iota // {N}, {T}
 	rmSac                             // {T}, sacrifice
 	rmLife                            // {T}, pay life
+	rmTapX                            // tap an untapped creature you control
 	rmClasses
 )
 
@@ -35,9 +36,13 @@ var restrictedManaClassOf = map[string]restrictedManaClass{
 	"Jeweled Lotus": rmSac, "Master of Dark Rites": rmSac,
 	"Gnarlroot Trapper": rmLife, "Untaidake, the Cloud Keeper": rmLife,
 	"Thieving Varmint": rmLife,
+	"Grand Architect":  rmTapX,
 }
 
-// restrictedManaDecks are the pods' decks: a life-payment pair, a mana-fee deck, a sacrifice deck.
+// restrictedManaDecks are the pods' decks: a life-payment deck, a blue-artifact
+// deck (Grand Architect's tap-another {C}{C} beside the Untaidake's life-payment
+// unit, artifact spells and an artifact's abilities it pays), a mana-fee deck
+// and a sacrifice deck.
 func restrictedManaDecks() [4][]cardset.Entry {
 	return [4][]cardset.Entry{
 		{
@@ -46,9 +51,9 @@ func restrictedManaDecks() [4][]cardset.Entry {
 			{Name: "Grizzly Bears", Count: 4}, {Name: "Forest", Count: 10}, {Name: "Swamp", Count: 3},
 		},
 		{
-			{Name: "Untaidake, the Cloud Keeper", Count: 5}, {Name: "Akroma, Angel of Wrath", Count: 3}, {Name: "Kamahl, Pit Fighter", Count: 3},
-			{Name: "Isamaru, Hound of Konda", Count: 4}, {Name: "Lightning Bolt", Count: 3}, {Name: "Divination", Count: 3},
-			{Name: "Shock", Count: 2}, {Name: "Hill Giant", Count: 4}, {Name: "Mountain", Count: 5}, {Name: "Plains", Count: 8},
+			{Name: "Untaidake, the Cloud Keeper", Count: 5}, {Name: "Grand Architect", Count: 4}, {Name: "Wind Drake", Count: 4},
+			{Name: "Walking Ballista", Count: 3}, {Name: "Mind Stone", Count: 3}, {Name: "Guardian Idol", Count: 2},
+			{Name: "Prodigal Sorcerer", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 5},
 		},
 		{
 			{Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
@@ -207,7 +212,16 @@ func restrictedManaFail(t *testing.T, seed uint64, res Result) {
 		res.Div.RefOptions, res.Div.KerOptions, res.Div.Detail, res.Div.LastSourced, actionStrings(res.Actions[lo:res.Div.At]))
 }
 
-var restrictedManaSeeds = []uint64{1, 2, 3, 4, 5, 6}
+// restrictedManaSeeds are the pods' seeds, 1..150: the blue-artifact deck's
+// Walking Ballista paid by Grand Architect through the announced-X window first
+// shows at seed 127 of the two-seat pod.
+var restrictedManaSeeds = func() []uint64 {
+	out := make([]uint64, 150)
+	for i := range out {
+		out[i] = uint64(i + 1)
+	}
+	return out
+}()
 
 func restrictedManaLockstep(t *testing.T, seats int) {
 	p := newRestrictedManaPod(t, seats)
@@ -226,7 +240,10 @@ func restrictedManaLockstep(t *testing.T, seats int) {
 		for name, n := range c.byName {
 			sum.byName[name] += n
 		}
-		t.Logf("seed %d: %d decisions, over %v %s; spent fee/sac/life %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
+		t.Logf("seed %d: %d decisions, over %v %s; spent fee/sac/life/tapX %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
+	}
+	if sum.byClass[rmTapX] == 0 {
+		t.Fatalf("restricted mana spent (fee, sacrifice, life, tapX) = %v by %v: want Grand Architect's tap-another {C}{C} spent", sum.byClass, sum.byName)
 	}
 	if seats == 4 && (sum.byClass[rmLife] == 0 || sum.byClass[rmSac] == 0) {
 		t.Fatalf("restricted mana spent (fee, sacrifice, life) = %v by %v: want a life one and a sacrifice one", sum.byClass, sum.byName)
@@ -238,7 +255,7 @@ func restrictedManaLockstep(t *testing.T, seats int) {
 
 // TestRestrictedManaSourcesFourSeatLockstep plays four-seat pods of the
 // restrictedmana fixture: no divergence and no stall, and a restricted unit
-// with a mana fee, a sacrifice and a life payment was spent.
+// with a sacrifice, a life payment and a tap of another creature was spent.
 func TestRestrictedManaSourcesFourSeatLockstep(t *testing.T) { restrictedManaLockstep(t, 4) }
 
 // TestRestrictedManaSourcesTwoSeatLockstep is the same over the first two decks.
