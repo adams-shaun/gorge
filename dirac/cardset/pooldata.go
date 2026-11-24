@@ -320,6 +320,25 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
+// filtersShareCreatureType reports whether any filter of the pool shares a
+// creature type with a referent (the attacker, a commander, or a Dig's
+// ChangeValid sharesCreatureTypeWith Self), which reads every printed subtype.
+func filtersShareCreatureType(dd *PoolData) bool {
+	for i := range dd.Filters {
+		if f := &dd.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff == kop.W7SharesCrTrigObj || f.Pred == kop.PredSharesCrCmdr {
+			return true
+		}
+	}
+	for i := range dd.FilterProgs {
+		for _, l := range dd.FilterProgs[i].Lits {
+			if l.W == kop.FwSharesCr {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // keptSubtypeNeedsSlot reports whether a subtype an override keeps earns a
 // table slot: some pool card prints it. A supertype slot (UnmodeledSupertype)
 // is kept only when another reader gave it one, never a slot of its own.
@@ -544,10 +563,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 			}
 		}
 	}
-	for i := range dd.Filters {
-		if f := &dd.Filters[i]; f.Pred == kop.PredWord7 && f.PredN&0xff == kop.W7SharesCrTrigObj || f.Pred == kop.PredSharesCrCmdr {
-			choosesType = true // sharing a creature type with the attacker or a commander reads every printed one
-		}
+	if filtersShareCreatureType(dd) {
+		choosesType = true // sharing a creature type with a referent reads every printed one
 	}
 	if choosesType {
 		all := subSet
