@@ -54,7 +54,7 @@ func linkWorktree(t *testing.T, mainRef, wtRef string) (stubRan bool, target str
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("pr-cards-link.sh: %v\n%s", err, out)
 	}
-	_, statErr := os.Stat(filepath.Join(wt, "stub-ran"))
+	_, statErr := os.Lstat(filepath.Join(wt, "stub-ran"))
 	target, err = os.Readlink(filepath.Join(wt, ".cards"))
 	if err != nil {
 		t.Fatalf(".cards is not a link: %v", err)
