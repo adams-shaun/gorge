@@ -49,6 +49,10 @@ type StartSeat struct {
 	Counters []StartCounter
 	// Attach binds a battlefield Aura of this seat to its bearer.
 	Attach []StartAttach
+	// Tokens are minted onto this seat's battlefield, in the order given,
+	// after the seat's unattached Battlefield cards and before any attached
+	// Aura. A token is not a deck card: Script names a Config.Tokens script.
+	Tokens []StartToken
 	// Life, when non-nil, is the seat's life total.
 	Life *int32
 }
@@ -56,6 +60,21 @@ type StartSeat struct {
 // StartCounter puts N counters of Kind on the battlefield card Card.
 type StartCounter struct {
 	Card int
+	Kind string
+	N    int32
+}
+
+// StartToken is one token a scripted start places: the Config.Tokens
+// script Script (an unknown script places nothing), entering tapped when
+// Tapped, with Counters applied in the order given.
+type StartToken struct {
+	Script   string
+	Tapped   bool
+	Counters []StartTokenCounter
+}
+
+// StartTokenCounter puts N counters of Kind on a StartToken.
+type StartTokenCounter struct {
 	Kind string
 	N    int32
 }
@@ -218,6 +237,40 @@ func (b startBuilder) placeStartSeat(pl *startSeatPlan) {
 		if !pl.attached[id] {
 			b.placeStartBattlefield(pl, id, 0)
 		}
+	}
+	b.placeStartTokens(pl)
+}
+
+// placeStartTokens mints pl's tokens onto its battlefield, then taps them
+// and adds counters as placeStartBattlefield does. The mint runs with the
+// replacement pass off (no CreateToken replacement such as Doubling Season
+// rewrites a placement), and applyStart's Settle drops any trigger it
+// queued. The mint's TokensCreatedThisTurn tally is not undone here: turn
+// one's TurnChange (beginTurn, after applyStart) clears every seat's turn
+// watchers, so a setup token never counts as created this turn.
+func (b startBuilder) placeStartTokens(pl *startSeatPlan) {
+	h := b.h
+	for _, tk := range pl.spec.Tokens {
+		next := h.G.NextID
+		prior := h.Replacing(true)
+		h.Emit(events.Event{Kind: events.TokenCreate, Player: pl.seat, Text: tk.Script})
+		h.Replacing(prior)
+		if h.G.NextID == next {
+			continue // an unknown script mints nothing
+		}
+		id := next
+		if o := h.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		if tk.Tapped {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id})
+		}
+		for _, c := range tk.Counters {
+			if c.N != 0 {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: c.Kind, Amount: c.N})
+			}
+		}
+		h.Emit(events.Event{Kind: events.SetupSettled, Obj: id})
 	}
 }
 
