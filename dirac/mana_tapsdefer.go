@@ -703,6 +703,7 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 					av.addUnits(1<<c, xv[c])
 				}
 			}
+			s.tapsDeferAnyColUnits(k, sl, av)
 		}
 		if a.ManaEach {
 			for col := 0; col < kop.NumManaKinds; col++ {
@@ -764,6 +765,7 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 				av.addUnits(1<<c, xv[c])
 			}
 		}
+		s.tapsDeferAnyColUnits(k, sl, av)
 	}
 }
 

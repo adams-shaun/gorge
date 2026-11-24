@@ -3061,6 +3061,7 @@ func (s *State) potentialTapExtraFixed(k *prep, sl Slot, pc *pcard, fold func(Sl
 			cen.rec(1<<c, v-own)
 		}
 	}
+	s.potentialTapAnyColExtra(k, sl, fold)
 }
 
 // potentialGrantedExtra admits the mana abilities granted to sl beside its own
