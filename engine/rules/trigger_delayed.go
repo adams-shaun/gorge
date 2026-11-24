@@ -636,22 +636,10 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 		// whatever the Effect captured when it registered). Only
 		// DelayTriggerRemembered names the registration's own set.
 		remembered := triggerRemembered(ev, dt.Source)
-		if dt.EventMode == "BecomeMonarch" {
-			// Palace Jailer's exile promise: nothing on a MonarchChange
-			// names the exiled card, so the registration's capture IS the
-			// referent this body resolves.
-			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if !dt.EffectRepeat && strings.EqualFold(dt.EffectDuration, "permanent") &&
-			strings.EqualFold(dt.ForgetOnMoved, "Battlefield") && t.WatchesEffectSourceLeave() {
-			// An Effect-owned source-leave trigger is a plain one-shot
-			// CR 603.7 delayed ability (the departure is its trigger event),
-			// consumed by its own DelayedPush. Its `Defined$ Remembered`
-			// names the Effect's capture, not the departing source. The
-			// lifetime and ForgetOnMoved$ fields are the registration's own
-			// Effect origin (only api:Effect writes |DU=/$|FM=): a plain
-			// DelayedTrigger with the same trigger shape never takes this
-			// arm, and the Mysterio/Stangg shape is the only source-leave
-			// Effect it was measured on.
+		if delayedRemembersOwnCapture(dt, t) {
+			// Palace Jailer's exile promise (no MonarchChange names the exiled
+			// card) and an Effect's source-leave promise: the registration's
+			// capture IS the referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerDamageDealtOnce) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
@@ -1105,3 +1093,24 @@ var delayedRegistrationLiveCodes = state.NewStrCodes(
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untilyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untiltheendofyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 )
+
+// delayedRemembersOwnCapture reports whether a firing registration's
+// Remembered referent is its own capture rather than the firing event's
+// object: Palace Jailer's BecomeMonarch promise, or an Effect's source-leave
+// promise (effectSourceLeaveRegistration).
+func delayedRemembersOwnCapture(dt *state.DelayedTrigger, t cards.Trigger) bool {
+	return dt.EventMode == "BecomeMonarch" || effectSourceLeaveRegistration(dt, t)
+}
+
+// effectSourceLeaveRegistration reports whether dt is an Effect-owned
+// source-leave trigger: a plain one-shot CR 603.7 delayed ability (the
+// departure is its trigger event), consumed by its own DelayedPush. Its
+// `Defined$ Remembered` names the Effect's capture, not the departing source.
+// The lifetime and ForgetOnMoved$ fields are the registration's own Effect
+// origin (only api:Effect writes |DU=/|FM=): a plain DelayedTrigger with the
+// same trigger shape never matches, and the Mysterio/Stangg shape is the only
+// source-leave Effect it was measured on.
+func effectSourceLeaveRegistration(dt *state.DelayedTrigger, t cards.Trigger) bool {
+	return !dt.EffectRepeat && strings.EqualFold(dt.EffectDuration, "permanent") &&
+		strings.EqualFold(dt.ForgetOnMoved, "Battlefield") && t.WatchesEffectSourceLeave()
+}

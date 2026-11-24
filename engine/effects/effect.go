@@ -382,7 +382,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
 		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
 			effectDurationPermanent(rawDur)
-		sourceLeave := !permanentComeback && effectSourceLeaveOneShot(tl, rawDur, forgetOn)
+		sourceLeave := effectSourceLeaveOneShot(tl, rawDur, forgetOn, permanentComeback)
 		oneOff := tl.OneOff &&
 			effectOneShotDelayedMode(tr.Mode)
 		efMarker := "|EF"
@@ -1920,10 +1920,10 @@ func effectDurationPermanent(rawDur string) bool {
 // Battlefield (Mysterio, Master of Illusion; Stangg) -- so a Merieke
 // Ri Berit one-shot (ExileOnMoved$) still ends with its source and
 // Phantasmal Mount's absent Duration$ stays a this-turn trigger. The
-// comeback idiom (permanentComeback) has its own lifetime and is left
-// untouched.
-func effectSourceLeaveOneShot(tl effectTriggerLine, rawDur, forgetOn string) bool {
-	return tl.SourceLeave && effectDurationPermanent(rawDur) &&
+// comeback idiom (permanentComeback) has its own lifetime and never
+// matches.
+func effectSourceLeaveOneShot(tl effectTriggerLine, rawDur, forgetOn string, permanentComeback bool) bool {
+	return tl.SourceLeave && !permanentComeback && effectDurationPermanent(rawDur) &&
 		strings.EqualFold(strings.TrimSpace(forgetOn), "Battlefield")
 }
 
