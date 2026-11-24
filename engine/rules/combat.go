@@ -3096,6 +3096,7 @@ func (e *Engine) cleanupBody() {
 		}
 	}
 	e.EndOfTurnCleanup()
+	checkStateTriggersAfterCleanup(e) // CR 603.8, 514.3a: an expiry can make a state trigger's condition true
 }
 
 // chooseCleanup is the chooseFor the pending KChoose discard decision belongs
