@@ -21,11 +21,10 @@ import (
 // */4 keeps the characteristic-defining power in play.
 //
 // A Dig whose top card is not a creature moves it to the remainder zone
-// without taking it; gorge's digRemember remembers every card the dig moved,
-// so the end step still puts the no-op __kwEncoreSacrifice trigger on the
-// stack (CR 603.7). The kernel's Dig remembers the remainder too and OpAtEOT
-// promises on a remembered object off the battlefield, so the miss is in
-// lockstep rather than a tolerated divergence.
+// without taking it. RememberChanged$ is Forge's remZone1, the taken cards
+// only (gorge effDig, #4479), so the miss remembers nothing and neither
+// engine registers an end-step promise; the kernel's Dig remembers only the
+// taken cards too (dirac zone_parkedtail.go finishDigTail).
 var kateotChosenPickDeck = []cardset.Entry{
 	{Name: "Sneak Attack", Count: 4}, {Name: "Arms Race", Count: 3},
 	{Name: "Incandescent Soulstoke", Count: 3}, {Name: "Meek Attack", Count: 3},
@@ -46,8 +45,10 @@ var kateotChosenDigDeck = []cardset.Entry{
 // sacrifice promises that fired (a DelayedRegister body __kwEncoreSacrifice
 // whose object then left the battlefield during an end step) and the ones
 // registered over an object that was never on the battlefield (a Dig that
-// missed: the end step's no-op trigger).
-func kateotChosenScan(g *GorgeSide) (sacked, missed int) {
+// missed must register none), and the Dig misses themselves: a library card
+// put into the graveyard (Impromptu Raid's rest arm; nothing else in the
+// decks mills).
+func kateotChosenScan(g *GorgeSide) (sacked, missed, milled int) {
 	if g == nil {
 		return
 	}
@@ -60,6 +61,9 @@ func kateotChosenScan(g *GorgeSide) (sacked, missed int) {
 			step = ev.Step
 		case events.MoveZone:
 			zone[ev.Obj] = ev.To
+			if ev.From == state.ZLibrary && ev.To == state.ZGraveyard {
+				milled++
+			}
 			if ev.From != state.ZBattlefield {
 				continue
 			}
@@ -77,7 +81,7 @@ func kateotChosenScan(g *GorgeSide) (sacked, missed int) {
 			}
 			reg[ev.Obj] = ev.Counter
 			if ev.Counter == "__kwEncoreSacrifice" && zone[ev.Obj] != state.ZBattlefield {
-				missed++ // a rest move that never entered: the no-op end-step trigger
+				missed++ // a promise over a card that never entered
 			}
 		}
 	}
@@ -86,7 +90,7 @@ func kateotChosenScan(g *GorgeSide) (sacked, missed int) {
 
 // kateotChosenRun mirrors kateotRun over deck, strictly: any divergence
 // fails, and sacked/missed come from gorge's event log.
-func kateotChosenRun(t *testing.T, deck []cardset.Entry, seeds uint64) (games, sacked, missed int, diverged bool, stalls map[string]int) {
+func kateotChosenRun(t *testing.T, deck []cardset.Entry, seeds uint64) (games, sacked, missed, milled int, diverged bool, stalls map[string]int) {
 	cardsDir := corpusDirOrSkip(t)
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
@@ -144,9 +148,10 @@ func kateotChosenRun(t *testing.T, deck []cardset.Entry, seeds uint64) (games, s
 		if strings.HasPrefix(res.Stall, KernelStallPrefix) {
 			stalls[res.Stall]++
 		}
-		s, miss := kateotChosenScan(gs)
+		s, miss, mill := kateotChosenScan(gs)
 		sacked += s
 		missed += miss
+		milled += mill
 		if d := res.Div; d != nil {
 			diverged = true
 			lo := d.At - 12
@@ -167,7 +172,7 @@ func kateotChosenRun(t *testing.T, deck []cardset.Entry, seeds uint64) (games, s
 // promise) must agree, and the picked card must be sacrificed at the end step.
 func TestAteotmoversChosenPickLockstep(t *testing.T) {
 	t.Parallel()
-	games, sacked, _, diverged, stalls := kateotChosenRun(t, kateotChosenPickDeck, 64)
+	games, sacked, _, _, diverged, stalls := kateotChosenRun(t, kateotChosenPickDeck, 64)
 	t.Logf("%d games: %d objects sacrificed at the end step; kernel stalls %v", games, sacked, stalls)
 	if diverged {
 		t.Errorf("the hand-pick AtEOT carriers diverged")
@@ -183,22 +188,24 @@ func TestAteotmoversChosenPickLockstep(t *testing.T) {
 // TestAteotmoversChosenDigLockstep: the Dig carriers. A Dig that hits takes a
 // creature onto the battlefield and both engines promise its end-step
 // sacrifice; a Dig that misses (a non-creature top card, the empty-pick case)
-// remembers the card it moved and both engines put the no-op trigger on the
-// stack. Both classes must lockstep, and the test asserts the miss really was
-// reached.
+// remembers nothing, so neither engine promises anything. Both classes must
+// lockstep, and the test asserts the miss really was reached.
 func TestAteotmoversChosenDigLockstep(t *testing.T) {
 	t.Parallel()
-	games, sacked, missed, diverged, stalls := kateotChosenRun(t, kateotChosenDigDeck, 64)
-	t.Logf("%d games: %d objects sacrificed at the end step, %d dig-miss promises; kernel stalls %v",
-		games, sacked, missed, stalls)
+	games, sacked, missed, milled, diverged, stalls := kateotChosenRun(t, kateotChosenDigDeck, 64)
+	t.Logf("%d games: %d objects sacrificed at the end step, %d dig misses, %d dig-miss promises; kernel stalls %v",
+		games, sacked, milled, missed, stalls)
 	if diverged {
 		t.Errorf("the dig-card AtEOT carriers diverged")
 	}
 	if sacked < 5 {
 		t.Errorf("the end-step rider fired on %d objects, want at least 5", sacked)
 	}
-	if missed < 1 {
+	if milled < 1 {
 		t.Errorf("the dig-miss (empty-pick) class was never reached in %d games", games)
+	}
+	if missed != 0 {
+		t.Errorf("%d end-step promises over a Dig miss: RememberChanged$ remembers the taken cards only", missed)
 	}
 	if len(stalls) != 0 {
 		t.Errorf("kernel capacity stalls %v", stalls)

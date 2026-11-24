@@ -148,10 +148,11 @@ func (s *State) finishDigTail(k *prep) {
 			s.objs[o].ver++
 			pl.libBottom(o)
 		} else {
+			// The rest arm is never remembered: gorge effDig's RememberChanged$
+			// is Forge's remZone1, the taken cards only (digTake). The rest
+			// joins Remembered only under RememberMovedToZone$ 2, which kgen
+			// does not lower (the param refuses the card).
 			s.placeFrom(o, rz, false, kop.ZoneLibrary, false, false)
-			if fl&kop.DigRemember != 0 {
-				s.remember(o) // gorge effDig digRemember remembers every card the dig moved, the rest included
-			}
 		}
 	}
 	s.digWindowDone()

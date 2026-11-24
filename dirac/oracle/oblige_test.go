@@ -301,11 +301,13 @@ func TestObligeMutationDiverges(t *testing.T) {
 	t.Fatal("no seed flipped a may-shuffle answer")
 }
 
-// TestObligeDeclinedZeroTargets is the separate proof of the may-shuffle
-// decline: Put Away's "up to one" ChangeZone elects zero card targets, then
-// the may-shuffle ask is declined. gorge's objectPathMayShuffle returns
-// before any move, so the whole resolution must be a no-op; the lockstep's
-// projection comparison is the proof that the kernel did nothing either.
+// TestObligeDeclinedZeroTargets is the separate proof of the zero-target
+// election: a shuffle ChangeZone's "up to N" target ask (Put Away's up to one,
+// Krosan Reclamation's up to two) elects zero card targets. gorge's
+// objectPathMayShuffle asks nothing with no object referent and returns
+// before any move, so Put Away's resolution is a no-op (a mandatory carrier
+// still shuffles the library it names, CR 701.24d); the lockstep's
+// projection comparison is the proof that the kernel did the same.
 func TestObligeDeclinedZeroTargets(t *testing.T) {
 	t.Parallel()
 
@@ -353,8 +355,8 @@ func TestObligeDeclinedZeroTargets(t *testing.T) {
 			t.Fatalf("seed %d: diverged at decision %d: %s %s %v %s", seed, d.At, d.What, d.Field, d.Diff, d.Detail)
 		}
 	}
-	if counts.zeroTargetNo == 0 {
-		t.Fatal("no declined zero-target may-shuffle")
+	if counts.targetCards[0] == 0 {
+		t.Fatal("no shuffle ChangeZone elected zero card targets")
 	}
 	t.Logf("declined zero-target may-shuffles %d, target-card counts %v", counts.zeroTargetNo, counts.targetCards)
 }

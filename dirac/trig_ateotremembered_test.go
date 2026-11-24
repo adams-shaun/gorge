@@ -8,14 +8,13 @@ import (
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// TestDigMissRemembersRestAndAtEOTPromises: a one-card Dig whose window holds
-// no creature takes nothing, moves the rest card to its remainder zone, and
-// remembers it (gorge effDig digRemember remembers every card the dig moved).
-// The chained AtEOT$ Remembered then promises the next-end-step sacrifice on
-// that remembered card even though it never reached the battlefield: gorge
-// registers the untracked __kwEncoreSacrifice promise, so the end step puts a
-// no-op trigger on the stack (CR 603.7). Impromptu Raid is the corpus carrier.
-func TestDigMissRemembersRestAndAtEOTPromises(t *testing.T) {
+// TestDigMissRemembersNothing: a one-card Dig whose window holds no creature
+// takes nothing and moves the rest card to its remainder zone without
+// remembering it: RememberChanged$ is Forge's remZone1, the taken cards only
+// (gorge effDig, #4479; the rest joins Remembered only under
+// RememberMovedToZone$ 2, which kgen refuses). The chained AtEOT$ Remembered
+// then has nothing to promise. Impromptu Raid is the corpus carrier.
+func TestDigMissRemembersNothing(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Valley Floodcaller", Count: 1}, {Name: "Plains", Count: 8}}
 	var digCard CardID
 	tblCard := kop.CardDef{
@@ -52,19 +51,15 @@ func TestDigMissRemembersRestAndAtEOTPromises(t *testing.T) {
 	if z := sc.s.objs[land].zone; z != kop.ZoneGraveyard {
 		t.Fatalf("the missed rest card is in zone %d, want the graveyard", z)
 	}
-	if sc.s.g.nrem != 1 || sc.s.g.rem[0] != land {
-		t.Fatalf("remembered set %v (n=%d), want the rest card %d", sc.s.g.rem[:sc.s.g.nrem], sc.s.g.nrem, land)
+	if sc.s.g.nrem != 0 {
+		t.Fatalf("remembered set %v (n=%d), want none: the rest arm is not remembered", sc.s.g.rem[:sc.s.g.nrem], sc.s.g.nrem)
 	}
 
-	// The chained AtEOT$ Remembered promises the sacrifice on the remembered
-	// card even though it is in the graveyard, not on the battlefield.
+	// The chained AtEOT$ Remembered has no object to promise on.
 	n0 := sc.s.ndly
 	eot := kop.Instr{Op: kop.OpAtEOT, Obj: kop.RefRemembered, C: 0}
 	sc.s.exec(sc.k, &eot)
-	if sc.s.ndly != n0+1 {
-		t.Fatalf("delayed entries %d -> %d, want one sacrifice promise", n0, sc.s.ndly)
-	}
-	if d := sc.s.dly[n0]; d.obj != land || d.when != dlyUntracked {
-		t.Fatalf("promise %+v, want an untracked sacrifice on %d", d, land)
+	if sc.s.ndly != n0 {
+		t.Fatalf("delayed entries %d -> %d, want no promise over an empty remembered set", n0, sc.s.ndly)
 	}
 }
