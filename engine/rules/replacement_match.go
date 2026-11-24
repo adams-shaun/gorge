@@ -277,7 +277,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 				return false
 			}
 		}
-		if !entryDestinationAdmits(e.G, r, source, ev) {
+		if d, ok := r.ParamCode(cards.PKDestination); ok && !effects.Destination(d).Admits(ev.To) {
 			return false
 		}
 		// Fizzle$ (Feather's "instead of putting it into your graveyard as it
