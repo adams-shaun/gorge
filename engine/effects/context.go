@@ -2529,16 +2529,17 @@ func forgetRememberedOne(h Host, c *Ctx, id state.ObjID) {
 // are themselves cards. The one shared resolver is used by every API so a
 // future ImprintCards$ rider cannot be accidentally skipped by its primitive.
 func imprint(h Host, c *Ctx, sa *cards.SA) {
-	if c.Source == 0 || strings.TrimSpace(sa.ParamStr(cards.PKImprintCards)) == "" {
+	spec := sa.ParamStr(cards.PKImprintCards)
+	if c.Source == 0 || strings.TrimSpace(spec) == "" {
 		return
 	}
 	var ids []state.ObjID
-	for _, t := range DefinedSpec(h, c, sa.ParamStr(cards.PKImprintCards)) {
+	for _, t := range imprintCardsTargets(h, c, spec) {
 		if t.IsPlayer {
 			continue
 		}
 		id := t.Obj
-		if sa.ParamStr(cards.PKImprintCards) == "TargetedSource" {
+		if spec == "TargetedSource" {
 			if o := h.Game().Obj(id); o != nil && o.Source != 0 {
 				id = o.Source
 			}
@@ -2550,6 +2551,20 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 	if len(ids) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
 	}
+}
+
+// imprintCardsTargets resolves an ImprintCards$ spec. A bare Remembered is
+// Forge's host remembered list (hostRemembered), never the firing-event
+// capture this engine seeds into a trigger's Remembered: Faerie Artisans'
+// "Then exile all other tokens created with Faerie Artisans" imprints the
+// host's remembered tokens before the copy, and on the first trigger that
+// list is empty -- the fallback imprinted the entering creature and the
+// following ChangeZoneAll Card.IsImprinted exiled it (CR 608.2c).
+func imprintCardsTargets(h Host, c *Ctx, spec string) []state.Target {
+	if definedSpecCodes.Code(spec) == definedSpecRemembered {
+		return hostRemembered(h, c)
+	}
+	return DefinedSpec(h, c, spec)
 }
 
 func clearEventRemembered(h Host, c *Ctx) {
