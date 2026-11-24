@@ -25,7 +25,7 @@ var eachFromSourceForms = []formCase{
 	{card: "Heartmender", form: "RemoveCounterAll CounterNum$ 1 of M1M1 from each creature you control", lir: "RemoveCounterAll A=1 CS=M1M1 F={types=0x2 ctrl=1}"},
 	{card: "Inhumaniac", form: "RemoveCounterAll AllCounters$ True (B=1: every counter of the kind)", lir: "RemoveCounterAll A=1 B=1 CS=P1P1 F={types=0x0 Self} // all of the kind"},
 	{card: "Aether Snap", form: "RemoveCounterAll AllCounterTypes$ True without CounterType$: gorge effRemoveCounterAll returns without acting, kept refused", refused: "RemoveCounterAll without CounterType$"},
-	{card: "Dust of Moments", form: "RemoveCounterAll ValidZone$ Exile over suspended cards: kept refused", refused: "suspended"},
+	{card: "Dust of Moments", form: "RemoveCounterAll ValidZone$ Exile over suspended cards: kept refused on ValidZone$ (the suspended word itself lowers)", refused: "unread params [ValidZone]"},
 	{card: "Hold for Ransom", form: "SacrificeAll Controller$ OriginalHostController (the corpus's one non-You Defined$ carrier): kept refused, on its Defined$ OriginalHost first", refused: `SacrificeAll without ValidCards$ (Defined$ "OriginalHost")`},
 }
 
