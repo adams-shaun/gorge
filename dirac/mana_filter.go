@@ -1818,6 +1818,11 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			}
 		}
 	}
+	if !found && s.cfg&cfgGorgeAutopay != 0 && nodes >= potentialScriptNodes && a.Kind() == AkActivate {
+		if fb, ok := fs.printedOnlyRetry(s, k, t); ok {
+			fs, found = fb, true // the printed sources pay it: gorge's planner offers it (mana_filtprintedretry.go)
+		}
+	}
 	s.pool.inFilt--
 	if !found {
 		if fs.stall != 0 {
