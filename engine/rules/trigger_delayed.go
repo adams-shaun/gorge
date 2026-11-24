@@ -1111,6 +1111,6 @@ func delayedRemembersOwnCapture(dt *state.DelayedTrigger, t cards.Trigger) bool 
 // same trigger shape never matches, and the Mysterio/Stangg shape is the only
 // source-leave Effect it was measured on.
 func effectSourceLeaveRegistration(dt *state.DelayedTrigger, t cards.Trigger) bool {
-	return !dt.EffectRepeat && strings.EqualFold(dt.EffectDuration, "permanent") &&
-		strings.EqualFold(dt.ForgetOnMoved, "Battlefield") && t.WatchesEffectSourceLeave()
+	return !dt.EffectRepeat && effects.EffectDurationPermanent(dt.EffectDuration) &&
+		effects.ForgetsOnLeavingBattlefield(dt.ForgetOnMoved) && effects.WatchesEffectSourceLeave(&t)
 }

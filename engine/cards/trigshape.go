@@ -6,8 +6,6 @@
 
 package cards
 
-import "strings"
-
 // saAbilityPrefix is the ValidSA$ SpellAbility. spec prefix.
 const saAbilityPrefix = "SpellAbility."
 
@@ -19,20 +17,6 @@ const saAbilityPrefix = "SpellAbility."
 func (t *Trigger) StaticTrue() bool {
 	v := t.ParamStr(PKStatic)
 	return v == "True" || v == "true"
-}
-
-// WatchesEffectSourceLeave reports whether the trigger watches its own
-// Effect source leave the battlefield: Forge's
-// `Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$
-// Card.EffectSource`. An api:Effect Triggers$ body of this shape is the
-// CR 603.7 delayed "when EFFECTSOURCE leaves" promise, which triggers once on
-// that departure (Mysterio, Master of Illusion; Stangg).
-func (t *Trigger) WatchesEffectSourceLeave() bool {
-	if t == nil || t.ModeKind() != TriggerChangesZone {
-		return false
-	}
-	return strings.EqualFold(strings.TrimSpace(t.ParamStr(PKOrigin)), "Battlefield") &&
-		strings.Contains(t.ParamStr(PKValidCard), "Card.EffectSource")
 }
 
 // ProducedChosenColour reports whether the trigger line's Produced$ names the

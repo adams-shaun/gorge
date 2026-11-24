@@ -1924,8 +1924,19 @@ func effectDurationPermanent(rawDur string) bool {
 // matches.
 func effectSourceLeaveOneShot(tl effectTriggerLine, rawDur, forgetOn string, permanentComeback bool) bool {
 	return tl.SourceLeave && !permanentComeback && effectDurationPermanent(rawDur) &&
-		strings.EqualFold(strings.TrimSpace(forgetOn), "Battlefield")
+		ForgetsOnLeavingBattlefield(forgetOn)
 }
+
+// ForgetsOnLeavingBattlefield reports whether a ForgetOnMoved$ value names
+// the battlefield.
+func ForgetsOnLeavingBattlefield(forgetOn string) bool {
+	z, ok := ParseZoneWord(forgetOn)
+	return ok && z == state.ZBattlefield
+}
+
+// EffectDurationPermanent reports whether an Effect's Duration$ is Permanent
+// (effectDurationPermanent, for rules' delayed-trigger fire path).
+func EffectDurationPermanent(rawDur string) bool { return effectDurationPermanent(rawDur) }
 
 // effectCopyChosenName copies the name chosen by THIS resolution onto the
 // effect when the static's Card.NamedCard referent reads it (Forge's

@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // This file is api:Effect's parameter compiler, on ChangeZone's pattern
@@ -253,8 +254,22 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		PresentZone:     strings.TrimSpace(tr.ParamStr(cards.PKPresentZone)),
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
 		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
-		SourceLeave:     tr.WatchesEffectSourceLeave(),
+		SourceLeave:     WatchesEffectSourceLeave(tr),
 	}
+}
+
+// WatchesEffectSourceLeave reports whether the trigger watches its own
+// Effect source leave the battlefield: Forge's
+// `Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$
+// Card.EffectSource`. An api:Effect Triggers$ body of this shape is the
+// CR 603.7 delayed "when EFFECTSOURCE leaves" promise, which triggers once on
+// that departure (Mysterio, Master of Illusion; Stangg).
+func WatchesEffectSourceLeave(t *cards.Trigger) bool {
+	if t == nil || t.ModeKind() != cards.TriggerChangesZone {
+		return false
+	}
+	z, ok := ParseZoneWord(t.ParamStr(cards.PKOrigin))
+	return ok && z == state.ZBattlefield && strings.Contains(t.ParamStr(cards.PKValidCard), "Card.EffectSource")
 }
 
 // EffectKnownKeys is a copy of effectKnownKeys, for the census check.
