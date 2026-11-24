@@ -6,7 +6,7 @@ import (
 
 // publicPick lowers a Hidden$ True ChangeZone over a public origin with no
 // object selector (gorge effHiddenPick): Origin$ Battlefield -> Hand or
-// Exile, or Origin$ Graveyard -> Hand or Exile, or Origin$ Exile ->
+// Exile, or Origin$ Graveyard -> Hand or Exile, or Origin$ Exile -> Hand or
 // Graveyard. The pool is the matching
 // cards of every player's zone (seat order; game-wide), of that zone's
 // player with ValidTgts$ a player and DefinedPlayer$ Targeted (SrOwnZone on

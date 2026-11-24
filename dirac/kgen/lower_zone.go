@@ -280,8 +280,8 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		ct = lc.chosenCtrlImplied(ps, origin, ct) // lower_chooseplayermid.go
 		exwPick := origin == zExile && dest == zBattlefield && ps.is("Hidden", "True")
-		lc.exwOK = exwPick          // a hidden pick out of exile is a resolution-time mover: ExiledWithSource reads the resolving source
-		f, err := lc.pickFilter(ct) // lower_each.go
+		lc.exwOK = exwPick || exwHandPick(ps, origin, dest) // lower_exw.go
+		f, err := lc.pickFilter(ct)                         // lower_each.go
 		lc.exwOK = false
 		if err != nil {
 			return err
@@ -639,7 +639,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		if origin == zBattlefield && (dest == zHand || dest == zExile) ||
 			origin == zGraveyard && (dest == zHand || dest == zExile) && ps.is("Hidden", "True") ||
-			origin == zExile && dest == zGraveyard && ps.is("Hidden", "True") {
+			exilePublicPick(ps, origin, dest) { // lower_exw.go
 			return lc.publicPick(ps, f, n, flags, counterKind, override, origin, dest)
 		}
 		if origin == zCommand && dest == zHand && ps.is("Hidden", "True") && strings.Contains(ct, "IsCommander") {
