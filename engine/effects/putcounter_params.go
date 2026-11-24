@@ -183,7 +183,7 @@ var putCounterKnownKeys = [...]string{
 	"Placer", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "PutOnDefined", "PutOnEachOther", "RandomNumTargets", "RandomType", "ReduceAmount",
 	"ReduceCost", "RememberAmount", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",
-	"RememberPut", "RememberTargets", "Renown", "RepeatSubAbility", "ReplaceColor", "ReplaceGraveyard",
+	"RememberPut", "RememberTargets", "Renown", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType",
 	"ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt", "SetChosenMode", "SetColor",
 	"ShowCards", "SorcerySpeed", "SpecifyCounter", "SpellDescription", "StackDescription",

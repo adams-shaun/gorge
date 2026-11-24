@@ -360,7 +360,7 @@ var pumpKnownKeys = [...]string{
 	"RememberObjects",
 	"RememberPumped",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceDyingDefined",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",

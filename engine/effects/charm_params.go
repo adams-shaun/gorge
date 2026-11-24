@@ -315,7 +315,7 @@ var charmKnownKeys = [...]string{
 	"RememberCostMana",
 	"RememberObjects",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",

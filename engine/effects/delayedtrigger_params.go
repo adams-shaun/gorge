@@ -193,7 +193,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"RememberNumber",
 	"RememberObjects",
 	"RememberTargets",
-	"RepeatSubAbility", "ReplaceColor",
+	"ReplaceColor",
 	"ReplaceGraveyard",
 	"ReplaceGraveyardValid",
 	"ReplaceMana",
