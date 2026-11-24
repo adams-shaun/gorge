@@ -1,0 +1,10 @@
+# Pin of the mtgish data cardc reads (docs/design/2026-11-23-typed-script-values/PLAN.md).
+# The fork github.com/adams-shaun/mtgish (branch gorge) replaces the upstream
+# repo below once the operator creates it; then this one line changes.
+repo https://github.com/i5jb/mtgish
+upstream https://github.com/i5jb/mtgish
+base 1553384c9a970a02514b337db9c86697313530e8
+ref 1553384c9a970a02514b337db9c86697313530e8
+sha256 b1d67570bfa51956ed34b1df021a701f01c170e68085005cf4f200080d80a005 data/mtgish.lines.json
+sha256 529d8c04b1a74b127edcc37e14e6ee99a3a9068ace45f5623a3422ff22bb4c2d LICENSE
+sha256 97b7760c61c063b262c12704a324f9298cb70913c2b1696f858097557d8a4eb0 typescript_types/oracle_cards.d.ts

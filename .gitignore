@@ -96,3 +96,6 @@ ir-*.gob.gz.lock
 # The Docker demo's local configuration (deploy/docker/.env.example).
 /deploy/docker/.env
 docs/site/compliance/engines/
+
+# Guard against stray copies of the mtgish data; it lives under .cards/mtgish/.
+.mtgish/

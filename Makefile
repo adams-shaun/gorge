@@ -513,3 +513,4 @@ pr: export DRAFT := $(DRAFT)
 pr: export DRY := $(DRY)
 pr:
 	@bash scripts/open-pr.sh
+include cardc.mk

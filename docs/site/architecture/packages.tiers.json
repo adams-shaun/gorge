@@ -260,6 +260,10 @@
       "tier": "engine",
       "status": "CORE"
     },
+    "engine/cardc": {
+      "tier": "engine",
+      "status": "CORE (no own tests)"
+    },
     "engine/deck": {
       "tier": "engine",
       "status": "CORE"
