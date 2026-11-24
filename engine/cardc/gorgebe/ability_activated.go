@@ -29,6 +29,14 @@ func printActivated(p *pr, a *ir.Ability) error {
 		return err
 	}
 	head.Params = append([]kv{{"Cost", cost}}, head.Params...)
+	if o, _ := head.get("Origin"); head.API == "ChangeZone" && o == "Hand" {
+		// "you may put a card from your hand": Forge writes Optional$ You.
+		if d, ok := head.get("OptionalDecider"); ok && d == "You" {
+			head.Params = removeParam(head.Params, "OptionalDecider")
+			head.Params = removeParam(head.Params, "Mandatory")
+			head.set("Optional", "You")
+		}
+	}
 	if a.InstantOnly {
 		if head.API != "Mana" {
 			return unprintable("activated:instant-only", a.Src)
@@ -39,7 +47,7 @@ func printActivated(p *pr, a *ir.Ability) error {
 		head.set("SorcerySpeed", "True")
 	}
 	if a.Once {
-		head.set("ActivationLimit", "1")
+		head.set("GameActivationLimit", "1")
 	}
 	if a.Zones != 0 && a.Zones != ir.MakeZoneSet(ir.ZoneBattlefield) {
 		head.set("ActivationZone", zoneList(a.Zones))
@@ -75,4 +83,15 @@ func zoneList(zs ir.ZoneSet) string {
 		out = append(out, zoneWord(z))
 	}
 	return strings.Join(out, ",")
+}
+
+// removeParam is ps without key k.
+func removeParam(ps []kv, k string) []kv {
+	out := ps[:0:0]
+	for _, x := range ps {
+		if x.K != k {
+			out = append(out, x)
+		}
+	}
+	return out
 }

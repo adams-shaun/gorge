@@ -186,7 +186,9 @@ func digNode(p *pr, st, m1, m2 *ir.Step) (*node, error) {
 	switch m1.Word {
 	case "":
 	case "reveal":
-		reveal = true
+		// "look at the top N, you may reveal a card from among them": Forge's
+		// Dig omits Reveal$; the reveal of the chosen card is the engine's.
+		reveal = st.Verb != ir.VerbLook
 	case "top":
 		if m1.To != ir.ZoneLibrary {
 			return nil, unprintable("verb:dig-word", st.Src)

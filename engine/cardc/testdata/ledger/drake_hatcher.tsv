@@ -1,4 +1,3 @@
 # Drake Hatcher
 source	key	sig	class	issue	note
 static	0/T:DamageDone:PutCounter#0/TriggerZones	88b1522a	cardc-gap	0	untriaged
-static	0/T:DamageDone:PutCounter#0/[0]Defined	81c2e757	cardc-gap	0	untriaged

@@ -354,6 +354,9 @@ func moveNode(p *pr, st *ir.Step) (*node, error) {
 	if !p.zenterOn(n, st.Enter) {
 		return nil, unprintable("verb:move-enter", st.Src)
 	}
+	if st.Dur == ir.DurWhileSourceOnBattlefield && n.API == "ChangeZone" && to == ir.ZoneExile {
+		n.set("Duration", "UntilHostLeavesPlay") // exiled until the source leaves the battlefield
+	}
 	if err := zoptional(n, st); err != nil {
 		return nil, err
 	}

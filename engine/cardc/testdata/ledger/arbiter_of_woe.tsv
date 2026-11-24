@@ -1,7 +1,3 @@
 # Arbiter of Woe
 source	key	sig	class	issue	note
-static	0/T:ChangesZone:Discard>LoseLife>Draw>GainLife#0/[0]Defined	3c7c9b63	cardc-gap	0	untriaged
-static	0/T:ChangesZone:Discard>LoseLife>Draw>GainLife#0/[0]NumCards	e79e418e	cardc-gap	0	untriaged
 static	0/T:ChangesZone:Discard>LoseLife>Draw>GainLife#0/[1]Defined	3c7c9b63	cardc-gap	0	untriaged
-static	0/T:ChangesZone:Discard>LoseLife>Draw>GainLife#0/[2]NumCards	e79e418e	cardc-gap	0	untriaged
-static	0/T:ChangesZone:Discard>LoseLife>Draw>GainLife#0/[3]Defined	f37820cf	cardc-gap	0	untriaged

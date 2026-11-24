@@ -25,6 +25,7 @@ type node struct {
 	API    string
 	Params []kv
 	Sub    *node
+	Kind   string // "" for DB; "AB" for a sub-ability that carries its own Cost$
 }
 
 // set replaces k's value, or appends k.
@@ -480,7 +481,11 @@ func (p *pr) sub(base string, n *node) string {
 	name := p.fresh(base)
 	i := len(p.svars)
 	p.svars = append(p.svars, kv{name, ""}) // reserve the name before the chain renders
-	p.svars[i].V = p.render("DB", n)
+	kind := "DB"
+	if n.Kind != "" {
+		kind = n.Kind
+	}
+	p.svars[i].V = p.render(kind, n)
 	return name
 }
 

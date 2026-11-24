@@ -162,7 +162,7 @@ func TestDigNodes(t *testing.T) {
 	m2.Word = "bottom-any-order"
 	ztWant(t, []*ir.Step{{Verb: ir.VerbLook, Obj: ztTop(4), Then: ztProg(m1, m2)}}, nil, "Dig", []kv{
 		{"DigNum", "4"}, {"ChangeNum", "1"}, {"ChangeValid", "Creature"}, {"DestinationZone", "Hand"}, {"DestinationZone2", "Library"},
-		{"Optional", "True"}, {"Reveal", "True"}, {"LibraryPosition2", "-1"}})
+		{"Optional", "True"}, {"LibraryPosition2", "-1"}})
 	// top or graveyard
 	m1 = ztMv(ztChoose(nil, 1), ir.ZoneLibrary)
 	m1.Word = "top"
