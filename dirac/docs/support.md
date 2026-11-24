@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 304 | 0 | 32 | 272 | 272 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 266 | 0 | 2 | 264 | 264 | 0 |
-| MBC | 2212 | 1997 | 4 | 15 | 1978 | 1978 | 0 |
-| ALL | 34480 | 25893 | 46 | 271 | 25576 | 25575 | 0 |
+| MBC | 2212 | 1998 | 4 | 16 | 1978 | 1978 | 0 |
+| ALL | 34480 | 25897 | 47 | 272 | 25578 | 25577 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -64,7 +64,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-abba-c001 | 3 |
 | ev-dr-mbc-abba-c002 | 4 |
 | ev-dr-mbc-abbb | 200 |
-| ev-dr-mbc-abbb-c000 | 16 |
+| ev-dr-mbc-abbb-c000 | 8 |
 | ev-dr-mbc-abbb-c001 | 45 |
 | ev-dr-mbc-abbb-s000 | 20 |
 | ev-dr-mbc-baaa | 184 |
@@ -91,7 +91,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-dr-mbc-bbba-c000 | 7 |
 | ev-dr-mbc-bbba-c001 | 7 |
 | ev-dr-mbc-bbbb | 186 |
-| ev-dr-mbc-bbbb-c000 | 6 |
+| ev-dr-mbc-bbbb-c000 | 26 |
 | ev-dr-mbc-bbbb-c001 | 16 |
 | ev-std-big | 200 |
 | ev-std-big-c000 | 200 |
@@ -139,7 +139,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-std-sos-c000 | 8 |
 | ev-std-spm | 184 |
 | ev-std-spm-a000 | 40 |
-| ev-std-spm-c000 | 113 |
+| ev-std-spm-c000 | 173 |
 | ev-std-spm-c001 | 8 |
 | ev-std-spm-c002 | 6 |
 | ev-std-tdm | 200 |
@@ -171,7 +171,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-00-s001 | 47 |
 | ev-tail-00-s002 | 61 |
 | ev-tail-00-s003 | 37 |
-| ev-tail-01-c000 | 14 |
+| ev-tail-01-c000 | 27 |
 | ev-tail-01-c001 | 8 |
 | ev-tail-01-c002 | 12 |
 | ev-tail-01-c003 | 11 |
@@ -272,7 +272,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-01-c098 | 8 |
 | ev-tail-01-c099 | 8 |
 | ev-tail-01-c100 | 16 |
-| ev-tail-02-c000 | 39 |
+| ev-tail-02-c000 | 121 |
 | ev-tail-02-c001 | 25 |
 | ev-tail-02-c002 | 31 |
 | ev-tail-02-c003 | 7 |
@@ -508,7 +508,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-04-c080 | 8 |
 | ev-tail-04-c081 | 8 |
 | ev-tail-04-c082 | 8 |
-| ev-tail-05-c000 | 7 |
+| ev-tail-05-c000 | 64 |
 | ev-tail-05-c001 | 8 |
 | ev-tail-05-c002 | 5 |
 | ev-tail-05-c003 | 3 |
@@ -572,7 +572,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-05-c061 | 8 |
 | ev-tail-06 | 216 |
 | ev-tail-06-a000 | 32 |
-| ev-tail-06-c000 | 8 |
+| ev-tail-06-c000 | 165 |
 | ev-tail-06-c001 | 7 |
 | ev-tail-06-c002 | 27 |
 | ev-tail-06-c003 | 12 |
@@ -692,7 +692,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-07-c072 | 8 |
 | ev-tail-07-c073 | 8 |
 | ev-tail-08 | 1120 |
-| ev-tail-08-c000 | 20 |
+| ev-tail-08-c000 | 47 |
 | ev-tail-08-c001 | 6 |
 | ev-tail-08-c002 | 7 |
 | ev-tail-08-c003 | 7 |
@@ -867,7 +867,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-10-c026 | 8 |
 | ev-tail-10-s000 | 55 |
 | ev-tail-11-a000 | 20 |
-| ev-tail-11-c000 | 16 |
+| ev-tail-11-c000 | 167 |
 | ev-tail-11-c001 | 5 |
 | ev-tail-11-c002 | 6 |
 | ev-tail-11-c003 | 200 |
@@ -951,7 +951,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-11-c081 | 10 |
 | ev-tail-11-c082 | 3 |
 | ev-tail-11-s000 | 46 |
-| ev-tail-12-c000 | 6 |
+| ev-tail-12-c000 | 5 |
 | ev-tail-12-c001 | 57 |
 | ev-tail-12-c002 | 25 |
 | ev-tail-12-c003 | 30 |
@@ -1042,7 +1042,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-12-c088 | 7 |
 | ev-tail-12-s000 | 47 |
 | ev-tail-13-a000 | 35 |
-| ev-tail-13-c000 | 12 |
+| ev-tail-13-c000 | 5 |
 | ev-tail-13-c001 | 3 |
 | ev-tail-13-c002 | 4 |
 | ev-tail-13-c003 | 5 |
@@ -1134,7 +1134,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-13-c089 | 8 |
 | ev-tail-13-c090 | 16 |
 | ev-tail-13-s000 | 46 |
-| ev-tail-14-c000 | 14 |
+| ev-tail-14-c000 | 97 |
 | ev-tail-14-c001 | 3 |
 | ev-tail-14-c002 | 12 |
 | ev-tail-14-c003 | 7 |
@@ -1206,7 +1206,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-14-c069 | 8 |
 | ev-tail-14-c070 | 16 |
 | ev-tail-14-s000 | 47 |
-| ev-tail-15-c000 | 7 |
+| ev-tail-15-c000 | 14 |
 | ev-tail-15-c001 | 7 |
 | ev-tail-15-c002 | 7 |
 | ev-tail-15-c003 | 8 |
@@ -1490,7 +1490,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-18-c067 | 16 |
 | ev-tail-18-c068 | 16 |
 | ev-tail-18-s000 | 58 |
-| ev-tail-19-c000 | 6 |
+| ev-tail-19-c000 | 5 |
 | ev-tail-19-c001 | 6 |
 | ev-tail-19-c002 | 7 |
 | ev-tail-19-c003 | 11 |
@@ -1582,7 +1582,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-19-c089 | 8 |
 | ev-tail-19-c090 | 8 |
 | ev-tail-19-s000 | 55 |
-| ev-tail-20-c000 | 12 |
+| ev-tail-20-c000 | 10 |
 | ev-tail-20-c001 | 42 |
 | ev-tail-20-c002 | 24 |
 | ev-tail-20-c003 | 4 |
@@ -1656,8 +1656,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-20-c071 | 16 |
 | ev-tail-20-c072 | 16 |
 | ev-tail-20-s000 | 59 |
-| ev-tail-21-c000 | 8 |
-| ev-tail-21-c001 | 14 |
+| ev-tail-21-c000 | 5 |
+| ev-tail-21-c001 | 7 |
 | ev-tail-21-c002 | 8 |
 | ev-tail-21-c003 | 8 |
 | ev-tail-21-c004 | 7 |
@@ -1816,7 +1816,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-22-c069 | 8 |
 | ev-tail-22-c070 | 8 |
 | ev-tail-22-s000 | 44 |
-| ev-tail-23-c000 | 12 |
+| ev-tail-23-c000 | 26 |
 | ev-tail-23-c001 | 4 |
 | ev-tail-23-c002 | 7 |
 | ev-tail-23-c003 | 8 |
@@ -2048,7 +2048,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-25-c059 | 8 |
 | ev-tail-25-c060 | 8 |
 | ev-tail-25-s000 | 55 |
-| ev-tail-26-c000 | 28 |
+| ev-tail-26-c000 | 62 |
 | ev-tail-26-c001 | 32 |
 | ev-tail-26-c002 | 28 |
 | ev-tail-26-c003 | 70 |
@@ -2234,7 +2234,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-27-c099 | 16 |
 | ev-tail-27-s000 | 63 |
 | ev-tail-27-s001 | 61 |
-| ev-tail-28-c000 | 8 |
+| ev-tail-28-c000 | 32 |
 | ev-tail-28-c001 | 8 |
 | ev-tail-28-c002 | 8 |
 | ev-tail-28-c003 | 13 |
@@ -2302,8 +2302,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-28-c065 | 8 |
 | ev-tail-28-c066 | 8 |
 | ev-tail-28-s000 | 62 |
-| ev-tail-29-c000 | 118 |
-| ev-tail-29-c001 | 16 |
+| ev-tail-29-c000 | 6 |
+| ev-tail-29-c001 | 8 |
 | ev-tail-29-c002 | 8 |
 | ev-tail-29-c003 | 8 |
 | ev-tail-29-c004 | 8 |
@@ -2398,7 +2398,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-29-c093 | 8 |
 | ev-tail-29-s000 | 64 |
 | ev-tail-30-a000 | 39 |
-| ev-tail-30-c000 | 7 |
+| ev-tail-30-c000 | 6 |
 | ev-tail-30-c001 | 7 |
 | ev-tail-30-c002 | 8 |
 | ev-tail-30-c003 | 7 |
@@ -2546,7 +2546,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-31-c079 | 16 |
 | ev-tail-31-s000 | 44 |
 | ev-tail-32-a000 | 38 |
-| ev-tail-32-c000 | 121 |
+| ev-tail-32-c000 | 14 |
 | ev-tail-32-c001 | 15 |
 | ev-tail-32-c002 | 16 |
 | ev-tail-32-c003 | 8 |
@@ -2626,7 +2626,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-32-c077 | 8 |
 | ev-tail-32-c078 | 16 |
 | ev-tail-32-c079 | 32 |
-| ev-tail-32-s000 | 56 |
+| ev-tail-32-s000 | 59 |
 | ev-tail-32-s001 | 60 |
 | ev-tail-32-s002 | 57 |
 | ev-tail-33 | 200 |
@@ -2679,7 +2679,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-33-c046 | 32 |
 | ev-tail-33-s000 | 31 |
 | ev-tail-33-s001 | 32 |
-| ev-tail-34-c000 | 46 |
+| ev-tail-34-c000 | 49 |
 | ev-tail-34-c001 | 7 |
 | ev-tail-34-c002 | 7 |
 | ev-tail-34-c003 | 6 |
@@ -2766,7 +2766,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-34-s000 | 60 |
 | ev-tail-35-a000 | 23 |
 | ev-tail-35-c000 | 6 |
-| ev-tail-35-c001 | 104 |
+| ev-tail-35-c001 | 12 |
 | ev-tail-35-c002 | 26 |
 | ev-tail-35-c003 | 12 |
 | ev-tail-35-c004 | 3 |
@@ -2801,8 +2801,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-35-c033 | 7 |
 | ev-tail-35-c034 | 32 |
 | ev-tail-35-s000 | 51 |
-| ev-tail-36-c000 | 15 |
-| ev-tail-36-c001 | 15 |
+| ev-tail-36-c000 | 181 |
+| ev-tail-36-c001 | 114 |
 | ev-tail-36-c002 | 8 |
 | ev-tail-36-c003 | 30 |
 | ev-tail-36-c004 | 30 |
@@ -2982,7 +2982,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-38-s000 | 24 |
 | ev-tail-39 | 200 |
 | ev-tail-39-a000 | 35 |
-| ev-tail-39-c000 | 14 |
+| ev-tail-39-c000 | 26 |
 | ev-tail-39-c001 | 14 |
 | ev-tail-39-c002 | 4 |
 | ev-tail-39-c003 | 49 |
@@ -3099,7 +3099,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-40-s000 | 39 |
 | ev-tail-40-s001 | 42 |
 | ev-tail-41 | 200 |
-| ev-tail-41-c000 | 5 |
+| ev-tail-41-c000 | 25 |
 | ev-tail-41-c001 | 7 |
 | ev-tail-41-c002 | 11 |
 | ev-tail-41-c003 | 8 |
@@ -3138,7 +3138,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-41-c036 | 7 |
 | ev-tail-41-s000 | 55 |
 | ev-tail-42-a000 | 24 |
-| ev-tail-42-c000 | 5 |
+| ev-tail-42-c000 | 69 |
 | ev-tail-42-c001 | 5 |
 | ev-tail-42-c002 | 4 |
 | ev-tail-42-c003 | 96 |
@@ -3274,7 +3274,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-43-c038 | 4 |
 | ev-tail-43-s000 | 55 |
 | ev-tail-44 | 200 |
-| ev-tail-44-c000 | 12 |
+| ev-tail-44-c000 | 13 |
 | ev-tail-44-c001 | 8 |
 | ev-tail-44-c002 | 7 |
 | ev-tail-44-c003 | 173 |
@@ -3596,8 +3596,8 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-48-c050 | 8 |
 | ev-tail-48-s000 | 32 |
 | ev-tail-49 | 131 |
-| ev-tail-49-c000 | 49 |
-| ev-tail-49-c001 | 24 |
+| ev-tail-49-c000 | 23 |
+| ev-tail-49-c001 | 48 |
 | ev-tail-49-c002 | 5 |
 | ev-tail-49-c003 | 44 |
 | ev-tail-49-c004 | 49 |
@@ -3700,7 +3700,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-50-c077 | 16 |
 | ev-tail-50-s000 | 64 |
 | ev-tail-50-s001 | 64 |
-| ev-tail-51-c000 | 6 |
+| ev-tail-51-c000 | 39 |
 | ev-tail-51-c001 | 7 |
 | ev-tail-51-c002 | 4 |
 | ev-tail-51-c003 | 8 |
@@ -3788,7 +3788,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-51-c088 | 5 |
 | ev-tail-51-c089 | 9 |
 | ev-tail-52-c000 | 8 |
-| ev-tail-52-c001 | 8 |
+| ev-tail-52-c001 | 12 |
 | ev-tail-52-c002 | 16 |
 | ev-tail-52-c003 | 11 |
 | ev-tail-52-c004 | 19 |
@@ -3863,7 +3863,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-52-c073 | 8 |
 | ev-tail-52-s000 | 60 |
 | ev-tail-53 | 200 |
-| ev-tail-53-c000 | 8 |
+| ev-tail-53-c000 | 13 |
 | ev-tail-53-c001 | 7 |
 | ev-tail-53-c002 | 4 |
 | ev-tail-53-c003 | 85 |
@@ -3891,7 +3891,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-53-c025 | 8 |
 | ev-tail-53-c026 | 8 |
 | ev-tail-53-c027 | 8 |
-| ev-tail-54-c000 | 9 |
+| ev-tail-54-c000 | 59 |
 | ev-tail-54-c001 | 4 |
 | ev-tail-54-c002 | 3 |
 | ev-tail-54-c003 | 3 |
@@ -3986,7 +3986,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-54-c092 | 16 |
 | ev-tail-54-c093 | 16 |
 | ev-tail-55 | 200 |
-| ev-tail-55-c000 | 111 |
+| ev-tail-55-c000 | 6 |
 | ev-tail-55-c001 | 7 |
 | ev-tail-55-c002 | 7 |
 | ev-tail-55-c003 | 11 |
@@ -4086,7 +4086,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-57-s000 | 56 |
 | ev-tail-58-a000 | 38 |
 | ev-tail-58-c000 | 8 |
-| ev-tail-58-c001 | 63 |
+| ev-tail-58-c001 | 121 |
 | ev-tail-58-c002 | 7 |
 | ev-tail-58-c003 | 8 |
 | ev-tail-58-c004 | 8 |
@@ -4401,7 +4401,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-61-s000 | 28 |
 | ev-tail-62 | 200 |
 | ev-tail-62-a000 | 34 |
-| ev-tail-62-c000 | 16 |
+| ev-tail-62-c000 | 32 |
 | ev-tail-62-c001 | 29 |
 | ev-tail-62-c002 | 30 |
 | ev-tail-62-c003 | 8 |
@@ -4433,7 +4433,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-62-c029 | 8 |
 | ev-tail-62-c030 | 8 |
 | ev-tail-62-s000 | 55 |
-| ev-tail-63-c000 | 7 |
+| ev-tail-63-c000 | 3 |
 | ev-tail-63-c001 | 7 |
 | ev-tail-63-c002 | 2 |
 | ev-tail-63-c003 | 8 |
@@ -4489,7 +4489,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-63-c053 | 8 |
 | ev-tail-63-c054 | 8 |
 | ev-tail-63-s000 | 42 |
-| ev-tail-64-c000 | 8 |
+| ev-tail-64-c000 | 7 |
 | ev-tail-64-c001 | 7 |
 | ev-tail-64-c002 | 6 |
 | ev-tail-64-c003 | 144 |
@@ -4621,7 +4621,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-65-s000 | 43 |
 | ev-tail-66 | 200 |
 | ev-tail-66-a000 | 34 |
-| ev-tail-66-c000 | 47 |
+| ev-tail-66-c000 | 93 |
 | ev-tail-66-c001 | 7 |
 | ev-tail-66-c002 | 7 |
 | ev-tail-66-c003 | 146 |
@@ -4663,7 +4663,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-66-c039 | 8 |
 | ev-tail-66-s000 | 61 |
 | ev-tail-67-a000 | 28 |
-| ev-tail-67-c000 | 37 |
+| ev-tail-67-c000 | 10 |
 | ev-tail-67-c001 | 8 |
 | ev-tail-67-c002 | 1 |
 | ev-tail-67-c003 | 7 |
@@ -4898,7 +4898,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-69-c094 | 8 |
 | ev-tail-69-s000 | 59 |
 | ev-tail-69-s001 | 60 |
-| ev-tail-70-c000 | 112 |
+| ev-tail-70-c000 | 7 |
 | ev-tail-70-c001 | 51 |
 | ev-tail-70-c002 | 48 |
 | ev-tail-70-c003 | 13 |
@@ -4971,7 +4971,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-70-c070 | 8 |
 | ev-tail-70-c071 | 16 |
 | ev-tail-70-c072 | 16 |
-| ev-tail-71-c000 | 88 |
+| ev-tail-71-c000 | 24 |
 | ev-tail-71-c001 | 3 |
 | ev-tail-71-c002 | 5 |
 | ev-tail-71-c003 | 10 |
@@ -5053,7 +5053,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-71-c079 | 16 |
 | ev-tail-71-s000 | 42 |
 | ev-tail-72 | 200 |
-| ev-tail-72-c000 | 8 |
+| ev-tail-72-c000 | 12 |
 | ev-tail-72-c001 | 7 |
 | ev-tail-72-c002 | 6 |
 | ev-tail-72-c003 | 4 |
@@ -5175,7 +5175,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-74-c095 | 8 |
 | ev-tail-74-c096 | 8 |
 | ev-tail-75 | 200 |
-| ev-tail-75-c000 | 57 |
+| ev-tail-75-c000 | 13 |
 | ev-tail-75-c001 | 14 |
 | ev-tail-75-c002 | 6 |
 | ev-tail-75-c003 | 7 |
@@ -5219,11 +5219,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-46 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+47 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 20 |
+| lockstep | 21 |
 | options | 6 |
 | options-options | 5 |
 | projection | 1 |
