@@ -440,7 +440,7 @@ func matchesCompiledBase(base predicateBase, o *state.Object, sc *SpecContext) b
 		// spell it is while it is still in its origin zone, so a printed
 		// ValidAfterStack$ Spell.<...> grant is not refused by the compiled
 		// sidecar with a definite No.
-		matched = o.Zone == state.ZStack || sc.AsStack
+		matched = (o.Zone == state.ZStack || sc.AsStack) && spellStackObject(o)
 	case predicateBaseSpellAbility:
 		matched = o.Zone == state.ZStack
 	case predicateBaseType:
