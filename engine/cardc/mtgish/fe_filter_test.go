@@ -65,6 +65,13 @@ func TestFilterLowering(t *testing.T) {
 		{"IsCardtype", []any{tn("CardType", "Creature")}, func(e *filtEnum) *ir.Filter {
 			return filtWant(e, ir.PCardType, func(f *ir.Filter) { f.Word = "Creature" })
 		}},
+		// The data's own shape: a plain enum value is a bare string.
+		{"IsCardtype", []any{"Creature"}, func(e *filtEnum) *ir.Filter {
+			return filtWant(e, ir.PCardType, func(f *ir.Filter) { f.Word = "Creature" })
+		}},
+		{"IsSupertype", []any{"Basic"}, func(e *filtEnum) *ir.Filter {
+			return filtWant(e, ir.PSupertype, func(f *ir.Filter) { f.Word = "Basic" })
+		}},
 		{"IsNonCardtype", []any{tn("CardType", "Land")}, func(e *filtEnum) *ir.Filter {
 			return e.not(filtWant(e, ir.PCardType, func(f *ir.Filter) { f.Word = "Land" }))
 		}},

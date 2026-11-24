@@ -103,8 +103,13 @@ type filtRow struct {
 }
 
 // filtWord is the mtgish spelling of a unit-variant argument (a card type, a
-// creature type, a supertype, ...): the gorge backend respells it.
+// creature type, a supertype, ...): the gorge backend respells it. The data
+// writes a plain enum's value as a bare string ("args":"Creature") and a
+// tagged one as {"_Enum":"Variant"}; both are words.
 func filtWord(x any) (string, error) {
+	if s, ok := x.(string); ok && s != "" {
+		return s, nil
+	}
 	v := variantOf(x)
 	if v == "" {
 		return "", fmt.Errorf("cardc: expected a unit variant, got %T", x)

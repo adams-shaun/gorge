@@ -2,6 +2,7 @@ package mtgish
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -127,6 +128,13 @@ func TestCompileProofSliceNoPanic(t *testing.T) {
 			refused := got.Layout == ir.LayoutNone
 			if !refused && len(f.Types) == 0 {
 				t.Errorf("%s face %d: no types", card.Name, i)
+			}
+			// An error: refusal is a lowering that failed without naming the
+			// variant it stopped at, which hides the real refusal.
+			for _, r := range f.Refusals {
+				if strings.HasPrefix(r.Key, "error:") {
+					t.Errorf("%s face %d: %s (%s)", card.Name, i, r.Key, r.Path)
+				}
 			}
 		}
 	}
