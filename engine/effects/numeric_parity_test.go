@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -203,11 +205,21 @@ var numericCensusNotFilters = map[string]bool{"cmc": true, "power": true, "tough
 func TestNumericPredicateCorpusCensus(t *testing.T) {
 	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	tokens := map[string]bool{}
-	if err := filepath.WalkDir(filepath.Dir(dir), func(path string, d os.DirEntry, err error) error {
+	// pr worktrees symlink .cards (scripts/pr-cards.sh) and SharedCorpusDir
+	// prefers it (dbc74bca1c); WalkDir does not follow a symlinked root, so
+	// resolve it first or the walk finds nothing.
+	root, err := filepath.EvalSymlinks(filepath.Dir(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return nil
 		}
 		b, err := os.ReadFile(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil // a dangling link in the corpus tree
+		}
 		if err != nil {
 			return err
 		}
