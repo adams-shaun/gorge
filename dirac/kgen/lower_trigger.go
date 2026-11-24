@@ -1581,6 +1581,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	} else if fc {
 		fireOnly = true
 	}
+	// "<event>, <effect> if <condition>" (Laboratory Drudge): not an
+	// intervening-if (CR 603.4), so gorge triggers every time and reads the
+	// clause only at resolution (triggerResolvingCheckHolds); the clause
+	// guards the body instead of joining the trigger's Cond
+	var bodyGuard lCond
+	trailingIf := t.CheckSVarIsTrailingIf()
+	condsBefore := len(conds)
 	if cs, ok := tp.get("CheckSVar"); ok {
 		if c, isCC, err := lc.castCollectedSVar(tp, cs); isCC { // lower_collectedevidence.go
 			if err != nil {
@@ -1602,6 +1609,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			conds = append(conds, c)
 		}
+	}
+	if trailingIf {
+		if len(conds) != condsBefore+1 || noResolve {
+			return refuse("trailing-if CheckSVar beside NoResolvingCheck")
+		}
+		bodyGuard, conds = conds[condsBefore], conds[:condsBefore]
 	}
 	if cdp, ok := tp.get("CheckDefinedPlayer"); ok && cdp != "You.withMostLife" {
 		// gorge trigger_condition.go checkDefinedPlayerHolds: the crime
@@ -1752,8 +1765,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	savedBody := lc.trigBody
 	lc.trigBody = true
 	defer func() { lc.trigBody = savedBody }()
-	if err := lc.chain(t.Effect, nil); err != nil {
+	if err := lc.guardBlock(bodyGuard, func() error { return lc.chain(t.Effect, nil) }); err != nil {
 		return err
+	}
+	if bodyGuard.Kind != cNone && len(lc.ab.Targets) > 0 {
+		// gorge announces the targets as the trigger goes on the stack,
+		// before the guard is read
+		return refuse("trailing-if CheckSVar trigger with targets")
 	}
 	if tr.Static {
 		// gorge's staticTriggerAskFree (engine/rules/static_trigger.go):
