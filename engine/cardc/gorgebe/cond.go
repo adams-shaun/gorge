@@ -151,6 +151,9 @@ func printRefMatches(p *pr, c *ir.Cond) (condForm, error) {
 	if c.Ref == nil || f == nil {
 		return no()
 	}
+	if (c.Ref.Kind == ir.RefSelf || (c.Ref.Kind == ir.RefEventObject && p.ev == ir.EvWouldEnter && p.evSelf)) && isPred(f, ir.PKicked) {
+		return p.svCond("Count$Kicked.1.0", "GE1"), nil
+	}
 	if isYou(c.Ref) && isUrzaTrio(f) {
 		return condForm{Choose: "Count$UrzaLands", Body: "Count$UrzaLands.1.0", Cmp: "GE1"}, nil
 	}

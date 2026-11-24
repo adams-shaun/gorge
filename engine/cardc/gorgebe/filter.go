@@ -232,6 +232,9 @@ func predPart(p *pr, f *ir.Filter, neg bool) ([]part, error) {
 		if neg {
 			return badNot()
 		}
+		if f.Pred == ir.PManaValue && f.Cmp == ir.CmpEQ && f.Value != nil && f.Value.Kind == ir.VChosenNumber {
+			return []part{{false, "cmcEQChosen"}}, nil // equal to the number chosen as it entered
+		}
 		c, n, err := cmpN()
 		if err != nil {
 			return nil, err

@@ -380,17 +380,21 @@ func TestReplacements(t *testing.T) {
 	}
 
 	raid := repl(ir.EvWouldEnter, abBody(&ir.Step{Verb: ir.VerbIf, Cond: ctRef(ctYou(), ctPred(ir.PAttackedThisTurn)), Then: enter(&ir.Enter{Counter: "P1P1", N: vc(1)})}))
+	p, err := abRun(raid)
+	if err != nil || len(p.lines) != 1 || p.lines[0] != "K:etbCounter:P1P1:1:CheckSVar$ N" {
+		t.Errorf("counter under a condition: %q, %v", p.lines, err)
+	}
 	outside := &ir.Ability{Kind: ir.AbTriggered, Trigger: abTrig(ir.EvEnters, abSelf(), nil), Body: enter(&ir.Enter{Tapped: true})}
 	setOutside := &ir.Ability{Kind: ir.AbTriggered, Trigger: abTrig(ir.EvEnters, abSelf(), nil), Body: abBody(&ir.Step{Verb: ir.VerbSetAmount, N: vc(1)})}
 	setWrongEvent := repl(ir.EvWouldEnter, abBody(&ir.Step{Verb: ir.VerbSetAmount, N: vc(1)}))
 	counterAndTapped := repl(ir.EvWouldEnter, enter(&ir.Enter{Counter: "P1P1", N: vc(1), Tapped: true}))
 	notSelf := &ir.Ability{Kind: ir.AbReplacement, Trigger: &ir.Trigger{Event: ir.EvWouldEnter}, Body: enter(&ir.Enter{Tapped: true})}
+	_ = notSelf
 	for _, c := range []struct {
 		name string
 		a    *ir.Ability
 		what string
 	}{
-		{"counter under a condition", raid, "repl:etb-counter-cond"},
 		{"would die", repl(ir.EvWouldDie, abDraw()), "repl:would-die"},
 		{"would create tokens", repl(ir.EvWouldCreateTokens, abDraw()), "repl:would-create-tokens"},
 		{"enter of another object", notSelf, "repl:would-enter"},

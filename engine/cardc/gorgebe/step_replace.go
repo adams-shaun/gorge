@@ -33,8 +33,12 @@ func printModifyEnter(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	switch {
 	case e.Tapped && e.Counter == "" && e.N == nil && !e.UnderOwner && e.Controller == nil && len(e.Effects) == 0:
+		if !p.evSelf {
+			// a replacement of other objects' entering taps the object replaced
+			return &node{API: "Tap", Params: []kv{{"ETB", "True"}, {"Defined", "ReplacedCard"}}}, 1, nil
+		}
 		return &node{API: "Tap", Params: []kv{{"Defined", "Self"}, {"ETB", "True"}}}, 1, nil
-	case enterCounterOnly(e):
+	case enterCounterOnly(e) && p.evSelf:
 		n, err := p.amount(e.N)
 		if err != nil {
 			return nil, 0, err
@@ -48,6 +52,11 @@ func printSetAmount(p *pr, steps []*ir.Step) (*node, int, error) {
 	st := steps[0]
 	if !wouldEvent(p.ev) {
 		return nil, 0, unprintable("verb:set-amount-outside-replacement", st.Src)
+	}
+	if p.ev == ir.EvWouldPutCounters && !st.Optional && st.N != nil && st.N.Kind == ir.VMul && len(st.N.Args) == 2 &&
+		isConst(st.N.Args[0]) && st.N.Args[0].N == 2 && st.N.Args[1].Kind == ir.VReceiptAmount && st.N.Args[1].Word == "counters" {
+		y := p.countVarAs("Y", "ReplaceCount$CounterNum/Twice")
+		return &node{API: "ReplaceCounter", Params: []kv{{"Amount", y}}}, 1, nil
 	}
 	if p.ev != ir.EvWouldDealDamage || st.Optional || st.N == nil {
 		return nil, 0, unprintable("verb:set-amount", st.Src)

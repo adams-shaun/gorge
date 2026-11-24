@@ -1,6 +1,7 @@
 package gorgebe
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -8,6 +9,9 @@ import (
 )
 
 func init() { registerAbility(ir.AbStatic, printStatic) }
+
+// errMerged marks a static that was folded into the line before it.
+var errMerged = errors.New("merged")
 
 func isSelfRef(r *ir.Ref) bool { return r != nil && r.Kind == ir.RefSelf }
 
@@ -77,7 +81,7 @@ func printStatic(p *pr, a *ir.Ability) error {
 	bad := func(e *ir.Effect) error { return unprintable("static:"+e.Kind.String(), e.Src) }
 	continuous := true
 	for _, x := range st.Effects {
-		continuous = continuous && (x.Kind == ir.EffAdjustPT || x.Kind == ir.EffAddAbility)
+		continuous = continuous && (x.Kind == ir.EffAdjustPT || x.Kind == ir.EffAddAbility || x.Kind == ir.EffAddSubtype || x.Kind == ir.EffAddCardType)
 	}
 	switch {
 	case continuous:
@@ -133,12 +137,25 @@ func printStatic(p *pr, a *ir.Ability) error {
 		if len(kws) > 0 {
 			ps.set("AddKeyword", strings.Join(kws, " & "))
 		}
+		var types []string
+		for _, x := range st.Effects {
+			if x.Kind == ir.EffAddSubtype || x.Kind == ir.EffAddCardType {
+				for _, w := range x.Words {
+					types = append(types, Respell(w))
+				}
+			}
+		}
+		if len(types) > 0 {
+			ps.set("AddType", strings.Join(types, " & "))
+		}
 		line = "S:"
 	case len(st.Effects) != 1:
 		return unprintable("static:body", a.Src)
 	default:
 		var err error
-		if ps, line, err = p.staticEffect(a, st, e); err != nil {
+		if ps, line, err = p.staticEffect(a, st, e); err == errMerged {
+			return nil
+		} else if err != nil {
 			return err
 		}
 	}
@@ -200,6 +217,82 @@ func (p *pr) staticEffect(a *ir.Ability, st *ir.Step, e *ir.Effect) (params, str
 		if isSelfRef(o) {
 			return params{{"Mode", "CantBlock"}, {"ValidCard", "Card.Self"}}, "S:", nil
 		}
+	case ir.EffExtraLand:
+		if o != nil && o.Kind == ir.RefYou && e.N != nil {
+			n, err := p.amount(e.N)
+			if err != nil {
+				return nil, "", err
+			}
+			return params{{"Mode", "Continuous"}, {"Affected", "You"}, {"AdjustLandPlays", n}}, "S:", nil
+		}
+	case ir.EffHexproof:
+		if o != nil && o.Kind == ir.RefYou {
+			return params{{"Mode", "Continuous"}, {"Affected", "You"}, {"AddKeyword", "Hexproof"}}, "S:", nil
+		}
+	case ir.EffNoUntap:
+		if isSelfRef(o) {
+			return params{{"Event", "Untap"}, {"ValidCard", "Card.Self"}, {"ValidStepTurnToController", "You"}, {"Layer", "CantHappen"}}, "R:", nil
+		}
+	case ir.EffMayCast:
+		if o != nil && o.Kind == ir.RefYou && isSelfRef(e.Ref) && e.Cost != nil && !e.Cost.HasMana && a.Zones != 0 {
+			c, err := p.costText(e.Cost)
+			if err != nil {
+				return nil, "", err
+			}
+			zs := zoneList(a.Zones)
+			return params{{"Mode", "Continuous"}, {"Affected", "Card.Self"}, {"MayPlay", "True"}, {"AffectedZone", zs}, {"EffectZone", zs}, {"RaiseCost", c}}, "S:", nil
+		}
+	case ir.EffCantCast:
+		if e.Filter != nil && o != nil && o.Kind == ir.RefAll && o.Filter != nil && o.Filter.Subject == ir.SubjPlayer && isPred(o.Filter, ir.PAny) {
+			v, err := p.valid(e.Filter)
+			if err != nil {
+				return nil, "", err
+			}
+			return params{{"Mode", "CantBeCast"}, {"ValidCard", v}}, "S:", nil
+		}
+	case ir.EffMustAttack:
+		if isSelfRef(o) {
+			return params{{"Mode", "MustAttack"}, {"ValidCreature", "Card.Self"}}, "S:", nil
+		}
+	case ir.EffCantBeBlockedBy:
+		if isSelfRef(o) && e.Filter != nil {
+			v, err := p.valid(e.Filter)
+			if err != nil {
+				return nil, "", err
+			}
+			return params{{"Mode", "CantBlockBy"}, {"ValidAttacker", "Creature.Self"}, {"ValidBlocker", v}}, "S:", nil
+		}
+	case ir.EffCDAPower, ir.EffCDAToughness:
+		if !isSelfRef(o) {
+			break
+		}
+		v := e.P
+		key := "SetPower"
+		if e.Kind == ir.EffCDAToughness {
+			v, key = e.T, "SetToughness"
+		}
+		n, err := p.amount(v)
+		if err != nil {
+			return nil, "", err
+		}
+		if e.Kind == ir.EffCDAToughness && p.cdaAt > 0 && p.cdaAt == len(p.lines) && strings.HasSuffix(p.lines[p.cdaAt-1], "$ "+n) {
+			p.lines[p.cdaAt-1] += " | SetToughness$ " + n
+			return nil, "", errMerged
+		}
+		if e.Kind == ir.EffCDAPower {
+			p.cdaAt = len(p.lines) + 1
+		}
+		return params{{"Mode", "Continuous"}, {"CharacteristicDefining", "True"}, {key, n}}, "S:", nil
+	case ir.EffAdditionalCost:
+		if !isSelfRef(o) || e.Cost == nil || e.Cost.HasMana {
+			break
+		}
+		c, err := p.costText(e.Cost)
+		if err != nil {
+			return nil, "", err
+		}
+		p.addCost = append(p.addCost, c)
+		return nil, "", errMerged
 	case ir.EffCantBeBlocked:
 		if isSelfRef(o) {
 			return params{{"Mode", "CantBlockBy"}, {"ValidAttacker", "Card.Self"}}, "S:", nil
