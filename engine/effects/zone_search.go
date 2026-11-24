@@ -681,7 +681,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		// empty object fetch (an empty Remembered/ChosenCard list or an empty
 		// library's TopOfLibrary) is still a direct fetch and must not degrade
 		// to a fresh whole-library search.
-		return !playerList
+		return emptyDefinedFetch(h, c, sa, cz, playerList)
 	}
 
 	optional := cz.OptionalTrue
@@ -782,7 +782,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 		implicitShuffle := !cz.DefinedLibraryPosition && len(moved) > 0 &&
 			(cz.NoLooking || (c != nil && c.Search.DeferredShuffle))
 		if !preserveDeferredRest && (cz.ShuffleTrue || implicitShuffle) {
-			shuffleLibrary(h, cz, f.owner)
+			payDeferredShuffle(h, c, cz, f.owner)
 		}
 		placeLibraryObjects(h, c, cz, f.owner, moved, to)
 		// Explicit Reveal$ on a Defined$ fetch list (Forge reveals movedCards
@@ -795,6 +795,72 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParam
 	}
 	scheduleAtEOT(h, c, sa, ateotMoved)
 	return true
+}
+
+// deferSearchShuffle records whether this search suppressed its own shuffle
+// (Shuffle$ False / NoShuffle$ True) and so owes the chain's "Then shuffle" at
+// the next Defined$ placement leg, and whose library that shuffle randomizes.
+func deferSearchShuffle(c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) {
+	c.Search.DeferredShuffle = !cz.ShuffleTrue && (cz.ShuffleFalse || cz.NoShuffle)
+	c.Search.DeferredShuffleOwner = owner
+}
+
+// payDeferredShuffle pays owner's shuffle for a Defined$ placement leg and, if
+// that shuffle is the one that discharges a search's deferred "Then shuffle"
+// (Ctx.Search.DeferredShuffle), clears the obligation so no later leg pays it
+// again. An SA that opts out (NoShuffle$ True / Shuffle$ False) pays nothing.
+func payDeferredShuffle(h Host, c *Ctx, cz *ChangeZoneParams, owner state.PlayerID) {
+	if cz.NoShuffle || cz.ShuffleFalse {
+		return
+	}
+	shuffleLibrary(h, cz, owner)
+	if c != nil && c.Search.DeferredShuffleOwner == owner {
+		c.Search.DeferredShuffle = false
+	}
+}
+
+// emptyDefinedFetch ends a Defined$ library fetch whose list holds no object
+// and reports whether the fetch is consumed (a player-only list is not: it
+// names whose library to search). A consumed empty fetch moves nothing, but a
+// search earlier in the chain that deferred its shuffle to this leg still
+// owes it: the search happened, so "Then shuffle" is paid once whatever it
+// found (CR 701.24a). Nissa's Pilgrimage finding one Forest is the carrier:
+// the battlefield leg takes it, DBHand's Defined$ Remembered is empty, and
+// XMage still shuffles (SearchLibraryPutOntoBattlefieldTappedRestInHandEffect).
+// A chain that closes with an explicit DB$ Shuffle pays the deferral there, so
+// this leg must not shuffle as well (Celestial Reunion, Guidelight Pathmaker,
+// Archdruid's Charm, Ruin in Their Wake, Treasure Chest and Nazahn all close
+// their Shuffle$ False search with DB$ Shuffle).
+func emptyDefinedFetch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, playerList bool) bool {
+	if playerList {
+		return false
+	}
+	if c != nil && c.Search.DeferredShuffle &&
+		!chainPaysDeferredShuffle(c, sa, c.Search.DeferredShuffleOwner) {
+		c.Search.DeferredShuffle = false
+		shuffleLibrary(h, cz, c.Search.DeferredShuffleOwner)
+	}
+	return true
+}
+
+// chainPaysDeferredShuffle reports whether an explicit DB$ Shuffle later in
+// sa's SubAbility$ chain shuffles owner's library. Such a Shuffle discharges
+// the search's deferred "Then shuffle"; paying it at the empty Defined$ fetch
+// too would emit two Shuffle events and consume the RNG twice.
+func chainPaysDeferredShuffle(c *Ctx, sa *cards.SA, owner state.PlayerID) bool {
+	if c == nil || sa == nil || c.Controller != owner {
+		return false
+	}
+	for n := sa.Sub; n != nil; n = n.Sub {
+		if n.APIKind() != cards.APIShuffle {
+			continue
+		}
+		ref := DefinedRefOf(n)
+		if !ref.Set() || ref.Kind == RefYou {
+			return true
+		}
+	}
+	return false
 }
 
 // deferredDigImprintReturn is the return leg of the same named deferred
@@ -1606,7 +1672,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owne
 	// library shuffle tail.
 	scheduleAtEOT(h, c, sa, moved)
 	if searchedLib {
-		c.Search.DeferredShuffle = !cz.ShuffleTrue && (cz.ShuffleFalse || cz.NoShuffle)
+		deferSearchShuffle(c, cz, owner)
 		searchShuffleTail(h, c, cz, owner, moved, to)
 	}
 }
