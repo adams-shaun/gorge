@@ -1098,9 +1098,12 @@ func (s *State) ovStaticOn(k *prep, sl Slot) bool {
 }
 
 // walkAllSeed is the layer-4 changeling seed (CR 613.3): a printed changeling
-// (printed, not face down) unless a copy exception replaced the subtypes, or a
-// copy exception's own changeling (exc: the exceptions apply).
+// (printed, not face down) through the copy exceptions in order when they
+// apply (exc), so a copy's own changeling grants every creature type and a
+// later setter ends it.
 func (s *State) walkAllSeed(k *prep, sl Slot, printed, exc bool) bool {
-	cpx := s.fxM.has(sl) && k.gen.cpxSub
-	return printed && !(cpx && s.copyExcSetsSub(k, sl)) || exc && cpx && s.copyExcAll(k, sl)
+	if !(exc && s.fxM.has(sl) && k.gen.cpxSub) {
+		return printed
+	}
+	return s.copyExcAll(k, sl, printed)
 }
