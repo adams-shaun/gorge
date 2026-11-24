@@ -944,6 +944,7 @@ OppExtHand	untyped int	3
 OppExtLife	untyped int	2
 OppExtLifeLost	untyped int	8
 OppExtLowest	untyped int	256
+OppExtMemberExpr	untyped int	9
 OppExtNonTrigPl	untyped int	512
 OppExtSpellsCast	untyped int	7
 OppExtValid	untyped int	5
