@@ -368,13 +368,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			return false
 		}
 	}
-	if v, ok := t.Param(cards.PKManaNotSpent); ok && !e.manaColourSpendHolds(source, tc, "", v) {
-		return false
-	}
-	if v, ok := t.Param(cards.PKManaSpent); ok && !e.manaColourSpendHolds(source, tc, v, "") {
-		return false
-	}
-	if spent, notSpent, ok := selfETBInterveningManaSpent(t); ok && !e.manaColourSpendHolds(source, tc, spent, notSpent) {
+	if !e.manaSpentTriggerGateHolds(t, source, tc) {
 		return false
 	}
 	if v, ok := t.Param(cards.PKAdamant); ok {
@@ -475,6 +469,24 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 		// CR 603.4 intervening-if (Servant of the Stinger's "if you've
 		// committed a crime this turn"). Evaluated for EVERY trigger mode,
 		// and a predicate this build cannot read fails closed.
+		return false
+	}
+	return true
+}
+
+// manaSpentTriggerGateHolds is the trigger-side spend gate: the trigger
+// line's own ManaNotSpent$ / ManaSpent$ clauses plus the self-ETB body
+// ConditionManaSpent$ intervening-if, all evaluated through the same
+// manaColourSpendHolds read. A trigger with none of the spellings holds
+// vacuously.
+func (e *Engine) manaSpentTriggerGateHolds(t cards.Trigger, source state.ObjID, tc *effects.TriggerContext) bool {
+	if v, ok := t.Param(cards.PKManaNotSpent); ok && !e.manaColourSpendHolds(source, tc, "", v) {
+		return false
+	}
+	if v, ok := t.Param(cards.PKManaSpent); ok && !e.manaColourSpendHolds(source, tc, v, "") {
+		return false
+	}
+	if spent, notSpent, ok := selfETBInterveningManaSpent(t); ok && !e.manaColourSpendHolds(source, tc, spent, notSpent) {
 		return false
 	}
 	return true

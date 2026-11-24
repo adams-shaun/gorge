@@ -196,7 +196,7 @@ engine/rules (*Engine).replacementMatchesRememberedUngatedBy	714	190
 engine/rules (*Engine).resolveTop	785	105
 engine/rules (*Engine).staticEffectsWalk	781	132
 engine/rules (*Engine).targetAsk	345	68
-engine/rules (*Engine).triggerConditionHoldsWithSVars	221	55
+engine/rules (*Engine).triggerConditionHoldsWithSVars	221	52
 engine/rules (*Engine).triggerReferents	517	91
 engine/rules (*Engine).triggeredCostAnswer	259	59
 engine/rules (*Engine).xAsk	426	85
