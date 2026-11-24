@@ -63,8 +63,10 @@ func tapAnyColAnswerSplit(c int) (ai, forced int) { return c & 15, c >> 4 }
 
 // anyColForcedAt is the reserved byte that holds the count of carriers whose
 // colour answer a search forced (zero: the deterministic fill, one answer for
-// every carrier).
-const anyColForcedAt = 3
+// every carrier). rsv[3] is the second-pass flag (anyColOwedRun,
+// mana_tapextra.go), so the count sits past rsv[1] and rsv[2], the per-unit
+// answers anyColExtraColour reads.
+const anyColForcedAt = 4
 
 // forceAnyColAnswers records the packed answers of tapAnyColAnswerBits as the
 // pending tap's any-colour extra answers, carrier by carrier (anyColExtraColour's
