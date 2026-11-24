@@ -2249,7 +2249,7 @@ type genState struct {
 	room    [MaxSeats]uint8
 	dObj    [MaxSeats]Obj
 	retMiss bool             // the last OpReturnEx returned nothing (its StaticEffect rider then applies to nothing)
-	ewDone  uint8            // returns that applied their OvEnterWith override as the object entered, not yet spent by the override op (a union return runs it once per object; zone_assimilate.go)
+	ewDone  uint8            // returns that applied their OvEnterWith override as the object entered, their override ops still to skip (a union return makes several; zone_assimilate.go)
 	ewPend  bool             // a return's OvEnterWith override waits for its entrant: enterGen applies it before the as-enters replacements (zone_assimilate.go)
 	retAt   uint8            // the remembered object a many-object return is moving, + 1 (0 = none; returnrem.go)
 	retTS   uint16           // the entry stamp a many-object return started at: its entrants are the ones after it
