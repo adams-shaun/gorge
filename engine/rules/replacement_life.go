@@ -204,6 +204,17 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 	return out
 }
 
+// lifeReplIsDamageOnly reports a replacement that reads IsDamage$ True: it
+// modifies damage dealt to the player, not a bare life change.
+func lifeReplIsDamageOnly(r *cards.Repl) bool {
+	return strings.EqualFold(r.ParamStr(cards.PKIsDamage), "True")
+}
+
+// lifeReplPrevents reports a replacement that reads Prevent$ True.
+func lifeReplPrevents(r *cards.Repl) bool {
+	return strings.EqualFold(r.ParamStr(cards.PKPrevent), "True")
+}
+
 func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
 		if candidate.key != "" || m.key != "" {
@@ -224,7 +235,7 @@ func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 // a candidate, so it never occupies an order choice.
 func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *cards.Repl, p state.PlayerID, loss int32) bool {
 	if r.Event == "GainLife" {
-		if strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") {
+		if lifeReplPrevents(r) {
 			return true
 		}
 		if !e.replacementCondition(source, r) || r.ParamStr(cards.PKValidSource) != "" {
@@ -235,7 +246,7 @@ func (e *Engine) lifeReplacementApplies(ev events.Event, source state.ObjID, r *
 		}
 		return r.With != nil && (r.With.API == "LoseLife" || r.With.API == "Draw")
 	}
-	if strings.EqualFold(r.ParamStr(cards.PKIsDamage), "True") && ev.Kind != events.Damage {
+	if lifeReplIsDamageOnly(r) && ev.Kind != events.Damage {
 		return false
 	}
 	if strings.EqualFold(r.ParamStr(cards.PKPlayerTurn), "True") && e.G.Active != e.controllerOf(source) {
@@ -270,7 +281,7 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 	kind := ""
 	for _, m := range cands {
 		op, ok := e.replaceCountOp(m.id, m.repl, name)
-		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op)
+		floor := ok && isLifeFloor(m.repl.ParamStr(cards.PKResult), op) && lifeReplIsDamageOnly(m.repl)
 		if m.repl.ParamStr(cards.PKResult) != "" && !floor {
 			return false
 		}
@@ -278,7 +289,7 @@ func (e *Engine) lifeReplacementsCommute(ev events.Event, cands []replMatch) boo
 		switch {
 		case floor:
 			k = "floor"
-		case m.repl.Event == "GainLife" && strings.EqualFold(m.repl.ParamStr(cards.PKPrevent), "True"):
+		case m.repl.Event == "GainLife" && lifeReplPrevents(m.repl):
 			k = "prevent"
 		case ok && op == "/Twice":
 			k = "twice"
@@ -309,7 +320,7 @@ func isLifeFloor(result, op string) bool {
 func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Event, bool) {
 	r := m.repl
 	if r.Event == "GainLife" {
-		if strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") {
+		if lifeReplPrevents(r) {
 			e.emit(events.Event{Kind: events.Note, Player: ev.Player, Text: "prevented: cannot gain life"})
 			return ev, true
 		}
