@@ -602,9 +602,14 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	// (a ChoosePlayer follow-up) reveal nothing: a player is not hidden.
 	reveal := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKReveal)), "True")
 	each := chooseEachGroups(sa)
+	// EachDifferentPower$ (Celestial Judgment) is the same per-group walk
+	// with one group per distinct power among the Choices$ matches.
+	powers := chooseCardEachPowers(h, &selection, sa, choosers)
 	groups := 1
 	if each != nil {
 		groups = len(each)
+	} else if powers != nil {
+		groups = len(powers)
 	}
 	// WithTotalPower$ is a cumulative power budget over the picked cards
 	// (Slaughter the Strong's "each player chooses any number of creatures
@@ -646,6 +651,8 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		choices := cardChoices(h, &selection, sa, chooser)
 		if each != nil {
 			choices = chooseEachPool(h, h.Game(), &selection, choices, chooser, each[i%groups])
+		} else if powers != nil {
+			choices = chooseCardPowerPool(h, choices, powers[i%groups])
 		}
 		// A card whose own power exceeds the budget can never be picked,
 		// however few are taken (effDig's `affordable` rule): narrow the pool
@@ -670,6 +677,9 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		// choice below records nothing, exactly like Forge's per-type loop
 		// with no candidate of that type.
 		min, max := minBase, maxBase
+		if powers != nil {
+			min, max = 1, 1 // "choose a creature with that power": exactly one
+		}
 		if max > len(choices) {
 			max = len(choices)
 		}
@@ -691,7 +701,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 				min = len(greedy)
 			}
 		}
-		if each == nil && strings.EqualFold(sa.ParamStr(cards.PKAtRandom), "True") {
+		if each == nil && powers == nil && strings.EqualFold(sa.ParamStr(cards.PKAtRandom), "True") {
 			chooseCardRecord(h, c, sa, randomChoices(h, choices, max))
 			continue
 		}
@@ -742,6 +752,39 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	// The walk completed: release the ride (the same boundary the search and
 	// hidden walks end at), so a later ability in the chain cannot inherit it.
 	endForgetOtherSnapshot(c)
+}
+
+// chooseCardEachPowers is EachDifferentPower$'s group list: the distinct
+// powers among the Choices$ matches, ascending -- Forge's ChooseCardEffect
+// collects the distinct net powers, sorts them, then asks one pick per
+// power (CR 608.2c: "for each different power ... choose a creature with
+// that power"). Powers are read once at entry from the first chooser's pool:
+// choosing changes no power, so a resumed walk recomputes the same list.
+// Absent the param it is nil and the walk is unchanged.
+func chooseCardEachPowers(h Host, c *Ctx, sa *cards.SA, choosers []state.PlayerID) []int {
+	if !ChooseCardOf(sa).EachDifferentPower || len(choosers) == 0 {
+		return nil
+	}
+	powers := []int{}
+	for _, t := range cardChoices(h, c, sa, choosers[0]) {
+		if p := chooseCardPower(h, t.Obj); !slices.Contains(powers, p) {
+			powers = append(powers, p)
+		}
+	}
+	slices.Sort(powers)
+	return powers
+}
+
+// chooseCardPowerPool narrows one EachDifferentPower$ group's pool to the
+// candidates whose current power is that group's power.
+func chooseCardPowerPool(h Host, pool []state.Target, power int) []state.Target {
+	out := make([]state.Target, 0, len(pool))
+	for _, t := range pool {
+		if chooseCardPower(h, t.Obj) == power {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 // chooseCardPower is the offered card's current power -- the WithTotalPower$
