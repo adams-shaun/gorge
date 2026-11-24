@@ -26,7 +26,7 @@ const (
 	// engineMethodCount is the number of non-test methods on rules.Engine.
 	// Below the measured count (2422): a branch may not lower a ratchet
 	// constant (cmd/checkratchet); a follow-up change on main lowers it.
-	engineMethodCount = 2421
+	engineMethodCount = 2420
 	// hostMethodCount is the number of methods in the effects.Host interface
 	// (its whole method set, roles included).
 	hostMethodCount = 97
@@ -168,10 +168,10 @@ const (
 	// string literal plus strings.EqualFold calls with a literal argument: the
 	// if-chain spelling of the `case "X":` dispatch stringCaseLiterals froze
 	// at zero.
-	stringLiteralCompares = 2756
+	stringLiteralCompares = 2755
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
-	rawBoolParamParses = 266
+	rawBoolParamParses = 264
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper
