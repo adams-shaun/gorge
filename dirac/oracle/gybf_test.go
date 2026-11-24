@@ -147,8 +147,12 @@ func TestGybfLockstep(t *testing.T) {
 	if st.finality < 10 {
 		t.Errorf("%d FINALITY returns, want >= 10", st.finality)
 	}
-	if st.foreign < 5 {
-		t.Errorf("%d returns of an opponent's card under the controller, want >= 5", st.foreign)
+	// #2852 made Count$ResolvedThisTurn per object (CR 400.7: "this ability"),
+	// so Victor's third Eerie resolution needs three enchantments under one
+	// Victor; four Victors no longer share a count. 256 and 320 seeds both
+	// reach 4 such returns since, from 5+ before.
+	if st.foreign < 3 {
+		t.Errorf("%d returns of an opponent's card under the controller, want >= 3", st.foreign)
 	}
 }
 
