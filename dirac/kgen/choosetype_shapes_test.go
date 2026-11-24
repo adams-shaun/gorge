@@ -63,10 +63,9 @@ func TestChooseTypeShapes(t *testing.T) {
 	// A spelling the five-label ask cannot answer refuses, never lowers
 	// silently as a plain Basic Land ask.
 	for name, src := range map[string]string{
-		"AtRandom":     strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | AtRandom$ True", 1),
-		"InvalidTypes": strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | InvalidTypes$ Island", 1),
-		"ValidTypes":   strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | ValidTypes$ Island,Swamp", 1),
-		"Defined":      strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | Defined$ Player.Opponent", 1),
+		"AtRandom":   strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | AtRandom$ True", 1),
+		"ValidTypes": strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | ValidTypes$ Island,Swamp", 1),
+		"Defined":    strings.Replace(basic, "Type$ Basic Land", "Type$ Basic Land | Defined$ Player.Opponent", 1),
 	} {
 		if len(lowerSynth(t, src).Refusals) == 0 {
 			t.Errorf("as-enters Basic Land with %s lowers, want a refusal", name)

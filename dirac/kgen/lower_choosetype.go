@@ -135,13 +135,18 @@ func (lc *lowerCtx) chooseBasicLandType(ps *params) error {
 // Land") list whether the choice is as-enters or mid-resolution) to the enters
 // program's OpChooseType with B = kop.ChooseTypeBasicLand. The answer is the
 // chosen type's matchup subtype index in the permanent's chosen, the byte an
-// AddType$ ChosenType static and a ChosenType filter read. A narrowed pool, a
-// random pick or a secret answer refuses.
+// AddType$ ChosenType static and a ChosenType filter read. InvalidTypes$ narrows the
+// pool through A's mask; a ValidTypes$ pool, a random pick or a secret answer
+// refuses.
 func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
-	for _, k := range []string{"AtRandom", "ValidTypes", "InvalidTypes", "Secretly"} {
+	for _, k := range []string{"AtRandom", "ValidTypes", "Secretly"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("ChooseType Basic Land %s$", k)
 		}
+	}
+	mask, err := basicLandInvalidMask(ps)
+	if err != nil {
+		return err
 	}
 	// ETB$ True (Multiversal Passage): Forge's marker that the DB body runs
 	// as the permanent enters — the Moved-to-battlefield replacement's scope
@@ -149,8 +154,43 @@ func (lc *lowerCtx) chooseBasicLandEnter(ps *params) error {
 	if v, ok := ps.get("ETB"); ok && strings.TrimSpace(v) != "True" {
 		return refuse("ChooseType Basic Land ETB$ %q", v)
 	}
-	lc.emit(lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeBasicLand), Note: "as-enters choice among the basic land types"})
+	in := lInstr{Op: "ChooseType", Obj: lRef{Kind: rYou}, B: cst(kop.ChooseTypeBasicLand), Note: "as-enters choice among the basic land types"}
+	if mask != 0 {
+		in.A = cst(mask)
+	}
+	lc.emit(in)
 	return nil
+}
+
+// basicLandInvalidMask reads an as-enters Basic Land ask's InvalidTypes$ into
+// the excluded-type mask the instruction's A carries (bit i = basicLandChoice[i],
+// kop.ChooseTypeBasicLand). gorge's effects.TypeChoiceLabels drops the same
+// labels case-insensitively and keeps the vocabulary order; with fewer than two
+// labels left gorge poses no ask (effChooseType's deterministic fallback), which
+// the kernel's ask would not match, so that refuses.
+func basicLandInvalidMask(ps *params) (int, error) {
+	list, ok := ps.get("InvalidTypes")
+	if !ok {
+		return 0, nil
+	}
+	mask := 0
+	for _, w := range strings.Split(list, ",") {
+		w = strings.TrimSpace(w)
+		found := false
+		for i, c := range basicLandChoice {
+			if strings.EqualFold(c, w) {
+				mask |= 1 << i
+				found = true
+			}
+		}
+		if !found {
+			return 0, refuse("ChooseType Basic Land InvalidTypes %q", w)
+		}
+	}
+	if len(basicLandChoice)-bits.OnesCount(uint(mask)) < 2 {
+		return 0, refuse("ChooseType Basic Land InvalidTypes$ leaves fewer than two types (gorge's no-ask fallback)")
+	}
+	return mask, nil
 }
 
 // animateChosenLandType lowers the Animate half on obj: the grant without

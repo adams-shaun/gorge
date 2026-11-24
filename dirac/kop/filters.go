@@ -313,7 +313,10 @@ const OvChosenType = 3
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the
-// chosen type's matchup subtype index.
+// chosen type's matchup subtype index. An as-enters ask (the enters program's
+// OpChooseType) may carry A = a constant mask of the excluded types
+// (InvalidTypes$): bit i is the i-th of Forest, Island, Mountain, Plains,
+// Swamp; A = 0 offers all five. The mid-resolution ask ignores A.
 const ChooseTypeBasicLand = 2
 
 // ChooseTypeRandomDeck, in a mid-resolution OpChooseType's B field: the
