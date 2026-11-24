@@ -51,7 +51,7 @@ func (s *State) addContract(k *prep, p uint8, n int) {
 // counters. A nonzero C marks the put as made by Miss Highwater's loss Effect
 // (kop.Instr.C of the ext op, 0 in every table kgen emits until its lowering
 // arms that Effect): the resolving controller then owes the player's loss copy
-// (ctr_contract_losscopy.go). With C zero no record is made, as gorge arms
+// (ctr_losscopy.go). With C zero no record is made, as gorge arms
 // nothing for the Effect.
 //
 //kmanifest:ext ExtPutContract
@@ -61,7 +61,7 @@ func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
 	for i := uint8(0); i < q.n; i++ {
 		s.addContract(k, q.s[i], n)
 		if in.C != 0 && s.contracts(q.s[i]) != 0 {
-			s.setContractOwed(q.s[i], s.res.e.ctrl) // the Effect's loss copy (ctr_contract_losscopy.go)
+			s.setContractOwed(q.s[i], s.res.e.ctrl) // the Effect's loss copy (ctr_losscopy.go)
 		}
 	}
 	return true, true
