@@ -49,3 +49,29 @@ func landTypeSetter(v string, st *lStatic, o *lOverride, removesTypes bool) erro
 	o.SetLandSub, o.LoseAbilities = true, true
 	return nil
 }
+
+// animateLandTypeSetter reads an Animate's RemoveLandTypes$ True beside a
+// literal basic-land Types$ ("target land becomes a Swamp": Cyclopean Giant,
+// Floodchaser, Deepwood Elder, Tide Shaper): the same CR 305.7 record the
+// static form and the chosen-type Animate (animateChosenLandType) write, the
+// override's SetLandSub beside LoseAbilities, its words in AddSubtypes. Any
+// other type change on the record, or a RemoveAllAbilities$ of its own (a
+// layer-6 loss with a timestamp the layer-4 one has not), refuses.
+func animateLandTypeSetter(o *lOverride, removeAll bool) error {
+	if removeAll || o.HasSetTypes || o.SetTypes != 0 || o.AddTypes != 0 || o.RemoveTypes != 0 ||
+		o.RemoveCreatureSub || o.AllCreatureTypes || o.LoseAbilities || len(o.SetSubtypes) != 0 {
+		return refuse("Animate RemoveLandTypes$ beside another type change or a lose-all")
+	}
+	if len(o.AddSubtypes) == 0 {
+		return refuse("Animate RemoveLandTypes$ adds no basic land type")
+	}
+	for _, w := range o.AddSubtypes {
+		switch w {
+		case "Plains", "Island", "Swamp", "Mountain", "Forest":
+		default:
+			return refuse("Animate RemoveLandTypes$ adds %q", w)
+		}
+	}
+	o.SetLandSub, o.LoseAbilities = true, true
+	return nil
+}
