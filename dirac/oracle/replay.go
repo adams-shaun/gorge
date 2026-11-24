@@ -55,7 +55,7 @@ func RulesChance(tr []ChanceDraw) []rules.ChanceDraw {
 // outcomes (forced on gorge, so a kernel game from a redealt or reseeded
 // world replays too).
 type KernelGame struct {
-	Format      string      `json:"format"` // "koracle-game-2"
+	Format      string      `json:"format"` // "koracle-game-2"; "koracle-game-3" with a Start
 	Decks       [2]string   `json:"decks"`
 	Cards       [2][]string `json:"cards"`
 	Seed        uint64      `json:"seed"`
@@ -65,6 +65,10 @@ type KernelGame struct {
 	Commander  bool  `json:"commander,omitempty"`
 	Commanders []int `json:"commanders,omitempty"`
 	Partners   []int `json:"partners,omitempty"`
+	// Start is the matchup's scripted start (Repro.Start): the position the
+	// game opened in, which gorge's replay opens in too. Absent for an
+	// ordinary game; a game with one is koracle-game-3.
+	Start *rules.StartSpec `json:"-"`
 	// AutopaySurface: the game was played on gorge's autopay surface
 	// (Config.GorgeAutopaySurface), so gorge replays its plain casts as
 	// planned casts, never by lowering a potential play
@@ -78,6 +82,9 @@ type KernelGame struct {
 
 const (
 	gameFormat = "koracle-game-2"
+	// gameFormat3 is a game that carries a scripted start, and only such a
+	// game (reproFormat3).
+	gameFormat3 = "koracle-game-3"
 	// gameFormat1 is the format before the target byte was repacked
 	// (repro.go, format1Ref).
 	gameFormat1 = "koracle-game-1"
@@ -142,6 +149,9 @@ func ProjectionHash(p *Projection) uint64 {
 func RecordKernelGame(m *Matchup, seed uint64, k Side, pol Policy, cfg Config, maxDecisions int) *KernelGame {
 	g := &KernelGame{Format: gameFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans, PassElision: cfg.PassElision, Winner: -1}
 	g.Commander, g.Commanders, g.Partners = m.commanderFields()
+	if m.Start != nil {
+		g.Format, g.Start = gameFormat3, m.Start
+	}
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			g.Cards[s] = append(g.Cards[s], cardName(c))
@@ -190,6 +200,13 @@ func ReadKernelGame(path string) (*KernelGame, error) {
 	}
 	switch g.Format {
 	case gameFormat:
+		if g.Start != nil {
+			return nil, fmt.Errorf("game %s: format %q with a start, want %q", path, g.Format, gameFormat3)
+		}
+	case gameFormat3:
+		if g.Start == nil {
+			return nil, fmt.Errorf("game %s: format %q without a start", path, g.Format)
+		}
 	case gameFormat1:
 		// The recorded projection hashes encode the old Ref bytes and cannot
 		// be translated; a replay without them compares actions only.
@@ -204,7 +221,7 @@ func ReadKernelGame(path string) (*KernelGame, error) {
 
 // Matchup rebuilds the game's matchup from its card names.
 func (g *KernelGame) Matchup(reg *cards.Registry) (*Matchup, error) {
-	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans, Commander: g.Commander, Commanders: g.Commanders, Partners: g.Partners}
+	r := Repro{Decks: g.Decks, Cards: g.Cards, Mulligans: g.Mulligans, Commander: g.Commander, Commanders: g.Commanders, Partners: g.Partners, Start: g.Start}
 	return r.Matchup(reg)
 }
 

@@ -14,7 +14,7 @@ import (
 // run's knobs and the canonical action prefix that reached the divergence.
 // It is the JSON a fuzz run writes and `kfuzz -repro` replays.
 type Repro struct {
-	Format string      `json:"format"` // "koracle-repro-2"
+	Format string      `json:"format"` // "koracle-repro-2"; "koracle-repro-3" with a Start
 	Decks  [2]string   `json:"decks"`
 	Cards  [2][]string `json:"cards"` // each deck's card names in decklist order
 	// MoreDecks and MoreCards are a game of more than two seats' further
@@ -53,6 +53,12 @@ type Repro struct {
 	// prefix to be served whole. Both are absent when false.
 	Named  bool `json:"named,omitempty"`
 	Served bool `json:"served,omitempty"`
+	// Start is the matchup's scripted start (Matchup.Start), carried inline so
+	// the replay opens in the position the game was played from. It is deck
+	// indices into Cards, as the matchup holds them. Absent for an ordinary
+	// game, which stays koracle-repro-2; a repro with one is koracle-repro-3
+	// (repro_wire.go writes it).
+	Start *rules.StartSpec `json:"-"`
 	// Actions is the canonical prefix.
 	Actions []Canon `json:"actions"`
 	// Chance, when set, forces the gorge side's random outcomes
@@ -73,6 +79,10 @@ type ShrinkInfo struct {
 
 const (
 	reproFormat = "koracle-repro-2"
+	// reproFormat3 is a repro that carries a scripted start (Repro.Start),
+	// and only such a repro: every other one stays koracle-repro-2, so the
+	// corpus and a reader that predates the start read what they always did.
+	reproFormat3 = "koracle-repro-3"
 	// reproFormat1 is the format before the target byte was repacked
 	// (RefStack 0xE0, RefPlayer 0xF0, MaxInst 224): ReadRepro maps its
 	// actions to the current bytes.
@@ -111,6 +121,9 @@ func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 	r := &Repro{Format: reproFormat, Decks: m.Names, Seed: seed, Mulligans: m.Mulligans,
 		PassElision: rc.PassElision, MaxTurns: rc.MaxTurns, Surface: SurfaceName(rc.Config), Divergence: res.Div}
 	r.Commander, r.Commanders, r.Partners = m.commanderFields()
+	if m.Start != nil {
+		r.Format, r.Start = reproFormat3, m.Start
+	}
 	for s := 0; s < 2; s++ {
 		for _, c := range m.Decks[s] {
 			r.Cards[s] = append(r.Cards[s], cardName(c))
@@ -168,6 +181,12 @@ func (r *Repro) Matchup(reg *cards.Registry) (*Matchup, error) {
 		return nil, err
 	}
 	m.setCommander(r.Commander, r.Commanders, r.Partners)
+	if r.Start != nil {
+		if len(r.Start.Seats) != len(lists) {
+			return nil, fmt.Errorf("repro: a start for %d seats in a game of %d", len(r.Start.Seats), len(lists))
+		}
+		m.Start = r.Start
+	}
 	return m, nil
 }
 
@@ -256,8 +275,14 @@ func ReadRepro(path string) (*Repro, error) {
 	if err := json.Unmarshal(b, &r); err != nil {
 		return nil, err
 	}
-	if r.Format != reproFormat {
-		return nil, fmt.Errorf("repro %s: format %q, want %q", path, r.Format, reproFormat)
+	switch {
+	case r.Format == reproFormat3 && r.Start != nil, r.Format == reproFormat && r.Start == nil:
+	case r.Format == reproFormat3:
+		return nil, fmt.Errorf("repro %s: format %q without a start", path, r.Format)
+	case r.Format == reproFormat:
+		return nil, fmt.Errorf("repro %s: format %q with a start, want %q", path, r.Format, reproFormat3)
+	default:
+		return nil, fmt.Errorf("repro %s: format %q, want %q (%q with a start)", path, r.Format, reproFormat, reproFormat3)
 	}
 	return &r, nil
 }
