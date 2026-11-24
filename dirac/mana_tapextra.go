@@ -1181,3 +1181,19 @@ func (s *State) tapAnyColDeferExtra(k *prep, m slotMask) bool {
 	}
 	return false
 }
+
+// prefixAnyProbe is scriptPrefixAny's availX for its "does the plain walk list
+// this play" probe. On a filterless board whose Taps-deferred gap brings an
+// any-colour StatTapExtra, actScriptPaysCost lists a play only the gap search
+// pays (tapAnyColDeferExtra). That listing is the script's own, not the plain
+// census's, so it must not stop the prefix from tapping the gap. Otherwise the
+// mana step's plan taps the land without the trigger's extra, while gorge's
+// tap resolves it (Dawn's Reflection on the Mountain paying Shiv's Embrace's
+// {R} floats the two extra mana in gorge only). This is the availNoActScript
+// probe scriptPrefix uses; elsewhere the probe stays the full listing.
+func (s *State) prefixAnyProbe(k *prep, p uint8) uint16 {
+	if !s.scriptFilt(k, p).any() && s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
+		return availNoActScript
+	}
+	return 0
+}
