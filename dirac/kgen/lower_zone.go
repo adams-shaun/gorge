@@ -3287,6 +3287,45 @@ func (lc *lowerCtx) animate(ps *params) error {
 // emits five records differing only in SetColors).
 // obj is the one object the Animate reaches when the caller knows it is the
 // source (rSelf); a self-bound granted static reads it.
+// animateColors reads the Colors$/OverwriteColors$ pair onto the override
+// (layer 5). It returns ret=true when the override is already complete — the
+// chosen-colour grant ends the read there — and the caller must return it.
+func (lc *lowerCtx) animateColors(ps *params, o *lOverride) (ret bool, err error) {
+	c, ok := ps.get("Colors")
+	if !ok {
+		return false, nil
+	}
+	// gorge animateGrant: Colors$ with OverwriteColors$ True REPLACES
+	// the object's colours (layer 5, CR 613.1e; the Restless lands'
+	// "becomes a red and white Ox"); without it the colours are added,
+	// which the override record's AddColors expresses
+	overwrite := ps.is("OverwriteColors", "True")
+	if strings.EqualFold(strings.TrimSpace(c), "ChosenColor") {
+		if !overwrite {
+			return false, refuse("Animate Colors$ without OverwriteColors$")
+		}
+		// gorge combatfx animateGrant resolves
+		// the token alone to the source's ChosenColor AT RESOLUTION
+		// (failing closed to no grant when unset); a mixed list keeps
+		// refusing here. The preceding ChooseColorRes is what sets
+		// res.chosen for the caller's five records.
+		if !lc.colGrant {
+			return false, refuse("Animate Colors$ %q outside a chosen-colour grant", c)
+		}
+		return true, nil
+	}
+	cols, ok := colorWordSet(c)
+	if !ok {
+		return false, refuse("Animate Colors$ %q", c)
+	}
+	if overwrite {
+		o.HasSetColors, o.SetColors = true, cols
+	} else {
+		o.AddColors = cols // ORed in at layer 5
+	}
+	return false, nil
+}
+
 func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, bool, error) {
 	o := &lOverride{}
 	dur := "EOT"
@@ -3351,6 +3390,11 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 			o.RemoveCreatureSub = rmCreat
 			o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 		}
+		if ps.is("RemoveLandTypes", "True") {
+			if err := animateLandTypeSetter(o, ps.is("RemoveAllAbilities", "True")); err != nil { // lower_landtypesetter.go
+				return nil, "", false, err
+			}
+		}
 	}
 	if err := lc.animateRemoveEnchantmentTypes(ps, o); err != nil { // lower_animateaura.go
 		return nil, "", false, err
@@ -3358,35 +3402,12 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 	if ps.is("AddAllCreatureTypes", "True") {
 		o.AllCreatureTypes = true
 	}
-	if c, ok := ps.get("Colors"); ok {
-		// gorge animateGrant: Colors$ with OverwriteColors$ True REPLACES
-		// the object's colours (layer 5, CR 613.1e; the Restless lands'
-		// "becomes a red and white Ox"); without it the colours are added,
-		// which the override record's AddColors expresses
-		overwrite := ps.is("OverwriteColors", "True")
-		if strings.EqualFold(strings.TrimSpace(c), "ChosenColor") {
-			if !overwrite {
-				return nil, "", false, refuse("Animate Colors$ without OverwriteColors$")
-			}
-			// gorge combatfx animateGrant resolves
-			// the token alone to the source's ChosenColor AT RESOLUTION
-			// (failing closed to no grant when unset); a mixed list keeps
-			// refusing here. The preceding ChooseColorRes is what sets
-			// res.chosen for the caller's five records.
-			if !lc.colGrant {
-				return nil, "", false, refuse("Animate Colors$ %q outside a chosen-colour grant", c)
-			}
-			return o, dur, true, nil
-		}
-		cols, ok := colorWordSet(c)
-		if !ok {
-			return nil, "", false, refuse("Animate Colors$ %q", c)
-		}
-		if overwrite {
-			o.HasSetColors, o.SetColors = true, cols
-		} else {
-			o.AddColors = cols // ORed in at layer 5
-		}
+	ret, err := lc.animateColors(ps, o)
+	if err != nil {
+		return nil, "", false, err
+	}
+	if ret {
+		return o, dur, true, nil
 	}
 	if sv, ok := ps.get("sVars"); ok {
 		// the SVars the object gains: AI hints no rules reader consults
