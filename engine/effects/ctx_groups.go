@@ -334,6 +334,9 @@ type SearchInputs struct {
 	// shuffle (Shuffle$ False / NoShuffle$ True) and the chain still owes the
 	// "Then shuffle" at the next Defined$ placement leg.
 	DeferredShuffle bool
+	// DeferredShuffleOwner is the library the deferred shuffle randomizes:
+	// the owner the deferring search searched.
+	DeferredShuffleOwner state.PlayerID
 }
 
 // NumberInputs is the chosen and remembered numbers a Count$ reads.

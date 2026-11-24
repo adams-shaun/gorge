@@ -161,6 +161,7 @@ func (s *State) bounceRemember(k *prep, in *kop.Instr) {
 	}
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
+		s.emptyFetchShuffle(in) // zone_emptyfetchshuffle.go
 		return
 	}
 	if in.C&kop.MvPermOrSpell != 0 && s.bouncePermOrSpell(k, o) {
