@@ -59,7 +59,9 @@ func TestManaSpentInterveningIfForms(t *testing.T) {
 	}
 	var sb strings.Builder
 	dumpLIR(&sb, az)
-	if strings.Contains(sb.String(), "Adamant(n=8,") {
+	// A wrongly added header gate for Herald's "unless {U}" body would be
+	// the not-spent U read without the live bit: Adamant(n=9,...).
+	if strings.Contains(sb.String(), "Adamant(n=9,") {
 		t.Errorf("Azorius Herald: 'unless {U} was spent' body gained a queue-time gate:\n%s", sb.String())
 	}
 	if !strings.Contains(sb.String(), "Adamant(n=41,1,0)") {

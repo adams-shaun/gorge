@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // manaSpentCondition lowers a lone ConditionManaSpent$ / ConditionManaNotSpent$
@@ -74,18 +75,14 @@ func (lc *lowerCtx) selfETBBody() *lTrigger {
 // above) stays. "sacrifice it unless {C} was spent" bodies have no "if {"
 // description and are deliberately not matched.
 func (lc *lowerCtx) selfETBInterveningManaSpentCond(t cards.Trigger) (lCond, bool, error) {
-	if lc.adamantTrigger() == nil || t.Effect == nil {
-		return lCond{}, false, nil
-	}
-	desc := strings.ToLower(t.ParamStr(cards.PKTriggerDescription))
-	if !strings.Contains(desc, "if {") || !strings.Contains(desc, "was spent to cast it") {
-		return lCond{}, false, nil
-	}
-	spent := strings.TrimSpace(t.Effect.Params["ConditionManaSpent"])
-	notSpent := strings.TrimSpace(t.Effect.Params["ConditionManaNotSpent"])
+	spent, notSpent, ok := effects.SelfETBInterveningManaSpent(t)
 	switch {
-	case spent == "" && notSpent == "":
+	case !ok:
 		return lCond{}, false, nil
+	case lc.adamantTrigger() == nil:
+		// gorge gates this trigger at queue time; a shape the header read
+		// cannot carry would silently drop the gate, so refuse it.
+		return lCond{}, true, refuse("self-ETB intervening-if mana-spent gate outside the adamant trigger shape")
 	case spent != "" && notSpent != "":
 		return lCond{}, true, refuse("self-ETB intervening-if with both ConditionManaSpent$ and ConditionManaNotSpent$")
 	case spent != "":
