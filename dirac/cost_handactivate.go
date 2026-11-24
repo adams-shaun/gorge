@@ -122,7 +122,13 @@ func (s *State) handActFiltAffords(k *prep, p uint8, mana *kop.ManaCost, av *ava
 // tap-another source (Urza, Lord High Artificer's "Tap an untapped artifact:
 // Add {U}") is one relaxed unit, as the autopay planner's witness counts it.
 // Urza alone pays no {2}; beside an untapped Swamp he does (Jhessian Zombies'
-// typecycling, tail-64 pair 4, decisions 572 and 573). Cold, out of line.
+// typecycling, tail-64 pair 4, decisions 572 and 573). A live Combo Any source
+// beside a granted mana ability (Sage of the Maze beside Springleaf Parade's
+// tokens) opens gorge's potential walk in every colour, and its census-gap arm
+// prices the hand activation by the prefix search (Netherborn Phalanx's
+// transmute {1}{B}{B}): the gaps census holds no Combo Any mana, so the walk
+// lists the activation and grantCap's search (grantSearch) decides it, as it
+// does for a cast. Cold, out of line.
 //
 //go:noinline
 func (s *State) handActCensusPays(k *prep, p uint8, mana *kop.ManaCost, pd payDesc, av *avail) bool {
@@ -134,7 +140,7 @@ func (s *State) handActCensusPays(k *prep, p uint8, mana *kop.ManaCost, pd payDe
 	var t avail
 	s.availFor(k, p, &t)
 	s.g.availX = x
-	return t.affords(mana, pipMaskOf(mana), 0) || s.poolPaysAct(k, p, mana, pd) || s.sacRepeatPays(k, p, mana, pd)
+	return t.affords(mana, pipMaskOf(mana), 0) || s.poolPaysAct(k, p, mana, pd) || s.sacRepeatPays(k, p, mana, pd) || s.caOpenGrant(k, p)
 }
 
 // sacRepeatPays: a live sacrifice-any source whose cost sacrifices dedicated
