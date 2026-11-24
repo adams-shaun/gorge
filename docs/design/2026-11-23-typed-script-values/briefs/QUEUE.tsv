@@ -13,3 +13,8 @@ cc-16a-fe-rules-triggers	3	medium	cc-15a-fe-actions-al
 cc-16b-fe-statics-costs	3	high	cc-15a-fe-actions-al
 cc-20-gorgebe-skeleton	2	high	cc-10-fe-chars
 cc-31-lockstep	3	medium	cc-20-gorgebe-skeleton
+cc-21a-gorgebe-refs-filters	3	medium	cc-20-gorgebe-skeleton,cc-11-fe-refs,cc-12-fe-filters
+cc-21b-gorgebe-values-conds	3	medium	cc-20-gorgebe-skeleton,cc-13-fe-values,cc-14-fe-conds
+cc-22a-gorgebe-actions-player	3	medium	cc-15a-fe-actions-al,cc-15b-fe-actions-mz,cc-21a-gorgebe-refs-filters,cc-21b-gorgebe-values-conds
+cc-22b-gorgebe-actions-zones	3	medium	cc-15a-fe-actions-al,cc-15b-fe-actions-mz,cc-21a-gorgebe-refs-filters,cc-21b-gorgebe-values-conds
+cc-23-gorgebe-abilities	3	medium	cc-16a-fe-rules-triggers,cc-16b-fe-statics-costs,cc-22a-gorgebe-actions-player,cc-22b-gorgebe-actions-zones
