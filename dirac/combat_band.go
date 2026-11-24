@@ -13,8 +13,8 @@ package dirac
 // Band formation itself (CR 702.22d-k: the band blocked as a group, the
 // damage division choosers) is NOT modelled: an accepted candidate stalls the
 // game at StallBand. The ask is mirrored so the grant is observable, never
-// so a band forms. A leader is a granted banding (kop.Override.Banding,
-// hasBanding): the kernel has no printed banding. No candidate is ever in a
+// so a band forms. A leader is a printed banding (CardDef.Banding) or a
+// granted one (kop.Override.Banding, hasBanding). No candidate is ever in a
 // band (none forms), so gorge's "no plain creature once one joined" rule
 // never filters.
 //
@@ -131,9 +131,8 @@ func (s *State) applyBand(k *prep, a Action) {
 // holds (gorge divisionChooser). CR 702.22j: an attacker blocked by a
 // creature with banding is divided by the defending player instead of its
 // controller. CR 702.22k: a blocker blocking a creature with banding is
-// divided by the attacking player instead of its controller. Only a granted
-// banding reaches either (hasBanding): gorge's printed banding has no kernel
-// card.
+// divided by the attacking player instead of its controller. Only a banding
+// reaches either (hasBanding), printed or granted.
 func (s *State) bandDivider(k *prep, d *Decision) {
 	if k.gen == nil {
 		return
