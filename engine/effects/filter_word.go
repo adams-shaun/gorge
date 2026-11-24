@@ -337,6 +337,12 @@ const (
 	// controller (filter_word_game_rider.go). Corpus carrier: Dunerider
 	// Outlaw's IsPresent$ end-step gate.
 	wordDealtDamageToOppThisTurn
+	// Forge's TopGraveyard / TopGraveyard2 / TopGraveyardCreature: the top
+	// card, one of the top two cards, or the topmost creature card of the
+	// object's owner's graveyard (filter_word_top_graveyard.go).
+	wordTopGraveyard
+	wordTopGraveyard2
+	wordTopGraveyardCreature
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -509,6 +515,12 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordTopLibrary, ""
 	case wordPredicateWordBottomLibrary:
 		return wordBottomLibrary, ""
+	case wordPredicateWordTopGraveyard:
+		return wordTopGraveyard, ""
+	case wordPredicateWordTopGraveyard2:
+		return wordTopGraveyard2, ""
+	case wordPredicateWordTopGraveyardCreature:
+		return wordTopGraveyardCreature, ""
 	case wordPredicateWordFaceDown:
 		return wordFaceDown, ""
 	case wordPredicateWordFaceUp:
@@ -908,6 +920,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		}
 		ids := g.Zone(state.ZLibrary, o.Owner)
 		return len(ids) > 0 && ids[len(ids)-1] == o.ID
+	case wordTopGraveyard, wordTopGraveyard2, wordTopGraveyardCreature:
+		return topGraveyardWordMatches(kind, g, o, &sc)
 	case wordHasCounters:
 		// Forge's HasCounters: the object has at least one counter of any
 		// kind on it. Test the COUNT, not the slice length -- state's
@@ -1556,6 +1570,9 @@ const (
 	wordPredicateWordBottomLibrary
 	wordPredicateWordFaceUp
 	wordPredicateWordDealtDamageToOppThisTurn
+	wordPredicateWordTopGraveyard
+	wordPredicateWordTopGraveyard2
+	wordPredicateWordTopGraveyardCreature
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1598,6 +1615,9 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "ActivePlayerCtrl", Val: wordPredicateWordActivePlayerCtrl},
 	state.StrEntry[wordPredicateWordCode]{Key: "TopLibrary", Val: wordPredicateWordTopLibrary},
 	state.StrEntry[wordPredicateWordCode]{Key: "BottomLibrary", Val: wordPredicateWordBottomLibrary},
+	state.StrEntry[wordPredicateWordCode]{Key: "TopGraveyard", Val: wordPredicateWordTopGraveyard},
+	state.StrEntry[wordPredicateWordCode]{Key: "TopGraveyard2", Val: wordPredicateWordTopGraveyard2},
+	state.StrEntry[wordPredicateWordCode]{Key: "TopGraveyardCreature", Val: wordPredicateWordTopGraveyardCreature},
 	state.StrEntry[wordPredicateWordCode]{Key: "faceDown", Val: wordPredicateWordFaceDown},
 	state.StrEntry[wordPredicateWordCode]{Key: "canBeTurnedFaceUp", Val: wordPredicateWordCanBeTurnedFaceUp},
 	state.StrEntry[wordPredicateWordCode]{Key: "IsRingbearer", Val: wordPredicateWordIsRingbearer},
