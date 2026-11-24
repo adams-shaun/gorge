@@ -17,13 +17,18 @@ import (
 // parameter), or a reflected body over lands (Lavaleaper, Mana Flare:
 // pay.PaymentPlanReflectedTapMana, one mana of the type the tap produced).
 // A body whose colour is not a literal gets its own model: an any-colour body
-// asks a colour choice at tap time (tapExtraAnyColour), and a chosen-colour
-// body is a source gorge's planner defers (tapExtraChosen).
+// asks a colour choice at tap time (tapExtraAnyColour), a chosen-colour body is
+// a source gorge's planner defers (tapExtraChosen), and a count-scaled literal
+// (Elvish Guidance: Produced$ G | Amount$ X, X Count$Valid Elf) is a dynamic
+// extra (tapExtraDynamic).
 func (lc *lowerCtx) tapExtraStatic(t cards.Trigger) error {
 	if handled, err := lc.tapExtraChosen(t); handled {
 		return err
 	}
 	if handled, err := lc.tapExtraAnyColour(t); handled {
+		return err
+	}
+	if handled, err := lc.tapExtraDynamic(t); handled {
 		return err
 	}
 	cond, gated, gerr := lc.tapExtraGate(t)
@@ -204,6 +209,85 @@ func (lc *lowerCtx) tapExtraGated(t cards.Trigger, cond lCond) error {
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr}
 	lc.out.Abilities = append(lc.out.Abilities, ab)
 	return nil
+}
+
+// tapExtraDynamic lowers a count-scaled literal extra (Elvish Guidance:
+// "its controller adds an additional {G} for each Elf on the battlefield") to
+// a StatTapExtra static flagged StTapDynamic whose Amount is the value
+// reference. gorge's planner never folds a dynamic amount, so it defers the
+// enchanted source to the manual window and its potential bound reads the
+// source without the extra; the static is unpriced and the extra floats at the
+// tap (mana_tapextra.go addGatedExtra), beside a class-only Taps line that
+// defers the source, exactly the chosen-colour Aura's shape.
+// handled is false for any other trigger, so the foldable/reflected
+// classifiers run.
+func (lc *lowerCtx) tapExtraDynamic(t cards.Trigger) (handled bool, err error) {
+	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
+		return false, nil
+	}
+	body := t.Effect
+	if body == nil && lc.face != nil {
+		body = cards.ResolveSVar(lc.face.SVars, strings.TrimSpace(t.ParamStr(cards.PKExecute)))
+	}
+	if body == nil || body.API != "Mana" || body.Sub != nil ||
+		strings.TrimSpace(body.ParamStr(cards.PKSubAbility)) != "" {
+		return false, nil
+	}
+	mp := effects.ManaOf(body)
+	if len(mp.Unread) != 0 || mp.Produced == "" || mp.AmountTrim == "" || mp.AmountIsLit {
+		return false, nil
+	}
+	if len(mp.Produced) != 1 {
+		return false, nil
+	}
+	col := strings.IndexByte("WUBRG", mp.Produced[0])
+	if col < 0 {
+		return false, nil
+	}
+	if strings.TrimSpace(body.ParamStr(cards.PKDefined)) != "TriggeredCardController" {
+		return false, nil // the trigger controller's mana, not the tapped permanent's
+	}
+	tp := newParams(t.Params)
+	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
+	if tp.str("Produced") != "" || tp.str("Activator") != "" { // a tap gate, or the trigger controller's taps
+		return false, nil
+	}
+	vc := strings.TrimSpace(tp.str("ValidCard"))
+	if vc == "" {
+		return false, nil
+	}
+	tp.consume("ValidCard")
+	if len(tp.unread()) != 0 {
+		return false, nil // an unmodelled trigger parameter: the generic refusal names it
+	}
+	v, err := lc.value(mp.AmountTrim)
+	if err != nil {
+		return true, err
+	}
+	f, err := lc.filter(vc)
+	if err != nil {
+		return true, err
+	}
+	// The extra is the tapped permanent's controller's (TapAnyPlayer) in the
+	// body's literal colour, scaled by the amount's value. gorge defers the
+	// enchanted source (its planner never folds a dynamic amount), so the line
+	// pairs the static with a class-only Taps watcher of the same filter: the
+	// kernel's static is skipped by the planner's pricing readers and floats at
+	// the tap (mana_tapextra.go addGatedExtra).
+	lc.out.Statics = append(lc.out.Statics, lStatic{
+		Kind: "TapExtra", Flags: []string{"TapAnyPlayer", "TapDynamic"},
+		F: f, TapCol: uint8(col), Amount: v,
+	})
+	tr := &lTrigger{
+		Event:       "Taps",
+		F:           f,
+		Whose:       whoAny,
+		Zone:        zBattlefield,
+		TapPlan:     uint8(kop.TapPlanDefer),
+		TapsForMana: true,
+	}
+	lc.out.Abilities = append(lc.out.Abilities, &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities), Trigger: tr})
+	return true, nil
 }
 
 // tapExtraChosen lowers a `DB$ Mana | Produced$ Chosen` body whose mana goes

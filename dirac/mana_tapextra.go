@@ -334,16 +334,17 @@ var DebugTapAnyColOff bool
 // controller's own taps, or every player's under StTapAnyPlayer (the extra
 // then goes to the tapping player, whose pool the caller fills).
 //
-// A Cond2-gated static (Rikala, Homarid King) never reaches here: the
-// planner's pricing readers skip it, because gorge's planner cannot fold a
-// gated trigger (the gate is no paymentPlanTapManaTriggerCodes key), so its
-// census unit and its potential bound (paymentPlanTapExtraMana, whole=true)
-// read the tap without the extra. The extra floats at the tap itself
-// (addGatedExtra), exactly the trigger's resolution.
+// A Cond2-gated static (Rikala, Homarid King), a chosen-colour or any-colour
+// extra and a count-scaled one (StTapDynamic: Elvish Guidance) never reach
+// here: the planner's pricing readers skip it, because gorge's planner cannot
+// fold the trigger, so its census unit and its potential bound
+// (paymentPlanTapExtraMana, whole=true) read the tap without the extra. The
+// extra floats at the tap itself (addGatedExtra), exactly the trigger's
+// resolution.
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
 	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
-		a.Cond2 != 0 || a.StFlags&(kop.StTapChosen|kop.StTapAnyCol) != 0 ||
+		a.Cond2 != 0 || a.StFlags&(kop.StTapChosen|kop.StTapAnyCol|kop.StTapDynamic) != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
 	}
@@ -354,22 +355,24 @@ func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	return true
 }
 
-// addGatedExtra floats the Cond2-gated and any-colour StatTapExtra statics of
-// sl's tap in p's pool: the extra an unfoldable TapsForMana trigger adds as it
-// resolves at the tap (Rikala, Homarid King; a Produced$ Any/Combo Any body),
-// while the planner's readers never price it (tapExtraReaches) and the tap
-// itself, which gorge fires the trigger on, still brings it. The any-colour
-// ask's answer is the scratch fillTapAnyCol stored: gorge's WindowChoices
-// answer for the same owed pips.
+// addGatedExtra floats the Cond2-gated, chosen-colour, any-colour and
+// count-scaled StatTapExtra statics of sl's tap in p's pool: the extra an
+// unfoldable TapsForMana trigger adds as it resolves at the tap (Rikala,
+// Homarid King; a Produced$ Any/Combo Any or Produced$ Chosen body; Elvish
+// Guidance's Count$Valid Elf), while the planner's readers never price it
+// (tapExtraReaches) and the tap itself, which gorge fires the trigger on,
+// still brings it. The any-colour ask's answer is the scratch fillTapAnyCol
+// stored: gorge's WindowChoices answer for the same owed pips.
 func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
-		chosen := a.StFlags&kop.StTapChosen != 0 // Produced$ Chosen: gated like a Cond2 static, in the source's colour
-		anyCol := a.StFlags&kop.StTapAnyCol != 0 // Produced$ Any / Combo Any: the answer rides genState (fillTapAnyCol)
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen && !anyCol ||
+		chosen := a.StFlags&kop.StTapChosen != 0   // Produced$ Chosen: gated like a Cond2 static, in the source's colour
+		anyCol := a.StFlags&kop.StTapAnyCol != 0   // Produced$ Any / Combo Any: the answer rides genState (fillTapAnyCol)
+		dynamic := a.StFlags&kop.StTapDynamic != 0 // StTapDynamic: a Count$ value, read here
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen && !anyCol && !dynamic ||
 			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 			return true
 		}
@@ -380,7 +383,7 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		if !s.matchPermGen(k, a.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
 		}
-		if (chosen || anyCol) && (DebugTapChosenOff && chosen || DebugTapAnyColOff && anyCol ||
+		if (chosen || anyCol || dynamic) && (DebugTapChosenOff && chosen || DebugTapAnyColOff && anyCol ||
 			s.pool != nil && s.pool.census) {
 			return true // an unless / ward window's census prices the deferred source's own mana, never the trigger's extra (gorge unlessWindowUnits)
 		}
@@ -390,6 +393,13 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		s.tapExtraEchoStall(k, st)
 		if anyCol {
 			s.addAnyColExtra(p, a)
+			return true
+		}
+		if dynamic {
+			n := s.evalV(k, a.VA, evalCtx{src: s.perms[st.sl].obj, srcSl: st.sl, ctrl: st.ctrl})
+			if n > 0 {
+				s.pl[p].pool[int(a.A)] += uint8(min(n, 255))
+			}
 			return true
 		}
 		col := int(a.A)
