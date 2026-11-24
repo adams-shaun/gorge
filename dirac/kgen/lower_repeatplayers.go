@@ -86,6 +86,10 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	if ok, err := lc.repeatBreach(who, ps, body); ok || err != nil {
 		return err // lower_repeatgravechoice.go
 	}
+	optIn, err := repeatOptIn(ps, who)
+	if err != nil {
+		return err
+	}
 	defer func(o bool) { lc.repeatOpp = o }(lc.repeatOpp)
 	lc.repeatOpp = who.Kind == rEachOpp
 	defer func(o bool) { lc.repeatAllPl = o }(lc.repeatAllPl)
@@ -113,11 +117,17 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	}
 	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: c})
+	if optIn {
+		lc.emit(lInstr{Op: "OptInSeat", Note: "RepeatOptionalForEachPlayer$: the repeated player's yes / no; a no skips its body"})
+	}
 	lc.repeatPl++
-	err := lc.chain(body, nil)
+	err = lc.chain(body, nil)
 	lc.repeatPl--
 	if err != nil {
 		return err
+	}
+	if optIn {
+		lc.ab.Prog[at+1].Skip = len(lc.ab.Prog) - at - 2
 	}
 	if len(lc.ab.Targets) != nt {
 		return refuse("RepeatEach body with a target")
@@ -339,4 +349,19 @@ func eachOtherRevealMV(rest string) (lValue, bool, error) {
 		return lValue{Kind: vNotOwnLibMV}, true, nil
 	}
 	return lValue{}, false, nil
+}
+
+// repeatOptIn reports whether a RepeatEach offers each repeated opponent its
+// own yes / no before its body runs (RepeatOptionalForEachPlayer$; gorge
+// repeatEachElectionDecision; ExtOptInSeat, dirac act_optinseat.go), refusing
+// the offer beside any RepeatPlayers$ but each opponent.
+func repeatOptIn(ps *params, who lRef) (bool, error) {
+	if !ps.is("RepeatOptionalForEachPlayer", "True") {
+		return false, nil
+	}
+	if who.Kind != rEachOpp {
+		return false, refuse("RepeatEach RepeatOptionalForEachPlayer$ beside RepeatPlayers$ %q", ps.str("RepeatPlayers"))
+	}
+	ps.consume("RepeatOptionalForEachPlayer", "RepeatOptionalMessage")
+	return true, nil
 }

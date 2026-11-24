@@ -219,6 +219,8 @@ func (s *State) canonKey(d *Decision, a Action) uint32 {
 			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		case ChGenUnleash: // canonical Yes before No: gorge's option 0 is the counter (CR 702.86a)
 			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
+		case ChGenOptInSeat: // canonical Yes before No: gorge's option 0 is yes (repeateach.go repeatEachElectionDecision)
+			return uint32(MakeAction(AkChoose, 0, 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		case ChGenMyriad: // canonical Yes before No: gorge's option 0 is the copy (kw_myriad.go)
 			return uint32(MakeAction(AkChoose, a.Source(), 0, 1-a.Mode())) // seat-ok: a yes/no option, not a seat; code-ok: the packed word is the sort key
 		}

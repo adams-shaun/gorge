@@ -62,18 +62,10 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		o.kind, o.obj = okColor, noObj
 	case dirac.ChGenType:
 		o.kind, o.obj = okType, noObj
-	case dirac.ChGenMayShuffle:
+	case dirac.ChGenMayShuffle, dirac.ChGenConfirm, dirac.ChGenOptInSeat, dirac.ChGenDigOpt:
+		// gorge's yes / no asks: hand_move_confirm, repeat_each_optional,
+		// effDig's allOrNothing
 		o.kind, o.obj = okNo, noObj
-		if mode == 1 {
-			o.kind = okYes
-		}
-	case dirac.ChGenConfirm:
-		o.kind, o.obj = okNo, noObj // gorge's hand_move_confirm yes / no
-		if mode == 1 {
-			o.kind = okYes
-		}
-	case dirac.ChGenDigOpt:
-		o.kind, o.obj = okNo, noObj // gorge effDig's allOrNothing yes / no
 		if mode == 1 {
 			o.kind = okYes
 		}

@@ -3728,11 +3728,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			return err
 		}
 	}
-	if err := lc.chain(sa, ps); err != nil {
-		return err
-	}
-	lc.clearRemOpp()              // lower_remembered.go
-	return anyActivatorWindow(ab) // lower_anyactivator.go: read once the chain has declared its targets
+	return lc.chainTail(sa, ps, ab) // lower_storenum.go
 }
 
 // giftHead emits the promised gift ahead of a spell's own effects: the
