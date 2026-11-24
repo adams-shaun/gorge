@@ -268,7 +268,17 @@ func (r *oracleRun) snapCounters(cs []state.Counter) map[string]int32 {
 	}
 	m := map[string]int32{}
 	for _, c := range cs {
+		// The engine's own status markers ("Shield" regeneration shield,
+		// "Deathtouched") are not counters (CR 701.19a, 702.2b): no other
+		// engine lists them, and normCounter would fold "Shield" onto the real
+		// SHIELD counter's key.
+		if state.InternalCounterMarker(c.Kind) {
+			continue
+		}
 		m[normCounter(c.Kind)] += c.N
+	}
+	if len(m) == 0 {
+		return nil
 	}
 	return m
 }
