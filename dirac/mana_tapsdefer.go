@@ -659,7 +659,7 @@ func (s *State) restrCensusTapsGap(k *prep, p uint8, sl Slot) bool {
 // be priced on stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 	if s.askColDeferred(k, sl) {
-		s.askColUnits(k, sl, av) // mana_askcolour.go
+		s.askColBoundUnit(k, sl, av) // mana_askcolour.go
 		return
 	}
 	if s.restrCensusTapsGapShape(k, sl) {
