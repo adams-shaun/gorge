@@ -2561,7 +2561,7 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 // list is empty -- the fallback imprinted the entering creature and the
 // following ChangeZoneAll Card.IsImprinted exiled it (CR 608.2c).
 func imprintCardsTargets(h Host, c *Ctx, spec string) []state.Target {
-	if spec == "Remembered" {
+	if definedSpecCodes.Code(spec) == definedSpecRemembered {
 		return hostRemembered(h, c)
 	}
 	return DefinedSpec(h, c, spec)
