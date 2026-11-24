@@ -18,14 +18,33 @@ import (
 // {C}) is no gap: gorge prices that plain unit, so castWindowCensusComplete's
 // priced arm never reaches the exclusion.
 func (s *State) storeCensusGap(k *prep, p uint8) bool {
+	return s.storeCensusGapIf(k, p, false)
+}
+
+// storeCensusLoadedGap is storeCensusGap for gorge's payment-plan census
+// (paymentPlanCensusOf), which skips a source that yields nothing
+// (manaAbilityYieldsNothing): a storage battery holding no counters makes no
+// mana, so it is no census gap there, and the madness offer's count proof
+// stands beside it (CR 601.2g, 605.3a). Only a loaded battery is a gap.
+func (s *State) storeCensusLoadedGap(k *prep, p uint8) bool {
+	return s.storeCensusGapIf(k, p, true)
+}
+
+func (s *State) storeCensusGapIf(k *prep, p uint8, loaded bool) bool {
 	if !k.ctrMana {
 		return false
 	}
 	for b := s.scriptCtrIdle(k, p, true).and(s.occ); b.any(); b = b.rest() {
-		c := s.cardAt(b.first())
-		if kop.StoreManaAb(k.ctrAbOf(c)) && !k.ctrSecond(c) {
-			return true
+		sl := b.first()
+		c := s.cardAt(sl)
+		a := k.ctrAbOf(c)
+		if !kop.StoreManaAb(a) || k.ctrSecond(c) {
+			continue
 		}
+		if loaded && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) <= 0 {
+			continue
+		}
+		return true
 	}
 	return false
 }
