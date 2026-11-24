@@ -922,8 +922,15 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			// the library, no state change, as on the search path
 			return refuse("library fetch NoLooking$ %q", v)
 		}
-		if lc.fetchShuffleOwed(ps) {
+		afterMove, afterEmpty := lc.fetchShuffleOwed(ps)
+		if afterMove {
 			in.CS += "|ShuffleOwed"
+		}
+		if afterEmpty {
+			// The empty leg pays the deferred search shuffle itself; the
+			// kernel reads this marker (zone_emptyfetchshuffle.go). A later
+			// explicit DB$ Shuffle pays instead, so the marker is absent.
+			in.W = lRef{Kind: rYou}
 		}
 	}
 	if counterKind != "" {
