@@ -2,7 +2,6 @@ package rules
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -78,9 +77,11 @@ func inheritedEntryModeChoice(r *cards.Repl) bool {
 // (entryBodyAbsorbableFor), so a copy of the card meets the choice here, after
 // the copy applies (CR 614.12, 707.2).
 func inheritedEntryCounterChoice(r *cards.Repl) bool {
-	return r.IsETBReplacementKeyword() && r.With != nil && r.With.API == "PutCounter" &&
-		strings.Contains(effects.PutCounterOf(r.With).CounterType, ",") &&
-		effects.PutCounterOf(r.With).ETB
+	if !r.IsETBReplacementKeyword() || !effects.IsPutCounter(r.With) {
+		return false
+	}
+	p := effects.PutCounterOf(r.With)
+	return p.ETB && len(p.Kinds) > 1
 }
 
 // inheritedEntryEngine is the narrow set of engine operations the inherited
