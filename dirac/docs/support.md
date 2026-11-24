@@ -9,7 +9,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | BIG | 30 | 27 | 0 | 2 | 25 | 25 | 0 |
-| BLB | 278 | 262 | 1 | 0 | 261 | 261 | 0 |
+| BLB | 278 | 263 | 1 | 1 | 261 | 261 | 0 |
 | DFT | 276 | 258 | 0 | 0 | 258 | 258 | 0 |
 | DSK | 276 | 256 | 2 | 2 | 252 | 252 | 0 |
 | ECL | 273 | 248 | 0 | 0 | 248 | 248 | 0 |
@@ -21,7 +21,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 261 | 1 | 0 | 260 | 260 | 0 |
 | MKM | 279 | 254 | 1 | 4 | 249 | 249 | 0 |
 | MSH | 276 | 250 | 1 | 0 | 249 | 249 | 0 |
-| OTJ | 276 | 253 | 1 | 0 | 252 | 252 | 0 |
+| OTJ | 276 | 254 | 1 | 1 | 252 | 252 | 0 |
 | SOS | 270 | 259 | 0 | 0 | 259 | 259 | 0 |
 | SPM | 192 | 173 | 1 | 4 | 168 | 168 | 0 |
 | TDM | 276 | 259 | 1 | 0 | 258 | 258 | 0 |
@@ -30,8 +30,8 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 304 | 0 | 32 | 272 | 272 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 266 | 0 | 2 | 264 | 264 | 0 |
-| MBC | 2212 | 2005 | 3 | 17 | 1985 | 1985 | 0 |
-| ALL | 34480 | 26018 | 40 | 276 | 25702 | 25701 | 0 |
+| MBC | 2212 | 2007 | 3 | 19 | 1985 | 1985 | 0 |
+| ALL | 34480 | 26047 | 40 | 305 | 25702 | 25701 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
