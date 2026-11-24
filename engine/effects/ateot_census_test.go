@@ -38,7 +38,7 @@ func TestAtEOTCorpusCensus(t *testing.T) {
 	apiRe := regexp.MustCompile(`(?:SP|AB|DB)\$ *([A-Za-z]+)`)
 	valRe := regexp.MustCompile(`AtEOT\$ *([A-Za-z]+)`)
 	seen := map[string]int{}
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(corpusWalkRoot(t, dir), func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return err
 		}

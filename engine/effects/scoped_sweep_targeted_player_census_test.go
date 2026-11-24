@@ -27,7 +27,7 @@ var scopedSweepAPIs = map[string]bool{
 func TestScopedSweepDefinedTargetedPlayerCensus(t *testing.T) {
 	dir := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
 	got := map[string]bool{}
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(corpusWalkRoot(t, dir), func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".txt") {
 			return nil
 		}
