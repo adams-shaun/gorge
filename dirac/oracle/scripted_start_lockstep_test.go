@@ -21,10 +21,11 @@ const scriptedStartSeeds = 8
 // scriptedStartPool names the kernel pool a fixture's table is built from. A
 // fixture not listed plays on the FDN table. The FDN pool holds no
 // multi-face card (its table has no Faces), so the back-face fixture is the
-// one that cannot, and plays on the pauper table, where Sagu Wildling is a
-// modal DFC with a land back face.
+// one that cannot, and plays on the pauper table, where The Modern Age
+// is a transforming DFC whose back face is Vector Glider (the pauper pool holds
+// no modal DFC with a land back face).
 var scriptedStartPool = map[string]string{
-	"sagu-wildling.4.json": "pauper",
+	"the-modern-age.4.json": "pauper",
 }
 
 // TestScriptedStartLockstep plays every fixture under testdata/scenarios in
@@ -94,7 +95,11 @@ func TestScriptedStartLockstep(t *testing.T) {
 				}
 				res := LockstepLed(m, seed, lead, k, RandomPolicy(seed), rc)
 				CloseSide(k)
-				if res.Div != nil {
+				if !res.Clean() {
+					if res.Div == nil {
+						t.Fatalf("seed %d: not clean without a divergence: stall %q, unmodelled %v",
+							seed, res.Stall, res.StallUnmodelled)
+					}
 					t.Fatalf("seed %d: diverged at decision %d: %s %s %v (%s)",
 						seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail)
 				}
@@ -182,8 +187,33 @@ func scriptedStartPlaced(t *testing.T, g *GorgeSide, m *Matchup, seed uint64) {
 				t.Fatalf("seed %d p%d: library position %d is not %s", seed, p, i, cardName(deck[ix]))
 			}
 		}
+		// A BackFace card shows a non-front face whose types are a permanent
+		// type: a card whose alternate is no DFC face (an Omen's sorcery, an
+		// Adventure) would land as a spell permanent, an illegal position.
+		for _, ix := range sd.BackFace {
+			scriptedStartBackFace(t, g, pid, cardName(deck[ix]), seed)
+		}
 		if sd.Life != nil && int32(g.E.G.Players[p].Life) != *sd.Life {
 			t.Fatalf("seed %d p%d: life %d, the start sets %d", seed, p, g.E.G.Players[p].Life, *sd.Life)
 		}
 	}
+}
+
+// scriptedStartBackFace checks that the seat's battlefield holds name on a
+// back face (FaceIdx != 0) whose types include a permanent type.
+func scriptedStartBackFace(t *testing.T, g *GorgeSide, pid state.PlayerID, name string, seed uint64) {
+	t.Helper()
+	permanent := []string{"Artifact", "Creature", "Enchantment", "Land", "Planeswalker", "Battle"}
+	for _, id := range g.E.G.Zone(state.ZBattlefield, pid) {
+		o := g.E.G.Obj(id)
+		if cardName(o.Card) != name || o.FaceIdx == 0 {
+			continue
+		}
+		f := o.Face()
+		if !slices.ContainsFunc(f.Types, func(ty string) bool { return slices.Contains(permanent, ty) }) {
+			t.Fatalf("seed %d: back face %q of %s has types %v, none a permanent type", seed, f.Name, name, f.Types)
+		}
+		return
+	}
+	t.Fatalf("seed %d: no %s on p%d's battlefield on a back face", seed, name, pid)
 }
