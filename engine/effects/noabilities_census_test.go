@@ -36,7 +36,10 @@ var noAbilitiesWordRe = regexp.MustCompile(`\S*NoAbilities\S*`)
 // intersection of "recognised by the census" and "matched by nothing". It
 // skips when the corpus is absent, like the other corpus-backed tests.
 func TestNoAbilitiesCensus(t *testing.T) {
-	root := cards.CorpusDir(testutil.CorpusDirOrSkip(t))
+	root, err := filepath.EvalSymlinks(cards.CorpusDir(testutil.CorpusDirOrSkip(t)))
+	if err != nil { // WalkDir does not follow a symlinked cardsfolder
+		t.Fatal(err)
+	}
 	var carriers []string
 	unknownReported := map[string][]string{}
 	walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
