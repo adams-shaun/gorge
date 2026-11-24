@@ -45,6 +45,7 @@ Boon Reflection
 Bringer of the Red Dawn
 Bumi's Feast Lecture
 Call to the Grave
+Capital Punishment
 Carrion Ants
 Carrion Imp
 Celestial Regulator
@@ -82,6 +83,7 @@ Deviant Skytech
 Diabolic Intent
 Dimir Informant
 Dockside Chef
+Dominate
 Downdraft
 Dragon's Claw
 Drain the Well
@@ -103,6 +105,7 @@ Feign Death
 Field Marshal
 Fiend Artisan
 Fiery Finish
+Filth
 Fire-Lit Thicket
 Fireblade Artist
 Fireblast

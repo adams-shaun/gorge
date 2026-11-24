@@ -1,6 +1,7 @@
 A-Hobbling Zombie
 A-Llanowar Loamspeaker
 Abbey Gargoyles
+Abolish
 Abu Ja'far
 Accelerate
 Accumulated Knowledge
@@ -25,6 +26,7 @@ Bloodfire Infusion
 Bogardan Firefiend
 Boggart Forager
 Bonded Construct
+Bonds of Quicksilver
 Bramblesnap
 Break of Day
 Briarhorn
@@ -34,6 +36,7 @@ Capashen Unicorn
 Casting of Bones
 Cat Warriors
 Ceremonious Rejection
+Charging Bandits
 Chimeric Mass
 Cinder Pyromancer
 Cleansing Nova
@@ -52,6 +55,7 @@ Disciple of Law
 Disempower
 Dramatic Finale
 Dreadwing
+Drownyard Explorers
 Drudge Spell
 Druid of the Anima
 Duchess, Wayward Tavernkeep
@@ -128,6 +132,7 @@ Kurgadon
 Lagonna-Band Trailblazer
 Lambholt Harrier
 Lawless Broker
+Lazotep Plating
 Leopard-Spotted Jiao
 Lethal Exploit
 Lightning Talons
@@ -145,6 +150,7 @@ Mishra's Research Desk
 Molting Snakeskin
 Mountain
 Murder of Crows
+Mutagenic Growth
 Natural Obsolescence
 Nether Void
 Nightshade Stinger
@@ -182,6 +188,7 @@ Reito Sentinel
 Relic Runner
 Resolute Blademaster
 Ring of Renewal
+Rise of the Ants
 Rishadan Airship
 Riveteers Initiate
 Rooftop Bypass
@@ -225,6 +232,7 @@ Sudden Strength
 Summit Prowler
 Sunder
 Surrak and Goreclaw
+Suspended Sentence
 Swamp
 Tainted Strike
 Telepathy
@@ -250,6 +258,7 @@ Turbulent Springs
 Umbral Mantle
 Unbender Tine
 Urbis Protector
+Urza's Armor
 Utter End
 Vebulid
 Vela the Night-Clad

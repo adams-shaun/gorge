@@ -154,6 +154,7 @@ Elvish Pioneer
 Embermage Goblin
 Emergent Woodwurm
 Ent's Fury
+Eon Hub
 Epicenter
 Esper Battlemage
 Essence Filter
@@ -359,6 +360,7 @@ Porcelain Legionnaire
 Power Conduit
 Power Plant Worker
 Practiced Tactics
+Pride of Lions
 Prismari Pianist
 Psychotic Fury
 Pyrohemia

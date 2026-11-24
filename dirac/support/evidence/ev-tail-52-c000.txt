@@ -384,6 +384,7 @@ Rix Maadi, Dungeon Palace
 Rock Badger
 Ronom Serpent
 Root Maze
+Root Sliver
 Rootless Yew
 Rotted Hystrix
 Royal Talon Fighter Jet
@@ -463,6 +464,7 @@ Swarming Goblins
 Sword of the Paruns
 Syndicate Infiltrator
 Synth Infiltrator
+Tajuru Paragon
 Take to the Streets
 Talas Researcher
 Tana, the Bloodsower

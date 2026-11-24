@@ -4,11 +4,14 @@ Adarkar Sentinel
 Aether Sting
 Alchemist's Vial
 Amphin Mutineer
+Aphetto Alchemist
 Arboreal Grazer
 Arid Mesa
 Atlantean Skirmisher
 Aura Gnarlid
+Avacyn's Collar
 Avengers Quinjet
+Aysen Crusader
 Banisher Priest
 Belligerent Sliver
 Bishop of Wings
@@ -18,13 +21,16 @@ Bloodthirsty Blade
 Bog Glider
 Bosco, Just a Bear
 Brightwood Tracker
+Built to Smash
 Burrowing Razormaw
 Calamity Bearer
 Castle Locthwain
 Cat Warriors
 Caustic Rain
 Cephalid Broker
+Chain to Memory
 Chainwhip Cyclops
+Chandra, Acolyte of Flame
 Charging Rhino
 Charisma
 Chronomaton
@@ -34,6 +40,7 @@ Collector Ouphe
 Contaminated Bond
 Corrupted Harvester
 Crackling Club
+Cytoplast Manipulator
 Dampening Pulse
 Darkling Stalker
 Dauthi Ghoul
@@ -43,21 +50,26 @@ Dirgur Focusmage
 Disciple of the Ring
 Divine Retribution
 Dockside Extortionist
+Downsize
 Dread Presence
 Duchess, Wayward Tavernkeep
+Egon, God of Death
 Elaborate Firecannon
 Elfhame Wurm
 Elite Instructor
 Ember-Fist Zubera
 Energy Chamber
 Entrancing Melody
+Erratic Explosion
 Escape Artist
 Essence Flux
 Evolution Witness
 Fallen Ideal
 Fated Return
+Fault Line
 Filigree Familiar
 Filthy Cur
+Flame Jab
 Flame-Kin War Scout
 Flare of Cultivation
 Flash Flood
@@ -78,17 +90,21 @@ Goblin Caves
 Goblin Dirigible
 Goblin Sky Raider
 Goliath Beetle
+Gollum's Bite
 Goro-Goro and Satoru
 Grave Birthing
 Grave Bramble
 Griffin Guide
 Grisly Salvage
 Gruul War Chant
+Guardians of Oboro
 Gutless Ghoul
 HYDRA Disintegrator
 Haughty Djinn
 Heartwood Giant
 Hengegate Pathway
+Heralds of Tzeentch
+Hermetic Study
 High-Speed Hoverbike
 Horn of Deafening
 Humble the Brute
@@ -97,11 +113,13 @@ Hunted Wumpus
 Ichor Shade
 Improvised Club
 Indatha Triome
+Infernal Genesis
 Intelligence Bobblehead
 Island
 Joraga Visionary
 Kalonian Tusker
 Korozda Guildmage
+Kozilek's Channeler
 Krang, the All-Powerful
 Land Leeches
 Light 'Em Up
@@ -109,6 +127,7 @@ Lost in the Woods
 Loyal Pegasus
 Make Obsolete
 Masked Vandal
+Mirror Universe
 Mirrormere Guardian
 Mold Shambler
 Morgue Thrull
@@ -123,6 +142,7 @@ Nectar Faerie
 Needleverge Pathway
 Network Disruptor
 Nezumi Cutthroat
+Nightmare Lash
 Nim Mongoose
 Nimbus Wings
 Nimraiser Paladin
@@ -132,6 +152,7 @@ Paladin of Predation
 Peema Trailblazer
 Pennon Blade
 Pewter Golem
+Pharika's Cure
 Phobian Phantasm
 Piety Charm
 Piranha Marsh
@@ -160,8 +181,12 @@ Samwise the Stouthearted
 Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal
+Scourge Wolf
+Scourge of Fleets
 Seismic Spike
+Serpent Assassin
 Setessan Battle Priest
+Shatter
 Shattered Perception
 Shrink
 Silence
@@ -170,6 +195,8 @@ Skull Collector
 Slayer of the Wicked
 Song-Mad Treachery
 Sorcerer of the Fang
+Soulstinger
+Spellseeker
 Spike Feeder
 Spiteful Squad
 Spitting Earth
@@ -179,10 +206,12 @@ Streetwise Negotiator
 Stronghold Discipline
 Supply Caravan
 Swamp
+Swarmyard Massacre
 Sylvan Caryatid
 Sylvan Messenger
 Taborax, Hope's Demise
 Talons of Falkenrath
+Taste of Death
 Tattered Haunter
 Tel-Jilad Exile
 Tentative Connection
@@ -203,10 +232,13 @@ Toxic Stench
 Tumble Magnet
 Ulvenwald Bear
 Vampiric Fury
+Vicious Hunger
+Victorious Destruction
 Void Shatter
 Void Snare
 Void Squall
 Voracious Typhon
+Vulshok Sorcerer
 Wandering Ones
 War Report
 Warlord's Axe
@@ -218,3 +250,4 @@ Wildwood Rebirth
 Windreaper Falcon
 Wolfrider's Saddle
 Wu Warship
+Zhang Liao, Hero of Hefei

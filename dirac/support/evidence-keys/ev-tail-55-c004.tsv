@@ -9,7 +9,9 @@ Acorn Catapult	1acb0832c210c150	7	1/1		1/1
 Adarkar Sentinel	c3db73e2a3ac64cd	5	1/1		0/1	ix:resp
 Agent of Acquisitions	e4b1df06b83e0c13	11	0/0		0/0	
 Ancient Brontodon	66642f8c5c0be5a9	30	0/0		0/0	
+Anoint	e4f1737347113b94	4	0/0		3/4	ix:resp
 Anvilwrought Raptor	009b0afd18ba6994	8	0/0		0/0	
+Aragorn and Arwen, Wed	ad5a2dfda66af36f	4	2/2		0/1	ix:resp
 Arcbound Stinger	c287d1cc0a3e4c4a	17	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Archangel Avacyn	c7dd7c8aeddcaf28	83	3/3		1/1	
 Arctic Wolves	d6c3717a7e91fc4d	4	2/2		0/1	ix:resp
@@ -35,12 +37,14 @@ Champion of Arashin	a0bcdb7eee58786e	6	0/0		0/0
 Chariot of Victory	3a27e05eedb47aef	18	1/1		1/1	
 Chilling Trap	783065baa8e92d4c	3	0/0		2/2	
 Circle of Flame	4dffc5bc47354426	3	1/1		0/1	ix:resp
+Circle of Protection: White	da2f9e57fd47b9db	4	1/1		1/1	
 Coal Stoker	5998459f113231de	57	1/1		1/1	
 Creeping Corrosion	83e21938aa5d5db5	4	0/0		1/2	ix:resp
 Defiant Salvager	8a3e8e624f612528	92	1/1		1/1	
 Demonmail Hauberk	979b4ae1f9026d22	8	1/1		1/1	
 Desperate Castaways	68a9b5fc3dcfbbe7	3	0/0		0/0	
 Devout Lightcaster	be9af2dbc76afdd6	35	1/1		0/1	ix:resp
+Dragonspeaker Shaman	2cf120eb0dc501f7	4	0/0		0/0	
 Duskmantle Operative	ded191e96c4c3fc2	12	0/0		0/0	
 Eidolon of the Great Revel	bb1672b8fa7cdb87	44	1/1		1/1	
 Eiganjo Exemplar	14ea3f30519f66ac	60	1/1		1/1	
@@ -50,10 +54,12 @@ Enchanted Prairie	74f91857c393b035	40	1/1		0/1	ix:resp
 Endless Ranks of the Dead	7465278c224f17a6	59	1/1		1/1	
 Enlightened Maniac	4f610069dbcf3617	3	1/1		0/1	ix:resp
 Epiphany Storm	ac8f459f13ab0897	4	0/0		1/2	ix:resp
+Esquire of the King	c6dbd7b26cb75526	6	1/1		0/1	ix:resp
 Ethereal Investigator	babc0a1eb75fe326	14	2/2		0/1	ix:resp
 Ethrimik, Imagined Fiend	c4748ecf3d79bc7f	8	1/1		0/1	ix:resp
 Evolutionary Leap	6d6bbcd2cbfde9d3	56	1/1		1/1	
 Extortion	d026c3dcebe64961	72	0/0		2/2	
+Exultant Skymarcher	521cb4e7911b1fda	4	0/0		0/0	
 Faceless Butcher	133c122c4040e06e	74	2/2		1/1	
 Farid, Enterprising Salvager	4ebfc035288576ff	6	2/2		0/1	ix:resp
 Fearsome Awakening	b4b120e394ef71fd	4	0/0		1/2	ix:resp
@@ -63,12 +69,15 @@ Ferocity	1cc854c7f34e6d14	3	2/2		1/6	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/o
 Fervent Paincaster	7d957643b1c088d1	11	2/2		1/1	
 Fire Ants	461dec4ba43b61dc	4	1/1		0/1	ix:resp
 Fire Nation Soldier	979b65c7be254bcf	64	0/0		0/0	
+Firewake Sliver	a6d0ed5b03b0db25	5	0/0		0/0	
 Font of Ire	d6db82cddf2a656e	8	1/1		0/1	ix:resp
 Forgotten Harvest	892695ccd06af054	9	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Fracture	cb74554d349bad50	79	0/0		2/2	
+Galadhrim Guide	d024d005e2827197	4	1/1		0/1	ix:resp
 Geomancer's Gambit	65d16f2c38b8f56a	50	0/0		2/2	
 Glory Bearers	06be34959539f0e3	6	1/1		0/1	ix:resp
 Gnaw to the Bone	a54476a5f59fc4e5	20	0/0		3/4	ix:resp
+Gnottvold Slumbermound	5f851554d5d88cd4	11	2/2		0/1	ix:resp
 Goblin Boom Keg	c39bd58028e1e225	14	2/2		0/1	ix:resp
 Goldmeadow Dodger	83df58bcd51a55c0	48	0/0		0/0	
 Granite Grip	e12e3f90e813efc7	4	0/0		1/2	ix:resp
@@ -78,14 +87,18 @@ Hall of Triumph	fa0183ba2ef53c7c	84	0/0		0/0
 Hand of Death	38779f54405f5503	100	0/0		2/2	
 Hangar Scrounger	e0988c06e2b566ae	44	2/2		1/1	
 Happy Hogan, Bodyguard	fbe84e00983b8a7f	13	1/1		0/1	ix:resp
+Hardy Veteran	f42e449f751a150b	3	0/0		0/0	
 Hidden Footblade	a6545f57db546af2	9	2/2		1/1	
 Highborn Ghoul	e83d2ffa73d8ee8c	91	0/0		0/0	
 Humble Naturalist	7612b4b840d0b20c	11	1/1		0/1	ix:resp
 Ifnir Deadlands	521471585b6a0c08	30	3/3		0/1	ix:resp
 Immersturm Skullcairn	fbf51d7e9bfbac26	21	2/2		0/1	ix:resp
+Invigorating Hot Spring	99837654ea4aa10b	5	1/1		0/1	ix:resp
 Ioreth of the Healing House	0ec3419142502d16	13	2/2		1/1	
 Jiang Yanggu	635f8c287e4be30b	10	3/3		0/1	ix:resp
 Kiku's Shadow	d010745379b0ca1c	81	0/0		2/2	
+King Macar, the Gold-Cursed	c3ea249d3311c20c	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Kirtar's Wrath	074d94411c591cca	3	0/0		1/2	ix:resp
 Laboratory Brute	095eb6d49f23007d	10	1/1		0/1	ix:resp
 Lava Storm	c2acd16b448310ae	61	0/0		2/2	
 Looming Shade	afb5d73c6124d21f	84	1/1		1/1	
@@ -101,19 +114,24 @@ Nacatl Savage	55ae4da346802121	4	0/0		0/0
 Natural Selection	8df1d1671dd75341	4	0/0		1/2	ix:resp
 Night Market Guard	36396556ad276e1d	4	0/0		0/0	
 Nomad Stadium	6f4ff948ed464172	23	2/2		0/1	ix:resp
+Northern Paladin	ea25c68bed424613	4	1/1		0/1	ix:resp
 Nyxborn Colossus	73cba460b8b443b8	22	0/0		0/0	
 Obsidian Giant	a3894a8cad4a195a	4	0/0		0/0	
 Of One Mind	9155c83a45af5ff4	33	0/0		2/2	
 Override	9b8c4ae9fe0b7813	8	0/0		1/2	ix:resp
 Overwhelming Stampede	e18e33bfa27b6f5c	3	0/0		1/2	ix:resp
+Oxidize	cc45b1d11f2be38b	12	0/0		1/2	ix:resp
+Peat Bog	cfd5d7722f3577c0	16	1/1		0/1	ix:resp
 Perilous Voyage	70c6633e83def1b4	8	0/0		1/2	ix:resp
 Phantom Beast	1d168804d910f418	4	1/1		0/1	ix:resp
 Psychic Symbiont	812a821580689a10	12	1/1		0/1	ix:resp
 Radioactive Man	69772035177e6982	62	1/1		1/1	
 Raging Gorilla	43932891278d8ef1	4	2/2		1/1	
+Rampart Smasher	17ffa9666fbca1c9	5	0/0		0/0	
 Razor Hippogriff	dd9d64a9414fc626	63	1/1		1/1	
 Reckless Cohort	4eeb68ef4a9c7c28	89	0/0		0/0	
 Reinforcements	3dfb5c976c14021d	6	0/0		1/2	ix:resp
+Research Assistant	d012bcfd7082604e	9	1/1		1/1	
 Restoration Angel	6957094f77796360	92	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rough	6231894808b5e8cd	4	0/0		1/3	f1/s,ix:resp
 Sadistic Slash	8454c0657fc6cb66	86	0/0		3/4	cast/alt:mayhem
@@ -122,6 +140,7 @@ Scion of Calamity	6623163aa5fba647	43	2/2		1/1
 Seven-Tail Mentor	cdd175630dbc83ce	54	2/2		1/1	
 Shell Skulkin	351f90d8c9bf6e46	7	1/1		1/1	
 Skycloud Egg	e6f7632398152957	12	1/1		0/1	ix:resp
+Slingbow Trap	155303e17b0c63ab	4	0/0		1/2	ix:resp
 Slith Bloodletter	0b16d8a65ae05110	88	2/2		1/1	
 Smash to Dust	4aef52d119f57b61	4	0/0		1/2	ix:resp
 Sparksmith	3274b4aed9061912	11	1/1		1/1	
@@ -133,6 +152,7 @@ Subtle Strike	d1961b0c9af40aff	88	0/0		2/2
 Sunken Hope	95949950c33d16e8	6	1/1		1/1	
 Sword of Fire and Ice	296032564c2fe87a	8	2/2		0/1	ix:resp
 Taj-Nar Swordsmith	a86ce901a0c760dc	55	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Targ Nar, Demon-Fang Gnoll	33efb4401043dcc8	5	2/2		1/1	
 Tattered Drake	5422bed40bf65cb6	6	1/1		1/1	
 Telekinetic Sliver	c358dc1b1c61b081	7	0/0		0/0	
 Thalakos Sentry	e74c6f712711d6a4	71	0/0		0/0	
@@ -147,6 +167,7 @@ Urborg Stalker	a53b17316be5fe82	104	1/1		1/1
 Valkyrie Harbinger	4c549857e8ac27f8	35	1/1		1/1	
 Venerated Rotpriest	e52440d38537a1bc	30	1/1		1/1	
 Vengeant Vampire	91595ed5fe454548	49	1/1		1/1	
+Verix Bladewing	3f9dcb0a37f68dca	10	1/1		2/3	ix:resp
 Veteran's Sidearm	75e2444732985409	84	1/1		1/1	
 Vineweft	7a31762cee3ea1d0	26	1/1		2/2	
 Viridian Corrupter	c1891db7bfeb2246	3	1/1		0/1	ix:resp

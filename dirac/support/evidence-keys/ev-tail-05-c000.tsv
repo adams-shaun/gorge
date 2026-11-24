@@ -1,5 +1,6 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 Aether Web	dbd7b0c3172ca275	74	0/0		2/2	
+Bring to Light	c35136ff82b0d2b6	9	0/0		1/2	ix:resp
 Charging Cinderhorn	0042b8398b255635	4	1/1		0/1	ix:resp
 Dragon's Hoard	97099807c21d3e2f	115	3/3		1/1	
 Drogskol Reinforcements	7d714524e91f89de	6	1/1		0/1	ix:resp
@@ -11,6 +12,7 @@ Inquisition	1d4a04046065c3cb	46	0/0		1/2	ix:resp
 Messenger Jays	ef3c31d932dda6d5	28	1/1		0/1	ix:resp
 Priest of the Wakening Sun	40d32e1367aab109	25	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rust Scarab	67c2a9fe79b204be	23	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Skinthinner	a2738ef9c4f0e3a7	4	1/1		1/3	cast/alt:none,ix:resp
 Sphere of Law	b89031999e8a56d4	11	0/0		0/0	
 Stormwing Dragon	7af995206f8cdc39	4	1/1		2/3	cast/alt:none
 Tangle Angler	69b15cf2474baa0a	11	1/1		0/1	ix:resp

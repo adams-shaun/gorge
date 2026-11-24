@@ -11,15 +11,19 @@ Asphodel Wanderer
 Augmenting Automaton
 Bane of Progress
 Basilica Bell-Haunt
+Basri's Solidarity
 Beacon Hawk
+Benthic Biomancer
 Bogardan Firefiend
 Boggart Forager
 Bonded Construct
+Bonds of Quicksilver
 Break of Day
 Briarhorn
 Bronze Cudgels
 Cadira, Caller of the Small
 Calamity's Wake
+Canal Dredger
 Candelabra of Tawnos
 Cat Warriors
 Chimeric Mass
@@ -28,18 +32,27 @@ Compulsory Rest
 Concentrate
 Contagious Vorrac
 Council of Advisors
+Coveted Peacock
+Cruel Fate
 Dauthi Horror
 Death Ward
 Disempower
 Distress
 Dramatic Finale
 Dreadmobile
+Drownyard Explorers
 Dungrove Elder
 Elder Owyn Lyons
+Elgaud Inquisitor
 Elite Arrester
+Essence Flare
+Fantastic Elasticity
+Fatigue
+Festival Crasher
 Fists of Ironwood
 Flame Rift
 Fleetfoot Panther
+Flood of Tears
 Forest
 Fragmentize
 Funeral Pyre
@@ -47,10 +60,15 @@ Funeral Rites
 Gaea's Avenger
 Gate Hound
 Goblin Soothsayer
+Graf Reaver
+Grave Strength
+Gravecrawler
+Gravedig
 Grismold, the Dreadsower
 Grotag Night-Runner
 Guma
 Hajar, Loyal Bodyguard
+Harbor Bandit
 Haunted Crossroads
 Heavy Arbalest
 Inevitable End
@@ -62,8 +80,12 @@ Kinjalli's Caller
 Krovikan Plague
 Lazotep Plating
 Lethal Exploit
+Lifeblood Hydra
+Lightning Talons
 Llanowar Visionary
 Marionette Master
+Meletis Astronomer
+Mesmeric Fiend
 Mesmeric Orb
 Minion's Return
 Mire Triton
@@ -78,26 +100,35 @@ Opportunistic Dragon
 Oracle's Insight
 Plague Beetle
 Plains
+Power Plant Worker
 Priest of Fell Rites
+Prognostic Sphinx
 Prophet of Distortion
+Quandrix Cultivator
 Quirion Ranger
 Raffine's Silencer
 Rainbow Crow
 Rampaging Classmate
 Ranger's Longbow
 Ransack the Lab
+Relic Runner
 Riddlesmith
 Ring of Renewal
+Riveteers Initiate
 Rootwater Diver
 Runed Stalactite
 Rush of Battle
 Sanctuary Cat
+Saprazzan Bailiff
 Sawblade Slinger
 Scornful Aether-Lich
+Serpent of the Endless Sea
 Shadowborn Demon
+Shard Volley
 Shrieking Grotesque
 Silverwing Squadron
 Simian Brawler
+Skittering Horror
 Soul of Innistrad
 Sparkmage's Gambit
 Spidery Grasp
@@ -109,19 +140,25 @@ Sudden Strength
 Sunder
 Swamp
 Tainted Strike
+Telepathy
 Thoughts of Ruin
 Thrull Parasite
 Ticked Off
 Torens, Fist of the Angels
+Touch of Death
 Tuinvale Treefolk
 Umbral Mantle
 Urborg Emissary
+Urza's Armor
 Utter End
 Vebulid
+Vessel of Paramnesia
 Vigilance
 Vivify
 Vryn Wingmare
+Wailing Ghoul
 Whipcorder
 Witness of Tomorrows
+Woebringer Demon
 Woodland Patrol
 Zealous Conscripts

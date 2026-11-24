@@ -1,6 +1,7 @@
 card	lir16	plays	keys	unused	branches	missing_branches
 A-Hobbling Zombie	4800edc2ffd4f813	36	1/1		1/1	
 Abbey Gargoyles	ff9a1c9be5a7c99c	22	0/0		0/0	
+Abolish	0ef68ef586d04323	10	0/0		1/2	ix:resp
 Accelerate	7bc701ebe48e3957	10	0/0		2/2	
 Aerie Ouphes	3d1dfb0fb4443d14	22	2/2		1/1	
 Ajani, the Greathearted	241bcd195449ded9	4	2/2		0/1	ix:resp
@@ -9,12 +10,14 @@ Amok	151d4554d87c6cd7	63	1/1		1/1
 Apocalypse Hydra	541e729ce6218ca3	7	1/1		1/1	
 Basri's Solidarity	81cbaef74afd2017	24	0/0		2/2	
 Bonded Construct	c9212a8c02945452	4	0/0		0/0	
+Bonds of Quicksilver	9206a2dd79f2faeb	4	0/0		1/2	ix:resp
 Bramblesnap	831ff70d9a7790c0	4	1/1		1/1	
 Bright Reprisal	f7501dddca843bd8	15	0/0		2/2	
 Brood Weaver	f3c319aa96b772dc	38	1/1		0/1	ix:resp
 Capashen Unicorn	bc69ebffbc1b7e92	21	1/1		0/1	ix:resp
 Casting of Bones	b836e692a1328e3a	22	1/1		2/2	
 Cat Warriors	52849bf45a5dedae	4	0/0		0/0	
+Charging Bandits	544dc9ff0b53af5f	4	1/1		0/1	ix:resp
 Dapper Shieldmate	1459b968c07bef9b	35	0/0		0/0	
 Daru Warchief	bc067955c523f698	29	0/0		0/0	
 Death Ward	91520594f5516eae	40	0/0		2/2	
@@ -22,6 +25,7 @@ Deluge	1e07b69bd08ce5e7	6	0/0		1/2	ix:resp
 Disciple of Law	fd44bdb5386cf755	8	1/1		0/1	ix:resp
 Disempower	218a042c0f009c48	21	0/0		1/2	ix:resp
 Dreadwing	7ee324d342af5a93	6	1/1		1/1	
+Drownyard Explorers	7c9387e97c9a8e9f	6	1/1		1/1	
 Druid of the Anima	3879f816e9944144	29	1/1		1/1	
 Dusk Feaster	0d7d3e2ebbe8b45c	25	0/0		0/0	
 Dwarfhold Champion	2e0be35bd88bea73	28	0/0		0/0	
@@ -60,6 +64,7 @@ Kinjalli's Caller	b39b2302ce6f031a	39	0/0		0/0
 Kitesail Apprentice	3ed4fbc880512bbc	49	0/0		0/0	
 Lambholt Harrier	1f0c6e73c8d5b93e	3	1/1		1/1	
 Lawless Broker	189082852415efa1	4	1/1		0/1	ix:resp
+Lazotep Plating	9ee952db7188311d	8	0/0		1/2	ix:resp
 Leopard-Spotted Jiao	dbb7f273d91e0be2	45	0/0		0/0	
 Mandible Justiciar	7dd1b93769f36ada	52	1/1		1/1	
 Maul of the Skyclaves	66af3f9eb5e99934	38	2/2		1/1	
@@ -67,6 +72,7 @@ Mesmeric Fiend	cebad4ce12fe0867	8	2/2		0/1	ix:resp
 Minion's Return	6e8e27c5210519b0	4	1/1		2/2	
 Mishra's Research Desk	0ab94ba060244533	66	2/2		1/1	
 Molting Snakeskin	83a04ad26c17786a	50	0/0		2/2	
+Mutagenic Growth	a031ee2441ff5bb3	4	0/0		1/2	ix:resp
 Nether Void	a96005569483347a	25	1/1		1/1	
 Nightshade Stinger	830a957a5f960de1	4	0/0		0/0	
 No Mercy	60dd6a3ea25afef0	46	1/1		1/1	
@@ -79,6 +85,7 @@ Rampaging Classmate	1b0ef6b3f263feb0	42	1/1		0/1	ix:resp
 Rank Officer	41cf0bdfa6e2937b	20	2/2		1/1	
 Rebuke	a41bfcd1171fd541	30	0/0		1/2	ix:resp
 Reito Sentinel	6b43c2b303373cd8	65	2/2		1/1	
+Rise of the Ants	48f3d386ccd9cdcd	4	0/0		3/4	ix:resp
 Rosecot Knight	d820dc3721d49d5a	29	1/1		1/1	
 Ruinous Intrusion	08701e9aa2efdad4	34	0/0		2/2	
 Rush of Battle	17bc8d405594062a	33	0/0		2/2	
@@ -101,6 +108,7 @@ Staff of Titania	c434a4b6d5e9c9bc	12	2/2		1/1
 Stag Beetle	89bef8a940c9fc2c	4	0/0		0/0	
 Stand Together	38eb655d7f939356	4	0/0		1/2	ix:resp
 Summit Prowler	3094f3fc40efc3e6	4	0/0		0/0	
+Suspended Sentence	426bf9803f194510	4	0/0		2/4	cast/alt:none,ix:resp
 Telepathy	01d057f40c681eee	4	0/0		0/0	
 Temple Thief	00a2ee1800d8bb99	58	0/0		0/0	
 Terminal Moraine	a321b470d0c50524	32	2/2		1/1	
@@ -115,6 +123,7 @@ Treacherous Blessing	2bb916eec4c6d634	10	3/3		0/1	ix:resp
 Turbulent Springs	461afaf0e568d37a	30	2/2		0/1	ix:resp
 Umbral Mantle	9ba7e9fd42c05458	4	1/1		0/1	ix:resp
 Unbender Tine	c6e8e4e41381f597	6	1/1		1/1	
+Urza's Armor	d01df7b7bb827a16	6	0/0		0/0	
 Visions of Brutality	fd366ab07fe653d6	4	1/1		2/2	
 Voltaic Construct	29a2dbe24f40e340	73	1/1		1/1	
 Vryn Wingmare	7b186fefb412d6ee	33	0/0		0/0	

@@ -22,6 +22,7 @@ Arctic Wolves
 Argent Mutation
 Assassinate
 Avatar of Slaughter
+Ayula's Influence
 Azure Fleet Admiral
 Azusa's Many Journeys
 Beast in Show
@@ -29,9 +30,11 @@ Benevolent Ancestor
 Bile Urchin
 Blood Tithe
 Bone Picker
+Boon of Boseiju
 Boros Garrison
 Boros Signet
 Bosh, Iron Golem
+Bosk Banneret
 Brokers Veteran
 Bump in the Night
 Burning Hands
@@ -86,6 +89,7 @@ Fire Ants
 Fire Nation Soldier
 Fireborn Knight
 Fireslinger
+Firewake Sliver
 Fissure Wizard
 Flame Sweep
 Flame-Blessed Bolt
@@ -103,6 +107,7 @@ Ghostfire Blade
 Glaciers
 Glory Bearers
 Gnaw to the Bone
+Goblin Boom Keg
 Goldmeadow Dodger
 Granite Grip
 Grizzled Leotau
@@ -115,15 +120,18 @@ Hall of Triumph
 Hand of Death
 Hangar Scrounger
 Happy Hogan, Bodyguard
+Hardy Veteran
 Heal
 Heroic Teamwork
 Hidden Footblade
 Highborn Ghoul
 Ifnir Deadlands
 Ignite the Future
+Immersturm Skullcairn
 Incubation Druid
 Invasion of Dominaria
 Invasion of Kaldheim
+Invigorating Hot Spring
 Iroh, Firebending Instructor
 Island
 Joraga Treespeaker
@@ -161,6 +169,7 @@ Northern Paladin
 Nyxborn Colossus
 Oakheart Dryads
 Obelisk of Undoing
+Obsidian Giant
 Octoprophet
 Of One Mind
 Opaline Unicorn
@@ -170,6 +179,7 @@ Override
 Overwhelming Stampede
 Oxidize
 Pathbreaker Ibex
+Peat Bog
 Perilous Voyage
 Phantom Beast
 Phyrexian War Beast
@@ -192,6 +202,7 @@ Rough
 Sadistic Slash
 Scale of Chiss-Goria
 Scion of Calamity
+Second Sunrise
 Serra's Blessing
 Seven-Tail Mentor
 Shinka Gatekeeper
@@ -201,6 +212,7 @@ Skycloud Egg
 Slith Bloodletter
 Snubhorn Sentry
 Sokka's Sword Training
+Sparksmith
 Sparring Construct
 Spiked Corridor
 Spiteful Sliver
@@ -216,6 +228,8 @@ Terra Ravager
 Thalakos Sentry
 Thopter Engineer
 Thorncaster Sliver
+Thought Monitor
+Thought Reflection
 Thoughts of Ruin
 Time of Ice
 Toggo, Goblin Weaponsmith
@@ -228,6 +242,7 @@ Ultimate Price
 Urborg Stalker
 Valkyrie Harbinger
 Vandalblast
+Venerable Lammasu
 Venerated Rotpriest
 Vengeant Vampire
 Verix Bladewing
@@ -240,10 +255,12 @@ Vodalian Zombie
 Vulshok Berserker
 Vulshok Heartstoker
 Wall of Bone
+Web
 Whip Silk
 Whiptongue Hydra
 Whisper Squad
 Whitewater Naiads
+Wind Spirit
 Witch Enchanter
 Worship
 Yawgmoth's Agenda

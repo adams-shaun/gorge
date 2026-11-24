@@ -1,27 +1,96 @@
 card	lir16	plays	keys	unused	branches	missing_branches
++2 Mace	9326494454e7ee69	5	1/1		0/1	ix:resp
+Aarakocra Sneak	bc311858b08ac9e8	6	1/1		0/1	ix:resp
+Abzan Beastmaster	ee8bc15a89eee193	6	1/1		1/1	
+Ancient Brontodon	66642f8c5c0be5a9	6	0/0		0/0	
+Anointer of Champions	676627e733ebeaf1	3	1/1		1/1	
+Archangel Avacyn	c7dd7c8aeddcaf28	4	3/3		0/1	ix:resp
+Archnemesis	cbce22dd0d786ab4	4	2/2		1/4	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Arctic Wolves	d6c3717a7e91fc4d	3	2/2		0/1	ix:resp
 Avatar of Slaughter	30302b5208f5707f	41	0/0		0/0	
+Ayula's Influence	ecace131daacfb94	7	1/1		0/1	ix:resp
+Boros Garrison	26e4839160349401	12	2/2		0/1	ix:resp
 Bubble Snare	f5e6a929a8a80938	64	1/1		4/4	
 Champion of Arashin	a0bcdb7eee58786e	64	0/0		0/0	
+Chariot of Victory	3a27e05eedb47aef	3	1/1		0/1	ix:resp
+Chilling Trap	783065baa8e92d4c	6	0/0		2/2	
+Circle of Dreams Druid	d8fb1a33345a1f25	4	1/1		0/1	ix:resp
+Circle of Protection: White	da2f9e57fd47b9db	3	1/1		1/1	
 Desperate Castaways	68a9b5fc3dcfbbe7	107	0/0		0/0	
+Eidolon of the Great Revel	bb1672b8fa7cdb87	8	1/1		1/1	
+Eiganjo Exemplar	14ea3f30519f66ac	5	1/1		0/1	ix:resp
+Enchanted Prairie	74f91857c393b035	15	1/1		0/1	ix:resp
+Enlightened Maniac	4f610069dbcf3617	3	1/1		0/1	ix:resp
 Epiphany Storm	ac8f459f13ab0897	80	0/0		2/2	
+Evolutionary Leap	6d6bbcd2cbfde9d3	4	1/1		1/1	
+Exultant Skymarcher	521cb4e7911b1fda	8	0/0		0/0	
 Fearsome Awakening	b4b120e394ef71fd	84	0/0		2/2	
+Feral Maaka	9044ce4f09b3bbc1	12	0/0		0/0	
 Fire Ants	461dec4ba43b61dc	90	1/1		1/1	
 Fire Nation Soldier	979b65c7be254bcf	69	0/0		0/0	
 Font of Ire	d6db82cddf2a656e	57	1/1		1/1	
 Fracture	cb74554d349bad50	65	0/0		2/2	
+Gargoyle Flock	25cd399eb2c3fdd5	3	1/1		0/1	ix:resp
+Geomancer's Gambit	65d16f2c38b8f56a	4	0/0		2/2	
+Glory Bearers	06be34959539f0e3	4	1/1		1/1	
+Gnaw to the Bone	a54476a5f59fc4e5	8	0/0		3/4	ix:resp
+Granite Grip	e12e3f90e813efc7	6	0/0		2/2	
+Guardian of the Forgotten	eaa0e862d6966013	3	1/1		0/1	ix:resp
+Gust of Wind	f009681c2e9e8ba2	6	0/0		1/2	ix:resp
 Hag Hedge-Mage	a8a19907c4b9fb20	29	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
+Hand of Death	38779f54405f5503	3	0/0		1/2	ix:resp
 Happy Hogan, Bodyguard	fbe84e00983b8a7f	56	1/1		1/1	
+Hardy Veteran	f42e449f751a150b	4	0/0		0/0	
+Hidden Footblade	a6545f57db546af2	6	2/2		1/1	
+Highborn Ghoul	e83d2ffa73d8ee8c	3	0/0		0/0	
+Ifnir Deadlands	521471585b6a0c08	10	3/3		0/1	ix:resp
+Incubation Druid	b2ce090730ee521e	7	2/2		1/1	
+Lava Storm	c2acd16b448310ae	8	0/0		2/2	
+Lucky Offering	cc829b54f24d7bfe	4	0/0		1/2	ix:resp
 Mausoleum Harpy	561bc0dff7a3c187	77	1/1		1/1	
+Military Discipline	56253ee5441da88a	4	1/1		1/2	ix:resp
 Monk Realist	66713c7d51a12a32	87	1/1		1/1	
+Nacatl Savage	55ae4da346802121	8	0/0		0/0	
+Night Market Guard	36396556ad276e1d	6	0/0		0/0	
+Nomad Stadium	6f4ff948ed464172	9	2/2		1/1	
 Northern Paladin	ea25c68bed424613	73	1/1		1/1	
+Obsidian Giant	a3894a8cad4a195a	6	0/0		0/0	
+Of One Mind	9155c83a45af5ff4	4	0/0		1/2	ix:resp
+One Dozen Eyes	2cb2ea08f975201e	6	0/0		2/2	
+Override	9b8c4ae9fe0b7813	39	0/0		2/2	
+Overwhelming Stampede	e18e33bfa27b6f5c	4	0/0		1/2	ix:resp
+Peat Bog	cfd5d7722f3577c0	11	1/1		0/1	ix:resp
+Perilous Voyage	70c6633e83def1b4	7	0/0		2/2	
 Phantom Beast	1d168804d910f418	57	1/1		1/1	
+Psychic Symbiont	812a821580689a10	3	1/1		0/1	ix:resp
+Razor Hippogriff	dd9d64a9414fc626	5	1/1		0/1	ix:resp
 Reckless Cohort	4eeb68ef4a9c7c28	92	0/0		0/0	
+Sadistic Slash	8454c0657fc6cb66	7	0/0		3/4	cast/alt:mayhem
+Second Sunrise	0626a0899a23c903	5	0/0		2/2	
+Seraph Sanctuary	4a510c04b67742ca	12	3/3		0/1	ix:resp
 Seven-Tail Mentor	cdd175630dbc83ce	53	2/2		1/1	
+Shell Skulkin	351f90d8c9bf6e46	4	1/1		1/1	
+Skyclave Cleric	86a2712bee1f2ea7	10	2/2		0/1	ix:resp
+Slingbow Trap	155303e17b0c63ab	3	0/0		2/2	
+Snubhorn Sentry	45899205674fd812	10	0/0		0/0	
+Sparksmith	3274b4aed9061912	4	1/1		0/1	ix:resp
+Sparring Construct	f7dd8161e3afa736	6	1/1		0/1	ix:resp
+Stern Scolding	7f8f30e2cbae68c0	7	0/0		1/2	ix:resp
 Sunken Hope	95949950c33d16e8	35	1/1		1/1	
 Thalakos Sentry	e74c6f712711d6a4	92	0/0		0/0	
+Thopter Engineer	5364655f35700915	4	1/1		0/1	ix:resp
+Thought Monitor	903e871f7626b83e	4	1/1		1/1	
+Time of Ice	a585cebf49643ed3	3	0/0		0/0	
 Urborg Stalker	a53b17316be5fe82	116	1/1		1/1	
 Valkyrie Harbinger	4c549857e8ac27f8	43	1/1		0/1	ix:resp
 Venarian Gold	12c487eb6f620c6e	32	2/2		3/4	f0/s/x0
 Venerable Lammasu	ad00e1814f5e1764	46	0/0		0/0	
+Verix Bladewing	3f9dcb0a37f68dca	10	1/1		2/3	ix:resp
 Vulshok Berserker	de3b86c62fdf9023	63	0/0		0/0	
+Wall of Bone	46a6af3a82e0007d	12	1/1		1/1	
+Web	7feae78372e68861	3	0/0		1/2	ix:resp
+Whip Silk	2e28bb3166ddfa66	5	1/1		2/2	
 Wind Spirit	ec48b444a042297c	90	0/0		0/0	
+Witch Enchanter	aff602f5cea3f5b7	4	2/2		0/1	ix:resp
+Your Temple Is Under Attack	50704e24320dea05	9	0/0		2/2	
+Zephyr Sprite	73d2f93655223586	5	0/0		0/0	

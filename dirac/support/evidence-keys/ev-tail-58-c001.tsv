@@ -27,6 +27,7 @@ Fatigue	bfd00f6c14808b18	4	0/0		1/2	ix:resp
 Fire at Will	9f4b1ffb8e558ad7	8	0/0		2/2	
 Flame Rift	b298af8036e660ed	6	0/0		1/2	ix:resp
 Flood of Tears	dd81d9765ae2361b	4	0/0		1/2	ix:resp
+Galadriel of Lothlórien	b321ac1fa93674ce	32	2/2		0/1	ix:resp
 Gate Hound	df6f2b118a25e9cb	3	0/0		0/0	
 Gate of the Black Dragon	9f017409059fee97	36	2/2		0/1	ix:resp
 Ghirapur Aether Grid	c18a3a0ab0fac84c	3	1/1		1/1	
@@ -45,6 +46,7 @@ Kitesail Apprentice	3ed4fbc880512bbc	6	0/0		0/0
 Lazotep Plating	9ee952db7188311d	8	0/0		1/2	ix:resp
 Leopard-Spotted Jiao	dbb7f273d91e0be2	4	0/0		0/0	
 Lifeblood Hydra	c8889a3aa275c669	3	1/1		0/1	ix:resp
+Liliana, the Necromancer	f62bcb85aa301277	19	3/3		1/1	
 Magma Mine	803d91a4a9b710cc	4	2/2		1/1	
 Mandible Justiciar	7dd1b93769f36ada	11	1/1		0/1	ix:resp
 Maul of the Skyclaves	66af3f9eb5e99934	6	2/2		0/1	ix:resp
@@ -64,11 +66,15 @@ Quasiduplicate	be64c6d0a319156e	4	0/0		2/4	cast/alt:jumpstart,ix:resp
 Rebuke	a41bfcd1171fd541	3	0/0		1/2	ix:resp
 Reito Sentinel	6b43c2b303373cd8	3	2/2		1/1	
 Riddlesmith	cf4a8264cce56f32	8	1/1		0/1	ix:resp
+Rise of the Ants	48f3d386ccd9cdcd	8	0/0		2/4	cast/alt:flashback,ix:resp
 Rishadan Airship	fe89dde1003e291f	4	0/0		0/0	
 Riveteers Initiate	cf7a81045afba6f4	4	1/1		1/1	
+Rosecot Knight	a2291aa38882ca72	24	1/1		1/1	
 Ruinous Intrusion	08701e9aa2efdad4	3	0/0		2/2	
+Sand Scout	185588eda46c6a54	4	2/2		0/1	ix:resp
 Scornful Aether-Lich	e653ba5dff989dbe	10	1/1		1/1	
 Seize the Day	906bf5d323f11ee5	4	0/0		3/4	ix:resp
+Shade's Form	54fdc72b52bdcc41	6	1/1		1/2	ix:resp
 Shambling Vent	ac857dc809b887bc	45	2/2		1/1	
 Shield of the Realm	78b33eb8dc86280d	6	1/1		0/1	ix:resp
 Shrieking Grotesque	eb2d828517cb0459	4	1/1		0/1	ix:resp
@@ -83,6 +89,7 @@ Stand Together	38eb655d7f939356	11	0/0		1/2	ix:resp
 Status	3b0034b01943fee9	5	0/0		2/3	f1/s
 Sunder	a6809c035b676358	4	0/0		1/2	ix:resp
 Terminal Moraine	a321b470d0c50524	20	2/2		0/1	ix:resp
+Thopter Architect	34bcf1b4d1b6d798	12	1/1		1/1	
 Tomb Fortress	7d9002c0c7615a71	30	2/2		0/1	ix:resp
 Toymaker	ba41ca21bf9900db	6	1/1		0/1	ix:resp
 Turbulent Springs	461afaf0e568d37a	28	2/2		0/1	ix:resp
