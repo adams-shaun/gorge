@@ -278,7 +278,7 @@ func refTestValidCases() []refTestValid {
 		{name: "counters", f: refTestPerm(ir.PCounters, func(f *ir.Filter) { f.Word, f.Cmp, f.Value = "P1P1", ir.CmpGE, refTestVal(1) }),
 			want: "Permanent.counters_GE1_P1P1"},
 		{name: "not counters", f: notP(refTestPerm(ir.PCounters, func(f *ir.Filter) { f.Word, f.Cmp, f.Value = "P1P1", ir.CmpGE, refTestVal(1) })),
-			bad: "pred:counters-not"},
+			want: "Permanent.counters_LT1_P1P1"},
 		{name: "name", f: w(C, ir.PName, "Island"), want: "Card.namedIsland"},
 		{name: "not name", f: notP(w(C, ir.PName, "Island")), want: "Card.!namedIsland"},
 		{name: "controlled by you", f: ctrl(ir.PControlledBy, refTestRef(ir.RefYou)), want: "Permanent.YouCtrl"},

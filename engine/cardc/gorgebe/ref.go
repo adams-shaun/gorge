@@ -57,6 +57,7 @@ func refBad(r *ir.Ref, p *pr) error {
 }
 
 func printRef(p *pr, r *ir.Ref) (string, error) {
+	r = slotRef(r)
 	bad := func() (string, error) { return "", refBad(r, p) }
 	switch r.Kind {
 	case ir.RefSelf:

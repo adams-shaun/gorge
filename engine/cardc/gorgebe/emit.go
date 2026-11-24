@@ -237,6 +237,7 @@ type pr struct {
 	evSelf bool         // that event's object is the source itself ("when this enters")
 	frames []*frame
 	face   *ir.Face // the face being printed; nil in unit tests
+	excess bool    // the damage step before this one binds ExcessSVar$ Excess
 	prev   *ir.Step // the step printed just before the one being printed, in its program
 	tokens map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
 }
@@ -287,12 +288,29 @@ func (p *pr) target(t *ir.Target) ([]kv, error) {
 
 // amount spells v as an amount parameter: a decimal literal, or the name of
 // an SVar holding v's count expression.
-func (p *pr) amount(v *ir.Value) (string, error) {
+func (p *pr) amount(v *ir.Value) (string, error) { return p.amountAs("", v) }
+
+// amountAs is amount with a chosen name stem ("X") for a new count SVar.
+func (p *pr) amountAs(stem string, v *ir.Value) (string, error) {
 	if v == nil {
 		return "", unprintable("value:nil", "")
 	}
 	if v.Kind == ir.VConst {
 		return strconv.Itoa(int(v.N)), nil
+	}
+	if v.Kind == ir.VExcessDamage {
+		// the name the damage step binds with ExcessSVar$
+		if !p.excess {
+			return "", unprintable("value:excess-damage", v.Src)
+		}
+		return "Excess", nil
+	}
+	if v.Kind == ir.VReceiptAmount && v.Word == "life-lost" {
+		// the life lost by the step before: Forge's LoseLife fills this SVar
+		if !p.hasSVar("AFLifeLost") {
+			p.svars = append(p.svars, kv{"AFLifeLost", "Number$0"})
+		}
+		return "AFLifeLost", nil
 	}
 	if valueFn == nil {
 		return "", unprintable("value:"+v.Kind.String(), v.Src)
@@ -303,6 +321,9 @@ func (p *pr) amount(v *ir.Value) (string, error) {
 	}
 	if _, err := strconv.Atoi(body); err == nil {
 		return body, nil
+	}
+	if stem != "" {
+		return p.countVarAs(stem, body), nil
 	}
 	return p.countVar(body), nil
 }
@@ -487,6 +508,7 @@ func (p *pr) operand(n *node, key string, r *ir.Ref) error {
 	if r == nil {
 		return unprintable("ref:nil", "")
 	}
+	r = slotRef(r)
 	if r.Kind == ir.RefTarget {
 		ps, err := p.declare(r.Slot, r.Src)
 		if err != nil {
@@ -522,4 +544,18 @@ func (p *pr) attachWord() string {
 		}
 	}
 	return ""
+}
+
+// slotRef is the target slot r names when r is "each object target slot k
+// chose" (RefAll of "is target k"), which Forge spells as that slot's own
+// target declaration; any other r is returned as is.
+func slotRef(r *ir.Ref) *ir.Ref {
+	if r == nil || r.Kind != ir.RefAll {
+		return r
+	}
+	f := r.Filter
+	if f != nil && f.Op == ir.FPred && f.Pred == ir.PIs && len(f.Args) == 0 && f.Word == "" && f.Ref != nil && f.Ref.Kind == ir.RefTarget {
+		return f.Ref
+	}
+	return r
 }

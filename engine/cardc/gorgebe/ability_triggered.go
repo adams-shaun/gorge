@@ -381,11 +381,14 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 		if err != nil {
 			return nil, err
 		}
-		s, err := subj()
-		if err != nil {
-			return nil, err
+		ps = params{{"Mode", "CounterAddedOnce"}, {"CounterType", x.Word}, {"ValidCard", o}}
+		if x.Subject != nil {
+			s, err := subj()
+			if err != nil {
+				return nil, err
+			}
+			ps.set("ValidSource", s)
 		}
-		ps = params{{"Mode", "CounterAddedOnce"}, {"CounterType", x.Word}, {"ValidCard", o}, {"ValidSource", s}}
 		zones()
 	default:
 		return nil, bad(x.Event.String())

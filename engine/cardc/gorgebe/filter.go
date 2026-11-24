@@ -191,7 +191,7 @@ func predPart(p *pr, f *ir.Filter, neg bool) ([]part, error) {
 		if f.Cmp == ir.CmpNone || f.Value == nil {
 			return "", "", unprintable("pred:"+name, f.Src)
 		}
-		n, err := p.amount(f.Value)
+		n, err := p.amountAs("X", f.Value)
 		if err != nil {
 			return "", "", err
 		}
@@ -250,12 +250,15 @@ func predPart(p *pr, f *ir.Filter, neg bool) ([]part, error) {
 	case ir.PHasKeyword:
 		return pick("with"+f.Word, "without"+f.Word)
 	case ir.PCounters:
-		if neg {
-			return badNot()
-		}
 		c, n, err := cmpN()
 		if err != nil {
 			return nil, err
+		}
+		if neg {
+			// not (at least n) is "fewer than n": Forge has no negated counters term
+			if c = negCmp[c]; c == "" {
+				return badNot()
+			}
 		}
 		return []part{{false, "counters_" + c + n + "_" + f.Word}}, nil
 	case ir.PName:

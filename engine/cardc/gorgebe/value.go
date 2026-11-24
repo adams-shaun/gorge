@@ -116,9 +116,23 @@ func printValue(p *pr, v *ir.Value) (string, error) {
 				return "Count$" + stat, nil
 			case ir.RefTarget:
 				return "Targeted$" + stat, nil
+			case ir.RefEventObject:
+				switch p.ev {
+				case ir.EvEnters, ir.EvDies, ir.EvPutIntoGraveyard, ir.EvLeaves, ir.EvCountersPut:
+					return "TriggeredCard$" + stat, nil
+				}
 			}
 		}
 		return no()
+	case ir.VDistinctManaValues:
+		if v.Filter == nil {
+			return no()
+		}
+		f, err := p.valid(v.Filter)
+		if err != nil {
+			return "", err
+		}
+		return "Count$Valid " + f + "$DifferentCardManaCost", nil
 	case ir.VLife:
 		if isYou(v.Ref) {
 			return "Count$YourLifeTotal", nil
