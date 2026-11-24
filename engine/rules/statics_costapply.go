@@ -441,8 +441,10 @@ func (e *Engine) costTurnGateHolds(sv staticView) bool {
 }
 
 // costConditionHolds evaluates Condition$ on a cost-modifier static. The
-// implementable conditions: PlayerTurn / NotPlayerTurn (the caster is or is
-// not the active player -- discontinuity's "During your turn"), Metalcraft
+// implementable conditions: PlayerTurn / NotPlayerTurn (the static's
+// controller is or is not the active player -- CR 109.5's "your" turn:
+// Discontinuity's self-discount and Tithe Taker's Activator$ Opponent tax,
+// whose turn is its controller's, not the caster's), Metalcraft
 // (three artifacts on the battlefield, the shared metalcraftHolds read) and
 // Delirium (four or more distinct core card types in the caster's graveyard,
 // the shared graveyardCardTypeCount census -- drag_to_the_roots and its
@@ -456,9 +458,9 @@ func (e *Engine) costConditionHolds(sv staticView, p state.PlayerID, uncounted s
 	}
 	switch costConditionHoldsCodes.Code(string(strings.TrimSpace(cond))) {
 	case costConditionHoldsPlayerTurn:
-		return e.G.Active == p
+		return e.G.Active == sv.Controller
 	case costConditionHoldsNotPlayerTurn:
-		return e.G.Active != p
+		return e.G.Active != sv.Controller
 	case costConditionHoldsMetalcraft:
 		return e.metalcraftHolds(p)
 	case costConditionHoldsDelirium:
