@@ -561,6 +561,12 @@ func (e *Engine) xBoundTargetPayable(p state.PlayerID, id, excludeSelf state.Obj
 		// ({1}{B} from Plains, Radiant Grove and Shores) stays offered (CR
 		// 605.3b, 601.2g).
 		insufficient := func(composed Cost) bool {
+			// The planner prices the printed pips only; a may-play grant's rider
+			// (Gonti, Lord of Luxury's "mana of any type can be spent", CR 609.4b)
+			// lets other mana pay them, so its verdict proves nothing here.
+			if !ability && asEval(e).MayPlayRider(p, id) != (pipRider{}) {
+				return false
+			}
 			// bound is the potential pool the census reads.
 			verdict := func() PaymentPlanOutcome { return e.planComposedCost(p, id, composed, ability, ability) }
 			if verdict().Reason != pay.ReasonInsufficient {
