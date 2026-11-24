@@ -1,0 +1,21 @@
+# K:Riot (CR 702.156a): the as-enters counter-or-haste election, lowered from
+# the printed keyword (CardDef.Riot), for dirac/oracle/riot_test.go. Doom
+# Blade and plain creatures fill the boards; no card grants riot (the kernel
+# reads the printed field only), loses abilities, animates or copies.
+Arcbound Slasher
+Burning-Tree Vandal
+Clamor Shaman
+Frenzied Arynx
+Ghor-Clan Wrecker
+Gruul Beastmaster
+Gruul Spellbreaker
+Rampaging Rendhorn
+Skarrgan Hellkite
+Wrecking Beast
+Zhur-Taa Goblin
+Doom Blade
+Grizzly Bears
+Scathe Zombies
+Mountain
+Forest
+Swamp
