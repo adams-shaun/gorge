@@ -30,9 +30,11 @@ var respellDefaults = []respellRow{
 	{"GainLife", "Defined", "You", "engine/effects/cardflow.go:301", "func actingPlayers", false},
 	{"LoseLife", "Defined", "You", "engine/effects/cardflow.go:301", "func actingPlayers", false},
 	{"Mill", "Defined", "You", "engine/effects/cardflow.go:301", "func actingPlayers", false},
-	{"PutCounter", "Defined", "Self", "engine/effects/context.go:78", "any other on its source", true},
-	{"Pump", "Defined", "Self", "engine/effects/context.go:78", "any other on its source", true},
-	{"Animate", "Defined", "Self", "engine/effects/context.go:78", "any other on its source", true},
+	{"RearrangeTopOfLibrary", "Defined", "You", "engine/effects/cardflow.go:1783", "actingPlayers(h, c, sa)", false},
+	{"PutCounter", "CounterNum", "1", "engine/effects/counters_put.go:25", "n := int32(1)", false},
+	{"PutCounter", "Defined", "Self", "engine/effects/context.go:79", "any other on its source", true},
+	{"Pump", "Defined", "Self", "engine/effects/context.go:79", "any other on its source", true},
+	{"Animate", "Defined", "Self", "engine/effects/context.go:79", "any other on its source", true},
 }
 
 func respellRowFor(api, param string) *respellRow {

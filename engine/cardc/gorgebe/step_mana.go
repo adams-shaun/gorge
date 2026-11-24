@@ -2,6 +2,7 @@ package gorgebe
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
 )
@@ -98,7 +99,7 @@ func printAddMana(p *pr, steps []*ir.Step) (*node, int, error) {
 			n.set("Produced", "Any")
 		default:
 			v := "Combo"
-			for _, l := range ls {
+			for _, l := range forgeComboOrder(ls) {
 				v += " " + l
 			}
 			n.set("Produced", v)
@@ -127,4 +128,35 @@ func printAddMana(p *pr, steps []*ir.Step) (*node, int, error) {
 	}
 	n.set("Produced", v)
 	return n, 1, nil
+}
+
+// forgeComboOrder orders the colours of a Combo$ list as Forge writes it, round
+// the wheel W U B R G: a pair or shard starts where the others follow at +1 and
+// +2, a wedge where they follow at +2 and +4. Any other set keeps wheel order.
+func forgeComboOrder(ls []string) []string {
+	if len(ls) != 2 && len(ls) != 3 {
+		return ls
+	}
+	for _, start := range ls {
+		var out []string
+		var off []int
+		for step := 1; step <= 4; step++ {
+			for _, l := range ls {
+				if (strings.Index(wubrg, l)-strings.Index(wubrg, start)+5)%5 == step {
+					out, off = append(out, l), append(off, step)
+				}
+			}
+		}
+		fits := false
+		switch len(ls) {
+		case 2:
+			fits = off[0] == 1 || off[0] == 2
+		case 3:
+			fits = (off[0] == 1 && off[1] == 2) || (off[0] == 2 && off[1] == 4)
+		}
+		if fits {
+			return append([]string{start}, out...)
+		}
+	}
+	return ls
 }
