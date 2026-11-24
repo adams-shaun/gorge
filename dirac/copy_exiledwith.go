@@ -102,6 +102,7 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 			if kind == 0 && k.gen.anyBecomeCopy {
 				kind = s.cloneTokenAsk(k, in, c)
 			}
+			kind = s.unleashTokKind(k, kind, c) // kw_unleash.go: a copy of an Unleash card is asked its counter election
 			if kind != 0 {
 				rem := cnt[i] - int16(j) - 1
 				if rem > 255 || eb.n != 0 || !s.lastExiledCopy(cnt[:n], i, j) {

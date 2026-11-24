@@ -1830,13 +1830,7 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 		return
 	}
 	if kind == akUnleash {
-		// kw_unleash.go: a cast creature's election rides s.g.pre (asked
-		// with the spell on the stack); any other entry's is ask[0]
-		if s.g.pre.state == 1 && s.g.pre.kind == akUnleash {
-			s.unleashOptions(d, s.g.pre.obj)
-			return
-		}
-		s.unleashOptions(d, s.perms[s.g.ask[0].sl].obj)
+		s.unleashOptions(d, s.unleashAskObj()) // kw_unleash.go
 		return
 	}
 	if kind == akColor {
