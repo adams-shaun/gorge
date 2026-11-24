@@ -281,7 +281,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 	// creature alone, stacking one Permanent Animate effect per resolution
 	// (500+ continuous effects, every Derived
 	// walking all of them -- the "hang").
-	if _, ok := t.Param(cards.PKIsPresent); ok &&
+	if presentGateApplies(t) &&
 		!e.presentClauseHolds(t, source, you, tc, "IsPresent", "PresentCompare", "PresentDefined", "PresentZone", "PresentPlayer") {
 		return false
 	}
@@ -593,6 +593,15 @@ func (e *Engine) lifeConditionHoldsAs(t cards.Trigger, you state.PlayerID, amoun
 		return false
 	}
 	return compareLife(e.G.Players[who].Life, amount)
+}
+
+// presentGateApplies reports whether the trigger's IsPresent$ clause is an
+// intervening-if to evaluate: present, and not merely the precheck for the
+// trigger's own optional counter cost (Sun Droplet, CR 603.2;
+// scriptfacts.PresentIsOwnCostPrecheck).
+func presentGateApplies(t cards.Trigger) bool {
+	_, ok := t.Param(cards.PKIsPresent)
+	return ok && !presentIsOwnCostPrecheck(t)
 }
 
 // presentClauseHolds evaluates one present clause -- IsPresent$ or
