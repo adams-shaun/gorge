@@ -1,30 +1,87 @@
+A-Cosmos Elixir
+Accorder's Shield
 Akoum Battlesinger
 Alaborn Musketeer
 Allay
 Amoeboid Changeling
 Arbor Colossus
+Base Camp
+Bastion Mastodon
+Brain Maggot
+Cateran Enforcer
 Cavern Thoctar
+Coast Watcher
 Communal Brewing
+Debtors' Transport
 Devastation
+Dirty Wererat
+Dispersal Shield
+Doomfall
+Dread of Night
+Eerie Soultender
+Electrostatic Pummeler
+Exert Influence
+False Cure
 Forest
 Frost Lynx
+Gloomhunter
+Grafted Wargear
+Gruul Signet
+Guardian of Tazeem
 Hammerheim Deadeye
 Havengul Runebinder
 Heated Debate
 High Ground
+Hindering Touch
+Howling Banshee
 Ideas Unbound
 Island
+Jadar, Ghoulcaller of Nephalia
+Jousting Lance
+Kira, Great Glass-Spinner
+Leonin Bladetrap
+Leyline Phantom
+Living Wall
 Ludevic's Test Subject
+Merrow Grimeblotter
 Mind Games
 Mountain
+Myr Battlesphere
+Mystic of the Hidden Way
+Noxious Groodion
+Oppressive Will
+Pendrell Mists
+Phantom Wings
+Plague Sliver
 Plains
 Plow Through Reito
 Prickly Marmoset
+Princess Lucrezia
+Revoke Demise
+Sai of the Shinobi
+Saltwater Stalwart
+Scavenging Scarab
+Sea Sprite
+Skullmead Cauldron
+Soul of the Rapids
+Spiderwig Boggart
 Spirit en-Kor
+Stabbing Pain
 Stampede
+Stealer of Secrets
+Strategic Planning
 Swamp
 Tangled Islet
 Tibalt's Rager
+Titan Forge
+Totally Lost
+Treason of Isengard
+Triumph of Cruelty
+Turtle-Seals
+Vat of Rebirth
 Wall of Earth
+Warping Wail
 Whip Vine
+Wilhelt, the Rotcleaver
 Woodland Guidance
+Zodiac Pig

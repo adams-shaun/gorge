@@ -15,6 +15,7 @@ Anointed Chorister
 Anurid Murkdiver
 Apex Devastator
 Aphotic Wisps
+Archway of Innovation
 Armillary Sphere
 Arrows of Justice
 Artful Maneuver
@@ -45,6 +46,7 @@ Cabal Archon
 Canopy Tactician
 Carrion Howler
 Cartouche of Strength
+Chaos Channeler
 Char
 Chatterstorm and Awaken the Woods
 Chemister's Insight
@@ -66,6 +68,7 @@ Crucible of Worlds
 Cryptolith Rite
 Cursed Totem
 Cyclone Summoner
+Dark Triumph
 Dauthi Voidwalker
 Dawnfeather Eagle
 Deathbloom Ritualist
@@ -160,6 +163,7 @@ Hope Against Hope
 Human Frailty
 Ill-Tempered Cyclops
 Imoti, Celebrant of Bounty
+Improvised Club
 Infuse
 Inner Calm, Outer Strength
 Innocuous Researcher
@@ -172,6 +176,7 @@ Island
 Jace's Erasure
 Jackal Familiar
 Josu Vess, Lich Knight
+Jungle Basin
 Kami of Whispered Hopes
 Kappa Tech-Wrecker
 Kathari Screecher
@@ -189,11 +194,13 @@ Leonin Battlemage
 Leshrac's Sigil
 Lifespring Druid
 Lightning Blast
+Lithoform Engine
 Locus Cobra
 Lose Calm
 Lumengrid Warden
 Lychguard
 Madame Hydra, Reanimated
+Mage Hunters' Onslaught
 Magic Missile
 Mana Flare
 Mana Short
@@ -207,6 +214,7 @@ Mary Read and Anne Bonny
 Mask of the Jadecrafter
 Mending Hands
 Messenger Drake
+Meticulous Excavation
 Metrognome
 Michiko's Reign of Truth
 Midnight Covenant
@@ -315,6 +323,7 @@ Skyclave Pick-Axe
 Skyfisher Spider
 Skyshroud Ranger
 Slagwurm Armor
+Slippery Karst
 Sludge Monster
 Slum Reaper
 Smitten Swordmaster
@@ -370,6 +379,7 @@ Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
 Undercity Uprising
+Unstable Obelisk
 Urza's Rage
 Valeron Outlander
 Valley Dasher
@@ -389,6 +399,7 @@ Wild Hunger
 Wind Sail
 Wintermoor Commander
 Woeleecher
+Wooded Bastion
 Wound Reflection
 Wrack with Madness
 Xun Yu, Wei Advisor

@@ -1,50 +1,88 @@
 A-Buy Your Silence
+A-Radha's Firebrand
+A-Sepulcher Ghoul
+Aerial Maneuver
+Afflict
 Alexi's Cloak
 Angelheart Protector
 Angelheart Vial
+Anurid Murkdiver
+Aphotic Wisps
+Armillary Sphere
 Arrows of Justice
 Artful Maneuver
+Augury Owl
 Aven Brigadier
 Aven Eternal
+Azor's Elocutors
+Bamboo Grove Archer
 Blazing Rootwalla
+Bloodflow Connoisseur
+Boon of Emrakul
 Brightclimb Pathway
 Brilliant Restoration
 Brimstone Mage
 Buoyancy
 Burden of Guilt
+Cabal Archon
+Carrion Howler
+Cartouche of Strength
 Chatterstorm and Awaken the Woods
 Child of Night
+Chime of Night
 Cleanse
 Copperhoof Vorrac
+Corpse Hauler
+Corrupted Resolve
 Courier Griffin
 Crimson Roc
+Cryptolith Rite
 Curse of Wizardry
 Cursed Totem
 Cyclone Summoner
+Dark Triumph
+Dauthi Voidwalker
 Dawnfeather Eagle
 Deathbloom Ritualist
 Declare Dominance
+Defy Gravity
 Delightful Discovery
 Deluge of Doom
+Deny Entry
+Desecration Elemental
+Despoiler of Souls
+Desynchronize
 Dingus Staff
+Diplomacy of the Wastes
+Dire Fleet Hoarder
+Dogged Hunter
 Drossclaw
+Duskshell Crawler
 Eerie Interlude
 Elemental Bond
+Elspeth Tirel
+Elvish Scout
 Engineered Plague
 Enthrall
 Erebos's Emissary
+Erebos, Bleak-Hearted
+Everflame Eidolon
 Ezuri, Renegade Leader
+Fae of Wishes
 Fanatical Fever
 Fanged Flames
+Fell Specter
 Femeref Scouts
 Festival of the Guildpact
 Filigree Sages
 Flameshot
 Flanking Troops
+Foreboding Statue
 Forest
 Fungus Elemental
 Furious Assault
 Gert and Old Lace, Runaways
+Giant Fly
 Goblin Electromancer
 Goblin Gang Leader
 Goblin Matron
@@ -52,66 +90,128 @@ Great Hall of Starnheim
 Grenzo's Cutthroat
 Grey Knight Paragon
 Grim Feast
+Grim Guardian
 Grip of Desolation
+Growth-Chamber Guardian
+Gustha Ebbasdotter
+Gutter Skulk
 Haazda Snare Squad
 Headlong Rush
+Healing Leaves
 Hope Against Hope
 Horror of Horrors
 Human Frailty
+Ill-Tempered Cyclops
 Inner Calm, Outer Strength
+Innocuous Researcher
+Inspired Inventor
 Island
+Jace's Erasure
 Jackal Familiar
 Kalonian Hydra
 Kami of Whispered Hopes
+Kappa Tech-Wrecker
 Kenrith's Transformation
+King Cheetah
 Knight Watch
+Knight of New Benalia
 Kor Duelist
 Kraken Hatchling
+Kyoshi Warrior Exemplars
+Laccolith Rig
 Leinore, Autumn Sovereign
 Leyline of Punishment
+Lifespring Druid
 Lightning Blast
+Lumengrid Warden
+Lychguard
+Mage Hunters' Onslaught
 Magus of the Disk
 Mana Flare
 Maralen of the Mornsong
 Maro
+Marsh Viper
 Marshmist Titan
+Mask of the Jadecrafter
+Messenger Drake
+Meticulous Excavation
+Midnight Covenant
+Mindwarper
 Minion of Tevesh Szat
 Minion's Return
+Mirari's Wake
+Mire Boa
 Misery Charm
 Moonfolk Puzzlemaker
+Morkrut Behemoth
 Mountain
+Mounted Dreadknight
+Navigator's Compass
+Nefarox, Overlord of Grixis
 Nessian Game Warden
+Nightscape Familiar
+Nightshade Assassin
+Nimble Pilferer
 Nissa's Triumph
+Noxious Assault
+Null Elemental Blast
+Nyxborn Marauder
 Obelisk of Esper
+Ochre Jelly
+Oji, the Exquisite Blade
+Okiba Salvage
 Otherworld Atlas
 Oxidize
+Ozox, the Clattering King
+Palladium Myr
 Parasitic Grasp
+Path of Peril
+Pawn of Ulamog
 Pendrell Mists
 Plains
 Pledge of Unity
 Portcullis Vine
+Primal Bellow
 Psychic Impetus
+Putrid Cyclops
 Quagmire Lamprey
 Ragged Veins
+Raise the Draugr
+Raka Disciple
 Ransom Note
 Reaver Drone
+Reckless Scholar
+Reclaiming Vines
 Release to Memory
 Relic of Progenitus
 Renegade's Getaway
+Retreat to Hagra
 Reviving Melody
 Rhox Bodyguard
 Rolling Hamsphere
 Romana II
+Roving Harper
+Saddleback Lagac
 Sanguine Glorifier
 Saprazzan Heir
+Sea's Claim
 Seal of Fire
+Selesnya Evangel
+Seraph of New Capenna
 Shrieking Drake
+Sign in Blood
+Skeletal Kathari
+Skirsdag Cultist
 Skullslither Worm
+Slum Reaper
+Smitten Swordmaster
 Soratami Seer
 Sorcerer's Wand
+Soul Sear
 Spiraling Embers
 Spirit of the Hearth
 Spiteful Bully
+Splinter, the Mentor
 Stand United
 Steal Strength
 Stone Calendar
@@ -120,24 +220,43 @@ Stupefying Touch
 Summon: Kujata
 Suncrusher
 Sunder from Within
+Sunscorch Regent
 Swamp
+Swift Response
+Sylvan Tutor
+Tel-Jilad Defiance
+Teysa Karlov
+The Prydwen, Steel Flagship
 Thornhide Wolves
 Thought Scour
 Thundering Raiju
+Tidal Wave
+Titan's Strength
+Treachery
 Treasure Hunter
+Two-Headed Giant of Foriys
 Two-Headed Sliver
+Two-Headed Zombie
 Uktabi Orangutan
 Umbral Mantle
+Unstable Obelisk
 Urza's Science Fair Project
+Valeron Outlander
 Vulshok Splitter
 Wake the Reflections
 Wanderlust
 Waterknot
 Whipflare
 Whirlermaker
+Wild Hunger
+Wintermoor Commander
 Woeleecher
+Wound Reflection
 Wrack with Madness
+Xun Yu, Wei Advisor
 Yavimaya Barbarian
+Yawgmoth, Thran Physician
+Yew Spirit
 Ziatora's Proving Ground
 Zodiac Rat
 Zuran Orb

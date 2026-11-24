@@ -16,13 +16,19 @@ Bishop of the Bloodstained
 Blessed Wine
 Bloodthirsty Blade
 Bog Glider
+Bosco, Just a Bear
 Brightwood Tracker
 Burrowing Razormaw
+Calamity Bearer
 Castle Locthwain
 Cat Warriors
 Caustic Rain
+Cephalid Broker
 Chainwhip Cyclops
 Charging Rhino
+Charisma
+Chronomaton
+Circle of Protection: Black
 Coal Stoker
 Collector Ouphe
 Contaminated Bond
@@ -34,12 +40,14 @@ Dauthi Ghoul
 Dawn Gryff
 Demonic Bargain
 Dirgur Focusmage
+Disciple of the Ring
 Divine Retribution
 Dockside Extortionist
 Dread Presence
 Duchess, Wayward Tavernkeep
 Elaborate Firecannon
 Elfhame Wurm
+Elite Instructor
 Ember-Fist Zubera
 Energy Chamber
 Entrancing Melody
@@ -53,6 +61,8 @@ Filthy Cur
 Flame-Kin War Scout
 Flare of Cultivation
 Flash Flood
+Flight of Fancy
+Flowstone Blade
 Flowstone Sculpture
 Fodder Cannon
 Foresee
@@ -73,14 +83,17 @@ Grave Birthing
 Grave Bramble
 Griffin Guide
 Grisly Salvage
+Gruul War Chant
 Gutless Ghoul
 HYDRA Disintegrator
+Haughty Djinn
 Heartwood Giant
 Hengegate Pathway
 High-Speed Hoverbike
 Horn of Deafening
 Humble the Brute
 Hungry Flames
+Hunted Wumpus
 Ichor Shade
 Improvised Club
 Indatha Triome
@@ -89,12 +102,14 @@ Island
 Joraga Visionary
 Kalonian Tusker
 Korozda Guildmage
+Krang, the All-Powerful
 Land Leeches
 Light 'Em Up
 Lost in the Woods
 Loyal Pegasus
 Make Obsolete
 Masked Vandal
+Mirrormere Guardian
 Mold Shambler
 Morgue Thrull
 Mortis Dogs
@@ -138,8 +153,10 @@ Righteous Avengers
 Rishadan Footpad
 Rule of Law
 Rush of Knowledge
+Russet Wolves
 Ruthless Predation
 Sage Owl
+Samwise the Stouthearted
 Sanctum of Shattered Heights
 Sandsower
 Sautekh Immortal
@@ -170,6 +187,7 @@ Tattered Haunter
 Tel-Jilad Exile
 Tentative Connection
 Terisiare's Devastation
+Thelonite Druid
 Thermal Glider
 Thought Harvester
 Thran Temporal Gateway
@@ -197,5 +215,6 @@ Wicked Pact
 Wicked Reward
 Wild Slash
 Wildwood Rebirth
+Windreaper Falcon
 Wolfrider's Saddle
 Wu Warship

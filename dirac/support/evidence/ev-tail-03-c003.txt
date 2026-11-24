@@ -11,7 +11,9 @@ Arbor Armament
 Arboreal Alliance
 Arcade Cabinet
 Arcane Encyclopedia
+Arcbound Reclaimer
 Archivist of Oghma
+Argivian Find
 Armor of Faith
 Armored Pegasus
 Artillerize
@@ -25,9 +27,12 @@ Azra Oddsmaker
 Back to Basics
 Band Together
 Battle Rampart
+Befriending the Moths
 Bitter Reunion
 Blade Banish
 Blessings of Nature
+Blinding Angel
+Bloodpyre Elemental
 Bloody Betrayal
 Bonebreaker Giant
 Boneyard Scourge
@@ -36,7 +41,9 @@ Borderland Minotaur
 Borderland Ranger
 Bound in Silence
 Braids, Cabal Minion
+Bramble Armor
 Brass Squire
+Breaking Point
 Briarknit Kami
 Brightmare
 Brushwagg
@@ -94,6 +101,7 @@ Dust Elemental
 Eerie Procession
 Eiganjo Uprising
 Elvish Eulogist
+Ember Beast
 Enchantress's Presence
 Enclave Elite
 Endless One
@@ -117,6 +125,7 @@ Fogwalker
 Font of Mythos
 Forbid
 Forest
+Forked Lightning
 Frenetic Ogre
 Fruitcake Elemental
 Fumarole
@@ -133,6 +142,7 @@ Glissa Sunslayer
 Glyph Elemental
 Gnarlwood Dryad
 Gnat Alley Creeper
+Goblin Chainwhirler
 Goblin King
 Goblinslide
 Goggles of Night
@@ -154,6 +164,7 @@ Heliod, Sun-Crowned
 Heliophial
 Hill Giant
 Hoar Shade
+Hope and Glory
 Horncaller's Chant
 Horned Kavu
 Howl from Beyond
@@ -166,6 +177,7 @@ Implement of Malice
 In Too Deep
 Infiltrate
 Innocent Blood
+Inspired Tinkering
 Invincible Hymn
 Iridescent Angel
 Island
@@ -222,11 +234,14 @@ Mystic Speculation
 Mystical Tutor
 Nadier's Nightblade
 Narcolepsy
+Nesting Dragon
 Nezumi Bone-Reader
 Nightmare Shepherd
 Nimble Birdsticker
 Noxious Ghoul
 Nyxborn Hydra
+Nyxborn Rollicker
+Oakgnarl Warrior
 Oko's Hospitality
 Ollenbock Escort
 Oona's Blackguard
@@ -316,7 +331,9 @@ Sylvan Safekeeper
 Sylvan Shepherd
 Syphon Sliver
 Tamiyo, Inquisitive Student
+Temur Battle Rage
 Teval's Judgment
+Thalia, Heretic Cathar
 Thatcher Revolt
 The Battle of Bywater
 The Covert Blue Mage

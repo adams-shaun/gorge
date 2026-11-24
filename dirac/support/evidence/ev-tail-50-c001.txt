@@ -50,6 +50,7 @@ Bramble Wurm
 Bramblewood Paragon
 Branching Evolution
 Brazen Wolves
+Break Ties
 Briber's Purse
 Brinebarrow Intruder
 Broken Concentration
@@ -120,6 +121,7 @@ Dross Hopper
 Drove of Elves
 Dueling Coach
 Durkwood Tracker
+Dustin, Gadget Genius
 Eiganjo Free-Riders
 Elderfang Disciple
 Elite Cat Warrior
@@ -311,6 +313,7 @@ Reverent Hoplite
 Revive the Shire
 Revoke Existence
 Rhythmic Water Vortex
+Riding the Dilu Horse
 Righteous War
 Riptide
 Riverglide Pathway
@@ -362,6 +365,7 @@ Soul Collector
 Soul of Theros
 Spider-Man, New Champion
 Spiked Baloth
+Spitting Earth
 Spitting Slug
 Squadron Hawk
 Static Prison
@@ -424,6 +428,7 @@ Vindictive Mob
 Virtuous Charge
 Vivid Flying Fish
 Volcanic Rush
+Volcanic Spite
 Voldaren Ambusher
 Voldaren Epicure
 Vulshok War Boar

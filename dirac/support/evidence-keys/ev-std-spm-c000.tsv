@@ -20,8 +20,10 @@ Damage Control Crew	5e72bc997bddfbdb	7	1/1		0/1	ix:resp
 Doc Ock's Henchmen	c130591c1ecf7377	5	1/1		1/1	
 Doc Ock's Tentacles	b9b5a344221eae2a	24	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Doc Ock, Sinister Scientist	a974f9a5f7ebe339	6	0/0		0/0	
+Doctor Octopus, Master Planner	1027e2e27f31b8c6	5	1/1		0/1	ix:resp
 Eerie Gravestone	4499f9a6bdc7e73f	4	2/2		0/1	ix:resp
 Electro's Bolt	10bb65c6dff7944f	11	0/0		2/4	cast/alt:mayhem,ix:resp
+Electro, Assaulting Battery	ae8733d0919cab6e	10	2/2		0/1	ix:resp
 Ezekiel Sims, Spider-Totem	e16de7d89df21ba9	5	1/1		1/1	
 Flash Thompson, Spider-Fan	57dab804a6216ecb	12	1/1		1/1	
 Flying Octobot	234d248dbc54b65d	3	1/1		0/1	ix:resp
@@ -57,7 +59,9 @@ Masked Meower	df66d6ba43e6800a	6	1/1		0/1	ix:resp
 Maximum Carnage	2391e9f01780ada2	3	0/0		0/0	
 Mechanical Mobster	1d083667b7c430a0	8	1/1		0/1	ix:resp
 Merciless Enforcers	eba327264e75a9d8	12	1/1		0/1	ix:resp
+Mob Lookout	e9defb32f7190d23	5	1/1		0/1	ix:resp
 Molten Man, Inferno Incarnate	c4a012f26be9a226	4	2/2		0/1	ix:resp
+Morbius the Living Vampire	4f32836adca18935	5	1/1		1/1	
 Morlun, Devourer of Spiders	f7deab77054a912b	5	1/1		0/1	ix:resp
 Mountain	9e71388353e907ed	175	1/1		0/1	ix:resp
 Mysterio's Phantasm	468c23cd263e4243	9	1/1		1/1	
@@ -73,6 +77,7 @@ Pictures of Spider-Man	0d0a0aea378ad25a	9	2/2		0/1	ix:resp
 Plains	82d63a695487e567	31	1/1		0/1	ix:resp
 Prison Break	c293ffcdfce9cde4	4	0/0		2/4	cast/alt:mayhem,ix:resp
 Professional Wrestler	ecca297c2355a158	6	1/1		0/1	ix:resp
+Prowler, Clawed Thief	c8c2afa1b16483a0	8	1/1		1/1	
 Radioactive Spider	5812e9b0a542824a	3	1/1		0/1	ix:resp
 Raging Goblinoids	79dbef2d33e55b65	3	0/0		1/2	cast/alt:mayhem
 Rent Is Due	b459a9ddf3a04b00	10	1/1		0/1	ix:resp
@@ -82,6 +87,7 @@ Risky Research	a6e5d005c75a3aaf	6	0/0		1/2	ix:resp
 Robotics Mastery	5783d2e9d3cc2cc1	10	1/1		2/2	
 Rocket-Powered Goblin Glider	2d50642af634bbb3	174	2/2		3/3	
 Romantic Rendezvous	41d7dd6445d9f1f2	6	0/0		1/2	ix:resp
+SP//dr, Piloted by Peni	b77e59703e3d2e40	4	2/2		1/1	
 Sandman's Quicksand	454dc45f0617c628	6	0/0		3/4	cast/alt:mayhem
 Sandman, Shifting Scoundrel	821f0b99dd194546	10	1/1		0/1	ix:resp
 Savage Mansion	465013ea1479b416	9	2/2		0/1	ix:resp
@@ -98,6 +104,7 @@ Shriek, Treblemaker	7ed179e3bb0a2239	3	2/2		0/1	ix:resp
 Silk, Web Weaver	66e6418bb9bba287	12	2/2		1/3	cast/alt:webslinged,ix:resp
 Silver Sable, Mercenary Leader	effed9cf896bc63e	4	2/2		0/1	ix:resp
 Sinister Hideout	a70f1200dd734fb0	29	2/2		1/1	
+Skyward Spider	857db4add38f00af	10	1/1		1/1	
 Spectacular Spider-Man	60b9a824ccc58618	20	2/2		1/1	
 Spectacular Tactics	37a59a712b389207	4	0/0		2/2	
 Spider Manifestation	9e4d9ac351f7e73d	5	2/2		0/1	ix:resp
@@ -131,6 +138,7 @@ Sun-Spider, Nimble Webber	9dc67829647d560f	5	1/1		0/1	ix:resp
 Supportive Parents	9909a1f1e2e1a1ef	6	1/1		0/1	ix:resp
 Swamp	342b413902f441c3	57	1/1		0/1	ix:resp
 Swarm, Being of Bees	09c399c3daf815a3	21	0/0		1/2	cast/alt:mayhem
+Symbiote Spider-Man	3ee33caeb09c00aa	3	2/2		0/1	ix:resp
 Taxi Driver	877b506334493856	8	1/1		1/1	
 Terrific Team-Up	3f0b94cd02fe3b8e	6	0/0		1/2	ix:resp
 The Spot's Portal	5ecc0a8725481bc9	4	0/0		1/2	ix:resp
@@ -144,6 +152,7 @@ Venom, Evil Unleashed	c236e1507e14e27b	6	1/1		1/1
 Venomized Cat	65e07bd77cf7c10b	19	1/1		1/1	
 Vibrant Cityscape	74568031ddaf5f04	20	1/1		0/1	ix:resp
 Villainous Wrath	642a912daca5e388	4	0/0		1/2	ix:resp
+Vulture, Scheming Scavenger	f2551a9d2f50d1d9	3	1/1		0/1	ix:resp
 Wall Crawl	239caa734b10b98d	5	1/1		0/1	ix:resp
 Web Up	53d77aab0178ec33	4	1/1		0/1	ix:resp
 Web-Shooters	53199a42725e789c	8	1/1		0/1	ix:resp

@@ -74,6 +74,7 @@ Crowd of Cinders
 Crypt Champion
 Curse of Inertia
 Daily Bugle Newspaper
+Damocles Base, Sword of Kang
 Dance of Many
 Danitha Capashen, Paragon
 Daring Saboteur
@@ -119,6 +120,7 @@ Fallowsage
 False Memories
 False Prophet
 Fang of Shigeki
+Fanning the Flames
 Field of Reality
 Fire Nation's Conquest
 Flay
@@ -146,6 +148,7 @@ Goblin Cohort
 Goblin Piker
 Gold-Forged Thopteryx
 Gorilla Chieftain
+Grand Architect
 Grappler Spider
 Grasslands
 Gravitational Shift
@@ -160,6 +163,7 @@ Gudul Lurker
 Guiding Bolt
 Hapatra's Mark
 Haunter of Nightveil
+He Who Hungers
 Healer of the Pride
 Herald of Dromoka
 Hero of the Nyxborn
@@ -280,6 +284,7 @@ Recollect
 Reflections of Littjara
 Reforge the Soul
 Rend Spirit
+Resplendent Marshal
 Return to Nature
 Revered Dead
 Rhox Charger

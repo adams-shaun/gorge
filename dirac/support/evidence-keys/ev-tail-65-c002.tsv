@@ -6,19 +6,25 @@ Absolute Grace	425add704f58efbe	67	0/0		0/0
 Abu Ja'far	23fedb3b098840d8	65	1/1		1/1	
 Aether Figment	d87415b6847b7d42	28	0/0		2/2	
 Always Watching	ec1db06524aef702	55	0/0		0/0	
+Amphibious Kavu	78e0b07fc9f4251c	6	2/2		0/1	ix:resp
 Amulet of Vigor	8aebece98dc8dd63	4	1/1		0/1	ix:resp
 Apostle of Purifying Light	5290b0f24bc34679	61	1/1		1/1	
 Appetite for the Unnatural	a9b714daf3371318	5	0/0		1/2	ix:resp
 Arcane Flight	230fdd0ff402cda8	21	0/0		2/2	
 Arcbound Whelp	ef674bc43eab24cd	7	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Assembly Hall	63edfa9ba7fe2017	5	1/1		0/1	ix:resp
 Attunement	740e87a2bec937af	4	1/1		0/1	ix:resp
 Banewasp Affliction	80da6897bbafa265	66	1/1		2/2	
 Battle-Rage Blessing	1ccb187e0bb52319	52	0/0		2/2	
+Behind the Scenes	a0923758a5221bfd	4	1/1		0/1	ix:resp
 Blisterstick Shaman	e3c7a1db6fcea8f0	30	1/1		1/1	
 Blood Burglar	aa18b745a5d36634	67	0/0		0/0	
 Bogstomper	93395d85342e65cf	33	0/0		0/0	
 Boss Uramon, Shadow's Reach	ff2363ccd9fbc6c6	52	1/1		1/1	
 Bounteous Kirin	11056b37c5d0180a	34	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Brightcap Badger	012f52c22a44340a	11	1/1		1/2	ix:resp
+Burning Cloak	3942a6ef8668a509	8	0/0		2/2	
+Canyon Lurkers	1b0f2a5dc413fb3b	4	0/0		1/2	cast/alt:morphed
 Cavalry Pegasus	7bdb95952392bfa6	71	1/1		0/1	ix:resp
 Cazur, Ruthless Stalker	9651e1376a06d614	64	2/2		1/1	
 Centaur Nurturer	342bc2df385ad4d8	33	2/2		1/1	
@@ -37,6 +43,7 @@ Diplomatic Escort	0257ea0fd1b273a6	22	1/1		1/1
 Drifting Shade	131cff1b85d1f2e0	46	1/1		1/1	
 Drooling Groodion	d68b20a0bfb3d5f3	33	1/1		1/1	
 Dry Spell	c3c79523c951b54a	29	0/0		1/2	ix:resp
+Dwarven Armory	87b148a43c24414c	3	1/1		1/1	
 Dwarven Patrol	ee503a6752dd55d2	43	1/1		1/1	
 Eidolon of Inspiration	d95355b02aebbb90	18	1/1		1/1	
 Elvish Branchbender	2c536002444a7db3	8	1/1		0/1	ix:resp
@@ -44,21 +51,28 @@ Embodiment of Fury	3fa55b3ae2102da2	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Empress Galina	1c9c89bbf6f4a548	14	1/1		1/1	
 Era of Enlightenment	bd22704dc7648db0	65	0/0		0/0	
 Etched Champion	62a25ec3aa7338ca	4	0/0		0/0	
+Explosive Growth	00c16861fc803091	6	0/0		3/4	ix:resp
 Eyeblight Cullers	1ccdf33c933668b2	16	1/1		1/1	
 Falkenrath Celebrants	be2eeeb7bcac09b8	55	1/1		1/1	
 Fallaji Vanguard	c4fc61c80fd72379	27	1/1		1/1	
+Fanged Flames	8523faf6ceaebb08	10	0/0		1/2	ix:resp
 Flame-Kin Zealot	d15f0d5f180d8ff8	11	1/1		0/1	ix:resp
+Flensermite	df399e6c47abe970	6	0/0		0/0	
 Formless Genesis	59e0addc3214611c	64	0/0		2/2	
+Gaea's Cradle	ab7ab13a2e476e57	14	1/1		0/1	ix:resp
 Ghoulraiser	c43c52cc9a19402e	4	1/1		0/1	ix:resp
 Gilded Pinions	23d3dc7a6c5cdba9	8	2/2		0/1	ix:resp
 Gitaxian Anatomist	0ce1bcf0d7fb6b51	14	1/1		0/1	ix:resp
 Glorious Anthem	e5276426ba45c598	7	0/0		0/0	
+Glorious Protector	c65100149f814a2a	4	1/1		1/3	cast/alt:foretold,ix:resp
 Gold Myr	115f048aa0e007ad	79	1/1		1/1	
 Golgari Locket	08a80aa086875cc1	41	2/2		0/1	ix:resp
 Grateful Apparition	c1d254f941607c32	65	1/1		1/1	
 Grotag Bug-Catcher	a9fd9bbaa6cddd70	5	1/1		0/1	ix:resp
 Gryffwing Cavalry	949c38e21f391674	59	2/2		1/1	
 Guardian of Vitu-Ghazi	efd4bc38c082a286	9	0/0		0/0	
+Headsplitter	e72296d1b19dad3e	30	2/2		0/1	ix:resp
+Hellion Crucible	7c40534791acdfe8	16	3/3		0/1	ix:resp
 Herald of the Dreadhorde	c182fc3977b9a707	6	1/1		1/1	
 Hero of Leina Tower	8539647db4989927	60	1/1		1/1	
 Hibernation	0830b3572ab7d983	6	0/0		1/2	ix:resp
@@ -98,6 +112,8 @@ Norn's Disassembly	ae3e04cd5ebb349f	86	1/1		1/1
 Novice Knight	ecef2fe976eef6ca	60	0/0		0/0	
 On Thin Ice	539ed99d2a375fb5	6	1/1		1/2	ix:resp
 Oreskos Swiftclaw	a4b790449413a5ec	51	0/0		0/0	
+Petrified Field	58687acc4d987e17	16	2/2		0/1	ix:resp
+Profaner of the Dead	1c189afab4a50656	3	2/2		0/1	ix:resp
 Proper Burial	9c528762f3abeb96	7	1/1		1/1	
 Quest for Renewal	644feb49035323bf	60	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Rakdos Shred-Freak	a1e195f6dfc2160d	21	0/0		0/0	
@@ -106,6 +122,7 @@ Reservoir Kraken	9a0c2745d884e28c	19	2/2		1/1
 Restless Apparition	bd5977a686709763	22	2/2		1/1	
 Rogue Elephant	d2b72307920ea4b2	68	1/1		1/1	
 Run Out of Town	fc5227cec931ab89	22	0/0		2/2	
+Ruthless Cullblade	a46a6e4a6f65e169	6	0/0		0/0	
 Safeguard	1c2ab0bb0d309e02	3	1/1		1/1	
 Satyr Piper	59bce435a3ed4c3f	40	1/1		1/1	
 Scavenger Drake	be333bb1962cc0cf	50	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
@@ -116,6 +133,8 @@ Serpentine Ambush	e10cf47b05bc6b52	17	0/0		1/2	ix:resp
 Shadows' Verdict	eba7d432282c7512	22	0/0		2/2	
 Shang-Chi, Martial Mentor	393b2d663936ba6b	45	1/1		0/1	ix:resp
 Shauku, Endbringer	13d66e2f1e82750e	20	2/2		1/1	
+Shimmerdrift Vale	4d652aef1ffc7e04	9	1/1		0/1	ix:resp
+Shinka Gatekeeper	ac3d86758d42f003	6	1/1		0/1	ix:resp
 Skitterskin	eebdec2327b25bf5	58	1/1		1/1	
 Spark of Creativity	4c204a61e0bb5522	4	0/0		2/2	
 Spined Basher	aba93b69b8aa7bd1	6	0/0		1/2	cast/alt:morphed
@@ -131,6 +150,7 @@ Tide Skimmer	3ed96117a6708dfe	22	1/1		0/1	ix:resp
 Tonic Peddler	d6c9a1a97492f88a	69	1/1		0/1	ix:resp
 Trip Noose	786b6fe9b6dadee6	76	1/1		1/1	
 Trophy Mage	5fa3a1bab5573d92	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Turbulent Fen	7d418ae75cef7501	18	2/2		0/1	ix:resp
 Umara Mystic	24eaf11516816652	6	1/1		0/1	ix:resp
 Underworld Hermit	f428e75e261a3b17	44	1/1		1/1	
 Underworld Sentinel	6d43c0115016590b	22	2/2		0/1	ix:resp
@@ -140,5 +160,7 @@ Vulshok Gauntlets	d6b60fad37b473d4	95	1/1		1/1
 Walker of the Wastes	f52c131920eb8ec6	19	0/0		0/0	
 Whip-Spine Drake	a12f086fcdb874d2	10	0/0		1/2	cast/alt:morphed
 Wilderness Hypnotist	f59dd8a0a5da4b4f	18	1/1		1/1	
+Windswept Heath	d863d44947496532	21	1/1		0/1	ix:resp
 Wishcoin Crab	1aca3cc82a59ff69	21	0/0		0/0	
+Woodland Cemetery	9263f650b65ba601	22	1/1		0/1	ix:resp
 Wurmcalling	6666d2874e3a046c	122	0/0		6/6	

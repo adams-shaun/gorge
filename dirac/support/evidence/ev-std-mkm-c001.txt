@@ -7,6 +7,7 @@ Agrus Kos, Spirit of Justice
 Airtight Alibi
 Analyze the Pollen
 Archdruid's Charm
+Assassin's Trophy
 Assemble the Players
 Audience with Trostani
 Aurelia, the Law Above
@@ -47,12 +48,14 @@ Deduce
 Defenestrated Phantom
 Delney, Streetwise Lookout
 Demand Answers
+Detective's Satchel
 Doorkeeper Thrull
 Dramatic Accusation
 Due Diligence
 Elegant Parlor
 Eliminate the Impossible
 Escape Tunnel
+Evidence Examiner
 Expedited Inheritance
 Expose the Culprit
 Extract a Confession
@@ -90,7 +93,9 @@ It Doesn't Add Up
 Jaded Analyst
 Karlov Watchdog
 Kaya, Spirits' Justice
+Kellan, Inquisitive Prodigy
 Knife
+Kraul Whipcracker
 Krenko, Baron of Tin Street
 Krovod Haunch
 Lamplight Phoenix
@@ -182,6 +187,7 @@ Underground Mortuary
 Undergrowth Recon
 Unscrupulous Agent
 Unyielding Gatekeeper
+Urgent Necropsy
 Vein Ripper
 Vengeful Tracker
 Warleader's Call

@@ -1,4 +1,5 @@
 A-Dwarfhold Champion
+A-Hall of Tagsin
 A-Riveteers Initiate
 A-Vivi Ornitier
 Abstergo Entertainment
@@ -15,8 +16,11 @@ Anarchy
 Anax and Cymede
 Angelic Voices
 Anje, Maid of Dishonor
+Annihilating Glare
 Aphemia, the Cacophony
 Archwing Dragon
+Arctic Aven
+Arctic Treeline
 Arctic Wolves
 Artful Dodge
 Assassin Initiate
@@ -32,6 +36,7 @@ Bellowing Aegisaur
 Benthicore
 Black Market
 Blade of Selves
+Blink of an Eye
 Blood Money
 Blood-Toll Harpy
 Bloodsworn Squire
@@ -57,6 +62,7 @@ City of Traitors
 Clearwater Pathway
 Cobalt Golem
 Collective Nightmare
+Comparative Analysis
 Consecrate
 Consecrated by Blood
 Countersquall
@@ -68,22 +74,27 @@ Curse Artifact
 Dauthi Warlord
 Dawnbringer Cleric
 Deadeye Harpooner
+Defiant Falcon
 Deglamer
 Desmond Miles
 Destined
 Destructive Revelry
+Devour Flesh
 Diabolic Revelation
 Disfigure
 Dismiss
+Divine Verdict
 Downsize
 Dragon Mask
 Dragon's Approach
 Dragonscale Boon
 Dream's Grip
+Druidic Satchel
 Dwarven Hammer
 Electrostatic Field
 Elspeth, Sun's Champion
 Elvish Warmaster
+Emry, Lurker of the Loch
 Ensouled Scimitar
 Ephara's Warden
 Eternity Snare
@@ -92,6 +103,7 @@ Extinguish All Hope
 Faerie Noble
 Faerie Trickery
 Fall of the Gavel
+Fiery Islet
 Firebolt
 Fireflux Squad
 Flametongue Kavu
@@ -103,13 +115,17 @@ Forced Fruition
 Forest
 Fruition
 Funeral Charm
+Furnace Whelp
 Galerider Sliver
 Game Trail
 Gerrard's Wisdom
 Ghoulcaller Gisa
 Gift of Wrath
+Give
 Glamdring
+Glistener Seer
 Gloomwidow
+Glorifier of Dusk
 Goblin Gaveleer
 Goblin Razerunners
 Goblin Settler
@@ -127,12 +143,15 @@ Hideous End
 Highland Weald
 Hithlain Knots
 Icequake
+Icy Prison
+Idyllic Beachfront
 Ill-Tempered Cyclops
 In Bolas's Clutches
 Incendiary Sabotage
 Incremental Growth
 Ironroot Warlord
 Island
+Jamie McCrimmon
 Judith, the Scourge Diva
 Junkyard Genius
 Justiciar's Portal
@@ -151,6 +170,7 @@ Leaden Myr
 Leonin Den-Guard
 Leyline Invocation
 Library of Alexandria
+Life Burst
 Lifeforce
 Live Fast
 Living Wall
@@ -158,6 +178,7 @@ Llanowar Loamspeaker
 Loam Lion
 Lose Hope
 Lost in a Labyrinth
+Lotus Bloom
 Loxodon Convert
 Magus of the Tabernacle
 Makindi Aeronaut
@@ -165,6 +186,8 @@ Mana Confluence
 Mana Geyser
 Many Partings
 Master of Diversion
+Mer Man
+Minas Tirith
 Mindculling
 Mindless Conscription
 Mindslicer
@@ -172,6 +195,7 @@ Mire Kavu
 Mishra's Factory
 Mistveil Plains
 Moment of Defiance
+Monstrous Growth
 Morgue Burst
 Mortal Obstinacy
 Mountain
@@ -182,10 +206,13 @@ Nekrataal
 Nighthowler
 Numbing Jellyfish
 Nyx Infusion
+Nyxborn Seaguard
 Ob Nixilis's Cruelty
 Ojutai's Breath
 Ojutai's Summons
+Palazzo Archers
 Path of Bravery
+Pathway Arrows
 Pendelhaven
 Phyrexian Warhorse
 Pirate's Pillage
@@ -193,6 +220,7 @@ Plains
 Pointed Discussion
 Pool Resources
 Powerstone Fracture
+Prava of the Steel Legion
 Promise of Power
 Proteus Staff
 Psionic Blast
@@ -225,9 +253,12 @@ Silumgar Butcher
 Silver Seraph
 Sima Yi, Wei Field Marshal
 Sinkhole
+Skyclave Apparition
 Skyknight Legionnaire
+Skyreaping
 Skyscanner
 Sledding Otter-Penguin
+Slip On the Ring
 Smelted Chargebug
 Soramaro, First to Dream
 Sparkcaster
@@ -244,11 +275,13 @@ Stampede Driver
 Stand
 Star Pupil
 Starfall
+Steel Sabotage
 Stormrider Spirit
 Striding Shotcaller
 Subterranean Tremors
 Sudden Death
 Sundering Growth
+Supreme Phantom
 Surrakar Spellblade
 Surtr, Fiery Jötun
 Swamp
@@ -263,18 +296,23 @@ The Everforger
 The Revelations of Ezio
 Three Dreams
 Tibalt, Rakish Instigator
+Tidebinder Mage
+Tidepool Turtle
 Timid Drake
 Torch Song
 Tormentor Exarch
 Tortoise Formation
 Traverse Eternity
 Treetop Ambusher
+Treetop Recluse
 Treetop Scout
 Triangle of War
 True Polymorph
+Trueheart Duelist
 Ugin's Conjurant
 Ulamog, the Ceaseless Hunger
 Ulcerate
+Unagi's Spray
 Unnatural Speed
 Vampire Opportunist
 Vermiculos
@@ -284,6 +322,7 @@ Voice of Law
 Voidmage Prodigy
 Voracious Vampire
 Vorstclaw
+Walking Sponge
 Wall of Limbs
 Wash Out
 Waste Away

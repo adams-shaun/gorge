@@ -1,26 +1,78 @@
 card	lir16	plays	keys	unused	branches	missing_branches
+A-Deal Gone Bad	dfb1586753bbc8ab	4	0/0		2/2	
 Abrupt Decay	98750720f5e9fd14	21	0/0		2/2	
 Accelerated Mutation	d616ff869a5bccba	4	0/0		1/2	ix:resp
+Acquire	25ed6411955622bf	3	0/0		1/2	ix:resp
+Aggressive Crag	99219f05bbbc340b	11	2/2		0/1	ix:resp
+Arachnoid Adaptation	acc2efa381f41010	4	0/0		1/2	ix:resp
+Atomize	ceb594d12a6c24b3	4	0/0		1/2	ix:resp
+Auntie's Hovel	8226d34b8fa366bc	5	1/1		0/1	ix:resp
+Blazing Volley	bf3d795b3e0e94fc	4	0/0		1/2	ix:resp
+Bloodmist Infiltrator	f3f44b612e122230	5	1/1		0/1	ix:resp
+Blot Out	8ab8257bbd95e4bb	4	0/0		1/2	ix:resp
+Boot Nipper	e6cc8b398ab802d4	8	0/0		0/0	
 Boromir, Gondor's Hope	979a2753386f2d2c	17	2/2		1/1	
+Brood Birthing	29231f05921d2eda	4	0/0		1/2	ix:resp
 Cabal Surgeon	b014399b757d57c2	17	1/1		0/1	ix:resp
+Carrion Wall	27cfd27630986393	6	1/1		1/1	
 Combine Chrysalis	b30670d6066c8a61	11	1/1		0/1	ix:resp
+Crypt Rats	1da88e0ac05de886	6	1/1		1/1	
+Darkbore Pathway	ead1d1f7023476bf	26	2/2		0/1	ix:resp
+Detainment Spell	7a3dd90e26462c3b	4	1/1		2/2	
+Divine Transformation	49ced11697c9e80a	4	0/0		1/2	ix:resp
+Dreadmobile	6d50fad8e53e591b	6	2/2		1/1	
+Dross Scorpion	4e8353bba6d49188	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Eternal Scourge	595815e4e3bb4f43	103	1/1		1/1	
+Experimental Aviator	369e13e4e31ac986	3	1/1		0/1	ix:resp
+Faerie Bladecrafter	77154db6b7cf6162	4	2/2		1/1	
 Festival of the Guildpact	67156921279fde0f	4	0/0		2/4	f0/s/x0,ix:resp
+Final Fortune	56b3225d479422d9	4	0/0		1/2	ix:resp
 Fleeting Memories	0b92726ed638612d	28	2/2		1/1	
 Fork in the Road	a56eb70c29d8022d	56	0/0		2/2	
 Frenzied Tilling	fa69c08cfab5e5df	26	0/0		1/2	ix:resp
+Fury Sliver	2dbca9fead00a917	4	0/0		0/0	
+Grim Captain's Call	a3ba16f528e2908f	4	0/0		1/2	ix:resp
+Grim Servant	157cd8db2e1a815d	4	1/1		1/1	
+Heavy Mattock	6ca0c122b876acff	23	1/1		0/1	ix:resp
+Icon of Ancestry	2f1fa9172dd05880	4	1/1		0/1	ix:resp
+Inner-Flame Acolyte	1d843944941f9bd4	4	1/1		1/3	cast/alt:none,ix:resp
+Jund Panorama	ab10722345720be3	9	2/2		0/1	ix:resp
 Jungle Creeper	02f5c4f37c8b7806	55	1/1		0/1	ix:resp
+Kite Shield	d255d49ecfb475c6	38	1/1		1/1	
+Languish	59772c3e5d587b86	4	0/0		1/2	ix:resp
+Legions of Lim-Dûl	a5db5eca2868701a	6	0/0		0/0	
+Metathran Elite	072fc5dc214ccf10	6	0/0		0/0	
+Metathran Soldier	cd253da59762ee55	6	0/0		0/0	
+Moorland Haunt	152b1c56bd1cbb00	12	2/2		0/1	ix:resp
+Mountain Yeti	e46da05be917a2cf	4	0/0		0/0	
 Natural Order	0550d89cb9a3b6ce	23	0/0		1/2	ix:resp
+Nyx Infusion	e19e186a41c80145	4	0/0		1/2	ix:resp
+Open the Gates	17377daa378d61fe	8	0/0		1/2	ix:resp
 Purify the Grave	968eba22c671079d	4	0/0		3/4	ix:resp
 Putrid Leech	c27afb2a791f6983	19	1/1		1/1	
+Pyrophobia	97139cb79be67b57	4	0/0		1/2	ix:resp
+Qumulox	8b73bbd323068777	4	0/0		0/0	
+Rage of Purphoros	bcb4242637131ba4	3	0/0		1/2	ix:resp
+Retrofitted Transmogrant	98b9397c2a3da70b	6	1/1		0/1	ix:resp
+Rile	0e700b48e88e6e9c	9	0/0		1/2	ix:resp
 Rubblebelt Runner	d04996419c442246	3	0/0		0/0	
 Scuttlegator	9ddad1c7d671895f	9	1/1		0/1	ix:resp
+Serum Tank	ea091ab1e1f6be64	4	2/2		0/1	ix:resp
+Silent Dart	4a17315e32ad5f71	3	1/1		0/1	ix:resp
+Simic Growth Chamber	6c73b0dccbb4f536	19	2/2		0/1	ix:resp
+Solemn Offering	6496aa551ea9e91f	4	0/0		1/2	ix:resp
 Stolen Goods	cccaac3c003e1622	22	0/0		2/2	
+Teetering Peaks	9b85f329ce66e1f6	8	2/2		0/1	ix:resp
+Thalakos Mistfolk	5cd7e5a0f5223c62	5	1/1		0/1	ix:resp
 Training Grounds	fce3067aae581828	47	0/0		0/0	
 Twiddle	84f04b9bafbbb33b	27	0/0		2/2	
+Undead Augur	3c5680819951c546	8	1/1		0/1	ix:resp
 Valeria Richards, Precocious	8aeafffe237bef70	29	1/1		1/1	
 Vedalken Outlander	c0ccc4e64ad753f7	36	0/0		0/0	
+Volt Charge	327fd124ce520c35	4	0/0		1/2	ix:resp
 Vulshok Morningstar	8186cdc977078129	4	1/1		0/1	ix:resp
 Wary Okapi	75c85c12885f04d5	40	0/0		0/0	
+Woodland Stream	39974ef14cfc99f2	10	1/1		0/1	ix:resp
+Wretched Throng	f2b8d1554b393edd	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Zendikar Incarnate	1bd8765137dd6b37	4	0/0		0/0	
 Zephyr Net	496afdeae0c267ae	25	0/0		2/2	

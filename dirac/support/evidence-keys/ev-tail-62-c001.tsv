@@ -2,12 +2,14 @@ card	lir16	plays	keys	unused	branches	missing_branches
 A-Find the Path	8648980d608e1116	4	1/1		2/2	
 Angel of Serenity	10b9942f0a7bba3e	20	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Beacon Bolt	905d58f32d8827d2	31	0/0		3/4	cast/alt:jumpstart
+Bite of the Black Rose	aba2879fca9166c2	10	0/0		1/2	ix:resp
 Blood Researcher	541e7cdc76cdbdbb	24	1/1		1/1	
 Crookclaw Transmuter	aa718ca91c5b830f	25	1/1		1/1	
 Cumber Stone	6d44e9bd92da3d4c	45	0/0		0/0	
 Dig Through Time	79a1b2735db2c476	3	0/0		1/2	ix:resp
 Drach'Nyen	87a00277c0d6dc6f	16	2/2		1/1	
 Duelist's Flame	fee626c8222d6b37	11	0/0		2/4	f0/s/x0,ix:resp
+Hungry Lynx	561b5cab0553563c	10	2/2		0/1	ix:resp
 Ian the Reckless	e49b10e9015726d1	73	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Karn, Legacy Reforged	ebd8d0ef64c7e771	51	1/1		1/1	
 Kirtar's Desire	d78626f856943225	51	0/0		2/2	
@@ -17,8 +19,9 @@ Mistveil Plains	24c291918b439673	635	2/2		1/1
 Misty Rainforest	0e277056404399cd	114	1/1		0/1	ix:resp
 Mystic Sanctuary	b4bd6b352bf3d40f	105	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Nivix Cyclops	78238bed79956ba9	19	1/1		1/1	
+Obsidian Acolyte	27f137e2759a3b61	13	1/1		1/1	
 Prowess of the Fair	d75fa98b6b4ea265	70	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
-Skarrg, the Rage Pits	0a3876dc1df85d9c	98	2/2		1/1	
+Shattering Spree	1b991348a378c73f	10	1/1		4/4	
 Soratami Cloud Chariot	f92077272c0b8667	6	2/2		1/1	
 Time Reaper	104be2a6489adcdf	3	1/1		0/1	ix:resp
 Titania, Protector of Argoth	4f32b368b3978ebb	4	2/2		0/1	ix:resp

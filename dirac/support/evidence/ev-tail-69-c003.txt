@@ -34,6 +34,7 @@ Chandra's Flame Wave
 Change of Fortune
 Clamavus
 Claws of Gix
+Cliffhaven Kitesail
 Colossapede
 Compulsory Rest
 Contagious Vorrac
@@ -97,6 +98,7 @@ Granulate
 Grasp of Phantoms
 Grasping Giant
 Gray Slaad
+Greed
 Gut, True Soul Zealot
 Hanweir Militia Captain
 Healer's Flock
@@ -142,11 +144,13 @@ Marsh Goblins
 Memory's Journey
 Militia's Pride
 Mindsplice Apparatus
+Mindwrack Demon
 Mire Triton
 Mishra, Excavation Prodigy
 Molten Influence
 Mountain
 Mox Amber
+Naru Meha, Master Wizard
 Necropouncer
 Necrotic Fumes
 Nimana Skitter-Sneak
@@ -180,6 +184,7 @@ Pyre-Sledge Arsonist
 Pyreswipe Hawk
 Quickling
 Raging Kavu
+Rakdos Drake
 Raze the Effigy
 Razorfield Thresher
 Reckless Embermage
@@ -196,6 +201,7 @@ Root Out
 Rotting Fensnake
 Rubble Reading
 Rushwood Herbalist
+Rust Goliath
 Saiba Cryptomancer
 Sailor of Means
 Salvage Scout
@@ -227,9 +233,11 @@ Stone Spirit
 Surge Conductor
 Swamp
 Sylvan Anthem
+Tavern Swindler
 Tel-Jilad Exile
 Tempest Drake
 Temple Bell
+Thirst for Meaning
 Thorn of the Black Rose
 Thriving Ibex
 Throne of Geth
@@ -245,6 +253,7 @@ Traitorous Blood
 Treasure Hunt
 Triangle of War
 Triskelion
+Unholy Indenture
 Unwind
 Vampire's Bite
 Venser's Sliver
@@ -254,6 +263,7 @@ Void
 Voracious Typhon
 Wall of Blossoms
 War-Wing Siren
+Warm Welcome
 Watcher Sliver
 Waterfront District
 Wayfaring Temple
@@ -264,6 +274,7 @@ White Scarab
 Wilderness Reclamation
 World Breaker
 Wrath of the Skies
+You Meet in a Tavern
 Youthful Scholar
 Zagoth Triome
 Zaxara, the Exemplary

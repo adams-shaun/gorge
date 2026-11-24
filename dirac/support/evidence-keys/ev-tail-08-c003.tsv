@@ -16,12 +16,12 @@ Banewhip Punisher	84b302f6b9c41595	14	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Bankrupt in Blood	91ca4491618b56c0	4	0/0		1/2	ix:resp
 Benalish Marshal	2b64de3935f51e7d	4	0/0		0/0	
 Bequeathal	f6625072f167edc1	12	1/1		2/2	
-Bestial Menace	a5c1b9a2dc5358aa	5	0/0		1/2	ix:resp
 Black Market Tycoon	fcd4caa4897dd69b	3	2/2		1/1	
 Blood Age General	40bf822a0abae631	7	1/1		1/1	
 Blood Divination	f59909a0b22e65a6	24	0/0		2/2	
 Blood Glutton	5a5d7d53b1c4bacc	4	0/0		0/0	
 Blood Seeker	488e1bccb1e47e11	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Bloodstained Mire	10a2478926e4171b	10	1/1		0/1	ix:resp
 Blur Sliver	52faf45be9cc0f3f	9	0/0		0/0	
 Boggart Trawler	7cabd884e77d491e	22	2/2		0/1	ix:resp
 Bolt of Keranos	1712d4fd7f4bf2e9	52	0/0		2/2	
@@ -33,9 +33,11 @@ Cadira, Caller of the Small	1c3d77afa9ad5b55	3	1/1		0/1	ix:resp
 Call to Glory	538ced5c6096c727	5	0/0		1/2	ix:resp
 Call to the Netherworld	b52b868aaf8fba78	9	0/0		1/2	ix:resp
 Calming Verse	20f956aaf878f52b	4	0/0		1/2	ix:resp
+Captain Vargus Wrath	3fbd64dc67424629	4	1/1		0/1	ix:resp
 Certain Death	545289d30bbfd585	4	0/0		2/2	
 Chakram Retriever	3df15a928a26f2ca	3	2/2		0/1	ix:resp
 Chill to the Bone	42fce76aa14cc97f	8	0/0		1/2	ix:resp
+Circle of Protection: Red	bd90304baa44ebc4	6	1/1		1/1	
 Commence the Endgame	084f0d60749c8da4	42	0/0		2/2	
 Containment Protocol	af633dbcfece2ba8	41	1/1		1/2	ix:resp
 Corrosive Mentor	442b0bc5ce316b31	4	0/0		0/0	
@@ -47,6 +49,7 @@ Death's Duet	ab69d1205960c10d	9	0/0		2/2
 Deathbringer Liege	7706f257b52822f5	7	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y
 Devouring Deep	1700f61f0a9542af	15	0/0		0/0	
 Diamond Knight	bde0bfba7910254a	7	1/1		0/1	ix:resp
+Displacer Beast	46c70983211607f0	7	2/2		1/1	
 Disposal Mummy	cee2f5c13cabe676	12	1/1		0/1	ix:resp
 Drana's Emissary	50dc4dda91909a67	8	1/1		1/1	
 Dread Specter	bd71d1ae875b8b99	3	2/2		0/1	ix:resp
@@ -58,7 +61,6 @@ Engulf the Shore	454b898bf485ef85	4	0/0		1/2	ix:resp
 False Demise	cf715abaf80af88e	9	1/1		1/2	ix:resp
 Fearless Liberator	3b23a6783254b695	39	1/1		1/1	
 Feast of the Unicorn	b7d7909b92925769	7	0/0		1/2	ix:resp
-Feedback	d98cfa21f06b2e6b	15	1/1		2/2	
 Fists of Flame	e41591b5e089b2d4	5	0/0		1/2	ix:resp
 Flay	e42d995f61acce9a	15	0/0		1/2	ix:resp
 Flourishing Strike	6ca6b646d38f16db	34	0/0		2/2	
@@ -82,7 +84,6 @@ Ilysian Caryatid	b668c21dc0c9f1d7	21	1/1		1/1
 Improbable Alliance	ff1267220b636ebc	26	2/2		1/1	
 Inspiring Cleric	60103fcb12a0387b	5	1/1		0/1	ix:resp
 Invasion of Theros	d2727feb4f73a8b4	38	2/2		1/1	
-Iron Fist, Hero for Hire	ceca251c078548ff	46	2/2		1/1	
 Iron Verdict	51e98a5b1e0040d5	10	0/0		3/4	cast/alt:foretold
 Ishai, Ojutai Dragonspeaker	847aa3f7263802f7	8	1/1		1/1	
 Joiner Adept	cd942cd03dc15865	18	0/0		0/0	
@@ -92,6 +93,7 @@ Juvenile Gloomwidow	22b233b127567bbe	6	0/0		0/0
 Kjeldoran Frostbeast	1fddbe0556eecbd0	3	1/1		0/1	ix:resp
 Lat-Nam Adept	521b24cae5c89268	4	1/1		0/1	ix:resp
 Lesser Werewolf	e7d3dce047207e25	7	1/1		0/1	ix:resp
+Library	9486f9fe820b0d4b	14	2/2		0/1	ix:resp
 Liliana's Triumph	d9e5d4aa6f6272ef	4	0/0		1/2	ix:resp
 Living Totem	93104de022799def	18	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Loxodon Mystic	7a3b19a5c8eb29b7	8	1/1		0/1	ix:resp
@@ -100,6 +102,8 @@ M.O.D.O.K., Evil Intellect	77b73345412db753	7	1/1		1/1
 Marionette Apprentice	d3532fd979c470a6	23	2/2		0/1	ix:resp
 Mascot Exhibition	d10d162b60c58ca7	14	0/0		2/2	
 Mass Diminish	51d404a449d80d02	34	0/0		4/4	
+Memorial to Unity	90345d4cadfbce7c	12	2/2		1/1	
+Meria, Scholar of Antiquity	ca65a29bf61fc16f	4	2/2		0/1	ix:resp
 Midnight Ritual	566b5ebce30f18b4	23	0/0		2/4	f0/s/x0,ix:resp
 Militia Bugler	22c10cc12bcc0f05	4	1/1		0/1	ix:resp
 Mogg Squad	3b824e8f0e56e159	28	0/0		0/0	
@@ -110,7 +114,6 @@ Mortal's Resolve	a502f08a38fba08f	22	0/0		2/2
 Nature's Wrath	9ebc4138951e157a	4	3/3		0/1	ix:resp
 Nishoba Brawler	bbcae9725d7bfcce	47	0/0		0/0	
 Nomads en-Kor	119e01ee3ef49197	5	1/1		1/1	
-O'aka, Traveling Merchant	d58780b759c317e2	50	1/1		1/1	
 Okiba-Gang Shinobi	8ca54897872da686	13	2/2		0/1	ix:resp
 Orim's Thunder	db00461199bddbea	20	0/0		4/4	
 Pernicious Deed	e15e31baedf43393	5	1/1		0/1	ix:resp
@@ -119,7 +122,6 @@ Pierce Strider	4d990c43fac08df6	4	1/1		0/1	ix:resp
 Pitchburn Devils	819c6a2d46e1d815	8	1/1		0/1	ix:resp
 Possessed Barbarian	54f87b6572fd0cce	5	0/0		0/0	
 Primal Adversary	c1f7908b4a2fe6f6	3	1/1		0/1	ix:resp
-Puca's Covenant	f81c5bd347965915	13	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Quickbeam, Upstart Ent	a93582754ff1f1ac	11	1/1		0/1	ix:resp
 Quietus Spike	7b739e57d0c81c44	11	2/2		0/1	ix:resp
 Rain of Filth	aa43a8d4f09ec311	22	0/0		2/2	
@@ -135,6 +137,7 @@ Rustspore Ram	d26cb89a1ba142c4	6	1/1		0/1	ix:resp
 Rustwing Falcon	c3e1ca2297a1b401	6	0/0		0/0	
 Ruthless Deathfang	cbf39e455abe9c4c	4	1/1		0/1	ix:resp
 Screeching Bat	0f94336f8859d316	48	2/2		1/5	f0/t0/opt:n,f0/t0/opt:y,f1/t0/opt:n,f1/t0/opt:y
+Scroll of Isildur	6a03793e30e18f60	3	0/0		0/0	
 Secluded Steppe	98c0ef11e369122c	139	2/2		0/1	ix:resp
 Selfless Cathar	b54f6149c5dd4db3	9	1/1		0/1	ix:resp
 Serra's Boon	deaf36301a869299	13	0/0		1/2	ix:resp
@@ -157,6 +160,7 @@ Sunlit Marsh	c671eaffb7e4ba94	27	2/2		0/1	ix:resp
 Talisman of Unity	b7203c0f73ec1ed6	8	2/2		0/1	ix:resp
 Tempest of Light	4412304336f1c41f	12	0/0		1/2	ix:resp
 Territorial Maro	a90fb76aef261162	7	0/0		0/0	
+The Forgotten Place	c4068a64e2b52cf2	15	2/2		0/1	ix:resp
 Treasure Trove	57ef0500c7cb6ccd	12	1/1		1/1	
 True Polymorph	94a50941e4752451	7	0/0		1/2	ix:resp
 True-Faith Censer	a375430a5d4d0d11	73	1/1		1/1	
@@ -171,9 +175,7 @@ Venerable Warsinger	c83179b9325f247d	12	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Victory's Herald	b971eeb6bd83a389	3	1/1		0/1	ix:resp
 Vrock	aa8a27b47e014106	8	1/1		0/1	ix:resp
 Wall of Opposition	8a7d474ea16c3ad1	9	1/1		1/1	
-Wardscale Crocodile	a9861a16724e47dc	11	0/0		0/0	
 Warlord's Elite	d1353e9b1bb7a28a	3	0/0		1/2	ix:resp
 Willow Elf	3cf41f0798dd8ca6	36	0/0		0/0	
-Wormhole Serpent	06bf056fa91ab379	33	1/1		1/1	
 Yavimaya Enchantress	1cfc978b6e7e811b	9	0/0		0/0	
 Yukora, the Prisoner	fc89723f7a79e9bd	7	1/1		0/1	ix:resp

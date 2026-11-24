@@ -1,82 +1,224 @@
+A-Shipwreck Sifters
 Abzan Ascendancy
 Accomplished Automaton
+Adanto Vanguard
+Aetherflux Car
+Aggressive Sabotage
 Akki Drillmaster
+Aligned Hedron Network
 Angelic Page
+Appetite for Brains
+Arrow Volley Trap
+Atzocan Archer
 Auriok Steelshaper
 Avacyn's Pilgrim
+Aviation Pioneer
 Azra Oddsmaker
+Baleful Ammit
 Balthor the Defiled
+Bar the Gate
+Battlewise Aven
+Belltower Sphinx
+Black Oak of Odunos
+Blightspeaker
+Bond of Agony
+Braidwood Cup
+Bramble Creeper
+Bramblewood Paragon
+Branded Brawlers
 Break Down
 Brush with Death
+Cabal Paladin
 Campaign of Vengeance
 Capashen Templar
 Castle Ardenvale
 Cazur, Ruthless Stalker
+Cephalid Scout
+Chain of Vapor
+Chaos Harlequin
+Charge of the Mites
 Chief of the Edge
 Combat Professor
+Compost
+Corrupted Conscience
+Cower in Fear
 Crackling Drake
+Crux of Fate
 Cryptic Serpent
+Curse of Death's Hold
+Death Denied
+Defile
+Descendant of Kiyomaro
 Dispersal Shield
+Downpour
+Drumbellower
+Dwarven Berserker
+Easy Prey
+Elvish Bard
+Ember Hauler
 Emeria's Call
+Epitaph Golem
+Essence Harvest
+Exotic Disease
+Failed Inspection
+Faithful Watchdog
+Fire Servant
+Flow of Maggots
 Forest
+Frantic Confrontation
+Frondland Felidar
 Fyndhorn Bow
+Gallowbraid
 General's Kabuto
 Ghitu Amplifier
 Ghitu War Cry
 Gift of Tusks
 Gift of the Viper
+Gilt-Leaf Seer
+Glitch Interpreter
+Golden-Tail Trainer
 Goldnight Commander
+Goliath Sphinx
 Goliath Truck
+Graceful Adept
 Great Desert Prospector
+Great Whale
+Grixis Illusionist
+Haunted Cloak
+Hecatomb
 Hero of the Winds
+Hoarding Ogre
+Horrid Shadowspinner
+Hymn to Tourach
+Insolent Neonate
+Inspired Fire
+Iron Apprentice
 Island
+It's Clobberin' Time!
+Jace's Ruse
+Jace's Triumph
 Jungleborn Pioneer
+Juniper Order Druid
 Jwari Shapeshifter
+Kami of the Crescent Moon
+Kaya's Onslaught
 Kindercatch
 Kirtar's Desire
 Kraul Warrior
+Krosan Warchief
 Kumena's Speaker
+Lae'zel, Vlaakith's Champion
 Leaden Myr
+Leech Fanatic
+Leonin Snarecaster
 Lin Sivvi, Defiant Hero
+Lingering Death
+Liturgy of Blood
 Loch Korrigan
 Luminarch Aspirant
+Lurking Deadeye
+Luxa River Shrine
+Malefic Scythe
 Mardu Hordechief
 Masked Vandal
+Mass Mutiny
 Mending Hands
 Mesmerizing Dose
+Mike, the Dungeon Master
 Militia Bugler
+Mind Warp
+Mindstab
 Morbid Hunger
 Mountain
+Myr Scrapling
 Nebelgast Intruder
+Necrogen Mists
+Netherborn Phalanx
+Network Terminal
+Neurok Hoversail
+Nightmare Incursion
+Nimble Innovator
 Olivia, Mobilized for War
+Oneirophage
+Orcish Siegemaster
+Phyrexian Vivisector
 Plains
 Psychic Membrane
 Pulsemage Advocate
+Pyretic Rebirth
+Rakdos Charm
+Ravenous Rats
+Reach of Shadows
+Reckless Fireweaver
 Rogue Kavu
+Rookie Mistake
 Rootwater Mystic
+Rot-Tide Gargantua
 Rousing Read
+Rumor Gatherer
+Sadistic Sacrament
+Sanctum Seeker
+Scepter of Dominance
+Scour from Existence
+Seer's Lantern
+Seize the Storm
 Serum Visions
+Shambling Ghast
 Shang-Chi, Martial Mentor
 Shriekgeist
+Silvergill Douser
+Skitter Eel
+Skull Collector
 Skyblade of the Legion
 Skyshroud Ridgeback
 Smitten Swordmaster
+Snow-Covered Wastes
 Social Climber
 Sokenzan, Crucible of Defiance
 Soul Partition
+Soul of Ravnica
 Soulblade Renewer
 Spawnwrithe
+Specter's Shroud
+Spike Worker
+Spreading Seas
+Staff of Domination
+Staff of the Mind Magus
+Stomping Slabs
+Storm, Queen of Wakanda
+Stream of Unconsciousness
+Sunbaked Canyon
+Surge Node
 Svyelun of Sea and Sky
 Swamp
+Sword of Kaldra
 Take Down
+Tall as a Beanstalk
+Telethopter
+Tendershoot Dryad
+Tezzeret's Gatebreaker
 The Third Doctor
+Thought Scour
 Thran Spider
 Three Visits
+Thrill of the Hunt
+Throwing Knife
+Thundersteel Colossus
+Thunderwave
 Transcendent Envoy
+Tri-Sentinel, Act of Vengeance
 Uncovered Clues
+Urza's Chalice
 Vassal Soul
+Veteran of the Depths
+Vex
 Voiceless Spirit
 Wanda's Vision
+Well of Ideas
 Wheel and Deal
+Wild Beastmaster
 Wild Hunger
+Worldsoul Colossus
+Wrap in Flames
+Xenograft
 Youthful Knight

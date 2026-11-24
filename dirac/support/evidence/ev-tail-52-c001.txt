@@ -4,6 +4,7 @@ A-Sewer Crocodile
 A-Uurg, Spawn of Turg
 Aboshan, Cephalid Emperor
 Abzan Runemark
+Acid-Spewer Dragon
 Adorable Kitten
 Adorned Pouncer
 Ajani, Valiant Protector
@@ -169,6 +170,7 @@ Infernal Medusa
 Inspiring Unicorn
 Intrepid Provisioner
 Island
+Izzet Staticaster
 Javelin of Lightning
 Jeskai Banner
 Jugan, the Rising Star
@@ -233,6 +235,7 @@ Neurok Commando
 Nezumi Ronin
 Noggle Bandit
 Oak Street Innkeeper
+Oath of Teferi
 Occult Epiphany
 Ondu Champion
 Overwhelm

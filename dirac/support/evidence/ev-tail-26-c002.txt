@@ -217,6 +217,7 @@ Spark Elemental
 Sparkspitter
 Spell Burst
 Spellbook
+Sphere of Safety
 Spined Fluke
 Spontaneous Combustion
 Sporeback Troll
@@ -224,6 +225,7 @@ Steadfast Unicorn
 Stitched Drake
 Stony Strength
 Storm of Memories
+Sunscape Master
 Sunset Revelry
 Sunspire Griffin
 Swamp

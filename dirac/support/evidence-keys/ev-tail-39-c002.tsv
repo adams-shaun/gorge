@@ -53,6 +53,7 @@ Fevered Convulsions	39f56b6804b85d59	4	1/1		1/1
 Fowl Play	6f8cb6ff05c69de7	5	0/0		1/2	ix:resp
 Freedom Fighter Recruit	d1cbf796c9ba10a7	4	0/0		0/0	
 Frontline Rebel	cb29ac555d2e6ca0	24	0/0		0/0	
+Frostwind Invoker	e89465e421d8595a	6	1/1		0/1	ix:resp
 Fungal Sprouting	e6bb62de127f4930	9	0/0		1/2	ix:resp
 Gallows Warden	912f8cb105bb49ed	11	0/0		0/0	
 Gerrard's Battle Cry	51636ef4b7c8d1f8	11	1/1		1/1	
@@ -67,6 +68,7 @@ Gretchen Titchwillow	64b27fcebdd3c96c	4	1/1		1/1
 Grim Discovery	1e1ac2e899836235	4	0/0		1/2	ix:resp
 Grisly Salvage	099b2a872d6d721f	21	0/0		2/2	
 Gurmag Drowner	98c34d36553d2092	11	2/2		0/1	ix:resp
+Hada Spy Patrol	5f2cfd05961a8bff	6	1/1		0/1	ix:resp
 Hag of Inner Weakness	6706d0c4e4da2fe1	12	1/1		0/1	ix:resp
 Halimar Excavator	cd9c5b2af56a5c0d	33	1/1		0/1	ix:resp
 Hall of Tagsin	68c8e5b6f354de30	7	3/3		0/1	ix:resp
@@ -116,6 +118,7 @@ Ravenous Necrotitan	9562618f216bd8f8	16	1/1		1/1
 Reason	9bdf54c36d6f866e	10	0/0		3/5	f1/s,ix:resp
 Resistance Reunited	9e3a70f4d1e8f765	4	0/0		1/2	ix:resp
 Ridgetop Raptor	b967f5b03420e559	6	0/0		0/0	
+Riftwing Cloudskate	47d921af48aef8a2	4	1/1		2/3	cast/alt:none
 Rip-Clan Crasher	d66562b3381a1343	7	0/0		0/0	
 Rush of Adrenaline	7cc8aa35b3f18e2b	4	0/0		1/2	ix:resp
 Salvaged Manaworker	6668d2dbfd9ff889	36	1/1		0/1	ix:resp
@@ -129,6 +132,7 @@ Shardless Agent	b4d038c19639fde8	6	0/0		0/0
 Shield of the Avatar	f0c0a497e81e9feb	16	1/1		1/1	
 Shivan Gorge	6296bc2173e683f5	4	2/2		0/1	ix:resp
 Siege Dragon	eac6e4ca682c7b87	4	2/2		0/1	ix:resp
+Siren Reaver	240f9ef70f9eefd6	4	0/0		0/0	
 Sky Crier	9f0229289ccbb45a	25	1/1		1/1	
 Snapping Drake	79f8ee737c160903	11	0/0		0/0	
 Soltari Monk	11abbd74b41f7a81	8	0/0		0/0	
@@ -139,6 +143,7 @@ Sweet Oblivion	08922cc5c9a1d1dc	24	0/0		3/4	cast/alt:escaped
 Synchronous Sliver	2b0f7711ffa7fb83	9	0/0		0/0	
 Tar Snare	642588cfc4f8a1d3	14	0/0		2/2	
 Teeterpeak Ambusher	aa5bff875880eb9d	4	1/1		0/1	ix:resp
+The Black Breath	0ba09a5cdb215a45	4	0/0		2/2	
 The Fabulous Frog-Man	0e49d54dd255dadd	22	0/0		0/0	
 Tyrite Sanctum	b4b1ca8a8ad2d5bc	13	3/3		0/1	ix:resp
 Underdark Explorer	6f50c901ddb6e476	4	1/1		0/1	ix:resp
@@ -151,3 +156,4 @@ Wild Slash	07e1ffb402aa21a5	13	0/0		2/2
 Wingspan Mentor	c9041a6083c161e3	4	2/2		0/1	ix:resp
 Woodland Druid	50892acbb68c34b7	4	0/0		0/0	
 Yargle and Multani	22f2d7cac8452ef1	15	0/0		0/0	
+Youthful Scholar	bb37824ee39af83f	6	1/1		0/1	ix:resp

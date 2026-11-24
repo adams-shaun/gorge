@@ -1,3 +1,4 @@
+A-Warm Welcome
 Abbey Griffin
 Aberrant Return
 Acceptable Losses
@@ -16,6 +17,7 @@ Black Market Tycoon
 Blood Age General
 Blood Divination
 Blood Glutton
+Bloodstained Mire
 Blur Sliver
 Bolt of Keranos
 Bronze Sword
@@ -27,6 +29,7 @@ Calming Verse
 Carnage Tyrant
 Chase Stein, Runaway
 Chill to the Bone
+Circle of Protection: Red
 Coercive Impetus
 Commence the Endgame
 Corrosive Mentor
@@ -54,11 +57,13 @@ Flourishing Strike
 Forest
 Foundry Inspector
 Fruit of Tizerus
+Garruk's Horde
 Gavony Silversmith
 Ghost-Lit Raider
 Go-Shintai of Shared Purpose
 Goblin Heelcutter
 Goblin Soothsayer
+Guardian of Faith
 Hag of Noxious Nightmares
 Halvar, God of Battle
 Hobbit's Sting
@@ -74,21 +79,27 @@ Inspiring Cleric
 Invasion of Theros
 Iron Verdict
 Island
+Joiner Adept
 Juvenile Gloomwidow
 Kjeldoran Frostbeast
 Krazy Kow
 Last Breath
+Library
 Liliana's Triumph
 Living Totem
 Lone Missionary
 Loxodon Mystic
 M.O.D.O.K., Evil Intellect
+Magmaroth
 Magmatic Force
 Marsh Casualties
 Mascot Exhibition
+Memorial to Unity
 Midnight Ritual
+Militia Bugler
 Mind Slash
 Moldering Karok
+Moonsilver Key
 Mother Kangaroo
 Mountain
 Nature's Wrath
@@ -103,9 +114,11 @@ Paradise Druid
 Paradox Engine
 Pearled Unicorn
 Pernicious Deed
+Pestilent Wolf
 Pierce Strider
 Pious Wayfarer
 Plains
+Portable Hole
 Possessed Barbarian
 Precinct Captain
 Primal Adversary
@@ -124,6 +137,7 @@ Screeching Drake
 Scroll of Fate
 Selesnya Charm
 Selfless Cathar
+Selfless Savior
 Sell-Sword Brute
 Serra's Boon
 Serra's Guardian
@@ -153,13 +167,17 @@ Tempest of Light
 Territorial Maro
 Thalia's Lieutenant
 That Which Was Taken
+The Forgotten Place
 The Terror of Serpent's Pass
 Thopter Mechanic
 Thraben Valiant
 Tor Giant
 Treespring Lorian
 Troubled Healer
+True Polymorph
+True-Faith Censer
 Tyranid Harridan
+Uncontrollable Anger
 Underhanded Designs
 Updraft
 Valorous Steed

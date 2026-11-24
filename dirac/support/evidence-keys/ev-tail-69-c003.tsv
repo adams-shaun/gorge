@@ -27,6 +27,7 @@ Caldera Lake	8b7068020647978c	21	2/2		0/1	ix:resp
 Chandra's Flame Wave	41a315a30dc47bba	12	0/0		1/2	ix:resp
 Change of Fortune	bc25db88fc1ff789	6	0/0		1/2	ix:resp
 Clamavus	af134366970fbb98	28	0/0		0/0	
+Cliffhaven Kitesail	89119526f663d5ea	6	2/2		1/1	
 Colossapede	18ad43cf5266d3a8	4	0/0		0/0	
 Compulsory Rest	f8d462c20699fdac	4	0/0		2/2	
 Council of Advisors	8f1c2a47d34afdd1	4	1/1		0/1	ix:resp
@@ -75,6 +76,7 @@ Granulate	e5c1c7907c29e9bc	8	0/0		2/2
 Grasp of Phantoms	2a77573e231b2a30	45	0/0		4/4	
 Grasping Giant	4d717c8365319fcd	15	1/1		0/1	ix:resp
 Gray Slaad	78c79d47ab0226ab	3	0/0		1/2	ix:resp
+Greed	604211d43dafa4f2	8	1/1		0/1	ix:resp
 Gut, True Soul Zealot	bbf82bb186f2f935	4	1/1		0/1	ix:resp
 Hanweir Militia Captain	688736748de23ddb	12	2/2		0/1	ix:resp
 Healer's Flock	e9876327d38cf874	16	0/0		0/0	
@@ -105,9 +107,11 @@ Mana Leak	dff236b6dfb2471f	69	0/0		2/2
 Marsh Goblins	d27e819e89b7271a	19	0/0		0/0	
 Memory's Journey	bd6427170f434914	4	0/0		4/4	
 Militia's Pride	689770a08fdee84a	51	1/1		1/1	
+Mindwrack Demon	d40dac2ac9f82f99	4	2/2		0/1	ix:resp
 Mire Triton	11e174dc88407ccd	4	1/1		0/1	ix:resp
 Molten Influence	8e454f73e6dd4873	20	0/0		2/2	
 Mox Amber	8a2e408b42464db7	3	1/1		0/1	ix:resp
+Naru Meha, Master Wizard	a9de7e9dfa64f88b	6	1/1		0/1	ix:resp
 Necropouncer	b15ec03e74f29726	29	2/2		0/1	ix:resp
 Nimana Skitter-Sneak	a1bba0d104d97855	22	0/0		0/0	
 Nullhide Ferox	2ca37245491d32e6	14	1/1		1/1	
@@ -134,6 +138,7 @@ Putrefy	0552ca326cdb5069	61	0/0		2/2
 Pyre-Sledge Arsonist	d0a08d35e9409858	16	1/1		0/1	ix:resp
 Pyreswipe Hawk	22fa2b2e128c521d	9	2/2		0/1	ix:resp
 Raging Kavu	af34a14249ba18de	4	0/0		0/0	
+Rakdos Drake	8c2bf3c50c10506d	4	0/0		0/0	
 Raze the Effigy	8b62b6fa26ad6f23	16	0/0		2/2	
 Reckless Embermage	fb7ff20befa96633	6	1/1		1/1	
 Reconstruction	8afe6f5b2032e9ce	3	0/0		1/2	ix:resp
@@ -143,6 +148,7 @@ Ring of Kalonia	26c9b2b3c93603d7	4	2/2		1/1
 Ritual Guardian	53d9d94d50b9313b	4	1/1		0/1	ix:resp
 Root Out	a9f84aa519f39d4a	16	0/0		1/2	ix:resp
 Rotting Fensnake	4bd9f862f632fec2	3	0/0		0/0	
+Rust Goliath	a98a1281872fb8d2	4	0/0		1/2	cast/alt:none
 Saiba Cryptomancer	413a2a36ffc3a533	4	1/1		0/1	ix:resp
 Sailor of Means	96018a20dd8c5283	62	1/1		1/1	
 Salvage Scout	d073b8411e58a528	28	1/1		0/1	ix:resp
@@ -170,8 +176,10 @@ Stensia Innkeeper	6fd25a806c850792	26	1/1		0/1	ix:resp
 Stone Spirit	fef8106e56d26776	15	0/0		0/0	
 Surge Conductor	50844efaba6b48a8	5	1/1		0/1	ix:resp
 Sylvan Anthem	6e260811fc15690a	37	1/1		1/1	
+Tavern Swindler	8a1b28b175477f68	6	1/1		0/1	ix:resp
 Tempest Drake	2ed9d305b1b29d36	46	0/0		0/0	
 Temple Bell	1fad7e827d9f888a	7	1/1		0/1	ix:resp
+Thirst for Meaning	6ff3a103797a4749	8	0/0		1/2	ix:resp
 Thorn of the Black Rose	50e50d5e0b1a1109	4	1/1		0/1	ix:resp
 Thriving Ibex	389eea5b9b736e7f	4	2/2		0/1	ix:resp
 Throne of Geth	661ac625c14fe905	6	1/1		1/1	
@@ -181,6 +189,7 @@ Traitorous Blood	a454c4eddfd2e024	26	0/0		2/2
 Treasure Hunt	3990953b62b3b360	55	0/0		2/2	
 Triangle of War	c3e95bf4d28362a8	10	1/1		0/1	ix:resp
 Triskelion	6f26f2cb388260f9	20	1/1		1/1	
+Unholy Indenture	f7649101ea9761e4	6	1/1		1/2	ix:resp
 Vampire's Bite	2b7ad7f53aeaf55b	4	0/0		2/4	cast/alt:kicked,ix:resp
 Venser's Sliver	63f79430395a7b26	16	0/0		0/0	
 Vibranium Mining Mech	041cdf52c4755d02	4	4/4		0/1	ix:resp
@@ -189,12 +198,14 @@ Void	d56384fb7c34dc5d	16	0/0		1/2	ix:resp
 Voracious Typhon	233a4f0c7871f466	49	0/0		1/2	cast/alt:escaped
 Wall of Blossoms	bf3d399802a0ae97	3	1/1		0/1	ix:resp
 War-Wing Siren	b6df624902000224	4	1/1		1/1	
+Warm Welcome	636d824535e39e2b	4	0/0		2/2	
 Waterfront District	f39100c1ed6ed6c6	25	2/2		1/1	
 Wayfaring Temple	f5b6bf022a0bfe20	15	1/1		0/1	ix:resp
 Wedding Announcement	a67e05ad2b423603	31	1/1		0/1	ix:resp
 White Scarab	8bedf9413692a078	8	0/0		1/2	ix:resp
 Wilderness Reclamation	f31263ba6df90764	40	1/1		1/1	
 Wrath of the Skies	cc58ef98b2fcf4aa	8	0/0		3/4	f0/s/x0
+You Meet in a Tavern	a76c3d21341dde86	4	0/0		2/2	
 Zagoth Triome	0fcfbdfe01a0a760	10	4/4		0/1	ix:resp
 Zaxara, the Exemplary	7df30706442cfa74	400	2/2		1/1	
 Zhalfirin Lancer	6cef74f90de2f543	32	1/1		0/1	ix:resp

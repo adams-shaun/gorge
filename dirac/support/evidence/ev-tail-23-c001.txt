@@ -311,6 +311,7 @@ Rise from the Grave
 Ritual of Rejuvenation
 Riveteers Overlook
 Rock Badger
+Rolling Earthquake
 Rot Wolf
 Rubblehulk
 Rush of Inspiration
@@ -360,6 +361,7 @@ Storm, Shaker of Skies
 Story Seeker
 Suit Up
 Sunflare Shaman
+Sunken Ruins
 Sunrise Seeker
 Sunseed Nurturer
 Swamp

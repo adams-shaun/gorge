@@ -48,6 +48,7 @@ Caller of Gales
 Captain America, Steve Rogers
 Captain's Defense
 Capture of Jingzhou
+Carry Away
 Cat Burglar
 Cathartic Operation
 Celebrate the Harvest
@@ -118,6 +119,7 @@ Fang Dragon
 Fangren Hunter
 Fell Shepherd
 Festive Funeral
+Fiery Inscription
 Fire-Omen Crane
 Fireslinger
 Forest

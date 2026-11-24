@@ -8,7 +8,9 @@ Arcbound Shikari	c7c64bda048acf20	30	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
 Ashen Firebeast	c1f9c0b6dd7db24c	3	1/1		1/1	
 Ashmouth Hound	8306e15ff6186dbb	37	2/2		1/1	
 Atog	54c6bdd6edfbceb3	49	1/1		1/1	
+Baleful Beholder	44e5e0c3120368c6	8	1/1		0/1	ix:resp
 Bitterbow Sharpshooters	24121c643ac8e2ec	8	0/0		0/0	
+Blasting Station	6e7e2b8c2378eb8d	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
 Bleed Dry	ad4542c0d117b0bc	46	0/0		2/2	
 Blinking Spirit	429de2d3b4e610b5	119	1/1		1/1	
 Bloodmad Vampire	2fe6a5652de3d353	4	1/1		0/1	ix:resp
@@ -36,10 +38,12 @@ Defend the Celestus	156889e16d936e63	38	0/0		2/2
 Desperate Ravings	fb08b11666d4a726	8	0/0		3/4	ix:resp
 Destructor Dragon	fc11e7547c977d9d	19	1/1		1/1	
 Dig Up the Body	043b50347035c9ae	4	0/0		1/2	ix:resp
+Doctor Doom, Unrivaled	e3f868d9ef41dd4b	4	1/1		1/1	
 Dread Return	6cdc3dfa287b50fe	32	0/0		4/4	
 Dreadwurm	1b2328deda69ab02	7	1/1		1/1	
 Drizzt Do'Urden	c0e41bf6aa386b65	10	2/2		1/1	
 Eastern Paladin	451708b0173d42ae	34	1/1		1/1	
+Eldrazi Skyspawner	e623e0ccd875b260	4	1/1		0/1	ix:resp
 Elvish Soultiller	4fb47d3280b49052	12	1/1		0/1	ix:resp
 Enlarge	42619b97cd5fb39e	24	0/0		2/2	
 Erinis, Gloom Stalker	4f33dd740561634d	8	1/1		0/1	ix:resp
@@ -60,6 +64,7 @@ Force of Will	639e9cd0d771782c	62	0/0		2/2
 Forsaken Drifters	b465832eb3d75098	38	1/1		1/1	
 Foundry Champion	5c4dd7ce95eaa591	16	3/3		1/1	
 Frog Tongue	dcfc2d7a39fab2d2	28	1/1		1/2	ix:resp
+Gate to Tumbledown	682507674602ac0a	28	2/2		0/1	ix:resp
 Genju of the Falls	0bad2200fb1938cf	44	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Genju of the Spires	560059a60bda5af9	33	2/2		2/4	f0/t0/opt:n,f0/t0/opt:y
 Gerrard, Weatherlight Hero	442deca30063c051	27	1/1		1/1	
@@ -125,6 +130,7 @@ Maximus, Knight Apparent	a381ab419f557118	20	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
 Midnight Haunting	8c547fd4d2b4d114	13	0/0		2/2	
 Mindleech Ghoul	faa3b37865a73a7e	30	2/2		1/1	
 Miscast	fc32da5ee9b23cfb	6	0/0		2/2	
+Mishra's Factory	2a40a04e6173df0c	24	3/3		1/1	
 Mishra's Onslaught	51e4d41069c59199	34	0/0		2/2	
 Mogg Maniac	bf5fa2f1c74829e7	9	1/1		1/1	
 Molder Slug	1a45d132baa150d5	6	1/1		0/1	ix:resp
@@ -162,7 +168,9 @@ Ritual of Steel	ae872440f9e802fa	14	1/1		2/2
 Root-Kin Ally	608b822d738438d9	21	1/1		1/1	
 Rouse	2e433fc23273ac2e	22	0/0		2/2	
 Run for Your Life	f1d6c6b678e6b13b	4	0/0		2/4	cast/alt:escaped,ix:resp
+Rustvale Bridge	63c1dfc7ad57039e	23	1/1		0/1	ix:resp
 Sanguine Spy	e3c28d41a3cfc4d2	31	2/2		1/1	
+Scourge Servant	9c639cb014cd52d1	4	0/0		0/0	
 Seeker of the Way	20971ad18fa3f937	12	2/2		1/1	
 Segmented Krotiq	8c1025b2aa7484ac	19	0/0		1/2	cast/alt:megamorphed
 Selenia, Dark Angel	47aff325087966d1	42	1/1		1/1	
@@ -185,6 +193,8 @@ Swarm of Bloodflies	1afc6cac8a7c8e8d	4	1/1		1/1
 Swift Justice	c82cadfa92ab51a6	16	0/0		2/2	
 Syndicate Enforcer	93c9f1a8f84f3a6b	58	1/1		1/1	
 T-45 Power Armor	e86be8be2f01fe28	10	3/3		1/1	
+Tainted Pact	3c77a6df1db891c4	8	0/0		2/2	
+Tainted Peak	cc39d5fe6b6c46e8	22	2/2		0/1	ix:resp
 Temperamental Oozewagg	8294f4cbd1039030	6	1/1		0/1	ix:resp
 Tenacity	c35b82b8c4c6c665	5	0/0		1/2	ix:resp
 Territorial Allosaurus	dd91d180c55925ae	6	1/1		2/3	ix:resp

@@ -195,6 +195,7 @@ Jokulmorder
 Kabira Outrider
 Kardur, Doomscourge
 Kargan Dragonlord
+Kindred Summons
 Knight of Infamy
 Knowledge and Power
 Kolaghan Forerunners
@@ -237,6 +238,7 @@ Mist Dragon
 Mnemonic Wall
 Mogg Alarm
 Moment of Heroism
+Moment of Silence
 Moment's Peace
 Monstrous Onslaught
 Mortal's Ardor

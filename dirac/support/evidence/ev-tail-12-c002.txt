@@ -5,6 +5,7 @@ Academy Rector
 Advance Scout
 Adverse Conditions
 Aether Spike
+Ahn-Crop Invader
 Ajani Fells the Godsire
 Akki Scrapchomper
 Angel of Invention
@@ -22,6 +23,7 @@ Azorius Cluestone
 Backwoods Survivalists
 Balustrade Spy
 Banefire
+Barter in Blood
 Battle Hymn
 Benalish Veteran
 Birthing Boughs
@@ -39,6 +41,7 @@ Broodstar
 Butch DeLoria, Tunnel Snake
 Call to Serve
 Catalyst Elemental
+Cathartic Pyre
 Champion of Arashin
 Char
 Charismatic Vanguard
@@ -49,6 +52,7 @@ Chocobo Knights
 Cinder Seer
 Cinderbones
 Cloudthresher
+Coalition Flag
 Compulsion
 Containment Protocol
 Count Nefaria
@@ -57,6 +61,7 @@ Dawnglare Invoker
 Deathknell Berserker
 Deepwater Hypnotist
 Disentomb
+Double Cleave
 Dragonspark Reactor
 Drowned Rusalka
 Druid's Call
@@ -80,6 +85,7 @@ Fog on the Barrow-Downs
 Force of Despair
 Foresight
 Forest
+Frightshroud Courier
 Funeral Longboat
 Garrison Griffin
 General Tazri
@@ -146,9 +152,11 @@ Legion's Landing
 Legions to Ashes
 Leonin Armorguard
 Lich's Caress
+Loch Dragon
 Loyal Fire Sage
 MACH-1, Swooping Scoundrel
 Macabre Mockery
+Magus of the Coffers
 Mana Confluence
 Manaplasm
 Mantle of Leadership
@@ -159,12 +167,15 @@ Martyr of Dusk
 Maximize Altitude
 Medicine Bag
 Mind's Eye
+Mine Collapse
+Minotaur Tactician
 Mishra's Self-Replicator
 Molten Nursery
 Molten Rain
 Moment of Truth
 Moriok Scavenger
 Mountain
+Mushroom Watchdogs
 Mutilate
 Muzzio, Visionary Architect
 Nausea
@@ -182,8 +193,10 @@ Phyrexian Juggernaut
 Phyrexian War Beast
 Plague Spitter
 Plains
+Plea for Power
 Portent of Betrayal
 Primal Growth
+Primordial Sage
 Prophetic Titan
 Prying Blade
 Pteramander
@@ -198,11 +211,13 @@ Rats of Rath
 Relic Robber
 Repair and Recharge
 Repository Skaab
+Reprocess
 Restless Bones
 Restoration Angel
 Retrofitter Foundry
 Revel of the Fallen God
 Reverse Engineer
+Ria Ivor, Bane of Bladehold
 Rise to the Challenge
 Rishadan Pawnshop
 Rix Maadi, Dungeon Palace
@@ -211,6 +226,7 @@ Rude Awakening
 Rushwood Herbalist
 Rusting Golem
 Sanctifier of Souls
+Sand Squid
 Sanguimancy
 Savannah Sage
 Scour All Possibilities
@@ -220,15 +236,18 @@ Seedling Charm
 Seismic Shudder
 Serum Powder
 Seven-Tail Mentor
+Sevinne's Reclamation
 Sheoldred, Whispering One
 Sifter Wurm
 Silverquill Apprentice
 Slimebind
 Slimy Piper
 Sliptide Serpent
+Slumbering Dragon
 Sonic Assault
 Soul Shred
 Soul of Innistrad
+Sphinx Summoner
 Sphinx of Magosi
 Spiritual Asylum
 Spontaneous Mutation
@@ -255,6 +274,7 @@ Tread Upon
 Treebeard, Gracious Host
 Treeshaker Chimera
 Tromp the Domains
+Ugin's Mastery
 Underhanded Designs
 Undying Beast
 Unnatural Restoration
