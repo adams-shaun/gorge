@@ -950,6 +950,10 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		lc.emit(lInstr{Op: "MayAsk", C: guard, Skip: 1, Note: "you may move it"})
 	}
+	fd, err := lc.moveFaceDown(ps, dest) // lower_exilefacedownmove.go
+	if err != nil {
+		return err
+	}
 	arm, bracket, err := lc.libPlaceTargets(ps, obj, in, pos) // lower_libplace.go
 	if err != nil {
 		return err
@@ -958,6 +962,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.emitLibPlace(arm, in)
 	} else {
 		lc.emit(in)
+	}
+	if fd {
+		lc.emit(lInstr{Op: "ExileFaceDown", Note: "the moved card is exiled face down"})
 	}
 	if override != nil {
 		if in.Op != "Return" || in.C != zBattlefield {
@@ -1304,7 +1311,14 @@ func (lc *lowerCtx) changeZoneAllSweep(ps *params) error {
 		}
 		return lc.changeZoneAllShuffle(ps, in, origin, dest)
 	}
+	fd, err := lc.moveFaceDown(ps, dest) // lower_exilefacedownmove.go
+	if err != nil {
+		return err
+	}
 	lc.emit(in)
+	if fd {
+		lc.emit(lInstr{Op: "ExileFaceDown", Note: "the moved cards are exiled face down"})
+	}
 	return nil
 }
 
@@ -1434,7 +1448,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// WithMayLook$ with an exile destination; every other combination is
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
-	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
+	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.ownBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
 	if !digFaceDownShape(fd, look, blind, dest) {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
