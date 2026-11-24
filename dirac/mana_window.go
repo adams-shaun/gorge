@@ -611,9 +611,11 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 // windowFiltPick: windowPick lists the filter-first source o. It must be
 // usable and useful to the clamp, and a repeatable fee-only filter that cannot
 // bring the owed cost closer to paid (windowFeeStalls) stays off the list.
-// Only an unclamped cast window outside a trigger's own cost window skips that
-// check; the trigger window is checked too, as gorge's
-// windowOnlyStallingConverters does.
+// Only an unclamped window that is neither a trigger's own cost window nor an
+// unless cost's (turnUnlessWin) skips that check; those two are checked, as
+// gorge's windowOnlyStallingConverters is in its cumulative and unless windows
+// (wardWindowStalls: Bog Initiate's "{1}: Add {B}." against Rhystic Shield's
+// {2} converted B into B forever).
 func (s *State) windowFiltPick(k *prep, p uint8, o Slot, decided bool, want uint8, clamp bool, useful *kop.ManaCost, anyColor bool) bool {
 	if k.gen == nil || !k.gen.anyFiltFirst || !s.windowFiltFirstUsable(k, p, o) {
 		return false
@@ -621,7 +623,7 @@ func (s *State) windowFiltPick(k *prep, p uint8, o Slot, decided bool, want uint
 	if decided && !s.windowFiltUseful(k, p, o, want) {
 		return false
 	}
-	if !clamp && s.g.winMode != winTrig && !DebugWinFeeStallsAlways {
+	if !clamp && s.g.winMode != winTrig && (s.g.turnF&turnUnlessWin == 0 || DebugWinFeeStallsSkipUnless) {
 		return true
 	}
 	return !s.windowFeeStalls(k, p, o, useful, anyColor)
