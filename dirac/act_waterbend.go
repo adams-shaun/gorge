@@ -631,8 +631,18 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 		// effect grants it in the same layer (Honest Work's Humble Merchant):
 		// gorge's census lists that source too, so a lost printed source is
 		// skipped only when no grant survives.
-		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) ||
-			lost && !s.manaGranted(k, sl) {
+		if pm.flags&pfTapped != 0 || s.activationSick(k, sl) {
+			continue
+		}
+		if lost && !s.manaGranted(k, sl) {
+			// A land under a land-type setter lost its printed abilities but
+			// holds the intrinsic "{T}: Add [c]" gorge's census lists: a
+			// deferred Taps watcher on it (Contaminated Ground's life loss)
+			// leaves that unit unpriced, the census incomplete (CR 305.6, 605.1b).
+			if c := s.cardAt(sl); k.gen.anyTapsDefer && s.landSetLost(k, sl) &&
+				s.landSetIntrinsic(k, c, s.manaPCGen(k, sl)) && s.windowCanTap(k, sl) && s.tapsDeferred(k, e.ctrl, sl) {
+				return false
+			}
 			continue
 		}
 		// gorge's manaProductionAltered (paymentPlanSourceInterference): a mana
