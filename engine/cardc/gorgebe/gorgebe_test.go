@@ -5,12 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
 	"github.com/adams-shaun/gorge/engine/cardc/mtgish"
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
@@ -325,6 +327,43 @@ func TestSkeletonMatchesForge(t *testing.T) {
 	t.Logf("%d cards, %d faces agree", len(slice), faces)
 }
 
+// chainOf is the APIs down sub's Sub chain joined by ">", Cleanup dropped.
+func chainOf(sub *cards.SA) string {
+	var apis []string
+	for ; sub != nil; sub = sub.Sub {
+		if sub.API != "Cleanup" {
+			apis = append(apis, sub.API)
+		}
+	}
+	return strings.Join(apis, ">")
+}
+
+// faceShape is f's ability shape: one string per keyword, ability, trigger,
+// static and replacement, sorted.
+func faceShape(f *cards.Face) []string {
+	var out []string
+	for _, k := range f.Keywords {
+		out = append(out, "K:"+k)
+	}
+	for _, a := range f.Abilities {
+		out = append(out, "A:"+a.Kind+":"+chainOf(a))
+	}
+	for _, tr := range f.Triggers {
+		out = append(out, "T:"+tr.Mode+":"+chainOf(tr.Effect))
+	}
+	for _, st := range f.Statics {
+		out = append(out, "S:"+st.Mode)
+	}
+	for _, r := range f.Repls {
+		out = append(out, "R:"+r.Event+":"+chainOf(r.With))
+	}
+	sort.Strings(out)
+	return out
+}
+
+// servedFloor is the number of cards of the fdn and legacy slices cardc serves.
+const servedFloor = 38
+
 func TestServedCardsMatchForge(t *testing.T) {
 	forge := testutil.CorpusRegistry(t)
 	slice := sliceCards(t)
@@ -332,8 +371,8 @@ func TestServedCardsMatchForge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Served() < 25 {
-		t.Errorf("served %d, want at least 25", r.Served())
+	if r.Served() < servedFloor {
+		t.Errorf("served %d, want at least %d", r.Served(), servedFloor)
 	}
 	for _, e := range r.Entries() {
 		if e.Origin != OriginCardc {
@@ -344,20 +383,45 @@ func TestServedCardsMatchForge(t *testing.T) {
 			continue
 		}
 		for i, f := range e.Card.Faces {
-			g := e.Forge.Faces[i]
-			if !reflect.DeepEqual(f.Keywords, g.Keywords) || len(f.Abilities) != len(g.Abilities) ||
-				len(f.Triggers) != len(g.Triggers) || len(f.Statics) != len(g.Statics) || len(f.Repls) != len(g.Repls) {
-				t.Errorf("%s face %d: keywords/ability counts differ: %v/%d/%d/%d/%d vs %v/%d/%d/%d/%d", e.Name, i,
-					f.Keywords, len(f.Abilities), len(f.Triggers), len(f.Statics), len(f.Repls),
-					g.Keywords, len(g.Abilities), len(g.Triggers), len(g.Statics), len(g.Repls))
-				continue
-			}
-			for j := range f.Abilities {
-				if f.Abilities[j].API != g.Abilities[j].API {
-					t.Errorf("%s face %d ability %d: API %q vs %q", e.Name, i, j, f.Abilities[j].API, g.Abilities[j].API)
-				}
+			got, want := faceShape(f), faceShape(e.Forge.Faces[i])
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("%s face %d: shape differs:\n cardc %q\n forge %q", e.Name, i, got, want)
 			}
 		}
 	}
 	t.Logf("%d of %d served by cardc", r.Served(), len(r.Entries()))
+}
+
+// TestServedAPIsSupported: every API a served face's chains name is one the
+// engine implements.
+func TestServedAPIsSupported(t *testing.T) {
+	forge := testutil.CorpusRegistry(t)
+	r, err := Build(forge, sliceCards(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sup := effects.Supported()
+	check := func(name string, sa *cards.SA) {
+		for ; sa != nil; sa = sa.Sub {
+			if !sup["api:"+sa.API] {
+				t.Errorf("%s: API %q is not implemented", name, sa.API)
+			}
+		}
+	}
+	for _, e := range r.Entries() {
+		if e.Origin != OriginCardc {
+			continue
+		}
+		for _, f := range e.Card.Faces {
+			for _, a := range f.Abilities {
+				check(e.Name, a)
+			}
+			for _, tr := range f.Triggers {
+				check(e.Name, tr.Effect)
+			}
+			for _, rp := range f.Repls {
+				check(e.Name, rp.With)
+			}
+		}
+	}
 }
