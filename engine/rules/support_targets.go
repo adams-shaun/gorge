@@ -2,7 +2,6 @@ package rules
 
 import (
 	"maps"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -34,14 +33,14 @@ func supportTargetSA(sa *cards.SA, f *cards.Face) *cards.SA {
 	if !pc.Support.Present {
 		return sa
 	}
-	spec := strings.TrimSpace(pc.Choices)
+	spec := pc.Choices // as putCounterSupport reads it
 	if spec == "" {
 		spec = "Creature.+Other"
 		if f != nil && (f.IsInstant() || f.IsSorcery()) {
 			spec = "Creature"
 		}
 	}
-	max := strings.TrimSpace(pc.Support.Text)
+	max := pc.Support.Text
 	if max == "" {
 		max = "1"
 	}
