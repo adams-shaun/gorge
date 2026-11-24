@@ -1,0 +1,43 @@
+# the gap-static-zones slice's sample lockstep (dirac/oracle/staticzones_test.go):
+# the shared-gate conditions (Monarch on Dawnglade Regent, Queen Mother
+# Ramonda and Entourage of Trest; Delirium, Metalcraft and Hellbent on the
+# combat-restriction modes), player shroud (Ivory Mask, True Believer,
+# Solitary Confinement), the additive maximum hand size (Minamo Scrollkeeper,
+# Trusted Advisor, the Thought trio), the target-gated ability reduction
+# (Bladegraft Aspirant, Power Artifact) and the library-top look (Case of the
+# Locked Hothouse, Field of Dreams) — with targeted burn and pump to read the
+# gates. The FatefulHour / ExtraTurn / Night carriers (Gavony Ironwright,
+# Medomai the Ageless, Moonrager's Slash, Thraben Doomsayer, Village
+# Survivors) stay out: their statics refuse (gorge fails closed on the
+# condition, reported), and a refused card cannot sit in a pool.
+Bladegraft Aspirant
+Case of the Locked Hothouse
+Dawnglade Regent
+Dragon's Rage Channeler
+Entourage of Trest
+Field of Dreams
+Geist of the Lonely Vigil
+Giant Growth
+Grizzly Bears
+Ivory Mask
+Lantern of Insight
+Lightning Bolt
+Minamo Scrollkeeper
+Power Artifact
+Queen Mother Ramonda
+Shock
+Slithering Shade
+Solitary Confinement
+Spire Serpent
+Swords to Plowshares
+Thought Devourer
+Thought Eater
+Thought Nibbler
+True Believer
+Trusted Advisor
+Wizened Snitches
+Plains
+Island
+Swamp
+Forest
+Mountain

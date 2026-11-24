@@ -2,6 +2,11 @@
 
 package kop
 
+// CondKind (dirac/manifest/CondKind/CondMonarch)
+//
+// the controller is the monarch (Condition$ Monarch, CR 719.2; gorge condMonarch, state.Game.IsMonarch). The kernel holds the monarch seat in genState.mon (act_monarch.go) and the condition reads it with the evaluating controller, the same context gorge's continuousConditionHolds reads sv.Controller in.
+const CondMonarch CondKind = 14
+
 // CostAtomKind (dirac/manifest/CostAtomKind/CostAtomAddCounter)
 //
 // CostAtomAddCounter: put N counters of kind Ctr on the source as a cost (CR 606.3, ctrPutCost). Dirac: placeCounters.

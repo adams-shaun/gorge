@@ -66,6 +66,55 @@ func (lc *lowerCtx) oppMaxHand(sp *params, st *lStatic) error {
 	return nil
 }
 
+// youPlayerStatic lowers a Continuous static on Affected$ You: the
+// unlimited / additive hand size, the extra land play, the player hexproof
+// and the player shroud (lower_continuous.go's Affected$ You arm), then
+// falls through to playerStatic for the two remaining player statics. It
+// reports false when neither side lowers the shape; the caller refuses with
+// the standing "player static" reason.
+func (lc *lowerCtx) youPlayerStatic(sp *params, st *lStatic) (bool, error) {
+	switch {
+	case sp.is("SetMaxHandSize", "Unlimited"):
+		st.Kind = "NoMaxHandSize"
+	case sp.m["AdjustLandPlays"] != "":
+		n, err := strconv.Atoi(sp.str("AdjustLandPlays"))
+		if err != nil || n < 1 || n > 3 {
+			return false, refuse("AdjustLandPlays %q", sp.str("AdjustLandPlays"))
+		}
+		st.Kind = "ExtraLandPlay"
+		st.Amount = cst(n)
+	case sp.m["RaiseMaxHandSize"] != "":
+		// CR 402.2: the additive RaiseMaxHandSize$ statics (Minamo
+		// Scrollkeeper's +1, Jin-Gitaxias's -7) apply ON TOP of the set
+		// maximum, never below zero (gorge maxHandSizeFor). The kernel's
+		// maxHand adds each StHandDelta static's signed amount after the
+		// set-maximum walk (static_playerstats.go); gorge sums every
+		// matching delta the same way.
+		n, err := strconv.Atoi(sp.str("RaiseMaxHandSize"))
+		if err != nil || n < -255 || n > 255 {
+			return false, refuse("RaiseMaxHandSize %q", sp.str("RaiseMaxHandSize"))
+		}
+		st.Kind = "NoMaxHandSize"
+		st.Amount = cst(n)
+		st.Flags = append(st.Flags, "HandDelta")
+	case sp.is("AddKeyword", "Hexproof"):
+		st.Kind = "PlayerHexproof"
+	case sp.is("AddKeyword", "Shroud"):
+		// "You have shroud" (Ivory Mask, True Believer, Solitary
+		// Confinement): CR 702.18, a player with shroud is an illegal
+		// target for ANY spell or ability, their controller's included --
+		// shroud is symmetric, unlike hexproof (gorge
+		// playerShroudBlocksTarget). The kernel reads a
+		// StatPlayerHexproof with A == 2 in the two player-target gates
+		// (legal.go targetOK, resolve.go targetStillLegal); seat-exact: A is
+		// the shroud bit, not a seat count, and every player is covered.
+		st.Kind = "PlayerShroud"
+	default:
+		return lc.playerStatic(sp, st)
+	}
+	return true, nil
+}
+
 // playerStatic lowers the numeric hand size and the opponent protection.
 // It reports false when sp carries neither, leaving the caller's refusal.
 func (lc *lowerCtx) playerStatic(sp *params, st *lStatic) (bool, error) {

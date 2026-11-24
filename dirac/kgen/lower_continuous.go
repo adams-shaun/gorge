@@ -90,33 +90,8 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	// lowers to no static. faceDownLookOnly is the exact shape: any
 	// other MayLookAt$ spelling -- in particular one beside MayPlay$ --
 	// keeps the named refusal below.
-	if ml, ok := sp.get("MayLookAt"); ok {
-		az, _ := sp.get("AffectedZone")
-		exactAffected := aff == "Card.TopLibrary+YouCtrl" || aff == "Card.TopLibrary+YouOwn"
-		libLook := exactAffected && az == "Library" && (ml == "You" || ml == "True" || ml == "Player")
-		if libLook && !sp.is("MayPlay", "True") {
-			if ez, ok := sp.get("EffectZone"); ok && ez != "Battlefield" {
-				return nil, refuse("MayLookAt EffectZone %q", ez)
-			}
-			sp.consume("AffectedZone")
-			st.Kind = "" // view-only: lower to nothing
-			return nil, nil
-		}
-		if faceDownLookOnly(sp.m) || handRevealOnly(sp.m) { // lower_handreveal.go
-			sp.consume("AffectedZone")
-			st.Kind = "" // view-only: lower to nothing
-			return nil, nil
-		}
-		// Future Sight / Magus of the Future: the library-top look beside
-		// MayPlay$ True on the same line. gorge's static scan emits the look
-		// as its own view-only ContinuousEffect (layers.go's MayLookAt
-		// branch copies base, which carries no MayPlay) next to the MayPlay
-		// grant, so the line is the Courser of Kruphix pair on one line: the
-		// look lowers to nothing and the permission takes the MayPlay path
-		// below (mayPlayStatic, the same library-top rules).
-		if !libLook {
-			return nil, refuse("MayLookAt shape")
-		}
+	if _, ok := sp.get("MayLookAt"); ok {
+		return nil, lc.libTopLook(sp, st, aff)
 	}
 	if kw, _ := sp.get("AddKeyword"); kw == "Beam me up" {
 		return nil, lc.beamGrant(sp, st, aff) // lower_beammeup.go
@@ -137,26 +112,12 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, lc.oppMaxHand(sp, st) // lower_playerstatic.go
 	}
 	if aff == "You" {
-		switch {
-		case sp.is("SetMaxHandSize", "Unlimited"):
-			st.Kind = "NoMaxHandSize"
-		case sp.m["AdjustLandPlays"] != "":
-			n, err := strconv.Atoi(sp.str("AdjustLandPlays"))
-			if err != nil || n < 1 || n > 3 {
-				return nil, refuse("AdjustLandPlays %q", sp.str("AdjustLandPlays"))
-			}
-			st.Kind = "ExtraLandPlay"
-			st.Amount = cst(n)
-		case sp.is("AddKeyword", "Hexproof"):
-			st.Kind = "PlayerHexproof"
-		default:
-			ok, err := lc.playerStatic(sp, st)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				return nil, refuse("player static")
-			}
+		ok, err := lc.youPlayerStatic(sp, st)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, refuse("player static")
 		}
 		return nil, nil
 	}
