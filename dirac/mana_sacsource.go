@@ -826,7 +826,9 @@ func (s *State) activateNeedsEmptyStack(k *prep, a Action) bool {
 	case ab&0x80 != 0:
 		host := &s.objs[Obj(a.Target())]
 		c, ab = host.card, ab&^0x80
-		if host.zone == kop.ZoneBattlefield {
+		if mc, ok := s.grantMakerCard(k, Obj(a.Source()), Obj(a.Target()), ab); ok {
+			c = mc // the maker of a record's grant (act_ovmaker.go)
+		} else if host.zone == kop.ZoneBattlefield {
 			c = s.grantCardAt(k, host.slot, ab)
 		}
 	case ob.zone == kop.ZoneBattlefield:
