@@ -1200,6 +1200,38 @@ var rememberObjectMask = cards.ParamMaskOf(
 	cards.PKRememberUntapped, cards.PKRememberVotedObjects,
 )
 
+// linkRemembers reports whether this chain link writes the source's memory:
+// its own Remember*$ params (the direct writer), or a body its
+// RepeatSubAbility$ names. A RepeatEach carries no Remember*$ itself -- the
+// writer sits in the body it runs (Highcliff Felidar's DBChooseCard
+// RememberChosen$) -- so without the second arm the reader after that carrier
+// never sees a writer and keeps the trigger's fire-time capture as its
+// fallback referent, destroying the trigger's own source.
+func linkRemembers(c *Ctx, sa *cards.SA) bool {
+	if sa.HasAnyParam(rememberObjectMask) {
+		return true
+	}
+	return repeatBodyRemembers(c, sa, 0)
+}
+
+// repeatBodyRemembers walks the body a RepeatSubAbility$ names (and its own
+// SubAbility$ chain) for a memory writer, recursing through nested repeats.
+func repeatBodyRemembers(c *Ctx, sa *cards.SA, depth int) bool {
+	if depth >= maxChain || c == nil || c.SVars == nil {
+		return false
+	}
+	name := sa.ParamStr(cards.PKRepeatSubAbility)
+	if name == "" {
+		return false
+	}
+	for body := cards.ResolveSVar(c.SVars, name); body != nil; body = body.Sub {
+		if body.HasAnyParam(rememberObjectMask) || repeatBodyRemembers(c, body, depth+1) {
+			return true
+		}
+	}
+	return false
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// One resolution is one Mode$ TokenCreatedOnce batch (CR 603.2c), however
 	// many tokens its body creates. Nested Resolve calls share the outer
@@ -1292,7 +1324,7 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	reg := registry.load()
 	var above *cards.SA
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
-		if above != nil && above.HasAnyParam(rememberObjectMask) {
+		if above != nil && linkRemembers(c, above) {
 			c.RememberWriterAbove = true
 		}
 		above = sa
