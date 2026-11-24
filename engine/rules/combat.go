@@ -2691,6 +2691,10 @@ func (e *Engine) runCombatAssignments() {
 						e.emit(events.Event{Kind: events.PlayerCounterChange,
 							Player: ev.Player, Counter: "POISON", Amount: int32(n)})
 					}
+					// CR 702.70a (poisonous): unlike toxic a TRIGGERED ability,
+					// one instance per keyword instance the source has (702.70b).
+					e.pendingTriggers = append(e.pendingTriggers,
+						grantedPoisonousTriggers(e.G, x.from, e.Derived(x.from).Keywords, ev.Player)...)
 				}
 			}
 		}

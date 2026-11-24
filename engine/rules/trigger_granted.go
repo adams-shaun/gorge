@@ -792,6 +792,64 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 	}
 }
 
+// grantedPoisonousTriggers synthesizes poisonous's trigger (CR 702.70a:
+// "Whenever this creature deals combat damage to a player, that player gets
+// N poison counters") for source from, which just dealt combat damage to
+// player. keywords is from's DERIVED keyword list, so a layer-6 grant
+// (Virulent Sliver's AddKeyword$ Poisonous:1, Snake Cult Initiation) counts
+// -- no printed K:Poisonous expansion exists, so every derived entry is an
+// instance here, and each queues its own trigger (CR 702.70b). The caller
+// (runCombatAssignments' player-hit branch, the monarch-steal precedent)
+// already knows the hit landed on a player; a malformed or non-positive
+// amount delivers nothing. Read-only: the push and the poison go through
+// events.Apply.
+func grantedPoisonousTriggers(g *state.Game, from state.ObjID, keywords []string, player state.PlayerID) []pendingTrigger {
+	o := g.Obj(from)
+	if o == nil {
+		return nil
+	}
+	var out []pendingTrigger
+	for _, k := range keywords {
+		if !strings.EqualFold(cards.KeywordHead(k), "Poisonous") {
+			continue
+		}
+		param := ""
+		if j := strings.IndexByte(k, ':'); j >= 0 {
+			param = strings.TrimSpace(k[j+1:])
+		}
+		amount, err := strconv.Atoi(param)
+		if err != nil || amount <= 0 {
+			continue
+		}
+		out = append(out, pendingTrigger{
+			Source:     from,
+			Controller: o.Controller,
+			Poisonous:  strconv.Itoa(amount),
+			Ctx: effects.NewCtx(from, o.Controller, effects.CtxInit{
+				TriggerContext: effects.TriggerContext{
+					TriggerSource: from,
+					TriggerTarget: state.Target{Player: player, IsPlayer: true},
+				},
+			}),
+		})
+	}
+	return out
+}
+
+// ctxKeywordPush names the KeywordTriggerPush payload of the granted keyword
+// triggers whose body events.Apply rebuilds from the payload alone and whose
+// captured TriggerContext rides the stack object: Afflict and Poisonous.
+// counter is "" for every other pending trigger.
+func (pt pendingTrigger) ctxKeywordPush() (counter, text string) {
+	switch {
+	case pt.Afflict != "":
+		return "__kwAfflict:" + pt.Afflict, "afflict ability"
+	case pt.Poisonous != "":
+		return "__kwPoisonous:" + pt.Poisonous, "poisonous ability"
+	}
+	return "", ""
+}
+
 func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
 	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
 		return
