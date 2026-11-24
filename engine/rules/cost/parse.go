@@ -64,6 +64,28 @@ const discardXCost = `^Discard<X/([^/>]+)(?:/([^>]*))?>$`
 // trigger-cost family are the corpus users.
 const exileCost = `^Exile(FromHand|FromGrave|AnyGrave|CtrlOrGrave)<(X|\d+)/([^/>]+)(?:/([^>]*))?>$`
 
+// appendParsedBlight appends one blight payment (CR 701.68a: N -1/-1 counters
+// on a creature you control) for Blight<n> or the chooser-anchored
+// AddCounter<n/M1M1/Creature.YouCtrl> spelling. n is a digit string or "X".
+// X is announced (CR 601.2b) exactly the way Sac<X/Spec> announces its count:
+// the part is Announced and carries NO {X} mana symbol, since the cost is paid
+// in -1/-1 counters, not generic mana. A zero or out-of-range n takes the safe
+// one-generic fallback and is REPORTED: the head is recognised, this instance
+// is not modelled.
+func appendParsedBlight(c *Cost, sym, n string) {
+	if n == "X" {
+		c.Blight = append(c.Blight, CostPart{Spec: "Creature.YouCtrl", Announced: true})
+		return
+	}
+	v, err := strconv.ParseInt(n, 10, 64)
+	if err != nil || v <= 0 || v > int64(math.MaxInt32) {
+		c.Generic = AddClampedGeneric(c.Generic, 1)
+		c.reportUnknown(sym)
+		return
+	}
+	c.Blight = append(c.Blight, CostPart{N: int32(v), Spec: "Creature.YouCtrl"})
+}
+
 func appendParsedExileCost(c *Cost, token string, m groups) {
 	if m[1] == "CtrlOrGrave" {
 		appendExileCtrlOrGrave(c, token, m)
@@ -175,6 +197,14 @@ const addCounterCost = `^AddCounter<(\d+)/(LOYALTY)(?:/([^>]*))?>$`
 // UnlessCost$ payer anchor) is a different payment and keeps the reported
 // one-generic fallback.
 const addSelfCounterCost = `^AddCounter<(\d+)/([A-Za-z0-9_]+)>$`
+
+// addChooserCounterCost matches the chooser-anchored -1/-1 AddCounter token
+// AddCounter<N/M1M1/Creature.YouCtrl[/desc]> (Lethal Sting, Scarscale Ritual,
+// Hatchet Bully, Wandering Mage). Paying it IS a blight (CR 701.68a): N -1/-1
+// counters on a creature you control, so it parses to a Blight part and rides
+// the whole blight pipeline. Any other kind or filter in the third field
+// (P1P1/OppCtrl, Stun/Card.targetedBy) keeps the reported fallback.
+const addChooserCounterCost = `^AddCounter<(\d+)/M1M1/Creature\.YouCtrl(?:/([^>]*))?>$`
 
 // exertCost matches the source-anchored exert cost Exert<1/CARDNAME>
 // (Oasis Ritualist, Arena of Glory, Pride Sovereign). NICKNAME is Forge's
@@ -636,26 +666,7 @@ func ParseCost(s string) Cost {
 				continue
 			}
 			if m, ok := matchBlightCost(t); ok {
-				// Blight<X> (Blighted Nightmare, Soul Immolation): the announced
-				// form of the Blight cost. X is announced (CR 601.2b) exactly the
-				// way Sac<X/Spec> announces its count -- the count is settled by
-				// the X ask and the payment reads the announced value -- so it
-				// carries an Announced part and NO {X} mana symbol: the cost is
-				// paid in -1/-1 counters, not generic mana.
-				if m[1] == "X" {
-					c.Blight = append(c.Blight, CostPart{Spec: "Creature.YouCtrl", Announced: true})
-					continue
-				}
-				n, err := strconv.ParseInt(m[1], 10, 64)
-				if err != nil || n <= 0 || n > int64(math.MaxInt32) {
-					// Same safe fallback as every other malformed cost token --
-					// and REPORT it: the head is recognised, this instance is
-					// not modelled.
-					c.Generic = AddClampedGeneric(c.Generic, 1)
-					c.reportUnknown(sym)
-					continue
-				}
-				c.Blight = append(c.Blight, CostPart{N: int32(n), Spec: "Creature.YouCtrl"})
+				appendParsedBlight(&c, sym, m[1])
 				continue
 			}
 			if m, ok := matchLifeCost(t); ok {
@@ -917,6 +928,10 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				c.AddCounter = append(c.AddCounter, CostPart{N: int32(n), Spec: m[2]})
+				continue
+			}
+			if m, ok := matchAddChooserCounterCost(t); ok {
+				appendParsedBlight(&c, sym, m[1])
 				continue
 			}
 			if m, ok := matchExertCost(t); ok {
