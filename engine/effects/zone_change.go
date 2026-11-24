@@ -1230,7 +1230,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		placeTargetedLibraryObjects(h, c, cz, moved)
 	}
 	if to == state.ZLibrary && objectPathShuffleOwed(cz) {
-		objectPathShuffleOwners(h, targets)
+		objectPathShuffleOwners(h, c, sa, targets)
 	}
 	if altEngaged && len(moved) > 0 {
 		position := int32(0)
