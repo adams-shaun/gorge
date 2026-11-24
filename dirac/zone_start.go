@@ -113,7 +113,9 @@ func startObjs(decks [MaxSeats][]CardID, ns int, st *Start) (off [MaxSeats]int) 
 
 // startRefuseNonPermanents panics on a Battlefield card whose entering face
 // (the back face when BackFace names it) is an instant or sorcery: never a
-// permanent (CR 304.4, 307.4), as gorge's StartSpec.Validate refuses it.
+// permanent (CR 304.4, 307.4), as gorge's StartSpec.Validate refuses it. It
+// also panics on a Tapped, BackFace or Counters entry naming an Aura that
+// stays in the library (startAuraStays).
 func startRefuseNonPermanents(t *kop.Table, decks [MaxSeats][]CardID, st *Start) {
 	for p := range st.Seats {
 		sd := &st.Seats[p]
@@ -125,8 +127,33 @@ func startRefuseNonPermanents(t *kop.Table, decks [MaxSeats][]CardID, st *Start)
 			if t.Cards[c].Types&(kop.TInstant|kop.TSorcery) != 0 {
 				panic("kernel: start battlefield card is not a permanent")
 			}
+			if !startAuraStays(t, decks, p, sd, i) {
+				continue
+			}
+			// Left in the library: nothing of it is on the battlefield to
+			// tap, turn or count.
+			if startHas(sd.Tapped, i) || startHas(sd.BackFace, i) {
+				panic("kernel: start names an unattached Aura as tapped or back-faced")
+			}
+			for _, c := range sd.Counters {
+				if c.Card == i {
+					panic("kernel: start puts counters on an unattached Aura")
+				}
+			}
 		}
 	}
+}
+
+// startAuraStays reports whether Battlefield card i of seat p is an Aura with
+// no Attach entry: it enters with no host, which gorge refuses (CR 303.4g), so
+// it stays in the library. The entering face decides (the back face when
+// BackFace names it).
+func startAuraStays(t *kop.Table, decks [MaxSeats][]CardID, p int, sd *StartSeat, i int) bool {
+	c := decks[p][i]
+	if f := t.Cards[c].Faces; startHas(sd.BackFace, i) && len(f) > 1 {
+		c = f[1]
+	}
+	return t.Cards[c].Types&kop.TAura != 0
 }
 
 func startHas(l []int, i int) bool {
@@ -179,6 +206,9 @@ func (s *State) applyStart(decks [MaxSeats][]CardID, st *Start) {
 			s.place(o, kop.ZoneHand, false)
 		}
 		for _, i := range sd.Battlefield {
+			if startAuraStays(k.t, decks, p, sd, i) {
+				continue // refused on entry (CR 303.4g): stays in the library
+			}
 			s.startEnter(k, Obj(off[p]+i), pp, sd, i)
 		}
 		for _, i := range sd.Graveyard {
