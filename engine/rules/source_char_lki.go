@@ -287,7 +287,7 @@ func (s sourceCharSnapshot) count(body string) (int32, bool) {
 		n = s.toughness
 	case strings.HasPrefix(head, "CardCounters."):
 		scratch := state.Object{Counters: s.counters}
-		n = scratch.Counter(strings.TrimPrefix(head, "CardCounters."))
+		n = scratch.Counter(state.CanonicalCounterKind(strings.TrimPrefix(head, "CardCounters.")))
 	default:
 		return 0, false
 	}

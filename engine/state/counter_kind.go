@@ -40,9 +40,10 @@ var caseVariantCounterKinds = map[string]string{
 // onto its canonical spelling; anything else is returned unchanged. It is the
 // ONE home of the fold: the PutCounter parameter reader (effects), the
 // ChangeZone/token entry-counter helpers (effects), and the SubCounter /
-// RemoveAnyCounter cost parser (engine/rules/cost) and the Count$CardCounters
-// readers (effects) all call it, so a kind
-// cannot be placed under one spelling and read back under another.
+// RemoveAnyCounter cost parser (engine/rules/cost), the Count$CardCounters
+// readers (effects) and the departed-source LKI snapshot (engine/rules) all
+// call it, so a kind cannot be placed under one spelling and read back under
+// another.
 func CanonicalCounterKind(kind string) string {
 	if !strings.Contains(kind, ",") {
 		return canonicalCounterKindOne(kind)
