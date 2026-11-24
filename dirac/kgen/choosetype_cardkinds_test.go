@@ -28,10 +28,10 @@ func cardKindMask(t *testing.T, valid, invalid string) kop.TypeMask {
 // InvalidTypes$): ValidTypes$ narrows, InvalidTypes$ removes). The creature
 // spelling keeps C = 0, and the spellings the ask cannot answer refuse.
 func TestChooseTypeCardKinds(t *testing.T) {
-	const head = "Name:Kinds Probe\nManaCost:3\nTypes:Artifact\nK:ETBReplacement:Other:ChooseCT\n"
-	const tail = "S:Mode$ ReduceCost | ValidCard$ Card.ChosenType | Type$ Spell | Activator$ You | Amount$ 1 | Description$ Spells you cast of the chosen type cost {1} less to cast.\n"
+	const head = "Name:Kinds Probe\nManaCost:3\nTypes:Artifact\nK:ETBReplacement:Other:PickKind\n"
+	const tail = "S:Mode$ ReduceCost | ValidCard$ Card.ChosenType | Type$ Spell | Activator$ You | Amount$ 1 | Description$ Chosen-type spells you cast cost {1} less.\n"
 	probe := func(db string) string {
-		return head + "SVar:ChooseCT:DB$ ChooseType | " + db + " | SpellDescription$ As CARDNAME enters, choose a card type.\n" + tail
+		return head + "SVar:PickKind:DB$ ChooseType | " + db + " | SpellDescription$ As CARDNAME enters, choose a card type.\n" + tail
 	}
 	for _, c := range []struct{ name, db, valid, invalid string }{
 		{"Archon", "Type$ Card | ValidTypes$ Artifact,Enchantment,Instant,Sorcery,Planeswalker", "Artifact,Enchantment,Instant,Sorcery,Planeswalker", ""},
