@@ -65,6 +65,9 @@ func Build(forge *cards.Registry, compiled []*ir.Card, fb map[string]Fallback) (
 			oracle[i] = f.Oracle
 		}
 		text, err := PrintWith(c, oracle, forge.Tokens)
+		if err == nil {
+			text = followForge(text, fc)
+		}
 		if err != nil {
 			if u, ok := err.(*Unprintable); ok {
 				e.Reason = "unprintable:" + u.What

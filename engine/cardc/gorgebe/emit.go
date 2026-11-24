@@ -247,12 +247,29 @@ type pr struct {
 	// (a delayed trigger remembers what the previous step moved); program
 	// calls it with the chain tail and clears it.
 	onPrev  func(prev *node) error
+	zones   ir.ZoneSet             // the zones the ability being printed works from; 0 is the battlefield
 	face    *ir.Face               // the face being printed; nil in unit tests
 	excess  bool                   // the damage step before this one binds ExcessSVar$ Excess
 	prev    *ir.Step               // the step printed just before the one being printed, in its program
 	cdaAt   int                    // 1 + the index in lines of the last power-only characteristic-defining static, 0 for none
 	addCost []string               // additional costs of the spell being printed, in Cost$ spelling
 	tokens  map[string]*cards.Card // Forge token scripts by name (cards.Registry.Tokens); nil when unknown
+}
+
+// abilityZone is the single zone the ability being printed works from, or
+// ZoneNone when it works from several.
+func (p *pr) abilityZone() ir.Zone {
+	if p.face == nil { // a unit test's printer, with no ability
+		return ir.ZoneNone
+	}
+	zs := p.zones
+	if zs == 0 {
+		return ir.ZoneBattlefield
+	}
+	if z := zs.Zones(); len(z) == 1 {
+		return z[0]
+	}
+	return ir.ZoneNone
 }
 
 // The family printers. Each is nil until its file installs it from init.
@@ -395,6 +412,7 @@ func (p *pr) hasSVar(name string) bool {
 // render returns n as "<kind>$ <API> | K$ V | ... | SubAbility$ <name>",
 // adding each sub-ability as an SVar DB<API>[k] holding "DB$ ...".
 func (p *pr) render(kind string, n *node) string {
+	impliedTgtZone(n)
 	var b strings.Builder
 	b.WriteString(kind + "$ " + n.API)
 	for _, x := range n.Params {
@@ -404,6 +422,35 @@ func (p *pr) render(kind string, n *node) string {
 		b.WriteString(" | SubAbility$ " + p.sub("DB"+n.Sub.API, n.Sub))
 	}
 	return b.String()
+}
+
+// impliedTgtZone is the node-level spelling fixes: a discard's opponents are
+// "Opponent", and it drops a ChangeZone's TgtZone$ that only repeats its Origin$:
+// the cast census reads the target zone from Origin$ (engine/rules
+// cast_targets.go originImpliedTargetZone), and Forge writes it that way.
+func impliedTgtZone(n *node) {
+	if n.API == "Discard" {
+		// Forge spells the opponents of a discard "Opponent".
+		if d, ok := n.get("Defined"); ok && d == "Player.Opponent" {
+			n.set("Defined", "Opponent")
+		}
+		return
+	}
+	if n.API != "ChangeZone" {
+		return
+	}
+	tz, ok := n.get("TgtZone")
+	if !ok {
+		return
+	}
+	if o, _ := n.get("Origin"); o == tz && (o == "Graveyard" || o == "Exile") {
+		for i, x := range n.Params {
+			if x.K == "TgtZone" {
+				n.Params = append(n.Params[:i], n.Params[i+1:]...)
+				break
+			}
+		}
+	}
 }
 
 // sub adds n as an SVar named base[k] holding "DB$ ..." and returns the name,

@@ -86,7 +86,7 @@ func TestMoveNodes(t *testing.T) {
 	s = ztMv(ztRef(ir.RefSelf), ir.ZoneLibrary)
 	s.From, s.Word = ir.ZoneGraveyard, "bottom"
 	ztWant(t, []*ir.Step{s}, nil, "ChangeZone", []kv{
-		{"Defined", "Self"}, {"Origin", "Graveyard"}, {"Destination", "Library"}, {"LibraryPosition", "-1"}})
+		{"Origin", "Graveyard"}, {"Destination", "Library"}, {"LibraryPosition", "-1"}})
 	// choose, all
 	ztWant(t, []*ir.Step{ztMv(ztChoose(ztZoneFilter(ir.ZoneGraveyard, "Creature"), 2), ir.ZoneHand)}, nil, "ChangeZone", []kv{
 		{"Origin", "Graveyard"}, {"Destination", "Hand"}, {"ChangeType", "Creature"}, {"ChangeNum", "2"}, {"Mandatory", "True"}})

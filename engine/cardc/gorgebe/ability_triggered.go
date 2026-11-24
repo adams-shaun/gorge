@@ -165,6 +165,7 @@ func (p *pr) triggerParams(a *ir.Ability, outer, x *ir.Trigger) (params, error) 
 			if err != nil {
 				return nil, err
 			}
+			ps.set("Origin", "Any")
 			ps.set("Destination", "Battlefield")
 			ps.set("ValidCard", v)
 			zones()
