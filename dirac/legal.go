@@ -885,25 +885,13 @@ func (s *State) actScriptPaysCost(k *prep, sl Slot, ai int, a *kop.Ability, powe
 	// source, and the floating answer funds a pip no census unit makes
 	// (tapAnyColDeferExtra, CR 106.12a, 605.4a). Without that extra the census
 	// is complete and its decline is a proof: the bail stays.
-	anyColExtra := s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p))
-	if !f.any() && !anyColExtra {
+	if !f.any() && !s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
 		return s.reflAmtActPays(k, sl, a, p) // mana_reflamt.go
 	}
 	if s.filtNetNegative(k, f) != 0 || !s.reflAmtBoundAct(k, sl, a) {
 		return false
 	}
 	pa := MakeAction(AkActivate, TCode(s.perms[sl].obj), 0, uint8(ai))
-	if anyColExtra && s.filtRelaxable(k, f) && s.tapsDeferPlainGaps(k, p) && !s.relaxedWalkLists(k, pa) {
-		// gorge's relaxed proof prices each deferred gap at its own mana,
-		// the unfolded any-colour extra left out (paymentPlanRelaxedAlternatives'
-		// potentialTapExtra): on a relaxable census a play that gaps walk
-		// cannot list is proven insufficient and runs no prefix search (a
-		// {2} activation beside one Forest under Buried in the Garden). A
-		// filter or a gap the proof cannot enumerate (a chosen colour: Manor
-		// Gate under Fertile Ground) leaves the census unrelaxable, and the
-		// search runs.
-		return false
-	}
 	if (handManaOn(k) || graveManaOn(k)) && s.scriptRelax(k, p, f, false) && !s.relaxedWalkLists(k, pa) {
 		return false
 	}

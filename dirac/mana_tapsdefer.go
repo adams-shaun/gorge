@@ -251,22 +251,6 @@ func (s *State) tapsDeferred(k *prep, p uint8, sl Slot) bool {
 	return d
 }
 
-// tapsDeferPlainGaps reports whether every Taps-deferred gap of p makes one
-// fixed colour of mana in a plain tap: the shape gorge's relaxed proof
-// enumerates (paymentPlanRelaxedAlternatives' relaxedAddProduction). A chosen,
-// dynamic, identity, imprint, typed or snow view is not, and leaves gorge's
-// census unrelaxable (actScriptPaysCost's any-colour extra gate).
-func (s *State) tapsDeferPlainGaps(k *prep, p uint8) bool {
-	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
-		pc := s.manaPCGen(k, b.first())
-		if pc.manaCol == 0 || pc.manaCol&(pc.manaCol-1) != 0 || pc.manaChosen || pc.manaFixedChosen ||
-			pc.manaDyn || pc.manaOne || pc.manaIdent || pc.manaRefl || pc.manaTyped || pc.manaSnow || pc.manaSac {
-			return false
-		}
-	}
-	return true
-}
-
 // tapsCensusPain is the foreign tap damage the potential census's per-tap
 // view carries for sl (legal.go potCensus.tapPain): a Pain-class watcher's
 // amount, or a deferred TapsForMana watcher's disclosed literal payer damage
@@ -1248,7 +1232,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 				if cp != nil {
 					// the planned cast's payment: the node's floats price it,
 					// gorge's sr.priced node check (potential_script.go)
-					found = cp.priced(t, k, p) && !foreign
+					found = t.castRestPriced(k, p, cp.o, &cp.cost) && !foreign
 				} else {
 					var d Decision
 					t.restrOptions(k, &d, p)
