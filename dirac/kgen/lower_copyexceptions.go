@@ -4,6 +4,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // the copy exceptions read once for both CopyPermanent
@@ -103,6 +106,12 @@ func (lc *lowerCtx) copyExceptionsMyriad(ps *params, allowMyriad bool) (*lOverri
 		}
 		hasExc = true
 	}
+	if t, ok := ps.get("SetCreatureTypes"); ok {
+		if err := lc.copySetCreatureTypes(&exc, t); err != nil {
+			return nil, false, 0, err
+		}
+		hasExc = true
+	}
 	if c, ok := ps.get("AddColors"); ok {
 		// additive to the copy's colours (gorge :200-210); "Colorless" adds
 		// nothing and "All" is unmodeled here, so both refuse
@@ -166,4 +175,29 @@ func (lc *lowerCtx) copyExceptionsMyriad(ps *params, allowMyriad bool) (*lOverri
 		return nil, false, 0, refuse("CopyPermanent RemoveSubTypes %q without RemoveCardTypes$", v)
 	}
 	return &exc, hasExc, myriads, nil
+}
+
+// copySetCreatureTypes reads SetCreatureTypes$ "except it's a Frog" (CR
+// 707.9b; gorge copypermanent.go) into exc: the copy's creature types are
+// replaced, so its other subtypes stay (the kernel's RemoveCreatureSub) and
+// the named types join, after AddTypes$'.
+func (lc *lowerCtx) copySetCreatureTypes(exc *lOverride, t string) error {
+	if exc.AllCreatureTypes {
+		return refuse("CopyPermanent SetCreatureTypes %q beside changeling", t)
+	}
+	var words []string
+	for part := range strings.SplitSeq(t, ",") {
+		words = append(words, cards.SplitKeywordList(part)...)
+	}
+	if len(words) == 0 {
+		return refuse("CopyPermanent SetCreatureTypes %q", t)
+	}
+	for _, w := range words {
+		if !effects.CreatureTypeWords(w) || !lc.known(w) {
+			return refuse("CopyPermanent SetCreatureTypes %q", t)
+		}
+		exc.AddSubtypes = append(exc.AddSubtypes, w)
+	}
+	exc.RemoveCreatureSub = true
+	return nil
 }
