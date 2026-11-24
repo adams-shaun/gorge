@@ -94,12 +94,13 @@ func (s *State) FaceDownLooker(o Obj) uint8 {
 	return 255
 }
 
-// prepExileFD sets anyFaceExile: some program is a Dig with DigFaceDown.
+// prepExileFD sets anyFaceExile: some program is a Dig with DigFaceDown, or
+// a move's ExtExileFaceDown (zone_exilefacedownmove.go).
 func prepExileFD(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if in.Op == kop.OpDigEx && in.C>>3&kop.DigFaceDown != 0 {
+				if in.Op == kop.OpDigEx && in.C>>3&kop.DigFaceDown != 0 || in.Op == kop.OpExt && in.Ext() == kop.ExtExileFaceDown {
 					g.anyFaceExile = true
 				}
 			}
