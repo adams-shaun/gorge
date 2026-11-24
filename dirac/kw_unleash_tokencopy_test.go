@@ -8,21 +8,22 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// A token copy of an Unleash creature (The Scarab God reanimating
-// Thrill-Kill Assassin) is asked its CR 702.86a counter election before it
+// A token copy of an Unleash creature (The Scarab God reanimating an
+// Unleash 2/2, Thrill-Kill Assassin's shape) is asked its CR 702.86a counter election before it
 // enters: gorge mints the copy outside every zone and parks its battlefield
 // move on the ask (applyUnleashReplacement), so the kernel parks the minted
-// copy (raGenTokChoice, unleashTokKind) and enters it from the answer. On the
-// tail-60 evidence pool, which deals both cards.
+// copy (raGenTokChoice, unleashTokKind) and enters it from the answer. The mbc
+// pool deals The Scarab God but no Unleash card, so the test appends a
+// printed-Unleash 2/2 to its table (unleashScen's shape).
 func TestUnleashTokenCopyAskedBeforeEntry(t *testing.T) {
 	for _, yes := range []bool{true, false} {
-		set := cardsettest.Synth(t, "tail-60")
-		for _, n := range []string{"The Scarab God", "Thrill-Kill Assassin", "Island"} {
+		set := cardsettest.Set(t, "mbc")
+		for _, n := range []string{"The Scarab God", "Island"} {
 			if i, ok := set.Lookup(n); !ok || !set.Supported()[i] {
-				t.Fatalf("precondition: %s does not play in the tail-60 pool", n)
+				t.Fatalf("precondition: %s does not play in the mbc pool", n)
 			}
 		}
-		deck := []cardset.Entry{{Name: "The Scarab God", Count: 1}, {Name: "Thrill-Kill Assassin", Count: 2}, {Name: "Island", Count: 20}}
+		deck := []cardset.Entry{{Name: "The Scarab God", Count: 1}, {Name: "Island", Count: 20}}
 		tbl, da, err := set.MatchupN([][]cardset.Entry{deck, deck})
 		if err != nil {
 			t.Fatal(err)
@@ -33,11 +34,14 @@ func TestUnleashTokenCopyAskedBeforeEntry(t *testing.T) {
 				id[tbl.Cards[c].Name] = c
 			}
 		}
-		tka := id["Thrill-Kill Assassin"]
-		if !tbl.Cards[tka].Unleash {
-			t.Fatal("precondition: Thrill-Kill Assassin prints Unleash")
-		}
+		tka := kop.CardID(len(tbl.Cards))
+		tbl.Cards = append(tbl.Cards, kop.CardDef{
+			Name: "Test Unleasher", Types: kop.TCreature, Power: 2, Toughness: 2, Unleash: true,
+		})
 		sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
+		if !sc.k.unleash {
+			t.Fatal("precondition: the table's Unleash card turns on the unleash paths")
+		}
 		s := sc.s
 		god := sc.perm(id["The Scarab God"], 0)
 		victim := sc.grave(tka, 1, 1)[0]
