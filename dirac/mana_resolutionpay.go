@@ -728,7 +728,7 @@ func (s *State) hybResolveAct(k *prep, p uint8, c *kop.ManaCost, d *payDesc, rm 
 	var multi [2]dynUnit
 	nm := 0
 	if k.restrSrc {
-		av, multi, nm = s.restrSrcAvail(k, p, *d, &av, skip)
+		av, multi, nm = s.restrSrcAvail(k, p, *d, &av, skip, nil, 0)
 	}
 	return av.hybWitnessRiderMulti(*c, 0, false, multi[:nm])
 }
