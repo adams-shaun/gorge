@@ -1,0 +1,5 @@
+family: ask
+name: raGenWinCol
+value: next
+status: active
+doc: the lucky Condition-split source's colour choice in a resolution's mana window (CR 605.3b; mana_reswincol.go resWinColArm): the tapped source's arm colours in the askManaColour order, gorge's "mana_color" choice, ChGenManaChoice.

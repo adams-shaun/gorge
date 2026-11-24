@@ -151,10 +151,11 @@ func (s *State) askColPause(k *prep, sl Slot, census, potential bool) bool {
 }
 
 // windowPauseArm is windowTapWalk's pausing arm: a Condition-split source's colour
-// ask (splitWinColArm) or a colour-asking source's (askColPause). One call, so the
-// walk's own complexity stays under its ceiling.
-func (s *State) windowPauseArm(k *prep, sl Slot, census, potential bool) bool {
-	return s.splitWinColArm(k, sl, census, potential) || s.askColPause(k, sl, census, potential)
+// ask (splitWinColArm in a cast's window, resWinColArm in a resolution's) or a
+// colour-asking source's (askColPause). One call, so the walk's own complexity
+// stays under its ceiling.
+func (s *State) windowPauseArm(k *prep, p uint8, sl Slot, census, potential bool) bool {
+	return s.splitWinColArm(k, sl, census, potential) || s.resWinColArm(k, p, sl, census) || s.askColPause(k, sl, census, potential)
 }
 
 // windowFiltAskArm is windowTapWalk's silent arm: a hybrid-fee filter's lowest Combo
